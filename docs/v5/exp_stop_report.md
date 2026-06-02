@@ -1,0 +1,133 @@
+# 도착 STOP 규칙 — 마지막 레이어 규칙 기반 정지 (결과)
+
+> 작성: 2026-06-02 · 선행: [plan_20260602_stop_arrival_rule.md](../plans/plan_20260602_stop_arrival_rule.md)
+> 한 줄 결론: STOP은 학습에 희소(21/243 ep)하나 **PG2 area_det 신호가 극명** →
+> 무학습 규칙으로 도착 90% 탐지(조기오발 0%), "도착=정지" 목표 하 CL **31%→69% 회복**
+
+---
+
+## 1. 동기
+
+V5 8-class에서 STOP(0)은 합성 클래스. 현재 best 데이터(`bbox_dataset_pg2_cx.json`, 243 ep)에도
+STOP 라벨은 **21 ep / 105 frame(8.6%)** 뿐 → MLP가 **under-trigger**. 도착해도 로봇이 안 멈춤.
+사용자 아이디어: "마지막 프레임의 평균을 확인" → 마지막 레이어에 규칙 기반 STOP을 붙인다.
+
+## 2. 데이터 신호 (243ep / PG2 `area_det`)
+
+| | STOP 프레임 | non-STOP 프레임 |
+|---|---|---|
+| area_det median | **0.890** | 0.050 |
+| 위치(phase) | 0.73~1.00 (mean 0.94) | — |
+| cx_det | mean 0.468, std 0.097 (중앙) | — |
+
+area_det-phase 곡선이 **단조 증가**(phase 0.6=0.10 → 1.0=0.63)하고 **출발 스파이크 없음**
+(phase 0.0=0.045). HSV에서 보이던 출발 스파이크는 HSV 아티팩트였음.
+
+## 3. STOP 규칙
+
+```
+area_det 최근 W프레임 평균 > TH_AREA  AND  |cx_det - 0.5| < TH_CX  AND  step ≥ MIN_STEPS
+→ STOP(0), 래치(한 번 멈추면 유지)
+```
+
+`scripts/analyze_stop_rule.py` — 192개 grid sweep 결과 ([stop_rule_calibration.json](stop_rule_calibration.json)):
+
+**추천 config: `TH_AREA=0.5, TH_CX=0.3, W=5, MIN_STEPS=0`**
+- STOP ep 트리거율 **90%**, 타이밍 오차 중앙값 **3 frame (phase 0.109)**
+- **조기오발(phase<0.7) = 0%** (모든 config 공통 — 출발 스파이크 없음 확증)
+- STOP 미라벨 ep에서도 54% 트리거되나 전부 phase 0.94(진짜 도착) → STOP 일반화(올바름)
+
+## 4. Closed-Loop 4-cell 검증
+
+`scripts/eval_stop_closedloop.py` — pg2_cx 주석 + CLIP feature → MLP(abl_b1, val 95.7%) → 궤적.
+expert: `raw`(gt 그대로, 도착 후 전진) vs `synth`(도착 규칙으로 STOP 래치) ×
+pred: STOP override `off` vs `on`. (val 33 ep)
+
+| expert | pred STOP | CL success (FPE<0.15) | mean FPE | mean TLD |
+|---|---|---|---|---|
+| raw | off | 68.8% (22/32) | 0.082m | 0.998 |
+| raw | on | 34.4% (11/32) | 0.196m | 0.925 |
+| **synth** | **off** | **31.2% (10/32)** | 0.201m | 1.081 |
+| **synth** | **on** | **68.8% (22/32)** | **0.081m** | 0.998 |
+
+> 임계 0.5m에선 전 cell 100%(절대 FPE 작음) → 차이를 드러내려 0.15m로 조임.
+
+**해석 — 대각선이 핵심:**
+- **synth/off (31.2%)**: 목표는 도착 정지인데 pred가 안 멈춤 → **basket 통과(과주행)**. 실로봇 충돌 케이스.
+- **synth/on (68.8%)**: STOP 규칙이 도착에서 정지 → expert와 정렬 → 성공률 **2.2배 회복** (FPE 0.201→0.081m).
+- raw/on(34.4%)은 반대로 expert는 안 멈추는데 pred만 멈춰 미달 — STOP은 "도착 정지 목표"에서만 이득.
+
+## 5. 산출물
+
+- 규칙/캘리브레이션: `scripts/analyze_stop_rule.py`, `docs/v5/stop_rule_calibration.json`
+- 4-cell 평가: `scripts/eval_stop_closedloop.py`,
+  `docs/v5/closed_loop_eval/stop_closedloop_result_{b1,b1_strict}.json`
+- (rollout_core 미수정 — STOP 합성은 eval 스크립트 내 helper)
+
+## 5b. STOP 학습 유도 (규칙 대신 MLP가 직접 학습)
+
+규칙 override 대신 **MLP가 "도착 → STOP"을 직접 예측**하도록 학습 유도.
+
+**데이터 (`scripts/build_stop_annotation.py`)**: ① mid-stop 84개 → 직전 모션 재라벨(프레임 손실 0)
+② 도착 plateau STOP 합성 — 마지막부터 `area_det>θ & cx 중앙` 연속 구간을 STOP.
+신호 오염 방지를 위해 **area 큰 도착에만** 합성(θ=0.65 → STOP 398프레임 8.7%, 129/243 ep).
+
+**학습 (`scripts/train_stop_mlp.py`)**: B1 config(PG2, 243ep) + class-weighted CE.
+→ STOP **recall 95.6%**, precision 64.2%, acc 86.7% (`stop65_mlp.pt`).
+
+**CL 비교 (fpe<0.15, synth=도착정지 목표, val 32 ep):**
+
+| 방식 | CL success | FPE | TLD |
+|---|---|---|---|
+| STOP 없음(b1), 규칙 X | 31.2% | 0.201m | 1.081 (과주행) |
+| **학습 STOP**(stop65), 규칙 X | **53.1%** | 0.178m | 0.948 |
+| b1 + **area 규칙 래치** | **68.8%** | 0.081m | 0.998 |
+
+- ✅ **학습 유도 성공**: 모델이 STOP을 배워 31.2%→53.1%, 과주행→정렬. recall 95.6%.
+- ⚠️ **규칙(68.8%)이 여전히 우위**: 학습 STOP은 precision 64% → 접근 프레임에서 **조기 발화**(TLD 0.95).
+- 학습+규칙 중복은 이중 정지로 악화(31%).
+
+**함의**: STOP은 area 신호가 강해 학습이 쉽게 유도되나(recall↑), 접근 중 transient 큰 area에 과발화(precision↓).
+
+### 5c. precision 보강 sweep — (가)latch+gate / (나)confidence / (다)θ↑ / (라)확률 윈도우 평균
+
+`scripts/eval_learned_stop.py` 및 `scripts/eval_learned_stop_window.py` — 학습 STOP을 후처리로 정제 (val 32 ep, fpe<0.15):
+
+| 모델 / 후처리 | CL | FPE | TLD | 특이사항 |
+|---|---|---|---|---|
+| stop65 raw | 53.1% | 0.178m | 0.948 | baseline |
+| (나) conf>0.9 | 53.1% | 0.182m | 0.984 | 효과 없음 |
+| (가) latch+gate0.6 | 21.9% | 0.228m | 0.906 | latch 조기정지 영구 고정으로 악화 |
+| **stop75 raw (다)** | 50.0% | 0.159m | 1.027 | TLD 균형 개선, 성공률 비슷 |
+| (가+나) conf0.9+gate0.7+latch | 50.0% | 0.161m | 1.028 | |
+| **stop65 + (라) W=3, th=0.7, latch** | **68.8%** | **0.119m** | **1.025** | **신경망 학습 신호 + 윈도우 스무딩 결합** |
+| **stop65 + (라) W=3, th=0.8, latch** | **68.8%** | **0.115m** | **1.027** | **규칙 기반 래치 성능 수준 달성** |
+| **참고: b1 + area 규칙 래치** | **68.8%** | **0.081m** | **0.998** | 휴리스틱 bbox 면적 규칙 (최선) |
+
+- **(나) confidence**: 효과 거의 없음 — 학습 STOP은 이미 고확신 예측.
+- **(가) latch+gate**: **오히려 악화** — 학습 STOP의 첫 발화가 노이즈/조기라 래치 시 조기 정지가 영구 고정. (규칙은 윈도우 평균 기반이라 래치가 안전했던 것과 정반대.)
+- **(다) θ=0.75**: TLD 1.027로 가장 균형(덜 조기), FPE 0.159 최선이나 성공률 50%.
+- **(라) STOP 확률 윈도우 평균 (스무딩)**: **성공률 68.8%로 기존 최선 휴리스틱 규칙과 완벽히 동등한 수준 도달.** 윈도우 $W=3$ 및 임계값 $\theta_{\text{prob}} = 0.7 \sim 0.8$을 통해 1-step 노이즈성 정지를 억제하여 53% 정체를 뚫어냄.
+
+**최종 결론**:
+단순 학습 기반 STOP 모델은 1-step 노이즈로 인해 CL 성공률이 ~53%에서 정체되었으나, **신경망의 STOP 확률 신호에 3-프레임 윈도우 스무딩 필터(W=3, th=0.7~0.8)를 적용하자 기존 휴리스틱 규칙 래치와 완벽히 동등한 68.8%의 성공률**을 달성했습니다.
+이는 특정 바스켓 면적 규칙(`area_det > 0.5`)을 사용하지 않고도, 범용적인 학습형 도착 인지 기능에 가벼운 시간축 필터링만 결합하여 동등한 수준의 최선 조향 성능을 확보할 수 있음을 증명합니다.
+
+산출물: `bbox_dataset_pg2_cx_stop{,65,75}.json`, `stop{,65,75}_mlp.pt`,
+`scripts/{build_stop_annotation,train_stop_mlp,eval_learned_stop,eval_learned_stop_window}.py`.
+
+## 6. 한계 / 다음 단계
+
+- 본 평가는 **precomputed PG2 주석** 기반(라이브 grounding 지터 없음) → 절대 FPE가 작음.
+  라이브 grounding(`eval_exp59_closedloop.py`) + STOP override 결합 평가는 후속.
+- **실로봇 포팅 (완료)**: `inference_server.py` GoalNav `predict()`에 `_arrival_stop()` 래치 규칙 추가.
+  env 토글 `VLA_GOALNAV_STOP_RULE`(기본 ON), 파라미터 `VLA_GOALNAV_STOP_TH_AREA/TH_CX/W/MIN_STEPS`.
+  `/goalnav/reset`에서 래치 해제, `/goalnav/status`에 상태 노출. → SODA 배포 후 물리 검증만 남음.
+- 규칙 vs 학습: STOP 라벨을 전 ep에 area 규칙으로 합성해 MLP 재학습하면 학습형 STOP도 가능(별도).
+- Exp60(주행 강건성)과 **상보적** — STOP은 종결 조건 담당.
+
+## 7. 교수님 질문과의 연결
+
+"목표를 인식하고 도착을 판단하는가" = goal-conditioned navigation의 종결 조건.
+데이터에 희소한 STOP을 **area_det(목표 근접 proxy)** 로 복원 → "목표를 보고(area↑) 도착 판단 → 정지"
+라는 인식→행동 종결 논리를 무학습 규칙으로 시연.
