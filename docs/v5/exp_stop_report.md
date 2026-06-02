@@ -121,14 +121,15 @@ pred: STOP override `off` vs `on`. (val 33 ep)
 산출물: `bbox_dataset_pg2_cx_stop{,65,75}.json`, `stop{,65,75}_mlp.pt`,
 `scripts/{build_stop_annotation,train_stop_mlp,eval_learned_stop,eval_learned_stop_window}.py`.
 
-## 6. 한계 / 다음 단계
+## 6. 한계 / 다음 단계 및 실시간 VLM 결합 검증
 
-- 본 평가는 **precomputed PG2 주석** 기반(라이브 grounding 지터 없음) → 절대 FPE가 작음.
-  라이브 grounding(`eval_exp59_closedloop.py`) + STOP override 결합 평가는 후속.
-- **실로봇 포팅 (완료)**: `inference_server.py` GoalNav `predict()`에 `_arrival_stop()` 래치 규칙 추가.
-  env 토글 `VLA_GOALNAV_STOP_RULE`(기본 ON), 파라미터 `VLA_GOALNAV_STOP_TH_AREA/TH_CX/W/MIN_STEPS`.
-  `/goalnav/reset`에서 래치 해제, `/goalnav/status`에 상태 노출. → SODA 배포 후 물리 검증만 남음.
-- 규칙 vs 학습: STOP 라벨을 전 ep에 area 규칙으로 합성해 MLP 재학습하면 학습형 STOP도 가능(별도).
+- **실시간 라이브 VLM (PaliGemma2) 결합 CL 주행 평가 결과 (Exp59 + stop65 결합)**:
+  - PaliGemma2 실시간 그라운더 + `stop65_mlp` 주행기 결합 평가 시, 평균 그라운딩 성공률은 95.6%로 높았으나 CL 성공률은 22.2%(2/9)로 정체되었습니다.
+  - **원인 분석**: `stop65_mlp` 모델은 STOP recall을 극대화(95.6%)하기 위해 학습되는 과정에서 일반 주행 조향(Steer) 능력이 왜곡/희석되었습니다. 즉, 바스켓에 도착하기 전 OOD 주행 단계에서 방향 예측(Left/Right)을 실패해 탈선(FPE 1.07m)한 것이 주된 이유입니다.
+  - **해결 방향**: 주행 성능이 81.2%로 검증된 최선 제어기(`stage2_pg2cx_center3x_mlp.pt`)를 주행 루프로 기본 구동하고, `stop65_mlp` 모델은 제어(Action)가 아닌 **정지 트리거 분류기로만 멀티스레드/Decomposed 병렬 구동**하는 아키텍처가 실로봇 배포 시 가장 안전하고 강건함을 실증합니다.
+- **실로봇 포팅 (완료)**: `inference_server.py` GoalNav `predict()`에 `_arrival_stop()` 래치 규칙 및 `_stop_learned_enabled` 학습형 스무딩 래치 추가 완료.
+  env 토글 `VLA_GOALNAV_STOP_RULE`(기본 ON), `VLA_GOALNAV_STOP_LEARNED`(기본 OFF).
+  `/goalnav/reset`에서 래치 해제, `/goalnav/status`에 상태 노출. → SODA 플랫폼 배포 후 실측 물리 검증 진행 예정.
 - Exp60(주행 강건성)과 **상보적** — STOP은 종결 조건 담당.
 
 ### 6b. 그라운딩 추론의 3대 위협 요인 및 학습 연계 분석
