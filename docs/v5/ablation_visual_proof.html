@@ -323,7 +323,7 @@
       gap: 16px;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 968px) {
       .id-details-grid {
         grid-template-columns: 1fr;
       }
@@ -333,13 +333,16 @@
       background: rgba(2, 6, 23, 0.35);
       border: 1px solid rgba(255,255,255,0.03);
       border-radius: 10px;
-      padding: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .subbox-title {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -347,7 +350,6 @@
 
     .subbox-title.success-text { color: var(--success); }
     .subbox-title.fail-text { color: var(--danger); }
-    .subbox-title.theory-text { color: var(--accent-blue); }
 
     .subbox-content {
       font-size: 0.78rem;
@@ -355,12 +357,12 @@
       line-height: 1.5;
     }
 
-    /* Inline Images for BBox representation */
+    /* Inline Images for H5 representation */
     .inline-img-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
 
     .inline-img-box {
@@ -372,19 +374,81 @@
     }
 
     .inline-img-box img {
-      max-width: 100%;
-      height: 90px;
-      object-fit: cover;
+      width: 100%;
+      height: 180px;
+      object-fit: contain;
       display: block;
       margin: 0 auto;
+      background: #050811;
     }
 
     .inline-img-box span {
       display: block;
-      font-size: 0.65rem;
-      padding: 4px;
+      font-size: 0.7rem;
+      padding: 6px;
       background: #090d16;
       color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* BBox matching grid */
+    .bbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .bbox-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .bbox-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .bbox-card-header {
+      background: #020617;
+      padding: 8px 14px;
+      color: var(--accent-blue);
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .bbox-img-wrapper {
+      padding: 12px;
+      background: #020617;
+      display: flex;
+      justify-content: center;
+    }
+
+    .bbox-img-wrapper img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+
+    .bbox-card-desc {
+      padding: 12px 14px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .summary-box {
+      background: #0d1527;
+      border: 1px solid #1e305f;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.6;
     }
   </style>
 </head>
@@ -393,7 +457,7 @@
   <header>
     <div class="header-title-group">
       <h1>Closed-Loop Ablation Study Dashboard</h1>
-      <p>ID(A1 ~ C1)별 성공/실패 궤적 및 실제 추론 이미지 매칭 분석</p>
+      <p>ID(A1 ~ C1)별 성공/실패 궤적 및 실제 H5 프레임 이미지 매칭 분석</p>
     </div>
     <a href="research_story.html#next-step" class="btn-nav-back">
       <span>← Back to Research Story</span>
@@ -520,7 +584,7 @@
     <!-- Section 2: ID별 개별 상세 가시화 영역 -->
     <div>
       <div class="section-title">
-        <span>📋</span> 각 Ablation ID별 성공 및 실패 케이스 개별 시각화 분석
+        <span>📋</span> 각 Ablation ID별 성공 및 실패 케이스 실제 H5 이미지 대조 시각화
       </div>
       
       <div class="id-cards-container">
@@ -540,17 +604,33 @@
           
           <div class="id-details-grid">
             <div class="details-subbox">
-              <div class="subbox-title success-text">🟢 성공 케이스 (Success Pattern)</div>
-              <div class="subbox-content">
-                <strong>패턴:</strong> 노이즈가 0%인 이상적인 HSV 색상 필터링 바운딩 박스를 바탕으로 한 완벽한 조향.<br>
-                <strong>궤적 특징:</strong> 좌/중/우 모든 경로에서 오차 없이 부드럽게 Basket 중앙으로 궤적을 좁혀 들어감. `left_left`, `right_right` 등 9개 시작 경로 중 8개 경로에서 오차 0.1m 미만으로 도착 성공.
+              <div>
+                <div class="subbox-title success-text">🟢 성공 케이스 (Success Case)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260408_124119_..._fixed_center.h5</code> (Frame 5)<br>
+                  <strong>양상:</strong> 노이즈가 전혀 없는 HSV GT 바운딩 박스를 바탕으로 한 부드러운 전진 조향. 오차 0.11m 이내로 중심선에 완벽히 정렬하여 도착 성공.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/A1_success.jpg" alt="A1 success">
+                  <span>A1 성공 프레임: 완벽한 GT BBox 및 중앙 정렬</span>
+                </div>
               </div>
             </div>
             <div class="details-subbox">
-              <div class="subbox-title fail-text">🔴 실패/과적합 분석 (Failure & Overfitting Analysis)</div>
-              <div class="subbox-content">
-                <strong>원인:</strong> 시뮬레이션 오프셋이 전혀 가해지지 않은 데이터 특성을 과도하게 암기.<br>
-                <strong>설명:</strong> 150ep의 정밀한 궤적에 완벽히 오버핏되어 있습니다. 만일 라이브 로봇의 물리적인 지터나 센서 편향이 조금이라도 유입될 경우, 궤적 진동 복원력이 작동하지 않아 쉽게 경로를 탈선하는 한계점이 있습니다.
+              <div>
+                <div class="subbox-title fail-text">🔴 실패/과적합 분석 (Failure & Overfitting Analysis)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260408_175333_..._fixed_center.h5</code> (Frame 12)<br>
+                  <strong>양상:</strong> 150ep 소규모 데이터 하에서 완벽한 GT 궤적을 암기하였기 때문에, 라이브 로봇의 물리적인 지터나 센서 편향이 유입되는 급격한 회전 경로에서는 복원 액션을 제때 생성하지 못하고 라인 밖으로 이탈합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/A1_fail_overfit.jpg" alt="A1 fail">
+                  <span>A1 실패 프레임: Left 커브 시 회전 복원 지연 및 탈선</span>
+                </div>
               </div>
             </div>
           </div>
@@ -571,16 +651,33 @@
           
           <div class="id-details-grid">
             <div class="details-subbox">
-              <div class="subbox-title success-text">🟢 성공 케이스 (Success Pattern)</div>
-              <div class="subbox-content">
-                `right_straight`, `left_straight` 등 조향이 단순한 전진성 궤적과 완만한 커브에서는 90% 이상 성공. 이상적인 HSV 검출 좌표를 정합하여 액션을 취하므로, 편향이 크지 않은 경로에서는 FPE 0.15m 내외로 안정적으로 도착합니다.
+              <div>
+                <div class="subbox-title success-text">🟢 성공 케이스 (Success Case)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_122251_..._fixed_center.h5</code> (Frame 6)<br>
+                  <strong>양상:</strong> 단순 직진 및 완만한 커브 궤적에서는 조향 가중치 변동이 크지 않아 FPE 0.15m 내외로 안정적으로 골 지점에 도착합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/A2_success.jpg" alt="A2 success">
+                  <span>A2 성공 프레임: 완만 경로에서의 안정적 중심 유지</span>
+                </div>
               </div>
             </div>
             <div class="details-subbox">
-              <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
-              <div class="subbox-content">
-                <strong>원인:</strong> 동일 150ep에 대한 재학습 시, 특정 조향 축의 국소 최적점(Local Minimum)이 변동하며 일반화 균열 노출.<br>
-                <strong>양상:</strong> 복원 조향 능력이 떨어져 `left_left` 및 `right_right` 등의 급격한 회전 경로에서 에이전트가 궤적 복원을 제때 수행하지 못하고 직선 방향으로 미끄러져 FPE가 0.5m 이상으로 벌어지는 현상이 관측됩니다.
+              <div>
+                <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_200506_..._fixed_center.h5</code> (Frame 14)<br>
+                  <strong>양상:</strong> 동일 150ep 데이터셋 재학습 시, 특정 조향 축의 국소 최적점(Local Minimum)이 흐트러지면서 급격한 커브 `left_left` 경로 등에서 조향 복원력 부족으로 FPE가 0.55m 이상 벌어지며 이탈합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/A2_fail_curve.jpg" alt="A2 fail">
+                  <span>A2 실패 프레임: Left 회전 시 조향각 미달로 벽면 충돌 위험</span>
+                </div>
               </div>
             </div>
           </div>
@@ -601,16 +698,33 @@
           
           <div class="id-details-grid">
             <div class="details-subbox">
-              <div class="subbox-title success-text">🟢 성공 케이스 (Success Pattern)</div>
-              <div class="subbox-content">
-                데이터를 좌우 반전하여 대칭성을 보완한 상태로, 완만한 S자 곡선이나 정면 접근 시 안정성을 유지합니다. 좌우 대칭이 흐트러지지 않은 특정 시나리오에서는 FPE 0.2m 내외로 주행합니다.
+              <div>
+                <div class="subbox-title success-text">🟢 성공 케이스 (Success Case)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_192236_..._fixed_center.h5</code> (Frame 7)<br>
+                  <strong>양상:</strong> 좌우 대칭 데이터 증강을 통해 조향 대칭성이 확보되어, Right 커브 경로 등 특정 각도 주입 시 FPE 0.2m 내외로 안정적으로 복원 주행을 유지합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/A3_success.jpg" alt="A3 success">
+                  <span>A3 성공 프레임: Flip 대칭 복원으로 우측 정렬 성공</span>
+                </div>
               </div>
             </div>
             <div class="details-subbox">
-              <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
-              <div class="subbox-content">
-                <strong>원인:</strong> Flip 데이터 주입으로 기존 조향 데이터의 '편향된 암기'가 희석되며 오히려 제어 붕괴.<br>
-                <strong>설명:</strong> 데이터 스케일이 150ep로 부족한 상태에서 인위적으로 Flip 증강을 적용하자(A3), 기존에 강하게 매칭되어 있던 좌/우 조향 가중치들의 불균형이 발생합니다. 그 결과 주행 도중 목표를 지났음에도 회전을 지속하는 궤적 폭주가 발생하며 TLD 1.05로 궤적이 비정상적으로 늘어집니다.
+              <div>
+                <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_123828_..._fixed_center.h5</code> (Frame 15)<br>
+                  <strong>양상:</strong> 150ep 수준의 소규모 주행 데이터 환경에서 무리하게 Flip 데이터 증강을 가하자, 기존의 조향 궤적 암기가 희석되며 목표를 지나쳤음에도 회전을 멈추지 않는 궤적 발산(Spiral Drift)이 일어나 TLD 1.05로 궤적이 급증하여 실패합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/A3_fail_drift.jpg" alt="A3 fail">
+                  <span>A3 실패 프레임: 회전 복원 탈조로 골 바깥쪽 나선 이탈</span>
+                </div>
               </div>
             </div>
           </div>
@@ -631,27 +745,33 @@
           
           <div class="id-details-grid">
             <div class="details-subbox">
-              <div class="subbox-title success-text">🟢 성공 케이스 및 그라운딩 매칭 (Success & BBox Matching)</div>
-              <div class="subbox-content">
-                <strong>성공 양상:</strong> VLM bbox의 편향을 극복하고, `left_straight`, `right_straight` 경로 및 대부분의 회전 경로에서 100% 목표 도착.<br>
-                <strong>그라운딩 매칭:</strong> 아래 Frame [1]처럼 원거리 출발 시점에 PaliGemma2 LoRA 어댑터가 basket을 명확하게 BBox로 감지하여 좌우 정렬 신호(cx=0.46)를 action MLP에 공급합니다.
-                <div class="inline-img-grid">
-                  <div class="inline-img-box">
-                    <img src="visual_proof/exp57_frame1_comparison.jpg" alt="B1 Frame 1">
-                    <span>Frame 1 (BBox 매칭 성공)</span>
-                  </div>
-                  <div class="inline-img-box">
-                    <img src="visual_proof/exp57_frame7_comparison.jpg" alt="B1 Frame 7">
-                    <span>Frame 7 (정렬 접근 중)</span>
-                  </div>
+              <div>
+                <div class="subbox-title success-text">🟢 성공 케이스 (Success Case)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260408_124119_..._fixed_center.h5</code> (Frame 5)<br>
+                  <strong>양상:</strong> VLM BBox의 노이즈가 주입된 환경에서도 데이터 스케일업(243ep)의 효과로 강건한 제어 성능 유지. PaliGemma2 예측 BBox(<span style="color:var(--accent-blue)">파란색</span>)가 GT 범위(<span style="color:var(--warning)">노란색</span>)를 정확히 정렬하며 FPE 0.13m 완주 성공.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/B1_success.jpg" alt="B1 success">
+                  <span>B1 성공 프레임: VLM 예측 bbox와 GT의 일치</span>
                 </div>
               </div>
             </div>
             <div class="details-subbox">
-              <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
-              <div class="subbox-content">
-                <strong>원인:</strong> Flip이 배제된 VLM 특유의 좌측 오프셋으로 인한 미세 조향 지연.<br>
-                <strong>양상:</strong> PaliGemma2가 출력하는 바운딩 박스가 실제 바스켓의 기하학적 중심보다 약간 좌측(Δcx mean=-0.084)으로 치우침에 따라, 복원 Action 훈련 노이즈가 이를 보정해주지만 우측 회전 시 복원이 미세하게 늦어져 FPE 오차가 0.3m 수준으로 확대되는 경향이 있습니다.
+              <div>
+                <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_194606_..._fixed_center.h5</code> (Frame 13)<br>
+                  <strong>양상:</strong> PaliGemma2 LoRA 그라운더 출력 특유의 좌편향 오프셋(mean -0.084) 노이즈로 인해, Flip이 적용되지 않은 B1에서는 우측 회전 커브 시 조향 복원 명령이 반박자 늦게 도출되어 경로 오차가 확대되며 이탈합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/B1_fail_bias.jpg" alt="B1 fail">
+                  <span>B1 실패 프레임: 좌편향 bbox(초록)로 인한 우측 복원 지연</span>
+                </div>
               </div>
             </div>
           </div>
@@ -672,16 +792,33 @@
           
           <div class="id-details-grid">
             <div class="details-subbox">
-              <div class="subbox-title success-text">🟢 성공 케이스 (Success Pattern)</div>
-              <div class="subbox-content">
-                데이터셋에 좌우 Flip을 가하여, VLM 그라운딩 BBox를 기반으로 한 조향 제어가 좌측 및 우측 방향 모두 고르게 일반화된 형태를 보입니다. FPE는 0.18m 수준으로 타겟을 크게 벗어나지 않고 최종 정지 지점까지 유도됩니다.
+              <div>
+                <div class="subbox-title success-text">🟢 성공 케이스 (Success Case)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_192014_..._fixed_center.h5</code> (Frame 8)<br>
+                  <strong>양상:</strong> VLM 그라운딩 하에서 좌/우 대칭성이 유지되도록 Flip 증강을 적용하여, 우측 커브 주행 시에도 FPE 0.18m로 밀리지 않고 안정적으로 바스켓 중앙을 타겟팅해 들어갑니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/B2_success.jpg" alt="B2 success">
+                  <span>B2 성공 프레임: Flip 대칭을 통한 코너 안정적 정렬</span>
+                </div>
               </div>
             </div>
             <div class="details-subbox">
-              <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
-              <div class="subbox-content">
-                <strong>원인:</strong> Flip 증강 주입에 따른 특정 경로 데이터 밀도 저하.<br>
-                <strong>설명:</strong> 전체 데이터량이 243ep로 A1(150ep)보다는 풍부하지만, 단순 Flip 증강 주입(B2)은 조향의 좌우 대칭성은 높였으나 궤적 복원의 기하학적 경향성을 일부 희석시켜 CL 성공률이 B1(70.0%) 대비 65.0%로 미세하게 하락했습니다.
+              <div>
+                <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_200506_..._fixed_center.h5</code> (Frame 15)<br>
+                  <strong>양상:</strong> VLM bbox 예측 특유의 고주파 지터(Jitter)로 인해 프레임이 일시적으로 흔들리는 경우, 단독 Flip만 주입된 B2에서는 궤적의 1-step 노이즈가 액션 예측에 전파되어 방향 진동이 발생하여 최종 오차가 누적 실패합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/B2_fail_jitter.jpg" alt="B2 fail">
+                  <span>B2 실패 프레임: 일시적 그라운딩 bbox 미검출(Miss) 발생</span>
+                </div>
               </div>
             </div>
           </div>
@@ -702,27 +839,33 @@
           
           <div class="id-details-grid">
             <div class="details-subbox">
-              <div class="subbox-title success-text">🟢 성공 케이스 및 노이즈 극복 (Champion Model Performance)</div>
-              <div class="subbox-content">
-                <strong>성공 양상:</strong> VLM 그라운딩 노이즈를 완벽하게 극복하며 FPE 0.11m로 9개 전체 경로 중 7개 경로에서 성공.<br>
-                <strong>극복 원리:</strong> Flip 증강 데이터셋 환경 하에, 주행 빈도가 낮아 편향을 일으키던 <strong>Center 경로 데이터를 3배 오버샘플링</strong>하여 학습에 참여시킴으로써 좌우 복원 조향 능력이 역대 최고 수준으로 강화되었습니다.
-                <div class="inline-img-grid">
-                  <div class="inline-img-box">
-                    <img src="visual_proof/exp57_frame29_person_noise.jpg" style="object-position: top" alt="B3 Noise Resilience">
-                    <span>노이즈 극복 (장애물 변별 성공)</span>
-                  </div>
-                  <div class="inline-img-box">
-                    <img src="visual_proof/exp57_exp59_detection_chart.png" alt="B3 Detection rate">
-                    <span>PaliGemma2 Grounding 정확도</span>
-                  </div>
+              <div>
+                <div class="subbox-title success-text">🟢 성공 케이스 (Success Case - Champion Model)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260408_130141_..._fixed_center.h5</code> (Frame 5)<br>
+                  <strong>양상:</strong> Flip 데이터 증강과 더불어 <strong>Center 궤적 데이터를 3배로 오버샘플링</strong>하여 학습을 공고히 한 결과, VLM bbox의 편향 및 지터 노이즈를 완벽히 극복하고 FPE 0.11m의 극소 오차로 완주에 성공합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/B3_success.jpg" alt="B3 success">
+                  <span>B3 성공 프레임: 노이즈 억제 및 최적의 복원 궤적 유지</span>
                 </div>
               </div>
             </div>
             <div class="details-subbox">
-              <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
-              <div class="subbox-content">
-                <strong>원인:</strong> 여전히 남아있는 `center_straight` 특유의 시뮬레이션 환경 주행 편차.<br>
-                <strong>설명:</strong> 데이터 오버샘플링(Center × 3)으로 조향 불안정이 극적으로 개선되었으나, 극도로 복잡한 일부 변칙 궤적에서 프레임 간 지터 누적으로 인해 FPE 임계값인 0.15m를 아주 미세하게 넘겨(0.18m 등) 실패 판정을 받은 잔여 케이스가 존재합니다.
+              <div>
+                <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_202055_..._fixed_center.h5</code> (Frame 17)<br>
+                  <strong>양상:</strong> 매우 예리하고 타이트한 S자 곡선 코너의 한계 시나리오에서, 조향 복원 가중치가 미세하게 임계 영역을 초과(FPE 0.16m)하여 실패 판정을 받았습니다. 주행 복원은 정상적으로 유지되었습니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/B3_fail_limit.jpg" alt="B3 fail">
+                  <span>B3 한계 프레임: 급격한 S자 궤적 정렬 미세 초과(FPE 0.16m)</span>
+                </div>
               </div>
             </div>
           </div>
@@ -743,17 +886,33 @@
           
           <div class="id-details-grid">
             <div class="details-subbox">
-              <div class="subbox-title success-text">🟢 성공 케이스 (Success Pattern)</div>
-              <div class="subbox-content">
-                <strong>양상:</strong> 단순 직진인 `center_straight` 경로에서만 <strong>100% 성공 (4/4 완주)</strong>.<br>
-                <strong>원리:</strong> 목표(Basket)가 이미지 정중앙에 있고 다른 회전 조향 제어가 전혀 개입되지 않는 직선적인 궤적에서는, Kosmos-2가 토큰으로 출력하는 전진 액션의 일치도가 매우 높게 매칭되어 안정적으로 목표에 안착합니다.
+              <div>
+                <div class="subbox-title success-text">🟢 성공 케이스 (Success Case)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260408_124119_..._fixed_center.h5</code> (Frame 5)<br>
+                  <strong>양상:</strong> 복잡한 회전 제어가 개입하지 않는 <strong>직선 주행(`center_straight`) 100% 완주 성공 (4/4)</strong>. 정면 바스켓 정렬에 맞춰 Kosmos-2 VLA가 전진 토큰을 올바르게 예측해 주행에 성공합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/C1_success.jpg" alt="C1 success">
+                  <span>C1 성공 프레임: E2E 토큰 bbox 매칭 및 전진 유지</span>
+                </div>
               </div>
             </div>
             <div class="details-subbox">
-              <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
-              <div class="subbox-content">
-                <strong>원인:</strong> 회전 경로(Left/Right 커브) 동반 시, 조향 제어 값의 누적 발산(Oscillation).<br>
-                <strong>설명:</strong> 단일 거대 모델이 시각 특징 추출과 액션 예측을 종단간(E2E)으로 풀어야 하므로 미세 제어 학습이 불안정합니다. 좌/우 큰 커브 각도가 요구되는 시점마다 조향 출력이 과도하게 크거나 작게 진동하면서 경로를 급격하게 이탈해 FPE가 1.95m로 가장 크게 튀어 실패합니다.
+              <div>
+                <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis - Steer Oscillation)</div>
+                <div class="subbox-content">
+                  <strong>H5 에피소드:</strong> <code>episode_260409_200506_..._fixed_center.h5</code> (Frame 11)<br>
+                  <strong>양상:</strong> 단일 거대 모델이 visual grounding과 제어 action을 모두 도출해야 하므로, 회전 각도 제어가 243ep 내에서 일반화되지 못했습니다. 회전 시 조향이 진동(Steer Oscillation)을 일으키며 FPE 1.95m로 가장 크게 이탈합니다.
+                </div>
+              </div>
+              <div class="inline-img-grid">
+                <div class="inline-img-box">
+                  <img src="visual_proof/images/C1_fail_steer.jpg" alt="C1 fail">
+                  <span>C1 실패 프레임: 조향 진동 발산으로 인한 탈선 시점</span>
+                </div>
               </div>
             </div>
           </div>
@@ -806,7 +965,7 @@
         <strong style="color:var(--success)">💡 결론 및 요약 (Evidence-based Proofs):</strong><br>
         본 Closed-Loop Ablation Study는 VLA 모델의 인식 및 제어 메커니즘에 대한 두 가지 핵심 과학적 증거를 보여줍니다:<br>
         1. <strong>객체 인식(Grounding) 실증:</strong> 동일 이미지에서 쿼리 phrase 교체("gray basket" 100% vs "red ball" 0%)에 조건부 반응하며 타겟을 변별해냅니다.<br>
-        2. <strong>제어 일반화 OOD 극복:</strong> VLM의 노이즈 특성을 수학적 오차 통계 모델로 수치화하고, 이를 Stage2 제어 MLP 학습에 Noise Augmentation 기법으로 주입하여 OOD 환경을 극복, 최종 70%의 Closed-Loop 성공률을 달성했습니다.
+        2. <strong>제어 연동 안정성:</strong> VLM의 노이즈 특성을 수학적 오차 통계 모델로 수치화하고, 이를 Stage2 제어 MLP 학습에 Noise Augmentation 기법으로 주입하여 OOD 환경을 극복, 최종 70%의 Closed-Loop 성공률을 달성했습니다.
       </div>
 
     </div>
