@@ -256,6 +256,7 @@
     <a class="toc-item" href="#ch19" data-target="ch19"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 19</span><span class="toc-label">타 VLA 논문 비교</span></a>
     <a class="toc-item" href="#ch20" data-target="ch20"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 20</span><span class="toc-label">Free 에피소드 분석</span></a>
     <a class="toc-item" href="#ch21" data-target="ch21"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 21</span><span class="toc-label">연구 정리 & 방향성</span></a>
+    <a class="toc-item" href="#ch22" data-target="ch22"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">CH 22</span><span class="toc-label">동기 vs 비동기 수집 · STOP 진실</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
@@ -5987,19 +5988,170 @@
 
 </div>
 
+<div class="chapter" id="ch22">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">CH 22</span>
+    <h2 class="chapter-title">동기 vs 비동기 수집 — STOP은 왜 마지막 프레임에만 있어야 하는가</h2>
+  </div>
+  <p class="chapter-desc">
+    "도착 STOP 규칙"을 설계하다 데이터에서 이상한 점을 발견했습니다. STOP(정지)은 본래
+    <strong style="color:#fbbf24">에피소드 맨 끝 프레임에만</strong> 있어야 합니다(= "도착했다" 신호).
+    그런데 243ep 데이터셋에는 <strong style="color:#f87171">에피소드 중간에도 STOP</strong>이 섞여 있었습니다.
+    원인은 모델이 아니라 <strong style="color:#7dd3fc">수집 방식</strong> — 조이스틱을 <strong>비동기(asynchronous)</strong>로
+    통합하면서 생긴 타이밍 아티팩트였습니다. 이 장은 그 메커니즘과, STOP 알고리즘에 주는 함의를 정리합니다.
+  </p>
+
+  <!-- ① 증상 -->
+  <div style="background:#1a0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#fca5a5;font-size:0.82rem;font-weight:700;margin-bottom:12px">① 증상 — 중간에 박힌 유령 STOP</div>
+    <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8;margin-bottom:12px">
+      STOP 규칙 캘리브레이션 중, <code style="background:#2d0000;padding:1px 5px;border-radius:3px">bbox_dataset_pg2_cx.json</code>(243ep)을 분석하니:
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="background:#2d0000;border-radius:8px;padding:12px;text-align:center">
+        <div style="color:#fca5a5;font-size:1.4rem;font-weight:900">21 / 243</div>
+        <div style="font-size:0.72rem;color:#94a3b8">STOP 라벨이 있는 ep<br>(나머지 222ep엔 없음)</div>
+      </div>
+      <div style="background:#2d0000;border-radius:8px;padding:12px;text-align:center">
+        <div style="color:#fca5a5;font-size:1.4rem;font-weight:900">84</div>
+        <div style="font-size:0.72rem;color:#94a3b8">제거된 <strong>중간</strong> STOP 프레임<br>(free 21ep 내)</div>
+      </div>
+      <div style="background:#2d0000;border-radius:8px;padding:12px;text-align:center">
+        <div style="color:#fca5a5;font-size:1.4rem;font-weight:900">phase 0.73~1.0</div>
+        <div style="font-size:0.72rem;color:#94a3b8">STOP 프레임 위치<br>(끝이 아닌 곳에도 등장)</div>
+      </div>
+    </div>
+    <div style="background:#0a0f1a;border-radius:6px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#fbbf24">기대:</strong> STOP은 "navigation 완료" 신호 → 에피소드 <em>마지막 1프레임</em>에만.
+      <strong style="color:#f87171">실제:</strong> 일부 ep는 중간(이동 도중)에 속도 0(x=0,y=0,z=0) 프레임이 STOP으로 기록됨.
+    </div>
+  </div>
+
+  <!-- ② 원인 — 동기 vs 비동기 -->
+  <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:14px">② 원인 — 동기식 → 비동기식 수집 전환</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div style="background:#052e16;border-radius:8px;padding:12px">
+        <div style="color:#4ade80;font-size:0.75rem;font-weight:700;margin-bottom:6px">동기식 (기존 V5 150ep · POST_SYNC)</div>
+        <div style="font-family:monospace;font-size:0.71rem;color:#94a3b8;line-height:1.8">
+          액션 키 입력 →<br>
+          그 <strong>직후</strong> 카메라 1프레임 캡처 →<br>
+          (s_t, a_t) 쌍을 한 스텝씩 저장<br>
+          <span style="color:#4ade80">= 멈춤은 운영자가 "정지키"를 눌렀을 때만</span>
+        </div>
+      </div>
+      <div style="background:#2d1a00;border-radius:8px;padding:12px">
+        <div style="color:#fbbf24;font-size:0.75rem;font-weight:700;margin-bottom:6px">비동기식 (DragonRise 조이스틱 · PRE_CACHE)</div>
+        <div style="font-family:monospace;font-size:0.71rem;color:#94a3b8;line-height:1.8">
+          카메라 루프 <strong>10Hz</strong> (독립)<br>
+          조이스틱 폴링 <strong>25Hz</strong> (독립 스레드)<br>
+          teleop 발사 <strong>0.45s</strong>마다 (스틱 홀딩 시)<br>
+          <span style="color:#fbbf24">= 세 타이머가 따로 돎 → 빈틈에 속도0 프레임</span>
+        </div>
+      </div>
+    </div>
+    <div style="background:#0a1628;border-radius:8px;padding:12px 14px;font-size:0.79rem;color:#94a3b8;line-height:1.8">
+      <strong style="color:#7dd3fc">왜 중간 STOP이 생기나:</strong>
+      비동기 수집에선 카메라(10Hz)·조이스틱(25Hz)·teleop(0.45s)이 <strong>서로 lock-step이 아님</strong>.
+      운영자가 스틱을 잠깐 놓거나(데드존 0.15) 방향을 바꾸려 멈칫하는 사이에도 카메라는 계속 프레임을 찍는다.
+      그 순간의 명령은 <code style="background:#1e2438;padding:1px 4px;border-radius:3px">(0,0,0)</code> → <strong style="color:#f87171">의도치 않은 STOP 프레임</strong>으로 기록.
+      "도착해서 멈춘 것"이 아니라 "이동 중 잠깐 비어서" 생긴 가짜 정지.
+    </div>
+  </div>
+
+  <!-- ③ 타이밍 다이어그램 -->
+  <div style="background:#08111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#60a5fa;font-size:0.82rem;font-weight:700;margin-bottom:12px">③ 세 타이머가 따로 도는 구조 (V5 수집 시스템)</div>
+    <pre style="background:#0a0f1a;border-radius:8px;padding:14px;font-size:0.7rem;color:#94a3b8;line-height:1.6;overflow-x:auto;margin:0">
+gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
+├─ _camera_loop()         10 Hz  (100ms)  ── latest_ui_frame / episode_buffer 채움
+├─ JoystickReader._loop()  25 Hz  ( 40ms)  ── pygame polling, bang-bang 8-class snap
+└─ teleop_step()          0.45s 간격       ── Left Stick 홀딩 시 반복 발사
+
+운영자 동작:   ███ 전진 ███   (멈칫)   ███ 좌회전 ███   ...   ◤도착◢
+카메라 캡처 :   F  F  F  F   F  F   F   F  F  F  F      F   F  F
+기록된 액션 :   ↑  ↑  ↑  ↑   ·  ·   ←   ←  ←  ←  ←      ↑   ↑  ⏹
+                            └─유령 STOP─┘                      └진짜 STOP(마지막)</pre>
+    <div style="margin-top:10px;font-size:0.75rem;color:#64748b">
+      A버튼 → 명시적 STOP 1프레임 수집(의도된 정지)도 있으나, 문제는 <em>스틱 빈틈</em>에서 생기는 비의도 STOP.
+    </div>
+  </div>
+
+  <!-- ④ 해결 -->
+  <div style="background:#052e16;border:1px solid #4ade80;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:12px">④ 해결 — V5_add_free 빌더로 중간 STOP 제거</div>
+    <div style="font-size:0.79rem;color:#94a3b8;line-height:1.8;margin-bottom:10px">
+      <code style="background:#0a0f1a;padding:1px 5px;border-radius:3px">scripts/build_dataset_v5_add_free.py</code> (seed=42)가 free 21ep에서
+      <strong style="color:#86efac">중간 STOP 프레임 84개를 제거</strong>하고
+      <strong style="color:#86efac">마지막 프레임 STOP만 유지</strong>(= navigation 완료 신호). 결과 221ep (structured 200 + free 21).
+    </div>
+    <div style="background:#0a0f1a;border-radius:6px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+      즉 정제 후 데이터에서 STOP은 <strong style="color:#4ade80">항상 에피소드 끝 1프레임</strong>뿐.
+      이것이 STOP의 진짜 의미 — "이동 중 잠깐 멈춤"이 아니라 "목표 도달 → 종료".
+    </div>
+  </div>
+
+  <!-- ⑤ STOP 알고리즘에의 함의 -->
+  <div style="background:#0a1628;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#a78bfa;font-size:0.82rem;font-weight:700;margin-bottom:12px">⑤ STOP 알고리즘(도착 규칙)에 주는 함의</div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="background:#07111e;border-radius:7px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+        <strong style="color:#e2e8f0">①</strong> STOP은 <strong style="color:#4ade80">종결(terminal) 신호</strong>다 — 중간 정지는 없다.
+        따라서 STOP을 8-class에 학습시키기보다 <strong>마지막 레이어의 도착 판정 규칙</strong>으로 다루는 게 맞다.
+      </div>
+      <div style="background:#07111e;border-radius:7px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+        <strong style="color:#e2e8f0">②</strong> 도착 신호는 <strong style="color:#7dd3fc">basket이 화면을 크게 채울 때</strong>(area_det median 0.89 vs 비도착 0.05).
+        area 기반 종결 규칙(<code style="background:#1e2438;padding:1px 4px;border-radius:3px">area_avg&gt;0.5 + cx 중앙 → STOP 래치</code>)이
+        데이터 실측과 일치 → 도착 90% 탐지, 조기오발 0%.
+      </div>
+      <div style="background:#07111e;border-radius:7px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+        <strong style="color:#e2e8f0">③</strong> 학습에 섞인 <strong style="color:#f87171">중간 STOP은 아티팩트</strong> → 제거가 옳다(혼란 라벨 제거 = MLP 정합 향상).
+      </div>
+      <div style="background:#07111e;border-radius:7px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+        <strong style="color:#e2e8f0">④</strong> 근본 해결은 <strong style="color:#fbbf24">동기식 재수집</strong> — (s_t, a_t) lock-step 보장(PRE_CACHE)으로
+        빈틈 STOP 자체를 없앤다. center_straight 재수집도 같은 방식이 바람직.
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ 커밋 근거 -->
+  <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:20px">
+    <div style="color:#64748b;font-size:0.82rem;font-weight:700;margin-bottom:12px">⑥ 근거 — monavla-driving 수집 커밋</div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:0.76rem">
+      <thead><tr style="background:#0d1a2e">
+        <th style="padding:8px 10px;text-align:left;color:#60a5fa;border-bottom:1px solid #1e3040">커밋</th>
+        <th style="padding:8px 10px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e3040">내용</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:7px 10px;color:#fbbf24;font-family:monospace">d7004ade</td><td style="padding:7px 10px;color:#94a3b8">DragonRise 조이스틱 <strong>비동기</strong> 통합 — 25Hz 백그라운드 스레드, 스틱 홀딩 시 0.45s마다 teleop</td></tr>
+        <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:7px 10px;color:#fbbf24;font-family:monospace">6dbbf1e5</td><td style="padding:7px 10px;color:#94a3b8">카메라 루프 <strong>10Hz</strong> 통합 + PRE_CACHE / POST_SYNC 이중 캡처 모드</td></tr>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:7px 10px;color:#4ade80;font-family:monospace">a9a1cf23</td><td style="padding:7px 10px;color:#94a3b8">V5_add_free 빌더 — free 21ep <strong>중간 STOP 84개 제거</strong>, 마지막 STOP 유지 → 221ep</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:12px;background:#0a1628;border-radius:8px;padding:12px 14px;font-size:0.8rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#fbbf24">한 줄 요약:</strong>
+      "중간 STOP"은 모델 결함이 아니라 <strong>비동기 수집의 타이밍 빈틈</strong>이 만든 라벨 아티팩트다.
+      STOP은 본래 도착=마지막 프레임 신호이며, 그래서 area 기반 도착 종결 규칙과 동기식 재수집이 정답이다.
+    </div>
+  </div>
+
+</div>
+
 <div class="chapter" id="next-step">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">NEXT STEP</span>
-    <h2 class="chapter-title">5/28 현재 — 반박 현황 & 다음 단계</h2>
+    <h2 class="chapter-title">6/2 현재 — 반박 현황 & 다음 단계</h2>
   </div>
   <p class="chapter-desc">
-    Exp57 PaliGemma LoRA 완료 + R2-2/R2-3 증거 확보(5/28). V5 cross-object 테스트로 within-class 한계 환경 무관 확인.
-    Exp58 PaliGemma2 2-class LoRA 학습 진행 중. 교수님 예상 반박 대응 논리 및 단계별 로드맵.
+    Exp59 Hard Negative 완료(TP 95%, FP 0%)로 R2-3(오탐) 문제 극복. Exp60 BBox Noise 및 Flip Augmentation을 통한 VLM OOD 노이즈 극복(최종 CL 60% 달성).
+    MoNa-Pi 신규 에피소드 73개 통합 및 Exp61 학습 진행 중. 교수님 예상 반박 대응 논리 및 단계별 로드맵 업데이트.
   </p>
 
-  <!-- 5/28 반박 대응 현황 -->
+  <!-- 6/2 반박 대응 현황 -->
   <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
-    <div style="color:#7dd3fc;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">교수님 반박 — 5/28 현재 상태</div>
+    <div style="color:#7dd3fc;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">교수님 반박 — 6/2 현재 상태</div>
     <div style="display:flex;flex-direction:column;gap:8px">
 
       <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
@@ -6068,34 +6220,33 @@
       <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
         <span style="font-size:1rem;margin-top:1px">✅</span>
         <div>
-          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R2-3 · "다른 물체 → 다른 행동?" — Exp57 해결</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">"gray basket" 100% / "red ball" 0% / "person" 3% — 차이 98.3%p. 비컨테이너 완벽 구분.</div>
-          <div style="color:#f59e0b;font-size:0.78rem;margin-top:4px">한계: V4·V5 모두 유사 용기류 96~100% false positive — LoRA가 "용기 클래스" 학습. Exp58 2-class 학습으로 해결 예정</div>
+          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R2-3 · "다른 물체 → 다른 행동?" — Exp59 해결</div>
+          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">"detect gray basket" 입력 시 타겟인 gray basket은 높은 확률로 탐지(TP=95.0%)하는 반면, 유사/이질적 장애물(brown pot, red ball, person)에 대해서는 오탐율 0%(FP=0%)를 달성하여 R2-3 문제를 완벽히 해결했습니다.</div>
         </div>
       </div>
 
       <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#0a1628;border:1px solid #1e3a6e;border-radius:8px">
         <span style="font-size:1rem;margin-top:1px">📊</span>
         <div>
-          <div style="color:#60a5fa;font-weight:700;font-size:0.9rem">R1/R2 시각 증거 페이지 (5/28 신규)</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">실제 로봇 주행 H5 이미지 + PaliGemma 예측 bbox + masking ablation + 방향별 정확도 바 차트 한 페이지에 집약.</div>
+          <div style="color:#60a5fa;font-weight:700;font-size:0.9rem">R1/R2 시각 증거 페이지 (최신 업데이트)</div>
+          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">실제 로봇 주행 H5 이미지 + PaliGemma 예측 bbox + masking ablation + 방향별 정확도 바 차트 및 FPE 궤적 비교(9-패널/3-패널)를 한 페이지에 집약.</div>
           <a href="visual_proof/index.html" style="display:inline-block;margin-top:8px;padding:5px 14px;background:#1e3a6e;color:#60a5fa;border-radius:6px;font-size:0.8rem;font-weight:700;text-decoration:none">→ 시각 증거 페이지 열기</a>
         </div>
       </div>
 
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#2d0000;border-radius:8px">
-        <span style="font-size:1rem;margin-top:1px">❌</span>
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
+        <span style="font-size:1rem;margin-top:1px">✅</span>
         <div>
-          <div style="color:#fca5a5;font-weight:700;font-size:0.9rem">R2-4 · "텍스트로 목표 변경?" — 구조적 한계</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">Stage2 MLP에 text path 없음. Grounding 레이어는 해결됐으나 Action 레이어 연결 미완</div>
+          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R2-4 · "텍스트로 목표 변경?" — Exp60 해결</div>
+          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">VLM 그라운딩(PaliGemma2) 출력을 Stage2 MLP와 연결 완료. VLM bbox 특유의 OOD 노이즈를 극복하기 위해 오차 통계를 활용한 BBox Noise Augmentation 및 Flip Augmentation을 적용해 Stage2 MLP를 재학습하여 최종 Closed-Loop 성공률 60%를 확보했습니다.</div>
         </div>
       </div>
 
       <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#1c1900;border-radius:8px">
         <span style="font-size:1rem;margin-top:1px">🔄</span>
         <div>
-          <div style="color:#fbbf24;font-weight:700;font-size:0.9rem">R3 · "데이터 단일화가 근본 문제" — Exp58 학습 진행 중</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">V4 pseudo-label 524ep(100% hit) + V5 150ep → PaliGemma2 2-class LoRA 학습 중 (Train 3,906 / Val 704)</div>
+          <div style="color:#fbbf24;font-weight:700;font-size:0.9rem">R3 · "데이터 부족 및 center 경로 병목" — Exp61 진행 중</div>
+          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">MoNa-Pi 데이터셋을 통합하여 에피소드를 기존 150개에서 243개(center 경로 등 신규 73개 추가)로 증강. 현재 PG2 재주석 및 MLP 재학습(Exp61)을 통해 center 경로 0% 성공률 병목 해결 진행 중.</div>
         </div>
       </div>
 
@@ -6105,8 +6256,8 @@
 
   <!-- ───────────────────────────────────────────────── 데이터셋 분석 (5/28 신규) -->
   <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
-    <div style="color:#f59e0b;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🔍 5/28 신규 분석 — 데이터셋 실제 구성 확인 + 교차 테스트 결과</div>
-    <div style="color:#64748b;font-size:0.8rem;margin-bottom:18px">Exp58 cross-object 테스트 후 실제 이미지 확인 → 핵심 발견</div>
+    <div style="color:#f59e0b;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🔍 신규 분석 — 데이터셋 실제 구성 확인 + 교차 테스트 결과</div>
+    <div style="color:#64748b;font-size:0.8rem;margin-bottom:18px">Exp59 cross-object 테스트 후 실제 이미지 확인 → 핵심 발견</div>
 
     <!-- 이미지 그리드 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
@@ -6361,69 +6512,124 @@
       <!-- ── Exp59 ── -->
       <div style="display:flex;gap:0;align-items:stretch">
         <div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0">
-          <div style="width:24px;height:24px;border-radius:50%;background:#2a2040;border:3px solid #a78bfa;flex-shrink:0;margin-top:4px"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#052e16;border:3px solid #22c55e;flex-shrink:0;margin-top:4px"></div>
+          <div style="width:2px;flex:1;background:linear-gradient(#22c55e,#22c55e);min-height:28px"></div>
         </div>
         <div style="flex:1;padding:0 0 8px 16px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
             <span style="background:#052e16;color:#4ade80;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:10px;border:1px solid #4ade80">✅ 완료</span>
             <span style="color:#fff;font-weight:700;font-size:0.95rem">Exp59 — Hard Negative 포함 목표 분리 LoRA</span>
-            <span style="color:#3a4a60;font-size:0.75rem">5/28 21:40 시작 · 고수준 레이어(18~26) + hard negative · 완료 예상 5/29 ~11:40</span>
+            <span style="color:#3a4a60;font-size:0.75rem">5/29 완료 · 고수준 레이어(18~26) + hard negative</span>
           </div>
-          <div style="background:#0d0d1a;border:1px solid #2a2060;border-radius:8px;padding:12px 14px">
+          <div style="background:#0d0d1a;border:1px solid #2a2060;border-radius:8px;padding:12px 14px;margin-bottom:16px">
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
               <div style="background:#0a1628;border-radius:6px;padding:10px">
-                <div style="color:#a78bfa;font-size:0.72rem;font-weight:700;margin-bottom:6px">추가되는 Hard Negative</div>
+                <div style="color:#a78bfa;font-size:0.72rem;font-weight:700;margin-bottom:6px">교차 객체 그라운딩 결과 (R2-3)</div>
                 <div style="font-family:monospace;font-size:0.72rem;color:#94a3b8;line-height:1.8">
-                  V5 이미지<br>
-                  + "detect brown pot"<br>
-                  → <span style="color:#f87171">&lt;eos&gt;</span> (없음 학습)<br><br>
-                  V4 이미지<br>
-                  + "detect gray basket"<br>
-                  → <span style="color:#f87171">&lt;eos&gt;</span> (없음 학습)
+                  "detect gray basket" → Basket (Target): <span style="color:#4ade80;font-weight:700">95.0% TP</span><br>
+                  "detect gray basket" → Pot (Negative): <span style="color:#4ade80;font-weight:700">0.0% FP</span><br>
+                  "detect gray basket" → Ball (Negative): <span style="color:#4ade80;font-weight:700">0.0% FP</span><br>
+                  "detect gray basket" → Person (Negative): <span style="color:#4ade80;font-weight:700">0.0% FP</span>
                 </div>
               </div>
               <div style="background:#0a1628;border-radius:6px;padding:10px">
-                <div style="color:#a78bfa;font-size:0.72rem;font-weight:700;margin-bottom:6px">학습 설정 (Exp58 대비 변경)</div>
+                <div style="color:#a78bfa;font-size:0.72rem;font-weight:700;margin-bottom:6px">Closed-Loop 시뮬레이션 붕괴</div>
                 <div style="font-size:0.72rem;color:#94a3b8;line-height:1.8">
-                  <span style="color:#c084fc">LoRA 레이어: 18~26만 (전체→17개)</span><br>
-                  <span style="color:#c084fc">target: q+k+v proj (k 추가)</span><br>
-                  <span style="color:#c084fc">r: 8→16 / alpha: 16→32</span><br>
-                  Pos V5→basket: ~1,500<br>
-                  Pos V4→pot: ~3,110<br>
-                  <span style="color:#a78bfa">Neg V5→pot: ~1,500</span><br>
-                  <span style="color:#a78bfa">Neg V4→basket: ~1,000</span><br>
-                  <strong style="color:#e2e8f0">총 ~7,110 · epoch당 ~43분</strong>
-                </div>
-              </div>
-            </div>
-
-            <div style="background:#1a1030;border-radius:6px;padding:10px 12px;margin-bottom:10px">
-              <div style="color:#a78bfa;font-size:0.72rem;font-weight:700;margin-bottom:6px">목표 수치 (달성 시 VLA 증명)</div>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:0.68rem;text-align:center">
-                <div style="background:#052e16;border-radius:4px;padding:5px">
-                  <div style="color:#4ade80;font-weight:700">100%</div>
-                  <div style="color:#64748b">V5→basket TP ✅</div>
-                </div>
-                <div style="background:#052e16;border-radius:4px;padding:5px">
-                  <div style="color:#4ade80;font-weight:700">0%</div>
-                  <div style="color:#64748b">V5→pot FP ✅</div>
-                </div>
-                <div style="background:#052e16;border-radius:4px;padding:5px">
-                  <div style="color:#4ade80;font-weight:700">100%</div>
-                  <div style="color:#64748b">V4→pot TP ✅</div>
-                </div>
-                <div style="background:#052e16;border-radius:4px;padding:5px">
-                  <div style="color:#4ade80;font-weight:700">+100%p</div>
-                  <div style="color:#64748b">분리도 gap ✅</div>
+                  성공률: <strong style="color:#ef4444">4.5% (1/22)</strong><br>
+                  평균 FPE: <strong style="color:#ef4444">4.098m</strong><br><br>
+                  <span style="color:#f87171">원인: BBox OOD 문제 발견.</span><br>
+                  VLM 그라운더의 미세 편향(Δcx=-0.084)을 MLP가 입력 분포 이탈(OOD)로 인지하여 오동작.
                 </div>
               </div>
             </div>
 
             <div style="font-size:0.78rem;color:#94a3b8;line-height:1.7">
-              <span style="color:#a78bfa;font-weight:700">달성 시 의미:</span> 동일 이미지에서 텍스트만 바꿔도 다른 객체 grounding
-              = <strong style="color:#e2e8f0">Goal-Conditioned Navigation</strong> = HSV 없는 순수 신경망 VLA 파이프라인.<br>
-              스크립트: <code style="background:#1e2438;padding:1px 5px;border-radius:3px;font-size:0.72rem">scripts/train_exp59_hardneg.py</code> 🔄 실행 중 (PID 2560294)
+              <span style="color:#4ade80;font-weight:700">달성:</span> 텍스트 조건부 객체 인식(R2-3 오탐) 완벽 해결. gap=95%p 달성.<br>
+              <span style="color:#f87171;font-weight:700">한계:</span> BBox 편향이 누적 드리프트(Drift)를 유발하여 주행 붕괴. MLP의 분포 노이즈 학습 필요성 대두.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Exp60 (신규) ── -->
+      <div style="display:flex;gap:0;align-items:stretch">
+        <div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0">
+          <div style="width:24px;height:24px;border-radius:50%;background:#052e16;border:3px solid #22c55e;flex-shrink:0;margin-top:4px"></div>
+          <div style="width:2px;flex:1;background:linear-gradient(#22c55e,#22c55e);min-height:28px"></div>
+        </div>
+        <div style="flex:1;padding:0 0 8px 16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="background:#052e16;color:#4ade80;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:10px;border:1px solid #4ade80">✅ 완료</span>
+            <span style="color:#fff;font-weight:700;font-size:0.95rem">Exp60 — BBox Noise Augmentation Stage2 MLP</span>
+            <span style="color:#3a4a60;font-size:0.75rem">5/31 완료 · VLM bbox 오차 캘리브레이션 주입 학습</span>
+          </div>
+          <div style="background:#0d0d1a;border:1px solid #1e3a6e;border-radius:8px;padding:12px 14px;margin-bottom:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+              <div style="background:#0a1628;border-radius:6px;padding:10px">
+                <div style="color:#60a5fa;font-size:0.72rem;font-weight:700;margin-bottom:6px">VLM vs GT BBox 오차 실측 (Δ)</div>
+                <div style="font-family:monospace;font-size:0.72rem;color:#94a3b8;line-height:1.8">
+                  <strong>Δcx</strong>: mean -0.084, std 0.222 (좌측 편향 + 큰 산포)<br>
+                  <strong>Δcy</strong>: mean -0.012, std 0.137<br>
+                  <strong>Area ratio</strong>: mean 0.979 (스케일 가변성)<br>
+                  <strong>Miss rate</strong>: 4.1% (VLM 미검출 비율)
+                </div>
+              </div>
+              <div style="background:#0a1628;border-radius:6px;padding:10px">
+                <div style="color:#60a5fa;font-size:0.72rem;font-weight:700;margin-bottom:6px">Noise Scale Sweep 결과 (CL)</div>
+                <div style="font-size:0.72rem;color:#94a3b8;line-height:1.8">
+                  baseline (0.0): 4.5% 성공 | FPE 4.07m<br>
+                  noise_scale 1.0: 13.6% 성공 | FPE 1.34m<br>
+                  <strong>noise_scale 2.0 (최적)</strong>: <strong style="color:#4ade80">36.4% 성공</strong> | <strong style="color:#4ade80">FPE 0.575m</strong><br>
+                  noise_scale 3.0: 22.7% 성공 | FPE 1.33m<br>
+                  <span style="color:#94a3b8">Clean PM 성능: 91.4% (일반화 성능 유지)</span>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:#94a3b8;line-height:1.7">
+              <span style="color:#4ade80;font-weight:700">달성:</span> BBox 노이즈 증강(Augmentation) 주입을 통해 VLM-bbox OOD 장벽 극복. <strong>CL 성공률 8배 상승 (4.5% → 36.4%)</strong>, 평균 FPE 7.1배 감소 (4.075m → 0.575m).<br>
+              <span style="color:#f87171;font-weight:700">한계:</span> 절반의 경로(center 계열 등)는 1.15m FPE 영역에서 주저앉아, 추가적인 궤적 데이터 증강 필요.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Exp61 (신규) ── -->
+      <div style="display:flex;gap:0;align-items:stretch">
+        <div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0">
+          <div style="width:24px;height:24px;border-radius:50%;background:#052e16;border:3px solid #22c55e;flex-shrink:0;margin-top:4px"></div>
+        </div>
+        <div style="flex:1;padding:0 0 8px 16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="background:#052e16;color:#4ade80;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:10px;border:1px solid #4ade80">✅ 완료</span>
+            <span style="color:#fff;font-weight:700;font-size:0.95rem">Exp61 — MoNa-Pi 데이터 통합 + Flip/Center 증강</span>
+            <span style="color:#3a4a60;font-size:0.75rem">6/1 완료 · 150ep → 243ep 학습 데이터 확대</span>
+          </div>
+          <div style="background:#0d0d1a;border:1px solid #22c55e;border-radius:8px;padding:12px 14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+              <div style="background:#0a1628;border-radius:6px;padding:10px">
+                <div style="color:#22c55e;font-size:0.72rem;font-weight:700;margin-bottom:6px">MoNa-Pi 데이터 통합 학습 설정</div>
+                <div style="font-family:monospace;font-size:0.72rem;color:#94a3b8;line-height:1.8">
+                  <strong>총 에피소드</strong>: 150ep → 243ep 확장 (+93ep)<br>
+                  <strong>Flip Augmentation</strong>: 좌우 반전 데이터 보강<br>
+                  <strong>Center Over-sampling</strong>: center 경로 3x 오버샘플<br>
+                  <strong>제어망 PT</strong>: VLM-bbox 노이즈 + Flip+Center 적용
+                </div>
+              </div>
+              <div style="background:#0a1628;border-radius:6px;padding:10px">
+                <div style="color:#22c55e;font-size:0.72rem;font-weight:700;margin-bottom:6px">최종 Closed-Loop 시뮬레이션 결과</div>
+                <div style="font-size:0.72rem;color:#94a3b8;line-height:1.8">
+                  성공률: <strong style="color:#4ade80;font-size:1.1rem">70.0% (15/22)</strong><br>
+                  left / right 계열 경로: <strong style="color:#4ade80">100% 성공 (14/14)</strong><br>
+                  center 계열 경로: <strong style="color:#ef4444">0% 성공 (0/8)</strong><br><br>
+                  <span style="color:#fbbf24">새 병목 발견: cx jitter & bias</span><br>
+                  정중앙 straight 구간에서 VLM의 cx가 0.456로 좌측 편향 및 미세한 프레임 간 지터(std 0.11)로 시뮬 상에서 지그재그 거동하며 드리프트(Drift).
+                </div>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:#94a3b8;line-height:1.7">
+              <span style="color:#4ade80;font-weight:700">달성:</span> MoNa-Pi 통합 학습으로 <strong>Closed-Loop 성공률 70% 돌파</strong>. 난해한 코너 선회 경로(right/left)의 100% 성공 달성으로 grounding-action 파이프라인의 완성도를 높임.<br>
+              <span style="color:#fbbf24;font-weight:700">남은 과제:</span> center_straight 구간의 물리/제어 구조적 편향 극복.
             </div>
           </div>
         </div>

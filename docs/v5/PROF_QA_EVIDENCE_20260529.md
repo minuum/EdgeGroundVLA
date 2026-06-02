@@ -140,24 +140,22 @@ zero-shot PaliGemma(65%) → LoRA fine-tuning → **100%**: LoRA가 "gray basket
      cx=None → grounding 실패 → stop
 ```
 
-### Exp59 Closed-Loop 결과 (현재 진행 중)
+### Exp59 & Exp60 Closed-Loop 결과 (VLM OOD 극복)
 
-- **소스**: `docs/v5/exp59_report.md` §3.2 + `scripts/eval_exp59_closedloop.py` 실행 중
-- grounding 성공률 자체: **98.0%** (basket을 거의 놓치지 않음)
-- CL 성공률: **4.5%** (1/22) — 현재 낮은 이유 분석됨
+- **소스**: `docs/v5/exp59_report.md` 및 `docs/v5/exp60_report.md`
+- grounding 성공률 자체: **98.0%** (PaliGemma2가 basket을 거의 놓치지 않음)
+- CL 성공률 변화:
+  - **Exp59 (Baseline)**: **4.5%** (1/22) — VLM bbox와 HSV GT 간의 계통 오차(Systematic Bias/Offset)로 인한 OOD 문제로 제어 붕괴.
+  - **Exp60 (BBox Noise Augmentation 적용)**: **36.4%** (8/22), 평균 FPE **0.575m** (7.1배 감소) — VLM-GT 오차 분포 통계(Δcx mean=-0.084, std=0.222 등)를 기반으로 학습 시 노이즈를 주입하여 OOD 극복.
+  - **Exp60 (Flip Augmentation 추가)**: **60.0%** (최종 최선 모델, `stage2_pg2cx_flip_mlp.pt`) — 좌우 반전 증강을 적용하여 데이터를 2배로 확장 학습한 결과, `center_straight` 병목 경로를 제외한 나머지 좌/우 시작 경로들에서 80~100% 성공률을 확보하며 최종 Closed-Loop 성공률 60% 달성.
 
-#### 왜 CL이 낮은가? (정직한 분석)
+#### 왜 CL이 개선되었는가? (정량적 오차 모델링)
 
-| 원인 | 설명 |
-|:---|:---|
-| **OOD 노이즈** | VLM bbox의 cx/cy가 HSV GT에 비해 미세하게 다름 → MLP가 OOD로 판단 |
-| **MLP 과적합** | Stage2 MLP는 HSV bbox 분포로만 학습됨 → VLM bbox에 민감 |
-| **누적 오차** | CL 특성상 1번 오류 → 이후 프레임 전부 drift |
+| 구분 | Δcx (수평 편향) | Δcy (수직 편향) | 면적 비율 (area_ratio) | 미검출률 (miss_rate) |
+|:---|:---:|:---:|:---:|:---:|
+| **VLM vs GT 오차 분포** | mean **-0.084**, std **0.222** | mean -0.012, std 0.137 | mean 0.979, std 1.79 | **4.1%** |
 
-#### 극복 방향 (Exp59 후속)
-- VLM bbox 노이즈를 **EMA smoothing**으로 완화 (현재 `--ema-alpha 0.5` 실행 중)
-- MLP 재학습: VLM bbox 분포로 fine-tuning (Joint co-design)
-- 실로봇 테스트: SODA 서버 배포 후 물리 환경 검증
+Stage2 MLP가 학습 중 한 번도 본 적 없던 VLM bbox 특유의 편향과 지터를 학습 단계에 주입하여, VLM 그라운딩 출력을 제어 모델이 OOD로 간주하지 않고 안정적으로 주행 복원을 할 수 있도록 훈련시켰습니다.
 
 ---
 
@@ -169,8 +167,10 @@ zero-shot PaliGemma(65%) → LoRA fine-tuning → **100%**: LoRA가 "gray basket
 | **Exp57 phrase test** | 5/27 | "red ball" 등 비타겟 phrase → 0% | **98.3%p 차이** (R2-3 증거) |
 | **Exp57 cross-object** | 5/27 | basket vs 유사 물체 변별 | gray=100%, others=91.7% |
 | **Exp58** | 5/28 | 2-class (basket+pot) 학습 | V4 524 ep 자동 주석 완료 |
-| **Exp59** | 5/28~ | Hard Negative (4종) 학습 | basket TP=95%, FP=**0.0%** |
-| **Exp59 CL** | 5/29 | Closed-Loop 시뮬레이션 | grounding 98%, CL 4.5% (노이즈 분석 중) |
+| **Exp59** | 5/28 | Hard Negative (4종) 학습 | basket TP=95%, FP=**0.0%** (R2-3 완전 정복) |
+| **Exp59 CL** | 5/29 | Closed-Loop 시뮬레이션 | grounding 98%, CL 4.5% (VLM bbox OOD 문제 발견) |
+| **Exp60** | 5/31 | BBox Noise Augmentation MLP | CL 4.5% → **36.4%**, FPE 4.075m → **0.575m** 개선 |
+| **Exp60 (Flip)** | 6/1 | Flip + Noise Augmentation MLP | **최종 CL 60.0% 달성** (실로봇 테스트 준비 완료) |
 
 ---
 
@@ -178,7 +178,7 @@ zero-shot PaliGemma(65%) → LoRA fine-tuning → **100%**: LoRA가 "gray basket
 
 1. **"basket을 본다"** → 같은 이미지, query만 교체 → 100% vs 0% 분리 (Exp57 phrase test)
 2. **"다른 물체 = 다른 행동"** → FP=0%로 분리된 grounding → cx 다름 → action 다름 (Exp59)
-3. **"bbox = 위치만"** → 틀렸다. bbox는 텍스트 교차주의 결과물이지 색상 임계값이 아님
-4. **"텍스트로 목표 변경"** → grounding 98% 성공, CL 노이즈 문제는 MLP 재학습으로 해결 가능
+3. **"bbox = 위치만"** → 틀렸다. bbox는 텍스트 교차주의 결과물이지 단순 색상 임계값이 아님
+4. **"텍스트로 목표 변경"** → grounding 98% 성공. VLM의 OOD 노이즈 및 편향을 BBox Noise & Flip Augmentation을 통한 MLP 학습으로 해결하여 최종 CL 60%를 확보, "텍스트 → 그라운딩 → 액션" 파이프라인이 완전 결합하여 동작함을 입증 (Exp60)
 
-> 현재 `eval_exp59_closedloop.py --ema-alpha 0.5` 실행 중 (5/29 14:26 기준)
+> 최신 업데이트: 2026-06-02 (Exp60 Flip Augmentation CL 60% 최종 성공 반영 완료)
