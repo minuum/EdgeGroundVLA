@@ -1880,7 +1880,28 @@ class GoalNavMLPInference:
         self._bbox_history: list = []
         self._vis_feat_cache: torch.Tensor | None = None
 
-        logger.info("✅ [GoalNavMLP] variant=%s D_IN=%d device=%s", variant, self._d_in, self.device)
+        # ── 도착 STOP 규칙 (plan_20260602_stop_arrival_rule.md) ──
+        # area_det 최근 W프레임 평균 > TH_AREA AND |cx-0.5| < TH_CX → STOP(래치).
+        # 캘리브레이션 추천값 (243ep PG2): th_area=0.5, th_cx=0.3, W=5, min_steps=0.
+        self._stop_enabled   = os.getenv("VLA_GOALNAV_STOP_RULE", "1") != "0"
+        self._stop_th_area   = float(os.getenv("VLA_GOALNAV_STOP_TH_AREA", "0.5"))
+        self._stop_th_cx     = float(os.getenv("VLA_GOALNAV_STOP_TH_CX", "0.3"))
+        self._stop_w         = int(os.getenv("VLA_GOALNAV_STOP_W", "5"))
+        self._stop_min_steps = int(os.getenv("VLA_GOALNAV_STOP_MIN_STEPS", "0"))
+
+        # ── 학습 STOP 윈도우 스무딩 규칙 (eval_learned_stop_window.py 결과 반영) ──
+        # 모델의 STOP 클래스 Softmax 확률의 W프레임 평균 > TH_PROB → STOP(래치).
+        # 최적 추천값: stop_learned_w=3, stop_learned_th=0.8
+        self._stop_learned_enabled = os.getenv("VLA_GOALNAV_STOP_LEARNED", "0") != "0"
+        self._stop_learned_w       = int(os.getenv("VLA_GOALNAV_STOP_LEARNED_W", "3"))
+        self._stop_learned_th      = float(os.getenv("VLA_GOALNAV_STOP_LEARNED_TH", "0.8"))
+        self._stop_prob_history: list = [0.0] * self._stop_learned_w
+
+        self._stopped = False
+        self._step = 0
+
+        logger.info("✅ [GoalNavMLP] variant=%s D_IN=%d device=%s stop_rule=%s stop_learned=%s",
+                    variant, self._d_in, self.device, self._stop_enabled, self._stop_learned_enabled)
 
     def _build_mlp(self) -> torch.nn.Module:
         d = self._d_in
@@ -1957,6 +1978,27 @@ class GoalNavMLPInference:
 
         self._vis_feat_cache = feat
 
+    def _arrival_stop(self) -> bool:
+        """도착 area 규칙 (래치). True면 STOP(0) override.
+        한 번 트리거되면 에피소드 끝까지 STOP 유지 (reset()으로 해제)."""
+        if not self._stop_enabled:
+            return False
+        if self._stopped:
+            return True
+        if not self._bbox_history:
+            return False
+        recent = self._bbox_history[-self._stop_w:]
+        area_avg = sum(b[2] for b in recent) / len(recent)
+        cx = self._bbox_history[-1][0]
+        if (self._step >= self._stop_min_steps
+                and area_avg > self._stop_th_area
+                and abs(cx - 0.5) < self._stop_th_cx):
+            self._stopped = True
+            logger.info("🛑 [GoalNavMLP] 도착 STOP 트리거 (area_avg=%.3f cx=%.3f step=%d)",
+                        area_avg, cx, self._step)
+            return True
+        return False
+
     def predict(self) -> dict:
         import time
         t0 = time.perf_counter()
@@ -1964,17 +2006,39 @@ class GoalNavMLPInference:
         if self._vis_feat_cache is None:
             raise RuntimeError("vision feature가 없습니다. update_vision_feature()를 먼저 호출하세요.")
 
-        # bbox window 패딩 (부족하면 0 패딩)
-        history = self._bbox_history[-self.WINDOW:]
-        while len(history) < self.WINDOW:
-            history = [[0.0, 0.0, 0.0, 0.0]] + history
-        bbox_feat = torch.tensor(history, dtype=torch.float32).flatten().unsqueeze(0).to(self.device)  # (1,32)
+        if self._stopped:
+            cls_idx = 0
+        else:
+            # bbox window 패딩 (부족하면 0 패딩)
+            history = self._bbox_history[-self.WINDOW:]
+            while len(history) < self.WINDOW:
+                history = [[0.0, 0.0, 0.0, 0.0]] + history
+            bbox_feat = torch.tensor(history, dtype=torch.float32).flatten().unsqueeze(0).to(self.device)  # (1,32)
 
-        x = torch.cat([bbox_feat, self._vis_feat_cache], dim=-1)  # (1, D_IN)
+            x = torch.cat([bbox_feat, self._vis_feat_cache], dim=-1)  # (1, D_IN)
 
-        with torch.no_grad():
-            logits = self._mlp(x)
-            cls_idx = int(logits.argmax(dim=-1).item())
+            with torch.no_grad():
+                logits = self._mlp(x)
+                cls_idx = int(logits.argmax(dim=-1).item())
+                probs = torch.nn.functional.softmax(logits, dim=-1)[0]
+                p_stop = float(probs[0].item())
+
+            # 1. 학습형 STOP 윈도우 스무딩
+            if self._stop_learned_enabled:
+                self._stop_prob_history.append(p_stop)
+                self._stop_prob_history = self._stop_prob_history[-self._stop_learned_w:]
+                mean_p_stop = sum(self._stop_prob_history) / self._stop_learned_w
+                if mean_p_stop > self._stop_learned_th:
+                    self._stopped = True
+                    logger.info("🛑 [GoalNavMLP] 학습형 STOP 트리거 (mean_p_stop=%.3f)", mean_p_stop)
+                    cls_idx = 0
+
+            # 2. Heuristic Area 규칙 STOP
+            if not self._stopped and self._stop_enabled:
+                if self._arrival_stop():
+                    cls_idx = 0
+
+        self._step += 1
 
         latency_ms = (time.perf_counter() - t0) * 1000
         return {
@@ -1988,6 +2052,9 @@ class GoalNavMLPInference:
     def reset(self):
         self._bbox_history.clear()
         self._vis_feat_cache = None
+        self._stopped = False
+        self._step = 0
+        self._stop_prob_history = [0.0] * self._stop_learned_w
 
 
 def get_goalnav_model() -> GoalNavMLPInference:
@@ -2658,6 +2725,16 @@ async def goalnav_status():
         "vision_cache_ready":   goalnav_instance._vis_feat_cache is not None,
         "num_classes":          goalnav_instance.NUM_CLASSES,
         "device":               goalnav_instance.device,
+        "stop_rule_enabled":    goalnav_instance._stop_enabled,
+        "stop_rule":            {"th_area": goalnav_instance._stop_th_area,
+                                 "th_cx": goalnav_instance._stop_th_cx,
+                                 "W": goalnav_instance._stop_w,
+                                 "min_steps": goalnav_instance._stop_min_steps},
+        "stop_learned_enabled": goalnav_instance._stop_learned_enabled,
+        "stop_learned_rule":    {"W": goalnav_instance._stop_learned_w,
+                                 "th_prob": goalnav_instance._stop_learned_th},
+        "stopped":              goalnav_instance._stopped,
+        "step":                 goalnav_instance._step,
     }
 
 
