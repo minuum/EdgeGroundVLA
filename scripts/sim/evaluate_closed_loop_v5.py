@@ -50,7 +50,7 @@ GOAL_NAV_CKPTS = {
     "exp50": ROOT / "runs" / "v5_nav" / "mlp" / "exp50" / "exp50_mlp.pt",
     "exp51": ROOT / "runs" / "v5_nav" / "mlp" / "exp51" / "exp51_mlp.pt",
     "exp52": ROOT / "runs" / "v5_nav" / "mlp" / "exp52" / "exp52_mlp.pt",
-    "exp53": ROOT / "runs" / "v5_nav" / "mlp" / "exp53_clip_lora.pt",
+    "exp53": ROOT / "runs" / "v5_nav" / "mlp" / "exp53" / "exp53_clip_lora.pt",
 }
 GOAL_NAV_VIS_DIRS = {
     "exp49": ROOT / "docs" / "v5" / "bbox_nav_exp46",   # vision_features.npz (1024-dim)

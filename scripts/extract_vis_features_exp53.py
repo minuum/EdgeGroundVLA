@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 HF_KOSMOS_PATH  = ROOT / ".vlms" / "kosmos-2-patch14-224"
-ADAPTER_PATH    = ROOT / "runs" / "v5_nav" / "mlp" / "clip_lora_adapter"
+ADAPTER_PATH    = ROOT / "runs" / "v5_nav" / "mlp" / "exp53" / "clip_lora_adapter"
 EXP46_DIR       = ROOT / "docs" / "v5" / "bbox_nav_exp46"
 DATA_DIR        = ROOT / "ROS_action" / "mobile_vla_dataset_v5"
 OUT_DIR         = ROOT / "docs" / "v5" / "bbox_nav_exp53"
@@ -93,8 +93,14 @@ def extract_feat(proc, model, pil_img: Image.Image) -> np.ndarray:
 
 def resolve_h5(ep_key: str) -> Path:
     """minum 경로 → soda 로컬 경로 변환"""
-    stem = Path(ep_key).stem
-    return DATA_DIR / f"{stem}.h5"
+    import os
+    filename = os.path.basename(ep_key)
+    stem, _ = os.path.splitext(filename)
+    abs_data_dir = os.path.abspath(DATA_DIR)
+    target_path = os.path.abspath(os.path.join(abs_data_dir, f"{stem}.h5"))
+    if not target_path.startswith(abs_data_dir):
+        raise ValueError(f"Path traversal detected: {ep_key}")
+    return Path(target_path)
 
 
 def main():

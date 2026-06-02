@@ -1,6 +1,6 @@
 {
   "session_id": "2026-02-22-default",
-  "last_updated": "2026-05-29T13:28:00.000000+09:00",
+  "last_updated": "2026-06-03T04:30:00.000000+09:00",
   "conversation": [
     {
       "role": "user",
@@ -73,6 +73,14 @@
     {
       "role": "assistant",
       "content": "[2026-05-29] Exp59 closed-loop 평가 및 결과 분석:\n\n## 1. 코드 수정 및 에러 해결\n- `scripts/eval_exp59_closedloop.py`에서 발생하던 `ImportError` 오류를 `build_trajectory` 및 `compute_metrics` 사용으로 수정.\n- PaliGemmaProcessor 호출 시 prompt에 `<image>` 접두사를 생략해 발생하던 HuggingFace 경고 메시지를 `<image>detect gray basket` 형태로 수정하여 경고 제거.\n\n## 2. Closed-Loop 시뮬레이션 평가 결과 (22개 에피소드)\n- 성공률(Success Rate): 4.5% (1/22)\n- 평균 FPE: 3.970m\n- 평균 TLD: 1.055\n- 평균 그라운딩 성공률: 98.0%\n- 분석: VLM 그라운더의 예측 BBox 중심과 면적에 존재하는 미세한 픽셀 노이즈 및 계통 오차(Systematic Bias)가 제어기(Stage2 MLP)에 OOD로 작용하여 drift 발생. BBox Filtering 및 Noise Augmentation이 향후 안정화에 필수적임.\n\n## 3. 문서화 및 원격 저장소 동기화\n- R2-3(오탐) 문제 극복을 증명하는 기술 리포트 `docs/v5/exp59_report.md` 작성 및 `docs/index.html` Hero 영역에 링크 연결.\n- 프로젝트 최신 상태를 요약한 `docs/CURRENT_STATE_SNAPSHOT.md` 작성.\n- 수정 코드 및 신규 리포트 파일을 `origin/inference-integration` 브랜치에 푸시 완료."
+    },
+    {
+      "role": "user",
+      "content": "2026-06-03 세션 (Reconcile MoNaVLA Session Memory): 교수님 반박 R4 (Arrival/Stop 종결 조건) 대응 및 Closed-Loop Ablation Study 대시보드 시각화 구축."
+    },
+    {
+      "role": "assistant",
+      "content": "[2026-06-03] 교수님 반박 R4 대응 및 시각화 대시보드 고도화:\n\n## 1. 도착 STOP 스무딩 규칙 설계 및 검증 (R4)\n- `stop65_mlp` 모델에 3-프레임 윈도우 스무딩(W=3, θ=0.8) 래치 필터를 결합하여 precomputed PG2 주석 기준 CL 성공률을 31.2%에서 68.8%로 대폭 향상.\n- 실시간 PaliGemma2 grounding 추론 결합 Closed-Loop 시뮬레이션 평가 결과, 평균 그라운딩 성공률은 96.9%였으나 CL 성공률은 9.4% (3/32 ep, FPE=1.21m)로 저하됨을 규명. 실시간 추론 지터 누적으로 인한 조향 궤적 탈선 분석 완료.\n- 주행 제어는 최선 제어기, STOP 판단은 stop65_mlp를 멀티스레드/Decomposed 병렬 구동하는 구조의 로봇 배포 안전성 제안.\n\n## 2. 로봇 서버 포팅\n- `inference_server.py`의 GoalNav predict()에 `_arrival_stop()` 및 `_stop_learned_enabled`를 활용한 정지 래치 규칙 및 리셋(/goalnav/reset) 코드 무결성 검증 완료.\n\n## 3. 대시보드 시각화 리팩토링 및 동기화\n- `ablation_visual_proof.html` 구조를 프레임바-이미지가 나란히 배치되는 flex 레이아웃으로 전면 개선하고 HSV N/A 값을 검출 좌표로 명시.\n- 실시간 VLM 결합 지표(9.4%)를 R4 대응 카드로 반영 후 원격 `inference-integration` 브랜치에 최종 푸시(c393a294) 완료."
     }
   ],
   "summary": "[Auto summary @ 2026-04-22T16:40:56.078236+00:00]\n- assistant: [2026-02-22] Git cleanup session: renamed local branch test/vla-driving -> vla-driving; set upstream to origin/vla-driving; preserved diverged local fix branch as backup/fix-local-diverged-20260222; kept session logs loc...\n- assistant: [2026-02-25] Session update: loaded prior memory and verified previous git-cleanup state (branch/upstream/backup/exclude rules); disabled CE skills by moving ce-* under /home/soda/.codex/skills/_disabled_ce_20260225_2012...\n- assistant: [2026-02-25] Menemory feature session: implemented hybrid memory strategy in /home/soda/vla/menemory by keeping summary+recent conversation while appending full raw turns to sessions/history/<session_id>.jsonl; added CLI...\n- assistant: [2026-02-25] Clarification saved: code changes are persisted via GitHub PR flow (branch feat/session-history-hybrid, commit b9f3f1b, PR https://github.com/minuum/menemory/pull/1), while menemory session entries are store...\n- assistant: Antigravity 복구 수행: .pb는 직접 복호화 가능한 본문이 아니라 conversation index로 판단하고, 대응 brain/<uuid>/ 문서를 복구 원본으로 사용함. docs/antigravity_recovery_20260318.md에 복구 규칙과 반영 상태를 정리했고, docs/recovered_antigravity/ 아래에 disk_usage_analysis_202603...\n- user: 사용자 요청: antigravity 루트의 .pb 세션 자산을 실제 복구 가능한 형태로 정리하고, 최근 git/문서 맥락과 연결해 현재 저장소에 반영해 달라고 요청함.\n- assistant: 복구 문서 연결 완료: README.md에 Antigravity 복구 섹션을 추가하고 docs/antigravity_recovery_20260318.md 및 docs/recovered_antigravity/ 하위 복구 문서들로 바로 진입할 수 있게 링크함. 현재 .menemory/sessions/active_session.json에는 Antigravity 복구 관련 세션 내용이 실제로 저장된...\n- user: 사용자는 Antigravity 복구 문서 연결과 Menemory 백업 이후 monavla-driving 최신 변경을 기준으로 V4 실험과 학습 진행사항을 점검하고, 오프라인 평가를 비동기로 돌려 tail로 확인 가능한 상태로 만들고, 현재까지 채팅 내용을 Menemory에 저장하길 요청했다.\n- assistant: origin/monavla-driving 최신은 2026-03-18 기준 0d58c7af이며 실험적으로 중요한 커밋은 845c3ebb였다. V4 설정 정합성을 위해 configs/mobile_vla_v4_exp01.json에 root window_size=4를 추가하고, robovlm_nav/serve/inference_server.py는 nested config fallback과 실제 존재...\n- user: 사용자는 원격 접속 중 세션이 자주 끊기는 상황을 고려해, 채팅에 메네모리라고만 입력해도 이전 대화 복구 맥락을 빠르게 파악할 수 있게 하고, 가능하면 몇 분마다 자동 저장하는 방법도 원했다.\n- assistant: menemory CLI에 recover 명령을 추가해 session summary, recent conversation, raw history tail, optional build prompt와 tmux resume를 한 번에 보게 했다. scripts/menemory_recover_now.sh와 scripts/menemory_autosave.sh를 추가했고, menemory README에 ..."
