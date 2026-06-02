@@ -1350,6 +1350,125 @@
 
     </div>
 
+    <!-- Section 2.5: Ablation 그룹별(A, B, C) 아키텍처 분석 및 단계별(시작~끝) 추론 흐름 (신규 추가) -->
+    <div class="panel-card" style="margin-top: 20px;">
+      <div class="panel-card-title" style="color: var(--primary);">
+        <span>⚙️</span> Ablation 그룹별(A/B/C) 아키텍처 분석 및 단계별(시작~끝) 추론 흐름
+      </div>
+      <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:20px;">
+        각 Ablation 연구 그룹(A: HSV GT Baseline, B: VLM Grounding Decomposed, C: E2E VLA)이 정의된 구조적 배경과, H5 에피소드 실시간 추론 시 각 단계별 실제 프레임에 입혀지는 알고리즘 처리 흐름입니다.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- 그룹 A 분석 -->
+        <div style="background: rgba(2, 6, 23, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 14px;">
+            <strong style="color: var(--success); font-size: 1.05rem;">Group A. Decomposed Control with HSV GT (규칙 기반 이상 그라운딩)</strong>
+            <span style="font-size: 0.75rem; background: rgba(34, 197, 94, 0.15); color: var(--success); padding: 2px 8px; border-radius: 4px; font-weight: 700;">Base Baseline</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 3fr 7fr; gap: 20px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">
+              <strong style="color: var(--text-main); display: block; margin-bottom: 6px;">나뉜 이유 & 아키텍처 의의:</strong>
+              인식(Grounding) 단계에서 발생할 수 있는 노이즈를 100% 제거한 이상적인 상황(Ground-Truth BBox)을 규칙 기반(Rule-based HSV Color Filter)으로 확보하고, 이를 통해 제어망(MLP)이 OOD 경로에서 어느 정도의 조향 일반화와 궤적 추종 성능을 내는지 <strong>제어 한계 Baseline</strong>을 측정하기 위해 정의되었습니다.<br>
+              A1~A3 비교를 통해 조향 증강(Flip) 유무가 제어 루프의 오버슈트 및 궤적 암기 희석에 미치는 정량적 영향을 파악합니다.
+            </div>
+            <div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <div class="inline-img-box" style="border: 1px solid rgba(34, 197, 94, 0.3);">
+                  <img src="visual_proof/images/step_A_1.jpg" alt="A step 1" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">1단계: 전진 시작</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(34, 197, 94, 0.3);">
+                  <img src="visual_proof/images/step_A_2.jpg" alt="A step 2" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">2단계: 중간 접근 1</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(34, 197, 94, 0.3);">
+                  <img src="visual_proof/images/step_A_3.jpg" alt="A step 3" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">3단계: 중간 접근 2</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(34, 197, 94, 0.3);">
+                  <img src="visual_proof/images/step_A_4.jpg" alt="A step 4" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">4단계: 골 정렬 성공</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 그룹 B 분석 -->
+        <div style="background: rgba(2, 6, 23, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 14px;">
+            <strong style="color: var(--accent-blue); font-size: 1.05rem;">Group B. Decomposed Control with PaliGemma2 VLM (VLM 인식 + 제어 연동)</strong>
+            <span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 2px 8px; border-radius: 4px; font-weight: 700;">Champion Model</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 3fr 7fr; gap: 20px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">
+              <strong style="color: var(--text-main); display: block; margin-bottom: 6px;">나뉜 이유 & 아키텍처 의의:</strong>
+              현실적인 OOD(센서 노이즈, 장애물, 조명 변화) 환경에서 강건하고 유연한 그라운딩을 위해 거대 비전-언어 모델(VLM, PaliGemma2)을 도입한 실주행 지향형 모델입니다.<br>
+              VLM의 고질적 문제인 고주파 BBox 지터와 오프셋 바이어스를 제어 루프가 극복하도록 설계된 **BBox Noise Augmentation**과 Center 궤적 오버샘플링(B3) 기법의 효율성을 검증하며, 이상적인 GT(A1)에 준하는 70%의 Closed-Loop 완주율을 달성했습니다.
+            </div>
+            <div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <div class="inline-img-box" style="border: 1px solid rgba(56, 189, 248, 0.3);">
+                  <img src="visual_proof/images/step_B_1.jpg" alt="B step 1" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">1단계: 쿼리 감지</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(56, 189, 248, 0.3);">
+                  <img src="visual_proof/images/step_B_2.jpg" alt="B step 2" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">2단계: 오프셋 조향</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(56, 189, 248, 0.3);">
+                  <img src="visual_proof/images/step_B_3.jpg" alt="B step 3" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">3단계: 노이즈 필터링</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(56, 189, 248, 0.3);">
+                  <img src="visual_proof/images/step_B_4.jpg" alt="B step 4" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">4단계: 정밀 안착</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 그룹 C 분석 -->
+        <div style="background: rgba(2, 6, 23, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 14px;">
+            <strong style="color: var(--primary); font-size: 1.05rem;">Group C. End-to-End VLA with Kosmos-2 (통합 토큰 제어 아키텍처)</strong>
+            <span style="font-size: 0.75rem; background: rgba(167, 139, 250, 0.15); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-weight: 700;">E2E VLA Baseline</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 3fr 7fr; gap: 20px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">
+              <strong style="color: var(--text-main); display: block; margin-bottom: 6px;">나뉜 이유 & 아키텍처 의의:</strong>
+              중간 그라운딩 BBox 단계를 완전히 생략하고 이미지 입력으로부터 직접 제어 토큰(각속도, 선속도)을 생성하는 통합형 End-to-End(E2E) 구조의 대조군입니다.<br>
+              E2E VLA가 겪는 **누적 제어 오프셋 복원 지연**과 OOD 코너링 시 조향각이 요동치며 발산하는 **Steer Oscillation(조향 진동)** 문제를 시각화하여, Decomposed 아키텍처가 제어의 강건성 측면에서 왜 현저히 우월한지를 증명하는 과학적 근거가 됩니다.
+            </div>
+            <div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <div class="inline-img-box" style="border: 1px solid rgba(167, 139, 250, 0.3);">
+                  <img src="visual_proof/images/step_C_1.jpg" alt="C step 1" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">1단계: 전진 시작</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(167, 139, 250, 0.3);">
+                  <img src="visual_proof/images/step_C_2.jpg" alt="C step 2" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">2단계: 편차 발생</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(167, 139, 250, 0.3);">
+                  <img src="visual_proof/images/step_C_3.jpg" alt="C step 3" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">3단계: 진동 발생</span>
+                </div>
+                <div class="inline-img-box" style="border: 1px solid rgba(167, 139, 250, 0.3);">
+                  <img src="visual_proof/images/step_C_4.jpg" alt="C step 4" style="height: 110px; object-fit: cover;">
+                  <span style="font-size:0.65rem; padding: 4px;">4단계: 진동 탈선 실패</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Section 3: 실제 그라운딩 및 추론 결과 (BBox) 대조 매칭 -->
     <div class="panel-card">
       <div class="panel-card-title">
