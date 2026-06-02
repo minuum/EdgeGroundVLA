@@ -1519,16 +1519,16 @@
           </p>
           <div style="display: flex; gap: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
             <div>
-              <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">단독 예측 (지터 오발)</span>
-              <strong style="font-size: 1.2rem; color: var(--warning);">53.1%</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(17/32 ep)</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">오프라인 스무딩 (Precomputed)</span>
+              <strong style="font-size: 1.2rem; color: var(--success);">68.8%</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(22/32 ep)</span>
             </div>
             <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 15px;">
-              <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">윈도우 스무딩 결합</span>
-              <strong style="font-size: 1.2rem; color: var(--success);">100.0%</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(32/32 ep, Open-Loop 적분)</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">실시간 VLM 결합 (Live Grounding)</span>
+              <strong style="font-size: 1.2rem; color: var(--danger);">9.4%</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(3/32 ep, 지터 누적)</span>
             </div>
           </div>
-          <span style="font-size: 0.75rem; color: var(--success); display: block; margin-top: 8px; font-weight: 600;">
-            ★ Temporal Smoothing 결합으로 오프라인 정렬 성공률 100% 완전 달성
+          <span style="font-size: 0.75rem; color: var(--danger); display: block; margin-top: 8px; font-weight: 600;">
+            ★ 실시간 VLM 지터 노이즈가 루프 내에 누적되어 제어 궤적 탈선(평균 FPE 1.21m) 유발 실증
           </span>
         </div>
       </div>
