@@ -465,6 +465,17 @@
   </header>
 
   <main>
+
+    <!-- ⚠️ 실패 케이스 기준 공지 안내 박스 (신규 추가) -->
+    <div style="background: rgba(239, 68, 68, 0.1); border: 2px solid var(--danger); border-radius: 12px; padding: 18px 22px; box-shadow: 0 0 15px rgba(248, 113, 113, 0.15);">
+      <span style="color: var(--danger); font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+        🚨 실패 케이스 (Fail Case) 이미지의 정량적 정의 및 기준
+      </span>
+      <p style="color: var(--text-main); font-size: 0.88rem; margin-top: 8px; line-height: 1.6;">
+        본 대시보드의 각 ID별 실패 사례(Fail Case) 이미지들은 주행 중간에 발생한 일시적인 흔들림(지터)을 보여주는 것이 아닙니다. 
+        해당 이미지들은 <strong>결국 최종 도착 시점(Closed-Loop 주행 완료 단계)에서의 최종 위치 오차(FPE, Final Position Error)가 합격 기준선(FPE &lt; 0.5m) 내에 들어가지 못하고 이탈(FPE &ge; 0.5m)하여 최종 골인에 완전히 실패한 시점의 실제 프레임 이미지</strong>입니다.
+      </p>
+    </div>
     
     <!-- Section 1: 주행 궤적 대시보드 -->
     <div class="dashboard-grid">
@@ -623,13 +634,13 @@
                 <div class="subbox-title fail-text">🔴 실패/과적합 분석 (Failure & Overfitting Analysis)</div>
                 <div class="subbox-content">
                   <strong>H5 에피소드:</strong> <code>episode_260408_175333_..._fixed_center.h5</code> (Frame 12)<br>
-                  <strong>양상:</strong> 150ep 소규모 데이터 하에서 완벽한 GT 궤적을 암기하였기 때문에, 라이브 로봇의 물리적인 지터나 센서 편향이 유입되는 급격한 회전 경로에서는 복원 액션을 제때 생성하지 못하고 라인 밖으로 이탈합니다.
+                  <strong>양상:</strong> 150ep 소규모 데이터 하에서 완벽한 GT 궤적을 암기하였기 때문에, 라이브 로봇의 물리적인 지터나 센서 편향이 유입되는 급격한 회전 경로에서는 복원 액션을 제때 생성하지 못하고 라인 밖으로 이탈(FPE &ge; 0.5m)합니다.
                 </div>
               </div>
               <div class="inline-img-grid">
                 <div class="inline-img-box">
                   <img src="visual_proof/images/A1_fail_overfit.jpg" alt="A1 fail">
-                  <span>A1 실패 프레임: Left 커브 시 회전 복원 지연 및 탈선</span>
+                  <span>A1 실패 프레임: 최종 FPE 범위 밖(FPE &ge; 0.5m)으로 탈선</span>
                 </div>
               </div>
             </div>
@@ -670,13 +681,13 @@
                 <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
                 <div class="subbox-content">
                   <strong>H5 에피소드:</strong> <code>episode_260409_200506_..._fixed_center.h5</code> (Frame 14)<br>
-                  <strong>양상:</strong> 동일 150ep 데이터셋 재학습 시, 특정 조향 축의 국소 최적점(Local Minimum)이 흐트러지면서 급격한 커브 `left_left` 경로 등에서 조향 복원력 부족으로 FPE가 0.55m 이상 벌어지며 이탈합니다.
+                  <strong>양상:</strong> 동일 150ep 데이터셋 재학습 시, 특정 조향 축의 국소 최적점(Local Minimum)이 흐트러지면서 급격한 커브 `left_left` 경로 등에서 조향 복원력 부족으로 최종 위치 오차 범위 이외로 미끄러져 FPE 0.55m로 실패합니다.
                 </div>
               </div>
               <div class="inline-img-grid">
                 <div class="inline-img-box">
                   <img src="visual_proof/images/A2_fail_curve.jpg" alt="A2 fail">
-                  <span>A2 실패 프레임: Left 회전 시 조향각 미달로 벽면 충돌 위험</span>
+                  <span>A2 실패 프레임: 최종 위치 합격선(FPE 0.5m) 도달 실패</span>
                 </div>
               </div>
             </div>
@@ -717,13 +728,13 @@
                 <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
                 <div class="subbox-content">
                   <strong>H5 에피소드:</strong> <code>episode_260409_123828_..._fixed_center.h5</code> (Frame 15)<br>
-                  <strong>양상:</strong> 150ep 수준의 소규모 주행 데이터 환경에서 무리하게 Flip 데이터 증강을 가하자, 기존의 조향 궤적 암기가 희석되며 목표를 지나쳤음에도 회전을 멈추지 않는 궤적 발산(Spiral Drift)이 일어나 TLD 1.05로 궤적이 급증하여 실패합니다.
+                  <strong>양상:</strong> 150ep 수준의 소규모 주행 데이터 환경에서 무리하게 Flip 데이터 증강을 가하자, 기존의 조향 궤적 암기가 희석되며 목표를 지나쳤음에도 회전을 멈추지 않는 궤적 발산(Spiral Drift)이 일어나 최종적으로 FPE 0.62m로 골에 정지하지 못해 실패합니다.
                 </div>
               </div>
               <div class="inline-img-grid">
                 <div class="inline-img-box">
                   <img src="visual_proof/images/A3_fail_drift.jpg" alt="A3 fail">
-                  <span>A3 실패 프레임: 회전 복원 탈조로 골 바깥쪽 나선 이탈</span>
+                  <span>A3 실패 프레임: 과주행(TLD 1.05)으로 최종 위치 이탈</span>
                 </div>
               </div>
             </div>
@@ -764,13 +775,13 @@
                 <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
                 <div class="subbox-content">
                   <strong>H5 에피소드:</strong> <code>episode_260409_194606_..._fixed_center.h5</code> (Frame 13)<br>
-                  <strong>양상:</strong> PaliGemma2 LoRA 그라운더 출력 특유의 좌편향 오프셋(mean -0.084) 노이즈로 인해, Flip이 적용되지 않은 B1에서는 우측 회전 커브 시 조향 복원 명령이 반박자 늦게 도출되어 경로 오차가 확대되며 이탈합니다.
+                  <strong>양상:</strong> PaliGemma2 LoRA 그라운더 출력 특유의 좌편향 오프셋(mean -0.084) 노이즈로 인해, Flip이 적용되지 않은 B1에서는 우측 회전 커브 시 조향 복원 명령이 반박자 늦게 도출되어 최종 FPE가 기준치를 초과해 골인에 실패합니다.
                 </div>
               </div>
               <div class="inline-img-grid">
                 <div class="inline-img-box">
                   <img src="visual_proof/images/B1_fail_bias.jpg" alt="B1 fail">
-                  <span>B1 실패 프레임: 좌편향 bbox(초록)로 인한 우측 복원 지연</span>
+                  <span>B1 실패 프레임: 복원 지연으로 임계 범위 외 정지</span>
                 </div>
               </div>
             </div>
@@ -811,13 +822,13 @@
                 <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
                 <div class="subbox-content">
                   <strong>H5 에피소드:</strong> <code>episode_260409_200506_..._fixed_center.h5</code> (Frame 15)<br>
-                  <strong>양상:</strong> VLM bbox 예측 특유의 고주파 지터(Jitter)로 인해 프레임이 일시적으로 흔들리는 경우, 단독 Flip만 주입된 B2에서는 궤적의 1-step 노이즈가 액션 예측에 전파되어 방향 진동이 발생하여 최종 오차가 누적 실패합니다.
+                  <strong>양상:</strong> VLM bbox 예측 특유의 고주파 지터(Jitter)로 인해 프레임이 일시적으로 흔들리는 경우, 단독 Flip만 주입된 B2에서는 궤적의 1-step 노이즈가 액션 예측에 전파되어 최종 위치 FPE가 합격선(0.5m)을 초과해 실패합니다.
                 </div>
               </div>
               <div class="inline-img-grid">
                 <div class="inline-img-box">
                   <img src="visual_proof/images/B2_fail_jitter.jpg" alt="B2 fail">
-                  <span>B2 실패 프레임: 일시적 그라운딩 bbox 미검출(Miss) 발생</span>
+                  <span>B2 실패 프레임: 지터 오차 누적으로 최종 FPE 오프셋 초과</span>
                 </div>
               </div>
             </div>
@@ -858,13 +869,13 @@
                 <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis)</div>
                 <div class="subbox-content">
                   <strong>H5 에피소드:</strong> <code>episode_260409_202055_..._fixed_center.h5</code> (Frame 17)<br>
-                  <strong>양상:</strong> 매우 예리하고 타이트한 S자 곡선 코너의 한계 시나리오에서, 조향 복원 가중치가 미세하게 임계 영역을 초과(FPE 0.16m)하여 실패 판정을 받았습니다. 주행 복원은 정상적으로 유지되었습니다.
+                  <strong>양상:</strong> S자 곡선 코너의 한계 시나리오에서, 조향 복원 가중치가 미세하게 골 지점에서 0.15m 이상 벌어지는 편차(FPE 0.16m 등)가 누적되어 실패 판정을 받았습니다. (임계선 통과 실패)
                 </div>
               </div>
               <div class="inline-img-grid">
                 <div class="inline-img-box">
                   <img src="visual_proof/images/B3_fail_limit.jpg" alt="B3 fail">
-                  <span>B3 한계 프레임: 급격한 S자 궤적 정렬 미세 초과(FPE 0.16m)</span>
+                  <span>B3 실패 프레임: 최종 위치가 0.15m 임계를 미세 초과(FPE 0.16m)</span>
                 </div>
               </div>
             </div>
@@ -905,13 +916,13 @@
                 <div class="subbox-title fail-text">🔴 실패 분석 (Failure Analysis - Steer Oscillation)</div>
                 <div class="subbox-content">
                   <strong>H5 에피소드:</strong> <code>episode_260409_200506_..._fixed_center.h5</code> (Frame 11)<br>
-                  <strong>양상:</strong> 단일 거대 모델이 visual grounding과 제어 action을 모두 도출해야 하므로, 회전 각도 제어가 243ep 내에서 일반화되지 못했습니다. 회전 시 조향이 진동(Steer Oscillation)을 일으키며 FPE 1.95m로 가장 크게 이탈합니다.
+                  <strong>양상:</strong> 회전 시 조향이 진동(Steer Oscillation)을 일으키며 궤적 중심을 완전히 잃고 이탈하여, 최종 도착 시점 FPE가 1.95m에 달해 실패합니다. (탈선 및 이탈)
                 </div>
               </div>
               <div class="inline-img-grid">
                 <div class="inline-img-box">
                   <img src="visual_proof/images/C1_fail_steer.jpg" alt="C1 fail">
-                  <span>C1 실패 프레임: 조향 진동 발산으로 인한 탈선 시점</span>
+                  <span>C1 실패 프레임: 최종 FPE 1.95m에 달하는 탈선 시점</span>
                 </div>
               </div>
             </div>
