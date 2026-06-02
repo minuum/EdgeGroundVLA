@@ -78,15 +78,20 @@ def bbox_window(frames, t):
     return arr
 
 
-def stop_trigger_idx(frames, th_area, th_cx, W, min_steps):
-    """도착 area 규칙 → 최초 STOP 트리거 frame idx (없으면 None). 출발스파이크 없어 rising 생략."""
-    buf = []
+def stop_trigger_idx(frames, th_area, th_cx, th_cy, W, min_steps):
+    """도착 area + cy 규칙 → 최초 STOP 트리거 frame idx (없으면 None)."""
+    buf_area = []
+    buf_cy = []
     for i, fr in enumerate(frames):
-        buf.append(fr.get("area_det") or 0.0)
-        if len(buf) > W: buf = buf[-W:]
-        area_avg = float(np.mean(buf))
+        buf_area.append(fr.get("area_det") or 0.0)
+        buf_cy.append(fr.get("cy_det") or 0.0)
+        if len(buf_area) > W:
+            buf_area = buf_area[-W:]
+            buf_cy = buf_cy[-W:]
+        area_avg = float(np.mean(buf_area))
+        cy_avg = float(np.mean(buf_cy))
         cx = fr.get("cx_det") or 0.5
-        if i >= min_steps and area_avg > th_area and abs(cx - 0.5) < th_cx:
+        if i >= min_steps and area_avg > th_area and abs(cx - 0.5) < th_cx and cy_avg > th_cy:
             return i
     return None
 
@@ -98,13 +103,51 @@ def apply_latched_stop(actions, trig):
     return [a if i < trig else 0 for i, a in enumerate(actions)]
 
 
-def expert_synth_stop(frames, th_area, th_cx, W, min_steps):
+def expert_synth_stop(frames, th_area, th_cx, th_cy, W, min_steps):
     """expert: gt_class 사용하되 도착 규칙으로 STOP 래치(이미 STOP인 ep는 그대로 유지)."""
     gt = [fr["gt_class"] for fr in frames]
     # gt에 이미 STOP 있으면 그 위치, 없으면 규칙 트리거
     gt_stop = next((i for i, c in enumerate(gt) if c == 0), None)
-    trig = gt_stop if gt_stop is not None else stop_trigger_idx(frames, th_area, th_cx, W, min_steps)
+    trig = gt_stop if gt_stop is not None else stop_trigger_idx(frames, th_area, th_cx, th_cy, W, min_steps)
     return apply_latched_stop(gt, trig)
+
+
+def run_evaluation(all_preds, th_area, th_cx, th_cy, W, min_steps, success_fpe):
+    """지정된 th_cy 값으로 4-cell 메트릭 평가를 실행하고 요약 딕셔너리를 반환한다."""
+    cells = {("raw", "off"): [], ("raw", "on"): [], ("synth", "off"): [], ("synth", "on"): []}
+    
+    for ep, frames, pred in all_preds:
+        # th_cy를 반영한 trigger index
+        trig = stop_trigger_idx(frames, th_area, th_cx, th_cy, W, min_steps)
+        pred_on = apply_latched_stop(pred, trig)
+        exp_raw = [fr["gt_class"] for fr in frames]
+        exp_synth = expert_synth_stop(frames, th_area, th_cx, th_cy, W, min_steps)
+        
+        variants = {
+            ("raw",   "off"): (exp_raw,   pred),
+            ("raw",   "on"):  (exp_raw,   pred_on),
+            ("synth", "off"): (exp_synth, pred),
+            ("synth", "on"):  (exp_synth, pred_on),
+        }
+        for key, (e, pr) in variants.items():
+            m = compute_metrics(build_trajectory(e), build_trajectory(pr), success_fpe)
+            cells[key].append(m)
+            
+    summary = {}
+    for key in [("raw", "off"), ("raw", "on"), ("synth", "off"), ("synth", "on")]:
+        ms = cells[key]
+        if not ms: continue
+        sr = np.mean([m["success"] for m in ms])
+        fpe = np.mean([m["fpe"] for m in ms])
+        tld = np.mean([m["tld"] for m in ms])
+        n = len(ms)
+        summary[f"{key[0]}_{key[1]}"] = {
+            "success_rate": float(sr),
+            "mean_fpe": float(fpe),
+            "mean_tld": float(tld),
+            "n": n
+        }
+    return summary
 
 
 def main():
@@ -112,7 +155,8 @@ def main():
     p.add_argument("--mlp", default=str(ROOT / "runs/v5_nav/mlp/exp60/abl_b3_mlp.pt"))
     p.add_argument("--th-area", type=float, default=0.5)
     p.add_argument("--th-cx",   type=float, default=0.3)
-    p.add_argument("--window-avg", type=int, default=5, help="area 평균 윈도 W")
+    p.add_argument("--th-cy",   type=float, default=0.5, help="Y-Center 임계값 게이트")
+    p.add_argument("--window-avg", type=int, default=5, help="area/cy 평균 윈도 W")
     p.add_argument("--min-steps",  type=int, default=0)
     p.add_argument("--success-fpe", type=float, default=0.5)
     p.add_argument("--out-tag", default="stop")
@@ -129,12 +173,12 @@ def main():
     ck = torch.load(args.mlp, map_location="cuda", weights_only=False)
     mlp = MLP().cuda(); mlp.load_state_dict(ck["mlp"]); mlp.eval()
     print(f"[MLP] {Path(args.mlp).name}  val_acc={ck.get('val_acc',0)*100:.1f}%")
-    print(f"[RULE] th_area={args.th_area} th_cx={args.th_cx} W={args.window_avg} min_steps={args.min_steps}\n")
+    print(f"[RULE] th_area={args.th_area} th_cx={args.th_cx} th_cy={args.th_cy} W={args.window_avg} min_steps={args.min_steps}\n")
 
-    # cell 누적
-    cells = {("raw", "off"): [], ("raw", "on"): [], ("synth", "off"): [], ("synth", "on"): []}
-
-    for ep in val_eps:
+    # 1단계: 모든 validation 에피소드에 대해 MLP 예측 캐싱 (연산 속도 단축)
+    all_preds = []
+    print("[RUN] MLP closed-loop 예측 feature 추출 중...")
+    for idx, ep in enumerate(val_eps):
         frames = [fr for fr in ep["frames"] if fr.get("gt_class") is not None]
         h5 = Path(ep["episode"])
         if not frames or not h5.exists():
@@ -144,7 +188,7 @@ def main():
                 imgs = f["observations"]["images"][:]
         except Exception:
             continue
-        # MLP per-frame 예측
+        
         pred = []
         with torch.no_grad():
             for t, fr in enumerate(frames):
@@ -152,41 +196,53 @@ def main():
                 x = torch.tensor(bbox_window(frames, t) + vis.cpu().tolist(),
                                  dtype=torch.float32, device="cuda").unsqueeze(0)
                 pred.append(int(mlp(x).argmax(1).item()))
+        
+        all_preds.append((ep, frames, pred))
+        if (idx + 1) % 5 == 0 or (idx + 1) == len(val_eps):
+            print(f"  - 진행 상황: {idx + 1}/{len(val_eps)} 에피소드 완료")
 
-        trig = stop_trigger_idx(frames, args.th_area, args.th_cx, args.window_avg, args.min_steps)
-        pred_on  = apply_latched_stop(pred, trig)
-        exp_raw   = [fr["gt_class"] for fr in frames]
-        exp_synth = expert_synth_stop(frames, args.th_area, args.th_cx, args.window_avg, args.min_steps)
+    print("\n[EVAL] Ablation 평가 수행 중 (No CY Gate vs With CY Gate)...")
+    summary_no_cy = run_evaluation(all_preds, args.th_area, args.th_cx, 0.0, args.window_avg, args.min_steps, args.success_fpe)
+    summary_with_cy = run_evaluation(all_preds, args.th_area, args.th_cx, args.th_cy, args.window_avg, args.min_steps, args.success_fpe)
 
-        variants = {
-            ("raw",   "off"): (exp_raw,   pred),
-            ("raw",   "on"):  (exp_raw,   pred_on),
-            ("synth", "off"): (exp_synth, pred),
-            ("synth", "on"):  (exp_synth, pred_on),
-        }
-        for key, (e, pr) in variants.items():
-            m = compute_metrics(build_trajectory(e), build_trajectory(pr), args.success_fpe)
-            cells[key].append(m)
+    # 2단계: 결과 대조 테이블 출력
+    def print_table(title, summary):
+        print(f"\n[{title}]")
+        print(f"{'expert':<8}{'pred_stop':<11}{'CL success':<15}{'mean_FPE':<11}{'mean_TLD'}")
+        print("-" * 56)
+        for key in [("raw","off"),("raw","on"),("synth","off"),("synth","on")]:
+            k_str = f"{key[0]}_{key[1]}"
+            if k_str not in summary: continue
+            val = summary[k_str]
+            sr = val["success_rate"]
+            fpe = val["mean_fpe"]
+            tld = val["mean_tld"]
+            n = val["n"]
+            print(f"{key[0]:<8}{key[1]:<11}{sr*100:>5.1f}% ({round(sr*n)}/{n})    {fpe:>7.3f}m   {tld:.3f}")
 
-    print(f"{'expert':<8}{'pred_stop':<11}{'CL success':<15}{'mean_FPE':<11}{'mean_TLD'}")
-    print("-" * 56)
-    summary = {}
-    for key in [("raw","off"),("raw","on"),("synth","off"),("synth","on")]:
-        ms = cells[key]
-        if not ms: continue
-        sr = np.mean([m["success"] for m in ms])
-        fpe = np.mean([m["fpe"] for m in ms]); tld = np.mean([m["tld"] for m in ms])
-        n = len(ms)
-        print(f"{key[0]:<8}{key[1]:<11}{sr*100:>5.1f}% ({round(sr*n)}/{n})    {fpe:>7.3f}m   {tld:.3f}")
-        summary[f"{key[0]}_{key[1]}"] = {"success_rate": float(sr), "mean_fpe": float(fpe),
-                                          "mean_tld": float(tld), "n": n}
+    print("=" * 60)
+    print(" Ablation Study: 도착 STOP Y-Center Gate (th_cy) 비교 검증")
+    print("=" * 60)
+    print_table(f"No CY Gate (th_cy=0.0)", summary_no_cy)
+    print_table(f"With CY Gate (th_cy={args.th_cy})", summary_with_cy)
+    print("=" * 60)
 
+    # 3단계: JSON으로 결과 저장
     out = OUTDIR / f"stop_closedloop_result_{args.out_tag}.json"
     out.write_text(json.dumps({
         "mlp": Path(args.mlp).name,
-        "rule": {"th_area": args.th_area, "th_cx": args.th_cx,
-                 "W": args.window_avg, "min_steps": args.min_steps},
-        "cells": summary}, indent=2, ensure_ascii=False))
+        "rule": {
+            "th_area": args.th_area,
+            "th_cx": args.th_cx,
+            "th_cy": args.th_cy,
+            "W": args.window_avg,
+            "min_steps": args.min_steps
+        },
+        "ablation": {
+            "no_cy_gate": summary_no_cy,
+            "with_cy_gate": summary_with_cy
+        }
+    }, indent=2, ensure_ascii=False))
     print(f"\n[SAVE] {out}")
 
 

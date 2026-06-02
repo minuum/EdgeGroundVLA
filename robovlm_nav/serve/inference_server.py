@@ -1886,6 +1886,7 @@ class GoalNavMLPInference:
         self._stop_enabled   = os.getenv("VLA_GOALNAV_STOP_RULE", "1") != "0"
         self._stop_th_area   = float(os.getenv("VLA_GOALNAV_STOP_TH_AREA", "0.5"))
         self._stop_th_cx     = float(os.getenv("VLA_GOALNAV_STOP_TH_CX", "0.3"))
+        self._stop_th_cy     = float(os.getenv("VLA_GOALNAV_STOP_TH_CY", "0.5"))
         self._stop_w         = int(os.getenv("VLA_GOALNAV_STOP_W", "5"))
         self._stop_min_steps = int(os.getenv("VLA_GOALNAV_STOP_MIN_STEPS", "0"))
 
@@ -1989,13 +1990,15 @@ class GoalNavMLPInference:
             return False
         recent = self._bbox_history[-self._stop_w:]
         area_avg = sum(b[2] for b in recent) / len(recent)
+        cy_avg = sum(b[1] for b in recent) / len(recent)
         cx = self._bbox_history[-1][0]
         if (self._step >= self._stop_min_steps
                 and area_avg > self._stop_th_area
-                and abs(cx - 0.5) < self._stop_th_cx):
+                and abs(cx - 0.5) < self._stop_th_cx
+                and cy_avg > self._stop_th_cy):
             self._stopped = True
-            logger.info("🛑 [GoalNavMLP] 도착 STOP 트리거 (area_avg=%.3f cx=%.3f step=%d)",
-                        area_avg, cx, self._step)
+            logger.info("🛑 [GoalNavMLP] 도착 STOP 트리거 (area_avg=%.3f cy_avg=%.3f cx=%.3f step=%d)",
+                        area_avg, cy_avg, cx, self._step)
             return True
         return False
 

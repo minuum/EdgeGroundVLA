@@ -42,25 +42,41 @@ area_det 최근 W프레임 평균 > TH_AREA  AND  |cx_det - 0.5| < TH_CX  AND  s
 - **조기오발(phase<0.7) = 0%** (모든 config 공통 — 출발 스파이크 없음 확증)
 - STOP 미라벨 ep에서도 54% 트리거되나 전부 phase 0.94(진짜 도착) → STOP 일반화(올바름)
 
-## 4. Closed-Loop 4-cell 검증
+## 4. Closed-Loop 4-cell 검증 및 Y-Center Gate 추가 Ablation
 
-`scripts/eval_stop_closedloop.py` — pg2_cx 주석 + CLIP feature → MLP(abl_b1, val 95.7%) → 궤적.
-expert: `raw`(gt 그대로, 도착 후 전진) vs `synth`(도착 규칙으로 STOP 래치) ×
-pred: STOP override `off` vs `on`. (val 33 ep)
+`scripts/eval_stop_closedloop.py` — pg2_cx 주석 + CLIP feature → MLP(abl_b1, val 95.7%) → 궤적.  
+expert: `raw`(gt 그대로, 도착 후 전진) vs `synth`(도착 규칙으로 STOP 래치) ×  
+pred: STOP override `off` vs `on`. (val 32 ep, 0.15m 성공 기준)
 
-| expert | pred STOP | CL success (FPE<0.15) | mean FPE | mean TLD |
-|---|---|---|---|---|
-| raw | off | 68.8% (22/32) | 0.082m | 0.998 |
-| raw | on | 34.4% (11/32) | 0.196m | 0.925 |
-| **synth** | **off** | **31.2% (10/32)** | 0.201m | 1.081 |
-| **synth** | **on** | **68.8% (22/32)** | **0.081m** | 0.998 |
+Y-Center 게이트 조건 (`cy_avg > TH_CY`) 도입 유무에 따른 4-cell Ablation 성능 비교 결과는 다음과 같습니다.
 
-> 임계 0.5m에선 전 cell 100%(절대 FPE 작음) → 차이를 드러내려 0.15m로 조임.
+### A. No CY Gate (th_cy=0.0) — 기존 Heuristic 면적 단독 조건
 
-**해석 — 대각선이 핵심:**
-- **synth/off (31.2%)**: 목표는 도착 정지인데 pred가 안 멈춤 → **basket 통과(과주행)**. 실로봇 충돌 케이스.
-- **synth/on (68.8%)**: STOP 규칙이 도착에서 정지 → expert와 정렬 → 성공률 **2.2배 회복** (FPE 0.201→0.081m).
-- raw/on(34.4%)은 반대로 expert는 안 멈추는데 pred만 멈춰 미달 — STOP은 "도착 정지 목표"에서만 이득.
+| expert | pred STOP | CL success (FPE<0.15) | mean FPE | mean TLD | 비고 |
+|---|---|---|---|---|---|
+| raw | off | 68.8% (22/32) | 0.082m | 0.998 | Baseline (무정지 조향) |
+| raw | on | 34.4% (11/32) | 0.196m | 0.925 | 가짜 바스켓에 의한 조기 정지(오발) |
+| **synth** | **off** | **31.2% (10/32)** | **0.201m** | **1.081** | **과주행 (바스켓 충돌/통과)** |
+| **synth** | **on** | **68.8% (22/32)** | **0.081m** | **0.998** | **성공률 2.2배 회복 및 FPE 최소화** |
+
+### B. With CY Gate (th_cy=0.5) — Y-Center 기하학 필터 추가 조건
+
+| expert | pred STOP | CL success (FPE<0.15) | mean FPE | mean TLD | 비고 |
+|---|---|---|---|---|---|
+| raw | off | 68.8% (22/32) | 0.082m | 0.998 | Baseline |
+| raw | on | **56.2% (18/32)** | **0.114m** | **0.975** | **성공률 +21.8%p 향상, FPE 41.8% 감소** (조기 정지 극적 차단) |
+| **synth** | **off** | **53.1% (17/32)** | **0.115m** | **1.023** | **성공률 +21.9%p 향상, FPE 42.8% 감소** |
+| **synth** | **on** | **68.8% (22/32)** | **0.081m** | **0.998** | 동일 (최종 정렬 정지) |
+
+> [!NOTE]
+> CL success 판단 임계값을 0.5m 완화 수준으로 설정하면 모든 셀에서 100% 도달합니다. 미세 제어 정합성 대조를 위해 0.15m로 좁혀 FPE 및 TLD의 차이를 고대조군으로 규명했습니다.
+
+**해석 및 핵심 발견 (Key Findings):**
+- **조기 오발화(False Trigger)의 극적인 차단**: 
+  - `pred STOP = on` (heuristic 정지 활성화) 조건에서 `th_cy = 0.5` 게이트를 추가하자, **성공률이 34.4% → 56.2%로 대폭 개선**되고, **mean FPE는 0.196m → 0.114m (41.8% 감소)**로 정밀해졌습니다.
+  - 이는 주행 도중 transient하게 잡히는 가짜 대형 BBox 노이즈(area가 크지만 화각 내 Y축 중심 cy가 0.38 내외로 높은 경우)를 걸러내고, 진짜 도착 시점(바스켓 하단이 화각 밑바닥에 완전 가라앉아 cy가 0.50에 도달하는 시점)에만 정지 동작을 래치하여 주행 탈선을 차단한 덕분입니다.
+- **과주행 정합성 완화 (synth/off)**:
+  - expert 목표 정지가 synthetically 걸려 있으나 제어기가 정지하지 않는 `synth/off` 대조군에서도, `th_cy = 0.5` 추가 시 FPE 오차가 **0.201m → 0.115m (42.8% 감소)**하며 주행 안정성이 큰 폭으로 개선되었습니다.
 
 ## 5. 산출물
 
