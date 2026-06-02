@@ -176,12 +176,7 @@ def main():
                 # Kosmos-2: pixel_values는 prompt 부분에만 연결됨
                 # 액션 토큰을 label로 teacher-forcing
                 # prompt만으로 forward → 마지막 hidden state에서 action logits 예측
-                with torch.no_grad():
-                    prompt_out = model(
-                        input_ids=inp["input_ids"],
-                        attention_mask=inp["attention_mask"],
-                        pixel_values=inp["pixel_values"],
-                    )
+                prompt_out = model(**inp)
                 # 마지막 토큰 hidden state로 action logit 계산
                 last_hidden = prompt_out.logits[:, -1, :]  # (1, vocab)
                 tgt_t = torch.tensor([tgt_ids[0]], dtype=torch.long, device=device)
