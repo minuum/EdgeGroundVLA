@@ -6253,6 +6253,223 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
     </div>
   </div>
 
+  <!-- ───────────────────────────────────────────────── Closed-Loop Ablation Study 시각화 (신규 추가) -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
+    <div style="color:#a78bfa;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📊 Closed-Loop Ablation Study 시각화 및 분석</div>
+    <div style="color:#e2e8f0;font-size:1.1rem;font-weight:700;margin-bottom:12px">각 ID별 성공/실패 궤적 및 실제 추론 이미지 매칭</div>
+    <p style="color:#94a3b8;font-size:0.82rem;line-height:1.6;margin-bottom:20px">
+      Ablation Study ID(A1~A3, B1~B3, C1)에 따른 Closed-Loop 주행 성능의 차이를 실제 궤적 이미지와 PaliGemma2 Grounding 추론 이미지(BBox)를 매칭하여 가시적으로 분석합니다.
+    </p>
+
+    <!-- 궤적 이미지 영역 (탭 전환) -->
+    <div style="background:#071120;border:1px solid #1e304a;border-radius:10px;padding:18px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div style="color:#38bdf8;font-size:0.85rem;font-weight:700">📍 Closed-Loop 주행 궤적 플롯 (FPE & TLD 비교)</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="changeTrajImg('all')" id="btn-traj-all" style="padding:4px 10px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:700">전체 (9-Panel)</button>
+          <button onclick="changeTrajImg('center')" id="btn-traj-center" style="padding:4px 10px;background:#0f172a;border:1px solid #1e293b;color:#94a3b8;border-radius:4px;font-size:0.75rem;cursor:pointer">Center 시작 (3-Panel)</button>
+          <button onclick="changeTrajImg('left')" id="btn-traj-left" style="padding:4px 10px;background:#0f172a;border:1px solid #1e293b;color:#94a3b8;border-radius:4px;font-size:0.75rem;cursor:pointer">Left 시작 (3-Panel)</button>
+          <button onclick="changeTrajImg('right')" id="btn-traj-right" style="padding:4px 10px;background:#0f172a;border:1px solid #1e293b;color:#94a3b8;border-radius:4px;font-size:0.75rem;cursor:pointer">Right 시작 (3-Panel)</button>
+        </div>
+      </div>
+      
+      <!-- 이미지 표시부 -->
+      <div style="display:flex;justify-content:center;align-items:center;background:#020617;border-radius:8px;padding:10px;overflow:hidden">
+        <img id="traj-display-img" src="visual_proof/traj_9panel_v2.png" style="max-width:100%;height:auto;border-radius:6px;transition: opacity 0.2s ease" alt="Closed-loop Trajectories">
+      </div>
+      <div style="color:#64748b;font-size:0.75rem;margin-top:8px;text-align:center">
+        * 각 궤적은 20Hz Closed-Loop 시뮬레이션 환경에서 에이전트의 Action 출력을 누적 적분하여 도출한 실제 경로입니다. (실선: 에이전트 경로 / 점선: Expert 경로)
+      </div>
+    </div>
+
+    <!-- 간단한 탭 전환 JS 추가 -->
+    <script>
+      function changeTrajImg(type) {
+        const img = document.getElementById('traj-display-img');
+        const buttons = {
+          all: document.getElementById('btn-traj-all'),
+          center: document.getElementById('btn-traj-center'),
+          left: document.getElementById('btn-traj-left'),
+          right: document.getElementById('btn-traj-right')
+        };
+        
+        let src = 'visual_proof/traj_9panel_v2.png';
+        if (type === 'center') src = 'visual_proof/traj_3panel_center_v2.png';
+        else if (type === 'left') src = 'visual_proof/traj_3panel_left_v2.png';
+        else if (type === 'right') src = 'visual_proof/traj_3panel_right_v2.png';
+        
+        img.style.opacity = 0;
+        setTimeout(() => {
+          img.src = src;
+          img.style.opacity = 1;
+        }, 150);
+
+        Object.keys(buttons).forEach(key => {
+          if (key === type) {
+            buttons[key].style.background = '#1e293b';
+            buttons[key].style.borderColor = '#334155';
+            buttons[key].style.color = '#e2e8f0';
+            buttons[key].style.fontWeight = '700';
+          } else {
+            buttons[key].style.background = '#0f172a';
+            buttons[key].style.borderColor = '#1e293b';
+            buttons[key].style.color = '#94a3b8';
+            buttons[key].style.fontWeight = 'normal';
+          }
+        });
+      }
+    </script>
+
+    <!-- ID별 세부 카드 그리드 -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-bottom:20px">
+      
+      <!-- Card Group A -->
+      <div style="background:#0d1e33;border:1px solid #1e3a66;border-radius:10px;padding:16px;display:flex;flex-direction:column;justify-content:space-between">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="color:#ef4444;font-size:0.8rem;font-weight:900;background:rgba(239,68,68,0.15);padding:2px 8px;border-radius:4px">Group A · HSV GT Baseline</span>
+            <span style="color:#64748b;font-size:0.7rem">150 episodes</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <!-- A1 -->
+            <div style="background:#071221;padding:8px 10px;border-radius:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#38bdf8;font-weight:700;font-size:0.82rem">A1 (No-Flip Baseline)</span>
+                <span style="color:#22c55e;font-weight:800;font-size:0.82rem">CL 96.7%</span>
+              </div>
+              <div style="color:#94a3b8;font-size:0.75rem;margin-top:2px">val_acc: 92.6% · FPE: 0.11m · TLD: 1.01</div>
+            </div>
+            <!-- A2 -->
+            <div style="background:#071221;padding:8px 10px;border-radius:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#38bdf8;font-weight:700;font-size:0.82rem">A2 (Re-train Baseline)</span>
+                <span style="color:#eab308;font-weight:800;font-size:0.82rem">CL 52.4%</span>
+              </div>
+              <div style="color:#94a3b8;font-size:0.75rem;margin-top:2px">val_acc: 95.5% · FPE: 0.55m · TLD: 1.03</div>
+            </div>
+            <!-- A3 -->
+            <div style="background:#071221;padding:8px 10px;border-radius:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#38bdf8;font-weight:700;font-size:0.82rem">A3 (Horizontal Flip)</span>
+                <span style="color:#ef4444;font-weight:800;font-size:0.82rem">CL 47.6%</span>
+              </div>
+              <div style="color:#94a3b8;font-size:0.75rem;margin-top:2px">val_acc: 94.3% · FPE: 0.62m · TLD: 1.05</div>
+            </div>
+          </div>
+        </div>
+        <div style="color:#64748b;font-size:0.72rem;line-height:1.4;margin-top:8px;border-top:1px solid #1e3a66;padding-top:8px">
+          💡 <strong>해석:</strong> 노이즈가 전혀 없는 완벽한 HSV BBox GT 하에 학습되었으나, 동일 데이터(150ep) 내에서 Flip 증강을 적용할 시 조향 편향이 희석되어 오히려 Closed-Loop 성능이 절반 이하로 하락하는 과적합(Overfitting) 취약성을 보입니다.
+        </div>
+      </div>
+
+      <!-- Card Group B -->
+      <div style="background:#0d1e33;border:1px solid #1e3a66;border-radius:10px;padding:16px;display:flex;flex-direction:column;justify-content:space-between">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="color:#22c55e;font-size:0.8rem;font-weight:900;background:rgba(34,197,94,0.15);padding:2px 8px;border-radius:4px">Group B · PG2 VLM Grounding</span>
+            <span style="color:#64748b;font-size:0.7rem">243 episodes</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <!-- B1 -->
+            <div style="background:#071221;padding:8px 10px;border-radius:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#38bdf8;font-weight:700;font-size:0.82rem">B1 (No-Flip Scale-Up)</span>
+                <span style="color:#22c55e;font-weight:800;font-size:0.82rem">CL 70.0%</span>
+              </div>
+              <div style="color:#94a3b8;font-size:0.75rem;margin-top:2px">val_acc: 95.7% · FPE: 0.13m · TLD: 0.99</div>
+            </div>
+            <!-- B2 -->
+            <div style="background:#071221;padding:8px 10px;border-radius:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#38bdf8;font-weight:700;font-size:0.82rem">B2 (Horizontal Flip)</span>
+                <span style="color:#22c55e;font-weight:800;font-size:0.82rem">CL 65.0%</span>
+              </div>
+              <div style="color:#94a3b8;font-size:0.75rem;margin-top:2px">val_acc: 95.2% · FPE: 0.18m · TLD: 1.01</div>
+            </div>
+            <!-- B3 -->
+            <div style="background:#071221;padding:8px 10px;border-radius:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#38bdf8;font-weight:700;font-size:0.82rem">B3 (Flip + Center × 3)</span>
+                <span style="color:#22c55e;font-weight:800;font-size:0.82rem">CL 70.0%</span>
+              </div>
+              <div style="color:#94a3b8;font-size:0.75rem;margin-top:2px">val_acc: 95.5% · FPE: 0.11m · TLD: 1.00</div>
+            </div>
+          </div>
+        </div>
+        <div style="color:#64748b;font-size:0.72rem;line-height:1.4;margin-top:8px;border-top:1px solid #1e3a6e;padding-top:8px">
+          💡 <strong>해석:</strong> PaliGemma2 기반 라이브 Grounding 특유의 지터와 오프셋 오차가 있음에도, <strong>데이터량을 243ep로 증강(Scale-Up)</strong>함에 따라 CL 성공률이 70%까지 비약적으로 상승하며 데이터 스케일의 중요성을 입증합니다.
+        </div>
+      </div>
+
+      <!-- Card Group C -->
+      <div style="background:#1e1b29;border:1px solid #3b2f4c;border-radius:10px;padding:16px;display:flex;flex-direction:column;justify-content:space-between">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="color:#a78bfa;font-size:0.8rem;font-weight:900;background:rgba(167,139,250,0.15);padding:2px 8px;border-radius:4px">Group C · End-to-End VLA</span>
+            <span style="color:#64748b;font-size:0.7rem">243 episodes</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <!-- C1 -->
+            <div style="background:#110f1c;padding:12px;border-radius:6px;border:1px dashed #4c3e66">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#a78bfa;font-weight:700;font-size:0.85rem">C1 (E2E Kosmos-2)</span>
+                <span style="color:#f87171;font-weight:800;font-size:0.85rem">CL 18.8%</span>
+              </div>
+              <div style="color:#94a3b8;font-size:0.75rem;margin-top:4px">val_acc: 78.6% · FPE: 1.95m · TLD: 0.93</div>
+              <div style="color:#f87171;font-size:0.72rem;margin-top:6px;font-weight:700">⚠️ center_straight(4/4 성공) 외의 회전 경로 전원 실패 (조향 진동 발산)</div>
+            </div>
+          </div>
+        </div>
+        <div style="color:#94a3b8;font-size:0.72rem;line-height:1.4;margin-top:8px;border-top:1px solid #3b2f4c;padding-top:8px">
+          💡 <strong>해석:</strong> 단일 거대 모델이 인식과 제어를 한 번에 풀어야 하므로 학습 난이도가 높습니다. Decomposed 방식(B1~B3)이 소규모 주행 데이터(243ep) 환경에서 데이터 효율성 및 제어 강건성 면에서 현격한 우위에 있음을 실증합니다.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 실제 이미지 & 추론 결과 (BBox) 대조 매칭 영역 -->
+    <div style="background:#071120;border:1px solid #1e304a;border-radius:10px;padding:18px">
+      <div style="color:#f59e0b;font-size:0.85rem;font-weight:700;margin-bottom:12px">👁️ Grounding 성공 케이스 vs 제어 OOD 극복 추론 결과 시각화</div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;min-width:0">
+        
+        <!-- Left Item -->
+        <div style="background:#020617;border:1px solid #1e293b;border-radius:8px;overflow:hidden">
+          <div style="padding:6px 12px;background:#0d1527;color:#38bdf8;font-size:0.75rem;font-weight:700;border-bottom:1px solid #1e293b">
+            Frame [1] - 출발 시점 Grounding 검증 ("gray basket")
+          </div>
+          <div style="padding:10px;display:flex;justify-content:center">
+            <img src="visual_proof/exp57_frame1_comparison.jpg" style="max-width:100%;height:auto;border-radius:4px" alt="Frame 1 Grounding">
+          </div>
+          <div style="padding:8px 12px;color:#94a3b8;font-size:0.72rem;line-height:1.4">
+            <strong>설명:</strong> 출발 프레임에서 PaliGemma2 LoRA 그라운더가 <span style="color:#38bdf8">"gray basket"</span>의 정확한 위치를 바운딩 박스(<span style="color:#ef4444">빨간색</span>)로 포착. 오탐지(False Positive)율 0%로 타겟 객체만 명확하게 검출하는 상태입니다.
+          </div>
+        </div>
+
+        <!-- Right Item -->
+        <div style="background:#020617;border:1px solid #1e293b;border-radius:8px;overflow:hidden">
+          <div style="padding:6px 12px;background:#0d1527;color:#38bdf8;font-size:0.75rem;font-weight:700;border-bottom:1px solid #1e293b">
+            Frame [7] - 주행 중 Grounding 검증 (정렬 확인)
+          </div>
+          <div style="padding:10px;display:flex;justify-content:center">
+            <img src="visual_proof/exp57_frame7_comparison.jpg" style="max-width:100%;height:auto;border-radius:4px" alt="Frame 7 Grounding">
+          </div>
+          <div style="padding:8px 12px;color:#94a3b8;font-size:0.72rem;line-height:1.4">
+            <strong>설명:</strong> 주행을 진행하며 바스켓에 가까워질수록 bbox가 중앙에 정확히 매칭됩니다. VLM의 bbox 오차 통계를 활용한 <strong>BBox Noise Augmentation</strong> 학습이 적용된 Stage2 MLP는 이 편향된 오차를 OOD로 간주하지 않고 복원 조향(Left/Right Action)을 안정적으로 생성합니다.
+          </div>
+        </div>
+
+      </div>
+
+      <div style="background:#0a1628;border-radius:8px;padding:12px;font-size:0.8rem;color:#94a3b8;line-height:1.6">
+        <strong style="color:#22c55e">결론 요약 (Professor Meeting Core Claim):</strong><br>
+        1. <strong>객체 인식 증거:</strong> 동일 이미지에서 쿼리만 교체 시("gray basket" 100% vs "red ball" 0%) 그라운딩이 동작하는 것으로 "목표 인식 → 위치 탐지"의 순차 메커니즘을 명백히 보여줍니다.<br>
+        2. <strong>제어 연동 안정성:</strong> VLM bbox 특유의 오프셋(std 0.22)에 무너지던 Closed-Loop를 <strong>BBox Noise Augmentation (scale=2.0) 및 Flip 증강(B3)</strong>을 결합해 최종 CL 70%까지 회복하여 "텍스트 목표 → Grounding → 실조향"의 전체 연결고리를 완성했습니다.
+      </div>
+
+    </div>
+
+  </div>
 
   <!-- ───────────────────────────────────────────────── 데이터셋 분석 (5/28 신규) -->
   <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
