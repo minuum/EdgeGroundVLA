@@ -122,16 +122,38 @@ def _try_font(size):
 
 
 def save_pair(orig: Image.Image, masked: Image.Image, row: dict, idx: int, out_dir: Path):
-    """원본 | 마스킹 나란히 붙여 PNG로 저장."""
+    """원본 | 마스킹 나란히 붙여 PNG로 저장 (이미지 위에 예측 방향 텍스트 오버레이)."""
     W, H = orig.size
     PAD = 4
     LABEL_H = 28
     canvas_w = W * 2 + PAD * 3
     canvas_h = H + LABEL_H * 2 + PAD * 2
 
+    # 원본 이미지 위에 텍스트 오버레이 그리기
+    orig_overlay = orig.copy()
+    draw_orig = ImageDraw.Draw(orig_overlay)
+    font_large = _try_font(14)
+    # 원래 예측 방향 표시
+    draw_orig.rectangle([10, 10, 140, 36], fill=(15, 23, 42, 200))
+    draw_orig.text((16, 14), f"ORIG: {row['pred_orig'].upper()}", fill=(251, 191, 36), font=font_large)
+
+    # 마스킹 이미지 위에 텍스트 오버레이 그리기
+    masked_overlay = masked.copy()
+    draw_masked = ImageDraw.Draw(masked_overlay)
+    flipped = row["flipped"]
+    
+    if flipped:
+        # 반전(오류) 발생 시 빨간색 오버레이로 강력하게 강조
+        draw_masked.rectangle([10, 10, 240, 36], fill=(239, 68, 68, 220))
+        draw_masked.text((16, 14), f"★FLIP → {row['pred_mask'].upper()}", fill=(255, 255, 255), font=font_large)
+    else:
+        # 안정 상태일 때 녹색 오버레이 표시
+        draw_masked.rectangle([10, 10, 160, 36], fill=(16, 185, 129, 200))
+        draw_masked.text((16, 14), f"MASK: {row['pred_mask'].upper()}", fill=(255, 255, 255), font=font_large)
+
     canvas = Image.new("RGB", (canvas_w, canvas_h), LABEL_BG)
-    canvas.paste(orig,   (PAD,         PAD + LABEL_H))
-    canvas.paste(masked, (W + PAD * 2, PAD + LABEL_H))
+    canvas.paste(orig_overlay,   (PAD,         PAD + LABEL_H))
+    canvas.paste(masked_overlay, (W + PAD * 2, PAD + LABEL_H))
 
     draw = ImageDraw.Draw(canvas)
     font_sm = _try_font(11)
@@ -139,7 +161,6 @@ def save_pair(orig: Image.Image, masked: Image.Image, row: dict, idx: int, out_d
 
     d   = row["direction"]
     col = DIR_COLORS[d]
-    flipped = row["flipped"]
     border_col = (239, 68, 68) if flipped else (71, 85, 105)
 
     # 테두리
@@ -270,21 +291,21 @@ def main():
                 "scales": {str(sc): scale_results[sc] for sc in SCALES}
             }
 
-            # 이미지 저장: 사용자가 요청한 '마스크 크기 축소'를 반영하여 scale=1.0을 기본으로 하여 기존 갤러리 이미지들을 덮어씀
+            # 이미지 저장: 사용자가 요청한 1.5배 마스킹 이미지로 갱신하여 갤러리 이미지들을 덮어씀
             if args.save_images:
                 dir_counters[direction] += 1
-                # scale=1.0에 해당하는 마스킹 이미지를 구함
-                target_masked_img, _ = mask_basket(img, cx, cy, area, scale=1.0)
+                # scale=1.5에 해당하는 마스킹 이미지를 구함
+                target_masked_img, _ = mask_basket(img, cx, cy, area, scale=1.5)
                 # save_pair에서 정보를 텍스트로 그릴 수 있도록 row 형식을 간이 매칭
                 img_row = {
                     "direction": direction,
                     "cx": round(cx, 3), "area": round(area, 4), "phase": round(phase, 3),
                     "conf_orig": round(conf_orig, 4),
-                    "conf_mask": scale_results[1.0]["conf_mask"],
-                    "conf_drop": scale_results[1.0]["conf_drop"],
+                    "conf_mask": scale_results[1.5]["conf_mask"],
+                    "conf_drop": scale_results[1.5]["conf_drop"],
                     "pred_orig": DIRS[pred_orig],
-                    "pred_mask": scale_results[1.0]["pred_mask"],
-                    "flipped": scale_results[1.0]["flipped"]
+                    "pred_mask": scale_results[1.5]["pred_mask"],
+                    "flipped": scale_results[1.5]["flipped"]
                 }
                 fname = save_pair(img, target_masked_img, img_row, dir_counters[direction], OUT_DIR)
                 row["img_file"] = fname

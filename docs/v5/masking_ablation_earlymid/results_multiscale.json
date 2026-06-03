@@ -701,7 +701,7 @@
           "flipped": false
         }
       },
-      "img_file": "center_07_stable.png"
+      "img_file": "center_07_FLIP.png"
     },
     {
       "direction": "center",
@@ -827,7 +827,7 @@
           "flipped": false
         }
       },
-      "img_file": "center_10_stable.png"
+      "img_file": "center_10_FLIP.png"
     },
     {
       "direction": "center",
