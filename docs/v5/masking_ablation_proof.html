@@ -598,6 +598,29 @@
                 <div class="analysis-text" style="margin-top: 20px; font-size: 0.9rem; border-left: 3px solid var(--accent-blue); padding-left: 14px; background: rgba(59, 130, 246, 0.03); padding-top: 8px; padding-bottom: 8px;">
                     <strong>💡 핵심 요약:</strong> Y-Center 기하 필터 도입으로 주행 도중 가짜 대형 바스켓 노이즈에 의해 멈춰버리던 오작동이 원천 봉쇄되었습니다. 그 결과 조향력이 뛰어난 최선 모델에서 **실질 CL 성공률이 34.4%에서 68.8%로 정확히 2배 개선**되었습니다.
                 </div>
+
+                <!-- 정지 게이트 시각적 원리 다이어그램 추가 -->
+                <div style="margin-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 20px;">
+                    <h4 style="font-size: 1.0rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-diagram-project"></i> Y-Center Gate 정지 의사결정 시각화
+                    </h4>
+                    <div style="background: #020617; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; margin-bottom: 14px;">
+                        <img src="visual_proof/stop_gate_concept.png" alt="Stop Gate Concept Diagram" style="max-width: 100%; height: auto; border-radius: 6px;">
+                    </div>
+                    <div class="analysis-text" style="font-size: 0.85rem; line-height: 1.6;">
+                        <p style="margin-bottom: 8px; color: var(--text-main); font-weight: 700;"><i class="fa-solid fa-circle-info"></i> 주행 중 조기 오정지 차단 메커니즘 (Y-Center Gate)</p>
+                        <ul style="padding-left: 0; list-style: none;">
+                            <li style="margin-bottom: 8px; position: relative; padding-left: 18px;">
+                                <span style="position: absolute; left: 0; color: var(--accent-red); font-weight: 700;">➔</span>
+                                <strong>Case 1 (조기 정지 차단)</strong>: 주행 중간 단계에서 VLM의 검출 BBox 크기($area\_det = 0.666$)가 임계값($0.50$)을 일시 돌파하더라도, BBox의 기하 중심 $cy\_det(0.35)$가 임계 가이드라인($TH\_CY = 0.50$, 빨간색 점선)보다 위에 놓여 있어 <strong>STOP 판단이 안전하게 차단(Blocked)</strong>되고 전진 주행을 유지합니다.
+                            </li>
+                            <li style="position: relative; padding-left: 18px;">
+                                <span style="position: absolute; left: 0; color: var(--accent-green); font-weight: 700;">➔</span>
+                                <strong>Case 2 (진짜 도착 정지)</strong>: 로봇이 바스켓 전면에 도달하여 바스켓 하단 엣지가 카메라 하단부에 잠기면, $cy\_det(0.68)$가 임계 가이드라인($TH\_CY \ge 0.50$, 녹색 점선) 아래로 도달합니다. 이로써 <strong>진짜 정지 조건이 래치(Latch ON)</strong>되어 안전하게 정지합니다.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
 
