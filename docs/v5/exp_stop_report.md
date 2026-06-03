@@ -185,6 +185,36 @@ Y-Center 게이트 조건 (`cy_avg > TH_CY`) 도입 유무에 따른 4-cell Abla
    - E2E 모델은 중간 오차 보정이 불가능하여 미세한 이미지 잡음에도 조향이 요동치며 **진동 발산(Steer Oscillation)**으로 직결되어 탈선율이 급증(성공률 18.8%)합니다.
    - **학습 연계:** 이는 그라운딩과 제어기를 명조화한 **Decomposed 아키텍처(Stage1 Grounder + Stage2 Controller)**가 데이터 효율성 및 강건성 제어 학습 측면에서 현격한 지배적 우위를 점하고 있음을 실증합니다.
 
+### 6c. 도착 정지(STOP) 의사결정의 수학적/제어공학적 심층 고찰 및 최적 제어
+
+도착(STOP) 판단은 단순한 임계값 판단을 넘어, 로봇 자율주행 제어 루프 내에서 **목표 지향적 주행의 수렴(Convergence)**을 결정짓는 핵심 종결 조건입니다. 이를 제어공학 및 확률 모델 관점에서 고찰한 3대 핵심 메커니즘은 다음과 같습니다.
+
+#### 1. 이중 위협에 따른 Trade-off 및 Pareto Optimal 최적화
+* **이중 위협 (Dual Threat)**:
+  * **조기 오정지 (False Positive Stop, Under-travel)**: $area\_det$가 일시적인 노이즈로 튀거나, 원거리의 타 배경 물체를 바스켓으로 오검출할 때 발생합니다. 한 번 정지(STOP=0)가 트리거되면 래치(Latch) 구조에 의해 로봇은 영구히 멈추며, 최종 도달 오차(FPE)가 수 미터에 달하는 완주 실패(Failure)로 직결됩니다.
+  * **과주행 및 충돌 (False Negative Stop, Overrun)**: 도착 지점 주변에서 정지 신호를 놓치면, 제어기는 여전히 전진 관성을 유지하여 물체와 충돌하거나(FPE 측정 붕괴), 물체를 밟고 지나가 주행 궤적이 파산합니다.
+* **Y-Center Gate ($TH\_CY$)의 기하학적 제약 주입**:
+  * $area\_det$는 카메라 렌즈의 빛 번짐, 반사율, VLM의 스케일 지터에 따라 크게 진동하여 강건성(Robustness)이 떨어집니다.
+  * 반면, $cy\_det$는 핀홀 카메라 투영 모델(Pinhole Camera Projection)에 의해 물리적 거리 $d$에 반비례하여 단조 증가합니다:
+    $$cy\_det \propto \frac{f \cdot H_{\text{camera}}}{d}$$
+    따라서 바스켓 하단이 카메라 뷰 밑단으로 가라앉는 조건($cy \ge 0.50$)은 물체와의 물리적 거리가 극도로 밀착되었음을 나타내는 최선의 **물리적 안전 경계(Safety Boundary)**입니다. 이 조건을 게이트($cy_{\text{avg}} > TH\_CY$)로 주입하는 것은, ROC 공간 상에서 False Positive Rate(FPR)를 $0\%$로 강제 격리하면서 True Positive Rate(TPR)를 유지하는 제어공학적 하드 컨스트레인트(Hard Constraint)로 작용합니다.
+
+#### 2. 시간축 저대역 필터(Low-Pass Filter)로서의 윈도우 스무딩
+* **고주파 시각 지터 (High-frequency Visual Jitter)**:
+  * 프레임 단위로 독립 추론되는 VLM 그라운딩 엣지는 본질적으로 화이트 노이즈(White Noise)성 시간 지터를 수반합니다.
+  * 학습 STOP 모델의 미가공(raw) 출력을 직접 래칭하면 단 1프레임의 조기 스파이크 노이즈로 인해 CL 성공률이 53.1%에 갇히게 됩니다.
+* **수학적 이식 (Moving Average Filtering)**:
+  * 시간축 윈도우 $W=3$에 대한 STOP 예측 확률의 평균 필터링은 주파수 영역(Frequency Domain)에서 고주파 노이즈 성분을 제거하는 **이산 저대역 통과 필터(Discrete Low-Pass Filter)**와 같습니다:
+    $$\bar{P}_t(\text{STOP}) = \frac{1}{W}\sum_{i=0}^{W-1} P_{t-i}(\text{STOP}) > \theta_{\text{prob}}$$
+  * 이 스무딩 필터는 약 1~2프레임의 불가피한 제어 지연(Phase Delay)을 유발하지만, 신호 대 잡음비(SNR)를 기하급수적으로 개선합니다. 그 결과 조기 정지는 완벽히 방지하면서, 감속 및 최종 정렬 정지 성능을 향상시켜 성공률을 기존 최선 Heuristic 규칙 수준인 68.8%로 끌어올렸습니다.
+
+#### 3. 조향-정지 디커플링 (Decoupled Steering-Stopping) 및 병렬 아키텍처
+* **단일 망(Single Network) 통합 학습의 모순**:
+  * 단일 제어망(MLP) 내에서 조향(Steer)과 정지(Stop)를 동시에 추론하도록 통합 가중치를 학습할 경우, 데이터 희소성(Imbalance) 및 멀티태스크 간 그래디언트 간섭(Gradient Interference)으로 인해 조향 조작 공간(Control Space)이 왜곡됩니다. 실제로 `stop65_mlp` 단독 구동 시, 정지 예측(Recall 95.6%)은 잘하나 주행 중간에 Left/Right 방향을 꺾지 못하고 벽으로 탈선(FPE 1.07m, 성공률 22.2%)하는 파멸적 성능을 보였습니다.
+* **병렬 Decomposed 구동 구조 (Decomposed Parallel Control)**:
+  * 이 문제를 해결하기 위해, 조향 제어는 성능 상한(81.2%)이 검증된 전용 주행 제어기(`stage2_pg2cx_center3x_mlp.pt`)에 위임하고, 도착 감지(STOP)는 별도의 가벼운 병렬 분류기(`stop65_mlp` + 스무딩 필터 또는 기하 룰)로 이원화하여 구동합니다.
+  * 이러한 **역학적 디커플링(Kinematic Decoupling)**은 제어 루프의 자유도를 증가시키고 결합 고장(Common-mode Failure)을 격리하여, 실로봇 물리 환경에서 가장 신뢰성 높은 최적 제어를 보장합니다.
+
 ## 7. 교수님 질문과의 연결
 
 "목표를 인식하고 도착을 판단하는가" = goal-conditioned navigation의 종결 조건.

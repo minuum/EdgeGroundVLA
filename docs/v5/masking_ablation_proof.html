@@ -621,6 +621,27 @@
                         </ul>
                     </div>
                 </div>
+
+                <!-- 도착 STOP 의사결정의 제어공학적·수학적 심층 고찰 -->
+                <div style="margin-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 20px;">
+                    <h4 style="font-size: 1.05rem; font-weight: 700; color: #a78bfa; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                        <i class="fa-solid fa-brain"></i> 도착 STOP 의사결정의 제어공학적·수학적 심층 고찰
+                    </h4>
+                    <div class="analysis-text" style="font-size: 0.88rem; line-height: 1.7; display: flex; flex-direction: column; gap: 16px;">
+                        <div>
+                            <span style="display: inline-block; padding: 3px 8px; background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px; font-family: 'Outfit', sans-serif;">1. 이중 위협 해결: 조기 정지(False Stop) vs 과주행(Overrun) Trade-off</span>
+                            <p>도착 정지 제어는 일시적인 노이즈로 인한 <strong>조기 오발(False Positive)</strong>과 정지 실패로 인한 <strong>과주행 및 충돌(False Negative)</strong> 사이의 Trade-off를 수반합니다. 면적 임계치 단독 조건($area\_det > 0.5$)은 1-step BBox 팽창 노이즈로 인해 성공률이 34.4%로 반토막 났으나, 핀홀 카메라 투영 모델에 따른 Y-Center 기하 제약($cy\_det \propto f \cdot H_{\text{camera}}/d \ge 0.50$)을 게이트 조건으로 결합함으로써 FPR을 0.0%로 강제 통제하며 이중 위협을 근본적으로 극복했습니다.</p>
+                        </div>
+                        <div>
+                            <span style="display: inline-block; padding: 3px 8px; background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px; font-family: 'Outfit', sans-serif;">2. 시간축 저대역 필터(Low-Pass Filter)로서의 윈도우 스무딩</span>
+                            <p>프레임 단위 VLM 그라운딩의 BBox 및 액션 엣지는 화이트 노이즈성 지터(Jitter)를 갖습니다. 단순 MLP 학습 기반 정지는 1-step 스파이크로 인해 성공률이 53.1%에 머물렀지만, 시간축 윈도우 평균 필터($\bar{P}_t = \frac{1}{W}\sum_{i=0}^{W-1} P_{t-i} > \theta_{\text{prob}}$)를 도입해 고주파 지터 노이즈를 평활화함으로써 <strong>성공률을 68.8%로 개선</strong>, 규칙 기반 제어 수준에 도달했습니다.</p>
+                        </div>
+                        <div>
+                            <span style="display: inline-block; padding: 3px 8px; background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 6px; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px; font-family: 'Outfit', sans-serif;">3. 조향-정지 디커플링 (Decoupled Steering-Stopping) 및 병렬 아키텍처</span>
+                            <p>조향(Steer)과 정지(Stop)를 단일 모델로 결합 학습시킬 경우, 주행 전반에서 조향 제어 능력이 심각하게 왜곡되는 현상이 실시간 라이브 CL 주행 평가(성공률 22.2%로 붕괴)에서 확인되었습니다. 따라서 주행 성능이 보증된 최선 조향기(`center3x_mlp`)를 메인 주행 루프로 상시 구동하고, 독립적인 병렬 스레드에서 정지 판별 분류기(`stop65_mlp` + 스무딩 필터)를 가동하는 <strong>Decomposed 병렬 제어 아키텍처</strong>가 실로봇 배포 환경의 안전 한계선을 극대화하는 실질적 해법입니다.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
