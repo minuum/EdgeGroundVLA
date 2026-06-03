@@ -47,13 +47,14 @@ DIRS      = ["left", "center", "right"]
 
 MIN_AREA      = 0.005   # 마스킹 의미 있으려면 최소 이 면적 이상
 MASK_SCALE    = 1.5     # bbox 크기의 1.5배로 마스킹 (약간 넉넉하게)
-MASK_COLOR    = (128, 128, 128)
+MASK_COLOR    = (128, 128, 128)  # 기본값 (main에서 덮어씌워짐)
 N_SAMPLE      = 15      # 방향별 샘플 수
 # 에피소드 내 상대 위치 0~1 중 이 비율 이하 프레임만 사용 (도착 직전 제외)
 # 0.33 = 초기만, 0.66 = 초기+중기, 1.0 = 전체
 EPISODE_PHASE_MAX = 0.66   # 초기+중기(앞 66%)만 사용
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "docs" / "v5" / "masking_ablation_earlymid"
+
 
 
 def load_model(device):
@@ -190,11 +191,22 @@ def save_pair(orig: Image.Image, masked: Image.Image, row: dict, idx: int, out_d
 
 
 def main():
+    global MASK_COLOR, OUT_DIR
     parser = argparse.ArgumentParser()
     parser.add_argument("--save-images", action="store_true", default=True,
                         help="before/after 이미지 저장 (기본 ON)")
     parser.add_argument("--no-save-images", dest="save_images", action="store_false")
+    parser.add_argument("--mask-color", type=str, default="128,128,128",
+                        help="RGB mask color comma-separated, e.g. 0,0,0 or 128,128,128")
     args = parser.parse_args()
+
+    color_parts = [int(x.strip()) for x in args.mask_color.split(",")]
+    MASK_COLOR = tuple(color_parts)
+
+    if args.mask_color == "0,0,0":
+        OUT_DIR = Path(__file__).resolve().parent.parent / "docs" / "v5" / "masking_ablation_earlymid_black"
+    else:
+        OUT_DIR = Path(__file__).resolve().parent.parent / "docs" / "v5" / "masking_ablation_earlymid"
 
     if args.save_images:
         OUT_DIR.mkdir(parents=True, exist_ok=True)

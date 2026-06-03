@@ -395,58 +395,135 @@
                 <h2 class="card-title">
                     <i class="fa-solid fa-chart-bar"></i> 1. 다중 스케일 Masking Ablation 결과
                 </h2>
-                <div class="analysis-text" style="margin-bottom: 24px;">
-                    <p>기존의 1.5배 마스킹(1.5x)에서는 5.6%의 예측 방향 반전(Action Flip)이 관찰되었으나, 이는 마스크 크기가 너무 커 주변 배경(context) 정보까지 함께 가려졌기 때문이라는 의문이 제기되었습니다.</p>
-                    <p>이에 마스크 스케일을 <strong>1.5x ➔ 1.2x ➔ 1.0x (바스켓 정크기) ➔ 0.8x ➔ 0.5x (중심 국소 영역)</strong>로 줄여가며 예측 자신감(Confidence Drop)과 방향 반전율(Flip Rate)을 스윕했습니다.</p>
+                <div class="analysis-text" style="margin-bottom: 20px;">
+                    <p>마스크 스케일을 <strong>1.5x ➔ 1.2x ➔ 1.0x (바스켓 정크기) ➔ 0.8x ➔ 0.5x (중심 국소 영역)</strong>로 스윕하며 차폐 강도에 따른 인과율과 의사결정 강건성을 검증했습니다.</p>
+                    <p>또한 마스크 색상을 회색(128, 128, 128)에서 <strong>검은색(0, 0, 0)</strong>으로 전환하여, VLM의 시각 도메인 내 인위적 엣지 노이즈에 대한 감도 및 편향 여부를 추가 대조 분석했습니다.</p>
+                </div>
+
+                <!-- 탭 메뉴 인터페이스 -->
+                <div class="gallery-filter" style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+                    <button class="filter-btn active" id="tab-gray" onclick="switchAblationTab('gray')">
+                        <i class="fa-solid fa-square" style="color: #808080; margin-right: 4px;"></i> 회색 마스크 (128, 128, 128)
+                    </button>
+                    <button class="filter-btn" id="tab-black" onclick="switchAblationTab('black')">
+                        <i class="fa-solid fa-square" style="color: #000000; border: 1px solid rgba(255,255,255,0.3); margin-right: 4px;"></i> 검은색 마스크 (0, 0, 0)
+                    </button>
                 </div>
                 
-                <table>
-                    <thead>
-                        <tr>
-                            <th>마스크 스케일</th>
-                            <th>전체 평균 Conf Drop</th>
-                            <th>방향 반전 비율 (Flip Rate)</th>
-                            <th>의사결정 판정</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="td-left">1.5x (기존 크기)</td>
-                            <td>+0.0157</td>
-                            <td><span class="badge-orange">5.6% (2/36)</span></td>
-                            <td>부분 의존 (주변 맥락 침범)</td>
-                        </tr>
-                        <tr>
-                            <td class="td-left">1.2x</td>
-                            <td>+0.0195</td>
-                            <td><span class="badge-orange">2.8% (1/36)</span></td>
-                            <td>부분 의존</td>
-                        </tr>
-                        <tr>
-                            <td class="td-left"><strong>1.0x (정크기)</strong></td>
-                            <td><strong>+0.0208</strong></td>
-                            <td><span class="badge-green">0.0% (0/36)</span></td>
-                            <td><strong>독립 보조 신호 (안정)</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="td-left">0.8x (타이트)</td>
-                            <td>+0.0334</td>
-                            <td><span class="badge-green">0.0% (0/36)</span></td>
-                            <td>부분 의존 (안정)</td>
-                        </tr>
-                        <tr>
-                            <td class="td-left">0.5x (국소 중심)</td>
-                            <td>+0.0319</td>
-                            <td><span class="badge-green">0.0% (0/36)</span></td>
-                            <td>부분 의존 (안정)</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- 회색 마스크 테이블 -->
+                <div id="table-gray-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>마스크 스케일</th>
+                                <th>전체 평균 Conf Drop</th>
+                                <th>방향 반전 비율 (Flip Rate)</th>
+                                <th>의사결정 판정</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="td-left">1.5x (기존 크기)</td>
+                                <td>+0.0157</td>
+                                <td><span class="badge-orange">5.6% (2/36)</span></td>
+                                <td>부분 의존 (주변 맥락 침범)</td>
+                            </tr>
+                            <tr>
+                                <td class="td-left">1.2x</td>
+                                <td>+0.0195</td>
+                                <td><span class="badge-orange">2.8% (1/36)</span></td>
+                                <td>부분 의존</td>
+                            </tr>
+                            <tr>
+                                <td class="td-left"><strong>1.0x (정크기)</strong></td>
+                                <td><strong>+0.0208</strong></td>
+                                <td><span class="badge-green">0.0% (0/36)</span></td>
+                                <td><strong>독립 보조 신호 (안정)</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="td-left">0.8x (타이트)</td>
+                                <td>+0.0334</td>
+                                <td><span class="badge-green">0.0% (0/36)</span></td>
+                                <td>부분 의존 (안정)</td>
+                            </tr>
+                            <tr>
+                                <td class="td-left">0.5x (국소 중심)</td>
+                                <td>+0.0319</td>
+                                <td><span class="badge-green">0.0% (0/36)</span></td>
+                                <td>부분 의존 (안정)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- 회색 마스크 메타데이터 -->
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.8rem; color: var(--text-muted);">
+                        <div><strong style="color: var(--accent-blue);">🧪 실험명</strong>: <span style="color: var(--text-main);">Gray Mask Ablation Sweep</span></div>
+                        <div style="display: flex; gap: 20px; margin-top: 4px;">
+                            <div><strong>🕒 시작 시각</strong>: 2026-06-03 10:21:40</div>
+                            <div><strong>🕒 종료 시각</strong>: 2026-06-03 10:23:00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 검은색 마스크 테이블 -->
+                <div id="table-black-container" style="display: none;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>마스크 스케일</th>
+                                <th>전체 평균 Conf Drop</th>
+                                <th>방향 반전 비율 (Flip Rate)</th>
+                                <th>의사결정 판정</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="td-left">1.5x (기존 크기)</td>
+                                <td>+0.0409</td>
+                                <td><span class="badge-orange">2.8% (1/36)</span></td>
+                                <td>부분 의존 (주변 맥락 침범)</td>
+                            </tr>
+                            <tr>
+                                <td class="td-left">1.2x</td>
+                                <td>+0.0485</td>
+                                <td><span class="badge-orange">2.8% (1/36)</span></td>
+                                <td>부분 의존</td>
+                            </tr>
+                            <tr>
+                                <td class="td-left"><strong>1.0x (정크기)</strong></td>
+                                <td><strong>+0.0591</strong></td>
+                                <td><span class="badge-green">0.0% (0/36)</span></td>
+                                <td><strong>독립 보조 신호 (안정)</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="td-left">0.8x (타이트)</td>
+                                <td>+0.0534</td>
+                                <td><span class="badge-green">0.0% (0/36)</span></td>
+                                <td>부분 의존 (안정)</td>
+                            </tr>
+                            <tr>
+                                <td class="td-left">0.5x (국소 중심)</td>
+                                <td>+0.0454</td>
+                                <td><span class="badge-green">0.0% (0/36)</span></td>
+                                <td>부분 의존 (안정)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- 검은색 마스크 메타데이터 -->
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.8rem; color: var(--text-muted);">
+                        <div><strong style="color: var(--accent-blue);">🧪 실험명</strong>: <span style="color: var(--text-main);">Black Mask Ablation Sweep</span></div>
+                        <div style="display: flex; gap: 20px; margin-top: 4px;">
+                            <div><strong>🕒 시작 시각</strong>: 2026-06-03 10:26:11</div>
+                            <div><strong>🕒 종료 시각</strong>: 2026-06-03 10:26:42</div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="analysis-text" style="margin-top: 24px;">
                     <ul>
-                        <li><strong>의사결정 강건성 입증</strong>: 마스크 스케일을 1.0x 이하로 축소 시 flip 비율이 <strong>0.0%</strong>로 소멸했습니다. 이는 바스켓 핵심부만 가릴 경우 방향 결정이 뒤집히지 않으며 복도의 전반적인 기하학적 형상(벽면, 바닥, 소실점)을 융합하여 매우 안정적으로 조향을 결정하고 있음을 의미합니다.</li>
-                        <li><strong>인과적 기여 확인</strong>: 0.8x 및 0.5x 등 바스켓 중심만 아주 작게 가려도 정답 클래스의 자신감(Confidence)이 평균 <strong>+0.03 이상 감소</strong>하여, 바스켓의 visual feature가 조향 판단을 자신감 있게 내리는 결정적 보조 신호로 사용되고 있음을 실증합니다.</li>
+                        <li><strong>의사결정 강건성 대조 검증</strong>: 회색과 검은색 마스크 모두에서 스케일을 1.0x 이하로 축소 시 flip 비율이 <strong>0.0%</strong>로 수렴했습니다. 이는 객체 일부만을 완전 차폐하더라도 복도의 전체 기하학적 형태(소실점, 벽면 코너 선)가 조향의 최종 결정을 지탱해주는 지배적 신호임을 대조 입증합니다.</li>
+                        <li><strong>색상 대비(Contrast)에 의한 민감도 확인</strong>: 검은색 마스크를 가렸을 때 평균 Conf Drop이 회색 대비 <strong>2~3배 높게(+0.059 vs +0.020)</strong> 발생했습니다. 이는 회색 마스크가 배경 타일 톤과 섞여 부드러운 차폐 효과를 내는 반면, 칠흑색 마스크는 VLM의 시각 입력에 강력한 인공 경계 노이즈(OOD 아티팩트)를 발생시켜 판단의 자신감을 크게 저해하기 때문으로 분석됩니다.</li>
                     </ul>
                 </div>
             </div>
@@ -530,11 +607,17 @@
                 <i class="fa-solid fa-images"></i> 3. Visual Proof Gallery (1.0x Masking)
             </h2>
             
-            <div class="gallery-filter">
-                <button class="filter-btn active" onclick="filterGallery('all')">전체보기</button>
-                <button class="filter-btn" onclick="filterGallery('left')">Left Start</button>
-                <button class="filter-btn" onclick="filterGallery('center')">Center Start</button>
-                <button class="filter-btn" onclick="filterGallery('right')">Right Start</button>
+            <div class="gallery-filter" style="margin-bottom: 12px;">
+                <button class="filter-btn active" id="dir-all" onclick="filterGallery('all')">전체보기</button>
+                <button class="filter-btn" id="dir-left" onclick="filterGallery('left')">Left Start</button>
+                <button class="filter-btn" id="dir-center" onclick="filterGallery('center')">Center Start</button>
+                <button class="filter-btn" id="dir-right" onclick="filterGallery('right')">Right Start</button>
+            </div>
+            
+            <div class="gallery-filter" style="margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--text-muted);">
+                <span style="font-weight: 600;"><i class="fa-solid fa-eye"></i> 마스크 시각화 모델:</span>
+                <button class="filter-btn active" id="btn-mask-gray" onclick="setMaskColor('gray')">회색 마스크 (Gray)</button>
+                <button class="filter-btn" id="btn-mask-black" onclick="setMaskColor('black')">검은색 마스크 (Black)</button>
             </div>
 
             <div class="gallery-grid" id="gallery">
@@ -710,17 +793,53 @@
     </div>
 
     <script>
+        let currentMaskColor = 'gray';
+        let currentDirection = 'all';
+
+        function switchAblationTab(color) {
+            document.getElementById('table-gray-container').style.display = color === 'gray' ? 'block' : 'none';
+            document.getElementById('table-black-container').style.display = color === 'black' ? 'block' : 'none';
+            
+            document.getElementById('tab-gray').classList.toggle('active', color === 'gray');
+            document.getElementById('tab-black').classList.toggle('active', color === 'black');
+        }
+
+        function setMaskColor(color) {
+            currentMaskColor = color;
+            document.getElementById('btn-mask-gray').classList.toggle('active', color === 'gray');
+            document.getElementById('btn-mask-black').classList.toggle('active', color === 'black');
+            updateGallery();
+        }
+
         function filterGallery(category) {
-            // 버튼 활성화 클래스 조절
-            const buttons = document.querySelectorAll('.filter-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
+            currentDirection = category;
             
-            event.target.classList.add('active');
+            const dirButtons = ['all', 'left', 'center', 'right'];
+            dirButtons.forEach(dir => {
+                const btn = document.getElementById(`dir-${dir}`);
+                if (btn) {
+                    btn.classList.toggle('active', dir === category);
+                }
+            });
             
-            // 카드 필터링
+            updateGallery();
+        }
+
+        function updateGallery() {
             const cards = document.querySelectorAll('.image-card');
             cards.forEach(card => {
-                if (category === 'all' || card.dataset.direction === category) {
+                const img = card.querySelector('.image-container img');
+                const originalSrc = img.getAttribute('src');
+                
+                let newSrc = originalSrc;
+                if (currentMaskColor === 'black') {
+                    newSrc = originalSrc.replace('masking_ablation_earlymid/', 'masking_ablation_earlymid_black/');
+                } else {
+                    newSrc = originalSrc.replace('masking_ablation_earlymid_black/', 'masking_ablation_earlymid/');
+                }
+                img.setAttribute('src', newSrc);
+
+                if (currentDirection === 'all' || card.dataset.direction === currentDirection) {
                     card.style.display = 'block';
                 } else {
                     card.style.display = 'none';
