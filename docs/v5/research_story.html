@@ -4998,18 +4998,49 @@
       </p>
       
       <!-- 아스키 다이어그램 추가 -->
-      <div style="background:#020617;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px;margin:12px 0;font-family:monospace;font-size:0.75rem;color:#cbd5e1;line-height:1.5">
-        <div style="color:#f87171;font-weight:700;margin-bottom:4px">[ A. End-to-End VLA의 정보 흐름 (Attention Collapse 발생) ]</div>
-        Image ───┐
-                 ├──► [ E2E VLA Transformer (Gradient Conflict) ] ──► Action (Text Ignore, FORWARD 편향)
-        Text ────┘
+      <!-- Mermaid 다이어그램으로 수정 -->
+      <div style="margin:20px 0; display:flex; flex-direction:column; gap:16px;">
+        <!-- A. End-to-End VLA -->
+        <div style="background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:16px;">
+          <div style="color:#f87171; font-weight:700; font-size:0.8rem; margin-bottom:12px; text-align:center;">
+            [ A. End-to-End VLA의 정보 흐름 (Attention Collapse 발생) ]
+          </div>
+          <div class="mermaid" style="text-align:center;">
+          graph LR
+              ImageA[Image] --> Transformer[E2E VLA Transformer <br> Gradient Conflict]
+              TextA[Text Goal] --> Transformer
+              Transformer --> ActionA["Action (Text Ignore, FORWARD 편향)"]
+              
+              style ImageA fill:#1e293b,stroke:#3b82f6,color:#fff
+              style TextA fill:#1e293b,stroke:#3b82f6,color:#fff
+              style Transformer fill:#7f1d1d,stroke:#f87171,color:#fff
+              style ActionA fill:#374151,stroke:#4b5563,color:#fff
+          </div>
+        </div>
 
-        <div style="color:#4ade80;font-weight:700;margin-top:12px;margin-bottom:4px">[ B. Decomposed Pipeline의 정보 흐름 (당사 설계 - 기하 제약 강제) ]</div>
-        Image ───┐
-                 ├──► [ Stage 1: PaliGemma 2 LoRA ] ──► BBox (cx, cy, area) ──┐
-        Text ────┘        (Explicit 1:1 Grounding)                            │
-                                                                              ├──► [ Stage 2: Control MLP ] ➔ Steering
-        CLIP Visual Feature (Contextual representation) ──────────────────────┘
+        <!-- B. Decomposed Pipeline -->
+        <div style="background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:16px;">
+          <div style="color:#4ade80; font-weight:700; font-size:0.8rem; margin-bottom:12px; text-align:center;">
+            [ B. Decomposed Pipeline의 정보 흐름 (당사 설계 - 기하 제약 강제) ]
+          </div>
+          <div class="mermaid" style="text-align:center;">
+          graph LR
+              ImageB[Image] --> Stage1["Stage 1: PaliGemma 2 LoRA <br> (Explicit 1:1 Grounding)"]
+              TextB[Text Goal] --> Stage1
+              Stage1 --> BBox["BBox (cx, cy, area)"]
+              BBox --> Stage2[Stage 2: Control MLP]
+              Visual["CLIP Visual Feature <br> (Contextual representation)"] --> Stage2
+              Stage2 --> Steering[Steering Action]
+              
+              style ImageB fill:#1e293b,stroke:#3b82f6,color:#fff
+              style TextB fill:#1e293b,stroke:#3b82f6,color:#fff
+              style Stage1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+              style BBox fill:#065f46,stroke:#34d399,color:#fff
+              style Visual fill:#1e293b,stroke:#3b82f6,color:#fff
+              style Stage2 fill:#115e59,stroke:#14b8a6,color:#fff
+              style Steering fill:#047857,stroke:#10b981,color:#fff
+          </div>
+        </div>
       </div>
 
       <p>
@@ -6383,12 +6414,19 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       </tbody>
     </table>
     </div>
-    <div style="margin-top:14px;font-size:0.8rem;color:#e2e8f0;font-weight:600">같은 프레임 — 베이스 PG2(초록)는 basket을 정확히, LoRA(빨강, ②)는 빈 벽에:</div>
+    <div style="margin-top:14px;font-size:0.8rem;color:#e2e8f0;font-weight:600">같은 프레임 — 베이스 PG2(초록)는 basket을 정확히:</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
       <img src="grounding_collapse/base_fr05.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
       <img src="grounding_collapse/base_fr10.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
       <img src="grounding_collapse/base_fr12.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
       <img src="grounding_collapse/base_fr16.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
+    </div>
+    <div style="margin-top:14px;font-size:0.8rem;color:#fca5a5;font-weight:600">같은 프레임 — Exp59 LoRA(빨강)는 엉뚱한 곳에 (박스 붕괴):</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+      <img src="grounding_collapse/fr05.png" style="width:100%;border-radius:6px;border:1px solid #7f1d1d">
+      <img src="grounding_collapse/fr10.png" style="width:100%;border-radius:6px;border:1px solid #7f1d1d">
+      <img src="grounding_collapse/fr12.png" style="width:100%;border-radius:6px;border:1px solid #7f1d1d">
+      <img src="grounding_collapse/fr16.png" style="width:100%;border-radius:6px;border:1px solid #7f1d1d">
     </div>
     <div style="margin-top:10px;background:#052e16;border-radius:6px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
       <strong style="color:#4ade80">반전:</strong> 베이스 PG2는 fr10에서도 basket을 정확히(cx=0.38) 잡고, 가까워질수록 박스가 자연스럽게 커진다(fr16도 full-frame 아님).
