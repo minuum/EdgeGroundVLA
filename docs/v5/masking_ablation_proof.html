@@ -711,6 +711,40 @@
                     </li>
                 </ul>
             </div>
+
+            <!-- 배경 역-마스킹 실제 테스트 프레임 대조 분석 -->
+            <div style="margin-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 24px;">
+                <h4 style="font-size: 1.15rem; font-weight: 700; color: #a78bfa; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                    <i class="fa-solid fa-camera-retro"></i> 배경 역-마스킹 실제 테스트 프레임 대조 분석
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                    <!-- 대표 실패 케이스: Left Start가 Right로 붕괴 -->
+                    <div style="background: rgba(2, 6, 23, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--accent-red); display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-circle-xmark"></i> Case A. Left Start 조향 실패 (배경 소실로 인한 우향 편향 붕괴)
+                        </span>
+                        <div style="text-align: center; background: #020617; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                            <img src="background_mask_ablation/bg_left_01_FAIL.png" alt="Left Start Inverse Masking Fail" style="max-width: 100%; height: auto; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                            <strong>테스트 프레임 (bg_left_01)</strong>: 바스켓이 화면 왼쪽에 치우쳐 검출되어 있고, 원래의 정확한 예측 방향은 <code>LEFT</code>였습니다. 하지만 바스켓 영역(1.0x)만 남겨두고 주변 복도 배경을 회색으로 지우자, 모델은 왼쪽 구도 정보를 잃고 <code>RIGHT</code>로 잘못 오발 예측하였습니다.
+                        </p>
+                    </div>
+
+                    <!-- 대표 성공 케이스: Center Start 중 대형 바스켓에 의한 직진 유지 -->
+                    <div style="background: rgba(2, 6, 23, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--accent-green); display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-circle-check"></i> Case B. Center Start 직진 유지 성공 (목표물이 충분히 커서 자체 판단 가능)
+                        </span>
+                        <div style="text-align: center; background: #020617; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                            <img src="background_mask_ablation/bg_center_07_SUCCESS.png" alt="Center Start Inverse Masking Success" style="max-width: 100%; height: auto; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                            <strong>테스트 프레임 (bg_center_07)</strong>: 바스켓이 복도 정중앙에 위치하고 면적이 매우 큰 프레임(area=0.666)입니다. 배경을 완전히 차폐했음에도 불구하고, 바스켓 물체의 시각적 구도(화면 중앙에 꽉 찬 구도) 자체가 주는 뚜렷한 정보 덕분에 원래 예측 방향인 <code>CENTER</code>(직진)를 성공적으로 고수하였습니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 갤러리 영역 -->
