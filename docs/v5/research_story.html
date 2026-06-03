@@ -4900,7 +4900,127 @@
     </div>
   </div>
 
+  <!-- ⑥ 모델별 입출력 구조 및 Vision Encoder 학술 비교 -->
+  <div style="background:#08111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-top:24px;margin-bottom:0">
+    <div style="color:#a78bfa;font-size:0.95rem;font-weight:700;margin-bottom:16px;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:8px">
+      <i class="fa-solid fa-graduation-cap"></i> ⑥ [학술 비교 분석] 모델별 입출력 구조 및 Vision Encoder(ViT) 비교
+    </div>
+    
+    <div style="overflow-x:auto;margin-bottom:20px">
+      <table style="width:100%;border-collapse:collapse;font-size:0.75rem;line-height:1.6;color:#94a3b8">
+        <thead>
+          <tr style="background:#0d1a2e">
+            <th style="padding:9px 11px;text-align:left;color:#60a5fa;border-bottom:2px solid #1e3040;min-width:120px">비교 항목</th>
+            <th style="padding:9px 11px;text-align:center;color:#e2e8f0;border-bottom:2px solid #1e3040;min-width:180px">Kosmos-2</th>
+            <th style="padding:9px 11px;text-align:center;color:#e2e8f0;border-bottom:2px solid #1e3040;min-width:180px">PaliGemma (3B)</th>
+            <th style="padding:9px 11px;text-align:center;color:#e2e8f0;border-bottom:2px solid #1e3040;min-width:180px">PaliGemma 2 (3B)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #131e2e">
+            <td style="padding:8px 11px;color:#e2e8f0;font-weight:600">논문 출처</td>
+            <td style="padding:8px 11px;text-align:center"><em>KOSMOS-2: Grounding Multimodal Large Language Models to the World</em> (Microsoft, 2023)</td>
+            <td style="padding:8px 11px;text-align:center"><em>PaliGemma: A versatile 3B VLM for transfer</em> (Google, 2024)</td>
+            <td style="padding:8px 11px;text-align:center"><em>PaliGemma 2: A family of versatile VLMs</em> (Google, 2024)</td>
+          </tr>
+          <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a">
+            <td style="padding:8px 11px;color:#e2e8f0;font-weight:600">Vision Encoder</td>
+            <td style="padding:8px 11px;text-align:center">CLIP ViT-L/14</td>
+            <td style="padding:8px 11px;text-align:center">SigLIP ViT-So400m/14</td>
+            <td style="padding:8px 11px;text-align:center">SigLIP ViT-So400m/14 (개량형)</td>
+          </tr>
+          <tr style="border-bottom:1px solid #131e2e">
+            <td style="padding:8px 11px;color:#e2e8f0;font-weight:600">Language Model</td>
+            <td style="padding:8px 11px;text-align:center">MAGNETO (Decoder-only Transformer)</td>
+            <td style="padding:8px 11px;text-align:center">Gemma-2B (Decoder-only)</td>
+            <td style="padding:8px 11px;text-align:center">Gemma2-2B (Decoder-only)</td>
+          </tr>
+          <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a">
+            <td style="padding:8px 11px;color:#e2e8f0;font-weight:600">입력 해상도</td>
+            <td style="padding:8px 11px;text-align:center">$224 \times 224$ (고정)</td>
+            <td style="padding:8px 11px;text-align:center">$224 \times 224$ ~ $896 \times 896$ (가변)</td>
+            <td style="padding:8px 11px;text-align:center">$224 \times 224$ ~ $896 \times 896$ (가변)</td>
+          </tr>
+          <tr style="border-bottom:1px solid #131e2e">
+            <td style="padding:8px 11px;color:#e2e8f0;font-weight:600">Vision Loss</td>
+            <td style="padding:8px 11px;text-align:center">InfoNCE Softmax Loss</td>
+            <td style="padding:8px 11px;text-align:center">Sigmoid Loss (SigLIP)</td>
+            <td style="padding:8px 11px;text-align:center">Sigmoid Loss (SigLIP)</td>
+          </tr>
+          <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a">
+            <td style="padding:8px 11px;color:#e2e8f0;font-weight:600">입력 토큰 구조</td>
+            <td style="padding:8px 11px;text-align:center"><code>[Image]</code> + <code>[Text Prompt]</code><br><span style="color:#64748b;font-size:0.68rem">ViT 레이어에 직접 주입</span></td>
+            <td style="padding:8px 11px;text-align:center"><code>[Image Patches (256)]</code> + <code>[Text Prompt]</code><br><span style="color:#64748b;font-size:0.68rem">256개의 임베딩 패치 토큰으로 투입</span></td>
+            <td style="padding:8px 11px;text-align:center"><code>[Image Patches (256/1024)]</code> + <code>[Text Prompt]</code><br><span style="color:#64748b;font-size:0.68rem">해상도에 따라 토큰 수 가변 확장</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #131e2e">
+            <td style="padding:8px 11px;color:#e2e8f0;font-weight:600">출력 토큰 구조</td>
+            <td style="padding:8px 11px;text-align:center">BBox 좌표가 <code>&lt;bbox&gt;</code>와 <code>&lt;point&gt;</code> 등의 태그가 결합된 텍스트 토큰 구조</td>
+            <td style="padding:8px 11px;text-align:center"><code>&lt;loc0462&gt;&lt;loc0354&gt;...</code>와 같이 1024개 grid bin으로 양자화된 BBox 토큰 출력</td>
+            <td style="padding:8px 11px;text-align:center">Gemma2 보코더를 탑재한 정돈된 <code>&lt;loc####&gt;</code> grid bin 좌표 출력 (동일)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SigLIP vs CLIP 상세 분석 -->
+    <div style="background:#0a1628;border-radius:8px;padding:16px;margin-bottom:16px;font-size:0.8rem;line-height:1.8">
+      <div style="color:#60a5fa;font-weight:700;margin-bottom:10px;font-size:0.85rem;display:flex;align-items:center;gap:6px">
+        <i class="fa-solid fa-code-branch"></i> Vision Encoder(SigLIP vs CLIP) 손실 함수 및 해상도 확장의 영향
+      </div>
+      <p style="margin-bottom:12px">
+        <strong>1. Softmax Loss (CLIP) vs Sigmoid Loss (SigLIP)</strong><br>
+        CLIP은 배치 크기 $N$ 내에서 올바른 이미지-텍스트 매칭 쌍을 찾는 Softmax Contrastive Loss를 사용하여 배치 내 다른 음성 샘플들과의 상대적 유사성을 극대화합니다.
+        <code style="display:block;background:rgba(0,0,0,0.4);padding:8px;border-radius:6px;margin:8px 0;font-family:monospace;font-size:0.75rem;color:#60a5fa;text-align:center">
+          \mathcal{L}_{CLIP} = -\frac{1}{2} \left[ \log \frac{e^{\text{sim}(I_i, T_i)/\tau}}{\sum_j e^{\text{sim}(I_i, T_j)/\tau}} + \log \frac{e^{\text{sim}(I_i, T_i)/\tau}}{\sum_j e^{\text{sim}(I_j, T_i)/\tau}} \right]
+        </code>
+        반면, PaliGemma 계열이 채택한 <strong>SigLIP (Sigmoid Language-Image Pre-training)</strong>은 각 이미지-텍스트 쌍의 매칭 관계를 독립적인 이진 분류 문제로 정의하여 학습합니다.
+        <code style="display:block;background:rgba(0,0,0,0.4);padding:8px;border-radius:6px;margin:8px 0;font-family:monospace;font-size:0.75rem;color:#60a5fa;text-align:center">
+          \mathcal{L}_{SigLIP} = -\sum_{i,j} \log \sigma \left( y_{i,j} \cdot (\text{sim}(I_i, T_j) \cdot e^{\theta} + b) \right) \quad (\text{where } y_{i,j} = 1 \text{ if } i=j \text{ else } -1)
+        </code>
+        이로 인해 SigLIP은 글로벌 정규화에 따른 배치 크기 의존성(Batch size sensitivity)을 완벽히 탈피하였으며, 네거티브 페어의 미세 엣지 억제력이 극대화되어 <strong>물체의 정밀한 국소화(Localization)와 미세 형태 변별(Fine-grained recognition) 성능이 비약적으로 향상</strong>되었습니다.
+      </p>
+      <p>
+        <strong>2. 해상도(Resolution) 가변 확장의 기하학적 당위성</strong><br>
+        Kosmos-2는 $224 \times 224$ 해상도로 고정되어 정밀한 BBox 좌표 추출에 기하학적인 한계가 존재했습니다. 반면 PaliGemma 2는 최대 $896 \times 896$ 해상도까지 지원하여, 넓은 복도 환경에서 멀리 떨어져 있어 픽셀 면적이 매우 미미한 목표물(바스켓)도 고해상도 ViT 패치 분석을 통해 오프셋 왜곡 없이 정교하게 추출해 낼 수 있는 강인함을 제공합니다.
+      </p>
+    </div>
+
+    <!-- E2E VLA의 한계와 Decomposed의 필요성 -->
+    <div style="background:#111827;border-left:3px solid #a78bfa;padding:12px 16px;border-radius:0 8px 8px 0;font-size:0.8rem;line-height:1.8">
+      <div style="color:#a78bfa;font-weight:700;margin-bottom:8px;font-size:0.85rem;display:flex;align-items:center;gap:6px">
+        <i class="fa-solid fa-gears"></i> E2E VLA의 Text Attention Collapse 한계와 Decomposed Pipeline의 제어학적 당위성
+      </div>
+      <p style="margin-bottom:12px">
+        <strong>1. Text Attention Collapse (Text Ignore 현상)</strong><br>
+        단일 신경망에 이미지와 텍스트 조향 목표를 동시 입력해 제어 출력 $a_t$를 직접 엔드투엔드(End-to-End)로 파인튜닝할 경우, 신경망은 텍스트 조건보다 이미지의 주행 궤적 통계 분포(Forward bias)를 먼저 학습하는 지름길(Shortcut)에 안주하게 됩니다. 이 과정에서 교차 주의 가중치(Cross-Attention Weight)가 붕괴하여 텍스트 입력을 무시하는 <strong>Text Attention Collapse</strong> 현상이 발생하고, 목표 물체에 상관없이 일관된 패턴으로만 제어기가 고착화되는 심각한 한계가 노정됩니다.
+      </p>
+      
+      <!-- 아스키 다이어그램 추가 -->
+      <div style="background:#020617;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px;margin:12px 0;font-family:monospace;font-size:0.75rem;color:#cbd5e1;line-height:1.5">
+        <div style="color:#f87171;font-weight:700;margin-bottom:4px">[ A. End-to-End VLA의 정보 흐름 (Attention Collapse 발생) ]</div>
+        Image ───┐
+                 ├──► [ E2E VLA Transformer (Gradient Conflict) ] ──► Action (Text Ignore, FORWARD 편향)
+        Text ────┘
+
+        <div style="color:#4ade80;font-weight:700;margin-top:12px;margin-bottom:4px">[ B. Decomposed Pipeline의 정보 흐름 (당사 설계 - 기하 제약 강제) ]</div>
+        Image ───┐
+                 ├──► [ Stage 1: PaliGemma 2 LoRA ] ──► BBox (cx, cy, area) ──┐
+        Text ────┘        (Explicit 1:1 Grounding)                            │
+                                                                              ├──► [ Stage 2: Control MLP ] ➔ Steering
+        CLIP Visual Feature (Contextual representation) ──────────────────────┘
+      </div>
+
+      <p>
+        <strong>2. Decomposed Pipeline의 제어학적 당위성 (Imposed Geometric Constraints)</strong><br>
+        이를 극복하기 위해 당사가 도입한 <strong>분해형 파이프라인(Decomposed Pipeline)</strong>은 신경망의 중간 레이어에 물리적인 기하 제약을 강제(Imposed Geometric Constraint)합니다. 
+        목표물 텍스트를 BBox 좌표(cx, cy, area)로 일차 변환하는 Stage 1 단계를 독립시킴으로써 텍스트에 대한 어텐션 인과 관계를 보장하고(Stage 1 테스트에서 분리도 gap +95%p 실증), Stage 2 제어 MLP가 물리적 오프셋($cx - 0.5$)과 거리 요인($area$)을 조향 행동에 강제 매핑하게 함으로써 VLA의 궤적 왜곡과 편향 붕괴를 제어공학적으로 영구히 방지합니다.
+      </p>
+    </div>
+  </div>
+
 </div>
+
 
 
 <div class="chapter" id="ch18">

@@ -1,0 +1,1112 @@
+{
+  "min_area": 0.005,
+  "n_sample": 12,
+  "conditions_evaluated": [
+    "blur_15",
+    "blur_31",
+    "noise_05",
+    "noise_15",
+    "noise_30"
+  ],
+  "cond_stats": {
+    "blur_15": {
+      "name": "Blur 15x15",
+      "per_direction": {
+        "left": {
+          "n": 3,
+          "correct": 3,
+          "success_rate": 100.0
+        },
+        "center": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        },
+        "right": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        }
+      },
+      "overall": {
+        "total": 27,
+        "correct": 27,
+        "success_rate": 100.0
+      }
+    },
+    "blur_31": {
+      "name": "Blur 31x31",
+      "per_direction": {
+        "left": {
+          "n": 3,
+          "correct": 3,
+          "success_rate": 100.0
+        },
+        "center": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        },
+        "right": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        }
+      },
+      "overall": {
+        "total": 27,
+        "correct": 27,
+        "success_rate": 100.0
+      }
+    },
+    "noise_05": {
+      "name": "Noise std=0.05",
+      "per_direction": {
+        "left": {
+          "n": 3,
+          "correct": 3,
+          "success_rate": 100.0
+        },
+        "center": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        },
+        "right": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        }
+      },
+      "overall": {
+        "total": 27,
+        "correct": 27,
+        "success_rate": 100.0
+      }
+    },
+    "noise_15": {
+      "name": "Noise std=0.15",
+      "per_direction": {
+        "left": {
+          "n": 3,
+          "correct": 3,
+          "success_rate": 100.0
+        },
+        "center": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        },
+        "right": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        }
+      },
+      "overall": {
+        "total": 27,
+        "correct": 27,
+        "success_rate": 100.0
+      }
+    },
+    "noise_30": {
+      "name": "Noise std=0.30",
+      "per_direction": {
+        "left": {
+          "n": 3,
+          "correct": 0,
+          "success_rate": 0.0
+        },
+        "center": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        },
+        "right": {
+          "n": 12,
+          "correct": 12,
+          "success_rate": 100.0
+        }
+      },
+      "overall": {
+        "total": 27,
+        "correct": 24,
+        "success_rate": 88.9
+      }
+    }
+  },
+  "rows": [
+    {
+      "direction": "left",
+      "cx": 0.157,
+      "cy": 0.495,
+      "area": 0.0101,
+      "phase": 0.529,
+      "conf_orig": 0.6867,
+      "pred_orig": "left",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.6778,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.684,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.6902,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.6699,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.4664,
+          "pred_pert": "center",
+          "correct": false
+        }
+      }
+    },
+    {
+      "direction": "left",
+      "cx": 0.199,
+      "cy": 0.461,
+      "area": 0.0154,
+      "phase": 0.118,
+      "conf_orig": 0.6446,
+      "pred_orig": "left",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.5841,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.5693,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.6044,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.6132,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.4408,
+          "pred_pert": "center",
+          "correct": false
+        }
+      }
+    },
+    {
+      "direction": "left",
+      "cx": 0.186,
+      "cy": 0.462,
+      "area": 0.012,
+      "phase": 0.176,
+      "conf_orig": 0.6509,
+      "pred_orig": "left",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.6013,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.5556,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.6222,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.5265,
+          "pred_pert": "left",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.5038,
+          "pred_pert": "center",
+          "correct": false
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.0,
+      "conf_orig": 0.2121,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.1405,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.067,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.2639,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.2907,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.1196,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.077,
+      "conf_orig": 0.4031,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.2455,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1492,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.4859,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.353,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.2733,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.154,
+      "conf_orig": 0.2878,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.3331,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.3198,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.2723,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.2311,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.0236,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.231,
+      "conf_orig": 0.1605,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.1255,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1671,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.2194,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.2742,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.182,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.308,
+      "conf_orig": 0.1514,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.2137,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.2167,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.2454,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.2605,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.2509,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.484,
+      "cy": 0.625,
+      "area": 0.0645,
+      "phase": 0.385,
+      "conf_orig": 0.1753,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.1715,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.278,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.1994,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.2362,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.3287,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.359,
+      "area": 0.666,
+      "phase": 0.462,
+      "conf_orig": 0.155,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.1223,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0286,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.1918,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.1923,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.099,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.538,
+      "conf_orig": 0.1301,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.1899,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.2855,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.2073,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.1513,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.1764,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.0,
+      "conf_orig": 0.2556,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.298,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1727,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.2945,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.2914,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.1561,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.077,
+      "conf_orig": 0.0766,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0923,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0668,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.0487,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.1378,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.1491,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.154,
+      "conf_orig": -0.0123,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.147,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1962,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.0072,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.0523,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.0617,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "center",
+      "cx": 0.406,
+      "cy": 0.594,
+      "area": 0.0439,
+      "phase": 0.231,
+      "conf_orig": 0.1502,
+      "pred_orig": "center",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0084,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0669,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.1224,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.2388,
+          "pred_pert": "center",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.2301,
+          "pred_pert": "center",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.872,
+      "cy": 0.299,
+      "area": 0.005,
+      "phase": 0.529,
+      "conf_orig": -0.0929,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": -0.0688,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0341,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": -0.0843,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": -0.0636,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.2203,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.825,
+      "cy": 0.327,
+      "area": 0.01,
+      "phase": 0.353,
+      "conf_orig": 0.0742,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0602,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.034,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.059,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": -0.0591,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.1355,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.837,
+      "cy": 0.289,
+      "area": 0.0109,
+      "phase": 0.412,
+      "conf_orig": 0.0135,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.1125,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1347,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": -0.0205,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.0075,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.0155,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.875,
+      "cy": 0.329,
+      "area": 0.01,
+      "phase": 0.588,
+      "conf_orig": 0.0426,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0761,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1962,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.0427,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.0279,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.0844,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.847,
+      "cy": 0.29,
+      "area": 0.0138,
+      "phase": 0.647,
+      "conf_orig": 0.0569,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0506,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0676,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.0831,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.0521,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.1944,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.847,
+      "cy": 0.373,
+      "area": 0.0053,
+      "phase": 0.412,
+      "conf_orig": 0.0146,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0758,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1193,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.0146,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": -0.0937,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.1719,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.863,
+      "cy": 0.287,
+      "area": 0.0069,
+      "phase": 0.529,
+      "conf_orig": -0.0583,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": -0.0493,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": -0.0357,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": -0.0432,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.0137,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.229,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.872,
+      "cy": 0.295,
+      "area": 0.0116,
+      "phase": 0.588,
+      "conf_orig": -0.0034,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0034,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0803,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": -0.0054,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": -0.0444,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.0105,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.864,
+      "cy": 0.276,
+      "area": 0.0063,
+      "phase": 0.647,
+      "conf_orig": -0.0329,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": -0.0292,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0943,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.0012,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": -0.0646,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.0527,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.975,
+      "cy": 0.435,
+      "area": 0.0061,
+      "phase": 0.059,
+      "conf_orig": 0.0712,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0564,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.1245,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.1082,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": 0.0504,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": 0.0166,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.815,
+      "cy": 0.34,
+      "area": 0.0051,
+      "phase": 0.235,
+      "conf_orig": 0.0894,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.0561,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": 0.0898,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": 0.0466,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": -0.0382,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.1644,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    },
+    {
+      "direction": "right",
+      "cx": 0.868,
+      "cy": 0.394,
+      "area": 0.0064,
+      "phase": 0.353,
+      "conf_orig": -0.0601,
+      "pred_orig": "right",
+      "conditions": {
+        "blur_15": {
+          "conf_pert": 0.026,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "blur_31": {
+          "conf_pert": -0.0329,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_05": {
+          "conf_pert": -0.0536,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_15": {
+          "conf_pert": -0.0528,
+          "pred_pert": "right",
+          "correct": true
+        },
+        "noise_30": {
+          "conf_pert": -0.0002,
+          "pred_pert": "right",
+          "correct": true
+        }
+      }
+    }
+  ]
+}
