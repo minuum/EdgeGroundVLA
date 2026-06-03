@@ -206,13 +206,16 @@ def main():
                 dir_samples[d].append((ep["episode"], fr))
 
     results = []
-    dir_stats = defaultdict(lambda: {"conf_drop": [], "flip": 0, "total": 0})
-    saved_images = defaultdict(list)  # direction → list of filenames
+    # 각 스케일별 통계를 관리하기 위한 딕셔너리 정의
+    SCALES = [1.5, 1.2, 1.0, 0.8, 0.5]
+    scale_dir_stats = {sc: defaultdict(lambda: {"conf_drop": [], "flip": 0, "total": 0}) for sc in SCALES}
+    
+    saved_images = defaultdict(list)
     dir_counters = defaultdict(int)
 
-    print(f"\n[MASK] basket 마스킹 ablation 시작 (MIN_AREA={MIN_AREA}, scale={MASK_SCALE}×)\n")
-    print(f"  {'방향':<8} {'cx':>5} {'area':>6} {'phase':>6} {'conf_orig':>10} {'conf_mask':>10} {'drop':>8} {'pred변화':>8}")
-    print("  " + "-" * 72)
+    print(f"\n[MASK] basket 마스킹 ablation 시작 (MIN_AREA={MIN_AREA})\n")
+    print(f"  {'방향':<8} {'cx':>5} {'area':>6} {'phase':>6} {'conf_orig':>10} | {'conf_drop (by scale)':<40} | {'pred변화 (by scale)':<30}")
+    print("  " + "-" * 115)
 
     for direction in DIRS:
         samples = dir_samples[direction]
@@ -233,126 +236,174 @@ def main():
             except:
                 continue
 
-            masked_img, bbox_px = mask_basket(img, cx, cy, area)
+            # 원본 이미지의 baseline confidence 측정
+            conf_orig, pred_orig = get_conf(vm, image_proj, processor, anchor_feats, img, device, gt_idx)
 
-            conf_orig, pred_orig = get_conf(vm, image_proj, processor, anchor_feats, img,        device, gt_idx)
-            conf_mask, pred_mask = get_conf(vm, image_proj, processor, anchor_feats, masked_img, device, gt_idx)
-
-            drop = conf_orig - conf_mask
-            flipped = (pred_orig != pred_mask)
+            # 다중 스케일 스윕 수행
+            scale_results = {}
+            for sc in SCALES:
+                masked_img, bbox_px = mask_basket(img, cx, cy, area, scale=sc)
+                conf_mask, pred_mask = get_conf(vm, image_proj, processor, anchor_feats, masked_img, device, gt_idx)
+                
+                drop = conf_orig - conf_mask
+                flipped = (pred_orig != pred_mask)
+                
+                scale_results[sc] = {
+                    "conf_mask": round(conf_mask, 4),
+                    "conf_drop": round(drop, 4),
+                    "pred_mask": DIRS[pred_mask],
+                    "flipped": flipped
+                }
+                
+                # 통계 누적
+                scale_dir_stats[sc][direction]["conf_drop"].append(drop)
+                scale_dir_stats[sc][direction]["total"] += 1
+                if flipped:
+                    scale_dir_stats[sc][direction]["flip"] += 1
 
             row = {
                 "direction": direction,
                 "cx": round(cx, 3), "cy": round(cy, 3), "area": round(area, 4),
                 "phase": round(phase, 3),
                 "conf_orig": round(conf_orig, 4),
-                "conf_mask": round(conf_mask, 4),
-                "conf_drop": round(drop, 4),
                 "pred_orig": DIRS[pred_orig],
-                "pred_mask": DIRS[pred_mask],
-                "flipped":   flipped,
+                "scales": {str(sc): scale_results[sc] for sc in SCALES}
             }
 
-            # 이미지 저장
+            # 이미지 저장: 사용자가 요청한 '마스크 크기 축소'를 반영하여 scale=1.0을 기본으로 하여 기존 갤러리 이미지들을 덮어씀
             if args.save_images:
                 dir_counters[direction] += 1
-                fname = save_pair(img, masked_img, row, dir_counters[direction], OUT_DIR)
+                # scale=1.0에 해당하는 마스킹 이미지를 구함
+                target_masked_img, _ = mask_basket(img, cx, cy, area, scale=1.0)
+                # save_pair에서 정보를 텍스트로 그릴 수 있도록 row 형식을 간이 매칭
+                img_row = {
+                    "direction": direction,
+                    "cx": round(cx, 3), "area": round(area, 4), "phase": round(phase, 3),
+                    "conf_orig": round(conf_orig, 4),
+                    "conf_mask": scale_results[1.0]["conf_mask"],
+                    "conf_drop": scale_results[1.0]["conf_drop"],
+                    "pred_orig": DIRS[pred_orig],
+                    "pred_mask": scale_results[1.0]["pred_mask"],
+                    "flipped": scale_results[1.0]["flipped"]
+                }
+                fname = save_pair(img, target_masked_img, img_row, dir_counters[direction], OUT_DIR)
                 row["img_file"] = fname
                 saved_images[direction].append(fname)
 
             results.append(row)
-            dir_stats[direction]["conf_drop"].append(drop)
-            dir_stats[direction]["total"] += 1
-            if flipped:
-                dir_stats[direction]["flip"] += 1
-
-            flip_str = f"{'→'+DIRS[pred_mask]:>8}" if flipped else "      —"
+            
+            # 스케일별 conf_drop 값 문자열 조립
+            drop_strs = "/".join([f"{scale_results[sc]['conf_drop']:+.2f}" for sc in SCALES])
+            # 스케일별 pred 변동 여부 (flipped 시 스케일값 표시)
+            flip_list = []
+            for sc in SCALES:
+                if scale_results[sc]["flipped"]:
+                    flip_list.append(f"{sc:.1f}")
+            flip_str = ",".join(flip_list) if flip_list else "stable"
+            
             print(
                 f"  {direction:<8} {cx:>5.2f} {area:>6.4f} {phase:>6.2f} "
-                f"{conf_orig:>10.4f} {conf_mask:>10.4f} "
-                f"{drop:>+8.4f} {flip_str}"
+                f"{conf_orig:>10.4f} | {drop_strs:<40} | {flip_str:<30}"
             )
 
         print()
 
-    # 요약
-    print(f"\n{'='*65}")
-    print(f"  Track 3: Basket Masking Ablation 요약")
-    print(f"{'='*65}")
-    print(f"\n  {'방향':<8} {'n':>4} {'conf_drop 평균':>14} {'flip 비율':>12}  {'판정':>20}")
-    print("  " + "-" * 62)
+    # 최종 결과 요약 표 출력 (스케일별 비교 테이블)
+    print(f"\n{'='*95}")
+    print(f"  Track 3: Basket Masking Ablation 다중 스케일 스윕 결과")
+    print(f"{'='*95}")
+    
+    for sc in SCALES:
+        print(f"\n  [Mask Scale = {sc:.1f}x]")
+        print(f"  {'방향':<8} {'n':>4} {'conf_drop 평균':>14} {'flip 비율':>12}  {'판정':>20}")
+        print("  " + "-" * 62)
+        
+        all_drops = []
+        for d in DIRS:
+            s = scale_dir_stats[sc][d]
+            if not s["conf_drop"]:
+                print(f"  {d:<8}   -          N/A             N/A")
+                continue
+            drops = s["conf_drop"]
+            mean_drop = np.mean(drops)
+            flip_rate = s["flip"] / s["total"] * 100
+            all_drops.extend(drops)
 
-    all_drops = []
-    for d in DIRS:
-        s = dir_stats[d]
-        if not s["conf_drop"]:
-            print(f"  {d:<8}   -          N/A             N/A")
-            continue
-        drops = s["conf_drop"]
-        mean_drop = np.mean(drops)
-        flip_rate = s["flip"] / s["total"] * 100
-        all_drops.extend(drops)
+            if mean_drop >= 0.10:
+                v = "basket 의존 ✅"
+            elif mean_drop >= 0.03:
+                v = "부분 의존"
+            else:
+                v = "독립적 ⚠️"
+            print(f"  {d:<8} {s['total']:>4} {mean_drop:>+14.4f} {flip_rate:>11.1f}%  {v}")
+            
+        if all_drops:
+            overall_mean = np.mean(all_drops)
+            overall_flip = sum(scale_dir_stats[sc][d]["flip"] for d in DIRS)
+            overall_total = sum(scale_dir_stats[sc][d]["total"] for d in DIRS)
+            flip_pct = overall_flip / overall_total * 100 if overall_total > 0 else 0
+            print(f"  --------------------------------------------------------------")
+            print(f"  전체평균:  {overall_total:>4} {overall_mean:>+14.4f} {flip_pct:>11.1f}%")
 
-        if mean_drop >= 0.10:
-            v = "basket 의존 ✅"
-        elif mean_drop >= 0.03:
-            v = "부분 의존"
-        else:
-            v = "독립적 ⚠️"
-        print(f"  {d:<8} {s['total']:>4} {mean_drop:>+14.4f} {flip_rate:>11.1f}%  {v}")
-
-    if all_drops:
-        overall_mean = np.mean(all_drops)
-        overall_flip = sum(s["flip"] for s in dir_stats.values())
-        overall_total = sum(s["total"] for s in dir_stats.values())
-        flip_pct = overall_flip / overall_total * 100 if overall_total > 0 else 0
-
-        print(f"\n  전체 평균 conf drop:  {overall_mean:+.4f}")
-        print(f"  예측 반전 비율:       {overall_flip}/{overall_total} ({flip_pct:.1f}%)")
-
-        if overall_mean >= 0.10:
-            verdict = "basket 영역에 유의미하게 의존 ✅"
-        elif overall_mean >= 0.03:
-            verdict = "약한 의존 (보조 신호로 사용)"
-        else:
-            verdict = "basket 외 정보만으로 분류 ⚠️"
-        print(f"  → 판정: {verdict}")
-
-    print(f"{'='*65}")
+    print(f"{'='*95}")
 
     # JSON 결과 저장
     if args.save_images:
         summary = {
             "episode_phase_max": EPISODE_PHASE_MAX,
             "min_area": MIN_AREA,
-            "mask_scale": MASK_SCALE,
+            "scales_evaluated": SCALES,
             "n_sample": N_SAMPLE,
-            "per_direction": {},
-            "overall": {},
+            "scale_stats": {},
             "rows": results,
         }
-        for d in DIRS:
-            s = dir_stats[d]
-            if not s["conf_drop"]:
-                continue
-            summary["per_direction"][d] = {
-                "n":          s["total"],
-                "mean_drop":  round(float(np.mean(s["conf_drop"])), 4),
-                "flip":       s["flip"],
-                "flip_pct":   round(s["flip"] / s["total"] * 100, 1),
+        for sc in SCALES:
+            summary["scale_stats"][str(sc)] = {
+                "per_direction": {},
+                "overall": {}
             }
-        if all_drops:
-            summary["overall"] = {
-                "mean_drop": round(float(np.mean(all_drops)), 4),
-                "flip":      overall_flip,
-                "total":     overall_total,
-                "flip_pct":  round(flip_pct, 1),
-                "verdict":   verdict,
-            }
-        result_json = OUT_DIR / "results.json"
+            all_drops_sc = []
+            overall_flip_sc = 0
+            overall_total_sc = 0
+            
+            for d in DIRS:
+                s = scale_dir_stats[sc][d]
+                if not s["conf_drop"]:
+                    continue
+                mean_drop = float(np.mean(s["conf_drop"]))
+                flip_pct = s["flip"] / s["total"] * 100
+                all_drops_sc.extend(s["conf_drop"])
+                overall_flip_sc += s["flip"]
+                overall_total_sc += s["total"]
+                
+                summary["scale_stats"][str(sc)]["per_direction"][d] = {
+                    "n":          s["total"],
+                    "mean_drop":  round(mean_drop, 4),
+                    "flip":       s["flip"],
+                    "flip_pct":   round(flip_pct, 1),
+                }
+            if all_drops_sc:
+                overall_mean_sc = float(np.mean(all_drops_sc))
+                flip_pct_sc = overall_flip_sc / overall_total_sc * 100
+                if overall_mean_sc >= 0.10:
+                    verdict_sc = "basket 영역에 유의미하게 의존 ✅"
+                elif overall_mean_sc >= 0.03:
+                    verdict_sc = "약한 의존 (보조 신호로 사용)"
+                else:
+                    verdict_sc = "basket 외 정보만으로 분류 ⚠️"
+                    
+                summary["scale_stats"][str(sc)]["overall"] = {
+                    "mean_drop": round(overall_mean_sc, 4),
+                    "flip":      overall_flip_sc,
+                    "total":     overall_total_sc,
+                    "flip_pct":  round(flip_pct_sc, 1),
+                    "verdict":   verdict_sc
+                }
+                
+        result_json = OUT_DIR / "results_multiscale.json"
         result_json.write_text(json.dumps(summary, ensure_ascii=False, indent=2))
-        print(f"\n[SAVED] 이미지 → {OUT_DIR}/")
-        print(f"[SAVED] JSON  → {result_json}")
+        print(f"\n[SAVED] 이미지 (scale=1.0) → {OUT_DIR}/")
+        print(f"[SAVED] JSON (multiscale)  → {result_json}")
 
 
 if __name__ == "__main__":
