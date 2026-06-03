@@ -6682,6 +6682,92 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
         </div>
       </div>
 
+      <!-- R6 · "VLM Grounder LoRA fine-tuning 기여도 및 Jitter 현상 규명" — 신설 (6/3 업데이트) -->
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:18px;background:#0d231a;border:1px solid #10b981;border-radius:14px;box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-top:12px">
+        <span style="font-size:1.2rem;margin-top:2px">🎯</span>
+        <div style="width:100%">
+          <div style="color:#34d399;font-weight:800;font-size:0.95rem;margin-bottom:8px">R6 · "VLM Grounder LoRA fine-tuning 기여도 및 Grounding Jitter 현상 규명" — 완료 (6/3 업데이트)</div>
+          <div style="color:#cbd5e1;font-size:0.82rem;line-height:1.6;margin-bottom:12px">
+            사전학습 Zero-shot 모델 대비 LoRA fine-tuning을 거친 모델에서 중심 좌표 오차($cx$ MAE) 및 프레임 흔들림($cx\_std$)이 상승하는 역설적 지터링 현상을 HSV GT 알고리즘과의 비교를 통해 학술적으로 규명하였습니다.
+          </div>
+
+          <!-- 테이블 -->
+          <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:8px">📊 동일 val 셋(33 ep, 556 프레임) 하에서의 그라운딩 품질 비교 (Table 1)</div>
+          <div style="overflow-x:auto;margin-bottom:14px">
+            <table style="width:100%;border-collapse:collapse;font-size:0.74rem;color:#cbd5e1;text-align:center">
+              <thead>
+                <tr style="background:#0c281e;color:#34d399">
+                  <th style="padding:6px;border:1px solid #164e3d;text-align:left">모델명</th>
+                  <th style="padding:6px;border:1px solid #164e3d">Backbone</th>
+                  <th style="padding:6px;border:1px solid #164e3d">파인튜닝 방식</th>
+                  <th style="padding:6px;border:1px solid #164e3d">Hit율</th>
+                  <th style="padding:6px;border:1px solid #164e3d">cx MAE↓</th>
+                  <th style="padding:6px;border:1px solid #164e3d">cx_std↓</th>
+                  <th style="padding:6px;border:1px solid #164e3d">full-frame율↓</th>
+                  <th style="padding:6px;border:1px solid #164e3d">선택성 gap↑</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background:#091410">
+                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700;color:#e2e8f0">hsv</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#94a3b8">HSV 색상필터</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#94a3b8">GT Baseline</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399;font-weight:700">100.0%</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.000</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#fb7185;font-weight:700">0.138</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.014</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399;font-weight:700">1.00</td>
+                </tr>
+                <tr style="background:#091410">
+                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700">base</td>
+                  <td style="padding:6px;border:1px solid #164e3d">PaliGemma2-3B</td>
+                  <td style="padding:6px;border:1px solid #164e3d">Zero-shot</td>
+                  <td style="padding:6px;border:1px solid #164e3d">97.0%</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.170</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399;font-weight:700">0.070</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.002</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.97</td>
+                </tr>
+                <tr style="background:#091410">
+                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700">exp58</td>
+                  <td style="padding:6px;border:1px solid #164e3d">PaliGemma2-3B</td>
+                  <td style="padding:6px;border:1px solid #164e3d">LoRA (2-class)</td>
+                  <td style="padding:6px;border:1px solid #164e3d">100.0%</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.186</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.153</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#fb7185">0.528</td>
+                  <td style="padding:6px;border:1px solid #164e3d">1.00</td>
+                </tr>
+                <tr style="background:#091410">
+                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700;color:#60a5fa">exp59</td>
+                  <td style="padding:6px;border:1px solid #164e3d">PaliGemma2-3B</td>
+                  <td style="padding:6px;border:1px solid #164e3d">LoRA (HardNeg)</td>
+                  <td style="padding:6px;border:1px solid #164e3d">97.0%</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.192</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.134</td>
+                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399">0.059</td>
+                  <td style="padding:6px;border:1px solid #164e3d">0.97</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 설명 -->
+          <div style="background:#05140f;border:1px solid #164e3d;border-radius:8px;padding:12px;font-size:0.78rem;color:#cbd5e1;line-height:1.6">
+            <div style="color:#34d399;font-weight:700;margin-bottom:6px">💡 VLM Semantic Smoothing vs HSV Algorithmic Jitter 분석</div>
+            <ol style="padding-left:16px;margin-bottom:10px;color:#94a3b8">
+              <li><strong>HSV GT의 높은 알고리즘적 지터(0.138)</strong>: 비전 필터링 방식인 HSV는 조도/모션 블러 등 이미지 픽셀 단위 노이즈에 직접 영향받아 좌표가 상당히 떨립니다.</li>
+              <li><strong>사전학습 VLM(base)의 맥락 평탄화(0.070)</strong>: 이미지 의미 맥락을 학습한 사전학습 VLM은 환경 노이즈를 자체적으로 완화하여 좌표 흔들림을 억제합니다.</li>
+              <li><strong>LoRA의 HSV 특성 전사 및 Trade-off (0.134)</strong>: R2-3(오탐) 차단을 위해 LoRA fine-tuning(exp59)을 거치면서, 학습 데이터의 지도 신호였던 HSV GT 좌표의 불완전한 미세 지터(0.138)를 VLM이 추종하게 되었습니다. 즉, fine-tuning 시 지터 상승은 Hard Negative 극복 및 타겟 정렬 과정에 따른 필연적인 Trade-off 관계입니다.</li>
+            </ol>
+            <div style="border-top:1px solid #164e3d;padding-top:8px">
+              <strong>일반화를 위한 데이터셋 추가의 가치 (150ep ➔ 243ep)</strong><br>
+              가상의 Horizontal Flip 증강 대비 에피소드 데이터량 확장은 주행 경로의 지형적 커버리지를 직접 늘려주어 OOD 경로를 채우는 근본적인 해법이 됩니다. 실제 Ablation 상에서도 데이터량 확대 모델(B1)이 Flip 증강 모델(B2) 대비 더 우수한 성공률(70.0%)을 보이며 일반화 성능을 실증했습니다.
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 

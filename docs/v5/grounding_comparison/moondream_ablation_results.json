@@ -1,0 +1,29 @@
+{
+  "model": "moondream2-zeroshot",
+  "description": "학습 없이 순수 pre-trained Moondream2 모델을 활용한 차폐 및 배경 소실 ablation 테스트 결과",
+  "scales": [
+    1.5,
+    1.0,
+    0.5
+  ],
+  "results": [
+    {
+      "scale": 1.5,
+      "inverse_masking_success_rate": 57.1,
+      "masking_success_rate": 42.9,
+      "total_frames": 7
+    },
+    {
+      "scale": 1.0,
+      "inverse_masking_success_rate": 100.0,
+      "masking_success_rate": 0.0,
+      "total_frames": 7
+    },
+    {
+      "scale": 0.5,
+      "inverse_masking_success_rate": 100.0,
+      "masking_success_rate": 0.0,
+      "total_frames": 7
+    }
+  ]
+}
