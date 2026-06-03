@@ -289,6 +289,11 @@
     각 에피소드는 평균 17.5 프레임, 해상도 1280×720.
   </p>
 
+  <div style="margin-top: 10px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="exp_flow_0512.html" target="_blank" style="background:#1e293b; color:#60a5fa; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; border:1px solid rgba(96,165,250,0.2); display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-map"></i> 🗺️ 실험 설계 플로우 맵</a>
+    <a href="devlog.html" target="_blank" style="background:#1e293b; color:#f59e0b; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; border:1px solid rgba(245,158,11,0.2); display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-terminal"></i> 🛠️ V5 개발 로그 히스토리</a>
+  </div>
+
   <div class="callout info">
     💡 <strong>왜 9가지 경로인가?</strong>
     단순히 "직진"만 학습하면 모델이 모든 상황에서 직진을 선택하는 FORWARD bias에 빠진다.
@@ -645,6 +650,11 @@
     Exp10은 action 대신 bounding box를 예측하도록 학습시킨 실험이다. IoU 0.87을 달성해 <strong>지각 능력 자체는 충분함</strong>을 확인했다.
   </p>
 
+  <div style="margin-top: 10px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="masking_ablation_proof.html" target="_blank" style="background:#1e293b; color:#a78bfa; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; border:1px solid rgba(167,139,250,0.25); display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-square-minus"></i> 🧪 마스킹 인과성 & STOP 게이트 검증 리포트</a>
+    <a href="ablation_visual_proof.html" target="_blank" style="background:#1e293b; color:#ec4899; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; border:1px solid rgba(236,72,153,0.2); display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-eye"></i> 🎨 기존 마스킹 시각 대시보드</a>
+  </div>
+
   <div class="finding-grid">
     <div class="finding-card good">
       <div class="finding-num" style="color:var(--green)">0.87</div>
@@ -780,6 +790,11 @@
     Closed-loop 시뮬레이션에서 모델 예측 action을 실제로 누적 적용해 최종 위치를 측정했다.
     <strong>FPE < 0.5m AND TLD ∈ [0.7, 1.5m]</strong>이면 성공.
   </p>
+
+  <div style="margin-top: 10px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="closed_loop_eval/index.html" target="_blank" style="background:#1e293b; color:#22c55e; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; border:1px solid rgba(34,197,94,0.25); display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-chart-line"></i> 📊 Closed-Loop 상세 통계 대시보드</a>
+    <a href="masking_ablation_proof.html" target="_blank" style="background:#1e293b; color:#38bdf8; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; border:1px solid rgba(56,189,248,0.2); display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle-stop"></i> 🛑 도착 STOP Gate 검증 리포트</a>
+  </div>
 
   <table class="cl-table">
     <thead>
@@ -5788,6 +5803,10 @@
     무엇이 예상대로였고 무엇이 예상 밖이었는지. 다음에 무엇을 해야 하는지.
   </p>
 
+  <div style="margin-top: 10px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="prof_qa_evidence_20260529.html" target="_blank" style="background:#1e293b; color:#34d399; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; border:1px solid rgba(52,211,153,0.25); display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-graduation-cap"></i> 🎓 교수님 Q&A 대응 학술적 증거 리포트</a>
+  </div>
+
   <!-- ① 출발점 -->
   <div style="background:#0a1628;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
     <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:12px">① 출발점 — 교수님이 던진 질문</div>
@@ -7489,10 +7508,15 @@ graph TD
     <p style="color:var(--muted);margin-bottom:16px">상세 문서 및 데이터</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <a href="exp_all_results.html" style="background:linear-gradient(135deg,#0c2040,#0a1a2e);color:#38bdf8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #1e4060;font-weight:700">📊 전체 실험 결과 총집합 (Exp01~55)</a>
+      <a href="masking_ablation_proof.html" style="background:linear-gradient(135deg,#1e1b4b,#0f0a2e);color:#a78bfa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #4338ca;font-weight:700">🧪 마스킹 & STOP 게이트 검증 리포트</a>
+      <a href="prof_qa_evidence_20260529.html" style="background:linear-gradient(135deg,#064e3b,#022c22);color:#34d399;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #047857;font-weight:700">🎓 교수님 질의 대응 검증</a>
+      <a href="devlog.html" style="background:#1e293b;color:#f59e0b;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🛠 V5 개발 로그</a>
+      <a href="exp_flow_0512.html" style="background:#1e293b;color:#60a5fa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🗺 실험 플로우 맵</a>
+      <a href="ablation_visual_proof.html" style="background:#1e293b;color:#ec4899;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🎨 기존 마스킹 시각 대시보드</a>
       <a href="../reports/viewer.html?file=v5/GLOSSARY.md" style="background:#1e293b;color:#38bdf8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">📖 용어 사전</a>
       <a href="closed_loop_eval/index.html" style="background:#1e293b;color:#22c55e;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">📊 Closed-Loop 상세</a>
-      <a href="exp11_image_viewer/index.html" style="background:#1e293b;color:#60a5fa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🖼 이미지 파이프라인 뷰어</a>
-      <a href="../index.html" style="background:#1e293b;color:#a78bfa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🏠 메인으로</a>
+      <a href="exp11_image_viewer/index.html" style="background:#1e293b;color:#94a3b8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🖼 이미지 파이프라인 뷰어</a>
+      <a href="../index.html" style="background:#1e293b;color:#e2e8f0;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🏠 메인으로</a>
     </div>
   </div>
 </div>
