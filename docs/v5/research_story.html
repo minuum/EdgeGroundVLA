@@ -257,6 +257,7 @@
     <a class="toc-item" href="#ch20" data-target="ch20"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 20</span><span class="toc-label">Free 에피소드 분석</span></a>
     <a class="toc-item" href="#ch21" data-target="ch21"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 21</span><span class="toc-label">연구 정리 & 방향성</span></a>
     <a class="toc-item" href="#ch22" data-target="ch22"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">CH 22</span><span class="toc-label">동기 vs 비동기 수집 · STOP 진실</span></a>
+    <a class="toc-item" href="#ch23" data-target="ch23"><span class="toc-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">CH 23</span><span class="toc-label">Grounding 붕괴 — 엉뚱한 bbox의 진실</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
@@ -6273,6 +6274,141 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       <strong style="color:#fbbf24">한 줄 요약:</strong>
       "중간 STOP"은 모델 결함이 아니라 <strong>비동기 수집의 타이밍 빈틈</strong>이 만든 라벨 아티팩트다.
       STOP은 본래 도착=마지막 프레임 신호이며, 그래서 area 기반 도착 종결 규칙과 동기식 재수집이 정답이다.
+    </div>
+  </div>
+
+</div>
+
+<div class="chapter" id="ch23">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#ef4444;color:#fff">CH 23</span>
+    <h2 class="chapter-title">Grounding 붕괴 — 왜 엉뚱한 곳에 bbox를 그렸나</h2>
+  </div>
+  <p class="chapter-desc">
+    CH17의 "객체 인식 → cx → 액션" 시각화에서, basket이 화면 중앙에 크게 보이는데도
+    bbox가 <strong style="color:#f87171">빈 벽·화면 끝</strong>에 찍힌 패널이 있었습니다(cx=0.123, 0.945).
+    "왜 이상한 곳을 bboxing 했나"를 추적한 결과 — 모델이 basket을 <em>못 본 게</em> 아니라,
+    fine-tune된 <strong style="color:#fbbf24">Exp59 grounding LoRA가 박스 크기·위치로 붕괴(degenerate)</strong>한 것이 원인이었습니다.
+  </p>
+
+  <!-- ① 증상 -->
+  <div style="background:#1a0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#fca5a5;font-size:0.82rem;font-weight:700;margin-bottom:10px">① 증상 — basket은 중앙에 있는데 bbox는 빈 벽에</div>
+    <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8">
+      center_left 에피소드 fr10: basket은 화면 중앙(cx≈0.35)에 크게 있으나, PG2가 반환한 박스(빨강)는
+      <strong style="color:#f87171">왼쪽 끝 빈 벽(cx=0.11, area=0.05)</strong>. cx가 액션으로 직결되므로 → 잘못된 조향.
+    </div>
+    <div style="margin-top:12px">
+      <img src="grounding_collapse/fr10.png" style="width:100%;max-width:560px;border-radius:8px;border:1px solid #7f1d1d">
+    </div>
+  </div>
+
+  <!-- ② 추적 — 프레임별 raw 출력 -->
+  <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:12px">② 추적 — 같은 에피소드를 프레임별로 PG2에 재투입</div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:0.77rem">
+      <thead><tr style="background:#0d1a2e">
+        <th style="padding:7px 10px;text-align:left;color:#60a5fa;border-bottom:1px solid #1e3040">프레임</th>
+        <th style="padding:7px 10px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e3040">PG2 raw &lt;loc&gt; 출력</th>
+        <th style="padding:7px 10px;text-align:center;color:#4ade80;border-bottom:1px solid #1e3040">cx</th>
+        <th style="padding:7px 10px;text-align:center;color:#fbbf24;border-bottom:1px solid #1e3040">area</th>
+        <th style="padding:7px 10px;text-align:left;color:#f87171;border-bottom:1px solid #1e3040">판정</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:6px 10px;color:#e2e8f0">fr0,3,5 (멀리)</td><td style="padding:6px 10px;color:#94a3b8;font-family:monospace">0397,0397,0625,0625 (전부 동일)</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.50</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.05</td><td style="padding:6px 10px;color:#fca5a5">캔(canned) 정중앙 박스 — 실제 탐지 아님</td></tr>
+        <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:6px 10px;color:#e2e8f0">fr8</td><td style="padding:6px 10px;color:#94a3b8;font-family:monospace">0397,0930,0397,0960</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.95</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.00</td><td style="padding:6px 10px;color:#fca5a5">높이 0 선 — 쓰레기</td></tr>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:6px 10px;color:#e2e8f0">fr10</td><td style="padding:6px 10px;color:#94a3b8;font-family:monospace">0397,0000,0625,0223</td><td style="padding:6px 10px;text-align:center;color:#f87171;font-weight:700">0.11</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.05</td><td style="padding:6px 10px;color:#fca5a5">캔 박스를 좌측 끝으로 — basket 놓침</td></tr>
+        <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:6px 10px;color:#e2e8f0">fr12,14 (가까이)</td><td style="padding:6px 10px;color:#94a3b8;font-family:monospace">0000,0000,0810,0956</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.47</td><td style="padding:6px 10px;text-align:center;color:#fbbf24">0.74</td><td style="padding:6px 10px;color:#fca5a5">과대 폭발</td></tr>
+        <tr><td style="padding:6px 10px;color:#e2e8f0">fr16 (도착)</td><td style="padding:6px 10px;color:#94a3b8;font-family:monospace">0000,0000,1023,1023</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.50</td><td style="padding:6px 10px;text-align:center;color:#fbbf24">1.00</td><td style="padding:6px 10px;color:#fca5a5">화면 전체</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
+      <img src="grounding_collapse/fr05.png" style="width:100%;border-radius:6px;border:1px solid #1e3040">
+      <img src="grounding_collapse/fr12.png" style="width:100%;border-radius:6px;border:1px solid #1e3040">
+      <img src="grounding_collapse/fr16.png" style="width:100%;border-radius:6px;border:1px solid #1e3040">
+    </div>
+  </div>
+
+  <!-- ③ 진단 -->
+  <div style="background:#08111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#fbbf24;font-size:0.82rem;font-weight:700;margin-bottom:10px">③ 진단 — LoRA 박스 붕괴(mode collapse)</div>
+    <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8">
+      y좌표가 여러 프레임에서 <code style="background:#1e2438;padding:1px 5px;border-radius:3px">0.397~0.611</code>로 동일하고 area가 ~0.05로 고정 →
+      LoRA가 <strong style="color:#fbbf24">거의 고정 크기 박스를 좌우로만 슬라이딩</strong>하다가, 가까우면 화면 전체로 터집니다.
+      진짜 localization이 아니라 <strong>위치·스케일이 불안정</strong>. 이것이 cx 노이즈의 근본 원인이며,
+      <strong style="color:#7dd3fc">Exp60이 대량 bbox-noise 증강(std 0.22)을 필요로 했던 이유</strong>가 여기서 설명됩니다.
+    </div>
+  </div>
+
+  <!-- ④ 사전학습 오해 정리 -->
+  <div style="background:#052e16;border:1px solid #4ade80;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">④ "사전학습에 basket이 없어서?" — 아니다</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#07111e;border-radius:8px;padding:12px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+        <strong style="color:#86efac">근거</strong><br>
+        Exp57 <strong>zero-shot baseline = 65%</strong> (LoRA 전, 순수 PG2가 "gray basket" 65% 적중)
+        → 베이스 모델은 이미 basket 개념 보유. fr10 실패는 <strong style="color:#fbbf24">사전학습 부재가 아니라 LoRA 붕괴</strong>.
+      </div>
+      <div style="background:#07111e;border-radius:8px;padding:12px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+        <strong style="color:#86efac">PaliGemma2 사전학습</strong><br>
+        SigLIP 비전 + Gemma2 LM, 데이터 = <strong>WebLI</strong>(웹스케일 image-text, 다국어).
+        COCO식 고정 80-class가 아닌 <strong>open-vocabulary</strong> → 열거 가능한 "객체 목록"은 없음.
+        무엇을 잘 잡는지는 <strong>실측(zero-shot probe)</strong>해야 함.
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ Zero-shot probe — 베이스가 LoRA보다 낫다 -->
+  <div style="background:#08111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">⑤ 실측 — 베이스 PG2 zero-shot 객체 probe (LoRA 없이)</div>
+    <div style="font-size:0.79rem;color:#94a3b8;line-height:1.7;margin-bottom:12px">
+      center_left 2 ep × 6 frame = 12장에 객체명 sweep (`scripts/probe_pg2_objects.py`). 베이스 모델이 무엇을 잡는가:
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:0.77rem">
+      <thead><tr style="background:#0d1a2e">
+        <th style="padding:7px 10px;text-align:left;color:#60a5fa;border-bottom:1px solid #1e3040">phrase</th>
+        <th style="padding:7px 10px;text-align:center;color:#4ade80;border-bottom:1px solid #1e3040">hit</th>
+        <th style="padding:7px 10px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e3040">cx</th>
+        <th style="padding:7px 10px;text-align:center;color:#fbbf24;border-bottom:1px solid #1e3040">cx_std</th>
+        <th style="padding:7px 10px;text-align:left;color:#64748b;border-bottom:1px solid #1e3040">판정</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:6px 10px;color:#86efac">gray basket / laundry basket / hamper / trash can</td><td style="padding:6px 10px;text-align:center;color:#4ade80;font-weight:700">12/12</td><td style="padding:6px 10px;text-align:center;color:#e2e8f0">0.432</td><td style="padding:6px 10px;text-align:center;color:#4ade80">0.047</td><td style="padding:6px 10px;color:#64748b">basket 정확·안정 검출 (open-vocab 동의어 모두)</td></tr>
+        <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:6px 10px;color:#86efac">basket / box</td><td style="padding:6px 10px;text-align:center;color:#4ade80">11/12</td><td style="padding:6px 10px;text-align:center;color:#e2e8f0">0.43</td><td style="padding:6px 10px;text-align:center;color:#4ade80">0.045</td><td style="padding:6px 10px;color:#64748b">동일 객체</td></tr>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:6px 10px;color:#fbbf24">chair</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">3/12</td><td style="padding:6px 10px;text-align:center;color:#e2e8f0">0.952</td><td style="padding:6px 10px;text-align:center;color:#94a3b8">0.003</td><td style="padding:6px 10px;color:#64748b">우측 나무가구를 chair로 검출</td></tr>
+        <tr><td style="padding:6px 10px;color:#fca5a5">container / bottle / red ball</td><td style="padding:6px 10px;text-align:center;color:#f87171;font-weight:700">0/12</td><td style="padding:6px 10px;text-align:center;color:#64748b">—</td><td style="padding:6px 10px;text-align:center;color:#64748b">—</td><td style="padding:6px 10px;color:#64748b">없는 객체 정확히 거부</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:14px;font-size:0.8rem;color:#e2e8f0;font-weight:600">같은 프레임 — 베이스 PG2(초록)는 basket을 정확히, LoRA(빨강, ②)는 빈 벽에:</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+      <img src="grounding_collapse/base_fr05.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
+      <img src="grounding_collapse/base_fr10.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
+      <img src="grounding_collapse/base_fr12.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
+      <img src="grounding_collapse/base_fr16.png" style="width:100%;border-radius:6px;border:1px solid #16632a">
+    </div>
+    <div style="margin-top:10px;background:#052e16;border-radius:6px;padding:10px;font-size:0.78rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#4ade80">반전:</strong> 베이스 PG2는 fr10에서도 basket을 정확히(cx=0.38) 잡고, 가까워질수록 박스가 자연스럽게 커진다(fr16도 full-frame 아님).
+      <strong style="color:#fbbf24">우리 Exp59 LoRA fine-tuning이 오히려 grounding을 붕괴시켰다.</strong>
+    </div>
+  </div>
+
+  <!-- ⑥ 다음 -->
+  <div style="background:#0a1628;border:1px solid #1e3040;border-radius:12px;padding:18px">
+    <div style="color:#a78bfa;font-size:0.82rem;font-weight:700;margin-bottom:8px">⑥ 해결 방향 (재정립)</div>
+    <div style="font-size:0.79rem;color:#94a3b8;line-height:1.8">
+      ① <strong style="color:#4ade80">베이스 PG2 zero-shot grounding으로 교체 검토</strong> — 이미 12/12 안정(cx_std 0.047). LoRA를 빼면 붕괴 제거 가능.<br>
+      ② LoRA를 유지한다면 <strong>박스 크기 supervision + 조기 종료(과적합 방지)</strong>로 재학습 — 현재는 캔 박스로 collapse.<br>
+      ③ <strong>베이스 PG2 grounding으로 CL 재평가</strong> — cx 노이즈가 근본 감소하면 Exp60 증강·STOP 규칙 위에서 CL이 더 오를 가능성.<br>
+      ④ 사전학습 객체 맵(이 probe)은 교수님 5/22 "사전학습 객체 목록 파악" 지시에 대한 실측 답.
+    </div>
+    <div style="margin-top:12px;background:#07111e;border-radius:8px;padding:12px 14px;font-size:0.8rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#fbbf24">한 줄 요약:</strong>
+      "엉뚱한 bbox"는 basket 미인식도, 사전학습 부재도 아니다 — <strong>우리가 fine-tune한 LoRA가 grounding을 망가뜨렸다.</strong>
+      베이스 PG2는 basket을 정확·안정적으로 잡으며(12/12, cx_std 0.047), 없는 객체는 거부한다. 근본 해법은 grounding 안정화(베이스 복귀 or LoRA 재설계)다.
     </div>
   </div>
 
