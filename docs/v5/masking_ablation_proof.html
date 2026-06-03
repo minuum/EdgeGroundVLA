@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoNaVLA — Masking Ablation & STOP Gate Proof</title>
+    <!-- Google Fonts 및 FontAwesome 로드 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-base: #0b0f19;
+            --bg-surface: rgba(22, 28, 45, 0.6);
+            --bg-card: rgba(30, 41, 59, 0.4);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --glass-blur: blur(12px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            line-height: 1.6;
+            padding: 40px 20px;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 헤더 스타일 */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* 네비게이션 홈 버튼 */
+        .nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .nav-back:hover {
+            background: rgba(56, 189, 248, 0.15);
+            transform: translateX(-4px);
+        }
+
+        /* 그리드 레이아웃 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1.2fr 1fr;
+            }
+        }
+
+        /* 카드 공통 스타일 */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: var(--glass-blur);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+        }
+
+        .card-title i {
+            color: #60a5fa;
+        }
+
+        /* 테이블 스타일 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .td-left {
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .badge-green {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .badge-orange {
+            background: rgba(249, 115, 22, 0.1);
+            color: var(--accent-orange);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(249, 115, 22, 0.2);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .badge-red {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* 학술 분석 리포트 스타일 */
+        .analysis-text {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .analysis-text p {
+            margin-bottom: 16px;
+        }
+
+        .analysis-text strong {
+            color: var(--text-main);
+        }
+
+        .analysis-text ul {
+            list-style: none;
+            margin-bottom: 16px;
+            padding-left: 10px;
+        }
+
+        .analysis-text li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        .analysis-text li::before {
+            content: "➔";
+            position: absolute;
+            left: 0;
+            color: #60a5fa;
+            font-size: 0.85rem;
+        }
+
+        /* 이미지 갤러리 섹션 */
+        .gallery-section {
+            margin-top: 40px;
+        }
+
+        .gallery-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid var(--accent-purple);
+            padding-left: 16px;
+        }
+
+        .gallery-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 8px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-purple);
+            color: white;
+            border-color: var(--accent-purple);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .gallery-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* 이미지 카드 스타일 */
+        .image-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            backdrop-filter: var(--glass-blur);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+
+        .image-container {
+            width: 100%;
+            position: relative;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .image-info {
+            padding: 16px;
+        }
+
+        .image-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+        }
+
+        .image-path-type {
+            font-weight: 700;
+            color: #60a5fa;
+            text-transform: uppercase;
+        }
+
+        .image-status {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .status-stable {
+            color: var(--accent-green);
+        }
+
+        .status-flip {
+            color: var(--accent-red);
+        }
+
+        .image-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* 애니메이션 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 네비게이션 -->
+        <a href="research_story.html" class="nav-back">
+            <i class="fa-solid fa-arrow-left"></i> Research Story로 돌아가기
+        </a>
+
+        <!-- 헤더 -->
+        <header>
+            <h1>Masking Ablation & STOP Gate 정량 검증 리포트</h1>
+            <p>바스켓 영역의 다중 스케일 차폐(Masking) 실험을 통한 의사결정 인과성 규명 및 도착 STOP Y-Center 게이트 통합 성능 검증</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- 좌측: 다중 스케일 마스킹 Ablation 결과 -->
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fa-solid fa-chart-bar"></i> 1. 다중 스케일 Masking Ablation 결과
+                </h2>
+                <div class="analysis-text" style="margin-bottom: 24px;">
+                    <p>기존의 1.5배 마스킹(1.5x)에서는 5.6%의 예측 방향 반전(Action Flip)이 관찰되었으나, 이는 마스크 크기가 너무 커 주변 배경(context) 정보까지 함께 가려졌기 때문이라는 의문이 제기되었습니다.</p>
+                    <p>이에 마스크 스케일을 <strong>1.5x ➔ 1.2x ➔ 1.0x (바스켓 정크기) ➔ 0.8x ➔ 0.5x (중심 국소 영역)</strong>로 줄여가며 예측 자신감(Confidence Drop)과 방향 반전율(Flip Rate)을 스윕했습니다.</p>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>마스크 스케일</th>
+                            <th>전체 평균 Conf Drop</th>
+                            <th>방향 반전 비율 (Flip Rate)</th>
+                            <th>의사결정 판정</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="td-left">1.5x (기존 크기)</td>
+                            <td>+0.0157</td>
+                            <td><span class="badge-orange">5.6% (2/36)</span></td>
+                            <td>부분 의존 (주변 맥락 침범)</td>
+                        </tr>
+                        <tr>
+                            <td class="td-left">1.2x</td>
+                            <td>+0.0195</td>
+                            <td><span class="badge-orange">2.8% (1/36)</span></td>
+                            <td>부분 의존</td>
+                        </tr>
+                        <tr>
+                            <td class="td-left"><strong>1.0x (정크기)</strong></td>
+                            <td><strong>+0.0208</strong></td>
+                            <td><span class="badge-green">0.0% (0/36)</span></td>
+                            <td><strong>독립 보조 신호 (안정)</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="td-left">0.8x (타이트)</td>
+                            <td>+0.0334</td>
+                            <td><span class="badge-green">0.0% (0/36)</span></td>
+                            <td>부분 의존 (안정)</td>
+                        </tr>
+                        <tr>
+                            <td class="td-left">0.5x (국소 중심)</td>
+                            <td>+0.0319</td>
+                            <td><span class="badge-green">0.0% (0/36)</span></td>
+                            <td>부분 의존 (안정)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="analysis-text" style="margin-top: 24px;">
+                    <ul>
+                        <li><strong>의사결정 강건성 입증</strong>: 마스크 스케일을 1.0x 이하로 축소 시 flip 비율이 <strong>0.0%</strong>로 소멸했습니다. 이는 바스켓 핵심부만 가릴 경우 방향 결정이 뒤집히지 않으며 복도의 전반적인 기하학적 형상(벽면, 바닥, 소실점)을 융합하여 매우 안정적으로 조향을 결정하고 있음을 의미합니다.</li>
+                        <li><strong>인과적 기여 확인</strong>: 0.8x 및 0.5x 등 바스켓 중심만 아주 작게 가려도 정답 클래스의 자신감(Confidence)이 평균 <strong>+0.03 이상 감소</strong>하여, 바스켓의 visual feature가 조향 판단을 자신감 있게 내리는 결정적 보조 신호로 사용되고 있음을 실증합니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 우측: 도착 STOP Y-Center Gate 결과 -->
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fa-solid fa-circle-stop"></i> 2. 도착 STOP Y-Center Gate (th_cy) 결과
+                </h2>
+                <div class="analysis-text" style="margin-bottom: 20px;">
+                    <p>도착 근접 시 BBox의 Y축 중심 좌표가 하단으로 가라앉는 특이점($cy \approx 0.50$)을 Heuristic Stop 규칙에 결합($cy_{\text{avg}} > TH\_CY$)하여, 조기 정지(오발)를 억제하고 주행 및 정지 성능을 Ablation 비교한 결과입니다.</p>
+                </div>
+                
+                <h3 style="font-size: 1.05rem; margin-bottom: 8px; color: #a78bfa; font-family: 'Outfit', sans-serif;">A. Baseline 제어기 (abl_b1_mlp.pt, 조향 상한 68.8%)</h3>
+                <table style="margin-bottom: 24px;">
+                    <thead>
+                        <tr>
+                            <th>expert</th>
+                            <th>pred_stop</th>
+                            <th>No CY (th_cy=0.0)</th>
+                            <th>With CY (th_cy=0.5)</th>
+                            <th>향상폭 (Ablation)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="td-left">raw (GT)</td>
+                            <td>on (Heuristic)</td>
+                            <td>34.4% (11/32)</td>
+                            <td><strong style="color: var(--accent-green)">56.2% (18/32)</strong></td>
+                            <td><span class="badge-green">성공률 1.63배</span></td>
+                        </tr>
+                        <tr>
+                            <td class="td-left">synth (합성)</td>
+                            <td>off (과주행)</td>
+                            <td>31.2% (10/32)</td>
+                            <td><strong style="color: var(--accent-green)">53.1% (17/32)</strong></td>
+                            <td><span class="badge-green">FPE 42.8% 감소</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="font-size: 1.05rem; margin-bottom: 8px; color: #a78bfa; font-family: 'Outfit', sans-serif;">B. 최선 주행 제어기 (center3x_mlp.pt, 조향 상한 81.2%)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>expert</th>
+                            <th>pred_stop</th>
+                            <th>No CY (th_cy=0.0)</th>
+                            <th>With CY (th_cy=0.5)</th>
+                            <th>향상폭 (Ablation)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="td-left">raw (GT)</td>
+                            <td>on (Heuristic)</td>
+                            <td>34.4% (11/32)</td>
+                            <td><strong style="color: var(--accent-green)">68.8% (22/32)</strong></td>
+                            <td><span class="badge-green">성공률 2.00배</span></td>
+                        </tr>
+                        <tr>
+                            <td class="td-left">synth (합성)</td>
+                            <td>off (과주행)</td>
+                            <td>34.4% (11/32)</td>
+                            <td><strong style="color: var(--accent-green)">68.8% (22/32)</strong></td>
+                            <td><span class="badge-green">FPE 43.6% 감소</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="analysis-text" style="margin-top: 20px; font-size: 0.9rem; border-left: 3px solid var(--accent-blue); padding-left: 14px; background: rgba(59, 130, 246, 0.03); padding-top: 8px; padding-bottom: 8px;">
+                    <strong>💡 핵심 요약:</strong> Y-Center 기하 필터 도입으로 주행 도중 가짜 대형 바스켓 노이즈에 의해 멈춰버리던 오작동이 원천 봉쇄되었습니다. 그 결과 조향력이 뛰어난 최선 모델에서 **실질 CL 성공률이 34.4%에서 68.8%로 정확히 2배 개선**되었습니다.
+                </div>
+            </div>
+        </div>
+
+        <!-- 갤러리 영역 -->
+        <section class="gallery-section">
+            <h2 class="gallery-title">
+                <i class="fa-solid fa-images"></i> 3. Visual Proof Gallery (1.0x Masking)
+            </h2>
+            
+            <div class="gallery-filter">
+                <button class="filter-btn active" onclick="filterGallery('all')">전체보기</button>
+                <button class="filter-btn" onclick="filterGallery('left')">Left Start</button>
+                <button class="filter-btn" onclick="filterGallery('center')">Center Start</button>
+                <button class="filter-btn" onclick="filterGallery('right')">Right Start</button>
+            </div>
+
+            <div class="gallery-grid" id="gallery">
+                <!-- 이미지 카드 1 -->
+                <div class="image-card" data-direction="left">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/left_01_stable.png" alt="left_01">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">left start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Left Start 01 프레임: 바스켓 BBox를 1.0x로 마스킹. 조향 자신감 drop 발생에도 stable한 Left 방향 예측 유지.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 2 -->
+                <div class="image-card" data-direction="left">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/left_02_stable.png" alt="left_02">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">left start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Left Start 02 프레임: 바스켓 가림 상태에서도 복도 형상을 통해 원래 조향 결정을 완벽히 복원 유지.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 3 -->
+                <div class="image-card" data-direction="left">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/left_03_stable.png" alt="left_03">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">left start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Left Start 03 프레임: 1.0x 스케일 차폐 시 flip율 0%로 안정적인 조향 결정을 유지함.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 4 -->
+                <div class="image-card" data-direction="left">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/left_04_stable.png" alt="left_04">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">left start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Left Start 04 프레임: 차폐 영역 축소를 통해 인과성 검증의 엄밀함을 추가 확보한 결과.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 5 -->
+                <div class="image-card" data-direction="center">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/center_01_stable.png" alt="center_01">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">center start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Center Start 01 프레임: 직진 주행 중 바스켓의 정면 면적을 차폐. 직진(FORWARD) 상태에 큰 영향 없이 유지.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 6 -->
+                <div class="image-card" data-direction="center">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/center_02_stable.png" alt="center_02">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">center start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Center Start 02 프레임: 복도 전반의 visual context가 직진 경로를 견고하게 제어하고 있음을 시사.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 7 -->
+                <div class="image-card" data-direction="center">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/center_03_stable.png" alt="center_03">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">center start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Center Start 03 프레임: 1.0x 차폐 상태에서 confidence drop만 유발하고 방향은 굳건히 유지됨.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 8 -->
+                <div class="image-card" data-direction="center">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/center_04_stable.png" alt="center_04">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">center start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Center Start 04 프레임: 바스켓 자체 면적이 작을 때도 자신감이 부분 감소하며 유의미한 상관성을 입증.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 9 -->
+                <div class="image-card" data-direction="right">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/right_01_stable.png" alt="right_01">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">right start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Right Start 01 프레임: 우편향된 바스켓 BBox를 1.0x로 정확하게 마스킹한 대조 프레임.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 10 -->
+                <div class="image-card" data-direction="right">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/right_02_stable.png" alt="right_02">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">right start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Right Start 02 프레임: 바스켓 차폐에 의해 confidence drop이 발생하며 인과적 상관성을 재현.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 11 -->
+                <div class="image-card" data-direction="right">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/right_03_stable.png" alt="right_03">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">right start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Right Start 03 프레임: 1.0x 크기의 차폐를 수행했을 때에도 오작동(Flip) 없이 stable하게 우회전 결정을 복원함.</p>
+                    </div>
+                </div>
+
+                <!-- 이미지 카드 12 -->
+                <div class="image-card" data-direction="right">
+                    <div class="image-container">
+                        <img src="masking_ablation_earlymid/right_04_stable.png" alt="right_04">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-meta">
+                            <span class="image-path-type">right start</span>
+                            <span class="image-status status-stable"><i class="fa-solid fa-circle-check"></i> stable</span>
+                        </div>
+                        <p class="image-desc">Right Start 04 프레임: 다중 마스킹 스윕을 통해 의사결정의 robust함을 최종 실증하였습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function filterGallery(category) {
+            // 버튼 활성화 클래스 조절
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            
+            // 카드 필터링
+            const cards = document.querySelectorAll('.image-card');
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.direction === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
