@@ -159,6 +159,7 @@ mobile-vla-omniwheel/
 # ─── V5 Dataset (Large Scale) ────────────────────────────────
 ROS_action/mobile_vla_dataset_v5/
 ROS_action/mobile_vla_dataset_v5(Image)/
+ROS_action/mobile_vla_dataset_V5_add_free/*.h5
 ROS_action/v5_data_bak/
 .menemory/sessions/
 

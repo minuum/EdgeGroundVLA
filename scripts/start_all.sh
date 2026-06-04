@@ -28,7 +28,7 @@ if [[ -f "$ROS_SETUP" ]]; then
 fi
 if [[ -f "$ROS_WS_SETUP" ]]; then
   # shellcheck source=/dev/null
-  source "$ROS_WS_SETUP"
+  (cd "${ROOT}/ROS_action/install" && source setup.bash)
   # colcon setup.bash는 install/*/lib 를 누락 → 명시적으로 추가
   for _pkg_lib in "${ROOT}/ROS_action/install/"*/lib; do
     [[ -d "$_pkg_lib" ]] && export LD_LIBRARY_PATH="${_pkg_lib}:${LD_LIBRARY_PATH:-}"
@@ -42,7 +42,7 @@ set -u
 # ROS 소스된 환경을 그대로 물려주는 래퍼 명령어 (nohup 자식 프로세스에도 전달)
 ROS_CMD_PREFIX=""
 if [[ -f "$ROS_SETUP" && -f "$ROS_WS_SETUP" ]]; then
-  ROS_CMD_PREFIX="source '${ROS_SETUP}' && source '${ROS_WS_SETUP}' && \
+  ROS_CMD_PREFIX="source '${ROS_SETUP}' && (cd '${ROOT}/ROS_action/install' && source setup.bash) && \
 for _p in '${ROOT}/ROS_action/install/'*/lib; do export LD_LIBRARY_PATH=\"\${_p}:\${LD_LIBRARY_PATH:-}\"; done && "
 fi
 

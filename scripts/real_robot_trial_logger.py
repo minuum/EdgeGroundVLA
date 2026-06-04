@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 """
-Real Robot Trial Logger — Exp49 실로봇 평가 기록기
+Real Robot Trial Logger — 실로봇 주행 평가 기록기
 포트 7862 독립 Gradio 서버
 
-Exp49 핵심: 물체 위치(cx0)가 goal → 9개 path type이 아닌
-바스켓이 LEFT / CENTER / RIGHT 어디 있는지만 알면 된다.
-
-오프라인 CL 집계 (baseline):
-  left  : 9/9  = 100.0%   (left_left + center_left + right_left)
-  center: 12/12 = 100.0%  (center_straight + left_straight + right_straight)
-  right : 8/9  =  88.9%   (center_right + left_right + right_right)
-
-사용법:
-  python3 scripts/real_robot_trial_logger.py
-  python3 scripts/real_robot_trial_logger.py --port 7862
+평가 기준 (카메라 최종 프레임 기반, 2×2m 맵):
+  S: 바스켓 중앙 + bbox 60%+  (~0.1m 이내)
+  A: 바스켓 중앙 1/3 + bbox 40%+  (~0.1~0.3m)
+  B: 바스켓 보이지만 중앙 이탈 or 40% 미만  (~0.3~0.7m)
+  F: 바스켓 프레임 밖 or 안 보임  (>0.7m or 이탈)
 """
 from __future__ import annotations
 
@@ -28,198 +22,262 @@ ROOT = Path(__file__).resolve().parents[1]
 EVAL_OUT_DIR = ROOT / "docs" / "v5" / "eval"
 EVAL_OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# 오프라인 CL 베이스라인 (hard-coded, 변경 시 rollout_metrics.json에서 재집계)
-OFFLINE_BASELINE = {
-    "left":   {"n_ok": 9,  "n": 9,  "success_rate": 1.000, "mean_fpe": 0.06},
-    "center": {"n_ok": 12, "n": 12, "success_rate": 1.000, "mean_fpe": 0.03},
-    "right":  {"n_ok": 8,  "n": 9,  "success_rate": 0.889, "mean_fpe": 0.16},
-}
+MODELS = ["exp49", "exp53", "exp54_s2v2"]
 
-POSITIONS = ["left", "center", "right"]
+POSITIONS = {
+    "A": "A — 정면 가까움 (~1.5m)",
+    "B": "B — 정면 멀리 (~2.5m)",
+    "C": "C — 측면 비스듬 (~2.0m, 30~45°)",
+}
 
 FAILURE_REASONS = [
     "(해당 없음)",
     "FORWARD_BIAS — 항상 직진",
-    "WRONG_DIR — 반대 방향으로 이동",
+    "WRONG_DIR — 반대 방향",
     "EARLY_STOP — 중간에 멈춤",
-    "DRIFT — 누적 편차로 이탈",
-    "GROUNDING_FAIL — bbox 미검출 의심",
+    "DRIFT — 누적 편차 이탈",
+    "GROUNDING_FAIL — bbox 미검출",
     "COLLISION — 충돌/걸림",
     "OTHER",
 ]
 
-# ── 상태 ──────────────────────────────────────────────────────────────
+# 오프라인 CL 베이스라인
+OFFLINE_CL = {
+    "exp49":       {"n_ok": 29, "n": 30, "rate": 29/30},
+    "exp53":       {"n_ok": 29, "n": 30, "rate": 29/30},
+    "exp54_s2v2":  {"n_ok": 29, "n": 30, "rate": 29/30},
+}
+
+GRADE_DESC = {
+    "S": "S — 중앙 + bbox 60%+ (~0.1m)",
+    "A": "A — 중앙 1/3 + bbox 40%+ (~0.3m)",
+    "B": "B — 보이지만 이탈 or 작음 (~0.7m)",
+    "F": "F — 프레임 밖 or 안 보임",
+}
+
+
+# ── 등급 자동 계산 ────────────────────────────────────────────────────────
+
+def compute_grade(visible: bool, center: bool, bbox_pct: float) -> str:
+    if not visible:
+        return "F"
+    if center and bbox_pct >= 60:
+        return "S"
+    if center and bbox_pct >= 40:
+        return "A"
+    return "B"
+
+
+def grade_label(visible: str, center: str, bbox_pct: float) -> tuple[str, str]:
+    v = visible == "Y"
+    c = center == "Y"
+    g = compute_grade(v, c, bbox_pct)
+    color = {"S": "🟢", "A": "🟡", "B": "🟠", "F": "🔴"}[g]
+    desc = GRADE_DESC[g]
+    return f"{color} **{g}등급** — {desc}", g
+
+
+# ── 상태 ─────────────────────────────────────────────────────────────────
 
 def empty_state() -> dict:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     return {
         "trials": [],
-        "save_path": str(EVAL_OUT_DIR / f"real_robot_exp49_{ts}.json"),
+        "save_path": str(EVAL_OUT_DIR / f"real_robot_{ts}.json"),
     }
 
-# ── 로직 ──────────────────────────────────────────────────────────────
 
-def _latest_session_files() -> list[str]:
-    """inference_reports/ 에서 최근 10개 session 파일명 반환."""
-    reports_dir = ROOT / "docs" / "inference_reports"
-    if not reports_dir.exists():
-        return ["(없음)"]
-    files = sorted(reports_dir.glob("session_*.json"), reverse=True)[:10]
-    return ["(연결 안 함)"] + [f.name for f in files]
+# ── 로직 ─────────────────────────────────────────────────────────────────
 
-
-def log_trial(state: dict, position: str, success_radio: str,
-              failure_reason: str, session_file: str, notes: str):
-    is_ok = success_radio == "✅ 성공"
+def log_trial(state: dict, model: str, position_key: str,
+              visible: str, center: str, bbox_pct: float,
+              failure_reason: str, notes: str):
+    g = compute_grade(visible == "Y", center == "Y", bbox_pct)
+    success = g in ("S", "A")
     trial = {
-        "trial_id": len(state["trials"]) + 1,
-        "timestamp": datetime.now().isoformat(),
-        "basket_position": position,
-        "success": is_ok,
-        "failure_reason": None if is_ok else failure_reason,
-        "session_log": None if session_file == "(연결 안 함)" else session_file,
-        "notes": notes.strip(),
+        "trial_id":       len(state["trials"]) + 1,
+        "timestamp":      datetime.now().isoformat(),
+        "model":          model,
+        "position":       position_key,
+        "grade":          g,
+        "success":        success,
+        "basket_visible": visible == "Y",
+        "bbox_center":    center == "Y",
+        "bbox_pct":       bbox_pct,
+        "failure_reason": None if success else failure_reason,
+        "notes":          notes.strip(),
     }
     state["trials"].append(trial)
     _autosave(state)
-
-    status = f"✅ #{trial['trial_id']} [{position}] {'성공' if is_ok else '실패'} — 저장됨"
-    return state, _summary_md(state["trials"]), _table(state["trials"]), status, ""
+    pos_label = POSITIONS[position_key]
+    status = f"✅ #{trial['trial_id']} [{model}] [{pos_label}] {g}등급 기록됨"
+    return state, _summary_md(state["trials"]), _grade_table(state["trials"]), status, ""
 
 
 def undo_last(state: dict):
     if not state["trials"]:
-        return state, _summary_md([]), _table([]), "⚠️ 취소할 기록 없음"
+        return state, _summary_md([]), _grade_table([]), "⚠️ 취소할 기록 없음"
     t = state["trials"].pop()
     _autosave(state)
-    return state, _summary_md(state["trials"]), _table(state["trials"]), \
-           f"↩️ #{t['trial_id']} [{t['basket_position']}] 취소됨"
-
-
-def show_save_path(state: dict) -> str:
-    if not state["trials"]:
-        return "⚠️ 기록된 시도 없음"
-    return f"📁 {state['save_path']}"
+    return state, _summary_md(state["trials"]), _grade_table(state["trials"]), \
+           f"↩️ #{t['trial_id']} [{t['model']}] {t['grade']}등급 취소됨"
 
 
 def _autosave(state: dict):
+    trials = state["trials"]
+    n = len(trials)
+    n_ok = sum(1 for t in trials if t["success"])
     payload = {
-        "model": "exp49",
-        "date": datetime.now().strftime("%Y-%m-%d"),
-        "server": "soda@100.85.118.58:8001",
-        "total_trials": len(state["trials"]),
-        "trials": state["trials"],
+        "date":          datetime.now().strftime("%Y-%m-%d"),
+        "server":        "soda@100.85.118.58",
+        "map_size":      "2x2m",
+        "success_def":   "S or A grade (basket visible + centered + bbox>=40%)",
+        "total_trials":  n,
+        "success_rate":  round(n_ok / n, 4) if n else 0,
+        "trials":        trials,
     }
     Path(state["save_path"]).write_text(
         json.dumps(payload, indent=2, ensure_ascii=False)
     )
 
 
-# ── 렌더링 ────────────────────────────────────────────────────────────
+# ── 렌더링 ───────────────────────────────────────────────────────────────
 
 def _summary_md(trials: list[dict]) -> str:
     if not trials:
-        return "아직 기록된 시도 없음."
+        return "_아직 기록된 시도 없음_"
     n = len(trials)
     n_ok = sum(1 for t in trials if t["success"])
     rate = n_ok / n
-    icon = "🟢" if rate >= 0.8 else ("🟡" if rate >= 0.6 else "🔴")
 
-    # 오프라인 가중 평균 (n 기준)
-    tot_off_ok = sum(v["n_ok"] for v in OFFLINE_BASELINE.values())
-    tot_off_n  = sum(v["n"]   for v in OFFLINE_BASELINE.values())
-    off_rate = tot_off_ok / tot_off_n  # 29/30 = 96.7%
-    diff = rate - off_rate
+    grade_counts = {"S": 0, "A": 0, "B": 0, "F": 0}
+    for t in trials:
+        grade_counts[t["grade"]] = grade_counts.get(t["grade"], 0) + 1
 
+    icon = "🟢" if rate >= 0.8 else ("🟡" if rate >= 0.5 else "🔴")
     lines = [
-        f"## {icon} 전체 {n_ok}/{n} = **{rate:.1%}**",
-        f"오프라인 CL {off_rate:.1%} 대비 **{diff:+.1%}**",
+        f"## {icon} 전체 {n_ok}/{n} = **{rate:.1%}** (S+A 기준)",
+        f"🟢S:{grade_counts['S']}  🟡A:{grade_counts['A']}  🟠B:{grade_counts['B']}  🔴F:{grade_counts['F']}",
         "",
     ]
 
-    # 실패 원인 집계
+    # 모델별 집계
+    lines.append("### 모델별")
+    for m in MODELS:
+        mt = [t for t in trials if t["model"] == m]
+        if not mt:
+            continue
+        mn = len(mt)
+        mok = sum(1 for t in mt if t["success"])
+        off = OFFLINE_CL.get(m, {})
+        off_str = f"CL {off['rate']:.1%}" if off else ""
+        diff = (mok/mn) - off.get("rate", 0) if off else 0
+        diff_str = f"({diff:+.1%})" if off else ""
+        gc = {"S":0,"A":0,"B":0,"F":0}
+        for t in mt:
+            gc[t["grade"]] += 1
+        lines.append(f"- **{m}**: {mok}/{mn}={mok/mn:.0%} {diff_str} vs {off_str}  "
+                     f"[S:{gc['S']} A:{gc['A']} B:{gc['B']} F:{gc['F']}]")
+
+    # 실패 원인
     fails = [t for t in trials if not t["success"]]
     if fails:
-        lines.append("### 실패 원인")
+        lines += ["", "### 실패 원인"]
         counts: dict[str, int] = {}
         for t in fails:
             r = t.get("failure_reason") or "OTHER"
             counts[r] = counts.get(r, 0) + 1
         for r, c in sorted(counts.items(), key=lambda x: -x[1]):
             lines.append(f"- {r}: {c}회")
-    else:
-        lines.append("### 실패 없음 🎉")
 
     return "\n".join(lines)
 
 
-def _table(trials: list[dict]) -> list[list]:
-    """position × {실로봇, 오프라인, 차이} 비교표."""
-    counts: dict[str, list[bool]] = {p: [] for p in POSITIONS}
-    for t in trials:
-        pos = t["basket_position"]
-        if pos in counts:
-            counts[pos].append(t["success"])
-
+def _grade_table(trials: list[dict]) -> list[list]:
+    """Position × Grade 분포표."""
     rows = []
-    for pos in POSITIONS:
-        successes = counts[pos]
-        n = len(successes)
-        n_ok = sum(successes)
-        real_str = f"{n_ok}/{n} ({n_ok/n:.0%})" if n else "—"
-
-        off = OFFLINE_BASELINE[pos]
-        off_str = f"{off['n_ok']}/{off['n']} ({off['success_rate']:.0%})"
-
-        gap = ""
-        if n:
-            diff = (n_ok / n) - off["success_rate"]
-            gap = f"{diff:+.0%}"
-
-        rows.append([pos, real_str, off_str, gap])
+    for pk, plabel in POSITIONS.items():
+        pt = [t for t in trials if t["position"] == pk]
+        if not pt:
+            rows.append([plabel, "—", "—", "—", "—", "—"])
+            continue
+        gc = {"S": 0, "A": 0, "B": 0, "F": 0}
+        for t in pt:
+            gc[t["grade"]] += 1
+        n = len(pt)
+        n_ok = sum(1 for t in pt if t["success"])
+        rows.append([
+            plabel,
+            f"{gc['S']}",
+            f"{gc['A']}",
+            f"{gc['B']}",
+            f"{gc['F']}",
+            f"{n_ok}/{n} ({n_ok/n:.0%})" if n else "—",
+        ])
     return rows
 
 
-# ── UI ────────────────────────────────────────────────────────────────
+# ── UI ───────────────────────────────────────────────────────────────────
 
 def build_ui() -> gr.Blocks:
-    with gr.Blocks(title="Exp49 Real Robot Logger", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="Real Robot Trial Logger") as demo:
         state = gr.State(empty_state())
 
         gr.Markdown(
-            "# 🤖 Exp49 실로봇 평가\n"
-            "바스켓 위치(LEFT / CENTER / RIGHT)별로 기록 → 오프라인 CL과 비교"
+            "# 🤖 실로봇 주행 평가 Logger\n"
+            "최종 프레임 카메라 기준 S/A/B/F 등급 — 2×2m 맵\n\n"
+            "**성공 = S 또는 A** (바스켓 프레임 중앙 + bbox 40% 이상)"
         )
 
         with gr.Row():
-            # ── 입력 패널 ──────────────────────────────────────────────
+            # ── 입력 패널 ─────────────────────────────────────────────
             with gr.Column(scale=1):
                 gr.Markdown("## 시도 기록")
 
-                position = gr.Radio(
-                    choices=POSITIONS,
-                    value="center",
-                    label="바스켓 위치 (첫 프레임 기준)",
+                model_dd = gr.Dropdown(
+                    choices=MODELS,
+                    value="exp54_s2v2",
+                    label="모델",
                 )
-                success_radio = gr.Radio(
-                    choices=["✅ 성공", "❌ 실패"],
-                    value="✅ 성공",
-                    label="결과",
+                position_dd = gr.Radio(
+                    choices=list(POSITIONS.keys()),
+                    value="A",
+                    label="시작 위치",
+                    info="A=정면 가까움(1.5m) / B=정면 멀리(2.5m) / C=측면 비스듬(2m, 30~45°)",
                 )
+
+                gr.Markdown("---\n### 📷 최종 프레임 평가")
+
+                visible_r = gr.Radio(
+                    choices=["Y", "N"],
+                    value="Y",
+                    label="바스켓이 프레임에 보이는가?",
+                )
+                center_r = gr.Radio(
+                    choices=["Y", "N"],
+                    value="Y",
+                    label="바스켓 bbox가 화면 중앙 1/3 안에 있는가?",
+                    visible=True,
+                )
+                bbox_slider = gr.Slider(
+                    minimum=0, maximum=100, step=5, value=50,
+                    label="bbox 화면 점유율 (%)",
+                    info="S≥60% / A≥40% / B<40%",
+                    visible=True,
+                )
+
+                grade_display = gr.Markdown("🟡 **A등급** — A — 바스켓 중앙 1/3 + bbox 40%+ (~0.3m)")
+                grade_hidden  = gr.Textbox(value="A", visible=False)
+
                 failure_reason = gr.Dropdown(
                     choices=FAILURE_REASONS,
                     value=FAILURE_REASONS[0],
-                    label="실패 원인",
+                    label="실패 원인 (B/F 등급시)",
                     visible=False,
-                )
-                session_file = gr.Dropdown(
-                    choices=_latest_session_files(),
-                    value="(연결 안 함)",
-                    label="연결할 Session 로그 (선택)",
                 )
                 notes = gr.Textbox(
                     label="메모 (선택)",
-                    placeholder="예: 조명 어두움, 첫 회전 느림...",
+                    placeholder="예: bbox 왼쪽 치우침, 조명 어두움...",
                     lines=2,
                 )
 
@@ -229,74 +287,79 @@ def build_ui() -> gr.Blocks:
 
                 status_box = gr.Textbox(label="상태", interactive=False, lines=1)
 
-                gr.Markdown("---")
-                gr.Markdown(
-                    "**서버 확인**\n"
-                    "```bash\ncurl localhost:8001/health\n```\n"
-                    "model_name=exp49 확인 후 시작"
-                )
-
-            # ── 요약 패널 ──────────────────────────────────────────────
+            # ── 요약 패널 ─────────────────────────────────────────────
             with gr.Column(scale=2):
-                gr.Markdown("## 실시간 비교")
+                gr.Markdown("## 실시간 집계")
 
-                summary_md = gr.Markdown("아직 기록된 시도 없음.")
+                summary_md = gr.Markdown("_아직 기록된 시도 없음_")
 
-                comparison = gr.Dataframe(
-                    headers=["바스켓 위치", "실로봇", "오프라인 CL", "차이"],
-                    value=_table([]),
+                gr.Markdown("### 위치별 등급 분포")
+                grade_tbl = gr.Dataframe(
+                    headers=["위치", "🟢S", "🟡A", "🟠B", "🔴F", "성공(S+A)"],
+                    value=_grade_table([]),
                     interactive=False,
                     wrap=True,
                 )
 
                 gr.Markdown(
-                    "오프라인 CL 기준 (Exp49, 30 에피소드)\n"
-                    "| | left | center | right | **전체** |\n"
+                    "---\n**등급 기준 (2×2m 맵)**\n"
+                    "| 등급 | 거리 | 바스켓 | 중앙 | bbox% |\n"
                     "|---|---|---|---|---|\n"
-                    "| 성공률 | 100% | 100% | 88.9% | **96.7%** |\n"
-                    "| FPE | 0.06m | 0.03m | 0.16m | 0.08m |"
+                    "| 🟢 S | ~0.1m | 보임 | ✅ | 60%+ |\n"
+                    "| 🟡 A | ~0.3m | 보임 | ✅ | 40%+ |\n"
+                    "| 🟠 B | ~0.7m | 보임 | ❌ or <40% | any |\n"
+                    "| 🔴 F | >0.7m | ❌ 안 보임 | — | — |"
                 )
 
-                btn_path = gr.Button("💾 저장 경로 확인", variant="secondary")
-                path_out = gr.Textbox(label="저장 위치", interactive=False)
+        # ── 이벤트 ──────────────────────────────────────────────────────
 
-        # ── 이벤트 ────────────────────────────────────────────────────
-        success_radio.change(
-            fn=lambda s: gr.update(visible=(s == "❌ 실패")),
-            inputs=[success_radio],
-            outputs=[failure_reason],
+        def on_visible_change(v):
+            hidden = v == "Y"
+            return gr.update(visible=hidden), gr.update(visible=hidden)
+
+        visible_r.change(
+            fn=on_visible_change,
+            inputs=[visible_r],
+            outputs=[center_r, bbox_slider],
         )
+
+        def on_grade_inputs(v, c, pct):
+            label, g = grade_label(v, c, pct)
+            show_fail = g in ("B", "F")
+            return label, g, gr.update(visible=show_fail)
+
+        for comp in [visible_r, center_r, bbox_slider]:
+            comp.change(
+                fn=on_grade_inputs,
+                inputs=[visible_r, center_r, bbox_slider],
+                outputs=[grade_display, grade_hidden, failure_reason],
+            )
 
         btn_log.click(
             fn=log_trial,
-            inputs=[state, position, success_radio, failure_reason, session_file, notes],
-            outputs=[state, summary_md, comparison, status_box, notes],
+            inputs=[state, model_dd, position_dd,
+                    visible_r, center_r, bbox_slider,
+                    failure_reason, notes],
+            outputs=[state, summary_md, grade_tbl, status_box, notes],
         )
 
         btn_undo.click(
             fn=undo_last,
             inputs=[state],
-            outputs=[state, summary_md, comparison, status_box],
-        )
-
-        btn_path.click(
-            fn=show_save_path,
-            inputs=[state],
-            outputs=[path_out],
+            outputs=[state, summary_md, grade_tbl, status_box],
         )
 
     return demo
 
 
-# ── 진입점 ────────────────────────────────────────────────────────────
+# ── 진입점 ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=7862)
-    ap.add_argument("--share", action="store_true")
     args = ap.parse_args()
 
     print(f"📊 Trial Logger → http://{args.host}:{args.port}")
-    print(f"📂 저장 → {EVAL_OUT_DIR}/real_robot_exp49_*.json")
-    build_ui().launch(server_name=args.host, server_port=args.port, share=args.share)
+    print(f"📂 저장 → {EVAL_OUT_DIR}/real_robot_*.json")
+    build_ui().launch(server_name=args.host, server_port=args.port)

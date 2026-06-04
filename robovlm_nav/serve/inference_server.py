@@ -178,7 +178,8 @@ class InferenceRequest(BaseModel):
     image: str  # base64 encoded image
     instruction: str  # Language instruction
     strategy: Literal["chunk_reuse", "receding_horizon"] = "chunk_reuse"  # Inference strategy
-    
+    vlm_model: Optional[str] = None  # "monapi" → π0 Flow Matching, None/기타 → GoalNav (기본)
+
 
 class InferenceResponse(BaseModel):
     """추론 응답 스키마"""

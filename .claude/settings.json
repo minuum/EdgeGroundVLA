@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python3 scripts/extract_vis_features_exp53.py --dry_run)",
+      "Bash(ls /home/soda/MoNaVLA/ | grep -E \"venv|\\\\.venv\" ; find /home/soda -maxdepth 3 -name \"activate\" 2>/dev/null | head -5)",
+      "Read(//home/soda/**)",
+      "Bash(nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv,noheader)",
+      "Bash(cat /proc/3751224/status 2>/dev/null | grep -E \"VmRSS|VmSize|State\" | head -4)",
+      "Read(//proc/3751224/**)",
+      "Bash(awk '{print $4}')",
+      "Bash(awk '{print $2, $11, $12}')",
+      "Bash(top -bn1)",
+      "Bash(kill 3669195)",
+      "Bash(echo \"Hub PID: $!\")",
+      "Bash(kill 3760975)",
+      "Bash(kill 3767810)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:7860/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:7863/)",
+      "Bash(awk '{print \"7863 running PID:\", $2}')"
+    ]
+  }
+}

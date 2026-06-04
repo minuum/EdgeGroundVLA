@@ -29,7 +29,7 @@ SERVICES = [
         "name":   "Object Recognition Demo",
         "port":   7863,
         "script": "scripts/gradio_grounding_demo.py",
-        "cmd":    "python3 scripts/gradio_grounding_demo.py",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 scripts/gradio_grounding_demo.py",
         "desc":   "Kosmos-2 그라운딩 — 웹캠/이미지 bbox 테스트 + Alias 비교",
         "group":  "Demo",
     },
@@ -37,9 +37,10 @@ SERVICES = [
         "name":   "Inference Dashboard",
         "port":   7865,
         "script": "scripts/gradio_inference_dashboard.py",
-        "cmd":    "python3 scripts/gradio_inference_dashboard.py",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 scripts/gradio_inference_dashboard.py",
         "desc":   "메인 추론 대시보드 — GoalNav 로봇 제어",
         "group":  "Robot",
+        "timeout": 180,
     },
     {
         "name":   "Trial Logger",
@@ -53,7 +54,7 @@ SERVICES = [
         "name":   "Data Collector",
         "port":   8081,
         "script": "scripts/gradio_data_collector.py",
-        "cmd":    "python3 scripts/gradio_data_collector.py",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 scripts/gradio_data_collector.py",
         "desc":   "조이스틱 데이터 수집 — H5 에피소드 기록",
         "group":  "Data",
     },
@@ -93,10 +94,11 @@ SERVICES = [
         "name":   "GoalNav API",
         "port":   8001,
         "script": "robovlm_nav/serve/proxy_inference_server.py",
-        "cmd":    "python3 robovlm_nav/serve/proxy_inference_server.py --port 8001",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 robovlm_nav/serve/proxy_inference_server.py --port 8001",
         "desc":   "GoalNav FastAPI 백엔드 — bbox grounding + MLP 추론",
         "group":  "System",
         "path":   "/dashboard",
+        "timeout": 120,
     },
     {
         "name":   "Inference Server",
@@ -106,6 +108,18 @@ SERVICES = [
         "desc":   "GoalNav MLP 직접 서버 — exp54_s2v2 (CL 96.7%)",
         "group":  "System",
         "path":   "/goalnav/status",
+        "timeout": 180,
+    },
+    # ── MoNa-pi (π0 Flow Matching) ──────────────────────────────────────────
+    {
+        "name":   "MoNa-pi Server",
+        "port":   8082,
+        "script": "/home/soda/MoNa-pi/inference/server.py",
+        "cmd":    "python3 /home/soda/MoNa-pi/inference/server.py --config /home/soda/MoNa-pi/configs/serbot2.yaml --ckpt /home/soda/MoNa-pi/checkpoints/best --port 8082",
+        "desc":   "π0 Flow Matching — 네이티브 + MoNaVLA API 통합 (VLA_API_SERVER=localhost:8082)",
+        "group":  "MonAPI",
+        "path":   "/health",
+        "timeout": 120,
     },
 ]
 
@@ -115,6 +129,7 @@ GROUP_COLOR = {
     "Data":   "#5a3d1a",
     "Eval":   "#4a1a6b",
     "System": "#3d3d3d",
+    "MonAPI": "#6b3d1a",  # 주황-갈색 계열 (π0 브랜드)
 }
 
 
@@ -372,21 +387,29 @@ def build_hub(server_ip: str) -> gr.Blocks:
 
             log_name = svc["script"].replace("/", "_").replace(".py", "")
             log_path = ROOT / "logs" / f"{log_name}.log"
-            launch_cmd = f"nohup {svc['cmd']} > {log_path} 2>&1 &"
+            launch_cmd = f"setsid nohup {svc['cmd']} > {log_path} 2>&1 &"
             subprocess.Popen(launch_cmd, shell=True, cwd=str(ROOT),
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+            max_wait = svc.get("timeout", 60)
             spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-            for i in range(30):  # 최대 30초 대기
+            for i in range(max_wait):
                 sp = spinners[i % len(spinners)]
-                yield f"{sp} {svc['name']} 시작 중... ({i+1}s)  로그: logs/{log_path.name}", gr.update()
+                # 로그 마지막 줄도 함께 표시
+                try:
+                    last_log = log_path.read_text(errors="replace").strip().splitlines()
+                    log_tail = last_log[-1][:60] if last_log else ""
+                except Exception:
+                    log_tail = ""
+                hint = f"  │ {log_tail}" if log_tail else ""
+                yield f"{sp} {svc['name']} 시작 중... ({i+1}/{max_wait}s){hint}", gr.update()
                 time.sleep(1)
                 if is_port_up(port):
                     pid = get_pid_on_port(port)
                     yield f"✅ {svc['name']} 시작됨 ({i+1}s)  pid={pid}", render_hub_html(server_ip)
                     return
 
-            yield f"⚠️ {svc['name']} 타임아웃 (30s) — 로그 확인: logs/{log_path.name}", render_hub_html(server_ip)
+            yield f"⚠️ {svc['name']} 타임아웃 ({max_wait}s) — 로그 확인: logs/{log_path.name}", render_hub_html(server_ip)
 
         refresh_btn.click(do_refresh, outputs=[hub_html, ctrl_out])
         action_btn.click(

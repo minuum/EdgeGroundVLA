@@ -21,9 +21,17 @@ class USBCameraServiceServer(Node):
         self.failed_reads = 0
         self.buffer_lock = threading.Lock()  # 스레드 안전성을 위한 락
         
+        self.latest_frame = None
+        self.is_running = True
+        
         # 카메라 초기화
         if not self.init_camera():
             self.get_logger().info('🎨 가상 카메라 모드로 전환 (USB 카메라 시뮬레이션)')
+            self.latest_frame = self.generate_virtual_frame()
+
+        # 백그라운드 프레임 캡처 스레드 구동
+        self.capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
+        self.capture_thread.start()
 
         try:
             self.srv = self.create_service(GetImage, 'get_image_service', self.get_image_callback)
@@ -106,6 +114,31 @@ class USBCameraServiceServer(Node):
         self.camera_type = "가상 카메라"
         return False
 
+    def _capture_loop(self):
+        """백그라운드에서 실시간으로 프레임을 캡처하여 최신 프레임을 유지합니다."""
+        import time
+        self.get_logger().info('🌀 백그라운드 카메라 캡처 루프 시작')
+        while rclpy.ok() and self.is_running:
+            if self.cap is not None and self.cap.isOpened():
+                # 인위적인 grab() 루프 및 sleep 대기를 없애고, 드라이버 read() 블로킹에 자연스럽게 동기화시킵니다.
+                # 드라이버 수준의 auto-blocking 덕분에 큐가 쌓이지 않고 최신 프레임 최고 FPS가 보장됩니다.
+                ret, frame = self.cap.read()
+                if ret:
+                    with self.buffer_lock:
+                        self.latest_frame = frame
+                        self.failed_reads = 0
+                else:
+                    with self.buffer_lock:
+                        self.failed_reads += 1
+                    if self.failed_reads % 30 == 0:
+                        self.get_logger().warn(f'⚠️ [Capture Loop] 프레임 읽기 실패 ({self.failed_reads}회 누적)')
+                    time.sleep(0.05)
+            else:
+                with self.buffer_lock:
+                    self.latest_frame = self.generate_virtual_frame()
+                time.sleep(0.033)
+            time.sleep(0.001)
+
     def reset_camera_callback(self, request, response):
         """USB 카메라를 완전히 재시작하여 버퍼를 초기화합니다."""
         with self.buffer_lock:
@@ -123,61 +156,41 @@ class USBCameraServiceServer(Node):
             # 카메라 재초기화
             if self.init_camera():
                 self.get_logger().info('✅ USB 카메라 스트림 재시작 완료 - 버퍼 초기화됨!')
+                self.latest_frame = None
+                self.failed_reads = 0
             else:
                 self.get_logger().info('🎨 가상 USB 카메라 모드로 전환')
+                self.latest_frame = self.generate_virtual_frame()
                 
         return response
 
     def flush_camera_buffer(self):
-        """USB 카메라 버퍼에 쌓인 오래된 프레임들을 제거하고 최신 프레임을 가져옵니다."""
-        if self.cap is None or not self.cap.isOpened():
-            return
-            
-        with self.buffer_lock:
-            self.get_logger().info('🗑️ USB 카메라 버퍼 플러시 시작...')
-            
-            # 버퍼에 쌓인 프레임들을 빠르게 읽어서 제거 (최대 10개)
-            for i in range(10):
-                ret, _ = self.cap.read()
-                if not ret:
-                    break
-                    
-            self.get_logger().info('✅ USB 카메라 버퍼 플러시 완료')
+        """더미 함수 (백그라운드 스레드가 항상 최신 프레임을 캡처하므로 플러시 불필요)"""
+        pass
 
     def get_fresh_frame(self):
-        """버퍼를 플러시하고 최신 프레임을 가져옵니다."""
-        if self.cap is None:
-            return self.generate_virtual_frame(), "가상 카메라"
-            
+        """버퍼를 플러시할 필요 없이 백그라운드에서 캡처된 최신 프레임을 즉시 가져옵니다."""
         with self.buffer_lock:
-            # 버퍼 플러시: 빠르게 여러 프레임을 읽어서 버림
-            for _ in range(3):
-                if self.cap and self.cap.isOpened():
-                    self.cap.read()
+            if self.latest_frame is None:
+                if self.cap is None:
+                    return self.generate_virtual_frame(), "가상 카메라"
+                return None, "준비 중"
             
-            # 이제 최신 프레임 읽기
-            ret, captured_frame = self.cap.read()
-            if not ret:
-                self.failed_reads += 1
-                self.get_logger().warn(f'⚠️ 카메라 최신 프레임 읽기 실패 ({self.failed_reads}/5)')
-                
-                if self.failed_reads >= 5:
-                    self.get_logger().error('❌ 카메라 하드웨어 문제 감지 - 가상 카메라로 전환')
-                    if self.cap.isOpened():
-                        self.cap.release()
-                    self.cap = None
-                    self.failed_reads = 0
-                    return self.generate_virtual_frame(), "가상 카메라 (자동 전환)"
-                else:
-                    return None, "읽기 실패"
-            else:
+            frame = self.latest_frame.copy()
+            
+            if self.failed_reads >= 15:
+                self.get_logger().error('❌ 카메라 하드웨어 문제 감지 - 가상 카메라로 전환')
+                if self.cap and self.cap.isOpened():
+                    self.cap.release()
+                self.cap = None
                 self.failed_reads = 0
-                # Jetson CSI 카메라는 180도 회전 필요
-                if hasattr(self, 'camera_type') and self.camera_type == "Jetson CSI":
-                    frame = cv2.rotate(captured_frame, cv2.ROTATE_180)
-                else:
-                    frame = captured_frame
-                return frame, f"실제 {self.camera_type}"
+                return self.generate_virtual_frame(), "가상 카메라 (자동 전환)"
+            
+            # Jetson CSI 카메라는 180도 회전 필요
+            if hasattr(self, 'camera_type') and self.camera_type == "Jetson CSI":
+                frame = cv2.rotate(frame, cv2.ROTATE_180)
+                
+            return frame, f"실제 {self.camera_type}"
 
     def get_image_callback(self, request, response):
         frame, camera_type = self.get_fresh_frame()
@@ -205,9 +218,10 @@ class USBCameraServiceServer(Node):
         return frame
 
     def destroy_node(self):
-            if hasattr(self, 'cap') and self.cap and self.cap.isOpened():
-                self.cap.release()
-            super().destroy_node()
+        self.is_running = False
+        if hasattr(self, 'cap') and self.cap and self.cap.isOpened():
+            self.cap.release()
+        super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)

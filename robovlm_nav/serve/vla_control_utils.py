@@ -140,3 +140,21 @@ class VLAControlManager:
             self.movement_timer.start()
 
             return log_msg
+
+    def move_with_watchdog(self, lx, ly, az, source="cycle_mode", stop_after=0.6):
+        """Single MOVE packet for closed-loop control, with a short watchdog stop."""
+        with self.movement_lock:
+            if self.movement_timer:
+                self.movement_timer.cancel()
+
+            self.current_action = {"lx": lx, "ly": ly, "az": az}
+            log_msg = self.publish_and_move(lx, ly, az, source=source)
+
+            def _timed_stop():
+                self.robust_stop(source=f"{source}_watchdog", count=1)
+
+            self.movement_timer = threading.Timer(stop_after, _timed_stop)
+            self.movement_timer.daemon = True
+            self.movement_timer.start()
+
+            return log_msg

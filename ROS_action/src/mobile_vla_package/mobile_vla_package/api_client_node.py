@@ -63,6 +63,7 @@ class MobileVLAAPIClient(Node):
         
         self.api_server_url = os.getenv("VLA_API_SERVER", "http://localhost:8000")
         self.api_key = os.getenv("VLA_API_KEY", "")
+        self.vlm_model = os.getenv("VLA_VLM_MODEL", "kosmos")
         
         if ROBOT_AVAILABLE:
             try:
@@ -221,9 +222,13 @@ class MobileVLAAPIClient(Node):
             
             response = requests.post(
                 f"{self.api_server_url}/predict",
-                json={"image": img_b64, "instruction": self.default_instruction},
+                json={
+                    "image": img_b64, 
+                    "instruction": self.default_instruction,
+                    "vlm_model": self.vlm_model
+                },
                 headers=headers,
-                timeout=1.0
+                timeout=2.5
             )
             
             if response.status_code == 200:
@@ -276,8 +281,12 @@ class MobileVLAAPIClient(Node):
             start = time.time()
             resp = requests.post(
                 f"{self.api_server_url}/predict",
-                json={"image": img_b64, "instruction": self.default_instruction},
-                headers=headers, timeout=5.0
+                json={
+                    "image": img_b64, 
+                    "instruction": self.default_instruction,
+                    "vlm_model": self.vlm_model
+                },
+                headers=headers, timeout=15.0
             )
             elap = (time.time() - start) * 1000
             

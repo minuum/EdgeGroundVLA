@@ -15,6 +15,7 @@ import io
 import json
 import logging
 import os
+import re
 import sys
 import time
 from collections import defaultdict, deque
@@ -162,6 +163,8 @@ class ConfigRequest(BaseModel):
     smooth_enabled: Optional[bool] = None
     smooth_alpha_xy: Optional[float] = None
     smooth_alpha_az: Optional[float] = None
+    stop_area_threshold: Optional[float] = None
+    stop_cx_tolerance: Optional[float] = None
     model: Optional[str] = None  # "exp49" | "exp50" | "exp51" | "exp52"
 
 
@@ -239,6 +242,14 @@ class GoalNavMLP(nn.Module):
 _COARSE_CLF_PATH   = ROOT / "runs" / "v5_nav" / "mlp" / "step1" / "coarse_direction_clf.pt"
 _GROUNDING_LORA    = ROOT / "docs" / "v5" / "bbox_nav_step1" / "grounding_lora"
 _COARSE_LABEL_CX   = {0: 0.25, 1: 0.5, 2: 0.75}
+
+# PaliGemma LoRA adapters
+_EXP57_ADAPTER = ROOT / "runs" / "v5_nav" / "grounding" / "exp57"  # PaliGemma-3b-pt LoRA
+_EXP59_ADAPTER = ROOT / "runs" / "v5_nav" / "grounding" / "exp59"  # PaliGemma2-3b-mix LoRA
+# HF cache paths (downloaded locally)
+_HF_CACHE = Path.home() / ".cache" / "huggingface" / "hub"
+_PG_PT_PATH  = _HF_CACHE / "models--google--paligemma-3b-pt-224"
+_PG2_MIX_PATH = _HF_CACHE / "models--google--paligemma2-3b-mix-224"
 
 
 def _parse_paligemma_locs(text: str) -> Optional[dict]:
@@ -342,6 +353,37 @@ class GroundingBackend:
             self.model = PaliGemmaForConditionalGeneration.from_pretrained(
                 model_id, torch_dtype=pg_dtype
             ).to(device).eval()
+
+        elif model_name == "exp57":
+            # PaliGemma-3b-pt + exp57 LoRA (grounding)
+            pg_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+            from transformers import PaliGemmaForConditionalGeneration, PaliGemmaProcessor
+            from peft import PeftModel
+            # Resolve local path: prefer local cache, fall back to HF hub ID
+            pg_pt_local = next(iter(_PG_PT_PATH.glob("snapshots/*/")), None)
+            pg_pt_id = str(pg_pt_local) if pg_pt_local else "google/paligemma-3b-pt-224"
+            logger.info("[exp57] Loading PaliGemma-3b-pt from %s", pg_pt_id)
+            self.processor = PaliGemmaProcessor.from_pretrained(pg_pt_id)
+            base = PaliGemmaForConditionalGeneration.from_pretrained(
+                pg_pt_id, torch_dtype=pg_dtype
+            ).to(device).eval()
+            self.model = PeftModel.from_pretrained(base, str(_EXP57_ADAPTER)).eval()
+            logger.info("[exp57] LoRA adapter loaded from %s", _EXP57_ADAPTER)
+
+        elif model_name == "exp59":
+            # PaliGemma2-3b-mix + exp59 LoRA (2-class grounding)
+            pg_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+            from transformers import PaliGemmaForConditionalGeneration, PaliGemmaProcessor
+            from peft import PeftModel
+            pg2_local = next(iter(_PG2_MIX_PATH.glob("snapshots/*/")), None)
+            pg2_id = str(pg2_local) if pg2_local else "google/paligemma2-3b-mix-224"
+            logger.info("[exp59] Loading PaliGemma2-3b-mix from %s", pg2_id)
+            self.processor = PaliGemmaProcessor.from_pretrained(pg2_id)
+            base = PaliGemmaForConditionalGeneration.from_pretrained(
+                pg2_id, torch_dtype=pg_dtype
+            ).to(device).eval()
+            self.model = PeftModel.from_pretrained(base, str(_EXP59_ADAPTER)).eval()
+            logger.info("[exp59] LoRA adapter loaded from %s", _EXP59_ADAPTER)
 
         elif model_name == "moondream":
             model_id = _MODEL_IDS.get("moondream", "vikhyatk/moondream2")
@@ -495,7 +537,7 @@ class GroundingBackend:
                     vo = self.model.vision_model(pixel_values=pixel_values)
                     vis_feat = vo.last_hidden_state[0].mean(0).float().cpu().numpy()
 
-        elif vlm_model == "paligemma":
+        elif vlm_model in ("paligemma", "exp57", "exp59"):
             prompt = f"detect {target_object}\n"
             inputs = self.processor(text=prompt, images=pil_image, return_tensors="pt").to(self.device)
             with torch.no_grad():
@@ -507,7 +549,7 @@ class GroundingBackend:
 
             locs = _parse_paligemma_locs(caption)
             if locs:
-                bbox = {"entity": f"paligemma:{target_object}", "cx": locs["cx"], "cy": locs["cy"], "area": locs["area"]}
+                bbox = {"entity": f"{vlm_model}:{target_object}", "cx": locs["cx"], "cy": locs["cy"], "area": locs["area"]}
 
         elif vlm_model == "moondream":
             with torch.no_grad():
@@ -531,14 +573,10 @@ class GroundingBackend:
 
         latency_ms = (time.time() - start) * 1000.0
 
-        # Fallback if detection fails
+        # Fallback if detection fails — coarse_clf(0.25/0.75) 대신 center(0.5) 사용
+        # coarse_clf는 ROT_R/ROT_L 무한루프 유발: 잘못된 cx 고정 → 목표 방향 고정 → 스핀
         if bbox is None and vlm_model == "kosmos":
-            prompt = f"<grounding>The {target_object} is at"
-            inputs = self.processor(text=prompt, images=pil_image, return_tensors="pt")
-            pv = inputs["pixel_values"].to(self.device).to(torch.float16 if self.device.type == "cuda" else torch.float32)
-            cx = self._coarse_direction_cx(pv)
-            if cx is not None:
-                bbox = {"entity": "coarse_clf", "cx": cx, "cy": 0.6, "area": 0.06}
+            bbox = {"entity": "center_fallback", "cx": 0.5, "cy": 0.6, "area": 0.06}
         elif bbox is None:
             # Caption fallback for other models
             caption_lower = caption.lower()
@@ -630,8 +668,30 @@ def make_episode_split(dataset: list[dict[str, Any]]) -> tuple[list[dict[str, An
     return [dataset[i] for i in train_idx], [dataset[i] for i in test_idx]
 
 
-def goal_near_proxy(frame: dict[str, Any]) -> bool:
-    return bool(frame["has_bbox"]) and float(frame["area"]) >= 0.27 and abs(float(frame["cx"]) - 0.5) <= 0.03125
+# 정지 판단 기준 (환경변수로 조정 가능)
+GOAL_AREA_THRESHOLD  = float(os.getenv("VLA_STOP_AREA",  "0.18"))   # bbox 면적 (0~1)
+GOAL_CX_TOLERANCE    = float(os.getenv("VLA_STOP_CX_TOL", "0.25"))  # 중앙에서 허용 편차
+
+
+def goal_near_proxy(frame: dict[str, Any], area_thr: float = GOAL_AREA_THRESHOLD, cx_tol: float = GOAL_CX_TOLERANCE) -> bool:
+    """
+    정지 조건:
+      1. 실제 그라운딩 bbox (has_bbox=True) → area + center 체크
+      2. fallback bbox (coarse_clf/center_fallback) → area=0.06 고정이므로 정지 불가
+    """
+    area = float(frame.get("area", 0))
+    cx   = float(frame.get("cx",   0.5))
+    entity = str(frame.get("entity", ""))
+
+    # fallback bbox는 area=0.06 하드코딩 → 실제 거리 정보 없으므로 정지 판단 제외
+    is_fallback = entity in ("coarse_clf", "center_fallback", "") or entity.startswith("caption:")
+
+    if is_fallback:
+        return False
+
+    center_ok = abs(cx - 0.5) <= cx_tol
+    area_ok   = area >= area_thr
+    return area_ok and center_ok
 
 
 class ProxyInferenceModel:
@@ -951,6 +1011,11 @@ class ProxyInferenceModel:
         x = torch.tensor(feature[None, :], dtype=torch.float32, device=self.proxy_device)
         with torch.no_grad():
             logits = self.model(x)
+            # ROT_L(6) / ROT_R(7) 마스킹 — 학습 데이터 0%, 분포 외 입력에서 잘못 활성화
+            if logits.shape[-1] > 6:
+                logits = logits.clone()
+                logits[:, 6] = float("-inf")
+                logits[:, 7] = float("-inf")
             probs = torch.softmax(logits, dim=-1)[0].cpu().tolist()
             pred_class = int(logits.argmax(dim=-1).item())
 
@@ -978,7 +1043,7 @@ class ProxyInferenceModel:
             "bbox": bbox,
             "grounding_caption": grounding["caption"],
             "grounding_latency_ms": grounding["latency_ms"],
-            "goal_near_proxy": goal_near_proxy(self.history[-1]),
+            "goal_near_proxy": goal_near_proxy(self.history[-1], getattr(self, "_stop_area_thr", GOAL_AREA_THRESHOLD), getattr(self, "_stop_cx_tol", GOAL_CX_TOLERANCE)),
             "buffer_status": {
                 "history_size": len(self.history),
                 "window": self.effective_window,
@@ -1077,6 +1142,8 @@ class GoalNavInferenceModel:
         smooth_enabled: Optional[bool] = None,
         smooth_alpha_xy: Optional[float] = None,
         smooth_alpha_az: Optional[float] = None,
+        stop_area_threshold: Optional[float] = None,
+        stop_cx_tolerance: Optional[float] = None,
     ) -> dict:
         if speed_scaling is not None:
             self.speed_scaling_enabled = speed_scaling
@@ -1089,22 +1156,32 @@ class GoalNavInferenceModel:
             self.smooth_alpha_xy = max(0.0, min(1.0, smooth_alpha_xy))
         if smooth_alpha_az is not None:
             self.smooth_alpha_az = max(0.0, min(1.0, smooth_alpha_az))
+        if stop_area_threshold is not None:
+            self._stop_area_thr = max(0.01, min(1.0, stop_area_threshold))
+        if stop_cx_tolerance is not None:
+            self._stop_cx_tol = max(0.05, min(0.5, stop_cx_tolerance))
         return {
             "speed_scaling_enabled": self.speed_scaling_enabled,
             "grounding_skip_n": self._grounding_skip_n,
             "smooth_enabled": self.smooth_enabled,
             "smooth_alpha_xy": self.smooth_alpha_xy,
             "smooth_alpha_az": self.smooth_alpha_az,
+            "stop_area_threshold": getattr(self, "_stop_area_thr", GOAL_AREA_THRESHOLD),
+            "stop_cx_tolerance": getattr(self, "_stop_cx_tol", GOAL_CX_TOLERANCE),
         }
 
-    def _build_feature(self, vis_feat: np.ndarray) -> np.ndarray:
+    def _build_feature(self, vis_feat: Optional[np.ndarray]) -> np.ndarray:
         feat: list[float] = []
         cur_idx = len(self.history) - 1
         for k in range(self.window):
             idx = max(0, cur_idx - (self.window - 1 - k))
             item = self.history[idx]
             feat.extend([item["cx"], item["cy"], item["area"], float(item["has_bbox"])])
-        feat.extend(vis_feat.tolist())
+        if vis_feat is not None:
+            feat.extend(vis_feat.tolist())
+        else:
+            # Fallback to zero features if the active VLM does not extract vision features
+            feat.extend([0.0] * VIS_DIM)
         if self.goal_dim > 0 and self.goal is not None:
             feat.extend(self.goal.tolist())
         return np.asarray(feat, dtype=np.float32)
@@ -1162,6 +1239,11 @@ class GoalNavInferenceModel:
         x = torch.tensor(feature[None, :], dtype=torch.float32, device=self.device)
         with torch.no_grad():
             logits = self.model(x)
+            # ROT_L(6) / ROT_R(7) 마스킹 — 학습 데이터 0%
+            if logits.shape[-1] > 6:
+                logits = logits.clone()
+                logits[:, 6] = float("-inf")
+                logits[:, 7] = float("-inf")
             pred_class = int(logits.argmax(dim=-1).item())
 
         raw_2d = ACTION_2D[pred_class]
@@ -1212,7 +1294,7 @@ class GoalNavInferenceModel:
             "bbox": bbox,
             "grounding_caption": grounding["caption"],
             "grounding_latency_ms": grounding["latency_ms"],
-            "goal_near_proxy": goal_near_proxy(bbox_frame),
+            "goal_near_proxy": goal_near_proxy(bbox_frame, getattr(self, "_stop_area_thr", GOAL_AREA_THRESHOLD), getattr(self, "_stop_cx_tol", GOAL_CX_TOLERANCE)),
             "speed_scale": speed_scale,
             "grounding_cached": use_cache,
             "smooth_applied": self.smooth_enabled and self.inference_count > 0,
@@ -1471,6 +1553,8 @@ async def set_config(
             smooth_enabled=request.smooth_enabled,
             smooth_alpha_xy=request.smooth_alpha_xy,
             smooth_alpha_az=request.smooth_alpha_az,
+            stop_area_threshold=request.stop_area_threshold,
+            stop_cx_tolerance=request.stop_cx_tolerance,
         )
         cfg["active_model"] = _active_goal_nav_model
         return {"status": "success", "config": cfg}

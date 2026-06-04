@@ -16,7 +16,7 @@ description: Project-local memory sync alias. Use when the user just says '메�
 
 ## Rules
 
-- Antigravity 본문은 `~/.gemini/antigravity/brain/<uuid>/` 에서 읽는다.
+- Antigravity 본문은 `~/.gemini/antigravity-ide/brain/<uuid>/` 에서 읽는다.
 - `.pb` 파일은 인덱스일 뿐이다.
 - 이번 세션 진행은 Menemory session에 요약 저장한다.
 - Claude memory / Menemory / Codex / Antigravity 역할을 혼동하지 않는다.

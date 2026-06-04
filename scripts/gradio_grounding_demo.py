@@ -234,6 +234,10 @@ def timer_tick():
     return frame, frame, frame, frame, status  # (vla_cam, alias_cam, grnd_cam, vqa_cam, status_txt)
 
 
+def _get_alias_frame():
+    return _last_frame
+
+
 # ─── 정적 설정 및 프리셋 ─────────────────────────────────────────────────────────
 
 PRESET_ALIASES = {
@@ -488,13 +492,13 @@ def run_grounding(image, phrase: str, adapter_label: str):
         overlay = draw_overlay(img_np, phrase, result)
         hit = check_hit(result, phrase)
         caption = result.get('caption', '')
-        for ent_name, ent_boxes, _ in result.get("entities", []):
-            for box in ent_boxes:
-                x1, y1, x2, y2 = box
-                entity_lines.append(
-                    f"  [{ent_name}]  cx={((x1+x2)/2):.2f}  cy={((y1+y2)/2):.2f}"
-                    f"  area={((x2-x1)*(y2-y1)):.3f}"
-                )
+        for box_info in result.get("boxes", []):
+            ent_name = box_info["entity"]
+            x1, y1, x2, y2 = box_info["bbox_xyxy"]
+            entity_lines.append(
+                f"  [{ent_name}]  cx={((x1+x2)/2):.2f}  cy={((y1+y2)/2):.2f}"
+                f"  area={((x2-x1)*(y2-y1)):.3f}"
+            )
 
     elif adapter_label == "PaliGemma-3B":
         prompt = f"detect {phrase}\n"
@@ -574,7 +578,7 @@ def run_alias_test(image, alias_text: str, adapter_label: str):
             r = ground(model, proc, img_np, phrase, _DEVICE)
             hit = check_hit(r, phrase)
             caption = r.get("caption", "")[:50]
-            entities = [e for e, _, _ in r.get("entities", [])]
+            entities = list({b["entity"] for b in r.get("boxes", [])})
             ov = draw_overlay(img_np, phrase, r)
         elif adapter_label == "PaliGemma-3B":
             prompt = f"detect {phrase}\n"
@@ -862,8 +866,8 @@ def build_ui() -> gr.Blocks:
                 btn_g.click(run_grounding,
                             inputs=[img_g, phrase_g, adapter_dd],
                             outputs=[out_img_g, out_status, out_ents])
-                btn_up_g.upload(fn=lambda f: np.array(Image.open(f).convert("RGB")),
-                                inputs=btn_up_g, outputs=img_g)
+                btn_up_g.upload(fn=lambda f=None: np.array(Image.open(f).convert("RGB")) if f else None,
+                                outputs=img_g)
 
             # ── 탭 2: Alias Test ─────────────────────────────────────────────
             with gr.TabItem("Alias Test"):
@@ -884,8 +888,8 @@ def build_ui() -> gr.Blocks:
                         out_img_a   = gr.Image(label="결과 그리드")
                         out_summary = gr.Textbox(label="Hit / Miss 요약", lines=12)
 
-                btn_up_a.upload(fn=lambda f: np.array(Image.open(f).convert("RGB")),
-                                inputs=btn_up_a, outputs=img_a)
+                btn_up_a.upload(fn=lambda f=None: np.array(Image.open(f).convert("RGB")) if f else None,
+                                outputs=img_a)
                 for btn, text in zip(preset_btns, PRESET_ALIASES.values()):
                     btn.click(fn=lambda t=text: t, outputs=alias_txt)
                 btn_a.click(run_alias_test,
@@ -915,8 +919,8 @@ def build_ui() -> gr.Blocks:
                     with gr.Column():
                         out_vqa_txt = gr.Textbox(label="VLM 자연어 답변", lines=15, interactive=False)
 
-                btn_up_q.upload(fn=lambda f: np.array(Image.open(f).convert("RGB")),
-                                inputs=btn_up_q, outputs=img_q)
+                btn_up_q.upload(fn=lambda f=None: np.array(Image.open(f).convert("RGB")) if f else None,
+                                outputs=img_q)
                 btn_q.click(run_vqa,
                             inputs=[img_q, prompt_q, adapter_dd, add_tag_cb],
                             outputs=[out_vqa_txt])
@@ -946,8 +950,8 @@ def build_ui() -> gr.Blocks:
                         out_status_v = gr.Textbox(label="Action / Status", lines=5)
                         out_bbox_v   = gr.Textbox(label="Bbox 정보", lines=3)
 
-                btn_up_v.upload(fn=lambda f: np.array(Image.open(f).convert("RGB")),
-                                inputs=btn_up_v, outputs=img_v)
+                btn_up_v.upload(fn=lambda f=None: np.array(Image.open(f).convert("RGB")) if f else None,
+                                outputs=img_v)
                 reset_btn.click(reset_api_history,
                                 outputs=gr.Textbox(visible=False))
                 btn_v.click(run_vla_predict,
@@ -976,8 +980,8 @@ def build_ui() -> gr.Blocks:
                         out_img_va = gr.Image(label="마지막 Bbox (3×3 격자)")
                         out_sum_va = gr.Textbox(label="Phrase → Action 매핑 + 분포", lines=18)
 
-                btn_up_va.upload(fn=lambda f: np.array(Image.open(f).convert("RGB")),
-                                 inputs=btn_up_va, outputs=img_va)
+                btn_up_va.upload(fn=lambda f=None: np.array(Image.open(f).convert("RGB")) if f else None,
+                                 outputs=img_va)
                 for btn, text in zip(vpreset_btns, PRESET_ALIASES.values()):
                     btn.click(fn=lambda t=text: t, outputs=alias_txt_v)
                 btn_va.click(run_vla_alias,
@@ -999,30 +1003,29 @@ def build_ui() -> gr.Blocks:
         )
 
         # ── 공유 타이머: 모든 탭의 카메라 이미지 자동 갱신 ─────────────────────
-        # 카메라 프로세스가 실행 중이면 타이머 즉시 활성화
         timer = gr.Timer(value=1.0, active=ROS_AVAILABLE or is_camera_running())
         timer.tick(
             fn=timer_tick,
             outputs=[img_v, img_va, img_g, img_q, cam_status_txt],
         )
         timer.tick(
-            fn=lambda: _last_frame,
+            fn=_get_alias_frame,
             outputs=[img_a],
         )
 
         # ── 카메라 위젯 버튼 → 타이머 동기화 ───────────────────────────────────
+        def _activate_timer(_=None):
+            return gr.update(active=is_camera_running())
+
+        def _deactivate_timer(_=None):
+            return gr.update(active=False)
+
         _cam_start_btn.click(
             fn=start_camera, outputs=_cam_proc_st,
-        ).then(
-            fn=lambda: gr.update(active=is_camera_running()),
-            outputs=timer,
-        )
+        ).then(fn=_activate_timer, outputs=timer)
         _cam_stop_btn.click(
             fn=stop_camera, outputs=_cam_proc_st,
-        ).then(
-            fn=lambda: gr.update(active=False),
-            outputs=timer,
-        )
+        ).then(fn=_deactivate_timer, outputs=timer)
 
     return demo
 
@@ -1041,12 +1044,35 @@ def main():
         _ensure_model("Pure Kosmos-2")
 
     demo = build_ui()
-    print(f"[START] http://0.0.0.0:{args.port}  |  ROS={ROS_AVAILABLE}")
+    # Tailscale IP 우선, 없으면 로컬 라우팅 IP 사용
+    import socket as _sock
+    _tailscale_ip = None
+    try:
+        import subprocess as _sp
+        _out = _sp.check_output(["ip", "addr"], text=True)
+        for _line in _out.splitlines():
+            _line = _line.strip()
+            if _line.startswith("inet 100."):
+                _tailscale_ip = _line.split()[1].split("/")[0]
+                break
+    except Exception:
+        pass
+    if not _tailscale_ip:
+        try:
+            _s = _sock.socket(_sock.AF_INET, _sock.SOCK_DGRAM)
+            _s.connect(("8.8.8.8", 80))
+            _tailscale_ip = _s.getsockname()[0]
+            _s.close()
+        except Exception:
+            _tailscale_ip = "localhost"
+    _root = f"http://{_tailscale_ip}:{args.port}"
+    print(f"[START] {_root}  |  ROS={ROS_AVAILABLE}")
     demo.launch(
         server_name="0.0.0.0",
         server_port=args.port,
         share=args.share,
         theme=gr.themes.Soft(),
+        root_path=_root,
     )
 
 
