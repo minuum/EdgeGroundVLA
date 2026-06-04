@@ -189,6 +189,27 @@ class InferenceResponse(BaseModel):
     strategy: str  # Inference strategy used
     source: str  # "inferred" or "reused"
     buffer_status: dict  # Buffer status for chunk_reuse
+    predicted_class: Optional[int] = None
+    predicted_label: Optional[str] = None
+    action_3d: Optional[List[float]] = None
+    bbox: Optional[dict[str, Any]] = None
+    grounding_caption: Optional[str] = None
+    grounding_latency_ms: Optional[float] = None
+    goal_near_proxy: Optional[bool] = None
+    instruction_used: Optional[bool] = None
+    matched_path_type: Optional[str] = None
+
+
+class ConfigRequest(BaseModel):
+    """설정 갱신 요청 스키마"""
+    model: Optional[str] = None
+    speed_scaling: Optional[bool] = None
+    grounding_skip_n: Optional[int] = None
+    smooth_enabled: Optional[bool] = None
+    smooth_alpha_xy: Optional[float] = None
+    smooth_alpha_az: Optional[float] = None
+    stop_area_threshold: Optional[float] = None
+    stop_cx_tolerance: Optional[float] = None
 
 
 class InferenceDebugResponse(BaseModel):
@@ -290,6 +311,71 @@ def _list_debug_directory(path: Path) -> dict[str, Any]:
         "dirs": dirs,
         "files": files,
     }
+
+
+def classify_action(vx: float, vy: float, wz: float) -> tuple[int, str]:
+    """액션 벡터를 8개 클래스 중 하나로 분류합니다."""
+    if abs(vx) < 0.1 and abs(vy) < 0.1 and abs(wz) < 0.1:
+        return 0, "STOP"
+    if abs(wz) > 0.15 and abs(vx) < 0.2 and abs(vy) < 0.2:
+        return (6, "ROT_L") if wz > 0 else (7, "ROT_R")
+    if vx > 0.3 and vy > 0.3:  return 4, "FWD+L"
+    if vx > 0.3 and vy < -0.3: return 5, "FWD+R"
+    if vx > 0.3:                return 1, "FORWARD"
+    if vy > 0.3:                return 2, "LEFT"
+    if vy < -0.3:               return 3, "RIGHT"
+    return 1, "FORWARD"
+
+
+def snap_monapi_action_to_label(action: np.ndarray, label: str) -> np.ndarray:
+    """
+    MoNa-pi continuous actions를 안전한 Soft-Decision 기반으로 스냅핑합니다.
+    VLA의 연속 조향(Yaw) 성분을 복원하고 하드 임계치로 인한 속도 튐(채터링)을 억제합니다.
+    """
+    out = np.zeros(3, dtype=np.float32)
+    label = (label or "").upper()
+
+    raw_lx = float(action[0]) if action.size > 0 else 0.0
+    raw_ly = float(action[1]) if action.size > 1 else 0.0
+    raw_az = float(action[2]) if action.size > 2 else 0.0
+
+    # 1. STOP 제어
+    if label == "STOP":
+        return out
+
+    # 2. Linear X (전진): 최소 0.45 ~ 최대 0.85 범위로 안전 클리핑하되 연속성 보존
+    out[0] = np.clip(raw_lx, 0.45, 0.85)
+
+    # 3. Linear Y (횡이동): 하드 스냅핑 대신 연속형 ly 값을 부드럽게 필터링 (최대 ±0.45 제한)
+    # 라벨에 횡방향(L/R) 지시가 있는 경우에만 횡이동 허용
+    if label in ("FWD+L", "FORWARD_LEFT", "LEFT"):
+        out[1] = np.clip(max(raw_ly, 0.15), 0.15, 0.45)
+    elif label in ("FWD+R", "FORWARD_RIGHT", "RIGHT"):
+        out[1] = np.clip(min(raw_ly, -0.15), -0.45, -0.15)
+    else:
+        # 직진 또는 제자리 회전 시 불필요한 게걸음 횡이동 억제 (감쇄율 90%)
+        out[1] = raw_ly * 0.1
+
+    # 4. Angular Z (조향): 무력화되었던 회전(Yaw) 성분을 VLA 출력값으로부터 복원
+    # 제자리 회전 라벨인 경우 강력한 회전 적용, 그 외의 주행 중에는 미세 선조향(50% 게인) 적용
+    if label in ("ROT_L", "TURN_L"):
+        out[2] = 0.22
+    elif label in ("ROT_R", "TURN_R"):
+        out[2] = -0.22
+    else:
+        # 주행(직진/전진) 중 정면 타겟을 부드럽게 지향할 수 있도록 회전 성분 복원
+        out[2] = np.clip(raw_az * 0.5, -0.15, 0.15)
+
+    # FWD+L/R 제어 시 과속 방지를 위해 전진 속도 약간 감쇄
+    if label in ("FWD+L", "FORWARD_LEFT", "FWD+R", "FORWARD_RIGHT"):
+        out[0] = min(out[0], 0.70)
+
+    # 제자리 회전 시 전진/횡이동 속도 0으로 제어
+    if label in ("ROT_L", "TURN_L", "ROT_R", "TURN_R"):
+        out[0] = 0.0
+        out[1] = 0.0
+
+    return out
 
 
 def _resolve_default_model_paths() -> tuple[str, str]:
@@ -453,13 +539,98 @@ class MobileVLAInference:
         self.inference_count = 0
         self.image_history = []
         self.prev_action = np.zeros(3)  # [lx, ly, az] 3DOF for Action Smoothing
-        self.smoothing_alpha = 0.6      # 0.6 current, 0.4 prev
+        self.smoothing_alpha = 0.45      # XY 평활화 계수 (0.45)
+        self.smoothing_alpha_az = 0.80   # AZ 평활화 계수 (0.80)
+        self.speed_scaling_enabled = True
+        self.grounding_skip_n = 1
+        self.smooth_enabled = True
+        self.stop_area_threshold = 0.18
+        self.stop_cx_tolerance = 0.25
+        self.prev_action_3d = [0.0, 0.0, 0.0]
+        self._grounding_cache = None
         
         logger.info(f"Loading model from {checkpoint_path}")
         logger.info(f"Using device: {device}")
         
         # Load config recursively
         self.config = self._load_config_recursive(config_path)
+        
+        # 필수 탑레벨 및 내부 키 기본값 인젝션 (KeyError 방지)
+        defaults = {
+            "robovlm_name": "RoboKosMos",
+            "use_hand_rgb": False,
+            "fwd_pred_next_n": 1,
+            "seed": 123,
+            "norm_action": False,
+            "model_path": ".vlms/kosmos-2-patch14-224",
+            "model_config": ".vlms/kosmos-2-patch14-224/config.json",
+            "fwd_head": None,  # KeyError: 'fwd_head' 방지 및 모듈 임포트 차단
+            "act_head": {},  # KeyError: 'act_head' 방지
+            "cap_loss_ratio": 0.0,            # KeyError: 'cap_loss_ratio' 방지
+            "arm_gripper_loss_ratio": 0.0,    # KeyError: 'arm_gripper_loss_ratio' 방지
+            "fwd_loss_ratio": 0.0,            # KeyError: 'fwd_loss_ratio' 방지
+            "val_dataset": {},                # KeyError: 'val_dataset' 방지
+        }
+        for k, v in defaults.items():
+            self.config.setdefault(k, v)
+            
+        # act_head 기본 속성 보완 (KeyError 방지)
+        act_head_defaults = {
+            "action_space": "continuous",
+            "window_size": 8,
+            "down_sample": "pooling",
+            "latent": 1
+        }
+        for k, v in act_head_defaults.items():
+            self.config["act_head"].setdefault(k, v)
+            
+        # train_setup 기본값 보완
+        train_setup_defaults = {
+            "precision": "16-mixed",
+            "predict_action": True,
+            "predict_forward": False,
+            "predict_forward_hand": False,
+            "predict_caption": False,
+            "train_vision": False,
+            "bits": -1,
+            "freeze_mm_mlp_adapter": False,
+            "freeze_backbone": True,
+            "freeze_resampler": True,
+            "tune_mm_mlp_adapter": False,
+            "tune_mm_projector": True,
+            "lora_enable": False
+        }
+        if "train_setup" not in self.config or not isinstance(self.config["train_setup"], dict):
+            self.config["train_setup"] = train_setup_defaults
+        else:
+            for k, v in train_setup_defaults.items():
+                self.config["train_setup"].setdefault(k, v)
+
+        # tokenizer 기본값 보완
+        tokenizer_defaults = {
+            "type": "AutoProcessor",
+            "pretrained_model_name_or_path": ".vlms/kosmos-2-patch14-224",
+            "tokenizer_type": "kosmos",
+            "max_text_len": 256
+        }
+        if "tokenizer" not in self.config or not isinstance(self.config["tokenizer"], dict):
+            self.config["tokenizer"] = tokenizer_defaults
+        else:
+            for k, v in tokenizer_defaults.items():
+                self.config["tokenizer"].setdefault(k, v)
+
+        # vlm 기본값 보완
+        vlm_defaults = {
+            "type": "AutoModelForVision2Seq",
+            "name": "kosmos",
+            "pretrained_model_name_or_path": ".vlms/kosmos-2-patch14-224"
+        }
+        if "vlm" not in self.config or not isinstance(self.config["vlm"], dict):
+            self.config["vlm"] = vlm_defaults
+        else:
+            for k, v in vlm_defaults.items():
+                self.config["vlm"].setdefault(k, v)
+
         self._normalize_config_paths()
 
         # Define Window Size with proper fallback priority
@@ -469,6 +640,8 @@ class MobileVLAInference:
             or self.config.get("act_head", {}).get("window_size")
             or int(self.config.get("train_dataset", {}).get("window_size", 8))
         )
+        # base_trainer가 self.configs["window_size"]를 직접 참조하므로 강제 주입
+        self.config["window_size"] = self.window_size
         
         # Runtime Intervention parameters
         self.logit_penalty = self.config.get("act_head", {}).get("logit_penalty", {})
@@ -555,7 +728,8 @@ class MobileVLAInference:
         if not Path(tok_path).exists():
             tok_path = vlm_model_path
         from transformers import AutoProcessor
-        self.processor = AutoProcessor.from_pretrained(tok_path)
+        # 인터넷 연결 시도 없이 로컬 가중치만 사용하도록 local_files_only=True 추가
+        self.processor = AutoProcessor.from_pretrained(tok_path, local_files_only=True)
         logger.info("✅ MobileVLAInference initialized successfully")
 
     def _normalize_config_paths(self) -> None:
@@ -819,6 +993,12 @@ class MobileVLAInference:
             return np.array([0.0, 0.0], dtype=np.float32)
 
         logits = full_chunk[0]
+        # ROT_L(6) / ROT_R(7) 마스킹 — 잘못 선택 시 무한 스핀 유발 방지
+        if logits.size > 6:
+            logits = logits.copy()
+            logits[6] = -np.inf
+            logits[7] = -np.inf
+            
         if logits.ndim == 0:
             class_idx = int(logits)
             score = float(logits)
@@ -1091,50 +1271,177 @@ class MobileVLAInference:
             return np.zeros(1024, dtype=np.float32)
 
         except Exception as e:
-            logger.error(f"❌ [extract_vision_feature] 실패: {e}")
+            logger.error(f"Error in extract_vision_feature: {e}")
             return np.zeros(1024, dtype=np.float32)
 
-    def reset(self, instruction: str = "N/A"):
-        """추론 히스토리 초기화 (LSTM state 등) 및 세션 리포트 저장"""
+    def _caption_to_cx(self, caption_lower: str) -> Optional[float]:
+        """자연어 설명문에서 방향 관련 키워드를 매칭하여 정규화된 횡방향 cx 값 반환"""
+        for phrases, cx in self._CAPTION_DIRECTION_PATTERNS:
+            if any(p in caption_lower for p in phrases):
+                return cx
+        return None
+
+    def _parse_basket_bbox(self, caption: str, entities: list[Any], target_object: str) -> Optional[dict[str, Any]]:
+        """Kosmos-2 생성 텍스트의 entity bbox 리스트에서 타겟 오브젝트(기본: basket 등)의 bbox를 추출"""
+        target_lower = target_object.lower()
+        target_keywords = {target_lower}
+        for word in target_lower.split():
+            if len(word) > 2:
+                target_keywords.add(word)
+        if "basket" in target_lower:
+            target_keywords.update(["container", "bin", "laundry", "gray box", "pot"])
+
+        candidates = []
+        for entity_name, _span, boxes in entities:
+            for box in boxes:
+                x1, y1, x2, y2 = [float(v) for v in box]
+                if max(x1, y1, x2, y2) > 1.5:
+                    x1, y1, x2, y2 = x1 / 1000.0, y1 / 1000.0, x2 / 1000.0, y2 / 1000.0
+                area = (x2 - x1) * (y2 - y1)
+                if area > 0.85: # 전체 화면과 유사한 오검출 방지
+                    continue
+                candidates.append({
+                    "entity": entity_name,
+                    "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                    "cx": (x1 + x2) / 2.0, "cy": (y1 + y2) / 2.0,
+                    "area": area,
+                    "is_target": any(k in entity_name.lower() for k in target_keywords),
+                })
+
+        matched = [b for b in candidates if b["is_target"]]
+        if matched:
+            return matched[0]
+
+        # entity 검출 실패 시 자연어 생성 내용(caption) 기반으로 횡방향 좌표 추정 폴백
+        caption_lower = caption.lower()
+        cx = self._caption_to_cx(caption_lower)
+        if cx is not None:
+            if cx < 0.2: label = "caption:far_left"
+            elif cx < 0.4: label = "caption:left"
+            elif cx > 0.8: label = "caption:far_right"
+            elif cx > 0.6: label = "caption:right"
+            else: label = "caption:center"
+            return {"entity": label, "cx": cx, "cy": 0.6, "area": 0.06}
+        return None
+
+    def _run_grounding(self, pil_image: Image.Image, instruction: str) -> dict[str, Any]:
+        """서버 내부의 Kosmos-2 backbone 모델을 직접 실행해 bbox 및 caption 획득"""
+        target_object = instruction.lower().replace("the", "").replace("a", "").strip()
+        prompt = f"<grounding>The {target_object} is at"
+        
+        # tokenizer로 인코딩
+        inputs = self.processor(text=prompt, images=pil_image, return_tensors="pt")
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        pixel_values = inputs["pixel_values"].to(next(self.model.parameters()).dtype)
+
+        with torch.no_grad():
+            potential_model = self.model.model if hasattr(self.model, 'model') else self.model
+            generated = potential_model.generate(
+                pixel_values=pixel_values,
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                image_embeds=None,
+                image_embeds_position_mask=inputs.get("image_embeds_position_mask"),
+                use_cache=True,
+                max_new_tokens=64,
+            )
+
+        new_ids = generated[:, inputs["input_ids"].shape[1] :]
+        raw = self.processor.batch_decode(new_ids, skip_special_tokens=False)[0]
+        caption, entities = self.processor.post_process_generation(raw)
+        bbox = self._parse_basket_bbox(caption, entities, target_object)
+        
+        return {
+            "bbox": bbox,
+            "caption": caption,
+        }
+
+    # 방향 매칭용 클래스 변수 정의
+    _CAPTION_DIRECTION_PATTERNS = [
+        (["far left",  "extreme left",  "leftmost",    "bottom left",  "lower left",
+          "front left", "left side",    "left corner",  "upper left",   "top left",
+          "bottom-left", "lower-left",  "left-hand side"],               0.12),
+        (["left"],                                                        0.25),
+        (["far right", "extreme right", "rightmost",   "bottom right", "lower right",
+          "front right", "right side",  "right corner", "upper right",  "top right",
+          "bottom-right", "lower-right", "right-hand side"],             0.88),
+        (["right"],                                                       0.75),
+        (["center", "middle",  "straight ahead", "in front",
+          "directly ahead",    "in the middle",  "front and center"],    0.5),
+    ]
+
+    def reset(self) -> None:
+        """추론 카운트 및 history memory, 이전 액션 등을 초기화하여 새로운 에피소드를 준비합니다."""
+        self.inference_count = 0
+        self.image_history = []
+        self.prev_action = np.zeros(3)
+        self.prev_action_3d = [0.0, 0.0, 0.0]
+        self._grounding_cache = None
+        
+        # 모델 내부 policy head의 history memory 초기화
         try:
-            # 1. End existing session if any
-            if logger_instance:
-                logger_instance.end_session()
-            
-            self.action_buffer.clear()
-            self.inference_count = 0
-            self.image_history = [] # Clear image buffer
-            logger.info("✅ Image History Buffer Cleared")
-            
-            # 2. Start new logging session
-            if logger_instance:
-                logger_instance.start_session(model_name=self.model_name, instruction=instruction)
-            
-            # RoboKosMos -> act_head -> reset() 호출 (동적 조회)
             potential_model = self.model.model if hasattr(self.model, 'model') else self.model
             for name in ['act_head', 'policy_head']:
                 if hasattr(potential_model, name):
                     head = getattr(potential_model, name)
-                    head.reset()
-                    logger.info(f"✅ Model history reset (Target: model.{name}, ID: {id(head)})")
-                    return
-            
-            logger.warning("⚠️ act_head not found, cannot reset history")
+                    if hasattr(head, 'history_memory'):
+                        head.history_memory = []
+                        logger.info("🔄 [RESET] act_head history_memory cleared")
+                        break
         except Exception as e:
-            logger.error(f"Reset failed: {e}")
+            logger.warning(f"⚠️ Policy head history reset failed: {e}")
+            
+        logger.info("🔄 [RESET] Inference count and control histories reset successfully")
 
-    def predict(self, image_base64: str, instruction: str) -> tuple[np.ndarray, float, np.ndarray]:
+    def predict(self, image_base64: str, instruction: str) -> tuple[np.ndarray, float, np.ndarray, dict]:
         """
-        추론 실행
+        추론 실행 및 제어 알고리즘 통합 적용
         Returns:
-            action: [linear, angular] (Current step action)
+            action: [linear_x, linear_y, angular_z] (EMA 및 speed scaling 적용됨)
             latency_ms: Inference time
-            full_chunk: Full action chunk sequence (N, 2)
+            full_chunk: Full action chunk sequence (N, 3)
+            debug_data: 모니터링을 위한 풍부한 부가 디버깅 데이터 딕셔너리
         """
         start_time = time.time()
         
-        # 0. First-Frame Zero Enforcement (EXP-History Insight)
-        # 매 호출마다 policy_head를 동적으로 조회하여 일관성 유지
+        # 1. Grounding 연산 수행 (bbox & caption 획득)
+        pil_img = self._decode_image_to_pil(image_base64)
+        use_cache = (
+            self.grounding_skip_n > 1
+            and self.inference_count > 0
+            and self.inference_count % self.grounding_skip_n != 0
+            and self._grounding_cache is not None
+        )
+        if use_cache:
+            grounding = self._grounding_cache
+            g_latency = 0.0
+        else:
+            g_t0 = time.time()
+            try:
+                grounding = self._run_grounding(pil_img, instruction)
+            except Exception as ge:
+                logger.error(f"⚠️ Grounding failed: {ge}")
+                grounding = {"bbox": None, "caption": ""}
+            g_latency = (time.time() - g_t0) * 1000.0
+            self._grounding_cache = grounding
+            
+        bbox = grounding["bbox"]
+        caption = grounding["caption"]
+        
+        # 2. 정지 판단 로직 (goal_near_proxy)
+        goal_near = False
+        if bbox is not None:
+            area = float(bbox.get("area", 0.0))
+            cx = float(bbox.get("cx", 0.5))
+            entity = str(bbox.get("entity", ""))
+            is_fallback = entity in ("coarse_clf", "center_fallback", "") or entity.startswith("caption:")
+            
+            if not is_fallback:
+                center_ok = abs(cx - 0.5) <= self.stop_cx_tolerance
+                area_ok = area >= self.stop_area_threshold
+                goal_near = area_ok and center_ok
+        
+        # 3. First-Frame Zero Enforcement
         potential_model = self.model.model if hasattr(self.model, 'model') else self.model
         current_policy_head = None
         for name in ['act_head', 'policy_head']:
@@ -1142,8 +1449,6 @@ class MobileVLAInference:
                 current_policy_head = getattr(potential_model, name)
                 break
         
-        # [SAFETY] Always use count-based enforcement instead of history-based, 
-        # as windowed inference doesn't always populate history_memory.
         is_first_frame = (self.inference_count == 0)
         
         try:
@@ -1154,11 +1459,7 @@ class MobileVLAInference:
             logger.error(f"❌ Safety check failed: {e}")
         
         if is_first_frame:
-
-            # Increment FIRST to prevent infinite loop even if inference() crashes
             self.inference_count += 1
-            
-            # Apply Grounding Format (V2 Standard)
             if not instruction.startswith("<grounding>"):
                 full_prompt_init = f"<grounding>An image of a robot {instruction}"
             else:
@@ -1171,25 +1472,31 @@ class MobileVLAInference:
             with torch.no_grad():
                 image_tensor = self.preprocess_image(image_base64)
                 lang_x, attention_mask = self._tokenize_instruction(full_prompt_init)
-                # This call MUST populate history_memory in act_head
                 self.model.model.inference(vision_x=image_tensor, lang_x=lang_x, attention_mask=attention_mask)
             
-            # 이미지 히스토리도 초기화해줌 (일관성)
             self.image_history = [] 
-            
             latency_ms = (time.time() - start_time) * 1000
-            return np.array([0.0, 0.0, 0.0]), latency_ms, np.zeros((1, 3))
+            
+            debug_data = {
+                "bbox": bbox,
+                "grounding_caption": caption,
+                "grounding_latency_ms": g_latency,
+                "goal_near_proxy": goal_near,
+                "speed_scale": 1.0,
+                "grounding_cached": use_cache,
+                "action_3d": [0.0, 0.0, 0.0],
+                "predicted_class": 0,
+                "predicted_label": "STOP",
+                "source": "first_frame_enforced"
+            }
+            return np.array([0.0, 0.0, 0.0]), latency_ms, np.zeros((1, 3)), debug_data
 
-
-
-        # [CRITICAL] 3. Prompt Engineering (V4-Balanced Standard)
-        # instruction = request.instruction (raw) -> converted to grounding format
+        # 4. Prompt 구성
         if not instruction.startswith("<grounding>"):
             full_prompt = f"<grounding>An image of a robot {instruction}"
         else:
             full_prompt = instruction
             
-        # [INTERVENTION] Ensure history_window is maintained at runtime
         try:
             potential_model = self.model.model if hasattr(self.model, 'model') else self.model
             for name in ['act_head', 'policy_head']:
@@ -1202,21 +1509,11 @@ class MobileVLAInference:
         except: pass
             
         with torch.no_grad():
-            # Preprocess image
-            image_tensor = self.preprocess_image(image_base64) # (1, 1, 3, 224, 224)
-            
-            # Tokenize instruction
+            image_tensor = self.preprocess_image(image_base64)
             lang_x, attention_mask = self._tokenize_instruction(full_prompt)
-            
-            # Ensure type matches model (FP16/BF16)
             target_dtype = next(self.model.parameters()).dtype
             image_tensor = image_tensor.to(dtype=target_dtype, device=self.device)
             
-            # 🔍 입력 텐서 shape 로깅 (디버깅)
-            logger.debug(f"🖼️ [INPUT] Vision Input: {image_tensor.shape}")
-            logger.debug(f"📝 [INPUT] Prompt: {full_prompt}")
-            
-            # Model inference
             action = np.array([0.0, 0.0])
             full_chunk = np.zeros((1, 2))
             
@@ -1227,35 +1524,27 @@ class MobileVLAInference:
                     attention_mask=attention_mask
                 )
                 
-                # Extract action from outputs
                 if isinstance(outputs, dict) and 'action' in outputs:
-                    action_out = outputs['action']  # (B, T, Chunk, Dim) or (B, Chunk, Dim)
+                    action_out = outputs['action']
                     action_out = self._extract_action_tensor(action_out)
                     
-                    # Move to CPU
                     if isinstance(action_out, torch.Tensor):
                         full_chunk = action_out.detach().float().cpu().numpy()
                     else:
                         full_chunk = action_out
 
-                    # Reshape to (N, ActionDim) where ActionDim is usually 2 or 7
-                    # full_chunk shape can be (B, T, Dim) or (B, T, Chunk, Dim)
-                    # We want (TotalItems, Dim)
                     if full_chunk.ndim >= 2:
                         dim = full_chunk.shape[-1]
                         full_chunk = full_chunk.reshape(-1, dim)
                     else:
-                        # Handle 1D case (e.g. [v, w])
                         full_chunk = full_chunk.reshape(1, -1)
                     
-                    # Safety check
                     if full_chunk.size == 0:
                         action = np.array([0.0, 0.0])
                     else:
                         if self.inference_mode == "classification":
                             action = self._decode_classification_action(full_chunk)
                         else:
-                            # Use first action for regression mode
                             action = full_chunk[0]
                     
                 else:
@@ -1263,11 +1552,8 @@ class MobileVLAInference:
                     action = np.array([0.0, 0.0])
                     full_chunk = np.zeros((1, 2))
                 
-                # 🔍 Raw 액션 로깅 (디버깅)
-                # Check history memory length if possible
                 hist_len = "N/A"
                 try:
-                    # Search for history memory in policy head
                     target_policy = None
                     if hasattr(self.model.model, 'act_head'):
                          target_policy = self.model.model.act_head
@@ -1280,60 +1566,92 @@ class MobileVLAInference:
 
                 logger.info(f"📤 [DETAILED ACTION] InfCount: {self.inference_count}, Hist: {hist_len}/{self.window_size}, Raw: {action}")
                 
-                # De-normalize and Clip (regression only)
                 if self.inference_mode == "regression":
                     target_min = -1.15
                     target_max = 1.15
-                    
-                    # Config에서 norm_action 확인
                     norm_action = self.config.get('norm_action', False)
                     
                     if not norm_action:
-                        # Tanh 헤드면 [-1, 1] 범위로 나옴.
-                        # 우리 데이터는 [-1.15, 1.15] 범위로 학습됨 (Bang-bang control)
                         if abs(action[0]) <= 1.0 and abs(action[1]) <= 1.0:
                             logger.warning(f"⚠️ Applied auto-scaling to [-1.15, 1.15] (Raw LX: {action[0]:.4f}, LY: {action[1]:.4f})")
                             action = action * 1.15
                     elif norm_action:
-                        # 학습 시 정규화했다면 Denormalize 필요
-                        action = unnoramalize_action(
-                            action,
-                            action_min=target_min,
-                            action_max=target_max
-                        )
+                        action = unnoramalize_action(action, action_min=target_min, action_max=target_max)
                         logger.debug("✅ Applied denormalization (norm_action=True)")
 
                 logger.debug(f"📤 [PROCESSED ACTION] After scaling: {action}")
 
-                # [INTERVENTION] Action Smoothing (Exponential Moving Average)
-                if self.inference_count > 1:
-                    # lx, ly smoothing to prevent sudden BACKWARD/RIGHT swap
-                    # 0.6 : 0.4 ratio for better responsiveness vs stability
-                    action = self.smoothing_alpha * action + (1 - self.smoothing_alpha) * self.prev_action
-                    logger.info(f"📤 [SMOOTHING] Applied EMA: Alpha={self.smoothing_alpha}")
+                # 5. Speed Scaling
+                speed_scale = 1.0
+                if self.speed_scaling_enabled:
+                    if bbox is None:
+                        speed_scale = 0.7
+                    else:
+                        area = float(bbox.get("area", 0.0))
+                        entity = str(bbox.get("entity", ""))
+                        is_fallback = entity in ("coarse_clf", "center_fallback", "") or entity.startswith("caption:")
+                        
+                        if is_fallback:
+                            speed_scale = 1.0
+                        elif area > 0.18:
+                            speed_scale = 0.25
+                        elif area > 0.10:
+                            speed_scale = 0.5
+                        elif area > 0.05:
+                            speed_scale = 0.75
+                        else:
+                            speed_scale = 1.0
+                            
+                    action[0] = action[0] * speed_scale
+                    if action.size > 1:
+                        action[1] = action[1] * speed_scale
                 
-                self.prev_action = action.copy()
-
+                # 6. Action Smoothing (EMA)
+                action_3d = [action[0], action[1] if action.size > 1 else 0.0, 0.0]
+                if action.size > 2:
+                    action_3d[2] = action[2]
+                
+                if self.inference_count > 0:
+                    p = self.prev_action_3d
+                    action_x = self.smoothing_alpha * action_3d[0] + (1 - self.smoothing_alpha) * p[0]
+                    action_y = self.smoothing_alpha * action_3d[1] + (1 - self.smoothing_alpha) * p[1]
+                    action_z = self.smoothing_alpha_az * action_3d[2] + (1 - self.smoothing_alpha_az) * p[2]
+                    action_3d = [action_x, action_y, action_z]
+                
+                self.prev_action_3d = list(action_3d)
+                
                 # Clip to valid range
-                action[0] = np.clip(action[0], -1.5, 1.5)
-                action[1] = np.clip(action[1], -1.5, 1.5)
-                logger.info(f"📤 [FINAL ACTION] After clipping: [{action[0]:.3f}, {action[1]:.3f}]")
+                action_3d[0] = np.clip(action_3d[0], -1.5, 1.5)
+                action_3d[1] = np.clip(action_3d[1], -1.5, 1.5)
+                action = np.array([action_3d[0], action_3d[1], action_3d[2]])
+                
+                logger.info(f"📤 [FINAL ACTION] After clipping: [{action[0]:.3f}, {action[1]:.3f}, {action[2]:.3f}]")
                 
             except Exception as e:
                 logger.error(f"Inference failed: {e}")
                 import traceback
                 traceback.print_exc()
-                # action and full_chunk already have defaults
 
-            
         latency_ms = (time.time() - start_time) * 1000
         self.inference_count += 1
         
-        # 4. Log step data
         if logger_instance:
-            logger_instance.log_step(self.inference_count, action, latency_ms, full_chunk)
+            logger_instance.log_step(self.inference_count, action[:2], latency_ms, full_chunk)
             
-        return action, latency_ms, full_chunk
+        debug_data = {
+            "bbox": bbox,
+            "grounding_caption": caption,
+            "grounding_latency_ms": g_latency,
+            "goal_near_proxy": goal_near,
+            "speed_scale": speed_scale,
+            "grounding_cached": use_cache,
+            "action_3d": action_3d,
+            "predicted_class": int(np.argmax(outputs['action'][0].cpu().numpy())) if self.inference_mode == "classification" and 'outputs' in locals() and isinstance(outputs, dict) and 'action' in outputs else 0,
+            "predicted_label": self.class_labels[int(np.argmax(outputs['action'][0].cpu().numpy()))] if self.inference_mode == "classification" and 'outputs' in locals() and isinstance(outputs, dict) and 'action' in outputs else "REGRESSION",
+            "source": "inferred"
+        }
+            
+        return action, latency_ms, full_chunk, debug_data
 
     def predict_debug(self, image_base64: str, instruction: str) -> dict[str, Any]:
         """
@@ -2325,26 +2643,110 @@ async def predict(request: InferenceRequest, api_key: str = Depends(verify_api_k
     try:
         model = get_model()
         
-        action, latency_ms, chunk = model.predict(
+        action, latency_ms, chunk, debug_data = model.predict(
             image_base64=request.image,
             instruction=request.instruction
         )
         
         logger.info(f"✅ Prediction: {action}, Latency: {latency_ms:.1f}ms")
+
+        # monapi 모드일 때 continuous actions 스냅핑 및 Yaw 복원 알고리즘 적용
+        if request.vlm_model == "monapi":
+            vx, vy, wz = float(action[0]), float(action[1]), float(action[2])
+            cls_idx, label = classify_action(vx, vy, wz)
+            snapped_action_3d = snap_monapi_action_to_label(action, label)
+            
+            # 2D action은 snapped_action_3d[:2]로 할당
+            action_2d = snapped_action_3d[:2]
+            
+            # debug_data의 action_3d 및 predicted_label, predicted_class를 snapped 값으로 갱신
+            debug_data["action_3d"] = snapped_action_3d.tolist()
+            debug_data["predicted_class"] = cls_idx
+            debug_data["predicted_label"] = label
+            
+            return InferenceResponse(
+                action=action_2d.tolist(),
+                latency_ms=latency_ms,
+                model_name=model.model_name,
+                strategy="receding_horizon",
+                source=debug_data.get("source", "inferred"),
+                buffer_status={},
+                predicted_class=debug_data.get("predicted_class"),
+                predicted_label=debug_data.get("predicted_label"),
+                action_3d=debug_data.get("action_3d"),
+                bbox=debug_data.get("bbox"),
+                grounding_caption=debug_data.get("grounding_caption"),
+                grounding_latency_ms=debug_data.get("grounding_latency_ms"),
+                goal_near_proxy=debug_data.get("goal_near_proxy"),
+                instruction_used=True,
+                matched_path_type=None
+            )
         
+        # 일반 모드인 경우
         return InferenceResponse(
-            action=action.tolist(),
+            action=action[:2].tolist(),
             latency_ms=latency_ms,
             model_name=model.model_name,
             strategy="receding_horizon",
-            source="inferred",
-            buffer_status={}
+            source=debug_data.get("source", "inferred"),
+            buffer_status={},
+            predicted_class=debug_data.get("predicted_class"),
+            predicted_label=debug_data.get("predicted_label"),
+            action_3d=debug_data.get("action_3d"),
+            bbox=debug_data.get("bbox"),
+            grounding_caption=debug_data.get("grounding_caption"),
+            grounding_latency_ms=debug_data.get("grounding_latency_ms"),
+            goal_near_proxy=debug_data.get("goal_near_proxy"),
+            instruction_used=True,
+            matched_path_type=None
         )
         
     except Exception as e:
         import traceback
         logger.error(f"Prediction failed: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/config")
+async def update_config(request: ConfigRequest, api_key: str = Depends(verify_api_key)):
+    """런타임 제어 및 자동 정지 설정을 동적으로 업데이트합니다."""
+    model = get_model()
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    if request.speed_scaling is not None:
+        model.speed_scaling_enabled = request.speed_scaling
+    if request.grounding_skip_n is not None:
+        model.grounding_skip_n = request.grounding_skip_n
+    if request.smooth_enabled is not None:
+        model.smooth_enabled = request.smooth_enabled
+    if request.smooth_alpha_xy is not None:
+        model.smoothing_alpha = request.smooth_alpha_xy
+    if request.smooth_alpha_az is not None:
+        model.smoothing_alpha_az = request.smooth_alpha_az
+    if request.stop_area_threshold is not None:
+        model.stop_area_threshold = request.stop_area_threshold
+    if request.stop_cx_tolerance is not None:
+        model.stop_cx_tolerance = request.stop_cx_tolerance
+        
+    logger.info(
+        f"⚙️ Config updated: speed_scaling={model.speed_scaling_enabled}, "
+        f"skip_n={model.grounding_skip_n}, xy_alpha={model.smoothing_alpha}, "
+        f"az_alpha={model.smoothing_alpha_az}, stop_area={model.stop_area_threshold}, "
+        f"stop_cx={model.stop_cx_tolerance}"
+    )
+    
+    return {
+        "status": "success",
+        "config": {
+            "speed_scaling": model.speed_scaling_enabled,
+            "grounding_skip_n": model.grounding_skip_n,
+            "smooth_alpha_xy": model.smoothing_alpha,
+            "smooth_alpha_az": model.smoothing_alpha_az,
+            "stop_area_threshold": model.stop_area_threshold,
+            "stop_cx_tolerance": model.stop_cx_tolerance,
+        }
+    }
 
 
 @app.post("/predict_debug", response_model=InferenceDebugResponse)
