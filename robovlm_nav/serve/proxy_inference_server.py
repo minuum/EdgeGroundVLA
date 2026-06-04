@@ -163,6 +163,8 @@ class ConfigRequest(BaseModel):
     smooth_enabled: Optional[bool] = None
     smooth_alpha_xy: Optional[float] = None
     smooth_alpha_az: Optional[float] = None
+    stop_area_threshold: Optional[float] = None
+    stop_cx_tolerance: Optional[float] = None
     model: Optional[str] = None  # "exp49" | "exp50" | "exp51" | "exp52"
 
 
@@ -1551,6 +1553,8 @@ async def set_config(
             smooth_enabled=request.smooth_enabled,
             smooth_alpha_xy=request.smooth_alpha_xy,
             smooth_alpha_az=request.smooth_alpha_az,
+            stop_area_threshold=request.stop_area_threshold,
+            stop_cx_tolerance=request.stop_cx_tolerance,
         )
         cfg["active_model"] = _active_goal_nav_model
         return {"status": "success", "config": cfg}

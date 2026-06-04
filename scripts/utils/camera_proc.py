@@ -17,7 +17,7 @@ ROS_WS_SETUP  = "/home/soda/MoNaVLA/ROS_action/install/setup.bash"
 KILL_PATTERN  = "usb_camera_service_server"
 START_CMD = (
     f"source {ROS_SETUP} 2>/dev/null; "
-    f"source {ROS_WS_SETUP} 2>/dev/null; "
+    "cd /home/soda/MoNaVLA/ROS_action/install && source setup.bash 2>/dev/null; "
     "export ROS_DOMAIN_ID=42; "
     "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp; "
     "nohup ros2 run camera_pub usb_camera_service_server "

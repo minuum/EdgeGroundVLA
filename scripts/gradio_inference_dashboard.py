@@ -1,5 +1,10 @@
 # ── ROS camera_interfaces LD_LIBRARY_PATH 주입 (다른 import보다 먼저) ──────────
 import os, sys as _sys
+_global_site = "/home/soda/.local/lib/python3.10/site-packages"
+if _global_site in _sys.path:
+    _sys.path.remove(_global_site)
+_sys.path.insert(0, _global_site)
+
 _ROS_WS = "/home/soda/MoNaVLA/ROS_action/install"
 _ros_lib_dirs = [f"{_ROS_WS}/camera_interfaces/lib", f"{_ROS_WS}/camera_pub/lib"]
 _ros_py_dirs  = [f"{_ROS_WS}/camera_interfaces/local/lib/python3.10/dist-packages"]
@@ -42,6 +47,199 @@ import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore", message="Unable to import Axes3D")
 
+import subprocess
+import signal
+
+def get_vla_processes():
+    """VLA 관련 프로세스(PID, Command) 목록을 조회합니다."""
+    proc_list = []
+    try:
+        out = subprocess.check_output(["ps", "-eo", "pid,args"], text=True)
+        lines = out.splitlines()
+        for line in lines[1:]:
+            parts = line.strip().split(maxsplit=1)
+            if len(parts) < 2:
+                continue
+            pid_str, cmd = parts
+            pid = int(pid_str)
+            
+            if pid == os.getpid():
+                continue
+                
+            name = None
+            if "inference/server.py" in cmd or "serve/proxy_inference_server.py" in cmd:
+                name = "VLA Inference Server"
+            elif "robot/camera_node.py" in cmd or "camera_proc.py" in cmd:
+                name = "Camera Process"
+            elif "ros2_controller.py" in cmd:
+                name = "ROS2 Controller"
+            elif "keyboard_controller.py" in cmd:
+                name = "Keyboard Controller"
+            elif "gradio_inference_dashboard.py" in cmd and pid != os.getpid():
+                name = "Other Dashboard"
+                
+            if name:
+                proc_list.append({"pid": pid, "name": name, "cmd": cmd[:80] + ("..." if len(cmd) > 80 else "")})
+    except Exception as e:
+        print(f"Error getting processes: {e}")
+    return proc_list
+
+def kill_process(pid: int):
+    """지정한 PID의 프로세스를 안전하게 또는 강제 종료합니다."""
+    try:
+        os.kill(pid, signal.SIGTERM)
+        import time
+        time.sleep(0.5)
+        try:
+            os.kill(pid, 0)
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
+        return f"✅ PID {pid} 종료 성공"
+    except Exception as e:
+        return f"❌ PID {pid} 종료 실패: {e}"
+
+def get_system_resources():
+    """RAM, Swap, Disk, GPU VRAM의 사용량을 미려한 게이지 Bar(HTML)로 시각화합니다."""
+    html = []
+    
+    def render_bar(label, icon, used, total, unit, threshold_warn=85):
+        pct = (used / total * 100) if total > 0 else 0
+        pct = min(100, max(0, pct))
+        
+        # 85% 이상일 때는 경고 그라디언트(주황~레드), 그렇지 않으면 블루~퍼플 그라디언트
+        if pct >= threshold_warn:
+            bar_color = "linear-gradient(90deg, #f97316 0%, #ef4444 100%)"
+        else:
+            bar_color = "linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%)"
+            
+        return f"""
+        <div style="margin-bottom: 12px; font-family: sans-serif;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; color: #cbd5e1;">
+                <span>{icon} <b>{label}</b></span>
+                <span style="color: {'#f87171' if pct >= threshold_warn else '#38bdf8'}; font-weight: bold;">
+                    {used:.1f}{unit} / {total:.1f}{unit} ({pct:.1f}%)
+                </span>
+            </div>
+            <div style="background: #1e293b; border-radius: 8px; height: 14px; overflow: hidden; border: 1px solid #475569; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);">
+                <div style="background: {bar_color}; width: {pct}%; height: 100%; border-radius: 8px; transition: width 0.5s ease-in-out; box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);"></div>
+            </div>
+        </div>
+        """
+
+    # 1. RAM
+    try:
+        mem_out = subprocess.check_output(["free", "-m"], text=True)
+        for line in mem_out.splitlines():
+            if line.startswith("Mem:"):
+                parts = line.split()
+                total = int(parts[1])
+                used = int(parts[2])
+                html.append(render_bar("RAM Memory", "🧠", used, total, "MB", 85))
+            elif line.startswith("Swap:"):
+                parts = line.split()
+                total = int(parts[1])
+                used = int(parts[2])
+                html.append(render_bar("Swap Virtual Memory", "💾", used, total, "MB", 85))
+    except Exception:
+        pass
+
+    # 2. Disk Space
+    try:
+        disk_out = subprocess.check_output(["df", "-h", "/"], text=True)
+        lines = disk_out.splitlines()
+        if len(lines) > 1:
+            parts = lines[1].split()
+            def to_gb(val_str):
+                val_str = val_str.upper()
+                if val_str.endswith("G"):
+                    return float(val_str[:-1])
+                elif val_str.endswith("M"):
+                    return float(val_str[:-1]) / 1024.0
+                elif val_str.endswith("T"):
+                    return float(val_str[:-1]) * 1024.0
+                return float(val_str)
+                
+            total_gb = to_gb(parts[1])
+            used_gb = to_gb(parts[2])
+            html.append(render_bar("Disk Space (Root)", "💿", used_gb, total_gb, "GB", 90))
+    except Exception:
+        pass
+
+    # 3. GPU VRAM (Orin Unified)
+    try:
+        import torch
+        if torch.cuda.is_available():
+            allocated = torch.cuda.memory_allocated() / (1024 ** 2)
+            # Orin Nano 가용 램 (15.3GB)을 Unified total로 가정
+            system_total_vram = 15656.0 
+            html.append(render_bar("GPU VRAM (Orin Unified)", "🎮", allocated, system_total_vram, "MB", 80))
+        else:
+            html.append("""
+            <div style="font-size: 0.85rem; color: #94a3b8; font-family: sans-serif; margin-top: 8px;">
+                🎮 <b>GPU VRAM:</b> CUDA Unavailable
+            </div>
+            """)
+    except Exception:
+        pass
+
+    return "\n".join(html)
+
+def update_monitor():
+    res_str = get_system_resources()
+    procs = get_vla_processes()
+    choices = []
+    for p in procs:
+        label = f"[{p['pid']}] {p['name']} ({p['cmd']})"
+        choices.append((label, str(p['pid'])))
+        
+    if not choices:
+        choices = [("No active VLA processes found", "")]
+        
+    return res_str, gr.Dropdown(choices=choices, value=choices[0][1] if choices else "")
+
+def handle_kill_proc(pid_str):
+    if not pid_str:
+        return "⚠️ 선택된 프로세스가 없습니다.", *update_monitor()
+    try:
+        pid = int(pid_str)
+        kill_msg = kill_process(pid)
+        res_str, dropdown_update = update_monitor()
+        return f"{kill_msg} (모니터 갱신 완료)", res_str, dropdown_update
+    except Exception as e:
+        return f"❌ 오류 발생: {e}", *update_monitor()
+
+
+def handle_start_server():
+    import subprocess
+    try:
+        out = subprocess.check_output(["pgrep", "-f", "inference/server.py"], text=True)
+        if out.strip():
+            res_str, dropdown_update = update_monitor()
+            return "⚠️ VLA Inference Server가 이미 실행 중입니다.", res_str, dropdown_update
+    except subprocess.CalledProcessError:
+        pass
+
+    try:
+        log_file = "/tmp/vla_server_gradio.log"
+        cwd_dir = "/home/soda/MoNa-pi"
+        
+        proc = subprocess.Popen(
+            ["python3", "inference/server.py", "--config", "configs/serbot2.yaml", "--ckpt", "checkpoints/best", "--port", "8082"],
+            cwd=cwd_dir,
+            stdout=open(log_file, "w"),
+            stderr=subprocess.STDOUT,
+            start_new_session=True
+        )
+        # 서버 기동 프로세스가 뜨는 시간 대기
+        time.sleep(2.0)
+        
+        res_str, dropdown_update = update_monitor()
+        return f"🚀 VLA Inference Server 기동 성공 (PID {proc.pid}) - 로그: {log_file}", res_str, dropdown_update
+    except Exception as e:
+        res_str, dropdown_update = update_monitor()
+        return f"❌ VLA Inference Server 기동 실패: {e}", res_str, dropdown_update
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
@@ -50,19 +248,19 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
 #   left_straight, left_left, left_right,
 #   right_straight, right_right, right_left
 # 미매칭 시 bbox cx 위치에서 자동 추론 (right_right / left_left / center_straight).
-DEFAULT_INSTRUCTION = "the gray basket on right"
+DEFAULT_INSTRUCTION = "[FORWARD] the gray basket on right"
 PATH_TYPES = [
     "right_right", "right_left", "right_straight",
     "center_straight", "center_left", "center_right",
     "left_straight", "left_left", "left_right",
 ]
 GOAL_NAV_PRESETS = [
-    "the gray basket on right",
-    "the gray basket on left",
-    "the gray basket",
-    "the door",
-    "the corridor on the left",
-    "the corridor on the right",
+    "[FORWARD] the gray basket on right",
+    "[FORWARD] the gray basket on left",
+    "[FORWARD] the gray basket",
+    "[FORWARD] the door",
+    "[FORWARD] the corridor on the left",
+    "[FORWARD] the corridor on the right",
 ]
 
 # 실험 모드: (표시 이름, instruction, backend_instruction_mode, speed_scaling, grounding_skip_n)
@@ -73,6 +271,7 @@ EXP_MODES = {
         "model": "exp49",
         "speed_scaling": False,
         "grounding_skip_n": 3,
+        "smooth_enabled": False,
         "desc": "기본 GoalNav — 96.4% val acc",
         "config": None,
         "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
@@ -83,6 +282,7 @@ EXP_MODES = {
         "model": "exp49",
         "speed_scaling": True,
         "grounding_skip_n": 3,
+        "smooth_enabled": False,
         "desc": "기본 GoalNav + 거리비례속도 — 96.4% val acc",
         "config": None,
         "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
@@ -93,6 +293,7 @@ EXP_MODES = {
         "model": "exp50",
         "speed_scaling": False,
         "grounding_skip_n": 3,
+        "smooth_enabled": False,
         "desc": "flip augmentation 2x — 92.0% val acc",
     },
     "GoalNav (Exp51, crop-aug)": {
@@ -101,6 +302,7 @@ EXP_MODES = {
         "model": "exp51",
         "speed_scaling": False,
         "grounding_skip_n": 3,
+        "smooth_enabled": False,
         "desc": "crop augmentation 4x — 93.4% val acc",
     },
     "GoalNav (Exp52, lang+vis) ⚠️": {
@@ -109,6 +311,7 @@ EXP_MODES = {
         "model": "exp52",
         "speed_scaling": False,
         "grounding_skip_n": 3,
+        "smooth_enabled": False,
         "desc": "⚠️ lang+vis 2048-dim — 실시간 추출 미지원, 실험적",
     },
     "GoalNav (Exp53, CLIP-LoRA)": {
@@ -117,6 +320,7 @@ EXP_MODES = {
         "model": "exp53",
         "speed_scaling": False,
         "grounding_skip_n": 3,
+        "smooth_enabled": False,
         "desc": "CLIP LoRA fine-tuned vision encoder — 94.7% val acc",
         "config": "configs/bbox_nav_exp53_clip_lora.json",
         "checkpoint": "runs/v5_nav/mlp/exp53_clip_lora.pt",
@@ -127,6 +331,7 @@ EXP_MODES = {
         "model": "exp54_s2v2",
         "speed_scaling": False,
         "grounding_skip_n": 3,
+        "smooth_enabled": False,
         "desc": "Stage2 v2 MLP + image projection — 96.7% CL (최고 성능)",
         "config": "configs/exp54_stage2_action.json",
         "checkpoint": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
@@ -137,6 +342,7 @@ EXP_MODES = {
         "model": None,
         "speed_scaling": False,
         "grounding_skip_n": 1,
+        "smooth_enabled": False,
         "desc": "PathType 분류기 — 고정속도",
     },
 }
@@ -182,7 +388,7 @@ DEFAULT_API_URL = os.getenv("VLA_API_SERVER", "http://localhost:8001")
 API_KEY = os.getenv("VLA_API_KEY", "vla_devel_key_2026")
 DEFAULT_BACKEND_MODE = os.getenv(
     "VLA_DASHBOARD_BACKEND",
-    "API Server" if os.getenv("VLA_SERVER_ROLE") == "jetson" else "Local Runtime",
+    "API Server" if (os.getenv("VLA_SERVER_ROLE") == "jetson" or os.getenv("VLA_API_SERVER")) else "Local Runtime",
 )
 
 sys.path.append(str(PROJECT_ROOT / "scripts"))
@@ -196,7 +402,7 @@ except ImportError:
 sys.path.insert(0, str(PROJECT_ROOT))
 from robovlm_nav.serve.inference_server import MobileVLAInference
 from robovlm_nav.serve.vla_control_utils import VLAControlManager
-from scripts.utils.camera_proc import camera_control_widget, start_camera, stop_camera
+from scripts.utils.camera_proc import camera_control_widget, start_camera, stop_camera, is_camera_running
 
 
 def prepend_env_path(key: str, value: str) -> None:
@@ -207,6 +413,17 @@ def prepend_env_path(key: str, value: str) -> None:
 
 
 def setup_ros_paths() -> None:
+    ros_humble = Path("/opt/ros/humble")
+    if ros_humble.exists():
+        prepend_env_path("AMENT_PREFIX_PATH", str(ros_humble))
+        prepend_env_path("CMAKE_PREFIX_PATH", str(ros_humble))
+        if (ros_humble / "lib").exists(): prepend_env_path("LD_LIBRARY_PATH", str(ros_humble / "lib"))
+        if (ros_humble / "opt/rviz_ogre_vendor/lib").exists(): prepend_env_path("LD_LIBRARY_PATH", str(ros_humble / "opt/rviz_ogre_vendor/lib"))
+        for candidate in (ros_humble / "local/lib/python3.10/dist-packages", ros_humble / "lib/python3.10/site-packages"):
+            if candidate.exists() and str(candidate) not in sys.path:
+                sys.path.append(str(candidate))
+                prepend_env_path("PYTHONPATH", str(candidate))
+
     ros_ws = Path(os.getenv("VLA_ROS_WS", str(PROJECT_ROOT / "ROS_action")))
     install_base = ros_ws / "install"
     if not install_base.exists():
@@ -502,11 +719,13 @@ class ApiInferenceBackend:
             },
         )
 
-    def set_config(self, speed_scaling: bool, grounding_skip_n: int, model: str | None = None) -> dict:
+    def set_config(self, speed_scaling: bool, grounding_skip_n: int, model: str | None = None, smooth_enabled: bool | None = None) -> dict:
         try:
             payload: dict = {"speed_scaling": speed_scaling, "grounding_skip_n": grounding_skip_n}
             if model is not None:
                 payload["model"] = model
+            if smooth_enabled is not None:
+                payload["smooth_enabled"] = smooth_enabled
             return self._post("/config", payload)
         except Exception as e:
             return {"status": "error", "reason": str(e)}
@@ -518,7 +737,19 @@ class ApiInferenceBackend:
             timeout=10,
         )
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        
+        # MoNa-pi 통합 추론 서버 스키마와의 호환성을 위한 키 정규화
+        if "model_loaded" not in data:
+            data["model_loaded"] = data.get("engine_ready", True)
+        if "checkpoint_path" not in data:
+            data["checkpoint_path"] = data.get("checkpoint", "N/A")
+        if "precision" not in data:
+            data["precision"] = "fp32"
+        if "config_path" not in data:
+            data["config_path"] = "N/A"
+            
+        return data
 
 
 def make_backend(mode: str, api_url: str):
@@ -539,31 +770,55 @@ class ROSDashboardNode(Node):
         self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10, callback_group=self.callback_group)
         self.control = VLAControlManager(self, default_throttle=50, move_duration=0.4)
 
+        # 백그라운드 이미지 수집 관련 초기화
+        self.latest_frame = None
+        self.frame_lock = threading.Lock()
+        self.capture_active = True
+        self.capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
+        self.capture_thread.start()
+
+    def _capture_loop(self):
+        # 백그라운드에서 주기적으로 이미지를 획득하여 self.latest_frame에 업데이트
+        while self.capture_active:
+            start_t = time.time()
+            try:
+                # 백그라운드 스레드이므로 대기는 UI를 방해하지 않음
+                if not self.get_image_client.wait_for_service(timeout_sec=0.1):
+                    time.sleep(0.05)
+                    continue
+                request = GetImage.Request()
+                future = self.get_image_client.call_async(request)
+                deadline = time.time() + 0.15
+                while not future.done() and time.time() < deadline and self.capture_active:
+                    time.sleep(0.005)
+                if future.done():
+                    try:
+                        response = future.result()
+                        if response and response.image.data:
+                            cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
+                            img_rgb = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
+                            with self.frame_lock:
+                                self.latest_frame = img_rgb
+                            
+                            elapsed = (time.time() - start_t) * 1000
+                            if elapsed > 100.0:
+                                print(f"[Dashboard Background Capture] ⚠️ Slow frame fetch: {elapsed:.1f} ms")
+                    except Exception:
+                        pass
+            except Exception as e:
+                if "context is invalid" in str(e) or "rcl" in str(e).lower():
+                    print(f"[Dashboard Background Capture] ROS context 무효 → 재초기화 시도")
+                    self.capture_active = False
+                    threading.Thread(target=_init_ros_node, daemon=True).start()
+                    break
+                else:
+                    print(f"[Dashboard Background Capture] Error: {e}")
+            time.sleep(0.04) # 약 25 fps 속도로 수집하여 카메라 서비스 노드 부하 최소화
+
     def get_inference_frame(self):
-        try:
-            if not self.get_image_client.wait_for_service(timeout_sec=1.0):
-                return None
-            request = GetImage.Request()
-            future = self.get_image_client.call_async(request)
-            start_time = time.time()
-            while rclpy.ok() and not future.done():
-                if time.time() - start_time > 2.0:
-                    return None
-                time.sleep(0.01)
-            if future.done():
-                try:
-                    response = future.result()
-                    if response and response.image.data:
-                        cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
-                        return Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
-                except Exception:
-                    return None
-        except Exception as e:
-            if "context is invalid" in str(e) or "rcl" in str(e).lower():
-                # ROS context 무효화 → 백그라운드에서 재초기화
-                print(f"[Dashboard] ROS context 무효 → 재초기화 시도")
-                threading.Thread(target=_init_ros_node, daemon=True).start()
-        return None
+        # UI 스레드는 락만 잠깐 걸어서 최신 이미지 복제본을 즉시 반환 (블로킹 0ms)
+        with self.frame_lock:
+            return self.latest_frame
 
     def generate_trajectory_plot(self, full_chunk):
         if full_chunk is None or len(full_chunk) == 0:
@@ -595,25 +850,74 @@ class ROSDashboardNode(Node):
         ax.set_ylim(min(mins[1], -1.0), max(maxs[1], 1.0))
         return fig
 
+    def generate_action_history_plot(self, action_history):
+        if not action_history or len(action_history) == 0:
+            return None
+
+        steps = list(range(1, len(action_history) + 1))
+        lx_vals = [act[0] for act in action_history]
+        ly_vals = [act[1] for act in action_history]
+        az_vals = [act[2] for act in action_history]
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(steps, lx_vals, "r-o", linewidth=2, label="Linear X (Forward)")
+        ax.plot(steps, ly_vals, "g-s", linewidth=2, label="Linear Y (Left/Right)")
+        ax.plot(steps, az_vals, "b-^", linewidth=2, label="Angular Z (CCW/CW)")
+        ax.set_title("Executed Action History (lx, ly, az)")
+        ax.set_xlabel("Inference Step")
+        ax.set_ylabel("Velocity Value")
+        ax.axhline(0, color="gray", linestyle="--", alpha=0.5)
+        
+        # 스텝이 많을 때 틱 표시 조절
+        if len(steps) > 10:
+            ax.set_xticks(steps[::2])
+        else:
+            ax.set_xticks(steps)
+            
+        ax.grid(True, linestyle="--", alpha=0.6)
+        ax.legend(loc="upper right")
+        fig.tight_layout()
+        return fig
+
 
 ros_node = None
 _ros_node_lock = threading.Lock()
+_ros_spin_active = False
+
+def _spin_forever(node):
+    """rclpy.spin 대신 직접 spin_once 루프 — ExternalShutdownException 시 자동 재시도."""
+    global _ros_spin_active
+    while _ros_spin_active:
+        try:
+            rclpy.spin_once(node, timeout_sec=0.1)
+        except rclpy.executors.ExternalShutdownException:
+            break
+        except Exception as e:
+            print(f"[Dashboard] spin 오류: {e}")
+            break
 
 def _init_ros_node():
-    global ros_node
+    global ros_node, _ros_spin_active
     try:
+        _ros_spin_active = False
+        if ros_node is not None:
+            ros_node.capture_active = False
+        # 기존 context 종료 시도 (오류 무시)
         try:
             rclpy.shutdown()
         except Exception:
             pass
+        # rclpy.init()을 인자 없이 호출하여 글로벌 디폴트 context 초기화
         rclpy.init()
         node = ROSDashboardNode()
-        threading.Thread(target=lambda: rclpy.spin(node), daemon=True).start()
+        _ros_spin_active = True
+        threading.Thread(target=_spin_forever, args=(node,), daemon=True).start()
         ros_node = node
         print("[Dashboard] ROSDashboardNode 초기화 ✅")
         return True
     except Exception as e:
         ros_node = None
+        _ros_spin_active = False
         print(f"[Dashboard] ROSDashboardNode 초기화 실패: {e}")
         return False
 
@@ -622,17 +926,80 @@ if ROS_AVAILABLE:
 
 
 def annotate_image(img: Image.Image, bbox: dict | None = None, draw_grid: bool = True) -> Image.Image:
-    """카메라 이미지에 3x3 격자 + bbox 오버레이를 그려 반환."""
+    """카메라 이미지에 격자, BBox 및 실시간 VLA 인코더 정보(지시어, 속도, Latency 등) 오버레이를 그려 반환."""
     arr = np.array(img)
     h, w = arr.shape[:2]
 
+    # 1. 3x3 가이드 격자 그리기
     if draw_grid:
-        color = (100, 255, 100)
-        cv2.line(arr, (w // 3, 0), (w // 3, h), color, 1)
-        cv2.line(arr, (2 * w // 3, 0), (2 * w // 3, h), color, 1)
-        cv2.line(arr, (0, h // 3), (w, h // 3), color, 1)
-        cv2.line(arr, (0, 2 * h // 3), (w, 2 * h // 3), color, 1)
+        color = (100, 255, 100) # 녹색
+        overlay = arr.copy()
+        cv2.line(overlay, (w // 3, 0), (w // 3, h), color, 1)
+        cv2.line(overlay, (2 * w // 3, 0), (2 * w // 3, h), color, 1)
+        cv2.line(overlay, (0, h // 3), (w, h // 3), color, 1)
+        cv2.line(overlay, (0, 2 * h // 3), (w, 2 * h // 3), color, 1)
+        cv2.addWeighted(overlay, 0.3, arr, 0.7, 0, arr)
 
+    # 2. VLA 추론 상태 및 지시어 오버레이 박스 (상단)
+    is_running = state.get("is_running", False)
+    
+    instr = state.get("current_instruction", "Navigate to the goal")
+    model_name = Path(state.get("model_path", "checkpoints/best")).name
+    latency = state.get("last_latency", 0.0)
+    step = state.get("step_count", 0)
+
+    # 상단 정보 오버레이용 반투명 Rect (높이 76픽셀로 확장하여 2줄 텍스트 수용)
+    overlay = arr.copy()
+    cv2.rectangle(overlay, (10, 10), (w - 10, 86), (15, 23, 42), -1) # Sleek Dark Blue
+    cv2.addWeighted(overlay, 0.75, arr, 0.25, 0, arr)
+
+    # 상단 정보 텍스트 쓰기 (Font scale 및 두께 확장, 1줄: Status, Model, Latency)
+    status_str = f"RUNNING (Step {step})" if is_running else "STOPPED"
+    status_color = (100, 255, 100) if is_running else (150, 150, 150)
+    
+    cv2.putText(arr, f"STATUS: {status_str}", (25, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.65, status_color, 2, cv2.LINE_AA)
+    cv2.putText(arr, f"Model: {model_name}", (280, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255, 255, 255), 2, cv2.LINE_AA)
+    
+    # Latency: 우측 상단 3개 아이콘 영역과의 충돌 방지를 위해 X좌표를 w - 240 으로 정렬
+    lat_str = f"Latency: {latency:.1f}ms" if latency > 0 else "Latency: N/A"
+    cv2.putText(arr, lat_str, (w - 240, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (100, 200, 255), 2, cv2.LINE_AA)
+
+    # 2줄: Prompt (지시어)를 여유로운 크기로 표시
+    cv2.putText(arr, f"Prompt: {instr}", (25, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.60, (220, 255, 255), 2, cv2.LINE_AA)
+
+    # 3. 예측 궤적 및 2D XY 포인트 투영 (하단 반투명 박스)
+    last_chunk = state.get("last_chunk")
+    if last_chunk is not None and len(last_chunk) > 0 and is_running:
+        overlay = arr.copy()
+        cv2.rectangle(overlay, (10, h - 65), (w - 10, h - 10), (15, 23, 42), -1)
+        cv2.addWeighted(overlay, 0.75, arr, 0.25, 0, arr)
+
+        dt = 0.2
+        curr_x, curr_y = 0.0, 0.0
+        pts_str = []
+        scr_pts = [(w // 2, h - 20)]
+        for i, step_act in enumerate(last_chunk[:5]):
+            vx, vy = float(step_act[0]), float(step_act[1])
+            curr_x += vx * dt
+            curr_y += vy * dt
+            pts_str.append(f"P{i+1}:({curr_x:.2f},{curr_y:.2f})")
+            
+            # 스크린 투영 좌표 계산 (왜곡 투영)
+            proj_y = int(h - 20 - (curr_x * 80)) 
+            proj_x = int(w // 2 - (curr_y * 120 / (curr_x + 0.5)))
+            if 0 <= proj_x < w and 0 <= proj_y < h:
+                scr_pts.append((proj_x, proj_y))
+
+        # 1) 스크린 상에 예상 주행 궤적(선) 그리기
+        for idx in range(len(scr_pts) - 1):
+            cv2.line(arr, scr_pts[idx], scr_pts[idx+1], (50, 150, 255), 2, cv2.LINE_AA)
+            cv2.circle(arr, scr_pts[idx+1], 3, (100, 200, 255), -1)
+
+        # 2) 하단 텍스트 정보 (글자 크기 및 두께 확장)
+        traj_txt = " / ".join(pts_str[:4])
+        cv2.putText(arr, f"Traj: {traj_txt}", (25, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (150, 220, 255), 2, cv2.LINE_AA)
+
+    # 4. BBox 오버레이 그리기 (존재할 경우)
     if bbox:
         cx_px = int(bbox["cx"] * w)
         cy_px = int(bbox["cy"] * h)
@@ -645,14 +1012,13 @@ def annotate_image(img: Image.Image, bbox: dict | None = None, draw_grid: bool =
             y2 = int(bbox["y2"] * h)
             cv2.rectangle(arr, (x1, y1), (x2, y2), (255, 80, 80), 2)
         else:
-            # cx/cy만 있으면 십자선
             r = 10
             cv2.line(arr, (cx_px - r, cy_px), (cx_px + r, cy_px), (255, 80, 80), 2)
             cv2.line(arr, (cx_px, cy_px - r), (cx_px, cy_px + r), (255, 80, 80), 2)
 
         cv2.circle(arr, (cx_px, cy_px), 4, (255, 80, 80), -1)
-        cv2.putText(arr, label[:20], (max(cx_px - 40, 0), max(cy_px - 8, 12)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 80, 80), 1, cv2.LINE_AA)
+        cv2.putText(arr, label[:20], (max(cx_px - 40, 0), max(cy_px - 10, 15)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 80, 80), 2, cv2.LINE_AA)
 
     return Image.fromarray(arr)
 
@@ -669,7 +1035,52 @@ state = {
     "model_path": "N/A",
     "action_history": [],   # [(lx, ly, az), ...] 추론 중 실행된 액션 기록
     "is_returning": False,
+    "logs": ["Ready..."],
+    
+    # 백그라운드 추론 전용 상태 필드
+    "last_latency": 0.0,
+    "last_chunk": None,
+    "current_instruction": "Navigate to the goal",
+    "gt_object": "",
+    "last_bbox": None,
+    "inference_thread": None,
+    "inference_run_id": 0,
+    "stop_requested": False,
+    "logger_active": False,
+    "last_report_path": None,
+    
+    "ui_latency_val": "0 ms",
+    "ui_action_val": "0, 0, 0",
+    "ui_chunk_val": "Waiting...",
+    "ui_run_status_box": "Stopped",
+    "ui_fig": None,
+    "ui_action_fig": None,
 }
+
+
+def add_console_log(msg: str):
+    import datetime
+    now_str = datetime.datetime.now().strftime("%H:%M:%S")
+    formatted = f"[{now_str}] {msg}"
+    logs = state.setdefault("logs", [])
+    logs.append(formatted)
+    if len(logs) > 20:
+        logs.pop(0)
+
+
+def get_console_logs_str() -> str:
+    return "\n".join(state.get("logs", []))
+
+
+def finish_logger_session(status: str) -> str | None:
+    if not logger_instance or not state.get("logger_active"):
+        return None
+    try:
+        report_path = logger_instance.end_session(status=status)
+        state["last_report_path"] = report_path
+        return report_path
+    finally:
+        state["logger_active"] = False
 
 
 def backend_model_info(mode: str, api_url: str) -> dict:
@@ -697,47 +1108,296 @@ def load_model_wrapper(backend_mode: str, api_url: str, precision_label: str, ck
         info = result["info"]
         state["model_status"] = result["message"]
         state["model_path"] = info["checkpoint_path"]
+        add_console_log(f"📂 Model Loaded: {result['message']}")
         return result["message"], info["checkpoint_path"]
     except Exception as e:
         state["model_status"] = "Load Failed"
-        return f"❌ Load Failed: {e}", state["model_path"]
+        msg = f"❌ Load Failed: {e}"
+        add_console_log(msg)
+        return msg, state["model_path"]
 
 
-def set_running(running: bool, backend_mode: str, api_url: str, instruction: str, gt_object: str = ""):
+def _is_active_run(run_id: int) -> bool:
+    return (
+        state.get("inference_run_id") == run_id
+        and state.get("is_running")
+        and not state.get("stop_requested")
+    )
+
+
+class StaleInferenceResult(RuntimeError):
+    pass
+
+
+def _background_inference_loop(backend_mode: str, api_url: str, mode: str, run_id: int):
+    """자율주행 추론 및 제어를 전담하는 백그라운드 스레드 루프"""
+    global ros_node
+    add_console_log("🌀 백그라운드 추론 루프 시작")
+    
+    try:
+        # Step 1: 시작 대기 단계
+        if not ros_node:
+            add_console_log("❌ ROS 노드가 초기화되지 않아 추론을 시작할 수 없습니다.")
+            state["is_running"] = False
+            return
+
+        state["step_count"] += 1
+        current_step = state["step_count"]
+        instr = state["current_instruction"]
+
+        if logger_instance:
+            logger_instance.start_session(short_model_name(state["model_path"]), instr, instruction_mode=backend_mode)
+            state["logger_active"] = True
+            state["last_report_path"] = None
+            if state.get("gt_object"):
+                logger_instance.data["gt_object"] = state["gt_object"]
+            # 1단계 프레임 로깅
+            img = ros_node.get_inference_frame()
+            if img:
+                logger_instance.log_step(current_step, [0.0, 0.0, 0.0], 0, image=img)
+                
+        ros_node.control.robust_stop(source="inference_start")
+        try:
+            make_backend(backend_mode, api_url).reset(instr)
+        except Exception as e:
+            add_console_log(f"❌ Reset failed: {e}")
+            state["is_running"] = False
+            return
+            
+        state["ui_run_status_box"] = f"Running (step 1)..."
+        time.sleep(1.0)  # 시작 웜업 딜레이
+
+        # 주행 루프
+        while ROS_AVAILABLE and ros_node and _is_active_run(run_id):
+            if state.get("stop_requested"):
+                break
+
+            img = ros_node.get_inference_frame()
+            if img is None:
+                add_console_log("⚠️ [Inference Thread] 카메라 영상을 대기 중...")
+                time.sleep(0.2)
+                continue
+                
+            state["step_count"] += 1
+            current_step = state["step_count"]
+
+            # 1. 추론 실행
+            try:
+                result = run_backend_inference(img, instr, backend_mode, api_url, current_step=current_step, run_id=run_id)
+            except StaleInferenceResult:
+                add_console_log(f"⏹️ Step {current_step} stale result discarded")
+                break
+
+            if not _is_active_run(run_id):
+                add_console_log(f"⏹️ Step {current_step} result discarded after STOP")
+                break
+            
+            # 2. 상태 업데이트
+            state["last_latency"] = result.get("latency_ms", 0.0)
+            state["last_chunk"] = result.get("chunk")
+            
+            state["ui_latency_val"] = result["lat_str"]
+            state["ui_action_val"] = result["act_str"]
+            state["ui_chunk_val"] = result["chunk_display"]
+            state["ui_fig"] = ros_node.generate_trajectory_plot(result["chunk"])
+            state["ui_action_fig"] = ros_node.generate_action_history_plot(state["action_history"])
+            
+            if logger_instance:
+                logger_instance.log_step(
+                    current_step,
+                    result["action"],
+                    result.get("latency_ms", 0),
+                    result["chunk"],
+                    image=img,
+                    raw_action=result.get("raw_action"),
+                    predicted_label=result.get("predicted_label"),
+                    grounding_caption=result.get("grounding_caption"),
+                    goal_near=result.get("goal_near"),
+                    strategy=result.get("strategy"),
+                    bbox=result.get("bbox"),
+                    instruction_used=result.get("instruction_used"),
+                    matched_path_type=result.get("matched_path_type"),
+                    speed_scale=result.get("speed_scale"),
+                    grounding_cached=result.get("grounding_cached"),
+                )
+
+            log = f"Step {current_step} | {result['log_str']}"
+            state["ui_run_status_box"] = f"Running (step {current_step})"
+
+            # 정지 조건 A: 18스텝 도달
+            if mode == "Inference (18-step)" and current_step >= 18:
+                state["is_running"] = False
+                state["step_count"] = 0
+                ros_node.control.robust_stop(source="step_limit_reached")
+                report_path = finish_logger_session("limit_reached")
+                if report_path:
+                    log = f"🛑 18-step Limit Reached! | Log: {Path(report_path).name}"
+                else:
+                    log = "🛑 18-step Limit Reached!"
+                add_console_log(log)
+                state["ui_run_status_box"] = "Stopped (Limit Reached)"
+                break
+
+            # 정지 조건 B: 목적지 도달
+            if result.get("goal_near"):
+                state["is_running"] = False
+                state["step_count"] = 0
+                ros_node.control.robust_stop(source="goal_reached")
+                report_path = finish_logger_session("goal_reached")
+                if report_path:
+                    log = f"🎯 Goal Reached! (step {current_step}) | Log: {Path(report_path).name}"
+                else:
+                    log = f"🎯 Goal Reached! (step {current_step})"
+                add_console_log(log)
+                state["ui_run_status_box"] = "Stopped (Goal Reached)"
+                break
+
+            # 모션 사이클(0.4초) 정밀 주기를 위한 대기시간 보정
+            elapsed = state["last_latency"] / 1000.0
+            sleep_time = max(0.01, 0.40 - elapsed)
+            time.sleep(sleep_time)
+
+    except Exception as e:
+        add_console_log(f"❌ [Inference Thread] 오류: {e}")
+        if state.get("inference_run_id") == run_id:
+            state["is_running"] = False
+        if ros_node and state.get("inference_run_id") == run_id:
+            ros_node.control.robust_stop(source="inference_thread_exception")
+    finally:
+        status = "stopped" if state.get("stop_requested") else "completed"
+        report_path = finish_logger_session(status)
+        if report_path:
+            add_console_log(f"📝 Session saved: {Path(report_path).name}")
+        if state.get("inference_run_id") == run_id:
+            state["is_busy"] = False
+            state["is_running"] = False
+            state["stop_requested"] = False
+            state["inference_thread"] = None
+        add_console_log("⏹️ 백그라운드 추론 루프 종료")
+
+
+def set_running(running: bool, backend_mode: str, api_url: str, instruction: str, gt_object: str = "", mode: str = "Inference (Auto)"):
     state["is_running"] = running
-    state["step_count"] = 0 if running else state["step_count"]
     state["gt_object"] = gt_object
     if running:
+        if state["inference_thread"] is not None:
+            state["stop_requested"] = True
+            state["is_running"] = False
+            state["inference_run_id"] += 1
+            state["inference_thread"].join(timeout=1.0)
+
+        state["inference_run_id"] += 1
+        run_id = state["inference_run_id"]
+        state["stop_requested"] = False
+        state["step_count"] = 0
         state["action_history"] = []  # 새 에피소드 시작 시 초기화
-        try:
-            make_backend(backend_mode, api_url).reset(instruction)
-        except Exception:
-            pass
+        state["last_latency"] = 0.0
+        state["last_chunk"] = None
+        state["current_instruction"] = instruction
+        state["ui_run_status_box"] = "Running..."
+        state["ui_latency_val"] = "0 ms"
+        state["ui_action_val"] = "0, 0, 0"
+        state["ui_chunk_val"] = "Waiting..."
+        state["ui_fig"] = None
+        state["ui_action_fig"] = None
+        add_console_log(f"▶️ Inference Started (Prompt: '{instruction}')")
+
+        state["is_running"] = True
+        state["is_busy"] = True
+        state["inference_thread"] = threading.Thread(
+            target=_background_inference_loop,
+            args=(backend_mode, api_url, mode, run_id),
+            daemon=True
+        )
+        state["inference_thread"].start()
+    else:
+        state["stop_requested"] = True
+        state["is_running"] = False
+        state["inference_run_id"] += 1
+        if ROS_AVAILABLE and ros_node:
+            ros_node.control.robust_stop(source="inference_stop")
+        state["is_busy"] = False
+        state["step_count"] = 0
+        state["ui_run_status_box"] = "Stopped"
+        add_console_log("⏹️ Inference Stopped")
+        
     return "Running..." if running else "Stopped"
 
 
-def run_backend_inference(image: Image.Image, instruction: str, backend_mode: str, api_url: str):
+def snap_monapi_action_to_label(action: np.ndarray, label: str) -> np.ndarray:
+    """MoNa-pi continuous actions are noisy; execute a safe discrete action from its label."""
+    out = np.zeros(3, dtype=np.float32)
+    label = (label or "").upper()
+    raw_lx = float(action[0]) if action.size > 0 else 0.0
+
+    forward = min(max(raw_lx, 0.45), 0.85)
+    lateral = 0.45
+    turn = 0.22
+
+    if label == "STOP":
+        return out
+    if label == "FORWARD":
+        out[0] = forward
+    elif label in ("FWD+L", "FORWARD_LEFT"):
+        out[0] = min(forward, 0.70)
+        out[1] = lateral
+    elif label in ("FWD+R", "FORWARD_RIGHT"):
+        out[0] = min(forward, 0.70)
+        out[1] = -lateral
+    elif label == "LEFT":
+        out[1] = lateral
+    elif label == "RIGHT":
+        out[1] = -lateral
+    elif label in ("ROT_L", "TURN_L"):
+        out[2] = turn
+    elif label in ("ROT_R", "TURN_R"):
+        out[2] = -turn
+    else:
+        out[0] = forward
+    return out
+
+
+def run_backend_inference(image: Image.Image, instruction: str, backend_mode: str, api_url: str, current_step: int = 1, run_id: int | None = None):
     backend = make_backend(backend_mode, api_url)
     result = backend.predict(image=image, instruction=instruction)
+    if run_id is not None and not _is_active_run(run_id):
+        raise StaleInferenceResult("stale inference result discarded")
     # action_3d includes az for ROT_L/ROT_R; fall back to 2D action if not present
     action_raw = result.get("action_3d") or result["action"]
     action = np.asarray(action_raw, dtype=np.float32).reshape(-1)
-    chunk = np.asarray(result.get("chunk", [action.tolist()]), dtype=np.float32)
+    chunk_raw = result.get("chunk") or result.get("actions") or [action.tolist()]
+    chunk = np.asarray(chunk_raw, dtype=np.float32)
     if chunk.ndim == 1:
         chunk = chunk.reshape(1, -1)
+
+    strategy = result.get("strategy", "")
+    pred_label = result.get("predicted_label") or ""
+    goal_near = result.get("goal_near_proxy")
+    state["last_bbox"] = result.get("bbox")
+    raw_action = action.copy()
+
+    action_source = str(result.get("source") or result.get("model_name") or "").lower()
+    if "monapi" in action_source:
+        action = snap_monapi_action_to_label(action, pred_label)
+        if chunk.size:
+            chunk = chunk.copy()
+            chunk[0, : min(chunk.shape[1], action.shape[0])] = action[: min(chunk.shape[1], action.shape[0])]
 
     if ROS_AVAILABLE and ros_node:
         lx = float(action[0])
         ly = float(action[1])
         az = float(action[2]) if action.size > 2 else 0.0
-        state["current_log"] = ros_node.control.move_and_stop_ramped(
-            lx, ly, az, source="gradio_inference",
-        )
-        state["action_history"].append((lx, ly, az))
-
-    strategy = result.get("strategy", "")
-    pred_label = result.get("predicted_label") or ""
-    goal_near = result.get("goal_near_proxy")
+        if (run_id is not None and not _is_active_run(run_id)) or state.get("stop_requested") or not state.get("is_running"):
+            state["current_log"] = "STOP requested; skipped stale inference action"
+            log_msg = f"Step {current_step}: Action skipped after STOP"
+            add_console_log(log_msg)
+        else:
+            state["current_log"] = ros_node.control.move_with_watchdog(
+                lx, ly, az, source="gradio_inference", stop_after=0.55,
+            )
+            state["action_history"].append((lx, ly, az))
+            log_msg = f"Step {current_step}: Action=[{lx:.2f}, {ly:.2f}, {az:.2f}] ({pred_label}) -> {state['current_log']}"
+            add_console_log(log_msg)
 
     label_prefix = f"[{pred_label}] " if pred_label else ""
     act_str = f"{label_prefix}{action[0]:.4f}, {action[1]:.4f}, {action[2] if action.size > 2 else 0.0:.4f}"
@@ -766,6 +1426,7 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
         "act_str": act_str,
         "chunk_display": chunk_display,
         "action": action,
+        "raw_action": raw_action,
         "chunk": chunk,
         "goal_near": goal_near,
         # logger용 raw 필드
@@ -782,34 +1443,21 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
 
 
 def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
-    if state["is_busy"]:
-        return (
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-        )
-
+    # 비동기 모드에서도 상태 변화를 실시간 렌더링하기 위해 is_busy 가드로 차단하지 않고 무조건 뷰 갱신
     state["auto_inference"] = mode in ("Inference (Auto)", "Inference (18-step)")
 
     if not ROS_AVAILABLE:
         state["camera_status"] = "ROS Not Available"
-        return None, "ROS Not Available", "N/A", "N/A", "N/A", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None
+        return None, "ROS Not Available", "N/A", "N/A", "N/A", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None, get_console_logs_str(), None
 
     if ros_node is None:
-        # 재초기화 시도 중
         state["camera_status"] = "ROS 재연결 중..."
-        return None, "⏳ ROS 재연결 중...", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
+        return None, "⏳ ROS 재연결 중...", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None, get_console_logs_str(), None
 
     img = ros_node.get_inference_frame()
     if img is None:
         state["camera_status"] = "Waiting for get_image_service"
-        return state["last_img"], "⚠️ Camera Service Waiting...", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
+        return state["last_img"], "⚠️ Camera Service Waiting...", state["ui_latency_val"], state["ui_action_val"], state["ui_chunk_val"], gr.update(value=state["ui_run_status_box"]), state["camera_status"], state["model_path"], state["ui_fig"], get_console_logs_str(), state["ui_action_fig"]
 
     if apply_cc:
         img = correct_image(img)
@@ -817,65 +1465,23 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
     state["camera_status"] = "OK"
     state["last_img"] = img  # raw image for logging
 
-    if state["auto_inference"] and state["is_running"]:
-        state["is_busy"] = True
-        try:
-            state["step_count"] += 1
-            current_step = state["step_count"]
+    display_img = annotate_image(img, bbox=state.get("last_bbox"))
 
-            if current_step == 1:
-                if logger_instance:
-                    logger_instance.start_session(short_model_name(state["model_path"]), instr, instruction_mode=backend_mode)
-                    if logger_instance and state.get("gt_object"):
-                        logger_instance.data["gt_object"] = state["gt_object"]
-                    logger_instance.log_step(current_step, [0.0, 0.0, 0.0], 0, image=img)
-                ros_node.control.robust_stop(source="inference_start")
-                try:
-                    make_backend(backend_mode, api_url).reset(instr)
-                except Exception as e:
-                    return annotate_image(img), f"❌ Reset failed: {e}", "0 ms", "STOP", "Waiting...", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None
-                return annotate_image(img), "Step 1 (Start/Wait)", "0 ms", "0.0000, 0.0000, 0.0000", "Waiting...", gr.update(value="Running (step 1)..."), state["camera_status"], state["model_path"], None
-
-            result = run_backend_inference(img, instr, backend_mode, api_url)
-            display_img = annotate_image(img, bbox=result.get("bbox"))
-            fig = ros_node.generate_trajectory_plot(result["chunk"])
-            if logger_instance:
-                logger_instance.log_step(
-                    current_step,
-                    result["action"],
-                    result.get("latency_ms", 0),
-                    result["chunk"],
-                    image=img,
-                    predicted_label=result.get("predicted_label"),
-                    grounding_caption=result.get("grounding_caption"),
-                    goal_near=result.get("goal_near"),
-                    strategy=result.get("strategy"),
-                    bbox=result.get("bbox"),
-                    instruction_used=result.get("instruction_used"),
-                    matched_path_type=result.get("matched_path_type"),
-                    speed_scale=result.get("speed_scale"),
-                    grounding_cached=result.get("grounding_cached"),
-                )
-            log = f"Step {current_step} | {result['log_str']}"
-            if result.get("goal_near"):
-                state["is_running"] = False
-                state["step_count"] = 0
-                ros_node.control.robust_stop(source="goal_reached")
-                if logger_instance:
-                    report_path = logger_instance.end_session()
-                    log = f"🎯 Goal Reached! (step {current_step}) | Log: {Path(report_path).name}"
-                else:
-                    log = f"🎯 Goal Reached! (step {current_step})"
-                return display_img, log, result["lat_str"], result["act_str"], result["chunk_display"], gr.update(value="Stopped (Goal Reached)"), state["camera_status"], state["model_path"], fig
-            return display_img, log, result["lat_str"], result["act_str"], result["chunk_display"], gr.update(value=f"Running (step {current_step})"), state["camera_status"], state["model_path"], fig
-        finally:
-            state["is_busy"] = False
-
-    info = backend_model_info(backend_mode, api_url)
-    if info["model_loaded"]:
-        state["model_path"] = info["checkpoint_path"]
-        state["model_status"] = f"{backend_mode} ({info['precision']})"
-    return annotate_image(img), f"📡 Live | {state['current_log']}", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
+    # API 서버 상태 조회를 50ms마다 동기로 던지는 것은 큰 병목이 되므로, 2초에 한 번만 백그라운드로 갱신
+    now = time.time()
+    if now - state.get("last_model_info_fetch", 0.0) > 2.0:
+        state["last_model_info_fetch"] = now
+        def _fetch_backend_info():
+            try:
+                info = backend_model_info(backend_mode, api_url)
+                if info.get("model_loaded", False):
+                    state["model_path"] = info.get("checkpoint_path", "N/A")
+                    state["model_status"] = f"{backend_mode} ({info.get('precision', 'N/A')})"
+            except Exception:
+                pass
+        threading.Thread(target=_fetch_backend_info, daemon=True).start()
+        
+    return display_img, f"📡 Live | {state['current_log']}", state["ui_latency_val"], state["ui_action_val"], state["ui_chunk_val"], gr.update(value=state["ui_run_status_box"]), state["camera_status"], state["model_path"], state["ui_fig"], get_console_logs_str(), state["ui_action_fig"]
 
 
 def handle_control(direction):
@@ -894,13 +1500,26 @@ def handle_control(direction):
         "STOP": (0.0, 0.0, 0.0),
     }
     lx, ly, az = mapping[direction]
+
+    # 하드웨어 통신 및 ROS 퍼블리싱을 백그라운드 스레드로 격리하여 UI 스레드 블로킹 방지
+    def _run_control():
+        t0 = time.time()
+        if direction == "STOP":
+            ros_node.control.robust_stop(source="manual_stop")
+            state["current_log"] = "🛑 Force STOP"
+        else:
+            ros_node.control.move_and_stop_timed(lx, ly, az, source=f"manual_{direction}")
+            state["current_log"] = f"🕹️ Moving {direction} (Bang-Bang)"
+        elapsed = (time.time() - t0) * 1000
+        print(f"[handle_control] Direction={direction} executed in background (HW Time: {elapsed:.1f}ms)")
+        add_console_log(state["current_log"])
+
+    threading.Thread(target=_run_control, daemon=True).start()
+
     if direction == "STOP":
-        ros_node.control.robust_stop(source="manual_stop")
-        state["current_log"] = "🛑 Force STOP"
+        return "🛑 Force STOP (Processing...)"
     else:
-        ros_node.control.move_and_stop_timed(lx, ly, az, source=f"manual_{direction}")
-        state["current_log"] = f"🕹️ Moving {direction} (Bang-Bang)"
-    return state["current_log"]
+        return f"🕹️ Moving {direction} (Processing...)"
 
 
 def return_to_start() -> str:
@@ -909,14 +1528,19 @@ def return_to_start() -> str:
         state["is_returning"] = False
         if ROS_AVAILABLE and ros_node:
             ros_node.control.robust_stop(source="return_cancel")
-        return "🛑 복귀 취소됨"
+        msg = "🛑 복귀 취소됨"
+        add_console_log(msg)
+        return msg
 
     history = state.get("action_history", [])
     if not history:
-        return "⚠️ 복귀할 경로 없음 (주행 기록이 없습니다)"
+        msg = "⚠️ 복귀할 경로 없음 (주행 기록이 없습니다)"
+        add_console_log(msg)
+        return msg
 
     def _run():
         state["is_returning"] = True
+        add_console_log(f"🔄 복귀 시작 ({len(history)}스텝 역재생)")
         try:
             rev = [(-lx, -ly, -az) for lx, ly, az in reversed(history)]
             for lx, ly, az in rev:
@@ -926,6 +1550,7 @@ def return_to_start() -> str:
                     ros_node.control.move_and_stop_ramped(lx, ly, az, source="return")
             if ROS_AVAILABLE and ros_node:
                 ros_node.control.robust_stop(source="return_done")
+            add_console_log("🔄 복귀 완료")
         finally:
             state["is_returning"] = False
 
@@ -936,9 +1561,13 @@ def return_to_start() -> str:
 
 def reset_model_wrapper(backend_mode: str, api_url: str, instruction: str):
     try:
-        return make_backend(backend_mode, api_url).reset(instruction)
+        res = make_backend(backend_mode, api_url).reset(instruction)
+        add_console_log(f"🔄 Model Reset: {res}")
+        return res
     except Exception as e:
-        return f"❌ Reset failed: {e}"
+        msg = f"❌ Reset failed: {e}"
+        add_console_log(msg)
+        return msg
 
 
 with gr.Blocks(title="VLA PRO Dashboard") as demo:
@@ -946,24 +1575,38 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
     gr.Markdown(
         """
         <div style="background-color: #1e293b; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 4px; margin-bottom: 15px; color: #e2e8f0;">
-            <h4 style="margin: 0 0 6px 0; color: #60a5fa; font-size: 1.05rem;">📊 실로봇 주행 평가 세션 수집 목표 (Real Robot Eval Protocol)</h4>
+            <h4 style="margin: 0 0 6px 0; color: #60a5fa; font-size: 1.05rem;">📊 조이스틱 자유 주행 데이터 수집 현황 (5/15 지시사항)</h4>
             <ul style="margin: 0; padding-left: 20px; font-size: 0.92rem; line-height: 1.5;">
-                <li><strong>정식 평가 목표:</strong> 9개 경로 타입(path_type) × 각 2회 = <strong>총 18회 주행 세션 기록</strong></li>
-                <li><strong>최소 단축 평가:</strong> 바스켓 위치 3종(LEFT / CENTER / RIGHT) × 각 3회 = <strong>총 9회 주행 세션 기록</strong></li>
+                <li><strong>최종 수집 목표:</strong> 조이스틱 기반 자유 주행 에피소드 <strong>총 30개</strong></li>
+                <li><strong>현재 수집 완료:</strong> <strong>21개</strong> (Free Center 7, Free Left 7, Free Right 7 완료)</li>
+                <li><strong style="color: #fbbf24;">남은 수집 필요량:</strong> <strong>9개 추가 수집 필요</strong> (각 방향별 균등 보완 권장)</li>
                 <li><strong>평가 기록 도구:</strong> 주행 완료 시 즉시 <code>vla-trial-logger</code> (포트 7862)를 통해 기록을 저장하십시오.</li>
             </ul>
         </div>
         """
     )
 
+    with gr.Accordion("🖥️ System Process & Resource Monitor", open=True):
+        with gr.Row():
+            with gr.Column(scale=3):
+                resource_md = gr.HTML(get_system_resources())
+            with gr.Column(scale=2):
+                proc_dropdown = gr.Dropdown(
+                    label="Active VLA Processes (Select to Kill)",
+                    choices=[],
+                    interactive=True,
+                )
+                with gr.Row():
+                    btn_refresh_mon = gr.Button("↺ Refresh Status", variant="secondary", size="sm")
+                    btn_kill_proc = gr.Button("🛑 Kill Selected Process", variant="stop", size="sm")
+                    btn_start_server = gr.Button("🚀 Start VLA Server (Port 8082)", variant="primary", size="sm")
+                mon_status_box = gr.Textbox(label="Last Action Status", value="Idle", interactive=False)
+
     _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
-    # 카메라 시작 → 완료 후 즉시 카메라 프레임 fetch
-    _cam_start_btn.click(fn=start_camera, outputs=_cam_st)
-    _cam_stop_btn.click(fn=stop_camera,   outputs=_cam_st)
 
     with gr.Row():
         with gr.Column(scale=2):
-            camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
+            camera_output = gr.Image(label="Live Camera (via Service)", interactive=False, format="png")
             gr.Markdown("🟢 Continuous polling via GetImage service")
 
             with gr.Group():
@@ -980,47 +1623,59 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
                             choices=["Local Runtime", "API Server"],
                             value=DEFAULT_BACKEND_MODE,
                             label="Inference Backend",
+                            visible=False,
                         )
-                        api_url_box = gr.Textbox(label="API URL", value=DEFAULT_API_URL)
-
+                        
                         ckpts, confs = scan_local_files()
-                        # Local Runtime 전용 컨트롤 — API Server 선택 시 자동 숨김
-                        _is_api = DEFAULT_BACKEND_MODE == "API Server"
-                        with gr.Column(visible=not _is_api) as local_panel:
-                            ckpt_dropdown = gr.Dropdown(
-                                choices=ckpts,
-                                label="🎯 Select Checkpoint (.ckpt/.pth)",
-                                value=pick_default_choice(ckpts, "VLA_CHECKPOINT_PATH"),
-                            )
-                            conf_dropdown = gr.Dropdown(
-                                choices=confs,
-                                label="⚙️ Select Config (.json)",
-                                value=pick_default_choice(confs, "VLA_CONFIG_PATH"),
-                            )
-                            quant_radio = gr.Radio(
-                                choices=["INT8 (Fast)", "FP16 (Accurate)"],
-                                value="FP16 (Accurate)",
-                                label="Model Precision",
-                            )
-                            btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
-
+                        
+                        with gr.Tabs(selected="api_tab" if DEFAULT_BACKEND_MODE == "API Server" else "local_tab") as backend_tabs:
+                            with gr.Tab("📡 MoNa-pi API Server (Safe Port Mode)", id="api_tab") as api_tab:
+                                gr.Markdown("🟢 외부 포트(8082)로 동작 중인 모델을 연동합니다. 온보드 리소스를 중복 점유하지 않아 매우 안전합니다.")
+                                api_url_box = gr.Textbox(label="API URL", value=DEFAULT_API_URL)
+                                
+                            with gr.Tab("🖥️ Local Onboard VLA (Resource Hungry)", id="local_tab") as local_tab:
+                                gr.Markdown("⚠️ **주의:** 온보드 메모리에서 모델을 직접 로드하므로 중복 로딩 시 OOM 다운 위험이 있습니다.")
+                                ckpt_dropdown = gr.Dropdown(
+                                    choices=ckpts,
+                                    label="🎯 Select Checkpoint (.ckpt/.pth)",
+                                    value=pick_default_choice(ckpts, "VLA_CHECKPOINT_PATH"),
+                                )
+                                conf_dropdown = gr.Dropdown(
+                                    choices=confs,
+                                    label="⚙️ Select Config (.json)",
+                                    value=pick_default_choice(confs, "VLA_CONFIG_PATH"),
+                                )
+                                quant_radio = gr.Radio(
+                                    choices=["INT8 (Fast)", "FP16 (Accurate)"],
+                                    value="FP16 (Accurate)",
+                                    label="Model Precision",
+                                )
+                                btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
+                                
                         load_status = gr.Textbox(
                             label="Model Status",
-                            value="API Server 연결됨" if _is_api else "Not Loaded",
+                            value="API Server 연결됨" if DEFAULT_BACKEND_MODE == "API Server" else "Not Loaded",
                             interactive=False,
                         )
                         model_path = gr.Textbox(label="Active Model / Checkpoint", value="N/A", interactive=False)
                         toggle_cc = gr.Checkbox(label="🎨 RGB Red Gain Boost", value=False)
-
-                        def on_backend_change(backend):
-                            is_api = backend == "API Server"
-                            status = "API Server 연결됨" if is_api else "Not Loaded"
-                            return gr.update(visible=not is_api), gr.update(value=status)
-
-                        backend_radio.change(
-                            fn=on_backend_change,
-                            inputs=[backend_radio],
-                            outputs=[local_panel, load_status],
+                        
+                        def select_api_backend():
+                            return "API Server", "API Server 연결됨"
+                            
+                        def select_local_backend():
+                            return "Local Runtime", "Not Loaded"
+                            
+                        api_tab.select(
+                            fn=select_api_backend,
+                            inputs=[],
+                            outputs=[backend_radio, load_status]
+                        )
+                        
+                        local_tab.select(
+                            fn=select_local_backend,
+                            inputs=[],
+                            outputs=[backend_radio, load_status]
                         )
 
                     with gr.Column():
@@ -1028,8 +1683,29 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
                         with gr.Row():
                             btn_start_inf = gr.Button("▶️ START", variant="primary")
                             btn_stop_inf = gr.Button("⏹️ STOP", variant="stop")
-                        btn_return = gr.Button("🔄 시작 위치 복귀", variant="secondary")
-                        run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
+                        
+                        with gr.Row():
+                            btn_return = gr.Button("🔄 시작 위치 복귀", variant="secondary")
+                            btn_reset = gr.Button("🔄 Reset Model History", variant="secondary")
+                        
+                        with gr.Row():
+                            run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
+                            latency_val = gr.Textbox(label="Latency", value="0 ms", interactive=False)
+                            action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0", interactive=False)
+
+                        console_log_box = gr.Textbox(
+                            label="실시간 추론 로그 (최근 20줄)",
+                            value="Ready...",
+                            lines=12,
+                            max_lines=15,
+                            interactive=False,
+                        )
+                        
+                        with gr.Accordion("📊 상세 예측 정보 (청크 & 궤적 & 액션)", open=False):
+                            chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
+                            with gr.Row():
+                                traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
+                                action_plot = gr.Plot(label="Executed Action History (lx, ly, az)")
 
             def on_mode_change(selected_mode):
                 state["auto_inference"] = selected_mode in ("Inference (Auto)", "Inference (18-step)")
@@ -1128,12 +1804,11 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
                     outputs=stop_config_status,
                 )
 
-            status_log = gr.Textbox(label="Status", value="Ready")
-            latency_val = gr.Textbox(label="Latency", value="0 ms")
-            action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
-            chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
-            traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
-            btn_reset = gr.Button("🔄 Reset Model History")
+            status_log = gr.Textbox(label="Status", value="Ready", visible=False)
+
+    def stop_running_wrapper():
+        set_running(False, "", "", "", "")
+        return "Stopped"
 
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt: set_running(True, mode, url, instr, gt),
@@ -1141,7 +1816,7 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
         outputs=run_status_box,
     )
     btn_stop_inf.click(
-        fn=lambda: state.update({"is_running": False, "step_count": 0}) or "Stopped",
+        fn=stop_running_wrapper,
         outputs=run_status_box,
     )
     btn_return.click(
@@ -1165,41 +1840,46 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
 
     def _get_bbox_area_display():
         """최근 예측의 bbox area 표시 (정지 판단 기준 시각화)."""
-        try:
-            import requests as _req
-            r = _req.get(f"{DEFAULT_API_URL}/recent", timeout=2)
-            preds = r.json().get("predictions", [])
-            if preds:
-                p = preds[0]
-                bbox = p.get("bbox", {})
-                area = bbox.get("area", 0)
-                entity = bbox.get("entity", "?")
-                cx = bbox.get("cx", 0.5)
-                near = "🔴 STOP 조건 충족!" if area >= 0.18 and abs(cx - 0.5) <= 0.25 and entity not in ("coarse_clf", "center_fallback", "") and not entity.startswith("caption:") else ""
-                return f"area={area:.3f}  cx={cx:.2f}  [{entity[:20]}]  {near}"
-        except Exception:
-            pass
+        bbox = state.get("last_bbox")
+        if bbox:
+            area = bbox.get("area", 0)
+            entity = bbox.get("entity", "?")
+            cx = bbox.get("cx", 0.5)
+            near = "🔴 STOP 조건 충족!" if area >= 0.18 and abs(cx - 0.5) <= 0.25 and entity not in ("coarse_clf", "center_fallback", "") and not entity.startswith("caption:") else ""
+            return f"area={area:.3f}  cx={cx:.2f}  [{entity[:20]}]  {near}"
         return "—"
 
-    timer = gr.Timer(0.5, active=True)
+    timer = gr.Timer(0.05, active=ROS_AVAILABLE and is_camera_running())
     timer.tick(
         fn=update_ui,
         inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
-        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
+        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot, console_log_box, action_plot],
     )
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
     # 페이지 열리자마자 첫 프레임 즉시 표시
     demo.load(
         fn=update_ui,
         inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
-        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
+        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot, console_log_box, action_plot],
     )
-    # 카메라 시작 버튼 완료 후 즉시 프레임 가져오기
-    _cam_start_btn.click(fn=start_camera, outputs=_cam_st).then(
+    
+    def _activate_timer(_=None):
+        return gr.update(active=ROS_AVAILABLE and is_camera_running())
+
+    def _deactivate_timer(_=None):
+        return gr.update(active=False)
+
+    _cam_start_btn.click(
+        fn=start_camera, outputs=_cam_st
+    ).then(
         fn=update_ui,
         inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
-        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
-    )
+        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot, console_log_box, action_plot],
+    ).then(fn=_activate_timer, outputs=timer)
+
+    _cam_stop_btn.click(
+        fn=stop_camera, outputs=_cam_st
+    ).then(fn=_deactivate_timer, outputs=timer)
 
     btn_reset.click(
         fn=reset_model_wrapper,
@@ -1213,37 +1893,45 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
         instr = cfg["instruction"]
         model_key = cfg.get("model")
         desc = cfg.get("desc", "")
-
-        # config/checkpoint 자동 매칭
+ 
         auto_conf = cfg.get("config")
         auto_ckpt = cfg.get("checkpoint")
         conf_update = gr.update(value=auto_conf) if auto_conf else gr.update()
         ckpt_update = gr.update(value=auto_ckpt) if auto_ckpt else gr.update()
-
-        # GoalNav 모드면 backend 종류 상관없이 API 서버에 config push 시도
+ 
         cfg_status = ""
-        if is_goal and model_key:
-            try:
-                ApiInferenceBackend(api_url).set_config(
-                    speed_scaling=cfg["speed_scaling"],
-                    grounding_skip_n=cfg["grounding_skip_n"],
-                    model=model_key,
-                )
-                parts = [f"model={model_key}", f"skip_n={cfg['grounding_skip_n']}"]
-                if cfg["speed_scaling"]:
-                    parts.append("속도비례ON")
-                cfg_status = "✅ 서버 적용: " + ", ".join(parts)
-                if auto_conf:
-                    cfg_status += f"  |  📋 {Path(auto_conf).name}"
-            except Exception as e:
-                cfg_status = f"⚠️ 서버 적용 실패: {e}"
-                if auto_conf:
-                    cfg_status += f"  |  📋 로컬: {Path(auto_conf).name}"
-        elif auto_conf:
-            cfg_status = f"📋 자동 매칭: {Path(auto_conf).name}"
+        # 탭 상태가 API Server일 때만 외부 서버로 config push 시도
+        if backend_mode == "API Server":
+            if is_goal:
+                try:
+                    ApiInferenceBackend(api_url).set_config(
+                        speed_scaling=cfg["speed_scaling"],
+                        grounding_skip_n=cfg["grounding_skip_n"],
+                        model=model_key,
+                        smooth_enabled=cfg.get("smooth_enabled"),
+                    )
+                    parts = []
+                    if model_key:
+                        parts.append(f"model={model_key}")
+                    parts.append(f"skip_n={cfg['grounding_skip_n']}")
+                    if cfg["speed_scaling"]:
+                        parts.append("속도비례ON")
+                    if cfg.get("smooth_enabled") is False:
+                        parts.append("smoothingOFF")
+                    cfg_status = "✅ API 서버 적용: " + ", ".join(parts)
+                except Exception as e:
+                    cfg_status = f"⚠️ API 서버 연동 실패: {e}"
+            else:
+                cfg_status = "ℹ️ API Server 모드 (일반 추론)"
+        elif backend_mode == "Local Runtime":
+            # Local Runtime 모드일 때는 로컬 config 적용 및 매칭
+            if auto_conf:
+                cfg_status = f"📋 로컬 자동매칭 완료: {Path(auto_conf).name}"
+            else:
+                cfg_status = "📋 로컬 모드 적용됨"
         else:
             cfg_status = "미적용"
-
+ 
         return (
             gr.update(visible=is_goal),
             gr.update(visible=not is_goal),
@@ -1296,6 +1984,36 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
             });
         }
         """,
+    )
+
+    btn_refresh_mon.click(
+        fn=update_monitor,
+        inputs=[],
+        outputs=[resource_md, proc_dropdown]
+    )
+
+    btn_kill_proc.click(
+        fn=handle_kill_proc,
+        inputs=[proc_dropdown],
+        outputs=[mon_status_box, resource_md, proc_dropdown]
+    )
+
+    btn_start_server.click(
+        fn=handle_start_server,
+        inputs=[],
+        outputs=[mon_status_box, resource_md, proc_dropdown]
+    )
+
+    demo.load(
+        fn=update_monitor,
+        inputs=[],
+        outputs=[resource_md, proc_dropdown]
+    )
+    
+    demo.load(
+        fn=on_exp_mode_change,
+        inputs=[exp_mode, api_url_box, backend_radio],
+        outputs=[goal_dropdown, path_dropdown, instr_box_real, exp_config_status, conf_dropdown, ckpt_dropdown],
     )
 
 

@@ -110,11 +110,6 @@ class InferenceLogger:
                 "action_label_counts": label_counts,
             }
 
-        # ── JSON 저장 ────────────────────────────────────────────────────────
-        with open(self.log_file, "w") as f:
-            json.dump(self.data, f, indent=4)
-        print(f"✅ JSON 저장: {self.log_file}")
-
         # ── H5 저장 (데이터셋 동일 포맷) ─────────────────────────────────────
         if self._frames:
             try:
@@ -141,6 +136,11 @@ class InferenceLogger:
                 self.data["h5_path"] = h5_path
             except Exception as e:
                 print(f"⚠️ H5 저장 실패: {e}")
+
+        # ── JSON 저장 ────────────────────────────────────────────────────────
+        with open(self.log_file, "w") as f:
+            json.dump(self.data, f, indent=4)
+        print(f"✅ JSON 저장: {self.log_file}")
 
         return self.log_file
 

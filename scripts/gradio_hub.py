@@ -29,7 +29,7 @@ SERVICES = [
         "name":   "Object Recognition Demo",
         "port":   7863,
         "script": "scripts/gradio_grounding_demo.py",
-        "cmd":    "python3 scripts/gradio_grounding_demo.py",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 scripts/gradio_grounding_demo.py",
         "desc":   "Kosmos-2 그라운딩 — 웹캠/이미지 bbox 테스트 + Alias 비교",
         "group":  "Demo",
     },
@@ -37,7 +37,7 @@ SERVICES = [
         "name":   "Inference Dashboard",
         "port":   7865,
         "script": "scripts/gradio_inference_dashboard.py",
-        "cmd":    "python3 scripts/gradio_inference_dashboard.py",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 scripts/gradio_inference_dashboard.py",
         "desc":   "메인 추론 대시보드 — GoalNav 로봇 제어",
         "group":  "Robot",
         "timeout": 180,
@@ -54,7 +54,7 @@ SERVICES = [
         "name":   "Data Collector",
         "port":   8081,
         "script": "scripts/gradio_data_collector.py",
-        "cmd":    "python3 scripts/gradio_data_collector.py",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 scripts/gradio_data_collector.py",
         "desc":   "조이스틱 데이터 수집 — H5 에피소드 기록",
         "group":  "Data",
     },
@@ -94,7 +94,7 @@ SERVICES = [
         "name":   "GoalNav API",
         "port":   8001,
         "script": "robovlm_nav/serve/proxy_inference_server.py",
-        "cmd":    "python3 robovlm_nav/serve/proxy_inference_server.py --port 8001",
+        "cmd":    "source /opt/ros/humble/setup.bash && (cd /home/soda/MoNaVLA/ROS_action/install && source local_setup.bash) && for _p in /home/soda/MoNaVLA/ROS_action/install/*/lib; do export LD_LIBRARY_PATH=\"${_p}:${LD_LIBRARY_PATH:-}\"; done && python3 robovlm_nav/serve/proxy_inference_server.py --port 8001",
         "desc":   "GoalNav FastAPI 백엔드 — bbox grounding + MLP 추론",
         "group":  "System",
         "path":   "/dashboard",
@@ -110,6 +110,17 @@ SERVICES = [
         "path":   "/goalnav/status",
         "timeout": 180,
     },
+    # ── MoNa-pi (π0 Flow Matching) ──────────────────────────────────────────
+    {
+        "name":   "MoNa-pi Server",
+        "port":   8082,
+        "script": "/home/soda/MoNa-pi/inference/server.py",
+        "cmd":    "python3 /home/soda/MoNa-pi/inference/server.py --config /home/soda/MoNa-pi/configs/serbot2.yaml --ckpt /home/soda/MoNa-pi/checkpoints/best --port 8082",
+        "desc":   "π0 Flow Matching — 네이티브 + MoNaVLA API 통합 (VLA_API_SERVER=localhost:8082)",
+        "group":  "MonAPI",
+        "path":   "/health",
+        "timeout": 120,
+    },
 ]
 
 GROUP_COLOR = {
@@ -118,6 +129,7 @@ GROUP_COLOR = {
     "Data":   "#5a3d1a",
     "Eval":   "#4a1a6b",
     "System": "#3d3d3d",
+    "MonAPI": "#6b3d1a",  # 주황-갈색 계열 (π0 브랜드)
 }
 
 
