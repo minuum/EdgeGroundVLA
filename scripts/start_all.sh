@@ -7,7 +7,7 @@
 #   bash scripts/start_all.sh inference # inference 관련만
 #   bash scripts/start_all.sh status    # 상태 확인만
 
-set -euo pipefail
+set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOGS="${ROOT}/logs"
 mkdir -p "$LOGS"
@@ -56,8 +56,10 @@ declare -a SERVICES=(
   "session_eval|7861|python3 scripts/gradio_session_eval.py"
   "h5_analyzer|7866|python3 scripts/gradio_offline_h5_analyzer.py"
   "monitor|8080|python3 scripts/monitor_dashboard.py"
-  "goalnav_api|8001|${ROS_CMD_PREFIX}python3 robovlm_nav/serve/proxy_inference_server.py --port 8001"
-  "inference_server|8000|VLA_GOALNAV_VARIANT=exp54_s2v2 VLA_GOALNAV_ONLY=1 python3 robovlm_nav/serve/inference_server.py"
+  # OOM 방지를 위해 개별 8000/8001 서버는 내리고 8082 단일 통합 서버로 기동
+  # "goalnav_api|8001|${ROS_CMD_PREFIX}python3 robovlm_nav/serve/proxy_inference_server.py --port 8001"
+  # "inference_server|8000|VLA_GOALNAV_VARIANT=exp54_s2v2 VLA_GOALNAV_ONLY=1 python3 robovlm_nav/serve/inference_server.py"
+  "inference_server_8082|8082|python3 robovlm_nav/serve/inference_server.py --port 8082"
 )
 
 # ─── 유틸 함수 ─────────────────────────────────────────────────────────────────
@@ -83,21 +85,31 @@ start_svc() {
   fi
 
   printf "  ${YELLOW}○${RESET} %-22s starting..." "$name"
+  # setsid: 새 세션으로 분리 → Antigravity/IDE 터미널 종료 시에도 생존
   # shellcheck disable=SC2086
-  nohup bash -c "cd '${ROOT}' && ${cmd}" > "$log" 2>&1 &
+  setsid nohup bash -c "cd '${ROOT}' && ${cmd}" > "$log" 2>&1 &
   local bg_pid=$!
 
+  # VLA 모델 로딩은 최대 5분 소요 → 300s 대기
+  local timeout_sec=300
   local waited=0
-  while ! is_port_up "$port" && [[ $waited -lt 90 ]]; do
+  while ! is_port_up "$port" && [[ $waited -lt $timeout_sec ]]; do
     sleep 1; ((waited++))
-    printf "."
+    # 30초마다 경과 시간 표시
+    if (( waited % 30 == 0 )); then
+      printf " [${waited}s]"
+    else
+      printf "."
+    fi
   done
 
   if is_port_up "$port"; then
     local pid; pid=$(get_pid "$port")
-    printf "\r  ${GREEN}●${RESET} %-22s started     ${CYAN}pid=%-6s${RESET} :${port}\n" "$name" "$pid"
+    printf "\r  ${GREEN}●${RESET} %-22s started     ${CYAN}pid=%-6s${RESET} :${port} (${waited}s)\n" "$name" "$pid"
   else
-    printf "\r  ${RED}✗${RESET} %-22s timeout      log: %s\n" "$name" "$log"
+    printf "\r  ${RED}✗${RESET} %-22s TIMEOUT(${timeout_sec}s) log: %s\n" "$name" "$log"
+    # 타임아웃이어도 스크립트 계속 진행 (다른 서비스 기동 가능하게)
+    return 0
   fi
 }
 
@@ -159,7 +171,8 @@ for entry in "${SERVICES[@]}"; do
     hub)       [[ "$name" == "hub" ]] && TO_START+=("$entry") ;;
     inference) [[ "$name" =~ inference|goalnav ]] && TO_START+=("$entry") ;;
     demo)      [[ "$name" =~ grounding|hub ]] && TO_START+=("$entry") ;;
-    robot)     [[ "$name" =~ inference|trial|goalnav ]] && TO_START+=("$entry") ;;
+    dashboard) [[ "$name" =~ inference_server_8082|inference_dashboard ]] && TO_START+=("$entry") ;;
+    robot)     [[ "$name" =~ inference|trial|goalnav|dashboard ]] && TO_START+=("$entry") ;;
     data)      [[ "$name" =~ collector|session|h5 ]] && TO_START+=("$entry") ;;
     "$name")   TO_START+=("$entry") ;;
   esac
