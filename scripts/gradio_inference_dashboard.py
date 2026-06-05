@@ -1,6 +1,9 @@
 # ── ROS camera_interfaces LD_LIBRARY_PATH 주입 (다른 import보다 먼저) ──────────
 import os, sys as _sys
-_ROS_WS = "/home/soda/MoNaVLA/ROS_action/install"
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROS_WS = os.getenv("VLA_ROS_WS", os.path.join(_project_root, "ROS_action"))
+if not _ROS_WS.endswith("/install"):
+    _ROS_WS = os.path.join(_ROS_WS, "install")
 _ros_lib_dirs = [f"{_ROS_WS}/camera_interfaces/lib", f"{_ROS_WS}/camera_pub/lib"]
 _ros_py_dirs  = [f"{_ROS_WS}/camera_interfaces/local/lib/python3.10/dist-packages"]
 _ld = os.environ.get("LD_LIBRARY_PATH", "")
@@ -157,7 +160,7 @@ print(f"🔧 Forced ROS_DOMAIN_ID={os.environ['ROS_DOMAIN_ID']}, RMW={os.environ
 def load_env() -> None:
     env_path = Path(os.getenv("VLA_ENV_PATH", str(DEFAULT_ENV_PATH)))
     if not env_path.exists():
-        fallback = Path("/home/billy/25-1kp/vla/.vla_env_settings")
+        fallback = Path(os.path.expanduser("~/26CS/MoNaVLA/.vla_env_settings"))
         if fallback.exists():
             env_path = fallback
     if not env_path.exists():

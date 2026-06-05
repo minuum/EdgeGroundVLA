@@ -75,7 +75,14 @@ class MobileVLAH5Dataset(Dataset):
         self.cumulative_lengths = [0]
         for ep_file in self.episode_files:
             with h5py.File(ep_file, 'r') as f:
-                length = len(f['images'])  # 'observations/images' -> 'images'
+                # 구형 및 신형 V5 이미지 데이터셋 경로 분기 처리
+                if 'images' in f:
+                    img_dataset = f['images']
+                elif 'observations' in f and 'images' in f['observations']:
+                    img_dataset = f['observations/images']
+                else:
+                    raise KeyError(f"No images dataset found in {Path(ep_file).name}")
+                length = len(img_dataset)
                 self.episode_lengths.append(length)
                 self.cumulative_lengths.append(self.cumulative_lengths[-1] + length)
         
@@ -149,7 +156,14 @@ class MobileVLAH5Dataset(Dataset):
         
         # HDF5 파일 로드
         with h5py.File(self.episode_files[ep_idx], 'r') as f:
-            total_len = len(f['images'])
+            # 구형 및 신형 V5 이미지 데이터셋 경로 분기 처리
+            if 'images' in f:
+                img_dataset = f['images']
+            elif 'observations' in f and 'images' in f['observations']:
+                img_dataset = f['observations/images']
+            else:
+                raise KeyError(f"No images dataset found in {Path(self.episode_files[ep_idx]).name}")
+            total_len = len(img_dataset)
             
             # Random start frame within valid range
             max_start = max(0, total_len - total_frames_needed)
@@ -160,36 +174,32 @@ class MobileVLAH5Dataset(Dataset):
                 # Training: random start
                 start_frame = np.random.randint(0, max_start + 1) if max_start > 0 else 0
             
-            # 이미지 로드 (random start부터 total_frames_needed 프레임)
+            # 이미지 로드 (random start부터 total_frames_needed 프레임 - 슬라이싱 리드로 속도 최적화)
             images = []
-            for t in range(start_frame, min(start_frame + total_frames_needed, total_len)):
-                img_array = f['images'][t]
+            end_frame = min(start_frame + total_frames_needed, total_len)
+            
+            # 한 번에 슬라이싱으로 로드 (디스크 IO 횟수를 획기적으로 감축)
+            img_arrays = img_dataset[start_frame:end_frame]
+            
+            # Normalization 텐서 상수 최적화
+            mean = torch.tensor([0.48145466, 0.4578275, 0.40821073]).view(3, 1, 1)
+            std = torch.tensor([0.26862954, 0.26130258, 0.27577711]).view(3, 1, 1)
+            
+            for img_array in img_arrays:
                 img = Image.fromarray(img_array.astype(np.uint8))
                 img = img.resize((self.image_size, self.image_size), Image.BILINEAR)
                 img_tensor = torch.from_numpy(np.array(img)).float() / 255.0
                 img_tensor = img_tensor.permute(2, 0, 1)
-                
-                # Normalization (CLIP/Kosmos-2 mean & std)
-                # Fixes domain shift between training (was [0,1]) and inference (Normalized)
-                mean = torch.tensor([0.48145466, 0.4578275, 0.40821073]).view(3, 1, 1)
-                std = torch.tensor([0.26862954, 0.26130258, 0.27577711]).view(3, 1, 1)
                 img_tensor = (img_tensor - mean) / std
-                
                 images.append(img_tensor)
             
             # Padding if needed (edge case)
             while len(images) < total_frames_needed:
                 images.append(torch.zeros_like(images[-1]) if images else torch.zeros(3, self.image_size, self.image_size))
             
-            # 액션 로드
-            actions = []
-            for t in range(start_frame, min(start_frame + total_frames_needed, total_len)):
-                if t < len(f['actions']):
-                    action_2d = f['actions'][t][:2]  # linear_x, linear_y만 사용
-                    action = action_2d.copy()
-                else:
-                    action = np.zeros(2)
-                actions.append(action)
+            # 액션 로드 (한 번에 슬라이싱 로드)
+            actions_raw = f['actions'][start_frame:end_frame]
+            actions = [a[:2].copy() for a in actions_raw]
             
             # Padding for actions
             while len(actions) < total_frames_needed:

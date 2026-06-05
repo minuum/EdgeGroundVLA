@@ -258,6 +258,7 @@
     <a class="toc-item" href="#ch21" data-target="ch21"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 21</span><span class="toc-label">연구 정리 & 방향성</span></a>
     <a class="toc-item" href="#ch22" data-target="ch22"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">CH 22</span><span class="toc-label">동기 vs 비동기 수집 · STOP 진실</span></a>
     <a class="toc-item" href="#ch23" data-target="ch23"><span class="toc-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">CH 23</span><span class="toc-label">Grounding 붕괴 — 엉뚱한 bbox의 진실</span></a>
+    <a class="toc-item" href="#ch27" data-target="ch27"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 27</span><span class="toc-label">MoNa-Pi: Flow Matching VLA</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
@@ -6452,6 +6453,102 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 
 </div>
 
+<div class="chapter" id="ch27">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">CH 27</span>
+    <h2 class="chapter-title">MoNa-Pi: π0 (Pi-zero) 기반 Flow Matching VLA 프레임워크 설계 사상</h2>
+  </div>
+  <p class="chapter-desc">
+    본 연구의 모태이자 핵심 설계 사상인 Physical Intelligence의 <strong>π0 (Pi-zero)</strong> 모델을 기반으로, 
+    <strong>Flow Matching Action Head</strong>와 <strong>AdaLN-Zero 시간 컨디셔닝</strong>이 적용된 하이브리드 분해형 VLA 프레임워크 <strong>MoNa-Pi</strong>를 정의합니다.
+  </p>
+
+  <!-- ① 제안 배경 및 핵심 문제점 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:12px">① Motivation: π0 모델의 핵심 가치와 연속 액션 제어</div>
+    <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8">
+      기존 VLA 모델들(예: RT-1, RT-2, Kosmos-2)은 조향과 속도 명령을 유한한 이산 토큰(Discrete Tokens)으로 분류하여 출력하므로 거동이 끊기고 부드럽지 못한 조향 제어를 보였습니다. 
+      본 연구는 이를 극복하기 위해 Physical Intelligence의 <strong>π0 (Pi-zero)</strong> 모델을 모티브로 삼아, <strong>Flow Matching(또는 Diffusion)</strong> 기술을 기반으로 연속 액션 공간(Continuous Action Space)에서 최적의 주행 제어 궤적을 직접 생성하는 프레임워크를 수립했습니다.
+      <ul style="margin-top:8px;padding-left:20px">
+        <li><strong>Flow Matching Action Head</strong>: 9개의 불연속 조향 클래스로 분류하는 대신, 실시간 3차원 연속 액션 벡터 <code style="background:#1e2438;padding:1px 4px;border-radius:3px">[linear_x, linear_y, angular_z]</code>를 예측하여 부드럽고 자연스러운 물리 제어를 도출합니다.</li>
+        <li><strong>Action Chunking (Multi-step Prediction)</strong>: 매 프레임 단일 액션만 예측하는 병목에서 탈피, 한 번에 미래의 N-step(예: 16~50 step) 액션 시퀀스를 동시에 생성해 냄으로써 제어 주기를 50Hz 이상으로 대폭 끌어올릴 수 있는 기틀을 마련했습니다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ② AdaLN-Zero 기반 시간 컨디셔닝 아키텍처 -->
+  <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#a78bfa;font-size:0.82rem;font-weight:700;margin-bottom:12px">② 핵심 아키텍처: AdaLN-Zero (Adaptive Layer Normalization) 컨디셔닝</div>
+    <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8">
+      VLA Flow Model의 핵심은 노이즈 제거 과정의 timestep $t$와 VLM이 추출한 시각/언어 조건부 임베딩 $c$를 어떻게 Action Expert 트랜스포머에 투입할 것인가입니다. MoNa-Pi는 π0 논문 및 DiT(Diffusion Transformer)의 핵심인 <strong>AdaLN-Zero 시간 컨디셔닝</strong>을 적용했습니다.
+      <ul style="margin-top:8px;padding-left:20px">
+        <li><strong>동적 스케일 및 쉬프트 주입:</strong> 단순히 입력 임베딩에 timestep 임베딩을 더하던 기존의 단순 덧셈 방식과 달리, $t$를 MLP에 통과시켜 각 Layer Normalization 블록마다 scale/shift 파라미터 $(\alpha, \beta, \gamma)$로 매핑해 동적으로 곱하고 더해줍니다.</li>
+        <div style="background:#040d1a;padding:10px;border-radius:6px;font-family:monospace;font-size:0.75rem;margin:8px 0;border:1px solid #334155;color:#e2e8f0;line-height:1.4">
+          // self-attention block<br>
+          h = h + &gamma;1 * self_attn( &alpha;1 * norm1(h) + &beta;1 )<br><br>
+          // mlp block<br>
+          h = h + &gamma;2 * mlp( &alpha;2 * norm3(h) + &beta;2 )
+        </div>
+        <li><strong>Zero Initialization 효과:</strong> 학습 초기 단계에서 게이팅 변수 $\gamma$를 0으로 초기화(Zero-init)하여 잔차 연결(Residual Block)이 항등 함수(Identity mapping)로 시작하도록 유도하여 학습 안정성을 극대화합니다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ③ 타 VLA 논문들과의 아키텍처 정량/정성 비교 -->
+  <div style="background:#08111e;border:1px solid #1e3040;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#fbbf24;font-size:0.82rem;font-weight:700;margin-bottom:12px">③ 주요 VLA 프레임워크와의 구조적 비교 분석 (π0 기반)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.75rem;text-align:center;color:#cbd5e1">
+        <thead>
+          <tr style="background:#2d1b4e;color:#a78bfa">
+            <th style="padding:8px 10px;text-align:left;border:1px solid #4c2885">프레임워크</th>
+            <th style="padding:8px 10px;border:1px solid #4c2885">모델 구조</th>
+            <th style="padding:8px 10px;border:1px solid #4c2885">시간 컨디셔닝 기법</th>
+            <th style="padding:8px 10px;border:1px solid #4c2885">제어 출력 및 빈도</th>
+            <th style="padding:8px 10px;border:1px solid #4c2885">필요 데이터 규모</th>
+            <th style="padding:8px 10px;border:1px solid #4c2885;text-align:left">학술적 근거 및 출처</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#130b24;border-bottom:1px solid #4c2885">
+            <td style="padding:8px 10px;text-align:left;font-weight:700">RT-2</td>
+            <td style="padding:8px 10px">Single E2E Transformer</td>
+            <td style="padding:8px 10px">없음 (이산 토큰 분류)</td>
+            <td style="padding:8px 10px;color:#f87171">이산 액션 / ~3Hz</td>
+            <td style="padding:8px 10px">수십만 ep + WebLI</td>
+            <td style="padding:8px 10px;text-align:left;color:#94a3b8">RT-2 (CoRL 2023), Section 4.2</td>
+          </tr>
+          <tr style="background:#130b24;border-bottom:1px solid #4c2885">
+            <td style="padding:8px 10px;text-align:left;font-weight:700">Octo Policy</td>
+            <td style="padding:8px 10px">Transformer + Diffusion Head</td>
+            <td style="padding:8px 10px">FiLM (Feature-wise Linear Modulation)</td>
+            <td style="padding:8px 10px;color:#fca5a5">연속 액션 / ~10Hz</td>
+            <td style="padding:8px 10px">Open X-Embodiment</td>
+            <td style="padding:8px 10px;text-align:left;color:#94a3b8">Octo Policy (CoRL 2024), Section 3.1</td>
+          </tr>
+          <tr style="background:#130b24;border-bottom:1px solid #4c2885">
+            <td style="padding:8px 10px;text-align:left;font-weight:700">π0 (Pi-zero)</td>
+            <td style="padding:8px 10px">ViT + Gated LLM + Flow Matching (E2E)</td>
+            <td style="padding:8px 10px">AdaLN-Zero (Adaptive Layer Norm)</td>
+            <td style="padding:8px 10px;color:#4ade80;font-weight:700">연속 액션 / 50Hz</td>
+            <td style="padding:8px 10px">수백만 ep + 교차 로봇 데이터</td>
+            <td style="padding:8px 10px;text-align:left;color:#94a3b8">π0 (Physical Intelligence 2024), Section 3</td>
+          </tr>
+          <tr style="background:#091b35;border-bottom:1px solid #1d4ed8">
+            <td style="padding:8px 10px;text-align:left;font-weight:700;color:#60a5fa">MoNa-pi (제안)</td>
+            <td style="padding:8px 10px;color:#60a5fa;font-weight:700">Decomposed VLM + Flow Matching Head</td>
+            <td style="padding:8px 10px;color:#60a5fa;font-weight:700">AdaLN-Zero + BBox 임프린팅 (물리적 분해)</td>
+            <td style="padding:8px 10px;color:#4ade80;font-weight:700">연속 액션 / 50Hz (5ms 이하)</td>
+            <td style="padding:8px 10px;color:#4ade80;font-weight:700">243 ep (소규모 온디바이스)</td>
+            <td style="padding:8px 10px;text-align:left;color:#94a3b8">본 연구, Section 3.1 &amp; 3.2</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
 <div class="chapter" id="next-step">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">NEXT STEP</span>
@@ -6555,11 +6652,35 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
         </div>
       </div>
 
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#1c1900;border-radius:8px">
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 16px;background:#1a0f1f;border:1px solid #6b21a8;border-radius:10px">
         <span style="font-size:1rem;margin-top:1px">🔄</span>
-        <div>
-          <div style="color:#fbbf24;font-weight:700;font-size:0.9rem">R3 · "데이터 부족 및 center 경로 병목" — Exp61 진행 중</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">MoNa-Pi 데이터셋을 통합하여 에피소드를 기존 150개에서 243개(center 경로 등 신규 73개 추가)로 증강. 현재 PG2 재주석 및 MLP 재학습(Exp61)을 통해 center 경로 0% 성공률 병목 해결 진행 중.</div>
+        <div style="width:100%">
+          <div style="color:#d8b4fe;font-weight:700;font-size:0.9rem">R3 · "데이터 부족 및 실물 주행 병목" — LoRA 재설계 및 제어 최적화 (6/4 업데이트)</div>
+          <div style="color:#cbd5e1;font-size:0.82rem;margin-top:4px;line-height:1.6">
+            <span style="color:#4ade80;font-weight:700">★ RISE 사업 은상 수상:</span> 동기식 수집 데이터(에피소드당 18~20프레임)를 π0(Pi-Zero) 기반 로봇에 탑재하여 실물 주행 검증 완료.<br>
+            <strong>식별된 병목 (Blocker):</strong> 실물 테스트 시 OOD(원거리/근거리/다각도) 데이터 부족 및 새 객체 배치 시 인식 실패가 존재하며, 액션 청크 버퍼 지연으로 인한 오버슈팅 및 과도한 조향 회전이 관찰됨. FP16 실행에도 리소스 부족으로 서버 다운 잦음.<br>
+            <strong>대응 전략 (6/4 결정):</strong> 
+            ① PaliGemma 비전 인코더 전체(SigLIP + DINOv2 상위)에 LoRA 적용하여 표현 공간 통합 
+            ② 과적합 차단을 위해 LLM 레이어 LoRA 학습 제외 
+            ③ 데이터 증강(Augmentation) 적용으로 데이터 부족 극복 
+            ④ 조향 튜닝을 위한 액션 청크 길이 물리적 검증 및 최적화 진행.<br>
+            <a href="MEETING_20260604_LORA_REBUILD.md" style="color:#c084fc;font-weight:700;text-decoration:underline">→ 6/4 회의록 상세 리포트 보기 🔗</a>
+            
+            <!-- 실시간 Ablation 학습 현황 (6/5 업데이트) -->
+            <div style="background:#0f091c;border:1px solid #7c3aed;border-radius:10px;padding:16px;margin-top:14px;font-size:0.8rem;color:#cbd5e1;line-height:1.7">
+              <div style="color:#c084fc;font-weight:800;font-size:0.88rem;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                <span class="pulse-icon" style="display:inline-block;width:8px;height:8px;background:#c084fc;border-radius:50%"></span>
+                🔥 실시간 6/4 결정 Ablation 학습 진행 상황 (6/5 01:00 기준)
+              </div>
+              <strong>구동 환경:</strong> NVIDIA GB10 (VRAM 20GB 점유 / GPU Util 96% 풀가동)<br>
+              <strong>최적화 적용:</strong> 8개 Config의 <code style="background:#25162a;color:#f472b6;padding:1px 4px;border-radius:3px">batch_size: 4</code> 및 <code style="background:#25162a;color:#f472b6;padding:1px 4px;border-radius:3px">accumulate_grad_batches: 2</code> 일괄 적용 (Effective Batch 8 유지, 연산 효율 극대화)<br>
+              <strong>전체 일정:</strong> 8개 조합 순차 구동 중 (약 45시간 소요 예상, 6/6 완료 예정)<br>
+              <div style="margin-top:10px;background:#06020c;padding:10px;border-radius:6px;border:1px solid #3b0764;font-size:0.75rem">
+                <span style="color:#a78bfa;font-weight:700">현재 구동 실험:</span> <code style="color:#d8b4fe">v5_ablation_top2_proj_frozen</code> (Epoch 0/5 진행 중)<br>
+                <span style="color:#86efac;font-weight:700">무결성 검사:</span> V5_add_free 데이터셋(221ep) 무결성 스캔 통과 (1개 깨진 파일 정리 완료, 총 220ep 정상 학습 진행)
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -7744,7 +7865,16 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 
   </div>
 
-  <div class="nextstep-grid">
+  <div class="nextstep-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px">
+    <div class="nextstep-card ns-D" style="border:2px solid #a78bfa;background:#130b24;border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <div class="ns-badge" style="background:#a78bfa;color:#0a0f1a;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px">D 안 — 6/4 결정</div>
+        <div class="ns-title" style="color:#d8b4fe;font-weight:800;font-size:0.95rem;margin-bottom:8px">LoRA 아키텍처 재설계 &amp; 제어 튜닝</div>
+        <div class="ns-body" style="color:#cbd5e1;font-size:0.8rem;line-height:1.6">
+          SigLIP + DINOv2 비전 레이어 전체에 LoRA를 적용하고 LLM 레이어는 제외하여 일반화 성능 극대화. OOD 데이터 증강 및 액션 청크 길이 최적화를 통해 실물 주행 오버슈팅 차단.
+        </div>
+      </div>
+    </div>
     <div class="nextstep-card ns-A">
       <div class="ns-badge">A 안 — 추천</div>
       <div class="ns-title">GoalNav Step 3 확장</div>
@@ -7871,13 +8001,12 @@ graph TD
 
   <!-- 이번 주 핵심 요약 배너 -->
   <div style="background:linear-gradient(135deg,#052e16,#0a1628);border:2px solid #22c55e;border-radius:16px;padding:24px 28px;margin-bottom:28px;text-align:center">
-    <div style="color:#86efac;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">현재 핵심 결론 (5/28 업데이트)</div>
+    <div style="color:#86efac;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">현재 핵심 결론 (6/4 업데이트)</div>
     <div style="color:#e2e8f0;font-size:1.05rem;font-weight:700;line-height:1.7">
-      "basket을 본다는 것을 5-Track으로 증명(R1 ✅)하고,<br>
-      CL 96.7%를 4개 모델이 재현하며 안정성 입증(R2-1 ✅).<br>
-      <span style="color:#86efac">Stage 1 v2 LoRA: left 91.1%→97.3%(+6.2%p) — 세 방향 97%+ 균등화(R2-2 ✅)</span><br>
-      <span style="color:#86efac">Exp57 PaliGemma LoRA: gray basket 100% / red ball 0% → R2-3 해결 ✅</span><br>
-      <span style="color:#fbbf24">R2-4는 구조적 한계</span>, <span style="color:#fbbf24">R3는 Goal-Conditioned으로 해결 계획</span>."
+      "PaliGemma-3B 기반 그라운딩 성능 및 Closed-Loop 오프라인 96.2% 성공률을 확보하고,<br>
+      동기식 수집 데이터 적용 및 π0 기반 로봇 주행 검증으로 <span style="color:#4ade80;font-weight:700">RISE 사업 은상</span>을 수상했습니다.<br>
+      <span style="color:#86efac">R3 실물 OOD/조향 병목 극복을 위해 DINOv2 + SigLIP 비전 인코더 전체 LoRA 재학습을 적용하고</span><br>
+      <span style="color:#86efac">LLM 레이어 튜닝 제외 및 데이터 증강 확대, 액션 청크 길이 최적화를 진행합니다.</span>"
     </div>
   </div>
 
@@ -7895,8 +8024,8 @@ graph TD
       <div class="finding-body">Zero-shot probe 96.6% + 다중 스케일 Masking Ablation (1.0x 이하 flip 0%, 0.8x~0.5x conf_drop 유지로 인과성 및 복합 맥락 강건성 동시 증명) + Stage2 v2 92.6%. <a href="masking_ablation_proof.html" style="color:#38bdf8;text-decoration:underline;font-weight:700">상세 분석 페이지 보기 🔗</a></div>
     </div>
     <div class="finding-card info">
-      <div class="finding-title">🎯 다음 관문 (STOP & 실로봇)</div>
-      <div class="finding-body">도착 STOP Y-Center 게이트 결합 완료 (실질 성공률 68.8% 확보). inference_server.py 무결성 검증 통과 → 실로봇 배포 테스트 대기 중. R3 Goal-Conditioned 데이터 수집 개시.</div>
+      <div class="finding-title">🎯 다음 관문 (LoRA 재설계 & 제어 최적화)</div>
+      <div class="finding-body">실로봇 테스트 완료 및 RISE 은상 수상. 실주행 시 발생한 OOD 인식 실패와 조향 오버슈팅 해소를 위해 비전 인코더(SigLIP + DINOv2) 통합 LoRA 학습 및 LLM 제외 튜닝 돌입. 액션 청크 최적화 및 다각도 데이터 증강 적극 도입.</div>
     </div>
     <div class="finding-card good">
       <div class="finding-title">✅ R2-2 해결 (5/28 · Stage 1 v2)</div>
@@ -7973,10 +8102,59 @@ graph TD
 </div>
 </div>
 
+<!-- ══ 미팅 준비 — 추천 동선 & 자료 ══ -->
+<div class="chapter" id="meeting-guide" style="padding-bottom:100px">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#ef4444;color:#fff">MEETING</span>
+    <h2 class="chapter-title">미팅 준비 — 추천 읽기 순서 & 자료 링크</h2>
+  </div>
+
+  <div style="background:#1a0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="color:#fca5a5;font-size:0.85rem;font-weight:700;margin-bottom:12px">⚡ 빠른 경로 (이 순서로)</div>
+    <ol style="margin:0;padding-left:20px;font-size:0.85rem;color:#cbd5e1;line-height:2.1">
+      <li><a href="#ch21" style="color:#7dd3fc;font-weight:700">CH21 연구 정리 &amp; 방향성</a> — 전체 한눈에 (출발점→배운것→숫자→다음)</li>
+      <li><a href="#next-step" style="color:#7dd3fc;font-weight:700">NEXT STEP</a> — R1~R4 교수님 반박 현재 대응 상태</li>
+      <li><a href="#ch23" style="color:#7dd3fc;font-weight:700">CH23 Grounding 붕괴</a> ⭐ 이번 핵심 — LoRA가 grounding 악화, base가 더 안정</li>
+      <li><a href="#ch22" style="color:#7dd3fc;font-weight:700">CH22 동기 vs 비동기 수집 · STOP 진실</a></li>
+      <li><a href="#ch11" style="color:#7dd3fc;font-weight:700">CH11</a> · <a href="#ch12" style="color:#7dd3fc;font-weight:700">CH12</a> 5/22 교수님 반박 · Q&amp;A 원문</li>
+    </ol>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+    <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:16px">
+      <div style="color:#86efac;font-size:0.82rem;font-weight:700;margin-bottom:10px">📖 증거 보강 (여유되면)</div>
+      <div style="font-size:0.82rem;line-height:2">
+        <a href="#ch13" style="color:#7dd3fc">CH13</a> 객체 검증 — "진짜 인식하는가"<br>
+        <a href="#ch17" style="color:#7dd3fc">CH17</a> PaliGemma 전환 (cx→액션 시각화)<br>
+        <a href="#ch18" style="color:#7dd3fc">CH18</a> 객체인식→위치→액션 매칭<br>
+        <a href="#ch19" style="color:#7dd3fc">CH19</a> 타 VLA 논문 비교
+      </div>
+    </div>
+    <div style="background:#052e16;border:1px solid #16632a;border-radius:12px;padding:16px">
+      <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">🎯 답변 직접 필요 시 (별도 문서)</div>
+      <div style="font-size:0.82rem;line-height:2">
+        <a href="PROF_QA_PREP_20260603.md" style="color:#fbbf24;font-weight:700">▶ 예상질문 10개 + 답변</a> (미팅용)<br>
+        <a href="grounding_ablation_comprehensive_report.md" style="color:#fbbf24">▶ Grounding Ablation 종합 보고서</a> (Table 1/2)<br>
+        <a href="masking_ablation_proof.html" style="color:#fbbf24">▶ Masking Ablation 인과 증거</a><br>
+        <a href="prof_qa_evidence_20260529.html" style="color:#fbbf24">▶ 교수님 Q&amp;A 시각 증거</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#0a1628;border-radius:8px;padding:14px 16px;font-size:0.82rem;color:#94a3b8;line-height:1.8">
+    <strong style="color:#e2e8f0">한 줄 동선:</strong>
+    <a href="#ch21" style="color:#7dd3fc">CH21</a> 큰그림 →
+    <a href="#next-step" style="color:#7dd3fc">next-step</a> 반박현황 →
+    <a href="#ch23" style="color:#7dd3fc">CH23</a> 이번핵심 →
+    <a href="#ch22" style="color:#7dd3fc">CH22</a> →
+    필요시 <a href="#ch11" style="color:#7dd3fc">CH11~12</a>. 답변은 <a href="PROF_QA_PREP_20260603.md" style="color:#fbbf24">PROF_QA_PREP</a> 띄워놓고.
+  </div>
+</div>
+
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch27','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {

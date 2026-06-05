@@ -112,7 +112,8 @@ def update_csv_filename(csv_file: Path, dataset_dir: Path) -> bool:
 
 def main():
     """메인 함수"""
-    dataset_dir = Path("/home/soda/vla/ROS_action/mobile_vla_dataset")
+    _project_root = Path(__file__).resolve().parents[2]
+    dataset_dir = _project_root / "ROS_action" / "mobile_vla_dataset"
     
     if not dataset_dir.exists():
         print(f"❌ 데이터셋 디렉토리를 찾을 수 없습니다: {dataset_dir}")

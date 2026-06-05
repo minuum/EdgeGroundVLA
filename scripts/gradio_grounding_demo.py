@@ -2,7 +2,10 @@
 # ── ROS workspace 경로 주입 (다른 import보다 먼저) ────────────────────────────
 import os, sys as _sys
 
-_ROS_WS = "/home/soda/MoNaVLA/ROS_action/install"
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROS_WS = os.getenv("VLA_ROS_WS", os.path.join(_project_root, "ROS_action"))
+if not _ROS_WS.endswith("/install"):
+    _ROS_WS = os.path.join(_ROS_WS, "install")
 _ros_lib_dirs = [
     f"{_ROS_WS}/camera_interfaces/lib",
     f"{_ROS_WS}/camera_pub/lib",

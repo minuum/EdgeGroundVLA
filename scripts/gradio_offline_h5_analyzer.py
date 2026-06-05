@@ -10,8 +10,10 @@ import torch
 import warnings
 warnings.filterwarnings("ignore")
 
+from pathlib import Path
 # --- Local Model Setup ---
-VLA_ROOT = "/home/soda/MoNaVLA"
+_project_root = Path(__file__).resolve().parent.parent
+VLA_ROOT = str(_project_root)
 if VLA_ROOT not in sys.path:
     sys.path.insert(0, VLA_ROOT)
 for root_name in ['RoboVLMs', 'third_party/RoboVLMs']:
@@ -32,14 +34,16 @@ try:
 except ImportError:
     pass
 
-def scan_h5_files(dataset_dir="/home/soda/MoNaVLA/ROS_action/mobile_vla_dataset_v3"):
+def scan_h5_files(dataset_dir=None):
+    if dataset_dir is None:
+        dataset_dir = os.path.join(VLA_ROOT, "ROS_action/mobile_vla_dataset_v3")
     if not os.path.exists(dataset_dir):
         return []
     h5_files = [os.path.join(dataset_dir, f) for f in os.listdir(dataset_dir) if f.endswith('.h5')]
     return sorted(h5_files)
 
 def scan_checkpoints():
-    root = "/home/soda/MoNaVLA/runs"
+    root = os.path.join(VLA_ROOT, "runs")
     ckpts = []
     if os.path.exists(root):
         for r, d, f in os.walk(root):
@@ -52,7 +56,7 @@ def scan_checkpoints():
     return sorted(ckpts)
 
 def scan_configs():
-    root = "/home/soda/MoNaVLA/configs"
+    root = os.path.join(VLA_ROOT, "configs")
     confs = []
     if os.path.exists(root):
         for f in os.listdir(root):

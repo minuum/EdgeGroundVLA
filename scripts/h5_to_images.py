@@ -5,8 +5,11 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-h5_dir = "/home/soda/MoNaVLA/ROS_action/mobile_vla_dataset_v5"
-img_out_dir = "/home/soda/MoNaVLA/ROS_action/mobile_vla_dataset_v5(Image)"
+from pathlib import Path
+_project_root = Path(__file__).resolve().parent.parent
+
+h5_dir = os.path.join(_project_root, "ROS_action/mobile_vla_dataset_v5")
+img_out_dir = os.path.join(_project_root, "ROS_action/mobile_vla_dataset_v5(Image)")
 os.makedirs(img_out_dir, exist_ok=True)
 
 h5_files = glob.glob(os.path.join(h5_dir, "*.h5"))

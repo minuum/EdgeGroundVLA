@@ -28,16 +28,16 @@ os.environ["ROS_DOMAIN_ID"] = "42"
 os.environ["RMW_IMPLEMENTATION"] = "rmw_fastrtps_cpp"
 
 # Add ROS Workspace to Path
-ros_ws_path = "/home/soda/MoNaVLA/ROS_action/install/camera_interfaces/lib/python3.10/site-packages"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ros_ws_path = os.path.join(_PROJECT_ROOT, "ROS_action/install/camera_interfaces/lib/python3.10/site-packages")
 if os.path.exists(ros_ws_path) and ros_ws_path not in sys.path:
     sys.path.append(ros_ws_path)
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 from scripts.utils.camera_proc import camera_control_widget, start_camera, stop_camera
 
 def load_env():
-    env_path = "/home/soda/MoNaVLA/.vla_env_settings"
+    env_path = os.path.join(_PROJECT_ROOT, ".vla_env_settings")
     if os.path.exists(env_path):
         with open(env_path, "r") as f:
             for line in f:
@@ -307,7 +307,7 @@ DIVERSITY_TAGS = {
     "G-조명차이":      "lighting_diff",
 }
 
-DATASET_ROOT = "/home/soda/MoNaVLA/ROS_action/mobile_vla_dataset_v5"
+DATASET_ROOT = os.path.join(_PROJECT_ROOT, "ROS_action/mobile_vla_dataset_v5")
 os.makedirs(DATASET_ROOT, exist_ok=True)
 CORE_DB_PATH = os.path.join(DATASET_ROOT, "core_replay_db.json")
 
@@ -725,7 +725,7 @@ def joystick_panel_md(_=None):
 
 
 def collector_diagnostics(_=None):
-    ros_ws = os.getenv("VLA_ROS_WS", "/home/soda/MoNaVLA/ROS_action")
+    ros_ws = os.getenv("VLA_ROS_WS", os.path.join(_PROJECT_ROOT, "ROS_action"))
     checks = [
         ("ROS import", "OK" if ROS_AVAILABLE else f"FAIL: {ROS_IMPORT_ERROR or 'unknown'}"),
         ("Node ready", "OK" if node else f"OFFLINE: {NODE_START_ERROR or 'node unavailable'}"),
