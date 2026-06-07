@@ -28,16 +28,16 @@ os.environ["ROS_DOMAIN_ID"] = "42"
 os.environ["RMW_IMPLEMENTATION"] = "rmw_fastrtps_cpp"
 
 # Add ROS Workspace to Path
-ros_ws_path = "/home/soda/MoNaVLA/ROS_action/install/camera_interfaces/lib/python3.10/site-packages"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ros_ws_path = os.path.join(_PROJECT_ROOT, "ROS_action/install/camera_interfaces/lib/python3.10/site-packages")
 if os.path.exists(ros_ws_path) and ros_ws_path not in sys.path:
     sys.path.append(ros_ws_path)
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 from scripts.utils.camera_proc import camera_control_widget, start_camera, stop_camera
 
 def load_env():
-    env_path = "/home/soda/MoNaVLA/.vla_env_settings"
+    env_path = os.path.join(_PROJECT_ROOT, ".vla_env_settings")
     if os.path.exists(env_path):
         with open(env_path, "r") as f:
             for line in f:
@@ -69,6 +69,30 @@ except ImportError as e:
     print(f"CRITICAL: ROS2 IMPORT ERROR -> {e}")
     ROS_IMPORT_ERROR = str(e)
     ROS_AVAILABLE = False
+    class Node:
+        def __init__(self, *args, **kwargs):
+            pass
+        def create_client(self, *args, **kwargs):
+            class DummyClient:
+                def service_is_ready(self): return False
+            return DummyClient()
+        def create_publisher(self, *args, **kwargs):
+            class DummyPublisher:
+                def publish(self, msg): pass
+            return DummyPublisher()
+    class CvBridge:
+        def imgmsg_to_cv2(self, imgmsg, desired_encoding='bgr8'):
+            return imgmsg
+    class Twist:
+        def __init__(self):
+            class Vector3:
+                def __init__(self):
+                    self.x, self.y, self.z = 0.0, 0.0, 0.0
+            self.linear = Vector3()
+            self.angular = Vector3()
+    class GetImage:
+        class Request:
+            pass
 
 # ---------------------------------------------------------------------------
 # Capture Mode
@@ -109,6 +133,8 @@ class JoystickReader:
         self._last_step_time = 0.0
         self._prev_key = None
         self._axes = self._load_axes()
+        self._neutral_start_time = 0.0
+        self._last_non_neutral_key = None
 
         # Gradio 상태 표시용 (lock-free read 허용 — 단순 dict 교체)
         self.status = {
@@ -223,7 +249,23 @@ class JoystickReader:
                 ly =  -rd(self._axes["left_x"])    # 왼쪽 = +ly
                 az =  -rd(self._axes["right_x"])
 
-                key = self._axis_to_key(lx, ly, az)
+                raw_key = self._axis_to_key(lx, ly, az)
+                key = raw_key
+
+                # ASYNC 모드에서만 300ms Jitter Hold 필터를 적용하여 유령 정지(mid-stop) 방지
+                if self._node.js_mode == 'async':
+                    now = time.time()
+                    if raw_key is not None:
+                        self._last_non_neutral_key = raw_key
+                        self._neutral_start_time = 0.0
+                    else:
+                        if self._neutral_start_time == 0.0:
+                            self._neutral_start_time = now
+                        
+                        if now - self._neutral_start_time < 0.30:
+                            key = self._last_non_neutral_key
+                        else:
+                            key = None
 
                 # 모드에 따라 분기
                 now = time.time()
@@ -307,7 +349,7 @@ DIVERSITY_TAGS = {
     "G-조명차이":      "lighting_diff",
 }
 
-DATASET_ROOT = "/home/soda/MoNaVLA/ROS_action/mobile_vla_dataset_v5"
+DATASET_ROOT = os.path.join(_PROJECT_ROOT, "ROS_action/mobile_vla_dataset_v5")
 os.makedirs(DATASET_ROOT, exist_ok=True)
 CORE_DB_PATH = os.path.join(DATASET_ROOT, "core_replay_db.json")
 
@@ -508,7 +550,7 @@ class GradioCollectorNode(Node):
     def save_core_db(self):
         with open(CORE_DB_PATH, 'w') as f: json.dump(self.core_db, f, indent=2)
     def _camera_loop(self):
-        while rclpy.ok():
+        while ROS_AVAILABLE and rclpy.ok():
             if self.img_client.service_is_ready():
                 req = GetImage.Request(); future = self.img_client.call_async(req)
                 start = time.time()
@@ -631,9 +673,22 @@ class GradioCollectorNode(Node):
         fname = f"episode_{ts}_{sid}{div}__{self.selected_pattern}__{self.selected_distance}_{pos_tag}.h5"
         imgs = [cv2.cvtColor(d['image'], cv2.COLOR_BGR2RGB) for d in self.episode_buffer]
         acts = [d['action'] for d in self.episode_buffer]
+        timestamps = [d['timestamp'] for d in self.episode_buffer]
+
+        if self.js_mode == 'async':
+            # 10Hz 비동기 주행 시 조종자의 반응 지연(Action Lag, 약 100ms)을 보정하기 위해
+            # 액션 배열을 1프레임 앞으로 시프트 (s_t 이미지와 a_{t+1} 액션 매핑)
+            shifted_acts = []
+            for i in range(len(acts) - 1):
+                shifted_acts.append(acts[i+1])
+            # 마지막 프레임의 액션은 정지 상태([0.0, 0.0, 0.0])로 매핑
+            shifted_acts.append([0.0, 0.0, 0.0])
+            acts = shifted_acts
+
         with h5py.File(os.path.join(DATASET_ROOT, fname), 'w') as f:
             f.create_dataset('observations/images', data=np.array(imgs), compression="gzip")
             f.create_dataset('actions', data=np.array(acts))
+            f.create_dataset('timestamps', data=np.array(timestamps))
             f.create_dataset('language_instruction', data=[prompt.encode('utf-8')])
             f.attrs.update({'scenario': sid, 'pattern': self.selected_pattern, 'distance': self.selected_distance, 'end_pos': pos_tag})
         return fname
@@ -725,7 +780,7 @@ def joystick_panel_md(_=None):
 
 
 def collector_diagnostics(_=None):
-    ros_ws = os.getenv("VLA_ROS_WS", "/home/soda/MoNaVLA/ROS_action")
+    ros_ws = os.getenv("VLA_ROS_WS", os.path.join(_PROJECT_ROOT, "ROS_action"))
     checks = [
         ("ROS import", "OK" if ROS_AVAILABLE else f"FAIL: {ROS_IMPORT_ERROR or 'unknown'}"),
         ("Node ready", "OK" if node else f"OFFLINE: {NODE_START_ERROR or 'node unavailable'}"),
