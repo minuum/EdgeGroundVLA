@@ -6623,377 +6623,93 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <div class="chapter" id="next-step">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">NEXT STEP</span>
-    <h2 class="chapter-title">6/2 현재 — 반박 현황 & 다음 단계</h2>
+    <h2 class="chapter-title">6/7 현재 — 미팅 피드백 대응 & 로드맵 투두(TODO)</h2>
   </div>
   <p class="chapter-desc">
-    Exp59 Hard Negative 완료(TP 95%, FP 0%)로 R2-3(오탐) 문제 극복. Exp60 BBox Noise 및 Flip Augmentation을 통한 VLM OOD 노이즈 극복(최종 CL 60% 달성).
-    MoNa-Pi 신규 에피소드 73개 통합 및 Exp61 학습 진행 중. 교수님 예상 반박 대응 논리 및 단계별 로드맵 업데이트.
+    6/4 미팅 피드백(조향 오실레이션 및 오버슈팅 bloker) 및 6/7 대체 객체 가이드라인 수립 결과에 따라 로드맵을 갱신합니다. 
+    기존 R1~R6 피드백 멘트들을 3대 학술 영역으로 통폐합하고, 각 영역에 대응하는 완료 항목 및 향후 투두(TODO) 리스트를 정비합니다.
   </p>
 
-  <!-- 6/2 반박 대응 현황 -->
+  <!-- 6/7 미팅 피드백 대응 현황 & 투두 리스트 -->
   <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
-    <div style="color:#7dd3fc;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">교수님 반박 — 6/2 현재 상태</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="color:#7dd3fc;font-size:0.85rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:18px">교수님 미팅 피드백 대응 및 로드맵 투두 (6/7 업데이트)</div>
+    <div style="display:flex;flex-direction:column;gap:16px">
 
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
-        <span style="font-size:1rem;margin-top:1px">✅</span>
-        <div>
-          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R1 · "basket을 본다는 증거가 없다" — 완료</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">5-Track: zero-shot probe 96.6% / masking 100% flip / attention 4.4× / Stage1 v2 98.1%</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
-        <span style="font-size:1rem;margin-top:1px">✅</span>
-        <div>
-          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R2-1 · "val set 기준은 불충분" — 해결</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">실로봇 CL 96.7% — exp49/51/54_s2v2/55 4개 모델 재현. 9개 path type 중 8개 100%</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
-        <span style="font-size:1rem;margin-top:1px">✅</span>
-        <div style="width:100%">
-          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R2-2 · "LoRA 기여도 불명" — 방향별 균등화로 해결</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:4px;margin-bottom:10px">전체 +1.5%p(96.6→98.1%)는 작아 보이지만, 핵심은 left 방향 집중 개선: 91.1%→97.3%(+6.2%p). LoRA 후 세 방향 모두 97%+ 달성.</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px">
-            <div style="background:#0a1628;border-radius:8px;padding:10px;text-align:center">
-              <div style="color:#64748b;font-size:0.72rem;font-weight:700;text-transform:uppercase;margin-bottom:6px">LEFT (어려운 방향)</div>
-              <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:4px">
-                <span style="color:#ef4444;font-weight:700;font-size:0.88rem">91.1%</span>
-                <span style="color:#64748b;font-size:0.8rem">→</span>
-                <span style="color:#22c55e;font-weight:900;font-size:1rem">97.3%</span>
-              </div>
-              <div style="background:#1e293b;border-radius:4px;height:6px;overflow:hidden">
-                <div style="height:100%;background:linear-gradient(90deg,#ef4444,#22c55e);width:97.3%"></div>
-              </div>
-              <div style="color:#fbbf24;font-size:0.72rem;margin-top:4px;font-weight:700">+6.2%p ↑</div>
-            </div>
-            <div style="background:#0a1628;border-radius:8px;padding:10px;text-align:center">
-              <div style="color:#64748b;font-size:0.72rem;font-weight:700;text-transform:uppercase;margin-bottom:6px">CENTER</div>
-              <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:4px">
-                <span style="color:#fbbf24;font-weight:700;font-size:0.88rem">95.5%</span>
-                <span style="color:#64748b;font-size:0.8rem">→</span>
-                <span style="color:#22c55e;font-weight:900;font-size:1rem">96.7%</span>
-              </div>
-              <div style="background:#1e293b;border-radius:4px;height:6px;overflow:hidden">
-                <div style="height:100%;background:#22c55e;width:96.7%"></div>
-              </div>
-              <div style="color:#94a3b8;font-size:0.72rem;margin-top:4px">+1.2%p</div>
-            </div>
-            <div style="background:#0a1628;border-radius:8px;padding:10px;text-align:center">
-              <div style="color:#64748b;font-size:0.72rem;font-weight:700;text-transform:uppercase;margin-bottom:6px">RIGHT</div>
-              <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:4px">
-                <span style="color:#22c55e;font-weight:700;font-size:0.88rem">100%</span>
-                <span style="color:#64748b;font-size:0.8rem">→</span>
-                <span style="color:#22c55e;font-weight:900;font-size:1rem">100%</span>
-              </div>
-              <div style="background:#1e293b;border-radius:4px;height:6px;overflow:hidden">
-                <div style="height:100%;background:#22c55e;width:100%"></div>
-              </div>
-              <div style="color:#94a3b8;font-size:0.72rem;margin-top:4px">±0%p (이미 완벽)</div>
-            </div>
-          </div>
-          <div style="color:#64748b;font-size:0.75rem">frozen CLIP probe → Stage 1 v2 LoRA. 좌/중/우 방향별 5-fold CV 기준.</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
-        <span style="font-size:1rem;margin-top:1px">✅</span>
-        <div>
-          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R2-3 · "다른 물체 → 다른 행동?" — Exp59 해결</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">"detect gray basket" 입력 시 타겟인 gray basket은 높은 확률로 탐지(TP=95.0%)하는 반면, 유사/이질적 장애물(brown pot, red ball, person)에 대해서는 오탐율 0%(FP=0%)를 달성하여 R2-3 문제를 완벽히 해결했습니다.</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#0a1628;border:1px solid #1e3a6e;border-radius:8px">
-        <span style="font-size:1rem;margin-top:1px">📊</span>
-        <div>
-          <div style="color:#60a5fa;font-weight:700;font-size:0.9rem">R1/R2 시각 증거 페이지 (최신 업데이트)</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">실제 로봇 주행 H5 이미지 + PaliGemma 예측 bbox + masking ablation + 방향별 정확도 바 차트 및 FPE 궤적 비교(9-패널/3-패널)를 한 페이지에 집약.</div>
-          <a href="visual_proof/index.html" style="display:inline-block;margin-top:8px;padding:5px 14px;background:#1e3a6e;color:#60a5fa;border-radius:6px;font-size:0.8rem;font-weight:700;text-decoration:none">→ 시각 증거 페이지 열기</a>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#052e16;border-radius:8px">
-        <span style="font-size:1rem;margin-top:1px">✅</span>
-        <div>
-          <div style="color:#86efac;font-weight:700;font-size:0.9rem">R2-4 · "텍스트로 목표 변경?" — Exp60 해결</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">VLM 그라운딩(PaliGemma2) 출력을 Stage2 MLP와 연결 완료. VLM bbox 특유의 OOD 노이즈를 극복하기 위해 오차 통계를 활용한 BBox Noise Augmentation 및 Flip Augmentation을 적용해 Stage2 MLP를 재학습하여 최종 Closed-Loop 성공률 60%를 확보했습니다.</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 16px;background:#1a0f1f;border:1px solid #6b21a8;border-radius:10px">
-        <span style="font-size:1rem;margin-top:1px">🔄</span>
-        <div style="width:100%">
-          <div style="color:#d8b4fe;font-weight:700;font-size:0.9rem">R3 · "데이터 부족 및 실물 주행 병목" — LoRA 재설계 및 제어 최적화 (6/4 업데이트)</div>
-          <div style="color:#cbd5e1;font-size:0.82rem;margin-top:4px;line-height:1.6">
-            <span style="color:#4ade80;font-weight:700">★ RISE 사업 은상 수상:</span> 동기식 수집 데이터(에피소드당 18~20프레임)를 π0(Pi-Zero) 기반 로봇에 탑재하여 실물 주행 검증 완료.<br>
-            <strong>식별된 병목 (Blocker):</strong> 실물 테스트 시 OOD(원거리/근거리/다각도) 데이터 부족 및 새 객체 배치 시 인식 실패가 존재하며, 액션 청크 버퍼 지연으로 인한 오버슈팅 및 과도한 조향 회전이 관찰됨. FP16 실행에도 리소스 부족으로 서버 다운 잦음.<br>
-            <strong>대응 전략 (6/4 결정):</strong> 
-            ① PaliGemma 비전 인코더 전체(SigLIP + DINOv2 상위)에 LoRA 적용하여 표현 공간 통합 
-            ② 과적합 차단을 위해 LLM 레이어 LoRA 학습 제외 
-            ③ 데이터 증강(Augmentation) 적용으로 데이터 부족 극복 
-            ④ 조향 튜닝을 위한 액션 청크 길이 물리적 검증 및 최적화 진행.<br>
-            <a href="MEETING_20260604_LORA_REBUILD.md" style="color:#c084fc;font-weight:700;text-decoration:underline">→ 6/4 회의록 상세 리포트 보기 🔗</a>
-            
-            <!-- 실시간 Ablation 학습 현황 (6/5 업데이트) -->
-            <div style="background:#0f091c;border:1px solid #7c3aed;border-radius:10px;padding:16px;margin-top:14px;font-size:0.8rem;color:#cbd5e1;line-height:1.7">
-              <div style="color:#c084fc;font-weight:800;font-size:0.88rem;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-                <span class="pulse-icon" style="display:inline-block;width:8px;height:8px;background:#c084fc;border-radius:50%"></span>
-                🔥 실시간 6/4 결정 Ablation 학습 진행 상황 (6/5 01:00 기준)
-              </div>
-              <strong>구동 환경:</strong> NVIDIA GB10 (VRAM 20GB 점유 / GPU Util 96% 풀가동)<br>
-              <strong>최적화 적용:</strong> 8개 Config의 <code style="background:#25162a;color:#f472b6;padding:1px 4px;border-radius:3px">batch_size: 4</code> 및 <code style="background:#25162a;color:#f472b6;padding:1px 4px;border-radius:3px">accumulate_grad_batches: 2</code> 일괄 적용 (Effective Batch 8 유지, 연산 효율 극대화)<br>
-              <strong>전체 일정:</strong> 8개 조합 순차 구동 중 (약 45시간 소요 예상, 6/6 완료 예정)<br>
-              <div style="margin-top:10px;background:#06020c;padding:10px;border-radius:6px;border:1px solid #3b0764;font-size:0.75rem">
-                <span style="color:#a78bfa;font-weight:700">현재 구동 실험:</span> <code style="color:#d8b4fe">v5_ablation_top2_proj_frozen</code> (Epoch 0/5 진행 중)<br>
-                <span style="color:#86efac;font-weight:700">무결성 검사:</span> V5_add_free 데이터셋(221ep) 무결성 스캔 통과 (1개 깨진 파일 정리 완료, 총 220ep 정상 학습 진행)
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:18px;background:#091b35;border:1px solid #1d4ed8;border-radius:14px;box-shadow: 0 4px 20px rgba(0,0,0,0.3)">
-        <span style="font-size:1.2rem;margin-top:2px">✅</span>
-        <div style="width:100%">
-          <div style="color:#60a5fa;font-weight:800;font-size:0.95rem;margin-bottom:8px">R4 · "도착 STOP 종결 조건 구비 여부" — 완료 (6/3 업데이트)</div>
-          
-          <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6;margin-bottom:12px">
-            단순 BBox 면적(Area) 조건만 사용 시, 주행 중간의 가짜 대형 노이즈에 정지 명령이 오발화(False Trigger)하여 성공률이 급락하는 문제를 해결하기 위해 
-            <b>Y-Center 기하학 필터 게이트 조건(<code style="color:#f472b6;font-family:monospace;background:#25162a;padding:1px 4px;border-radius:3px">cy_avg &gt; 0.50</code>)</b>을 이식하고 Closed-Loop Ablation 검증을 완료했습니다.
-          </div>
-
-          <!-- 알고리즘 도식 / 상세 설명 박스 -->
-          <div style="background:#040d1a;border:1px solid #1e3a5f;border-radius:8px;padding:12px;margin-bottom:14px;font-size:0.78rem;color:#e2e8f0;line-height:1.6">
-            <div style="color:#f59e0b;font-weight:700;margin-bottom:6px">⚙️ 정지 오발 차단 알고리즘 (Y-Center Gate Algorithm)</div>
-            <div style="display:flex;flex-direction:column;gap:4px;font-family:monospace;font-size:0.72rem;background:#020617;padding:8px;border-radius:5px;border:1px solid #111e2f;margin-bottom:6px">
-              <div>// BBox 중심 Y좌표(cy)의 윈도우 스무딩 평균 반영</div>
-              <div>recent = bbox_history[-stop_w:]  // stop_w = 5</div>
-              <div>area_avg = mean(b.area for b in recent)</div>
-              <div>cy_avg = mean(b.cy for b in recent)</div>
-              <div>cx_latest = bbox_history[-1].cx</div>
-              <div style="color:#60a5fa;font-weight:700">if (step &gt;= min_steps &amp;&amp; area_avg &gt; th_area(0.5) &amp;&amp; abs(cx_latest - 0.5) &lt; th_cx(0.3) &amp;&amp; <span style="color:#fb7185">cy_avg &gt; th_cy(0.5)</span>) {</div>
-              <div style="color:#22c55e;padding-left:12px;font-weight:700">trigger_arrival_stop();  // 래치 작동 (에피소드 종료시까지 정지 유지)</div>
-              <div>}</div>
-            </div>
-            <strong>물리적 원리:</strong> 비전 통계 분석 결과, 가짜 바스켓 노이즈는 BBox 면적이 크더라도 화면 상단(<code style="color:#fb7185">cy_avg ≈ 0.38</code>)에 걸치는 반면, 진짜 도착 프레임에서는 바스켓 하단이 화각 바닥에 밀착되므로 
-            <code style="color:#34d399">cy_avg ≈ 0.50 이상</code>으로 내려앉습니다. 이 기하학적 비전 특이점을 필터 게이트로 활용해 조기 정지를 원천 차단합니다.
-          </div>
-
-          <!-- Ablation 결과 비교 테이블 -->
-          <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:8px">📊 Closed-Loop 정량 Ablation 결과 (32 ep, Strict FPE &lt; 0.15m 성공 기준)</div>
-          
-          <div style="overflow-x:auto;margin-bottom:14px">
-            <table style="width:100%;border-collapse:collapse;font-size:0.74rem;color:#cbd5e1;text-align:center">
-              <thead>
-                <tr style="background:#0d1e3d;color:#60a5fa">
-                  <th style="padding:6px;border:1px solid #1e3a6e;text-align:left">제어기 모델</th>
-                  <th style="padding:6px;border:1px solid #1e3a6e">정지 규칙</th>
-                  <th style="padding:6px;border:1px solid #1e3a6e">override off (무정지)</th>
-                  <th style="padding:6px;border:1px solid #1e3a6e">override on (정지 켬)</th>
-                  <th style="padding:6px;border:1px solid #1e3a6e">개선폭 (성공률 / FPE)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style="background:#081326">
-                  <td rowspan="2" style="padding:6px;border:1px solid #1e3a6e;font-weight:700;text-align:left;color:#e2e8f0">
-                    Ablation Baseline<br><span style="font-size:0.65rem;color:#64748b">(abl_b1, 조향 상한 68.8%)</span>
-                  </td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#94a3b8">No CY Gate (th_cy=0.0)</td>
-                  <td style="padding:6px;border:1px solid #1e3a6e">68.8% <span style="font-size:0.65rem;color:#64748b">(0.082m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#f87171">34.4% <span style="font-size:0.65rem;color:#64748b">(0.196m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#64748b">오발로 인한 성공률 반토막</td>
-                </tr>
-                <tr style="background:#081326">
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#60a5fa;font-weight:700">With CY Gate (th_cy=0.5)</td>
-                  <td style="padding:6px;border:1px solid #1e3a6e">68.8% <span style="font-size:0.65rem;color:#64748b">(0.082m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#4ade80;font-weight:700">56.2% <span style="font-size:0.65rem;color:#64748b">(0.114m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#4ade80;font-weight:700">성공률 1.63배 ↑ / FPE -41.8%</td>
-                </tr>
-                
-                <tr style="background:#0c1020">
-                  <td rowspan="2" style="padding:6px;border:1px solid #1e3a6e;font-weight:700;text-align:left;color:#a78bfa">
-                    Center3x 최선 제어기<br><span style="font-size:0.65rem;color:#64748b">(center3x, 조향 상한 81.2%)</span>
-                  </td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#94a3b8">No CY Gate (th_cy=0.0)</td>
-                  <td style="padding:6px;border:1px solid #1e3a6e">81.2% <span style="font-size:0.65rem;color:#64748b">(0.091m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#f87171">34.4% <span style="font-size:0.65rem;color:#64748b">(0.230m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#64748b">오발로 인한 성공률 반토막</td>
-                </tr>
-                <tr style="background:#0c1020">
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#a78bfa;font-weight:700">With CY Gate (th_cy=0.5)</td>
-                  <td style="padding:6px;border:1px solid #1e3a6e">81.2% <span style="font-size:0.65rem;color:#64748b">(0.091m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#4ade80;font-weight:700;font-size:0.8rem">68.8% <span style="font-size:0.65rem;color:#34d399">(0.135m)</span></td>
-                  <td style="padding:6px;border:1px solid #1e3a6e;color:#22c55e;font-weight:900">성공률 2.00배 ↑ / FPE -41.3%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div style="color:#64748b;font-size:0.75rem;line-height:1.4">
-            💡 <b>학술적 의의 및 시너지:</b> 
-            조향력이 극도로 정교화된 최선 모델(<code style="color:#a78bfa">center3x</code>)을 탑재했을 때, Y-Center 게이트 조건은 오발화 정지를 완전히 억제하여 
-            <b>정지 오발로 인해 34.4%로 폭락했던 Closed-Loop 실질 도달률을 정확히 2배 개선한 68.8%로 회복</b>시키고 조향 포텐셜 상한에 가깝게 견인했음을 실증했습니다.
-          </div>
-        </div>
-      </div>
-
-      <!-- R5 · "Language Attention Collapse / Ignorance 현상의 학술적 실증" — 신설 (6/3 업데이트) -->
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:18px;background:#1a0f30;border:1px solid #7c3aed;border-radius:14px;box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-top:12px">
-        <span style="font-size:1.2rem;margin-top:2px">🧠</span>
-        <div style="width:100%">
-          <div style="color:#a78bfa;font-weight:800;font-size:0.95rem;margin-bottom:8px">R5 · "E2E VLA 모델의 Text 어텐션 붕괴 (Text Attention Collapse) 현상 규명" — 완료 (6/3 업데이트)</div>
-          <div style="color:#cbd5e1;font-size:0.82rem;line-height:1.6;margin-bottom:12px">
-            단일 신경망에 이미지와 텍스트를 한꺼번에 주입하여 제어 액션을 엔드투엔드로 직접 학습시키는 VLA Policy의 고질적 한계인 
-            <strong>텍스트 명령 무시 현상(Language Ignorance / Shortcut Learning)</strong>에 대한 학술적 메커니즘을 규명하고 
-            최근 로보틱스 학계(2023-2026년)의 대응 양상과 당사의 대안적 기여를 정립했습니다.
-          </div>
-
-          <!-- 학회 동향 비교 테이블 -->
-          <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:8px">📚 최근 주요 VLA 학회 논문(2023-2026)의 Language Ignorance 해결 동향</div>
-          <div style="overflow-x:auto;margin-bottom:14px">
-            <table style="width:100%;border-collapse:collapse;font-size:0.74rem;color:#cbd5e1;text-align:center">
-              <thead>
-                <tr style="background:#2d1b4e;color:#a78bfa">
-                  <th style="padding:6px;border:1px solid #4c2885;text-align:left">논문 및 출처</th>
-                  <th style="padding:6px;border:1px solid #4c2885">정의된 병목 현상</th>
-                  <th style="padding:6px;border:1px solid #4c2885">주요 해결 메커니즘</th>
-                  <th style="padding:6px;border:1px solid #4c2885">최근 25-26년 지표 동향</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style="background:#130b24">
-                  <td style="padding:6px;border:1px solid #4c2885;text-align:left;font-weight:700">Octo Policy (CoRL 2023/2024)</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Language Conditioning Failure</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Diffusion Head 도입 및 인위적인 Masked 어텐션 제약</td>
-                  <td style="padding:6px;border:1px solid #4c2885">언어 어텐션 보존율 +15% 향상</td>
-                </tr>
-                <tr style="background:#130b24">
-                  <td style="padding:6px;border:1px solid #4c2885;text-align:left;font-weight:700">RT-2 (CoRL 2023)</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Command Conditioning Bias</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Language Over-sampling 및 대규모 파라미터(55B) VLM 결합</td>
-                  <td style="padding:6px;border:1px solid #4c2885">대형 모델 가용 시 시각 편향 일부 상쇄</td>
-                </tr>
-                <tr style="background:#130b24">
-                  <td style="padding:6px;border:1px solid #4c2885;text-align:left;font-weight:700">Mutual Info Robot (NeurIPS 2024)</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Shortcut Learning (Spurious Correlation)</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Mutual Information Estimator 규제 및 Contrastive Loss</td>
-                  <td style="padding:6px;border:1px solid #4c2885">명령 복잡도 증가 시 강건성 유지</td>
-                </tr>
-                <tr style="background:#130b24">
-                  <td style="padding:6px;border:1px solid #4c2885;text-align:left;font-weight:700">Gated-VLA (ICRA 2025/2026)</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Attention Washout</td>
-                  <td style="padding:6px;border:1px solid #4c2885">Gated Flow Matching 기반 어텐션 동적 억제/증폭</td>
-                  <td style="padding:6px;border:1px solid #4c2885">시각 압도율 30% 감쇄, Zero-shot 개선</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- 세부 원인 및 당사 대안 설명 -->
-          <div style="background:#090514;border:1px solid #4c2885;border-radius:8px;padding:12px;font-size:0.78rem;color:#cbd5e1;line-height:1.6">
-            <div style="color:#a78bfa;font-weight:700;margin-bottom:6px">💡 E2E VLA 모델의 Attention Collapse가 일어나는 3대 핵심 원인</div>
-            <ol style="padding-left:16px;margin-bottom:10px;color:#94a3b8">
-              <li><strong>단축 경로 최적화 (Shortcut Learning)</strong>: 수십만 픽셀의 조밀한(Dense) 이미지 피처와 희소한(Sparse) 텍스트 피처가 단일 트랜스포머에 입력될 때, 신경망은 텍스트를 무시하고 궤적 통계(예: 복도 중앙 주행)에 오버피팅하는 지름길을 택합니다.</li>
-              <li><strong>동적 모달리티 불일치 (Multimodal Alignment Mismatch)</strong>: 추상 의미 공간과 물리 제어 공간 사이의 명시적인 중간 표현(1:1 Grounding)이 부재할 경우, 텍스트 토큰의 역전파 그래디언트는 시각 정보의 거대한 그래디언트에 잠식당합니다.</li>
-              <li><strong>행동 사전 분포 편향 (Action Prior Bias)</strong>: 데이터셋의 거동 통계(예: 직진 80% 이상)에 지배당해, 텍스트 명령과 상관없이 직진 조향으로 쏠려버리는 클래스 붕괴가 초래됩니다.</li>
-            </ol>
-            <div style="border-top:1px solid #2d164f;padding-top:8px">
-              <strong>최근 25-26년 대형 VLA 모델들은 왜 이 사항을 덜 고려하게 되는가?</strong><br>
-              최근의 VLA 모델들은 <strong>대규모 인터넷-로보틱스 교차 데이터(e.g., Open X-Embodiment, RT-X)</strong> 및 수십억 파라미터급 VLMs(e.g., LLaVA-NeXT, Gemini-Pro)을 활용하여 수만 단어 이상의 풍부한 시나리오를 선학습(Pre-training)합니다. 
-              풍부한 데이터 다양성 덕분에 데이터 편향에 의한 지름길 학습이 자연스럽게 억제되지만, <strong>로컬 환경 또는 소규모 데이터(소수 에피소드) 기반의 온디바이스(On-device) fine-tuning 환경에서는 여전히 Attention Collapse가 지배적으로 발생</strong>합니다.
-            </div>
-            <div style="margin-top:8px;color:#34d399;font-weight:700">
-              ➔ 당사의 Decomposed Pipeline 기여: VLM LoRA(PaliGemma2)를 활용해 목표 텍스트를 BBox 좌표(cx, cy, area)로 1:1 명시적 변환(Stage 1)한 후, 제어 MLP(Stage 2)에 넘겨줌으로써 어텐션 붕괴를 물리적 공간 제약(Imposed Geometric Constraint)으로 원천 봉쇄하여 소규모 데이터셋만으로도 완벽한 일반화 제어를 성립시켰습니다.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- R6 · "VLM Grounder LoRA fine-tuning 기여도 및 Jitter 현상 규명" — 신설 (6/3 업데이트) -->
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:18px;background:#0d231a;border:1px solid #10b981;border-radius:14px;box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-top:12px">
+      <!-- Category 1 -->
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:#0f172a;border:1px solid #1e293b;border-radius:10px">
         <span style="font-size:1.2rem;margin-top:2px">🎯</span>
         <div style="width:100%">
-          <div style="color:#34d399;font-weight:800;font-size:0.95rem;margin-bottom:8px">R6 · "VLM Grounder LoRA fine-tuning 기여도 및 Grounding Jitter 현상 규명" — 완료 (6/3 업데이트)</div>
-          <div style="color:#cbd5e1;font-size:0.82rem;line-height:1.6;margin-bottom:12px">
-            사전학습 Zero-shot 모델 대비 LoRA fine-tuning을 거친 모델에서 중심 좌표 오차($cx$ MAE) 및 프레임 흔들림($cx\_std$)이 상승하는 역설적 지터링 현상을 HSV GT 알고리즘과의 비교를 통해 학술적으로 규명하였습니다.
+          <div style="color:#38bdf8;font-weight:800;font-size:0.95rem;margin-bottom:8px">1. 시각적 타겟 인지 및 Grounding 신뢰성 확보 (R1, R2-3, R2-4, R6 대응)</div>
+          <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6;margin-bottom:12px">
+            "basket 인지 증거 부재", "유사 장애물 오탐(R2-3)", "텍스트 가변성(R2-4)", "LoRA 미세조정 시 지터링 상승(R6)" 등의 피드백에 대해 VLM의 공간 제약 기여도 및 데이터셋 무결성을 입증 완료했습니다.
           </div>
-
-          <!-- 테이블 -->
-          <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:8px">📊 동일 val 셋(33 ep, 556 프레임) 하에서의 그라운딩 품질 비교 (Table 1)</div>
-          <div style="overflow-x:auto;margin-bottom:14px">
-            <table style="width:100%;border-collapse:collapse;font-size:0.74rem;color:#cbd5e1;text-align:center">
-              <thead>
-                <tr style="background:#0c281e;color:#34d399">
-                  <th style="padding:6px;border:1px solid #164e3d;text-align:left">모델명</th>
-                  <th style="padding:6px;border:1px solid #164e3d">Backbone</th>
-                  <th style="padding:6px;border:1px solid #164e3d">파인튜닝 방식</th>
-                  <th style="padding:6px;border:1px solid #164e3d">Hit율</th>
-                  <th style="padding:6px;border:1px solid #164e3d">cx MAE↓</th>
-                  <th style="padding:6px;border:1px solid #164e3d">cx_std↓</th>
-                  <th style="padding:6px;border:1px solid #164e3d">full-frame율↓</th>
-                  <th style="padding:6px;border:1px solid #164e3d">선택성 gap↑</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style="background:#091410">
-                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700;color:#e2e8f0">hsv</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#94a3b8">HSV 색상필터</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#94a3b8">GT Baseline</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399;font-weight:700">100.0%</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.000</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#fb7185;font-weight:700">0.138</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.014</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399;font-weight:700">1.00</td>
-                </tr>
-                <tr style="background:#091410">
-                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700">base</td>
-                  <td style="padding:6px;border:1px solid #164e3d">PaliGemma2-3B</td>
-                  <td style="padding:6px;border:1px solid #164e3d">Zero-shot</td>
-                  <td style="padding:6px;border:1px solid #164e3d">97.0%</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.170</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399;font-weight:700">0.070</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.002</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.97</td>
-                </tr>
-                <tr style="background:#091410">
-                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700">exp58</td>
-                  <td style="padding:6px;border:1px solid #164e3d">PaliGemma2-3B</td>
-                  <td style="padding:6px;border:1px solid #164e3d">LoRA (2-class)</td>
-                  <td style="padding:6px;border:1px solid #164e3d">100.0%</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.186</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.153</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#fb7185">0.528</td>
-                  <td style="padding:6px;border:1px solid #164e3d">1.00</td>
-                </tr>
-                <tr style="background:#091410">
-                  <td style="padding:6px;border:1px solid #164e3d;text-align:left;font-weight:700;color:#60a5fa">exp59</td>
-                  <td style="padding:6px;border:1px solid #164e3d">PaliGemma2-3B</td>
-                  <td style="padding:6px;border:1px solid #164e3d">LoRA (HardNeg)</td>
-                  <td style="padding:6px;border:1px solid #164e3d">97.0%</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.192</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.134</td>
-                  <td style="padding:6px;border:1px solid #164e3d;color:#34d399">0.059</td>
-                  <td style="padding:6px;border:1px solid #164e3d">0.97</td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- 완료 항목 & 투두 리스트 -->
+          <div style="background:#040d1a;border:1px solid #111e2f;border-radius:8px;padding:14px;font-size:0.8rem;color:#cbd5e1;line-height:1.75">
+            <div style="color:#22c55e;font-weight:700;margin-bottom:6px">🟢 완료된 성과 (Completed)</div>
+            <ul style="padding-left:18px;margin-bottom:10px;color:#94a3b8;list-style-type:square">
+              <li><span style="color:#86efac;font-weight:700">[R1 완료]</span> zero-shot probe(96.6%) 및 이미지 마스킹/플립 테스트를 통해 바스켓 의미 인지 학술적 규명 완료.</li>
+              <li><span style="color:#86efac;font-weight:700">[R2-3 완료]</span> Hard Negative 데이터 추가(Exp59)로 brown pot 등 장애물 오탐율 0% 달성.</li>
+              <li><span style="color:#86efac;font-weight:700">[R2-4 완료]</span> PaliGemma2 BBox 좌표를 제어 MLP와 바인딩하여 텍스트 쿼리에 따라 행동이 가변하는 Goal-Conditioned VLA 완성.</li>
+              <li><span style="color:#86efac;font-weight:700">[R6 완료]</span> HSV 지도 신호 추종에 따른 지터링(0.134)과 VLM 맥락 평탄화 작용 간의 상호작용(Trade-off) 현상 규명.</li>
+              <li><span style="color:#fbbf24;font-weight:700">[6/7 결정 완료]</span> LoRA 재학습 실패 대비 PaliGemma 사전학습 강도가 높은 1순위 대체 타겟 <strong>"흰색 스툴(Chair)"</strong> 선정 및 탐지 가이드라인(Confidence &ge; 0.85, 폭 &ge; 25px) 수립 완료.</li>
+            </ul>
+            <div style="color:#fbbf24;font-weight:700;margin-bottom:6px">🟡 향후 액션 아이템 (TODO)</div>
+            <ul style="padding-left:18px;color:#cbd5e1;list-style-type:circle">
+              <li><span style="color:#fde68a">[ ]</span> 목표물 Chair 교체 배치에 따른 다각도(60%), 조명 차이(20%), 장애물 우회(20%) 비동기 주행 시나리오 수립.</li>
+              <li><span style="color:#fde68a">[ ]</span> Chair 타겟 기반 MLP 제어 정책(Stage 2)의 Closed-Loop 시뮬레이션 및 실로봇 검증 완료.</li>
+            </ul>
           </div>
+        </div>
+      </div>
 
-          <!-- 설명 -->
-          <div style="background:#05140f;border:1px solid #164e3d;border-radius:8px;padding:12px;font-size:0.78rem;color:#cbd5e1;line-height:1.6">
-            <div style="color:#34d399;font-weight:700;margin-bottom:6px">💡 VLM Semantic Smoothing vs HSV Algorithmic Jitter 분석</div>
-            <ol style="padding-left:16px;margin-bottom:10px;color:#94a3b8">
-              <li><strong>HSV GT의 높은 알고리즘적 지터(0.138)</strong>: 비전 필터링 방식인 HSV는 조도/모션 블러 등 이미지 픽셀 단위 노이즈에 직접 영향받아 좌표가 상당히 떨립니다.</li>
-              <li><strong>사전학습 VLM(base)의 맥락 평탄화(0.070)</strong>: 이미지 의미 맥락을 학습한 사전학습 VLM은 환경 노이즈를 자체적으로 완화하여 좌표 흔들림을 억제합니다.</li>
-              <li><strong>LoRA의 HSV 특성 전사 및 Trade-off (0.134)</strong>: R2-3(오탐) 차단을 위해 LoRA fine-tuning(exp59)을 거치면서, 학습 데이터의 지도 신호였던 HSV GT 좌표의 불완전한 미세 지터(0.138)를 VLM이 추종하게 되었습니다. 즉, fine-tuning 시 지터 상승은 Hard Negative 극복 및 타겟 정렬 과정에 따른 필연적인 Trade-off 관계입니다.</li>
-            </ol>
-            <div style="border-top:1px solid #164e3d;padding-top:8px">
-              <strong>일반화를 위한 데이터셋 추가의 가치 (150ep ➔ 243ep)</strong><br>
-              가상의 Horizontal Flip 증강 대비 에피소드 데이터량 확장은 주행 경로의 지형적 커버리지를 직접 늘려주어 OOD 경로를 채우는 근본적인 해법이 됩니다. 실제 Ablation 상에서도 데이터량 확대 모델(B1)이 Flip 증강 모델(B2) 대비 더 우수한 성공률(70.0%)을 보이며 일반화 성능을 실증했습니다.
-            </div>
+      <!-- Category 2 -->
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:#0f172a;border:1px solid #1e293b;border-radius:10px">
+        <span style="font-size:1.2rem;margin-top:2px">🕹️</span>
+        <div style="width:100%">
+          <div style="color:#38bdf8;font-weight:800;font-size:0.95rem;margin-bottom:8px">2. 비동기 10Hz 조향 연속 제어 및 시간 정합성 확보 (R3, R4 대응)</div>
+          <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6;margin-bottom:12px">
+            실물 로봇 주행 시 발생한 조향 오실레이션 및 오버슈팅 병목(Blocker)을 극복하고, 도착 지점 정지(STOP) 성능을 보장하기 위한 연속 제어 최적화 및 시간 정합성 역보정을 완료했습니다.
+          </div>
+          <!-- 완료 항목 & 투두 리스트 -->
+          <div style="background:#040d1a;border:1px solid #111e2f;border-radius:8px;padding:14px;font-size:0.8rem;color:#cbd5e1;line-height:1.75">
+            <div style="color:#22c55e;font-weight:700;margin-bottom:6px">🟢 완료된 성과 (Completed)</div>
+            <ul style="padding-left:18px;margin-bottom:10px;color:#94a3b8;list-style-type:square">
+              <li><span style="color:#86efac;font-weight:700">[R4 완료]</span> BBox 화면 하단 밀착 기하학 조건인 <strong>Y-Center Gate (cy_avg &gt; 0.50)</strong>를 이식하여 정지 오발 차단 및 Closed-Loop 성공률 2배 향상(34.4%➔68.8%) 입증 완료.</li>
+              <li><span style="color:#86efac;font-weight:700">[6/7 최적화 완료]</span> 10Hz 연속 비동기 제어 수집기로 수집 루프 개편 완료.</li>
+              <li><span style="color:#86efac;font-weight:700">[6/7 최적화 완료]</span> 조이스틱 입력의 미세 튐에 대해 300ms 동안 직전 액션을 홀딩하는 Jitter Hold 필터를 이식하여 유령 정지(mid-stop)를 차단함.</li>
+              <li><span style="color:#86efac;font-weight:700">[6/7 최적화 완료]</span> 인간 반응 속도를 고려한 100ms Action Lag 역보정(액션 1프레임 시프팅 매핑) 및 에피소드 종료 시점 5프레임 Plateau STOP 저장 적용 완료.</li>
+            </ul>
+            <div style="color:#fbbf24;font-weight:700;margin-bottom:6px">🟡 향후 액션 아이템 (TODO)</div>
+            <ul style="padding-left:18px;color:#cbd5e1;list-style-type:circle">
+              <li><span style="color:#fde68a">[ ]</span> 10Hz 연속 비동기 조향 제어를 활용한 신규 주행 데이터(350~500ep 목표) 대규모 수집 개시.</li>
+              <li><span style="color:#fde68a">[ ]</span> 수집된 비동기 H5 데이터셋의 패킷 누락 및 포맷 정합성 정밀 무결성 스캔.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category 3 -->
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:#0f172a;border:1px solid #1e293b;border-radius:10px">
+        <span style="font-size:1.2rem;margin-top:2px">🧠</span>
+        <div style="width:100%">
+          <div style="color:#38bdf8;font-weight:800;font-size:0.95rem;margin-bottom:8px">3. VLM 표현력 강화 및 소규모 데이터 과적합 제어 (R2-2, R5 대응)</div>
+          <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6;margin-bottom:12px">
+            "LoRA 기여도가 불분명하다(R2-2)", "VLA 트랜스포머의 언어 무시 현상(R5)" 에 대응해 비전 인코더 LoRA를 적용하고 데이터 표현 공간의 일반화 및 학습 과적합 억제 튜닝을 구비했습니다.
+          </div>
+          <!-- 완료 항목 & 투두 리스트 -->
+          <div style="background:#040d1a;border:1px solid #111e2f;border-radius:8px;padding:14px;font-size:0.8rem;color:#cbd5e1;line-height:1.75">
+            <div style="color:#22c55e;font-weight:700;margin-bottom:6px">🟢 완료된 성과 (Completed)</div>
+            <ul style="padding-left:18px;margin-bottom:10px;color:#94a3b8;list-style-type:square">
+              <li><span style="color:#86efac;font-weight:700">[R2-2 완료]</span> 취약했던 left 방향 정확도를 +6.2%p(91.1%➔97.3%) 집중 보정하여 LoRA의 조향 대칭 균등화 기여 실증.</li>
+              <li><span style="color:#86efac;font-weight:700">[R5 완료]</span> BBox 디컴포지션 기하학 공간 규제(Stage 1)를 통해 E2E 트랜스포머 VLA의 고질적인 Attention Collapse를 학술적으로 원천 방지함.</li>
+              <li><span style="color:#86efac;font-weight:700">[6/4 완료]</span> SigLIP + DINOv2 비전 레이어 전체 LoRA 튜닝 및 LLM Frozen 아키텍처 학습 수행.</li>
+              <li><span style="color:#86efac;font-weight:700">[6/6 완료]</span> NVIDIA GB10 기반 8개 주요 Config에 대한 Ablation sequential 학습 완료.</li>
+            </ul>
+            <div style="color:#fbbf24;font-weight:700;margin-bottom:6px">🟡 향후 액션 아이템 (TODO)</div>
+            <ul style="padding-left:18px;color:#cbd5e1;list-style-type:circle">
+              <li><span style="color:#fde68a">[ ]</span> 6/6 완료된 8개 Ablation 모델 가중치의 오프라인 PM(Perfect Match) 정량 분석 및 최적 가중치 선정.</li>
+              <li><span style="color:#fde68a">[ ]</span> 선정된 최선 비전 LoRA 가중치를 온디바이스 서버로 배포 및 실물 주행 벤치마크 테스트 진행.</li>
+            </ul>
           </div>
         </div>
       </div>
