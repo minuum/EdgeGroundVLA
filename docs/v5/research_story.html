@@ -8058,43 +8058,7 @@ graph TD
     </div>
   </div>
 
-  <!-- ── matplotlib Trajectory 시각화 ── -->
-  <div style="margin-top:40px;padding:28px;background:#060d16;border:1px solid #1e3a5f;border-radius:16px">
-    <div style="color:#7dd3fc;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">
-      📈 Matplotlib Trajectory 시각화 (Exp11 vs Step2 vs Exp49)
-    </div>
-    <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:18px">
-      실제 HDF5 action 데이터에서 적분한 경로 시각화. 빨강(Exp11) = 방향 오류 누적 → 0/9 성공,
-      파랑(Step2) = 분해 접근 → 6/9 성공, <strong style="color:#22c55e">초록(Exp49) = bbox+goal MLP → 8/9 성공</strong>.
-    </p>
 
-    <!-- 전체 9-panel -->
-    <div style="margin-bottom:24px">
-      <div style="color:#475569;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">전체 3×3 (16:7)</div>
-      <img src="visual_proof/traj_9panel_v2.png" alt="9개 경로 trajectory 전체 비교"
-           style="width:100%;border-radius:8px;border:1px solid #1e293b">
-    </div>
-
-    <!-- 3개씩 그룹 -->
-    <div style="color:#475569;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">출발 위치별 3-panel (16:7)</div>
-    <div style="display:flex;flex-direction:column;gap:20px">
-      <div>
-        <div style="color:#94a3b8;font-size:0.8rem;margin-bottom:8px">🔵 중앙 출발 (Center Start)</div>
-        <img src="visual_proof/traj_3panel_center_v2.png" alt="중앙 출발 경로 3종"
-             style="width:100%;border-radius:8px;border:1px solid #1e293b">
-      </div>
-      <div>
-        <div style="color:#94a3b8;font-size:0.8rem;margin-bottom:8px">🔵 좌측 출발 (Left Start)</div>
-        <img src="visual_proof/traj_3panel_left_v2.png" alt="좌측 출발 경로 3종"
-             style="width:100%;border-radius:8px;border:1px solid #1e293b">
-      </div>
-      <div>
-        <div style="color:#94a3b8;font-size:0.8rem;margin-bottom:8px">🔵 우측 출발 (Right Start)</div>
-        <img src="visual_proof/traj_3panel_right_v2.png" alt="우측 출발 경로 3종"
-             style="width:100%;border-radius:8px;border:1px solid #1e293b">
-      </div>
-    </div>
-  </div>
 
   <div style="text-align:center;margin-top:48px;padding:32px;background:var(--surface);border-radius:16px">
     <p style="color:var(--muted);margin-bottom:16px">상세 문서 및 데이터</p>
