@@ -161,6 +161,7 @@
   .ns-A { border-top:4px solid #22c55e; } .ns-A .ns-badge { background:rgba(34,197,94,0.15); color:#22c55e; }
   .ns-B { border-top:4px solid #60a5fa; } .ns-B .ns-badge { background:rgba(96,165,250,0.15); color:#60a5fa; }
   .ns-C { border-top:4px solid #a78bfa; } .ns-C .ns-badge { background:rgba(167,139,250,0.15); color:#a78bfa; }
+  .ns-E { border-top:4px solid #fbbf24; } .ns-E .ns-badge { background:rgba(251,191,36,0.15); color:#fbbf24; }
 
   /* ── TOC 사이드바 ── */
   #toc {
@@ -7866,6 +7867,17 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
   </div>
 
   <div class="nextstep-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px">
+    <!-- E 안 카드 신설 (6/7 결정) -->
+    <div class="nextstep-card ns-E" style="border:2px solid #fbbf24;background:#181308;border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <div class="ns-badge">E 안 — 6/7 결정</div>
+        <div class="ns-title" style="color:#fde68a;font-weight:800;font-size:0.95rem;margin-bottom:8px">사전학습 객체(Chair/Stool) 교체 및 10Hz 비동기 주행 수집 개편</div>
+        <div class="ns-body" style="color:#cbd5e1;font-size:0.8rem;line-height:1.6">
+          <strong style="color:#fbbf24">1. 객체 교체:</strong> LoRA 재학습 실패 대비 PaliGemma 사전학습 인지 강도(98%)가 높은 흰색 스툴을 1순위 대체 타겟으로 선정.<br>
+          <strong style="color:#fbbf24">2. 10Hz 비동기 주행 수집:</strong> 6/4 Blocker(조향 오실레이션) 해결을 위해 10Hz 비동기 수집 루프로 전환. Action Lag 100ms 시간축 시프팅 보정, 300ms Jitter Hold 필터(유령 정지 mid-stop 차단), H5 내 timestamps 데이터셋 추가 및 Plateau STOP(종료 시점 5프레임 STOP 강제 오버라이딩)을 적용해 데이터셋 무결성을 확보함.
+        </div>
+      </div>
+    </div>
     <div class="nextstep-card ns-D" style="border:2px solid #a78bfa;background:#130b24;border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between">
       <div>
         <div class="ns-badge" style="background:#a78bfa;color:#0a0f1a;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px">D 안 — 6/4 결정</div>
