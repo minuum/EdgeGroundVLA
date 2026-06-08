@@ -261,6 +261,7 @@
     <a class="toc-item" href="#ch23" data-target="ch23"><span class="toc-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">CH 23</span><span class="toc-label">Grounding 붕괴 — 엉뚱한 bbox의 진실</span></a>
     <a class="toc-item" href="#ch24" data-target="ch24"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 24</span><span class="toc-label">MoNa-Pi: Flow Matching VLA</span></a>
     <a class="toc-item" href="#ch25" data-target="ch25"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 25</span><span class="toc-label">학술 기여점 & 핵심 피쳐 5선</span></a>
+    <a class="toc-item" href="#ch26" data-target="ch26"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 26</span><span class="toc-label">통합 Ablation 분석</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
@@ -6615,6 +6616,99 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
         <a href="#ch11" style="color:var(--accent);text-decoration:underline">CH 11 (교수님 반박 3가지)</a>의 CLIP-SigLIP 가중치 분석 및 
         <a href="#ch17" style="color:var(--accent);text-decoration:underline">CH 17 (PaliGemma 전환 히스토리)</a>를 통해, 적은 수의 로보틱스 데이터셋(220ep)만으로도 강건한 비전-텍스트 공간 정렬 표현을 성공적으로 학습시켰음을 입증함.
       </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="chapter" id="ch26">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#06b6d4;color:#0a0f1a">CH 26</span>
+    <h2 class="chapter-title">통합 Ablation 분석 — 세 실험이 가리키는 한 방향</h2>
+  </div>
+  <p class="chapter-desc">
+    최근 세 개의 독립 ablation(제어 데이터·grounding 모델·E2E LoRA 깊이)이 모두 동일한 결론을 가리킵니다:
+    <strong style="color:#fbbf24">"더 학습·더 튜닝(LoRA 깊이↑, 증강↑, hard-neg fine-tune)" 류의 손잡이는 거의 평평(plateau)하거나 역효과</strong>이고,
+    실제로 성능을 움직인 레버는 <strong style="color:#4ade80">① 아키텍처(분해 &gt; E2E) ② 데이터 규모/품질 ③ grounding 안정성</strong> 세 가지뿐이라는 것.
+  </p>
+
+  <!-- 세 ablation 요약 -->
+  <div style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:18px">
+
+    <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:18px">
+      <div style="color:#7dd3fc;font-size:0.85rem;font-weight:700;margin-bottom:8px">① Exp60 — 제어 데이터/증강 ablation</div>
+      <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8">
+        HSV→PG2 bbox 분포 불일치(OOD)로 CL 96.7%→4.5% 붕괴. 회복 레버:
+        <strong style="color:#86efac">데이터량(150→243ep, +10%p)</strong>이 결정적, <strong style="color:#86efac">bbox-noise 증강(aug2.0, +32%p)</strong>이 OOD 정합.
+        반면 <strong style="color:#f87171">flip 증강 단독은 무효~소폭 하락(70→65%)</strong>.
+        E2E(C1)는 18.8%로 분해형(B1 70%)에 크게 못 미침.
+      </div>
+    </div>
+
+    <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:18px">
+      <div style="color:#7dd3fc;font-size:0.85rem;font-weight:700;margin-bottom:8px">② Grounding ablation — base vs LoRA</div>
+      <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8">
+        <strong style="color:#86efac">베이스 PG2 zero-shot이 fine-tune LoRA보다 안정</strong>(cx_std 0.070 vs exp59 0.134).
+        exp58(2-class)은 full-frame 53% 폭발. base/exp57/exp59 × b1 = 모두 100% CL.
+        → <strong style="color:#f87171">소규모 도메인 fine-tuning이 grounding을 오히려 악화</strong>(과적합·hard-neg 패널티·이산 bin 지터).
+      </div>
+    </div>
+
+    <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:18px">
+      <div style="color:#7dd3fc;font-size:0.85rem;font-weight:700;margin-bottom:8px">③ LoRA-depth ablation — E2E PaliGemma (신규, 6/5~6/8)</div>
+      <div style="font-size:0.8rem;color:#94a3b8;line-height:1.8;margin-bottom:8px">
+        vision tower 상위 N 레이어 LoRA(top2~8) × mm_projector frozen/tuned, action val_loss 비교:
+      </div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.76rem">
+        <thead><tr style="background:#0d1a2e">
+          <th style="padding:6px 8px;text-align:left;color:#60a5fa;border-bottom:1px solid #1e3040">LoRA 깊이</th>
+          <th style="padding:6px 8px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e3040">proj frozen</th>
+          <th style="padding:6px 8px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e3040">proj tuned</th>
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #131e2e"><td style="padding:5px 8px;color:#e2e8f0">top2 (25-26)</td><td style="padding:5px 8px;text-align:center">0.435</td><td style="padding:5px 8px;text-align:center">0.435</td></tr>
+          <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:5px 8px;color:#e2e8f0">top4 (23-26)</td><td style="padding:5px 8px;text-align:center;color:#4ade80">0.433</td><td style="padding:5px 8px;text-align:center;color:#4ade80">0.433</td></tr>
+          <tr style="border-bottom:1px solid #131e2e"><td style="padding:5px 8px;color:#e2e8f0">top6 (21-26)</td><td style="padding:5px 8px;text-align:center;color:#4ade80">0.433</td><td style="padding:5px 8px;text-align:center;color:#4ade80">0.433</td></tr>
+          <tr><td style="padding:5px 8px;color:#e2e8f0">top8 (19-26)</td><td style="padding:5px 8px;text-align:center">0.435</td><td style="padding:5px 8px;text-align:center;color:#64748b">진행중</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div style="margin-top:8px;font-size:0.8rem;color:#94a3b8">
+        → <strong style="color:#fbbf24">전체 스프레드 0.002</strong>. 레이어 깊이도 projector tuning도 <strong>val_loss에 차이 없음</strong>.
+        E2E는 LoRA 깊이가 병목이 아님 = ②와 동일한 "fine-tuning 평탄성".
+      </div>
+    </div>
+  </div>
+
+  <!-- 통합 결론 -->
+  <div style="background:#052e16;border:1px solid #4ade80;border-radius:12px;padding:20px">
+    <div style="color:#4ade80;font-size:0.85rem;font-weight:700;margin-bottom:12px">🎯 통합 결론 — 평평한 손잡이 vs 진짜 레버</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#2d0000;border-radius:8px;padding:12px">
+        <div style="color:#fca5a5;font-size:0.78rem;font-weight:700;margin-bottom:6px">❌ 효과 미미/역효과 (평탄)</div>
+        <div style="font-size:0.76rem;color:#94a3b8;line-height:1.9">
+          · LoRA 레이어 깊이 2→8 (Δ0.002)<br>
+          · mm_projector frozen↔tuned<br>
+          · flip 증강 단독 (70→65%)<br>
+          · grounding hard-neg fine-tune (base보다 불안정)
+        </div>
+      </div>
+      <div style="background:#052e16;border-radius:8px;padding:12px;border:1px solid #16632a">
+        <div style="color:#86efac;font-size:0.78rem;font-weight:700;margin-bottom:6px">✅ 진짜 성능 레버</div>
+        <div style="font-size:0.76rem;color:#94a3b8;line-height:1.9">
+          · <strong>분해형 채택</strong> (70~100% vs E2E 18.8%)<br>
+          · <strong>데이터 규모</strong> (+93ep → +10%p)<br>
+          · <strong>grounding 안정성</strong> (base 채택)<br>
+          · bbox-noise 증강 (OOD 정합, +32%p)<br>
+          · STOP 윈도우 규칙 (도착 종결)
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;background:#0a1628;border-radius:8px;padding:12px 14px;font-size:0.82rem;color:#94a3b8;line-height:1.8">
+      <strong style="color:#fbbf24">한 줄 요약:</strong>
+      세 ablation이 독립적으로 같은 말을 한다 — <strong style="color:#e2e8f0">"모델을 더 튜닝하는 것"은 plateau, "구조를 분해하고 데이터를 늘리고 grounding을 안정화"하는 것이 레버.</strong>
+      그래서 다음 단계는 LoRA 재튜닝이 아니라 <strong>base grounding + 분해 파이프라인 + 데이터 확장(center 경로·다물체)</strong>이다.
     </div>
   </div>
 </div>
