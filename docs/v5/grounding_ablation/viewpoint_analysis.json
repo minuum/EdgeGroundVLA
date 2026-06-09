@@ -1,0 +1,258 @@
+{
+  "viewpoints": {
+    "L-far": {
+      "n": 34,
+      "base": {
+        "cx_err": 0.374055886485826,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.058823529411764705,
+        "n": 34
+      },
+      "exp57": {
+        "cx_err": 0.39175042033235574,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.4117647058823529,
+        "n": 34
+      },
+      "exp58": {
+        "cx_err": 0.3117493703639814,
+        "fullframe_rate": 0.6764705882352942,
+        "miss_rate": 0.0,
+        "n": 34
+      },
+      "exp59": {
+        "cx_err": 0.208646734777536,
+        "fullframe_rate": 0.029411764705882353,
+        "miss_rate": 0.08823529411764706,
+        "n": 34
+      }
+    },
+    "L-mid": {
+      "n": 19,
+      "base": {
+        "cx_err": 0.06871797088027987,
+        "fullframe_rate": 0.05263157894736842,
+        "miss_rate": 0.0,
+        "n": 19
+      },
+      "exp57": {
+        "cx_err": 0.06887669907907597,
+        "fullframe_rate": 0.05263157894736842,
+        "miss_rate": 0.0,
+        "n": 19
+      },
+      "exp58": {
+        "cx_err": 0.15831094304676643,
+        "fullframe_rate": 0.7368421052631579,
+        "miss_rate": 0.0,
+        "n": 19
+      },
+      "exp59": {
+        "cx_err": 0.15131739465966967,
+        "fullframe_rate": 0.21052631578947367,
+        "miss_rate": 0.0,
+        "n": 19
+      }
+    },
+    "L-near": {
+      "n": 7,
+      "base": {
+        "cx_err": 0.07924405809244518,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 7
+      },
+      "exp57": {
+        "cx_err": 0.07868547688870269,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 7
+      },
+      "exp58": {
+        "cx_err": 0.11110659125820414,
+        "fullframe_rate": 0.8571428571428571,
+        "miss_rate": 0.0,
+        "n": 7
+      },
+      "exp59": {
+        "cx_err": 0.0365824186566122,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 7
+      }
+    },
+    "C-far": {
+      "n": 64,
+      "base": {
+        "cx_err": 0.03224119929130008,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 64
+      },
+      "exp57": {
+        "cx_err": 0.0499953701235226,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.140625,
+        "n": 64
+      },
+      "exp58": {
+        "cx_err": 0.13970034518572827,
+        "fullframe_rate": 0.34375,
+        "miss_rate": 0.0,
+        "n": 64
+      },
+      "exp59": {
+        "cx_err": 0.037343826368523944,
+        "fullframe_rate": 0.015625,
+        "miss_rate": 0.0,
+        "n": 64
+      }
+    },
+    "C-mid": {
+      "n": 134,
+      "base": {
+        "cx_err": 0.03258025718550849,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.03731343283582089,
+        "n": 134
+      },
+      "exp57": {
+        "cx_err": 0.030954193238064198,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.05970149253731343,
+        "n": 134
+      },
+      "exp58": {
+        "cx_err": 0.10039645905370509,
+        "fullframe_rate": 0.44776119402985076,
+        "miss_rate": 0.0,
+        "n": 134
+      },
+      "exp59": {
+        "cx_err": 0.09254985642717498,
+        "fullframe_rate": 0.007462686567164179,
+        "miss_rate": 0.04477611940298507,
+        "n": 134
+      }
+    },
+    "C-near": {
+      "n": 82,
+      "base": {
+        "cx_err": 0.0838215840545502,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 82
+      },
+      "exp57": {
+        "cx_err": 0.08482624814452772,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.012195121951219513,
+        "n": 82
+      },
+      "exp58": {
+        "cx_err": 0.05314206184583841,
+        "fullframe_rate": 0.7439024390243902,
+        "miss_rate": 0.0,
+        "n": 82
+      },
+      "exp59": {
+        "cx_err": 0.07949330043153806,
+        "fullframe_rate": 0.18292682926829268,
+        "miss_rate": 0.0,
+        "n": 82
+      }
+    },
+    "R-far": {
+      "n": 187,
+      "base": {
+        "cx_err": 0.3363065815844515,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0427807486631016,
+        "n": 187
+      },
+      "exp57": {
+        "cx_err": 0.3657864774613421,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.20320855614973263,
+        "n": 187
+      },
+      "exp58": {
+        "cx_err": 0.28806960555863775,
+        "fullframe_rate": 0.4919786096256685,
+        "miss_rate": 0.0106951871657754,
+        "n": 187
+      },
+      "exp59": {
+        "cx_err": 0.3888407976100256,
+        "fullframe_rate": 0.0427807486631016,
+        "miss_rate": 0.0481283422459893,
+        "n": 187
+      }
+    },
+    "R-mid": {
+      "n": 28,
+      "base": {
+        "cx_err": 0.17816047688870268,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 28
+      },
+      "exp57": {
+        "cx_err": 0.17843976749057394,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 28
+      },
+      "exp58": {
+        "cx_err": 0.2977841328026812,
+        "fullframe_rate": 0.5357142857142857,
+        "miss_rate": 0.0,
+        "n": 28
+      },
+      "exp59": {
+        "cx_err": 0.13372857491970397,
+        "fullframe_rate": 0.07142857142857142,
+        "miss_rate": 0.0,
+        "n": 28
+      }
+    },
+    "R-near": {
+      "n": 1,
+      "base": {
+        "cx_err": 0.01319648093841641,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 1
+      },
+      "exp57": {
+        "cx_err": 0.0058651026392961825,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 1
+      },
+      "exp58": {
+        "cx_err": 0.029814271749755594,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 1
+      },
+      "exp59": {
+        "cx_err": 0.0,
+        "fullframe_rate": 0.0,
+        "miss_rate": 0.0,
+        "n": 1
+      }
+    }
+  },
+  "n_per_vp": {
+    "C-mid": 134,
+    "C-far": 64,
+    "C-near": 82,
+    "R-mid": 28,
+    "L-far": 34,
+    "L-near": 7,
+    "L-mid": 19,
+    "R-far": 187,
+    "R-near": 1
+  }
+}

@@ -6792,6 +6792,50 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       해법은 동일: <strong>base grounding 채택</strong> 또는 박스 크기 supervision으로 LoRA 재설계.
     </div>
   </div>
+
+  <!-- ⑤ 시점 분류별 경향 -->
+  <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:18px;margin-top:18px">
+    <div style="color:#06b6d4;font-size:0.82rem;font-weight:700;margin-bottom:8px">⑤ 시점(viewpoint) 분류별 grounding 경향 — "어떤 시점에서 무너지나"</div>
+    <div style="font-size:0.76rem;color:#94a3b8;line-height:1.7;margin-bottom:10px">
+      basket 위치(HSV cx: L&lt;0.4 / C / R&gt;0.6) × 거리(area: far/mid/near)로 557 frame을 9개 시점으로 분류,
+      각 (모델×시점)에서 <strong>cx오차 / full-frame율 / miss율</strong>. (`scripts/analyze_grounding_viewpoints.py`)
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:0.72rem;font-family:monospace">
+      <thead><tr style="background:#0d1a2e">
+        <th style="padding:5px 7px;text-align:left;color:#60a5fa">시점</th><th style="padding:5px 7px;color:#64748b">n</th>
+        <th style="padding:5px 7px;color:#86efac">base</th><th style="padding:5px 7px;color:#93c5fd">exp57</th>
+        <th style="padding:5px 7px;color:#fca5a5">exp58</th><th style="padding:5px 7px;color:#fdba74">exp59</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:4px 7px;color:#e2e8f0">C-far (중앙·원거리)</td><td style="padding:4px 7px;text-align:center;color:#64748b">64</td><td style="padding:4px 7px;text-align:center;color:#4ade80">0.03/0%/0%</td><td style="padding:4px 7px;text-align:center">0.05/0%/14%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.14/34%/0%</td><td style="padding:4px 7px;text-align:center">0.04/2%/0%</td></tr>
+        <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:4px 7px;color:#e2e8f0">C-mid (중앙·중거리)</td><td style="padding:4px 7px;text-align:center;color:#64748b">134</td><td style="padding:4px 7px;text-align:center;color:#4ade80">0.03/0%/4%</td><td style="padding:4px 7px;text-align:center">0.03/0%/6%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.10/45%/0%</td><td style="padding:4px 7px;text-align:center">0.09/1%/4%</td></tr>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:4px 7px;color:#e2e8f0">C-near (중앙·근거리)</td><td style="padding:4px 7px;text-align:center;color:#64748b">82</td><td style="padding:4px 7px;text-align:center;color:#4ade80">0.08/0%/0%</td><td style="padding:4px 7px;text-align:center">0.08/0%/1%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.05/74%/0%</td><td style="padding:4px 7px;text-align:center;color:#fdba74">0.08/18%/0%</td></tr>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:4px 7px;color:#e2e8f0">L-far (좌·원거리)</td><td style="padding:4px 7px;text-align:center;color:#64748b">34</td><td style="padding:4px 7px;text-align:center">0.37/0%/6%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.39/0%/41%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.31/68%/0%</td><td style="padding:4px 7px;text-align:center">0.21/3%/9%</td></tr>
+        <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:4px 7px;color:#e2e8f0">L-near (좌·근거리)</td><td style="padding:4px 7px;text-align:center;color:#64748b">7</td><td style="padding:4px 7px;text-align:center;color:#4ade80">0.08/0%/0%</td><td style="padding:4px 7px;text-align:center">0.08/0%/0%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.11/86%/0%</td><td style="padding:4px 7px;text-align:center;color:#4ade80">0.04/0%/0%</td></tr>
+        <tr><td style="padding:4px 7px;color:#e2e8f0">R-far (우·원거리)</td><td style="padding:4px 7px;text-align:center;color:#64748b">187</td><td style="padding:4px 7px;text-align:center">0.34/0%/4%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.37/0%/20%</td><td style="padding:4px 7px;text-align:center;color:#fca5a5">0.29/49%/1%</td><td style="padding:4px 7px;text-align:center">0.39/4%/5%</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:10px;font-size:0.78rem;color:#94a3b8;line-height:1.8">
+      <strong style="color:#e2e8f0">셀 = cx오차 / full-frame율 / miss율.</strong> 읽는 법:<br>
+      · <strong style="color:#4ade80">중앙(C) 시점은 전 모델 cx오차 0.03~0.08로 정확</strong> — "정면에 basket" 시점은 모두 잘 봄.<br>
+      · <strong>가장자리·원거리(L-far/R-far)는 전 모델 cx오차 0.3+</strong> — 멀고 치우친 basket은 본질적으로 어려움(공통).<br>
+      · <strong style="color:#f87171">exp58은 모든 시점에서 full-frame 폭발, 특히 근거리 74~86%</strong> (basket이 크면 "전부 basket"). exp59는 근거리 18~21%.<br>
+      · <strong style="color:#86efac">base만 전 시점 full-frame 0%</strong> + miss 낮음 → 시점 불문 가장 안정적 객체 인식.<br>
+      · exp57(PG1)은 박스는 안정이나 <strong>원거리 miss 20~41%</strong>(멀면 놓침).
+    </div>
+    <div style="margin-top:10px;background:#0a1628;border-radius:6px;padding:10px 12px;font-size:0.78rem;color:#94a3b8">
+      <strong style="color:#fbbf24">시점 결론:</strong> 객체 인식이 무너지는 지점은 모델마다 다르다 —
+      exp58=근거리(폭발), exp57=원거리(놓침), exp59=근거리(부분폭발). <strong>base는 전 시점에서 가장 균일하게 안정</strong>.
+    </div>
+  </div>
+
+  <div style="background:#1a1230;border:1px solid #4c1d95;border-radius:10px;padding:14px 16px;margin-top:14px;font-size:0.8rem;color:#cbd5e1;line-height:1.7">
+    <strong style="color:#a78bfa">⏭ 후속 (E2E LoRA-depth 모델):</strong>
+    top2~8×proj 모델은 action 예측용이라 bbox를 직접 출력하지 않음. vision-tower LoRA가 grounding에 주는 영향은
+    학습 완료 후(GPU 가용) Lightning ckpt에서 vision-LoRA 추출 → 동일 시점셋으로 detect 점검 예정.
+  </div>
 </div>
 
 
