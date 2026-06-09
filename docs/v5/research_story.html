@@ -6861,6 +6861,12 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       ① <strong style="color:#e2e8f0">LoRA-depth ablation의 val_loss 평탄(0.433~0.437)</strong>은 "깊이 무의미"이기도 하지만 근본적으로 <strong>vision LoRA가 미학습(no-op)</strong>이었기 때문 — 깊이 축이 실제로 작동 안 함.<br>
       ② <strong style="color:#4ade80">E2E 모델엔 벽/의자 오트래킹이 없다</strong> — vision 인코더를 안 건드려 grounding이 안정적 base PG1과 동일(full-frame 0%). 오트래킹은 bbox를 직접 학습한 exp58/59 고유 문제.
     </div>
+    <div style="margin-top:10px;background:#2d0b00;border-radius:6px;padding:10px 12px;font-size:0.78rem;color:#fca5a5;line-height:1.7">
+      <strong style="color:#fbbf24">재학습 시도(2026-06-09):</strong> requires_grad 복구 패치 + fresh config로 재학습을 게이트(1 config→epoch0 검증)했으나
+      <strong>epoch0 후 lora_B=0.000000 — 여전히 미학습</strong>. 원인은 RoboVLMs <code style="background:#1e2438;padding:1px 4px;border-radius:3px">forward_continuous</code>가
+      vision을 인코딩 후 <code>multimodal_embeds.requires_grad_(True)</code>로 새 leaf화 → vision_tower가 loss 그래프에서 분리.
+      config/패치로는 불가(forward 수술 필요·RoboVLMs 수정 금지). → 이 ablation은 <strong style="color:#e2e8f0">"frozen-vision E2E"</strong>로 정직하게 reframe.
+    </div>
   </div>
 </div>
 

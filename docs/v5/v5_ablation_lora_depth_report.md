@@ -34,3 +34,16 @@
 2. 8개 모델의 grounding은 **base PG1과 동일**(hit 58%, full-frame 0%, cxMAE 0.108) →
    E2E action 학습은 vision 인코더를 건드리지 않아 **벽/의자 오트래킹이 없음**(CH27 ⑥).
 3. 진짜 "vision LoRA 깊이" 효과를 보려면 `train_vision=True`로 재설계 필요.
+
+### 재학습 시도 결과 (2026-06-09) — 구조적 불가 확정
+
+`train_vision=False`가 vision LoRA를 얼리는 문제를 우회하려 **patch(requires_grad 복구) + fresh config(resume=null)** 로 재학습을 시도(게이트: 1 config먼저 → epoch0 후 lora_B 검증):
+- patch 로그: `vision LoRA requires_grad 복구: 0 params` (이미 True였음 = requires_grad는 원인 아님)
+- **epoch0 후 `lora_B_max = 0.000000`** — 신규·fresh로 1 epoch 풀 학습해도 vision LoRA 미학습.
+- 원인: RoboVLMs `forward_continuous`가 vision을 인코딩해 `multimodal_embeds`로 만든 뒤
+  **`multimodal_embeds.requires_grad_(True)`(base_backbone.py:1294)로 새 leaf화** → vision_tower가
+  loss 그래프에서 분리 → gradient 미도달. **config/패치로는 해결 불가**(forward 수술 필요, RoboVLMs 수정 금지).
+
+**최종 결론 (Option A reframe):** 이 ablation은 사실상 **"frozen-vision E2E에서 action head(+projector) 학습"**
+실험이며, vision-LoRA depth 축은 **프레임워크가 vision grad를 차단해 미검증**. 유효 결과는
+① action val_loss ~0.434 plateau ② projector 튜닝 효과 미미 ③ grounding은 base PG1 그대로 안전(오트래킹 없음, CH27 ⑥).
