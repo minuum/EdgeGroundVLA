@@ -262,6 +262,7 @@
     <a class="toc-item" href="#ch24" data-target="ch24"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 24</span><span class="toc-label">MoNa-Pi: Flow Matching VLA</span></a>
     <a class="toc-item" href="#ch25" data-target="ch25"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 25</span><span class="toc-label">학술 기여점 & 핵심 피쳐 5선</span></a>
     <a class="toc-item" href="#ch26" data-target="ch26"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 26</span><span class="toc-label">통합 Ablation 분석</span></a>
+    <a class="toc-item" href="#ch27" data-target="ch27"><span class="toc-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">CH 27</span><span class="toc-label">Ablation별 오트래킹 점검</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
@@ -6709,6 +6710,86 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       <strong style="color:#fbbf24">한 줄 요약:</strong>
       세 ablation이 독립적으로 같은 말을 한다 — <strong style="color:#e2e8f0">"모델을 더 튜닝하는 것"은 plateau, "구조를 분해하고 데이터를 늘리고 grounding을 안정화"하는 것이 레버.</strong>
       그래서 다음 단계는 LoRA 재튜닝이 아니라 <strong>base grounding + 분해 파이프라인 + 데이터 확장(center 경로·다물체)</strong>이다.
+    </div>
+  </div>
+</div>
+
+
+<div class="chapter" id="ch27">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#ef4444;color:#fff">CH 27</span>
+    <h2 class="chapter-title">Ablation 조합별 오트래킹 점검 — 벽·의자를 basket으로 보는가</h2>
+  </div>
+  <p class="chapter-desc">
+    교수님 의문(CH23): "모델이 gray basket이 아니라 <strong style="color:#f87171">벽면·의자</strong>를 트래킹하는 경우가 있지 않나?"
+    이를 grounding ablation <strong>4개 조합(base · exp57 · exp58 · exp59)</strong>에 대해 동일 프레임으로 점검했습니다.
+    결론: <strong style="color:#fbbf24">오트래킹은 fine-tune LoRA에서 발현(exp58 화면전체 폭발 53%, exp59 벽-고정), base/exp57(zero-shot·PG1)은 거의 없음.</strong>
+    (val 33ep / 557 frame, grounding 캐시 기반 — GPU 재학습 비간섭 분석)
+  </p>
+
+  <!-- ① 정량 -->
+  <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:18px;margin-bottom:18px">
+    <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:10px">① 모델별 오트래킹 정량 (557 frame)</div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+      <thead><tr style="background:#0d1a2e">
+        <th style="padding:7px 10px;text-align:left;color:#60a5fa;border-bottom:1px solid #1e3040">모델</th>
+        <th style="padding:7px 10px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e3040">cx 오차&gt;0.25</th>
+        <th style="padding:7px 10px;text-align:center;color:#f87171;border-bottom:1px solid #1e3040">full-frame(화면전체)</th>
+        <th style="padding:7px 10px;text-align:center;color:#fbbf24;border-bottom:1px solid #1e3040">canned-edge(벽)</th>
+        <th style="padding:7px 10px;text-align:left;color:#64748b;border-bottom:1px solid #1e3040">판정</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:6px 10px;color:#86efac">base (PG2 zero-shot)</td><td style="padding:6px 10px;text-align:center">34%</td><td style="padding:6px 10px;text-align:center;color:#4ade80">0%</td><td style="padding:6px 10px;text-align:center">1</td><td style="padding:6px 10px;color:#64748b">박스 크기 안정 — 오트래킹 거의 없음</td></tr>
+        <tr style="border-bottom:1px solid #131e2e;background:#0a0f1a"><td style="padding:6px 10px;color:#86efac">exp57 (PG1 LoRA)</td><td style="padding:6px 10px;text-align:center">30%</td><td style="padding:6px 10px;text-align:center;color:#4ade80">0%</td><td style="padding:6px 10px;text-align:center">1</td><td style="padding:6px 10px;color:#64748b">유사 안정 (miss 70 높음)</td></tr>
+        <tr style="border-bottom:1px solid #131e2e"><td style="padding:6px 10px;color:#fca5a5">exp58 (PG2 2-class)</td><td style="padding:6px 10px;text-align:center">37%</td><td style="padding:6px 10px;text-align:center;color:#f87171;font-weight:700">53%</td><td style="padding:6px 10px;text-align:center">0</td><td style="padding:6px 10px;color:#fca5a5">절반이 화면 전체 폭발 — 최악</td></tr>
+        <tr><td style="padding:6px 10px;color:#fca5a5">exp59 (PG2 hardneg, 현재)</td><td style="padding:6px 10px;text-align:center">37%</td><td style="padding:6px 10px;text-align:center;color:#fbbf24">6%</td><td style="padding:6px 10px;text-align:center;color:#fbbf24">9</td><td style="padding:6px 10px;color:#fca5a5">벽-고정(좌측끝) + full-frame 혼재</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:8px;font-size:0.74rem;color:#64748b">* cx오차는 HSV(자체 노이즈 있음) 기준이라 전 모델 30%대로 높음 — 진짜 "벽/의자" 신호는 full-frame·canned-edge.</div>
+  </div>
+
+  <!-- ② 이미지: 동일 프레임 4모델 비교 -->
+  <div style="background:#08111e;border:1px solid #1e3040;border-radius:12px;padding:18px;margin-bottom:18px">
+    <div style="color:#60a5fa;font-size:0.82rem;font-weight:700;margin-bottom:6px">② 동일 프레임 비교 — left_left fr0 (basket은 좌중앙, 노랑십자=HSV 기준)</div>
+    <div style="font-size:0.76rem;color:#94a3b8;margin-bottom:10px">박스: 각 모델 grounding(cx·area→정사각 근사). 박스가 basket을 벗어나 벽/전체면 = 오트래킹.</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div><img src="grounding_ablation/mistrack/base_fr00.png" style="width:100%;border-radius:6px;border:1px solid #16632a"><div style="font-size:0.72rem;color:#86efac;text-align:center;margin-top:3px">base ✅ 근처</div></div>
+      <div><img src="grounding_ablation/mistrack/exp57_fr00.png" style="width:100%;border-radius:6px;border:1px solid #1e40af"><div style="font-size:0.72rem;color:#93c5fd;text-align:center;margin-top:3px">exp57 ✅ 근처</div></div>
+      <div><img src="grounding_ablation/mistrack/exp58_fr00.png" style="width:100%;border-radius:6px;border:1px solid #7f1d1d"><div style="font-size:0.72rem;color:#fca5a5;text-align:center;margin-top:3px">exp58 ❌ 화면전체</div></div>
+      <div><img src="grounding_ablation/mistrack/exp59_fr00.png" style="width:100%;border-radius:6px;border:1px solid #7c2d12"><div style="font-size:0.72rem;color:#fdba74;text-align:center;margin-top:3px">exp59 ❌ 좌측 벽</div></div>
+    </div>
+  </div>
+
+  <!-- ③ raw output -->
+  <div style="background:#0a0f1a;border:1px solid #1e3040;border-radius:12px;padding:18px;margin-bottom:18px">
+    <div style="color:#fbbf24;font-size:0.82rem;font-weight:700;margin-bottom:10px">③ Raw 예측 출력 (left_left, cx / cy / area / hit)</div>
+    <pre style="background:#040d1a;border-radius:8px;padding:14px;font-size:0.72rem;color:#cbd5e1;line-height:1.6;overflow-x:auto;margin:0">
+[fr0]  basket 좌중앙(HSV cx=0.50)
+  hsv    cx=0.500  cy=0.500  area=0.050  hit=T   (기준)
+  base   cx=0.258  cy=0.577  area=0.027  hit=T   ← basket 근처, 소형 박스 OK
+  exp57  cx=0.257  cy=0.571  area=0.026  hit=T   ← 유사
+  exp58  cx=0.480  cy=0.500  area=0.961  hit=T   ← ❌ 화면 전체(벽+의자+바닥 다 포함)
+  exp59  cx=0.032  cy=0.411  area=0.003  hit=T   ← ❌ 좌측 끝 벽, 거의 0 area
+
+[fr4]  basket 좌중앙(HSV cx=0.50)
+  hsv    cx=0.500  cy=0.500  area=0.050  hit=T
+  base   cx=0.552  cy=0.593  area=0.032  hit=T   ← 근처
+  exp57  cx=None              area=None   hit=F   ← 미검출
+  exp58  cx=0.491  cy=0.500  area=0.982  hit=T   ← ❌ 화면 전체
+  exp59  cx=0.123  cy=0.400  area=0.001  hit=T   ← ❌ 좌측 벽</pre>
+  </div>
+
+  <!-- ④ 결론 -->
+  <div style="background:#052e16;border:1px solid #4ade80;border-radius:12px;padding:18px">
+    <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">④ 결론 — 교수님 의문에 대한 ablation 답</div>
+    <div style="font-size:0.8rem;color:#94a3b8;line-height:1.9">
+      ✅ <strong style="color:#e2e8f0">"벽/의자 트래킹"은 실재하며, fine-tune LoRA에서만 심하게 발현</strong>:
+      exp58(2-class)은 절반(53%)이 화면 전체로 폭발해 사실상 "전부가 basket", exp59(현재)는 좌측 벽에 고정되는 degenerate 케이스 발생.<br>
+      ✅ 반면 <strong style="color:#86efac">base(PG2 zero-shot)·exp57(PG1)은 full-frame 0%</strong> — 박스가 basket 근처에 안정적으로 유지.<br>
+      → CH23의 결론(우리 fine-tuning이 grounding을 악화, base가 더 안정)이 <strong style="color:#fbbf24">4개 조합 전체에서 정량·시각적으로 재확인</strong>됨.
+      해법은 동일: <strong>base grounding 채택</strong> 또는 박스 크기 supervision으로 LoRA 재설계.
     </div>
   </div>
 </div>
