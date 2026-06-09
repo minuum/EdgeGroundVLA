@@ -133,8 +133,8 @@
     },
     "train_dataset": {
         "type": "MobileVLAH5Dataset",
-        "data_dir": "/home/billy/25-1kp/vla/ROS_action/mobile_vla_dataset",
-        "episode_pattern": "episode_20251*.h5",
+        "data_dir": "/home/minum/26CS/MoNaVLA/ROS_action/mobile_vla_dataset_V5_add_free",
+        "episode_pattern": "episode_*.h5",
         "shift_first": false,
         "model_name": "paligemma",
         "rgb_pad": 10,
@@ -142,8 +142,8 @@
     },
     "val_dataset": {
         "type": "MobileVLAH5Dataset",
-        "data_dir": "/home/billy/25-1kp/vla/ROS_action/mobile_vla_dataset",
-        "episode_pattern": "episode_20251*.h5",
+        "data_dir": "/home/minum/26CS/MoNaVLA/ROS_action/mobile_vla_dataset_V5_add_free",
+        "episode_pattern": "episode_*.h5",
         "model_name": "paligemma",
         "train_split": 0.8,
         "is_validation": true

@@ -2,7 +2,8 @@
 # MoNaVLA Hub 영구 실행 — SSH 세션 독립 (setsid + nohup)
 # 사용: bash scripts/run/start_hub.sh
 
-cd /home/soda/MoNaVLA
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${VLA_PROJECT_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 
 LOG=logs/hub.log
 mkdir -p logs

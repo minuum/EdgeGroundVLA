@@ -1,0 +1,64 @@
+{
+  "mlp": "stage2_pg2cx_center3x_mlp.pt",
+  "rule": {
+    "th_area": 0.5,
+    "th_cx": 0.3,
+    "th_cy": 0.5,
+    "W": 5,
+    "min_steps": 0
+  },
+  "ablation": {
+    "no_cy_gate": {
+      "raw_off": {
+        "success_rate": 0.8125,
+        "mean_fpe": 0.09122653769091058,
+        "mean_tld": 0.9966495282124773,
+        "n": 32
+      },
+      "raw_on": {
+        "success_rate": 0.34375,
+        "mean_fpe": 0.22995041176795222,
+        "mean_tld": 0.9234192061457054,
+        "n": 32
+      },
+      "synth_off": {
+        "success_rate": 0.34375,
+        "mean_fpe": 0.22704480043370145,
+        "mean_tld": 1.0794166449547022,
+        "n": 32
+      },
+      "synth_on": {
+        "success_rate": 0.8125,
+        "mean_fpe": 0.09104688157444335,
+        "mean_tld": 0.9964803276723331,
+        "n": 32
+      }
+    },
+    "with_cy_gate": {
+      "raw_off": {
+        "success_rate": 0.8125,
+        "mean_fpe": 0.09122653769091058,
+        "mean_tld": 0.9966495282124773,
+        "n": 32
+      },
+      "raw_on": {
+        "success_rate": 0.6875,
+        "mean_fpe": 0.13459579969621943,
+        "mean_tld": 0.9735219369087043,
+        "n": 32
+      },
+      "synth_off": {
+        "success_rate": 0.6875,
+        "mean_fpe": 0.1284341181578489,
+        "mean_tld": 1.0218739089264455,
+        "n": 32
+      },
+      "synth_on": {
+        "success_rate": 0.8125,
+        "mean_fpe": 0.09113670955595415,
+        "mean_tld": 0.996456034866986,
+        "n": 32
+      }
+    }
+  }
+}

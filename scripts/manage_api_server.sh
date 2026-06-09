@@ -8,7 +8,8 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-PROJECT_DIR="${VLA_PROJECT_DIR:-/home/soda/MoNaVLA}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${VLA_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 PROFILE_SCRIPT="$PROJECT_DIR/scripts/vla_profile.py"
 E2E_SERVER_SCRIPT="$PROJECT_DIR/robovlm_nav/serve/inference_server.py"
 PROXY_SERVER_SCRIPT="$PROJECT_DIR/robovlm_nav/serve/proxy_inference_server.py"

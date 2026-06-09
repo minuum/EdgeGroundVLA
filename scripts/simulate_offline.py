@@ -24,10 +24,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Mobile VLA 경로 추가
-sys.path.append('/home/soda/vla/RoboVLMs')
-sys.path.append('/home/soda/vla/Mobile_VLA')
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(_project_root / 'RoboVLMs'))
+sys.path.append(str(_project_root))
 
-from Mobile_VLA.inference_server import MobileVLAInference
+try:
+    from robovlm_nav.serve.inference_server import MobileVLAInference
+except ImportError:
+    try:
+        from Mobile_VLA.inference_server import MobileVLAInference
+    except ImportError:
+        MobileVLAInference = None
 
 
 def load_episode_data(h5_path):
@@ -203,15 +210,16 @@ def visualize_results(pred_actions, gt_actions, instruction):
 
 def main():
     parser = argparse.ArgumentParser(description='Mobile VLA Offline Simulation')
-    parser.add_argument('--dataset', type=str, default='/home/soda/vla/ROS_action/basket_dataset',
+    _project_root = Path(__file__).resolve().parent.parent
+    parser.add_argument('--dataset', type=str, default=str(_project_root / 'ROS_action/basket_dataset'),
                         help='Dataset directory')
     parser.add_argument('--episode', type=str, default=None,
                         help='Specific episode file (e.g., episode_20260129_010041_basket_1box_hori_left_core_medium.h5)')
     parser.add_argument('--checkpoint', type=str,
-                        default='/home/soda/vla/runs/unified_regression_win12/kosmos/epoch=epoch=09-val_loss=val_loss=0.0013.ckpt',
+                        default=str(_project_root / 'runs/unified_regression_win12/kosmos/epoch=epoch=09-val_loss=val_loss=0.0013.ckpt'),
                         help='Model checkpoint path')
     parser.add_argument('--config', type=str,
-                        default='/home/soda/vla/Mobile_VLA/configs/mobile_vla_exp17_win8_k1.json',
+                        default=str(_project_root / 'configs/mobile_vla_exp17_win8_k1.json'),
                         help='Config file path')
     parser.add_argument('--visualize', action='store_true',
                         help='Visualize results')

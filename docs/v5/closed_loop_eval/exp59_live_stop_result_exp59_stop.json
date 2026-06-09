@@ -1,0 +1,35 @@
+{
+  "exp": "exp59_live_stop_closedloop",
+  "stage2_pt": "stop65_mlp.pt",
+  "smoothing": {
+    "W": 3,
+    "th_prob": 0.8
+  },
+  "mean_grounding_rate": 0.9687728435672515,
+  "cells": {
+    "raw_off": {
+      "success_rate": 0.0625,
+      "mean_fpe": 1.6847524660493205,
+      "mean_tld": 0.8754737091533802,
+      "n": 32
+    },
+    "raw_on": {
+      "success_rate": 0.0625,
+      "mean_fpe": 1.8566437942407643,
+      "mean_tld": 0.8576881194450017,
+      "n": 32
+    },
+    "synth_off": {
+      "success_rate": 0.09375,
+      "mean_fpe": 1.0612567352036046,
+      "mean_tld": 0.9449552523792936,
+      "n": 32
+    },
+    "synth_on": {
+      "success_rate": 0.09375,
+      "mean_fpe": 1.2054808273114244,
+      "mean_tld": 0.9243803556810829,
+      "n": 32
+    }
+  }
+}

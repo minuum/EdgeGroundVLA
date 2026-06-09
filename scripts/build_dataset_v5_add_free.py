@@ -79,7 +79,47 @@ def copy_h5_without_mid_stops(src: Path, dst: Path) -> tuple[int, int]:
     return n, len(kept)
 
 
-def main(dry_run: bool = False) -> None:
+def copy_h5_relabel_mid_stops(src: Path, dst: Path) -> tuple[int, int]:
+    """
+    free 에피소드: 중간 STOP 프레임을 **삭제하지 않고** 직전 모션 액션으로 재지정.
+    프레임(이미지)은 전부 유지 — STOP은 마지막 프레임에만 남는다.
+
+    재지정 규칙(forward-fill): 비-STOP 직전 액션을 carry. 앞에 모션이 없으면 다음 모션 사용.
+    마지막 프레임이 STOP이면 그대로 유지(navigation 완료 신호).
+    Returns (total_frames, relabeled_count)
+    """
+    with h5py.File(src, "r") as f_in:
+        actions = f_in["actions"][:].copy()
+        images  = f_in["observations"]["images"][:]
+        instr   = f_in["language_instruction"][:]
+
+    n = len(actions)
+    last_motion = None
+    relabeled = 0
+    for i in range(n):
+        is_last = (i == n - 1)
+        if is_stop_frame(actions[i]) and not is_last:
+            # 직전 모션 carry, 없으면 다음 모션 backfill
+            repl = last_motion
+            if repl is None:
+                repl = next((actions[j] for j in range(i + 1, n)
+                             if not is_stop_frame(actions[j])), None)
+            if repl is not None:
+                actions[i] = repl
+                relabeled += 1
+        elif not is_stop_frame(actions[i]):
+            last_motion = actions[i].copy()
+
+    with h5py.File(dst, "w") as f_out:
+        f_out.create_dataset("actions",              data=actions)   # 전 프레임 유지
+        obs = f_out.create_group("observations")
+        obs.create_dataset("images", data=images)
+        f_out.create_dataset("language_instruction", data=instr)
+
+    return n, relabeled
+
+
+def main(dry_run: bool = False, stop_mode: str = "relabel") -> None:
     random.seed(RANDOM_SEED)
 
     all_h5 = sorted(SRC.glob("*.h5"))
@@ -100,7 +140,8 @@ def main(dry_run: bool = False) -> None:
         print(f"  {pt:20s}: {len(files):3d} → {len(chosen):3d}개 선택")
 
     print(f"\nstructured 합계: {len(structured)} → {len(selected_structured)}개")
-    print(f"free       합계: {len(free_files)}개 (STOP 프레임 제거 예정)")
+    mode_desc = "중간 STOP 재지정(프레임 유지)" if stop_mode == "relabel" else "중간 STOP 제거"
+    print(f"free       합계: {len(free_files)}개 ({mode_desc})")
 
     if dry_run:
         print("\n[dry-run] 실제 파일 생성 없음.")
@@ -123,17 +164,26 @@ def main(dry_run: bool = False) -> None:
 
     print(f"\nstructured {copied_s}개 링크/복사 완료")
 
-    # free: STOP 프레임 제거 후 저장
-    total_before = total_after = 0
+    # free: relabel(프레임 유지) 또는 remove(삭제)
+    total_before = total_after = total_relabel = 0
     for src_f in free_files:
         dst_f = DST / src_f.name
-        orig, kept = copy_h5_without_mid_stops(src_f, dst_f)
-        removed = orig - kept
-        total_before += orig
-        total_after  += kept
-        print(f"  {src_f.name[-60:]:60s}  {orig}→{kept} (-{removed})")
+        if stop_mode == "relabel":
+            orig, relabeled = copy_h5_relabel_mid_stops(src_f, dst_f)
+            total_before += orig
+            total_after  += orig          # 프레임 수 불변
+            total_relabel += relabeled
+            print(f"  {src_f.name[-60:]:60s}  {orig}프레임 유지 (mid-STOP {relabeled}개 재지정)")
+        else:
+            orig, kept = copy_h5_without_mid_stops(src_f, dst_f)
+            total_before += orig
+            total_after  += kept
+            print(f"  {src_f.name[-60:]:60s}  {orig}→{kept} (-{orig-kept})")
 
-    print(f"\nfree 합계: {total_before} → {total_after} 프레임 ({total_before-total_after} STOP 제거)")
+    if stop_mode == "relabel":
+        print(f"\nfree 합계: {total_before} 프레임 전부 유지 (mid-STOP {total_relabel}개 → 직전 모션 재지정, 마지막 STOP만 유지)")
+    else:
+        print(f"\nfree 합계: {total_before} → {total_after} 프레임 ({total_before-total_after} STOP 제거)")
 
     # ── 요약 ─────────────────────────────────────────────────────────
     total_ep = len(list(DST.glob("*.h5")))
@@ -144,5 +194,8 @@ def main(dry_run: bool = False) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--stop-mode", choices=["relabel", "remove"], default="relabel",
+                        help="relabel(기본): 중간 STOP을 직전 모션으로 재지정·프레임 유지 / "
+                             "remove: 중간 STOP 프레임 삭제(구버전)")
     args = parser.parse_args()
-    main(dry_run=args.dry_run)
+    main(dry_run=args.dry_run, stop_mode=args.stop_mode)

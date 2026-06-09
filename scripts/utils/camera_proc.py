@@ -12,8 +12,12 @@ import time
 
 import gradio as gr
 
+import os
+from pathlib import Path
+_project_root = Path(__file__).resolve().parents[2]
+
 ROS_SETUP     = "/opt/ros/humble/setup.bash"
-ROS_WS_SETUP  = "/home/soda/MoNaVLA/ROS_action/install/setup.bash"
+ROS_WS_SETUP  = os.getenv("VLA_ROS_WS", str(_project_root / "ROS_action")) + "/install/setup.bash"
 KILL_PATTERN  = "usb_camera_service_server"
 START_CMD = (
     f"source {ROS_SETUP} 2>/dev/null; "

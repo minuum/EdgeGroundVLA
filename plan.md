@@ -1,7 +1,7 @@
 # Plan: exp53 CL 평가 + 허브 CL 대시보드
 
-**작성일**: 2026-05-27  
-**상태**: 승인 대기
+**작성일**: 2026-05-27 (업데이트: 2026-06-03)  
+**상태**: 승인 완료 (사용자 Option 1 선택)
 
 ---
 
@@ -168,9 +168,34 @@ SERVICES에 CL Dashboard 추가:
 
 ## 완료 체크리스트
 
-- [ ] extract_vis_features_exp53.py 작성
-- [ ] evaluate_closed_loop_v5.py exp53 지원
-- [ ] gradio_cl_dashboard.py 작성 (3탭)
-- [ ] gradio_hub.py SERVICES 추가
-- [ ] feature 추출 실행
-- [ ] exp53 CL eval 실행
+- [x] extract_vis_features_exp53.py 작성
+- [x] evaluate_closed_loop_v5.py exp53 지원
+- [x] gradio_cl_dashboard.py 작성 (3탭)
+- [x] gradio_hub.py SERVICES 추가
+- [x] feature 추출 실행
+- [x] exp53 CL eval 실행
+
+---
+
+# Plan: 도착 STOP Y-Center 게이트 추가 구현 및 CL Ablation 검증
+
+**작성일**: 2026-06-03  
+**상태**: 승인 대기
+
+## 배경
+통계 분석 결과, 진짜 도착 시점에는 바스켓 중심 Y 좌표가 평균 0.50으로 가라앉는 반면, 주행 중 일시적 노이즈는 평균 0.38에 머물러 있습니다. 정지 판단 조건에 `cy_avg > TH_CY` 조건을 결합해 가짜 에피소드 정지 오발(False Trigger)을 차단하고 68.8% 정지 성공률을 추가 개선하고자 합니다.
+
+## 변경 범위
+
+### 1. `scripts/eval_stop_closedloop.py` 수정
+- `th_cy` 인자 추가 (기본값 `0.5`).
+- `stop_trigger_idx` 및 `expert_synth_stop`에 `cy_det` 조건 (`cy_avg > th_cy`) 적용.
+- 기존 No CY Gate 조건과 신규 With CY Gate 조건을 동일 조건 하에 순차 수행하여 성공률, FPE, TLD 메트릭의 Ablation 비교 결과를 단일 테이블로 대조 출력하도록 고도화.
+
+### 2. `robovlm_nav/serve/inference_server.py` 수정
+- 도착 area 정지 판정 함수 `_arrival_stop()` 에 `cy_avg > self._stop_th_cy` 조건 추가.
+- 환경변수 `VLA_GOALNAV_STOP_TH_CY` (기본값 `0.5`) 바인딩 추가.
+
+## 검증 계획
+1. `python3 scripts/eval_stop_closedloop.py`를 실행하여 32개 검증 에피소드 대상 Ablation 성공률(FPE < 0.15m 및 0.5m)을 비교하고, 조기 정지(오발) 및 과주행이 효과적으로 억제되었는지 정량 비교.
+2. `inference_server.py` 코드 무결성 검증.

@@ -20,7 +20,7 @@ if [ -z "${VLA_SERVER_ROLE:-}" ]; then
             export VLA_SERVER_ROLE="jetson"
             export VLA_SERVER_NAME="MoNaVLA Jetson Robot"
             ;;
-        billy)
+        billy|gx10-5c89)
             export VLA_SERVER_ROLE="model"
             export VLA_SERVER_NAME="MoNaVLA Billy Server"
             ;;
@@ -36,9 +36,17 @@ fi
 # 공통 환경 변수
 # ========================================
 
-export VLA_PROJECT_DIR="/home/soda/MoNaVLA"
-export MONAVLA_ROOT="/home/soda/MoNaVLA"
-export VLA_ROS_WS="${VLA_ROS_WS:-/home/soda/MoNaVLA/ROS_action}"
+# 소스된 파일의 디렉토리를 기준으로 프로젝트 루트 자동 결정
+if [ -n "${BASH_SOURCE:-}" ]; then
+    _vla_source_dir="$(dirname "${BASH_SOURCE[0]}")"
+elif [ -n "${ZSH_VERSION:-}" ]; then
+    _vla_source_dir="$(dirname "${(%):-%x}")"
+else
+    _vla_source_dir="."
+fi
+export VLA_PROJECT_DIR="$(cd "$_vla_source_dir" && pwd)"
+export MONAVLA_ROOT="$VLA_PROJECT_DIR"
+export VLA_ROS_WS="${VLA_ROS_WS:-$VLA_PROJECT_DIR/ROS_action}"
 
 # Tailscale VPN 주소
 export JETSON_TAILSCALE_IP="${JETSON_TAILSCALE_IP:-100.85.118.58}"
@@ -88,7 +96,7 @@ vla-jetson-env() {
     echo "🤖 Jetson Robot Server 환경 설정 중..."
     
     # ROS2 환경 설정
-    cd /home/soda/MoNaVLA/ROS_action/install
+    cd "$VLA_ROS_WS/install"
     source /opt/ros/humble/setup.bash
     source local_setup.bash
     cd - > /dev/null
@@ -113,7 +121,7 @@ vla-model-env() {
     echo "🧠 Model Inference Server 환경 설정 중..."
     
     # Python 가상환경 활성화 (필요시)
-    # source /home/billy/venv/bin/activate
+    # source $VLA_PROJECT_DIR/.venv/bin/activate
     
     echo "✓ Model Server 환경 설정 완료"
     echo ""
@@ -273,13 +281,13 @@ vla-help() {
     elif [ "$VLA_SERVER_ROLE" = "model" ]; then
         echo "  mona-model-env     - Model 서버 환경 설정 [alias: vla-model-env]"
         echo ""
-        echo "API 서버 관리:"
-        echo "  vla-server         - API 서버 시작/관리"
+        echo "Ablation 학습 관리:"
+        echo "  mona               - Ablation 학습 모니터링 대시보드 [alias: mona-status]"
+        echo "  mona-status-watch  - Ablation 학습 실시간 모니터링 (10초 주기)"
+        echo "  mona-train-log     - Ablation 전체 로그 실시간 추적 [alias: vla-train-log]"
+        echo "  mona-train-stop    - Ablation 학습 및 스케줄러 강제 중단 [alias: vla-train-stop]"
         echo "  mona-start         - API 서버 시작 [alias: vla-start]"
         echo "  mona-stop          - API 서버 중지 [alias: vla-stop]"
-        echo "  mona-restart       - API 서버 재시작 [alias: vla-restart]"
-        echo "  mona-status        - API 서버 상태 [alias: vla-status]"
-        echo "  mona-logs          - API 서버 로그 [alias: vla-logs]"
     fi
     
     echo ""
@@ -312,6 +320,15 @@ alias mona-env='vla-env'
 alias mona-cd='vla-cd'
 alias mona-network-check='vla-network-check'
 alias mona-gpu='vla-gpu'
+
+# Mona Ablation & Status aliases (Common)
+alias mona-status='python3 $VLA_PROJECT_DIR/scripts/mona_status.py'
+alias mona='mona-status'
+alias mona-status-watch='watch -n 10 python3 $VLA_PROJECT_DIR/scripts/mona_status.py'
+alias vla-train-log='tail -f $VLA_PROJECT_DIR/logs/v5_ablation/overall.log'
+alias vla-train-stop='pkill -f run_v5_ablations.sh && pkill -f main.py'
+alias mona-train-log='vla-train-log'
+alias mona-train-stop='vla-train-stop'
 
 # Jetson specific
 if [ "$VLA_SERVER_ROLE" = "jetson" ]; then
@@ -354,7 +371,7 @@ if [ "$VLA_SERVER_ROLE" = "model" ]; then
     alias mona-start='vla-start'
     alias mona-stop='vla-stop'
     alias mona-restart='vla-restart'
-    alias mona-status='vla-status'
+    # alias mona-status='vla-status' # Ablation 모니터링을 위해 글로벌 정의 유지 (API 서버 상태는 vla-status 이용)
     alias mona-logs='vla-logs'
     alias mona-test='vla-test'
     alias mona-health='vla-health'
@@ -367,11 +384,13 @@ fi
 # echo "✓ VLA aliases loaded - $VLA_SERVER_NAME"
 # echo "  Run 'vla-help' for available commands"
 # Basket Training Aliases
-alias vla-train-log='tail -f /home/billy/25-1kp/vla/logs/train_basket_chunk5_20260129_204053.log'
-alias vla-train-stop='pkill -f main.py'
+alias vla-train-log='tail -f $VLA_PROJECT_DIR/logs/v5_ablation/overall.log'
+alias vla-train-stop='pkill -f run_v5_ablations.sh && pkill -f main.py'
+alias mona-train-log='vla-train-log'
+alias mona-train-stop='vla-train-stop'
 
 # MoNaVLA Shortcuts
-alias vla-analyze='python3 /home/soda/MoNaVLA/scripts/gradio_offline_h5_analyzer.py'
+alias vla-analyze='python3 $VLA_PROJECT_DIR/scripts/gradio_offline_h5_analyzer.py'
 
 unalias vla-profile 2>/dev/null || true
 vla-profile() {

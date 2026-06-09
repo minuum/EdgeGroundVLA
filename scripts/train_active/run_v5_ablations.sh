@@ -16,17 +16,17 @@ mkdir -p logs/v5_ablation
 # .venv/bin/python3 third_party/RoboVLMs/main.py configs/v5_ablation/v5_ablation_top2_proj_tuned.json > logs/v5_ablation/v5_ablation_top2_proj_tuned.log 2>&1
 # echo "완료: v5_ablation_top2_proj_tuned"
 
-echo "=================================================="
-echo "시작: v5_ablation_top4_proj_frozen"
-echo "=================================================="
-.venv/bin/python3 third_party/RoboVLMs/main.py configs/v5_ablation/v5_ablation_top4_proj_frozen.json > logs/v5_ablation/v5_ablation_top4_proj_frozen.log 2>&1
-echo "완료: v5_ablation_top4_proj_frozen"
+# echo "=================================================="
+# echo "시작: v5_ablation_top4_proj_frozen"
+# echo "=================================================="
+# .venv/bin/python3 third_party/RoboVLMs/main.py configs/v5_ablation/v5_ablation_top4_proj_frozen.json > logs/v5_ablation/v5_ablation_top4_proj_frozen.log 2>&1
+# echo "완료: v5_ablation_top4_proj_frozen"
 
-echo "=================================================="
-echo "시작: v5_ablation_top4_proj_tuned"
-echo "=================================================="
-.venv/bin/python3 third_party/RoboVLMs/main.py configs/v5_ablation/v5_ablation_top4_proj_tuned.json > logs/v5_ablation/v5_ablation_top4_proj_tuned.log 2>&1
-echo "완료: v5_ablation_top4_proj_tuned"
+# echo "=================================================="
+# echo "시작: v5_ablation_top4_proj_tuned"
+# echo "=================================================="
+# .venv/bin/python3 third_party/RoboVLMs/main.py configs/v5_ablation/v5_ablation_top4_proj_tuned.json > logs/v5_ablation/v5_ablation_top4_proj_tuned.log 2>&1
+# echo "완료: v5_ablation_top4_proj_tuned"
 
 echo "=================================================="
 echo "시작: v5_ablation_top6_proj_frozen"

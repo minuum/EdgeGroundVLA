@@ -92,18 +92,33 @@ def mask_basket(img, cx, cy, area, scale=1.8):
 def make_masking_figure(device, processor, vm, image_proj, anchor):
     data = json.loads(DATA_PATH.read_text())
 
-    # center 대형 basket 케이스 + left/right 대표 케이스
+    # 중간거리 basket 케이스 — 내비게이션 중 자연스러운 거리
+    AREA_TARGET_VIZ = {"left": 0.04, "center": 0.08, "right": 0.04}
+    AREA_MAX_VIZ    = {"left": 0.25, "center": 0.25, "right": 0.25}
     samples = {}
     for ep in data:
         d = ep["direction"]
         if d in samples:
             continue
-        frames = [f for f in ep["frames"]
-                  if f["consistent"] and f["label"]
-                  and f.get("area_det") and f["area_det"] >= (0.3 if d == "center" else 0.005)]
+        target = AREA_TARGET_VIZ[d]
+        area_min = 0.005 if d != "center" else 0.03
+        frames = sorted(
+            [f for f in ep["frames"]
+             if f["consistent"] and f["label"]
+             and f.get("area_det")
+             and area_min <= f["area_det"] <= AREA_MAX_VIZ[d]],
+            key=lambda x: abs(x["area_det"] - target)
+        )
+        if not frames:
+            frames = sorted(
+                [f for f in ep["frames"]
+                 if f["consistent"] and f["label"] and f.get("area_det")
+                 and f["area_det"] >= area_min],
+                key=lambda x: x["area_det"]
+            )
         if not frames:
             continue
-        fr = sorted(frames, key=lambda x: -x["area_det"])[0]
+        fr = frames[0]
         try:
             with h5py.File(ep["episode"], "r") as f:
                 img = Image.fromarray(f["observations"]["images"][fr["frame_idx"]]).convert("RGB")

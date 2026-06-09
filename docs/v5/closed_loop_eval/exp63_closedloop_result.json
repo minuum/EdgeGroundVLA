@@ -1,0 +1,7 @@
+{
+  "exp": "exp63_closedloop",
+  "success_rate": 0.1875,
+  "mean_fpe": 1.9532324925278628,
+  "mean_tld": 0.9329075129580056,
+  "n_episodes": 32
+}

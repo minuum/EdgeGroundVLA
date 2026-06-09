@@ -47,8 +47,11 @@ DIR_IDX  = {"left": 0, "center": 1, "right": 2}
 DIR_KO   = {"left": "왼쪽", "center": "중앙", "right": "오른쪽"}
 MASK_COLOR = (90, 90, 90)
 
-# center: 대형 basket 우선 (flip 잘 남), left/right: 소형도 포함
+# 중간 거리 프레임 우선 — 도착 직전이 아닌 내비게이션 중 장면
+# area_det: 5~15% = basket 뚜렷하게 보이지만 화면 채우지 않는 자연스러운 거리
 AREA_MIN = {"left": 0.003, "center": 0.04, "right": 0.003}
+AREA_TARGET = {"left": 0.04, "center": 0.08, "right": 0.04}  # 최적 중간거리
+AREA_MAX  = {"left": 0.25,  "center": 0.25, "right": 0.25}   # 이 이상은 도착 직전
 N_SAMPLES = {"left": 4, "center": 6, "right": 4}
 
 
@@ -261,16 +264,27 @@ def main():
         if counters[d] >= N_SAMPLES[d]:
             continue
 
-        frames = sorted(
+        # 중간거리 프레임 우선: AREA_MIN~AREA_MAX 범위에서 target에 가장 가까운 것
+        target = AREA_TARGET[d]
+        frames_mid = sorted(
             [f for f in ep["frames"]
              if f["consistent"] and f["label"]
-             and f.get("area_det") and f["area_det"] >= AREA_MIN[d]],
-            key=lambda x: -x["area_det"]
+             and f.get("area_det")
+             and AREA_MIN[d] <= f["area_det"] <= AREA_MAX[d]],
+            key=lambda x: abs(x["area_det"] - target)
         )
-        if not frames:
+        # 중간거리 없으면 fallback: area_min 이상 중 가장 작은 것
+        if not frames_mid:
+            frames_mid = sorted(
+                [f for f in ep["frames"]
+                 if f["consistent"] and f["label"]
+                 and f.get("area_det") and f["area_det"] >= AREA_MIN[d]],
+                key=lambda x: x["area_det"]
+            )
+        if not frames_mid:
             continue
 
-        fr = frames[0]
+        fr = frames_mid[0]
         cx, cy, area = fr["cx_det"], fr["cy_det"], fr["area_det"]
         gt = fr["label"]
 

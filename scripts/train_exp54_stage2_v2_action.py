@@ -103,12 +103,49 @@ def load_images(h5_path, indices):
         return [Image.fromarray(f["observations"]["images"][i]) for i in indices]
 
 
-def bbox_feat(frames, t):
+def bbox_feat(frames, t, augment=False, rng=None, aug=None):
+    """WINDOW개 프레임의 (cx,cy,area,has_bbox) → (WINDOW*4,) 벡터.
+
+    augment=True 이면 VLM(PaliGemma2) grounding bbox 분포를 모사하는
+    노이즈를 주입한다 (학습 전용). Exp60: HSV GT만 학습 → VLM bbox OOD 문제 완화.
+    aug = {mu_x, sd_x, mu_y, sd_y, area_mu, area_sd, area_lo, area_hi, miss_p}
+    """
     arr = []
     for k in range(WINDOW):
         fr = frames[max(0, t - (WINDOW - 1 - k))]
-        arr.extend([fr["cx"], fr["cy"], fr["area"], float(fr["has_bbox"])])
+        cx, cy, area, has = fr["cx"], fr["cy"], fr["area"], float(fr["has_bbox"])
+        if augment and aug is not None and has > 0.5:
+            cx += rng.normal(aug["mu_x"], aug["sd_x"])          # 계통 오프셋 + 지터
+            cy += rng.normal(aug["mu_y"], aug["sd_y"])
+            ratio = rng.normal(aug["area_mu"], aug["area_sd"])  # area 스케일 모사
+            ratio = float(np.clip(ratio, aug["area_lo"], aug["area_hi"]))
+            area  = max(0.0, area * ratio)
+            cx = float(np.clip(cx, 0.0, 1.0))
+            cy = float(np.clip(cy, 0.0, 1.0))
+            if rng.random() < aug["miss_p"]:                    # 가끔 미검출 모사
+                has = 0.0
+        arr.extend([cx, cy, area, has])
     return np.array(arr, dtype=np.float32)
+
+
+def build_aug_params(stats_path, noise_scale):
+    """측정 통계(exp60_bbox_offset_stats.json) → 증강 파라미터.
+    noise_scale: 산포(std)와 miss_p를 스케일 (계통 오프셋 mean은 유지).
+    """
+    s = json.loads(Path(stats_path).read_text())
+    dcx, dcy, ar = s["delta_cx"], s["delta_cy"], s["area_ratio"]
+    aug = {
+        "mu_x":    dcx["mean"],
+        "sd_x":    dcx["std"] * noise_scale,
+        "mu_y":    dcy["mean"],
+        "sd_y":    dcy["std"] * noise_scale,
+        "area_mu": ar["mean"],
+        "area_sd": ar["std"] * noise_scale,
+        "area_lo": ar["p05"],
+        "area_hi": ar["p95"],
+        "miss_p":  s["miss_rate"] * noise_scale,
+    }
+    return aug
 
 
 # ─── Feature Pre-caching ─────────────────────────────
@@ -196,6 +233,14 @@ def train(args):
 
     mlp = ActionMLP(D_IN).to(device)
 
+    # ── Exp60: VLM bbox 분포 모사 증강 ────────────────
+    aug, aug_rng = None, None
+    if args.augment:
+        aug = build_aug_params(args.aug_stats, args.noise_scale)
+        aug_rng = np.random.default_rng(args.seed)
+        print(f"[AUG] noise_scale={args.noise_scale} aug={ {k: round(v,4) for k,v in aug.items()} }", flush=True)
+    # ──────────────────────────────────────────────────
+
     all_labels = [fr["gt_class"] for ep in tr_eps for fr in ep["frames"]]
     counts  = np.bincount(all_labels, minlength=NUM_CLASSES).astype(float)
     weights = np.where(counts > 0, 1.0 / (counts + 1e-6), 0.0)
@@ -224,7 +269,10 @@ def train(args):
             if feats is None:
                 continue
             for t, fr in enumerate(ep["frames"]):
-                bf = torch.tensor(bbox_feat(ep["frames"], t), dtype=torch.float32)
+                bf = torch.tensor(
+                    bbox_feat(ep["frames"], t, augment=args.augment, rng=aug_rng, aug=aug),
+                    dtype=torch.float32,
+                )
                 bf_batch.append(torch.cat([bf, feats[t]]))
                 lb_batch.append(fr["gt_class"])
                 if len(lb_batch) >= args.batch_size:
@@ -257,8 +305,14 @@ def train(args):
         a = c / t * 100 if t > 0 else 0.0
         print(f"    {name:<8}: {a:>6.1f}%  ({c}/{t})")
 
-    ckpt_path = STAGE2_DIR / "stage2_v2_mlp.pt"
-    torch.save({"mlp": best_state, "val_acc": final_acc, "d_in": D_IN}, str(ckpt_path))
+    if args.augment:
+        tag = args.tag or f"aug{args.noise_scale:g}"
+        ckpt_path = STAGE2_DIR / f"stage2_v2_mlp_{tag}.pt"   # 기존 baseline 덮어쓰지 않음
+    else:
+        ckpt_path = STAGE2_DIR / "stage2_v2_mlp.pt"
+    torch.save({"mlp": best_state, "val_acc": final_acc, "d_in": D_IN,
+                "augment": args.augment, "noise_scale": args.noise_scale if args.augment else 0.0,
+                "aug_params": aug}, str(ckpt_path))
     print(f"\n[SAVE] {ckpt_path}", flush=True)
     return final_acc
 
@@ -268,6 +322,15 @@ def main():
     p.add_argument("--epochs",     type=int,   default=300)
     p.add_argument("--batch_size", type=int,   default=32)
     p.add_argument("--lr",         type=float, default=1e-3)
+    # ── Exp60: VLM bbox 분포 증강 ──
+    p.add_argument("--augment",     action="store_true",
+                   help="VLM grounding bbox 분포 모사 노이즈 주입 (학습 전용)")
+    p.add_argument("--aug-stats",   default=str(ROOT / "docs/v5/exp60_bbox_offset_stats.json"),
+                   help="measure_exp60_bbox_offset.py 산출 통계 JSON")
+    p.add_argument("--noise-scale", type=float, default=1.0,
+                   help="산포(std)·miss_p 스케일 (sweep용: 0.5/1.0/1.5)")
+    p.add_argument("--seed",        type=int,   default=42, help="증강 rng 시드")
+    p.add_argument("--tag",         default=None, help="ckpt suffix (기본: aug{noise_scale})")
     args = p.parse_args()
 
     t0 = time.time()

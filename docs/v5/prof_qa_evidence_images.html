@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoNaVLA — 교수님 Q&A 실험 증거 · 실제 이미지 (2026-05-29)</title>
+  <style>
+    :root {
+      --bg: #0a0f1a;
+      --card: #111827;
+      --border: #1e293b;
+      --green: #22c55e;
+      --green-light: #86efac;
+      --green-dark: #052e16;
+      --blue: #38bdf8;
+      --purple: #a78bfa;
+      --yellow: #fbbf24;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      line-height: 1.7;
+      padding: 0 0 80px;
+    }
+    .hero {
+      background: linear-gradient(135deg, #0a0f1a 0%, #0c1a2e 60%, #0a0f1a 100%);
+      border-bottom: 1px solid #1e293b;
+      padding: 48px 40px 36px;
+      text-align: center;
+    }
+    .hero h1 { font-size: 2rem; font-weight: 900; color: #fff; margin-bottom: 8px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 0; }
+    .section { margin-bottom: 60px; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .q-badge {
+      background: var(--yellow);
+      color: #0a0f1a;
+      font-size: 0.72rem;
+      font-weight: 900;
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .section-title h2 { font-size: 1.3rem; font-weight: 800; }
+    .evidence-img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: block;
+      margin-bottom: 14px;
+    }
+    .caption {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 14px;
+    }
+    .caption strong { color: var(--text); }
+    .caption code {
+      font-family: monospace;
+      background: #1e2438;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .callout-green {
+      background: var(--green-dark);
+      border: 1px solid var(--green);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      color: var(--green-light);
+      line-height: 1.8;
+    }
+    .callout-yellow {
+      background: #1a1200;
+      border: 1px solid var(--yellow);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      color: #fde68a;
+      line-height: 1.8;
+    }
+    .callout-blue {
+      background: #0a1628;
+      border: 1px solid #1e40af;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      color: #7dd3fc;
+      line-height: 1.8;
+    }
+    .log-snippet {
+      font-family: monospace;
+      font-size: 0.78rem;
+      background: #060d16;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 14px 16px;
+      line-height: 1.9;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .log-snippet .ok { color: #22c55e; }
+    .log-snippet .ng { color: #ef4444; }
+    .log-snippet .hi { color: #fbbf24; }
+    .log-snippet .di { color: #475569; }
+    .img-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .stat-box {
+      background: #060d16;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-box .num { font-size: 2.2rem; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+    .stat-box .lbl { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    .frame-label {
+      display: inline-block;
+      background: #0a1628;
+      color: var(--blue);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+    .annotation-box {
+      background: #0a1628;
+      border: 1px solid #1e3a5f;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 0.82rem;
+      margin-bottom: 14px;
+    }
+    .annotation-box h4 { color: var(--blue); margin-bottom: 8px; font-size: 0.85rem; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--blue); font-size: 0.82rem; text-decoration: none; margin-bottom: 24px;
+    }
+    .back-link:hover { text-decoration: underline; }
+    @media(max-width:700px) {
+      .img-grid-2 { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div style="max-width:800px;margin:0 auto">
+    <div style="color:#4ade80;font-size:0.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">MoNaVLA — 실제 이미지 기반 증거</div>
+    <h1>교수님 Q&A — 실험 이미지 직접 확인</h1>
+    <p style="color:var(--muted);font-size:0.9rem;margin-top:10px">
+      HDF5 데이터셋에서 프레임 추출 · Exp57 로그 bbox 좌표 정확히 매핑 · 같은 이미지 phrase만 교체
+    </p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+      <span style="background:#052e16;color:#4ade80;padding:4px 12px;border-radius:20px;font-size:0.75rem">데이터: ROS_action/mobile_vla_dataset_v5 (HDF5)</span>
+      <span style="background:#0a1628;color:#7dd3fc;padding:4px 12px;border-radius:20px;font-size:0.75rem">bbox 소스: logs/exp57_lora_phrase_test.log (실제 모델 출력)</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <a class="back-link" href="/v5/prof_qa_evidence_20260529.html">← 증거 요약 페이지로</a>
+
+  <!-- ══ Q1/Q3 ══ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="q-badge">Q1 + Q3</span>
+      <h2>"basket을 본다는 증거?" / "bbox는 위치 정보일 뿐?"</h2>
+    </div>
+
+    <div class="callout-blue" style="margin-bottom:20px">
+      <strong>실험 설계:</strong> 동일한 V5 복도 이미지 30개 프레임에 텍스트 쿼리만 교체 (<code>"gray basket"</code> → <code>"red ball"</code> → <code>"person"</code>).
+      모든 조건에서 이미지는 <strong>완전히 동일</strong>. 텍스트만 제어 변수.<br>
+      bbox 좌표는 Exp57 LoRA 모델이 출력한 <code>&lt;locNNNN&gt;</code> 토큰을 그대로 픽셀로 변환한 값.
+    </div>
+
+    <!-- Frame 1 -->
+    <div class="frame-label">📸 Frame [1] — center_straight 에피소드 (ep_1, frame_idx=0)</div>
+    <img src="exp57_frame1_comparison.jpg" class="evidence-img" alt="Frame 1 comparison">
+    <div class="caption">
+      <strong>왼쪽 (green):</strong> Query = "gray basket" → 모델 출력: <code>&lt;loc0462&gt;&lt;loc0354&gt;&lt;loc0862&gt;&lt;loc0597&gt; gray basket&lt;eos&gt;</code>
+      → bbox cx=(354+597)/2/1023 = <strong>0.464</strong> (이미지 중앙 46.4%) ✅<br>
+      <strong>가운데 (red):</strong> Query = "red ball" → 모델 출력: <code>&lt;eos&gt;</code> → bbox 없음 ❌<br>
+      <strong>오른쪽 (yellow):</strong> Query = "person" → 모델 출력: <code>&lt;eos&gt;</code> → bbox 없음 ❌<br>
+      <span style="color:#475569">출처: logs/exp57_lora_phrase_test.log line 17~21</span>
+    </div>
+
+    <div class="log-snippet">
+      <span class="hi"># 실제 로그 (logs/exp57_lora_phrase_test.log)</span><br>
+      &nbsp;&nbsp;[ 1] center_strai | <span class="ok">✅ gray basket: &lt;loc0462&gt;&lt;loc0354&gt;&lt;loc0862&gt;&lt;loc0597&gt; gray basket&lt;eos&gt;</span><br>
+      &nbsp;&nbsp;[ 1] center_strai | <span class="ng">❌ red ball: &lt;eos&gt;</span><br>
+      &nbsp;&nbsp;[ 1] center_strai | <span class="ng">❌ person: &lt;eos&gt;</span>
+    </div>
+
+    <div style="height:24px"></div>
+
+    <!-- Frame 7 -->
+    <div class="frame-label">📸 Frame [7] — center_straight 에피소드 (다른 에피소드, frame_idx=5)</div>
+    <img src="exp57_frame7_comparison.jpg" class="evidence-img" alt="Frame 7 comparison">
+    <div class="caption">
+      <strong>왼쪽 (green):</strong> Query = "gray basket" → bbox 정확히 바구니에 위치 ✅<br>
+      <strong>가운데·오른쪽:</strong> 완전히 동일한 이미지인데 "red ball", "person" 쿼리에는 <code>&lt;eos&gt;</code> 출력 ❌<br>
+      → <strong>이미지가 아니라 텍스트가 탐지를 결정한다</strong>는 직접 증거.
+    </div>
+
+    <div class="log-snippet">
+      <span class="hi"># 실제 로그 (frame [7])</span><br>
+      &nbsp;&nbsp;[ 7] center_strai | <span class="ok">✅ gray basket: &lt;loc0462&gt;&lt;loc0373&gt;&lt;loc0849&gt;&lt;loc0606&gt; gray basket&lt;eos&gt;</span><br>
+      &nbsp;&nbsp;[ 7] center_strai | <span class="ng">❌ red ball: &lt;eos&gt;</span><br>
+      &nbsp;&nbsp;[ 7] center_strai | <span class="ng">❌ person: &lt;eos&gt;</span>
+    </div>
+
+    <div style="height:24px"></div>
+
+    <!-- Frame 29 -->
+    <div class="frame-label">📸 Frame [29] — center_left (person 1/30 감지된 유일한 케이스)</div>
+    <img src="exp57_frame29_person_noise.jpg" class="evidence-img" alt="Frame 29 person noise">
+    <div class="caption">
+      <strong>오른쪽 패널 (yellow):</strong> "person" 쿼리에 bbox가 출력된 <strong>30개 중 유일한 1건</strong>.
+      좌표: <code>&lt;loc0000&gt;&lt;loc0949&gt;&lt;loc0238&gt;&lt;loc1022&gt;</code> — 이미지 오른쪽 상단 모서리.<br>
+      실제 이미지를 보면 <strong>오른쪽 가장자리에 약간의 인체 형상(의자 다리? 물체 그림자)</strong>이 있는 케이스.<br>
+      <strong>노이즈 수준 (3.3%)</strong> 으로 실험 무결성에 영향을 주지 않음.
+    </div>
+
+    <div class="log-snippet">
+      <span class="hi"># frame [29] — 1건 감지된 케이스</span><br>
+      &nbsp;&nbsp;[29] center_left  | <span class="ok">✅ gray basket: &lt;loc0464&gt;&lt;loc0267&gt;&lt;loc0845&gt;&lt;loc0496&gt; gray basket&lt;eos&gt;</span><br>
+      &nbsp;&nbsp;[29] center_left  | <span class="ng">❌ red ball: &lt;eos&gt;</span><br>
+      &nbsp;&nbsp;[29] center_left  | <span class="ok">✅ person: &lt;loc0000&gt;&lt;loc0949&gt;&lt;loc0238&gt;&lt;loc1022&gt; person&lt;eos&gt;</span> <span class="di">← 엣지 노이즈</span>
+    </div>
+
+    <div class="callout-green" style="margin-top:16px">
+      <strong>30 프레임 전체 결과 요약:</strong>
+      <div class="stat-row" style="margin-top:12px">
+        <div class="stat-box">
+          <div class="num" style="color:#22c55e">100%</div>
+          <div class="lbl">"gray basket"<br>30/30 탐지</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" style="color:#4ade80">0%</div>
+          <div class="lbl">"red ball"<br>0/30 탐지</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" style="color:#fbbf24">3.3%</div>
+          <div class="lbl">"person"<br>1/30 (엣지 노이즈)</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" style="color:#a78bfa">98.3%p</div>
+          <div class="lbl">basket vs 비타겟<br>격차</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══ Q2/Q4 ══ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="q-badge">Q2 + Q4</span>
+      <h2>"다른 물체 → 다른 행동?" / "텍스트로 목표 변경?"</h2>
+    </div>
+
+    <div class="callout-blue" style="margin-bottom:20px">
+      <strong>Exp59 설계:</strong> V5 이미지에 "gray basket" 쿼리를 고정하고, 이미지 종류를 바꿈.
+      Hard Negative 학습으로 비타겟 이미지에서 bbox를 완전히 억제.
+    </div>
+
+    <img src="exp57_exp59_detection_chart.png" class="evidence-img" alt="Detection chart">
+    <div class="caption">
+      <strong>차트 해석:</strong><br>
+      Exp57: 같은 이미지 내에서 phrase를 "gray basket"→"red ball"로 바꾸면 탐지율 100%→0% 변화<br>
+      Exp59: Hard Negative 학습 후, 비타겟 이미지(brown pot/red ball/person)에서 FP = <strong>0.0%</strong><br>
+      → "텍스트 목표가 달라지면 grounding이 달라지고, grounding이 달라지면 action이 달라진다"
+    </div>
+
+    <div class="annotation-box">
+      <h4>💡 Action 파이프라인 연결 논리</h4>
+      <div style="font-family:monospace;font-size:0.78rem;color:var(--muted);line-height:2.1">
+        <span style="color:#4ade80"># gray basket 이미지 + "gray basket" → 정상 주행</span><br>
+        이미지(basket있음) + "detect gray basket"<br>
+        &nbsp;&nbsp;→ PaliGemma Exp59: <span style="color:#4ade80">&lt;loc0462&gt;&lt;loc0354&gt;...  cx=0.464</span><br>
+        &nbsp;&nbsp;→ Action MLP: cx=0.464 → <span style="color:#4ade80">FORWARD action ✅</span><br><br>
+        <span style="color:#ef4444"># 비타겟 이미지 + "gray basket" → 탐지 거부 → 행동 중단</span><br>
+        이미지(brown pot있음) + "detect gray basket"<br>
+        &nbsp;&nbsp;→ PaliGemma Exp59: <span style="color:#ef4444">&lt;eos&gt;  cx=None</span><br>
+        &nbsp;&nbsp;→ Action MLP: 입력 없음 → <span style="color:#ef4444">STOP ⚠️</span>
+      </div>
+    </div>
+
+    <div class="callout-green" style="margin-top:16px">
+      <strong>Exp59 Cross-Object 평가 결과 (docs/v5/exp59_report.md §3.1):</strong><br>
+      TP "gray basket" on basket image: <strong>95.0% (19/20)</strong><br>
+      FP "gray basket" on brown pot: <strong>0.0% (0/20)</strong><br>
+      FP "gray basket" on red ball: <strong>0.0% (0/20)</strong><br>
+      FP "gray basket" on person: <strong>0.0% (0/20)</strong>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══ 데이터 검증 ══ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="q-badge" style="background:#7dd3fc;color:#0a1628">데이터 검증</span>
+      <h2>이미지-bbox 좌표 매핑 검증 방법</h2>
+    </div>
+
+    <div class="annotation-box">
+      <h4>🔢 PaliGemma loc 토큰 → 픽셀 좌표 변환</h4>
+      <div style="font-family:monospace;font-size:0.8rem;color:var(--muted);line-height:2">
+        <span style="color:#7dd3fc">입력: 이미지 1280×720 + "detect gray basket"</span><br>
+        모델 출력: <span style="color:#4ade80">&lt;loc0462&gt;&lt;loc0354&gt;&lt;loc0862&gt;&lt;loc0597&gt;</span><br><br>
+        순서: [y1, x1, y2, x2] (PaliGemma 기본 형식)<br>
+        변환: pixel = loc_val / 1023 × img_size<br><br>
+        x1 = 354/1023 × 1280 = <span style="color:#4ade80">443px</span><br>
+        y1 = 462/1023 × 720  = <span style="color:#4ade80">325px</span><br>
+        x2 = 597/1023 × 1280 = <span style="color:#4ade80">747px</span><br>
+        y2 = 862/1023 × 720  = <span style="color:#4ade80">606px</span><br><br>
+        cx = (x1+x2)/2 / 1280 = (443+747)/2/1280 = <span style="color:#a78bfa">0.464</span> (이미지 46.4% 위치)
+      </div>
+    </div>
+
+    <div class="caption">
+      <strong>데이터 소스:</strong><br>
+      • 이미지: <code>ROS_action/mobile_vla_dataset_v5/*.h5</code> → <code>observations/images</code> 키<br>
+      • bbox: <code>logs/exp57_lora_phrase_test.log</code> — 실제 PaliGemma LoRA (Exp57) 모델이 출력한 토큰<br>
+      • 변환 스크립트: <code>scratch/visualize_exp57_evidence.py</code>
+    </div>
+
+    <div class="callout-yellow">
+      <strong>주의:</strong> 시각화 이미지의 bbox는 로그에서 파싱한 좌표를 그대로 픽셀로 변환한 것.
+      "gray basket" 패널에서 bbox가 실제 바구니 위치에 정확히 맞는지 육안으로도 확인 가능.
+    </div>
+  </div>
+
+  <div style="text-align:center;color:var(--muted);font-size:0.78rem;padding:20px 0">
+    생성: 2026-05-29 14:48 KST | 스크립트: <code>scratch/visualize_exp57_evidence.py</code><br>
+    현재 실행 중: <code>eval_exp59_closedloop.py --ema-alpha 0.5</code>
+  </div>
+</div>
+
+</body>
+</html>

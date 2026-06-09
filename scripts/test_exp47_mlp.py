@@ -8,7 +8,9 @@ Exp47 InstructionMLPInference 단독 테스트
 import sys, os, time, json, traceback
 import numpy as np
 
-sys.path.insert(0, '/home/soda/MoNaVLA')
+from pathlib import Path
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root))
 
 # ─────────────────────────────────────────────
 # FastAPI 의존성 없이 MLP 클래스만 추출
@@ -29,7 +31,7 @@ except ImportError:
 # ─────────────────────────────────────────────
 import ast, types
 
-SRC_PATH = '/home/soda/MoNaVLA/robovlm_nav/serve/inference_server.py'
+SRC_PATH = str(_project_root / 'robovlm_nav/serve/inference_server.py')
 with open(SRC_PATH) as f:
     full_src = f.read()
 

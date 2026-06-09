@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Masking Ablation — Early+Mid Frames | MoNaVLA</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6}
+  a{color:#7dd3fc;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .topbar{background:#1e293b;border-bottom:1px solid #334155;padding:12px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+  .topbar a{color:#94a3b8;font-size:0.82rem}
+  .topbar span{color:#475569;font-size:0.82rem}
+  h1{font-size:1.05rem;font-weight:700;color:#f1f5f9}
+
+  .container{max-width:1100px;margin:0 auto;padding:32px 24px}
+
+  /* ── 요약 카드 ── */
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+  .kpi-card{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;text-align:center}
+  .kpi-card.warn{border-color:#f59e0b}
+  .kpi-card.info{border-color:#3b82f6}
+  .kpi-val{font-size:2rem;font-weight:900;margin-bottom:4px}
+  .kpi-label{font-size:0.78rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .kpi-sub{font-size:0.73rem;color:#64748b;margin-top:4px}
+
+  /* ── 비교 테이블 ── */
+  .comparison{background:#1e293b;border-radius:12px;padding:24px;margin-bottom:32px;border:1px solid #334155}
+  .comparison h2{font-size:1rem;font-weight:700;color:#f1f5f9;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:0.83rem}
+  th{background:#0f172a;color:#94a3b8;padding:8px 12px;text-align:left;font-weight:600;text-transform:uppercase;font-size:0.72rem;letter-spacing:.5px}
+  td{padding:9px 12px;border-top:1px solid #1e293b}
+  tr:hover td{background:#1e3a5f22}
+  .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;text-transform:uppercase}
+  .tag-late{background:#7f1d1d;color:#fca5a5}
+  .tag-early{background:#14532d;color:#86efac}
+  .tag-flip{background:#ef4444;color:#fff}
+  .tag-stable{background:#334155;color:#94a3b8}
+  .tag-warn{background:#92400e;color:#fcd34d}
+  .tag-ok{background:#14532d;color:#86efac}
+
+  /* ── 해석 박스 ── */
+  .insight{background:#1a2744;border:1px solid #2563eb;border-radius:10px;padding:20px;margin-bottom:32px}
+  .insight h3{font-size:0.9rem;font-weight:800;color:#93c5fd;margin-bottom:10px}
+  .insight ul{list-style:none;padding:0}
+  .insight li{padding:4px 0;font-size:0.85rem;color:#cbd5e1}
+  .insight li::before{content:"•";color:#3b82f6;margin-right:8px}
+
+  /* ── 방향별 섹션 ── */
+  .dir-section{margin-bottom:40px}
+  .dir-header{background:#1e293b;border-radius:10px 10px 0 0;padding:16px 20px;border:1px solid #334155;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+  .dir-header:hover{background:#273549}
+  .dir-badge{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .dir-title{font-size:1rem;font-weight:700;color:#f1f5f9}
+  .dir-meta{font-size:0.78rem;color:#94a3b8;margin-left:auto}
+  .dir-chevron{font-size:0.8rem;color:#64748b;margin-left:8px;transition:transform .2s}
+  .dir-body{border:1px solid #334155;border-top:none;border-radius:0 0 10px 10px;overflow:hidden}
+
+  /* ── 이미지 그리드 ── */
+  .img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:2px;background:#0f172a;padding:2px}
+  .img-card{background:#1e293b;overflow:hidden;position:relative}
+  .img-card.flipped{border:2px solid #ef4444}
+  .img-card.notable{border:2px solid #f59e0b}
+  .img-card img{width:100%;display:block}
+  .img-meta{padding:8px 10px;font-size:0.72rem;color:#94a3b8;background:#161f2e;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .badge-flip{background:#7f1d1d;color:#fca5a5;padding:1px 6px;border-radius:3px;font-weight:700;font-size:0.68rem}
+  .badge-stable{background:#1e293b;color:#64748b;padding:1px 6px;border-radius:3px;font-size:0.68rem}
+
+  /* ── 플립 강조 ── */
+  .flip-highlight{background:#1a0505;border:2px solid #ef4444;border-radius:12px;padding:20px;margin-bottom:32px}
+  .flip-highlight h3{font-size:0.9rem;font-weight:800;color:#f87171;margin-bottom:12px}
+  .flip-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .flip-card{background:#1e293b;border-radius:8px;overflow:hidden;border:1px solid #7f1d1d}
+  .flip-card img{width:100%;display:block}
+  .flip-card-info{padding:10px 12px;font-size:0.78rem;color:#fca5a5}
+  .flip-card-info strong{color:#ef4444}
+  @media(max-width:700px){
+    .flip-grid{grid-template-columns:1fr}
+    .summary-grid{grid-template-columns:1fr}
+    .img-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="research_story.html">← research story</a>
+  <span>/</span>
+  <h1>Masking Ablation — Early+Mid Frames (앞 66%)</h1>
+</div>
+
+<div class="container">
+
+  <!-- ── KPI 요약 ── -->
+  <div class="summary-grid">
+    <div class="kpi-card warn">
+      <div class="kpi-val" style="color:#fbbf24">4.4%</div>
+      <div class="kpi-label">전체 Flip 비율</div>
+      <div class="kpi-sub">2 / 45 케이스 (center만)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val" style="color:#e2e8f0">+0.015</div>
+      <div class="kpi-label">평균 Conf Drop</div>
+      <div class="kpi-sub">마스킹 효과 미미 (판정: 독립적 ⚠️)</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-val" style="color:#7dd3fc">13.3%</div>
+      <div class="kpi-label">Center Flip</div>
+      <div class="kpi-sub">left/right는 0% — 복도 패턴 지배</div>
+    </div>
+  </div>
+
+  <!-- ── Old vs New 비교 테이블 ── -->
+  <div class="comparison">
+    <h2>이전 테스트(도착 프레임) vs 이번 테스트(초기+중기 프레임) 비교</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th>이전 결과<br><span class="tag tag-late">도착 직전 프레임</span></th>
+          <th>이번 결과<br><span class="tag tag-early">앞 66% 프레임</span></th>
+          <th>해석</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>center Flip 비율</td>
+          <td><strong style="color:#ef4444">100%</strong> (6/6)</td>
+          <td><strong style="color:#f59e0b">13.3%</strong> (2/15)</td>
+          <td>basket이 클 때만 마스킹 효과 큼</td>
+        </tr>
+        <tr>
+          <td>left Flip 비율</td>
+          <td>— (stable)</td>
+          <td><strong style="color:#64748b">0%</strong> (0/15)</td>
+          <td>basket이 작을 때 복도 패턴이 지배</td>
+        </tr>
+        <tr>
+          <td>right Flip 비율</td>
+          <td>— (stable)</td>
+          <td><strong style="color:#64748b">0%</strong> (0/15)</td>
+          <td>동일</td>
+        </tr>
+        <tr>
+          <td>avg basket area</td>
+          <td><strong style="color:#ef4444">~0.72</strong> (화면의 72%)</td>
+          <td><strong style="color:#86efac">0.006–0.18</strong></td>
+          <td>이전 테스트는 거의 도착 순간 이미지</td>
+        </tr>
+        <tr>
+          <td>avg conf drop</td>
+          <td>매우 큼 (예측 반전)</td>
+          <td>+0.015 (좌: +0.008, 중: +0.036, 우: +0.001)</td>
+          <td>실제 내비 중엔 basket 외 신호 사용 중</td>
+        </tr>
+        <tr>
+          <td>전체 flip</td>
+          <td><strong style="color:#ef4444">6/6 (100%)</strong></td>
+          <td><strong style="color:#f59e0b">2/45 (4.4%)</strong></td>
+          <td>도착 직전 = 특수 상황, 일반화 어려움</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 플립 2케이스 강조 ── -->
+  <div class="flip-highlight">
+    <h3>★ FLIP 발생 케이스 — center 2/15 (phase 0.46, 0.08)</h3>
+    <div class="flip-grid">
+
+      <div class="flip-card">
+        <img src="masking_ablation_earlymid/center_10_FLIP.png" alt="center_10_FLIP">
+        <div class="flip-card-info">
+          <strong>center_10 FLIP</strong> — phase: 0.08 (에피소드 초반)<br>
+          area: 0.05 &nbsp;|&nbsp; conf: <strong>+0.077</strong> → <strong>−0.282</strong> (drop: +0.359)<br>
+          pred: center → <strong>right</strong> ★ 인과 증거: 마스킹이 confidence를 0.359 급락시키고 예측 반전<br>
+          <span style="color:#fca5a5;font-size:0.7rem">✔ 이 케이스는 basket 위치가 실제로 예측에 영향</span>
+        </div>
+      </div>
+
+      <div class="flip-card">
+        <img src="masking_ablation_earlymid/center_07_FLIP.png" alt="center_07_FLIP">
+        <div class="flip-card-info">
+          <strong>center_07 FLIP</strong> — phase: 0.46 (에피소드 중반)<br>
+          area: 0.666 &nbsp;|&nbsp; conf: <strong>+0.155</strong> → <strong>+0.282</strong> (drop: −0.127)<br>
+          pred: center → <strong>left</strong> — 주의: conf <em>상승</em><br>
+          <span style="color:#fcd34d;font-size:0.7rem">⚠ area=0.666은 이상값 — 마스킹이 혼란스러운 중앙 패턴을 오히려 제거한 효과 가능</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 해석 ── -->
+  <div class="insight">
+    <h3>결과 해석 — 교수님 반박 관점</h3>
+    <ul>
+      <li>이전 "100% flip" 결과는 basket이 화면을 거의 채운 <strong>도착 직전 프레임</strong>에서 나온 것 — 당연한 결과</li>
+      <li>실제 내비게이션 초기·중기에서는 basket area가 0.5~18%로 작아 마스킹 효과 미미 (avg drop +0.015)</li>
+      <li>center_10 (phase 0.08) 1케이스는 basket이 초반에도 예측에 영향 — 진짜 인과 증거로 쓸 수 있음</li>
+      <li>left/right에서 flip 0%: basket이 화면 가장자리(cx 0.1 또는 0.9)에 있을 때 모델은 <strong>복도 방향 패턴</strong>으로 분류 중</li>
+      <li>→ 솔직한 해석: Stage 1 v2는 basket 위치보다 <strong>복도 구조·방향성 패턴</strong>을 주로 사용 중. 특히 left/right.</li>
+    </ul>
+  </div>
+
+  <!-- ── 방향별 이미지 그리드 ── -->
+
+  <!-- CENTER -->
+  <div class="dir-section">
+    <div class="dir-header" onclick="toggle('center')">
+      <div class="dir-badge" style="background:#22c55e"></div>
+      <span class="dir-title">CENTER</span>
+      <span class="dir-meta">
+        n=15 &nbsp;|&nbsp; avg drop: <strong style="color:#f59e0b">+0.036</strong> &nbsp;|&nbsp;
+        flip: <strong style="color:#ef4444">2/15 (13.3%)</strong> &nbsp;|&nbsp; 판정: 부분 의존
+      </span>
+      <span class="dir-chevron" id="chev-center">▼</span>
+    </div>
+    <div class="dir-body" id="body-center">
+      <div class="img-grid">
+        <div class="img-card flipped">
+          <img src="masking_ablation_earlymid/center_10_FLIP.png" loading="lazy" alt="center_10">
+          <div class="img-meta">
+            <span class="badge-flip">★ FLIP</span>
+            <span>phase=0.08 · area=0.05 · drop=+0.359 · center→<strong>right</strong></span>
+          </div>
+        </div>
+        <div class="img-card flipped">
+          <img src="masking_ablation_earlymid/center_07_FLIP.png" loading="lazy" alt="center_07">
+          <div class="img-meta">
+            <span class="badge-flip">★ FLIP ⚠</span>
+            <span>phase=0.46 · area=0.666 · drop=−0.127 · center→left (conf 상승 — 이상값)</span>
+          </div>
+        </div>
+        <div class="img-card notable">
+          <img src="masking_ablation_earlymid/center_12_stable.png" loading="lazy" alt="center_12">
+          <div class="img-meta">
+            <span class="badge-stable">stable</span>
+            <span>phase=0.23 · area=0.044 · drop=+0.187 · 큰 drop이지만 flip 안 됨</span>
+          </div>
+        </div>
+        <div class="img-card notable">
+          <img src="masking_ablation_earlymid/center_09_stable.png" loading="lazy" alt="center_09">
+          <div class="img-meta">
+            <span class="badge-stable">stable</span>
+            <span>phase=0.00 · area=0.05 · drop=+0.165 · 에피소드 시작 프레임</span>
+          </div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_01_stable.png" loading="lazy" alt="center_01">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.00 · drop=+0.062</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_02_stable.png" loading="lazy" alt="center_02">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.08 · drop=+0.060</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_03_stable.png" loading="lazy" alt="center_03">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.15 · drop=+0.003</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_04_stable.png" loading="lazy" alt="center_04">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.23 · drop=−0.010</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_05_stable.png" loading="lazy" alt="center_05">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.31 · drop=−0.043</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_06_stable.png" loading="lazy" alt="center_06">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.39 · drop=−0.045</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_08_stable.png" loading="lazy" alt="center_08">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.54 · drop=−0.009</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_11_stable.png" loading="lazy" alt="center_11">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.15 · drop=+0.004</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_13_stable.png" loading="lazy" alt="center_13">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.31 · drop=+0.011</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_14_stable.png" loading="lazy" alt="center_14">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.39 · drop=−0.040</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/center_15_stable.png" loading="lazy" alt="center_15">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.46 · drop=−0.032</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT -->
+  <div class="dir-section">
+    <div class="dir-header" onclick="toggle('left')">
+      <div class="dir-badge" style="background:#3b82f6"></div>
+      <span class="dir-title">LEFT</span>
+      <span class="dir-meta">
+        n=15 &nbsp;|&nbsp; avg drop: <strong>+0.008</strong> &nbsp;|&nbsp;
+        flip: <strong style="color:#64748b">0/15 (0%)</strong> &nbsp;|&nbsp; 판정: 독립적 ⚠️
+      </span>
+      <span class="dir-chevron" id="chev-left">▶</span>
+    </div>
+    <div class="dir-body" id="body-left" style="display:none">
+      <div class="img-grid">
+        <div class="img-card notable">
+          <img src="masking_ablation_earlymid/left_06_stable.png" loading="lazy" alt="left_06">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.18 · area=0.180 (가장 큰 basket) · drop=+0.083 — 최대 drop이지만 flip 없음</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_08_stable.png" loading="lazy" alt="left_08">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.47 · drop=+0.011</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_13_stable.png" loading="lazy" alt="left_13">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.24 · drop=+0.009</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_14_stable.png" loading="lazy" alt="left_14">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.29 · drop=+0.008</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_01_stable.png" loading="lazy" alt="left_01">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.53 · drop=+0.002</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_02_stable.png" loading="lazy" alt="left_02">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.29 · drop=+0.005</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_03_stable.png" loading="lazy" alt="left_03">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.41 · drop=+0.002</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_04_stable.png" loading="lazy" alt="left_04">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.47 · drop=+0.002</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_05_stable.png" loading="lazy" alt="left_05">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.53 · drop=+0.001</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_07_stable.png" loading="lazy" alt="left_07">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.24 · drop=−0.004</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_09_stable.png" loading="lazy" alt="left_09">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.53 · drop=+0.002</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_10_stable.png" loading="lazy" alt="left_10">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.65 · drop=+0.002</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_11_stable.png" loading="lazy" alt="left_11">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.12 · drop=+0.002</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_12_stable.png" loading="lazy" alt="left_12">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.18 · drop=−0.004</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/left_15_stable.png" loading="lazy" alt="left_15">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.35 · drop=−0.004</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="dir-section">
+    <div class="dir-header" onclick="toggle('right')">
+      <div class="dir-badge" style="background:#f97316"></div>
+      <span class="dir-title">RIGHT</span>
+      <span class="dir-meta">
+        n=15 &nbsp;|&nbsp; avg drop: <strong>+0.001</strong> &nbsp;|&nbsp;
+        flip: <strong style="color:#64748b">0/15 (0%)</strong> &nbsp;|&nbsp; 판정: 독립적 ⚠️
+      </span>
+      <span class="dir-chevron" id="chev-right">▶</span>
+    </div>
+    <div class="dir-body" id="body-right" style="display:none">
+      <div class="img-grid">
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_01_stable.png" loading="lazy" alt="right_01">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.53 · drop=+0.018</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_06_stable.png" loading="lazy" alt="right_06">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.41 · drop=+0.022</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_13_stable.png" loading="lazy" alt="right_13">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.47 · cx=0.857 · drop=+0.004 (가장 높은 conf right)</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_02_stable.png" loading="lazy" alt="right_02">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.35 · drop=−0.007</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_03_stable.png" loading="lazy" alt="right_03">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.41 · drop=−0.014</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_04_stable.png" loading="lazy" alt="right_04">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.59 · drop=−0.004</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_05_stable.png" loading="lazy" alt="right_05">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.65 · drop=+0.004</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_07_stable.png" loading="lazy" alt="right_07">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.53 · drop=+0.010</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_08_stable.png" loading="lazy" alt="right_08">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.59 · drop=−0.002</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_09_stable.png" loading="lazy" alt="right_09">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.65 · drop=+0.009</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_10_stable.png" loading="lazy" alt="right_10">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.06 · drop=−0.001</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_11_stable.png" loading="lazy" alt="right_11">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.24 · drop=−0.010</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_12_stable.png" loading="lazy" alt="right_12">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.35 · drop=+0.009</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_14_stable.png" loading="lazy" alt="right_14">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.41 · drop=−0.014</span></div>
+        </div>
+        <div class="img-card">
+          <img src="masking_ablation_earlymid/right_15_stable.png" loading="lazy" alt="right_15">
+          <div class="img-meta"><span class="badge-stable">stable</span><span>phase=0.65 · drop=−0.015</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+function toggle(dir){
+  const body = document.getElementById('body-' + dir);
+  const chev = document.getElementById('chev-' + dir);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chev.textContent = open ? '▶' : '▼';
+}
+</script>
+</body>
+</html>
