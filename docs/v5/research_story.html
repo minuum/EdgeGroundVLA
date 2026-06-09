@@ -8038,6 +8038,214 @@ graph TD
       </div>
     </div>
   </div>
+
+  <!-- ───────────────────────────────────────────────── 포트폴리오 이미지 갤러리 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
+    <div style="color:#f0abfc;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🖼️ Portfolio Gallery</div>
+    <div style="color:#e2e8f0;font-size:1.1rem;font-weight:700;margin-bottom:4px">연구 증거 이미지 모음</div>
+    <p style="color:#94a3b8;font-size:0.82rem;line-height:1.6;margin-bottom:20px">
+      Notion 포트폴리오에 삽입할 핵심 시각 증거물. 각 이미지를 클릭하면 원본 크기로 열림.
+    </p>
+
+    <!-- 섹션 1: 로봇 & 시스템 -->
+    <div style="margin-bottom:24px">
+      <div style="color:#7dd3fc;font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1e3a5f">① 로봇 하드웨어 & 시스템 개요</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <a href="portfolio/hero_robot.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#7dd3fc'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/hero_robot.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Robot Hardware">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">로봇 실물 사진</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">3-Axis Omni-Wheel platform · ROS2</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/stop_gate_concept.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#7dd3fc'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/stop_gate_concept.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Stop Gate Concept">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">STOP Gate 개념도</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">Y-Center Gate · cy_avg &gt; 0.50 기하 조건</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/factor_contribution.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#7dd3fc'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/factor_contribution.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Factor Contribution">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">요인 기여도 분석</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">Image &gt; BBox · VLM 공간 제약 정량화</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 섹션 2: Zero-shot Probe & 내부 해석 -->
+    <div style="margin-bottom:24px">
+      <div style="color:#86efac;font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1e3a5f">② Zero-shot Probe & 내부 해석 가능성</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <a href="portfolio/masking_comparison.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#86efac'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/masking_comparison.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Masking Comparison">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">이미지 마스킹 검증</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">바스켓 마스킹 → 100% action flip 확인</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/linear_probe_results.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#86efac'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/linear_probe_results.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Linear Probe Results">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Zero-shot Linear Probe</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">Frozen CLIP feature 96.6% → 의미 표현 규명</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/attention_grid.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#86efac'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/attention_grid.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Attention Grid">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Attention Grid 히트맵</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">Vision layer별 바스켓 attention 시각화</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/track_summary.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#86efac'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/track_summary.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Track Summary">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Tracking 분류 요약</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">Stable / FLIP 유형별 분류 시각화</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 섹션 3: BBox Grounding 주행 -->
+    <div style="margin-bottom:24px">
+      <div style="color:#fbbf24;font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1e3a5f">③ BBox Grounding 주행 화면 (실제 로봇 시점)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+        <a href="portfolio/grounding_center.jpg" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fbbf24'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/grounding_center.jpg" style="width:100%;height:140px;object-fit:cover;display:block" alt="Center Grounding">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Center → Straight 주행</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">PaliGemma2 BBox 실시간 추종</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/grounding_left.jpg" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fbbf24'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/grounding_left.jpg" style="width:100%;height:140px;object-fit:cover;display:block" alt="Left Grounding">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Center → Left 주행</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">좌측 바스켓 탐지 & 조향</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/grounding_right.jpg" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fbbf24'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/grounding_right.jpg" style="width:100%;height:140px;object-fit:cover;display:block" alt="Right Grounding">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Center → Right 주행</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">우측 바스켓 탐지 & 조향</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/grounding_collapse_lora.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fbbf24'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/grounding_collapse_lora.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Grounding Collapse LoRA">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Grounding 붕괴 (LoRA FT)</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">벽/의자 오트래킹 — 기준선 역전 현상</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/grounding_collapse_base.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fbbf24'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/grounding_collapse_base.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Grounding Base">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Grounding 안정 (Base PG2)</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">cx_std 0.070 — 미세조정 없이 최선</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 섹션 4: 성능 그래프 & 분석 -->
+    <div style="margin-bottom:24px">
+      <div style="color:#f0abfc;font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1e3a5f">④ 성능 추이 & 정량 분석</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <a href="portfolio/exp_progression.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#f0abfc'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/exp_progression.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Experiment Progression">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">실험 진행 성능 곡선</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">Exp01→Exp59 PM % 상향 추이</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/robustness_heatmap.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#f0abfc'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/robustness_heatmap.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Robustness Heatmap">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">강인성 히트맵</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">조명 × 각도 × 거리 조건별 PM</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/detection_chart.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#f0abfc'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/detection_chart.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Detection Chart">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Grounding 탐지 비교</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">Base vs Exp57 vs Exp59 정량 비교</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/traj_9panel.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#f0abfc'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/traj_9panel.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="9-Panel Trajectory">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">9-Panel 궤적 비교</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">3방향 × 3시나리오 Closed-Loop 경로</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 섹션 5: Mis-tracking 비교 -->
+    <div>
+      <div style="color:#f87171;font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1e3a5f">⑤ Grounding 오트래킹 비교 (Base vs Best LoRA)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <a href="portfolio/mistrack_base.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#f87171'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/mistrack_base.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Mistrack Base">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Base PG2 — 안정 추종</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">cx_std 0.070 · full-frame 0%</div>
+            </div>
+          </div>
+        </a>
+        <a href="portfolio/mistrack_exp59.png" target="_blank" style="text-decoration:none">
+          <div style="background:#071120;border:1px solid #1e304a;border-radius:8px;overflow:hidden;transition:border-color 0.2s" onmouseover="this.style.borderColor='#f87171'" onmouseout="this.style.borderColor='#1e304a'">
+            <img src="portfolio/mistrack_exp59.png" style="width:100%;height:140px;object-fit:cover;display:block" alt="Mistrack Exp59">
+            <div style="padding:8px 10px">
+              <div style="color:#e2e8f0;font-size:0.78rem;font-weight:700">Exp59 LoRA — 오트래킹</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:2px">벽/의자로 bbox 이탈 — exp64로 개선 예정</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <!-- ══ SUMMARY ══ -->
