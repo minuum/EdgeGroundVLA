@@ -6831,10 +6831,36 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
     </div>
   </div>
 
-  <div style="background:#1a1230;border:1px solid #4c1d95;border-radius:10px;padding:14px 16px;margin-top:14px;font-size:0.8rem;color:#cbd5e1;line-height:1.7">
-    <strong style="color:#a78bfa">⏭ 후속 (E2E LoRA-depth 모델):</strong>
-    top2~8×proj 모델은 action 예측용이라 bbox를 직접 출력하지 않음. vision-tower LoRA가 grounding에 주는 영향은
-    학습 완료 후(GPU 가용) Lightning ckpt에서 vision-LoRA 추출 → 동일 시점셋으로 detect 점검 예정.
+  <!-- ⑥ E2E LoRA-depth 모델 점검 결과 -->
+  <div style="background:#1a1230;border:1px solid #7c3aed;border-radius:12px;padding:18px;margin-top:18px">
+    <div style="color:#a78bfa;font-size:0.82rem;font-weight:700;margin-bottom:8px">⑥ E2E LoRA-depth 모델(top2~8×proj) 박스 점검 — 의외의 발견</div>
+    <div style="font-size:0.79rem;color:#94a3b8;line-height:1.8;margin-bottom:10px">
+      8개 E2E 모델은 bbox를 직접 안 내므로, Lightning ckpt에서 <strong>vision-tower LoRA를 추출해 base PG1에 주입</strong> 후
+      동일 시점셋으로 <code style="background:#1e2438;padding:1px 4px;border-radius:3px">detect gray basket</code> 점검 (`scripts/probe_e2e_grounding.py`). 결과:
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:0.76rem;font-family:monospace">
+      <thead><tr style="background:#0d1a2e">
+        <th style="padding:6px 8px;text-align:left;color:#60a5fa">모델 (top2~8 × proj)</th>
+        <th style="padding:6px 8px;color:#4ade80">hit</th><th style="padding:6px 8px;color:#94a3b8">cxMAE</th>
+        <th style="padding:6px 8px;color:#f87171">full-frame</th><th style="padding:6px 8px;color:#fbbf24">miss</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:5px 8px;color:#e2e8f0">top2~8 × frozen/tuned (8개 전부)</td><td style="padding:5px 8px;text-align:center;color:#4ade80">58%</td><td style="padding:5px 8px;text-align:center">0.108</td><td style="padding:5px 8px;text-align:center;color:#4ade80">0%</td><td style="padding:5px 8px;text-align:center">42%</td></tr>
+        <tr style="background:#0a0f1a"><td style="padding:5px 8px;color:#86efac">= base PG1 (LoRA 없음)</td><td style="padding:5px 8px;text-align:center;color:#4ade80">58%</td><td style="padding:5px 8px;text-align:center">동일</td><td style="padding:5px 8px;text-align:center;color:#4ade80">0%</td><td style="padding:5px 8px;text-align:center">동일</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:10px;background:#2d0b00;border-radius:6px;padding:10px 12px;font-size:0.78rem;color:#fca5a5;line-height:1.7">
+      <strong style="color:#fbbf24">⚠️ 핵심 발견:</strong> 8개 모델의 grounding이 <strong>완전히 동일</strong>했고, 그 원인을 추적하니
+      config <code style="background:#1e2438;padding:1px 4px;border-radius:3px">train_vision=False</code> → vision-tower LoRA가 <strong>정의만 되고 동결(미학습)</strong>.
+      실제로 ckpt의 <code>lora_B 절대합=0.0000</code>(B·A=0=항등). 학습된 건 <strong>action head + mm_projector</strong>뿐.
+    </div>
+    <div style="margin-top:8px;font-size:0.8rem;color:#94a3b8;line-height:1.8">
+      → 두 가지 함의:<br>
+      ① <strong style="color:#e2e8f0">LoRA-depth ablation의 val_loss 평탄(0.433~0.437)</strong>은 "깊이 무의미"이기도 하지만 근본적으로 <strong>vision LoRA가 미학습(no-op)</strong>이었기 때문 — 깊이 축이 실제로 작동 안 함.<br>
+      ② <strong style="color:#4ade80">E2E 모델엔 벽/의자 오트래킹이 없다</strong> — vision 인코더를 안 건드려 grounding이 안정적 base PG1과 동일(full-frame 0%). 오트래킹은 bbox를 직접 학습한 exp58/59 고유 문제.
+    </div>
   </div>
 </div>
 
