@@ -1,201 +1,116 @@
-# Plan: exp53 CL 평가 + 허브 CL 대시보드
+# Plan — 통합 메인 서버 + 실측 + Hz 정합 + 의자 객체 교체
 
-**작성일**: 2026-05-27 (업데이트: 2026-06-03)  
-**상태**: 승인 완료 (사용자 Option 1 선택)
+> 작성 2026-06-10. 승인 전 구현 금지. 사용자 메모 반영 후 갱신.
+
+## 0. 배경 / 리서치 결론
+
+이번 실측 시도에서 **두 개의 프로덕션 버그**가 드러났고, 이게 지난 세션 "STOP loop 회귀"의 근본 원인이다.
+
+### 버그 A — VLA `/predict` 기본값이 MLP 가중치를 로드 (회귀 스모킹건)
+- 쉘 환경(프로필 `proxy_default`, `scripts/vla_profile.py`가 export)이:
+  ```
+  VLA_CHECKPOINT_PATH = runs/v5_nav/mlp/exp49/exp49_mlp.pt   # GoalNav MLP(2.8MB)
+  VLA_CONFIG_PATH     = configs/brown_pot_left.json          # Kosmos VLA config
+  ```
+- `inference_server.py`의 VLA 경로(`MobileVLAInference`)가 Kosmos-2 VLM(31.75M)을 빌드한 뒤 exp49_mlp.pt를 로드 → `act_head.*`, `backbone.image_to_text_projection.*` 가중치가 **전부 missing → 랜덤 초기화** → 출력 garbage/STOP.
+- health는 200을 주지만 실제 추론은 망가진 상태. (증거: `logs/measure_8082.log`의 missing-keys set)
+
+### 버그 B — 통합서버 GoalNav `exp49` variant d_in mismatch
+- exp49/50/51 체크포인트 첫 레이어 = `(512, 1059)` = **1056 + goal 3-dim**.
+- `inference_server.py:GoalNavMLPInference`는 variant별 `D_IN`을 하드코딩(exp49=1056, goal 누락) → `size mismatch 1059 vs 1056` 로드 실패.
+- 반면 `proxy_inference_server.py`(8001)는 `d_in`을 **체크포인트에서 동적으로 읽어** 빌드 → exp49/50/51 정상.
+
+### 현 서버 구조 (사실)
+- `inference_server.py`(8082)는 **이미 통합 서버**: `/predict`(VLA) + `/goalnav/predict`(GoalNav MLP) + `/predict_mlp`(Exp47 MLP).
+  - GoalNav variant 테이블: exp49 / exp54_s2v2 / exp55 만 등록 (exp50~53 누락).
+  - exp49는 위 버그 B로 깨짐. 동작하는 건 exp54_s2v2 / exp55 (288-dim, goal 없음).
+- `proxy_inference_server.py`(8001)는 GoalNav 전용: exp49/50/51/52/53 + exp53 CLIP LoRA. d_in 동적. **이쪽이 exp49 정상 경로**.
+- 즉 두 서버에 GoalNav 로직이 **중복**되어 있고, 8082쪽이 미완성.
+
+### 실험 현황 (학습 완료, 모두 GoalNav MLP 계열 = decomposition 노선)
+| Exp | d_in | PM/val | 비고 |
+|-----|------|--------|------|
+| exp49 | 1059 (goal+) | 96.4% val / CL 100% | 운영 추천(proxy) |
+| exp50/51 | 1059 | 92~93% | |
+| exp52 | (파일 위치 불명, 재확인) | 93.9% | lang+vis |
+| exp53 | nested(mlp/d_in) + CLIP LoRA | 94.7% | grounding 최고 |
+| exp54_s2v2 | 288 | 미평가 | 2-stage contrastive (8082 동작) |
+| exp55 | 288 | — | 경량 |
+- ch23~28 결론: E2E vision-LoRA는 구조적으로 depth grounding 불가 → **decomposition 정답** 확정.
 
 ---
 
-## 배경
+## 1. 작업 범위 (우선순위 순)
 
-CL eval (`evaluate_closed_loop_v5.py`)은 pre-extracted `.npz` features를 사용함.  
-exp53은 LoRA-enhanced vision_model이므로 새 npz 추출 필요.  
-허브에 CL 결과 + 실로봇 주행 로그 저장 페이지 추가.
+### Task 1 — 버그 수정 (실측·운영의 전제, 최우선)
+1A. **GoalNav d_in 동적화** — `inference_server.py:GoalNavMLPInference`가 체크포인트에서 d_in을 읽어 MLP를 빌드하도록 변경 (proxy 방식 이식). exp49(1059, goal 포함)/exp50/51 등록.
+   - exp49 입력 = `bbox_hist(32) + vis(1024) + goal(3)` = 1059. goal 3-dim을 추론 입력에 포함해야 함 → proxy의 goal 계산 로직 확인 후 이식.
 
----
-
-## 변경 범위
-
-### 1. `scripts/extract_vis_features_exp53.py` (신규)
-
-LoRA 적용 vision_model로 150 episodes 전체 features 추출 → npz 저장
+1B. **VLA가 MLP 체크포인트를 거부** — `MobileVLAInference` 로드 시 state_dict가 numeric-only(MLP) 이면 명확한 에러로 막거나, env가 MLP 경로면 무시. 최소한 `vla_profile.py`의 `proxy_default` 프로필이 VLA 경로에 MLP를 넣지 않도록 분리.
+   - 옵션: `proxy_default` 프로필을 `goalnav` 런타임으로 명시 → 서버가 `VLA_GOALNAV_ONLY=1`로 기동되게.
 
 ```python
-# 핵심 흐름
-processor, model = load_kosmos2()                          # Pure HF Kosmos-2
-model.vision_model = PeftModel.from_pretrained(            # LoRA 적용
-    model.vision_model, ADAPTER_PATH
-).eval()
-
-# bbox_dataset_full.json의 150 에피소드 순회
-# 각 프레임: vision_model(pixel_values) → mean pool → (1024,)
-# 에피소드 단위 저장: vision_features.npz, vision_features_index.json
-
-OUT_DIR = ROOT / "docs/v5/bbox_nav_exp53"
+# 1A 핵심 변경 (GoalNavMLPInference._build_mlp / _load_weights)
+sd = torch.load(mlp_path, map_location="cpu")
+if isinstance(sd, dict) and "mlp" in sd:          # exp53/54/55 nested 포맷
+    d_in = sd.get("d_in"); state = sd["mlp"]
+else:                                              # exp49/50/51 plain Sequential
+    state = sd
+    d_in = state["0.weight"].shape[1]              # 1059 동적 추출
+self._mlp = self._build_mlp(d_in)                  # 하드코딩 D_IN 제거
+self._mlp.load_state_dict(state)
 ```
+
+### Task 2 — 통합 메인 서버 일원화
+- 8082를 **단일 메인 서버**로 확정. proxy(8001)의 GoalNav variant(exp49~53, CLIP LoRA)를 8082로 흡수.
+- `/goalnav/predict`가 `VLA_GOALNAV_VARIANT` 또는 요청 파라미터로 exp49~55 + exp53(CLIP LoRA) 스위칭.
+- 8001 proxy는 **deprecate**(주석/문서). start_all.sh는 이미 8082 단일.
+- 대시보드(7865)는 8082로 연결. `vlm_model` 파라미터로 GoalNav/VLA/monapi 라우팅.
+- **결정 필요(아래 질문)**: VLA full 경로(`/predict`)를 유지할지(현재 깨짐 + 폐기 노선) vs 8082를 GoalNav 전용으로 만들지.
+
+### Task 3 — 실측 (Task 1 완료 후)
+- `tools/measure_latency.py`로 `/goalnav/predict`(exp49) 1회 추론 latency 측정 → 10Hz(100ms) 물리적 가능 여부 확정.
+- 카메라 서비스 프레임 획득 주기도 함께 측정 (GetImage 서비스 왕복).
+- 결과를 `docs/inference_reports/`에 기록.
+
+### Task 4 — Hz 정합
+- 데이터 수집 = 10Hz async (확정, Action Lag 1프레임 시프트 검증 완료).
+- `api_client_node` = 10Hz (이미 일치).
+- `vla_inference_node.py:38` `inference_interval = 0.5`(2Hz) → **실측 latency 기반으로 0.1(10Hz) 또는 가능한 최소값으로 조정**. 추론 latency가 100ms 초과면 그 값에 맞춤(예: 150ms면 ~6.7Hz). → 실측 후 결정.
+
+### Task 5 — 의자 객체 교체 데이터 수집
+- 객체 = **의자/스툴** (PaliGemma 인지 98%). `docs/v5/PRETRAINED_OBJECT_REPLACEMENT_PLAN.md` 프로토콜 사용.
+- 수집: 10Hz async, 메인경로 70% / 복원경로 30%, 진입각 정면·±30°, 조명 7:2:1.
+- 수집 후 grounding 재주석(의자 캡션) → GoalNav 재학습(Exp60+).
+
+### Task 6 — 조이스틱 수집 쾌적성
+- 현재: ASYNC 10Hz 연속 이동 + 300ms Jitter Hold(유령 정지 방지) 이미 구현.
+- 추가 검토(실수집하며 튜닝):
+  - 가감속 ramp(급출발/급정지 완화)로 부드러운 궤적 → 데이터 품질↑.
+  - 회전(right_x) 데드존/감도 조정 — ROT 미세보정이 cx 알고리즘에 필요(physical drift 보정).
+  - 버튼 매핑 점검(SELECT 저장 / X 폐기 / A 정지 / B 되돌리기)과 시각 피드백(현재 모드/녹화 상태 HUD).
 
 ---
 
-### 2. `scripts/sim/evaluate_closed_loop_v5.py` 수정
+## 2. 수정 대상 파일
+| 파일 | 변경 |
+|------|------|
+| `robovlm_nav/serve/inference_server.py` | GoalNavMLPInference d_in 동적화, exp49~53 등록, CLIP LoRA, VLA-MLP 오로드 차단 |
+| `scripts/vla_profile.py` / 프로필 정의 | `proxy_default`를 goalnav 런타임으로 분리(VLA 경로에 MLP 금지) |
+| `scripts/start_all.sh` | 8082 기동 시 `VLA_GOALNAV_ONLY=1` + `VLA_GOALNAV_VARIANT=exp49` 명시 |
+| `scripts/gradio_inference_dashboard.py` | 8082 연결 확인, GoalNav variant 선택 UI |
+| `ROS_action/.../vla_inference_node.py` | `inference_interval` 실측 기반 조정 |
+| `scripts/gradio_data_collector.py` | (Task 6) ramp/데드존/HUD — 실수집하며 튜닝 |
+| `robovlm_nav/serve/proxy_inference_server.py` | deprecate 표기 |
 
-#### 2-a. exp53 등록
+## 3. 트레이드오프 / 리스크
+- VLA full 경로 비활성화 시: 혹시 모를 VLA 데모 필요성 상실. → 환경변수로 on-demand 로드 유지하면 해소.
+- exp49 goal-3dim 추론 입력: goal 벡터를 추론 시 어떻게 채우는지(grounded goal) proxy 로직 정확 이식 필요. 잘못하면 또 mismatch. → 1A 구현 전 proxy의 goal 계산부 정독.
+- Jetson 16GB 통합메모리: Kosmos-2 vision encoder(GoalNav) + (옵션)VLA full 동시 로드 시 OOM 위험 → GoalNav 전용 권장.
 
-```python
-GOAL_NAV_CKPTS["exp53"] = ROOT / "runs/v5_nav/mlp/exp53_clip_lora.pt"
-GOAL_NAV_VIS_DIRS["exp53"] = ROOT / "docs/v5/bbox_nav_exp53"
-GOAL_NAV_VIS_KEYS["exp53"] = "vision_features"
-```
-
-#### 2-b. `--model` choices에 exp53 추가
-
-```python
-ap.add_argument("--model", choices=[..., "exp53", ...])
-```
-
-#### 2-c. exp53 checkpoint format 처리
-
-현재 코드:
-```python
-ckpt = torch.load(...)
-d_in = ckpt["d_in"]                         # exp53엔 없음
-mlp.load_state_dict(ckpt["model_state_dict"])  # exp53엔 없음
-```
-
-수정:
-```python
-if "mlp" in ckpt and "model_state_dict" not in ckpt:
-    state = ckpt["mlp"]
-    d_in = state["net.0.weight"].shape[1]
-    mlp = nn.Sequential(...)
-    # load full GoalNavMLP state
-    tmp = {"net." + k if not k.startswith("net.") else k: v ... }
-    # 아니면 그냥 net.* prefix 처리
-else:
-    d_in = ckpt["d_in"]
-    mlp.load_state_dict(ckpt["model_state_dict"])
-```
-
-> 실제로는 GoalNavMLP 껍질 없이 Sequential만 load하므로 net.0.weight → 0.weight 변환 필요.
-
----
-
-### 3. `scripts/gradio_cl_dashboard.py` (신규, port 7867)
-
-세 탭 구성:
-
-#### Tab 1: CL Results (결과 테이블)
-
-- `rollout_metrics.json` 파싱 → 모델별 success_rate, FPE 표시
-- per-path 상세 (path_type별 성공/실패)
-- 새로고침 버튼
-
-```
-| 모델      | 성공률  | FPE   | 에피소드 수 |
-|-----------|---------|-------|------------|
-| exp49     | 96.7%   | 0.081 | 30         |
-| exp51     | 96.7%   | 0.163 | 30         |
-| exp54_s2v2| 96.7%   | 0.106 | 30         |
-| exp53     | -       | -     | (미평가)    |
-```
-
-#### Tab 2: Run CL Eval (평가 실행)
-
-- 모델 선택 드롭다운 (exp49/50/51/52/53)
-- "Run" 버튼 → `evaluate_closed_loop_v5.py --model <선택>` 백그라운드 실행
-- 실행 로그 스트리밍 textbox
-- 완료 시 Tab 1 자동 갱신
-
-#### Tab 3: Real Robot Log (실로봇 주행 기록)
-
-로컬 JSON 파일(`docs/v5/real_robot_sessions.json`)에 저장:
-
-```json
-{
-  "sessions": [
-    {
-      "date": "2026-05-27",
-      "model": "exp49",
-      "path_type": "center_straight",
-      "success": true,
-      "notes": "목표 바로 도달",
-      "timestamp": "2026-05-27T14:30:00"
-    }
-  ]
-}
-```
-
-UI:
-- 모델 / path_type / 성공여부 / 메모 입력
-- "기록 저장" 버튼
-- 세션 히스토리 테이블 (최근 50건)
-
----
-
-### 4. `scripts/gradio_hub.py` 수정
-
-SERVICES에 CL Dashboard 추가:
-
-```python
-{
-    "name":   "CL Dashboard",
-    "port":   7867,
-    "script": "scripts/gradio_cl_dashboard.py",
-    "cmd":    "python3 scripts/gradio_cl_dashboard.py",
-    "desc":   "Closed-Loop 평가 결과 + 실로봇 주행 로그",
-    "group":  "Eval",
-},
-```
-
----
-
-## 수정 파일 요약
-
-| 파일 | 변경 | 비고 |
-|------|------|------|
-| `scripts/extract_vis_features_exp53.py` | 신규 | ~80줄 |
-| `scripts/sim/evaluate_closed_loop_v5.py` | exp53 등록 + ckpt format 처리 | +20줄 |
-| `scripts/gradio_cl_dashboard.py` | 신규 (3-tab Gradio) | ~250줄 |
-| `scripts/gradio_hub.py` | SERVICES에 CL Dashboard 추가 | +8줄 |
-
----
-
-## 실행 순서
-
-1. feature 추출 (GPU, ~5분): `python3 scripts/extract_vis_features_exp53.py`
-2. CL eval 실행: `python3 scripts/sim/evaluate_closed_loop_v5.py --model exp53`
-3. 대시보드 실행: `python3 scripts/gradio_cl_dashboard.py`
-
----
-
-## 완료 체크리스트
-
-- [x] extract_vis_features_exp53.py 작성
-- [x] evaluate_closed_loop_v5.py exp53 지원
-- [x] gradio_cl_dashboard.py 작성 (3탭)
-- [x] gradio_hub.py SERVICES 추가
-- [x] feature 추출 실행
-- [x] exp53 CL eval 실행
-
----
-
-# Plan: 도착 STOP Y-Center 게이트 추가 구현 및 CL Ablation 검증
-
-**작성일**: 2026-06-03  
-**상태**: 승인 대기
-
-## 배경
-통계 분석 결과, 진짜 도착 시점에는 바스켓 중심 Y 좌표가 평균 0.50으로 가라앉는 반면, 주행 중 일시적 노이즈는 평균 0.38에 머물러 있습니다. 정지 판단 조건에 `cy_avg > TH_CY` 조건을 결합해 가짜 에피소드 정지 오발(False Trigger)을 차단하고 68.8% 정지 성공률을 추가 개선하고자 합니다.
-
-## 변경 범위
-
-### 1. `scripts/eval_stop_closedloop.py` 수정
-- `th_cy` 인자 추가 (기본값 `0.5`).
-- `stop_trigger_idx` 및 `expert_synth_stop`에 `cy_det` 조건 (`cy_avg > th_cy`) 적용.
-- 기존 No CY Gate 조건과 신규 With CY Gate 조건을 동일 조건 하에 순차 수행하여 성공률, FPE, TLD 메트릭의 Ablation 비교 결과를 단일 테이블로 대조 출력하도록 고도화.
-
-### 2. `robovlm_nav/serve/inference_server.py` 수정
-- 도착 area 정지 판정 함수 `_arrival_stop()` 에 `cy_avg > self._stop_th_cy` 조건 추가.
-- 환경변수 `VLA_GOALNAV_STOP_TH_CY` (기본값 `0.5`) 바인딩 추가.
-
-## 검증 계획
-1. `python3 scripts/eval_stop_closedloop.py`를 실행하여 32개 검증 에피소드 대상 Ablation 성공률(FPE < 0.15m 및 0.5m)을 비교하고, 조기 정지(오발) 및 과주행이 효과적으로 억제되었는지 정량 비교.
-2. `inference_server.py` 코드 무결성 검증.
+## 4. 진행 순서
+1. (승인 후) Task 1A/1B 버그 수정 → 서버 정상 기동 확인
+2. Task 3 실측 → latency 확정
+3. Task 4 Hz 조정 (실측값 기반)
+4. Task 2 서버 일원화 마무리 + 대시보드 연결
+5. Task 5/6 의자 수집 시작 (실수집하며 조이스틱 튜닝)
