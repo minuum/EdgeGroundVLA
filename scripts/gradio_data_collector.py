@@ -410,6 +410,7 @@ class GradioCollectorNode(Node):
         # 도착존(arrival zone) 판정 임계값 — 추론 latch와 동일 스케일로 시작(MonAPI 연동값)
         self.arrival_area_th = 0.18   # bbox넓이/전체프레임 ≥ 이면 근접
         self.arrival_cx_tol  = 0.25   # |cx-0.5| ≤ 이면 중앙 정렬
+        self.arrival_cache = None     # 카메라 스레드가 채우는 도착 판정 캐시(UI는 읽기만)
         self.capture_mode = CaptureMode.PRE_CACHE  # 기본값: 비블로킹 캐시 스냅샷
         
         self.is_auto_playing = False
@@ -591,7 +592,21 @@ class GradioCollectorNode(Node):
                         res = future.result()
                         if res and res.image:
                             cv_img = self.bridge.imgmsg_to_cv2(res.image, desired_encoding='bgr8')
-                            with self.lock: self.latest_ui_frame = cv_img
+                            # 도착 판정을 카메라 스레드에서 1회만 (다운스케일 320×180 → HSV ~10x 저렴).
+                            # UI 핫패스(get_feed/arrival_hud)는 이 캐시만 읽음.
+                            try:
+                                small = cv2.resize(cv_img, (320, 180))
+                                area, cx, cy, has, bbox_r = compute_arrival_metric(small)
+                                in_zone = bool(has and area >= self.arrival_area_th
+                                               and abs(cx - 0.5) <= self.arrival_cx_tol)
+                                cache = {"area": area, "cx": cx, "cy": cy, "has": has,
+                                         "in_zone": in_zone, "bbox_r": bbox_r}
+                            except Exception:
+                                cache = None
+                            with self.lock:
+                                self.latest_ui_frame = cv_img
+                                if cache is not None:
+                                    self.arrival_cache = cache
                     except: pass
             time.sleep(0.1)  # 10 Hz
     def load_all_stats(self):
@@ -859,7 +874,7 @@ CHAIR_HSV_HI = np.array([180, 60, 255])
 
 def compute_arrival_metric(frame_bgr):
     """저채도(흰/회색) 블롭의 하단부 bounding box로 도착 근접도 추정 (chair에 적합).
-    return (area_frac, cx, cy, has_blob, bbox). area_frac = bbox넓이/전체프레임."""
+    return (area_frac, cx, cy, has_blob, bbox_ratio). bbox_ratio=(rx,ry,rw,rh) 0~1 (스케일 무관)."""
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, CHAIR_HSV_LO, CHAIR_HSV_HI)
     h, w = frame_bgr.shape[:2]
@@ -874,37 +889,34 @@ def compute_arrival_metric(frame_bgr):
     area_frac = (bw * bh) / float(w * h)
     cx = (bx + bw / 2) / w
     cy = (by + bh / 2) / h
-    return area_frac, cx, cy, True, (bx, by, bw, bh)
-
-
-def arrival_status(frame_bgr):
-    """(area, cx, cy, has, in_zone, bbox) — node 임계값 기준 도착존 판정."""
-    area, cx, cy, has, bbox = compute_arrival_metric(frame_bgr)
-    in_zone = bool(has and area >= node.arrival_area_th and abs(cx - 0.5) <= node.arrival_cx_tol)
-    return area, cx, cy, has, in_zone, bbox
+    return area_frac, cx, cy, True, (bx / w, by / h, bw / w, bh / h)
 
 
 def get_feed(_=None):
+    """라이브 피드 — UI 핫패스. HSV 연산 없음(카메라 스레드 캐시 사용), 640×360 다운스케일 전송."""
     if not node: return None
     with node.lock:
         if node.latest_ui_frame is None: return None
-        frame = node.latest_ui_frame.copy()
-    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    h, w = img.shape[:2]
-    if node.teleop_mode:
-        cv2.line(img, (w//3, 0), (w//3, h), (100, 255, 100), 1)
-        cv2.line(img, (2*w//3, 0), (2*w//3, h), (100, 255, 100), 1)
-        cv2.line(img, (0, h//3), (w, h//3), (100, 255, 100), 1)
-        cv2.line(img, (0, 2*h//3), (w, 2*h//3), (100, 255, 100), 1)
-    # 도착존 오버레이: 타겟 블롭 박스 + 상태 색 (초록=도착 가능)
-    area, cx, cy, has, in_zone, bbox = arrival_status(frame)
-    if has and bbox is not None:
-        bx, by, bw, bh = bbox
-        color = (0, 255, 0) if in_zone else (255, 200, 0)
-        cv2.rectangle(img, (bx, by), (bx + bw, by + bh), color, 3)
-        tag = "ARRIVAL — STOP" if in_zone else f"area {area:.2f}"
-        cv2.putText(img, tag, (bx, max(20, by - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-    return Image.fromarray(img)
+        frame = node.latest_ui_frame
+        cache = node.arrival_cache
+        teleop = node.teleop_mode
+        # BGR→RGB + 다운스케일을 lock 안에서 한 번에 (frame 참조만, copy 불필요)
+        disp = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), (640, 360))
+    DW, DH = 640, 360
+    if teleop:
+        cv2.line(disp, (DW//3, 0), (DW//3, DH), (100, 255, 100), 1)
+        cv2.line(disp, (2*DW//3, 0), (2*DW//3, DH), (100, 255, 100), 1)
+        cv2.line(disp, (0, DH//3), (DW, DH//3), (100, 255, 100), 1)
+        cv2.line(disp, (0, 2*DH//3), (DW, 2*DH//3), (100, 255, 100), 1)
+    # 도착존 오버레이 — 캐시(비율 좌표)에서 읽어 그림 (HSV 재계산 없음)
+    if cache and cache["has"] and cache["bbox_r"]:
+        rx, ry, rw, rh = cache["bbox_r"]
+        x0, y0, x1, y1 = int(rx*DW), int(ry*DH), int((rx+rw)*DW), int((ry+rh)*DH)
+        color = (0, 255, 0) if cache["in_zone"] else (255, 200, 0)
+        cv2.rectangle(disp, (x0, y0), (x1, y1), color, 2)
+        tag = "ARRIVAL - STOP" if cache["in_zone"] else f"area {cache['area']:.2f}"
+        cv2.putText(disp, tag, (x0, max(16, y0 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+    return Image.fromarray(disp)
 
 def update_ui_state(_=None):
     if not node:
@@ -1018,7 +1030,9 @@ def episode_thumbs(_=None):
     out = []
     for d in buf[-8:]:
         try:
-            img = cv2.cvtColor(d['image'], cv2.COLOR_BGR2RGB)
+            # 160×90 썸네일로 축소 → 브라우저 전송량 대폭 절감 (720p 8장 → 작은 8장)
+            small = cv2.resize(d['image'], (160, 90))
+            img = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
             cls = classify_8class(d['action'])
             out.append((Image.fromarray(img), f"{CLASS_SYMBOLS[cls]} {CLASS_NAMES_8[cls]}"))
         except Exception:
@@ -1027,25 +1041,23 @@ def episode_thumbs(_=None):
 
 
 def arrival_hud_md(_=None):
-    """라이브 도착 판정 HUD — 일관된 지점에서 정지하도록 (수집-정지 일관성)."""
+    """라이브 도착 판정 HUD — 카메라 스레드 캐시만 읽음 (HSV 재계산 없음)."""
     if not node:
         return ""
-    with node.lock:
-        frame = None if node.latest_ui_frame is None else node.latest_ui_frame.copy()
-    if frame is None:
+    c = node.arrival_cache
+    if not c:
         return "### 🎯 도착 판정\n_(카메라 대기 중)_"
-    area, cx, cy, has, in_zone, _ = arrival_status(frame)
-    if not has:
+    if not c["has"]:
         badge = "⚪ 타겟(저채도 블롭) 미검출"
-    elif in_zone:
+    elif c["in_zone"]:
         badge = "🟢 **도착 가능 — 정지하세요!**"
     else:
         badge = "🟡 접근 중"
     return (
         f"### 🎯 도착 판정  {badge}\n"
         f"```\n"
-        f"area {area:.3f}  (th {node.arrival_area_th:.2f})\n"
-        f"cx   {cx:.2f}   |Δ| {abs(cx - 0.5):.2f}  (tol {node.arrival_cx_tol:.2f})\n"
+        f"area {c['area']:.3f}  (th {node.arrival_area_th:.2f})\n"
+        f"cx   {c['cx']:.2f}   |Δ| {abs(c['cx'] - 0.5):.2f}  (tol {node.arrival_cx_tol:.2f})\n"
         f"```"
     )
 
@@ -1315,14 +1327,14 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
     if node:
         gr.Timer(2).tick(fn=free_stats_md, outputs=[free_stats])
     gr.Timer(1).tick(fn=collector_diagnostics, outputs=[diag_tbl])
-    gr.Timer(0.1).tick(fn=get_feed, outputs=stream)
-    gr.Timer(0.1).tick(fn=joystick_status_md, outputs=[js_status])
-    gr.Timer(0.1).tick(fn=joystick_panel_md, outputs=[js_panel])
-    gr.Timer(0.3).tick(fn=arrival_hud_md, outputs=[arrival_hud])
+    gr.Timer(0.1).tick(fn=get_feed, outputs=stream)              # 경량(캐시 오버레이 + 640×360)
+    gr.Timer(0.2).tick(fn=joystick_status_md, outputs=[js_status])   # 텍스트 — 0.1→0.2s
+    gr.Timer(0.2).tick(fn=joystick_panel_md, outputs=[js_panel])     # 텍스트 — 0.1→0.2s
+    gr.Timer(0.3).tick(fn=arrival_hud_md, outputs=[arrival_hud])     # 캐시 읽기
     # 관측 위젯 폴링 (가벼움 — read-only)
     gr.Timer(0.5).tick(fn=episode_timeline_md, outputs=[ep_timeline_md_box])
     gr.Timer(0.5).tick(fn=episode_dist_md, outputs=[ep_dist_md_box])
-    gr.Timer(0.5).tick(fn=episode_thumbs, outputs=[ep_gallery])
+    gr.Timer(1.0).tick(fn=episode_thumbs, outputs=[ep_gallery])      # 썸네일 — 0.5→1.0s
     gr.Timer(3).tick(fn=dataset_dist_md, outputs=[ds_dist_md_box])
     gr.Timer(1).tick(fn=session_summary_md, outputs=[session_summary_box])
 
