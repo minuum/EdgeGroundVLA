@@ -284,6 +284,32 @@ class JoystickReader:
             self.BTN_L2, self.BTN_R2 = -1, -1      # 버튼 아님
             self.BTN_SELECT, self.BTN_START = 6, 7
             self.TRIG_L2, self.TRIG_R2 = 4, 5      # 트리거 축
+        # joystick_config.json 의 "buttons" 로 인덱스 덮어쓰기 (실측 후 코드수정 없이 교정)
+        self._apply_button_config()
+
+    def _apply_button_config(self):
+        cfg_path = Path(__file__).parent / "joystick_config.json"
+        if not cfg_path.exists():
+            return
+        try:
+            with open(cfg_path) as f:
+                cfg = json.load(f)
+        except Exception:
+            return
+        if cfg.get("force_layout"):
+            self.layout = cfg["force_layout"]
+        b = cfg.get("buttons", {})
+        keymap = {
+            "rec_start": "BTN_REC_START", "rec_save": "BTN_REC_SAVE",
+            "select": "BTN_SELECT", "start": "BTN_START", "stop": "BTN_STOP",
+            "undo": "BTN_UNDO", "discard": "BTN_DISCARD", "teleop": "BTN_TELEOP",
+            "l2": "BTN_L2", "r2": "BTN_R2",
+        }
+        for k, attr in keymap.items():
+            if k in b:
+                setattr(self, attr, int(b[k]))
+        if "trig_l2" in b: self.TRIG_L2 = int(b["trig_l2"])
+        if "trig_r2" in b: self.TRIG_R2 = int(b["trig_r2"])
 
     def _loop(self):
         try:
@@ -977,8 +1003,11 @@ def joystick_panel_md(_=None):
         l2tag, r2tag = f"L2(버튼{JR.BTN_L2})", f"R2(버튼{JR.BTN_R2})"
 
     teleop_badge = "🟢 ON" if teleop else "⚫ OFF"
+    pressed_str = " ".join(f"[{i}]" for i in sorted(pressed)) if pressed else "—"
+    last_str = f"#{last_btn}" if last_btn is not None else "—"
     board = (
         f"🎮 **{s['name']}** `[{layout}]`  |  {mode_badge}{rec_badge}  |  TELEOP **{teleop_badge}**\n\n"
+        f"🔢 **지금 눌린 버튼 인덱스: {pressed_str}**  (최근 {last_str})  ← 물리 버튼 식별용\n\n"
         f"```\n"
         f"LX {axis_bar(s['lx'])} {s['lx']:+.2f} 전/후\n"
         f"LY {axis_bar(s['ly'])} {s['ly']:+.2f} 좌/우\n"
