@@ -124,6 +124,7 @@ class JoystickReader:
     BTN_STOP   = 0   # A  — STOP 명시적 1프레임
     BTN_UNDO   = 1   # B  — 마지막 프레임 취소
     BTN_DISCARD = 2  # X  — 에피소드 폐기
+    BTN_TELEOP = 3   # Y  — teleop 토글 (어느 패드든 버튼 한 번으로)
     BTN_START  = 7   # Start — SYNC/ASYNC 모드 토글
     BTN_SELECT = 6   # Select — 녹화 토글(시작↔저장)
     # ── 어깨 버튼(L1/R1) = 수집 시작/저장 (양 레이아웃 공통) ──
@@ -219,6 +220,9 @@ class JoystickReader:
                     nd.episode_buffer.pop()
         elif btn == self.BTN_DISCARD:
             nd.stop_rec(save=False)
+        elif btn == self.BTN_TELEOP:
+            nd.toggle_teleop()
+            nd.last_js_log = f"[Y] teleop → {'ON' if nd.teleop_mode else 'OFF'}"
         elif btn == self.BTN_START:
             nd.js_mode = 'async' if nd.js_mode == 'sync' else 'sync'
             nd.last_js_log = f"[BTN{btn}] 모드 → {nd.js_mode.upper()}"
@@ -953,32 +957,41 @@ def joystick_panel_md(_=None):
         JR.BTN_DISCARD: "🗑폐기", JR.BTN_STOP: "STOP", JR.BTN_UNDO: "↩취소",
         JR.BTN_START: "모드",
     }
-    pressed_str = " ".join(f"[{i}]" for i in pressed) if pressed else "—"
-    last_str = (f"#{last_btn} {btn_map.get(last_btn, '미할당')}" if last_btn is not None else "—")
     layout = s.get("layout", JR.layout)
-    # L2/R2 표시: Controller=트리거축 값 / DragonRise=버튼
-    if layout == "controller" and JR.TRIG_R2 >= 0 and len(raw) > JR.TRIG_R2:
-        l2r2 = f"  L2(ax{JR.TRIG_L2}) {raw[JR.TRIG_L2]:+.2f}  R2(ax{JR.TRIG_R2}) {raw[JR.TRIG_R2]:+.2f}"
-        l2r2_legend = "L2(트리거)=teleop  R2(트리거)=모드"
-    else:
-        l2r2 = ""
-        l2r2_legend = f"L2(버튼{JR.BTN_L2})=teleop  R2(버튼{JR.BTN_R2})=모드"
+    pressed = set(pressed)
+    teleop = node.teleop_mode if node else False
+    sel = node.current_scenario_key if node else None
+    sel_name = V5_SCENARIOS.get(sel, {}).get('name', '미선택') if sel else '미선택'
 
-    return (
-        f"🎮 **{s['name']}** `[{layout}]`  |  {mode_badge}{rec_badge}\n\n"
+    # ── 버튼 라이트: ●눌림 / ○꺼짐 (index 기준) ──
+    def L(idx):  # 버튼 lit
+        return "🟢" if idx in pressed else "⚫"
+    def T(ax):   # 트리거 lit (축 > 0.3)
+        return "🟢" if (ax is not None and ax >= 0 and len(raw) > ax and raw[ax] > 0.3) else "⚫"
+    # L2/R2: 패드별 (Controller=트리거 / DragonRise=버튼)
+    if layout == "controller":
+        l2, r2 = T(JR.TRIG_L2), T(JR.TRIG_R2)
+        l2tag, r2tag = f"L2(당김ax{JR.TRIG_L2})", f"R2(당김ax{JR.TRIG_R2})"
+    else:
+        l2, r2 = L(JR.BTN_L2), L(JR.BTN_R2)
+        l2tag, r2tag = f"L2(버튼{JR.BTN_L2})", f"R2(버튼{JR.BTN_R2})"
+
+    teleop_badge = "🟢 ON" if teleop else "⚫ OFF"
+    board = (
+        f"🎮 **{s['name']}** `[{layout}]`  |  {mode_badge}{rec_badge}  |  TELEOP **{teleop_badge}**\n\n"
         f"```\n"
-        f"LX {axis_bar(s['lx'])}  {s['lx']:+.2f}  (전/후)\n"
-        f"LY {axis_bar(s['ly'])}  {s['ly']:+.2f}  (좌/우)\n"
-        f"AZ {axis_bar(s['az'])}  {s['az']:+.2f}  (회전)\n"
-        f"\n"
-        f"RAW  {raw_lines}\n"
-        f"BTN  눌림 {pressed_str}   최근 {last_str}{l2r2}\n"
+        f"LX {axis_bar(s['lx'])} {s['lx']:+.2f} 전/후\n"
+        f"LY {axis_bar(s['ly'])} {s['ly']:+.2f} 좌/우\n"
+        f"AZ {axis_bar(s['az'])} {s['az']:+.2f} 회전\n"
         f"```\n"
-        f"{icon} **{current}**\n\n"
-        f"🎮 D-pad=시나리오 넘기기  L1(버튼{JR.BTN_REC_START})=▶시작  R1(버튼{JR.BTN_REC_SAVE})=⏹저장  "
-        f"{l2r2_legend}  Select({JR.BTN_SELECT})=녹화토글  X({JR.BTN_DISCARD})=폐기"
-        + (f"\n\n`{last_log}`" if last_log else "")
+        f"**[어깨]**  {l2} {l2tag}=teleop &nbsp; {r2} {r2tag}=모드\n"
+        f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{L(JR.BTN_REC_START)} L1(버튼{JR.BTN_REC_START})=▶녹화시작 &nbsp; {L(JR.BTN_REC_SAVE)} R1(버튼{JR.BTN_REC_SAVE})=⏹저장\n\n"
+        f"**[방향]**  D-pad ◀▶ = 시나리오 넘기기 &nbsp;→ 현재 **[{sel or '?'}] {sel_name}**\n\n"
+        f"**[얼굴]**  {L(JR.BTN_STOP)} A({JR.BTN_STOP})=STOP &nbsp; {L(JR.BTN_UNDO)} B({JR.BTN_UNDO})=취소 &nbsp; "
+        f"{L(JR.BTN_DISCARD)} X({JR.BTN_DISCARD})=🗑폐기 &nbsp; {L(JR.BTN_TELEOP)} Y({JR.BTN_TELEOP})=teleop\n\n"
+        f"**[시스템]**  {L(JR.BTN_SELECT)} Select({JR.BTN_SELECT})=녹화토글 &nbsp; {L(JR.BTN_START)} Start({JR.BTN_START})=모드"
     )
+    return board + (f"\n\n`{last_log}`" if last_log else "")
 
 
 def collector_diagnostics(_=None):
