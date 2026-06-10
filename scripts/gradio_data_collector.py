@@ -1193,8 +1193,44 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                 grid_btns['g'] = gr.Button(f"{OFFLINE_TELEOP_LABELS['g']} (G)", elem_id="btn_g", variant="secondary", size="sm", interactive=bool(node))
 
         with gr.Column(scale=1):
+            # ── 1) 시나리오 (가장 자주 쓰는 액션 — 최상단 고정) ──────────────────
             with gr.Group():
-                gr.Markdown("### ⚙️ Episode Config")
+                gr.Markdown("### 🎯 시나리오 — 클릭해서 수집 시작")
+                scen_click_list = []
+                for k, v in V5_SCENARIOS.items():
+                    with gr.Row():
+                        b_rec = gr.Button(f"[{k}] {v['name']}", elem_classes=["scenario-btn"], scale=4, interactive=bool(node))
+                        b_auto = gr.Button("▶️", scale=1, min_width=44, interactive=bool(node))
+                        scen_click_list.append((k, b_rec, b_auto))
+            # ── 2) 자유 수집 ─────────────────────────────────────────────────────
+            with gr.Group():
+                gr.Markdown("#### 🎲 자유 수집 (다양성 21개 = 좌/중/우 × 7)")
+                diversity_sel = gr.Dropdown(
+                    choices=list(DIVERSITY_TAGS.keys()),
+                    value=list(DIVERSITY_TAGS.keys())[0],
+                    label="다양성 조건 태그",
+                )
+                with gr.Row():
+                    free_left_btn  = gr.Button("🎲 좌측 시작", variant="secondary", interactive=bool(node))
+                    free_center_btn = gr.Button("🎲 중앙 시작", variant="secondary", interactive=bool(node))
+                    free_right_btn = gr.Button("🎲 우측 시작", variant="secondary", interactive=bool(node))
+                free_stats = gr.Markdown("")
+            # ── 3) 핵심 토글 (수집 모드 / 저장 포맷 — 자주 확인) ──────────────────
+            with gr.Group():
+                js_mode_sel = gr.Radio(
+                    ["SYNC (V5 호환)", "ASYNC (스무스)"],
+                    value="ASYNC (스무스)",
+                    label="🕹️ 조이스틱 수집 모드",
+                    info="V5-2 기본 ASYNC: 10Hz 연속 (추론 10Hz와 정합) | SYNC: 0.45s 스텝  /  조이스틱 START로도 전환"
+                )
+                storage_sel = gr.Radio(
+                    ["JPEG (q90, 신규 기본)", "RAW (gzip, 기존 V5)"],
+                    value="JPEG (q90, 신규 기본)",
+                    label="💾 이미지 저장 포맷",
+                    info="JPEG: 파일 크기 대폭↓ (모델 224 입력이라 품질손실 0) | RAW: 기존 V5. 로더 자동 인식",
+                )
+            # ── 4) 고급 설정 (자주 안 바꿈 — 접이식) ─────────────────────────────
+            with gr.Accordion("⚙️ 고급 설정 (Capture/Throttle/임계값)", open=False):
                 pattern_sel = gr.Radio(["CORE", "VARIANT"], value="CORE", label="Type")
                 dist_sel = gr.Radio(["FIXED", "VAR"], value="FIXED", label="Distance")
                 capture_sel = gr.Radio(
@@ -1221,37 +1257,6 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                     label="cx_tol (중앙 정렬 허용오차 |cx-0.5|)",
                     info="이 값 이하면 '중앙'. area_th와 동시 충족 시 🟢 도착",
                 )
-                storage_sel = gr.Radio(
-                    ["JPEG (q90, 신규 기본)", "RAW (gzip, 기존 V5)"],
-                    value="JPEG (q90, 신규 기본)",
-                    label="💾 이미지 저장 포맷",
-                    info="JPEG: 파일 크기 대폭↓ (모델 224 입력이라 품질손실 0) | RAW: 기존 V5 방식. 로더는 둘 다 자동 인식",
-                )
-                js_mode_sel = gr.Radio(
-                    ["SYNC (V5 호환)", "ASYNC (스무스)"],
-                    value="ASYNC (스무스)",
-                    label="🕹️ 조이스틱 수집 모드",
-                    info="V5-2 기본 ASYNC: 10Hz 연속 (추론 10Hz와 정합) | SYNC: 0.45s 스텝, V5 호환  /  조이스틱 START 버튼으로도 전환"
-                )
-                gr.Markdown("#### 🎯 Scenarios")
-                scen_click_list = []
-                for k, v in V5_SCENARIOS.items():
-                    with gr.Row():
-                        b_rec = gr.Button(f"[{k}] {v['name']}", elem_classes=["scenario-btn"], scale=4, interactive=bool(node))
-                        b_auto = gr.Button("▶️", scale=1, interactive=bool(node))
-                        scen_click_list.append((k, b_rec, b_auto))
-            with gr.Group():
-                gr.Markdown("#### 🎲 자유 수집 (다양성 21개 = 좌/중/우 × 7)")
-                diversity_sel = gr.Dropdown(
-                    choices=list(DIVERSITY_TAGS.keys()),
-                    value=list(DIVERSITY_TAGS.keys())[0],
-                    label="다양성 조건 태그",
-                )
-                with gr.Row():
-                    free_left_btn  = gr.Button("🎲 좌측 시작", variant="secondary", interactive=bool(node))
-                    free_center_btn = gr.Button("🎲 중앙 시작", variant="secondary", interactive=bool(node))
-                    free_right_btn = gr.Button("🎲 우측 시작", variant="secondary", interactive=bool(node))
-                free_stats = gr.Markdown("")
             log = gr.Textbox(label="Terminal Log", interactive=False)
             stats_tbl = gr.Markdown("")
             diag_tbl = gr.Markdown(collector_diagnostics())
