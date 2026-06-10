@@ -126,12 +126,15 @@ class JoystickReader:
     BTN_DISCARD = 2  # X  — 에피소드 폐기
     BTN_START  = 7   # Start — SYNC/ASYNC 모드 토글
     BTN_SELECT = 6   # Select — 녹화 토글(시작↔저장)
-    # ── 어깨 버튼(L1/R1) = 수집 시작/저장 ──
-    BTN_REC_START = 4  # L1(LB) — 녹화 시작 (선택 시나리오)
-    BTN_REC_SAVE  = 5  # R1(RB) — 녹화 저장 후 종료
-    # ── 트리거(L2/R2)는 버튼이 아니라 '축' (Xbox식 Controller) ──
-    TRIG_L2 = 4  # axis 4 — teleop 토글
-    TRIG_R2 = 5  # axis 5 — SYNC/ASYNC 모드 토글
+    # ── 어깨 버튼(L1/R1) = 수집 시작/저장 (양 레이아웃 공통) ──
+    BTN_REC_START = 4  # L1 — 녹화 시작 (선택 시나리오)
+    BTN_REC_SAVE  = 5  # R1 — 녹화 저장 후 종료
+    # ── L2/R2: DragonRise=버튼, Controller=트리거축. _detect_layout()가 확정 ──
+    BTN_L2 = -1  # DragonRise일 때 버튼 6 (teleop)
+    BTN_R2 = -1  # DragonRise일 때 버튼 7 (모드)
+    TRIG_L2 = 4  # Controller일 때 축 4 (teleop)
+    TRIG_R2 = 5  # Controller일 때 축 5 (모드)
+    layout = "controller"
 
     def __init__(self, node):
         self._node = node
@@ -218,7 +221,13 @@ class JoystickReader:
         elif btn == self.BTN_START:
             nd.js_mode = 'async' if nd.js_mode == 'sync' else 'sync'
             nd.last_js_log = f"[BTN{btn}] 모드 → {nd.js_mode.upper()}"
-        # ── 수집 전용 (어깨 버튼) ──
+        # ── DragonRise L2/R2 = 버튼 (Controller는 트리거축 → _loop에서 처리) ──
+        elif self.BTN_L2 >= 0 and btn == self.BTN_L2:
+            nd.toggle_teleop(); nd.last_js_log = "[L2] teleop 토글"
+        elif self.BTN_R2 >= 0 and btn == self.BTN_R2:
+            nd.js_mode = 'async' if nd.js_mode == 'sync' else 'sync'
+            nd.last_js_log = f"[R2] 모드 → {nd.js_mode.upper()}"
+        # ── 수집 전용 (어깨 버튼 L1/R1) ──
         elif btn == self.BTN_REC_START:
             self._rec_start()
         elif btn == self.BTN_REC_SAVE:
@@ -250,6 +259,27 @@ class JoystickReader:
             nd.last_js_log = "⚠ 녹화 중이 아님"
         print(f"[Joystick] {nd.last_js_log}")
 
+    def _detect_layout(self, js):
+        """연결 패드를 보고 버튼 매핑 자동 결정 (DragonRise vs Xbox식 Controller).
+        공통: L1=4 녹화시작, R1=5 녹화저장, A=0 STOP, B=1 취소, X=2 폐기.
+        차이: L2/R2 — DragonRise=버튼6/7, Controller=트리거축4/5. Select/Start 번호도 다름."""
+        name = js.get_name().lower()
+        nbtn, nax = js.get_numbuttons(), js.get_numaxes()
+        is_dragon = ("dragon" in name or "generic" in name or "usb gamepad" in name
+                     or (nbtn <= 12 and nax <= 5))
+        self.BTN_STOP, self.BTN_UNDO, self.BTN_DISCARD = 0, 1, 2
+        self.BTN_REC_START, self.BTN_REC_SAVE = 4, 5
+        if is_dragon:
+            self.layout = "dragonrise"
+            self.BTN_L2, self.BTN_R2 = 6, 7        # 버튼
+            self.BTN_SELECT, self.BTN_START = 8, 9
+            self.TRIG_L2, self.TRIG_R2 = -1, -1    # 트리거 없음
+        else:
+            self.layout = "controller"
+            self.BTN_L2, self.BTN_R2 = -1, -1      # 버튼 아님
+            self.BTN_SELECT, self.BTN_START = 6, 7
+            self.TRIG_L2, self.TRIG_R2 = 4, 5      # 트리거 축
+
     def _loop(self):
         try:
             os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -271,8 +301,9 @@ class JoystickReader:
                     continue
                 js = pygame.joystick.Joystick(0)
                 js.init()
-                self.status = {**self.status, "connected": True, "name": js.get_name()}
-                print(f"[Joystick] 연결됨: {js.get_name()}")
+                self._detect_layout(js)
+                self.status = {**self.status, "connected": True, "name": js.get_name(), "layout": self.layout}
+                print(f"[Joystick] 연결됨: {js.get_name()} (layout={self.layout})")
                 self._btn_prev = {i: 0 for i in range(js.get_numbuttons())}
 
             try:
@@ -341,7 +372,7 @@ class JoystickReader:
                 # 트리거(L2/R2) 엣지 감지 (축 → 눌림 임계 0.3 상승엣지)
                 nax = js.get_numaxes()
                 for ax, fn in ((self.TRIG_L2, 'teleop'), (self.TRIG_R2, 'mode')):
-                    if ax >= nax:
+                    if ax < 0 or ax >= nax:
                         continue
                     tv = js.get_axis(ax)
                     if tv > 0.3 and self._trig_prev.get(ax, -1.0) <= 0.3:
@@ -901,24 +932,28 @@ def joystick_panel_md(_=None):
     }
     pressed_str = " ".join(f"[{i}]" for i in pressed) if pressed else "—"
     last_str = (f"#{last_btn} {btn_map.get(last_btn, '미할당')}" if last_btn is not None else "—")
-    # 트리거(L2/R2 축) 값
-    trig = ""
-    if len(raw) > JR.TRIG_R2:
-        trig = f"  L2(ax{JR.TRIG_L2}) {raw[JR.TRIG_L2]:+.2f}  R2(ax{JR.TRIG_R2}) {raw[JR.TRIG_R2]:+.2f}"
+    layout = s.get("layout", JR.layout)
+    # L2/R2 표시: Controller=트리거축 값 / DragonRise=버튼
+    if layout == "controller" and JR.TRIG_R2 >= 0 and len(raw) > JR.TRIG_R2:
+        l2r2 = f"  L2(ax{JR.TRIG_L2}) {raw[JR.TRIG_L2]:+.2f}  R2(ax{JR.TRIG_R2}) {raw[JR.TRIG_R2]:+.2f}"
+        l2r2_legend = "L2(트리거)=teleop  R2(트리거)=모드"
+    else:
+        l2r2 = ""
+        l2r2_legend = f"L2(버튼{JR.BTN_L2})=teleop  R2(버튼{JR.BTN_R2})=모드"
 
     return (
-        f"🎮 **{s['name']}**  |  {mode_badge}{rec_badge}\n\n"
+        f"🎮 **{s['name']}** `[{layout}]`  |  {mode_badge}{rec_badge}\n\n"
         f"```\n"
         f"LX {axis_bar(s['lx'])}  {s['lx']:+.2f}  (전/후)\n"
         f"LY {axis_bar(s['ly'])}  {s['ly']:+.2f}  (좌/우)\n"
         f"AZ {axis_bar(s['az'])}  {s['az']:+.2f}  (회전)\n"
         f"\n"
         f"RAW  {raw_lines}\n"
-        f"BTN  눌림 {pressed_str}   최근 {last_str}{trig}\n"
+        f"BTN  눌림 {pressed_str}   최근 {last_str}{l2r2}\n"
         f"```\n"
         f"{icon} **{current}**\n\n"
         f"🎮 L1(버튼{JR.BTN_REC_START})=▶시작  R1(버튼{JR.BTN_REC_SAVE})=⏹저장  "
-        f"L2(트리거)=teleop  R2(트리거)=모드  Select({JR.BTN_SELECT})=녹화토글  X({JR.BTN_DISCARD})=폐기"
+        f"{l2r2_legend}  Select({JR.BTN_SELECT})=녹화토글  X({JR.BTN_DISCARD})=폐기"
         + (f"\n\n`{last_log}`" if last_log else "")
     )
 
