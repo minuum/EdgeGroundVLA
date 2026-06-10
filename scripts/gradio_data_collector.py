@@ -379,7 +379,7 @@ class GradioCollectorNode(Node):
         
         self.throttle = 50
         self.stop_inject_n = 5
-        self.js_mode = 'sync'   # 'sync' = V5 스텝 기반 | 'async' = 10Hz 연속
+        self.js_mode = 'async'  # V5-2 기본 = ASYNC 10Hz (추론 10Hz와 정합) | 'sync' = V5 스텝
         self.diversity_tag = list(DIVERSITY_TAGS.keys())[0]
         if ROBOT_HW_AVAILABLE:
             try: self.driver = Driving()
@@ -1114,9 +1114,9 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                 )
                 js_mode_sel = gr.Radio(
                     ["SYNC (V5 호환)", "ASYNC (스무스)"],
-                    value="SYNC (V5 호환)",
+                    value="ASYNC (스무스)",
                     label="🕹️ 조이스틱 수집 모드",
-                    info="SYNC: 0.45s 스텝, V5 호환 (권장) | ASYNC: 10Hz 연속  /  조이스틱 START 버튼으로도 전환"
+                    info="V5-2 기본 ASYNC: 10Hz 연속 (추론 10Hz와 정합) | SYNC: 0.45s 스텝, V5 호환  /  조이스틱 START 버튼으로도 전환"
                 )
                 gr.Markdown("#### 🎯 Scenarios")
                 scen_click_list = []
