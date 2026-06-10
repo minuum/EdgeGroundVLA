@@ -411,6 +411,9 @@ class GradioCollectorNode(Node):
         self.arrival_area_th = 0.18   # bbox넓이/전체프레임 ≥ 이면 근접
         self.arrival_cx_tol  = 0.25   # |cx-0.5| ≤ 이면 중앙 정렬
         self.arrival_cache = None     # 카메라 스레드가 채우는 도착 판정 캐시(UI는 읽기만)
+        # 이미지 저장 모드: 'jpeg'(q=90 vlen, 신규 기본) | 'raw'(gzip 원본 배열, 기존 V5 방식)
+        self.image_storage = os.getenv("VLA_IMAGE_STORAGE", "jpeg").lower()
+        self.jpeg_quality = int(os.getenv("VLA_JPEG_QUALITY", "90"))
         self.capture_mode = CaptureMode.PRE_CACHE  # 기본값: 비블로킹 캐시 스냅샷
         
         self.is_auto_playing = False
@@ -743,7 +746,21 @@ class GradioCollectorNode(Node):
             acts = shifted_acts
 
         with h5py.File(os.path.join(DATASET_ROOT, fname), 'w') as f:
-            f.create_dataset('observations/images', data=np.array(imgs), compression="gzip")
+            # observations/images 저장 모드 분할 (self.image_storage):
+            #  - 'jpeg' (신규 기본): JPEG(q) bytes를 vlen으로 저장 (파일 크기 대폭↓)
+            #  - 'raw'  (기존 V5 방식): gzip 압축 원본 배열
+            # 로더는 per-frame ndim(1=JPEG bytes / 3=raw)로 자동 분기 → 두 포맷 혼용 호환.
+            if self.image_storage == 'jpeg':
+                # JPEG는 색순서 무관 → RGB 배열 인코딩→디코딩 시 동일 RGB 복원 (로더 RGB 가정 유지)
+                vlen = h5py.vlen_dtype(np.uint8)
+                ds = f.create_dataset('observations/images', (len(imgs),), dtype=vlen)
+                for i, rgb in enumerate(imgs):
+                    buf = cv2.imencode('.jpg', rgb, [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality])[1]
+                    ds[i] = np.frombuffer(buf.tobytes(), dtype=np.uint8)
+                ds.attrs['format'] = 'jpeg'
+                ds.attrs['quality'] = self.jpeg_quality
+            else:  # 'raw' — 기존 V5 방식 그대로
+                f.create_dataset('observations/images', data=np.array(imgs), compression="gzip")
             f.create_dataset('actions', data=np.array(acts))
             f.create_dataset('timestamps', data=np.array(timestamps))
             f.create_dataset('language_instruction', data=[prompt.encode('utf-8')])
@@ -1202,6 +1219,12 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                     label="cx_tol (중앙 정렬 허용오차 |cx-0.5|)",
                     info="이 값 이하면 '중앙'. area_th와 동시 충족 시 🟢 도착",
                 )
+                storage_sel = gr.Radio(
+                    ["JPEG (q90, 신규 기본)", "RAW (gzip, 기존 V5)"],
+                    value="JPEG (q90, 신규 기본)",
+                    label="💾 이미지 저장 포맷",
+                    info="JPEG: 파일 크기 대폭↓ (모델 224 입력이라 품질손실 0) | RAW: 기존 V5 방식. 로더는 둘 다 자동 인식",
+                )
                 js_mode_sel = gr.Radio(
                     ["SYNC (V5 호환)", "ASYNC (스무스)"],
                     value="ASYNC (스무스)",
@@ -1272,6 +1295,10 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
             fn=lambda v: setattr(node, 'arrival_cx_tol', float(v)) or f"🎯 cx_tol → {float(v):.2f}",
             inputs=arrival_cx_sl, outputs=log,
         )
+        def set_storage(v):
+            node.image_storage = 'raw' if v.startswith("RAW") else 'jpeg'
+            return f"💾 이미지 저장 포맷 → {node.image_storage.upper()}"
+        storage_sel.change(fn=set_storage, inputs=storage_sel, outputs=log)
         def set_js_mode(v):
             node.js_mode = 'sync' if 'SYNC' in v else 'async'
             return f"조이스틱 모드 → {node.js_mode.upper()}"
