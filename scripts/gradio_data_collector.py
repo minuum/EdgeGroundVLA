@@ -407,6 +407,9 @@ class GradioCollectorNode(Node):
         self.lock = threading.Lock()
         self.last_js_log = ""  # 조이스틱 마지막 액션 (UI 폴링용)
         self.last_session_summary = None  # 마지막 세션 타이밍 (Hz 설계용)
+        # 도착존(arrival zone) 판정 임계값 — 추론 latch와 동일 스케일로 시작(MonAPI 연동값)
+        self.arrival_area_th = 0.18   # bbox넓이/전체프레임 ≥ 이면 근접
+        self.arrival_cx_tol  = 0.25   # |cx-0.5| ≤ 이면 중앙 정렬
         self.capture_mode = CaptureMode.PRE_CACHE  # 기본값: 비블로킹 캐시 스냅샷
         
         self.is_auto_playing = False
@@ -643,11 +646,9 @@ class GradioCollectorNode(Node):
 
     def analyze_final_frame(self, img_bgr):
         # 저채도(흰/회색) 블롭의 하단부 cx로 도착 위치(left/center/right) 추정.
-        # chair(흰 의자 등)도 저채도라 동일 로직 적용 가능.
+        # chair(흰 의자 등)도 저채도라 동일 로직 적용 — compute_arrival_metric과 동일 마스크.
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-        lower_gray = np.array([0, 0, 50])
-        upper_gray = np.array([180, 50, 200])
-        mask = cv2.inRange(hsv, lower_gray, upper_gray)
+        mask = cv2.inRange(hsv, CHAIR_HSV_LO, CHAIR_HSV_HI)
         h, w = img_bgr.shape[:2]
         mask[:h//2, :] = 0 # Consider bottom half only
 
@@ -851,18 +852,59 @@ def pick_server_port(default_port: int, span: int = 20) -> int:
         return default_port
     return default_port
 
+# chair(흰/회색) 검출용 저채도 마스크 — value 상한 255로 밝은 흰 의자까지 포함
+CHAIR_HSV_LO = np.array([0, 0, 60])
+CHAIR_HSV_HI = np.array([180, 60, 255])
+
+
+def compute_arrival_metric(frame_bgr):
+    """저채도(흰/회색) 블롭의 하단부 bounding box로 도착 근접도 추정 (chair에 적합).
+    return (area_frac, cx, cy, has_blob, bbox). area_frac = bbox넓이/전체프레임."""
+    hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, CHAIR_HSV_LO, CHAIR_HSV_HI)
+    h, w = frame_bgr.shape[:2]
+    mask[:h // 2, :] = 0  # 하단 절반만 (바닥 근처의 타겟)
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return 0.0, 0.5, 0.5, False, None
+    c = max(cnts, key=cv2.contourArea)
+    if cv2.contourArea(c) < (w * h * 0.002):  # 작은 노이즈 무시
+        return 0.0, 0.5, 0.5, False, None
+    bx, by, bw, bh = cv2.boundingRect(c)
+    area_frac = (bw * bh) / float(w * h)
+    cx = (bx + bw / 2) / w
+    cy = (by + bh / 2) / h
+    return area_frac, cx, cy, True, (bx, by, bw, bh)
+
+
+def arrival_status(frame_bgr):
+    """(area, cx, cy, has, in_zone, bbox) — node 임계값 기준 도착존 판정."""
+    area, cx, cy, has, bbox = compute_arrival_metric(frame_bgr)
+    in_zone = bool(has and area >= node.arrival_area_th and abs(cx - 0.5) <= node.arrival_cx_tol)
+    return area, cx, cy, has, in_zone, bbox
+
+
 def get_feed(_=None):
     if not node: return None
     with node.lock:
         if node.latest_ui_frame is None: return None
-        img = cv2.cvtColor(node.latest_ui_frame, cv2.COLOR_BGR2RGB)
-        if node.teleop_mode:
-            h, w = img.shape[:2]
-            cv2.line(img, (w//3, 0), (w//3, h), (100, 255, 100), 1)
-            cv2.line(img, (2*w//3, 0), (2*w//3, h), (100, 255, 100), 1)
-            cv2.line(img, (0, h//3), (w, h//3), (100, 255, 100), 1)
-            cv2.line(img, (0, 2*h//3), (w, 2*h//3), (100, 255, 100), 1)
-        return Image.fromarray(img)
+        frame = node.latest_ui_frame.copy()
+    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    h, w = img.shape[:2]
+    if node.teleop_mode:
+        cv2.line(img, (w//3, 0), (w//3, h), (100, 255, 100), 1)
+        cv2.line(img, (2*w//3, 0), (2*w//3, h), (100, 255, 100), 1)
+        cv2.line(img, (0, h//3), (w, h//3), (100, 255, 100), 1)
+        cv2.line(img, (0, 2*h//3), (w, 2*h//3), (100, 255, 100), 1)
+    # 도착존 오버레이: 타겟 블롭 박스 + 상태 색 (초록=도착 가능)
+    area, cx, cy, has, in_zone, bbox = arrival_status(frame)
+    if has and bbox is not None:
+        bx, by, bw, bh = bbox
+        color = (0, 255, 0) if in_zone else (255, 200, 0)
+        cv2.rectangle(img, (bx, by), (bx + bw, by + bh), color, 3)
+        tag = "ARRIVAL — STOP" if in_zone else f"area {area:.2f}"
+        cv2.putText(img, tag, (bx, max(20, by - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+    return Image.fromarray(img)
 
 def update_ui_state(_=None):
     if not node:
@@ -984,6 +1026,30 @@ def episode_thumbs(_=None):
     return out
 
 
+def arrival_hud_md(_=None):
+    """라이브 도착 판정 HUD — 일관된 지점에서 정지하도록 (수집-정지 일관성)."""
+    if not node:
+        return ""
+    with node.lock:
+        frame = None if node.latest_ui_frame is None else node.latest_ui_frame.copy()
+    if frame is None:
+        return "### 🎯 도착 판정\n_(카메라 대기 중)_"
+    area, cx, cy, has, in_zone, _ = arrival_status(frame)
+    if not has:
+        badge = "⚪ 타겟(저채도 블롭) 미검출"
+    elif in_zone:
+        badge = "🟢 **도착 가능 — 정지하세요!**"
+    else:
+        badge = "🟡 접근 중"
+    return (
+        f"### 🎯 도착 판정  {badge}\n"
+        f"```\n"
+        f"area {area:.3f}  (th {node.arrival_area_th:.2f})\n"
+        f"cx   {cx:.2f}   |Δ| {abs(cx - 0.5):.2f}  (tol {node.arrival_cx_tol:.2f})\n"
+        f"```"
+    )
+
+
 def session_summary_md(_=None):
     """마지막으로 저장된 세션의 소요 초 / 프레임 / 실측 Hz — 수집·추론 Hz 설계용."""
     if not node or not getattr(node, "last_session_summary", None):
@@ -1069,6 +1135,7 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
             stream = gr.Image(label="Live Target View", interactive=False, elem_id="main_camera")
             status_markdown = gr.Markdown("### IDLE", elem_classes=["status-card"])
             js_status = gr.Markdown(joystick_status_md())
+            arrival_hud = gr.Markdown("### 🎯 도착 판정", elem_classes=["status-card"])
             js_panel = gr.Markdown(joystick_panel_md())
             with gr.Row():
                 mode_btn = gr.Button("🕹️ TELEOP MODE: OFF 🔴", variant="secondary", interactive=bool(node))
@@ -1111,6 +1178,17 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                     minimum=0.1, maximum=0.7, value=0.5, step=0.05,
                     label="🔄 ROT 회전 민감도 (az 임계값)",
                     info="낮출수록 작은 회전 입력도 ROT_L/R로 캡처 — physical drift 미세보정용 (기본 0.5)",
+                )
+                gr.Markdown("##### 🎯 도착존(arrival) 판정 임계값")
+                arrival_area_sl = gr.Slider(
+                    minimum=0.05, maximum=0.6, value=0.18, step=0.01,
+                    label="area_th (타겟이 화면 채우는 비율)",
+                    info="이 값 이상이면 '근접'. chair로 직접 가까이 가서 area 값 보고 캘리브",
+                )
+                arrival_cx_sl = gr.Slider(
+                    minimum=0.1, maximum=0.5, value=0.25, step=0.05,
+                    label="cx_tol (중앙 정렬 허용오차 |cx-0.5|)",
+                    info="이 값 이하면 '중앙'. area_th와 동시 충족 시 🟢 도착",
                 )
                 js_mode_sel = gr.Radio(
                     ["SYNC (V5 호환)", "ASYNC (스무스)"],
@@ -1174,6 +1252,14 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                 joystick_reader.rot_threshold = float(v)
             return f"🔄 ROT 임계값 → {float(v):.2f} (낮을수록 미세 회전 캡처)"
         rot_thresh_sl.change(fn=set_rot_thresh, inputs=rot_thresh_sl, outputs=log)
+        arrival_area_sl.change(
+            fn=lambda v: setattr(node, 'arrival_area_th', float(v)) or f"🎯 area_th → {float(v):.2f}",
+            inputs=arrival_area_sl, outputs=log,
+        )
+        arrival_cx_sl.change(
+            fn=lambda v: setattr(node, 'arrival_cx_tol', float(v)) or f"🎯 cx_tol → {float(v):.2f}",
+            inputs=arrival_cx_sl, outputs=log,
+        )
         def set_js_mode(v):
             node.js_mode = 'sync' if 'SYNC' in v else 'async'
             return f"조이스틱 모드 → {node.js_mode.upper()}"
@@ -1232,6 +1318,7 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
     gr.Timer(0.1).tick(fn=get_feed, outputs=stream)
     gr.Timer(0.1).tick(fn=joystick_status_md, outputs=[js_status])
     gr.Timer(0.1).tick(fn=joystick_panel_md, outputs=[js_panel])
+    gr.Timer(0.3).tick(fn=arrival_hud_md, outputs=[arrival_hud])
     # 관측 위젯 폴링 (가벼움 — read-only)
     gr.Timer(0.5).tick(fn=episode_timeline_md, outputs=[ep_timeline_md_box])
     gr.Timer(0.5).tick(fn=episode_dist_md, outputs=[ep_dist_md_box])
