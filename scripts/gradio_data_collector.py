@@ -151,6 +151,7 @@ class JoystickReader:
         self.rot_threshold = 0.5
         self._last_btn = None  # 버튼 모니터: 마지막 눌린 버튼 인덱스
         self._trig_prev = {self.TRIG_L2: -1.0, self.TRIG_R2: -1.0}  # 트리거 엣지 검출용
+        self._hat_prev = (0, 0)  # D-pad 엣지 검출용 (시나리오 넘기기)
 
         # Gradio 상태 표시용 (lock-free read 허용 — 단순 dict 교체)
         self.status = {
@@ -384,6 +385,16 @@ class JoystickReader:
                             self._node.last_js_log = f"[R2] 모드 → {self._node.js_mode.upper()}"
                         print(f"[Joystick] {self._node.last_js_log}")
                     self._trig_prev[ax] = tv
+
+                # D-pad(hat) 엣지 → 시나리오 넘기기 (좌=이전 / 우=다음, 상/하도 동일)
+                if js.get_numhats() > 0:
+                    hx, hy = js.get_hat(0)
+                    phx, phy = self._hat_prev
+                    if hx != 0 and phx == 0:
+                        self._node.select_scenario(1 if hx > 0 else -1)
+                    elif hy != 0 and phy == 0:
+                        self._node.select_scenario(-1 if hy > 0 else 1)  # 위=이전, 아래=다음
+                    self._hat_prev = (hx, hy)
 
                 # 버튼 엣지 감지 (누르는 순간만)
                 for i in range(js.get_numbuttons()):
@@ -704,6 +715,18 @@ class GradioCollectorNode(Node):
         with self.lock: self.current_scenario_key, self.episode_buffer, self.collecting = key, [], True
         return f"🔴 Recording: {V5_SCENARIOS[key]['name']}"
 
+    def select_scenario(self, step):
+        """녹화 시작 없이 current_scenario_key만 순환 (D-pad로 시나리오 넘기기)."""
+        if self.collecting:
+            self.last_js_log = "⚠ 녹화 중엔 시나리오 변경 불가"
+            return self.last_js_log
+        keys = list(V5_SCENARIOS.keys())
+        i = (keys.index(self.current_scenario_key) + step) % len(keys) if self.current_scenario_key in keys else 0
+        self.current_scenario_key = keys[i]
+        name = V5_SCENARIOS[self.current_scenario_key]['name']
+        self.last_js_log = f"🎯 시나리오: [{self.current_scenario_key}] {name}  (L1=시작)"
+        return self.last_js_log
+
     def auto_play_core(self, key):
         if key not in self.core_db or self.is_auto_playing: return "Err"
         def run():
@@ -952,7 +975,7 @@ def joystick_panel_md(_=None):
         f"BTN  눌림 {pressed_str}   최근 {last_str}{l2r2}\n"
         f"```\n"
         f"{icon} **{current}**\n\n"
-        f"🎮 L1(버튼{JR.BTN_REC_START})=▶시작  R1(버튼{JR.BTN_REC_SAVE})=⏹저장  "
+        f"🎮 D-pad=시나리오 넘기기  L1(버튼{JR.BTN_REC_START})=▶시작  R1(버튼{JR.BTN_REC_SAVE})=⏹저장  "
         f"{l2r2_legend}  Select({JR.BTN_SELECT})=녹화토글  X({JR.BTN_DISCARD})=폐기"
         + (f"\n\n`{last_log}`" if last_log else "")
     )
@@ -1059,7 +1082,11 @@ def update_ui_state(_=None):
             else:
                 s = f"● REC [{n}] — {name}"
         else:
-            s = "IDLE"
+            sel = node.current_scenario_key
+            if sel:
+                s = f"⏸ IDLE — 선택: [{sel}] {V5_SCENARIOS.get(sel,{}).get('name','')}  ▶ L1(또는 Shift+R)로 녹화 시작"
+            else:
+                s = "⏸ IDLE — 시나리오 선택 필요 (D-pad 좌/우 또는 화면 버튼 클릭)"
         if node.is_auto_playing: s = "🚀 REPLAYING..."
         if node.is_returning: s = "🔄 RETURNING..."
         tbl = "| ID | 시나리오 | 진행률 | 개수/목표 | 자동 |\n|---|---|---|---|---|\n"
