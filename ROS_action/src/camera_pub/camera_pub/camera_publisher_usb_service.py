@@ -46,8 +46,9 @@ class USBCameraServiceServer(Node):
     def init_camera(self):
         """카메라를 초기화합니다. Jetson CSI 카메라를 우선 시도하고, 실패하면 USB 카메라를 시도합니다."""
         import threading as _threading
+        import time as _time
         try:
-            # 1. Jetson CSI 카메라 시도 (3초 timeout — nvarguscamerasrc hang 방지)
+            # 1. Jetson CSI 카메라 시도 (open 8초 timeout — Argus 초기화 여유, hang 방지)
             self.get_logger().info('📷 Jetson CSI 카메라 시도 중...')
             gst_str = (
                 "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, "
@@ -59,23 +60,32 @@ class USBCameraServiceServer(Node):
                 _csi_cap[0] = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
             _t = _threading.Thread(target=_try_csi, daemon=True)
             _t.start()
-            _t.join(timeout=3.0)
+            _t.join(timeout=8.0)
             if _t.is_alive() or _csi_cap[0] is None:
-                self.get_logger().warn('⚠️ Jetson CSI 카메라 시도 timeout (3s) — USB로 전환')
+                self.get_logger().warn('⚠️ Jetson CSI 카메라 open timeout (8s) — USB로 전환')
             else:
                 self.cap = _csi_cap[0]
                 if self.cap.isOpened():
+                    # 웜업: Argus가 실제 프레임을 낼 때까지 대기. 1장 이상 성공해야 CSI 인정.
+                    # (이전엔 warmup 실패해도 무조건 성공 선언 → 캡처루프 영구 실패하던 버그 수정)
                     self.get_logger().info('🔥 Jetson CSI 카메라 웜업 중...')
-                    for i in range(5):
+                    ok = 0
+                    for i in range(20):
                         ret, _ = self.cap.read()
-                        if not ret:
-                            self.get_logger().warn(f'웜업 프레임 {i+1}/5 읽기 실패')
+                        if ret:
+                            ok += 1
+                            if ok >= 2:  # 2프레임 연속 확보 → 안정
+                                break
                         else:
-                            self.get_logger().info(f'웜업 프레임 {i+1}/5 완료')
-                    self.get_logger().info('✅ Jetson CSI 카메라 연결 성공!')
-                    self.camera_type = "Jetson CSI"
-                    self.failed_reads = 0
-                    return True
+                            _time.sleep(0.2)  # 프레임 생성 대기
+                    if ok >= 1:
+                        self.get_logger().info(f'✅ Jetson CSI 카메라 연결 성공! (warmup 확보 {ok})')
+                        self.camera_type = "Jetson CSI"
+                        self.failed_reads = 0
+                        return True
+                    else:
+                        self.cap.release()
+                        self.get_logger().warn('⚠️ CSI 웜업 프레임 0장 — 실제 캡처 불가, USB로 전환')
                 else:
                     self.cap.release()
                     self.get_logger().warn('⚠️ Jetson CSI 카메라 연결 실패')
