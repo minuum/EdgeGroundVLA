@@ -1137,18 +1137,40 @@ CUSTOM_CSS = """
 
 CUSTOM_JS = """
 function() {
+    function clickBtn(id) {
+        let el = document.getElementById(id);
+        if (el) { el.classList.add('active'); el.click(); setTimeout(() => el.classList.remove('active'), 120); }
+    }
     document.addEventListener('keydown', function(event) {
         if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
-        const valid = ['w','a','s','d','q','e','z','x','c','r','t','g',' '];
         let key = event.key.toLowerCase();
+
+        // ── 조합 단축키 (수정자 + 키) ──
+        // Shift+R: 녹화 토글 (시작 ↔ 저장)  /  Shift+X: 폐기(Discard)
+        if (event.shiftKey && key === 'r') { event.preventDefault(); clickBtn('btn_record_toggle'); return; }
+        if (event.shiftKey && key === 'x') { event.preventDefault(); clickBtn('btn_discard'); return; }
+
+        // ── 단일 키 텔레옵 (수정자 눌리면 무시 → 조합키와 충돌 방지) ──
+        if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+        const valid = ['w','a','s','d','q','e','z','x','c','r','t','g',' '];
         if (valid.includes(key)) {
             event.preventDefault();
-            let el = document.getElementById('btn_' + (key === ' ' ? 'space' : key));
-            if(el) { el.classList.add('active'); el.click(); setTimeout(() => el.classList.remove('active'), 100); }
+            clickBtn('btn_' + (key === ' ' ? 'space' : key));
         }
     });
 }
 """
+
+def record_toggle():
+    """녹화 토글 (Shift+R): 수집 중이면 저장, 아니면 선택된 시나리오로 시작."""
+    if not node:
+        return "Node Offline"
+    if node.collecting:
+        return node.stop_rec(True)
+    if node.current_scenario_key:
+        return node.start_rec(node.current_scenario_key)
+    return "⚠️ 먼저 시나리오를 선택하세요 (시나리오 버튼 클릭 후 Shift+R)"
+
 
 def make_rec_fn(key_val): return lambda: node.start_rec(key_val) if node else "Node Offline"
 def make_auto_fn(key_val): return lambda: node.auto_play_core(key_val) if node else "Node Offline"
@@ -1170,8 +1192,9 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
             js_panel = gr.Markdown(joystick_panel_md())
             with gr.Row():
                 mode_btn = gr.Button("🕹️ TELEOP MODE: OFF 🔴", variant="secondary", interactive=bool(node))
+                record_toggle_btn = gr.Button("🔴 REC 토글 (Shift+R)", elem_id="btn_record_toggle", variant="primary", interactive=bool(node))
                 stop_save = gr.Button("⏹️ SAVE EPISODE", variant="primary", interactive=bool(node))
-                discard = gr.Button("🗑️ DISCARD", variant="stop", interactive=bool(node))
+                discard = gr.Button("🗑️ DISCARD (Shift+X)", elem_id="btn_discard", variant="stop", interactive=bool(node))
                 undo_btn = gr.Button("↩️ Undo", size="sm", interactive=bool(node))
             
             grid_btns = {}
@@ -1340,6 +1363,7 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                     return f"↩️ Undone — {len(node.episode_buffer)} frames remaining"
                 return "⚠️ Nothing to undo"
         undo_btn.click(fn=undo_frame, outputs=[log])
+        record_toggle_btn.click(fn=record_toggle, outputs=[log])
         stop_save.click(fn=lambda: node.stop_rec(True), outputs=[log])
         discard.click(fn=lambda: node.stop_rec(False), outputs=[log])
     
