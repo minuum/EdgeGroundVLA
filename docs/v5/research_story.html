@@ -7053,6 +7053,77 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
     실제로 얻은 것은 달랐다. 그 괴리를 분석하고, RoboVLMs가 우리 프로젝트에서 맡은 역할을 정리한다.
   </p>
 
+  <!-- RoboVLMs 실체 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
+    <div style="color:#7dd3fc;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">📄 RoboVLMs — 공식 저장소 팩트</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div style="background:#0f172a;border:1px solid #374151;border-radius:10px;padding:14px">
+        <div style="color:#94a3b8;font-size:0.75rem;font-weight:700;margin-bottom:8px">논문</div>
+        <div style="color:#e2e8f0;font-size:0.82rem;font-weight:700;margin-bottom:4px">Towards Generalist Robot Policies: What Matters in Building Vision-Language-Action Models</div>
+        <div style="color:#64748b;font-size:0.75rem">Xinghang Li et al. · arXiv:2412.14058</div>
+        <div style="margin-top:6px"><span style="background:rgba(34,197,94,0.15);color:#22c55e;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:4px">Nature Machine Intelligence 게재 수락</span></div>
+      </div>
+      <div style="background:#0f172a;border:1px solid #374151;border-radius:10px;padding:14px">
+        <div style="color:#94a3b8;font-size:0.75rem;font-weight:700;margin-bottom:8px">설계 목표</div>
+        <div style="color:#e2e8f0;font-size:0.8rem;line-height:1.7">
+          <div>타겟: <strong>CALVIN, SimplerEnv, Open X-Embodiment</strong></div>
+          <div>설계: "30줄 코드로 임의 VLM → 로봇 정책"</div>
+          <div>HF 공개 체크포인트: <strong>KosMos 기반 3종만</strong></div>
+          <div style="margin-top:4px"><span style="color:#64748b;font-size:0.72rem">마지막 업데이트: 2025년 초 이후 거의 없음</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- backbone 지원 현황 -->
+    <div style="color:#94a3b8;font-size:0.75rem;font-weight:700;margin-bottom:8px">공식 지원 Backbone 현황 (GitHub README 기준)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+        <thead>
+          <tr style="border-bottom:1px solid #1e3a5f">
+            <th style="padding:8px 12px;text-align:left;color:#7dd3fc">Backbone</th>
+            <th style="padding:8px 12px;text-align:center;color:#7dd3fc">검증 상태</th>
+            <th style="padding:8px 12px;text-align:left;color:#7dd3fc">우리 프로젝트와 관련</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f1e35;background:#071a0a">
+            <td style="padding:8px 12px;color:#86efac;font-weight:700">KosMos-2</td>
+            <td style="padding:8px 12px;text-align:center"><span style="color:#22c55e;font-weight:700">✅ 완전 검증</span></td>
+            <td style="padding:8px 12px;color:#86efac">우리 Exp01~Exp16 (Kosmos backbone) — 공식 지원 범위 내</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35;background:#071a0a">
+            <td style="padding:8px 12px;color:#86efac;font-weight:700">Flamingo</td>
+            <td style="padding:8px 12px;text-align:center"><span style="color:#22c55e;font-weight:700">✅ 완전 검증</span></td>
+            <td style="padding:8px 12px;color:#64748b">미사용</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35;background:#071a0a">
+            <td style="padding:8px 12px;color:#86efac;font-weight:700">LLaVA</td>
+            <td style="padding:8px 12px;text-align:center"><span style="color:#22c55e;font-weight:700">✅ 완전 검증</span></td>
+            <td style="padding:8px 12px;color:#64748b">미사용</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:8px 12px;color:#fca5a5;font-weight:700">PaliGemma</td>
+            <td style="padding:8px 12px;text-align:center"><span style="color:#f87171;font-weight:700">⚠️ not fully tested</span></td>
+            <td style="padding:8px 12px;color:#fca5a5"><strong>E2E 8조합이 이 상태로 돌아간 것 — robopaligemma.py 존재하지만 미검증</strong></td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:8px 12px;color:#fca5a5;font-weight:700">PaliGemma 2</td>
+            <td style="padding:8px 12px;text-align:center"><span style="color:#ef4444;font-weight:700">❌ 언급 없음</span></td>
+            <td style="padding:8px 12px;color:#94a3b8">exp64는 RoboVLMs를 우회한 이유가 여기에도 있음</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:8px 12px;color:#94a3b8">Qwen, Uform, MoonDream</td>
+            <td style="padding:8px 12px;text-align:center"><span style="color:#f59e0b">⚠️ 미완전</span></td>
+            <td style="padding:8px 12px;color:#64748b">미사용</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:8px;font-size:0.78rem;color:#fca5a5;line-height:1.7">
+      <strong>핵심:</strong> E2E 8조합 ablation은 공식적으로 "not fully tested" 상태의 PaliGemma backbone 위에서 돌렸다. lora_B=0 버그가 단순 우리 설정 문제가 아닌 이유 — <strong>PaliGemma 통합 자체가 미완성</strong>이었다.
+    </div>
+  </div>
+
   <!-- 의도 vs 실제 -->
   <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
     <div style="color:#f87171;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">⚡ 의도한 실험 vs 실제로 일어난 일</div>
