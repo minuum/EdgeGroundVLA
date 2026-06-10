@@ -120,12 +120,17 @@ class JoystickReader:
     # 기본 축 매핑 (calibrate_joystick.py로 확인 후 joystick_config.json 덮어씀)
     DEFAULT_AXES = {"left_x": 0, "left_y": 1, "right_x": 2}
 
-    # 버튼 인덱스 (DragonRise 기본값, 캘리브레이션으로 확정)
+    # 버튼 인덱스 (DragonRise 기본값. 패드마다 다르면 화면 '버튼 모니터'로 실제 번호 확인 후 수정)
     BTN_STOP   = 0   # A  — STOP 명시적 1프레임
     BTN_UNDO   = 1   # B  — 마지막 프레임 취소
-    BTN_START  = 7   # Start — teleop_mode 토글
-    BTN_SELECT = 6   # Select — 녹화 시작/저장
     BTN_DISCARD = 2  # X  — 에피소드 폐기
+    BTN_START  = 7   # Start — teleop_mode 토글
+    BTN_SELECT = 6   # Select — 녹화 토글(시작↔저장)
+    # ── 어깨 버튼(L1/R1/L2/R2)에 수집 전용 기능 ──
+    BTN_REC_START = 4  # L1 — 녹화 시작 (선택 시나리오)
+    BTN_REC_SAVE  = 5  # R1 — 녹화 저장 후 종료
+    BTN_MODE      = 9  # R2 — SYNC/ASYNC 모드 토글
+    BTN_TELEOP    = 8  # L2 — teleop 모드 토글
 
     def __init__(self, node):
         self._node = node
@@ -140,12 +145,13 @@ class JoystickReader:
         # ROT 전용 임계값 (Issue 2): 낮출수록 미세 회전 보정 입력을 캡처.
         # physical drift(전압/마찰) 보정용 작은 회전을 잡으려면 0.3 정도로.
         self.rot_threshold = 0.5
+        self._last_btn = None  # 버튼 모니터: 마지막 눌린 버튼 인덱스
 
         # Gradio 상태 표시용 (lock-free read 허용 — 단순 dict 교체)
         self.status = {
             "connected": False, "name": "—",
             "lx": 0.0, "ly": 0.0, "az": 0.0,
-            "key": None, "label": "—",
+            "key": None, "label": "—", "buttons": [], "last_btn": None,
         }
 
     # ------------------------------------------------------------------ #
@@ -198,25 +204,37 @@ class JoystickReader:
 
     def _on_btn_down(self, btn):
         nd = self._node
+        self._last_btn = btn  # 버튼 모니터용 (마지막 누른 인덱스)
         if btn == self.BTN_STOP:
             nd.teleop_step(' ')
         elif btn == self.BTN_UNDO:
             with nd.lock:
                 if nd.episode_buffer:
                     nd.episode_buffer.pop()
-        elif btn == self.BTN_START:
-            nd.js_mode = 'async' if nd.js_mode == 'sync' else 'sync'
-            print(f"[Joystick] 모드 전환 → {nd.js_mode.upper()}")
-        elif btn == self.BTN_SELECT:
-            with nd.lock:
-                collecting = nd.collecting
-            if collecting:
-                nd.stop_rec(save=True)
-            # 시나리오가 선택돼 있을 때만 시작
-            elif nd.current_scenario_key:
-                nd.start_rec(nd.current_scenario_key)
         elif btn == self.BTN_DISCARD:
             nd.stop_rec(save=False)
+        elif btn == self.BTN_START or btn == self.BTN_MODE:
+            nd.js_mode = 'async' if nd.js_mode == 'sync' else 'sync'
+            print(f"[Joystick] 모드 전환 → {nd.js_mode.upper()}")
+        elif btn == self.BTN_TELEOP:
+            nd.toggle_teleop()
+        # ── 수집 전용 (어깨 버튼) ──
+        elif btn == self.BTN_REC_START:
+            if not nd.collecting and nd.current_scenario_key:
+                nd.start_rec(nd.current_scenario_key)
+                print("[Joystick] ▶ 녹화 시작")
+            else:
+                print("[Joystick] ⚠ 시나리오 미선택 또는 이미 녹화중")
+        elif btn == self.BTN_REC_SAVE:
+            if nd.collecting:
+                nd.stop_rec(save=True)
+                print("[Joystick] ⏹ 녹화 저장")
+        elif btn == self.BTN_SELECT:
+            # 토글: 녹화중이면 저장, 아니면 선택 시나리오로 시작
+            if nd.collecting:
+                nd.stop_rec(save=True)
+            elif nd.current_scenario_key:
+                nd.start_rec(nd.current_scenario_key)
 
     def _loop(self):
         try:
@@ -298,11 +316,12 @@ class JoystickReader:
                           'd':'→RIGHT','x':'▼BACK','z':'↙','c':'↘',
                           'r':'↺ROT_L','t':'↻ROT_R'}
                 raw = [round(js.get_axis(i), 3) for i in range(js.get_numaxes())]
+                pressed = [i for i in range(js.get_numbuttons()) if js.get_button(i)]
                 self.status = {
                     "connected": True, "name": js.get_name(),
                     "lx": round(lx, 2), "ly": round(ly, 2), "az": round(az, 2),
                     "key": key, "label": labels.get(key, "NEUTRAL") if key else "NEUTRAL",
-                    "raw": raw,
+                    "raw": raw, "buttons": pressed, "last_btn": self._last_btn,
                 }
 
                 # 버튼 엣지 감지 (누르는 순간만)
@@ -841,6 +860,18 @@ def joystick_panel_md(_=None):
     mode_badge = ("📸 **SYNC** (V5 스텝)" if js_mode == 'sync' else "🌊 **ASYNC** (스무스)")
     rec_badge  = " 🔴 **REC**" if rec_state else ""
 
+    # 버튼 모니터: 현재 눌린 버튼 + 마지막 누른 인덱스 (패드 버튼 번호 확인용)
+    pressed = s.get("buttons", [])
+    last_btn = s.get("last_btn", None)
+    JR = joystick_reader
+    btn_map = {
+        JR.BTN_REC_START: "▶시작", JR.BTN_REC_SAVE: "⏹저장", JR.BTN_SELECT: "녹화토글",
+        JR.BTN_DISCARD: "🗑폐기", JR.BTN_STOP: "STOP", JR.BTN_UNDO: "↩취소",
+        JR.BTN_MODE: "모드", JR.BTN_START: "모드", JR.BTN_TELEOP: "teleop",
+    }
+    pressed_str = " ".join(f"[{i}]" for i in pressed) if pressed else "—"
+    last_str = (f"#{last_btn} {btn_map.get(last_btn, '미할당')}" if last_btn is not None else "—")
+
     return (
         f"🎮 **{s['name']}**  |  {mode_badge}{rec_badge}\n\n"
         f"```\n"
@@ -849,8 +880,12 @@ def joystick_panel_md(_=None):
         f"AZ {axis_bar(s['az'])}  {s['az']:+.2f}  (회전)\n"
         f"\n"
         f"RAW  {raw_lines}\n"
+        f"BTN  눌림 {pressed_str}   최근 {last_str}\n"
         f"```\n"
-        f"{icon} **{current}**"
+        f"{icon} **{current}**\n\n"
+        f"🎮 버튼: ▶시작(L1·{JR.BTN_REC_START}) ⏹저장(R1·{JR.BTN_REC_SAVE}) "
+        f"녹화토글(Select·{JR.BTN_SELECT}) 🗑폐기(X·{JR.BTN_DISCARD}) "
+        f"모드(R2·{JR.BTN_MODE}) teleop(L2·{JR.BTN_TELEOP})"
         + (f"\n\n`{last_log}`" if last_log else "")
     )
 
