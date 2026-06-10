@@ -135,6 +135,9 @@ class JoystickReader:
         self._axes = self._load_axes()
         self._neutral_start_time = 0.0
         self._last_non_neutral_key = None
+        # ROT 전용 임계값 (Issue 2): 낮출수록 미세 회전 보정 입력을 캡처.
+        # physical drift(전압/마찰) 보정용 작은 회전을 잡으려면 0.3 정도로.
+        self.rot_threshold = 0.5
 
         # Gradio 상태 표시용 (lock-free read 허용 — 단순 dict 교체)
         self.status = {
@@ -168,12 +171,13 @@ class JoystickReader:
     # ------------------------------------------------------------------ #
     def _axis_to_key(self, lx, ly, az):
         T = self.THRESHOLD
+        RT = self.rot_threshold  # ROT 전용 임계값 (미세 회전 캡처용, Issue 2)
         fwd = lx >=  T
         bwd = lx <= -T
         lft = ly >=  T
         rgt = ly <= -T
-        rl  = az >=  T
-        rr  = az <= -T
+        rl  = az >=  RT
+        rr  = az <= -RT
 
         # 대각선 우선
         if fwd and lft: return 'q'
@@ -852,6 +856,125 @@ def update_ui_state(_=None):
             tbl += f"| {k} | {v['name']} | {'█'*int(p/10)+'░'*(10-int(p/10))} {p:.1f}% | {c}/{t} | {'✅' if k in node.core_db else '❌'} |\n"
         return s, tbl
 
+# ───────────────────────── 수집 관측(observability) ─────────────────────────
+# 모두 read-only — episode_buffer / DATASET_ROOT 만 읽고 수집 로직은 건드리지 않는다.
+# 8-class 분류는 robovlm_nav/datasets/nav_h5_dataset_impl.py 와 동일 임계값 사용:
+#   is_x=|lx|>0.3, is_y=|ly|>0.3, is_z=|az|>0.1
+CLASS_NAMES_8  = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
+CLASS_SYMBOLS  = {0: "●", 1: "▲", 2: "◀", 3: "▶", 4: "↖", 5: "↗", 6: "↺", 7: "↻"}
+
+
+def classify_8class(action) -> int:
+    x  = float(action[0])
+    y  = float(action[1])
+    az = float(action[2]) if len(action) > 2 else 0.0
+    is_x, is_y = abs(x) > 0.3, abs(y) > 0.3
+    if not is_x and not is_y:
+        if az > 0.1:   return 6
+        if az < -0.1:  return 7
+        return 0
+    if x > 0.3:
+        if y > 0.3:    return 4
+        if y < -0.3:   return 5
+        return 1
+    if abs(x) < 0.3:
+        if y > 0.3:    return 2
+        if y < -0.3:   return 3
+        return 0
+    return 0  # backward 등은 STOP 취급 (학습 분류와 동일)
+
+
+def episode_timeline_md(_=None):
+    """현재 에피소드 최근 액션을 기호 시퀀스 + 실측 캡처 Hz로 표시."""
+    if not node:
+        return "### 📊 현재 에피소드\n_(ROS offline)_"
+    with node.lock:
+        buf = list(node.episode_buffer)
+        collecting = node.collecting
+    if not buf:
+        return "### 📊 현재 에피소드\n_(대기 중 — 시나리오 선택 후 REC/SELECT)_"
+    n = len(buf)
+    syms = "".join(CLASS_SYMBOLS[classify_8class(d['action'])] for d in buf[-28:])
+    ts = [d['timestamp'] for d in buf[-12:]]
+    hz = ""
+    if len(ts) >= 2:
+        dts = [ts[i + 1] - ts[i] for i in range(len(ts) - 1)]
+        mean_dt = sum(dts) / len(dts)
+        if mean_dt > 0:
+            hz = f" · {1.0 / mean_dt:.1f}Hz"
+    badge = "🔴 REC" if collecting else "⏹ STOPPED"
+    return (f"### 📊 현재 에피소드  ({badge} · {n} frames{hz})\n"
+            f"```\n최근→  {syms}\n```")
+
+
+def episode_dist_md(_=None):
+    """현재 에피소드 버퍼의 8-class 분포 ASCII 막대."""
+    if not node:
+        return ""
+    with node.lock:
+        buf = list(node.episode_buffer)
+    if not buf:
+        return ""
+    counts = [0] * 8
+    for d in buf:
+        counts[classify_8class(d['action'])] += 1
+    mx = max(counts) or 1
+    lines = ["**이번 에피소드 액션 분포**", "```"]
+    for i, c in enumerate(counts):
+        if c == 0:
+            continue
+        lines.append(f"{CLASS_SYMBOLS[i]} {CLASS_NAMES_8[i]:8s} {'█' * int(c / mx * 12):<12} {c}")
+    lines.append("```")
+    return "\n".join(lines)
+
+
+def episode_thumbs(_=None):
+    """최근 캡처 프레임 6~8장을 액션 라벨과 함께 갤러리로."""
+    if not node:
+        return []
+    with node.lock:
+        buf = list(node.episode_buffer)
+    if not buf:
+        return []
+    out = []
+    for d in buf[-8:]:
+        try:
+            img = cv2.cvtColor(d['image'], cv2.COLOR_BGR2RGB)
+            cls = classify_8class(d['action'])
+            out.append((Image.fromarray(img), f"{CLASS_SYMBOLS[cls]} {CLASS_NAMES_8[cls]}"))
+        except Exception:
+            continue
+    return out
+
+
+_dataset_dist_cache = {"n_files": -1, "md": ""}
+
+
+def dataset_dist_md(_=None):
+    """전체 데이터셋 H5의 8-class 누적 분포 (파일 수 변동 시에만 재계산)."""
+    files = [f for f in os.listdir(DATASET_ROOT) if f.endswith('.h5')] if os.path.exists(DATASET_ROOT) else []
+    if len(files) == _dataset_dist_cache["n_files"]:
+        return _dataset_dist_cache["md"]
+    counts = [0] * 8
+    for fn in files:
+        try:
+            with h5py.File(os.path.join(DATASET_ROOT, fn), 'r') as f:
+                acts = f['actions'][:]
+            for a in acts:
+                counts[classify_8class(a)] += 1
+        except Exception:
+            continue
+    total = sum(counts) or 1
+    lines = [f"**전체 데이터셋 액션 분포**  ({len(files)} ep · {total} frames)", "```"]
+    for i, c in enumerate(counts):
+        pct = c / total * 100
+        lines.append(f"{CLASS_SYMBOLS[i]} {CLASS_NAMES_8[i]:8s} {pct:5.1f}% {'█' * int(pct / 5)}")
+    lines.append("```")
+    md = "\n".join(lines)
+    _dataset_dist_cache.update({"n_files": len(files), "md": md})
+    return md
+
+
 CUSTOM_CSS = """
 .gradio-container { background-color: #0d1117 !important; color: #c9d1d9 !important; font-family: 'Outfit', sans-serif; }
 .main-title { text-align: center; color: #58a6ff; font-weight: 900; letter-spacing: -1px; margin-bottom: 20px; }
@@ -930,6 +1053,11 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                 )
                 throttle_sl = gr.Slider(minimum=10, maximum=100, value=50, step=5, label="Throttle (%)")
                 stop_inject_sl = gr.Slider(minimum=0, maximum=10, value=5, step=1, label="STOP Inject N")
+                rot_thresh_sl = gr.Slider(
+                    minimum=0.1, maximum=0.7, value=0.5, step=0.05,
+                    label="🔄 ROT 회전 민감도 (az 임계값)",
+                    info="낮출수록 작은 회전 입력도 ROT_L/R로 캡처 — physical drift 미세보정용 (기본 0.5)",
+                )
                 js_mode_sel = gr.Radio(
                     ["SYNC (V5 호환)", "ASYNC (스무스)"],
                     value="SYNC (V5 호환)",
@@ -987,6 +1115,11 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
             fn=lambda v: setattr(node, 'stop_inject_n', int(v)) or f"STOP Inject N → {int(v)}",
             inputs=stop_inject_sl, outputs=log,
         )
+        def set_rot_thresh(v):
+            if joystick_reader:
+                joystick_reader.rot_threshold = float(v)
+            return f"🔄 ROT 임계값 → {float(v):.2f} (낮을수록 미세 회전 캡처)"
+        rot_thresh_sl.change(fn=set_rot_thresh, inputs=rot_thresh_sl, outputs=log)
         def set_js_mode(v):
             node.js_mode = 'sync' if 'SYNC' in v else 'async'
             return f"조이스틱 모드 → {node.js_mode.upper()}"
@@ -1024,6 +1157,19 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
         stop_save.click(fn=lambda: node.stop_rec(True), outputs=[log])
         discard.click(fn=lambda: node.stop_rec(False), outputs=[log])
     
+    # ── 수집 관측 패널 (세션에 쌓이는 모습 실시간) ──────────────────────────────
+    gr.Markdown("## 📈 수집 관측 (Live)")
+    with gr.Row():
+        with gr.Column(scale=1):
+            ep_timeline_md_box = gr.Markdown("### 📊 현재 에피소드")
+            ep_dist_md_box = gr.Markdown("")
+        with gr.Column(scale=1):
+            ds_dist_md_box = gr.Markdown("")
+    ep_gallery = gr.Gallery(
+        label="🖼️ 최근 캡처 프레임 (액션 라벨)", columns=8, height=150,
+        object_fit="cover", show_label=True,
+    )
+
     gr.Timer(1).tick(fn=update_ui_state, outputs=[status_markdown, stats_tbl])
     if node:
         gr.Timer(2).tick(fn=free_stats_md, outputs=[free_stats])
@@ -1031,6 +1177,11 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
     gr.Timer(0.1).tick(fn=get_feed, outputs=stream)
     gr.Timer(0.1).tick(fn=joystick_status_md, outputs=[js_status])
     gr.Timer(0.1).tick(fn=joystick_panel_md, outputs=[js_panel])
+    # 관측 위젯 폴링 (가벼움 — read-only)
+    gr.Timer(0.5).tick(fn=episode_timeline_md, outputs=[ep_timeline_md_box])
+    gr.Timer(0.5).tick(fn=episode_dist_md, outputs=[ep_dist_md_box])
+    gr.Timer(0.5).tick(fn=episode_thumbs, outputs=[ep_gallery])
+    gr.Timer(3).tick(fn=dataset_dist_md, outputs=[ds_dist_md_box])
 
 if __name__ == "__main__":
     requested_port = int(os.getenv("VLA_COLLECT_PORT", os.getenv("GRADIO_SERVER_PORT", "8081")))
