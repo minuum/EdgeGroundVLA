@@ -148,6 +148,27 @@ def delete_episode(root_name, fname):
     return gr.update(choices=eps, value=nxt), gallery, f"{msg}\n\n{info}"
 
 
+def show_full(root_name, fname, evt: gr.SelectData):
+    """갤러리에서 클릭한 프레임을 원본 화질(1280×720)로 로드."""
+    if evt is None or not root_name or not fname:
+        return None, ""
+    i = int(evt.index)
+    path = os.path.join(_ROS_ROOT, root_name, fname)
+    try:
+        with h5py.File(path, "r") as h:
+            src = h["observations"]["images"] if "observations" in h else h["images"]
+            img = _decode_frame(src, i)
+            acts = h["actions"][:] if "actions" in h else None
+        a = acts[i] if (acts is not None and i < len(acts)) else [0.0, 0.0, 0.0]
+        cls = classify_8class(a)
+        bk = " ⚠후진" if float(a[0]) < -0.3 else ""
+        cap = (f"### 🔍 프레임 [{i}]  {CLASS_SYMBOLS[cls]} {CLASS_NAMES_8[cls]}{bk}\n"
+               f"action `[{a[0]:+.2f}, {a[1]:+.2f}, {a[2]:+.2f}]`  ·  원본 {img.shape[1]}×{img.shape[0]}")
+        return Image.fromarray(img.astype(np.uint8)), cap
+    except Exception as e:
+        return None, f"❌ {e}"
+
+
 def refresh_roots():
     roots = list_dataset_roots()
     default = "mobile_vla_dataset_v5_2" if "mobile_vla_dataset_v5_2" in roots else (roots[0] if roots else None)
@@ -191,14 +212,18 @@ with gr.Blocks(title="MoNaVLA Dataset Viewer", css=CSS) as demo:
         del_btn = gr.Button("🗑️ 이 에피소드 삭제", variant="stop", scale=1)
 
     info_md = gr.Markdown("_(에피소드를 선택하세요)_")
-    gallery = gr.Gallery(label="프레임 (액션 라벨 · ⚠후진 표시)", columns=6,
-                         height=620, object_fit="contain", show_label=True)
+    gallery = gr.Gallery(label="프레임 (액션 라벨 · ⚠후진 표시) — 클릭하면 아래 원본 화질", columns=6,
+                         height=460, object_fit="contain", show_label=True)
+
+    full_info = gr.Markdown("_(썸네일을 클릭하면 원본 화질로 표시)_")
+    full_view = gr.Image(label="🔍 원본 화질 프레임", interactive=False, height=520)
 
     # 이벤트
     root_dd.change(fn=on_root_change, inputs=root_dd, outputs=episode_dd)
     episode_dd.change(fn=load_episode, inputs=[root_dd, episode_dd], outputs=[gallery, info_md])
     refresh_btn.click(fn=refresh_roots, outputs=[root_dd, episode_dd])
     del_btn.click(fn=delete_episode, inputs=[root_dd, episode_dd], outputs=[episode_dd, gallery, info_md])
+    gallery.select(fn=show_full, inputs=[root_dd, episode_dd], outputs=[full_view, full_info])
     # 시작 시 첫 에피소드 자동 로드
     demo.load(fn=load_episode, inputs=[root_dd, episode_dd], outputs=[gallery, info_md])
 
