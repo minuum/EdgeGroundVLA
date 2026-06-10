@@ -384,7 +384,7 @@ def load_env() -> None:
 
 load_env()
 
-DEFAULT_API_URL = os.getenv("VLA_API_SERVER", "http://localhost:8001")
+DEFAULT_API_URL = os.getenv("VLA_API_SERVER", "http://localhost:8082")
 API_KEY = os.getenv("VLA_API_KEY", "vla_devel_key_2026")
 DEFAULT_BACKEND_MODE = os.getenv(
     "VLA_DASHBOARD_BACKEND",
@@ -1325,35 +1325,53 @@ def set_running(running: bool, backend_mode: str, api_url: str, instruction: str
 
 
 def snap_monapi_action_to_label(action: np.ndarray, label: str) -> np.ndarray:
-    """MoNa-pi continuous actions are noisy; execute a safe discrete action from its label."""
+    """
+    MoNa-pi continuous actions를 안전한 Soft-Decision 기반으로 스냅핑합니다.
+    VLA의 연속 조향(Yaw) 성분을 복원하고 하드 임계치로 인한 속도 튐(채터링)을 억제합니다.
+    """
     out = np.zeros(3, dtype=np.float32)
     label = (label or "").upper()
+    
     raw_lx = float(action[0]) if action.size > 0 else 0.0
+    raw_ly = float(action[1]) if action.size > 1 else 0.0
+    raw_az = float(action[2]) if action.size > 2 else 0.0
 
-    forward = min(max(raw_lx, 0.45), 0.85)
-    lateral = 0.45
-    turn = 0.22
-
+    # 1. STOP 제어
     if label == "STOP":
         return out
-    if label == "FORWARD":
-        out[0] = forward
-    elif label in ("FWD+L", "FORWARD_LEFT"):
-        out[0] = min(forward, 0.70)
-        out[1] = lateral
-    elif label in ("FWD+R", "FORWARD_RIGHT"):
-        out[0] = min(forward, 0.70)
-        out[1] = -lateral
-    elif label == "LEFT":
-        out[1] = lateral
-    elif label == "RIGHT":
-        out[1] = -lateral
-    elif label in ("ROT_L", "TURN_L"):
-        out[2] = turn
-    elif label in ("ROT_R", "TURN_R"):
-        out[2] = -turn
+
+    # 2. Linear X (전진): 최소 0.45 ~ 최대 0.85 범위로 안전 클리핑하되 연속성 보존
+    out[0] = np.clip(raw_lx, 0.45, 0.85)
+
+    # 3. Linear Y (횡이동): 하드 스냅핑 대신 연속형 ly 값을 부드럽게 필터링 (최대 ±0.45 제한)
+    # 라벨에 횡방향(L/R) 지시가 있는 경우에만 횡이동 허용
+    if label in ("FWD+L", "FORWARD_LEFT", "LEFT"):
+        out[1] = np.clip(max(raw_ly, 0.15), 0.15, 0.45)
+    elif label in ("FWD+R", "FORWARD_RIGHT", "RIGHT"):
+        out[1] = np.clip(min(raw_ly, -0.15), -0.45, -0.15)
     else:
-        out[0] = forward
+        # 직진 또는 제자리 회전 시 불필요한 게걸음 횡이동 억제 (감쇄율 90%)
+        out[1] = raw_ly * 0.1
+
+    # 4. Angular Z (조향): 무력화되었던 회전(Yaw) 성분을 VLA 출력값으로부터 복원
+    # 제자리 회전 라벨인 경우 강력한 회전 적용, 그 외의 주행 중에는 미세 선조향(50% 게인) 적용
+    if label in ("ROT_L", "TURN_L"):
+        out[2] = 0.22
+    elif label in ("ROT_R", "TURN_R"):
+        out[2] = -0.22
+    else:
+        # 주행(직진/전진) 중 정면 타겟을 부드럽게 지향할 수 있도록 회전 성분 복원
+        out[2] = np.clip(raw_az * 0.5, -0.15, 0.15)
+
+    # FWD+L/R 제어 시 과속 방지를 위해 전진 속도 약간 감쇄
+    if label in ("FWD+L", "FORWARD_LEFT", "FWD+R", "FORWARD_RIGHT"):
+        out[0] = min(out[0], 0.70)
+
+    # 제자리 회전 시 전진/횡이동 속도 0으로 제어
+    if label in ("ROT_L", "TURN_L", "ROT_R", "TURN_R"):
+        out[0] = 0.0
+        out[1] = 0.0
+
     return out
 
 
@@ -1548,6 +1566,8 @@ def return_to_start() -> str:
                     break
                 if ROS_AVAILABLE and ros_node:
                     ros_node.control.move_and_stop_ramped(lx, ly, az, source="return")
+                    # move_and_stop_ramped는 비동기로 동작하므로, 스텝 주행 완료(0.4초) 및 마진(0.05초) 동안 대기합니다.
+                    time.sleep(0.45)
             if ROS_AVAILABLE and ros_node:
                 ros_node.control.robust_stop(source="return_done")
             add_console_log("🔄 복귀 완료")
@@ -1628,6 +1648,24 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
                         
                         ckpts, confs = scan_local_files()
                         
+                        # 모델 선택 및 정밀도 설정 드롭다운을 공통 영역으로 이동
+                        # API 서버 및 로컬 런타임 양쪽 모두 원하는 모델을 편리하게 로드할 수 있게 함
+                        ckpt_dropdown = gr.Dropdown(
+                            choices=ckpts,
+                            label="🎯 Select Checkpoint (.ckpt/.pth)",
+                            value=pick_default_choice(ckpts, "VLA_CHECKPOINT_PATH"),
+                        )
+                        conf_dropdown = gr.Dropdown(
+                            choices=confs,
+                            label="⚙️ Select Config (.json)",
+                            value=pick_default_choice(confs, "VLA_CONFIG_PATH"),
+                        )
+                        quant_radio = gr.Radio(
+                            choices=["INT8 (Fast)", "FP16 (Accurate)"],
+                            value="FP16 (Accurate)",
+                            label="Model Precision",
+                        )
+                        
                         with gr.Tabs(selected="api_tab" if DEFAULT_BACKEND_MODE == "API Server" else "local_tab") as backend_tabs:
                             with gr.Tab("📡 MoNa-pi API Server (Safe Port Mode)", id="api_tab") as api_tab:
                                 gr.Markdown("🟢 외부 포트(8082)로 동작 중인 모델을 연동합니다. 온보드 리소스를 중복 점유하지 않아 매우 안전합니다.")
@@ -1635,23 +1673,9 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
                                 
                             with gr.Tab("🖥️ Local Onboard VLA (Resource Hungry)", id="local_tab") as local_tab:
                                 gr.Markdown("⚠️ **주의:** 온보드 메모리에서 모델을 직접 로드하므로 중복 로딩 시 OOM 다운 위험이 있습니다.")
-                                ckpt_dropdown = gr.Dropdown(
-                                    choices=ckpts,
-                                    label="🎯 Select Checkpoint (.ckpt/.pth)",
-                                    value=pick_default_choice(ckpts, "VLA_CHECKPOINT_PATH"),
-                                )
-                                conf_dropdown = gr.Dropdown(
-                                    choices=confs,
-                                    label="⚙️ Select Config (.json)",
-                                    value=pick_default_choice(confs, "VLA_CONFIG_PATH"),
-                                )
-                                quant_radio = gr.Radio(
-                                    choices=["INT8 (Fast)", "FP16 (Accurate)"],
-                                    value="FP16 (Accurate)",
-                                    label="Model Precision",
-                                )
-                                btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
                                 
+                        btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
+                        
                         load_status = gr.Textbox(
                             label="Model Status",
                             value="API Server 연결됨" if DEFAULT_BACKEND_MODE == "API Server" else "Not Loaded",
@@ -1896,8 +1920,19 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
  
         auto_conf = cfg.get("config")
         auto_ckpt = cfg.get("checkpoint")
-        conf_update = gr.update(value=auto_conf) if auto_conf else gr.update()
-        ckpt_update = gr.update(value=auto_ckpt) if auto_ckpt else gr.update()
+        
+        # 상대 경로로 선언된 설정을 로컬 절대 경로로 변환하여 드롭다운 choices에 매칭되도록 조치
+        if auto_conf:
+            abs_conf = str((PROJECT_ROOT / auto_conf).resolve())
+            conf_update = gr.update(value=abs_conf)
+        else:
+            conf_update = gr.update(value=None)
+            
+        if auto_ckpt:
+            abs_ckpt = str((PROJECT_ROOT / auto_ckpt).resolve())
+            ckpt_update = gr.update(value=abs_ckpt)
+        else:
+            ckpt_update = gr.update(value=None)
  
         cfg_status = ""
         # 탭 상태가 API Server일 때만 외부 서버로 config push 시도

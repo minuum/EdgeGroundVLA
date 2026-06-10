@@ -1,4 +1,6 @@
 {
+  "robovlm_name": "RoboKosMos",
+  "use_hand_rgb": false,
   "_comment": "Exp54 Stage 2: Action Head (Stage 1 CLIP LoRA frozen)",
 
   "vlm_path": ".vlms/kosmos-2-patch14-224",

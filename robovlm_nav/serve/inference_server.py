@@ -1107,19 +1107,30 @@ class MobileVLAInference:
         
         # Load state dict on CPU
         checkpoint = torch.load(self.checkpoint_path, map_location='cpu', weights_only=False)
-        full_state_dict = checkpoint.get('model_state_dict', checkpoint.get('state_dict'))
+        # checkpoint가 직접 state_dict인 경우 처리 (MLP-only 체크포인트 등)
+        full_state_dict = checkpoint.get('model_state_dict', checkpoint.get('state_dict', None))
+        if full_state_dict is None:
+            logger.info("⚠️ No 'model_state_dict'/'state_dict' key found — treating checkpoint as raw state_dict")
+            full_state_dict = checkpoint
         
         # Filter for Projector and Policy Head only (Backbone is already official)
         # This avoids size mismatch and saves 6GB+ RAM/VRAM
-        logger.info("🎯 Filtering: Loading only Projector and Policy Head")
-        state_dict = {}
-        for k, v in full_state_dict.items():
-            if any(x in k for x in ["image_to_text_projection", "act_head", "policy_head", "resampler", "action_token", "lora"]):
-                # Handle model. prefix
-                new_key = k
-                if k.startswith('model.') and not hasattr(self.model, 'model'):
-                     new_key = k.replace('model.', '', 1)
-                state_dict[new_key] = v
+        # MLP-only 체크포인트는 숫자 인덱스 키만 가짐 → 필터 없이 전체 로드
+        FILTER_KEYWORDS = ["image_to_text_projection", "act_head", "policy_head", "resampler", "action_token", "lora"]
+        all_numeric = all(k.split('.')[0].isdigit() for k in full_state_dict.keys())
+        
+        if all_numeric:
+            logger.info("🎯 MLP-only checkpoint detected (numeric keys) — loading all weights directly")
+            state_dict = dict(full_state_dict)
+        else:
+            logger.info("🎯 Filtering: Loading only Projector and Policy Head")
+            state_dict = {}
+            for k, v in full_state_dict.items():
+                if any(x in k for x in FILTER_KEYWORDS):
+                    new_key = k
+                    if k.startswith('model.') and not hasattr(self.model, 'model'):
+                        new_key = k.replace('model.', '', 1)
+                    state_dict[new_key] = v
         
         # Cleanup full checkpoint immediately
         del full_state_dict
@@ -2416,13 +2427,21 @@ def get_model(refresh=False, use_quant=None, checkpoint_path=None, config_path=N
             checkpoint_path = model_override_checkpoint_path
             config_path = model_override_config_path
         else:
-            checkpoint_path, config_path = _resolve_default_model_paths()        
-        model_instance = MobileVLAInference(
-            checkpoint_path=checkpoint_path,
-            config_path=config_path,
-            device="cuda" if torch.cuda.is_available() else "cpu",
-            use_quant=use_quant
-        )
+            checkpoint_path, config_path = _resolve_default_model_paths()
+        try:
+            model_instance = MobileVLAInference(
+                checkpoint_path=checkpoint_path,
+                config_path=config_path,
+                device="cuda" if torch.cuda.is_available() else "cpu",
+                use_quant=use_quant
+            )
+        except Exception as e:
+            # 로드 실패 시 override 초기화 → 다음 호출에서 기본 경로로 재시도
+            logger.error(f"❌ MobileVLAInference 로드 실패 (ckpt={checkpoint_path}): {e}")
+            model_override_checkpoint_path = None
+            model_override_config_path = None
+            model_instance = None
+            raise
     
     return model_instance
 
