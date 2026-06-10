@@ -346,8 +346,8 @@ V5_SCENARIOS = {
 }
 
 DIVERSITY_TAGS = {
-    "A-바구니좌극단":  "basket_left_extreme",
-    "B-바구니우극단":  "basket_right_extreme",
+    "A-의자좌극단":    "chair_left_extreme",
+    "B-의자우극단":    "chair_right_extreme",
     "C-로봇근접":      "robot_close",
     "D-로봇원거리":    "robot_far",
     "E-사선좌접근":    "diagonal_left",
@@ -355,7 +355,10 @@ DIVERSITY_TAGS = {
     "G-조명차이":      "lighting_diff",
 }
 
-DATASET_ROOT = os.path.join(_PROJECT_ROOT, "ROS_action/mobile_vla_dataset_v5")
+# ── V5-2: chair 객체 신규 수집 (기존 V5 = gray basket 과 완전 별개) ──────────
+# 폴더/객체를 환경변수로도 덮어쓸 수 있게 함 (기본 = V5-2 / chair)
+TARGET_OBJECT = os.getenv("VLA_TARGET_OBJECT", "chair")
+DATASET_ROOT = os.path.join(_PROJECT_ROOT, os.getenv("VLA_COLLECT_DATASET", "ROS_action/mobile_vla_dataset_v5_2"))
 os.makedirs(DATASET_ROOT, exist_ok=True)
 CORE_DB_PATH = os.path.join(DATASET_ROOT, "core_replay_db.json")
 
@@ -403,6 +406,7 @@ class GradioCollectorNode(Node):
         self.load_all_stats()
         self.lock = threading.Lock()
         self.last_js_log = ""  # 조이스틱 마지막 액션 (UI 폴링용)
+        self.last_session_summary = None  # 마지막 세션 타이밍 (Hz 설계용)
         self.capture_mode = CaptureMode.PRE_CACHE  # 기본값: 비블로킹 캐시 스냅샷
         
         self.is_auto_playing = False
@@ -638,26 +642,29 @@ class GradioCollectorNode(Node):
         return f"🚀 Auto Replay: {V5_SCENARIOS[key]['name']}"
 
     def analyze_final_frame(self, img_bgr):
+        # 저채도(흰/회색) 블롭의 하단부 cx로 도착 위치(left/center/right) 추정.
+        # chair(흰 의자 등)도 저채도라 동일 로직 적용 가능.
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
         lower_gray = np.array([0, 0, 50])
         upper_gray = np.array([180, 50, 200])
         mask = cv2.inRange(hsv, lower_gray, upper_gray)
         h, w = img_bgr.shape[:2]
         mask[:h//2, :] = 0 # Consider bottom half only
-        
+
         M = cv2.moments(mask)
         cx = int(M["m10"] / M["m00"]) if M["m00"] != 0 else w // 2
-            
+
+        obj = TARGET_OBJECT  # "chair" (V5-2)
         if cx < w * 0.4:
             pos = "left"
-            prompt = "Keep approaching until the gray basket aligns with the left side of the frame and appears large."
+            prompt = f"Keep approaching until the {obj} aligns with the left side of the frame and appears large."
         elif cx > w * 0.6:
             pos = "right"
-            prompt = "Move forward until the gray basket is positioned in the right half of the view and close to the camera."
+            prompt = f"Move forward until the {obj} is positioned in the right half of the view and close to the camera."
         else:
             pos = "center"
-            prompt = "Navigate until the gray basket is centered and fills the lower half of the frame."
-            
+            prompt = f"Navigate until the {obj} is centered and fills the lower half of the frame."
+
         return pos, prompt
 
     def stop_rec(self, save=True):
@@ -671,6 +678,16 @@ class GradioCollectorNode(Node):
                 return f"⚠️ Too short ({n} frames < {MIN_FRAMES}). Auto-discarded."
             msg = "❌ Discarded or Empty"
             if save and n > 0:
+                # ── 세션 타이밍 측정 (STOP 주입 전 실제 주행 구간 기준) ──
+                ts0 = self.episode_buffer[0]['timestamp']
+                ts1 = self.episode_buffer[-1]['timestamp']
+                dur = max(1e-6, ts1 - ts0)
+                hz = (n - 1) / dur if n > 1 else 0.0
+                self.last_session_summary = {
+                    "frames": n, "duration_s": round(dur, 2), "hz": round(hz, 1),
+                    "mode": self.js_mode, "scenario": self.current_scenario_key,
+                }
+
                 final_img = self.episode_buffer[-1]['image']
                 pos_tag, prompt = self.analyze_final_frame(final_img)
                 last_img = self.episode_buffer[-1]['image']
@@ -685,7 +702,9 @@ class GradioCollectorNode(Node):
                     self.core_db[self.current_scenario_key] = [d['action'] for d in self.episode_buffer]
                     self.save_core_db()
                 self.load_all_stats()
-                msg = f"✅ Saved [{pos_tag.upper()}]: {os.path.basename(fname)}\n📝 Prompt: {prompt}\n(+{self.stop_inject_n} STOP frames injected)"
+                msg = (f"✅ Saved [{pos_tag.upper()}]: {os.path.basename(fname)}\n"
+                       f"⏱️ 세션: {n}프레임 / {dur:.1f}s / 실측 {hz:.1f}Hz ({self.js_mode})\n"
+                       f"📝 Prompt: {prompt}\n(+{self.stop_inject_n} STOP frames injected)")
             return msg
 
     def save_h5(self, pos_tag, prompt):
@@ -965,6 +984,23 @@ def episode_thumbs(_=None):
     return out
 
 
+def session_summary_md(_=None):
+    """마지막으로 저장된 세션의 소요 초 / 프레임 / 실측 Hz — 수집·추론 Hz 설계용."""
+    if not node or not getattr(node, "last_session_summary", None):
+        return ("### ⏱️ 마지막 세션\n_(도착 시 정지 → 저장하면 소요 초·Hz가 여기 표시됩니다)_")
+    s = node.last_session_summary
+    return (
+        f"### ⏱️ 마지막 세션 (Hz 설계용)\n"
+        f"```\n"
+        f"프레임   : {s['frames']}\n"
+        f"소요 시간 : {s['duration_s']} s\n"
+        f"실측 Hz  : {s['hz']} Hz   (수집 모드: {s['mode'].upper()})\n"
+        f"```\n"
+        f"→ 추론 가능 상한 13.3Hz (GoalNav exp49 실측). "
+        f"이 세션 길이 기준으로 수집/추론 Hz를 맞추면 됩니다."
+    )
+
+
 _dataset_dist_cache = {"n_files": -1, "md": ""}
 
 
@@ -1022,7 +1058,7 @@ def make_auto_fn(key_val): return lambda: node.auto_play_core(key_val) if node e
 def make_teleop_fn(k_val): return lambda: node.teleop_step(k_val) if node else "Node Offline"
 
 with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
-    gr.Markdown("# 🛸 MoNaVLA V5 Control Hub", elem_classes=["main-title"])
+    gr.Markdown(f"# 🛸 MoNaVLA V5-2 Control Hub &nbsp;·&nbsp; 🎯 target: **{TARGET_OBJECT}**", elem_classes=["main-title"])
 
     _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
     _cam_start_btn.click(fn=start_camera, outputs=_cam_st)
@@ -1181,6 +1217,7 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
         with gr.Column(scale=1):
             ep_timeline_md_box = gr.Markdown("### 📊 현재 에피소드")
             ep_dist_md_box = gr.Markdown("")
+            session_summary_box = gr.Markdown("### ⏱️ 마지막 세션")
         with gr.Column(scale=1):
             ds_dist_md_box = gr.Markdown("")
     ep_gallery = gr.Gallery(
@@ -1200,6 +1237,7 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
     gr.Timer(0.5).tick(fn=episode_dist_md, outputs=[ep_dist_md_box])
     gr.Timer(0.5).tick(fn=episode_thumbs, outputs=[ep_gallery])
     gr.Timer(3).tick(fn=dataset_dist_md, outputs=[ds_dist_md_box])
+    gr.Timer(1).tick(fn=session_summary_md, outputs=[session_summary_box])
 
 if __name__ == "__main__":
     requested_port = int(os.getenv("VLA_COLLECT_PORT", os.getenv("GRADIO_SERVER_PORT", "8081")))
