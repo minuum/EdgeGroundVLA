@@ -275,9 +275,11 @@ class JoystickReader:
                 now = time.time()
                 if key:
                     if self._node.js_mode == 'sync':
-                        # SYNC: V5 스텝 기반 (0.45s 간격, teleop_step 경유)
-                        if (now - self._last_step_time) >= self.STEP_INTERVAL:
-                            self._node.teleop_step(key)
+                        # SYNC: 모션은 연속 발행(정지 펄스 없음, 버벅임 제거),
+                        # 프레임 캡처만 0.45s 스텝 간격 → V5 호환 cadence 유지
+                        do_cap = (now - self._last_step_time) >= self.STEP_INTERVAL
+                        self._node.joystick_drive_sync(key, do_cap)
+                        if do_cap:
                             self._last_step_time = now
                     else:
                         # ASYNC: 10Hz 연속 스무스 드라이브
@@ -285,8 +287,8 @@ class JoystickReader:
                             self._node.joystick_drive(key)
                             self._last_step_time = now
                 elif self._prev_key:
-                    if self._node.js_mode == 'async':
-                        self._node.joystick_drive(None)
+                    # 스틱을 놓으면(neutral) 즉시 정지 — SYNC/ASYNC 공통 (안전)
+                    self._node.joystick_drive(None)
                 self._prev_key = key
 
                 # 상태 갱신
@@ -442,6 +444,22 @@ class GradioCollectorNode(Node):
         act = self.WASD_TO_CONTINUOUS[key]
         self.last_js_log = f"[JS] {self.TELEOP_LABELS.get(key, key.upper())}  {act}"
         if self.collecting and self.capture_mode == CaptureMode.PRE_CACHE:
+            self._capture_pre_cache(act)
+        self.publish_cmd_hw(act)
+
+    def joystick_drive_sync(self, key, do_capture):
+        """SYNC 조이스틱 연속 주행 — 정지 펄스(timed_stop) 없이 publish.
+        모션은 매 호출 연속 발행(버벅임 제거), 프레임 캡처는 do_capture=True일 때만
+        (0.45s 스텝 간격 → V5 호환 기록 cadence 유지). neutral(None)이면 즉시 정지."""
+        if key is None:
+            self.publish_cmd_hw((0.0, 0.0, 0.0))
+            self.last_js_log = "[JS] STOP"
+            return
+        if key not in self.WASD_TO_CONTINUOUS:
+            return
+        act = self.WASD_TO_CONTINUOUS[key]
+        self.last_js_log = f"[JS] {self.TELEOP_LABELS.get(key, key.upper())}  {act}"
+        if do_capture and self.collecting and self.capture_mode == CaptureMode.PRE_CACHE:
             self._capture_pre_cache(act)
         self.publish_cmd_hw(act)
 
