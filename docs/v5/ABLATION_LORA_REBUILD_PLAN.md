@@ -41,8 +41,8 @@
 | **Exp 2-B** | **LM Frozen + Vision Top-6 LoRA** | **Frozen** | **Enabled (상위 6개 레이어)** | Frozen | SigLIP 단일 |
 | **Exp 3-A** | **LM Frozen + Vision Top-4 LoRA + Projector FT** | **Frozen** | **Enabled (상위 4개 레이어)** | **Full Fine-Tuned** | SigLIP 단일 |
 | **Exp 3-B** | **LM Frozen + Vision Top-6 LoRA + Projector FT** | **Frozen** | **Enabled (상위 6개 레이어)** | **Full Fine-Tuned** | SigLIP 단일 |
-| **Exp 4-A** | **LM Frozen + Hybrid Vision Top-4 LoRA + Projector FT** | **Frozen** | **Enabled (SigLIP + DINOv2 상위 4개)** | **Full Fine-Tuned** | **SigLIP + DINOv2 하이브리드** |
-| **Exp 4-B** | **LM Frozen + Hybrid Vision Top-6 LoRA + Projector FT** | **Frozen** | **Enabled (SigLIP + DINOv2 상위 6개)** | **Full Fine-Tuned** | **SigLIP + DINOv2 하이브리드** |
+| ~~Exp 4-A~~ | ~~Hybrid Vision (SigLIP+DINOv2) Top-4~~ | — | — | — | **❌ 폐기 (2026-06-10)** |
+| ~~Exp 4-B~~ | ~~Hybrid Vision (SigLIP+DINOv2) Top-6~~ | — | — | — | **❌ 폐기 (2026-06-10)** |
 
 ### 세부 설정 및 구현 방식
 
@@ -65,16 +65,13 @@
   * **Exp 3-A (Top-4 + Projector FT):** Exp 2-A 설정 기반, `configs` 내 `"tune_mm_projector": true` 활성화.
   * **Exp 3-B (Top-6 + Projector FT):** Exp 2-B 설정 기반, `configs` 내 `"tune_mm_projector": true` 활성화.
 
-#### Exp 4: LM Frozen + Hybrid Vision (SigLIP + DINOv2) LoRA (Top-4 vs Top-6) + Projector FT
+#### ~~Exp 4: Hybrid Vision (SigLIP + DINOv2) LoRA~~ — ❌ 폐기 (2026-06-10)
 
-* **목적:** 6/4 회의의 최종 핵심 아키텍처인 SigLIP(전역/의미) + DINOv2(지역/공간) 이종 결합 구조의 시너지 및 적정 학습 깊이 검증.
-* **설정:** PaliGemma 전면에 DINOv2 백본을 Concatenate하는 코드를 구현하여 모델을 갱신.
-  * **Exp 4-A (Top-4):** 두 비전 인코더의 상위 4개 레이어(SigLIP: 23~26, DINOv2: 20~23)에 각각 LoRA 적용, Projector 학습.
-  * **Exp 4-B (Top-6):** 두 비전 인코더의 상위 6개 레이어(SigLIP: 21~26, DINOv2: 18~23)에 각각 LoRA 적용, Projector 학습.
+> **폐기 사유:** 이 실험은 6/4 회의 기록의 "결정사항 1(SigLIP+DINOv2 적용)"에 근거했으나, 해당 결정은 **잘못된 전제**였음. PaliGemma2의 비전 인코더는 **SigLIP(SigLIP2) 단일 구조**이며 DINOv2를 포함하지 않는다. DINOv2+SigLIP 이중 인코더는 OpenVLA/Prismatic 계열 구조로 우리 backbone과 무관함. 따라서 Exp4(하이브리드)는 전면 폐기하고, 비전 LoRA는 SigLIP 단일(Exp2/Exp3) 범위로 한정한다.
 
 ---
 
 ## Conclusion & Action Items
 
-* **우선순위 실행 계획:** DINOv2 하이브리드 비전 인코더 연동 코드 개발 일정(Exp 4)을 고려하여, **Exp 1 → Exp 2-A/B → Exp 3-A/B** 단일 백본 기반 Ablation 실험을 선제 구동해 LM Frozen의 과적합 해결 효과를 우선 검증함.
+* **우선순위 실행 계획:** **Exp 1 → Exp 2-A/B → Exp 3-A/B** 단일 백본(SigLIP) 기반 Ablation 실험으로 LM Frozen의 과적합 해결 효과를 검증함. (Exp4 하이브리드는 2026-06-10 폐기 — 상단 참조)
 * **학습 로그 분석:** 각 실험별 TensorBoard 학습 로그(Loss curve) 및 Closed-Loop 주행 성공률 메트릭을 수집하여 `docs/v5/` 디렉토리에 정량 평가 결과 문서를 누적 및 최신화할 예정임.

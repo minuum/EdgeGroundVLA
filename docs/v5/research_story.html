@@ -6615,7 +6615,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
     <div class="finding-card good">
       <div class="finding-title" style="color:#22c55e;font-size:1.1rem;margin-bottom:8px">5. Vision-centric LoRA & LLM-frozen Tuning</div>
       <div class="finding-body" style="font-size:0.85rem;line-height:1.7">
-        <strong>메커니즘:</strong> 소규모 온디바이스 fine-tuning 환경에서 일반화 성능(OOD 노이즈) 강건성을 극대화하기 위해 PaliGemma2의 비전 인코더 전체(SigLIP + DINOv2 상위 레이어)의 표현 공간을 동시 미세조정하되, 과적합을 차단하기 위해 LLM 레이어는 튜닝에서 제외(Frozen)하는 아키텍처를 수립함.<br>
+        <strong>메커니즘:</strong> 소규모 온디바이스 fine-tuning 환경에서 일반화 성능(OOD 노이즈) 강건성을 극대화하기 위해 PaliGemma2의 비전 인코더(SigLIP 상위 레이어)의 표현 공간을 미세조정하되, 과적합을 차단하기 위해 LLM 레이어는 튜닝에서 제외(Frozen)하는 아키텍처를 수립함.<br>
         <strong style="color:#22c55e">➔ 실증 근거:</strong> 
         <a href="#ch11" style="color:var(--accent);text-decoration:underline">CH 11 (교수님 반박 3가지)</a>의 CLIP-SigLIP 가중치 분석 및 
         <a href="#ch17" style="color:var(--accent);text-decoration:underline">CH 17 (PaliGemma 전환 히스토리)</a>를 통해, 적은 수의 로보틱스 데이터셋(220ep)만으로도 강건한 비전-텍스트 공간 정렬 표현을 성공적으로 학습시켰음을 입증함.
@@ -7442,7 +7442,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
             <ul style="padding-left:18px;margin-bottom:10px;color:#94a3b8;list-style-type:square">
               <li><span style="color:#86efac;font-weight:700">[R2-2 완료]</span> 취약했던 left 방향 정확도를 +6.2%p(91.1%➔97.3%) 집중 보정하여 LoRA의 조향 대칭 균등화 기여 실증.</li>
               <li><span style="color:#86efac;font-weight:700">[R5 완료]</span> BBox 디컴포지션 기하학 공간 규제(Stage 1)를 통해 E2E 트랜스포머 VLA의 고질적인 Attention Collapse를 학술적으로 원천 방지함.</li>
-              <li><span style="color:#86efac;font-weight:700">[6/4 완료]</span> SigLIP + DINOv2 비전 레이어 전체 LoRA 튜닝 및 LLM Frozen 아키텍처 학습 수행.</li>
+              <li><span style="color:#86efac;font-weight:700">[6/4 완료]</span> SigLIP 상위 레이어 LoRA 튜닝 및 LLM Frozen 아키텍처 학습 수행 (exp64).</li>
               <li><span style="color:#86efac;font-weight:700">[6/6 완료]</span> NVIDIA GB10 기반 8개 주요 Config에 대한 Ablation sequential 학습 완료.</li>
             </ul>
             <div style="color:#fbbf24;font-weight:700;margin-bottom:6px">🟡 향후 액션 아이템 (TODO)</div>
@@ -8409,7 +8409,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
         <div class="ns-badge" style="background:#a78bfa;color:#0a0f1a;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px">D 안 — 6/4 결정</div>
         <div class="ns-title" style="color:#d8b4fe;font-weight:800;font-size:0.95rem;margin-bottom:8px">LoRA 아키텍처 재설계 &amp; 제어 튜닝</div>
         <div class="ns-body" style="color:#cbd5e1;font-size:0.8rem;line-height:1.6">
-          SigLIP + DINOv2 비전 레이어 전체에 LoRA를 적용하고 LLM 레이어는 제외하여 일반화 성능 극대화. OOD 데이터 증강 및 액션 청크 길이 최적화를 통해 실물 주행 오버슈팅 차단.
+          SigLIP 상위 레이어에 LoRA를 적용하고 LLM 레이어는 제외하여 일반화 성능 극대화. OOD 데이터 증강 및 액션 청크 길이 최적화를 통해 실물 주행 오버슈팅 차단.
         </div>
       </div>
     </div>
@@ -8769,7 +8769,7 @@ graph TD
     <div style="color:#e2e8f0;font-size:1.05rem;font-weight:700;line-height:1.7">
       "PaliGemma-3B 기반 그라운딩 성능 및 Closed-Loop 오프라인 96.2% 성공률을 확보하고,<br>
       동기식 수집 데이터 적용 및 π0 기반 로봇 주행 검증으로 <span style="color:#4ade80;font-weight:700">RISE 사업 은상</span>을 수상했습니다.<br>
-      <span style="color:#86efac">R3 실물 OOD/조향 병목 극복을 위해 DINOv2 + SigLIP 비전 인코더 전체 LoRA 재학습을 적용하고</span><br>
+      <span style="color:#86efac">R3 실물 OOD/조향 병목 극복을 위해 SigLIP 비전 인코더 상위 레이어 LoRA 재학습을 적용하고</span><br>
       <span style="color:#86efac">LLM 레이어 튜닝 제외 및 데이터 증강 확대, 액션 청크 길이 최적화를 진행합니다.</span>"
     </div>
   </div>
@@ -8789,7 +8789,7 @@ graph TD
     </div>
     <div class="finding-card info">
       <div class="finding-title">🎯 다음 관문 (LoRA 재설계 & 제어 최적화)</div>
-      <div class="finding-body">실로봇 테스트 완료 및 RISE 은상 수상. 실주행 시 발생한 OOD 인식 실패와 조향 오버슈팅 해소를 위해 비전 인코더(SigLIP + DINOv2) 통합 LoRA 학습 및 LLM 제외 튜닝 돌입. 액션 청크 최적화 및 다각도 데이터 증강 적극 도입.</div>
+      <div class="finding-body">실로봇 테스트 완료 및 RISE 은상 수상. 실주행 시 발생한 OOD 인식 실패와 조향 오버슈팅 해소를 위해 비전 인코더(SigLIP 상위 레이어) LoRA 학습 및 LLM 제외 튜닝 돌입. 액션 청크 최적화 및 다각도 데이터 증강 적극 도입.</div>
     </div>
     <div class="finding-card good">
       <div class="finding-title">✅ R2-2 해결 (5/28 · Stage 1 v2)</div>
