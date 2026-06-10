@@ -264,6 +264,7 @@
     <a class="toc-item" href="#ch26" data-target="ch26"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 26</span><span class="toc-label">통합 Ablation 분석</span></a>
     <a class="toc-item" href="#ch27" data-target="ch27"><span class="toc-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">CH 27</span><span class="toc-label">Ablation별 오트래킹 점검</span></a>
     <a class="toc-item" href="#ch28" data-target="ch28"><span class="toc-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">CH 28</span><span class="toc-label">LoRA 작동 검증 — E2E vs Grounding</span></a>
+    <a class="toc-item" href="#ch29" data-target="ch29"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 29</span><span class="toc-label">RoboVLMs 해부 — 의도와 실제 기여</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
@@ -7042,6 +7043,144 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 </div>
 
 
+<div class="chapter" id="ch29">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f87171;color:#0a0f1a">CHAPTER 29</span>
+    <h2 class="chapter-title">RoboVLMs 해부 — 의도한 실험과 실제 기여의 괴리</h2>
+  </div>
+  <p class="chapter-desc">
+    E2E 8조합 ablation을 RoboVLMs로 돌렸을 때, 우리는 <strong>"Vision LoRA 깊이별 비교"</strong>를 의도했다.<br>
+    실제로 얻은 것은 달랐다. 그 괴리를 분석하고, RoboVLMs가 우리 프로젝트에서 맡은 역할을 정리한다.
+  </p>
+
+  <!-- 의도 vs 실제 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
+    <div style="color:#f87171;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">⚡ 의도한 실험 vs 실제로 일어난 일</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="background:#0f172a;border:1px solid #374151;border-radius:10px;padding:16px">
+        <div style="color:#94a3b8;font-size:0.82rem;font-weight:900;margin-bottom:10px">의도했던 것</div>
+        <ul style="color:#94a3b8;font-size:0.8rem;line-height:1.9;margin:0;padding-left:18px">
+          <li>top{2,4,6,8} SigLIP 레이어에 LoRA 적용</li>
+          <li>각 depth에서 Vision 인코더가 얼마나 개선되는지 비교</li>
+          <li>proj frozen vs tuned와 교차해 16조합 중 8개 측정</li>
+          <li><strong style="color:#e2e8f0">"더 깊은 LoRA → 더 좋은 grounding?"</strong> 답하기</li>
+        </ul>
+      </div>
+      <div style="background:#0f172a;border:1px solid #f87171;border-radius:10px;padding:16px">
+        <div style="color:#f87171;font-size:0.82rem;font-weight:900;margin-bottom:10px">실제로 일어난 일</div>
+        <ul style="color:#94a3b8;font-size:0.8rem;line-height:1.9;margin:0;padding-left:18px">
+          <li>모든 8조합에서 <code style="color:#fca5a5">lora_B = 0.000000</code></li>
+          <li>Vision LoRA 파라미터 전혀 업데이트 안 됨</li>
+          <li>실제 변수는 <strong style="color:#fbbf24">projector frozen vs tuned 1개</strong>뿐</li>
+          <li>깊이별 차이 없음 — <strong style="color:#e2e8f0">"frozen-vision E2E" 8회 반복</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 버그 구조 분석 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
+    <div style="color:#fbbf24;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">🔬 RoboVLMs 구조 결함 — 발견 과정</div>
+    <div style="background:#0f172a;border:1px solid #7f1d1d;border-radius:10px;padding:16px;margin-bottom:14px">
+      <div style="color:#fca5a5;font-size:0.82rem;font-weight:900;margin-bottom:10px">문제 코드: <code>base_backbone.py › forward_continuous</code></div>
+      <pre style="background:#020809;border:1px solid #1e3a5f;border-radius:6px;padding:14px;font-size:0.78rem;color:#e2e8f0;overflow-x:auto;margin:0"><code><span style="color:#94a3b8"># forward_continuous 내부 (~line 1294)</span>
+<span style="color:#f87171">if multimodal_embeds.requires_grad is False:</span>
+    <span style="color:#fca5a5">multimodal_embeds.requires_grad_(True)</span>  <span style="color:#64748b"># ← 이게 문제</span>
+
+<span style="color:#64748b"># requires_grad_(True)를 중간 텐서에 직접 호출하면:</span>
+<span style="color:#64748b"># → 해당 텐서가 leaf tensor로 재등록됨</span>
+<span style="color:#64748b"># → vision_tower와의 계산 그래프 연결이 끊김</span>
+<span style="color:#64748b"># → 역전파 시 vision_tower까지 gradient 미도달</span>
+<span style="color:#64748b"># → lora_B에 쌓이는 gradient = 0</span></code></pre>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div style="background:#071120;border:1px solid #1e3a5f;border-radius:8px;padding:12px">
+        <div style="color:#7dd3fc;font-size:0.75rem;font-weight:700;margin-bottom:6px">forward_continuous 경로</div>
+        <div style="color:#94a3b8;font-size:0.78rem;line-height:1.6">Action 예측용 (E2E 학습)<br>vision_tower → 인코딩 → <span style="color:#f87171">re-leaf</span> → LM → action head<br>→ vision LoRA <strong style="color:#f87171">gradient 0</strong></div>
+      </div>
+      <div style="background:#071120;border:1px solid #1e3a5f;border-radius:8px;padding:12px">
+        <div style="color:#86efac;font-size:0.75rem;font-weight:700;margin-bottom:6px">generate() 경로</div>
+        <div style="color:#94a3b8;font-size:0.78rem;line-height:1.6">BBox 탐지용 (grounding)<br>vision_tower → 인코딩 → decoder → token<br>→ vision LoRA <strong style="color:#86efac">gradient 정상</strong></div>
+      </div>
+      <div style="background:#071120;border:1px solid #1e3a5f;border-radius:8px;padding:12px">
+        <div style="color:#fbbf24;font-size:0.75rem;font-weight:700;margin-bottom:6px">확인 방법</div>
+        <div style="color:#94a3b8;font-size:0.78rem;line-height:1.6">학습 후 <code style="font-size:0.72rem">lora_B</code> tensor 직접 출력<br>→ E2E 8조합 전부 <code style="font-size:0.72rem;color:#fca5a5">0.000000</code><br>→ exp64는 epoch 2에 TP=100%</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#071a0a;border:1px solid #14532d;border-radius:8px;font-size:0.78rem;color:#86efac">
+      <strong>exp64가 generate() 경로를 쓰는 이유가 바로 이것.</strong> RoboVLMs를 우회해 직접 HF trainer로 돌려야 vision LoRA가 실제로 학습된다.
+    </div>
+  </div>
+
+  <!-- 실제 기여 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px;margin-bottom:24px">
+    <div style="color:#22c55e;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">✅ RoboVLMs를 통해 실제로 얻은 것</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:#0f172a;border:1px solid #14532d;border-radius:10px">
+        <div style="min-width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;color:#0a0f1a;font-weight:900;font-size:0.85rem;flex-shrink:0">①</div>
+        <div>
+          <div style="color:#86efac;font-size:0.85rem;font-weight:700;margin-bottom:4px">E2E 0% → Decomposition 전환 근거 (음성 결과도 결과)</div>
+          <div style="color:#94a3b8;font-size:0.78rem;line-height:1.6">Exp11 closed-loop 0% vs Step2 66.7%. RoboVLMs 기반 E2E가 작동하지 않는다는 것을 <strong>실험으로 증명</strong>했기 때문에 decomposition 전환이 설득력을 가짐. 논문에서 "우리가 E2E를 시도했고 왜 안 되는지 알아냈다"는 서사로 쓸 수 있음.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:#0f172a;border:1px solid #14532d;border-radius:10px">
+        <div style="min-width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;color:#0a0f1a;font-weight:900;font-size:0.85rem;flex-shrink:0">②</div>
+        <div>
+          <div style="color:#86efac;font-size:0.85rem;font-weight:700;margin-bottom:4px">구조 버그 발견 → exp64 방향 설정</div>
+          <div style="color:#94a3b8;font-size:0.78rem;line-height:1.6">lora_B=0을 발견하지 않았으면 "왜 vision LoRA가 안 먹히는지" 영원히 모른 채 E2E를 반복했을 것. 버그 발견이 generate() 경로 우회 → exp64 설계로 이어졌음.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:#0f172a;border:1px solid #14532d;border-radius:10px">
+        <div style="min-width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;color:#0a0f1a;font-weight:900;font-size:0.85rem;flex-shrink:0">③</div>
+        <div>
+          <div style="color:#86efac;font-size:0.85rem;font-weight:700;margin-bottom:4px">text attention = 0% 원인 확정 (Google-robot pretrain 기인)</div>
+          <div style="color:#94a3b8;font-size:0.78rem;line-height:1.6">Exp15 head-only + E2E 8조합 모두에서 text=0% 재확인. 우리 LoRA 학습 방식 탓이 아닌 <strong>Google-robot post-training이 text 경로를 붕괴시킨 것</strong>으로 확정. Kosmos-2 backbone 선택의 타당성도 함께 재검토됨.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:#0f172a;border:1px solid #374151;border-radius:10px">
+        <div style="min-width:36px;height:36px;border-radius:50%;background:#475569;display:flex;align-items:center;justify-content:center;color:#e2e8f0;font-weight:900;font-size:0.85rem;flex-shrink:0">④</div>
+        <div>
+          <div style="color:#cbd5e1;font-size:0.85rem;font-weight:700;margin-bottom:4px">projector tuning 효과 (제한적이지만 유효)</div>
+          <div style="color:#94a3b8;font-size:0.78rem;line-height:1.6">vision LoRA depth 비교는 불가능했지만, <strong>frozen vs tuned projector</strong> 비교는 실제로 일어났음. action head 학습 시 projector를 같이 풀면 어떻게 되는지에 대한 데이터는 남아있음.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RoboVLMs 앞으로 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:14px;padding:22px">
+    <div style="color:#a78bfa;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">🗺 RoboVLMs — 앞으로의 포지션</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:#071120;border:1px solid #1e3a5f;border-radius:8px;padding:14px">
+        <div style="color:#7dd3fc;font-size:0.8rem;font-weight:700;margin-bottom:8px">현재 우리 결과를 내는 경로</div>
+        <div style="color:#94a3b8;font-size:0.78rem;line-height:1.8">
+          <div>Decomposition Step2 MLP → <strong style="color:#22c55e">RoboVLMs 미사용</strong></div>
+          <div>exp64 Grounding LoRA → <strong style="color:#22c55e">RoboVLMs 미사용</strong></div>
+          <div>E2E ablation → RoboVLMs 사용, vision LoRA 깨짐</div>
+        </div>
+      </div>
+      <div style="background:#071120;border:1px solid #1e3a5f;border-radius:8px;padding:14px">
+        <div style="color:#f87171;font-size:0.8rem;font-weight:700;margin-bottom:8px">RoboVLMs 한계</div>
+        <div style="color:#94a3b8;font-size:0.78rem;line-height:1.8">
+          <div>PG1만 지원 (PG2 없음)</div>
+          <div>CALVIN manipulation 설계 — 내비게이션 미고려</div>
+          <div><code style="font-size:0.72rem">forward_continuous</code> vision LoRA gradient 차단</div>
+          <div>수정 금지 (third_party)</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 16px;background:#0f1e0a;border:1px solid #14532d;border-radius:8px;font-size:0.8rem;color:#86efac;line-height:1.7">
+      <strong>결론:</strong> RoboVLMs는 E2E baseline 실험 인프라로서 역할을 마쳤다. 앞으로 새 실험(grounding LoRA, 의자 데이터 수집, MLP 재학습)은 모두 RoboVLMs를 우회하는 경로를 사용한다. <strong>유지하되, 신뢰하지 않는다.</strong>
+    </div>
+  </div>
+
+</div>
+
 <div class="chapter" id="next-step">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">NEXT STEP</span>
@@ -8564,7 +8703,7 @@ graph TD
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
