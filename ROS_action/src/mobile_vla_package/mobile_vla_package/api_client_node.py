@@ -172,7 +172,7 @@ class MobileVLAAPIClient(Node):
                 if event.wait(timeout=2.0):
                     response = future.result()
                     if response and response.image.data:
-                        cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
+                        cv_image = self.cv_bridge.compressed_imgmsg_to_cv2(response.image, "bgr8")
                         self.get_logger().info(f"✅ 이미지 수신 성공 ({cv_image.shape})")
                         return cv_image
                     else:

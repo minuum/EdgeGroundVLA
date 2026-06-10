@@ -83,6 +83,8 @@ except ImportError as e:
     class CvBridge:
         def imgmsg_to_cv2(self, imgmsg, desired_encoding='bgr8'):
             return imgmsg
+        def compressed_imgmsg_to_cv2(self, imgmsg, desired_encoding='bgr8'):
+            return imgmsg
     class Twist:
         def __init__(self):
             class Vector3:
@@ -566,7 +568,7 @@ class GradioCollectorNode(Node):
             try:
                 res = future.result()
                 if res and res.image:
-                    cv_img = self.bridge.imgmsg_to_cv2(res.image, desired_encoding='bgr8')
+                    cv_img = self.bridge.compressed_imgmsg_to_cv2(res.image, desired_encoding='bgr8')
                     with self.lock:
                         self.latest_ui_frame = cv_img
                         self.episode_buffer.append({'image': cv_img.copy(), 'action': list(act), 'timestamp': time.time()})
@@ -594,7 +596,7 @@ class GradioCollectorNode(Node):
                     try:
                         res = future.result()
                         if res and res.image:
-                            cv_img = self.bridge.imgmsg_to_cv2(res.image, desired_encoding='bgr8')
+                            cv_img = self.bridge.compressed_imgmsg_to_cv2(res.image, desired_encoding='bgr8')
                             # 도착 판정을 카메라 스레드에서 1회만 (다운스케일 320×180 → HSV ~10x 저렴).
                             # UI 핫패스(get_feed/arrival_hud)는 이 캐시만 읽음.
                             try:

@@ -795,7 +795,7 @@ class ROSDashboardNode(Node):
                     try:
                         response = future.result()
                         if response and response.image.data:
-                            cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
+                            cv_image = self.cv_bridge.compressed_imgmsg_to_cv2(response.image, "bgr8")
                             img_rgb = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
                             with self.frame_lock:
                                 self.latest_frame = img_rgb

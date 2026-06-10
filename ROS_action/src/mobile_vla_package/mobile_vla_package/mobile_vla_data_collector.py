@@ -1186,7 +1186,7 @@ class MobileVLADataCollector(Node):
                 if future.done():
                     response = future.result()
                     if response.image.data:
-                        cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
+                        cv_image = self.cv_bridge.compressed_imgmsg_to_cv2(response.image, "bgr8")
                         # 로그 간소화: 이미지 수신 성공 로그 제거
                         return cv_image
                     else:
