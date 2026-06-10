@@ -1,0 +1,19 @@
+{
+  "_comment": "실측 버튼 매핑 (2026-06-11). 화면 '지금 눌린 버튼 인덱스'로 확인 후 교정.",
+  "axes": {"left_x": 0, "left_y": 1, "right_x": 2},
+  "force_layout": "dragonrise",
+  "buttons": {
+    "stop": 0,
+    "undo": 1,
+    "discard": 3,
+    "teleop": 4,
+    "rec_start": 6,
+    "rec_save": 7,
+    "select": 10,
+    "start": 11,
+    "l2": -1,
+    "r2": -1,
+    "trig_l2": -1,
+    "trig_r2": -1
+  }
+}
