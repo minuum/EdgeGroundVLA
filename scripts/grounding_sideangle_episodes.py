@@ -33,8 +33,17 @@ def main():
     ap.add_argument("--n-ep", type=int, default=4)
     ap.add_argument("--n-fr", type=int, default=6)
     ap.add_argument("--path-types", default="left_left,right_right,left_right,right_left")
+    ap.add_argument("--mode", default="path", choices=["path", "free"],
+                    help="path=경로타입별 / free=free_* 극단시나리오별")
     args = ap.parse_args()
     PATH_TYPES = args.path_types.split(",")
+    # free 모드: 시나리오 키워드별 그룹 (출발위치 무관하게 묶음)
+    FREE_GROUPS = {
+        "basket_extreme": "*free*basket_*extreme*.h5",
+        "robot_distance": "*free*robot_*.h5",
+        "diagonal": "*free*diagonal_*.h5",
+        "lighting_diff": "*free*lighting_diff*.h5",
+    }
     OUT.mkdir(parents=True, exist_ok=True)
     from transformers import PaliGemmaProcessor, PaliGemmaForConditionalGeneration
     dev = torch.device("cuda")
@@ -61,9 +70,16 @@ def main():
     except Exception:
         font = fsm = ImageFont.load_default()
 
+    if args.mode == "free":
+        groups = [(k, pat, 99) for k, pat in FREE_GROUPS.items()]
+        prefix = "free"
+    else:
+        groups = [(pt, f"*{pt}_path__core__fixed_center.h5", args.n_ep) for pt in PATH_TYPES]
+        prefix = "sideangle"
+
     summary = {}
-    for pt in PATH_TYPES:
-        eps = sorted(glob.glob(str(DSET / f"*{pt}_path__core__fixed_center.h5")))[:args.n_ep]
+    for pt, pattern, nep in groups:
+        eps = sorted(glob.glob(str(DSET / pattern)))[:nep]
         cell, hdr, lab = 230, 26, 18
         canvas = Image.new("RGB", (args.n_fr * cell, len(eps) * (cell + hdr)), (15, 22, 36))
         dr = ImageDraw.Draw(canvas)
@@ -98,7 +114,7 @@ def main():
                                          "hit": d is not None})
             summary[pt].append(ep_rec)
             print(f"[{pt}] {epname[:40]} done")
-        path = OUT / f"sideangle_{pt}.png"
+        path = OUT / f"{prefix}_{pt}.png"
         canvas.save(path)
         print(f"  [SAVE] {path}\n")
 
@@ -112,10 +128,10 @@ def main():
                    "hit_rate": round(hit / max(len(allf), 1), 3),
                    "fullframe_rate": round(full / max(len(allf), 1), 3),
                    "miss": len(allf) - hit}
-    (OUT / "sideangle_summary.json").write_text(json.dumps(
+    (OUT / f"{prefix}_summary.json").write_text(json.dumps(
         {"per_episode": summary, "aggregate": agg}, indent=2, ensure_ascii=False))
     print(f"\n[AGG] {json.dumps(agg, ensure_ascii=False)}")
-    print(f"[SAVE] {OUT}/sideangle_summary.json")
+    print(f"[SAVE] {OUT}/{prefix}_summary.json")
 
 
 if __name__ == "__main__":

@@ -117,22 +117,98 @@
   <h2><span class="badge" style="background:#a78bfa;color:#0a0f1a">C</span> 측면 경로 에피소드 갤러리 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— base PG2, 교수님 오예측 대응</span></h2>
   <div class="card">
     <div style="background:#071a0a;border:1px solid #14532d;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.85rem;color:#94a3b8;line-height:1.6">
-      <strong class="key">📌 에피소드 정정 — miss의 정체:</strong> 측면 경로의 모든 miss는 <strong style="color:#e2e8f0">정확히 f0(출발 첫 프레임)</strong>이다.
-      우우/우좌 경로는 출발 순간 바구니가 아직 화면 밖/가장자리라 base가 못 잡지만, <strong>주행이 시작되는 f3부터는 hit 100%</strong>로 끝까지 추적한다.
-      좌좌/좌우는 f0부터 miss 0. → "우우 83%"는 콜드스타트 포함 수치이고, <strong class="key">실제 주행 구간(f3+) 추적률은 전 경로 100%</strong>.
+      <strong class="key">📌 base PG2 miss의 정체:</strong> 측면 경로의 base miss는 <strong style="color:#e2e8f0">정확히 f0(출발 첫 프레임, 바구니 화면 밖)</strong>뿐. 주행 시작(f3) 후 hit 100%. → <strong class="key">실제 주행 구간 추적률 전 경로 100%, full-frame 0%</strong>.
+    </div>
+
+    <!-- 모델별 측면 요약 히트맵 -->
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table style="font-size:0.78rem">
+        <thead><tr><th>모델</th><th>left_left</th><th>right_right</th><th>left_right</th><th>right_left</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr style="background:#071a0a"><td class="key">base PG2</td><td>100/0</td><td>83/0</td><td>100/0</td><td>83/0</td><td class="key">✅ 깔끔(miss=f0만)</td></tr>
+          <tr><td>pure Kosmos</td><td>100/0</td><td>100/0</td><td>100/0</td><td>100/0</td><td>측면 hit 최고(단 OOD 100%)</td></tr>
+          <tr><td>exp57(PG1)</td><td>100/0</td><td class="bad">61/0</td><td>94/0</td><td>78/0</td><td>측면 검출률 하락</td></tr>
+          <tr><td>exp58</td><td>100/<span class="bad">61</span></td><td>100/<span class="bad">56</span></td><td>100/<span class="bad">78</span></td><td>100/<span class="bad">39</span></td><td class="bad">부분 full-frame 붕괴</td></tr>
+          <tr><td>exp59</td><td>100/6</td><td>83/6</td><td>100/6</td><td>83/11</td><td>비교적 깔끔</td></tr>
+          <tr><td>exp64</td><td class="bad">100/100</td><td class="bad">100/100</td><td class="bad">100/100</td><td class="bad">94/94</td><td class="bad">측면도 full-frame 전면붕괴</td></tr>
+          <tr><td>exp56(Kosmos)</td><td class="bad">0/0</td><td class="bad">0/0</td><td class="bad">0/0</td><td class="bad">0/0</td><td class="bad">LoRA가 Kosmos 파괴</td></tr>
+        </tbody>
+      </table>
+      <div class="note">셀 = hit / full-frame (%). 셀 클릭 아닌 아래 선택기로 그리드 확인.</div>
+    </div>
+
+    <!-- 모델 × 경로 선택기 -->
+    <div style="font-size:0.8rem;color:#7dd3fc;font-weight:700;margin-bottom:6px">모델 선택</div>
+    <div class="tabs" id="sa-models">
+      <div class="tab active" data-m="base_pg2">base PG2</div>
+      <div class="tab" data-m="pure_kosmos">pure Kosmos</div>
+      <div class="tab" data-m="exp57_pg1">exp57</div>
+      <div class="tab" data-m="exp58_pg2">exp58</div>
+      <div class="tab" data-m="exp59_pg2">exp59</div>
+      <div class="tab" data-m="exp64_pg2">exp64</div>
+      <div class="tab" data-m="exp56_kosmos">exp56</div>
+    </div>
+    <div style="font-size:0.8rem;color:#7dd3fc;font-weight:700;margin:10px 0 6px">경로 선택</div>
+    <div class="tabs" id="sa-paths">
+      <div class="tab active" data-p="left_left">left_left</div>
+      <div class="tab" data-p="right_right">right_right</div>
+      <div class="tab" data-p="left_right">left_right</div>
+      <div class="tab" data-p="right_left">right_left</div>
+    </div>
+    <img id="sa-img" src="grounding_hub/sa_base_pg2_left_left.png" alt="side-angle per model">
+    <div class="note">행=에피소드, 열=시간순 프레임. 파랑=정상·빨강=full-frame, 라벨 cx로 위치 추적. 같은 측면 프레임에 7모델을 비교 — exp64/exp58은 빨강(full-frame)이, base/exp59는 파랑(타이트)이 지배적.</div>
+  </div>
+
+  <!-- C2. free 극단 시나리오 -->
+  <h2><span class="badge" style="background:#0ea5e9;color:#0a0f1a">C2</span> 극단·다양성 시나리오 (free 데이터, base PG2) <span style="font-size:0.8rem;color:#64748b;font-weight:400">— "데이터가 적은가?" 보강</span></h2>
+  <div class="card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;line-height:1.6">
+      경로 데이터 외에 <strong>free_* 21개 에피소드</strong>(바구니 극단위치·로봇 원/근거리·대각선·저조도)를 추가로 grounding. base PG2가 극단·OOD-유사 조건에서도 견고한지 확인.
+    </div>
+    <div style="overflow-x:auto;margin-bottom:14px">
+      <table style="font-size:0.8rem">
+        <thead><tr><th>시나리오</th><th>ep/프레임</th><th>hit</th><th>full-frame</th><th>의미</th></tr></thead>
+        <tbody>
+          <tr><td class="key">basket_extreme</td><td>6 / 36</td><td>92%</td><td>0%</td><td>바구니 화면 극좌/극우</td></tr>
+          <tr><td class="key">robot_distance</td><td>6 / 36</td><td>94%</td><td>0%</td><td>로봇 원/근거리 (작은/큰 바구니)</td></tr>
+          <tr><td class="key">diagonal</td><td>7 / 42</td><td>95%</td><td>2%</td><td>대각선 진입</td></tr>
+          <tr><td class="key">lighting_diff</td><td>2 / 12</td><td>100%</td><td>0%</td><td>저조도 환경</td></tr>
+        </tbody>
+      </table>
     </div>
     <div class="tabs">
-      <div class="tab active" data-t="ll">left_left (f0+ 24/24)</div>
-      <div class="tab" data-t="lr">left_right (f0+ 24/24)</div>
-      <div class="tab" data-t="rr">right_right (f3+ 20/20)</div>
-      <div class="tab" data-t="rl">right_left (f3+ 20/20)</div>
+      <div class="tab active" data-t="f_ext">basket_extreme</div>
+      <div class="tab" data-t="f_dist">robot_distance</div>
+      <div class="tab" data-t="f_diag">diagonal</div>
+      <div class="tab" data-t="f_light">lighting_diff</div>
     </div>
-    <div class="pane active" id="ll"><img src="exp64_eval/sideangle_left_left.png" alt="left_left"></div>
-    <div class="pane" id="lr"><img src="exp64_eval/sideangle_left_right.png" alt="left_right"></div>
-    <div class="pane" id="rr"><img src="exp64_eval/sideangle_right_right.png" alt="right_right"></div>
-    <div class="pane" id="rl"><img src="exp64_eval/sideangle_right_left.png" alt="right_left"></div>
-    <div class="note">행=에피소드, 열=시간순 프레임(f0→f18). 파랑=정상 박스, 빨강=full-frame, 라벨의 cx로 위치 추적 확인.
-      cx가 프레임 따라 변하는 것 = 바구니가 화면에서 움직이는 걸 base가 실제 추적한다는 증거(예: left_left cx 0.27→0.56→0.21). 측면 꺾임 전 구간 full-frame 0%.</div>
+    <div class="pane active" id="f_ext"><img src="exp64_eval/free_basket_extreme.png"></div>
+    <div class="pane" id="f_dist"><img src="exp64_eval/free_robot_distance.png"></div>
+    <div class="pane" id="f_diag"><img src="exp64_eval/free_diagonal.png"></div>
+    <div class="pane" id="f_light"><img src="exp64_eval/free_lighting_diff.png"></div>
+    <div class="note">base PG2가 극단위치·원근·대각선·저조도 전부 92~100% hit / full-frame ~0%. → 데이터 다양성 측면에서도 base grounding 견고. 측면4경로 + free21 = 추가 표본으로 결론 보강.</div>
+  </div>
+
+  <!-- C3. OOD -->
+  <h2><span class="badge" style="background:#f59e0b;color:#0a0f1a">C3</span> OOD 오탐 — 지금 중요한가? <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 의자에 "detect gray basket"</span></h2>
+  <div class="card">
+    <div style="background:#0f172a;border-left:3px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.85rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#fbbf24">현 시점 우선순위: 2순위.</strong> base PG2 선택의 <strong>결정적 근거는 full-frame collapse(타겟 추적 실패)</strong>였지 OOD가 아니다.
+      OOD(미학습 객체 오탐)는 <strong style="color:#e2e8f0">basket→chair 객체 전환 시</strong> 비로소 1순위가 된다 — 실제 방의 다른 가구를 타겟으로 오인하면 안 되므로.
+      지금은 타겟 추적 품질이 먼저고, OOD는 보조 지표로 기록.
+    </div>
+    <div class="grid2">
+      <div><img src="exp64_eval/ood_chair_grid.png"><div class="note">base vs exp64 — 의자 11장. 대부분 박스 없음(정상). 둘 다 Eames 가죽의자 1개만 오탐(9%).</div></div>
+      <div style="padding:14px;background:#0f172a;border-radius:8px;align-self:start">
+        <div style="color:#7dd3fc;font-weight:700;font-size:0.85rem;margin-bottom:8px">OOD 오탐률 요약</div>
+        <div style="color:#94a3b8;font-size:0.82rem;line-height:1.8">
+          base PG2: <strong class="key">9%</strong> (의자 구분 양호)<br>
+          exp64: 9% / exp57: 9% / exp59: <strong class="key">0%</strong> (hard-neg 효과)<br>
+          exp58: <strong class="bad">27%</strong> / pure Kosmos: <strong class="bad">100%</strong> (전부 오탐)
+        </div>
+        <div class="note" style="margin-top:10px">pure Kosmos는 의자 11장 전부에 바구니 박스 — negative 구분 불가. 측면 hit는 최고였지만 이 약점으로 탈락. exp59의 0%(hard-neg)는 chair 전환 시 참고할 유일한 미덕.</div>
+      </div>
+    </div>
   </div>
 
   <!-- D. 모델별 그리드 -->
@@ -171,6 +247,7 @@
 
 <script>
 document.querySelectorAll('.tabs').forEach(function(tabs){
+  if (tabs.id==='sa-models' || tabs.id==='sa-paths') return;  // 별도 처리
   tabs.querySelectorAll('.tab').forEach(function(t){
     t.addEventListener('click', function(){
       var card = tabs.closest('.card');
@@ -181,6 +258,17 @@ document.querySelectorAll('.tabs').forEach(function(tabs){
     });
   });
 });
+// 측면 per-model 선택기 (모델 × 경로 → 단일 img src)
+(function(){
+  var sm=document.getElementById('sa-models'), sp=document.getElementById('sa-paths'), img=document.getElementById('sa-img');
+  if(!sm||!sp||!img) return;
+  var cur={m:'base_pg2', p:'left_left'};
+  function upd(){ img.src='grounding_hub/sa_'+cur.m+'_'+cur.p+'.png'; }
+  sm.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
+    sm.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); cur.m=t.dataset.m; upd(); }));
+  sp.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
+    sp.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); cur.p=t.dataset.p; upd(); }));
+})();
 </script>
 </body>
 </html>
