@@ -26,8 +26,8 @@ sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "scripts"))
 import torch
 from PIL import Image, ImageEnhance, ImageFilter, ImageDraw, ImageFont
 from eval_exp64_grounding import build_basket_sample
+from eval_grounding_hub import MODELS, load_pg, make_pg_detect, make_kosmos_detect
 
-PG2 = Path.home() / ".cache/huggingface/hub/models--google--paligemma2-3b-mix-224/snapshots/8e40ab4cc5df93dfb7fd2fff754bcdff8b62ee78"
 LOC = re.compile(r"<loc(\d{4})>")
 OUT = ROOT / "docs/v5/grounding_hub"
 
@@ -62,25 +62,32 @@ def aug_funcs():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=12)
+    ap.add_argument("--model", default="base_pg2", help="eval_grounding_hub.MODELS의 key")
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    from transformers import PaliGemmaProcessor, PaliGemmaForConditionalGeneration
-    proc = PaliGemmaProcessor.from_pretrained(str(PG2))
-    model = PaliGemmaForConditionalGeneration.from_pretrained(
-        str(PG2), torch_dtype=torch.bfloat16, low_cpu_mem_usage=True).to("cuda").eval()
-    print("[LOAD] base PaliGemma2\n")
+    mkey = args.model
+    spec = {m[0]: m for m in MODELS}[mkey]
+    _, fam, base, adapter = spec
+    print(f"[LOAD] {mkey} ({fam})\n")
+    if fam == "pg":
+        from transformers import PaliGemmaProcessor
+        proc = PaliGemmaProcessor.from_pretrained(str(base))
+        model = load_pg(base, adapter)
+        _det = make_pg_detect(model, proc)
+    else:
+        from transformers import AutoProcessor, AutoModelForVision2Seq
+        proc = AutoProcessor.from_pretrained(str(base))
+        model = AutoModelForVision2Seq.from_pretrained(
+            str(base), torch_dtype=torch.float32, low_cpu_mem_usage=True).to("cuda")
+        if adapter:
+            from peft import PeftModel
+            model = PeftModel.from_pretrained(model, str(adapter))
+        model.eval()
+        _det = make_kosmos_detect(model, proc)
 
-    @torch.no_grad()
     def detect(img):
-        inp = proc(text="<image>detect gray basket", images=img, return_tensors="pt").to("cuda")
-        inp["pixel_values"] = inp["pixel_values"].to(torch.bfloat16)
-        gen = model.generate(**inp, max_new_tokens=48, do_sample=False)
-        raw = proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
-        locs = [int(v)/1023 for v in LOC.findall(raw)]
-        if len(locs) >= 4:
-            y1, x1, y2, x2 = locs[:4]
-            return {"cx": (x1+x2)/2, "area": (x2-x1)*(y2-y1), "box": [x1, y1, x2, y2]}
-        return None
+        try: return _det(img, "gray basket")
+        except Exception: return None
 
     # 원본에서 검출 성공한 프레임만 기준으로
     sample = build_basket_sample(2)
@@ -134,9 +141,10 @@ def main():
                 dr.rectangle([ox+x1*th.width, oy+y1*th.height, ox+x2*th.width, oy+y2*th.height], outline=col, width=2)
             else:
                 dr.text((ox+4, oy+4), "MISS", fill=(252,165,165), font=font)
-    cv.save(OUT / "aug_grid.png")
-    (OUT / "aug_robustness.json").write_text(json.dumps(results, indent=2, ensure_ascii=False))
-    print(f"\n[SAVE] {OUT}/aug_robustness.json + aug_grid.png")
+    sfx = "" if mkey == "base_pg2" else f"_{mkey}"
+    cv.save(OUT / f"aug_grid{sfx}.png")
+    (OUT / f"aug_robustness{sfx}.json").write_text(json.dumps(results, indent=2, ensure_ascii=False))
+    print(f"\n[SAVE] {OUT}/aug_robustness{sfx}.json + aug_grid{sfx}.png")
 
 
 if __name__ == "__main__":

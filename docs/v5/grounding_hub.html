@@ -93,6 +93,14 @@
     <div style="margin-top:16px;padding:14px;background:#0f172a;border-left:3px solid #7dd3fc;border-radius:8px;font-size:0.9rem">
       <strong style="color:#7dd3fc">→ 오예측 = grounding이 아니라 action head 문제.</strong> decomposition의 BBox grounding은 <strong>base PG2를 그대로</strong> 쓰고, 개선 노력은 action 쪽(의자 데이터 재수집 + Stage2 재학습)에 집중한다.
     </div>
+    <div style="margin-top:14px;padding:16px;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px">
+      <div class="bad" style="font-size:0.98rem;margin-bottom:8px">🔍 교수님 "객체 인식 못함"의 정체 = exp59의 간헐적 full-frame 붕괴</div>
+      <div style="color:#94a3b8;font-size:0.86rem;line-height:1.7">
+        실주행에 쓰인 <strong style="color:#e2e8f0">exp59</strong>는 표준 프레임(full-frame 6%)에선 멀쩡해 보이지만, <strong>실환경 변동</strong>에서 무너진다:
+        free 극단 시나리오에서 <strong class="bad">로봇거리 22% · 저조도 17% · 대각선 14%</strong> full-frame, 증강 <strong class="bad">회전 8~16% · 가림 8%</strong> full-frame.
+        그 순간 action head는 "바구니=화면 전체" 신호를 받아 조향이 붕괴 → 교수님이 본 오예측. <strong class="key">base PG2는 같은 조건에서 full-frame 0~2%</strong> — 모델을 base로 바꾸면 간헐 붕괴가 사라진다.
+      </div>
+    </div>
   </div>
 
   <!-- B. 비교 매트릭스 -->
@@ -163,18 +171,19 @@
   <h2><span class="badge" style="background:#0ea5e9;color:#0a0f1a">C2</span> 극단·다양성 시나리오 (free 데이터, base PG2) <span style="font-size:0.8rem;color:#64748b;font-weight:400">— "데이터가 적은가?" 보강</span></h2>
   <div class="card">
     <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;line-height:1.6">
-      경로 데이터 외에 <strong>free_* 21개 에피소드</strong>(바구니 극단위치·로봇 원/근거리·대각선·저조도)를 추가로 grounding. base PG2가 극단·OOD-유사 조건에서도 견고한지 확인.
+      경로 데이터 외에 <strong>free_* 21개 에피소드</strong>(바구니 극단위치·로봇 원/근거리·대각선·저조도)를 추가 grounding. <strong>4모델 비교</strong>(붕괴/사망 모델 exp58·exp64·exp56 제외).
     </div>
     <div style="overflow-x:auto;margin-bottom:14px">
-      <table style="font-size:0.8rem">
-        <thead><tr><th>시나리오</th><th>ep/프레임</th><th>hit</th><th>full-frame</th><th>의미</th></tr></thead>
+      <table style="font-size:0.78rem">
+        <thead><tr><th>모델</th><th>basket극단</th><th>로봇거리</th><th>대각선</th><th>저조도</th><th>판정</th></tr></thead>
         <tbody>
-          <tr><td class="key">basket_extreme</td><td>6 / 36</td><td>92%</td><td>0%</td><td>바구니 화면 극좌/극우</td></tr>
-          <tr><td class="key">robot_distance</td><td>6 / 36</td><td>94%</td><td>0%</td><td>로봇 원/근거리 (작은/큰 바구니)</td></tr>
-          <tr><td class="key">diagonal</td><td>7 / 42</td><td>95%</td><td>2%</td><td>대각선 진입</td></tr>
-          <tr><td class="key">lighting_diff</td><td>2 / 12</td><td>100%</td><td>0%</td><td>저조도 환경</td></tr>
+          <tr style="background:#071a0a"><td class="key">base PG2</td><td>92/0</td><td>94/0</td><td>95/2</td><td>100/0</td><td class="key">✅ 전부 깔끔</td></tr>
+          <tr><td>pure Kosmos</td><td>100/0</td><td>100/0</td><td>100/0</td><td>100/0</td><td>견고(단 OOD 100%)</td></tr>
+          <tr><td>exp57(PG1)</td><td>86/3</td><td>86/0</td><td>88/2</td><td>92/0</td><td>hit 낮음, full 소량</td></tr>
+          <tr><td>exp59</td><td>92/<span class="bad">8</span></td><td>92/<span class="bad">22</span></td><td>95/<span class="bad">14</span></td><td>100/<span class="bad">17</span></td><td class="bad">극단조건 full-frame 붕괴</td></tr>
         </tbody>
       </table>
+      <div class="note">셀=hit/full-frame(%). <strong style="color:#fca5a5">exp59가 로봇거리 22%·저조도 17% full-frame</strong> → 실환경 변동에서 무너진다. base는 0~2%.</div>
     </div>
     <div class="tabs">
       <div class="tab active" data-t="f_ext">basket_extreme</div>
@@ -232,8 +241,20 @@
         </tbody>
       </table>
     </div>
-    <img src="grounding_hub/aug_grid.png" alt="증강 강건성 그리드">
-    <div class="note">행=대표 3프레임, 열=11변형. 초록 박스가 모든 변형에서 바구니에 고정. cx_drift ~0.001(중심 거의 안 움직임).</div>
+    <div style="overflow-x:auto;margin:6px 0 14px">
+      <table style="font-size:0.78rem">
+        <thead><tr><th>모델</th><th>회전±12°</th><th>가림</th><th>저대비</th><th>나머지(밝기·블러·노이즈·저해상도·반전)</th></tr></thead>
+        <tbody>
+          <tr style="background:#071a0a"><td class="key">base PG2</td><td>100/0</td><td>100/0</td><td class="bad">92/0</td><td class="key">전부 100/0</td></tr>
+          <tr><td>pure Kosmos</td><td>100/0</td><td>100/0</td><td>100/0</td><td>전부 100/0</td></tr>
+          <tr><td>exp57(PG1)</td><td>100/0</td><td>100/0</td><td>100/0</td><td>전부 100/0</td></tr>
+          <tr><td>exp59</td><td>100/<span class="bad">8~16</span></td><td>100/<span class="bad">8</span></td><td>100/0</td><td>나머지 100/0</td></tr>
+        </tbody>
+      </table>
+      <div class="note">셀=hit/full-frame(%). <strong style="color:#fca5a5">exp59만 회전·가림에서 full-frame 붕괴</strong>. base는 저대비에서만 hit 92%(검출 실패), 붕괴는 0.</div>
+    </div>
+    <img src="grounding_hub/aug_grid.png" alt="증강 강건성 그리드 (base PG2)">
+    <div class="note">위 그리드 = base PG2. 행=대표 3프레임, 열=11변형. 초록 박스가 모든 변형에서 바구니에 고정. cx_drift ~0.001.</div>
     <div style="margin-top:14px;padding:14px;background:#071a0a;border-left:3px solid #22c55e;border-radius:8px;font-size:0.88rem;line-height:1.7;color:#e2e8f0">
       <strong class="key">→ 결론: base PG2 grounding은 데이터 부족 문제가 아니다.</strong> 좌우반전·회전·저해상도·부분가림·조명 극단 전부 <strong>hit 100%·중심 이동 ~0</strong>로 견고.
       사전학습 지식이 우리 소규모 데이터가 못 덮는 변형까지 일반화한다. 유일한 약점은 <strong>저대비(92%)</strong> — 저조도/역광 환경이 데이터셋 보강 1순위 후보.

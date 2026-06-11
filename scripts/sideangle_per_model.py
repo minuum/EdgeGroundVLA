@@ -26,6 +26,12 @@ from eval_grounding_hub import (MODELS, load_pg, make_pg_detect, make_kosmos_det
 
 DSET = ROOT / "ROS_action/mobile_vla_dataset_v5"
 PATH_TYPES = ["left_left", "right_right", "left_right", "right_left"]
+FREE_GROUPS = {
+    "basket_extreme": "*free*basket_*extreme*.h5",
+    "robot_distance": "*free*robot_*.h5",
+    "diagonal": "*free*diagonal_*.h5",
+    "lighting_diff": "*free*lighting_diff*.h5",
+}
 
 
 def main():
@@ -33,9 +39,14 @@ def main():
     ap.add_argument("--n-ep", type=int, default=3)
     ap.add_argument("--n-fr", type=int, default=6)
     ap.add_argument("--only", default="")
+    ap.add_argument("--free", action="store_true", help="free 극단시나리오 그룹으로")
     args = ap.parse_args()
     only = set(args.only.split(",")) if args.only else None
     OUT.mkdir(parents=True, exist_ok=True)
+    if args.free:
+        TYPES = [(k, pat, 99) for k, pat in FREE_GROUPS.items()]; prefix = "free"
+    else:
+        TYPES = [(pt, f"*{pt}_path__core__fixed_center.h5", args.n_ep) for pt in PATH_TYPES]; prefix = "sa"
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 13)
         fsm = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
@@ -43,10 +54,10 @@ def main():
         font = fsm = ImageFont.load_default()
 
     # 경로별 에피소드 + 프레임 미리 로드 (모델 간 재사용)
-    ep_imgs = {}  # pt -> [(epname, [PIL frames at sampled idxs], [idxs])]
+    ep_imgs = {}  # label -> [(epname, [PIL frames at sampled idxs], [idxs])]
     import h5py
-    for pt in PATH_TYPES:
-        eps = sorted(glob.glob(str(DSET / f"*{pt}_path__core__fixed_center.h5")))[:args.n_ep]
+    for pt, pattern, nep in TYPES:
+        eps = sorted(glob.glob(str(DSET / pattern)))[:nep]
         lst = []
         for ep in eps:
             with h5py.File(ep, "r") as f:
@@ -81,7 +92,7 @@ def main():
             print(f"  ✗ 로드 실패: {e}"); continue
 
         summary[key] = {}
-        for pt in PATH_TYPES:
+        for pt, _pat, _nep in TYPES:
             lst = ep_imgs[pt]
             cell, hdr, lab = 220, 24, 16
             cv = Image.new("RGB", (args.n_fr * cell, len(lst) * (cell + hdr)), (15, 22, 36))
@@ -106,15 +117,15 @@ def main():
                     dr.text((ox, oy+th.height+2), txt, fill=tc, font=fsm)
                     rec["frames"].append({"idx": int(idx), "cx": d and round(d["cx"],3), "area": d and round(d["area"],3), "hit": d is not None})
                 pt_rec.append(rec)
-            cv.save(OUT / f"sa_{key}_{pt}.png")
+            cv.save(OUT / f"{prefix}_{key}_{pt}.png")
             allf = [f for r in pt_rec for f in r["frames"]]
             hit = sum(1 for f in allf if f["hit"]); full = sum(1 for f in allf if f["hit"] and f["area"] and f["area"]>0.9)
             summary[key][pt] = {"hit_rate": round(hit/max(len(allf),1),3), "fullframe_rate": round(full/max(len(allf),1),3), "n": len(allf)}
             print(f"  {pt:<12} hit={summary[key][pt]['hit_rate']*100:.0f}% full-frame={summary[key][pt]['fullframe_rate']*100:.0f}%")
         del model, detect; gc.collect(); torch.cuda.empty_cache()
 
-    (OUT / "sa_per_model_summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
-    print(f"\n[SAVE] {OUT}/sa_per_model_summary.json")
+    (OUT / f"{prefix}_per_model_summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
+    print(f"\n[SAVE] {OUT}/{prefix}_per_model_summary.json")
 
 
 if __name__ == "__main__":
