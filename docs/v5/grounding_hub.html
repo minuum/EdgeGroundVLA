@@ -41,13 +41,49 @@
     측면·OOD에서 base PaliGemma2가 바구니를 안정적으로 잡는다면 → <strong style="color:#7dd3fc">오예측은 grounding이 아닌 action head 문제</strong>다.</p>
   </div>
 
+  <!-- 0. 방법론 & 목표 -->
+  <h2><span class="badge" style="background:#0ea5e9;color:#0a0f1a">0</span> 무엇을 어떻게 측정했나 (목표 · 데이터 · 지표)</h2>
+  <div class="card">
+    <div style="margin-bottom:16px">
+      <div style="color:#7dd3fc;font-weight:800;font-size:0.95rem;margin-bottom:8px">🎯 grounding 목표(goal) — 모델에 넣은 프롬프트</div>
+      <div style="color:#94a3b8;font-size:0.86rem;line-height:1.7">
+        모든 모델에 동일한 목표를 줬다: <strong style="color:#e2e8f0">"gray basket"</strong> (회색 바구니) 한 객체.
+        <ul style="margin:8px 0 0 18px">
+          <li>PaliGemma 계열(base PG2 · exp57 · exp58 · exp59 · exp64): <code style="color:#86efac">"&lt;image&gt;detect gray basket"</code></li>
+          <li>Kosmos 계열(pure Kosmos · exp56): <code style="color:#86efac">"&lt;grounding&gt;&lt;phrase&gt; gray basket&lt;/phrase&gt;"</code> (Kosmos 전용 grounding 문법)</li>
+        </ul>
+        모델은 이 텍스트에 해당하는 객체의 BBox(<code>&lt;loc&gt;</code> 좌표 또는 Kosmos patch 좌표)를 출력한다. <strong>학습/튜닝 없이 프롬프트만으로 위치를 묻는 zero-shot grounding</strong>.
+      </div>
+    </div>
+    <div class="grid2">
+      <div style="padding:14px;background:#0f172a;border-radius:8px">
+        <div style="color:#a78bfa;font-weight:700;font-size:0.85rem;margin-bottom:6px">📂 평가 데이터</div>
+        <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6">
+          <strong>표준 49프레임:</strong> V5 basket 에피소드를 위치(좌/중/우) × 거리(원/중/근) <strong>9개 시점 버킷</strong>으로 나눠 균등 샘플.<br>
+          <strong>측면 4경로:</strong> 좌좌·우우·좌우·우좌 경로, 경로당 4ep × 6프레임(시간순).<br>
+          <strong>OOD 11장:</strong> 학습에 없던 의자 이미지(오탐 검증).
+        </div>
+      </div>
+      <div style="padding:14px;background:#0f172a;border-radius:8px">
+        <div style="color:#a78bfa;font-weight:700;font-size:0.85rem;margin-bottom:6px">📐 지표 & 정답 기준</div>
+        <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6">
+          <strong>hit:</strong> BBox를 내놓았나.<br>
+          <strong>cx_MAE:</strong> 박스 중심 x가 정답과 얼마나 가까운가. 정답 = <strong>HSV 색분할로 검출한 회색 바구니 중심</strong>(근사 GT).<br>
+          <strong>full-frame:</strong> 박스 면적&gt;0.9 비율(화면 거의 다 덮음 = 위치정보 무력).<br>
+          <strong>OOD 오탐:</strong> 바구니 없는 의자에 박스 친 비율.
+        </div>
+      </div>
+    </div>
+    <div class="note">⚠️ cx_MAE의 정답(HSV 중심)은 색분할 기반 근사값이라 그 자체로 ±오차가 있다 — 모델 간 <strong>상대 비교</strong>용으로 해석.</div>
+  </div>
+
   <!-- A. 핵심 결론 -->
   <h2><span class="badge" style="background:#22c55e;color:#0a0f1a">A</span> 핵심 결론</h2>
   <div class="card">
     <div class="grid2">
       <div style="padding:14px;background:#071a0a;border:1px solid #14532d;border-radius:10px">
         <div class="key" style="font-size:0.95rem;margin-bottom:6px">✅ base PG2 — grounding 견고</div>
-        <div style="color:#94a3b8;font-size:0.85rem">측면 4경로 ~92% hit · <strong>full-frame 0%</strong>. 좌좌/우우/좌우/우좌 전 시점에서 바구니 추적. grounding은 문제가 아니다.</div>
+        <div style="color:#94a3b8;font-size:0.85rem">측면 4경로 <strong>주행구간(f3+) 추적 100%</strong> · full-frame 0%. miss는 출발 첫 프레임뿐. 좌좌/우우/좌우/우좌 전 시점에서 바구니를 끝까지 추적. grounding은 문제가 아니다.</div>
       </div>
       <div style="padding:14px;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px">
         <div class="bad" style="font-size:0.95rem;margin-bottom:6px">⚠️ LoRA들 — 붕괴/불안정</div>
@@ -80,17 +116,23 @@
   <!-- C. 측면 경로 갤러리 -->
   <h2><span class="badge" style="background:#a78bfa;color:#0a0f1a">C</span> 측면 경로 에피소드 갤러리 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— base PG2, 교수님 오예측 대응</span></h2>
   <div class="card">
+    <div style="background:#071a0a;border:1px solid #14532d;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.85rem;color:#94a3b8;line-height:1.6">
+      <strong class="key">📌 에피소드 정정 — miss의 정체:</strong> 측면 경로의 모든 miss는 <strong style="color:#e2e8f0">정확히 f0(출발 첫 프레임)</strong>이다.
+      우우/우좌 경로는 출발 순간 바구니가 아직 화면 밖/가장자리라 base가 못 잡지만, <strong>주행이 시작되는 f3부터는 hit 100%</strong>로 끝까지 추적한다.
+      좌좌/좌우는 f0부터 miss 0. → "우우 83%"는 콜드스타트 포함 수치이고, <strong class="key">실제 주행 구간(f3+) 추적률은 전 경로 100%</strong>.
+    </div>
     <div class="tabs">
-      <div class="tab active" data-t="ll">left_left (24/24)</div>
-      <div class="tab" data-t="lr">left_right (24/24)</div>
-      <div class="tab" data-t="rr">right_right (20/24)</div>
-      <div class="tab" data-t="rl">right_left (20/24)</div>
+      <div class="tab active" data-t="ll">left_left (f0+ 24/24)</div>
+      <div class="tab" data-t="lr">left_right (f0+ 24/24)</div>
+      <div class="tab" data-t="rr">right_right (f3+ 20/20)</div>
+      <div class="tab" data-t="rl">right_left (f3+ 20/20)</div>
     </div>
     <div class="pane active" id="ll"><img src="exp64_eval/sideangle_left_left.png" alt="left_left"></div>
     <div class="pane" id="lr"><img src="exp64_eval/sideangle_left_right.png" alt="left_right"></div>
     <div class="pane" id="rr"><img src="exp64_eval/sideangle_right_right.png" alt="right_right"></div>
     <div class="pane" id="rl"><img src="exp64_eval/sideangle_right_left.png" alt="right_left"></div>
-    <div class="note">행=에피소드, 열=시간순 프레임. 파랑=정상 박스, 빨강=full-frame. cx 라벨로 위치 추적 확인. miss는 대부분 첫 프레임(원거리). 측면 꺾임에서도 full-frame 0%.</div>
+    <div class="note">행=에피소드, 열=시간순 프레임(f0→f18). 파랑=정상 박스, 빨강=full-frame, 라벨의 cx로 위치 추적 확인.
+      cx가 프레임 따라 변하는 것 = 바구니가 화면에서 움직이는 걸 base가 실제 추적한다는 증거(예: left_left cx 0.27→0.56→0.21). 측면 꺾임 전 구간 full-frame 0%.</div>
   </div>
 
   <!-- D. 모델별 그리드 -->
@@ -118,7 +160,7 @@
   <h2><span class="badge" style="background:#ef4444;color:#fff">E</span> 해석 & 다음 단계</h2>
   <div class="card">
     <div style="font-size:0.9rem;line-height:1.8">
-      <p><strong class="key">1.</strong> 측면·OOD에서 base PG2가 견고 → <strong>오예측의 원인은 grounding이 아니다.</strong> 실주행 궤적 붕괴는 action head(조향)·action chunk·데이터 분포 쪽 문제로 좁혀진다.</p>
+      <p><strong class="key">1.</strong> 측면·OOD에서 base PG2가 견고(주행구간 추적 100%, full-frame 0%) → <strong>오예측의 원인은 grounding이 아니다.</strong> 실주행 궤적 붕괴는 action head(조향)·action chunk·데이터 분포 쪽 문제로 좁혀진다. 유일한 grounding 약점은 출발 첫 프레임(바구니 화면 밖)인데, 이는 STOP/대기 로직으로 처리할 영역이지 grounding 모델 교체로 풀 문제가 아니다.</p>
       <p style="margin-top:8px"><strong class="key">2.</strong> 7개 모델 중 <strong>base PG2를 종합적으로 이긴 것은 없다.</strong> pure Kosmos는 바구니 검출은 100%지만 의자에 <strong>100% 오탐</strong>(negative 구분 불가), vision-LoRA(exp64)·exp58은 full-frame 붕괴, exp56은 LoRA가 Kosmos를 파괴. exp59만 OOD 억제(0%)라는 부분 미덕이나 cx 안정성은 더 나쁨.</p>
       <p style="margin-top:8px"><strong class="key">2-1.</strong> <strong>LoRA의 보편적 위험:</strong> Kosmos LoRA(exp56)·PG2 vision LoRA(exp64)·PG2 LM LoRA(exp58) 모두 grounding을 <strong>악화</strong>시켰다. 소규모 데이터 LoRA가 사전학습된 grounding 표현을 망가뜨린다는 일관된 신호.</p>
       <p style="margin-top:8px"><strong class="key">3.</strong> <strong>결론:</strong> grounding = base PG2 고정. 다음 작업은 <strong>의자 객체 데이터 재수집 + Stage2 action 재학습</strong>으로 오예측(action)을 직접 공략.</p>
