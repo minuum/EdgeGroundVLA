@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grounding Evaluation Hub — MoNaVLA</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#070d1a; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:40px 24px 80px; }
+  .hero { text-align:center; padding:48px 24px; background:linear-gradient(135deg,#0a1628,#0f172a); border-radius:18px; border:1px solid #1e3a5f; margin-bottom:32px; }
+  .hero h1 { font-size:2rem; font-weight:900; background:linear-gradient(90deg,#7dd3fc,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
+  .hero p { color:#94a3b8; font-size:1rem; max-width:760px; margin:0 auto; }
+  .back { display:inline-block; margin-bottom:20px; color:#7dd3fc; text-decoration:none; font-size:0.85rem; }
+  h2 { font-size:1.3rem; font-weight:800; margin:36px 0 16px; color:#e2e8f0; display:flex; align-items:center; gap:10px; }
+  .badge { font-size:0.7rem; font-weight:900; padding:3px 10px; border-radius:6px; }
+  .card { background:#0a1628; border:1px solid #1e3a5f; border-radius:14px; padding:22px; margin-bottom:18px; }
+  table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+  th,td { padding:9px 12px; text-align:center; }
+  th { color:#7dd3fc; border-bottom:1px solid #1e3a5f; }
+  td:first-child,th:first-child { text-align:left; }
+  tr { border-bottom:1px solid #0f1e35; }
+  img { width:100%; border-radius:10px; border:1px solid #1e3a5f; margin-top:8px; }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:8px 16px; background:#0f172a; border:1px solid #1e3a5f; border-radius:8px; cursor:pointer; font-size:0.82rem; color:#94a3b8; font-weight:700; }
+  .tab.active { background:#1e3a5f; color:#7dd3fc; }
+  .pane { display:none; } .pane.active { display:block; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .note { color:#64748b; font-size:0.76rem; margin-top:8px; }
+  .key { color:#86efac; font-weight:700; } .bad { color:#fca5a5; font-weight:700; }
+  @media(max-width:760px){ .grid2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="research_story.html">← 연구 히스토리로</a>
+
+  <div class="hero">
+    <h1>🎯 Grounding Evaluation Hub</h1>
+    <p>교수님이 보신 <strong>"이상한 에피소드 · 오예측"</strong>을 grounding 관점에서 해부한다.<br>
+    측면·OOD에서 base PaliGemma2가 바구니를 안정적으로 잡는다면 → <strong style="color:#7dd3fc">오예측은 grounding이 아닌 action head 문제</strong>다.</p>
+  </div>
+
+  <!-- A. 핵심 결론 -->
+  <h2><span class="badge" style="background:#22c55e;color:#0a0f1a">A</span> 핵심 결론</h2>
+  <div class="card">
+    <div class="grid2">
+      <div style="padding:14px;background:#071a0a;border:1px solid #14532d;border-radius:10px">
+        <div class="key" style="font-size:0.95rem;margin-bottom:6px">✅ base PG2 — grounding 견고</div>
+        <div style="color:#94a3b8;font-size:0.85rem">측면 4경로 ~92% hit · <strong>full-frame 0%</strong>. 좌좌/우우/좌우/우좌 전 시점에서 바구니 추적. grounding은 문제가 아니다.</div>
+      </div>
+      <div style="padding:14px;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px">
+        <div class="bad" style="font-size:0.95rem;margin-bottom:6px">⚠️ LoRA들 — 붕괴/불안정</div>
+        <div style="color:#94a3b8;font-size:0.85rem">exp64(vision) full-frame <strong>92%</strong>, exp58 OOD 오탐 <strong>27%</strong>, exp56(Kosmos) generate 사망. LoRA가 base를 못 이긴다.</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:14px;background:#0f172a;border-left:3px solid #7dd3fc;border-radius:8px;font-size:0.9rem">
+      <strong style="color:#7dd3fc">→ 오예측 = grounding이 아니라 action head 문제.</strong> decomposition의 BBox grounding은 <strong>base PG2를 그대로</strong> 쓰고, 개선 노력은 action 쪽(의자 데이터 재수집 + Stage2 재학습)에 집중한다.
+    </div>
+  </div>
+
+  <!-- B. 비교 매트릭스 -->
+  <h2><span class="badge" style="background:#7dd3fc;color:#0a0f1a">B</span> 모델 비교 매트릭스 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 표준 49프레임 + 의자 11장</span></h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>모델</th><th>백본 / LoRA</th><th>hit</th><th>cx_MAE</th><th>full-frame</th><th>OOD 오탐</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr style="background:#071a0a"><td><strong class="key">base PG2</strong></td><td>PaliGemma2 / 없음</td><td>98%</td><td>0.126</td><td class="key">0%</td><td>9%</td><td class="key">✅ 최균형</td></tr>
+        <tr><td><strong>pure Kosmos-2</strong></td><td>Kosmos-2 / 없음</td><td>100%</td><td>0.123</td><td>0%</td><td class="bad">100%</td><td class="bad">바구니↑·OOD구분 제로</td></tr>
+        <tr><td>exp57</td><td>PaliGemma1 / LM</td><td>84%</td><td class="key">0.115</td><td>0%</td><td>9%</td><td>hit↓·cx정밀</td></tr>
+        <tr><td>exp58</td><td>PaliGemma2 / LM</td><td>100%</td><td>0.191</td><td class="bad">57%</td><td class="bad">27%</td><td class="bad">부분붕괴+OOD최악</td></tr>
+        <tr><td>exp59</td><td>PaliGemma2 / LM hard-neg</td><td>98%</td><td>0.129</td><td>6%</td><td class="key">0%</td><td>OOD억제 최고</td></tr>
+        <tr><td>exp64</td><td>PaliGemma2 / <strong>vision</strong></td><td>94%</td><td>0.150</td><td class="bad">92%</td><td>9%</td><td class="bad">full-frame 붕괴</td></tr>
+        <tr><td>exp56</td><td>Kosmos-2 / LM</td><td class="bad">0%</td><td>—</td><td>—</td><td>—</td><td class="bad">LoRA가 Kosmos grounding 파괴</td></tr>
+      </tbody>
+    </table>
+    <div class="note">cx_MAE = 중심 오차(낮을수록 정확) · full-frame = area&gt;0.9 박스 비율(높을수록 붕괴) · OOD 오탐 = 의자에 basket 박스 친 비율.</div>
+  </div>
+
+  <!-- C. 측면 경로 갤러리 -->
+  <h2><span class="badge" style="background:#a78bfa;color:#0a0f1a">C</span> 측면 경로 에피소드 갤러리 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— base PG2, 교수님 오예측 대응</span></h2>
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-t="ll">left_left (24/24)</div>
+      <div class="tab" data-t="lr">left_right (24/24)</div>
+      <div class="tab" data-t="rr">right_right (20/24)</div>
+      <div class="tab" data-t="rl">right_left (20/24)</div>
+    </div>
+    <div class="pane active" id="ll"><img src="exp64_eval/sideangle_left_left.png" alt="left_left"></div>
+    <div class="pane" id="lr"><img src="exp64_eval/sideangle_left_right.png" alt="left_right"></div>
+    <div class="pane" id="rr"><img src="exp64_eval/sideangle_right_right.png" alt="right_right"></div>
+    <div class="pane" id="rl"><img src="exp64_eval/sideangle_right_left.png" alt="right_left"></div>
+    <div class="note">행=에피소드, 열=시간순 프레임. 파랑=정상 박스, 빨강=full-frame. cx 라벨로 위치 추적 확인. miss는 대부분 첫 프레임(원거리). 측면 꺾임에서도 full-frame 0%.</div>
+  </div>
+
+  <!-- D. 모델별 그리드 -->
+  <h2><span class="badge" style="background:#f59e0b;color:#0a0f1a">D</span> 모델별 BBox 그리드 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 같은 8프레임, 초록=정상·빨강=full-frame</span></h2>
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-t="g_base">base PG2</div>
+      <div class="tab" data-t="g_pkosmos">pure Kosmos</div>
+      <div class="tab" data-t="g_exp57">exp57(PG1)</div>
+      <div class="tab" data-t="g_exp58">exp58</div>
+      <div class="tab" data-t="g_exp59">exp59</div>
+      <div class="tab" data-t="g_exp64">exp64(vision)</div>
+      <div class="tab" data-t="g_exp56">exp56(Kosmos)</div>
+    </div>
+    <div class="pane active" id="g_base"><img src="grounding_hub/grid_base_pg2.png"><div class="note">타이트한 박스, full-frame 0%, OOD 오탐 9%.</div></div>
+    <div class="pane" id="g_pkosmos"><img src="grounding_hub/grid_pure_kosmos.png"><div class="note">바구니 100% 검출·full-frame 0%로 base급. 단 의자 등 미학습 객체에 100% 오탐 — negative 구분 불가.</div></div>
+    <div class="pane" id="g_exp57"><img src="grounding_hub/grid_exp57_pg1.png"><div class="note">PG1 LM-LoRA. 박스 정상, 일부 미검출(hit 84%).</div></div>
+    <div class="pane" id="g_exp58"><img src="grounding_hub/grid_exp58_pg2.png"><div class="note">PG2 LM-LoRA. full-frame 57% 부분붕괴.</div></div>
+    <div class="pane" id="g_exp59"><img src="grounding_hub/grid_exp59_pg2.png"><div class="note">hard-neg. full-frame 6%, OOD 오탐 0%로 가장 깔끔한 LoRA.</div></div>
+    <div class="pane" id="g_exp64"><img src="grounding_hub/grid_exp64_pg2.png"><div class="note">vision-LoRA. full-frame 92% 전면붕괴 (CH31/32).</div></div>
+    <div class="pane" id="g_exp56"><img src="grounding_hub/grid_exp56_kosmos.png"><div class="note">Kosmos generate 사망 — 박스 없음.</div></div>
+  </div>
+
+  <!-- E. 해석 -->
+  <h2><span class="badge" style="background:#ef4444;color:#fff">E</span> 해석 & 다음 단계</h2>
+  <div class="card">
+    <div style="font-size:0.9rem;line-height:1.8">
+      <p><strong class="key">1.</strong> 측면·OOD에서 base PG2가 견고 → <strong>오예측의 원인은 grounding이 아니다.</strong> 실주행 궤적 붕괴는 action head(조향)·action chunk·데이터 분포 쪽 문제로 좁혀진다.</p>
+      <p style="margin-top:8px"><strong class="key">2.</strong> 7개 모델 중 <strong>base PG2를 종합적으로 이긴 것은 없다.</strong> pure Kosmos는 바구니 검출은 100%지만 의자에 <strong>100% 오탐</strong>(negative 구분 불가), vision-LoRA(exp64)·exp58은 full-frame 붕괴, exp56은 LoRA가 Kosmos를 파괴. exp59만 OOD 억제(0%)라는 부분 미덕이나 cx 안정성은 더 나쁨.</p>
+      <p style="margin-top:8px"><strong class="key">2-1.</strong> <strong>LoRA의 보편적 위험:</strong> Kosmos LoRA(exp56)·PG2 vision LoRA(exp64)·PG2 LM LoRA(exp58) 모두 grounding을 <strong>악화</strong>시켰다. 소규모 데이터 LoRA가 사전학습된 grounding 표현을 망가뜨린다는 일관된 신호.</p>
+      <p style="margin-top:8px"><strong class="key">3.</strong> <strong>결론:</strong> grounding = base PG2 고정. 다음 작업은 <strong>의자 객체 데이터 재수집 + Stage2 action 재학습</strong>으로 오예측(action)을 직접 공략.</p>
+    </div>
+    <div class="note" style="margin-top:12px">평가 스크립트: <code>scripts/eval_grounding_hub.py</code> · <code>scripts/grounding_sideangle_episodes.py</code> · 데이터: <code>docs/v5/grounding_hub/hub_results.json</code></div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.tabs').forEach(function(tabs){
+  tabs.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      var card = tabs.closest('.card');
+      tabs.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      card.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+      card.querySelector('#'+t.dataset.t).classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>
