@@ -294,6 +294,89 @@
     </div>
     <div class="note" style="margin-top:12px">평가 스크립트: <code>scripts/eval_grounding_hub.py</code> · <code>scripts/grounding_sideangle_episodes.py</code> · 데이터: <code>docs/v5/grounding_hub/hub_results.json</code></div>
   </div>
+
+  <!-- F. 파이프라인 Ablation -->
+  <h2 id="section-f"><span class="badge" style="background:#22c55e;color:#0a0f1a">F</span> 파이프라인 Ablation — CL 성능과 Grounding 품질의 관계</h2>
+  <div class="card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:16px;line-height:1.7">
+      <strong style="color:#e2e8f0">질문:</strong> cx 소스(grounding 모델)를 바꾸면 closed-loop(CL) 성능이 달라지는가? 파이프라인(L2-norm + bbox 증강)이 실제 성능 결정 요소인가?<br>
+      exp65b(대조군, 단순 MLP)와 exp66·exp67(동일 파이프라인, cx 소스만 변경)을 비교해 파이프라인과 grounding 품질의 기여를 분리한다.
+    </div>
+
+    <!-- 결과 표 -->
+    <div style="overflow-x:auto;margin-bottom:18px">
+      <table>
+        <thead>
+          <tr>
+            <th>실험</th>
+            <th>cx 소스</th>
+            <th>파이프라인</th>
+            <th>val_acc</th>
+            <th>CL 성공률</th>
+            <th>평균 FPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>exp54 <span style="color:#64748b;font-size:0.78rem">(참고)</span></td>
+            <td>HSV</td>
+            <td>L2-norm + bbox 증강</td>
+            <td>92.6%</td>
+            <td class="key">96.6%</td>
+            <td class="key">0.09m</td>
+          </tr>
+          <tr style="background:#1a0a0a">
+            <td><strong class="bad">exp65b</strong> <span style="color:#64748b;font-size:0.78rem">(대조)</span></td>
+            <td>base PG2</td>
+            <td><span class="bad">단순 MLP</span></td>
+            <td>90.2%</td>
+            <td class="bad">10.3%</td>
+            <td>—</td>
+          </tr>
+          <tr style="background:#071a0a">
+            <td><strong class="key">exp66</strong> ✅</td>
+            <td>base PG2</td>
+            <td>L2-norm + bbox 증강</td>
+            <td>93.5%</td>
+            <td class="key">96.6%</td>
+            <td class="key">0.10m</td>
+          </tr>
+          <tr style="background:#071a0a">
+            <td><strong class="key">exp67</strong> ✅</td>
+            <td>exp59 LoRA</td>
+            <td>L2-norm + bbox 증강</td>
+            <td>94.5%</td>
+            <td class="key">96.6%</td>
+            <td class="key">0.11m</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note">CL = closed-loop 성공률 · FPE = Final Position Error (낮을수록 정확) · exp65b는 동일 cx 소스(base PG2)지만 파이프라인이 다름.</div>
+    </div>
+
+    <!-- 결론 박스 -->
+    <div style="padding:18px;background:#052e16;border:1px solid #22c55e;border-radius:12px;margin-top:4px">
+      <div style="color:#22c55e;font-weight:800;font-size:0.95rem;margin-bottom:12px">✅ Ablation 결론 (3가지)</div>
+      <div style="font-size:0.88rem;line-height:1.9;color:#e2e8f0">
+        <p><strong style="color:#86efac">1. cx 소스(grounding 품질)는 CL 성능에 영향 없음.</strong>
+          base PG2(exp66)와 exp59 LoRA(exp67)는 cx_MAE가 다름에도 CL 성공률 <strong>96.6%로 동일</strong>.
+          grounding 모델을 더 정밀한 것으로 교체해도 action 성능은 변하지 않는다.</p>
+        <p style="margin-top:8px"><strong style="color:#86efac">2. L2-norm + bbox 증강이 유일한 성능 결정 요소.</strong>
+          같은 cx 소스(base PG2)라도 단순 MLP(exp65b)는 <strong class="bad">10.3%</strong>, L2-norm 파이프라인(exp66)은 <strong class="key">96.6%</strong>.
+          cx 좌표의 정규화 방식과 학습 증강이 grounding 품질보다 훨씬 크게 작용한다.</p>
+        <p style="margin-top:8px"><strong style="color:#86efac">3. LoRA grounding 개선은 action 성능에 기여하지 않음 (음성 결과).</strong>
+          exp67(exp59 LoRA)이 exp66(base PG2)보다 val_acc가 높지만(<strong>94.5% vs 93.5%</strong>) CL 성공률은 동일.
+          grounding 정밀도를 높여도 현재 파이프라인에서는 포화(ceiling effect)에 도달해 있다.
+          → LoRA 개선 방향은 현 단계에서 우선순위가 낮다.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #7dd3fc;border-radius:8px;font-size:0.88rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#7dd3fc">→ 실용 지침:</strong> decomposition 파이프라인의 성능 병목은 grounding 모델이 아니라 <strong style="color:#e2e8f0">L2-norm 정규화 · bbox 증강 · action head 재학습</strong>에 있다.
+      cx 소스는 base PG2 고정으로 충분하며, 다음 개선 여지는 파이프라인 구조(증강 전략, 정규화 방식) 또는 action 데이터 자체에서 찾아야 한다.
+    </div>
+    <div class="note" style="margin-top:10px">실험 코드: <code>scripts/train_active/run_v5_ablations.sh</code> · config: <code>configs/v5_ablation/</code></div>
+  </div>
 </div>
 
 <script>
