@@ -97,36 +97,44 @@ def make_detect(model, proc):
 
 def eval_basket(detect, sample):
     cxs, errs, areas, hit, full = [], [], [], 0, 0
-    boxes = []
+    boxes, misses = [], []
+    pv = defaultdict(lambda: {"n": 0, "hit": 0, "full": 0, "err": []})
     for s in sample:
+        b = pv[s["vp"]]; b["n"] += 1
         d = detect(s["img"], "gray basket")
         if d is None:
-            boxes.append(None); continue
-        hit += 1; cxs.append(d["cx"]); areas.append(d["area"])
-        errs.append(abs(d["cx"] - s["cx_ref"]))
-        if d["area"] > 0.9: full += 1
+            boxes.append(None); misses.append({"tag": s["tag"], "vp": s["vp"]}); continue
+        hit += 1; b["hit"] += 1
+        cxs.append(d["cx"]); areas.append(d["area"]); errs.append(abs(d["cx"] - s["cx_ref"]))
+        b["err"].append(abs(d["cx"] - s["cx_ref"]))
+        if d["area"] > 0.9: full += 1; b["full"] += 1
         boxes.append(d["box"])
     n = len(sample)
+    per_vp = {vp: {"n": b["n"], "hit_rate": b["hit"]/max(b["n"],1),
+                   "fullframe_rate": b["full"]/max(b["n"],1),
+                   "cx_mae": float(np.mean(b["err"])) if b["err"] else None}
+              for vp, b in sorted(pv.items())}
     return {
         "hit_rate": hit / max(n, 1), "n": n,
         "cx_mae": float(np.mean(errs)) if errs else None,
         "cx_std": float(np.std(cxs)) if cxs else None,
         "area_mean": float(np.mean(areas)) if areas else None,
         "fullframe_rate": full / max(n, 1),
+        "per_vp": per_vp, "misses": misses,
     }, boxes
 
 
 def eval_ood(detect, chair_imgs):
     """의자에 'detect gray basket' → 박스 나오면 FP(오탐)."""
-    fp, boxes = 0, []
+    fp, boxes, fp_names = 0, [], []
     for name, img in chair_imgs:
         d = detect(img, "gray basket")
         if d is not None:
-            fp += 1; boxes.append(d["box"])
+            fp += 1; boxes.append(d["box"]); fp_names.append({"name": name, "area": round(d["area"], 3)})
         else:
             boxes.append(None)
     n = len(chair_imgs)
-    return {"fp_rate": fp / max(n, 1), "fp": fp, "n": n}, boxes
+    return {"fp_rate": fp / max(n, 1), "fp": fp, "n": n, "fp_names": fp_names}, boxes
 
 
 def grid(samples, boxes_base, boxes_lora, path, title_each):
