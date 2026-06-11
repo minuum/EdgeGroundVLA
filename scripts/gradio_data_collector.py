@@ -230,8 +230,8 @@ class JoystickReader:
         elif self.BTN_L2 >= 0 and btn == self.BTN_L2:
             nd.toggle_teleop(); nd.last_js_log = "[L2] teleop 토글"
         elif self.BTN_R2 >= 0 and btn == self.BTN_R2:
-            nd.js_mode = 'async' if nd.js_mode == 'sync' else 'sync'
-            nd.last_js_log = f"[R2] 모드 → {nd.js_mode.upper()}"
+            nd.start_auto_return()
+            nd.last_js_log = "[R2] 경로 역재생 리턴"
         # ── 수집 전용 (어깨 버튼 L1/R1) ──
         elif btn == self.BTN_REC_START:
             self._rec_start()
@@ -347,10 +347,13 @@ class JoystickReader:
 
                 lx =  -rd(self._axes["left_y"])   # 위 = +lx
                 ly =  -rd(self._axes["left_x"])    # 왼쪽 = +ly
-                az =  -rd(self._axes["right_x"])
+                az =   rd(self._axes["right_x"])   # 반전: 오른쪽 → 우회전
 
                 raw_key = self._axis_to_key(lx, ly, az)
                 key = raw_key
+
+                # L-Stick 활성 여부 — R-Stick az 합성 판단용
+                l_moving = abs(lx) > self.DEADZONE or abs(ly) > self.DEADZONE
 
                 # ASYNC 모드에서만 300ms Jitter Hold 필터를 적용하여 유령 정지(mid-stop) 방지
                 if self._node.js_mode == 'async':
@@ -361,11 +364,14 @@ class JoystickReader:
                     else:
                         if self._neutral_start_time == 0.0:
                             self._neutral_start_time = now
-                        
+
                         if now - self._neutral_start_time < 0.30:
                             key = self._last_non_neutral_key
                         else:
                             key = None
+
+                # L+R 합성: L이 움직이는 동안 R-Stick az를 회전으로 블렌드
+                az_blend = az if (l_moving and key not in ('r', 't')) else 0.0
 
                 # 모드에 따라 분기
                 now = time.time()
@@ -374,13 +380,13 @@ class JoystickReader:
                         # SYNC: 모션은 연속 발행(정지 펄스 없음, 버벅임 제거),
                         # 프레임 캡처만 0.45s 스텝 간격 → V5 호환 cadence 유지
                         do_cap = (now - self._last_step_time) >= self.STEP_INTERVAL
-                        self._node.joystick_drive_sync(key, do_cap)
+                        self._node.joystick_drive_sync(key, do_cap, az_blend=az_blend)
                         if do_cap:
                             self._last_step_time = now
                     else:
                         # ASYNC: 10Hz 연속 스무스 드라이브
                         if (now - self._last_step_time) >= 0.10:
-                            self._node.joystick_drive(key)
+                            self._node.joystick_drive(key, az_blend=az_blend)
                             self._last_step_time = now
                 elif self._prev_key:
                     # 스틱을 놓으면(neutral) 즉시 정지 — SYNC/ASYNC 공통 (안전)
@@ -411,8 +417,8 @@ class JoystickReader:
                             self._node.toggle_teleop()
                             self._node.last_js_log = "[L2] teleop 토글"
                         else:
-                            self._node.js_mode = 'async' if self._node.js_mode == 'sync' else 'sync'
-                            self._node.last_js_log = f"[R2] 모드 → {self._node.js_mode.upper()}"
+                            self._node.start_auto_return()
+                            self._node.last_js_log = "[R2] 경로 역재생 리턴"
                         print(f"[Joystick] {self._node.last_js_log}")
                     self._trig_prev[ax] = tv
 
@@ -513,7 +519,7 @@ class GradioCollectorNode(Node):
             'q': (1.15, 1.15, 0.0), 'w': (1.15, 0.0, 0.0), 'e': (1.15, -1.15, 0.0),
             'a': (0.0, 1.15, 0.0), 's': (0.0, 0.0, 0.0), 'd': (0.0, -1.15, 0.0),
             'z': (-1.15, 1.15, 0.0), 'x': (-1.15, 0.0, 0.0), 'c': (-1.15, -1.15, 0.0),
-            'r': (0.0, 0.0, 0.20), 't': (0.0, 0.0, -0.20),
+            'r': (0.0, 0.0, 0.15), 't': (0.0, 0.0, -0.15),
             'g': (0.0, 0.0, 0.0)
         }
         
@@ -567,7 +573,7 @@ class GradioCollectorNode(Node):
                 else: self.driver.stop()
             except: pass
 
-    def joystick_drive(self, key):
+    def joystick_drive(self, key, az_blend=0.0):
         """조이스틱 전용 — stop 타이머 없이 누르는 동안 연속 이동, None이면 즉시 정지."""
         if key is None:
             self.publish_cmd_hw((0.0, 0.0, 0.0))
@@ -575,13 +581,14 @@ class GradioCollectorNode(Node):
             return
         if key not in self.WASD_TO_CONTINUOUS:
             return
-        act = self.WASD_TO_CONTINUOUS[key]
+        base = self.WASD_TO_CONTINUOUS[key]
+        act = (base[0], base[1], az_blend * 0.15) if az_blend != 0.0 else base
         self.last_js_log = f"[JS] {self.TELEOP_LABELS.get(key, key.upper())}  {act}"
         if self.collecting and self.capture_mode == CaptureMode.PRE_CACHE:
             self._capture_pre_cache(act)
         self.publish_cmd_hw(act)
 
-    def joystick_drive_sync(self, key, do_capture):
+    def joystick_drive_sync(self, key, do_capture, az_blend=0.0):
         """SYNC 조이스틱 연속 주행 — 정지 펄스(timed_stop) 없이 publish.
         모션은 매 호출 연속 발행(버벅임 제거), 프레임 캡처는 do_capture=True일 때만
         (0.45s 스텝 간격 → V5 호환 기록 cadence 유지). neutral(None)이면 즉시 정지."""
@@ -591,7 +598,8 @@ class GradioCollectorNode(Node):
             return
         if key not in self.WASD_TO_CONTINUOUS:
             return
-        act = self.WASD_TO_CONTINUOUS[key]
+        base = self.WASD_TO_CONTINUOUS[key]
+        act = (base[0], base[1], az_blend * 0.15) if az_blend != 0.0 else base
         self.last_js_log = f"[JS] {self.TELEOP_LABELS.get(key, key.upper())}  {act}"
         if do_capture and self.collecting and self.capture_mode == CaptureMode.PRE_CACHE:
             self._capture_pre_cache(act)
@@ -645,13 +653,22 @@ class GradioCollectorNode(Node):
         def run():
             self.is_returning = True
             try:
-                rev_actions = [(-a['action'][0], -a['action'][1], -a['action'][2]) for a in reversed(self.episode_buffer)]
-                for act in rev_actions:
+                buf = self.episode_buffer[:]
+                rev_acts = [(-a['action'][0], -a['action'][1], -a['action'][2])
+                            for a in reversed(buf)]
+                dts = [max(0.05, min(buf[i+1]['timestamp'] - buf[i]['timestamp'], 0.6))
+                       for i in range(len(buf)-1)]
+                dts.append(dts[-1] if dts else 0.1)
+                for act, dt in zip(rev_acts, dts):
                     if not self.is_returning: break
-                    self.publish_cmd_hw(act); time.sleep(0.4)
+                    self.publish_cmd_hw(act)
+                    time.sleep(dt)
                 if self.is_returning:
-                    for _ in range(3): self.publish_cmd_hw((0.0, 0.0, 0.0)); time.sleep(0.05)
-            finally: self.is_returning = False
+                    for _ in range(3):
+                        self.publish_cmd_hw((0.0, 0.0, 0.0))
+                        time.sleep(0.05)
+            finally:
+                self.is_returning = False
             
         threading.Thread(target=run, daemon=True).start()
         return "🔄 Returning to Start..."
@@ -1040,6 +1057,94 @@ def collector_diagnostics(_=None):
     return "\n".join(lines)
 
 
+# ── 컨트롤러 이미지 오버레이 ──────────────────────────────────────────────────
+_CTRL_BASE_CACHE = None
+
+def _load_ctrl_base():
+    global _CTRL_BASE_CACHE
+    if _CTRL_BASE_CACHE is None:
+        p = os.path.join(_PROJECT_ROOT, 'docs/assets/controller_annotated.png')
+        if os.path.exists(p):
+            _CTRL_BASE_CACHE = cv2.imread(p)
+    return _CTRL_BASE_CACHE
+
+# (x1, y1, w, h) — 700×718 이미지 기준
+_CTRL_BBOXES = {
+    'stop':      (502, 157, 54, 51),   # A
+    'undo':      (549, 115, 49, 49),   # B
+    'discard':   (454, 114, 49, 51),   # X
+    'teleop':    (501,  72, 48, 50),   # Y
+    'rec_start': (100,  68, 65, 30),   # L1
+    'rec_save':  (515,  68, 65, 30),   # R1
+    'select':    (292, 128, 38, 41),   # SELECT
+    'start':     (392, 129, 38, 41),   # START
+    'd_left':    (145, 122, 39, 40),   # D◀
+    'd_right':   (231, 122, 39, 40),   # D▶
+    'd_up':      (188,  75, 39, 42),   # D▲
+    'd_down':    (188, 166, 39, 41),   # D▼
+    'r2':        (535, 472, 40, 23),   # R2 (사이드뷰)
+}
+_CTRL_LSTICK_CX, _CTRL_LSTICK_CY, _CTRL_LSTICK_R = 282, 235, 50
+
+def get_controller_image(_=None):
+    from PIL import Image as PIL_Image
+    base = _load_ctrl_base()
+    if base is None:
+        return None
+    img = base.copy()
+
+    connected = joystick_reader and joystick_reader.status.get('connected')
+    if connected:
+        s  = joystick_reader.status
+        JR = joystick_reader
+
+        btn_to_box = {
+            JR.BTN_STOP:      'stop',
+            JR.BTN_UNDO:      'undo',
+            JR.BTN_DISCARD:   'discard',
+            JR.BTN_TELEOP:    'teleop',
+            JR.BTN_REC_START: 'rec_start',
+            JR.BTN_REC_SAVE:  'rec_save',
+            JR.BTN_SELECT:    'select',
+            JR.BTN_START:     'start',
+        }
+        if getattr(JR, 'BTN_R2', -1) >= 0:
+            btn_to_box[JR.BTN_R2] = 'r2'
+
+        lit = set()
+        for bi in s.get('buttons', []):
+            if bi in btn_to_box:
+                lit.add(btn_to_box[bi])
+        hx, hy = s.get('hat', (0, 0))
+        if hx < 0: lit.add('d_left')
+        if hx > 0: lit.add('d_right')
+        if hy > 0: lit.add('d_up')
+        if hy < 0: lit.add('d_down')
+
+        # 지속 상태 표시
+        if node and node.teleop_mode:   lit.add('teleop')
+        if node and node.collecting:    lit.add('rec_start')
+        if node and node.is_returning:  lit.add('r2')
+
+        overlay = img.copy()
+        for key, (x, y, w, h) in _CTRL_BBOXES.items():
+            if key in lit:
+                cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 255, 100), -1)
+        cv2.addWeighted(overlay, 0.45, img, 0.55, 0, img)
+
+        # L-Stick 위치 점
+        lx = s.get('lx', 0.0)
+        ly = s.get('ly', 0.0)
+        dx = int(_CTRL_LSTICK_CX + ly * _CTRL_LSTICK_R * 0.6)
+        dy = int(_CTRL_LSTICK_CY - lx * _CTRL_LSTICK_R * 0.6)
+        cv2.circle(img, (dx, dy), 8, (0, 200, 255), -1)
+        cv2.circle(img, (dx, dy), 8, (0, 100, 180), 2)
+
+    ih = img.shape[0]
+    out = cv2.resize(img, (int(img.shape[1] * 340 / ih), 340))
+    return PIL_Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB))
+
+
 def pick_server_port(default_port: int, span: int = 20) -> int:
     try:
         for port in range(default_port, default_port + span):
@@ -1388,15 +1493,25 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
                 grid_btns['g'] = gr.Button(f"{OFFLINE_TELEOP_LABELS['g']} (G)", elem_id="btn_g", variant="secondary", size="sm", interactive=bool(node))
 
         with gr.Column(scale=1):
+            # ── 0) 컨트롤러 이미지 ────────────────────────────────────────────────
+            ctrl_img = gr.Image(
+                value=get_controller_image(),
+                label=None, show_label=False,
+                interactive=False,
+                container=False,
+            )
             # ── 1) 시나리오 (가장 자주 쓰는 액션 — 최상단 고정) ──────────────────
             with gr.Group():
                 gr.Markdown("### 🎯 시나리오 — 클릭해서 수집 시작")
                 scen_click_list = []
+                scen_rec_btns = []
                 for k, v in V5_SCENARIOS.items():
+                    cur = node.stats.get(k, 0) if node else 0
                     with gr.Row():
-                        b_rec = gr.Button(f"[{k}] {v['name']}", elem_classes=["scenario-btn"], scale=4, interactive=bool(node))
+                        b_rec = gr.Button(f"[{k}] {v['name']}  {cur}/{v['target']}", elem_classes=["scenario-btn"], scale=4, interactive=bool(node))
                         b_auto = gr.Button("▶️", scale=1, min_width=44, interactive=bool(node))
                         scen_click_list.append((k, b_rec, b_auto))
+                        scen_rec_btns.append((k, b_rec))
             # ── 2) 자유 수집 ─────────────────────────────────────────────────────
             with gr.Group():
                 gr.Markdown("#### 🎲 자유 수집 (다양성 21개 = 좌/중/우 × 7)")
@@ -1553,6 +1668,18 @@ with gr.Blocks(title="MoNaVLA V5 PRO") as demo:
         object_fit="cover", show_label=True,
     )
 
+    # 시나리오 버튼 레이블 카운트 업데이트
+    def update_scen_labels():
+        if not node:
+            return [gr.update() for _ in scen_rec_btns]
+        node.load_all_stats()
+        return [
+            gr.update(value=f"[{k}] {V5_SCENARIOS[k]['name']}  {node.stats.get(k, 0)}/{V5_SCENARIOS[k]['target']}")
+            for k, _ in scen_rec_btns
+        ]
+    gr.Timer(3).tick(fn=update_scen_labels, outputs=[b for _, b in scen_rec_btns])
+
+    gr.Timer(0.1).tick(fn=get_controller_image, outputs=[ctrl_img])
     gr.Timer(1).tick(fn=update_ui_state, outputs=[status_markdown, stats_tbl])
     if node:
         gr.Timer(2).tick(fn=free_stats_md, outputs=[free_stats])
