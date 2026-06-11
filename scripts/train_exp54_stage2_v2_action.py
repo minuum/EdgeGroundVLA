@@ -99,8 +99,18 @@ class ActionMLP(nn.Module):
 # ─── 데이터 유틸 ─────────────────────────────────────
 
 def load_images(h5_path, indices):
+    import io as _io
     with h5py.File(h5_path, "r") as f:
-        return [Image.fromarray(f["observations"]["images"][i]) for i in indices]
+        imgs_ds = f["observations"]["images"]
+        result = []
+        for i in indices:
+            raw = imgs_ds[i]
+            if hasattr(raw, "dtype") and raw.dtype != object and raw.ndim >= 2:
+                result.append(Image.fromarray(raw.astype("uint8")))
+            else:
+                arr = np.frombuffer(bytes(raw), dtype=np.uint8)
+                result.append(Image.open(_io.BytesIO(arr)).convert("RGB"))
+        return result
 
 
 def bbox_feat(frames, t, augment=False, rng=None, aug=None):
@@ -113,7 +123,10 @@ def bbox_feat(frames, t, augment=False, rng=None, aug=None):
     arr = []
     for k in range(WINDOW):
         fr = frames[max(0, t - (WINDOW - 1 - k))]
-        cx, cy, area, has = fr["cx"], fr["cy"], fr["area"], float(fr["has_bbox"])
+        cx   = fr.get("cx",   fr.get("cx_det",   0.5))
+        cy   = fr.get("cy",   fr.get("cy_det",   0.5))
+        area = fr.get("area", fr.get("area_det", 0.05))
+        has  = float(fr.get("has_bbox", fr.get("detected", False)))
         if augment and aug is not None and has > 0.5:
             cx += rng.normal(aug["mu_x"], aug["sd_x"])          # 계통 오프셋 + 지터
             cy += rng.normal(aug["mu_y"], aug["sd_y"])
@@ -161,7 +174,7 @@ def precompute_features(enc, eps, device, label):
     t0 = time.time()
     for i, ep in enumerate(eps):
         try:
-            imgs = load_images(ep["episode"], list(range(len(ep["frames"]))))
+            imgs = load_images(ep["episode"], [fr["frame_idx"] for fr in ep["frames"]])
         except Exception as e:
             print(f"  skip {ep['episode']}: {e}", flush=True)
             cache[ep["episode"]] = None
@@ -211,11 +224,20 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"\n[DEVICE] {device}", flush=True)
 
-    data = json.loads(DATA_PATH.read_text())
+    data = json.loads(Path(args.data).read_text())
     ep_labels = [ep["path_type"] for ep in data]
 
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-    tr_idx, te_idx = next(sss.split(np.zeros(len(data)), ep_labels))
+    from collections import Counter
+    label_counts = Counter(ep_labels)
+    can_stratify = all(c >= 2 for c in label_counts.values())
+    if can_stratify:
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        tr_idx, te_idx = next(sss.split(np.zeros(len(data)), ep_labels))
+    else:
+        print(f"[WARN] singleton path_type 존재 {[k for k,v in label_counts.items() if v<2]} → random split 사용")
+        from sklearn.model_selection import ShuffleSplit
+        ss = ShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        tr_idx, te_idx = next(ss.split(np.zeros(len(data))))
     tr_eps = [data[i] for i in tr_idx]
     te_eps = [data[i] for i in te_idx]
     print(f"Train: {len(tr_eps)} ep  Val: {len(te_eps)} ep", flush=True)
@@ -291,6 +313,8 @@ def train(args):
             print(f"{epoch:>6}  {acc:>8.4f}  {best_acc:>8.4f}", flush=True)
 
     # 최종 평가 (best 모델)
+    if best_state is None:
+        best_state = {k: v.cpu().clone() for k, v in mlp.state_dict().items()}
     mlp.load_state_dict(best_state)
     final_acc, per_class = evaluate(te_cache, te_eps, mlp, device)
 
@@ -331,6 +355,7 @@ def main():
                    help="산포(std)·miss_p 스케일 (sweep용: 0.5/1.0/1.5)")
     p.add_argument("--seed",        type=int,   default=42, help="증강 rng 시드")
     p.add_argument("--tag",         default=None, help="ckpt suffix (기본: aug{noise_scale})")
+    p.add_argument("--data",        default=str(DATA_PATH), help="학습 데이터 JSON (기본: HSV bbox_nav_exp46)")
     args = p.parse_args()
 
     t0 = time.time()

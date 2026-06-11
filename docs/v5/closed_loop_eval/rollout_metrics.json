@@ -2064,6 +2064,24 @@
       "mean_fpe": 0.9405355814078132,
       "mean_tld": 0.9267993897728782,
       "n_episodes": 29
+    },
+    "exp66_basepg2_aug": {
+      "success_rate": 0.9655172413793104,
+      "mean_fpe": 0.10168016768625433,
+      "mean_tld": 1.0053353142660417,
+      "n_episodes": 29
+    },
+    "exp67_exp59_aug": {
+      "success_rate": 0.9655172413793104,
+      "mean_fpe": 0.11118007546126991,
+      "mean_tld": 0.9968068866514123,
+      "n_episodes": 29
+    },
+    "chair_pg2_aug_cl": {
+      "success_rate": 0.5714285714285714,
+      "mean_fpe": 0.870353064600533,
+      "mean_tld": 1.0248155362677915,
+      "n_episodes": 7
     }
   },
   "per_path": {
@@ -6101,6 +6119,379 @@
           "fpe": 1.4727185746095552,
           "tld": 0.7824033955936238,
           "success": false
+        }
+      ]
+    },
+    "exp66_basepg2_aug": {
+      "right_left": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "left_right": [
+        {
+          "fpe": 0.22999999999999998,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "left_straight": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "center_straight": [
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 1.0295866830266496,
+          "success": true
+        },
+        {
+          "fpe": 0.1626345596729059,
+          "tld": 1.0591733660532994,
+          "success": true
+        },
+        {
+          "fpe": 0.4741571469460309,
+          "tld": 1.088760049079949,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0591733660532994,
+          "success": true
+        }
+      ],
+      "center_right": [
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 1.0190636528059789,
+          "success": true
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 1.0190636528059789,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "right_straight": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "left_left": [
+        {
+          "fpe": 0.22999999999999998,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.22999999999999998,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "right_right": [
+        {
+          "fpe": 0.5173520104737575,
+          "tld": 0.8997717953170452,
+          "success": false
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 1.024022629125626,
+          "success": true
+        },
+        {
+          "fpe": 0.18458114580868168,
+          "tld": 0.917981613835429,
+          "success": true
+        }
+      ],
+      "center_left": [
+        {
+          "fpe": 0.22999999999999998,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 1.0190636528059789,
+          "success": true
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 1.0190636528059789,
+          "success": true
+        }
+      ]
+    },
+    "exp67_exp59_aug": {
+      "right_left": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.25714781741247567,
+          "tld": 0.9807210547928992,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "left_right": [
+        {
+          "fpe": 0.22999999999999998,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 0.980721054792899,
+          "success": true
+        }
+      ],
+      "left_straight": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "center_straight": [
+        {
+          "fpe": 0.1626345596729059,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.2571478174124758,
+          "tld": 1.0295866830266496,
+          "success": true
+        },
+        {
+          "fpe": 0.4146383966783587,
+          "tld": 1.0295866830266496,
+          "success": true
+        },
+        {
+          "fpe": 0.2571478174124758,
+          "tld": 1.0295866830266496,
+          "success": true
+        }
+      ],
+      "center_right": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 0.9809363471940212,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "right_straight": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "left_left": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.22999999999999998,
+          "tld": 1.0,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0,
+          "success": true
+        }
+      ],
+      "right_right": [
+        {
+          "fpe": 0.7709246339794539,
+          "tld": 0.877066005652199,
+          "success": false
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 1.024022629125626,
+          "success": true
+        },
+        {
+          "fpe": 0.18458114580868168,
+          "tld": 0.917981613835429,
+          "success": true
+        }
+      ],
+      "center_left": [
+        {
+          "fpe": 0.0,
+          "tld": 1.0381273056119575,
+          "success": true
+        },
+        {
+          "fpe": 0.0,
+          "tld": 1.0381273056119575,
+          "success": true
+        },
+        {
+          "fpe": 0.11499999999999999,
+          "tld": 0.9809363471940212,
+          "success": true
+        }
+      ]
+    },
+    "chair_pg2_aug_cl": {
+      "center_right": [
+        {
+          "fpe": 2.417736544787293,
+          "tld": 0.9758218457140739,
+          "success": false
+        },
+        {
+          "fpe": 0.16263455967290608,
+          "tld": 1.0247509171259415,
+          "success": true
+        },
+        {
+          "fpe": 0.4879036790187187,
+          "tld": 0.9713633700905842,
+          "success": true
+        }
+      ],
+      "center_left": [
+        {
+          "fpe": 1.5976310587867304,
+          "tld": 1.0101563435432606,
+          "success": false
+        },
+        {
+          "fpe": 0.5750000000000008,
+          "tld": 1.083525332063852,
+          "success": false
+        }
+      ],
+      "center_straight": [
+        {
+          "fpe": 0.36366193091936366,
+          "tld": 1.0756670039596605,
+          "success": true
+        },
+        {
+          "fpe": 0.48790367901871823,
+          "tld": 1.0324239413771676,
+          "success": true
         }
       ]
     }

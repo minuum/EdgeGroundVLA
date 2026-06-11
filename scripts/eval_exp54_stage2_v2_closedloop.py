@@ -91,7 +91,11 @@ def bbox_feat(frames, t):
     arr = []
     for k in range(WINDOW):
         fr = frames[max(0, t - (WINDOW - 1 - k))]
-        arr.extend([fr["cx"], fr["cy"], fr["area"], float(fr["has_bbox"])])
+        cx   = fr.get("cx",   fr.get("cx_det",   0.5))
+        cy   = fr.get("cy",   fr.get("cy_det",   0.5))
+        area = fr.get("area", fr.get("area_det", 0.05))
+        has  = float(fr.get("has_bbox", fr.get("detected", False)))
+        arr.extend([cx, cy, area, has])
     return np.array(arr, dtype=np.float32)
 
 
@@ -111,9 +115,19 @@ def eval_episode(ep_entry, enc, mlp, device):
             if not candidates:
                 return None, None
             h5_path = candidates[0]
+        import io as _io
         with h5py.File(str(h5_path), "r") as f:
-            imgs = [Image.fromarray(f["observations"]["images"][i])
-                    for i in range(len(frames))]
+            imgs_ds = f["observations"]["images"]
+            n_imgs  = len(imgs_ds)
+            imgs = []
+            for fr in frames:
+                idx = min(fr["frame_idx"], n_imgs - 1)
+                raw = imgs_ds[idx]
+                if hasattr(raw, "dtype") and raw.dtype != object and raw.ndim >= 2:
+                    imgs.append(Image.fromarray(raw.astype("uint8")))
+                else:
+                    arr = np.frombuffer(bytes(raw), dtype=np.uint8)
+                    imgs.append(Image.open(_io.BytesIO(arr)).convert("RGB"))
     except Exception as e:
         print(f"  [SKIP] {ep_path}: {e}")
         return None, None
@@ -173,8 +187,15 @@ def main():
     data = json.loads(Path(args.data).read_text())
     print(f"[DATA] {args.data} (tag={args.tag})")
     ep_labels = [ep["path_type"] for ep in data]
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-    _, te_idx = next(sss.split(np.zeros(len(data)), ep_labels))
+    from collections import Counter
+    can_stratify = all(c >= 2 for c in Counter(ep_labels).values())
+    if can_stratify:
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        _, te_idx = next(sss.split(np.zeros(len(data)), ep_labels))
+    else:
+        from sklearn.model_selection import ShuffleSplit
+        ss = ShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        _, te_idx = next(ss.split(np.zeros(len(data))))
     val_eps = [data[i] for i in te_idx]
     print(f"Val episodes: {len(val_eps)}")
 
