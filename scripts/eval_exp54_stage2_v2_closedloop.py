@@ -155,6 +155,10 @@ def main():
     p.add_argument("--dt",          type=float, default=DT_DEFAULT)
     p.add_argument("--success_fpe", type=float, default=0.5)
     p.add_argument("--ckpt",        type=str,   default=str(STAGE2_CKPT))
+    p.add_argument("--data",        type=str,   default=str(DATA_PATH),
+                   help="CL 평가 데이터 (cx 소스 매칭용). 기본=HSV 벤치마크")
+    p.add_argument("--tag",         type=str,   default="exp54_s2v2",
+                   help="결과 JSON에 기록할 라벨")
     args = p.parse_args()
 
     ckpt_path = Path(args.ckpt)
@@ -166,7 +170,8 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[DEVICE] {device}")
 
-    data = json.loads(DATA_PATH.read_text())
+    data = json.loads(Path(args.data).read_text())
+    print(f"[DATA] {args.data} (tag={args.tag})")
     ep_labels = [ep["path_type"] for ep in data]
     sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
     _, te_idx = next(sss.split(np.zeros(len(data)), ep_labels))
@@ -221,13 +226,13 @@ def main():
     else:
         existing = {"summary": {}, "per_path": {}}
 
-    existing["summary"]["exp54_s2v2"] = {
+    existing["summary"][args.tag] = {
         "success_rate": success / total if total > 0 else 0,
         "mean_fpe": float(np.mean([m["fpe"] for m in all_metrics])),
         "mean_tld": float(np.mean([m["tld"] for m in all_metrics])),
         "n_episodes": total,
     }
-    existing["per_path"]["exp54_s2v2"] = {
+    existing["per_path"][args.tag] = {
         pt: [{"fpe": float(m["fpe"]), "tld": float(m["tld"]), "success": bool(m["success"])}
              for m in ms]
         for pt, ms in results_by_path.items()
