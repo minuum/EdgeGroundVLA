@@ -211,6 +211,35 @@
     </div>
   </div>
 
+  <!-- C4. 증강 강건성 -->
+  <h2><span class="badge" style="background:#22c55e;color:#0a0f1a">C4</span> 증강(Augmentation) 강건성 — base PG2 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— "데이터셋이 적은가?"의 직접 답</span></h2>
+  <div class="card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;line-height:1.6">
+      실제 에피소드가 한정적이므로, 기존 basket 프레임에 <strong>11가지 변형</strong>(밝기·대비·블러·노이즈·저해상도·회전±12°·좌우반전·부분가림)을 가해 grounding이 흔들리는지 점검.
+      변형에 약한 축 = 데이터셋이 보강해야 할 다양성. <strong style="color:#e2e8f0">원본 검출 성공 12프레임 기준, 중심 이동(cx_drift)으로 안정성 측정.</strong>
+    </div>
+    <div style="overflow-x:auto;margin-bottom:14px">
+      <table style="font-size:0.78rem">
+        <thead><tr><th>변형</th><th>hit</th><th>cx_drift</th><th>full-frame</th><th></th>
+        <th>변형</th><th>hit</th><th>cx_drift</th><th>full-frame</th></tr></thead>
+        <tbody>
+          <tr><td>original</td><td>100%</td><td>0.000</td><td>0%</td><td style="border:0"></td><td>downscale</td><td>100%</td><td>0.001</td><td>0%</td></tr>
+          <tr><td>bright_up</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>rotate +12°</td><td>100%</td><td>0.008</td><td>0%</td></tr>
+          <tr><td>bright_down</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>rotate −12°</td><td>100%</td><td>0.009</td><td>0%</td></tr>
+          <tr><td class="bad">low_contrast</td><td class="bad">92%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>hflip(좌우반전)</td><td>100%</td><td>0.002</td><td>0%</td></tr>
+          <tr><td>blur</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>occlude(부분가림)</td><td>100%</td><td>0.002</td><td>0%</td></tr>
+          <tr><td>noise</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <img src="grounding_hub/aug_grid.png" alt="증강 강건성 그리드">
+    <div class="note">행=대표 3프레임, 열=11변형. 초록 박스가 모든 변형에서 바구니에 고정. cx_drift ~0.001(중심 거의 안 움직임).</div>
+    <div style="margin-top:14px;padding:14px;background:#071a0a;border-left:3px solid #22c55e;border-radius:8px;font-size:0.88rem;line-height:1.7;color:#e2e8f0">
+      <strong class="key">→ 결론: base PG2 grounding은 데이터 부족 문제가 아니다.</strong> 좌우반전·회전·저해상도·부분가림·조명 극단 전부 <strong>hit 100%·중심 이동 ~0</strong>로 견고.
+      사전학습 지식이 우리 소규모 데이터가 못 덮는 변형까지 일반화한다. 유일한 약점은 <strong>저대비(92%)</strong> — 저조도/역광 환경이 데이터셋 보강 1순위 후보.
+    </div>
+  </div>
+
   <!-- D. 모델별 그리드 -->
   <h2><span class="badge" style="background:#f59e0b;color:#0a0f1a">D</span> 모델별 BBox 그리드 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 같은 8프레임, 초록=정상·빨강=full-frame</span></h2>
   <div class="card">
@@ -239,7 +268,8 @@
       <p><strong class="key">1.</strong> 측면·OOD에서 base PG2가 견고(주행구간 추적 100%, full-frame 0%) → <strong>오예측의 원인은 grounding이 아니다.</strong> 실주행 궤적 붕괴는 action head(조향)·action chunk·데이터 분포 쪽 문제로 좁혀진다. 유일한 grounding 약점은 출발 첫 프레임(바구니 화면 밖)인데, 이는 STOP/대기 로직으로 처리할 영역이지 grounding 모델 교체로 풀 문제가 아니다.</p>
       <p style="margin-top:8px"><strong class="key">2.</strong> 7개 모델 중 <strong>base PG2를 종합적으로 이긴 것은 없다.</strong> pure Kosmos는 바구니 검출은 100%지만 의자에 <strong>100% 오탐</strong>(negative 구분 불가), vision-LoRA(exp64)·exp58은 full-frame 붕괴, exp56은 LoRA가 Kosmos를 파괴. exp59만 OOD 억제(0%)라는 부분 미덕이나 cx 안정성은 더 나쁨.</p>
       <p style="margin-top:8px"><strong class="key">2-1.</strong> <strong>LoRA의 보편적 위험:</strong> Kosmos LoRA(exp56)·PG2 vision LoRA(exp64)·PG2 LM LoRA(exp58) 모두 grounding을 <strong>악화</strong>시켰다. 소규모 데이터 LoRA가 사전학습된 grounding 표현을 망가뜨린다는 일관된 신호.</p>
-      <p style="margin-top:8px"><strong class="key">3.</strong> <strong>결론:</strong> grounding = base PG2 고정. 다음 작업은 <strong>의자 객체 데이터 재수집 + Stage2 action 재학습</strong>으로 오예측(action)을 직접 공략.</p>
+      <p style="margin-top:8px"><strong class="key">3.</strong> <strong>데이터 부족 문제 아님:</strong> 11가지 증강(회전·반전·블러·저해상도·가림·조명)에 base PG2가 hit 100%·중심이동 ~0으로 견고. 사전학습 지식이 소규모 데이터의 빈틈을 메운다. 유일 약점 = 저대비(92%) → 저조도 데이터가 보강 1순위.</p>
+      <p style="margin-top:8px"><strong class="key">4.</strong> <strong>결론:</strong> grounding = base PG2 고정. 다음 작업은 <strong>의자 객체 데이터 재수집 + Stage2 action 재학습</strong>으로 오예측(action)을 직접 공략.</p>
     </div>
     <div class="note" style="margin-top:12px">평가 스크립트: <code>scripts/eval_grounding_hub.py</code> · <code>scripts/grounding_sideangle_episodes.py</code> · 데이터: <code>docs/v5/grounding_hub/hub_results.json</code></div>
   </div>
