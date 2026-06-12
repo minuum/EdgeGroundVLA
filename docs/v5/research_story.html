@@ -271,7 +271,7 @@
     <a class="toc-item" href="#ch33" data-target="ch33"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 33</span><span class="toc-label">파이프라인이 범인 — CL 격차 원인 확정 (exp65~66)</span></a>
     <a class="toc-item" href="#ch34" data-target="ch34"><span class="toc-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6">CH 34</span><span class="toc-label">RoboVLMs Head Ablation — LSTM=MLP 확인 (exp68~70)</span></a>
     <a class="toc-item" href="#ch35" data-target="ch35"><span class="toc-badge" style="background:rgba(20,184,166,0.15);color:#14b8a6">CH 35</span><span class="toc-label">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</span></a>
-    <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
+    <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
 </nav>
@@ -7618,14 +7618,81 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 </div>
 
 <div class="chapter" id="next-step">
-  <div class="chapter-header">
-    <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">NEXT STEP</span>
-    <h2 class="chapter-title">6/7 현재 — 미팅 피드백 대응 & 로드맵 투두(TODO)</h2>
+  <div class="chapter-header" style="background:linear-gradient(135deg,#0f1f10 0%,#0a1628 100%);border-left:4px solid #4ade80">
+    <span class="chapter-num" style="background:#4ade80;color:#0a0f1a">NEXT STEP</span>
+    <h2 class="chapter-title">6/12 현재 — 미팅 3줄 결론 & 로드맵</h2>
   </div>
-  <p class="chapter-desc">
-    6/4 미팅 피드백(조향 오실레이션 및 오버슈팅 bloker) 및 6/7 대체 객체 가이드라인 수립 결과에 따라 로드맵을 갱신합니다.
-    기존 R1~R6 피드백 멘트들을 3대 학술 영역으로 통폐합하고, 각 영역에 대응하는 완료 항목 및 향후 투두(TODO) 리스트를 정비합니다.
-  </p>
+
+  <!-- ★ 6/12 미팅 3줄 결론 -->
+  <div style="background:linear-gradient(135deg,#051a10,#071428);border:2px solid #4ade80;border-radius:16px;padding:24px;margin-bottom:28px">
+    <div style="color:#4ade80;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px">
+      📌 2026-06-12 미팅 3줄 결론
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="min-width:28px;height:28px;background:#4ade80;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.85rem;color:#0a0f1a;flex-shrink:0">1</div>
+        <div>
+          <div style="color:#e2e8f0;font-weight:800;margin-bottom:4px">파이프라인(L2-norm + bbox aug)이 유일한 결정 변수 — cx 소스(grounding 품질)는 무관</div>
+          <div style="color:#94a3b8;font-size:0.84rem;line-height:1.7">
+            단순 MLP(Exp65b) <span style="color:#fca5a5;font-weight:700">10.3%</span> → L2+aug(Exp66) <span style="color:#4ade80;font-weight:700">96.6%</span> (×9.4배).
+            cx 소스 3종(HSV · base PG2 · exp59 LoRA)을 교체해도 CL 동일(96.6%) →
+            grounding LoRA 개선 7개(Exp56~64)가 action에 기여하지 않음을 실험으로 확정.
+            <span style="color:#64748b">CH33 · Table 2-A/B</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="min-width:28px;height:28px;background:#a78bfa;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.85rem;color:#0a0f1a;flex-shrink:0">2</div>
+        <div>
+          <div style="color:#e2e8f0;font-weight:800;margin-bottom:4px">RoboVLMs Action Head 비교 완료 — LSTM = ActionMLP (window-baked 등가, 우리가 더 경량)</div>
+          <div style="color:#94a3b8;font-size:0.84rem;line-height:1.7">
+            Linear <span style="color:#fca5a5">69.0%</span> → FCHead <span style="color:#fbbf24">93.1%</span> → LSTMHead(RoboVLMs) <span style="color:#4ade80">96.6%</span> = ActionMLP(ours) <span style="color:#4ade80">96.6%</span>.
+            RoboVLMs LSTM-based decoder와 동등 성능을 window-flat MLP로 달성 →
+            더 경량·추론 빠름. <strong style="color:#e2e8f0">lora_B=0 버그</strong>(RoboVLMs)도 발견.
+            <span style="color:#64748b">CH34 · Table 2-C</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="min-width:28px;height:28px;background:#14b8a6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.85rem;color:#0a0f1a;flex-shrink:0">3</div>
+        <div>
+          <div style="color:#e2e8f0;font-weight:800;margin-bottom:4px">Window ablation 완료 — CL은 w≥4에서 포화, FPE는 window에 민감</div>
+          <div style="color:#94a3b8;font-size:0.84rem;line-height:1.7">
+            MLP w=2에서만 CL <span style="color:#fca5a5">93.1%</span>로 하락, w≥4면 전부 96.6% 포화 →
+            최소 4프레임 히스토리 필요. LSTM w=16이 FPE <span style="color:#2dd4bf;font-weight:700">0.080m</span> (전체 최저) →
+            trajectory 정밀도는 긴 맥락 활용 가능.
+            <span style="color:#64748b">CH35 · Table 2-D</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SOTA 비교 위치 안내 -->
+    <div style="margin-top:18px;padding:10px 14px;background:#0a1628;border-radius:8px;font-size:0.8rem;color:#64748b">
+      📊 타 VLA 논문(RT-2 · OpenVLA · NaVILA · RoboFlamingo)과의 정성·정량 비교 →
+      <a href="#ch19" style="color:#06b6d4">CH19 (타 VLA 논문 비교)</a>
+      &nbsp;|&nbsp; 논문 Table 초안 →
+      <a href="TABLE1_PAPER_DRAFT.md" style="color:#fbbf24">TABLE1_PAPER_DRAFT.md</a>
+    </div>
+  </div>
+
+  <!-- 다음 액션 -->
+  <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:12px;padding:18px;margin-bottom:24px">
+    <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:12px">🔜 다음 액션 (6/12 기준)</div>
+    <div style="font-size:0.84rem;color:#cbd5e1;line-height:2.2">
+      <span style="color:#4ade80">✅</span> 파이프라인 ablation (CH33) · Head ablation (CH34) · Window ablation (CH35) 완료<br>
+      <span style="color:#4ade80">✅</span> Grounding Hub §G 연동 — 전체 실험 통합 시각화<br>
+      <span style="color:#4ade80">✅</span> Stage2 v2 추론 서버 soda 배포 (stage2_v2_inference_server.py)<br>
+      <span style="color:#fbbf24">⏳</span> 의자 좌/우 에피소드 수집 (현재 ~1ep → 목표 15+15ep)<br>
+      <span style="color:#94a3b8">🔲</span> 의자 Stage2 학습 + CL eval → 다물체 Goal-Conditioned 검증<br>
+      <span style="color:#94a3b8">🔲</span> 논문 본문 서술 (Table 1/2A/2B/2C/2D 수치 확정 완료, body 필요)
+    </div>
+  </div>
 
   <!-- Grounding Hub 진입 배너 -->
   <a href="grounding_hub.html" style="display:block;text-decoration:none;margin-bottom:24px">
