@@ -1,0 +1,68 @@
+{
+  "original": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0,
+    "fullframe_rate": 0.0
+  },
+  "bright_up": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0012218963831867092,
+    "fullframe_rate": 0.0
+  },
+  "bright_down": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0008960573476702547,
+    "fullframe_rate": 0.0
+  },
+  "low_contrast": {
+    "hit_rate": 0.9166666666666666,
+    "n": 12,
+    "cx_drift_mean": 0.001155247489558344,
+    "fullframe_rate": 0.0
+  },
+  "blur": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0012626262626262614,
+    "fullframe_rate": 0.0
+  },
+  "noise": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0013848159009449367,
+    "fullframe_rate": 0.0
+  },
+  "downscale": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0009775171065493637,
+    "fullframe_rate": 0.0
+  },
+  "rotate_cw": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.00786086673183449,
+    "fullframe_rate": 0.0
+  },
+  "rotate_ccw": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.008756924079504708,
+    "fullframe_rate": 0.0
+  },
+  "hflip": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0024030628869338663,
+    "fullframe_rate": 0.0
+  },
+  "occlude": {
+    "hit_rate": 1.0,
+    "n": 12,
+    "cx_drift_mean": 0.0018735744542196138,
+    "fullframe_rate": 0.0
+  }
+}

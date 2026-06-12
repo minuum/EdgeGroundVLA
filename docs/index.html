@@ -205,7 +205,8 @@
           </h1>
           <p class="subtitle is-4 has-text-grey-lighter mb-6">
             Advanced agentic robotics for precise mobile navigation.
-            Current public takeaway: decomposition with explicit grounding is stronger than the latest checked end-to-end policy.
+            Current best: decomposition (CLIP + BBox + L2-aug pipeline) reaches <strong style="color:#4ade80">96.6% closed-loop</strong> vs E2E 0%.
+            Pipeline (L2-norm + augmentation) confirmed as the sole performance driver — grounding source is irrelevant.
           </p>
           <div class="publication-links" style="justify-content: flex-start;">
             <span class="link-block">
@@ -389,6 +390,30 @@
               </a>
             </span>
             <span class="link-block">
+              <a href="v5/grounding_hub.html" class="button is-link is-rounded">
+                <span class="icon"><i class="fas fa-bullseye"></i></span>
+                <span>🎯 Grounding Hub (오예측 해부 · 7모델 비교)</span>
+              </a>
+            </span>
+            <span class="link-block">
+              <a href="v5/research_story.html#ch33" class="button is-success is-rounded">
+                <span class="icon"><i class="fas fa-flask"></i></span>
+                <span>CH33: 파이프라인이 범인 — CL 96.6% 확정 (6/12)</span>
+              </a>
+            </span>
+            <span class="link-block">
+              <a href="reports/viewer.html?file=v5/PROF_UPDATE_20260612_PIPELINE.md" class="button is-danger is-rounded">
+                <span class="icon"><i class="fas fa-chalkboard-teacher"></i></span>
+                <span>교수님 업데이트 (6/12) — 파이프라인 ablation 결과</span>
+              </a>
+            </span>
+            <span class="link-block">
+              <a href="reports/viewer.html?file=v5/TABLE1_PAPER_DRAFT.md" class="button is-primary is-rounded">
+                <span class="icon"><i class="fas fa-table"></i></span>
+                <span>논문 Table 초안 (6/12) — E2E 0% vs 96.6%</span>
+              </a>
+            </span>
+            <span class="link-block">
               <a href="v5/grounding_demo/index.html" class="button is-warning is-rounded">
                 <span class="icon"><i class="fas fa-crosshairs"></i></span>
                 <span>Exp57 PaliGemma 그라운딩 (R2-3 ✅)</span>
@@ -444,25 +469,25 @@
             </span>
           </div>
           <div class="status-grid">
-            <div class="status-card">
-              <div class="eyebrow">Strongest Practical Baseline</div>
-              <div class="metric">Exp14 Step 2<br>PM 75.9%</div>
-              <div class="detail">BBox history + low-res image feature. Closed-loop success is 66.7%, currently the clearest public baseline.</div>
+            <div class="status-card" style="border-color:#bbf7d0">
+              <div class="eyebrow">Best Decomposition (2026-06-12)</div>
+              <div class="metric" style="color:#16a34a">Exp54/66/67<br>CL 96.6%</div>
+              <div class="detail">CLIP + BBox MLP + L2-norm + augmentation. HSV / base PG2 / LoRA cx 모두 동일 96.6% → cx 소스 무관 확정.</div>
             </div>
-            <div class="status-card">
-              <div class="eyebrow">Best End-to-End Checked</div>
-              <div class="metric">Exp17<br>PM 76.95%</div>
-              <div class="detail">Highest checked PM among end-to-end runs, but closed-loop stayed at 11.1%.</div>
+            <div class="status-card" style="border-color:#fecaca">
+              <div class="eyebrow">E2E VLA Baseline</div>
+              <div class="metric" style="color:#dc2626">Exp11<br>CL 0%</div>
+              <div class="detail">Google-robot backbone text attention 0% (구조적 사망). PM 58.6%지만 closed-loop 완전 실패. FPE 1.45m.</div>
             </div>
-            <div class="status-card">
-              <div class="eyebrow">Latest End-to-End Track</div>
-              <div class="metric">Exp18<br>Gate Failed</div>
-              <div class="detail">Text-fusion run finished with best val_loss 1.325, but PM was 27.62% and closed-loop stayed at 11.1%.</div>
+            <div class="status-card" style="border-color:#fef08a">
+              <div class="eyebrow">Key Finding</div>
+              <div class="metric" style="color:#b45309;font-size:1.1rem">Pipeline<br>×9.4 gap</div>
+              <div class="detail">Simple MLP(exp65b) 10.3% vs L2+aug(exp66) 96.6%. grounding LoRA 개선은 action 성능에 기여 없음 (음성 결과).</div>
             </div>
-            <div class="status-card">
-              <div class="eyebrow">Main Technical Reading</div>
-              <div class="metric">Loss Down,<br>Policy Fails</div>
-              <div class="detail">Exp18 strengthened the evidence that lower val loss still does not guarantee stable rollout behavior.</div>
+            <div class="status-card" style="border-color:#dbeafe">
+              <div class="eyebrow">Next Milestone</div>
+              <div class="metric" style="color:#1d4ed8;font-size:1.1rem">Chair Data<br>Collection</div>
+              <div class="detail">좌/우 0개 → 목표 150ep. 파이프라인 준비 완료. 수집 후 즉시 학습 가능.</div>
             </div>
           </div>
         </div>
@@ -479,10 +504,9 @@
         <div class="content abstract-content">
           <p>
             <strong>MoNaVLA</strong>는 모바일 로봇 내비게이션을 위한 vision-language-action 연구 트랙입니다.
-            현재 공개 결과 기준으로는, 거대한 end-to-end policy를 직접 학습시키는 것보다
-            <strong>grounding을 명시적으로 꺼내고 작은 action head로 연결하는 decomposition 접근</strong>이 더 안정적으로 작동합니다.
-            따라서 메인 baseline은 현재 <strong>Exp14 Step 2</strong>이며, 최신 gate 실험인 <strong>Exp18</strong>도
-            <strong>PM 27.62% / closed-loop 11.1%</strong>로 실패했습니다. 즉 현재 공개 기준에서는 decomposition 쪽 결론이 더 강해졌습니다.
+            E2E VLA(Exp11, CL 0%) 대비 <strong>decomposition 접근(CL 96.6%)</strong>이 압도적으로 우월함을 확인했습니다.
+            핵심 발견: <strong>grounding 품질(cx 소스)이 아닌 학습 파이프라인(L2-norm + bbox 증강)이 유일한 성능 결정 요소</strong>입니다.
+            base PG2 / exp59 LoRA / HSV cx 모두 올바른 파이프라인에서 동일한 96.6%에 수렴 — grounding LoRA 개선은 action 성능에 기여하지 않습니다(확정, 2026-06-12).
           </p>
         </div>
       </div>
@@ -498,34 +522,34 @@
         <div class="methodology-box">
           <div class="reading-grid">
             <div class="reading-card">
-              <span class="step">1. Current Status</span>
-              <h3 class="title is-5">Start with the current snapshot</h3>
-              <p>Read the latest gate result first. This tells you why Exp18 did not promote itself beyond a branch despite the improved validation loss.</p>
-              <a href="reports/viewer.html?file=v5/STATUS_20260421_EXP18.md" class="button is-small is-link is-light mt-3">Open Exp18 Status</a>
+              <span class="step">1. 최신 결과 요약</span>
+              <h3 class="title is-5">파이프라인 ablation 확정 (6/12)</h3>
+              <p>exp65b(10.3%) vs exp66/67(96.6%). cx 소스 무관, 파이프라인이 유일 결정 변수. 교수님 보고용 요약 문서.</p>
+              <a href="reports/viewer.html?file=v5/PROF_UPDATE_20260612_PIPELINE.md" class="button is-small is-link is-light mt-3">교수님 업데이트 (6/12)</a>
             </div>
             <div class="reading-card">
-              <span class="step">2. Strongest Baseline</span>
-              <h3 class="title is-5">Read the decomposition track</h3>
-              <p>Exp14 comparison is the current public baseline story: Step 1, Step 2, Step 3, same-split, and why Step 2 matters.</p>
-              <a href="v5/bbox_nav_comparison.html" class="button is-small is-link is-light mt-3">Open Exp14 Comparison</a>
+              <span class="step">2. 전체 연구 여정</span>
+              <h3 class="title is-5">CH1→CH33 스토리라인</h3>
+              <p>데이터셋부터 E2E 실패, decomposition 발견, 파이프라인 원인 확정까지 전 과정. CH33이 최신 결론.</p>
+              <a href="v5/research_story.html#ch33" class="button is-small is-link is-light mt-3">Research Story CH33</a>
             </div>
             <div class="reading-card">
-              <span class="step">3. Why It Happens</span>
-              <h3 class="title is-5">Check the causal analyses</h3>
-              <p>Use attention analysis and feature ablation to understand why image-only signals dominate and why text conditioning collapses.</p>
-              <a href="v5/attention_analysis/index.html" class="button is-small is-link is-light mt-3">Open Attention Analysis</a>
+              <span class="step">3. Grounding 분석</span>
+              <h3 class="title is-5">7모델 그라운딩 허브</h3>
+              <p>exp59 실환경 붕괴 원인 규명, 7모델 side-angle/free/augmentation 비교, LoRA 개선 효과 측정.</p>
+              <a href="v5/grounding_hub.html" class="button is-small is-link is-light mt-3">Grounding Hub</a>
             </div>
             <div class="reading-card">
-              <span class="step">4. Paper-Ready Summary</span>
-              <h3 class="title is-5">Use a paper-safe result page</h3>
-              <p>Open the consolidated page for booktabs LaTeX tables, Korean captions, and the current Experimental Results draft. Exp18 is now marked as evaluation failed.</p>
-              <a href="v5/paper_results.html" class="button is-small is-link is-light mt-3">Open Paper Results</a>
+              <span class="step">4. 논문 Table 초안</span>
+              <h3 class="title is-5">E2E 0% vs 96.6% 비교표</h3>
+              <p>Table 1(주요 방법 비교), Table 2(파이프라인×cx 소스 ablation), 논문 서술 포인트 정리.</p>
+              <a href="reports/viewer.html?file=v5/TABLE1_PAPER_DRAFT.md" class="button is-small is-link is-light mt-3">논문 Table 초안</a>
             </div>
             <div class="reading-card">
-              <span class="step">5. Next Mainline</span>
-              <h3 class="title is-5">Track the proxy branch</h3>
-              <p>Exp19 reached 76.58% PM and 55.6% closed-loop, so it is clearly better than end-to-end but still below Step2. Exp20 auxiliary training dropped back to 75.32% PM.</p>
-              <a href="reports/viewer.html?file=v5/CURRENT_RESEARCH_PLAN_20260421.md" class="button is-small is-link is-light mt-3">Open Current Plan</a>
+              <span class="step">5. CL 평가 상세</span>
+              <h3 class="title is-5">Closed-Loop 전체 이력</h3>
+              <p>Exp11(0%) → Step2(66.7%) → exp54(96.6%) → exp66/67(96.6%). path_type별 성공률 포함.</p>
+              <a href="v5/closed_loop_eval/index.html" class="button is-small is-link is-light mt-3">CL 평가 상세</a>
             </div>
           </div>
         </div>
@@ -544,29 +568,36 @@
             <li>
                 <i class="fas fa-check-circle has-text-success"></i>
                 <div>
-                    <strong>Decomposition currently beats checked end-to-end policy</strong><br>
-                    <span class="is-size-6 has-text-grey">Exp14 Step 2: PM 75.9%, closed-loop 66.7% vs Exp11: PM 58.6%, closed-loop 0%</span>
+                    <strong>Decomposition 96.6% CL — E2E 0% 대비 압도적 우위 (2026-06-12 확정)</strong><br>
+                    <span class="is-size-6 has-text-grey">Exp54/66/67: CLIP + BBox MLP + L2-norm + aug → 96.6% vs Exp11 E2E 0%. 벤치마크: V5 150ep, 29ep val.</span>
                 </div>
             </li>
             <li>
                 <i class="fas fa-check-circle has-text-success"></i>
                 <div>
-                    <strong>Image features are doing most of the useful work</strong><br>
-                    <span class="is-size-6 has-text-grey">Feature ablation shows image-only is nearly as strong as bbox+image, while bbox-only is weaker and unstable.</span>
+                    <strong>파이프라인(L2-norm + bbox 증강)이 유일한 성능 결정 요소</strong><br>
+                    <span class="is-size-6 has-text-grey">Simple MLP(exp65b) 10.3% vs L2+aug(exp66) 96.6% — 동일 cx 소스에서 파이프라인만 바꿔 ×9.4배. grounding 품질(cx 소스)은 무관.</span>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle has-text-success"></i>
+                <div>
+                    <strong>cx 소스 무관성 확정 — LoRA grounding 개선이 action에 기여하지 않음</strong><br>
+                    <span class="is-size-6 has-text-grey">HSV(exp54) = base PG2(exp66) = exp59 LoRA(exp67) = 96.6%. grounding LoRA 연구의 action 기여 = 0 (음성 결과).</span>
                 </div>
             </li>
             <li>
                 <i class="fas fa-exclamation-triangle has-text-warning"></i>
                 <div>
-                    <strong>Text attention remains the main failure mode</strong><br>
-                    <span class="is-size-6 has-text-grey">Pure HF Kosmos keeps about 22.6% text attention, but Google-robot policy variants including head-only Exp15 still collapse to near-zero text attention.</span>
+                    <strong>Text attention 구조적 사망 — Google-robot backbone 기인</strong><br>
+                    <span class="is-size-6 has-text-grey">Exp11/15 모두 text attention 0.000%. LoRA/head-only 모두 복구 불가. Pure HF Kosmos-2는 정상(22.6%). E2E 실패의 근본 원인.</span>
                 </div>
             </li>
             <li>
-                <i class="fas fa-wave-square has-text-info"></i>
+                <i class="fas fa-hourglass-half has-text-info"></i>
                 <div>
-                    <strong>Proxy branch is the only live challenger right now</strong><br>
-                    <span class="is-size-6 has-text-grey">Exp19 reached 76.58% PM and 55.6% closed-loop, so it clearly beats recent end-to-end branches but still remains below Step2 at 66.7%.</span>
+                    <strong>다음 단계: chair 객체 데이터 수집 (좌/우 0개 → 목표 150ep)</strong><br>
+                    <span class="is-size-6 has-text-grey">파이프라인 스크립트 완비. 수집 완료 후 즉시 학습 → CL 평가. 파일럿(31ep 중앙만): 57.1% (데이터 편향 기인).</span>
                 </div>
             </li>
           </ul>

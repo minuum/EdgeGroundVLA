@@ -46,6 +46,7 @@ WINDOW        = 8
 VIS_DIM       = 1024
 PROJ_DIM      = 256
 D_IN          = WINDOW * 4 + PROJ_DIM   # 288
+SEQ_DIM       = PROJ_DIM + 4             # 260: per-frame [img_feat, cx, cy, area, has]
 
 
 class FrozenCLIPV2(nn.Module):
@@ -76,10 +77,10 @@ class FrozenCLIPV2(nn.Module):
 
 
 class ActionMLP(nn.Module):
-    def __init__(self):
+    def __init__(self, d_in=D_IN):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(D_IN, 256), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(d_in, 256), nn.ReLU(), nn.Dropout(0.25),
             nn.Linear(256, 128),  nn.ReLU(), nn.Dropout(0.2),
             nn.Linear(128, 64),   nn.ReLU(), nn.Dropout(0.1),
             nn.Linear(64, NUM_CLASSES),
@@ -87,15 +88,67 @@ class ActionMLP(nn.Module):
     def forward(self, x): return self.net(x)
 
 
-def bbox_feat(frames, t):
+class LinearHead(nn.Module):
+    def __init__(self, d_in=D_IN):
+        super().__init__()
+        self.net = nn.Linear(d_in, NUM_CLASSES)
+    def forward(self, x): return self.net(x)
+
+
+class FCHead(nn.Module):
+    def __init__(self, d_in=D_IN):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(d_in, 1024), nn.ReLU(),
+            nn.Linear(1024, 512),  nn.ReLU(),
+            nn.Linear(512, 256),   nn.ReLU(),
+            nn.Linear(256, NUM_CLASSES),
+        )
+    def forward(self, x): return self.net(x)
+
+
+class LSTMHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lstm = nn.LSTM(SEQ_DIM, 256, 2, batch_first=True, dropout=0.1)
+        self.classifier = nn.Linear(256, NUM_CLASSES)
+    def forward(self, x):
+        out, _ = self.lstm(x)
+        return self.classifier(out[:, -1])
+
+
+HEAD_REGISTRY = {"mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead}
+
+
+def bbox_feat(frames, t, window=WINDOW):
     arr = []
-    for k in range(WINDOW):
-        fr = frames[max(0, t - (WINDOW - 1 - k))]
-        arr.extend([fr["cx"], fr["cy"], fr["area"], float(fr["has_bbox"])])
+    for k in range(window):
+        fr = frames[max(0, t - (window - 1 - k))]
+        cx   = fr.get("cx",   fr.get("cx_det",   0.5))
+        cy   = fr.get("cy",   fr.get("cy_det",   0.5))
+        area = fr.get("area", fr.get("area_det", 0.05))
+        has  = float(fr.get("has_bbox", fr.get("detected", False)))
+        arr.extend([cx, cy, area, has])
     return np.array(arr, dtype=np.float32)
 
 
-def eval_episode(ep_entry, enc, mlp, device):
+def seq_feat_eval(frames, vis_feats, t, window=WINDOW):
+    """LSTM head 전용: (window, SEQ_DIM) 시계열 입력."""
+    import torch
+    seq = []
+    for k in range(window):
+        ti = max(0, t - (window - 1 - k))
+        fr = frames[ti]
+        cx   = fr.get("cx",   fr.get("cx_det",   0.5))
+        cy   = fr.get("cy",   fr.get("cy_det",   0.5))
+        area = fr.get("area", fr.get("area_det", 0.05))
+        has  = float(fr.get("has_bbox", fr.get("detected", False)))
+        seq.append(torch.cat([vis_feats[ti],
+                               torch.tensor([cx, cy, area, has], dtype=torch.float32)]))
+    return torch.stack(seq, dim=0)  # (WINDOW, SEQ_DIM)
+
+
+def eval_episode(ep_entry, enc, mlp, device, is_lstm=False, window=WINDOW):
     """에피소드 1개 → (pred_classes, expert_actions)"""
     frames = ep_entry["frames"]
     ep_path = Path(ep_entry["episode"])
@@ -111,9 +164,19 @@ def eval_episode(ep_entry, enc, mlp, device):
             if not candidates:
                 return None, None
             h5_path = candidates[0]
+        import io as _io
         with h5py.File(str(h5_path), "r") as f:
-            imgs = [Image.fromarray(f["observations"]["images"][i])
-                    for i in range(len(frames))]
+            imgs_ds = f["observations"]["images"]
+            n_imgs  = len(imgs_ds)
+            imgs = []
+            for fr in frames:
+                idx = min(fr["frame_idx"], n_imgs - 1)
+                raw = imgs_ds[idx]
+                if hasattr(raw, "dtype") and raw.dtype != object and raw.ndim >= 2:
+                    imgs.append(Image.fromarray(raw.astype("uint8")))
+                else:
+                    arr = np.frombuffer(bytes(raw), dtype=np.uint8)
+                    imgs.append(Image.open(_io.BytesIO(arr)).convert("RGB"))
     except Exception as e:
         print(f"  [SKIP] {ep_path}: {e}")
         return None, None
@@ -122,12 +185,16 @@ def eval_episode(ep_entry, enc, mlp, device):
     expert_classes = [fr["gt_class"] for fr in frames]
 
     vis_feats = enc.encode_batch(imgs, device)
+    vis_feats_cpu = vis_feats.cpu()
     pred_classes = []
     mlp.eval()
     with torch.no_grad():
         for t in range(len(frames)):
-            bf = torch.tensor(bbox_feat(frames, t), device=device)
-            x  = torch.cat([bf, vis_feats[t]]).unsqueeze(0)
+            if is_lstm:
+                x = seq_feat_eval(frames, vis_feats_cpu, t, window=window).unsqueeze(0).to(device)
+            else:
+                bf = torch.tensor(bbox_feat(frames, t, window=window), device=device)
+                x  = torch.cat([bf, vis_feats[t]]).unsqueeze(0)
             pred_classes.append(mlp(x).argmax(1).item())
 
     return pred_classes, expert_classes
@@ -155,6 +222,15 @@ def main():
     p.add_argument("--dt",          type=float, default=DT_DEFAULT)
     p.add_argument("--success_fpe", type=float, default=0.5)
     p.add_argument("--ckpt",        type=str,   default=str(STAGE2_CKPT))
+    p.add_argument("--data",        type=str,   default=str(DATA_PATH),
+                   help="CL 평가 데이터 (cx 소스 매칭용). 기본=HSV 벤치마크")
+    p.add_argument("--tag",         type=str,   default="exp54_s2v2",
+                   help="결과 JSON에 기록할 라벨")
+    p.add_argument("--head",        type=str,   default="mlp",
+                   choices=["mlp", "linear", "fc", "lstm"],
+                   help="액션 헤드 종류 (학습 시와 동일하게 지정)")
+    p.add_argument("--window",      type=int,   default=WINDOW,
+                   help=f"bbox 히스토리 윈도우 크기 (기본={WINDOW}). ckpt에 저장된 값 자동 로드")
     args = p.parse_args()
 
     ckpt_path = Path(args.ckpt)
@@ -166,10 +242,18 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[DEVICE] {device}")
 
-    data = json.loads(DATA_PATH.read_text())
+    data = json.loads(Path(args.data).read_text())
+    print(f"[DATA] {args.data} (tag={args.tag})")
     ep_labels = [ep["path_type"] for ep in data]
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-    _, te_idx = next(sss.split(np.zeros(len(data)), ep_labels))
+    from collections import Counter
+    can_stratify = all(c >= 2 for c in Counter(ep_labels).values())
+    if can_stratify:
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        _, te_idx = next(sss.split(np.zeros(len(data)), ep_labels))
+    else:
+        from sklearn.model_selection import ShuffleSplit
+        ss = ShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        _, te_idx = next(ss.split(np.zeros(len(data))))
     val_eps = [data[i] for i in te_idx]
     print(f"Val episodes: {len(val_eps)}")
 
@@ -177,17 +261,21 @@ def main():
     enc = FrozenCLIPV2(VLM_PATH, STAGE1_V2, device).to(device).eval()
 
     ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
-    mlp  = ActionMLP().to(device)
+    is_lstm = (args.head == "lstm")
+    window  = ckpt.get("window", args.window)   # ckpt에 저장된 window 우선
+    d_in    = window * 4 + PROJ_DIM
+    HeadCls = HEAD_REGISTRY[args.head]
+    mlp = (HeadCls() if is_lstm else HeadCls(d_in=d_in)).to(device)
     mlp.load_state_dict(ckpt["mlp"])
     mlp.eval()
-    print(f"[MODEL] Stage 2 v2 MLP loaded (val_acc={ckpt['val_acc']:.4f})")
+    print(f"[MODEL] Stage 2 v2 {args.head.upper()} window={window} d_in={d_in} (val_acc={ckpt['val_acc']:.4f})")
 
     results_by_path = defaultdict(list)
     all_metrics = []
 
     for i, ep in enumerate(val_eps):
         pt = ep.get("path_type", "unknown")
-        pred, expert = eval_episode(ep, enc, mlp, device)
+        pred, expert = eval_episode(ep, enc, mlp, device, is_lstm=is_lstm, window=window)
         if pred is None:
             continue
         m = compute_episode_metrics(pred, expert, args.dt, args.success_fpe)
@@ -221,13 +309,13 @@ def main():
     else:
         existing = {"summary": {}, "per_path": {}}
 
-    existing["summary"]["exp54_s2v2"] = {
+    existing["summary"][args.tag] = {
         "success_rate": success / total if total > 0 else 0,
         "mean_fpe": float(np.mean([m["fpe"] for m in all_metrics])),
         "mean_tld": float(np.mean([m["tld"] for m in all_metrics])),
         "n_episodes": total,
     }
-    existing["per_path"]["exp54_s2v2"] = {
+    existing["per_path"][args.tag] = {
         pt: [{"fpe": float(m["fpe"]), "tld": float(m["tld"]), "success": bool(m["success"])}
              for m in ms]
         for pt, ms in results_by_path.items()

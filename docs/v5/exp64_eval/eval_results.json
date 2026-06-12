@@ -1,0 +1,176 @@
+{
+  "base": {
+    "basket": {
+      "hit_rate": 0.9795918367346939,
+      "n": 49,
+      "cx_mae": 0.12611021301726946,
+      "cx_std": 0.11152757114882116,
+      "area_mean": 0.14210977431107977,
+      "fullframe_rate": 0.0,
+      "per_vp": {
+        "C-far": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.019936836102965122
+        },
+        "C-mid": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.020361697621375036
+        },
+        "C-near": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.07282502443792767
+        },
+        "L-far": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.30031375040729885
+        },
+        "L-mid": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.0583530954708374
+        },
+        "L-near": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.0903028999674161
+        },
+        "R-far": {
+          "n": 6,
+          "hit_rate": 0.8333333333333334,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.3713530791788856
+        },
+        "R-mid": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.1351280873248615
+        },
+        "R-near": {
+          "n": 1,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.0,
+          "cx_mae": 0.01319648093841641
+        }
+      },
+      "misses": [
+        {
+          "tag": "episode_260409#0",
+          "vp": "R-far"
+        }
+      ]
+    },
+    "ood_chair": {
+      "fp_rate": 0.09090909090909091,
+      "fp": 1,
+      "n": 11,
+      "fp_names": [
+        {
+          "name": "eames_zenith",
+          "area": 0.802
+        }
+      ]
+    }
+  },
+  "exp64": {
+    "basket": {
+      "hit_rate": 0.9387755102040817,
+      "n": 49,
+      "cx_mae": 0.1495304857835012,
+      "cx_std": 0.04939626431849634,
+      "area_mean": 0.9672592217577886,
+      "fullframe_rate": 0.9183673469387755,
+      "per_vp": {
+        "C-far": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 1.0,
+          "cx_mae": 0.03309346692733788
+        },
+        "C-mid": {
+          "n": 6,
+          "hit_rate": 0.8333333333333334,
+          "fullframe_rate": 0.8333333333333334,
+          "cx_mae": 0.03272627565982404
+        },
+        "C-near": {
+          "n": 6,
+          "hit_rate": 0.6666666666666666,
+          "fullframe_rate": 0.6666666666666666,
+          "cx_mae": 0.009164222873900299
+        },
+        "L-far": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 0.8333333333333334,
+          "cx_mae": 0.23053336591723686
+        },
+        "L-mid": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 1.0,
+          "cx_mae": 0.1491876669925057
+        },
+        "L-near": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 1.0,
+          "cx_mae": 0.1556405669599218
+        },
+        "R-far": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 1.0,
+          "cx_mae": 0.33465579993483224
+        },
+        "R-mid": {
+          "n": 6,
+          "hit_rate": 1.0,
+          "fullframe_rate": 1.0,
+          "cx_mae": 0.1864477354187032
+        },
+        "R-near": {
+          "n": 1,
+          "hit_rate": 1.0,
+          "fullframe_rate": 1.0,
+          "cx_mae": 0.1407624633431085
+        }
+      },
+      "misses": [
+        {
+          "tag": "episode_260408#9",
+          "vp": "C-mid"
+        },
+        {
+          "tag": "episode_260408#7",
+          "vp": "C-near"
+        },
+        {
+          "tag": "episode_260408#8",
+          "vp": "C-near"
+        }
+      ]
+    },
+    "ood_chair": {
+      "fp_rate": 0.09090909090909091,
+      "fp": 1,
+      "n": 11,
+      "fp_names": [
+        {
+          "name": "eames_zenith",
+          "area": 0.807
+        }
+      ]
+    }
+  }
+}

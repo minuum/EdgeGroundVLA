@@ -1,0 +1,118 @@
+# 논문 Table 초안 (2026-06-12)
+
+> 평가 기준: Closed-Loop Offline Replay (FPE < 0.5m AND TLD ∈ [0.7, 1.5])
+> 벤치마크: V5 데이터셋 150ep, stratified split seed=42, val 29~30ep
+
+---
+
+## Table 1 — 주요 방법 비교 (Main Results)
+
+| Method | Architecture | CL (↑) | FPE (↓) | TLD |
+|--------|-------------|--------|---------|-----|
+| E2E VLA (Exp11) | Kosmos-2 + LoRA, 8-class | 0.0% | 1.454m | 1.026 |
+| Decomposition Step1 (Exp14) | CLIP + BBox MLP | 66.7% | 0.555m | 1.034 |
+| **Ours (Exp54/66)** | **CLIP + BBox MLP + L2-norm + aug** | **96.6%** | **0.10m** | **1.00** |
+
+> Exp11은 text attention = 0% (Google-robot post-training으로 언어 경로 사망). decomposition이 필요한 이유.
+
+---
+
+## Table 2 — Ablation: 파이프라인 × cx 소스
+
+### 2-A. 파이프라인이 성능을 결정한다 (cx 소스 고정 = base PG2)
+
+| Pipeline | cx Source | val_acc | CL (↑) | FPE (↓) |
+|----------|-----------|---------|--------|---------|
+| Simple MLP (exp65b) | base PG2 | 90.2% | 10.3% | 0.941m |
+| **L2-norm + aug (exp66)** | base PG2 | 93.5% | **96.6%** | 0.102m |
+
+파이프라인만 바꿨을 때: 10.3% → 96.6% (×9.4배)
+
+### 2-B. cx 소스는 성능에 영향을 주지 않는다 (파이프라인 고정 = L2+aug)
+
+| cx Source | Grounding Quality | val_acc | CL (↑) | FPE (↓) |
+|-----------|------------------|---------|--------|---------|
+| HSV (exp54) | hit 97%, std 0.159 | 92.6% | 96.6% | 0.110m |
+| base PG2 (exp66) | hit 97%, std 0.056 | 93.5% | 96.6% | 0.102m |
+| exp59 LoRA (exp67) | hit 94%, full-frame 6% | 94.5% | 96.6% | 0.111m |
+
+cx 소스를 바꿔도 CL 성능 변화 없음 → grounding LoRA 개선이 action에 기여하지 않음.
+
+---
+
+## Table 2-C — Action Head Ablation (RoboVLMs 기여 클레임)
+
+파이프라인 고정(L2-norm + bbox aug), cx 소스 고정(HSV), head만 변경:
+
+| exp | Head | 원형 | val_acc | CL (↑) | FPE (↓) |
+|-----|------|------|---------|--------|---------|
+| exp68 | Linear | 1-layer FC | 76.8% | 69.0% | 0.377m |
+| exp69 | FCHead | RoboVLMs FCDecoder (deep MLP, no temporal) | 95.3% | 93.1% | 0.109m |
+| **exp70** | **LSTMHead** | **RoboVLMs MobileVLAClassificationDecoder** | **95.7%** | **96.6%** | **0.112m** |
+| exp54 | **ActionMLP (ours)** | — | 92.6% | **96.6%** | 0.110m |
+
+**핵심 해석:**
+- LSTM (RoboVLMs 스타일, window=8 sequential) = ActionMLP (window-baked flat) → **96.6% 동일**
+- 우리 MLP는 LSTM의 temporal modeling을 window pre-baking으로 등가 달성 (더 가볍고 빠름)
+- FCHead (deep MLP, no temporal): 93.1% — depth는 충분히 필요
+- Linear (1-layer): 69.0% — 완전히 부족
+
+**RoboVLMs 기여 클레임**: LSTM-based action decoder (RoboVLMs)와 비교 검증; window-flattened MLP가 동등 성능으로 더 효율적임을 확인.
+
+---
+
+## Table 2-D — Window Size Ablation
+
+파이프라인 고정(L2+aug), head별 window 크기 변화:
+
+| Head | Window | val_acc | CL (↑) | FPE (↓) | 비고 |
+|------|--------|---------|--------|---------|------|
+| MLP | 2 | 94.88% | 93.1% | 0.145m | 불충분 — 최근 2프레임으로 방향 파악 실패 |
+| **MLP** | **4** | 92.91% | **96.6%** | **0.094m** | MLP 최소 필요 window |
+| MLP | 8 (baseline, exp54) | 92.6% | 96.6% | 0.110m | — |
+| MLP | 16 | 89.57% | 96.6% | 0.102m | val_acc 하락 (입력 희석), CL 유지 |
+| LSTM | 4 | 95.08% | 96.6% | 0.123m | — |
+| LSTM | 8 (baseline, exp70) | 95.7% | 96.6% | 0.112m | — |
+| **LSTM** | **16** | **96.85%** | **96.6%** | **0.080m** | LSTM 최저 FPE — 긴 맥락 활용 |
+
+**핵심 해석:**
+- MLP: w≥4에서 CL 96.6% 포화. w=2에서 93.1%로 하락 → 최소 4프레임 히스토리 필요
+- LSTM: 모든 window에서 96.6% 유지, w=16에서 FPE 0.080m (최저). 긴 시퀀스 활용 가능
+- MLP w=4가 FPE 0.094m으로 w=8 baseline보다 낮음 → 너무 긴 윈도우는 MLP에 noise
+
+---
+
+## Table 3 — Augmentation Ablation (참고)
+
+| Experiment | Val acc | CL | 비고 |
+|------------|---------|-----|------|
+| exp49 (no aug) | — | 96.7% | 초기 HSV 기반 |
+| exp54 Stage2 v2 (L2+aug, HSV) | 92.6% | 96.6% | 현재 최선 |
+| exp53 (CLIP LoRA) | — | 96.6% | |
+| exp55 (free ep 포함) | — | 96.7% | |
+| exp50 (flip aug) | — | 83.3% | flip aug 오히려 하락 |
+
+---
+
+## 핵심 서술 포인트 (논문 본문용)
+
+1. **E2E VLA 실패 원인**: Google-robot pretrained backbone의 언어 경로 구조적 사망 (text attention 0%, Exp15 head-only에서도 동일 확인). LoRA 학습과 무관한 모델 구조 기인.
+
+2. **Decomposition의 필요성**: Stage1(vision encoder) + Stage2(BBox cx + image → action) 분리로 E2E 0% → 96.6% 달성.
+
+3. **파이프라인 기여**: L2 정규화와 PG2 grounding 분포 모사 증강이 핵심. 단순 MLP 대비 ×9.4배. grounding 품질 자체(cx 소스)는 무관.
+
+4. **Grounding 음성 결과**: LoRA grounding 개선(exp59, exp64 등)이 downstream action 성능에 기여하지 않음. 이는 현재 파이프라인에서 cx 신호가 포화 상태임을 시사.
+
+5. **RoboVLMs Action Head 비교 (Table 2-C)**: RoboVLMs의 LSTM 기반 decoder (MobileVLAClassificationDecoder)와 비교 실험에서 동일 96.6% CL 달성. Window-flattened MLP가 explicit temporal LSTM과 동등함을 확인 → 우리 설계가 더 경량·효율적임을 실험적으로 검증.
+
+---
+
+## 체크포인트 경로
+
+| 실험 | 경로 |
+|------|------|
+| exp54 Stage2 v2 | `runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt` |
+| exp66 (base PG2) | `runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt` |
+| exp67 (exp59 LoRA) | `runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_exp59_aug.pt` |
+| exp65b (단순 MLP) | `runs/v5_nav/mlp/exp65/` |
