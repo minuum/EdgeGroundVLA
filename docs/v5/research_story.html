@@ -9464,7 +9464,8 @@ graph TD
       <div style="font-size:0.82rem;line-height:2.1">
         <a href="PROF_UPDATE_20260612_PIPELINE.md" style="color:#fbbf24;font-weight:700">▶ 교수님 업데이트 6/12</a> — 파이프라인 원인 확정 요약<br>
         <a href="TABLE1_PAPER_DRAFT.md" style="color:#fbbf24;font-weight:700">▶ 논문 Table 초안</a> — Table 1/2A/2B/2C/3 전체<br>
-        <a href="../grounding_hub.html#section-f" style="color:#a78bfa">▶ Grounding Hub Section F</a> — Pipeline ablation 시각화
+        <a href="../grounding_hub.html#section-f" style="color:#a78bfa">▶ Grounding Hub Section F</a> — Pipeline ablation 시각화<br>
+        <a href="../grounding_hub.html#section-g" style="color:#2dd4bf;font-weight:700">▶ Grounding Hub Section G</a> — Head &amp; Window Ablation 전체 결과
       </div>
     </div>
     <div style="background:#0c1a0c;border:1px solid #1a3a1a;border-radius:12px;padding:16px">
@@ -9630,12 +9631,20 @@ graph TD
     </div>
   </div>
 
+  <!-- 관련 문서 링크 -->
+  <div style="margin-bottom:16px;padding:12px 16px;background:#0c2b2b;border:1px solid #14b8a6;border-radius:10px;font-size:0.83rem">
+    <span style="color:#2dd4bf;font-weight:700">→ </span>
+    <a href="../grounding_hub.html#section-g" style="color:#2dd4bf;font-weight:700">Grounding Hub §G</a> —
+    Head Ablation(CH34) + Window Ablation(CH35) 전체 결과 시각화 · 통합 비교표 포함
+  </div>
+
   <!-- TODO 업데이트 -->
   <div style="background:#1e293b;border-radius:10px;padding:16px;font-size:0.83rem;color:#cbd5e1;line-height:2.1">
     <div style="color:#94a3b8;font-size:0.8rem;font-weight:700;margin-bottom:8px">현재 상태 / 남은 TODO</div>
     <span style="color:#4ade80">✅</span> 파이프라인 원인 확정 (exp65~67) — CH33<br>
     <span style="color:#4ade80">✅</span> RoboVLMs head ablation (exp68~70) — CH34, LSTM=MLP 확인<br>
     <span style="color:#4ade80">✅</span> Window size ablation — CH35, MLP w≥4 포화·LSTM w=16 최저 FPE<br>
+    <span style="color:#4ade80">✅</span> Grounding Hub §G 연동 — CH34/35 전체 결과 통합 시각화<br>
     <span style="color:#4ade80">✅</span> 의자 grounding 파이프라인 구축 (100% hit, 스크립트 완료)<br>
     <span style="color:#fbbf24">⏳</span> 의자 좌/우 에피소드 수집 (현재 0ep/1ep → 목표 15+15ep)<br>
     <span style="color:#94a3b8">🔲</span> 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)<br>

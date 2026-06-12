@@ -35,10 +35,25 @@
 <div class="wrap">
   <a class="back" href="research_story.html">← 연구 히스토리로</a>
 
+  <!-- 빠른 탐색 -->
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px">
+    <span style="font-size:0.78rem;color:#64748b;align-self:center;margin-right:4px">빠른 이동 →</span>
+    <a href="#section-f" style="padding:6px 14px;background:#052e16;border:1px solid #22c55e;border-radius:8px;font-size:0.78rem;font-weight:700;color:#4ade80;text-decoration:none">§F 파이프라인Ablation</a>
+    <a href="#section-g" style="padding:6px 14px;background:#0c2b2b;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#2dd4bf;text-decoration:none">§G Head&amp;Window Ablation ★NEW</a>
+    <a href="#section-g1" style="padding:6px 14px;background:#0a1628;border:1px solid #7c3aed;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">§G1 Head</a>
+    <a href="#section-g2" style="padding:6px 14px;background:#0a1628;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;color:#2dd4bf;text-decoration:none">§G2 Window</a>
+    <a href="#section-g3" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">§G3 전체비교</a>
+    <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
+    <a href="research_story.html#ch33" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">← CH33</a>
+    <a href="research_story.html#ch34" style="padding:6px 14px;background:#0a1628;border:1px solid #4c1d95;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">← CH34</a>
+    <a href="research_story.html#ch35" style="padding:6px 14px;background:#0a1628;border:1px solid #0c4a4a;border-radius:8px;font-size:0.78rem;color:#14b8a6;text-decoration:none">← CH35</a>
+  </div>
+
   <div class="hero">
     <h1>🎯 Grounding Evaluation Hub</h1>
     <p>교수님이 보신 <strong>"이상한 에피소드 · 오예측"</strong>을 grounding 관점에서 해부한다.<br>
-    측면·OOD에서 base PaliGemma2가 바구니를 안정적으로 잡는다면 → <strong style="color:#7dd3fc">오예측은 grounding이 아닌 action head 문제</strong>다.</p>
+    측면·OOD에서 base PaliGemma2가 바구니를 안정적으로 잡는다면 → <strong style="color:#7dd3fc">오예측은 grounding이 아닌 action head 문제</strong>다.<br>
+    <span style="font-size:0.83rem;color:#64748b">→ §G에서 Action Head · Window 크기 Ablation 전체 결과 확인 가능 (CH34/CH35 연동)</span></p>
   </div>
 
   <!-- 0. 방법론 & 목표 -->
@@ -375,7 +390,266 @@
       <strong style="color:#7dd3fc">→ 실용 지침:</strong> decomposition 파이프라인의 성능 병목은 grounding 모델이 아니라 <strong style="color:#e2e8f0">L2-norm 정규화 · bbox 증강 · action head 재학습</strong>에 있다.
       cx 소스는 base PG2 고정으로 충분하며, 다음 개선 여지는 파이프라인 구조(증강 전략, 정규화 방식) 또는 action 데이터 자체에서 찾아야 한다.
     </div>
-    <div class="note" style="margin-top:10px">실험 코드: <code>scripts/train_active/run_v5_ablations.sh</code> · config: <code>configs/v5_ablation/</code></div>
+    <div class="note" style="margin-top:10px">실험 코드: <code>scripts/train_active/run_v5_ablations.sh</code> · config: <code>configs/v5_ablation/</code>
+      &nbsp;·&nbsp; <a href="#section-g" style="color:#2dd4bf;font-size:0.76rem">→ Section G에서 Head/Window Ablation 전체 결과 확인</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= SECTION G ============================= -->
+<div class="wrap" id="section-g" style="padding-top:0">
+  <h2 style="color:#2dd4bf">
+    🔬 Section G — Action Head &amp; Window Ablation
+    <span class="badge" style="background:#0c2b2b;color:#2dd4bf;border:1px solid #14b8a6">CH34 · CH35</span>
+    <a href="research_story.html#ch34" style="font-size:0.75rem;font-weight:600;color:#a78bfa;text-decoration:none;margin-left:8px">→ 연구 히스토리 CH34</a>
+    <a href="research_story.html#ch35" style="font-size:0.75rem;font-weight:600;color:#14b8a6;text-decoration:none;margin-left:8px">→ CH35</a>
+  </h2>
+
+  <!-- G1: Head Ablation -->
+  <div class="card" id="section-g1">
+    <h3 style="font-size:1.05rem;font-weight:800;color:#a78bfa;margin-bottom:4px">
+      G1 &nbsp;·&nbsp; Action Head Ablation <span style="font-size:0.8rem;color:#64748b;font-weight:400">(CH34 — exp68/69/70/54)</span>
+    </h3>
+    <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
+      파이프라인 고정(L2-norm + bbox aug), cx 소스 고정(HSV, exp54 baseline), <strong style="color:#e2e8f0">Head만 변경</strong>.
+      RoboVLMs 계열 decoder와 우리 ActionMLP의 직접 비교.
+    </p>
+
+    <!-- 요약 배지 -->
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #7c3aed;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">Linear (1-layer)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#fca5a5">69.0%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.377m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #0891b2;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">FCHead (deep MLP)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#7dd3fc">93.1%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.109m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #a78bfa;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">LSTMHead (RoboVLMs)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.112m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">ActionMLP (ours)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.110m</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>실험</th>
+          <th>Head</th>
+          <th>원형</th>
+          <th>val_acc</th>
+          <th>CL ↑</th>
+          <th>FPE ↓</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>exp68</td>
+          <td>Linear</td>
+          <td>1-layer FC (단순 선형)</td>
+          <td>76.8%</td>
+          <td class="bad">69.0%</td>
+          <td class="bad">0.377m</td>
+          <td>비선형성·용량 부족</td>
+        </tr>
+        <tr>
+          <td>exp69</td>
+          <td>FCHead</td>
+          <td>RoboVLMs FCDecoder (deep MLP, no temporal)</td>
+          <td>95.3%</td>
+          <td style="color:#fbbf24;font-weight:700">93.1%</td>
+          <td>0.109m</td>
+          <td>depth 필요. temporal 없으면 부족</td>
+        </tr>
+        <tr style="background:#051a0a">
+          <td>exp70</td>
+          <td><strong style="color:#4ade80">LSTMHead</strong></td>
+          <td>RoboVLMs MobileVLAClassificationDecoder</td>
+          <td>95.7%</td>
+          <td class="key">96.6%</td>
+          <td>0.112m</td>
+          <td>RoboVLMs 계열 최선</td>
+        </tr>
+        <tr style="background:#051a0a">
+          <td>exp54</td>
+          <td><strong style="color:#4ade80">ActionMLP (ours)</strong></td>
+          <td>Window-flattened flat MLP</td>
+          <td>92.6%</td>
+          <td class="key">96.6%</td>
+          <td>0.110m</td>
+          <td>LSTM과 동등, 더 경량</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #a78bfa;border-radius:8px;font-size:0.87rem;color:#94a3b8">
+      <strong style="color:#a78bfa">핵심:</strong> LSTM(RoboVLMs 스타일, window=8 sequential) = ActionMLP(window-baked flat) → <strong style="color:#e2e8f0">96.6% 동일</strong>.
+      우리 MLP는 LSTM의 temporal modeling을 window pre-baking으로 등가 달성. 더 가볍고 추론 빠름.<br>
+      FCHead(depth는 있지만 temporal 없음): 93.1% — depth 필요하지만 temporal도 필요. Linear: 69.0% — 완전 부족.
+    </div>
+    <div class="note" style="margin-top:8px">CH34 상세: <a href="research_story.html#ch34" style="color:#a78bfa">research_story.html#ch34</a> · 스크립트: <code>scripts/eval_exp54_stage2_v2_closedloop.py</code></div>
+  </div>
+
+  <!-- G2: Window Ablation -->
+  <div class="card" id="section-g2">
+    <h3 style="font-size:1.05rem;font-weight:800;color:#14b8a6;margin-bottom:4px">
+      G2 &nbsp;·&nbsp; Window Size Ablation <span style="font-size:0.8rem;color:#64748b;font-weight:400">(CH35 — MLP w=2/4/8/16, LSTM w=4/8/16)</span>
+    </h3>
+    <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
+      파이프라인 고정(L2+aug), cx 소스 고정(HSV). <strong style="color:#e2e8f0">window 크기만 변경</strong>.
+      MLP는 flat window 히스토리, LSTM은 sequential SEQ_DIM=260 per-frame.
+    </p>
+
+    <!-- 요약 배지 -->
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #ca8a04;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">MLP w=2 (최소)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#fbbf24">93.1%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.145m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">MLP w=4 (포화 시작)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.094m ★</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #14b8a6;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">LSTM w=16 (최저 FPE)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#2dd4bf">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.080m ★★</div>
+      </div>
+    </div>
+
+    <!-- MLP / LSTM 탭 -->
+    <div class="tabs" id="g2-tabs">
+      <div class="tab active" data-t="g2-mlp">MLP (w=2/4/8/16)</div>
+      <div class="tab" data-t="g2-lstm">LSTM (w=4/8/16)</div>
+      <div class="tab" data-t="g2-all">전체 비교</div>
+    </div>
+
+    <div class="pane active" id="g2-mlp">
+      <table>
+        <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>MLP</td><td>2</td><td>94.88%</td>
+            <td class="bad">93.1%</td><td class="bad">0.145m</td>
+            <td>불충분 — 최근 2프레임으로 방향 파악 실패</td>
+          </tr>
+          <tr style="background:#051a0a">
+            <td>MLP</td><td><strong style="color:#4ade80">4</strong></td><td>92.91%</td>
+            <td class="key">96.6%</td><td class="key">0.094m</td>
+            <td>MLP 최소 필요 window. FPE 최저</td>
+          </tr>
+          <tr>
+            <td>MLP</td><td>8 <span style="color:#64748b">(baseline)</span></td><td>92.6%</td>
+            <td class="key">96.6%</td><td>0.110m</td>
+            <td>exp54 기준점</td>
+          </tr>
+          <tr>
+            <td>MLP</td><td>16</td><td>89.57%</td>
+            <td class="key">96.6%</td><td>0.102m</td>
+            <td>val_acc 하락 (입력 희석), CL 유지</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pane" id="g2-lstm">
+      <table>
+        <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>LSTM</td><td>4</td><td>95.08%</td>
+            <td class="key">96.6%</td><td>0.123m</td>
+            <td>짧은 window에서도 LSTM은 96.6% 유지</td>
+          </tr>
+          <tr>
+            <td>LSTM</td><td>8 <span style="color:#64748b">(baseline)</span></td><td>95.7%</td>
+            <td class="key">96.6%</td><td>0.112m</td>
+            <td>exp70 기준점</td>
+          </tr>
+          <tr style="background:#051a2a">
+            <td>LSTM</td><td><strong style="color:#2dd4bf">16</strong></td><td>96.85%</td>
+            <td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.080m</td>
+            <td>전체 실험 최저 FPE — 긴 맥락 활용</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pane" id="g2-all">
+      <table>
+        <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>MLP</td><td>2</td><td>94.88%</td><td class="bad">93.1%</td><td class="bad">0.145m</td><td></td></tr>
+          <tr style="background:#051a0a"><td>MLP</td><td><strong style="color:#4ade80">4</strong></td><td>92.91%</td><td class="key">96.6%</td><td class="key">0.094m</td><td>MLP FPE 최저</td></tr>
+          <tr><td>MLP</td><td>8</td><td>92.6%</td><td class="key">96.6%</td><td>0.110m</td><td>baseline</td></tr>
+          <tr><td>MLP</td><td>16</td><td>89.57%</td><td class="key">96.6%</td><td>0.102m</td><td></td></tr>
+          <tr><td>LSTM</td><td>4</td><td>95.08%</td><td class="key">96.6%</td><td>0.123m</td><td></td></tr>
+          <tr><td>LSTM</td><td>8</td><td>95.7%</td><td class="key">96.6%</td><td>0.112m</td><td>baseline</td></tr>
+          <tr style="background:#051a2a"><td>LSTM</td><td><strong style="color:#2dd4bf">16</strong></td><td>96.85%</td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.080m</td><td>전체 FPE 최저</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #14b8a6;border-radius:8px;font-size:0.87rem;color:#94a3b8">
+      <strong style="color:#14b8a6">핵심:</strong>
+      <strong style="color:#e2e8f0">CL은 window에 둔감</strong> — MLP w≥4, LSTM w≥4 모두 96.6% 포화.
+      <strong style="color:#e2e8f0">FPE는 window에 민감</strong> — LSTM w=16이 0.080m으로 전체 최저.
+      MLP w=4가 w=8 baseline보다 오히려 FPE 낮음 → 너무 긴 윈도우는 MLP에 noise.
+      최소 필요 history: 4프레임(MLP 기준).
+    </div>
+    <div class="note" style="margin-top:8px">CH35 상세: <a href="research_story.html#ch35" style="color:#14b8a6">research_story.html#ch35</a> · 표 2-D: <code>docs/v5/TABLE1_PAPER_DRAFT.md</code></div>
+  </div>
+
+  <!-- G3: 전체 모델 통합 뷰 -->
+  <div class="card" id="section-g3">
+    <h3 style="font-size:1.05rem;font-weight:800;color:#e2e8f0;margin-bottom:4px">
+      G3 &nbsp;·&nbsp; 모든 실험 통합 비교
+      <span style="font-size:0.8rem;color:#64748b;font-weight:400">(Section F + G 전체 — 파이프라인 × Head × Window)</span>
+    </h3>
+    <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
+      이 Hub에서 테스트된 모든 모델 · 조건의 CL 성능. 파이프라인(§F)부터 Head/Window(§G)까지 한눈에.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Section</th><th>실험</th><th>파이프라인</th><th>cx 소스</th><th>Head</th><th>Window</th><th>CL ↑</th><th>FPE ↓</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Section F: pipeline ablation -->
+        <tr style="opacity:0.7"><td>§F</td><td>exp65b</td><td>단순 MLP</td><td>base PG2</td><td>MLP</td><td>8</td><td class="bad">10.3%</td><td>0.941m</td></tr>
+        <tr style="opacity:0.7"><td>§F</td><td>exp54</td><td>L2+aug (HSV)</td><td>HSV</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.110m</td></tr>
+        <tr style="opacity:0.7"><td>§F</td><td>exp66</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.102m</td></tr>
+        <tr style="opacity:0.7"><td>§F</td><td>exp67</td><td>L2+aug</td><td>exp59 LoRA</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.111m</td></tr>
+        <!-- Section G: head ablation -->
+        <tr><td>§G1</td><td>exp68</td><td>L2+aug</td><td>HSV</td><td style="color:#fca5a5">Linear</td><td>8</td><td class="bad">69.0%</td><td>0.377m</td></tr>
+        <tr><td>§G1</td><td>exp69</td><td>L2+aug</td><td>HSV</td><td style="color:#fbbf24">FCHead</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.109m</td></tr>
+        <tr><td>§G1</td><td>exp70</td><td>L2+aug</td><td>HSV</td><td style="color:#4ade80">LSTMHead</td><td>8</td><td class="key">96.6%</td><td>0.112m</td></tr>
+        <!-- Section G: window ablation MLP -->
+        <tr><td>§G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td style="color:#fca5a5">2</td><td class="bad">93.1%</td><td>0.145m</td></tr>
+        <tr style="background:#051a0a"><td>§G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td style="color:#4ade80"><strong>4</strong></td><td class="key">96.6%</td><td class="key">0.094m</td></tr>
+        <tr><td>§G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td>16</td><td class="key">96.6%</td><td>0.102m</td></tr>
+        <!-- Section G: window ablation LSTM -->
+        <tr><td>§G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>LSTM</td><td>4</td><td class="key">96.6%</td><td>0.123m</td></tr>
+        <tr style="background:#051a2a"><td>§G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>LSTM</td><td style="color:#2dd4bf"><strong>16</strong></td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.080m</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;font-size:0.82rem">
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #22c55e;color:#4ade80"><strong>파이프라인 효과:</strong> 10.3% → 96.6% (×9.4)</div>
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #a78bfa;color:#a78bfa"><strong>Head 효과:</strong> 69% → 96.6% (head 선택 중요)</div>
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #14b8a6;color:#2dd4bf"><strong>Window 효과:</strong> CL 포화, FPE 개선 여지</div>
+    </div>
   </div>
 </div>
 
@@ -390,6 +664,17 @@ document.querySelectorAll('.tabs').forEach(function(tabs){
       card.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
       card.querySelector('#'+t.dataset.t).classList.add('active');
     });
+  });
+});
+// G2 탭 (Section G window ablation)
+document.getElementById('g2-tabs').querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.getElementById('g2-tabs').querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['g2-mlp','g2-lstm','g2-all'].forEach(function(id){
+      document.getElementById(id).classList.remove('active');
+    });
+    document.getElementById(t.dataset.t).classList.add('active');
   });
 });
 // 측면 per-model 선택기 (모델 × 경로 → 단일 img src)
