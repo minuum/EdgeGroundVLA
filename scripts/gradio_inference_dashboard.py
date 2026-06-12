@@ -70,71 +70,57 @@ GOAL_NAV_PRESETS = [
 
 # 실험 모드: (표시 이름, instruction, backend_instruction_mode, speed_scaling, grounding_skip_n)
 EXP_MODES = {
-    "GoalNav-fixed (Exp49, 고정속도)": {
+    "⭐ Stage2V2-best (Exp54, base_pg2_aug)": {
+        "instruction": GOAL_NAV_PRESETS[0],
+        "backend_mode": "GoalNav (exp54_s2v2_best)",
+        "model": "exp54_s2v2_best",
+        "speed_scaling": False,
+        "grounding_skip_n": 3,
+        "desc": "⭐ 최고 성능 — val 93.5%, CL 96.6% (base PG2 aug, L2-norm)",
+        "config": "configs/exp54_stage2_action.json",
+        "checkpoint": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt",
+    },
+    "Stage2V2-hsv (Exp54, hsv cx)": {
+        "instruction": GOAL_NAV_PRESETS[0],
+        "backend_mode": "GoalNav (exp54_s2v2_hsv)",
+        "model": "exp54_s2v2_hsv",
+        "speed_scaling": False,
+        "grounding_skip_n": 3,
+        "desc": "Stage2 v2 HSV cx 소스 — val 92.6%, CL 96.6%",
+        "config": "configs/exp54_stage2_action.json",
+        "checkpoint": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
+    },
+    "GoalNav-fixed (Exp49) [legacy]": {
         "instruction": GOAL_NAV_PRESETS[0],
         "backend_mode": "GoalNav (exp49)",
         "model": "exp49",
         "speed_scaling": False,
         "grounding_skip_n": 3,
-        "desc": "기본 GoalNav — 96.4% val acc",
+        "desc": "[legacy] 기본 GoalNav — 96.4% val acc",
         "config": None,
         "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
     },
-    "GoalNav-scaled (Exp49, 거리비례속도)": {
+    "GoalNav-scaled (Exp49) [legacy]": {
         "instruction": GOAL_NAV_PRESETS[0],
         "backend_mode": "GoalNav (exp49)",
         "model": "exp49",
         "speed_scaling": True,
         "grounding_skip_n": 3,
-        "desc": "기본 GoalNav + 거리비례속도 — 96.4% val acc",
+        "desc": "[legacy] GoalNav + 거리비례속도 — 96.4% val acc",
         "config": None,
         "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
     },
-    "GoalNav (Exp50, flip-aug)": {
-        "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp50)",
-        "model": "exp50",
-        "speed_scaling": False,
-        "grounding_skip_n": 3,
-        "desc": "flip augmentation 2x — 92.0% val acc",
-    },
-    "GoalNav (Exp51, crop-aug)": {
-        "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp51)",
-        "model": "exp51",
-        "speed_scaling": False,
-        "grounding_skip_n": 3,
-        "desc": "crop augmentation 4x — 93.4% val acc",
-    },
-    "GoalNav (Exp52, lang+vis) ⚠️": {
-        "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp52)",
-        "model": "exp52",
-        "speed_scaling": False,
-        "grounding_skip_n": 3,
-        "desc": "⚠️ lang+vis 2048-dim — 실시간 추출 미지원, 실험적",
-    },
-    "GoalNav (Exp53, CLIP-LoRA)": {
+    "GoalNav (Exp53) [legacy]": {
         "instruction": GOAL_NAV_PRESETS[0],
         "backend_mode": "GoalNav (exp53)",
         "model": "exp53",
         "speed_scaling": False,
         "grounding_skip_n": 3,
-        "desc": "CLIP LoRA fine-tuned vision encoder — 94.7% val acc",
+        "desc": "[legacy] CLIP LoRA fine-tuned vision encoder — 94.7% val acc",
         "config": "configs/bbox_nav_exp53_clip_lora.json",
         "checkpoint": "runs/v5_nav/mlp/exp53_clip_lora.pt",
     },
-    "GoalNav (Exp54_s2v2, Best)": {
-        "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp54_s2v2)",
-        "model": "exp54_s2v2",
-        "speed_scaling": False,
-        "grounding_skip_n": 3,
-        "desc": "Stage2 v2 MLP + image projection — 96.7% CL (최고 성능)",
-        "config": "configs/exp54_stage2_action.json",
-        "checkpoint": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
-    },
-    "PathType-fixed (Exp47, 고정속도)": {
+    "PathType-fixed (Exp47)": {
         "instruction": "right_right",
         "backend_mode": "PathType (exp47)",
         "model": None,
@@ -1212,7 +1198,7 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
 
     def on_exp_mode_change(mode_name, api_url, backend_mode):
         cfg = EXP_MODES.get(mode_name, EXP_MODES[EXP_MODE_NAMES[0]])
-        is_goal = "GoalNav" in mode_name
+        is_goal = "GoalNav" in mode_name or "Stage2V2" in mode_name
         instr = cfg["instruction"]
         model_key = cfg.get("model")
         desc = cfg.get("desc", "")

@@ -470,6 +470,16 @@ class LoadRequest(BaseModel):
     head: Optional[str] = None
 
 
+class ConfigRequest(BaseModel):
+    grounding_skip_n: Optional[int] = None
+    # 하위 호환: 수신은 하되 무시
+    model: Optional[str] = None
+    speed_scaling: Optional[bool] = None
+    smooth_enabled: Optional[bool] = None
+    stop_area_threshold: Optional[float] = None
+    stop_cx_tolerance: Optional[float] = None
+
+
 def _check_api_key(x_api_key: Optional[str]) -> None:
     expected = os.getenv("VLA_API_KEY", "")
     if expected and x_api_key != expected:
@@ -556,6 +566,37 @@ async def reset(x_api_key: Optional[str] = Header(default=None)) -> dict[str, An
     _check_api_key(x_api_key)
     get_model().reset()
     return {"status": "success", "message": "History reset"}
+
+
+@app.post("/config")
+async def set_config(
+    request: ConfigRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> dict[str, Any]:
+    _check_api_key(x_api_key)
+    applied: dict[str, Any] = {}
+    ignored: list[str] = []
+
+    if request.grounding_skip_n is not None:
+        m = get_model()
+        m._grounding_skip_n = max(1, request.grounding_skip_n)
+        applied["grounding_skip_n"] = m._grounding_skip_n
+
+    if request.stop_area_threshold is not None:
+        global GOAL_AREA_THRESHOLD
+        GOAL_AREA_THRESHOLD = float(request.stop_area_threshold)
+        applied["stop_area_threshold"] = GOAL_AREA_THRESHOLD
+
+    if request.stop_cx_tolerance is not None:
+        global GOAL_CX_TOLERANCE
+        GOAL_CX_TOLERANCE = float(request.stop_cx_tolerance)
+        applied["stop_cx_tolerance"] = GOAL_CX_TOLERANCE
+
+    for field in ("model", "speed_scaling", "smooth_enabled"):
+        if getattr(request, field, None) is not None:
+            ignored.append(field)
+
+    return {"status": "ok", "applied": applied, "ignored": ignored}
 
 
 @app.post("/model/load")
