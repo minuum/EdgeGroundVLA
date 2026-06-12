@@ -608,9 +608,18 @@ def load_episode_frames(stem: str) -> np.ndarray:
     path = next(DATA_DIR.glob(f"{stem}.h5"))
     with h5py.File(path, "r") as handle:
         if "observations" in handle and "images" in handle["observations"]:
-            images = handle["observations"]["images"][:]
+            src = handle["observations"]["images"]
         else:
-            images = handle["images"][:]
+            src = handle["images"]
+        # 저장 포맷 자동 분기: JPEG vlen(프레임당 1D bytes) vs raw 배열
+        if src.ndim == 1:
+            import cv2
+            images = np.stack([
+                cv2.imdecode(np.asarray(src[i], dtype=np.uint8), cv2.IMREAD_COLOR)
+                for i in range(len(src))
+            ])
+        else:
+            images = src[:]
     return images
 
 

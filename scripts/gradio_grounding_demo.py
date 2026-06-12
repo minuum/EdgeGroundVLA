@@ -188,7 +188,7 @@ class ROSCameraNode(Node):
             try:
                 response = future.result()
                 if response and response.image.data:
-                    cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
+                    cv_image = self.cv_bridge.compressed_imgmsg_to_cv2(response.image, "bgr8")
                     return Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
             except Exception:
                 return None

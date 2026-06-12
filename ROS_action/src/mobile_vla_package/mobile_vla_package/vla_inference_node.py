@@ -119,7 +119,7 @@ class VLAInferenceNode(Node):
             if future.done():
                 response = future.result()
                 if response.image.data:
-                    cv_image = self.bridge.imgmsg_to_cv2(response.image, "bgr8")
+                    cv_image = self.bridge.compressed_imgmsg_to_cv2(response.image, "bgr8")
                     return cv_image
                     
         except Exception as e:

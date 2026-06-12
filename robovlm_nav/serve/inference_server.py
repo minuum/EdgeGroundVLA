@@ -1107,19 +1107,30 @@ class MobileVLAInference:
         
         # Load state dict on CPU
         checkpoint = torch.load(self.checkpoint_path, map_location='cpu', weights_only=False)
-        full_state_dict = checkpoint.get('model_state_dict', checkpoint.get('state_dict'))
+        # checkpoint가 직접 state_dict인 경우 처리 (MLP-only 체크포인트 등)
+        full_state_dict = checkpoint.get('model_state_dict', checkpoint.get('state_dict', None))
+        if full_state_dict is None:
+            logger.info("⚠️ No 'model_state_dict'/'state_dict' key found — treating checkpoint as raw state_dict")
+            full_state_dict = checkpoint
         
         # Filter for Projector and Policy Head only (Backbone is already official)
         # This avoids size mismatch and saves 6GB+ RAM/VRAM
-        logger.info("🎯 Filtering: Loading only Projector and Policy Head")
-        state_dict = {}
-        for k, v in full_state_dict.items():
-            if any(x in k for x in ["image_to_text_projection", "act_head", "policy_head", "resampler", "action_token", "lora"]):
-                # Handle model. prefix
-                new_key = k
-                if k.startswith('model.') and not hasattr(self.model, 'model'):
-                     new_key = k.replace('model.', '', 1)
-                state_dict[new_key] = v
+        # MLP-only 체크포인트는 숫자 인덱스 키만 가짐 → 필터 없이 전체 로드
+        FILTER_KEYWORDS = ["image_to_text_projection", "act_head", "policy_head", "resampler", "action_token", "lora"]
+        all_numeric = all(k.split('.')[0].isdigit() for k in full_state_dict.keys())
+        
+        if all_numeric:
+            logger.info("🎯 MLP-only checkpoint detected (numeric keys) — loading all weights directly")
+            state_dict = dict(full_state_dict)
+        else:
+            logger.info("🎯 Filtering: Loading only Projector and Policy Head")
+            state_dict = {}
+            for k, v in full_state_dict.items():
+                if any(x in k for x in FILTER_KEYWORDS):
+                    new_key = k
+                    if k.startswith('model.') and not hasattr(self.model, 'model'):
+                        new_key = k.replace('model.', '', 1)
+                    state_dict[new_key] = v
         
         # Cleanup full checkpoint immediately
         del full_state_dict
@@ -2134,7 +2145,12 @@ def _get_pure_vision_model(device: str = "cuda"):
             torch_dtype=torch.float16,
             device_map=None,
         )
-        _pure_vision_model = full_model.model.vision_model.to(device).eval()
+        # transformers 버전별 레이아웃 대응: 신버전은 .vision_model 직접, 구버전은 .model.vision_model
+        if hasattr(full_model, "vision_model"):
+            vision_model = full_model.vision_model
+        else:
+            vision_model = full_model.model.vision_model
+        _pure_vision_model = vision_model.to(device).eval()
         _pure_processor = AutoProcessor.from_pretrained(vlm_path)
         logger.info("✅ [GoalNav] Pure Kosmos-2 vision_model 로드 완료")
     return _pure_vision_model, _pure_processor
@@ -2171,9 +2187,17 @@ class GoalNavMLPInference:
     VIS_DIM = 1024
     PROJ_DIM = 256
 
+    GOAL_DIM = 3  # (cx0, cy0, area0) — 에피소드 첫 프레임 grounded 위치 (exp49/50/51/53)
+
+    # variant별: mlp 가중치 경로 + (옵션) stage1 image_proj + (옵션) CLIP LoRA adapter
+    # use_goal / d_in / arch 는 체크포인트에서 동적으로 판정한다 (하드코딩 금지).
     _DEFAULT_CKPTS = {
-        "exp49": {
-            "mlp": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
+        "exp49": {"mlp": "runs/v5_nav/mlp/exp49/exp49_mlp.pt"},
+        "exp50": {"mlp": "runs/v5_nav/mlp/exp50/exp50_mlp.pt"},
+        "exp51": {"mlp": "runs/v5_nav/mlp/exp51/exp51_mlp.pt"},
+        "exp53": {
+            "mlp":  "runs/v5_nav/mlp/exp53_clip_lora.pt",
+            "lora": "runs/v5_nav/mlp/clip_lora_adapter",  # vision_model layers 16-23 (옵션)
         },
         "exp54_s2v2": {
             "stage1": "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt",
@@ -2184,20 +2208,24 @@ class GoalNavMLPInference:
             "mlp":    "runs/v5_nav/mlp/exp55/exp55_mlp.pt",
         },
     }
+    _GOAL_VARIANTS = ("exp49", "exp50", "exp51", "exp53")    # goal(3) 입력 포함
+    _PROJ_VARIANTS = ("exp54_s2v2", "exp55")                 # stage1 image_proj 사용
 
     def __init__(self, variant: str = "exp54_s2v2", device: str = "cuda"):
         assert variant in self._DEFAULT_CKPTS, f"Unknown variant: {variant}"
         self.variant = variant
         self.device = device if torch.cuda.is_available() else "cpu"
 
-        self._d_in = self.WINDOW * 4 + (self.VIS_DIM if variant == "exp49" else self.PROJ_DIM)
-        self._mlp = self._build_mlp().to(self.device)
+        self._use_goal = variant in self._GOAL_VARIANTS
         self._image_proj = None  # only for exp54_s2v2 / exp55
+        self._d_in = None        # _load_weights() 에서 체크포인트로부터 확정
+        self._mlp = None
 
-        self._load_weights()
+        self._load_weights()     # d_in/arch 판정 후 MLP 빌드 + 가중치 로드
 
         self._bbox_history: list = []
         self._vis_feat_cache: torch.Tensor | None = None
+        self._goal: list | None = None  # 에피소드 첫 grounded bbox (cx0,cy0,area0)
 
         # ── 도착 STOP 규칙 (plan_20260602_stop_arrival_rule.md) ──
         # area_det 최근 W프레임 평균 > TH_AREA AND |cx-0.5| < TH_CX → STOP(래치).
@@ -2223,21 +2251,21 @@ class GoalNavMLPInference:
         logger.info("✅ [GoalNavMLP] variant=%s D_IN=%d device=%s stop_rule=%s stop_learned=%s",
                     variant, self._d_in, self.device, self._stop_enabled, self._stop_learned_enabled)
 
-    def _build_mlp(self) -> torch.nn.Module:
-        d = self._d_in
-        if self.variant == "exp49":
+    def _build_mlp(self, d_in: int) -> torch.nn.Module:
+        """arch는 d_in으로 선택: goal variant(1059)=5-layer(512시작), proj variant(288)=4-layer(256시작)."""
+        if self._use_goal:  # exp49/50/51/53 — 5-layer (d_in→512→256→128→64→8)
             return torch.nn.Sequential(
-                torch.nn.Linear(d, 512),  torch.nn.ReLU(), torch.nn.Dropout(0.25),
-                torch.nn.Linear(512, 256), torch.nn.ReLU(), torch.nn.Dropout(0.2),
-                torch.nn.Linear(256, 128), torch.nn.ReLU(), torch.nn.Dropout(0.1),
-                torch.nn.Linear(128, 64),  torch.nn.ReLU(),
+                torch.nn.Linear(d_in, 512), torch.nn.ReLU(), torch.nn.Dropout(0.25),
+                torch.nn.Linear(512, 256),  torch.nn.ReLU(), torch.nn.Dropout(0.2),
+                torch.nn.Linear(256, 128),  torch.nn.ReLU(), torch.nn.Dropout(0.1),
+                torch.nn.Linear(128, 64),   torch.nn.ReLU(),
                 torch.nn.Linear(64, self.NUM_CLASSES),
             )
-        else:  # exp54_s2v2 / exp55
+        else:  # exp54_s2v2 / exp55 — 4-layer (d_in→256→128→64→8)
             return torch.nn.Sequential(
-                torch.nn.Linear(d, 256),  torch.nn.ReLU(), torch.nn.Dropout(0.25),
-                torch.nn.Linear(256, 128), torch.nn.ReLU(), torch.nn.Dropout(0.2),
-                torch.nn.Linear(128, 64),  torch.nn.ReLU(), torch.nn.Dropout(0.1),
+                torch.nn.Linear(d_in, 256), torch.nn.ReLU(), torch.nn.Dropout(0.25),
+                torch.nn.Linear(256, 128),  torch.nn.ReLU(), torch.nn.Dropout(0.2),
+                torch.nn.Linear(128, 64),   torch.nn.ReLU(), torch.nn.Dropout(0.1),
                 torch.nn.Linear(64, self.NUM_CLASSES),
             )
 
@@ -2245,10 +2273,24 @@ class GoalNavMLPInference:
         rel = os.getenv(env_var, default_rel)
         return str(Path(project_root) / rel)
 
+    @staticmethod
+    def _extract_mlp_state(ckpt) -> dict:
+        """체크포인트 포맷 3종 통합: model_state_dict / mlp / plain. 'net.' prefix 제거."""
+        if isinstance(ckpt, dict) and "model_state_dict" in ckpt:   # exp49/50/51
+            sd = ckpt["model_state_dict"]
+        elif isinstance(ckpt, dict) and "mlp" in ckpt:              # exp53/54/55
+            sd = ckpt["mlp"]
+        else:                                                       # plain Sequential
+            sd = ckpt
+        if any(k.startswith("net.") for k in sd):
+            sd = {k[len("net."):]: v for k, v in sd.items()}
+        return sd
+
     def _load_weights(self):
         defaults = self._DEFAULT_CKPTS[self.variant]
 
-        if self.variant in ("exp54_s2v2", "exp55"):
+        # exp54_s2v2 / exp55: stage1 image_proj (1024→256)
+        if self.variant in self._PROJ_VARIANTS:
             stage1_path = self._resolve_path("VLA_GOALNAV_STAGE1_CKPT", defaults["stage1"])
             s1_ckpt = torch.load(stage1_path, map_location="cpu")
             self._image_proj = torch.nn.Linear(self.VIS_DIM, self.PROJ_DIM)
@@ -2258,21 +2300,22 @@ class GoalNavMLPInference:
 
         mlp_path = self._resolve_path("VLA_GOALNAV_STAGE2_CKPT", defaults["mlp"])
         ckpt = torch.load(mlp_path, map_location="cpu")
+        sd = self._extract_mlp_state(ckpt)
 
-        if self.variant == "exp49":
-            sd = ckpt["model_state_dict"]
-        else:
-            sd = ckpt["mlp"]
-        # 학습 시 self.net = nn.Sequential(...) 래핑 → "net." prefix 제거
-        if any(k.startswith("net.") for k in sd):
-            sd = {k[len("net."):]: v for k, v in sd.items()}
+        # d_in 동적 판정: 첫 Linear weight의 in-dim (1059=goal포함 / 288=proj)
+        self._d_in = int(sd["0.weight"].shape[1])
+        self._mlp = self._build_mlp(self._d_in).to(self.device)
         self._mlp.load_state_dict(sd)
-
         self._mlp.eval()
         self._weights_path = mlp_path
-        logger.info("✅ [GoalNavMLP] MLP 가중치 로드: %s", mlp_path)
+        logger.info("✅ [GoalNavMLP] MLP 가중치 로드: %s (d_in=%d, use_goal=%s)",
+                    mlp_path, self._d_in, self._use_goal)
 
     def update_bbox(self, cx: float, cy: float, area: float, has_bbox: bool):
+        # goal = 에피소드 첫 grounded bbox (cx0,cy0,area0). 한 번만 캡처해 고정.
+        if self._use_goal and self._goal is None and has_bbox:
+            self._goal = [float(cx), float(cy), float(area)]
+            logger.info("🎯 [GoalNavMLP] goal 캡처: cx0=%.3f cy0=%.3f area0=%.3f", cx, cy, area)
         self._bbox_history.append([cx, cy, area, float(has_bbox)])
         if len(self._bbox_history) > self.WINDOW:
             self._bbox_history = self._bbox_history[-self.WINDOW:]
@@ -2337,7 +2380,11 @@ class GoalNavMLPInference:
                 history = [[0.0, 0.0, 0.0, 0.0]] + history
             bbox_feat = torch.tensor(history, dtype=torch.float32).flatten().unsqueeze(0).to(self.device)  # (1,32)
 
-            x = torch.cat([bbox_feat, self._vis_feat_cache], dim=-1)  # (1, D_IN)
+            parts = [bbox_feat, self._vis_feat_cache]
+            if self._use_goal:
+                goal = self._goal if self._goal is not None else [0.5, 0.5, 0.0]  # fallback (학습과 동일)
+                parts.append(torch.tensor([goal], dtype=torch.float32, device=self.device))  # (1,3)
+            x = torch.cat(parts, dim=-1)  # (1, D_IN)
 
             with torch.no_grad():
                 logits = self._mlp(x)
@@ -2374,6 +2421,7 @@ class GoalNavMLPInference:
     def reset(self):
         self._bbox_history.clear()
         self._vis_feat_cache = None
+        self._goal = None
         self._stopped = False
         self._step = 0
         self._stop_prob_history = [0.0] * self._stop_learned_w
@@ -2383,7 +2431,7 @@ def get_goalnav_model() -> GoalNavMLPInference:
     """GoalNav MLP 인스턴스 lazy loading."""
     global goalnav_instance
     if goalnav_instance is None:
-        variant = os.getenv("VLA_GOALNAV_VARIANT", "exp54_s2v2")
+        variant = os.getenv("VLA_GOALNAV_VARIANT", "exp49")  # 프로덕션 기본 (CL 100%)
         goalnav_instance = GoalNavMLPInference(
             variant=variant,
             device="cuda" if torch.cuda.is_available() else "cpu",
@@ -2416,13 +2464,21 @@ def get_model(refresh=False, use_quant=None, checkpoint_path=None, config_path=N
             checkpoint_path = model_override_checkpoint_path
             config_path = model_override_config_path
         else:
-            checkpoint_path, config_path = _resolve_default_model_paths()        
-        model_instance = MobileVLAInference(
-            checkpoint_path=checkpoint_path,
-            config_path=config_path,
-            device="cuda" if torch.cuda.is_available() else "cpu",
-            use_quant=use_quant
-        )
+            checkpoint_path, config_path = _resolve_default_model_paths()
+        try:
+            model_instance = MobileVLAInference(
+                checkpoint_path=checkpoint_path,
+                config_path=config_path,
+                device="cuda" if torch.cuda.is_available() else "cpu",
+                use_quant=use_quant
+            )
+        except Exception as e:
+            # 로드 실패 시 override 초기화 → 다음 호출에서 기본 경로로 재시도
+            logger.error(f"❌ MobileVLAInference 로드 실패 (ckpt={checkpoint_path}): {e}")
+            model_override_checkpoint_path = None
+            model_override_config_path = None
+            model_instance = None
+            raise
     
     return model_instance
 

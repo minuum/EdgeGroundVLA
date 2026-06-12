@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
@@ -45,44 +45,61 @@ class USBCameraServiceServer(Node):
 
     def init_camera(self):
         """카메라를 초기화합니다. Jetson CSI 카메라를 우선 시도하고, 실패하면 USB 카메라를 시도합니다."""
+        import threading as _threading
+        import time as _time
         try:
-            # 1. Jetson CSI 카메라 시도
+            # 1. Jetson CSI 카메라 시도 (open 8초 timeout — Argus 초기화 여유, hang 방지)
             self.get_logger().info('📷 Jetson CSI 카메라 시도 중...')
             gst_str = (
                 "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, "
                 "format=NV12, framerate=60/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
                 "videoconvert ! video/x-raw, format=BGR ! appsink drop=true max-buffers=1"
             )
-            self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-            
-            if self.cap.isOpened():
-                # Jetson 카메라 웜업
-                self.get_logger().info('🔥 Jetson CSI 카메라 웜업 중...')
-                for i in range(5):
-                    ret, _ = self.cap.read()
-                    if not ret:
-                        self.get_logger().warn(f'웜업 프레임 {i+1}/5 읽기 실패')
-                    else:
-                        self.get_logger().info(f'웜업 프레임 {i+1}/5 완료')
-                
-                self.get_logger().info('✅ Jetson CSI 카메라 연결 성공!')
-                self.camera_type = "Jetson CSI"
-                self.failed_reads = 0
-                return True
+            _csi_cap = [None]
+            def _try_csi():
+                _csi_cap[0] = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+            _t = _threading.Thread(target=_try_csi, daemon=True)
+            _t.start()
+            _t.join(timeout=8.0)
+            if _t.is_alive() or _csi_cap[0] is None:
+                self.get_logger().warn('⚠️ Jetson CSI 카메라 open timeout (8s) — USB로 전환')
             else:
-                self.cap.release()
-                self.get_logger().warn('⚠️ Jetson CSI 카메라 연결 실패')
+                self.cap = _csi_cap[0]
+                if self.cap.isOpened():
+                    # 웜업: Argus가 실제 프레임을 낼 때까지 대기. 1장 이상 성공해야 CSI 인정.
+                    # (이전엔 warmup 실패해도 무조건 성공 선언 → 캡처루프 영구 실패하던 버그 수정)
+                    self.get_logger().info('🔥 Jetson CSI 카메라 웜업 중...')
+                    ok = 0
+                    for i in range(20):
+                        ret, _ = self.cap.read()
+                        if ret:
+                            ok += 1
+                            if ok >= 2:  # 2프레임 연속 확보 → 안정
+                                break
+                        else:
+                            _time.sleep(0.2)  # 프레임 생성 대기
+                    if ok >= 1:
+                        self.get_logger().info(f'✅ Jetson CSI 카메라 연결 성공! (warmup 확보 {ok})')
+                        self.camera_type = "Jetson CSI"
+                        self.failed_reads = 0
+                        return True
+                    else:
+                        self.cap.release()
+                        self.get_logger().warn('⚠️ CSI 웜업 프레임 0장 — 실제 캡처 불가, USB로 전환')
+                else:
+                    self.cap.release()
+                    self.get_logger().warn('⚠️ Jetson CSI 카메라 연결 실패')
         except Exception as e:
             self.get_logger().warn(f'⚠️ Jetson CSI 카메라 초기화 실패: {e}')
             if self.cap:
                 self.cap.release()
         
-        # 2. USB 카메라 시도
+        # 2. USB 카메라 시도 (CAP_V4L2 명시 — Jetson에서 GStreamer hang 방지)
         for camera_id in range(4):  # 0, 1, 2, 3번 카메라 시도
             self.get_logger().info(f'📷 USB 카메라 {camera_id} 시도 중...')
-            
-            # OpenCV로 USB 카메라 열기
-            self.cap = cv2.VideoCapture(camera_id)
+
+            # CAP_V4L2로 직접 열기 (Jetson OpenCV는 기본이 GStreamer라 hang 발생)
+            self.cap = cv2.VideoCapture(camera_id, cv2.CAP_V4L2)
             
             if self.cap.isOpened():
                 # 카메라 설정
@@ -196,13 +213,14 @@ class USBCameraServiceServer(Node):
         frame, camera_type = self.get_fresh_frame()
         
         if frame is not None:
-            response.image = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
+            # CompressedImage(JPEG) 전송 — raw bgr8 대비 대역폭 ~10x↓
+            response.image = self.bridge.cv2_to_compressed_imgmsg(frame, dst_format='jpg')
             response.image.header.stamp = self.get_clock().now().to_msg()
             response.image.header.frame_id = 'usb_camera_frame'
             self.get_logger().info(f'📸 {camera_type} 최신 이미지 서비스 요청 처리 완료!')
         else:
             self.get_logger().error('❌ USB 카메라 이미지 캡처/생성 실패 - 서비스 요청에 빈 이미지 반환')
-            response.image = Image()
+            response.image = CompressedImage()
 
         return response
     
