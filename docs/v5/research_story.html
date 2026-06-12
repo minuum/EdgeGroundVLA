@@ -9399,45 +9399,100 @@ graph TD
     <h2 class="chapter-title">미팅 준비 — 추천 읽기 순서 & 자료 링크</h2>
   </div>
 
-  <div style="background:#1a0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:20px;margin-bottom:18px">
-    <div style="color:#fca5a5;font-size:0.85rem;font-weight:700;margin-bottom:12px">⚡ 빠른 경로 (이 순서로)</div>
-    <ol style="margin:0;padding-left:20px;font-size:0.85rem;color:#cbd5e1;line-height:2.1">
-      <li><a href="#ch21" style="color:#7dd3fc;font-weight:700">CH21 연구 정리 &amp; 방향성</a> — 전체 한눈에 (출발점→배운것→숫자→다음)</li>
-      <li><a href="#next-step" style="color:#7dd3fc;font-weight:700">NEXT STEP</a> — R1~R4 교수님 반박 현재 대응 상태</li>
-      <li><a href="#ch23" style="color:#7dd3fc;font-weight:700">CH23 Grounding 붕괴</a> ⭐ 이번 핵심 — LoRA가 grounding 악화, base가 더 안정</li>
-      <li><a href="#ch22" style="color:#7dd3fc;font-weight:700">CH22 동기 vs 비동기 수집 · STOP 진실</a></li>
-      <li><a href="#ch11" style="color:#7dd3fc;font-weight:700">CH11</a> · <a href="#ch12" style="color:#7dd3fc;font-weight:700">CH12</a> 5/22 교수님 반박 · Q&amp;A 원문</li>
+  <!-- ── 날짜 배지 ── -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <span style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 14px;font-size:0.78rem;color:#94a3b8">마지막 업데이트</span>
+    <span style="background:#0d2818;border:1px solid #166534;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:#4ade80">2026-06-12</span>
+    <span style="color:#64748b;font-size:0.78rem">exp68~70 head ablation 완료 · 파이프라인 원인 확정</span>
+  </div>
+
+  <!-- ── 핵심 숫자 3개 ── -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">
+    <div style="background:#0d2818;border:1px solid #166534;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.8rem;font-weight:900;color:#4ade80">96.6%</div>
+      <div style="font-size:0.78rem;color:#86efac;margin-top:4px">Closed-Loop 성공률</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">exp54/66/67/70 공통</div>
+    </div>
+    <div style="background:#1a0a00;border:1px solid #7c2d12;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.8rem;font-weight:900;color:#f97316">0%</div>
+      <div style="font-size:0.78rem;color:#fdba74;margin-top:4px">E2E VLA (Exp11) CL</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">text attn=0%, lora_B=0 버그</div>
+    </div>
+    <div style="background:#0c1f3f;border:1px solid #1e3a5f;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.8rem;font-weight:900;color:#38bdf8">×9.4</div>
+      <div style="font-size:0.78rem;color:#7dd3fc;margin-top:4px">파이프라인 효과</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">10.3% → 96.6%</div>
+    </div>
+  </div>
+
+  <!-- ── 6/12 핵심 발견 링크 ── -->
+  <div style="background:#1a0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:20px;margin-bottom:16px">
+    <div style="color:#fca5a5;font-size:0.85rem;font-weight:700;margin-bottom:14px">⚡ 교수님 미팅 동선 (2026-06-12 기준)</div>
+    <ol style="margin:0;padding-left:20px;font-size:0.85rem;color:#cbd5e1;line-height:2.3">
+      <li>
+        <a href="#ch33" style="color:#4ade80;font-weight:700">CH33 — 파이프라인이 범인 (exp65~67)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — cx 소스 무관, L2+aug가 유일 결정 요소. <strong style="color:#fbbf24">10.3% → 96.6% (×9.4)</strong></span>
+      </li>
+      <li>
+        <a href="#ch34" style="color:#a78bfa;font-weight:700">CH34 — RoboVLMs Head Ablation (exp68~70)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — LSTM = ActionMLP 96.6%. RoboVLMs 기여 클레임 4항목 정리</span>
+      </li>
+      <li>
+        <a href="#ch29" style="color:#f87171;font-weight:700">CH29 — RoboVLMs 해부 (lora_B=0 버그 · text attn=0%)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — E2E 0% 원인. Google-robot post-training이 언어 경로 파괴</span>
+      </li>
+      <li>
+        <a href="#ch25" style="color:#7dd3fc;font-weight:700">CH25 — 학술 기여점 & 핵심 피처 5선</a>
+        <span style="color:#64748b;font-size:0.8rem"> — 논문 서술 포인트 정리</span>
+      </li>
+      <li>
+        <a href="#ch30" style="color:#7dd3fc;font-weight:700">CH30 — 의자 객체 전환 (chair 파이프라인)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — 의자 grounding 100% hit. 좌/우 수집 후 재학습 예정</span>
+      </li>
     </ol>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+  <!-- ── 별도 문서 링크 ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
     <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:16px">
-      <div style="color:#86efac;font-size:0.82rem;font-weight:700;margin-bottom:10px">📖 증거 보강 (여유되면)</div>
-      <div style="font-size:0.82rem;line-height:2">
-        <a href="#ch13" style="color:#7dd3fc">CH13</a> 객체 검증 — "진짜 인식하는가"<br>
-        <a href="#ch17" style="color:#7dd3fc">CH17</a> PaliGemma 전환 (cx→액션 시각화)<br>
-        <a href="#ch18" style="color:#7dd3fc">CH18</a> 객체인식→위치→액션 매칭<br>
-        <a href="#ch19" style="color:#7dd3fc">CH19</a> 타 VLA 논문 비교
+      <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:10px">📄 6/12 생성 문서</div>
+      <div style="font-size:0.82rem;line-height:2.1">
+        <a href="PROF_UPDATE_20260612_PIPELINE.md" style="color:#fbbf24;font-weight:700">▶ 교수님 업데이트 6/12</a> — 파이프라인 원인 확정 요약<br>
+        <a href="TABLE1_PAPER_DRAFT.md" style="color:#fbbf24;font-weight:700">▶ 논문 Table 초안</a> — Table 1/2A/2B/2C/3 전체<br>
+        <a href="../grounding_hub.html#section-f" style="color:#a78bfa">▶ Grounding Hub Section F</a> — Pipeline ablation 시각화
       </div>
     </div>
-    <div style="background:#052e16;border:1px solid #16632a;border-radius:12px;padding:16px">
-      <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">🎯 답변 직접 필요 시 (별도 문서)</div>
-      <div style="font-size:0.82rem;line-height:2">
-        <a href="PROF_QA_PREP_20260603.md" style="color:#fbbf24;font-weight:700">▶ 예상질문 10개 + 답변</a> (미팅용)<br>
-        <a href="grounding_ablation_comprehensive_report.md" style="color:#fbbf24">▶ Grounding Ablation 종합 보고서</a> (Table 1/2)<br>
-        <a href="masking_ablation_proof.html" style="color:#fbbf24">▶ Masking Ablation 인과 증거</a><br>
-        <a href="prof_qa_evidence_20260529.html" style="color:#fbbf24">▶ 교수님 Q&amp;A 시각 증거</a>
+    <div style="background:#0c1a0c;border:1px solid #1a3a1a;border-radius:12px;padding:16px">
+      <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">🔑 핵심 결론 (논문 서술용)</div>
+      <div style="font-size:0.81rem;line-height:2.1;color:#cbd5e1">
+        파이프라인(L2+aug) = 유일 결정 변수<br>
+        cx 소스(grounding 품질) = 무관<br>
+        LSTM ≡ ActionMLP (window-baked 등가)<br>
+        Decomposition: E2E 0% → 96.6%<br>
+        lora_B=0 구조적 버그 (RoboVLMs 발견)
       </div>
     </div>
   </div>
 
-  <div style="background:#0a1628;border-radius:8px;padding:14px 16px;font-size:0.82rem;color:#94a3b8;line-height:1.8">
-    <strong style="color:#e2e8f0">한 줄 동선:</strong>
-    <a href="#ch21" style="color:#7dd3fc">CH21</a> 큰그림 →
-    <a href="#next-step" style="color:#7dd3fc">next-step</a> 반박현황 →
-    <a href="#ch23" style="color:#7dd3fc">CH23</a> 이번핵심 →
-    <a href="#ch22" style="color:#7dd3fc">CH22</a> →
-    필요시 <a href="#ch11" style="color:#7dd3fc">CH11~12</a>. 답변은 <a href="PROF_QA_PREP_20260603.md" style="color:#fbbf24">PROF_QA_PREP</a> 띄워놓고.
+  <!-- ── 배경 CH 링크 (여유시) ── -->
+  <div style="background:#0a1628;border-radius:8px;padding:14px 16px;font-size:0.82rem;color:#94a3b8;line-height:1.8;margin-bottom:16px">
+    <strong style="color:#e2e8f0">배경 이해 필요 시:</strong>
+    <a href="#ch10" style="color:#7dd3fc">CH10</a> 5/15 미팅·Exp54 설계 →
+    <a href="#ch11" style="color:#7dd3fc">CH11</a> 5/22 교수님 반박 3가지 →
+    <a href="#ch21" style="color:#7dd3fc">CH21</a> 전체 연구 흐름 요약 →
+    <a href="#ch32" style="color:#7dd3fc">CH32</a> LoRA 해부 →
+    <a href="#next-step" style="color:#7dd3fc">NEXT</a> 다음 방향
+  </div>
+
+  <!-- ── 남은 TODO ── -->
+  <div style="background:#1e293b;border-radius:10px;padding:16px;font-size:0.83rem;color:#cbd5e1;line-height:2.1">
+    <div style="color:#94a3b8;font-size:0.8rem;font-weight:700;margin-bottom:8px">현재 상태 / 남은 TODO</div>
+    <span style="color:#4ade80">✅</span> 파이프라인 원인 확정 (exp65~67) — CH33<br>
+    <span style="color:#4ade80">✅</span> RoboVLMs head ablation (exp68~70) — CH34, LSTM=MLP 확인<br>
+    <span style="color:#4ade80">✅</span> 의자 grounding 파이프라인 구축 (100% hit, 스크립트 완료)<br>
+    <span style="color:#fbbf24">⏳</span> 의자 좌/우 에피소드 수집 (현재 0ep/1ep → 목표 15+15ep)<br>
+    <span style="color:#94a3b8">🔲</span> 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)<br>
+    <span style="color:#94a3b8">🔲</span> 논문 최종 작성 (Table 1/2A/2B/2C 확정 완료, 본문 서술 필요)
   </div>
 </div>
 
