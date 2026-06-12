@@ -61,6 +61,27 @@ cx 소스를 바꿔도 CL 성능 변화 없음 → grounding LoRA 개선이 acti
 
 ---
 
+## Table 2-D — Window Size Ablation
+
+파이프라인 고정(L2+aug), head별 window 크기 변화:
+
+| Head | Window | val_acc | CL (↑) | FPE (↓) | 비고 |
+|------|--------|---------|--------|---------|------|
+| MLP | 2 | 94.88% | 93.1% | 0.145m | 불충분 — 최근 2프레임으로 방향 파악 실패 |
+| **MLP** | **4** | 92.91% | **96.6%** | **0.094m** | MLP 최소 필요 window |
+| MLP | 8 (baseline, exp54) | 92.6% | 96.6% | 0.110m | — |
+| MLP | 16 | 89.57% | 96.6% | 0.102m | val_acc 하락 (입력 희석), CL 유지 |
+| LSTM | 4 | 95.08% | 96.6% | 0.123m | — |
+| LSTM | 8 (baseline, exp70) | 95.7% | 96.6% | 0.112m | — |
+| **LSTM** | **16** | **96.85%** | **96.6%** | **0.080m** | LSTM 최저 FPE — 긴 맥락 활용 |
+
+**핵심 해석:**
+- MLP: w≥4에서 CL 96.6% 포화. w=2에서 93.1%로 하락 → 최소 4프레임 히스토리 필요
+- LSTM: 모든 window에서 96.6% 유지, w=16에서 FPE 0.080m (최저). 긴 시퀀스 활용 가능
+- MLP w=4가 FPE 0.094m으로 w=8 baseline보다 낮음 → 너무 긴 윈도우는 MLP에 noise
+
+---
+
 ## Table 3 — Augmentation Ablation (참고)
 
 | Experiment | Val acc | CL | 비고 |

@@ -1,0 +1,590 @@
+"""
+Stage2 v2 inference server (Exp54/66/67/68/69/70).
+
+Pipeline: Kosmos-2 vision encoder → image_proj (256-dim, L2-norm) + bbox history → ActionHead
+
+Architecture: FrozenCLIPV2 (Stage1) + ActionMLP/LSTMHead/FCHead/LinearHead (Stage2)
+
+Environment variables:
+  VLA_S2V2_STAGE1         path to stage1_v2_projs.pt
+  VLA_S2V2_STAGE2         path to stage2 checkpoint (e.g. stage2_v2_mlp_base_pg2_aug.pt)
+  VLA_S2V2_HEAD           head type: mlp | linear | fc | lstm (auto-detected from ckpt)
+  VLA_GROUNDING_MODEL_PATH  path to Kosmos-2 model dir (.vlms/kosmos-2-patch14-224)
+  VLA_PORT                server port (default: 8001)
+  VLA_GROUNDING_SKIP_N    run grounding every N steps, cache in between (default: 1)
+  VLA_API_KEY             optional API key for authentication
+
+Usage:
+  .venv/bin/python3 robovlm_nav/serve/stage2_v2_inference_server.py
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt \
+    .venv/bin/python3 robovlm_nav/serve/stage2_v2_inference_server.py --port 8001
+"""
+
+from __future__ import annotations
+
+import base64
+import io
+import logging
+import os
+import sys
+import time
+from pathlib import Path
+from typing import Any, Optional
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(current_dir))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from fastapi import FastAPI, HTTPException, Header
+from PIL import Image
+from pydantic import BaseModel
+
+try:
+    from transformers import AutoModelForVision2Seq, AutoProcessor
+except ImportError as exc:
+    raise RuntimeError("transformers is required") from exc
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="Stage2 v2 VLA API", version="1.0.0")
+
+ROOT = Path(project_root)
+
+# --- defaults ---
+DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage1_v2" / "stage1_v2_projs.pt"
+DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage2_v2" / "stage2_v2_mlp_base_pg2_aug.pt"
+DEFAULT_VLM    = ROOT / ".vlms" / "kosmos-2-patch14-224"
+
+NUM_CLASSES = 8
+WINDOW_DEFAULT = 8
+VIS_DIM  = 1024
+PROJ_DIM = 256
+SEQ_DIM  = PROJ_DIM + 4   # 260: per-frame LSTM input
+
+CLASS_NAMES = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
+
+ACTION_2D = {
+    0: [0.0, 0.0], 1: [1.15, 0.0], 2: [0.0, 1.15], 3: [0.0, -1.15],
+    4: [1.15, 1.15], 5: [1.15, -1.15], 6: [0.0, 0.0], 7: [0.0, 0.0],
+}
+ACTION_3D = {
+    0: [0.0, 0.0, 0.0], 1: [1.15, 0.0, 0.0], 2: [0.0, 1.15, 0.0], 3: [0.0, -1.15, 0.0],
+    4: [1.15, 1.15, 0.0], 5: [1.15, -1.15, 0.0], 6: [0.0, 0.0, 0.25], 7: [0.0, 0.0, -0.25],
+}
+
+FULLSCREEN_AREA_THRESHOLD = 0.85
+GROUNDING_PROMPT = "<grounding>The gray basket is at"
+GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.18"))
+GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.25"))
+
+
+# ---------------------------------------------------------------------------
+# Head models (mirror of train_exp54_stage2_v2_action.py)
+# ---------------------------------------------------------------------------
+
+class ActionMLP(nn.Module):
+    def __init__(self, d_in: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(d_in, 256), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(256, 128),  nn.ReLU(), nn.Dropout(0.2),
+            nn.Linear(128, 64),   nn.ReLU(), nn.Dropout(0.1),
+            nn.Linear(64, NUM_CLASSES),
+        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
+
+
+class LinearHead(nn.Module):
+    def __init__(self, d_in: int):
+        super().__init__()
+        self.net = nn.Linear(d_in, NUM_CLASSES)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
+
+
+class FCHead(nn.Module):
+    def __init__(self, d_in: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(d_in, 1024), nn.ReLU(),
+            nn.Linear(1024, 512),  nn.ReLU(),
+            nn.Linear(512, 256),   nn.ReLU(),
+            nn.Linear(256, NUM_CLASSES),
+        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
+
+
+class LSTMHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lstm = nn.LSTM(SEQ_DIM, 256, 2, batch_first=True, dropout=0.1)
+        self.classifier = nn.Linear(256, NUM_CLASSES)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out, _ = self.lstm(x)
+        return self.classifier(out[:, -1])
+
+
+HEAD_REGISTRY: dict[str, type] = {
+    "mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead
+}
+
+
+# ---------------------------------------------------------------------------
+# Stage1 encoder
+# ---------------------------------------------------------------------------
+
+class Stage1Encoder(nn.Module):
+    """Kosmos-2 vision_model + image_proj (256-dim, L2-norm). Frozen."""
+
+    def __init__(self, vlm_path: Path, ckpt_path: Path, device: torch.device):
+        super().__init__()
+        ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
+        logger.info("Stage1 val_acc=%.4f", ckpt["val_acc"])
+        self.processor = AutoProcessor.from_pretrained(str(vlm_path))
+        base = AutoModelForVision2Seq.from_pretrained(str(vlm_path), torch_dtype=torch.float16)
+        self.vision_model = base.vision_model.to(device)
+        self.image_proj   = nn.Linear(VIS_DIM, PROJ_DIM).to(device)
+        self.image_proj.load_state_dict(ckpt["image_proj"])
+        for p in self.vision_model.parameters(): p.requires_grad = False
+        for p in self.image_proj.parameters():   p.requires_grad = False
+        self._device = device
+
+    @torch.no_grad()
+    def encode_image(self, pil_image: Image.Image) -> torch.Tensor:
+        """PIL RGB → (256,) float32 L2-normalized tensor on device."""
+        inputs = self.processor(images=pil_image, return_tensors="pt")
+        pv = inputs["pixel_values"].to(self._device, dtype=torch.float16)
+        out = self.vision_model(pixel_values=pv)
+        feat = out.last_hidden_state.mean(dim=1).float()         # (1, 1024)
+        return F.normalize(self.image_proj(feat), dim=-1)[0]     # (256,)
+
+    @torch.no_grad()
+    def extract_vis_feat_raw(self, pil_image: Image.Image) -> torch.Tensor:
+        """Kosmos-2 raw 1024-dim feature (needed for grounding in shared model)."""
+        inputs = self.processor(text=GROUNDING_PROMPT, images=pil_image, return_tensors="pt")
+        pv = inputs["pixel_values"].to(self._device, dtype=torch.float16)
+        out = self.vision_model(pixel_values=pv)
+        return out.last_hidden_state[0].mean(0).float()          # (1024,)
+
+
+# ---------------------------------------------------------------------------
+# Grounding (Kosmos-2 generate → bbox)
+# ---------------------------------------------------------------------------
+
+class Grounder:
+    """Wraps Kosmos-2 model for bounding-box extraction. Shares vision model with Stage1."""
+
+    def __init__(self, stage1: Stage1Encoder):
+        self._stage1 = stage1
+        # Grab the full Kosmos model so we can call generate()
+        self._processor = stage1.processor
+        # We need the full model (not just vision) for generate() — lazy-load
+        self._full_model: Optional[Any] = None
+        self._device = stage1._device
+
+    def _ensure_full_model(self, vlm_path: Path) -> None:
+        if self._full_model is None:
+            base = AutoModelForVision2Seq.from_pretrained(
+                str(vlm_path), torch_dtype=torch.float16
+            ).to(self._device).eval()
+            self._full_model = base
+            logger.info("Grounder: full Kosmos-2 model loaded for generate()")
+
+    def run(self, image_rgb: np.ndarray, vlm_path: Path) -> dict[str, Any]:
+        """Run Kosmos-2 grounding → {'cx', 'cy', 'area', 'has_bbox'}."""
+        self._ensure_full_model(vlm_path)
+        pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+        inputs = self._processor(text=GROUNDING_PROMPT, images=pil, return_tensors="pt")
+        inputs = {k: v.to(self._device) for k, v in inputs.items()}
+        pixel_values = inputs["pixel_values"].to(torch.float16)
+
+        with torch.no_grad():
+            generated = self._full_model.generate(
+                pixel_values=pixel_values,
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                image_embeds=None,
+                image_embeds_position_mask=inputs.get("image_embeds_position_mask"),
+                use_cache=True,
+                max_new_tokens=64,
+            )
+
+        new_ids = generated[:, inputs["input_ids"].shape[1]:]
+        raw = self._processor.batch_decode(new_ids, skip_special_tokens=False)[0]
+        caption, entities = self._processor.post_process_generation(raw)
+        bbox = self._parse_bbox(caption, entities)
+        if bbox is None:
+            bbox = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False}
+        else:
+            bbox["has_bbox"] = True
+        return bbox
+
+    def _parse_bbox(self, caption: str, entities: list) -> Optional[dict[str, Any]]:
+        for entity_name, _span, boxes in entities:
+            for box in boxes:
+                x1, y1, x2, y2 = [float(v) for v in box]
+                if max(x1, y1, x2, y2) > 1.5:
+                    x1, y1, x2, y2 = x1/1000.0, y1/1000.0, x2/1000.0, y2/1000.0
+                area = (x2 - x1) * (y2 - y1)
+                if area > FULLSCREEN_AREA_THRESHOLD:
+                    continue
+                if "basket" in entity_name.lower() or "container" in entity_name.lower():
+                    return {"cx": (x1+x2)/2, "cy": (y1+y2)/2, "area": area}
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Online inference model
+# ---------------------------------------------------------------------------
+
+class Stage2V2Model:
+    """Online inference: maintains bbox history, predicts action per frame."""
+
+    def __init__(
+        self,
+        stage1_path: Path,
+        stage2_path: Path,
+        vlm_path: Path,
+        head_override: Optional[str],
+        device: torch.device,
+    ):
+        self.device = device
+        self.vlm_path = vlm_path
+        self.inference_count = 0
+        self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "1"))
+        self._grounding_cache: Optional[dict] = None
+
+        # Stage1
+        self.enc = Stage1Encoder(vlm_path, stage1_path, device)
+        self.enc.eval()
+
+        # Grounder (shares processor, lazy-loads full model)
+        self.grounder = Grounder(self.enc)
+
+        # Stage2 head
+        ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
+        self.window: int = int(ckpt.get("window", WINDOW_DEFAULT))
+        head_name: str = head_override or ckpt.get("head", "mlp")
+        is_lstm = (head_name == "lstm")
+        d_in = self.window * 4 + PROJ_DIM
+        HeadCls = HEAD_REGISTRY[head_name]
+        self.head: nn.Module = (HeadCls() if is_lstm else HeadCls(d_in=d_in)).to(device)
+        self.head.load_state_dict(ckpt["mlp"])
+        self.head.eval()
+        self.is_lstm = is_lstm
+        self.head_name = head_name
+        self.val_acc: float = float(ckpt.get("val_acc", 0.0))
+
+        logger.info(
+            "Stage2V2 ready — head=%s window=%d d_in=%d val_acc=%.4f",
+            head_name, self.window, d_in, self.val_acc,
+        )
+        logger.info("Stage2 ckpt: %s", stage2_path)
+
+        # Rolling history: list of {cx, cy, area, has_bbox, vis_feat}
+        self.history: list[dict] = []
+
+    def reset(self) -> None:
+        self.history.clear()
+        self.inference_count = 0
+        self._grounding_cache = None
+
+    def _decode_image(self, image_b64: str) -> np.ndarray:
+        image_bytes = base64.b64decode(image_b64)
+        pil = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        return np.array(pil)
+
+    def _bbox_frame(self, bbox: dict) -> dict:
+        return {
+            "cx":      float(bbox.get("cx",  0.5)),
+            "cy":      float(bbox.get("cy",  0.6)),
+            "area":    float(bbox.get("area", 0.0)),
+            "has_bbox": bool(bbox.get("has_bbox", False)),
+        }
+
+    def _build_flat_feature(self, vis_feat: torch.Tensor) -> torch.Tensor:
+        """MLP/Linear/FC: [window*4 bbox + PROJ_DIM] flat vector."""
+        bbox_parts = []
+        for k in range(self.window):
+            idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
+            idx = min(idx, len(self.history) - 1)
+            item = self.history[idx]
+            bbox_parts.extend([item["cx"], item["cy"], item["area"], float(item["has_bbox"])])
+        bbox_t = torch.tensor(bbox_parts, dtype=torch.float32, device=self.device)
+        return torch.cat([bbox_t, vis_feat])  # (d_in,)
+
+    def _build_seq_feature(self) -> torch.Tensor:
+        """LSTM: (window, SEQ_DIM) sequence."""
+        seq = []
+        for k in range(self.window):
+            idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
+            idx = min(idx, len(self.history) - 1)
+            item = self.history[idx]
+            vf = item.get("vis_feat")
+            if vf is None:
+                vf = torch.zeros(PROJ_DIM, device=self.device)
+            bbox_t = torch.tensor(
+                [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
+                dtype=torch.float32, device=self.device,
+            )
+            seq.append(torch.cat([vf, bbox_t]))  # (SEQ_DIM,)
+        return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
+
+    def predict(self, image_b64: str, instruction: str = "basket") -> dict[str, Any]:
+        start = time.time()
+        image_rgb = self._decode_image(image_b64)
+        pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+
+        # Grounding (with optional caching)
+        use_cache = (
+            self._grounding_skip_n > 1
+            and self.inference_count > 0
+            and self.inference_count % self._grounding_skip_n != 0
+            and self._grounding_cache is not None
+        )
+        g_start = time.time()
+        if use_cache:
+            bbox = self._grounding_cache
+            grounding_latency_ms = 0.0
+        else:
+            bbox = self.grounder.run(image_rgb, self.vlm_path)
+            self._grounding_cache = bbox
+            grounding_latency_ms = (time.time() - g_start) * 1000.0
+
+        # Stage1 encode
+        vis_feat = self.enc.encode_image(pil)  # (256,)
+
+        # Update history
+        frame = self._bbox_frame(bbox)
+        frame["vis_feat"] = vis_feat
+        self.history.append(frame)
+        if len(self.history) > max(self.window, 8):
+            self.history = self.history[-max(self.window, 8):]
+
+        # Build feature and predict
+        with torch.no_grad():
+            if self.is_lstm:
+                x = self._build_seq_feature().unsqueeze(0)  # (1, window, SEQ_DIM)
+            else:
+                x = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, d_in)
+            logits = self.head(x)
+            pred_class = int(logits.argmax(dim=-1).item())
+
+        # Stop proximity check
+        is_near_goal = (
+            frame["has_bbox"]
+            and frame["area"] >= GOAL_AREA_THRESHOLD
+            and abs(frame["cx"] - 0.5) <= GOAL_CX_TOLERANCE
+        )
+
+        self.inference_count += 1
+        total_ms = (time.time() - start) * 1000.0
+        logger.info(
+            "[#%d] %s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            self.inference_count, CLASS_NAMES[pred_class],
+            frame["cx"], frame["area"], frame["has_bbox"], total_ms,
+        )
+
+        return {
+            "action": ACTION_2D[pred_class],
+            "action_3d": ACTION_3D[pred_class],
+            "predicted_class": pred_class,
+            "predicted_label": CLASS_NAMES[pred_class],
+            "bbox": bbox,
+            "grounding_latency_ms": grounding_latency_ms,
+            "latency_ms": total_ms,
+            "goal_near_proxy": is_near_goal,
+            "grounding_cached": use_cache,
+            "buffer_status": {
+                "history_size": len(self.history),
+                "window": self.window,
+                "head": self.head_name,
+            },
+            "source": "stage2_v2",
+        }
+
+
+# ---------------------------------------------------------------------------
+# Global model instance
+# ---------------------------------------------------------------------------
+
+_model: Optional[Stage2V2Model] = None
+
+
+def _resolve_device() -> torch.device:
+    raw = os.getenv("VLA_DEVICE", "auto")
+    if raw == "cpu":
+        return torch.device("cpu")
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def get_model(reload: bool = False) -> Stage2V2Model:
+    global _model
+    if _model is None or reload:
+        stage1_path = Path(os.getenv("VLA_S2V2_STAGE1", str(DEFAULT_STAGE1)))
+        stage2_path = Path(os.getenv("VLA_S2V2_STAGE2", str(DEFAULT_STAGE2)))
+        vlm_path    = Path(os.getenv("VLA_GROUNDING_MODEL_PATH", str(DEFAULT_VLM)))
+        head_override = os.getenv("VLA_S2V2_HEAD") or None
+        device = _resolve_device()
+        logger.info("Loading Stage2V2 model on %s ...", device)
+        _model = Stage2V2Model(stage1_path, stage2_path, vlm_path, head_override, device)
+    return _model
+
+
+# ---------------------------------------------------------------------------
+# API
+# ---------------------------------------------------------------------------
+
+class InferenceRequest(BaseModel):
+    image: str
+    instruction: str = "basket"
+
+
+class InferenceResponse(BaseModel):
+    action: list[float]
+    action_3d: list[float]
+    latency_ms: float
+    model_name: str = "stage2_v2"
+    strategy: str = "stage2_v2"
+    source: str
+    buffer_status: dict[str, Any]
+    predicted_class: Optional[int] = None
+    predicted_label: Optional[str] = None
+    bbox: Optional[dict[str, Any]] = None
+    grounding_latency_ms: Optional[float] = None
+    goal_near_proxy: Optional[bool] = None
+    grounding_cached: Optional[bool] = None
+
+
+class LoadRequest(BaseModel):
+    stage2_path: str
+    stage1_path: Optional[str] = None
+    head: Optional[str] = None
+
+
+def _check_api_key(x_api_key: Optional[str]) -> None:
+    expected = os.getenv("VLA_API_KEY", "")
+    if expected and x_api_key != expected:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+
+
+@app.get("/")
+async def root() -> dict[str, Any]:
+    m = _model
+    return {
+        "name": "Stage2 v2 VLA API",
+        "version": "1.0.0",
+        "status": "running",
+        "model_loaded": m is not None,
+        "head": m.head_name if m else None,
+        "window": m.window if m else None,
+        "val_acc": m.val_acc if m else None,
+    }
+
+
+@app.get("/health")
+async def health() -> dict[str, Any]:
+    m = _model
+    gpu = None
+    if torch.cuda.is_available():
+        gpu = {
+            "allocated_gb": round(torch.cuda.memory_allocated() / 1e9, 3),
+            "device_name": torch.cuda.get_device_name(0),
+        }
+    return {
+        "status": "healthy",
+        "model_loaded": m is not None,
+        "head": m.head_name if m else None,
+        "window": m.window if m else None,
+        "gpu": gpu,
+    }
+
+
+@app.get("/model/info")
+async def model_info() -> dict[str, Any]:
+    m = get_model()
+    return {
+        "model_loaded": True,
+        "head": m.head_name,
+        "window": m.window,
+        "is_lstm": m.is_lstm,
+        "val_acc": m.val_acc,
+        "device": str(m.device),
+        "inference_count": m.inference_count,
+    }
+
+
+@app.post("/predict", response_model=InferenceResponse)
+async def predict(
+    request: InferenceRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> InferenceResponse:
+    _check_api_key(x_api_key)
+    try:
+        m = get_model()
+        result = m.predict(request.image, request.instruction)
+        return InferenceResponse(
+            action=result["action"],
+            action_3d=result["action_3d"],
+            latency_ms=result["latency_ms"],
+            source=result["source"],
+            buffer_status=result["buffer_status"],
+            predicted_class=result["predicted_class"],
+            predicted_label=result["predicted_label"],
+            bbox=result["bbox"],
+            grounding_latency_ms=result["grounding_latency_ms"],
+            goal_near_proxy=result["goal_near_proxy"],
+            grounding_cached=result["grounding_cached"],
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Prediction failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/reset")
+async def reset(x_api_key: Optional[str] = Header(default=None)) -> dict[str, Any]:
+    _check_api_key(x_api_key)
+    get_model().reset()
+    return {"status": "success", "message": "History reset"}
+
+
+@app.post("/model/load")
+async def load_model(
+    request: LoadRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> dict[str, Any]:
+    _check_api_key(x_api_key)
+    global _model
+    if request.stage1_path:
+        os.environ["VLA_S2V2_STAGE1"] = request.stage1_path
+    os.environ["VLA_S2V2_STAGE2"] = request.stage2_path
+    if request.head:
+        os.environ["VLA_S2V2_HEAD"] = request.head
+    _model = None
+    m = get_model(reload=True)
+    return {"status": "success", "head": m.head_name, "window": m.window, "val_acc": m.val_acc}
+
+
+if __name__ == "__main__":
+    import argparse
+    import uvicorn
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=int(os.getenv("VLA_PORT", "8001")))
+    parser.add_argument("--host", type=str, default="0.0.0.0")
+    args_cli = parser.parse_args()
+
+    logger.info("Pre-loading Stage2V2 model ...")
+    get_model()
+    logger.info("Model ready. Starting uvicorn on %s:%d", args_cli.host, args_cli.port)
+    uvicorn.run(app, host=args_cli.host, port=args_cli.port, log_level="info")

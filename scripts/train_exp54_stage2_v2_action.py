@@ -150,16 +150,11 @@ def load_images(h5_path, indices):
         return result
 
 
-def bbox_feat(frames, t, augment=False, rng=None, aug=None):
-    """WINDOW개 프레임의 (cx,cy,area,has_bbox) → (WINDOW*4,) 벡터.
-
-    augment=True 이면 VLM(PaliGemma2) grounding bbox 분포를 모사하는
-    노이즈를 주입한다 (학습 전용). Exp60: HSV GT만 학습 → VLM bbox OOD 문제 완화.
-    aug = {mu_x, sd_x, mu_y, sd_y, area_mu, area_sd, area_lo, area_hi, miss_p}
-    """
+def bbox_feat(frames, t, augment=False, rng=None, aug=None, window=WINDOW):
+    """WINDOW개 프레임의 (cx,cy,area,has_bbox) → (window*4,) 벡터."""
     arr = []
-    for k in range(WINDOW):
-        fr = frames[max(0, t - (WINDOW - 1 - k))]
+    for k in range(window):
+        fr = frames[max(0, t - (window - 1 - k))]
         cx   = fr.get("cx",   fr.get("cx_det",   0.5))
         cy   = fr.get("cy",   fr.get("cy_det",   0.5))
         area = fr.get("area", fr.get("area_det", 0.05))
@@ -178,11 +173,11 @@ def bbox_feat(frames, t, augment=False, rng=None, aug=None):
     return np.array(arr, dtype=np.float32)
 
 
-def seq_feat(frames, feats, t, augment=False, rng=None, aug=None):
-    """WINDOW-step sequence of [img_feat, cx, cy, area, has] → (WINDOW, SEQ_DIM). LSTM head 전용."""
+def seq_feat(frames, feats, t, augment=False, rng=None, aug=None, window=WINDOW):
+    """WINDOW-step sequence of [img_feat, cx, cy, area, has] → (window, SEQ_DIM). LSTM head 전용."""
     seq = []
-    for k in range(WINDOW):
-        ti = max(0, t - (WINDOW - 1 - k))
+    for k in range(window):
+        ti = max(0, t - (window - 1 - k))
         fr = frames[ti]
         cx   = fr.get("cx",   fr.get("cx_det",   0.5))
         cy   = fr.get("cy",   fr.get("cy_det",   0.5))
@@ -260,7 +255,7 @@ def _step(feats, labels, mlp, opt, criterion, device):
 
 
 @torch.no_grad()
-def evaluate(te_cache, te_eps, mlp, device, is_lstm=False):
+def evaluate(te_cache, te_eps, mlp, device, is_lstm=False, window=WINDOW):
     mlp.eval()
     correct = total = 0
     from collections import defaultdict
@@ -271,9 +266,9 @@ def evaluate(te_cache, te_eps, mlp, device, is_lstm=False):
             continue
         for t, fr in enumerate(ep["frames"]):
             if is_lstm:
-                x = seq_feat(ep["frames"], feats, t).unsqueeze(0).to(device)
+                x = seq_feat(ep["frames"], feats, t, window=window).unsqueeze(0).to(device)
             else:
-                bf = torch.tensor(bbox_feat(ep["frames"], t), dtype=torch.float32)
+                bf = torch.tensor(bbox_feat(ep["frames"], t, window=window), dtype=torch.float32)
                 x  = torch.cat([bf, feats[t]]).unsqueeze(0).to(device)
             p  = mlp(x).argmax(1).item()
             g  = fr["gt_class"]
@@ -318,10 +313,12 @@ def train(args):
     print("[CACHE] VLM 해제 완료 — MLP만 학습", flush=True)
     # ─────────────────────────────────────────────────
 
+    window  = args.window
+    d_in    = window * 4 + PROJ_DIM
     is_lstm = (args.head == "lstm")
     HeadCls = HEAD_REGISTRY[args.head]
-    mlp = HeadCls().to(device)
-    print(f"[HEAD] {args.head} ({HeadCls.__name__})", flush=True)
+    mlp = (HeadCls() if is_lstm else HeadCls(d_in=d_in)).to(device)
+    print(f"[HEAD] {args.head} ({HeadCls.__name__})  window={window}  d_in={d_in}", flush=True)
 
     # ── Exp60: VLM bbox 분포 모사 증강 ────────────────
     aug, aug_rng = None, None
@@ -361,10 +358,12 @@ def train(args):
             for t, fr in enumerate(ep["frames"]):
                 if is_lstm:
                     x_t = seq_feat(ep["frames"], feats, t,
-                                   augment=args.augment, rng=aug_rng, aug=aug)
+                                   augment=args.augment, rng=aug_rng, aug=aug,
+                                   window=window)
                 else:
                     bf  = torch.tensor(
-                        bbox_feat(ep["frames"], t, augment=args.augment, rng=aug_rng, aug=aug),
+                        bbox_feat(ep["frames"], t, augment=args.augment, rng=aug_rng, aug=aug,
+                                  window=window),
                         dtype=torch.float32,
                     )
                     x_t = torch.cat([bf, feats[t]])
@@ -379,7 +378,7 @@ def train(args):
         sched.step()
 
         if epoch % 10 == 0 or epoch == args.epochs:
-            acc, per_class = evaluate(te_cache, te_eps, mlp, device, is_lstm=is_lstm)
+            acc, per_class = evaluate(te_cache, te_eps, mlp, device, is_lstm=is_lstm, window=window)
             if acc > best_acc:
                 best_acc = acc
                 best_state = {k: v.cpu().clone() for k, v in mlp.state_dict().items()}
@@ -389,7 +388,7 @@ def train(args):
     if best_state is None:
         best_state = {k: v.cpu().clone() for k, v in mlp.state_dict().items()}
     mlp.load_state_dict(best_state)
-    final_acc, per_class = evaluate(te_cache, te_eps, mlp, device, is_lstm=is_lstm)
+    final_acc, per_class = evaluate(te_cache, te_eps, mlp, device, is_lstm=is_lstm, window=window)
 
     print(f"\n{'='*55}", flush=True)
     print(f"  Exp54 Stage 2 v2 완료")
@@ -403,12 +402,15 @@ def train(args):
         print(f"    {name:<8}: {a:>6.1f}%  ({c}/{t})")
 
     head_name = args.head
+    w_tag = f"w{window}" if window != WINDOW else ""
     if args.augment:
         tag = args.tag or f"aug{args.noise_scale:g}"
-        ckpt_path = STAGE2_DIR / f"stage2_v2_{head_name}_{tag}.pt"
+        suffix = f"{w_tag}_{tag}" if w_tag else tag
+        ckpt_path = STAGE2_DIR / f"stage2_v2_{head_name}_{suffix}.pt"
     else:
-        ckpt_path = STAGE2_DIR / f"stage2_v2_{head_name}.pt"
-    torch.save({"mlp": best_state, "val_acc": final_acc, "d_in": D_IN, "head": head_name,
+        ckpt_path = STAGE2_DIR / f"stage2_v2_{head_name}{'_'+w_tag if w_tag else ''}.pt"
+    torch.save({"mlp": best_state, "val_acc": final_acc, "d_in": d_in,
+                "head": head_name, "window": window,
                 "augment": args.augment, "noise_scale": args.noise_scale if args.augment else 0.0,
                 "aug_params": aug}, str(ckpt_path))
     print(f"\n[SAVE] {ckpt_path}", flush=True)
@@ -433,6 +435,8 @@ def main():
     p.add_argument("--head",        default="mlp",
                    choices=["mlp", "linear", "fc", "lstm"],
                    help="액션 헤드 종류 (ablation용). mlp=현재, linear=1-layer, fc=RoboVLMs FCDecoder, lstm=RoboVLMs LSTM")
+    p.add_argument("--window",      type=int,   default=WINDOW,
+                   help=f"bbox 히스토리 윈도우 크기 (기본={WINDOW}). ablation: 2/4/8/16")
     args = p.parse_args()
 
     t0 = time.time()
