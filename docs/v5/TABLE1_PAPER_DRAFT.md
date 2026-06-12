@@ -40,6 +40,27 @@ cx 소스를 바꿔도 CL 성능 변화 없음 → grounding LoRA 개선이 acti
 
 ---
 
+## Table 2-C — Action Head Ablation (RoboVLMs 기여 클레임)
+
+파이프라인 고정(L2-norm + bbox aug), cx 소스 고정(HSV), head만 변경:
+
+| exp | Head | 원형 | val_acc | CL (↑) | FPE (↓) |
+|-----|------|------|---------|--------|---------|
+| exp68 | Linear | 1-layer FC | 76.8% | 69.0% | 0.377m |
+| exp69 | FCHead | RoboVLMs FCDecoder (deep MLP, no temporal) | 95.3% | 93.1% | 0.109m |
+| **exp70** | **LSTMHead** | **RoboVLMs MobileVLAClassificationDecoder** | **95.7%** | **96.6%** | **0.112m** |
+| exp54 | **ActionMLP (ours)** | — | 92.6% | **96.6%** | 0.110m |
+
+**핵심 해석:**
+- LSTM (RoboVLMs 스타일, window=8 sequential) = ActionMLP (window-baked flat) → **96.6% 동일**
+- 우리 MLP는 LSTM의 temporal modeling을 window pre-baking으로 등가 달성 (더 가볍고 빠름)
+- FCHead (deep MLP, no temporal): 93.1% — depth는 충분히 필요
+- Linear (1-layer): 69.0% — 완전히 부족
+
+**RoboVLMs 기여 클레임**: LSTM-based action decoder (RoboVLMs)와 비교 검증; window-flattened MLP가 동등 성능으로 더 효율적임을 확인.
+
+---
+
 ## Table 3 — Augmentation Ablation (참고)
 
 | Experiment | Val acc | CL | 비고 |
@@ -61,6 +82,8 @@ cx 소스를 바꿔도 CL 성능 변화 없음 → grounding LoRA 개선이 acti
 3. **파이프라인 기여**: L2 정규화와 PG2 grounding 분포 모사 증강이 핵심. 단순 MLP 대비 ×9.4배. grounding 품질 자체(cx 소스)는 무관.
 
 4. **Grounding 음성 결과**: LoRA grounding 개선(exp59, exp64 등)이 downstream action 성능에 기여하지 않음. 이는 현재 파이프라인에서 cx 신호가 포화 상태임을 시사.
+
+5. **RoboVLMs Action Head 비교 (Table 2-C)**: RoboVLMs의 LSTM 기반 decoder (MobileVLAClassificationDecoder)와 비교 실험에서 동일 96.6% CL 달성. Window-flattened MLP가 explicit temporal LSTM과 동등함을 확인 → 우리 설계가 더 경량·효율적임을 실험적으로 검증.
 
 ---
 

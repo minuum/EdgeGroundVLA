@@ -269,6 +269,7 @@
     <a class="toc-item" href="#ch31" data-target="ch31"><span class="toc-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">CH 31</span><span class="toc-label">exp64 실측 — full-frame collapse (val지표가 숨긴 실패)</span></a>
     <a class="toc-item" href="#ch32" data-target="ch32"><span class="toc-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">CH 32</span><span class="toc-label">LoRA 해부 — 얻은 것·실패 데이터·시점별</span></a>
     <a class="toc-item" href="#ch33" data-target="ch33"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 33</span><span class="toc-label">파이프라인이 범인 — CL 격차 원인 확정 (exp65~66)</span></a>
+    <a class="toc-item" href="#ch34" data-target="ch34"><span class="toc-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6">CH 34</span><span class="toc-label">RoboVLMs Head Ablation — LSTM=MLP 확인 (exp68~70)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">NEXT</span><span class="toc-label">Step 3 방향</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
   </div>
@@ -9284,6 +9285,113 @@ graph TD
   </div>
 </div>
 
+<!-- ══ CH34 ══ -->
+<div class="chapter" id="ch34">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#8b5cf6;color:#fff">CH 34</span>
+    <h2 class="chapter-title">RoboVLMs Action Head Ablation — LSTM vs MLP (exp68~70)</h2>
+  </div>
+
+  <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:0.85rem;color:#c4b5fd;line-height:1.8">
+    <strong>연구 질문:</strong> RoboVLMs의 action head (LSTM, FCDecoder 등)를 Stage2에 직접 적용하면 성능이 달라지는가?
+    파이프라인·cx 소스 고정, head 구조만 변경하는 4-way ablation.
+  </div>
+
+  <!-- 결과 테이블 -->
+  <div style="margin-bottom:24px">
+    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">실험 결과</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
+      <thead>
+        <tr style="background:#1e293b">
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8">exp</th>
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8">Head</th>
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8">원형</th>
+          <th style="padding:10px 14px;text-align:center;color:#94a3b8">val_acc</th>
+          <th style="padding:10px 14px;text-align:center;color:#94a3b8">CL ↑</th>
+          <th style="padding:10px 14px;text-align:center;color:#94a3b8">FPE ↓</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:1px solid #1e293b">
+          <td style="padding:10px 14px;color:#94a3b8">exp68</td>
+          <td style="padding:10px 14px;color:#e2e8f0">Linear</td>
+          <td style="padding:10px 14px;color:#94a3b8">1-layer FC</td>
+          <td style="padding:10px 14px;text-align:center;color:#f87171">76.8%</td>
+          <td style="padding:10px 14px;text-align:center;color:#f87171">69.0%</td>
+          <td style="padding:10px 14px;text-align:center;color:#f87171">0.377m</td>
+        </tr>
+        <tr style="border-top:1px solid #1e293b;background:#0f172a">
+          <td style="padding:10px 14px;color:#94a3b8">exp69</td>
+          <td style="padding:10px 14px;color:#e2e8f0">FCHead</td>
+          <td style="padding:10px 14px;color:#94a3b8">RoboVLMs FCDecoder (deep MLP)</td>
+          <td style="padding:10px 14px;text-align:center;color:#fbbf24">95.3%</td>
+          <td style="padding:10px 14px;text-align:center;color:#fbbf24">93.1%</td>
+          <td style="padding:10px 14px;text-align:center;color:#fbbf24">0.109m</td>
+        </tr>
+        <tr style="border-top:1px solid #1e293b">
+          <td style="padding:10px 14px;color:#94a3b8">exp70</td>
+          <td style="padding:10px 14px;font-weight:700;color:#a78bfa">LSTMHead</td>
+          <td style="padding:10px 14px;color:#94a3b8">RoboVLMs MobileVLAClassificationDecoder</td>
+          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">95.7%</td>
+          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
+          <td style="padding:10px 14px;text-align:center;color:#4ade80">0.112m</td>
+        </tr>
+        <tr style="border-top:1px solid #1e293b;background:#0a1628">
+          <td style="padding:10px 14px;color:#94a3b8">exp54</td>
+          <td style="padding:10px 14px;font-weight:700;color:#38bdf8">ActionMLP (ours)</td>
+          <td style="padding:10px 14px;color:#94a3b8">— (baseline)</td>
+          <td style="padding:10px 14px;text-align:center;color:#38bdf8">92.6%</td>
+          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
+          <td style="padding:10px 14px;text-align:center;color:#4ade80">0.110m</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 해석 -->
+  <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:0.85rem;margin-bottom:24px">
+    <div style="background:#1a0d3a;border-left:3px solid #8b5cf6;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+      <strong style="color:#c4b5fd">1. LSTM = ActionMLP — 96.6% 동일</strong><br>
+      RoboVLMs의 LSTM 기반 decoder(MobileVLAClassificationDecoder 구조)가 우리 ActionMLP와 동일한 96.6% CL 달성.
+      <em>Window-baked flat input이 sequential LSTM과 등가임을 실험으로 확인.</em>
+      우리 MLP는 LSTM보다 파라미터 적고 추론 더 빠르다.
+    </div>
+    <div style="background:#1a1200;border-left:3px solid #f59e0b;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+      <strong style="color:#fcd34d">2. FCHead 93.1% — depth는 필요, temporal은 optional</strong><br>
+      Deep MLP(no temporal)로도 93.1% 달성. 단순 linear(69%)보다 훨씬 높다.
+      <em>작업의 복잡도가 단순 선형 분리를 초과함을 확인.</em>
+      하지만 temporal context(LSTM/window) 없이는 96.6%까지 오르지 못한다 → bbox window가 중요.
+    </div>
+    <div style="background:#1a0000;border-left:3px solid #ef4444;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+      <strong style="color:#fca5a5">3. Linear 69% — temporal 없으면 한계 명확</strong><br>
+      1-layer linear는 각 timestep을 독립적으로만 봄. 69% CL — Stage2의 task가 temporal 맥락을 필요로 함을 재확인.
+    </div>
+  </div>
+
+  <!-- RoboVLMs 기여 클레임 -->
+  <div style="background:#0d2818;border:1px solid #166534;border-radius:12px;padding:18px 22px;margin-bottom:20px">
+    <div style="color:#4ade80;font-size:0.85rem;font-weight:700;margin-bottom:10px">RoboVLMs 기여 클레임 정리</div>
+    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
+      <span style="color:#4ade80">①</span> Kosmos-2 (RoboVLMs) backbone → Stage1 grounding encoder로 활용<br>
+      <span style="color:#4ade80">②</span> RoboVLMs E2E (MobileVLAClassificationDecoder) → 0% CL baseline 제공 → decomposition 필요성 증명<br>
+      <span style="color:#4ade80">③</span> lora_B=0 구조적 버그 발견 (forward_continuous에서 gradient 단절)<br>
+      <span style="color:#4ade80">④</span> <strong>LSTM vs MLP head 비교 (이번)</strong> → window-flattened MLP가 RoboVLMs LSTM과 동등·더 경량 → 설계 검증
+    </div>
+  </div>
+
+  <!-- 다음 스텝 -->
+  <div style="background:#1e293b;border-radius:12px;padding:18px 22px">
+    <div style="color:#94a3b8;font-size:0.82rem;font-weight:700;margin-bottom:12px">다음 스텝</div>
+    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
+      <span style="color:#4ade80">✅</span> exp68 linear — 69.0% CL<br>
+      <span style="color:#4ade80">✅</span> exp69 FCHead — 93.1% CL<br>
+      <span style="color:#4ade80">✅</span> exp70 LSTMHead — 96.6% CL (RoboVLMs LSTM과 비교 완료)<br>
+      <span style="color:#fbbf24">⏳</span> 의자(chair) 데이터 수집 (좌/우 에피소드 추가 필요)<br>
+      <span style="color:#94a3b8">🔲</span> 논문 Table 2-C 확정 후 제출 준비
+    </div>
+  </div>
+</div>
+
 <!-- ══ 미팅 준비 — 추천 동선 & 자료 ══ -->
 <div class="chapter" id="meeting-guide" style="padding-bottom:100px">
   <div class="chapter-header">
@@ -9336,7 +9444,7 @@ graph TD
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {

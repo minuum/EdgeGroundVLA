@@ -38,6 +38,7 @@ WINDOW      = 8
 VIS_DIM     = 1024
 PROJ_DIM    = 256
 D_IN        = WINDOW * 4 + PROJ_DIM   # 288
+SEQ_DIM     = PROJ_DIM + 4             # 260: per-frame [img_feat, cx, cy, area, has] (LSTM용)
 
 
 # ─── 인코더 ─────────────────────────────────────────
@@ -96,6 +97,42 @@ class ActionMLP(nn.Module):
         return self.net(x)
 
 
+class LinearHead(nn.Module):
+    """1-layer linear — 최소 baseline."""
+    def __init__(self, d_in=D_IN):
+        super().__init__()
+        self.net = nn.Linear(d_in, NUM_CLASSES)
+    def forward(self, x): return self.net(x)
+
+
+class FCHead(nn.Module):
+    """RoboVLMs FCDecoder / MLPNohHead 스타일 — deep MLP, temporal 없음."""
+    def __init__(self, d_in=D_IN):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(d_in, 1024), nn.ReLU(),
+            nn.Linear(1024, 512),  nn.ReLU(),
+            nn.Linear(512, 256),   nn.ReLU(),
+            nn.Linear(256, NUM_CLASSES),
+        )
+    def forward(self, x): return self.net(x)
+
+
+class LSTMHead(nn.Module):
+    """RoboVLMs MobileVLAClassificationDecoder 스타일 — per-frame sequential."""
+    def __init__(self, input_dim=SEQ_DIM, hidden=256, num_layers=2):
+        super().__init__()
+        self.lstm = nn.LSTM(input_dim, hidden, num_layers,
+                            batch_first=True, dropout=0.1)
+        self.classifier = nn.Linear(hidden, NUM_CLASSES)
+    def forward(self, x):
+        out, _ = self.lstm(x)       # x: (B, WINDOW, SEQ_DIM)
+        return self.classifier(out[:, -1])
+
+
+HEAD_REGISTRY = {"mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead}
+
+
 # ─── 데이터 유틸 ─────────────────────────────────────
 
 def load_images(h5_path, indices):
@@ -139,6 +176,31 @@ def bbox_feat(frames, t, augment=False, rng=None, aug=None):
                 has = 0.0
         arr.extend([cx, cy, area, has])
     return np.array(arr, dtype=np.float32)
+
+
+def seq_feat(frames, feats, t, augment=False, rng=None, aug=None):
+    """WINDOW-step sequence of [img_feat, cx, cy, area, has] → (WINDOW, SEQ_DIM). LSTM head 전용."""
+    seq = []
+    for k in range(WINDOW):
+        ti = max(0, t - (WINDOW - 1 - k))
+        fr = frames[ti]
+        cx   = fr.get("cx",   fr.get("cx_det",   0.5))
+        cy   = fr.get("cy",   fr.get("cy_det",   0.5))
+        area = fr.get("area", fr.get("area_det", 0.05))
+        has  = float(fr.get("has_bbox", fr.get("detected", False)))
+        if augment and aug is not None and has > 0.5:
+            cx   += rng.normal(aug["mu_x"], aug["sd_x"])
+            cy   += rng.normal(aug["mu_y"], aug["sd_y"])
+            ratio = rng.normal(aug["area_mu"], aug["area_sd"])
+            ratio = float(np.clip(ratio, aug["area_lo"], aug["area_hi"]))
+            area  = max(0.0, area * ratio)
+            cx    = float(np.clip(cx, 0.0, 1.0))
+            cy    = float(np.clip(cy, 0.0, 1.0))
+            if rng.random() < aug["miss_p"]:
+                has = 0.0
+        seq.append(torch.cat([feats[ti],
+                               torch.tensor([cx, cy, area, has], dtype=torch.float32)]))
+    return torch.stack(seq, dim=0)  # (WINDOW, SEQ_DIM)
 
 
 def build_aug_params(stats_path, noise_scale):
@@ -198,18 +260,21 @@ def _step(feats, labels, mlp, opt, criterion, device):
 
 
 @torch.no_grad()
-def evaluate(tr_cache, te_eps, mlp, device):
+def evaluate(te_cache, te_eps, mlp, device, is_lstm=False):
     mlp.eval()
     correct = total = 0
     from collections import defaultdict
     per_class = defaultdict(lambda: [0, 0])
     for ep in te_eps:
-        feats = tr_cache.get(ep["episode"])
+        feats = te_cache.get(ep["episode"])
         if feats is None:
             continue
         for t, fr in enumerate(ep["frames"]):
-            bf = torch.tensor(bbox_feat(ep["frames"], t), dtype=torch.float32)
-            x  = torch.cat([bf, feats[t]]).unsqueeze(0).to(device)
+            if is_lstm:
+                x = seq_feat(ep["frames"], feats, t).unsqueeze(0).to(device)
+            else:
+                bf = torch.tensor(bbox_feat(ep["frames"], t), dtype=torch.float32)
+                x  = torch.cat([bf, feats[t]]).unsqueeze(0).to(device)
             p  = mlp(x).argmax(1).item()
             g  = fr["gt_class"]
             per_class[g][0] += int(p == g)
@@ -253,7 +318,10 @@ def train(args):
     print("[CACHE] VLM 해제 완료 — MLP만 학습", flush=True)
     # ─────────────────────────────────────────────────
 
-    mlp = ActionMLP(D_IN).to(device)
+    is_lstm = (args.head == "lstm")
+    HeadCls = HEAD_REGISTRY[args.head]
+    mlp = HeadCls().to(device)
+    print(f"[HEAD] {args.head} ({HeadCls.__name__})", flush=True)
 
     # ── Exp60: VLM bbox 분포 모사 증강 ────────────────
     aug, aug_rng = None, None
@@ -291,11 +359,16 @@ def train(args):
             if feats is None:
                 continue
             for t, fr in enumerate(ep["frames"]):
-                bf = torch.tensor(
-                    bbox_feat(ep["frames"], t, augment=args.augment, rng=aug_rng, aug=aug),
-                    dtype=torch.float32,
-                )
-                bf_batch.append(torch.cat([bf, feats[t]]))
+                if is_lstm:
+                    x_t = seq_feat(ep["frames"], feats, t,
+                                   augment=args.augment, rng=aug_rng, aug=aug)
+                else:
+                    bf  = torch.tensor(
+                        bbox_feat(ep["frames"], t, augment=args.augment, rng=aug_rng, aug=aug),
+                        dtype=torch.float32,
+                    )
+                    x_t = torch.cat([bf, feats[t]])
+                bf_batch.append(x_t)
                 lb_batch.append(fr["gt_class"])
                 if len(lb_batch) >= args.batch_size:
                     _step(bf_batch, lb_batch, mlp, opt, criterion, device)
@@ -306,7 +379,7 @@ def train(args):
         sched.step()
 
         if epoch % 10 == 0 or epoch == args.epochs:
-            acc, per_class = evaluate(te_cache, te_eps, mlp, device)
+            acc, per_class = evaluate(te_cache, te_eps, mlp, device, is_lstm=is_lstm)
             if acc > best_acc:
                 best_acc = acc
                 best_state = {k: v.cpu().clone() for k, v in mlp.state_dict().items()}
@@ -316,7 +389,7 @@ def train(args):
     if best_state is None:
         best_state = {k: v.cpu().clone() for k, v in mlp.state_dict().items()}
     mlp.load_state_dict(best_state)
-    final_acc, per_class = evaluate(te_cache, te_eps, mlp, device)
+    final_acc, per_class = evaluate(te_cache, te_eps, mlp, device, is_lstm=is_lstm)
 
     print(f"\n{'='*55}", flush=True)
     print(f"  Exp54 Stage 2 v2 완료")
@@ -329,12 +402,13 @@ def train(args):
         a = c / t * 100 if t > 0 else 0.0
         print(f"    {name:<8}: {a:>6.1f}%  ({c}/{t})")
 
+    head_name = args.head
     if args.augment:
         tag = args.tag or f"aug{args.noise_scale:g}"
-        ckpt_path = STAGE2_DIR / f"stage2_v2_mlp_{tag}.pt"   # 기존 baseline 덮어쓰지 않음
+        ckpt_path = STAGE2_DIR / f"stage2_v2_{head_name}_{tag}.pt"
     else:
-        ckpt_path = STAGE2_DIR / "stage2_v2_mlp.pt"
-    torch.save({"mlp": best_state, "val_acc": final_acc, "d_in": D_IN,
+        ckpt_path = STAGE2_DIR / f"stage2_v2_{head_name}.pt"
+    torch.save({"mlp": best_state, "val_acc": final_acc, "d_in": D_IN, "head": head_name,
                 "augment": args.augment, "noise_scale": args.noise_scale if args.augment else 0.0,
                 "aug_params": aug}, str(ckpt_path))
     print(f"\n[SAVE] {ckpt_path}", flush=True)
@@ -356,6 +430,9 @@ def main():
     p.add_argument("--seed",        type=int,   default=42, help="증강 rng 시드")
     p.add_argument("--tag",         default=None, help="ckpt suffix (기본: aug{noise_scale})")
     p.add_argument("--data",        default=str(DATA_PATH), help="학습 데이터 JSON (기본: HSV bbox_nav_exp46)")
+    p.add_argument("--head",        default="mlp",
+                   choices=["mlp", "linear", "fc", "lstm"],
+                   help="액션 헤드 종류 (ablation용). mlp=현재, linear=1-layer, fc=RoboVLMs FCDecoder, lstm=RoboVLMs LSTM")
     args = p.parse_args()
 
     t0 = time.time()

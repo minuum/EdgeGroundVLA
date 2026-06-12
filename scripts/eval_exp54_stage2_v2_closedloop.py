@@ -46,6 +46,7 @@ WINDOW        = 8
 VIS_DIM       = 1024
 PROJ_DIM      = 256
 D_IN          = WINDOW * 4 + PROJ_DIM   # 288
+SEQ_DIM       = PROJ_DIM + 4             # 260: per-frame [img_feat, cx, cy, area, has]
 
 
 class FrozenCLIPV2(nn.Module):
@@ -87,6 +88,38 @@ class ActionMLP(nn.Module):
     def forward(self, x): return self.net(x)
 
 
+class LinearHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Linear(D_IN, NUM_CLASSES)
+    def forward(self, x): return self.net(x)
+
+
+class FCHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(D_IN, 1024), nn.ReLU(),
+            nn.Linear(1024, 512),  nn.ReLU(),
+            nn.Linear(512, 256),   nn.ReLU(),
+            nn.Linear(256, NUM_CLASSES),
+        )
+    def forward(self, x): return self.net(x)
+
+
+class LSTMHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lstm = nn.LSTM(SEQ_DIM, 256, 2, batch_first=True, dropout=0.1)
+        self.classifier = nn.Linear(256, NUM_CLASSES)
+    def forward(self, x):
+        out, _ = self.lstm(x)
+        return self.classifier(out[:, -1])
+
+
+HEAD_REGISTRY = {"mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead}
+
+
 def bbox_feat(frames, t):
     arr = []
     for k in range(WINDOW):
@@ -99,7 +132,23 @@ def bbox_feat(frames, t):
     return np.array(arr, dtype=np.float32)
 
 
-def eval_episode(ep_entry, enc, mlp, device):
+def seq_feat_eval(frames, vis_feats, t):
+    """LSTM head 전용: (WINDOW, SEQ_DIM) 시계열 입력."""
+    import torch
+    seq = []
+    for k in range(WINDOW):
+        ti = max(0, t - (WINDOW - 1 - k))
+        fr = frames[ti]
+        cx   = fr.get("cx",   fr.get("cx_det",   0.5))
+        cy   = fr.get("cy",   fr.get("cy_det",   0.5))
+        area = fr.get("area", fr.get("area_det", 0.05))
+        has  = float(fr.get("has_bbox", fr.get("detected", False)))
+        seq.append(torch.cat([vis_feats[ti],
+                               torch.tensor([cx, cy, area, has], dtype=torch.float32)]))
+    return torch.stack(seq, dim=0)  # (WINDOW, SEQ_DIM)
+
+
+def eval_episode(ep_entry, enc, mlp, device, is_lstm=False):
     """에피소드 1개 → (pred_classes, expert_actions)"""
     frames = ep_entry["frames"]
     ep_path = Path(ep_entry["episode"])
@@ -136,12 +185,16 @@ def eval_episode(ep_entry, enc, mlp, device):
     expert_classes = [fr["gt_class"] for fr in frames]
 
     vis_feats = enc.encode_batch(imgs, device)
+    vis_feats_cpu = vis_feats.cpu()
     pred_classes = []
     mlp.eval()
     with torch.no_grad():
         for t in range(len(frames)):
-            bf = torch.tensor(bbox_feat(frames, t), device=device)
-            x  = torch.cat([bf, vis_feats[t]]).unsqueeze(0)
+            if is_lstm:
+                x = seq_feat_eval(frames, vis_feats_cpu, t).unsqueeze(0).to(device)
+            else:
+                bf = torch.tensor(bbox_feat(frames, t), device=device)
+                x  = torch.cat([bf, vis_feats[t]]).unsqueeze(0)
             pred_classes.append(mlp(x).argmax(1).item())
 
     return pred_classes, expert_classes
@@ -173,6 +226,9 @@ def main():
                    help="CL 평가 데이터 (cx 소스 매칭용). 기본=HSV 벤치마크")
     p.add_argument("--tag",         type=str,   default="exp54_s2v2",
                    help="결과 JSON에 기록할 라벨")
+    p.add_argument("--head",        type=str,   default="mlp",
+                   choices=["mlp", "linear", "fc", "lstm"],
+                   help="액션 헤드 종류 (학습 시와 동일하게 지정)")
     args = p.parse_args()
 
     ckpt_path = Path(args.ckpt)
@@ -203,17 +259,19 @@ def main():
     enc = FrozenCLIPV2(VLM_PATH, STAGE1_V2, device).to(device).eval()
 
     ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
-    mlp  = ActionMLP().to(device)
+    is_lstm = (args.head == "lstm")
+    HeadCls = HEAD_REGISTRY[args.head]
+    mlp = HeadCls().to(device)
     mlp.load_state_dict(ckpt["mlp"])
     mlp.eval()
-    print(f"[MODEL] Stage 2 v2 MLP loaded (val_acc={ckpt['val_acc']:.4f})")
+    print(f"[MODEL] Stage 2 v2 {args.head.upper()} loaded (val_acc={ckpt['val_acc']:.4f})")
 
     results_by_path = defaultdict(list)
     all_metrics = []
 
     for i, ep in enumerate(val_eps):
         pt = ep.get("path_type", "unknown")
-        pred, expert = eval_episode(ep, enc, mlp, device)
+        pred, expert = eval_episode(ep, enc, mlp, device, is_lstm=is_lstm)
         if pred is None:
             continue
         m = compute_episode_metrics(pred, expert, args.dt, args.success_fpe)
