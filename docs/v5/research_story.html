@@ -9404,7 +9404,7 @@ graph TD
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
     <span style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 14px;font-size:0.78rem;color:#94a3b8">마지막 업데이트</span>
     <span style="background:#0d2818;border:1px solid #166534;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:#4ade80">2026-06-12</span>
-    <span style="color:#64748b;font-size:0.78rem">exp68~70 head ablation 완료 · 파이프라인 원인 확정</span>
+    <span style="color:#64748b;font-size:0.78rem">window ablation 완료 (CH35) · head ablation (CH34) · 파이프라인 원인 확정 (CH33)</span>
   </div>
 
   <!-- ── 핵심 숫자 3개 ── -->
@@ -9436,7 +9436,11 @@ graph TD
       </li>
       <li>
         <a href="#ch34" style="color:#a78bfa;font-weight:700">CH34 — RoboVLMs Head Ablation (exp68~70)</a>
-        <span style="color:#64748b;font-size:0.8rem"> — LSTM = ActionMLP 96.6%. RoboVLMs 기여 클레임 4항목 정리</span>
+        <span style="color:#64748b;font-size:0.8rem"> — LSTM = ActionMLP 96.6%. RoboVLMs 기여 클레임 4항목</span>
+      </li>
+      <li>
+        <a href="#ch35" style="color:#14b8a6;font-weight:700">CH35 — Window Size Ablation</a>
+        <span style="color:#64748b;font-size:0.8rem"> — MLP w≥4 포화. LSTM w=16 FPE 0.080m 최저. 성공률은 window-insensitive</span>
       </li>
       <li>
         <a href="#ch29" style="color:#f87171;font-weight:700">CH29 — RoboVLMs 해부 (lora_B=0 버그 · text attn=0%)</a>
