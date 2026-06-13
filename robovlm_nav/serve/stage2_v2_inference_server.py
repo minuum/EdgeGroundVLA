@@ -80,8 +80,11 @@ ACTION_3D = {
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
 GROUNDING_PROMPT = "<grounding>The gray basket is at"
-GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.18"))
-GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.25"))
+# Stop-proximity thresholds (tuned from last-frame bbox area stats: area≈0.756, cx≈0.5)
+GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.50"))
+GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.30"))
+# Require this many of the last N history frames to be near-goal before forcing STOP
+GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "2"))
 
 
 # ---------------------------------------------------------------------------
@@ -378,19 +381,29 @@ class Stage2V2Model:
             logits = self.head(x)
             pred_class = int(logits.argmax(dim=-1).item())
 
-        # Stop proximity check
-        is_near_goal = (
-            frame["has_bbox"]
-            and frame["area"] >= GOAL_AREA_THRESHOLD
-            and abs(frame["cx"] - 0.5) <= GOAL_CX_TOLERANCE
+        # Stop proximity check — count how many of the last GOAL_CONSEC_FRAMES frames are near-goal
+        near_frames = sum(
+            1 for h in self.history[-GOAL_CONSEC_FRAMES:]
+            if h.get("has_bbox")
+            and h.get("area", 0.0) >= GOAL_AREA_THRESHOLD
+            and abs(h.get("cx", 0.5) - 0.5) <= GOAL_CX_TOLERANCE
         )
+        is_near_goal = (near_frames >= min(GOAL_CONSEC_FRAMES, len(self.history)))
+
+        # Force STOP when near goal (override model prediction)
+        proximity_override = False
+        if is_near_goal:
+            proximity_override = True
+            pred_class = 0  # STOP
 
         self.inference_count += 1
         total_ms = (time.time() - start) * 1000.0
         logger.info(
-            "[#%d] %s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            "[#%d] %s%s | cx=%.3f area=%.3f has=%s near=%d/%d | latency=%.0fms",
             self.inference_count, CLASS_NAMES[pred_class],
-            frame["cx"], frame["area"], frame["has_bbox"], total_ms,
+            " [PROXIMITY STOP]" if proximity_override else "",
+            frame["cx"], frame["area"], frame["has_bbox"],
+            near_frames, GOAL_CONSEC_FRAMES, total_ms,
         )
 
         return {
@@ -402,6 +415,7 @@ class Stage2V2Model:
             "grounding_latency_ms": grounding_latency_ms,
             "latency_ms": total_ms,
             "goal_near_proxy": is_near_goal,
+            "proximity_override": proximity_override,
             "grounding_cached": use_cache,
             "buffer_status": {
                 "history_size": len(self.history),
@@ -461,6 +475,7 @@ class InferenceResponse(BaseModel):
     bbox: Optional[dict[str, Any]] = None
     grounding_latency_ms: Optional[float] = None
     goal_near_proxy: Optional[bool] = None
+    proximity_override: Optional[bool] = None
     grounding_cached: Optional[bool] = None
 
 
@@ -472,12 +487,13 @@ class LoadRequest(BaseModel):
 
 class ConfigRequest(BaseModel):
     grounding_skip_n: Optional[int] = None
+    stop_area_threshold: Optional[float] = None
+    stop_cx_tolerance: Optional[float] = None
+    stop_consec_frames: Optional[int] = None
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
     smooth_enabled: Optional[bool] = None
-    stop_area_threshold: Optional[float] = None
-    stop_cx_tolerance: Optional[float] = None
 
 
 def _check_api_key(x_api_key: Optional[str]) -> None:
@@ -552,6 +568,7 @@ async def predict(
             bbox=result["bbox"],
             grounding_latency_ms=result["grounding_latency_ms"],
             goal_near_proxy=result["goal_near_proxy"],
+            proximity_override=result["proximity_override"],
             grounding_cached=result["grounding_cached"],
         )
     except HTTPException:
@@ -591,6 +608,11 @@ async def set_config(
         global GOAL_CX_TOLERANCE
         GOAL_CX_TOLERANCE = float(request.stop_cx_tolerance)
         applied["stop_cx_tolerance"] = GOAL_CX_TOLERANCE
+
+    if request.stop_consec_frames is not None:
+        global GOAL_CONSEC_FRAMES
+        GOAL_CONSEC_FRAMES = max(1, int(request.stop_consec_frames))
+        applied["stop_consec_frames"] = GOAL_CONSEC_FRAMES
 
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
