@@ -271,6 +271,7 @@
     <a class="toc-item" href="#ch33" data-target="ch33"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">CH 33</span><span class="toc-label">파이프라인이 범인 — CL 격차 원인 확정 (exp65~66)</span></a>
     <a class="toc-item" href="#ch34" data-target="ch34"><span class="toc-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6">CH 34</span><span class="toc-label">RoboVLMs Head Ablation — LSTM=MLP 확인 (exp68~70)</span></a>
     <a class="toc-item" href="#ch35" data-target="ch35"><span class="toc-badge" style="background:rgba(20,184,166,0.15);color:#14b8a6">CH 35</span><span class="toc-label">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</span></a>
+    <a class="toc-item" href="#ch36" data-target="ch36"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 36</span><span class="toc-label">6/12 미팅 — 실사 테스트·논문 제출 결정</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -7616,6 +7617,117 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
     </div>
   </div>
 
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     CH 36 — 6/12 미팅 노트
+     ════════════════════════════════════════════════════════════════ -->
+<div class="chapter" id="ch36">
+  <div class="chapter-header" style="background:linear-gradient(135deg,#0a1628 0%,#0f1a2e 100%);border-left:4px solid #06b6d4">
+    <span class="chapter-num" style="background:#06b6d4;color:#0a0f1a">CH 36</span>
+    <div class="chapter-title">6/12 미팅 — 실사 테스트 & 논문 제출 결정</div>
+    <div class="chapter-subtitle">2026-06-12 · 이민우 + 교수님</div>
+  </div>
+
+  <!-- 진행 상황 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+
+    <!-- 이민우 -->
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:12px;padding:18px">
+      <div style="color:#06b6d4;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">이민우 — 진행 상황</div>
+
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #0f1e35">
+        <div style="color:#e2e8f0;font-size:0.85rem;font-weight:700;margin-bottom:6px">① 액션 헤드 실험</div>
+        <div style="font-size:0.82rem;color:#94a3b8;line-height:1.8">
+          CL <strong style="color:#4ade80;text-decoration:underline;text-underline-offset:3px">96.6%</strong> 달성 (224 ep / 150 ep 사용)<br>
+          MLP·LSTM 모두 96.6% — 동일 결과<br>
+          E2E 대신 레이어 frozen + 프로젝터·액션헤드만 학습
+        </div>
+        <div style="margin-top:8px;background:#1a0d0d;border-radius:6px;padding:8px 10px;font-size:0.79rem;color:#fca5a5">
+          ⚠️ 블로커: <strong>과적합 여부 미확인</strong> — 다른 배경 환경 일반화 테스트 미실시
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #0f1e35">
+        <div style="color:#e2e8f0;font-size:0.85rem;font-weight:700;margin-bottom:6px">② 데이터 수집 개선</div>
+        <div style="font-size:0.82rem;color:#94a3b8;line-height:1.8">
+          동기 → <strong>비동기 조이스틱 수집</strong> 전환<br>
+          의자 데이터셋 약 <strong style="color:#fbbf24">50 ep</strong> 수집 완료<br>
+          프레임: 20개 → <strong>60개</strong> (2~3배↑), 3초 이내<br>
+          오브젝트 2개·태스크 2개 과적합 방지안 검토
+        </div>
+        <div style="margin-top:8px;background:#1a0d0d;border-radius:6px;padding:8px 10px;font-size:0.79rem;color:#fca5a5">
+          ⚠️ 블로커: 가까워졌을 때 grounding 인식 여부 미확인 — STOP 처리 방안 검토 중
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #0f1e35">
+        <div style="color:#e2e8f0;font-size:0.85rem;font-weight:700;margin-bottom:6px">③ FPE 비교</div>
+        <div style="font-size:0.82rem;color:#94a3b8;line-height:1.8">
+          기준: FPE <strong style="color:#4ade80">&lt; 0.3m</strong> → 정답 판정<br>
+          맞춘 케이스 평균 FPE: <strong style="color:#4ade80">0.110m</strong><br>
+          MLP 헤드 &lt; 기존 헤드 오차
+        </div>
+      </div>
+
+      <div>
+        <div style="color:#e2e8f0;font-size:0.85rem;font-weight:700;margin-bottom:6px">④ 논문 제출 준비</div>
+        <div style="font-size:0.82rem;color:#94a3b8;line-height:1.8">
+          GitHub 실험 일지 누적 기록 중<br>
+          Pi Zero(Flow Matching) 포함 예정<br>
+          허지욱 교수님 지원 요청 · 단독 제출 검토<br>
+          여름방학까지 DJX Spark 사용 허가 확보
+        </div>
+      </div>
+    </div>
+
+    <!-- 교수님 -->
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:12px;padding:18px">
+      <div style="color:#a78bfa;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">교수님 — 방향 결정</div>
+      <div style="font-size:0.82rem;color:#94a3b8;line-height:2.0">
+        PaliGemma(Florence) frozen → detection 잘 됨 확인<br>
+        RoboVLMs 헤드 → <strong style="color:#e2e8f0">MLP 헤드 교체</strong> 방향 결정<br>
+        다음 주 실제 시행 테스트 후 논문 제출 일정 확인
+      </div>
+    </div>
+  </div>
+
+  <!-- 결정 사항 -->
+  <div style="background:#051a2a;border:1px solid #1e3050;border-radius:12px;padding:18px;margin-bottom:16px">
+    <div style="color:#38bdf8;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">결정 사항</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:0.84rem;color:#cbd5e1;line-height:1.7">
+      <div>✅ E2E 대신 <strong>레이어 frozen + MLP 액션 헤드</strong>만 학습시키는 방식으로 확정</div>
+      <div>✅ RoboVLMs 헤드 → <strong>MLP 헤드 교체</strong> + CL/FPE 비교 실험</div>
+      <div>✅ 다음 주: <strong>실제 시행 성공률 테스트</strong> → 과적합 여부 테스트 순서로 진행</div>
+      <div>✅ 데이터 수집: <strong>태스크 2개 · 오브젝트 2개</strong> 과적합 방지 실험 추가</div>
+      <div>✅ 논문: <strong>다음 주 결과 후 빠른 제출</strong></div>
+    </div>
+  </div>
+
+  <!-- 액션 아이템 -->
+  <div style="background:#0a1628;border:1px solid #1e3050;border-radius:12px;padding:18px">
+    <div style="color:#4ade80;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">액션 아이템</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.82rem">
+      <div>
+        <div style="color:#06b6d4;font-size:0.75rem;font-weight:700;margin-bottom:8px">이민우</div>
+        <div style="display:flex;flex-direction:column;gap:6px;color:#94a3b8;line-height:1.6">
+          <div>☐ MLP 헤드 교체 후 CL·FPE 비교 실험</div>
+          <div>☐ 현재 모델 실제 시행 성공률 테스트</div>
+          <div>☐ 의자 포함 오브젝트 2개·태스크 2개 추가 수집·학습</div>
+          <div>☐ 가까워졌을 때 STOP 처리 방안 확인</div>
+          <div>☐ GitHub 일지 정리 + 논문 제출 준비</div>
+          <div>☐ 허지욱 교수님 논문 지원·Flow Matching 포함 제출 요청</div>
+        </div>
+      </div>
+      <div>
+        <div style="color:#a78bfa;font-size:0.75rem;font-weight:700;margin-bottom:8px">교수님</div>
+        <div style="display:flex;flex-direction:column;gap:6px;color:#94a3b8;line-height:1.6">
+          <div>☐ 다음 주 미팅 일정 확인 (목·금)</div>
+          <div>☐ 논문 헤드 교체·수정 후 제출 일정 조율</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
