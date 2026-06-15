@@ -414,7 +414,7 @@
       G1 &nbsp;·&nbsp; Action Head Ablation <span style="font-size:0.8rem;color:#64748b;font-weight:400">(CH34 — exp68/69/70/54)</span>
     </h3>
     <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
-      파이프라인 고정(L2-norm + bbox aug), cx 소스 고정(HSV, exp54 baseline), <strong style="color:#e2e8f0">Head만 변경</strong>.
+      파이프라인 고정(L2-norm + bbox aug), cx 소스 고정(base PG2, exp68/69/70 공통), <strong style="color:#e2e8f0">Head만 변경</strong>.
       RoboVLMs 계열 decoder와 우리 ActionMLP의 직접 비교.
     </p>
 
@@ -430,10 +430,10 @@
         <div style="font-size:1.4rem;font-weight:900;color:#7dd3fc">93.1%</div>
         <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.109m</div>
       </div>
-      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #a78bfa;text-align:center">
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
         <div style="font-size:0.7rem;color:#94a3b8">LSTMHead (RoboVLMs)</div>
-        <div style="font-size:1.4rem;font-weight:900;color:#fbbf24">93.1%</div>
-        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.123m</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.112m</div>
       </div>
       <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
         <div style="font-size:0.7rem;color:#94a3b8">ActionMLP (ours) ★</div>
@@ -478,9 +478,9 @@
           <td>LSTMHead</td>
           <td>RoboVLMs MobileVLAClassificationDecoder</td>
           <td>95.7%</td>
-          <td style="color:#fbbf24;font-weight:700">93.1%</td>
-          <td>0.123m</td>
-          <td>temporal 有 · FC와 동등</td>
+          <td class="key">96.6%</td>
+          <td class="key">0.112m</td>
+          <td>temporal 有 · ActionMLP와 동등 (CL 96.6%)</td>
         </tr>
         <tr style="background:#051a0a">
           <td>exp66</td>
@@ -489,15 +489,15 @@
           <td>93.5%</td>
           <td class="key">96.6%</td>
           <td class="key">0.102m</td>
-          <td>LSTM 대비 +3.5%p · 더 경량</td>
+          <td>LSTM과 CL 동등, FPE 더 낮음 (0.102m vs 0.112m) · 더 경량</td>
         </tr>
       </tbody>
     </table>
 
     <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #a78bfa;border-radius:8px;font-size:0.87rem;color:#94a3b8">
-      <strong style="color:#a78bfa">핵심:</strong> ActionMLP(ours) > LSTMHead at w=8 — <strong style="color:#4ade80">96.6% vs 93.1% (+3.5%p)</strong>.
-      MLP는 window pre-baking으로 temporal 맥락을 더 효율적으로 활용. LSTM은 sequential 처리에도 불구하고 동일 window에서 열위.<br>
-      FCHead(depth 有, temporal 無): 93.1% · LSTM과 동점. Linear: 69.0% — 비선형성·용량 모두 부족.<br>
+      <strong style="color:#a78bfa">핵심:</strong> ActionMLP(ours) = LSTMHead at w=8 — <strong style="color:#4ade80">96.6% = 96.6%</strong> (FPE: 0.102m vs 0.112m).
+      MLP의 window pre-baking이 LSTM sequential 처리와 동등한 CL을 달성하면서 더 경량·낮은 FPE. RoboVLMs LSTM decoder와 비교 검증 완료.<br>
+      FCHead(depth 有, temporal 無): 93.1% — temporal context 없으면 부족. Linear: 69.0% — 비선형성·용량 모두 부족.<br>
       <span style="font-size:0.82rem;color:#64748b">※ 동일 30-ep fixed val set 기준 (Exp66 split, seed=42)</span>
     </div>
     <div class="note" style="margin-top:8px">CH34 상세: <a href="research_story.html#ch34" style="color:#a78bfa">research_story.html#ch34</a> · 스크립트: <code>scripts/eval_exp54_stage2_v2_closedloop.py</code></div>
@@ -509,17 +509,17 @@
       G2 &nbsp;·&nbsp; Window Size Ablation <span style="font-size:0.8rem;color:#64748b;font-weight:400">(CH35 — MLP w=2/4/8/16, LSTM w=4/8/16)</span>
     </h3>
     <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
-      파이프라인 고정(L2+aug), cx 소스 고정(base PG2). <strong style="color:#e2e8f0">window 크기만 변경</strong>.
-      MLP는 flat window 히스토리, LSTM은 sequential SEQ_DIM=260 per-frame.
+      파이프라인 고정(L2+aug), <strong style="color:#e2e8f0">window 크기만 변경</strong>.
+      MLP w=2/4/16은 HSV cx 소스, w=8(baseline exp66)은 base PG2. LSTM은 sequential SEQ_DIM=260 per-frame.
       <span style="font-size:0.82rem;color:#64748b">※ 동일 30-ep fixed val set 기준</span>
     </p>
 
     <!-- 요약 배지 -->
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
       <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
-        <div style="font-size:0.7rem;color:#94a3b8">MLP w=2 (FPE 최저)</div>
+        <div style="font-size:0.7rem;color:#94a3b8">MLP w=4 (FPE 최저)</div>
         <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
-        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.098m ★</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.094m ★</div>
       </div>
       <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
         <div style="font-size:0.7rem;color:#94a3b8">MLP w=8 (baseline)</div>
@@ -529,7 +529,7 @@
       <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #14b8a6;text-align:center">
         <div style="font-size:0.7rem;color:#94a3b8">LSTM w=16 (전체 FPE 최저)</div>
         <div style="font-size:1.4rem;font-weight:900;color:#2dd4bf">96.6%</div>
-        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.082m ★★</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.080m ★★</div>
       </div>
     </div>
 
@@ -544,15 +544,15 @@
       <table>
         <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
         <tbody>
-          <tr style="background:#051a0a">
-            <td>MLP</td><td><strong style="color:#4ade80">2</strong></td><td>94.9%</td>
-            <td class="key">96.6%</td><td class="key">0.098m</td>
-            <td>MLP FPE 최저 — 2프레임으로도 충분</td>
-          </tr>
           <tr>
-            <td>MLP</td><td>4</td><td>92.9%</td>
-            <td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td>
-            <td>CL 하락 · FPE 악화 — 과잉 히스토리 잡음</td>
+            <td>MLP</td><td>2</td><td>94.9%</td>
+            <td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.145m</td>
+            <td>CL 하락 — 2프레임으로는 방향 파악 불충분</td>
+          </tr>
+          <tr style="background:#051a0a">
+            <td>MLP</td><td><strong style="color:#4ade80">4</strong></td><td>92.9%</td>
+            <td class="key">96.6%</td><td class="key">0.094m</td>
+            <td>MLP FPE 최저 — 최소 필요 window</td>
           </tr>
           <tr style="background:#051a0a">
             <td>MLP</td><td>8 <span style="color:#64748b">(baseline)</span></td><td>93.5%</td>
@@ -561,8 +561,8 @@
           </tr>
           <tr>
             <td>MLP</td><td>16</td><td>89.6%</td>
-            <td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td>
-            <td>val_acc·CL·FPE 모두 하락 — 윈도우 지나치게 큼</td>
+            <td class="key">96.6%</td><td>0.102m</td>
+            <td>val_acc 하락 (입력 희석), CL 유지 — flat concat 한계</td>
           </tr>
         </tbody>
       </table>
@@ -574,17 +574,17 @@
         <tbody>
           <tr style="background:#051a0a">
             <td>LSTM</td><td><strong>4</strong></td><td>95.1%</td>
-            <td class="key">96.6%</td><td>0.126m</td>
+            <td class="key">96.6%</td><td>0.123m</td>
             <td>짧은 window에서도 96.6% 달성</td>
           </tr>
           <tr>
-            <td>LSTM</td><td>8 <span style="color:#64748b">(baseline)</span></td><td>95.7%</td>
-            <td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td>
-            <td>exp70 기준점 — CL 하락</td>
+            <td>LSTM</td><td>8 <span style="color:#64748b">(baseline, exp70)</span></td><td>95.7%</td>
+            <td class="key">96.6%</td><td>0.112m</td>
+            <td>exp70 기준점</td>
           </tr>
           <tr style="background:#051a2a">
             <td>LSTM</td><td><strong style="color:#2dd4bf">16</strong></td><td>96.9%</td>
-            <td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td>
+            <td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.080m</td>
             <td>전체 실험 최저 FPE — 긴 맥락 활용</td>
           </tr>
         </tbody>
@@ -595,23 +595,23 @@
       <table>
         <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
         <tbody>
-          <tr style="background:#051a0a"><td>MLP</td><td><strong style="color:#4ade80">2</strong></td><td>94.9%</td><td class="key">96.6%</td><td class="key">0.098m</td><td>MLP FPE 최저</td></tr>
-          <tr><td>MLP</td><td>4</td><td>92.9%</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td><td></td></tr>
+          <tr><td>MLP</td><td>2</td><td>94.9%</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.145m</td><td>최소 window 부족</td></tr>
+          <tr style="background:#051a0a"><td>MLP</td><td><strong style="color:#4ade80">4</strong></td><td>92.9%</td><td class="key">96.6%</td><td class="key">0.094m</td><td>MLP FPE 최저</td></tr>
           <tr style="background:#051a0a"><td>MLP</td><td>8 ★</td><td>93.5%</td><td class="key">96.6%</td><td>0.102m</td><td>baseline</td></tr>
-          <tr><td>MLP</td><td>16</td><td>89.6%</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td><td></td></tr>
-          <tr style="background:#051a0a"><td>LSTM</td><td><strong>4</strong></td><td>95.1%</td><td class="key">96.6%</td><td>0.126m</td><td></td></tr>
-          <tr><td>LSTM</td><td>8</td><td>95.7%</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td><td>baseline</td></tr>
-          <tr style="background:#051a2a"><td>LSTM</td><td><strong style="color:#2dd4bf">16</strong></td><td>96.9%</td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td><td>전체 FPE 최저</td></tr>
+          <tr><td>MLP</td><td>16</td><td>89.6%</td><td class="key">96.6%</td><td>0.102m</td><td></td></tr>
+          <tr style="background:#051a0a"><td>LSTM</td><td><strong>4</strong></td><td>95.1%</td><td class="key">96.6%</td><td>0.123m</td><td></td></tr>
+          <tr><td>LSTM</td><td>8 (exp70)</td><td>95.7%</td><td class="key">96.6%</td><td>0.112m</td><td>baseline</td></tr>
+          <tr style="background:#051a2a"><td>LSTM</td><td><strong style="color:#2dd4bf">16</strong></td><td>96.9%</td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.080m</td><td>전체 FPE 최저</td></tr>
         </tbody>
       </table>
     </div>
 
     <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #14b8a6;border-radius:8px;font-size:0.87rem;color:#94a3b8">
       <strong style="color:#14b8a6">핵심:</strong>
-      <strong style="color:#e2e8f0">CL은 93~97% 혼재</strong> — w가 클수록 항상 좋아지진 않음 (MLP w=4,16 각 93.1%).
-      <strong style="color:#e2e8f0">FPE는 MLP w=2 (0.098m) · LSTM w=16 (0.082m)이 양 극단 최저</strong>.<br>
-      MLP에서 w=2→8은 CL 유지, w=4·16은 이상 하락 — flat concat 시 입력 희석 영향.
-      LSTM은 w=16에서 전체 최저 FPE 0.082m 달성 — 긴 맥락 sequential 처리 강점.
+      <strong style="color:#e2e8f0">MLP: w≥4에서 CL 96.6% 포화, w=2에서만 93.1%로 하락</strong> — 최소 4프레임 히스토리 필요.
+      <strong style="color:#e2e8f0">FPE는 MLP w=4 (0.094m) · LSTM w=16 (0.080m)이 양 극단 최저</strong>.<br>
+      MLP w=4가 FPE 0.094m으로 w=8 baseline보다 낮음 — 너무 긴 윈도우는 MLP에 noise.
+      LSTM은 모든 window에서 96.6% 유지, w=16에서 전체 최저 FPE 0.080m 달성 — 긴 맥락 sequential 처리 강점.
       <span style="font-size:0.82rem;color:#64748b">※ 동일 30-ep fixed val set 기준 (Exp66 split, seed=42)</span>
     </div>
     <div class="note" style="margin-top:8px">CH35 상세: <a href="research_story.html#ch35" style="color:#14b8a6">research_story.html#ch35</a> · 표 2-D: <code>docs/v5/TABLE1_PAPER_DRAFT.md</code></div>
@@ -642,25 +642,25 @@
         <tr style="opacity:0.7;background:#051a0a"><td>&sect;F</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
         <tr style="opacity:0.7"><td>&sect;F</td><td>exp67</td><td>L2+aug</td><td>exp59 LoRA</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.111m</td></tr>
         <!-- Section G1: head ablation (fixed val set) -->
-        <tr><td>&sect;G1</td><td>exp68</td><td>L2+aug</td><td>base PG2</td><td style="color:#fca5a5">Linear</td><td>8</td><td class="bad">69.0%</td><td>0.375m</td></tr>
+        <tr><td>&sect;G1</td><td>exp68</td><td>L2+aug</td><td>base PG2</td><td style="color:#fca5a5">Linear</td><td>8</td><td class="bad">69.0%</td><td>0.377m</td></tr>
         <tr><td>&sect;G1</td><td>exp69</td><td>L2+aug</td><td>base PG2</td><td style="color:#fbbf24">FCHead</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.113m</td></tr>
-        <tr><td>&sect;G1</td><td>exp70</td><td>L2+aug</td><td>base PG2</td><td style="color:#a78bfa">LSTM</td><td>8</td><td style="color:#a78bfa;font-weight:700">93.1%</td><td>0.123m</td></tr>
+        <tr><td>&sect;G1</td><td>exp70</td><td>L2+aug</td><td>base PG2</td><td style="color:#4ade80">LSTM</td><td>8</td><td class="key">96.6%</td><td>0.112m</td></tr>
         <tr style="background:#051a0a"><td>&sect;G1</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td style="color:#4ade80"><strong>MLP</strong></td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
         <!-- Section G2: window ablation MLP (fixed val set) -->
-        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>2</td><td class="key">96.6%</td><td>0.098m</td></tr>
-        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>4</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td>2</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.145m</td></tr>
+        <tr style="background:#051a0a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td><strong>4</strong></td><td class="key">96.6%</td><td class="key">0.094m</td></tr>
         <tr style="background:#051a0a"><td>&sect;G2</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td><strong>8</strong></td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
-        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>16</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td>16</td><td class="key">96.6%</td><td>0.102m</td></tr>
         <!-- Section G2: window ablation LSTM (fixed val set) -->
-        <tr style="background:#051a0a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td><strong>4</strong></td><td class="key">96.6%</td><td>0.126m</td></tr>
-        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td></tr>
-        <tr style="background:#051a2a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td style="color:#2dd4bf"><strong>16</strong></td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td></tr>
+        <tr style="background:#051a0a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td><strong>4</strong></td><td class="key">96.6%</td><td>0.123m</td></tr>
+        <tr><td>&sect;G2</td><td>exp70</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td>8</td><td class="key">96.6%</td><td>0.112m</td></tr>
+        <tr style="background:#051a2a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td style="color:#2dd4bf"><strong>16</strong></td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.080m</td></tr>
       </tbody>
     </table>
     <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;font-size:0.82rem">
       <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #22c55e;color:#4ade80"><strong>파이프라인:</strong> 10.3% → 96.6% (×9.4배)</div>
-      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #a78bfa;color:#a78bfa"><strong>Head:</strong> Linear 69% → MLP 96.6% · LSTM=FC=93.1%</div>
-      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #14b8a6;color:#2dd4bf"><strong>Window:</strong> CL 93~97% 혼재 · LSTM w=16 FPE 최저 0.082m</div>
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #a78bfa;color:#a78bfa"><strong>Head:</strong> Linear 69% → MLP=LSTM 96.6% · FC 93.1%</div>
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #14b8a6;color:#2dd4bf"><strong>Window:</strong> MLP w≥4 96.6%, w=2 93.1% · LSTM w=16 FPE 최저 0.080m</div>
     </div>
   </div>
 </div>
