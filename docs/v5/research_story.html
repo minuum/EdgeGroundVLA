@@ -275,6 +275,7 @@
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
+    <a class="toc-item" href="#vis" data-target="vis"><span class="toc-badge" style="background:rgba(244,63,94,0.2);color:#fb7185;font-weight:900">VIS</span><span class="toc-label">시각 자료 모음 — 논문 부록</span></a>
   </div>
 </nav>
 
@@ -10066,5 +10067,196 @@ graph TD
   });
 })();
 </script>
+
+<!-- ════════════════════════════════════════════════════════════════
+     VIS — 시각 자료 모음 (논문 부록)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="chapter" id="vis" style="padding-bottom:80px">
+  <div class="chapter-header" style="background:linear-gradient(135deg,#1a0a0f 0%,#0a1628 100%);border-left:4px solid #fb7185">
+    <span class="chapter-num" style="background:#fb7185;color:#0a0f1a">VIS</span>
+    <div class="chapter-title">시각 자료 모음</div>
+    <div class="chapter-subtitle">로봇 · 아키텍처 · 결과 테이블 · 실험 증거</div>
+  </div>
+
+  <!-- A. 로봇 & 실험 환경 -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">A. 로봇 & 실험 환경</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="../SCR-20260609-oxdv.png" alt="Robot close-up" style="width:100%;display:block;object-fit:cover">
+        <div style="padding:10px 14px;font-size:0.8rem;color:#94a3b8">Fig A-1. 3축 옴니휠 로봇 (바스켓 포함). 카메라·컨트롤러·배터리 일체형.</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="../SCR-20260609-oxhg.png" alt="Robot on track" style="width:100%;display:block;object-fit:cover">
+        <div style="padding:10px 14px;font-size:0.8rem;color:#94a3b8">Fig A-2. 실험 트랙 전경. 테이프로 9가지 경로 설계, 150 에피소드 수집.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B. 시스템 아키텍처 -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">B. 시스템 아키텍처 — Decomposition Pipeline</div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;padding:16px">
+      <object data="portfolio/architecture_diagram.svg" type="image/svg+xml" style="width:100%;border-radius:8px;display:block">
+        <pre style="color:#94a3b8;font-size:0.8rem;line-height:1.9;margin:0">[RGB Frame 224×224]
+       ↓
+[Kosmos-2 Vision Encoder]  — frozen
+       ↓ 1024-dim
+[image_proj → 256-dim, L2-normalize]           ← Stage 1 (val acc 98.1%)
+       ↓
+[Concatenate 288-dim] ← BBox History ×8 (cx,cy,area,has_bbox) = 32-dim
+       ↓
+[ActionMLP: 256→128→64→8]                      ← Stage 2 (val acc 93.5%)
+       ↓
+[8 Actions: STOP / FORWARD / LEFT / RIGHT / FWD+L / FWD+R / ROT_L / ROT_R]</pre>
+      </object>
+      <div style="margin-top:8px;font-size:0.8rem;color:#94a3b8">Fig B-1. Stage2 v2 파이프라인. Kosmos-2 vision encoder frozen, image_proj + ActionMLP만 학습. BBox cx는 PaliGemma2 zero-shot grounding에서 추출.</div>
+    </div>
+  </div>
+
+  <!-- C. Main Results Table -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">C. Main Results — E2E vs Decomposition vs Ours</div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:0.86rem">
+        <thead>
+          <tr style="background:#0f1e35;border-bottom:2px solid #1e3050">
+            <th style="padding:12px 16px;text-align:left;color:#94a3b8">Method</th>
+            <th style="padding:12px 16px;text-align:left;color:#94a3b8">Architecture</th>
+            <th style="padding:12px 16px;text-align:center;color:#94a3b8">CL ↑</th>
+            <th style="padding:12px 16px;text-align:center;color:#94a3b8">FPE ↓ (m)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:11px 16px;color:#94a3b8">E2E VLA (Exp11)</td>
+            <td style="padding:11px 16px;color:#64748b;font-size:0.8rem">Kosmos-2 + LoRA, end-to-end</td>
+            <td style="padding:11px 16px;text-align:center;color:#fca5a5;font-weight:900;font-size:1.1rem">0%</td>
+            <td style="padding:11px 16px;text-align:center;color:#fca5a5">1.454</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:11px 16px;color:#94a3b8">Decomposition v1 (Exp14)</td>
+            <td style="padding:11px 16px;color:#64748b;font-size:0.8rem">CLIP + BBox MLP, 2-stage</td>
+            <td style="padding:11px 16px;text-align:center;color:#fbbf24;font-weight:700">66.7%</td>
+            <td style="padding:11px 16px;text-align:center;color:#fbbf24">0.555</td>
+          </tr>
+          <tr style="background:#051a0a">
+            <td style="padding:11px 16px;font-weight:800;color:#e2e8f0">Ours — Stage2 v2 (Exp66) ★</td>
+            <td style="padding:11px 16px;color:#64748b;font-size:0.8rem">Kosmos-2 frozen + L2-norm + aug</td>
+            <td style="padding:11px 16px;text-align:center;color:#4ade80;font-weight:900;font-size:1.2rem">96.6%</td>
+            <td style="padding:11px 16px;text-align:center;color:#4ade80;font-weight:700">0.102</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:10px 16px;font-size:0.79rem;color:#475569;border-top:1px solid #0f1e35">Table C-1. CL = Closed-Loop 성공률 (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). 동일 150 ep, stratified split.</div>
+    </div>
+  </div>
+
+  <!-- D. Pipeline Ablation -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">D. Pipeline Ablation (cx 소스 고정, 파이프라인 변경)</div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:0.86rem">
+        <thead>
+          <tr style="background:#0f1e35;border-bottom:2px solid #1e3050">
+            <th style="padding:11px 16px;text-align:left;color:#94a3b8">Exp</th>
+            <th style="padding:11px 16px;text-align:left;color:#94a3b8">Pipeline</th>
+            <th style="padding:11px 16px;text-align:left;color:#94a3b8">cx Source</th>
+            <th style="padding:11px 16px;text-align:center;color:#94a3b8">CL ↑</th>
+            <th style="padding:11px 16px;text-align:center;color:#94a3b8">FPE ↓</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp65b</td>
+            <td style="padding:10px 16px;color:#94a3b8">단순 MLP (no L2, no aug)</td>
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">base PG2</td>
+            <td style="padding:10px 16px;text-align:center;color:#fca5a5;font-weight:700">10.3%</td>
+            <td style="padding:10px 16px;text-align:center;color:#fca5a5">0.941</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp67</td>
+            <td style="padding:10px 16px;color:#94a3b8">L2-norm + bbox aug</td>
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">HSV</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80;font-weight:700">96.6%</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80">0.110</td>
+          </tr>
+          <tr style="background:#051a0a">
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp66 ★</td>
+            <td style="padding:10px 16px;font-weight:700;color:#e2e8f0">L2-norm + bbox aug</td>
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">base PG2</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80;font-weight:900">96.6%</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80">0.102</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:10px 16px;font-size:0.79rem;color:#475569;border-top:1px solid #0f1e35">Table D-1. cx 소스 3종(HSV · base PG2 · Exp59 LoRA) 모두 CL 96.6% → grounding 품질은 action에 무관. 파이프라인(L2+aug)이 결정 변수.</div>
+    </div>
+  </div>
+
+  <!-- E. Head & Window Ablation -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">E. Head & Window Ablation</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <div style="padding:10px 16px;background:#0f1e35;font-size:0.78rem;color:#94a3b8;font-weight:700">Table E-1. Action Head 비교 (파이프라인 고정)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
+          <thead><tr style="border-bottom:1px solid #1e3050">
+            <th style="padding:8px 14px;text-align:left;color:#64748b">Head</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">CL</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">FPE</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fca5a5">Linear</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">69.0%</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">0.377</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fbbf24">FCHead</td><td style="padding:8px 14px;text-align:center;color:#fbbf24">93.1%</td><td style="padding:8px 14px;text-align:center;color:#fbbf24">0.109</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#4ade80">LSTMHead</td><td style="padding:8px 14px;text-align:center;color:#4ade80">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.112</td></tr>
+            <tr style="background:#051a0a"><td style="padding:8px 14px;color:#e2e8f0;font-weight:700">ActionMLP ★</td><td style="padding:8px 14px;text-align:center;color:#4ade80;font-weight:700">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.110</td></tr>
+          </tbody>
+        </table>
+        <div style="padding:8px 14px;font-size:0.76rem;color:#475569">LSTM = MLP → 경량 flat MLP 채택</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <div style="padding:10px 16px;background:#0f1e35;font-size:0.78rem;color:#94a3b8;font-weight:700">Table E-2. Window Size (MLP / LSTM)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
+          <thead><tr style="border-bottom:1px solid #1e3050">
+            <th style="padding:8px 14px;text-align:left;color:#64748b">Head</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">w</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">CL</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">FPE</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fca5a5">MLP</td><td style="padding:8px 14px;text-align:center;color:#64748b">2</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">93.1%</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">0.145</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35;background:#051a0a"><td style="padding:8px 14px;color:#4ade80">MLP ★</td><td style="padding:8px 14px;text-align:center;color:#4ade80">4</td><td style="padding:8px 14px;text-align:center;color:#4ade80">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.094</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#94a3b8">MLP</td><td style="padding:8px 14px;text-align:center;color:#64748b">16</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">96.6%</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">0.102</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#94a3b8">LSTM</td><td style="padding:8px 14px;text-align:center;color:#64748b">4</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">96.6%</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">0.123</td></tr>
+            <tr style="background:#051204"><td style="padding:8px 14px;color:#2dd4bf">LSTM</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf">16</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf">96.6%</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf;font-weight:700">0.080</td></tr>
+          </tbody>
+        </table>
+        <div style="padding:8px 14px;font-size:0.76rem;color:#475569">CL: w≥4 포화. FPE: LSTM w=16 전체 최저.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F. 시각적 증거 -->
+  <div>
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">F. 시각적 증거</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="portfolio/linear_probe_results.png" alt="Zero-shot Linear Probe" style="width:100%;display:block">
+        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-1. Zero-shot Linear Probe. Frozen CLIP이 학습 없이 96.6% 위치 분류 → Stage 1이 basket을 이미 "본다"는 증거.</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="portfolio/masking_comparison.png" alt="Basket Masking Ablation" style="width:100%;display:block">
+        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-2. Basket Masking Ablation. 바스켓 가리면 attention heatmap 분산 → 모델이 실제로 바스켓을 주시.</div>
+      </div>
+    </div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+      <img src="portfolio/track_summary.png" alt="5-Track Validation" style="width:100%;display:block">
+      <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 6/6 flip) → "basket을 본다" 이중 증명.</div>
+    </div>
+  </div>
+
+</div>
+
 </body>
 </html>
