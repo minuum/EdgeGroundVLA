@@ -2302,7 +2302,7 @@
     <div style="margin-bottom:10px;padding:10px 14px;background:#0a1f0a;border:1px solid #22c55e55;border-radius:8px;font-size:0.8rem;color:#86efac;line-height:1.6;font-family:inherit">
       <strong>✅ Exp66 Stage2 v2 (SOTA, val_acc 93.5%) 재생성 결과:</strong>
       bbox history = zeros (이미지 경로만 격리) 조건에서, basket 영역(×1.6 bbox)을 gray로 마스킹.
-      <strong style="color:#4ade80">Center: 8/8 (100%) FLIP</strong> — basket이 사라지면 FWD → FWD+L 반전.
+      <strong style="color:#4ade80">Center 9/9 (100%) FLIP (curated, PaliGemma2 grounding)</strong> — basket이 사라지면 FWD → FWD+L 반전.
       Left: 2/8 FLIP (basket이 작아 효과 약함). Right: basket area &lt; 0.02 (너무 멀어서 마스킹 무의미).
     </div>
     <a href="exp54_viz/beforeafter/gallery.html"
@@ -2510,7 +2510,7 @@
         <div style="flex:1">
           <div style="color:#e2e8f0;font-weight:700;margin-bottom:6px">Masking Ablation — <span style="color:#f87171">100% 예측 반전</span></div>
           <div style="color:#94a3b8;font-size:0.85rem;line-height:1.7">
-            basket 영역을 gray로 가리면 center 8/8 (100%) 프레임의 예측이 전부 반전됨 (Exp66 Stage2 v2).<br>
+            basket 영역을 gray로 가리면 9/9 (100%) 프레임의 예측이 전부 반전됨 (Exp66 · base PG2 grounding).<br>
             <span style="color:#fbbf24">→ "모델이 복도 패턴이 아니라 basket 픽셀을 실제로 보고 있다는 인과 증거입니다."</span>
           </div>
         </div>
@@ -2811,7 +2811,7 @@
         <span style="color:#06b6d4;font-size:1.1rem;flex-shrink:0">✅</span>
         <div>
           <div style="color:#e2e8f0;font-weight:700;font-size:0.9rem">"박스를 본 건가?" → Exp54 2-Stage</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:4px">5/15 미팅 질문 직접 답변. Stage 1 v2 98.1% + 5-Track 증거 (zero-shot 96.6%, masking 100% flip (Exp66 8/8)).</div>
+          <div style="color:#94a3b8;font-size:0.82rem;margin-top:4px">5/15 미팅 질문 직접 답변. Stage 1 v2 98.1% + 5-Track 증거 (zero-shot 96.6%, masking 100% flip (Exp66 9/9, PG2)).</div>
         </div>
       </div>
       <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:#1a0f2e;border-radius:10px;border-left:3px solid #a78bfa">
@@ -2922,7 +2922,7 @@
           <tr style="border-bottom:1px solid #1e293b">
             <td style="padding:10px 14px;font-weight:700;color:#38bdf8">Track 3<br><span style="color:#64748b;font-size:0.75rem">Masking</span></td>
             <td style="padding:10px 14px;text-align:center;color:#94a3b8">basket 영역을 gray mask로 제거</td>
-            <td style="padding:10px 14px;text-align:center;font-weight:900;color:#22c55e">8/8 flip</td>
+            <td style="padding:10px 14px;text-align:center;font-weight:900;color:#22c55e">9/9 flip</td>
             <td style="padding:10px 14px;color:#e2e8f0">basket 가리면 6에피소드 전부 방향 반전. basket이 원인.</td>
           </tr>
           <tr style="border-bottom:1px solid #1e293b;background:#0a1628">
@@ -2941,7 +2941,7 @@
       </table>
       </div>
       <div style="background:#0f172a;border-left:3px solid #06b6d4;border-radius:8px;padding:12px 16px">
-        <span style="color:#38bdf8;font-weight:700">결론: </span><span style="color:#e2e8f0;font-size:0.88rem">5개 독립 실험이 모두 같은 방향을 가리킨다. 모델은 경로 패턴이 아니라 basket의 픽셀 위치를 보고 방향을 결정한다. Masking에서 8/8 flip (Exp66 SOTA)이 가장 강력한 증거.</span>
+        <span style="color:#38bdf8;font-weight:700">결론: </span><span style="color:#e2e8f0;font-size:0.88rem">5개 독립 실험이 모두 같은 방향을 가리킨다. 모델은 경로 패턴이 아니라 basket의 픽셀 위치를 보고 방향을 결정한다. Masking에서 9/9 flip (Exp66, base PG2 grounding)이 가장 강력한 증거.</span>
       </div>
     </div>
   </div>
@@ -3015,7 +3015,7 @@
         <span style="font-size:1.3rem;flex-shrink:0">&#x2705;</span>
         <div style="flex:1">
           <div style="color:#e2e8f0;font-weight:700">Q2 basket을 보는가 — 5-Track 증명 완료</div>
-          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">Attention 4.4&#215;, Frozen probe 96.6%, Masking 8/8 flip (Exp66), Caption ✓, Contrastive +1.5%p.</div>
+          <div style="color:#94a3b8;font-size:0.82rem;margin-top:2px">Attention 4.4&#215;, Frozen probe 96.6%, Masking 9/9 flip (Exp66, PG2), Caption ✓, Contrastive +1.5%p.</div>
         </div>
         <div style="font-size:1.4rem;font-weight:900;color:#06b6d4;flex-shrink:0">5-Track</div>
       </div>
@@ -3910,7 +3910,7 @@
       <div style="background:#0f172a;border-radius:10px;padding:14px">
         <div style="color:#38bdf8;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Masking Ablation — basket 가리면 행동 반전 (Exp66 SOTA)</div>
         <img src="exp54_viz/masking_comparison.png" style="width:100%;border-radius:6px;border:1px solid #1e40af" alt="masking comparison">
-        <div style="color:#64748b;font-size:0.72rem;margin-top:6px">Exp66 Stage2 v2 (val_acc 93.5%) · bbox history=zeros · center 8/8 (100%) 행동 반전</div>
+        <div style="color:#64748b;font-size:0.72rem;margin-top:6px">Exp66 Stage2 v2 (val_acc 93.5%) · bbox history=zeros · 9/9 (100%) 행동 반전 (curated, PG2)</div>
       </div>
     </div>
 
@@ -10287,12 +10287,12 @@ graph TD
       </div>
       <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
         <img src="portfolio/masking_comparison.png" alt="Basket Masking Ablation" style="width:100%;display:block">
-        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-2. Basket Masking Ablation (Exp66 Stage2 v2, SOTA). bbox history=zeros 조건에서 basket 마스킹 → Center 8/8 (100%) 행동 반전. 이미지 경로가 basket 위치를 독립적으로 인식함을 증명.</div>
+        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-2. Basket Masking Ablation (Exp66 Stage2 v2, SOTA). bbox history=zeros 조건에서 basket 마스킹 → 9/9 (100%) 행동 반전. 이미지 경로가 basket 위치를 독립적으로 인식함을 증명.</div>
       </div>
     </div>
     <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
       <img src="portfolio/track_summary.png" alt="5-Track Validation" style="width:100%;display:block">
-      <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 8/8 flip (Exp66)) → "basket을 본다" 이중 증명.</div>
+      <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 9/9 flip (Exp66, PG2)) → "basket을 본다" 이중 증명.</div>
     </div>
   </div>
 
