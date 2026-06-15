@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grounding Evaluation Hub — MoNaVLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#070d1a; color:#e2e8f0; font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:40px 24px 80px; }
+  .hero { text-align:center; padding:48px 24px; background:linear-gradient(135deg,#0a1628,#0f172a); border-radius:18px; border:1px solid #1e3a5f; margin-bottom:32px; }
+  .hero h1 { font-size:2rem; font-weight:900; background:linear-gradient(90deg,#7dd3fc,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
+  .hero p { color:#94a3b8; font-size:1rem; max-width:760px; margin:0 auto; }
+  .back { display:inline-block; margin-bottom:20px; color:#7dd3fc; text-decoration:none; font-size:0.85rem; }
+  h2 { font-size:1.3rem; font-weight:800; margin:36px 0 16px; color:#e2e8f0; display:flex; align-items:center; gap:10px; }
+  .badge { font-size:0.7rem; font-weight:900; padding:3px 10px; border-radius:6px; }
+  .card { background:#0a1628; border:1px solid #1e3a5f; border-radius:14px; padding:22px; margin-bottom:18px; }
+  table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+  th,td { padding:9px 12px; text-align:center; }
+  th { color:#7dd3fc; border-bottom:1px solid #1e3a5f; }
+  td:first-child,th:first-child { text-align:left; }
+  tr { border-bottom:1px solid #0f1e35; }
+  img { width:100%; border-radius:10px; border:1px solid #1e3a5f; margin-top:8px; }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:8px 16px; background:#0f172a; border:1px solid #1e3a5f; border-radius:8px; cursor:pointer; font-size:0.82rem; color:#94a3b8; font-weight:700; }
+  .tab.active { background:#1e3a5f; color:#7dd3fc; }
+  .pane { display:none; } .pane.active { display:block; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .note { color:#64748b; font-size:0.76rem; margin-top:8px; }
+  .key { color:#86efac; font-weight:700; } .bad { color:#fca5a5; font-weight:700; }
+  @media(max-width:760px){ .grid2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="research_story.html">← 연구 히스토리로</a>
+
+  <!-- 빠른 탐색 -->
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px">
+    <span style="font-size:0.78rem;color:#64748b;align-self:center;margin-right:4px">빠른 이동 →</span>
+    <a href="#section-f" style="padding:6px 14px;background:#052e16;border:1px solid #22c55e;border-radius:8px;font-size:0.78rem;font-weight:700;color:#4ade80;text-decoration:none">&sect;F 파이프라인Ablation</a>
+    <a href="#section-g" style="padding:6px 14px;background:#0c2b2b;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#2dd4bf;text-decoration:none">&sect;G Head&amp;Window Ablation ★NEW</a>
+    <a href="#section-g1" style="padding:6px 14px;background:#0a1628;border:1px solid #7c3aed;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">&sect;G1 Head</a>
+    <a href="#section-g2" style="padding:6px 14px;background:#0a1628;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;color:#2dd4bf;text-decoration:none">&sect;G2 Window</a>
+    <a href="#section-g3" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">&sect;G3 전체비교</a>
+    <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
+    <a href="research_story.html#ch33" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">← CH33</a>
+    <a href="research_story.html#ch34" style="padding:6px 14px;background:#0a1628;border:1px solid #4c1d95;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">← CH34</a>
+    <a href="research_story.html#ch35" style="padding:6px 14px;background:#0a1628;border:1px solid #0c4a4a;border-radius:8px;font-size:0.78rem;color:#14b8a6;text-decoration:none">← CH35</a>
+  </div>
+
+  <div class="hero">
+    <h1>🎯 Grounding Evaluation Hub</h1>
+    <p>교수님이 보신 <strong>"이상한 에피소드 · 오예측"</strong>을 grounding 관점에서 해부한다.<br>
+    측면·OOD에서 base PaliGemma2가 바구니를 안정적으로 잡는다면 → <strong style="color:#7dd3fc">오예측은 grounding이 아닌 action head 문제</strong>다.<br>
+    <span style="font-size:0.83rem;color:#64748b">→ &sect;G에서 Action Head · Window 크기 Ablation 전체 결과 확인 가능 (CH34/CH35 연동)</span></p>
+  </div>
+
+  <!-- 0. 방법론 & 목표 -->
+  <h2><span class="badge" style="background:#0ea5e9;color:#0a0f1a">0</span> 무엇을 어떻게 측정했나 (목표 · 데이터 · 지표)</h2>
+  <div class="card">
+    <div style="margin-bottom:16px">
+      <div style="color:#7dd3fc;font-weight:800;font-size:0.95rem;margin-bottom:8px">🎯 grounding 목표(goal) — 모델에 넣은 프롬프트</div>
+      <div style="color:#94a3b8;font-size:0.86rem;line-height:1.7">
+        모든 모델에 동일한 목표를 줬다: <strong style="color:#e2e8f0">"gray basket"</strong> (회색 바구니) 한 객체.
+        <ul style="margin:8px 0 0 18px">
+          <li>PaliGemma 계열(base PG2 · exp57 · exp58 · exp59 · exp64): <code style="color:#86efac">"&lt;image&gt;detect gray basket"</code></li>
+          <li>Kosmos 계열(pure Kosmos · exp56): <code style="color:#86efac">"&lt;grounding&gt;&lt;phrase&gt; gray basket&lt;/phrase&gt;"</code> (Kosmos 전용 grounding 문법)</li>
+        </ul>
+        모델은 이 텍스트에 해당하는 객체의 BBox(<code>&lt;loc&gt;</code> 좌표 또는 Kosmos patch 좌표)를 출력한다. <strong>학습/튜닝 없이 프롬프트만으로 위치를 묻는 zero-shot grounding</strong>.
+      </div>
+    </div>
+    <div class="grid2">
+      <div style="padding:14px;background:#0f172a;border-radius:8px">
+        <div style="color:#a78bfa;font-weight:700;font-size:0.85rem;margin-bottom:6px">📂 평가 데이터</div>
+        <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6">
+          <strong>표준 49프레임:</strong> V5 basket 에피소드를 위치(좌/중/우) × 거리(원/중/근) <strong>9개 시점 버킷</strong>으로 나눠 균등 샘플.<br>
+          <strong>측면 4경로:</strong> 좌좌·우우·좌우·우좌 경로, 경로당 4ep × 6프레임(시간순).<br>
+          <strong>OOD 11장:</strong> 학습에 없던 의자 이미지(오탐 검증).
+        </div>
+      </div>
+      <div style="padding:14px;background:#0f172a;border-radius:8px">
+        <div style="color:#a78bfa;font-weight:700;font-size:0.85rem;margin-bottom:6px">📐 지표 & 정답 기준</div>
+        <div style="color:#94a3b8;font-size:0.82rem;line-height:1.6">
+          <strong>hit:</strong> BBox를 내놓았나.<br>
+          <strong>cx_MAE:</strong> 박스 중심 x가 정답과 얼마나 가까운가. 정답 = <strong>HSV 색분할로 검출한 회색 바구니 중심</strong>(근사 GT).<br>
+          <strong>full-frame:</strong> 박스 면적&gt;0.9 비율(화면 거의 다 덮음 = 위치정보 무력).<br>
+          <strong>OOD 오탐:</strong> 바구니 없는 의자에 박스 친 비율.
+        </div>
+      </div>
+    </div>
+    <div class="note">⚠️ cx_MAE의 정답(HSV 중심)은 색분할 기반 근사값이라 그 자체로 ±오차가 있다 — 모델 간 <strong>상대 비교</strong>용으로 해석.</div>
+  </div>
+
+  <!-- A. 핵심 결론 -->
+  <h2><span class="badge" style="background:#22c55e;color:#0a0f1a">A</span> 핵심 결론</h2>
+  <div class="card">
+    <div class="grid2">
+      <div style="padding:14px;background:#071a0a;border:1px solid #14532d;border-radius:10px">
+        <div class="key" style="font-size:0.95rem;margin-bottom:6px">✅ base PG2 — grounding 견고</div>
+        <div style="color:#94a3b8;font-size:0.85rem">측면 4경로 <strong>주행구간(f3+) 추적 100%</strong> · full-frame 0%. miss는 출발 첫 프레임뿐. 좌좌/우우/좌우/우좌 전 시점에서 바구니를 끝까지 추적. grounding은 문제가 아니다.</div>
+      </div>
+      <div style="padding:14px;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px">
+        <div class="bad" style="font-size:0.95rem;margin-bottom:6px">⚠️ LoRA들 — 붕괴/불안정</div>
+        <div style="color:#94a3b8;font-size:0.85rem">exp64(vision) full-frame <strong>92%</strong>, exp58 OOD 오탐 <strong>27%</strong>, exp56(Kosmos) generate 사망. LoRA가 base를 못 이긴다.</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:14px;background:#0f172a;border-left:3px solid #7dd3fc;border-radius:8px;font-size:0.9rem">
+      <strong style="color:#7dd3fc">→ 오예측 = grounding이 아니라 action head 문제.</strong> decomposition의 BBox grounding은 <strong>base PG2를 그대로</strong> 쓰고, 개선 노력은 action 쪽(의자 데이터 재수집 + Stage2 재학습)에 집중한다.
+    </div>
+    <div style="margin-top:14px;padding:16px;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px">
+      <div class="bad" style="font-size:0.98rem;margin-bottom:8px">🔍 교수님 "객체 인식 못함"의 정체 = exp59의 간헐적 full-frame 붕괴</div>
+      <div style="color:#94a3b8;font-size:0.86rem;line-height:1.7">
+        실주행에 쓰인 <strong style="color:#e2e8f0">exp59</strong>는 표준 프레임(full-frame 6%)에선 멀쩡해 보이지만, <strong>실환경 변동</strong>에서 무너진다:
+        free 극단 시나리오에서 <strong class="bad">로봇거리 22% · 저조도 17% · 대각선 14%</strong> full-frame, 증강 <strong class="bad">회전 8~16% · 가림 8%</strong> full-frame.
+        그 순간 action head는 "바구니=화면 전체" 신호를 받아 조향이 붕괴 → 교수님이 본 오예측. <strong class="key">base PG2는 같은 조건에서 full-frame 0~2%</strong> — 모델을 base로 바꾸면 간헐 붕괴가 사라진다.
+      </div>
+    </div>
+  </div>
+
+  <!-- B. 비교 매트릭스 -->
+  <h2><span class="badge" style="background:#7dd3fc;color:#0a0f1a">B</span> 모델 비교 매트릭스 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 표준 49프레임 + 의자 11장</span></h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>모델</th><th>백본 / LoRA</th><th>hit</th><th>cx_MAE</th><th>full-frame</th><th>OOD 오탐</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr style="background:#071a0a"><td><strong class="key">base PG2</strong></td><td>PaliGemma2 / 없음</td><td>98%</td><td>0.126</td><td class="key">0%</td><td>9%</td><td class="key">✅ 최균형</td></tr>
+        <tr><td><strong>pure Kosmos-2</strong></td><td>Kosmos-2 / 없음</td><td>100%</td><td>0.123</td><td>0%</td><td class="bad">100%</td><td class="bad">바구니↑·OOD구분 제로</td></tr>
+        <tr><td>exp57</td><td>PaliGemma1 / LM</td><td>84%</td><td class="key">0.115</td><td>0%</td><td>9%</td><td>hit↓·cx정밀</td></tr>
+        <tr><td>exp58</td><td>PaliGemma2 / LM</td><td>100%</td><td>0.191</td><td class="bad">57%</td><td class="bad">27%</td><td class="bad">부분붕괴+OOD최악</td></tr>
+        <tr><td>exp59</td><td>PaliGemma2 / LM hard-neg</td><td>98%</td><td>0.129</td><td>6%</td><td class="key">0%</td><td>OOD억제 최고</td></tr>
+        <tr><td>exp64</td><td>PaliGemma2 / <strong>vision</strong></td><td>94%</td><td>0.150</td><td class="bad">92%</td><td>9%</td><td class="bad">full-frame 붕괴</td></tr>
+        <tr><td>exp56</td><td>Kosmos-2 / LM</td><td class="bad">0%</td><td>—</td><td>—</td><td>—</td><td class="bad">LoRA가 Kosmos grounding 파괴</td></tr>
+      </tbody>
+    </table>
+    <div class="note">cx_MAE = 중심 오차(낮을수록 정확) · full-frame = area&gt;0.9 박스 비율(높을수록 붕괴) · OOD 오탐 = 의자에 basket 박스 친 비율.</div>
+  </div>
+
+  <!-- C. 측면 경로 갤러리 -->
+  <h2><span class="badge" style="background:#a78bfa;color:#0a0f1a">C</span> 측면 경로 에피소드 갤러리 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— base PG2, 교수님 오예측 대응</span></h2>
+  <div class="card">
+    <div style="background:#071a0a;border:1px solid #14532d;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.85rem;color:#94a3b8;line-height:1.6">
+      <strong class="key">📌 base PG2 miss의 정체:</strong> 측면 경로의 base miss는 <strong style="color:#e2e8f0">정확히 f0(출발 첫 프레임, 바구니 화면 밖)</strong>뿐. 주행 시작(f3) 후 hit 100%. → <strong class="key">실제 주행 구간 추적률 전 경로 100%, full-frame 0%</strong>.
+    </div>
+
+    <!-- 모델별 측면 요약 히트맵 -->
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table style="font-size:0.78rem">
+        <thead><tr><th>모델</th><th>left_left</th><th>right_right</th><th>left_right</th><th>right_left</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr style="background:#071a0a"><td class="key">base PG2</td><td>100/0</td><td>83/0</td><td>100/0</td><td>83/0</td><td class="key">✅ 깔끔(miss=f0만)</td></tr>
+          <tr><td>pure Kosmos</td><td>100/0</td><td>100/0</td><td>100/0</td><td>100/0</td><td>측면 hit 최고(단 OOD 100%)</td></tr>
+          <tr><td>exp57(PG1)</td><td>100/0</td><td class="bad">61/0</td><td>94/0</td><td>78/0</td><td>측면 검출률 하락</td></tr>
+          <tr><td>exp58</td><td>100/<span class="bad">61</span></td><td>100/<span class="bad">56</span></td><td>100/<span class="bad">78</span></td><td>100/<span class="bad">39</span></td><td class="bad">부분 full-frame 붕괴</td></tr>
+          <tr><td>exp59</td><td>100/6</td><td>83/6</td><td>100/6</td><td>83/11</td><td>비교적 깔끔</td></tr>
+          <tr><td>exp64</td><td class="bad">100/100</td><td class="bad">100/100</td><td class="bad">100/100</td><td class="bad">94/94</td><td class="bad">측면도 full-frame 전면붕괴</td></tr>
+          <tr><td>exp56(Kosmos)</td><td class="bad">0/0</td><td class="bad">0/0</td><td class="bad">0/0</td><td class="bad">0/0</td><td class="bad">LoRA가 Kosmos 파괴</td></tr>
+        </tbody>
+      </table>
+      <div class="note">셀 = hit / full-frame (%). 셀 클릭 아닌 아래 선택기로 그리드 확인.</div>
+    </div>
+
+    <!-- 모델 × 경로 선택기 -->
+    <div style="font-size:0.8rem;color:#7dd3fc;font-weight:700;margin-bottom:6px">모델 선택</div>
+    <div class="tabs" id="sa-models">
+      <div class="tab active" data-m="base_pg2">base PG2</div>
+      <div class="tab" data-m="pure_kosmos">pure Kosmos</div>
+      <div class="tab" data-m="exp57_pg1">exp57</div>
+      <div class="tab" data-m="exp58_pg2">exp58</div>
+      <div class="tab" data-m="exp59_pg2">exp59</div>
+      <div class="tab" data-m="exp64_pg2">exp64</div>
+      <div class="tab" data-m="exp56_kosmos">exp56</div>
+    </div>
+    <div style="font-size:0.8rem;color:#7dd3fc;font-weight:700;margin:10px 0 6px">경로 선택</div>
+    <div class="tabs" id="sa-paths">
+      <div class="tab active" data-p="left_left">left_left</div>
+      <div class="tab" data-p="right_right">right_right</div>
+      <div class="tab" data-p="left_right">left_right</div>
+      <div class="tab" data-p="right_left">right_left</div>
+    </div>
+    <img id="sa-img" src="grounding_hub/sa_base_pg2_left_left.png" alt="side-angle per model">
+    <div class="note">행=에피소드, 열=시간순 프레임. 파랑=정상·빨강=full-frame, 라벨 cx로 위치 추적. 같은 측면 프레임에 7모델을 비교 — exp64/exp58은 빨강(full-frame)이, base/exp59는 파랑(타이트)이 지배적.</div>
+  </div>
+
+  <!-- C2. free 극단 시나리오 -->
+  <h2><span class="badge" style="background:#0ea5e9;color:#0a0f1a">C2</span> 극단·다양성 시나리오 (free 데이터, base PG2) <span style="font-size:0.8rem;color:#64748b;font-weight:400">— "데이터가 적은가?" 보강</span></h2>
+  <div class="card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;line-height:1.6">
+      경로 데이터 외에 <strong>free_* 21개 에피소드</strong>(바구니 극단위치·로봇 원/근거리·대각선·저조도)를 추가 grounding. <strong>4모델 비교</strong>(붕괴/사망 모델 exp58·exp64·exp56 제외).
+    </div>
+    <div style="overflow-x:auto;margin-bottom:14px">
+      <table style="font-size:0.78rem">
+        <thead><tr><th>모델</th><th>basket극단</th><th>로봇거리</th><th>대각선</th><th>저조도</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr style="background:#071a0a"><td class="key">base PG2</td><td>92/0</td><td>94/0</td><td>95/2</td><td>100/0</td><td class="key">✅ 전부 깔끔</td></tr>
+          <tr><td>pure Kosmos</td><td>100/0</td><td>100/0</td><td>100/0</td><td>100/0</td><td>견고(단 OOD 100%)</td></tr>
+          <tr><td>exp57(PG1)</td><td>86/3</td><td>86/0</td><td>88/2</td><td>92/0</td><td>hit 낮음, full 소량</td></tr>
+          <tr><td>exp59</td><td>92/<span class="bad">8</span></td><td>92/<span class="bad">22</span></td><td>95/<span class="bad">14</span></td><td>100/<span class="bad">17</span></td><td class="bad">극단조건 full-frame 붕괴</td></tr>
+        </tbody>
+      </table>
+      <div class="note">셀=hit/full-frame(%). <strong style="color:#fca5a5">exp59가 로봇거리 22%·저조도 17% full-frame</strong> → 실환경 변동에서 무너진다. base는 0~2%.</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-t="f_ext">basket_extreme</div>
+      <div class="tab" data-t="f_dist">robot_distance</div>
+      <div class="tab" data-t="f_diag">diagonal</div>
+      <div class="tab" data-t="f_light">lighting_diff</div>
+    </div>
+    <div class="pane active" id="f_ext"><img src="exp64_eval/free_basket_extreme.png"></div>
+    <div class="pane" id="f_dist"><img src="exp64_eval/free_robot_distance.png"></div>
+    <div class="pane" id="f_diag"><img src="exp64_eval/free_diagonal.png"></div>
+    <div class="pane" id="f_light"><img src="exp64_eval/free_lighting_diff.png"></div>
+    <div class="note">base PG2가 극단위치·원근·대각선·저조도 전부 92~100% hit / full-frame ~0%. → 데이터 다양성 측면에서도 base grounding 견고. 측면4경로 + free21 = 추가 표본으로 결론 보강.</div>
+  </div>
+
+  <!-- C3. OOD -->
+  <h2><span class="badge" style="background:#f59e0b;color:#0a0f1a">C3</span> OOD 오탐 — 지금 중요한가? <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 의자에 "detect gray basket"</span></h2>
+  <div class="card">
+    <div style="background:#0f172a;border-left:3px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.85rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#fbbf24">현 시점 우선순위: 2순위.</strong> base PG2 선택의 <strong>결정적 근거는 full-frame collapse(타겟 추적 실패)</strong>였지 OOD가 아니다.
+      OOD(미학습 객체 오탐)는 <strong style="color:#e2e8f0">basket→chair 객체 전환 시</strong> 비로소 1순위가 된다 — 실제 방의 다른 가구를 타겟으로 오인하면 안 되므로.
+      지금은 타겟 추적 품질이 먼저고, OOD는 보조 지표로 기록.
+    </div>
+    <div class="grid2">
+      <div><img src="exp64_eval/ood_chair_grid.png"><div class="note">base vs exp64 — 의자 11장. 대부분 박스 없음(정상). 둘 다 Eames 가죽의자 1개만 오탐(9%).</div></div>
+      <div style="padding:14px;background:#0f172a;border-radius:8px;align-self:start">
+        <div style="color:#7dd3fc;font-weight:700;font-size:0.85rem;margin-bottom:8px">OOD 오탐률 요약</div>
+        <div style="color:#94a3b8;font-size:0.82rem;line-height:1.8">
+          base PG2: <strong class="key">9%</strong> (의자 구분 양호)<br>
+          exp64: 9% / exp57: 9% / exp59: <strong class="key">0%</strong> (hard-neg 효과)<br>
+          exp58: <strong class="bad">27%</strong> / pure Kosmos: <strong class="bad">100%</strong> (전부 오탐)
+        </div>
+        <div class="note" style="margin-top:10px">pure Kosmos는 의자 11장 전부에 바구니 박스 — negative 구분 불가. 측면 hit는 최고였지만 이 약점으로 탈락. exp59의 0%(hard-neg)는 chair 전환 시 참고할 유일한 미덕.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C4. 증강 강건성 -->
+  <h2><span class="badge" style="background:#22c55e;color:#0a0f1a">C4</span> 증강(Augmentation) 강건성 — base PG2 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— "데이터셋이 적은가?"의 직접 답</span></h2>
+  <div class="card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;line-height:1.6">
+      실제 에피소드가 한정적이므로, 기존 basket 프레임에 <strong>11가지 변형</strong>(밝기·대비·블러·노이즈·저해상도·회전±12°·좌우반전·부분가림)을 가해 grounding이 흔들리는지 점검.
+      변형에 약한 축 = 데이터셋이 보강해야 할 다양성. <strong style="color:#e2e8f0">원본 검출 성공 12프레임 기준, 중심 이동(cx_drift)으로 안정성 측정.</strong>
+    </div>
+    <div style="overflow-x:auto;margin-bottom:14px">
+      <table style="font-size:0.78rem">
+        <thead><tr><th>변형</th><th>hit</th><th>cx_drift</th><th>full-frame</th><th></th>
+        <th>변형</th><th>hit</th><th>cx_drift</th><th>full-frame</th></tr></thead>
+        <tbody>
+          <tr><td>original</td><td>100%</td><td>0.000</td><td>0%</td><td style="border:0"></td><td>downscale</td><td>100%</td><td>0.001</td><td>0%</td></tr>
+          <tr><td>bright_up</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>rotate +12°</td><td>100%</td><td>0.008</td><td>0%</td></tr>
+          <tr><td>bright_down</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>rotate −12°</td><td>100%</td><td>0.009</td><td>0%</td></tr>
+          <tr><td class="bad">low_contrast</td><td class="bad">92%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>hflip(좌우반전)</td><td>100%</td><td>0.002</td><td>0%</td></tr>
+          <tr><td>blur</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td>occlude(부분가림)</td><td>100%</td><td>0.002</td><td>0%</td></tr>
+          <tr><td>noise</td><td>100%</td><td>0.001</td><td>0%</td><td style="border:0"></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="overflow-x:auto;margin:6px 0 14px">
+      <table style="font-size:0.78rem">
+        <thead><tr><th>모델</th><th>회전±12°</th><th>가림</th><th>저대비</th><th>나머지(밝기·블러·노이즈·저해상도·반전)</th></tr></thead>
+        <tbody>
+          <tr style="background:#071a0a"><td class="key">base PG2</td><td>100/0</td><td>100/0</td><td class="bad">92/0</td><td class="key">전부 100/0</td></tr>
+          <tr><td>pure Kosmos</td><td>100/0</td><td>100/0</td><td>100/0</td><td>전부 100/0</td></tr>
+          <tr><td>exp57(PG1)</td><td>100/0</td><td>100/0</td><td>100/0</td><td>전부 100/0</td></tr>
+          <tr><td>exp59</td><td>100/<span class="bad">8~16</span></td><td>100/<span class="bad">8</span></td><td>100/0</td><td>나머지 100/0</td></tr>
+        </tbody>
+      </table>
+      <div class="note">셀=hit/full-frame(%). <strong style="color:#fca5a5">exp59만 회전·가림에서 full-frame 붕괴</strong>. base는 저대비에서만 hit 92%(검출 실패), 붕괴는 0.</div>
+    </div>
+    <img src="grounding_hub/aug_grid.png" alt="증강 강건성 그리드 (base PG2)">
+    <div class="note">위 그리드 = base PG2. 행=대표 3프레임, 열=11변형. 초록 박스가 모든 변형에서 바구니에 고정. cx_drift ~0.001.</div>
+    <div style="margin-top:14px;padding:14px;background:#071a0a;border-left:3px solid #22c55e;border-radius:8px;font-size:0.88rem;line-height:1.7;color:#e2e8f0">
+      <strong class="key">→ 결론: base PG2 grounding은 데이터 부족 문제가 아니다.</strong> 좌우반전·회전·저해상도·부분가림·조명 극단 전부 <strong>hit 100%·중심 이동 ~0</strong>로 견고.
+      사전학습 지식이 우리 소규모 데이터가 못 덮는 변형까지 일반화한다. 유일한 약점은 <strong>저대비(92%)</strong> — 저조도/역광 환경이 데이터셋 보강 1순위 후보.
+    </div>
+  </div>
+
+  <!-- D. 모델별 그리드 -->
+  <h2><span class="badge" style="background:#f59e0b;color:#0a0f1a">D</span> 모델별 BBox 그리드 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 같은 8프레임, 초록=정상·빨강=full-frame</span></h2>
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-t="g_base">base PG2</div>
+      <div class="tab" data-t="g_pkosmos">pure Kosmos</div>
+      <div class="tab" data-t="g_exp57">exp57(PG1)</div>
+      <div class="tab" data-t="g_exp58">exp58</div>
+      <div class="tab" data-t="g_exp59">exp59</div>
+      <div class="tab" data-t="g_exp64">exp64(vision)</div>
+      <div class="tab" data-t="g_exp56">exp56(Kosmos)</div>
+    </div>
+    <div class="pane active" id="g_base"><img src="grounding_hub/grid_base_pg2.png"><div class="note">타이트한 박스, full-frame 0%, OOD 오탐 9%.</div></div>
+    <div class="pane" id="g_pkosmos"><img src="grounding_hub/grid_pure_kosmos.png"><div class="note">바구니 100% 검출·full-frame 0%로 base급. 단 의자 등 미학습 객체에 100% 오탐 — negative 구분 불가.</div></div>
+    <div class="pane" id="g_exp57"><img src="grounding_hub/grid_exp57_pg1.png"><div class="note">PG1 LM-LoRA. 박스 정상, 일부 미검출(hit 84%).</div></div>
+    <div class="pane" id="g_exp58"><img src="grounding_hub/grid_exp58_pg2.png"><div class="note">PG2 LM-LoRA. full-frame 57% 부분붕괴.</div></div>
+    <div class="pane" id="g_exp59"><img src="grounding_hub/grid_exp59_pg2.png"><div class="note">hard-neg. full-frame 6%, OOD 오탐 0%로 가장 깔끔한 LoRA.</div></div>
+    <div class="pane" id="g_exp64"><img src="grounding_hub/grid_exp64_pg2.png"><div class="note">vision-LoRA. full-frame 92% 전면붕괴 (CH31/32).</div></div>
+    <div class="pane" id="g_exp56"><img src="grounding_hub/grid_exp56_kosmos.png"><div class="note">Kosmos generate 사망 — 박스 없음.</div></div>
+  </div>
+
+  <!-- E. 해석 -->
+  <h2><span class="badge" style="background:#ef4444;color:#fff">E</span> 해석 & 다음 단계</h2>
+  <div class="card">
+    <div style="font-size:0.9rem;line-height:1.8">
+      <p><strong class="key">1.</strong> 측면·OOD에서 base PG2가 견고(주행구간 추적 100%, full-frame 0%) → <strong>오예측의 원인은 grounding이 아니다.</strong> 실주행 궤적 붕괴는 action head(조향)·action chunk·데이터 분포 쪽 문제로 좁혀진다. 유일한 grounding 약점은 출발 첫 프레임(바구니 화면 밖)인데, 이는 STOP/대기 로직으로 처리할 영역이지 grounding 모델 교체로 풀 문제가 아니다.</p>
+      <p style="margin-top:8px"><strong class="key">2.</strong> 7개 모델 중 <strong>base PG2를 종합적으로 이긴 것은 없다.</strong> pure Kosmos는 바구니 검출은 100%지만 의자에 <strong>100% 오탐</strong>(negative 구분 불가), vision-LoRA(exp64)·exp58은 full-frame 붕괴, exp56은 LoRA가 Kosmos를 파괴. exp59만 OOD 억제(0%)라는 부분 미덕이나 cx 안정성은 더 나쁨.</p>
+      <p style="margin-top:8px"><strong class="key">2-1.</strong> <strong>LoRA의 보편적 위험:</strong> Kosmos LoRA(exp56)·PG2 vision LoRA(exp64)·PG2 LM LoRA(exp58) 모두 grounding을 <strong>악화</strong>시켰다. 소규모 데이터 LoRA가 사전학습된 grounding 표현을 망가뜨린다는 일관된 신호.</p>
+      <p style="margin-top:8px"><strong class="key">3.</strong> <strong>데이터 부족 문제 아님:</strong> 11가지 증강(회전·반전·블러·저해상도·가림·조명)에 base PG2가 hit 100%·중심이동 ~0으로 견고. 사전학습 지식이 소규모 데이터의 빈틈을 메운다. 유일 약점 = 저대비(92%) → 저조도 데이터가 보강 1순위.</p>
+      <p style="margin-top:8px"><strong class="key">4.</strong> <strong>결론:</strong> grounding = base PG2 고정. 다음 작업은 <strong>의자 객체 데이터 재수집 + Stage2 action 재학습</strong>으로 오예측(action)을 직접 공략.</p>
+    </div>
+    <div class="note" style="margin-top:12px">평가 스크립트: <code>scripts/eval_grounding_hub.py</code> · <code>scripts/grounding_sideangle_episodes.py</code> · 데이터: <code>docs/v5/grounding_hub/hub_results.json</code></div>
+  </div>
+
+  <!-- F. 파이프라인 Ablation -->
+  <h2 id="section-f"><span class="badge" style="background:#22c55e;color:#0a0f1a">F</span> 파이프라인 Ablation — CL 성능과 Grounding 품질의 관계</h2>
+  <div class="card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:16px;line-height:1.7">
+      <strong style="color:#e2e8f0">질문:</strong> cx 소스(grounding 모델)를 바꾸면 closed-loop(CL) 성능이 달라지는가? 파이프라인(L2-norm + bbox 증강)이 실제 성능 결정 요소인가?<br>
+      exp65b(대조군, 단순 MLP)와 exp66·exp67(동일 파이프라인, cx 소스만 변경)을 비교해 파이프라인과 grounding 품질의 기여를 분리한다.
+    </div>
+
+    <!-- 결과 표 -->
+    <div style="overflow-x:auto;margin-bottom:18px">
+      <table>
+        <thead>
+          <tr>
+            <th>실험</th>
+            <th>cx 소스</th>
+            <th>파이프라인</th>
+            <th>val_acc</th>
+            <th>CL 성공률</th>
+            <th>평균 FPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>exp54 <span style="color:#64748b;font-size:0.78rem">(참고)</span></td>
+            <td>HSV</td>
+            <td>L2-norm + bbox 증강</td>
+            <td>92.6%</td>
+            <td class="key">96.6%</td>
+            <td class="key">0.09m</td>
+          </tr>
+          <tr style="background:#1a0a0a">
+            <td><strong class="bad">exp65b</strong> <span style="color:#64748b;font-size:0.78rem">(대조)</span></td>
+            <td>base PG2</td>
+            <td><span class="bad">단순 MLP</span></td>
+            <td>90.2%</td>
+            <td class="bad">10.3%</td>
+            <td>—</td>
+          </tr>
+          <tr style="background:#071a0a">
+            <td><strong class="key">exp66</strong> ✅</td>
+            <td>base PG2</td>
+            <td>L2-norm + bbox 증강</td>
+            <td>93.5%</td>
+            <td class="key">96.6%</td>
+            <td class="key">0.10m</td>
+          </tr>
+          <tr style="background:#071a0a">
+            <td><strong class="key">exp67</strong> ✅</td>
+            <td>exp59 LoRA</td>
+            <td>L2-norm + bbox 증강</td>
+            <td>94.5%</td>
+            <td class="key">96.6%</td>
+            <td class="key">0.11m</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note">CL = closed-loop 성공률 · FPE = Final Position Error (낮을수록 정확) · exp65b는 동일 cx 소스(base PG2)지만 파이프라인이 다름.</div>
+    </div>
+
+    <!-- 결론 박스 -->
+    <div style="padding:18px;background:#052e16;border:1px solid #22c55e;border-radius:12px;margin-top:4px">
+      <div style="color:#22c55e;font-weight:800;font-size:0.95rem;margin-bottom:12px">✅ Ablation 결론 (3가지)</div>
+      <div style="font-size:0.88rem;line-height:1.9;color:#e2e8f0">
+        <p><strong style="color:#86efac">1. cx 소스(grounding 품질)는 CL 성능에 영향 없음.</strong>
+          base PG2(exp66)와 exp59 LoRA(exp67)는 cx_MAE가 다름에도 CL 성공률 <strong>96.6%로 동일</strong>.
+          grounding 모델을 더 정밀한 것으로 교체해도 action 성능은 변하지 않는다.</p>
+        <p style="margin-top:8px"><strong style="color:#86efac">2. L2-norm + bbox 증강이 유일한 성능 결정 요소.</strong>
+          같은 cx 소스(base PG2)라도 단순 MLP(exp65b)는 <strong class="bad">10.3%</strong>, L2-norm 파이프라인(exp66)은 <strong class="key">96.6%</strong>.
+          cx 좌표의 정규화 방식과 학습 증강이 grounding 품질보다 훨씬 크게 작용한다.</p>
+        <p style="margin-top:8px"><strong style="color:#86efac">3. LoRA grounding 개선은 action 성능에 기여하지 않음 (음성 결과).</strong>
+          exp67(exp59 LoRA)이 exp66(base PG2)보다 val_acc가 높지만(<strong>94.5% vs 93.5%</strong>) CL 성공률은 동일.
+          grounding 정밀도를 높여도 현재 파이프라인에서는 포화(ceiling effect)에 도달해 있다.
+          → LoRA 개선 방향은 현 단계에서 우선순위가 낮다.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #7dd3fc;border-radius:8px;font-size:0.88rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#7dd3fc">→ 실용 지침:</strong> decomposition 파이프라인의 성능 병목은 grounding 모델이 아니라 <strong style="color:#e2e8f0">L2-norm 정규화 · bbox 증강 · action head 재학습</strong>에 있다.
+      cx 소스는 base PG2 고정으로 충분하며, 다음 개선 여지는 파이프라인 구조(증강 전략, 정규화 방식) 또는 action 데이터 자체에서 찾아야 한다.
+    </div>
+    <div class="note" style="margin-top:10px">실험 코드: <code>scripts/train_active/run_v5_ablations.sh</code> · config: <code>configs/v5_ablation/</code>
+      &nbsp;·&nbsp; <a href="#section-g" style="color:#2dd4bf;font-size:0.76rem">→ Section G에서 Head/Window Ablation 전체 결과 확인</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= SECTION G ============================= -->
+<div class="wrap" id="section-g" style="padding-top:0">
+  <h2 style="color:#2dd4bf">
+    🔬 Section G — Action Head &amp; Window Ablation
+    <span class="badge" style="background:#0c2b2b;color:#2dd4bf;border:1px solid #14b8a6">CH34 · CH35</span>
+    <a href="research_story.html#ch34" style="font-size:0.75rem;font-weight:600;color:#a78bfa;text-decoration:none;margin-left:8px">→ 연구 히스토리 CH34</a>
+    <a href="research_story.html#ch35" style="font-size:0.75rem;font-weight:600;color:#14b8a6;text-decoration:none;margin-left:8px">→ CH35</a>
+  </h2>
+
+  <!-- G1: Head Ablation -->
+  <div class="card" id="section-g1">
+    <h3 style="font-size:1.05rem;font-weight:800;color:#a78bfa;margin-bottom:4px">
+      G1 &nbsp;·&nbsp; Action Head Ablation <span style="font-size:0.8rem;color:#64748b;font-weight:400">(CH34 — exp68/69/70/54)</span>
+    </h3>
+    <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
+      파이프라인 고정(L2-norm + bbox aug), cx 소스 고정(HSV, exp54 baseline), <strong style="color:#e2e8f0">Head만 변경</strong>.
+      RoboVLMs 계열 decoder와 우리 ActionMLP의 직접 비교.
+    </p>
+
+    <!-- 요약 배지 -->
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #7c3aed;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">Linear (1-layer)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#fca5a5">69.0%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.377m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #0891b2;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">FCHead (deep MLP)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#7dd3fc">93.1%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.109m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #a78bfa;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">LSTMHead (RoboVLMs)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#fbbf24">93.1%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.123m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">ActionMLP (ours) ★</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.102m</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>실험</th>
+          <th>Head</th>
+          <th>원형</th>
+          <th>val_acc</th>
+          <th>CL ↑</th>
+          <th>FPE ↓</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>exp68</td>
+          <td>Linear</td>
+          <td>1-layer FC (단순 선형)</td>
+          <td>76.8%</td>
+          <td class="bad">69.0%</td>
+          <td class="bad">0.377m</td>
+          <td>비선형성·용량 부족</td>
+        </tr>
+        <tr>
+          <td>exp69</td>
+          <td>FCHead</td>
+          <td>RoboVLMs FCDecoder (deep MLP, no temporal)</td>
+          <td>95.3%</td>
+          <td style="color:#fbbf24;font-weight:700">93.1%</td>
+          <td>0.109m</td>
+          <td>depth 필요. temporal 없으면 부족</td>
+        </tr>
+        <tr>
+          <td>exp70</td>
+          <td>LSTMHead</td>
+          <td>RoboVLMs MobileVLAClassificationDecoder</td>
+          <td>95.7%</td>
+          <td style="color:#fbbf24;font-weight:700">93.1%</td>
+          <td>0.123m</td>
+          <td>temporal 有 · FC와 동등</td>
+        </tr>
+        <tr style="background:#051a0a">
+          <td>exp66</td>
+          <td><strong style="color:#4ade80">ActionMLP (ours) ★</strong></td>
+          <td>Window-flattened flat MLP</td>
+          <td>93.5%</td>
+          <td class="key">96.6%</td>
+          <td class="key">0.102m</td>
+          <td>LSTM 대비 +3.5%p · 더 경량</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #a78bfa;border-radius:8px;font-size:0.87rem;color:#94a3b8">
+      <strong style="color:#a78bfa">핵심:</strong> ActionMLP(ours) > LSTMHead at w=8 — <strong style="color:#4ade80">96.6% vs 93.1% (+3.5%p)</strong>.
+      MLP는 window pre-baking으로 temporal 맥락을 더 효율적으로 활용. LSTM은 sequential 처리에도 불구하고 동일 window에서 열위.<br>
+      FCHead(depth 有, temporal 無): 93.1% · LSTM과 동점. Linear: 69.0% — 비선형성·용량 모두 부족.<br>
+      <span style="font-size:0.82rem;color:#64748b">※ 동일 30-ep fixed val set 기준 (Exp66 split, seed=42)</span>
+    </div>
+    <div class="note" style="margin-top:8px">CH34 상세: <a href="research_story.html#ch34" style="color:#a78bfa">research_story.html#ch34</a> · 스크립트: <code>scripts/eval_exp54_stage2_v2_closedloop.py</code></div>
+  </div>
+
+  <!-- G2: Window Ablation -->
+  <div class="card" id="section-g2">
+    <h3 style="font-size:1.05rem;font-weight:800;color:#14b8a6;margin-bottom:4px">
+      G2 &nbsp;·&nbsp; Window Size Ablation <span style="font-size:0.8rem;color:#64748b;font-weight:400">(CH35 — MLP w=2/4/8/16, LSTM w=4/8/16)</span>
+    </h3>
+    <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
+      파이프라인 고정(L2+aug), cx 소스 고정(base PG2). <strong style="color:#e2e8f0">window 크기만 변경</strong>.
+      MLP는 flat window 히스토리, LSTM은 sequential SEQ_DIM=260 per-frame.
+      <span style="font-size:0.82rem;color:#64748b">※ 동일 30-ep fixed val set 기준</span>
+    </p>
+
+    <!-- 요약 배지 -->
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">MLP w=2 (FPE 최저)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.098m ★</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #22c55e;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">MLP w=8 (baseline)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#4ade80">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.102m</div>
+      </div>
+      <div style="padding:10px 16px;background:#0f172a;border-radius:10px;border:1px solid #14b8a6;text-align:center">
+        <div style="font-size:0.7rem;color:#94a3b8">LSTM w=16 (전체 FPE 최저)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#2dd4bf">96.6%</div>
+        <div style="font-size:0.7rem;color:#64748b">CL · FPE 0.082m ★★</div>
+      </div>
+    </div>
+
+    <!-- MLP / LSTM 탭 -->
+    <div class="tabs" id="g2-tabs">
+      <div class="tab active" data-t="g2-mlp">MLP (w=2/4/8/16)</div>
+      <div class="tab" data-t="g2-lstm">LSTM (w=4/8/16)</div>
+      <div class="tab" data-t="g2-all">전체 비교</div>
+    </div>
+
+    <div class="pane active" id="g2-mlp">
+      <table>
+        <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr style="background:#051a0a">
+            <td>MLP</td><td><strong style="color:#4ade80">2</strong></td><td>94.9%</td>
+            <td class="key">96.6%</td><td class="key">0.098m</td>
+            <td>MLP FPE 최저 — 2프레임으로도 충분</td>
+          </tr>
+          <tr>
+            <td>MLP</td><td>4</td><td>92.9%</td>
+            <td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td>
+            <td>CL 하락 · FPE 악화 — 과잉 히스토리 잡음</td>
+          </tr>
+          <tr style="background:#051a0a">
+            <td>MLP</td><td>8 <span style="color:#64748b">(baseline)</span></td><td>93.5%</td>
+            <td class="key">96.6%</td><td>0.102m</td>
+            <td>exp66 기준점</td>
+          </tr>
+          <tr>
+            <td>MLP</td><td>16</td><td>89.6%</td>
+            <td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td>
+            <td>val_acc·CL·FPE 모두 하락 — 윈도우 지나치게 큼</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pane" id="g2-lstm">
+      <table>
+        <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr style="background:#051a0a">
+            <td>LSTM</td><td><strong>4</strong></td><td>95.1%</td>
+            <td class="key">96.6%</td><td>0.126m</td>
+            <td>짧은 window에서도 96.6% 달성</td>
+          </tr>
+          <tr>
+            <td>LSTM</td><td>8 <span style="color:#64748b">(baseline)</span></td><td>95.7%</td>
+            <td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td>
+            <td>exp70 기준점 — CL 하락</td>
+          </tr>
+          <tr style="background:#051a2a">
+            <td>LSTM</td><td><strong style="color:#2dd4bf">16</strong></td><td>96.9%</td>
+            <td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td>
+            <td>전체 실험 최저 FPE — 긴 맥락 활용</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pane" id="g2-all">
+      <table>
+        <thead><tr><th>Head</th><th>Window</th><th>val_acc</th><th>CL ↑</th><th>FPE ↓</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr style="background:#051a0a"><td>MLP</td><td><strong style="color:#4ade80">2</strong></td><td>94.9%</td><td class="key">96.6%</td><td class="key">0.098m</td><td>MLP FPE 최저</td></tr>
+          <tr><td>MLP</td><td>4</td><td>92.9%</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td><td></td></tr>
+          <tr style="background:#051a0a"><td>MLP</td><td>8 ★</td><td>93.5%</td><td class="key">96.6%</td><td>0.102m</td><td>baseline</td></tr>
+          <tr><td>MLP</td><td>16</td><td>89.6%</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td><td></td></tr>
+          <tr style="background:#051a0a"><td>LSTM</td><td><strong>4</strong></td><td>95.1%</td><td class="key">96.6%</td><td>0.126m</td><td></td></tr>
+          <tr><td>LSTM</td><td>8</td><td>95.7%</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td><td>baseline</td></tr>
+          <tr style="background:#051a2a"><td>LSTM</td><td><strong style="color:#2dd4bf">16</strong></td><td>96.9%</td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td><td>전체 FPE 최저</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:14px;padding:12px 16px;background:#0f172a;border-left:3px solid #14b8a6;border-radius:8px;font-size:0.87rem;color:#94a3b8">
+      <strong style="color:#14b8a6">핵심:</strong>
+      <strong style="color:#e2e8f0">CL은 93~97% 혼재</strong> — w가 클수록 항상 좋아지진 않음 (MLP w=4,16 각 93.1%).
+      <strong style="color:#e2e8f0">FPE는 MLP w=2 (0.098m) · LSTM w=16 (0.082m)이 양 극단 최저</strong>.<br>
+      MLP에서 w=2→8은 CL 유지, w=4·16은 이상 하락 — flat concat 시 입력 희석 영향.
+      LSTM은 w=16에서 전체 최저 FPE 0.082m 달성 — 긴 맥락 sequential 처리 강점.
+      <span style="font-size:0.82rem;color:#64748b">※ 동일 30-ep fixed val set 기준 (Exp66 split, seed=42)</span>
+    </div>
+    <div class="note" style="margin-top:8px">CH35 상세: <a href="research_story.html#ch35" style="color:#14b8a6">research_story.html#ch35</a> · 표 2-D: <code>docs/v5/TABLE1_PAPER_DRAFT.md</code></div>
+  </div>
+
+  <!-- G3: 전체 모델 통합 뷰 -->
+  <div class="card" id="section-g3">
+    <h3 style="font-size:1.05rem;font-weight:800;color:#e2e8f0;margin-bottom:4px">
+      G3 &nbsp;·&nbsp; 모든 실험 통합 비교
+      <span style="font-size:0.8rem;color:#64748b;font-weight:400">(Section F + G 전체 — 파이프라인 × Head × Window)</span>
+    </h3>
+    <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
+      이 Hub에서 테스트된 모든 모델 · 조건의 CL 성능. 파이프라인(&sect;F)부터 Head/Window(&sect;G)까지 한눈에.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Section</th><th>실험</th><th>파이프라인</th><th>cx 소스</th><th>Head</th><th>Window</th><th>CL ↑</th><th>FPE ↓</th>
+        </tr>
+      </thead>
+      <caption style="caption-side:top;text-align:left;color:#475569;font-size:0.75rem;padding-bottom:8px">
+        ※ 동일 fixed val set 30ep 기준 (Exp66 split, seed=42) — 전 모델 공정 비교
+      </caption>
+      <tbody>
+        <!-- Section F: pipeline ablation -->
+        <tr style="opacity:0.7"><td>&sect;F</td><td>exp65b</td><td>단순 MLP</td><td>base PG2</td><td>MLP</td><td>8</td><td class="bad">10.3%</td><td>0.941m</td></tr>
+        <tr style="opacity:0.7"><td>&sect;F</td><td>exp54</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.110m</td></tr>
+        <tr style="opacity:0.7;background:#051a0a"><td>&sect;F</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
+        <tr style="opacity:0.7"><td>&sect;F</td><td>exp67</td><td>L2+aug</td><td>exp59 LoRA</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.111m</td></tr>
+        <!-- Section G1: head ablation (fixed val set) -->
+        <tr><td>&sect;G1</td><td>exp68</td><td>L2+aug</td><td>base PG2</td><td style="color:#fca5a5">Linear</td><td>8</td><td class="bad">69.0%</td><td>0.375m</td></tr>
+        <tr><td>&sect;G1</td><td>exp69</td><td>L2+aug</td><td>base PG2</td><td style="color:#fbbf24">FCHead</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.113m</td></tr>
+        <tr><td>&sect;G1</td><td>exp70</td><td>L2+aug</td><td>base PG2</td><td style="color:#a78bfa">LSTM</td><td>8</td><td style="color:#a78bfa;font-weight:700">93.1%</td><td>0.123m</td></tr>
+        <tr style="background:#051a0a"><td>&sect;G1</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td style="color:#4ade80"><strong>MLP</strong></td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
+        <!-- Section G2: window ablation MLP (fixed val set) -->
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>2</td><td class="key">96.6%</td><td>0.098m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>4</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td></tr>
+        <tr style="background:#051a0a"><td>&sect;G2</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td><strong>8</strong></td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>16</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td></tr>
+        <!-- Section G2: window ablation LSTM (fixed val set) -->
+        <tr style="background:#051a0a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td><strong>4</strong></td><td class="key">96.6%</td><td>0.126m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td></tr>
+        <tr style="background:#051a2a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td style="color:#2dd4bf"><strong>16</strong></td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;font-size:0.82rem">
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #22c55e;color:#4ade80"><strong>파이프라인:</strong> 10.3% → 96.6% (×9.4배)</div>
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #a78bfa;color:#a78bfa"><strong>Head:</strong> Linear 69% → MLP 96.6% · LSTM=FC=93.1%</div>
+      <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #14b8a6;color:#2dd4bf"><strong>Window:</strong> CL 93~97% 혼재 · LSTM w=16 FPE 최저 0.082m</div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.tabs').forEach(function(tabs){
+  if (tabs.id==='sa-models' || tabs.id==='sa-paths') return;  // 별도 처리
+  tabs.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      var card = tabs.closest('.card');
+      tabs.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      card.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+      card.querySelector('#'+t.dataset.t).classList.add('active');
+    });
+  });
+});
+// G2 탭 (Section G window ablation)
+document.getElementById('g2-tabs').querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.getElementById('g2-tabs').querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['g2-mlp','g2-lstm','g2-all'].forEach(function(id){
+      document.getElementById(id).classList.remove('active');
+    });
+    document.getElementById(t.dataset.t).classList.add('active');
+  });
+});
+// 측면 per-model 선택기 (모델 × 경로 → 단일 img src)
+(function(){
+  var sm=document.getElementById('sa-models'), sp=document.getElementById('sa-paths'), img=document.getElementById('sa-img');
+  if(!sm||!sp||!img) return;
+  var cur={m:'base_pg2', p:'left_left'};
+  function upd(){ img.src='grounding_hub/sa_'+cur.m+'_'+cur.p+'.png'; }
+  sm.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
+    sm.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); cur.m=t.dataset.m; upd(); }));
+  sp.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
+    sp.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); cur.p=t.dataset.p; upd(); }));
+})();
+</script>
+</body>
+</html>
