@@ -2,17 +2,22 @@
 Stage2 v2 inference server (Exp54/66/67/68/69/70).
 
 Pipeline: Kosmos-2 vision encoder → image_proj (256-dim, L2-norm) + bbox history → ActionHead
+Grounding: PaliGemma2 "detect gray basket" (matches training distribution, Exp65/66)
 
 Architecture: FrozenCLIPV2 (Stage1) + ActionMLP/LSTMHead/FCHead/LinearHead (Stage2)
 
 Environment variables:
-  VLA_S2V2_STAGE1         path to stage1_v2_projs.pt
-  VLA_S2V2_STAGE2         path to stage2 checkpoint (e.g. stage2_v2_mlp_base_pg2_aug.pt)
-  VLA_S2V2_HEAD           head type: mlp | linear | fc | lstm (auto-detected from ckpt)
+  VLA_S2V2_STAGE1           path to stage1_v2_projs.pt
+  VLA_S2V2_STAGE2           path to stage2 checkpoint (e.g. stage2_v2_mlp_base_pg2_aug.pt)
+  VLA_S2V2_HEAD             head type: mlp | linear | fc | lstm (auto-detected from ckpt)
   VLA_GROUNDING_MODEL_PATH  path to Kosmos-2 model dir (.vlms/kosmos-2-patch14-224)
-  VLA_PORT                server port (default: 8001)
-  VLA_GROUNDING_SKIP_N    run grounding every N steps, cache in between (default: 1)
-  VLA_API_KEY             optional API key for authentication
+  VLA_PG2_PATH              path to PaliGemma2 model dir (default: HF cache)
+  VLA_PORT                  server port (default: 8001)
+  VLA_GROUNDING_SKIP_N      run grounding every N steps, cache in between (default: 1)
+  VLA_STOP_AREA             bbox area threshold for proximity STOP (default: 0.25)
+  VLA_STOP_CX_TOL           cx tolerance from center for proximity STOP (default: 0.35)
+  VLA_STOP_CONSEC           consecutive frames required for STOP override (default: 2)
+  VLA_API_KEY               optional API key for authentication
 
 Usage:
   .venv/bin/python3 robovlm_nav/serve/stage2_v2_inference_server.py
@@ -44,8 +49,13 @@ from fastapi import FastAPI, HTTPException, Header
 from PIL import Image
 from pydantic import BaseModel
 
+import re
+
 try:
-    from transformers import AutoModelForVision2Seq, AutoProcessor
+    from transformers import (
+        AutoModelForVision2Seq, AutoProcessor,
+        PaliGemmaProcessor, PaliGemmaForConditionalGeneration,
+    )
 except ImportError as exc:
     raise RuntimeError("transformers is required") from exc
 
@@ -60,6 +70,13 @@ ROOT = Path(project_root)
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage1_v2" / "stage1_v2_projs.pt"
 DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage2_v2" / "stage2_v2_mlp_base_pg2_aug.pt"
 DEFAULT_VLM    = ROOT / ".vlms" / "kosmos-2-patch14-224"
+# PaliGemma2: HF cache path (used for grounding, matches Exp65/66 training distribution)
+_PG2_HF_CACHE = (
+    Path.home() / ".cache" / "huggingface" / "hub"
+    / "models--google--paligemma2-3b-mix-224"
+    / "snapshots" / "8e40ab4cc5df93dfb7fd2fff754bcdff8b62ee78"
+)
+DEFAULT_PG2 = Path(os.getenv("VLA_PG2_PATH", str(_PG2_HF_CACHE)))
 
 NUM_CLASSES = 8
 WINDOW_DEFAULT = 8
@@ -79,10 +96,10 @@ ACTION_3D = {
 }
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
-GROUNDING_PROMPT = "<grounding>The gray basket is at"
-# Stop-proximity thresholds (tuned from last-frame bbox area stats: area≈0.756, cx≈0.5)
-GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.50"))
-GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.30"))
+_LOC_RE = re.compile(r"<loc(\d{4})>")
+# Stop-proximity thresholds (tuned from PG2 grounding on last frames: area≈0.25-0.46 vs mid 0.08-0.10)
+GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.25"))
+GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.35"))
 # Require this many of the last N history frames to be near-goal before forcing STOP
 GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "2"))
 
@@ -201,9 +218,9 @@ class Grounder:
             self._full_model = base
             logger.info("Grounder: full Kosmos-2 model loaded for generate()")
 
-    def run(self, image_rgb: np.ndarray, vlm_path: Path) -> dict[str, Any]:
+    def run(self, image_rgb: np.ndarray, vlm_path: Optional[Path] = None) -> dict[str, Any]:
         """Run Kosmos-2 grounding → {'cx', 'cy', 'area', 'has_bbox'}."""
-        self._ensure_full_model(vlm_path)
+        self._ensure_full_model(vlm_path or Path(str(DEFAULT_VLM)))
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
         inputs = self._processor(text=GROUNDING_PROMPT, images=pil, return_tensors="pt")
         inputs = {k: v.to(self._device) for k, v in inputs.items()}
@@ -245,6 +262,49 @@ class Grounder:
 
 
 # ---------------------------------------------------------------------------
+# Grounding (PaliGemma2 "detect gray basket" → bbox)
+# Matches Exp65/66 training distribution; more reliable than Kosmos-2 for basket detection.
+# ---------------------------------------------------------------------------
+
+class PG2Grounder:
+    """PaliGemma2-based bbox grounder using 'detect gray basket' prompt."""
+
+    def __init__(self, pg2_path: Path, device: torch.device):
+        self._device = device
+        self._proc: Optional[Any] = None
+        self._model: Optional[Any] = None
+        self._pg2_path = pg2_path
+        self._dtype = torch.bfloat16
+
+    def _ensure_loaded(self) -> None:
+        if self._model is None:
+            logger.info("PG2Grounder: loading PaliGemma2 from %s", self._pg2_path)
+            self._proc = PaliGemmaProcessor.from_pretrained(str(self._pg2_path))
+            self._model = PaliGemmaForConditionalGeneration.from_pretrained(
+                str(self._pg2_path), torch_dtype=self._dtype, low_cpu_mem_usage=True
+            ).to(self._device).eval()
+            logger.info("PG2Grounder: ready")
+
+    def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None) -> dict[str, Any]:
+        """Run PaliGemma2 grounding → {'cx', 'cy', 'area', 'has_bbox'}."""
+        self._ensure_loaded()
+        pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+        inp = self._proc(text="detect gray basket", images=pil, return_tensors="pt").to(self._device)
+        inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
+        with torch.no_grad():
+            gen = self._model.generate(**inp, max_new_tokens=48, do_sample=False)
+        raw = self._proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
+        locs = [int(v) / 1023.0 for v in _LOC_RE.findall(raw)]
+        if len(locs) >= 4:
+            y1, x1, y2, x2 = locs[:4]
+            x1, x2 = min(x1, x2), max(x1, x2)
+            y1, y2 = min(y1, y2), max(y1, y2)
+            area = (x2 - x1) * (y2 - y1)
+            return {"cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2, "area": area, "has_bbox": True}
+        return {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False}
+
+
+# ---------------------------------------------------------------------------
 # Online inference model
 # ---------------------------------------------------------------------------
 
@@ -258,6 +318,7 @@ class Stage2V2Model:
         vlm_path: Path,
         head_override: Optional[str],
         device: torch.device,
+        pg2_path: Optional[Path] = None,
     ):
         self.device = device
         self.vlm_path = vlm_path
@@ -265,12 +326,18 @@ class Stage2V2Model:
         self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "1"))
         self._grounding_cache: Optional[dict] = None
 
-        # Stage1
+        # Stage1 (Kosmos-2 vision encoder — image features only)
         self.enc = Stage1Encoder(vlm_path, stage1_path, device)
         self.enc.eval()
 
-        # Grounder (shares processor, lazy-loads full model)
-        self.grounder = Grounder(self.enc)
+        # Grounder: PG2 if available (matches training), Kosmos-2 fallback
+        _pg2 = pg2_path or DEFAULT_PG2
+        if _pg2.exists():
+            self.grounder: Any = PG2Grounder(_pg2, device)
+            logger.info("Grounder: PaliGemma2 (%s)", _pg2)
+        else:
+            self.grounder = Grounder(self.enc)
+            logger.warning("PG2 not found at %s — falling back to Kosmos-2 Grounder (has_bbox=False always)", _pg2)
 
         # Stage2 head
         ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
@@ -358,7 +425,7 @@ class Stage2V2Model:
             bbox = self._grounding_cache
             grounding_latency_ms = 0.0
         else:
-            bbox = self.grounder.run(image_rgb, self.vlm_path)
+            bbox = self.grounder.run(image_rgb)
             self._grounding_cache = bbox
             grounding_latency_ms = (time.time() - g_start) * 1000.0
 
@@ -449,7 +516,8 @@ def get_model(reload: bool = False) -> Stage2V2Model:
         head_override = os.getenv("VLA_S2V2_HEAD") or None
         device = _resolve_device()
         logger.info("Loading Stage2V2 model on %s ...", device)
-        _model = Stage2V2Model(stage1_path, stage2_path, vlm_path, head_override, device)
+        pg2_path = Path(os.getenv("VLA_PG2_PATH", str(DEFAULT_PG2)))
+        _model = Stage2V2Model(stage1_path, stage2_path, vlm_path, head_override, device, pg2_path=pg2_path)
     return _model
 
 
