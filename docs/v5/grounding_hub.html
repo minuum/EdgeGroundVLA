@@ -41,11 +41,11 @@
   <!-- 빠른 탐색 -->
   <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px">
     <span style="font-size:0.78rem;color:#64748b;align-self:center;margin-right:4px">빠른 이동 →</span>
-    <a href="#section-f" style="padding:6px 14px;background:#052e16;border:1px solid #22c55e;border-radius:8px;font-size:0.78rem;font-weight:700;color:#4ade80;text-decoration:none">§F 파이프라인Ablation</a>
-    <a href="#section-g" style="padding:6px 14px;background:#0c2b2b;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#2dd4bf;text-decoration:none">§G Head&amp;Window Ablation ★NEW</a>
-    <a href="#section-g1" style="padding:6px 14px;background:#0a1628;border:1px solid #7c3aed;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">§G1 Head</a>
-    <a href="#section-g2" style="padding:6px 14px;background:#0a1628;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;color:#2dd4bf;text-decoration:none">§G2 Window</a>
-    <a href="#section-g3" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">§G3 전체비교</a>
+    <a href="#section-f" style="padding:6px 14px;background:#052e16;border:1px solid #22c55e;border-radius:8px;font-size:0.78rem;font-weight:700;color:#4ade80;text-decoration:none">&sect;F 파이프라인Ablation</a>
+    <a href="#section-g" style="padding:6px 14px;background:#0c2b2b;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#2dd4bf;text-decoration:none">&sect;G Head&amp;Window Ablation ★NEW</a>
+    <a href="#section-g1" style="padding:6px 14px;background:#0a1628;border:1px solid #7c3aed;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">&sect;G1 Head</a>
+    <a href="#section-g2" style="padding:6px 14px;background:#0a1628;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;color:#2dd4bf;text-decoration:none">&sect;G2 Window</a>
+    <a href="#section-g3" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">&sect;G3 전체비교</a>
     <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
     <a href="research_story.html#ch33" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">← CH33</a>
     <a href="research_story.html#ch34" style="padding:6px 14px;background:#0a1628;border:1px solid #4c1d95;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">← CH34</a>
@@ -56,7 +56,7 @@
     <h1>🎯 Grounding Evaluation Hub</h1>
     <p>교수님이 보신 <strong>"이상한 에피소드 · 오예측"</strong>을 grounding 관점에서 해부한다.<br>
     측면·OOD에서 base PaliGemma2가 바구니를 안정적으로 잡는다면 → <strong style="color:#7dd3fc">오예측은 grounding이 아닌 action head 문제</strong>다.<br>
-    <span style="font-size:0.83rem;color:#64748b">→ §G에서 Action Head · Window 크기 Ablation 전체 결과 확인 가능 (CH34/CH35 연동)</span></p>
+    <span style="font-size:0.83rem;color:#64748b">→ &sect;G에서 Action Head · Window 크기 Ablation 전체 결과 확인 가능 (CH34/CH35 연동)</span></p>
   </div>
 
   <!-- 0. 방법론 & 목표 -->
@@ -624,7 +624,7 @@
       <span style="font-size:0.8rem;color:#64748b;font-weight:400">(Section F + G 전체 — 파이프라인 × Head × Window)</span>
     </h3>
     <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:14px">
-      이 Hub에서 테스트된 모든 모델 · 조건의 CL 성능. 파이프라인(§F)부터 Head/Window(§G)까지 한눈에.
+      이 Hub에서 테스트된 모든 모델 · 조건의 CL 성능. 파이프라인(&sect;F)부터 Head/Window(&sect;G)까지 한눈에.
     </p>
     <table>
       <thead>
@@ -637,24 +637,24 @@
       </caption>
       <tbody>
         <!-- Section F: pipeline ablation -->
-        <tr style="opacity:0.7"><td>§F</td><td>exp65b</td><td>단순 MLP</td><td>base PG2</td><td>MLP</td><td>8</td><td class="bad">10.3%</td><td>0.941m</td></tr>
-        <tr style="opacity:0.7"><td>§F</td><td>exp54</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.110m</td></tr>
-        <tr style="opacity:0.7;background:#051a0a"><td>§F</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
-        <tr style="opacity:0.7"><td>§F</td><td>exp67</td><td>L2+aug</td><td>exp59 LoRA</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.111m</td></tr>
+        <tr style="opacity:0.7"><td>&sect;F</td><td>exp65b</td><td>단순 MLP</td><td>base PG2</td><td>MLP</td><td>8</td><td class="bad">10.3%</td><td>0.941m</td></tr>
+        <tr style="opacity:0.7"><td>&sect;F</td><td>exp54</td><td>L2+aug</td><td>HSV</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.110m</td></tr>
+        <tr style="opacity:0.7;background:#051a0a"><td>&sect;F</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
+        <tr style="opacity:0.7"><td>&sect;F</td><td>exp67</td><td>L2+aug</td><td>exp59 LoRA</td><td>MLP</td><td>8</td><td class="key">96.6%</td><td>0.111m</td></tr>
         <!-- Section G1: head ablation (fixed val set) -->
-        <tr><td>§G1</td><td>exp68</td><td>L2+aug</td><td>base PG2</td><td style="color:#fca5a5">Linear</td><td>8</td><td class="bad">69.0%</td><td>0.375m</td></tr>
-        <tr><td>§G1</td><td>exp69</td><td>L2+aug</td><td>base PG2</td><td style="color:#fbbf24">FCHead</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.113m</td></tr>
-        <tr><td>§G1</td><td>exp70</td><td>L2+aug</td><td>base PG2</td><td style="color:#a78bfa">LSTM</td><td>8</td><td style="color:#a78bfa;font-weight:700">93.1%</td><td>0.123m</td></tr>
-        <tr style="background:#051a0a"><td>§G1</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td style="color:#4ade80"><strong>MLP</strong></td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
+        <tr><td>&sect;G1</td><td>exp68</td><td>L2+aug</td><td>base PG2</td><td style="color:#fca5a5">Linear</td><td>8</td><td class="bad">69.0%</td><td>0.375m</td></tr>
+        <tr><td>&sect;G1</td><td>exp69</td><td>L2+aug</td><td>base PG2</td><td style="color:#fbbf24">FCHead</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.113m</td></tr>
+        <tr><td>&sect;G1</td><td>exp70</td><td>L2+aug</td><td>base PG2</td><td style="color:#a78bfa">LSTM</td><td>8</td><td style="color:#a78bfa;font-weight:700">93.1%</td><td>0.123m</td></tr>
+        <tr style="background:#051a0a"><td>&sect;G1</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td style="color:#4ade80"><strong>MLP</strong></td><td>8</td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
         <!-- Section G2: window ablation MLP (fixed val set) -->
-        <tr><td>§G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>2</td><td class="key">96.6%</td><td>0.098m</td></tr>
-        <tr><td>§G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>4</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td></tr>
-        <tr style="background:#051a0a"><td>§G2</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td><strong>8</strong></td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
-        <tr><td>§G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>16</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>2</td><td class="key">96.6%</td><td>0.098m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>4</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.128m</td></tr>
+        <tr style="background:#051a0a"><td>&sect;G2</td><td>exp66 ★</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td><strong>8</strong></td><td class="key">96.6%</td><td class="key">0.102m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>MLP</td><td>16</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.159m</td></tr>
         <!-- Section G2: window ablation LSTM (fixed val set) -->
-        <tr style="background:#051a0a"><td>§G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td><strong>4</strong></td><td class="key">96.6%</td><td>0.126m</td></tr>
-        <tr><td>§G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td></tr>
-        <tr style="background:#051a2a"><td>§G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td style="color:#2dd4bf"><strong>16</strong></td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td></tr>
+        <tr style="background:#051a0a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td><strong>4</strong></td><td class="key">96.6%</td><td>0.126m</td></tr>
+        <tr><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td>8</td><td style="color:#fbbf24;font-weight:700">93.1%</td><td>0.123m</td></tr>
+        <tr style="background:#051a2a"><td>&sect;G2</td><td>—</td><td>L2+aug</td><td>base PG2</td><td>LSTM</td><td style="color:#2dd4bf"><strong>16</strong></td><td class="key">96.6%</td><td style="color:#2dd4bf;font-weight:700">0.082m</td></tr>
       </tbody>
     </table>
     <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;font-size:0.82rem">
