@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoNaVLA — Legacy Archive</title>
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Noto Sans', sans-serif; background: #f8fafc; }
+    .top-bar {
+      background: #0f172a;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .top-bar a { color: #38bdf8; text-decoration: none; font-weight: 600; font-size: 0.95rem; }
+    .top-bar a:hover { color: #7dd3fc; }
+    .top-bar .sep { color: #475569; }
+    .archive-title {
+      color: #94a3b8;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .btn-wall {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+    .card.arch-card {
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+      transition: transform 0.15s;
+    }
+    .card.arch-card:hover { transform: translateY(-2px); }
+    .footer { background: #0f172a; color: #94a3b8; }
+    .footer a { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="index.html"><i class="fas fa-arrow-left mr-1"></i> Main Page</a>
+  <span class="sep">|</span>
+  <span class="archive-title"><i class="fas fa-archive mr-1"></i> Legacy Archive — 전체 실험 히스토리</span>
+</div>
+
+<section class="section">
+  <div class="container is-max-desktop">
+
+    <!-- ── All Experiment Links ── -->
+    <div class="section-label"><i class="fas fa-flask mr-1"></i> All Experiment & Report Links</div>
+    <div class="btn-wall">
+      <a href="v5/bbox_nav_step1/index.html" class="button is-success is-rounded is-small"><span class="icon"><i class="fas fa-brain"></i></span><span>Exp14 Step 1 (MLP 68.4%)</span></a>
+      <a href="v5/bbox_nav_step2/index.html" class="button is-warning is-rounded is-small"><span class="icon"><i class="fas fa-microchip"></i></span><span>Exp14 Step 2 (75.9%)</span></a>
+      <a href="v5/bbox_nav_step3/index.html" class="button is-info is-rounded is-small"><span class="icon"><i class="fas fa-filter"></i></span><span>BBox Track Step 3 (77.0%)</span></a>
+      <a href="v5/bbox_nav_comparison.html" class="button is-link is-rounded is-small"><span class="icon"><i class="fas fa-scale-balanced"></i></span><span>Exp14 Comparison</span></a>
+      <a href="v5/exp11_vs_step2_same_split/index.html" class="button is-dark is-rounded is-small"><span class="icon"><i class="fas fa-balance-scale-right"></i></span><span>Exp11 vs Step2 Same-Split</span></a>
+      <a href="reports/viewer.html?file=v5/STATUS_20260421_EXP18.md" class="button is-primary is-rounded is-small"><span class="icon"><i class="fas fa-clock"></i></span><span>Exp18 Gate Result</span></a>
+      <a href="reports/viewer.html?file=v5/PROF_MEETING_BRIEF_20260424.md" class="button is-danger is-rounded is-small"><span class="icon"><i class="fas fa-person-chalkboard"></i></span><span>Prof Meeting Brief (4/24)</span></a>
+      <a href="reports/viewer.html?file=v5/PROF_MEETING_SLIDES_20260424.md" class="button is-info is-rounded is-small"><span class="icon"><i class="fas fa-display"></i></span><span>Prof Meeting Slides (4/24)</span></a>
+      <a href="reports/viewer.html?file=v5/COMMIT_SUMMARY_20260424.md" class="button is-link is-rounded is-small"><span class="icon"><i class="fas fa-code-commit"></i></span><span>Commit Timeline (4/24)</span></a>
+      <a href="v5/devlog.html" class="button is-warning is-rounded is-small"><span class="icon"><i class="fas fa-stream"></i></span><span>V5 Dev Log</span></a>
+      <a href="v5/closed_loop_eval/index.html" class="button is-danger is-rounded is-small"><span class="icon"><i class="fas fa-route"></i></span><span>CL: Step2 66.7% vs Exp11 0%</span></a>
+      <a href="v5/paper_results.html" class="button is-success is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-file-lines"></i></span><span>Paper-Ready Results</span></a>
+      <a href="v5/attention_analysis/index.html" class="button is-warning is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-chart-bar"></i></span><span>Attention Analysis</span></a>
+      <a href="reports/viewer.html?file=v5/grounding_3tier_ablation.md" class="button is-danger is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-vial-circle-check"></i></span><span>3-Tier Grounding Ablation</span></a>
+      <a href="v5/bbox_nav_feature_ablation/index.html" class="button is-info is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-vials"></i></span><span>Feature Ablation</span></a>
+      <a href="v5/bbox_nav_exp19_proxy/index.html" class="button is-success is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-server"></i></span><span>Exp19 Proxy Server</span></a>
+      <a href="reports/viewer.html?file=v5/exp40_object_recognition_proof.md" class="button is-link is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-eye"></i></span><span>Exp40 Grounding Proof (IoU 0.679)</span></a>
+      <a href="reports/viewer.html?file=v5/exp41_prompt_lockin/phase_a_interim_report.md" class="button is-warning is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-circle-question"></i></span><span>Exp41 Phase A — Text Path Verdict</span></a>
+      <a href="reports/viewer.html?file=plans/plan_20260506_hybrid_C_three_track.md" class="button is-primary is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-route"></i></span><span>Hybrid-C 3-Track Plan (5/6)</span></a>
+      <a href="reports/viewer.html?file=plans/plan_20260506_phase_d_cross_attention.md" class="button is-danger is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-microchip"></i></span><span>Phase D: Cross-Attention (Exp43)</span></a>
+      <a href="v5/prof_todo_evidence.html" class="button is-danger is-rounded is-small"><span class="icon"><i class="fas fa-microscope"></i></span><span>교수님 질문 답변 증거 (5/12)</span></a>
+      <a href="v5/exp_flow_0512.html" class="button is-primary is-rounded is-small"><span class="icon"><i class="fas fa-code-branch"></i></span><span>Exp 흐름 &amp; 이슈 (5/12)</span></a>
+      <a href="reports/viewer.html?file=v5/PROF_UPDATE_20260512_MEETING.md" class="button is-success is-rounded is-small"><span class="icon"><i class="fas fa-chalkboard-teacher"></i></span><span>교수님 미팅 브리핑 (5/12)</span></a>
+      <a href="reports/viewer.html?file=v5/PROF_UPDATE_20260511_EXP51_CRITICAL.md" class="button is-warning is-rounded is-small"><span class="icon"><i class="fas fa-language"></i></span><span>Exp51: Crop Aug + VLA 분석 (5/11)</span></a>
+      <a href="v5/bbox_nav_exp19_proxy/index.html" class="button is-success is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-robot"></i></span><span>Exp25 + BBox Proxy Dual Deploy</span></a>
+      <a href="reports/viewer.html?file=v5/MEETING_20260522_OBJECT_RECOGNITION.md" class="button is-danger is-rounded is-small"><span class="icon"><i class="fas fa-chalkboard-teacher"></i></span><span>교수님 미팅 (5/22) — 객체 인식 검증</span></a>
+      <a href="reports/viewer.html?file=v5/PROF_UPDATE_20260522_EXP54_V2.md" class="button is-success is-rounded is-small"><span class="icon"><i class="fas fa-flask"></i></span><span>Exp54 v2 basket 인식 검증 (5/22)</span></a>
+      <a href="reports/viewer.html?file=v5/PROF_UPDATE_20260519_EXP54.md" class="button is-success is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-flask"></i></span><span>Exp54 진행 상황 (5/19)</span></a>
+      <a href="v5/research_story.html#next-step" class="button is-success is-rounded is-small"><span class="icon"><i class="fas fa-flag-checkered"></i></span><span>R1-R3 반박 현황 &amp; 로드맵 (5/28)</span></a>
+      <a href="v5/research_story.html#ch21" class="button is-success is-rounded is-small"><span class="icon"><i class="fas fa-graduation-cap"></i></span><span>연구 정리 CH21</span></a>
+      <a href="v5/research_story.html#ch13" class="button is-danger is-rounded is-small"><span class="icon"><i class="fas fa-search"></i></span><span>객체 검증 — 텍스트 경로 분석</span></a>
+      <a href="v5/exp_all_results.html" class="button is-info is-rounded is-small"><span class="icon"><i class="fas fa-table"></i></span><span>전체 실험 총집합 (Exp01~54)</span></a>
+      <a href="reports/viewer.html?file=v5/GLOSSARY.md" class="button is-light is-outlined is-rounded is-small"><span class="icon"><i class="fas fa-book-open"></i></span><span>V5 Glossary</span></a>
+      <a href="reports/viewer.html?file=v5/exp59_report.md" class="button is-danger is-rounded is-small"><span class="icon"><i class="fas fa-file-invoice"></i></span><span>Exp59 PaliGemma2 LoRA 리포트</span></a>
+      <a href="v5/grounding_demo/index.html" class="button is-warning is-rounded is-small"><span class="icon"><i class="fas fa-crosshairs"></i></span><span>Exp57 PaliGemma 그라운딩</span></a>
+      <a href="v5/visual_proof/index.html" class="button is-link is-rounded is-small"><span class="icon"><i class="fas fa-images"></i></span><span>R1/R2 시각 증거 (5/28)</span></a>
+      <a href="v5/trajectory_comparison.html" class="button is-info is-rounded is-small"><span class="icon"><i class="fas fa-route"></i></span><span>CL 70% — 궤적 비교 (6/1)</span></a>
+      <a href="reports/viewer.html?file=v5/PROF_UPDATE_20260612_PIPELINE.md" class="button is-danger is-rounded is-small"><span class="icon"><i class="fas fa-chalkboard-teacher"></i></span><span>교수님 업데이트 (6/12)</span></a>
+      <a href="reports/viewer.html?file=v5/TABLE1_PAPER_DRAFT.md" class="button is-primary is-rounded is-small"><span class="icon"><i class="fas fa-table"></i></span><span>논문 Table 초안 (6/12)</span></a>
+      <a href="v5/grounding_hub.html" class="button is-link is-rounded is-small"><span class="icon"><i class="fas fa-bullseye"></i></span><span>Grounding Hub (7모델 비교)</span></a>
+      <a href="v5/research_story.html#ch33" class="button is-success is-rounded is-small"><span class="icon"><i class="fas fa-flask"></i></span><span>CH33: CL 96.6% 확정 (6/12)</span></a>
+      <a href="https://github.com/minuum/MoNaVLA" class="button is-white is-outlined is-rounded is-small"><span class="icon"><i class="fab fa-github"></i></span><span>GitHub</span></a>
+    </div>
+
+    <!-- ── Categorized Archive ── -->
+    <div class="section-label mt-5"><i class="fas fa-folder-open mr-1"></i> Categorized Report Archive</div>
+
+    <div class="columns is-multiline">
+      <div class="column is-12"><p class="has-text-weight-bold has-text-success mb-2"><i class="fas fa-rocket mr-1"></i> V5 Training &amp; Progress</p></div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-primary mb-2">2026.04.15</span>
+          <p class="title is-6">V5 Exp10 BBox Training Report</p>
+          <p class="is-size-7 has-text-grey mb-3">Backbone fix for Kosmos-2 &amp; Track 2 initial progress</p>
+          <a href="reports/viewer.html?file=v5_experiment_report_20260415.md" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+
+      <div class="column is-12 mt-3"><p class="has-text-weight-bold has-text-info mb-2"><i class="fas fa-wave-square mr-1"></i> Sensitivity Analysis</p></div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-info mb-2">2026.04.14</span>
+          <p class="title is-6">Logit Confidence Analysis</p>
+          <p class="is-size-7 has-text-grey mb-3">정규화 입력에 따른 로짓 민감도 분석</p>
+          <a href="reports/logit_sensitivity_report.html" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-info mb-2">2026.04.14</span>
+          <p class="title is-6">Track 1 Sensitivity Findings</p>
+          <p class="is-size-7 has-text-grey mb-3">초기 경로 계획 민감도 최적화</p>
+          <a href="reports/Track1_Sensitivity_Findings.html" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+
+      <div class="column is-12 mt-3"><p class="has-text-weight-bold has-text-danger mb-2"><i class="fas fa-eye-slash mr-1"></i> Perception &amp; Failure Audit</p></div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-danger mb-2">2026.04.14</span>
+          <p class="title is-6">VLA Perception Case Study</p>
+          <p class="is-size-7 has-text-grey mb-3">Visual Grounding 실패 사례 분석</p>
+          <a href="reports/vla_perception_live_dashboard.html" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+
+      <div class="column is-12 mt-3"><p class="has-text-weight-bold has-text-success mb-2"><i class="fas fa-chart-bar mr-1"></i> VLM Benchmarking</p></div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-success mb-2">2026.04.14</span>
+          <p class="title is-6">VLM Text Generation Benchmark</p>
+          <p class="is-size-7 has-text-grey mb-3">Kosmos-2 vs MobileVLMv2 비교</p>
+          <a href="reports/vlm_text_gen_comparison.html" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-success mb-2">2026.03.12</span>
+          <p class="title is-6">VLA Comparison Analysis</p>
+          <p class="is-size-7 has-text-grey mb-3">다양한 VLA 아키텍처 비교</p>
+          <a href="reports/viewer.html?file=vla_comparison_analysis.md" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+
+      <div class="column is-12 mt-3"><p class="has-text-weight-bold has-text-warning mb-2"><i class="fas fa-microchip mr-1"></i> Architecture &amp; Training Logic</p></div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-warning mb-2">Architecture</span>
+          <p class="title is-6">RoboVLMs Core Analysis</p>
+          <p class="is-size-7 has-text-grey mb-3">코드베이스 및 데이터 파이프라인 분석</p>
+          <a href="reports/viewer.html?file=RoboVLMs_분석.md" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-warning mb-2">Logic</span>
+          <p class="title is-6">Config &amp; I/O Structure</p>
+          <p class="is-size-7 has-text-grey mb-3">학습 구성 파일 및 입출력 정의 (2025.11)</p>
+          <a href="reports/viewer.html?file=TRAINING_CONFIG_AND_IO_STRUCTURE_20251119.md" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-warning mb-2">Strategy</span>
+          <p class="title is-6">Optimization Strategy</p>
+          <p class="is-size-7 has-text-grey mb-3">하이퍼파라미터 및 증강 전략</p>
+          <a href="reports/viewer.html?file=VLA_학습_최적화_전략.md" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+
+      <div class="column is-12 mt-3"><p class="has-text-weight-bold has-text-primary mb-2"><i class="fas fa-route mr-1"></i> Control &amp; Trajectory</p></div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-primary mb-2">V2/V3</span>
+          <p class="title is-6">Classification Stages</p>
+          <p class="is-size-7 has-text-grey mb-3">다단계 분류 기반 액션 예측</p>
+          <a href="reports/viewer.html?file=V2_CLASSIFICATION_STAGES_REPORT.md" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+      <div class="column is-one-third">
+        <div class="card arch-card p-4">
+          <span class="tag is-primary mb-2">Control</span>
+          <p class="title is-6">Trajectory Analysis</p>
+          <p class="is-size-7 has-text-grey mb-3">추종 제어 및 궤적 예측 분석 (2025.11)</p>
+          <a href="reports/viewer.html?file=TRAJECTORY_ANALYSIS_20251114.md" class="button is-small is-fullwidth is-outlined is-link">View</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historical Briefings -->
+    <div class="notification is-light mt-5">
+      <p class="has-text-weight-bold mb-2"><i class="fas fa-history mr-1"></i> Historical Briefings (2025–2026 Early)</p>
+      <div class="buttons">
+        <a href="reports/viewer.html?file=TRAINING_ANALYSIS_BRIEFING_20251112.md" class="button is-small is-info is-light">Training Briefing (2025.11.12)</a>
+        <a href="reports/viewer.html?file=undergraduate_briefing.md" class="button is-small is-info is-light">Undergraduate Orientation</a>
+        <a href="reports/viewer.html?file=remaining_tasks_summary.md" class="button is-small is-info is-light">Task Summary (2026.03)</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer py-4">
+  <div class="container has-text-centered">
+    <p class="is-size-7">&copy; 2026 MoNaVLA — <a href="index.html">Main Page</a> | <a href="https://github.com/minuum/MoNaVLA">GitHub</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
