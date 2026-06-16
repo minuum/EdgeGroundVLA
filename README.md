@@ -3,20 +3,22 @@
 > Decomposition-based VLA for mobile robot basket navigation.
 > **CL 96.6%** (CLIP + L2-norm + aug pipeline) vs E2E Kosmos-2 **0%**.
 
-**마지막 업데이트**: 2026-06-15
+**마지막 업데이트**: <!-- SYNC:updated -->2026-06-16<!-- /SYNC:updated -->
 **GitHub Pages**: https://minuum.github.io/MoNaVLA/
 
 ---
 
 ## 핵심 결과
 
-| Method | Architecture | CL ↑ | FPE ↓ |
-|---|---|---|---|
-| E2E VLA (Exp11) | Kosmos-2 + LoRA | 0.0% | 1.454 m |
-| Decomp v1 (Exp14) | CLIP + BBox MLP | 66.7% | 0.555 m |
-| Simple MLP (Exp65b) | CLIP + plain MLP | 10.3% | — |
-| **Ours (Exp66) ★** | **CLIP + L2-norm + aug** | **96.6%** | **0.094 m** |
-| Ours (Exp66 LSTM w=16) | CLIP + L2-norm + aug | 96.6% | 0.080 m |
+<!-- SYNC:results_table:start -->
+| Method | Architecture | CL ↑ | FPE ↓ | Note |
+|---|---|---|---|---|
+| E2E VLA (Exp11) | Kosmos-2 + LoRA | 0.0% | 1.454 m | Text attn 0%, structural failure |
+| Decomp v1 (Exp14) | CLIP + BBox MLP | 66.7% | 0.555 m | First decomposition baseline |
+| Simple MLP (Exp65b) | CLIP + plain MLP | 10.3% | — | No L2-norm, no aug → pipeline ablation |
+| **Ours (Exp66) ★** | **CLIP + L2-norm + aug** | **96.6%** | **0.094 m** | SOTA · MLP w=4 |
+| Ours (Exp66 LSTM) | CLIP + L2-norm + aug | 96.6% | 0.080 m | Best FPE · LSTM w=16 |
+<!-- SYNC:results_table:end -->
 
 **Pipeline ablation**: Simple MLP 10.3% → L2+aug 96.6% (×9.4 gap).
 Grounding source (HSV / base PG2 / LoRA cx) irrelevant once pipeline is correct.
@@ -76,11 +78,13 @@ Grounding source (HSV / base PG2 / LoRA cx) irrelevant once pipeline is correct.
 
 ## 체크포인트
 
-| 모델 | 경로 |
-|---|---|
-| Stage 1 v2 | `runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt` |
-| Stage 2 MLP w=4 ★ | `runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt` |
-| Stage 2 LSTM w=16 | `runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_lstm_base_pg2_aug_lstm.pt` |
+<!-- SYNC:checkpoints:start -->
+| 모델 | 경로 | 크기 |
+|---|---|---|
+| Stage 1 v2 (encoder) | `runs/v5_nav/mlp/shared/stage1_v2_projs.pt` | 3.1 MB |
+| Stage 2 MLP w=4 ★ (Exp66) | `runs/v5_nav/mlp/exp66/action_mlp.pt` | 456 KB |
+| Stage 2 LSTM w=16 (Exp66) | `runs/v5_nav/mlp/exp66/action_mlp_lstm.pt` | — |
+<!-- SYNC:checkpoints:end -->
 
 ---
 

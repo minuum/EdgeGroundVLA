@@ -799,6 +799,19 @@ vla-log()    { mona-log "$@"; }
 vla-probe()  { mona-probe "$@"; }
 vla-dryrun() { mona-dryrun "$@"; }
 
+# ── mona-sync — Research Status 동기화 ───────────────────────────
+unalias mona-sync 2>/dev/null || true
+mona-sync() {
+    local PY
+    if [[ -x "${VLA_PROJECT_DIR}/.venv/bin/python3" ]]; then
+        PY="${VLA_PROJECT_DIR}/.venv/bin/python3"
+    else
+        PY="$(which python3)"
+    fi
+    "$PY" "${VLA_PROJECT_DIR}/scripts/utils/sync_research.py" "$@"
+}
+alias vla-sync='mona-sync'
+
 # ── mona-help 패치 (새 커맨드 추가) ─────────────────────────────
 unalias mona-help 2>/dev/null || true
 mona-help() {
@@ -828,6 +841,14 @@ mona-help() {
     echo "  mona-log hub           허브 로그"
     echo "  mona-dryrun            STOP 로직 정적 이미지 테스트"
     echo "  mona-status            시스템 전체 상태"
+    echo ""
+    echo "■ 연구 기록 동기화:"
+    echo "  mona-sync              README + index.html 자동 동기화"
+    echo "  mona-sync --diff       변경사항 미리보기"
+    echo "  mona-sync --dry-run    파일 수정 없이 로그만"
+    echo "  mona-sync --status     현재 SOTA 요약"
+    echo "  mona-sync --add-exp    새 실험 대화형 추가"
+    echo "  mona-sync --propose-menemory  menemory 업데이트 제안"
     echo ""
     echo "■ 학습/분석:"
     echo "  mona-train-log         학습 로그 실시간"
