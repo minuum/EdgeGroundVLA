@@ -86,7 +86,7 @@ Grounding source (HSV / base PG2 / LoRA cx) irrelevant once pipeline is correct.
 
 ## 문서
 
-- **전체 연구 여정 (CH1→CH33)**: [research_story.html](https://minuum.github.io/MoNaVLA/v5/research_story.html)
+- **전체 연구 여정 (CH1→CH36)**: [research_story.html](https://minuum.github.io/MoNaVLA/v5/research_story.html)
 - **시각 증거 (VIS)**: [research_story.html#vis](https://minuum.github.io/MoNaVLA/v5/research_story.html#vis)
 - **Grounding Hub**: [grounding_hub.html](https://minuum.github.io/MoNaVLA/v5/grounding_hub.html)
 - **구 실험 아카이브**: [legacy.html](https://minuum.github.io/MoNaVLA/legacy.html)
