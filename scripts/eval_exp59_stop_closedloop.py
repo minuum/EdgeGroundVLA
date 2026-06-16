@@ -25,7 +25,7 @@ PG2_PATH    = Path.home() / ".cache/huggingface/hub" \
               / "models--google--paligemma2-3b-mix-224" \
               / "snapshots/8e40ab4cc5df93dfb7fd2fff754bcdff8b62ee78"
 EXP59_PATH  = ROOT / "runs/v5_nav/grounding/exp59"             # PG2 Grounding LoRA
-STAGE1_PT   = ROOT / "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt"
+STAGE1_PT   = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 STAGE2_PT   = ROOT / "runs/v5_nav/mlp/exp60/stop65_mlp.pt"      # 학습형 STOP MLP 모델
 ANN_JSON    = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_pg2_cx.json"
 OUT_DIR     = ROOT / "docs/v5/closed_loop_eval"

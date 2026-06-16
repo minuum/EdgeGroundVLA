@@ -44,7 +44,7 @@ import matplotlib.patches as mpatches
 
 VLM_PATH  = ROOT / ".vlms" / "kosmos-2-patch14-224"
 DATA_PATH = ROOT / "docs" / "v5" / "bbox_frame_level" / "bbox_dataset_frame_level.json"
-CKPT_PATH = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage1_v2" / "stage1_v2_projs.pt"
+CKPT_PATH = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 OUT_DIR   = ROOT / "docs" / "v5" / "exp54_attention_v2"
 
 PROJ_DIM  = 256

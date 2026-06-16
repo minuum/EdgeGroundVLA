@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT))
 
 VLM_PATH   = ROOT / ".vlms" / "kosmos-2-patch14-224"
 DATA_PATH  = ROOT / "docs" / "v5" / "bbox_frame_level" / "bbox_dataset_frame_level.json"
-STAGE1_V2  = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage1_v2" / "stage1_v2_projs.pt"
+STAGE1_V2  = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 
 PROJ_DIM = 256
 LM_DIM   = 2048

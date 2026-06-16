@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 480" width="860" height="480" style="font-family:system-ui,sans-serif;background:#0f172a">
+
+  <!-- Background -->
+  <rect width="860" height="480" fill="#0f172a" rx="12"/>
+
+  <!-- Title -->
+  <text x="430" y="36" text-anchor="middle" fill="#f1f5f9" font-size="15" font-weight="700">MoNaVLA — Decomposition Pipeline</text>
+  <text x="430" y="54" text-anchor="middle" fill="#64748b" font-size="11">Frozen Vision Encoder + BBox History → Action Head</text>
+
+  <!-- ── Row 1: Input ── -->
+  <!-- Camera Frame box -->
+  <rect x="30" y="80" width="120" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="90" y="107" text-anchor="middle" fill="#94a3b8" font-size="10">Input</text>
+  <text x="90" y="121" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">RGB Frame</text>
+  <text x="90" y="134" text-anchor="middle" fill="#64748b" font-size="9">224×224</text>
+
+  <!-- arrow right -->
+  <line x1="150" y1="110" x2="195" y2="110" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Kosmos-2 Vision Encoder -->
+  <rect x="195" y="75" width="160" height="70" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="275" y="103" text-anchor="middle" fill="#93c5fd" font-size="10">Kosmos-2</text>
+  <text x="275" y="118" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Vision Encoder</text>
+  <text x="275" y="133" text-anchor="middle" fill="#60a5fa" font-size="9">🔒 Frozen · 1024-dim</text>
+
+  <!-- arrow right -->
+  <line x1="355" y1="110" x2="400" y2="110" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- image_proj -->
+  <rect x="400" y="75" width="140" height="70" rx="8" fill="#1a2e1a" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="470" y="103" text-anchor="middle" fill="#86efac" font-size="10">image_proj</text>
+  <text x="470" y="118" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">256-dim + L2</text>
+  <text x="470" y="133" text-anchor="middle" fill="#4ade80" font-size="9">L2-normalize → unit sphere</text>
+
+  <!-- ── Row 2: BBox branch ── -->
+  <!-- BBox Grounding -->
+  <rect x="30" y="210" width="160" height="70" rx="8" fill="#2d1a00" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="110" y="236" text-anchor="middle" fill="#fcd34d" font-size="10">PaliGemma2 (zero-shot)</text>
+  <text x="110" y="252" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">BBox Grounding</text>
+  <text x="110" y="267" text-anchor="middle" fill="#f59e0b" font-size="9">cx · cy · area · has_bbox</text>
+
+  <!-- arrow right from grounding -->
+  <line x1="190" y1="245" x2="235" y2="245" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- window history -->
+  <rect x="235" y="210" width="145" height="70" rx="8" fill="#1a1a2e" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="307" y="236" text-anchor="middle" fill="#c4b5fd" font-size="10">Rolling Window</text>
+  <text x="307" y="252" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">BBox History ×8</text>
+  <text x="307" y="267" text-anchor="middle" fill="#a78bfa" font-size="9">32-dim (8 frames × 4)</text>
+
+  <!-- arrow right from history -->
+  <line x1="380" y1="245" x2="428" y2="245" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- concat label -->
+  <text x="400" y="195" text-anchor="middle" fill="#475569" font-size="10">256-dim ↓</text>
+
+  <!-- vertical arrow: image_proj down to concat -->
+  <line x1="470" y1="145" x2="470" y2="200" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-g)"/>
+
+  <!-- Concat block -->
+  <rect x="428" y="200" width="124" height="60" rx="8" fill="#1e1e2e" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="490" y="226" text-anchor="middle" fill="#a5b4fc" font-size="10">Concatenate</text>
+  <text x="490" y="243" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">288-dim</text>
+  <text x="490" y="257" text-anchor="middle" fill="#818cf8" font-size="9">256 + 32</text>
+
+  <!-- arrow right to ActionMLP -->
+  <line x1="552" y1="230" x2="598" y2="230" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ActionMLP -->
+  <rect x="598" y="195" width="140" height="70" rx="8" fill="#1a0a2e" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="668" y="221" text-anchor="middle" fill="#d8b4fe" font-size="10">ActionMLP</text>
+  <text x="668" y="238" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">3-layer MLP</text>
+  <text x="668" y="253" text-anchor="middle" fill="#c084fc" font-size="9">256→128→64→8</text>
+  <text x="668" y="263" text-anchor="middle" fill="#9333ea" font-size="8">Dropout 0.25/0.2/0.1</text>
+
+  <!-- arrow right to output -->
+  <line x1="738" y1="230" x2="782" y2="230" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Output: 8 actions -->
+  <rect x="782" y="180" width="62" height="100" rx="8" fill="#0a1f0a" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="813" y="200" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="700">8 Actions</text>
+  <text x="813" y="215" text-anchor="middle" fill="#86efac" font-size="8">STOP</text>
+  <text x="813" y="228" text-anchor="middle" fill="#86efac" font-size="8">FORWARD</text>
+  <text x="813" y="241" text-anchor="middle" fill="#86efac" font-size="8">LEFT / RIGHT</text>
+  <text x="813" y="254" text-anchor="middle" fill="#86efac" font-size="8">FWD+L / FWD+R</text>
+  <text x="813" y="267" text-anchor="middle" fill="#86efac" font-size="8">ROT_L / ROT_R</text>
+
+  <!-- ── STOP override annotation ── -->
+  <rect x="598" y="310" width="246" height="44" rx="6" fill="#1a0d00" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="721" y="330" text-anchor="middle" fill="#fcd34d" font-size="10" font-weight="700">⚡ Proximity STOP Override</text>
+  <text x="721" y="346" text-anchor="middle" fill="#92400e" font-size="9">area ≥ 0.50 AND |cx−0.5| ≤ 0.30, 2 consec. frames</text>
+
+  <!-- arrow from stop override to output -->
+  <line x1="844" y1="310" x2="844" y2="282" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr-y)"/>
+
+  <!-- ── Bottom stats bar ── -->
+  <rect x="30" y="390" width="800" height="68" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+
+  <text x="50" y="412" fill="#64748b" font-size="9" font-weight="700">STAGE 1</text>
+  <text x="50" y="427" fill="#e2e8f0" font-size="11" font-weight="700">val acc 98.1%</text>
+  <text x="50" y="442" fill="#4ade80" font-size="9">FrozenCLIP encoder</text>
+
+  <line x1="190" y1="398" x2="190" y2="450" stroke="#334155" stroke-width="1"/>
+
+  <text x="210" y="412" fill="#64748b" font-size="9" font-weight="700">STAGE 2 BEST (Exp66)</text>
+  <text x="210" y="427" fill="#e2e8f0" font-size="11" font-weight="700">val acc 93.5%</text>
+  <text x="210" y="442" fill="#4ade80" font-size="9">base PaliGemma2 cx · bbox aug</text>
+
+  <line x1="380" y1="398" x2="380" y2="450" stroke="#334155" stroke-width="1"/>
+
+  <text x="400" y="412" fill="#64748b" font-size="9" font-weight="700">CLOSED-LOOP</text>
+  <text x="400" y="427" fill="#4ade80" font-size="14" font-weight="900">96.6%</text>
+  <text x="400" y="445" fill="#4ade80" font-size="9">FPE 0.102 m</text>
+
+  <line x1="520" y1="398" x2="520" y2="450" stroke="#334155" stroke-width="1"/>
+
+  <text x="540" y="412" fill="#64748b" font-size="9" font-weight="700">vs E2E VLA</text>
+  <text x="540" y="427" fill="#fca5a5" font-size="11" font-weight="700">0% → 96.6%</text>
+  <text x="540" y="442" fill="#ef4444" font-size="9">Exp11 (Kosmos-2 + LoRA)</text>
+
+  <line x1="700" y1="398" x2="700" y2="450" stroke="#334155" stroke-width="1"/>
+
+  <text x="720" y="412" fill="#64748b" font-size="9" font-weight="700">DATASET</text>
+  <text x="720" y="427" fill="#e2e8f0" font-size="11" font-weight="700">150 episodes</text>
+  <text x="720" y="442" fill="#94a3b8" font-size="9">9 path types · indoor</text>
+
+  <!-- ── Arrow markers ── -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#475569"/>
+    </marker>
+    <marker id="arr-g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#22c55e"/>
+    </marker>
+    <marker id="arr-y" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+
+</svg>

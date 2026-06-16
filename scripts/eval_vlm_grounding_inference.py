@@ -36,7 +36,7 @@ sys.path.insert(0, str(ROOT))
 VLM_PATH    = ROOT / ".vlms" / "kosmos-2-patch14-224"
 DATA_PATH   = ROOT / "docs" / "v5" / "bbox_nav_exp46" / "bbox_dataset_full.json"
 DATA_DIR    = ROOT / "ROS_action" / "mobile_vla_dataset_v5"
-STAGE1_V2   = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage1_v2" / "stage1_v2_projs.pt"
+STAGE1_V2   = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 STAGE2_CKPT = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage2_v2" / "stage2_v2_mlp.pt"
 
 CLASS_NAMES = ["STOP","FORWARD","LEFT","RIGHT","FWD+L","FWD+R","ROT_L","ROT_R"]

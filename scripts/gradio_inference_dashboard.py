@@ -273,7 +273,7 @@ EXP_MODES = {
         "grounding_skip_n": 3,
         "desc": "⭐ 최고 성능 — val 93.5%, CL 96.6% (base PG2 aug, L2-norm)",
         "config": "configs/exp54_stage2_action.json",
-        "checkpoint": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt",
+        "checkpoint": "runs/v5_nav/mlp/exp66/action_mlp.pt",
     },
     "Stage2V2-hsv (Exp54, hsv cx)": {
         "instruction": GOAL_NAV_PRESETS[0],

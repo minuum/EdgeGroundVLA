@@ -2200,11 +2200,11 @@ class GoalNavMLPInference:
             "lora": "runs/v5_nav/mlp/clip_lora_adapter",  # vision_model layers 16-23 (옵션)
         },
         "exp54_s2v2": {
-            "stage1": "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt",
+            "stage1": "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
             "mlp":    "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
         },
         "exp55": {
-            "stage1": "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt",
+            "stage1": "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
             "mlp":    "runs/v5_nav/mlp/exp55/exp55_mlp.pt",
         },
     }

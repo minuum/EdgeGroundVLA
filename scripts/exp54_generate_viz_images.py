@@ -33,7 +33,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib.colors import LinearSegmentedColormap
 
 DATA_PATH = ROOT / "docs" / "v5" / "bbox_frame_level" / "bbox_dataset_frame_level.json"
-CKPT_PATH = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage1_v2" / "stage1_v2_projs.pt"
+CKPT_PATH = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 VLM_PATH  = ROOT / ".vlms" / "kosmos-2-patch14-224"
 OUT_DIR   = ROOT / "docs" / "v5" / "exp54_viz"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -319,8 +319,8 @@ def make_summary_figure():
          "sub": "frozen CLIP 학습 없이\n이미 위치 인코딩",
          "color": "#22c55e", "icon": "🧪", "strength": 1.0},
         {"label": "Track 3\nMasking Ablation",
-         "value": "6/6 flip",
-         "sub": "center 대형 basket\n마스킹 → 100% 반전",
+         "value": "9/9 flip",
+         "sub": "curated basket\nmasking -> 100% flip",
          "color": "#f59e0b", "icon": "🎭", "strength": 0.9},
         {"label": "Exp A\nEarly→Late 격차",
          "value": "+8%p (left)\n+5%p (center)",
