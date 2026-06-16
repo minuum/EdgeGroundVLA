@@ -34,10 +34,15 @@ FILES=(
 )
 
 if [[ $INCLUDE_ALL -eq 1 ]]; then
-    # ablation ckpt 전부 (head 4종 + window 변형)
-    while IFS= read -r pt; do
-        FILES+=("$pt")
-    done < <(find runs/v5_nav/mlp/exp54/stage2_v2 -name "*.pt" | sort)
+    # ablation ckpt 전부 (head 4종 + window 변형, 재구성된 경로)
+    for dir in runs/v5_nav/mlp/exp{65,66,67,68,69,70} \
+               runs/v5_nav/mlp/ablation_window \
+               runs/v5_nav/mlp/ablation_noise_scale \
+               runs/v5_nav/mlp/data_exp; do
+        while IFS= read -r pt; do
+            FILES+=("$pt")
+        done < <(find "$dir" -name "*.pt" 2>/dev/null | sort)
+    done
 fi
 
 echo "==> $REMOTE"

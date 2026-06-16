@@ -70,63 +70,37 @@ GOAL_NAV_PRESETS = [
 
 # 실험 모드: (표시 이름, instruction, backend_instruction_mode, speed_scaling, grounding_skip_n)
 EXP_MODES = {
-    "⭐ Stage2V2-best (Exp54, base_pg2_aug)": {
+    # ── SOTA: Stage2 v2 분해 파이프라인 ──────────────────────────────────
+    "⭐ Exp66 — Stage2 v2 SOTA (base PG2, L2)": {
         "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp54_s2v2_best)",
-        "model": "exp54_s2v2_best",
+        "backend_mode": "GoalNav (exp66)",
+        "model": "exp66",
         "speed_scaling": False,
         "grounding_skip_n": 3,
-        "desc": "⭐ 최고 성능 — val 93.5%, CL 96.6% (base PG2 aug, L2-norm)",
+        "desc": "⭐ SOTA — val 93.5%, CL 96.6%, FPE 0.102m  |  ActionMLP w=8, base PG2 cx, L2-norm aug",
         "config": "configs/exp54_stage2_action.json",
         "checkpoint": "runs/v5_nav/mlp/exp66/action_mlp.pt",
     },
-    "Stage2V2-hsv (Exp54, hsv cx)": {
+    "Exp67 — Stage2 v2 HSV cx": {
         "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp54_s2v2_hsv)",
-        "model": "exp54_s2v2_hsv",
+        "backend_mode": "GoalNav (exp67)",
+        "model": "exp67",
         "speed_scaling": False,
         "grounding_skip_n": 3,
-        "desc": "Stage2 v2 HSV cx 소스 — val 92.6%, CL 96.6%",
+        "desc": "Stage2 v2 HSV cx 소스 (비교용) — val 92.6%, CL 96.6%",
         "config": "configs/exp54_stage2_action.json",
-        "checkpoint": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
+        "checkpoint": "runs/v5_nav/mlp/exp67/action_mlp.pt",
     },
-    "GoalNav-fixed (Exp49) [legacy]": {
+    # ── Legacy (체크포인트 존재, 비교 가능) ──────────────────────────────
+    "Exp49 — GoalNav [legacy]": {
         "instruction": GOAL_NAV_PRESETS[0],
         "backend_mode": "GoalNav (exp49)",
         "model": "exp49",
         "speed_scaling": False,
         "grounding_skip_n": 3,
-        "desc": "[legacy] 기본 GoalNav — 96.4% val acc",
+        "desc": "[legacy] 기본 GoalNav MLP — val 96.4%  |  ckpt 존재",
         "config": None,
         "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
-    },
-    "GoalNav-scaled (Exp49) [legacy]": {
-        "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp49)",
-        "model": "exp49",
-        "speed_scaling": True,
-        "grounding_skip_n": 3,
-        "desc": "[legacy] GoalNav + 거리비례속도 — 96.4% val acc",
-        "config": None,
-        "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
-    },
-    "GoalNav (Exp53) [legacy]": {
-        "instruction": GOAL_NAV_PRESETS[0],
-        "backend_mode": "GoalNav (exp53)",
-        "model": "exp53",
-        "speed_scaling": False,
-        "grounding_skip_n": 3,
-        "desc": "[legacy] CLIP LoRA fine-tuned vision encoder — 94.7% val acc",
-        "config": "configs/bbox_nav_exp53_clip_lora.json",
-        "checkpoint": "runs/v5_nav/mlp/exp53_clip_lora.pt",
-    },
-    "PathType-fixed (Exp47)": {
-        "instruction": "right_right",
-        "backend_mode": "PathType (exp47)",
-        "model": None,
-        "speed_scaling": False,
-        "grounding_skip_n": 1,
-        "desc": "PathType 분류기 — 고정속도",
     },
 }
 EXP_MODE_NAMES = list(EXP_MODES.keys())

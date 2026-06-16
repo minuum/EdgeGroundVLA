@@ -17,8 +17,8 @@ scripts/deploy/rsync_stage2_v2.sh [--all]
 
 | 파일 | 크기 | 용도 |
 |------|------|------|
-| `runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt` | 3.1MB | Stage1 vision encoder + image_proj |
-| `runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt` | 456KB | Stage2 최선 (96.6% CL, exp66) |
+| `runs/v5_nav/mlp/shared/stage1_v2_projs.pt` | 3.1MB | Stage1 vision encoder + image_proj |
+| `runs/v5_nav/mlp/exp66/action_mlp.pt` | 456KB | Stage2 SOTA (96.6% CL, Exp66 ActionMLP w=8) |
 | `robovlm_nav/serve/stage2_v2_inference_server.py` | ~15KB | FastAPI 추론 서버 |
 | `scripts/train_exp54_stage2_v2_action.py` | — | 학습 스크립트 |
 | `scripts/eval_exp54_stage2_v2_closedloop.py` | — | CL 평가 스크립트 |
