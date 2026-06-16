@@ -35,7 +35,7 @@ EXP57_PATH = ROOT / "runs/v5_nav/grounding/exp57"          # PaliGemma LoRA
 PG_VLM     = Path.home() / ".cache/huggingface/hub" \
              / "models--google--paligemma-3b-pt-224/snapshots" \
              / "35e4f46485b4d07967e7e9935bc3786aad50687c"
-STAGE1_PT  = ROOT / "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt"
+STAGE1_PT  = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 STAGE2_PT  = ROOT / "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt"
 ANN_JSON   = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_frame_level.json"
 

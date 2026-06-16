@@ -25,7 +25,7 @@ from PIL import Image
 from scripts.sim.rollout_core import build_trajectory, compute_metrics
 
 VLM = ROOT / ".vlms/kosmos-2-patch14-224"
-S1  = ROOT / "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt"
+S1  = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 ANN = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_pg2_cx.json"
 GDIR = ROOT / "docs/v5/grounding_ablation"
 WINDOW = 8

@@ -24,7 +24,7 @@ import h5py
 from PIL import Image
 
 VLM = ROOT / ".vlms/kosmos-2-patch14-224"
-S1  = ROOT / "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt"
+S1  = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 ANN = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_pg2_cx_stop.json"
 OUT = ROOT / "runs/v5_nav/mlp/exp60"
 WINDOW = 8

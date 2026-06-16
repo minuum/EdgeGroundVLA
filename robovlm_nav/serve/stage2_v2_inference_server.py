@@ -21,7 +21,7 @@ Environment variables:
 
 Usage:
   .venv/bin/python3 robovlm_nav/serve/stage2_v2_inference_server.py
-  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt \
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp66/action_mlp.pt \
     .venv/bin/python3 robovlm_nav/serve/stage2_v2_inference_server.py --port 8001
 """
 
@@ -67,8 +67,8 @@ app = FastAPI(title="Stage2 v2 VLA API", version="1.0.0")
 ROOT = Path(project_root)
 
 # --- defaults ---
-DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage1_v2" / "stage1_v2_projs.pt"
-DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp54" / "stage2_v2" / "stage2_v2_mlp_base_pg2_aug.pt"
+DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
+DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp66" / "action_mlp.pt"
 DEFAULT_VLM    = ROOT / ".vlms" / "kosmos-2-patch14-224"
 # PaliGemma2: HF cache path (used for grounding, matches Exp65/66 training distribution)
 _PG2_HF_CACHE = (

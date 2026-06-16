@@ -19,10 +19,10 @@ INCLUDE_ALL=0
 # 전송 파일 목록
 FILES=(
     # Stage1 encoder (3.1MB)
-    "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt"
+    "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 
     # Stage2 best model (456KB, exp66 base PG2, 96.6% CL)
-    "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt"
+    "runs/v5_nav/mlp/exp66/action_mlp.pt"
 
     # 추론 서버 + 학습/평가 스크립트
     "robovlm_nav/serve/stage2_v2_inference_server.py"

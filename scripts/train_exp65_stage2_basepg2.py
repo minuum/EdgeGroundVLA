@@ -28,7 +28,7 @@ import h5py
 from PIL import Image
 
 VLM_PATH  = ROOT / ".vlms" / "kosmos-2-patch14-224"
-STAGE1_PT = ROOT / "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt"
+STAGE1_PT = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 ANN_PG2   = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_base_pg2_cx.json"
 OUT_DIR   = ROOT / "runs/v5_nav/mlp/exp65"
 OUT_DIR.mkdir(parents=True, exist_ok=True)

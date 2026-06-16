@@ -21,9 +21,9 @@ from scripts.sim.rollout_core import ACTION_VEL, DT_DEFAULT, build_trajectory, c
 from transformers import AutoModelForVision2Seq, AutoProcessor
 
 VLM_PATH  = ROOT / ".vlms" / "kosmos-2-patch14-224"
-STAGE1_PT = ROOT / "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt"
+STAGE1_PT = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 EVAL_DATA = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_base_pg2_cx.json"  # Exp66 기준 150ep
-S2_DIR    = ROOT / "runs/v5_nav/mlp/exp54/stage2_v2"
+RUNS      = ROOT / "runs/v5_nav/mlp"
 OUT       = ROOT / "docs/v5/ablation_suite_results.json"
 
 NUM_CLASSES = 8; VIS_DIM = 1024; PROJ_DIM = 256
@@ -32,22 +32,22 @@ NUM_CLASSES = 8; VIS_DIM = 1024; PROJ_DIM = 256
 ABLATIONS = [
     # (label, group, ckpt, head, window)
     # Pipeline
-    ("Exp65b (no L2, no aug)",  "pipeline", ROOT/"runs/v5_nav/mlp/exp65b/stage2_pg2cx_mlp.pt", "mlp", 8),
-    ("Exp66 MLP w=8 ★",         "pipeline", S2_DIR/"stage2_v2_mlp_base_pg2_aug.pt",            "mlp", 8),
+    ("Exp65b (no L2, no aug)",  "pipeline", RUNS/"exp65b/stage2_pg2cx_mlp.pt",        "mlp", 8),
+    ("Exp66 MLP w=8 ★",         "pipeline", RUNS/"exp66/action_mlp.pt",               "mlp", 8),
     # Head
-    ("Linear",                  "head",     S2_DIR/"stage2_v2_linear_base_pg2_aug_linear.pt",  "linear", 8),
-    ("FCHead",                  "head",     S2_DIR/"stage2_v2_fc_base_pg2_aug_fc.pt",           "fc",     8),
-    ("LSTM w=8",                "head",     S2_DIR/"stage2_v2_lstm_base_pg2_aug_lstm.pt",       "lstm",   8),
-    ("MLP w=8 ★",               "head",     S2_DIR/"stage2_v2_mlp_base_pg2_aug.pt",             "mlp",    8),
+    ("Linear",                  "head",     RUNS/"exp68/action_linear.pt",            "linear", 8),
+    ("FCHead",                  "head",     RUNS/"exp69/action_fc.pt",                "fc",     8),
+    ("LSTM w=8",                "head",     RUNS/"exp70/action_lstm_w8.pt",           "lstm",   8),
+    ("MLP w=8 ★",               "head",     RUNS/"exp66/action_mlp.pt",               "mlp",    8),
     # Window — MLP
-    ("MLP w=2",                 "window",   S2_DIR/"stage2_v2_mlp_w2_w2.pt",                   "mlp",    2),
-    ("MLP w=4",                 "window",   S2_DIR/"stage2_v2_mlp_w4_w4.pt",                   "mlp",    4),
-    ("MLP w=8 ★",               "window",   S2_DIR/"stage2_v2_mlp_base_pg2_aug.pt",             "mlp",    8),
-    ("MLP w=16",                "window",   S2_DIR/"stage2_v2_mlp_w16_w16.pt",                 "mlp",   16),
+    ("MLP w=2",                 "window",   RUNS/"ablation_window/mlp_w2.pt",         "mlp",    2),
+    ("MLP w=4",                 "window",   RUNS/"ablation_window/mlp_w4.pt",         "mlp",    4),
+    ("MLP w=8 ★",               "window",   RUNS/"exp66/action_mlp.pt",               "mlp",    8),
+    ("MLP w=16",                "window",   RUNS/"ablation_window/mlp_w16.pt",        "mlp",   16),
     # Window — LSTM
-    ("LSTM w=4",                "window",   S2_DIR/"stage2_v2_lstm_w4_w4.pt",                  "lstm",   4),
-    ("LSTM w=8",                "window",   S2_DIR/"stage2_v2_lstm_base_pg2_aug_lstm.pt",       "lstm",   8),
-    ("LSTM w=16",               "window",   S2_DIR/"stage2_v2_lstm_w16_w16.pt",                "lstm",  16),
+    ("LSTM w=4",                "window",   RUNS/"ablation_window/lstm_w4.pt",        "lstm",   4),
+    ("LSTM w=8",                "window",   RUNS/"exp70/action_lstm_w8.pt",           "lstm",   8),
+    ("LSTM w=16",               "window",   RUNS/"ablation_window/lstm_w16.pt",       "lstm",  16),
 ]
 
 # ── Stage1 encoder ───────────────────────────────────────────────────
