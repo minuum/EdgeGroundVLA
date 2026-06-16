@@ -6,7 +6,8 @@ echo "║   VLA Aliases 설치 스크립트            ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 
-VLA_DIR="/home/billy/25-1kp/vla"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VLA_DIR="${VLA_PROJECT_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 BASHRC="$HOME/.bashrc"
 ALIAS_FILE="$VLA_DIR/.vla_aliases"
 

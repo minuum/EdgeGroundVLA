@@ -1,0 +1,29 @@
+{
+  "matrix": {
+    "gray basket×gray basket": {
+      "hits": 15,
+      "total": 15,
+      "rate": 100.0
+    },
+    "gray basket×brown pot": {
+      "hits": 10,
+      "total": 15,
+      "rate": 66.66666666666666
+    },
+    "brown pot×brown pot": {
+      "hits": 15,
+      "total": 15,
+      "rate": 100.0
+    },
+    "brown pot×gray basket": {
+      "hits": 15,
+      "total": 15,
+      "rate": 100.0
+    }
+  },
+  "separation": {
+    "gray_basket_gap": 0.0,
+    "brown_pot_gap": 33.33333333333334
+  },
+  "n_per_env": 15
+}

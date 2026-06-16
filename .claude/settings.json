@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lsof -t -i:7861)",
+      "Bash(lsof -i:7861)",
+      "Bash(echo \"batch PID: $!\")",
+      "Bash(bash /tmp/run_remaining.sh)",
+      "Bash(kill 1607556 1609817 1612379 1614232)",
+      "Bash(grep -E \"^minum.*$\\(nvidia-smi --query-compute-apps=pid --format=csv,noheader)",
+      "Bash(nohup bash -c ' *)",
+      "Bash(awk '{print \"CPU=\"$3\"% MEM=\"$4\"%\"}')",
+      "Bash(echo \"mask PID=$!\")",
+      "Bash(echo \"cf PID=$!\")",
+      "Bash(find /usr -name \"mixtures.py\" 2>/dev/null | head -5 && find /opt -name \"mixtures.py\" 2>/dev/null | head -5 && find /home -name \"mixtures.py\" 2>/dev/null | head -5)",
+      "Read(//usr/**)",
+      "Read(//opt/**)",
+      "Read(//home/**)",
+      "Bash(grep -v \"^$\\\\|UserWarning\\\\|warnings\\\\|DeprecationWarning\\\\|FutureWarning\")",
+      "Bash(echo \"grounding PID=$!\")",
+      "Bash(echo \"zeroshot PID=$!\")",
+      "Bash(echo \"object PID=$!\")",
+      "Bash(.venv/bin/python3 scripts/test_grounding_baseline.py --model lora)",
+      "Bash(echo \"PID=$! \\(LoRA grounding 비교 실행 중, ~10분 예상\\)\")",
+      "Bash(kill 1837762)",
+      "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\"}')",
+      "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",\"MEM:\",$4\"%\",\"시간:\",$10}')",
+      "Bash(kill 1877633)",
+      "Bash(pkill -f eval_backbone_recognition)",
+      "Bash(Read /tmp/claude-1001/-home-minum-26CS-MoNaVLA/d30d3b04-ce69-481c-b1cd-37202d8e663d/tasks/benu7kw2a.output)",
+      "Bash(awk '{print $1, $2, $11}')"
+    ]
+  }
+}

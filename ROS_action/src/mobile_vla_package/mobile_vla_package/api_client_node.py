@@ -50,7 +50,9 @@ class MobileVLAAPIClient(Node):
         }
         self.STOP_ACTION = {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0}
         
-        self.default_instruction = "Navigate around obstacles and reach the front of the beverage bottle on the left"
+        # Exp47 path_type 키를 직접 쓰거나 env로 override. 자연어 미매칭 시 bbox cx 자동 추론.
+        # 유효 키: center_straight, left_left, right_right, left_right, right_left, ...
+        self.default_instruction = os.getenv("VLA_INSTRUCTION", "center_straight")
         
         self.inference_mode = False
         self.inference_count = 0
@@ -61,6 +63,7 @@ class MobileVLAAPIClient(Node):
         
         self.api_server_url = os.getenv("VLA_API_SERVER", "http://localhost:8000")
         self.api_key = os.getenv("VLA_API_KEY", "")
+        self.vlm_model = os.getenv("VLA_VLM_MODEL", "kosmos")
         
         if ROBOT_AVAILABLE:
             try:
@@ -219,9 +222,13 @@ class MobileVLAAPIClient(Node):
             
             response = requests.post(
                 f"{self.api_server_url}/predict",
-                json={"image": img_b64, "instruction": self.default_instruction},
+                json={
+                    "image": img_b64, 
+                    "instruction": self.default_instruction,
+                    "vlm_model": self.vlm_model
+                },
                 headers=headers,
-                timeout=1.0
+                timeout=2.5
             )
             
             if response.status_code == 200:
@@ -274,8 +281,12 @@ class MobileVLAAPIClient(Node):
             start = time.time()
             resp = requests.post(
                 f"{self.api_server_url}/predict",
-                json={"image": img_b64, "instruction": self.default_instruction},
-                headers=headers, timeout=5.0
+                json={
+                    "image": img_b64, 
+                    "instruction": self.default_instruction,
+                    "vlm_model": self.vlm_model
+                },
+                headers=headers, timeout=15.0
             )
             elap = (time.time() - start) * 1000
             

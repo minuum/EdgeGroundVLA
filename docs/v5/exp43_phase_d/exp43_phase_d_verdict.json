@@ -1,0 +1,17 @@
+{
+  "exp": "exp43_cross_attn_text",
+  "text_attention_pct": 0.0,
+  "pm_rate": 53.61702127659574,
+  "action_l1_lr": 1.5706817309061685e-05,
+  "action_l1_avg": 0.00015453828705681692,
+  "pred_changes": 0,
+  "gate_val": 0.10225478559732437,
+  "criteria": {
+    "text_attention_ge5pct": false,
+    "action_l1_ge_1e2": false,
+    "pred_changes_gt0": false,
+    "pm_ge50": true,
+    "gate_magnitude_ge_0_05": true
+  },
+  "verdict": "FAIL"
+}

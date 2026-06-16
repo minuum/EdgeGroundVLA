@@ -2,7 +2,7 @@
 
 이 파일은 Menemory 프롬프트에 항상 포함되는 핵심 메모리입니다.
 
-**마지막 업데이트: 2026-04-30**
+**마지막 업데이트: 2026-05-05**
 
 ---
 
@@ -41,6 +41,20 @@
   - PM: 75.9~76.6%, closed-loop: **66.7%**, FPE: 0.55m
   - 스크립트: `scripts/test_v5_bbox_nav_exp19_proxy.py`
   - bbox cache: `docs/v5/bbox_nav_step1/bbox_dataset.json`
+
+### 학습 완료 (5/2~5/5)
+- **Exp39** — Exp25 + last-4 LoRA, **PM 21.7%** (235 samples, epoch 14, val_loss 8.229) — 실패
+  - confusion: FORWARD 113/126이 FWD+L로 새는 collapse, Exp25 baseline(52%) 대비 후퇴
+  - 결과: `docs/v5/pm_eval/exp39_epoch14_results.json`
+  - 결론: last-4 LoRA만으로는 Exp25 재현 불가
+- **Exp40** — Exp39 + chunking 버그 fix + grounding_aux (epoch 02, val_loss 0.575)
+  - config: `configs/mobile_vla_v5_exp40_fix_chunking_grounding.json`
+  - PM: **모든 클래스를 FORWARD로 100% collapse** (235 frames 전부 class 1) — 액션 head 망가짐
+  - **그러나 grounding은 살아있음**: visual_grounding_proof Avg IoU **0.679** (20 frames)
+    - "the pole" 0.96, "the white wall" 0.96, "the gray basket" 0.04~0.96 (frame-dependent)
+    - 보고서: `docs/v5/exp40_object_recognition_proof.md`
+  - 의의: 교수님 미팅 방어 논리 ("단순 픽셀 매핑 아님, 객체 인식 67% 보존") 확보. 실용 모델은 아님.
+  - 의심 원인: grounding_aux의 learned loss balance가 action loss를 깎아내림
 
 ### 로봇 서버 현재 배포
 - Primary end-to-end: **Exp17** (CL 11.1%)
@@ -101,16 +115,32 @@
 | Exp32~36 | Pure HF last-4 LoRA, left-family | val 6.5~7.5 | 미평가 |
 | Exp37 | left_left 30ep overfit | 35%(collapse) | — |
 | Exp38 | all-path head-only 20ep sanity | 미평가 | — |
+| **Exp39** | **Exp25 + last-4 LoRA** | **학습 예정** | — |
 
 ---
 
-## 미해결 / 다음 단계
+## 미해결 / 다음 단계 (2026-05-05 갱신)
 
-1. **Exp31, Exp35, Exp36, Exp38 PM/rollout 평가 미완**
-2. **Exp32~36 val_loss=6.5~7.5** — num_classes 불일치 가능성 (arm_action shape [4,10] 확인 필요)
-3. Shortcut collapse 근본 해결책 미확보
-4. Gray basket prompted grounding 재실행 필요 (현재 free-gen은 오인식)
-5. BBox proxy (Exp19)를 inference_server.py에 연결하는 작업 미완
+1. **Exp40 액션 head collapse 디버깅** — val_loss 0.575로 낮지만 PM은 100% FORWARD 단일 출력
+   - grounding_aux의 `loss_balance_mode=learned`가 action loss를 짓눌렀을 가능성
+   - 처방 후보: (a) `loss_balance_mode=fixed`로 회귀, (b) `lambda_bbox/coarse` 0.1→0.01로 축소, (c) action loss min_share 강제
+2. **Prompt-conditioning lock-in (이번 세션 메인)**
+   - 현재: 4개 grounding 모델(kosmos/paligemma/paligemma2/moondream) 비교 verbose log에서 **전부 "텍스트 변화에 무감각"** (액션 diff < 1e-3)
+   - 즉 left/right 프롬프트를 줘도 동일 액션 — text→action 경로 끊김
+   - Google-robot post-train의 text=0% attention 문제는 backbone 기인 (LoRA로 복구 불가)
+   - 다음: prompt path를 어디서 fuse하는지 코드 추적 후 explicit text-conditioning head 설계
+3. **3-Tier Grounding 모두 broken (5/5 ablation)** — `docs/v5/grounding_3tier_ablation.md`
+   - Tier 1 LoRA adapter: entity 0/72 (target_text 토큰화 의심)
+   - Tier 2 caption 13-pat: dir_acc 25% (5→13 효과 +1.4%p, 미미)
+   - Tier 3 coarse_clf: unseen 36% (silver/gold 라벨 mismatch, RIGHT class 6%)
+   - proxy_inference_server.py에서 LoRA 자동 merge 디폴트 OFF로 패치됨 (env opt-in)
+   - 재시도: gold annotation 72→200+ 확장 또는 silver threshold 재정의
+4. **BBox proxy 배포 진행 중** — `docs/plans/plan_20260501_bbox_proxy_deploy.md`
+   - 완료: `bbox_dataset_full.json` 150ep 추출 (2626 frames), path resolver, 배포 섹션 문서
+   - 미완: proxy MLP 가중치 학습/검증, 로봇 서버 호출 검증, 변경 커밋
+5. **미커밋 변경 다수** — proxy_inference_server.py(+135), nav_trainer.py(+4), test_v5_pm_dm.py(+35), 신규 스크립트 10+
+6. **Exp31, Exp35, Exp36, Exp38 PM/rollout 평가 미완** (이월)
+7. **Shortcut collapse 근본 해결책 미확보** (이월)
 
 ---
 

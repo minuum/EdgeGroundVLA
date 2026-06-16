@@ -1,0 +1,101 @@
+[
+  {
+    "direction": "left",
+    "seg": "early",
+    "pred_dir": "left",
+    "correct": true,
+    "conf": 0.9264112710952759,
+    "has_bbox": true,
+    "bbox_ratio": 0.10526315789473684,
+    "cx": 0.5,
+    "area": 0.05
+  },
+  {
+    "direction": "left",
+    "seg": "mid",
+    "pred_dir": "left",
+    "correct": true,
+    "conf": 0.941053032875061,
+    "has_bbox": true,
+    "bbox_ratio": 0.6578947368421053,
+    "cx": 0.5,
+    "area": 0.6962890625
+  },
+  {
+    "direction": "left",
+    "seg": "late",
+    "pred_dir": "left",
+    "correct": true,
+    "conf": 0.9624138474464417,
+    "has_bbox": true,
+    "bbox_ratio": 0.06578947368421052,
+    "cx": 0.25,
+    "area": 0.05
+  },
+  {
+    "direction": "center",
+    "seg": "early",
+    "pred_dir": "center",
+    "correct": true,
+    "conf": 0.9546488523483276,
+    "has_bbox": true,
+    "bbox_ratio": 0.06578947368421052,
+    "cx": 0.5,
+    "area": 0.05
+  },
+  {
+    "direction": "center",
+    "seg": "mid",
+    "pred_dir": "center",
+    "correct": true,
+    "conf": 0.9642150402069092,
+    "has_bbox": true,
+    "bbox_ratio": 0.09210526315789473,
+    "cx": 0.5,
+    "area": 0.05
+  },
+  {
+    "direction": "center",
+    "seg": "late",
+    "pred_dir": "center",
+    "correct": true,
+    "conf": 0.9436451196670532,
+    "has_bbox": true,
+    "bbox_ratio": 0.75,
+    "cx": 0.5,
+    "area": 0.787109375
+  },
+  {
+    "direction": "right",
+    "seg": "early",
+    "pred_dir": "right",
+    "correct": true,
+    "conf": 0.9879900217056274,
+    "has_bbox": true,
+    "bbox_ratio": 0.5921052631578947,
+    "cx": 0.5,
+    "area": 0.6357421875
+  },
+  {
+    "direction": "right",
+    "seg": "mid",
+    "pred_dir": "right",
+    "correct": true,
+    "conf": 0.9855214357376099,
+    "has_bbox": true,
+    "bbox_ratio": 0.11842105263157894,
+    "cx": 0.5,
+    "area": 0.05
+  },
+  {
+    "direction": "right",
+    "seg": "late",
+    "pred_dir": "right",
+    "correct": true,
+    "conf": 0.9900193810462952,
+    "has_bbox": true,
+    "bbox_ratio": 0.8157894736842105,
+    "cx": 0.5,
+    "area": 0.787109375
+  }
+]

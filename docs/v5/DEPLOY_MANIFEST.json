@@ -1,0 +1,52 @@
+{
+  "models": {
+    "stage1": {
+      "path": "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt",
+      "size_mb": 3.18,
+      "val_acc": 0.9811
+    },
+    "stage2_best": {
+      "path": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt",
+      "size_mb": 0.47,
+      "val_acc": 0.935,
+      "head": "mlp",
+      "window": 8,
+      "d_in": 288,
+      "cx_source": "base_pg2"
+    },
+    "stage2_hsv": {
+      "path": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
+      "size_mb": 0.47,
+      "val_acc": 0.9259,
+      "head": "mlp",
+      "window": 8,
+      "d_in": 288,
+      "cx_source": "hsv"
+    }
+  },
+  "inference": {
+    "server": "robovlm_nav/serve/stage2_v2_inference_server.py",
+    "env_vars": {
+      "VLA_S2V2_STAGE1": "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt",
+      "VLA_S2V2_STAGE2": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp_base_pg2_aug.pt",
+      "VLA_GROUNDING_MODEL_PATH": ".vlms/kosmos-2-patch14-224",
+      "VLA_PORT": "8001"
+    },
+    "api_endpoint": "POST /predict  {image: base64, instruction: 'basket'}",
+    "requirements": [
+      "torch",
+      "transformers",
+      "fastapi",
+      "uvicorn",
+      "Pillow",
+      "numpy"
+    ]
+  },
+  "results": {
+    "best_cl": "96.6%",
+    "fpe_mlp_w4": "0.094m",
+    "fpe_lstm_w16": "0.080m",
+    "e2e_baseline_cl": "0.0%",
+    "pipeline_gain": "x9.4 vs simple MLP"
+  }
+}

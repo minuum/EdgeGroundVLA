@@ -1,0 +1,33 @@
+{
+    "_comment": "V5 Exp42: Exp41C(scratch + path_type_aware) + counterfactual_steer/stop. Exp41C가 path-aware만으로 Phase A 실패 → 액션-instruction 강제 결합으로 마지막 데이터-side 시도. 구조 미수정. counterfactual은 train에서만 활성화, val에서는 0으로 끔. Pure HF Kosmos-2 명시 (Google-robot pretrained_vlm_path inheritance 차단).",
+    "parent": "configs/mobile_vla_v5_exp41c_scratch_pta.json",
+    "exp_name": "v5-exp42-counterfactual-pta",
+    "task_name": "mobile_vla_v5_exp42",
+
+    "pretrained_vlm_path": null,
+    "load_vlm_only": false,
+
+    "trainer": {
+        "max_epochs": 8,
+        "check_val_every_n_epoch": 1
+    },
+
+    "vlm": {
+        "pretrained_model_name_or_path": "/home/minum/26CS/MoNaVLA/.vlms/kosmos-2-patch14-224"
+    },
+    "tokenizer": {
+        "pretrained_model_name_or_path": "/home/minum/26CS/MoNaVLA/.vlms/kosmos-2-patch14-224"
+    },
+    "train_dataset": {
+        "data_dir": "/home/minum/minum/26CS/MoNa-pi/mobile_vla_dataset_v5",
+        "instruction_preset": "path_type_aware",
+        "counterfactual_steer_prob": 0.30,
+        "counterfactual_stop_prob": 0.10
+    },
+    "val_dataset": {
+        "data_dir": "/home/minum/minum/26CS/MoNa-pi/mobile_vla_dataset_v5",
+        "instruction_preset": "path_type_aware",
+        "counterfactual_steer_prob": 0.0,
+        "counterfactual_stop_prob": 0.0
+    }
+}

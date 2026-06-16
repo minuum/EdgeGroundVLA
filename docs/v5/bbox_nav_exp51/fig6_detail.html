@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>Fig6: Overfitting 분석</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#f1f5f9;padding:32px;max-width:1100px;margin:0 auto}
+  h1{font-size:1.8rem;font-weight:800;margin-bottom:6px}
+  .sub{color:#94a3b8;margin-bottom:28px;font-size:0.95rem;line-height:1.6}
+  .back{color:#38bdf8;text-decoration:none;font-size:0.9rem;display:inline-block;margin-bottom:20px}
+  .back:hover{text-decoration:underline}
+  .card{background:#111827;border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h2{font-size:1rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px}
+  .fig{width:100%;border-radius:8px;display:block;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;background:#111827;border-radius:10px;overflow:hidden}
+  th{background:#0b1220;padding:10px 14px;text-align:left;color:#94a3b8;font-size:0.8rem;text-transform:uppercase}
+  td{padding:9px 14px;border-bottom:1px solid #1e293b;font-size:0.88rem}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+  .callout{border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:0.88rem;line-height:1.7}
+  .info{background:#0c2340;border-left:4px solid #38bdf8;color:#bae6fd}
+  .warn{background:#2d1b00;border-left:4px solid #fbbf24;color:#fde68a}
+  .good{background:#052e16;border-left:4px solid #22c55e;color:#bbf7d0}
+  .bad{background:#2d0000;border-left:4px solid #ef4444;color:#fca5a5}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .num-big{font-size:2.2rem;font-weight:900}
+  .kpi-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .kpi{background:#1e293b;border-radius:8px;padding:12px 18px}
+  .kpi .n{font-size:1.6rem;font-weight:800}
+  .kpi .l{color:#94a3b8;font-size:11px;text-transform:uppercase}
+</style></head><body>
+<a class="back" href="../research_story.html">← 전체 연구 여정으로</a>
+<h1>Fig 6 — Overfitting 위험 분석 (Exp51)</h1>
+<p class="sub">n_train=8,400 (Exp49의 4배)으로 늘렸을 때 val_acc와 train_acc 간의 gap 분석.</p>
+<div class="card"><h2>원본 그래프</h2><img class="fig" src="report_figs/fig6_overfitting_risk.png" alt="fig6"></div>
+<div class="kpi-row">
+  <div class="kpi"><div class="n" style="color:#f97316">8,400</div><div class="l">Exp51 n_train (Exp49의 4배)</div></div>
+  <div class="kpi"><div class="n" style="color:#fbbf24">93.3%</div><div class="l">Exp51 val_acc</div></div>
+  <div class="kpi"><div class="n" style="color:#22c55e">96.4%</div><div class="l">Exp49 val_acc (n_train 2,100)</div></div>
+</div>
+<div class="callout warn">
+  ⚠️ <strong>학습 데이터를 늘렸는데 val_acc가 오히려 감소 (96.4%→93.3%):</strong><br>
+  augmentation이 학습 데이터를 인위적으로 왜곡시키므로, 원본 val 분포와 괴리가 생길 수 있다.
+  Exp51의 crop aug는 robustness를 높이는 대신 원본 분포에서의 정확도를 일부 희생했다.
+</div>
+<div class="card">
+  <h2>실험별 학습 데이터 크기 vs val_acc</h2>
+  <table>
+    <thead><tr><th>실험</th><th>n_train</th><th>aug 방식</th><th>val_acc</th></tr></thead>
+    <tbody>
+      <tr><td style='color:#34d399;font-weight:700'>Exp46</td><td>2,100</td><td style='color:#94a3b8'>없음</td><td><svg width="160" height="18" style="display:inline-block;vertical-align:middle"><rect width="160" height="18" rx="3" fill="#1e293b"/><rect width="149" height="18" rx="3" fill="#fbbf24"/></svg> <span style="font-size:12px;font-weight:700;color:#fbbf24">93%</span></td></tr><tr><td style='color:#a78bfa;font-weight:700'>Exp47</td><td>2,100</td><td style='color:#94a3b8'>없음 (instr embed)</td><td><svg width="160" height="18" style="display:inline-block;vertical-align:middle"><rect width="160" height="18" rx="3" fill="#1e293b"/><rect width="157" height="18" rx="3" fill="#22c55e"/></svg> <span style="font-size:12px;font-weight:700;color:#22c55e">99%</span></td></tr><tr><td style='color:#22c55e;font-weight:700'>Exp49</td><td>2,100</td><td style='color:#94a3b8'>없음 (goal signal)</td><td><svg width="160" height="18" style="display:inline-block;vertical-align:middle"><rect width="160" height="18" rx="3" fill="#1e293b"/><rect width="154" height="18" rx="3" fill="#22c55e"/></svg> <span style="font-size:12px;font-weight:700;color:#22c55e">96%</span></td></tr><tr><td style='color:#fbbf24;font-weight:700'>Exp50</td><td>4,200</td><td style='color:#94a3b8'>Flip aug</td><td><svg width="160" height="18" style="display:inline-block;vertical-align:middle"><rect width="160" height="18" rx="3" fill="#1e293b"/><rect width="147" height="18" rx="3" fill="#fbbf24"/></svg> <span style="font-size:12px;font-weight:700;color:#fbbf24">92%</span></td></tr><tr><td style='color:#f97316;font-weight:700'>Exp51</td><td>8,400</td><td style='color:#94a3b8'>Crop aug</td><td><svg width="160" height="18" style="display:inline-block;vertical-align:middle"><rect width="160" height="18" rx="3" fill="#1e293b"/><rect width="149" height="18" rx="3" fill="#fbbf24"/></svg> <span style="font-size:12px;font-weight:700;color:#fbbf24">93%</span></td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="callout info">
+  💡 aug 없이 2,100 샘플만 써도 Exp49가 최고 정확도(96.4%). 
+  n_train을 늘리는 것보다 <strong>학습 목표(goal signal, instr embed) 설계</strong>가 더 효과적이었다.
+</div>
+</body></html>

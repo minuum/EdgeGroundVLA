@@ -1,0 +1,15 @@
+{
+    "_comment": "V5 Exp43: Phase D — cross-attention text head. Exp42 base + (1) detach 제거 (2) token-level text sequence → cross-attn. text_in_features=2048 (Kosmos-2 embed_dim). gate=0.1 init. counterfactual 유지. scratch 8 epoch.",
+    "parent": "configs/mobile_vla_v5_exp42_counterfactual_pta.json",
+    "exp_name": "v5-exp43-cross-attn-text",
+    "task_name": "mobile_vla_v5_exp43",
+
+    "act_head": {
+        "text_in_features": 2048
+    },
+
+    "trainer": {
+        "max_epochs": 8,
+        "check_val_every_n_epoch": 1
+    }
+}

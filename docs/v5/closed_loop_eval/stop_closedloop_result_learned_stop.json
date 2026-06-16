@@ -1,0 +1,35 @@
+{
+  "mlp": "stop_mlp.pt",
+  "rule": {
+    "th_area": 0.5,
+    "th_cx": 0.3,
+    "W": 5,
+    "min_steps": 0
+  },
+  "cells": {
+    "raw_off": {
+      "success_rate": 0.125,
+      "mean_fpe": 0.39078465005757324,
+      "mean_tld": 0.8403135015122414,
+      "n": 32
+    },
+    "raw_on": {
+      "success_rate": 0.125,
+      "mean_fpe": 0.4074599220570495,
+      "mean_tld": 0.8323209439629906,
+      "n": 32
+    },
+    "synth_off": {
+      "success_rate": 0.15625,
+      "mean_fpe": 0.25363906059946717,
+      "mean_tld": 0.9064115312011911,
+      "n": 32
+    },
+    "synth_on": {
+      "success_rate": 0.15625,
+      "mean_fpe": 0.2624996785125518,
+      "mean_tld": 0.8973154493198905,
+      "n": 32
+    }
+  }
+}

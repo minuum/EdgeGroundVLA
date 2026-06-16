@@ -1,0 +1,116 @@
+{
+  "exp46": [
+    {
+      "frame_idx": 9,
+      "episode": "episode_260408_123008_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "[{'x_min': 0.27715323865413666, 'y_min': 0.4479047954082489, 'x_max': 0.5705030113458633, 'y_max': 0.9192827045917511}]",
+        "has_bbox": true,
+        "iou": 0.1319,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "answer": "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "In the center of the image, a gray plastic laundry basket with a handle and a lid stands upright on a light gray tiled floor with a dark gray or black grout line. The basket has a perforated pattern on its front. To the right of the basket, a white electrical outlet is embedded in a white wall. Black electrical cords extend from the outlet to the floor.  A dark brown or black baseboard runs along the bottom of the white wall.",
+        "mention": true
+      }
+    },
+    {
+      "frame_idx": 9,
+      "episode": "episode_260408_124119_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "[{'x_min': 0.26105448603630066, 'y_min': 0.44970814883708954, 'x_max': 0.5260548889636993, 'y_max': 0.8842762261629105}]",
+        "has_bbox": true,
+        "iou": 0.1565,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "answer": "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "A gray plastic laundry basket with a handle and open lid sits on a speckled gray and black tiled floor in a room with a white wall. The wall shows signs of damage, possibly from water. A black electrical cord is visible, running along the wall and onto the floor. The floor appears slightly wet or damp. A white electrical outlet is mounted on the wall to the right of the laundry basket.",
+        "mention": true
+      }
+    },
+    {
+      "frame_idx": 1,
+      "episode": "episode_260408_124918_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "[{'x_min': 0.43580447882413864, 'y_min': 0.46785323321819305, 'x_max': 0.5798205211758614, 'y_max': 0.704021766781807}]",
+        "has_bbox": true,
+        "iou": 0.0562,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "answer": "Yes, there is a gray basket or bin in the image.",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "In the center of the room, a gray plastic bin with a handle and a mesh-like opening is placed on a speckled gray and white tiled floor with a dark brown or black baseboard. The walls are primarily white, with some areas showing peeling paint or damage, particularly near the baseboard. A black electrical cord runs along the wall. The window appears to have a blind or covering, and it lets in natural light. Overhead, a white or light-colored ceiling is visible, with what looks like exposed electrical wiring or conduits along the wall.",
+        "mention": true
+      }
+    }
+  ],
+  "exp55": [
+    {
+      "frame_idx": 25,
+      "episode": "episode_260521_204745_free_center__basket_left_extreme__core__fixed_center.h5",
+      "path_type": "free_center",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "[{'x_min': 0.39523935317993164, 'y_min': 0.45726625621318817, 'x_max': 0.6496825218200684, 'y_max': 0.8689056187868118}]",
+        "has_bbox": true,
+        "iou": 0.1141,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "answer": "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "In the center of the image, a gray plastic laundry basket with a handle and a lid is standing on a gray tiled floor. The floor has dark brown or black lines running across it. To the right of the basket, a white electrical outlet is embedded in the wall. A black cord or wire extends from the outlet and disappears into the lower right corner of the image. There is also a piece of light-colored debris or wood lying on the floor near the outlet. The wall behind the basket and outlet is white, with some areas of peeling or damaged paint visible.",
+        "mention": true
+      }
+    },
+    {
+      "frame_idx": 15,
+      "episode": "episode_260521_205132_free_center__basket_right_extreme__core__fixed_center.h5",
+      "path_type": "free_center",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "[{'x_min': 0.41005687415599823, 'y_min': 0.4658670574426651, 'x_max': 0.6446306258440018, 'y_max': 0.8505391925573349}]",
+        "has_bbox": true,
+        "iou": 0.1032,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "answer": "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "In the center of the image, a gray plastic laundry basket with a handle and a lid stands upright on a light gray tiled floor. The floor has dark brown or black grout lines and a slight texture. To the right of the basket, a white electrical outlet is embedded in the wall. A black electrical cord is visible, extending from the outlet and disappearing into the bottom right corner of the image. The wall behind the basket and outlet is white with patches of discoloration and damage. There is dark residue near the bottom of the wall and near the electrical outlet.",
+        "mention": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+    "_comment": "Exp25 retrain fallback for minum (billy ckpt unreachable). Exp25 config + minum-local Pure HF Kosmos-2 + minum data_dir + explicit pretrained_vlm_path null. Run only if Exp25 ckpt cannot be synced from billy.",
+    "parent": "configs/mobile_vla_v5_exp25_step3_balanced_objective.json",
+    "exp_name": "v5-exp25-minum-retrain",
+    "task_name": "mobile_vla_v5_exp25_minum",
+
+    "pretrained_vlm_path": null,
+    "load_vlm_only": false,
+
+    "vlm": {
+        "pretrained_model_name_or_path": "/home/minum/26CS/MoNaVLA/.vlms/kosmos-2-patch14-224"
+    },
+    "tokenizer": {
+        "pretrained_model_name_or_path": "/home/minum/26CS/MoNaVLA/.vlms/kosmos-2-patch14-224"
+    },
+    "train_dataset": {
+        "data_dir": "/home/minum/minum/26CS/MoNa-pi/mobile_vla_dataset_v5"
+    },
+    "val_dataset": {
+        "data_dir": "/home/minum/minum/26CS/MoNa-pi/mobile_vla_dataset_v5"
+    }
+}

@@ -12,39 +12,63 @@
 # ========================================
 
 # 현재 서버가 어느 역할인지 자동 감지
-if [ "$(hostname)" = "fevers" ]; then
-    export VLA_SERVER_ROLE="jetson"
-    export VLA_SERVER_NAME="MoNaVLA Jetson Robot"
-elif [ "$(hostname)" = "billy" ]; then
-    export VLA_SERVER_ROLE="model"
-    export VLA_SERVER_NAME="MoNaVLA Billy Server"
-else
-    export VLA_SERVER_ROLE="unknown"
-    export VLA_SERVER_NAME="MoNaVLA Unknown Server"
+# VLA_SERVER_ROLE을 외부에서 미리 지정하면 그것을 우선함
+if [ -z "${VLA_SERVER_ROLE:-}" ]; then
+    _vla_h="${HOST:-${HOSTNAME:-$(hostname 2>/dev/null)}}"
+    case "$_vla_h" in
+        fevers|encroaches)
+            export VLA_SERVER_ROLE="jetson"
+            export VLA_SERVER_NAME="MoNaVLA Jetson Robot"
+            ;;
+        billy|gx10-5c89)
+            export VLA_SERVER_ROLE="model"
+            export VLA_SERVER_NAME="MoNaVLA Billy Server"
+            ;;
+        *)
+            export VLA_SERVER_ROLE="unknown"
+            export VLA_SERVER_NAME="MoNaVLA Unknown Server"
+            ;;
+    esac
+    unset _vla_h
 fi
 
 # ========================================
 # 공통 환경 변수
 # ========================================
 
-export VLA_PROJECT_DIR="/home/soda/MoNaVLA"
-export MONAVLA_ROOT="/home/soda/MoNaVLA"
+# 소스된 파일의 디렉토리를 기준으로 프로젝트 루트 자동 결정
+if [ -n "${BASH_SOURCE:-}" ]; then
+    _vla_source_dir="$(dirname "${BASH_SOURCE[0]}")"
+elif [ -n "${ZSH_VERSION:-}" ]; then
+    _vla_source_dir="$(dirname "${(%):-%x}")"
+else
+    _vla_source_dir="."
+fi
+export VLA_PROJECT_DIR="$(cd "$_vla_source_dir" && pwd)"
+export MONAVLA_ROOT="$VLA_PROJECT_DIR"
+export VLA_ROS_WS="${VLA_ROS_WS:-$VLA_PROJECT_DIR/ROS_action}"
 
 # Tailscale VPN 주소
 export JETSON_TAILSCALE_IP="${JETSON_TAILSCALE_IP:-100.85.118.58}"
 export BILLY_TAILSCALE_IP="${BILLY_TAILSCALE_IP:-100.86.152.29}"  # Billy 서버의 Tailscale IP
+export VLA_SYNC_HOST="${VLA_SYNC_HOST:-$BILLY_TAILSCALE_IP}"
+export VLA_SYNC_USER="${VLA_SYNC_USER:-soda}"
+export VLA_SYNC_SSH_PORT="${VLA_SYNC_SSH_PORT:-22}"
+export VLA_SYNC_ROOT="${VLA_SYNC_ROOT:-$VLA_PROJECT_DIR}"
 
 # ========================================
 # Jetson 서버 전용 설정
 # ========================================
 
 if [ "$VLA_SERVER_ROLE" = "jetson" ]; then
-    # API 서버 주소 (Billy 모델 서버)
-    export VLA_API_SERVER="${VLA_API_SERVER:-http://${BILLY_TAILSCALE_IP}:8000}"
-    export VLA_API_KEY="${VLA_API_KEY:-your-api-key-from-billy-server}"
-    
+    # proxy_inference_server가 Jetson 로컬에서 실행됨 (포트 8001)
+    export VLA_API_SERVER="${VLA_API_SERVER:-http://localhost:8001}"
+    export VLA_API_KEY="${VLA_API_KEY:-vla_devel_key_2026}"
+    export VLA_MODEL="${VLA_MODEL:-exp49}"
+
     # ROS2 환경
     export ROS_DOMAIN_ID=42
+    export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 fi
 
 # ========================================
@@ -72,7 +96,7 @@ vla-jetson-env() {
     echo "🤖 Jetson Robot Server 환경 설정 중..."
     
     # ROS2 환경 설정
-    cd /home/soda/MoNaVLA/ROS_action/install
+    cd "$VLA_ROS_WS/install"
     source /opt/ros/humble/setup.bash
     source local_setup.bash
     cd - > /dev/null
@@ -97,7 +121,7 @@ vla-model-env() {
     echo "🧠 Model Inference Server 환경 설정 중..."
     
     # Python 가상환경 활성화 (필요시)
-    # source /home/billy/venv/bin/activate
+    # source $VLA_PROJECT_DIR/.venv/bin/activate
     
     echo "✓ Model Server 환경 설정 완료"
     echo ""
@@ -257,12 +281,13 @@ vla-help() {
     elif [ "$VLA_SERVER_ROLE" = "model" ]; then
         echo "  mona-model-env     - Model 서버 환경 설정 [alias: vla-model-env]"
         echo ""
-        echo "API 서버 관리:"
+        echo "Ablation 학습 관리:"
+        echo "  mona               - Ablation 학습 모니터링 대시보드 [alias: mona-status]"
+        echo "  mona-status-watch  - Ablation 학습 실시간 모니터링 (10초 주기)"
+        echo "  mona-train-log     - Ablation 전체 로그 실시간 추적 [alias: vla-train-log]"
+        echo "  mona-train-stop    - Ablation 학습 및 스케줄러 강제 중단 [alias: vla-train-stop]"
         echo "  mona-start         - API 서버 시작 [alias: vla-start]"
         echo "  mona-stop          - API 서버 중지 [alias: vla-stop]"
-        echo "  mona-restart       - API 서버 재시작 [alias: vla-restart]"
-        echo "  mona-status        - API 서버 상태 [alias: vla-status]"
-        echo "  mona-logs          - API 서버 로그 [alias: vla-logs]"
     fi
     
     echo ""
@@ -273,6 +298,11 @@ vla-help() {
     echo "유틸리티:"
     echo "  mona-env           - 환경 변수 확인 [alias: vla-env]"
     echo "  mona-network-check - 네트워크 연결 확인 [alias: vla-network-check]"
+    echo "  vla-profile        - 현재 활성 프로파일 해석 결과"
+    echo "  vla-models         - 운영 모델 레지스트리 목록"
+    echo "  vla-use <profile>  - 현재 셸의 활성 프로파일 변경"
+    echo "  vla-doctor         - 프로파일/ROS/API 진단"
+    echo "  vla-sync-models    - 활성 profile의 ckpt/config를 원격 서버로 rsync"
     echo "  vla-ps             - 프로세스 확인"
     echo "  mona-cd            - 프로젝트로 이동 [alias: vla-cd]"
     echo "  mona-gpu           - GPU 상태 [alias: vla-gpu]"
@@ -291,13 +321,49 @@ alias mona-cd='vla-cd'
 alias mona-network-check='vla-network-check'
 alias mona-gpu='vla-gpu'
 
+# Mona Ablation & Status aliases (Common)
+alias mona-status='python3 $VLA_PROJECT_DIR/scripts/mona_status.py'
+alias mona='mona-status'
+alias mona-status-watch='watch -n 10 python3 $VLA_PROJECT_DIR/scripts/mona_status.py'
+alias vla-train-log='tail -f $VLA_PROJECT_DIR/logs/v5_ablation/overall.log'
+alias vla-train-stop='pkill -f run_v5_ablations.sh && pkill -f main.py'
+alias mona-train-log='vla-train-log'
+alias mona-train-stop='vla-train-stop'
+
 # Jetson specific
 if [ "$VLA_SERVER_ROLE" = "jetson" ]; then
     alias mona-jetson-env='vla-jetson-env'
     alias mona-collect='vla-collect'
     alias mona-camera='vla-camera'
     alias mona-system='vla-system'
+    alias mona-inference-server='vla-inference-server'
 fi
+
+unalias vla-camera 2>/dev/null || true
+vla-camera() {
+    source /opt/ros/humble/setup.zsh 2>/dev/null || source /opt/ros/humble/setup.bash 2>/dev/null || true
+    if [ -f "$VLA_ROS_WS/install/setup.zsh" ]; then
+        source "$VLA_ROS_WS/install/setup.zsh"
+    elif [ -f "$VLA_ROS_WS/install/setup.bash" ]; then
+        source "$VLA_ROS_WS/install/setup.bash"
+    fi
+    export ROS_DOMAIN_ID=42
+    export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
+    echo "📷 Starting camera service (ROS_DOMAIN_ID=$ROS_DOMAIN_ID)..."
+    ros2 run camera_pub usb_camera_service_server
+}
+
+unalias vla-inference-server 2>/dev/null || true
+vla-inference-server() {
+    # exp47: VLA_PROXY_WEIGHTS_PATH 사용 (path_type 명령 지원 - right_right 등)
+    # exp49: VLA_MODEL=exp49 사용 (GoalNav - 시각 물체 grounding)
+    local weights="${VLA_PROXY_WEIGHTS_PATH:-}"
+    local model="${VLA_MODEL:-exp49}"
+    local port="${VLA_PORT:-8001}"
+    echo "🤖 Starting proxy inference server (VLA_MODEL=$model, port=$port)..."
+    cd "$VLA_PROJECT_DIR" && nohup env VLA_MODEL="$model" VLA_PROXY_WEIGHTS_PATH="$weights" python3 robovlm_nav/serve/proxy_inference_server.py --port "$port" </dev/null >>/tmp/proxy_server.log 2>&1 & disown
+    echo "PID $! — logs: tail -f /tmp/proxy_server.log"
+}
 
 # Model specific
 if [ "$VLA_SERVER_ROLE" = "model" ]; then
@@ -305,7 +371,7 @@ if [ "$VLA_SERVER_ROLE" = "model" ]; then
     alias mona-start='vla-start'
     alias mona-stop='vla-stop'
     alias mona-restart='vla-restart'
-    alias mona-status='vla-status'
+    # alias mona-status='vla-status' # Ablation 모니터링을 위해 글로벌 정의 유지 (API 서버 상태는 vla-status 이용)
     alias mona-logs='vla-logs'
     alias mona-test='vla-test'
     alias mona-health='vla-health'
@@ -318,12 +384,483 @@ fi
 # echo "✓ VLA aliases loaded - $VLA_SERVER_NAME"
 # echo "  Run 'vla-help' for available commands"
 # Basket Training Aliases
-alias vla-train-log='tail -f /home/billy/25-1kp/vla/logs/train_basket_chunk5_20260129_204053.log'
-alias vla-train-stop='pkill -f main.py'
+alias vla-train-log='tail -f $VLA_PROJECT_DIR/logs/v5_ablation/overall.log'
+alias vla-train-stop='pkill -f run_v5_ablations.sh && pkill -f main.py'
+alias mona-train-log='vla-train-log'
+alias mona-train-stop='vla-train-stop'
 
 # MoNaVLA Shortcuts
-alias vla-analyze='python3 /home/soda/MoNaVLA/scripts/gradio_offline_h5_analyzer.py'
-alias vla-dashboard='python3 /home/soda/MoNaVLA/scripts/gradio_inference_dashboard.py'
-alias vla-collect='python3 /home/soda/MoNaVLA/scripts/gradio_data_collector.py'
-alias vla-server='python3 /home/soda/MoNaVLA/robovlm_nav/serve/inference_server.py'
-alias vla-reset='kill -9 $(pgrep -f "gradio_") || true; kill -9 $(pgrep -f "inference_server") || true'
+alias vla-analyze='python3 $VLA_PROJECT_DIR/scripts/gradio_offline_h5_analyzer.py'
+
+unalias vla-profile 2>/dev/null || true
+vla-profile() {
+    python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" profile --profile "${1:-${VLA_PROFILE:-end_to_end_default}}"
+}
+
+unalias vla-models 2>/dev/null || true
+vla-models() {
+    python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" models "$@"
+}
+
+unalias vla-doctor 2>/dev/null || true
+vla-doctor() {
+    python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" doctor --profile "${1:-${VLA_PROFILE:-end_to_end_default}}"
+}
+
+unalias vla-use 2>/dev/null || true
+vla-use() {
+    local profile_name="${1:-end_to_end_default}"
+    eval "$(python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" env --profile "$profile_name")"
+    echo "✓ Active profile: $VLA_PROFILE ($VLA_MODEL_LABEL)"
+}
+
+unalias vla-sync-models 2>/dev/null || true
+vla-sync-models() {
+    local profile_name="${VLA_PROFILE:-end_to_end_default}"
+    local mode=""
+    local arg=""
+    for arg in "$@"; do
+        case "$arg" in
+            --dry-run|--print-only)
+                mode="$arg"
+                ;;
+            *)
+                profile_name="$arg"
+                ;;
+        esac
+    done
+
+    eval "$(python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" env --profile "$profile_name")" || return 1
+
+    if [ -z "${VLA_CHECKPOINT_PATH:-}" ] || [ ! -f "$VLA_CHECKPOINT_PATH" ]; then
+        echo "Checkpoint not found for profile $VLA_PROFILE: ${VLA_CHECKPOINT_PATH:-N/A}"
+        return 1
+    fi
+
+    if [ -z "${VLA_CONFIG_PATH:-}" ] || [ ! -f "$VLA_CONFIG_PATH" ]; then
+        echo "Config not found for profile $VLA_PROFILE: ${VLA_CONFIG_PATH:-N/A}"
+        return 1
+    fi
+
+    local remote_base="${VLA_SYNC_USER}@${VLA_SYNC_HOST}:${VLA_SYNC_ROOT}"
+    local rsync_args=(-ahz --info=progress2 --relative -e "ssh -p ${VLA_SYNC_SSH_PORT}")
+    local ckpt_rel config_rel
+
+    ckpt_rel="${VLA_CHECKPOINT_PATH#$VLA_PROJECT_DIR/}"
+    config_rel="${VLA_CONFIG_PATH#$VLA_PROJECT_DIR/}"
+
+    if [ "$ckpt_rel" = "$VLA_CHECKPOINT_PATH" ] || [ "$config_rel" = "$VLA_CONFIG_PATH" ]; then
+        echo "Only paths inside $VLA_PROJECT_DIR are supported by vla-sync-models."
+        echo "Checkpoint: $VLA_CHECKPOINT_PATH"
+        echo "Config:     $VLA_CONFIG_PATH"
+        return 1
+    fi
+
+    if [ "$mode" = "--dry-run" ]; then
+        rsync_args+=(--dry-run)
+    fi
+
+    echo "Sync profile: $VLA_PROFILE ($VLA_MODEL_LABEL)"
+    echo "Remote root:  $remote_base"
+    echo "Checkpoint:   $ckpt_rel"
+    echo "Config:       $config_rel"
+
+    if [ "$mode" = "--print-only" ]; then
+        echo "rsync ${rsync_args[*]} $VLA_PROJECT_DIR/./$ckpt_rel $VLA_PROJECT_DIR/./$config_rel $remote_base/"
+        return 0
+    fi
+
+    rsync "${rsync_args[@]}" \
+        "$VLA_PROJECT_DIR/./$ckpt_rel" \
+        "$VLA_PROJECT_DIR/./$config_rel" \
+        "$remote_base/"
+}
+
+unalias vla-sync-profile 2>/dev/null || true
+vla-sync-profile() {
+    vla-sync-models "$@"
+}
+
+alias vla-sync='vla-sync-models'
+
+unalias vla-start 2>/dev/null || true
+unalias vla-restart 2>/dev/null || true
+unalias vla-stop 2>/dev/null || true
+unalias vla-status 2>/dev/null || true
+unalias vla-logs 2>/dev/null || true
+unalias vla-server 2>/dev/null || true
+unalias vla-server-running 2>/dev/null || true
+unalias vla-api-is-local 2>/dev/null || true
+unalias vla-clean 2>/dev/null || true
+
+vla-api-is-local() {
+    case "${VLA_API_SERVER:-http://localhost:8000}" in
+        http://localhost:*|http://127.0.0.1:*|http://0.0.0.0:*|https://localhost:*|https://127.0.0.1:*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+vla-server-running() {
+    local api_url="${VLA_API_SERVER:-http://127.0.0.1:${VLA_PORT:-8000}}"
+    curl -s "${api_url%/}/health" > /dev/null 2>&1
+}
+
+vla-server() {
+    local action="start"
+    case "${1:-start}" in
+        start|stop|restart|status|logs|http|admin|urls)
+            action="$1"
+            if [ "$#" -gt 0 ]; then
+                shift
+            fi
+            ;;
+    esac
+
+    local profile_name="${1:-${VLA_PROFILE:-end_to_end_default}}"
+    local api_url="${VLA_API_SERVER:-http://127.0.0.1:${VLA_PORT:-8000}}"
+
+    if [ "$action" = "start" ] || [ "$action" = "restart" ] || [ "$action" = "status" ]; then
+        eval "$(python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" env --profile "$profile_name")"
+    fi
+
+    if [ "$action" = "http" ] || [ "$action" = "admin" ] || [ "$action" = "urls" ]; then
+        echo "MoNaVLA local HTTP endpoints"
+        echo "  Dashboard:  ${api_url%/}/dashboard"
+        echo "  Health:     ${api_url%/}/health"
+        echo "  Recent:     ${api_url%/}/recent"
+        echo "  Docs:       ${api_url%/}/docs"
+        echo "  Trial Log:  http://localhost:7862"
+        if [ "$action" != "urls" ]; then
+            if command -v xdg-open >/dev/null 2>&1; then
+                xdg-open "${api_url%/}/dashboard" >/dev/null 2>&1 &
+            elif command -v open >/dev/null 2>&1; then
+                open "${api_url%/}/dashboard" >/dev/null 2>&1 &
+            fi
+        fi
+        return 0
+    fi
+
+    "$VLA_PROJECT_DIR/scripts/manage_api_server.sh" "$action" "$profile_name"
+}
+
+vla-start() { vla-server start "$@"; }
+vla-restart() { vla-server restart "$@"; }
+vla-stop() { vla-server stop "$@"; }
+vla-status() { vla-server status "$@"; }
+vla-logs() { vla-server logs "$@"; }
+
+vla-clean() {
+    local patterns=(
+        "$VLA_PROJECT_DIR/robovlm_nav/serve/inference_server.py"
+        "$VLA_PROJECT_DIR/scripts/gradio_inference_dashboard.py"
+        "$VLA_PROJECT_DIR/scripts/gradio_data_collector.py"
+        "camera_publisher_continuous"
+        "camera_service_server"
+        "usb_camera_service_server"
+        "launch_mobile_vla.launch.py"
+    )
+    local pattern=""
+    echo "Cleaning MoNaVLA runtime processes..."
+    for pattern in "${patterns[@]}"; do
+        pkill -f "$pattern" 2>/dev/null || true
+    done
+    sleep 1
+    for pattern in "${patterns[@]}"; do
+        pkill -9 -f "$pattern" 2>/dev/null || true
+    done
+    rm -f "$VLA_PROJECT_DIR/logs/api_server.pid"
+    echo "✓ Cleaned server / gradio / camera-related processes"
+}
+
+unalias vla-inference-gradio 2>/dev/null || true
+vla-inference-gradio() {
+    local profile_name="${1:-${VLA_PROFILE:-proxy_default}}"
+    # profile 로드 실패 시 현재 env 변수 그대로 사용
+    eval "$(python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" env --profile "$profile_name" 2>/dev/null)" || true
+    # proxy_server 또는 api_server 런타임이 아니면 env 변수로 fallback
+    if [ "$VLA_MODEL_RUNTIME" != "api_server" ] && [ "$VLA_MODEL_RUNTIME" != "proxy_server" ]; then
+        if [ -n "$VLA_API_SERVER" ]; then
+            echo "⚠️  Profile runtime 미확인, VLA_API_SERVER=$VLA_API_SERVER 로 fallback"
+            export VLA_MODEL_RUNTIME="proxy_server"
+        else
+            echo "⚠️  Profile $VLA_PROFILE uses runtime $VLA_MODEL_RUNTIME — not launchable via gradio."
+            echo "    Try: vla-inference-gradio proxy_default  또는  vla-inference-gradio exp49_proxy"
+            return 1
+        fi
+    fi
+    if [ -f "/opt/ros/humble/setup.zsh" ]; then
+        source /opt/ros/humble/setup.zsh
+    elif [ -f "/opt/ros/humble/setup.bash" ]; then
+        source /opt/ros/humble/setup.bash
+    fi
+    if [ -f "$VLA_ROS_WS/install/setup.zsh" ]; then
+        source "$VLA_ROS_WS/install/setup.zsh"
+    elif [ -f "$VLA_ROS_WS/install/setup.bash" ]; then
+        source "$VLA_ROS_WS/install/setup.bash"
+    fi
+
+    export VLA_DASHBOARD_BACKEND="API Server"
+
+    if vla-api-is-local; then
+        if ! vla-server-running; then
+            echo "API server is not running at $VLA_API_SERVER"
+            echo "Starting local vla-server with profile $VLA_PROFILE..."
+            vla-server start "$profile_name" || return 1
+        fi
+    else
+        echo "Using remote API server: $VLA_API_SERVER"
+    fi
+
+    echo "Recommended runtime stack: vla-camera | vla-server | vla-inference-gradio"
+    echo "Launching inference dashboard with profile $VLA_PROFILE ($VLA_MODEL_LABEL) in API Server mode"
+    python3 "$VLA_PROJECT_DIR/scripts/gradio_inference_dashboard.py"
+}
+
+unalias vla-collect-gradio 2>/dev/null || true
+vla-collect-gradio() {
+    local profile_name="${1:-collect_default}"
+    eval "$(python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" env --profile "$profile_name")"
+    if [ -f "/opt/ros/humble/setup.zsh" ]; then
+        source /opt/ros/humble/setup.zsh
+    elif [ -f "/opt/ros/humble/setup.bash" ]; then
+        source /opt/ros/humble/setup.bash
+    fi
+    if [ -f "$VLA_ROS_WS/install/setup.zsh" ]; then
+        source "$VLA_ROS_WS/install/setup.zsh"
+    elif [ -f "$VLA_ROS_WS/install/setup.bash" ]; then
+        source "$VLA_ROS_WS/install/setup.bash"
+    fi
+    echo "Launching collector with profile $VLA_PROFILE"
+    python3 "$VLA_PROJECT_DIR/scripts/gradio_data_collector.py"
+}
+
+# Compatibility aliases
+unalias vla-collect 2>/dev/null || true
+vla-collect() { vla-collect-gradio "$@"; }
+unalias vla-dashboard 2>/dev/null || true
+vla-dashboard() { vla-inference-gradio "$@"; }
+alias mona-collect-gradio='vla-collect-gradio'
+alias mona-inference-gradio='vla-inference-gradio'
+alias mona-server='vla-server'
+alias mona-clean='vla-clean'
+alias mona-profile='vla-profile'
+alias mona-models='vla-models'
+alias mona-doctor='vla-doctor'
+alias mona-sync='vla-sync-models'
+
+alias vla-reset='vla-clean'
+
+unalias vla-trial-logger 2>/dev/null || true
+vla-trial-logger() {
+    local port="${1:-7862}"
+    echo "📊 Trial Logger → http://localhost:$port"
+    python3 "$VLA_PROJECT_DIR/scripts/real_robot_trial_logger.py" --port "$port"
+}
+
+# ════════════════════════════════════════════════════════════════
+# Stage2 v2 배포/실행 — 2026-06 추가
+# ════════════════════════════════════════════════════════════════
+
+# vla-ship: minum에서 실행 — 코드+.pt soda 배포 + 서버 재시작
+unalias vla-ship 2>/dev/null || true
+vla-ship() {
+    bash "${VLA_PROJECT_DIR}/scripts/deploy/ship.sh" "$@"
+}
+
+# vla-go: soda에서 실행 — 추론 서버 + 허브 한 번에 시작
+unalias vla-go 2>/dev/null || true
+vla-go() {
+    bash "${VLA_PROJECT_DIR}/scripts/run/go.sh" "$@"
+}
+
+# vla-log: soda 추론 서버 로그 실시간
+unalias vla-log 2>/dev/null || true
+vla-log() {
+    local target="${1:-server}"
+    case "$target" in
+        server|s2v2) tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
+        hub)         tail -f "${VLA_PROJECT_DIR}/logs/hub.log" ;;
+        *)           tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
+    esac
+}
+
+# vla-probe: 현재 추론 서버 헬스 + 마지막 예측 빠른 확인
+unalias vla-probe 2>/dev/null || true
+vla-probe() {
+    local url="${VLA_API_SERVER:-http://localhost:8001}"
+    echo "── health ─────────────────────────────"
+    curl -sf "$url/health" | python3 -m json.tool 2>/dev/null || echo "서버 응답 없음"
+    echo ""
+    echo "── recent ─────────────────────────────"
+    curl -sf "$url/recent" | python3 -m json.tool 2>/dev/null || echo "(없음)"
+}
+
+# vla-dryrun: STOP 로직 로컬 테스트 (5장 정적 이미지)
+unalias vla-dryrun 2>/dev/null || true
+vla-dryrun() {
+    python3 "${VLA_PROJECT_DIR}/scripts/dryrun_stop_logic.py"
+}
+
+# ════════════════════════════════════════════════════════════════
+# mona 통합 커맨드 — Stage2 v2 / Exp66 기준 (2026-06)
+# ════════════════════════════════════════════════════════════════
+#
+# 배포 (minum에서):
+#   mona-ship           코드 + .pt → soda 배포 + 서버 재시작
+#   mona-ship --dry-run 할 일만 출력
+#
+# 실행 (soda에서):
+#   mona-up             서버 + 허브 한 번에 시작 (= 한방 ON)
+#   mona-down           서버 + 허브 모두 종료
+#   mona-restart        mona-down + mona-up
+#   mona-log            추론 서버 로그 실시간
+#   mona-probe          /health + /recent 빠른 확인
+#   mona-dryrun         STOP 로직 정적 이미지 테스트
+#
+# minum 원격 제어 (minum에서 soda를 한방에):
+#   mona-remote-up      ssh soda "mona-up" 원격 실행
+#   mona-remote-down    ssh soda "mona-down" 원격 실행
+# ────────────────────────────────────────────────────────────────
+
+unalias mona-ship 2>/dev/null || true
+mona-ship() { bash "${VLA_PROJECT_DIR}/scripts/deploy/ship.sh" "$@"; }
+
+unalias mona-up 2>/dev/null || true
+mona-up() {
+    # 역할 자동 감지: soda(jetson role)면 로컬 실행, minum이면 원격 실행
+    if [ "${VLA_SERVER_ROLE:-unknown}" = "jetson" ] || \
+       [ "$(hostname 2>/dev/null)" = "fevers" ] || \
+       [ "$(hostname 2>/dev/null)" = "encroaches" ]; then
+        bash "${VLA_PROJECT_DIR}/scripts/run/go.sh" "$@"
+    else
+        # minum에서 호출 → soda에 원격 실행
+        echo "minum → soda mona-up 원격 실행..."
+        ssh soda@100.85.118.58 "source ~/MoNaVLA/.vla_aliases 2>/dev/null; bash ~/MoNaVLA/scripts/run/go.sh $*"
+    fi
+}
+
+unalias mona-down 2>/dev/null || true
+mona-down() {
+    if [ "${VLA_SERVER_ROLE:-unknown}" = "jetson" ] || \
+       [ "$(hostname 2>/dev/null)" = "fevers" ] || \
+       [ "$(hostname 2>/dev/null)" = "encroaches" ]; then
+        bash "${VLA_PROJECT_DIR}/scripts/run/go.sh" --stop
+    else
+        ssh soda@100.85.118.58 "bash ~/MoNaVLA/scripts/run/go.sh --stop"
+    fi
+}
+
+unalias mona-restart 2>/dev/null || true
+mona-restart() { mona-down; sleep 1; mona-up "$@"; }
+
+unalias mona-log 2>/dev/null || true
+mona-log() {
+    local target="${1:-server}"
+    case "$target" in
+        hub)  tail -f "${VLA_PROJECT_DIR}/logs/hub.log" ;;
+        *)    tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
+    esac
+}
+
+unalias mona-probe 2>/dev/null || true
+mona-probe() {
+    local url="${VLA_API_SERVER:-http://localhost:8001}"
+    echo "── health ──────────────────────────────────────"
+    curl -sf "$url/health" | python3 -m json.tool 2>/dev/null || echo "서버 응답 없음"
+    echo ""
+    echo "── recent ──────────────────────────────────────"
+    curl -sf "$url/recent" | python3 -m json.tool 2>/dev/null || echo "(없음)"
+}
+
+unalias mona-dryrun 2>/dev/null || true
+mona-dryrun() {
+    python3 "${VLA_PROJECT_DIR}/scripts/dryrun_stop_logic.py" "$@"
+}
+
+# minum → soda 원격 제어
+unalias mona-remote-up 2>/dev/null || true
+mona-remote-up() {
+    ssh soda@100.85.118.58 "bash ~/MoNaVLA/scripts/run/go.sh $*"
+}
+
+unalias mona-remote-down 2>/dev/null || true
+mona-remote-down() {
+    ssh soda@100.85.118.58 "bash ~/MoNaVLA/scripts/run/go.sh --stop"
+}
+
+# vla-* 하위호환 (기존 레거시 유지)
+vla-ship()   { mona-ship "$@"; }
+vla-go()     { mona-up "$@"; }
+vla-log()    { mona-log "$@"; }
+vla-probe()  { mona-probe "$@"; }
+vla-dryrun() { mona-dryrun "$@"; }
+
+# ── mona-sync — Research Status 동기화 ───────────────────────────
+unalias mona-sync 2>/dev/null || true
+mona-sync() {
+    local PY
+    if [[ -x "${VLA_PROJECT_DIR}/.venv/bin/python3" ]]; then
+        PY="${VLA_PROJECT_DIR}/.venv/bin/python3"
+    else
+        PY="$(which python3)"
+    fi
+    "$PY" "${VLA_PROJECT_DIR}/scripts/utils/sync_research.py" "$@"
+}
+alias vla-sync='mona-sync'
+
+# ── mona-help 패치 (새 커맨드 추가) ─────────────────────────────
+unalias mona-help 2>/dev/null || true
+mona-help() {
+    echo "══════════════════ MoNaVLA 커맨드 ══════════════════"
+    echo ""
+    echo "■ 배포 (minum에서):"
+    echo "  mona-ship              코드+.pt → soda + 서버 재시작"
+    echo "  mona-ship --code-only  .pt 전송 없이 코드만"
+    echo "  mona-ship --ckpt-only  git 없이 .pt만"
+    echo "  mona-ship --no-restart 파일만 전송, 서버 유지"
+    echo "  mona-ship --dry-run    실제 전송 없이 미리보기"
+    echo ""
+    echo "■ 실행 (soda에서 / minum에서 원격):"
+    echo "  mona-up                서버 + 대시보드 + 허브 전부 ON ★"
+    echo "  mona-up --server       추론 서버만 (포트 8001)"
+    echo "  mona-up --dashboard    추론 대시보드만 (포트 7865) ← 주 제어 UI"
+    echo "  mona-up --hub          허브만 (포트 7860)"
+    echo "  mona-up --status       실행 중 서비스 확인"
+    echo "  mona-down              서버 + 허브 모두 종료"
+    echo "  mona-restart           재시작 (down + up)"
+    echo "  mona-remote-up         minum→soda 원격 up"
+    echo "  mona-remote-down       minum→soda 원격 down"
+    echo ""
+    echo "■ 모니터링:"
+    echo "  mona-probe             /health + /recent 빠른 확인"
+    echo "  mona-log               추론 서버 로그 실시간"
+    echo "  mona-log hub           허브 로그"
+    echo "  mona-dryrun            STOP 로직 정적 이미지 테스트"
+    echo "  mona-status            시스템 전체 상태"
+    echo ""
+    echo "■ 연구 기록 동기화:"
+    echo "  mona-sync              README + index.html 자동 동기화"
+    echo "  mona-sync --diff       변경사항 미리보기"
+    echo "  mona-sync --dry-run    파일 수정 없이 로그만"
+    echo "  mona-sync --status     현재 SOTA 요약"
+    echo "  mona-sync --add-exp    새 실험 대화형 추가"
+    echo "  mona-sync --propose-menemory  menemory 업데이트 제안"
+    echo ""
+    echo "■ 학습/분석:"
+    echo "  mona-train-log         학습 로그 실시간"
+    echo "  mona-train-stop        학습 중단"
+    echo "  mona-doctor            환경 진단"
+    echo ""
+    echo "■ 오늘 실기 순서:"
+    echo "  [minum] mona-dryrun    → STOP 로직 검증"
+    echo "  [minum] mona-ship      → soda 배포 + 서버 시작"
+    echo "  [soda]  mona-up --dashboard → 대시보드만 추가 시작"
+    echo "  [브라우저] http://100.85.118.58:7860"
+    echo "════════════════════════════════════════════════════"
+}
+alias vla-help='mona-help'
+

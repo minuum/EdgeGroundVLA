@@ -1,0 +1,121 @@
+{
+  "exp46": [
+    {
+      "frame_idx": 9,
+      "episode": "episode_260408_123008_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+        "has_bbox": true,
+        "iou": 0.1375,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "prompt": "<image> Is there a gray basket or bin in this image? Answer yes or no:",
+        "answer": "yes. The image shows a gray bin or basket in a room with a",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "A gray trash can is placed on the floor in front of a white wall. The trash can has a wire coming out of it, and there is a power cord plugged into it.",
+        "mention": true
+      }
+    },
+    {
+      "frame_idx": 9,
+      "episode": "episode_260408_124119_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+        "has_bbox": true,
+        "iou": 0.1453,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "prompt": "<image> Is there a gray basket or bin in this image? Answer yes or no:",
+        "answer": "yes. The image shows a gray bin or basket in a room with a",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "A gray air purifier is placed on the floor next to a wall. The air purifier has a cord attached to it, and it is connected to a power outlet. There is also a power cord on the left side of the room.",
+        "mention": false
+      }
+    },
+    {
+      "frame_idx": 1,
+      "episode": "episode_260408_124918_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+        "has_bbox": true,
+        "iou": 0.0645,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "prompt": "<image> Is there a gray basket or bin in this image? Answer yes or no:",
+        "answer": "no",
+        "yes": false,
+        "mention": false
+      },
+      "caption": {
+        "text": "The image features a small, square, gray air conditioning unit sitting on a tiled floor in a room with a white wall. The air conditioning is located near the center of the room, and there are two windows visible in the background. There are two birds visible in different parts of the image, one",
+        "mention": false
+      }
+    }
+  ],
+  "exp55": [
+    {
+      "frame_idx": 25,
+      "episode": "episode_260521_204745_free_center__basket_left_extreme__core__fixed_center.h5",
+      "path_type": "free_center",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+        "has_bbox": true,
+        "iou": 0.1128,
+        "hit": false,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "prompt": "<image> Is there a gray basket or bin in this image? Answer yes or no:",
+        "answer": "yes. The image shows a gray bin or basket in a room with a",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "A white plastic trash can is placed on the floor in front of a white wall. The trash can has a black lid and is positioned in the middle of the room. There is also a power cord plugged into the wall.",
+        "mention": true
+      }
+    },
+    {
+      "frame_idx": 15,
+      "episode": "episode_260521_205132_free_center__basket_right_extreme__core__fixed_center.h5",
+      "path_type": "free_center",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+        "has_bbox": true,
+        "iou": 0.6191,
+        "hit": true,
+        "n_boxes": 1
+      },
+      "vqa": {
+        "prompt": "<image> Is there a gray basket or bin in this image? Answer yes or no:",
+        "answer": "yes. The image shows a gray bin or basket in a room with a",
+        "yes": true,
+        "mention": true
+      },
+      "caption": {
+        "text": "A gray trash can is located on the sidewalk next to a white wall. The trash can has a lid and is located in front of a white building. There is also a power cord plugged into the wall.",
+        "mention": true
+      }
+    }
+  ]
+}

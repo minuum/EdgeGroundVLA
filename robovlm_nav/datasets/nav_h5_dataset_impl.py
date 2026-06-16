@@ -484,9 +484,32 @@ class MobileVLAH5Dataset(Dataset):
 
         return f"<grounding>Instruction: {random.choice(variations)}. Action:"
 
+    # Exp47 synthetic instructions — 9-way path type
+    SYNTHETIC_V47_INSTRUCTIONS = {
+        "center_straight": "Drive forward along the center path to the basket ahead.",
+        "center_left":     "Move toward the basket by swinging left from the center.",
+        "center_right":    "Approach the basket by gradually turning right while moving forward.",
+        "left_straight":   "Approach the basket on your left by first turning to face it, then going straight.",
+        "left_left":       "Navigate to the gray basket on the left side with a left-curving path.",
+        "left_right":      "Navigate to the left-side basket by curving to the right.",
+        "right_straight":  "Approach the basket on your right by first turning to face it, then going straight.",
+        "right_left":      "Navigate to the right-side basket by curving to the left.",
+        "right_right":     "Navigate to the gray basket on the right side with a right-curving path.",
+    }
+
     def _get_path_type_instruction(self, ep_file_path):
-        """에피소드 파일명의 path_type(left/right/straight)을 감지해 direction-specific instruction 반환."""
+        """에피소드 파일명의 path_type을 감지해 direction-specific instruction 반환."""
         stem = Path(ep_file_path).stem
+
+        # synthetic_v47: 9-way 세분화 (Exp48+)
+        if self.instruction_preset == "synthetic_v47":
+            for pt_key in self.SYNTHETIC_V47_INSTRUCTIONS:
+                if pt_key + "_path" in stem or pt_key.replace("_", "_") + "_path" in stem:
+                    instr = self.SYNTHETIC_V47_INSTRUCTIONS[pt_key]
+                    return f"<grounding>{instr}"
+            return f"<grounding>Navigate to the gray basket."
+
+        # 기존 3-way 로직
         if "left_path" in stem:
             key = "left"
         elif "right_path" in stem:
@@ -495,13 +518,12 @@ class MobileVLAH5Dataset(Dataset):
             key = "straight"
         else:
             key = "default"
-            
-        # [V5 BugFix] instruction_override 가 있으면 해당 값 사용, 없으면 하드코딩된 PATH_TYPE_INSTRUCTIONS 사용
+
         if self.instruction_override is not None and key in self.instruction_override:
             variations = self.instruction_override[key]
         else:
             variations = self.PATH_TYPE_INSTRUCTIONS[key]
-            
+
         return f"<grounding>Instruction: {random.choice(variations)}. Action:"
 
     def __getitem__(self, idx):

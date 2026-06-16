@@ -1,0 +1,181 @@
+{
+  "model": "exp47",
+  "overall_acc": 0.9866920152091255,
+  "best_val_acc": 0.9866920113563538,
+  "n_train": 2100,
+  "n_val": 526,
+  "d_in": 3104,
+  "window": 8,
+  "vis_dim": 1024,
+  "instr_dim": 2048,
+  "instr_map": {
+    "center_straight": "Drive forward along the center path to the basket ahead.",
+    "center_left": "Move toward the basket by swinging left from the center.",
+    "center_right": "Approach the basket by gradually turning right while moving forward.",
+    "left_straight": "Approach the basket on your left by first turning to face it, then going straight.",
+    "left_left": "Navigate to the gray basket on the left side with a left-curving path.",
+    "left_right": "Navigate to the left-side basket by curving to the right.",
+    "right_straight": "Approach the basket on your right by first turning to face it, then going straight.",
+    "right_left": "Navigate to the right-side basket by curving to the left.",
+    "right_right": "Navigate to the gray basket on the right side with a right-curving path."
+  },
+  "sensitivity": {
+    "n_tested": 10,
+    "n_changed": 8,
+    "change_rate": 0.8,
+    "details": [
+      {
+        "path_type": "right_left",
+        "opposite": "right_right",
+        "pred_correct_instr": "FWD+L",
+        "pred_wrong_instr": "FWD+R",
+        "changed": true
+      },
+      {
+        "path_type": "right_left",
+        "opposite": "right_right",
+        "pred_correct_instr": "FWD+L",
+        "pred_wrong_instr": "FWD+R",
+        "changed": true
+      },
+      {
+        "path_type": "left_right",
+        "opposite": "left_left",
+        "pred_correct_instr": "FWD+R",
+        "pred_wrong_instr": "FWD+L",
+        "changed": true
+      },
+      {
+        "path_type": "left_straight",
+        "opposite": "right_straight",
+        "pred_correct_instr": "ROT_R",
+        "pred_wrong_instr": "ROT_R",
+        "changed": false
+      },
+      {
+        "path_type": "center_straight",
+        "opposite": "center_left",
+        "pred_correct_instr": "FORWARD",
+        "pred_wrong_instr": "LEFT",
+        "changed": true
+      },
+      {
+        "path_type": "right_left",
+        "opposite": "right_right",
+        "pred_correct_instr": "FWD+L",
+        "pred_wrong_instr": "FWD+R",
+        "changed": true
+      },
+      {
+        "path_type": "center_right",
+        "opposite": "center_left",
+        "pred_correct_instr": "RIGHT",
+        "pred_wrong_instr": "LEFT",
+        "changed": true
+      },
+      {
+        "path_type": "center_right",
+        "opposite": "center_left",
+        "pred_correct_instr": "RIGHT",
+        "pred_wrong_instr": "LEFT",
+        "changed": true
+      },
+      {
+        "path_type": "right_straight",
+        "opposite": "left_straight",
+        "pred_correct_instr": "ROT_L",
+        "pred_wrong_instr": "ROT_L",
+        "changed": false
+      },
+      {
+        "path_type": "left_right",
+        "opposite": "left_left",
+        "pred_correct_instr": "FWD+R",
+        "pred_wrong_instr": "FWD+L",
+        "changed": true
+      }
+    ]
+  },
+  "confusion": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      401,
+      0,
+      0,
+      0,
+      3,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      9,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      10,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      0,
+      0,
+      49,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      44,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      4,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2
+    ]
+  ]
+}

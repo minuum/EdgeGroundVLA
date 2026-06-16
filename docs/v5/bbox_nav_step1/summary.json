@@ -1,15 +1,15 @@
 {
-  "overall_pm_mlp": 0.5504761934280396,
-  "overall_pm_rule": 0.3504761904761905,
+  "overall_pm_mlp": 0.7447618842124939,
+  "overall_pm_rule": 0.4114285714285714,
   "total_train": 2101,
   "total_test": 525,
   "pm_by_path": {
     "center_straight": {
-      "correct": 50,
+      "correct": 56,
       "total": 56
     },
     "center_left": {
-      "correct": 22,
+      "correct": 24,
       "total": 54
     },
     "center_right": {
@@ -17,27 +17,27 @@
       "total": 54
     },
     "left_straight": {
-      "correct": 39,
+      "correct": 68,
       "total": 72
     },
     "left_left": {
-      "correct": 30,
+      "correct": 40,
       "total": 55
     },
     "left_right": {
-      "correct": 16,
+      "correct": 39,
       "total": 57
     },
     "right_straight": {
-      "correct": 42,
+      "correct": 68,
       "total": 72
     },
     "right_left": {
-      "correct": 40,
+      "correct": 39,
       "total": 57
     },
     "right_right": {
-      "correct": 26,
+      "correct": 33,
       "total": 48
     }
   }

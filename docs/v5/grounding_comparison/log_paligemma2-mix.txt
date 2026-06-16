@@ -1,0 +1,280 @@
+
+================================================================================
+ 🔍 [Verbose Analysis] Model: paligemma2-mix
+================================================================================
+configs/mobile_vla_pretrained.json
+--------------- model configs ---------------
+{'robovlm_name': 'RoboKosMos', 'exp_name': 'mobile_vla_pretrained_vlm', 'parent': None, 'task_name': 'mobile_vla_transfer_learning', 'model': 'kosmos', 'model_url': 'https://huggingface.co/microsoft/kosmos-2-patch14-224', 'pretrained_vlm_path': 'pretrained_ckpts/checkpoints/kosmos_ph_google-robot-post-train.pt', 'load_vlm_only': True, 'seq_len': 1, 'image_size': 224, 'image_mean': [0.48145466, 0.4578275, 0.40821073], 'image_std': [0.26862954, 0.26130258, 0.27577711], 'window_size': 8, 'fwd_pred_next_n': 5, 'arm_gripper_loss_ratio': 0.0, 'cap_loss_ratio': 0.0, 'fwd_loss_ratio': 0, 'seed': 123, 'batch_size': 1, 'num_workers': 2, 'data_scale': 1, 'optimizer': 'adamw', 'learning_rate': 0.0001, 'min_lr_scale': 0.001, 'weight_decay': 0.01, 'warmup_epochs': 0.1, 'warmup_steps': 0, 'warmup_ratio': None, 'use_hand_rgb': False, 'use_time_causal_attn': False, 'use_mim_obs_loss': False, 'use_pixel_loss': False, 'use_obs_queries': True, 'use_vision_resampler': False, 'vision_masked_ratio': 0.9, 'use_tube_mask': False, 'output_root': 'runs/mobile_vla_pretrained', 'log_root': 'runs/mobile_vla_pretrained', 'cache_root': 'runs/cache', 'model_load_path': None, 'model_load_source': 'torch', 'resume': None, 'model_path': 'pretrained_ckpts/checkpoints/kosmos_ph_google-robot-post-train.pt', 'model_config': None, 'gpus': 1, 'num_nodes': 1, 'train_setup': {'precision': '16-mixed', 'predict_action': True, 'predict_forward': False, 'predict_forward_hand': False, 'predict_caption': False, 'train_vision': False, 'bits': -1, 'freeze_mm_mlp_adapter': False, 'freeze_backbone': True, 'freeze_resampler': False, 'tune_mm_mlp_adapter': False, 'mm_use_im_start_end': False, 'mm_use_im_patch_token': False, 'gradient_checkpointing': True, 'lora_enable': False, 'mm_projector_lr': 0.0001, 'lora_r': 16, 'lora_alpha': 32, 'lora_dropout': 0.1, 'lora_bias': 'none', 'train_text_embedding': False, 'train_decoder_layers': -1}, 'vision_resampler': {'vis_dim': 1024, 'depth': 8, 'dim_head': 64, 'heads': 8, 'num_latents': 64}, 'act_encoder': None, 'trainer_type': 'MobileVLATrainer', 'act_head': {'type': 'MobileVLALSTMDecoder', 'hidden_size': 512, 'action_dim': 2, 'down_sample': 'none', 'latent': 1, 'fwd_pred_next_n': 5, 'window_size': 8, 'action_space': 'continuous', 'with_history': True, 'history_type': 'post'}, 'fwd_head': None, 'tokenizer': {'type': 'AutoProcessor', 'pretrained_model_name_or_path': 'microsoft/kosmos-2-patch14-224', 'tokenizer_type': 'kosmos', 'max_text_len': 256, 'additional_special_tokens': None}, 'vlm': {'type': 'Kosmos2ForConditionalGeneration', 'name': 'kosmos', 'pretrained_model_name_or_path': 'microsoft/kosmos-2-patch14-224'}, 'trainer': {'accelerator': 'gpu', 'strategy': 'auto', 'precision': '16-mixed', 'logger': ['tensorboard', 'csv'], 'gradient_clip_val': 1.0, 'use_distributed_sampler': False, 'log_every_n_steps': 5, 'max_epochs': 10, 'val_check_interval': None, 'check_val_every_n_epoch': 1, 'max_steps': -1, 'accumulate_grad_batches': 8}, 'train_dataset': {'type': 'MobileVLAH5Dataset', 'data_dir': '/home/billy/25-1kp/vla/ROS_action/mobile_vla_dataset', 'episode_pattern': 'episode_20251*.h5', 'shift_first': False, 'model_name': 'kosmos', 'rgb_pad': 10, 'train_split': 0.8}, 'val_dataset': {'type': 'MobileVLAH5Dataset', 'data_dir': '/home/billy/25-1kp/vla/ROS_action/mobile_vla_dataset', 'episode_pattern': 'episode_20251*.h5', 'model_name': 'kosmos', 'train_split': 0.8, 'is_validation': True}, 'norm_action': True, 'norm_min': -1.0, 'norm_max': 1.0}
+fwd next n: 5
+🔧 Forcing vocab_size to 65037 for model: microsoft/kosmos-2-patch14-224
+Loading weights:   0%|          | 0/885 [00:00<?, ?it/s]Loading weights: 100%|██████████| 885/885 [00:00<00:00, 10817.34it/s]
+/home/minum/26CS/MoNaVLA/robovlms/model/backbone/base_backbone.py:1457: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with amp.autocast(enabled=False):
+🔧 Resizing token embeddings to 65037 for checkpoint compatibility...
+{'act_head.velocities.mlp.2.weight', 'act_head.rnn.bias_hh_l0', 'act_head.rnn.weight_ih_l0', 'act_head.rnn.bias_hh_l3', 'act_head.velocities.mlp.2.bias', 'act_head.velocities.mlp.4.bias', 'act_head.rnn.bias_ih_l1', 'act_head.velocities.mlp.4.weight', 'act_head.rnn.weight_ih_l1', 'act_head.rnn.weight_hh_l0', 'act_head.rnn.bias_hh_l2', 'act_head.velocities.mlp.0.weight', 'act_head.rnn.bias_ih_l0', 'action_token', 'act_head.rnn.weight_ih_l3', 'act_head.velocities.mlp.0.bias', 'act_head.rnn.weight_hh_l2', 'act_head.rnn.bias_ih_l2', 'act_head.rnn.weight_ih_l2', 'act_head.rnn.weight_hh_l3', 'act_head.rnn.bias_hh_l1', 'act_head.rnn.weight_hh_l1', 'act_head.velocities.mlp.6.bias', 'act_head.velocities.mlp.6.weight', 'act_head.rnn.bias_ih_l3'}
+{'act_head.velocities.mlp.2.weight', 'act_head.rnn.bias_hh_l0', 'act_head.rnn.weight_ih_l0', 'act_head.rnn.bias_hh_l3', 'act_head.velocities.mlp.2.bias', 'act_head.velocities.mlp.4.bias', 'act_head.rnn.bias_ih_l1', 'act_head.velocities.mlp.4.weight', 'act_head.rnn.weight_ih_l1', 'act_head.rnn.weight_hh_l0', 'act_head.rnn.bias_hh_l2', 'act_head.velocities.mlp.0.weight', 'act_head.rnn.bias_ih_l0', 'action_token', 'act_head.rnn.weight_ih_l3', 'act_head.velocities.mlp.0.bias', 'act_head.rnn.weight_hh_l2', 'act_head.rnn.bias_ih_l2', 'act_head.rnn.weight_ih_l2', 'act_head.rnn.weight_hh_l3', 'act_head.rnn.bias_hh_l1', 'act_head.rnn.weight_hh_l1', 'act_head.velocities.mlp.6.bias', 'act_head.velocities.mlp.6.weight', 'act_head.rnn.bias_ih_l3'}
+KosMos Model Parameters: 12.74M
+
+🎬 [Sample 1/20] File: episode_260408_123008_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.000414 -0.001177  0.010077]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.000561 -0.001397  0.015213]
+   📊 Analysis: Difference Vector = [-0.000147  0.000219 -0.005136]
+   📈 Result: Mean Absolute Difference = 0.001865
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 2/20] File: episode_260408_124119_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.000805 -0.001009  0.017579]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.001573 -0.000337  0.018243]
+   📊 Analysis: Difference Vector = [-0.000768 -0.000672 -0.000664]
+   📈 Result: Mean Absolute Difference = 0.000724
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 3/20] File: episode_260408_124918_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002329 0.000297 0.018069]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003129 0.000807 0.017643]
+   📊 Analysis: Difference Vector = [-0.0008   -0.00051   0.000426]
+   📈 Result: Mean Absolute Difference = 0.000510
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 4/20] File: episode_260408_125849_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003649 0.001199 0.017209]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003944 0.001285 0.016944]
+   📊 Analysis: Difference Vector = [-2.94e-04 -8.60e-05  2.66e-04]
+   📈 Result: Mean Absolute Difference = 0.000169
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 5/20] File: episode_260408_130141_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.00364  0.001195 0.017062]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002816 0.001321 0.017319]
+   📊 Analysis: Difference Vector = [ 0.000824 -0.000126 -0.000256]
+   📈 Result: Mean Absolute Difference = 0.000342
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 6/20] File: episode_260408_152900_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002289 0.001414 0.018019]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002259 0.001662 0.018533]
+   📊 Analysis: Difference Vector = [ 2.90e-05 -2.49e-04 -5.14e-04]
+   📈 Result: Mean Absolute Difference = 0.000443
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 7/20] File: episode_260408_153332_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002284 0.001327 0.018325]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002352 0.000899 0.018495]
+   📊 Analysis: Difference Vector = [-6.80e-05  4.27e-04 -1.70e-04]
+   📈 Result: Mean Absolute Difference = 0.000597
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 8/20] File: episode_260408_153550_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.00255  0.000548 0.01948 ]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.00204  0.000508 0.01993 ]
+   📊 Analysis: Difference Vector = [ 5.1e-04  4.1e-05 -4.5e-04]
+   📈 Result: Mean Absolute Difference = 0.000751
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 9/20] File: episode_260408_153834_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002614 0.000637 0.019477]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003518 0.000694 0.018417]
+   📊 Analysis: Difference Vector = [-9.04e-04 -5.70e-05  1.06e-03]
+   📈 Result: Mean Absolute Difference = 0.000436
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 10/20] File: episode_260408_153947_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003928 0.00097  0.017198]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.004172 0.001018 0.015978]
+   📊 Analysis: Difference Vector = [-2.440e-04 -4.900e-05  1.219e-03]
+   📈 Result: Mean Absolute Difference = 0.000503
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 11/20] File: episode_260408_154118_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.004553 0.000903 0.015077]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.004807 0.000773 0.014598]
+   📊 Analysis: Difference Vector = [-0.000254  0.000131  0.00048 ]
+   📈 Result: Mean Absolute Difference = 0.000577
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 12/20] File: episode_260408_154351_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.005302 0.000252 0.014817]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.005585 -0.000225  0.014983]
+   📊 Analysis: Difference Vector = [-0.000284  0.000477 -0.000166]
+   📈 Result: Mean Absolute Difference = 0.000397
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 13/20] File: episode_260408_154800_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.005466 -0.000487  0.015449]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.005481 -0.000545  0.016057]
+   📊 Analysis: Difference Vector = [-1.50e-05  5.80e-05 -6.08e-04]
+   📈 Result: Mean Absolute Difference = 0.000225
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 14/20] File: episode_260408_154841_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.005359 -0.00053   0.015883]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.004677 -0.000519  0.01571 ]
+   📊 Analysis: Difference Vector = [ 6.82e-04 -1.10e-05  1.73e-04]
+   📈 Result: Mean Absolute Difference = 0.000556
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 15/20] File: episode_260408_154937_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.003866 -0.000323  0.015883]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 3.1340e-03 -2.6000e-05  1.6233e-02]
+   📊 Analysis: Difference Vector = [ 0.000732 -0.000297 -0.000349]
+   📈 Result: Mean Absolute Difference = 0.000385
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 16/20] File: episode_260408_155049_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 3.4250e-03 -3.1000e-05  1.6523e-02]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003666 0.000265 0.016713]
+   📊 Analysis: Difference Vector = [-0.000241 -0.000297 -0.00019 ]
+   📈 Result: Mean Absolute Difference = 0.000339
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 17/20] File: episode_260408_164316_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003885 0.000774 0.01675 ]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003919 0.000826 0.016915]
+   📊 Analysis: Difference Vector = [-3.40e-05 -5.20e-05 -1.65e-04]
+   📈 Result: Mean Absolute Difference = 0.000407
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 18/20] File: episode_260408_164414_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.003829 -0.000234  0.016982]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.003174 -0.001242  0.017081]
+   📊 Analysis: Difference Vector = [ 6.550e-04  1.008e-03 -9.900e-05]
+   📈 Result: Mean Absolute Difference = 0.000505
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 19/20] File: episode_260408_164658_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [ 0.00309  -0.000522  0.016622]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.003033 0.000342 0.016661]
+   📊 Analysis: Difference Vector = [ 5.70e-05 -8.64e-04 -3.90e-05]
+   📈 Result: Mean Absolute Difference = 0.000380
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+🎬 [Sample 20/20] File: episode_260408_164821_target_center_straight_path__core__fixed_center.h5
+   🖼️  Image Input: (1280, 720) RGB (First frame of episode)
+   💬 Text Input: "Navigate around the obstacle on the left side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002933 0.000596 0.017067]
+   💬 Text Input: "Navigate around the obstacle on the right side"
+DEBUG: MobileVLALSTMDecoder forward input tok_seq shape: torch.Size([1, 1, 1, 2048])
+   🚀 Response Action: [0.002879 0.000649 0.01752 ]
+   📊 Analysis: Difference Vector = [ 5.40e-05 -5.30e-05 -4.54e-04]
+   📈 Result: Mean Absolute Difference = 0.000306
+   ⚠️  [No Grounding] 모델이 텍스트 변화에 무감각함 (비슷한 액션 출력).
+--------------------------------------------------
+
+================================================================================
+ ✅ Verbose Analysis Completed for paligemma2-mix
+================================================================================

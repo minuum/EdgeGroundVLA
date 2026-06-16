@@ -1,0 +1,27 @@
+{
+  "stats": {
+    "gray basket": {
+      "hit": 19,
+      "total": 20,
+      "rate": 95.0
+    },
+    "brown pot": {
+      "hit": 0,
+      "total": 20,
+      "rate": 0.0
+    },
+    "red ball": {
+      "hit": 0,
+      "total": 20,
+      "rate": 0.0
+    },
+    "person": {
+      "hit": 0,
+      "total": 20,
+      "rate": 0.0
+    }
+  },
+  "tp_rate": 95.0,
+  "fp_avg": 0.0,
+  "gap": 95.0
+}

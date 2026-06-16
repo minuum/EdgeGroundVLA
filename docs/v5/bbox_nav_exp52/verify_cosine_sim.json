@@ -1,0 +1,10 @@
+{
+  "feat_dim": 2048,
+  "instr_left": "Navigate to the basket on the left",
+  "instr_right": "Navigate to the basket on the right",
+  "instr_para": "Go to the container on the left side",
+  "cos_sim_different": 1.0,
+  "cos_sim_paraphrase": 1.0,
+  "gap": 0.0,
+  "verdict": "language_insensitive"
+}

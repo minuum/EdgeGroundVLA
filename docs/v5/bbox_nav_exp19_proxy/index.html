@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>Exp19: Step2 + Proxy Features</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }
+  body { font-family:'Noto Sans KR',-apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }
   h1 { font-size: 2rem; margin-bottom: 8px; }
   .sub { color: #94a3b8; margin-bottom: 24px; max-width: 940px; line-height: 1.6; }
   .back { color: #60a5fa; text-decoration: none; display: inline-block; margin-bottom: 16px; }
@@ -57,5 +60,54 @@
     area, center_error_x, abs_delta_cx, recent_bbox_consistency.<br>
     Split protocol과 backbone 용량은 Step 2와 동일하게 유지했습니다.
   </div>
+
+  <h2 style="margin-top:32px;">서버 배포 (2026-05-01)</h2>
+  <div class="diag" style="background:#172554; border-left-color:#22c55e;">
+    <strong>End-to-end collapse 우회 — Exp19 Proxy를 별도 FastAPI 서버로 배포.</strong><br>
+    Exp35/36/38 평가에서 end-to-end가 100% FORWARD collapse 확인된 후, decomposition baseline을 메인 운영선으로 격상.<br>
+    구성: Pure HF Kosmos-2 grounding → bbox+image MLP (Exp19 proxy features) → 8-class action.
+  </div>
+
+  <h3>가중치 (full 150ep, 2026-05-01)</h3>
+  <table>
+    <tr><th>항목</th><th>값</th></tr>
+    <tr><td>Dataset</td><td><code>docs/v5/bbox_nav_step1/bbox_dataset_full.json</code> (150ep, 2626 frames)</td></tr>
+    <tr><td>Train / Test windows</td><td>2101 / 525</td></tr>
+    <tr><td>Best test_acc</td><td><strong>76.4%</strong> (220 epoch best)</td></tr>
+    <tr><td>Weights</td><td><code>docs/v5/bbox_nav_exp19_proxy/exp19_proxy_mlp.pt</code> (450KB)</td></tr>
+  </table>
+
+  <h3>실행 (minum 서버)</h3>
+  <pre style="background:#0b1220; padding:14px; border-radius:6px; overflow-x:auto;"><code>source .venv/bin/activate
+export VLA_API_KEY=&lt;your-key&gt;
+export VLA_PROXY_DATASET_FILE=$PWD/docs/v5/bbox_nav_step1/bbox_dataset_full.json
+export VLA_PROXY_DEVICE=cuda          # MLP는 cpu도 충분 (~1ms)
+export VLA_PROXY_GROUNDING_DEVICE=cuda  # GPU 권장 (CPU는 frame당 ~21초)
+python3 robovlm_nav/serve/proxy_inference_server.py --port 8001</code></pre>
+
+  <h3>API</h3>
+  <table>
+    <tr><th>Endpoint</th><th>설명</th></tr>
+    <tr><td><code>GET /health</code></td><td>모델 로드 / test_acc / device 상태</td></tr>
+    <tr><td><code>POST /predict</code></td><td>X-API-Key 헤더 필요. 입력 <code>{image: b64, instruction: str}</code> → 출력 <code>{action, action_3d, predicted_class, predicted_label, bbox, grounding_caption, ...}</code></td></tr>
+    <tr><td><code>POST /reset</code></td><td>history 초기화 (에피소드 시작 시)</td></tr>
+  </table>
+
+  <h3>Smoke Test 결과 (frame 0/9/17, center_left 에피소드)</h3>
+  <table>
+    <tr><th>Frame</th><th>Predicted</th><th>BBox entity</th><th>Caption</th></tr>
+    <tr><td>0 (start)</td><td>RIGHT</td><td>caption:center fallback</td><td>"the center of the image, with the white wall..."</td></tr>
+    <tr><td>9 (mid)</td><td>FORWARD</td><td>"the gray air conditioner" (basket 오인식)</td><td>"the end of the room, and the gray air conditioner..."</td></tr>
+    <tr><td>17 (end)</td><td>FORWARD</td><td>large white wall (is_basket: false)</td><td>"the end of a hallway, with a white wall..."</td></tr>
+  </table>
+  <p style="color:#94a3b8; margin-top:8px;">
+    클래스 다양성 확인: {FORWARD, RIGHT} → end-to-end Exp35/36/38의 100% FORWARD collapse와 다름.
+    Pure HF grounding이 회색 바스켓을 “air conditioner”로 부르는 건 알려진 recognition 33% 이슈
+    (<code>RECOGNITION_PROOF_RESULT_20260428</code>) — 방향 신호(cx, cy, area)는 정상.
+  </p>
+
+  <h3>두 서버 호환</h3>
+  <p>billy (<code>/home/billy/25-1kp/MoNaVLA/ROS_action/...</code>) ↔ minum (<code>/home/minum/minum/26CS/MoNa-pi/...</code>) 자동 resolver 추가.
+  <code>VLA_PROXY_DATA_DIR</code> 환경변수로 강제 가능.</p>
 </body>
 </html>

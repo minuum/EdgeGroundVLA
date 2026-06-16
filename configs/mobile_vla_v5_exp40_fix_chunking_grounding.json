@@ -1,0 +1,49 @@
+{
+    "_comment": "V5 Exp40: Exp39 fix + Grounding Aux. Fixed the [4, 10] shape mismatch in trainer and synchronized num_classes=8. Added grounding_aux for better basket localization.",
+    "parent": "configs/mobile_vla_v5_exp39_exp25_last4_lora.json",
+    "exp_name": "v5-exp40-fix-chunking-grounding",
+    "task_name": "mobile_vla_v5_exp40",
+    "resume": "/home/minum/26CS/MoNaVLA/runs/v5_nav/kosmos/mobile_vla_v5_exp40/2026-05-03/v5-exp40-fix-chunking-grounding/last.ckpt",
+
+    "fwd_pred_next_n": 1,
+    "window_size": 8,
+    "num_classes": 8,
+
+    "trainer": {
+        "max_epochs": 20,
+        "check_val_every_n_epoch": 1,
+        "precision": "16-mixed"
+    },
+
+    "grounding_aux": {
+        "enabled": true,
+        "truth_path": "/home/minum/26CS/MoNaVLA/docs/v5/bbox_truth_mini.json",
+        "partial_weight": 0.5,
+        "lambda_bbox": 0.1,
+        "lambda_coarse": 0.1,
+        "bbox_loss": "smooth_l1",
+        "dropout": 0.1,
+        "loss_balance_mode": "learned",
+        "loss_balance_normalize": true,
+        "loss_balance_ema_momentum": 0.98,
+        "loss_balance_min_share": 0.10,
+        "initial_task_weights": {
+            "action": 0.70,
+            "bbox": 0.15,
+            "coarse": 0.15
+        }
+    },
+
+    "train_dataset": {
+        "num_classes": 8,
+        "window_size": 8,
+        "fwd_pred_next_n": 1,
+        "grounding_prefix": true
+    },
+    "val_dataset": {
+        "num_classes": 8,
+        "window_size": 8,
+        "fwd_pred_next_n": 1,
+        "grounding_prefix": true
+    }
+}

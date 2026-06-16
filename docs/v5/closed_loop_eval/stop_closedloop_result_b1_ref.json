@@ -1,0 +1,35 @@
+{
+  "mlp": "abl_b1_mlp.pt",
+  "rule": {
+    "th_area": 0.5,
+    "th_cx": 0.3,
+    "W": 5,
+    "min_steps": 0
+  },
+  "cells": {
+    "raw_off": {
+      "success_rate": 0.6875,
+      "mean_fpe": 0.08154376170032526,
+      "mean_tld": 0.9977486223651469,
+      "n": 32
+    },
+    "raw_on": {
+      "success_rate": 0.34375,
+      "mean_fpe": 0.1963786350126115,
+      "mean_tld": 0.924518300298375,
+      "n": 32
+    },
+    "synth_off": {
+      "success_rate": 0.3125,
+      "mean_fpe": 0.20055872319995086,
+      "mean_tld": 1.0805700053429295,
+      "n": 32
+    },
+    "synth_on": {
+      "success_rate": 0.6875,
+      "mean_fpe": 0.08139404628396296,
+      "mean_tld": 0.9976336880605603,
+      "n": 32
+    }
+  }
+}

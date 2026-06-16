@@ -1,0 +1,461 @@
+{
+  "center_straight": [
+    {
+      "rank": 1,
+      "prompt": "Drive forward along the center path to the basket ahead.",
+      "disc_score": -0.9638,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4819
+    },
+    {
+      "rank": 2,
+      "prompt": "Move directly forward to the basket at the end of the corridor.",
+      "disc_score": -0.9661,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4831
+    },
+    {
+      "rank": 3,
+      "prompt": "Move straight toward the gray basket in the center of the hallway.",
+      "disc_score": -0.9667,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4834
+    },
+    {
+      "rank": 4,
+      "prompt": "Proceed straight to the gray basket in front without turning.",
+      "disc_score": -0.9677,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4838
+    },
+    {
+      "rank": 5,
+      "prompt": "Go straight to reach the basket positioned directly in front.",
+      "disc_score": -0.9703,
+      "grounding_rate": null,
+      "combined_score": -0.9703
+    },
+    {
+      "rank": 6,
+      "prompt": "Navigate straight forward to the basket directly ahead of you.",
+      "disc_score": -0.9708,
+      "grounding_rate": null,
+      "combined_score": -0.9708
+    },
+    {
+      "rank": 7,
+      "prompt": "Navigate to the gray basket ahead by going straight.",
+      "disc_score": -0.9714,
+      "grounding_rate": null,
+      "combined_score": -0.9714
+    }
+  ],
+  "center_left": [
+    {
+      "rank": 1,
+      "prompt": "Move toward the basket by swinging left from the center.",
+      "disc_score": -0.9625,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4812
+    },
+    {
+      "rank": 2,
+      "prompt": "Approach the basket by gradually turning left while moving forward.",
+      "disc_score": -0.9625,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4813
+    },
+    {
+      "rank": 3,
+      "prompt": "Drive forward with a left curve to reach the basket ahead.",
+      "disc_score": -0.9661,
+      "grounding_rate": 0.0,
+      "combined_score": -0.483
+    },
+    {
+      "rank": 4,
+      "prompt": "Navigate to the gray basket ahead, taking a left-curving path.",
+      "disc_score": -0.9701,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4851
+    },
+    {
+      "rank": 5,
+      "prompt": "Move forward and veer left to reach the basket in front.",
+      "disc_score": -0.9718,
+      "grounding_rate": null,
+      "combined_score": -0.9718
+    },
+    {
+      "rank": 6,
+      "prompt": "Navigate to the basket ahead by curving to the left.",
+      "disc_score": -0.9729,
+      "grounding_rate": null,
+      "combined_score": -0.9729
+    },
+    {
+      "rank": 7,
+      "prompt": "Go to the basket in front by bearing left as you advance.",
+      "disc_score": -0.9766,
+      "grounding_rate": null,
+      "combined_score": -0.9766
+    }
+  ],
+  "center_right": [
+    {
+      "rank": 1,
+      "prompt": "Approach the basket by gradually turning right while moving forward.",
+      "disc_score": -0.9623,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4811
+    },
+    {
+      "rank": 2,
+      "prompt": "Move toward the basket by swinging right from the center.",
+      "disc_score": -0.9634,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4817
+    },
+    {
+      "rank": 3,
+      "prompt": "Drive forward with a right curve to reach the basket ahead.",
+      "disc_score": -0.9669,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4834
+    },
+    {
+      "rank": 4,
+      "prompt": "Navigate to the gray basket ahead, taking a right-curving path.",
+      "disc_score": -0.9698,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4849
+    },
+    {
+      "rank": 5,
+      "prompt": "Move forward and veer right to reach the basket in front.",
+      "disc_score": -0.9714,
+      "grounding_rate": null,
+      "combined_score": -0.9714
+    },
+    {
+      "rank": 6,
+      "prompt": "Navigate to the basket ahead by curving to the right.",
+      "disc_score": -0.9729,
+      "grounding_rate": null,
+      "combined_score": -0.9729
+    },
+    {
+      "rank": 7,
+      "prompt": "Go to the basket in front by bearing right as you advance.",
+      "disc_score": -0.9766,
+      "grounding_rate": null,
+      "combined_score": -0.9766
+    }
+  ],
+  "left_straight": [
+    {
+      "rank": 1,
+      "prompt": "Approach the basket on your left by first turning to face it, then going straight.",
+      "disc_score": -0.9652,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4826
+    },
+    {
+      "rank": 2,
+      "prompt": "The basket is ahead and to the left. Correct your heading and go straight.",
+      "disc_score": -0.9667,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4834
+    },
+    {
+      "rank": 3,
+      "prompt": "Navigate straight to the basket that is currently on your left side.",
+      "disc_score": -0.9676,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4838
+    },
+    {
+      "rank": 4,
+      "prompt": "Navigate to the gray basket on your left by adjusting right then going straight.",
+      "disc_score": -0.9707,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4854
+    },
+    {
+      "rank": 5,
+      "prompt": "Move to the gray basket on the left side of the room straight ahead.",
+      "disc_score": -0.9734,
+      "grounding_rate": null,
+      "combined_score": -0.9734
+    },
+    {
+      "rank": 6,
+      "prompt": "The basket is on the left side. Rotate slightly right and drive straight to it.",
+      "disc_score": -0.9739,
+      "grounding_rate": null,
+      "combined_score": -0.9739
+    },
+    {
+      "rank": 7,
+      "prompt": "The basket is to your left. Align yourself and navigate straight to it.",
+      "disc_score": -0.9756,
+      "grounding_rate": null,
+      "combined_score": -0.9756
+    }
+  ],
+  "left_left": [
+    {
+      "rank": 1,
+      "prompt": "Navigate to the gray basket on the left side with a left-curving path.",
+      "disc_score": -0.964,
+      "grounding_rate": 0.0,
+      "combined_score": -0.482
+    },
+    {
+      "rank": 2,
+      "prompt": "Navigate to the basket on your left by curving further to the left.",
+      "disc_score": -0.9718,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4859
+    },
+    {
+      "rank": 3,
+      "prompt": "The basket is on your left. Approach it by continuing leftward.",
+      "disc_score": -0.9739,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4869
+    },
+    {
+      "rank": 4,
+      "prompt": "Move left and forward to reach the gray basket on the left side.",
+      "disc_score": -0.9749,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4874
+    },
+    {
+      "rank": 5,
+      "prompt": "Go to the basket on your left by moving diagonally left and forward.",
+      "disc_score": -0.9758,
+      "grounding_rate": null,
+      "combined_score": -0.9758
+    },
+    {
+      "rank": 6,
+      "prompt": "Move forward while bearing left to navigate to the basket on the left.",
+      "disc_score": -0.9761,
+      "grounding_rate": null,
+      "combined_score": -0.9761
+    },
+    {
+      "rank": 7,
+      "prompt": "The basket is to your left. Navigate there by moving further left.",
+      "disc_score": -0.9772,
+      "grounding_rate": null,
+      "combined_score": -0.9772
+    }
+  ],
+  "left_right": [
+    {
+      "rank": 1,
+      "prompt": "Navigate to the left-side basket by curving to the right.",
+      "disc_score": -0.968,
+      "grounding_rate": 0.0,
+      "combined_score": -0.484
+    },
+    {
+      "rank": 2,
+      "prompt": "Navigate to the gray basket on the left by taking a right arc.",
+      "disc_score": -0.9702,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4851
+    },
+    {
+      "rank": 3,
+      "prompt": "Approach the basket on the left side by curving right to meet it.",
+      "disc_score": -0.9706,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4853
+    },
+    {
+      "rank": 4,
+      "prompt": "The basket is on your left. Swing right to approach it from the side.",
+      "disc_score": -0.9742,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4871
+    },
+    {
+      "rank": 5,
+      "prompt": "Go to the basket on your left, approaching from the right side.",
+      "disc_score": -0.9752,
+      "grounding_rate": null,
+      "combined_score": -0.9752
+    },
+    {
+      "rank": 6,
+      "prompt": "Move to the basket on your left by first going right then turning toward it.",
+      "disc_score": -0.9753,
+      "grounding_rate": null,
+      "combined_score": -0.9753
+    },
+    {
+      "rank": 7,
+      "prompt": "The basket is to your left. Navigate there by swinging to the right.",
+      "disc_score": -0.9778,
+      "grounding_rate": null,
+      "combined_score": -0.9778
+    }
+  ],
+  "right_straight": [
+    {
+      "rank": 1,
+      "prompt": "Approach the basket on your right by first turning to face it, then going straight.",
+      "disc_score": -0.9656,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4828
+    },
+    {
+      "rank": 2,
+      "prompt": "The basket is ahead and to the right. Correct your heading and go straight.",
+      "disc_score": -0.9666,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4833
+    },
+    {
+      "rank": 3,
+      "prompt": "Navigate straight to the basket that is currently on your right side.",
+      "disc_score": -0.9669,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4835
+    },
+    {
+      "rank": 4,
+      "prompt": "Navigate to the gray basket on your right by adjusting left then going straight.",
+      "disc_score": -0.9689,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4844
+    },
+    {
+      "rank": 5,
+      "prompt": "Move to the gray basket on the right side of the room straight ahead.",
+      "disc_score": -0.9733,
+      "grounding_rate": null,
+      "combined_score": -0.9733
+    },
+    {
+      "rank": 6,
+      "prompt": "The basket is on the right side. Rotate slightly left and drive straight to it.",
+      "disc_score": -0.9738,
+      "grounding_rate": null,
+      "combined_score": -0.9738
+    },
+    {
+      "rank": 7,
+      "prompt": "The basket is to your right. Align yourself and navigate straight to it.",
+      "disc_score": -0.9759,
+      "grounding_rate": null,
+      "combined_score": -0.9759
+    }
+  ],
+  "right_left": [
+    {
+      "rank": 1,
+      "prompt": "Navigate to the right-side basket by curving to the left.",
+      "disc_score": -0.9642,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4821
+    },
+    {
+      "rank": 2,
+      "prompt": "Approach the basket on the right side by curving left to meet it.",
+      "disc_score": -0.9698,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4849
+    },
+    {
+      "rank": 3,
+      "prompt": "Navigate to the gray basket on the right by taking a left arc.",
+      "disc_score": -0.9699,
+      "grounding_rate": 0.0,
+      "combined_score": -0.485
+    },
+    {
+      "rank": 4,
+      "prompt": "The basket is on your right. Swing left to approach it from the side.",
+      "disc_score": -0.9755,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4878
+    },
+    {
+      "rank": 5,
+      "prompt": "Go to the basket on your right, approaching from the left side.",
+      "disc_score": -0.9757,
+      "grounding_rate": null,
+      "combined_score": -0.9757
+    },
+    {
+      "rank": 6,
+      "prompt": "Move to the basket on your right by curving left toward it.",
+      "disc_score": -0.9766,
+      "grounding_rate": null,
+      "combined_score": -0.9766
+    },
+    {
+      "rank": 7,
+      "prompt": "The basket is to your right. Navigate there by swinging to the left.",
+      "disc_score": -0.9784,
+      "grounding_rate": null,
+      "combined_score": -0.9784
+    }
+  ],
+  "right_right": [
+    {
+      "rank": 1,
+      "prompt": "Navigate to the gray basket on the right side with a right-curving path.",
+      "disc_score": -0.9639,
+      "grounding_rate": 0.0,
+      "combined_score": -0.482
+    },
+    {
+      "rank": 2,
+      "prompt": "Navigate to the basket on your right by curving further to the right.",
+      "disc_score": -0.9708,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4854
+    },
+    {
+      "rank": 3,
+      "prompt": "Move forward while bearing right to navigate to the basket on the right.",
+      "disc_score": -0.971,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4855
+    },
+    {
+      "rank": 4,
+      "prompt": "The basket is on your right. Approach it by continuing rightward.",
+      "disc_score": -0.9747,
+      "grounding_rate": 0.0,
+      "combined_score": -0.4874
+    },
+    {
+      "rank": 5,
+      "prompt": "Go to the basket on your right by moving diagonally right and forward.",
+      "disc_score": -0.9757,
+      "grounding_rate": null,
+      "combined_score": -0.9757
+    },
+    {
+      "rank": 6,
+      "prompt": "Move right and forward to reach the gray basket on the right side.",
+      "disc_score": -0.9764,
+      "grounding_rate": null,
+      "combined_score": -0.9764
+    },
+    {
+      "rank": 7,
+      "prompt": "The basket is to your right. Navigate there by moving further right.",
+      "disc_score": -0.9777,
+      "grounding_rate": null,
+      "combined_score": -0.9777
+    }
+  ]
+}

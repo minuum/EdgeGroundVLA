@@ -91,17 +91,52 @@ class VLAControlManager:
             # Cancel existing timer if any
             if self.movement_timer:
                 self.movement_timer.cancel()
-            
+
             # Start Movement
             self.current_action = {"lx": lx, "ly": ly, "az": az}
             log_msg = self.publish_and_move(lx, ly, az, source=source)
-            
+
             # Start Stop Timer
             def _timed_stop():
                 self.robust_stop(source=f"{source}_autostop")
-            
+
             self.movement_timer = threading.Timer(self.move_duration, _timed_stop)
             self.movement_timer.daemon = True
             self.movement_timer.start()
-            
+
+            return log_msg
+
+    def move_and_stop_ramped(self, lx, ly, az, source="ramp_mode"):
+        """Soft ramp-up (50ms, 3-step: 33%→67%→100%) then full speed for remaining duration."""
+        with self.movement_lock:
+            if self.movement_timer:
+                self.movement_timer.cancel()
+
+            self.current_action = {"lx": lx, "ly": ly, "az": az}
+
+            ramp_dur = 0.05       # 50ms 총 ramp-up 시간
+            ramp_steps = 3
+            step_dur = ramp_dur / ramp_steps  # ~16.7ms per step
+
+            # Soft ramp-up: 33% → 67% → 100%
+            for i in range(1, ramp_steps + 1):
+                scale = i / ramp_steps
+                self.publish_and_move(
+                    lx * scale, ly * scale, az * scale,
+                    source=f"{source}_ramp{i}"
+                )
+                time.sleep(step_dur)
+
+            # Full speed for remaining duration
+            log_msg = self.publish_and_move(lx, ly, az, source=source)
+
+            remaining = self.move_duration - ramp_dur  # 0.35s
+
+            def _timed_stop():
+                self.robust_stop(source=f"{source}_autostop")
+
+            self.movement_timer = threading.Timer(remaining, _timed_stop)
+            self.movement_timer.daemon = True
+            self.movement_timer.start()
+
             return log_msg

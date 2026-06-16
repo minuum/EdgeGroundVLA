@@ -1,0 +1,36 @@
+{
+  "n_frames": 50,
+  "detection_rate": 1.0,
+  "label_acc": 0.12,
+  "direction_agreement": 0.8,
+  "mean_cx": 0.528125,
+  "std_cx": 0.12235482469032433,
+  "mean_latency_ms": 726.6647386550903,
+  "samples": [
+    {
+      "caption": "the end of the room, with the white wall and the wooden floor in the background.",
+      "cx": 0.46875,
+      "detected": true
+    },
+    {
+      "caption": "the center of the image, with the white wall and the window in the background.",
+      "cx": 0.5,
+      "detected": true
+    },
+    {
+      "caption": "the end of the room, and the air conditioner is on the floor.",
+      "cx": 0.40625,
+      "detected": true
+    },
+    {
+      "caption": "the far right of the image. The floor is tiled and the walls are white.",
+      "cx": 0.5,
+      "detected": true
+    },
+    {
+      "caption": "the end of the hallway, and the white wall is behind it.",
+      "cx": 0.5,
+      "detected": true
+    }
+  ]
+}

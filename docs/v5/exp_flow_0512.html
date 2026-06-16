@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoNaVLA — Exp 흐름 &amp; 이슈 (2026-05-12)</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|JetBrains+Mono" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+    :root {
+      --bg:       #0f172a;
+      --surface:  #1e293b;
+      --border:   #334155;
+      --text:     #e2e8f0;
+      --muted:    #94a3b8;
+      --blue:     #60a5fa;
+      --green:    #4ade80;
+      --yellow:   #fbbf24;
+      --red:      #f87171;
+      --purple:   #a78bfa;
+      --teal:     #2dd4bf;
+    }
+
+    body {
+      font-family: 'Noto Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+    }
+
+    /* ── Hero ──────────────────────────────── */
+    .hero-wrap {
+      background: linear-gradient(120deg, #0f172a 0%, #1e3a5f 55%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3.5rem 1.5rem 3rem;
+    }
+    .back-link { color: var(--blue); font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 1.2rem; }
+    .back-link:hover { color: #93c5fd; }
+    .page-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0.35rem 0.85rem; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: #bfdbfe; font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1rem;
+    }
+    .hero-title { font-family: 'Google Sans', sans-serif; font-size: 2.4rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1.2; color: #fff; }
+    .hero-title span { color: var(--blue); }
+    .hero-sub { color: var(--muted); font-size: 1.05rem; line-height: 1.75; max-width: 760px; margin-top: 0.75rem; }
+
+    /* ── Metric strip ───────────────────────── */
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 2rem;
+    }
+    .mcard {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+    }
+    .mcard .eyebrow { font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+    .mcard .val { font-size: 1.7rem; font-weight: 800; line-height: 1.1; }
+    .mcard .hint { font-size: 0.85rem; color: var(--muted); margin-top: 0.35rem; }
+    .c-green  { color: var(--green); }
+    .c-blue   { color: var(--blue); }
+    .c-yellow { color: var(--yellow); }
+    .c-red    { color: var(--red); }
+    .c-purple { color: var(--purple); }
+    .c-teal   { color: var(--teal); }
+
+    /* ── Layout ─────────────────────────────── */
+    .page-body { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    .section-label {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.35rem; font-weight: 800; color: #fff;
+      margin-bottom: 0.25rem; margin-top: 2.5rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-label i { font-size: 1.1rem; }
+    .section-desc { color: var(--muted); font-size: 0.97rem; line-height: 1.65; margin-bottom: 1.5rem; }
+
+    /* ── Timeline ───────────────────────────── */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: ''; position: absolute; left: 0.55rem; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .tl-item { position: relative; margin-bottom: 1.5rem; }
+    .tl-dot {
+      position: absolute; left: -2.42rem; top: 0.35rem;
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--surface);
+    }
+    .tl-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem 1.3rem;
+    }
+    .tl-card .exp-tag {
+      display: inline-block; font-weight: 800; font-size: 0.9rem;
+      padding: 0.15rem 0.6rem; border-radius: 6px; margin-right: 0.5rem;
+    }
+    .tl-card .exp-title { font-weight: 700; font-size: 1.0rem; color: #fff; }
+    .tl-card .exp-desc { color: var(--muted); font-size: 0.92rem; line-height: 1.65; margin-top: 0.5rem; }
+    .tl-card .exp-verdict {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.82rem; font-weight: 700; padding: 0.2rem 0.7rem;
+      border-radius: 99px; margin-top: 0.65rem;
+    }
+    .tag-ok   { background: rgba(74,222,128,0.15); color: var(--green);  border: 1px solid rgba(74,222,128,0.3); }
+    .tag-fail { background: rgba(248,113,113,0.15); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+    .tag-warn { background: rgba(251,191,36,0.15);  color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .tag-info { background: rgba(96,165,250,0.15);  color: var(--blue);  border: 1px solid rgba(96,165,250,0.3); }
+    .tl-card .metrics-row {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.7rem;
+    }
+    .chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem; padding: 0.18rem 0.65rem;
+      border-radius: 6px; background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border); color: var(--text);
+    }
+
+    /* ── Issue cards ────────────────────────── */
+    .issues-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .issue-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem 1.3rem;
+      display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .issue-card.sev-high  { border-left: 4px solid var(--red); }
+    .issue-card.sev-mid   { border-left: 4px solid var(--yellow); }
+    .issue-card.sev-low   { border-left: 4px solid var(--blue); }
+    .issue-card .i-title  { font-weight: 800; color: #fff; font-size: 0.97rem; }
+    .issue-card .i-body   { color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    .issue-card .i-detail {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem; background: rgba(0,0,0,0.3);
+      border-radius: 8px; padding: 0.6rem 0.85rem;
+      color: #cbd5e1; line-height: 1.6; white-space: pre-wrap;
+    }
+    .i-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 0.15rem 0.6rem;
+      border-radius: 99px;
+    }
+    .badge-red    { background: rgba(248,113,113,0.18); color: var(--red); }
+    .badge-yellow { background: rgba(251,191,36,0.18);  color: var(--yellow); }
+    .badge-blue   { background: rgba(96,165,250,0.18);  color: var(--blue); }
+
+    /* ── Robustness table ───────────────────── */
+    .rb-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 12px; overflow: hidden; }
+    .rb-table th {
+      background: #0b1220; color: var(--muted);
+      font-size: 0.8rem; letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 0.65rem 1rem; text-align: center; border-bottom: 1px solid var(--border);
+    }
+    .rb-table td { padding: 0.6rem 1rem; text-align: center; font-size: 0.92rem; border-bottom: 1px solid rgba(51,65,85,0.5); }
+    .rb-table tr:last-child td { border-bottom: none; }
+    .rb-table td.aug-name { text-align: left; font-weight: 600; color: var(--text); font-size: 0.88rem; }
+    .cell-ok   { color: var(--green);  font-weight: 700; }
+    .cell-warn { color: var(--yellow); font-weight: 700; }
+    .cell-bad  { color: var(--red);    font-weight: 700; }
+    .cell-na   { color: var(--border); }
+
+    /* ── Next step cards ────────────────────── */
+    .next-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .next-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem 1.3rem;
+    }
+    .next-card .n-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 0.5rem; }
+    .next-card .n-title { font-size: 1.0rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; }
+    .next-card .n-body  { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .n-A { border-top: 3px solid var(--green);  }
+    .n-B { border-top: 3px solid var(--blue);   }
+    .n-C { border-top: 3px solid var(--purple); }
+
+    /* ── Divider ────────────────────────────── */
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0 0; }
+
+    /* ── Footnote ───────────────────────────── */
+    .footnote { color: var(--border); font-size: 0.82rem; margin-top: 2.5rem; text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════ -->
+<div class="hero-wrap">
+  <div style="max-width:1100px; margin:0 auto; padding:0 1.5rem;">
+    <a href="../index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to main</a>
+
+    <div class="page-pill">
+      <i class="fas fa-flask"></i>
+      MoNaVLA · V5 · Language-Grounded Navigation Series
+    </div>
+
+    <h1 class="hero-title">Exp 흐름 &amp; <span>이번 주 이슈</span></h1>
+    <p class="hero-sub">
+      2026-05-06 ~ 05-12 · Exp46 → Exp51<br>
+      "언어 명령으로 목표 물체를 지정하는 VLA" 시도 — fingerprinting 함정 발견 → 언어→기하학 전환 → paraphrase 100% 달성 → augmentation 강인성 개선
+    </p>
+
+    <div class="metric-strip">
+      <div class="mcard">
+        <div class="eyebrow">Best Val Acc</div>
+        <div class="val c-green">96.4%</div>
+        <div class="hint">Exp49 · 5-seed σ 0.7%p</div>
+      </div>
+      <div class="mcard">
+        <div class="eyebrow">Closed-Loop 성공</div>
+        <div class="val c-green">100%</div>
+        <div class="hint">Exp49 · 9/9 path · FPE 0.081m</div>
+      </div>
+      <div class="mcard">
+        <div class="eyebrow">Paraphrase 강인성</div>
+        <div class="val c-green">100%</div>
+        <div class="hint">45개 표현 변형 전부 일치</div>
+      </div>
+      <div class="mcard">
+        <div class="eyebrow">Flip 대칭</div>
+        <div class="val c-yellow">6 / 9</div>
+        <div class="hint">Exp50 · 3개 경로 미해결</div>
+      </div>
+      <div class="mcard">
+        <div class="eyebrow">Crop Robustness</div>
+        <div class="val c-blue">78 / 100%</div>
+        <div class="hint">Exp51 · left/right 개선</div>
+      </div>
+      <div class="mcard">
+        <div class="eyebrow">Crop Center</div>
+        <div class="val c-red">0%</div>
+        <div class="hint">Exp51 · 미해결 핵심 약점</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     BODY
+══════════════════════════════════════════════ -->
+<div class="page-body">
+
+  <!-- ── 실험 흐름 ──────────────────────────── -->
+  <div class="section-label"><i class="fas fa-code-branch c-blue"></i> 실험 흐름 (Exp46 → Exp51)</div>
+  <p class="section-desc">각 실험이 무엇을 시도했고, 무엇을 발견했는지.</p>
+
+  <div class="timeline">
+
+    <!-- Exp46 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--teal);"></div>
+      <div class="tl-card">
+        <div>
+          <span class="exp-tag" style="background:rgba(45,212,191,0.15); color:var(--teal);">Exp46</span>
+          <span class="exp-title">BBox + Vision MLP — 언어 없는 베이스라인</span>
+        </div>
+        <p class="exp-desc">
+          bbox 이력(32-dim) + Kosmos-2 vision feature(1024-dim) → MLP → 8-class action.<br>
+          언어 없이도 93.2% val acc, closed-loop 100% 달성. 이후 실험의 출발점.
+        </p>
+        <div class="metrics-row">
+          <span class="chip">val acc 93.2%</span>
+          <span class="chip">CL 100%</span>
+          <span class="chip">파라미터 ~350K</span>
+        </div>
+        <span class="exp-verdict tag-ok"><i class="fas fa-check"></i> 베이스라인 확립</span>
+      </div>
+    </div>
+
+    <!-- Exp47 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--red);"></div>
+      <div class="tl-card">
+        <div>
+          <span class="exp-tag" style="background:rgba(248,113,113,0.15); color:var(--red);">Exp47</span>
+          <span class="exp-title">Text Embedding 직접 주입 — Fingerprinting 함정</span>
+        </div>
+        <p class="exp-desc">
+          sentence-transformer 2048-dim을 MLP 입력에 추가. val acc 98.7%로 최고지만,
+          같은 의미의 다른 표현(paraphrase)으로 테스트하면 <strong style="color:var(--red);">74.1%로 급락</strong>.<br>
+          원인: MLP가 언어를 이해한 게 아니라 경로별 고정 문장 패턴을 암기한 것 (fingerprinting).
+          "left_left" 에피소드는 항상 동일 문장 → 임베딩도 항상 동일 → 경로 ID 역할.
+        </p>
+        <div class="metrics-row">
+          <span class="chip">val acc 98.7%</span>
+          <span class="chip">paraphrase 74.1% ❌</span>
+          <span class="chip">입력 3104-dim</span>
+        </div>
+        <span class="exp-verdict tag-fail"><i class="fas fa-times"></i> 언어 이해 실패 — fingerprinting</span>
+      </div>
+    </div>
+
+    <!-- Exp49 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--green);"></div>
+      <div class="tl-card">
+        <div>
+          <span class="exp-tag" style="background:rgba(74,222,128,0.15); color:var(--green);">Exp49</span>
+          <span class="exp-title">언어 → 기하학 변환 — Paraphrase 100% 달성</span>
+        </div>
+        <p class="exp-desc">
+          text embedding 2048-dim 제거. 대신 에피소드 시작 시 Kosmos-2 grounding으로
+          목표 물체 위치 (cx₀, cy₀, area₀) 를 추출해 MLP에 전달.<br>
+          핵심 인사이트: 표현이 달라도 같은 물체 → grounding cx₀ 동일 → 행동 동일.
+          입력 3104 → 1059-dim으로 줄었는데 성능 오히려 향상.
+        </p>
+        <div class="metrics-row">
+          <span class="chip">val acc 96.4%</span>
+          <span class="chip">paraphrase 100% ✅</span>
+          <span class="chip">CL 100% (9/9)</span>
+          <span class="chip">FPE 0.081m</span>
+          <span class="chip">5-seed σ 0.7%p</span>
+        </div>
+        <span class="exp-verdict tag-ok"><i class="fas fa-check"></i> 언어 조건부 내비게이션 확립</span>
+      </div>
+    </div>
+
+    <!-- Exp50 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--yellow);"></div>
+      <div class="tl-card">
+        <div>
+          <span class="exp-tag" style="background:rgba(251,191,36,0.15); color:var(--yellow);">Exp50</span>
+          <span class="exp-title">Flip Augmentation — 카메라 좌우 반전 강인성</span>
+        </div>
+        <p class="exp-desc">
+          학습 데이터에 좌우 반전 이미지 + cx 반전(1-cx) 추가 (4200 → 4200×2 프레임).
+          flip 대칭 9개 경로 중 6/9 달성. center 계열 3개 경로는 cx가 ~0.5라
+          반전해도 액션이 바뀌지 않아야 하는데, 실제로는 LEFT↔RIGHT가 반전되지 않음.
+        </p>
+        <div class="metrics-row">
+          <span class="chip">val acc 92.0%</span>
+          <span class="chip">flip 대칭 6/9</span>
+          <span class="chip">paraphrase 100% 유지</span>
+        </div>
+        <span class="exp-verdict tag-warn"><i class="fas fa-exclamation-triangle"></i> 부분 성공 — center 계열 3개 미해결</span>
+      </div>
+    </div>
+
+    <!-- Exp51 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--blue);"></div>
+      <div class="tl-card">
+        <div>
+          <span class="exp-tag" style="background:rgba(96,165,250,0.15); color:var(--blue);">Exp51</span>
+          <span class="exp-title">Crop Augmentation — 카메라 위치 이동 강인성</span>
+        </div>
+        <p class="exp-desc">
+          카메라가 좌/우로 10% 밀렸을 때를 시뮬레이션. crop_left10% / crop_right10% 이미지의
+          Kosmos-2 vision feature를 사전 추출 후 cx 좌표도 함께 시프트해 학습 데이터에 추가 (10504 프레임).<br>
+          crop_left: 22% → <strong style="color:var(--green);">78%</strong>,
+          crop_right: — → <strong style="color:var(--green);">100%</strong>로 개선.<br>
+          crop_center90%(줌인)은 <strong style="color:var(--red);">0%</strong> — 별도 분석 필요.
+        </p>
+        <div class="metrics-row">
+          <span class="chip">val acc 93.3%</span>
+          <span class="chip">crop_left 78% ↑</span>
+          <span class="chip">crop_right 100% ↑</span>
+          <span class="chip">crop_center 0% ❌</span>
+        </div>
+        <span class="exp-verdict tag-warn"><i class="fas fa-exclamation-triangle"></i> left/right 개선 — center 완전 실패</span>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+
+  <hr class="divider">
+
+  <!-- ── Robustness 전체 요약 ──────────────── -->
+  <div class="section-label"><i class="fas fa-shield-alt c-teal"></i> Robustness 비교표</div>
+  <p class="section-desc">9개 경로 대표 프레임 기준. Exp49 → Exp51 변화.</p>
+
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden;">
+    <table class="rb-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Augmentation</th>
+          <th>Exp49</th>
+          <th>Exp50 (+ flip)</th>
+          <th>Exp51 (+ crop)</th>
+          <th>판정</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="aug-name">original</td>
+          <td class="cell-ok">100%</td>
+          <td class="cell-ok">100%</td>
+          <td class="cell-ok">100%</td>
+          <td class="cell-ok">✅ 기준</td>
+        </tr>
+        <tr>
+          <td class="aug-name">bright +40%</td>
+          <td class="cell-warn">78%</td>
+          <td class="cell-warn">78%</td>
+          <td class="cell-warn">78%</td>
+          <td class="cell-warn">⚠️ 주의</td>
+        </tr>
+        <tr>
+          <td class="aug-name">bright −40%</td>
+          <td class="cell-ok">89%</td>
+          <td class="cell-ok">89%</td>
+          <td class="cell-ok">89%</td>
+          <td class="cell-ok">✅</td>
+        </tr>
+        <tr>
+          <td class="aug-name">contrast ±40%</td>
+          <td class="cell-ok">89–100%</td>
+          <td class="cell-ok">89–100%</td>
+          <td class="cell-ok">89–100%</td>
+          <td class="cell-ok">✅</td>
+        </tr>
+        <tr>
+          <td class="aug-name">color jitter</td>
+          <td class="cell-ok">89%</td>
+          <td class="cell-ok">100%</td>
+          <td class="cell-ok">100%</td>
+          <td class="cell-ok">✅ 개선</td>
+        </tr>
+        <tr>
+          <td class="aug-name">blur σ=3</td>
+          <td class="cell-warn">78%</td>
+          <td class="cell-warn">78%</td>
+          <td class="cell-warn">78%</td>
+          <td class="cell-warn">⚠️ 주의</td>
+        </tr>
+        <tr>
+          <td class="aug-name"><strong>blur σ=6</strong></td>
+          <td class="cell-bad">33%</td>
+          <td class="cell-bad">22%</td>
+          <td class="cell-bad">22%</td>
+          <td class="cell-bad">❌ 실용 불가</td>
+        </tr>
+        <tr>
+          <td class="aug-name">crop left 10%</td>
+          <td class="cell-bad">22%</td>
+          <td class="cell-bad">22%</td>
+          <td class="cell-ok">78%</td>
+          <td class="cell-ok">✅ Exp51 개선</td>
+        </tr>
+        <tr>
+          <td class="aug-name">crop right 10%</td>
+          <td class="cell-na">—</td>
+          <td class="cell-bad">33%</td>
+          <td class="cell-ok">100%</td>
+          <td class="cell-ok">✅ Exp51 개선</td>
+        </tr>
+        <tr>
+          <td class="aug-name"><strong>crop center 90%</strong></td>
+          <td class="cell-bad">33%</td>
+          <td class="cell-bad">11%</td>
+          <td class="cell-bad">0%</td>
+          <td class="cell-bad">❌ 미해결</td>
+        </tr>
+        <tr>
+          <td class="aug-name">flip 대칭</td>
+          <td class="cell-na">—</td>
+          <td class="cell-warn">6/9</td>
+          <td class="cell-warn">6/9</td>
+          <td class="cell-warn">⚠️ 부분</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 이번 주 이슈 ───────────────────────── -->
+  <div class="section-label"><i class="fas fa-bug c-red"></i> 이번 주 이슈</div>
+  <p class="section-desc">발견된 문제들과 원인 분석. 해결된 것, 미해결인 것 구분.</p>
+
+  <div class="issues-grid">
+
+    <!-- 이슈 1: Fingerprinting -->
+    <div class="issue-card sev-high">
+      <div><span class="i-badge badge-blue">해결됨</span></div>
+      <div class="i-title">① Exp47 Fingerprinting — 언어 암기 문제</div>
+      <div class="i-body">
+        text embedding을 MLP에 직접 넣으면 MLP가 언어를 이해하는 게 아니라
+        경로 유형별 고정 문장의 벡터 패턴을 암기함.
+        같은 의미의 다른 표현으로 바꾸면 74.1%로 급락.
+      </div>
+      <div class="i-detail">Exp47: "go to left basket"  → embed → 2048-dim fingerprint
+Exp47: "move to container" → embed → 다른 fingerprint → 다른 예측
+
+해결 (Exp49): 언어를 grounding으로 좌표로 변환
+"go to left basket"  → Kosmos-2 → cx=0.35 (동일)
+"move to container"  → Kosmos-2 → cx=0.35 (동일) → 동일 예측</div>
+      <span class="exp-verdict tag-ok"><i class="fas fa-check"></i> Exp49에서 해결 · paraphrase 100%</span>
+    </div>
+
+    <!-- 이슈 2: crop_center -->
+    <div class="issue-card sev-high">
+      <div><span class="i-badge badge-red">미해결</span></div>
+      <div class="i-title">② crop_center90% = 0% — 줌인 시 완전 실패</div>
+      <div class="i-body">
+        카메라가 중앙으로 10% 줌인(crop_center90%)하면 9/9 경로 전부 틀림.
+        두 가지 원인이 복합적으로 작용.
+      </div>
+      <div class="i-detail">원인 A — Vision feature 분포 이탈 (핵심)
+  cx가 동일해도 action이 틀림:
+  · right_right: cx=0.500 (불변) → ROT_L ❌ FWD+L
+  · center_left: cx=0.453 (불변) → LEFT ❌ FORWARD
+  → MLP이 줌인 이미지의 vision feature를 본 적 없음
+
+원인 B — Grounding 혼란 (일부 경로)
+  · right_left: orig_cx=0.688 → center_cx=0.500
+  · left_right: orig_cx=0.281 → center_cx=0.500
+  → Kosmos-2가 줌인 이미지에서 target 못 찾고 cx=0.5 fallback
+
+수정 방향 (Exp52):
+  center-crop vision feature 사전 추출 +
+  cx 변환: (cx - 0.05) / 0.90</div>
+      <span class="exp-verdict tag-fail"><i class="fas fa-times"></i> Exp52에서 수정 예정</span>
+    </div>
+
+    <!-- 이슈 3: blur -->
+    <div class="issue-card sev-high">
+      <div><span class="i-badge badge-red">미해결</span></div>
+      <div class="i-title">③ blur σ=6 = 22% — 강한 블러에 취약</div>
+      <div class="i-body">
+        σ=3(약한 블러)은 78%이지만 σ=6(심한 블러)은 22%. Exp50~51에서도 개선 없음.
+        문제는 MLP가 아니라 Kosmos-2 vision encoder — 심한 블러에서 완전히
+        다른 feature를 추출해 경로 구분 신호가 사라짐.
+      </div>
+      <div class="i-detail">blur σ=6 상황에서 cx 이동 확인:
+  · right_left:  FWD+R → RIGHT (cx 0.688 → 0.5, grounding 혼란)
+  · left_right:  FWD+L → RIGHT (cx 0.281 → 0.5, grounding 혼란)
+  · right_right: ROT_L → FWD+L (cx 동일, feature 이탈)
+
+학습 데이터에 blur 추가해도 Kosmos-2 grounding 자체가
+blurry 이미지에서 cx=0.5 반환 → 학습 신호가 노이즈됨</div>
+      <span class="exp-verdict tag-fail"><i class="fas fa-times"></i> 근본 해결 어려움 (Kosmos-2 한계)</span>
+    </div>
+
+    <!-- 이슈 4: VLA 정의 -->
+    <div class="issue-card sev-mid">
+      <div><span class="i-badge badge-yellow">설계 한계</span></div>
+      <div class="i-title">④ True VLA가 아님 — 언어가 행동 생성에 참여 안 함</div>
+      <div class="i-body">
+        언어가 에피소드 시작 시 좌표 3개(cx, cy, area)로 변환된 후 소멸.
+        이후 MLP는 언어를 전혀 보지 않음. 극단적으로 말하면
+        <code>predict(goal_cx=0.35)</code> 가 언어 이해의 전부.
+      </div>
+      <div class="i-detail">True VLA:   [언어] + [이미지] → LLM backbone → action
+우리 모델: [언어] → grounding → (cx, cy, area)
+                                        ↑ 언어 소멸
+           [이미지] → Kosmos-2 → feature
+           concat → MLP → action
+
+장점: paraphrase 완전 강인 (cx는 언어 표현에 무관)
+단점: 새 물체 zero-shot 불가, 언어 일반화 제한</div>
+      <span class="exp-verdict tag-info"><i class="fas fa-info-circle"></i> 공학적 타협 — 논문에서 명확히 구분 필요</span>
+    </div>
+
+    <!-- 이슈 5: flip center -->
+    <div class="issue-card sev-mid">
+      <div><span class="i-badge badge-yellow">부분 미해결</span></div>
+      <div class="i-title">⑤ Flip 3/9 미해결 — center 계열 flip 대칭 안 됨</div>
+      <div class="i-body">
+        center_straight, center_right, center_left — 이 3개 경로는
+        좌우 반전 시 올바른 대칭 action이 나오지 않음.
+        cx ≈ 0.5 (중앙 물체)라 flip해도 cx 변화가 거의 없어
+        MLP가 경로 유형을 구분하는 다른 cue에 의존하는 것으로 보임.
+      </div>
+      <div class="i-detail">center_straight: LEFT → flip → LEFT (기대: RIGHT)  ❌
+center_right:   RIGHT → flip → RIGHT (기대: LEFT) ❌
+center_left:    LEFT  → flip → RIGHT ✅ (우연히 맞음)
+
+가설: center 경로는 cx_history 패턴 차이로 구분됨.
+flip 시 cx_history도 반전되지만 패턴 변화가 충분하지 않음.</div>
+      <span class="exp-verdict tag-warn"><i class="fas fa-exclamation-triangle"></i> 미해결 — 추후 분석 필요</span>
+    </div>
+
+    <!-- 이슈 6: 실환경 갭 -->
+    <div class="issue-card sev-mid">
+      <div><span class="i-badge badge-yellow">미검증</span></div>
+      <div class="i-title">⑥ 실로봇 갭 — 시뮬레이터만 검증</div>
+      <div class="i-body">
+        모든 결과가 동일 환경 (같은 방, 같은 카메라, 같은 바구니 위치 분포)에서 수집된
+        오프라인 replay 기반. 새 환경 배치나 실로봇에서의 성능은 미검증.
+        Exp49 inference_server.py 연결 작업 준비됨.
+      </div>
+      <div class="i-detail">현재 검증 범위:
+  ✅ 동일 환경 시뮬레이션 CL 100%
+  ✅ 밝기/대비/색조 변화 강인성
+  ✅ 카메라 좌우 이동 10% 강인성
+  ❌ 새로운 방 배치
+  ❌ 실로봇 ROS 배포
+  ❌ 새로운 물체 (현재 gray basket만)</div>
+      <span class="exp-verdict tag-warn"><i class="fas fa-exclamation-triangle"></i> 실로봇 배포가 최우선 다음 단계</span>
+    </div>
+
+  </div><!-- /issues-grid -->
+
+  <hr class="divider">
+
+  <!-- ── 다음 단계 ──────────────────────────── -->
+  <div class="section-label"><i class="fas fa-road c-purple"></i> 다음 단계 제안</div>
+  <p class="section-desc">우선순위 순. A → B → C.</p>
+
+  <div class="next-grid">
+    <div class="next-card n-A">
+      <div class="n-label" style="color:var(--green);">A · 즉시 가능</div>
+      <div class="n-title">실로봇 배포</div>
+      <div class="n-body">
+        Exp49 MLP 가중치 (<code>exp49_mlp.pt</code>)를 <code>inference_server.py</code>에 연결.
+        실환경 갭이 얼마나 되는지 직접 측정.<br>
+        예상 소요: 1~2일. 이게 되어야 이후 결과가 의미 있음.
+      </div>
+    </div>
+    <div class="next-card n-B">
+      <div class="n-label" style="color:var(--blue);">B · 1~2일</div>
+      <div class="n-title">Exp52 — crop_center robustness</div>
+      <div class="n-body">
+        center-crop vision feature 사전 추출 (2626 프레임) +
+        cx 변환 <code>(cx − 0.05) / 0.90</code> 적용 후 학습 데이터 추가.<br>
+        목표: crop_center 0% → ≥50%. A와 병행 가능.
+      </div>
+    </div>
+    <div class="next-card n-C">
+      <div class="n-label" style="color:var(--purple);">C · 교수님 논의 필요</div>
+      <div class="n-title">Step 3 — 33/33/33 전방향</div>
+      <div class="n-body">
+        현재 decomposition 접근(Exp46~51)이 교수님 3단계 프로토콜의 Step 3를
+        충족하는지 판단 필요. 아니면 end-to-end VLA 재시도 or TICVLA 대안 검토.
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <p class="footnote">
+    MoNaVLA · V5 · 2026-05-12 &nbsp;|&nbsp;
+    <a href="PROF_UPDATE_20260512_MEETING.md" style="color:var(--blue);">교수님 미팅 브리핑</a> &nbsp;|&nbsp;
+    <a href="PROF_UPDATE_20260511_EXP51_CRITICAL.md" style="color:var(--blue);">Exp51 상세 분석</a> &nbsp;|&nbsp;
+    <a href="PROF_UPDATE_20260511_EXP49.md" style="color:var(--blue);">Exp49 언어 조건부</a>
+  </p>
+
+</div><!-- /page-body -->
+</body>
+</html>

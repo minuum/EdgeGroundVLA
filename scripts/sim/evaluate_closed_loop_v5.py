@@ -39,10 +39,35 @@ from scripts.sim.rollout_core import (
     build_trajectory, continuous_to_class, compute_metrics,
 )
 
-DATA_DIR = ROOT / "ROS_action" / "mobile_vla_dataset_v5"
+DATA_DIR  = ROOT / "ROS_action" / "mobile_vla_dataset_v5"
 STEP1_DIR = ROOT / "docs" / "v5" / "bbox_nav_step1"
-OUT_DIR = ROOT / "docs" / "v5" / "closed_loop_eval"
+EXP46_DIR = ROOT / "docs" / "v5" / "bbox_nav_exp46"
+OUT_DIR   = ROOT / "docs" / "v5" / "closed_loop_eval"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+GOAL_NAV_CKPTS = {
+    "exp49": ROOT / "runs" / "v5_nav" / "mlp" / "exp49" / "exp49_mlp.pt",
+    "exp50": ROOT / "runs" / "v5_nav" / "mlp" / "exp50" / "exp50_mlp.pt",
+    "exp51": ROOT / "runs" / "v5_nav" / "mlp" / "exp51" / "exp51_mlp.pt",
+    "exp52": ROOT / "runs" / "v5_nav" / "mlp" / "exp52" / "exp52_mlp.pt",
+    "exp53": ROOT / "runs" / "v5_nav" / "mlp" / "exp53" / "exp53_clip_lora.pt",
+}
+GOAL_NAV_VIS_DIRS = {
+    "exp49": ROOT / "docs" / "v5" / "bbox_nav_exp46",   # vision_features.npz (1024-dim)
+    "exp50": ROOT / "docs" / "v5" / "bbox_nav_exp46",
+    "exp51": ROOT / "docs" / "v5" / "bbox_nav_exp46",
+    "exp52": ROOT / "docs" / "v5" / "bbox_nav_exp52",   # lang_vis_features.npz (2048-dim)
+    "exp53": ROOT / "docs" / "v5" / "bbox_nav_exp53",   # LoRA-enhanced vision_features.npz
+}
+GOAL_NAV_VIS_KEYS = {
+    "exp49": "vision_features",
+    "exp50": "vision_features",
+    "exp51": "vision_features",
+    "exp52": "lang_vis_features",
+    "exp53": "vision_features",
+}
+GOAL_NAV_WINDOW = 8
+GOAL_NAV_GOAL_DIM = 3
 
 PATH_TYPES = [
     "center_straight", "center_left", "center_right",
@@ -687,7 +712,7 @@ def build_html(results_by_model, summary_by_model):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", choices=["exp11", "step2", "step3", "step3_ablated", "exp17", "exp18", "exp19", "both"], default="step2")
+    ap.add_argument("--model", choices=["exp11", "step2", "step3", "step3_ablated", "exp17", "exp18", "exp19", "exp49", "exp50", "exp51", "exp52", "exp53", "both"], default="step2")
     ap.add_argument("--config", default="configs/mobile_vla_v5_exp11_google_robot_8cls.json")
     ap.add_argument("--ckpt", default=None)
     ap.add_argument("--dt", type=float, default=DT_DEFAULT)
@@ -922,6 +947,136 @@ def main():
             step3_out.write_text(json.dumps({"summary": summary_by_model["step3"],
                                              "seeds": seed_results}, indent=2))
             print(f"  Saved: {step3_out}")
+
+    # ── GoalNav (Exp49/50/51) evaluation ────────────────────────────────────
+    if args.model in GOAL_NAV_CKPTS:
+        exp_name = args.model
+        print(f"\n=== {exp_name.upper()} (GoalNav MLP: bbox+vis+goal) ===")
+
+        ckpt_path = GOAL_NAV_CKPTS[exp_name]
+        if not ckpt_path.exists():
+            print(f"  ERROR: checkpoint not found at {ckpt_path}")
+        else:
+            # Load model
+            ckpt = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+            import torch.nn as nn
+            if "mlp" in ckpt and "model_state_dict" not in ckpt:
+                # exp53 format: {'mlp': full GoalNavMLP state_dict, 'val_acc': float}
+                state = ckpt["mlp"]
+                d_in = state["net.0.weight"].shape[1]
+                mlp = nn.Sequential(
+                    nn.Linear(d_in, 512), nn.ReLU(), nn.Dropout(0.25),
+                    nn.Linear(512, 256),  nn.ReLU(), nn.Dropout(0.2),
+                    nn.Linear(256, 128),  nn.ReLU(), nn.Dropout(0.1),
+                    nn.Linear(128, 64),   nn.ReLU(),
+                    nn.Linear(64, NUM_CLASSES),
+                )
+                # strip "net." prefix to match bare Sequential keys
+                mlp.load_state_dict({k[len("net."):]: v for k, v in state.items()})
+            else:
+                d_in = ckpt["d_in"]
+                mlp = nn.Sequential(
+                    nn.Linear(d_in, 512), nn.ReLU(), nn.Dropout(0.25),
+                    nn.Linear(512, 256),  nn.ReLU(), nn.Dropout(0.2),
+                    nn.Linear(256, 128),  nn.ReLU(), nn.Dropout(0.1),
+                    nn.Linear(128, 64),   nn.ReLU(),
+                    nn.Linear(64, NUM_CLASSES),
+                )
+                mlp.load_state_dict(ckpt["model_state_dict"])
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            mlp = mlp.to(device).eval()
+            print(f"  Loaded {exp_name} (d_in={d_in}) from {ckpt_path.name}")
+
+            # Load data
+            vis_dir      = GOAL_NAV_VIS_DIRS[exp_name]
+            vis_key      = GOAL_NAV_VIS_KEYS[exp_name]
+            full_ds_path = EXP46_DIR / "bbox_dataset_full.json"
+            vis_npz_path = vis_dir / f"{vis_key}.npz"
+            vis_idx_path = vis_dir / f"{vis_key}_index.json"
+            if not full_ds_path.exists() or not vis_npz_path.exists():
+                print(f"  ERROR: vis cache not found at {vis_npz_path}")
+            else:
+                bbox_data = json.loads(full_ds_path.read_text())
+                vis_npz   = np.load(str(vis_npz_path))
+                vis_idx   = json.loads(vis_idx_path.read_text())
+                vis_cache = {ep: vis_npz[f"ep_{i}"] for ep, i in vis_idx.items()}
+                print(f"  Dataset: {len(bbox_data)} episodes, vis cache: {len(vis_cache)}")
+
+                # Same split as training (StratifiedShuffleSplit, random_state=42)
+                from sklearn.model_selection import StratifiedShuffleSplit
+                ep_labels = [ep["path_type"] for ep in bbox_data]
+                sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+                tr_ep_idx, te_ep_idx = next(sss.split(np.zeros(len(bbox_data)), ep_labels))
+                test_eps = [bbox_data[i] for i in te_ep_idx]
+                print(f"  Test episodes: {len(test_eps)}")
+
+                W = GOAL_NAV_WINDOW
+                ep_results = defaultdict(list)
+                for ep_data in test_eps:
+                    ep_full  = ep_data["episode"]  # full path or stem
+                    _ep_p = Path(ep_full)
+                    if _ep_p.suffix == ".h5":
+                        h5_path = _ep_p if _ep_p.exists() else DATA_DIR / _ep_p.name
+                    else:
+                        h5_path = DATA_DIR / f"{ep_full}.h5"
+                    ep_key   = ep_full  # key into vis_cache (full path as stored)
+                    pt       = ep_data["path_type"]
+                    frames   = ep_data["frames"]
+                    vis_feats = vis_cache.get(ep_key)
+                    if vis_feats is None:
+                        print(f"  SKIP {Path(ep_full).stem}: no vis cache")
+                        continue
+
+                    fr0  = frames[0]
+                    goal = np.array(
+                        [fr0["cx"], fr0["cy"], fr0["area"]] if fr0["has_bbox"] else [0.5, 0.5, 0.0],
+                        dtype=np.float32,
+                    )
+
+                    pred_classes = []
+                    for t in range(len(frames)):
+                        bbox_feat = []
+                        for k in range(W):
+                            idx = max(0, t - (W - 1 - k))
+                            fr  = frames[idx]
+                            bbox_feat.extend([fr["cx"], fr["cy"], fr["area"], float(fr["has_bbox"])])
+                        feat = np.concatenate([
+                            np.array(bbox_feat, dtype=np.float32),
+                            vis_feats[t],
+                            goal,
+                        ])
+                        x = torch.tensor(feat[None], dtype=torch.float32, device=device)
+                        with torch.no_grad():
+                            pred_classes.append(int(mlp(x).argmax(1).item()))
+
+                    # Expert actions from H5
+                    if not h5_path.exists():
+                        print(f"  SKIP {h5_path.stem}: no H5 file")
+                        continue
+                    with h5py.File(h5_path, "r") as f:
+                        expert_actions = f["actions"][:]
+
+                    n = min(len(pred_classes), len(frames), len(expert_actions))
+                    expert_cls  = [continuous_to_class(*a[:3]) for a in expert_actions[:n]]
+                    expert_traj = build_trajectory(expert_cls, args.dt)
+                    pred_traj   = build_trajectory(pred_classes[:n], args.dt)
+                    m = compute_metrics(expert_traj, pred_traj, args.success_fpe)
+                    m["episode"]   = h5_path.stem
+                    m["path_type"] = pt
+                    ep_results[pt].append(m)
+                    print(f"  {pt:20s} FPE={m['fpe']:.2f}m TLD={m['tld']:.2f} {'✅' if m['success'] else '❌'}")
+
+                all_m = [m for ms in ep_results.values() for m in ms]
+                summary_by_model[exp_name] = {
+                    "n_episodes": len(all_m),
+                    "success_rate": sum(m["success"] for m in all_m) / max(len(all_m), 1),
+                    "mean_fpe": float(np.mean([m["fpe"] for m in all_m])),
+                    "mean_tld": float(np.mean([m["tld"] for m in all_m])),
+                }
+                results_by_model[exp_name] = dict(ep_results)
+                s = summary_by_model[exp_name]
+                print(f"\n  {exp_name.upper()} success: {s['success_rate']:.1%}"
+                      f"  FPE: {s['mean_fpe']:.2f}m  TLD: {s['mean_tld']:.2f}")
 
     if run_exp19:
         print("\n=== Exp19 (Step2 + proxy features) ===")

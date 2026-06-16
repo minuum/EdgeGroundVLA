@@ -1,0 +1,7 @@
+{
+  "gate_keys": [
+    "model.act_head.text_gate"
+  ],
+  "gate_val": 0.10225478559732437,
+  "gate_useful": true
+}

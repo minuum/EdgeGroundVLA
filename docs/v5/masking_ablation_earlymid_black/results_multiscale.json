@@ -1,0 +1,1673 @@
+{
+  "episode_phase_max": 0.66,
+  "min_area": 0.005,
+  "scales_evaluated": [
+    1.5,
+    1.2,
+    1.0,
+    0.8,
+    0.5
+  ],
+  "n_sample": 15,
+  "scale_stats": {
+    "1.5": {
+      "per_direction": {
+        "left": {
+          "n": 6,
+          "mean_drop": 0.0138,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "center": {
+          "n": 15,
+          "mean_drop": 0.05,
+          "flip": 1,
+          "flip_pct": 6.7
+        },
+        "right": {
+          "n": 15,
+          "mean_drop": 0.0426,
+          "flip": 0,
+          "flip_pct": 0.0
+        }
+      },
+      "overall": {
+        "mean_drop": 0.0409,
+        "flip": 1,
+        "total": 36,
+        "flip_pct": 2.8,
+        "verdict": "약한 의존 (보조 신호로 사용)"
+      }
+    },
+    "1.2": {
+      "per_direction": {
+        "left": {
+          "n": 6,
+          "mean_drop": 0.017,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "center": {
+          "n": 15,
+          "mean_drop": 0.0711,
+          "flip": 1,
+          "flip_pct": 6.7
+        },
+        "right": {
+          "n": 15,
+          "mean_drop": 0.0386,
+          "flip": 0,
+          "flip_pct": 0.0
+        }
+      },
+      "overall": {
+        "mean_drop": 0.0485,
+        "flip": 1,
+        "total": 36,
+        "flip_pct": 2.8,
+        "verdict": "약한 의존 (보조 신호로 사용)"
+      }
+    },
+    "1.0": {
+      "per_direction": {
+        "left": {
+          "n": 6,
+          "mean_drop": 0.0128,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "center": {
+          "n": 15,
+          "mean_drop": 0.0935,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "right": {
+          "n": 15,
+          "mean_drop": 0.0432,
+          "flip": 0,
+          "flip_pct": 0.0
+        }
+      },
+      "overall": {
+        "mean_drop": 0.0591,
+        "flip": 0,
+        "total": 36,
+        "flip_pct": 0.0,
+        "verdict": "약한 의존 (보조 신호로 사용)"
+      }
+    },
+    "0.8": {
+      "per_direction": {
+        "left": {
+          "n": 6,
+          "mean_drop": 0.0121,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "center": {
+          "n": 15,
+          "mean_drop": 0.0716,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "right": {
+          "n": 15,
+          "mean_drop": 0.0517,
+          "flip": 0,
+          "flip_pct": 0.0
+        }
+      },
+      "overall": {
+        "mean_drop": 0.0534,
+        "flip": 0,
+        "total": 36,
+        "flip_pct": 0.0,
+        "verdict": "약한 의존 (보조 신호로 사용)"
+      }
+    },
+    "0.5": {
+      "per_direction": {
+        "left": {
+          "n": 6,
+          "mean_drop": 0.0064,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "center": {
+          "n": 15,
+          "mean_drop": 0.0506,
+          "flip": 0,
+          "flip_pct": 0.0
+        },
+        "right": {
+          "n": 15,
+          "mean_drop": 0.0557,
+          "flip": 0,
+          "flip_pct": 0.0
+        }
+      },
+      "overall": {
+        "mean_drop": 0.0454,
+        "flip": 0,
+        "total": 36,
+        "flip_pct": 0.0,
+        "verdict": "약한 의존 (보조 신호로 사용)"
+      }
+    }
+  },
+  "rows": [
+    {
+      "direction": "left",
+      "cx": 0.157,
+      "cy": 0.495,
+      "area": 0.0101,
+      "phase": 0.529,
+      "conf_orig": 0.6867,
+      "pred_orig": "left",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.6848,
+          "conf_drop": 0.0019,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.6861,
+          "conf_drop": 0.0006,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.685,
+          "conf_drop": 0.0016,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.6863,
+          "conf_drop": 0.0004,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.6859,
+          "conf_drop": 0.0007,
+          "pred_mask": "left",
+          "flipped": false
+        }
+      },
+      "img_file": "left_01_stable.png"
+    },
+    {
+      "direction": "left",
+      "cx": 0.199,
+      "cy": 0.461,
+      "area": 0.0154,
+      "phase": 0.118,
+      "conf_orig": 0.6446,
+      "pred_orig": "left",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.6312,
+          "conf_drop": 0.0134,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.6359,
+          "conf_drop": 0.0087,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.6397,
+          "conf_drop": 0.0049,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.6374,
+          "conf_drop": 0.0072,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.6388,
+          "conf_drop": 0.0058,
+          "pred_mask": "left",
+          "flipped": false
+        }
+      },
+      "img_file": "left_02_stable.png"
+    },
+    {
+      "direction": "left",
+      "cx": 0.186,
+      "cy": 0.462,
+      "area": 0.012,
+      "phase": 0.176,
+      "conf_orig": 0.6509,
+      "pred_orig": "left",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.6148,
+          "conf_drop": 0.0361,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.594,
+          "conf_drop": 0.0568,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.611,
+          "conf_drop": 0.0398,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.615,
+          "conf_drop": 0.0359,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.6354,
+          "conf_drop": 0.0155,
+          "pred_mask": "left",
+          "flipped": false
+        }
+      },
+      "img_file": "left_03_stable.png"
+    },
+    {
+      "direction": "left",
+      "cx": 0.182,
+      "cy": 0.478,
+      "area": 0.0113,
+      "phase": 0.235,
+      "conf_orig": 0.6687,
+      "pred_orig": "left",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.6644,
+          "conf_drop": 0.0043,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.6585,
+          "conf_drop": 0.0102,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.6596,
+          "conf_drop": 0.0091,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.6619,
+          "conf_drop": 0.0069,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.668,
+          "conf_drop": 0.0007,
+          "pred_mask": "left",
+          "flipped": false
+        }
+      },
+      "img_file": "left_04_stable.png"
+    },
+    {
+      "direction": "left",
+      "cx": 0.168,
+      "cy": 0.485,
+      "area": 0.0093,
+      "phase": 0.294,
+      "conf_orig": 0.6827,
+      "pred_orig": "left",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.6654,
+          "conf_drop": 0.0173,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.6677,
+          "conf_drop": 0.015,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.6701,
+          "conf_drop": 0.0126,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.6709,
+          "conf_drop": 0.0119,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.6736,
+          "conf_drop": 0.0091,
+          "pred_mask": "left",
+          "flipped": false
+        }
+      },
+      "img_file": "left_05_stable.png"
+    },
+    {
+      "direction": "left",
+      "cx": 0.151,
+      "cy": 0.503,
+      "area": 0.0088,
+      "phase": 0.353,
+      "conf_orig": 0.6861,
+      "pred_orig": "left",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.6764,
+          "conf_drop": 0.0097,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.6756,
+          "conf_drop": 0.0104,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.6775,
+          "conf_drop": 0.0086,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.6759,
+          "conf_drop": 0.0102,
+          "pred_mask": "left",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.6794,
+          "conf_drop": 0.0067,
+          "pred_mask": "left",
+          "flipped": false
+        }
+      },
+      "img_file": "left_06_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.0,
+      "conf_orig": 0.2121,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.1175,
+          "conf_drop": 0.0946,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1687,
+          "conf_drop": 0.0434,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.1006,
+          "conf_drop": 0.1115,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.1322,
+          "conf_drop": 0.0799,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1557,
+          "conf_drop": 0.0564,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_01_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.077,
+      "conf_orig": 0.4031,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.2747,
+          "conf_drop": 0.1284,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.2535,
+          "conf_drop": 0.1496,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.1877,
+          "conf_drop": 0.2154,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.2261,
+          "conf_drop": 0.177,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.2606,
+          "conf_drop": 0.1426,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_02_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.154,
+      "conf_orig": 0.2878,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.1807,
+          "conf_drop": 0.1072,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.2329,
+          "conf_drop": 0.055,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.1714,
+          "conf_drop": 0.1164,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.1427,
+          "conf_drop": 0.1451,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.2199,
+          "conf_drop": 0.068,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_03_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.231,
+      "conf_orig": 0.1605,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.161,
+          "conf_drop": -0.0005,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1416,
+          "conf_drop": 0.0189,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.0795,
+          "conf_drop": 0.0811,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.0809,
+          "conf_drop": 0.0796,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1414,
+          "conf_drop": 0.0192,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_04_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.308,
+      "conf_orig": 0.1514,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.1645,
+          "conf_drop": -0.0131,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1295,
+          "conf_drop": 0.0219,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.0848,
+          "conf_drop": 0.0666,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.1053,
+          "conf_drop": 0.0461,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1322,
+          "conf_drop": 0.0192,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_05_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.484,
+      "cy": 0.625,
+      "area": 0.0645,
+      "phase": 0.385,
+      "conf_orig": 0.1753,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.2102,
+          "conf_drop": -0.035,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.126,
+          "conf_drop": 0.0493,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.088,
+          "conf_drop": 0.0873,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.1362,
+          "conf_drop": 0.039,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1713,
+          "conf_drop": 0.004,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_06_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.359,
+      "area": 0.666,
+      "phase": 0.462,
+      "conf_orig": 0.155,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.1782,
+          "conf_drop": -0.0233,
+          "pred_mask": "left",
+          "flipped": true
+        },
+        "1.2": {
+          "conf_mask": -0.028,
+          "conf_drop": 0.183,
+          "pred_mask": "right",
+          "flipped": true
+        },
+        "1.0": {
+          "conf_mask": 0.2924,
+          "conf_drop": -0.1374,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.233,
+          "conf_drop": -0.078,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1034,
+          "conf_drop": 0.0516,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_07_FLIP.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.538,
+      "conf_orig": 0.1301,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.1143,
+          "conf_drop": 0.0158,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1461,
+          "conf_drop": -0.016,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.0809,
+          "conf_drop": 0.0492,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.0981,
+          "conf_drop": 0.0319,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.0857,
+          "conf_drop": 0.0444,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_08_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.0,
+      "conf_orig": 0.2556,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.118,
+          "conf_drop": 0.1376,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1753,
+          "conf_drop": 0.0802,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.1289,
+          "conf_drop": 0.1266,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.1762,
+          "conf_drop": 0.0793,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.2039,
+          "conf_drop": 0.0517,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_09_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.077,
+      "conf_orig": 0.0766,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.1858,
+          "conf_drop": 0.2624,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.1446,
+          "conf_drop": 0.2213,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.1799,
+          "conf_drop": 0.2565,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.1304,
+          "conf_drop": 0.207,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0723,
+          "conf_drop": 0.149,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_10_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.154,
+      "conf_orig": -0.0123,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.0027,
+          "conf_drop": -0.0096,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.0038,
+          "conf_drop": -0.0085,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0543,
+          "conf_drop": 0.042,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.0732,
+          "conf_drop": 0.0609,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0666,
+          "conf_drop": 0.0544,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_11_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.406,
+      "cy": 0.594,
+      "area": 0.0439,
+      "phase": 0.231,
+      "conf_orig": 0.1502,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.0016,
+          "conf_drop": 0.1518,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.0405,
+          "conf_drop": 0.1907,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0133,
+          "conf_drop": 0.1635,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.086,
+          "conf_drop": 0.0643,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1053,
+          "conf_drop": 0.0449,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_12_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.5,
+      "cy": 0.5,
+      "area": 0.05,
+      "phase": 0.308,
+      "conf_orig": 0.0962,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.0493,
+          "conf_drop": 0.0469,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.0748,
+          "conf_drop": 0.0214,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0059,
+          "conf_drop": 0.1021,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.0283,
+          "conf_drop": 0.0679,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.0157,
+          "conf_drop": 0.0805,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_13_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.453,
+      "cy": 0.625,
+      "area": 0.0645,
+      "phase": 0.385,
+      "conf_orig": 0.1924,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.2341,
+          "conf_drop": -0.0418,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1821,
+          "conf_drop": 0.0103,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.1106,
+          "conf_drop": 0.0818,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.1381,
+          "conf_drop": 0.0543,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1899,
+          "conf_drop": 0.0024,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_14_stable.png"
+    },
+    {
+      "direction": "center",
+      "cx": 0.438,
+      "cy": 0.625,
+      "area": 0.0752,
+      "phase": 0.462,
+      "conf_orig": 0.2046,
+      "pred_orig": "center",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.2759,
+          "conf_drop": -0.0712,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1586,
+          "conf_drop": 0.0461,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.1649,
+          "conf_drop": 0.0397,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.1857,
+          "conf_drop": 0.0189,
+          "pred_mask": "center",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.2332,
+          "conf_drop": -0.0286,
+          "pred_mask": "center",
+          "flipped": false
+        }
+      },
+      "img_file": "center_15_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.872,
+      "cy": 0.299,
+      "area": 0.005,
+      "phase": 0.529,
+      "conf_orig": -0.0929,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.141,
+          "conf_drop": 0.0481,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.1478,
+          "conf_drop": 0.0549,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.1504,
+          "conf_drop": 0.0575,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.1561,
+          "conf_drop": 0.0632,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.1592,
+          "conf_drop": 0.0663,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_01_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.825,
+      "cy": 0.327,
+      "area": 0.01,
+      "phase": 0.353,
+      "conf_orig": 0.0742,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.0494,
+          "conf_drop": 0.0248,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.0446,
+          "conf_drop": 0.0295,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.0476,
+          "conf_drop": 0.0266,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.0316,
+          "conf_drop": 0.0426,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.0381,
+          "conf_drop": 0.0361,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_02_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.837,
+      "cy": 0.289,
+      "area": 0.0109,
+      "phase": 0.412,
+      "conf_orig": 0.0135,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.003,
+          "conf_drop": 0.0164,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.0146,
+          "conf_drop": -0.0011,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0271,
+          "conf_drop": 0.0405,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.0269,
+          "conf_drop": 0.0404,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0503,
+          "conf_drop": 0.0637,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_03_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.875,
+      "cy": 0.329,
+      "area": 0.01,
+      "phase": 0.588,
+      "conf_orig": 0.0426,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.0125,
+          "conf_drop": 0.0551,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.0048,
+          "conf_drop": 0.0474,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0021,
+          "conf_drop": 0.0447,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.003,
+          "conf_drop": 0.0457,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.03,
+          "conf_drop": 0.0726,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_04_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.847,
+      "cy": 0.29,
+      "area": 0.0138,
+      "phase": 0.647,
+      "conf_orig": 0.0569,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.0006,
+          "conf_drop": 0.0563,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.0003,
+          "conf_drop": 0.0566,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0031,
+          "conf_drop": 0.06,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.0004,
+          "conf_drop": 0.0565,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0169,
+          "conf_drop": 0.0738,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_05_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.847,
+      "cy": 0.373,
+      "area": 0.0053,
+      "phase": 0.412,
+      "conf_orig": 0.0146,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.0781,
+          "conf_drop": 0.0927,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.0754,
+          "conf_drop": 0.0901,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.069,
+          "conf_drop": 0.0836,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.058,
+          "conf_drop": 0.0727,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0395,
+          "conf_drop": 0.0541,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_06_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.863,
+      "cy": 0.287,
+      "area": 0.0069,
+      "phase": 0.529,
+      "conf_orig": -0.0583,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.1194,
+          "conf_drop": 0.0611,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.1019,
+          "conf_drop": 0.0436,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.1137,
+          "conf_drop": 0.0554,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.1068,
+          "conf_drop": 0.0485,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0973,
+          "conf_drop": 0.0391,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_07_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.872,
+      "cy": 0.295,
+      "area": 0.0116,
+      "phase": 0.588,
+      "conf_orig": -0.0034,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.0296,
+          "conf_drop": 0.0262,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.0278,
+          "conf_drop": 0.0244,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0439,
+          "conf_drop": 0.0405,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.0653,
+          "conf_drop": 0.0619,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0807,
+          "conf_drop": 0.0772,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_08_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.864,
+      "cy": 0.276,
+      "area": 0.0063,
+      "phase": 0.647,
+      "conf_orig": -0.0329,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.0881,
+          "conf_drop": 0.0552,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.0729,
+          "conf_drop": 0.0401,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0617,
+          "conf_drop": 0.0289,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.0745,
+          "conf_drop": 0.0416,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0839,
+          "conf_drop": 0.0511,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_09_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.975,
+      "cy": 0.435,
+      "area": 0.0061,
+      "phase": 0.059,
+      "conf_orig": 0.0712,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.0832,
+          "conf_drop": -0.0119,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.0813,
+          "conf_drop": -0.0101,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.0731,
+          "conf_drop": -0.0019,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.058,
+          "conf_drop": 0.0133,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.05,
+          "conf_drop": 0.0212,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_10_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.815,
+      "cy": 0.34,
+      "area": 0.0051,
+      "phase": 0.235,
+      "conf_orig": 0.0894,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.0603,
+          "conf_drop": 0.0291,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.0691,
+          "conf_drop": 0.0203,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.076,
+          "conf_drop": 0.0134,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.0746,
+          "conf_drop": 0.0148,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.0904,
+          "conf_drop": -0.001,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_11_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.868,
+      "cy": 0.394,
+      "area": 0.0064,
+      "phase": 0.353,
+      "conf_orig": -0.0601,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.1445,
+          "conf_drop": 0.0844,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.1519,
+          "conf_drop": 0.0918,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.1243,
+          "conf_drop": 0.0642,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.1371,
+          "conf_drop": 0.077,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.1296,
+          "conf_drop": 0.0695,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_12_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.857,
+      "cy": 0.262,
+      "area": 0.0073,
+      "phase": 0.471,
+      "conf_orig": 0.2151,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.158,
+          "conf_drop": 0.0571,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.1684,
+          "conf_drop": 0.0467,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": 0.1803,
+          "conf_drop": 0.0348,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": 0.167,
+          "conf_drop": 0.0482,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": 0.1399,
+          "conf_drop": 0.0752,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_13_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.812,
+      "cy": 0.36,
+      "area": 0.0087,
+      "phase": 0.412,
+      "conf_orig": 0.0239,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": 0.0147,
+          "conf_drop": 0.0092,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": 0.0075,
+          "conf_drop": 0.0163,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0317,
+          "conf_drop": 0.0556,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.0383,
+          "conf_drop": 0.0621,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0518,
+          "conf_drop": 0.0756,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_14_stable.png"
+    },
+    {
+      "direction": "right",
+      "cx": 0.873,
+      "cy": 0.376,
+      "area": 0.0058,
+      "phase": 0.647,
+      "conf_orig": -0.0042,
+      "pred_orig": "right",
+      "scales": {
+        "1.5": {
+          "conf_mask": -0.0391,
+          "conf_drop": 0.0349,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.2": {
+          "conf_mask": -0.0326,
+          "conf_drop": 0.0283,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "1.0": {
+          "conf_mask": -0.0478,
+          "conf_drop": 0.0436,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.8": {
+          "conf_mask": -0.0916,
+          "conf_drop": 0.0874,
+          "pred_mask": "right",
+          "flipped": false
+        },
+        "0.5": {
+          "conf_mask": -0.0654,
+          "conf_drop": 0.0612,
+          "pred_mask": "right",
+          "flipped": false
+        }
+      },
+      "img_file": "right_15_stable.png"
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/kosmos/mobile_vla_v5_exp42/2026-05-06/v5-exp42-counterfactual-pta/last.ckpt",
+  "n_frames": 10,
+  "prompt_sets": {
+    "A_baseline": [
+      "left",
+      "right",
+      "forward"
+    ],
+    "B_no_grounding": [
+      "left",
+      "right",
+      "forward"
+    ],
+    "C_dir_at_end": [
+      "left",
+      "right",
+      "forward"
+    ],
+    "D_phrase_tag": [
+      "left",
+      "right",
+      "forward"
+    ],
+    "E_short_no_grounding": [
+      "left",
+      "right",
+      "forward"
+    ],
+    "F_qa_style": [
+      "left",
+      "right",
+      "forward"
+    ]
+  },
+  "results": {
+    "A_baseline": {
+      "mean_l1_lr": 0.0,
+      "max_l1_lr": 0.0,
+      "pred_changes": 0,
+      "pred_change_rate": 0.0,
+      "sample_preds": [
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        }
+      ]
+    },
+    "B_no_grounding": {
+      "mean_l1_lr": 0.0,
+      "max_l1_lr": 0.0,
+      "pred_changes": 0,
+      "pred_change_rate": 0.0,
+      "sample_preds": [
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        }
+      ]
+    },
+    "C_dir_at_end": {
+      "mean_l1_lr": 0.0,
+      "max_l1_lr": 0.0,
+      "pred_changes": 0,
+      "pred_change_rate": 0.0,
+      "sample_preds": [
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        }
+      ]
+    },
+    "D_phrase_tag": {
+      "mean_l1_lr": 0.0,
+      "max_l1_lr": 0.0,
+      "pred_changes": 0,
+      "pred_change_rate": 0.0,
+      "sample_preds": [
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        }
+      ]
+    },
+    "E_short_no_grounding": {
+      "mean_l1_lr": 0.0,
+      "max_l1_lr": 0.0,
+      "pred_changes": 0,
+      "pred_change_rate": 0.0,
+      "sample_preds": [
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        }
+      ]
+    },
+    "F_qa_style": {
+      "mean_l1_lr": 0.0,
+      "max_l1_lr": 0.0,
+      "pred_changes": 0,
+      "pred_change_rate": 0.0,
+      "sample_preds": [
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        },
+        {
+          "left": "FORWARD",
+          "right": "FORWARD",
+          "forward": "FORWARD"
+        }
+      ]
+    }
+  },
+  "best_format": "A_baseline"
+}

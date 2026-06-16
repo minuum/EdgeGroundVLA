@@ -1,5 +1,5 @@
 {
-    "workbench.preferredDarkColorTheme": "Default Light Modern",
+    "workbench.preferredDarkColorTheme": "Light Modern",
     // ─── MCP Server 설정 (Model Context Protocol) ───────────────────
     // Antigravity가 자동으로 연결하는 MCP 서버 목록
     "antigravity.mcp.servers": {
@@ -29,5 +29,6 @@
                 "/home/billy/.nvm/versions/node/v22.19.0/lib/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js"
             ]
         }
-    }
+    },
+    "remote.autoForwardPortsFallback": 0
 }

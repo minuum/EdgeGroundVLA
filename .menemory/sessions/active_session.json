@@ -1,51 +1,7 @@
 {
   "session_id": "2026-02-22-default",
-  "last_updated": "2026-04-13T11:52:43.108580+00:00",
+  "last_updated": "2026-06-03T04:30:00.000000+09:00",
   "conversation": [
-    {
-      "role": "assistant",
-      "content": "[2026-02-22] Git cleanup session: renamed local branch test/vla-driving -> vla-driving; set upstream to origin/vla-driving; preserved diverged local fix branch as backup/fix-local-diverged-20260222; kept session logs local-only via .git/info/exclude (docs/inference_reports/session_*.json, docs/inference_reports/V3_EXP01_ANALYSIS_20260220.md, docs/session_notes/, scripts/summarize_reports.py); verified session log files remain on disk and are not tracked."
-    },
-    {
-      "role": "assistant",
-      "content": "[2026-02-25] Session update: loaded prior memory and verified previous git-cleanup state (branch/upstream/backup/exclude rules); disabled CE skills by moving ce-* under /home/soda/.codex/skills/_disabled_ce_20260225_201248 and renaming SKILL.md -> SKILL.disabled; created new reusable skill /home/soda/.codex/skills/ce-toggle with script scripts/ce_toggle.sh supporting status/disable/enable/restore/list-backups; validated with quick_validate.py and bash syntax check."
-    },
-    {
-      "role": "assistant",
-      "content": "[2026-02-25] Menemory feature session: implemented hybrid memory strategy in /home/soda/vla/menemory by keeping summary+recent conversation while appending full raw turns to sessions/history/<session_id>.jsonl; added CLI command 'menemory history' (--session-id, --limit) and status field raw_history_turns; added tests in tests/test_session_history.py; pushed branch feat/session-history-hybrid with commit b9f3f1b; opened PR https://github.com/minuum/menemory/pull/1."
-    },
-    {
-      "role": "assistant",
-      "content": "[2026-02-25] Clarification saved: code changes are persisted via GitHub PR flow (branch feat/session-history-hybrid, commit b9f3f1b, PR https://github.com/minuum/menemory/pull/1), while menemory session entries are stored separately in local workspace memory (.menemory), not inside the PR."
-    },
-    {
-      "role": "assistant",
-      "content": "Antigravity 복구 수행: .pb는 직접 복호화 가능한 본문이 아니라 conversation index로 판단하고, 대응 brain/<uuid>/ 문서를 복구 원본으로 사용함. docs/antigravity_recovery_20260318.md에 복구 규칙과 반영 상태를 정리했고, docs/recovered_antigravity/ 아래에 disk_usage_analysis_20260315.md, vla_problem_analysis_professor_20260305.md, directory_audit_20260301.md, reorganization_summary_20260228.md를 provenance note와 함께 편입함."
-    },
-    {
-      "role": "user",
-      "content": "사용자 요청: antigravity 루트의 .pb 세션 자산을 실제 복구 가능한 형태로 정리하고, 최근 git/문서 맥락과 연결해 현재 저장소에 반영해 달라고 요청함."
-    },
-    {
-      "role": "assistant",
-      "content": "복구 문서 연결 완료: README.md에 Antigravity 복구 섹션을 추가하고 docs/antigravity_recovery_20260318.md 및 docs/recovered_antigravity/ 하위 복구 문서들로 바로 진입할 수 있게 링크함. 현재 .menemory/sessions/active_session.json에는 Antigravity 복구 관련 세션 내용이 실제로 저장된 상태임."
-    },
-    {
-      "role": "user",
-      "content": "사용자는 Antigravity 복구 문서 연결과 Menemory 백업 이후 monavla-driving 최신 변경을 기준으로 V4 실험과 학습 진행사항을 점검하고, 오프라인 평가를 비동기로 돌려 tail로 확인 가능한 상태로 만들고, 현재까지 채팅 내용을 Menemory에 저장하길 요청했다."
-    },
-    {
-      "role": "assistant",
-      "content": "origin/monavla-driving 최신은 2026-03-18 기준 0d58c7af이며 실험적으로 중요한 커밋은 845c3ebb였다. V4 설정 정합성을 위해 configs/mobile_vla_v4_exp01.json에 root window_size=4를 추가하고, robovlm_nav/serve/inference_server.py는 nested config fallback과 실제 존재하는 V4 checkpoint 기본 경로를 사용하게 수정했다. scripts/test/check_v4_data_loading.py는 V4 config를 직접 읽게 변경했고 데이터 로딩 검증은 통과했다. scripts/test/evaluate_v4_latest.py와 scripts/test/eval_v4_pmsm.py는 CPU/GPU 공용으로 조정했고 둘 다 validation loop 진입까지 확인했다. 현재 오프라인 평가는 백그라운드 실행과 로그 tail 확인을 다시 안정적으로 설정할 필요가 있다."
-    },
-    {
-      "role": "user",
-      "content": "사용자는 원격 접속 중 세션이 자주 끊기는 상황을 고려해, 채팅에 메네모리라고만 입력해도 이전 대화 복구 맥락을 빠르게 파악할 수 있게 하고, 가능하면 몇 분마다 자동 저장하는 방법도 원했다."
-    },
-    {
-      "role": "assistant",
-      "content": "menemory CLI에 recover 명령을 추가해 session summary, recent conversation, raw history tail, optional build prompt와 tmux resume를 한 번에 보게 했다. scripts/menemory_recover_now.sh와 scripts/menemory_autosave.sh를 추가했고, menemory README에 빠른 복구와 주기 자동보존 사용법을 문서화했다. ~/.bashrc에는 interactive shell에서 메네모리와 menemory-autosave 함수를 추가해 SSH 재접속 후 바로 복구와 autosave 실행이 가능하게 했다. autosave는 Menemory에 이미 저장된 상태를 주기 스냅샷하는 것이며, Codex 채팅 원문을 자동 캡처하는 기능은 아니라는 제한도 명시했다."
-    },
     {
       "role": "user",
       "content": "사용자는 2026-03-19 새벽 기준 V4 resume 학습이 실제로 돌고 있는지 확인하고, 삭제된 레거시 backup config 여부와 함께 현재 학습 진행 상황을 점검한 뒤, 이 상태를 Menemory에 저장하길 요청했다."
@@ -61,7 +17,71 @@
     {
       "role": "assistant",
       "content": "[2026-04-13] V5 실험 전체 진행 요약:\n\n## 1. 데이터셋 Split 수정 (nav_h5_dataset_impl.py)\n- 문제: 에피소드 파일명 정렬 기준 80/20 split → val에 left_path 0개\n- 수정: stratified_split 파라미터 추가, path 타입별(left/right/straight) 독립 split\n- 수정: exclude_path_types 파라미터 추가 (straight 제거 가능)\n- 수정: train_split hardcoded 0.8 → config 값 사용\n- 결과: train 24ep(left12+right12), val 6ep(left3+right3)\n\n## 2. 체크포인트 비교 (test_v5_ckpt_compare.py)\n- exp01_best (val=2.270): PM 47.1% — FORWARD 100%, 텍스트 무시\n- exp02_best (val=2.210): PM 50.0% — FORWARD 100% + FWD+L 11%\n- exp02_last (epoch9): PM 26.5% — FWD+L 100%으로 overfit\n\n## 3. VLM 텍스트 이해 테스트 (test_v5_text_understanding.py)\n- Raw Kosmos-2 (pretrained): left vs right hidden state L2=1.60 → 백본은 텍스트 구분 가능\n- exp01/exp02/exp03(CLIP)/exp04: 모든 instruction → 동일 class 출력 (텍스트 완전 무시)\n- 결론: action head가 텍스트 신호 무시하고 이미지 패턴만 학습 (shortcut learning)\n\n## 4. Google-Robot Pretrained Backbone (exp04)\n- 다운로드: HuggingFace robovlms/RoboVLMs/checkpoints/kosmos_ph_google-robot-post-train.pt (6.82GB)\n- 저장 위치: .vlms/google_robot_pretrain/kosmos_ph_google-robot-post-train.pt\n- 로드 방식: config에 pretrained_vlm_path + load_vlm_only=true\n- 로드 결과: 886 weights loaded, Missing=0, Unexpected=0\n\n## 5. exp04 학습 결과\n- config: configs/mobile_vla_v5_exp04_google_robot.json\n- no-straight + stratified split + google-robot backbone\n- 학습 진행: epoch0(3.440) → epoch14(0.776) — 압도적 최고 성능\n- 비교: exp01=2.270, exp02=2.210, exp03=1.784, exp04=0.776\n- 단 텍스트 이해 테스트: 여전히 모든 instruction → FWD+L (shortcut 학습)\n- 체크포인트: runs/v5_nav/kosmos/mobile_vla_v5_exp04/2026-04-11/v5-exp04-google-robot/last.ckpt\n\n## 6. 남은 문제 및 다음 방향\n- val_loss가 낮아도 텍스트를 무시하는 shortcut learning 문제 미해결\n- 제안된 해결 방향:\n  A. Counterfactual instruction 학습 (같은 에피소드에 left/right instruction 랜덤 배정)\n  B. Instruction variation 강제\n- 교수님 지시 테스트 프로토콜 Step1(곡선만 학습) 조건 충족했으나 PM/DM 오프라인 테스트 미실시\n\n## 핵심 파일 변경사항\n- robovlm_nav/datasets/nav_h5_dataset_impl.py: stratified_split, exclude_path_types 추가\n- configs/mobile_vla_v5_exp02_no_straight.json: 신규 (straight 제거 + stratified)\n- configs/mobile_vla_v5_exp04_google_robot.json: 신규 (google-robot backbone)\n- scripts/test_v5_ckpt_compare.py: 신규 (체크포인트 순차 비교)\n- scripts/test_v5_text_understanding.py: 신규 (텍스트 이해 테스트)\n- scripts/run_after_exp04.sh: 신규 (학습 후 자동 테스트)"
+    },
+    {
+      "role": "assistant",
+      "content": "[2026-04-20] Menemory init verified in /home/billy/25-1kp/MoNaVLA: created .menemory/config.json with profile_name=minuum, profile_email=minwool0357@gmail.com, llm_cmd=codex, supabase_server_id=billy-MS-7E07. Existing active session 2026-02-22-default was preserved without overwrite. recover/status work, tmux available, .gitignore already contains menemory rules. Supabase backup is not configured yet because SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are unset."
+    },
+    {
+      "role": "assistant",
+      "content": "[2026-04-21] 현재 저장소 대조 결과: Exp17 Step 3 균등비율 config는 configs/mobile_vla_v5_exp17_step3_balanced.json에 존재하며 left/straight/right 가중치는 0.33/0.33/0.34로 설정됨. run 산출물은 runs/v5_nav/kosmos/mobile_vla_v5_exp17/2026-04-20/v5-exp17-step3-balanced 아래에 있고 best ckpt로 epoch03 val_loss 2.270, 이후 epoch06 2.327, epoch07 2.322/2.405, last.ckpt가 남아 있음. 현재 베이스라인 문맥은 Exp14 Step 2 PM 75.9%, closed-loop 66.7% 유지이며, Exp16은 Step 2 전체 150ep 트랙, Exp17은 Step 3 균등비율 교정 시도 문맥과 일치함. 작업트리에는 Exp17 관련 신규 파일(configs/mobile_vla_v5_exp17_step3_balanced.json, scripts/validate_exp17_dataset.py, docs/plans/step3_plan.md, docs/v5/bbox_nav_step3/ 등)과 nav_h5_dataset_impl.py 수정이 존재함. 기억 경로는 Codex=/home/billy/.codex/history.jsonl 및 /home/billy/.codex/memories, Claude=/home/billy/.claude/history.jsonl 와 /home/billy/.claude/projects/-home-billy-25-1kp-MoNaVLA/memory 그리고 별도 프로필 /home/billy/.claude_MINU/projects/-home-billy-25-1kp-MoNaVLA/memory, Antigravity=/home/billy/.gemini/antigravity/brain 및 이 저장소의 docs/recovered_antigravity/, docs/antigravity_recovery_20260318.md. 이 경로들이 각 시스템의 실제 로컬 기억 원천으로 보임."
+    },
+    {
+      "role": "user",
+      "content": "사용자 요청: Menemory 기반으로 현재 저장소 상태를 과거 맥락과 대조하고, Exp17 Step 3 진행 상태 및 claude/antigravity/codex 기억 폴더 위치를 추적해 달라고 요청함. 공유 대상은 MoNaVLA 실험 맥락과 각 에이전트 로컬 히스토리/메모리 경로."
+    },
+    {
+      "role": "user",
+      "content": "로봇 메인 서버 경로 기억 요청: soda@100.85.118.58:~/MoNaVLA 가 메인 배포 디렉터리. 현재 로봇 서버로 보낼만한 체크포인트 후보 확인 요청."
+    },
+    {
+      "role": "assistant",
+      "content": "배포 기준 메모: 로봇 서버 메인 경로는 soda@100.85.118.58:~/MoNaVLA. 현재 실전 후보는 closed-loop 기준 exp17 1순위, exp18 fallback. exp26/27은 resize ablation 학습 중이라 완료 전까지 배포 후보로 미확정. Step2/Exp19 계열은 실전 성능이 가장 강하지만 체크포인트형 end-to-end 모델과는 별도 파이프라인."
+    },
+    {
+      "role": "user",
+      "content": "사용자는 epoch 13, val_loss 7.140, train_loss_epoch 7.330, DEBUG [NavTrainer] Discrete branch taken / arm_action shape [4,10] 로그 조각을 근거로 최근 학습 세션이 무엇이었는지 복구하고, 그 결과를 Menemory에 저장하길 요청했다."
+    },
+    {
+      "role": "assistant",
+      "content": "[2026-04-23] exp26 세션 복구 결과: 주어진 로그 조각은 runs/v5_nav/kosmos/mobile_vla_v5_exp26/2026-04-22/v5-exp26-step3-objective-direct224 런과 가장 정확히 일치한다. tensorboard event 기준 epoch 12 완료 시점 값은 val_loss=7.1386, train_loss_epoch=7.3343이며 epoch 13 step 184/189까지 진행 흔적이 남아 있다. 이 트랙은 exp17 배포 후보 후속이 아니라 exp25 objective shaping 위에 direct 224 resize ablation을 얹은 실험이며, 현재 저장 산출물은 epoch10 7.388, epoch11 7.285, epoch12 7.139, last.ckpt까지만 남아 있어 epoch13 도중 또는 직후 중단된 것으로 보인다. 배포 후보 문맥은 그대로 exp17 1순위, exp18 fallback 유지이며 exp26은 저성능 objective-direct224 연구 트랙으로 분류한다."
+    },
+    {
+      "role": "user",
+      "content": "사용자 요청: MoNaVLA 작업의 현재 진행 데이터를 통합 메모리(Menemory)에 저장. 현재 워크스페이스 기준 진행 상태를 이후 세션에서 이어받을 수 있게 요약 보존."
+    },
+    {
+      "role": "assistant",
+      "content": "2026-04-26 memory sync systemization: added shared contract docs/MEMORY_SYNC_MAP.md, reusable Antigravity skill .agent/skills/memory-sync-hub/SKILL.md, and probe script scripts/utils/collect_memory_context.sh so any agent can recover context across Menemory, Claude memory, Codex history, and Antigravity recovery. Updated docs/AGENT_ENTRYPOINT.md plus .menemory/core/master_memory.md and .menemory/core/memory_systems_integration.md to require this read order. Actual Antigravity recovery source is ~/.gemini/antigravity/brain/<uuid>/ and .pb files are index only."
+    },
+    {
+      "role": "assistant",
+      "content": "2026-04-26 push status: MoNaVLA repo commit e56246fa pushed to origin/inference-integration with cross-agent memory sync alias workflow. Global menemory package was reinstalled locally and ~/.codex/skills now contains aliases 메네모리 and menemory-memory-sync. menemory repo has local commit f62310f for global alias skill generation, but push to origin failed because the current deploy key lacks permission for minuum/menemory.git; submodule pointer in MoNaVLA was intentionally not updated until that remote push is authorized."
+    },
+    {
+      "role": "user",
+      "content": "2026-05-01 세션: Exp32~36 high val_loss 원인 진단, Exp39 config 생성, 다른 서버에서 학습 실행 준비."
+    },
+    {
+      "role": "assistant",
+      "content": "[2026-05-01] 진단 및 Exp39 생성:\n\n## 1. arm_action [4,10] 진단 결과 — 버그 아님\n- 실제 확인: Exp35 train.log에서 arm_action shape [4,10] 재현\n- 원인: batch['action'] = actions_tensor_full (window_size+fwd_next-1 = 8+3-1=10) 의 raw sequence\n- get_labels()가 sliding window chunking 처리 → [4,8,3] 변환 후 loss 정상 계산\n- Exp32~36 val_loss 6.5~7.5 원인: class_weights 가중치 스케일(ROT_L/R=50배) + 5ep 미수렴, 구조적 버그 아님\n\n## 2. Exp39 생성 — Exp25 identical + last-4 LoRA\n- config: configs/mobile_vla_v5_exp39_exp25_last4_lora.json\n- parent: mobile_vla_v5_exp25_step3_balanced_objective.json\n- 변경: train_setup.lora_decoder_layers=4 추가 (deep_update로 나머지 유지)\n- 확인된 resolved config: freeze_backbone=True, lora_enable=True, lora_r=32, lora_alpha=64, lora_decoder_layers=4, 전체 경로 150ep, label_smoothing=0.05, prior_reg=0.2, class_weights=[1.0,0.4,10,10,4,4,50,50]\n- 훈련 파라미터: 전체 24층 LoRA 대비 ~1/6 (레이어 20-23만)\n\n## 3. 로컬 학습 시도 → OOM\n- PID 438134로 시작했으나 CUDA OOM (GPU 17.98GB 점유: PID 366077 openpi e6_2cam_lora_v6)\n- 다른 서버로 이관 결정\n- 학습 명령: python3 robovlm_nav/train.py configs/mobile_vla_v5_exp39_exp25_last4_lora.json\n\n## 다음 단계\n- 다른 서버에서 git pull 후 Exp39 학습 실행\n- 평가: scripts/test_v5_pm_dm.py + scripts/sim/evaluate_closed_loop_v5.py --model exp39\n- 비교 기준: Exp25 (CL 55.6%, PM 52.4%)"
+    },
+    {
+      "role": "user",
+      "content": "2026-05-29 세션: Exp59 PaliGemma2 LoRA closed-loop 평가 에러 수정, 전체 검증 세트 22개 에피소드 평가 실행 완료 및 결과 분석 리포트 작성, 코드 푸시 및 메모리 스냅샷 업데이트."
+    },
+    {
+      "role": "assistant",
+      "content": "[2026-05-29] Exp59 closed-loop 평가 및 결과 분석:\n\n## 1. 코드 수정 및 에러 해결\n- `scripts/eval_exp59_closedloop.py`에서 발생하던 `ImportError` 오류를 `build_trajectory` 및 `compute_metrics` 사용으로 수정.\n- PaliGemmaProcessor 호출 시 prompt에 `<image>` 접두사를 생략해 발생하던 HuggingFace 경고 메시지를 `<image>detect gray basket` 형태로 수정하여 경고 제거.\n\n## 2. Closed-Loop 시뮬레이션 평가 결과 (22개 에피소드)\n- 성공률(Success Rate): 4.5% (1/22)\n- 평균 FPE: 3.970m\n- 평균 TLD: 1.055\n- 평균 그라운딩 성공률: 98.0%\n- 분석: VLM 그라운더의 예측 BBox 중심과 면적에 존재하는 미세한 픽셀 노이즈 및 계통 오차(Systematic Bias)가 제어기(Stage2 MLP)에 OOD로 작용하여 drift 발생. BBox Filtering 및 Noise Augmentation이 향후 안정화에 필수적임.\n\n## 3. 문서화 및 원격 저장소 동기화\n- R2-3(오탐) 문제 극복을 증명하는 기술 리포트 `docs/v5/exp59_report.md` 작성 및 `docs/index.html` Hero 영역에 링크 연결.\n- 프로젝트 최신 상태를 요약한 `docs/CURRENT_STATE_SNAPSHOT.md` 작성.\n- 수정 코드 및 신규 리포트 파일을 `origin/inference-integration` 브랜치에 푸시 완료."
+    },
+    {
+      "role": "user",
+      "content": "2026-06-03 세션 (Reconcile MoNaVLA Session Memory): 교수님 반박 R4 (Arrival/Stop 종결 조건) 대응 및 Closed-Loop Ablation Study 대시보드 시각화 구축."
+    },
+    {
+      "role": "assistant",
+      "content": "[2026-06-03] 교수님 반박 R4 대응 및 시각화 대시보드 고도화:\n\n## 1. 도착 STOP 스무딩 규칙 설계 및 검증 (R4)\n- `stop65_mlp` 모델에 3-프레임 윈도우 스무딩(W=3, θ=0.8) 래치 필터를 결합하여 precomputed PG2 주석 기준 CL 성공률을 31.2%에서 68.8%로 대폭 향상.\n- 실시간 PaliGemma2 grounding 추론 결합 Closed-Loop 시뮬레이션 평가 결과, 평균 그라운딩 성공률은 96.9%였으나 CL 성공률은 9.4% (3/32 ep, FPE=1.21m)로 저하됨을 규명. 실시간 추론 지터 누적으로 인한 조향 궤적 탈선 분석 완료.\n- 주행 제어는 최선 제어기, STOP 판단은 stop65_mlp를 멀티스레드/Decomposed 병렬 구동하는 구조의 로봇 배포 안전성 제안.\n\n## 2. 로봇 서버 포팅\n- `inference_server.py`의 GoalNav predict()에 `_arrival_stop()` 및 `_stop_learned_enabled`를 활용한 정지 래치 규칙 및 리셋(/goalnav/reset) 코드 무결성 검증 완료.\n\n## 3. 대시보드 시각화 리팩토링 및 동기화\n- `ablation_visual_proof.html` 구조를 프레임바-이미지가 나란히 배치되는 flex 레이아웃으로 전면 개선하고 HSV N/A 값을 검출 좌표로 명시.\n- 실시간 VLM 결합 지표(9.4%)를 R4 대응 카드로 반영 후 원격 `inference-integration` 브랜치에 최종 푸시(c393a294) 완료."
     }
   ],
-  "summary": ""
+  "summary": "[Auto summary @ 2026-04-22T16:40:56.078236+00:00]\n- assistant: [2026-02-22] Git cleanup session: renamed local branch test/vla-driving -> vla-driving; set upstream to origin/vla-driving; preserved diverged local fix branch as backup/fix-local-diverged-20260222; kept session logs loc...\n- assistant: [2026-02-25] Session update: loaded prior memory and verified previous git-cleanup state (branch/upstream/backup/exclude rules); disabled CE skills by moving ce-* under /home/soda/.codex/skills/_disabled_ce_20260225_2012...\n- assistant: [2026-02-25] Menemory feature session: implemented hybrid memory strategy in /home/soda/vla/menemory by keeping summary+recent conversation while appending full raw turns to sessions/history/<session_id>.jsonl; added CLI...\n- assistant: [2026-02-25] Clarification saved: code changes are persisted via GitHub PR flow (branch feat/session-history-hybrid, commit b9f3f1b, PR https://github.com/minuum/menemory/pull/1), while menemory session entries are store...\n- assistant: Antigravity 복구 수행: .pb는 직접 복호화 가능한 본문이 아니라 conversation index로 판단하고, 대응 brain/<uuid>/ 문서를 복구 원본으로 사용함. docs/antigravity_recovery_20260318.md에 복구 규칙과 반영 상태를 정리했고, docs/recovered_antigravity/ 아래에 disk_usage_analysis_202603...\n- user: 사용자 요청: antigravity 루트의 .pb 세션 자산을 실제 복구 가능한 형태로 정리하고, 최근 git/문서 맥락과 연결해 현재 저장소에 반영해 달라고 요청함.\n- assistant: 복구 문서 연결 완료: README.md에 Antigravity 복구 섹션을 추가하고 docs/antigravity_recovery_20260318.md 및 docs/recovered_antigravity/ 하위 복구 문서들로 바로 진입할 수 있게 링크함. 현재 .menemory/sessions/active_session.json에는 Antigravity 복구 관련 세션 내용이 실제로 저장된...\n- user: 사용자는 Antigravity 복구 문서 연결과 Menemory 백업 이후 monavla-driving 최신 변경을 기준으로 V4 실험과 학습 진행사항을 점검하고, 오프라인 평가를 비동기로 돌려 tail로 확인 가능한 상태로 만들고, 현재까지 채팅 내용을 Menemory에 저장하길 요청했다.\n- assistant: origin/monavla-driving 최신은 2026-03-18 기준 0d58c7af이며 실험적으로 중요한 커밋은 845c3ebb였다. V4 설정 정합성을 위해 configs/mobile_vla_v4_exp01.json에 root window_size=4를 추가하고, robovlm_nav/serve/inference_server.py는 nested config fallback과 실제 존재...\n- user: 사용자는 원격 접속 중 세션이 자주 끊기는 상황을 고려해, 채팅에 메네모리라고만 입력해도 이전 대화 복구 맥락을 빠르게 파악할 수 있게 하고, 가능하면 몇 분마다 자동 저장하는 방법도 원했다.\n- assistant: menemory CLI에 recover 명령을 추가해 session summary, recent conversation, raw history tail, optional build prompt와 tmux resume를 한 번에 보게 했다. scripts/menemory_recover_now.sh와 scripts/menemory_autosave.sh를 추가했고, menemory README에 ..."
 }

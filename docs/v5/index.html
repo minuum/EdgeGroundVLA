@@ -6,13 +6,16 @@
     <title>MoNaVLA V5 Experiment Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
         :root {
             --mona-blue: #3273dc;
             --mona-dark: #363636;
             --mona-success: #48c78e;
         }
-        body { font-family: 'Inter', 'Pretendard', sans-serif; background-color: #f5f8fa; }
+        body { font-family:'Noto Sans KR','Inter', 'Pretendard', sans-serif; background-color: #f5f8fa; }
         .hero.is-info { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
         .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .card:hover { transform: translateY(-5px); }
@@ -134,6 +137,15 @@
                         </div>
                         <p class="is-size-7 mt-2">* Exp 09는 전체 데이터셋(직진 포함) 기준이며, Exp 04 대비 훨씬 복잡한 태스크를 수행 중입니다.</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Ablation Visualization Card -->
+            <div class="column is-6">
+                <div class="notification is-primary is-light card" style="border: 2px solid #a78bfa;">
+                    <h3 class="title is-4 has-text-primary-dark"><i class="fas fa-chart-line mr-2"></i>Closed-Loop Ablation Study 시각화</h3>
+                    <p>Ablation Study ID(A1~A3, B1~B3, C1)별 Closed-Loop 성공 및 실패 궤적과 실제 그라운딩(BBox) 추론 프레임의 대조 매칭 결과입니다. 9-Panel 궤적 동적 전환 및 VLM Noise Augment 원리를 가시적으로 확인할 수 있습니다.</p>
+                    <a href="ablation_visual_proof.html" class="button is-small is-primary mt-3" style="background-color: #a78bfa; color: #fff; font-weight: bold;">대시보드 바로가기</a>
                 </div>
             </div>
 

@@ -35,14 +35,14 @@ menemory status
    - `.menemory/sessions/active_session.json`
    - `menemory status`
 4. **프로젝트별 사용자 규칙**
-   - `~/.claude_MINU/projects/-home-billy-25-1kp-MoNaVLA/memory/MEMORY.md`
+   - `~/.claude/projects/-home-soda-MoNaVLA/memory/MEMORY.md`
    - `user_profile.md`, `feedback_workflow.md`, `project_monavla.md`
 5. **과거 대화/명령 흔적**
    - `~/.codex/history.jsonl`
    - 필요 시 `~/.codex/memories/`
 6. **복구 전용 원문**
    - `docs/antigravity_recovery_20260318.md`
-   - `~/.gemini/antigravity/brain/<uuid>/`
+   - `~/.gemini/antigravity-ide/brain/<uuid>/`
 
 ## Recovery Rules
 

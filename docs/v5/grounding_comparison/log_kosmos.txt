@@ -1,0 +1,6 @@
+[kosmos] model loaded on cuda
+[kosmos] 10/50
+[kosmos] 20/50
+[kosmos] 30/50
+[kosmos] 40/50
+[kosmos] 50/50

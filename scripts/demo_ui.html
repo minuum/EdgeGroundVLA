@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoNaVLA · Inference Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f9f9f8;
+            --surface: #ffffff;
+            --surface-hover: #f5f5f3;
+            --border: #e5e5e2;
+            --text: #1a1a18;
+            --muted: #706f6c;
+            --accent: #d97706; /* Claude Orange */
+            --accent-soft: #fef3c7;
+            --blue: #2563eb;
+            --blue-soft: #eff6ff;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; line-height: 1.5; }
+
+        /* ── Header ── */
+        .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .logo { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; }
+        .brand h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+        .system-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; }
+        .status-dot.active { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.4); }
+
+        /* ── Navigation ── */
+        .nav-tabs { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; gap: 4px; }
+        .nav-tab { padding: 14px 20px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .nav-tab:hover { color: var(--text); }
+        .nav-tab.active { color: var(--accent); border-color: var(--accent); }
+
+        /* ── Main Layout ── */
+        .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 105px); overflow: hidden; }
+
+        /* ── Sidebar ── */
+        .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+        .sidebar-scroll { flex: 1; overflow-y: auto; padding-bottom: 40px; }
+        .section { padding: 20px; border-bottom: 1px solid var(--border); }
+        .section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* ── Controls ── */
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .source-tabs { display: flex; background: var(--bg); padding: 4px; border-radius: 8px; margin-bottom: 8px; }
+        .source-tab { flex: 1; padding: 6px; text-align: center; font-size: 12px; font-weight: 500; border-radius: 6px; cursor: pointer; color: var(--muted); transition: 0.2s; }
+        .source-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+        select, textarea, input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; transition: border-color 0.2s; background: var(--surface); }
+        select:focus, textarea:focus, input:focus { outline: none; border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+        .btn-run { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 20px; box-shadow: 0 4px 12px rgba(217,119,6,0.2); }
+        .btn-run:hover { background: #b45309; }
+        .btn-run:disabled { background: #d1d5db; cursor: not-allowed; box-shadow: none; }
+
+        /* ── Episode Browser ── */
+        .ep-toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .ep-filter-group { display: flex; flex-wrap: wrap; gap: 4px; }
+        .filter-chip { padding: 4px 10px; border-radius: 16px; border: 1px solid var(--border); font-size: 11px; cursor: pointer; color: var(--muted); transition: 0.2s; }
+        .filter-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+        
+        .ep-list { display: flex; flex-direction: column; gap: 2px; }
+        .ep-group-header { padding: 8px 4px; font-size: 11px; font-weight: 700; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+        .ep-item { padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; transition: 0.15s; }
+        .ep-item:hover { background: var(--surface-hover); }
+        .ep-item.selected { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+        .ep-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--surface-hover); color: var(--muted); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+        .ep-item.selected .ep-tag { background: rgba(217,119,6,0.1); color: var(--accent); }
+        .ep-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+
+        /* ── Main Area ── */
+        .main { padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .card-header h2 { font-size: 14px; font-weight: 600; }
+        .card-content { padding: 20px; }
+
+        .result-view { position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: #000; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; min-height: 300px; }
+
+        /* ── Action Result ── */
+        .action-container { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; min-width: 0; }
+        .result-img-container { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #111; min-width: 0; display: flex; align-items: center; justify-content: center; }
+        .result-img { width: 100%; height: auto; max-height: 400px; object-fit: contain; display: block; }
+        .placeholder { grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--muted); height: 300px; }
+        .img-label { position: absolute; top: 12px; left: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; z-index: 10; }
+        
+        /* IoU Badge */
+        .iou-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 2px solid var(--accent); color: var(--accent); font-weight: 800; font-family: 'JetBrains Mono', monospace; padding: 10px 20px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20; pointer-events: none; }
+        .note-chip { display: inline-block; background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 4px; }
+
+        /* ── Action Result ── */
+        .action-container { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .action-hero { display: flex; align-items: center; gap: 20px; }
+        .action-icon { width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+        .action-info h3 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .action-info p { font-size: 13px; color: var(--muted); }
+
+        .prob-bars { display: flex; flex-direction: column; gap: 8px; }
+        .prob-row { display: flex; align-items: center; gap: 12px; }
+        .prob-label { width: 80px; font-size: 11px; font-weight: 600; color: var(--muted); text-align: right; }
+        .prob-bar-bg { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+        .prob-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .prob-val { width: 40px; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: right; }
+
+        .raw-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .raw-box { background: var(--bg); border-radius: 8px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+        .raw-val { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+        .raw-label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+
+        /* ── VLM Selector ── */
+        .vlm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .vlm-chip { padding: 10px; border-radius: 8px; border: 1px solid var(--border); text-align: center; font-size: 12px; cursor: pointer; transition: 0.2s; color: var(--muted); }
+        .vlm-chip:hover { border-color: var(--accent); color: var(--text); }
+        .vlm-chip.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+        /* ── Utils ── */
+        .spinner { border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; width: 16px; height: 16px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Progress Bar */
+        .progress-container { width: 100%; height: 4px; background: var(--bg); position: absolute; bottom: 0; left: 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+        .timer-badge { position: absolute; top: 12px; right: 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+        
+        .badge-gt { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 1px 4px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 6px; vertical-align: middle; }
+        
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="brand">
+            <div class="logo">M</div>
+            <h1>MoNaVLA Inference Center</h1>
+        </div>
+        <div class="system-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">CONNECTING...</span>
+        </div>
+    </header>
+
+    <nav class="nav-tabs">
+        <div class="nav-tab active" onclick="setMode('vla')">⚡ VLA Engine (Exp39)</div>
+        <div class="nav-tab" onclick="setMode('vlm')">🔬 VLM Zero-shot</div>
+        <div class="nav-tab" onclick="setMode('compare')">⚖️ Comparison</div>
+    </nav>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-scroll">
+                <!-- Image Source -->
+                <div class="section">
+                    <div class="section-title">INPUT SOURCE</div>
+                    <div class="source-tabs">
+                        <div class="source-tab active" id="src-upload" onclick="setSource('upload')">UPLOAD</div>
+                        <div class="source-tab" id="src-dataset" onclick="setSource('dataset')">DATASET</div>
+                    </div>
+
+                    <div id="panel-upload" class="input-group">
+                        <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+                            <input type="file" id="fileInput" hidden accept="image/*" onchange="handleFile(this.files[0])">
+                            <span style="font-size: 24px">📂</span>
+                            <p><strong>Click or drag image</strong></p>
+                            <p style="font-size: 11px">Supports JPG, PNG, WEBP</p>
+                        </div>
+                        <img id="previewImg" style="display:none; width: 100%; border-radius: 8px; margin-top:10px; max-height: 150px; object-fit: contain; border: 1px solid var(--border);">
+                    </div>
+
+                    <div id="panel-dataset" hidden>
+                        <div class="ep-toolbar">
+                            <input type="text" id="epSearch" placeholder="Search filename..." oninput="refreshEpisodes()">
+                            <select id="epSort" onchange="refreshEpisodes()">
+                                <option value="name">Sort: Name</option>
+                                <option value="date_desc">Sort: Latest</option>
+                                <option value="path">Sort: Path Type</option>
+                            </select>
+                            <div class="ep-filter-group" id="filterPaths"></div>
+                        </div>
+                        <div class="ep-list" id="epList">
+                            <div style="padding: 20px; text-align: center; color: var(--muted)">Loading episodes...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instruction -->
+                <div class="section">
+                    <div class="section-title">INSTRUCTION</div>
+                    <textarea id="instruction" placeholder="Enter robot command...">Navigate toward the gray basket until it is centered in the frame</textarea>
+                    <div class="ep-filter-group" style="margin-top: 10px">
+                        <div class="filter-chip" onclick="applyInstr('center')">Center Goal</div>
+                        <div class="filter-chip" onclick="applyInstr('left')">Go Left</div>
+                        <div class="filter-chip" onclick="applyInstr('right')">Go Right</div>
+                        <div class="filter-chip" onclick="applyInstr('stop')">Stop</div>
+                    </div>
+                </div>
+
+                <!-- VLM Model Selector (hidden in VLA mode) -->
+                <div class="section" id="vlmSection" hidden>
+                    <div class="section-title">BACKBONE MODEL</div>
+                    <div class="vlm-grid">
+                        <div class="vlm-chip selected" onclick="setVLM('moondream', this)">Moondream</div>
+                        <div class="vlm-chip" onclick="setVLM('paligemma-mix', this)">PaliGemma</div>
+                        <div class="vlm-chip" onclick="setVLM('paligemma2-mix', this)">PaliGemma 2</div>
+                        <div class="vlm-chip" onclick="setVLM('kosmos', this)">Kosmos-2</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-run" id="runBtn" onclick="runInference()">
+                <span>▶&nbsp; RUN INFERENCE</span>
+            </button>
+            <div id="runStatus" style="text-align: center; font-size: 11px; color: var(--muted); padding-bottom: 20px"></div>
+        </aside>
+
+        <main class="main">
+            <!-- Visual Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>VISUALIZATION</h2>
+                    <span id="resModelInfo" style="font-size: 11px; color: var(--muted)">Waiting for input...</span>
+                </div>
+                <div class="card-content">
+                    <div class="result-view">
+                        <div class="timer-badge" id="inferenceTimer" hidden>0.0s</div>
+                        <div class="placeholder" id="resPlaceholder">
+                            <span style="font-size: 48px">📂</span>
+                            <p id="placeholderText">Select an episode to preview GT</p>
+                        </div>
+                        <div class="result-img-container" id="gtContainer" hidden>
+                            <div class="img-label" style="border-left: 3px solid #22c55e">
+                                Mini GT (Label)
+                                <div id="epNote" class="note-chip" style="display:none; margin-left: 8px;"></div>
+                            </div>
+                            <img id="gtImg" class="result-img">
+                        </div>
+                        <div class="result-img-container" id="resContainer" hidden>
+                            <div class="img-label" style="border-left: 3px solid #ef4444">Inference (Model)</div>
+                            <img id="resultImg" class="result-img">
+                        </div>
+                        <div class="iou-badge" id="iouBadge" hidden>IoU: 0.00</div>
+                        <div class="progress-container" id="progBar" hidden>
+                            <div class="progress-fill" id="progFill"></div>
+                        </div>
+                    </div>
+                    <!-- 앵커 프레임 선택기 -->
+                    <div id="anchorSelector" style="display:flex; gap:8px; margin-top:16px; justify-content:center;" hidden></div>
+                </div>
+            </div>
+
+            <!-- Result Card -->
+            <div class="card" id="resCard" hidden>
+                <div class="card-header">
+                    <h2>INFERENCE OUTPUT</h2>
+                </div>
+                <div class="card-content" id="resContent">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const ACTIONS = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "TURN_L", "TURN_R"];
+        const ACOLORS = ["#ef4444", "#10b981", "#3b82f6", "#f59e0b", "#06b6d4", "#f43f5e", "#8b5cf6", "#ec4899"];
+        const AICONS  = ["🛑", "⬆️", "↖️", "↗️", "↗️", "↘️", "↩️", "↪️"];
+        
+        let currentMode = 'vla';
+        let currentSource = 'upload';
+        let currentVLM = 'moondream';
+        let selectedFile = null;
+        let selectedSample = null;
+        let episodeData = null;
+        let activePathFilter = null;
+
+        // --- Init ---
+        window.onload = async () => {
+            checkServerStatus();
+            setInterval(checkServerStatus, 10000);
+            loadEpisodes();
+        };
+
+        async function checkServerStatus() {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                document.getElementById('statusDot').className = 'status-dot active';
+                document.getElementById('statusText').innerText = data.cuda ? 'GPU · ACTIVE' : 'CPU · ACTIVE';
+            } catch (e) {
+                document.getElementById('statusDot').className = 'status-dot';
+                document.getElementById('statusText').innerText = 'OFFLINE';
+            }
+        }
+
+        // --- Navigation ---
+        function setMode(m) {
+            currentMode = m;
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('vlmSection').hidden = (m === 'vla');
+        }
+
+        function setSource(s) {
+            currentSource = s;
+            document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`src-${s}`).classList.add('active');
+            document.getElementById('panel-upload').hidden = (s !== 'upload');
+            document.getElementById('panel-dataset').hidden = (s !== 'dataset');
+        }
+
+        // --- File Handling ---
+        function handleFile(file) {
+            if (!file) return;
+            selectedFile = file;
+            selectedSample = null;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.getElementById('previewImg');
+                img.src = e.target.result;
+                img.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Episode Browser ---
+        async function loadEpisodes() {
+            try {
+                const res = await fetch('/api/samples_parsed?limit=200');
+                episodeData = await res.json();
+                
+                // Build filters
+                const filterContainer = document.getElementById('filterPaths');
+                filterContainer.innerHTML = '<div class="filter-chip active" id="chip-all" onclick="setPathFilter(null)">All</div>' +
+                    episodeData.meta.path_types.map(p => 
+                        `<div class="filter-chip" onclick="setPathFilter('${p}', this)">${p}</div>`
+                    ).join('');
+                
+                refreshEpisodes();
+            } catch (e) {
+                console.error("Failed to load episodes", e);
+            }
+        }
+
+        function setPathFilter(p, el) {
+            activePathFilter = p;
+            document.querySelectorAll('#filterPaths .filter-chip').forEach(c => c.classList.remove('active'));
+            if (el) el.classList.add('active');
+            else document.getElementById('chip-all').classList.add('active');
+            refreshEpisodes();
+        }
+
+        function refreshEpisodes() {
+            if (!episodeData) return;
+            const search = document.getElementById('epSearch').value.toLowerCase();
+            const sort = document.getElementById('epSort').value;
+            
+            let eps = episodeData.episodes;
+            if (search) eps = eps.filter(e => e.filename.toLowerCase().includes(search));
+            if (activePathFilter) eps = eps.filter(e => e.path_type === activePathFilter);
+            
+            // Sort
+            eps.sort((a, b) => {
+                if (sort === 'date_desc') return (b.date + b.time).localeCompare(a.date + a.time);
+                if (sort === 'path') return a.path_type.localeCompare(b.path_type);
+                return a.filename.localeCompare(b.filename);
+            });
+
+            const container = document.getElementById('epList');
+            container.innerHTML = eps.map(ep => `
+                <div class="ep-item ${selectedSample === ep.filename ? 'selected' : ''}" onclick="selectEpisode('${ep.filename}', this)">
+                    <span class="ep-tag">${ep.path_type}</span>
+                    <span class="ep-name">${ep.date.slice(4)}_${ep.time} · ${ep.target_pos}</span>
+                    ${ep.has_gt ? '<span class="badge-gt">GT</span>' : ''}
+                </div>
+            `).join('');
+        }
+
+        let currentFrameIdx = null;
+
+        async function selectEpisode(fname, el) {
+            selectedSample = fname;
+            selectedFile = null;
+            currentFrameIdx = null; // 초기화
+            document.querySelectorAll('.ep-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            
+            await loadPreview(fname);
+        }
+
+        async function loadPreview(fname, frameIdx = null) {
+            try {
+                const body = { filename: fname };
+                if (frameIdx !== null) body.frame_idx = frameIdx;
+                
+                const res = await fetch('/api/preview_sample', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                
+                currentFrameIdx = data.frame_idx;
+                
+                document.getElementById('resPlaceholder').hidden = true;
+                document.getElementById('gtContainer').hidden = false;
+                document.getElementById('resContainer').hidden = false;
+                
+                document.getElementById('gtImg').src = 'data:image/jpeg;base64,' + data.gt_image;
+                document.getElementById('resultImg').src = ''; // Clear previous pred
+                document.getElementById('iouBadge').hidden = true;
+                
+                // Show Note
+                const noteEl = document.getElementById('epNote');
+                if (data.notes) {
+                    noteEl.innerText = data.notes;
+                    noteEl.style.display = 'inline-block';
+                } else {
+                    noteEl.style.display = 'none';
+                }
+                
+                // 앵커 버튼 생성
+                const anchorContainer = document.getElementById('anchorSelector');
+                if (data.available_anchors && data.available_anchors.length > 0) {
+                    anchorContainer.hidden = false;
+                    anchorContainer.innerHTML = data.available_anchors.map(a => `
+                        <button class="${a.frame_idx === data.frame_idx ? 'btn-primary' : 'btn-outline'}" 
+                                style="padding: 4px 12px; font-size: 11px;"
+                                onclick="loadPreview('${fname}', ${a.frame_idx})">
+                            [${a.anchor.toUpperCase()}] Frame ${a.frame_idx}
+                        </button>
+                    `).join('');
+                } else {
+                    anchorContainer.hidden = true;
+                }
+                
+                document.getElementById('resCard').hidden = true; 
+                document.getElementById('resModelInfo').innerText = "Previewing GT... (Click RUN to infer)";
+            } catch (e) {
+                console.error("Preview failed", e);
+            }
+        }
+
+        // --- Prediction Logic ---
+        function applyInstr(type) {
+            const map = {
+                'center': 'Navigate toward the gray basket until it is centered in the frame',
+                'left': 'Navigate around the obstacle on the left side',
+                'right': 'Navigate around the obstacle on the right side',
+                'stop': 'Stop and wait'
+            };
+            document.getElementById('instruction').value = map[type];
+        }
+
+        function setVLM(name, el) {
+            currentVLM = name;
+            document.querySelectorAll('.vlm-chip').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function softmax(arr) {
+            const max = Math.max(...arr);
+            const exps = arr.map(v => Math.exp(v - max));
+            const sum = exps.reduce((a, b) => a + b, 0);
+            return exps.map(v => v / sum);
+        }
+
+        async function runInference() {
+            const instr = document.getElementById('instruction').value.trim();
+            if (!instr) { alert("Please enter instruction"); return; }
+            if (!selectedFile && !selectedSample) { alert("Please select image source"); return; }
+
+            const btn = document.getElementById('runBtn');
+            const status = document.getElementById('runStatus');
+            const timer = document.getElementById('inferenceTimer');
+            const progBar = document.getElementById('progBar');
+            const progFill = document.getElementById('progFill');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div>&nbsp; PROCESSING...';
+            status.innerText = "Model is thinking...";
+            
+            // Start Timer & Progress
+            timer.hidden = false;
+            progBar.hidden = false;
+            let start = Date.now();
+            let timerInt = setInterval(() => {
+                let elapsed = (Date.now() - start) / 1000;
+                timer.innerText = elapsed.toFixed(1) + 's';
+                progFill.style.width = Math.min(elapsed * 20, 95) + '%'; // Pseudo-progress
+            }, 100);
+
+            try {
+                let res;
+                if (currentSource === 'upload') {
+                    const form = new FormData();
+                    form.append('file', selectedFile);
+                    form.append('instruction', instr);
+                    form.append('mode', currentMode === 'compare' ? 'vla' : currentMode);
+                    form.append('vlm_name', currentVLM);
+                    res = await fetch('/api/predict', { method: 'POST', body: form });
+                } else {
+                    const reqBody = { 
+                        filename: selectedSample, 
+                        instruction: instr, 
+                        mode: currentMode === 'compare' ? 'vla' : currentMode,
+                        vlm_name: currentVLM 
+                    };
+                    if (currentFrameIdx !== null) reqBody.frame_idx = currentFrameIdx;
+                    
+                    res = await fetch('/api/predict_sample', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reqBody)
+                    });
+                }
+                const data = await res.json();
+                clearInterval(timerInt);
+                progFill.style.width = '100%';
+                setTimeout(() => { progBar.hidden = true; progFill.style.width = '0%'; }, 500);
+                
+                displayResult(data);
+                timer.innerText = (data.latency_ms / 1000).toFixed(2) + 's';
+                status.innerText = `Analysis completed in ${data.latency_ms}ms`;
+            } catch (e) {
+                console.error(e);
+                clearInterval(timerInt);
+                status.innerText = "Inference failed: " + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>▶&nbsp; RUN INFERENCE</span>';
+            }
+        }
+
+        function displayResult(data) {
+            // Image
+            const resPlaceholder = document.getElementById('resPlaceholder');
+            const gtContainer = document.getElementById('gtContainer');
+            const resContainer = document.getElementById('resContainer');
+            const gtImg = document.getElementById('gtImg');
+            const resImg = document.getElementById('resultImg');
+            
+            if (resPlaceholder) resPlaceholder.hidden = true;
+            
+            // 예측 결과 이미지 표시 (항상 존재)
+            if (resContainer && resImg && data.vis_image) {
+                resContainer.hidden = false;
+                resImg.src = 'data:image/jpeg;base64,' + data.vis_image;
+            }
+            
+            // GT 이미지 표시 (데이터셋 모드일 때만 존재할 수 있음)
+            if (gtContainer && gtImg) {
+                if (data.gt_image) {
+                    gtContainer.hidden = false;
+                    gtImg.src = 'data:image/jpeg;base64,' + data.gt_image;
+                } else {
+                    gtContainer.hidden = true; // 업로드 모드 등 GT가 없는 경우 숨김
+                }
+            }
+            
+            const iouBadge = document.getElementById('iouBadge');
+            if (iouBadge) {
+                if (data.iou !== undefined && data.iou > 0) {
+                    iouBadge.innerText = 'IoU: ' + data.iou.toFixed(3);
+                    iouBadge.hidden = false;
+                } else {
+                    iouBadge.hidden = true;
+                }
+            }
+            
+            document.getElementById('resModelInfo').innerText = 
+                `Engine: ${data.mode.toUpperCase()} (${data.mode === 'vla' ? 'Exp39' : currentVLM})`;
+
+            // Card
+            const card = document.getElementById('resCard');
+            card.hidden = false;
+            const content = document.getElementById('resContent');
+
+            if (data.mode === 'vla') {
+                const probs = softmax(data.logits);
+                const id = data.action_id;
+                const color = ACOLORS[id];
+                
+                content.innerHTML = `
+                    <div class="action-container">
+                        <div class="action-hero">
+                            <div class="action-icon" style="background: ${color}15; color: ${color}">${AICONS[id]}</div>
+                            <div class="action-info">
+                                <h3 style="color: ${color}">${ACTIONS[id]}</h3>
+                                <p>Probability: <strong>${(probs[id] * 100).toFixed(1)}%</strong></p>
+                            </div>
+                        </div>
+                        <div class="prob-bars">
+                            ${probs.map((p, i) => `
+                                <div class="prob-row">
+                                    <div class="prob-label">${ACTIONS[i]}</div>
+                                    <div class="prob-bar-bg">
+                                        <div class="prob-bar-fill" style="width: ${p*100}%; background: ${ACOLORS[i]}"></div>
+                                    </div>
+                                    <div class="prob-val">${(p*100).toFixed(1)}%</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                const v = data.raw_action;
+                content.innerHTML = `
+                    <div style="margin-bottom: 16px; padding: 12px; background: #fffbeb; border-radius: 8px; font-size: 12px; color: #92400e; border: 1px solid #fde68a">
+                        <strong>Note:</strong> Zero-shot mode uses pretrained VLM backbones without fine-tuning. Grounding difference is typically < 0.001.
+                    </div>
+                    <div class="raw-values">
+                        <div class="raw-box"><div class="raw-val">${v[0].toFixed(4)}</div><div class="raw-label">Linear V</div></div>
+                        <div class="raw-box"><div class="raw-val">${v[1].toFixed(4)}</div><div class="raw-label">Lateral V</div></div>
+                        <div class="raw-box"><div class="raw-val">${v[2].toFixed(4)}</div><div class="raw-label">Angular ω</div></div>
+                    </div>
+                `;
+            }
+            
+            // Scroll to bottom
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoNaVLA V5 — 전체 실험 결과 총집합 (Exp01~Exp54)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1a; --surface: #111827; --surface2: #1e293b;
+    --border: #1e293b; --text: #f1f5f9; --muted: #94a3b8;
+    --accent: #38bdf8; --green: #22c55e; --red: #ef4444;
+    --yellow: #fbbf24; --purple: #a78bfa; --cyan: #06b6d4;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Noto Sans KR','Inter',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+
+  .hero { background:linear-gradient(135deg,#0f172a,#1e1b4b,#0f172a); padding:60px 40px 48px; text-align:center; border-bottom:1px solid #1e293b; }
+  .hero h1 { font-size:2.6rem; font-weight:900; background:linear-gradient(90deg,#38bdf8,#a78bfa,#22c55e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
+  .hero p { color:var(--muted); font-size:0.95rem; max-width:700px; margin:0 auto 24px; }
+  .hero-meta { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+  .hero-kpi { background:#1e293b; border:1px solid #334155; border-radius:10px; padding:14px 28px; text-align:center; }
+  .hero-kpi .n { font-size:2rem; font-weight:900; }
+  .hero-kpi .l { color:var(--muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+  .phase-section { max-width:1400px; margin:0 auto; padding:48px 32px 24px; }
+  .phase-header { display:flex; align-items:center; gap:14px; margin-bottom:28px; padding-bottom:14px; border-bottom:1px solid #1e293b; }
+  .phase-badge { font-size:0.75rem; font-weight:900; padding:4px 14px; border-radius:99px; text-transform:uppercase; letter-spacing:0.08em; white-space:nowrap; }
+  .phase-title { font-size:1.5rem; font-weight:800; }
+  .phase-desc { color:var(--muted); font-size:0.9rem; max-width:900px; margin-bottom:24px; line-height:1.7; }
+
+  table { width:100%; border-collapse:separate; border-spacing:0; border-radius:14px; overflow:hidden; margin-bottom:16px; font-size:0.85rem; }
+  thead tr { background:#0b1220; }
+  th { padding:10px 14px; text-align:left; color:var(--muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid var(--border); white-space:nowrap; }
+  td { padding:10px 14px; border-bottom:1px solid rgba(51,65,85,0.4); background:var(--surface); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:#15202f; }
+
+  .exp-num { font-weight:900; font-family:monospace; white-space:nowrap; }
+  .badge { display:inline-block; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:99px; white-space:nowrap; }
+  .b-end2end { background:rgba(96,165,250,0.15); color:#60a5fa; }
+  .b-decomp  { background:rgba(34,197,94,0.15); color:#22c55e; }
+  .b-ablation{ background:rgba(245,158,11,0.15); color:#f59e0b; }
+  .b-clip    { background:rgba(6,182,212,0.15); color:#06b6d4; }
+  .b-dead    { background:rgba(239,68,68,0.12); color:#f87171; }
+  .b-pivot   { background:rgba(167,139,250,0.15); color:#a78bfa; }
+
+  .status-ok   { color:#22c55e; font-weight:700; }
+  .status-warn { color:#fbbf24; font-weight:700; }
+  .status-fail { color:#ef4444; }
+  .status-now  { color:#06b6d4; font-weight:700; }
+  .status-skip { color:#475569; }
+
+  .metric { font-family:monospace; font-weight:700; }
+  .m-good  { color:#22c55e; }
+  .m-warn  { color:#fbbf24; }
+  .m-bad   { color:#ef4444; }
+  .m-muted { color:#64748b; }
+  .m-info  { color:#38bdf8; }
+
+  .note { color:var(--muted); font-size:0.8rem; line-height:1.5; }
+
+  hr.div { border:none; border-top:1px solid #1e293b; margin:0; }
+
+  .legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:28px; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--muted); }
+
+  .back-bar { background:#111827; border-bottom:1px solid #1e293b; padding:12px 32px; display:flex; gap:16px; align-items:center; position:sticky; top:0; z-index:50; }
+  .back-bar a { color:var(--accent); text-decoration:none; font-size:0.85rem; }
+  .back-bar .sep { color:#334155; }
+
+  @media print { .back-bar { display:none; } body { background:#fff; color:#111; } }
+</style>
+</head>
+<body>
+
+<div class="back-bar">
+  <a href="../index.html">🏠 메인</a>
+  <span class="sep">›</span>
+  <a href="research_story.html">📖 연구 여정</a>
+  <span class="sep">›</span>
+  <span style="color:var(--muted)">전체 실험 총집합</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>전체 실험 총집합</h1>
+  <p>V5 프로젝트 Exp01 ~ Exp54까지 — 모든 실험의 결과, 판단 근거, 계보를 한 화면에</p>
+  <div class="hero-meta">
+    <div class="hero-kpi"><div class="n" style="color:#38bdf8">54</div><div class="l">총 실험 수</div></div>
+    <div class="hero-kpi"><div class="n" style="color:#22c55e">96.4%</div><div class="l">최고 PM (Exp49)</div></div>
+    <div class="hero-kpi"><div class="n" style="color:#22c55e">100%</div><div class="l">최고 CL (Exp46~52)</div></div>
+    <div class="hero-kpi"><div class="n" style="color:#a78bfa">2</div><div class="l">현재 진행 중</div></div>
+  </div>
+</div>
+
+<!-- ══ PHASE A ══ -->
+<div class="phase-section" id="phase-a">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">Phase A</span>
+    <h2 class="phase-title">End-to-End Policy — Backbone 탐색</h2>
+  </div>
+  <p class="phase-desc">
+    Kosmos-2 + LoRA로 이미지+언어 → action 직접 예측. Google-Robot backbone 도입 후 text attention=0% 구조 문제 발견.
+    Exp01~Exp16이 이 계열. PM이 높아도 CL 0%가 반복되며 end-to-end 한계를 증명.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>실험</th><th>날짜</th><th>카테고리</th><th>구조 / 핵심 변경</th>
+        <th>PM / Val Acc</th><th>CL 성공률</th><th>상태</th><th>핵심 발견 / 노트</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="exp-num">Exp01</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">전체 데이터(150 ep) baseline, 8-class</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">FORWARD shortcut 강하게 발현. 문제의 출발점.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp02</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">직선(center_straight) 제거</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">class ratio 조절만으로는 FORWARD collapse 해결 불가.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp03</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">alignment/norm loss 보강</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">val_loss 개선 ≠ policy 개선. optimization gain / policy gain은 별개.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp04</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">Google-Robot backbone 첫 도입, 8-class</td>
+        <td class="metric m-muted">val_loss 0.776</td>
+        <td class="metric m-bad">0%</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">val_loss 착시 첫 사례. PM 0% collapse — loss 좋아도 실제 정책 무너짐.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp05</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">action-aware instruction, temporal consistency</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">instruction 설계 ≠ text path 활용. prompt만으로 해결 불가.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp06</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">pure HF alignment, tokenizer 정렬</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">grounding token 호환성 개선. 근본 해결은 아님.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp07</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">path-type grounding instruction</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">text-ignore 확인 이후 무의미 판정.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp08</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">center-goal awareness, stop/goal prompt</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">prompt conditioning 효과 없음.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp09</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">정리된 end-to-end baseline, 8-class</td>
+        <td class="metric m-warn">중간</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">bias 잔존. 중간 이정표 역할만.</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#38bdf8">Exp10</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-ablation">Grounding</span></td>
+        <td class="note">BBox grounding 직접 학습 (bbox regression)</td>
+        <td class="metric m-muted">IoU 0.87</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-warn">참조용</td>
+        <td class="note">teacher-forced val_loss 0.012. rule 기반 전이 <span class="metric m-bad">34.4%</span>. "볼 수는 있지만 못 움직임".</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#a78bfa">Exp11</td>
+        <td class="note">Apr 14~16</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">Google-Robot + 8-class, 최종 end-to-end baseline</td>
+        <td class="metric m-warn">58.6%</td>
+        <td class="metric m-bad">0%</td>
+        <td class="status-warn">baseline</td>
+        <td class="note">val_loss 1.010. CL 0% — FPE 1.45m. text attention <span class="metric m-bad">0%</span> 측정 완료. end-to-end 한계 확정.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp12</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-ablation">Oracle</span></td>
+        <td class="note">oracle 성격 검증</td>
+        <td class="metric m-muted">—</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-fail">분석용</td>
+        <td class="note">구조 문제 의심 강화.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp13</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">instruction embedding → action head 명시 주입</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">left/right 구분 실패. 후단 주입만으로 conditioning 불가.</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#22c55e">Exp14 S1</td>
+        <td class="note">Apr 17</td>
+        <td><span class="badge b-decomp">Decomp</span></td>
+        <td class="note">MLP (bbox history 32-dim only)</td>
+        <td class="metric m-warn">68.4%</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-warn">완료</td>
+        <td class="note">Exp11(58.6%) 초과. bbox history만으로도 end-to-end 압도. decomposition 첫 증명.</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#22c55e">Exp14 S2</td>
+        <td class="note">Apr 17</td>
+        <td><span class="badge b-decomp">Decomp</span></td>
+        <td class="note">MLP (bbox 32 + 16×16 grayscale image 256)</td>
+        <td class="metric m-good">75.9%</td>
+        <td class="metric m-good">66.7%</td>
+        <td class="status-ok">baseline</td>
+        <td class="note">5-seed 76.6±1.6%. FPE 0.55m. Exp11 CL 0% → 66.7%. 당시 최강 practical baseline.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp15</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-ablation">Ablation</span></td>
+        <td class="note">VLM 완전 frozen, action head만 학습</td>
+        <td class="metric m-bad">37.5%</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">text attention <span class="metric m-bad">0%</span> 재확인. Google-Robot backbone 구조적 문제 확정.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp16</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">전체 150 ep (center_straight 포함), 8-class</td>
+        <td class="metric m-muted">학습 중단</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-fail">중단</td>
+        <td class="note">교수 프로토콜 Step 2. Exp49 GoalNav로 우회 해결돼 이 계열 종료.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<hr class="div">
+
+<!-- ══ PHASE B ══ -->
+<div class="phase-section" id="phase-b">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:rgba(239,68,68,0.12);color:#f87171">Phase B</span>
+    <h2 class="phase-title">Text Attention 사망 확인 — Exp17~Exp24</h2>
+  </div>
+  <p class="phase-desc">
+    "text attention이 왜 0%인가"를 규명하는 계열. Pure HF Kosmos-2, decoder LoRA, 다양한 conditioning 시도.
+    모든 접근이 text attn=0%를 확인 → Google-Robot post-training이 text 경로를 구조적으로 붕괴시켰음 결론.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>실험</th><th>날짜</th><th>카테고리</th><th>구조 / 핵심 변경</th>
+        <th>PM</th><th>CL</th><th>상태</th><th>핵심 발견 / 노트</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="exp-num">Exp17~18</td>
+        <td class="note">Apr 21</td>
+        <td><span class="badge b-dead">Text fix</span></td>
+        <td class="note">Pure HF backbone 실험 (Google-Robot 아님)</td>
+        <td class="metric m-muted">다양</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">text attn 여전히 0%. Pure HF도 동일 문제. backbone 교체만으론 해결 불가.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp19~20</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-dead">Text fix</span></td>
+        <td class="note">bbox proxy signal 실험 (grounding aux)</td>
+        <td class="metric m-muted">다양</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">proxy signal로 grounding 보강 시도. text pathway 미개선.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp21~24</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-dead">Text fix</span></td>
+        <td class="note">decoder LoRA, last-4 layer LoRA 변형</td>
+        <td class="metric m-muted">다양</td>
+        <td class="metric m-bad">0%</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">text attn=0% 모든 시도에서 재확인. <strong>Phase A FAIL 최종 선언.</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="background:#1a0a0a;border:1px solid #7f1d1d;border-radius:10px;padding:14px 18px;font-size:0.85rem;color:#fca5a5;line-height:1.7">
+    <strong>Phase B 최종 결론:</strong> Exp17~41C 모두 text attn=0%. Google-Robot post-training이 이미 text 경로 붕괴. 우리 LoRA/학습과 무관. 측정 스크립트: <code style="background:#0a0f1a;padding:1px 6px;border-radius:4px">scripts/measure_attention.py</code>
+  </div>
+</div>
+<hr class="div">
+
+<!-- ══ PHASE C ══ -->
+<div class="phase-section" id="phase-c">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">Phase C</span>
+    <h2 class="phase-title">Objective / Preprocessing Ablation — Exp25~Exp31</h2>
+  </div>
+  <p class="phase-desc">
+    end-to-end를 포기하지 않고 objective / sampling / preprocessing을 다양하게 조합.
+    Exp25가 당시 best practical baseline(CL 55.6%). Exp26은 PM 높지만 CL 0% — PM/CL 괴리 재확인.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>실험</th><th>날짜</th><th>카테고리</th><th>구조 / 핵심 변경</th>
+        <th>PM</th><th>CL</th><th>상태</th><th>핵심 발견 / 노트</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="exp-num" style="color:#fbbf24">Exp25</td>
+        <td class="note">Apr 22</td>
+        <td><span class="badge b-end2end">End2End</span></td>
+        <td class="note">balanced objective (path_type 균등), 전체 150ep</td>
+        <td class="metric m-warn">52.38%</td>
+        <td class="metric m-warn">55.6%</td>
+        <td class="status-warn">당시 baseline</td>
+        <td class="note">당시 실전 기준 best. FPE 0.382, TLD 0.936. 이후 Exp46에 의해 대체.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp26</td>
+        <td class="note">Apr 22</td>
+        <td><span class="badge b-ablation">Ablation</span></td>
+        <td class="note">direct224 preprocessing (letterbox 없이 직접 resize)</td>
+        <td class="metric m-good">70.24%</td>
+        <td class="metric m-bad">0%</td>
+        <td class="status-fail">반례</td>
+        <td class="note">PM/CL 괴리 극단 사례. PM 좋아도 CL 0%. FPE 1.189. PM 신뢰도 문제 재확인.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp27</td>
+        <td class="note">Apr 23</td>
+        <td><span class="badge b-ablation">Ablation</span></td>
+        <td class="note">letterbox224 preprocessing</td>
+        <td class="metric m-bad">15.48%</td>
+        <td class="metric m-warn">33.3%</td>
+        <td class="status-fail">reference</td>
+        <td class="note">Exp25보다 전반 약함. FPE 0.932.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp28</td>
+        <td class="note">Apr 23</td>
+        <td><span class="badge b-ablation">Ablation</span></td>
+        <td class="note">grounding aux + turn-family oversampling</td>
+        <td class="metric m-bad">38.10%</td>
+        <td class="metric m-bad">0%</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">bbox loss 추가했지만 실제 effective share는 여전히 action 99.6%. rollout 개선 없음.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp29</td>
+        <td class="note">Apr 23</td>
+        <td><span class="badge b-ablation">Ablation</span></td>
+        <td class="note">coarse-only 5ep short ablation</td>
+        <td class="metric m-bad">21.43%</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">IoU 0.0. coarse만으로는 bbox recovery 불가.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp30</td>
+        <td class="note">Apr 24</td>
+        <td><span class="badge b-ablation">Ablation</span></td>
+        <td class="note">bbox+coarse 5ep short ablation</td>
+        <td class="metric m-bad">14.29%</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">IoU 0.0. bbox 추가해도 악화. 빠른 수렴 불가.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp31</td>
+        <td class="note">Apr 24</td>
+        <td><span class="badge b-ablation">Ablation</span></td>
+        <td class="note">learned loss mixing 5ep</td>
+        <td class="metric m-muted">평가 미완</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-fail">중단</td>
+        <td class="note">학습 완료, PM/rollout 미평가. 이후 decomposition으로 방향 전환.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<hr class="div">
+
+<!-- ══ PHASE D ══ -->
+<div class="phase-section" id="phase-d">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:rgba(239,68,68,0.12);color:#f87171">Phase D</span>
+    <h2 class="phase-title">Text Path 회복 시도 — Exp32~Exp45</h2>
+  </div>
+  <p class="phase-desc">
+    left-only minimal run, pure HF controlled ablation, object recognition proof, cross-attention 등 다양한 방향.
+    Exp35 left-only 5ep에서 PM 56% 전부 FORWARD collapse 확인. Exp40에서 object recognition 기초 증명.
+    Exp41~43 Phase A/B/C/D 체계적 진단 후 모든 end-to-end 계열 종료 선언.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>실험</th><th>날짜</th><th>카테고리</th><th>핵심 변경</th>
+        <th>PM</th><th>CL</th><th>상태</th><th>핵심 발견</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="exp-num">Exp32~34</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-dead">Text fix</span></td>
+        <td class="note">Pure HF backbone controlled ablation 시리즈</td>
+        <td class="metric m-bad">낮음</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">Text attn=0% 재확인. backbone 무관 문제 확정.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp35</td>
+        <td class="note">Apr 25</td>
+        <td><span class="badge b-dead">Text fix</span></td>
+        <td class="note">left-only 5ep, last-4 decoder LoRA</td>
+        <td class="metric m-bad">56.16%</td>
+        <td class="metric m-bad">FORWARD collapse</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">422 프레임 전부 FORWARD 예측. 학습 split에서도 collapse. end-to-end 방식 최종 포기.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp36~39</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-ablation">Recognition</span></td>
+        <td class="note">object recognition 단계별 증명 실험</td>
+        <td class="metric m-muted">분석용</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-warn">참조용</td>
+        <td class="note">grounding bbox overlay 생성. initial frame 인식률 분석.</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#38bdf8">Exp40</td>
+        <td class="note">Apr 2026</td>
+        <td><span class="badge b-ablation">Recognition</span></td>
+        <td class="note">object recognition proof (bbox truth 검증)</td>
+        <td class="metric m-muted">분석용</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-warn">참조용</td>
+        <td class="note">bbox_truth 18개 초기 프레임 기반 인식률 측정. grounding 기초 증명 문서화.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp41</td>
+        <td class="note">Apr~May 2026</td>
+        <td><span class="badge b-ablation">Phase A/B/C</span></td>
+        <td class="note">prompt lock-in, phase 체계 진단</td>
+        <td class="metric m-muted">다양</td>
+        <td class="metric m-bad">0%</td>
+        <td class="status-fail">분석 완료</td>
+        <td class="note">Phase A/B/C 전체 FAIL 공식 선언. text 경로 회복 불가능 결론.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp42</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-ablation">Counterfactual</span></td>
+        <td class="note">counterfactual 데이터 augmentation (config flag)</td>
+        <td class="metric m-muted">—</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">counterfactual은 구현됨. end-to-end 경로가 막혀 효과 없음.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp43</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-dead">Phase D</span></td>
+        <td class="note">cross-attention 기반 text conditioning</td>
+        <td class="metric m-muted">—</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">Phase D 최종 시도. text path 완전 사망 확정. decomposition으로 전환.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp44~45</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-ablation">Misc</span></td>
+        <td class="note">기타 보강 실험</td>
+        <td class="metric m-muted">—</td>
+        <td class="metric m-bad">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">GoalNav 전환 이전 마지막 탐색들.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<hr class="div">
+
+<!-- ══ PHASE E ══ -->
+<div class="phase-section" id="phase-e">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">Phase E ★</span>
+    <h2 class="phase-title">GoalNav MLP — 100% 성공 달성 (Exp46~Exp52)</h2>
+  </div>
+  <p class="phase-desc">
+    Kosmos-2 grounding → goal_pos(cx0) → MLP 구조로 전환. Exp46에서 CL 100% 첫 달성.
+    Exp47은 text embedding 추가했으나 paraphrase 74.1%로 실패. Exp49에서 goal proximity signal로
+    paraphrase 100% + CL 100% 동시 달성. 이후 augmentation 실험(Exp50~52)에서 Exp49가 여전히 최선 확인.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>실험</th><th>날짜</th><th>카테고리</th><th>구조 / 핵심 변경</th>
+        <th>PM</th><th>CL</th><th>paraphrase</th><th>상태</th><th>핵심 발견</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="exp-num" style="color:#22c55e">Exp46</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-decomp">GoalNav</span></td>
+        <td class="note">MLP (bbox 32 + vision 1024), 전체 150ep</td>
+        <td class="metric m-good">93.2%</td>
+        <td class="metric m-good">100%</td>
+        <td class="metric m-muted">N/A</td>
+        <td class="status-ok">완료</td>
+        <td class="note">GoalNav 구조 첫 100% CL. Exp14 Step2 66.7% → 100% 도약.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp47</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-decomp">GoalNav</span></td>
+        <td class="note">+text embedding (2048-dim, path_type instruction)</td>
+        <td class="metric m-good">98.7%</td>
+        <td class="metric m-good">100%</td>
+        <td class="metric m-bad">74.1% ❌</td>
+        <td class="status-warn">한계 확인</td>
+        <td class="note">PM 최고지만 paraphrase 실패 → 언어 외운 것. text fingerprinting 문제.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp48</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-decomp">GoalNav</span></td>
+        <td class="note">중간 탐색 실험</td>
+        <td class="metric m-muted">—</td>
+        <td class="metric m-muted">—</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-fail">폐기</td>
+        <td class="note">Exp49 설계를 위한 bridge 실험.</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#22c55e; font-size:1rem">Exp49 ⭐</td>
+        <td class="note">May 11</td>
+        <td><span class="badge b-decomp">GoalNav</span></td>
+        <td class="note">goal proximity signal (cx0,cy0,area0) — 언어→기하학</td>
+        <td class="metric m-good">96.4%</td>
+        <td class="metric m-good">100%</td>
+        <td class="metric m-good">100% ✅</td>
+        <td class="status-ok" style="color:#22c55e">현재 BEST</td>
+        <td class="note">5-seed 95.1%±0.7%. FPE 0.081m. paraphrase 45/45 일치. 실로봇 평가 중(96.7% 오프라인 CL).</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp50</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-ablation">Aug</span></td>
+        <td class="note">+horizontal flip augmentation</td>
+        <td class="metric m-warn">92.0%</td>
+        <td class="metric m-good">100%</td>
+        <td class="metric m-good">100% ✅</td>
+        <td class="status-warn">Exp49 열위</td>
+        <td class="note">flip 6/9 path에서 오히려 하락. aug 불필요 첫 신호.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp51</td>
+        <td class="note">May 11</td>
+        <td><span class="badge b-ablation">Aug</span></td>
+        <td class="note">+random crop augmentation</td>
+        <td class="metric m-warn">93.3%</td>
+        <td class="metric m-good">100%</td>
+        <td class="metric m-good">100% ✅</td>
+        <td class="status-warn">Exp49 열위</td>
+        <td class="note">crop 78/100%. Exp49(96.4%) 대비 -3.1%p. augmentation 불필요 확정.</td>
+      </tr>
+      <tr>
+        <td class="exp-num">Exp52</td>
+        <td class="note">May 2026</td>
+        <td><span class="badge b-ablation">Aug</span></td>
+        <td class="note">aug 조합 추가 비교</td>
+        <td class="metric m-warn">Exp49 열위</td>
+        <td class="metric m-good">100%</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-warn">참조용</td>
+        <td class="note">모든 augmentation 조합에서 Exp49 무증강이 최선. 최종 확정.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<hr class="div">
+
+<!-- ══ PHASE F ══ -->
+<div class="phase-section" id="phase-f">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">Phase F 🔄</span>
+    <h2 class="phase-title">CLIP LoRA 2-Stage — "박스를 본 건가" (Exp53~Exp54)</h2>
+  </div>
+  <p class="phase-desc">
+    교수님 질문 "박스를 본 건가, 텍스트를 외운 건가"에 구조적으로 답하기 위한 2-Stage 접근.
+    Exp53은 bbox fake detection 문제 발견. Exp54는 Stage 1(CLIP contrastive)로 basket 인식 먼저 증명 후
+    Stage 2(action head)로 navigation 학습.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>실험</th><th>날짜</th><th>카테고리</th><th>구조 / 핵심 변경</th>
+        <th>PM / Val Acc</th><th>CL</th><th>상태</th><th>핵심 발견</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="exp-num">Exp53</td>
+        <td class="note">May 18</td>
+        <td><span class="badge b-clip">CLIP LoRA</span></td>
+        <td class="note">CLIP LoRA (layers 16-23, r=16) + MLP end-to-end</td>
+        <td class="metric m-good">94.7%</td>
+        <td class="metric m-muted">미평가</td>
+        <td class="status-warn">진단 완료</td>
+        <td class="note">grounding live 탐지 0%. bbox_dataset 실제 매칭 17%(83%는 쓰레기통/에어컨). 높은 PM = "복도 암기". basket 인식 아님.</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#06b6d4">Exp54 S1 v1</td>
+        <td class="note">May 19</td>
+        <td><span class="badge b-clip">CLIP contrastive</span></td>
+        <td class="note">텍스트-이미지 정렬 (에피소드 단위 레이블)</td>
+        <td class="metric m-good">retrieval 100%</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-ok">완료</td>
+        <td class="note">val_acc 100%이지만 early/late 격차 0%p → 에피소드 패턴 암기. frame-level 재학습 필요.</td>
+      </tr>
+      <tr style="background:#051e17">
+        <td class="exp-num" style="color:#22c55e">Exp54 S1 v2</td>
+        <td class="note">May 22</td>
+        <td><span class="badge b-clip">CLIP contrastive</span></td>
+        <td class="note">frame-level cx_det 레이블 / hybrid: center=Kosmos-2 cx, left/right=HSV</td>
+        <td class="metric m-good">98.1%</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-ok">완료 ✅</td>
+        <td class="note">1,844 consistent 프레임. center 96.7% 복구. Zero-shot linear probe 96.6% — frozen CLIP이 이미 basket 위치 인코딩. masking → center 100% flip (인과 증거).</td>
+      </tr>
+      <tr>
+        <td class="exp-num" style="color:#fbbf24">Exp54 S2</td>
+        <td class="note">May 22~</td>
+        <td><span class="badge b-clip">Action Head</span></td>
+        <td class="note">Stage 1 v2 frozen + MLP action head (재학습 예정)</td>
+        <td class="metric m-muted">—</td>
+        <td class="metric m-muted">—</td>
+        <td class="status-now">⏳ 예정</td>
+        <td class="note">v2 Stage 1 위에 action head 재학습. 목표: Exp49(96.4%) 초과 후 closed-loop 평가.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="background:#0a1628;border:1px solid #22c55e;border-radius:10px;padding:14px 18px;font-size:0.85rem;color:#86efac;line-height:1.7;margin-top:4px">
+    <strong>5-Track 증명 완료:</strong>
+    frozen CLIP 96.6% → basket 위치 기인코딩 |
+    early→late +8%p(left), +5%p(center) → basket 가까울수록 ↑ |
+    center 어텐션 4.4× → basket 집중 |
+    masking 100% flip → 인과 증거 |
+    → <strong>"복도 패턴 암기 아님, basket을 본다"</strong> 구조적 증명.
+  </div>
+</div>
+<hr class="div">
+
+<!-- ══ SUMMARY TABLE ══ -->
+<div class="phase-section" id="summary">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:var(--surface2);color:var(--muted)">요약</span>
+    <h2 class="phase-title">전체 흐름 — 이정표 실험만 추려서</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>실험</th><th>PM</th><th>CL</th><th>이정표 의미</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="exp-num">Exp11</td><td class="metric m-warn">58.6%</td><td class="metric m-bad">0%</td><td class="note">End-to-End 한계 확정. text attn=0%, CL 0%.</td></tr>
+      <tr><td class="exp-num">Exp14 S2</td><td class="metric m-warn">75.9%</td><td class="metric m-warn">66.7%</td><td class="note">Decomposition 첫 증명. Exp11 CL 0% → 66.7% 도약.</td></tr>
+      <tr><td class="exp-num">Exp25</td><td class="metric m-warn">52.4%</td><td class="metric m-warn">55.6%</td><td class="note">End-to-End 마지막 시도에서의 최선.</td></tr>
+      <tr><td class="exp-num" style="color:#22c55e">Exp46</td><td class="metric m-good">93.2%</td><td class="metric m-good">100%</td><td class="note">GoalNav 100% 첫 달성. 방향 전환의 성과.</td></tr>
+      <tr><td class="exp-num">Exp47</td><td class="metric m-good">98.7%</td><td class="metric m-good">100%</td><td class="note">PM 최고. paraphrase 실패 → "언어 외운 것" 증명.</td></tr>
+      <tr style="background:#051e0f">
+        <td class="exp-num" style="color:#22c55e;font-size:1rem">Exp49 ⭐</td>
+        <td class="metric m-good" style="font-size:1rem">96.4%</td>
+        <td class="metric m-good" style="font-size:1rem">100%</td>
+        <td class="note" style="color:#86efac">현재 최강. paraphrase 100%, 5-seed 안정. 실로봇 평가 중.</td>
+      </tr>
+      <tr><td class="exp-num">Exp53</td><td class="metric m-good">94.7%</td><td class="metric m-muted">미평가</td><td class="note">CLIP LoRA 첫 시도. bbox fake 문제 발견 → Exp54 설계 계기.</td></tr>
+      <tr style="background:#051e17"><td class="exp-num" style="color:#22c55e">Exp54 S1 v2</td><td class="metric m-good">98.1%</td><td class="metric m-muted">—</td><td class="note">frame-level 재학습. frozen probe 96.6% + masking 100% flip → "basket 본다" 5-track 증명.</td></tr>
+      <tr><td class="exp-num" style="color:#fbbf24">Exp54 S2</td><td class="metric m-muted">예정</td><td class="metric m-muted">예정</td><td class="note">v2 Stage 1 위에 action head 재학습 → closed-loop 평가.</td></tr>
+    </tbody>
+  </table>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px">
+    <a href="research_story.html" style="background:#1e293b;color:#38bdf8;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:0.88rem">📖 연구 여정 (스토리)</a>
+    <a href="../reports/viewer.html?file=v5/PROF_UPDATE_20260522_EXP54_V2.md" style="background:#0a2518;color:#22c55e;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:0.88rem">📄 Exp54 v2 5-Track 증명 (5/22)</a>
+    <a href="../reports/viewer.html?file=v5/PROF_UPDATE_20260519_EXP54.md" style="background:#1e293b;color:#06b6d4;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:0.88rem">📄 Exp54 초기 (5/19)</a>
+    <a href="../reports/viewer.html?file=v5/PROF_UPDATE_20260417_EXP14.md" style="background:#1e293b;color:#22c55e;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:0.88rem">📄 Exp14 교수님 업데이트</a>
+    <a href="../index.html" style="background:#1e293b;color:#a78bfa;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:0.88rem">🏠 메인</a>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "_comment": "Exp54 Stage 1: CLIP Contrastive — Gray Basket Text-Image Alignment",
+
+  "vlm_path": ".vlms/kosmos-2-patch14-224",
+  "data_path": "docs/v5/bbox_nav_exp46/bbox_dataset_full.json",
+
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "layers": [16, 17, 18, 19, 20, 21, 22, 23],
+    "target_modules": ["q_proj", "v_proj"],
+    "dropout": 0.05
+  },
+
+  "contrastive": {
+    "proj_dim": 256,
+    "lm_dim": 2048,
+    "vis_dim": 1024,
+    "temperature": 0.07,
+    "direction_texts": {
+      "left":   "The gray basket is on the left side of the image",
+      "center": "The gray basket is in the center of the image",
+      "right":  "The gray basket is on the right side of the image"
+    }
+  },
+
+  "training": {
+    "epochs": 150,
+    "batch_size": 16,
+    "lr_lora": 2e-4,
+    "lr_proj": 1e-3,
+    "weight_decay": 1e-4,
+    "val_split": 0.2,
+    "random_seed": 42
+  },
+
+  "output": {
+    "lora_adapter": "runs/v5_nav/mlp/exp54/stage1/clip_lora_adapter",
+    "projs": "runs/v5_nav/mlp/exp54/stage1/stage1_projs.pt"
+  },
+
+  "goal": "retrieval_val_acc >= 0.80"
+}

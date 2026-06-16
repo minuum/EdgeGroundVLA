@@ -24,7 +24,7 @@ import torch.nn as nn
 import numpy as np
 import h5py
 from PIL import Image, ImageDraw
-from transformers import AutoProcessor, AutoModelForVision2Seq
+from transformers import AutoProcessor, AutoModelForImageTextToText
 
 HF_KOSMOS_PATH = ROOT / ".vlms" / "kosmos-2-patch14-224"
 DATA_DIR = ROOT / "ROS_action" / "mobile_vla_dataset_v5"
@@ -97,16 +97,17 @@ def parse_basket_bbox(caption, entities):
     return None
 
 
-def extract_bbox_dataset(full=False):
+def extract_bbox_dataset(full=False, data_dir=None):
+    dd = Path(data_dir) if data_dir else DATA_DIR
     print(f"Loading Pure HF Kosmos-2 from {HF_KOSMOS_PATH}")
     processor = AutoProcessor.from_pretrained(str(HF_KOSMOS_PATH))
-    model = AutoModelForVision2Seq.from_pretrained(
+    model = AutoModelForImageTextToText.from_pretrained(
         str(HF_KOSMOS_PATH), torch_dtype=torch.float16
     ).cuda().eval()
 
     dataset = []
     for pt in PATH_TYPES:
-        all_eps = sorted(DATA_DIR.glob(f"episode_*target_{pt}_path*.h5"))
+        all_eps = sorted(dd.glob(f"episode_*target_{pt}_path*.h5"))
         eps = all_eps if full else all_eps[:EPS_PER_PATH]
         print(f"\n=== {pt}: {len(eps)} episodes ===")
         for ep in eps:
@@ -223,6 +224,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--skip_extract", action="store_true")
     ap.add_argument("--full", action="store_true", help="Use all available episodes (→ bbox_dataset_full.json)")
+    ap.add_argument("--data_dir", type=str, default=None, help="Override DATA_DIR path")
     args = ap.parse_args()
 
     cache_file = OUT_DIR / ("bbox_dataset_full.json" if args.full else "bbox_dataset.json")
@@ -231,7 +233,7 @@ def main():
         dataset = json.loads(cache_file.read_text())
         print(f"Loaded cached dataset: {len(dataset)} episodes from {cache_file.name}")
     else:
-        dataset, cache_file = extract_bbox_dataset(full=args.full)
+        dataset, cache_file = extract_bbox_dataset(full=args.full, data_dir=args.data_dir)
 
     # Episode-level split 80/20 (stratified by path_type)
     rng = np.random.default_rng(42)

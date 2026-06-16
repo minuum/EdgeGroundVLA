@@ -87,6 +87,26 @@ _VAL_INCLUDE_PATH_FAMILIES = (
     else None
 )
 
+# 두 서버 호환: billy ↔ minum 데이터셋 경로 자동 resolve
+_DATA_PATH_ALIASES = [
+    "/home/billy/25-1kp/MoNaVLA/ROS_action/mobile_vla_dataset_v5",
+    "/home/minum/minum/26CS/MoNa-pi/mobile_vla_dataset_v5",
+]
+
+def _resolve_data_dir(p):
+    if not isinstance(p, str) or os.path.exists(p):
+        return p
+    for src in _DATA_PATH_ALIASES:
+        if src in p:
+            for dst in _DATA_PATH_ALIASES:
+                if dst == src:
+                    continue
+                cand = p.replace(src, dst)
+                if os.path.exists(cand):
+                    return cand
+    return p
+
+
 CLASS_NAMES_6 = {0:"STOP", 1:"FORWARD", 2:"LEFT", 3:"RIGHT", 4:"FWD+L", 5:"FWD+R"}
 CLASS_NAMES_8 = {0:"STOP", 1:"FORWARD", 2:"LEFT", 3:"RIGHT", 4:"FWD+L", 5:"FWD+R", 6:"TURN_L", 7:"TURN_R"}
 CLASS_NAMES = CLASS_NAMES_8 if NUM_CLASSES == 8 else CLASS_NAMES_6
@@ -107,8 +127,13 @@ def _load_eval_settings_from_config():
     global V5_DATA, NUM_CLASSES, _VAL_TRAIN_SPLIT, _VAL_WINDOW_SIZE, CLASS_NAMES
     global _VAL_INCLUDE_PATH_FAMILIES
     try:
-        with open(CONFIG, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
+        # parent inheritance까지 머지된 config 사용
+        try:
+            from main import load_config
+            cfg = load_config(CONFIG)
+        except Exception:
+            with open(CONFIG, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
     except Exception:
         return
 
@@ -117,7 +142,7 @@ def _load_eval_settings_from_config():
     data_cfg = val_cfg or train_cfg
 
     if _cli.data is None and data_cfg.get("data_dir"):
-        V5_DATA = data_cfg["data_dir"]
+        V5_DATA = _resolve_data_dir(data_cfg["data_dir"])
     if _cli.num_classes is None and data_cfg.get("num_classes"):
         NUM_CLASSES = int(data_cfg["num_classes"])
     if _cli.train_split is None and data_cfg.get("train_split"):
@@ -138,12 +163,14 @@ def load_model():
     from main import load_config, update_configs
     configs = load_config(CONFIG)
 
-    # 경로 패치
+    # 경로 패치 (VLM은 ROOT 기반, 데이터는 billy↔minum 자동 resolve)
     vlm_path = os.path.join(ROOT, ".vlms", "kosmos-2-patch14-224")
     def _fix_paths(d):
         for k, v in d.items():
             if isinstance(v, str) and "kosmos-2-patch14-224" in v:
                 d[k] = vlm_path
+            elif k == "data_dir" and isinstance(v, str):
+                d[k] = _resolve_data_dir(v)
             elif isinstance(v, dict):
                 _fix_paths(v)
     _fix_paths(configs)

@@ -1,0 +1,34 @@
+{
+  "_comment": "Exp54 Stage 2: Action Head (Stage 1 CLIP LoRA frozen)",
+
+  "vlm_path": ".vlms/kosmos-2-patch14-224",
+  "data_path": "docs/v5/bbox_nav_exp46/bbox_dataset_full.json",
+
+  "stage1_lora": "runs/v5_nav/mlp/exp54/stage1/clip_lora_adapter",
+
+  "model": {
+    "window": 8,
+    "vis_dim": 1024,
+    "d_in": 1056,
+    "num_classes": 8,
+    "_note": "goal 3-dim 제거 — Stage 1 CLIP feat이 위치 정보 포함"
+  },
+
+  "training": {
+    "epochs": 300,
+    "batch_size": 32,
+    "lr": 1e-3,
+    "weight_decay": 1e-4,
+    "val_split": 0.2,
+    "random_seed": 42
+  },
+
+  "output": {
+    "ckpt": "runs/v5_nav/mlp/exp54/stage2/stage2_mlp.pt"
+  },
+
+  "baseline_reference": {
+    "exp53_val_acc": 0.9468,
+    "exp49_val_acc": 0.9640
+  }
+}

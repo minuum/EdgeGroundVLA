@@ -1,0 +1,15 @@
+{
+    "_comment": "V5 Exp45: text decoder LoRA 제거. vision_model + image_to_text_projection 레이어만 LoRA 적용. Exp44 설정 기반(hybrid backbone). 가설: text attention이 학습 후에도 0%로 죽지 않음.",
+    "parent": "configs/mobile_vla_v5_exp44_hybrid_backbone.json",
+    "exp_name": "v5-exp45-vision-lora-only",
+    "task_name": "mobile_vla_v5_exp45",
+
+    "train_setup": {
+        "lora_target_modules": "(vision_model|image_to_text_projection)\\..+\\.(q_proj|v_proj|k_proj|out_proj|fc1|fc2)"
+    },
+
+    "trainer": {
+        "max_epochs": 10,
+        "check_val_every_n_epoch": 1
+    }
+}

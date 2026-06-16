@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoNaVLA — PM & CL 논문 근거 및 역할 분석</title>
+  <style>
+    :root {
+      --bg: #0a0f1a;
+      --card: #111827;
+      --border: #1e293b;
+      --green: #22c55e;
+      --green-light: #86efac;
+      --green-dark: #052e16;
+      --blue: #38bdf8;
+      --blue-dark: #0a1628;
+      --purple: #a78bfa;
+      --yellow: #fbbf24;
+      --red: #ef4444;
+      --orange: #fb923c;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --dim: #475569;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      line-height: 1.75;
+      padding: 0 0 80px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #060c18 0%, #0d1f3c 50%, #060c18 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 52px 40px 40px;
+      text-align: center;
+    }
+    .hero-label { color: #4ade80; font-size: 0.72rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px; }
+    .hero h1 { font-size: 2.1rem; font-weight: 900; color: #fff; margin-bottom: 10px; line-height: 1.25; }
+    .hero p { color: var(--muted); font-size: 0.9rem; max-width: 680px; margin: 0 auto; }
+    .tag-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+    .tag { padding: 4px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+    .tag-green { background: #052e16; color: #4ade80; }
+    .tag-blue  { background: #0a1628; color: #7dd3fc; }
+    .tag-purple{ background: #1e1040; color: #c4b5fd; }
+
+    /* ── Layout ── */
+    .container { max-width: 1000px; margin: 0 auto; padding: 48px 24px 0; }
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+      font-size: 0.84rem;
+    }
+    .toc h3 { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .toc a { color: var(--blue); text-decoration: none; display: block; padding: 3px 0; border-bottom: 1px solid transparent; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── Sections ── */
+    .section { margin-bottom: 64px; scroll-margin-top: 24px; }
+    .section-header {
+      display: flex; align-items: flex-start; gap: 14px;
+      margin-bottom: 24px; padding-bottom: 14px;
+      border-bottom: 2px solid var(--border);
+    }
+    .sec-num {
+      min-width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; font-weight: 900; font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .sec-num-blue   { background: #0a1628; color: #38bdf8; border: 1px solid #1e3a5f; }
+    .sec-num-green  { background: #052e16; color: #4ade80; border: 1px solid #14532d; }
+    .sec-num-purple { background: #1e1040; color: #a78bfa; border: 1px solid #3b1f80; }
+    .sec-num-orange { background: #1c0a00; color: #fb923c; border: 1px solid #7c2d12; }
+    .section-header h2 { font-size: 1.35rem; font-weight: 800; line-height: 1.3; }
+    .section-header p  { font-size: 0.83rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 0.82rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .card-blue   { border-left: 3px solid var(--blue); }
+    .card-green  { border-left: 3px solid var(--green); }
+    .card-purple { border-left: 3px solid var(--purple); }
+    .card-orange { border-left: 3px solid var(--orange); }
+    .card-red    { border-left: 3px solid var(--red); }
+
+    /* ── Callouts ── */
+    .callout-green  { background: #052e16; border: 1px solid var(--green); border-radius: 10px; padding: 14px 18px; margin: 12px 0; color: #86efac; font-size: 0.84rem; line-height: 1.8; }
+    .callout-blue   { background: #0a1628; border: 1px solid #1e40af; border-radius: 10px; padding: 14px 18px; margin: 12px 0; color: #7dd3fc; font-size: 0.84rem; line-height: 1.8; }
+    .callout-yellow { background: #1a1200; border: 1px solid var(--yellow); border-radius: 10px; padding: 14px 18px; margin: 12px 0; color: #fde68a; font-size: 0.84rem; line-height: 1.8; }
+    .callout-purple { background: #1e1040; border: 1px solid var(--purple); border-radius: 10px; padding: 14px 18px; margin: 12px 0; color: #c4b5fd; font-size: 0.84rem; line-height: 1.8; }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; margin: 14px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th {
+      background: #060d16; color: var(--muted);
+      padding: 10px 14px; font-weight: 700;
+      text-align: left; border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid #0f1a2e; color: var(--text); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+    .b-green  { background: #052e16; color: #4ade80; }
+    .b-blue   { background: #0a1628; color: #7dd3fc; }
+    .b-purple { background: #1e1040; color: #c4b5fd; }
+    .b-yellow { background: #1a1200; color: #fde68a; }
+    .b-red    { background: #2d0000; color: #fca5a5; }
+
+    /* ── Code / Log ── */
+    code { font-family: monospace; background: #1e2438; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+    .log {
+      font-family: monospace; font-size: 0.77rem;
+      background: #060d16; border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 18px; line-height: 2; margin: 12px 0; overflow-x: auto;
+    }
+    .log .ok { color: #22c55e; }
+    .log .ng { color: #ef4444; }
+    .log .hi { color: #fbbf24; }
+    .log .di { color: var(--dim); }
+    .log .bl { color: #38bdf8; }
+
+    /* ── Flow diagram ── */
+    .flow {
+      font-family: monospace; font-size: 0.78rem;
+      background: #060d16; border: 1px solid #1e3a5f;
+      border-radius: 8px; padding: 18px 20px; line-height: 2.2; margin: 12px 0;
+    }
+
+    /* ── Arch diagram ── */
+    .arch-box {
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px; margin: 10px 0; font-size: 0.8rem;
+      text-align: center; background: #060d16;
+    }
+    .arch-box .title { font-weight: 700; margin-bottom: 4px; }
+    .arch-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0; }
+
+    /* ── Cite chip ── */
+    .cite {
+      display: inline-block; background: #0a1628;
+      border: 1px solid #1e3a5f; border-radius: 6px;
+      padding: 2px 10px; font-size: 0.72rem; font-weight: 700;
+      color: #7dd3fc; margin: 2px 2px; cursor: default;
+    }
+    .cite-green { background: #052e16; border-color: #14532d; color: #86efac; }
+    .cite-purple { background: #1e1040; border-color: #3b1f80; color: #c4b5fd; }
+
+    /* ── Comparison columns ── */
+    .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+    .col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 12px 0; }
+
+    .inner-card {
+      background: #060d16; border-radius: 8px; padding: 14px;
+      font-size: 0.8rem; color: var(--muted); line-height: 1.8;
+    }
+    .inner-card .head { font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    p { font-size: 0.88rem; color: var(--muted); line-height: 1.8; margin-bottom: 10px; }
+    strong { color: var(--text); }
+    ul { padding-left: 18px; font-size: 0.86rem; color: var(--muted); line-height: 1.9; }
+    li { margin-bottom: 4px; }
+
+    @media(max-width:700px){
+      .arch-grid,.col2,.col3{grid-template-columns:1fr;}
+      .hero h1{font-size:1.5rem;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<div class="hero">
+  <div class="hero-label">MoNaVLA · 논문 근거 & 기술 분석</div>
+  <h1>PM (PaliGemma) & CL (Closed-Loop)<br>— 어디서 왔고, 왜 효과적인가</h1>
+  <p>논문 출처 · 도입 결정 이유 · 학습/추론/수집에서의 역할 · 타 논문 사례 비교</p>
+  <div class="tag-row">
+    <span class="tag tag-blue">PaliGemma — arXiv:2407.07726 (Google DeepMind 2024)</span>
+    <span class="tag tag-green">Closed-Loop — RT-2 / OpenVLA 평가 프로토콜</span>
+    <span class="tag tag-purple">LoRA — arXiv:2106.09685 (Hu et al., 2021)</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>목차</h3>
+    <a href="#s1">1. PaliGemma (PM) — 논문 출처 & 도입 경위</a>
+    <a href="#s2">2. PaliGemma의 핵심 메커니즘 — 왜 효과적인가</a>
+    <a href="#s3">3. PM이 학습/추론/수집에서 하는 역할</a>
+    <a href="#s4">4. Closed-Loop (CL) Evaluation — 논문 출처 & 도입 이유</a>
+    <a href="#s5">5. CL이 학습/추론/수집에서 하는 역할</a>
+    <a href="#s6">6. 타 논문 사례 비교표</a>
+    <a href="#s7">7. MoNaVLA에서의 PM + CL 연결 흐름</a>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       §1  PaliGemma 논문 출처
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="sec-num sec-num-blue">§1</div>
+      <div>
+        <h2>PaliGemma (PM) — 논문 출처 & 도입 경위</h2>
+        <p>어떤 논문에서 왔고, 우리는 왜 선택했는가</p>
+      </div>
+    </div>
+
+    <!-- 논문 출처 -->
+    <div class="card card-blue">
+      <h3 style="color:var(--blue)">📄 원 논문</h3>
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th width="140">항목</th>
+            <th>내용</th>
+          </tr>
+          <tr>
+            <td><strong>논문명</strong></td>
+            <td>"PaliGemma: A versatile 3B VLM for transfer"</td>
+          </tr>
+          <tr>
+            <td><strong>저자</strong></td>
+            <td>Lucas Beyer, Andreas Steiner, André Susano Pinto, et al. (Google DeepMind)</td>
+          </tr>
+          <tr>
+            <td><strong>arXiv</strong></td>
+            <td><code>arXiv:2407.07726</code> — 2024년 7월 공개</td>
+          </tr>
+          <tr>
+            <td><strong>후속 논문</strong></td>
+            <td>"PaliGemma 2" — Gemma 2 기반, 3B / 10B / 28B 확장판 (2024년 말)</td>
+          </tr>
+          <tr>
+            <td><strong>모델 출처</strong></td>
+            <td>HuggingFace: <code>google/paligemma2-3b-pt-224</code></td>
+          </tr>
+          <tr>
+            <td><strong>우리가 사용한 버전</strong></td>
+            <td>PaliGemma <strong>2</strong> 3B (pt-224 — 사전학습 가중치)</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 왜 PaliGemma를 선택했나 -->
+    <div class="card card-blue">
+      <h3 style="color:var(--blue)">🔍 왜 PaliGemma를 선택했나 — Kosmos-2 대비 비교</h3>
+      <p style="margin-bottom:14px">이전 실험(Exp01~Exp17)에서 <strong>Kosmos-2 (1.6B)</strong>를 backbone으로 사용했지만, grounding 성능의 한계와 메모리 비효율 문제가 있었음. Exp57부터 PaliGemma2-3B LoRA로 전환.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>비교 항목</th><th>Kosmos-2 (기존)</th><th>PaliGemma2-3B (현재)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>파라미터</td>
+              <td>1.6B</td>
+              <td>2.9B</td>
+            </tr>
+            <tr>
+              <td>LoRA 학습 메모리</td>
+              <td>18 GB ❌</td>
+              <td>~12 GB ✅</td>
+            </tr>
+            <tr>
+              <td>Vision Encoder</td>
+              <td>CLIP ViT-L/14</td>
+              <td><strong>SigLIP-So400m</strong> (더 효율적)</td>
+            </tr>
+            <tr>
+              <td>Grounding 방식</td>
+              <td>복잡한 bounding box 처리</td>
+              <td><strong>&lt;loc0000&gt;~&lt;loc1023&gt;</strong> 토큰 — 단순하고 강력</td>
+            </tr>
+            <tr>
+              <td>Text-conditioned detection</td>
+              <td>미흡 (Exp17: LEFT/RIGHT 구분 수준)</td>
+              <td><strong>Zero-shot 65% → LoRA 후 100%</strong> (Exp57)</td>
+            </tr>
+            <tr>
+              <td>VLA 적용 사례</td>
+              <td>RoboKosmos</td>
+              <td><strong>π0 (Physical Intelligence, 2024)</strong> — PaliGemma 기반 80% 성공률</td>
+            </tr>
+            <tr>
+              <td>이전 평가 지표 PM</td>
+              <td>EXP-17에서 94.72% (Open-Loop)</td>
+              <td>Grounding hit 100% → 향상된 PM 확보 중</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout-blue">
+      <strong>도입 결정 근거:</strong> PAPER_PREPARATION.md §9 Related Work에서 π0 (2024) 논문이 PaliGemma-3B를 backbone으로 80% 성공률을 달성함을 확인 →
+      우리의 navigation task에도 동일 backbone을 적용할 근거가 충분함 <span class="cite">π0, Black et al. 2024</span>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════
+       §2  PaliGemma 핵심 메커니즘
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="sec-num sec-num-blue">§2</div>
+      <div>
+        <h2>PaliGemma의 핵심 메커니즘 — 왜 효과적인가</h2>
+        <p>SigLIP + Gemma + loc 토큰 + LoRA 구조가 grounding에 왜 강력한가</p>
+      </div>
+    </div>
+
+    <!-- 아키텍처 -->
+    <div class="card card-blue">
+      <h3 style="color:var(--blue)">🏗️ 아키텍처 흐름</h3>
+      <div class="flow">
+        <span style="color:#38bdf8">입력: RGB 이미지 (224×224) + 텍스트 쿼리 "detect gray basket"</span><br><br>
+
+        [1] <span style="color:#a78bfa">SigLIP-So400m</span> (Vision Encoder)<br>
+        &nbsp;&nbsp;&nbsp;→ 이미지를 256개 패치 임베딩으로 변환<br>
+        &nbsp;&nbsp;&nbsp;→ Sigmoid-based contrastive learning으로 사전학습<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">※ CLIP과 달리 softmax가 아닌 sigmoid loss → 배치 크기에 무관, 더 안정적</span><br><br>
+
+        [2] <span style="color:#a78bfa">Linear Projection</span> (Bridge)<br>
+        &nbsp;&nbsp;&nbsp;→ 이미지 패치 임베딩을 Gemma 토큰 차원(2048)으로 변환<br>
+        &nbsp;&nbsp;&nbsp;→ "소프트 토큰"으로 텍스트 시퀀스와 concat<br><br>
+
+        [3] <span style="color:#a78bfa">Gemma-2B</span> (Language Decoder) + Full Block Attention<br>
+        &nbsp;&nbsp;&nbsp;→ [이미지 토큰 256개] + [텍스트 토큰 N개] 전체에 attention<br>
+        &nbsp;&nbsp;&nbsp;→ "detect gray basket"이 256개 이미지 패치 전체에 cross-attend<br>
+        &nbsp;&nbsp;&nbsp;→ 다음 토큰을 autoregressive하게 생성<br><br>
+
+        [4] <span style="color:#22c55e">loc 토큰 출력</span><br>
+        &nbsp;&nbsp;&nbsp;→ vocab에 추가된 1024개 특수 토큰: &lt;loc0000&gt; ~ &lt;loc1023&gt;<br>
+        &nbsp;&nbsp;&nbsp;→ [y1, x1, y2, x2] 순서로 4개 출력 → bbox 완성<br>
+        &nbsp;&nbsp;&nbsp;→ 없으면 &lt;eos&gt;만 출력 (탐지 거부)<br><br>
+
+        <span style="color:#38bdf8">출력: &lt;loc0462&gt;&lt;loc0354&gt;&lt;loc0862&gt;&lt;loc0597&gt; gray basket&lt;eos&gt;</span><br>
+        &nbsp;&nbsp;&nbsp;→ cx = (354+597)/2/1023 = <span style="color:#22c55e">0.464</span> → Action MLP 입력
+      </div>
+    </div>
+
+    <!-- 왜 효과적인가 - 3가지 이유 -->
+    <div class="card card-blue">
+      <h3 style="color:var(--blue)">💡 왜 Grounding에 효과적인가 — 3가지 메커니즘</h3>
+      <div class="col3">
+        <div class="inner-card">
+          <div class="head" style="color:#38bdf8">① Text-Conditional Attention</div>
+          텍스트 "gray basket"이 256개 이미지 패치에 <strong>full block attention</strong>으로 attend<br><br>
+          → 의미를 먼저 이해하고 (recognize) 위치를 결정 (locate)<br><br>
+          <strong>증거:</strong> Exp57 — 동일 이미지에서 "red ball"로 바꾸면 &lt;eos&gt; 출력
+        </div>
+        <div class="inner-card">
+          <div class="head" style="color:#a78bfa">② loc 토큰 설계</div>
+          bbox를 <strong>언어처럼</strong> 생성.<br>이미지 좌표계를 0~1023 정수로 균일 분할<br><br>
+          → 연속 좌표 회귀(Faster R-CNN 방식)보다 언어모델에 자연스러움<br><br>
+          <span style="color:#475569">출처: PaliGemma §3.2 "Vocabulary extension for location tokens"</span>
+        </div>
+        <div class="inner-card">
+          <div class="head" style="color:#22c55e">③ SigLIP 사전학습</div>
+          CLIP보다 효율적인 sigmoid loss로 image-text 정렬 학습<br><br>
+          → 소규모 LoRA (1.9M params / 2.9B 전체) 만으로도 빠른 도메인 적응<br><br>
+          <strong>Exp57 결과:</strong> zero-shot 65% → LoRA 20 epoch → 100%
+        </div>
+      </div>
+    </div>
+
+    <!-- LoRA 논문 근거 -->
+    <div class="card card-blue">
+      <h3 style="color:var(--blue)">📄 LoRA Fine-tuning 근거 논문</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th width="160">논문</th><th>내용</th></tr>
+          <tr>
+            <td><span class="cite-purple">LoRA</span><br>Hu et al., 2021<br><code>arXiv:2106.09685</code></td>
+            <td>
+              Low-Rank Adaptation — 사전학습 가중치를 고정하고 rank-r 분해행렬 △W = BA (B: d×r, A: r×d)를 각 레이어에 주입.<br>
+              <strong>우리 설정:</strong> rank=16, α=16, 레이어 18~26 (Gemma 마지막 8개 레이어) — trainable 1,916,928 params (전체의 0.065%)
+            </td>
+          </tr>
+          <tr>
+            <td><span class="cite-purple">QLoRA</span><br>Dettmers et al., 2023<br><code>arXiv:2305.14314</code></td>
+            <td>4-bit NF4 quantization + LoRA — 메모리 추가 절감. Exp57에서 미적용 (A5000 24GB에서 LoRA만으로 충분), 향후 Jetson 배포시 고려</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════
+       §3  PM의 역할 (학습/추론/수집)
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="s3">
+    <div class="section-header">
+      <div class="sec-num sec-num-green">§3</div>
+      <div>
+        <h2>PM이 학습 · 추론 · 데이터 수집에서 하는 역할</h2>
+        <p>각 단계에서 PaliGemma LoRA의 구체적 기능</p>
+      </div>
+    </div>
+
+    <div class="col3">
+      <!-- 데이터 수집 -->
+      <div class="card card-green" style="margin-bottom:0">
+        <h3 style="color:var(--green)">📦 데이터 수집 단계</h3>
+        <ul>
+          <li><strong>Pseudo-label 생성기:</strong> Exp58에서 V4 brown pot 데이터 524 에피소드를 HSV 없이 자동 주석</li>
+          <li>"detect brown pot" 쿼리로 각 프레임 bbox 자동 생성</li>
+          <li>수동 주석 대비 시간 <strong>~90% 절감</strong></li>
+          <li>Hard Negative 데이터셋 구축의 핵심 도구</li>
+        </ul>
+        <div class="log" style="margin-top:10px;font-size:0.72rem">
+          <span class="di"># Exp58: 524 에피소드 자동 주석</span><br>
+          <span class="ok">✅ brown pot pseudo-label</span><br>
+          <span class="ok">✅ red ball pseudo-label</span><br>
+          <span class="ok">✅ person pseudo-label</span>
+        </div>
+      </div>
+      <!-- 학습 -->
+      <div class="card card-green" style="margin-bottom:0">
+        <h3 style="color:var(--green)">🎓 학습 단계</h3>
+        <ul>
+          <li>backbone 2.9B 파라미터 <strong>동결(frozen)</strong></li>
+          <li>LoRA adapter 1.9M params만 업데이트</li>
+          <li>입력: <code>(image, "detect {obj}")</code> → 출력: <code>&lt;locNNNN&gt;×4</code></li>
+          <li>Hard Negative 포함 학습 → FP 0% 달성</li>
+          <li>20 epoch, A5000 24GB, ~8시간</li>
+        </ul>
+        <div class="log" style="margin-top:10px;font-size:0.72rem">
+          <span class="di"># Exp59 학습 결과</span><br>
+          <span class="ok">hit=95%  FP=0.0%</span><br>
+          <span class="hi">trainable: 1,916,928</span><br>
+          <span class="di">total: 2,925,383,408</span>
+        </div>
+      </div>
+      <!-- 추론 -->
+      <div class="card card-green" style="margin-bottom:0">
+        <h3 style="color:var(--green)">⚡ 추론 단계 (실시간)</h3>
+        <ul>
+          <li>로봇 카메라 프레임 수신 → <code>"detect gray basket"</code></li>
+          <li>PaliGemma가 loc 토큰으로 bbox 반환</li>
+          <li>cx = (x1+x2)/2/W → <strong>[-1,1] 정규화</strong></li>
+          <li>cx → Action MLP → [linear_x, linear_y]</li>
+          <li>bbox 없으면 (<code>&lt;eos&gt;</code>) → STOP 신호</li>
+        </ul>
+        <div class="log" style="margin-top:10px;font-size:0.72rem">
+          <span class="di"># 실시간 파이프라인</span><br>
+          <span class="bl">image → PM → cx=0.46</span><br>
+          <span class="ok">→ MLP → forward action</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout-green" style="margin-top:16px">
+      <strong>핵심 역할 요약:</strong> PM(PaliGemma LoRA)은 단순한 물체 탐지기가 아니라,
+      <strong>텍스트 목표를 공간 좌표로 변환하는 Goal-Conditioned Grounding 모듈</strong>이다.
+      텍스트 쿼리가 바뀌면 자동으로 다른 물체를 탐지하고, 다른 cx를 반환하여 다른 action을 유도한다.
+      이것이 바로 "Mobile VLA"의 핵심 — <code>f(image, text_goal) → bbox → action</code>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════
+       §4  Closed-Loop 논문 출처
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="s4">
+    <div class="section-header">
+      <div class="sec-num sec-num-purple">§4</div>
+      <div>
+        <h2>Closed-Loop (CL) Evaluation — 논문 출처 & 도입 이유</h2>
+        <p>어떤 VLA 논문들이 CL을 gold standard로 정립했는가</p>
+      </div>
+    </div>
+
+    <div class="card card-purple">
+      <h3 style="color:var(--purple)">📚 CL 개념을 정립한 핵심 논문들</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th width="180">논문</th><th>CL에서의 기여</th><th>핵심 메트릭</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>RT-2</strong> <span class="badge b-blue">Google DeepMind</span><br>
+                Brohan et al., 2023<br>
+                CoRL 2023 <code>arXiv:2307.15818</code>
+              </td>
+              <td>
+                VLA 최초로 LLM 추론 능력을 실제 로봇 Closed-Loop 제어에 연결.<br>
+                사전학습 없이 real-world rollout으로만 평가 → "CL이 VLA의 유일한 진짜 평가"를 업계 표준화
+              </td>
+              <td>Task success rate<br>(real robot)<br>~수천회 rollout</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>OpenVLA</strong> <span class="badge b-green">Stanford</span><br>
+                Kim et al., 2024<br>
+                <code>arXiv:2406.09246</code>
+              </td>
+              <td>
+                오픈소스 7B VLA. BridgeData V2 실제 로봇에서 CL rollout으로 RT-2-X 대비 성능 비교.<br>
+                "Offline metric (imitation accuracy)과 CL success rate 간 상관관계가 낮다" 발견 → CL의 독립적 필요성 재확인
+              </td>
+              <td>BridgeData V2 CL<br>success rate</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>π0 (Pi-zero)</strong> <span class="badge b-purple">Physical Intelligence</span><br>
+                Black et al., 2024<br>
+                <code>arXiv:2410.24164</code>
+              </td>
+              <td>
+                PaliGemma 기반 VLA. 8개 로봇 플랫폼에서 CL 평가.<br>
+                Diffusion Policy(35%) 대비 π0(80%) — CL 수치가 곧 논문의 핵심 증거로 활용
+              </td>
+              <td>Task success rate<br>평균 80%<br>(8 tasks)</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>CALVIN</strong> <span class="badge b-yellow">Freiburg</span><br>
+                Mees et al., ICRA 2022<br>
+                <code>arXiv:2112.03227</code>
+              </td>
+              <td>
+                CL의 시뮬레이션 버전을 학술 벤치마크로 정립. ABC→D task 연속 수행 (최대 5 tasks in a row).<br>
+                "CL success를 benchmarking 가능한 수치로 표준화" — 우리의 Phase-wise PM 개념의 전신
+              </td>
+              <td>Avg. tasks completed<br>in sequence (ABC→D)</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Octo</strong> <span class="badge b-blue">Berkeley</span><br>
+                Team et al., RSS 2024<br>
+                <code>arXiv:2405.12213</code>
+              </td>
+              <td>
+                Generalist policy. Open X-Embodiment 학습 후 새 로봇에서 fine-tuning + CL 평가.<br>
+                "Offline loss는 낮지만 CL success가 낮은 모델들이 있음" → Offline-CL gap 문제 재확인
+              </td>
+              <td>WidowX / ALOHA<br>CL success rate</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Open-Loop vs Closed-Loop -->
+    <div class="card card-purple">
+      <h3 style="color:var(--purple)">🔄 Open-Loop vs Closed-Loop — 근본적 차이</h3>
+      <div class="col2">
+        <div class="inner-card">
+          <div class="head" style="color:var(--yellow)">Open-Loop (기존 PM 지표)</div>
+          GT 프레임에 모델 출력 비교<br>
+          → <strong>PM (Perfect Match Rate)</strong><br><br>
+          <span class="badge b-yellow">장점</span> 빠름, 재현 가능, 실제 로봇 불필요<br>
+          <span class="badge b-red">단점</span> 에러 누적 효과 미측정<br><br>
+          프레임 1의 실수가 프레임 2에<br>영향 안 줌 → 낙관적 평가<br><br>
+          <strong>우리: EXP-17 PM=94.72%</strong>
+        </div>
+        <div class="inner-card">
+          <div class="head" style="color:var(--green)">Closed-Loop (CL — Gold Standard)</div>
+          실제 에피소드를 처음부터 끝까지 실행<br>
+          → <strong>Success Rate</strong><br><br>
+          <span class="badge b-green">장점</span> 에러 누적, 시각 피드백, 실제 성능 측정<br>
+          <span class="badge b-yellow">단점</span> 시간/비용, 재현성 어려움<br><br>
+          이전 action의 결과가 다음 observation에<br>반영 → 현실적 평가<br><br>
+          <strong>우리: Exp59 CL=4.5% (분석 중)</strong>
+        </div>
+      </div>
+      <div class="callout-yellow" style="margin-top:12px">
+        <strong>중요한 발견 (OpenVLA §5.3 참조):</strong>
+        "Offline imitation accuracy와 CL success rate 간 상관관계가 낮다."
+        이것이 우리가 PM 94.72%에도 불구하고 CL 평가를 독립적으로 수행하는 이유다.
+        <span class="cite">Kim et al., OpenVLA 2024</span>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════
+       §5  CL의 역할 (학습/추론/수집)
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="s5">
+    <div class="section-header">
+      <div class="sec-num sec-num-purple">§5</div>
+      <div>
+        <h2>CL이 학습 · 추론 · 데이터 수집에서 하는 역할</h2>
+        <p>각 단계에서 Closed-Loop 평가가 어떤 기능을 하는가</p>
+      </div>
+    </div>
+
+    <div class="col3">
+      <div class="card card-purple" style="margin-bottom:0">
+        <h3 style="color:var(--purple)">📦 데이터 수집</h3>
+        <ul>
+          <li>CL 실패 케이스 분석 → <strong>어떤 시나리오가 부족한지 파악</strong></li>
+          <li>예: CL에서 left_straight FPE=0.654m → 출발 지점 다양성 부족 발견</li>
+          <li>실패 에피소드 패턴을 분석해 추가 수집 우선순위 결정</li>
+          <li>Hard Negative 필요성을 CL 오탐 분석으로 발견 (→ Exp59)</li>
+        </ul>
+      </div>
+      <div class="card card-purple" style="margin-bottom:0">
+        <h3 style="color:var(--purple)">🎓 학습 최적화</h3>
+        <ul>
+          <li>CL gap을 역산해 <strong>분포 불일치</strong> 원인 파악</li>
+          <li>PM=94.72% vs CL=4.5% → MLP가 VLM bbox 분포에 OOD</li>
+          <li>→ Stage2 MLP 재학습: VLM bbox 노이즈 Data Augmentation</li>
+          <li>EMA smoothing (α=0.5) 실험 중</li>
+        </ul>
+      </div>
+      <div class="card card-purple" style="margin-bottom:0">
+        <h3 style="color:var(--purple)">⚡ 추론 검증</h3>
+        <ul>
+          <li><strong>실제 로봇/시뮬레이션</strong>에서 전체 에피소드 실행</li>
+          <li>22개 validation 에피소드 × Exp59 모델 연결</li>
+          <li>FPE (Final Position Error) ≤ 0.5m = 성공 기준</li>
+          <li>CL success rate = 논문의 최종 성능 지표</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout-purple" style="margin-top:16px">
+      <strong>현재 상태 (Exp59 CL, 2026-05-29):</strong><br>
+      • Grounding 단계 성공률 = <strong>98%</strong> (basket을 거의 놓치지 않음)<br>
+      • CL 최종 성공률 = <strong>4.5%</strong> — Stage2 MLP가 VLM bbox의 미세 노이즈에 민감하게 반응하는 OOD 문제<br>
+      • left_straight FPE=0.654m, right_right FPE=0.575m — 성공 기준(0.5m) 근접<br>
+      • 현재 EMA smoothing (α=0.5) + Joint Training 해결책 실험 진행 중
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════
+       §6  타 논문 사례 비교
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="sec-num sec-num-orange">§6</div>
+      <div>
+        <h2>타 논문 사례 비교표</h2>
+        <p>PM / CL을 어떻게 활용했는가 — 논문별 정리</p>
+      </div>
+    </div>
+
+    <div class="card card-orange">
+      <h3 style="color:var(--orange)">🔬 VLA 논문들의 PM & CL 활용 방식</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>논문</th>
+              <th>PM(Open-Loop) 지표</th>
+              <th>CL 지표</th>
+              <th>PM→CL 갭</th>
+              <th>해결책</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>RT-2</strong><br>
+                <span class="cite">Brohan 2023</span>
+              </td>
+              <td>Action token prediction accuracy<br>(offline)</td>
+              <td>Real robot success rate<br><strong>~60%</strong> (novel objects)</td>
+              <td>큰 갭<br>→ offline 지표 단독 사용 안 함</td>
+              <td>CL을 주 지표로 채택<br>수천회 real rollout</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>OpenVLA</strong><br>
+                <span class="cite">Kim 2024</span>
+              </td>
+              <td>BridgeV2 imitation accuracy</td>
+              <td>BridgeV2 CL success<br><strong>~56%</strong></td>
+              <td>"offline ↔ CL 상관관계 낮음"<br>명시적 보고</td>
+              <td>두 지표 모두 보고<br>독립적으로 평가</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>π0</strong><br>
+                <span class="cite">Black 2024</span>
+              </td>
+              <td>Flow matching loss</td>
+              <td>8 tasks CL avg<br><strong>80%</strong></td>
+              <td>Loss ↓ → CL↑ 상관<br>(flow matching이 CL 친화적)</td>
+              <td>PaliGemma + flow matching<br>고주파 action (50Hz)</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>CALVIN</strong><br>
+                <span class="cite">Mees 2022</span>
+              </td>
+              <td>Language grounding accuracy</td>
+              <td>ABC→D 5 tasks in row<br>(avg ~3.0/5.0)</td>
+              <td>시뮬레이션이라 갭 작음</td>
+              <td>시뮬레이션으로 CL 재현성 확보</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Octo</strong><br>
+                <span class="cite">Team 2024</span>
+              </td>
+              <td>BC loss on OXE dataset</td>
+              <td>WidowX / ALOHA CL<br><strong>~45%</strong></td>
+              <td>Fine-tuning 없이는 CL 낮음</td>
+              <td>새 로봇 fine-tuning 후 CL 재평가</td>
+            </tr>
+            <tr style="background:#0a1628">
+              <td>
+                <strong>🏷️ 우리 MoNaVLA</strong><br>
+                <span class="cite-green">현재</span>
+              </td>
+              <td>PM = <strong>94.72%</strong> (EXP-17)<br>Grounding hit = <strong>100%</strong> (Exp57)</td>
+              <td>CL = <strong>4.5%</strong><br>(Grounding 98% 성공,<br>MLP OOD 문제)</td>
+              <td><strong>큰 갭</strong><br>PM 94% vs CL 4.5%</td>
+              <td>Joint Training<br>EMA smoothing<br>Stage2 MLP 재학습</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PM 지표 역사 -->
+    <div class="card card-orange">
+      <h3 style="color:var(--orange)">📊 PM 지표 — 우리 프로젝트 내 역사</h3>
+      <p style="margin-bottom:12px">
+        우리 논문에서 "PM"은 <strong>Perfect Match Rate</strong>의 약자.
+        GT action과 예측 action의 방향이 완전히 일치하는 비율.
+        <code>PAPER_PREPARATION.md §8.1</code>에 정의됨.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>실험</th><th>PM (%)</th><th>핵심 변화</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>EXP-04 (Baseline)</td><td>65.83%</td><td>W=12, k=6, Linear (초반 9% 참사)</td></tr>
+            <tr><td>EXP-05 (k=1)</td><td>89.72%</td><td>Chunk size 제거 → Reactive Policy</td></tr>
+            <tr><td>EXP-06 (Resampler)</td><td>82.50%</td><td>초반 81%로 개선 but 후반 하락</td></tr>
+            <tr><td>EXP-12 (Hybrid)</td><td>88.89%</td><td>W6+k1+Resampler 조합</td></tr>
+            <tr><td>EXP-17 (Champion)</td><td><strong>94.72%</strong></td><td>W=8, k=1, Linear → 최고점</td></tr>
+            <tr style="background:#052e16"><td>Exp57 Grounding</td><td><strong>100%</strong></td><td>PaliGemma LoRA hit rate (basket)</td></tr>
+            <tr style="background:#052e16"><td>Exp59 Cross-Object</td><td>TP 95% / FP 0%</td><td>Hard Negative 학습 후</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════
+       §7  PM + CL 연결 흐름
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="sec-num sec-num-green">§7</div>
+      <div>
+        <h2>MoNaVLA에서의 PM + CL 전체 흐름</h2>
+        <p>두 개념이 시스템 안에서 어떻게 연결되는가</p>
+      </div>
+    </div>
+
+    <div class="card card-green">
+      <h3 style="color:var(--green)">🔗 PM → Grounding → Action → CL 파이프라인</h3>
+      <div class="flow">
+        <span style="color:#38bdf8">────────── 수집 단계 ──────────</span><br>
+        ROS 로봇 → HDF5 에피소드 (이미지 + GT action)<br>
+        PaliGemma pseudo-label → Hard Negative 데이터 (Exp58)<br><br>
+
+        <span style="color:#38bdf8">────────── 학습 단계 ──────────</span><br>
+        Stage 1: PaliGemma LoRA 학습 (Exp57/Exp59)<br>
+        &nbsp;&nbsp;→ PM(hit rate) 100% 달성<br>
+        &nbsp;&nbsp;→ FP 0% (Hard Negative 학습)<br><br>
+        Stage 2: Action MLP 학습 (Exp54)<br>
+        &nbsp;&nbsp;→ cx/cy → [linear_x, linear_y]<br>
+        &nbsp;&nbsp;→ <span style="color:#ef4444">문제: HSV bbox 분포로만 학습 → VLM bbox에 OOD</span><br><br>
+
+        <span style="color:#38bdf8">────────── Open-Loop 평가 (PM 지표) ──────────</span><br>
+        GT 프레임에 모델 출력 비교 → PM=94.72% (EXP-17)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grounding hit=100% (Exp57)<br><br>
+
+        <span style="color:#38bdf8">────────── Closed-Loop 평가 (CL 지표) ──────────</span><br>
+        실제 에피소드 처음부터 실행 (22 val episodes)<br>
+        &nbsp;&nbsp;→ Grounding 98% 성공 (basket 탐지 자체는 OK)<br>
+        &nbsp;&nbsp;→ MLP OOD → CL 4.5% <span style="color:#ef4444">← 현재 병목</span><br><br>
+
+        <span style="color:#22c55e">────────── 해결 방향 ──────────</span><br>
+        <span style="color:#22c55e">① Joint Training: VLM bbox 노이즈 분포를 MLP 학습에 포함</span><br>
+        <span style="color:#22c55e">② EMA(α=0.5): cx/cy 시계열 스무딩으로 drift 감소</span><br>
+        <span style="color:#22c55e">③ End-to-End: PaliGemma LoRA + MLP 동시 fine-tuning (미래)</span>
+      </div>
+    </div>
+
+    <div class="callout-green">
+      <strong>교수님 질문 연결:</strong><br>
+      "다른 물체 넣으면 다른 행동해야" →
+      PM(grounding hit rate)이 텍스트 조건부 탐지를 증명하고,
+      CL(closed-loop success rate)이 그것이 실제 주행으로 이어지는지 검증한다.<br><br>
+      PM=100% 는 <strong>"모델이 올바른 것을 보고 있다"</strong>는 증거.<br>
+      CL=4.5% 는 <strong>"보는 것을 행동으로 변환하는 인터페이스에 문제"</strong>가 있다는 진단 → 해결 방향이 명확함.
+    </div>
+  </div>
+
+  <!-- 참고문헌 -->
+  <div class="card" style="margin-bottom:0">
+    <h3 style="color:var(--muted);margin-bottom:14px">📚 핵심 참고문헌 (BibTeX 요약)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>논문</th><th>arXiv</th><th>우리 사용 근거</th></tr></thead>
+        <tbody>
+          <tr><td><strong>PaliGemma</strong> — Beyer et al., Google DeepMind 2024</td><td><code>2407.07726</code></td><td>PM backbone, loc 토큰 grounding</td></tr>
+          <tr><td><strong>PaliGemma 2</strong> — Steiner et al., 2024</td><td><code>2412.03555</code></td><td>우리가 실제 사용한 버전 (3B pt-224)</td></tr>
+          <tr><td><strong>LoRA</strong> — Hu et al., 2021</td><td><code>2106.09685</code></td><td>PaliGemma fine-tuning 방법론</td></tr>
+          <tr><td><strong>SigLIP</strong> — Zhai et al., 2023</td><td><code>2303.15343</code></td><td>PaliGemma vision encoder의 사전학습 방식</td></tr>
+          <tr><td><strong>π0 (Pi-zero)</strong> — Black et al., Physical Intelligence 2024</td><td><code>2410.24164</code></td><td>PaliGemma + CL evaluation (80% success) 선례</td></tr>
+          <tr><td><strong>RT-2</strong> — Brohan et al., Google DeepMind 2023</td><td><code>2307.15818</code></td><td>CL evaluation을 VLA 표준으로 정립</td></tr>
+          <tr><td><strong>OpenVLA</strong> — Kim et al., Stanford 2024</td><td><code>2406.09246</code></td><td>Offline-CL gap 문제 보고, PM vs CL 독립 필요성</td></tr>
+          <tr><td><strong>RoboVLMs</strong> — Li et al., 2024</td><td><code>2406.09246</code></td><td>우리 프레임워크 기반 (EXP-01~17)</td></tr>
+          <tr><td><strong>CALVIN</strong> — Mees et al., ICRA 2022</td><td><code>2112.03227</code></td><td>Phase-wise PM 개념의 전신 (ABC→D CL benchmark)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:var(--muted);font-size:0.78rem;padding:30px 0">
+    생성: 2026-05-29 15:02 KST | 소스: PAPER_PREPARATION.md, exp57/59 로그, 웹 논문 조사
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,101 @@
+[
+  {
+    "direction": "left",
+    "seg": "early",
+    "gt": "left",
+    "pred_dir": "left",
+    "correct": true,
+    "conf": 0.7031370401382446,
+    "cx_det": 0.1488,
+    "area_det": 0.004,
+    "bbox_ratio": 0.0
+  },
+  {
+    "direction": "left",
+    "seg": "mid",
+    "gt": "left",
+    "pred_dir": "left",
+    "correct": true,
+    "conf": 0.717155396938324,
+    "cx_det": 0.1006,
+    "area_det": 0.0039,
+    "bbox_ratio": 0.0
+  },
+  {
+    "direction": "left",
+    "seg": "late",
+    "gt": "left",
+    "pred_dir": "left",
+    "correct": true,
+    "conf": 0.707212507724762,
+    "cx_det": 0.0415,
+    "area_det": 0.0007,
+    "bbox_ratio": 0.0
+  },
+  {
+    "direction": "center",
+    "seg": "early",
+    "gt": "center",
+    "pred_dir": "center",
+    "correct": true,
+    "conf": 0.2878491282463074,
+    "cx_det": 0.5,
+    "area_det": 0.05,
+    "bbox_ratio": 0.11842105263157894
+  },
+  {
+    "direction": "center",
+    "seg": "mid",
+    "gt": "center",
+    "pred_dir": "center",
+    "correct": true,
+    "conf": 0.15496164560317993,
+    "cx_det": 0.5,
+    "area_det": 0.666,
+    "bbox_ratio": 0.6447368421052632
+  },
+  {
+    "direction": "center",
+    "seg": "late",
+    "gt": "center",
+    "pred_dir": "center",
+    "correct": true,
+    "conf": 0.22775986790657043,
+    "cx_det": 0.5,
+    "area_det": 0.7266,
+    "bbox_ratio": 0.7105263157894737
+  },
+  {
+    "direction": "right",
+    "seg": "early",
+    "gt": "right",
+    "pred_dir": "right",
+    "correct": true,
+    "conf": 0.06440304964780807,
+    "cx_det": 0.8445,
+    "area_det": 0.0017,
+    "bbox_ratio": 0.0
+  },
+  {
+    "direction": "right",
+    "seg": "mid",
+    "gt": "right",
+    "pred_dir": "right",
+    "correct": true,
+    "conf": -0.09290564805269241,
+    "cx_det": 0.8718,
+    "area_det": 0.005,
+    "bbox_ratio": 0.0
+  },
+  {
+    "direction": "right",
+    "seg": "late",
+    "gt": "right",
+    "pred_dir": "right",
+    "correct": true,
+    "conf": 0.15540723502635956,
+    "cx_det": 0.8713,
+    "area_det": 0.0029,
+    "bbox_ratio": 0.0
+  }
+]

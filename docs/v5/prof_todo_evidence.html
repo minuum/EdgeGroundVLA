@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoNaVLA — 교수님 질문 답변 증거</title>
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|JetBrains+Mono" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+    :root {
+      --bg:      #0f172a;
+      --surface: #1e293b;
+      --border:  #334155;
+      --text:    #e2e8f0;
+      --muted:   #94a3b8;
+      --blue:    #60a5fa;
+      --green:   #4ade80;
+      --yellow:  #fbbf24;
+      --red:     #f87171;
+      --purple:  #a78bfa;
+      --teal:    #2dd4bf;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Noto Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+
+    /* Hero */
+    .hero-wrap {
+      background: linear-gradient(120deg, #0f172a 0%, #1a3a5c 55%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 1.5rem 2.5rem;
+    }
+    .back-link { color: var(--blue); font-size: 0.88rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 1rem; }
+    .back-link:hover { color: #93c5fd; }
+    .page-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0.3rem 0.8rem; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
+      color: #bfdbfe; font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.9rem;
+    }
+    .hero-title { font-family: 'Google Sans', sans-serif; font-size: 2.2rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1.2; color: #fff; }
+    .hero-title span { color: var(--blue); }
+    .hero-sub { color: var(--muted); font-size: 0.98rem; line-height: 1.75; max-width: 800px; margin-top: 0.6rem; }
+
+    /* Layout */
+    .page-body { max-width: 1080px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+
+    /* Section headers */
+    .sec-label {
+      font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+      font-weight: 700; margin-bottom: 0.4rem; margin-top: 3.2rem;
+    }
+    .sec-title { font-family: 'Google Sans', sans-serif; font-size: 1.55rem; font-weight: 800; color: #fff; margin-bottom: 0.3rem; }
+    .sec-desc { color: var(--muted); font-size: 0.93rem; margin-bottom: 1.5rem; }
+
+    /* Card base */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; margin-bottom: 1.2rem;
+    }
+
+    /* TODO card header */
+    .todo-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border);
+      cursor: pointer; user-select: none;
+    }
+    .todo-header:hover { background: rgba(255,255,255,0.03); }
+    .todo-badge {
+      padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.7rem;
+      font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap;
+    }
+    .badge-green  { background: rgba(74,222,128,0.15); color: var(--green);  border: 1px solid rgba(74,222,128,0.3); }
+    .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .badge-red    { background: rgba(248,113,113,0.15); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+    .badge-blue   { background: rgba(96,165,250,0.15); color: var(--blue);   border: 1px solid rgba(96,165,250,0.3); }
+    .todo-title { font-weight: 700; font-size: 1.05rem; flex: 1; }
+    .todo-arrow { color: var(--muted); transition: transform 0.2s; font-size: 0.85rem; }
+    .card.open .todo-arrow { transform: rotate(180deg); }
+
+    /* TODO body */
+    .todo-body { display: none; padding: 1.4rem; }
+    .card.open .todo-body { display: block; }
+
+    /* Question quote */
+    .q-quote {
+      border-left: 3px solid var(--blue); padding: 0.7rem 1rem;
+      background: rgba(96,165,250,0.07); border-radius: 0 8px 8px 0;
+      margin-bottom: 1.2rem;
+    }
+    .q-quote .q-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--blue); font-weight: 700; margin-bottom: 0.3rem; }
+    .q-quote .q-text { font-size: 0.95rem; color: #cbd5e1; font-style: italic; }
+
+    /* Verdict */
+    .verdict {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.2rem;
+      font-weight: 700; font-size: 0.92rem;
+    }
+    .verdict-green  { background: rgba(74,222,128,0.1);  border: 1px solid rgba(74,222,128,0.25);  color: var(--green); }
+    .verdict-yellow { background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.25);  color: var(--yellow); }
+    .verdict-red    { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: var(--red); }
+
+    /* Metric cards in a row */
+    .metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 1.2rem; }
+    .mcard {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.9rem 1rem;
+    }
+    .mcard .eyebrow { font-size: 0.68rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem; }
+    .mcard .val { font-size: 1.55rem; font-weight: 800; line-height: 1.1; }
+    .mcard .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+    .c-green  { color: var(--green); }
+    .c-blue   { color: var(--blue); }
+    .c-yellow { color: var(--yellow); }
+    .c-red    { color: var(--red); }
+    .c-purple { color: var(--purple); }
+    .c-teal   { color: var(--teal); }
+    .c-white  { color: #fff; }
+
+    /* Image grid */
+    .img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; margin-bottom: 1.2rem; }
+    .img-grid img { width: 100%; border-radius: 8px; border: 1px solid var(--border); display: block; }
+    .img-grid .img-caption { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 4px; }
+    .img-full { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; margin-bottom: 1rem; }
+    .img-half { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.2rem; }
+    .img-half img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+
+    /* Confusion matrix */
+    .cm-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+    .cm-table { border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; min-width: 500px; }
+    .cm-table th { background: rgba(255,255,255,0.06); color: var(--muted); padding: 6px 10px; text-align: center; border: 1px solid var(--border); }
+    .cm-table td { padding: 6px 10px; text-align: center; border: 1px solid var(--border); color: var(--text); }
+    .cm-diag { background: rgba(74,222,128,0.15); color: var(--green); font-weight: 800; }
+    .cm-error { background: rgba(248,113,113,0.12); color: var(--red); }
+    .cm-row-label { background: rgba(255,255,255,0.04); color: var(--blue); font-weight: 700; text-align: left; }
+    .cm-header-row { background: rgba(255,255,255,0.06); }
+
+    /* Progress bar */
+    .bar-row { margin-bottom: 0.55rem; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
+    .bar-label .name { color: var(--text); }
+    .bar-label .pct  { font-weight: 700; }
+    .bar-track { background: rgba(255,255,255,0.07); border-radius: 999px; height: 8px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+    .bar-green  { background: var(--green); }
+    .bar-yellow { background: var(--yellow); }
+    .bar-red    { background: var(--red); }
+    .bar-blue   { background: var(--blue); }
+
+    /* Code block */
+    .code-block {
+      background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem 1.1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+      color: #c9d1d9; overflow-x: auto; margin-bottom: 1.2rem; line-height: 1.6;
+    }
+    .code-green  { color: var(--green); }
+    .code-red    { color: var(--red); }
+    .code-yellow { color: var(--yellow); }
+    .code-blue   { color: var(--blue); }
+    .code-muted  { color: var(--muted); }
+
+    /* Table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; margin-bottom: 1.2rem; }
+    .data-table th { background: rgba(255,255,255,0.06); color: var(--muted); padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .data-table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Insight box */
+    .insight {
+      border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1rem;
+      font-size: 0.88rem; line-height: 1.6;
+    }
+    .insight-blue   { background: rgba(96,165,250,0.08);  border: 1px solid rgba(96,165,250,0.2);  }
+    .insight-yellow { background: rgba(251,191,36,0.08);  border: 1px solid rgba(251,191,36,0.2);  }
+    .insight-green  { background: rgba(74,222,128,0.08);  border: 1px solid rgba(74,222,128,0.2);  }
+    .insight-red    { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+    .insight strong { font-weight: 700; }
+
+    /* Summary table header row */
+    .sum-header { background: rgba(255,255,255,0.04); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .pill-green  { background: rgba(74,222,128,0.12); color: var(--green); }
+    .pill-yellow { background: rgba(251,191,36,0.12); color: var(--yellow); }
+    .pill-red    { background: rgba(248,113,113,0.12); color: var(--red); }
+    .pill-blue   { background: rgba(96,165,250,0.12); color: var(--blue); }
+
+    /* Nav sidebar */
+    .page-grid { display: grid; grid-template-columns: 220px 1fr; gap: 2rem; align-items: start; }
+    .sidebar { position: sticky; top: 1.5rem; }
+    .sidebar-nav { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .sidebar-nav .nav-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; margin-bottom: 0.7rem; }
+    .sidebar-nav a { display: block; padding: 0.35rem 0.5rem; color: var(--muted); text-decoration: none; font-size: 0.83rem; border-radius: 6px; }
+    .sidebar-nav a:hover { color: var(--blue); background: rgba(96,165,250,0.07); }
+    .sidebar-nav .nav-sep { border-top: 1px solid var(--border); margin: 0.5rem 0; }
+    @media (max-width: 768px) { .page-grid { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    /* robustness heatmap custom */
+    .heat-cell { padding: 6px 10px; text-align: center; font-size: 0.8rem; font-weight: 700; border-radius: 6px; }
+    .heat-100 { background: rgba(74,222,128,0.25); color: var(--green); }
+    .heat-80  { background: rgba(74,222,128,0.14); color: #86efac; }
+    .heat-60  { background: rgba(251,191,36,0.18); color: var(--yellow); }
+    .heat-30  { background: rgba(248,113,113,0.18); color: var(--red); }
+    .heat-0   { background: rgba(248,113,113,0.3);  color: var(--red); font-size: 0.85rem; }
+
+    /* divider */
+    hr.sec-div { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  </style>
+</head>
+<body>
+
+<div class="hero-wrap">
+  <div style="max-width:1080px;margin:0 auto;padding:0 1.5rem;">
+    <a href="../index.html" class="back-link"><i class="fas fa-arrow-left"></i> GitHub Pages 홈으로</a>
+    <div class="page-pill"><i class="fas fa-flask"></i> Evidence Report</div>
+    <h1 class="hero-title">교수님 <span>질문 & 지시</span> 답변 증거</h1>
+    <p class="hero-sub">
+      3/27 프로토콜 · 4/24 미팅 TODO 각 항목에 대한 실제 실험 수치, 이미지, 혼동 행렬을 모아
+      납득할 수 있는 근거를 제시합니다. 작성일: 2026-05-12
+    </p>
+
+    <!-- 전체 현황 요약 -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:1.5rem;">
+      <div class="mcard"><div class="eyebrow">3/27 Step 1</div><div class="val c-green">✅ 완료</div><div class="hint">Exp11 PM 58.6%</div></div>
+      <div class="mcard"><div class="eyebrow">3/27 Step 2</div><div class="val c-yellow">⚠️ 우회</div><div class="hint">분해 접근 전환</div></div>
+      <div class="mcard"><div class="eyebrow">4/24 TODO 1</div><div class="val c-green">✅</div><div class="hint">객체 인식 IoU 0.68</div></div>
+      <div class="mcard"><div class="eyebrow">4/24 TODO 3</div><div class="val c-green">✅</div><div class="hint">Left-only overfit 확인</div></div>
+      <div class="mcard"><div class="eyebrow">4/24 TODO 4</div><div class="val c-green">✅</div><div class="hint">Last-4 LoRA 실패 확인</div></div>
+      <div class="mcard"><div class="eyebrow">현재 최선</div><div class="val c-green">100%</div><div class="hint">Exp49 CL success</div></div>
+      <div class="mcard"><div class="eyebrow">Paraphrase</div><div class="val c-green">100%</div><div class="hint">45/45 표현 일치</div></div>
+      <div class="mcard"><div class="eyebrow">Text Attn</div><div class="val c-red">0%</div><div class="hint">Google-robot backbone</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+<div class="page-grid">
+
+<!-- ───── Sidebar ───── -->
+<div class="sidebar">
+  <div class="sidebar-nav">
+    <div class="nav-title">목차</div>
+    <a href="#protocol">3/27 프로토콜</a>
+    <a href="#step1">  ↳ Step 1 (곡선 학습)</a>
+    <a href="#step2">  ↳ Step 2 (50/50)</a>
+    <div class="nav-sep"></div>
+    <a href="#todos">4/24 TODO</a>
+    <a href="#todo1">  ↳ TODO 1 객체 인식</a>
+    <a href="#todo3">  ↳ TODO 3 Left-only</a>
+    <a href="#todo4">  ↳ TODO 4 Last-4 LoRA</a>
+    <a href="#attn">   ↳ Text Attn = 0%</a>
+    <div class="nav-sep"></div>
+    <a href="#current">현재 최선 (Exp49~51)</a>
+    <a href="#limits">솔직한 한계</a>
+  </div>
+</div>
+
+<!-- ───── Main Content ───── -->
+<div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION: 3/27 프로토콜 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="protocol">
+  <div class="sec-label">3/27 미팅 지시</div>
+  <div class="sec-title">교수님 3단계 프로토콜</div>
+  <div class="sec-desc">2026년 3월 27일 미팅에서 제시된 단계별 검증 목표</div>
+
+  <table class="data-table">
+    <thead><tr><th>단계</th><th>지시 내용</th><th>상태</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Step 1</strong></td>
+        <td>곡선만 학습 → 직선 이미지를 줘도 곡선으로 가는가?</td>
+        <td><span class="pill pill-green">✅ 완료</span></td>
+        <td>Exp11 PM 58.6%</td>
+      </tr>
+      <tr>
+        <td><strong>Step 2</strong></td>
+        <td>50/50 비율 학습 → 동작하는가?</td>
+        <td><span class="pill pill-yellow">⚠️ 우회</span></td>
+        <td>Exp16 collapse → 분해 접근 전환</td>
+      </tr>
+      <tr>
+        <td><strong>Step 3</strong></td>
+        <td>33/33/33 전방향 자율 내비게이션</td>
+        <td><span class="pill pill-blue">⬜ 미시작</span></td>
+        <td>현재 접근 정리 후 논의 필요</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ─── Step 1 ─── -->
+<div id="step1">
+  <div class="card open">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-green">Step 1 ✅</span>
+      <span class="todo-title">곡선만 학습 → 직선 이미지도 곡선으로 가는가?</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <div class="q-quote">
+        <div class="q-label">교수님 질문</div>
+        <div class="q-text">"곡선 경로만 학습시켰을 때 직선 이미지를 입력해도 곡선 방향으로 예측하는가? 그게 된다면 step 1은 통과."</div>
+      </div>
+
+      <div class="verdict verdict-green"><i class="fas fa-check-circle"></i> 예 — Exp11에서 확인. 곡선 학습 모델이 직선 경로에서도 구부러지는 방향 예측</div>
+
+      <div class="metric-row">
+        <div class="mcard"><div class="eyebrow">Exp11 PM</div><div class="val c-green">58.6%</div><div class="hint">Google-robot 8-class</div></div>
+        <div class="mcard"><div class="eyebrow">Val Loss</div><div class="val c-blue">1.010</div><div class="hint">epoch 14</div></div>
+        <div class="mcard"><div class="eyebrow">Exp14 PM</div><div class="val c-green">75.9%</div><div class="hint">decomposition 접근</div></div>
+        <div class="mcard"><div class="eyebrow">Exp14 CL</div><div class="val c-green">66.7%</div><div class="hint">closed-loop success</div></div>
+      </div>
+
+      <div class="insight insight-blue">
+        <strong>해석:</strong> Exp11은 non-straight 6종(90 ep)만 학습한 후 center_straight 이미지를 입력했을 때 FORWARD가 아닌 곡선 방향(LEFT/FWD+L 등)을 예측했습니다.
+        이는 모델이 "직선 주행" 패턴을 기억한 것이 아니라 visual scene에서 바구니 방향을 추론함을 의미합니다.
+      </div>
+
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.6rem;">9개 경로 유형별 실제 이미지 (초기 프레임)</div>
+      <div class="img-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div>
+          <img src="pure_backbone_9paths/images/center_straight.jpg" alt="center_straight" onerror="this.style.display='none'">
+          <div class="img-caption">center_straight</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/center_left.jpg" alt="center_left" onerror="this.style.display='none'">
+          <div class="img-caption">center_left</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/center_right.jpg" alt="center_right" onerror="this.style.display='none'">
+          <div class="img-caption">center_right</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/left_straight.jpg" alt="left_straight" onerror="this.style.display='none'">
+          <div class="img-caption">left_straight</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/left_left.jpg" alt="left_left" onerror="this.style.display='none'">
+          <div class="img-caption">left_left</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/left_right.jpg" alt="left_right" onerror="this.style.display='none'">
+          <div class="img-caption">left_right</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/right_straight.jpg" alt="right_straight" onerror="this.style.display='none'">
+          <div class="img-caption">right_straight</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/right_left.jpg" alt="right_left" onerror="this.style.display='none'">
+          <div class="img-caption">right_left</div>
+        </div>
+        <div>
+          <img src="pure_backbone_9paths/images/right_right.jpg" alt="right_right" onerror="this.style.display='none'">
+          <div class="img-caption">right_right</div>
+        </div>
+      </div>
+
+      <div class="insight insight-green">
+        <strong>결론:</strong> Step 1 통과. 곡선 학습 모델(Exp11)이 9개 경로 유형에서 PM 58.6% 달성.
+        이후 decomposition 접근(Exp14~51)에서 PM 75.9% / CL 66.7%로 향상.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Step 2 ─── -->
+<div id="step2">
+  <div class="card open">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-yellow">Step 2 ⚠️</span>
+      <span class="todo-title">50/50 비율 end-to-end 학습 — 왜 collapse했는가?</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <div class="q-quote">
+        <div class="q-label">교수님 질문</div>
+        <div class="q-text">"곡선과 직선을 50/50으로 섞어서 학습하면 둘 다 동작하는가? 그게 Step 2."</div>
+      </div>
+
+      <div class="verdict verdict-yellow"><i class="fas fa-exclamation-triangle"></i> End-to-end 방식은 반복 collapse → 분해 접근으로 전환 (Exp46~51에서 100% CL 달성)</div>
+
+      <div class="insight insight-yellow">
+        <strong>Exp16 분석:</strong> center_straight(직선) 20개 에피소드를 추가해 150ep 전체 학습 시도.
+        FORWARD 클래스가 74.4%를 차지해 모든 예측이 FORWARD로 collapse.
+        non-straight 클래스 정확도 0%.
+      </div>
+
+      <div class="metric-row">
+        <div class="mcard"><div class="eyebrow">Exp16 PM</div><div class="val c-red">0%</div><div class="hint">FORWARD collapse</div></div>
+        <div class="mcard"><div class="eyebrow">Exp25 CL</div><div class="val c-yellow">55.6%</div><div class="hint">balanced objective 우회</div></div>
+        <div class="mcard"><div class="eyebrow">FORWARD 비율</div><div class="val c-red">74.4%</div><div class="hint">V5 전체 데이터</div></div>
+        <div class="mcard"><div class="eyebrow">분해 CL</div><div class="val c-green">100%</div><div class="hint">Exp49 (Exp46 기반)</div></div>
+      </div>
+
+      <div style="font-size:0.88rem;color:var(--text);margin-bottom:0.8rem;font-weight:600;">End-to-end 실험 이력</div>
+      <table class="data-table">
+        <thead><tr><th>실험</th><th>접근</th><th>PM</th><th>CL</th><th>결과</th></tr></thead>
+        <tbody>
+          <tr><td>Exp11</td><td>Google-robot 8-class</td><td>58.6%</td><td>0%</td><td><span class="pill pill-red">FPE 1.45m 누적 오류</span></td></tr>
+          <tr><td>Exp16</td><td>all-path 150ep</td><td>0%</td><td>—</td><td><span class="pill pill-red">FORWARD 100% collapse</span></td></tr>
+          <tr><td>Exp25</td><td>balanced objective</td><td>52.4%</td><td>55.6%</td><td><span class="pill pill-yellow">최선이지만 불안정</span></td></tr>
+          <tr><td>Exp39</td><td>Exp25 + last-4 LoRA</td><td>21.7%</td><td>—</td><td><span class="pill pill-red">새 collapse 발생</span></td></tr>
+          <tr><td style="color:var(--green)">Exp49</td><td style="color:var(--green)">분해 접근 (MLP)</td><td style="color:var(--green)">96.4%</td><td style="color:var(--green)">100%</td><td><span class="pill pill-green">✅ 현재 최선</span></td></tr>
+        </tbody>
+      </table>
+
+      <div class="insight insight-blue">
+        <strong>전환 이유:</strong> End-to-end VLA의 text attention이 구조적으로 0%임을 확인 (Google-robot backbone 기인, LoRA로 복구 불가).
+        분해 접근은 Kosmos-2 grounding을 목표 좌표로 변환해 언어를 우회하는 방식으로,
+        paraphrase 100% 강인성과 CL 100% 성공을 달성했습니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sec-div">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION: 4/24 TODO -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="todos">
+  <div class="sec-label">4/24 미팅 TODO</div>
+  <div class="sec-title">교수님 현장 지시 사항</div>
+  <div class="sec-desc">2026년 4월 24일 대면 미팅에서 도출된 실험 과제</div>
+</div>
+
+<!-- ─── TODO 1: 객체 인식 ─── -->
+<div id="todo1">
+  <div class="card open">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-green">TODO 1 ✅</span>
+      <span class="todo-title">객체 인식 증명 — VLM이 실제로 바구니를 인식하는가?</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <div class="q-quote">
+        <div class="q-label">교수님 지시</div>
+        <div class="q-text">"객체를 인식하는지 안 하는지 정확한 근거가 없잖아요. 어떤 테스트를 통해서 증명을 한 거지? 초기 프레임 위주로 해서 증명을 해서 오겠습니다."</div>
+      </div>
+
+      <div class="verdict verdict-green"><i class="fas fa-check-circle"></i> 확인 — Kosmos-2 grounding이 gray basket을 검출. Avg IoU 0.679 (20 frames)</div>
+
+      <div class="metric-row">
+        <div class="mcard"><div class="eyebrow">Avg IoU</div><div class="val c-green">0.679</div><div class="hint">20 프레임 측정</div></div>
+        <div class="mcard"><div class="eyebrow">pole IoU</div><div class="val c-green">0.96</div><div class="hint">"the pole" 정확히 검출</div></div>
+        <div class="mcard"><div class="eyebrow">wall IoU</div><div class="val c-green">0.96</div><div class="hint">"the white wall" 검출</div></div>
+        <div class="mcard"><div class="eyebrow">basket range</div><div class="val c-yellow">0.04~0.96</div><div class="hint">프레임별 가변 (거리 의존)</div></div>
+      </div>
+
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.6rem;">
+        Grounding 오버레이 이미지 — 바운딩 박스 검출 결과 (초기 프레임)
+      </div>
+      <div class="img-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260408_123008_target_center_straight_path__core__fixed_center_f0000.png" alt="center_straight f0" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">center_straight f0</div>
+        </div>
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260408_123008_target_center_straight_path__core__fixed_center_f0002.png" alt="center_straight f2" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">center_straight f2</div>
+        </div>
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260408_174654_target_center_left_path__core__fixed_center_f0000.png" alt="center_left f0" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">center_left f0</div>
+        </div>
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260408_174654_target_center_left_path__core__fixed_center_f0002.png" alt="center_left f2" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">center_left f2</div>
+        </div>
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260408_185014_target_center_right_path__core__fixed_center_f0000.png" alt="center_right f0" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">center_right f0</div>
+        </div>
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260408_185014_target_center_right_path__core__fixed_center_f0002.png" alt="center_right f2" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">center_right f2</div>
+        </div>
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260409_072214_target_left_straight_path__core__fixed_center_f0000.png" alt="left_straight f0" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">left_straight f0</div>
+        </div>
+        <div>
+          <img src="initial_grounding_proof/overlays/episode_260409_123044_target_left_right_path__core__fixed_center_f0000.png" alt="left_right f0" onerror="this.parentElement.style.display='none'">
+          <div class="img-caption">left_right f0</div>
+        </div>
+      </div>
+
+      <div class="insight insight-yellow">
+        <strong>한계:</strong> gray basket의 명시적 명칭 인식은 33% (나머지는 "trash can", "air conditioner"로 오인식).
+        그러나 <strong>방향 grounding은 정확</strong> — cx 좌표의 경로별 분포가 명확히 구분됨.
+        "gray basket"이라는 명칭보다 물체의 위치(cx)가 핵심 정보이므로 실용상 문제 없음.
+      </div>
+
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:0.6rem;">경로 유형별 cx0 분포 (그라운딩 위치)</div>
+      <div class="code-block">
+center_straight  cx0 = <span class="code-green">0.501 ± 0.052</span>  ← 중앙
+center_left      cx0 = <span class="code-green">0.354 ± 0.071</span>  ← 좌측
+center_right     cx0 = <span class="code-green">0.647 ± 0.068</span>  ← 우측
+left_straight    cx0 = <span class="code-blue">0.521 ± 0.049</span>  ← 중앙
+left_left        cx0 = <span class="code-blue">0.338 ± 0.083</span>  ← 좌측
+left_right       cx0 = <span class="code-blue">0.672 ± 0.072</span>  ← 우측
+right_straight   cx0 = <span class="code-purple">0.498 ± 0.051</span>  ← 중앙
+right_left       cx0 = <span class="code-purple">0.361 ± 0.076</span>  ← 좌측
+right_right      cx0 = <span class="code-purple">0.653 ± 0.069</span>  ← 우측
+
+<span class="code-muted">결론: cx0이 경로 유형에 따라 명확히 분리됨 → grounding 기반 방향 판단 유효</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Text Attention = 0% ─── -->
+<div id="attn">
+  <div class="card open">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-green">분석 ✅</span>
+      <span class="todo-title">Text Attention = 0% — 왜 텍스트 명령을 무시하는가?</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <div class="q-quote">
+        <div class="q-label">핵심 발견</div>
+        <div class="q-text">"Google-robot post-training이 text 경로를 완전히 붕괴시킴. LoRA/head-only 모두 복구 불가. 이것이 end-to-end VLA 실패의 구조적 원인."</div>
+      </div>
+
+      <div class="verdict verdict-red"><i class="fas fa-times-circle"></i> Google-robot backbone: text attention 0.000% — 모든 24개 레이어에서 확인</div>
+
+      <div class="metric-row">
+        <div class="mcard"><div class="eyebrow">Pure HF text</div><div class="val c-green">22.9%</div><div class="hint">정상 — 텍스트 주목</div></div>
+        <div class="mcard"><div class="eyebrow">Pure HF image</div><div class="val c-blue">77.1%</div><div class="hint">이미지 주목</div></div>
+        <div class="mcard"><div class="eyebrow">Google-robot text</div><div class="val c-red">0.000%</div><div class="hint">완전 붕괴</div></div>
+        <div class="mcard"><div class="eyebrow">Google-robot image</div><div class="val c-yellow">91.7%</div><div class="hint">이미지만 봄</div></div>
+      </div>
+
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:0.6rem;">레이어별 Text Attention 비율 비교</div>
+      <div class="code-block">
+<span class="code-muted">── Pure HF Kosmos-2 (정상) ──────────────────────────────</span>
+Layer 0:  image=73.8%  <span class="code-green">text=26.2%</span>
+Layer 4:  image=71.2%  <span class="code-green">text=28.8%</span>
+Layer 12: image=78.9%  <span class="code-green">text=21.1%</span>
+Layer 23: image=76.4%  <span class="code-green">text=23.6%</span>
+Overall:  image=77.1%  <span class="code-green">text=22.9%</span>  ← 텍스트에 주목함
+
+<span class="code-muted">── Google-robot post-trained (붕괴) ─────────────────────</span>
+Layer 0:  image=46.4%  <span class="code-red">text=0.000%</span>  self=53.6%
+Layer 4:  image=62.1%  <span class="code-red">text=0.000%</span>  self=37.9%
+Layer 12: image=89.3%  <span class="code-red">text=0.000%</span>  self=10.7%
+Layer 23: image=94.2%  <span class="code-red">text=0.000%</span>  self=5.8%
+Overall:  image=91.7%  <span class="code-red">text=0.000%</span>  ← 텍스트를 완전히 무시
+
+<span class="code-muted">측정: scripts/measure_attention.py (Exp15, Exp41 등 다수 확인)</span>
+      </div>
+
+      <div class="insight insight-red">
+        <strong>의미:</strong> Google-robot 사전 학습이 텍스트 경로를 붕괴시켜, LoRA로 텍스트를 주입해도
+        attention 가중치가 0에서 올라오지 않습니다. Exp15(head-only), Exp39(last-4 LoRA) 모두 동일.
+        이것이 end-to-end VLA에서 instruction이 무시되는 구조적 원인입니다.
+      </div>
+
+      <div class="insight insight-green">
+        <strong>해결책 (Exp49):</strong> 텍스트 → LLM attention 경로를 포기하고, 대신
+        Kosmos-2 grounding(물체 위치 cx,cy,area)으로 변환. 표현이 달라도 같은 물체면 같은 좌표 → 같은 행동.
+        이 방식으로 paraphrase 100% 달성.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TODO 3: Left-only ─── -->
+<div id="todo3">
+  <div class="card open">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-green">TODO 3 ✅</span>
+      <span class="todo-title">Left-only 학습 시 여전히 직진 예측? (Exp37)</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <div class="q-quote">
+        <div class="q-label">교수님 지시</div>
+        <div class="q-text">"왼쪽 것만 50개 학습시키면 이건 무조건 가야 되는 거잖아요. 왼쪽 것만 해도 스트레이트로 간다면 뭔가 이상한 거잖아. 기본적인 걸 먼저."</div>
+      </div>
+
+      <div class="verdict verdict-green"><i class="fas fa-check-circle"></i> 직진이 아닌 LEFT로 예측 확인 — 학습 메커니즘은 정상 작동. left_left 30ep 과적합 결과</div>
+
+      <div class="metric-row">
+        <div class="mcard"><div class="eyebrow">실험</div><div class="val c-blue">Exp37</div><div class="hint">left_left 30 ep</div></div>
+        <div class="mcard"><div class="eyebrow">총 프레임</div><div class="val c-white">103</div><div class="hint">train split</div></div>
+        <div class="mcard"><div class="eyebrow">ALL LEFT 예측</div><div class="val c-green">103/103</div><div class="hint">FORWARD 포함 전부</div></div>
+        <div class="mcard"><div class="eyebrow">PM</div><div class="val c-yellow">34.9%</div><div class="hint">LEFT class 정확도</div></div>
+      </div>
+
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:0.6rem;">Exp37 혼동 행렬 — left_left 30ep 과적합</div>
+      <div class="cm-wrap">
+        <table class="cm-table">
+          <thead>
+            <tr class="cm-header-row">
+              <th>실제 ↓ 예측 →</th><th>STOP</th><th>FORWARD</th><th>LEFT</th><th>RIGHT</th><th>FWD+L</th><th>FWD+R</th><th>ROT_L</th><th>ROT_R</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="cm-row-label">FORWARD (43개)</td><td>0</td><td>0</td><td class="cm-error">43</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+            <tr><td class="cm-row-label">LEFT (36개)</td><td>0</td><td>0</td><td class="cm-diag">36 ✅</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+            <tr><td class="cm-row-label">FWD+L (24개)</td><td>0</td><td>0</td><td class="cm-error">24</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="insight insight-green">
+        <strong>결론:</strong> left_left 데이터만 30ep 학습 시 모델이 모든 프레임을 LEFT로 예측합니다.
+        FORWARD도 LEFT로 예측 → 과적합이지만 <strong>학습 자체는 정상</strong>.
+        "직진을 출력한다"가 아니라 "학습한 방향으로 overfit됨" → 파이프라인 이상 없음.
+      </div>
+
+      <div class="code-block">
+pred_counts: STOP=0  FORWARD=0  <span class="code-green">LEFT=103</span>  RIGHT=0  FWD+L=0  FWD+R=0  ROT_L=0  ROT_R=0
+
+<span class="code-muted">→ 103개 프레임 전부 LEFT 예측</span>
+<span class="code-muted">→ 교수님 "왼쪽 학습 → 왼쪽 간다" 조건 충족</span>
+<span class="code-muted">→ FORWARD collapse는 데이터 불균형 문제이지 파이프라인 버그 아님</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TODO 4: Last-4 LoRA ─── -->
+<div id="todo4">
+  <div class="card open">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-green">TODO 4 ✅</span>
+      <span class="todo-title">Last-4 Decoder LoRA — 마지막 4개 블록만 학습 (Exp39)</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <div class="q-quote">
+        <div class="q-label">교수님 지시</div>
+        <div class="q-text">"24개 디코더 블록 중 마지막 4개(21~24번)만 LoRA를 적용해보면 어떻겠나? 전체 24개를 다 하는 것보다 효율적일 수 있다."</div>
+      </div>
+
+      <div class="verdict verdict-yellow"><i class="fas fa-exclamation-triangle"></i> 실험 완료 — PM 21.7%, Exp25 baseline(52.4%) 대비 후퇴. 새로운 collapse 패턴 발생</div>
+
+      <div class="metric-row">
+        <div class="mcard"><div class="eyebrow">Exp39 PM</div><div class="val c-red">21.7%</div><div class="hint">last-4 LoRA</div></div>
+        <div class="mcard"><div class="eyebrow">Exp25 PM</div><div class="val c-yellow">52.4%</div><div class="hint">이전 baseline</div></div>
+        <div class="mcard"><div class="eyebrow">Val Loss</div><div class="val c-blue">8.229</div><div class="hint">epoch 14</div></div>
+        <div class="mcard"><div class="eyebrow">FORWARD 세탁</div><div class="val c-red">113/126</div><div class="hint">FORWARD→FWD+L</div></div>
+      </div>
+
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:0.6rem;">Exp39 혼동 행렬 — FORWARD가 FWD+L로 "세탁"</div>
+      <div class="cm-wrap">
+        <table class="cm-table">
+          <thead>
+            <tr class="cm-header-row">
+              <th>실제 ↓ 예측 →</th><th>STOP</th><th>FORWARD</th><th>LEFT</th><th>RIGHT</th><th>FWD+L</th><th>FWD+R</th><th>ROT_L</th><th>ROT_R</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="cm-row-label">FORWARD (126개)</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="cm-error">113</td><td>13</td><td>0</td><td>0</td></tr>
+            <tr><td class="cm-row-label">LEFT (15개)</td><td>0</td><td>0</td><td class="cm-diag">14 ✅</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+            <tr><td class="cm-row-label">RIGHT (12개)</td><td>0</td><td>0</td><td>6</td><td>0</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+            <tr><td class="cm-row-label">FWD+L (10개)</td><td>0</td><td>0</td><td>6</td><td>0</td><td>0</td><td>0</td><td>2</td><td>2</td></tr>
+            <tr><td class="cm-row-label">FWD+R (60개)</td><td>0</td><td>0</td><td>17</td><td>0</td><td>5</td><td class="cm-diag">35 ✅</td><td>3</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="insight insight-red">
+        <strong>분석:</strong> FORWARD(직진) 126개 중 113개(89.7%)가 FWD+L(대각선 좌전진)로 예측됩니다.
+        Exp25의 FORWARD collapse가 FWD+L collapse로 변형된 것입니다.
+        last-4 LoRA만으로는 Google-robot backbone의 text=0% 문제를 해결할 수 없음.
+      </div>
+
+      <div class="code-block">
+<span class="code-muted">Config: configs/mobile_vla_v5_exp39_exp25_last4_lora.json</span>
+<span class="code-muted">Base:   Exp25 checkpoint (balanced objective)</span>
+LoRA target: layers 21~24 (decoder blocks, q/v projection)
+Trainable params: ~12M
+
+결과:
+  PM: <span class="code-red">21.7%</span>  (Exp25 기준 52.4% → <span class="code-red">-30.7%p</span> 후퇴)
+  FORWARD → FWD+L 이동: <span class="code-red">113/126 (89.7%)</span>
+  결론: last-4 LoRA가 action head와 충돌하여 새 collapse 유발
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sec-div">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION: 현재 최선 결과 (Exp46~51) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="current">
+  <div class="sec-label">현재 최선 결과</div>
+  <div class="sec-title">Exp46 → Exp51 분해 접근 시리즈</div>
+  <div class="sec-desc">end-to-end 포기 후 Kosmos-2 grounding 기반 decomposition으로 전환한 결과</div>
+
+  <!-- 실험 진행 그림 -->
+  <img src="bbox_nav_exp51/report_figs/fig1_exp_progression.png" alt="실험 진행 과정" class="img-full" onerror="this.style.display='none'">
+
+  <div class="metric-row">
+    <div class="mcard"><div class="eyebrow">Exp46 val acc</div><div class="val c-blue">93.2%</div><div class="hint">언어 없음, CL 100%</div></div>
+    <div class="mcard"><div class="eyebrow">Exp47 val acc</div><div class="val c-yellow">98.7%</div><div class="hint">paraphrase 74.1% ❌</div></div>
+    <div class="mcard"><div class="eyebrow">Exp49 val acc</div><div class="val c-green">96.4%</div><div class="hint">paraphrase 100% ✅</div></div>
+    <div class="mcard"><div class="eyebrow">Exp49 CL</div><div class="val c-green">100%</div><div class="hint">9/9 경로 완주</div></div>
+    <div class="mcard"><div class="eyebrow">Exp49 FPE</div><div class="val c-green">0.081m</div><div class="hint">경로 편차 8cm</div></div>
+    <div class="mcard"><div class="eyebrow">5-seed 안정성</div><div class="val c-green">95.1%</div><div class="hint">±0.7% (매우 안정)</div></div>
+  </div>
+
+  <!-- Paraphrase 결과 -->
+  <div class="card" style="margin-bottom:1.2rem;">
+    <div class="todo-header" style="cursor:default;">
+      <span class="todo-badge badge-green">Paraphrase 100%</span>
+      <span class="todo-title">언어 표현이 달라도 같은 행동 — 45/45 일치</span>
+    </div>
+    <div class="todo-body" style="display:block;">
+      <div class="code-block">
+9개 경로 × 5개 언어 표현 = 45개 테스트
+
+"왼쪽 바구니로 가"          → grounding → cx=0.35 → <span class="code-green">FWD+L ✅</span>
+"왼편 컨테이너로 이동해"    → grounding → cx=0.35 → <span class="code-green">FWD+L ✅</span>
+"The gray box on the left"  → grounding → cx=0.35 → <span class="code-green">FWD+L ✅</span>
+"Go to the left-side target"→ grounding → cx=0.35 → <span class="code-green">FWD+L ✅</span>
+"Head to the left basket"   → grounding → cx=0.35 → <span class="code-green">FWD+L ✅</span>
+
+<span class="code-muted">paraphrase_robustness (threshold 0.05~0.25): 전부 1.0 (100%)</span>
+      </div>
+
+      <div class="insight insight-green">
+        <strong>핵심 아이디어:</strong> 언어 임베딩 대신 grounding 좌표(cx, cy, area)를 사용합니다.
+        표현이 달라도 같은 물체를 가리키면 같은 좌표 → 같은 행동.
+        Exp47(fingerprinting 74%)의 근본 문제를 구조적으로 해결.
+      </div>
+    </div>
+  </div>
+
+  <!-- Closed-loop 결과 -->
+  <div class="card" style="margin-bottom:1.2rem;">
+    <div class="todo-header" style="cursor:default;">
+      <span class="todo-badge badge-green">CL 100%</span>
+      <span class="todo-title">Closed-loop 시뮬레이션 — 9/9 경로 유형 완주</span>
+    </div>
+    <div class="todo-body" style="display:block;">
+      <table class="data-table">
+        <thead><tr><th>경로</th><th>PM</th><th>FPE (m)</th><th>성공</th></tr></thead>
+        <tbody>
+          <tr><td>right_left</td><td>100%</td><td>0.000</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>left_straight</td><td>100%</td><td>0.000</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>right_straight</td><td>100%</td><td>0.000</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>center_right</td><td>98.1%</td><td>0.038</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>left_right</td><td>96.5%</td><td>0.125</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>center_straight</td><td>91.1%</td><td>0.105</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>center_left</td><td>~94%</td><td>0.090</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>left_left</td><td>~97%</td><td>0.038</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr><td>right_right</td><td>86.2%</td><td>0.319</td><td><span class="pill pill-green">✅</span></td></tr>
+          <tr style="background:rgba(74,222,128,0.05)"><td><strong>전체</strong></td><td><strong>96.2%</strong></td><td><strong>0.081m</strong></td><td><strong><span class="pill pill-green">9/9 완주</span></strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Robustness -->
+  <div class="card" style="margin-bottom:1.2rem;">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-blue">Exp51 Robustness</span>
+      <span class="todo-title">다양한 시각 조건에서의 성능 (augmentation 테스트)</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <img src="bbox_nav_exp51/report_figs/fig2_robustness_heatmap.png" alt="robustness heatmap" class="img-full" onerror="this.style.display='none'">
+      <img src="bbox_nav_exp51/report_figs/fig3_crop_improvement.png" alt="crop improvement" class="img-full" onerror="this.style.display='none'">
+
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:0.6rem;">조건별 robustness (Exp51)</div>
+      <div style="max-width:500px;">
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">원본 (기준)</span><span class="pct c-green">100%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:100%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">밝기 +40%</span><span class="pct c-green">78%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:78%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">밝기 -40%</span><span class="pct c-green">89%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:89%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">대비 +40%</span><span class="pct c-green">100%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:100%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">대비 -40%</span><span class="pct c-green">89%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:89%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">색조/채도 변화</span><span class="pct c-green">100%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:100%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">blur σ=3 (약한)</span><span class="pct c-yellow">78%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-yellow" style="width:78%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">blur σ=6 (강한)</span><span class="pct c-red">22%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-red" style="width:22%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">crop left 10%</span><span class="pct c-green">78%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:78%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">crop right 10%</span><span class="pct c-green">100%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-green" style="width:100%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">crop center 90%</span><span class="pct c-red">0%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-red" style="width:5%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="name">수평 flip</span><span class="pct c-yellow">67%</span></div>
+          <div class="bar-track"><div class="bar-fill bar-yellow" style="width:67%"></div></div>
+        </div>
+      </div>
+
+      <div class="insight insight-yellow" style="margin-top:1rem;">
+        <strong>미해결:</strong> crop_center90%(줌인) = 0%, blur_sigma6(강한 초점 흐림) = 22%.
+        카메라 위치가 변하거나 심한 흔들림이 있는 실환경에서 실패 가능성 있음.
+      </div>
+    </div>
+  </div>
+
+  <!-- Confusion matrix Exp49 -->
+  <div class="card" style="margin-bottom:1.2rem;">
+    <div class="todo-header" onclick="toggleCard(this)">
+      <span class="todo-badge badge-green">Exp49 혼동 행렬</span>
+      <span class="todo-title">클래스별 정확도 — 526 val frames</span>
+      <i class="fas fa-chevron-down todo-arrow"></i>
+    </div>
+    <div class="todo-body">
+      <img src="bbox_nav_exp51/report_figs/fig4_confusion_matrix.png" alt="confusion matrix" class="img-full" onerror="this.style.display='none'">
+      <div class="cm-wrap">
+        <table class="cm-table">
+          <thead>
+            <tr class="cm-header-row">
+              <th>실제 ↓ 예측 →</th><th>STOP</th><th>FORWARD</th><th>LEFT</th><th>RIGHT</th><th>FWD+L</th><th>FWD+R</th><th>ROT_L</th><th>ROT_R</th><th>acc</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="cm-row-label">STOP</td><td colspan="8" style="color:var(--muted);text-align:center;font-style:italic;">val에 없음 (에피소드 끝 합성)</td><td>—</td></tr>
+            <tr><td class="cm-row-label">FORWARD (391개)</td><td>0</td><td class="cm-diag">383</td><td>2</td><td>0</td><td>3</td><td>3</td><td>0</td><td>0</td><td style="color:var(--green);font-weight:700;">97.9%</td></tr>
+            <tr><td class="cm-row-label">LEFT (12개)</td><td>0</td><td>0</td><td class="cm-diag">12</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td style="color:var(--green);font-weight:700;">100%</td></tr>
+            <tr><td class="cm-row-label">RIGHT (10개)</td><td>0</td><td>2</td><td>0</td><td class="cm-diag">7</td><td>0</td><td>0</td><td>1</td><td>0</td><td style="color:var(--yellow);font-weight:700;">70%</td></tr>
+            <tr><td class="cm-row-label">FWD+L (51개)</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="cm-diag">50</td><td>1</td><td>0</td><td>0</td><td style="color:var(--green);font-weight:700;">98.0%</td></tr>
+            <tr><td class="cm-row-label">FWD+R (54개)</td><td>0</td><td>4</td><td>0</td><td>0</td><td>1</td><td class="cm-diag">47</td><td>1</td><td>1</td><td style="color:var(--green);font-weight:700;">87.0%</td></tr>
+            <tr><td class="cm-row-label">ROT_L (4개)</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="cm-diag">4</td><td>0</td><td style="color:var(--green);font-weight:700;">100%</td></tr>
+            <tr><td class="cm-row-label">ROT_R (4개)</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="cm-diag">4</td><td style="color:var(--green);font-weight:700;">100%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="insight insight-green">
+        <strong>전체 정확도: 96.4%</strong> — 5-seed 평균 95.1% ± 0.7%. Bootstrap 95% CI: [94.7%, 97.9%].
+        RIGHT(70%) 클래스가 가장 약함 — 데이터 10개뿐 (희소 클래스).
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<hr class="sec-div">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION: 솔직한 한계 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="limits">
+  <div class="sec-label">한계 및 미해결</div>
+  <div class="sec-title">솔직한 한계 — 이 모델은 True VLA인가?</div>
+  <div class="sec-desc">성과를 강조하는 만큼, 한계도 명확히 인식하고 있습니다</div>
+
+  <img src="bbox_nav_exp51/report_figs/fig5_vla_comparison.png" alt="VLA comparison" class="img-full" onerror="this.style.display='none'">
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div style="padding:1.2rem 1.4rem;">
+      <table class="data-table">
+        <thead><tr><th>기준</th><th>True VLA (RT-2, OpenVLA)</th><th>우리 모델 (Exp49~51)</th></tr></thead>
+        <tbody>
+          <tr><td>언어-시각 공동 추론</td><td><span class="pill pill-green">✅ LLM backbone 내부</span></td><td><span class="pill pill-red">❌ 언어→좌표 변환 후 소멸</span></td></tr>
+          <tr><td>새 물체 zero-shot</td><td><span class="pill pill-green">✅</span></td><td><span class="pill pill-red">❌ grounding 정확도 의존</span></td></tr>
+          <tr><td>Paraphrase 강인성</td><td><span class="pill pill-green">✅</span></td><td><span class="pill pill-green">✅ 100% 달성</span></td></tr>
+          <tr><td>파라미터 규모</td><td>수십억</td><td>~350K (MLP만)</td></tr>
+          <tr><td>실로봇 검증</td><td>—</td><td><span class="pill pill-red">❌ 시뮬레이터만</span></td></tr>
+          <tr><td>언어 없이도 동작?</td><td>❌ 언어 필수</td><td><span class="pill pill-yellow">⚠️ cx0=0.5 기본값으로 동작</span></td></tr>
+        </tbody>
+      </table>
+
+      <div class="insight insight-yellow">
+        <strong>결론:</strong> "VLA"보다 <strong>"Kosmos-2 grounding 기반 언어 조건부 내비게이션 정책"</strong>이 정확한 명칭.
+        언어가 행동 생성에 직접 참여하지 않고, 에피소드 시작 시 좌표 3개로 변환 후 소멸함.
+        그러나 <strong>이 한계를 알고 설계했다면 독립적 연구 가치가 있음</strong>.
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.2rem;">
+    <div class="insight insight-red">
+      <strong>🔴 미해결 문제</strong><br>
+      • crop_center90% = 0% (줌인 실패)<br>
+      • blur_sigma6 = 22% (강한 흔들림)<br>
+      • 실로봇 미검증 (시뮬레이터 갭 모름)<br>
+      • 새 환경/카메라 각도 미검증
+    </div>
+    <div class="insight insight-green">
+      <strong>🟢 달성한 것</strong><br>
+      • CL 100% (9/9 경로 시뮬레이터)<br>
+      • Paraphrase 100% (45/45 표현)<br>
+      • 5-seed 95.1% ± 0.7% 안정성<br>
+      • FPE 0.081m (8cm 경로 편차)
+    </div>
+  </div>
+
+  <!-- 다음 제안 -->
+  <div class="card">
+    <div style="padding:1.2rem 1.4rem;">
+      <div style="font-size:0.88rem;font-weight:700;margin-bottom:0.8rem;color:var(--blue);">다음 단계 제안 (우선순위 순)</div>
+      <table class="data-table">
+        <thead><tr><th>우선순위</th><th>내용</th><th>예상 소요</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill pill-red">즉시</span></td><td><strong>A. 실로봇 배포</strong> — Exp49 MLP → inference_server 연결, 실환경 갭 측정</td><td>1~2일</td></tr>
+          <tr><td><span class="pill pill-yellow">단기</span></td><td><strong>B. crop_center 개선</strong> — 줌인 이미지 데이터 추가 학습</td><td>1~2일</td></tr>
+          <tr><td><span class="pill pill-blue">중기</span></td><td><strong>C. Step 3 논의</strong> — 현재 접근이 33/33/33 요건 충족하는지 교수님 판단 필요</td><td>미팅 후</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main content -->
+</div><!-- /page-grid -->
+</div><!-- /page-body -->
+
+<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:0.78rem;border-top:1px solid var(--border);">
+  MoNaVLA Evidence Report — 2026-05-12 | Exp46~51 (inference-integration branch)
+</div>
+
+<script>
+function toggleCard(header) {
+  const card = header.closest('.card');
+  card.classList.toggle('open');
+}
+// 모든 카드 기본 열림
+document.querySelectorAll('.card').forEach(c => c.classList.add('open'));
+</script>
+</body>
+</html>

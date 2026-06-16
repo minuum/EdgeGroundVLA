@@ -1,0 +1,91 @@
+{
+  "exp46": [
+    {
+      "frame_idx": 9,
+      "episode": "episode_260408_123008_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "detect gray basket\n<loc0448><loc0286><loc0945><loc0588> gray basket",
+        "has_bbox": true,
+        "iou": 0.1367,
+        "hit": false,
+        "loc_vals": [
+          0.4375,
+          0.279296875,
+          0.9228515625,
+          0.57421875
+        ]
+      }
+    },
+    {
+      "frame_idx": 9,
+      "episode": "episode_260408_124119_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "detect gray basket\n<loc0457><loc0267><loc0907><loc0540> gray basket",
+        "has_bbox": true,
+        "iou": 0.1598,
+        "hit": false,
+        "loc_vals": [
+          0.4462890625,
+          0.2607421875,
+          0.8857421875,
+          0.52734375
+        ]
+      }
+    },
+    {
+      "frame_idx": 1,
+      "episode": "episode_260408_124918_target_center_straight_path__core__fixed_center.h5",
+      "path_type": "center_straight",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "detect gray basket\n",
+        "has_bbox": false,
+        "iou": 0.0,
+        "hit": false,
+        "loc_vals": []
+      }
+    }
+  ],
+  "exp55": [
+    {
+      "frame_idx": 25,
+      "episode": "episode_260521_204745_free_center__basket_left_extreme__core__fixed_center.h5",
+      "path_type": "free_center",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "detect gray basket\n<loc0464><loc0409><loc0887><loc0668> gray basket",
+        "has_bbox": true,
+        "iou": 0.115,
+        "hit": false,
+        "loc_vals": [
+          0.453125,
+          0.3994140625,
+          0.8662109375,
+          0.65234375
+        ]
+      }
+    },
+    {
+      "frame_idx": 15,
+      "episode": "episode_260521_205132_free_center__basket_right_extreme__core__fixed_center.h5",
+      "path_type": "free_center",
+      "has_bbox_gt": true,
+      "grounding": {
+        "raw": "detect gray basket\n<loc0471><loc0425><loc0873><loc0662> gray basket",
+        "has_bbox": true,
+        "iou": 0.1038,
+        "hit": false,
+        "loc_vals": [
+          0.4599609375,
+          0.4150390625,
+          0.8525390625,
+          0.646484375
+        ]
+      }
+    }
+  ]
+}

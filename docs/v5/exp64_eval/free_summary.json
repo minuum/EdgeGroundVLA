@@ -1,0 +1,903 @@
+{
+  "per_episode": {
+    "basket_extreme": [
+      {
+        "episode": "episode_260521_204745_free_center__basket_left_extreme__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.499,
+            "area": 0.03,
+            "hit": true
+          },
+          {
+            "idx": 8,
+            "cx": 0.605,
+            "area": 0.039,
+            "hit": true
+          },
+          {
+            "idx": 16,
+            "cx": 0.554,
+            "area": 0.057,
+            "hit": true
+          },
+          {
+            "idx": 24,
+            "cx": 0.5,
+            "area": 0.087,
+            "hit": true
+          },
+          {
+            "idx": 32,
+            "cx": 0.457,
+            "area": 0.221,
+            "hit": true
+          },
+          {
+            "idx": 41,
+            "cx": 0.516,
+            "area": 0.477,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260521_205132_free_center__basket_right_extreme__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.491,
+            "area": 0.029,
+            "hit": true
+          },
+          {
+            "idx": 6,
+            "cx": 0.678,
+            "area": 0.047,
+            "hit": true
+          },
+          {
+            "idx": 12,
+            "cx": 0.505,
+            "area": 0.069,
+            "hit": true
+          },
+          {
+            "idx": 18,
+            "cx": 0.617,
+            "area": 0.142,
+            "hit": true
+          },
+          {
+            "idx": 24,
+            "cx": 0.506,
+            "area": 0.416,
+            "hit": true
+          },
+          {
+            "idx": 30,
+            "cx": 0.281,
+            "area": 0.355,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_110552_free_left__basket_left_extreme__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.274,
+            "area": 0.027,
+            "hit": true
+          },
+          {
+            "idx": 7,
+            "cx": 0.503,
+            "area": 0.039,
+            "hit": true
+          },
+          {
+            "idx": 14,
+            "cx": 0.287,
+            "area": 0.068,
+            "hit": true
+          },
+          {
+            "idx": 21,
+            "cx": 0.309,
+            "area": 0.145,
+            "hit": true
+          },
+          {
+            "idx": 28,
+            "cx": 0.232,
+            "area": 0.274,
+            "hit": true
+          },
+          {
+            "idx": 35,
+            "cx": 0.368,
+            "area": 0.495,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_110916_free_left__basket_right_extreme__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.284,
+            "area": 0.027,
+            "hit": true
+          },
+          {
+            "idx": 7,
+            "cx": 0.458,
+            "area": 0.049,
+            "hit": true
+          },
+          {
+            "idx": 14,
+            "cx": 0.637,
+            "area": 0.078,
+            "hit": true
+          },
+          {
+            "idx": 21,
+            "cx": 0.73,
+            "area": 0.129,
+            "hit": true
+          },
+          {
+            "idx": 28,
+            "cx": 0.704,
+            "area": 0.293,
+            "hit": true
+          },
+          {
+            "idx": 36,
+            "cx": 0.555,
+            "area": 0.887,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_112916_free_right__basket_left_extreme__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": null,
+            "area": null,
+            "hit": false
+          },
+          {
+            "idx": 7,
+            "cx": 0.917,
+            "area": 0.037,
+            "hit": true
+          },
+          {
+            "idx": 15,
+            "cx": 0.34,
+            "area": 0.058,
+            "hit": true
+          },
+          {
+            "idx": 22,
+            "cx": 0.237,
+            "area": 0.127,
+            "hit": true
+          },
+          {
+            "idx": 30,
+            "cx": 0.508,
+            "area": 0.26,
+            "hit": true
+          },
+          {
+            "idx": 38,
+            "cx": 0.537,
+            "area": 0.526,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_113357_free_right__basket_right_extreme__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": null,
+            "area": null,
+            "hit": false
+          },
+          {
+            "idx": 7,
+            "cx": 0.578,
+            "area": 0.044,
+            "hit": true
+          },
+          {
+            "idx": 14,
+            "cx": 0.576,
+            "area": 0.088,
+            "hit": true
+          },
+          {
+            "idx": 22,
+            "cx": 0.324,
+            "area": 0.242,
+            "hit": true
+          },
+          {
+            "idx": 29,
+            "cx": 0.178,
+            "area": 0.225,
+            "hit": true
+          },
+          {
+            "idx": 37,
+            "cx": null,
+            "area": null,
+            "hit": false
+          }
+        ]
+      }
+    ],
+    "robot_distance": [
+      {
+        "episode": "episode_260521_205410_free_center__robot_close__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.505,
+            "area": 0.07,
+            "hit": true
+          },
+          {
+            "idx": 3,
+            "cx": 0.545,
+            "area": 0.132,
+            "hit": true
+          },
+          {
+            "idx": 6,
+            "cx": 0.678,
+            "area": 0.246,
+            "hit": true
+          },
+          {
+            "idx": 9,
+            "cx": 0.589,
+            "area": 0.417,
+            "hit": true
+          },
+          {
+            "idx": 12,
+            "cx": 0.589,
+            "area": 0.557,
+            "hit": true
+          },
+          {
+            "idx": 15,
+            "cx": 0.589,
+            "area": 0.557,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260521_205525_free_center__robot_far__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.465,
+            "area": 0.017,
+            "hit": true
+          },
+          {
+            "idx": 9,
+            "cx": 0.627,
+            "area": 0.033,
+            "hit": true
+          },
+          {
+            "idx": 18,
+            "cx": 0.398,
+            "area": 0.059,
+            "hit": true
+          },
+          {
+            "idx": 28,
+            "cx": 0.281,
+            "area": 0.199,
+            "hit": true
+          },
+          {
+            "idx": 37,
+            "cx": 0.265,
+            "area": 0.311,
+            "hit": true
+          },
+          {
+            "idx": 47,
+            "cx": 0.3,
+            "area": 0.435,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_111052_free_left__robot_close__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.252,
+            "area": 0.05,
+            "hit": true
+          },
+          {
+            "idx": 5,
+            "cx": 0.37,
+            "area": 0.082,
+            "hit": true
+          },
+          {
+            "idx": 10,
+            "cx": 0.369,
+            "area": 0.148,
+            "hit": true
+          },
+          {
+            "idx": 15,
+            "cx": 0.473,
+            "area": 0.259,
+            "hit": true
+          },
+          {
+            "idx": 20,
+            "cx": 0.639,
+            "area": 0.456,
+            "hit": true
+          },
+          {
+            "idx": 26,
+            "cx": 0.573,
+            "area": 0.63,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_111532_free_left__robot_far__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.293,
+            "area": 0.016,
+            "hit": true
+          },
+          {
+            "idx": 11,
+            "cx": 0.447,
+            "area": 0.025,
+            "hit": true
+          },
+          {
+            "idx": 22,
+            "cx": 0.68,
+            "area": 0.044,
+            "hit": true
+          },
+          {
+            "idx": 33,
+            "cx": 0.576,
+            "area": 0.099,
+            "hit": true
+          },
+          {
+            "idx": 44,
+            "cx": 0.331,
+            "area": 0.282,
+            "hit": true
+          },
+          {
+            "idx": 55,
+            "cx": 0.573,
+            "area": 0.579,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_113659_free_right__robot_close__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.739,
+            "area": 0.052,
+            "hit": true
+          },
+          {
+            "idx": 4,
+            "cx": 0.633,
+            "area": 0.073,
+            "hit": true
+          },
+          {
+            "idx": 9,
+            "cx": 0.704,
+            "area": 0.124,
+            "hit": true
+          },
+          {
+            "idx": 14,
+            "cx": 0.53,
+            "area": 0.202,
+            "hit": true
+          },
+          {
+            "idx": 19,
+            "cx": 0.637,
+            "area": 0.401,
+            "hit": true
+          },
+          {
+            "idx": 24,
+            "cx": 0.637,
+            "area": 0.401,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_120338_free_right__robot_far__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": null,
+            "area": null,
+            "hit": false
+          },
+          {
+            "idx": 9,
+            "cx": null,
+            "area": null,
+            "hit": false
+          },
+          {
+            "idx": 18,
+            "cx": 0.616,
+            "area": 0.036,
+            "hit": true
+          },
+          {
+            "idx": 27,
+            "cx": 0.515,
+            "area": 0.065,
+            "hit": true
+          },
+          {
+            "idx": 36,
+            "cx": 0.351,
+            "area": 0.216,
+            "hit": true
+          },
+          {
+            "idx": 46,
+            "cx": 0.319,
+            "area": 0.487,
+            "hit": true
+          }
+        ]
+      }
+    ],
+    "diagonal": [
+      {
+        "episode": "episode_260521_205853_free_center__diagonal_left__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.333,
+            "area": 0.029,
+            "hit": true
+          },
+          {
+            "idx": 7,
+            "cx": 0.46,
+            "area": 0.034,
+            "hit": true
+          },
+          {
+            "idx": 14,
+            "cx": 0.178,
+            "area": 0.086,
+            "hit": true
+          },
+          {
+            "idx": 22,
+            "cx": 0.124,
+            "area": 0.124,
+            "hit": true
+          },
+          {
+            "idx": 29,
+            "cx": 0.382,
+            "area": 0.249,
+            "hit": true
+          },
+          {
+            "idx": 37,
+            "cx": 0.338,
+            "area": 0.405,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260521_210002_free_center__diagonal_right__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.602,
+            "area": 0.03,
+            "hit": true
+          },
+          {
+            "idx": 6,
+            "cx": 0.428,
+            "area": 0.035,
+            "hit": true
+          },
+          {
+            "idx": 13,
+            "cx": 0.618,
+            "area": 0.056,
+            "hit": true
+          },
+          {
+            "idx": 19,
+            "cx": 0.735,
+            "area": 0.116,
+            "hit": true
+          },
+          {
+            "idx": 26,
+            "cx": 0.74,
+            "area": 0.322,
+            "hit": true
+          },
+          {
+            "idx": 33,
+            "cx": 0.582,
+            "area": 0.637,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260521_210128_free_center__diagonal_right__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.461,
+            "area": 0.028,
+            "hit": true
+          },
+          {
+            "idx": 6,
+            "cx": 0.269,
+            "area": 0.041,
+            "hit": true
+          },
+          {
+            "idx": 12,
+            "cx": 0.488,
+            "area": 0.06,
+            "hit": true
+          },
+          {
+            "idx": 18,
+            "cx": 0.506,
+            "area": 0.137,
+            "hit": true
+          },
+          {
+            "idx": 24,
+            "cx": 0.423,
+            "area": 0.428,
+            "hit": true
+          },
+          {
+            "idx": 30,
+            "cx": 0.492,
+            "area": 0.627,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_111922_free_left__diagonal_left__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.263,
+            "area": 0.026,
+            "hit": true
+          },
+          {
+            "idx": 7,
+            "cx": 0.184,
+            "area": 0.039,
+            "hit": true
+          },
+          {
+            "idx": 14,
+            "cx": 0.086,
+            "area": 0.057,
+            "hit": true
+          },
+          {
+            "idx": 21,
+            "cx": 0.097,
+            "area": 0.1,
+            "hit": true
+          },
+          {
+            "idx": 28,
+            "cx": 0.139,
+            "area": 0.17,
+            "hit": true
+          },
+          {
+            "idx": 36,
+            "cx": 0.298,
+            "area": 0.433,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_112310_free_left__diagonal_right__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.249,
+            "area": 0.027,
+            "hit": true
+          },
+          {
+            "idx": 9,
+            "cx": 0.347,
+            "area": 0.039,
+            "hit": true
+          },
+          {
+            "idx": 19,
+            "cx": 0.266,
+            "area": 0.052,
+            "hit": true
+          },
+          {
+            "idx": 28,
+            "cx": 0.454,
+            "area": 0.085,
+            "hit": true
+          },
+          {
+            "idx": 38,
+            "cx": 0.558,
+            "area": 0.235,
+            "hit": true
+          },
+          {
+            "idx": 48,
+            "cx": 0.678,
+            "area": 0.641,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_121140_free_right__diagonal_left__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": null,
+            "area": null,
+            "hit": false
+          },
+          {
+            "idx": 7,
+            "cx": 0.755,
+            "area": 0.043,
+            "hit": true
+          },
+          {
+            "idx": 15,
+            "cx": 0.621,
+            "area": 0.059,
+            "hit": true
+          },
+          {
+            "idx": 23,
+            "cx": 0.492,
+            "area": 0.09,
+            "hit": true
+          },
+          {
+            "idx": 31,
+            "cx": 0.415,
+            "area": 0.223,
+            "hit": true
+          },
+          {
+            "idx": 39,
+            "cx": 0.282,
+            "area": 0.383,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_122642_free_right__diagonal_right__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": null,
+            "area": null,
+            "hit": false
+          },
+          {
+            "idx": 8,
+            "cx": 0.578,
+            "area": 0.044,
+            "hit": true
+          },
+          {
+            "idx": 16,
+            "cx": 0.7,
+            "area": 0.058,
+            "hit": true
+          },
+          {
+            "idx": 24,
+            "cx": 0.664,
+            "area": 0.117,
+            "hit": true
+          },
+          {
+            "idx": 32,
+            "cx": 0.711,
+            "area": 0.353,
+            "hit": true
+          },
+          {
+            "idx": 40,
+            "cx": 0.5,
+            "area": 0.998,
+            "hit": true
+          }
+        ]
+      }
+    ],
+    "lighting_diff": [
+      {
+        "episode": "episode_260522_112550_free_left__lighting_diff__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.276,
+            "area": 0.026,
+            "hit": true
+          },
+          {
+            "idx": 7,
+            "cx": 0.392,
+            "area": 0.039,
+            "hit": true
+          },
+          {
+            "idx": 14,
+            "cx": 0.269,
+            "area": 0.066,
+            "hit": true
+          },
+          {
+            "idx": 21,
+            "cx": 0.403,
+            "area": 0.132,
+            "hit": true
+          },
+          {
+            "idx": 28,
+            "cx": 0.495,
+            "area": 0.351,
+            "hit": true
+          },
+          {
+            "idx": 36,
+            "cx": 0.476,
+            "area": 0.727,
+            "hit": true
+          }
+        ]
+      },
+      {
+        "episode": "episode_260522_122913_free_right__lighting_diff__core__fixed_center",
+        "frames": [
+          {
+            "idx": 0,
+            "cx": 0.724,
+            "area": 0.028,
+            "hit": true
+          },
+          {
+            "idx": 6,
+            "cx": 0.474,
+            "area": 0.04,
+            "hit": true
+          },
+          {
+            "idx": 13,
+            "cx": 0.552,
+            "area": 0.064,
+            "hit": true
+          },
+          {
+            "idx": 20,
+            "cx": 0.482,
+            "area": 0.143,
+            "hit": true
+          },
+          {
+            "idx": 27,
+            "cx": 0.395,
+            "area": 0.359,
+            "hit": true
+          },
+          {
+            "idx": 34,
+            "cx": 0.603,
+            "area": 0.502,
+            "hit": true
+          }
+        ]
+      }
+    ]
+  },
+  "aggregate": {
+    "basket_extreme": {
+      "n_ep": 6,
+      "n_frames": 36,
+      "hit_rate": 0.917,
+      "fullframe_rate": 0.0,
+      "miss": 3
+    },
+    "robot_distance": {
+      "n_ep": 6,
+      "n_frames": 36,
+      "hit_rate": 0.944,
+      "fullframe_rate": 0.0,
+      "miss": 2
+    },
+    "diagonal": {
+      "n_ep": 7,
+      "n_frames": 42,
+      "hit_rate": 0.952,
+      "fullframe_rate": 0.024,
+      "miss": 2
+    },
+    "lighting_diff": {
+      "n_ep": 2,
+      "n_frames": 12,
+      "hit_rate": 1.0,
+      "fullframe_rate": 0.0,
+      "miss": 0
+    }
+  }
+}

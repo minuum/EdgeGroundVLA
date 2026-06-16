@@ -1,0 +1,115 @@
+{
+  "success_fpe": 0.5,
+  "table": {
+    "hsv": {
+      "exp54_HSV": {
+        "success_rate": 0.4375,
+        "mean_fpe": 0.663644396666585,
+        "n": 32
+      },
+      "b1": {
+        "success_rate": 0.96875,
+        "mean_fpe": 0.1533822138728949,
+        "n": 32
+      },
+      "flip": {
+        "success_rate": 0.9375,
+        "mean_fpe": 0.2147642559658159,
+        "n": 32
+      },
+      "stop65": {
+        "success_rate": 0.75,
+        "mean_fpe": 0.3068558128930584,
+        "n": 32
+      }
+    },
+    "base": {
+      "exp54_HSV": {
+        "success_rate": 0.4375,
+        "mean_fpe": 0.7091937308217692,
+        "n": 32
+      },
+      "b1": {
+        "success_rate": 1.0,
+        "mean_fpe": 0.11631933945992864,
+        "n": 32
+      },
+      "flip": {
+        "success_rate": 0.9375,
+        "mean_fpe": 0.12370532389767927,
+        "n": 32
+      },
+      "stop65": {
+        "success_rate": 0.96875,
+        "mean_fpe": 0.12362349994481042,
+        "n": 32
+      }
+    },
+    "exp57": {
+      "exp54_HSV": {
+        "success_rate": 0.4375,
+        "mean_fpe": 0.7170680183844031,
+        "n": 32
+      },
+      "b1": {
+        "success_rate": 1.0,
+        "mean_fpe": 0.12157090997955661,
+        "n": 32
+      },
+      "flip": {
+        "success_rate": 0.96875,
+        "mean_fpe": 0.14067838090111368,
+        "n": 32
+      },
+      "stop65": {
+        "success_rate": 0.96875,
+        "mean_fpe": 0.17549560982056572,
+        "n": 32
+      }
+    },
+    "exp58": {
+      "exp54_HSV": {
+        "success_rate": 0.4375,
+        "mean_fpe": 0.6618667554438067,
+        "n": 32
+      },
+      "b1": {
+        "success_rate": 0.5625,
+        "mean_fpe": 0.3450982644202346,
+        "n": 32
+      },
+      "flip": {
+        "success_rate": 0.53125,
+        "mean_fpe": 0.36368360444067804,
+        "n": 32
+      },
+      "stop65": {
+        "success_rate": 0.1875,
+        "mean_fpe": 0.7888934821385853,
+        "n": 32
+      }
+    },
+    "exp59": {
+      "exp54_HSV": {
+        "success_rate": 0.4375,
+        "mean_fpe": 0.7029664982522217,
+        "n": 32
+      },
+      "b1": {
+        "success_rate": 1.0,
+        "mean_fpe": 0.10135926450239655,
+        "n": 32
+      },
+      "flip": {
+        "success_rate": 0.9375,
+        "mean_fpe": 0.1192632046035394,
+        "n": 32
+      },
+      "stop65": {
+        "success_rate": 0.875,
+        "mean_fpe": 0.3119070086458936,
+        "n": 32
+      }
+    }
+  }
+}

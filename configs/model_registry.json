@@ -1,0 +1,169 @@
+{
+  "models": {
+    "exp11_end_to_end": {
+      "label": "Exp11 Google-Robot 8cls",
+      "kind": "end_to_end",
+      "runtime": "api_server",
+      "checkpoint": "runs/v5_nav/kosmos/mobile_vla_v5_exp11/2026-04-16/v5-exp11-google-robot-8cls/epoch_epoch=epoch=14-val_loss=val_loss=1.010.ckpt",
+      "config": "configs/mobile_vla_v5_exp11_google_robot_8cls.json",
+      "status": "validated",
+      "pinned": true,
+      "evidence": [
+        "CLAUDE.md",
+        "docs/AGENT_ENTRYPOINT.md"
+      ],
+      "notes": "Current strongest end-to-end baseline in docs."
+    },
+    "exp17_latest_e2e": {
+      "label": "Exp17 Step3 Balanced",
+      "kind": "end_to_end",
+      "runtime": "api_server",
+      "checkpoint": "runs/v5_nav/kosmos/mobile_vla_v5_exp17/2026-04-21/v5-exp17-step3-balanced/epoch_epoch=epoch=03-val_loss=val_loss=2.270.ckpt",
+      "config": "configs/mobile_vla_v5_exp17_step3_balanced.json",
+      "status": "latest_candidate",
+      "pinned": false,
+      "evidence": [
+        "docs/v5/STATUS_20260421_EXP17.md"
+      ],
+      "notes": "Higher PM, weaker closed-loop than decomposition."
+    },
+    "exp10_grounding": {
+      "label": "Exp10 BBox Grounding",
+      "kind": "grounding",
+      "runtime": "api_server",
+      "checkpoint": "runs/v5_nav/kosmos/mobile_vla_v5_bbox/2026-04-15/v5-exp10-track2-bbox/epoch_epoch=epoch=07-val_loss=val_loss=0.012.ckpt",
+      "config": "configs/mobile_vla_v5_exp10_bbox.json",
+      "status": "validated",
+      "pinned": true,
+      "evidence": [
+        "plan.md",
+        "docs/v5/exp10/report.md"
+      ],
+      "notes": "Grounding-oriented profile."
+    },
+    "exp14_step2_decomposition": {
+      "label": "Exp14 Step2 BBox+Image",
+      "kind": "decomposition",
+      "runtime": "mlp_step2",
+      "checkpoint": "",
+      "config": "docs/v5/bbox_nav_step2/summary.json",
+      "status": "validated",
+      "pinned": true,
+      "evidence": [
+        "docs/v5/bbox_nav_step2/summary.json",
+        "docs/v5/closed_loop_eval/rollout_metrics.json",
+        "CLAUDE.md"
+      ],
+      "notes": "Current strongest practical closed-loop baseline; not served by inference_server.py."
+    },
+    "exp46_proxy": {
+      "label": "Exp46 BBox+Vision MLP",
+      "kind": "decomposition",
+      "runtime": "proxy_server",
+      "checkpoint": "docs/v5/bbox_nav_exp46/exp46_mlp.pt",
+      "config": "docs/v5/bbox_nav_exp46/summary.json",
+      "status": "validated",
+      "pinned": true,
+      "evidence": ["docs/v5/bbox_nav_exp46/summary.json"],
+      "notes": "val acc 93.2%, CL 100%, FPE 0.084m. bbox(32)+vision(1024), window=8."
+    },
+    "exp47_proxy": {
+      "label": "Exp47 Instruction-Conditioned MLP",
+      "kind": "decomposition",
+      "runtime": "proxy_server",
+      "checkpoint": "runs/exp47_mlp.pth",
+      "config": "configs/exp47_bbox_nav.json",
+      "status": "validated",
+      "pinned": true,
+      "evidence": ["docs/v5/bbox_nav_exp47/summary.json"],
+      "notes": "val acc 98.7%, instruction sensitivity 80%. bbox(32)+vision(1024)+instr(2048)=3104-dim."
+    },
+    "exp49_goal_nav": {
+      "label": "Exp49 GoalNav MLP (Recommended)",
+      "kind": "decomposition",
+      "runtime": "proxy_server",
+      "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
+      "config": "N/A",
+      "status": "validated",
+      "pinned": true,
+      "evidence": ["runs/v5_nav/mlp/exp49/exp49_mlp.pt"],
+      "notes": "acc 96.4%, CL 100% success. GoalNav: vis(1024)+bbox_history+goal(3)=1059-dim, window=8."
+    },
+    "local_v4_balanced_fallback": {
+      "label": "Local V4 Balanced Fallback",
+      "kind": "end_to_end",
+      "runtime": "api_server",
+      "checkpoint": "runs/v4_nav/kosmos/v4_balanced_v2/checkpoints/best_model_87pc.ckpt",
+      "config": "configs/mobile_vla_v4_balanced_v2.json",
+      "status": "fallback",
+      "pinned": false,
+      "evidence": [
+        ".vla_env_settings"
+      ],
+      "notes": "Launchable local fallback when V5 checkpoints are unavailable."
+    }
+  },
+  "profiles": {
+    "end_to_end_default": {
+      "label": "End-to-End Default",
+      "default_model": "exp11_end_to_end",
+      "fallback_models": [
+        "exp17_latest_e2e",
+        "local_v4_balanced_fallback"
+      ],
+      "allow_runtimes": [
+        "api_server"
+      ]
+    },
+    "latest_e2e_candidate": {
+      "label": "Latest End-to-End Candidate",
+      "default_model": "exp17_latest_e2e",
+      "fallback_models": [
+        "exp11_end_to_end",
+        "local_v4_balanced_fallback"
+      ],
+      "allow_runtimes": [
+        "api_server"
+      ]
+    },
+    "closed_loop_best": {
+      "label": "Closed-Loop Best",
+      "default_model": "exp14_step2_decomposition",
+      "fallback_models": [],
+      "allow_runtimes": [
+        "mlp_step2"
+      ]
+    },
+    "grounding_default": {
+      "label": "Grounding Default",
+      "default_model": "exp10_grounding",
+      "fallback_models": [
+        "local_v4_balanced_fallback"
+      ],
+      "allow_runtimes": [
+        "api_server"
+      ]
+    },
+    "proxy_default": {
+      "label": "Proxy Default (Exp49 GoalNav)",
+      "default_model": "exp49_goal_nav",
+      "fallback_models": ["exp47_proxy", "exp46_proxy"],
+      "allow_runtimes": ["proxy_server"]
+    },
+    "exp49_proxy": {
+      "label": "Exp49 GoalNav (VLA_MODEL=exp49)",
+      "default_model": "exp49_goal_nav",
+      "fallback_models": ["exp46_proxy"],
+      "allow_runtimes": ["proxy_server"]
+    },
+    "collect_default": {
+      "label": "Collector Default",
+      "default_model": "local_v4_balanced_fallback",
+      "fallback_models": [],
+      "allow_runtimes": [
+        "gradio_collector",
+        "api_server"
+      ]
+    }
+  }
+}

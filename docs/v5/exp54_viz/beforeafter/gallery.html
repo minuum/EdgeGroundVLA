@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Track 3 — Basket Masking Before/After</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0f1a; color: #e2e8f0; font-family:'Noto Sans KR','Segoe UI', sans-serif; padding: 40px 24px; }
+h1 { font-size: 1.4rem; color: white; margin-bottom: 8px; }
+.subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 40px; line-height: 1.6; }
+.section { margin-bottom: 48px; }
+.section-title {
+  font-size: 1.1rem; font-weight: 700; padding: 10px 18px;
+  border-radius: 8px; margin-bottom: 20px; display: inline-block;
+}
+.grid { display: flex; flex-direction: column; gap: 20px; }
+.card {
+  background: #0d1117; border: 1px solid #1e293b; border-radius: 12px;
+  overflow: hidden;
+}
+.card.flip { border-color: #f59e0b; }
+.card-header {
+  padding: 12px 18px; display: flex; align-items: center; gap: 12px;
+  background: #111827;
+}
+.badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+}
+.badge-flip { background: #7c2d12; color: #fb923c; }
+.badge-stable { background: #14532d; color: #86efac; }
+.meta { color: #64748b; font-size: 0.82rem; }
+.card img { width: 100%; display: block; }
+.explanation {
+  padding: 14px 18px; font-size: 0.85rem; color: #94a3b8; line-height: 1.7;
+  border-top: 1px solid #1e293b;
+}
+.explanation strong { color: #e2e8f0; }
+.flip-highlight { color: #f59e0b; font-weight: 700; }
+.howto {
+  background: #0f172a; border: 1px solid #1e3a5f; border-radius: 12px;
+  padding: 20px 24px; margin-bottom: 40px;
+}
+.howto h2 { color: #38bdf8; font-size: 1rem; margin-bottom: 12px; }
+.step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; }
+.step-num {
+  background: #1e3a5f; color: #38bdf8; width: 24px; height: 24px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+}
+.step-text { color: #94a3b8; font-size: 0.88rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+<h1>Track 3 — Basket Masking Ablation: Before / After 비교</h1>
+<p class="subtitle">
+  Stage 1 v2 모델에 <strong>원본 프레임</strong>과 <strong>basket 영역을 회색으로 가린 프레임</strong>을 각각 입력해서<br>
+  모델 예측(left/center/right)이 바뀌는지 확인. 예측이 바뀌면 → 모델이 basket 영역을 보고 있다는 인과 증거.
+</p>
+
+<div class="howto">
+  <h2>🔬 실험 방법</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-text"><strong>원본 프레임</strong> 선택: bbox_dataset_frame_level.json에서 consistent=True, area_det ≥ 최소 면적 프레임</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-text"><strong>basket 위치 특정</strong>: HSV 탐지(left/right) 또는 Kosmos-2 bbox cx(center)로 구한 cx_det, cy_det, area_det 사용</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-text"><strong>마스킹</strong>: basket 중심에서 bbox 크기 × 1.8배 영역을 회색(90,90,90)으로 덮음</div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-text"><strong>Stage 1 v2 입력</strong>: 원본/마스킹 각각 → frozen Kosmos-2 CLIP → image_proj → cosine similarity 3방향 비교</div>
+  </div>
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-text"><strong>판정</strong>: 예측이 바뀌면 "basket을 보고 있었다" (FLIP), 안 바뀌면 "basket 외 정보로 분류" (stable)</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title" style="background:#06b6d422;color:#06b6d4;border:1px solid #06b6d444">
+    왼쪽 (Left) — 0/4 FLIP
+  </div>
+  <div class="grid">
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.16  basket_area=1.0%  원본예측=left</span>
+      </div>
+      <img src="left_stable_01.png" alt="before/after left">
+      <div class="explanation">
+        basket 영역(이미지의 1.0%)을 회색으로 가렸을 때: 원본과 동일하게 "left" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.39  basket_area=28.8%  원본예측=left</span>
+      </div>
+      <img src="left_stable_02.png" alt="before/after left">
+      <div class="explanation">
+        basket 영역(이미지의 28.8%)을 회색으로 가렸을 때: 원본과 동일하게 "left" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.42  basket_area=30.8%  원본예측=left</span>
+      </div>
+      <img src="left_stable_03.png" alt="before/after left">
+      <div class="explanation">
+        basket 영역(이미지의 30.8%)을 회색으로 가렸을 때: 원본과 동일하게 "left" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.39  basket_area=22.3%  원본예측=left</span>
+      </div>
+      <img src="left_stable_04.png" alt="before/after left">
+      <div class="explanation">
+        basket 영역(이미지의 22.3%)을 회색으로 가렸을 때: 원본과 동일하게 "left" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e44">
+    중앙 (Center) — 6/6 FLIP
+  </div>
+  <div class="grid">
+
+    <div class="card flip">
+      <div class="card-header">
+        <span class="badge badge-flip">🔄 FLIP — 예측 반전!</span>
+        <span class="meta">cx=0.50  basket_area=75.7%  원본예측=center</span>
+      </div>
+      <img src="center_FLIP_01.png" alt="before/after center">
+      <div class="explanation">
+        basket 영역(이미지의 75.7%)을 회색으로 가렸을 때: <span class="flip-highlight">"center" → "right"로 반전</span>.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card flip">
+      <div class="card-header">
+        <span class="badge badge-flip">🔄 FLIP — 예측 반전!</span>
+        <span class="meta">cx=0.50  basket_area=75.7%  원본예측=center</span>
+      </div>
+      <img src="center_FLIP_02.png" alt="before/after center">
+      <div class="explanation">
+        basket 영역(이미지의 75.7%)을 회색으로 가렸을 때: <span class="flip-highlight">"center" → "left"로 반전</span>.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card flip">
+      <div class="card-header">
+        <span class="badge badge-flip">🔄 FLIP — 예측 반전!</span>
+        <span class="meta">cx=0.50  basket_area=78.7%  원본예측=center</span>
+      </div>
+      <img src="center_FLIP_03.png" alt="before/after center">
+      <div class="explanation">
+        basket 영역(이미지의 78.7%)을 회색으로 가렸을 때: <span class="flip-highlight">"center" → "left"로 반전</span>.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card flip">
+      <div class="card-header">
+        <span class="badge badge-flip">🔄 FLIP — 예측 반전!</span>
+        <span class="meta">cx=0.50  basket_area=75.7%  원본예측=center</span>
+      </div>
+      <img src="center_FLIP_04.png" alt="before/after center">
+      <div class="explanation">
+        basket 영역(이미지의 75.7%)을 회색으로 가렸을 때: <span class="flip-highlight">"center" → "left"로 반전</span>.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card flip">
+      <div class="card-header">
+        <span class="badge badge-flip">🔄 FLIP — 예측 반전!</span>
+        <span class="meta">cx=0.50  basket_area=75.7%  원본예측=center</span>
+      </div>
+      <img src="center_FLIP_05.png" alt="before/after center">
+      <div class="explanation">
+        basket 영역(이미지의 75.7%)을 회색으로 가렸을 때: <span class="flip-highlight">"center" → "right"로 반전</span>.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card flip">
+      <div class="card-header">
+        <span class="badge badge-flip">🔄 FLIP — 예측 반전!</span>
+        <span class="meta">cx=0.50  basket_area=75.7%  원본예측=center</span>
+      </div>
+      <img src="center_FLIP_06.png" alt="before/after center">
+      <div class="explanation">
+        basket 영역(이미지의 75.7%)을 회색으로 가렸을 때: <span class="flip-highlight">"center" → "left"로 반전</span>.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title" style="background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa44">
+    오른쪽 (Right) — 0/4 FLIP
+  </div>
+  <div class="grid">
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.87  basket_area=0.5%  원본예측=right</span>
+      </div>
+      <img src="right_stable_01.png" alt="before/after right">
+      <div class="explanation">
+        basket 영역(이미지의 0.5%)을 회색으로 가렸을 때: 원본과 동일하게 "right" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.85  basket_area=1.4%  원본예측=right</span>
+      </div>
+      <img src="right_stable_02.png" alt="before/after right">
+      <div class="explanation">
+        basket 영역(이미지의 1.4%)을 회색으로 가렸을 때: 원본과 동일하게 "right" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.87  basket_area=1.2%  원본예측=right</span>
+      </div>
+      <img src="right_stable_03.png" alt="before/after right">
+      <div class="explanation">
+        basket 영역(이미지의 1.2%)을 회색으로 가렸을 때: 원본과 동일하게 "right" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+
+    <div class="card ">
+      <div class="card-header">
+        <span class="badge badge-stable">✅ STABLE — 예측 유지</span>
+        <span class="meta">cx=0.83  basket_area=1.2%  원본예측=right</span>
+      </div>
+      <img src="right_stable_04.png" alt="before/after right">
+      <div class="explanation">
+        basket 영역(이미지의 1.2%)을 회색으로 가렸을 때: 원본과 동일하게 "right" 유지.<br>
+        <strong>왼쪽</strong>: 원본 프레임 + 녹색 박스(basket 위치) + confidence 바 + 어텐션 맵<br>
+        <strong>오른쪽</strong>: 마스킹 후 프레임 + 빨간 박스(가려진 영역) + confidence 바 + 어텐션 맵
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:40px;padding:16px 20px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;font-size:0.85rem;color:#64748b;line-height:1.8">
+  <strong style="color:#e2e8f0">결론:</strong>
+  center 방향에서 basket area가 클수록 FLIP 비율 높음 → basket 영역이 예측에 인과적 영향.<br>
+  left/right는 basket area ~0.5~1.5%로 너무 작아 마스킹 효과 미미 → 전체 이미지 구성으로 분류.<br>
+  그러나 Track 2(frozen probe 96.6%)에서 이 전체 이미지 구성 자체가 basket 위치와 강하게 상관됨을 확인.
+</div>
+</body>
+</html>

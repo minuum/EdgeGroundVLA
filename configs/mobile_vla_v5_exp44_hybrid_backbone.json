@@ -1,0 +1,29 @@
+{
+    "_comment": "V5 Exp44: Hybrid backbone — Google-robot vision + Pure HF text. text_attn=24.9% 보존 확인. Exp25 설정 기반(balanced objective) + pretrained_vlm_path=null로 Google-robot 체인 완전 차단. model_path를 hybrid backbone으로 변경.",
+    "parent": "configs/mobile_vla_v5_exp25_step3_balanced_objective.json",
+    "exp_name": "v5-exp44-hybrid-backbone",
+    "task_name": "mobile_vla_v5_exp44",
+
+    "model_url": null,
+    "model_path": ".vlms/kosmos-gr-vision-hf-text",
+    "model_config": ".vlms/kosmos-gr-vision-hf-text",
+    "pretrained_vlm_path": null,
+    "vlm": {
+        "pretrained_model_name_or_path": "/home/minum/26CS/MoNaVLA/.vlms/kosmos-gr-vision-hf-text"
+    },
+    "tokenizer": {
+        "pretrained_model_name_or_path": "/home/minum/26CS/MoNaVLA/.vlms/kosmos-gr-vision-hf-text"
+    },
+
+    "train_dataset": {
+        "data_dir": "/home/minum/26CS/MoNaVLA/ROS_action/mobile_vla_dataset_v5"
+    },
+    "val_dataset": {
+        "data_dir": "/home/minum/26CS/MoNaVLA/ROS_action/mobile_vla_dataset_v5"
+    },
+
+    "trainer": {
+        "max_epochs": 10,
+        "check_val_every_n_epoch": 1
+    }
+}

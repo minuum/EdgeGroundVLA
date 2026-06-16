@@ -1,0 +1,426 @@
+{
+  "model": "exp47",
+  "n_val_eps": 30,
+  "overall_pm": 0.9923747276688454,
+  "mean_fpe": 0.01308781865576353,
+  "mean_tld": 1.002784629498055,
+  "success_rate": 1.0,
+  "per_path": {
+    "right_left": {
+      "n": 3,
+      "pm": 1.0,
+      "mean_fpe": 0.0,
+      "success_rate": 1.0
+    },
+    "left_right": {
+      "n": 3,
+      "pm": 1.0,
+      "mean_fpe": 0.0,
+      "success_rate": 1.0
+    },
+    "left_straight": {
+      "n": 4,
+      "pm": 1.0,
+      "mean_fpe": 0.0,
+      "success_rate": 1.0
+    },
+    "center_straight": {
+      "n": 4,
+      "pm": 1.0,
+      "mean_fpe": 0.0,
+      "success_rate": 1.0
+    },
+    "center_right": {
+      "n": 3,
+      "pm": 1.0,
+      "mean_fpe": 0.0,
+      "success_rate": 1.0
+    },
+    "right_straight": {
+      "n": 4,
+      "pm": 1.0,
+      "mean_fpe": 0.0,
+      "success_rate": 1.0
+    },
+    "left_left": {
+      "n": 3,
+      "pm": 1.0,
+      "mean_fpe": 0.0,
+      "success_rate": 1.0
+    },
+    "right_right": {
+      "n": 3,
+      "pm": 0.9607843137254902,
+      "mean_fpe": 0.05421151989096864,
+      "success_rate": 1.0
+    },
+    "center_left": {
+      "n": 3,
+      "pm": 0.9629629629629629,
+      "mean_fpe": 0.07666666666666666,
+      "success_rate": 1.0
+    }
+  },
+  "episodes": {
+    "episode_260409_194946_target_right_left_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.4708073580374355,
+      "pred_len": 2.4708073580374355,
+      "success": true,
+      "expert_n_frames": 20,
+      "pred_n_frames": 20,
+      "path_type": "right_left",
+      "pm": 1.0
+    },
+    "episode_260409_195322_target_right_left_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.4708073580374355,
+      "pred_len": 2.4708073580374355,
+      "success": true,
+      "expert_n_frames": 20,
+      "pred_n_frames": 20,
+      "path_type": "right_left",
+      "pm": 1.0
+    },
+    "episode_260409_123044_target_left_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.4708073580374355,
+      "pred_len": 2.4708073580374355,
+      "success": true,
+      "expert_n_frames": 20,
+      "pred_n_frames": 20,
+      "path_type": "left_right",
+      "pm": 1.0
+    },
+    "episode_260409_121855_target_left_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "left_straight",
+      "pm": 1.0
+    },
+    "episode_260408_164316_target_center_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.6099999999999999,
+      "pred_len": 1.6099999999999999,
+      "success": true,
+      "expert_n_frames": 15,
+      "pred_n_frames": 15,
+      "path_type": "center_straight",
+      "pm": 1.0
+    },
+    "episode_260409_195221_target_right_left_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.4708073580374355,
+      "pred_len": 2.4708073580374355,
+      "success": true,
+      "expert_n_frames": 20,
+      "pred_n_frames": 20,
+      "path_type": "right_left",
+      "pm": 1.0
+    },
+    "episode_260408_194030_target_center_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.498711037056154,
+      "pred_len": 2.498711037056154,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "center_right",
+      "pm": 1.0
+    },
+    "episode_260408_190853_target_center_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.498711037056154,
+      "pred_len": 2.498711037056154,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "center_right",
+      "pm": 1.0
+    },
+    "episode_260409_164320_target_right_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "right_straight",
+      "pm": 1.0
+    },
+    "episode_260409_123322_target_left_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.4708073580374355,
+      "pred_len": 2.4708073580374355,
+      "success": true,
+      "expert_n_frames": 20,
+      "pred_n_frames": 20,
+      "path_type": "left_right",
+      "pm": 1.0
+    },
+    "episode_260409_163701_target_right_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "right_straight",
+      "pm": 1.0
+    },
+    "episode_260409_195440_target_left_left_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.280269119345812,
+      "pred_len": 2.280269119345812,
+      "success": true,
+      "expert_n_frames": 20,
+      "pred_n_frames": 20,
+      "path_type": "left_left",
+      "pm": 1.0
+    },
+    "episode_260408_164821_target_center_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.6099999999999999,
+      "pred_len": 1.6099999999999999,
+      "success": true,
+      "expert_n_frames": 15,
+      "pred_n_frames": 15,
+      "path_type": "center_straight",
+      "pm": 1.0
+    },
+    "episode_260409_165557_target_right_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "right_straight",
+      "pm": 1.0
+    },
+    "episode_260409_200506_target_left_left_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.165269119345812,
+      "pred_len": 2.165269119345812,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "left_left",
+      "pm": 1.0
+    },
+    "episode_260409_172906_target_right_right_path__core__fixed_center": {
+      "fpe": 0.1626345596729059,
+      "tld": 1.0454115793296923,
+      "mean_lateral_dev": 0.13772111980010918,
+      "expert_len": 2.0979036790187178,
+      "pred_len": 2.1931727983645297,
+      "success": true,
+      "expert_n_frames": 18,
+      "pred_n_frames": 18,
+      "path_type": "right_right",
+      "pm": 0.8823529411764706
+    },
+    "episode_260409_072407_target_left_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "left_straight",
+      "pm": 1.0
+    },
+    "episode_260408_195026_target_center_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.498711037056154,
+      "pred_len": 2.498711037056154,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "center_right",
+      "pm": 1.0
+    },
+    "episode_260409_200210_target_left_left_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.165269119345812,
+      "pred_len": 2.165269119345812,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "left_left",
+      "pm": 1.0
+    },
+    "episode_260409_193630_target_right_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9829036790187176,
+      "pred_len": 1.9829036790187176,
+      "success": true,
+      "expert_n_frames": 17,
+      "pred_n_frames": 17,
+      "path_type": "right_right",
+      "pm": 1.0
+    },
+    "episode_260408_175831_target_center_left_path__core__fixed_center": {
+      "fpe": 0.11499999999999999,
+      "tld": 1.0190636528059789,
+      "mean_lateral_dev": 0.02421052631578947,
+      "expert_len": 2.498711037056154,
+      "pred_len": 2.5463455967290596,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "center_left",
+      "pm": 0.9444444444444444
+    },
+    "episode_260408_175031_target_center_left_path__core__fixed_center": {
+      "fpe": 0.11499999999999999,
+      "tld": 1.0190636528059789,
+      "mean_lateral_dev": 0.05447368421052631,
+      "expert_len": 2.498711037056154,
+      "pred_len": 2.5463455967290596,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "center_left",
+      "pm": 0.9444444444444444
+    },
+    "episode_260409_121514_target_left_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "left_straight",
+      "pm": 1.0
+    },
+    "episode_260409_122338_target_left_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "left_straight",
+      "pm": 1.0
+    },
+    "episode_260409_173110_target_right_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9829036790187176,
+      "pred_len": 1.9829036790187176,
+      "success": true,
+      "expert_n_frames": 17,
+      "pred_n_frames": 17,
+      "path_type": "right_right",
+      "pm": 1.0
+    },
+    "episode_260409_202055_target_left_right_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.4708073580374355,
+      "pred_len": 2.4708073580374355,
+      "success": true,
+      "expert_n_frames": 20,
+      "pred_n_frames": 20,
+      "path_type": "left_right",
+      "pm": 1.0
+    },
+    "episode_260408_153947_target_center_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.6099999999999999,
+      "pred_len": 1.6099999999999999,
+      "success": true,
+      "expert_n_frames": 15,
+      "pred_n_frames": 15,
+      "path_type": "center_straight",
+      "pm": 1.0
+    },
+    "episode_260408_175333_target_center_left_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 2.498711037056154,
+      "pred_len": 2.498711037056154,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "center_left",
+      "pm": 1.0
+    },
+    "episode_260408_154351_target_center_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.6099999999999999,
+      "pred_len": 1.6099999999999999,
+      "success": true,
+      "expert_n_frames": 15,
+      "pred_n_frames": 15,
+      "path_type": "center_straight",
+      "pm": 1.0
+    },
+    "episode_260409_170145_target_right_straight_path__core__fixed_center": {
+      "fpe": 0.0,
+      "tld": 1.0,
+      "mean_lateral_dev": 0.0,
+      "expert_len": 1.9549999999999998,
+      "pred_len": 1.9549999999999998,
+      "success": true,
+      "expert_n_frames": 19,
+      "pred_n_frames": 19,
+      "path_type": "right_straight",
+      "pm": 1.0
+    }
+  }
+}

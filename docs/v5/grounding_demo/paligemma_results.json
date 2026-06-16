@@ -1,0 +1,2049 @@
+{
+  "stats": {
+    "gray basket": {
+      "hit": 30,
+      "total": 30,
+      "cx_errors": [
+        0.03564453125,
+        0.20751953125,
+        0.08984375,
+        0.1806640625,
+        0.0126953125,
+        0.0107421875,
+        0.02197265625,
+        0.005859375,
+        0.005859375,
+        0.02392578125,
+        0.0810546875,
+        0.087890625,
+        0.0546875,
+        0.10107421875,
+        0.10986328125,
+        0.0014148437500000055,
+        0.0005132812499999972,
+        0.0014898437499999972,
+        0.05419921875,
+        0.0019031250000000055,
+        0.11474609375,
+        0.06298828125,
+        0.10503046875,
+        0.2061046875,
+        0.1044921875,
+        0.08251953125,
+        0.04833984375,
+        0.04638671875,
+        0.18994140625,
+        0.1923828125
+      ]
+    },
+    "brown pot": {
+      "hit": 29,
+      "total": 30,
+      "cx_errors": []
+    },
+    "beige basket": {
+      "hit": 30,
+      "total": 30,
+      "cx_errors": [
+        0.03564453125,
+        0.20751953125,
+        0.08984375,
+        0.1806640625,
+        0.0126953125,
+        0.0107421875,
+        0.01904296875,
+        0.005859375,
+        0.005859375,
+        0.02392578125,
+        0.0810546875,
+        0.087890625,
+        0.0546875,
+        0.10107421875,
+        0.10986328125,
+        0.0014148437500000055,
+        0.0005132812499999972,
+        2.4999999999997247e-05,
+        0.05419921875,
+        0.0019031250000000055,
+        0.11474609375,
+        0.06298828125,
+        0.10503046875,
+        0.2061046875,
+        0.10302734375,
+        0.08251953125,
+        0.048828125,
+        0.04638671875,
+        0.18994140625,
+        0.1923828125
+      ]
+    },
+    "laundry basket": {
+      "hit": 30,
+      "total": 30,
+      "cx_errors": [
+        0.03564453125,
+        0.20654296875,
+        0.08984375,
+        0.1806640625,
+        0.0126953125,
+        0.0107421875,
+        0.01904296875,
+        0.005859375,
+        0.005859375,
+        0.02392578125,
+        0.08544921875,
+        0.087890625,
+        0.0556640625,
+        0.10107421875,
+        0.111328125,
+        0.0038562500000000055,
+        0.0005132812499999972,
+        0.0014898437499999972,
+        0.05419921875,
+        4.999999999999449e-05,
+        0.11474609375,
+        0.06298828125,
+        0.10600703125,
+        0.20756953125,
+        0.1044921875,
+        0.08056640625,
+        0.0498046875,
+        0.0478515625,
+        0.18994140625,
+        0.1923828125
+      ]
+    },
+    "blue trash can": {
+      "hit": 26,
+      "total": 30,
+      "cx_errors": []
+    }
+  },
+  "details": [
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0862><loc0597> gray basket<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5830078125,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0862><loc0597> beige basket<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5830078125,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0862><loc0597> laundry basket<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5830078125,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0862><loc0597> blue trash can<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5830078125,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0354><loc0838><loc0583> gray basket<eos>",
+      "bbox": [
+        0.345703125,
+        0.44921875,
+        0.5693359375,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0838><loc0581> brown pot<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5673828125,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0838><loc0583> beige basket<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5693359375,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0838><loc0581> laundry basket<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5673828125,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0354><loc0838><loc0581> blue trash can<eos>",
+      "bbox": [
+        0.345703125,
+        0.451171875,
+        0.5673828125,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0455><loc0293><loc0880><loc0547> gray basket zove<eos>",
+      "bbox": [
+        0.2861328125,
+        0.4443359375,
+        0.5341796875,
+        0.859375
+      ]
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0639><loc1022> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.6240234375
+      ]
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0455><loc0293><loc0880><loc0547> beige basket<eos>",
+      "bbox": [
+        0.2861328125,
+        0.4443359375,
+        0.5341796875,
+        0.859375
+      ]
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0293><loc0880><loc0547> laundry basket<eos>",
+      "bbox": [
+        0.2861328125,
+        0.44921875,
+        0.5341796875,
+        0.859375
+      ]
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0448><loc0293><loc0880><loc0547> blue trash can<eos>",
+      "bbox": [
+        0.2861328125,
+        0.4375,
+        0.5341796875,
+        0.859375
+      ]
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0215><loc0849><loc0439> gray basket<eos>",
+      "bbox": [
+        0.2099609375,
+        0.451171875,
+        0.4287109375,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0112><loc0112> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.109375,
+        0.109375
+      ]
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0215><loc0849><loc0439> beige basket<eos>",
+      "bbox": [
+        0.2099609375,
+        0.451171875,
+        0.4287109375,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0215><loc0849><loc0439> laundry basket<eos>",
+      "bbox": [
+        0.2099609375,
+        0.451171875,
+        0.4287109375,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0215><loc0849><loc0439> blue trash can<eos>",
+      "bbox": [
+        0.2099609375,
+        0.451171875,
+        0.4287109375,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0373><loc0877><loc0625> gray basket<eos>",
+      "bbox": [
+        0.3642578125,
+        0.451171875,
+        0.6103515625,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0373><loc0877><loc0625> brown pot<eos>",
+      "bbox": [
+        0.3642578125,
+        0.451171875,
+        0.6103515625,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0373><loc0877><loc0625> beige basket<eos>",
+      "bbox": [
+        0.3642578125,
+        0.451171875,
+        0.6103515625,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0373><loc0873><loc0625> laundry basket<eos>",
+      "bbox": [
+        0.3642578125,
+        0.451171875,
+        0.6103515625,
+        0.8525390625
+      ]
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0457><loc0373><loc0877><loc0625> blue trash can<eos>",
+      "bbox": [
+        0.3642578125,
+        0.4462890625,
+        0.6103515625,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0384><loc0858><loc0618> gray basket<eos>",
+      "bbox": [
+        0.375,
+        0.451171875,
+        0.603515625,
+        0.837890625
+      ]
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0384><loc0858><loc0618> brown pot<eos>",
+      "bbox": [
+        0.375,
+        0.451171875,
+        0.603515625,
+        0.837890625
+      ]
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0384><loc0858><loc0618> beige basket<eos>",
+      "bbox": [
+        0.375,
+        0.451171875,
+        0.603515625,
+        0.837890625
+      ]
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0384><loc0858><loc0618> laundry basket<eos>",
+      "bbox": [
+        0.375,
+        0.451171875,
+        0.603515625,
+        0.837890625
+      ]
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0384><loc0858><loc0618> blue trash can<eos>",
+      "bbox": [
+        0.375,
+        0.451171875,
+        0.603515625,
+        0.837890625
+      ]
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0373><loc0849><loc0606> gray basket<eos>",
+      "bbox": [
+        0.3642578125,
+        0.451171875,
+        0.591796875,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0678><loc1022> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.662109375
+      ]
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0379><loc0845><loc0606> beige basket<eos>",
+      "bbox": [
+        0.3701171875,
+        0.451171875,
+        0.591796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0379><loc0845><loc0606> laundry basket<eos>",
+      "bbox": [
+        0.3701171875,
+        0.4599609375,
+        0.591796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0379><loc0845><loc0606> blue trash can<eos>",
+      "bbox": [
+        0.3701171875,
+        0.451171875,
+        0.591796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0397><loc0862><loc0639> gray basket<eos>",
+      "bbox": [
+        0.3876953125,
+        0.451171875,
+        0.6240234375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0397><loc0862><loc0639> brown pot<eos>",
+      "bbox": [
+        0.3876953125,
+        0.451171875,
+        0.6240234375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0397><loc0862><loc0639> beige basket<eos>",
+      "bbox": [
+        0.3876953125,
+        0.451171875,
+        0.6240234375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0397><loc0862><loc0639> laundry basket<eos>",
+      "bbox": [
+        0.3876953125,
+        0.44921875,
+        0.6240234375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0397><loc0862><loc0639> blue trash can<eos>",
+      "bbox": [
+        0.3876953125,
+        0.451171875,
+        0.6240234375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0397><loc0870><loc0639> gray basket<eos>",
+      "bbox": [
+        0.3876953125,
+        0.451171875,
+        0.6240234375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0397><loc0870><loc0639> brown pot shenanker<eos>",
+      "bbox": [
+        0.3876953125,
+        0.451171875,
+        0.6240234375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0397><loc0870><loc0639> beige basket<eos>",
+      "bbox": [
+        0.3876953125,
+        0.453125,
+        0.6240234375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0397><loc0870><loc0639> laundry basket<eos>",
+      "bbox": [
+        0.3876953125,
+        0.453125,
+        0.6240234375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0397><loc0870><loc0639> blue trash can<eos>",
+      "bbox": [
+        0.3876953125,
+        0.451171875,
+        0.6240234375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0366><loc0870><loc0609> gray basket zove<eos>",
+      "bbox": [
+        0.357421875,
+        0.451171875,
+        0.5947265625,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0366><loc0870><loc0609> brown pot<eos>",
+      "bbox": [
+        0.357421875,
+        0.451171875,
+        0.5947265625,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0366><loc0870><loc0609> beige basket<eos>",
+      "bbox": [
+        0.357421875,
+        0.451171875,
+        0.5947265625,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0366><loc0870><loc0609> laundry basket<eos>",
+      "bbox": [
+        0.357421875,
+        0.451171875,
+        0.5947265625,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0366><loc0870><loc0609> blue trash can<eos>",
+      "bbox": [
+        0.357421875,
+        0.451171875,
+        0.5947265625,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0471><loc0867><loc0719> gray basket<eos>",
+      "bbox": [
+        0.4599609375,
+        0.451171875,
+        0.7021484375,
+        0.8466796875
+      ]
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0477><loc0870><loc0719> brown pot fameux<eos>",
+      "bbox": [
+        0.4658203125,
+        0.451171875,
+        0.7021484375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0471><loc0870><loc0719> beige basket<eos>",
+      "bbox": [
+        0.4599609375,
+        0.451171875,
+        0.7021484375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0480><loc0867><loc0719> laundry basket<eos>",
+      "bbox": [
+        0.46875,
+        0.453125,
+        0.7021484375,
+        0.8466796875
+      ]
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0477><loc0870><loc0719> blue trash can<eos>",
+      "bbox": [
+        0.4658203125,
+        0.451171875,
+        0.7021484375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0468><loc0297><loc0873><loc0547> gray basket zove<eos>",
+      "bbox": [
+        0.2900390625,
+        0.45703125,
+        0.5341796875,
+        0.8525390625
+      ]
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0464><loc0293><loc0870><loc0547> brown pot<eos>",
+      "bbox": [
+        0.2861328125,
+        0.453125,
+        0.5341796875,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0468><loc0297><loc0873><loc0547> beige basket<eos>",
+      "bbox": [
+        0.2900390625,
+        0.45703125,
+        0.5341796875,
+        0.8525390625
+      ]
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0297><loc0873><loc0547> laundry basket<eos>",
+      "bbox": [
+        0.2900390625,
+        0.4599609375,
+        0.5341796875,
+        0.8525390625
+      ]
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0293><loc0873><loc0547> blue trash can<eos>",
+      "bbox": [
+        0.2861328125,
+        0.451171875,
+        0.5341796875,
+        0.8525390625
+      ]
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0329><loc0877><loc0583> gray basket<eos>",
+      "bbox": [
+        0.3212890625,
+        0.451171875,
+        0.5693359375,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0325><loc0877><loc0583> brown pot<eos>",
+      "bbox": [
+        0.3173828125,
+        0.451171875,
+        0.5693359375,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0329><loc0877><loc0583> beige basket<eos>",
+      "bbox": [
+        0.3212890625,
+        0.451171875,
+        0.5693359375,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0327><loc0877><loc0583> laundry basket<eos>",
+      "bbox": [
+        0.3193359375,
+        0.451171875,
+        0.5693359375,
+        0.8564453125
+      ]
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc1022><loc1022> blue trash can<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.998046875
+      ]
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0279><loc0880><loc0538> gray basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.453125,
+        0.525390625,
+        0.859375
+      ]
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0279><loc0880><loc0538> brown pot<eos>",
+      "bbox": [
+        0.2724609375,
+        0.451171875,
+        0.525390625,
+        0.859375
+      ]
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0279><loc0880><loc0538> beige basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.453125,
+        0.525390625,
+        0.859375
+      ]
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0279><loc0880><loc0538> laundry basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.453125,
+        0.525390625,
+        0.859375
+      ]
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0279><loc0880><loc0538> blue trash can<eos>",
+      "bbox": [
+        0.2724609375,
+        0.451171875,
+        0.525390625,
+        0.859375
+      ]
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0279><loc0854><loc0520> gray basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.453125,
+        0.5078125,
+        0.833984375
+      ]
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0633><loc1022> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.6181640625
+      ]
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0279><loc0854><loc0520> beige basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.453125,
+        0.5078125,
+        0.833984375
+      ]
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0279><loc0854><loc0517> laundry basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.453125,
+        0.5048828125,
+        0.833984375
+      ]
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0428><loc0845><loc0657> gray basket zove<eos>",
+      "bbox": [
+        0.41796875,
+        0.451171875,
+        0.6416015625,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0464><loc0429><loc0845><loc0652> brown pot<eos>",
+      "bbox": [
+        0.4189453125,
+        0.453125,
+        0.63671875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0428><loc0845><loc0657> beige basket<eos>",
+      "bbox": [
+        0.41796875,
+        0.453125,
+        0.6416015625,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0428><loc0845><loc0652> laundry basket<eos>",
+      "bbox": [
+        0.41796875,
+        0.4599609375,
+        0.63671875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0428><loc0845><loc0657> blue trash can<eos>",
+      "bbox": [
+        0.41796875,
+        0.451171875,
+        0.6416015625,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0316><loc0845><loc0547> gray basket<eos>",
+      "bbox": [
+        0.30859375,
+        0.4599609375,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0469><loc0316><loc0845><loc0547> brown pot<eos>",
+      "bbox": [
+        0.30859375,
+        0.4580078125,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0316><loc0845><loc0547> beige basket<eos>",
+      "bbox": [
+        0.30859375,
+        0.4599609375,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0316><loc0845><loc0547> laundry basket<eos>",
+      "bbox": [
+        0.30859375,
+        0.4599609375,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0316><loc0845><loc0547> blue trash can<eos>",
+      "bbox": [
+        0.30859375,
+        0.451171875,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0288><loc0841><loc0515> gray basket<eos>",
+      "bbox": [
+        0.28125,
+        0.453125,
+        0.5029296875,
+        0.8212890625
+      ]
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0286><loc0841><loc0515> brown pot<eos>",
+      "bbox": [
+        0.279296875,
+        0.451171875,
+        0.5029296875,
+        0.8212890625
+      ]
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0285><loc0841><loc0515> beige basket<eos>",
+      "bbox": [
+        0.2783203125,
+        0.453125,
+        0.5029296875,
+        0.8212890625
+      ]
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0288><loc0841><loc0515> laundry basket<eos>",
+      "bbox": [
+        0.28125,
+        0.4599609375,
+        0.5029296875,
+        0.8212890625
+      ]
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0286><loc0841><loc0515> blue trash can<eos>",
+      "bbox": [
+        0.279296875,
+        0.451171875,
+        0.5029296875,
+        0.8212890625
+      ]
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0336><loc0862><loc0577> gray basket<eos>",
+      "bbox": [
+        0.328125,
+        0.451171875,
+        0.5634765625,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0334><loc0862><loc0577> brown pot<eos>",
+      "bbox": [
+        0.326171875,
+        0.451171875,
+        0.5634765625,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0336><loc0862><loc0577> beige basket<eos>",
+      "bbox": [
+        0.328125,
+        0.451171875,
+        0.5634765625,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0336><loc0862><loc0577> laundry basket<eos>",
+      "bbox": [
+        0.328125,
+        0.451171875,
+        0.5634765625,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0334><loc0862><loc0577> blue trash can<eos>",
+      "bbox": [
+        0.326171875,
+        0.451171875,
+        0.5634765625,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0361><loc0862><loc0603> gray basket<eos>",
+      "bbox": [
+        0.3525390625,
+        0.453125,
+        0.5888671875,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0462><loc0360><loc0862><loc0599> brown pot<eos>",
+      "bbox": [
+        0.3515625,
+        0.451171875,
+        0.5849609375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0361><loc0862><loc0603> beige basket<eos>",
+      "bbox": [
+        0.3525390625,
+        0.453125,
+        0.5888671875,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0361><loc0862><loc0599> laundry basket<eos>",
+      "bbox": [
+        0.3525390625,
+        0.451171875,
+        0.5849609375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0360><loc0862><loc0599> blue trash can<eos>",
+      "bbox": [
+        0.3515625,
+        0.451171875,
+        0.5849609375,
+        0.841796875
+      ]
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0279><loc0845><loc0510> gray basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.44921875,
+        0.498046875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0678><loc1022> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.662109375
+      ]
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0451><loc0279><loc0845><loc0510> beige basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.4404296875,
+        0.498046875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0279><loc0849><loc0510> laundry basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.44921875,
+        0.498046875,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0329><loc0845><loc0566> gray basket<eos>",
+      "bbox": [
+        0.3212890625,
+        0.451171875,
+        0.552734375,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0091><loc0112> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.109375,
+        0.0888671875
+      ]
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0329><loc0849><loc0566> beige basket<eos>",
+      "bbox": [
+        0.3212890625,
+        0.451171875,
+        0.552734375,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0329><loc0849><loc0566> laundry basket<eos>",
+      "bbox": [
+        0.3212890625,
+        0.451171875,
+        0.552734375,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0329><loc0845><loc0561> blue trash can<eos>",
+      "bbox": [
+        0.3212890625,
+        0.451171875,
+        0.5478515625,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0262><loc0838><loc0483> gray basket<eos>",
+      "bbox": [
+        0.255859375,
+        0.4599609375,
+        0.4716796875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0464><loc0260><loc0838><loc0483> brown pot<eos>",
+      "bbox": [
+        0.25390625,
+        0.453125,
+        0.4716796875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0262><loc0838><loc0483> beige basket<eos>",
+      "bbox": [
+        0.255859375,
+        0.4599609375,
+        0.4716796875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0260><loc0838><loc0483> laundry basket<eos>",
+      "bbox": [
+        0.25390625,
+        0.4599609375,
+        0.4716796875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0464><loc0260><loc0838><loc0483> blue trash can<eos>",
+      "bbox": [
+        0.25390625,
+        0.453125,
+        0.4716796875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0279><loc0845><loc0515> gray basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.44921875,
+        0.5029296875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0084><loc0059> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.0576171875,
+        0.08203125
+      ]
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0279><loc0845><loc0515> beige basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.44921875,
+        0.5029296875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0279><loc0849><loc0512> laundry basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.44921875,
+        0.5,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0293><loc0834><loc0517> gray basket<eos>",
+      "bbox": [
+        0.2861328125,
+        0.453125,
+        0.5048828125,
+        0.814453125
+      ]
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0678><loc1022> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.662109375
+      ]
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0293><loc0835><loc0520> beige basket<eos>",
+      "bbox": [
+        0.2861328125,
+        0.453125,
+        0.5078125,
+        0.8154296875
+      ]
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0293><loc0834><loc0517> laundry basket<eos>",
+      "bbox": [
+        0.2861328125,
+        0.451171875,
+        0.5048828125,
+        0.814453125
+      ]
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0084><loc0059> blue trash can<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.0576171875,
+        0.08203125
+      ]
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0451><loc0308><loc0845><loc0547> gray basket<eos>",
+      "bbox": [
+        0.30078125,
+        0.4404296875,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0678><loc1022> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.662109375
+      ]
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0451><loc0308><loc0845><loc0547> beige basket<eos>",
+      "bbox": [
+        0.30078125,
+        0.4404296875,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0460><loc0312><loc0845><loc0547> laundry basket<eos>",
+      "bbox": [
+        0.3046875,
+        0.44921875,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0084><loc0059> blue trash can<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.0576171875,
+        0.08203125
+      ]
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0348><loc0845><loc0577> gray basket<eos>",
+      "bbox": [
+        0.33984375,
+        0.451171875,
+        0.5634765625,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0084><loc0105> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.1025390625,
+        0.08203125
+      ]
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0347><loc0845><loc0577> beige basket<eos>",
+      "bbox": [
+        0.3388671875,
+        0.451171875,
+        0.5634765625,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0348><loc0849><loc0574> laundry basket<eos>",
+      "bbox": [
+        0.33984375,
+        0.451171875,
+        0.560546875,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0678><loc1022> blue trash can<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.998046875,
+        0.662109375
+      ]
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0352><loc0835><loc0577> gray basket<eos>",
+      "bbox": [
+        0.34375,
+        0.453125,
+        0.5634765625,
+        0.8154296875
+      ]
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0464><loc0352><loc0831><loc0574> brown pot<eos>",
+      "bbox": [
+        0.34375,
+        0.453125,
+        0.560546875,
+        0.8115234375
+      ]
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0352><loc0834><loc0577> beige basket<eos>",
+      "bbox": [
+        0.34375,
+        0.453125,
+        0.5634765625,
+        0.814453125
+      ]
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0352><loc0834><loc0574> laundry basket<eos>",
+      "bbox": [
+        0.34375,
+        0.4599609375,
+        0.560546875,
+        0.814453125
+      ]
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0352><loc0835><loc0574> blue trash can<eos>",
+      "bbox": [
+        0.34375,
+        0.451171875,
+        0.560546875,
+        0.8154296875
+      ]
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0267><loc0845><loc0496> gray basket<eos>",
+      "bbox": [
+        0.2607421875,
+        0.453125,
+        0.484375,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0091><loc0112> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.109375,
+        0.0888671875
+      ]
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0267><loc0845><loc0496> beige basket<eos>",
+      "bbox": [
+        0.2607421875,
+        0.453125,
+        0.484375,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0267><loc0845><loc0496> laundry basket<eos>",
+      "bbox": [
+        0.2607421875,
+        0.451171875,
+        0.484375,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": true,
+      "decoded": "<loc0462><loc0267><loc0845><loc0496> blue trash can<eos>",
+      "bbox": [
+        0.2607421875,
+        0.451171875,
+        0.484375,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0267><loc0838><loc0491> gray basket<eos>",
+      "bbox": [
+        0.2607421875,
+        0.453125,
+        0.4794921875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "brown pot",
+      "hit": true,
+      "decoded": "<loc0000><loc0000><loc0084><loc0059> brown pot<eos>",
+      "bbox": [
+        0.0,
+        0.0,
+        0.0576171875,
+        0.08203125
+      ]
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "beige basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0267><loc0838><loc0491> beige basket<eos>",
+      "bbox": [
+        0.2607421875,
+        0.453125,
+        0.4794921875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "laundry basket",
+      "hit": true,
+      "decoded": "<loc0462><loc0267><loc0838><loc0491> laundry basket<eos>",
+      "bbox": [
+        0.2607421875,
+        0.451171875,
+        0.4794921875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "blue trash can",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    }
+  ]
+}

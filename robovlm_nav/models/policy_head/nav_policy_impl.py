@@ -315,7 +315,7 @@ class MobileVLAClassificationDecoder(BasePolicyHead):
         else:
             self.target_class_prior_tensor = None
 
-        # Instruction conditioning (Exp13)
+        # Instruction conditioning (Exp13 backward-compat: additive bias)
         instr_in_features = kwargs.get("instr_in_features", None)
         if instr_in_features is not None:
             self.instr_proj = nn.Linear(instr_in_features, in_features * latent)
@@ -323,6 +323,23 @@ class MobileVLAClassificationDecoder(BasePolicyHead):
             self.instr_proj = None
 
         initialize_param(self)
+
+        # Phase D: cross-attention text conditioning (added after initialize_param
+        # so text_gate=0.1 is not overwritten by weight init)
+        text_in_features = kwargs.get("text_in_features", None)
+        self.text_cross_attn_enabled = text_in_features is not None
+        if self.text_cross_attn_enabled:
+            lstm_out_dim = hidden_size * latent
+            self.text_proj = nn.Linear(text_in_features, lstm_out_dim)
+            self.text_cross_attn = nn.MultiheadAttention(
+                embed_dim=lstm_out_dim,
+                num_heads=4,
+                batch_first=True,
+                dropout=0.0,
+            )
+            # learned scalar gate: starts at 0.1 so model initially trusts vision,
+            # grows as text proves useful during training
+            self.text_gate = nn.Parameter(torch.tensor(0.1))
 
     def reset(self):
         self.hidden_state = None
@@ -375,6 +392,19 @@ class MobileVLAClassificationDecoder(BasePolicyHead):
             self.hidden_state = h_n
 
         self.last_hidden_states = x
+
+        # Phase D: LSTM hidden이 text token sequence에 cross-attend
+        # query: (B, ws, lstm_out_dim)  key/value: (B, T, 2048) → projected to (B, T, lstm_out_dim)
+        # gate α: 초기 0.1, 학습 중 text conditioning이 유용할수록 커짐
+        if self.text_cross_attn_enabled:
+            text_feats = kwargs.get("text_features", None)  # (B, T, 2048)
+            if text_feats is not None:
+                K = self.text_proj(text_feats.to(x.dtype))  # (B, T, lstm_out_dim)
+                attended, _ = self.text_cross_attn(
+                    query=x, key=K, value=K,
+                    need_weights=False,
+                )
+                x = x + self.text_gate * attended
 
         # 클래스별 Logits 출력
         logits = self.logits(x)

@@ -1,0 +1,52 @@
+{
+  "hsv": {
+    "hit_rate": 1.0,
+    "cx_mae_vs_hsv": 0.0,
+    "cx_std_in_ep": 0.138066444804185,
+    "canned_rate": 0.27697841726618705,
+    "fullframe_rate": 0.014388489208633094,
+    "neg_hit_rate": 0.0,
+    "selectivity_gap": 1.0,
+    "n_frames": 556
+  },
+  "base": {
+    "hit_rate": 0.9730700179533214,
+    "cx_mae_vs_hsv": 0.17037036225952806,
+    "cx_std_in_ep": 0.0696062885677306,
+    "canned_rate": 0.18450184501845018,
+    "fullframe_rate": 0.0018450184501845018,
+    "neg_hit_rate": 0.0,
+    "selectivity_gap": 0.9730700179533214,
+    "n_frames": 557
+  },
+  "exp57": {
+    "hit_rate": 0.874326750448833,
+    "cx_mae_vs_hsv": 0.1702052007530502,
+    "cx_std_in_ep": 0.06837221221681603,
+    "canned_rate": 0.20739219712525667,
+    "fullframe_rate": 0.002053388090349076,
+    "neg_hit_rate": 0.0,
+    "selectivity_gap": 0.874326750448833,
+    "n_frames": 557
+  },
+  "exp58": {
+    "hit_rate": 0.9964093357271095,
+    "cx_mae_vs_hsv": 0.18555483094600364,
+    "cx_std_in_ep": 0.15303310282597893,
+    "canned_rate": 0.0936936936936937,
+    "fullframe_rate": 0.527927927927928,
+    "neg_hit_rate": 0.0,
+    "selectivity_gap": 0.9964093357271095,
+    "n_frames": 557
+  },
+  "exp59": {
+    "hit_rate": 0.9676840215439856,
+    "cx_mae_vs_hsv": 0.19202984279780658,
+    "cx_std_in_ep": 0.13365259094196608,
+    "canned_rate": 0.36178107606679033,
+    "fullframe_rate": 0.059369202226345084,
+    "neg_hit_rate": 0.0,
+    "selectivity_gap": 0.9676840215439856,
+    "n_frames": 557
+  }
+}

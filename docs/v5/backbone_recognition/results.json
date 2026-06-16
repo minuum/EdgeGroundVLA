@@ -1,0 +1,418 @@
+{
+  "C1": {
+    "exp46": {
+      "vqa": {
+        "yes_rate": 0.667,
+        "mention_rate": 0.667,
+        "n": 3,
+        "sample_answers": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a",
+          "no"
+        ],
+        "sample_raw": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a",
+          "no"
+        ]
+      },
+      "caption": {
+        "mention_rate": 0.333,
+        "n": 3,
+        "sample_captions": [
+          "A gray trash can is placed in the middle of a room, with a white wall behind it.",
+          "A gray air purifier is placed on the floor in a room with a white wall. The air ",
+          "The image features a small, square, gray air conditioning unit sitting on a tile"
+        ],
+        "sample_raw": [
+          "A gray trash can is placed in the middle of a room, with a white wall behind it. There is a power cord plugged into the wall, and a power outlet is also visible. The room appears to be empty, with no other objects in the scene.",
+          "A gray air purifier is placed on the floor in a room with a white wall. The air purifier has a cord attached to it, and it is connected to a power outlet. There is also a potted plant placed near the air purifier.",
+          "The image features a small, square, gray air conditioning unit sitting on a tiled floor in a room with a white wall. The air conditioning is located near the center of the room, and there are two windows visible in the background. There are two birds visible in different parts of the image, one"
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.116,
+        "any_bbox_rate": 1.0,
+        "n": 3,
+        "sample_raw": [
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a"
+        ]
+      }
+    },
+    "exp55": {
+      "vqa": {
+        "yes_rate": 1.0,
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_answers": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket sitting on the ground next"
+        ],
+        "sample_raw": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket sitting on the ground next"
+        ]
+      },
+      "caption": {
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_captions": [
+          "A white plastic trash can is placed on the floor in front of a white wall. The t",
+          "A gray trash can is located on the ground near a wall. The trash can appears to "
+        ],
+        "sample_raw": [
+          "A white plastic trash can is placed on the floor in front of a white wall. The trash can has a black lid and is positioned in the middle of the room. There are two power cords coming out of the trash can, one on the left side and the other on the right side.",
+          "A gray trash can is located on the ground near a wall. The trash can appears to be empty, and there is a power cord plugged into it."
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.5,
+        "mean_iou": 0.366,
+        "any_bbox_rate": 1.0,
+        "n": 2,
+        "sample_raw": [
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a"
+        ]
+      }
+    },
+    "elapsed_s": 34.2,
+    "backbone": "kosmos-base",
+    "tasks": [
+      "grounding",
+      "vqa",
+      "caption"
+    ]
+  },
+  "C2": {
+    "exp46": {
+      "vqa": {
+        "yes_rate": 0.667,
+        "mention_rate": 0.667,
+        "n": 3,
+        "sample_answers": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a",
+          "no"
+        ],
+        "sample_raw": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a",
+          "no"
+        ]
+      },
+      "caption": {
+        "mention_rate": 0.333,
+        "n": 3,
+        "sample_captions": [
+          "A gray trash can is placed on the floor in front of a white wall. The trash can ",
+          "A gray air purifier is placed on the floor next to a wall. The air purifier has ",
+          "The image features a small, square, gray air conditioning unit sitting on a tile"
+        ],
+        "sample_raw": [
+          "A gray trash can is placed on the floor in front of a white wall. The trash can has a wire coming out of it, and there is a power cord plugged into it.",
+          "A gray air purifier is placed on the floor next to a wall. The air purifier has a cord attached to it, and it is connected to a power outlet. There is also a power cord on the left side of the room.",
+          "The image features a small, square, gray air conditioning unit sitting on a tiled floor in a room with a white wall. The air conditioning is located near the center of the room, and there are two windows visible in the background. There are two birds visible in different parts of the image, one"
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.116,
+        "any_bbox_rate": 1.0,
+        "n": 3,
+        "sample_raw": [
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a"
+        ]
+      }
+    },
+    "exp55": {
+      "vqa": {
+        "yes_rate": 1.0,
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_answers": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a"
+        ],
+        "sample_raw": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a"
+        ]
+      },
+      "caption": {
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_captions": [
+          "A white plastic trash can is placed on the floor in front of a white wall. The t",
+          "A gray trash can is located on the sidewalk next to a white wall. The trash can "
+        ],
+        "sample_raw": [
+          "A white plastic trash can is placed on the floor in front of a white wall. The trash can has a black lid and is positioned in the middle of the room. There is also a power cord plugged into the wall.",
+          "A gray trash can is located on the sidewalk next to a white wall. The trash can has a lid and is located in front of a white building. There is also a power cord plugged into the wall."
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.5,
+        "mean_iou": 0.366,
+        "any_bbox_rate": 1.0,
+        "n": 2,
+        "sample_raw": [
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a"
+        ]
+      }
+    },
+    "elapsed_s": 30.3,
+    "backbone": "kosmos-lora",
+    "tasks": [
+      "grounding",
+      "vqa",
+      "caption"
+    ]
+  },
+  "C3": {
+    "exp46": {
+      "vqa": {
+        "yes_rate": 0.667,
+        "mention_rate": 0.667,
+        "n": 3,
+        "sample_answers": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a",
+          "no"
+        ],
+        "sample_raw": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket in a room with a",
+          "no"
+        ]
+      },
+      "caption": {
+        "mention_rate": 0.333,
+        "n": 3,
+        "sample_captions": [
+          "A gray trash can is placed in the middle of a room, with a white wall behind it.",
+          "A gray air purifier is placed on the floor in a room with a white wall. The air ",
+          "The image features a small, square, gray air conditioning unit sitting on a tile"
+        ],
+        "sample_raw": [
+          "A gray trash can is placed in the middle of a room, with a white wall behind it. There is a power cord plugged into the wall, and a power outlet is also visible. The room appears to be empty, with no other objects in the scene.",
+          "A gray air purifier is placed on the floor in a room with a white wall. The air purifier has a cord attached to it, and it is connected to a power outlet. There is also a potted plant placed near the air purifier.",
+          "The image features a small, square, gray air conditioning unit sitting on a tiled floor in a room with a white wall. The air conditioning is located near the center of the room, and there are two windows visible in the background. There are two birds visible in different parts of the image, one"
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.116,
+        "any_bbox_rate": 1.0,
+        "n": 3,
+        "sample_raw": [
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a"
+        ]
+      }
+    },
+    "exp55": {
+      "vqa": {
+        "yes_rate": 1.0,
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_answers": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket sitting on the ground next"
+        ],
+        "sample_raw": [
+          "yes. The image shows a gray bin or basket in a room with a",
+          "yes. The image shows a gray bin or basket sitting on the ground next"
+        ]
+      },
+      "caption": {
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_captions": [
+          "A white plastic trash can is placed on the floor in front of a white wall. The t",
+          "A gray trash can is located on the ground near a wall. The trash can appears to "
+        ],
+        "sample_raw": [
+          "A white plastic trash can is placed on the floor in front of a white wall. The trash can has a black lid and is positioned in the middle of the room. There are two power cords coming out of the trash can, one on the left side and the other on the right side.",
+          "A gray trash can is located on the ground near a wall. The trash can appears to be empty, and there is a power cord plugged into it."
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.5,
+        "mean_iou": 0.366,
+        "any_bbox_rate": 1.0,
+        "n": 2,
+        "sample_raw": [
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a",
+          "<s><image>. the, to and of as in I that' for is was- on\u2019 it with The as at bet he have from by are \" you his \u201c this said not has an ( but had we her they will my or were their): up about out who one a"
+        ]
+      }
+    },
+    "elapsed_s": 30.8,
+    "backbone": "kosmos-google",
+    "tasks": [
+      "grounding",
+      "vqa",
+      "caption"
+    ]
+  },
+  "C4": {
+    "exp46": {
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.099,
+        "any_bbox_rate": 0.667,
+        "n": 3,
+        "sample_raw": [
+          "detect gray basket\n<loc0448><loc0286><loc0945><loc0588> gray basket",
+          "detect gray basket\n<loc0457><loc0267><loc0907><loc0540> gray basket",
+          "detect gray basket\n"
+        ]
+      }
+    },
+    "exp55": {
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.109,
+        "any_bbox_rate": 1.0,
+        "n": 2,
+        "sample_raw": [
+          "detect gray basket\n<loc0464><loc0409><loc0887><loc0668> gray basket",
+          "detect gray basket\n<loc0471><loc0425><loc0873><loc0662> gray basket"
+        ]
+      }
+    },
+    "elapsed_s": 12.9,
+    "backbone": "paligemma-base",
+    "tasks": [
+      "grounding"
+    ]
+  },
+  "C5": {
+    "exp46": {
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.123,
+        "any_bbox_rate": 1.0,
+        "n": 3,
+        "sample_raw": [
+          "detect gray basket\n<loc0446><loc0279><loc0944><loc0590> gray basket",
+          "detect gray basket\n<loc0451><loc0265><loc0902><loc0543> gray basket",
+          "detect gray basket\n<loc0471><loc0441><loc0719><loc0597> gray basket vainly"
+        ]
+      }
+    },
+    "exp55": {
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.115,
+        "any_bbox_rate": 1.0,
+        "n": 2,
+        "sample_raw": [
+          "detect gray basket\n<loc0451><loc0410><loc0887><loc0669> gray basket",
+          "detect gray basket\n<loc0462><loc0425><loc0873><loc0669> gray basket zove"
+        ]
+      }
+    },
+    "elapsed_s": 13.3,
+    "backbone": "paligemma-lora",
+    "tasks": [
+      "grounding"
+    ]
+  },
+  "C7": {
+    "exp46": {
+      "vqa": {
+        "yes_rate": 1.0,
+        "mention_rate": 1.0,
+        "n": 3,
+        "sample_answers": [
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+          "Yes, there is a gray basket or bin in the image."
+        ],
+        "sample_raw": [
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+          "Yes, there is a gray basket or bin in the image."
+        ]
+      },
+      "caption": {
+        "mention_rate": 1.0,
+        "n": 3,
+        "sample_captions": [
+          "In the center of the image, a gray plastic laundry basket with a handle and a li",
+          "A gray plastic laundry basket with a handle and open lid sits on a speckled gray",
+          "In the center of the room, a gray plastic bin with a handle and a mesh-like open"
+        ],
+        "sample_raw": [
+          "In the center of the image, a gray plastic laundry basket with a handle and a lid stands upright on a light gray tiled floor with a dark gray or black grout line. The basket has a perforated pattern on its front. To the right of the basket, a white electrical outlet is embedded in a white wall. Black electrical cords extend from the outlet to the floor.  A dark brown or black baseboard runs along the bottom of the white wall.",
+          "A gray plastic laundry basket with a handle and open lid sits on a speckled gray and black tiled floor in a room with a white wall. The wall shows signs of damage, possibly from water. A black electrical cord is visible, running along the wall and onto the floor. The floor appears slightly wet or damp. A white electrical outlet is mounted on the wall to the right of the laundry basket.",
+          "In the center of the room, a gray plastic bin with a handle and a mesh-like opening is placed on a speckled gray and white tiled floor with a dark brown or black baseboard. The walls are primarily white, with some areas showing peeling paint or damage, particularly near the baseboard. A black electrical cord runs along the wall. The window appears to have a blind or covering, and it lets in natural light. Overhead, a white or light-colored ceiling is visible, with what looks like exposed electrical wiring or conduits along the wall."
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.115,
+        "any_bbox_rate": 1.0,
+        "n": 3,
+        "sample_raw": [
+          "[{'x_min': 0.27715323865413666, 'y_min': 0.4479047954082489, 'x_max': 0.5705030113458633, 'y_max': 0.9192827045917511}]",
+          "[{'x_min': 0.26105448603630066, 'y_min': 0.44970814883708954, 'x_max': 0.5260548889636993, 'y_max': 0.8842762261629105}]",
+          "[{'x_min': 0.43580447882413864, 'y_min': 0.46785323321819305, 'x_max': 0.5798205211758614, 'y_max': 0.704021766781807}]"
+        ]
+      }
+    },
+    "exp55": {
+      "vqa": {
+        "yes_rate": 1.0,
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_answers": [
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image."
+        ],
+        "sample_raw": [
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image.",
+          "Yes, there is a gray plastic basket or bin sitting on the floor in the image."
+        ]
+      },
+      "caption": {
+        "mention_rate": 1.0,
+        "n": 2,
+        "sample_captions": [
+          "In the center of the image, a gray plastic laundry basket with a handle and a li",
+          "In the center of the image, a gray plastic laundry basket with a handle and a li"
+        ],
+        "sample_raw": [
+          "In the center of the image, a gray plastic laundry basket with a handle and a lid is standing on a gray tiled floor. The floor has dark brown or black lines running across it. To the right of the basket, a white electrical outlet is embedded in the wall. A black cord or wire extends from the outlet and disappears into the lower right corner of the image. There is also a piece of light-colored debris or wood lying on the floor near the outlet. The wall behind the basket and outlet is white, with some areas of peeling or damaged paint visible.",
+          "In the center of the image, a gray plastic laundry basket with a handle and a lid stands upright on a light gray tiled floor. The floor has dark brown or black grout lines and a slight texture. To the right of the basket, a white electrical outlet is embedded in the wall. A black electrical cord is visible, extending from the outlet and disappearing into the bottom right corner of the image. The wall behind the basket and outlet is white with patches of discoloration and damage. There is dark residue near the bottom of the wall and near the electrical outlet."
+        ]
+      },
+      "grounding": {
+        "hit_rate": 0.0,
+        "mean_iou": 0.109,
+        "any_bbox_rate": 1.0,
+        "n": 2,
+        "sample_raw": [
+          "[{'x_min': 0.39523935317993164, 'y_min': 0.45726625621318817, 'x_max': 0.6496825218200684, 'y_max': 0.8689056187868118}]",
+          "[{'x_min': 0.41005687415599823, 'y_min': 0.4658670574426651, 'x_max': 0.6446306258440018, 'y_max': 0.8505391925573349}]"
+        ]
+      }
+    },
+    "elapsed_s": 91.9,
+    "backbone": "moondream",
+    "tasks": [
+      "grounding",
+      "vqa",
+      "caption"
+    ]
+  }
+}

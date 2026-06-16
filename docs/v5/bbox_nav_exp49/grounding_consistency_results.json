@@ -1,0 +1,454 @@
+{
+  "n_episodes": 9,
+  "overall_match_rate": 1.0,
+  "mean_cx_std": 0.1621198980904523,
+  "verdict": "PARTIAL",
+  "results": [
+    {
+      "path_type": "right_left",
+      "cached_cx0": 0.5,
+      "baseline_action": "FWD+L",
+      "prompts": {
+        "original": {
+          "cx": 0.6875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.4375,
+          "cy": 0.09375,
+          "area": 0.0732421875,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.4375,
+          "cy": 0.09375,
+          "area": 0.0732421875,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.953125,
+          "cy": 0.4375,
+          "area": 0.033203125,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": 0.6875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "wrong_object": {
+          "cx": 0.6875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "FWD+L",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.19213032686174247
+    },
+    {
+      "path_type": "left_right",
+      "cached_cx0": 0.28125,
+      "baseline_action": "FWD+R",
+      "prompts": {
+        "original": {
+          "cx": 0.28125,
+          "cy": 0.59375,
+          "area": 0.0341796875,
+          "action": "FWD+R",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.28125,
+          "cy": 0.59375,
+          "area": 0.0341796875,
+          "action": "FWD+R",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.453125,
+          "cy": 0.078125,
+          "area": 0.0625,
+          "action": "FWD+R",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.953125,
+          "cy": 0.4375,
+          "area": 0.033203125,
+          "action": "FWD+R",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": 0.28125,
+          "cy": 0.59375,
+          "area": 0.0341796875,
+          "action": "FWD+R",
+          "matches_baseline": true
+        },
+        "wrong_object": {
+          "cx": 0.28125,
+          "cy": 0.59375,
+          "area": 0.0341796875,
+          "action": "FWD+R",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.26022075964457564
+    },
+    {
+      "path_type": "left_straight",
+      "cached_cx0": 0.25,
+      "baseline_action": "ROT_R",
+      "prompts": {
+        "original": {
+          "cx": 0.5,
+          "cy": 0.328125,
+          "area": 0.60546875,
+          "action": "ROT_R",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.28125,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_R",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.28125,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_R",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.28125,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_R",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": 0.28125,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_R",
+          "matches_baseline": true
+        },
+        "wrong_object": {
+          "cx": 0.28125,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_R",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.08750000000000001
+    },
+    {
+      "path_type": "center_straight",
+      "cached_cx0": 0.515625,
+      "baseline_action": "FORWARD",
+      "prompts": {
+        "original": {
+          "cx": 0.515625,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FORWARD",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.46875,
+          "cy": 0.09375,
+          "area": 0.0830078125,
+          "action": "FORWARD",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.515625,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FORWARD",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.515625,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FORWARD",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": 0.515625,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FORWARD",
+          "matches_baseline": true
+        },
+        "wrong_object": {
+          "cx": 0.515625,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FORWARD",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.018750000000000003
+    },
+    {
+      "path_type": "center_right",
+      "cached_cx0": 0.5,
+      "baseline_action": "RIGHT",
+      "prompts": {
+        "original": {
+          "cx": 0.5,
+          "cy": 0.59375,
+          "area": 0.0341796875,
+          "action": "RIGHT",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.046875,
+          "cy": 0.453125,
+          "area": 0.01953125,
+          "action": "RIGHT",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.203125,
+          "cy": 0.703125,
+          "area": 0.00390625,
+          "action": "RIGHT",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.5,
+          "cy": 0.59375,
+          "area": 0.0341796875,
+          "action": "RIGHT",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": null,
+          "action": null,
+          "matches_baseline": null
+        },
+        "wrong_object": {
+          "cx": 0.5,
+          "cy": 0.59375,
+          "area": 0.0341796875,
+          "action": "RIGHT",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.19546868754995006
+    },
+    {
+      "path_type": "right_straight",
+      "cached_cx0": 0.9,
+      "baseline_action": "ROT_L",
+      "prompts": {
+        "original": {
+          "cx": 0.5,
+          "cy": 0.796875,
+          "area": 0.36328125,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.125,
+          "cy": 0.078125,
+          "area": 0.01953125,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.46875,
+          "cy": 0.078125,
+          "area": 0.06640625,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.71875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": 0.71875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "wrong_object": {
+          "cx": 0.71875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_L",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.2177656423773043
+    },
+    {
+      "path_type": "left_left",
+      "cached_cx0": 0.296875,
+      "baseline_action": "FWD+L",
+      "prompts": {
+        "original": {
+          "cx": 0.296875,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.5,
+          "cy": 0.328125,
+          "area": 0.60546875,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.296875,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.71875,
+          "cy": 0.53125,
+          "area": 0.0205078125,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": 0.5,
+          "cy": 0.796875,
+          "area": 0.36328125,
+          "action": "FWD+L",
+          "matches_baseline": true
+        },
+        "wrong_object": {
+          "cx": 0.296875,
+          "cy": 0.59375,
+          "area": 0.02734375,
+          "action": "FWD+L",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.1570603984141133
+    },
+    {
+      "path_type": "right_right",
+      "cached_cx0": 0.9,
+      "baseline_action": "ROT_L",
+      "prompts": {
+        "original": {
+          "cx": 0.5,
+          "cy": 0.328125,
+          "area": 0.60546875,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.5,
+          "cy": 0.328125,
+          "area": 0.60546875,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.84375,
+          "cy": 0.09375,
+          "area": 0.0146484375,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.71875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": 0.71875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_L",
+          "matches_baseline": true
+        },
+        "wrong_object": {
+          "cx": 0.71875,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "ROT_L",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.1354967711792425
+    },
+    {
+      "path_type": "center_left",
+      "cached_cx0": 0.5,
+      "baseline_action": "LEFT",
+      "prompts": {
+        "original": {
+          "cx": 0.453125,
+          "cy": 0.078125,
+          "area": 0.0625,
+          "action": "LEFT",
+          "matches_baseline": true
+        },
+        "paraphrase_1": {
+          "cx": 0.03125,
+          "cy": 0.46875,
+          "area": 0.0107421875,
+          "action": "LEFT",
+          "matches_baseline": true
+        },
+        "paraphrase_2": {
+          "cx": 0.171875,
+          "cy": 0.6875,
+          "area": 0.001953125,
+          "action": "LEFT",
+          "matches_baseline": true
+        },
+        "paraphrase_3": {
+          "cx": 0.5,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "LEFT",
+          "matches_baseline": true
+        },
+        "paraphrase_4": {
+          "cx": null,
+          "action": null,
+          "matches_baseline": null
+        },
+        "wrong_object": {
+          "cx": 0.5,
+          "cy": 0.578125,
+          "area": 0.0390625,
+          "action": "LEFT",
+          "matches_baseline": true
+        }
+      },
+      "cx_std_excl_wrong": 0.19468649678714237
+    }
+  ]
+}

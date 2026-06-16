@@ -1,0 +1,587 @@
+{
+  "ckpt": "runs/v5_nav/kosmos/mobile_vla_v5_exp43/2026-05-07/v5-exp43-cross-attn-text/epoch_epoch=epoch=06-val_loss=val_loss=10.830.ckpt",
+  "config": "configs/mobile_vla_v5_exp43_cross_attn_text.json",
+  "n_frames": 30,
+  "mean_softmax_l1": 0.00040792930457327097,
+  "mean_l1_left_vs_right": 2.7674809098243712e-05,
+  "max_l1_left_vs_right": 6.273388862609863e-05,
+  "frames_with_pred_change": 0,
+  "pred_change_rate": 0.0,
+  "thresholds": {
+    "text_locked_min_l1": 0.05,
+    "text_locked_min_pred_change_rate": 0.2
+  },
+  "verdict": "TEXT_INSENSITIVE",
+  "frames": [
+    {
+      "frame_idx": 0,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.3758580684661865e-05,
+        "left_vs_forward": 0.0006196871399879456,
+        "right_vs_forward": 0.0005925148725509644
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 1,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.296509385108948e-05,
+        "left_vs_forward": 0.0006365813314914703,
+        "right_vs_forward": 0.0006137564778327942
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 2,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 1.2934207916259766e-05,
+        "left_vs_forward": 0.0005983375012874603,
+        "right_vs_forward": 0.0005875788629055023
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 3,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.4574419260025024e-05,
+        "left_vs_forward": 0.0006069876253604889,
+        "right_vs_forward": 0.000581398606300354
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 4,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 9.104609489440918e-06,
+        "left_vs_forward": 0.0005714632570743561,
+        "right_vs_forward": 0.0005746223032474518
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 5,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 8.236616849899292e-06,
+        "left_vs_forward": 0.0005777664482593536,
+        "right_vs_forward": 0.0005729794502258301
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 6,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 1.4025717973709106e-05,
+        "left_vs_forward": 0.0006036423146724701,
+        "right_vs_forward": 0.000597633421421051
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 7,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.31290066242218e-05,
+        "left_vs_forward": 0.0005901418626308441,
+        "right_vs_forward": 0.0005675926804542542
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 8,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 5.3472816944122314e-05,
+        "left_vs_forward": 0.0005760043859481812,
+        "right_vs_forward": 0.0005816146731376648
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 9,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 4.143267869949341e-05,
+        "left_vs_forward": 0.0006219372153282166,
+        "right_vs_forward": 0.0005973726511001587
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 10,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.3136457204818726e-05,
+        "left_vs_forward": 0.0006007775664329529,
+        "right_vs_forward": 0.0005763731896877289
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 11,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 1.0143965482711792e-05,
+        "left_vs_forward": 0.0005983561277389526,
+        "right_vs_forward": 0.000589173287153244
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 12,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 1.463666558265686e-05,
+        "left_vs_forward": 0.0006168745458126068,
+        "right_vs_forward": 0.0006048902869224548
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 13,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 7.290393114089966e-06,
+        "left_vs_forward": 0.0006056800484657288,
+        "right_vs_forward": 0.0005997009575366974
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 14,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 1.4912337064743042e-05,
+        "left_vs_forward": 0.0006027556955814362,
+        "right_vs_forward": 0.0005951449275016785
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 15,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.297626972198486e-05,
+        "left_vs_forward": 0.0006361044943332672,
+        "right_vs_forward": 0.0006132610142230988
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 16,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 1.019984483718872e-05,
+        "left_vs_forward": 0.0005979165434837341,
+        "right_vs_forward": 0.00059489905834198
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 17,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 6.273388862609863e-05,
+        "left_vs_forward": 0.0006060637533664703,
+        "right_vs_forward": 0.0005802847445011139
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 18,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 7.759779691696167e-06,
+        "left_vs_forward": 0.0005931854248046875,
+        "right_vs_forward": 0.0005926676094532013
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 19,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 7.759779691696167e-06,
+        "left_vs_forward": 0.0006044432520866394,
+        "right_vs_forward": 0.0006007365882396698
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 20,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.377348184585571e-05,
+        "left_vs_forward": 0.0005993098020553589,
+        "right_vs_forward": 0.0005721524357795715
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 21,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.5159289836883545e-05,
+        "left_vs_forward": 0.0005722232162952423,
+        "right_vs_forward": 0.0005874745547771454
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 22,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 4.463270306587219e-05,
+        "left_vs_forward": 0.000623796135187149,
+        "right_vs_forward": 0.0006180256605148315
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 23,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.6753714084625244e-05,
+        "left_vs_forward": 0.0006316825747489929,
+        "right_vs_forward": 0.0006012767553329468
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 24,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 4.5608729124069214e-05,
+        "left_vs_forward": 0.00061749666929245,
+        "right_vs_forward": 0.0005718879401683807
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 25,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 4.7791749238967896e-05,
+        "left_vs_forward": 0.0006076954305171967,
+        "right_vs_forward": 0.000598713755607605
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 26,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.48016619682312e-05,
+        "left_vs_forward": 0.0006148703396320343,
+        "right_vs_forward": 0.0005860887467861176
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 27,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.1288713216781616e-05,
+        "left_vs_forward": 0.0006089918315410614,
+        "right_vs_forward": 0.0005897656083106995
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 28,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 3.5043805837631226e-05,
+        "left_vs_forward": 0.0006195306777954102,
+        "right_vs_forward": 0.0005905367434024811
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    },
+    {
+      "frame_idx": 29,
+      "preds": {
+        "left": "TURN_R",
+        "right": "TURN_R",
+        "forward": "TURN_R"
+      },
+      "pred_idx": {
+        "left": 7,
+        "right": 7,
+        "forward": 7
+      },
+      "softmax_l1": {
+        "left_vs_right": 1.0207295417785645e-05,
+        "left_vs_forward": 0.0005969628691673279,
+        "right_vs_forward": 0.0005960091948509216
+      },
+      "raw_text": "<grounding>Navigate straight forward to the gray basket. 바구니를 향해 직진해."
+    }
+  ]
+}

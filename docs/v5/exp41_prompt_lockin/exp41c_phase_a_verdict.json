@@ -1,0 +1,15 @@
+{
+  "exp": "exp41c_scratch_pta",
+  "text_attention_pct": 0.0,
+  "pm_rate": 53.61702127659574,
+  "action_l1_lr": 0.0,
+  "action_l1_avg": 9.716550509134926e-06,
+  "pred_changes": 0,
+  "criteria": {
+    "text_attention_ge5pct": false,
+    "action_l1_ge_1e2": false,
+    "pm_ge50": true,
+    "pred_changes_gt0": false
+  },
+  "verdict": "FAIL"
+}

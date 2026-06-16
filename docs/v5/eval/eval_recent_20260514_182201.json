@@ -1,0 +1,5423 @@
+{
+  "generated": "2026-05-14T18:22:01.156768",
+  "episodes": [
+    {
+      "episode_id": "episode_260512_143557_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.611,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and the wooden chair in the backgro"
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor next to it."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the black floor in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with the white wall and the wooden stairs in the backgr"
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the black floor in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the corner of the room. The white wall is behind it."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the corner of the room. The white wall is behind it."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the top of the stairs, and the white wall is behind it."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_144557_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.722,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is on the right side of the image."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a stool nearby."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the f"
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the gray air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.59375,
+          "bbox_entity": "The basket",
+          "agree": true,
+          "caption": "the bottom of the image, and the white wall is behind it. The basket is sitting "
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the top of the white wall. The white wall is painted white."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the top of the dryer, and the white dryer is at the bottom"
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_145316_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.667,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, and the trash can is at the top of the frame."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a white wall and a window in the background. A woo"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, and there "
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image. It is sitting on a tiled floor, with a white wall behin"
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a chair in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the wooden chair in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the corner of the room. The white wall is behind it."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the basement stairs. The white wall is behind it."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_145653_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.5,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is on the right side of the image."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a chair and a table on the right side of the room."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image. It is sitting on the floor, with the cord trailing behi"
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a white wall and a window in the background. A cha"
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with a white wall and a window in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "caption:right",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. A wooden ladder is lea"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the t"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "caption:right",
+          "agree": false,
+          "caption": "the center of the image. It is a small air conditioner unit, and it is sitting o"
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the wooden floor in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of a hallway, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the top of the wall, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the top of the stairs, and the white wall is behind it."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_150331_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.667,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a chair and a table on the right side."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, and there "
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the c"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image. It is a small, square, gray box with a handle on top. T"
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with a white wall and a gray floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with a white wall and a gray floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the top of the white wall. The white wall is painted white."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_150608_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.667,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is in the middle of the floor."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.546875,
+          "bbox_entity": "the gray basket",
+          "agree": true,
+          "caption": "the bottom of the image, with a white wall and a window in the background. A cha"
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the basement, next to the white wall."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the corner of the room. The white wall is painted white."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, next to the white wall."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the end of the hallway, and the white wall is on the right side of the image."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, and the white wall is behind it."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_150730_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.667,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the far right of the image. The floor is tiled and the walls are white."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a bar stool nearby."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a brown chair in the background."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the t"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the black floor in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the air conditioner sitting on top of it."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the wooden floor in the backgrou"
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with a white wall and a gray floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_150843_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.556,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the far right of the image. The floor is tiled and the walls are white."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of a long hallway, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a white wall and a wooden chair on the right side."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a chair and a table on the right side. The floor i"
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background. The floor i"
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "caption:right",
+          "agree": false,
+          "caption": "the center of the image, with a white wall and a window in the background. A cha"
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a white wall and a window in the background. A cha"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and the wooden chair in the backgro"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with a white wall and a floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the basement stairs. The white wall is behind it."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the top of the air conditioner. The air conditioner is installed on the wall."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_151005_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.722,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is in the middle of the floor."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background. The floor is"
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.12,
+          "bbox_entity": "caption:far_left",
+          "agree": false,
+          "caption": "the bottom of the image, with a white air conditioner sitting on top of it. A ch"
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a chair in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor next to it."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the wooden chair in the backgrou"
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the black floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement stairs. The white wall is behind it."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the top of the white wall. The white wall is painted white."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_151306_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.667,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is on the right side."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.546875,
+          "bbox_entity": "The basket",
+          "agree": true,
+          "caption": "the center of the image, with a white bird sitting on top of it. The basket is l"
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and the wooden chair in the backgro"
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. A bird is perched on t"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, and the gray air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the base of the wall, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the basement, next to the wall."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement, next to the white wall."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the black floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_151503_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.556,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and desk in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the wooden chair in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a white plastic box sitting on the floor next to i"
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the wooden chair in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the wooden floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white air conditioner sitting on the floor nex"
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the basement, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.12,
+          "bbox_entity": "caption:far_left",
+          "agree": false,
+          "caption": "the left side of the room. The white wall is on the right side."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_151719_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.722,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image. The floor is tiled and the walls are white. A trash can"
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white air conditioner sitting on the floor in fr"
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement, next to a chair and a white wall."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, next to a "
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the wooden chair in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a gray floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the top of the stairs, and the white trash can is at the bottom."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement stairs. The white wall is behind it."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the top of the white wall. The white wall is painted white."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_151829_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.611,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image. The floor is tiled and the walls are white. There is a "
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a chair and a table on the right side. The floor i"
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a chair and a table on the right side of the room."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table nearby."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with a white wall and a floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with a white wall and a floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the basement stairs. The white wall is behind it."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the wall. The white wall is painted white."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_152551_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.389,
+      "verdict": "model_issue",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is in the middle of the floor."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a chair and a TV on the right side. The floor is t"
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table nearby."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the bottom of the image, with a white wall and a window in the background. A cha"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "caption:right",
+          "agree": false,
+          "caption": "the center of the image. It is sitting on a tiled floor, with a white wall behin"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the w"
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with a white wall and a wooden table in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a window in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the wall. The white wall is painted white."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_153232_target_right_straight_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 18,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.556,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            0.0,
+            0.0,
+            0.2
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image, and the trash can is in the middle of the room. The roo"
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a white wall and a wooden chair on the right side."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the center of the image, with a white trash can and a wooden chair on the right "
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, and the white wall is behind it. The air conditioner is"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the w"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The white wall is visible in the background."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the hallway, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, next to the white wall."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the bottom of the image. The white air conditioner is on the right side of the b"
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, next to the wall."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_153507_target_right_left_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 19,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.421,
+      "verdict": "model_issue",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the bottom of the image, and the trash can is on the right side of the frame. Th"
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is in the middle of the floor."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the end of the room, and the gray trash can is in the middle of the image."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the gray air conditioner is on the floor."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image. The white wall is behind it. A gray air conditioner is "
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image. It is sitting on the floor in front of a white wall. Th"
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a desk in the background."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the bottom of the image, with the white air conditioner sitting on the floor in "
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the p"
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.515625,
+          "bbox_entity": "The basket",
+          "agree": true,
+          "caption": "the center of the image. It is sitting on the floor, with the top of the basket "
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.12,
+          "bbox_entity": "caption:far_left",
+          "agree": false,
+          "caption": "the center of the image. It is sitting on a tiled floor, with a white wall behin"
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a wooden table in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the wooden table in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the fan and the wooden table in the background."
+        },
+        {
+          "frame_idx": 18,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "caption:right",
+          "agree": false,
+          "caption": "the end of the basement, and the white wall is to the right."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_153610_target_right_left_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 19,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.316,
+      "verdict": "model_issue",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image. The floor is tiled and the walls are white. There is a "
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": false,
+          "caption": "the bottom of the image, and the gray trash can is on the right side of the room"
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the w"
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with the air conditioner sitting on the floor next to i"
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the bottom of the image, with the gray air conditioner sitting on the floor in f"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the w"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the gray air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the gray air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the gray air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the wooden chair in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the wooden table in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the wooden floor in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement stairs. The white wall is painted white."
+        },
+        {
+          "frame_idx": 18,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the basement stairs. The white wall is the wall of the garage."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260512_153710_target_right_left_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 19,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.368,
+      "verdict": "model_issue",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image. The floor is tiled and the walls are white."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image. The floor is tiled and the walls are white."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image, with the gray trash can sitting on the floor in front o"
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "left",
+          "action_raw": [
+            1.15,
+            1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The floor is tiled and the walls are white. A gray air "
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The room is empty except for the gray air conditioner."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "caption:right",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. A gray chair is placed"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the white air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the top of the image, and the air conditioner is sitting on the floor in the mid"
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the air conditioner is sitting on the floor."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of a hallway, with a white wall and a wooden chair in the background."
+        },
+        {
+          "frame_idx": 15,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 16,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the black floor in the background."
+        },
+        {
+          "frame_idx": 17,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 18,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with the white wall and floor in the background."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260513_192157_target_right_right_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 15,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.6,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the end of the room, and the trash can is in the middle of the floor."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "right",
+          "action_raw": [
+            0.0,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": true,
+          "caption": "the far end of the room, and the white wall is on the right side."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "right",
+          "action_raw": [
+            0.0,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the center of the image, with a white air conditioner sitting on the floor in fr"
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with a white wall and a window in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, with the white wall and the black window in the backgro"
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the corner of a room, with a white wall and a black floor."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, with the white wall and floor in the background."
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and black floor in the background."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260513_192746_target_right_right_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 15,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.6,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "right",
+          "action_raw": [
+            0.0,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.12,
+          "bbox_entity": "caption:far_left",
+          "agree": false,
+          "caption": "the end of the room, and the window is on the left side."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "right",
+          "action_raw": [
+            0.0,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "caption:right",
+          "agree": true,
+          "caption": "the bottom of the image. The floor is tiled and the walls are white. A small air"
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image. The room is empty except for the gray air conditioner."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the base of the wall, and the gray air conditioner is on the ground."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the top of the image, and the white wall is behind it. The floor is tiled, and t"
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, and there "
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the floor, with the w"
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5625,
+          "bbox_entity": "The basket",
+          "agree": true,
+          "caption": "the base of a white wall. The basket is a water heater."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image. It is a small, square, metal box with a handle on top. "
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": true,
+          "caption": "the center of the image, with the white wall behind it."
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the floor in the background."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the room, with the white wall and the black floor in the background."
+        }
+      ]
+    },
+    {
+      "episode_id": "episode_260513_192853_target_right_right_path__core__fixed_center",
+      "path_type": "core",
+      "n_frames": 15,
+      "grounding_success_rate": 1.0,
+      "action_agreement_rate": 0.533,
+      "verdict": "ok",
+      "frames": [
+        {
+          "frame_idx": 0,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "caption:center",
+          "agree": false,
+          "caption": "the bottom of the image, and the white wall is behind it. The floor is tiled, an"
+        },
+        {
+          "frame_idx": 1,
+          "action_dir": "right",
+          "action_raw": [
+            0.0,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.88,
+          "bbox_entity": "caption:far_right",
+          "agree": true,
+          "caption": "the end of the room, and the white wall is on the right side."
+        },
+        {
+          "frame_idx": 2,
+          "action_dir": "right",
+          "action_raw": [
+            0.0,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The floor is tiled and the wall is white."
+        },
+        {
+          "frame_idx": 3,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The room is empty except for the chair and the window."
+        },
+        {
+          "frame_idx": 4,
+          "action_dir": "right",
+          "action_raw": [
+            1.15,
+            -1.15,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the room, with a chair and a table in the background."
+        },
+        {
+          "frame_idx": 5,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 6,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the end of the hallway, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 7,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "left",
+          "bbox_cx": 0.25,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The white wall is behind it."
+        },
+        {
+          "frame_idx": 8,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "right",
+          "bbox_cx": 0.75,
+          "bbox_entity": "coarse_clf",
+          "agree": false,
+          "caption": "the bottom of the image. The air conditioner is sitting on the ground, next to t"
+        },
+        {
+          "frame_idx": 9,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a black floor in the background."
+        },
+        {
+          "frame_idx": 10,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the base of the wall, and the white wall is behind it."
+        },
+        {
+          "frame_idx": 11,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 12,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of the hallway, with the white wall and the black floor in the backgroun"
+        },
+        {
+          "frame_idx": 13,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the bottom of the image. The white wall is behind it."
+        },
+        {
+          "frame_idx": 14,
+          "action_dir": "center",
+          "action_raw": [
+            1.15,
+            -0.0,
+            0.0
+          ],
+          "grounding_dir": "center",
+          "bbox_cx": 0.5,
+          "bbox_entity": "coarse_clf",
+          "agree": true,
+          "caption": "the end of a hallway, with a white wall and a black floor in the background."
+        }
+      ]
+    }
+  ]
+}

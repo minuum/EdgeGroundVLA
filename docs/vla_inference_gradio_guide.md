@@ -2,7 +2,7 @@
 
 > **명령어:** `vla-inference-gradio` (별칭: `mona-inference-gradio`)
 > **스크립트:** `scripts/gradio_inference_dashboard.py`
-> **서버 역할:** Billy (Model Server) 전용
+> **공식 실행 구조:** `vla-camera` + `vla-server` + `vla-inference-gradio`
 
 ---
 
@@ -48,13 +48,16 @@ vla-env   # 또는 mona-env
 # JETSON_TAILSCALE_IP=100.x.x.x
 ```
 
-### 2. API 서버 시작 (Gradio 실행 전 필수)
+### 2. API 서버 시작 (Gradio 실행 전 권장)
 
 ```bash
-vla-start    # API 서버 시작
+vla-server   # API 서버 시작
 vla-status   # 서버 상태 확인
 vla-health   # Health check
 ```
+
+`vla-inference-gradio`는 API 런타임 프로파일일 때 `VLA_API_SERVER`가 로컬 주소면
+서버가 꺼져 있을 경우 `vla-server`를 먼저 자동으로 실행합니다.
 
 ### 3. 의존성 확인
 
@@ -69,7 +72,14 @@ pip install gradio requests opencv-python pillow
 ### 빠른 실행 (alias 사용)
 
 ```bash
-# .bashrc에 vla-aliases가 로드된 경우
+# 권장 3터미널 구성
+# 터미널 1
+vla-camera
+
+# 터미널 2
+vla-server
+
+# 터미널 3
 vla-inference-gradio
 
 # 또는
@@ -81,48 +91,34 @@ mona-inference-gradio
 ### 직접 실행
 
 ```bash
-cd /home/billy/25-1kp/MoNaVLA
+cd /home/soda/MoNaVLA
 python3 scripts/gradio_inference_dashboard.py
-```
-
-### 체크포인트 지정 실행
-
-```bash
-# V4 모델 사용 예시
-python3 scripts/gradio_inference_dashboard.py \
-  --checkpoint runs/v4_nav/kosmos/mobile_vla_v4_exp01/2026-03-13/v4-exp01-mobile-v3/epoch_epoch=00-val_loss=X.XXX.ckpt
 ```
 
 ### 브라우저 접속
 
 ```
-http://localhost:7860
-# 또는 외부에서: http://<BILLY_TAILSCALE_IP>:7860
+http://localhost:7865
+# 또는 외부에서: http://<BILLY_TAILSCALE_IP>:7865
 ```
 
 ---
 
 ## 인터페이스 설명
 
-| 탭 | 설명 |
+| 항목 | 설명 |
 |----|------|
-| **Live Inference** | 실시간 카메라 이미지 + 행동 예측 |
-| **Batch Test** | H5 데이터셋 배치 평가 (PM/DM 지표) |
-| **Config** | API 서버 주소, 모델 경로 동적 변경 |
+| **Inference Backend** | `Local Runtime` 또는 `API Server` 선택 |
+| **Model Loader** | checkpoint/config/precision 선택 후 즉시 로드 |
+| **Live Inference** | 실시간 카메라 이미지 + 18-step 추론 실행 |
+| **Manual Controls** | 3DOF 수동 조작 (`lx`, `ly`, `az`) |
+| **Trajectory Plot** | 표준화된 `(N, 3)` chunk 기준 XY 궤적 표시 |
 
-### 행동 클래스 (9개)
+### 액션 인터페이스
 
-| 인덱스 | 행동 | 설명 |
-|--------|------|------|
-| 0 | `stop` | 정지 |
-| 1 | `forward` | 전진 |
-| 2 | `backward` | 후진 |
-| 3 | `turn_left` | 좌회전 |
-| 4 | `turn_right` | 우회전 |
-| 5 | `slide_left` | 좌측 이동 |
-| 6 | `slide_right` | 우측 이동 |
-| 7 | `turn_left_forward` | 전진 좌회전 |
-| 8 | `turn_right_forward` | 전진 우회전 |
+- 표준 출력은 항상 **`[lx, ly, az]` 3DOF** 입니다.
+- 2DOF/V4 계열 체크포인트는 runtime shim으로 `az=0.0`이 붙습니다.
+- `Local Runtime`과 `API Server` 모두 같은 응답 shape를 사용합니다.
 
 ---
 
@@ -131,8 +127,9 @@ http://localhost:7860
 ### `Connection refused` (API 서버 미실행)
 
 ```bash
-vla-start   # API 서버 먼저 시작
-vla-health  # 헬스체크 확인
+vla-start    # API 서버 시작
+vla-status   # 서버 상태 확인
+vla-health   # 헬스체크 확인
 ```
 
 ### `CUDA out of memory`
@@ -143,39 +140,24 @@ nvidia-smi
 # 학습 중인 경우 학습 일시 중지 후 실행
 ```
 
-### `Model not loaded` (체크포인트 경로 오류)
+### `Model not loaded` (체크포인트/설정 경로 오류)
 
 API 서버 로그 확인:
 ```bash
 vla-logs   # 또는 mona-logs
 ```
 
+대시보드에서는 `Load Selected Model` 버튼으로 현재 선택된 checkpoint/config를 직접 API 또는 Local Runtime에 로드할 수 있습니다.
+
 ---
 
-## V4 모델 체크포인트 경로
+## 운영 메모
 
-V4 학습 완료 후 **best 체크포인트** 기본 저장 위치:
-
-```
-runs/v4_nav/kosmos/mobile_vla_v4_exp01/
-└── 2026-03-13/
-    └── v4-exp01-mobile-v3/
-        ├── epoch_epoch=00-val_loss=X.XXX.ckpt   ← best 후보
-        ├── epoch_epoch=01-val_loss=X.XXX.ckpt
-        ├── last.ckpt                              ← 마지막 체크포인트
-        └── ...
-```
-
-V4 설정 요약:
-
-| 항목 | 값 |
-|------|---|
-| 베이스 모델 | Kosmos-2-patch14-224 |
-| 시작 가중치 | V3-EXP08 (epoch 07) |
-| Action Space | 9-class discrete |
-| Window Size | 4 frames |
-| LoRA r / alpha | 32 / 64 |
-| max_epochs | 10 |
+- `vla-server`는 `robovlm_nav/serve/inference_server.py`를 기준으로 FastAPI 서버를 띄웁니다.
+- `vla-inference-gradio`는 `Local Runtime`과 `API Server`를 모두 지원합니다.
+- API 런타임 프로파일에서는 `vla-inference-gradio`가 기본 backend를 `API Server`로 사용합니다.
+- 공식 alias는 `vla-inference-gradio`, `vla-collect-gradio`, `vla-server` 입니다.
+- 기존 `vla-dashboard`, `vla-collect`, `vla-start`는 호환 명령으로 남아 있습니다.
 
 ---
 
@@ -184,8 +166,9 @@ V4 설정 요약:
 `.vla_aliases`에 아래 내용이 추가되어 있어야 합니다:
 
 ```bash
-# Gradio 추론 대시보드
-alias vla-inference-gradio='cd $VLA_PROJECT_DIR && python3 scripts/gradio_inference_dashboard.py'
+# Gradio 공식 명령
+alias vla-inference-gradio='python3 /home/soda/MoNaVLA/scripts/gradio_inference_dashboard.py'
+alias vla-collect-gradio='python3 /home/soda/MoNaVLA/scripts/gradio_data_collector.py'
 alias mona-inference-gradio='vla-inference-gradio'
 ```
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoboServer Local VLA API"
+  short_description: "Document and preserve the localhost VLA inference contract"
+  default_prompt: "Use the local Robo server API contract for vla-inference-gradio and ros2_client compatibility. Keep /predict and /reset aligned, require X-API-Key, and preserve action as 2D [linear_x, linear_y]."

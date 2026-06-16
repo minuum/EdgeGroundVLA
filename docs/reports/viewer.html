@@ -56,7 +56,7 @@
                 return;
             }
 
-            fetch(fileName)
+            fetch('../' + fileName)
                 .then(response => {
                     if (!response.ok) throw new Error('File not found');
                     return response.text();

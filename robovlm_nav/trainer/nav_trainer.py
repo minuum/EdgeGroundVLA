@@ -238,7 +238,7 @@ class NavTrainer(BaseTrainer):
 
             # 19개 리턴 규격 (BaseTrainer.py:468-488 참고)
             # BaseTrainer.training_step은 arm_action_chunck(10번째)를 action_labels로 사용함
-            print(f"DEBUG: [NavTrainer] Discrete branch taken. arm_action shape: {arm_action.shape}", flush=True)
+            arm_action_chunck = batch.get("action_chunck", batch["action"]).to(self.device)
             return (
                 rgb,                    # 00: rgb
                 None,                   # 01: hand_rgb
@@ -249,7 +249,7 @@ class NavTrainer(BaseTrainer):
                 None,                   # 06: fwd_hand_rgb_chunck
                 None,                   # 07: arm_action
                 None,                   # 08: gripper_action
-                arm_action,             # 09: arm_action_chunck
+                arm_action_chunck,      # 09: arm_action_chunck
                 None,                   # 10: gripper_action_chunck
                 None,                   # 11: chunck_mask
                 None,                   # 12: fwd_mask

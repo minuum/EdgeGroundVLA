@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="6">
+<title>Backbone Recognition Eval</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR','Segoe UI',system-ui,sans-serif;background:#0a0f1a;color:#e2e8f0;padding:20px}
+h1{font-size:1.3rem;font-weight:800;margin-bottom:4px}
+.sub{color:#64748b;font-size:0.8rem;margin-bottom:16px}
+.bar{background:#1e293b;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;background:#06b6d4;box-shadow:0 0 6px #06b6d4;margin-top:4px;flex-shrink:0}
+.st{font-weight:700;color:#06b6d4}
+.badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.badge{padding:2px 9px;border-radius:20px;font-size:0.72rem;font-weight:700}
+.badge.done{background:#166534;color:#86efac}.badge.running{background:#78350f;color:#fde68a}.badge.pending{background:#1e293b;color:#64748b}
+.prog-wrap{background:#0f172a;border-radius:6px;height:7px;width:180px;margin-top:8px}
+.prog-fill{height:100%;background:#06b6d4;width:100%;border-radius:6px}
+table{width:100%;border-collapse:collapse;background:#111827;border-radius:10px;overflow:hidden;font-size:0.82rem;margin-bottom:20px}
+th,td{padding:9px 10px;text-align:center;border-bottom:1px solid #1e293b}
+th{background:#0f172a;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8}
+th.active{background:#1e3a5f;color:#60a5fa}
+td.rowlabel{text-align:left;min-width:170px;color:#94a3b8;font-size:0.75rem}
+td.na{color:#334155}td.num{color:#94a3b8}
+small.ds{color:#475569;font-size:0.68rem}
+.sample-block{background:#1e293b;border-radius:8px;padding:12px 16px;margin-bottom:10px;font-size:0.78rem}
+.sample-block b{color:#94a3b8;display:block;margin-bottom:6px}
+.sample-block ul{padding-left:16px;color:#e2e8f0;line-height:1.7}
+.time{color:#64748b;font-size:0.75rem;text-align:right;margin-top:8px}
+</style>
+</head>
+<body>
+<h1>Backbone Recognition Eval</h1>
+<div class="sub">basket 인식 — 7 backbones × grounding/VQA/caption | IoU≥0.3 | 6초 자동새로고침</div>
+
+<div class="bar">
+  <div class="dot"></div>
+  <div>
+    <div class="st">SMOKE_DONE</div>
+    <div class="badges"><span class="badge done">C1</span><span class="badge done">C2</span><span class="badge done">C3</span><span class="badge done">C4</span><span class="badge done">C5</span><span class="badge pending">C6</span><span class="badge done">C7</span></div>
+  </div>
+  <div style="margin-left:auto">
+    <div class="prog-wrap"><div class="prog-fill"></div></div>
+    <div class="time">경과 3m33s</div>
+  </div>
+</div>
+
+<table>
+<thead><tr><th style="text-align:left">Metric</th><th class="">C1<br><small>Kosmos-2 base</small></th><th class="">C2<br><small>Kosmos-2+exp55LoRA</small></th><th class="">C3<br><small>Google-robot (neg.)</small></th><th class="">C4<br><small>PaliGemma-3B-pt</small></th><th class="">C5<br><small>PaliGemma+exp57LoRA</small></th><th class="">C6<br><small>PaliGemma2-mix</small></th><th class="">C7<br><small>MoonDream2</small></th></tr></thead>
+<tbody><tr><td class="rowlabel">Grounding hit% (IoU≥0.3)<br><small class="ds">in-dist</small></td><td style='color:#ef4444;font-weight:700'>0%</td><td style='color:#ef4444;font-weight:700'>0%</td><td style='color:#ef4444;font-weight:700'>0%</td><td style='color:#ef4444;font-weight:700'>0%</td><td style='color:#ef4444;font-weight:700'>0%</td><td class='na'>—</td><td style='color:#ef4444;font-weight:700'>0%</td></tr>
+<tr><td class="rowlabel">Grounding hit% (IoU≥0.3)<br><small class="ds">OOD</small></td><td style='color:#22c55e;font-weight:700'>50%</td><td style='color:#22c55e;font-weight:700'>50%</td><td style='color:#22c55e;font-weight:700'>50%</td><td style='color:#ef4444;font-weight:700'>0%</td><td style='color:#ef4444;font-weight:700'>0%</td><td class='na'>—</td><td style='color:#ef4444;font-weight:700'>0%</td></tr>
+<tr><td class="rowlabel">Grounding mean IoU<br><small class="ds">in-dist</small></td><td class='num'>0.116</td><td class='num'>0.116</td><td class='num'>0.116</td><td class='num'>0.099</td><td class='num'>0.123</td><td class='na'>—</td><td class='num'>0.115</td></tr>
+<tr><td class="rowlabel">Grounding mean IoU<br><small class="ds">OOD</small></td><td class='num'>0.366</td><td class='num'>0.366</td><td class='num'>0.366</td><td class='num'>0.109</td><td class='num'>0.115</td><td class='na'>—</td><td class='num'>0.109</td></tr>
+<tr><td class="rowlabel">Any bbox predicted<br><small class="ds">in-dist</small></td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>67%</td><td style='color:#22c55e;font-weight:700'>100%</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+<tr><td class="rowlabel">Any bbox predicted<br><small class="ds">OOD</small></td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+<tr><td class="rowlabel">VQA yes%<br><small class="ds">in-dist</small></td><td style='color:#22c55e;font-weight:700'>67%</td><td style='color:#22c55e;font-weight:700'>67%</td><td style='color:#22c55e;font-weight:700'>67%</td><td class='na'>—</td><td class='na'>—</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+<tr><td class="rowlabel">VQA yes%<br><small class="ds">OOD</small></td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td class='na'>—</td><td class='na'>—</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+<tr><td class="rowlabel">VQA basket mention%<br><small class="ds">in-dist</small></td><td style='color:#22c55e;font-weight:700'>67%</td><td style='color:#22c55e;font-weight:700'>67%</td><td style='color:#22c55e;font-weight:700'>67%</td><td class='na'>—</td><td class='na'>—</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+<tr><td class="rowlabel">VQA basket mention%<br><small class="ds">OOD</small></td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td class='na'>—</td><td class='na'>—</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+<tr><td class="rowlabel">Caption mention%<br><small class="ds">in-dist</small></td><td style='color:#f59e0b;font-weight:700'>33%</td><td style='color:#f59e0b;font-weight:700'>33%</td><td style='color:#f59e0b;font-weight:700'>33%</td><td class='na'>—</td><td class='na'>—</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+<tr><td class="rowlabel">Caption mention%<br><small class="ds">OOD</small></td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td style='color:#22c55e;font-weight:700'>100%</td><td class='na'>—</td><td class='na'>—</td><td class='na'>—</td><td style='color:#22c55e;font-weight:700'>100%</td></tr>
+</tbody>
+</table>
+
+<h3 style='margin-bottom:10px;font-size:0.9rem;color:#94a3b8'>샘플 텍스트 출력</h3><div class="sample-block"><b>C5 PaliGemma+exp57LoRA / grounding / exp46</b><ul><li>detect gray basket
+<loc0446><loc0279><loc0944><loc0590> gray basket</li><li>detect gray basket
+<loc0451><loc0265><loc0902><loc0543> gray basket</li><li>detect gray basket
+<loc0471><loc0441><loc0719><loc0597> gray basket vainly</li></ul></div><div class="sample-block"><b>C5 PaliGemma+exp57LoRA / grounding / exp55</b><ul><li>detect gray basket
+<loc0451><loc0410><loc0887><loc0669> gray basket</li><li>detect gray basket
+<loc0462><loc0425><loc0873><loc0669> gray basket zove</li></ul></div><div class="sample-block"><b>C7 MoonDream2 / grounding / exp46</b><ul><li>[{'x_min': 0.27715323865413666, 'y_min': 0.4479047954082489, 'x_max': 0.5705030113458633, 'y_max': 0.9192827045917511}]</li><li>[{'x_min': 0.26105448603630066, 'y_min': 0.44970814883708954, 'x_max': 0.5260548889636993, 'y_max': 0.8842762261629105}]</li><li>[{'x_min': 0.43580447882413864, 'y_min': 0.46785323321819305, 'x_max': 0.5798205211758614, 'y_max': 0.704021766781807}]</li></ul></div><div class="sample-block"><b>C7 MoonDream2 / vqa / exp46</b><ul><li>Yes, there is a gray plastic basket or bin sitting on the floor in the image.</li><li>Yes, there is a gray plastic basket or bin sitting on the floor in the image.</li><li>Yes, there is a gray basket or bin in the image.</li></ul></div><div class="sample-block"><b>C7 MoonDream2 / caption / exp46</b><ul><li>In the center of the image, a gray plastic laundry basket with a handle and a lid stands upright on a light gray tiled f</li><li>A gray plastic laundry basket with a handle and open lid sits on a speckled gray and black tiled floor in a room with a </li><li>In the center of the room, a gray plastic bin with a handle and a mesh-like opening is placed on a speckled gray and whi</li></ul></div><div class="sample-block"><b>C7 MoonDream2 / grounding / exp55</b><ul><li>[{'x_min': 0.39523935317993164, 'y_min': 0.45726625621318817, 'x_max': 0.6496825218200684, 'y_max': 0.8689056187868118}]</li><li>[{'x_min': 0.41005687415599823, 'y_min': 0.4658670574426651, 'x_max': 0.6446306258440018, 'y_max': 0.8505391925573349}]</li></ul></div><div class="sample-block"><b>C7 MoonDream2 / vqa / exp55</b><ul><li>Yes, there is a gray plastic basket or bin sitting on the floor in the image.</li><li>Yes, there is a gray plastic basket or bin sitting on the floor in the image.</li></ul></div><div class="sample-block"><b>C7 MoonDream2 / caption / exp55</b><ul><li>In the center of the image, a gray plastic laundry basket with a handle and a lid is standing on a gray tiled floor. The</li><li>In the center of the image, a gray plastic laundry basket with a handle and a lid stands upright on a light gray tiled f</li></ul></div>
+
+<div class="time">2026-05-27 21:41:07 | details/ 에 프레임별 raw 저장</div>
+</body></html>

@@ -1,0 +1,20 @@
+{
+    "_comment": "V5 Exp41B: Exp40 ckpt resume + path_type_aware preset. Exp40 ckpt at current_epoch=7, max_epochs=9 = 1 epoch fine-tune (Phase A fast signal check).",
+    "parent": "configs/mobile_vla_v5_exp40_fix_chunking_grounding.json",
+    "exp_name": "v5-exp41b-resume-exp40-pta",
+    "task_name": "mobile_vla_v5_exp41b",
+    "resume": "/home/minum/26CS/MoNaVLA/runs/v5_nav/kosmos/mobile_vla_v5_exp40/2026-05-04/v5-exp40-fix-chunking-grounding/last.ckpt",
+
+    "trainer": {
+        "max_epochs": 9,
+        "check_val_every_n_epoch": 1,
+        "precision": "16-mixed"
+    },
+
+    "train_dataset": {
+        "instruction_preset": "path_type_aware"
+    },
+    "val_dataset": {
+        "instruction_preset": "path_type_aware"
+    }
+}

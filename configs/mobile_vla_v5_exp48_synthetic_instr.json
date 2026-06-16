@@ -1,0 +1,18 @@
+{
+    "_comment": "V5 Exp48: synthetic_v47 instruction으로 LoRA 재학습. 가설: 9개 다양한 instruction → text attention 살아남음. Exp45 기반(vision-only LoRA, hybrid backbone).",
+    "parent": "configs/mobile_vla_v5_exp45_vision_lora_only.json",
+    "exp_name": "v5-exp48-synthetic-instr",
+    "task_name": "mobile_vla_v5_exp48",
+
+    "train_dataset": {
+        "instruction_preset": "synthetic_v47"
+    },
+    "val_dataset": {
+        "instruction_preset": "synthetic_v47"
+    },
+
+    "trainer": {
+        "max_epochs": 2,
+        "check_val_every_n_epoch": 1
+    }
+}

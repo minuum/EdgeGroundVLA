@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>Fig5: VLA vs Decomposition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#f1f5f9;padding:32px;max-width:1100px;margin:0 auto}
+  h1{font-size:1.8rem;font-weight:800;margin-bottom:6px}
+  .sub{color:#94a3b8;margin-bottom:28px;font-size:0.95rem;line-height:1.6}
+  .back{color:#38bdf8;text-decoration:none;font-size:0.9rem;display:inline-block;margin-bottom:20px}
+  .back:hover{text-decoration:underline}
+  .card{background:#111827;border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h2{font-size:1rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px}
+  .fig{width:100%;border-radius:8px;display:block;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;background:#111827;border-radius:10px;overflow:hidden}
+  th{background:#0b1220;padding:10px 14px;text-align:left;color:#94a3b8;font-size:0.8rem;text-transform:uppercase}
+  td{padding:9px 14px;border-bottom:1px solid #1e293b;font-size:0.88rem}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+  .callout{border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:0.88rem;line-height:1.7}
+  .info{background:#0c2340;border-left:4px solid #38bdf8;color:#bae6fd}
+  .warn{background:#2d1b00;border-left:4px solid #fbbf24;color:#fde68a}
+  .good{background:#052e16;border-left:4px solid #22c55e;color:#bbf7d0}
+  .bad{background:#2d0000;border-left:4px solid #ef4444;color:#fca5a5}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .num-big{font-size:2.2rem;font-weight:900}
+  .kpi-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .kpi{background:#1e293b;border-radius:8px;padding:12px 18px}
+  .kpi .n{font-size:1.6rem;font-weight:800}
+  .kpi .l{color:#94a3b8;font-size:11px;text-transform:uppercase}
+</style></head><body>
+<a class="back" href="../research_story.html">← 전체 연구 여정으로</a>
+<h1>Fig 5 — End-to-End VLA vs Decomposition 최종 비교</h1>
+<p class="sub">Exp11(end-to-end VLA), Step2(초기 decomposition), Exp49(최종 decomposition)의 closed-loop 결과 전체 비교.</p>
+<div class="card"><h2>원본 그래프</h2><img class="fig" src="report_figs/fig5_vla_comparison.png" alt="fig5"></div>
+<div class="kpi-row">
+  <div class="kpi"><div class="n" style="color:#ef4444">0%</div><div class="l">Exp11 CL 성공률</div></div>
+  <div class="kpi"><div class="n" style="color:#60a5fa">66.7%</div><div class="l">Step2 CL 성공률</div></div>
+  <div class="kpi"><div class="n" style="color:#22c55e">100%</div><div class="l">Exp49 CL 성공률</div></div>
+  <div class="kpi"><div class="n" style="color:#22c55e">×18</div><div class="l">FPE 개선 (1.45m→0.08m)</div></div>
+</div>
+<div class="card">
+  <h2>경로 타입별 Closed-Loop 상세 (FPE)</h2>
+  <table>
+    <thead><tr><th>경로</th>
+      <th style="color:#ef4444">Exp11</th>
+      <th style="color:#60a5fa">Step2</th>
+      <th style="color:#22c55e">Exp49</th>
+    </tr></thead>
+    <tbody><tr><td>중앙 직진</td><td><span style="color:#ef4444">✗ 1.72m</span></td><td><span style="color:#ef4444">✗ 0.95m</span></td><td><span style="color:#22c55e">✓ 0.10m</span></td></tr><tr><td>중앙→좌</td><td><span style="color:#ef4444">✗ 1.85m</span></td><td><span style="color:#22c55e">✓ 0.36m</span></td><td><span style="color:#22c55e">✓ 0.08m</span></td></tr><tr><td>중앙→우</td><td><span style="color:#ef4444">✗ 1.14m</span></td><td><span style="color:#22c55e">✓ 0.23m</span></td><td><span style="color:#22c55e">✓ 0.04m</span></td></tr><tr><td>좌 직진</td><td><span style="color:#ef4444">✗ 1.19m</span></td><td><span style="color:#22c55e">✓ 0.23m</span></td><td><span style="color:#22c55e">✓ 0.00m</span></td></tr><tr><td>좌→좌</td><td><span style="color:#ef4444">✗ 1.80m</span></td><td><span style="color:#22c55e">✓ 0.21m</span></td><td><span style="color:#22c55e">✓ 0.11m</span></td></tr><tr><td>좌→우</td><td><span style="color:#ef4444">✗ 1.18m</span></td><td><span style="color:#22c55e">✓ 0.38m</span></td><td><span style="color:#22c55e">✓ 0.12m</span></td></tr><tr><td>우 직진</td><td><span style="color:#ef4444">✗ 1.26m</span></td><td><span style="color:#22c55e">✓ 0.34m</span></td><td><span style="color:#22c55e">✓ 0.00m</span></td></tr><tr><td>우→좌</td><td><span style="color:#ef4444">✗ 1.91m</span></td><td><span style="color:#ef4444">✗ 0.52m</span></td><td><span style="color:#22c55e">✓ 0.00m</span></td></tr><tr><td>우→우</td><td><span style="color:#ef4444">✗ 1.03m</span></td><td><span style="color:#ef4444">✗ 1.77m</span></td><td><span style="color:#22c55e">✓ 0.32m</span></td></tr></tbody>
+  </table>
+</div>
+<div class="callout info">
+  💡 <strong>왜 decomposition이 압도적으로 유리한가:</strong><br>
+  End-to-end는 VLM의 text path가 이미 붕괴되어(text attn=0%) 공간 정보를 제대로 활용하지 못한다.
+  Decomposition은 VLM이 이미 잘 인코딩한 spatial feature(bbox cx/cy/area)를 명시적으로 꺼내 작은 MLP에 전달하기 때문에
+  VLM의 내부 spatial representation을 직접 활용할 수 있다.
+</div>
+</body></html>

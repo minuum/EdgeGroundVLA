@@ -5,16 +5,22 @@
 
 # 1. 모델 설정 (Checkpoint & Config)
 # 최신 학습 결과에 맞춰 경로를 수정하세요.
-# v3_exp08_center_goal
-# Best model (87% accuracy, diagonal-aware)
-export VLA_CHECKPOINT_PATH="/home/soda/MoNaVLA/runs/v4_nav/kosmos/v4_balanced_v2/checkpoints/best_model_87pc.ckpt"
-export VLA_CONFIG_PATH="/home/soda/MoNaVLA/configs/mobile_vla_v4_balanced_v2.json"
+export VLA_PROFILE="proxy_default"
+# Gradio 대시보드 드롭다운 기본값 (exp49 GoalNav + brown_pot_left)
+export VLA_CHECKPOINT_PATH="/home/soda/MoNaVLA/runs/v5_nav/mlp/exp49/exp49_mlp.pt"
+export VLA_CONFIG_PATH="/home/soda/MoNaVLA/configs/brown_pot_left.json"
 
 # 2. 보안 설정 (API Key)
-export VLA_API_KEY="v3_test_key"
+export VLA_API_KEY="vla_devel_key_2026"
 
 # 3. 인프라 설정
 export ROS_DOMAIN_ID=42
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/humble/lib
 export VLA_ROOT="/home/soda/MoNaVLA"
 export VLA_ROS_WS="/home/soda/MoNaVLA/ROS_action"
+
+# 4. Exp47 Instruction-Conditioned MLP 설정
+export VLA_MLP_WEIGHTS_PATH="docs/v5/bbox_nav_exp47/exp47_mlp.pt"
+export VLA_MLP_INSTR_EMBEDDINGS_PATH="docs/v5/bbox_nav_exp47/instruction_embeddings.json"
+export VLA_MLP_VISION_CACHE_TTL="1.0"   # vision feature 갱신 주기 (초)

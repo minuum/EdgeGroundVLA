@@ -1,553 +1,850 @@
-import gradio as gr
-import requests
+# ── ROS camera_interfaces LD_LIBRARY_PATH 주입 (다른 import보다 먼저) ──────────
+import os, sys as _sys
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROS_WS = os.getenv("VLA_ROS_WS", os.path.join(_project_root, "ROS_action"))
+if not _ROS_WS.endswith("/install"):
+    _ROS_WS = os.path.join(_ROS_WS, "install")
+_ros_lib_dirs = [f"{_ROS_WS}/camera_interfaces/lib", f"{_ROS_WS}/camera_pub/lib"]
+_ros_py_dirs  = [f"{_ROS_WS}/camera_interfaces/local/lib/python3.10/dist-packages"]
+_ld = os.environ.get("LD_LIBRARY_PATH", "")
+if any(p not in _ld for p in _ros_lib_dirs if os.path.isdir(p)):
+    os.environ["LD_LIBRARY_PATH"] = ":".join(
+        p for p in _ros_lib_dirs if os.path.isdir(p)
+    ) + (":" + _ld if _ld else "")
+    _pp = os.environ.get("PYTHONPATH", "")
+    os.environ["PYTHONPATH"] = ":".join(
+        p for p in _ros_py_dirs if os.path.isdir(p)
+    ) + (":" + _pp if _pp else "")
+    os.environ.setdefault("ROS_DOMAIN_ID", "42")
+    os.environ.setdefault("RMW_IMPLEMENTATION", "rmw_fastrtps_cpp")
+    os.execv(_sys.executable, [_sys.executable] + _sys.argv)
+for _p in _ros_py_dirs:
+    if os.path.isdir(_p) and _p not in _sys.path:
+        _sys.path.insert(0, _p)
+# ─────────────────────────────────────────────────────────────────────────────
 import base64
-import json
-import time
-from PIL import Image
+import gc
 import io
 import os
 import sys
 import threading
-import numpy as np
-import cv2
-from datetime import datetime
+import time
+import warnings
+from pathlib import Path
+import socket
 
-# --- Forced ROS2 Environment Overrides ---
+import cv2
+import gradio as gr
+import matplotlib
+import numpy as np
+import requests
+from PIL import Image
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+warnings.filterwarnings("ignore", message="Unable to import Axes3D")
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
+# Exp47: path_type 키를 직접 입력하거나 자연어 instruction 사용 가능.
+# path_type 키 목록: center_straight, center_left, center_right,
+#   left_straight, left_left, left_right,
+#   right_straight, right_right, right_left
+# 미매칭 시 bbox cx 위치에서 자동 추론 (right_right / left_left / center_straight).
+DEFAULT_INSTRUCTION = "the gray basket on right"
+PATH_TYPES = [
+    "right_right", "right_left", "right_straight",
+    "center_straight", "center_left", "center_right",
+    "left_straight", "left_left", "left_right",
+]
+GOAL_NAV_PRESETS = [
+    "the gray basket on right",
+    "the gray basket on left",
+    "the gray basket",
+    "the door",
+    "the corridor on the left",
+    "the corridor on the right",
+]
+
+# 실험 모드: (표시 이름, instruction, backend_instruction_mode, speed_scaling, grounding_skip_n)
+EXP_MODES = {
+    # ── SOTA: Stage2 v2 분해 파이프라인 ──────────────────────────────────
+    "⭐ Exp66 — Stage2 v2 SOTA (base PG2, L2)": {
+        "instruction": GOAL_NAV_PRESETS[0],
+        "backend_mode": "GoalNav (exp66)",
+        "model": "exp66",
+        "speed_scaling": False,
+        "grounding_skip_n": 3,
+        "desc": "⭐ SOTA — val 93.5%, CL 96.6%, FPE 0.102m  |  ActionMLP w=8, base PG2 cx, L2-norm aug",
+        "config": "configs/exp54_stage2_action.json",
+        "checkpoint": "runs/v5_nav/mlp/exp66/action_mlp.pt",
+    },
+    "Exp67 — Stage2 v2 HSV cx": {
+        "instruction": GOAL_NAV_PRESETS[0],
+        "backend_mode": "GoalNav (exp67)",
+        "model": "exp67",
+        "speed_scaling": False,
+        "grounding_skip_n": 3,
+        "desc": "Stage2 v2 HSV cx 소스 (비교용) — val 92.6%, CL 96.6%",
+        "config": "configs/exp54_stage2_action.json",
+        "checkpoint": "runs/v5_nav/mlp/exp67/action_mlp.pt",
+    },
+    # ── Legacy (체크포인트 존재, 비교 가능) ──────────────────────────────
+    "Exp49 — GoalNav [legacy]": {
+        "instruction": GOAL_NAV_PRESETS[0],
+        "backend_mode": "GoalNav (exp49)",
+        "model": "exp49",
+        "speed_scaling": False,
+        "grounding_skip_n": 3,
+        "desc": "[legacy] 기본 GoalNav MLP — val 96.4%  |  ckpt 존재",
+        "config": None,
+        "checkpoint": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
+    },
+}
+EXP_MODE_NAMES = list(EXP_MODES.keys())
+LINEAR_SPEED_VLA = 1.15
+ANGULAR_SPEED_VLA = 1.15
+
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault("ROS_HOME", "/tmp/ros")
+Path(os.environ["MPLCONFIGDIR"]).mkdir(parents=True, exist_ok=True)
+Path(os.environ["ROS_HOME"]).mkdir(parents=True, exist_ok=True)
+
 os.environ["ROS_DOMAIN_ID"] = "42"
 os.environ["RMW_IMPLEMENTATION"] = "rmw_fastrtps_cpp"
 print(f"🔧 Forced ROS_DOMAIN_ID={os.environ['ROS_DOMAIN_ID']}, RMW={os.environ['RMW_IMPLEMENTATION']}")
 
-# --- Load .vla_env_settings manually ---
-env_path = os.getenv("VLA_ENV_PATH", "/home/soda/MoNaVLA/.vla_env_settings")
-if not os.path.exists(env_path):
-    env_path = "/home/billy/25-1kp/vla/.vla_env_settings" # fallback
-if os.path.exists(env_path):
-    with open(env_path, "r") as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith("export "):
-                try:
-                    key, val = line.replace("export ", "", 1).split("=", 1)
-                    os.environ[key] = val.strip('"').strip("'")
-                except ValueError:
-                    continue
-    print("✅ Loaded .vla_env_settings directly into python environment")
 
-# Add internal logging
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+def load_env() -> None:
+    env_path = Path(os.getenv("VLA_ENV_PATH", str(DEFAULT_ENV_PATH)))
+    if not env_path.exists():
+        fallback = Path(os.path.expanduser("~/26CS/MoNaVLA/.vla_env_settings"))
+        if fallback.exists():
+            env_path = fallback
+    if not env_path.exists():
+        return
+
+    with env_path.open("r") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line.startswith("export "):
+                continue
+            try:
+                key, val = line.replace("export ", "", 1).split("=", 1)
+            except ValueError:
+                continue
+            os.environ[key] = val.strip('"').strip("'")
+    print(f"✅ Loaded environment from {env_path}")
+
+
+load_env()
+
+DEFAULT_API_URL = os.getenv("VLA_API_SERVER", "http://localhost:8001")
+API_KEY = os.getenv("VLA_API_KEY", "vla_devel_key_2026")
+DEFAULT_BACKEND_MODE = os.getenv(
+    "VLA_DASHBOARD_BACKEND",
+    "API Server" if os.getenv("VLA_SERVER_ROLE") == "jetson" else "Local Runtime",
+)
+
+sys.path.append(str(PROJECT_ROOT / "scripts"))
 try:
     from inference_logger import get_logger
+
     logger_instance = get_logger()
 except ImportError:
     logger_instance = None
 
-# --- Color Correction Params (Modified: Gains Only) ---
-# --- Color Correction Params (Reset to Neutral) ---
-CC_PARAMS = {
-    'hue_target': 0,
-    'hue_width': 0,
-    'hue_strength': 0.0,
-    'r_gain': 1.0,
-    'g_gain': 1.0,
-    'b_gain': 1.0,
-    'center_boost': 0.0,
-    'saturation': 1.0,
-    'gamma': 1.0,
-    'contrast': 1.0,
-    'brightness': 0.0
-}
+sys.path.insert(0, str(PROJECT_ROOT))
+from robovlm_nav.serve.inference_server import MobileVLAInference
+from robovlm_nav.serve.vla_control_utils import VLAControlManager
+from scripts.utils.camera_proc import camera_control_widget, start_camera, stop_camera
 
-def correct_image(img_pil):
-    """Apply Simplified Color Correction (Gains Only) to PIL Image"""
-    img_rgb = np.array(img_pil).astype(np.float32)
-    # 2. Global Gains Only (Skip Hue Recovery)
-    r, g, b = cv2.split(img_rgb)
-    r = r * CC_PARAMS['r_gain']
-    g = g * CC_PARAMS['g_gain']
-    b = b * CC_PARAMS['b_gain']
-    img_corrected = cv2.merge([r, g, b])
-    
-    # Final conversion
-    img_final = np.clip(img_corrected, 0, 255).astype(np.uint8)
-    return Image.fromarray(img_final)
 
-# --- Matplotlib Optimization ---
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import io
-import warnings
-warnings.filterwarnings("ignore", message="Unable to import Axes3D")
+def prepend_env_path(key: str, value: str) -> None:
+    current = os.environ.get(key, "")
+    parts = [p for p in current.split(os.pathsep) if p]
+    if value not in parts:
+        os.environ[key] = value if not parts else f"{value}{os.pathsep}{current}"
 
-# --- ROS2 Environment Path Discovery ---
-def setup_ros_paths():
-    """Ensure colcon install paths are in sys.path"""
-    import sys
-    ros_ws = "/home/billy/25-1kp/vla/ROS_action"
-    install_base = os.path.join(ros_ws, "install")
-    if os.path.exists(install_base):
-        for pkg in os.listdir(install_base):
-            pkg_path = os.path.join(install_base, pkg, "local/lib/python3.10/dist-packages")
-            if os.path.exists(pkg_path) and pkg_path not in sys.path:
-                sys.path.append(pkg_path)
-            pkg_path_lib = os.path.join(install_base, pkg, "lib/python3.10/site-packages")
-            if os.path.exists(pkg_path_lib) and pkg_path_lib not in sys.path:
-                sys.path.append(pkg_path_lib)
+
+def setup_ros_paths() -> None:
+    ros_ws = Path(os.getenv("VLA_ROS_WS", str(PROJECT_ROOT / "ROS_action")))
+    install_base = ros_ws / "install"
+    if not install_base.exists():
+        return
+
+    prepend_env_path("AMENT_PREFIX_PATH", str(install_base))
+    prepend_env_path("COLCON_PREFIX_PATH", str(install_base))
+    prepend_env_path("CMAKE_PREFIX_PATH", str(install_base))
+
+    for pkg in install_base.iterdir():
+        if not pkg.is_dir():
+            continue
+        lib_path = pkg / "lib"
+        if lib_path.exists():
+            prepend_env_path("LD_LIBRARY_PATH", str(lib_path))
+        share_path = pkg / "share"
+        if share_path.exists():
+            prepend_env_path("AMENT_PREFIX_PATH", str(pkg))
+        local_path = pkg / "local/lib/python3.10/dist-packages"
+        site_path = pkg / "lib/python3.10/site-packages"
+        for candidate in (local_path, site_path):
+            if candidate.exists() and str(candidate) not in sys.path:
+                sys.path.append(str(candidate))
+                prepend_env_path("PYTHONPATH", str(candidate))
+
 
 setup_ros_paths()
 
-# --- ROS2 & Robot Hardware Imports ---
 ROS_AVAILABLE = False
 try:
     import rclpy
-    from rclpy.node import Node
     from rclpy.callback_groups import ReentrantCallbackGroup
+    from rclpy.node import Node
     from cv_bridge import CvBridge
     from geometry_msgs.msg import Twist
     from camera_interfaces.srv import GetImage
+
     ROS_AVAILABLE = True
 except ImportError as e:
-    ROS_AVAILABLE = False
     print(f"⚠️ ROS2 environment partially missing: {e}")
 
-# --- Custom Control Library ---
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from robovlm_nav.serve.vla_control_utils import VLAControlManager
+    class Node:  # stub so class definitions below don't NameError
+        pass
+
+    class ReentrantCallbackGroup:
+        pass
 
 
-# --- Configuration ---
-API_URL = "http://localhost:8000"
-API_KEY = os.getenv("VLA_API_KEY", "vla_devel_key_2026")
-DEFAULT_INSTRUCTION = "Navigate toward the gray basket until it gets closer"
-LINEAR_SPEED_VLA = 1.15
-ANGULAR_SPEED_VLA = 1.15
+CC_PARAMS = {
+    "r_gain": 1.0,
+    "g_gain": 1.0,
+    "b_gain": 1.0,
+}
 
-# --- Local Model Support ---
-VLA_ROOT = os.getenv("VLA_ROOT", "/home/billy/25-1kp/vla")
-if VLA_ROOT not in sys.path:
-    sys.path.insert(0, VLA_ROOT)
 
-# Ensure RoboVLMs is searchable as a package
-for root_name in ['RoboVLMs', 'RoboVLMs_upstream', 'third_party/RoboVLMs']:
-    p = os.path.join(VLA_ROOT, root_name)
-    if os.path.exists(p) and p not in sys.path:
-        sys.path.insert(0, p)
+def correct_image(img_pil: Image.Image) -> Image.Image:
+    img_rgb = np.array(img_pil).astype(np.float32)
+    r, g, b = cv2.split(img_rgb)
+    r = r * CC_PARAMS["r_gain"]
+    g = g * CC_PARAMS["g_gain"]
+    b = b * CC_PARAMS["b_gain"]
+    img_corrected = cv2.merge([r, g, b])
+    return Image.fromarray(np.clip(img_corrected, 0, 255).astype(np.uint8))
 
-try:
-    from robovlm_nav.serve.inference_server import MobileVLAInference
-    LOCAL_MODEL_AVAILABLE = True
-except ImportError as e:
-    LOCAL_MODEL_AVAILABLE = False
-    print(f"⚠️ Local model modules not found: {e}")
-
-local_model_instance = None
 
 def scan_local_files():
-    """Scan project root for models and configs"""
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # Checkpoints: [(DisplayName, FullPath), ...]
-    ckpt_tuples = [(f, os.path.join(root, f)) for f in os.listdir(root) if f.endswith('.ckpt') or f.endswith('.pth')]
-    
-    # Checkpoints recursively from runs/
-    runs_dir = os.path.join(root, "runs")
-    if os.path.exists(runs_dir):
-        for r, d, f in os.walk(runs_dir):
-            for file in f:
-                if file.endswith(('.ckpt', '.pth')):
-                    full_p = os.path.join(r, file)
-                    # Show as 'Folder/filename.ckpt' for clarity. 
-                    # Use two levels of parent folders if available for better context.
-                    parts = full_p.split(os.sep)
-                    if len(parts) >= 3:
-                        display_name = f"{parts[-3]}/{parts[-2]}/{file}"
-                    else:
-                        display_name = f"{parts[-2]}/{file}"
-                    ckpt_tuples.append((display_name, full_p))
-    
-    # Configs: [(DisplayName, FullPath), ...]
-    configs_dir = os.path.join(root, "configs")
-    conf_tuples = [(f, os.path.join(configs_dir, f)) for f in os.listdir(configs_dir) if f.endswith('.json')]
-    
-    return sorted(ckpt_tuples), sorted(conf_tuples)
+    ckpt_tuples = []
+    for root_dir in (PROJECT_ROOT, PROJECT_ROOT / "runs"):
+        if not root_dir.exists():
+            continue
+        pattern = "**/*" if root_dir.name == "runs" else "*"
+        for path in root_dir.glob(pattern):
+            if path.suffix not in {".ckpt", ".pth", ".pt"} or not path.is_file():
+                continue
+            try:
+                rel = path.relative_to(PROJECT_ROOT)
+                display_name = str(rel)
+            except ValueError:
+                display_name = path.name
+            ckpt_tuples.append((display_name, str(path)))
 
-def init_local_model(use_quant_str, manual_ckpt=None, manual_conf=None):
-    global local_model_instance
-    if not LOCAL_MODEL_AVAILABLE:
-        return "❌ Module Missing"
-    
-    # Force reload if requested (even if loaded)
-    # Map UI string to boolean: "INT8 (Fast)" -> True, "FP16 (Accurate)" -> False
-    use_quant = (use_quant_str == "INT8 (Fast)")
-    
+    configs_dir = PROJECT_ROOT / "configs"
+    conf_tuples = []
+    if configs_dir.exists():
+        for path in configs_dir.glob("*.json"):
+            conf_tuples.append((path.name, str(path)))
+
+    return sorted(set(ckpt_tuples)), sorted(conf_tuples)
+
+
+def pick_default_choice(choices, env_key: str):
+    preferred = os.getenv(env_key)
+    if preferred:
+        for _label, value in choices:
+            if value == preferred:
+                return value
+    return choices[0][1] if choices else None
+
+
+def to_precision(precision_label: str) -> str:
+    return "int8" if precision_label == "INT8 (Fast)" else "fp16"
+
+
+def short_model_name(path_str: str) -> str:
+    if not path_str or path_str == "N/A":
+        return "N/A"
+    path = Path(path_str)
+    if len(path.parts) >= 2:
+        return f"{path.parent.name}/{path.name}"
+    return path.name
+
+
+def pick_server_port(default_port: int, span: int = 20) -> int:
     try:
-        # Clean up existing model
-        if local_model_instance is not None:
-             del local_model_instance
-             import torch
-             torch.cuda.empty_cache()
-             print("🔄 Unloaded existing model")
+        for port in range(default_port, default_port + span):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                try:
+                    sock.bind(("127.0.0.1", port))
+                except OSError:
+                    continue
+            return port
+    except PermissionError:
+        return default_port
+    return default_port
 
-        # Dynamically reload env settings to catch VSCode changes
-        env_path = os.getenv("VLA_ENV_PATH", "/home/soda/MoNaVLA/.vla_env_settings")
-        if not os.path.exists(env_path):
-            env_path = "/home/billy/25-1kp/vla/.vla_env_settings" # fallback
-        if os.path.exists(env_path):
-            with open(env_path, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith("export "):
-                        try:
-                            key, val = line.replace("export ", "", 1).split("=", 1)
-                            os.environ[key] = val.strip('"').strip("'")
-                        except ValueError:
-                            continue
-            print("🔄 Reloaded .vla_env_settings dynamically")
 
-        ckpt = manual_ckpt if manual_ckpt else os.getenv("VLA_CHECKPOINT_PATH")
-        if not ckpt:
-            state["model_status"] = "Missing Checkpoint Path"
-            state["model_path"] = "N/A"
-            return "❌ No Checkpoint Selected"
-            
-        # Priority: Manual Selection > Env Variable > Auto-detect
-        config = manual_conf if manual_conf else os.getenv("VLA_CONFIG_PATH", "")
-        if not config or not os.path.exists(config):
-            import re
-            import glob
-            configs_dir = "/home/billy/25-1kp/vla/Mobile_VLA/configs"
-            # Extract identifiers like exp04, exp-04, etc.
-            match = re.search(r'(exp[-_]?\d+)', ckpt.lower())
-            if match:
-                exp_id = match.group(1).replace('-', '').replace('_', '') # e.g. exp04
-                all_configs = glob.glob(os.path.join(configs_dir, "*.json"))
-                # Match normalized strings
-                matched = [c for c in all_configs if exp_id in os.path.basename(c).lower().replace('-', '').replace('_', '')]
-                if matched:
-                    config = matched[0]
-                    print(f"🔍 Auto-detected config based on checkpoint: {os.path.basename(config)}")
-            
-            # Fallback if detection fails
-            if not config or not os.path.exists(config):
-                config = "/home/billy/25-1kp/vla/Mobile_VLA/configs/mobile_vla_v3_exp01_aug.json"
-                print(f"⚠️ Could not auto-detect. Using fallback config: {os.path.basename(config)}")
-        else:
-            print(f"✅ Using explicitly set config from VLA_CONFIG_PATH: {os.path.basename(config)}")
+class LocalSharedRuntime:
+    def __init__(self):
+        self.model = None
+        self.info_cache = {
+            "model_loaded": False,
+            "model_name": "Unavailable",
+            "checkpoint_path": "N/A",
+            "config_path": "N/A",
+            "precision": "N/A",
+            "device": "N/A",
+            "action_dim": 3,
+        }
 
-        print(f"Loading Local Model: {ckpt} (Quant: {use_quant})")
-        
-        # Pass use_quant explicitely
-        local_model_instance = MobileVLAInference(ckpt, config, use_quant=use_quant)
-        
-        # DEBUG: Verify reset method
-        print(f"DEBUG: Model Type: {type(local_model_instance)}")
-        print(f"DEBUG: Has reset method: {hasattr(local_model_instance, 'reset')}")
-        if not hasattr(local_model_instance, 'reset'):
-            print(f"DEBUG: Available methods: {[m for m in dir(local_model_instance) if not m.startswith('_')]}")
-            
-        state["model_status"] = f"Loaded ({'INT8' if use_quant else 'FP16'})"
-        state["model_path"] = ckpt
-        # Get parent directory name for better context instead of just epoch_epoch...ckpt
-        short_name = f"{os.path.basename(os.path.dirname(ckpt))}/{os.path.basename(ckpt)}"
-        return f"✅ Loaded: {short_name} ({'INT8' if use_quant else 'FP16'})"
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        state["model_status"] = "Load Failed"
-        return f"❌ Load Failed: {e}"
+    def unload(self) -> None:
+        if self.model is not None:
+            del self.model
+            self.model = None
+            gc.collect()
+        self.info_cache = {
+            "model_loaded": False,
+            "model_name": "Unavailable",
+            "checkpoint_path": "N/A",
+            "config_path": "N/A",
+            "precision": "N/A",
+            "device": "N/A",
+            "action_dim": 3,
+        }
 
-# --- ROS2 Node ---
+    def load_model(self, checkpoint_path: str, config_path: str, precision: str, refresh: bool = False):
+        if refresh:
+            self.unload()
+
+        use_quant = precision == "int8"
+        device = "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES", "") != "" else "cpu"
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                device = "cuda"
+            else:
+                device = "cpu"
+        except Exception:
+            device = "cpu"
+
+        self.model = MobileVLAInference(
+            checkpoint_path=checkpoint_path,
+            config_path=config_path,
+            device=device,
+            use_quant=use_quant,
+        )
+        self.info_cache = {
+            "model_loaded": True,
+            "model_name": Path(config_path).stem,
+            "checkpoint_path": checkpoint_path,
+            "config_path": config_path,
+            "precision": precision,
+            "device": device,
+            "action_dim": 3,
+        }
+        return self.model
+
+    def reset(self, instruction: str = "N/A") -> None:
+        if self.model is None:
+            raise RuntimeError("Model not loaded")
+        self.model.reset(instruction=instruction)
+
+    def predict(self, image_base64: str, instruction: str) -> dict:
+        if self.model is None:
+            raise RuntimeError("Model not loaded")
+        action, latency_ms, chunk = self.model.predict(
+            image_base64=image_base64,
+            instruction=instruction,
+        )
+        return {
+            "action": action.tolist(),
+            "latency_ms": float(latency_ms),
+            "chunk": chunk.tolist(),
+        }
+
+    def get_model_info(self) -> dict:
+        return dict(self.info_cache)
+
+
+shared_runtime = LocalSharedRuntime()
+
+
+class LocalInferenceBackend:
+    name = "Local Runtime"
+
+    def load_model(self, checkpoint_path: str, config_path: str, precision: str) -> dict:
+        model = shared_runtime.load_model(
+            checkpoint_path=checkpoint_path,
+            config_path=config_path,
+            precision=precision,
+            refresh=True,
+        )
+        info = shared_runtime.get_model_info()
+        return {
+            "status": "success",
+            "message": f"✅ Loaded: {short_model_name(model.checkpoint_path)} ({info['precision']})",
+            "info": info,
+        }
+
+    def reset(self, instruction: str) -> str:
+        shared_runtime.reset(instruction=instruction)
+        return "✅ Local history cleared"
+
+    def predict(self, image: Image.Image, instruction: str) -> dict:
+        buffered = io.BytesIO()
+        image.save(buffered, format="JPEG")
+        img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        return shared_runtime.predict(image_base64=img_b64, instruction=instruction)
+
+    def info(self) -> dict:
+        return shared_runtime.get_model_info()
+
+
+class ApiInferenceBackend:
+    name = "API Server"
+
+    def __init__(self, api_url: str):
+        self.api_url = api_url.rstrip("/")
+
+    def _headers(self) -> dict:
+        return {"X-API-Key": API_KEY}
+
+    def _post(self, path: str, payload: dict) -> dict:
+        response = requests.post(
+            f"{self.api_url}{path}",
+            json=payload,
+            headers=self._headers(),
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def load_model(self, checkpoint_path: str, config_path: str, precision: str) -> dict:
+        payload = {
+            "checkpoint_path": checkpoint_path,
+            "config_path": config_path,
+            "precision": precision,
+            "refresh": True,
+        }
+        result = self._post("/model/load", payload)
+        info = self.info()
+        return {
+            "status": result.get("status", "success"),
+            "message": f"✅ API loaded: {short_model_name(info['checkpoint_path'])} ({info['precision']})",
+            "info": info,
+        }
+
+    def reset(self, instruction: str) -> str:
+        self._post("/reset", {})
+        return f"✅ API history cleared ({instruction})"
+
+    def predict(self, image: Image.Image, instruction: str) -> dict:
+        buffered = io.BytesIO()
+        image.save(buffered, format="JPEG")
+        img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        return self._post(
+            "/predict",
+            {
+                "image": img_b64,
+                "instruction": instruction,
+                "strategy": "receding_horizon",
+            },
+        )
+
+    def set_config(self, speed_scaling: bool, grounding_skip_n: int, model: str | None = None) -> dict:
+        try:
+            payload: dict = {"speed_scaling": speed_scaling, "grounding_skip_n": grounding_skip_n}
+            if model is not None:
+                payload["model"] = model
+            return self._post("/config", payload)
+        except Exception as e:
+            return {"status": "error", "reason": str(e)}
+
+    def info(self) -> dict:
+        response = requests.get(
+            f"{self.api_url}/model/info",
+            headers=self._headers(),
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+def make_backend(mode: str, api_url: str):
+    if mode == "API Server":
+        return ApiInferenceBackend(api_url)
+    return LocalInferenceBackend()
+
+
 class ROSDashboardNode(Node):
     def __init__(self):
-        super().__init__('gradio_dashboard_node')
+        import os as _os
+        super().__init__(f"gradio_dashboard_{_os.getpid()}")
         self.callback_group = ReentrantCallbackGroup()
         self.cv_bridge = CvBridge()
         self.get_image_client = self.create_client(
-            GetImage, 'get_image_service', callback_group=self.callback_group)
-        self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10, callback_group=self.callback_group)
-        
-        # ✅ Unified Precision Control Manager
+            GetImage, "get_image_service", callback_group=self.callback_group
+        )
+        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10, callback_group=self.callback_group)
         self.control = VLAControlManager(self, default_throttle=50, move_duration=0.4)
 
     def get_inference_frame(self):
-        if not self.get_image_client.wait_for_service(timeout_sec=1.0):
-            return None
-        request = GetImage.Request()
-        future = self.get_image_client.call_async(request)
-        start_time = time.time()
-        while rclpy.ok() and not future.done():
-            if time.time() - start_time > 2.0: return None
-            time.sleep(0.01)
-        if future.done():
-            try:
-                response = future.result()
-                if response and response.image.data:
-                    cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
-                    return Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
-            except: pass
+        try:
+            if not self.get_image_client.wait_for_service(timeout_sec=1.0):
+                return None
+            request = GetImage.Request()
+            future = self.get_image_client.call_async(request)
+            start_time = time.time()
+            while rclpy.ok() and not future.done():
+                if time.time() - start_time > 2.0:
+                    return None
+                time.sleep(0.01)
+            if future.done():
+                try:
+                    response = future.result()
+                    if response and response.image.data:
+                        cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
+                        return Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
+                except Exception:
+                    return None
+        except Exception as e:
+            if "context is invalid" in str(e) or "rcl" in str(e).lower():
+                # ROS context 무효화 → 백그라운드에서 재초기화
+                print(f"[Dashboard] ROS context 무효 → 재초기화 시도")
+                threading.Thread(target=_init_ros_node, daemon=True).start()
         return None
 
-    def generate_trajectory_plot(self, full_chunk, model_name="VLA"):
-        """Generate 2D Matplotlib plot for the given chunk"""
+    def generate_trajectory_plot(self, full_chunk):
         if full_chunk is None or len(full_chunk) == 0:
             return None
-        
-        # Trajectory Integration
-        DT = 0.2
-        traj_x = [0]
-        traj_y = [0]
-        curr_x, curr_y = 0, 0
-        
+
+        dt = 0.2
+        traj_x, traj_y = [0.0], [0.0]
+        curr_x, curr_y = 0.0, 0.0
         for step in full_chunk:
-            vx, vy = float(step[0]), float(step[1])
-            curr_x += vx * DT
-            curr_y += vy * DT
+            curr_x += float(step[0]) * dt
+            curr_y += float(step[1]) * dt
             traj_x.append(curr_x)
             traj_y.append(curr_y)
-            
+
         fig, ax = plt.subplots(figsize=(5, 5))
-        # Start point
-        ax.plot(0, 0, 'ko', markersize=8, label='Start')
-        # Orientation arrow (x-axis)
-        ax.arrow(0, 0, 0.2, 0, head_width=0.05, head_length=0.05, fc='k', ec='k')
-        
-        # Trajectory line
-        ax.plot(traj_x, traj_y, 'b-', linewidth=3, alpha=0.8, label=f'{model_name}')
-        ax.plot(traj_x[-1], traj_y[-1], 'b*', markersize=10) # End point
-        
+        ax.plot(0, 0, "ko", markersize=8, label="Start")
+        ax.arrow(0, 0, 0.2, 0, head_width=0.05, head_length=0.05, fc="k", ec="k")
+        ax.plot(traj_x, traj_y, "b-", linewidth=3, alpha=0.8)
+        ax.plot(traj_x[-1], traj_y[-1], "b*", markersize=10)
         ax.set_title("Predicted Trajectory (2D XY)")
         ax.set_xlabel("Forward (X) [m]")
         ax.set_ylabel("Left/Right (Y) [m]")
-        ax.grid(True, linestyle='--', alpha=0.6)
-        ax.set_aspect('equal')
-        
-        # Auto-scale with some margin
+        ax.grid(True, linestyle="--", alpha=0.6)
+        ax.set_aspect("equal")
         all_points = np.column_stack((traj_x, traj_y))
         mins = np.min(all_points, axis=0) - 0.5
         maxs = np.max(all_points, axis=0) + 0.5
         ax.set_xlim(min(mins[0], -0.5), max(maxs[0], 2.0))
         ax.set_ylim(min(mins[1], -1.0), max(maxs[1], 1.0))
-        
         return fig
 
-import re
-def draw_bounding_box_from_text(img, text, patch_size=32, grid_size=32):
-    """
-    Parse <patch_index_XXXX> from text and draw a bounding box.
-    Kosmos-2 divides the image into a grid of 32x32 patches.
-    """
-    # Look for a pair of patch tokens like <patch_index_0015><patch_index_1012>
-    pattern = r"<patch_index_(\d{4})>\s*<patch_index_(\d{4})>"
-    matches = re.finditer(pattern, text)
-    
-    img_cv = np.array(img.convert('RGB'))
-    img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
-    
-    h, w = img_cv.shape[:2]
-    patch_w = w / grid_size
-    patch_h = h / grid_size
-    
-    has_boxes = False
-    for match in matches:
-        start_idx = int(match.group(1))
-        end_idx = int(match.group(2))
-        
-        y1 = (start_idx // grid_size) * patch_h
-        x1 = (start_idx % grid_size) * patch_w
-        
-        y2 = ((end_idx // grid_size) + 1) * patch_h
-        x2 = ((end_idx % grid_size) + 1) * patch_w
-        
-        # Draw bounding box (Green)
-        cv2.rectangle(img_cv, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
-        # Add label
-        cv2.putText(img_cv, "Target", (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-        has_boxes = True
-        
-    if has_boxes:
-        return Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
-    return img
 
 ros_node = None
-if ROS_AVAILABLE:
-    if not rclpy.ok(): rclpy.init()
-    ros_node = ROSDashboardNode()
-    threading.Thread(target=lambda: rclpy.spin(ros_node), daemon=True).start()
+_ros_node_lock = threading.Lock()
 
-# --- Shared State ---
-# --- Shared State ---
+def _init_ros_node():
+    global ros_node
+    try:
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
+        rclpy.init()
+        node = ROSDashboardNode()
+        threading.Thread(target=lambda: rclpy.spin(node), daemon=True).start()
+        ros_node = node
+        print("[Dashboard] ROSDashboardNode 초기화 ✅")
+        return True
+    except Exception as e:
+        ros_node = None
+        print(f"[Dashboard] ROSDashboardNode 초기화 실패: {e}")
+        return False
+
+if ROS_AVAILABLE:
+    _init_ros_node()
+
+
+def annotate_image(img: Image.Image, bbox: dict | None = None, draw_grid: bool = True) -> Image.Image:
+    """카메라 이미지에 3x3 격자 + bbox 오버레이를 그려 반환."""
+    arr = np.array(img)
+    h, w = arr.shape[:2]
+
+    if draw_grid:
+        color = (100, 255, 100)
+        cv2.line(arr, (w // 3, 0), (w // 3, h), color, 1)
+        cv2.line(arr, (2 * w // 3, 0), (2 * w // 3, h), color, 1)
+        cv2.line(arr, (0, h // 3), (w, h // 3), color, 1)
+        cv2.line(arr, (0, 2 * h // 3), (w, 2 * h // 3), color, 1)
+
+    if bbox:
+        cx_px = int(bbox["cx"] * w)
+        cy_px = int(bbox["cy"] * h)
+        label = str(bbox.get("entity", "bbox"))
+
+        if "x1" in bbox:
+            x1 = int(bbox["x1"] * w)
+            y1 = int(bbox["y1"] * h)
+            x2 = int(bbox["x2"] * w)
+            y2 = int(bbox["y2"] * h)
+            cv2.rectangle(arr, (x1, y1), (x2, y2), (255, 80, 80), 2)
+        else:
+            # cx/cy만 있으면 십자선
+            r = 10
+            cv2.line(arr, (cx_px - r, cy_px), (cx_px + r, cy_px), (255, 80, 80), 2)
+            cv2.line(arr, (cx_px, cy_px - r), (cx_px, cy_px + r), (255, 80, 80), 2)
+
+        cv2.circle(arr, (cx_px, cy_px), 4, (255, 80, 80), -1)
+        cv2.putText(arr, label[:20], (max(cx_px - 40, 0), max(cy_px - 8, 12)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 80, 80), 1, cv2.LINE_AA)
+
+    return Image.fromarray(arr)
+
+
 state = {
-    "auto_inference": False, # Flag to run inference loop
-    "is_running": False, # Actual running state (controlled by Start/Stop buttons)
-    "is_busy": False,    # Prevent overlapping calls from Gradio timer (Avoid OOM/Concurrency bugs)
+    "auto_inference": False,
+    "is_running": False,
+    "is_busy": False,
     "step_count": 0,
-    "max_steps": 18,
-    "instruction": DEFAULT_INSTRUCTION,
     "last_img": None,
     "current_log": "Ready",
     "camera_status": "Unknown",
     "model_status": "Not Loaded",
-    "model_path": "N/A"
+    "model_path": "N/A",
+    "action_history": [],   # [(lx, ly, az), ...] 추론 중 실행된 액션 기록
+    "is_returning": False,
 }
 
-def update_ui(mode, instr, apply_cc, is_running_ui):
-    # Global Concurrency Guard: If previous tick is still processing VLM inference, skip this tick.
+
+def backend_model_info(mode: str, api_url: str) -> dict:
+    try:
+        return make_backend(mode, api_url).info()
+    except Exception:
+        return {
+            "model_loaded": False,
+            "model_name": "Unavailable",
+            "checkpoint_path": "N/A",
+            "config_path": "N/A",
+            "precision": "N/A",
+            "device": "N/A",
+            "action_dim": 3,
+        }
+
+
+def load_model_wrapper(backend_mode: str, api_url: str, precision_label: str, ckpt_path: str, config_path: str):
+    try:
+        result = make_backend(backend_mode, api_url).load_model(
+            checkpoint_path=ckpt_path,
+            config_path=config_path,
+            precision=to_precision(precision_label),
+        )
+        info = result["info"]
+        state["model_status"] = result["message"]
+        state["model_path"] = info["checkpoint_path"]
+        return result["message"], info["checkpoint_path"]
+    except Exception as e:
+        state["model_status"] = "Load Failed"
+        return f"❌ Load Failed: {e}", state["model_path"]
+
+
+def set_running(running: bool, backend_mode: str, api_url: str, instruction: str, gt_object: str = ""):
+    state["is_running"] = running
+    state["step_count"] = 0 if running else state["step_count"]
+    state["gt_object"] = gt_object
+    if running:
+        state["action_history"] = []  # 새 에피소드 시작 시 초기화
+        try:
+            make_backend(backend_mode, api_url).reset(instruction)
+        except Exception:
+            pass
+    return "Running..." if running else "Stopped"
+
+
+def run_backend_inference(image: Image.Image, instruction: str, backend_mode: str, api_url: str):
+    backend = make_backend(backend_mode, api_url)
+    result = backend.predict(image=image, instruction=instruction)
+    # action_3d includes az for ROT_L/ROT_R; fall back to 2D action if not present
+    action_raw = result.get("action_3d") or result["action"]
+    action = np.asarray(action_raw, dtype=np.float32).reshape(-1)
+    chunk = np.asarray(result.get("chunk", [action.tolist()]), dtype=np.float32)
+    if chunk.ndim == 1:
+        chunk = chunk.reshape(1, -1)
+
+    if ROS_AVAILABLE and ros_node:
+        lx = float(action[0])
+        ly = float(action[1])
+        az = float(action[2]) if action.size > 2 else 0.0
+        state["current_log"] = ros_node.control.move_and_stop_ramped(
+            lx, ly, az, source="gradio_inference",
+        )
+        state["action_history"].append((lx, ly, az))
+
+    strategy = result.get("strategy", "")
+    pred_label = result.get("predicted_label") or ""
+    goal_near = result.get("goal_near_proxy")
+
+    label_prefix = f"[{pred_label}] " if pred_label else ""
+    act_str = f"{label_prefix}{action[0]:.4f}, {action[1]:.4f}, {action[2] if action.size > 2 else 0.0:.4f}"
+
+    speed_scale = result.get("speed_scale")
+    grounding_cached = result.get("grounding_cached")
+
+    if strategy == "goal_nav":
+        near_str = ("✅ NEAR" if goal_near else "⬜ far") if goal_near is not None else "?"
+        goal = result.get("goal")
+        goal_str = f"[{goal[0]:.2f},{goal[1]:.2f},{goal[2]:.2f}]" if goal else "init"
+        caption = result.get("grounding_caption") or ""
+        chunk_display = f"[GoalNav] goal={goal_str}  near={near_str}"
+        if speed_scale is not None:
+            chunk_display += f"  spd={speed_scale:.2f}"
+        if grounding_cached is not None:
+            chunk_display += f"  cache={'✓' if grounding_cached else '✗'}"
+        if caption:
+            chunk_display += f"\ngrounding: {caption}"
+    else:
+        chunk_display = f"Chunk (N={len(chunk)}):\n{np.array2string(chunk, precision=2, separator=', ', suppress_small=True)}"
+
+    return {
+        "log_str": f"✅ {backend.name}: {state['current_log']}",
+        "lat_str": f"{float(result['latency_ms']):.1f} ms",
+        "act_str": act_str,
+        "chunk_display": chunk_display,
+        "action": action,
+        "chunk": chunk,
+        "goal_near": goal_near,
+        # logger용 raw 필드
+        "latency_ms": result.get("latency_ms"),
+        "predicted_label": result.get("predicted_label"),
+        "grounding_caption": result.get("grounding_caption"),
+        "strategy": result.get("strategy"),
+        "bbox": result.get("bbox"),
+        "instruction_used": result.get("instruction_used"),
+        "matched_path_type": result.get("matched_path_type"),
+        "speed_scale": speed_scale,
+        "grounding_cached": grounding_cached,
+    }
+
+
+def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
     if state["is_busy"]:
-        return gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
-    
-    # Sync UI state to internal state if needed, but primarily controlled by buttons
-    state["auto_inference"] = (mode == "Inference (18-step)")
-    
-    if not ROS_AVAILABLE or ros_node is None:
+        return (
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+        )
+
+    state["auto_inference"] = mode in ("Inference (Auto)", "Inference (18-step)")
+
+    if not ROS_AVAILABLE:
         state["camera_status"] = "ROS Not Available"
         return None, "ROS Not Available", "N/A", "N/A", "N/A", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None
-    
+
+    if ros_node is None:
+        # 재초기화 시도 중
+        state["camera_status"] = "ROS 재연결 중..."
+        return None, "⏳ ROS 재연결 중...", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
+
     img = ros_node.get_inference_frame()
     if img is None:
         state["camera_status"] = "Waiting for get_image_service"
         return state["last_img"], "⚠️ Camera Service Waiting...", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
-    
+
     if apply_cc:
-        try:
-            img = correct_image(img)
-        except Exception as e:
-            print(f"CC Error: {e}")
-    
+        img = correct_image(img)
+
     state["camera_status"] = "OK"
-    state["last_img"] = img
-    
-    # Logic for Inference Execution
+    state["last_img"] = img  # raw image for logging
+
     if state["auto_inference"] and state["is_running"]:
-        state["is_busy"] = True # LOCK
+        state["is_busy"] = True
         try:
             state["step_count"] += 1
             current_step = state["step_count"]
-            
-            # Step 1: Force Stop/Wait (Initial Setup) - Matching Data Collector
+
             if current_step == 1:
-                log = "1/18 (Start/Wait)"
-                lat = "0 ms"
-                act = "STOP"
-                chunk_info = "Waiting..."
-                
-                # [LOGGING] Unified session start
-                if logger_instance: 
-                    model_id = os.path.basename(os.getenv("VLA_CHECKPOINT_PATH", "Mobile-VLA"))
-                    logger_instance.start_session(model_id, instr)
-
-                if ROS_AVAILABLE and ros_node:
-                     ros_node.control.robust_stop(source="inference_start")
-                
-                # Reset model history ensuring clean state
-                if local_model_instance: 
-                    try:
-                        local_model_instance.reset(instruction=instr)
-                    except TypeError:
-                        local_model_instance.reset()
-                        
-                # 📸 [Image Cap] Always log step1 image
                 if logger_instance:
-                    logger_instance.log_step(current_step, [0.0, 0.0], 0, image=img)
-                
-                return img, log, lat, act, chunk_info, gr.update(value="Running (1/18)..."), state["camera_status"], state["model_path"], None
-
-            # Step 2~18: Run Inference (17 steps of action)
-            elif current_step <= state["max_steps"]:
-                # Returns: log_str, lat_str, act_str, chunk_str, action, lat, chunk
-                res = run_api_inference(img, instr, use_local=True)
-                log_inf, lat_str, act_str, chunk_str, raw_act, raw_lat, raw_chunk = res
-                
-                # [VISUALIZATION] Generate Trajectory Plot
-                fig = None
-                if ROS_AVAILABLE and ros_node:
-                    fig = ros_node.generate_trajectory_plot(raw_chunk)
-
-                # [VISUALIZATION] Try drawing bounding box if text is available from model
-                # Note: Currently predict() only returns action, lat, chunk. 
-                # For Phase 1.5, we parse from current_log or if predict is updated.
-                # Since we don't have text directly, we apply standard rendering if text is injected later.
+                    logger_instance.start_session(short_model_name(state["model_path"]), instr, instruction_mode=backend_mode)
+                    if logger_instance and state.get("gt_object"):
+                        logger_instance.data["gt_object"] = state["gt_object"]
+                    logger_instance.log_step(current_step, [0.0, 0.0, 0.0], 0, image=img)
+                ros_node.control.robust_stop(source="inference_start")
                 try:
-                    if hasattr(local_model_instance, 'last_text_output'):
-                        img = draw_bounding_box_from_text(img, local_model_instance.last_text_output)
+                    make_backend(backend_mode, api_url).reset(instr)
                 except Exception as e:
-                    pass
+                    return annotate_image(img), f"❌ Reset failed: {e}", "0 ms", "STOP", "Waiting...", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None
+                return annotate_image(img), "Step 1 (Start/Wait)", "0 ms", "0.0000, 0.0000, 0.0000", "Waiting...", gr.update(value="Running (step 1)..."), state["camera_status"], state["model_path"], None
 
-                # [LOGGING] Unified step logging
-                if logger_instance: 
-                    logger_instance.log_step(current_step, raw_act, raw_lat, raw_chunk, image=img)
-                
-                log = f"{current_step}/18 | {log_inf}"
-                return img, log, lat_str, act_str, chunk_str, gr.update(value=f"Running ({current_step}/18)"), state["camera_status"], state["model_path"], fig
-                
-            # Step > 18: Finish
-            else:
+            result = run_backend_inference(img, instr, backend_mode, api_url)
+            display_img = annotate_image(img, bbox=result.get("bbox"))
+            fig = ros_node.generate_trajectory_plot(result["chunk"])
+            if logger_instance:
+                logger_instance.log_step(
+                    current_step,
+                    result["action"],
+                    result.get("latency_ms", 0),
+                    result["chunk"],
+                    image=img,
+                    predicted_label=result.get("predicted_label"),
+                    grounding_caption=result.get("grounding_caption"),
+                    goal_near=result.get("goal_near"),
+                    strategy=result.get("strategy"),
+                    bbox=result.get("bbox"),
+                    instruction_used=result.get("instruction_used"),
+                    matched_path_type=result.get("matched_path_type"),
+                    speed_scale=result.get("speed_scale"),
+                    grounding_cached=result.get("grounding_cached"),
+                )
+            log = f"Step {current_step} | {result['log_str']}"
+            if result.get("goal_near"):
                 state["is_running"] = False
                 state["step_count"] = 0
-                if logger_instance: 
+                ros_node.control.robust_stop(source="goal_reached")
+                if logger_instance:
                     report_path = logger_instance.end_session()
-                    completion_msg = f"✅ Completed (18 Steps) | Log: {os.path.basename(report_path)}"
+                    log = f"🎯 Goal Reached! (step {current_step}) | Log: {Path(report_path).name}"
                 else:
-                    completion_msg = "✅ Completed (18 Steps)"
-                    
-                if ROS_AVAILABLE and ros_node:
-                     ros_node.control.robust_stop(source="inference_done")
-                return img, completion_msg, "0 ms", "STOP", "N/A", gr.update(value="Stopped (Finished)"), state["camera_status"], state["model_path"], None
-
+                    log = f"🎯 Goal Reached! (step {current_step})"
+                return display_img, log, result["lat_str"], result["act_str"], result["chunk_display"], gr.update(value="Stopped (Goal Reached)"), state["camera_status"], state["model_path"], fig
+            return display_img, log, result["lat_str"], result["act_str"], result["chunk_display"], gr.update(value=f"Running (step {current_step})"), state["camera_status"], state["model_path"], fig
         finally:
-            state["is_busy"] = False # UNLOCK
-            
-    # Not running or Manual Mode
-    return img, f"📡 Live | {state['current_log']}", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
+            state["is_busy"] = False
+
+    info = backend_model_info(backend_mode, api_url)
+    if info["model_loaded"]:
+        state["model_path"] = info["checkpoint_path"]
+        state["model_status"] = f"{backend_mode} ({info['precision']})"
+    return annotate_image(img), f"📡 Live | {state['current_log']}", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
 
 
-def run_api_inference(image, instruction, use_local):
-    """
-    Returns: log_str, lat_str, act_str, chunk_str, action, lat, chunk
-    """
-    # Default return if error
-    error_res = ("❌ Error", "N/A", "N/A", "N/A", np.zeros(2), 0.0, np.zeros((1, 2)))
-
-    # Local Inference Mode
-    if use_local:
-        global local_model_instance
-        if local_model_instance is None:
-            return ("⚠️ Model Not Loaded", "0 ms", "0.0, 0.0", "N/A", np.zeros(2), 0.0, np.zeros((1, 2)))
-        
-        try:
-            buffered = io.BytesIO()
-            image.save(buffered, format="JPEG")
-            img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-            
-            # Predict returns action, lat, full_chunk
-            action, lat, chunk = local_model_instance.predict(img_b64, instruction)
-            
-            # Format action chunk for display
-            chunk_str = np.array2string(chunk, precision=2, separator=', ', suppress_small=True)
-            chunk_display = f"Chunk (N={len(chunk)}):\n{chunk_str}"
-            
-            if ROS_AVAILABLE and ros_node:
-                # 0.4s Duration matching Data Collector
-                state["current_log"] = ros_node.control.move_and_stop_timed(action[0], action[1], 0.0, source="local_inference")
-            
-            # Format UI strings
-            log_str = f"✅ Local: {state['current_log']}"
-            lat_str = f"{lat:.1f} ms"
-            act_str = f"{action[0]:.4f}, {action[1]:.4f}"
-            
-            return log_str, lat_str, act_str, chunk_display, action, lat, chunk
-        except Exception as e:
-            print(f"Inference Exception: {e}")
-            import traceback
-            traceback.print_exc()
-            return (f"❌ Local Error: {e}", "N/A", "N/A", "N/A", np.zeros(2), 0.0, np.zeros((1, 2)))
-
-    # Remote API Mode (Legacy)
-    return ("❌ API Not Supported", "N/A", "N/A", "N/A", np.zeros(2), 0.0, np.zeros((1, 2)))
-
-# --- Control Handlers ---
 def handle_control(direction):
     if not ROS_AVAILABLE or not ros_node:
         return "ROS Error"
-    
+
     mapping = {
         "W": (LINEAR_SPEED_VLA, 0.0, 0.0),
         "S": (-LINEAR_SPEED_VLA, 0.0, 0.0),
@@ -557,144 +854,401 @@ def handle_control(direction):
         "E": (LINEAR_SPEED_VLA, -LINEAR_SPEED_VLA, 0.0),
         "R": (0.0, 0.0, ANGULAR_SPEED_VLA),
         "T": (0.0, 0.0, -ANGULAR_SPEED_VLA),
-        "STOP": (0.0, 0.0, 0.0)
+        "STOP": (0.0, 0.0, 0.0),
     }
-    
-    if direction in mapping:
-        lx, ly, az = mapping[direction]
-        if direction == "STOP":
-            ros_node.control.robust_stop(source="manual_stop")
-            state["current_log"] = "🛑 Force STOP"
-        else:
-            ros_node.control.move_and_stop_timed(lx, ly, az, source=f"manual_{direction}")
-            state["current_log"] = f"🕹️ Moving {direction} (Bang-Bang)"
+    lx, ly, az = mapping[direction]
+    if direction == "STOP":
+        ros_node.control.robust_stop(source="manual_stop")
+        state["current_log"] = "🛑 Force STOP"
+    else:
+        ros_node.control.move_and_stop_timed(lx, ly, az, source=f"manual_{direction}")
+        state["current_log"] = f"🕹️ Moving {direction} (Bang-Bang)"
     return state["current_log"]
 
-# --- Gradio UI ---
+
+def return_to_start() -> str:
+    """추론 중 실행된 액션을 역순/부호반전으로 재생 → 시작 위치 복귀."""
+    if state["is_returning"]:
+        state["is_returning"] = False
+        if ROS_AVAILABLE and ros_node:
+            ros_node.control.robust_stop(source="return_cancel")
+        return "🛑 복귀 취소됨"
+
+    history = state.get("action_history", [])
+    if not history:
+        return "⚠️ 복귀할 경로 없음 (주행 기록이 없습니다)"
+
+    def _run():
+        state["is_returning"] = True
+        try:
+            rev = [(-lx, -ly, -az) for lx, ly, az in reversed(history)]
+            for lx, ly, az in rev:
+                if not state["is_returning"]:
+                    break
+                if ROS_AVAILABLE and ros_node:
+                    ros_node.control.move_and_stop_ramped(lx, ly, az, source="return")
+            if ROS_AVAILABLE and ros_node:
+                ros_node.control.robust_stop(source="return_done")
+        finally:
+            state["is_returning"] = False
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+    return f"🔄 복귀 중... ({len(history)}스텝 역재생)"
+
+
+def reset_model_wrapper(backend_mode: str, api_url: str, instruction: str):
+    try:
+        return make_backend(backend_mode, api_url).reset(instruction)
+    except Exception as e:
+        return f"❌ Reset failed: {e}"
+
+
 with gr.Blocks(title="VLA PRO Dashboard") as demo:
     gr.Markdown("# 🚀 Mobile VLA Real-time Dashboard & Teleop")
-    
+    gr.Markdown(
+        """
+        <div style="background-color: #1e293b; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 4px; margin-bottom: 15px; color: #e2e8f0;">
+            <h4 style="margin: 0 0 6px 0; color: #60a5fa; font-size: 1.05rem;">📊 실로봇 주행 평가 세션 수집 목표 (Real Robot Eval Protocol)</h4>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.92rem; line-height: 1.5;">
+                <li><strong>정식 평가 목표:</strong> 9개 경로 타입(path_type) × 각 2회 = <strong>총 18회 주행 세션 기록</strong></li>
+                <li><strong>최소 단축 평가:</strong> 바스켓 위치 3종(LEFT / CENTER / RIGHT) × 각 3회 = <strong>총 9회 주행 세션 기록</strong></li>
+                <li><strong>평가 기록 도구:</strong> 주행 완료 시 즉시 <code>vla-trial-logger</code> (포트 7862)를 통해 기록을 저장하십시오.</li>
+            </ul>
+        </div>
+        """
+    )
+
+    _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
+    # 카메라 시작 → 완료 후 즉시 카메라 프레임 fetch
+    _cam_start_btn.click(fn=start_camera, outputs=_cam_st)
+    _cam_stop_btn.click(fn=stop_camera,   outputs=_cam_st)
+
     with gr.Row():
         with gr.Column(scale=2):
             camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
-            with gr.Row():
-                gr.Markdown("🟢 Continuous polling via GetImage service")
-                # Removed Auto-Inference Checkbox, replaced with Radio Mode
-                
-            
+            gr.Markdown("🟢 Continuous polling via GetImage service")
+
             with gr.Group():
                 gr.Markdown("### 🕹️ Operation Mode")
-                mode_radio = gr.Radio(choices=["Manual Drive", "Inference (18-step)"], value="Manual Drive", label="Controller Mode")
-                
+                mode_radio = gr.Radio(
+                    choices=["Manual Drive", "Inference (Auto)", "Inference (18-step)"],
+                    value="Manual Drive",
+                    label="Controller Mode",
+                )
+
                 with gr.Row(visible=False) as inference_panel:
                     with gr.Column():
-                        # --- Manual File Selection Dropdowns ---
+                        backend_radio = gr.Radio(
+                            choices=["Local Runtime", "API Server"],
+                            value=DEFAULT_BACKEND_MODE,
+                            label="Inference Backend",
+                        )
+                        api_url_box = gr.Textbox(label="API URL", value=DEFAULT_API_URL)
+
                         ckpts, confs = scan_local_files()
-                        ckpt_dropdown = gr.Dropdown(choices=ckpts, label="🎯 Select Checkpoint (.ckpt/.pth)", value=ckpts[0][1] if ckpts else None)
-                        conf_dropdown = gr.Dropdown(choices=confs, label="⚙️ Select Config (.json)", value=confs[0][1] if confs else None)
-                        
-                        quant_radio = gr.Radio(choices=["INT8 (Fast)", "FP16 (Accurate)"], value="FP16 (Accurate)", label="Model Precision")
-                        btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
-                        load_status = gr.Textbox(label="Model Status", value="Not Loaded", interactive=False)
-                        model_path = gr.Textbox(label="Loaded Checkpoint Path", value="N/A", interactive=False)
+                        # Local Runtime 전용 컨트롤 — API Server 선택 시 자동 숨김
+                        _is_api = DEFAULT_BACKEND_MODE == "API Server"
+                        with gr.Column(visible=not _is_api) as local_panel:
+                            ckpt_dropdown = gr.Dropdown(
+                                choices=ckpts,
+                                label="🎯 Select Checkpoint (.ckpt/.pth)",
+                                value=pick_default_choice(ckpts, "VLA_CHECKPOINT_PATH"),
+                            )
+                            conf_dropdown = gr.Dropdown(
+                                choices=confs,
+                                label="⚙️ Select Config (.json)",
+                                value=pick_default_choice(confs, "VLA_CONFIG_PATH"),
+                            )
+                            quant_radio = gr.Radio(
+                                choices=["INT8 (Fast)", "FP16 (Accurate)"],
+                                value="FP16 (Accurate)",
+                                label="Model Precision",
+                            )
+                            btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
+
+                        load_status = gr.Textbox(
+                            label="Model Status",
+                            value="API Server 연결됨" if _is_api else "Not Loaded",
+                            interactive=False,
+                        )
+                        model_path = gr.Textbox(label="Active Model / Checkpoint", value="N/A", interactive=False)
                         toggle_cc = gr.Checkbox(label="🎨 RGB Red Gain Boost", value=False)
+
+                        def on_backend_change(backend):
+                            is_api = backend == "API Server"
+                            status = "API Server 연결됨" if is_api else "Not Loaded"
+                            return gr.update(visible=not is_api), gr.update(value=status)
+
+                        backend_radio.change(
+                            fn=on_backend_change,
+                            inputs=[backend_radio],
+                            outputs=[local_panel, load_status],
+                        )
+
                     with gr.Column():
                         gr.Markdown("#### 🏁 Inference Control")
                         with gr.Row():
-                            btn_start_inf = gr.Button("▶️ START (18 Steps)", variant="primary")
+                            btn_start_inf = gr.Button("▶️ START", variant="primary")
                             btn_stop_inf = gr.Button("⏹️ STOP", variant="stop")
+                        btn_return = gr.Button("🔄 시작 위치 복귀", variant="secondary")
                         run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
-            
-            def on_mode_change(mode):
-                state["auto_inference"] = (mode == "Inference (18-step)")
-                # Reset running state when mode changes
+
+            def on_mode_change(selected_mode):
+                state["auto_inference"] = selected_mode in ("Inference (Auto)", "Inference (18-step)")
                 state["is_running"] = False
                 state["step_count"] = 0
                 return gr.Row.update(visible=state["auto_inference"])
 
-            def set_running(running):
-                state["is_running"] = running
-                if running:
-                    state["step_count"] = 0 # Reset counter on start
-                    # Reset model history if needed
-                    if local_model_instance: local_model_instance.reset()
-                return "Running..." if running else "Stopped"
-
             mode_radio.change(fn=on_mode_change, inputs=[mode_radio], outputs=[inference_panel])
-            mode_radio.change(fn=on_mode_change, inputs=[mode_radio], outputs=[inference_panel])
-            btn_load_model.click(fn=init_local_model, inputs=[quant_radio, ckpt_dropdown, conf_dropdown], outputs=load_status)
-            
-            btn_start_inf.click(fn=lambda: set_running(True), outputs=run_status_box)
-            btn_stop_inf.click(fn=lambda: set_running(False), outputs=run_status_box)
+            btn_load_model.click(
+                fn=load_model_wrapper,
+                inputs=[backend_radio, api_url_box, quant_radio, ckpt_dropdown, conf_dropdown],
+                outputs=[load_status, model_path],
+            )
 
             with gr.Group():
                 gr.Markdown("### 🎮 Manual Controls")
                 with gr.Row():
-                    btn_q = gr.Button("↖️ Q", scale=1); btn_w = gr.Button("⬆️ W", scale=1); btn_e = gr.Button("↗️ E", scale=1)
+                    btn_q = gr.Button("↖️ Q", scale=1)
+                    btn_w = gr.Button("⬆️ W", scale=1)
+                    btn_e = gr.Button("↗️ E", scale=1)
                 with gr.Row():
-                    btn_a = gr.Button("⬅️ A", scale=1); btn_stop = gr.Button("🛑 SPACE (STOP)", variant="danger", scale=1); btn_d = gr.Button("➡️ D", scale=1)
+                    btn_a = gr.Button("⬅️ A", scale=1)
+                    btn_stop = gr.Button("🛑 SPACE (STOP)", variant="danger", scale=1)
+                    btn_d = gr.Button("➡️ D", scale=1)
                 with gr.Row():
-                    btn_r = gr.Button("🔄 CCW (R)", scale=1); btn_s = gr.Button("⬇️ S", scale=1); btn_t = gr.Button("🔄 CW (T)", scale=1)
-            
+                    btn_r = gr.Button("🔄 CCW (R)", scale=1)
+                    btn_s = gr.Button("⬇️ S", scale=1)
+                    btn_t = gr.Button("🔄 CW (T)", scale=1)
+
         with gr.Column(scale=1):
-            instr_box = gr.Textbox(label="Robot Prompt", value=DEFAULT_INSTRUCTION)
+            with gr.Group():
+                exp_mode = gr.Dropdown(
+                    choices=EXP_MODE_NAMES,
+                    value=EXP_MODE_NAMES[0],
+                    label="실험 모드",
+                )
+                exp_config_status = gr.Textbox(label="서버 Config 상태", value="미적용", interactive=False)
+                goal_dropdown = gr.Dropdown(
+                    choices=["(직접 입력)"] + GOAL_NAV_PRESETS,
+                    value=GOAL_NAV_PRESETS[0],
+                    label="Goal Object 선택",
+                    visible=True,
+                )
+                path_dropdown = gr.Dropdown(
+                    choices=PATH_TYPES,
+                    value="right_right",
+                    label="Path Type 선택",
+                    visible=False,
+                )
+                instr_box_real = gr.Textbox(
+                    label="🤖 Robot Prompt (모델에게 주는 프롬프트 — 틀린 값 테스트 가능)",
+                    value=DEFAULT_INSTRUCTION,
+                )
+                gt_object_box = gr.Textbox(
+                    label="🎯 GT Object (실제 있는 물체 — 로깅/평가용, 모델에 전달 안됨)",
+                    value="gray basket",
+                    placeholder="예: gray basket (wrong prompt 테스트 시 실제 물체 기록)",
+                )
             camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False)
+
+            with gr.Accordion("🛑 자동 정지 설정", open=True):
+                gr.Markdown(
+                    "실제 grounding bbox area가 threshold 이상이면 자동 STOP\n"
+                    "_(fallback bbox는 area=0.06 고정 → 정지 안됨)_"
+                )
+                stop_area_slider = gr.Slider(
+                    minimum=0.05, maximum=0.50, step=0.01, value=0.18,
+                    label="정지 area threshold (0=항상정지, 0.18=약 0.5m, 0.30=약 0.3m)",
+                )
+                stop_cx_slider = gr.Slider(
+                    minimum=0.10, maximum=0.50, step=0.05, value=0.25,
+                    label="중앙 허용 편차 cx ± (0.25 = 화면 중앙 50% 이내)",
+                )
+                bbox_area_display = gr.Textbox(
+                    label="현재 bbox area (실시간)", value="—", interactive=False
+                )
+
+                def apply_stop_config(area_thr, cx_tol, api_url):
+                    try:
+                        import requests as _req
+                        r = _req.post(
+                            f"{api_url.rstrip('/')}/config",
+                            json={"stop_area_threshold": area_thr, "stop_cx_tolerance": cx_tol},
+                            headers={"X-API-Key": API_KEY},
+                            timeout=5,
+                        )
+                        return f"✅ 적용: area≥{area_thr:.2f}, cx±{cx_tol:.2f}"
+                    except Exception as e:
+                        return f"⚠️ 적용 실패: {e}"
+
+                stop_apply_btn = gr.Button("적용", size="sm", variant="secondary")
+                stop_config_status = gr.Textbox(label="", value="", interactive=False, lines=1)
+                stop_apply_btn.click(
+                    fn=apply_stop_config,
+                    inputs=[stop_area_slider, stop_cx_slider, api_url_box],
+                    outputs=stop_config_status,
+                )
+
             status_log = gr.Textbox(label="Status", value="Ready")
             latency_val = gr.Textbox(label="Latency", value="0 ms")
-            action_val = gr.Textbox(label="Predicted Action [v, w]", value="0, 0")
-            chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=2)
-            
-            # --- Trajectory Visualization ---
+            action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
+            chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
             traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
-            
             btn_reset = gr.Button("🔄 Reset Model History")
-            
-            gr.Markdown("---")
-            gr.Markdown("""
-            ### ⌨️ Keyboard Shortcuts
-            - **W/A/S/D/Q/E**: Move (0.4s)
-            - **R/T**: Spin
-            - **Space**: Stop
-            """)
 
-    # Event Bindings
+    btn_start_inf.click(
+        fn=lambda mode, url, instr, gt: set_running(True, mode, url, instr, gt),
+        inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box],
+        outputs=run_status_box,
+    )
+    btn_stop_inf.click(
+        fn=lambda: state.update({"is_running": False, "step_count": 0}) or "Stopped",
+        outputs=run_status_box,
+    )
+    btn_return.click(
+        fn=return_to_start,
+        outputs=run_status_box,
+    )
+
     directions = {
-        btn_w: "W", btn_s: "S", btn_a: "A", btn_d: "D",
-        btn_q: "Q", btn_e: "E", btn_r: "R", btn_t: "T",
-        btn_stop: "STOP"
+        btn_w: "W",
+        btn_s: "S",
+        btn_a: "A",
+        btn_d: "D",
+        btn_q: "Q",
+        btn_e: "E",
+        btn_r: "R",
+        btn_t: "T",
+        btn_stop: "STOP",
     }
-    for btn, d in directions.items():
-        btn.click(fn=handle_control, inputs=[gr.State(d)], outputs=status_log)
+    for button, direction in directions.items():
+        button.click(fn=handle_control, inputs=[gr.State(direction)], outputs=status_log)
 
-    # Timer: VLA Inference (0.4s move) takes time. We use 0.5s ticks and a busy-lock to prevent OOM.
+    def _get_bbox_area_display():
+        """최근 예측의 bbox area 표시 (정지 판단 기준 시각화)."""
+        try:
+            import requests as _req
+            r = _req.get(f"{DEFAULT_API_URL}/recent", timeout=2)
+            preds = r.json().get("predictions", [])
+            if preds:
+                p = preds[0]
+                bbox = p.get("bbox", {})
+                area = bbox.get("area", 0)
+                entity = bbox.get("entity", "?")
+                cx = bbox.get("cx", 0.5)
+                near = "🔴 STOP 조건 충족!" if area >= 0.18 and abs(cx - 0.5) <= 0.25 and entity not in ("coarse_clf", "center_fallback", "") and not entity.startswith("caption:") else ""
+                return f"area={area:.3f}  cx={cx:.2f}  [{entity[:20]}]  {near}"
+        except Exception:
+            pass
+        return "—"
+
     timer = gr.Timer(0.5, active=True)
     timer.tick(
         fn=update_ui,
-        inputs=[mode_radio, instr_box, toggle_cc, run_status_box],
-        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot]
+        inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
+        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
+    )
+    timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
+    # 페이지 열리자마자 첫 프레임 즉시 표시
+    demo.load(
+        fn=update_ui,
+        inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
+        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
+    )
+    # 카메라 시작 버튼 완료 후 즉시 프레임 가져오기
+    _cam_start_btn.click(fn=start_camera, outputs=_cam_st).then(
+        fn=update_ui,
+        inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
+        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
     )
 
+    btn_reset.click(
+        fn=reset_model_wrapper,
+        inputs=[backend_radio, api_url_box, instr_box_real],
+        outputs=status_log,
+    )
 
-    def reset_model_wrapper():
-        if local_model_instance:
-            local_model_instance.reset()
-            return "✅ Local History Cleared"
-        try:
-            requests.post(f"{API_URL}/reset", headers={"X-API-Key": API_KEY}, timeout=2)
-            return "✅ API Reset Success"
-        except: return "❌ Reset failed"
-    btn_reset.click(fn=reset_model_wrapper, outputs=status_log)
+    def on_exp_mode_change(mode_name, api_url, backend_mode):
+        cfg = EXP_MODES.get(mode_name, EXP_MODES[EXP_MODE_NAMES[0]])
+        is_goal = "GoalNav" in mode_name or "Stage2V2" in mode_name
+        instr = cfg["instruction"]
+        model_key = cfg.get("model")
+        desc = cfg.get("desc", "")
 
-    demo.load(None, None, None, js="""
-    () => {
-        document.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            const mapping = {
-                'w': 'W', 's': 'S', 'a': 'A', 'd': 'D',
-                'q': 'Q', 'e': 'E', 'r': 'R', 't': 'T',
-                ' ': 'STOP'
-            };
-            if (mapping[key]) {
+        # config/checkpoint 자동 매칭
+        auto_conf = cfg.get("config")
+        auto_ckpt = cfg.get("checkpoint")
+        conf_update = gr.update(value=auto_conf) if auto_conf else gr.update()
+        ckpt_update = gr.update(value=auto_ckpt) if auto_ckpt else gr.update()
+
+        # GoalNav 모드면 backend 종류 상관없이 API 서버에 config push 시도
+        cfg_status = ""
+        if is_goal and model_key:
+            try:
+                ApiInferenceBackend(api_url).set_config(
+                    speed_scaling=cfg["speed_scaling"],
+                    grounding_skip_n=cfg["grounding_skip_n"],
+                    model=model_key,
+                )
+                parts = [f"model={model_key}", f"skip_n={cfg['grounding_skip_n']}"]
+                if cfg["speed_scaling"]:
+                    parts.append("속도비례ON")
+                cfg_status = "✅ 서버 적용: " + ", ".join(parts)
+                if auto_conf:
+                    cfg_status += f"  |  📋 {Path(auto_conf).name}"
+            except Exception as e:
+                cfg_status = f"⚠️ 서버 적용 실패: {e}"
+                if auto_conf:
+                    cfg_status += f"  |  📋 로컬: {Path(auto_conf).name}"
+        elif auto_conf:
+            cfg_status = f"📋 자동 매칭: {Path(auto_conf).name}"
+        else:
+            cfg_status = "미적용"
+
+        return (
+            gr.update(visible=is_goal),
+            gr.update(visible=not is_goal),
+            instr,
+            cfg_status,
+            conf_update,
+            ckpt_update,
+        )
+
+    exp_mode.change(
+        fn=on_exp_mode_change,
+        inputs=[exp_mode, api_url_box, backend_radio],
+        outputs=[goal_dropdown, path_dropdown, instr_box_real, exp_config_status, conf_dropdown, ckpt_dropdown],
+    )
+
+    def on_goal_select(choice):
+        if choice == "(직접 입력)":
+            return gr.update()
+        return choice
+
+    goal_dropdown.change(
+        fn=on_goal_select,
+        inputs=[goal_dropdown],
+        outputs=[instr_box_real],
+    )
+
+    path_dropdown.change(
+        fn=lambda v: v,
+        inputs=[path_dropdown],
+        outputs=[instr_box_real],
+    )
+
+    demo.load(
+        None,
+        None,
+        None,
+        js="""
+        () => {
+            document.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                const mapping = {'w': 'W', 's': 'S', 'a': 'A', 'd': 'D', 'q': 'Q', 'e': 'E', 'r': 'R', 't': 'T', ' ': 'STOP'};
+                if (!mapping[key]) return;
                 const buttons = document.querySelectorAll('button');
                 for (let b of buttons) {
                     if (b.innerText.includes(mapping[key]) || (mapping[key] === 'STOP' && b.innerText.includes('SPACE'))) {
@@ -702,46 +1256,57 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
                         break;
                     }
                 }
-            }
-        });
-    }
-    """)
+            });
+        }
+        """,
+    )
+
 
 if __name__ == "__main__":
-    # 🌍 [Fixed URL Setup]
-    # 1. Local Network: Always available at http://<LOCAL_IP>:7865
-    # 2. Public URL: Use ngrok for fixed domain (optional)
-    
     import socket
+
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
         s.close()
-    except:
+    except Exception:
         local_ip = "127.0.0.1"
-        
-    print("="*60)
-    print(f"✅ Dashboard starting...")
-    print(f"🏠 Local Access: http://{local_ip}:7865")
-    print("="*60)
-    
-    # Optional: Start ngrok if installed and token present
-    # This gives a stable public URL if you have a paid ngrok plan, or a random one otherwise
-    # but it separates the public link management from Gradio's built-in share.
-    
-    # [Gradio Launch]
-    # 1. server_name="0.0.0.0": Allows access from other devices on the same Wi-Fi (Fixed IP)
-    # 2. share=True: Generates a public link (Randomly changes every restart)
-    #    * Note: To get a FIXED public link, you need a paid Ngrok account or persistent tunnel.
-    #    * For local development, use the "Local Access" IP printed above (http://192.168.x.x:7865)
-    
-    print(f"🌍 Public Share: Enabled (Link will be random due to free tier limit)")
-    
+
+    requested_port = int(os.getenv("VLA_INFERENCE_PORT", os.getenv("GRADIO_SERVER_PORT", "7865")))
+    server_port = pick_server_port(requested_port)
+    share_enabled = os.getenv("GRADIO_SHARE", "1").lower() not in {"0", "false", "no"}
+
+    print("=" * 60)
+    print("✅ Dashboard starting...")
+    print(f"🏠 Local Access: http://{local_ip}:{server_port}")
+    print("=" * 60)
+
+    import socket as _sock
+    try:
+        _s = _sock.socket(_sock.AF_INET, _sock.SOCK_DGRAM)
+        _s.connect(("8.8.8.8", 80))
+        _server_ip = _s.getsockname()[0]
+        _s.close()
+    except Exception:
+        _server_ip = "localhost"
+    # Tailscale IP 우선
+    try:
+        import subprocess as _sp
+        _out = _sp.check_output(["ip", "addr"], text=True)
+        for _line in _out.splitlines():
+            if _line.strip().startswith("inet 100."):
+                _server_ip = _line.strip().split()[1].split("/")[0]
+                break
+    except Exception:
+        pass
+    _root = f"http://{_server_ip}:{server_port}"
+
     demo.launch(
-        server_name="0.0.0.0", 
-        server_port=7865, 
-        share=True,   # ✅ Use Share Link (Random URL) as requested
+        server_name="0.0.0.0",
+        server_port=server_port,
+        share=share_enabled,
         theme=gr.themes.Soft(),
-        ssl_verify=False
+        ssl_verify=False,
+        root_path=_root,
     )

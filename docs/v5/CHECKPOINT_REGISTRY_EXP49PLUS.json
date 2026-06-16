@@ -1,0 +1,131 @@
+{
+  "generated": "2026-05-22",
+  "description": "Exp49 이후 SODA 서버에 전송된 MLP/CLIP 체크포인트 레지스트리",
+  "soda_server": "soda@100.85.118.58",
+  "soda_root": "~/MoNaVLA",
+  "note": "exp54/stage1 (586MB LoRA adapter) 는 미전송 — stage1_v2가 대체",
+
+  "checkpoints": {
+    "exp49": {
+      "ckpt": "runs/v5_nav/mlp/exp49/exp49_mlp.pt",
+      "type": "ActionMLP",
+      "d_in": 1056,
+      "input": "bbox(32) + vision_feat(1024)",
+      "vision_source": "docs/v5/bbox_nav_exp46/vision_features.npz",
+      "vision_key": "vision_features",
+      "window": 8,
+      "num_classes": 8,
+      "eval_script": "scripts/sim/evaluate_closed_loop_v5.py --model exp49",
+      "pm_offline": null,
+      "cl_success": null,
+      "status": "미평가 — SODA에서 평가 필요"
+    },
+    "exp50": {
+      "ckpt": "runs/v5_nav/mlp/exp50/exp50_mlp.pt",
+      "type": "ActionMLP",
+      "d_in": 1056,
+      "input": "bbox(32) + vision_feat(1024)",
+      "vision_source": "docs/v5/bbox_nav_exp46/vision_features.npz",
+      "vision_key": "vision_features",
+      "window": 8,
+      "num_classes": 8,
+      "eval_script": "scripts/sim/evaluate_closed_loop_v5.py --model exp50",
+      "pm_offline": null,
+      "cl_success": null,
+      "status": "미평가 — SODA에서 평가 필요"
+    },
+    "exp51": {
+      "ckpt": "runs/v5_nav/mlp/exp51/exp51_mlp.pt",
+      "type": "ActionMLP",
+      "d_in": 1056,
+      "input": "bbox(32) + vision_feat(1024)",
+      "vision_source": "docs/v5/bbox_nav_exp46/vision_features.npz",
+      "vision_key": "vision_features",
+      "window": 8,
+      "num_classes": 8,
+      "eval_script": "scripts/sim/evaluate_closed_loop_v5.py --model exp51",
+      "pm_offline": null,
+      "cl_success": null,
+      "status": "미평가 — SODA에서 평가 필요"
+    },
+    "exp52": {
+      "ckpt": "runs/v5_nav/mlp/exp52/exp52_mlp.pt",
+      "type": "ActionMLP",
+      "d_in": 2080,
+      "input": "bbox(32) + lang_vis_feat(2048)",
+      "vision_source": "docs/v5/bbox_nav_exp52/lang_vis_features.npz",
+      "vision_key": "lang_vis_features",
+      "window": 8,
+      "num_classes": 8,
+      "eval_script": "scripts/sim/evaluate_closed_loop_v5.py --model exp52",
+      "pm_offline": null,
+      "cl_success": null,
+      "status": "미평가 — SODA에서 평가 필요"
+    },
+    "exp53": {
+      "ckpt": "runs/v5_nav/mlp/exp53/exp53_clip_lora.pt",
+      "lora_adapter": "runs/v5_nav/mlp/exp53/clip_lora_adapter/",
+      "type": "FrozenCLIPLoRA + ActionMLP",
+      "d_in": 1056,
+      "input": "bbox(32) + CLIP-LoRA-feat(1024)",
+      "vision_source": "online (VLM forward pass required)",
+      "vlm_required": ".vlms/kosmos-2-patch14-224",
+      "window": 8,
+      "num_classes": 8,
+      "eval_script": "scripts/eval_exp54_stage2.py",
+      "pm_offline": 0.9468,
+      "cl_success": null,
+      "status": "PM 평가 완료 (94.68%). CL 미평가"
+    },
+    "exp54_stage2_v1": {
+      "ckpt": "runs/v5_nav/mlp/exp54/stage2/stage2_mlp.pt",
+      "stage1_required": "runs/v5_nav/mlp/exp53/clip_lora_adapter/",
+      "type": "FrozenCLIPLoRA + ActionMLP (Stage1 LoRA frozen)",
+      "d_in": 1056,
+      "input": "bbox(32) + CLIP-LoRA-feat(1024)",
+      "vision_source": "online (VLM + LoRA forward pass required)",
+      "vlm_required": ".vlms/kosmos-2-patch14-224",
+      "window": 8,
+      "num_classes": 8,
+      "eval_script": "scripts/eval_exp54_stage2.py",
+      "pm_offline": null,
+      "cl_success": null,
+      "status": "미평가"
+    },
+    "exp54_stage2_v2": {
+      "ckpt": "runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
+      "stage1_required": "runs/v5_nav/mlp/exp54/stage1_v2/stage1_v2_projs.pt",
+      "type": "FrozenCLIPV2 + ActionMLP",
+      "d_in": 288,
+      "input": "bbox(32) + CLIP-proj-feat(256, L2-normed)",
+      "vision_source": "online (base Kosmos-2 + image_proj forward pass)",
+      "vlm_required": ".vlms/kosmos-2-patch14-224",
+      "window": 8,
+      "num_classes": 8,
+      "eval_script_pm": "scripts/eval_exp54_stage2_v2.py",
+      "eval_script_cl": "scripts/eval_exp54_stage2_v2_closedloop.py",
+      "pm_offline": null,
+      "cl_success": null,
+      "status": "학습 중 (PID 1405772) — 완료 후 rsync 추가 필요"
+    }
+  },
+
+  "eval_dependencies": {
+    "exp49_to_52_offline": "docs/v5/bbox_nav_exp46/vision_features.npz (6.7MB)",
+    "exp52_only": "docs/v5/bbox_nav_exp52/lang_vis_features.npz (13MB)",
+    "exp53_to_exp54": ".vlms/kosmos-2-patch14-224 (SODA에 이미 존재해야 함)",
+    "shared_metadata": "docs/v5/bbox_nav_exp46/bbox_dataset_full.json"
+  },
+
+  "baseline_reference": {
+    "exp17": {"cl_success": 0.111, "note": "현재 SODA primary"},
+    "exp18": {"cl_success": 0.111, "note": "현재 SODA fallback"},
+    "exp25": {"pm_offline": 0.524, "cl_success": 0.556, "note": "현재 최선 (minum 기록)"},
+    "exp14_step2": {"pm_offline": 0.759, "cl_success": 0.667, "note": "decomposition best (로봇 미연결)"}
+  },
+
+  "deploy_threshold": {
+    "cl_success_min": 0.333,
+    "note": "Exp17 대비 3배 이상이어야 서버 교체 고려"
+  }
+}

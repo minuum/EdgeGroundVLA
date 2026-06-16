@@ -1,0 +1,844 @@
+{
+  "stats": {
+    "gray basket": {
+      "hit": 17,
+      "total": 30,
+      "cx_errors": [
+        0.08984375,
+        0.1796875,
+        0.01171875,
+        0.01025390625,
+        0.0087890625,
+        0.00634765625,
+        0.0810546875,
+        0.08447265625,
+        0.05517578125,
+        0.09912109375,
+        0.1064453125,
+        0.05126953125,
+        0.0014148437500000055,
+        0.11474609375,
+        0.1025390625,
+        0.07861328125,
+        0.1904296875
+      ]
+    },
+    "person": {
+      "hit": 0,
+      "total": 30,
+      "cx_errors": []
+    },
+    "white wall": {
+      "hit": 0,
+      "total": 30,
+      "cx_errors": []
+    }
+  },
+  "details": [
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 0,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 1,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0293><loc0879><loc0547> gray basket<eos>",
+      "bbox": [
+        0.2861328125,
+        0.453125,
+        0.5341796875,
+        0.8583984375
+      ]
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 2,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0215><loc0849><loc0441> gray basket<eos>",
+      "bbox": [
+        0.2099609375,
+        0.453125,
+        0.4306640625,
+        0.8291015625
+      ]
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 3,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0373><loc0873><loc0627> gray basket<eos>",
+      "bbox": [
+        0.3642578125,
+        0.453125,
+        0.6123046875,
+        0.8525390625
+      ]
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 4,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0382><loc0857><loc0621> gray basket<eos>",
+      "bbox": [
+        0.373046875,
+        0.4599609375,
+        0.6064453125,
+        0.8369140625
+      ]
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 5,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 6,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0403><loc0864><loc0639> gray basket<eos>",
+      "bbox": [
+        0.3935546875,
+        0.453125,
+        0.6240234375,
+        0.84375
+      ]
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 7,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0398><loc0870><loc0639> gray basket<eos>",
+      "bbox": [
+        0.388671875,
+        0.4599609375,
+        0.6240234375,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 8,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 9,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0476><loc0870><loc0714> gray basket<eos>",
+      "bbox": [
+        0.46484375,
+        0.4599609375,
+        0.697265625,
+        0.849609375
+      ]
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 10,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0304><loc0873><loc0547> gray basket<eos>",
+      "bbox": [
+        0.296875,
+        0.4599609375,
+        0.5341796875,
+        0.8525390625
+      ]
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 11,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0329><loc0875><loc0582> gray basket<eos>",
+      "bbox": [
+        0.3212890625,
+        0.4599609375,
+        0.568359375,
+        0.8544921875
+      ]
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 12,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0286><loc0879><loc0535> gray basket<eos>",
+      "bbox": [
+        0.279296875,
+        0.4599609375,
+        0.5224609375,
+        0.8583984375
+      ]
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 13,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0286><loc0854><loc0520> gray basket<eos>",
+      "bbox": [
+        0.279296875,
+        0.4599609375,
+        0.5078125,
+        0.833984375
+      ]
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 14,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 15,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 16,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 17,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0340><loc0864><loc0579> gray basket<eos>",
+      "bbox": [
+        0.33203125,
+        0.4599609375,
+        0.5654296875,
+        0.84375
+      ]
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 18,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0363><loc0864><loc0600> gray basket<eos>",
+      "bbox": [
+        0.3544921875,
+        0.4599609375,
+        0.5859375,
+        0.84375
+      ]
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 19,
+      "path_type": "center_straight",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0279><loc0847><loc0510> gray basket<eos>",
+      "bbox": [
+        0.2724609375,
+        0.453125,
+        0.498046875,
+        0.8271484375
+      ]
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 20,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 21,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 22,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 23,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0471><loc0297><loc0834><loc0517> gray basket<eos>",
+      "bbox": [
+        0.2900390625,
+        0.4599609375,
+        0.5048828125,
+        0.814453125
+      ]
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 24,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0316><loc0845><loc0547> gray basket<eos>",
+      "bbox": [
+        0.30859375,
+        0.453125,
+        0.5341796875,
+        0.8251953125
+      ]
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 25,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 26,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 27,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 28,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "gray basket",
+      "hit": true,
+      "decoded": "<loc0464><loc0270><loc0838><loc0492> gray basket<eos>",
+      "bbox": [
+        0.263671875,
+        0.453125,
+        0.48046875,
+        0.818359375
+      ]
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "person",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    },
+    {
+      "frame": 29,
+      "path_type": "center_left",
+      "phrase": "white wall",
+      "hit": false,
+      "decoded": "<eos>",
+      "bbox": []
+    }
+  ]
+}

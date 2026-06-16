@@ -109,6 +109,50 @@ MODELS = {
         "fwd_pred_next_n": 5,
         "num_classes": 8,
     },
+    "exp41b_resume_exp40_pta": {
+        "exp_dir": "runs/v5_nav/kosmos/mobile_vla_v5_exp41b",
+        "config": "configs/mobile_vla_v5_exp41b_resume_exp40_pta.json",
+        "window_size": 8,
+        "fwd_pred_next_n": 1,
+        "num_classes": 8,
+    },
+    "exp41c_scratch_pta": {
+        "exp_dir": "runs/v5_nav/kosmos/mobile_vla_v5_exp41c",
+        "config": "configs/mobile_vla_v5_exp41c_scratch_pta.json",
+        "window_size": 8,
+        "fwd_pred_next_n": 5,
+        "num_classes": 8,
+    },
+    "exp42_counterfactual_pta": {
+        "exp_dir": "runs/v5_nav/kosmos/mobile_vla_v5_exp42",
+        "config": "configs/mobile_vla_v5_exp42_counterfactual_pta.json",
+        "window_size": 8,
+        "fwd_pred_next_n": 3,
+        "num_classes": 8,
+    },
+    "exp43_cross_attn_text": {
+        "exp_dir": "runs/v5_nav/kosmos/mobile_vla_v5_exp43",
+        "config": "configs/mobile_vla_v5_exp43_cross_attn_text.json",
+        "window_size": 8,
+        "fwd_pred_next_n": 3,
+        "num_classes": 8,
+    },
+    # Exp45: vision-only LoRA (text decoder LoRA 제거). 가설: text attention 살아남는지 확인.
+    "exp45_vision_lora_only": {
+        "exp_dir": "runs/v5_nav/kosmos/mobile_vla_v5_exp45",
+        "config": "configs/mobile_vla_v5_exp45_vision_lora_only.json",
+        "window_size": 8,
+        "fwd_pred_next_n": 5,
+        "num_classes": 8,
+    },
+    # Exp48: synthetic instruction LoRA. val_loss가 Exp45와 소수점 3자리까지 동일 → text=0% 재확인용.
+    "exp48_synthetic_instr": {
+        "exp_dir": "runs/v5_nav/kosmos/mobile_vla_v5_exp48",
+        "config": "configs/mobile_vla_v5_exp48_synthetic_instr.json",
+        "window_size": 8,
+        "fwd_pred_next_n": 5,
+        "num_classes": 8,
+    },
 }
 
 INSTRUCTIONS = {
