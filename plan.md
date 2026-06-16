@@ -1,201 +1,119 @@
-# Plan: exp53 CL 평가 + 허브 CL 대시보드
+# Plan: 결론 체크포인트 정리 + 채우기/축약
 
-**작성일**: 2026-05-27 (업데이트: 2026-06-03)  
-**상태**: 승인 완료 (사용자 Option 1 선택)
-
----
-
-## 배경
-
-CL eval (`evaluate_closed_loop_v5.py`)은 pre-extracted `.npz` features를 사용함.  
-exp53은 LoRA-enhanced vision_model이므로 새 npz 추출 필요.  
-허브에 CL 결과 + 실로봇 주행 로그 저장 페이지 추가.
+> 상태: **검토 대기** — 승인 전 코드 작성 없음
 
 ---
 
-## 변경 범위
+## 변경 대상 파일
 
-### 1. `scripts/extract_vis_features_exp53.py` (신규)
-
-LoRA 적용 vision_model로 150 episodes 전체 features 추출 → npz 저장
-
-```python
-# 핵심 흐름
-processor, model = load_kosmos2()                          # Pure HF Kosmos-2
-model.vision_model = PeftModel.from_pretrained(            # LoRA 적용
-    model.vision_model, ADAPTER_PATH
-).eval()
-
-# bbox_dataset_full.json의 150 에피소드 순회
-# 각 프레임: vision_model(pixel_values) → mean pool → (1024,)
-# 에피소드 단위 저장: vision_features.npz, vision_features_index.json
-
-OUT_DIR = ROOT / "docs/v5/bbox_nav_exp53"
-```
+| 파일 | 변경 성격 |
+|---|---|
+| `docs/v5/research_story.html` | 버그픽스 + 체크포인트 섹션 추가 + SUMMARY 쇄신 |
+| `README.md` | CH 카운트 오류 수정 |
+| `docs/index.html` | link-card 텍스트 + metrics-bar |
 
 ---
 
-### 2. `scripts/sim/evaluate_closed_loop_v5.py` 수정
+## 변경 1 — research_story.html: 버그픽스
 
-#### 2-a. exp53 등록
-
-```python
-GOAL_NAV_CKPTS["exp53"] = ROOT / "runs/v5_nav/mlp/exp53_clip_lora.pt"
-GOAL_NAV_VIS_DIRS["exp53"] = ROOT / "docs/v5/bbox_nav_exp53"
-GOAL_NAV_VIS_KEYS["exp53"] = "vision_features"
-```
-
-#### 2-b. `--model` choices에 exp53 추가
-
-```python
-ap.add_argument("--model", choices=[..., "exp53", ...])
-```
-
-#### 2-c. exp53 checkpoint format 처리
-
-현재 코드:
-```python
-ckpt = torch.load(...)
-d_in = ckpt["d_in"]                         # exp53엔 없음
-mlp.load_state_dict(ckpt["model_state_dict"])  # exp53엔 없음
-```
-
-수정:
-```python
-if "mlp" in ckpt and "model_state_dict" not in ckpt:
-    state = ckpt["mlp"]
-    d_in = state["net.0.weight"].shape[1]
-    mlp = nn.Sequential(...)
-    # load full GoalNavMLP state
-    tmp = {"net." + k if not k.startswith("net.") else k: v ... }
-    # 아니면 그냥 net.* prefix 처리
-else:
-    d_in = ckpt["d_in"]
-    mlp.load_state_dict(ckpt["model_state_dict"])
-```
-
-> 실제로는 GoalNavMLP 껍질 없이 Sequential만 load하므로 net.0.weight → 0.weight 변환 필요.
+**라인 293**: `96.7%` → `96.6%` (HERO KPI 오타)
 
 ---
 
-### 3. `scripts/gradio_cl_dashboard.py` (신규, port 7867)
+## 변경 2 — research_story.html: CHECKPOINT 섹션 신설 (HERO 직후)
 
-세 탭 구성:
+**위치**: HERO `</div>` 직후, `<hr class="chapter-divider">` 앞에 삽입
 
-#### Tab 1: CL Results (결과 테이블)
-
-- `rollout_metrics.json` 파싱 → 모델별 success_rate, FPE 표시
-- per-path 상세 (path_type별 성공/실패)
-- 새로고침 버튼
+**내용**: 전체 챕터(CH1→CH36)를 "기반·여정·SOTA 확정" 3단계로 묶어 체크포인트 카드로 나열.  
+각 카드: 챕터 번호 + 핵심 1줄 결론 + 링크. 기존 챕터는 그대로 아래에 유지.
 
 ```
-| 모델      | 성공률  | FPE   | 에피소드 수 |
-|-----------|---------|-------|------------|
-| exp49     | 96.7%   | 0.081 | 30         |
-| exp51     | 96.7%   | 0.163 | 30         |
-| exp54_s2v2| 96.7%   | 0.106 | 30         |
-| exp53     | -       | -     | (미평가)    |
+[기반 구축 — CH1~5]
+CH1: V5 데이터셋 9경로 150 ep 정의
+CH2: E2E VLA → CL 0% 확인
+CH3: HSV grounding 도입
+CH4: Decomposition 접근 전환
+CH5: 첫 Closed-Loop 검증 개념 확립
+
+[실험 여정 — CH6~32]
+CH6~9:  Exp46~52 100% 성공 (but: 작은 데이터셋 과적합)
+CH10~12: 5/15·5/22 미팅 — Exp54 설계, 교수님 반박
+CH13:   텍스트 경로 구조적 사망 확인 (text attn 0%)
+CH14~15: CL이 학술 지표인 이유, 5/27 반박 대응
+CH16~18: PaliGemma 전환, 파이프라인 전체 흐름
+CH19~21: 타 VLA 비교, Free ep, 연구 방향 정리
+CH22~24: 비동기 수집·STOP 진실, grounding 붕괴, Flow Matching 검토
+CH25~27: 학술 기여점 5선, 통합 Ablation, 오트래킹 점검
+CH28~32: LoRA 검증, RoboVLMs 해부, 의자 전환, exp64 collapse, LoRA 결산
+
+[SOTA 확정 — CH33~36]
+CH33: 파이프라인이 범인 (10.3%→96.6%, ×9.4) — cx 소스 무관 확정
+CH34: Head Ablation — LSTM=MLP=96.6%, FCHead=93.1%, Linear=69%
+CH35: Window Ablation — MLP w≥4 포화, LSTM w=16 FPE 0.080m 최저
+CH36: 6/12 미팅 — 실사 테스트 96.6%, 논문 제출 결정
 ```
 
-#### Tab 2: Run CL Eval (평가 실행)
-
-- 모델 선택 드롭다운 (exp49/50/51/52/53)
-- "Run" 버튼 → `evaluate_closed_loop_v5.py --model <선택>` 백그라운드 실행
-- 실행 로그 스트리밍 textbox
-- 완료 시 Tab 1 자동 갱신
-
-#### Tab 3: Real Robot Log (실로봇 주행 기록)
-
-로컬 JSON 파일(`docs/v5/real_robot_sessions.json`)에 저장:
-
-```json
-{
-  "sessions": [
-    {
-      "date": "2026-05-27",
-      "model": "exp49",
-      "path_type": "center_straight",
-      "success": true,
-      "notes": "목표 바로 도달",
-      "timestamp": "2026-05-27T14:30:00"
-    }
-  ]
-}
-```
-
-UI:
-- 모델 / path_type / 성공여부 / 메모 입력
-- "기록 저장" 버튼
-- 세션 히스토리 테이블 (최근 50건)
+TOC 패널에도 `CHECKPOINT` 항목 추가 (CH1 위).
 
 ---
 
-### 4. `scripts/gradio_hub.py` 수정
+## 변경 3 — research_story.html: SUMMARY 섹션 쇄신
 
-SERVICES에 CL Dashboard 추가:
+**현재 문제**: SUMMARY (line 9412) 내용이 "6/4 업데이트", π0/SigLIP 언급 등 3~4달 전 내용.  
+**기존 카드 내용**: legacy.html에 이미 있는 내용이기도 하고, 각 챕터에 상세 기록 있으므로 SUMMARY에서 구버전 배너를 교체하기만 하면 됨.
 
-```python
-{
-    "name":   "CL Dashboard",
-    "port":   7867,
-    "script": "scripts/gradio_cl_dashboard.py",
-    "cmd":    "python3 scripts/gradio_cl_dashboard.py",
-    "desc":   "Closed-Loop 평가 결과 + 실로봇 주행 로그",
-    "group":  "Eval",
-},
-```
+**교체 내용**:
+1. 배너 문구: `"6/4 업데이트"` → `"확정 결론 (CH1→CH36 여정 완료)"`  
+   본문: SOTA 한 문장 요약 (96.6% CL, ×9.4 pipeline gap)
 
----
+2. finding-card 6개 교체:
+   - ❌ E2E 실패: text attn 0%, CL 0%
+   - 🔑 파이프라인 결정 변수: 10.3% → 96.6% (×9.4)  
+   - ✅ Grounding 소스 무관: HSV = PG2 = LoRA 모두 96.6%
+   - ✅ Head Ablation: Linear 69% → FCHead 93.1% → LSTM=MLP 96.6%
+   - ✅ Window Ablation: MLP w≥4 포화, LSTM w=16 FPE 0.080m
+   - ✅ Basket 이중 증명: zero-shot probe 96.6% + masking 9/9 flip
 
-## 수정 파일 요약
-
-| 파일 | 변경 | 비고 |
-|------|------|------|
-| `scripts/extract_vis_features_exp53.py` | 신규 | ~80줄 |
-| `scripts/sim/evaluate_closed_loop_v5.py` | exp53 등록 + ckpt format 처리 | +20줄 |
-| `scripts/gradio_cl_dashboard.py` | 신규 (3-tab Gradio) | ~250줄 |
-| `scripts/gradio_hub.py` | SERVICES에 CL Dashboard 추가 | +8줄 |
+3. **기존 카드(구버전 6개)**: HTML 내에 `<!-- LEGACY SUMMARY (6/4) -->` 주석으로 감싸 보존
 
 ---
 
-## 실행 순서
+## 변경 4 — README.md: CH 카운트 수정
 
-1. feature 추출 (GPU, ~5분): `python3 scripts/extract_vis_features_exp53.py`
-2. CL eval 실행: `python3 scripts/sim/evaluate_closed_loop_v5.py --model exp53`
-3. 대시보드 실행: `python3 scripts/gradio_cl_dashboard.py`
-
----
-
-## 완료 체크리스트
-
-- [x] extract_vis_features_exp53.py 작성
-- [x] evaluate_closed_loop_v5.py exp53 지원
-- [x] gradio_cl_dashboard.py 작성 (3탭)
-- [x] gradio_hub.py SERVICES 추가
-- [x] feature 추출 실행
-- [x] exp53 CL eval 실행
+라인 89:  
+`전체 연구 여정 (CH1→CH33)` → `전체 연구 여정 (CH1→CH36)`
 
 ---
 
-# Plan: 도착 STOP Y-Center 게이트 추가 구현 및 CL Ablation 검증
+## 변경 5 — docs/index.html: 두 곳 업데이트
 
-**작성일**: 2026-06-03  
-**상태**: 승인 대기
+**5-A. link-card "Full Research Journey"** (line 398~400):
+- 제목: `Full Research Journey (CH1→CH33)` → `Full Research Journey (CH1→CH36)`
+- 설명: `CH33이 최신 결론.` → `CH36이 최신 결론 (6/12 실사 테스트·논문 제출 결정).`
 
-## 배경
-통계 분석 결과, 진짜 도착 시점에는 바스켓 중심 Y 좌표가 평균 0.50으로 가라앉는 반면, 주행 중 일시적 노이즈는 평균 0.38에 머물러 있습니다. 정지 판단 조건에 `cy_avg > TH_CY` 조건을 결합해 가짜 에피소드 정지 오발(False Trigger)을 차단하고 68.8% 정지 성공률을 추가 개선하고자 합니다.
+**5-B. metrics-bar FPE 셀** (line 227~229):
+- 현재: `0.094 m` / `FPE · MLP w=4`
+- 변경: `0.080 m` / `Best FPE · LSTM w=16`  
+  sub-note: `MLP w=4: 0.094 m`  
+  (둘 다 96.6% CL — 최저 FPE만 업데이트)
 
-## 변경 범위
+---
 
-### 1. `scripts/eval_stop_closedloop.py` 수정
-- `th_cy` 인자 추가 (기본값 `0.5`).
-- `stop_trigger_idx` 및 `expert_synth_stop`에 `cy_det` 조건 (`cy_avg > th_cy`) 적용.
-- 기존 No CY Gate 조건과 신규 With CY Gate 조건을 동일 조건 하에 순차 수행하여 성공률, FPE, TLD 메트릭의 Ablation 비교 결과를 단일 테이블로 대조 출력하도록 고도화.
+## 보존 전략
 
-### 2. `robovlm_nav/serve/inference_server.py` 수정
-- 도착 area 정지 판정 함수 `_arrival_stop()` 에 `cy_avg > self._stop_th_cy` 조건 추가.
-- 환경변수 `VLA_GOALNAV_STOP_TH_CY` (기본값 `0.5`) 바인딩 추가.
+| 내용 | 보존 위치 |
+|---|---|
+| CH1~CH36 상세 챕터 전체 | 그대로 research_story.html 하단 유지 |
+| SUMMARY 구버전 카드 (6/4) | HTML 주석으로 감싸 파일 내 보존 |
+| 구버전 실험 (Exp01~09 등) | legacy.html에 이미 있음 |
 
-## 검증 계획
-1. `python3 scripts/eval_stop_closedloop.py`를 실행하여 32개 검증 에피소드 대상 Ablation 성공률(FPE < 0.15m 및 0.5m)을 비교하고, 조기 정지(오발) 및 과주행이 효과적으로 억제되었는지 정량 비교.
-2. `inference_server.py` 코드 무결성 검증.
+---
+
+## 작업 순서
+
+1. [x] research_story.html: 96.7% 버그픽스
+2. [x] research_story.html: CHECKPOINT 섹션 + TOC 항목 추가
+3. [x] research_story.html: SUMMARY 섹션 쇄신 (구 카드 주석 처리)
+4. [x] README.md: CH 카운트 수정
+5. [x] docs/index.html: link-card + metrics-bar
+6. [ ] git commit + cherry-pick → main push
