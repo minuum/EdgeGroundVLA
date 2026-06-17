@@ -589,190 +589,696 @@
 <!-- ── June 4 Sessions ── -->
 <section class="section" id="june4">
   <div class="container">
-    <h2 class="section-title"><i class="fas fa-database" style="color:#f59e0b"></i> June 4 세션 — Action 로그 분석</h2>
-    <p class="section-subtitle">이미지 없음 (JSON 데이터만). checkpoints/best vs exp49 모델 비교.</p>
+    <h2 class="section-title"><i class="fas fa-flask" style="color:#f59e0b"></i> June 4 세션 — 실험 조건 & 원인 분석</h2>
+    <p class="section-subtitle">5개 세션 × 2 모델 비교. 각 세션별 실험 조건 / 액션 분포 / 실패 원인 분석.</p>
 
-    <div class="json-sessions">
-      <!-- 144622 -->
-      <div class="json-card">
-        <h3>Session D — 144622 (23 steps)</h3>
-        <div class="jc-meta">
-          모델: <code>checkpoints/best</code> &nbsp;|&nbsp; 지시: "the gray basket on right"<br>
-          평균 레이턴시: ~430ms
+    <!-- Experiment Conditions Table -->
+    <div style="overflow-x:auto;margin-bottom:36px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead>
+        <tr style="background:#1e293b;color:#94a3b8">
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">세션</th>
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">시각</th>
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">모델</th>
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">지시어</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">스텝</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">avg 레이턴시</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">전략</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">결과</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#0f172a">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">D</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">01:34:59</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket on right"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">102</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">427ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🔴 순환</td>
+        </tr>
+        <tr style="background:#111827">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">E</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">08:59:23</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">21</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">412ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🟡 수동종료</td>
+        </tr>
+        <tr style="background:#0f172a">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">F</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">13:30:07</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket on right"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">92</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">432ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🔴 순환</td>
+        </tr>
+        <tr style="background:#111827">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">G</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">13:31:50</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket on right"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">17</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">429ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🟢 최우수</td>
+        </tr>
+        <tr style="background:#0f172a">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">H</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">16:36:17</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">exp49/exp49_mlp.pt (GoalNav regression)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">14</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">619ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">receding_horizon</td>
+          <td style="padding:9px 14px;text-align:center">🚫 폐기</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <!-- ── Session D 2026-06-04 01:34:59 ── -->
+    <div class="session-block" id="june4-d" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_013459</span>
+        <h2 style="color:#60a5fa">D — 2026-06-04 01:34:59</h2>
+        <span class="verdict" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444;padding:4px 12px;border-radius:20px;font-size:0.8rem">🔴 순환 실패</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket on right"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 427ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 102 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (102 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-ROTR">ROT_R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span style="color:#64748b;font-size:0.75rem"> …+42스텝</span>
+          </div>
         </div>
-        <div class="action-flow">
-          <span class="action-chip chip-init">INIT</span>
-          <span class="action-chip chip-left">LEFT</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdr">FWD+R</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:50%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">50%</span>
         </div>
-        <div style="margin-top:12px;font-size:0.78rem;color:#64748b">
-          FWD+L 비율: <strong style="color:#c4b5fd">57%</strong> &nbsp;|&nbsp;
-          FWD: <strong style="color:#93c5fd">35%</strong> &nbsp;|&nbsp;
-          기타: 8%
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:32%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">32%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+R</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:11%;background:#86efac;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#86efac">11%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:7%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">7%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">ROT_R</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:1%;background:#f9a8d4;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#f9a8d4">1%</span>
+        </div>
         </div>
       </div>
 
-      <!-- 144822 -->
-      <div class="json-card">
-        <h3>Session E — 144822 (24 steps)</h3>
-        <div class="jc-meta">
-          모델: <code>checkpoints/best</code> &nbsp;|&nbsp; 지시: "the gray basket"<br>
-          평균 레이턴시: ~420ms
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">FWD+L 50% 지배 → 지속적 좌편향 이동. 102스텝에도 목표 미달성. grounding 매 스텝 새로 실행 (cached=0%), 지시어 "on right"에도 우회전 보정 없음.</p>
         </div>
-        <div class="action-flow">
-          <span class="action-chip chip-init">INIT</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-left">LEFT</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwd">FWD</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
-          <span class="action-chip chip-fwdl">FWD+L</span>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">바스켓이 항상 왼쪽에 있어 좌회전 bias가 정당화됨. 그러나 순환 루프 탈출 조건 없음 → 무한 접근 시도. Stop rule 부재가 주원인.</p>
         </div>
-        <div style="margin-top:12px;font-size:0.78rem;color:#64748b">
-          FWD+L 비율: <strong style="color:#c4b5fd">62%</strong> &nbsp;|&nbsp;
-          FWD: <strong style="color:#93c5fd">29%</strong> &nbsp;|&nbsp;
-          LEFT: 8%
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> bbox area 임계값 기반 stop 조건 추가 필요
+      </div>
+    </div>
+
+    <!-- ── Session E 2026-06-04 08:59:23 ── -->
+    <div class="session-block" id="june4-e" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_085923</span>
+        <h2 style="color:#34d399">E — 2026-06-04 08:59:23</h2>
+        <span class="verdict" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44;padding:4px 12px;border-radius:20px;font-size:0.8rem">🟡 단기 테스트</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 412ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 21 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (21 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-RIGHT">RIGHT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:60%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">60%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:30%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">30%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">RIGHT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:5%;background:#fdba74;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fdba74">5%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:5%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">5%</span>
+        </div>
         </div>
       </div>
 
-      <!-- exp49 163617 -->
-      <div class="json-card">
-        <h3>Session F — 163617 (14 steps) ⚠️</h3>
-        <div class="jc-meta">
-          모델: <code>exp49/exp49_mlp.pt</code> &nbsp;|&nbsp; 지시: "the gray basket"<br>
-          평균 레이턴시: ~410ms
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">지시어 단순화 ("on right" 제거). FWD+L 60% 여전히 지배. 21스텝 후 수동 중단. D 세션 대비 지시어 변경 효과 불명확.</p>
         </div>
-        <div class="action-flow">
-          <span class="action-chip chip-init">INIT</span>
-          <span class="action-chip chip-stop">STOP</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">지시어 변형만으로는 action bias 변화 없음. 모델이 지시어 텍스트보다 이미지 bbox cx에 더 의존. 바스켓 위치가 cx<0.5이면 FWD+L이 지속됨.</p>
         </div>
-        <div style="margin-top:12px;font-size:0.78rem;color:#ca8a04">
-          ⚠️ Regression 출력 ≈ −0.015, −0.007 — 사실상 정지.<br>
-          exp49는 이 세션 설정에서 동작 불가.
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> 바스켓 상대 위치별 action 분포 추가 분석 필요
+      </div>
+    </div>
+
+    <!-- ── Session F 2026-06-04 13:30:07 ── -->
+    <div class="session-block" id="june4-f" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_133007</span>
+        <h2 style="color:#f472b6">F — 2026-06-04 13:30:07</h2>
+        <span class="verdict" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444;padding:4px 12px;border-radius:20px;font-size:0.8rem">🔴 순환 실패</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket on right"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 432ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 92 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (92 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span style="color:#64748b;font-size:0.75rem"> …+32스텝</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:52%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">52%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:42%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">42%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+R</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:3%;background:#86efac;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#86efac">3%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:2%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">2%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">RIGHT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:1%;background:#fdba74;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fdba74">1%</span>
+        </div>
         </div>
       </div>
 
-      <!-- exp49 164306 -->
-      <div class="json-card">
-        <h3>Session G — 164306 (18 steps) ⚠️</h3>
-        <div class="jc-meta">
-          모델: <code>exp49/exp49_mlp.pt</code> &nbsp;|&nbsp; 지시: "the gray basket on right"<br>
-          평균 레이턴시: ~385ms
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">D 세션과 동일 지시어 재시도. FORWARD 비율 42%로 증가(D: 32%) — 더 직진적이지만 여전히 목표 미달. 92스텝, grounding 전부 uncached.</p>
         </div>
-        <div class="action-flow">
-          <span class="action-chip chip-init">INIT</span>
-          <span class="action-chip chip-stop">STOP</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
-          <span class="action-chip chip-reg">REG≈0</span>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">바스켓이 항상 화면 중앙~좌측에 위치 → FWD+L이 정답처럼 출력. bbox cx 추적은 되지만 "충분히 가까워졌다"는 stop 판단이 없어 무한 루프.</p>
         </div>
-        <div style="margin-top:12px;font-size:0.78rem;color:#ca8a04">
-          ⚠️ exp49 regression head가 근-제로 수렴.<br>
-          분류 헤드 없이 regression만으로는 동작 어려움.
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> F세션은 D보다 FORWARD 비율 높음 → 바스켓 위치가 더 중앙적이었을 가능성
+      </div>
+    </div>
+
+    <!-- ── Session G 2026-06-04 13:31:50 ── -->
+    <div class="session-block" id="june4-g" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_133150</span>
+        <h2 style="color:#a78bfa">G — 2026-06-04 13:31:50</h2>
+        <span class="verdict" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;padding:4px 12px;border-radius:20px;font-size:0.8rem">🟢 최우수 분포</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket on right"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 429ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 17 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (17 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:50%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">50%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:44%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">44%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:6%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">6%</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">FORWARD 50%, FWD+L 44% — 가장 균형잡힌 분포. 17스텝으로 짧게 종료. F 세션 직후 동일 조건 재시도.</p>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">초기 포즈에서 바스켓이 비교적 정면에 위치 → FORWARD 비율 상승. checkpoints/best의 잠재력 확인. 단 stop 조건 없어 인간이 개입.</p>
+        </div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> 이 조건(바스켓 정면)이 재현 가능하다면 성공률 높을 것
+      </div>
+    </div>
+
+    <!-- ── Session H 2026-06-04 16:36:17 ── -->
+    <div class="session-block" id="june4-h" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_163617</span>
+        <h2 style="color:#fb923c">H — 2026-06-04 16:36:17</h2>
+        <span class="verdict" style="background:#dc262622;color:#dc2626;border:1px solid #dc262644;padding:4px 12px;border-radius:20px;font-size:0.8rem">🚫 모델 폐기</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> exp49/exp49_mlp.pt</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 619ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 14 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> receding_horizon</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (14 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-STOP">STOP</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">REGRESSION</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:92%;background:#6b7280;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#6b7280">92%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">STOP</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:8%;background:#fbbf24;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fbbf24">8%</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">exp49 regression 헤드 전 스텝 출력 ≈ −0.015, −0.007 → 사실상 정지. receding_horizon 전략, 레이턴시 619ms(checkpoints/best 대비 +44%). 분류 헤드 없는 순수 regression은 동작 불가.</p>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">exp49 EMA 누적으로 regression output이 소수점 근처로 수렴. 분류(argmax) 없이 연속값만으로 속도 매핑 시 zero-crossing 문제 발생. discrete classification이 필수임을 실증.</p>
+        </div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> → exp49 폐기, checkpoints/best(discrete 8-class) 계속 사용
+      </div>
+    </div>
+
+    <!-- ── 모델 발전 타임라인 ── -->
+    <div style="margin-top:40px">
+      <h3 style="font-size:1rem;color:#f1f5f9;margin-bottom:20px"><i class="fas fa-timeline" style="color:#a78bfa"></i> 모델 발전 경로</h3>
+      <div style="position:relative;padding-left:28px">
+        <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#3b82f6,#a78bfa,#ef4444)"></div>
+
+        <div style="position:relative;margin-bottom:24px">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#3b82f6"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-05-29</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">Proxy Server (Kosmos-2 Grounder)</div>
+          <div style="font-size:0.82rem;color:#94a3b8">이미지 기반 navigation 첫 실사 테스트. grounding bbox cx → left/right 판단. 세션 A 실패(좌편향), B/C 성공(정면 접근).</div>
+        </div>
+
+        <div style="position:relative;margin-bottom:24px">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#60a5fa"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-06-04 (D, E)</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">checkpoints/best Stage2v2 — 장시간 세션</div>
+          <div style="font-size:0.82rem;color:#94a3b8">D: 102스텝, FWD+L 50% 지배. E: 지시어 단순화 시도. <strong style="color:#fca5a5">공통 문제:</strong> stop 조건 없어 무한 순환. grounding은 정상 동작.</div>
+        </div>
+
+        <div style="position:relative;margin-bottom:24px">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#a78bfa"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-06-04 (F, G)</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">checkpoints/best — 조건 재시도 & 개선 확인</div>
+          <div style="font-size:0.82rem;color:#94a3b8">G 세션: FORWARD 50%, FWD+L 44% — 가장 균형 잡힌 분포. <strong style="color:#86efac">바스켓이 정면에 있을 때 모델이 올바르게 FORWARD를 선택함을 실증.</strong> 초기 포즈가 핵심 변수임을 확인.</div>
+        </div>
+
+        <div style="position:relative">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#ef4444"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-06-04 (H)</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">exp49 regression — 실패 확인 후 폐기</div>
+          <div style="font-size:0.82rem;color:#94a3b8">regression 출력 ≈ −0.015 수렴. 619ms 레이턴시. <strong style="color:#fca5a5">discrete 8-class classification이 필수임을 실증.</strong> exp49 regression 방식 폐기 결정.</div>
         </div>
       </div>
     </div>
+
   </div>
 </section>
 
 <!-- ── Findings ── -->
 <section class="section" id="findings">
   <div class="container">
-    <h2 class="section-title"><i class="fas fa-lightbulb" style="color:#fbbf24"></i> 핵심 발견</h2>
-    <p class="section-subtitle">5개 세션에서 도출된 실사 결론</p>
+    <h2 class="section-title"><i class="fas fa-lightbulb" style="color:#fbbf24"></i> 핵심 발견 & 모델 발전 결론</h2>
+    <p class="section-subtitle">May 29 + June 4 세션 전체에서 도출된 실사 결론</p>
 
     <div class="findings-grid">
       <div class="finding-card highlight">
         <div class="fc-icon">✅</div>
-        <h4>Decomposition 모델은 실제 접근 가능</h4>
-        <p>Session B·C 모두 바스켓에 성공적으로 접근. 프레임 가득 채우는 "도달" 행동까지 확인. 시뮬레이션 66.7% success rate가 실사에서도 재현됨.</p>
+        <h4>Decomposition 모델 실사 접근 가능</h4>
+        <p>Session B·C(May 29) 모두 바스켓에 성공적으로 접근. 시뮬레이션 66.7% success rate 실사 재현. checkpoints/best Stage2v2가 현재 유일한 동작 모델.</p>
       </div>
       <div class="finding-card warn">
         <div class="fc-icon">⚠️</div>
-        <h4>FWD+LEFT 편향 — 출발 각도에 민감</h4>
-        <p>Session A는 동일 타깃 동일 거리에서 완전 실패. FWD+L 누적으로 왼쪽 벽으로 이탈. 초기 포즈 ±10° 차이가 성패를 가름.</p>
+        <h4>초기 포즈가 성패의 핵심 변수</h4>
+        <p>Session G(Jun 4): FORWARD 50% — 바스켓 정면 배치 시 균형 잡힌 출력. Session A(May 29): FWD+L 누적 → 이탈. 동일 모델이 초기 각도 ±10°에 따라 완전히 다른 결과.</p>
       </div>
       <div class="finding-card danger">
         <div class="fc-icon">🚫</div>
-        <h4>exp49 regression 모드 완전 비동작</h4>
-        <p>exp49 모델이 regression 출력 ≈ −0.015로 수렴. 사실상 로봇 정지. 분류 헤드 없는 순수 regression만으로는 현재 설정에서 동작 불가.</p>
+        <h4>exp49 regression 완전 비동작 → 폐기</h4>
+        <p>Session H: regression 출력 ≈ −0.015 수렴. 619ms 레이턴시. discrete 8-class classification이 실사 제어에 필수임을 실증. exp49 폐기 결정.</p>
       </div>
       <div class="finding-card">
-        <div class="fc-icon">📊</div>
-        <h4>레이턴시 430ms — 실사 허용 범위</h4>
-        <p>checkpoints/best 모델의 스텝 레이턴시 평균 430ms. bang-bang 0.45s 간격과 맞아 실사 제어에 문제 없음. exp49는 오히려 385ms로 더 빠르나 출력이 무의미.</p>
+        <div class="fc-icon">🔁</div>
+        <h4>Stop 조건 부재 = 무한 순환</h4>
+        <p>Session D(102스텝), F(92스텝) 모두 목표 미달. 바스켓에 가까워져도 멈추지 않고 순환. bbox area threshold stop 조건이 실사에서 필수. 현재 대시보드에 0.18 기준 구현됨.</p>
       </div>
       <div class="finding-card">
-        <div class="fc-icon">🎯</div>
-        <h4>Bbox grounding이 접근의 핵심</h4>
-        <p>성공 세션에서 바스켓이 화면 오른쪽으로 이동했음에도 추적 유지. Kosmos-2 기반 bbox cx 추적이 Stage2 입력에 제대로 반영된 결과.</p>
+        <div class="fc-icon">📡</div>
+        <h4>Grounding 정상 동작 — 레이턴시 허용 범위</h4>
+        <p>checkpoints/best 평균 427ms. grounding 매 스텝 uncached(0/102)임에도 실사 제어에 문제 없음. 0.5s 타이머 + 0.43s API = 0.93s/step. post-move 캡처 도입 후 학습 분포 일치.</p>
       </div>
       <div class="finding-card">
-        <div class="fc-icon">🔄</div>
-        <h4>Stop 조건 부재 — 다음 과제</h4>
-        <p>Session B·C 모두 바스켓에 충돌할 때까지 전진. Area threshold stop 조건이 실사에서도 반드시 필요. 현재 대시보드 bbox area 0.18 기준 적용 예정.</p>
+        <div class="fc-icon">💡</div>
+        <h4>지시어 변형보다 포즈 제어가 효과적</h4>
+        <p>"on right" → "the gray basket"으로 지시어 단순화(Session E)했으나 action bias 변화 없음. 텍스트 attention이 낮은 모델 특성상 포즈/거리 표준화가 더 효과적인 개입점.</p>
       </div>
     </div>
   </div>
