@@ -12,7 +12,9 @@
 set -euo pipefail
 cd "${VLA_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
-SODA_IP=$(hostname -I | awk '{print $1}')
+# Tailscale IP 우선 사용 (원격 접속용), 없으면 로컬 IP fallback
+SODA_IP=$(ip addr show tailscale0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1)
+[[ -z "$SODA_IP" ]] && SODA_IP=$(hostname -I | awk '{print $1}')
 SERVER_PORT=8001
 DASH_PORT=7865
 HUB_PORT=7860
