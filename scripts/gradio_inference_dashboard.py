@@ -661,19 +661,20 @@ class DashboardJoystickReader:
     _VEL_ANG = 1.15
 
     WASD_TO_VEL = {
-        'W': (1.15, 0.0,  0.0),
-        'Q': (1.15, 1.15, 0.0),
-        'E': (1.15,-1.15, 0.0),
-        'A': (0.0,  1.15, 0.0),
-        'D': (0.0, -1.15, 0.0),
-        'R': (0.0,  0.0,  1.15),
-        'T': (0.0,  0.0, -1.15),
+        'W': ( 1.15, 0.0,  0.0),
+        'S': (-1.15, 0.0,  0.0),
+        'Q': ( 1.15, 1.15, 0.0),
+        'E': ( 1.15,-1.15, 0.0),
+        'A': ( 0.0,  1.15, 0.0),
+        'D': ( 0.0, -1.15, 0.0),
+        'R': ( 0.0,  0.0,  1.15),
+        'T': ( 0.0,  0.0, -1.15),
     }
 
     def __init__(self):
         self._running  = False
         self._enabled  = True    # 시작 시 기본 활성화
-        self._js_mode  = 'sync'  # 'sync' | 'async' (Start 버튼으로 전환)
+        self._js_mode  = 'async'  # 'sync' | 'async' (Start 버튼으로 전환)
         self._thread   = None
         self._btn_prev = {}
         self._last_step_time = 0.0
@@ -685,7 +686,7 @@ class DashboardJoystickReader:
         self.status: dict = {
             "connected": False, "name": "—",
             "key": None, "label": "—",
-            "enabled": True, "mode": "SYNC",
+            "enabled": True, "mode": "ASYNC",
         }
 
     def _load_axes(self):
@@ -729,6 +730,7 @@ class DashboardJoystickReader:
         if fwd and lft: return 'Q'
         if fwd and rgt: return 'E'
         if fwd:         return 'W'
+        if bwd:         return 'S'
         if lft:         return 'A'
         if rgt:         return 'D'
         if rl:          return 'R'
@@ -747,7 +749,7 @@ class DashboardJoystickReader:
 
         js = None
         LABELS = {
-            'W': '▲FWD', 'Q': '↖FWD+L', 'E': '↗FWD+R',
+            'W': '▲FWD', 'S': '▼BWD', 'Q': '↖FWD+L', 'E': '↗FWD+R',
             'A': '←LEFT', 'D': '→RIGHT',
             'R': '↺ROT_L', 'T': '↻ROT_R',
         }
@@ -811,7 +813,7 @@ class DashboardJoystickReader:
                                     self._last_step_time = now
                     elif self._prev_key:
                         if self._js_mode == 'async':
-                            ctrl.robust_stop(source="joystick")
+                            ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
 
                 self._prev_key = key
                 self.status = {

@@ -141,7 +141,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--dashboard" ]]; then
     ROS_WS="$PWD/ROS_action/install"
 
     # PYTHONPATH: rclpy + geometry_msgs + camera_interfaces + ros_action_msgs
-    ROS2_PY="${ROS_DIST}/local/lib/python3.10/dist-packages"
+    ROS2_PY="${ROS_DIST}/local/lib/python3.10/dist-packages:${ROS_DIST}/lib/python3.10/site-packages"
     WS_PY_PATHS=""
     for pkg in camera_interfaces ros_action_msgs; do
         p="$ROS_WS/$pkg/local/lib/python3.10/dist-packages"
