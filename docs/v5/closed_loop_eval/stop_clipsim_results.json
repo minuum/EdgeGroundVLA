@@ -1,0 +1,53 @@
+{
+  "tag": "L2_clipsim_stop",
+  "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
+  "data": "/home/minum/26CS/MoNaVLA/docs/v5/bbox_nav_exp46/bbox_dataset_full.json",
+  "seeds": 5,
+  "success_fpe": 0.5,
+  "area_ref_th": 0.25,
+  "thresholds": [
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9
+  ],
+  "summary": {
+    "V_no_override": {
+      "sr_mean": 0.9866666666666667,
+      "sr_std": 0.01632993161855452,
+      "fpe_mean": 0.07082400009850812,
+      "fpe_std": 0.012942578295908886
+    },
+    "cosim_th0.70": {
+      "sr_mean": 0.0,
+      "sr_std": 0.0,
+      "fpe_mean": 1.943410837244992,
+      "fpe_std": 0.001958216229497879
+    },
+    "cosim_th0.75": {
+      "sr_mean": 0.0,
+      "sr_std": 0.0,
+      "fpe_mean": 1.943410837244992,
+      "fpe_std": 0.001958216229497879
+    },
+    "cosim_th0.80": {
+      "sr_mean": 0.0,
+      "sr_std": 0.0,
+      "fpe_mean": 1.943410837244992,
+      "fpe_std": 0.001958216229497879
+    },
+    "cosim_th0.85": {
+      "sr_mean": 0.0,
+      "sr_std": 0.0,
+      "fpe_mean": 1.943410837244992,
+      "fpe_std": 0.001958216229497879
+    },
+    "cosim_th0.90": {
+      "sr_mean": 0.0,
+      "sr_std": 0.0,
+      "fpe_mean": 1.943410837244992,
+      "fpe_std": 0.001958216229497879
+    }
+  }
+}
