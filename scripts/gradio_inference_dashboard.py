@@ -1,3 +1,33 @@
+# ── 중복 인스턴스 kill (같은 스크립트 이름의 이전 PID 제거) ──────────────────
+import os as _os, sys as _sys, signal as _signal
+def _kill_previous_instances():
+    import subprocess, os
+    my_pid = os.getpid()
+    script_name = os.path.basename(__file__) if '__file__' in dir() else 'gradio_inference_dashboard.py'
+    try:
+        out = subprocess.check_output(
+            ["pgrep", "-f", script_name], text=True
+        ).strip().split()
+        killed = []
+        for pid_str in out:
+            pid = int(pid_str)
+            if pid != my_pid:
+                try:
+                    os.kill(pid, _signal.SIGTERM)
+                    killed.append(pid)
+                except ProcessLookupError:
+                    pass
+        if killed:
+            import time; time.sleep(1)
+            for pid in killed:
+                try: os.kill(pid, _signal.SIGKILL)
+                except ProcessLookupError: pass
+            print(f"🔪 이전 대시보드 인스턴스 종료: PID {killed}")
+    except Exception:
+        pass
+_kill_previous_instances()
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── ROS camera_interfaces LD_LIBRARY_PATH 주입 (다른 import보다 먼저) ──────────
 import os, sys as _sys
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
