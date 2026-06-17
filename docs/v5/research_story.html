@@ -280,6 +280,7 @@
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
     <a class="toc-item" href="#vis" data-target="vis"><span class="toc-badge" style="background:rgba(244,63,94,0.2);color:#fb7185;font-weight:900">VIS</span><span class="toc-label">시각 자료 모음 — 논문 부록</span></a>
+    <a class="toc-item" href="robot_tests.html" style="margin-top:8px;border-top:1px solid rgba(245,158,11,0.2);padding-top:10px"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">🤖</span><span class="toc-label">Robot Tests — 실제 추론 세션 분석</span></a>
   </div>
 </nav>
 
@@ -2226,7 +2227,7 @@
       2026-05-29 3개 세션 + 2026-06-04 4개 세션. 프레임별 filmstrip, 액션 히스토그램, FWD+LEFT bias 원인 분석, timing mismatch 발견 포함.
     </div>
   </div>
-  <a href="../robot_tests.html" style="flex-shrink:0;background:#f59e0b;color:#0a0f1a;font-weight:800;font-size:0.82rem;padding:9px 18px;border-radius:8px;text-decoration:none;white-space:nowrap">
+  <a href="robot_tests.html" style="flex-shrink:0;background:#f59e0b;color:#0a0f1a;font-weight:800;font-size:0.82rem;padding:9px 18px;border-radius:8px;text-decoration:none;white-space:nowrap">
     상세 분석 →
   </a>
 </div>
@@ -10443,6 +10444,17 @@ graph TD
     </div>
   </div>
 
+</div>
+
+<!-- ── Robot Tests 하단 버튼 ── -->
+<div style="max-width:900px;margin:40px auto 60px;padding:0 20px;text-align:center">
+  <a href="robot_tests.html"
+     style="display:inline-flex;align-items:center;gap:12px;background:#f59e0b;color:#0a0f1a;font-weight:900;font-size:1.05rem;padding:16px 36px;border-radius:12px;text-decoration:none;box-shadow:0 4px 24px rgba(245,158,11,0.35);transition:transform 0.15s,box-shadow 0.15s"
+     onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 32px rgba(245,158,11,0.5)'"
+     onmouseout="this.style.transform='';this.style.boxShadow='0 4px 24px rgba(245,158,11,0.35)'">
+    🤖 Robot Tests — 실제 추론 세션 전체 프레임 분석
+  </a>
+  <div style="color:#475569;font-size:0.8rem;margin-top:10px">2026-05-29 · 2026-06-04 세션 · FWD+LEFT bias 원인 분석 · timing mismatch 발견</div>
 </div>
 
 </body>

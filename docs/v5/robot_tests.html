@@ -249,8 +249,8 @@
 <nav class="top-nav">
   <div class="logo">Mo<span>Na</span>VLA</div>
   <div class="nav-links">
-    <a href="index.html"><i class="fas fa-home"></i> Home</a>
-    <a href="v5/research_story.html"><i class="fas fa-book-open"></i> Research Story</a>
+    <a href="../index.html"><i class="fas fa-home"></i> Home</a>
+    <a href="research_story.html"><i class="fas fa-book-open"></i> Research Story</a>
     <a href="robot_tests.html" style="color:#38bdf8"><i class="fas fa-robot"></i> Robot Tests</a>
   </div>
 </nav>
@@ -759,22 +759,22 @@
 <!-- ── Footer ── -->
 <div class="site-footer">
   <p>MoNaVLA Robot Test Sessions &mdash; Kangnam University Advanced Agentic Robotics Lab</p>
-  <p style="margin-top:8px"><a href="index.html">← Home</a> &nbsp;|&nbsp; <a href="v5/research_story.html">Research Story</a></p>
+  <p style="margin-top:8px"><a href="../index.html">← Home</a> &nbsp;|&nbsp; <a href="research_story.html">Research Story</a></p>
 </div>
 
 <script>
   // ── Filmstrip generation ──
   const SESSION_FRAMES = {
-    a: { dir: 'inference_reports/session_20260529_101930_images', count: 29, id: 'filmstrip-a',
+    a: { dir: '../inference_reports/session_20260529_101930_images', count: 29, id: 'filmstrip-a',
          keys: { 1:'출발', 5:'정상', 10:'Drift 시작', 15:'타깃 소실', 20:'이탈 중', 29:'완전 이탈' },
          types: { 1:'key', 5:'key', 10:'drift', 11:'drift', 12:'drift', 13:'drift', 14:'drift',
                   15:'drift', 16:'drift', 17:'drift', 18:'drift', 19:'drift', 20:'drift',
                   21:'drift', 22:'drift', 23:'drift', 24:'drift', 25:'drift', 26:'drift',
                   27:'drift', 28:'drift', 29:'drift' } },
-    b: { dir: 'inference_reports/session_20260529_102026_images', count: 20, id: 'filmstrip-b',
+    b: { dir: '../inference_reports/session_20260529_102026_images', count: 20, id: 'filmstrip-b',
          keys: { 1:'출발', 5:'접근 중', 10:'근접', 15:'매우 근접', 20:'도달!' },
          types: { 1:'key', 5:'key', 10:'key', 15:'close', 16:'close', 17:'close', 18:'close', 19:'close', 20:'close' } },
-    c: { dir: 'inference_reports/session_20260529_102136_images', count: 17, id: 'filmstrip-c',
+    c: { dir: '../inference_reports/session_20260529_102136_images', count: 17, id: 'filmstrip-c',
          keys: { 1:'출발', 5:'접근 중', 10:'근접', 15:'매우 근접', 17:'도달!' },
          types: { 1:'key', 5:'key', 10:'key', 14:'close', 15:'close', 16:'close', 17:'close' } },
   };
