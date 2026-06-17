@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robot Test Sessions — MoNaVLA Real Navigation</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    a { color: #38bdf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ── */
+    .top-nav {
+      background: #1e293b; border-bottom: 1px solid #334155;
+      padding: 12px 28px; display: flex; align-items: center; gap: 20px;
+      font-size: 0.88rem; position: sticky; top: 0; z-index: 100;
+    }
+    .top-nav .logo { font-weight: 800; color: #f8fafc; font-size: 1rem; }
+    .top-nav .logo span { color: #38bdf8; }
+    .nav-links { display: flex; gap: 20px; margin-left: auto; }
+    .nav-links a { color: #94a3b8; font-weight: 500; }
+    .nav-links a:hover { color: #f8fafc; text-decoration: none; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      border-bottom: 1px solid #334155;
+      padding: 60px 28px 48px;
+      text-align: center;
+    }
+    .hero .tag {
+      display: inline-block; background: #1d4ed8; color: #bfdbfe;
+      font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+      padding: 4px 14px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .hero h1 { font-size: 2.6rem; font-weight: 900; color: #f8fafc; margin: 0 0 16px; line-height: 1.15; }
+    .hero h1 span { color: #38bdf8; }
+    .hero p { color: #94a3b8; font-size: 1.05rem; max-width: 620px; margin: 0 auto 30px; line-height: 1.75; }
+    .hero-meta { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; font-size: 0.85rem; color: #64748b; }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+    .hero-meta i { color: #38bdf8; }
+
+    /* ── Container ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Section ── */
+    .section { padding: 52px 0 40px; }
+    .section-title {
+      font-size: 1.5rem; font-weight: 800; color: #f1f5f9;
+      margin: 0 0 6px; display: flex; align-items: center; gap: 10px;
+    }
+    .section-subtitle { color: #64748b; font-size: 0.9rem; margin: 0 0 28px; }
+    .divider { border: none; border-top: 1px solid #1e293b; margin: 0 0 28px; }
+
+    /* ── Summary Cards ── */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 40px; }
+    @media (max-width: 768px) { .summary-grid { grid-template-columns: 1fr; } }
+    .summary-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 22px 20px; position: relative; overflow: hidden;
+    }
+    .summary-card.success { border-left: 3px solid #22c55e; }
+    .summary-card.fail    { border-left: 3px solid #ef4444; }
+    .summary-card.partial { border-left: 3px solid #f59e0b; }
+    .summary-card .badge {
+      display: inline-block; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; margin-bottom: 12px;
+    }
+    .badge-success { background: #14532d; color: #86efac; }
+    .badge-fail    { background: #450a0a; color: #fca5a5; }
+    .badge-partial { background: #451a03; color: #fcd34d; }
+    .summary-card h3 { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin: 0 0 8px; }
+    .summary-card .sc-meta { font-size: 0.82rem; color: #64748b; line-height: 1.6; }
+    .summary-card .sc-frames {
+      font-size: 2rem; font-weight: 900; color: #38bdf8; margin: 10px 0 4px;
+      line-height: 1;
+    }
+    .summary-card .sc-frames span { font-size: 0.85rem; font-weight: 400; color: #64748b; }
+
+    /* ── Session Block ── */
+    .session-block {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      margin-bottom: 40px; overflow: hidden;
+    }
+    .session-header {
+      padding: 20px 24px; border-bottom: 1px solid #334155;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .session-id { font-size: 0.8rem; font-family: monospace; color: #64748b; background: #0f172a; padding: 3px 10px; border-radius: 6px; }
+    .session-header h2 { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; margin: 0; flex: 1; }
+    .session-header .verdict {
+      font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 4px 12px; border-radius: 999px;
+    }
+    .verdict-success { background: #14532d; color: #86efac; }
+    .verdict-fail    { background: #450a0a; color: #fca5a5; }
+
+    /* ── Filmstrip ── */
+    .filmstrip-wrap {
+      padding: 20px 20px 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filmstrip {
+      display: flex; gap: 8px;
+      min-width: max-content;
+      padding-bottom: 12px;
+    }
+    .frame-item {
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer; transition: transform 0.15s;
+    }
+    .frame-item:hover { transform: translateY(-3px); }
+    .frame-item img {
+      width: 160px; height: 100px;
+      object-fit: cover; border-radius: 6px;
+      border: 2px solid #334155;
+      transition: border-color 0.15s;
+      display: block;
+    }
+    .frame-item.key-frame img { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.3); }
+    .frame-item.drift-frame img { border-color: #ef4444; }
+    .frame-item.close-frame img { border-color: #22c55e; }
+    .frame-num {
+      font-size: 0.68rem; color: #475569; margin-top: 5px; font-family: monospace;
+    }
+    .frame-label {
+      font-size: 0.65rem; font-weight: 700; color: #38bdf8;
+      margin-top: 2px; text-align: center;
+    }
+
+    /* ── Analysis box ── */
+    .analysis-box {
+      padding: 20px 24px;
+      background: #0f172a;
+      border-top: 1px solid #1e293b;
+    }
+    .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 640px) { .analysis-grid { grid-template-columns: 1fr; } }
+    .analysis-item h4 { font-size: 0.8rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+    .analysis-item p { font-size: 0.85rem; color: #94a3b8; line-height: 1.65; margin: 0; }
+    .analysis-item ul { margin: 0; padding-left: 18px; font-size: 0.85rem; color: #94a3b8; line-height: 1.7; }
+    .analysis-item ul li { margin-bottom: 3px; }
+
+    /* ── Timeline ── */
+    .timeline { padding: 16px 24px 20px; border-top: 1px solid #1e293b; }
+    .timeline h4 { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+    .tl-track {
+      position: relative; height: 36px;
+      background: #0f172a; border-radius: 8px;
+      overflow: hidden; display: flex;
+    }
+    .tl-segment {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.68rem; font-weight: 700; color: #f1f5f9;
+      transition: opacity 0.2s;
+    }
+    .tl-segment:hover { opacity: 0.8; cursor: default; }
+    .tl-fwd    { background: #1d4ed8; }
+    .tl-fwdl   { background: #6d28d9; }
+    .tl-left   { background: #7c3aed; }
+    .tl-stop   { background: #374151; }
+    .tl-drift  { background: #dc2626; }
+    .tl-legend { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+    .tl-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: #64748b; }
+    .tl-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── Action JSON sessions ── */
+    .json-sessions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 28px; }
+    @media (max-width: 768px) { .json-sessions { grid-template-columns: 1fr; } }
+    .json-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 20px;
+    }
+    .json-card h3 { font-size: 0.9rem; font-weight: 700; color: #f1f5f9; margin: 0 0 6px; }
+    .json-card .jc-meta { font-size: 0.78rem; color: #64748b; margin-bottom: 14px; }
+    .action-flow { display: flex; flex-wrap: wrap; gap: 4px; }
+    .action-chip {
+      font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+      font-family: monospace;
+    }
+    .chip-fwd    { background: #1e3a5f; color: #93c5fd; }
+    .chip-fwdl   { background: #2e1065; color: #c4b5fd; }
+    .chip-fwdr   { background: #1a1060; color: #a5b4fc; }
+    .chip-left   { background: #3b1461; color: #d8b4fe; }
+    .chip-stop   { background: #1c2533; color: #94a3b8; }
+    .chip-reg    { background: #1c1a10; color: #ca8a04; }
+    .chip-init   { background: #1c1c1c; color: #475569; }
+
+    /* ── Findings ── */
+    .findings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    @media (max-width: 640px) { .findings-grid { grid-template-columns: 1fr; } }
+    .finding-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 20px 20px;
+    }
+    .finding-card .fc-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .finding-card h4 { font-size: 0.9rem; font-weight: 700; color: #f1f5f9; margin: 0 0 8px; }
+    .finding-card p  { font-size: 0.83rem; color: #94a3b8; line-height: 1.65; margin: 0; }
+    .finding-card.highlight { border-color: #38bdf8; background: #0c1929; }
+    .finding-card.warn      { border-color: #f59e0b; }
+    .finding-card.danger    { border-color: #ef4444; }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+      z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 80vh; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .lightbox-info { margin-top: 14px; color: #94a3b8; font-size: 0.9rem; text-align: center; }
+    .lightbox-close {
+      position: absolute; top: 20px; right: 28px;
+      font-size: 1.8rem; color: #64748b; cursor: pointer; line-height: 1;
+      transition: color 0.15s;
+    }
+    .lightbox-close:hover { color: #f1f5f9; }
+    .lightbox-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      font-size: 2rem; color: #64748b; cursor: pointer; padding: 16px;
+      transition: color 0.15s;
+    }
+    .lightbox-nav:hover { color: #f1f5f9; }
+    #lb-prev { left: 16px; }
+    #lb-next { right: 16px; }
+
+    /* ── Progress bar (basket size proxy) ── */
+    .approach-bar { padding: 16px 24px 20px; border-top: 1px solid #1e293b; }
+    .approach-bar h4 { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 10px; }
+    .bar-track { height: 12px; background: #0f172a; border-radius: 999px; overflow: hidden; position: relative; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+    .bar-label { font-size: 0.72rem; color: #64748b; margin-top: 5px; display: flex; justify-content: space-between; }
+
+    /* ── Footer ── */
+    .site-footer {
+      background: #020617; color: #475569; padding: 32px 24px;
+      text-align: center; font-size: 0.85rem; border-top: 1px solid #1e293b;
+    }
+
+    /* ── Scroll hint ── */
+    .scroll-hint { font-size: 0.75rem; color: #475569; text-align: center; padding: 0 0 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="top-nav">
+  <div class="logo">Mo<span>Na</span>VLA</div>
+  <div class="nav-links">
+    <a href="../index.html"><i class="fas fa-home"></i> Home</a>
+    <a href="research_story.html"><i class="fas fa-book-open"></i> Research Story</a>
+    <a href="robot_tests.html" style="color:#38bdf8"><i class="fas fa-robot"></i> Robot Tests</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="tag"><i class="fas fa-robot"></i> Real Robot Navigation Test</div>
+  <h1>Robot Test <span>Session Log</span></h1>
+  <p>Exp66 Stage2 v2 SOTA 모델 실제 로봇 추론 세션 분석.<br>
+     회색 바스켓 navigation task — 5개 세션, 66개 실수 카메라 프레임.</p>
+  <div class="hero-meta">
+    <span><i class="fas fa-calendar-alt"></i> 2026-05-29 / 2026-06-04</span>
+    <span><i class="fas fa-images"></i> 66 실수 프레임</span>
+    <span><i class="fas fa-microchip"></i> Exp66 Stage2 v2</span>
+    <span><i class="fas fa-bullseye"></i> Goal: gray basket navigation</span>
+  </div>
+</div>
+
+<!-- ── Overview ── -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-table-list" style="color:#38bdf8"></i> 세션 개요</h2>
+    <p class="section-subtitle">이미지가 저장된 3개 세션 (2026-05-29) + JSON 로그 세션 (2026-06-04)</p>
+
+    <div class="summary-grid">
+      <div class="summary-card fail">
+        <span class="badge badge-fail">❌ FAIL — Left Drift</span>
+        <h3>Session A — 101930</h3>
+        <div class="sc-frames">29 <span>frames</span></div>
+        <div class="sc-meta">
+          FWD+LEFT 누적 → 바스켓 시야 상실<br>
+          의자 쪽 벽으로 완전히 이탈
+        </div>
+      </div>
+      <div class="summary-card success">
+        <span class="badge badge-success">✅ SUCCESS — Approach</span>
+        <h3>Session B — 102026</h3>
+        <div class="sc-frames">20 <span>frames</span></div>
+        <div class="sc-meta">
+          바스켓 프레임 가득 채울 때까지 직진<br>
+          정확한 목표 접근 성공
+        </div>
+      </div>
+      <div class="summary-card success">
+        <span class="badge badge-success">✅ SUCCESS — Fast</span>
+        <h3>Session C — 102136</h3>
+        <div class="sc-frames">17 <span>frames</span></div>
+        <div class="sc-meta">
+          더 빠른 접근, 프레임 수 적음<br>
+          B보다 효율적인 접근 궤적
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Session A ── -->
+<section class="section" id="session-a">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-film" style="color:#ef4444"></i> Session A — 101930 (29 frames)</h2>
+    <p class="section-subtitle">2026-05-29 10:19 | 목표: gray basket | 결과: LEFT DRIFT → 타깃 상실 ❌</p>
+
+    <div class="session-block">
+      <div class="session-header">
+        <span class="session-id">session_20260529_101930</span>
+        <h2>Gray Basket Navigation — Left Drift Failure</h2>
+        <span class="verdict verdict-fail">❌ FAIL</span>
+      </div>
+
+      <div class="filmstrip-wrap">
+        <div class="scroll-hint"><i class="fas fa-arrows-left-right"></i> 좌우 스크롤</div>
+        <div class="filmstrip" id="filmstrip-a">
+          <!-- frames injected by JS -->
+        </div>
+      </div>
+
+      <div class="timeline">
+        <h4>액션 타임라인 추정</h4>
+        <div class="tl-track">
+          <div class="tl-segment tl-fwd"    style="width:15%" title="FORWARD">FWD</div>
+          <div class="tl-segment tl-fwdl"   style="width:20%" title="FWD+L">FWD+L</div>
+          <div class="tl-segment tl-drift"  style="width:35%" title="DRIFT — basket lost">← DRIFT</div>
+          <div class="tl-segment tl-drift"  style="width:30%" title="Wall/Chair — target lost">🚫 LOST</div>
+        </div>
+        <div class="tl-legend">
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#1d4ed8"></div>FORWARD</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#6d28d9"></div>FWD+LEFT</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#dc2626"></div>Drift / 타깃 상실</div>
+        </div>
+      </div>
+
+      <div class="approach-bar">
+        <h4>바스켓 상대 크기 (시야 내 추정) — 프레임별</h4>
+        <div style="display:grid; grid-template-columns: repeat(10,1fr); gap:3px; margin-bottom:6px">
+          <div title="f1-3" style="background:#1d4ed8;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:15%;border-radius:3px"></div>
+          </div>
+          <div title="f4-6" style="background:#1d4ed8;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:16%;border-radius:3px"></div>
+          </div>
+          <div title="f7-9" style="background:#1d4ed8;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:14%;border-radius:3px"></div>
+          </div>
+          <div title="f10-12" style="background:#6d28d9;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#a78bfa;height:10%;border-radius:3px"></div>
+          </div>
+          <div title="f13-15" style="background:#6d28d9;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#a78bfa;height:5%;border-radius:3px"></div>
+          </div>
+          <div title="f16-18" style="background:#dc2626;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#ef4444;height:2%;border-radius:3px"></div>
+          </div>
+          <div title="f19-21" style="background:#dc2626;height:20px;border-radius:3px"></div>
+          <div title="f22-24" style="background:#dc2626;height:20px;border-radius:3px"></div>
+          <div title="f25-27" style="background:#7f1d1d;height:20px;border-radius:3px"></div>
+          <div title="f28-29" style="background:#7f1d1d;height:20px;border-radius:3px"></div>
+        </div>
+        <div class="bar-label"><span>Frame 1</span><span>→ 바스켓 사라짐</span><span>Frame 29</span></div>
+      </div>
+
+      <div class="analysis-box">
+        <div class="analysis-grid">
+          <div class="analysis-item">
+            <h4>관찰</h4>
+            <ul>
+              <li>F1~5: 바스켓 중앙, 거리 있음 — 정상 출발</li>
+              <li>F5~10: 바스켓 오른쪽으로 이동 → 로봇이 왼쪽 drift</li>
+              <li>F10~15: 왼쪽 벽에 의자 등장, 바스켓 오른쪽 끝으로</li>
+              <li>F15~29: 바스켓 완전 소실, 의자·서랍장 zone으로 이탈</li>
+            </ul>
+          </div>
+          <div class="analysis-item">
+            <h4>원인 분석</h4>
+            <ul>
+              <li>FWD+LEFT 편향 — 데이터 수집 경로 특성 반영</li>
+              <li>바스켓이 화면 중앙에 있어도 LEFT 성분 지속</li>
+              <li>누적 오류: 각 스텝 작은 좌향 → 큰 이탈</li>
+              <li>Closed-loop FPE 1.45m (Exp11 기준) 와 동일 패턴</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Session B ── -->
+<section class="section" id="session-b">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-film" style="color:#22c55e"></i> Session B — 102026 (20 frames)</h2>
+    <p class="section-subtitle">2026-05-29 10:20 | 목표: gray basket | 결과: 바스켓 직진 접근 ✅</p>
+
+    <div class="session-block">
+      <div class="session-header">
+        <span class="session-id">session_20260529_102026</span>
+        <h2>Gray Basket Navigation — Successful Approach</h2>
+        <span class="verdict verdict-success">✅ SUCCESS</span>
+      </div>
+
+      <div class="filmstrip-wrap">
+        <div class="scroll-hint"><i class="fas fa-arrows-left-right"></i> 좌우 스크롤</div>
+        <div class="filmstrip" id="filmstrip-b">
+        </div>
+      </div>
+
+      <div class="timeline">
+        <h4>액션 타임라인 추정</h4>
+        <div class="tl-track">
+          <div class="tl-segment tl-fwd"  style="width:40%" title="FORWARD">FWD</div>
+          <div class="tl-segment tl-fwdl" style="width:20%" title="FWD+L slight">FWD±</div>
+          <div class="tl-segment tl-fwd"  style="width:25%" title="FORWARD close">FWD 근접</div>
+          <div class="tl-segment" style="width:15%;background:#15803d" title="GOAL reached">🎯 도달</div>
+        </div>
+        <div class="tl-legend">
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#1d4ed8"></div>FORWARD</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#6d28d9"></div>FWD+L 보정</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#15803d"></div>목표 도달</div>
+        </div>
+      </div>
+
+      <div class="approach-bar">
+        <h4>바스켓 크기 증가 (접근 지표)</h4>
+        <div style="display:grid; grid-template-columns: repeat(10,1fr); gap:3px; margin-bottom:6px">
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:12%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:18%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:28%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:38%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:48%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:55%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:62%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:72%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:85%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:100%;border-radius:3px"></div>
+          </div>
+        </div>
+        <div class="bar-label"><span>Frame 1 (멀리)</span><span>→ 꾸준히 접근</span><span>Frame 20 (바스켓 꽉 참)</span></div>
+      </div>
+
+      <div class="analysis-box">
+        <div class="analysis-grid">
+          <div class="analysis-item">
+            <h4>관찰</h4>
+            <ul>
+              <li>F1: 바스켓 중앙, 세션 A와 동일 출발 위치</li>
+              <li>F10: 바스켓 우측 치우침, 크기 커짐 → 근접 중</li>
+              <li>F15: 바스켓이 프레임 절반 이상 차지</li>
+              <li>F20: 바스켓 전체 화면 가득 — 목표 도달 지점</li>
+            </ul>
+          </div>
+          <div class="analysis-item">
+            <h4>성공 요인</h4>
+            <ul>
+              <li>출발 위치/각도가 세션 A보다 미세하게 유리</li>
+              <li>초기 FORWARD 비율이 더 높아 직진 성분 우세</li>
+              <li>Decomposition Stage2 bbox 추적이 정상 작동</li>
+              <li>FPE 0.55m (Exp14 Step2 기준) 수준 일치</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Session C ── -->
+<section class="section" id="session-c">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-film" style="color:#22c55e"></i> Session C — 102136 (17 frames)</h2>
+    <p class="section-subtitle">2026-05-29 10:21 | 목표: gray basket | 결과: 빠른 접근 성공 ✅</p>
+
+    <div class="session-block">
+      <div class="session-header">
+        <span class="session-id">session_20260529_102136</span>
+        <h2>Gray Basket Navigation — Efficient Approach</h2>
+        <span class="verdict verdict-success">✅ SUCCESS</span>
+      </div>
+
+      <div class="filmstrip-wrap">
+        <div class="scroll-hint"><i class="fas fa-arrows-left-right"></i> 좌우 스크롤</div>
+        <div class="filmstrip" id="filmstrip-c">
+        </div>
+      </div>
+
+      <div class="approach-bar">
+        <h4>접근 속도 — B보다 17% 빠름 (17 vs 20 frames)</h4>
+        <div style="display:grid; grid-template-columns: repeat(9,1fr); gap:3px; margin-bottom:6px">
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:14%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:24%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:36%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:50%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:62%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:74%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:84%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:93%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:100%;border-radius:3px"></div></div>
+        </div>
+        <div class="bar-label"><span>Frame 1</span><span>→ 빠른 접근</span><span>Frame 17</span></div>
+      </div>
+
+      <div class="analysis-box">
+        <div class="analysis-grid">
+          <div class="analysis-item">
+            <h4>관찰</h4>
+            <ul>
+              <li>F1: B와 거의 동일 출발 — 바스켓 중앙</li>
+              <li>F9~12: 이미 중간 거리에서 바스켓 크게 보임</li>
+              <li>F17: 바스켓 프레임 가득 — 목표 도달</li>
+              <li>B 대비 3 프레임 빠른 도달 (~1.3초 이득)</li>
+            </ul>
+          </div>
+          <div class="analysis-item">
+            <h4>비교 포인트</h4>
+            <ul>
+              <li>출발 위치가 B보다 약간 더 가까웠을 가능성</li>
+              <li>또는 초기 FORWARD 속도 성분이 더 강함</li>
+              <li>성공 패턴: B와 동일하게 drift 없이 직진</li>
+              <li>이 두 세션이 실제 66.7% success 수치에 기여</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── June 4 Sessions ── -->
+<section class="section" id="june4">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-database" style="color:#f59e0b"></i> June 4 세션 — Action 로그 분석</h2>
+    <p class="section-subtitle">이미지 없음 (JSON 데이터만). checkpoints/best vs exp49 모델 비교.</p>
+
+    <div class="json-sessions">
+      <!-- 144622 -->
+      <div class="json-card">
+        <h3>Session D — 144622 (23 steps)</h3>
+        <div class="jc-meta">
+          모델: <code>checkpoints/best</code> &nbsp;|&nbsp; 지시: "the gray basket on right"<br>
+          평균 레이턴시: ~430ms
+        </div>
+        <div class="action-flow">
+          <span class="action-chip chip-init">INIT</span>
+          <span class="action-chip chip-left">LEFT</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdr">FWD+R</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+        </div>
+        <div style="margin-top:12px;font-size:0.78rem;color:#64748b">
+          FWD+L 비율: <strong style="color:#c4b5fd">57%</strong> &nbsp;|&nbsp;
+          FWD: <strong style="color:#93c5fd">35%</strong> &nbsp;|&nbsp;
+          기타: 8%
+        </div>
+      </div>
+
+      <!-- 144822 -->
+      <div class="json-card">
+        <h3>Session E — 144822 (24 steps)</h3>
+        <div class="jc-meta">
+          모델: <code>checkpoints/best</code> &nbsp;|&nbsp; 지시: "the gray basket"<br>
+          평균 레이턴시: ~420ms
+        </div>
+        <div class="action-flow">
+          <span class="action-chip chip-init">INIT</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-left">LEFT</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwd">FWD</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+          <span class="action-chip chip-fwdl">FWD+L</span>
+        </div>
+        <div style="margin-top:12px;font-size:0.78rem;color:#64748b">
+          FWD+L 비율: <strong style="color:#c4b5fd">62%</strong> &nbsp;|&nbsp;
+          FWD: <strong style="color:#93c5fd">29%</strong> &nbsp;|&nbsp;
+          LEFT: 8%
+        </div>
+      </div>
+
+      <!-- exp49 163617 -->
+      <div class="json-card">
+        <h3>Session F — 163617 (14 steps) ⚠️</h3>
+        <div class="jc-meta">
+          모델: <code>exp49/exp49_mlp.pt</code> &nbsp;|&nbsp; 지시: "the gray basket"<br>
+          평균 레이턴시: ~410ms
+        </div>
+        <div class="action-flow">
+          <span class="action-chip chip-init">INIT</span>
+          <span class="action-chip chip-stop">STOP</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+        </div>
+        <div style="margin-top:12px;font-size:0.78rem;color:#ca8a04">
+          ⚠️ Regression 출력 ≈ −0.015, −0.007 — 사실상 정지.<br>
+          exp49는 이 세션 설정에서 동작 불가.
+        </div>
+      </div>
+
+      <!-- exp49 164306 -->
+      <div class="json-card">
+        <h3>Session G — 164306 (18 steps) ⚠️</h3>
+        <div class="jc-meta">
+          모델: <code>exp49/exp49_mlp.pt</code> &nbsp;|&nbsp; 지시: "the gray basket on right"<br>
+          평균 레이턴시: ~385ms
+        </div>
+        <div class="action-flow">
+          <span class="action-chip chip-init">INIT</span>
+          <span class="action-chip chip-stop">STOP</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+          <span class="action-chip chip-reg">REG≈0</span>
+        </div>
+        <div style="margin-top:12px;font-size:0.78rem;color:#ca8a04">
+          ⚠️ exp49 regression head가 근-제로 수렴.<br>
+          분류 헤드 없이 regression만으로는 동작 어려움.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Findings ── -->
+<section class="section" id="findings">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-lightbulb" style="color:#fbbf24"></i> 핵심 발견</h2>
+    <p class="section-subtitle">5개 세션에서 도출된 실사 결론</p>
+
+    <div class="findings-grid">
+      <div class="finding-card highlight">
+        <div class="fc-icon">✅</div>
+        <h4>Decomposition 모델은 실제 접근 가능</h4>
+        <p>Session B·C 모두 바스켓에 성공적으로 접근. 프레임 가득 채우는 "도달" 행동까지 확인. 시뮬레이션 66.7% success rate가 실사에서도 재현됨.</p>
+      </div>
+      <div class="finding-card warn">
+        <div class="fc-icon">⚠️</div>
+        <h4>FWD+LEFT 편향 — 출발 각도에 민감</h4>
+        <p>Session A는 동일 타깃 동일 거리에서 완전 실패. FWD+L 누적으로 왼쪽 벽으로 이탈. 초기 포즈 ±10° 차이가 성패를 가름.</p>
+      </div>
+      <div class="finding-card danger">
+        <div class="fc-icon">🚫</div>
+        <h4>exp49 regression 모드 완전 비동작</h4>
+        <p>exp49 모델이 regression 출력 ≈ −0.015로 수렴. 사실상 로봇 정지. 분류 헤드 없는 순수 regression만으로는 현재 설정에서 동작 불가.</p>
+      </div>
+      <div class="finding-card">
+        <div class="fc-icon">📊</div>
+        <h4>레이턴시 430ms — 실사 허용 범위</h4>
+        <p>checkpoints/best 모델의 스텝 레이턴시 평균 430ms. bang-bang 0.45s 간격과 맞아 실사 제어에 문제 없음. exp49는 오히려 385ms로 더 빠르나 출력이 무의미.</p>
+      </div>
+      <div class="finding-card">
+        <div class="fc-icon">🎯</div>
+        <h4>Bbox grounding이 접근의 핵심</h4>
+        <p>성공 세션에서 바스켓이 화면 오른쪽으로 이동했음에도 추적 유지. Kosmos-2 기반 bbox cx 추적이 Stage2 입력에 제대로 반영된 결과.</p>
+      </div>
+      <div class="finding-card">
+        <div class="fc-icon">🔄</div>
+        <h4>Stop 조건 부재 — 다음 과제</h4>
+        <p>Session B·C 모두 바스켓에 충돌할 때까지 전진. Area threshold stop 조건이 실사에서도 반드시 필요. 현재 대시보드 bbox area 0.18 기준 적용 예정.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Lightbox ── -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <span class="lightbox-close" onclick="closeLightboxDirect()">&times;</span>
+  <span class="lightbox-nav" id="lb-prev" onclick="lbNav(-1); event.stopPropagation();">&#8249;</span>
+  <img id="lb-img" src="" alt="">
+  <div class="lightbox-info" id="lb-info"></div>
+  <span class="lightbox-nav" id="lb-next" onclick="lbNav(1); event.stopPropagation();">&#8250;</span>
+</div>
+
+<!-- ── Footer ── -->
+<div class="site-footer">
+  <p>MoNaVLA Robot Test Sessions &mdash; Kangnam University Advanced Agentic Robotics Lab</p>
+  <p style="margin-top:8px"><a href="../index.html">← Home</a> &nbsp;|&nbsp; <a href="research_story.html">Research Story</a></p>
+</div>
+
+<script>
+  // ── Filmstrip generation ──
+  const SESSION_FRAMES = {
+    a: { dir: '../inference_reports/session_20260529_101930_images', count: 29, id: 'filmstrip-a',
+         keys: { 1:'출발', 5:'정상', 10:'Drift 시작', 15:'타깃 소실', 20:'이탈 중', 29:'완전 이탈' },
+         types: { 1:'key', 5:'key', 10:'drift', 11:'drift', 12:'drift', 13:'drift', 14:'drift',
+                  15:'drift', 16:'drift', 17:'drift', 18:'drift', 19:'drift', 20:'drift',
+                  21:'drift', 22:'drift', 23:'drift', 24:'drift', 25:'drift', 26:'drift',
+                  27:'drift', 28:'drift', 29:'drift' } },
+    b: { dir: '../inference_reports/session_20260529_102026_images', count: 20, id: 'filmstrip-b',
+         keys: { 1:'출발', 5:'접근 중', 10:'근접', 15:'매우 근접', 20:'도달!' },
+         types: { 1:'key', 5:'key', 10:'key', 15:'close', 16:'close', 17:'close', 18:'close', 19:'close', 20:'close' } },
+    c: { dir: '../inference_reports/session_20260529_102136_images', count: 17, id: 'filmstrip-c',
+         keys: { 1:'출발', 5:'접근 중', 10:'근접', 15:'매우 근접', 17:'도달!' },
+         types: { 1:'key', 5:'key', 10:'key', 14:'close', 15:'close', 16:'close', 17:'close' } },
+  };
+
+  // Flat list for lightbox navigation
+  let allFrames = [];
+
+  function padNum(n) { return String(n).padStart(3, '0'); }
+
+  function buildFilmstrips() {
+    for (const [sid, s] of Object.entries(SESSION_FRAMES)) {
+      const el = document.getElementById(s.id);
+      for (let i = 1; i <= s.count; i++) {
+        const src = `${s.dir}/frame_${padNum(i)}.jpg`;
+        const type = s.types[i] || 'normal';
+        const idx = allFrames.length;
+        allFrames.push({ src, label: s.keys[i] || null, session: sid.toUpperCase(), frame: i, total: s.count });
+
+        const div = document.createElement('div');
+        div.className = `frame-item${type === 'key' ? ' key-frame' : type === 'drift' ? ' drift-frame' : type === 'close' ? ' close-frame' : ''}`;
+        div.innerHTML = `
+          <img src="${src}" alt="Frame ${i}" loading="lazy" onclick="openLightbox(${idx})">
+          <div class="frame-num">F${padNum(i)}</div>
+          ${s.keys[i] ? `<div class="frame-label">${s.keys[i]}</div>` : ''}
+        `;
+        el.appendChild(div);
+      }
+    }
+  }
+
+  // ── Lightbox ──
+  let lbIdx = 0;
+
+  function openLightbox(idx) {
+    lbIdx = idx;
+    updateLightbox();
+    document.getElementById('lightbox').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function updateLightbox() {
+    const f = allFrames[lbIdx];
+    document.getElementById('lb-img').src = f.src;
+    document.getElementById('lb-info').textContent =
+      `Session ${f.session} — Frame ${f.frame}/${f.total}${f.label ? '  [' + f.label + ']' : ''}`;
+  }
+
+  function lbNav(dir) {
+    lbIdx = (lbIdx + dir + allFrames.length) % allFrames.length;
+    updateLightbox();
+  }
+
+  function closeLightbox(e) {
+    if (e.target === document.getElementById('lightbox')) closeLightboxDirect();
+  }
+  function closeLightboxDirect() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('lightbox').classList.contains('active')) return;
+    if (e.key === 'ArrowLeft')  lbNav(-1);
+    if (e.key === 'ArrowRight') lbNav(1);
+    if (e.key === 'Escape')     closeLightboxDirect();
+  });
+
+  buildFilmstrips();
+</script>
+</body>
+</html>
