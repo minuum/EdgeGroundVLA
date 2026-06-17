@@ -672,7 +672,7 @@ class DashboardJoystickReader:
 
     def __init__(self):
         self._running  = False
-        self._enabled  = False   # UI 버튼으로 ON/OFF
+        self._enabled  = True    # 시작 시 기본 활성화
         self._js_mode  = 'sync'  # 'sync' | 'async' (Start 버튼으로 전환)
         self._thread   = None
         self._btn_prev = {}
@@ -685,7 +685,7 @@ class DashboardJoystickReader:
         self.status: dict = {
             "connected": False, "name": "—",
             "key": None, "label": "—",
-            "enabled": False, "mode": "SYNC",
+            "enabled": True, "mode": "SYNC",
         }
 
     def _load_axes(self):
@@ -1367,8 +1367,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                         scale=4,
                     )
                     btn_js_toggle = gr.Button(
-                        "활성화",
-                        variant="secondary",
+                        "비활성화",
+                        variant="primary",
                         scale=1,
                     )
                 gr.Markdown(
