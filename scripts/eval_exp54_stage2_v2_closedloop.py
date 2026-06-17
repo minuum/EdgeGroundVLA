@@ -217,6 +217,22 @@ def compute_episode_metrics(pred_classes, expert_classes, dt, success_fpe):
     return {"fpe": fpe, "tld": tld, "success": success}
 
 
+def compute_stop_aware_metrics(pred_classes, n_frames, stop_n):
+    """마지막 stop_n 프레임 안에 STOP 예측이 있는지 분석."""
+    first_stop = next((t for t, c in enumerate(pred_classes) if c == 0), -1)
+    last_n_start = max(0, n_frames - stop_n)
+    stop_in_last_n = any(pred_classes[t] == 0 for t in range(last_n_start, n_frames))
+    premature = (first_stop >= 0) and (first_stop < last_n_start)
+    n_stop_in_last = sum(1 for t in range(last_n_start, n_frames) if pred_classes[t] == 0)
+    return {
+        "first_stop_frame": first_stop,
+        "stop_in_last_n":   stop_in_last_n,
+        "premature_stop":   premature,
+        "n_stop_in_last_n": n_stop_in_last,
+        "last_n_start":     last_n_start,
+    }
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--dt",          type=float, default=DT_DEFAULT)
@@ -231,6 +247,8 @@ def main():
                    help="액션 헤드 종류 (학습 시와 동일하게 지정)")
     p.add_argument("--window",      type=int,   default=WINDOW,
                    help=f"bbox 히스토리 윈도우 크기 (기본={WINDOW}). ckpt에 저장된 값 자동 로드")
+    p.add_argument("--stop_aware",  type=int,   default=0,
+                   help="0=비활성. N>0: 마지막 N 프레임 안에 STOP 예측 여부 분석 (stop_aware 메트릭)")
     args = p.parse_args()
 
     ckpt_path = Path(args.ckpt)
@@ -271,7 +289,8 @@ def main():
     print(f"[MODEL] Stage 2 v2 {args.head.upper()} window={window} d_in={d_in} (val_acc={ckpt['val_acc']:.4f})")
 
     results_by_path = defaultdict(list)
-    all_metrics = []
+    all_metrics   = []
+    stop_aware_ms = []
 
     for i, ep in enumerate(val_eps):
         pt = ep.get("path_type", "unknown")
@@ -282,7 +301,14 @@ def main():
         m["path_type"] = pt
         results_by_path[pt].append(m)
         all_metrics.append(m)
-        print(f"  [{i+1:3d}/{len(val_eps)}] {pt:<22} FPE={m['fpe']:.3f}m  TLD={m['tld']:.2f}  {'✅' if m['success'] else '❌'}")
+        stop_suffix = ""
+        if args.stop_aware > 0:
+            sa = compute_stop_aware_metrics(pred, len(pred), args.stop_aware)
+            stop_aware_ms.append(sa)
+            stop_suffix = (f"  STOP@{sa['first_stop_frame']}"
+                           f"{'✓' if sa['stop_in_last_n'] else '✗'}"
+                           f"{'⚠' if sa['premature_stop'] else ''}")
+        print(f"  [{i+1:3d}/{len(val_eps)}] {pt:<22} FPE={m['fpe']:.3f}m  TLD={m['tld']:.2f}  {'✅' if m['success'] else '❌'}{stop_suffix}")
 
     # 요약
     total   = len(all_metrics)
@@ -293,6 +319,14 @@ def main():
     print(f"  평균 FPE: {np.mean([m['fpe'] for m in all_metrics]):.3f}m")
     print(f"  평균 TLD: {np.mean([m['tld'] for m in all_metrics]):.3f}")
     print(f"  참고: step2=66.7%  Exp11=0%")
+    if args.stop_aware > 0 and stop_aware_ms:
+        n_good = sum(1 for s in stop_aware_ms if s["stop_in_last_n"])
+        n_prem = sum(1 for s in stop_aware_ms if s["premature_stop"])
+        n_never = sum(1 for s in stop_aware_ms if s["first_stop_frame"] < 0)
+        print(f"\n  [STOP-AWARE N={args.stop_aware}]")
+        print(f"  Good STOP (last {args.stop_aware}f): {n_good}/{len(stop_aware_ms)} = {n_good/len(stop_aware_ms)*100:.1f}%")
+        print(f"  Premature STOP:                   {n_prem}/{len(stop_aware_ms)} = {n_prem/len(stop_aware_ms)*100:.1f}%")
+        print(f"  Never STOP:                       {n_never}/{len(stop_aware_ms)} = {n_never/len(stop_aware_ms)*100:.1f}%")
     print(f"{'='*55}")
 
     print(f"\npath_type별 성공률:")
@@ -309,12 +343,18 @@ def main():
     else:
         existing = {"summary": {}, "per_path": {}}
 
-    existing["summary"][args.tag] = {
+    summary_entry = {
         "success_rate": success / total if total > 0 else 0,
         "mean_fpe": float(np.mean([m["fpe"] for m in all_metrics])),
         "mean_tld": float(np.mean([m["tld"] for m in all_metrics])),
         "n_episodes": total,
     }
+    if args.stop_aware > 0 and stop_aware_ms:
+        summary_entry["stop_aware_n"]       = args.stop_aware
+        summary_entry["good_stop_rate"]     = sum(1 for s in stop_aware_ms if s["stop_in_last_n"]) / len(stop_aware_ms)
+        summary_entry["premature_stop_rate"] = sum(1 for s in stop_aware_ms if s["premature_stop"]) / len(stop_aware_ms)
+        summary_entry["never_stop_rate"]    = sum(1 for s in stop_aware_ms if s["first_stop_frame"] < 0) / len(stop_aware_ms)
+    existing["summary"][args.tag] = summary_entry
     existing["per_path"][args.tag] = {
         pt: [{"fpe": float(m["fpe"]), "tld": float(m["tld"]), "success": bool(m["success"])}
              for m in ms]
