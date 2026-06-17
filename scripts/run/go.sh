@@ -19,7 +19,7 @@ SERVER_PORT=8001
 DASH_PORT=7865
 HUB_PORT=7860
 S1_PT="runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
-S2_PT="runs/v5_nav/mlp/exp66/action_mlp.pt"
+S2_PT="runs/v5_nav/mlp/stop_lastN/stop_N1.pt"
 
 # .venv 있으면 우선, 없으면 시스템 python3
 if [[ -x ".venv/bin/python3" ]]; then
@@ -106,7 +106,8 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
     echo "▶ 1/3  추론 서버 (포트 $SERVER_PORT)"
     pkill -f "stage2_v2_inference_server" 2>/dev/null && sleep 1 || true
 
-    nohup "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
+    nohup env VLA_S2V2_STAGE2="$S2_PT" VLA_STOP_MODE=learned \
+        "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
         --port "$SERVER_PORT" > logs/s2v2_server.log 2>&1 &
     disown $!
     echo "  PID=$!  logs/s2v2_server.log"
