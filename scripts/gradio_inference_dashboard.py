@@ -40,6 +40,12 @@ import numpy as np
 import requests
 from PIL import Image
 
+try:
+    import pygame
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -501,29 +507,42 @@ class ROSDashboardNode(Node):
         )
         self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10, callback_group=self.callback_group)
         self.control = VLAControlManager(self, default_throttle=50, move_duration=0.4)
+        self.lock = threading.Lock()
+        self.latest_ui_frame = None  # BGR numpy array, 10Hz 백그라운드 루프가 업데이트
+        threading.Thread(target=self._camera_loop, daemon=True).start()
+
+    def _camera_loop(self):
+        """10Hz 백그라운드 폴링 — latest_ui_frame을 항상 최신으로 유지."""
+        while rclpy.ok():
+            if self.get_image_client.service_is_ready():
+                req = GetImage.Request()
+                future = self.get_image_client.call_async(req)
+                start = time.time()
+                while time.time() - start < 0.15:
+                    if future.done():
+                        break
+                    time.sleep(0.01)
+                if future.done():
+                    try:
+                        res = future.result()
+                        if res and res.image.data:
+                            cv_img = self.cv_bridge.imgmsg_to_cv2(res.image, "bgr8")
+                            with self.lock:
+                                self.latest_ui_frame = cv_img
+                    except Exception:
+                        pass
+            time.sleep(0.1)  # 10 Hz
 
     def get_inference_frame(self):
+        """캐시에서 즉시 반환 — 블로킹 없음."""
         try:
-            if not self.get_image_client.wait_for_service(timeout_sec=1.0):
+            with self.lock:
+                frame = self.latest_ui_frame
+            if frame is None:
                 return None
-            request = GetImage.Request()
-            future = self.get_image_client.call_async(request)
-            start_time = time.time()
-            while rclpy.ok() and not future.done():
-                if time.time() - start_time > 2.0:
-                    return None
-                time.sleep(0.01)
-            if future.done():
-                try:
-                    response = future.result()
-                    if response and response.image.data:
-                        cv_image = self.cv_bridge.imgmsg_to_cv2(response.image, "bgr8")
-                        return Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
-                except Exception:
-                    return None
+            return Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         except Exception as e:
             if "context is invalid" in str(e) or "rcl" in str(e).lower():
-                # ROS context 무효화 → 백그라운드에서 재초기화
                 print(f"[Dashboard] ROS context 무효 → 재초기화 시도")
                 threading.Thread(target=_init_ros_node, daemon=True).start()
         return None
@@ -584,6 +603,216 @@ if ROS_AVAILABLE:
     _init_ros_node()
 
 
+# ── 조이스틱 (DragonRise) ─────────────────────────────────────────────────────
+
+class DashboardJoystickReader:
+    """DragonRise 게임패드로 대시보드 로봇을 직접 제어.
+    데이터 수집 그라디오(JoystickReader)와 동일한 SYNC/ASYNC 구조.
+
+    버튼 매핑:
+      A (0)     → STOP (robust_stop)
+      Start (7) → SYNC ↔ ASYNC 모드 전환 (활성화 토글이 아님)
+
+    SYNC 모드: 0.45s 간격으로 move_and_stop_timed() — V5 bang-bang 호환
+    ASYNC 모드: 10Hz 연속 publish_and_move() + 300ms Jitter Hold + 중립 시 robust_stop()
+    """
+
+    DEADZONE      = 0.15
+    THRESHOLD     = 0.50
+    STEP_INTERVAL = 0.45   # SYNC bang-bang 간격 (s)
+    ASYNC_INTERVAL = 0.10  # ASYNC 연속 발행 간격 (s) — 10Hz
+    JITTER_HOLD   = 0.30   # ASYNC 중립 후 정지 유예 시간 (s)
+    DEFAULT_AXES  = {"left_x": 0, "left_y": 1, "right_x": 2}
+    BTN_STOP      = 0   # A
+    BTN_TOGGLE    = 7   # Start → SYNC/ASYNC 모드 전환
+
+    # 대시보드 속도 상수 재사용
+    _VEL_LIN = 1.15
+    _VEL_ANG = 1.15
+
+    WASD_TO_VEL = {
+        'W': (1.15, 0.0,  0.0),
+        'Q': (1.15, 1.15, 0.0),
+        'E': (1.15,-1.15, 0.0),
+        'A': (0.0,  1.15, 0.0),
+        'D': (0.0, -1.15, 0.0),
+        'R': (0.0,  0.0,  1.15),
+        'T': (0.0,  0.0, -1.15),
+    }
+
+    def __init__(self):
+        self._running  = False
+        self._enabled  = False   # UI 버튼으로 ON/OFF
+        self._js_mode  = 'sync'  # 'sync' | 'async' (Start 버튼으로 전환)
+        self._thread   = None
+        self._btn_prev = {}
+        self._last_step_time = 0.0
+        self._prev_key = None
+        self._neutral_start_time = 0.0
+        self._last_non_neutral_key = None
+        self._movement_timer = None
+        self._axes = self._load_axes()
+        self.status: dict = {
+            "connected": False, "name": "—",
+            "key": None, "label": "—",
+            "enabled": False, "mode": "SYNC",
+        }
+
+    def _load_axes(self):
+        cfg = Path(__file__).parent / "joystick_config.json"
+        if cfg.exists():
+            try:
+                import json as _json
+                return _json.load(open(cfg)).get("axes", self.DEFAULT_AXES)
+            except Exception:
+                pass
+        return dict(self.DEFAULT_AXES)
+
+    def start(self):
+        if not PYGAME_AVAILABLE:
+            print("[JS-Dashboard] pygame 없음 — pip install pygame")
+            return
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def toggle_enabled(self) -> str:
+        self._enabled = not self._enabled
+        self.status = {**self.status, "enabled": self._enabled}
+        label = "활성화" if self._enabled else "비활성화"
+        print(f"[JS-Dashboard] {label}")
+        return label
+
+    def toggle_mode(self) -> str:
+        self._js_mode = 'async' if self._js_mode == 'sync' else 'sync'
+        self.status = {**self.status, "mode": self._js_mode.upper()}
+        print(f"[JS-Dashboard] 모드 전환 → {self._js_mode.upper()}")
+        return self._js_mode.upper()
+
+    def _axis_to_key(self, lx, ly, az):
+        T = self.THRESHOLD
+        fwd = lx >=  T; bwd = lx <= -T
+        lft = ly >=  T; rgt = ly <= -T
+        rl  = az >=  T; rr  = az <= -T
+        if fwd and lft: return 'Q'
+        if fwd and rgt: return 'E'
+        if fwd:         return 'W'
+        if lft:         return 'A'
+        if rgt:         return 'D'
+        if rl:          return 'R'
+        if rr:          return 'T'
+        return None
+
+    def _loop(self):
+        os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+        os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+        try:
+            pygame.init()
+            pygame.joystick.init()
+        except Exception as e:
+            print(f"[JS-Dashboard] pygame init 실패: {e}")
+            return
+
+        js = None
+        LABELS = {
+            'W': '▲FWD', 'Q': '↖FWD+L', 'E': '↗FWD+R',
+            'A': '←LEFT', 'D': '→RIGHT',
+            'R': '↺ROT_L', 'T': '↻ROT_R',
+        }
+
+        while self._running:
+            if js is None:
+                if pygame.joystick.get_count() == 0:
+                    self.status = {**self.status, "connected": False, "name": "—"}
+                    pygame.joystick.quit(); pygame.joystick.init()
+                    time.sleep(1.0)
+                    continue
+                js = pygame.joystick.Joystick(0)
+                js.init()
+                self.status = {**self.status, "connected": True, "name": js.get_name()}
+                self._btn_prev = {i: 0 for i in range(js.get_numbuttons())}
+                print(f"[JS-Dashboard] 연결됨: {js.get_name()}")
+
+            try:
+                pygame.event.pump()
+
+                def rd(idx):
+                    v = js.get_axis(idx)
+                    return v if abs(v) > self.DEADZONE else 0.0
+
+                lx = -rd(self._axes["left_y"])
+                ly = -rd(self._axes["left_x"])
+                az = -rd(self._axes["right_x"])
+                raw_key = self._axis_to_key(lx, ly, az)
+                key = raw_key
+
+                # ASYNC 모드: 300ms Jitter Hold — 순간 중립 튐 방지
+                if self._js_mode == 'async':
+                    now_j = time.time()
+                    if raw_key is not None:
+                        self._last_non_neutral_key = raw_key
+                        self._neutral_start_time = 0.0
+                    else:
+                        if self._neutral_start_time == 0.0:
+                            self._neutral_start_time = now_j
+                        if now_j - self._neutral_start_time < self.JITTER_HOLD:
+                            key = self._last_non_neutral_key
+                        else:
+                            key = None
+
+                now = time.time()
+                if self._enabled and ros_node is not None:
+                    ctrl = ros_node.control
+                    if key:
+                        vel = self.WASD_TO_VEL.get(key)
+                        if vel:
+                            if self._js_mode == 'sync':
+                                if (now - self._last_step_time) >= self.STEP_INTERVAL:
+                                    if self._movement_timer:
+                                        self._movement_timer.cancel()
+                                        self._movement_timer = None
+                                    ctrl.move_and_stop_timed(*vel)
+                                    self._last_step_time = now
+                            else:  # async
+                                if (now - self._last_step_time) >= self.ASYNC_INTERVAL:
+                                    ctrl.publish_and_move(*vel, source="joystick")
+                                    self._last_step_time = now
+                    elif self._prev_key:
+                        if self._js_mode == 'async':
+                            ctrl.robust_stop(source="joystick")
+
+                self._prev_key = key
+                self.status = {
+                    "connected": True, "name": js.get_name(),
+                    "enabled": self._enabled,
+                    "mode": self._js_mode.upper(),
+                    "key": key, "label": LABELS.get(key, "●") if key else "○",
+                }
+
+                for i in range(js.get_numbuttons()):
+                    cur = js.get_button(i)
+                    if cur and not self._btn_prev.get(i, 0):
+                        if i == self.BTN_STOP:
+                            if ros_node is not None:
+                                ros_node.control.robust_stop(source="joystick_A")
+                        elif i == self.BTN_TOGGLE:
+                            self.toggle_mode()
+                    self._btn_prev[i] = cur
+
+            except Exception as e:
+                print(f"[JS-Dashboard] 루프 오류: {e}")
+                js = None
+                self.status = {**self.status, "connected": False}
+
+            time.sleep(0.04)  # 25 Hz
+
+
+_joystick = DashboardJoystickReader()
+_joystick.start()
+
+
 def annotate_image(img: Image.Image, bbox: dict | None = None, draw_grid: bool = True) -> Image.Image:
     """카메라 이미지에 3x3 격자 + bbox 오버레이를 그려 반환."""
     arr = np.array(img)
@@ -632,6 +861,10 @@ state = {
     "model_path": "N/A",
     "action_history": [],   # [(lx, ly, az), ...] 추론 중 실행된 액션 기록
     "is_returning": False,
+    # 이동 완료 후 로봇 정지 상태에서 캡처한 프레임 (학습 데이터 분포 일치)
+    # None이면 get_inference_frame() 폴백
+    "stable_frame": None,
+    "stable_frame_cc": False,  # color correction 적용 여부 기록
 }
 
 
@@ -666,16 +899,32 @@ def load_model_wrapper(backend_mode: str, api_url: str, precision_label: str, ck
         return f"❌ Load Failed: {e}", state["model_path"]
 
 
+def _flush_session(status: str = "manual_stop"):
+    """진행 중인 세션을 저장하고 경로를 반환한다."""
+    if logger_instance and logger_instance.data and logger_instance.data.get("history"):
+        path = logger_instance.end_session(status)
+        if path:
+            print(f"💾 세션 저장: {path} ({status})")
+        return path
+    return None
+
+
 def set_running(running: bool, backend_mode: str, api_url: str, instruction: str, gt_object: str = ""):
     state["is_running"] = running
-    state["step_count"] = 0 if running else state["step_count"]
     state["gt_object"] = gt_object
     if running:
-        state["action_history"] = []  # 새 에피소드 시작 시 초기화
+        state["step_count"] = 0
+        state["action_history"] = []
+        state["stable_frame"] = None
+        state["stable_frame_cc"] = False
         try:
             make_backend(backend_mode, api_url).reset(instruction)
         except Exception:
             pass
+    else:
+        # 수동 stop — 진행 중 세션 저장
+        _flush_session("manual_stop")
+        state["step_count"] = 0
     return "Running..." if running else "Stopped"
 
 
@@ -758,7 +1007,7 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
             gr.update(),
         )
 
-    state["auto_inference"] = mode in ("Inference (Auto)", "Inference (18-step)")
+    state["auto_inference"] = mode == "Inference (Auto)"
 
     if not ROS_AVAILABLE:
         state["camera_status"] = "ROS Not Available"
@@ -793,13 +1042,29 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
                         logger_instance.data["gt_object"] = state["gt_object"]
                     logger_instance.log_step(current_step, [0.0, 0.0, 0.0], 0, image=img)
                 ros_node.control.robust_stop(source="inference_start")
+                # 로봇이 정지 완료될 때까지 대기 → step 2 추론용 stable frame 캡처
+                time.sleep(0.20)
+                _sf = ros_node.get_inference_frame()
+                if _sf is not None:
+                    state["stable_frame"] = correct_image(_sf) if apply_cc else _sf
+                    state["stable_frame_cc"] = apply_cc
                 try:
                     make_backend(backend_mode, api_url).reset(instr)
                 except Exception as e:
                     return annotate_image(img), f"❌ Reset failed: {e}", "0 ms", "STOP", "Waiting...", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None
                 return annotate_image(img), "Step 1 (Start/Wait)", "0 ms", "0.0000, 0.0000, 0.0000", "Waiting...", gr.update(value="Running (step 1)..."), state["camera_status"], state["model_path"], None
 
-            result = run_backend_inference(img, instr, backend_mode, api_url)
+            # 이동 완료 후 캡처한 정지 상태 프레임 우선 사용 (학습 데이터 분포 일치)
+            infer_img = state.get("stable_frame") or img
+            state["stable_frame"] = None  # consume — 다음 스텝까지 새로 채워질 예정
+
+            result = run_backend_inference(infer_img, instr, backend_mode, api_url)
+            # 이동 완료 후 로봇 정착 대기 → 다음 스텝용 stable frame 미리 캡처
+            time.sleep(0.15)
+            _sf = ros_node.get_inference_frame()
+            if _sf is not None:
+                state["stable_frame"] = correct_image(_sf) if apply_cc else _sf
+                state["stable_frame_cc"] = apply_cc
             display_img = annotate_image(img, bbox=result.get("bbox"))
             fig = ros_node.generate_trajectory_plot(result["chunk"])
             if logger_instance:
@@ -808,7 +1073,7 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
                     result["action"],
                     result.get("latency_ms", 0),
                     result["chunk"],
-                    image=img,
+                    image=infer_img,  # 실제 추론에 사용한 프레임 로깅
                     predicted_label=result.get("predicted_label"),
                     grounding_caption=result.get("grounding_caption"),
                     goal_near=result.get("goal_near"),
@@ -904,20 +1169,33 @@ def reset_model_wrapper(backend_mode: str, api_url: str, instruction: str):
         return f"❌ Reset failed: {e}"
 
 
-with gr.Blocks(title="VLA PRO Dashboard") as demo:
-    gr.Markdown("# 🚀 Mobile VLA Real-time Dashboard & Teleop")
-    gr.Markdown(
-        """
-        <div style="background-color: #1e293b; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 4px; margin-bottom: 15px; color: #e2e8f0;">
-            <h4 style="margin: 0 0 6px 0; color: #60a5fa; font-size: 1.05rem;">📊 실로봇 주행 평가 세션 수집 목표 (Real Robot Eval Protocol)</h4>
-            <ul style="margin: 0; padding-left: 20px; font-size: 0.92rem; line-height: 1.5;">
-                <li><strong>정식 평가 목표:</strong> 9개 경로 타입(path_type) × 각 2회 = <strong>총 18회 주행 세션 기록</strong></li>
-                <li><strong>최소 단축 평가:</strong> 바스켓 위치 3종(LEFT / CENTER / RIGHT) × 각 3회 = <strong>총 9회 주행 세션 기록</strong></li>
-                <li><strong>평가 기록 도구:</strong> 주행 완료 시 즉시 <code>vla-trial-logger</code> (포트 7862)를 통해 기록을 저장하십시오.</li>
-            </ul>
-        </div>
-        """
+def _make_env_banner() -> str:
+    import socket as _sock
+    hostname = _sock.gethostname()
+    role = os.getenv("VLA_SERVER_ROLE", "unknown")
+    model = os.getenv("VLA_MODEL", "exp66")
+    api = os.getenv("VLA_API_SERVER", "http://localhost:8001")
+    exp_name = EXP_MODE_NAMES[0] if EXP_MODE_NAMES else "—"
+    return (
+        f'<div style="background:#0f172a;border-left:4px solid #22c55e;padding:10px 14px;'
+        f'border-radius:4px;margin-bottom:12px;color:#e2e8f0;font-size:0.88rem;line-height:1.6;">'
+        f'<strong style="color:#4ade80;font-size:0.95rem;">MoNaVLA 환경</strong>'
+        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
+        f'<code style="color:#86efac">{hostname}</code>'
+        f'&nbsp;(<span style="color:#fbbf24">{role}</span>)'
+        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
+        f'모델&nbsp;<code style="color:#67e8f9">{model}</code>'
+        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
+        f'API&nbsp;<code style="color:#a5b4fc">{api}</code>'
+        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
+        f'실험&nbsp;<span style="color:#f9a8d4">{exp_name}</span>'
+        f'</div>'
     )
+
+
+with gr.Blocks(title="MoNaVLA Dashboard") as demo:
+    gr.Markdown("# MoNaVLA Real-time Dashboard")
+    gr.HTML(_make_env_banner())
 
     _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
     # 카메라 시작 → 완료 후 즉시 카메라 프레임 fetch
@@ -932,73 +1210,98 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
             with gr.Group():
                 gr.Markdown("### 🕹️ Operation Mode")
                 mode_radio = gr.Radio(
-                    choices=["Manual Drive", "Inference (Auto)", "Inference (18-step)"],
+                    choices=["Manual Drive", "Inference (Auto)"],
                     value="Manual Drive",
                     label="Controller Mode",
                 )
 
-                with gr.Row(visible=False) as inference_panel:
-                    with gr.Column():
-                        backend_radio = gr.Radio(
-                            choices=["Local Runtime", "API Server"],
-                            value=DEFAULT_BACKEND_MODE,
-                            label="Inference Backend",
+                # Inference Backend — 항상 표시 (Manual Drive에서도 exp_mode config push에 사용)
+                with gr.Row():
+                    backend_radio = gr.Radio(
+                        choices=["Local Runtime", "API Server"],
+                        value=DEFAULT_BACKEND_MODE,
+                        label="Inference Backend",
+                        scale=1,
+                    )
+                    api_url_box = gr.Textbox(
+                        label="API URL",
+                        value=DEFAULT_API_URL,
+                        scale=2,
+                        info="포트 8001 = soda 추론 서버 (proxy_inference_server)",
+                    )
+
+                ckpts, confs = scan_local_files()
+                _is_api = DEFAULT_BACKEND_MODE == "API Server"
+
+                def _default_from_exp(key: str, choices):
+                    """기본 EXP_MODE(Exp66)의 checkpoint/config 절대경로를 초기값으로."""
+                    default_cfg = EXP_MODES[EXP_MODE_NAMES[0]]
+                    rel = default_cfg.get(key)
+                    if rel:
+                        abs_path = str(PROJECT_ROOT / rel)
+                        for _label, val in choices:
+                            if val == abs_path:
+                                return abs_path
+                    return pick_default_choice(choices, "VLA_CHECKPOINT_PATH" if key == "checkpoint" else "VLA_CONFIG_PATH")
+
+                # Local Runtime 전용 — API Server 선택 시 숨김
+                with gr.Column(visible=not _is_api) as local_panel:
+                    with gr.Row():
+                        ckpt_dropdown = gr.Dropdown(
+                            choices=ckpts,
+                            label="🎯 Checkpoint (.ckpt/.pth)",
+                            value=_default_from_exp("checkpoint", ckpts),
+                            scale=2,
                         )
-                        api_url_box = gr.Textbox(label="API URL", value=DEFAULT_API_URL)
-
-                        ckpts, confs = scan_local_files()
-                        # Local Runtime 전용 컨트롤 — API Server 선택 시 자동 숨김
-                        _is_api = DEFAULT_BACKEND_MODE == "API Server"
-                        with gr.Column(visible=not _is_api) as local_panel:
-                            ckpt_dropdown = gr.Dropdown(
-                                choices=ckpts,
-                                label="🎯 Select Checkpoint (.ckpt/.pth)",
-                                value=pick_default_choice(ckpts, "VLA_CHECKPOINT_PATH"),
-                            )
-                            conf_dropdown = gr.Dropdown(
-                                choices=confs,
-                                label="⚙️ Select Config (.json)",
-                                value=pick_default_choice(confs, "VLA_CONFIG_PATH"),
-                            )
-                            quant_radio = gr.Radio(
-                                choices=["INT8 (Fast)", "FP16 (Accurate)"],
-                                value="FP16 (Accurate)",
-                                label="Model Precision",
-                            )
-                            btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
-
-                        load_status = gr.Textbox(
-                            label="Model Status",
-                            value="API Server 연결됨" if _is_api else "Not Loaded",
-                            interactive=False,
+                        conf_dropdown = gr.Dropdown(
+                            choices=confs,
+                            label="⚙️ Config (.json)",
+                            value=_default_from_exp("config", confs),
+                            scale=2,
                         )
-                        model_path = gr.Textbox(label="Active Model / Checkpoint", value="N/A", interactive=False)
-                        toggle_cc = gr.Checkbox(label="🎨 RGB Red Gain Boost", value=False)
-
-                        def on_backend_change(backend):
-                            is_api = backend == "API Server"
-                            status = "API Server 연결됨" if is_api else "Not Loaded"
-                            return gr.update(visible=not is_api), gr.update(value=status)
-
-                        backend_radio.change(
-                            fn=on_backend_change,
-                            inputs=[backend_radio],
-                            outputs=[local_panel, load_status],
+                        quant_radio = gr.Radio(
+                            choices=["INT8 (Fast)", "FP16 (Accurate)"],
+                            value="FP16 (Accurate)",
+                            label="Precision",
+                            scale=1,
                         )
+                    btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
 
-                    with gr.Column():
-                        gr.Markdown("#### 🏁 Inference Control")
-                        with gr.Row():
-                            btn_start_inf = gr.Button("▶️ START", variant="primary")
-                            btn_stop_inf = gr.Button("⏹️ STOP", variant="stop")
-                        btn_return = gr.Button("🔄 시작 위치 복귀", variant="secondary")
-                        run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
+                with gr.Row():
+                    load_status = gr.Textbox(
+                        label="Model Status",
+                        value="API Server 연결됨" if _is_api else "Not Loaded",
+                        interactive=False,
+                        scale=3,
+                    )
+                    toggle_cc = gr.Checkbox(label="🎨 Red Gain Boost", value=False, scale=1)
+                model_path = gr.Textbox(label="Active Model / Checkpoint", value="N/A", interactive=False)
+
+                # 추론 제어 — Inference (Auto) 선택 시만 표시
+                with gr.Column(visible=False) as inference_panel:
+                    gr.Markdown("#### 🏁 Inference Control")
+                    with gr.Row():
+                        btn_start_inf = gr.Button("▶️ START", variant="primary")
+                        btn_stop_inf = gr.Button("⏹️ STOP", variant="stop")
+                    btn_return = gr.Button("🔄 시작 위치 복귀", variant="secondary")
+                    run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
+
+                def on_backend_change(backend):
+                    is_api = backend == "API Server"
+                    status = "API Server 연결됨" if is_api else "Not Loaded"
+                    return gr.update(visible=not is_api), gr.update(value=status)
+
+                backend_radio.change(
+                    fn=on_backend_change,
+                    inputs=[backend_radio],
+                    outputs=[local_panel, load_status],
+                )
 
             def on_mode_change(selected_mode):
-                state["auto_inference"] = selected_mode in ("Inference (Auto)", "Inference (18-step)")
+                state["auto_inference"] = selected_mode == "Inference (Auto)"
                 state["is_running"] = False
                 state["step_count"] = 0
-                return gr.Row.update(visible=state["auto_inference"])
+                return gr.update(visible=state["auto_inference"])
 
             mode_radio.change(fn=on_mode_change, inputs=[mode_radio], outputs=[inference_panel])
             btn_load_model.click(
@@ -1021,6 +1324,49 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
                     btn_r = gr.Button("🔄 CCW (R)", scale=1)
                     btn_s = gr.Button("⬇️ S", scale=1)
                     btn_t = gr.Button("🔄 CW (T)", scale=1)
+
+            with gr.Group():
+                gr.Markdown("### 🕹️ Joystick (DragonRise)")
+                with gr.Row():
+                    js_status = gr.Textbox(
+                        label="상태",
+                        value="🔌 초기화 중...",
+                        interactive=False,
+                        scale=4,
+                    )
+                    btn_js_toggle = gr.Button(
+                        "활성화",
+                        variant="secondary",
+                        scale=1,
+                    )
+                gr.Markdown(
+                    "<small>"
+                    "Left Stick → 이동 | Right Stick X → 회전 | "
+                    "A → STOP | Start → **SYNC↔ASYNC 모드 전환**<br>"
+                    "📸 SYNC: 0.45s bang-bang (V5 호환) | "
+                    "🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold"
+                    "</small>",
+                )
+
+                def _js_status_text() -> str:
+                    s = _joystick.status
+                    if not s["connected"]:
+                        return "🔌 미연결 (DragonRise 꽂으면 자동 인식)"
+                    en   = "🟢 ON" if s["enabled"] else "⚫ OFF"
+                    mode = s.get("mode", "SYNC")
+                    badge = "📸 SYNC" if mode == "SYNC" else "🌊 ASYNC"
+                    key  = s.get("label", "○")
+                    return f"{en}  |  {badge}  |  {s['name']}  |  {key}"
+
+                def _js_toggle() -> tuple:
+                    _joystick.toggle_enabled()
+                    btn_label = "비활성화" if _joystick._enabled else "활성화"
+                    return _js_status_text(), gr.update(
+                        value=btn_label,
+                        variant="primary" if _joystick._enabled else "secondary",
+                    )
+
+                btn_js_toggle.click(fn=_js_toggle, outputs=[js_status, btn_js_toggle])
 
         with gr.Column(scale=1):
             with gr.Group():
@@ -1104,7 +1450,7 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
         outputs=run_status_box,
     )
     btn_stop_inf.click(
-        fn=lambda: state.update({"is_running": False, "step_count": 0}) or "Stopped",
+        fn=lambda: set_running(False, "", "", ""),
         outputs=run_status_box,
     )
     btn_return.click(
@@ -1151,6 +1497,7 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
         outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
     )
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
+    timer.tick(fn=_js_status_text, outputs=js_status)
     # 페이지 열리자마자 첫 프레임 즉시 표시
     demo.load(
         fn=update_ui,
@@ -1172,20 +1519,27 @@ with gr.Blocks(title="VLA PRO Dashboard") as demo:
 
     def on_exp_mode_change(mode_name, api_url, backend_mode):
         cfg = EXP_MODES.get(mode_name, EXP_MODES[EXP_MODE_NAMES[0]])
-        is_goal = "GoalNav" in mode_name or "Stage2V2" in mode_name
         instr = cfg["instruction"]
         model_key = cfg.get("model")
         desc = cfg.get("desc", "")
+        # model_key가 있으면 모두 API 서버에 동기화 (GoalNav / Stage2v2 등 구분 불필요)
+        is_goal = bool(model_key)
 
-        # config/checkpoint 자동 매칭
-        auto_conf = cfg.get("config")
-        auto_ckpt = cfg.get("checkpoint")
+        # config/checkpoint 자동 매칭 (상대경로 → 절대경로 변환)
+        def _abs(rel):
+            if not rel:
+                return None
+            p = Path(rel)
+            return str(p if p.is_absolute() else PROJECT_ROOT / p)
+
+        auto_conf = _abs(cfg.get("config"))
+        auto_ckpt = _abs(cfg.get("checkpoint"))
         conf_update = gr.update(value=auto_conf) if auto_conf else gr.update()
         ckpt_update = gr.update(value=auto_ckpt) if auto_ckpt else gr.update()
 
-        # GoalNav 모드면 backend 종류 상관없이 API 서버에 config push 시도
+        # model_key가 있으면 API 서버에 config push
         cfg_status = ""
-        if is_goal and model_key:
+        if model_key:
             try:
                 ApiInferenceBackend(api_url).set_config(
                     speed_scaling=cfg["speed_scaling"],
