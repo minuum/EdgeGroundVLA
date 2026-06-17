@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robot Test Sessions — MoNaVLA Real Navigation</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    a { color: #38bdf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ── */
+    .top-nav {
+      background: #1e293b; border-bottom: 1px solid #334155;
+      padding: 12px 28px; display: flex; align-items: center; gap: 20px;
+      font-size: 0.88rem; position: sticky; top: 0; z-index: 100;
+    }
+    .top-nav .logo { font-weight: 800; color: #f8fafc; font-size: 1rem; }
+    .top-nav .logo span { color: #38bdf8; }
+    .nav-links { display: flex; gap: 20px; margin-left: auto; }
+    .nav-links a { color: #94a3b8; font-weight: 500; }
+    .nav-links a:hover { color: #f8fafc; text-decoration: none; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      border-bottom: 1px solid #334155;
+      padding: 60px 28px 48px;
+      text-align: center;
+    }
+    .hero .tag {
+      display: inline-block; background: #1d4ed8; color: #bfdbfe;
+      font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+      padding: 4px 14px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .hero h1 { font-size: 2.6rem; font-weight: 900; color: #f8fafc; margin: 0 0 16px; line-height: 1.15; }
+    .hero h1 span { color: #38bdf8; }
+    .hero p { color: #94a3b8; font-size: 1.05rem; max-width: 620px; margin: 0 auto 30px; line-height: 1.75; }
+    .hero-meta { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; font-size: 0.85rem; color: #64748b; }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+    .hero-meta i { color: #38bdf8; }
+
+    /* ── Container ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Section ── */
+    .section { padding: 52px 0 40px; }
+    .section-title {
+      font-size: 1.5rem; font-weight: 800; color: #f1f5f9;
+      margin: 0 0 6px; display: flex; align-items: center; gap: 10px;
+    }
+    .section-subtitle { color: #64748b; font-size: 0.9rem; margin: 0 0 28px; }
+    .divider { border: none; border-top: 1px solid #1e293b; margin: 0 0 28px; }
+
+    /* ── Summary Cards ── */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 40px; }
+    @media (max-width: 768px) { .summary-grid { grid-template-columns: 1fr; } }
+    .summary-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 22px 20px; position: relative; overflow: hidden;
+    }
+    .summary-card.success { border-left: 3px solid #22c55e; }
+    .summary-card.fail    { border-left: 3px solid #ef4444; }
+    .summary-card.partial { border-left: 3px solid #f59e0b; }
+    .summary-card .badge {
+      display: inline-block; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; margin-bottom: 12px;
+    }
+    .badge-success { background: #14532d; color: #86efac; }
+    .badge-fail    { background: #450a0a; color: #fca5a5; }
+    .badge-partial { background: #451a03; color: #fcd34d; }
+    .summary-card h3 { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin: 0 0 8px; }
+    .summary-card .sc-meta { font-size: 0.82rem; color: #64748b; line-height: 1.6; }
+    .summary-card .sc-frames {
+      font-size: 2rem; font-weight: 900; color: #38bdf8; margin: 10px 0 4px;
+      line-height: 1;
+    }
+    .summary-card .sc-frames span { font-size: 0.85rem; font-weight: 400; color: #64748b; }
+
+    /* ── Session Block ── */
+    .session-block {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      margin-bottom: 40px; overflow: hidden;
+    }
+    .session-header {
+      padding: 20px 24px; border-bottom: 1px solid #334155;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .session-id { font-size: 0.8rem; font-family: monospace; color: #64748b; background: #0f172a; padding: 3px 10px; border-radius: 6px; }
+    .session-header h2 { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; margin: 0; flex: 1; }
+    .session-header .verdict {
+      font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 4px 12px; border-radius: 999px;
+    }
+    .verdict-success { background: #14532d; color: #86efac; }
+    .verdict-fail    { background: #450a0a; color: #fca5a5; }
+
+    /* ── Filmstrip ── */
+    .filmstrip-wrap {
+      padding: 20px 20px 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filmstrip {
+      display: flex; gap: 8px;
+      min-width: max-content;
+      padding-bottom: 12px;
+    }
+    .frame-item {
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer; transition: transform 0.15s;
+    }
+    .frame-item:hover { transform: translateY(-3px); }
+    .frame-item img {
+      width: 160px; height: 100px;
+      object-fit: cover; border-radius: 6px;
+      border: 2px solid #334155;
+      transition: border-color 0.15s;
+      display: block;
+    }
+    .frame-item.key-frame img { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.3); }
+    .frame-item.drift-frame img { border-color: #ef4444; }
+    .frame-item.close-frame img { border-color: #22c55e; }
+    .frame-num {
+      font-size: 0.68rem; color: #475569; margin-top: 5px; font-family: monospace;
+    }
+    .frame-label {
+      font-size: 0.65rem; font-weight: 700; color: #38bdf8;
+      margin-top: 2px; text-align: center;
+    }
+
+    /* ── Analysis box ── */
+    .analysis-box {
+      padding: 20px 24px;
+      background: #0f172a;
+      border-top: 1px solid #1e293b;
+    }
+    .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 640px) { .analysis-grid { grid-template-columns: 1fr; } }
+    .analysis-item h4 { font-size: 0.8rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+    .analysis-item p { font-size: 0.85rem; color: #94a3b8; line-height: 1.65; margin: 0; }
+    .analysis-item ul { margin: 0; padding-left: 18px; font-size: 0.85rem; color: #94a3b8; line-height: 1.7; }
+    .analysis-item ul li { margin-bottom: 3px; }
+
+    /* ── Timeline ── */
+    .timeline { padding: 16px 24px 20px; border-top: 1px solid #1e293b; }
+    .timeline h4 { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+    .tl-track {
+      position: relative; height: 36px;
+      background: #0f172a; border-radius: 8px;
+      overflow: hidden; display: flex;
+    }
+    .tl-segment {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.68rem; font-weight: 700; color: #f1f5f9;
+      transition: opacity 0.2s;
+    }
+    .tl-segment:hover { opacity: 0.8; cursor: default; }
+    .tl-fwd    { background: #1d4ed8; }
+    .tl-fwdl   { background: #6d28d9; }
+    .tl-left   { background: #7c3aed; }
+    .tl-stop   { background: #374151; }
+    .tl-drift  { background: #dc2626; }
+    .tl-legend { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+    .tl-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: #64748b; }
+    .tl-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── Action JSON sessions ── */
+    .json-sessions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 28px; }
+    @media (max-width: 768px) { .json-sessions { grid-template-columns: 1fr; } }
+    .json-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 20px;
+    }
+    .json-card h3 { font-size: 0.9rem; font-weight: 700; color: #f1f5f9; margin: 0 0 6px; }
+    .json-card .jc-meta { font-size: 0.78rem; color: #64748b; margin-bottom: 14px; }
+    .action-flow { display: flex; flex-wrap: wrap; gap: 4px; }
+    .action-chip {
+      font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+      font-family: monospace;
+    }
+    .chip-fwd    { background: #1e3a5f; color: #93c5fd; }
+    .chip-fwdl   { background: #2e1065; color: #c4b5fd; }
+    .chip-fwdr   { background: #1a1060; color: #a5b4fc; }
+    .chip-left   { background: #3b1461; color: #d8b4fe; }
+    .chip-stop   { background: #1c2533; color: #94a3b8; }
+    .chip-reg    { background: #1c1a10; color: #ca8a04; }
+    .chip-init   { background: #1c1c1c; color: #475569; }
+
+    /* ── Findings ── */
+    .findings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    @media (max-width: 640px) { .findings-grid { grid-template-columns: 1fr; } }
+    .finding-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 20px 20px;
+    }
+    .finding-card .fc-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .finding-card h4 { font-size: 0.9rem; font-weight: 700; color: #f1f5f9; margin: 0 0 8px; }
+    .finding-card p  { font-size: 0.83rem; color: #94a3b8; line-height: 1.65; margin: 0; }
+    .finding-card.highlight { border-color: #38bdf8; background: #0c1929; }
+    .finding-card.warn      { border-color: #f59e0b; }
+    .finding-card.danger    { border-color: #ef4444; }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+      z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 80vh; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .lightbox-info { margin-top: 14px; color: #94a3b8; font-size: 0.9rem; text-align: center; }
+    .lightbox-close {
+      position: absolute; top: 20px; right: 28px;
+      font-size: 1.8rem; color: #64748b; cursor: pointer; line-height: 1;
+      transition: color 0.15s;
+    }
+    .lightbox-close:hover { color: #f1f5f9; }
+    .lightbox-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      font-size: 2rem; color: #64748b; cursor: pointer; padding: 16px;
+      transition: color 0.15s;
+    }
+    .lightbox-nav:hover { color: #f1f5f9; }
+    .action-chip {
+      position: absolute; top: 4px; left: 4px; z-index: 2;
+      font-size: 0.62rem; font-weight: 800; padding: 2px 6px; border-radius: 4px;
+      letter-spacing: 0.03em; pointer-events: none;
+    }
+    .chip-FORWARD   { background:#1e40af; color:#93c5fd; }
+    .chip-FWDL      { background:#7c2d12; color:#fdba74; }
+    .chip-FWDR      { background:#14532d; color:#86efac; }
+    .chip-LEFT      { background:#581c87; color:#d8b4fe; }
+    .chip-RIGHT     { background:#052e16; color:#6ee7b7; }
+    .chip-ROTL      { background:#422006; color:#fde68a; }
+    .chip-ROTR      { background:#1e1b4b; color:#a5b4fc; }
+    .chip-STOP      { background:#7f1d1d; color:#fca5a5; }
+    .chip-NONE      { background:#1e293b; color:#64748b; }
+    .lb-panel {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 10px;
+      padding: 14px 18px; margin-top: 12px; min-width: 320px; max-width: 560px;
+      font-size: 0.82rem; color: #94a3b8;
+    }
+    .lb-panel .lb-action-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .lb-panel .lb-big-chip {
+      font-size: 1.1rem; font-weight: 900; padding: 6px 16px; border-radius: 8px;
+    }
+    .lb-panel .lb-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; }
+    .lb-panel .lb-kv { display:flex; gap:6px; }
+    .lb-panel .lb-key { color:#475569; min-width:90px; }
+    .lb-panel .lb-val { color:#e2e8f0; font-weight:600; }
+    .cx-bar-wrap { margin-top: 8px; }
+    .cx-bar-bg { background:#1e293b; border-radius:4px; height:10px; position:relative; }
+    .cx-bar-dot { position:absolute; top:-3px; width:16px; height:16px; border-radius:50%;
+                  transform:translateX(-50%); border:2px solid #fff; transition:left 0.2s; }
+    #lb-prev { left: 16px; }
+    #lb-next { right: 16px; }
+
+    /* ── Progress bar (basket size proxy) ── */
+    .approach-bar { padding: 16px 24px 20px; border-top: 1px solid #1e293b; }
+    .approach-bar h4 { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 10px; }
+    .bar-track { height: 12px; background: #0f172a; border-radius: 999px; overflow: hidden; position: relative; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+    .bar-label { font-size: 0.72rem; color: #64748b; margin-top: 5px; display: flex; justify-content: space-between; }
+
+    /* ── Footer ── */
+    .site-footer {
+      background: #020617; color: #475569; padding: 32px 24px;
+      text-align: center; font-size: 0.85rem; border-top: 1px solid #1e293b;
+    }
+
+    /* ── Scroll hint ── */
+    .scroll-hint { font-size: 0.75rem; color: #475569; text-align: center; padding: 0 0 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="top-nav">
+  <div class="logo">Mo<span>Na</span>VLA</div>
+  <div class="nav-links">
+    <a href="../index.html"><i class="fas fa-home"></i> Home</a>
+    <a href="research_story.html"><i class="fas fa-book-open"></i> Research Story</a>
+    <a href="robot_tests.html" style="color:#38bdf8"><i class="fas fa-robot"></i> Robot Tests</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="tag"><i class="fas fa-robot"></i> Real Robot Navigation Test</div>
+  <h1>Robot Test <span>Session Log</span></h1>
+  <p>Exp66 Stage2 v2 SOTA 모델 실제 로봇 추론 세션 분석.<br>
+     회색 바스켓 navigation task — 5개 세션, 66개 실수 카메라 프레임.</p>
+  <div class="hero-meta">
+    <span><i class="fas fa-calendar-alt"></i> 2026-05-29 / 2026-06-04</span>
+    <span><i class="fas fa-images"></i> 66 실수 프레임</span>
+    <span><i class="fas fa-microchip"></i> Exp66 Stage2 v2</span>
+    <span><i class="fas fa-bullseye"></i> Goal: gray basket navigation</span>
+  </div>
+</div>
+
+<!-- ── Overview ── -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-table-list" style="color:#38bdf8"></i> 세션 개요</h2>
+    <p class="section-subtitle">이미지가 저장된 3개 세션 (2026-05-29) + JSON 로그 세션 (2026-06-04)</p>
+
+    <div class="summary-grid">
+      <div class="summary-card fail">
+        <span class="badge badge-fail">❌ FAIL — Left Drift</span>
+        <h3>2026-05-29 10:19:30 (29 frames)</h3>
+        <div class="sc-frames">29 <span>frames</span></div>
+        <div class="sc-meta">
+          FWD+LEFT 누적 → 바스켓 시야 상실<br>
+          의자 쪽 벽으로 완전히 이탈
+        </div>
+      </div>
+      <div class="summary-card success">
+        <span class="badge badge-success">✅ SUCCESS — Approach</span>
+        <h3>2026-05-29 10:20:26 (20 frames)</h3>
+        <div class="sc-frames">20 <span>frames</span></div>
+        <div class="sc-meta">
+          바스켓 프레임 가득 채울 때까지 직진<br>
+          정확한 목표 접근 성공
+        </div>
+      </div>
+      <div class="summary-card success">
+        <span class="badge badge-success">✅ SUCCESS — Fast</span>
+        <h3>2026-05-29 10:21:36 (17 frames)</h3>
+        <div class="sc-frames">17 <span>frames</span></div>
+        <div class="sc-meta">
+          더 빠른 접근, 프레임 수 적음<br>
+          B보다 효율적인 접근 궤적
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Session A (2026-05-29) ── -->
+<section class="section" id="session-a">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-film" style="color:#ef4444"></i> 2026-05-29 10:19:30 (29 frames) (29 frames)</h2>
+    <p class="section-subtitle">2026-05-29 10:19 | 목표: gray basket | 결과: LEFT DRIFT → 타깃 상실 ❌</p>
+
+    <div class="session-block">
+      <div class="session-header">
+        <span class="session-id">session_20260529_101930</span>
+        <h2>Gray Basket Navigation — Left Drift Failure</h2>
+        <span class="verdict verdict-fail">❌ FAIL</span>
+      </div>
+
+      <div class="filmstrip-wrap">
+        <div class="scroll-hint"><i class="fas fa-arrows-left-right"></i> 좌우 스크롤</div>
+        <div class="filmstrip" id="filmstrip-a">
+          <!-- frames injected by JS -->
+        </div>
+      </div>
+
+      <div class="timeline">
+        <h4>액션 타임라인 추정</h4>
+        <div class="tl-track">
+          <div class="tl-segment tl-fwd"    style="width:15%" title="FORWARD">FWD</div>
+          <div class="tl-segment tl-fwdl"   style="width:20%" title="FWD+L">FWD+L</div>
+          <div class="tl-segment tl-drift"  style="width:35%" title="DRIFT — basket lost">← DRIFT</div>
+          <div class="tl-segment tl-drift"  style="width:30%" title="Wall/Chair — target lost">🚫 LOST</div>
+        </div>
+        <div class="tl-legend">
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#1d4ed8"></div>FORWARD</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#6d28d9"></div>FWD+LEFT</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#dc2626"></div>Drift / 타깃 상실</div>
+        </div>
+      </div>
+
+      <div class="approach-bar">
+        <h4>바스켓 상대 크기 (시야 내 추정) — 프레임별</h4>
+        <div style="display:grid; grid-template-columns: repeat(10,1fr); gap:3px; margin-bottom:6px">
+          <div title="f1-3" style="background:#1d4ed8;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:15%;border-radius:3px"></div>
+          </div>
+          <div title="f4-6" style="background:#1d4ed8;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:16%;border-radius:3px"></div>
+          </div>
+          <div title="f7-9" style="background:#1d4ed8;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:14%;border-radius:3px"></div>
+          </div>
+          <div title="f10-12" style="background:#6d28d9;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#a78bfa;height:10%;border-radius:3px"></div>
+          </div>
+          <div title="f13-15" style="background:#6d28d9;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#a78bfa;height:5%;border-radius:3px"></div>
+          </div>
+          <div title="f16-18" style="background:#dc2626;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#ef4444;height:2%;border-radius:3px"></div>
+          </div>
+          <div title="f19-21" style="background:#dc2626;height:20px;border-radius:3px"></div>
+          <div title="f22-24" style="background:#dc2626;height:20px;border-radius:3px"></div>
+          <div title="f25-27" style="background:#7f1d1d;height:20px;border-radius:3px"></div>
+          <div title="f28-29" style="background:#7f1d1d;height:20px;border-radius:3px"></div>
+        </div>
+        <div class="bar-label"><span>Frame 1</span><span>→ 바스켓 사라짐</span><span>Frame 29</span></div>
+      </div>
+
+      <div class="analysis-box">
+        <div class="analysis-grid">
+          <div class="analysis-item">
+            <h4>관찰</h4>
+            <ul>
+              <li>F1~5: 바스켓 중앙, 거리 있음 — 정상 출발</li>
+              <li>F5~10: 바스켓 오른쪽으로 이동 → 로봇이 왼쪽 drift</li>
+              <li>F10~15: 왼쪽 벽에 의자 등장, 바스켓 오른쪽 끝으로</li>
+              <li>F15~29: 바스켓 완전 소실, 의자·서랍장 zone으로 이탈</li>
+            </ul>
+          </div>
+          <div class="analysis-item">
+            <h4>원인 분석</h4>
+            <ul>
+              <li>FWD+LEFT 편향 — 데이터 수집 경로 특성 반영</li>
+              <li>바스켓이 화면 중앙에 있어도 LEFT 성분 지속</li>
+              <li>누적 오류: 각 스텝 작은 좌향 → 큰 이탈</li>
+              <li>Closed-loop FPE 1.45m (Exp11 기준) 와 동일 패턴</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Session B (2026-05-29) ── -->
+<section class="section" id="session-b">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-film" style="color:#22c55e"></i> 2026-05-29 10:20:26 (20 frames) (20 frames)</h2>
+    <p class="section-subtitle">2026-05-29 10:20 | 목표: gray basket | 결과: 바스켓 직진 접근 ✅</p>
+
+    <div class="session-block">
+      <div class="session-header">
+        <span class="session-id">session_20260529_102026</span>
+        <h2>Gray Basket Navigation — Successful Approach</h2>
+        <span class="verdict verdict-success">✅ SUCCESS</span>
+      </div>
+
+      <div class="filmstrip-wrap">
+        <div class="scroll-hint"><i class="fas fa-arrows-left-right"></i> 좌우 스크롤</div>
+        <div class="filmstrip" id="filmstrip-b">
+        </div>
+      </div>
+
+      <div class="timeline">
+        <h4>액션 타임라인 추정</h4>
+        <div class="tl-track">
+          <div class="tl-segment tl-fwd"  style="width:40%" title="FORWARD">FWD</div>
+          <div class="tl-segment tl-fwdl" style="width:20%" title="FWD+L slight">FWD±</div>
+          <div class="tl-segment tl-fwd"  style="width:25%" title="FORWARD close">FWD 근접</div>
+          <div class="tl-segment" style="width:15%;background:#15803d" title="GOAL reached">🎯 도달</div>
+        </div>
+        <div class="tl-legend">
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#1d4ed8"></div>FORWARD</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#6d28d9"></div>FWD+L 보정</div>
+          <div class="tl-legend-item"><div class="tl-legend-dot" style="background:#15803d"></div>목표 도달</div>
+        </div>
+      </div>
+
+      <div class="approach-bar">
+        <h4>바스켓 크기 증가 (접근 지표)</h4>
+        <div style="display:grid; grid-template-columns: repeat(10,1fr); gap:3px; margin-bottom:6px">
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:12%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:18%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:28%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:38%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:48%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:55%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:62%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:72%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:85%;border-radius:3px"></div>
+          </div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:100%;border-radius:3px"></div>
+          </div>
+        </div>
+        <div class="bar-label"><span>Frame 1 (멀리)</span><span>→ 꾸준히 접근</span><span>Frame 20 (바스켓 꽉 참)</span></div>
+      </div>
+
+      <div class="analysis-box">
+        <div class="analysis-grid">
+          <div class="analysis-item">
+            <h4>관찰</h4>
+            <ul>
+              <li>F1: 바스켓 중앙, 세션 A와 동일 출발 위치</li>
+              <li>F10: 바스켓 우측 치우침, 크기 커짐 → 근접 중</li>
+              <li>F15: 바스켓이 프레임 절반 이상 차지</li>
+              <li>F20: 바스켓 전체 화면 가득 — 목표 도달 지점</li>
+            </ul>
+          </div>
+          <div class="analysis-item">
+            <h4>성공 요인</h4>
+            <ul>
+              <li>출발 위치/각도가 세션 A보다 미세하게 유리</li>
+              <li>초기 FORWARD 비율이 더 높아 직진 성분 우세</li>
+              <li>Decomposition Stage2 bbox 추적이 정상 작동</li>
+              <li>FPE 0.55m (Exp14 Step2 기준) 수준 일치</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Session C (2026-05-29) ── -->
+<section class="section" id="session-c">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-film" style="color:#22c55e"></i> 2026-05-29 10:21:36 (17 frames) (17 frames)</h2>
+    <p class="section-subtitle">2026-05-29 10:21 | 목표: gray basket | 결과: 빠른 접근 성공 ✅</p>
+
+    <div class="session-block">
+      <div class="session-header">
+        <span class="session-id">session_20260529_102136</span>
+        <h2>Gray Basket Navigation — Efficient Approach</h2>
+        <span class="verdict verdict-success">✅ SUCCESS</span>
+      </div>
+
+      <div class="filmstrip-wrap">
+        <div class="scroll-hint"><i class="fas fa-arrows-left-right"></i> 좌우 스크롤</div>
+        <div class="filmstrip" id="filmstrip-c">
+        </div>
+      </div>
+
+      <div class="approach-bar">
+        <h4>접근 속도 — B보다 17% 빠름 (17 vs 20 frames)</h4>
+        <div style="display:grid; grid-template-columns: repeat(9,1fr); gap:3px; margin-bottom:6px">
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:14%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:24%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:36%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:50%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:62%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:74%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#38bdf8;height:84%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:93%;border-radius:3px"></div></div>
+          <div style="background:#1e3a5f;height:20px;border-radius:3px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#22c55e;height:100%;border-radius:3px"></div></div>
+        </div>
+        <div class="bar-label"><span>Frame 1</span><span>→ 빠른 접근</span><span>Frame 17</span></div>
+      </div>
+
+      <div class="analysis-box">
+        <div class="analysis-grid">
+          <div class="analysis-item">
+            <h4>관찰</h4>
+            <ul>
+              <li>F1: B와 거의 동일 출발 — 바스켓 중앙</li>
+              <li>F9~12: 이미 중간 거리에서 바스켓 크게 보임</li>
+              <li>F17: 바스켓 프레임 가득 — 목표 도달</li>
+              <li>B 대비 3 프레임 빠른 도달 (~1.3초 이득)</li>
+            </ul>
+          </div>
+          <div class="analysis-item">
+            <h4>비교 포인트</h4>
+            <ul>
+              <li>출발 위치가 B보다 약간 더 가까웠을 가능성</li>
+              <li>또는 초기 FORWARD 속도 성분이 더 강함</li>
+              <li>성공 패턴: B와 동일하게 drift 없이 직진</li>
+              <li>이 두 세션이 실제 66.7% success 수치에 기여</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── June 4 Sessions ── -->
+<section class="section" id="june4">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-flask" style="color:#f59e0b"></i> June 4 세션 — 실험 조건 & 원인 분석</h2>
+    <p class="section-subtitle">5개 세션 × 2 모델 비교. 각 세션별 실험 조건 / 액션 분포 / 실패 원인 분석.</p>
+
+    <!-- Experiment Conditions Table -->
+    <div style="overflow-x:auto;margin-bottom:36px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead>
+        <tr style="background:#1e293b;color:#94a3b8">
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">세션</th>
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">시각</th>
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">모델</th>
+          <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #334155">지시어</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">스텝</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">avg 레이턴시</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">전략</th>
+          <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #334155">결과</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#0f172a">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">D</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">01:34:59</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket on right"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">102</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">427ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🔴 순환</td>
+        </tr>
+        <tr style="background:#111827">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">E</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">08:59:23</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">21</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">412ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🟡 수동종료</td>
+        </tr>
+        <tr style="background:#0f172a">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">F</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">13:30:07</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket on right"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">92</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">432ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🔴 순환</td>
+        </tr>
+        <tr style="background:#111827">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">G</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">13:31:50</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">checkpoints/best (Exp66 Stage2v2)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket on right"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">17</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">429ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">single_action</td>
+          <td style="padding:9px 14px;text-align:center">🟢 최우수</td>
+        </tr>
+        <tr style="background:#0f172a">
+          <td style="padding:9px 14px;font-weight:700;color:#f1f5f9">H</td>
+          <td style="padding:9px 14px;font-family:monospace;color:#64748b">16:36:17</td>
+          <td style="padding:9px 14px"><code style="font-size:0.78rem;color:#a5f3fc">exp49/exp49_mlp.pt (GoalNav regression)</code></td>
+          <td style="padding:9px 14px;color:#e2e8f0;font-style:italic">"[FORWARD] the gray basket"</td>
+          <td style="padding:9px 14px;text-align:center;color:#f1f5f9">14</td>
+          <td style="padding:9px 14px;text-align:center;color:#94a3b8">619ms</td>
+          <td style="padding:9px 14px;text-align:center;font-size:0.75rem;color:#64748b">receding_horizon</td>
+          <td style="padding:9px 14px;text-align:center">🚫 폐기</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <!-- ── Session D 2026-06-04 01:34:59 ── -->
+    <div class="session-block" id="june4-d" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_013459</span>
+        <h2 style="color:#60a5fa">D — 2026-06-04 01:34:59</h2>
+        <span class="verdict" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444;padding:4px 12px;border-radius:20px;font-size:0.8rem">🔴 순환 실패</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket on right"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 427ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 102 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (102 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-ROTR">ROT_R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span style="color:#64748b;font-size:0.75rem"> …+42스텝</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:50%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">50%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:32%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">32%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+R</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:11%;background:#86efac;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#86efac">11%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:7%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">7%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">ROT_R</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:1%;background:#f9a8d4;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#f9a8d4">1%</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">FWD+L 50% 지배 → 지속적 좌편향 이동. 102스텝에도 목표 미달성. grounding 매 스텝 새로 실행 (cached=0%), 지시어 "on right"에도 우회전 보정 없음.</p>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">바스켓이 항상 왼쪽에 있어 좌회전 bias가 정당화됨. 그러나 순환 루프 탈출 조건 없음 → 무한 접근 시도. Stop rule 부재가 주원인.</p>
+        </div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> bbox area 임계값 기반 stop 조건 추가 필요
+      </div>
+    </div>
+
+    <!-- ── Session E 2026-06-04 08:59:23 ── -->
+    <div class="session-block" id="june4-e" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_085923</span>
+        <h2 style="color:#34d399">E — 2026-06-04 08:59:23</h2>
+        <span class="verdict" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44;padding:4px 12px;border-radius:20px;font-size:0.8rem">🟡 단기 테스트</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 412ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 21 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (21 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-RIGHT">RIGHT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:60%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">60%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:30%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">30%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">RIGHT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:5%;background:#fdba74;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fdba74">5%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:5%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">5%</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">지시어 단순화 ("on right" 제거). FWD+L 60% 여전히 지배. 21스텝 후 수동 중단. D 세션 대비 지시어 변경 효과 불명확.</p>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">지시어 변형만으로는 action bias 변화 없음. 모델이 지시어 텍스트보다 이미지 bbox cx에 더 의존. 바스켓 위치가 cx<0.5이면 FWD+L이 지속됨.</p>
+        </div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> 바스켓 상대 위치별 action 분포 추가 분석 필요
+      </div>
+    </div>
+
+    <!-- ── Session F 2026-06-04 13:30:07 ── -->
+    <div class="session-block" id="june4-f" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_133007</span>
+        <h2 style="color:#f472b6">F — 2026-06-04 13:30:07</h2>
+        <span class="verdict" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444;padding:4px 12px;border-radius:20px;font-size:0.8rem">🔴 순환 실패</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket on right"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 432ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 92 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (92 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDR">FWD+R</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span style="color:#64748b;font-size:0.75rem"> …+32스텝</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:52%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">52%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:42%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">42%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+R</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:3%;background:#86efac;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#86efac">3%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:2%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">2%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">RIGHT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:1%;background:#fdba74;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fdba74">1%</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">D 세션과 동일 지시어 재시도. FORWARD 비율 42%로 증가(D: 32%) — 더 직진적이지만 여전히 목표 미달. 92스텝, grounding 전부 uncached.</p>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">바스켓이 항상 화면 중앙~좌측에 위치 → FWD+L이 정답처럼 출력. bbox cx 추적은 되지만 "충분히 가까워졌다"는 stop 판단이 없어 무한 루프.</p>
+        </div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> F세션은 D보다 FORWARD 비율 높음 → 바스켓 위치가 더 중앙적이었을 가능성
+      </div>
+    </div>
+
+    <!-- ── Session G 2026-06-04 13:31:50 ── -->
+    <div class="session-block" id="june4-g" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_133150</span>
+        <h2 style="color:#a78bfa">G — 2026-06-04 13:31:50</h2>
+        <span class="verdict" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;padding:4px 12px;border-radius:20px;font-size:0.8rem">🟢 최우수 분포</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> checkpoints/best</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket on right"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 429ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 17 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> single_action</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (17 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-LEFT">LEFT</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FORWARD">FORWARD</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          <span class="action-chip chip-FWDL">FWD+L</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FORWARD</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:50%;background:#93c5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#93c5fd">50%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">FWD+L</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:44%;background:#c4b5fd;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#c4b5fd">44%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">LEFT</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:6%;background:#fca5a5;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fca5a5">6%</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">FORWARD 50%, FWD+L 44% — 가장 균형잡힌 분포. 17스텝으로 짧게 종료. F 세션 직후 동일 조건 재시도.</p>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">초기 포즈에서 바스켓이 비교적 정면에 위치 → FORWARD 비율 상승. checkpoints/best의 잠재력 확인. 단 stop 조건 없어 인간이 개입.</p>
+        </div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> 이 조건(바스켓 정면)이 재현 가능하다면 성공률 높을 것
+      </div>
+    </div>
+
+    <!-- ── Session H 2026-06-04 16:36:17 ── -->
+    <div class="session-block" id="june4-h" style="margin-bottom:36px">
+      <div class="session-header">
+        <span class="session-id">session_20260604_163617</span>
+        <h2 style="color:#fb923c">H — 2026-06-04 16:36:17</h2>
+        <span class="verdict" style="background:#dc262622;color:#dc2626;border:1px solid #dc262644;padding:4px 12px;border-radius:20px;font-size:0.8rem">🚫 모델 폐기</span>
+      </div>
+
+      <!-- 실험 조건 배지 -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px">
+        <span style="background:#1e3a4a;color:#7dd3fc;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-microchip"></i> exp49/exp49_mlp.pt</span>
+        <span style="background:#1e3a2a;color:#86efac;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-comment"></i> "[FORWARD] the gray basket"</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-clock"></i> avg 619ms</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-shoe-prints"></i> 14 steps</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-crosshairs"></i> gt: gray basket</span>
+        <span style="background:#1e293b;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:0.78rem"><i class="fas fa-route"></i> receding_horizon</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:start">
+        <!-- 액션 시퀀스 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 시퀀스 (14 steps)</h4>
+          <div class="action-flow" style="max-height:120px;overflow-y:auto">
+            <span class="action-chip chip-NONE">?</span>
+          <span class="action-chip chip-STOP">STOP</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          <span class="action-chip chip-NONE">REG≈0</span>
+          </div>
+        </div>
+        <!-- 분포 차트 -->
+        <div>
+          <h4 style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">액션 분포</h4>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">REGRESSION</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:92%;background:#6b7280;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#6b7280">92%</span>
+        </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:70px;font-size:0.75rem;color:#94a3b8;text-align:right">STOP</span>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:14px;overflow:hidden">
+            <div style="width:8%;background:#fbbf24;height:100%;border-radius:3px"></div>
+          </div>
+          <span style="width:40px;font-size:0.75rem;color:#fbbf24">8%</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 원인 분석 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#f87171;font-weight:600;margin-bottom:6px">⚡ 문제점</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">exp49 regression 헤드 전 스텝 출력 ≈ −0.015, −0.007 → 사실상 정지. receding_horizon 전략, 레이턴시 619ms(checkpoints/best 대비 +44%). 분류 헤드 없는 순수 regression은 동작 불가.</p>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px">
+          <div style="font-size:0.78rem;color:#fbbf24;font-weight:600;margin-bottom:6px">🔬 가설</div>
+          <p style="font-size:0.82rem;color:#cbd5e1;margin:0;line-height:1.6">exp49 EMA 누적으로 regression output이 소수점 근처로 수렴. 분류(argmax) 없이 연속값만으로 속도 매핑 시 zero-crossing 문제 발생. discrete classification이 필수임을 실증.</p>
+        </div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a4a;border-radius:6px;padding:10px 14px;margin-top:12px;font-size:0.8rem;color:#7dd3fc">
+        <i class="fas fa-arrow-right"></i> <strong>다음 액션:</strong> → exp49 폐기, checkpoints/best(discrete 8-class) 계속 사용
+      </div>
+    </div>
+
+    <!-- ── 모델 발전 타임라인 ── -->
+    <div style="margin-top:40px">
+      <h3 style="font-size:1rem;color:#f1f5f9;margin-bottom:20px"><i class="fas fa-timeline" style="color:#a78bfa"></i> 모델 발전 경로</h3>
+      <div style="position:relative;padding-left:28px">
+        <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#3b82f6,#a78bfa,#ef4444)"></div>
+
+        <div style="position:relative;margin-bottom:24px">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#3b82f6"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-05-29</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">Proxy Server (Kosmos-2 Grounder)</div>
+          <div style="font-size:0.82rem;color:#94a3b8">이미지 기반 navigation 첫 실사 테스트. grounding bbox cx → left/right 판단. 세션 A 실패(좌편향), B/C 성공(정면 접근).</div>
+        </div>
+
+        <div style="position:relative;margin-bottom:24px">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#60a5fa"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-06-04 (D, E)</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">checkpoints/best Stage2v2 — 장시간 세션</div>
+          <div style="font-size:0.82rem;color:#94a3b8">D: 102스텝, FWD+L 50% 지배. E: 지시어 단순화 시도. <strong style="color:#fca5a5">공통 문제:</strong> stop 조건 없어 무한 순환. grounding은 정상 동작.</div>
+        </div>
+
+        <div style="position:relative;margin-bottom:24px">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#a78bfa"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-06-04 (F, G)</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">checkpoints/best — 조건 재시도 & 개선 확인</div>
+          <div style="font-size:0.82rem;color:#94a3b8">G 세션: FORWARD 50%, FWD+L 44% — 가장 균형 잡힌 분포. <strong style="color:#86efac">바스켓이 정면에 있을 때 모델이 올바르게 FORWARD를 선택함을 실증.</strong> 초기 포즈가 핵심 변수임을 확인.</div>
+        </div>
+
+        <div style="position:relative">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:#ef4444"></div>
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:3px">2026-06-04 (H)</div>
+          <div style="font-weight:600;color:#f1f5f9;margin-bottom:4px">exp49 regression — 실패 확인 후 폐기</div>
+          <div style="font-size:0.82rem;color:#94a3b8">regression 출력 ≈ −0.015 수렴. 619ms 레이턴시. <strong style="color:#fca5a5">discrete 8-class classification이 필수임을 실증.</strong> exp49 regression 방식 폐기 결정.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Findings ── -->
+<section class="section" id="findings">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-lightbulb" style="color:#fbbf24"></i> 핵심 발견 & 모델 발전 결론</h2>
+    <p class="section-subtitle">May 29 + June 4 세션 전체에서 도출된 실사 결론</p>
+
+    <div class="findings-grid">
+      <div class="finding-card highlight">
+        <div class="fc-icon">✅</div>
+        <h4>Decomposition 모델 실사 접근 가능</h4>
+        <p>Session B·C(May 29) 모두 바스켓에 성공적으로 접근. 시뮬레이션 66.7% success rate 실사 재현. checkpoints/best Stage2v2가 현재 유일한 동작 모델.</p>
+      </div>
+      <div class="finding-card warn">
+        <div class="fc-icon">⚠️</div>
+        <h4>초기 포즈가 성패의 핵심 변수</h4>
+        <p>Session G(Jun 4): FORWARD 50% — 바스켓 정면 배치 시 균형 잡힌 출력. Session A(May 29): FWD+L 누적 → 이탈. 동일 모델이 초기 각도 ±10°에 따라 완전히 다른 결과.</p>
+      </div>
+      <div class="finding-card danger">
+        <div class="fc-icon">🚫</div>
+        <h4>exp49 regression 완전 비동작 → 폐기</h4>
+        <p>Session H: regression 출력 ≈ −0.015 수렴. 619ms 레이턴시. discrete 8-class classification이 실사 제어에 필수임을 실증. exp49 폐기 결정.</p>
+      </div>
+      <div class="finding-card">
+        <div class="fc-icon">🔁</div>
+        <h4>Stop 조건 부재 = 무한 순환</h4>
+        <p>Session D(102스텝), F(92스텝) 모두 목표 미달. 바스켓에 가까워져도 멈추지 않고 순환. bbox area threshold stop 조건이 실사에서 필수. 현재 대시보드에 0.18 기준 구현됨.</p>
+      </div>
+      <div class="finding-card">
+        <div class="fc-icon">📡</div>
+        <h4>Grounding 정상 동작 — 레이턴시 허용 범위</h4>
+        <p>checkpoints/best 평균 427ms. grounding 매 스텝 uncached(0/102)임에도 실사 제어에 문제 없음. 0.5s 타이머 + 0.43s API = 0.93s/step. post-move 캡처 도입 후 학습 분포 일치.</p>
+      </div>
+      <div class="finding-card">
+        <div class="fc-icon">💡</div>
+        <h4>지시어 변형보다 포즈 제어가 효과적</h4>
+        <p>"on right" → "the gray basket"으로 지시어 단순화(Session E)했으나 action bias 변화 없음. 텍스트 attention이 낮은 모델 특성상 포즈/거리 표준화가 더 효과적인 개입점.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Lightbox ── -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <span class="lightbox-close" onclick="closeLightboxDirect()">&times;</span>
+  <span class="lightbox-nav" id="lb-prev" onclick="lbNav(-1); event.stopPropagation();">&#8249;</span>
+  <img id="lb-img" src="" alt="">
+  <div class="lightbox-info" id="lb-info"></div>
+  <div class="lb-panel" id="lb-panel" style="display:none">
+    <div class="lb-action-row">
+      <div class="action-chip lb-big-chip" id="lb-chip">—</div>
+      <div style="color:#64748b;font-size:0.78rem" id="lb-latency"></div>
+    </div>
+    <div class="lb-grid" id="lb-grid"></div>
+    <div class="cx-bar-wrap" id="lb-cx-wrap" style="display:none">
+      <div style="color:#475569;font-size:0.75rem;margin-bottom:4px">Grounding cx position</div>
+      <div class="cx-bar-bg">
+        <div class="cx-bar-dot" id="lb-cx-dot" style="background:#f59e0b;left:50%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#475569;margin-top:2px"><span>L</span><span>CENTER</span><span>R</span></div>
+    </div>
+  </div>
+  <span class="lightbox-nav" id="lb-next" onclick="lbNav(1); event.stopPropagation();">&#8250;</span>
+</div>
+
+
+<!-- ══ June 2026 Sessions ══ -->
+<div style="max-width:1100px;margin:40px auto 0;padding:0 20px">
+  <h2 style="color:#38bdf8;font-size:1.2rem;font-weight:800;margin-bottom:6px;letter-spacing:0.03em">
+    2026-06-04 세션 — Action 시퀀스 분석
+  </h2>
+  <p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">
+    이미지 저장 없이 action log만 기록된 세션. proxy inference server (checkpoints/best) 사용.
+    Exp49 직접 실행 세션(H)에서 EMA 붕괴로 REGRESSION 출력 확인.
+  </p>
+    <div style="background:#0d1117;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="background:#1e293b;color:#38bdf8;font-size:0.7rem;font-weight:700;padding:2px 9px;border-radius:5px;margin-right:8px">2026-06-04 01:34:59</span>
+          <span style="color:#e2e8f0;font-weight:700;font-size:0.92rem">2026-06-04 01:34:59 — 102스텝</span>
+          <div style="color:#64748b;font-size:0.78rem;margin-top:3px">Basket on right — FWD+L 50회 좌편향</div>
+        </div>
+        <span style="background:rgba(239,68,68,0.12);color:#f59e0b;font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:5px">FWD+L bias</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 230px;gap:14px;align-items:start">
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Action Sequence (step 2→102)</div>
+          <div style="line-height:1.9;word-break:break-all"><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e1b4b;color:#a5b4fc;margin:1px">RR</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span></div>
+        </div>
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Distribution</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+L</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:49.5%;background:#7c2d12;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">50 (50%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FORWARD</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:31.7%;background:#1e40af;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">32 (32%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+R</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:10.9%;background:#14532d;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">11 (11%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">LEFT</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:6.9%;background:#581c87;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">7 (7%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">ROT_R</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:1.0%;background:#1e1b4b;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">1 (1%)</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#0d1117;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="background:#1e293b;color:#38bdf8;font-size:0.7rem;font-weight:700;padding:2px 9px;border-radius:5px;margin-right:8px">2026-06-04 08:59:23</span>
+          <span style="color:#e2e8f0;font-weight:700;font-size:0.92rem">2026-06-04 08:59:23 — 21스텝</span>
+          <div style="color:#64748b;font-size:0.78rem;margin-top:3px">FWD+L bias 지속 확인</div>
+        </div>
+        <span style="background:rgba(239,68,68,0.12);color:#f59e0b;font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:5px">FWD+L bias</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 230px;gap:14px;align-items:start">
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Action Sequence (step 2→21)</div>
+          <div style="line-height:1.9;word-break:break-all"><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#052e16;color:#6ee7b7;margin:1px">RIGHT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span></div>
+        </div>
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Distribution</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+L</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:60.0%;background:#7c2d12;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">12 (60%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FORWARD</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:30.0%;background:#1e40af;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">6 (30%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">RIGHT</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:5.0%;background:#052e16;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">1 (5%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">LEFT</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:5.0%;background:#581c87;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">1 (5%)</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#0d1117;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="background:#1e293b;color:#38bdf8;font-size:0.7rem;font-weight:700;padding:2px 9px;border-radius:5px;margin-right:8px">2026-06-04 13:30:07</span>
+          <span style="color:#e2e8f0;font-weight:700;font-size:0.92rem">2026-06-04 13:30:07 — 92스텝</span>
+          <div style="color:#64748b;font-size:0.78rem;margin-top:3px">FWD+L 47회 — bias 재현</div>
+        </div>
+        <span style="background:rgba(239,68,68,0.12);color:#f59e0b;font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:5px">FWD+L bias</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 230px;gap:14px;align-items:start">
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Action Sequence (step 2→92)</div>
+          <div style="line-height:1.9;word-break:break-all"><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#052e16;color:#6ee7b7;margin:1px">RIGHT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span></div>
+        </div>
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Distribution</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+L</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:51.6%;background:#7c2d12;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">47 (52%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FORWARD</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:41.8%;background:#1e40af;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">38 (42%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+R</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:3.3%;background:#14532d;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">3 (3%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">LEFT</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:2.2%;background:#581c87;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">2 (2%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">RIGHT</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:1.1%;background:#052e16;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">1 (1%)</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#0d1117;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="background:#1e293b;color:#38bdf8;font-size:0.7rem;font-weight:700;padding:2px 9px;border-radius:5px;margin-right:8px">2026-06-04 13:31:50</span>
+          <span style="color:#e2e8f0;font-weight:700;font-size:0.92rem">2026-06-04 13:31:50 — 17스텝</span>
+          <div style="color:#64748b;font-size:0.78rem;margin-top:3px">수동 중단</div>
+        </div>
+        <span style="background:rgba(239,68,68,0.12);color:#64748b;font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:5px">FORWARD</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 230px;gap:14px;align-items:start">
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Action Sequence (step 2→17)</div>
+          <div style="line-height:1.9;word-break:break-all"><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#581c87;color:#d8b4fe;margin:1px">LEFT</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span></div>
+        </div>
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Distribution</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FORWARD</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:50.0%;background:#1e40af;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">8 (50%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+L</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:43.8%;background:#7c2d12;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">7 (44%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">LEFT</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:6.2%;background:#581c87;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">1 (6%)</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#0d1117;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="background:#1e293b;color:#38bdf8;font-size:0.7rem;font-weight:700;padding:2px 9px;border-radius:5px;margin-right:8px">2026-06-04 16:36:17</span>
+          <span style="color:#e2e8f0;font-weight:700;font-size:0.92rem">2026-06-04 16:36:17 — 14스텝</span>
+          <div style="color:#64748b;font-size:0.78rem;margin-top:3px">Exp49 직접 실행 → REGRESSION 출력 / EMA 붕괴</div>
+        </div>
+        <span style="background:rgba(239,68,68,0.12);color:#ef4444;font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:5px">EMA 붕괴</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 230px;gap:14px;align-items:start">
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Action Sequence (step 2→14)</div>
+          <div style="line-height:1.9;word-break:break-all"><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#7f1d1d;color:#fca5a5;margin:1px">STOP</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span><span style="display:inline-block;padding:2px 5px;border-radius:4px;font-size:0.6rem;font-weight:800;background:#3b0764;color:#e879f9;margin:1px">REG</span></div>
+        </div>
+        <div>
+          <div style="color:#475569;font-size:0.68rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em">Distribution</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">REGRESSION</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:92.3%;background:#3b0764;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">12 (92%)</div></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:80px;font-size:0.7rem;color:#94a3b8;text-align:right">STOP</div><div style="flex:1;background:#1e293b;border-radius:3px;height:12px"><div style="width:7.7%;background:#7f1d1d;height:100%;border-radius:3px"></div></div><div style="width:55px;font-size:0.7rem;color:#e2e8f0">1 (8%)</div></div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- ── Footer ── -->
+<div class="site-footer">
+  <p>MoNaVLA Robot Test Sessions &mdash; Kangnam University Advanced Agentic Robotics Lab</p>
+  <p style="margin-top:8px"><a href="../index.html">← Home</a> &nbsp;|&nbsp; <a href="research_story.html">Research Story</a></p>
+</div>
+
+<script>
+  // ── 추론 결과 데이터 (PG2 Exp66 재실행) ──
+  const SESSION_BBOX = {"a":[{"frame":1,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":1481.9},{"frame":2,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+L","action":[1.15,1.15,0.0],"latency_ms":450.4},{"frame":3,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":450.9},{"frame":4,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":470.6},{"frame":5,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":462.9},{"frame":6,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":458.2},{"frame":7,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":474.8},{"frame":8,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":472.3},{"frame":9,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":477.7},{"frame":10,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":464.4},{"frame":11,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":463.2},{"frame":12,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":461.4},{"frame":13,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":473.3},{"frame":14,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":460.8},{"frame":15,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":464.8},{"frame":16,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":459.8},{"frame":17,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":467.7},{"frame":18,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":455.1},{"frame":19,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":463.7},{"frame":20,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":471.3},{"frame":21,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":480.5},{"frame":22,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":458.2},{"frame":23,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":453.5},{"frame":24,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":457.4},{"frame":25,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":462.0},{"frame":26,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":498.2},{"frame":27,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":489.5},{"frame":28,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":464.7},{"frame":29,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":465.0}],"b":[{"frame":1,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":456.8},{"frame":2,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":462.9},{"frame":3,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+R","action":[1.15,-1.15,0.0],"latency_ms":457.8},{"frame":4,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":464.7},{"frame":5,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+R","action":[1.15,-1.15,0.0],"latency_ms":453.7},{"frame":6,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":451.1},{"frame":7,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":454.5},{"frame":8,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":460.5},{"frame":9,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":467.2},{"frame":10,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":474.9},{"frame":11,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":480.8},{"frame":12,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":455.4},{"frame":13,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+R","action":[1.15,-1.15,0.0],"latency_ms":492.8},{"frame":14,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+L","action":[1.15,1.15,0.0],"latency_ms":468.9},{"frame":15,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+L","action":[1.15,1.15,0.0],"latency_ms":461.7},{"frame":16,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":453.3},{"frame":17,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":470.8},{"frame":18,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":455.6},{"frame":19,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":471.9},{"frame":20,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":461.1}],"c":[{"frame":1,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":460.9},{"frame":2,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":458.8},{"frame":3,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":470.8},{"frame":4,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+R","action":[1.15,-1.15,0.0],"latency_ms":484.7},{"frame":5,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":460.6},{"frame":6,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":453.3},{"frame":7,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":462.2},{"frame":8,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":478.8},{"frame":9,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":456.9},{"frame":10,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+R","action":[1.15,-1.15,0.0],"latency_ms":476.3},{"frame":11,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+L","action":[1.15,1.15,0.0],"latency_ms":475.2},{"frame":12,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+L","action":[1.15,1.15,0.0],"latency_ms":467.5},{"frame":13,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FWD+L","action":[1.15,1.15,0.0],"latency_ms":454.0},{"frame":14,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":465.1},{"frame":15,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":469.2},{"frame":16,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":464.0},{"frame":17,"has_bbox":false,"cx":0.5,"cy":0.6,"area":0.06,"x1":null,"y1":null,"x2":null,"y2":null,"caption":"","predicted_label":"FORWARD","action":[1.15,0.0,0.0],"latency_ms":453.0}]};
+
+  const ACTION_CHIP_CLASS = {
+    'FORWARD':'FORWARD','FWD+L':'FWDL','FWD+R':'FWDR',
+    'LEFT':'LEFT','RIGHT':'RIGHT','ROT_L':'ROTL','ROT_R':'ROTR','STOP':'STOP'
+  };
+
+  // ── Filmstrip generation ──
+  const SESSION_FRAMES = {
+    a: { dir: 'robot_sessions/session_20260529_101930_images', count: 29, id: 'filmstrip-a',
+         keys: { 1:'출발', 5:'정상', 10:'Drift 시작', 15:'타깃 소실', 20:'이탈 중', 29:'완전 이탈' },
+         types: { 1:'key', 5:'key', 10:'drift', 11:'drift', 12:'drift', 13:'drift', 14:'drift',
+                  15:'drift', 16:'drift', 17:'drift', 18:'drift', 19:'drift', 20:'drift',
+                  21:'drift', 22:'drift', 23:'drift', 24:'drift', 25:'drift', 26:'drift',
+                  27:'drift', 28:'drift', 29:'drift' } },
+    b: { dir: 'robot_sessions/session_20260529_102026_images', count: 20, id: 'filmstrip-b',
+         keys: { 1:'출발', 5:'접근 중', 10:'근접', 15:'매우 근접', 20:'도달!' },
+         types: { 1:'key', 5:'key', 10:'key', 15:'close', 16:'close', 17:'close', 18:'close', 19:'close', 20:'close' } },
+    c: { dir: 'robot_sessions/session_20260529_102136_images', count: 17, id: 'filmstrip-c',
+         keys: { 1:'출발', 5:'접근 중', 10:'근접', 15:'매우 근접', 17:'도달!' },
+         types: { 1:'key', 5:'key', 10:'key', 14:'close', 15:'close', 16:'close', 17:'close' } },
+  };
+
+  // Flat list for lightbox navigation
+  let allFrames = [];
+
+  function padNum(n) { return String(n).padStart(3, '0'); }
+
+  function buildFilmstrips() {
+    for (const [sid, s] of Object.entries(SESSION_FRAMES)) {
+      const el = document.getElementById(s.id);
+      for (let i = 1; i <= s.count; i++) {
+        const src = `${s.dir}/frame_${padNum(i)}.jpg`;
+        const type = s.types[i] || 'normal';
+        const idx = allFrames.length;
+        const _bd = (SESSION_BBOX[sid] || [])[i - 1] || null;
+        allFrames.push({ src, label: s.keys[i] || null, session: sid.toUpperCase(), frame: i, total: s.count, bbox: _bd });
+
+        const bboxEntry = (SESSION_BBOX[sid] || [])[i - 1];
+        const label = bboxEntry ? bboxEntry.predicted_label : null;
+        const chipCls = label ? (ACTION_CHIP_CLASS[label] || 'NONE') : 'NONE';
+
+        const div = document.createElement('div');
+        div.className = `frame-item${type === 'key' ? ' key-frame' : type === 'drift' ? ' drift-frame' : type === 'close' ? ' close-frame' : ''}`;
+        div.style.position = 'relative';
+        div.innerHTML = `
+          <img src="${src}" alt="Frame ${i}" loading="lazy" onclick="openLightbox(${idx})">
+          ${label ? `<div class="action-chip chip-${chipCls}">${label}</div>` : ''}
+          <div class="frame-num">F${padNum(i)}</div>
+          ${s.keys[i] ? `<div class="frame-label">${s.keys[i]}</div>` : ''}
+        `;
+        el.appendChild(div);
+      }
+    }
+  }
+
+  // ── Lightbox ──
+  let lbIdx = 0;
+
+  function openLightbox(idx) {
+    lbIdx = idx;
+    updateLightbox();
+    document.getElementById('lightbox').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function updateLightbox() {
+    const f = allFrames[lbIdx];
+    document.getElementById('lb-img').src = f.src;
+    document.getElementById('lb-info').textContent =
+      `Session ${f.session} — Frame ${f.frame}/${f.total}${f.label ? '  [' + f.label + ']' : ''}`;
+
+    const panel = document.getElementById('lb-panel');
+    const bd = f.bbox;
+    if (bd) {
+      panel.style.display = 'block';
+      // action chip
+      const chipCls = ACTION_CHIP_CLASS[bd.predicted_label] || 'NONE';
+      const chip = document.getElementById('lb-chip');
+      chip.textContent = bd.predicted_label || '—';
+      chip.className = `action-chip lb-big-chip chip-${chipCls}`;
+      // latency
+      document.getElementById('lb-latency').textContent = `${bd.latency_ms.toFixed(0)} ms`;
+      // grid
+      const actionStr = bd.action ? `[${bd.action.map(v=>v.toFixed(2)).join(', ')}]` : '—';
+      document.getElementById('lb-grid').innerHTML = `
+        <div class="lb-kv"><span class="lb-key">Action 3D</span><span class="lb-val">${actionStr}</span></div>
+        <div class="lb-kv"><span class="lb-key">Grounding</span><span class="lb-val">${bd.has_bbox ? '✓ detected' : '✗ not detected'}</span></div>
+        <div class="lb-kv"><span class="lb-key">cx (basket)</span><span class="lb-val">${bd.has_bbox ? bd.cx.toFixed(3) : 'fallback 0.500'}</span></div>
+        <div class="lb-kv"><span class="lb-key">area</span><span class="lb-val">${bd.area.toFixed(4)}</span></div>
+        <div class="lb-kv"><span class="lb-key">cy</span><span class="lb-val">${bd.cy.toFixed(3)}</span></div>
+        <div class="lb-kv"><span class="lb-key">Grounder</span><span class="lb-val">PG2 (Exp66 replay)</span></div>
+      `;
+      // cx bar
+      const cxWrap = document.getElementById('lb-cx-wrap');
+      cxWrap.style.display = 'block';
+      const dot = document.getElementById('lb-cx-dot');
+      dot.style.left = (bd.cx * 100).toFixed(1) + '%';
+      dot.style.background = bd.has_bbox ? '#f59e0b' : '#475569';
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+
+  function lbNav(dir) {
+    lbIdx = (lbIdx + dir + allFrames.length) % allFrames.length;
+    updateLightbox();
+  }
+
+  function closeLightbox(e) {
+    if (e.target === document.getElementById('lightbox')) closeLightboxDirect();
+  }
+  function closeLightboxDirect() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('lightbox').classList.contains('active')) return;
+    if (e.key === 'ArrowLeft')  lbNav(-1);
+    if (e.key === 'ArrowRight') lbNav(1);
+    if (e.key === 'Escape')     closeLightboxDirect();
+  });
+
+  buildFilmstrips();
+</script>
+</body>
+</html>

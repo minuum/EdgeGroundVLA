@@ -187,10 +187,12 @@
 <!-- ══ Hero ══════════════════════════════════════════════════════════════ -->
 <div class="hero-section">
   <h1>MoNaVLA: <span>Mobile Navigation</span><br>Vision-Language-Action</h1>
+  <!-- SYNC:hero_tagline:start -->
   <p class="hero-tagline">
     Decomposition-based VLA for mobile robot basket navigation.<br>
     <strong>96.6% closed-loop success</strong> (CLIP + L2-norm + aug pipeline) vs E2E Kosmos-2 0%.
   </p>
+<!-- SYNC:hero_tagline:end -->
   <div class="hero-buttons">
     <a href="v5/research_story.html" class="btn btn-primary">
       <i class="fas fa-book-open"></i> Research Story
@@ -204,6 +206,9 @@
     <a href="v5/masking_ablation_proof.html" class="btn btn-slate">
       <i class="fas fa-eye-slash"></i> Masking Ablation
     </a>
+    <a href="v5/robot_tests.html" class="btn btn-slate">
+      <i class="fas fa-robot"></i> Robot Tests
+    </a>
     <a href="https://github.com/minuum/MoNaVLA" class="btn btn-outline">
       <i class="fab fa-github"></i> GitHub
     </a>
@@ -211,6 +216,7 @@
 </div>
 
 <!-- ══ Metrics Bar ════════════════════════════════════════════════════════ -->
+<!-- SYNC:metrics_bar:start -->
 <div class="metrics-bar">
   <div class="metrics-grid">
     <div class="metric-cell">
@@ -235,6 +241,7 @@
     </div>
   </div>
 </div>
+<!-- SYNC:metrics_bar:end -->
 
 <!-- ══ Abstract ══════════════════════════════════════════════════════════ -->
 <div class="content-section">
@@ -315,6 +322,7 @@
           <th>Note</th>
         </tr>
       </thead>
+      <!-- SYNC:results_table_body:start -->
       <tbody>
         <tr>
           <td class="tag-model">E2E VLA (Exp11)</td>
@@ -344,7 +352,7 @@
           <td>0.094 m</td>
           <td>SOTA · MLP w=4</td>
         </tr>
-        <tr class="highlight-row">
+        <tr>
           <td class="tag-model">Ours (Exp66 LSTM)</td>
           <td>CLIP + L2-norm + aug</td>
           <td class="val-good">96.6%</td>
@@ -352,6 +360,7 @@
           <td>Best FPE · LSTM w=16</td>
         </tr>
       </tbody>
+<!-- SYNC:results_table_body:end -->
     </table>
 
     <p style="font-size:0.8rem;color:#94a3b8;margin-top:12px">

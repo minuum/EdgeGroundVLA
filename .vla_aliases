@@ -660,3 +660,207 @@ vla-trial-logger() {
     echo "📊 Trial Logger → http://localhost:$port"
     python3 "$VLA_PROJECT_DIR/scripts/real_robot_trial_logger.py" --port "$port"
 }
+
+# ════════════════════════════════════════════════════════════════
+# Stage2 v2 배포/실행 — 2026-06 추가
+# ════════════════════════════════════════════════════════════════
+
+# vla-ship: minum에서 실행 — 코드+.pt soda 배포 + 서버 재시작
+unalias vla-ship 2>/dev/null || true
+vla-ship() {
+    bash "${VLA_PROJECT_DIR}/scripts/deploy/ship.sh" "$@"
+}
+
+# vla-go: soda에서 실행 — 추론 서버 + 허브 한 번에 시작
+unalias vla-go 2>/dev/null || true
+vla-go() {
+    bash "${VLA_PROJECT_DIR}/scripts/run/go.sh" "$@"
+}
+
+# vla-log: soda 추론 서버 로그 실시간
+unalias vla-log 2>/dev/null || true
+vla-log() {
+    local target="${1:-server}"
+    case "$target" in
+        server|s2v2) tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
+        hub)         tail -f "${VLA_PROJECT_DIR}/logs/hub.log" ;;
+        *)           tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
+    esac
+}
+
+# vla-probe: 현재 추론 서버 헬스 + 마지막 예측 빠른 확인
+unalias vla-probe 2>/dev/null || true
+vla-probe() {
+    local url="${VLA_API_SERVER:-http://localhost:8001}"
+    echo "── health ─────────────────────────────"
+    curl -sf "$url/health" | python3 -m json.tool 2>/dev/null || echo "서버 응답 없음"
+    echo ""
+    echo "── recent ─────────────────────────────"
+    curl -sf "$url/recent" | python3 -m json.tool 2>/dev/null || echo "(없음)"
+}
+
+# vla-dryrun: STOP 로직 로컬 테스트 (5장 정적 이미지)
+unalias vla-dryrun 2>/dev/null || true
+vla-dryrun() {
+    python3 "${VLA_PROJECT_DIR}/scripts/dryrun_stop_logic.py"
+}
+
+# ════════════════════════════════════════════════════════════════
+# mona 통합 커맨드 — Stage2 v2 / Exp66 기준 (2026-06)
+# ════════════════════════════════════════════════════════════════
+#
+# 배포 (minum에서):
+#   mona-ship           코드 + .pt → soda 배포 + 서버 재시작
+#   mona-ship --dry-run 할 일만 출력
+#
+# 실행 (soda에서):
+#   mona-up             서버 + 허브 한 번에 시작 (= 한방 ON)
+#   mona-down           서버 + 허브 모두 종료
+#   mona-restart        mona-down + mona-up
+#   mona-log            추론 서버 로그 실시간
+#   mona-probe          /health + /recent 빠른 확인
+#   mona-dryrun         STOP 로직 정적 이미지 테스트
+#
+# minum 원격 제어 (minum에서 soda를 한방에):
+#   mona-remote-up      ssh soda "mona-up" 원격 실행
+#   mona-remote-down    ssh soda "mona-down" 원격 실행
+# ────────────────────────────────────────────────────────────────
+
+unalias mona-ship 2>/dev/null || true
+mona-ship() { bash "${VLA_PROJECT_DIR}/scripts/deploy/ship.sh" "$@"; }
+
+unalias mona-up 2>/dev/null || true
+mona-up() {
+    # 역할 자동 감지: soda(jetson role)면 로컬 실행, minum이면 원격 실행
+    if [ "${VLA_SERVER_ROLE:-unknown}" = "jetson" ] || \
+       [ "$(hostname 2>/dev/null)" = "fevers" ] || \
+       [ "$(hostname 2>/dev/null)" = "encroaches" ]; then
+        bash "${VLA_PROJECT_DIR}/scripts/run/go.sh" "$@"
+    else
+        # minum에서 호출 → soda에 원격 실행
+        echo "minum → soda mona-up 원격 실행..."
+        ssh soda@100.85.118.58 "source ~/MoNaVLA/.vla_aliases 2>/dev/null; bash ~/MoNaVLA/scripts/run/go.sh $*"
+    fi
+}
+
+unalias mona-down 2>/dev/null || true
+mona-down() {
+    if [ "${VLA_SERVER_ROLE:-unknown}" = "jetson" ] || \
+       [ "$(hostname 2>/dev/null)" = "fevers" ] || \
+       [ "$(hostname 2>/dev/null)" = "encroaches" ]; then
+        bash "${VLA_PROJECT_DIR}/scripts/run/go.sh" --stop
+    else
+        ssh soda@100.85.118.58 "bash ~/MoNaVLA/scripts/run/go.sh --stop"
+    fi
+}
+
+unalias mona-restart 2>/dev/null || true
+mona-restart() { mona-down; sleep 1; mona-up "$@"; }
+
+unalias mona-log 2>/dev/null || true
+mona-log() {
+    local target="${1:-server}"
+    case "$target" in
+        hub)  tail -f "${VLA_PROJECT_DIR}/logs/hub.log" ;;
+        *)    tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
+    esac
+}
+
+unalias mona-probe 2>/dev/null || true
+mona-probe() {
+    local url="${VLA_API_SERVER:-http://localhost:8001}"
+    echo "── health ──────────────────────────────────────"
+    curl -sf "$url/health" | python3 -m json.tool 2>/dev/null || echo "서버 응답 없음"
+    echo ""
+    echo "── recent ──────────────────────────────────────"
+    curl -sf "$url/recent" | python3 -m json.tool 2>/dev/null || echo "(없음)"
+}
+
+unalias mona-dryrun 2>/dev/null || true
+mona-dryrun() {
+    python3 "${VLA_PROJECT_DIR}/scripts/dryrun_stop_logic.py" "$@"
+}
+
+# minum → soda 원격 제어
+unalias mona-remote-up 2>/dev/null || true
+mona-remote-up() {
+    ssh soda@100.85.118.58 "bash ~/MoNaVLA/scripts/run/go.sh $*"
+}
+
+unalias mona-remote-down 2>/dev/null || true
+mona-remote-down() {
+    ssh soda@100.85.118.58 "bash ~/MoNaVLA/scripts/run/go.sh --stop"
+}
+
+# vla-* 하위호환 (기존 레거시 유지)
+vla-ship()   { mona-ship "$@"; }
+vla-go()     { mona-up "$@"; }
+vla-log()    { mona-log "$@"; }
+vla-probe()  { mona-probe "$@"; }
+vla-dryrun() { mona-dryrun "$@"; }
+
+# ── mona-sync — Research Status 동기화 ───────────────────────────
+unalias mona-sync 2>/dev/null || true
+mona-sync() {
+    local PY
+    if [[ -x "${VLA_PROJECT_DIR}/.venv/bin/python3" ]]; then
+        PY="${VLA_PROJECT_DIR}/.venv/bin/python3"
+    else
+        PY="$(which python3)"
+    fi
+    "$PY" "${VLA_PROJECT_DIR}/scripts/utils/sync_research.py" "$@"
+}
+alias vla-sync='mona-sync'
+
+# ── mona-help 패치 (새 커맨드 추가) ─────────────────────────────
+unalias mona-help 2>/dev/null || true
+mona-help() {
+    echo "══════════════════ MoNaVLA 커맨드 ══════════════════"
+    echo ""
+    echo "■ 배포 (minum에서):"
+    echo "  mona-ship              코드+.pt → soda + 서버 재시작"
+    echo "  mona-ship --code-only  .pt 전송 없이 코드만"
+    echo "  mona-ship --ckpt-only  git 없이 .pt만"
+    echo "  mona-ship --no-restart 파일만 전송, 서버 유지"
+    echo "  mona-ship --dry-run    실제 전송 없이 미리보기"
+    echo ""
+    echo "■ 실행 (soda에서 / minum에서 원격):"
+    echo "  mona-up                서버 + 대시보드 + 허브 전부 ON ★"
+    echo "  mona-up --server       추론 서버만 (포트 8001)"
+    echo "  mona-up --dashboard    추론 대시보드만 (포트 7865) ← 주 제어 UI"
+    echo "  mona-up --hub          허브만 (포트 7860)"
+    echo "  mona-up --status       실행 중 서비스 확인"
+    echo "  mona-down              서버 + 허브 모두 종료"
+    echo "  mona-restart           재시작 (down + up)"
+    echo "  mona-remote-up         minum→soda 원격 up"
+    echo "  mona-remote-down       minum→soda 원격 down"
+    echo ""
+    echo "■ 모니터링:"
+    echo "  mona-probe             /health + /recent 빠른 확인"
+    echo "  mona-log               추론 서버 로그 실시간"
+    echo "  mona-log hub           허브 로그"
+    echo "  mona-dryrun            STOP 로직 정적 이미지 테스트"
+    echo "  mona-status            시스템 전체 상태"
+    echo ""
+    echo "■ 연구 기록 동기화:"
+    echo "  mona-sync              README + index.html 자동 동기화"
+    echo "  mona-sync --diff       변경사항 미리보기"
+    echo "  mona-sync --dry-run    파일 수정 없이 로그만"
+    echo "  mona-sync --status     현재 SOTA 요약"
+    echo "  mona-sync --add-exp    새 실험 대화형 추가"
+    echo "  mona-sync --propose-menemory  menemory 업데이트 제안"
+    echo ""
+    echo "■ 학습/분석:"
+    echo "  mona-train-log         학습 로그 실시간"
+    echo "  mona-train-stop        학습 중단"
+    echo "  mona-doctor            환경 진단"
+    echo ""
+    echo "■ 오늘 실기 순서:"
+    echo "  [minum] mona-dryrun    → STOP 로직 검증"
+    echo "  [minum] mona-ship      → soda 배포 + 서버 시작"
+    echo "  [soda]  mona-up --dashboard → 대시보드만 추가 시작"
+    echo "  [브라우저] http://100.85.118.58:7860"
+    echo "════════════════════════════════════════════════════"
+}
+alias vla-help='mona-help'
+
