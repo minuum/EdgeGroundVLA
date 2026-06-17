@@ -24,10 +24,16 @@ FILES=(
     # Stage2 best model (456KB, exp66 base PG2, 96.6% CL)
     "runs/v5_nav/mlp/exp66/action_mlp.pt"
 
+    # STOP-learned model (456KB, sw1x: 96.6% CL + Good STOP 86.2%, Premature 0%)
+    "runs/v5_nav/mlp/stop_weighted/stop_wt_sw1x.pt"
+
     # 추론 서버 + 학습/평가 스크립트
     "robovlm_nav/serve/stage2_v2_inference_server.py"
     "scripts/train_exp54_stage2_v2_action.py"
     "scripts/eval_exp54_stage2_v2_closedloop.py"
+
+    # STOP 배포 가이드
+    "docs/v5/STOP_MODE_GUIDE.md"
 
     # 모델 파라미터 요약
     "docs/v5/DEPLOY_MANIFEST.json"

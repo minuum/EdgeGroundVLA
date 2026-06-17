@@ -276,6 +276,7 @@
     <a class="toc-item" href="#ch34" data-target="ch34"><span class="toc-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6">CH 34</span><span class="toc-label">RoboVLMs Head Ablation — LSTM=MLP 확인 (exp68~70)</span></a>
     <a class="toc-item" href="#ch35" data-target="ch35"><span class="toc-badge" style="background:rgba(20,184,166,0.15);color:#14b8a6">CH 35</span><span class="toc-label">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</span></a>
     <a class="toc-item" href="#ch36" data-target="ch36"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 36</span><span class="toc-label">6/12 미팅 — 실사 테스트·논문 제출 결정</span></a>
+    <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -392,7 +393,7 @@
 
   <!-- Phase C: SOTA 확정 -->
   <div>
-    <div style="color:#4ade80;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-left:4px">Phase C — SOTA 확정 (CH33~36) ★</div>
+    <div style="color:#4ade80;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-left:4px">Phase C — SOTA 확정 + STOP 분석 (CH33~37) ★</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
       <a href="#ch33" style="background:#051a0a;border:2px solid #22c55e;border-radius:10px;padding:14px 16px;text-decoration:none;display:block">
         <div style="color:#4ade80;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 33 ★ 핵심 발견</div>
@@ -413,6 +414,11 @@
         <div style="color:#38bdf8;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 36 최종 미팅</div>
         <div style="color:#e2e8f0;font-size:0.85rem;font-weight:700;margin-bottom:5px">논문 제출 결정</div>
         <div style="color:#7dd3fc;font-size:0.78rem;line-height:1.6">6/12 실사 테스트 96.6% 확인. 논문 제출 및 로드맵 확정.</div>
+      </a>
+      <a href="#ch37" style="background:#1a0f00;border:2px solid #fb923c;border-radius:10px;padding:14px 16px;text-decoration:none;display:block">
+        <div style="color:#fb923c;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 37 STOP Ablation</div>
+        <div style="color:#e2e8f0;font-size:0.85rem;font-weight:700;margin-bottom:5px">override 없음이 최선</div>
+        <div style="color:#fed7aa;font-size:0.78rem;line-height:1.6">3-Layer 분석. 시작 위치 variance가 threshold 무력화. V0 98.7% vs V1(서버) 23.5%. 실제 로봇 테스트 필요.</div>
       </a>
     </div>
   </div>
@@ -9541,6 +9547,274 @@ graph TD
 
   </div>
 
+</div>
+
+<!-- ══ CH37 ══ -->
+<hr class="chapter-divider">
+<div class="chapter" id="ch37">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 37</span>
+    <h2 class="chapter-title">STOP Mechanism Ablation</h2>
+    <p class="chapter-subtitle">3-Layer 체계적 분석 — override 없는 게 최선, 시작 위치 정규화 설계</p>
+  </div>
+
+  <!-- 동기 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#94a3b8">왜 STOP을 분석하는가</div>
+    <div class="finding-body">
+      실제 추론 서버(<code>stage2_v2_inference_server.py</code>)에는 <strong>Proximity Override</strong>가 활성화되어 있다 (<code>area≥0.25 AND |cx-0.5|≤0.35</code>, 2프레임 연속). 그러나 96.6% CL은 <em>이 override 없이</em> 달성된 수치다(<code>eval_exp54_stage2_v2_closedloop.py</code>에 override 없음). 실제 로봇과 시뮬레이션 메트릭 사이에 괴리가 있다는 의미 — 어떤 STOP 전략이 진짜로 나은가를 체계적으로 검증한다.
+    </div>
+  </div>
+
+  <!-- 모델별 테스트 범위 -->
+  <h3 style="color:#e2e8f0;font-size:1rem;font-weight:700;margin:0 0 12px">모델별 테스트 범위</h3>
+  <div style="overflow-x:auto;margin-bottom:28px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead>
+        <tr style="background:#0f172a">
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">모델</th>
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">역할</th>
+          <th style="padding:10px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">STOP ablation</th>
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">이유</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#4ade80;font-weight:700">Stage2 v2 (Exp66)</td>
+          <td style="padding:9px 14px;color:#e2e8f0">현재 action model</td>
+          <td style="padding:9px 14px;text-align:center">✅ 완료</td>
+          <td style="padding:9px 14px;color:#94a3b8">Kosmos-2 vision enc + ActionMLP. CL 96.6% 달성 모델.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#ef4444">E2E Kosmos-2 (Exp11)</td>
+          <td style="padding:9px 14px;color:#e2e8f0">구 action model</td>
+          <td style="padding:9px 14px;text-align:center">❌ 불필요</td>
+          <td style="padding:9px 14px;color:#94a3b8">CL 0% — 방향 오류 누적. STOP 자체가 의미 없음. 체크포인트 billy 전용.</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 14px;color:#fbbf24">PaliGemma2</td>
+          <td style="padding:9px 14px;color:#e2e8f0">bbox grounding 소스</td>
+          <td style="padding:9px 14px;text-align:center">⚠️ 소스 비교</td>
+          <td style="padding:9px 14px;color:#94a3b8">action model 아님. HSV vs PG2 bbox area 분포 차이 → threshold 거동 다름 (L4에서 비교).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3-Layer 설계 -->
+  <h3 style="color:#e2e8f0;font-size:1rem;font-weight:700;margin:0 0 16px">3-Layer Ablation 설계</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:28px">
+    <div style="background:#0a1628;border:1px solid #22c55e33;border-radius:12px;padding:16px">
+      <div style="color:#4ade80;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">L1 — Parameter Sweep</div>
+      <div style="color:#e2e8f0;font-size:0.85rem;font-weight:600;margin-bottom:6px">재학습 없음 · 6 variants</div>
+      <div style="color:#94a3b8;font-size:0.8rem;line-height:1.6">
+        area/cx/cy threshold 조합 탐색. V0(no override)~V5(strict area only). 결과: <strong style="color:#4ade80">V0 98.7%</strong> 압도적 최선.<br>
+        <span style="color:#64748b;font-size:0.75rem">참고: IndoorUAV (2025) 룰 기반 STOP 설계</span>
+      </div>
+    </div>
+    <div style="background:#0a1628;border:1px solid #8b5cf633;border-radius:12px;padding:16px">
+      <div style="color:#a78bfa;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">L2 — CLIP Cosine-Sim STOP</div>
+      <div style="color:#e2e8f0;font-size:0.85rem;font-weight:600;margin-bottom:6px">재학습 없음 · 5 thresholds</div>
+      <div style="color:#94a3b8;font-size:0.8rem;line-height:1.6">
+        학습셋 area>0.25 프레임 CLIP feature 평균 → ref 벡터. cosim &gt; th AND consec=2 → STOP. th=0.70~0.90 전부 <strong style="color:#ef4444">SR 0%</strong> — 초기 프레임부터 ref와 cosim 과다.<br>
+        <span style="color:#64748b;font-size:0.75rem">참고: NaVILA (2025) 시각 임베딩 goal 감지, CompassNav (2025) VLM Stop Agent</span>
+      </div>
+    </div>
+    <div style="background:#0a1628;border:1px solid #f59e0b33;border-radius:12px;padding:16px">
+      <div style="color:#f59e0b;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">L3 — STOP-Weighted Training</div>
+      <div style="color:#e2e8f0;font-size:0.85rem;font-weight:600;margin-bottom:6px">재학습 · 4 weight variants</div>
+      <div style="color:#94a3b8;font-size:0.8rem;line-height:1.6">
+        STOP 프레임 0개 → 마지막 프레임 합성 주입(118개). stop_weight_mult ×1/2/5/10. val_acc 0.926→<strong style="color:#fbbf24">0.80</strong> 하락 (STOP 강제 학습의 부작용). CL eval 미포함(별도 실행 예정).<br>
+        <span style="color:#64748b;font-size:0.75rem">참고: LongNav-R1 (2025) stop token + RLVR 학습</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- L1 결과 테이블 -->
+  <h3 style="color:#e2e8f0;font-size:1rem;font-weight:700;margin:0 0 12px">L1 결과 — STOP Parameter Sweep (5 seeds)</h3>
+  <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead>
+        <tr style="background:#0f172a">
+          <th style="padding:9px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">Variant</th>
+          <th style="padding:9px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">알고리즘</th>
+          <th style="padding:9px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">SR</th>
+          <th style="padding:9px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">FPE</th>
+          <th style="padding:9px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">해석</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:rgba(34,197,94,0.05);border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#4ade80;font-weight:700">V0 no_override ★</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">모델 argmax 그대로</td>
+          <td style="padding:9px 14px;text-align:center;color:#4ade80;font-weight:700">98.7%±1.6%</td>
+          <td style="padding:9px 14px;text-align:center;color:#4ade80">0.071m</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">STOP 학습 없어도 궤적 자체가 전문가와 유사 → TLD·FPE 모두 만족</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#f87171">V1 current_server</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">area≥0.25 &amp; |cx-0.5|≤0.35 &amp; c=2</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444;font-weight:700">23.5%±3.2%</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444">1.233m</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">에피소드 33.7% 지점에서 발동(93% 에피소드) → TLD &lt; 0.7 폭락</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#f87171">V2 cx_removed</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">area≥0.25 &amp; c=2</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444;font-weight:700">23.5%±3.2%</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444">1.233m</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">cx 조건 제거해도 동일. area 조건만으로 이미 93% 발동 중</td>
+        </tr>
+        <tr style="background:rgba(251,191,36,0.04);border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#fbbf24;font-weight:600">V3 cx_rm+cy≥0.45</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">area≥0.25 &amp; cy≥0.45 &amp; c=2</td>
+          <td style="padding:9px 14px;text-align:center;color:#fbbf24;font-weight:700">96.0%±2.5%</td>
+          <td style="padding:9px 14px;text-align:center;color:#fbbf24">0.116m</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">cy가 발동 시점을 지연. 실제 로봇 후보로 2위</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#f87171">V4 area_adaptive</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">area≥0.40 즉시 / else V1</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444;font-weight:700">23.5%±3.2%</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444">1.233m</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">하위 threshold(0.25)가 상위(0.40)보다 먼저 발동</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 14px;color:#f87171">V5 area_only_035</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">area≥0.35 &amp; c=2</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444;font-weight:700">24.2%±4.0%</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444">1.227m</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">threshold 올려도 area 분포 자체가 초반부터 고값</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 핵심 진단: 시작 프레임 문제 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0505,#200a0a);border-color:#7f1d1d;margin-bottom:24px">
+    <div class="finding-title" style="color:#fca5a5">핵심 진단: 시작 프레임 area 분산이 threshold를 무력화</div>
+    <div class="finding-body">
+      <strong style="color:#f87171">area[frame=0]</strong>: min=0.027 / max=<strong>0.636</strong> / mean=0.258 / std=0.271<br>
+      <strong style="color:#ef4444">val 에피소드의 40%가 시작 프레임부터 area ≥ 0.25</strong> → V1이 frame 0에서 즉시 발동.<br>
+      결론: 절대값 threshold는 출발 위치에 따라 완전히 다르게 거동한다. 로봇이 바스켓 가까이서 시작하면 어떤 area 기준도 의미가 없다.<br>
+      <strong style="color:#fbbf24">→ 시작 프레임 기준 정규화(delta/relative area) 또는 warm-up guard가 필요.</strong>
+    </div>
+  </div>
+
+  <!-- L4 정규화 variants -->
+  <h3 style="color:#e2e8f0;font-size:1rem;font-weight:700;margin:0 0 12px">L4 — 정규화 Variants (시작 위치 보정)</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px">
+    <div style="background:#0a1628;border:1px solid #334155;border-radius:10px;padding:14px">
+      <div style="color:#7dd3fc;font-size:0.8rem;font-weight:700;margin-bottom:6px">V6 — min_steps guard</div>
+      <div style="color:#94a3b8;font-size:0.78rem;line-height:1.5">처음 5프레임 동안 STOP 금지. warm-up 이후에만 area 조건 검사.</div>
+      <code style="color:#64748b;font-size:0.72rem">min_steps=5, area≥0.25, cx_tol=0.35</code>
+    </div>
+    <div style="background:#0a1628;border:1px solid #334155;border-radius:10px;padding:14px">
+      <div style="color:#34d399;font-size:0.8rem;font-weight:700;margin-bottom:6px">V7 — delta area</div>
+      <div style="color:#94a3b8;font-size:0.78rem;line-height:1.5">area_t − area_0 ≥ 0.15. 절대값이 아닌 <em>성장량</em> 기준. 시작 위치 무관.</div>
+      <code style="color:#64748b;font-size:0.72rem">delta_th=0.15, consec=2</code>
+    </div>
+    <div style="background:#0a1628;border:1px solid #334155;border-radius:10px;padding:14px">
+      <div style="color:#a78bfa;font-size:0.8rem;font-weight:700;margin-bottom:6px">V8 — relative area</div>
+      <div style="color:#94a3b8;font-size:0.78rem;line-height:1.5">area_t / area_0 ≥ 2.5. 시작 대비 2.5배 성장. 스케일 정규화.</div>
+      <code style="color:#64748b;font-size:0.72rem">rel_th=2.5, consec=2</code>
+    </div>
+    <div style="background:#0a1628;border:1px solid #334155;border-radius:10px;padding:14px">
+      <div style="color:#f59e0b;font-size:0.8rem;font-weight:700;margin-bottom:6px">V9 — guard + delta</div>
+      <div style="color:#94a3b8;font-size:0.78rem;line-height:1.5">V6 + V7 조합. 초반 3프레임 제외 + 성장량 조건.</div>
+      <code style="color:#64748b;font-size:0.72rem">min_steps=3, delta_th=0.15</code>
+    </div>
+  </div>
+  <!-- L4 결과 (HSV 완료, PG2 진행 중) -->
+  <div style="overflow-x:auto;margin-bottom:16px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead>
+        <tr style="background:#0f172a">
+          <th style="padding:9px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">Variant</th>
+          <th style="padding:9px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">HSV SR (5 seeds)</th>
+          <th style="padding:9px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">PG2 SR (부분)</th>
+          <th style="padding:9px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">해석</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:rgba(34,197,94,0.05);border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#4ade80;font-weight:700">V0 no_override ★</td>
+          <td style="padding:9px 14px;text-align:center;color:#4ade80;font-weight:700">98.8%</td>
+          <td style="padding:9px 14px;text-align:center;color:#fbbf24">~80.5%</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">PG2 bbox로 HSV-trained MLP 구동 시 distribution shift → 성능 하락</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#e2e8f0">V6 min_steps_5</td>
+          <td style="padding:9px 14px;text-align:center;color:#fbbf24">~중간</td>
+          <td style="padding:9px 14px;text-align:center;color:#64748b">—</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">warm-up만으로는 area 분포 문제 미해결</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:9px 14px;color:#34d399">V7 delta_area ≥0.15</td>
+          <td style="padding:9px 14px;text-align:center;color:#fbbf24">~58%</td>
+          <td style="padding:9px 14px;text-align:center;color:#fbbf24">~62%</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">성장량 기준이 절대값보다 낫지만 V0 대비 여전히 열세. STOP 자체가 궤적 품질 저해</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 14px;color:#a78bfa">V8 rel_area ≥2.5×</td>
+          <td style="padding:9px 14px;text-align:center;color:#fbbf24">~52%</td>
+          <td style="padding:9px 14px;text-align:center;color:#ef4444;font-weight:700">~3%</td>
+          <td style="padding:9px 14px;color:#94a3b8;font-size:0.78rem">PG2 area 분포가 HSV와 달라 2.5× 기준이 즉시 발동 → 거의 즉시 STOP</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="finding-card" style="border-color:#7c3aed;background:rgba(124,58,237,0.06);margin-bottom:28px">
+    <div class="finding-title" style="color:#a78bfa">L4 추가 발견: PG2 grounding으로 구동 시 V0도 ~80%로 하락</div>
+    <div class="finding-body">
+      Stage2 MLP는 HSV bbox(cx/cy/area)로 학습됨. PG2 detector의 area_det 분포가 다름 → feature distribution shift → action 예측 저하. <strong>grounding 소스가 학습/평가에서 동일해야 한다</strong>는 것이 재확인됨. V8(rel_area)은 PG2에서 ~3%로 폭락 — PG2의 초기 area_det가 HSV보다 크거나 배율 기준 자체가 소스에 민감함.<br>
+      <span style="color:#64748b">⏳ PG2 seed 3~5 실행 중. 완료 후 최종 수치 업데이트 예정.</span>
+    </div>
+  </div>
+
+  <!-- L3 결과 -->
+  <h3 style="color:#e2e8f0;font-size:1rem;font-weight:700;margin:0 0 12px">L3 결과 — STOP-Weighted Training</h3>
+  <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead>
+        <tr style="background:#0f172a">
+          <th style="padding:9px 14px;text-align:left;color:#94a3b8;border-bottom:1px solid #1e293b">Variant</th>
+          <th style="padding:9px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">stop_weight_mult</th>
+          <th style="padding:9px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">val_acc</th>
+          <th style="padding:9px 14px;text-align:center;color:#94a3b8;border-bottom:1px solid #1e293b">CL eval</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#e2e8f0">sw1x (baseline)</td><td style="padding:9px 14px;text-align:center;color:#94a3b8">×1.0</td><td style="padding:9px 14px;text-align:center;color:#fbbf24">0.7972</td><td style="padding:9px 14px;text-align:center;color:#64748b">예정</td></tr>
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#e2e8f0">sw2x</td><td style="padding:9px 14px;text-align:center;color:#94a3b8">×2.0</td><td style="padding:9px 14px;text-align:center;color:#fbbf24">0.8091</td><td style="padding:9px 14px;text-align:center;color:#64748b">예정</td></tr>
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#e2e8f0">sw5x</td><td style="padding:9px 14px;text-align:center;color:#94a3b8">×5.0</td><td style="padding:9px 14px;text-align:center;color:#fbbf24">0.7992</td><td style="padding:9px 14px;text-align:center;color:#64748b">예정</td></tr>
+        <tr><td style="padding:9px 14px;color:#e2e8f0">sw10x</td><td style="padding:9px 14px;text-align:center;color:#94a3b8">×10.0</td><td style="padding:9px 14px;text-align:center;color:#fbbf24">0.7913</td><td style="padding:9px 14px;text-align:center;color:#64748b">예정</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="finding-card" style="border-color:#78350f;background:rgba(120,53,15,0.08);margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">L3 해석: 합성 STOP 주입이 전체 정확도를 희생</div>
+    <div class="finding-body">
+      원래 val_acc 0.9259 → 합성 STOP 118개 추가 후 <strong style="color:#f59e0b">0.797~0.809</strong>로 하락. STOP 학습을 강제하면 FORWARD/LEFT/RIGHT 등 기존 action 분류가 저하됨. weight_mult ×1~×10 구간 모두 비슷 → STOP 합성 프레임 수(118개)가 부족한 것이 아니라 합성 방식(마지막 프레임 복제)의 한계. <strong>CL eval 결과는 별도 실행 후 업데이트.</strong>
+    </div>
+  </div>
+
+  <!-- 결론 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#022c22,#031c38);border-color:#22c55e;margin-bottom:8px">
+    <div class="finding-title" style="color:#4ade80">CH37 결론: 오프라인 CL에서 STOP override는 항상 해롭다 — 실제 로봇 테스트가 필요</div>
+    <div class="finding-body">
+      <strong>1.</strong> V0 no_override = 98.7% — STOP 없이도 전문가 궤적 모방으로 충분.<br>
+      <strong>2.</strong> V1(현재 서버 기본값)은 에피소드의 33.7% 지점에서 강제 정지 → TLD &lt; 0.7 → 23.5%로 폭락.<br>
+      <strong>3.</strong> CLIP cosim STOP은 초기 프레임부터 발동 → 0%.<br>
+      <strong>4.</strong> 시작 위치 정규화(delta/relative area, L4)가 구조적 해결책 — 결과 대기 중.<br>
+      <strong>5.</strong> V3(cy≥0.45)이 현재로선 실제 로봇용 차선 후보 (SR 96.0%, FPE 0.116m).<br>
+      <span style="color:#64748b">※ 오프라인 CL의 성공 기준(FPE·TLD)은 STOP 타이밍에 매우 민감. 실제 로봇 테스트로만 진짜 STOP 전략을 검증 가능.</span>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    scripts: ablate_stop_proximity.py · ablate_stop_clip_sim.py · ablate_stop_weighted_train.py · ablate_stop_normalized.py &nbsp;|&nbsp; 2026-06-18
+  </div>
 </div>
 
 <!-- ══ SUMMARY ══ -->

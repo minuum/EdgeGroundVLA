@@ -14,14 +14,21 @@ Environment variables:
   VLA_PG2_PATH              path to PaliGemma2 model dir (default: HF cache)
   VLA_PORT                  server port (default: 8001)
   VLA_GROUNDING_SKIP_N      run grounding every N steps, cache in between (default: 1)
+  VLA_STOP_MODE             STOP 결정 방식: proximity (기본) | learned
+                              proximity: area+cx threshold로 강제 override
+                              learned:   모델이 STOP(class 0) 예측 시 latch (한 번 멈추면 유지)
   VLA_STOP_AREA             bbox area threshold for proximity STOP (default: 0.25)
   VLA_STOP_CX_TOL           cx tolerance from center for proximity STOP (default: 0.35)
   VLA_STOP_CONSEC           consecutive frames required for STOP override (default: 2)
   VLA_API_KEY               optional API key for authentication
 
 Usage:
+  # 기본 (proximity override)
   .venv/bin/python3 robovlm_nav/serve/stage2_v2_inference_server.py
-  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp66/action_mlp.pt \
+
+  # learned STOP (sw1x ckpt + latch)
+  VLA_STOP_MODE=learned \
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/stop_weighted/stop_wt_sw1x.pt \
     .venv/bin/python3 robovlm_nav/serve/stage2_v2_inference_server.py --port 8001
 """
 
@@ -102,6 +109,8 @@ GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.25"))
 GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.35"))
 # Require this many of the last N history frames to be near-goal before forcing STOP
 GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "2"))
+# STOP mode: "proximity" (threshold-based override) | "learned" (model prediction + latch)
+STOP_MODE = os.getenv("VLA_STOP_MODE", "proximity")
 
 
 # ---------------------------------------------------------------------------
@@ -362,10 +371,14 @@ class Stage2V2Model:
         # Rolling history: list of {cx, cy, area, has_bbox, vis_feat}
         self.history: list[dict] = []
 
+        # Learned-STOP latch: once model predicts STOP(0), stay stopped until reset()
+        self.stop_latched: bool = False
+
     def reset(self) -> None:
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
+        self.stop_latched = False
 
     def _decode_image(self, image_b64: str) -> np.ndarray:
         image_bytes = base64.b64decode(image_b64)
@@ -448,29 +461,45 @@ class Stage2V2Model:
             logits = self.head(x)
             pred_class = int(logits.argmax(dim=-1).item())
 
-        # Stop proximity check — count how many of the last GOAL_CONSEC_FRAMES frames are near-goal
-        near_frames = sum(
-            1 for h in self.history[-GOAL_CONSEC_FRAMES:]
-            if h.get("has_bbox")
-            and h.get("area", 0.0) >= GOAL_AREA_THRESHOLD
-            and abs(h.get("cx", 0.5) - 0.5) <= GOAL_CX_TOLERANCE
-        )
-        is_near_goal = (near_frames >= min(GOAL_CONSEC_FRAMES, len(self.history)))
-
-        # Force STOP when near goal (override model prediction)
+        # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
         proximity_override = False
-        if is_near_goal:
-            proximity_override = True
-            pred_class = 0  # STOP
+        learned_stop       = False
+        is_near_goal       = False
+
+        if STOP_MODE == "learned":
+            # 모델이 STOP(0) 예측 → latch. 한 번 멈추면 reset() 전까지 유지.
+            if self.stop_latched:
+                pred_class  = 0
+                learned_stop = True
+            elif pred_class == 0:
+                self.stop_latched = True
+                learned_stop = True
+        else:
+            # proximity 모드: area + cx threshold로 강제 override
+            near_frames = sum(
+                1 for h in self.history[-GOAL_CONSEC_FRAMES:]
+                if h.get("has_bbox")
+                and h.get("area", 0.0) >= GOAL_AREA_THRESHOLD
+                and abs(h.get("cx", 0.5) - 0.5) <= GOAL_CX_TOLERANCE
+            )
+            is_near_goal = (near_frames >= min(GOAL_CONSEC_FRAMES, len(self.history)))
+            if is_near_goal:
+                proximity_override = True
+                pred_class = 0
+
+        stop_tag = ""
+        if proximity_override: stop_tag = " [PROXIMITY STOP]"
+        elif learned_stop and self.stop_latched and self.inference_count > 0:
+            stop_tag = " [LEARNED STOP — LATCHED]"
+        elif learned_stop:
+            stop_tag = " [LEARNED STOP]"
 
         self.inference_count += 1
         total_ms = (time.time() - start) * 1000.0
         logger.info(
-            "[#%d] %s%s | cx=%.3f area=%.3f has=%s near=%d/%d | latency=%.0fms",
-            self.inference_count, CLASS_NAMES[pred_class],
-            " [PROXIMITY STOP]" if proximity_override else "",
-            frame["cx"], frame["area"], frame["has_bbox"],
-            near_frames, GOAL_CONSEC_FRAMES, total_ms,
+            "[#%d] %s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            self.inference_count, CLASS_NAMES[pred_class], stop_tag,
+            frame["cx"], frame["area"], frame["has_bbox"], total_ms,
         )
 
         return {
@@ -483,6 +512,9 @@ class Stage2V2Model:
             "latency_ms": total_ms,
             "goal_near_proxy": is_near_goal,
             "proximity_override": proximity_override,
+            "learned_stop": learned_stop,
+            "stop_latched": self.stop_latched,
+            "stop_mode": STOP_MODE,
             "grounding_cached": use_cache,
             "buffer_status": {
                 "history_size": len(self.history),
@@ -544,6 +576,9 @@ class InferenceResponse(BaseModel):
     grounding_latency_ms: Optional[float] = None
     goal_near_proxy: Optional[bool] = None
     proximity_override: Optional[bool] = None
+    learned_stop: Optional[bool] = None
+    stop_latched: Optional[bool] = None
+    stop_mode: Optional[str] = None
     grounding_cached: Optional[bool] = None
 
 
@@ -558,6 +593,8 @@ class ConfigRequest(BaseModel):
     stop_area_threshold: Optional[float] = None
     stop_cx_tolerance: Optional[float] = None
     stop_consec_frames: Optional[int] = None
+    stop_mode: Optional[str] = None          # "proximity" | "learned"
+    stop_latched: Optional[bool] = None      # None=그대로, False=latch 해제
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
@@ -681,6 +718,19 @@ async def set_config(
         global GOAL_CONSEC_FRAMES
         GOAL_CONSEC_FRAMES = max(1, int(request.stop_consec_frames))
         applied["stop_consec_frames"] = GOAL_CONSEC_FRAMES
+
+    if request.stop_mode is not None:
+        global STOP_MODE
+        if request.stop_mode in ("proximity", "learned"):
+            STOP_MODE = request.stop_mode
+            applied["stop_mode"] = STOP_MODE
+        else:
+            ignored.append(f"stop_mode={request.stop_mode} (unknown)")
+
+    if request.stop_latched is not None:
+        m = get_model()
+        m.stop_latched = bool(request.stop_latched)
+        applied["stop_latched"] = m.stop_latched
 
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
