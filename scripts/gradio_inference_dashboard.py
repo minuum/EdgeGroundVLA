@@ -935,6 +935,10 @@ state = {
     # None이면 get_inference_frame() 폴백
     "stable_frame": None,
     "stable_frame_cc": False,  # color correction 적용 여부 기록
+    # 추론 이동 모드
+    # SYNC: 이동 완료 후 150ms settle → stable_frame 캡처 → 다음 스텝 추론 (현재 기본)
+    # PRE : 이동 직전 live frame → 추론 → 이동 (수집 PRE_CACHE와 동일 분포)
+    "infer_move_mode": "SYNC",
 }
 
 
@@ -1064,7 +1068,7 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
     }
 
 
-def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
+def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status, infer_move_mode="SYNC"):
     if state["is_busy"]:
         return (
             gr.update(),
@@ -1079,6 +1083,7 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
         )
 
     state["auto_inference"] = mode == "Inference (Auto)"
+    state["infer_move_mode"] = infer_move_mode or "SYNC"
 
     if not ROS_AVAILABLE:
         state["camera_status"] = "ROS Not Available"
@@ -1125,17 +1130,23 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
                     return annotate_image(img), f"❌ Reset failed: {e}", "0 ms", "STOP", "Waiting...", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None
                 return annotate_image(img), "Step 1 (Start/Wait)", "0 ms", "0.0000, 0.0000, 0.0000", "Waiting...", gr.update(value="Running (step 1)..."), state["camera_status"], state["model_path"], None
 
-            # 이동 완료 후 캡처한 정지 상태 프레임 우선 사용 (학습 데이터 분포 일치)
-            infer_img = state.get("stable_frame") or img
-            state["stable_frame"] = None  # consume — 다음 스텝까지 새로 채워질 예정
-
-            result = run_backend_inference(infer_img, instr, backend_mode, api_url)
-            # 이동 완료 후 로봇 정착 대기 → 다음 스텝용 stable frame 미리 캡처
-            time.sleep(0.15)
-            _sf = ros_node.get_inference_frame()
-            if _sf is not None:
-                state["stable_frame"] = correct_image(_sf) if apply_cc else _sf
-                state["stable_frame_cc"] = apply_cc
+            if state["infer_move_mode"] == "PRE":
+                # PRE 모드: live frame → 추론 → 이동 (수집 PRE_CACHE와 동일 분포)
+                infer_img = img
+                state["stable_frame"] = None
+                result = run_backend_inference(infer_img, instr, backend_mode, api_url)
+                # settle 대기 없음 — 다음 스텝은 또 live frame 사용
+            else:
+                # SYNC 모드 (기본): 이전 이동 완료 후 stable_frame 우선 사용
+                infer_img = state.get("stable_frame") or img
+                state["stable_frame"] = None  # consume
+                result = run_backend_inference(infer_img, instr, backend_mode, api_url)
+                # 이동 완료 후 150ms settle → 다음 스텝용 stable_frame 미리 캡처
+                time.sleep(0.15)
+                _sf = ros_node.get_inference_frame()
+                if _sf is not None:
+                    state["stable_frame"] = correct_image(_sf) if apply_cc else _sf
+                    state["stable_frame_cc"] = apply_cc
             display_img = annotate_image(img, bbox=result.get("bbox"))
             fig = ros_node.generate_trajectory_plot(result["chunk"])
             if logger_instance:
@@ -1355,6 +1366,12 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 # 추론 제어 — Inference (Auto) 선택 시만 표시
                 with gr.Column(visible=False) as inference_panel:
                     gr.Markdown("#### 🏁 Inference Control")
+                    infer_move_radio = gr.Radio(
+                        choices=["SYNC", "PRE"],
+                        value="SYNC",
+                        label="이동 모드",
+                        info="SYNC: 이동→정착→캡처 (기본) | PRE: 캡처→추론→이동 (수집과 동일 분포)",
+                    )
                     with gr.Row():
                         btn_start_inf = gr.Button("▶️ START", variant="primary")
                         btn_stop_inf = gr.Button("⏹️ STOP", variant="stop")
@@ -1761,25 +1778,18 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             pass
         return "—"
 
+    _ui_inputs = [mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box, infer_move_radio]
+    _ui_outputs = [camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot]
+
     timer = gr.Timer(0.5, active=True)
-    timer.tick(
-        fn=update_ui,
-        inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
-        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
-    )
+    timer.tick(fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs)
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
     timer.tick(fn=_js_status_text, outputs=js_status)
     # 페이지 열리자마자 첫 프레임 즉시 표시
-    demo.load(
-        fn=update_ui,
-        inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
-        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
-    )
+    demo.load(fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs)
     # 카메라 시작 버튼 완료 후 즉시 프레임 가져오기
     _cam_start_btn.click(fn=start_camera, outputs=_cam_st).then(
-        fn=update_ui,
-        inputs=[mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box],
-        outputs=[camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot],
+        fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs,
     )
 
     btn_reset.click(
