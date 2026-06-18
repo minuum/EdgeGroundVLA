@@ -1798,9 +1798,9 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                     "—", "카메라 연결 필요", history_rows, count, log_path_str,
                 )
 
-            # base64 인코딩
+            # base64 인코딩 — PNG (lossless) : JPEG 압축 영향 제거
             buf = io.BytesIO()
-            frame.save(buf, format="JPEG", quality=90)
+            frame.save(buf, format="PNG")
             b64 = base64.b64encode(buf.getvalue()).decode()
 
             try:
