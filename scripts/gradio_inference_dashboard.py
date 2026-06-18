@@ -546,29 +546,39 @@ class ROSDashboardNode(Node):
 
     def _camera_loop(self):
         """10Hz 백그라운드 폴링 — latest_ui_frame을 항상 최신으로 유지."""
+        _consecutive_fail = 0
         while rclpy.ok():
-            if self.get_image_client.service_is_ready():
-                req = GetImage.Request()
-                future = self.get_image_client.call_async(req)
-                start = time.time()
-                while time.time() - start < 0.15:
-                    if future.done():
-                        break
-                    time.sleep(0.01)
+            if not self.get_image_client.service_is_ready():
+                # 서비스 미준비 — 짧게 대기 후 재시도 (최대 1s wait)
+                self.get_image_client.wait_for_service(timeout_sec=1.0)
+                time.sleep(0.05)
+                continue
+            req = GetImage.Request()
+            future = self.get_image_client.call_async(req)
+            # 0.3s 대기 — Jetson CompressedImage 서비스 콜 latency 수용
+            start = time.time()
+            while time.time() - start < 0.30:
                 if future.done():
-                    try:
-                        res = future.result()
-                        if res and res.image.data:
-                            # GetImage 서비스는 CompressedImage 반환 → compressed_imgmsg_to_cv2 사용
-                            # (imgmsg_to_cv2는 raw sensor_msgs/Image 전용이라 예외 발생)
-                            try:
-                                cv_img = self.cv_bridge.compressed_imgmsg_to_cv2(res.image, "bgr8")
-                            except Exception:
-                                cv_img = self.cv_bridge.imgmsg_to_cv2(res.image, "bgr8")
-                            with self.lock:
-                                self.latest_ui_frame = cv_img
-                    except Exception:
-                        pass
+                    break
+                time.sleep(0.01)
+            if future.done():
+                try:
+                    res = future.result()
+                    if res and res.image.data:
+                        # GetImage 서비스는 CompressedImage 반환
+                        try:
+                            cv_img = self.cv_bridge.compressed_imgmsg_to_cv2(res.image, "bgr8")
+                        except Exception:
+                            cv_img = self.cv_bridge.imgmsg_to_cv2(res.image, "bgr8")
+                        with self.lock:
+                            self.latest_ui_frame = cv_img
+                        _consecutive_fail = 0
+                except Exception:
+                    pass
+            else:
+                _consecutive_fail += 1
+                if _consecutive_fail % 20 == 1:
+                    print(f"[CamLoop] future 미완료 연속 {_consecutive_fail}회 (>0.3s)")
             time.sleep(0.1)  # 10 Hz
 
     def get_inference_frame(self):
@@ -1180,7 +1190,14 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
     }
 
 
-def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status, infer_move_mode="SYNC"):
+def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=False,
+              _run_status=None, infer_move_mode=None):
+    # 로드 타이밍에 None 입력이 올 수 있음 — 기본값으로 안전 처리
+    mode         = mode         or "Manual Drive"
+    backend_mode = backend_mode or "API Server"
+    api_url      = api_url      or ""
+    instr        = instr        or ""
+
     if state["is_busy"]:
         return (
             gr.update(),
@@ -1195,7 +1212,7 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status, infer_m
         )
 
     state["auto_inference"] = mode == "Inference (Auto)"
-    state["infer_move_mode"] = infer_move_mode or "SYNC"
+    state["infer_move_mode"] = infer_move_mode or state.get("infer_move_mode") or "SYNC"
 
     if not ROS_AVAILABLE:
         state["camera_status"] = "ROS Not Available"
