@@ -1735,6 +1735,163 @@
   </div><!-- /session card -->
 </div><!-- /June 18 section -->
 
+<!-- ══ June 18 PG2 Grounding 세션 분석 ══ -->
+<div style="max-width:1100px;margin:60px auto 0;padding:0 20px" id="gnd-session-20260618">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <h2 style="color:#f59e0b;font-size:1.25rem;font-weight:800;letter-spacing:0.03em;margin:0">
+      2026-06-18 PG2 Grounding 세션 분석
+    </h2>
+    <span style="background:rgba(245,158,11,0.12);color:#f59e0b;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(245,158,11,0.25)">grounding</span>
+  </div>
+  <p style="color:#64748b;font-size:0.85rem;margin-bottom:18px">
+    모델: <code style="color:#a78bfa">paligemma2-3b-mix-224</code> (base, 파인튜닝 없음) &nbsp;|&nbsp;
+    fix: <code style="color:#86efac">min_new_tokens=1</code> 적용 후 첫 라이브 세션 &nbsp;|&nbsp;
+    24프레임 / 24초 / 1fps &nbsp;|&nbsp;
+    세션 로그: <code style="color:#94a3b8">gnd_20260618_152628.jsonl</code>
+  </p>
+
+  <!-- 요약 카드 -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800;color:#86efac">24/24</div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:3px">검출률 100%</div>
+      <div style="font-size:0.68rem;color:#475569;margin-top:2px">min_new_tokens=1 적용 후</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800;color:#ef4444">5/24</div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:3px">Micro-bbox (area &lt; 0.01)</div>
+      <div style="font-size:0.68rem;color:#475569;margin-top:2px">바스켓 일부만 포착</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800;color:#ef4444">6/24</div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:3px">Giant bbox (area &gt; 0.95)</div>
+      <div style="font-size:0.68rem;color:#475569;margin-top:2px">전체 화면을 바스켓으로</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.5);border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800;color:#ef4444">1/24</div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:3px">False Positive</div>
+      <div style="font-size:0.68rem;color:#475569;margin-top:2px">바스켓 없는데 검출</div>
+    </div>
+  </div>
+
+  <!-- 버그 패턴 #1 -->
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="background:#ef4444;color:white;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:4px">BUG 1</span>
+      <span style="color:#f1f5f9;font-weight:700">Micro-bbox — 바스켓 일부(≈3%)만 포착, area≈0.001</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <img src="../assets/gnd_frame_micro_bbox.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+        <div style="font-size:0.72rem;color:#64748b;margin-top:4px">Record #2 — area=0.0011, cx=0.498</div>
+      </div>
+      <div>
+        <img src="../assets/gnd_frame_micro_bbox2.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+        <div style="font-size:0.72rem;color:#64748b;margin-top:4px">Record #6 — area=0.0014, cx=0.471</div>
+      </div>
+    </div>
+    <div style="background:#1e293b;border-radius:8px;padding:12px;font-size:0.8rem">
+      <div style="color:#94a3b8;margin-bottom:6px"><strong style="color:#f1f5f9">원인:</strong> base PG2가 바스켓 전체가 아닌 특정 feature(손잡이, 격자 패턴)에만 반응</div>
+      <div style="color:#94a3b8;margin-bottom:6px"><strong style="color:#f1f5f9">raw 예시:</strong> <code style="color:#86efac">&lt;loc0528&gt;&lt;loc0496&gt;&lt;loc0568&gt;&lt;loc0524&gt;</code> → 4%×3% 크기</div>
+      <div style="color:#94a3b8"><strong style="color:#f1f5f9">영향:</strong> cx는 우연히 중앙값이나 area 기반 stop 판단 불가. <strong>area &lt; 0.01 프레임은 필터링 필요</strong></div>
+    </div>
+  </div>
+
+  <!-- 버그 패턴 #2 -->
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="background:#f59e0b;color:#0f172a;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:4px">BUG 2</span>
+      <span style="color:#f1f5f9;font-weight:700">Giant bbox — 전체 화면을 바스켓으로 인식, area≈0.987</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <img src="../assets/gnd_frame_giant_bbox.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+        <div style="font-size:0.72rem;color:#64748b;margin-top:4px">Record #10 — area=0.987, cx=0.499 (바스켓 근접 시)</div>
+      </div>
+      <div>
+        <img src="../assets/gnd_frame_accurate.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+        <div style="font-size:0.72rem;color:#64748b;margin-top:4px">Record #19 — area=0.078, cx=0.490 (정상 케이스)</div>
+      </div>
+    </div>
+    <div style="background:#1e293b;border-radius:8px;padding:12px;font-size:0.8rem">
+      <div style="color:#94a3b8;margin-bottom:6px"><strong style="color:#f1f5f9">원인:</strong> 바스켓이 근접(~0.5m)했을 때 PG2가 전체 이미지를 bbox로 출력. 파인튜닝 없이 <code>min_new_tokens=1</code>로 강제 생성 시 발생</div>
+      <div style="color:#94a3b8;margin-bottom:6px"><strong style="color:#f1f5f9">raw 예시:</strong> <code style="color:#86efac">&lt;loc0000&gt;&lt;loc0000&gt;&lt;loc1022&gt;&lt;loc1022&gt;</code></div>
+      <div style="color:#94a3b8"><strong style="color:#f1f5f9">영향:</strong> area 기반 stop threshold (≥0.4)가 항상 발동. <strong>area &gt; 0.95 프레임도 필터링 또는 클램핑 필요</strong></div>
+    </div>
+  </div>
+
+  <!-- 버그 패턴 #3 (가장 심각) -->
+  <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="background:#ef4444;color:white;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:4px">BUG 3 ⚠️ 심각</span>
+      <span style="color:#f1f5f9;font-weight:700">False Positive — 바스켓 없는 장면에서 검출 (cx=0.33)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px">
+      <div>
+        <img src="../assets/gnd_frame_false_pos.png" style="width:100%;border-radius:6px;border:2px solid rgba(239,68,68,0.5)">
+        <div style="font-size:0.72rem;color:#ef4444;margin-top:4px">Record #17 — 바스켓 없음, has_bbox=True, area=0.074, cx=0.33</div>
+      </div>
+      <div style="background:#1e293b;border-radius:8px;padding:14px;font-size:0.8rem">
+        <div style="color:#94a3b8;margin-bottom:8px"><strong style="color:#f1f5f9">상황:</strong> 카메라가 책상/의자 방향을 바라보고 있었음. 바스켓은 화면에 없음.</div>
+        <div style="color:#94a3b8;margin-bottom:8px"><strong style="color:#f1f5f9">원인:</strong> <code>min_new_tokens=1</code>로 강제 생성 → PG2가 항상 무언가를 검출. base 모델은 "없음" 판단 불가.</div>
+        <div style="color:#94a3b8;margin-bottom:8px"><strong style="color:#f1f5f9">영향:</strong> <code>has_bbox</code> 필드는 더 이상 신뢰 불가. goal_near 판단을 area 단일값으로 하면 오작동 위험.</div>
+        <div style="color:#fbbf24"><strong>→ 탐지 신뢰도 지표가 필요함</strong> (confidence score, 복수 프레임 합산 등)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- area 분포 테이블 -->
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="color:#f1f5f9;font-weight:700;margin-bottom:14px">Area 분포 — 24프레임</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:0.8rem">
+      <div style="background:#1e293b;border-radius:8px;padding:10px">
+        <div style="color:#ef4444;font-weight:700">Micro (area &lt; 0.01)</div>
+        <div style="color:#f1f5f9;font-size:1.3rem;font-weight:800;margin:4px 0">5 / 24</div>
+        <div style="color:#64748b">Records: #2, 5, 6, 7, 8</div>
+        <div style="color:#64748b">cx 평균: 0.490 (우연히 정확)</div>
+      </div>
+      <div style="background:#1e293b;border-radius:8px;padding:10px">
+        <div style="color:#86efac;font-weight:700">유효 (0.01 ≤ area ≤ 0.95)</div>
+        <div style="color:#f1f5f9;font-size:1.3rem;font-weight:800;margin:4px 0">13 / 24</div>
+        <div style="color:#64748b">Records: #9, 15, 17~20, 24 등</div>
+        <div style="color:#64748b">cx 평균: 0.488 (대체로 정확)</div>
+      </div>
+      <div style="background:#1e293b;border-radius:8px;padding:10px">
+        <div style="color:#f59e0b;font-weight:700">Giant (area &gt; 0.95)</div>
+        <div style="color:#f1f5f9;font-size:1.3rem;font-weight:800;margin:4px 0">6 / 24</div>
+        <div style="color:#64748b">Records: #10~14, 23</div>
+        <div style="color:#64748b">cx 평균: 0.499 (전체화면이라 항상 0.5)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 결론 및 액션 아이템 -->
+  <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:20px">
+    <div style="color:#f59e0b;font-weight:700;margin-bottom:14px">결론 및 다음 액션</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:0.82rem">
+      <div>
+        <div style="color:#f1f5f9;font-weight:600;margin-bottom:8px">현재 상태</div>
+        <ul style="color:#94a3b8;padding-left:16px;line-height:1.8;margin:0">
+          <li><code style="color:#86efac">min_new_tokens=1</code> 적용 → <eos> 해결</li>
+          <li>cx는 바스켓 있을 때 대체로 정확 (평균 0.49)</li>
+          <li><code>has_bbox</code>는 항상 True → 신뢰 불가</li>
+          <li>area는 0.001~0.998 불안정</li>
+          <li>서버 pred_label 수집 안 됨 (별도 확인 필요)</li>
+        </ul>
+      </div>
+      <div>
+        <div style="color:#f1f5f9;font-weight:600;margin-bottom:8px">다음 액션</div>
+        <ul style="color:#94a3b8;padding-left:16px;line-height:1.8;margin:0">
+          <li><strong style="color:#fbbf24">area 필터:</strong> 0.01 ≤ area ≤ 0.90 범위만 유효로 처리</li>
+          <li><strong style="color:#fbbf24">연속 N프레임 합산:</strong> 3프레임 이상 유효 시만 goal_near 판정</li>
+          <li><strong style="color:#fbbf24">PG2 파인튜닝:</strong> Exp65/66 bbox 데이터로 LoRA — 정밀도 개선 기대</li>
+          <li><strong style="color:#fbbf24">서버 비교 재테스트:</strong> 모델 로드 후 pred_label 수집 확인</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div><!-- /PG2 grounding analysis -->
+
   buildFilmstrips();
 </script>
 </body>
