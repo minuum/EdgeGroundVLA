@@ -310,8 +310,13 @@ class PG2Grounder:
             x1, x2 = min(x1, x2), max(x1, x2)
             y1, y2 = min(y1, y2), max(y1, y2)
             area = (x2 - x1) * (y2 - y1)
-            result = {"cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2, "area": area, "has_bbox": True,
-                      "x1": x1, "y1": y1, "x2": x2, "y2": y2}
+            # full-frame collapse guard: area>0.9 는 학습 데이터 필터와 동일하게 미검출 처리
+            if area > 0.9:
+                result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
+                          "x1": None, "y1": None, "x2": None, "y2": None}
+            else:
+                result = {"cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2, "area": area, "has_bbox": True,
+                          "x1": x1, "y1": y1, "x2": x2, "y2": y2}
         else:
             result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
                       "x1": None, "y1": None, "x2": None, "y2": None}
