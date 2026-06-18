@@ -310,12 +310,21 @@ class PG2Grounder:
             x1, x2 = min(x1, x2), max(x1, x2)
             y1, y2 = min(y1, y2), max(y1, y2)
             area = (x2 - x1) * (y2 - y1)
-            # full-frame collapse guard: area>0.9 는 학습 데이터 필터와 동일하게 미검출 처리
-            if area > 0.9:
-                result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
-                          "x1": None, "y1": None, "x2": None, "y2": None}
+            cx_val = (x1 + x2) / 2
+            cy_val = (y1 + y2) / 2
+            _fallback = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
+                         "x1": None, "y1": None, "x2": None, "y2": None}
+            # 학습 annotation 필터 4종 — gen_base_pg2_annotation.py 기준 맞춤
+            if area > 0.9:          # full-frame collapse (loc0000~loc1022 전체)
+                result = _fallback
+            elif area < 0.01:       # tiny noise detection
+                result = _fallback
+            elif cy_val < 0.35:     # 상단 오탐 (바구니가 프레임 상단에 있을 수 없음)
+                result = _fallback
+            elif x1 < 0.02 and x2 > 0.98:  # x-full-width collapse (cx≈0.5 항상)
+                result = _fallback
             else:
-                result = {"cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2, "area": area, "has_bbox": True,
+                result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
                           "x1": x1, "y1": y1, "x2": x2, "y2": y2}
         else:
             result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,

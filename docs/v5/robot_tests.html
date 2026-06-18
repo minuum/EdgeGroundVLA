@@ -1892,7 +1892,837 @@
   </div>
 </div><!-- /PG2 grounding analysis -->
 
-  buildFilmstrips();
+<!-- ══ S4 유효 bbox 상세 분석 & 서버 비교 ══ -->
+<div style="max-width:1100px;margin:40px auto 0;padding:0 20px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <h2 style="color:#f59e0b;font-size:1.2rem;font-weight:800;letter-spacing:0.03em;margin:0">
+      S4 유효 bbox 실제 분석 — "13/24 정상"은 과장
+    </h2>
+  </div>
+  <p style="color:#64748b;font-size:0.83rem;margin-bottom:18px">
+    area 0.01~0.95 필터를 통과한 13건을 x1/x2/y1/y2 좌표 기준으로 재분류.
+    통과한 레코드 중 절반 가까이가 x 방향 full-width collapse — 실질 신뢰 bbox는 7건.
+  </p>
+
+  <!-- 13건 분류 테이블 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 22px;margin-bottom:18px">
+    <div style="color:#475569;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">
+      S4 유효 판정 13건 좌표 상세 (area 0.01–0.95)
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.76rem">
+      <thead>
+        <tr style="border-bottom:1px solid #1e293b">
+          <th style="color:#64748b;padding:5px 8px 5px 0;text-align:left;font-weight:600">n</th>
+          <th style="color:#64748b;padding:5px 8px;text-align:right;font-weight:600">area</th>
+          <th style="color:#64748b;padding:5px 8px;text-align:right;font-weight:600">cx</th>
+          <th style="color:#64748b;padding:5px 8px;text-align:right;font-weight:600">cy</th>
+          <th style="color:#64748b;padding:5px 8px;text-align:right;font-weight:600">x1</th>
+          <th style="color:#64748b;padding:5px 8px;text-align:right;font-weight:600">x2</th>
+          <th style="color:#64748b;padding:5px 8px;text-align:right;font-weight:600">y1</th>
+          <th style="color:#64748b;padding:5px 8px;text-align:right;font-weight:600">y2</th>
+          <th style="color:#64748b;padding:5px 0;text-align:left;font-weight:600">판정</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- X-full-width collapse -->
+        <tr style="border-bottom:1px solid #0f172a;background:rgba(239,68,68,0.04)">
+          <td style="color:#f87171;padding:5px 8px 5px 0;font-weight:700">1</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.4815</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.498</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.758</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">0.000</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">0.995</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.516</td>
+          <td style="color:#f59e0b;padding:5px 8px;text-align:right">1.000</td>
+          <td style="padding:5px 0"><span style="color:#f87171;font-size:0.7rem;font-weight:700">🔴 X-FULL-WIDTH</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a;background:rgba(239,68,68,0.04)">
+          <td style="color:#f87171;padding:5px 8px 5px 0;font-weight:700">3,4</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.4514</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.498</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.773</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">0.000</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">0.995</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.546</td>
+          <td style="color:#f59e0b;padding:5px 8px;text-align:right">1.000</td>
+          <td style="padding:5px 0"><span style="color:#f87171;font-size:0.7rem;font-weight:700">🔴 X-FULL-WIDTH</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a;background:rgba(239,68,68,0.04)">
+          <td style="color:#f87171;padding:5px 8px 5px 0;font-weight:700">16</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.5506</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.498</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.723</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">0.000</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">0.995</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.447</td>
+          <td style="color:#f59e0b;padding:5px 8px;text-align:right">1.000</td>
+          <td style="padding:5px 0"><span style="color:#f87171;font-size:0.7rem;font-weight:700">🔴 X-FULL-WIDTH</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a;background:rgba(239,68,68,0.04)">
+          <td style="color:#f87171;padding:5px 8px 5px 0;font-weight:700">21,22</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.5054</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.500</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.747</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">0.000</td>
+          <td style="color:#f87171;padding:5px 8px;text-align:right">1.000</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.495</td>
+          <td style="color:#f59e0b;padding:5px 8px;text-align:right">1.000</td>
+          <td style="padding:5px 0"><span style="color:#f87171;font-size:0.7rem;font-weight:700">🔴 X-FULL-WIDTH</span></td>
+        </tr>
+        <!-- 신뢰 bbox -->
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#4ade80;padding:5px 8px 5px 0;font-weight:700">9</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.2581</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.603</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.411</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.326</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.879</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.178</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.645</td>
+          <td style="padding:5px 0"><span style="color:#4ade80;font-size:0.7rem;font-weight:700">✅ 신뢰</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#4ade80;padding:5px 8px 5px 0;font-weight:700">15</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.0564</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.505</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.603</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.334</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.675</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.520</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.685</td>
+          <td style="padding:5px 0"><span style="color:#4ade80;font-size:0.7rem;font-weight:700">✅ 신뢰</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#fbbf24;padding:5px 8px 5px 0;font-weight:700">17</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.0741</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.331</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.884</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.171</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.491</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.768</td>
+          <td style="color:#f59e0b;padding:5px 8px;text-align:right">1.000</td>
+          <td style="padding:5px 0"><span style="color:#fbbf24;font-size:0.7rem;font-weight:700">⚠️ y2=1 (하단 컷)</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#4ade80;padding:5px 8px 5px 0;font-weight:700">18</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.1051</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.518</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.592</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.249</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.787</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.495</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.690</td>
+          <td style="padding:5px 0"><span style="color:#4ade80;font-size:0.7rem;font-weight:700">✅ 신뢰</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#4ade80;padding:5px 8px 5px 0;font-weight:700">19,20</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.0779</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.490</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.577</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.253</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.727</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.495</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.659</td>
+          <td style="padding:5px 0"><span style="color:#4ade80;font-size:0.7rem;font-weight:700">✅ 신뢰</span></td>
+        </tr>
+        <tr>
+          <td style="color:#4ade80;padding:5px 8px 5px 0;font-weight:700">24</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.2335</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.552</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.416</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.326</td>
+          <td style="color:#4ade80;padding:5px 8px;text-align:right">0.777</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.157</td>
+          <td style="color:#e2e8f0;padding:5px 8px;text-align:right">0.675</td>
+          <td style="padding:5px 0"><span style="color:#4ade80;font-size:0.7rem;font-weight:700">✅ 신뢰</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div style="text-align:center;padding:10px;background:#0f172a;border-radius:7px">
+        <div style="font-size:1.2rem;font-weight:800;color:#4ade80">7</div>
+        <div style="font-size:0.69rem;color:#64748b;margin-top:2px">실제 신뢰 bbox</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:#0f172a;border-radius:7px">
+        <div style="font-size:1.2rem;font-weight:800;color:#f87171">6</div>
+        <div style="font-size:0.69rem;color:#64748b;margin-top:2px">X-full-width collapse</div>
+        <div style="font-size:0.65rem;color:#475569">(x1=0, x2≈1.0)</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:#0f172a;border-radius:7px">
+        <div style="font-size:1.2rem;font-weight:800;color:#94a3b8">5</div>
+        <div style="font-size:0.69rem;color:#64748b;margin-top:2px">Tiny (area&lt;0.01)</div>
+        <div style="font-size:0.65rem;color:#475569">(노이즈 탐지)</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:#0f172a;border-radius:7px">
+        <div style="font-size:1.2rem;font-weight:800;color:#f59e0b">6</div>
+        <div style="font-size:0.69rem;color:#64748b;margin-top:2px">Full-frame (area&gt;0.9)</div>
+        <div style="font-size:0.65rem;color:#475569">(서버 필터 추가됨)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- X-full-width collapse 원인 -->
+  <div style="background:#0d1117;border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:16px 20px;margin-bottom:18px">
+    <div style="color:#f87171;font-size:0.75rem;font-weight:700;letter-spacing:0.04em;margin-bottom:8px">X-FULL-WIDTH Collapse 원인</div>
+    <div style="color:#94a3b8;font-size:0.78rem;line-height:1.7">
+      <code>x1=0.000, x2=0.995~1.000</code> 패턴 — PG2가 수평 위치를 특정하지 못하고 "<b>x 방향 전체를 bbox로 잡는</b>" 절반 붕괴 상태.
+      <code>x=&lt;loc0000&gt;</code>, <code>x=&lt;loc1023&gt;</code>는 PaliGemma2가 1024-grid 중 경계값을 출력한 것으로,
+      학습 데이터에서 바구니가 <b>카메라 가까이 있는 상황</b>에서 종종 발생 (area&gt;0.9와 동일한 원인).
+      <br><br>
+      cx는 항상 <code>0.498~0.500</code>으로 수렴 — x1=0, x2=1.0이면 cx=(0+1)/2=0.5가 되므로
+      <b>cx 값이 0.5라는 것 자체가 X-full-width 신호</b>다.
+      학습 annotation의 경우 이 레코드는 <code>area&lt;0.9</code> 필터를 통과하므로 MLP 학습에 오염됨.
+    </div>
+  </div>
+
+  <!-- 추론서버 vs 학습서버 비교 테이블 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 22px;margin-bottom:18px">
+    <div style="color:#475569;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px">
+      왜 학습 서버와 추론 서버 결과가 다른가 — 항목별 비교
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.76rem">
+      <thead>
+        <tr style="border-bottom:1px solid #1e293b">
+          <th style="color:#64748b;padding:6px 10px 6px 0;text-align:left;font-weight:600;width:22%">항목</th>
+          <th style="color:#a78bfa;padding:6px 12px;text-align:center;font-weight:600;width:26%">학습 annotation<br><span style="font-weight:400;font-size:0.68rem">gen_base_pg2_annotation.py</span></th>
+          <th style="color:#38bdf8;padding:6px 12px;text-align:center;font-weight:600;width:26%">추론 서버 grounding탭<br><span style="font-weight:400;font-size:0.68rem">stage2_v2_inference_server /ground</span></th>
+          <th style="color:#f59e0b;padding:6px 0;text-align:center;font-weight:600;width:26%">실제 로봇 추론<br><span style="font-weight:400;font-size:0.68rem">dashboard → /predict</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">이미지 소스</td>
+          <td style="color:#94a3b8;padding:7px 12px;text-align:center">H5 저장 프레임<br><span style="font-size:0.69rem">(수집 시 환경)</span></td>
+          <td style="color:#94a3b8;padding:7px 12px;text-align:center">ROS 카메라 실시간<br><span style="font-size:0.69rem">(현재 실험실)</span></td>
+          <td style="color:#94a3b8;padding:7px;text-align:center">ROS 카메라 실시간<br><span style="font-size:0.69rem">(현재 실험실)</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">이미지 디코더</td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center"><code style="font-size:0.69rem">h5py → numpy (lossless)</code></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center"><code style="font-size:0.69rem">compressed_imgmsg_to_cv2</code><br><span style="color:#f59e0b;font-size:0.68rem">S1/S2는 버그(imgmsg_to_cv2)</span></td>
+          <td style="color:#4ade80;padding:7px;text-align:center"><code style="font-size:0.69rem">compressed_imgmsg_to_cv2</code><br><span style="color:#4ade80;font-size:0.68rem">api_client_node 기준 올바름</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">JPEG 압축 횟수</td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">1회<br><span style="font-size:0.69rem">(H5 저장 시)</span></td>
+          <td style="color:#f59e0b;padding:7px 12px;text-align:center">2회<br><span style="font-size:0.69rem">카메라 JPEG → 대시보드 quality=90</span></td>
+          <td style="color:#4ade80;padding:7px;text-align:center">1~2회<br><span style="font-size:0.69rem">카메라 JPEG + client 재인코딩</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">PG2 모델</td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">base PG2 bfloat16<br><span style="font-size:0.69rem">HF cache 동일 snapshot</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">base PG2 bfloat16<br><span style="font-size:0.69rem">HF cache 동일 snapshot</span></td>
+          <td style="color:#4ade80;padding:7px;text-align:center">base PG2 bfloat16<br><span style="font-size:0.69rem">동일</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">area&gt;0.9 필터</td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 있음</td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 추가됨<br><span style="font-size:0.68rem">(2026-06-18 이번 커밋)</span></td>
+          <td style="color:#ef4444;padding:7px;text-align:center">✗ 없음<br><span style="font-size:0.68rem">(predict 내부 별도 경로)</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">area&lt;0.01 필터<br><span style="font-size:0.69rem">(tiny noise)</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 있음</td>
+          <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음<br><span style="font-size:0.68rem">→ 5건 통과 (n=2,5~8)</span></td>
+          <td style="color:#ef4444;padding:7px;text-align:center">✗ 없음</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">cy&lt;0.35 필터<br><span style="font-size:0.69rem">(상단 오탐)</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 있음</td>
+          <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음</td>
+          <td style="color:#ef4444;padding:7px;text-align:center">✗ 없음</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">x-full-width 필터<br><span style="font-size:0.69rem">(x1≈0 &amp; x2≈1)</span></td>
+          <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음<br><span style="font-size:0.68rem">(area&lt;0.9 이면 통과)</span></td>
+          <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음<br><span style="font-size:0.68rem">→ 6건 통과 (n=1,3,4,16,21,22)</span></td>
+          <td style="color:#ef4444;padding:7px;text-align:center">✗ 없음</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">이미지 환경</td>
+          <td style="color:#94a3b8;padding:7px 12px;text-align:center">수집 시 특정 조명·거리</td>
+          <td style="color:#f59e0b;padding:7px 12px;text-align:center">현재 실험실<br><span style="font-size:0.68rem">(조명·거리 다를 수 있음)</span></td>
+          <td style="color:#f59e0b;padding:7px;text-align:center">현재 실험실<br><span style="font-size:0.68rem">(동일 문제)</span></td>
+        </tr>
+        <tr>
+          <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">실제 동작 여부</td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">bbox_dataset.json 생성 완료</td>
+          <td style="color:#f59e0b;padding:7px 12px;text-align:center">S3/S4: 100% 탐지<br><span style="font-size:0.68rem">단, 유효 bbox는 7/24 (29%)</span></td>
+          <td style="color:#ef4444;padding:7px;text-align:center">09:01 세션: 0% 탐지<br><span style="font-size:0.68rem">(camera decode 버그)</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 추가 필터 권장 -->
+  <div style="background:#0d1117;border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:16px 20px">
+    <div style="color:#22c55e;font-size:0.75rem;font-weight:700;letter-spacing:0.04em;margin-bottom:10px">권장 추가 필터 (학습 annotation 기준 맞춤)</div>
+    <div style="font-family:monospace;font-size:0.75rem;background:#0f172a;border-radius:8px;padding:12px 16px;line-height:2;color:#e2e8f0">
+      <span style="color:#64748b"># stage2_v2_inference_server.py PG2Grounder.run() 내부</span><br>
+      <span style="color:#f87171">if area &gt; 0.9: → ✅ 이미 추가됨</span><br>
+      <span style="color:#fbbf24">if area &lt; 0.01: → 미검출 처리 (tiny noise)</span><br>
+      <span style="color:#fbbf24">if cy &lt; 0.35: → 미검출 처리 (상단 오탐)</span><br>
+      <span style="color:#fbbf24">if x1 &lt; 0.02 and x2 &gt; 0.98: → 미검출 처리 (x-full-width)</span>
+    </div>
+    <div style="color:#64748b;font-size:0.73rem;margin-top:10px;line-height:1.6">
+      위 4개 필터를 적용하면 S4 기준: 24 레코드 중
+      <b style="color:#4ade80">신뢰 7건</b>만 통과, 나머지 17건은 fallback(area=0.06, cx=0.5).
+      MLP가 "바구니 없음" 상태로 처리하는 것이 collapse 값(0.5)을 그대로 먹이는 것보다 안전.
+    </div>
+  </div>
+</div><!-- /S4 detailed analysis -->
+
+<!-- ══ S4 전체 프레임 Filmstrip (가로 스크롤) ══ -->
+<div style="max-width:1300px;margin:48px auto 0;padding:0 20px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+    <h2 style="color:#e2e8f0;font-size:1.15rem;font-weight:800;letter-spacing:0.03em;margin:0">
+      S4 전체 24프레임 — Bbox 시각화 Filmstrip
+    </h2>
+    <span style="background:rgba(148,163,184,0.1);color:#94a3b8;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(148,163,184,0.2)">← → 스크롤</span>
+  </div>
+  <!-- 범례 -->
+  <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#94a3b8">
+      <span style="width:12px;height:12px;border-radius:3px;background:#4ade80;display:inline-block"></span>OK — 신뢰 bbox
+    </span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#94a3b8">
+      <span style="width:12px;height:12px;border-radius:3px;background:#f97316;display:inline-block"></span>XFULL — x방향 전체폭 collapse
+    </span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#94a3b8">
+      <span style="width:12px;height:12px;border-radius:3px;background:#dc2626;display:inline-block"></span>FULL — area &gt; 0.9 (full-frame)
+    </span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#94a3b8">
+      <span style="width:12px;height:12px;border-radius:3px;background:#64748b;display:inline-block"></span>TINY — area &lt; 0.01 (noise)
+    </span>
+  </div>
+
+  <!-- Filmstrip container -->
+  <div style="overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch">
+    <div id="s4-filmstrip" style="display:flex;gap:6px;width:max-content">
+
+      <!-- n=1 XFULL -->
+      <div class="s4-card" data-cls="xfull" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(0)">
+        <div style="background:#7c2d12;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fed7aa;font-weight:700">
+          #1 XFULL &nbsp;a=0.482
+        </div>
+        <img src="grounding_frames/s4_n01_xfull.jpg" style="width:100%;display:block;border:2px solid #f97316;border-top:none">
+        <div style="background:#1e1a16;border:2px solid #f97316;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#94a3b8">
+          cx=0.498 cy=0.758 &nbsp;|&nbsp; <span style="color:#f97316">x0→1.0</span>
+        </div>
+      </div>
+
+      <!-- n=2 TINY -->
+      <div class="s4-card" data-cls="tiny" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(1)">
+        <div style="background:#1e293b;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#94a3b8;font-weight:700">
+          #2 TINY &nbsp;a=0.001
+        </div>
+        <img src="grounding_frames/s4_n02_tiny.jpg" style="width:100%;display:block;border:2px solid #64748b;border-top:none">
+        <div style="background:#1e293b;border:2px solid #64748b;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#64748b">
+          cx=0.499 cy=0.536 &nbsp;|&nbsp; noise
+        </div>
+      </div>
+
+      <!-- n=3 XFULL -->
+      <div class="s4-card" data-cls="xfull" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(2)">
+        <div style="background:#7c2d12;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fed7aa;font-weight:700">
+          #3 XFULL &nbsp;a=0.451
+        </div>
+        <img src="grounding_frames/s4_n03_xfull.jpg" style="width:100%;display:block;border:2px solid #f97316;border-top:none">
+        <div style="background:#1e1a16;border:2px solid #f97316;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#94a3b8">
+          cx=0.498 cy=0.773 &nbsp;|&nbsp; <span style="color:#f97316">x0→1.0</span>
+        </div>
+      </div>
+
+      <!-- n=4 XFULL -->
+      <div class="s4-card" data-cls="xfull" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(3)">
+        <div style="background:#7c2d12;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fed7aa;font-weight:700">
+          #4 XFULL &nbsp;a=0.451
+        </div>
+        <img src="grounding_frames/s4_n04_xfull.jpg" style="width:100%;display:block;border:2px solid #f97316;border-top:none">
+        <div style="background:#1e1a16;border:2px solid #f97316;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#94a3b8">
+          cx=0.498 cy=0.773 &nbsp;|&nbsp; <span style="color:#f97316">x0→1.0</span>
+        </div>
+      </div>
+
+      <!-- n=5 TINY -->
+      <div class="s4-card" data-cls="tiny" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(4)">
+        <div style="background:#1e293b;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#94a3b8;font-weight:700">
+          #5 TINY &nbsp;a=0.001
+        </div>
+        <img src="grounding_frames/s4_n05_tiny.jpg" style="width:100%;display:block;border:2px solid #64748b;border-top:none">
+        <div style="background:#1e293b;border:2px solid #64748b;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#64748b">
+          cx=0.471 cy=0.519 &nbsp;|&nbsp; noise
+        </div>
+      </div>
+
+      <!-- n=6 TINY -->
+      <div class="s4-card" data-cls="tiny" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(5)">
+        <div style="background:#1e293b;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#94a3b8;font-weight:700">
+          #6 TINY &nbsp;a=0.001
+        </div>
+        <img src="grounding_frames/s4_n06_tiny.jpg" style="width:100%;display:block;border:2px solid #64748b;border-top:none">
+        <div style="background:#1e293b;border:2px solid #64748b;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#64748b">
+          cx=0.471 cy=0.519 &nbsp;|&nbsp; noise
+        </div>
+      </div>
+
+      <!-- n=7 TINY -->
+      <div class="s4-card" data-cls="tiny" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(6)">
+        <div style="background:#1e293b;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#94a3b8;font-weight:700">
+          #7 TINY &nbsp;a=0.001
+        </div>
+        <img src="grounding_frames/s4_n07_tiny.jpg" style="width:100%;display:block;border:2px solid #64748b;border-top:none">
+        <div style="background:#1e293b;border:2px solid #64748b;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#64748b">
+          cx=0.499 cy=0.519 &nbsp;|&nbsp; noise
+        </div>
+      </div>
+
+      <!-- n=8 TINY -->
+      <div class="s4-card" data-cls="tiny" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(7)">
+        <div style="background:#1e293b;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#94a3b8;font-weight:700">
+          #8 TINY &nbsp;a=0.001
+        </div>
+        <img src="grounding_frames/s4_n08_tiny.jpg" style="width:100%;display:block;border:2px solid #64748b;border-top:none">
+        <div style="background:#1e293b;border:2px solid #64748b;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#64748b">
+          cx=0.502 cy=0.519 &nbsp;|&nbsp; noise
+        </div>
+      </div>
+
+      <!-- n=9 OK -->
+      <div class="s4-card" data-cls="ok" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(8)">
+        <div style="background:#052e16;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#86efac;font-weight:700">
+          #9 OK &nbsp;a=0.258
+        </div>
+        <img src="grounding_frames/s4_n09_ok.jpg" style="width:100%;display:block;border:2px solid #4ade80;border-top:none">
+        <div style="background:#0a1f14;border:2px solid #4ade80;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#4ade80">
+          cx=0.603 cy=0.412 &nbsp;|&nbsp; ✅ 신뢰
+        </div>
+      </div>
+
+      <!-- n=10 FULL -->
+      <div class="s4-card" data-cls="full" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(9)">
+        <div style="background:#450a0a;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fca5a5;font-weight:700">
+          #10 FULL &nbsp;a=0.987
+        </div>
+        <img src="grounding_frames/s4_n10_full.jpg" style="width:100%;display:block;border:2px solid #dc2626;border-top:none">
+        <div style="background:#1a0a0a;border:2px solid #dc2626;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#f87171">
+          cx=0.500 cy=0.494 &nbsp;|&nbsp; 서버 필터됨 ✓
+        </div>
+      </div>
+
+      <!-- n=11 FULL -->
+      <div class="s4-card" data-cls="full" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(10)">
+        <div style="background:#450a0a;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fca5a5;font-weight:700">
+          #11 FULL &nbsp;a=0.998
+        </div>
+        <img src="grounding_frames/s4_n11_full.jpg" style="width:100%;display:block;border:2px solid #dc2626;border-top:none">
+        <div style="background:#1a0a0a;border:2px solid #dc2626;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#f87171">
+          cx=0.500 cy=0.500 &nbsp;|&nbsp; 서버 필터됨 ✓
+        </div>
+      </div>
+
+      <!-- n=12 FULL -->
+      <div class="s4-card" data-cls="full" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(11)">
+        <div style="background:#450a0a;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fca5a5;font-weight:700">
+          #12 FULL &nbsp;a=0.998
+        </div>
+        <img src="grounding_frames/s4_n12_full.jpg" style="width:100%;display:block;border:2px solid #dc2626;border-top:none">
+        <div style="background:#1a0a0a;border:2px solid #dc2626;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#f87171">
+          cx=0.500 cy=0.500 &nbsp;|&nbsp; 서버 필터됨 ✓
+        </div>
+      </div>
+
+      <!-- n=13 FULL -->
+      <div class="s4-card" data-cls="full" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(12)">
+        <div style="background:#450a0a;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fca5a5;font-weight:700">
+          #13 FULL &nbsp;a=0.986
+        </div>
+        <img src="grounding_frames/s4_n13_full.jpg" style="width:100%;display:block;border:2px solid #dc2626;border-top:none">
+        <div style="background:#1a0a0a;border:2px solid #dc2626;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#f87171">
+          cx=0.500 cy=0.494 &nbsp;|&nbsp; 서버 필터됨 ✓
+        </div>
+      </div>
+
+      <!-- n=14 FULL -->
+      <div class="s4-card" data-cls="full" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(13)">
+        <div style="background:#450a0a;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fca5a5;font-weight:700">
+          #14 FULL &nbsp;a=0.986
+        </div>
+        <img src="grounding_frames/s4_n14_full.jpg" style="width:100%;display:block;border:2px solid #dc2626;border-top:none">
+        <div style="background:#1a0a0a;border:2px solid #dc2626;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#f87171">
+          cx=0.500 cy=0.494 &nbsp;|&nbsp; 서버 필터됨 ✓
+        </div>
+      </div>
+
+      <!-- n=15 OK -->
+      <div class="s4-card" data-cls="ok" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(14)">
+        <div style="background:#052e16;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#86efac;font-weight:700">
+          #15 OK &nbsp;a=0.056
+        </div>
+        <img src="grounding_frames/s4_n15_ok.jpg" style="width:100%;display:block;border:2px solid #4ade80;border-top:none">
+        <div style="background:#0a1f14;border:2px solid #4ade80;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#4ade80">
+          cx=0.505 cy=0.603 &nbsp;|&nbsp; ✅ 신뢰
+        </div>
+      </div>
+
+      <!-- n=16 XFULL -->
+      <div class="s4-card" data-cls="xfull" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(15)">
+        <div style="background:#7c2d12;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fed7aa;font-weight:700">
+          #16 XFULL &nbsp;a=0.551
+        </div>
+        <img src="grounding_frames/s4_n16_xfull.jpg" style="width:100%;display:block;border:2px solid #f97316;border-top:none">
+        <div style="background:#1e1a16;border:2px solid #f97316;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#94a3b8">
+          cx=0.498 cy=0.723 &nbsp;|&nbsp; <span style="color:#f97316">x0→1.0</span>
+        </div>
+      </div>
+
+      <!-- n=17 OK (y2=1 cut) -->
+      <div class="s4-card" data-cls="ok" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(16)">
+        <div style="background:#052e16;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#86efac;font-weight:700">
+          #17 OK⚠ &nbsp;a=0.074
+        </div>
+        <img src="grounding_frames/s4_n17_ok.jpg" style="width:100%;display:block;border:2px solid #4ade80;border-top:none">
+        <div style="background:#0a1f14;border:2px solid #4ade80;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#fbbf24">
+          cx=0.331 cy=0.884 &nbsp;|&nbsp; y2=1.0 (하단 컷)
+        </div>
+      </div>
+
+      <!-- n=18 OK -->
+      <div class="s4-card" data-cls="ok" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(17)">
+        <div style="background:#052e16;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#86efac;font-weight:700">
+          #18 OK &nbsp;a=0.105
+        </div>
+        <img src="grounding_frames/s4_n18_ok.jpg" style="width:100%;display:block;border:2px solid #4ade80;border-top:none">
+        <div style="background:#0a1f14;border:2px solid #4ade80;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#4ade80">
+          cx=0.518 cy=0.592 &nbsp;|&nbsp; ✅ 신뢰
+        </div>
+      </div>
+
+      <!-- n=19 OK -->
+      <div class="s4-card" data-cls="ok" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(18)">
+        <div style="background:#052e16;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#86efac;font-weight:700">
+          #19 OK &nbsp;a=0.078
+        </div>
+        <img src="grounding_frames/s4_n19_ok.jpg" style="width:100%;display:block;border:2px solid #4ade80;border-top:none">
+        <div style="background:#0a1f14;border:2px solid #4ade80;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#4ade80">
+          cx=0.490 cy=0.577 &nbsp;|&nbsp; ✅ 신뢰
+        </div>
+      </div>
+
+      <!-- n=20 OK -->
+      <div class="s4-card" data-cls="ok" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(19)">
+        <div style="background:#052e16;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#86efac;font-weight:700">
+          #20 OK &nbsp;a=0.078
+        </div>
+        <img src="grounding_frames/s4_n20_ok.jpg" style="width:100%;display:block;border:2px solid #4ade80;border-top:none">
+        <div style="background:#0a1f14;border:2px solid #4ade80;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#4ade80">
+          cx=0.490 cy=0.577 &nbsp;|&nbsp; ✅ 신뢰
+        </div>
+      </div>
+
+      <!-- n=21 XFULL -->
+      <div class="s4-card" data-cls="xfull" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(20)">
+        <div style="background:#7c2d12;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fed7aa;font-weight:700">
+          #21 XFULL &nbsp;a=0.505
+        </div>
+        <img src="grounding_frames/s4_n21_xfull.jpg" style="width:100%;display:block;border:2px solid #f97316;border-top:none">
+        <div style="background:#1e1a16;border:2px solid #f97316;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#94a3b8">
+          cx=0.500 cy=0.747 &nbsp;|&nbsp; <span style="color:#f97316">x0→1.0</span>
+        </div>
+      </div>
+
+      <!-- n=22 XFULL -->
+      <div class="s4-card" data-cls="xfull" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(21)">
+        <div style="background:#7c2d12;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fed7aa;font-weight:700">
+          #22 XFULL &nbsp;a=0.505
+        </div>
+        <img src="grounding_frames/s4_n22_xfull.jpg" style="width:100%;display:block;border:2px solid #f97316;border-top:none">
+        <div style="background:#1e1a16;border:2px solid #f97316;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#94a3b8">
+          cx=0.500 cy=0.747 &nbsp;|&nbsp; <span style="color:#f97316">x0→1.0</span>
+        </div>
+      </div>
+
+      <!-- n=23 FULL -->
+      <div class="s4-card" data-cls="full" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(22)">
+        <div style="background:#450a0a;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#fca5a5;font-weight:700">
+          #23 FULL &nbsp;a=0.986
+        </div>
+        <img src="grounding_frames/s4_n23_full.jpg" style="width:100%;display:block;border:2px solid #dc2626;border-top:none">
+        <div style="background:#1a0a0a;border:2px solid #dc2626;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#f87171">
+          cx=0.500 cy=0.494 &nbsp;|&nbsp; 서버 필터됨 ✓
+        </div>
+      </div>
+
+      <!-- n=24 OK -->
+      <div class="s4-card" data-cls="ok" style="flex:none;width:220px;cursor:pointer" onclick="s4Lightbox(23)">
+        <div style="background:#052e16;border-radius:6px 6px 0 0;padding:4px 8px;font-size:0.65rem;color:#86efac;font-weight:700">
+          #24 OK &nbsp;a=0.234
+        </div>
+        <img src="grounding_frames/s4_n24_ok.jpg" style="width:100%;display:block;border:2px solid #4ade80;border-top:none">
+        <div style="background:#0a1f14;border:2px solid #4ade80;border-top:none;border-radius:0 0 6px 6px;padding:3px 6px;font-size:0.61rem;color:#4ade80">
+          cx=0.552 cy=0.416 &nbsp;|&nbsp; ✅ 신뢰
+        </div>
+      </div>
+
+    </div><!-- /filmstrip row -->
+  </div><!-- /overflow -->
+
+  <!-- filter strip: OK/XFULL/FULL/TINY buttons -->
+  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+    <button onclick="s4Filter('all')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:4px 12px;font-size:0.72rem;cursor:pointer">전체</button>
+    <button onclick="s4Filter('ok')" style="background:#052e16;border:1px solid #4ade80;color:#4ade80;border-radius:6px;padding:4px 12px;font-size:0.72rem;cursor:pointer">OK만</button>
+    <button onclick="s4Filter('xfull')" style="background:#7c2d12;border:1px solid #f97316;color:#fed7aa;border-radius:6px;padding:4px 12px;font-size:0.72rem;cursor:pointer">XFULL만</button>
+    <button onclick="s4Filter('full')" style="background:#450a0a;border:1px solid #dc2626;color:#fca5a5;border-radius:6px;padding:4px 12px;font-size:0.72rem;cursor:pointer">FULL만</button>
+    <button onclick="s4Filter('tiny')" style="background:#1e293b;border:1px solid #64748b;color:#94a3b8;border-radius:6px;padding:4px 12px;font-size:0.72rem;cursor:pointer">TINY만</button>
+  </div>
+</div><!-- /filmstrip section -->
+
+<!-- S4 Lightbox -->
+<div id="s4lb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;flex-direction:column">
+  <div style="position:relative;max-width:90vw">
+    <img id="s4lb-img" src="" style="max-height:80vh;max-width:90vw;border-radius:8px;display:block">
+    <div id="s4lb-cap" style="margin-top:10px;text-align:center;color:#94a3b8;font-size:0.8rem"></div>
+    <button onclick="s4LbNav(-1)" style="position:absolute;left:-50px;top:50%;transform:translateY(-50%);background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem">◀</button>
+    <button onclick="s4LbNav(1)"  style="position:absolute;right:-50px;top:50%;transform:translateY(-50%);background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem">▶</button>
+  </div>
+  <button onclick="document.getElementById('s4lb').style.display='none'" style="margin-top:16px;background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:6px 20px;cursor:pointer;font-size:0.8rem">닫기 (Esc)</button>
+</div>
+
+<!-- ══ 추론 파이프라인 양방향 플로우 비교 ══ -->
+<div style="max-width:1100px;margin:48px auto 0;padding:0 20px 60px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <h2 style="color:#e2e8f0;font-size:1.15rem;font-weight:800;letter-spacing:0.03em;margin:0">
+      학습 vs 추론 파이프라인 — 플로우 비교
+    </h2>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+    <!-- 왼쪽: 학습 annotation 파이프라인 -->
+    <div>
+      <div style="text-align:center;font-size:0.78rem;font-weight:800;color:#a78bfa;letter-spacing:0.05em;margin-bottom:12px;padding:6px;background:rgba(167,139,250,0.08);border-radius:8px;border:1px solid rgba(167,139,250,0.2)">
+        학습 Annotation 파이프라인<br><span style="font-weight:400;color:#64748b;font-size:0.68rem">gen_base_pg2_annotation.py</span>
+      </div>
+
+      <!-- Step 1 -->
+      <div style="background:#0d1117;border:1px solid #a78bfa;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#a78bfa;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 1 — 이미지 소스</div>
+        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">H5 파일 → <code>h5py numpy direct</code></div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:2px">lossless, 수집 시 환경 그대로</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 2 -->
+      <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 2 — PG2 입력</div>
+        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">BGR→RGB 변환 후 PaliGemma2 <code>detect gray basket</code></div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:2px">JPEG 압축 1회 (H5 저장 시)</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 3 -->
+      <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 3 — &lt;loc####&gt; 파싱</div>
+        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">y1,x1,y2,x2 → 좌표 정규화</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 4: Filters -->
+      <div style="background:#0d1117;border:2px solid #a78bfa;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#a78bfa;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 4 — 필터 3종 ✅</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
+            <code style="font-size:0.7rem;color:#e2e8f0">cy &lt; 0.35 → REJECT</code>
+            <span style="color:#64748b;font-size:0.67rem">(상단 오탐)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
+            <code style="font-size:0.7rem;color:#e2e8f0">area &lt; 0.01 → REJECT</code>
+            <span style="color:#64748b;font-size:0.67rem">(tiny noise)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
+            <code style="font-size:0.7rem;color:#e2e8f0">area &gt; 0.90 → REJECT</code>
+            <span style="color:#64748b;font-size:0.67rem">(full-frame)</span>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 5 -->
+      <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 5 — X-FULL WIDTH</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+          <span style="background:#450a0a;color:#f87171;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">MISS</span>
+          <code style="font-size:0.7rem;color:#fbbf24">x1&lt;0.02 &amp; x2&gt;0.98 → ?</code>
+          <span style="color:#64748b;font-size:0.67rem">(미적용)</span>
+        </div>
+        <div style="color:#64748b;font-size:0.68rem;margin-top:4px">area 0.45~0.55로 위 필터 통과 → 학습 데이터 오염</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Output -->
+      <div style="background:#0d1117;border:1px solid #a78bfa;border-radius:8px;padding:10px 14px;text-align:center">
+        <div style="color:#a78bfa;font-size:0.75rem;font-weight:700">bbox_dataset.json</div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:3px">794 frames / 45 episodes</div>
+        <div style="color:#fbbf24;font-size:0.68rem;margin-top:2px">⚠ X-FULL WIDTH 포함 가능성</div>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 추론 서버 파이프라인 -->
+    <div>
+      <div style="text-align:center;font-size:0.78rem;font-weight:800;color:#38bdf8;letter-spacing:0.05em;margin-bottom:12px;padding:6px;background:rgba(56,189,248,0.08);border-radius:8px;border:1px solid rgba(56,189,248,0.2)">
+        실시간 추론 파이프라인<br><span style="font-weight:400;color:#64748b;font-size:0.68rem">stage2_v2_inference_server.py /ground + /predict</span>
+      </div>
+
+      <!-- Step 1 -->
+      <div style="background:#0d1117;border:1px solid #38bdf8;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#38bdf8;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 1 — 이미지 소스</div>
+        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">ROS 카메라 → <code>sensor_msgs/CompressedImage</code></div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:2px">현재 실험실 조명·거리</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 2 -->
+      <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 2 — 디코딩</div>
+        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px"><code>compressed_imgmsg_to_cv2</code> → BGR→RGB</div>
+        <div style="color:#4ade80;font-size:0.69rem;margin-top:2px">✓ 수정 완료 (S1/S2는 imgmsg_to_cv2 → blank image)</div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:1px">JPEG 압축 2회 (카메라 + 대시보드 quality=90)</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 3 -->
+      <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 3 — PG2 입력</div>
+        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">PaliGemma2 <code>detect gray basket</code></div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:2px">~1285ms (정상) / ~365ms (blank → &lt;eos&gt;)</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 4: Filters -->
+      <div style="background:#0d1117;border:2px solid #38bdf8;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#38bdf8;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 4 — 필터 현황</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="background:#450a0a;color:#f87171;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">MISS</span>
+            <code style="font-size:0.7rem;color:#94a3b8">cy &lt; 0.35 → REJECT</code>
+            <span style="color:#ef4444;font-size:0.67rem">미적용</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="background:#450a0a;color:#f87171;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">MISS</span>
+            <code style="font-size:0.7rem;color:#94a3b8">area &lt; 0.01 → REJECT</code>
+            <span style="color:#ef4444;font-size:0.67rem">미적용</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
+            <code style="font-size:0.7rem;color:#e2e8f0">area &gt; 0.90 → REJECT</code>
+            <span style="color:#4ade80;font-size:0.67rem">추가됨 ✓</span>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Step 5 -->
+      <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
+        <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 5 — X-FULL WIDTH</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+          <span style="background:#450a0a;color:#f87171;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">MISS</span>
+          <code style="font-size:0.7rem;color:#fbbf24">x1&lt;0.02 &amp; x2&gt;0.98 → ?</code>
+          <span style="color:#64748b;font-size:0.67rem">(미적용)</span>
+        </div>
+        <div style="color:#f97316;font-size:0.68rem;margin-top:4px">S4에서 6/24건 통과 → MLP에 잘못된 cx=0.5 입력</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
+
+      <!-- Output -->
+      <div style="background:#0d1117;border:1px solid #38bdf8;border-radius:8px;padding:10px 14px;text-align:center">
+        <div style="color:#38bdf8;font-size:0.75rem;font-weight:700">MLP Stage2 입력</div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:3px">cx, cy, area, has_bbox → goal_near 판단</div>
+        <div style="color:#fbbf24;font-size:0.68rem;margin-top:2px">S4 기준 실질 신뢰 입력: 7/24 (29%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 미적용 필터 권장 패치 코드 -->
+  <div style="margin-top:20px;background:#0d1117;border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:16px 20px">
+    <div style="color:#22c55e;font-size:0.72rem;font-weight:700;letter-spacing:0.05em;margin-bottom:10px">
+      추론 서버에 추가해야 할 필터 패치 (stage2_v2_inference_server.py)
+    </div>
+    <pre style="margin:0;font-size:0.72rem;color:#e2e8f0;line-height:1.8;overflow-x:auto"><code><span style="color:#64748b"># PG2Grounder.run() 내부 — locs 파싱 후</span>
+y1, x1, y2, x2 = locs[:4]
+x1, x2 = min(x1, x2), max(x1, x2)
+y1, y2 = min(y1, y2), max(y1, y2)
+area = (x2 - x1) * (y2 - y1)
+cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+
+<span style="color:#4ade80">✓ 이미 추가됨</span>
+if area > 0.9:
+    return fallback  <span style="color:#64748b"># full-frame collapse</span>
+
+<span style="color:#fbbf24">← 여기에 추가 필요</span>
+if area < 0.01:
+    return fallback  <span style="color:#64748b"># tiny noise</span>
+if cy < 0.35:
+    return fallback  <span style="color:#64748b"># 상단 오탐 (바구니가 상단에 있을 수 없음)</span>
+if x1 < 0.02 and x2 > 0.98:
+    return fallback  <span style="color:#64748b"># x-full-width collapse</span></code></pre>
+  </div>
+</div><!-- /flow comparison -->
+
+<script>
+// S4 filmstrip filter
+function s4Filter(cls) {
+  document.querySelectorAll('.s4-card').forEach(el => {
+    el.style.display = (cls === 'all' || el.dataset.cls === cls) ? 'block' : 'none';
+  });
+}
+// S4 Lightbox
+const s4Imgs = [
+  'grounding_frames/s4_n01_xfull.jpg','grounding_frames/s4_n02_tiny.jpg',
+  'grounding_frames/s4_n03_xfull.jpg','grounding_frames/s4_n04_xfull.jpg',
+  'grounding_frames/s4_n05_tiny.jpg','grounding_frames/s4_n06_tiny.jpg',
+  'grounding_frames/s4_n07_tiny.jpg','grounding_frames/s4_n08_tiny.jpg',
+  'grounding_frames/s4_n09_ok.jpg','grounding_frames/s4_n10_full.jpg',
+  'grounding_frames/s4_n11_full.jpg','grounding_frames/s4_n12_full.jpg',
+  'grounding_frames/s4_n13_full.jpg','grounding_frames/s4_n14_full.jpg',
+  'grounding_frames/s4_n15_ok.jpg','grounding_frames/s4_n16_xfull.jpg',
+  'grounding_frames/s4_n17_ok.jpg','grounding_frames/s4_n18_ok.jpg',
+  'grounding_frames/s4_n19_ok.jpg','grounding_frames/s4_n20_ok.jpg',
+  'grounding_frames/s4_n21_xfull.jpg','grounding_frames/s4_n22_xfull.jpg',
+  'grounding_frames/s4_n23_full.jpg','grounding_frames/s4_n24_ok.jpg'
+];
+const s4Caps = [
+  '#1 XFULL a=0.482 cx=0.498','#2 TINY a=0.001','#3 XFULL a=0.451','#4 XFULL a=0.451',
+  '#5 TINY a=0.001','#6 TINY a=0.001','#7 TINY a=0.001','#8 TINY a=0.001',
+  '#9 OK a=0.258 cx=0.603','#10 FULL a=0.987 (필터됨)','#11 FULL a=0.998 (필터됨)',
+  '#12 FULL a=0.998 (필터됨)','#13 FULL a=0.986 (필터됨)','#14 FULL a=0.986 (필터됨)',
+  '#15 OK a=0.056 cx=0.505','#16 XFULL a=0.551','#17 OK⚠ a=0.074 y2=1.0',
+  '#18 OK a=0.105 cx=0.518','#19 OK a=0.078 cx=0.490','#20 OK a=0.078 cx=0.490',
+  '#21 XFULL a=0.505','#22 XFULL a=0.505','#23 FULL a=0.986 (필터됨)','#24 OK a=0.234 cx=0.552'
+];
+let s4Cur = 0;
+function s4Lightbox(i) {
+  s4Cur = i;
+  const lb = document.getElementById('s4lb');
+  document.getElementById('s4lb-img').src = s4Imgs[i];
+  document.getElementById('s4lb-cap').textContent = s4Caps[i];
+  lb.style.display = 'flex';
+}
+function s4LbNav(d) {
+  s4Cur = (s4Cur + d + s4Imgs.length) % s4Imgs.length;
+  document.getElementById('s4lb-img').src = s4Imgs[s4Cur];
+  document.getElementById('s4lb-cap').textContent = s4Caps[s4Cur];
+}
+document.addEventListener('keydown', e => {
+  const lb = document.getElementById('s4lb');
+  if (lb.style.display === 'none') return;
+  if (e.key === 'ArrowLeft')  s4LbNav(-1);
+  if (e.key === 'ArrowRight') s4LbNav(1);
+  if (e.key === 'Escape') lb.style.display = 'none';
+});
 </script>
+
 </body>
 </html>
