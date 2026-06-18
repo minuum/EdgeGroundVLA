@@ -2105,7 +2105,7 @@
         <tr style="border-bottom:1px solid #0f172a">
           <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">JPEG 압축 횟수</td>
           <td style="color:#4ade80;padding:7px 12px;text-align:center">1회<br><span style="font-size:0.69rem">(H5 저장 시)</span></td>
-          <td style="color:#f59e0b;padding:7px 12px;text-align:center">2회<br><span style="font-size:0.69rem">카메라 JPEG → 대시보드 quality=90</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">0회<br><span style="font-size:0.69rem">카메라 raw(bgr8) + 대시보드 PNG 인코딩 ✓</span></td>
           <td style="color:#4ade80;padding:7px;text-align:center">1~2회<br><span style="font-size:0.69rem">카메라 JPEG + client 재인코딩</span></td>
         </tr>
         <tr style="border-bottom:1px solid #0f172a">
@@ -2123,19 +2123,19 @@
         <tr style="border-bottom:1px solid #0f172a">
           <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">area&lt;0.01 필터<br><span style="font-size:0.69rem">(tiny noise)</span></td>
           <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 있음</td>
-          <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음<br><span style="font-size:0.68rem">→ 5건 통과 (n=2,5~8)</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 추가됨<br><span style="font-size:0.68rem">(2026-06-18 4종 패치)</span></td>
           <td style="color:#ef4444;padding:7px;text-align:center">✗ 없음</td>
         </tr>
         <tr style="border-bottom:1px solid #0f172a">
           <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">cy&lt;0.35 필터<br><span style="font-size:0.69rem">(상단 오탐)</span></td>
           <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 있음</td>
-          <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음</td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 추가됨<br><span style="font-size:0.68rem">(2026-06-18 4종 패치)</span></td>
           <td style="color:#ef4444;padding:7px;text-align:center">✗ 없음</td>
         </tr>
         <tr style="border-bottom:1px solid #0f172a">
           <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">x-full-width 필터<br><span style="font-size:0.69rem">(x1≈0 &amp; x2≈1)</span></td>
           <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음<br><span style="font-size:0.68rem">(area&lt;0.9 이면 통과)</span></td>
-          <td style="color:#ef4444;padding:7px 12px;text-align:center">✗ 없음<br><span style="font-size:0.68rem">→ 6건 통과 (n=1,3,4,16,21,22)</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">✓ 추가됨<br><span style="font-size:0.68rem">→ 6건 필터됨 (n=1,3,4,16,21,22)</span></td>
           <td style="color:#ef4444;padding:7px;text-align:center">✗ 없음</td>
         </tr>
         <tr style="border-bottom:1px solid #0f172a">
@@ -2147,7 +2147,7 @@
         <tr>
           <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">실제 동작 여부</td>
           <td style="color:#4ade80;padding:7px 12px;text-align:center">bbox_dataset.json 생성 완료</td>
-          <td style="color:#f59e0b;padding:7px 12px;text-align:center">S3/S4: 100% 탐지<br><span style="font-size:0.68rem">단, 유효 bbox는 7/24 (29%)</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">S4: 4종 필터 적용<br><span style="font-size:0.68rem">신뢰 입력 7/24 (29%) — false pos 1건 잔존</span></td>
           <td style="color:#ef4444;padding:7px;text-align:center">09:01 세션: 0% 탐지<br><span style="font-size:0.68rem">(camera decode 버그)</span></td>
         </tr>
       </tbody>
@@ -2156,18 +2156,18 @@
 
   <!-- 추가 필터 권장 -->
   <div style="background:#0d1117;border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:16px 20px">
-    <div style="color:#22c55e;font-size:0.75rem;font-weight:700;letter-spacing:0.04em;margin-bottom:10px">권장 추가 필터 (학습 annotation 기준 맞춤)</div>
+    <div style="color:#22c55e;font-size:0.75rem;font-weight:700;letter-spacing:0.04em;margin-bottom:10px">4종 필터 패치 — 2026-06-18 inference-integration 머지 완료 ✅</div>
     <div style="font-family:monospace;font-size:0.75rem;background:#0f172a;border-radius:8px;padding:12px 16px;line-height:2;color:#e2e8f0">
       <span style="color:#64748b"># stage2_v2_inference_server.py PG2Grounder.run() 내부</span><br>
-      <span style="color:#f87171">if area &gt; 0.9: → ✅ 이미 추가됨</span><br>
-      <span style="color:#fbbf24">if area &lt; 0.01: → 미검출 처리 (tiny noise)</span><br>
-      <span style="color:#fbbf24">if cy &lt; 0.35: → 미검출 처리 (상단 오탐)</span><br>
-      <span style="color:#fbbf24">if x1 &lt; 0.02 and x2 &gt; 0.98: → 미검출 처리 (x-full-width)</span>
+      <span style="color:#4ade80">if area &gt; 0.9: → ✅ 적용됨 (full-frame collapse)</span><br>
+      <span style="color:#4ade80">if area &lt; 0.01: → ✅ 적용됨 (tiny noise)</span><br>
+      <span style="color:#4ade80">if cy &lt; 0.35: → ✅ 적용됨 (상단 오탐)</span><br>
+      <span style="color:#4ade80">if x1 &lt; 0.02 and x2 &gt; 0.98: → ✅ 적용됨 (x-full-width)</span>
     </div>
     <div style="color:#64748b;font-size:0.73rem;margin-top:10px;line-height:1.6">
-      위 4개 필터를 적용하면 S4 기준: 24 레코드 중
+      4개 필터 적용 후 S4 기준: 24 레코드 중
       <b style="color:#4ade80">신뢰 7건</b>만 통과, 나머지 17건은 fallback(area=0.06, cx=0.5).
-      MLP가 "바구니 없음" 상태로 처리하는 것이 collapse 값(0.5)을 그대로 먹이는 것보다 안전.
+      미해결: false positive 1건(#17 책상)은 기하 필터로 불가 — temporal N-frame 필터 필요.
     </div>
   </div>
 </div><!-- /S4 detailed analysis -->
@@ -2579,8 +2579,8 @@
       <!-- Step 1 -->
       <div style="background:#0d1117;border:1px solid #38bdf8;border-radius:8px;padding:10px 14px;margin-bottom:4px">
         <div style="color:#38bdf8;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 1 — 이미지 소스</div>
-        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">ROS 카메라 → <code>sensor_msgs/CompressedImage</code></div>
-        <div style="color:#64748b;font-size:0.69rem;margin-top:2px">현재 실험실 조명·거리</div>
+        <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">ROS 카메라 → <code>sensor_msgs/Image (bgr8)</code></div>
+        <div style="color:#64748b;font-size:0.69rem;margin-top:2px">raw 전송 (CompressedImage 아님) — 현재 실험실 조명·거리</div>
       </div>
       <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
 
@@ -2589,7 +2589,7 @@
         <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 2 — 디코딩</div>
         <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px"><code>compressed_imgmsg_to_cv2</code> → BGR→RGB</div>
         <div style="color:#4ade80;font-size:0.69rem;margin-top:2px">✓ 수정 완료 (S1/S2는 imgmsg_to_cv2 → blank image)</div>
-        <div style="color:#64748b;font-size:0.69rem;margin-top:1px">JPEG 압축 2회 (카메라 + 대시보드 quality=90)</div>
+        <div style="color:#4ade80;font-size:0.69rem;margin-top:1px">PNG 인코딩 — JPEG 이중압축 제거 ✓ (2026-06-18)</div>
       </div>
       <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
 
@@ -2603,17 +2603,17 @@
 
       <!-- Step 4: Filters -->
       <div style="background:#0d1117;border:2px solid #38bdf8;border-radius:8px;padding:10px 14px;margin-bottom:4px">
-        <div style="color:#38bdf8;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 4 — 필터 현황</div>
+        <div style="color:#38bdf8;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 4 — 필터 현황 (4종 모두 적용 ✅)</div>
         <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
           <div style="display:flex;align-items:center;gap:6px">
-            <span style="background:#450a0a;color:#f87171;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">MISS</span>
-            <code style="font-size:0.7rem;color:#94a3b8">cy &lt; 0.35 → REJECT</code>
-            <span style="color:#ef4444;font-size:0.67rem">미적용</span>
+            <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
+            <code style="font-size:0.7rem;color:#e2e8f0">cy &lt; 0.35 → REJECT</code>
+            <span style="color:#4ade80;font-size:0.67rem">추가됨 ✓</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <span style="background:#450a0a;color:#f87171;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">MISS</span>
-            <code style="font-size:0.7rem;color:#94a3b8">area &lt; 0.01 → REJECT</code>
-            <span style="color:#ef4444;font-size:0.67rem">미적용</span>
+            <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
+            <code style="font-size:0.7rem;color:#e2e8f0">area &lt; 0.01 → REJECT</code>
+            <span style="color:#4ade80;font-size:0.67rem">추가됨 ✓</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
@@ -2628,11 +2628,11 @@
       <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
         <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 5 — X-FULL WIDTH</div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <span style="background:#450a0a;color:#f87171;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">MISS</span>
-          <code style="font-size:0.7rem;color:#fbbf24">x1&lt;0.02 &amp; x2&gt;0.98 → ?</code>
-          <span style="color:#64748b;font-size:0.67rem">(미적용)</span>
+          <span style="background:#166534;color:#4ade80;font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:4px">PASS</span>
+          <code style="font-size:0.7rem;color:#4ade80">x1&lt;0.02 &amp; x2&gt;0.98 → REJECT</code>
+          <span style="color:#4ade80;font-size:0.67rem">추가됨 ✓</span>
         </div>
-        <div style="color:#f97316;font-size:0.68rem;margin-top:4px">S4에서 6/24건 통과 → MLP에 잘못된 cx=0.5 입력</div>
+        <div style="color:#4ade80;font-size:0.68rem;margin-top:4px">S4 6건(n=1,3,4,16,21,22) fallback 처리 완료</div>
       </div>
       <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
 
@@ -2640,7 +2640,7 @@
       <div style="background:#0d1117;border:1px solid #38bdf8;border-radius:8px;padding:10px 14px;text-align:center">
         <div style="color:#38bdf8;font-size:0.75rem;font-weight:700">MLP Stage2 입력</div>
         <div style="color:#64748b;font-size:0.69rem;margin-top:3px">cx, cy, area, has_bbox → goal_near 판단</div>
-        <div style="color:#fbbf24;font-size:0.68rem;margin-top:2px">S4 기준 실질 신뢰 입력: 7/24 (29%)</div>
+        <div style="color:#4ade80;font-size:0.68rem;margin-top:2px">4종 필터 적용 후 신뢰 입력: 7/24 (29%)<br><span style="color:#f59e0b">미해결: false pos #17 (temporal 필터 필요)</span></div>
       </div>
     </div>
   </div>
@@ -2648,7 +2648,7 @@
   <!-- 미적용 필터 권장 패치 코드 -->
   <div style="margin-top:20px;background:#0d1117;border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:16px 20px">
     <div style="color:#22c55e;font-size:0.72rem;font-weight:700;letter-spacing:0.05em;margin-bottom:10px">
-      추론 서버에 추가해야 할 필터 패치 (stage2_v2_inference_server.py)
+      필터 패치 적용 완료 (stage2_v2_inference_server.py) — 2026-06-18 inference-integration 머지 ✅
     </div>
     <pre style="margin:0;font-size:0.72rem;color:#e2e8f0;line-height:1.8;overflow-x:auto"><code><span style="color:#64748b"># PG2Grounder.run() 내부 — locs 파싱 후</span>
 y1, x1, y2, x2 = locs[:4]
@@ -2657,15 +2657,16 @@ y1, y2 = min(y1, y2), max(y1, y2)
 area = (x2 - x1) * (y2 - y1)
 cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
 
-<span style="color:#4ade80">✓ 이미 추가됨</span>
+<span style="color:#4ade80">✓ 적용됨</span>
 if area > 0.9:
     return fallback  <span style="color:#64748b"># full-frame collapse</span>
-
-<span style="color:#fbbf24">← 여기에 추가 필요</span>
+<span style="color:#4ade80">✓ 적용됨</span>
 if area < 0.01:
     return fallback  <span style="color:#64748b"># tiny noise</span>
+<span style="color:#4ade80">✓ 적용됨</span>
 if cy < 0.35:
     return fallback  <span style="color:#64748b"># 상단 오탐 (바구니가 상단에 있을 수 없음)</span>
+<span style="color:#4ade80">✓ 적용됨</span>
 if x1 < 0.02 and x2 > 0.98:
     return fallback  <span style="color:#64748b"># x-full-width collapse</span></code></pre>
   </div>
