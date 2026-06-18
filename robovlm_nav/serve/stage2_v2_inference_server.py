@@ -302,7 +302,7 @@ class PG2Grounder:
         inp = self._proc(text="detect gray basket", images=pil, return_tensors="pt").to(self._device)
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
         with torch.no_grad():
-            gen = self._model.generate(**inp, max_new_tokens=48, do_sample=False)
+            gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
         raw = self._proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
         locs = [int(v) / 1023.0 for v in _LOC_RE.findall(raw)]
         if len(locs) >= 4:
@@ -777,6 +777,44 @@ async def ground(
         "latency_ms": round(latency_ms, 1),
         "prompt": request.prompt,
     }
+
+
+@app.post("/ground/debug")
+async def ground_debug(
+    request: GroundRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> dict[str, Any]:
+    """임시 디버그: generate 파라미터 변화 테스트 + 토큰 길이 반환."""
+    _check_api_key(x_api_key)
+    m = get_model()
+    grounder = m.grounder
+    if not hasattr(grounder, "_model") or grounder._model is None:
+        grounder._ensure_loaded()
+    image_rgb = m._decode_image(request.image)
+    pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+    prompt = request.prompt or "detect gray basket"
+    inp = grounder._proc(text=prompt, images=pil, return_tensors="pt").to(grounder._device)
+    inp["pixel_values"] = inp["pixel_values"].to(grounder._dtype)
+    inp_keys = list(inp.keys())
+    input_len = int(inp["input_ids"].shape[1])
+    results = {}
+    for min_tok in [0, 1, 5]:
+        with torch.no_grad():
+            gen = grounder._model.generate(
+                **inp, max_new_tokens=64, do_sample=False,
+                min_new_tokens=min_tok,
+            )
+        full_len = int(gen.shape[1])
+        new_ids = gen[:, input_len:]
+        raw = grounder._proc.batch_decode(new_ids, skip_special_tokens=False)[0]
+        raw_skip = grounder._proc.batch_decode(new_ids, skip_special_tokens=True)[0]
+        results[f"min_new_tokens={min_tok}"] = {
+            "raw": raw, "raw_skip_special": raw_skip,
+            "full_gen_len": full_len, "new_tokens": full_len - input_len,
+        }
+    return {"inp_keys": inp_keys, "input_len": input_len,
+            "pixel_values_shape": list(inp["pixel_values"].shape),
+            "results": results}
 
 
 @app.post("/model/load")
