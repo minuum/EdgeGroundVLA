@@ -1605,11 +1605,29 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 col_count=5,
                 interactive=False,
             )
+            with gr.Row():
+                gnd_log_display = gr.Textbox(
+                    label="저장 경로", value="(첫 검증 시 생성됨)",
+                    interactive=False, scale=4,
+                )
+                gnd_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
 
         # ── Grounding 탭 로직 ─────────────────────────────────────────
         _gnd_auto_state   = gr.State(False)
         _gnd_history_rows = gr.State([])
         _gnd_count        = gr.State(0)
+
+        import datetime as _dt
+        _gnd_log_dir = Path("logs/grounding_sessions")
+        _gnd_log_dir.mkdir(parents=True, exist_ok=True)
+        _gnd_log_file: list = [None]  # mutable ref — session 시작 시 생성
+
+        def _gnd_ensure_log():
+            """세션 로그 파일이 없으면 새로 만들고 경로 반환."""
+            if _gnd_log_file[0] is None:
+                ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+                _gnd_log_file[0] = _gnd_log_dir / f"gnd_{ts}.jsonl"
+            return _gnd_log_file[0]
 
         def _run_grounding(api_url, history_rows, count):
             """카메라 프레임 → /ground → bbox 오버레이 이미지 + 스탯."""
@@ -1621,11 +1639,12 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             if ROS_AVAILABLE and ros_node:
                 frame = ros_node.get_inference_frame()  # PIL Image
 
+            log_path_str = str(_gnd_ensure_log())
             if frame is None:
                 return (
                     None, "❌ 카메라 없음",
                     _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
-                    "—", "카메라 연결 필요", history_rows, count,
+                    "—", "카메라 연결 필요", history_rows, count, log_path_str,
                 )
 
             # base64 인코딩
@@ -1645,7 +1664,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 return (
                     frame, f"❌ 서버 오류: {e}",
                     _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
-                    "—", str(e), history_rows, count,
+                    "—", str(e), history_rows, count, log_path_str,
                 )
 
             has   = d.get("has_bbox", False)
@@ -1683,18 +1702,35 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             new_row = [count, "✅" if has else "❌", round(area, 3), round(cx, 3), round(lat, 0)]
             rows = ([new_row] + list(history_rows))[:10]
 
+            # JSONL 자동 저장
+            import json as _json
+            log_path = _gnd_ensure_log()
+            record = {
+                "ts": _dt.datetime.now().isoformat(timespec="milliseconds"),
+                "n": count, "has_bbox": has,
+                "area": round(area, 4), "cx": round(cx, 4), "cy": round(cy, 4),
+                "latency_ms": round(lat, 1), "raw": raw,
+            }
+            try:
+                with open(log_path, "a") as _f:
+                    _f.write(_json.dumps(record, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+
             return (
                 img_draw, status,
                 _gnd_area_html(area, has), _gnd_cx_html(cx, has),
-                f"{lat:.0f} ms", raw, rows, count,
+                f"{lat:.0f} ms", raw, rows, count, str(log_path),
             )
+
+        _gnd_outputs = [gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
+                        gnd_latency, gnd_raw, _gnd_history_rows, _gnd_count, gnd_log_display]
 
         # 단발 버튼
         gnd_run_btn.click(
             fn=_run_grounding,
             inputs=[api_url_box, _gnd_history_rows, _gnd_count],
-            outputs=[gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
-                     gnd_latency, gnd_raw, _gnd_history_rows, _gnd_count],
+            outputs=_gnd_outputs,
         )
 
         # 자동 타이머 (1fps)
@@ -1718,8 +1754,16 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
         gnd_timer.tick(
             fn=_run_grounding,
             inputs=[api_url_box, _gnd_history_rows, _gnd_count],
-            outputs=[gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
-                     gnd_latency, gnd_raw, _gnd_history_rows, _gnd_count],
+            outputs=_gnd_outputs,
+        )
+
+        def _gnd_new_session():
+            _gnd_log_file[0] = None  # 다음 검증 시 새 파일 생성
+            return [], 0, "(새 세션 — 첫 검증 시 생성됨)"
+
+        gnd_new_session_btn.click(
+            fn=_gnd_new_session,
+            outputs=[_gnd_history_rows, _gnd_count, gnd_log_display],
         )
 
     btn_start_inf.click(
