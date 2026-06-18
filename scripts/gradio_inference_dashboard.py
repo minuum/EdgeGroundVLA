@@ -445,7 +445,7 @@ class LocalInferenceBackend:
 
     def predict(self, image: Image.Image, instruction: str) -> dict:
         buffered = io.BytesIO()
-        image.save(buffered, format="JPEG")
+        image.save(buffered, format="PNG")  # lossless — matches H5 numpy training pipeline
         img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
         return shared_runtime.predict(image_base64=img_b64, instruction=instruction)
 
@@ -493,7 +493,7 @@ class ApiInferenceBackend:
 
     def predict(self, image: Image.Image, instruction: str) -> dict:
         buffered = io.BytesIO()
-        image.save(buffered, format="JPEG")
+        image.save(buffered, format="PNG")  # lossless — matches H5 numpy training pipeline
         img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
         return self._post(
             "/predict",

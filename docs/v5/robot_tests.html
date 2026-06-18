@@ -2104,9 +2104,9 @@
         </tr>
         <tr style="border-bottom:1px solid #0f172a">
           <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">JPEG 압축 횟수</td>
-          <td style="color:#4ade80;padding:7px 12px;text-align:center">1회<br><span style="font-size:0.69rem">(H5 저장 시)</span></td>
+          <td style="color:#4ade80;padding:7px 12px;text-align:center">0회<br><span style="font-size:0.69rem">H5 → numpy uint8 lossless (JPEG 없음)</span></td>
           <td style="color:#4ade80;padding:7px 12px;text-align:center">0회<br><span style="font-size:0.69rem">카메라 raw(bgr8) + 대시보드 PNG 인코딩 ✓</span></td>
-          <td style="color:#4ade80;padding:7px;text-align:center">1~2회<br><span style="font-size:0.69rem">카메라 JPEG + client 재인코딩</span></td>
+          <td style="color:#4ade80;padding:7px;text-align:center">0회<br><span style="font-size:0.69rem">PNG 수정 완료 (2026-06-18)<br>구: JPEG → train/infer 불일치</span></td>
         </tr>
         <tr style="border-bottom:1px solid #0f172a">
           <td style="color:#64748b;padding:7px 10px 7px 0;font-weight:600">PG2 모델</td>
@@ -2516,7 +2516,7 @@
       <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:4px">
         <div style="color:#64748b;font-size:0.68rem;font-weight:700;letter-spacing:0.05em">STEP 2 — PG2 입력</div>
         <div style="color:#e2e8f0;font-size:0.76rem;margin-top:3px">BGR→RGB 변환 후 PaliGemma2 <code>detect gray basket</code></div>
-        <div style="color:#64748b;font-size:0.69rem;margin-top:2px">JPEG 압축 1회 (H5 저장 시)</div>
+        <div style="color:#4ade80;font-size:0.69rem;margin-top:2px">lossless — H5 numpy uint8 직접 (JPEG 없음)</div>
       </div>
       <div style="text-align:center;color:#475569;font-size:0.8rem;margin:2px 0">↓</div>
 
