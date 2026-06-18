@@ -565,14 +565,19 @@ class ROSDashboardNode(Node):
                 try:
                     res = future.result()
                     if res and res.image.data:
-                        # GetImage 서비스는 CompressedImage 반환
+                        cv_img = None
+                        # camera_pub는 cv2_to_imgmsg(raw bgr8) 전송
+                        # compressed_imgmsg_to_cv2는 예외 없이 None 반환할 수 있음 → None 체크 필수
                         try:
                             cv_img = self.cv_bridge.compressed_imgmsg_to_cv2(res.image, "bgr8")
                         except Exception:
+                            pass
+                        if cv_img is None:
                             cv_img = self.cv_bridge.imgmsg_to_cv2(res.image, "bgr8")
-                        with self.lock:
-                            self.latest_ui_frame = cv_img
-                        _consecutive_fail = 0
+                        if cv_img is not None:
+                            with self.lock:
+                                self.latest_ui_frame = cv_img
+                            _consecutive_fail = 0
                 except Exception:
                     pass
             else:
