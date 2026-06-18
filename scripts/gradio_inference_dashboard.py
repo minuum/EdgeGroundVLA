@@ -143,6 +143,9 @@ EXP_MODE_NAMES = list(EXP_MODES.keys())
 LINEAR_SPEED_VLA = 1.15
 ANGULAR_SPEED_VLA = 1.15
 
+# 현재 서버의 STOP 모드 (go.sh에서 주입, 없으면 proximity 기본값)
+_SERVER_STOP_MODE = os.getenv("VLA_STOP_MODE", "proximity")
+
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 os.environ.setdefault("ROS_HOME", "/tmp/ros")
 Path(os.environ["MPLCONFIGDIR"]).mkdir(parents=True, exist_ok=True)
@@ -675,6 +678,7 @@ class DashboardJoystickReader:
         self._running  = False
         self._enabled  = True    # 시작 시 기본 활성화
         self._js_mode  = 'async'  # 'sync' | 'async' (Start 버튼으로 전환)
+        self._speed    = 1.15    # 속도 슬라이더와 공유
         self._thread   = None
         self._btn_prev = {}
         self._last_step_time = 0.0
@@ -798,8 +802,11 @@ class DashboardJoystickReader:
                 if self._enabled and ros_node is not None:
                     ctrl = ros_node.control
                     if key:
-                        vel = self.WASD_TO_VEL.get(key)
-                        if vel:
+                        base = self.WASD_TO_VEL.get(key)
+                        if base:
+                            # 속도 슬라이더 반영: 방향(부호)은 유지, 크기만 스케일
+                            spd = self._speed / 1.15  # 1.15 기준 정규화
+                            vel = tuple(v * spd for v in base)
                             if self._js_mode == 'sync':
                                 if (now - self._last_step_time) >= self.STEP_INTERVAL:
                                     if self._movement_timer:
@@ -1140,19 +1147,20 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status):
     return annotate_image(img), f"📡 Live | {state['current_log']}", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
 
 
-def handle_control(direction):
+def handle_control(direction, speed=1.15):
     if not ROS_AVAILABLE or not ros_node:
         return "ROS Error"
 
+    s = float(speed)
     mapping = {
-        "W": (LINEAR_SPEED_VLA, 0.0, 0.0),
-        "S": (-LINEAR_SPEED_VLA, 0.0, 0.0),
-        "A": (0.0, LINEAR_SPEED_VLA, 0.0),
-        "D": (0.0, -LINEAR_SPEED_VLA, 0.0),
-        "Q": (LINEAR_SPEED_VLA, LINEAR_SPEED_VLA, 0.0),
-        "E": (LINEAR_SPEED_VLA, -LINEAR_SPEED_VLA, 0.0),
-        "R": (0.0, 0.0, ANGULAR_SPEED_VLA),
-        "T": (0.0, 0.0, -ANGULAR_SPEED_VLA),
+        "W": (s, 0.0, 0.0),
+        "S": (-s, 0.0, 0.0),
+        "A": (0.0, s, 0.0),
+        "D": (0.0, -s, 0.0),
+        "Q": (s, s, 0.0),
+        "E": (s, -s, 0.0),
+        "R": (0.0, 0.0, s),
+        "T": (0.0, 0.0, -s),
         "STOP": (0.0, 0.0, 0.0),
     }
     lx, ly, az = mapping[direction]
@@ -1161,7 +1169,7 @@ def handle_control(direction):
         state["current_log"] = "🛑 Force STOP"
     else:
         ros_node.control.move_and_stop_timed(lx, ly, az, source=f"manual_{direction}")
-        state["current_log"] = f"🕹️ Moving {direction} (Bang-Bang)"
+        state["current_log"] = f"🕹️ {direction}  spd={s:.2f}"
     return state["current_log"]
 
 
@@ -1346,18 +1354,22 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
 
             with gr.Group():
                 gr.Markdown("### 🎮 Manual Controls")
+                manual_speed_slider = gr.Slider(
+                    minimum=0.3, maximum=2.0, step=0.05, value=1.15,
+                    label="속도 (lx/ly/az 크기)",
+                )
                 with gr.Row():
-                    btn_q = gr.Button("↖️ Q", scale=1)
-                    btn_w = gr.Button("⬆️ W", scale=1)
-                    btn_e = gr.Button("↗️ E", scale=1)
+                    btn_q = gr.Button("↖ Q", scale=1, size="lg")
+                    btn_w = gr.Button("▲ W", scale=1, size="lg")
+                    btn_e = gr.Button("↗ E", scale=1, size="lg")
                 with gr.Row():
-                    btn_a = gr.Button("⬅️ A", scale=1)
-                    btn_stop = gr.Button("🛑 SPACE (STOP)", variant="danger", scale=1)
-                    btn_d = gr.Button("➡️ D", scale=1)
+                    btn_a = gr.Button("◀ A", scale=1, size="lg")
+                    btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="lg")
+                    btn_d = gr.Button("▶ D", scale=1, size="lg")
                 with gr.Row():
-                    btn_r = gr.Button("🔄 CCW (R)", scale=1)
-                    btn_s = gr.Button("⬇️ S", scale=1)
-                    btn_t = gr.Button("🔄 CW (T)", scale=1)
+                    btn_r = gr.Button("↺ R (CCW)", scale=1, size="lg")
+                    btn_s = gr.Button("▼ S", scale=1, size="lg")
+                    btn_t = gr.Button("↻ T (CW)", scale=1, size="lg")
 
             with gr.Group():
                 gr.Markdown("### 🕹️ Joystick (DragonRise)")
@@ -1386,11 +1398,14 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                     s = _joystick.status
                     if not s["connected"]:
                         return "🔌 미연결 (DragonRise 꽂으면 자동 인식)"
-                    en   = "🟢 ON" if s["enabled"] else "⚫ OFF"
-                    mode = s.get("mode", "SYNC")
+                    en    = "🟢 ON" if s["enabled"] else "⚫ OFF"
+                    mode  = s.get("mode", "SYNC")
                     badge = "📸 SYNC" if mode == "SYNC" else "🌊 ASYNC"
-                    key  = s.get("label", "○")
-                    return f"{en}  |  {badge}  |  {s['name']}  |  {key}"
+                    key   = s.get("label", "○")
+                    name  = s.get("name", "Controller")
+                    # key가 있으면 강조
+                    key_str = f"[ {key} ]" if s.get("key") else "○ 중립"
+                    return f"{en}  |  {badge}  |  {name}\n▶ {key_str}"
 
                 def _js_toggle() -> tuple:
                     _joystick.toggle_enabled()
@@ -1433,21 +1448,45 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 )
             camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False)
 
-            with gr.Accordion("🛑 자동 정지 설정", open=True):
-                gr.Markdown(
-                    "실제 grounding bbox area가 threshold 이상이면 자동 STOP\n"
-                    "_(fallback bbox는 area=0.06 고정 → 정지 안됨)_"
-                )
-                stop_area_slider = gr.Slider(
-                    minimum=0.05, maximum=0.50, step=0.01, value=0.18,
-                    label="정지 area threshold (0=항상정지, 0.18=약 0.5m, 0.30=약 0.3m)",
-                )
-                stop_cx_slider = gr.Slider(
-                    minimum=0.10, maximum=0.50, step=0.05, value=0.25,
-                    label="중앙 허용 편차 cx ± (0.25 = 화면 중앙 50% 이내)",
-                )
+            _is_learned = (_SERVER_STOP_MODE == "learned")
+            _stop_acc_label = (
+                "🤖 자동 정지 — Learned STOP (N1 모델)"
+                if _is_learned else
+                "📐 자동 정지 — Proximity Threshold"
+            )
+            with gr.Accordion(_stop_acc_label, open=True):
+                if _is_learned:
+                    gr.Markdown(
+                        "**현재 서버: `VLA_STOP_MODE=learned`**\n\n"
+                        "모델(stop_N1.pt)이 **class 0 (STOP)** 을 직접 예측하면 정지 + latch.\n"
+                        "리셋 전까지 추론 루프가 계속 STOP을 유지함.\n\n"
+                        "> threshold 슬라이더는 `proximity` 모드에서만 사용. 지금은 비활성."
+                    )
+                    stop_area_slider = gr.Slider(
+                        minimum=0.05, maximum=0.50, step=0.01, value=0.18,
+                        label="정지 area threshold (proximity 모드 전용 — 현재 비활성)",
+                        interactive=False,
+                    )
+                    stop_cx_slider = gr.Slider(
+                        minimum=0.10, maximum=0.50, step=0.05, value=0.25,
+                        label="중앙 허용 편차 cx ± (proximity 모드 전용 — 현재 비활성)",
+                        interactive=False,
+                    )
+                else:
+                    gr.Markdown(
+                        "실제 grounding bbox area가 threshold 이상이면 자동 STOP\n"
+                        "_(fallback bbox는 area=0.06 고정 → 정지 안됨)_"
+                    )
+                    stop_area_slider = gr.Slider(
+                        minimum=0.05, maximum=0.50, step=0.01, value=0.18,
+                        label="정지 area threshold (0=항상정지, 0.18=약 0.5m, 0.30=약 0.3m)",
+                    )
+                    stop_cx_slider = gr.Slider(
+                        minimum=0.10, maximum=0.50, step=0.05, value=0.25,
+                        label="중앙 허용 편차 cx ± (0.25 = 화면 중앙 50% 이내)",
+                    )
                 bbox_area_display = gr.Textbox(
-                    label="현재 bbox area (실시간)", value="—", interactive=False
+                    label="현재 bbox area (실시간 모니터링)", value="—", interactive=False
                 )
 
                 def apply_stop_config(area_thr, cx_tol, api_url):
@@ -1463,7 +1502,12 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                     except Exception as e:
                         return f"⚠️ 적용 실패: {e}"
 
-                stop_apply_btn = gr.Button("적용", size="sm", variant="secondary")
+                stop_apply_btn = gr.Button(
+                    "적용" if not _is_learned else "적용 (proximity 모드에서만 유효)",
+                    size="sm",
+                    variant="secondary",
+                    interactive=not _is_learned,
+                )
                 stop_config_status = gr.Textbox(label="", value="", interactive=False, lines=1)
                 stop_apply_btn.click(
                     fn=apply_stop_config,
@@ -1504,7 +1548,17 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
         btn_stop: "STOP",
     }
     for button, direction in directions.items():
-        button.click(fn=handle_control, inputs=[gr.State(direction)], outputs=status_log)
+        button.click(
+            fn=handle_control,
+            inputs=[gr.State(direction), manual_speed_slider],
+            outputs=status_log,
+        )
+
+    # 슬라이더 변경 → 조이스틱 속도 동기화
+    def _sync_js_speed(spd):
+        _joystick._speed = float(spd)
+        return gr.update()
+    manual_speed_slider.change(fn=_sync_js_speed, inputs=manual_speed_slider)
 
     def _get_bbox_area_display():
         """최근 예측의 bbox area 표시 (정지 판단 기준 시각화)."""

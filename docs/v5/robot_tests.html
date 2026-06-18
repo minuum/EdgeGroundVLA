@@ -1567,5 +1567,175 @@
 
   buildFilmstrips();
 </script>
+
+<!-- ══ June 18 2026 Sessions ══ -->
+<div style="max-width:1100px;margin:60px auto 0;padding:0 20px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <h2 style="color:#38bdf8;font-size:1.25rem;font-weight:800;letter-spacing:0.03em;margin:0">
+      2026-06-18 세션 — stop_N1 첫 실전 테스트
+    </h2>
+    <span style="background:rgba(56,189,248,0.12);color:#38bdf8;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(56,189,248,0.25)">NEW</span>
+  </div>
+  <p style="color:#64748b;font-size:0.85rem;margin-bottom:8px">
+    모델: <code style="color:#a78bfa">stop_N1.pt</code> (L3b N=1, CL 96.6%) &nbsp;|&nbsp;
+    STOP 모드: <code style="color:#f59e0b">VLA_STOP_MODE=learned</code> &nbsp;|&nbsp;
+    서버: stage2_v2_inference_server (포트 8001)
+  </p>
+
+  <!-- 실험 조건 테이블 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:16px 20px;margin-bottom:20px">
+    <div style="color:#475569;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">실험 조건</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="color:#64748b;padding:5px 10px 5px 0;width:140px">모델</td>
+        <td style="color:#e2e8f0">stop_N1.pt — 마지막 1프레임 STOP 주입 (val_acc 0.799)</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="color:#64748b;padding:5px 10px 5px 0">STOP 모드</td>
+        <td style="color:#e2e8f0">learned latch — 모델이 class 0 예측 시 reset 전까지 유지</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="color:#64748b;padding:5px 10px 5px 0">Instruction</td>
+        <td style="color:#e2e8f0"><code style="color:#a78bfa">"the gray basket"</code></td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="color:#64748b;padding:5px 10px 5px 0">Grounder</td>
+        <td style="color:#e2e8f0">PG2 (stage2_v2_inference_server)</td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;padding:5px 10px 5px 0">장소</td>
+        <td style="color:#e2e8f0">실험실 — 바구니 정면 (중앙 배치)</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 세션 카드 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <span style="background:#1e293b;color:#38bdf8;font-size:0.7rem;font-weight:700;padding:2px 9px;border-radius:5px;margin-right:8px">2026-06-18 09:01:19</span>
+        <span style="color:#e2e8f0;font-weight:700;font-size:0.92rem">09:01:19 — 17스텝</span>
+        <div style="color:#64748b;font-size:0.78rem;margin-top:3px">바구니 정면 중앙 배치 — STOP 미발동, 좌우 편향 혼재</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="background:rgba(239,68,68,0.12);color:#f87171;font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:5px">PG2 grounding 전체 실패</span>
+        <span style="background:rgba(245,158,11,0.12);color:#f59e0b;font-size:0.7rem;font-weight:800;padding:2px 9px;border-radius:5px">STOP 미발동</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 240px;gap:16px;align-items:start">
+      <div>
+        <!-- Action sequence chips -->
+        <div style="color:#475569;font-size:0.68rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">Action Sequence (step 2→17)</div>
+        <div style="line-height:2;word-break:break-all">
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#7c2d12;color:#fdba74;margin:1px">FWD+L</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#14532d;color:#86efac;margin:1px">FWD+R</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+          <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.62rem;font-weight:800;background:#1e40af;color:#93c5fd;margin:1px">FWD</span>
+        </div>
+
+        <!-- Grounding 실패 경고 -->
+        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 14px;margin-top:12px">
+          <div style="color:#f87171;font-size:0.75rem;font-weight:700;margin-bottom:4px">⚠️ PG2 Grounder 전체 실패 (17/17 프레임)</div>
+          <div style="color:#94a3b8;font-size:0.73rem;line-height:1.6">
+            모든 프레임에서 <code style="color:#fca5a5">has_bbox=False</code> — Fallback bbox 고정값 사용<br>
+            <code style="color:#fca5a5">cx=0.50, cy=0.60, area=0.060</code> (방향 정보 없음)<br>
+            → 모델이 <b>이미지 피처만으로</b> 액션 결정 (Stage1 16×16 feature)
+          </div>
+        </div>
+      </div>
+
+      <!-- 분포 바 차트 -->
+      <div>
+        <div style="color:#475569;font-size:0.68rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">Action Distribution (16 steps)</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:70px;font-size:0.7rem;color:#94a3b8;text-align:right">FORWARD</div>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:13px">
+            <div style="width:68.8%;background:#1e40af;height:100%;border-radius:3px"></div>
+          </div>
+          <div style="width:55px;font-size:0.7rem;color:#e2e8f0">11 (69%)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:70px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+R</div>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:13px">
+            <div style="width:25%;background:#14532d;height:100%;border-radius:3px"></div>
+          </div>
+          <div style="width:55px;font-size:0.7rem;color:#e2e8f0">4 (25%)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:70px;font-size:0.7rem;color:#94a3b8;text-align:right">FWD+L</div>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:13px">
+            <div style="width:6.3%;background:#7c2d12;height:100%;border-radius:3px"></div>
+          </div>
+          <div style="width:55px;font-size:0.7rem;color:#e2e8f0">1 (6%)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:70px;font-size:0.7rem;color:#94a3b8;text-align:right">STOP</div>
+          <div style="flex:1;background:#1e293b;border-radius:3px;height:13px">
+            <div style="width:0%;background:#ef4444;height:100%;border-radius:3px"></div>
+          </div>
+          <div style="width:55px;font-size:0.7rem;color:#64748b">0 (0%)</div>
+        </div>
+
+        <!-- 레이턴시 -->
+        <div style="margin-top:14px;color:#475569;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px">Latency</div>
+        <div style="color:#e2e8f0;font-size:0.82rem">평균 <b>406 ms</b> / step</div>
+      </div>
+    </div>
+
+    <!-- 원인 분석 -->
+    <div style="margin-top:16px;border-top:1px solid #1e293b;padding-top:14px">
+      <div style="color:#475569;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">원인 분석</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
+          <div style="color:#f59e0b;font-size:0.75rem;font-weight:700;margin-bottom:4px">① Grounding 완전 실패</div>
+          <div style="color:#94a3b8;font-size:0.72rem;line-height:1.6">
+            PG2가 <code>"the gray basket"</code> 검출 실패 → has_bbox=False 17/17.<br>
+            Stage2 MLP 입력의 bbox 채널이 fallback 고정값(area=0.06, cx=0.5)으로 채워짐.<br>
+            <b>실질적으로 Stage1 이미지 피처만 동작.</b>
+          </div>
+        </div>
+        <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
+          <div style="color:#f59e0b;font-size:0.75rem;font-weight:700;margin-bottom:4px">② Learned STOP 미발동</div>
+          <div style="color:#94a3b8;font-size:0.72rem;line-height:1.6">
+            stop_N1 모델은 바구니가 <b>가까울 때(area 크기)</b> STOP을 학습함.<br>
+            그러나 grounding 실패로 area=0.06 고정 → 모델 입장에서 "바구니 멀리 있음" 판단.<br>
+            → STOP class 한 번도 예측 안 함.
+          </div>
+        </div>
+        <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
+          <div style="color:#f59e0b;font-size:0.75rem;font-weight:700;margin-bottom:4px">③ 초기 FWD+R 편향</div>
+          <div style="color:#94a3b8;font-size:0.72rem;line-height:1.6">
+            step2~5에 FWD+R 연속 — grounding 없이 이미지 피처만으로 오른쪽 편향.<br>
+            이후 FORWARD 수렴은 "방향 정보 없을 때 직진" 패턴으로 해석 가능.
+          </div>
+        </div>
+        <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
+          <div style="color:#ef4444;font-size:0.75rem;font-weight:700;margin-bottom:4px">결론 — 핵심 병목</div>
+          <div style="color:#94a3b8;font-size:0.72rem;line-height:1.6">
+            <b>PG2 grounding이 실패하면 learned STOP도 동작 안 함.</b><br>
+            다음 테스트 전 PG2가 바구니를 제대로 검출하는지 먼저 확인 필요.<br>
+            대시보드 bbox area 실시간 표시로 검출 여부 사전 확인 가능.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /session card -->
+</div><!-- /June 18 section -->
+
+  buildFilmstrips();
+</script>
 </body>
 </html>
