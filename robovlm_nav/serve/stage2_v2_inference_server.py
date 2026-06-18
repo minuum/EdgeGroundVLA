@@ -294,8 +294,9 @@ class PG2Grounder:
             ).to(self._device).eval()
             logger.info("PG2Grounder: ready")
 
-    def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None) -> dict[str, Any]:
-        """Run PaliGemma2 grounding → {'cx', 'cy', 'area', 'has_bbox'}."""
+    def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
+            return_raw: bool = False) -> dict[str, Any]:
+        """Run PaliGemma2 grounding → {'cx', 'cy', 'area', 'has_bbox', 'raw_output'}."""
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
         inp = self._proc(text="detect gray basket", images=pil, return_tensors="pt").to(self._device)
@@ -309,8 +310,14 @@ class PG2Grounder:
             x1, x2 = min(x1, x2), max(x1, x2)
             y1, y2 = min(y1, y2), max(y1, y2)
             area = (x2 - x1) * (y2 - y1)
-            return {"cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2, "area": area, "has_bbox": True}
-        return {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False}
+            result = {"cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2, "area": area, "has_bbox": True,
+                      "x1": x1, "y1": y1, "x2": x2, "y2": y2}
+        else:
+            result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
+                      "x1": None, "y1": None, "x2": None, "y2": None}
+        if return_raw:
+            result["raw_output"] = raw
+        return result
 
 
 # ---------------------------------------------------------------------------
@@ -737,6 +744,39 @@ async def set_config(
             ignored.append(field)
 
     return {"status": "ok", "applied": applied, "ignored": ignored}
+
+
+class GroundRequest(BaseModel):
+    image: str  # base64 RGB
+    prompt: str = "detect gray basket"
+
+
+@app.post("/ground")
+async def ground(
+    request: GroundRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> dict[str, Any]:
+    """PG2 grounding only — no action prediction. Returns bbox + raw PG2 output."""
+    _check_api_key(x_api_key)
+    m = get_model()
+    import time as _time
+    image_rgb = m._decode_image(request.image)
+    t0 = _time.time()
+    bbox = m.grounder.run(image_rgb, return_raw=True)
+    latency_ms = (_time.time() - t0) * 1000.0
+    return {
+        "has_bbox": bbox["has_bbox"],
+        "cx": bbox["cx"],
+        "cy": bbox["cy"],
+        "area": bbox["area"],
+        "x1": bbox.get("x1"),
+        "y1": bbox.get("y1"),
+        "x2": bbox.get("x2"),
+        "y2": bbox.get("y2"),
+        "raw_output": bbox.get("raw_output", ""),
+        "latency_ms": round(latency_ms, 1),
+        "prompt": request.prompt,
+    }
 
 
 @app.post("/model/load")

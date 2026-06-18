@@ -1240,12 +1240,14 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
     gr.HTML(_make_env_banner())
 
     _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
-    # 카메라 시작 → 완료 후 즉시 카메라 프레임 fetch
     _cam_start_btn.click(fn=start_camera, outputs=_cam_st)
     _cam_stop_btn.click(fn=stop_camera,   outputs=_cam_st)
 
-    with gr.Row():
-        with gr.Column(scale=2):
+    with gr.Tabs():
+      with gr.Tab("🤖 Drive / Inference"):
+        # ── 기존 메인 탭 내용 시작 ──
+        with gr.Row():
+          with gr.Column(scale=2):
             camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
             gr.Markdown("🟢 Continuous polling via GetImage service")
 
@@ -1521,6 +1523,159 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
             traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
             btn_reset = gr.Button("🔄 Reset Model History")
+        # ── 기존 메인 탭 내용 끝 ──
+
+      # ────────────────────────────────────────────────────────────────
+      with gr.Tab("🔍 Grounding 검증"):
+        gr.Markdown(
+            "### PG2 실시간 Grounding 검증\n"
+            "카메라 프레임을 서버로 전송해 PG2가 바구니를 검출하는지 확인. "
+            "추론 시작 전 bbox area가 올라가는지 여기서 먼저 체크."
+        )
+        with gr.Row():
+          with gr.Column(scale=3):
+            gnd_image = gr.Image(
+                label="Camera + BBox Overlay",
+                interactive=False,
+            )
+            with gr.Row():
+                gnd_run_btn  = gr.Button("▶ 단발 검증", variant="primary", scale=2)
+                gnd_auto_btn = gr.Button("🔄 자동 (1fps)", variant="secondary", scale=2)
+                gnd_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
+
+          with gr.Column(scale=2):
+            # 실시간 게이지 패널
+            gnd_has_bbox  = gr.Textbox(label="검출 결과", value="—", interactive=False)
+            gnd_area_bar  = gr.Slider(
+                minimum=0, maximum=1, value=0, step=0.001,
+                label="bbox area  (0=없음 · 0.1=1m · 0.4+=근접)",
+                interactive=False,
+            )
+            gnd_cx_bar = gr.Slider(
+                minimum=0, maximum=1, value=0.5, step=0.001,
+                label="cx  (0=왼쪽 · 0.5=중앙 · 1=오른쪽)",
+                interactive=False,
+            )
+            gnd_latency   = gr.Textbox(label="Grounding latency", value="—", interactive=False)
+            gnd_raw       = gr.Textbox(label="PG2 raw output", value="—", interactive=False, lines=2)
+            gnd_history   = gr.Dataframe(
+                headers=["#", "has_bbox", "area", "cx", "latency(ms)"],
+                datatype=["number", "str", "number", "number", "number"],
+                label="최근 10회 이력",
+                row_count=10,
+                col_count=5,
+                interactive=False,
+            )
+
+        # ── Grounding 탭 로직 ─────────────────────────────────────────
+        _gnd_auto_state   = gr.State(False)
+        _gnd_history_rows = gr.State([])
+        _gnd_count        = gr.State(0)
+
+        def _run_grounding(api_url, history_rows, count):
+            """카메라 프레임 → /ground → bbox 오버레이 이미지 + 스탯."""
+            import requests as _req, base64, io
+            from PIL import ImageDraw
+
+            # 카메라 프레임 가져오기
+            frame = None
+            if ROS_AVAILABLE and ros_node:
+                frame = ros_node.get_inference_frame()  # PIL Image
+
+            if frame is None:
+                return (
+                    None, "❌ 카메라 없음", 0.0, 0.5, "—", "카메라 연결 필요",
+                    history_rows, count,
+                )
+
+            # base64 인코딩
+            buf = io.BytesIO()
+            frame.save(buf, format="JPEG", quality=90)
+            b64 = base64.b64encode(buf.getvalue()).decode()
+
+            try:
+                resp = _req.post(
+                    f"{api_url.rstrip('/')}/ground",
+                    json={"image": b64},
+                    headers={"X-API-Key": API_KEY},
+                    timeout=10,
+                )
+                d = resp.json()
+            except Exception as e:
+                return (
+                    frame, f"❌ 서버 오류: {e}", 0.0, 0.5, "—", str(e),
+                    history_rows, count,
+                )
+
+            has   = d.get("has_bbox", False)
+            area  = float(d.get("area", 0.06))
+            cx    = float(d.get("cx", 0.5))
+            cy    = float(d.get("cy", 0.6))
+            lat   = float(d.get("latency_ms", 0))
+            raw   = d.get("raw_output", "—")
+            x1, y1, x2, y2 = d.get("x1"), d.get("y1"), d.get("x2"), d.get("y2")
+
+            # bbox 오버레이 그리기
+            img_draw = frame.copy()
+            draw = ImageDraw.Draw(img_draw)
+            W, H = img_draw.size
+            if has and x1 is not None:
+                bx1, by1 = int(x1 * W), int(y1 * H)
+                bx2, by2 = int(x2 * W), int(y2 * H)
+                draw.rectangle([bx1, by1, bx2, by2], outline="#00ff88", width=3)
+                draw.text((bx1 + 4, by1 + 4), f"area={area:.3f}", fill="#00ff88")
+            # cx 수직선
+            cx_px = int(cx * W)
+            line_color = "#00ff88" if has else "#ef4444"
+            draw.line([(cx_px, 0), (cx_px, H)], fill=line_color, width=2)
+            # 중앙선 (회색)
+            draw.line([(W // 2, 0), (W // 2, H)], fill="#4a5568", width=1)
+
+            # 상태 텍스트
+            if has:
+                status = f"✅ 검출됨  area={area:.3f}  cx={cx:.2f}"
+            else:
+                status = f"❌ 미검출  (raw: {raw[:30]})"
+
+            # 이력 업데이트
+            count += 1
+            new_row = [count, "✅" if has else "❌", round(area, 3), round(cx, 3), round(lat, 0)]
+            rows = ([new_row] + list(history_rows))[:10]
+
+            return (img_draw, status, area, cx, f"{lat:.0f} ms", raw, rows, count)
+
+        # 단발 버튼
+        gnd_run_btn.click(
+            fn=_run_grounding,
+            inputs=[api_url_box, _gnd_history_rows, _gnd_count],
+            outputs=[gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
+                     gnd_latency, gnd_raw, _gnd_history_rows, _gnd_count],
+        )
+
+        # 자동 타이머 (1fps)
+        gnd_timer = gr.Timer(1.0, active=False)
+
+        def _toggle_gnd_auto(is_active):
+            new_state = not is_active
+            label = "⏸ 자동 중지" if new_state else "🔄 자동 (1fps)"
+            variant = "primary" if new_state else "secondary"
+            return new_state, gr.update(value=label, variant=variant), gr.update(active=new_state)
+
+        gnd_auto_btn.click(
+            fn=_toggle_gnd_auto,
+            inputs=[_gnd_auto_state],
+            outputs=[_gnd_auto_state, gnd_auto_btn, gnd_timer],
+        )
+        gnd_stop_btn.click(
+            fn=lambda: (False, gr.update(value="🔄 자동 (1fps)", variant="secondary"), gr.update(active=False)),
+            outputs=[_gnd_auto_state, gnd_auto_btn, gnd_timer],
+        )
+        gnd_timer.tick(
+            fn=_run_grounding,
+            inputs=[api_url_box, _gnd_history_rows, _gnd_count],
+            outputs=[gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
+                     gnd_latency, gnd_raw, _gnd_history_rows, _gnd_count],
+        )
 
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt: set_running(True, mode, url, instr, gt),
