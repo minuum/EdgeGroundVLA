@@ -852,6 +852,37 @@ _joystick = DashboardJoystickReader()
 _joystick.start()
 
 
+def _gnd_area_html(area: float, has: bool) -> str:
+    pct   = min(int(area * 100 / 0.5 * 100), 100)  # 0.5 → 100%
+    color = "#22c55e" if has else "#6b7280"
+    dist  = "근접" if area >= 0.4 else ("중간" if area >= 0.15 else ("멀리" if area >= 0.05 else "없음"))
+    return (
+        f'<div style="margin:4px 0">'
+        f'<div style="font-size:12px;color:#9ca3af;margin-bottom:3px">'
+        f'bbox area — {area:.3f} ({dist})'
+        f'<span style="float:right;font-size:11px;color:#6b7280">0=없음 · 0.1=1m · 0.4+=근접</span></div>'
+        f'<div style="background:#374151;border-radius:4px;height:16px;width:100%">'
+        f'<div style="background:{color};width:{pct}%;height:100%;border-radius:4px;'
+        f'transition:width 0.3s"></div></div></div>'
+    )
+
+
+def _gnd_cx_html(cx: float, has: bool) -> str:
+    pct   = min(max(int(cx * 100), 0), 100)
+    color = "#3b82f6" if has else "#6b7280"
+    side  = "왼쪽" if cx < 0.4 else ("오른쪽" if cx > 0.6 else "중앙")
+    return (
+        f'<div style="margin:4px 0">'
+        f'<div style="font-size:12px;color:#9ca3af;margin-bottom:3px">'
+        f'cx — {cx:.2f} ({side})'
+        f'<span style="float:right;font-size:11px;color:#6b7280">0=왼쪽 · 0.5=중앙 · 1=오른쪽</span></div>'
+        f'<div style="background:#374151;border-radius:4px;height:16px;width:100%;position:relative">'
+        f'<div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#4b5563"></div>'
+        f'<div style="background:{color};width:8px;height:100%;border-radius:4px;'
+        f'margin-left:calc({pct}% - 4px);transition:margin-left 0.3s"></div></div></div>'
+    )
+
+
 def annotate_image(img: Image.Image, bbox: dict | None = None, draw_grid: bool = True) -> Image.Image:
     """카메라 이미지에 3x3 격자 + bbox 오버레이를 그려 반환."""
     arr = np.array(img)
@@ -1544,20 +1575,11 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 gnd_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
 
           with gr.Column(scale=2):
-            # 실시간 게이지 패널
-            gnd_has_bbox  = gr.Textbox(label="검출 결과", value="—", interactive=False)
-            gnd_area_bar  = gr.Slider(
-                minimum=0, maximum=1, value=0, step=0.001,
-                label="bbox area  (0=없음 · 0.1=1m · 0.4+=근접)",
-                interactive=False,
-            )
-            gnd_cx_bar = gr.Slider(
-                minimum=0, maximum=1, value=0.5, step=0.001,
-                label="cx  (0=왼쪽 · 0.5=중앙 · 1=오른쪽)",
-                interactive=False,
-            )
-            gnd_latency   = gr.Textbox(label="Grounding latency", value="—", interactive=False)
-            gnd_raw       = gr.Textbox(label="PG2 raw output", value="—", interactive=False, lines=2)
+            gnd_has_bbox = gr.Textbox(label="검출 결과", value="—", interactive=False)
+            gnd_area_bar = gr.HTML(value=_gnd_area_html(0.06, False), label="")
+            gnd_cx_bar   = gr.HTML(value=_gnd_cx_html(0.5, False),   label="")
+            gnd_latency  = gr.Textbox(label="Grounding latency", value="—", interactive=False)
+            gnd_raw      = gr.Textbox(label="PG2 raw output", value="—", interactive=False, lines=2)
             gnd_history   = gr.Dataframe(
                 headers=["#", "has_bbox", "area", "cx", "latency(ms)"],
                 datatype=["number", "str", "number", "number", "number"],
@@ -1584,8 +1606,9 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
 
             if frame is None:
                 return (
-                    None, "❌ 카메라 없음", 0.0, 0.5, "—", "카메라 연결 필요",
-                    history_rows, count,
+                    None, "❌ 카메라 없음",
+                    _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
+                    "—", "카메라 연결 필요", history_rows, count,
                 )
 
             # base64 인코딩
@@ -1603,8 +1626,9 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 d = resp.json()
             except Exception as e:
                 return (
-                    frame, f"❌ 서버 오류: {e}", 0.0, 0.5, "—", str(e),
-                    history_rows, count,
+                    frame, f"❌ 서버 오류: {e}",
+                    _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
+                    "—", str(e), history_rows, count,
                 )
 
             has   = d.get("has_bbox", False)
@@ -1642,7 +1666,11 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             new_row = [count, "✅" if has else "❌", round(area, 3), round(cx, 3), round(lat, 0)]
             rows = ([new_row] + list(history_rows))[:10]
 
-            return (img_draw, status, area, cx, f"{lat:.0f} ms", raw, rows, count)
+            return (
+                img_draw, status,
+                _gnd_area_html(area, has), _gnd_cx_html(cx, has),
+                f"{lat:.0f} ms", raw, rows, count,
+            )
 
         # 단발 버튼
         gnd_run_btn.click(
