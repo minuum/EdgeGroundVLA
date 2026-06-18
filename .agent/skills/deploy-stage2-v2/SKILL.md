@@ -1,65 +1,71 @@
 ---
 name: deploy-stage2-v2
-description: Stage2 v2 체크포인트(stage1 encoder + best action head)와 추론 서버를 soda@100.85.118.58:~/MoNaVLA 로 rsync 전송. 같은 레포 구조 그대로 유지.
+description: Stage2 v2 추론 서버 코드를 soda@100.85.118.58:~/MoNaVLA 로 rsync 전송하고 서버 재시작까지 자동 처리. "soda에 배포해줘", "go.sh 재시작", "서버 업데이트" 등의 요청에 사용.
 ---
 
-# Deploy Stage2 v2
+# Deploy Stage2 v2 to soda
 
-Stage2 v2 모델 파일을 `soda@100.85.118.58:~/MoNaVLA` 로 전송. 같은 레포이므로 경로 구조 그대로.
+minum → soda 직접 rsync 가능 (Tailscale, 100.85.118.58).  
+모델 체크포인트는 `rsync_stage2_v2.sh` 로, 코드 파일은 직접 rsync.
 
-## 실제 스크립트
-
-```
-scripts/deploy/rsync_stage2_v2.sh [--all]
-```
-
-## 전송 파일 목록
-
-| 파일 | 크기 | 용도 |
-|------|------|------|
-| `runs/v5_nav/mlp/shared/stage1_v2_projs.pt` | 3.1MB | Stage1 vision encoder + image_proj |
-| `runs/v5_nav/mlp/exp66/action_mlp.pt` | 456KB | Stage2 SOTA (96.6% CL, Exp66 ActionMLP w=8) |
-| `robovlm_nav/serve/stage2_v2_inference_server.py` | ~15KB | FastAPI 추론 서버 |
-| `scripts/train_exp54_stage2_v2_action.py` | — | 학습 스크립트 |
-| `scripts/eval_exp54_stage2_v2_closedloop.py` | — | CL 평가 스크립트 |
-| `docs/v5/DEPLOY_MANIFEST.json` | ~2KB | 모델 파라미터 요약 |
-
-## 사용법
+## SSH 접근
 
 ```bash
-# best 모델만 (기본)
-bash scripts/deploy/rsync_stage2_v2.sh
-
-# ablation ckpt 전부 포함 (window 변형 등)
-bash scripts/deploy/rsync_stage2_v2.sh --all
+ssh soda@100.85.118.58 'echo ok'   # 연결 확인
 ```
 
-## 모델 파라미터 (최선 모델 기준)
+## 코드만 배포 (서버 재시작 포함)
 
-| 항목 | 값 |
-|------|-----|
-| Head | ActionMLP |
-| Window | 8 |
-| d_in | 288 (8×4 + 256) |
-| val_acc | 93.5% |
-| CL (Closed-Loop) | 96.6% |
-| FPE | 0.102m |
-| cx source | base PG2 (HSV aug) |
+```bash
+cd ~/26CS/MoNaVLA
 
-## 주의사항
+# 1. 코드 전송
+rsync -avz --relative \
+  robovlm_nav/serve/stage2_v2_inference_server.py \
+  scripts/gradio_inference_dashboard.py \
+  scripts/run/go.sh \
+  soda@100.85.118.58:~/MoNaVLA/
 
-- Kosmos-2 그라운딩 모델 (`.vlms/kosmos-2-patch14-224`) 은 용량이 커서 별도 전송 필요
-- Stage1 인코더는 Kosmos-2 vision_model 위에서 동작 — `VLA_GROUNDING_MODEL_PATH` 필수
-- Google-robot pretrained (`inference_server.py`) 와 완전히 다른 파이프라인. 혼동 주의.
+# 2. 재시작
+ssh soda@100.85.118.58 'cd ~/MoNaVLA && bash scripts/run/go.sh --stop && nohup bash scripts/run/go.sh > /tmp/go_startup.log 2>&1 &'
+
+# 3. 서버 준비 대기
+ssh soda@100.85.118.58 'until curl -sf http://localhost:8001/health > /dev/null; do sleep 3; done && curl -s http://localhost:8001/health'
+```
+
+## 모델 체크포인트 포함 전체 배포
+
+```bash
+bash scripts/deploy/rsync_stage2_v2.sh        # best 모델만
+bash scripts/deploy/rsync_stage2_v2.sh --all  # ablation ckpt 전부
+```
+
+## 상태 확인
+
+```bash
+ssh soda@100.85.118.58 'cd ~/MoNaVLA && bash scripts/run/go.sh --status'
+ssh soda@100.85.118.58 'curl -s http://localhost:8001/health'
+ssh soda@100.85.118.58 'tail -20 ~/MoNaVLA/logs/s2v2_server.log'
+```
+
+## 전송 코드 파일 목록
+
+| 파일 | 용도 |
+|---|---|
+| `robovlm_nav/serve/stage2_v2_inference_server.py` | FastAPI 추론 서버 (PG2 grounding + MLP) |
+| `scripts/gradio_inference_dashboard.py` | 로봇 제어 대시보드 (async 2-thread) |
+| `scripts/run/go.sh` | 서버+대시보드 통합 시작 스크립트 |
+
+## 헬스 응답 예시
+
+```json
+{"status":"healthy","model_loaded":true,"head":"mlp","window":8,"gpu":{"allocated_gb":0.609,"device_name":"Orin"}}
+```
 
 ## 에이전트 사용 예시
 
-"stage2 v2 soda 서버로 보내줘":
-```bash
-bash scripts/deploy/rsync_stage2_v2.sh
-```
+"soda 서버 재시작해줘", "배포해줘", "코드 업데이트 반영해줘":
+→ 위 "코드만 배포" 절차 실행
 
-"stage2 v2 ablation ckpt 전부 포함해서 보내줘":
-```bash
-bash scripts/deploy/rsync_stage2_v2.sh --all
-```
+"체크포인트까지 새로 올려줘":
+→ `rsync_stage2_v2.sh` 실행 후 재시작
