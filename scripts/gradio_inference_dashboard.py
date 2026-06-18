@@ -936,9 +936,13 @@ state = {
     "stable_frame": None,
     "stable_frame_cc": False,  # color correction 적용 여부 기록
     # 추론 이동 모드
-    # SYNC: 이동 완료 후 150ms settle → stable_frame 캡처 → 다음 스텝 추론 (현재 기본)
-    # PRE : 이동 직전 live frame → 추론 → 이동 (수집 PRE_CACHE와 동일 분포)
+    # SYNC : 이동 완료 후 150ms settle → stable_frame 캡처 → 다음 스텝 추론 (현재 기본)
+    # PRE  : 이동 직전 live frame → 추론 → 이동 (수집 PRE_CACHE와 동일 분포)
+    # ASYNC: inference_thread(3Hz) + execution_thread(10Hz) 완전 분리
     "infer_move_mode": "SYNC",
+    # ASYNC 모드 공유 상태
+    "_async_result": None,   # 최신 추론 결과 (UI 표시용)
+    "_async_step": 0,
 }
 
 
@@ -983,11 +987,106 @@ def _flush_session(status: str = "manual_stop"):
     return None
 
 
-def set_running(running: bool, backend_mode: str, api_url: str, instruction: str, gt_object: str = ""):
+# ── ASYNC 추론 인프라 ──────────────────────────────────────────────────────
+import threading as _threading
+from collections import deque as _deque
+
+_async_stop_evt: _threading.Event = _threading.Event()
+_async_q: _deque = _deque(maxlen=2)  # 최신 action 2개만 보존
+
+
+def _async_inference_worker(backend_mode: str, api_url: str, instr: str, apply_cc: bool):
+    """3Hz 추론 루프 — /predict latency(~350ms)가 자연스러운 throttle."""
+    step = 0
+    while not _async_stop_evt.is_set() and state["is_running"]:
+        if not (ROS_AVAILABLE and ros_node):
+            _threading.Event().wait(0.1)
+            continue
+        img = ros_node.get_inference_frame()
+        if img is None:
+            _threading.Event().wait(0.05)
+            continue
+        if apply_cc:
+            img = correct_image(img)
+        try:
+            result = run_backend_inference(img, instr, backend_mode, api_url, execute_move=False)
+        except Exception as e:
+            print(f"[ASYNC infer] error: {e}")
+            continue
+        step += 1
+        result["_async_step"] = step
+        _async_q.append(result)
+        state["_async_result"] = result
+        state["_async_step"] = step
+        # goal 도달 확인
+        if result.get("goal_near"):
+            state["is_running"] = False
+            if ROS_AVAILABLE and ros_node:
+                ros_node.control.robust_stop(source="async_goal_reached")
+            _flush_session("goal_reached")
+            break
+
+
+def _async_execution_worker():
+    """10Hz 실행 루프 — queue에서 action 꺼내 cmd_vel 연속 발행."""
+    lx, ly, az = 0.0, 0.0, 0.0
+    last_update = time.time()
+    COAST_TIMEOUT = 1.2  # 1.2s 이상 새 action 없으면 정지
+
+    while not _async_stop_evt.is_set() and state["is_running"]:
+        if _async_q:
+            result = _async_q.popleft()
+            action = np.asarray(result.get("action_3d") or result["action"], dtype=np.float32).reshape(-1)
+            lx = float(action[0])
+            ly = float(action[1])
+            az = float(action[2]) if action.size > 2 else 0.0
+            last_update = time.time()
+            state["action_history"].append((lx, ly, az))
+
+        if time.time() - last_update > COAST_TIMEOUT:
+            lx, ly, az = 0.0, 0.0, 0.0
+
+        if ROS_AVAILABLE and ros_node:
+            state["current_log"] = ros_node.control.publish_and_move(
+                lx, ly, az, source="async_exec",
+            )
+        time.sleep(0.1)  # 10Hz
+
+    # 루프 종료 시 stop
+    if ROS_AVAILABLE and ros_node:
+        ros_node.control.robust_stop(source="async_exec_end")
+
+
+def _start_async_workers(backend_mode: str, api_url: str, instr: str, apply_cc: bool):
+    _async_stop_evt.clear()
+    _async_q.clear()
+    t_infer = _threading.Thread(
+        target=_async_inference_worker,
+        args=(backend_mode, api_url, instr, apply_cc),
+        daemon=True, name="async-infer",
+    )
+    t_exec = _threading.Thread(
+        target=_async_execution_worker,
+        daemon=True, name="async-exec",
+    )
+    t_infer.start()
+    t_exec.start()
+
+
+def _stop_async_workers():
+    _async_stop_evt.set()
+    _async_q.clear()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+def set_running(running: bool, backend_mode: str, api_url: str, instruction: str, gt_object: str = "",
+                apply_cc: bool = False):
     state["is_running"] = running
     state["gt_object"] = gt_object
     if running:
         state["step_count"] = 0
+        state["_async_step"] = 0
+        state["_async_result"] = None
         state["action_history"] = []
         state["stable_frame"] = None
         state["stable_frame_cc"] = False
@@ -995,14 +1094,22 @@ def set_running(running: bool, backend_mode: str, api_url: str, instruction: str
             make_backend(backend_mode, api_url).reset(instruction)
         except Exception:
             pass
+        if state.get("infer_move_mode") == "ASYNC":
+            if logger_instance:
+                logger_instance.start_session("async", instruction, instruction_mode=backend_mode)
+                if gt_object:
+                    logger_instance.data["gt_object"] = gt_object
+            _start_async_workers(backend_mode, api_url, instruction, apply_cc)
     else:
-        # 수동 stop — 진행 중 세션 저장
+        if state.get("infer_move_mode") == "ASYNC":
+            _stop_async_workers()
         _flush_session("manual_stop")
         state["step_count"] = 0
     return "Running..." if running else "Stopped"
 
 
-def run_backend_inference(image: Image.Image, instruction: str, backend_mode: str, api_url: str):
+def run_backend_inference(image: Image.Image, instruction: str, backend_mode: str, api_url: str,
+                          execute_move: bool = True):
     backend = make_backend(backend_mode, api_url)
     result = backend.predict(image=image, instruction=instruction)
     # action_3d includes az for ROT_L/ROT_R; fall back to 2D action if not present
@@ -1012,7 +1119,7 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
     if chunk.ndim == 1:
         chunk = chunk.reshape(1, -1)
 
-    if ROS_AVAILABLE and ros_node:
+    if execute_move and ROS_AVAILABLE and ros_node:
         lx = float(action[0])
         ly = float(action[1])
         az = float(action[2]) if action.size > 2 else 0.0
@@ -1104,6 +1211,21 @@ def update_ui(mode, backend_mode, api_url, instr, apply_cc, _run_status, infer_m
 
     state["camera_status"] = "OK"
     state["last_img"] = img  # raw image for logging
+
+    # ── ASYNC 모드: background 스레드가 추론+실행 담당, UI는 최신 결과만 표시 ──
+    if state["auto_inference"] and state["is_running"] and state.get("infer_move_mode") == "ASYNC":
+        result = state.get("_async_result")
+        step = state.get("_async_step", 0)
+        if result:
+            display_img = annotate_image(img, bbox=result.get("bbox"))
+            fig = ros_node.generate_trajectory_plot(result["chunk"])
+            log = f"[ASYNC] Step {step} | {result.get('log_str', state['current_log'])}"
+            if not state["is_running"]:  # goal reached by worker
+                log = f"🎯 Goal Reached! (step {step})"
+                return display_img, log, result["lat_str"], result["act_str"], result["chunk_display"], gr.update(value="Stopped (Goal Reached)"), state["camera_status"], state["model_path"], fig
+            return display_img, log, result["lat_str"], result["act_str"], result["chunk_display"], gr.update(value=f"ASYNC Running (step {step})"), state["camera_status"], state["model_path"], fig
+        else:
+            return annotate_image(img), f"[ASYNC] 추론 대기 중...", "—", "—", "—", gr.update(value="ASYNC Running (init)"), state["camera_status"], state["model_path"], None
 
     if state["auto_inference"] and state["is_running"]:
         state["is_busy"] = True
@@ -1367,10 +1489,10 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 with gr.Column(visible=False) as inference_panel:
                     gr.Markdown("#### 🏁 Inference Control")
                     infer_move_radio = gr.Radio(
-                        choices=["SYNC", "PRE"],
+                        choices=["SYNC", "PRE", "ASYNC"],
                         value="SYNC",
                         label="이동 모드",
-                        info="SYNC: 이동→정착→캡처 (기본) | PRE: 캡처→추론→이동 (수집과 동일 분포)",
+                        info="SYNC: 이동→정착→캡처 (기본) | PRE: 캡처→추론→이동 | ASYNC: 추론(3Hz)+실행(10Hz) 분리스레드",
                     )
                     with gr.Row():
                         btn_start_inf = gr.Button("▶️ START", variant="primary")
@@ -1767,8 +1889,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
         )
 
     btn_start_inf.click(
-        fn=lambda mode, url, instr, gt: set_running(True, mode, url, instr, gt),
-        inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box],
+        fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
+        inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box, toggle_cc],
         outputs=run_status_box,
     )
     btn_stop_inf.click(
