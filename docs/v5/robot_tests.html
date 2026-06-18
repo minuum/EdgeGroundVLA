@@ -1913,6 +1913,42 @@
     </div>
   </div>
 
+  <!-- S6 세션 (temporal filter 적용) -->
+  <div style="background:#0d1117;border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="color:#38bdf8;font-weight:700">S6 — temporal 3-frame filter 적용 후 (17:25~, n=105)</div>
+      <span style="background:rgba(34,197,94,0.15);color:#4ade80;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(34,197,94,0.3)">최신</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:#4ade80">51.4%</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">유효율 (54/105)</div>
+        <div style="font-size:0.67rem;color:#475569">↑ 33.9% → +17.5%p</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:#4ade80">0</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">노이즈 bbox</div>
+        <div style="font-size:0.67rem;color:#475569">tiny/giant/xfull 0건</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:#38bdf8">0.687</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">area 최대값</div>
+        <div style="font-size:0.67rem;color:#475569">근접 프레임 포함</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:#38bdf8">0.093</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">area 평균</div>
+        <div style="font-size:0.67rem;color:#475569">cx 평균 0.522</div>
+      </div>
+    </div>
+    <div style="font-size:0.78rem;color:#64748b;line-height:1.7">
+      <span style="color:#4ade80;font-weight:700">gnd_20260618_172556.jsonl</span> &nbsp;|&nbsp;
+      세션 중 바스켓 근접 프레임 다수 포함 (area 0.687 최고) &nbsp;|&nbsp;
+      temporal filter(GOAL_CONSEC_FRAMES=3) 작동 중 — 로그 <code>[near N/3]</code> 확인됨 &nbsp;|&nbsp;
+      fast fallback 1건 (바스켓 없는 장면), 필터차단 50건
+    </div>
+  </div>
+
   <!-- 결론 및 액션 아이템 -->
   <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:20px">
     <div style="color:#f59e0b;font-weight:700;margin-bottom:14px">결론 및 다음 액션</div>
@@ -1923,7 +1959,7 @@
           <li><code style="color:#86efac">min_new_tokens=1</code> → &lt;eos&gt; 해결 ✅</li>
           <li>4종 필터 적용 → 노이즈 bbox 완전 차단 ✅</li>
           <li>PNG 인코딩 → 학습 H5 numpy와 동일 조건 ✅</li>
-          <li>유효율 29.2% → 33.9% (+4.7%p) ✅</li>
+          <li>유효율 29.2% → 33.9% → <strong style="color:#4ade80">51.4%</strong> (세션별 누적 개선) ✅</li>
           <li>false positive 1→0건 ✅</li>
           <li>잔존: false positive 기하필터 불가 (temporal 미구현)</li>
         </ul>
