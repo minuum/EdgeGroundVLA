@@ -107,8 +107,9 @@ _LOC_RE = re.compile(r"<loc(\d{4})>")
 # Stop-proximity thresholds (tuned from PG2 grounding on last frames: area≈0.25-0.46 vs mid 0.08-0.10)
 GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.25"))
 GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.35"))
-# Require this many of the last N history frames to be near-goal before forcing STOP
-GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "2"))
+# Temporal filter: require this many CONSECUTIVE frames all satisfying near-goal condition.
+# history가 N프레임 미만이면 발동 안 함 — 초반 false positive 차단.
+GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "3"))
 # STOP mode: "proximity" (threshold-based override) | "learned" (model prediction + latch)
 STOP_MODE = os.getenv("VLA_STOP_MODE", "proximity")
 
@@ -497,13 +498,20 @@ class Stage2V2Model:
                 learned_stop = True
         else:
             # proximity 모드: area + cx threshold로 강제 override
-            near_frames = sum(
-                1 for h in self.history[-GOAL_CONSEC_FRAMES:]
-                if h.get("has_bbox")
-                and h.get("area", 0.0) >= GOAL_AREA_THRESHOLD
-                and abs(h.get("cx", 0.5) - 0.5) <= GOAL_CX_TOLERANCE
-            )
-            is_near_goal = (near_frames >= min(GOAL_CONSEC_FRAMES, len(self.history)))
+            # 조건: 직전 GOAL_CONSEC_FRAMES 프레임이 모두 근접 조건 만족
+            # history가 GOAL_CONSEC_FRAMES 미만이면 발동 안 함 (초반 false positive 방지)
+            last_n = self.history[-GOAL_CONSEC_FRAMES:]
+            if len(last_n) >= GOAL_CONSEC_FRAMES:
+                near_frames = sum(
+                    1 for h in last_n
+                    if h.get("has_bbox")
+                    and h.get("area", 0.0) >= GOAL_AREA_THRESHOLD
+                    and abs(h.get("cx", 0.5) - 0.5) <= GOAL_CX_TOLERANCE
+                )
+                is_near_goal = (near_frames >= GOAL_CONSEC_FRAMES)
+            else:
+                near_frames = 0
+                is_near_goal = False
             if is_near_goal:
                 proximity_override = True
                 pred_class = 0
@@ -517,9 +525,10 @@ class Stage2V2Model:
 
         self.inference_count += 1
         total_ms = (time.time() - start) * 1000.0
+        temporal_tag = f" [near {near_frames}/{GOAL_CONSEC_FRAMES}]" if STOP_MODE != "learned" else ""
         logger.info(
-            "[#%d] %s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
-            self.inference_count, CLASS_NAMES[pred_class], stop_tag,
+            "[#%d] %s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            self.inference_count, CLASS_NAMES[pred_class], stop_tag, temporal_tag,
             frame["cx"], frame["area"], frame["has_bbox"], total_ms,
         )
 
