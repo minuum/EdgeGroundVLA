@@ -1739,16 +1739,218 @@
 <div style="max-width:1100px;margin:60px auto 0;padding:0 20px" id="gnd-session-20260618">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
     <h2 style="color:#f59e0b;font-size:1.25rem;font-weight:800;letter-spacing:0.03em;margin:0">
-      2026-06-18 PG2 Grounding 세션 분석
+      2026-06-18 PG2 Grounding — S1~S6 전체 세션 분석
     </h2>
     <span style="background:rgba(245,158,11,0.12);color:#f59e0b;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(245,158,11,0.25)">grounding</span>
   </div>
-  <p style="color:#64748b;font-size:0.85rem;margin-bottom:18px">
+  <p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">
     모델: <code style="color:#a78bfa">paligemma2-3b-mix-224</code> (base, 파인튜닝 없음) &nbsp;|&nbsp;
-    세션 로그: <code style="color:#94a3b8">gnd_20260618_152628.jsonl</code> &nbsp;|&nbsp;
-    총 139프레임 (구버전 서버 24 + 신버전 서버 115)
+    총 512프레임 (S1=7 + S2=247 + S3=14 + S4=24 + S5=115 + S6=105) &nbsp;|&nbsp;
+    카메라 버그 → 4종 필터 → PNG → temporal N=3 순서로 패치 누적
   </p>
 
+  <!-- ── S1 ── -->
+  <div style="background:#0d1117;border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:18px 20px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="color:#ef4444;font-weight:800">S1 — imgmsg_to_cv2 버그 (14:23:13~19, n=7)</div>
+      <span style="background:rgba(239,68,68,0.12);color:#ef4444;font-size:0.7rem;padding:2px 8px;border-radius:20px;border:1px solid rgba(239,68,68,0.25)">카메라 버그</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#ef4444">0%</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">유효율 (0/7)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#ef4444">7/7</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">fast 기록 (~361ms)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#475569">0.06</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">area (모두 fallback)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#475569">0.5</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">cx (모두 fallback)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#475569">7</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">연속 NO_BBOX</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.75rem">
+      <div style="background:#0f172a;border-radius:7px;padding:10px">
+        <div style="color:#ef4444;font-weight:700;margin-bottom:5px">원인</div>
+        <div style="color:#94a3b8;line-height:1.7">
+          ROS <code>imgmsg_to_cv2(CompressedImage)</code> 호출 → <strong>빈 이미지</strong> (blank array) →
+          PG2에 검은 프레임 입력 → <code>&lt;eos&gt;</code> 즉시 반환 (latency ~360ms, fast path) →
+          has_bbox=False + area=0.06/cx=0.5 (기본 fallback 값)
+        </div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px">
+        <div style="color:#4ade80;font-weight:700;margin-bottom:5px">수정</div>
+        <div style="color:#94a3b8;line-height:1.7">
+          <code>compressed_imgmsg_to_cv2()</code> 로 교체 →
+          S3 이후 fast=0건 확인 (완전 해결).
+          area=0.06, cx=0.5 fallback 패턴 = 버그 지문으로 활용 가능.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S2 ── -->
+  <div style="background:#0d1117;border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:18px 20px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="color:#f87171;font-weight:800">S2 — 장시간 로봇 테스트, 버그 지속 (14:23:20~14:46:46, n=247)</div>
+      <span style="background:rgba(239,68,68,0.1);color:#ef4444;font-size:0.7rem;padding:2px 8px;border-radius:20px;border:1px solid rgba(239,68,68,0.2)">카메라 버그</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#ef4444">1.2%</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">유효율 (3/247)</div>
+        <div style="font-size:0.62rem;color:#475569">slow path만 유효</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#ef4444">244</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">fast 기록 (~361ms)</div>
+        <div style="font-size:0.62rem;color:#475569">98.8% 빈 이미지</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#f59e0b">195</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">최장 연속 NO_BBOX</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#38bdf8">0.360</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">OK area 평균</div>
+        <div style="font-size:0.62rem;color:#475569">(3건만 유효)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#f59e0b">2</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">near-goal 프레임</div>
+        <div style="font-size:0.62rem;color:#475569">비연속 → 발동 0</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.75rem">
+      <div style="background:#0f172a;border-radius:7px;padding:10px">
+        <div style="color:#f87171;font-weight:700;margin-bottom:5px">3건 slow(유효) 상세</div>
+        <div style="color:#94a3b8;line-height:1.8">
+          n=196: area=0.073 cx=0.511 lat=1298ms<br>
+          n=209: area=0.505 cx=0.500 lat=1235ms &nbsp;<span style="color:#f59e0b">★near-goal</span><br>
+          n=216: area=0.501 cx=0.498 lat=1242ms &nbsp;<span style="color:#f59e0b">★near-goal</span><br>
+          → n=209~216 사이 6프레임 fast(NO_BBOX) 분리 → temporal 불발 (정상)
+        </div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px">
+        <div style="color:#f87171;font-weight:700;margin-bottom:5px">NO_BBOX 연속 구간</div>
+        <div style="color:#94a3b8;line-height:1.8">
+          195연속 / 31연속 / 12연속 / 6연속<br>
+          총 23분 세션 — 로봇이 바스켓을 대부분 찾지 못함<br>
+          (카메라 버그 + 탐색 실패 복합)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S3 ── -->
+  <div style="background:#0d1117;border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:18px 20px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="color:#fbbf24;font-weight:800">S3 — 카메라 버그 수정 직후 첫 테스트 (15:16:02~41, n=14)</div>
+      <span style="background:rgba(245,158,11,0.1);color:#f59e0b;font-size:0.7rem;padding:2px 8px;border-radius:20px;border:1px solid rgba(245,158,11,0.25)">카메라 수정 직후</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#4ade80">64.3%</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">필터 후 유효 (9/14)</div>
+        <div style="font-size:0.62rem;color:#475569">has_bbox=14/14</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#4ade80">0</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">fast 기록</div>
+        <div style="font-size:0.62rem;color:#4ade80">카메라 버그 해결!</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#ef4444">5</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">TINY (area&lt;0.01)</div>
+        <div style="font-size:0.62rem;color:#475569">4-filter 未적용</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#f59e0b">3</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">near-goal</div>
+        <div style="font-size:0.62rem;color:#475569">n=5,11,13 비연속</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#94a3b8">4</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">중복 프레임</div>
+        <div style="font-size:0.62rem;color:#475569">n=1~4 완전 동일</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.75rem">
+      <div style="background:#0f172a;border-radius:7px;padding:10px">
+        <div style="color:#fbbf24;font-weight:700;margin-bottom:5px">14프레임 상세 (후처리 분류)</div>
+        <div style="color:#94a3b8;line-height:1.7;font-size:0.7rem">
+          n=1~4: <span style="color:#4ade80">OK</span> area=0.050 cx=0.514 <em>(4프레임 완전 동일 — 버퍼 중복)</em><br>
+          n=5: <span style="color:#4ade80">OK</span> area=<strong style="color:#f59e0b">0.454</strong> cx=0.500 <span style="color:#f59e0b">★near-goal</span><br>
+          n=6: <span style="color:#4ade80">OK</span> area=0.068 cx=0.683<br>
+          n=7~10: <span style="color:#ef4444">TINY</span> area=0.001~0.002 (4-filter 없음 → 통과)<br>
+          n=11: <span style="color:#4ade80">OK</span> area=<strong style="color:#f59e0b">0.505</strong> cx=0.500 <span style="color:#f59e0b">★near-goal</span><br>
+          n=12: <span style="color:#4ade80">OK</span> area=0.064 cx=0.544<br>
+          n=13: <span style="color:#4ade80">OK</span> area=<strong style="color:#f59e0b">0.482</strong> cx=0.498 <span style="color:#f59e0b">★near-goal</span><br>
+          n=14: <span style="color:#ef4444">TINY</span> area=0.001
+        </div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px">
+        <div style="color:#fbbf24;font-weight:700;margin-bottom:5px">발견 & 미적용</div>
+        <div style="color:#94a3b8;line-height:1.7">
+          near-goal 3건: n=5 / n=11 / n=12(사이 gap있음) / n=13<br>
+          n=11→n=12→n=13: n=12가 area=0.064(미달) → <strong>3연속 불성립</strong><br>
+          이 세션 시점엔 4종 필터 未적용 → TINY 5건이 has_bbox=True로 통과<br>
+          latency 전부 1270~1335ms (정상 PG2 추론)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S4 섹션 헤더 ── -->
+  <div style="margin:24px 0 14px;display:flex;align-items:center;gap:10px">
+    <div style="height:2px;flex:1;background:linear-gradient(to right,rgba(249,115,22,0.5),transparent)"></div>
+    <span style="color:#f97316;font-weight:800;font-size:0.95rem">S4 — 4종 필터 前 구버전 서버 (15:26:30~15:27:39, n=24)</span>
+    <div style="height:2px;flex:1;background:linear-gradient(to left,rgba(249,115,22,0.5),transparent)"></div>
+  </div>
+  <div style="background:#0d1117;border:1px solid rgba(249,115,22,0.25);border-radius:12px;padding:18px 20px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#f97316">29.2%</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">유효율 (7/24)</div>
+        <div style="font-size:0.62rem;color:#475569">XFULL 제외 시</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#ef4444">6</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">XFULL (cx≈0.5)</div>
+        <div style="font-size:0.62rem;color:#475569">n=1,3,4,16,21,22</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#dc2626">6</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">FULL (area≥0.987)</div>
+        <div style="font-size:0.62rem;color:#475569">n=10~14,23</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#64748b">5</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">TINY (area≤0.001)</div>
+        <div style="font-size:0.62rem;color:#475569">n=2,5,6,7,8</div>
+      </div>
+      <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#f59e0b">7</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">near-goal</div>
+        <div style="font-size:0.62rem;color:#475569">area 0.26~0.55</div>
+      </div>
+    </div>
+    <div style="font-size:0.75rem;color:#94a3b8;line-height:1.7;background:#0f172a;border-radius:7px;padding:10px">
+      24건 전부 has_bbox=True (min_new_tokens=1 적용, <code>&lt;eos&gt;</code> 없음) — 하지만 4종 필터 未적용 → TINY 5건(area&lt;0.001), FULL 6건(area≥0.987), XFULL 6건(x방향 전체폭) 포함.
+      OK 7건: n=9(area=0.258) / n=15(0.056) / n=17(0.074) / n=18(0.105) / n=19(0.078) / n=20(0.078) / n=24(0.234).
+      max_ok_consec=8 (n=15~22, 하지만 내부에 FULL/XFULL 포함). 필름스트립 아래 참조.
+    </div>
+  </div>
+
+  <!-- S4 버그 패턴 상세 (기존 그대로) -->
   <!-- 요약 카드 -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
     <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center">
@@ -1864,7 +2066,62 @@
     </div>
   </div>
 
-  <!-- 4종 필터 패치 후 신버전 비교 -->
+  <!-- ── S5 섹션 헤더 ── -->
+  <div style="margin:24px 0 14px;display:flex;align-items:center;gap:10px">
+    <div style="height:2px;flex:1;background:linear-gradient(to right,rgba(56,189,248,0.5),transparent)"></div>
+    <span style="color:#38bdf8;font-weight:800;font-size:0.95rem">S5 — 4종 필터 적용 신버전 서버 (16:35:35~16:54:35, n=115)</span>
+    <div style="height:2px;flex:1;background:linear-gradient(to left,rgba(56,189,248,0.5),transparent)"></div>
+  </div>
+  <!-- S5 요약 카드 -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">
+    <div style="background:#0f172a;border:1px solid rgba(56,189,248,0.2);border-radius:7px;padding:10px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:#38bdf8">33.9%</div>
+      <div style="font-size:0.68rem;color:#64748b;margin-top:2px">유효율 (39/115)</div>
+      <div style="font-size:0.62rem;color:#38bdf8">↑ S4 29.2% +4.7%p</div>
+    </div>
+    <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:#4ade80">0</div>
+      <div style="font-size:0.68rem;color:#64748b;margin-top:2px">노이즈 bbox</div>
+      <div style="font-size:0.62rem;color:#4ade80">FULL/TINY/XFULL 전멸</div>
+    </div>
+    <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:#ef4444">76</div>
+      <div style="font-size:0.68rem;color:#64748b;margin-top:2px">NO_BBOX</div>
+      <div style="font-size:0.62rem;color:#475569">max_consec=24</div>
+    </div>
+    <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:#38bdf8">0.076</div>
+      <div style="font-size:0.68rem;color:#64748b;margin-top:2px">OK area 평균</div>
+      <div style="font-size:0.62rem;color:#475569">range: 0.013~0.297</div>
+    </div>
+    <div style="background:#0f172a;border-radius:7px;padding:10px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:#f59e0b">2</div>
+      <div style="font-size:0.68rem;color:#64748b;margin-top:2px">near-goal</div>
+      <div style="font-size:0.62rem;color:#475569">n=44(0.262) n=45(0.297)</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.75rem;margin-bottom:14px">
+    <div style="background:#0f172a;border-radius:7px;padding:10px">
+      <div style="color:#38bdf8;font-weight:700;margin-bottom:5px">area 분포 (39건 OK)</div>
+      <div style="color:#94a3b8;line-height:1.9;font-size:0.7rem">
+        0.01~0.05: 13건 / 0.05~0.10: 19건 ★최다 / 0.10~0.20: 5건<br>
+        0.20~0.30: 2건 (n=44, n=45) / 0.30+: 0건<br>
+        → area 상한 0.297 → stop 판단 아슬아슬<br>
+        OK 연속 구간: [15, 6, 4, 4, 2, 1]
+      </div>
+    </div>
+    <div style="background:#0f172a;border-radius:7px;padding:10px">
+      <div style="color:#38bdf8;font-weight:700;margin-bottom:5px">near-goal & temporal</div>
+      <div style="color:#94a3b8;line-height:1.7">
+        n=44(area=0.262) → n=45(area=0.297): 2연속<br>
+        n=45 다음: NO_BBOX → temporal 3연속 불성립 → goal_near 발동 0회<br>
+        cx 이상치: n=43 cx=0.128 (좌측 끝 오탐 가능성)<br>
+        잔존: temporal N=3 미적용 (다음 세션 S6에서 적용)
+      </div>
+    </div>
+  </div>
+
+  <!-- 4종 필터 패치 후 신버전 비교 (기존) -->
   <div style="background:#0d1117;border:1px solid rgba(56,189,248,0.3);border-radius:12px;padding:20px;margin-bottom:18px">
     <div style="color:#38bdf8;font-weight:700;margin-bottom:14px">
       4종 필터 패치 + min_new_tokens=1 적용 후 — 신버전 서버 (16:22~, n=115)
@@ -2434,6 +2691,9 @@
       S4 전체 24프레임 — Bbox 시각화 Filmstrip
     </h2>
     <span style="background:rgba(148,163,184,0.1);color:#94a3b8;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(148,163,184,0.2)">← → 스크롤</span>
+    <div style="flex:1"></div>
+    <button id="fs-prev" onclick="fsScroll(-1)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">←</button>
+    <button id="fs-next" onclick="fsScroll(1)"  style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">→</button>
   </div>
   <!-- 범례 -->
   <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
@@ -2929,6 +3189,12 @@ if x1 < 0.02 and x2 > 0.98:
 
 <script>
 // S4 filmstrip filter
+function fsScroll(dir) {
+  const el = document.getElementById('s4-filmstrip').parentElement;
+  const step = 240 * 3; // 3 cards at a time
+  el.scrollBy({ left: dir * step, behavior: 'smooth' });
+}
+
 function s4Filter(cls) {
   document.querySelectorAll('.s4-card').forEach(el => {
     el.style.display = (cls === 'all' || el.dataset.cls === cls) ? 'block' : 'none';
