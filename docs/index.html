@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="MoNaVLA: Decomposition-based Vision-Language-Action Model for Mobile Robot Navigation. CL 96.6% vs E2E 0%.">
+  <meta name="description" content="MoNaVLA: Decomposition-based VLA for mobile robot navigation. Sim 96.6% CL (Exp66 · CLIP pipeline). Real robot: PG2 grounding 51.4% valid (S6) · CL test in progress.">
   <meta name="keywords" content="MoNaVLA, Vision-Language-Action, Robotics, Navigation, CLIP, Decomposition">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MoNaVLA: Mobile Navigation VLA</title>
@@ -190,7 +190,8 @@
   <!-- SYNC:hero_tagline:start -->
   <p class="hero-tagline">
     Decomposition-based VLA for mobile robot basket navigation.<br>
-    <strong>96.6% closed-loop success</strong> (CLIP + L2-norm + aug pipeline) vs E2E Kosmos-2 0%.
+    <strong>96.6% CL (simulation · Exp66 · CLIP pipeline)</strong> vs E2E 0%.<br>
+    <span style="font-size:0.92rem;color:#38bdf8">Real robot: PG2 grounding <strong style="color:#4ade80">51.4%</strong> valid (S6 · 4-filter + temporal N=3) — CL test in progress.</span>
   </p>
 <!-- SYNC:hero_tagline:end -->
   <div class="hero-buttons">
@@ -218,21 +219,26 @@
 <!-- ══ Metrics Bar ════════════════════════════════════════════════════════ -->
 <!-- SYNC:metrics_bar:start -->
 <div class="metrics-bar">
-  <div class="metrics-grid">
+  <div class="metrics-grid" style="grid-template-columns:repeat(5,1fr);max-width:1100px">
     <div class="metric-cell">
       <div class="metric-value" style="color:#16a34a">96.6%</div>
-      <div class="metric-label">Closed-Loop (SOTA)</div>
-      <div class="metric-note">Exp66 · CLIP + L2-aug</div>
+      <div class="metric-label">CL Success · Sim</div>
+      <div class="metric-note">Exp66 · CLIP + L2-aug · MLP w=4</div>
     </div>
     <div class="metric-cell">
       <div class="metric-value" style="color:#dc2626">0%</div>
-      <div class="metric-label">E2E VLA Baseline</div>
-      <div class="metric-note">Exp11 · Kosmos-2 LoRA</div>
+      <div class="metric-label">E2E Baseline · Sim</div>
+      <div class="metric-note">Exp11 · Kosmos-2 LoRA (text attn 0%)</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-value" style="color:#f59e0b">51.4%</div>
+      <div class="metric-label">PG2 Grounding · Real</div>
+      <div class="metric-note">S6 · 4-filter + temporal N=3</div>
     </div>
     <div class="metric-cell">
       <div class="metric-value" style="color:#2563eb">0.080 m</div>
-      <div class="metric-label">Best FPE (↓)</div>
-      <div class="metric-note">LSTM w=16 · MLP w=4: 0.094 m</div>
+      <div class="metric-label">Best Sim FPE (↓)</div>
+      <div class="metric-note">Exp66 · LSTM w=16</div>
     </div>
     <div class="metric-cell">
       <div class="metric-value" style="color:#d97706">×9.4</div>
@@ -254,12 +260,21 @@
       We instead adopt a <strong>decomposition pipeline</strong>: a frozen CLIP vision encoder projects
       frame features to 256-dim with L2-normalization, concatenated with 8-frame bbox history (32-dim),
       and fed to a 3-layer ActionMLP predicting 8 discrete actions.
-      This pipeline achieves <strong>96.6% closed-loop success (FPE 0.094 m)</strong>
+      <strong>In simulation</strong>, this pipeline achieves <strong>96.6% closed-loop success (FPE 0.094 m)</strong>
       — a ×9.4 improvement over a simple MLP baseline (10.3%).
       Ablation confirms that the L2-norm + bbox augmentation pipeline is the sole performance driver;
       grounding source (HSV heuristic, base PG2, fine-tuned LoRA) is irrelevant once the pipeline is correct.
       Zero-shot linear probe (96.6%) and basket masking ablation (9/9 action flip) provide causal
       evidence that the frozen CLIP encoder independently localizes the basket.
+    </p>
+    <p class="abstract-text" style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0">
+      <strong>Real robot deployment</strong> uses Stage2 v2: the CLIP action model paired with a
+      PaliGemma2 (PG2) grounder (<code>detect gray basket</code>) running on the Jetson Orin (soda).
+      A 4-filter bbox validation pipeline (area collapse · tiny noise · x-full-width · top-frame)
+      and temporal N=3 goal filter suppress false positives.
+      Grounding quality has improved from <strong>0% (S1, camera decode bug)</strong> to
+      <strong>51.4% valid rate (S6)</strong> across 6 sessions (512 total frames).
+      Real robot closed-loop end-to-end test is the immediate next milestone.
     </p>
   </div>
 </div>
@@ -302,6 +317,13 @@
         <div>
           <div class="finding-title">Basket localization 이중 증명 — Zero-shot Probe 96.6% + Masking 9/9 flip</div>
           <div class="finding-sub">Frozen CLIP이 학습 없이 바스켓 위치를 96.6% 분류. Basket masking → 9/9 프레임 행동 반전 (Exp66, base PG2 grounding). 이미지 경로가 basket 픽셀을 독립적으로 인식.</div>
+        </div>
+      </li>
+      <li>
+        <div class="finding-icon">🤖</div>
+        <div>
+          <div class="finding-title">실로봇 PG2 그라운딩 — 0% → 51.4% (S1→S6, 6세션 512프레임)</div>
+          <div class="finding-sub">카메라 decode 버그 수정 → 4종 bbox 필터 → PNG 인코딩 → temporal N=3 패치 순서로 적용. S6에서 0 노이즈 bbox, 1264ms 평균 latency. 실로봇 closed-loop CL 테스트 다음 단계.</div>
         </div>
       </li>
     </ul>
@@ -389,8 +411,9 @@
     <div class="arch-box">
       <img src="v5/portfolio/architecture_diagram.svg" alt="MoNaVLA Architecture Diagram">
       <p style="font-size:0.82rem;color:#64748b;margin-top:14px;text-align:center">
-        Kosmos-2 Vision Encoder (frozen) → 256-dim L2-norm → concat BBox History (32-dim) → ActionMLP → 8 actions.<br>
-        Proximity STOP override: area ≥ 0.50 AND |cx − 0.5| ≤ 0.30 for 2 consecutive frames.
+        <strong style="color:#334155">Sim (Exp66):</strong> CLIP ViT-L/14 (frozen) → 256-dim L2-norm → concat BBox History (32-dim) → ActionMLP → 8 discrete actions.<br>
+        <strong style="color:#334155">Real robot (Stage2 v2):</strong> PaliGemma2 <code>detect gray basket</code> → 4-filter bbox → temporal N=3 goal check → CLIP action model → Jetson Orin (soda).<br>
+        Proximity STOP: area ≥ 0.25 AND |cx − 0.5| ≤ 0.35 for <strong>3 consecutive frames</strong> (GOAL_CONSEC_FRAMES=3).
       </p>
     </div>
   </div>
@@ -435,6 +458,13 @@
         <h3>논문 Table 초안 (6/12)</h3>
         <p>Table 1(주요 방법 비교), Table 2(파이프라인×cx 소스 ablation). E2E 0% vs 96.6% 핵심 수치.</p>
         <span class="lc-arrow">View draft →</span>
+      </a>
+
+      <a href="v5/robot_tests.html" class="link-card" style="border:1.5px solid #4ade8055">
+        <span class="lc-tag" style="background:#dcfce7;color:#15803d">Robot Tests · Live</span>
+        <h3>실로봇 PG2 그라운딩 세션 분석</h3>
+        <p>S1~S6 512프레임 분석. 카메라 버그 → 4종 필터 → temporal N=3 패치 누적. S4 24프레임 필름스트립 · 파이프라인 플로우 비교.</p>
+        <span class="lc-arrow" style="color:#16a34a">View robot tests →</span>
       </a>
 
       <a href="legacy.html" class="link-card" style="border-style:dashed">
