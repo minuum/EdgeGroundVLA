@@ -559,7 +559,12 @@ class ROSDashboardNode(Node):
                     try:
                         res = future.result()
                         if res and res.image.data:
-                            cv_img = self.cv_bridge.imgmsg_to_cv2(res.image, "bgr8")
+                            # GetImage 서비스는 CompressedImage 반환 → compressed_imgmsg_to_cv2 사용
+                            # (imgmsg_to_cv2는 raw sensor_msgs/Image 전용이라 예외 발생)
+                            try:
+                                cv_img = self.cv_bridge.compressed_imgmsg_to_cv2(res.image, "bgr8")
+                            except Exception:
+                                cv_img = self.cv_bridge.imgmsg_to_cv2(res.image, "bgr8")
                             with self.lock:
                                 self.latest_ui_frame = cv_img
                     except Exception:
