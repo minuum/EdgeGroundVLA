@@ -1741,6 +1741,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 gnd_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
 
           with gr.Column(scale=2):
+            gnd_clock    = gr.Textbox(label="현재 시각", value="—", interactive=False)
             gnd_has_bbox = gr.Textbox(label="검출 결과", value="—", interactive=False)
             gnd_area_bar = gr.HTML(value=_gnd_area_html(0.06, False), label="")
             gnd_cx_bar   = gr.HTML(value=_gnd_cx_html(0.5, False),   label="")
@@ -1789,9 +1790,10 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 frame = ros_node.get_inference_frame()  # PIL Image
 
             log_path_str = str(_gnd_ensure_log())
+            now_str = _dt.datetime.now().strftime("%H:%M:%S")
             if frame is None:
                 return (
-                    None, "❌ 카메라 없음",
+                    now_str, None, "❌ 카메라 없음",
                     _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
                     "—", "카메라 연결 필요", history_rows, count, log_path_str,
                 )
@@ -1811,7 +1813,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 d = resp.json()
             except Exception as e:
                 return (
-                    frame, f"❌ 서버 오류: {e}",
+                    now_str, frame, f"❌ 서버 오류: {e}",
                     _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
                     "—", str(e), history_rows, count, log_path_str,
                 )
@@ -1867,12 +1869,12 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 pass
 
             return (
-                img_draw, status,
+                now_str, img_draw, status,
                 _gnd_area_html(area, has), _gnd_cx_html(cx, has),
                 f"{lat:.0f} ms", raw, rows, count, str(log_path),
             )
 
-        _gnd_outputs = [gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
+        _gnd_outputs = [gnd_clock, gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
                         gnd_latency, gnd_raw, _gnd_history_rows, _gnd_count, gnd_log_display]
 
         # 단발 버튼
@@ -1880,6 +1882,13 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             fn=_run_grounding,
             inputs=[api_url_box, _gnd_history_rows, _gnd_count],
             outputs=_gnd_outputs,
+        )
+
+        # 시각 타이머 — 항상 활성 (auto 모드와 무관하게 시각 표시)
+        gnd_clock_timer = gr.Timer(1.0, active=True)
+        gnd_clock_timer.tick(
+            fn=lambda: _dt.datetime.now().strftime("%H:%M:%S"),
+            outputs=gnd_clock,
         )
 
         # 자동 타이머 (1fps)
