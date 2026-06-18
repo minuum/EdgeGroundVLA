@@ -1739,6 +1739,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 gnd_run_btn  = gr.Button("▶ 단발 검증", variant="primary", scale=2)
                 gnd_auto_btn = gr.Button("🔄 자동 (1fps)", variant="secondary", scale=2)
                 gnd_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
+                gnd_rec_btn  = gr.Button("🔴 녹화", variant="secondary", scale=1)
 
           with gr.Column(scale=2):
             gnd_clock    = gr.Textbox(label="현재 시각", value="—", interactive=False)
@@ -1747,20 +1748,22 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             gnd_cx_bar   = gr.HTML(value=_gnd_cx_html(0.5, False),   label="")
             gnd_latency  = gr.Textbox(label="Grounding latency", value="—", interactive=False)
             gnd_raw      = gr.Textbox(label="PG2 raw output", value="—", interactive=False, lines=2)
+            gnd_server_cmp = gr.Textbox(label="서버 예측", value="—", interactive=False)
             gnd_history   = gr.Dataframe(
-                headers=["#", "has_bbox", "area", "cx", "latency(ms)"],
-                datatype=["number", "str", "number", "number", "number"],
+                headers=["#", "bbox", "area", "cx", "pred", "lat(ms)"],
+                datatype=["number", "str", "number", "number", "str", "number"],
                 label="최근 10회 이력",
                 row_count=10,
-                col_count=5,
+                col_count=6,
                 interactive=False,
             )
             with gr.Row():
                 gnd_log_display = gr.Textbox(
-                    label="저장 경로", value="(첫 검증 시 생성됨)",
-                    interactive=False, scale=4,
+                    label="JSONL 경로", value="(첫 검증 시 생성됨)",
+                    interactive=False, scale=3,
                 )
                 gnd_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
+            gnd_rec_display = gr.Textbox(label="녹화 경로", value="—", interactive=False)
 
         # ── Grounding 탭 로직 ─────────────────────────────────────────
         _gnd_auto_state   = gr.State(False)
@@ -1779,30 +1782,48 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 _gnd_log_file[0] = _gnd_log_dir / f"gnd_{ts}.jsonl"
             return _gnd_log_file[0]
 
-        def _run_grounding(api_url, history_rows, count):
-            """카메라 프레임 → /ground → bbox 오버레이 이미지 + 스탯."""
-            import requests as _req, base64, io
+        # 녹화 mutable refs
+        _gnd_recording: list    = [False]
+        _gnd_video_writer: list = [None]   # cv2.VideoWriter, 첫 프레임에서 lazy init
+        _gnd_video_path: list   = [None]
+
+        def _run_grounding(api_url, backend_mode, instr, history_rows, count):
+            """카메라 프레임 → /ground (+ 병렬 /predict) → bbox 오버레이 이미지 + 스탯."""
+            import requests as _req, base64, io, threading as _th, re as _re
             from PIL import ImageDraw
 
-            # 카메라 프레임 가져오기
             frame = None
             if ROS_AVAILABLE and ros_node:
-                frame = ros_node.get_inference_frame()  # PIL Image
+                frame = ros_node.get_inference_frame()
 
             log_path_str = str(_gnd_ensure_log())
             now_str = _dt.datetime.now().strftime("%H:%M:%S")
+            rec_str = ("🔴 녹화 중..." if _gnd_recording[0]
+                       else (str(_gnd_video_path[0]) if _gnd_video_path[0] else "—"))
+
             if frame is None:
                 return (
                     now_str, None, "❌ 카메라 없음",
                     _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
-                    "—", "카메라 연결 필요", history_rows, count, log_path_str,
+                    "—", "카메라 연결 필요", "—", rec_str, history_rows, count, log_path_str,
                 )
 
-            # base64 인코딩 — PNG (lossless) : JPEG 압축 영향 제거
+            # ── /predict 병렬 실행 (execute_move=False) ───────────────────
+            pred_container: list = [None]
+            def _do_predict():
+                try:
+                    pred_container[0] = run_backend_inference(
+                        frame, instr or "", backend_mode or "", api_url, execute_move=False
+                    )
+                except Exception:
+                    pass
+            t_pred = _th.Thread(target=_do_predict, daemon=True)
+            t_pred.start()
+
+            # ── /ground 호출 (메인 스레드) ─────────────────────────────────
             buf = io.BytesIO()
             frame.save(buf, format="PNG")
             b64 = base64.b64encode(buf.getvalue()).decode()
-
             try:
                 resp = _req.post(
                     f"{api_url.rstrip('/')}/ground",
@@ -1812,11 +1833,27 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 )
                 d = resp.json()
             except Exception as e:
+                t_pred.join(timeout=0)
                 return (
                     now_str, frame, f"❌ 서버 오류: {e}",
                     _gnd_area_html(0.0, False), _gnd_cx_html(0.5, False),
-                    "—", str(e), history_rows, count, log_path_str,
+                    "—", str(e), "—", rec_str, history_rows, count, log_path_str,
                 )
+
+            # /predict 결과 수집
+            t_pred.join(timeout=4)
+            pred_r = pred_container[0]
+            pred_label = ""
+            pred_lat   = 0.0
+            pred_near  = None
+            if pred_r:
+                m = _re.match(r'\[([^\]]+)\]', pred_r.get("act_str", ""))
+                pred_label = m.group(1) if m else (pred_r.get("act_str", "")[:12])
+                try:
+                    pred_lat = float(pred_r.get("lat_str", "0").replace(" ms", ""))
+                except Exception:
+                    pass
+                pred_near = pred_r.get("goal_near_proxy")
 
             has   = d.get("has_bbox", False)
             area  = float(d.get("area", 0.06))
@@ -1826,7 +1863,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             raw   = d.get("raw_output", "—")
             x1, y1, x2, y2 = d.get("x1"), d.get("y1"), d.get("x2"), d.get("y2")
 
-            # bbox 오버레이 그리기
+            # ── bbox 오버레이 ──────────────────────────────────────────────
             img_draw = frame.copy()
             draw = ImageDraw.Draw(img_draw)
             W, H = img_draw.size
@@ -1835,25 +1872,55 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 bx2, by2 = int(x2 * W), int(y2 * H)
                 draw.rectangle([bx1, by1, bx2, by2], outline="#00ff88", width=3)
                 draw.text((bx1 + 4, by1 + 4), f"area={area:.3f}", fill="#00ff88")
-            # cx 수직선
             cx_px = int(cx * W)
             line_color = "#00ff88" if has else "#ef4444"
             draw.line([(cx_px, 0), (cx_px, H)], fill=line_color, width=2)
-            # 중앙선 (회색)
             draw.line([(W // 2, 0), (W // 2, H)], fill="#4a5568", width=1)
+            # 서버 예측 자막
+            if pred_label:
+                near_tag = "  ✅NEAR" if pred_near else ""
+                draw.text((4, 4), f"pred: {pred_label}{near_tag}", fill="#facc15")
 
-            # 상태 텍스트
+            # ── 상태 텍스트 ────────────────────────────────────────────────
             if has:
                 status = f"✅ 검출됨  area={area:.3f}  cx={cx:.2f}"
             else:
                 status = f"❌ 미검출  (raw: {raw[:30]})"
 
-            # 이력 업데이트
+            # 서버 비교 문자열
+            if pred_label:
+                near_str = "  ✅NEAR" if pred_near else ("  ⬜far" if pred_near is not None else "")
+                server_cmp = f"↳ {pred_label}{near_str}  ({pred_lat:.0f}ms)"
+            else:
+                server_cmp = "— (서버 비예측)"
+
+            # ── 녹화: 첫 프레임에서 VideoWriter lazy init ─────────────────
+            if _gnd_recording[0]:
+                import cv2 as _cv2, numpy as _np
+                if _gnd_video_writer[0] is None:
+                    ts_v = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    vpath = _gnd_log_dir / f"gnd_{ts_v}.mp4"
+                    _gnd_video_path[0] = vpath
+                    _gnd_video_writer[0] = _cv2.VideoWriter(
+                        str(vpath), _cv2.VideoWriter_fourcc(*"m", "p", "4", "v"),
+                        1.0, (W, H),
+                    )
+                if _gnd_video_writer[0].isOpened():
+                    bgr = _cv2.cvtColor(_np.array(img_draw), _cv2.COLOR_RGB2BGR)
+                    subtitle = f"{now_str}  cx={cx:.2f} area={area:.3f} {'BBOX' if has else 'NONE'}  pred:{pred_label}"
+                    _cv2.putText(bgr, subtitle, (8, H - 10),
+                                 _cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2,
+                                 _cv2.LINE_AA)
+                    _gnd_video_writer[0].write(bgr)
+                rec_str = f"🔴 녹화 중... {_gnd_video_path[0].name}"
+
+            # ── 이력 업데이트 ──────────────────────────────────────────────
             count += 1
-            new_row = [count, "✅" if has else "❌", round(area, 3), round(cx, 3), round(lat, 0)]
+            new_row = [count, "✅" if has else "❌", round(area, 3),
+                       round(cx, 3), pred_label or "—", round(lat, 0)]
             rows = ([new_row] + list(history_rows))[:10]
 
-            # JSONL 자동 저장
+            # ── JSONL 저장 ─────────────────────────────────────────────────
             import json as _json
             log_path = _gnd_ensure_log()
             record = {
@@ -1861,6 +1928,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 "n": count, "has_bbox": has,
                 "area": round(area, 4), "cx": round(cx, 4), "cy": round(cy, 4),
                 "latency_ms": round(lat, 1), "raw": raw,
+                "pred_label": pred_label, "pred_lat_ms": round(pred_lat, 1) if pred_lat else None,
+                "pred_goal_near": pred_near,
             }
             try:
                 with open(log_path, "a") as _f:
@@ -1871,16 +1940,18 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             return (
                 now_str, img_draw, status,
                 _gnd_area_html(area, has), _gnd_cx_html(cx, has),
-                f"{lat:.0f} ms", raw, rows, count, str(log_path),
+                f"{lat:.0f} ms", raw, server_cmp, rec_str,
+                rows, count, str(log_path),
             )
 
         _gnd_outputs = [gnd_clock, gnd_image, gnd_has_bbox, gnd_area_bar, gnd_cx_bar,
-                        gnd_latency, gnd_raw, _gnd_history_rows, _gnd_count, gnd_log_display]
+                        gnd_latency, gnd_raw, gnd_server_cmp, gnd_rec_display,
+                        _gnd_history_rows, _gnd_count, gnd_log_display]
 
         # 단발 버튼
         gnd_run_btn.click(
             fn=_run_grounding,
-            inputs=[api_url_box, _gnd_history_rows, _gnd_count],
+            inputs=[api_url_box, backend_radio, instr_box_real, _gnd_history_rows, _gnd_count],
             outputs=_gnd_outputs,
         )
 
@@ -1905,18 +1976,49 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             inputs=[_gnd_auto_state],
             outputs=[_gnd_auto_state, gnd_auto_btn, gnd_timer],
         )
+        def _gnd_stop_click():
+            _gnd_stop_all()
+            return False, gr.update(value="🔄 자동 (1fps)", variant="secondary"), gr.update(active=False), \
+                   gr.update(value="🔴 녹화", variant="secondary"), "—"
+
         gnd_stop_btn.click(
-            fn=lambda: (False, gr.update(value="🔄 자동 (1fps)", variant="secondary"), gr.update(active=False)),
-            outputs=[_gnd_auto_state, gnd_auto_btn, gnd_timer],
+            fn=_gnd_stop_click,
+            outputs=[_gnd_auto_state, gnd_auto_btn, gnd_timer, gnd_rec_btn, gnd_rec_display],
         )
         gnd_timer.tick(
             fn=_run_grounding,
-            inputs=[api_url_box, _gnd_history_rows, _gnd_count],
+            inputs=[api_url_box, backend_radio, instr_box_real, _gnd_history_rows, _gnd_count],
             outputs=_gnd_outputs,
         )
 
+        def _gnd_toggle_record():
+            if _gnd_recording[0]:
+                _gnd_recording[0] = False
+                if _gnd_video_writer[0] is not None:
+                    _gnd_video_writer[0].release()
+                    _gnd_video_writer[0] = None
+                saved = str(_gnd_video_path[0]) if _gnd_video_path[0] else "—"
+                return gr.update(value="🔴 녹화", variant="secondary"), f"저장됨: {saved}"
+            else:
+                _gnd_recording[0] = True
+                _gnd_video_writer[0] = None  # 첫 프레임에서 lazy init
+                return gr.update(value="⏹ 녹화 중지", variant="stop"), "🔴 녹화 시작 대기..."
+
+        gnd_rec_btn.click(
+            fn=_gnd_toggle_record,
+            outputs=[gnd_rec_btn, gnd_rec_display],
+        )
+
+        def _gnd_stop_all():
+            """⏹ 정지: 자동+녹화 모두 종료."""
+            if _gnd_recording[0]:
+                _gnd_recording[0] = False
+                if _gnd_video_writer[0] is not None:
+                    _gnd_video_writer[0].release()
+                    _gnd_video_writer[0] = None
+
         def _gnd_new_session():
-            _gnd_log_file[0] = None  # 다음 검증 시 새 파일 생성
+            _gnd_log_file[0] = None
             return [], 0, "(새 세션 — 첫 검증 시 생성됨)"
 
         gnd_new_session_btn.click(
