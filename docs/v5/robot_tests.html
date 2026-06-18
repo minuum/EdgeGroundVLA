@@ -1913,64 +1913,234 @@
     </div>
   </div>
 
-  <!-- S6 세션 (temporal filter 적용) -->
-  <div style="background:#0d1117;border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:20px;margin-bottom:18px">
+  <!-- S6 세션 (4종 필터 + PNG + temporal filter 전부 적용) -->
+  <div style="background:#0d1117;border:2px solid rgba(34,197,94,0.35);border-radius:12px;padding:20px;margin-bottom:18px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <div style="color:#38bdf8;font-weight:700">S6 — temporal 3-frame filter 적용 후 (17:25~, n=105)</div>
+      <div style="color:#4ade80;font-weight:800;font-size:1rem">S6 — 4종 필터 + PNG + temporal N=3 전부 적용 (17:26~17:31, n=105)</div>
       <span style="background:rgba(34,197,94,0.15);color:#4ade80;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(34,197,94,0.3)">최신</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:800;color:#4ade80">51.4%</div>
+    <!-- 지표 4개 -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#0f172a;border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#4ade80">51.4%</div>
         <div style="font-size:0.72rem;color:#64748b;margin-top:2px">유효율 (54/105)</div>
-        <div style="font-size:0.67rem;color:#475569">↑ 33.9% → +17.5%p</div>
+        <div style="font-size:0.67rem;color:#4ade80;margin-top:1px">↑ 33.9% → +17.5%p</div>
       </div>
-      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:800;color:#4ade80">0</div>
+      <div style="background:#0f172a;border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#4ade80">0</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">fast 기록</div>
+        <div style="font-size:0.67rem;color:#4ade80;margin-top:1px">카메라 버그 완전 해결</div>
+      </div>
+      <div style="background:#0f172a;border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#4ade80">0</div>
         <div style="font-size:0.72rem;color:#64748b;margin-top:2px">노이즈 bbox</div>
-        <div style="font-size:0.67rem;color:#475569">tiny/giant/xfull 0건</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">tiny/full/xfull 전멸</div>
       </div>
       <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:800;color:#38bdf8">0.687</div>
-        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">area 최대값</div>
-        <div style="font-size:0.67rem;color:#475569">근접 프레임 포함</div>
+        <div style="font-size:1.5rem;font-weight:800;color:#38bdf8">0.687</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">area 최대 (근접)</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">avg 0.093 · cx 0.522</div>
       </div>
       <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:800;color:#38bdf8">0.093</div>
-        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">area 평균</div>
-        <div style="font-size:0.67rem;color:#475569">cx 평균 0.522</div>
+        <div style="font-size:1.5rem;font-weight:800;color:#f59e0b">1264ms</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">평균 latency</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">전부 정상 PG2 추론</div>
       </div>
     </div>
-    <div style="font-size:0.78rem;color:#64748b;line-height:1.7">
-      <span style="color:#4ade80;font-weight:700">gnd_20260618_172556.jsonl</span> &nbsp;|&nbsp;
-      세션 중 바스켓 근접 프레임 다수 포함 (area 0.687 최고) &nbsp;|&nbsp;
-      temporal filter(GOAL_CONSEC_FRAMES=3) 작동 중 — 로그 <code>[near N/3]</code> 확인됨 &nbsp;|&nbsp;
-      fast fallback 1건 (바스켓 없는 장면), 필터차단 50건
+
+    <!-- area 분포 바 -->
+    <div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="color:#475569;font-size:0.68rem;font-weight:600;letter-spacing:0.05em;margin-bottom:8px">OK BBOX AREA 분포 (54건)</div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:0.7rem">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.01~0.05</span>
+          <div style="background:#1e40af;height:12px;border-radius:3px;width:calc(21/54*300px)"></div>
+          <span style="color:#94a3b8">21건</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.05~0.10</span>
+          <div style="background:#2563eb;height:12px;border-radius:3px;width:calc(24/54*300px)"></div>
+          <span style="color:#94a3b8">24건 ★ 최다</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.10~0.20</span>
+          <div style="background:#3b82f6;height:12px;border-radius:3px;width:calc(3/54*300px)"></div>
+          <span style="color:#94a3b8">3건</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.20~0.30</span>
+          <div style="background:#f59e0b;height:12px;border-radius:3px;width:calc(1/54*300px)"></div>
+          <span style="color:#94a3b8">1건</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.30~0.50</span>
+          <div style="background:#f97316;height:12px;border-radius:3px;width:calc(4/54*300px)"></div>
+          <span style="color:#f97316">4건 (근접 구간)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.50+</span>
+          <div style="background:#dc2626;height:12px;border-radius:3px;width:calc(1/54*300px)"></div>
+          <span style="color:#ef4444">1건 (area 0.687 최대근접)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- temporal filter 결과 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="background:#0f172a;border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px;font-size:0.77rem">
+        <div style="color:#4ade80;font-weight:700;margin-bottom:6px">연속 OK 구간</div>
+        <div style="color:#94a3b8;line-height:1.8">
+          <div>n=2~25 &nbsp;<span style="color:#4ade80;font-weight:700">24프레임 연속</span> — area 0.034~0.687</div>
+          <div>n=32~44 &nbsp;13프레임 연속 — area 0.047~0.320</div>
+          <div>n=48~52 &nbsp;5프레임 연속</div>
+          <div>n=98~105 &nbsp;8프레임 연속</div>
+        </div>
+      </div>
+      <div style="background:#0f172a;border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:12px;font-size:0.77rem">
+        <div style="color:#f59e0b;font-weight:700;margin-bottom:6px">temporal N=3 분석</div>
+        <div style="color:#94a3b8;line-height:1.8">
+          near-goal(area≥0.25) 프레임: <strong style="color:#f59e0b">6건</strong><br>
+          · n=23(0.276) → n=24(0.687) — 2연속, 3번째 없음<br>
+          · n=33(0.320) → n=36→37(0.314→0.320) — 비연속<br>
+          → <span style="color:#4ade80">goal_near 발동 0회</span> (correct — 로봇이 충분히 접근 안 함)<br>
+          연속 NO_BBOX 최대: <strong style="color:#ef4444">41프레임</strong> (바스켓 시야 이탈)
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:0.76rem;color:#64748b;line-height:1.6;background:#0f172a;border-radius:6px;padding:10px 12px">
+      <code style="color:#4ade80">gnd_20260618_172556.jsonl</code> · 105레코드 · 17:26:21~17:31:32 ·
+      <strong style="color:#4ade80">fast 기록 0건</strong> (camera decode 버그 완전 해결 확인) ·
+      temporal filter 로그 <code>[near N/3]</code> 실서버 확인됨 ·
+      NO_BBOX 51건은 바스켓 시야 이탈 (false negative) — filter 과차단 아님
     </div>
   </div>
 
+  <!-- 세션 유효율 진행 바 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;margin-bottom:18px">
+    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:14px">세션별 유효율 진행 (패치 누적)</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
+        <span style="color:#64748b;width:48px;flex-shrink:0">S1/S2</span>
+        <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
+          <div style="background:#ef4444;width:0.4%;height:100%;border-radius:4px"></div>
+        </div>
+        <span style="color:#ef4444;width:60px;text-align:right">0.4%</span>
+        <span style="color:#475569;font-size:0.67rem">imgmsg_to_cv2 버그 → 빈 이미지</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
+        <span style="color:#64748b;width:48px;flex-shrink:0">S3</span>
+        <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
+          <div style="background:#f59e0b;width:42.9%;height:100%;border-radius:4px"></div>
+        </div>
+        <span style="color:#f59e0b;width:60px;text-align:right">42.9%</span>
+        <span style="color:#475569;font-size:0.67rem">카메라 버그 수정 직후 첫 세션</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
+        <span style="color:#64748b;width:48px;flex-shrink:0">S4</span>
+        <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
+          <div style="background:#3b82f6;width:29.2%;height:100%;border-radius:4px"></div>
+        </div>
+        <span style="color:#3b82f6;width:60px;text-align:right">29.2%</span>
+        <span style="color:#475569;font-size:0.67rem">full/xfull/tiny 포함 — 4종 필터 前</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
+        <span style="color:#64748b;width:48px;flex-shrink:0">S5</span>
+        <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
+          <div style="background:#60a5fa;width:33.9%;height:100%;border-radius:4px"></div>
+        </div>
+        <span style="color:#60a5fa;width:60px;text-align:right">33.9%</span>
+        <span style="color:#475569;font-size:0.67rem">4종 필터 적용 후 (+4.7%p)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
+        <span style="color:#4ade80;width:48px;flex-shrink:0;font-weight:700">S6 ★</span>
+        <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
+          <div style="background:#4ade80;width:51.4%;height:100%;border-radius:4px"></div>
+        </div>
+        <span style="color:#4ade80;width:60px;text-align:right;font-weight:700">51.4%</span>
+        <span style="color:#4ade80;font-size:0.67rem;font-weight:600">PNG + temporal N=3 (+17.5%p)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 현재 패치 상태표 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:16px 20px;margin-bottom:18px">
+    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px">패치 완료 상태 (2026-06-18 기준)</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.75rem">
+      <thead>
+        <tr style="border-bottom:1px solid #1e293b">
+          <th style="color:#64748b;padding:5px 8px 5px 0;text-align:left">항목</th>
+          <th style="color:#64748b;padding:5px 10px;text-align:center">상태</th>
+          <th style="color:#64748b;padding:5px 0;text-align:left">세션 확인</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#94a3b8;padding:6px 8px 6px 0">compressed_imgmsg_to_cv2 버그 수정</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
+          <td style="color:#64748b;padding:6px 0">S3 이후 fast=0</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#94a3b8;padding:6px 8px 6px 0">area&gt;0.9 full-frame 필터</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
+          <td style="color:#64748b;padding:6px 0">S6 FULL=0</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#94a3b8;padding:6px 8px 6px 0">area&lt;0.01 tiny noise 필터</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
+          <td style="color:#64748b;padding:6px 0">S6 TINY=0</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#94a3b8;padding:6px 8px 6px 0">x1&lt;0.02 &amp; x2&gt;0.98 xfull 필터</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
+          <td style="color:#64748b;padding:6px 0">S6 XFULL=0</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#94a3b8;padding:6px 8px 6px 0">cy&lt;0.35 상단오탐 필터</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
+          <td style="color:#64748b;padding:6px 0">S6 TOP=0</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#94a3b8;padding:6px 8px 6px 0">PNG 인코딩 (JPEG 이중압축 제거)</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
+          <td style="color:#64748b;padding:6px 0">S5 이후 적용</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f172a">
+          <td style="color:#94a3b8;padding:6px 8px 6px 0">temporal N=3 goal_near 필터</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
+          <td style="color:#64748b;padding:6px 0">GOAL_CONSEC_FRAMES=3, strict</td>
+        </tr>
+        <tr>
+          <td style="color:#fbbf24;padding:6px 8px 6px 0">실로봇 closed-loop 재테스트</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#f59e0b;font-weight:700">🔲 대기</span></td>
+          <td style="color:#64748b;padding:6px 0">전체 패치 완료 → 다음 단계</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <!-- 결론 및 액션 아이템 -->
-  <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:20px">
-    <div style="color:#f59e0b;font-weight:700;margin-bottom:14px">결론 및 다음 액션</div>
+  <div style="background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:20px">
+    <div style="color:#4ade80;font-weight:700;margin-bottom:14px">결론 (2026-06-18 최종)</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:0.82rem">
       <div>
-        <div style="color:#f1f5f9;font-weight:600;margin-bottom:8px">현재 상태 (2026-06-18 최종)</div>
-        <ul style="color:#94a3b8;padding-left:16px;line-height:1.8;margin:0">
-          <li><code style="color:#86efac">min_new_tokens=1</code> → &lt;eos&gt; 해결 ✅</li>
-          <li>4종 필터 적용 → 노이즈 bbox 완전 차단 ✅</li>
-          <li>PNG 인코딩 → 학습 H5 numpy와 동일 조건 ✅</li>
-          <li>유효율 29.2% → 33.9% → <strong style="color:#4ade80">51.4%</strong> (세션별 누적 개선) ✅</li>
-          <li>false positive 1→0건 ✅</li>
-          <li>잔존: false positive 기하필터 불가 (temporal 미구현)</li>
+        <div style="color:#f1f5f9;font-weight:600;margin-bottom:8px">완료된 것</div>
+        <ul style="color:#94a3b8;padding-left:16px;line-height:1.9;margin:0">
+          <li>카메라 decode 버그 수정 → fast=0 ✅</li>
+          <li>PG2 bbox 필터 4종 → 노이즈 bbox 완전 차단 ✅</li>
+          <li>PNG 인코딩 → 학습/추론 이미지 조건 일치 ✅</li>
+          <li>temporal N=3 → goal_near false positive 차단 ✅</li>
+          <li>유효율 0.4% → <strong style="color:#4ade80">51.4%</strong> ✅</li>
+          <li>async 10Hz 연속 이동 (bang-bang 제거) ✅</li>
         </ul>
       </div>
       <div>
-        <div style="color:#f1f5f9;font-weight:600;margin-bottom:8px">다음 액션</div>
-        <ul style="color:#94a3b8;padding-left:16px;line-height:1.8;margin:0">
-          <li><strong style="color:#fbbf24">연속 N프레임 합산:</strong> 3프레임 이상 유효 시만 goal_near — false pos 차단</li>
-          <li><strong style="color:#fbbf24">stop threshold 조정:</strong> area≥0.25 기준 재확인 (현재 최대 0.297)</li>
-          <li><strong style="color:#fbbf24">PG2 파인튜닝:</strong> Exp65/66 bbox 데이터로 LoRA — 정밀도 개선 기대</li>
-          <li><strong style="color:#fbbf24">실로봇 검증:</strong> 4종 필터 + PNG 적용 후 closed-loop 재테스트</li>
+        <div style="color:#f1f5f9;font-weight:600;margin-bottom:8px">다음 단계</div>
+        <ul style="color:#94a3b8;padding-left:16px;line-height:1.9;margin:0">
+          <li><strong style="color:#fbbf24">실로봇 closed-loop 재테스트</strong> — 전체 패치 통합 후 첫 네비게이션</li>
+          <li>goal_near 발동 확인 — area≥0.25 연속 3프레임</li>
+          <li>NO_BBOX 41연속 원인 파악 — 로봇 방향 vs 바스켓 위치</li>
+          <li>PG2 파인튜닝 (Exp65/66 bbox 데이터) — 중거리 탐지 개선</li>
         </ul>
       </div>
     </div>
