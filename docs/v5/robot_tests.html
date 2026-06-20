@@ -3447,7 +3447,7 @@
     무조건 224×224로 강제 리사이즈(center-crop/padding 없이 스트레치)한다. 해상도를 올리면 인식이 개선될지, 비용은 얼마나 늘지 숫자로 검토.
   </p>
 
-  <!-- 측정값 vs 추정값 테이블 -->
+  <!-- 측정값 테이블 (전부 실측, 추정 제거) -->
   <div style="background:#0d1117;border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:20px;margin-bottom:18px">
     <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
       <thead>
@@ -3455,42 +3455,43 @@
           <th style="text-align:left;padding:8px 10px;color:#64748b">체크포인트</th>
           <th style="text-align:center;padding:8px 10px;color:#64748b">이미지 토큰 수</th>
           <th style="text-align:center;padding:8px 10px;color:#64748b">토큰 배수</th>
-          <th style="text-align:center;padding:8px 10px;color:#64748b">grounding latency</th>
-          <th style="text-align:center;padding:8px 10px;color:#64748b">GPU 메모리(추정)</th>
-          <th style="text-align:center;padding:8px 10px;color:#64748b">근거</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">grounding latency (실측)</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">GPU 메모리 (실측)</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">출처</th>
         </tr>
       </thead>
       <tbody>
         <tr style="border-bottom:1px solid #1e293b;background:rgba(34,197,94,0.06)">
-          <td style="padding:8px 10px;color:#4ade80;font-weight:700">mix-224 (현재)</td>
+          <td style="padding:8px 10px;color:#4ade80;font-weight:700">mix-224 (배포중)</td>
           <td style="padding:8px 10px;text-align:center;color:#e2e8f0">256</td>
           <td style="padding:8px 10px;text-align:center;color:#64748b">1×</td>
-          <td style="padding:8px 10px;text-align:center;color:#4ade80;font-weight:700">1246~1264ms (실측 평균)</td>
-          <td style="padding:8px 10px;text-align:center;color:#4ade80;font-weight:700">6.73GB (실측)</td>
-          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">S6/S7 jsonl 로그 190건 평균</td>
+          <td style="padding:8px 10px;text-align:center;color:#4ade80;font-weight:700">1246~1264ms (soda) / 489ms (GB10)</td>
+          <td style="padding:8px 10px;text-align:center;color:#4ade80;font-weight:700">6.73GB (soda) / 6.14GB (GB10)</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">S6/S7 jsonl 190건 + 로컬 7프레임</td>
         </tr>
-        <tr style="border-bottom:1px solid #1e293b">
-          <td style="padding:8px 10px;color:#fbbf24;font-weight:700">mix-448</td>
+        <tr style="border-bottom:1px solid #1e293b;background:rgba(239,68,68,0.06)">
+          <td style="padding:8px 10px;color:#ef4444;font-weight:700">mix-448</td>
           <td style="padding:8px 10px;text-align:center;color:#e2e8f0">1024</td>
-          <td style="padding:8px 10px;text-align:center;color:#fbbf24">4×</td>
-          <td style="padding:8px 10px;text-align:center;color:#fbbf24">~1.9~3.8초 (추정)</td>
-          <td style="padding:8px 10px;text-align:center;color:#fbbf24">~9~12GB (추정)</td>
-          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">토큰수 기반 추정, 미실측</td>
+          <td style="padding:8px 10px;text-align:center;color:#ef4444">4×</td>
+          <td style="padding:8px 10px;text-align:center;color:#ef4444;font-weight:700">~2.1s (soda 실서버) / 858ms (GB10)</td>
+          <td style="padding:8px 10px;text-align:center;color:#ef4444;font-weight:700">6.32GB (GB10) — 224와 거의 동일</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">S8 세션(n=47) + 로컬 7프레임 ablation</td>
         </tr>
         <tr>
-          <td style="padding:8px 10px;color:#ef4444;font-weight:700">mix-896</td>
-          <td style="padding:8px 10px;text-align:center;color:#e2e8f0">4096</td>
-          <td style="padding:8px 10px;text-align:center;color:#ef4444">16×</td>
-          <td style="padding:8px 10px;text-align:center;color:#ef4444">~5~12초 (추정)</td>
-          <td style="padding:8px 10px;text-align:center;color:#ef4444">~20GB+ (추정, OOM 위험)</td>
-          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">토큰수 기반 추정, 미실측</td>
+          <td style="padding:8px 10px;color:#64748b;font-weight:700">mix-896</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b">4096 (16×)</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b">—</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b" colspan="2">3B "mix"(downstream 튜닝) 버전 자체가 없음 — pt-896(순수 사전학습)만 존재, &lt;loc&gt; grounding 포맷 보장 안 됨 → 미시도</td>
         </tr>
       </tbody>
     </table>
     <div style="color:#64748b;font-size:0.72rem;margin-top:10px;line-height:1.6">
-      이미지 토큰 수(256/1024/4096)는 Google PaliGemma2 공식 모델카드 값(patch14, 16²/32²/64²) — 사실.
-      latency·메모리 추정값은 토큰 수 배수를 단순 대입한 거친 추정으로, <strong style="color:#fbbf24">실측 전까지 신뢰 구간으로만 취급</strong>할 것.
-      비전 인코더(SigLIP ViT) self-attention은 토큰수의 제곱에 가깝게, LLM prefill은 토큰수에 선형~준선형으로 늘어나 혼합된 결과.
+      <strong style="color:#fbbf24">핵심 실측 발견 (2026-06-20):</strong> 같은 7개 프레임(S6 baseline/dead-zone×3, S7 near-miss×2, S7 correct)을
+      224/448로 각각 추론한 결과 <strong style="color:#ef4444">bbox(area/cx)가 거의 동일</strong>했다 — 예: S6 n=56 224(a=0.218,cx=0.289) vs
+      448(a=0.218,cx=0.290), S7 n=39 224(a=0.078,cx=0.685) vs 448(a=0.078,cx=0.689). 해상도를 올려도 PG2가 보는 "정답"은 거의 안 바뀜.
+      latency는 224 대비 GB10에서 ~1.75배(489→858ms, 토큰 4배인데 비용은 그보다 덜 늚), 메모리는 +0.18GB뿐로
+      이전 추정(4~16배 latency, +6GB 메모리)보다 실제로는 훨씬 가벼웠음. 하지만 <strong style="color:#ef4444">soda 실서버 배포(S8) 결과 정확도는 오히려 하락(51.4%→34.0%)</strong> —
+      비용은 추정보다 가벼웠지만 효과가 없다는 게 최종 결론.
     </div>
   </div>
 
@@ -3535,18 +3536,23 @@
     </div>
   </div>
 
-  <!-- 권장 다음 단계 -->
-  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 20px">
-    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px">권장 검증 절차 (운영 서버 내린 뒤 재시도)</div>
+  <!-- 검증 완료 상태 -->
+  <div style="background:#0d1117;border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:18px 20px">
+    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px">검증 절차 — 전부 완료</div>
     <ol style="color:#94a3b8;font-size:0.82rem;line-height:1.9;padding-left:20px;margin:0">
-      <li>운영 서버(stage2_v2_inference_server.py, port 8001) 종료 → dashboard 등 불필요 프로세스도 함께 정리</li>
-      <li><code style="background:#0f172a;padding:2px 6px;border-radius:4px">paligemma2-3b-mix-448</code> 단독 로드 테스트 — OOM/재부팅 여부 재확인</li>
-      <li>로드 성공 시 S6/S7 동일 프레임 셋(105+85장)으로 <code style="background:#0f172a;padding:2px 6px;border-radius:4px">/ground</code> 재호출 →
-        실측 latency + has_bbox 비율 비교</li>
-      <li>특히 <strong style="color:#fbbf24">근접-미스 bbox 클러스터(S7 f39~46)</strong>와 <strong style="color:#fbbf24">정지장면 풀프레임 환각(S6 f56~94)</strong> 두 실패 프레임에서
-        448이 실제로 정정되는지 직접 시각 검증 — 토큰 수가 늘어 디테일을 더 본다는 가설을 이 두 실패 사례로 직접 검증</li>
-      <li>latency가 임계치(예: 1.5초/프레임) 넘으면 실로봇 10Hz 제어 루프와 충돌 — 그라운딩을 매 프레임이 아닌 N프레임마다만 호출하는 구조 변경도 같이 검토</li>
+      <li><span style="color:#4ade80">✅</span> 운영 서버 종료 후 mix-448 단독 로드 — 성공 (동시로드 시 크래시했던 것과 달리 단독 교체는 정상 로드)</li>
+      <li><span style="color:#4ade80">✅</span> mix-448로 운영 서버 재기동 → 실로봇 데이터 수집(<a href="#s8-session" style="color:#38bdf8">S8 세션, n=47</a>) →
+        유효율 34.0% (224의 51.4%보다 <strong style="color:#ef4444">하락</strong>), latency ~2.1s/프레임</li>
+      <li><span style="color:#4ade80">✅</span> S8 유효 검출 6건 스폿체크 — <strong style="color:#ef4444">6/6 전부 실제 바스켓 위치와 불일치</strong> (근접-미스 패턴 재현)</li>
+      <li><span style="color:#4ade80">✅</span> 로컬(GB10) 독립 ablation — 같은 7프레임(S6/S7 실패+정상 케이스)을 224/448로 직접 비교 →
+        <strong style="color:#fbbf24">bbox가 거의 동일</strong>하게 나옴(위 표 참조), S8 결과를 독립적으로 재확인</li>
     </ol>
+    <div style="color:#64748b;font-size:0.76rem;margin-top:12px;line-height:1.7;background:#0f172a;border-radius:8px;padding:10px 12px">
+      <strong style="color:#f8fafc">최종 결론:</strong> 해상도 업그레이드(224→448)는 비용은 예상보다 가벼웠지만(latency +75%, 메모리 +3%)
+      효과가 없었다 — PG2가 보는 "정답"이 해상도와 무관하게 거의 동일하므로, 근접-미스/풀프레임 환각은
+      <strong style="color:#fbbf24">해상도 문제가 아니라 PG2가 우리 환경(회색 바스켓, 특정 거리/각도)에 충분히 파인튜닝되지 않은 문제</strong>로 추정.
+      다음 단계는 <strong style="color:#fbbf24">GroundingDINO 등 다른 검출기 검토</strong> 또는 <strong style="color:#fbbf24">소량 수동 라벨링 기반 PG2 LoRA 파인튜닝</strong>.
+    </div>
   </div>
 </div>
 
