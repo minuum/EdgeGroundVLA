@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-S6 CL 시뮬레이션 스크립트
-soda에서 직접 실행: python3 run_s6_cl_sim.py
+세션 CL 시뮬레이션 스크립트 (범용)
+soda에서 직접 실행: python3 run_s6_cl_sim.py <session_name> [frame_dir] [out_path]
 
-/reset → 순차 /predict (105프레임) → temporal N=3 포함 실제 CL 파이프라인 재현
+/reset → 순차 /predict (N프레임) → temporal N=3 포함 실제 CL 파이프라인 재현
 """
 
 import os, json, base64, time, subprocess, sys
@@ -11,8 +11,9 @@ from pathlib import Path
 
 API_KEY   = os.getenv("VLA_API_KEY", "vla_devel_key_2026")
 BASE_URL  = "http://localhost:8001"
-FRAME_DIR = Path(os.path.expanduser("~/tmp_gnd_eval/results/gnd_20260618_172621"))
-OUT_PATH  = Path(os.path.expanduser("~/tmp_gnd_eval/results/s6_cl_sim.json"))
+SESSION_NAME = sys.argv[1] if len(sys.argv) > 1 else "gnd_20260618_172621"
+FRAME_DIR = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(os.path.expanduser(f"~/tmp_gnd_eval/results/{SESSION_NAME}"))
+OUT_PATH  = Path(sys.argv[3]) if len(sys.argv) > 3 else Path(os.path.expanduser(f"~/tmp_gnd_eval/results/{SESSION_NAME}_cl_sim.json"))
 
 HEADERS = ["-H", "Content-Type: application/json", "-H", f"x-api-key: {API_KEY}"]
 
@@ -149,7 +150,7 @@ print(f"  최대 연속 NEAR 구간: {max_consec}프레임 (GOAL 발동 임계�
 
 # ── 5. 저장 ────────────────────────────────────────────────────────────────
 out = {
-    "session": "gnd_20260618_172621",
+    "session": SESSION_NAME,
     "total_frames": total,
     "goal_params": {"area": GOAL_AREA, "cx_tol": GOAL_CX, "n": GOAL_N},
     "summary": {

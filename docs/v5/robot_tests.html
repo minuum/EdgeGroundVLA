@@ -2500,10 +2500,64 @@
       </div>
     </div>
 
-    <div style="font-size:0.76rem;color:#64748b;line-height:1.6;background:#0f172a;border-radius:6px;padding:10px 12px">
+    <div style="font-size:0.76rem;color:#64748b;line-height:1.6;background:#0f172a;border-radius:6px;padding:10px 12px;margin-bottom:14px">
       <code style="color:#fbbf24">gnd_20260620_110911.jsonl</code> · 85레코드 · 11:09:24~11:13:39 ·
       연속 NO_BBOX 8건 구간 다수 (S6의 41연속 정지-환각과는 다른 패턴 — 로봇이 계속 이동 중이었던 것으로 추정) ·
       HSV 교차검증 결과는 아래 별도 섹션 참조
+    </div>
+
+    <!-- S7 CL 파이프라인 시뮬레이션 (S6와 동일 방식, /reset→/predict×85) -->
+    <div style="background:#0f172a;border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:14px">
+      <div style="color:#38bdf8;font-weight:700;margin-bottom:10px">S7 CL 파이프라인 시뮬레이션 — S6와 정반대 패턴</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+        <div style="background:#111827;border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:900;color:#ef4444">0</div>
+          <div style="font-size:0.68rem;color:#64748b;margin-top:2px">STOP 발동 횟수</div>
+          <div style="font-size:0.62rem;color:#ef4444">S6은 f024에서 발동+latch</div>
+        </div>
+        <div style="background:#111827;border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:900;color:#38bdf8">55 / 30</div>
+          <div style="font-size:0.68rem;color:#64748b;margin-top:2px">FWD+R / FORWARD</div>
+          <div style="font-size:0.62rem;color:#475569">85프레임 내내 전진만</div>
+        </div>
+        <div style="background:#111827;border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:900;color:#f87171">61</div>
+          <div style="font-size:0.68rem;color:#64748b;margin-top:2px">NO_BBOX (재추론 기준)</div>
+          <div style="font-size:0.62rem;color:#475569">71.8% — 원본로그 60%보다 높음</div>
+        </div>
+        <div style="background:#111827;border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:900;color:#a78bfa">1</div>
+          <div style="font-size:0.68rem;color:#64748b;margin-top:2px">최대 연속 NEAR</div>
+          <div style="font-size:0.62rem;color:#475569">f053 단발 (area=0.297)</div>
+        </div>
+      </div>
+
+      <!-- 액션 타임라인 (85프레임 압축 바) -->
+      <div style="margin-bottom:10px">
+        <div style="color:#475569;font-size:0.66rem;font-weight:600;margin-bottom:5px">액션 타임라인 (f001→f085, hover로 상세)</div>
+        <div style="display:flex;gap:1px;height:22px;border-radius:4px;overflow:hidden">
+          <div title="f1 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f2 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f3 FWD+R OK a=0.030" style="flex:1;background:#3b82f6"></div><div title="f4 FWD+R OK a=0.050" style="flex:1;background:#3b82f6"></div><div title="f5 FWD+R OK a=0.078" style="flex:1;background:#3b82f6"></div><div title="f6 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f7 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f8 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f9 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f10 FWD+R OK a=0.096" style="flex:1;background:#3b82f6"></div><div title="f11 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f12 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f13 FWD+R OK a=0.092" style="flex:1;background:#3b82f6"></div><div title="f14 FWD+R OK a=0.125" style="flex:1;background:#3b82f6"></div><div title="f15 FWD+R OK a=0.125" style="flex:1;background:#3b82f6"></div><div title="f16 FWD+R OK a=0.034" style="flex:1;background:#3b82f6"></div><div title="f17 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f18 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f19 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f20 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f21 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f22 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f23 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f24 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f25 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f26 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f27 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f28 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f29 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f30 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f31 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f32 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f33 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f34 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f35 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f36 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f37 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f38 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f39 FORWARD OK a=0.110 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f40 FORWARD OK a=0.116 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f41 FORWARD OK a=0.051 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f42 FORWARD OK a=0.050 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f43 FORWARD OK a=0.061 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f44 FORWARD OK a=0.049 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f45 FORWARD OK a=0.203 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f46 FORWARD OK a=0.049 ⚠근접-미스 클러스터" style="flex:1;background:#f97316"></div><div title="f47 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f48 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f49 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f50 FORWARD OK a=0.102" style="flex:1;background:#22c55e"></div><div title="f51 FORWARD OK a=0.070" style="flex:1;background:#22c55e"></div><div title="f52 FORWARD OK a=0.072" style="flex:1;background:#22c55e"></div><div title="f53 FORWARD NEAR a=0.297 ★최대근접(단발)" style="flex:1;background:#ef4444"></div><div title="f54 FORWARD OK a=0.070" style="flex:1;background:#22c55e"></div><div title="f55 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f56 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f57 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f58 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f59 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f60 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f61 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f62 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f63 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f64 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f65 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f66 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f67 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f68 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f69 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f70 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f71 FWD+R OK a=0.021" style="flex:1;background:#3b82f6"></div><div title="f72 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f73 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f74 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f75 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f76 FORWARD NO_BBOX" style="flex:1;background:#166534"></div><div title="f77 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f78 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f79 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f80 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f81 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f82 FWD+R OK a=0.058" style="flex:1;background:#3b82f6"></div><div title="f83 FORWARD OK a=0.062" style="flex:1;background:#22c55e"></div><div title="f84 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div><div title="f85 FWD+R NO_BBOX" style="flex:1;background:#1e3a8a"></div>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:6px;font-size:0.65rem;color:#64748b;flex-wrap:wrap">
+          <span><span style="display:inline-block;width:10px;height:10px;background:#1e3a8a;border-radius:2px;margin-right:4px"></span>FWD+R(NO_BBOX)</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;margin-right:4px"></span>FWD+R(OK)</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#166534;border-radius:2px;margin-right:4px"></span>FORWARD(NO_BBOX)</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;margin-right:4px"></span>FORWARD(OK)</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#f97316;border-radius:2px;margin-right:4px"></span>근접-미스 클러스터(f39~46)</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;margin-right:4px"></span>NEAR(area≥0.25)</span>
+        </div>
+      </div>
+
+      <div style="color:#94a3b8;font-size:0.8rem;line-height:1.7">
+        <strong style="color:#fbbf24">S6 vs S7 대조:</strong> S6은 f024에서 action MLP가 자체적으로 STOP을 결정하고 즉시 latch — 이후 81프레임 내내 멈춤.
+        S7은 정반대로 <strong style="color:#ef4444">85프레임 전체에서 STOP이 단 한 번도 나오지 않음</strong> — NO_BBOX가 61건(71.8%)으로 더 많은데도
+        계속 FWD+R/FORWARD만 예측. 즉 학습된 STOP 판단은 거리(area)가 아니라 <strong style="color:#fbbf24">8-frame window 안의 특정 시퀀스 패턴</strong>에
+        반응하는 것으로 보임 — 두 세션 모두 PROXIMITY STOP(area≥0.25 연속 3프레임)은 발동하지 않음.<br><br>
+        <span style="color:#64748b">※ 이 재추론 NO_BBOX 비율(71.8%)은 원본 실시간 로그(60%, 34/85 valid)보다 높음 —
+        mp4 1fps 추출 시 재인코딩으로 픽셀이 미세하게 달라져 PG2 bbox decode가 일부 프레임에서 다르게 나온 것으로 추정
+        (PNG/JPEG 이중압축이 PG2 출력에 영향을 준다는 기존 패치 이슈와 동일한 메커니즘). 따라서 정확한 수치보다
+        "STOP 0회 vs S6의 STOP 발동" 같은 정성적 대조가 더 신뢰할 수 있는 결론.</span>
+      </div>
     </div>
   </div>
 
