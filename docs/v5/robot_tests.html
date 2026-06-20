@@ -2265,14 +2265,29 @@
       </div>
     </div>
 
-    <!-- 41프레임 dead zone 원인 정정 -->
+    <!-- 41프레임 dead zone 원인 정정 (실제 프레임 시각 검증) -->
     <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;margin-bottom:12px;font-size:0.77rem">
-      <div style="color:#ef4444;font-weight:700;margin-bottom:6px">⚠️ 41프레임 dead zone 원인 정정 — "시야 이탈" 아님</div>
+      <div style="color:#ef4444;font-weight:700;margin-bottom:6px">⚠️ 41프레임 dead zone 원인 — "시야 이탈"도 "초근접 collapse"도 아님 (실제 프레임 확인)</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">
+        <div>
+          <img src="grounding_frames/s6/frame_0056.jpg" style="width:100%;border-radius:6px;border:1px solid #334155">
+          <div style="font-size:0.66rem;color:#64748b;margin-top:3px">n=56 — raw=풀프레임, 실제 바스켓은 중거리·또렷</div>
+        </div>
+        <div>
+          <img src="grounding_frames/s6/frame_0070.jpg" style="width:100%;border-radius:6px;border:1px solid #334155">
+          <div style="font-size:0.66rem;color:#64748b;margin-top:3px">n=70 — 동일 패턴, 카메라 거의 정지 상태</div>
+        </div>
+        <div>
+          <img src="grounding_frames/s6/frame_0085.jpg" style="width:100%;border-radius:6px;border:1px solid #334155">
+          <div style="font-size:0.66rem;color:#64748b;margin-top:3px">n=85 — 30프레임 뒤에도 똑같은 collapse</div>
+        </div>
+      </div>
       <div style="color:#94a3b8;line-height:1.7">
-        raw 재확인 결과 n=56~94 전부 <code style="color:#fbbf24">&lt;loc0000&gt;&lt;loc0000&gt;&lt;loc1010&gt;...</code> (풀프레임) 반복,
-        latency도 1250~1330ms로 정상 생성 시간 — "바스켓 없음"일 때 나오는 <code style="color:#64748b">' ; &lt;eos&gt;'</code>(lat≈660ms) 패턴이 아님.<br>
-        → <strong style="color:#f59e0b">초근접 시 PG2가 giant-bbox로 collapse</strong>한 것 (Bug 2 패턴과 동일). area&gt;0.9 필터가 정확히 차단했지만,
-        실제로는 "바스켓이 시야에 가득 찬 상태"였을 가능성 — STOP이 가장 필요한 구간에서 검출이 끊긴다는 뜻.<br>
+        raw 전부 동일: <code style="color:#fbbf24">&lt;loc0000&gt;&lt;loc0000&gt;&lt;loc1010~1014&gt;&lt;loc1022&gt;</code> (풀프레임 주장),
+        latency 1250~1330ms로 정상 생성(fast &lt;eos&gt; 패턴 아님).
+        그런데 실제 사진엔 바스켓이 <strong style="color:#fbbf24">중간 거리에서 화면의 20~30%만 차지</strong> — 근접도 가림도 아님.<br>
+        → <strong style="color:#f59e0b">카메라가 거의 정지한 채 같은 장면을 반복 입력하자 PG2가 동일한 풀프레임 환각으로 deterministic하게 수렴</strong>한 것
+        (<code>do_sample=False</code> greedy decode라 입력이 거의 동일하면 출력도 고정됨). 이 특정 각도·거리·조명 조합에서 base PG2가 구조적으로 약함을 시사.<br>
         진짜 "바스켓 없음"은 n=95 1건뿐 (lat=664ms, raw=<code style="color:#64748b">' ; &lt;eos&gt;'</code>).
       </div>
     </div>
@@ -2281,7 +2296,7 @@
       <code style="color:#4ade80">gnd_20260618_172556.jsonl</code> · 105레코드 · 17:26:21~17:31:32 ·
       <strong style="color:#4ade80">fast 기록 1건</strong> (camera decode 버그 해결 확인, n=95) ·
       temporal filter 로그 <code>[near N/3]</code> 실서버 확인됨 ·
-      NO_BBOX 51건 중 50건은 giant-bbox collapse(근접 추정) — filter는 정확히 작동, 다만 근접 구간 검출력 자체가 약함
+      NO_BBOX 51건 중 50건은 정지 장면 풀프레임 환각(거리 무관) — filter는 정확히 작동, base PG2의 특정 장면 불안정성이 근본 원인
     </div>
   </div>
 
@@ -2420,13 +2435,13 @@
       </div>
     </div>
     <div style="font-size:0.78rem;color:#64748b;line-height:1.7;background:#1e293b;border-radius:8px;padding:10px 14px">
-      <strong style="color:#f1f5f9">시간 흐름 narrative:</strong>
+      <strong style="color:#f1f5f9">시간 흐름 narrative (실제 프레임 확인 후 정정):</strong>
       #1~50 바스켓 접근 중 (area 0.04→0.245, 검출 안정적) →
       #21~30 근접 피크(area 0.245, cx 0.638 우측) →
-      <strong style="color:#ef4444">#56~94 초근접 giant-bbox collapse 41프레임</strong> (검출력 붕괴 구간, STOP이 가장 필요한 시점) →
+      <strong style="color:#ef4444">#56~94 정지 장면 풀프레임 환각 41프레임</strong> (카메라 거의 고정, 바스켓 또렷이 보이는데도 동일 collapse 반복) →
       #95 카메라 이탈(진짜 미검출) → #96~105 재검출.<br>
-      → <strong style="color:#fbbf24">결론: 근접 시 PG2 안정성이 떨어지는 게 핵심 약점</strong>이지 전체 유효율 숫자가 아님.
-      LoRA 파인튜닝 우선순위를 "근거리 bbox 정밀도"에 둬야 함.
+      → <strong style="color:#fbbf24">결론: 근접 여부와 무관하게 특정 정적 장면에서 PG2가 deterministic하게 무너지는 게 핵심 약점</strong>이지 전체 유효율 숫자가 아님.
+      거리 조건만으론 재현 안 됨 — 장면/각도 의존적 실패라서 LoRA 파인튜닝 시 다양한 정지 자세 데이터도 포함해야 함.
     </div>
   </div>
 
@@ -2450,8 +2465,8 @@
         <ul style="color:#94a3b8;padding-left:16px;line-height:1.9;margin:0">
           <li><strong style="color:#fbbf24">실로봇 closed-loop 재테스트</strong> — 전체 패치 통합 후 첫 네비게이션</li>
           <li>goal_near 발동 확인 — area≥0.25 연속 3프레임</li>
-          <li>NO_BBOX 41연속 원인 파악 ✅ — giant-bbox collapse(초근접), 시야이탈 아님</li>
-          <li><strong style="color:#fbbf24">PG2 파인튜닝 우선순위: 근거리(area≥0.25) bbox 정밀도</strong> — 가장 약한 구간</li>
+          <li>NO_BBOX 41연속 원인 파악 ✅ — 정지 장면 풀프레임 환각(거리 무관), 시야이탈/초근접 아님</li>
+          <li><strong style="color:#fbbf24">PG2 파인튜닝 시 정지 자세·다양한 각도 데이터 포함</strong> — 장면 의존적 불안정성 보강</li>
         </ul>
       </div>
     </div>
