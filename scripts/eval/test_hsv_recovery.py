@@ -104,16 +104,18 @@ def main():
             nohsv.append(idx)
             continue
         cx, cy, area = det
-        # cx>0.85 & area<0.01 → 배경의 다른 회색 장비(우산 리플렉터/노트북 등)를
-        # 오탐할 가능성이 높음. 실제 바스켓 위치(센터~좌측)와 불일치.
-        if cx > 0.85 and area < 0.01:
+        # 시각검증(S6 n=25,30,44,52 / S7 n=6,21) 결과: cx 위치와 무관하게
+        # area가 작으면(<0.04) 의자 다리·벽 얼룩·콘센트 등 작은 배경 잡음을
+        # basket으로 오인하는 경우가 압도적. area>=0.04인 경우만 실제 basket
+        # 근접 촬영(화면을 크게 채움)으로 확인됨 — area 단일 기준으로 변경.
+        if area < 0.04:
             suspect.append((idx, cx, cy, area))
         else:
             genuine.append((idx, cx, cy, area))
 
     print(f"=== 결과 ===")
     print(f"진짜 바스켓으로 보이는 복구: {len(genuine)}/{len(fallback_idxs)} ({len(genuine)/len(fallback_idxs)*100:.1f}%)")
-    print(f"의심(배경 장비 오탐 추정, cx>0.85 & area<0.01): {len(suspect)}/{len(fallback_idxs)} "
+    print(f"의심(배경 잡음 오탐 추정, area<0.04): {len(suspect)}/{len(fallback_idxs)} "
           f"({len(suspect)/len(fallback_idxs)*100:.1f}%)")
     print(f"HSV도 완전 미검출: {len(nohsv)}/{len(fallback_idxs)} ({len(nohsv)/len(fallback_idxs)*100:.1f}%)")
     print()

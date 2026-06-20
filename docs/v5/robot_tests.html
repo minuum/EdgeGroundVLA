@@ -1739,14 +1739,14 @@
 <div style="max-width:1100px;margin:60px auto 0;padding:0 20px" id="gnd-session-20260618">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
     <h2 style="color:#f59e0b;font-size:1.25rem;font-weight:800;letter-spacing:0.03em;margin:0">
-      2026-06-18 PG2 Grounding — S1~S6 전체 세션 분석
+      2026-06-18~20 PG2 Grounding — S1~S7 전체 세션 분석
     </h2>
     <span style="background:rgba(245,158,11,0.12);color:#f59e0b;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(245,158,11,0.25)">grounding</span>
   </div>
   <p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">
     모델: <code style="color:#a78bfa">paligemma2-3b-mix-224</code> (base, 파인튜닝 없음) &nbsp;|&nbsp;
-    총 512프레임 (S1=7 + S2=247 + S3=14 + S4=24 + S5=115 + S6=105) &nbsp;|&nbsp;
-    카메라 버그 → 4종 필터 → PNG → temporal N=3 순서로 패치 누적
+    총 597프레임 (S1=7 + S2=247 + S3=14 + S4=24 + S5=115 + S6=105 + S7=85) &nbsp;|&nbsp;
+    카메라 버그 → 4종 필터 → PNG → temporal N=3 순서로 패치 누적, S7에서 "근접-미스 bbox" 신규 발견
   </p>
 
   <!-- ── S1 ── -->
@@ -2300,6 +2300,157 @@
     </div>
   </div>
 
+  <!-- S7 세션 (06-20 신규 — idle-gap 버그로 강제 ffmpeg 추출) -->
+  <div style="background:#0d1117;border:2px solid rgba(251,191,36,0.35);border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="color:#fbbf24;font-weight:800;font-size:1rem">S7 — 06-20 신규 세션 (11:09~11:13, n=85) — "근접 미스" bbox 발견</div>
+      <span style="background:rgba(251,191,36,0.15);color:#fbbf24;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(251,191,36,0.3)">신규</span>
+    </div>
+    <div style="color:#64748b;font-size:0.76rem;margin-bottom:14px">
+      <code style="color:#fbbf24">gnd_20260620_110911.jsonl</code> — idle-gap 자동 롤오버 버그로 누락됐던 세션을
+      <code style="color:#94a3b8">gnd_20260620_110911.mp4</code>에서 ffmpeg 1fps로 강제 추출(85프레임, jsonl 85건과 정확히 매칭)
+    </div>
+
+    <!-- 지표 5개 -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#0f172a;border:1px solid rgba(251,191,36,0.25);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#fbbf24">40.0%</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">유효율 (34/85)</div>
+        <div style="font-size:0.67rem;color:#ef4444;margin-top:1px">↓ S6 51.4%보다 낮음</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#4ade80">0</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">노이즈 bbox</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">tiny/full/xfull 전멸</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#38bdf8">8</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">최대 연속 NO_BBOX</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">S6(41) 대비 훨씨 짧음</div>
+      </div>
+      <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#ef4444">8</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">최대 연속 "근접"(f39~46)</div>
+        <div style="font-size:0.67rem;color:#ef4444;margin-top:1px">⚠ 시각검증 결과 전부 오탐</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#a78bfa">0.157</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">area 평균 (max 0.723)</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">cx평균 0.558</div>
+      </div>
+    </div>
+
+    <!-- 핵심 발견: 근접-미스 bbox -->
+    <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="color:#ef4444;font-weight:700;margin-bottom:8px">⚠️ 신규 실패 유형 발견 — "근접-미스(near-miss)" bbox</div>
+      <div style="color:#94a3b8;font-size:0.8rem;line-height:1.7;margin-bottom:10px">
+        f39~46(8연속)이 PROXIMITY STOP 조건(area≥0.25, |cx-0.5|≤0.35)을 전부 만족 — 4-filter도 전부 통과한 "유효" 검출.
+        하지만 실제 프레임을 확인하면 PG2가 바스켓이 아니라 <strong style="color:#fbbf24">바스켓 옆 빈 바닥/벽 영역</strong>에 bbox를 그렸다.
+        기하학적으로는 멀쩡한 bbox(너무 크지도 작지도 않고, 중앙 근처)라서 4-filter로는 절대 걸러지지 않는다.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        <div>
+          <img src="grounding_frames/s7/frame_0039.jpg" style="width:100%;border-radius:6px;border:1px solid #ef4444">
+          <div style="font-size:0.68rem;color:#64748b;margin-top:4px">n=39 — bbox(녹색)가 의자 옆 바닥에 위치, 실제 바스켓(우측)은 박스 밖<br>cx=0.67 area=0.297 — PROXIMITY 조건 통과(오탐)</div>
+        </div>
+        <div>
+          <img src="grounding_frames/s7/frame_0041.jpg" style="width:100%;border-radius:6px;border:1px solid #ef4444">
+          <div style="font-size:0.68rem;color:#64748b;margin-top:4px">n=41 — 동일 오탐 패턴, bbox는 빈 바닥, 바스켓은 프레임 우측 끝에 살짝 보임<br>cx=0.69 area=0.259</div>
+        </div>
+      </div>
+      <div style="color:#fbbf24;font-size:0.78rem;margin-top:10px;line-height:1.6">
+        → 실로봇 CL 배포 시 이 패턴이 나오면 <strong>로봇이 바스켓에 도달하지 않은 상태에서 PROXIMITY STOP이 잘못 발동</strong>할 수 있음.
+        4-filter + temporal N=3는 "이상한 크기/위치"는 걸러내지만 "그럴듯하지만 틀린 위치"는 못 걸러냄 — 다음 우선 보완 대상.
+      </div>
+    </div>
+
+    <!-- area 분포 -->
+    <div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="color:#475569;font-size:0.68rem;font-weight:600;letter-spacing:0.05em;margin-bottom:8px">OK BBOX AREA 분포 (34건)</div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:0.7rem">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.01~0.10</span>
+          <div style="background:#1e40af;height:12px;border-radius:3px;width:calc(12/34*300px)"></div>
+          <span style="color:#94a3b8">12건</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.10~0.25</span>
+          <div style="background:#2563eb;height:12px;border-radius:3px;width:calc(10/34*300px)"></div>
+          <span style="color:#94a3b8">10건</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.25~0.40</span>
+          <div style="background:#f97316;height:12px;border-radius:3px;width:calc(11/34*300px)"></div>
+          <span style="color:#f97316">11건 ★ 근접-미스 의심군 포함</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#64748b;width:80px;flex-shrink:0">0.40+</span>
+          <div style="background:#dc2626;height:12px;border-radius:3px;width:calc(1/34*300px)"></div>
+          <span style="color:#ef4444">1건 (area 0.723 — basket+wall 통합 loose bbox)</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:0.76rem;color:#64748b;line-height:1.6;background:#0f172a;border-radius:6px;padding:10px 12px">
+      <code style="color:#fbbf24">gnd_20260620_110911.jsonl</code> · 85레코드 · 11:09:24~11:13:39 ·
+      연속 NO_BBOX 8건 구간 다수 (S6의 41연속 정지-환각과는 다른 패턴 — 로봇이 계속 이동 중이었던 것으로 추정) ·
+      HSV 교차검증 결과는 아래 별도 섹션 참조
+    </div>
+  </div>
+
+  <!-- HSV classical detector 교차검증 -->
+  <div style="background:#0d1117;border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="color:#a78bfa;font-weight:800;font-size:1rem;margin-bottom:8px">HSV classical detector 교차검증 — PG2 fallback 프레임 재검출 시도</div>
+    <div style="color:#64748b;font-size:0.8rem;margin-bottom:16px;line-height:1.6">
+      목적: PG2가 NO_BBOX로 처리한 프레임에 독립적인 HSV 기반 검출기(<code style="color:#94a3b8">patch_hsv_annotations.py</code> 동일 로직, S∈[0,20]·V∈[70,230]·area≥400px)를
+      재적용해 라벨 보강이 가능한지 검증. PG2 self-labeling은 PG2의 collapse 자체를 학습데이터로 순환참조하므로 독립 검출기 교차검증이 필요함.
+    </div>
+
+    <!-- 필터 진화 과정 -->
+    <div style="background:#0f172a;border-radius:8px;padding:14px;margin-bottom:14px;font-size:0.8rem">
+      <div style="color:#f59e0b;font-weight:700;margin-bottom:8px">⚠️ 1차 필터(cx&gt;0.85 &amp; area&lt;0.01) → 시각검증 후 폐기, area 단일 기준으로 재설계</div>
+      <div style="color:#94a3b8;line-height:1.8">
+        최초 가설: HSV가 오른쪽 멀리(cx&gt;0.85) 작게(area&lt;0.01) 잡으면 배경 장비(우산 리플렉터 등) 오탐일 것 → 1차로 S6에서 "진짜 복구 10건(19.6%)"으로 분류.<br>
+        실제 프레임 시각검증(n=25, n=30, n=44, n=52) 결과: <strong style="color:#ef4444">cx가 왼쪽(0.02~0.47)이라 필터를 통과했지만 전부 의자 다리/벽 얼룩 오탐</strong> —
+        실제 바스켓은 화면 중앙에 또렷이 보이는데 HSV는 구석의 작은 잡음을 잡았음.<br>
+        → <strong style="color:#a78bfa">cx 위치가 아니라 area 크기가 핵심</strong>: area&lt;0.04인 검출은 거의 전부 잡음, area≥0.04만 신뢰 가능 (근접 촬영 시 바스켓이 화면을 크게 채움).
+      </div>
+    </div>
+
+    <!-- area 기준 재검출 결과 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:#0f172a;border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:14px">
+        <div style="color:#4ade80;font-weight:700;margin-bottom:8px">S6 — area≥0.04 재검출</div>
+        <div style="color:#94a3b8;font-size:0.8rem;line-height:1.8">
+          fallback 51건 중 area≥0.04: <strong style="color:#4ade80">4건(7.8%)</strong> — n=26·27·28(연속 클러스터, cx≈0.40)·n=96(cx=0.332)<br>
+          시각검증: n=26, n=96 직접 확인 ✅ 진짜 바스켓(근접 촬영). n=27·28은 n=26과 연속 프레임·동일 cx대로 신뢰<br>
+          나머지 47건(92.2%)은 area&lt;0.04 의심군 — 의자/벽 얼룩 등 잡음으로 제외<br>
+          <strong style="color:#fbbf24">PG2 51.4% → PG2+HSV 55.2% (58/105)</strong>
+        </div>
+      </div>
+      <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:14px">
+        <div style="color:#ef4444;font-weight:700;margin-bottom:8px">S7 — area≥0.04 재검출, 그래도 오탐 1건</div>
+        <div style="color:#94a3b8;font-size:0.8rem;line-height:1.8">
+          fallback 51건 중 area≥0.04: <strong style="color:#fbbf24">3건(5.9%)</strong> — n=6·84·85<br>
+          시각검증: n=84·85(연속, cx≈0.35) ✅ 진짜. <strong style="color:#ef4444">n=6(area=0.203)은 area 기준 통과했지만 시각확인 결과 왼쪽 벽 변색(crack/stain) 오탐</strong> —
+          실제 바스켓은 cx≈0.65인데 HSV는 cx=0.270<br>
+          → area 단일 기준도 완벽하지 않음. 큰 벽 얼룩은 area를 통과할 수 있음<br>
+          <strong style="color:#fbbf24">PG2 40.0% → PG2+HSV(n=6 제외) 42.4% (36/85)</strong>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.25);border-radius:8px;padding:14px;font-size:0.82rem;color:#94a3b8;line-height:1.75">
+      <strong style="color:#a78bfa">최종 결론 — HSV 자동 라벨링은 보류, 수동 시각검증 필수</strong><br>
+      area 기준 필터로 1차 오탐(cx&gt;0.85 휴리스틱)은 크게 줄였지만, n=6처럼 <strong style="color:#fbbf24">큰 면적의 배경 잡음(벽 얼룩)도 area 기준을 통과</strong>할 수 있음을 확인 —
+      즉 단일 수치 임계값(cx든 area든)으로 100% 신뢰 가능한 자동 필터는 없음. 가장 신뢰도 높은 신호는
+      <strong style="color:#4ade80">"area 충분히 크다 + 인접 프레임들과 cx가 일관되게 클러스터링"</strong>(n=26-28, n=84-85처럼) 인데,
+      이마저도 n=39~46처럼 PG2 자체가 8연속으로 동일한 오탐을 내는 경우엔 무력화됨(위 S7 근접-미스 섹션 참조).<br>
+      → 결론: HSV/classical 검출기로 PG2 fallback을 일괄 자동 보강하는 것은 보류. 다음 단계는
+      <strong style="color:#fbbf24">GroundingDINO 등 학습 기반 검출기로 독립 교차검증</strong>하거나, 소량 프레임을 수동 라벨링해 PG2 LoRA 파인튜닝 데이터로 사용하는 것.
+    </div>
+  </div>
+
   <!-- 세션 유효율 진행 바 -->
   <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;margin-bottom:18px">
     <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:14px">세션별 유효율 진행 (패치 누적)</div>
@@ -2341,12 +2492,20 @@
         <span style="color:#475569;font-size:0.67rem">4종 필터 적용 후 (+4.7%p)</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
-        <span style="color:#4ade80;width:48px;flex-shrink:0;font-weight:700">S6 ★</span>
+        <span style="color:#4ade80;width:48px;flex-shrink:0;font-weight:700">S6</span>
         <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
           <div style="background:#4ade80;width:51.4%;height:100%;border-radius:4px"></div>
         </div>
         <span style="color:#4ade80;width:60px;text-align:right;font-weight:700">51.4%</span>
         <span style="color:#4ade80;font-size:0.67rem;font-weight:600">PNG + temporal N=3 (+17.5%p)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
+        <span style="color:#fbbf24;width:48px;flex-shrink:0;font-weight:700">S7 ★</span>
+        <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
+          <div style="background:#fbbf24;width:40.0%;height:100%;border-radius:4px"></div>
+        </div>
+        <span style="color:#fbbf24;width:60px;text-align:right;font-weight:700">40.0%</span>
+        <span style="color:#ef4444;font-size:0.67rem;font-weight:600">同 패치 — 세션별 변동(−11.4%p), 근접-미스 신규 발견</span>
       </div>
     </div>
   </div>
@@ -2398,10 +2557,15 @@
           <td style="padding:6px 10px;text-align:center"><span style="color:#4ade80;font-weight:700">✅ 완료</span></td>
           <td style="color:#64748b;padding:6px 0">GOAL_CONSEC_FRAMES=3, strict</td>
         </tr>
-        <tr>
+        <tr style="border-bottom:1px solid #0f172a">
           <td style="color:#fbbf24;padding:6px 8px 6px 0">실로봇 closed-loop 재테스트</td>
           <td style="padding:6px 10px;text-align:center"><span style="color:#f59e0b;font-weight:700">🔲 대기</span></td>
           <td style="color:#64748b;padding:6px 0">전체 패치 완료 → 다음 단계</td>
+        </tr>
+        <tr>
+          <td style="color:#ef4444;padding:6px 8px 6px 0">근접-미스 bbox 필터 (S7 신규 발견)</td>
+          <td style="padding:6px 10px;text-align:center"><span style="color:#ef4444;font-weight:700">🔲 미착수</span></td>
+          <td style="color:#64748b;padding:6px 0">f39~46 — 4-filter 통과하지만 바스켓 아닌 빈 공간 박싱</td>
         </tr>
       </tbody>
     </table>
@@ -2467,6 +2631,8 @@
           <li>goal_near 발동 확인 — area≥0.25 연속 3프레임</li>
           <li>NO_BBOX 41연속 원인 파악 ✅ — 정지 장면 풀프레임 환각(거리 무관), 시야이탈/초근접 아님</li>
           <li><strong style="color:#fbbf24">PG2 파인튜닝 시 정지 자세·다양한 각도 데이터 포함</strong> — 장면 의존적 불안정성 보강</li>
+          <li><strong style="color:#ef4444">근접-미스 bbox 대응 (S7 신규)</strong> — 기하학적으로 정상이지만 바스켓이 아닌 위치를 박싱하는 경우 차단 필요</li>
+          <li>HSV classical 검출기 교차검증 보류 → GroundingDINO 등 학습기반 검출기 검토</li>
         </ul>
       </div>
     </div>
