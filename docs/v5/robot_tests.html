@@ -287,63 +287,66 @@
   </div>
 </nav>
 
-<!-- ── 목차(TOC) ── -->
-<div id="toc-bar" style="position:sticky;top:49px;z-index:99;background:#111827;border-bottom:1px solid #1e293b;padding:0 28px">
-  <div style="max-width:1300px;margin:0 auto;display:flex;align-items:center;gap:6px;position:relative">
-    <button onclick="document.getElementById('toc-menu').classList.toggle('open')"
-            style="background:none;border:none;color:#94a3b8;font-size:0.8rem;font-weight:700;padding:10px 4px;cursor:pointer;display:flex;align-items:center;gap:6px;flex-shrink:0">
-      <i class="fas fa-list-ul"></i> 목차 <i class="fas fa-caret-down" style="font-size:0.7rem"></i>
-    </button>
-    <div id="toc-scroll" style="display:flex;gap:4px;overflow-x:auto;padding:6px 0;flex:1;scrollbar-width:thin">
-      <a href="#overview" class="toc-chip">세션 개요</a>
-      <a href="#session-a" class="toc-chip">05-29 A</a>
-      <a href="#session-b" class="toc-chip">05-29 B</a>
-      <a href="#session-c" class="toc-chip">05-29 C</a>
-      <a href="#june4" class="toc-chip">06-04 D~H</a>
-      <a href="#findings" class="toc-chip">핵심 발견</a>
-      <a href="#action-seq" class="toc-chip">Action 시퀀스</a>
-      <a href="#stop-n1" class="toc-chip">stop_N1</a>
-      <a href="#gnd-session-20260618" class="toc-chip" style="color:#fbbf24">S1~S7 그라운딩</a>
-      <a href="#s5-session" class="toc-chip">S5 세션</a>
-      <a href="#s4-bbox-detail" class="toc-chip">S4 bbox 분석</a>
-      <a href="#s4-filmstrip-section" class="toc-chip">S4 필름스트립</a>
-      <a href="#s6-filmstrip-section" class="toc-chip" style="color:#4ade80">S6 필름스트립+CL</a>
-      <a href="#offline-reeval" class="toc-chip" style="color:#a78bfa">오프라인 재평가</a>
-      <a href="#hsv-crossval" class="toc-chip" style="color:#a78bfa">HSV 교차검증</a>
-      <a href="#s7-session" class="toc-chip" style="color:#fbbf24">S7 세션</a>
-      <a href="#pipeline-flow" class="toc-chip">파이프라인 비교</a>
-    </div>
-  </div>
-  <!-- 모바일/축약 드롭다운 -->
-  <div id="toc-menu" style="max-width:1300px;margin:0 auto;display:none;flex-direction:column;padding:8px 0 14px;gap:2px">
-    <a href="#overview" class="toc-menu-item">세션 개요</a>
-    <a href="#session-a" class="toc-menu-item">2026-05-29 세션 A — Left Drift Failure</a>
-    <a href="#session-b" class="toc-menu-item">2026-05-29 세션 B — Successful Approach</a>
-    <a href="#session-c" class="toc-menu-item">2026-05-29 세션 C — Efficient Approach</a>
-    <a href="#june4" class="toc-menu-item">2026-06-04 세션 D~H — 실험 조건 & 원인 분석</a>
-    <a href="#findings" class="toc-menu-item">핵심 발견 & 모델 발전 결론</a>
-    <a href="#action-seq" class="toc-menu-item">2026-06-04 — Action 시퀀스 분석</a>
-    <a href="#stop-n1" class="toc-menu-item">2026-06-18 — stop_N1 첫 실전 테스트</a>
-    <a href="#gnd-session-20260618" class="toc-menu-item" style="color:#fbbf24">2026-06-18~20 PG2 Grounding — S1~S7 전체 세션 분석</a>
-    <a href="#s5-session" class="toc-menu-item">S5 — 4종 필터 적용 신버전 서버 (n=115)</a>
-    <a href="#s4-bbox-detail" class="toc-menu-item">S4 유효 bbox 실제 분석</a>
-    <a href="#s4-filmstrip-section" class="toc-menu-item">S4 전체 24프레임 필름스트립</a>
-    <a href="#s6-filmstrip-section" class="toc-menu-item" style="color:#4ade80">S6 전체 105프레임 필름스트립 + CL 시뮬레이션</a>
-    <a href="#offline-reeval" class="toc-menu-item" style="color:#a78bfa">PG2 오프라인 재평가 (신 서버 4-filter 기준)</a>
-    <a href="#hsv-crossval" class="toc-menu-item" style="color:#a78bfa">HSV classical detector 교차검증</a>
-    <a href="#s7-session" class="toc-menu-item" style="color:#fbbf24">S7 — 06-20 신규 세션 (근접-미스 bbox)</a>
-    <a href="#pipeline-flow" class="toc-menu-item">학습 vs 추론 파이프라인 플로우 비교</a>
-  </div>
-</div>
+<!-- ══ TOC (research_story.html과 동일한 우측 고정 사이드바 패턴) ══ -->
 <style>
-  .toc-chip { color:#94a3b8; font-size:0.74rem; font-weight:600; padding:6px 10px; border-radius:6px; white-space:nowrap; flex-shrink:0; }
-  .toc-chip:hover { background:#1e293b; color:#f8fafc; text-decoration:none; }
-  #toc-menu.open { display:flex !important; }
-  .toc-menu-item { color:#94a3b8; font-size:0.82rem; padding:8px 10px; border-radius:6px; }
-  .toc-menu-item:hover { background:#1e293b; color:#f8fafc; text-decoration:none; }
-  #toc-scroll::-webkit-scrollbar { height:4px; }
-  #toc-scroll::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+  #toc {
+    position:fixed; top:50%; right:0; transform:translateY(-50%);
+    z-index:998; display:flex; flex-direction:column; align-items:flex-end;
+  }
+  #toc-toggle {
+    background:#1e293b; border:1px solid #334155; color:#94a3b8;
+    font-size:0.7rem; font-weight:700; padding:6px 10px; cursor:pointer;
+    border-radius:8px 0 0 8px; writing-mode:vertical-rl;
+    text-orientation:mixed; letter-spacing:0.08em; margin-bottom:4px;
+    transition:background 0.15s, color 0.15s;
+  }
+  #toc-toggle:hover { background:#334155; color:#f1f5f9; }
+  #toc-panel {
+    background:#111827; border:1px solid #1e293b; border-right:none;
+    border-radius:12px 0 0 12px; padding:12px 0; min-width:220px;
+    max-height:80vh; overflow-y:auto; display:none;
+    box-shadow:-4px 0 24px rgba(0,0,0,0.5);
+  }
+  #toc-panel.open { display:block; }
+  #toc-panel::-webkit-scrollbar { width:4px; }
+  #toc-panel::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+  .toc-item {
+    display:flex; align-items:center; gap:8px; padding:7px 16px;
+    cursor:pointer; text-decoration:none; color:#94a3b8;
+    font-size:0.78rem; line-height:1.3; transition:background 0.1s, color 0.1s;
+    border-left:2px solid transparent;
+  }
+  .toc-item:hover { background:#1e293b; color:#e2e8f0; }
+  .toc-item.active { color:#38bdf8; border-left-color:#38bdf8; background:rgba(56,189,248,0.07); }
+  .toc-badge {
+    flex-shrink:0; font-size:0.65rem; font-weight:900; padding:2px 6px;
+    border-radius:99px; background:#1e293b; color:#64748b; white-space:nowrap;
+  }
+  .toc-item.active .toc-badge { background:rgba(56,189,248,0.15); color:#38bdf8; }
+  .toc-label { flex:1; }
 </style>
+<nav id="toc">
+  <button id="toc-toggle" onclick="document.getElementById('toc-panel').classList.toggle('open')">목차</button>
+  <div id="toc-panel">
+    <a class="toc-item" href="#overview" data-target="overview"><span class="toc-badge">01</span><span class="toc-label">세션 개요</span></a>
+    <a class="toc-item" href="#session-a" data-target="session-a"><span class="toc-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">02</span><span class="toc-label">05-29 A — Left Drift</span></a>
+    <a class="toc-item" href="#session-b" data-target="session-b"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">03</span><span class="toc-label">05-29 B — Success</span></a>
+    <a class="toc-item" href="#session-c" data-target="session-c"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">04</span><span class="toc-label">05-29 C — Efficient</span></a>
+    <a class="toc-item" href="#june4" data-target="june4"><span class="toc-badge">05</span><span class="toc-label">06-04 세션 D~H</span></a>
+    <a class="toc-item" href="#findings" data-target="findings"><span class="toc-badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">06</span><span class="toc-label">핵심 발견 &amp; 결론</span></a>
+    <a class="toc-item" href="#action-seq" data-target="action-seq"><span class="toc-badge">07</span><span class="toc-label">06-04 Action 시퀀스</span></a>
+    <a class="toc-item" href="#stop-n1" data-target="stop-n1"><span class="toc-badge">08</span><span class="toc-label">06-18 stop_N1 첫 테스트</span></a>
+    <a class="toc-item" href="#gnd-session-20260618" data-target="gnd-session-20260618"><span class="toc-badge" style="background:rgba(251,191,36,0.2);color:#fbbf24;font-weight:900">★</span><span class="toc-label">S1~S7 그라운딩 분석</span></a>
+    <a class="toc-item" href="#s5-session" data-target="s5-session"><span class="toc-badge" style="background:rgba(56,189,248,0.15);color:#38bdf8">S5</span><span class="toc-label">S5 — 4종필터 신버전(n=115)</span></a>
+    <a class="toc-item" href="#s4-bbox-detail" data-target="s4-bbox-detail"><span class="toc-badge" style="background:rgba(249,115,22,0.15);color:#f97316">S4</span><span class="toc-label">S4 유효 bbox 분석</span></a>
+    <a class="toc-item" href="#s4-filmstrip-section" data-target="s4-filmstrip-section"><span class="toc-badge" style="background:rgba(249,115,22,0.15);color:#f97316">S4</span><span class="toc-label">S4 필름스트립 (24프레임)</span></a>
+    <a class="toc-item" href="#s6-filmstrip-section" data-target="s6-filmstrip-section"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#22c55e">S6</span><span class="toc-label">S6 필름스트립+CL (105)</span></a>
+    <a class="toc-item" href="#offline-reeval" data-target="offline-reeval"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">RE</span><span class="toc-label">PG2 오프라인 재평가</span></a>
+    <a class="toc-item" href="#hsv-crossval" data-target="hsv-crossval"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">HSV</span><span class="toc-label">HSV 교차검증</span></a>
+    <a class="toc-item" href="#s7-session" data-target="s7-session"><span class="toc-badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">S7</span><span class="toc-label">S7 — 근접-미스 bbox</span></a>
+    <a class="toc-item" href="#pipeline-flow" data-target="pipeline-flow"><span class="toc-badge">09</span><span class="toc-label">파이프라인 플로우 비교</span></a>
+  </div>
+</nav>
 
 <!-- ── Hero ── -->
 <div class="hero">
@@ -4216,6 +4219,42 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') s4LbNav(1);
   if (e.key === 'Escape') lb.style.display = 'none';
 });
+</script>
+
+<script>
+(function() {
+  const SECTIONS = ['overview','session-a','session-b','session-c','june4','findings',
+    'action-seq','stop-n1','gnd-session-20260618','s5-session','s4-bbox-detail',
+    's4-filmstrip-section','s6-filmstrip-section','offline-reeval','hsv-crossval',
+    's7-session','pipeline-flow'];
+  const items = document.querySelectorAll('.toc-item[data-target]');
+
+  function getActive() {
+    const mid = window.scrollY + window.innerHeight * 0.35;
+    let active = SECTIONS[0];
+    for (const id of SECTIONS) {
+      const el = document.getElementById(id);
+      if (el && el.getBoundingClientRect().top + window.scrollY <= mid) active = id;
+    }
+    return active;
+  }
+
+  function update() {
+    const active = getActive();
+    items.forEach(item => {
+      item.classList.toggle('active', item.dataset.target === active);
+    });
+  }
+
+  window.addEventListener('scroll', update, {passive: true});
+  update();
+
+  items.forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('toc-panel').classList.remove('open');
+    });
+  });
+})();
 </script>
 
 </body>
