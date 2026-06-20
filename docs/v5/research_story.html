@@ -5146,6 +5146,31 @@
         <strong>2. 해상도(Resolution) 가변 확장의 기하학적 당위성</strong><br>
         Kosmos-2는 $224 \times 224$ 해상도로 고정되어 정밀한 BBox 좌표 추출에 기하학적인 한계가 존재했습니다. 반면 PaliGemma 2는 최대 $896 \times 896$ 해상도까지 지원하여, 넓은 복도 환경에서 멀리 떨어져 있어 픽셀 면적이 매우 미미한 목표물(바스켓)도 고해상도 ViT 패치 분석을 통해 오프셋 왜곡 없이 정교하게 추출해 낼 수 있는 강인함을 제공합니다.
       </p>
+      <div style="background:#0a0f1a;border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:14px;margin-top:14px;font-size:0.78rem;line-height:1.7">
+        <strong style="color:#fbbf24">⚠️ 실제 배포 상태와의 차이 (2026-06-20 확인)</strong><br>
+        위 설명은 PaliGemma 2 아키텍처가 <em>지원하는</em> 범위이며, 현재 soda(Jetson Orin)에 배포된 체크포인트는
+        <code style="color:#a78bfa">paligemma2-3b-mix-<strong>224</strong></code>로 224×224에 고정되어 있어 위 강인함이 아직 실현되지 않은 상태입니다.
+        카메라 1280×720 입력도 PG2 내부에서 center-crop/padding 없이 224×224로 강제 스트레치되어 16:9→1:1 비율 왜곡까지 발생합니다.<br><br>
+        <strong style="color:#e2e8f0">정량 비교 (실측 vs 추정):</strong>
+        <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.74rem">
+          <thead><tr style="border-bottom:1px solid #1e293b">
+            <th style="text-align:left;padding:5px 8px;color:#64748b">체크포인트</th>
+            <th style="text-align:center;padding:5px 8px;color:#64748b">이미지 토큰</th>
+            <th style="text-align:center;padding:5px 8px;color:#64748b">latency</th>
+            <th style="text-align:center;padding:5px 8px;color:#64748b">GPU 메모리</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #131e2e"><td style="padding:5px 8px;color:#4ade80">mix-224 (현재)</td><td style="padding:5px 8px;text-align:center">256</td><td style="padding:5px 8px;text-align:center;color:#4ade80">1246~1264ms 실측</td><td style="padding:5px 8px;text-align:center;color:#4ade80">6.73GB 실측</td></tr>
+            <tr style="border-bottom:1px solid #131e2e"><td style="padding:5px 8px;color:#fbbf24">mix-448</td><td style="padding:5px 8px;text-align:center">1024 (4×)</td><td style="padding:5px 8px;text-align:center;color:#fbbf24">~1.9~3.8초 추정</td><td style="padding:5px 8px;text-align:center;color:#fbbf24">~9~12GB 추정</td></tr>
+            <tr><td style="padding:5px 8px;color:#ef4444">mix-896</td><td style="padding:5px 8px;text-align:center">4096 (16×)</td><td style="padding:5px 8px;text-align:center;color:#ef4444">~5~12초 추정</td><td style="padding:5px 8px;text-align:center;color:#ef4444">~20GB+ 추정, OOM 위험</td></tr>
+          </tbody>
+        </table>
+        <div style="color:#64748b;margin-top:6px">
+          토큰 수(256/1024/4096)는 Google 공식 모델카드 값(patch14, 16²/32²/64²). latency/메모리 추정은 토큰수 배수 기반 거친 추정 — 미실측.
+          soda 전체 메모리 15GB 중 13GB 이미 사용 중(여유 1.1GB)이라 mix-448조차 OOM 위험, mix-896은 현재 사양에서 비현실적.
+          상세는 <a href="robot_tests.html#resolution-analysis" style="color:#38bdf8">Robot Tests — 해상도 정량분석</a> 참조.
+        </div>
+      </div>
     </div>
 
     <!-- E2E VLA의 한계와 Decomposed의 필요성 -->

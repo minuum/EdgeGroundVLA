@@ -344,6 +344,7 @@
     <a class="toc-item" href="#offline-reeval" data-target="offline-reeval"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">RE</span><span class="toc-label">PG2 오프라인 재평가</span></a>
     <a class="toc-item" href="#hsv-crossval" data-target="hsv-crossval"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">HSV</span><span class="toc-label">HSV 교차검증</span></a>
     <a class="toc-item" href="#s7-session" data-target="s7-session"><span class="toc-badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">S7</span><span class="toc-label">S7 — 근접-미스 bbox</span></a>
+    <a class="toc-item" href="#resolution-analysis" data-target="resolution-analysis"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">RES</span><span class="toc-label">해상도 224→448/896 정량분석</span></a>
     <a class="toc-item" href="#pipeline-flow" data-target="pipeline-flow"><span class="toc-badge">09</span><span class="toc-label">파이프라인 플로우 비교</span></a>
   </div>
 </nav>
@@ -3424,6 +3425,106 @@
   <button onclick="document.getElementById('s4lb').style.display='none'" style="margin-top:16px;background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:6px 20px;cursor:pointer;font-size:0.8rem">닫기 (Esc)</button>
 </div>
 
+<!-- ══ PG2 해상도 업그레이드 검토 — 정량 분석 ══ -->
+<div id="resolution-analysis" style="max-width:1100px;margin:48px auto 0;padding:0 20px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <h2 style="color:#a78bfa;font-size:1.2rem;font-weight:800;letter-spacing:0.03em;margin:0">
+      PG2 해상도 업그레이드 검토 — 224 → 448/896 정량 분석
+    </h2>
+    <span style="background:rgba(167,139,250,0.12);color:#a78bfa;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(167,139,250,0.25)">검토중</span>
+  </div>
+  <p style="color:#64748b;font-size:0.83rem;margin-bottom:18px">
+    현재 배포 체크포인트는 <code style="color:#a78bfa">paligemma2-3b-mix-<strong>224</strong></code> — 카메라 1280×720 입력을 PG2 내부에서
+    무조건 224×224로 강제 리사이즈(center-crop/padding 없이 스트레치)한다. 해상도를 올리면 인식이 개선될지, 비용은 얼마나 늘지 숫자로 검토.
+  </p>
+
+  <!-- 측정값 vs 추정값 테이블 -->
+  <div style="background:#0d1117;border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:20px;margin-bottom:18px">
+    <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+      <thead>
+        <tr style="border-bottom:1px solid #334155">
+          <th style="text-align:left;padding:8px 10px;color:#64748b">체크포인트</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">이미지 토큰 수</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">토큰 배수</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">grounding latency</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">GPU 메모리(추정)</th>
+          <th style="text-align:center;padding:8px 10px;color:#64748b">근거</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #1e293b;background:rgba(34,197,94,0.06)">
+          <td style="padding:8px 10px;color:#4ade80;font-weight:700">mix-224 (현재)</td>
+          <td style="padding:8px 10px;text-align:center;color:#e2e8f0">256</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b">1×</td>
+          <td style="padding:8px 10px;text-align:center;color:#4ade80;font-weight:700">1246~1264ms (실측 평균)</td>
+          <td style="padding:8px 10px;text-align:center;color:#4ade80;font-weight:700">6.73GB (실측)</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">S6/S7 jsonl 로그 190건 평균</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px 10px;color:#fbbf24;font-weight:700">mix-448</td>
+          <td style="padding:8px 10px;text-align:center;color:#e2e8f0">1024</td>
+          <td style="padding:8px 10px;text-align:center;color:#fbbf24">4×</td>
+          <td style="padding:8px 10px;text-align:center;color:#fbbf24">~1.9~3.8초 (추정)</td>
+          <td style="padding:8px 10px;text-align:center;color:#fbbf24">~9~12GB (추정)</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">토큰수 기반 추정, 미실측</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;color:#ef4444;font-weight:700">mix-896</td>
+          <td style="padding:8px 10px;text-align:center;color:#e2e8f0">4096</td>
+          <td style="padding:8px 10px;text-align:center;color:#ef4444">16×</td>
+          <td style="padding:8px 10px;text-align:center;color:#ef4444">~5~12초 (추정)</td>
+          <td style="padding:8px 10px;text-align:center;color:#ef4444">~20GB+ (추정, OOM 위험)</td>
+          <td style="padding:8px 10px;text-align:center;color:#64748b;font-size:0.72rem">토큰수 기반 추정, 미실측</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="color:#64748b;font-size:0.72rem;margin-top:10px;line-height:1.6">
+      이미지 토큰 수(256/1024/4096)는 Google PaliGemma2 공식 모델카드 값(patch14, 16²/32²/64²) — 사실.
+      latency·메모리 추정값은 토큰 수 배수를 단순 대입한 거친 추정으로, <strong style="color:#fbbf24">실측 전까지 신뢰 구간으로만 취급</strong>할 것.
+      비전 인코더(SigLIP ViT) self-attention은 토큰수의 제곱에 가깝게, LLM prefill은 토큰수에 선형~준선형으로 늘어나 혼합된 결과.
+    </div>
+  </div>
+
+  <!-- 핵심 제약: Jetson 메모리 여유 -->
+  <div style="background:linear-gradient(135deg,#451a03,#1c1917);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:18px 20px;margin-bottom:18px">
+    <div style="color:#fbbf24;font-weight:800;margin-bottom:10px">⚠️ 가장 중요한 제약 — soda(Jetson Orin) 메모리 여유가 거의 없음</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:900;color:#e2e8f0">15GB</div>
+        <div style="font-size:0.7rem;color:#64748b;margin-top:2px">전체 통합 메모리 (Orin)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:900;color:#f59e0b">13GB 사용중</div>
+        <div style="font-size:0.7rem;color:#64748b;margin-top:2px">현재 (mix-224 + dashboard 등)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:900;color:#ef4444">1.1GB</div>
+        <div style="font-size:0.7rem;color:#64748b;margin-top:2px">남은 여유 (free)</div>
+      </div>
+    </div>
+    <div style="color:#94a3b8;font-size:0.82rem;line-height:1.7">
+      현재도 PG2-3B(mix-224)만으로 6.73GB를 쓰고, dashboard/기타 프로세스 포함 시스템 전체가 13/15GB.
+      mix-448은 이미지 토큰 4배(256→1024) → 비전 인코더 activation + LLM KV-cache가 더 필요해
+      <strong style="color:#fbbf24">현재 free 1.1GB로는 부족할 가능성이 높음</strong> — 다른 프로세스(gradio dashboard 등) 종료 후 테스트 필요.
+      mix-896(16배)은 이 Jetson Orin 사양에서는 <strong style="color:#ef4444">OOM 가능성이 매우 높아 비현실적</strong>.
+    </div>
+  </div>
+
+  <!-- 권장 다음 단계 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 20px">
+    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px">권장 검증 절차</div>
+    <ol style="color:#94a3b8;font-size:0.82rem;line-height:1.9;padding-left:20px;margin:0">
+      <li>soda에서 dashboard(gradio_inference_dashboard.py) 등 불필요 프로세스 종료 → 메모리 확보</li>
+      <li><code style="background:#0f172a;padding:2px 6px;border-radius:4px">paligemma2-3b-mix-448</code> 다운로드 + 로드 테스트 — OOM 여부 확인</li>
+      <li>로드 성공 시 S6/S7 동일 프레임 셋(105+85장)으로 <code style="background:#0f172a;padding:2px 6px;border-radius:4px">/ground</code> 재호출 →
+        실측 latency + has_bbox 비율 비교</li>
+      <li>특히 <strong style="color:#fbbf24">근접-미스 bbox 클러스터(S7 f39~46)</strong>와 <strong style="color:#fbbf24">정지장면 풀프레임 환각(S6 f56~94)</strong> 두 실패 프레임에서
+        448이 실제로 정정되는지 직접 시각 검증 — 토큰 수가 늘어 디테일을 더 본다는 가설을 이 두 실패 사례로 직접 검증</li>
+      <li>latency가 임계치(예: 1.5초/프레임) 넘으면 실로봇 10Hz 제어 루프와 충돌 — 그라운딩을 매 프레임이 아닌 N프레임마다만 호출하는 구조 변경도 같이 검토</li>
+    </ol>
+  </div>
+</div>
+
 <!-- ══ 추론 파이프라인 양방향 플로우 비교 ══ -->
 <div id="pipeline-flow" style="max-width:1100px;margin:48px auto 0;padding:0 20px 60px">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
@@ -4280,7 +4381,7 @@ document.addEventListener('keydown', e => {
   const SECTIONS = ['overview','session-a','session-b','session-c','june4','findings',
     'action-seq','stop-n1','gnd-session-20260618','s5-session','s4-bbox-detail',
     's4-filmstrip-section','s6-filmstrip-section','offline-reeval','hsv-crossval',
-    's7-session','pipeline-flow'];
+    's7-session','resolution-analysis','pipeline-flow'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
