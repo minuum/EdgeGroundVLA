@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
+    [id] { scroll-margin-top: 110px; }
     body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
     a { color: #38bdf8; text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -286,6 +287,64 @@
   </div>
 </nav>
 
+<!-- ── 목차(TOC) ── -->
+<div id="toc-bar" style="position:sticky;top:49px;z-index:99;background:#111827;border-bottom:1px solid #1e293b;padding:0 28px">
+  <div style="max-width:1300px;margin:0 auto;display:flex;align-items:center;gap:6px;position:relative">
+    <button onclick="document.getElementById('toc-menu').classList.toggle('open')"
+            style="background:none;border:none;color:#94a3b8;font-size:0.8rem;font-weight:700;padding:10px 4px;cursor:pointer;display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <i class="fas fa-list-ul"></i> 목차 <i class="fas fa-caret-down" style="font-size:0.7rem"></i>
+    </button>
+    <div id="toc-scroll" style="display:flex;gap:4px;overflow-x:auto;padding:6px 0;flex:1;scrollbar-width:thin">
+      <a href="#overview" class="toc-chip">세션 개요</a>
+      <a href="#session-a" class="toc-chip">05-29 A</a>
+      <a href="#session-b" class="toc-chip">05-29 B</a>
+      <a href="#session-c" class="toc-chip">05-29 C</a>
+      <a href="#june4" class="toc-chip">06-04 D~H</a>
+      <a href="#findings" class="toc-chip">핵심 발견</a>
+      <a href="#action-seq" class="toc-chip">Action 시퀀스</a>
+      <a href="#stop-n1" class="toc-chip">stop_N1</a>
+      <a href="#gnd-session-20260618" class="toc-chip" style="color:#fbbf24">S1~S7 그라운딩</a>
+      <a href="#s5-session" class="toc-chip">S5 세션</a>
+      <a href="#s4-bbox-detail" class="toc-chip">S4 bbox 분석</a>
+      <a href="#s4-filmstrip-section" class="toc-chip">S4 필름스트립</a>
+      <a href="#s6-filmstrip-section" class="toc-chip" style="color:#4ade80">S6 필름스트립+CL</a>
+      <a href="#offline-reeval" class="toc-chip" style="color:#a78bfa">오프라인 재평가</a>
+      <a href="#hsv-crossval" class="toc-chip" style="color:#a78bfa">HSV 교차검증</a>
+      <a href="#s7-session" class="toc-chip" style="color:#fbbf24">S7 세션</a>
+      <a href="#pipeline-flow" class="toc-chip">파이프라인 비교</a>
+    </div>
+  </div>
+  <!-- 모바일/축약 드롭다운 -->
+  <div id="toc-menu" style="max-width:1300px;margin:0 auto;display:none;flex-direction:column;padding:8px 0 14px;gap:2px">
+    <a href="#overview" class="toc-menu-item">세션 개요</a>
+    <a href="#session-a" class="toc-menu-item">2026-05-29 세션 A — Left Drift Failure</a>
+    <a href="#session-b" class="toc-menu-item">2026-05-29 세션 B — Successful Approach</a>
+    <a href="#session-c" class="toc-menu-item">2026-05-29 세션 C — Efficient Approach</a>
+    <a href="#june4" class="toc-menu-item">2026-06-04 세션 D~H — 실험 조건 & 원인 분석</a>
+    <a href="#findings" class="toc-menu-item">핵심 발견 & 모델 발전 결론</a>
+    <a href="#action-seq" class="toc-menu-item">2026-06-04 — Action 시퀀스 분석</a>
+    <a href="#stop-n1" class="toc-menu-item">2026-06-18 — stop_N1 첫 실전 테스트</a>
+    <a href="#gnd-session-20260618" class="toc-menu-item" style="color:#fbbf24">2026-06-18~20 PG2 Grounding — S1~S7 전체 세션 분석</a>
+    <a href="#s5-session" class="toc-menu-item">S5 — 4종 필터 적용 신버전 서버 (n=115)</a>
+    <a href="#s4-bbox-detail" class="toc-menu-item">S4 유효 bbox 실제 분석</a>
+    <a href="#s4-filmstrip-section" class="toc-menu-item">S4 전체 24프레임 필름스트립</a>
+    <a href="#s6-filmstrip-section" class="toc-menu-item" style="color:#4ade80">S6 전체 105프레임 필름스트립 + CL 시뮬레이션</a>
+    <a href="#offline-reeval" class="toc-menu-item" style="color:#a78bfa">PG2 오프라인 재평가 (신 서버 4-filter 기준)</a>
+    <a href="#hsv-crossval" class="toc-menu-item" style="color:#a78bfa">HSV classical detector 교차검증</a>
+    <a href="#s7-session" class="toc-menu-item" style="color:#fbbf24">S7 — 06-20 신규 세션 (근접-미스 bbox)</a>
+    <a href="#pipeline-flow" class="toc-menu-item">학습 vs 추론 파이프라인 플로우 비교</a>
+  </div>
+</div>
+<style>
+  .toc-chip { color:#94a3b8; font-size:0.74rem; font-weight:600; padding:6px 10px; border-radius:6px; white-space:nowrap; flex-shrink:0; }
+  .toc-chip:hover { background:#1e293b; color:#f8fafc; text-decoration:none; }
+  #toc-menu.open { display:flex !important; }
+  .toc-menu-item { color:#94a3b8; font-size:0.82rem; padding:8px 10px; border-radius:6px; }
+  .toc-menu-item:hover { background:#1e293b; color:#f8fafc; text-decoration:none; }
+  #toc-scroll::-webkit-scrollbar { height:4px; }
+  #toc-scroll::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+</style>
+
 <!-- ── Hero ── -->
 <div class="hero">
   <div class="tag"><i class="fas fa-robot"></i> Real Robot Navigation Test</div>
@@ -301,7 +360,7 @@
 </div>
 
 <!-- ── Overview ── -->
-<section class="section">
+<section class="section" id="overview">
   <div class="container">
     <h2 class="section-title"><i class="fas fa-table-list" style="color:#38bdf8"></i> 세션 개요</h2>
     <p class="section-subtitle">이미지가 저장된 3개 세션 (2026-05-29) + JSON 로그 세션 (2026-06-04)</p>
@@ -1309,7 +1368,7 @@
 
 
 <!-- ══ June 2026 Sessions ══ -->
-<div style="max-width:1100px;margin:40px auto 0;padding:0 20px">
+<div id="action-seq" style="max-width:1100px;margin:40px auto 0;padding:0 20px">
   <h2 style="color:#38bdf8;font-size:1.2rem;font-weight:800;margin-bottom:6px;letter-spacing:0.03em">
     2026-06-04 세션 — Action 시퀀스 분석
   </h2>
@@ -1569,7 +1628,7 @@
 </script>
 
 <!-- ══ June 18 2026 Sessions ══ -->
-<div style="max-width:1100px;margin:60px auto 0;padding:0 20px">
+<div id="stop-n1" style="max-width:1100px;margin:60px auto 0;padding:0 20px">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
     <h2 style="color:#38bdf8;font-size:1.25rem;font-weight:800;letter-spacing:0.03em;margin:0">
       2026-06-18 세션 — stop_N1 첫 실전 테스트
@@ -1795,6 +1854,9 @@
         </div>
       </div>
     </div>
+    <div style="color:#64748b;font-size:0.7rem;margin-top:10px;background:#0f172a;border-radius:6px;padding:8px 10px">
+      ⓘ 프레임 필름스트립 없음 — mp4 영상이 저장되지 않은 세션(카메라 decode 버그로 빈 이미지만 들어와 영상 녹화 가치 없음)
+    </div>
   </div>
 
   <!-- ── S2 ── -->
@@ -1847,6 +1909,9 @@
           (카메라 버그 + 탐색 실패 복합)
         </div>
       </div>
+    </div>
+    <div style="color:#64748b;font-size:0.7rem;margin-top:10px;background:#0f172a;border-radius:6px;padding:8px 10px">
+      ⓘ 프레임 필름스트립 없음 — mp4 영상이 저장되지 않은 세션(카메라 decode 버그로 빈 이미지만 들어와 영상 녹화 가치 없음)
     </div>
   </div>
 
@@ -1906,6 +1971,9 @@
           latency 전부 1270~1335ms (정상 PG2 추론)
         </div>
       </div>
+    </div>
+    <div style="color:#64748b;font-size:0.7rem;margin-top:10px;background:#0f172a;border-radius:6px;padding:8px 10px">
+      ⓘ 프레임 필름스트립 없음 — mp4 영상이 저장되지 않은 세션(15프레임 미만, 영상 미녹화)
     </div>
   </div>
 
@@ -2067,7 +2135,7 @@
   </div>
 
   <!-- ── S5 섹션 헤더 ── -->
-  <div style="margin:24px 0 14px;display:flex;align-items:center;gap:10px">
+  <div id="s5-session" style="margin:24px 0 14px;display:flex;align-items:center;gap:10px">
     <div style="height:2px;flex:1;background:linear-gradient(to right,rgba(56,189,248,0.5),transparent)"></div>
     <span style="color:#38bdf8;font-weight:800;font-size:0.95rem">S5 — 4종 필터 적용 신버전 서버 (16:35:35~16:54:35, n=115)</span>
     <div style="height:2px;flex:1;background:linear-gradient(to left,rgba(56,189,248,0.5),transparent)"></div>
@@ -2117,6 +2185,31 @@
         n=45 다음: NO_BBOX → temporal 3연속 불성립 → goal_near 발동 0회<br>
         cx 이상치: n=43 cx=0.128 (좌측 끝 오탐 가능성)<br>
         잔존: temporal N=3 미적용 (다음 세션 S6에서 적용)
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 전체 프레임 필름스트립 (2개 mp4 세그먼트로 분리 녹화됨) -->
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:14px;margin-bottom:14px">
+    <div style="color:#64748b;font-size:0.72rem;margin-bottom:10px">
+      ⓘ S5(16:35:35~16:54:35)는 idle-gap으로 2개 mp4로 분리 녹화됨(<code style="color:#94a3b8">gnd_163535.mp4</code> 47프레임 +
+      <code style="color:#94a3b8">gnd_165212.mp4</code> 49프레임 = 96, 원본 jsonl 115건과는 idle 구간 차이로 약간 다름) ·
+      아래 bbox는 신 서버 오프라인 재평가 기준(<a href="#offline-reeval" style="color:#a78bfa">PG2 오프라인 재평가</a> 섹션과 동일 데이터)
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="color:#38bdf8;font-size:0.74rem;font-weight:700;margin-bottom:6px">Part 1 — gnd_163535 (47프레임, 16:35:35~)</div>
+      <div style="position:relative">
+        <button onclick="genericFsScroll('s5a-filmstrip',-1)" style="position:absolute;left:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">←</button>
+        <div id="s5a-filmstrip" style="display:flex;gap:5px;overflow-x:auto;scroll-behavior:smooth;padding:6px 2px;scrollbar-width:thin;scrollbar-color:#334155 #0f172a"></div>
+        <button onclick="genericFsScroll('s5a-filmstrip',1)" style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">→</button>
+      </div>
+    </div>
+    <div>
+      <div style="color:#38bdf8;font-size:0.74rem;font-weight:700;margin-bottom:6px">Part 2 — gnd_165212 (49프레임, 16:52:12~16:54:35)</div>
+      <div style="position:relative">
+        <button onclick="genericFsScroll('s5b-filmstrip',-1)" style="position:absolute;left:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">←</button>
+        <div id="s5b-filmstrip" style="display:flex;gap:5px;overflow-x:auto;scroll-behavior:smooth;padding:6px 2px;scrollbar-width:thin;scrollbar-color:#334155 #0f172a"></div>
+        <button onclick="genericFsScroll('s5b-filmstrip',1)" style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">→</button>
       </div>
     </div>
   </div>
@@ -2301,7 +2394,7 @@
   </div>
 
   <!-- S7 세션 (06-20 신규 — idle-gap 버그로 강제 ffmpeg 추출) -->
-  <div style="background:#0d1117;border:2px solid rgba(251,191,36,0.35);border-radius:12px;padding:20px;margin-bottom:18px">
+  <div id="s7-session" style="background:#0d1117;border:2px solid rgba(251,191,36,0.35);border-radius:12px;padding:20px;margin-bottom:18px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <div style="color:#fbbf24;font-weight:800;font-size:1rem">S7 — 06-20 신규 세션 (11:09~11:13, n=85) — "근접 미스" bbox 발견</div>
       <span style="background:rgba(251,191,36,0.15);color:#fbbf24;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(251,191,36,0.3)">신규</span>
@@ -2364,6 +2457,19 @@
       </div>
     </div>
 
+    <!-- S7 전체 85프레임 필름스트립 -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="color:#475569;font-size:0.68rem;font-weight:600;letter-spacing:0.05em">전체 85프레임 보기</span>
+        <span style="background:rgba(148,163,184,0.1);color:#94a3b8;font-size:0.65rem;font-weight:700;padding:1px 8px;border-radius:20px;border:1px solid rgba(148,163,184,0.2)">← → 스크롤</span>
+      </div>
+      <div style="position:relative">
+        <button onclick="genericFsScroll('s7-filmstrip',-1)" style="position:absolute;left:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">←</button>
+        <div id="s7-filmstrip" style="display:flex;gap:5px;overflow-x:auto;scroll-behavior:smooth;padding:6px 2px;scrollbar-width:thin;scrollbar-color:#334155 #0f172a"></div>
+        <button onclick="genericFsScroll('s7-filmstrip',1)" style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">→</button>
+      </div>
+    </div>
+
     <!-- area 분포 -->
     <div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:12px">
       <div style="color:#475569;font-size:0.68rem;font-weight:600;letter-spacing:0.05em;margin-bottom:8px">OK BBOX AREA 분포 (34건)</div>
@@ -2399,7 +2505,7 @@
   </div>
 
   <!-- HSV classical detector 교차검증 -->
-  <div style="background:#0d1117;border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:20px;margin-bottom:18px">
+  <div id="hsv-crossval" style="background:#0d1117;border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:20px;margin-bottom:18px">
     <div style="color:#a78bfa;font-weight:800;font-size:1rem;margin-bottom:8px">HSV classical detector 교차검증 — PG2 fallback 프레임 재검출 시도</div>
     <div style="color:#64748b;font-size:0.8rem;margin-bottom:16px;line-height:1.6">
       목적: PG2가 NO_BBOX로 처리한 프레임에 독립적인 HSV 기반 검출기(<code style="color:#94a3b8">patch_hsv_annotations.py</code> 동일 로직, S∈[0,20]·V∈[70,230]·area≥400px)를
@@ -2640,7 +2746,7 @@
 </div><!-- /PG2 grounding analysis -->
 
 <!-- ══ S4 유효 bbox 상세 분석 & 서버 비교 ══ -->
-<div style="max-width:1100px;margin:40px auto 0;padding:0 20px">
+<div id="s4-bbox-detail" style="max-width:1100px;margin:40px auto 0;padding:0 20px">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
     <h2 style="color:#f59e0b;font-size:1.2rem;font-weight:800;letter-spacing:0.03em;margin:0">
       S4 유효 bbox 실제 분석 — "13/24 정상"은 과장
@@ -2920,7 +3026,7 @@
 </div><!-- /S4 detailed analysis -->
 
 <!-- ══ S4 전체 프레임 Filmstrip (가로 스크롤) ══ -->
-<div style="max-width:1300px;margin:48px auto 0;padding:0 20px">
+<div id="s4-filmstrip-section" style="max-width:1300px;margin:48px auto 0;padding:0 20px">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
     <h2 style="color:#e2e8f0;font-size:1.15rem;font-weight:800;letter-spacing:0.03em;margin:0">
       S4 전체 24프레임 — Bbox 시각화 Filmstrip
@@ -3239,6 +3345,17 @@
   <button onclick="document.getElementById('s6lb').style.display='none'" style="margin-top:16px;background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:6px 20px;cursor:pointer;font-size:0.8rem">닫기 (Esc)</button>
 </div>
 
+<!-- 범용 Lightbox (S7 등 generic 필름스트립용) -->
+<div id="genericlb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column">
+  <div style="position:relative;max-width:90vw">
+    <img id="genericlb-img" src="" style="max-height:80vh;max-width:90vw;border-radius:8px;display:block">
+    <div id="genericlb-cap" style="margin-top:10px;text-align:center;color:#94a3b8;font-size:0.8rem"></div>
+    <button onclick="genericLbNav(-1)" style="position:absolute;left:-50px;top:50%;transform:translateY(-50%);background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem">◀</button>
+    <button onclick="genericLbNav(1)"  style="position:absolute;right:-50px;top:50%;transform:translateY(-50%);background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem">▶</button>
+  </div>
+  <button onclick="document.getElementById('genericlb').style.display='none'" style="margin-top:16px;background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:6px 20px;cursor:pointer;font-size:0.8rem">닫기 (Esc)</button>
+</div>
+
 <!-- S4 Lightbox -->
 <div id="s4lb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;flex-direction:column">
   <div style="position:relative;max-width:90vw">
@@ -3251,7 +3368,7 @@
 </div>
 
 <!-- ══ 추론 파이프라인 양방향 플로우 비교 ══ -->
-<div style="max-width:1100px;margin:48px auto 0;padding:0 20px 60px">
+<div id="pipeline-flow" style="max-width:1100px;margin:48px auto 0;padding:0 20px 60px">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
     <h2 style="color:#e2e8f0;font-size:1.15rem;font-weight:800;letter-spacing:0.03em;margin:0">
       학습 vs 추론 파이프라인 — 플로우 비교
@@ -3525,7 +3642,7 @@ if x1 < 0.02 and x2 > 0.98:
 <!-- ══════════════════════════════════════════════════════════
      PG2 오프라인 재평가 — 신 서버(4-filter) 기준
 ═══════════════════════════════════════════════════════════ -->
-<div style="max-width:1200px;margin:0 auto;padding:52px 24px 40px">
+<div id="offline-reeval" style="max-width:1200px;margin:0 auto;padding:52px 24px 40px">
 
   <div style="border-left:4px solid #a78bfa;padding-left:16px;margin-bottom:32px">
     <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#a78bfa;margin-bottom:6px">PG2 Offline Re-evaluation</div>
@@ -3888,6 +4005,160 @@ function s6FsScroll(dir) {
   const el = document.getElementById('s6-filmstrip');
   el.scrollBy({ left: dir * 120 * 5, behavior: 'smooth' });
 }
+
+// ── 범용 필름스트립 빌더 (S7 등 grounding-only 세션용, CL 액션 없음) ──────
+// rows: [frame, area, cx, cy, hasBbox, cat]  cat ∈ OK/NO_BBOX/TINY/FULL/TOP/NEAR
+const CAT_COLOR = {
+  OK: '#1e3a5f', NO_BBOX: '#334155', TINY: '#475569',
+  FULL: '#7c2d12', TOP: '#581c87', NEAR: '#7f1d1d',
+};
+const CAT_BAR = {
+  OK: '#2563eb', NO_BBOX: '#475569', TINY: '#64748b',
+  FULL: '#f97316', TOP: '#a78bfa', NEAR: '#ef4444',
+};
+const filmstripRegistry = {};
+function buildGenericFilmstrip(containerId, frameDir, rows, highlightFrames) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  highlightFrames = highlightFrames || [];
+  filmstripRegistry[containerId] = { frameDir: frameDir, rows: rows };
+
+  rows.forEach(function(row) {
+    const [fn, area, cx, cy, hasBbox, cat] = row;
+    const isHighlight = highlightFrames.indexOf(fn) !== -1;
+    const card = document.createElement('div');
+    card.style.cssText = [
+      'flex-shrink:0', 'width:108px', 'background:#0f172a',
+      'border:2px solid ' + (isHighlight ? '#ef4444' : (CAT_COLOR[cat] || '#334155')),
+      'border-radius:8px', 'overflow:hidden', 'cursor:pointer',
+      isHighlight ? 'box-shadow:0 0 10px rgba(239,68,68,0.5)' : '',
+    ].join(';');
+
+    const labelBar = document.createElement('div');
+    labelBar.style.cssText = 'background:' + (CAT_BAR[cat] || '#64748b') + ';padding:3px 6px;font-size:0.6rem;font-weight:800;color:#0f172a;display:flex;justify-content:space-between';
+    labelBar.innerHTML = (isHighlight ? '⚠ ' : '') + cat + '<span style="opacity:0.7">f' + fn + '</span>';
+
+    const img = document.createElement('img');
+    img.src = frameDir + '/frame_' + String(fn).padStart(4,'0') + '.jpg';
+    img.alt = 'f' + fn;
+    img.style.cssText = 'width:100%;height:64px;object-fit:cover;display:block';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'padding:3px 6px 4px;background:#111827;font-size:0.58rem;color:#64748b;display:flex;justify-content:space-between';
+    info.innerHTML = hasBbox ? ('a=' + area.toFixed(3) + '<span>cx=' + cx.toFixed(2) + '</span>') : 'NO_BBOX';
+
+    card.appendChild(labelBar);
+    card.appendChild(img);
+    card.appendChild(info);
+    card.addEventListener('click', function() { genericLightbox(containerId, fn - 1); });
+    container.appendChild(card);
+  });
+}
+function genericFsScroll(containerId, dir) {
+  const el = document.getElementById(containerId);
+  el.scrollBy({ left: dir * 108 * 5, behavior: 'smooth' });
+}
+let genericLbCur = { containerId: null, idx: 0 };
+function genericLightbox(containerId, idx) {
+  const reg = filmstripRegistry[containerId];
+  if (!reg) return;
+  genericLbCur = { containerId: containerId, idx: idx };
+  const row = reg.rows[idx];
+  const [fn, area, cx, cy, hasBbox, cat] = row;
+  const lb = document.getElementById('genericlb');
+  document.getElementById('genericlb-img').src = reg.frameDir + '/frame_' + String(fn).padStart(4,'0') + '.jpg';
+  document.getElementById('genericlb-cap').textContent =
+    'f' + fn + ' — ' + cat + ' | ' + (hasBbox ? 'a=' + area + ' cx=' + cx + ' cy=' + cy : 'NO_BBOX');
+  lb.style.display = 'flex';
+}
+function genericLbNav(d) {
+  const reg = filmstripRegistry[genericLbCur.containerId];
+  if (!reg) return;
+  genericLbCur.idx = (genericLbCur.idx + d + reg.rows.length) % reg.rows.length;
+  genericLightbox(genericLbCur.containerId, genericLbCur.idx);
+}
+document.addEventListener('keydown', function(e) {
+  const lb = document.getElementById('genericlb');
+  if (!lb || lb.style.display === 'none') return;
+  if (e.key === 'ArrowLeft')  genericLbNav(-1);
+  if (e.key === 'ArrowRight') genericLbNav(1);
+  if (e.key === 'Escape') lb.style.display = 'none';
+});
+
+// ── S7 데이터 (85프레임) — f39~46은 근접-미스 bbox로 하이라이트 ──────────
+const S7_FRAMES = [
+  [1,0.06,0.5,0.6,false,"NO_BBOX"],[2,0.041,0.602,0.582,true,"OK"],[3,0.033,0.602,0.599,true,"OK"],
+  [4,0.053,0.568,0.582,true,"OK"],[5,0.049,0.514,0.571,true,"OK"],[6,0.06,0.5,0.6,false,"NO_BBOX"],
+  [7,0.06,0.5,0.6,false,"NO_BBOX"],[8,0.06,0.5,0.6,false,"NO_BBOX"],[9,0.06,0.5,0.6,false,"NO_BBOX"],
+  [10,0.053,0.448,0.476,true,"OK"],[11,0.111,0.528,0.476,true,"OK"],[12,0.083,0.452,0.872,true,"OK"],
+  [13,0.076,0.416,0.884,true,"OK"],[14,0.079,0.443,0.884,true,"OK"],[15,0.076,0.416,0.884,true,"OK"],
+  [16,0.064,0.467,0.566,true,"OK"],[17,0.06,0.5,0.6,false,"NO_BBOX"],[18,0.06,0.5,0.6,false,"NO_BBOX"],
+  [19,0.06,0.5,0.6,false,"NO_BBOX"],[20,0.06,0.5,0.6,false,"NO_BBOX"],[21,0.06,0.5,0.6,false,"NO_BBOX"],
+  [22,0.06,0.5,0.6,false,"NO_BBOX"],[23,0.06,0.5,0.6,false,"NO_BBOX"],[24,0.06,0.448,0.567,true,"OK"],
+  [25,0.06,0.5,0.6,false,"NO_BBOX"],[26,0.06,0.5,0.6,false,"NO_BBOX"],[27,0.06,0.5,0.6,false,"NO_BBOX"],
+  [28,0.06,0.5,0.6,false,"NO_BBOX"],[29,0.06,0.5,0.6,false,"NO_BBOX"],[30,0.06,0.5,0.6,false,"NO_BBOX"],
+  [31,0.06,0.5,0.6,false,"NO_BBOX"],[32,0.06,0.5,0.6,false,"NO_BBOX"],[33,0.337,0.634,0.375,true,"NEAR"],
+  [34,0.06,0.5,0.6,false,"NO_BBOX"],[35,0.06,0.5,0.6,false,"NO_BBOX"],[36,0.255,0.606,0.411,true,"NEAR"],
+  [37,0.06,0.5,0.6,false,"NO_BBOX"],[38,0.06,0.5,0.6,false,"NO_BBOX"],[39,0.297,0.672,0.773,true,"NEAR"],
+  [40,0.297,0.672,0.773,true,"NEAR"],[41,0.26,0.686,0.767,true,"NEAR"],[42,0.256,0.695,0.765,true,"NEAR"],
+  [43,0.259,0.695,0.762,true,"NEAR"],[44,0.26,0.686,0.767,true,"NEAR"],[45,0.253,0.695,0.767,true,"NEAR"],
+  [46,0.253,0.695,0.767,true,"NEAR"],[47,0.06,0.5,0.6,false,"NO_BBOX"],[48,0.06,0.5,0.6,false,"NO_BBOX"],
+  [49,0.093,0.527,0.667,true,"OK"],[50,0.097,0.537,0.667,true,"OK"],[51,0.184,0.561,0.73,true,"OK"],
+  [52,0.048,0.508,0.616,true,"OK"],[53,0.297,0.672,0.773,true,"NEAR"],[54,0.064,0.543,0.582,true,"OK"],
+  [55,0.06,0.5,0.6,false,"NO_BBOX"],[56,0.06,0.5,0.6,false,"NO_BBOX"],[57,0.06,0.5,0.6,false,"NO_BBOX"],
+  [58,0.06,0.5,0.6,false,"NO_BBOX"],[59,0.06,0.5,0.6,false,"NO_BBOX"],[60,0.723,0.475,0.487,true,"NEAR"],
+  [61,0.06,0.5,0.6,false,"NO_BBOX"],[62,0.06,0.5,0.6,false,"NO_BBOX"],[63,0.06,0.5,0.6,false,"NO_BBOX"],
+  [64,0.06,0.5,0.6,false,"NO_BBOX"],[65,0.06,0.5,0.6,false,"NO_BBOX"],[66,0.06,0.5,0.6,false,"NO_BBOX"],
+  [67,0.06,0.5,0.6,false,"NO_BBOX"],[68,0.06,0.5,0.6,false,"NO_BBOX"],[69,0.035,0.69,0.553,true,"OK"],
+  [70,0.06,0.5,0.6,false,"NO_BBOX"],[71,0.034,0.585,0.582,true,"OK"],[72,0.06,0.5,0.6,false,"NO_BBOX"],
+  [73,0.06,0.5,0.6,false,"NO_BBOX"],[74,0.06,0.5,0.6,false,"NO_BBOX"],[75,0.06,0.5,0.6,false,"NO_BBOX"],
+  [76,0.06,0.5,0.6,false,"NO_BBOX"],[77,0.06,0.5,0.6,false,"NO_BBOX"],[78,0.06,0.5,0.6,false,"NO_BBOX"],
+  [79,0.06,0.5,0.6,false,"NO_BBOX"],[80,0.112,0.561,0.478,true,"OK"],[81,0.06,0.5,0.6,false,"NO_BBOX"],
+  [82,0.074,0.331,0.884,true,"OK"],[83,0.074,0.331,0.884,true,"OK"],[84,0.06,0.5,0.6,false,"NO_BBOX"],
+  [85,0.06,0.5,0.6,false,"NO_BBOX"],
+];
+buildGenericFilmstrip('s7-filmstrip', 'grounding_frames/s7', S7_FRAMES, [39,40,41,42,43,44,45,46]);
+
+// ── S5 데이터 (2개 mp4 세그먼트, 오프라인 재평가 기준) ──────────────────
+const S5A_FRAMES = [
+  [1,0.06,0.5,0.5,false,"NO_BBOX"],[2,0.06,0.5,0.5,false,"NO_BBOX"],[3,0.044,0.592,0.5,true,"OK"],
+  [4,0.029,0.599,0.5,true,"OK"],[5,0.072,0.672,0.5,true,"OK"],[6,0.044,0.592,0.5,true,"OK"],
+  [7,0.023,0.591,0.5,true,"OK"],[8,0.06,0.5,0.5,false,"NO_BBOX"],[9,0.044,0.708,0.5,true,"OK"],
+  [10,0.06,0.5,0.5,false,"NO_BBOX"],[11,0.06,0.5,0.5,false,"NO_BBOX"],[12,0.06,0.5,0.5,false,"NO_BBOX"],
+  [13,0.06,0.5,0.5,false,"NO_BBOX"],[14,0.06,0.5,0.5,false,"NO_BBOX"],[15,0.06,0.5,0.5,false,"NO_BBOX"],
+  [16,0.06,0.5,0.5,false,"NO_BBOX"],[17,0.06,0.5,0.5,false,"NO_BBOX"],[18,0.06,0.5,0.5,false,"NO_BBOX"],
+  [19,0.06,0.5,0.5,false,"NO_BBOX"],[20,0.06,0.5,0.5,false,"NO_BBOX"],[21,0.079,0.563,0.5,true,"OK"],
+  [22,0.101,0.566,0.5,true,"OK"],[23,0.06,0.5,0.5,false,"NO_BBOX"],[24,0.06,0.5,0.5,false,"NO_BBOX"],
+  [25,0.046,0.712,0.5,true,"OK"],[26,0.032,0.602,0.5,true,"OK"],[27,0.032,0.602,0.5,true,"OK"],
+  [28,0.071,0.42,0.5,true,"OK"],[29,0.06,0.5,0.5,false,"NO_BBOX"],[30,0.06,0.5,0.5,false,"NO_BBOX"],
+  [31,0.06,0.5,0.5,false,"NO_BBOX"],[32,0.027,0.391,0.5,true,"OK"],[33,0.06,0.5,0.5,false,"NO_BBOX"],
+  [34,0.06,0.5,0.5,false,"NO_BBOX"],[35,0.06,0.5,0.5,false,"NO_BBOX"],[36,0.06,0.5,0.5,false,"NO_BBOX"],
+  [37,0.06,0.5,0.5,false,"NO_BBOX"],[38,0.06,0.5,0.5,false,"NO_BBOX"],[39,0.06,0.5,0.5,false,"NO_BBOX"],
+  [40,0.06,0.5,0.5,false,"NO_BBOX"],[41,0.06,0.5,0.5,false,"NO_BBOX"],[42,0.06,0.5,0.5,false,"NO_BBOX"],
+  [43,0.06,0.5,0.5,false,"NO_BBOX"],[44,0.06,0.5,0.5,false,"NO_BBOX"],[45,0.06,0.5,0.5,false,"NO_BBOX"],
+  [46,0.06,0.5,0.5,false,"NO_BBOX"],[47,0.06,0.5,0.5,false,"NO_BBOX"],
+];
+const S5B_FRAMES = [
+  [1,0.054,0.523,0.5,true,"OK"],[2,0.089,0.609,0.5,true,"OK"],[3,0.076,0.571,0.5,true,"OK"],
+  [4,0.078,0.566,0.5,true,"OK"],[5,0.069,0.593,0.5,true,"OK"],[6,0.087,0.59,0.5,true,"OK"],
+  [7,0.059,0.524,0.5,true,"OK"],[8,0.06,0.5,0.5,false,"NO_BBOX"],[9,0.096,0.59,0.5,true,"OK"],
+  [10,0.071,0.524,0.5,true,"OK"],[11,0.06,0.5,0.5,false,"NO_BBOX"],[12,0.06,0.5,0.5,false,"NO_BBOX"],
+  [13,0.06,0.522,0.5,true,"OK"],[14,0.086,0.458,0.5,true,"OK"],[15,0.06,0.5,0.5,false,"NO_BBOX"],
+  [16,0.06,0.5,0.5,false,"NO_BBOX"],[17,0.06,0.5,0.5,false,"NO_BBOX"],[18,0.06,0.5,0.5,false,"NO_BBOX"],
+  [19,0.06,0.5,0.5,false,"NO_BBOX"],[20,0.06,0.5,0.5,false,"NO_BBOX"],[21,0.01,0.478,0.5,true,"OK"],
+  [22,0.06,0.5,0.5,false,"NO_BBOX"],[23,0.06,0.5,0.5,false,"NO_BBOX"],[24,0.06,0.5,0.5,false,"NO_BBOX"],
+  [25,0.093,0.626,0.5,true,"OK"],[26,0.06,0.5,0.5,false,"NO_BBOX"],[27,0.06,0.5,0.5,false,"NO_BBOX"],
+  [28,0.06,0.5,0.5,false,"NO_BBOX"],[29,0.06,0.5,0.5,false,"NO_BBOX"],[30,0.06,0.5,0.5,false,"NO_BBOX"],
+  [31,0.06,0.5,0.5,false,"NO_BBOX"],[32,0.06,0.5,0.5,false,"NO_BBOX"],[33,0.06,0.5,0.5,false,"NO_BBOX"],
+  [34,0.06,0.5,0.5,false,"NO_BBOX"],[35,0.072,0.497,0.5,true,"OK"],[36,0.06,0.5,0.5,false,"NO_BBOX"],
+  [37,0.06,0.5,0.5,false,"NO_BBOX"],[38,0.06,0.5,0.5,false,"NO_BBOX"],[39,0.06,0.5,0.5,false,"NO_BBOX"],
+  [40,0.06,0.5,0.5,false,"NO_BBOX"],[41,0.092,0.588,0.5,true,"OK"],[42,0.06,0.5,0.5,false,"NO_BBOX"],
+  [43,0.06,0.5,0.5,false,"NO_BBOX"],[44,0.079,0.486,0.5,true,"OK"],[45,0.06,0.5,0.5,false,"NO_BBOX"],
+  [46,0.06,0.5,0.5,false,"NO_BBOX"],[47,0.06,0.5,0.5,false,"NO_BBOX"],[48,0.06,0.5,0.5,false,"NO_BBOX"],
+  [49,0.06,0.5,0.5,false,"NO_BBOX"],
+];
+buildGenericFilmstrip('s5a-filmstrip', 'grounding_frames/s5a', S5A_FRAMES, []);
+buildGenericFilmstrip('s5b-filmstrip', 'grounding_frames/s5b', S5B_FRAMES, []);
 
 // ── S4 filmstrip filter
 function fsScroll(dir) {
