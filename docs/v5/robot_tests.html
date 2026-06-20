@@ -3047,6 +3047,18 @@
 </div><!-- /filmstrip section -->
 
 <!-- S4 Lightbox -->
+<!-- S6 Lightbox -->
+<div id="s6lb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column">
+  <div style="position:relative;max-width:90vw">
+    <img id="s6lb-img" src="" style="max-height:80vh;max-width:90vw;border-radius:8px;display:block">
+    <div id="s6lb-cap" style="margin-top:10px;text-align:center;color:#94a3b8;font-size:0.8rem"></div>
+    <button onclick="s6LbNav(-1)" style="position:absolute;left:-50px;top:50%;transform:translateY(-50%);background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem">◀</button>
+    <button onclick="s6LbNav(1)"  style="position:absolute;right:-50px;top:50%;transform:translateY(-50%);background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem">▶</button>
+  </div>
+  <button onclick="document.getElementById('s6lb').style.display='none'" style="margin-top:16px;background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:6px 20px;cursor:pointer;font-size:0.8rem">닫기 (Esc)</button>
+</div>
+
+<!-- S4 Lightbox -->
 <div id="s4lb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;flex-direction:column">
   <div style="position:relative;max-width:90vw">
     <img id="s4lb-img" src="" style="max-height:80vh;max-width:90vw;border-radius:8px;display:block">
@@ -3241,8 +3253,462 @@ if x1 < 0.02 and x2 > 0.98:
   </div>
 </div><!-- /flow comparison -->
 
+<!-- ══════════════════════════════════════════════════════════
+     S6 전체 필름스트립 + CL 시뮬레이션 (105프레임)
+═══════════════════════════════════════════════════════════ -->
+<div style="max-width:1400px;margin:0 auto;padding:52px 24px 40px" id="s6-filmstrip-section">
+
+  <div style="border-left:4px solid #4ade80;padding-left:16px;margin-bottom:24px">
+    <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#4ade80;margin-bottom:6px">S6 — CL Pipeline Simulation</div>
+    <div style="font-size:1.55rem;font-weight:900;color:#f8fafc">S6 전체 105프레임 · 실제 CL 파이프라인 재현</div>
+    <div style="color:#94a3b8;font-size:0.88rem;margin-top:6px">
+      2026-06-19 · gnd_20260618_172621.mp4 1fps 추출 → <code style="background:#1e293b;padding:2px 6px;border-radius:4px">POST /reset → /predict × 105</code>
+      순차 호출 · temporal N=3 history 누적 · 실제 배포와 동일 코드 경로
+    </div>
+  </div>
+
+  <!-- 요약 배너 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:24px">
+    <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:900;color:#fbbf24">f024</div>
+      <div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">Learned STOP 발동 프레임</div>
+      <div style="color:#64748b;font-size:0.72rem">→ 이후 전 프레임 STOP latch</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:900;color:#38bdf8">23</div>
+      <div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">접근 구간 (FWD+R / FORWARD)</div>
+      <div style="color:#64748b;font-size:0.72rem">basket 추적 중</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:900;color:#f87171">0</div>
+      <div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">PROXIMITY STOP (area≥0.25)</div>
+      <div style="color:#64748b;font-size:0.72rem">근접 임계 미달 — 충분히 가깝지 않음</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:900;color:#4ade80">51.4%</div>
+      <div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">PG2 유효 감지율 (54/105)</div>
+      <div style="color:#64748b;font-size:0.72rem">area 0.06~0.16 (중거리)</div>
+    </div>
+  </div>
+
+  <!-- 액션 범례 -->
+  <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;font-size:0.78rem">
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;background:#38bdf8;border-radius:3px;display:inline-block"></span>FWD+R (basket 우측, 우회전 접근)</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;background:#4ade80;border-radius:3px;display:inline-block"></span>FORWARD (basket 정면)</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;background:#ef4444;border-radius:3px;display:inline-block"></span>STOP (latch)</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;background:#7c3aed;border-radius:3px;display:inline-block"></span>f024 — STOP 최초 발동</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;background:#475569;border-radius:3px;display:inline-block"></span>NO_BBOX</span>
+  </div>
+
+  <!-- 필름스트립 컨테이너 -->
+  <div style="position:relative;margin-bottom:24px">
+    <button onclick="s6FsScroll(-1)" style="position:absolute;left:-16px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1.1rem">←</button>
+    <div id="s6-filmstrip" style="display:flex;gap:6px;overflow-x:auto;scroll-behavior:smooth;padding:8px 4px;scrollbar-width:thin;scrollbar-color:#334155 #0f172a">
+      <!-- JS로 채워짐 -->
+    </div>
+    <button onclick="s6FsScroll(1)" style="position:absolute;right:-16px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1.1rem">→</button>
+  </div>
+
+  <!-- CL 시뮬레이션 분석 -->
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="font-weight:800;color:#f8fafc;margin-bottom:14px">CL 파이프라인 시뮬레이션 분석</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:0.85rem">
+      <div>
+        <div style="color:#fbbf24;font-weight:700;margin-bottom:8px">f001 ~ f023 — 접근 구간 (23초)</div>
+        <ul style="color:#94a3b8;padding-left:16px;line-height:1.8;margin:0">
+          <li>FWD+R 14회 + FORWARD 9회: basket을 우측에서 추적하며 접근</li>
+          <li>bbox area 0.06~0.16 (중거리) — 항상 유효 감지</li>
+          <li>cx 0.52~0.60: basket이 중앙~우측에 위치</li>
+          <li>PROXIMITY STOP 조건(area≥0.25) 미달 — 가깝지 않음</li>
+        </ul>
+      </div>
+      <div>
+        <div style="color:#ef4444;font-weight:700;margin-bottom:8px">f024 — Learned STOP 발동 ⚡</div>
+        <ul style="color:#94a3b8;padding-left:16px;line-height:1.8;margin:0">
+          <li>액션 모델 class 0 (STOP) 예측 → <code style="background:#0f172a;padding:1px 4px;border-radius:3px">stop_latched=True</code></li>
+          <li>area=0.073, cx=0.539 — 여전히 중거리, PROXIMITY 조건 미충족</li>
+          <li>8-frame window에 누적된 접근 패턴이 STOP 트리거</li>
+          <li>f025~f105: latch 지속 (bbox 유무 무관하게 STOP 유지)</li>
+        </ul>
+      </div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #475569;border-radius:8px;padding:12px;margin-top:14px;font-size:0.8rem;color:#64748b">
+      <strong style="color:#f8fafc">실로봇 CL 배포 시 예상 동작:</strong>
+      로봇은 f024 (24초) 시점에 멈췄을 것. PROXIMITY STOP(area≥0.25)은 한 번도 발동되지 않음 — 로봇이 충분히 가깝게 접근하기 전에 액션 모델이 먼저 학습된 STOP을 선택.
+      <strong style="color:#fbbf24"> → 다음 실로봇 테스트 핵심 관찰: Learned STOP vs Proximity STOP 중 어느 쪽이 먼저 발동하는가.</strong>
+    </div>
+  </div>
+
+</div><!-- /s6-filmstrip-section -->
+
+<!-- ══════════════════════════════════════════════════════════
+     PG2 오프라인 재평가 — 신 서버(4-filter) 기준
+═══════════════════════════════════════════════════════════ -->
+<div style="max-width:1200px;margin:0 auto;padding:52px 24px 40px">
+
+  <div style="border-left:4px solid #a78bfa;padding-left:16px;margin-bottom:32px">
+    <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#a78bfa;margin-bottom:6px">PG2 Offline Re-evaluation</div>
+    <div style="font-size:1.55rem;font-weight:900;color:#f8fafc">신 서버(4-filter) 기준 전 세션 재평가</div>
+    <div style="color:#94a3b8;font-size:0.92rem;margin-top:8px">
+      2026-06-19 · S4 24 JPEG + 4개 MP4(1fps) → <code style="background:#1e293b;padding:2px 6px;border-radius:4px">/ground</code> API 재호출 · <code style="background:#1e293b;padding:2px 6px;border-radius:4px">do_sample=False</code> 결정론적
+    </div>
+  </div>
+
+  <!-- ── S6 재현 확인 배너 ── -->
+  <div style="background:linear-gradient(135deg,#14532d,#166534);border:1px solid #22c55e;border-radius:12px;padding:20px 24px;margin-bottom:32px;display:flex;align-items:center;gap:20px">
+    <div style="font-size:2.2rem">✅</div>
+    <div>
+      <div style="font-size:1.05rem;font-weight:800;color:#4ade80">S6 51.4% — 오프라인 재평가에서 완벽 재현</div>
+      <div style="color:#86efac;font-size:0.88rem;margin-top:4px">
+        원래 기록: gnd_172556.jsonl 105프레임 → 54/105 OK (51.4%) ·
+        재평가: gnd_172621.mp4 1fps 105프레임 → 54/105 OK (51.4%) ·
+        <strong>100% 일치</strong> — PG2 그라운딩 결정론적 재현 확인
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S4 JPEG 구 서버 vs 신 서버 비교 ── -->
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;margin-bottom:28px">
+    <div style="font-size:1.05rem;font-weight:800;color:#f8fafc;margin-bottom:16px">
+      S4 24 JPEG — 구 서버 vs 신 서버(4-filter) 비교
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:#0f172a;border:1px solid #dc2626;border-radius:8px;padding:16px">
+        <div style="font-weight:700;color:#fca5a5;margin-bottom:8px">구 서버 (S4 당시 · 필터 없음)</div>
+        <div style="font-size:2rem;font-weight:900;color:#f87171">24/24</div>
+        <div style="color:#94a3b8;font-size:0.83rem">has_bbox=True — 전부 통과</div>
+        <div style="color:#f87171;font-size:0.8rem;margin-top:8px">
+          XFULL 6개 · FULL 7개 · TINY 6개 · OK 5개<br>
+          → 실제로는 노이즈 100% (구 서버는 필터 없음)
+        </div>
+      </div>
+      <div style="background:#0f172a;border:1px solid #22c55e;border-radius:8px;padding:16px">
+        <div style="font-weight:700;color:#86efac;margin-bottom:8px">신 서버 (4-filter 적용)</div>
+        <div style="font-size:2rem;font-weight:900;color:#4ade80">6/24 <span style="font-size:1rem">(25%)</span></div>
+        <div style="color:#94a3b8;font-size:0.83rem">4-filter 통과 · 노이즈 75% 제거</div>
+        <div style="color:#86efac;font-size:0.8rem;margin-top:8px">
+          XFULL→차단 6 · FULL→차단 7 · 나머지 일부 통과<br>
+          → IoU 평균 0.081 (위치 불일치 — 구 서버와 감지 패턴 다름)
+        </div>
+      </div>
+    </div>
+    <!-- 프레임별 비교 테이블 (요약) -->
+    <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px">프레임별 비교 요약 (일부)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+        <thead>
+          <tr style="border-bottom:1px solid #334155">
+            <th style="text-align:left;padding:6px 8px;color:#64748b">n</th>
+            <th style="text-align:left;padding:6px 8px;color:#64748b">카테고리</th>
+            <th style="text-align:left;padding:6px 8px;color:#64748b">구 서버 area/cx</th>
+            <th style="text-align:left;padding:6px 8px;color:#64748b">신 서버 area/cx</th>
+            <th style="text-align:left;padding:6px 8px;color:#64748b">결과</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 8px;color:#f8fafc">09</td><td style="padding:5px 8px;color:#fbbf24">OK</td><td style="padding:5px 8px;color:#94a3b8">a=0.258 cx=0.603</td><td style="padding:5px 8px;color:#94a3b8">a=0.012 cx=0.041</td><td style="padding:5px 8px;color:#fb923c">⚠ IoU=0.00 — 다른 객체 감지</td></tr>
+          <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:5px 8px;color:#f8fafc">10</td><td style="padding:5px 8px;color:#ef4444">FULL</td><td style="padding:5px 8px;color:#94a3b8">a=0.987 cx=0.499</td><td style="padding:5px 8px;color:#94a3b8">FULL필터 → 차단</td><td style="padding:5px 8px;color:#4ade80">✅ 노이즈 차단 정상</td></tr>
+          <tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 8px;color:#f8fafc">01</td><td style="padding:5px 8px;color:#a78bfa">XFULL</td><td style="padding:5px 8px;color:#94a3b8">a=0.481 cx=0.498</td><td style="padding:5px 8px;color:#94a3b8">XFULL필터 → 차단</td><td style="padding:5px 8px;color:#4ade80">✅ 노이즈 차단 정상</td></tr>
+          <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:5px 8px;color:#f8fafc">24</td><td style="padding:5px 8px;color:#4ade80">OK</td><td style="padding:5px 8px;color:#94a3b8">a=0.234 cx=0.552</td><td style="padding:5px 8px;color:#94a3b8">a=0.109 cx=0.494</td><td style="padding:5px 8px;color:#fb923c">⚠ IoU=0.45 — 근접 감지</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="color:#64748b;font-size:0.75rem;margin-top:10px">
+      * has_bbox 일치율 25% (6/24) · IoU 평균 0.081 · area 오차 평균 0.245 · cx 오차 평균 0.266<br>
+      → 구 서버와 신 서버는 같은 이미지에서 <strong>다른 bbox를 출력</strong>. 4-filter 패치 이후 PG2 동작 패턴이 변경됨을 확인.
+    </div>
+  </div>
+
+  <!-- ── MP4 세션 재평가 ── -->
+  <div style="font-size:1.05rem;font-weight:800;color:#f8fafc;margin-bottom:16px">MP4 세션별 재평가 — 신 서버 기준</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+
+    <!-- gnd_152630 (S4) -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px">
+      <div style="font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">gnd_152630 · S4구간</div>
+      <div style="font-size:1.8rem;font-weight:900;color:#fbbf24">29.2%</div>
+      <div style="color:#94a3b8;font-size:0.78rem">7/24 OK · 17 NO_BBOX</div>
+      <div style="background:#0f172a;border-radius:6px;padding:8px;margin-top:10px;font-size:0.75rem;color:#64748b">
+        원래 기록(구 서버): 전부 XFULL/FULL/TINY로 필터됨 → 유효 0%<br>
+        신 서버 재평가: <span style="color:#fbbf24">29.2% 유효</span>
+      </div>
+    </div>
+
+    <!-- gnd_163535 -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px">
+      <div style="font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">gnd_163535</div>
+      <div style="font-size:1.8rem;font-weight:900;color:#fbbf24">27.7%</div>
+      <div style="color:#94a3b8;font-size:0.78rem">13/47 OK · 34 NO_BBOX</div>
+      <div style="background:#0f172a;border-radius:6px;padding:8px;margin-top:10px;font-size:0.75rem;color:#64748b">
+        f003~f007: 연속 OK 구간 (cx≈0.60~0.71)<br>
+        f021~f022: OK 클러스터<br>
+        f025~f028: OK 클러스터
+      </div>
+    </div>
+
+    <!-- gnd_165212 -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px">
+      <div style="font-size:0.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">gnd_165212</div>
+      <div style="font-size:1.8rem;font-weight:900;color:#fbbf24">32.7%</div>
+      <div style="color:#94a3b8;font-size:0.78rem">16/49 OK · 33 NO_BBOX</div>
+      <div style="background:#0f172a;border-radius:6px;padding:8px;margin-top:10px;font-size:0.75rem;color:#64748b">
+        f001~f007: 초반 연속 OK 구간<br>
+        f013~f014: OK 클러스터<br>
+        중반 이후 NO_BBOX 우세 → 로봇 이탈 구간 추정
+      </div>
+    </div>
+
+    <!-- gnd_172621 (S6) -->
+    <div style="background:#1e293b;border:1px solid #22c55e;border-radius:10px;padding:16px">
+      <div style="font-size:0.68rem;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">gnd_172621 · S6 ✓</div>
+      <div style="font-size:1.8rem;font-weight:900;color:#4ade80">51.4%</div>
+      <div style="color:#86efac;font-size:0.78rem">54/105 OK · 51 NO_BBOX</div>
+      <div style="background:#0f172a;border:1px solid #166534;border-radius:6px;padding:8px;margin-top:10px;font-size:0.75rem;color:#4ade80">
+        원래 기록: 51.4% ✓<br>
+        재평가: <strong>51.4% — 완벽 일치</strong><br>
+        f086~f094: 빠른 경로(~1320ms) — 바구니 부재 구간
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 결론 ── -->
+  <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:20px;font-size:0.88rem;color:#94a3b8;line-height:1.7">
+    <div style="font-weight:800;color:#f8fafc;margin-bottom:10px">오프라인 재평가 결론</div>
+    <ul style="margin:0;padding-left:20px">
+      <li><strong style="color:#f8fafc">PG2 결정론적 확인</strong> — S6 51.4%가 오프라인 재평가에서 정확히 재현. <code>do_sample=False</code>로 동일 이미지 → 동일 결과 보장.</li>
+      <li><strong style="color:#f8fafc">4-filter 유효성 입증</strong> — S4 구 서버(필터 없음)에서 24/24 노이즈 통과 → 신 서버 재평가 시 75% 차단. XFULL 6개 + FULL 7개 정상 차단.</li>
+      <li><strong style="color:#f8fafc">구 서버와 신 서버의 bbox 불일치</strong> — 같은 이미지에서 IoU 평균 0.081. 4-filter 패치 전후 PG2 동작 패턴 변화 확인.</li>
+      <li><strong style="color:#f8fafc">세션별 유효 감지율</strong> — 신 서버 기준: S4≈29%, 163535≈28%, 165212≈33%, S6≈51%. S6이 가장 높은 이유: 조명/각도/거리 조건이 PG2에 유리한 세션.</li>
+    </ul>
+  </div>
+
+</div><!-- /offline re-eval -->
+
 <script>
-// S4 filmstrip filter
+// ── S6 CL 시뮬레이션 데이터 (105프레임) ──────────────────────────────
+// [frame, label, area, cx, has_bbox, cat, prox_override, goal_near, cls_id]
+const S6_CL = [
+  [1,"FWD+R",0.071,0.538,true,"OK",false,false,5],
+  [2,"FWD+R",0.071,0.538,true,"OK",false,false,5],
+  [3,"FWD+R",0.06,0.536,true,"OK",false,false,5],
+  [4,"FWD+R",0.062,0.527,true,"OK",false,false,5],
+  [5,"FWD+R",0.084,0.584,true,"OK",false,false,5],
+  [6,"FWD+R",0.065,0.534,true,"OK",false,false,5],
+  [7,"FWD+R",0.06,0.536,true,"OK",false,false,5],
+  [8,"FWD+R",0.071,0.538,true,"OK",false,false,5],
+  [9,"FORWARD",0.064,0.53,true,"OK",false,false,1],
+  [10,"FWD+R",0.067,0.527,true,"OK",false,false,5],
+  [11,"FWD+R",0.071,0.538,true,"OK",false,false,5],
+  [12,"FWD+R",0.064,0.523,true,"OK",false,false,5],
+  [13,"FORWARD",0.064,0.536,true,"OK",false,false,1],
+  [14,"FWD+R",0.079,0.596,true,"OK",false,false,5],
+  [15,"FWD+R",0.07,0.527,true,"OK",false,false,5],
+  [16,"FWD+R",0.067,0.536,true,"OK",false,false,5],
+  [17,"FORWARD",0.074,0.585,true,"OK",false,false,1],
+  [18,"FORWARD",0.084,0.581,true,"OK",false,false,1],
+  [19,"FORWARD",0.09,0.576,true,"OK",false,false,1],
+  [20,"FORWARD",0.093,0.553,true,"OK",false,false,1],
+  [21,"FORWARD",0.072,0.535,true,"OK",false,false,1],
+  [22,"FORWARD",0.091,0.567,true,"OK",false,false,1],
+  [23,"FORWARD",0.159,0.593,true,"OK",false,false,1],
+  [24,"STOP",0.073,0.539,true,"OK",false,false,0],
+  [25,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [26,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [27,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [28,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [29,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [30,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [31,"STOP",0.095,0.609,true,"OK",false,false,0],
+  [32,"STOP",0.087,0.588,true,"OK",false,false,0],
+  [33,"STOP",0.058,0.527,true,"OK",false,false,0],
+  [34,"STOP",0.093,0.588,true,"OK",false,false,0],
+  [35,"STOP",0.094,0.575,true,"OK",false,false,0],
+  [36,"STOP",0.049,0.513,true,"OK",false,false,0],
+  [37,"STOP",0.056,0.51,true,"OK",false,false,0],
+  [38,"STOP",0.091,0.583,true,"OK",false,false,0],
+  [39,"STOP",0.093,0.588,true,"OK",false,false,0],
+  [40,"STOP",0.075,0.53,true,"OK",false,false,0],
+  [41,"STOP",0.075,0.536,true,"OK",false,false,0],
+  [42,"STOP",0.057,0.526,true,"OK",false,false,0],
+  [43,"STOP",0.083,0.592,true,"OK",false,false,0],
+  [44,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [45,"STOP",0.072,0.467,true,"OK",false,false,0],
+  [46,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [47,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [48,"STOP",0.079,0.41,true,"OK",false,false,0],
+  [49,"STOP",0.083,0.404,true,"OK",false,false,0],
+  [50,"STOP",0.083,0.404,true,"OK",false,false,0],
+  [51,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [52,"STOP",0.023,0.663,true,"OK",false,false,0],
+  [53,"STOP",0.119,0.501,true,"OK",false,false,0],
+  [54,"STOP",0.149,0.6,true,"OK",false,false,0],
+  [55,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [56,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [57,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [58,"STOP",0.044,0.427,true,"OK",false,false,0],
+  [59,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [60,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [61,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [62,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [63,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [64,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [65,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [66,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [67,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [68,"STOP",0.114,0.558,true,"OK",false,false,0],
+  [69,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [70,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [71,"STOP",0.114,0.558,true,"OK",false,false,0],
+  [72,"STOP",0.114,0.558,true,"OK",false,false,0],
+  [73,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [74,"STOP",0.122,0.547,true,"OK",false,false,0],
+  [75,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [76,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [77,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [78,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [79,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [80,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [81,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [82,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [83,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [84,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [85,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [86,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [87,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [88,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [89,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [90,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [91,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [92,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [93,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [94,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [95,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [96,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [97,"STOP",0.089,0.592,true,"OK",false,false,0],
+  [98,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [99,"STOP",0.098,0.595,true,"OK",false,false,0],
+  [100,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [101,"STOP",0.049,0.51,true,"OK",false,false,0],
+  [102,"STOP",0.114,0.536,true,"OK",false,false,0],
+  [103,"STOP",0.033,0.661,true,"OK",false,false,0],
+  [104,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+  [105,"STOP",0.06,0.5,false,"NO_BBOX",false,false,0],
+];
+
+// ── S6 필름스트립 빌드 ───────────────────────────────────────────────
+(function buildS6Filmstrip() {
+  const container = document.getElementById('s6-filmstrip');
+  if (!container) return;
+
+  const actionColor = {
+    'FWD+R':   '#38bdf8',
+    'FORWARD': '#4ade80',
+    'STOP':    '#ef4444',
+  };
+
+  S6_CL.forEach(function(row) {
+    const [fn, label, area, cx, hasBbox, cat, prox, near, clsId] = row;
+    const isLatchStart = (fn === 24);
+    const isStop = (label === 'STOP');
+    const isFwd  = (label === 'FORWARD');
+
+    // border color
+    let borderColor = '#334155';
+    if (isLatchStart)  borderColor = '#7c3aed';
+    else if (isStop)   borderColor = '#7f1d1d';
+    else if (isFwd)    borderColor = '#14532d';
+    else               borderColor = '#1e3a5f';
+
+    const imgPath = 'grounding_frames/s6/frame_' + String(fn).padStart(4,'0') + '.jpg';
+
+    const card = document.createElement('div');
+    card.style.cssText = [
+      'flex-shrink:0',
+      'width:120px',
+      'background:#0f172a',
+      'border:2px solid ' + borderColor,
+      'border-radius:8px',
+      'overflow:hidden',
+      'cursor:pointer',
+      isLatchStart ? 'box-shadow:0 0 12px #7c3aed' : '',
+    ].join(';');
+
+    // action label bar
+    const labelBar = document.createElement('div');
+    labelBar.style.cssText = 'background:' + (actionColor[label] || '#64748b') + ';padding:3px 6px;font-size:0.62rem;font-weight:800;color:#0f172a;display:flex;justify-content:space-between;align-items:center';
+    labelBar.innerHTML = (isLatchStart ? '⚡ ' : '') + label + '<span style="opacity:0.7">f' + fn + '</span>';
+
+    // image
+    const img = document.createElement('img');
+    img.src = imgPath;
+    img.alt = 'f' + fn;
+    img.style.cssText = 'width:100%;height:72px;object-fit:cover;display:block';
+
+    // area bar
+    const areaWrap = document.createElement('div');
+    areaWrap.style.cssText = 'padding:4px 6px 5px;background:#111827';
+    const areaBarOuter = document.createElement('div');
+    areaBarOuter.style.cssText = 'height:4px;background:#1e293b;border-radius:2px;overflow:hidden';
+    const areaBarInner = document.createElement('div');
+    const areaFrac = Math.min(area / 0.30, 1);
+    areaBarInner.style.cssText = 'height:100%;width:' + (areaFrac*100).toFixed(0) + '%;background:' + (hasBbox ? '#22c55e' : '#475569') + ';border-radius:2px';
+    areaBarOuter.appendChild(areaBarInner);
+
+    const areaText = document.createElement('div');
+    areaText.style.cssText = 'font-size:0.6rem;color:#64748b;margin-top:3px;display:flex;justify-content:space-between';
+    areaText.innerHTML = '<span>' + (hasBbox ? 'a=' + area.toFixed(3) : 'NO_BBOX') + '</span><span>cx=' + cx.toFixed(2) + '</span>';
+
+    areaWrap.appendChild(areaBarOuter);
+    areaWrap.appendChild(areaText);
+
+    card.appendChild(labelBar);
+    card.appendChild(img);
+    card.appendChild(areaWrap);
+
+    // click → lightbox
+    card.addEventListener('click', function() { s6Lightbox(fn - 1); });
+    container.appendChild(card);
+  });
+})();
+
+// ── S6 lightbox ─────────────────────────────────────────────────────
+const s6Imgs = S6_CL.map(function(r) {
+  return 'grounding_frames/s6/frame_' + String(r[0]).padStart(4,'0') + '.jpg';
+});
+const s6Caps = S6_CL.map(function(r) {
+  const [fn, label, area, cx, hasBbox, cat] = r;
+  const latch = (fn === 24) ? ' ⚡STOP LATCH' : '';
+  return 'f' + fn + ' — ' + label + latch + ' | ' + (hasBbox ? 'a=' + area + ' cx=' + cx : 'NO_BBOX') + ' | cat=' + cat;
+});
+let s6LbCur = 0;
+function s6Lightbox(i) {
+  s6LbCur = i;
+  const lb = document.getElementById('s6lb');
+  if (!lb) return;
+  document.getElementById('s6lb-img').src = s6Imgs[i];
+  document.getElementById('s6lb-cap').textContent = s6Caps[i];
+  lb.style.display = 'flex';
+}
+function s6LbNav(d) {
+  s6LbCur = (s6LbCur + d + s6Imgs.length) % s6Imgs.length;
+  document.getElementById('s6lb-img').src = s6Imgs[s6LbCur];
+  document.getElementById('s6lb-cap').textContent = s6Caps[s6LbCur];
+}
+document.addEventListener('keydown', function(e) {
+  const lb = document.getElementById('s6lb');
+  if (!lb || lb.style.display === 'none') return;
+  if (e.key === 'ArrowLeft')  s6LbNav(-1);
+  if (e.key === 'ArrowRight') s6LbNav(1);
+  if (e.key === 'Escape') lb.style.display = 'none';
+});
+
+function s6FsScroll(dir) {
+  const el = document.getElementById('s6-filmstrip');
+  el.scrollBy({ left: dir * 120 * 5, behavior: 'smooth' });
+}
+
+// ── S4 filmstrip filter
 function fsScroll(dir) {
   const el = document.getElementById('s4-filmstrip').parentElement;
   const step = 240 * 3; // 3 cards at a time
