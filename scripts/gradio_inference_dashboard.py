@@ -1774,12 +1774,22 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
         _gnd_log_dir = Path("logs/grounding_sessions")
         _gnd_log_dir.mkdir(parents=True, exist_ok=True)
         _gnd_log_file: list = [None]  # mutable ref — session 시작 시 생성
+        _gnd_log_last_write: list = [None]  # 마지막 기록 시각 — idle gap 감지용
+        _GND_SESSION_IDLE_GAP = _dt.timedelta(minutes=10)  # 이 시간 이상 비면 새 세션으로 간주
 
         def _gnd_ensure_log():
-            """세션 로그 파일이 없으면 새로 만들고 경로 반환."""
-            if _gnd_log_file[0] is None:
-                ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+            """세션 로그 파일이 없거나, idle gap이 길었으면 새로 만들고 경로 반환.
+
+            대시보드 프로세스가 며칠씩 무중단으로 떠 있을 수 있어 버튼 클릭에만
+            의존하면 다른 날 세션이 옛 파일에 계속 append되는 문제가 있었음
+            (2026-06-18 세션에 2026-06-20 세션이 합쳐진 사례).
+            """
+            now = _dt.datetime.now()
+            last = _gnd_log_last_write[0]
+            if _gnd_log_file[0] is None or (last is not None and now - last > _GND_SESSION_IDLE_GAP):
+                ts = now.strftime("%Y%m%d_%H%M%S")
                 _gnd_log_file[0] = _gnd_log_dir / f"gnd_{ts}.jsonl"
+            _gnd_log_last_write[0] = now
             return _gnd_log_file[0]
 
         # 녹화 mutable refs
@@ -2019,6 +2029,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
 
         def _gnd_new_session():
             _gnd_log_file[0] = None
+            _gnd_log_last_write[0] = None
             return [], 0, "(새 세션 — 첫 검증 시 생성됨)"
 
         gnd_new_session_btn.click(
