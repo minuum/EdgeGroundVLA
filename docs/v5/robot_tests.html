@@ -2260,22 +2260,38 @@
           · n=23(0.276) → n=24(0.687) — 2연속, 3번째 없음<br>
           · n=33(0.320) → n=36→37(0.314→0.320) — 비연속<br>
           → <span style="color:#4ade80">goal_near 발동 0회</span> (correct — 로봇이 충분히 접근 안 함)<br>
-          연속 NO_BBOX 최대: <strong style="color:#ef4444">41프레임</strong> (바스켓 시야 이탈)
+          연속 NO_BBOX 최대: <strong style="color:#ef4444">41프레임</strong> (n=56~94)
         </div>
+      </div>
+    </div>
+
+    <!-- 41프레임 dead zone 원인 정정 -->
+    <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;margin-bottom:12px;font-size:0.77rem">
+      <div style="color:#ef4444;font-weight:700;margin-bottom:6px">⚠️ 41프레임 dead zone 원인 정정 — "시야 이탈" 아님</div>
+      <div style="color:#94a3b8;line-height:1.7">
+        raw 재확인 결과 n=56~94 전부 <code style="color:#fbbf24">&lt;loc0000&gt;&lt;loc0000&gt;&lt;loc1010&gt;...</code> (풀프레임) 반복,
+        latency도 1250~1330ms로 정상 생성 시간 — "바스켓 없음"일 때 나오는 <code style="color:#64748b">' ; &lt;eos&gt;'</code>(lat≈660ms) 패턴이 아님.<br>
+        → <strong style="color:#f59e0b">초근접 시 PG2가 giant-bbox로 collapse</strong>한 것 (Bug 2 패턴과 동일). area&gt;0.9 필터가 정확히 차단했지만,
+        실제로는 "바스켓이 시야에 가득 찬 상태"였을 가능성 — STOP이 가장 필요한 구간에서 검출이 끊긴다는 뜻.<br>
+        진짜 "바스켓 없음"은 n=95 1건뿐 (lat=664ms, raw=<code style="color:#64748b">' ; &lt;eos&gt;'</code>).
       </div>
     </div>
 
     <div style="font-size:0.76rem;color:#64748b;line-height:1.6;background:#0f172a;border-radius:6px;padding:10px 12px">
       <code style="color:#4ade80">gnd_20260618_172556.jsonl</code> · 105레코드 · 17:26:21~17:31:32 ·
-      <strong style="color:#4ade80">fast 기록 0건</strong> (camera decode 버그 완전 해결 확인) ·
+      <strong style="color:#4ade80">fast 기록 1건</strong> (camera decode 버그 해결 확인, n=95) ·
       temporal filter 로그 <code>[near N/3]</code> 실서버 확인됨 ·
-      NO_BBOX 51건은 바스켓 시야 이탈 (false negative) — filter 과차단 아님
+      NO_BBOX 51건 중 50건은 giant-bbox collapse(근접 추정) — filter는 정확히 작동, 다만 근접 구간 검출력 자체가 약함
     </div>
   </div>
 
   <!-- 세션 유효율 진행 바 -->
   <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;margin-bottom:18px">
     <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:14px">세션별 유효율 진행 (패치 누적)</div>
+    <div style="color:#64748b;font-size:0.72rem;line-height:1.6;margin-bottom:14px;background:#1e293b;border-radius:6px;padding:8px 10px">
+      ⚠️ 세션마다 길이가 다름(24~115프레임, 수동 정지) — 이 %는 절대 벤치마크가 아니라 패치 전후 <strong>경향 비교용</strong>.
+      같은 세션 안에서도 거리·구간별로 검출력이 크게 달라짐(아래 거리 구간별 분석 참조).
+    </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
         <span style="color:#64748b;width:48px;flex-shrink:0">S1/S2</span>
@@ -2376,6 +2392,44 @@
     </table>
   </div>
 
+  <!-- 거리 구간별 / 시간흐름 트렌드 분석 -->
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;margin-bottom:18px">
+    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:14px">
+      S6 거리(area proxy) 구간별 분석 — 단일 비율보다 의미있는 지표
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+      <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:1.2rem;font-weight:800;color:#4ade80">6</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">근접 (area≥0.25)</div>
+        <div style="font-size:0.65rem;color:#475569">cx평균 0.638 (우측 치우침)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:1.2rem;font-weight:800;color:#38bdf8">27</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">중간 (0.05≤area&lt;0.25)</div>
+        <div style="font-size:0.65rem;color:#475569">cx평균 0.499 (중앙)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:1.2rem;font-weight:800;color:#a78bfa">21</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">원거리 (0.01≤area&lt;0.05)</div>
+        <div style="font-size:0.65rem;color:#475569">cx평균 0.518</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:1.2rem;font-weight:800;color:#ef4444">51</div>
+        <div style="font-size:0.68rem;color:#64748b;margin-top:2px">미검출(fallback)</div>
+        <div style="font-size:0.65rem;color:#475569">50건 giant-bbox + 1건 진짜 없음</div>
+      </div>
+    </div>
+    <div style="font-size:0.78rem;color:#64748b;line-height:1.7;background:#1e293b;border-radius:8px;padding:10px 14px">
+      <strong style="color:#f1f5f9">시간 흐름 narrative:</strong>
+      #1~50 바스켓 접근 중 (area 0.04→0.245, 검출 안정적) →
+      #21~30 근접 피크(area 0.245, cx 0.638 우측) →
+      <strong style="color:#ef4444">#56~94 초근접 giant-bbox collapse 41프레임</strong> (검출력 붕괴 구간, STOP이 가장 필요한 시점) →
+      #95 카메라 이탈(진짜 미검출) → #96~105 재검출.<br>
+      → <strong style="color:#fbbf24">결론: 근접 시 PG2 안정성이 떨어지는 게 핵심 약점</strong>이지 전체 유효율 숫자가 아님.
+      LoRA 파인튜닝 우선순위를 "근거리 bbox 정밀도"에 둬야 함.
+    </div>
+  </div>
+
   <!-- 결론 및 액션 아이템 -->
   <div style="background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:20px">
     <div style="color:#4ade80;font-weight:700;margin-bottom:14px">결론 (2026-06-18 최종)</div>
@@ -2396,8 +2450,8 @@
         <ul style="color:#94a3b8;padding-left:16px;line-height:1.9;margin:0">
           <li><strong style="color:#fbbf24">실로봇 closed-loop 재테스트</strong> — 전체 패치 통합 후 첫 네비게이션</li>
           <li>goal_near 발동 확인 — area≥0.25 연속 3프레임</li>
-          <li>NO_BBOX 41연속 원인 파악 — 로봇 방향 vs 바스켓 위치</li>
-          <li>PG2 파인튜닝 (Exp65/66 bbox 데이터) — 중거리 탐지 개선</li>
+          <li>NO_BBOX 41연속 원인 파악 ✅ — giant-bbox collapse(초근접), 시야이탈 아님</li>
+          <li><strong style="color:#fbbf24">PG2 파인튜닝 우선순위: 근거리(area≥0.25) bbox 정밀도</strong> — 가장 약한 구간</li>
         </ul>
       </div>
     </div>
