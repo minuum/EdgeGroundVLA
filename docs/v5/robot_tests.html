@@ -345,6 +345,7 @@
     <a class="toc-item" href="#hsv-crossval" data-target="hsv-crossval"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">HSV</span><span class="toc-label">HSV 교차검증</span></a>
     <a class="toc-item" href="#s7-session" data-target="s7-session"><span class="toc-badge" style="background:rgba(251,191,36,0.2);color:#fbbf24">S7</span><span class="toc-label">S7 — 근접-미스 bbox</span></a>
     <a class="toc-item" href="#resolution-analysis" data-target="resolution-analysis"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">RES</span><span class="toc-label">해상도 224→448/896 정량분석</span></a>
+    <a class="toc-item" href="#s8-session" data-target="s8-session"><span class="toc-badge" style="background:rgba(239,68,68,0.2);color:#ef4444">S8</span><span class="toc-label">S8 — mix-448 실측 (n=47)</span></a>
     <a class="toc-item" href="#pipeline-flow" data-target="pipeline-flow"><span class="toc-badge">09</span><span class="toc-label">파이프라인 플로우 비교</span></a>
   </div>
 </nav>
@@ -2671,6 +2672,14 @@
         <span style="color:#fbbf24;width:60px;text-align:right;font-weight:700">40.0%</span>
         <span style="color:#ef4444;font-size:0.67rem;font-weight:600">同 패치 — 세션별 변동(−11.4%p), 근접-미스 신규 발견</span>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.74rem">
+        <span style="color:#ef4444;width:48px;flex-shrink:0;font-weight:700">S8 ★</span>
+        <div style="background:#1e293b;border-radius:4px;height:18px;flex:1;position:relative">
+          <div style="background:#ef4444;width:34.0%;height:100%;border-radius:4px"></div>
+        </div>
+        <span style="color:#ef4444;width:60px;text-align:right;font-weight:700">34.0%</span>
+        <span style="color:#ef4444;font-size:0.67rem;font-weight:600">mix-448 (224→448, −17.4%p) — 가설 반증, latency도 악화</span>
+      </div>
     </div>
   </div>
 
@@ -3541,6 +3550,91 @@
   </div>
 </div>
 
+<!-- S8 세션 — mix-448 실측 (resolution-analysis 가설 검증) -->
+<div id="s8-session" style="max-width:1100px;margin:48px auto 0;padding:0 20px">
+  <div style="background:#0d1117;border:2px solid rgba(239,68,68,0.4);border-radius:12px;padding:20px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="color:#ef4444;font-weight:800;font-size:1rem">S8 — mix-448 단독 로드 실측 (17:44~17:48, n=47) — 가설 반증</div>
+      <span style="background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(239,68,68,0.3)">신규</span>
+    </div>
+    <div style="color:#64748b;font-size:0.76rem;margin-bottom:14px">
+      <code style="color:#ef4444">gnd_20260620_174429.jsonl</code> — 운영 서버(mix-224)를 내리고 동일 설정(<code style="color:#94a3b8">VLA_S2V2_STAGE1/STAGE2</code>, head=mlp, STOP=proximity)에서
+      <code style="color:#94a3b8">VLA_PG2_PATH</code>만 mix-448로 교체해 재기동 — 224 baseline과 apples-to-apples 비교.
+      env 직접 확인(<code style="color:#94a3b8">/proc/&lt;pid&gt;/environ</code>)으로 다른 설정 변경 없음을 검증함.
+    </div>
+
+    <!-- 지표 4개 -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#ef4444">34.0%</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">유효율 (16/47)</div>
+        <div style="font-size:0.67rem;color:#ef4444;margin-top:1px">↓ S6 51.4%보다 낮음</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#fbbf24">12</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">풀프레임 환각(fallback 31건 중)</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">224의 정지-환각과 동일 패턴</div>
+      </div>
+      <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#ef4444">6/6</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">스폿체크 — has_bbox=true인데 오탐</div>
+        <div style="font-size:0.67rem;color:#ef4444;margin-top:1px">⚠ 검증한 6건 전부 위치 불일치</div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:800;color:#a78bfa">~2.1s</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:2px">latency/프레임 (콜드스타트 제외)</div>
+        <div style="font-size:0.67rem;color:#475569;margin-top:1px">10Hz 제어 루프엔 비현실적</div>
+      </div>
+    </div>
+
+    <!-- 핵심 발견: 해상도 업그레이드 가설 반증 -->
+    <div style="background:#0f172a;border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="color:#ef4444;font-weight:700;margin-bottom:8px">⚠️ "토큰 수가 늘면 디테일을 더 본다" 가설 반증 — has_bbox=true 6건 스폿체크 전부 오탐</div>
+      <div style="color:#94a3b8;font-size:0.8rem;line-height:1.7;margin-bottom:10px">
+        4-filter를 통과해 "유효"로 표시된 검출 6건(n=7,8,20,27,37 + 1건)을 직접 프레임과 대조한 결과
+        <strong style="color:#fbbf24">전부 바스켓과 무관한 위치</strong>였다 — 빈 바닥/벽(n=7,27), 노트북+우산 리플렉터가 있는 책상(n=20, HSV
+        테스트에서도 동일 오탐이 나온 가구), 바스켓 위쪽 빈 벽(n=8,37). 기하학적으로는 정상적인 박스(너무 크지도 작지도 않음)라
+        4-filter로는 걸러지지 않음 — S7의 "근접-미스" 문제가 448에서도 그대로 재현되며 개선되지 않음.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div>
+          <img src="grounding_frames/s8/frame_0007.jpg" style="width:100%;border-radius:6px;border:1px solid #ef4444">
+          <div style="font-size:0.68rem;color:#64748b;margin-top:4px">n=7 — bbox(녹색)는 빈 바닥, 바스켓은 우측 별도 위치<br>cx=0.50 area=0.097 — 필터 통과(오탐)</div>
+        </div>
+        <div>
+          <img src="grounding_frames/s8/frame_0020.jpg" style="width:100%;border-radius:6px;border:1px solid #ef4444">
+          <div style="font-size:0.68rem;color:#64748b;margin-top:4px">n=20 — bbox가 책상/노트북/우산 리플렉터를 덮음, 바스켓은 좌측 끝<br>cx=0.68 area=0.532</div>
+        </div>
+        <div>
+          <img src="grounding_frames/s8/frame_0001.jpg" style="width:100%;border-radius:6px;border:1px solid #fbbf24">
+          <div style="font-size:0.68rem;color:#64748b;margin-top:4px">n=1 — fallback 예시: 정지 장면 풀프레임 환각(224와 동일 패턴), 바스켓은 좌측에 또렷</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 전체 47프레임 필름스트립 -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="color:#475569;font-size:0.68rem;font-weight:600;letter-spacing:0.05em">전체 47프레임 보기</span>
+        <span style="background:rgba(148,163,184,0.1);color:#94a3b8;font-size:0.65rem;font-weight:700;padding:1px 8px;border-radius:20px;border:1px solid rgba(148,163,184,0.2)">← → 스크롤</span>
+      </div>
+      <div style="position:relative">
+        <button onclick="genericFsScroll('s8-filmstrip',-1)" style="position:absolute;left:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">←</button>
+        <div id="s8-filmstrip" style="display:flex;gap:5px;overflow-x:auto;scroll-behavior:smooth;padding:6px 2px;scrollbar-width:thin;scrollbar-color:#334155 #0f172a"></div>
+        <button onclick="genericFsScroll('s8-filmstrip',1)" style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);z-index:10;background:#334155;border:none;color:#f8fafc;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem">→</button>
+      </div>
+    </div>
+
+    <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:14px;font-size:0.82rem;color:#94a3b8;line-height:1.75">
+      <strong style="color:#ef4444">결론 — mix-448 업그레이드는 이번 실측에서 정확도를 개선하지 못했다.</strong>
+      유효율은 224(51.4%, S6)보다 오히려 낮고(34.0%), latency는 ~2초/프레임으로 224보다 훨씬 느리며,
+      "유효"로 표시된 검출조차 스폿체크한 6건 전부 실제 바스켓 위치와 불일치했다.
+      해상도 업그레이드가 근접-미스/풀프레임 환각 문제를 해결한다는 가설은 이 표본에서 반증됨 —
+      다음 단계는 GroundingDINO 등 다른 아키텍처 검토 또는 소량 수동 라벨링 기반 PG2 LoRA 파인튜닝.
+    </div>
+  </div>
+</div>
+
 <!-- ══ 추론 파이프라인 양방향 플로우 비교 ══ -->
 <div id="pipeline-flow" style="max-width:1100px;margin:48px auto 0;padding:0 20px 60px">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
@@ -4293,6 +4387,27 @@ const S7_FRAMES = [
 ];
 buildGenericFilmstrip('s7-filmstrip', 'grounding_frames/s7', S7_FRAMES, [39,40,41,42,43,44,45,46]);
 
+// ── S8 데이터 (47프레임, mix-448) — 스폿체크로 오탐 확인된 6건 하이라이트 ──
+const S8_FRAMES = [
+  [1,0.06,0.5,0.6,false,"NO_BBOX"],[2,0.06,0.5,0.6,false,"NO_BBOX"],[3,0.06,0.5,0.6,false,"NO_BBOX"],
+  [4,0.06,0.5,0.6,false,"NO_BBOX"],[5,0.06,0.5,0.6,false,"NO_BBOX"],[6,0.06,0.5,0.6,false,"NO_BBOX"],
+  [7,0.097,0.504,0.682,true,"OK"],[8,0.155,0.571,0.47,true,"OK"],[9,0.06,0.5,0.6,false,"NO_BBOX"],
+  [10,0.06,0.5,0.6,false,"NO_BBOX"],[11,0.06,0.5,0.6,false,"NO_BBOX"],[12,0.06,0.5,0.6,false,"NO_BBOX"],
+  [13,0.06,0.5,0.6,false,"NO_BBOX"],[14,0.06,0.5,0.6,false,"NO_BBOX"],[15,0.06,0.5,0.6,false,"NO_BBOX"],
+  [16,0.06,0.5,0.6,false,"NO_BBOX"],[17,0.06,0.5,0.6,false,"NO_BBOX"],[18,0.06,0.5,0.6,false,"NO_BBOX"],
+  [19,0.06,0.5,0.6,false,"NO_BBOX"],[20,0.532,0.678,0.486,true,"OK"],[21,0.06,0.5,0.6,false,"NO_BBOX"],
+  [22,0.06,0.5,0.6,false,"NO_BBOX"],[23,0.06,0.5,0.6,false,"NO_BBOX"],[24,0.06,0.5,0.6,false,"NO_BBOX"],
+  [25,0.06,0.5,0.6,false,"NO_BBOX"],[26,0.06,0.5,0.6,false,"NO_BBOX"],[27,0.062,0.493,0.523,true,"OK"],
+  [28,0.06,0.5,0.6,false,"NO_BBOX"],[29,0.06,0.5,0.6,false,"NO_BBOX"],[30,0.058,0.486,0.523,true,"OK"],
+  [31,0.111,0.5,0.705,true,"OK"],[32,0.091,0.532,0.514,true,"OK"],[33,0.058,0.486,0.523,true,"OK"],
+  [34,0.058,0.486,0.523,true,"OK"],[35,0.127,0.545,0.47,true,"OK"],[36,0.06,0.5,0.6,false,"NO_BBOX"],
+  [37,0.225,0.572,0.357,true,"OK"],[38,0.06,0.5,0.6,false,"NO_BBOX"],[39,0.06,0.5,0.6,false,"NO_BBOX"],
+  [40,0.532,0.678,0.486,true,"OK"],[41,0.226,0.546,0.371,true,"OK"],[42,0.231,0.547,0.384,true,"OK"],
+  [43,0.225,0.547,0.376,true,"OK"],[44,0.273,0.571,0.395,true,"OK"],[45,0.06,0.5,0.6,false,"NO_BBOX"],
+  [46,0.06,0.5,0.6,false,"NO_BBOX"],[47,0.06,0.5,0.6,false,"NO_BBOX"],
+];
+buildGenericFilmstrip('s8-filmstrip', 'grounding_frames/s8', S8_FRAMES, [7,8,20,27,37,40]);
+
 // ── S5 데이터 (2개 mp4 세그먼트, 오프라인 재평가 기준) ──────────────────
 const S5A_FRAMES = [
   [1,0.06,0.5,0.5,false,"NO_BBOX"],[2,0.06,0.5,0.5,false,"NO_BBOX"],[3,0.044,0.592,0.5,true,"OK"],
@@ -4397,7 +4512,7 @@ document.addEventListener('keydown', e => {
   const SECTIONS = ['overview','session-a','session-b','session-c','june4','findings',
     'action-seq','stop-n1','gnd-session-20260618','s5-session','s4-bbox-detail',
     's4-filmstrip-section','s6-filmstrip-section','offline-reeval','hsv-crossval',
-    's7-session','resolution-analysis','pipeline-flow'];
+    's7-session','resolution-analysis','s8-session','pipeline-flow'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
