@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-S6 세션(gnd_20260618_172556.jsonl)에서 PG2가 fallback 처리한 프레임에
+임의의 그라운딩 세션(gnd_*.jsonl)에서 PG2가 fallback 처리한 프레임에
 HSV 기반 classical detector(scratch/patch_hsv_annotations.py 동일 로직)를
 재적용해 복구 가능한지 테스트.
 
@@ -8,10 +8,14 @@ HSV 기반 classical detector(scratch/patch_hsv_annotations.py 동일 로직)를
 PG2 self-labeling은 PG2 collapse 자체를 학습데이터에 포함시키는 순환참조라
 HSV 같은 독립적인 검출기로 교차검증/대체 라벨링이 필요함.
 
+⚠️ "진짜 복구" 분류도 100% 신뢰 불가 — 벽 얼룩/가구 등을 오탐하는 사례가
+실제로 확인됨(S7 n=6, n=21). 출력된 genuine 리스트 중 최소 3~5장은
+Read 툴로 프레임 직접 열어 cx 위치가 실제 바스켓과 맞는지 시각 검증할 것.
+
 사용:
-    python3 scripts/eval/test_hsv_recovery_s6.py \
-        --jsonl logs/grounding_sessions/gnd_20260618_172556.jsonl \
-        --frames docs/v5/grounding_frames/s6
+    python3 scripts/eval/test_hsv_recovery.py \
+        --jsonl logs/grounding_sessions/<세션>.jsonl \
+        --frames docs/v5/grounding_frames/<세션폴더>
 """
 import argparse
 import json
