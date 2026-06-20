@@ -3510,12 +3510,28 @@
     </div>
   </div>
 
+  <!-- 실측 결과: mix-448 크래시 -->
+  <div style="background:linear-gradient(135deg,#450a0a,#1c1917);border:1px solid rgba(239,68,68,0.5);border-radius:12px;padding:18px 20px;margin-bottom:18px">
+    <div style="color:#ef4444;font-weight:800;margin-bottom:10px">✗ 실측 결과 (2026-06-20, minum 서버) — mix-448 동시 로드 시 Jetson 통째로 재부팅</div>
+    <div style="color:#94a3b8;font-size:0.82rem;line-height:1.7">
+      운영 서버(stage2_v2_inference_server.py, mix-224, 6.73GB)를 켜둔 채로 <code style="background:#0f172a;padding:2px 6px;border-radius:4px">test_pg2_resolution.py</code>로
+      mix-448(5.7GB)을 추가 로드 시도 → 두 번 모두(기본 로드 / <code style="background:#0f172a;padding:2px 6px;border-radius:4px">low_cpu_mem_usage=True + device_map</code> 수정 버전)
+      동일하게 시스템 재부팅 재현. uptime 확인으로 OOM 추정 확정 — "free 1.1GB로는 부족할 가능성이 높음" 추정이 실측으로 검증됨.
+      mix-896은 448에서 이미 죽었으므로 <strong style="color:#ef4444">시도하지 않음</strong>(더 위험). 운영 서버는 재시작 후 정상 복구(GPU 6.728GB).
+    </div>
+    <div style="color:#64748b;font-size:0.72rem;margin-top:10px;line-height:1.6">
+      다음 시도 시 필수 순서: ① 운영 서버(port 8001) 먼저 종료 → ② <code style="background:#0f172a;padding:2px 6px;border-radius:4px">free -h</code>로 메모리 확보 확인 →
+      ③ mix-448 단독 로드 테스트 → ④ 성공 시 latency/메모리 실측 후 표 갱신 → ⑤ 운영 서버 재시작.
+      운영 서버를 켜둔 채로 재시도하면 또 재부팅된다.
+    </div>
+  </div>
+
   <!-- 권장 다음 단계 -->
   <div style="background:#0d1117;border:1px solid #1e293b;border-radius:12px;padding:18px 20px">
-    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px">권장 검증 절차</div>
+    <div style="color:#475569;font-size:0.68rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px">권장 검증 절차 (운영 서버 내린 뒤 재시도)</div>
     <ol style="color:#94a3b8;font-size:0.82rem;line-height:1.9;padding-left:20px;margin:0">
-      <li>soda에서 dashboard(gradio_inference_dashboard.py) 등 불필요 프로세스 종료 → 메모리 확보</li>
-      <li><code style="background:#0f172a;padding:2px 6px;border-radius:4px">paligemma2-3b-mix-448</code> 다운로드 + 로드 테스트 — OOM 여부 확인</li>
+      <li>운영 서버(stage2_v2_inference_server.py, port 8001) 종료 → dashboard 등 불필요 프로세스도 함께 정리</li>
+      <li><code style="background:#0f172a;padding:2px 6px;border-radius:4px">paligemma2-3b-mix-448</code> 단독 로드 테스트 — OOM/재부팅 여부 재확인</li>
       <li>로드 성공 시 S6/S7 동일 프레임 셋(105+85장)으로 <code style="background:#0f172a;padding:2px 6px;border-radius:4px">/ground</code> 재호출 →
         실측 latency + has_bbox 비율 비교</li>
       <li>특히 <strong style="color:#fbbf24">근접-미스 bbox 클러스터(S7 f39~46)</strong>와 <strong style="color:#fbbf24">정지장면 풀프레임 환각(S6 f56~94)</strong> 두 실패 프레임에서
