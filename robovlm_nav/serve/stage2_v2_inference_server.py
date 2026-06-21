@@ -137,6 +137,31 @@ def get_goal_area(phrase: str) -> float:
     return GOAL_AREA_MAP.get(phrase, GOAL_AREA_THRESHOLD)
 
 
+# PG2Grounder.run()의 후처리 필터 중 cy_val/area 하한은 바스켓 전용 휴리스틱이라
+# (바구니는 항상 화면 하단~중단에 있다는 가정) 다른 객체에선 정상 bbox를 false negative
+# 처리할 수 있음(예: 사과 cy=0.344로 기본값 0.35 미달 → 탈락). configs/goal_area_map.json과
+# 같은 파일에 phrase별 오버라이드를 둠 — 없는 phrase는 바스켓 기본값(min_cy=0.35, min_area=0.01) 유지.
+GROUND_FILTER_DEFAULTS = {"min_cy": 0.35, "min_area": 0.01}
+GROUND_FILTER_MAP_PATH = Path(__file__).resolve().parent.parent.parent / "configs" / "ground_filter_map.json"
+
+
+def _load_ground_filter_map() -> dict[str, dict[str, float]]:
+    if GROUND_FILTER_MAP_PATH.exists():
+        try:
+            return json.loads(GROUND_FILTER_MAP_PATH.read_text())
+        except Exception as e:
+            logger.warning("ground_filter_map.json 로드 실패: %s — 기본값만 사용", e)
+    return {}
+
+
+GROUND_FILTER_MAP = _load_ground_filter_map()
+
+
+def get_ground_filters(phrase: str) -> dict[str, float]:
+    override = GROUND_FILTER_MAP.get(phrase, {})
+    return {**GROUND_FILTER_DEFAULTS, **override}
+
+
 # ---------------------------------------------------------------------------
 # Head models (mirror of train_exp54_stage2_v2_action.py)
 # ---------------------------------------------------------------------------
@@ -339,11 +364,15 @@ class PG2Grounder:
             _fallback = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
                          "x1": None, "y1": None, "x2": None, "y2": None}
             # 학습 annotation 필터 4종 — gen_base_pg2_annotation.py 기준 맞춤
+            # area>0.9(full-frame 환각)/x-full-width는 객체 무관 보편 규칙으로 유지.
+            # min_area/min_cy는 바스켓 전용 휴리스틱(바구니는 항상 화면 하단~중단)이라
+            # phrase별로 오버라이드 가능하게 함(configs/ground_filter_map.json).
+            filters = get_ground_filters(phrase)
             if area > 0.9:          # full-frame collapse (loc0000~loc1022 전체)
                 result = _fallback
-            elif area < 0.01:       # tiny noise detection
+            elif area < filters["min_area"]:       # tiny noise detection
                 result = _fallback
-            elif cy_val < 0.35:     # 상단 오탐 (바구니가 프레임 상단에 있을 수 없음)
+            elif cy_val < filters["min_cy"]:     # 상단 오탐 (바구니가 프레임 상단에 있을 수 없음)
                 result = _fallback
             elif x1 < 0.02 and x2 > 0.98:  # x-full-width collapse (cx≈0.5 항상)
                 result = _fallback

@@ -1,0 +1,7 @@
+{
+  "green apple": {"min_cy": 0.0, "min_area": 0.001},
+  "blue mug": {"min_cy": 0.0, "min_area": 0.001},
+  "red coke can": {"min_cy": 0.0, "min_area": 0.001},
+  "chair": {"min_cy": 0.0, "min_area": 0.001},
+  "orange cone": {"min_cy": 0.0, "min_area": 0.001}
+}
