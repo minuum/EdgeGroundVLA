@@ -1,0 +1,90 @@
+{
+  "base_pg2": {
+    "basket_extreme": {
+      "hit_rate": 0.917,
+      "fullframe_rate": 0.0,
+      "n": 36
+    },
+    "robot_distance": {
+      "hit_rate": 0.944,
+      "fullframe_rate": 0.0,
+      "n": 36
+    },
+    "diagonal": {
+      "hit_rate": 0.952,
+      "fullframe_rate": 0.024,
+      "n": 42
+    },
+    "lighting_diff": {
+      "hit_rate": 1.0,
+      "fullframe_rate": 0.0,
+      "n": 12
+    }
+  },
+  "pure_kosmos": {
+    "basket_extreme": {
+      "hit_rate": 1.0,
+      "fullframe_rate": 0.0,
+      "n": 36
+    },
+    "robot_distance": {
+      "hit_rate": 1.0,
+      "fullframe_rate": 0.0,
+      "n": 36
+    },
+    "diagonal": {
+      "hit_rate": 1.0,
+      "fullframe_rate": 0.0,
+      "n": 42
+    },
+    "lighting_diff": {
+      "hit_rate": 1.0,
+      "fullframe_rate": 0.0,
+      "n": 12
+    }
+  },
+  "exp57_pg1": {
+    "basket_extreme": {
+      "hit_rate": 0.861,
+      "fullframe_rate": 0.028,
+      "n": 36
+    },
+    "robot_distance": {
+      "hit_rate": 0.861,
+      "fullframe_rate": 0.0,
+      "n": 36
+    },
+    "diagonal": {
+      "hit_rate": 0.881,
+      "fullframe_rate": 0.024,
+      "n": 42
+    },
+    "lighting_diff": {
+      "hit_rate": 0.917,
+      "fullframe_rate": 0.0,
+      "n": 12
+    }
+  },
+  "exp59_pg2": {
+    "basket_extreme": {
+      "hit_rate": 0.917,
+      "fullframe_rate": 0.083,
+      "n": 36
+    },
+    "robot_distance": {
+      "hit_rate": 0.917,
+      "fullframe_rate": 0.222,
+      "n": 36
+    },
+    "diagonal": {
+      "hit_rate": 0.952,
+      "fullframe_rate": 0.143,
+      "n": 42
+    },
+    "lighting_diff": {
+      "hit_rate": 1.0,
+      "fullframe_rate": 0.167,
+      "n": 12
+    }
+  }
+}
