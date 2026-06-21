@@ -9198,6 +9198,35 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       </div>
     </div>
 
+    <div class="callout good" style="margin-top:14px;border-color:#22c55e">
+      🟢 <strong>2026-06-21 구현 — 위 "최종 목표"의 grounding 부분을 실제로 연결함</strong>
+      (<code style="font-size:0.78rem">plan_20260621_instruction_grounding.md</code>)
+      <div style="margin-top:8px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">항목</th><th style="padding:6px;color:#7dd3fc">이전(Stage 3, exp59까지)</th><th style="padding:6px;color:#7dd3fc">지금(2026-06-21)</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">grounding 프롬프트</td><td style="padding:6px;text-align:center">"detect gray basket" 하드코딩</td><td style="padding:6px;text-align:center;color:#86efac">API의 instruction → 프롬프트로 그대로 전달</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">다룰 수 있는 객체</td><td style="padding:6px;text-align:center">바스켓 1종</td><td style="padding:6px;text-align:center;color:#86efac">검증된 5종(사과·머그컵·콜라캔·의자·콘) + 텍스트로 확장 가능</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">STOP 임계값(GOAL_AREA)</td><td style="padding:6px;text-align:center">전역 고정값 0.25(바스켓 기준)</td><td style="padding:6px;text-align:center;color:#86efac">객체별 매핑(<code style="font-size:0.75rem">configs/goal_area_map.json</code>), 없는 객체는 0.25로 폴백</td></tr>
+            <tr><td style="padding:6px">action head가 언어를 보는가</td><td style="padding:6px;text-align:center">아니오(0%)</td><td style="padding:6px;text-align:center">여전히 아니오 — <strong style="color:#fbbf24">언어는 grounding에서만 작동, action은 그대로 기하학적</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;font-size:0.85rem">
+        <strong style="color:#86efac">배경/장면이 달라져도 되는가?</strong> §3 검증 5장은 실제로 서로 다른 복도/조명에서 찍힌 사진이다(사과=유리문 복도, 머그컵=창문 있는 회색 타일 복도, 콘=유리벽 복도 등) —
+        같은 배경에서 객체만 바꾼 게 아니라 <strong>배경도 객체도 둘 다 다른 5장 전부에서 hit 100%</strong>였다. 이건 PG2 zero-shot의 사전학습 지식이 우리 학습 분포(복도+바스켓)를 넘어 일반화한다는
+        증거(§C4 증강 강건성 결론과 같은 맥락)다. 단, <strong style="color:#fca5a5">"같은 배경에서 카메라 거리만 달라질 때" area가 얼마나 안정적인지는 아직 검증 안 됨</strong> —
+        이게 바로 GOAL_AREA 캘리브레이션이 필요한 이유(아래).
+      </div>
+      <div style="margin-top:8px;font-size:0.85rem">
+        <strong style="color:#fbbf24">GOAL_AREA 캘리브레이션 방법(<code style="font-size:0.75rem">scripts/calibrate_goal_area.py</code>):</strong>
+        바스켓의 0.25도 사진 한 장의 수학적 환산이 아니라 <strong>실주행 세션(S6~S8)에서 경험적으로 나온 값</strong>이었다 — 다른 객체도 같은 방식으로 해야 한다.
+        절차: ① 캘리브레이션할 객체를 "로봇이 멈춰야 하는 바로 그 거리"에 실제로 놓음 → ② 그 자리에서 카메라로 n회(기본 3회) 캡처해 <code style="font-size:0.75rem">/ground</code>로 area 측정 →
+        ③ median area를 그 객체의 GOAL_AREA로 <code style="font-size:0.75rem">goal_area_map.json</code>에 저장 → ④ 서버 재시작(현재 구현은 모듈 로드 시 1회만 읆음 — 핫리로드 없음).
+        soda에서 물리적으로 객체를 들고 거리를 맞춰야 하는 단계라 아직 실행 전.
+      </div>
+    </div>
+
     <!-- 교수님 질문에 대한 직접 답변 구조 -->
     <div style="background:#0a0f1a;border:1px solid #334155;border-radius:10px;padding:14px 16px">
       <div style="color:#94a3b8;font-size:0.75rem;font-weight:700;margin-bottom:10px">교수님 질문 → 우리 답변 연결</div>
