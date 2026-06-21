@@ -195,3 +195,22 @@ S8 production jsonl(`logs/grounding_sessions/gnd_20260620_174429.jsonl`, n=47, *
 양성대조군("detect gray basket" vs "detect red ball")도 text attention 87.5%/93.4% — Exp57의 출력레벨 증명(100% vs 0%)이 attention 레벨에서도 뒷받침됨.
 
 **판단**: PG2는 Google-robot과 달리 text pathway가 구조적으로 살아있음 — "PG2 자체를 action backbone으로 재학습"이 Exp01~16과 같은 방식(구조적 text 붕괴)으로 실패할 가능성은 낮다. 단, 방향성 instruction 간 차이(1.4%p)는 객체유무 대비(~6%p)보다 작아 미약함 — **전체 end-to-end 재학습보다 risk가 낮은 절충안**(PG2는 grounding에서만 frozen으로 instruction 반영, action head는 현재처럼 geometry 기반 유지)을 우선 추천. 결과는 `docs/v5/research_story.html` CH2(Google-robot 실패 챕터) 직후에 비교 콜아웃으로 반영함. 전체 end-to-end 재시도는 별도 plan 필요 시 착수.
+
+## 14. "헤드 입력을 hidden state로 바꾸면 다를까" — 학습 없이 표현 레벨 측정 (2026-06-21)
+
+CH38-2(레퍼런스 아키텍처 비교)에서 "B 수준(TinyVLA/SmolVLA 식 — 헤드가 bbox 대신 PG2 hidden state를 입력으로 받음)으로 가면
+신호가 있는가"를 재학습 없이 바로 확인 — `scripts/measure_hidden_state_pg2.py`. attention 가중치가 아니라
+**action head가 실제로 받을 표현(벡터) 자체**가 instruction에 따라 갈리는지 코사인거리로 측정.
+
+| 비교 | 이미지1 | 이미지2 |
+|---|---|---|
+| 동일 prompt 반복(노이즈 바닥선) | 0.00000 | 0.00000 |
+| **basket vs ball(객체 다름)** | **0.363** | **0.441** |
+| left/right/forward(방향만 다름) | 0.029~0.043 | 0.037~0.051 |
+| **객체차이/방향차이 비율** | **9.8x** | **10.2x** |
+
+**결론**: "객체를 바꾸는 instruction"은 hidden state 신호가 충분히 강함(노이즈 바닥선 대비 압도적, basket↔ball 0.36~0.44) — 38-3의
+멀티 객체 grounding 검증(5/5 hit)과 같은 방향의 증거가 표현 레벨에서도 확인됨. **"방향/스타일을 바꾸는 instruction"은 신호가
+객체 차이보다 10배 약함**(attention spread 1.4%p와 일관) — 같은 식으로 헤드에 넣어도 Exp12/13처럼 학습이 잘 안 붙을 위험 여전.
+**B 수준을 "타겟 객체 전환"으로 한정하면 유망, "주행 스타일/방향 제어"까지 노리면 여전히 위험.**
+결과는 `docs/v5/research_story.html` CH38-4에 반영.

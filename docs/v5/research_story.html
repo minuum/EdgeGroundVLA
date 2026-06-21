@@ -9975,6 +9975,33 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#7dd3fc;margin-bottom:8px">
+    <div class="finding-title" style="color:#7dd3fc">38-4. "B 수준으로 가면 다를까" — 학습 없이 바로 측정 (hidden state 거리)</div>
+    <div class="finding-body">
+      38-2의 질문("헤드 입력을 bbox 대신 PG2 hidden state로 바꾸면 다를까")을 재학습 없이 바로 확인했다.
+      <code style="font-size:0.78rem">scripts/measure_hidden_state_pg2.py</code> — attention 가중치가 아니라
+      <strong>action head가 실제로 받을 표현(벡터) 자체</strong>가 instruction에 따라 얼마나 갈리는지, 코사인거리로 측정.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">비교</th><th style="padding:6px;color:#7dd3fc">cos_dist(이미지1)</th><th style="padding:6px;color:#7dd3fc">cos_dist(이미지2)</th><th style="padding:6px;color:#7dd3fc">의미</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">동일 prompt 반복(노이즈 바닥선)</td><td style="padding:6px;text-align:center">0.00000</td><td style="padding:6px;text-align:center">0.00000</td><td style="padding:6px">deterministic, 완벽한 기준선</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px"><strong>basket vs ball(객체 다름)</strong></td><td style="padding:6px;text-align:center;color:#4ade80">0.363</td><td style="padding:6px;text-align:center;color:#4ade80">0.441</td><td style="padding:6px">강한 신호 — 헤드가 학습하기 충분</td></tr>
+            <tr><td style="padding:6px">left/right/forward(방향만 다름)</td><td style="padding:6px;text-align:center;color:#fbbf24">0.029~0.043</td><td style="padding:6px;text-align:center;color:#fbbf24">0.037~0.051</td><td style="padding:6px">약하지만 0은 아님</td></tr>
+            <tr style="background:#0a1628"><td style="padding:6px"><strong>객체차이/방향차이 비율</strong></td><td style="padding:6px;text-align:center;font-weight:700">9.8x</td><td style="padding:6px;text-align:center;font-weight:700">10.2x</td><td style="padding:6px">두 이미지에서 일관됨</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">결론:</strong> "B 수준(객체를 바꾸는 instruction)"으로 가면 hidden state 신호가 충분히 강해서 학습이 될 가능성이 높다 —
+        38-3의 멀티 객체 grounding 검증(5/5 hit)과 정확히 같은 방향의 증거가 표현 레벨에서도 나왔다.
+        반면 <strong style="color:#fbbf24">"방향/스타일을 바꾸는 instruction"은 신호가 객체 차이보다 10배 약해서</strong>, 같은 방식으로 헤드에 넣어도
+        Exp12/13처럼 학습이 잘 안 붙을 위험이 여전히 있다 — attention spread(1.4%p, CH2 박스)와 일관된 결론.
+        즉 <strong>B 수준을 "타겟 객체 전환"으로 한정하면 유망하고, "주행 스타일/방향 제어"까지 노리면 여전히 위험하다.</strong>
+      </div>
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     <a href="today_visual_summary.html" style="color:#7dd3fc">📷 오늘 한눈에 보기(사진)</a> ·
     plans: plan_20260621_groundingdino_vs_pg2.md · plan_20260621_instruction_grounding.md &nbsp;|&nbsp; 2026-06-21
