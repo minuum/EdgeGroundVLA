@@ -102,10 +102,53 @@ right_straight  ×34, right_left  ×33, right_right  ×31
 
 ## 5. 완료 기준 (이번 plan 범위)
 
-- [ ] Step A: `PG2Grounder.run()` 필터 phrase별 파라미터화, soda에서 5종 객체 재검증 통과
-- [ ] Step B: `probe_v5_direction_hidden_state.py` 작성·실행, 9-class(또는 3-class 방향만) probe 정확도 측정
-- [ ] Step B 결과를 `research_story.html`에 CH39로 기록(T2 가능/불가능 결론)
-- [ ] 다음 plan 분기점 명시(T2 구현 plan 또는 "T1 확정, 백본 교체 없이는 T2 불가" 결론 plan)
+- [x] Step A: `PG2Grounder.run()` 필터 phrase별 파라미터화(`configs/ground_filter_map.json`), GB10 로컬 5/5 통과
+- [x] Step A soda 배포: 서버 내리고 pull → 단독 검증 → 재기동
+- [x] Step B: `probe_v5_direction_hidden_state.py` 작성·실행, 9-class(또는 3-class 방향만) probe 정확도 측정
+- [x] Step B 결과를 `research_story.html`에 CH39로 기록
+- [ ] 다음 plan 분기점 명시(T2 구현 plan)
+
+### Step B 결과 (2026-06-22) — 강한 긍정 신호
+
+V5 실주행 220개 에피소드(`target_{start}_{direction}_path` 패턴), 중간 프레임 1장씩,
+PG2 grounding 프롬프트("detect gray basket", **텍스트 고정**, 이미지만 다름) 마지막
+hidden state(2304-dim) → frozen 선형 probe(5-fold CV):
+
+| probe | n_class | chance | CV acc | chance 대비 |
+|---|---|---|---|---|
+| direction(좌/직진/우) | 3 | 0.333 | **0.900 ± 0.031** | 2.70x |
+| start(중앙/좌/우 출발) | 3 | 0.333 | 0.991 ± 0.018 | 2.97x |
+| start×direction | 9 | 0.111 | 0.923 ± 0.027 | 8.30x |
+
+**해석**: CH38-5("go left/right 텍스트를 줘도 PG2 생성 출력이 거의 동일")와 모순되지 않음 —
+그건 "텍스트로 직접 지시했을 때 출력이 안 바뀐다"는 얘기였고, 이건 "텍스트는 고정인데
+**이미지(실제 주행 장면)** 가 다를 때 hidden state가 갈리는가"라는 다른 질문이었다.
+결과는 명확히 **갈린다** — 즉 PG2의 내부 표현(hidden state)에는 현재 action head가
+쓰는 bbox 좌표/면적보다 훨씬 풍부한 장면 정보(경로방향과 상관된 시각 정보)가 이미
+들어있다.
+
+**의미**: T2(언어가 경로에 영향)로 가는 길은 "PG2에 방향을 텍스트로 명령"하는 방식이
+아니라 — **action head의 입력을 bbox 좌표 대신(또는 추가로) PG2 hidden state로
+바꾸고, 기존 V5 220개 에피소드 라벨로 head만 재학습**하는 방식이 유망하다는 근거.
+**새 데이터 수집 불필요** — 라벨도 이미지도 이미 있음.
+
+산출: `docs/v5/attention_analysis/v5_direction_probe.json`
+
+**다음 plan (이번 plan 범위 밖)**: action head를 hidden-state 입력으로 바꿔 실제로
+재학습했을 때 PM/closed-loop 성능이 오르는지 확인 — 이건 "새 학습"이 들어가므로
+별도 plan으로 분리해 사용자 승인 받음.
+
+### Step A soda 검증 결과 (2026-06-22)
+
+| 객체 | phrase | has_bbox | 비고 |
+|---|---|---|---|
+| 콜라캔 | red coke can | ✅ True | area=0.124, 안정적 |
+| 의자 | chair | ✅ True | area=0.385, 안정적 |
+| 콘 | orange cone | ✅ True | area=0.149, 안정적 |
+| 사과 | green apple | ❌ False | **필터 버그 아님** — full-frame 환각(`<loc0000>...<loc1006><loc1020>`), area>0.9 필터가 정상 차단. soda(Jetson)에서 5회 반복 모두 동일(결정적). |
+| 머그컵 | blue mug | ❌ False | 사과와 동일 — full-frame 환각, area>0.9 필터 정상 동작 |
+
+**추가 발견(범위 밖, 기록만)**: 같은 이미지·phrase에 대해 GB10에서는 valid box(또는 5/5 hit 기존 평가)가 나왔는데 soda(Jetson Orin)에서는 일관되게 full-frame 환각이 나옴 — bf16 연산이 하드웨어(GB10 vs Jetson Orin)에 따라 다른 결과로 갈리는, 신뢰도가 낮은(low-confidence) 객체에서 나타나는 현상으로 추정. Step A가 고치려던 "필터가 정상 박스를 거부하는" 문제와는 다른 종류의 문제(애초에 정상 박스가 안 나옴) — 별도 이슈로 분리, 이번 plan 범위 밖.
 
 ---
 

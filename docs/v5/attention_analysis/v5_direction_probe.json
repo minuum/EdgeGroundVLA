@@ -1,0 +1,35 @@
+{
+  "n_episodes": 220,
+  "by_start_direction": {
+    "center_straight": 21,
+    "center_left": 15,
+    "center_right": 15,
+    "left_straight": 21,
+    "left_right": 23,
+    "left_left": 27,
+    "right_left": 33,
+    "right_straight": 34,
+    "right_right": 31
+  },
+  "direction_3class": {
+    "n_class": 3,
+    "chance": 0.3333333333333333,
+    "cv_acc_mean": 0.9,
+    "cv_acc_std": 0.03082877265056941,
+    "ratio_vs_chance": 2.7
+  },
+  "start_3class": {
+    "n_class": 3,
+    "chance": 0.3333333333333333,
+    "cv_acc_mean": 0.990909090909091,
+    "cv_acc_std": 0.018181818181818167,
+    "ratio_vs_chance": 2.972727272727273
+  },
+  "start_x_direction_9class": {
+    "n_class": 9,
+    "chance": 0.1111111111111111,
+    "cv_acc_mean": 0.9227272727272726,
+    "cv_acc_std": 0.0272727272727273,
+    "ratio_vs_chance": 8.304545454545455
+  }
+}
