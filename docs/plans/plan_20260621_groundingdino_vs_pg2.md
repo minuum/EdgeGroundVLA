@@ -214,3 +214,18 @@ CH38-2(레퍼런스 아키텍처 비교)에서 "B 수준(TinyVLA/SmolVLA 식 —
 객체 차이보다 10배 약함**(attention spread 1.4%p와 일관) — 같은 식으로 헤드에 넣어도 Exp12/13처럼 학습이 잘 안 붙을 위험 여전.
 **B 수준을 "타겟 객체 전환"으로 한정하면 유망, "주행 스타일/방향 제어"까지 노리면 여전히 위험.**
 결과는 `docs/v5/research_story.html` CH38-4에 반영.
+
+## 15. 정정 — 코사인거리만으론 안 와닿아서 실제 생성 출력으로 재확인 (2026-06-21)
+
+§14의 cos_dist 수치가 추상적이라, 실제 4개 바스켓 세션 사진(S6 baseline/dead-zone, S7 정상검출, S8 production)으로
+PG2가 실제로 무엇을 생성하는지 직접 확인. 사진+raw 출력은 `docs/v5/today_visual_summary.html` 6막, 데이터는
+`docs/v5/attention_analysis/pg2_direction_output_test.json`.
+
+- "detect gray basket on the left/right" → 4개 세션 전부 bbox가 노이즈 수준(±1픽셀급)으로만 다름 — 방향 단어를 그냥 echo만 함.
+- "Navigate to the left/right toward..." → 4개 세션 전부 `'yes<eos>'` — 좌/우 구분 없이 완전히 동일, detection task로 인식조차 못 함.
+- 대조군 "detect green apple"(실제 사과 사진) → 바스켓과 완전히 다른 좌표로 정확히 이동.
+
+**정정된 결론**: §14를 "방향 신호가 약하다"로 적었는데 더 정확히는 **"출력 레벨에서는 신호가 거의 없다(0에 가깝다)"**다.
+객체가 바뀌면 출력이 확실히 바뀌는 것과 정반대로, 방향은 4개 세션 전부 일관되게 출력에 반영 안 됨.
+§14의 cos_dist 0.03~0.05는 "행동으로 이어지는 약한 신호"가 아니라 "행동에 영향을 주지 않는 미세한 내부 흔들림"으로 재해석.
+결과는 `docs/v5/research_story.html` CH38-5에 반영.

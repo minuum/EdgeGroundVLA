@@ -1,0 +1,46 @@
+{
+  "s6_0001": {
+    "label": "S6 baseline",
+    "file": "docs/v5/grounding_frames/s6/frame_0001.jpg",
+    "outputs": {
+      "detect": "<loc0483><loc0441><loc0714><loc0579> gray basket<eos>",
+      "detect_left": "<loc0483><loc0441><loc0714><loc0579> gray basket on the left<eos>",
+      "detect_right": "<loc0483><loc0441><loc0714><loc0579> gray basket on the right<eos>",
+      "nav_left": "yes<eos>",
+      "nav_right": "yes<eos>"
+    }
+  },
+  "s6_0070": {
+    "label": "S6 dead-zone",
+    "file": "docs/v5/grounding_frames/s6/frame_0070.jpg",
+    "outputs": {
+      "detect": "<loc0000><loc0451><loc0951><loc0726> gray basket<eos>",
+      "detect_left": "<loc0460><loc0447><loc0951><loc0725> gray basket on the left<eos>",
+      "detect_right": "<loc0460><loc0447><loc0951><loc0725> gray basket on the right<eos>",
+      "nav_left": "yes<eos>",
+      "nav_right": "yes<eos>"
+    }
+  },
+  "s7_0084": {
+    "label": "S7 정상검출",
+    "file": "docs/v5/grounding_frames/s7/frame_0084.jpg",
+    "outputs": {
+      "detect": "<loc0478><loc0290><loc0833><loc0499> gray basket<eos>",
+      "detect_left": "<loc0477><loc0290><loc0833><loc0499> gray basket on the left<eos>",
+      "detect_right": "<loc0478><loc0290><loc0833><loc0499> gray basket on the right<eos>",
+      "nav_left": "yes<eos>",
+      "nav_right": "yes<eos>"
+    }
+  },
+  "s8_0008": {
+    "label": "S8 production(mix-448)",
+    "file": "docs/v5/grounding_frames/s8/frame_0008.jpg",
+    "outputs": {
+      "detect": "<loc0462><loc0591><loc0857><loc0822> gray basket<eos>",
+      "detect_left": "<loc0462><loc0591><loc0857><loc0820> gray basket on the left<eos>",
+      "detect_right": "<loc0463><loc0591><loc0857><loc0820> gray basket on the right<eos>",
+      "nav_left": "yes<eos>",
+      "nav_right": "yes<eos>"
+    }
+  }
+}

@@ -10002,6 +10002,33 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0a0a,#200a0a);border-color:#7f1d1d;margin-bottom:8px">
+    <div class="finding-title" style="color:#f87171">38-5. 정정 — 코사인거리만으론 안 와닿아서 실제 생성 출력으로 재확인</div>
+    <div class="finding-body">
+      38-4의 cos_dist 수치는 추상적이라, <strong>PG2가 실제로 무엇을 생성하는지</strong>를 4개의 서로 다른 실제 바스켓 세션 사진
+      (S6 baseline·S6 dead-zone·S7 정상검출·S8 production/mix-448)에서 직접 확인했다 — 사진과 raw 출력은
+      <a href="today_visual_summary.html" style="color:#7dd3fc">today_visual_summary.html 6막</a>에 전부 첨부.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">프롬프트</th><th style="padding:6px;color:#7dd3fc">4개 세션 결과</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">"detect gray basket"</td><td style="padding:6px">4개 전부 정상 bbox(세션마다 다른 좌표 — 실제 장면 반영)</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">"detect gray basket <strong>on the left/right</strong>"</td><td style="padding:6px;color:#fbbf24">4개 전부 <strong>bbox가 노이즈 수준(±1픽셀급)으로만 다름</strong> — 방향 단어를 그냥 텍스트로 echo만 함</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#1c0505"><td style="padding:6px">"Navigate to the <strong>left/right</strong> toward the gray basket"</td><td style="padding:6px;color:#f87171"><strong>4개 전부 'yes&lt;eos&gt;'</strong> — 좌/우 구분 없이 완전히 동일, detection task로 인식조차 못 함</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px">대조군: "detect green apple"(실제 사과 사진)</td><td style="padding:6px;color:#4ade80">바스켓과 완전히 다른 좌표로 정확히 이동 — 객체 변경은 확실히 반영됨</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#f87171">정정된 결론:</strong> 38-4를 "방향 신호가 약하다"로 적었는데, 실제 출력을 보면 더 정확히는
+        <strong style="color:#e2e8f0">"출력 레벨에서는 신호가 거의 없다(0에 가깝다)"</strong>다. 4개 세션 전부 일관되게 방향 단어가 bbox에 반영 안 되고,
+        navigation 스타일 프롬프트는 PG2가 애초에 detection task로 파싱하지도 못한다(전부 'yes'). 객체 자체가 바뀌면(사과 대조군) 출력이 확실히
+        바뀌는 것과 정반대 — <strong>"무엇을 보는가"는 강하게 반영되지만 "어느 쪽을 보라는 지시"는 사실상 도달하지 않는다.</strong>
+        38-4의 cos_dist 0.03~0.05는 "행동으로 이어지는 약한 신호"가 아니라 "행동에 영향을 주지 않는 미세한 내부 흔들림"으로 재해석해야 함.
+      </div>
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     <a href="today_visual_summary.html" style="color:#7dd3fc">📷 오늘 한눈에 보기(사진)</a> ·
     plans: plan_20260621_groundingdino_vs_pg2.md · plan_20260621_instruction_grounding.md &nbsp;|&nbsp; 2026-06-21

@@ -178,6 +178,69 @@
     <div class="finding neutral">💡 <strong>결론:</strong> "진짜 단발 근접"(S7 f53)과 "거짓양성 단발 스파이크"(S8 f20)를 area+cx+연속프레임만으로는 구분 못 함 — consec_n 숫자 조정은 더 이상 유효한 레버가 아니다. 운영값(n=3) 유지 권장.</div>
   </div>
 
+  <!-- ACT 6 -->
+  <div class="act">
+    <div class="act-head"><span class="act-num">6</span><span class="act-title">"방향 신호가 약하다"의 실체 — 4개 실제 세션에서 실제 출력으로 확인</span></div>
+    <p class="act-desc">38-4에서 hidden state 코사인거리로 "방향 신호가 객체 신호보다 10배 약하다"고 했는데, 숫자만으로는 안 와닿을 수 있다.
+      그래서 실제 PG2가 <strong>무엇을 생성하는지(raw 텍스트 출력)</strong>를 4개의 서로 다른 실제 바스켓 세션 사진(S6 baseline·S6 dead-zone·S7 정상검출·S8 production)에서 직접 확인했다.</p>
+    <div class="scrollrow">
+      <div class="card wide">
+        <img src="grounding_frames/s6/frame_0001.jpg" alt="s6 f1">
+        <div class="cap">
+          <span class="tag tag-info">S6 baseline (frame 1)</span><br>
+          <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0483&gt;&lt;loc0441&gt;&lt;loc0714&gt;&lt;loc0579&gt;</code><br>
+          <code style="font-size:0.72rem;color:#86efac">detect+left → 동일 좌표</code><br>
+          <code style="font-size:0.72rem;color:#86efac">detect+right → 동일 좌표</code><br>
+          <code style="font-size:0.72rem;color:#f87171">nav_left → 'yes&lt;eos&gt;'</code><br>
+          <code style="font-size:0.72rem;color:#f87171">nav_right → 'yes&lt;eos&gt;'</code>
+        </div>
+      </div>
+      <div class="card wide">
+        <img src="grounding_frames/s6/frame_0070.jpg" alt="s6 f70">
+        <div class="cap">
+          <span class="tag tag-info">S6 dead-zone (frame 70)</span><br>
+          <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0000&gt;&lt;loc0451&gt;&lt;loc0951&gt;&lt;loc0726&gt;</code><br>
+          <code style="font-size:0.72rem;color:#86efac">detect+left/right → &lt;loc0460&gt;...(±1픽셀급 차이, 노이즈 수준)</code><br>
+          <code style="font-size:0.72rem;color:#f87171">nav_left/right → 둘 다 'yes&lt;eos&gt;'</code>
+        </div>
+      </div>
+      <div class="card wide">
+        <img src="grounding_frames/s7/frame_0084.jpg" alt="s7 f84">
+        <div class="cap">
+          <span class="tag tag-info">S7 정상검출 (frame 84)</span><br>
+          <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0478&gt;&lt;loc0290&gt;&lt;loc0833&gt;&lt;loc0499&gt;</code><br>
+          <code style="font-size:0.72rem;color:#86efac">detect+left/right → 동일(±1 노이즈)</code><br>
+          <code style="font-size:0.72rem;color:#f87171">nav_left/right → 둘 다 'yes&lt;eos&gt;'</code>
+        </div>
+      </div>
+      <div class="card wide">
+        <img src="grounding_frames/s8/frame_0008.jpg" alt="s8 f8">
+        <div class="cap">
+          <span class="tag tag-info">S8 production·mix-448 (frame 8)</span><br>
+          <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0462&gt;&lt;loc0591&gt;&lt;loc0857&gt;&lt;loc0822&gt;</code><br>
+          <code style="font-size:0.72rem;color:#86efac">detect+left/right → 동일(±1 노이즈)</code><br>
+          <code style="font-size:0.72rem;color:#f87171">nav_left/right → 둘 다 'yes&lt;eos&gt;'</code>
+        </div>
+      </div>
+      <div class="card wide">
+        <img src="../object_test_images/test_apple_floor_1768456959811.png" alt="apple control">
+        <div class="cap">
+          <span class="tag tag-good">대조군 — 진짜 다른 객체(사과)</span><br>
+          <code style="font-size:0.72rem;color:#86efac">detect green apple → &lt;loc0559&gt;&lt;loc0464&gt;&lt;loc0671&gt;&lt;loc0561&gt; (바스켓과 완전히 다른 좌표)</code><br>
+          <span style="color:#4ade80">→ 객체가 진짜 바뀌면 출력도 확실히 바뀐다</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding bad">
+      ⚠️ <strong>정정된 결론:</strong> "방향 신호가 약하다"는 사실 <strong>출력 레벨에서는 신호가 거의 없다(0에 가깝다)</strong>가 더 정확하다.
+      4개 세션 전부 동일하게 — ① "detect ... on the left/right"로 줘도 bbox가 노이즈 수준 차이(±1픽셀급)로만 다르고,
+      ② "Navigate to the left/right"는 PG2가 이걸 detection task로 인식조차 못 하고 <strong>전부 'yes'라고만 답한다.</strong>
+      반면 객체 자체가 바뀌면(사과 대조군) bbox가 완전히 다른 위치로 바뀐다 — <strong>"무엇을 보는가"는 잘 바뀌지만 "어느 쪽을 보라는 지시"는 사실상 안 들어간다.</strong>
+      38-4의 cos_dist 0.03~0.05는 "약한 신호"가 아니라 "행동으로 안 이어지는 미세한 내부 흔들림"으로 재해석해야 한다.
+    </div>
+    <div class="finding neutral">📌 데이터: <code>docs/v5/attention_analysis/pg2_direction_output_test.json</code> · 재현: <code>scripts/measure_hidden_state_pg2.py</code> 확장본</div>
+  </div>
+
   <div style="text-align:center;color:#475569;font-size:0.78rem;margin-top:40px">
     상세 표/수치: <a href="grounding_hub.html#section-h" style="color:#7dd3fc">grounding_hub.html §H/§I</a> ·
     <a href="research_story.html#ch38" style="color:#7dd3fc">research_story.html CH38</a> ·
