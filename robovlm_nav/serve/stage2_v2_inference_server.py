@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import logging
 import os
 import sys
@@ -112,6 +113,28 @@ GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.35"))
 GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "3"))
 # STOP mode: "proximity" (threshold-based override) | "learned" (model prediction + latch)
 STOP_MODE = os.getenv("VLA_STOP_MODE", "proximity")
+
+# 객체별 GOAL_AREA 매핑 — instruction(grounding phrase) → 정지 area 임계값.
+# GOAL_AREA_THRESHOLD(0.25)는 바스켓 실주행으로 캘리브레이션된 값이라 다른(특히 작은) 객체에
+# 그대로 쓰면 너무 늦게 멈춤(충돌 위험). configs/goal_area_map.json이 있으면 로드해 사용,
+# 없는 키는 GOAL_AREA_THRESHOLD로 폴백. 캘리브레이션: scripts/calibrate_goal_area.py.
+GOAL_AREA_MAP_PATH = Path(__file__).resolve().parent.parent.parent / "configs" / "goal_area_map.json"
+
+
+def _load_goal_area_map() -> dict[str, float]:
+    if GOAL_AREA_MAP_PATH.exists():
+        try:
+            return json.loads(GOAL_AREA_MAP_PATH.read_text())
+        except Exception as e:
+            logger.warning("goal_area_map.json 로드 실패: %s — 기본값만 사용", e)
+    return {}
+
+
+GOAL_AREA_MAP = _load_goal_area_map()
+
+
+def get_goal_area(phrase: str) -> float:
+    return GOAL_AREA_MAP.get(phrase, GOAL_AREA_THRESHOLD)
 
 
 # ---------------------------------------------------------------------------
@@ -504,12 +527,13 @@ class Stage2V2Model:
             # proximity 모드: area + cx threshold로 강제 override
             # 조건: 직전 GOAL_CONSEC_FRAMES 프레임이 모두 근접 조건 만족
             # history가 GOAL_CONSEC_FRAMES 미만이면 발동 안 함 (초반 false positive 방지)
+            goal_area = get_goal_area(phrase)
             last_n = self.history[-GOAL_CONSEC_FRAMES:]
             if len(last_n) >= GOAL_CONSEC_FRAMES:
                 near_frames = sum(
                     1 for h in last_n
                     if h.get("has_bbox")
-                    and h.get("area", 0.0) >= GOAL_AREA_THRESHOLD
+                    and h.get("area", 0.0) >= goal_area
                     and abs(h.get("cx", 0.5) - 0.5) <= GOAL_CX_TOLERANCE
                 )
                 is_near_goal = (near_frames >= GOAL_CONSEC_FRAMES)
