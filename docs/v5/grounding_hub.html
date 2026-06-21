@@ -46,6 +46,7 @@
     <a href="#section-g1" style="padding:6px 14px;background:#0a1628;border:1px solid #7c3aed;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">&sect;G1 Head</a>
     <a href="#section-g2" style="padding:6px 14px;background:#0a1628;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;color:#2dd4bf;text-decoration:none">&sect;G2 Window</a>
     <a href="#section-g3" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">&sect;G3 전체비교</a>
+    <a href="#section-h" style="padding:6px 14px;background:#1e0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#d8b4fe;text-decoration:none">&sect;H GroundingDINO ★NEW</a>
     <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
     <a href="research_story.html#ch33" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">← CH33</a>
     <a href="research_story.html#ch34" style="padding:6px 14px;background:#0a1628;border:1px solid #4c1d95;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">← CH34</a>
@@ -662,6 +663,84 @@
       <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #a78bfa;color:#a78bfa"><strong>Head:</strong> Linear 69% → MLP=LSTM 96.6% · FC 93.1%</div>
       <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #14b8a6;color:#2dd4bf"><strong>Window:</strong> MLP w≥4 96.6%, w=2 93.1% · LSTM w=16 FPE 최저 0.080m</div>
     </div>
+  </div>
+
+  <!-- H. GroundingDINO zero-shot 비교 -->
+  <h2 id="section-h"><span class="badge" style="background:#a855f7;color:#fff">H</span> GroundingDINO(tiny/base) zero-shot vs base PG2 zero-shot <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 2026-06-21, 로컬(GB10) 실측</span></h2>
+  <div class="card" id="section-h-card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:14px;line-height:1.7">
+      §A/§E 결론(LoRA가 PG2 grounding을 깨뜨린다)과 같은 철학으로, GroundingDINO도 <strong style="color:#e2e8f0">fine-tune 없이 frozen zero-shot</strong>으로만 비교했다 —
+      최근 VLA 5편 조사 결과 detector를 직접 학습시키는 사례가 없었던 것과 동일한 방향.
+      대상: <code style="color:#86efac">IDEA-Research/grounding-dino-tiny</code>(172M) · <code style="color:#86efac">grounding-dino-base</code>.
+      프롬프트는 GroundingDINO 문법에 맞춰 <code>"gray basket."</code>(마침표 구분).
+      세트는 §B/§C에서 이미 만든 표준 49프레임 + OOD 의자 11장 + 측면 4경로를 그대로 재사용, S6 dead-zone(56/70/85) · S7 near-miss(39/41) 실패케이스를 추가.
+      실행: <code>scripts/eval/eval_groundingdino_vs_pg2.py</code> · 데이터: <code>docs/v5/grounding_hub/gdino_vs_pg2.json</code>.
+    </div>
+
+    <div style="background:#1e0a2b;border:1px solid #7c3aed;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:#e2e8f0;line-height:1.6">
+      <strong style="color:#d8b4fe">⚠️ GPU 환경 노트:</strong> 이 GB10(Grace-Blackwell) 머신의 torch nvrtc가 일부 reduction(<code>.prod()</code>) JIT 커널을 못 컴파일해
+      GroundingDINO 인코더가 그대로는 실행 안 됨 — 작은 텐서에 한해 CPU로 우회하는 monkeypatch로 해결(스크립트에 포함, 결과 자체에는 영향 없음).
+    </div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:18px 0 10px">H1 · 표준 세트 비교 (49프레임 + OOD 11장)</h3>
+    <table>
+      <thead><tr><th>모델</th><th>hit</th><th>cx_MAE</th><th>full-frame</th><th>OOD 오탐</th><th>latency</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr style="background:#071a0a"><td class="key">base PG2</td><td>98%</td><td>0.126</td><td>0%</td><td class="key">9%</td><td>599ms</td><td class="key">정밀도·OOD 균형 최고</td></tr>
+        <tr><td>gdino-tiny</td><td>100%</td><td class="key">0.125</td><td>0%</td><td class="bad">100%</td><td class="key">423ms</td><td class="bad">빠르지만 OOD 전면 오탐</td></tr>
+        <tr><td>gdino-base</td><td>100%</td><td class="key">0.125</td><td>0%</td><td class="bad">91%</td><td>578ms</td><td class="bad">base도 OOD 오탐 심각</td></tr>
+      </tbody>
+    </table>
+    <div class="note">cx_MAE·hit·full-frame은 base PG2와 GroundingDINO가 거의 동일 — 바스켓을 보는 능력 자체는 차이 없음. <strong style="color:#fca5a5">차이는 OOD에서 갈린다.</strong></div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">H2 · OOD 오탐 — "gray basket"이 너무 일반적인 프롬프트</h3>
+    <div style="padding:14px;background:#0f172a;border-radius:8px;font-size:0.85rem;color:#94a3b8;line-height:1.7">
+      의자 11장 중 GroundingDINO-tiny가 <strong class="bad">11장 전부</strong>(100%)에 0.37~0.55 confidence로 박스를 침 — 의자 다리·등받이를 "gray basket"으로 인식.
+      threshold를 문헌 기본값(0.35)보다 높여 0.5로 올려도 <strong class="bad">7/11(64%) 그대로 오탐</strong> — threshold 튜닝만으로는 해결 안 됨.
+      base PG2는 동일 세트에서 9%(11장 중 1장, Eames 가죽의자만) — <strong class="key">negative 구분력은 base PG2가 압도적으로 우수.</strong>
+    </div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">H3 · 측면 4경로</h3>
+    <table style="font-size:0.82rem">
+      <thead><tr><th>모델</th><th>left_left</th><th>right_right</th><th>left_right</th><th>right_left</th></tr></thead>
+      <tbody>
+        <tr><td>base PG2</td><td>100%</td><td>83%</td><td>100%</td><td>83%</td></tr>
+        <tr style="background:#1e0a2b"><td class="key">gdino-tiny</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td></tr>
+        <tr style="background:#1e0a2b"><td class="key">gdino-base</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td></tr>
+      </tbody>
+    </table>
+    <div class="note">셀=hit rate. full-frame은 전 모델·전 경로 0%(생략). base PG2의 miss(83%)는 §C에서 이미 확인된 출발 첫 프레임(바구니 화면 밖) — GroundingDINO는 이 프레임도 잡아 측면 hit가 더 높다.</div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">H4 · S6 dead-zone / S7 near-miss — 실패케이스 재현 (시각 스폿체크 완료)</h3>
+    <table style="font-size:0.8rem">
+      <thead><tr><th>세션:프레임</th><th>base PG2</th><th>gdino-tiny</th><th>gdino-base</th><th>스폿체크 소견</th></tr></thead>
+      <tbody>
+        <tr><td>s6:f56</td><td>a=0.218 cx=0.289</td><td>a=0.220 cx=0.288</td><td>a=0.218 cx=0.288</td><td>3모델 거의 동일</td></tr>
+        <tr style="background:#1e0a2b"><td>s6:f70</td><td class="bad">a=0.250 cx=0.575</td><td class="key">a=0.134 cx=0.572</td><td class="key">a=0.133 cx=0.572</td><td>이미지 직접 확인 — f70·f85는 <strong>정지장면(거의 동일 화면)</strong>인데 PG2만 area를 0.250으로 부풀림</td></tr>
+        <tr><td>s6:f85</td><td>a=0.130 cx=0.572</td><td>a=0.134 cx=0.571</td><td>a=0.133 cx=0.571</td><td>GDINO 둘 다 f70=f85로 일관 — <strong class="key">PG2의 dead-zone 흔들림을 GDINO는 안 보임</strong></td></tr>
+        <tr><td>s7:f39</td><td>a=0.078 cx=0.685</td><td>a=0.079 cx=0.689</td><td>a=0.080 cx=0.688</td><td rowspan="2">3모델 거의 동일 박스 — <strong class="bad">근접-미스가 모델 문제가 아니라 장면 자체의 모호성</strong>일 가능성</td></tr>
+        <tr><td>s7:f41</td><td>a=0.141 cx=0.873</td><td>a=0.139 cx=0.874</td><td>a=0.139 cx=0.873</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;padding:12px 16px;background:#0f172a;border-left:3px solid #a855f7;border-radius:8px;font-size:0.85rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#d8b4fe">두 가지 다른 결론이 한 표에 같이 나온다:</strong><br>
+      <strong class="key">① S6 dead-zone:</strong> 정지장면(f70≈f85, 직접 이미지 대조로 확인)에서 base PG2만 area를 0.13→0.25로 흔들고, GroundingDINO 둘 다 0.133~0.134로 일관됨 → 이 특정 실패는 <strong>PG2 zero-shot의 시간적 불안정성</strong>이고 GroundingDINO가 더 안정적.<br>
+      <strong class="bad">② S7 near-miss:</strong> 세 모델이 전부 거의 같은 박스를 낸다 → <strong>모델을 바꿔도 동일하게 실패</strong>한다는 뜻 — 이 케이스는 장면(조명·각도·배경)이 본질적으로 모호해서 어떤 zero-shot detector도 못 푸는 쪽에 가깝다.
+    </div>
+    <div class="note" style="margin-top:8px">⚠️ <code>docs/v5/grounding_frames/s7/</code> 프레임 일부는 당시 대시보드 디버그 오버레이(녹색 박스·크로스헤어·텍스트)가 원본 이미지에 이미 합성되어 저장된 것으로 확인됨(스폿체크 중 발견). 세 모델이 동일 프레임에 동일 결과를 냈으므로 모델 간 상대 비교는 유효하지만, "이 박스가 실제 바스켓과 얼마나 가까운가"의 절대 판정은 원본(오버레이 없는) 프레임으로 재확인이 필요 — 다음 라운드 시 raw mp4/H5에서 직접 재추출 권장.</div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div><img src="grounding_hub/grid_base_pg2_gdino_compare.png"><div class="note">base PG2 (이번 H 비교용 재평가)</div></div>
+      <div><img src="grounding_hub/grid_gdino_tiny.png"><div class="note">gdino-tiny</div></div>
+    </div>
+
+    <div style="margin-top:16px;padding:16px;background:#1e0a2b;border:1px solid #7c3aed;border-radius:10px;font-size:0.9rem;line-height:1.8">
+      <strong style="color:#d8b4fe">결정 게이트 결과:</strong>
+      GroundingDINO가 S6 dead-zone은 base PG2보다 <strong class="key">명확히 개선</strong>했지만, S7 near-miss는 <strong class="bad">동일하게 재현</strong>했고 OOD 오탐은 <strong class="bad">9%→91~100%로 크게 악화</strong>됐다.
+      "표준세트·OOD에서 크게 밀리지 않으면 교체 후보"라는 plan §6 기준에 OOD가 걸린다 — <strong style="color:#e2e8f0">현재 임계값으로는 production 교체 부적합.</strong><br>
+      <strong style="color:#fbbf24">다음 후보:</strong> (a) OOD 억제를 위해 프롬프트를 구체화("plastic laundry basket" 등) 또는 hard-negative 프롬프트 엔지니어링 후 재시도, (b) YOLO-World처럼 관계형 표현이 가능한 다른 open-vocab detector 비교, (c) S7류 근접-미스는 detector 교체로 해결 안 될 가능성이 높으므로 STOP/근접 로직(Task #4) 쪽에서 별도 대응.
+    </div>
+    <div class="note" style="margin-top:10px">연관 plan: <code>docs/plans/plan_20260621_groundingdino_vs_pg2.md</code> · 해상도 ablation: <a href="robot_tests.html#resolution-analysis" style="color:#a78bfa">robot_tests.html#resolution-analysis</a></div>
   </div>
 </div>
 
