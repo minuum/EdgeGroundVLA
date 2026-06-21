@@ -19,6 +19,13 @@ S6는 frame 24에서 학습된 STOP(class 0, raw model 예측)이 발동한 뒤 
 s7_cl_sim.json)에 대해 STOP 결정 로직만 **로컬로 재생(replay)**해 3가지
 모드 + GOAL_CONSEC_FRAMES 스윕을 비교한다.
 
+S8(logs/grounding_sessions/gnd_20260620_174429.jsonl, mix-448 실측, n=47)을
+추가 — frame 20에 area=0.532(임계 0.25 초과)인 **스폿체크로 이미 거짓양성
+확인된 프레임**이 있어, GOAL_CONSEC_FRAMES를 낮췄을 때 거짓양성 STOP이
+실제로 발생하는지 검증하는 stress test로 쓴다. S8 jsonl은 /ground 전용
+로그라 'label'(학습된 action class) 필드가 없어 learned/hybrid는 스킵하고
+proximity만 스윕한다.
+
 모드:
   - proximity   : 운영 기본값과 동일한 로직(stage2_v2_inference_server.py:499-517 재현)
   - learned     : 기록된 label=='STOP'(raw model 예측)이 한 번 뜨면 latch
@@ -35,6 +42,8 @@ SESSIONS = {
     "s6_dead_zone": ROOT / "docs/v5/s6_cl_sim.json",
     "s7_near_miss": ROOT / "docs/v5/s7_cl_sim.json",
 }
+S8_JSONL = ROOT / "logs/grounding_sessions/gnd_20260620_174429.jsonl"
+S8_FP_FRAME = 20  # 스폿체크로 확인된 거짓양성 (robot_tests.html S8 섹션)
 GOAL_AREA = 0.25
 GOAL_CX = 0.35
 CONSEC_SWEEP = [1, 2, 3, 4, 5]
@@ -85,6 +94,22 @@ def replay_hybrid_no_latch(frames, consec_n):
     return None
 
 
+def replay_proximity_jsonl(recs, consec_n):
+    """jsonl 레코드(has_bbox/area/cx, frame index='n')용 — cl_sim과 동일 로직."""
+    hist = []
+    fires = []
+    for r in recs:
+        hist.append(r)
+        last_n = hist[-consec_n:]
+        if len(last_n) >= consec_n:
+            near = sum(1 for h in last_n
+                      if h.get("has_bbox") and h.get("area", 0) >= GOAL_AREA
+                      and abs(h.get("cx", 0.5) - 0.5) <= GOAL_CX)
+            if near >= consec_n:
+                fires.append(r["n"])
+    return fires
+
+
 def main():
     for name, path in SESSIONS.items():
         d = json.loads(path.read_text())
@@ -109,6 +134,18 @@ def main():
             mx_frame = next(f["frame"] for f in frames if f["bbox"]["area"] == mx)
             print(f"  [참고] area 최댓값={mx:.3f} (frame {mx_frame}) — "
                   f"GOAL_AREA({GOAL_AREA}) {'초과' if mx >= GOAL_AREA else '미달'}")
+
+    # ── S8 — 거짓양성 stress test (proximity만, learned 필드 없음) ──────────
+    if S8_JSONL.exists():
+        recs = [json.loads(l) for l in S8_JSONL.read_text().splitlines() if l.strip()]
+        print(f"\n{'=' * 60}\n[s8_production_mix448] {S8_JSONL.name} — {len(recs)}프레임 (실제 운영 로그)\n{'=' * 60}")
+        print(f"  ⚠️ frame {S8_FP_FRAME} = 스폿체크로 확인된 거짓양성(area=0.532, 실제로는 바스켓 아님)")
+        for c in CONSEC_SWEEP:
+            fires = replay_proximity_jsonl(recs, c)
+            fp_triggered = S8_FP_FRAME in fires
+            tag = " ← 운영 기본값" if c == 3 else ""
+            fp_tag = " 🚨거짓양성 STOP 발동!" if fp_triggered else ""
+            print(f"  proximity(n={c})  : 발동 frame={fires}{tag}{fp_tag}")
 
 
 if __name__ == "__main__":

@@ -164,3 +164,34 @@ GroundingDINO-tiny(172M)는 PG2(3B)보다 훨씬 가벼워 향후 soda 탑재 �
 - **Phase A(프롬프트)+B(YOLO-World)**: 둘 다 production 교체 부적합. GroundingDINO는 OOD에서, YOLO-World는 S6/S7 핵심 실패케이스 recall에서 막힘.
 - **Phase C(STOP 로직)**: S7 near-miss는 애초에 detector 문제가 아니라 `GOAL_CONSEC_FRAMES=3`이 단발성 근접 스파이크를 걸러내는 부작용이었음을 확인. **grounding 모델 교체보다 STOP 임계값 튜닝이 훨씬 직접적인 레버.**
 - **다음 결정 필요(사용자)**: GOAL_CONSEC_FRAMES/GOAL_AREA 조정 방향 확정 → 추가 세션으로 false-positive 재검증 → 운영 서버 적용.
+
+## 12. GOAL_CONSEC_FRAMES=2 재검증 (2026-06-21, S8 추가) — n=2는 효과 없음으로 확인
+
+S8 production jsonl(`logs/grounding_sessions/gnd_20260620_174429.jsonl`, n=47, **스폿체크로 확인된 거짓양성 frame 20** 포함)을
+거짓양성 stress-test로 `scripts/eval/ablation_stop_mode.py`에 추가해 재생.
+
+| consec_n | S7 near-miss(f53) | S8 거짓양성(f20) |
+|---|---|---|
+| n=1 | ✅ 잡음 | 🚨 거짓양성 STOP 발동 (f20/40/44) |
+| **n=2** | ❌ 여전히 못 잡음 | 안전(발동 없음) |
+| n=3(현재) | ❌ 못 잡음 | 안전(발동 없음) |
+
+**결론: n=2는 n=3과 완전히 동일한 결과 — 원래 문제(S7)를 안 고치면서 안전하기만 하다.** S7의 f53 스파이크는 진짜 단일 프레임(앞뒤 area 0.07)이라 n=2도 통과 못 함. n=1만 잡는데, n=1은 S8의 실제 확인된 거짓양성에서 바로 false STOP을 낸다.
+**`area+cx+연속프레임`만으로는 "진짜 단발 근접"과 "거짓양성 단발 스파이크"를 구분할 수 없다** — consec_n 조정은 더 이상 유효한 레버가 아님. 다른 신호(area 트렌드, 인접 프레임 평균 등) 설계가 필요. 운영값(n=3) 유지를 권장.
+
+## 13. 부가 트랙 — PG2를 VLA(action) 백본으로 쓸 수 있는가 (2026-06-21)
+
+§11 이후 대화에서 파생된 별도 질문: "지금 best 모델(decomposition)은 VLA가 아니다(언어가 action에 0% 기여) — VLA에 가깝게 가려면?"
+조사 결과 Exp01~16(Google-robot+Kosmos-2 backbone) 시도는 **백본 자체의 text attention 구조적 붕괴(0.0000%, 전 24레이어)**로 실패했고
+(Exp15 frozen-head-only로 LoRA 무관성 확정), PG2는 이 문제를 갖고 있는지 한 번도 검증된 적이 없었음.
+
+**저비용 사전검증** (`scripts/measure_attention_pg2.py`, Exp15와 동일 방법론을 base PG2/frozen에 적용):
+
+| 백본 | text attention(전 레이어) | 방향(L/R/F) 간 차이 |
+|---|---|---|
+| Google-robot(Kosmos-2 post-train) | **0.0000%** (전 24레이어 고정) | 없음 |
+| base PG2(zero-shot) | **40~98%**(레이어별 변동, layer0부터 살아있음) | spread 1.4%p — 미약하지만 반응 |
+
+양성대조군("detect gray basket" vs "detect red ball")도 text attention 87.5%/93.4% — Exp57의 출력레벨 증명(100% vs 0%)이 attention 레벨에서도 뒷받침됨.
+
+**판단**: PG2는 Google-robot과 달리 text pathway가 구조적으로 살아있음 — "PG2 자체를 action backbone으로 재학습"이 Exp01~16과 같은 방식(구조적 text 붕괴)으로 실패할 가능성은 낮다. 단, 방향성 instruction 간 차이(1.4%p)는 객체유무 대비(~6%p)보다 작아 미약함 — **전체 end-to-end 재학습보다 risk가 낮은 절충안**(PG2는 grounding에서만 frozen으로 instruction 반영, action head는 현재처럼 geometry 기반 유지)을 우선 추천. 결과는 `docs/v5/research_story.html` CH2(Google-robot 실패 챕터) 직후에 비교 콜아웃으로 반영함. 전체 end-to-end 재시도는 별도 plan 필요 시 착수.
