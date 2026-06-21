@@ -784,6 +784,29 @@
     우리의 LoRA fine-tuning과 무관하다. Exp15에서 LoRA 없이 head만 학습해도 text=0% 재확인.
     이는 언어 지시로 행동을 제어하는 end-to-end 경로가 현재 backbone에서 불가능함을 의미한다.
   </div>
+
+  <div class="callout good" style="margin-top:14px;border-color:#22c55e">
+    🟢 <strong>2026-06-21 추가 검증 — "다른 백본이면 다를까?" PG2(PaliGemma2)로 동일 측정 재현</strong><br>
+    Exp15와 똑같은 방법(VLM 완전 frozen, output_attentions로 마지막 토큰의 image vs text 영역 attention 비율 측정)을
+    base PG2(LoRA 없음, zero-shot)에 적용했다 — <code style="font-size:0.78rem">scripts/measure_attention_pg2.py</code>.
+    <div style="margin-top:8px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">백본</th><th style="padding:6px;color:#7dd3fc">text attention(전 레이어)</th><th style="padding:6px;color:#7dd3fc">방향(L/R/F) 간 차이</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">Google-robot(Kosmos-2 post-train)</td><td style="padding:6px;text-align:center;color:#f87171;font-weight:700">0.0000% (전 24레이어 고정)</td><td style="padding:6px;text-align:center;color:#f87171">차이 없음(소수점4자리까지 동일)</td></tr>
+          <tr><td style="padding:6px">base PG2(zero-shot)</td><td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">40~98% (레이어별 변동, layer0부터 살아있음)</td><td style="padding:6px;text-align:center;color:#4ade80">spread 1.4%p — 미약하지만 반응함</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px;font-size:0.85rem">
+      양성대조군("detect gray basket" vs "detect red ball")도 text attention 87.5%/93.4%로 매우 높음 — Exp57에서 이미 출력 레벨로 증명된
+      text-conditioned 행동(100% vs 0% 검출)이 attention 레벨에서도 뒷받침됨. <strong style="color:#86efac">PG2는 Google-robot과 달리 text pathway가
+      구조적으로 살아있다</strong> — "PG2를 action backbone으로 새로 시도해볼 가치가 있는가"라는 질문에 대한 저비용 사전 검증으로,
+      본 학습 투자 전에 최소한의 근거를 확보했다. 단, 방향(L/R/F) 간 차이(1.4%p)는 객체유무 대비(basket/ball, 차이 ~6%p)보다 작아
+      "방향성 instruction 구분력"은 추가 검증이 필요 — 전체 end-to-end 재학습보다는 grounding 단계에서만 instruction을 흘려보내는
+      절충안(§Section H 이후 논의)이 더 안전한 다음 단계로 판단됨.
+    </div>
+  </div>
 </div>
 
 <!-- ══ CH3: Grounding ══ -->
