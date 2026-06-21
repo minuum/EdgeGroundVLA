@@ -277,7 +277,8 @@
     <a class="toc-item" href="#ch35" data-target="ch35"><span class="toc-badge" style="background:rgba(20,184,166,0.15);color:#14b8a6">CH 35</span><span class="toc-label">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</span></a>
     <a class="toc-item" href="#ch36" data-target="ch36"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 36</span><span class="toc-label">6/12 미팅 — 실사 테스트·논문 제출 결정</span></a>
     <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span></a>
-    <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교 ★NEW</span></a>
+    <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교</span></a>
+    <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%) ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -10035,6 +10036,78 @@ graph TD
   </div>
 </div>
 
+<hr class="chapter-divider">
+<div class="chapter" id="ch39">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 39</span>
+    <h2 class="chapter-title">근본적인 VLA로 — 객체별 그라운딩 필터 보정 + hidden state 방향 신호 확인</h2>
+    <p class="chapter-subtitle">T1(임의 객체 신뢰성) 확정 + T2(언어가 경로에 영향) 사전검증, 새 데이터 수집 없이 기존 V5 220개 에피소드 재사용</p>
+  </div>
+
+  <p class="chapter-desc">
+    CH38의 "VLA-ness" 등급(T0~T3)을 다시 가져와, 이번엔 T0(이미 구현됨) → <strong>T1 확정</strong>과
+    <strong>T2 사전검증</strong>까지 진행했다. T3(완전 통합 재학습)은 여전히 다루지 않음 — 다음 plan으로 분리.
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">39-1. Step A — 바스켓 전용 그라운딩 필터 버그 수정 (T1 확정)</div>
+    <div class="finding-body">
+      soda 실측 중 사과(apple) grounding이 종종 실패하는 걸 발견 — 원인은 PG2가 아니라
+      <code>PG2Grounder.run()</code>에 박혀있던 4개 후처리 필터 중 <code>cy_val&lt;0.35</code>("바구니는 화면 상단에 없다"는
+      가정)였다. 사과의 정상 bbox는 cy=0.344로 이 임계값에 걸려 false negative 처리됐다.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">객체</th><th style="padding:6px;color:#7dd3fc">soda 검증(수정 후)</th><th style="padding:6px;color:#7dd3fc">비고</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">콜라캔 / 의자 / 콘</td><td style="padding:6px;color:#4ade80">✅ has_bbox=True, 안정적</td><td style="padding:6px">3/5 정상</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#1c0505"><td style="padding:6px">사과 / 머그컵</td><td style="padding:6px;color:#fbbf24">❌ False — 필터 버그는 아님</td><td style="padding:6px">soda(Jetson)에서 5회 반복 모두 동일한 full-frame 환각 — GB10에서는 정상 박스가 나왔던 것과 대비, bf16 연산의 하드웨어 의존적 불안정성으로 추정(별도 이슈)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <code>area&gt;0.9</code>(전체화면 환각 차단)·x-full-width 필터는 객체 무관 보편 규칙으로 유지,
+        <code>min_cy</code>/<code>min_area</code>만 phrase별로 오버라이드 가능하게 분리(<code>configs/ground_filter_map.json</code>) —
+        미등록 phrase는 기존 바스켓 기준 그대로 하위호환.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">39-2. Step B — 기존 V5 데이터로 "방향 신호가 hidden state에 있는가" 저비용 검증</div>
+    <div class="finding-body">
+      CH38-5는 "PG2에 방향을 <strong>텍스트로 직접 명령</strong>했을 때 생성 출력이 안 바뀐다"를 보였다.
+      이번엔 다른 질문: <strong>텍스트는 고정("detect gray basket")인데 이미지(실제 주행 장면)만 다를 때</strong>
+      hidden state가 경로방향과 상관되게 갈리는가 — 새 데이터 수집 없이 V5 220개 에피소드
+      (파일명에 이미 <code>target_{시작위치}_{방향}_path</code> 라벨 존재)의 중간 프레임으로 frozen 선형 probe(Exp54와 동일 방법론) 측정.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">probe</th><th style="padding:6px;color:#7dd3fc">n_class</th><th style="padding:6px;color:#7dd3fc">chance</th><th style="padding:6px;color:#7dd3fc">5-fold CV acc</th><th style="padding:6px;color:#7dd3fc">chance 대비</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">방향(좌/직진/우)</td><td style="padding:6px;text-align:center">3</td><td style="padding:6px;text-align:center">0.333</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">0.900 ± 0.031</td><td style="padding:6px;text-align:center">2.70x</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">출발위치(중앙/좌/우)</td><td style="padding:6px;text-align:center">3</td><td style="padding:6px;text-align:center">0.333</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">0.991 ± 0.018</td><td style="padding:6px;text-align:center">2.97x</td></tr>
+            <tr style="background:#0a1628"><td style="padding:6px">출발위치×방향(결합)</td><td style="padding:6px;text-align:center">9</td><td style="padding:6px;text-align:center">0.111</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">0.923 ± 0.027</td><td style="padding:6px;text-align:center">8.30x</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">결론:</strong> 방향만 봐도 90.0%(chance 33.3%) — PG2의 내부 표현(hidden state)에는
+        지금 action head가 쓰는 bbox 좌표/면적보다 <strong>훨씬 풍부한 장면 정보</strong>가 이미 들어있다.
+        CH38-5와 모순되지 않는다 — "텍스트로 직접 지시"는 안 통했지만, "이미지에 실제로 담긴 방향 관련 시각 정보"는
+        hidden state에 강하게 인코딩되어 있다는, 별개로 긍정적인 발견.
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">다음 단계(이번 plan 범위 밖, 별도 승인 필요):</strong> action head 입력을 bbox 좌표 대신(또는 추가로)
+        PG2 hidden state로 바꾸고, <strong>기존 V5 220개 에피소드 라벨로 head만 재학습</strong> —
+        새 데이터 수집 없이 T2(언어/장면이 경로에 영향)로 가는 가장 저비용 경로.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260622_fundamental_vla.md &nbsp;|&nbsp; 2026-06-22
+  </div>
+</div>
+
 <!-- ══ SUMMARY ══ -->
 <hr class="chapter-divider">
 <div class="chapter" id="summary" style="padding-bottom:80px">
@@ -10676,7 +10749,7 @@ graph TD
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
