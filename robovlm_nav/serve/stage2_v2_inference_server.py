@@ -296,11 +296,11 @@ class PG2Grounder:
             logger.info("PG2Grounder: ready")
 
     def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
-            return_raw: bool = False) -> dict[str, Any]:
+            return_raw: bool = False, phrase: str = "gray basket") -> dict[str, Any]:
         """Run PaliGemma2 grounding → {'cx', 'cy', 'area', 'has_bbox', 'raw_output'}."""
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
-        inp = self._proc(text="detect gray basket", images=pil, return_tensors="pt").to(self._device)
+        inp = self._proc(text=f"detect {phrase}", images=pil, return_tensors="pt").to(self._device)
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
         with torch.no_grad():
             gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
@@ -455,12 +455,16 @@ class Stage2V2Model:
             and self.inference_count % self._grounding_skip_n != 0
             and self._grounding_cache is not None
         )
+        # instruction="basket"(기본값)은 기존 하위호환 placeholder — "gray basket"으로 매핑.
+        # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
+        phrase = "gray basket" if instruction == "basket" else instruction
+
         g_start = time.time()
         if use_cache:
             bbox = self._grounding_cache
             grounding_latency_ms = 0.0
         else:
-            bbox = self.grounder.run(image_rgb)
+            bbox = self.grounder.run(image_rgb, phrase=phrase)
             self._grounding_cache = bbox
             grounding_latency_ms = (time.time() - g_start) * 1000.0
 
