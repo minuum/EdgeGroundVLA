@@ -277,6 +277,7 @@
     <a class="toc-item" href="#ch35" data-target="ch35"><span class="toc-badge" style="background:rgba(20,184,166,0.15);color:#14b8a6">CH 35</span><span class="toc-label">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</span></a>
     <a class="toc-item" href="#ch36" data-target="ch36"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 36</span><span class="toc-label">6/12 미팅 — 실사 테스트·논문 제출 결정</span></a>
     <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span></a>
+    <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교 ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -9896,6 +9897,89 @@ graph TD
   </div>
 </div>
 
+<!-- ══ CH38 ══ -->
+<hr class="chapter-divider">
+<div class="chapter" id="ch38">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 38</span>
+    <h2 class="chapter-title">VLA에 가장 가깝게 — 레퍼런스 아키텍처 비교와 절충안</h2>
+    <p class="chapter-subtitle">π0 · TinyVLA · SmolVLA · RoboVLMs 대비 위치 확인, instruction-grounding 연동, 다음 단계로서의 멀티 객체 데이터</p>
+  </div>
+
+  <p class="chapter-desc">
+    CH2(Google-robot backbone 실패)·CH29-32(text attention 0% 구조적 원인)의 결론은 "end-to-end VLA는 지금 백본으로 불가능"이었다.
+    그렇다면 "VLA에 가장 가깝게" 가려면 어디까지 손대야 하는지를, <strong>실제 프로덕션 VLA 4종과 구조 비교</strong>로 판단했다.
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">38-1. 레퍼런스 아키텍처 비교</div>
+    <div class="finding-body">
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">모델</th><th style="padding:6px;color:#7dd3fc">VLM 백본</th><th style="padding:6px;color:#7dd3fc">액션 헤드</th><th style="padding:6px;color:#7dd3fc">언어→액션 연결</th><th style="padding:6px;color:#7dd3fc">학습 비용</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px"><strong>π0</strong>(Physical Intelligence)</td><td style="padding:6px">PaliGemma 3B</td><td style="padding:6px">action expert(0.315B), flow matching 50Hz</td><td style="padding:6px;color:#f87171">cross-attention으로 직접 연결</td><td style="padding:6px">10,000시간 cross-embodiment</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px"><strong>TinyVLA</strong></td><td style="padding:6px">&lt;1B 소형 VLM</td><td style="padding:6px">diffusion head, linear projection</td><td style="padding:6px;color:#f87171">VLM 임베딩(언어 포함) 직접 입력</td><td style="padding:6px">pretrain 단계 없음, LoRA 5%만</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px"><strong>SmolVLA</strong></td><td style="padding:6px">소형 VLM</td><td style="padding:6px">비동기 action chunk</td><td style="padding:6px;color:#f87171">VLM 임베딩 직접 입력</td><td style="padding:6px">단일 GPU 학습 가능</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px"><strong>RoboVLMs</strong>(우리 프레임워크)</td><td style="padding:6px">8종 백본 비교(Kosmos-2 포함)</td><td style="padding:6px">4종 policy head 비교</td><td style="padding:6px;color:#f87171">백본+헤드 조합에 좌우(600+ 실험)</td><td style="padding:6px">우리 Exp01~16이 이 경로로 시도→실패</td></tr>
+            <tr style="background:#0a1628"><td style="padding:6px"><strong>우리(지금, CH38-2)</strong></td><td style="padding:6px">base PG2(frozen, zero-shot)</td><td style="padding:6px">MLP/LSTM(8-class)</td><td style="padding:6px;color:#86efac">grounding까지만, action엔 미도달</td><td style="padding:6px">0(재학습 없음)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#fbbf24">공통점:</strong> π0·TinyVLA·SmolVLA·RoboVLMs 넷 다 언어가 <strong>액션을 만드는 부분까지 직접</strong> 들어간다(cross-attention 또는 임베딩 직접입력).
+        우리는 grounding에서 멈춘다 — 이게 가장 본질적인 구조적 차이.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#021c0c,#031f1a);border-color:#22c55e;margin-bottom:24px">
+    <div class="finding-title" style="color:#4ade80">38-2. 판단 — 지금은 "grounding까지만" 연동이 맞는 목표치</div>
+    <div class="finding-body">
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">목표 수준</th><th style="padding:6px;color:#7dd3fc">내용</th><th style="padding:6px;color:#7dd3fc">우리 상황에서 타당한가</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">A. π0 수준(완전 재현)</td><td style="padding:6px">action expert + flow matching</td><td style="padding:6px;color:#f87171">❌ 비현실적 — 데이터 규모 격차 3~4 자릿수(10,000시간 vs 150 에피소드)</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">B. TinyVLA/SmolVLA 수준(경량 재현)</td><td style="padding:6px">frozen VLM+LoRA 5%+소형 헤드, 헤드가 언어 포함 임베딩을 입력으로 받음</td><td style="padding:6px;color:#fbbf24">⚠️ 구조는 이미 비슷(frozen+소형헤드) — 멀티 객체 주행 데이터 없이는 Exp12/13처럼 또 무시됨</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>C. 지금 우리 수준</strong></td><td style="padding:6px">언어는 객체 선택까지만, 액션은 순수 기하학</td><td style="padding:6px;color:#86efac">✅ 지금 데이터/리소스로 안전하게 도달 가능한 최대치</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        TinyVLA의 핵심 패턴(frozen VLM + 거의 안 쓰는 LoRA + 소형 헤드)은 사실 우리 구조(frozen PG2 + MLP/LSTM)와 거의 같다.
+        차이는 헤드 입력이 "bbox 좌표"냐 "PG2의 실제 hidden state(언어 포함)"냐 하나뿐 — 그래서 B로 가는 길은 멀지 않다.
+        다만 그 한 걸음을 떼려면 <strong style="color:#fbbf24">멀티 객체 주행 데이터</strong>가 선행돼야 한다(38-3).
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#231a05);border-color:#fbbf24;margin-bottom:8px">
+    <div class="finding-title" style="color:#fbbf24">38-3. 멀티 객체 주행 데이터 — 지금 할 것 vs 나중에 할 것</div>
+    <div class="finding-body">
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">구분</th><th style="padding:6px;color:#7dd3fc">목적</th><th style="padding:6px;color:#7dd3fc">규모</th><th style="padding:6px;color:#7dd3fc">학습에 쓰이는가</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#0a1f0a"><td style="padding:6px"><strong>지금(검증용)</strong></td><td style="padding:6px">현재 구현(C 수준)이 실제 주행에서도 되는지 확인</td><td style="padding:6px">객체당 3~5 에피소드, 기존 5종 중 2~3개로 파일럿</td><td style="padding:6px;color:#86efac">아니오 — 테스트만, 학습 없음</td></tr>
+            <tr><td style="padding:6px">나중(B 수준 학습용)</td><td style="padding:6px">action head에 언어 신호를 실제로 학습시킬 데이터</td><td style="padding:6px">V5 바스켓 수준(객체당 15~20ep × 경로유형) — 주 단위 작업</td><td style="padding:6px;color:#fca5a5">예 — 본 학습 투입</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;color:#94a3b8">
+        <strong style="color:#e2e8f0">지금 할 일:</strong> GOAL_AREA 캘리브레이션(CH 직전 plan 참조) 후 soda에서 객체 2~3종 × 소수 에피소드로 "find the X" 실주행 테스트.
+        조이스틱 수집기(<code style="font-size:0.75rem">plan_20260518_joystick_data_collector.md</code>)는 이미 있어 인프라 추가 비용은 없음.<br>
+        <strong style="color:#e2e8f0">나중 일(B 수준 추진 시):</strong> V5 바스켓 수집(60~150 에피소드, 9 path types) 규모를 객체별로 반복해야 함 —
+        수주 단위 투자. 지금 단계에서 착수할 근거(실제 멀티태스크 요구, 충분한 인력)가 갖춰질 때 별도 plan으로 분리.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260621_groundingdino_vs_pg2.md · plan_20260621_instruction_grounding.md &nbsp;|&nbsp; 2026-06-21
+  </div>
+</div>
+
 <!-- ══ SUMMARY ══ -->
 <hr class="chapter-divider">
 <div class="chapter" id="summary" style="padding-bottom:80px">
@@ -10537,7 +10621,7 @@ graph TD
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
