@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026-06-21 한눈에 보기 — MoNaVLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#070d1a; color:#e2e8f0; font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; line-height:1.6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:40px 24px 100px; }
+  .hero { text-align:center; padding:48px 24px; background:linear-gradient(135deg,#0a1628,#0f172a); border-radius:18px; border:1px solid #1e3a5f; margin-bottom:32px; }
+  .hero h1 { font-size:1.9rem; font-weight:900; background:linear-gradient(90deg,#7dd3fc,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:10px; }
+  .hero p { color:#94a3b8; font-size:0.95rem; }
+  .back { display:inline-block; margin-bottom:20px; color:#7dd3fc; text-decoration:none; font-size:0.85rem; }
+  .act { margin-bottom:56px; }
+  .act-head { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+  .act-num { font-size:0.78rem; font-weight:900; color:#0a0f1a; background:#7dd3fc; padding:3px 10px; border-radius:6px; }
+  .act-title { font-size:1.2rem; font-weight:800; color:#e2e8f0; }
+  .act-desc { color:#94a3b8; font-size:0.88rem; margin:8px 0 18px; line-height:1.7; }
+  .scrollrow { display:flex; gap:14px; overflow-x:auto; scroll-snap-type:x proximity; padding:6px 4px 16px; scrollbar-width:thin; scrollbar-color:#334155 #0f172a; }
+  .scrollrow::-webkit-scrollbar { height:8px; }
+  .scrollrow::-webkit-scrollbar-thumb { background:#334155; border-radius:4px; }
+  .card { flex-shrink:0; scroll-snap-align:start; width:260px; background:#0a1628; border:1px solid #1e3a5f; border-radius:12px; overflow:hidden; }
+  .card.wide { width:420px; }
+  .card img { width:100%; display:block; background:#0f172a; }
+  .card .cap { padding:10px 12px; font-size:0.78rem; color:#94a3b8; line-height:1.5; }
+  .card .tag { display:inline-block; font-size:0.66rem; font-weight:800; padding:2px 8px; border-radius:5px; margin-bottom:6px; }
+  .tag-good { background:rgba(34,197,94,0.18); color:#4ade80; }
+  .tag-bad { background:rgba(239,68,68,0.18); color:#f87171; }
+  .tag-warn { background:rgba(251,191,36,0.18); color:#fbbf24; }
+  .tag-info { background:rgba(125,211,252,0.18); color:#7dd3fc; }
+  .finding { margin-top:14px; padding:14px 16px; border-radius:10px; font-size:0.86rem; line-height:1.7; }
+  .finding.good { background:#021c0c; border:1px solid #22c55e; color:#bbf7d0; }
+  .finding.bad { background:#1c0a0a; border:1px solid #7f1d1d; color:#fecaca; }
+  .finding.neutral { background:#0f172a; border-left:3px solid #7dd3fc; color:#cbd5e1; }
+  .scrollhint { font-size:0.72rem; color:#475569; text-align:right; margin-top:-10px; margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="research_story.html">← 연구 히스토리로</a>
+  <a class="back" href="grounding_hub.html" style="margin-left:16px">Grounding Hub →</a>
+
+  <div class="hero">
+    <h1>📷 2026-06-21 한눈에 보기</h1>
+    <p>표·숫자로만 봤던 오늘 작업을 실제 사진으로 — 가로 스크롤하며 보세요</p>
+  </div>
+
+  <!-- ACT 1 -->
+  <div class="act">
+    <div class="act-head"><span class="act-num">1</span><span class="act-title">멀티 객체 grounding 검증 — 바스켓 말고도 되는가</span></div>
+    <p class="act-desc">base PG2(LoRA 없음, zero-shot)에 "detect gray basket" 대신 다른 객체 phrase를 줘봤다.
+      5장 전부 서로 다른 복도/조명이고, hit 5/5(100%) — instruction을 grounding에 연동하는 코드 변경의 전제가 여기서 확인됐다.</p>
+    <div class="scrollrow">
+      <div class="card">
+        <img src="../object_test_images/test_apple_floor_1768456959811.png" alt="apple">
+        <div class="cap"><span class="tag tag-good">HIT</span><br>"green apple" — area=0.010, cx=0.501<br>유리문 복도</div>
+      </div>
+      <div class="card">
+        <img src="../object_test_images/test_blue_mug_floor_1768456939932.png" alt="mug">
+        <div class="cap"><span class="tag tag-good">HIT</span><br>"blue mug" — area=0.035, cx=0.520<br>창문 있는 회색타일 복도</div>
+      </div>
+      <div class="card">
+        <img src="../object_test_images/test_coke_can_floor_1768456916967.png" alt="coke can">
+        <div class="cap"><span class="tag tag-good">HIT</span><br>"red coke can" — area=0.063, cx=0.500<br>흰 타일 복도, 30cm 표식</div>
+      </div>
+      <div class="card">
+        <img src="../object_test_images/test_chair_obstacle_1768456981699.png" alt="chair">
+        <div class="cap"><span class="tag tag-good">HIT</span><br>"chair" — area=0.125, cx=0.518<br>다른 배경</div>
+      </div>
+      <div class="card">
+        <img src="../object_test_images/test_cone_obstacle_1768457003835.png" alt="cone">
+        <div class="cap"><span class="tag tag-good">HIT</span><br>"orange cone" — area=0.056, cx=0.501<br>유리벽 복도</div>
+      </div>
+      <div class="card wide">
+        <img src="grounding_hub/grid_multi_object.png" alt="grid all 5">
+        <div class="cap"><span class="tag tag-info">종합 그리드</span><br>5장 한 번에 — 박스가 전부 타이트하게 객체에 맞음(풀프레임 없음)</div>
+      </div>
+    </div>
+    <div class="finding good">✅ <strong>결론:</strong> PG2 zero-shot grounding은 바스켓 특화가 아니라 일반 객체 인식 능력 — 배경도 객체도 둘 다 달라진 5장에서 전부 성공.</div>
+  </div>
+
+  <!-- ACT 2 -->
+  <div class="act">
+    <div class="act-head"><span class="act-num">2</span><span class="act-title">Detector 교체 검토 — GroundingDINO vs YOLO-World vs base PG2</span></div>
+    <p class="act-desc">PG2를 다른 detector로 바꾸면 더 나을지 같은 8프레임에 세 모델을 나란히 비교했다.</p>
+    <div class="scrollrow">
+      <div class="card wide">
+        <img src="grounding_hub/grid_base_pg2_gdino_compare.png" alt="base pg2">
+        <div class="cap"><span class="tag tag-good">기준</span><br>base PG2 — hit 98%, OOD 오탐 9%(의자 11장 중 1장만)</div>
+      </div>
+      <div class="card wide">
+        <img src="grounding_hub/grid_gdino_tiny.png" alt="gdino tiny">
+        <div class="cap"><span class="tag tag-bad">탈락</span><br>GroundingDINO-tiny — latency 18배 빠르지만 OOD 오탐 100%(의자 11장 전부 오탐)</div>
+      </div>
+      <div class="card wide">
+        <img src="grounding_hub/grid_gdino_base.png" alt="gdino base">
+        <div class="cap"><span class="tag tag-bad">탈락</span><br>GroundingDINO-base — 더 무거운데도 OOD 오탐 91%, 별로 개선 안 됨</div>
+      </div>
+      <div class="card wide">
+        <img src="grounding_hub/grid_yoloworld_s_conf0.05.png" alt="yolo-world conf0.05">
+        <div class="cap"><span class="tag tag-warn">애매함</span><br>YOLO-World(conf=0.05) — OOD는 양호(18%)하지만 S6/S7 핵심 실패케이스 5건 중 3건 MISS</div>
+      </div>
+    </div>
+    <div class="finding bad">⚠️ <strong>결론:</strong> 둘 다 PG2를 깨끗하게 못 이김 — GDINO는 OOD에서, YOLO-World는 진짜 어려운 케이스 recall에서 막힘. production 교체 보류.</div>
+  </div>
+
+  <!-- ACT 3 -->
+  <div class="act">
+    <div class="act-head"><span class="act-num">3</span><span class="act-title">S6 dead-zone — "이미 멈춘 뒤에 일어난 일이었다"</span></div>
+    <p class="act-desc">frame 24에서 학습된 STOP이 한 번 발동하면 105프레임 끝까지 안 풀린다. 그러니까 56/70/85에서 본 grounding 흔들림은
+      <strong>로봇이 이미 정지한 뒤</strong> 벌어진 일 — 실제 동작에는 영향이 없었다는 게 오늘 STOP 로직 재생(replay)으로 새로 밝혀진 사실.</p>
+    <div class="scrollrow">
+      <div class="card">
+        <img src="grounding_frames/s6/frame_0001.jpg" alt="f1">
+        <div class="cap"><span class="tag tag-info">f1</span><br>주행 시작 — 아직 STOP 안 됨</div>
+      </div>
+      <div class="card">
+        <img src="grounding_frames/s6/frame_0023.jpg" alt="f23">
+        <div class="cap"><span class="tag tag-info">f23</span><br>STOP 직전 마지막 프레임 — area 최댓값 0.159(GOAL_AREA 0.25 미달)</div>
+      </div>
+      <div class="card">
+        <img src="grounding_frames/s6/frame_0024.jpg" alt="f24">
+        <div class="cap"><span class="tag tag-warn">f24 — STOP 발동</span><br>학습된 헤드가 여기서 STOP 예측, 이후 끝까지 0/82 복귀</div>
+      </div>
+      <div class="card">
+        <img src="grounding_frames/s6/frame_0056.jpg" alt="f56">
+        <div class="cap"><span class="tag tag-good">f56(STOP 이후)</span><br>area=0.218 — 이미 멈춰 있어서 무관</div>
+      </div>
+      <div class="card">
+        <img src="grounding_frames/s6/frame_0070.jpg" alt="f70">
+        <div class="cap"><span class="tag tag-bad">f70(STOP 이후)</span><br>PG2 area=0.250로 부풀림(GDINO는 0.134로 안정) — 그래도 로봇은 이미 정지 상태</div>
+      </div>
+      <div class="card">
+        <img src="grounding_frames/s6/frame_0085.jpg" alt="f85">
+        <div class="cap"><span class="tag tag-good">f85(STOP 이후)</span><br>area=0.130 — f70과 거의 동일 장면인데 PG2만 흔들렸었음</div>
+      </div>
+    </div>
+    <div class="finding good">✅ <strong>결론:</strong> "dead-zone 풀프레임 환각"은 실재했지만 로봇 동작에는 영향 없었음 — STOP이 이미 21프레임 전에 걸렸기 때문.</div>
+  </div>
+
+  <!-- ACT 4 -->
+  <div class="act">
+    <div class="act-head"><span class="act-num">4</span><span class="act-title">S7 near-miss — "진짜 근접인데 1프레임짜리라 놓쳤다"</span></div>
+    <p class="act-desc">frame 53에서 area=0.297로 GOAL_AREA(0.25)를 실제로 넘었다 — bbox 자체는 정상. 문제는 앞뒤 프레임이 못 따라가서
+      3프레임-연속 조건(GOAL_CONSEC_FRAMES=3)에 걸려 STOP이 끝까지 발동하지 않았다는 것.</p>
+    <div class="scrollrow">
+      <div class="card">
+        <img src="grounding_frames/s7/frame_0052.jpg" alt="f52">
+        <div class="cap"><span class="tag tag-info">f52</span><br>area=0.072 — 아직 멀음</div>
+      </div>
+      <div class="card">
+        <img src="grounding_frames/s7/frame_0053.jpg" alt="f53">
+        <div class="cap"><span class="tag tag-warn">f53 — 진짜 스파이크</span><br>area=0.297(임계 초과!), cx=0.673 — 그런데 단 1프레임</div>
+      </div>
+      <div class="card">
+        <img src="grounding_frames/s7/frame_0054.jpg" alt="f54">
+        <div class="cap"><span class="tag tag-bad">f54</span><br>area=0.070 — 바로 다시 멀어짐, 3연속 조건 실패 → STOP 무산</div>
+      </div>
+    </div>
+    <div class="finding bad">⚠️ <strong>결론:</strong> detector를 GroundingDINO나 YOLO-World로 바꿔도 똑같이 놓쳤을 것 — 이건 grounding 문제가 아니라 STOP 로직(연속프레임 조건)의 부작용이었다.</div>
+  </div>
+
+  <!-- ACT 5 -->
+  <div class="act">
+    <div class="act-head"><span class="act-num">5</span><span class="act-title">S8 — "거짓양성도 똑같이 위험할 수 있다"</span></div>
+    <p class="act-desc">GOAL_CONSEC_FRAMES를 1로 낮추면 S7은 잡지만, 실제 운영 로그(S8, mix-448)의 frame 20처럼
+      스폿체크로 이미 거짓양성 확인된 프레임에서도 false STOP이 발동한다 — n=2도 n=3과 동일하게 효과 없음.</p>
+    <div class="scrollrow">
+      <div class="card wide">
+        <img src="grounding_frames/s8/frame_0020.jpg" alt="f20 false positive">
+        <div class="cap"><span class="tag tag-bad">f20 — 확인된 거짓양성</span><br>area=0.532(임계 압도적으로 초과)인데 스폿체크로 실제 바스켓이 아님이 확인된 프레임.
+        GOAL_CONSEC_FRAMES=1이면 여기서 false STOP 발동.</div>
+      </div>
+    </div>
+    <div class="finding neutral">💡 <strong>결론:</strong> "진짜 단발 근접"(S7 f53)과 "거짓양성 단발 스파이크"(S8 f20)를 area+cx+연속프레임만으로는 구분 못 함 — consec_n 숫자 조정은 더 이상 유효한 레버가 아니다. 운영값(n=3) 유지 권장.</div>
+  </div>
+
+  <div style="text-align:center;color:#475569;font-size:0.78rem;margin-top:40px">
+    상세 표/수치: <a href="grounding_hub.html#section-h" style="color:#7dd3fc">grounding_hub.html §H/§I</a> ·
+    <a href="research_story.html#ch38" style="color:#7dd3fc">research_story.html CH38</a> ·
+    plan: <code>docs/plans/plan_20260621_groundingdino_vs_pg2.md</code>, <code>plan_20260621_instruction_grounding.md</code>
+  </div>
+</div>
+</body>
+</html>
