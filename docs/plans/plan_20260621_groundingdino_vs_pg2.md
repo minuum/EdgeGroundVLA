@@ -128,3 +128,39 @@ GroundingDINO-tiny(172M)는 PG2(3B)보다 훨씬 가벼워 향후 soda 탑재 �
 - **S7 near-miss**: 3모델 전부 거의 동일한 박스 → **모델 교체로 해결 안 되는 장면 자체의 모호성**으로 결론.
 - **결정**: 현재 임계값으로는 production 교체 부적합(OOD 게이트 탈락). 다음 후보 — 프롬프트 구체화 재시도, YOLO-World 비교, S7류는 STOP/근접 로직(Task #4)으로 별도 대응.
 - ⚠️ 부작용 발견: `docs/v5/grounding_frames/s7/` 프레임 일부에 당시 대시보드 디버그 오버레이가 원본에 합성 저장됨 — 모델 간 상대비교는 유효하나 절대 판정은 raw 프레임 재추출 필요.
+
+## 10. 후속 3단계 (2026-06-21 사용자 승인 — 순서대로 진행)
+
+§9 결정 게이트 결과에 따른 다음 단계 3개를 순서대로 실행한다.
+
+| 순서 | 작업 | 목적 | 산출 |
+|---|---|---|---|
+| A | GroundingDINO 프롬프트 구체화 재시도 | OOD 오탐(9%→91~100%)을 프롬프트만으로 줄일 수 있는지 확인 | 기존 `eval_groundingdino_vs_pg2.py`에 prompt variant 비교 추가 |
+| B | YOLO-World 비교 | 관계형 표현 가능한 다른 open-vocab detector로 OOD 트레이드오프가 더 나은지 확인 | `ultralytics` 설치(YOLO-World 공식 지원) 후 동일 세트 평가 |
+| C | STOP/근접 ablation 설계+실행 (Task #4) | S7 near-miss류는 detector가 아니라 STOP 로직 쪽 문제라는 §H4 결론을 검증 | learned-STOP/proximity-STOP/hybrid 비교 + near-miss 재현 테스트 |
+
+세 단계 모두 **frozen zero-shot 비교 철학 유지**(A/B는 fine-tune 없음), 데이터는 기존 자산(49프레임/OOD11/S6·S7/세션 jsonl) 재사용, 실행은 로컬 GB10.
+
+### 10-A 진행 로그 (완료)
+- [x] 프롬프트 변형 4종(기본/구체화/경쟁클래스명시) OOD 11장 + basket 10장 재평가
+- 결과: 최선("...chair." 경쟁클래스 명시)도 OOD FP 73% — PG2(9%)에 한참 못 미침. **프롬프트만으로 해결 불가.**
+
+### 10-B 진행 로그 (완료)
+- [x] `ultralytics` 설치, YOLO-World(yolov8s-worldv2) zero-shot 동일 세트 평가, conf 0.03/0.05/0.1/0.2 스윕
+- 결과: conf=0.05 채택 시 hit92%/OOD18%/lat33ms — latency 18배 빠르고 OOD는 GDINO보다 훨씬 우수.
+  단, **S6/S7 실패케이스 5건 중 3건 MISS**(PG2·GDINO는 5/5 HIT). recall 올리면(conf=0.03) tiny 노이즈로 가짜 hit 발생.
+- **종합 결정**: GDINO·YOLO-World 둘 다 단독으로 PG2를 이기지 못함 — production 교체 보류, Phase C로 이동.
+
+### 10-C 진행 로그 (완료 — 운영 파라미터 변경은 보류)
+- [x] STOP 로직 코드 확인(`stage2_v2_inference_server.py:108-114,486-517`): `STOP_MODE`(proximity 기본값/learned) 토글 이미 존재, hybrid는 없음(추가 필요).
+- [x] `scripts/eval/ablation_stop_mode.py` 작성 — 서버 미수정, 기존 `s6_cl_sim.json`/`s7_cl_sim.json` 기록을 재생(replay)해 learned/proximity/hybrid × GOAL_CONSEC_FRAMES(1~5) 비교.
+- **핵심 재발견**: S7 "near-miss"는 grounding 실패가 아니었다 — frame 53 area=0.297로 GOAL_AREA(0.25) 실제 초과, 하지만 GOAL_CONSEC_FRAMES=3(연속조건) 때문에 단발성 스파이크로 걸러져 STOP 미발동 → 이후 바스켓 완전히 놓침. `n=1`일 때만 잡힘(`n=2`도 못 잡음 — 진짜 단일 프레임이었음).
+- S6은 학습된 헤드가 frame 24에서 자체적으로 STOP 예측, 그 후 105프레임 끝까지 0/82 복귀 — proximity 발동 여부와 무관하게 동일 결과. **§9의 dead-zone 풀프레임 환각(f56/70/85)은 이미 STOP된 이후라 로봇 동작에 영향 없었음** — §9/§H4 결론 일부 수정 필요(grounding_hub.html §I1에 반영).
+- **결정**: S7류 실패는 detector 교체(Phase A/B)로 원천 해결 불가능했던 문제였음을 확인(어떤 detector든 같은 연속프레임 필터에 걸렸을 것) — **STOP 로직 쪽 문제라는 가설이 맞았다.**
+- ⚠️ **운영 서버(`GOAL_CONSEC_FRAMES` 등) 파라미터 변경은 보류** — 안전 관련 파라미터라 2개 세션 replay만으로 바로 적용하지 않음. 사용자 결정 필요: n=1 전면 적용 / n=2+GOAL_AREA 하향 절충안 / 단일 스파이크에 덜 취약한 대안 로직, 셋 중 방향 확정 후 추가 세션으로 false-positive 재검증 필요.
+
+## 11. 3단계 종합 결론
+
+- **Phase A(프롬프트)+B(YOLO-World)**: 둘 다 production 교체 부적합. GroundingDINO는 OOD에서, YOLO-World는 S6/S7 핵심 실패케이스 recall에서 막힘.
+- **Phase C(STOP 로직)**: S7 near-miss는 애초에 detector 문제가 아니라 `GOAL_CONSEC_FRAMES=3`이 단발성 근접 스파이크를 걸러내는 부작용이었음을 확인. **grounding 모델 교체보다 STOP 임계값 튜닝이 훨씬 직접적인 레버.**
+- **다음 결정 필요(사용자)**: GOAL_CONSEC_FRAMES/GOAL_AREA 조정 방향 확정 → 추가 세션으로 false-positive 재검증 → 운영 서버 적용.
