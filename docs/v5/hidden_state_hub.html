@@ -156,6 +156,17 @@
       </tbody>
     </table>
     <div class="note">기준선(window=8, bbox+image만, MLP): <strong style="color:#e2e8f0">91.54%</strong>. <strong class="bad">중요:</strong> LSTM은 hidden state 없이도(95.87%) 이미 모든 MLP+hidden state 조합(최고 94.09%)을 넘는다 — head 구조(시퀀스 모델링)가 hidden state 추가보다 더 강한 factor.</div>
+
+    <div style="color:#7dd3fc;font-weight:700;font-size:0.9rem;margin:20px 0 8px">D-4. PM 96.85%가 실주행으로 이어지는가? — closed-loop 확인</div>
+    <table>
+      <thead><tr><th>LSTM 변형</th><th>SR</th><th>FPE</th><th>PM(참고)</th></tr></thead>
+      <tbody>
+        <tr><td>none</td><td>96.6%</td><td>0.101m</td><td>95.87%</td></tr>
+        <tr style="background:#021c0c"><td><strong>add</strong></td><td>96.6%</td><td class="key">0.086m ← 최저</td><td>96.85%</td></tr>
+        <tr><td>replace</td><td>96.6%</td><td>0.099m</td><td>95.47%</td></tr>
+      </tbody>
+    </table>
+    <div class="note">SR은 셋 다 96.6%로 동일(천장효과, val 29개) — CH40 패턴 재현. 단 <strong class="key">FPE는 add가 가장 낮음</strong>(15% 개선) — PM 개선이 "성공 판정 임계값 안에서의 정밀도"로는 실제 나타남.</div>
   </div>
 
   <!-- E. 종합 -->
