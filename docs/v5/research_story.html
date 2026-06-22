@@ -62,6 +62,10 @@
   .frame-strip-scroll .frame-cell { flex:0 0 auto; }
   .frame-strip-scroll .frame-cell img { width:220px; height:auto; object-fit:contain; background:#0a0f1a; }
   .frame-strip-scroll .frame-cap { margin-top:6px; font-size:0.72rem; color:#94a3b8; max-width:220px; }
+  .img-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .img-grid-3 img { width:100%; display:block; border-radius:8px; }
+  .img-grid-3 .imgcap { margin-top:5px; font-size:0.74rem; color:#94a3b8; text-align:center; }
+  @media(max-width:760px){ .img-grid-3{grid-template-columns:1fr;} }
   .frame-meta { margin-top:6px; }
   .frame-label { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }
 
@@ -11127,12 +11131,23 @@ graph TD
           </tbody>
         </table>
       </div>
-      <div style="margin-top:10px;font-size:0.78rem;color:#94a3b8">위 표 수치의 실제 사례 — baseline 모드 기준, JSON 레코드 그대로(추측 없음):</div>
-      <div class="frame-strip-scroll" style="margin-top:6px">
-        <div class="frame-cell"><img src="closed_loop_eval/grounding_quality_examples/no_bbox_error.png" alt="no bbox error"><div class="frame-cap">right_right t=3 — has_bbox=False, area=0 → pred=FORWARD, 정답=FWD+R (오예측)</div></div>
-        <div class="frame-cell"><img src="closed_loop_eval/grounding_quality_examples/small_bbox_error.png" alt="small bbox error"><div class="frame-cap">center_straight t=0 — has_bbox=True지만 area=0.027(작음) → pred=LEFT, 정답=FORWARD (오예측)</div></div>
-        <div class="frame-cell"><img src="closed_loop_eval/grounding_quality_examples/large_bbox_correct.png" alt="large bbox correct"><div class="frame-cap">right_left t=0 — has_bbox=True, area=0.605(큼) → pred=FWD+L, 정답=FWD+L (정답)</div></div>
+      <div style="margin-top:14px;font-size:0.85rem;color:#e2e8f0">
+        <strong>9개 path_type 전부에서</strong> 대표 프레임 1장씩 뽑아 직접 확인했다 — 이미지 안에 <strong>pred/gt/has_bbox/area/cx/cy를
+        그대로 표기</strong>(탭이나 별도 텍스트 없이), 파란 박스=실제 bbox(cx,cy,area로 복원한 근사 정사각형 — 데이터셋에 x1/y1/x2/y2가
+        없어 area로 정사각형 가정), 테두리 색=빨강(오예측)/초록(정답).
       </div>
+      <div class="img-grid-3" style="margin-top:10px">
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/center_straight.png" alt="center_straight"><div class="imgcap">center_straight — area=0.027(작음) → 오예측</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/center_left.png" alt="center_left"><div class="imgcap">center_left — area=0.094 → 오예측</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/center_right.png" alt="center_right"><div class="imgcap">center_right — area=0.602(큼)인데도 오예측</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/left_straight.png" alt="left_straight"><div class="imgcap">left_straight — area=0.027(작음) → 오예측</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/left_left.png" alt="left_left"><div class="imgcap">left_left — area=0.034(작음) → 오예측</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/left_right.png" alt="left_right"><div class="imgcap">left_right — area=0.050(작음) → 오예측</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/right_straight.png" alt="right_straight"><div class="imgcap">right_straight — area=0.050(작음) → 오예측</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/right_left.png" alt="right_left"><div class="imgcap">right_left — area=0.605(큼) → 정답(유일한 정답 사례)</div></div>
+        <div><img src="closed_loop_eval/grounding_quality_examples_v2/right_right.png" alt="right_right"><div class="imgcap">right_right — has_bbox=False(그라운딩 실패) → 오예측</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:0.78rem;color:#94a3b8">9장 중 8장이 오예측인 건 의도적 선별이 아니라 <strong>각 path_type에서 오예측 사례를 우선 추출</strong>했기 때문(전체 오류율은 7.4%로 훨씬 낮음, 위 표 참고) — center_right처럼 area가 커도(0.602) 틀리는 예외 사례도 있어, "면적만으로 전부 설명되진 않는다"는 것도 같이 보여준다.</div>
       <div style="margin-top:10px">
         <strong style="color:#86efac">결론:</strong> 3개 모드 전부 같은 패턴 — <strong>그라운딩이 실패한 프레임(has_bbox=False)에서 오류율이
         3~5배 뛴다</strong>, 오류 프레임의 평균 bbox 면적도 정답 프레임보다 작다(객체가 작게/애매하게 잡힌 프레임일수록
