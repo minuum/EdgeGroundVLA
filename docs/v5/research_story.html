@@ -283,7 +283,7 @@
     <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span></a>
     <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교</span></a>
     <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%)</span></a>
-    <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 40</span><span class="toc-label">hidden state로 action head 재학습 — PM +13%p, SR은 천장효과 ★NEW</span></a>
+    <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정) ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -10157,8 +10157,8 @@ graph TD
 <div class="chapter" id="ch40">
   <div class="chapter-header">
     <span class="chapter-num">CH 40</span>
-    <h2 class="chapter-title">T2 본 구현 — action head에 PG2 hidden state 추가, 실제로 재학습해봤다</h2>
-    <p class="chapter-subtitle">CH39 Step B(probe 90%)의 다음 단계: bbox 좌표 대신/추가로 hidden state를 넣어 head만 재학습 — 새 데이터 수집 없음</p>
+    <h2 class="chapter-title">T2 본 구현 — action head에 PG2 hidden state 추가 (40-1 정정됨, 40-1b 참고)</h2>
+    <p class="chapter-subtitle">CH39 Step B(probe 90%)의 다음 단계: bbox 좌표 대신/추가로 hidden state를 넣어 head만 재학습 — 새 데이터 수집 없음. 단, 최초 PM 비교에 측정 오류가 있었음(40-1b에서 정정)</p>
   </div>
 
   <p class="chapter-desc">
@@ -10168,7 +10168,7 @@ graph TD
   </p>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
-    <div class="finding-title" style="color:#86efac">40-1. PM(프레임 정확도) — 두 변형 모두 baseline 대비 크게 상승</div>
+    <div class="finding-title" style="color:#86efac">40-1. PM(프레임 정확도) — 두 변형 모두 baseline 대비 크게 상승 <span style="color:#f87171;font-size:0.8em">(⚠ 아래 40-1b에서 정정됨 — baseline 75.9%는 실측값이 아니었음)</span></div>
     <div class="finding-body">
       <code>add</code>: 기존 288차원(bbox 32 + image 256)에 hidden state 2304차원을 <strong>추가</strong>(2592차원).
       <code>replace</code>: bbox 32차원을 제거하고 image 256 + hidden 2304(2560차원)로 <strong>대체</strong>.
@@ -10191,8 +10191,44 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0505,#200a0a);border-color:#7f1d1d;margin-bottom:24px">
+    <div class="finding-title" style="color:#f87171">40-1b. 정정 — baseline "75.9%"는 같은 파이프라인으로 측정한 값이 아니었다</div>
+    <div class="finding-body">
+      <code>train_hidden_state_action.py</code> 출력에 박혀있던 <code>"참고: Exp54 Step2(bbox+image) baseline PM=0.759"</code>는
+      CLAUDE.md에 적힌 과거 공식 수치(다른 평가 스크립트·다른 메트릭 기준)를 그대로 인용한 <strong>하드코딩된 문자열</strong>이었다 —
+      이번 학습과 같은 코드·같은 seed=42 split·같은 평가 함수로 baseline을 실제로 측정한 적이 없었다.
+      hub 통합 작업 중 V5 실제 에피소드를 순차로 테스트하다가 이상한 점을 발견해서(사용자 질문으로 촉발) 역추적했다.
+      <div style="margin-top:10px">
+        <strong>두 가지를 다시 측정했다</strong>(둘 다 같은 val 29~30개 에피소드, 같은 seed=42 split):
+      </div>
+      <ol style="margin:8px 0 0 20px;padding:0;font-size:0.85rem;line-height:1.7">
+        <li><code>scripts/eval/grounding_quality_vs_error.py</code> — 기존 운영 ckpt(<code>stage2_v2_mlp.pt</code>, 자체 로그 val_acc=0.935)를 이 split에 그대로 평가 → <strong>92.3%</strong></li>
+        <li><code>train_hidden_state_action.py --use_hidden_state none</code> — add/replace와 100% 동일한 코드로 baseline을 처음부터 새로 학습 → <strong>89.76%</strong></li>
+      </ol>
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#f87171">변형</th><th style="padding:6px;color:#f87171">val PM (정정)</th><th style="padding:6px;color:#f87171">baseline(none) 대비</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px"><strong>baseline (none, 동일 파이프라인 재학습)</strong></td><td style="padding:6px;text-align:center;font-weight:700">89.76%</td><td style="padding:6px;text-align:center">—</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">add(bbox+image+hidden)</td><td style="padding:6px;text-align:center">89.17%</td><td style="padding:6px;text-align:center;color:#fbbf24">-0.6%p</td></tr>
+            <tr><td style="padding:6px">replace(image+hidden)</td><td style="padding:6px;text-align:center">87.80%</td><td style="padding:6px;text-align:center;color:#f87171">-2.0%p</td></tr>
+            <tr style="background:#1c1505"><td style="padding:6px">참고: 기존 운영 ckpt(다른 학습 run)</td><td style="padding:6px;text-align:center">92.3%</td><td style="padding:6px;text-align:center;color:#94a3b8">학습 variance 범위</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#f87171">정정된 결론:</strong> 진짜 apples-to-apples로 보면 <strong>hidden state를 추가해도 PM이 안 오른다 — 오히려 소폭 떨어진다.</strong>
+        40-1의 "+13.3%p" 서사는 잘못된 비교 기준 때문에 생긴 착시였다. CH39 Step B(frozen probe 90%)가 보여준 "hidden state에
+        방향 신호가 있다"는 사실 자체는 여전히 유효하지만, <strong>그 신호를 action head가 bbox+image보다 더 잘 활용한다는
+        증거는 이번 실험에서 안 나왔다</strong> — 가능한 이유: (1) 단일 seed 학습이라 노이즈가 차이(1~2%p)를 압도, (2) 2304차원
+        hidden state가 작은 MLP에는 너무 고차원이라 오히려 과적합/최적화가 어려움, (3) bbox+image 조합이 이미 충분히 정보를
+        담고 있어 hidden state가 redundant.
+      </div>
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:24px">
-    <div class="finding-title" style="color:#fbbf24">40-2. Closed-loop SR — PM 상승이 그대로 옮겨지지 않음</div>
+    <div class="finding-title" style="color:#fbbf24">40-2. Closed-loop SR — PM 상승이 그대로 옮겨지지 않음 <span style="color:#94a3b8;font-size:0.8em">(이 절의 SR 수치 자체는 정정 영향 없음 — baseline에 기존 운영 ckpt를 그대로 썼기 때문)</span></div>
     <div class="finding-body">
       CH37 결론(STOP override 없는 게 최선)에 맞춰 <strong>override 없이</strong> 모델 argmax 그대로 trajectory를 만들어
       비교했다(<code>scripts/eval/closed_loop_eval_hidden_state.py</code>, val 29개 에피소드, 동일 seed=42 split).
@@ -10217,16 +10253,19 @@ graph TD
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
-    <div class="finding-title" style="color:#94a3b8">40-3. 종합 — T2는 "표현 레벨"에서는 확인됐지만 "행동 레벨" 이득은 아직 불확실</div>
+    <div class="finding-title" style="color:#94a3b8">40-3. 종합(정정) — "표현 레벨"엔 신호가 있는데, "head 재학습"으로는 아직 못 꺼냈다</div>
     <div class="finding-body">
-      CH39 Step B(probe 90%) → CH40(PM +13%p)까지는 가설이 일관되게 들어맞았다. hidden state는 분명 bbox보다
-      풍부한 정보를 담고 있고, 그게 frame 단위 분류 정확도로 실제 전이됐다. 그런데 <strong>"분류가 더 정확해지면 주행도
-      더 잘하는가"</strong>는 이번 작은 val set에서는 검증되지 않았다 — SR이 천장 근처라 변별력이 부족했을 가능성이 크다.
+      40-1b 정정 이후 다시 보면: CH39 Step B(frozen probe, 90%)는 여전히 유효하다 — PG2 hidden state에는
+      방향과 상관된 신호가 분명히 있다. 하지만 CH40이 시도한 방식(2304차원 원시 hidden state를 그대로 작은 MLP에
+      concat/대체)으로는 그 신호를 bbox+image보다 더 잘 활용하지 못했다 — PM이 같거나 오히려 살짝 낮다(-0.6~-2.0%p,
+      단일 seed 학습 노이즈 범위일 가능성도 있음). <strong>"probe에서 보인다"와 "이 방식으로 재학습하면 더 잘 쓴다"는
+      서로 다른 주장이고, 이번 실험은 후자를 지지하지 않는다.</strong>
       <div style="margin-top:10px">
-        <strong style="color:#7dd3fc">다음 단계(범위 밖):</strong> (1) val set을 늘리거나(현재 150개 중 29개뿐) 더 어려운
-        path_type만 따로 떼어 SR 변별력을 높여서 재평가, (2) 실제 로봇에서 직접 비교(오프라인 kinematic 시뮬레이션의
-        success 기준 자체가 너무 느슨할 수 있음), (3) closed-loop 중 누적 오차가 큰 long-horizon 에피소드에 집중해서
-        차이가 드러나는지 확인 — 모두 새 데이터 수집 없이 기존 자산으로 가능.
+        <strong style="color:#7dd3fc">다음 단계(범위 밖):</strong> (1) hidden state를 원시 2304차원 그대로 넣지 말고
+        차원축소(PCA/학습 가능한 linear projection)해서 다시 시도 — plan_20260622_hidden_state_action_head.md §1의
+        "C안"으로 미뤘던 경로, (2) 단일 seed가 아니라 5-seed 평균으로 노이즈와 실제 효과를 구분, (3) 이번 세션에
+        새로 나온 그라운딩 품질 진단(CH41 예정)에 따라 — <strong>head 구조보다 그라운딩/인식 품질 자체를 개선하는 쪽이
+        더 근본적인 우선순위일 가능성</strong>(has_bbox=False 프레임의 오류율이 has_bbox=True보다 3~5배 높음).
       </div>
     </div>
   </div>

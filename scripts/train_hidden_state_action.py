@@ -329,7 +329,8 @@ def train(args):
     print(f"\n{'='*55}", flush=True)
     print(f"  Hidden-State Action Head 완료 (mode={args.use_hidden_state})")
     print(f"  val_acc: {final_acc:.4f}")
-    print(f"  참고: Exp54 Step2(bbox+image) baseline PM=0.759")
+    print(f"  [REFERENCE-ONLY, NOT MEASURED ON THIS SPLIT] Exp54 Step2 공식 PM=0.759 (다른 평가 스크립트/메트릭) "
+          f"— baseline 비교는 --use_hidden_state none을 같은 코드로 직접 재학습해서 쓸 것 (feedback_apples_to_apples_baseline)")
     print(f"{'='*55}", flush=True)
     print(f"\n  클래스별 정확도:")
     for i, name in enumerate(CLASS_NAMES):

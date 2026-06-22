@@ -88,16 +88,22 @@ Step B의 68분/220프레임은 **재학습용으로 쓰기엔 너무 느림**(2
 - [x] 150개 에피소드(기존 baseline과 동일 집합) hidden state 캐시 생성 — 147/150 성공(3개는 h5 파일 자체가
       디스크에서 삭제/이동되어 없음, baseline 학습 때와 무관한 별개 이슈), 2,572프레임, 9.6분, 10.2MB
 - [x] `train_hidden_state_action.py` 작성, add/replace 2 변형 학습 — 둘 다 300 epoch, 2.6분씩
-- [x] PM 비교: baseline 75.9% → add **89.2%**(+13.3%p) / replace **87.8%**(+11.9%p)
-- [x] closed-loop SR 비교: baseline 96.6%(이 eval 방식 기준, override 없음) → add 93.1%(-3.5%p) / replace 96.6%(동일)
-      — **PM 개선이 SR로는 이어지지 않음**(val 29개·천장효과 추정), 과장 없이 그대로 기록
-- [x] CH40 결과 문서화 (PM은 긍정, SR은 "차이 없음/소폭 악화" — 둘 다 동일 비중으로 기록)
+- [x] PM 비교: ~~baseline 75.9% → add 89.2%(+13.3%p) / replace 87.8%(+11.9%p)~~ **정정(2026-06-22, 같은 날 발견)**:
+      "baseline 75.9%"는 `train_hidden_state_action.py`에 박힌 하드코딩 참고 문자열이었고, 같은 코드로
+      baseline을 직접 재학습하면 **89.76%** — add(89.17%, -0.6%p)/replace(87.80%, -2.0%p) 모두 baseline과
+      같거나 약간 낮음. **hidden state 추가가 PM을 올린다는 결론은 착시였다.**
+- [x] closed-loop SR 비교: baseline 96.6%(기존 운영 ckpt 기준 — 이 수치는 정정과 무관) → add 93.1%(-3.5%p) / replace 96.6%(동일)
+      — PM 정정 후에는 "PM도 안 오르고 SR도 안 오른다"가 정확한 요약
+- [x] CH40 결과 문서화 + 정정(40-1b 추가, 40-3 재작성) — 원래 기록은 지우지 않고 정정 카드로 남김
 
-### 결론
-가설(hidden state가 bbox보다 풍부한 신호)은 PM 레벨에서 명확히 확인됐다. closed-loop 레벨에서는
-이번 평가 설계(작은 val set, override 없는 단순 success 기준)로는 이득이 드러나지 않았다 —
-"틀렸다"가 아니라 "이 실험으로는 아직 답이 안 나왔다"가 정확한 결론. §4(CH40 40-3)에 후속 검증
-방향(val set 확대, 어려운 path_type 분리 평가, 실제 로봇 비교)을 명시 — 모두 새 데이터 수집 불필요.
+### 결론 (정정됨)
+가설(PG2 hidden state에 방향 신호가 있다, CH39 Step B)은 frozen probe 레벨에서는 여전히 유효하다.
+하지만 그 신호를 "원시 2304차원 그대로 작은 MLP에 concat/대체"하는 방식으로 재학습해서 꺼내 쓰는 건
+**이번 실험에서 효과가 없었다**(PM 동일~소폭 하락, 단일 seed라 노이즈 가능성 있음). 최초 "+13%p"는
+apples-to-apples가 아닌 비교(다른 평가 방식의 옛 수치 vs 새로 학습한 수치)에서 나온 착시였고,
+hub 통합 작업 중 V5 실제 데이터로 점검하다 발견·역추적해서 즉시 정정함. 다음 후보: 차원축소 후
+재시도, 5-seed 평균으로 노이즈 확인, 혹은 (사용자 지침대로) head보다 그라운딩/인식 품질 개선을
+우선 — [[project_focus_grounding_for_direction]], `plan_20260622_grounding_quality_and_window_ablation.md`로 이어짐.
 
 ## 7. 트레이드오프
 
