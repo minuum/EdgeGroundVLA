@@ -283,7 +283,8 @@
     <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span></a>
     <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교</span></a>
     <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%)</span></a>
-    <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정) ★NEW</span></a>
+    <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정)</span></a>
+    <a class="toc-item" href="#ch41" data-target="ch41"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 41</span><span class="toc-label">그라운딩 품질이 핵심 — 오류는 객체를 못 잡은 프레임에 몰림 ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -10275,6 +10276,94 @@ graph TD
   </div>
 </div>
 
+<hr class="chapter-divider">
+<div class="chapter" id="ch41">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 41</span>
+    <h2 class="chapter-title">그라운딩 품질이 진짜 핵심이었다 — 오류는 객체를 못 잡은 프레임에 몰려있다</h2>
+    <p class="chapter-subtitle">head 구조(윈도우 크기, hidden state 유무)보다 그라운딩 신뢰도가 오예측과 훨씬 강하게 연관됨</p>
+  </div>
+
+  <p class="chapter-desc">
+    CH40 정정 이후 "head를 바꾸는 것만으론 한계가 있다"는 게 분명해졌다. 그래서 두 가지를 봤다 —
+    ① 오예측이 그라운딩이 약한 프레임에 몰리는지(인식 품질 진단), ② head-level에서 더 손볼 게 남았는지(윈도우 크기 ablation).
+    둘 다 새 데이터 수집 없이 기존 150개 에피소드 재사용, 새 학습은 head만(VLM 전부 frozen).
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">41-1. 그라운딩 품질 vs 오예측 — has_bbox=False 프레임 오류율이 3~5배 높다</div>
+    <div class="finding-body">
+      val 29~30개 에피소드 전체(508 프레임)를 baseline/add/replace 3모드로 순차 추론하면서 프레임별로
+      (예측, 정답, has_bbox, area, cx, cy)를 같이 기록했다(<code>scripts/eval/grounding_quality_vs_error.py</code>).
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">모드</th><th style="padding:6px;color:#7dd3fc">has_bbox=True 오류율</th><th style="padding:6px;color:#7dd3fc">has_bbox=False 오류율</th><th style="padding:6px;color:#7dd3fc">area(오류 프레임)</th><th style="padding:6px;color:#7dd3fc">area(정답 프레임)</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">baseline</td><td style="padding:6px;text-align:center;color:#4ade80">7.4%</td><td style="padding:6px;text-align:center;color:#f87171">40.0%</td><td style="padding:6px;text-align:center">0.151</td><td style="padding:6px;text-align:center">0.308</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">add</td><td style="padding:6px;text-align:center;color:#4ade80">10.7%</td><td style="padding:6px;text-align:center;color:#fbbf24">20.0%</td><td style="padding:6px;text-align:center">0.243</td><td style="padding:6px;text-align:center">0.303</td></tr>
+            <tr><td style="padding:6px">replace</td><td style="padding:6px;text-align:center;color:#4ade80">11.9%</td><td style="padding:6px;text-align:center;color:#f87171">40.0%</td><td style="padding:6px;text-align:center">0.208</td><td style="padding:6px;text-align:center">0.309</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:0.78rem;color:#94a3b8">위 표 수치의 실제 사례 — baseline 모드 기준, JSON 레코드 그대로(추측 없음):</div>
+      <div class="frame-strip-scroll" style="margin-top:6px">
+        <div class="frame-cell"><img src="closed_loop_eval/grounding_quality_examples/no_bbox_error.png" alt="no bbox error"><div class="frame-cap">right_right t=3 — has_bbox=False, area=0 → pred=FORWARD, 정답=FWD+R (오예측)</div></div>
+        <div class="frame-cell"><img src="closed_loop_eval/grounding_quality_examples/small_bbox_error.png" alt="small bbox error"><div class="frame-cap">center_straight t=0 — has_bbox=True지만 area=0.027(작음) → pred=LEFT, 정답=FORWARD (오예측)</div></div>
+        <div class="frame-cell"><img src="closed_loop_eval/grounding_quality_examples/large_bbox_correct.png" alt="large bbox correct"><div class="frame-cap">right_left t=0 — has_bbox=True, area=0.605(큼) → pred=FWD+L, 정답=FWD+L (정답)</div></div>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">결론:</strong> 3개 모드 전부 같은 패턴 — <strong>그라운딩이 실패한 프레임(has_bbox=False)에서 오류율이
+        3~5배 뛴다</strong>, 오류 프레임의 평균 bbox 면적도 정답 프레임보다 작다(객체가 작게/애매하게 잡힌 프레임일수록
+        방향 판단도 같이 틀린다). head 구조를 바꿔도 이 패턴 자체는 안 바뀐다 — <strong>병목이 head가 아니라 그라운딩
+        단계에 있다는 직접적인 증거.</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">41-2. 윈도우 크기 ablation — 작을수록 baseline은 좋아지고, hidden state는 끝까지 못 따라잡음</div>
+    <div class="finding-body">
+      <code>train_hidden_state_action.py --window {2,4,8,16}</code> × baseline/add/replace = 12조합, 매번
+      baseline도 같은 코드로 새로 학습(apples-to-apples, CH40 정정과 같은 원칙).
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">window</th><th style="padding:6px;color:#7dd3fc">baseline</th><th style="padding:6px;color:#7dd3fc">add</th><th style="padding:6px;color:#7dd3fc">replace</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">2</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">92.72%</td><td style="padding:6px;text-align:center">87.99%</td><td style="padding:6px;text-align:center">88.98%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">4</td><td style="padding:6px;text-align:center;font-weight:700">92.52%</td><td style="padding:6px;text-align:center">87.99%</td><td style="padding:6px;text-align:center">88.19%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">8</td><td style="padding:6px;text-align:center;font-weight:700">91.54%</td><td style="padding:6px;text-align:center;color:#86efac">89.17%</td><td style="padding:6px;text-align:center;color:#86efac">90.16%</td></tr>
+            <tr><td style="padding:6px">16</td><td style="padding:6px;text-align:center;font-weight:700">90.35%</td><td style="padding:6px;text-align:center">88.39%</td><td style="padding:6px;text-align:center">88.58%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">결론:</strong> baseline은 window가 짧을수록(2) 더 좋고(92.7%), 길수록(16) 떨어진다(90.4%) —
+        과거 bbox 히스토리를 너무 길게 가져가면 오히려 노이즈가 된다. add/replace는 window=8에서 그나마 최선이지만
+        <strong>12조합 전체에서 baseline을 한 번도 못 넘었다</strong> — head 구조(윈도우 크기 포함)를 어떻게 바꿔도
+        지금 방식의 hidden state 활용으론 안 된다는 걸 다시 확인.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">41-3. 종합 — 다음 우선순위는 head가 아니라 그라운딩</div>
+    <div class="finding-body">
+      41-1과 41-2를 같이 보면 결론이 명확해진다: <strong>head를 어떻게 바꿔도(bbox만/hidden state 추가/대체, 윈도우 2~16)
+      baseline 수준에서 크게 못 벗어났고, 오류는 그라운딩이 약한 프레임에 일관되게 몰린다.</strong> 이건 이번 세션 사용자
+      지침("실주행이 안 되는 핵심은 head 구조가 아니라 그라운딩/시멘틱 인식")과 정확히 일치하는 결과다.
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">다음 단계(범위 밖):</strong> action head 쪽 ablation은 일단 보류하고, 그라운딩/인식
+        품질 자체를 올리는 방향(필터 정확도 추가 보강, 그라운딩 모델 교체/앙상블, multi-frame consistency로 일시적
+        오검출 보정 등)을 다음 plan으로 검토.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260622_grounding_quality_and_window_ablation.md &nbsp;|&nbsp; 2026-06-22
+  </div>
+</div>
+
 <!-- ══ SUMMARY ══ -->
 <hr class="chapter-divider">
 <div class="chapter" id="summary" style="padding-bottom:80px">
@@ -10916,7 +11005,7 @@ graph TD
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
