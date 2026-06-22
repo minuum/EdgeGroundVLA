@@ -210,6 +210,13 @@
   }
   .toc-item.active .toc-badge { background:rgba(56,189,248,0.15); color:#38bdf8; }
   .toc-label { flex:1; }
+  .toc-cat { flex-shrink:0; font-size:0.6rem; font-weight:700; padding:1px 5px; border-radius:4px; margin-left:4px; white-space:nowrap; }
+  .toc-cat.cat-exp { background:rgba(56,189,248,0.15); color:#38bdf8; }
+  .toc-cat.cat-fix { background:rgba(248,113,113,0.15); color:#f87171; }
+  .toc-cat.cat-diag { background:rgba(251,191,36,0.15); color:#fbbf24; }
+  .toc-cat.cat-cmp { background:rgba(167,139,250,0.15); color:#a78bfa; }
+  .toc-cat.cat-meet { background:rgba(245,158,11,0.15); color:#f59e0b; }
+  .toc-cat.cat-data { background:rgba(45,212,191,0.15); color:#2dd4bf; }
 
   /* ── PDF 버튼 ── */
   #pdf-btn {
@@ -284,15 +291,15 @@
     <a class="toc-item" href="#ch34" data-target="ch34"><span class="toc-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6">CH 34</span><span class="toc-label">RoboVLMs Head Ablation — LSTM=MLP 확인 (exp68~70)</span></a>
     <a class="toc-item" href="#ch35" data-target="ch35"><span class="toc-badge" style="background:rgba(20,184,166,0.15);color:#14b8a6">CH 35</span><span class="toc-label">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</span></a>
     <a class="toc-item" href="#ch36" data-target="ch36"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 36</span><span class="toc-label">6/12 미팅 — 실사 테스트·논문 제출 결정</span></a>
-    <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span></a>
-    <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교</span></a>
-    <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%)</span></a>
-    <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정)</span></a>
-    <a class="toc-item" href="#ch41" data-target="ch41"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 41</span><span class="toc-label">그라운딩 품질이 핵심 — 오류는 객체를 못 잡은 프레임에 몰림</span></a>
-    <a class="toc-item" href="#ch42" data-target="ch42"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 42</span><span class="toc-label">거짓 prompt도 이미지 방향 신호를 못 흔든다</span></a>
-    <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+LSTM head — 진짜 핵심 factor는 head 구조(96.85%)</span></a>
-    <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트</span></a>
-    <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span></a>
+    <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교</span><span class="toc-cat cat-cmp">비교</span></a>
+    <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%)</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정)</span><span class="toc-cat cat-fix">정정</span></a>
+    <a class="toc-item" href="#ch41" data-target="ch41"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 41</span><span class="toc-label">그라운딩 품질이 핵심 — 오류는 객체를 못 잡은 프레임에 몰림</span><span class="toc-cat cat-diag">진단</span></a>
+    <a class="toc-item" href="#ch42" data-target="ch42"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 42</span><span class="toc-label">거짓 prompt도 이미지 방향 신호를 못 흔든다</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+LSTM head — 진짜 핵심 factor는 head 구조(96.85%)</span><span class="toc-cat cat-exp">실험</span><span class="toc-cat cat-fix">정정</span></a>
+    <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트</span><span class="toc-cat cat-diag">진단</span></a>
+    <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -8776,10 +8783,10 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       <div>
         <div style="color:#06b6d4;font-size:0.75rem;font-weight:700;margin-bottom:8px">이민우</div>
         <div style="display:flex;flex-direction:column;gap:6px;color:#94a3b8;line-height:1.6">
-          <div>✅ MLP 헤드 교체 후 CL·FPE 비교 실험 — <a href="#ch33" style="color:#7dd3fc">CH33~35</a>(96.6%) 및 <a href="#ch43" style="color:#7dd3fc">CH43</a>(LSTM 추가 비교)에서 완료</div>
-          <div>🔄 현재 모델 실제 시행 성공률 테스트 — <code>robot_tests.html</code> 실사 세션 존재, 문서 내 최종 성공률 수치는 별도 확인 필요</div>
-          <div>🔄 의자 포함 오브젝트 2개·태스크 2개 추가 수집·학습 — V5-2 chair 데이터셋(<code>gen_chair_pg2_annotation.py</code>) 수집 확인, "태스크 2개" 학습 완료 여부는 미확인</div>
-          <div>🔄 가까워졌을 때 STOP 처리 방안 확인 — 알고리즘적으로는 <a href="#ch37" style="color:#7dd3fc">CH37</a>에서 깊게 분석됨(override 없는 게 최선). 단 실거리(cm) 캘리브레이션은 <a href="#ch44" style="color:#7dd3fc">CH44-3</a>에서 여전히 미해결로 명시됨</div>
+          <div>✅ <span class="toc-cat cat-exp" style="margin-left:0;margin-right:4px">모델·학습</span>MLP 헤드 교체 후 CL·FPE 비교 실험 — <a href="#ch33" style="color:#7dd3fc">CH33~35</a>(96.6%) 및 <a href="#ch43" style="color:#7dd3fc">CH43</a>(LSTM 추가 비교)에서 완료</div>
+          <div>🔄 <span class="toc-cat cat-diag" style="margin-left:0;margin-right:4px">추론</span>현재 모델 실제 시행 성공률 테스트 — <code>robot_tests.html</code> 실사 세션 존재, 문서 내 최종 성공률 수치는 별도 확인 필요</div>
+          <div>🔄 <span class="toc-cat cat-data" style="margin-left:0;margin-right:4px">데이터·학습</span>의자 포함 오브젝트 2개·태스크 2개 추가 수집·학습 — V5-2 chair 데이터셋(<code>gen_chair_pg2_annotation.py</code>) 수집 확인, "태스크 2개" 학습 완료 여부는 미확인</div>
+          <div>🔄 <span class="toc-cat cat-diag" style="margin-left:0;margin-right:4px">추론</span>가까워졌을 때 STOP 처리 방안 확인 — 알고리즘적으로는 <a href="#ch37" style="color:#7dd3fc">CH37</a>에서 깊게 분석됨(override 없는 게 최선). 단 실거리(cm) 캘리브레이션은 <a href="#ch44" style="color:#7dd3fc">CH44-3</a>에서 여전히 미해결로 명시됨</div>
           <div>❓ GitHub 일지 정리 + 논문 제출 준비 — <code>devlog.html</code> 존재, 완료 여부는 문서로 확인 불가</div>
           <div>❓ 허지욱 교수님 논문 지원·Flow Matching 포함 제출 요청 — 외부 요청, 문서로 확인 불가</div>
         </div>
@@ -11651,15 +11658,36 @@ graph TD
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
     <div class="finding-title" style="color:#f59e0b">📋 6/22 미팅 투두 — 이번 주 새로 열린 항목(다음 CH로 갱신될 것)</div>
     <div class="finding-body">
+      <div style="color:#86efac;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px">완료</div>
       <ul style="margin-left:18px;line-height:2">
         <li>✅ "4초" 원인 규명 — 누적 드리프트로 확정(<a href="#ch44" style="color:#7dd3fc">CH44-2</a>)</li>
         <li>✅ 학습/추론 리사이즈 명시적 통일 — soda 배포·검증 완료(<a href="#ch44" style="color:#7dd3fc">CH44-1</a>)</li>
-        <li>☐ <strong>STOP 거리 40~50cm 캘리브레이션</strong> — 실측 데이터(거리별 area) 필요, 미착수(<a href="#ch44" style="color:#7dd3fc">CH44-3</a>)</li>
-        <li>☐ <strong>그라운딩/인식 품질 개선</strong> — CH41이 가장 강한 factor로 지목, 구체 작업 미착수</li>
-        <li>☐ <strong>LSTM+hidden state 조합 closed-loop 확대 검증</strong> — val 29개로는 SR 변별 안 됨(<a href="#ch43" style="color:#7dd3fc">CH43-2c</a>), 더 큰 표본 필요</li>
-        <li>☐ <strong>카메라 실시간 캡처 vs h5 저장 이미지 픽셀 비교</strong> — 해상도는 같다고 확인됐지만 화질/색공간 차이는 미확인(<a href="#ch44" style="color:#7dd3fc">CH44-1</a>)</li>
       </ul>
-      <div style="margin-top:10px;font-size:0.74rem;color:#64748b">범례: ✅ 완료 · 🔄 부분/진행 중 · ❓ 확인 불가 · ☐ 미착수. 이후 CH45+가 채워지면 이 표를 다시 업데이트.</div>
+
+      <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🧠 모델 — 그라운딩/인식</div>
+      <ul style="margin-left:18px;line-height:2">
+        <li>☐ <strong>그라운딩/인식 품질 개선</strong> — <a href="#ch41" style="color:#7dd3fc">CH41</a>이 가장 강한 factor로 지목(has_bbox=False 오류율 3~5배).
+        구체 작업 미착수 — 후보: 그라운딩 모델 교체/앙상블, multi-frame consistency로 일시적 오검출 보정.</li>
+      </ul>
+
+      <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🏋️ 학습/평가</div>
+      <ul style="margin-left:18px;line-height:2">
+        <li>☐ <strong>LSTM+hidden state 조합 closed-loop 확대 검증</strong> — val 29개로는 SR 변별 안 됨(<a href="#ch43" style="color:#7dd3fc">CH43-2c</a>),
+        더 큰 표본(5-seed 확대, 또는 어려운 path_type만 분리 평가) 필요</li>
+      </ul>
+
+      <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🤖 추론 — 로봇 동작</div>
+      <ul style="margin-left:18px;line-height:2">
+        <li>☐ <strong>STOP 거리 40~50cm 캘리브레이션</strong> — 실측 데이터(거리별 area) 필요, 미착수(<a href="#ch44" style="color:#7dd3fc">CH44-3</a>)</li>
+      </ul>
+
+      <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">📷 데이터 — 캡처 파이프라인</div>
+      <ul style="margin-left:18px;line-height:2">
+        <li>☐ <strong>카메라 실시간 캡처 vs h5 저장 이미지 픽셀 비교</strong> — 해상도(224×224)는 이미 같다고 확인됐지만
+        화질/색공간/압축 차이는 미확인(<a href="#ch44" style="color:#7dd3fc">CH44-1</a>)</li>
+      </ul>
+
+      <div style="margin-top:12px;font-size:0.74rem;color:#64748b">범례: ✅ 완료 · 🔄 부분/진행 중 · ❓ 확인 불가 · ☐ 미착수. 이후 CH45+가 채워지면 이 표를 다시 업데이트.</div>
     </div>
   </div>
 
