@@ -11508,7 +11508,9 @@ graph TD
         <li>✅ <strong>학습 시 1280×720 → 224×224로 변경해 학습</strong> — 검증 결과 <strong>이미 그렇게 동작 중</strong>이었음(HF processor가 암묵적으로 224×224 리사이즈). <code>image_preprocess.py</code>로 명시적 통일 완료 → <a href="#ch44" style="color:#7dd3fc">CH44-1</a></li>
         <li>✅ <strong>추론 시 카메라 1280×720 → 224×224 리사이징해서 입력</strong> — 동일하게 이미 그렇게 동작 중, 명시적 통일 완료 → <a href="#ch44" style="color:#7dd3fc">CH44-1</a></li>
         <li>🔄 <strong>latency 1초 이내(현재 4초)</strong> — "4초"는 단발 latency가 아니라 1fps 가정 대비 처리속도 누적 드리프트로 확인됨(진짜 단발 latency는 soda 1.3초). <strong>1초 목표는 아직 미달성</strong> → <a href="#ch44" style="color:#7dd3fc">CH44-2</a></li>
-        <li>☐ <strong>40~50cm 이전에 정지하도록</strong> — 현재 STOP 임계값은 정규화 면적(area&gt;0.25) 기준이라 cm 단위가 아님. 실측 거리-면적 캘리브레이션 데이터가 없어 <strong>미착수</strong> → <a href="#ch44" style="color:#7dd3fc">CH44-3</a></li>
+        <li>🔄 <strong>40~50cm 이전에 정지하도록</strong> — 현재 STOP 임계값은 정규화 면적(area&gt;0.25) 기준이라 cm 단위가 아님.
+        핀홀 카메라 모델(area ∝ 1/distance²) 기반 캘리브레이션 계산기는 작성 완료(<code>scripts/eval/calibrate_stop_distance.py</code>) —
+        <strong>실측 데이터(거리별 area 2곳 이상)만 입력하면 즉시 threshold 역산 가능. 실측 자체는 soda 현장 작업 필요해 ☐ 미착수</strong> → <a href="#ch44" style="color:#7dd3fc">CH44-3</a></li>
         <li>✅ <strong>VLM 의미벡터(HS)와 입력 해상도의 alignment 의심</strong> — 코드 검증 결과 해상도 자체는 이미 정렬되어 있어 <strong>원인이 아닌 것으로 확인</strong>(가설 기각). 남은 의심 지점은 "카메라 실시간 캡처 vs h5 저장본의 화질/색공간 차이"로 좁혀짐, 이 부분은 미확인 → <a href="#ch44" style="color:#7dd3fc">CH44-1</a></li>
       </ol>
       <div style="margin-top:10px;font-size:0.74rem;color:#64748b">범례: ✅ 완료/검증됨 · 🔄 부분 해결 · ❓ 확인 불가 · ☐ 미착수</div>
@@ -11700,7 +11702,7 @@ graph TD
 
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🤖 추론 — 로봇 동작</div>
       <ul style="margin-left:18px;line-height:2">
-        <li>☐ <strong>STOP 거리 40~50cm 캘리브레이션</strong> — 실측 데이터(거리별 area) 필요, 미착수(<a href="#ch44" style="color:#7dd3fc">CH44-3</a>)</li>
+        <li>🔄 <strong>STOP 거리 40~50cm 캘리브레이션</strong> — 계산기(<code>calibrate_stop_distance.py</code>) 작성 완료, soda 현장 실측(거리 2곳 이상 area 기록)만 남음 ☐(<a href="#ch44" style="color:#7dd3fc">CH44-3</a>)</li>
       </ul>
 
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">📷 데이터 — 캡처 파이프라인</div>
