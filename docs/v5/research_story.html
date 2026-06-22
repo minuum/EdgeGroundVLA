@@ -9775,6 +9775,16 @@ graph TD
     </table>
   </div>
 
+  <!-- L1 결과 — 실제 궤적 예시 -->
+  <div style="margin-bottom:24px">
+    <div style="color:#94a3b8;font-size:0.8rem;margin-bottom:6px">V0(no_override) vs V1(서버 기본값) 궤적 비교 — 위 표의 98.7% vs 23.5% 차이가 실제로 어떻게 생긴 경로 차이인지, val 에피소드 3개를 다시 돌려 그려봤다(새 학습 없음, 기존 ckpt 재사용):</div>
+    <div class="frame-strip-scroll">
+      <div class="frame-cell"><img src="closed_loop_eval/trajectory_examples/center_straight.png" alt="center_straight trajectory" style="width:280px"><div class="frame-cap">center_straight — V1이 1.15m 지점에서 일찍 멈춤(빨간점), expert/V0는 1.6m까지 계속</div></div>
+      <div class="frame-cell"><img src="closed_loop_eval/trajectory_examples/left_left.png" alt="left_left trajectory" style="width:280px"><div class="frame-cap">left_left — 이 에피소드는 V0/V1 거의 동일(둘 다 성공 케이스)</div></div>
+      <div class="frame-cell"><img src="closed_loop_eval/trajectory_examples/right_right.png" alt="right_right trajectory" style="width:280px"><div class="frame-cap">right_right — V0/V1은 일치하지만 둘 다 expert와 반대 방향(별개의 모델 예측 오류, STOP override와 무관)</div></div>
+    </div>
+  </div>
+
   <!-- 핵심 진단: 시작 프레임 문제 -->
   <div class="finding-card" style="background:linear-gradient(135deg,#1c0505,#200a0a);border-color:#7f1d1d;margin-bottom:24px">
     <div class="finding-title" style="color:#fca5a5">핵심 진단: 시작 프레임 area 분산이 threshold를 무력화</div>
