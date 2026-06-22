@@ -290,7 +290,7 @@
     <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정)</span></a>
     <a class="toc-item" href="#ch41" data-target="ch41"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 41</span><span class="toc-label">그라운딩 품질이 핵심 — 오류는 객체를 못 잡은 프레임에 몰림</span></a>
     <a class="toc-item" href="#ch42" data-target="ch42"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 42</span><span class="toc-label">거짓 prompt도 이미지 방향 신호를 못 흔든다</span></a>
-    <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+head ablation — hidden state가 드디어 baseline을 넘었다 ★NEW</span></a>
+    <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+LSTM head — 진짜 핵심 factor는 head 구조(96.85%) ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -11279,8 +11279,8 @@ graph TD
 <div class="chapter" id="ch43">
   <div class="chapter-header">
     <span class="chapter-num">CH 43</span>
-    <h2 class="chapter-title">차원을 줄이고 head를 바꾸니 — hidden state가 드디어 baseline을 넘었다</h2>
-    <p class="chapter-subtitle">CH40/41이 미뤘던 "C안"(학습 가능한 projection으로 차원축소) 실행 — 14개 조합, 여러 구성이 baseline을 +2~3%p 상회</p>
+    <h2 class="chapter-title">차원축소 + LSTM head — 진짜 핵심 factor는 head 구조였다</h2>
+    <p class="chapter-subtitle">17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 96.85%로 전체 최고, hidden state보다 head 구조가 더 강한 factor</p>
   </div>
 
   <p class="chapter-desc">
@@ -11314,7 +11314,7 @@ graph TD
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
-    <div class="finding-title" style="color:#86efac">43-2. Head 구조 ablation(proj_dim=32 고정) — FC head+replace가 전체 최고</div>
+    <div class="finding-title" style="color:#86efac">43-2. Head 구조 ablation(proj_dim=32 고정) — FC head+replace가 MLP계열 중 최고 <span style="color:#f87171;font-size:0.8em">(43-2b에서 LSTM이 이걸 다시 넘음)</span></div>
     <div class="finding-body">
       <code>--head_type {linear,mlp,fc}</code>, proj_dim=32 고정(43-1 최선값).
       <div style="overflow-x:auto;margin-top:10px">
@@ -11323,7 +11323,7 @@ graph TD
           <tbody>
             <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">linear(1-layer)</td><td style="padding:6px;text-align:center">91.34%</td><td style="padding:6px;text-align:center">90.55%</td></tr>
             <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">mlp(기존, 43-1과 동일 설정 재실행)</td><td style="padding:6px;text-align:center">93.70%</td><td style="padding:6px;text-align:center">92.72%</td></tr>
-            <tr style="background:#021c0c"><td style="padding:6px"><strong>fc(deep MLP, RoboVLMs 스타일)</strong></td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">93.90%</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">94.09% ← 전체 최고</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>fc(deep MLP, RoboVLMs 스타일)</strong></td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">93.90%</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">94.09%</td></tr>
           </tbody>
         </table>
       </div>
@@ -11335,16 +11335,44 @@ graph TD
     </div>
   </div>
 
-  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
-    <div class="finding-title" style="color:#7dd3fc">43-3. 종합 — "차원이 핵심 factor였다", CH41 결론과 어떻게 같이 가는가</div>
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">43-2b. RoboVLMs LSTM head 추가(사용자 요청) — 전체 최고, hidden state 없이도 압도</div>
     <div class="finding-body">
-      CH40/41에서 "head 구조를 바꿔도 안 된다"고 했던 건 사실 <strong>"2304차원을 그대로 쓰면 head 구조와 무관하게 안 된다"</strong>가
-      더 정확했다 — 차원을 32로 줄이니(linear부터도 baseline 근처, mlp/fc는 baseline을 확실히 넘김) 같은 hidden state 정보가
-      실제로 쓸모 있어졌다. 즉 이번 세션에서 찾은 "어떤 factor가 핵심인가"의 답은: <strong>① 그라운딩 품질(CH41, 가장 강한 단일
-      factor) ② hidden state의 차원(43-1, 작을수록 좋음) ③ head 구조(43-2, FC가 근소 우위)</strong> 순으로 보인다.
+      <code>scripts/train_hidden_state_lstm.py</code> — 원래 운영 서버의 LSTMHead(RoboVLMs 스타일)를 윈도우 8프레임
+      시퀀스로 그대로 가져와서, 매 윈도우 스텝마다 그 프레임의 hidden state(proj_dim=32)를 같이 넣는 구조로 확장.
+      <code>mode=none</code>은 hidden state 없이 LSTM만(원래 구조 그대로) 재현한 것.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">LSTM 변형</th><th style="padding:6px;color:#7dd3fc">val PM</th><th style="padding:6px;color:#7dd3fc">앞선 최고(MLP+fc, 94.09%) 대비</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">LSTM, hidden state 없음(none)</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">95.87%</td><td style="padding:6px;text-align:center;color:#4ade80">+1.78%p</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>LSTM + hidden state(add)</strong></td><td style="padding:6px;text-align:center;font-weight:900;color:#4ade80">96.85% ← 전체 최고</td><td style="padding:6px;text-align:center;color:#4ade80">+2.76%p</td></tr>
+            <tr><td style="padding:6px">LSTM + hidden state(replace)</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">95.47%</td><td style="padding:6px;text-align:center;color:#4ade80">+1.38%p</td></tr>
+          </tbody>
+        </table>
+      </div>
       <div style="margin-top:10px">
-        <strong style="color:#7dd3fc">다음 단계(범위 밖):</strong> proj_dim을 32보다 더 줄여서(16/8) 한계를 찾기, fc+replace+proj32
-        조합을 closed-loop으로 평가, 그리고 CH41의 그라운딩 품질 개선과 병행 — 둘은 서로 배타적이지 않다.
+        <strong style="color:#f87171">중요한 재해석:</strong> hidden state가 전혀 없는 <code>LSTM-none(95.87%)</code>만으로도 이미
+        지금까지 나온 모든 MLP 계열 결과(hidden state를 넣은 것 포함, 최고 94.09%)를 넘는다 — <strong>"시퀀스를 제대로 모델링하는
+        head 구조(LSTM)"가 차원축소나 hidden state 추가보다 더 강한 단일 factor였다.</strong> 다만 LSTM+hidden(add)이
+        96.85%로 LSTM-none보다도 +0.98%p 더 높아, hidden state가 LSTM 구조 위에서는 추가적인 보탬이 된다는 것도 확인됐다 —
+        43-1/43-2의 "MLP에선 hidden state가 큰 효과"라는 결론은 "LSTM이면 hidden state 없이도 이미 강하고, 있으면 더 좋다"로
+        업데이트해야 한다.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">43-3. 종합(업데이트) — factor 순위 재정리: head 구조(LSTM) > 차원 > 그라운딩 > hidden state 유무</div>
+    <div class="finding-body">
+      43-2b 이후 factor 순위를 다시 정리하면: <strong>① head 구조(LSTM vs MLP) — 가장 강력, hidden state 없이도 baseline을
+      +4.3%p 상회(91.54%→95.87%) ② hidden state 차원(32가 최선, CH43-1) ③ 그라운딩 품질(CH41, has_bbox 유무로 오류율 3~5배)
+      ④ hidden state 자체(LSTM 위에서는 보탬이 되지만 단독으론 head 구조 효과보다 작음, +0.98%p) ⑤ 텍스트 명령(CH42, 거의 무영향)</strong>.
+      처음 가설(hidden state가 핵심)과 달리, <strong>실제로 가장 큰 차이를 만든 건 시퀀스 정보를 쓰는 head 구조</strong>였다 —
+      MLP는 윈도우 8프레임의 bbox 히스토리만 flat하게 펴서 넣고 시간 순서 정보를 버리는데, LSTM은 그 순서를 그대로 활용한다.
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">다음 단계(범위 밖):</strong> LSTM+hidden(add)+proj32(96.85%)를 closed-loop으로 평가해서
+        CH40에서 본 "PM은 올라도 SR은 안 오른다" 문제가 이 조합에서도 재현되는지 확인, 그리고 CH41의 그라운딩 품질 개선과 병행.
       </div>
     </div>
   </div>
