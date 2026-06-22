@@ -290,7 +290,8 @@
     <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정)</span></a>
     <a class="toc-item" href="#ch41" data-target="ch41"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 41</span><span class="toc-label">그라운딩 품질이 핵심 — 오류는 객체를 못 잡은 프레임에 몰림</span></a>
     <a class="toc-item" href="#ch42" data-target="ch42"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 42</span><span class="toc-label">거짓 prompt도 이미지 방향 신호를 못 흔든다</span></a>
-    <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+LSTM head — 진짜 핵심 factor는 head 구조(96.85%) ★NEW</span></a>
+    <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+LSTM head — 진짜 핵심 factor는 head 구조(96.85%)</span></a>
+    <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트 ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -8388,7 +8389,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','next-step','summary','weekly-meeting'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','ch44','next-step','summary','weekly-meeting'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -11413,6 +11414,95 @@ graph TD
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     <a href="hidden_state_hub.html" style="color:#7dd3fc">🧠 Hidden State Hub — CH39~43 한 페이지 요약</a> &nbsp;|&nbsp;
     plans: plan_20260622_hidden_state_projection_weighting.md &nbsp;|&nbsp; 2026-06-22
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch44">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 44</span>
+    <h2 class="chapter-title">학습/추론 이미지 파이프라인 통일 + "4초"의 진짜 원인 — 누적 드리프트</h2>
+    <p class="chapter-subtitle">교수님께 보고드렸던 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅 — 가설 5개를 코드/실측으로 검증</p>
+  </div>
+
+  <p class="chapter-desc">
+    사용자가 제시한 5가지 가설(① 학습 224×224 통일 ② 추론 224×224 통일 ③ latency 4초→1초 ④ STOP 40~50cm
+    ⑤ hidden state-해상도 alignment 의심)을 하나씩 코드로 검증하고, soda(실제 로봇)에서 직접 실측했다.
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">44-1. 가설 ①②⑤ — 리사이즈는 이미 같았다, 명시적으로 통일</div>
+    <div class="finding-body">
+      코드 검증 결과: 학습(<code>train_hidden_state_*.py</code>)과 추론(<code>stage2_v2_inference_server.py</code>)
+      둘 다 1280×720 원본을 그대로 들고 다니다가 <strong>HuggingFace AutoProcessor 호출 시점에 내부적으로
+      224×224로 리사이즈</strong>되는 동일한 경로를 쓰고 있었다 — "해상도가 다르다"가 아니라 "암묵적으로 같다"가
+      정확한 진단이었다.
+      <div style="margin-top:10px;font-size:0.85rem;color:#94a3b8">
+        실제 데이터 흐름(둘 다 동일):<br>
+        <code style="color:#7dd3fc">[1280×720 원본] → PIL Image → AutoProcessor(내부 224×224 리사이즈) → vision_model → feature</code>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">조치:</strong> "암묵적으로 같음"을 "코드로 강제 같음"으로 바꿈 —
+        <code>robovlm_nav/image_preprocess.py</code>의 <code>resize_for_vlm()</code> 공유 함수를 학습/추론
+        양쪽 호출 지점에 명시적으로 적용. soda 운영서버에 안전 배포(stop→pull→검증→재시작) 완료,
+        latency 회귀 없음 확인(1.32~1.36초로 배포 전후 동일).
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">44-2. 가설 ③ — "4초 차이"는 단발 latency가 아니라 누적 드리프트였다</div>
+    <div class="finding-body">
+      사용자가 과거 S6 CL 파이프라인 시뮬레이션 세션(<code>docs/v5/s6_cl_sim.json</code>, 105프레임, 영상에서
+      1fps로 추출 → <code>/reset</code> → <code>/predict</code>×105 순차 호출)을 재생하면서 화면 좌하단
+      타임스탬프가 "3~4초씩 차이난다"고 본 게 출발점이었다. 분석 결과:
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">항목</th><th style="padding:6px;color:#7dd3fc">실측값</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">단발 호출 latency(105프레임 전체)</td><td style="padding:6px;text-align:center">평균 1,356ms, 최대 1,852ms — <strong style="color:#4ade80">2.5초 넘은 적 0회</strong></td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">프레임 누락</td><td style="padding:6px;text-align:center;color:#4ade80">0개(105/105 연속)</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">동시 수집/추론 가능성</td><td style="padding:6px;text-align:center;color:#4ade80">기각(코드 자체가 순차 호출, 구조적으로 동시성 없음)</td></tr>
+            <tr style="background:#1c1505"><td style="padding:6px"><strong>frame 10번 시점 누적 드리프트</strong></td><td style="padding:6px;text-align:center;font-weight:700;color:#fbbf24">+4.0초 ← 사용자가 본 수치와 정확히 일치</td></tr>
+            <tr><td style="padding:6px">frame 105번(끝) 누적 드리프트</td><td style="padding:6px;text-align:center;font-weight:700;color:#f87171">+37.4초</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#fbbf24">원인:</strong> 영상은 1fps(프레임당 1초)로 추출됐는데, 실제 처리는 프레임당 평균 1.36초 걸린다
+        (soda/Jetson 하드웨어 한계) — <strong>가정한 속도(1fps)보다 실제가 느려서, 두 시간축의 차이가 프레임이
+        갈수록 계속 쌓인다.</strong> 단일 호출이 4초 걸린 게 아니라, "10번째 프레임까지 누적된 시간 차이"가
+        마침 4초였던 것.
+      </div>
+      <div style="margin-top:10px">
+        soda 실측 단발 latency: <strong style="color:#fbbf24">1.31~1.36초</strong>(GB10 560~650ms 대비 약 2배,
+        Jetson Orin vs GB10 하드웨어 차이로 설명됨) — "1초 이내" 목표에는 아직 못 미침(가설 ③ 부분 미해결).
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">44-3. 가설 ④ — STOP 40~50cm는 거리 캘리브레이션이 먼저 필요(미해결)</div>
+    <div class="finding-body">
+      현재 STOP 임계값은 <code>GOAL_AREA_THRESHOLD=0.25</code>(정규화 면적, cm 단위 아님). "40~50cm"로
+      바꾸려면 로봇이 실제로 40cm/50cm 떨어진 지점에서 area가 얼마로 찍히는지 실측 캘리브레이션이 먼저
+      필요하다 — 이번 plan 범위 밖, 별도 진행.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">44-4. 재발 방지 — 파이프라인 건강진단 체크리스트 배포</div>
+    <div class="finding-body">
+      <code>scripts/eval/diagnose_pipeline_health.py</code> — A.latency B.drift C.continuity D.resize
+      E.grounding 5개 체크를 자동화. 특히 B(drift) 체크는 "N초 차이"를 봤을 때 단발 latency 문제인지
+      누적 드리프트인지 자동으로 구분해준다(이번 사례를 그대로 재현 검증함). GB10·soda 양쪽에 배포 완료,
+      문서는 <code>docs/plans/CHECKLIST_pipeline_health.md</code>.
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260622_train_inference_image_pipeline_unify.md &nbsp;|&nbsp;
+    <a href="https://github.com/minuum/MoNaVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a> &nbsp;|&nbsp; 2026-06-22
   </div>
 </div>
 
