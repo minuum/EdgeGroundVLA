@@ -2037,6 +2037,207 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             outputs=[_gnd_history_rows, _gnd_count, gnd_log_display],
         )
 
+      # ────────────────────────────────────────────────────────────────
+      with gr.Tab("📊 Latency/Drift 진단"):
+        gr.Markdown(
+            "### \"4초\"는 단발 latency가 아니라 누적 드리프트\n"
+            "1fps로 가정하고 자동 호출하지만, 실제 처리시간이 1초보다 길면 누적 차이(drift)가 "
+            "계속 커진다. 이 탭은 운영 서버를 실시간으로 호출해 그 드리프트를 직접 재현·기록한다. "
+            "(`docs/v5/s6_cl_sim.json` 105프레임 분석: frame 10에서 drift 3.96s ≈ \"4초\")"
+        )
+        with gr.Row():
+          with gr.Column(scale=3):
+            drift_plot = gr.Plot(label="누적 실제시간 vs 1fps 가정시간")
+            with gr.Row():
+                drift_run_btn  = gr.Button("▶ 단발 측정", variant="primary", scale=2)
+                drift_auto_btn = gr.Button("🔄 자동 (1fps)", variant="secondary", scale=2)
+                drift_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
+                drift_diag_btn = gr.Button("🩺 진단 실행 (A+D 체크)", scale=2)
+
+          with gr.Column(scale=2):
+            drift_clock     = gr.Textbox(label="현재 시각", value="—", interactive=False)
+            drift_latency   = gr.Textbox(label="이번 호출 latency", value="—", interactive=False)
+            drift_frame_n   = gr.Textbox(label="누적 프레임 수", value="0", interactive=False)
+            drift_cum_real  = gr.Textbox(label="누적 실제시간", value="0.00s", interactive=False)
+            drift_cum_nom   = gr.Textbox(label="누적 가정시간(1fps)", value="0.0s", interactive=False)
+            drift_now       = gr.HTML(value="<div style='font-size:1.3rem;font-weight:800;color:#22c55e'>drift: 0.00s</div>")
+            drift_history   = gr.Dataframe(
+                headers=["#", "latency(ms)", "누적실제(s)", "누적가정(s)", "drift(s)"],
+                datatype=["number", "number", "number", "number", "number"],
+                label="최근 10회 이력",
+                row_count=10,
+                col_count=5,
+                interactive=False,
+            )
+            with gr.Row():
+                drift_log_display = gr.Textbox(
+                    label="JSONL 경로", value="(첫 측정 시 생성됨)",
+                    interactive=False, scale=3,
+                )
+                drift_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
+            drift_diag_result = gr.Textbox(label="진단 결과", value="—", interactive=False, lines=3)
+
+        # ── Drift 탭 로직 ──────────────────────────────────────────────
+        _drift_session = gr.State([])  # [{frame, latency_ms}, ...]
+
+        _drift_log_dir = Path("logs/drift_sessions")
+        _drift_log_dir.mkdir(parents=True, exist_ok=True)
+        _drift_log_file: list = [None]
+        _drift_log_last_write: list = [None]
+
+        def _drift_ensure_log():
+            now = _dt.datetime.now()
+            last = _drift_log_last_write[0]
+            if _drift_log_file[0] is None or (last is not None and now - last > _GND_SESSION_IDLE_GAP):
+                ts = now.strftime("%Y%m%d_%H%M%S")
+                _drift_log_file[0] = _drift_log_dir / f"drift_{ts}.jsonl"
+            _drift_log_last_write[0] = now
+            return _drift_log_file[0]
+
+        def _drift_build_plot(session):
+            frames = [e["frame"] for e in session]
+            cum_real = list(np.cumsum([e["latency_ms"] for e in session]) / 1000.0)
+            cum_nom = [f * 1.0 for f in frames]
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.plot(frames, cum_nom, "--", color="#64748b", linewidth=2, label="1fps 가정")
+            ax.plot(frames, cum_real, "-", color="#ef4444", linewidth=2.5, label="실제 처리시간")
+            ax.fill_between(frames, cum_nom, cum_real, color="#ef4444", alpha=0.15)
+            over4 = [f for f, r, n in zip(frames, cum_real, cum_nom) if (r - n) >= 4.0]
+            if over4:
+                f0 = over4[0]
+                ax.axvline(f0, color="#facc15", linestyle=":", linewidth=1.5)
+                ax.annotate("drift ≥ 4.0s", xy=(f0, cum_real[frames.index(f0)]),
+                            color="#facc15", fontsize=9, fontweight="bold")
+            ax.set_xlabel("frame")
+            ax.set_ylabel("누적시간(s)")
+            ax.set_title("실제 vs 1fps 가정 — 누적시간")
+            ax.legend(loc="upper left")
+            ax.grid(True, linestyle="--", alpha=0.4)
+            return fig
+
+        def _drift_run(api_url, backend_mode, instr, session):
+            import json as _json
+            frame = None
+            if ROS_AVAILABLE and ros_node:
+                frame = ros_node.get_inference_frame()
+            now_str = _dt.datetime.now().strftime("%H:%M:%S")
+            log_path_str = str(_drift_ensure_log())
+
+            if frame is None:
+                return (now_str, "❌ 카메라 없음", str(len(session)), "—", "—",
+                        "<div style='color:#ef4444'>카메라 연결 필요</div>",
+                        [[e["frame"], round(e["latency_ms"]), 0, 0, 0] for e in session[-10:][::-1]],
+                        None, log_path_str, session)
+
+            try:
+                result = run_backend_inference(frame, instr or "", backend_mode or "", api_url, execute_move=False)
+                lat_ms = float(result.get("latency_ms") or 0.0)
+            except Exception as e:
+                return (now_str, f"❌ 오류: {e}", str(len(session)), "—", "—",
+                        "<div style='color:#ef4444'>호출 실패</div>",
+                        [[e2["frame"], round(e2["latency_ms"]), 0, 0, 0] for e2 in session[-10:][::-1]],
+                        None, log_path_str, session)
+
+            frame_idx = len(session) + 1
+            session = session + [{"frame": frame_idx, "latency_ms": lat_ms}]
+            cum_real = sum(e["latency_ms"] for e in session) / 1000.0
+            cum_nom = frame_idx * 1.0
+            drift = cum_real - cum_nom
+
+            color = "#22c55e" if drift < 1.0 else "#f59e0b" if drift < 4.0 else "#ef4444"
+            drift_html = f"<div style='font-size:1.3rem;font-weight:800;color:{color}'>drift: {drift:.2f}s</div>"
+            if drift >= 4.0:
+                drift_html += "<div style='color:#facc15;font-size:0.8rem'>⚠ 4초 돌파 — 단발 latency 아니라 누적 드리프트</div>"
+
+            rows, cr = [], 0.0
+            for e in session:
+                cr += e["latency_ms"] / 1000.0
+                rows.append([e["frame"], round(e["latency_ms"]), round(cr, 2), float(e["frame"]), round(cr - e["frame"], 2)])
+            history_rows = rows[-10:][::-1]
+
+            record = {
+                "ts": _dt.datetime.now().isoformat(timespec="milliseconds"),
+                "frame": frame_idx, "latency_ms": round(lat_ms, 1),
+                "cum_real_s": round(cum_real, 3), "cum_nominal_s": cum_nom, "drift_s": round(drift, 3),
+            }
+            with open(_drift_log_file[0], "a") as f:
+                f.write(_json.dumps(record, ensure_ascii=False) + "\n")
+
+            fig = _drift_build_plot(session)
+            status = "PASS" if lat_ms < 1000 else "WARN" if lat_ms < 2000 else "FAIL"
+            return (now_str, f"{lat_ms:.0f}ms [{status}]", str(frame_idx), f"{cum_real:.2f}s", f"{cum_nom:.1f}s",
+                    drift_html, history_rows, fig, log_path_str, session)
+
+        _drift_outputs = [drift_clock, drift_latency, drift_frame_n, drift_cum_real, drift_cum_nom,
+                           drift_now, drift_history, drift_plot, drift_log_display, _drift_session]
+
+        drift_run_btn.click(
+            fn=_drift_run,
+            inputs=[api_url_box, backend_radio, instr_box_real, _drift_session],
+            outputs=_drift_outputs,
+        )
+
+        _drift_auto_state = gr.State(False)
+        drift_timer = gr.Timer(1.0, active=False)
+
+        def _toggle_drift_auto(is_active):
+            new_state = not is_active
+            label = "⏸ 자동 중지" if new_state else "🔄 자동 (1fps)"
+            variant = "primary" if new_state else "secondary"
+            return new_state, gr.update(value=label, variant=variant), gr.update(active=new_state)
+
+        drift_auto_btn.click(
+            fn=_toggle_drift_auto,
+            inputs=[_drift_auto_state],
+            outputs=[_drift_auto_state, drift_auto_btn, drift_timer],
+        )
+        drift_timer.tick(
+            fn=_drift_run,
+            inputs=[api_url_box, backend_radio, instr_box_real, _drift_session],
+            outputs=_drift_outputs,
+        )
+
+        def _drift_stop_click():
+            return False, gr.update(value="🔄 자동 (1fps)", variant="secondary"), gr.update(active=False)
+
+        drift_stop_btn.click(
+            fn=_drift_stop_click,
+            outputs=[_drift_auto_state, drift_auto_btn, drift_timer],
+        )
+
+        def _drift_new_session():
+            _drift_log_file[0] = None
+            _drift_log_last_write[0] = None
+            return [], None, "(새 세션 — 첫 측정 시 생성됨)"
+
+        drift_new_session_btn.click(
+            fn=_drift_new_session,
+            outputs=[_drift_session, drift_plot, drift_log_display],
+        )
+
+        def _drift_run_diagnostics(api_url):
+            try:
+                from scripts.eval.diagnose_pipeline_health import check_latency, check_resize
+                r_resize = check_resize()
+                r_latency = check_latency(api_url, API_KEY, n=5)
+                return (f"[D.RESIZE] {r_resize['status']} — output_size={r_resize['output_size']}\n"
+                        f"[A.LATENCY] {r_latency['status']} — mean={r_latency['mean_ms']:.0f}ms "
+                        f"(n={len(r_latency['samples'])}, 목표<1000ms)")
+            except Exception as e:
+                return f"❌ 진단 실행 실패: {e}"
+
+        drift_diag_btn.click(
+            fn=_drift_run_diagnostics,
+            inputs=[api_url_box],
+            outputs=drift_diag_result,
+        )
+
+        drift_clock_timer = gr.Timer(1.0, active=True)
+        drift_clock_timer.tick(
+            fn=lambda: _dt.datetime.now().strftime("%H:%M:%S"),
+            outputs=drift_clock,
+        )
+
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
         inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box, toggle_cc],
