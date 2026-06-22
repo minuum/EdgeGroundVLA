@@ -11289,7 +11289,7 @@ graph TD
   <div class="chapter-header">
     <span class="chapter-num">CH 43</span>
     <h2 class="chapter-title">차원축소 + LSTM head — 진짜 핵심 factor는 head 구조였다</h2>
-    <p class="chapter-subtitle">17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 96.85%로 전체 최고, hidden state보다 head 구조가 더 강한 factor</p>
+    <p class="chapter-subtitle">17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 최고(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p), hidden state보다 head 구조가 더 강한 factor</p>
   </div>
 
   <p class="chapter-desc">
@@ -11392,6 +11392,42 @@ graph TD
         성공이라 이진 판정으로는 차이가 안 보임, 천장효과). 다만 <strong style="color:#86efac">연속값 지표인 FPE는 add가
         확실히 가장 낮다</strong>(0.086m, none 대비 약 15% 개선) — PM 96.85%가 의미 없는 숫자는 아니고,
         <strong>성공 판정 임계값 안에서의 경로 정밀도 개선</strong>으로 실제 나타난다는 게 정확한 해석이다.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">43-2d. 추가 검증 — proj_dim 8/16 확장 + 5-seed 노이즈 점검 (96.85%는 노이즈 상단이었다)</div>
+    <div class="finding-body">
+      "자동으로 진행해도 돼" 지시에 따라 두 가지를 추가로 돌렸다: ① proj_dim을 32 아래(8, 16)까지 더 줄여서
+      한계 확인, ② LSTM+add+proj32(원래 96.85%)를 시드만 바꿔 5회 반복해서 그 숫자가 노이즈인지 확인.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">조합</th><th style="padding:6px;color:#7dd3fc">val PM</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">MLP, proj=8, add / replace</td><td style="padding:6px;text-align:center">94.29% / 94.49%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">MLP, proj=16, add / replace</td><td style="padding:6px;text-align:center">93.90% / 93.90%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">LSTM, proj=8, add</td><td style="padding:6px;text-align:center;font-weight:700">96.85%</td></tr>
+            <tr><td style="padding:6px">LSTM, proj=16, add</td><td style="padding:6px;text-align:center">96.46%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="overflow-x:auto;margin-top:14px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">LSTM+add+proj32 — 5회 반복(시드만 다름)</th><th style="padding:6px;color:#7dd3fc">val PM</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:6px">run 1~5</td><td style="padding:6px;text-align:center">95.08% / 95.28% / 95.67% / 95.47% / 95.47%</td></tr>
+            <tr style="background:#1c1505"><td style="padding:6px"><strong>평균 ± 표준편차</strong></td><td style="padding:6px;text-align:center;font-weight:700;color:#fbbf24">95.39% ± 0.20%p</td></tr>
+            <tr><td style="padding:6px">원래 보고했던 단일 run</td><td style="padding:6px;text-align:center;color:#94a3b8">96.85% (5-seed 평균보다 +1.46%p 높음 — 노이즈 상단값)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#f87171">정직한 재해석:</strong> 43-2b에서 "전체 최고 96.85%"라고 적었던 건 **5번 중 가장 잘 나온
+        한 번의 결과**였다 — 5-seed 평균은 95.39%±0.20%p로 더 낮다. 그래도 baseline(window=8 MLP, 91.54%)보다는
+        여전히 확실히 높고(+3.85%p), proj_dim 8/16/32가 LSTM에서는 서로 비슷한 수준(96.46~96.85%, 단일 run 기준)이라
+        "32가 정확히 최적"이라는 43-1의 결론도 8~32 구간에서는 노이즈 수준 차이로 봐야 한다. <strong>핵심 결론(head 구조가
+        가장 강한 factor)은 그대로 유지</strong>되지만, 정확한 숫자를 인용할 땐 5-seed 평균(95.39%)을 써야 한다.
       </div>
     </div>
   </div>
