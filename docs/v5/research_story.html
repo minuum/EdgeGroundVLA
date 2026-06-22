@@ -2536,6 +2536,16 @@
       </div>
     </div>
   </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-top:24px">
+    <div class="finding-title" style="color:#06b6d4">📋 5/15 미팅 투두 — 이후 어디서 풀렸는지</div>
+    <div class="finding-body">
+      <ul style="margin-left:18px;line-height:2">
+        <li>✅ <strong>조이스틱 30개 신규 수집(좌/중/우 10개씩)</strong> — Exp53/Exp54 V5 데이터 수집으로 완료</li>
+        <li>✅ <strong>"LEFT를 외운 건가, 박스를 본 건가" 구분</strong> — Zero-shot probe(96.6%) + masking ablation(9/9 flip)로 답변, <a href="#ch33" style="color:#7dd3fc">CH33</a> "5-Track 이중 증명"에서 확정. 이번 세션 <a href="#ch41" style="color:#7dd3fc">CH41</a>에서 그라운딩 신뢰도-오예측 상관으로 재확인.</li>
+      </ul>
+    </div>
+  </div>
 </div>
 
 <!-- ══ CHAPTER 11 ══ -->
@@ -3211,6 +3221,18 @@
         </div>
         <div style="font-size:1.4rem;font-weight:900;color:#a78bfa;flex-shrink:0">21/30</div>
       </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-top:24px">
+    <div class="finding-title" style="color:#f59e0b">📋 5/22 미팅 투두 — 이후 어디서 풀렸는지</div>
+    <div class="finding-body">
+      <ul style="margin-left:18px;line-height:2">
+        <li>✅ <strong>Test set 별도 구성 + zero-shot probe 재측정</strong> — 이후 Exp 평가 전반에서 val/test 분리 관행 정착</li>
+        <li>✅ <strong>Frozen CLIP vs LoRA 직접 비교</strong> — <a href="#ch33" style="color:#7dd3fc">CH33</a> "파이프라인이 범인" — grounding LoRA 7개(Exp56~64)의 action 기여 = 0, HSV/base PG2/LoRA 전부 동일 CL 96.6%로 확정</li>
+        <li>✅ <strong>객체 인식 직접 테스트 3종</strong>(다른 객체/마스킹/방향없는 tracking) — 마스킹(9/9 flip, <a href="#ch33" style="color:#7dd3fc">CH33</a>) + 다른 객체(5/5 generalization, <a href="#ch39" style="color:#7dd3fc">CH39</a>) + 방향-텍스트 무관성(<a href="#ch38" style="color:#7dd3fc">CH38-5</a>, <a href="#ch42" style="color:#7dd3fc">CH42</a>) 세 갈래로 전부 답변됨</li>
+        <li>❓ <strong>RoboVLM 사전학습 객체 목록 파악 + 기존 인식 성능 저하 확인</strong> — 문서 내 직접 확인 못함, 별도 확인 필요</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -7708,6 +7730,17 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-top:24px">
+    <div class="finding-title" style="color:#a78bfa">📋 6/4 미팅 투두 — 이후 어디서 풀렸는지</div>
+    <div class="finding-body">
+      <ul style="margin-left:18px;line-height:2">
+        <li>✅ <strong>"LoRA가 Vision 인코더를 실제로 개선하는가?"</strong> — E2E 8조합 ablation에서 lora_B=0(구조적으로 학습 불가),
+        exp64 Vision Grounding LoRA는 full-frame 92%로 붕괴(위 "왜 붕괴했나" 참고) — <strong>답: 개선하지 않는다, 오히려 악화시킨다.</strong>
+        base PG2(LoRA 없음)가 더 정확하다는 결론으로 확정.</li>
+      </ul>
+    </div>
+  </div>
+
 </div>
 
 <div class="chapter" id="ch32">
@@ -8743,22 +8776,23 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
       <div>
         <div style="color:#06b6d4;font-size:0.75rem;font-weight:700;margin-bottom:8px">이민우</div>
         <div style="display:flex;flex-direction:column;gap:6px;color:#94a3b8;line-height:1.6">
-          <div>☐ MLP 헤드 교체 후 CL·FPE 비교 실험</div>
-          <div>☐ 현재 모델 실제 시행 성공률 테스트</div>
-          <div>☐ 의자 포함 오브젝트 2개·태스크 2개 추가 수집·학습</div>
-          <div>☐ 가까워졌을 때 STOP 처리 방안 확인</div>
-          <div>☐ GitHub 일지 정리 + 논문 제출 준비</div>
-          <div>☐ 허지욱 교수님 논문 지원·Flow Matching 포함 제출 요청</div>
+          <div>✅ MLP 헤드 교체 후 CL·FPE 비교 실험 — <a href="#ch33" style="color:#7dd3fc">CH33~35</a>(96.6%) 및 <a href="#ch43" style="color:#7dd3fc">CH43</a>(LSTM 추가 비교)에서 완료</div>
+          <div>🔄 현재 모델 실제 시행 성공률 테스트 — <code>robot_tests.html</code> 실사 세션 존재, 문서 내 최종 성공률 수치는 별도 확인 필요</div>
+          <div>🔄 의자 포함 오브젝트 2개·태스크 2개 추가 수집·학습 — V5-2 chair 데이터셋(<code>gen_chair_pg2_annotation.py</code>) 수집 확인, "태스크 2개" 학습 완료 여부는 미확인</div>
+          <div>🔄 가까워졌을 때 STOP 처리 방안 확인 — 알고리즘적으로는 <a href="#ch37" style="color:#7dd3fc">CH37</a>에서 깊게 분석됨(override 없는 게 최선). 단 실거리(cm) 캘리브레이션은 <a href="#ch44" style="color:#7dd3fc">CH44-3</a>에서 여전히 미해결로 명시됨</div>
+          <div>❓ GitHub 일지 정리 + 논문 제출 준비 — <code>devlog.html</code> 존재, 완료 여부는 문서로 확인 불가</div>
+          <div>❓ 허지욱 교수님 논문 지원·Flow Matching 포함 제출 요청 — 외부 요청, 문서로 확인 불가</div>
         </div>
       </div>
       <div>
         <div style="color:#a78bfa;font-size:0.75rem;font-weight:700;margin-bottom:8px">교수님</div>
         <div style="display:flex;flex-direction:column;gap:6px;color:#94a3b8;line-height:1.6">
-          <div>☐ 다음 주 미팅 일정 확인 (목·금)</div>
-          <div>☐ 논문 헤드 교체·수정 후 제출 일정 조율</div>
+          <div>✅ 다음 주 미팅 일정 확인 — 이번 주(<a href="#weekly-meeting" style="color:#7dd3fc">2026-06-22 미팅</a>)로 이어짐</div>
+          <div>❓ 논문 헤드 교체·수정 후 제출 일정 조율 — 문서로 확인 불가</div>
         </div>
       </div>
     </div>
+    <div style="margin-top:12px;font-size:0.74rem;color:#64748b">범례: ✅ 완료(근거 있음) · 🔄 부분/진행 중 · ❓ 문서로 확인 불가 · ☐ 미착수. 이후 새 CH가 채워질 때마다 이 표를 갱신.</div>
   </div>
 </div>
 
@@ -11695,6 +11729,21 @@ graph TD
         재발 방지용 체크리스트 5종(latency/drift/continuity/resize/grounding)을 만들어 GB10·soda 양쪽에 배포함 —
         <a href="https://github.com/minuum/MoNaVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a>
       </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#f59e0b">📋 6/22 미팅 투두 — 이번 주 새로 열린 항목(다음 CH로 갱신될 것)</div>
+    <div class="finding-body">
+      <ul style="margin-left:18px;line-height:2">
+        <li>✅ "4초" 원인 규명 — 누적 드리프트로 확정(<a href="#ch44" style="color:#7dd3fc">CH44-2</a>)</li>
+        <li>✅ 학습/추론 리사이즈 명시적 통일 — soda 배포·검증 완료(<a href="#ch44" style="color:#7dd3fc">CH44-1</a>)</li>
+        <li>☐ <strong>STOP 거리 40~50cm 캘리브레이션</strong> — 실측 데이터(거리별 area) 필요, 미착수(<a href="#ch44" style="color:#7dd3fc">CH44-3</a>)</li>
+        <li>☐ <strong>그라운딩/인식 품질 개선</strong> — CH41이 가장 강한 factor로 지목, 구체 작업 미착수</li>
+        <li>☐ <strong>LSTM+hidden state 조합 closed-loop 확대 검증</strong> — val 29개로는 SR 변별 안 됨(<a href="#ch43" style="color:#7dd3fc">CH43-2c</a>), 더 큰 표본 필요</li>
+        <li>☐ <strong>카메라 실시간 캡처 vs h5 저장 이미지 픽셀 비교</strong> — 해상도는 같다고 확인됐지만 화질/색공간 차이는 미확인(<a href="#ch44" style="color:#7dd3fc">CH44-1</a>)</li>
+      </ul>
+      <div style="margin-top:10px;font-size:0.74rem;color:#64748b">범례: ✅ 완료 · 🔄 부분/진행 중 · ❓ 확인 불가 · ☐ 미착수. 이후 CH45+가 채워지면 이 표를 다시 업데이트.</div>
     </div>
   </div>
 
