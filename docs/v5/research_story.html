@@ -11362,6 +11362,31 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">43-2c. PM 96.85%가 실주행(closed-loop)으로 이어지는가? — SR은 동일, FPE는 개선</div>
+    <div class="finding-body">
+      CH40에서 본 "PM은 오르는데 SR은 안 따라온다"는 패턴이 LSTM에서도 재현되는지 직접 확인했다(사용자 요청,
+      <code>scripts/eval/closed_loop_eval_lstm.py</code>, override 없이 argmax 그대로, val 29개 에피소드).
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">LSTM 변형</th><th style="padding:6px;color:#7dd3fc">SR</th><th style="padding:6px;color:#7dd3fc">FPE</th><th style="padding:6px;color:#7dd3fc">TLD</th><th style="padding:6px;color:#7dd3fc">PM(참고)</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">none</td><td style="padding:6px;text-align:center;font-weight:700">96.6%</td><td style="padding:6px;text-align:center">0.101m</td><td style="padding:6px;text-align:center">0.994</td><td style="padding:6px;text-align:center;color:#94a3b8">95.87%</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>add</strong></td><td style="padding:6px;text-align:center;font-weight:700">96.6%</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">0.086m ← 최저</td><td style="padding:6px;text-align:center">0.993</td><td style="padding:6px;text-align:center;color:#94a3b8">96.85%</td></tr>
+            <tr><td style="padding:6px">replace</td><td style="padding:6px;text-align:center;font-weight:700">96.6%</td><td style="padding:6px;text-align:center">0.099m</td><td style="padding:6px;text-align:center">1.003</td><td style="padding:6px;text-align:center;color:#94a3b8">95.47%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#fbbf24">솔직한 결과:</strong> SR(성공/실패 이진 판정)은 세 변형 다 <strong>96.6%로 동일</strong> —
+        CH40의 "PM↑인데 SR은 안 따라온다"는 패턴이 LSTM에서도 재현됐다(val 29개·success 임계값 0.5m 안에서 전부 이미
+        성공이라 이진 판정으로는 차이가 안 보임, 천장효과). 다만 <strong style="color:#86efac">연속값 지표인 FPE는 add가
+        확실히 가장 낮다</strong>(0.086m, none 대비 약 15% 개선) — PM 96.85%가 의미 없는 숫자는 아니고,
+        <strong>성공 판정 임계값 안에서의 경로 정밀도 개선</strong>으로 실제 나타난다는 게 정확한 해석이다.
+      </div>
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
     <div class="finding-title" style="color:#7dd3fc">43-3. 종합(업데이트) — factor 순위 재정리: head 구조(LSTM) > 차원 > 그라운딩 > hidden state 유무</div>
     <div class="finding-body">
