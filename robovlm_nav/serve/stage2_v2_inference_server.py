@@ -57,6 +57,8 @@ from fastapi import FastAPI, HTTPException, Header
 from PIL import Image
 from pydantic import BaseModel
 
+from robovlm_nav.image_preprocess import resize_for_vlm
+
 import re
 
 try:
@@ -243,6 +245,7 @@ class Stage1Encoder(nn.Module):
     @torch.no_grad()
     def encode_image(self, pil_image: Image.Image) -> torch.Tensor:
         """PIL RGB → (256,) float32 L2-normalized tensor on device."""
+        pil_image = resize_for_vlm(pil_image)
         inputs = self.processor(images=pil_image, return_tensors="pt")
         pv = inputs["pixel_values"].to(self._device, dtype=torch.float16)
         out = self.vision_model(pixel_values=pv)
@@ -285,6 +288,7 @@ class Grounder:
         """Run Kosmos-2 grounding → {'cx', 'cy', 'area', 'has_bbox'}."""
         self._ensure_full_model(vlm_path or Path(str(DEFAULT_VLM)))
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+        pil = resize_for_vlm(pil)
         inputs = self._processor(text=GROUNDING_PROMPT, images=pil, return_tensors="pt")
         inputs = {k: v.to(self._device) for k, v in inputs.items()}
         pixel_values = inputs["pixel_values"].to(torch.float16)
@@ -359,6 +363,7 @@ class PG2Grounder:
         """
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+        pil = resize_for_vlm(pil)
         inp = self._proc(text=f"detect {phrase}", images=pil, return_tensors="pt").to(self._device)
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
         hidden_vec = None
@@ -939,6 +944,7 @@ async def ground_debug(
         grounder._ensure_loaded()
     image_rgb = m._decode_image(request.image)
     pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+    pil = resize_for_vlm(pil)
     prompt = request.prompt or "detect gray basket"
     inp = grounder._proc(text=prompt, images=pil, return_tensors="pt").to(grounder._device)
     inp["pixel_values"] = inp["pixel_values"].to(grounder._dtype)

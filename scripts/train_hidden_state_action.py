@@ -34,6 +34,8 @@ from sklearn.model_selection import StratifiedShuffleSplit
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from robovlm_nav.image_preprocess import resize_for_vlm  # noqa: E402
+
 VLM_PATH     = ROOT / ".vlms" / "kosmos-2-patch14-224"
 DATA_PATH    = ROOT / "docs" / "v5" / "bbox_nav_exp46" / "bbox_dataset_full.json"
 STAGE1_V2    = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
@@ -107,10 +109,11 @@ def load_images(h5_path, indices):
         for i in indices:
             raw = imgs_ds[i]
             if hasattr(raw, "dtype") and raw.dtype != object and raw.ndim >= 2:
-                result.append(Image.fromarray(raw.astype("uint8")))
+                img = Image.fromarray(raw.astype("uint8"))
             else:
                 arr = np.frombuffer(bytes(raw), dtype=np.uint8)
-                result.append(Image.open(_io.BytesIO(arr)).convert("RGB"))
+                img = Image.open(_io.BytesIO(arr)).convert("RGB")
+            result.append(resize_for_vlm(img))
         return result
 
 
