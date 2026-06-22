@@ -65,9 +65,10 @@
         <tr><td>3. 왜 안 됐나?</td><td>CH41</td><td class="warn">그라운딩 품질이 더 강한 factor — has_bbox=False 오류율 3~5배</td><td>7%→40%</td></tr>
         <tr><td>4. 텍스트 명령은?</td><td>CH42</td><td class="bad">거짓 prompt도 이미지 신호를 못 흔듦 — 명령은 안 통함</td><td>89.5~92.3% 안정</td></tr>
         <tr><td>5. 차원을 줄이면?</td><td>CH43</td><td class="key">예 — proj_dim=32에서 baseline을 처음 넘음</td><td>94.29% (+2.75%p)</td></tr>
+        <tr><td>6. head 구조를 LSTM으로 바꾸면?</td><td>CH43-2b</td><td class="key">예 — hidden state 없이도 이미 압도, 있으면 전체 최고</td><td>95.87%(none) / 96.85%(add)</td></tr>
       </tbody>
     </table>
-    <div class="note">표 전체가 "어떤 factor가 진짜 핵심인가"를 좁혀가는 과정 — head 구조보다 ① 그라운딩 품질 ② hidden state 차원이 더 강한 factor였다.</div>
+    <div class="note">표 전체가 "어떤 factor가 진짜 핵심인가"를 좁혀가는 과정 — 최종 결론: <strong style="color:#86efac">head 구조(LSTM)</strong>가 가장 강한 factor, 그 다음이 hidden state 차원·그라운딩 품질.</div>
   </div>
 
   <!-- A. CH41 그라운딩 품질 -->
@@ -81,10 +82,17 @@
         <tr><td>replace(hidden 원시)</td><td class="key">11.9%</td><td class="bad">40.0%</td><td>0.208</td><td>0.309</td></tr>
       </tbody>
     </table>
+    <div style="color:#94a3b8;font-size:0.82rem;margin-bottom:10px">9개 path_type 전부에서 대표 프레임 — 이미지 안에 pred/gt/has_bbox/area/cx/cy 직접 표기, 파란 박스=실제 bbox(근사), 테두리=빨강(오예측)/초록(정답).</div>
     <div class="grid3">
-      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples/no_bbox_error.png" alt="no bbox error"><div class="imgcap">has_bbox=False → 오예측(FORWARD vs 정답 FWD+R)</div></div>
-      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples/small_bbox_error.png" alt="small bbox error"><div class="imgcap">area=0.027(작음) → 오예측(LEFT vs 정답 FORWARD)</div></div>
-      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples/large_bbox_correct.png" alt="large bbox correct"><div class="imgcap">area=0.605(큼) → 정답(FWD+L)</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/center_straight.png" alt="center_straight"><div class="imgcap">center_straight — area 작음 → 오예측</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/center_left.png" alt="center_left"><div class="imgcap">center_left — area 작음 → 오예측</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/center_right.png" alt="center_right"><div class="imgcap">center_right — area 큼인데도 오예측(예외)</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/left_straight.png" alt="left_straight"><div class="imgcap">left_straight — area 작음 → 오예측</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/left_left.png" alt="left_left"><div class="imgcap">left_left — area 작음 → 오예측</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/left_right.png" alt="left_right"><div class="imgcap">left_right — area 작음 → 오예측</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/right_straight.png" alt="right_straight"><div class="imgcap">right_straight — area 작음 → 오예측</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/right_left.png" alt="right_left"><div class="imgcap">right_left — area 큼 → 정답(유일)</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples_v2/right_right.png" alt="right_right"><div class="imgcap">right_right — has_bbox=False → 오예측</div></div>
     </div>
   </div>
 
@@ -117,7 +125,7 @@
   </div>
 
   <!-- D. CH43 차원축소+head ablation -->
-  <h2><span class="badge" style="background:#14b8a6;color:#0a0f1a">D</span> 차원축소 + head ablation — 14개 조합 (CH43)</h2>
+  <h2><span class="badge" style="background:#14b8a6;color:#0a0f1a">D</span> 차원축소 + head ablation(MLP/LSTM 포함) — 17개 조합 (CH43)</h2>
   <div class="card">
     <div style="color:#7dd3fc;font-weight:700;font-size:0.9rem;margin-bottom:8px">D-1. Projection 차원 ablation (head=mlp 고정)</div>
     <table style="margin-bottom:20px">
@@ -130,27 +138,38 @@
       </tbody>
     </table>
     <div style="color:#7dd3fc;font-weight:700;font-size:0.9rem;margin-bottom:8px">D-2. Head 구조 ablation (proj_dim=32 고정)</div>
-    <table>
+    <table style="margin-bottom:20px">
       <thead><tr><th>head</th><th>add</th><th>replace</th></tr></thead>
       <tbody>
         <tr><td>linear</td><td>91.34%</td><td>90.55%</td></tr>
         <tr><td>mlp</td><td>93.70%</td><td>92.72%</td></tr>
-        <tr style="background:#021c0c"><td><strong>fc</strong></td><td class="key">93.90%</td><td class="key">94.09% ← 최고</td></tr>
+        <tr><td><strong>fc</strong></td><td class="key">93.90%</td><td class="key">94.09%</td></tr>
       </tbody>
     </table>
-    <div class="note">기준선(window=8, bbox+image만): <strong style="color:#e2e8f0">91.54%</strong>. proj_dim이 작을수록(32) 일관되게 좋고, 14개 조합 중 다수가 기준선을 +2~3%p 상회.</div>
+    <div style="color:#7dd3fc;font-weight:700;font-size:0.9rem;margin-bottom:8px">D-3. RoboVLMs LSTM head 추가(사용자 요청) — 전체 최고</div>
+    <table>
+      <thead><tr><th>LSTM 변형</th><th>val PM</th></tr></thead>
+      <tbody>
+        <tr><td>LSTM, hidden state 없음</td><td class="key">95.87%</td></tr>
+        <tr style="background:#021c0c"><td><strong>LSTM + hidden(add)</strong></td><td class="key" style="font-weight:900">96.85% ← 전체 최고</td></tr>
+        <tr><td>LSTM + hidden(replace)</td><td class="key">95.47%</td></tr>
+      </tbody>
+    </table>
+    <div class="note">기준선(window=8, bbox+image만, MLP): <strong style="color:#e2e8f0">91.54%</strong>. <strong class="bad">중요:</strong> LSTM은 hidden state 없이도(95.87%) 이미 모든 MLP+hidden state 조합(최고 94.09%)을 넘는다 — head 구조(시퀀스 모델링)가 hidden state 추가보다 더 강한 factor.</div>
   </div>
 
   <!-- E. 종합 -->
-  <h2><span class="badge" style="background:#fbbf24;color:#0a0f1a">E</span> 종합 — 어떤 factor가 진짜 핵심인가</h2>
+  <h2><span class="badge" style="background:#fbbf24;color:#0a0f1a">E</span> 종합 — 어떤 factor가 진짜 핵심인가 (최종 순위)</h2>
   <div class="card">
     <ol style="margin-left:20px;line-height:1.9">
-      <li><strong class="key">그라운딩 품질</strong> — 가장 강한 단일 factor. has_bbox 유무로 오류율 3~5배 차이(CH41).</li>
+      <li><strong class="key">head 구조(LSTM vs MLP)</strong> — 가장 강력. hidden state 없이도 baseline 대비 +4.3%p(91.54%→95.87%, CH43-2b).</li>
       <li><strong class="key">hidden state 차원</strong> — 2304차원 원시값은 오히려 해롭고, 32차원으로 줄이면 baseline을 넘김(CH43-1).</li>
-      <li><strong class="warn">head 구조</strong> — FC가 근소 우위지만 차원축소보다 영향이 작음(CH43-2).</li>
+      <li><strong class="warn">그라운딩 품질</strong> — has_bbox 유무로 오류율 3~5배 차이(CH41), head 구조와 독립적으로 작용.</li>
+      <li><strong class="warn">hidden state 유무(LSTM 위에서)</strong> — LSTM+hidden(add)이 LSTM-none보다 +0.98%p 추가 개선.</li>
       <li><strong class="bad">텍스트 명령(prompt)</strong> — 거의 영향 없음, 이미지 신호가 항상 압도(CH42).</li>
     </ol>
-    <div class="note" style="margin-top:14px">다음 단계: proj_dim을 16/8까지 더 줄여 한계 탐색, fc+replace+proj32 조합 closed-loop 평가, CH41 그라운딩 개선과 병행 진행.</div>
+    <div class="note" style="margin-top:14px">처음 가설(hidden state가 핵심)과 달리, 실제 가장 큰 차이를 만든 건 <strong>시퀀스 정보를 쓰는 head 구조</strong>였다 — MLP는 윈도우 히스토리를 flat하게 펴서 시간 순서를 버리는데 LSTM은 그걸 그대로 활용한다.<br>
+    다음 단계: LSTM+hidden(add)+proj32(96.85%)를 closed-loop으로 평가, CH41 그라운딩 개선과 병행 진행.</div>
   </div>
 
   <div style="text-align:center;margin-top:40px;padding:24px;background:var(--surface,#0a1628);border-radius:14px;border:1px solid #1e3a5f">
