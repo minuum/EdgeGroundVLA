@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hidden State Action Head Hub — MoNaVLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#070d1a; color:#e2e8f0; font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:40px 24px 80px; }
+  .hero { text-align:center; padding:48px 24px; background:linear-gradient(135deg,#0a1628,#0f172a); border-radius:18px; border:1px solid #1e3a5f; margin-bottom:32px; }
+  .hero h1 { font-size:2rem; font-weight:900; background:linear-gradient(90deg,#86efac,#7dd3fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
+  .hero p { color:#94a3b8; font-size:1rem; max-width:760px; margin:0 auto; }
+  .back { display:inline-block; margin-bottom:20px; color:#7dd3fc; text-decoration:none; font-size:0.85rem; }
+  h2 { font-size:1.3rem; font-weight:800; margin:36px 0 16px; color:#e2e8f0; display:flex; align-items:center; gap:10px; }
+  .badge { font-size:0.7rem; font-weight:900; padding:3px 10px; border-radius:6px; }
+  .card { background:#0a1628; border:1px solid #1e3a5f; border-radius:14px; padding:22px; margin-bottom:18px; }
+  table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+  th,td { padding:9px 12px; text-align:center; }
+  th { color:#7dd3fc; border-bottom:1px solid #1e3a5f; }
+  td:first-child,th:first-child { text-align:left; }
+  tr { border-bottom:1px solid #0f1e35; }
+  img { width:100%; border-radius:10px; border:1px solid #1e3a5f; margin-top:8px; }
+  .note { color:#64748b; font-size:0.76rem; margin-top:8px; }
+  .key { color:#86efac; font-weight:700; } .bad { color:#fca5a5; font-weight:700; } .warn { color:#fbbf24; font-weight:700; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .imgcell { background:#0f172a; border-radius:8px; padding:10px; }
+  .imgcap { font-size:0.74rem; color:#94a3b8; margin-top:6px; }
+  .chip { display:inline-block; padding:4px 10px; border-radius:6px; font-size:0.72rem; font-weight:700; margin-right:6px; }
+  @media(max-width:760px){ .grid2,.grid3{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="research_story.html">← 연구 히스토리로</a>
+
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px">
+    <span style="font-size:0.78rem;color:#64748b;align-self:center;margin-right:4px">빠른 이동 →</span>
+    <a href="research_story.html#ch39" style="padding:6px 14px;background:#0a1628;border:1px solid #166534;border-radius:8px;font-size:0.78rem;color:#86efac;text-decoration:none">CH39 probe 90%</a>
+    <a href="research_story.html#ch40" style="padding:6px 14px;background:#0a1628;border:1px solid #7f1d1d;border-radius:8px;font-size:0.78rem;color:#f87171;text-decoration:none">CH40 정정</a>
+    <a href="research_story.html#ch41" style="padding:6px 14px;background:#0a1628;border:1px solid #166534;border-radius:8px;font-size:0.78rem;color:#86efac;text-decoration:none">CH41 그라운딩 품질</a>
+    <a href="research_story.html#ch42" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">CH42 거짓 prompt</a>
+    <a href="research_story.html#ch43" style="padding:6px 14px;background:#0a1628;border:1px solid #166534;border-radius:8px;font-size:0.78rem;color:#86efac;text-decoration:none">CH43 차원축소+head</a>
+    <a href="grounding_hub.html" style="padding:6px 14px;background:#0a1628;border:1px solid #0ea5e9;border-radius:8px;font-size:0.78rem;color:#7dd3fc;text-decoration:none">🎯 Grounding Hub</a>
+  </div>
+
+  <div class="hero">
+    <h1>🧠 Hidden State Action Head Hub</h1>
+    <p>PG2 hidden state로 action head를 재학습하는 실험 전체(CH39~43)를 한 페이지에 모았다.<br>
+    <span style="font-size:0.85rem;color:#64748b">probe 검증 → 실패(착시 발견·정정) → 원인 진단(그라운딩) → 재시도(차원축소) → 성공, 까지의 전체 흐름.</span></p>
+  </div>
+
+  <!-- 0. 핵심 결론 한눈에 -->
+  <h2><span class="badge" style="background:#0ea5e9;color:#0a0f1a">0</span> 핵심 결론 한눈에</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>단계</th><th>챕터</th><th>결론</th><th>수치</th></tr></thead>
+      <tbody>
+        <tr><td>1. 신호가 있는가?</td><td>CH39 Step B</td><td class="key">예 — frozen probe로 방향 신호 확인</td><td>90.0~99.1%</td></tr>
+        <tr><td>2. 원시 그대로 쓰면?</td><td>CH40</td><td class="bad">아니오 — 처음엔 +13%p로 보였으나 비교 오류, 정정 후 효과 없음</td><td>89.76% vs 89.17%/87.80%</td></tr>
+        <tr><td>3. 왜 안 됐나?</td><td>CH41</td><td class="warn">그라운딩 품질이 더 강한 factor — has_bbox=False 오류율 3~5배</td><td>7%→40%</td></tr>
+        <tr><td>4. 텍스트 명령은?</td><td>CH42</td><td class="bad">거짓 prompt도 이미지 신호를 못 흔듦 — 명령은 안 통함</td><td>89.5~92.3% 안정</td></tr>
+        <tr><td>5. 차원을 줄이면?</td><td>CH43</td><td class="key">예 — proj_dim=32에서 baseline을 처음 넘음</td><td>94.29% (+2.75%p)</td></tr>
+      </tbody>
+    </table>
+    <div class="note">표 전체가 "어떤 factor가 진짜 핵심인가"를 좁혀가는 과정 — head 구조보다 ① 그라운딩 품질 ② hidden state 차원이 더 강한 factor였다.</div>
+  </div>
+
+  <!-- A. CH41 그라운딩 품질 -->
+  <h2><span class="badge" style="background:#22c55e;color:#0a0f1a">A</span> 그라운딩 품질이 핵심이다 (CH41)</h2>
+  <div class="card">
+    <table style="margin-bottom:16px">
+      <thead><tr><th>모드</th><th>has_bbox=True 오류율</th><th>has_bbox=False 오류율</th><th>area(오류)</th><th>area(정답)</th></tr></thead>
+      <tbody>
+        <tr><td>baseline</td><td class="key">7.4%</td><td class="bad">40.0%</td><td>0.151</td><td>0.308</td></tr>
+        <tr><td>add(hidden 원시)</td><td class="key">10.7%</td><td class="warn">20.0%</td><td>0.243</td><td>0.303</td></tr>
+        <tr><td>replace(hidden 원시)</td><td class="key">11.9%</td><td class="bad">40.0%</td><td>0.208</td><td>0.309</td></tr>
+      </tbody>
+    </table>
+    <div class="grid3">
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples/no_bbox_error.png" alt="no bbox error"><div class="imgcap">has_bbox=False → 오예측(FORWARD vs 정답 FWD+R)</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples/small_bbox_error.png" alt="small bbox error"><div class="imgcap">area=0.027(작음) → 오예측(LEFT vs 정답 FORWARD)</div></div>
+      <div class="imgcell"><img src="closed_loop_eval/grounding_quality_examples/large_bbox_correct.png" alt="large bbox correct"><div class="imgcap">area=0.605(큼) → 정답(FWD+L)</div></div>
+    </div>
+  </div>
+
+  <!-- B. CH40 정정 스토리 -->
+  <h2><span class="badge" style="background:#ef4444;color:#fff">B</span> "+13%p 개선"은 착시였다 — 정정 과정 (CH40)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>비교 방식</th><th>baseline</th><th>add</th><th>replace</th></tr></thead>
+      <tbody>
+        <tr><td class="bad">최초(옛 참고 수치로 비교)</td><td>75.9% <span class="note">(하드코딩된 참고 문자열, 실측 아님)</span></td><td class="key">89.2% (+13.3%p)</td><td class="key">87.8% (+11.9%p)</td></tr>
+        <tr><td class="key">정정(같은 코드로 baseline 재학습)</td><td class="key">89.76%</td><td>89.17% (-0.6%p)</td><td>87.80% (-2.0%p)</td></tr>
+      </tbody>
+    </table>
+    <div class="note">교훈: 새 변형을 비교할 땐 baseline도 반드시 같은 코드/같은 split으로 재측정해야 한다 — 옛 기록값을 그대로 쓰면 착시가 생긴다.</div>
+  </div>
+
+  <!-- C. CH42 텍스트 vs 이미지 -->
+  <h2><span class="badge" style="background:#a78bfa;color:#0a0f1a">C</span> 텍스트 명령 vs 이미지 신호 (CH42)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>probe</th><th>길이 다름(42-1)</th><th>길이 동일(42-2)</th></tr></thead>
+      <tbody>
+        <tr><td>이미지 방향 vs P0(중립)</td><td>90.0%</td><td>90.0%</td></tr>
+        <tr><td>이미지 방향 vs P1("left"로 고정)</td><td>92.3%</td><td>89.5%</td></tr>
+        <tr><td>이미지 방향 vs P2("right"로 고정)</td><td>91.8%</td><td>90.5%</td></tr>
+        <tr><td>prompt 종류 자체 구분</td><td class="warn">99.2%</td><td class="warn">99.5%</td></tr>
+      </tbody>
+    </table>
+    <div class="note">prompt가 거짓 방향을 우겨도 이미지 신호 인식은 89~92%로 안정 — "무엇을 보는가"는 이미지가 결정, "어느 쪽으로 가라"는 명령은 안 통함(CH38-5와 일치).</div>
+  </div>
+
+  <!-- D. CH43 차원축소+head ablation -->
+  <h2><span class="badge" style="background:#14b8a6;color:#0a0f1a">D</span> 차원축소 + head ablation — 14개 조합 (CH43)</h2>
+  <div class="card">
+    <div style="color:#7dd3fc;font-weight:700;font-size:0.9rem;margin-bottom:8px">D-1. Projection 차원 ablation (head=mlp 고정)</div>
+    <table style="margin-bottom:20px">
+      <thead><tr><th>proj_dim</th><th>add</th><th>replace</th></tr></thead>
+      <tbody>
+        <tr style="background:#021c0c"><td><strong>32</strong></td><td class="key">94.29%</td><td class="key">93.31%</td></tr>
+        <tr><td>64</td><td>91.34%</td><td>91.34%</td></tr>
+        <tr><td>128</td><td>90.35%</td><td>90.35%</td></tr>
+        <tr><td>256</td><td>89.76%</td><td>88.58%</td></tr>
+      </tbody>
+    </table>
+    <div style="color:#7dd3fc;font-weight:700;font-size:0.9rem;margin-bottom:8px">D-2. Head 구조 ablation (proj_dim=32 고정)</div>
+    <table>
+      <thead><tr><th>head</th><th>add</th><th>replace</th></tr></thead>
+      <tbody>
+        <tr><td>linear</td><td>91.34%</td><td>90.55%</td></tr>
+        <tr><td>mlp</td><td>93.70%</td><td>92.72%</td></tr>
+        <tr style="background:#021c0c"><td><strong>fc</strong></td><td class="key">93.90%</td><td class="key">94.09% ← 최고</td></tr>
+      </tbody>
+    </table>
+    <div class="note">기준선(window=8, bbox+image만): <strong style="color:#e2e8f0">91.54%</strong>. proj_dim이 작을수록(32) 일관되게 좋고, 14개 조합 중 다수가 기준선을 +2~3%p 상회.</div>
+  </div>
+
+  <!-- E. 종합 -->
+  <h2><span class="badge" style="background:#fbbf24;color:#0a0f1a">E</span> 종합 — 어떤 factor가 진짜 핵심인가</h2>
+  <div class="card">
+    <ol style="margin-left:20px;line-height:1.9">
+      <li><strong class="key">그라운딩 품질</strong> — 가장 강한 단일 factor. has_bbox 유무로 오류율 3~5배 차이(CH41).</li>
+      <li><strong class="key">hidden state 차원</strong> — 2304차원 원시값은 오히려 해롭고, 32차원으로 줄이면 baseline을 넘김(CH43-1).</li>
+      <li><strong class="warn">head 구조</strong> — FC가 근소 우위지만 차원축소보다 영향이 작음(CH43-2).</li>
+      <li><strong class="bad">텍스트 명령(prompt)</strong> — 거의 영향 없음, 이미지 신호가 항상 압도(CH42).</li>
+    </ol>
+    <div class="note" style="margin-top:14px">다음 단계: proj_dim을 16/8까지 더 줄여 한계 탐색, fc+replace+proj32 조합 closed-loop 평가, CH41 그라운딩 개선과 병행 진행.</div>
+  </div>
+
+  <div style="text-align:center;margin-top:40px;padding:24px;background:var(--surface,#0a1628);border-radius:14px;border:1px solid #1e3a5f">
+    <a href="research_story.html" style="color:#7dd3fc;text-decoration:none;font-weight:700">← 연구 히스토리 전체로 돌아가기</a>
+  </div>
+
+</div>
+</body>
+</html>
