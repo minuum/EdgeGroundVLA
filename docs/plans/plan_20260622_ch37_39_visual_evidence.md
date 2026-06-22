@@ -1,6 +1,6 @@
 # Plan — CH37~CH39에 실제 이미지/시각자료 보강
 
-> 작성: 2026-06-22 · 상태: **검토 대기 (승인 전 구현 금지)**
+> 작성: 2026-06-22 · 상태: **승인됨 — §1~3 구현·배포 완료, §4(CH37)는 보류**
 > 동기: 사용자 요청 — "CH37~CH39 브리핑에서 실제 테스트하고 검증한 이미지들을 새 분석을 나타낼 때마다 모두 보여줬으면 좋겠다. 전체 프레임 가로 스크롤, 방향신호 같은 건 플로우차트보다 실제 이미지 예시(선호)로."
 
 ---
@@ -59,7 +59,17 @@ soda 테스트 당시 이미지를 저장 안 해서 원본 캡처는 없음. �
 | `docs/v5/research_story.html` | CH38, CH39 본문에 `frame-strip` 이미지 블록 추가 (텍스트/표 구조는 유지, 이미지만 보강) |
 | `docs/v5/grounding_frames/` 또는 `test_images/` | 필요한 객체 사진이 없으면 1~2장 보강 (새 "데이터 수집"이 아니라 디버그용 단발 사진) |
 
-CH37은 §4에서 로깅 존재 여부 확인 후 사용자에게 진행 여부 재확인.
+CH37은 궤적 로깅이 없어 재실행 필요(§4) — 사용자 승인("다시 돌려바 해도대 ㄱㄱㄱ")
+받고 진행. `scripts/eval/visualize_stop_trajectories.py`(신규)가 기존 ckpt로 3개
+val 에피소드(center_straight/left_left/right_right)만 재추론해 V0 vs V1 궤적을
+matplotlib으로 그림(5-seed 풀 재집계 아님, 새 학습 없음) → `docs/v5/closed_loop_eval/trajectory_examples/*.png`.
+CH37 L1 표 바로 아래에 frame-strip-scroll로 삽입 완료.
+
+### 완료 기준 갱신
+- [x] §1 CH38 이미지 임베드
+- [x] §2 CH39-1 bbox 이미지
+- [x] §3 CH39-2 방향 예시 프레임
+- [x] §4 CH37 궤적 시각화 (3개 예시 episode 재추론)
 
 ---
 
