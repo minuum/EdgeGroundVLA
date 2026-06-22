@@ -282,7 +282,8 @@
     <a class="toc-item" href="#ch36" data-target="ch36"><span class="toc-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">CH 36</span><span class="toc-label">6/12 미팅 — 실사 테스트·논문 제출 결정</span></a>
     <a class="toc-item" href="#ch37" data-target="ch37"><span class="toc-badge" style="background:rgba(251,146,60,0.15);color:#fb923c">CH 37</span><span class="toc-label">STOP Mechanism Ablation — override 없는 게 최선 (3-Layer 분석)</span></a>
     <a class="toc-item" href="#ch38" data-target="ch38"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 38</span><span class="toc-label">VLA에 가장 가깝게 — π0/TinyVLA/SmolVLA/RoboVLMs 비교</span></a>
-    <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%) ★NEW</span></a>
+    <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%)</span></a>
+    <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 40</span><span class="toc-label">hidden state로 action head 재학습 — PM +13%p, SR은 천장효과 ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -10152,6 +10153,89 @@ graph TD
   </div>
 </div>
 
+<hr class="chapter-divider">
+<div class="chapter" id="ch40">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 40</span>
+    <h2 class="chapter-title">T2 본 구현 — action head에 PG2 hidden state 추가, 실제로 재학습해봤다</h2>
+    <p class="chapter-subtitle">CH39 Step B(probe 90%)의 다음 단계: bbox 좌표 대신/추가로 hidden state를 넣어 head만 재학습 — 새 데이터 수집 없음</p>
+  </div>
+
+  <p class="chapter-desc">
+    CH39에서 "PG2 hidden state에 방향 신호가 있다"는 걸 frozen probe로만 확인했다. 이번엔 실제로 action head 입력에
+    hidden state를 추가/대체해서 <strong>head만 재학습</strong>(VLM 전부 frozen, 새 데이터 수집 없음, 기존 150개 에피소드의
+    동일 train/val split 재사용)하고, PM과 closed-loop 양쪽으로 baseline(Exp54 Step2)과 비교했다.
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">40-1. PM(프레임 정확도) — 두 변형 모두 baseline 대비 크게 상승</div>
+    <div class="finding-body">
+      <code>add</code>: 기존 288차원(bbox 32 + image 256)에 hidden state 2304차원을 <strong>추가</strong>(2592차원).
+      <code>replace</code>: bbox 32차원을 제거하고 image 256 + hidden 2304(2560차원)로 <strong>대체</strong>.
+      hidden state는 미리 추출해 캐시한 값(<code>scripts/eval/extract_v5_hidden_states_full.py</code>, 147/150 에피소드·2572프레임,
+      GB10에서 9.6분)을 그대로 로드만 — 학습 중 PG2 재추론 없음.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">변형</th><th style="padding:6px;color:#7dd3fc">입력 차원</th><th style="padding:6px;color:#7dd3fc">val PM</th><th style="padding:6px;color:#7dd3fc">baseline 대비</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">baseline(bbox+image)</td><td style="padding:6px;text-align:center">288</td><td style="padding:6px;text-align:center">75.9%</td><td style="padding:6px;text-align:center">—</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px"><strong>add(bbox+image+hidden)</strong></td><td style="padding:6px;text-align:center">2592</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">89.2%</td><td style="padding:6px;text-align:center;color:#4ade80">+13.3%p</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px">replace(image+hidden)</td><td style="padding:6px;text-align:center">2560</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">87.8%</td><td style="padding:6px;text-align:center;color:#4ade80">+11.9%p</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        bbox 좌표를 완전히 빼도(<code>replace</code>) baseline보다 훨씬 높다 — hidden state 혼자서도 bbox+image 조합보다 나은 표현력.
+        다만 bbox를 같이 쓰는 <code>add</code>가 근소하게 더 높아, 두 정보가 완전히 중복되진 않는다.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">40-2. Closed-loop SR — PM 상승이 그대로 옮겨지지 않음</div>
+    <div class="finding-body">
+      CH37 결론(STOP override 없는 게 최선)에 맞춰 <strong>override 없이</strong> 모델 argmax 그대로 trajectory를 만들어
+      비교했다(<code>scripts/eval/closed_loop_eval_hidden_state.py</code>, val 29개 에피소드, 동일 seed=42 split).
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">변형</th><th style="padding:6px;color:#7dd3fc">SR</th><th style="padding:6px;color:#7dd3fc">FPE</th><th style="padding:6px;color:#7dd3fc">TLD</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">baseline(bbox+image)</td><td style="padding:6px;text-align:center;font-weight:700">96.6%</td><td style="padding:6px;text-align:center">0.110m</td><td style="padding:6px;text-align:center">1.008</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">add(bbox+image+hidden)</td><td style="padding:6px;text-align:center;font-weight:700;color:#fbbf24">93.1%</td><td style="padding:6px;text-align:center">0.172m</td><td style="padding:6px;text-align:center">1.017</td></tr>
+            <tr><td style="padding:6px">replace(image+hidden)</td><td style="padding:6px;text-align:center;font-weight:700">96.6%</td><td style="padding:6px;text-align:center">0.171m</td><td style="padding:6px;text-align:center">1.025</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#fbbf24">솔직한 결과:</strong> PM이 75.9%→89%로 크게 올랐는데 closed-loop SR은 그대로(replace)이거나
+        오히려 살짝 낮다(add, -3.5%p). 원인 추정: 이 eval 방식(override 없음)에서는 baseline부터 이미 96.6%로
+        <strong>천장에 가깝다</strong>(val 29개 에피소드라 표본도 작음) — 늘어난 프레임 정확도가 FORWARD-dominant 구간의
+        미세한 차이라서 에피소드 단위 성공/실패(이진 판정)에는 거의 영향을 못 준 것으로 보인다.
+        과장하지 않고 그대로 적는다: <strong>"PM은 확실히 좋아졌지만, 이 작은 val set·이 success 기준에서는 SR로 이어지지 않았다."</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#94a3b8">40-3. 종합 — T2는 "표현 레벨"에서는 확인됐지만 "행동 레벨" 이득은 아직 불확실</div>
+    <div class="finding-body">
+      CH39 Step B(probe 90%) → CH40(PM +13%p)까지는 가설이 일관되게 들어맞았다. hidden state는 분명 bbox보다
+      풍부한 정보를 담고 있고, 그게 frame 단위 분류 정확도로 실제 전이됐다. 그런데 <strong>"분류가 더 정확해지면 주행도
+      더 잘하는가"</strong>는 이번 작은 val set에서는 검증되지 않았다 — SR이 천장 근처라 변별력이 부족했을 가능성이 크다.
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">다음 단계(범위 밖):</strong> (1) val set을 늘리거나(현재 150개 중 29개뿐) 더 어려운
+        path_type만 따로 떼어 SR 변별력을 높여서 재평가, (2) 실제 로봇에서 직접 비교(오프라인 kinematic 시뮬레이션의
+        success 기준 자체가 너무 느슨할 수 있음), (3) closed-loop 중 누적 오차가 큰 long-horizon 에피소드에 집중해서
+        차이가 드러나는지 확인 — 모두 새 데이터 수집 없이 기존 자산으로 가능.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260622_hidden_state_action_head.md &nbsp;|&nbsp; 2026-06-22
+  </div>
+</div>
+
 <!-- ══ SUMMARY ══ -->
 <hr class="chapter-divider">
 <div class="chapter" id="summary" style="padding-bottom:80px">
@@ -10793,7 +10877,7 @@ graph TD
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
