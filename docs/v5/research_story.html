@@ -11132,9 +11132,16 @@ graph TD
         </table>
       </div>
       <div style="margin-top:14px;font-size:0.85rem;color:#e2e8f0">
-        <strong>9개 path_type 전부에서</strong> 대표 프레임 1장씩 뽑아 직접 확인했다 — 이미지 안에 <strong>pred/gt/has_bbox/area/cx/cy를
-        그대로 표기</strong>(탭이나 별도 텍스트 없이), 파란 박스=실제 bbox(cx,cy,area로 복원한 근사 정사각형 — 데이터셋에 x1/y1/x2/y2가
-        없어 area로 정사각형 가정), 테두리 색=빨강(오예측)/초록(정답).
+        <strong>9개 path_type 전부에서</strong> 대표 프레임 1장씩 뽑아 직접 확인했다 — 탭이나 별도 텍스트 없이 이미지 안에
+        직접 표기했고, <strong>두 가지를 색으로 명확히 분리</strong>했다(헷갈리기 쉬운 부분):
+        <ul style="margin:8px 0 0 20px;line-height:1.7">
+          <li><strong style="color:#2dd4bf">청록 박스 = 그라운딩 입력</strong> — 이 한 프레임에서 PG2가 찾은 bbox를 cx/cy/area로
+          근사 복원한 것(정사각형 가정, 데이터셋에 x1/y1/x2/y2가 없어서). <strong>이건 "예측"이 아니라 그 프레임의 원본 입력값이다.</strong></li>
+          <li><strong style="color:#facc15">빨강/노랑 테두리 = 액션 예측 결과</strong> — action head가 내놓은 최종 행동(pred)이
+          정답(gt)과 맞았는지. 이건 <strong>이 한 장의 박스만 보고 정해지는 게 아니라 8프레임 윈도우 전체</strong>를 써서 나온
+          결과라, "박스가 멀쩡해 보이는데 왜 틀렸지?"라는 질문이 생길 수 있다 — 답은 "이 프레임 박스 하나가 아니라 과거 7프레임까지
+          합쳐서 판단했기 때문"이다.</li>
+        </ul>
       </div>
       <div class="img-grid-3" style="margin-top:10px">
         <div><img src="closed_loop_eval/grounding_quality_examples_v2/center_straight.png" alt="center_straight"><div class="imgcap">center_straight — area=0.027(작음) → 오예측</div></div>

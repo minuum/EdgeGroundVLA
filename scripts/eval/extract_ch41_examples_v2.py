@@ -46,35 +46,46 @@ def find_h5(stem: str) -> Path:
 
 
 def draw_overlay(img: Image.Image, rec: dict, path_type: str) -> Image.Image:
+    """
+    두 가지를 명확히 분리해서 그린다 — 헷갈리기 쉬운 부분(사용자 지적):
+    1) 청록 박스 = 이 프레임의 그라운딩 결과(입력값) — cx/cy/area로 근사 복원한 추정 박스일 뿐,
+       모델이 "예측"한 행동과는 무관함.
+    2) 노랑/빨강 모서리 라벨 = 액션 분류기(action head)의 출력 — 8프레임 윈도우 전체를 써서 나온
+       결과라 이 한 장의 박스 품질과 1:1로 대응하지 않음.
+    """
     img = img.copy()
     w, h = img.size
     draw = ImageDraw.Draw(img)
 
     is_error = bool(rec["error"])
-    border_color = (239, 68, 68) if is_error else (74, 222, 128)  # red / green
-    draw.rectangle([0, 0, w - 1, h - 1], outline=border_color, width=8)
 
     if rec["has_bbox"]:
-        # 데이터셋엔 x1/y1/x2/y2가 없고 cx,cy,area만 있음 — 정사각형 가정으로 근사 복원
+        # 데이터셋엔 x1/y1/x2/y2가 없고 cx,cy,area만 있음 — 정사각형 가정으로 근사 복원(추정값)
         side = np.sqrt(rec["area"])
         cx, cy = rec["cx"], rec["cy"]
         x1 = (cx - side / 2) * w
         x2 = (cx + side / 2) * w
         y1 = (cy - side / 2) * h
         y2 = (cy + side / 2) * h
-        draw.rectangle([x1, y1, x2, y2], outline=(96, 165, 250), width=4)  # blue-ish box
+        draw.rectangle([x1, y1, x2, y2], outline=(45, 212, 191), width=4)  # teal = 그라운딩(입력)
+        draw.text((x1 + 4, max(0, y1 - 18)), "그라운딩(근사 추정)", fill=(45, 212, 191))
+
+    # 액션 예측 결과는 별도 색(빨강/노랑)으로 — 그라운딩 박스(청록)와 절대 혼동되지 않게
+    pred_color = (239, 68, 68) if is_error else (250, 204, 21)
+    draw.rectangle([0, 0, w - 1, h - 1], outline=pred_color, width=6)
 
     label = CLASS_NAMES[rec["pred"]]
     gt = CLASS_NAMES[rec["gt"]]
     lines = [
         f"path_type={path_type}  t={rec['t']}",
-        f"pred={label}  gt={gt}  {'(오예측)' if is_error else '(정답)'}",
-        f"has_bbox={rec['has_bbox']}  area={rec['area']:.4f}  cx={rec['cx']:.3f}  cy={rec['cy']:.3f}",
+        f"[그라운딩·입력] has_bbox={rec['has_bbox']}  area={rec['area']:.4f}  cx={rec['cx']:.3f}  cy={rec['cy']:.3f}",
+        f"[액션 예측·출력, 8프레임 윈도우 사용] pred={label}  gt={gt}  {'<- 오예측' if is_error else '<- 정답'}",
     ]
+    line_colors = [(255, 255, 255), (45, 212, 191), pred_color]
     bar_h = 18 * len(lines) + 10
     draw.rectangle([8, h - bar_h - 8, w - 8, h - 8], fill=(0, 0, 0))
     for i, line in enumerate(lines):
-        draw.text((14, h - bar_h + i * 18), line, fill=(255, 255, 255))
+        draw.text((14, h - bar_h + i * 18), line, fill=line_colors[i])
     return img
 
 
