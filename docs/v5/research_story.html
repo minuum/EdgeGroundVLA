@@ -7823,6 +7823,826 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 
 </div>
 
+<hr class="chapter-divider">
+<!-- ══ CH33 ══ -->
+<div class="chapter" id="ch33">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#22c55e;color:#0a0f1a">CHAPTER 33</span>
+    <h2 class="chapter-title">파이프라인이 범인이었다 — CL 성능 격차의 진짜 원인 규명 (exp65~66)</h2>
+  </div>
+
+  <!-- 결론 요약 배너 -->
+  <div style="background:#052e16;border:1px solid #16632a;border-radius:12px;padding:18px 22px;margin-bottom:24px">
+    <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">✅ 핵심 결론 (2026-06-12)</div>
+    <div style="font-size:0.9rem;color:#bbf7d0;line-height:1.9">
+      base PG2 cx를 <strong>올바른 파이프라인(L2-norm + 증강)</strong>에 연결하면 HSV cx와 동일한 <strong>96.6% CL</strong>을 달성한다.<br>
+      exp65b(10.3%)와의 격차는 cx 소스가 아니라 <strong>학습 파이프라인 차이</strong>에서 비롯됐다.
+    </div>
+  </div>
+
+  <!-- 배경: 왜 의문이 생겼나 -->
+  <div style="margin-bottom:28px">
+    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">배경 — "그라운딩 품질과 CL이 대응되지 않는다"</h3>
+    <div style="font-size:0.88rem;color:#cbd5e1;line-height:1.85">
+      CH32까지의 결론은 <em>"base PG2 cx로 Stage2를 학습하면 CL이 망한다"</em>였다(exp65b 10.3%). 그런데 base PG2 grounding 품질은 hit 97%, full-frame 0%, cx_std 0.056으로 exp59(full-frame 6~22%, cx_std 0.159)보다 오히려 <strong>더 깔끔했다</strong>. 품질이 더 좋은데 CL이 더 낮다는 역설이 발생했다.
+      <br><br>
+      의심스러운 두 가지 교란:
+      <ul style="margin:8px 0 0 16px;line-height:2">
+        <li><strong>학습 데이터 크기:</strong> exp60/65b는 150 ep 기준이었지만 exp54는 더 많은 에피소드</li>
+        <li><strong>학습 파이프라인:</strong> exp54(<code>train_exp54_stage2_v2_action.py</code>)는 exp60/65b와 <em>다른</em> 스크립트</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 파이프라인 차이 해부 -->
+  <div style="margin-bottom:28px">
+    <h3 style="color:#fbbf24;font-size:1rem;margin-bottom:12px">파이프라인 차이 해부</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.82rem">
+      <div style="background:#1a0d00;border:1px solid #78350f;border-radius:10px;padding:14px">
+        <div style="color:#fbbf24;font-weight:700;margin-bottom:8px">exp60/65b 파이프라인 (단순 MLP)</div>
+        <div style="color:#fde68a;line-height:1.8">
+          • 이미지 피처: 그대로 사용<br>
+          • bbox feat: cx/cy/area/detected 그대로<br>
+          • 증강: 없음<br>
+          • L2 정규화: 없음
+        </div>
+      </div>
+      <div style="background:#052e16;border:1px solid #16632a;border-radius:10px;padding:14px">
+        <div style="color:#4ade80;font-weight:700;margin-bottom:8px">exp54 파이프라인 (L2 + 증강)</div>
+        <div style="color:#bbf7d0;line-height:1.8">
+          • 이미지 피처: <code>F.normalize(..., dim=-1)</code><br>
+          • bbox feat: PG2 분포 모사 노이즈 주입<br>
+          • 증강: <code>--augment</code> flag<br>
+          • 통계 기반: <code>exp60_bbox_offset_stats.json</code>
+        </div>
+      </div>
+    </div>
+    <div style="background:#0a1628;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:0.82rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#e2e8f0">L2-norm의 역할:</strong> 이미지 피처 크기(scale)가 방향(direction)보다 분류에 과대 영향을 미치는 것을 차단. 유사도 기반 분류에서 표준적으로 쓰이는 안정화 기법.<br>
+      <strong style="color:#e2e8f0">bbox 증강의 역할:</strong> PG2 grounding의 실제 cx 분포(offset 노이즈, miss 확률)를 학습 데이터에 반영 → 추론 시 실제 PG2 출력과 분포 정합.
+    </div>
+  </div>
+
+  <!-- 통제 실험 설계 -->
+  <div style="margin-bottom:28px">
+    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">통제 실험 설계</h3>
+    <div style="font-size:0.85rem;color:#cbd5e1;line-height:1.8;margin-bottom:12px">
+      파이프라인 교란을 제거하기 위해 cx 소스만 바꾸고 나머지는 완전 동일하게 고정:
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <tr style="background:#1e293b;color:#94a3b8">
+        <th style="padding:8px 12px;text-align:left;border-radius:6px 0 0 0">실험</th>
+        <th style="padding:8px 12px;text-align:center">cx 소스</th>
+        <th style="padding:8px 12px;text-align:center">파이프라인</th>
+        <th style="padding:8px 12px;text-align:center">학습 데이터</th>
+        <th style="padding:8px 12px;text-align:center;border-radius:0 6px 0 0">CL 데이터</th>
+      </tr>
+      <tr style="background:#0f172a;border-bottom:1px solid #1e293b">
+        <td style="padding:8px 12px;color:#7dd3fc">exp54 (기준)</td>
+        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">HSV</td>
+        <td style="padding:8px 12px;text-align:center;color:#4ade80">L2 + aug</td>
+        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">bbox_nav_exp46</td>
+        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">HSV 벤치마크</td>
+      </tr>
+      <tr style="background:#0a0f1a;border-bottom:1px solid #1e293b">
+        <td style="padding:8px 12px;color:#f87171">exp65b (비교)</td>
+        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">base PG2</td>
+        <td style="padding:8px 12px;text-align:center;color:#ef4444">단순 MLP</td>
+        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">243 ep</td>
+        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">base PG2 cx</td>
+      </tr>
+      <tr style="background:#0f172a">
+        <td style="padding:8px 12px;color:#4ade80;font-weight:700">exp66 (핵심 통제)</td>
+        <td style="padding:8px 12px;text-align:center;color:#4ade80">base PG2</td>
+        <td style="padding:8px 12px;text-align:center;color:#4ade80">L2 + aug</td>
+        <td style="padding:8px 12px;text-align:center;color:#4ade80">cl_data_base_pg2</td>
+        <td style="padding:8px 12px;text-align:center;color:#4ade80">base PG2 cx</td>
+      </tr>
+    </table>
+    <div style="font-size:0.78rem;color:#64748b;margin-top:6px">
+      * CL 데이터는 <code>build_cl_cx_variants.py</code>로 생성 — 동일 150 ep, 동일 stratified split(seed=42), cx만 소스별 교체
+    </div>
+  </div>
+
+  <!-- 결과 비교 -->
+  <div style="margin-bottom:28px">
+    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">결과</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-bottom:14px">
+      <tr style="background:#1e293b;color:#94a3b8">
+        <th style="padding:10px 14px;text-align:left">실험</th>
+        <th style="padding:10px 14px;text-align:center">cx 소스</th>
+        <th style="padding:10px 14px;text-align:center">파이프라인</th>
+        <th style="padding:10px 14px;text-align:center">val_acc</th>
+        <th style="padding:10px 14px;text-align:center">CL 성공률</th>
+        <th style="padding:10px 14px;text-align:center">평균 FPE</th>
+      </tr>
+      <tr style="background:#0f172a;border-bottom:1px solid #1e293b">
+        <td style="padding:10px 14px;color:#7dd3fc">exp54 (참고)</td>
+        <td style="padding:10px 14px;text-align:center;color:#94a3b8">HSV</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">L2 + aug</td>
+        <td style="padding:10px 14px;text-align:center;color:#cbd5e1">92.6%</td>
+        <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
+        <td style="padding:10px 14px;text-align:center;color:#cbd5e1">0.09m</td>
+      </tr>
+      <tr style="background:#0a0f1a;border-bottom:1px solid #1e293b">
+        <td style="padding:10px 14px;color:#f87171">exp65b (대조)</td>
+        <td style="padding:10px 14px;text-align:center;color:#94a3b8">base PG2</td>
+        <td style="padding:10px 14px;text-align:center;color:#ef4444">단순 MLP</td>
+        <td style="padding:10px 14px;text-align:center;color:#cbd5e1">90.2%</td>
+        <td style="padding:10px 14px;text-align:center;font-weight:700;color:#ef4444">10.3%</td>
+        <td style="padding:10px 14px;text-align:center;color:#94a3b8">—</td>
+      </tr>
+      <tr style="background:#0f172a;border-bottom:1px solid #1e293b">
+        <td style="padding:10px 14px;color:#4ade80;font-weight:700">exp66 ✅</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">base PG2</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">L2 + aug</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">93.5%</td>
+        <td style="padding:10px 14px;text-align:center;font-weight:700;font-size:1.05rem;color:#4ade80">96.6%</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">0.10m</td>
+      </tr>
+      <tr style="background:#052e16;border:2px solid #16632a">
+        <td style="padding:10px 14px;color:#4ade80;font-weight:700">exp67 ✅</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">exp59 LoRA</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">L2 + aug</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">94.5%</td>
+        <td style="padding:10px 14px;text-align:center;font-weight:700;font-size:1.05rem;color:#4ade80">96.6%</td>
+        <td style="padding:10px 14px;text-align:center;color:#4ade80">0.11m</td>
+      </tr>
+    </table>
+    <div style="background:#1a1a00;border:1px solid #854d0e;border-radius:8px;padding:12px 14px;font-size:0.83rem;color:#fde68a;line-height:1.7">
+      <strong>핵심 관찰:</strong> exp66(base PG2)과 exp67(exp59 LoRA)이 동일한 96.6%에 수렴. cx 소스를 바꿔도 CL 결과가 변하지 않는다.
+      right_right 경로만 공통으로 2/3(67%) — cx 소스와 무관한 경로 고유 난이도.
+    </div>
+  </div>
+
+  <!-- 해석 -->
+  <div style="margin-bottom:28px">
+    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">해석</h3>
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:0.85rem">
+      <div style="background:#0c1f3f;border-left:3px solid #3b82f6;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+        <strong style="color:#93c5fd">1. cx 소스는 CL 성능에 영향을 주지 않는다 — 실험으로 확정</strong><br>
+        base PG2(exp66) vs exp59 LoRA(exp67) 모두 96.6%. 심지어 HSV(exp54)도 96.6%. cx의 품질(hit률, full-frame 여부, std)이 다름에도 CL 결과가 동일 → <em>현재 파이프라인 구조에서 cx 소스는 병목이 아니다.</em>
+      </div>
+      <div style="background:#1a0d00;border-left:3px solid #f59e0b;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+        <strong style="color:#fcd34d">2. L2-norm + bbox 증강이 유일한 성능 결정 요소</strong><br>
+        동일 cx 소스(base PG2)에서 파이프라인만 바꿨을 때 10.3% → 96.6%(×9.4). L2 정규화와 PG2 분포 모사 증강이 없으면 MLP가 실 환경 bbox 노이즈에 취약. <em>파이프라인이 cx보다 훨씬 중요한 변수였다.</em>
+      </div>
+      <div style="background:#1a0010;border-left:3px solid #ec4899;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+        <strong style="color:#f9a8d4">3. LoRA grounding 개선이 action 성능에 기여하지 않는다</strong><br>
+        exp59 LoRA는 full-frame 붕괴·실환경 취약 등 grounding 품질 문제가 있음에도 exp66과 CL 동일. 즉 <em>grounding LoRA를 개선해도 현재 decomposition 구조에서 action 성능은 올라가지 않는다.</em> 연구 방향 설정에 중요한 음성 결과.
+      </div>
+      <div style="background:#0f2a1a;border-left:3px solid #22c55e;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+        <strong style="color:#86efac">4. "단일 프레임 그라운딩 품질 ≠ 궤적 액션 성능"의 실제 의미</strong><br>
+        CH32의 이 명제는 반만 맞았다. 원인은 두 가지: (a) 파이프라인 교란(exp65b), (b) 실험으로 확인된 cx 소스 무관성(exp66/67). 올바른 파이프라인 아래서는 <em>어떤 cx 소스를 써도</em> 96.6%에 수렴 — grounding 정확도가 action 성능의 상한을 이미 초과해 있거나, cx 신호가 포화(saturation) 상태일 가능성.
+      </div>
+    </div>
+  </div>
+
+  <!-- 이후 할 일 -->
+  <div style="background:#1e293b;border-radius:12px;padding:18px 22px">
+    <div style="color:#94a3b8;font-size:0.82rem;font-weight:700;margin-bottom:12px">다음 스텝</div>
+    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
+      <span style="color:#4ade80">✅</span> exp65b — base PG2 cx + 단순 MLP = 10.3% (파이프라인 취약 확인)<br>
+      <span style="color:#4ade80">✅</span> exp66 — base PG2 cx + L2+aug = 96.6% (파이프라인이 원인 확정)<br>
+      <span style="color:#4ade80">✅</span> exp67 — exp59 LoRA cx + L2+aug = 96.6% (cx 소스 무관성 확정)<br>
+      <span style="color:#fbbf24">⏳</span> 의자(chair) 데이터 수집 (350~500 ep, 33/33/33 좌/직/우) — 로봇 시간 필요<br>
+      <span style="color:#94a3b8">🔲</span> 의자 데이터로 Stage2 재학습 + CL 평가<br>
+      <span style="color:#94a3b8">🔲</span> 논문 Table 1 확정 (exp65b/exp66/exp67 ablation 3행)
+    </div>
+  </div>
+</div>
+
+<!-- ══ CH34 ══ -->
+<div class="chapter" id="ch34">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#8b5cf6;color:#fff">CH 34</span>
+    <h2 class="chapter-title">RoboVLMs Action Head Ablation — LSTM vs MLP (exp68~70)</h2>
+  </div>
+
+  <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:0.85rem;color:#c4b5fd;line-height:1.8">
+    <strong>연구 질문:</strong> RoboVLMs의 action head (LSTM, FCDecoder 등)를 Stage2에 직접 적용하면 성능이 달라지는가?
+    파이프라인·cx 소스 고정, head 구조만 변경하는 4-way ablation.
+  </div>
+
+  <!-- 결과 테이블 -->
+  <div style="margin-bottom:24px">
+    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">실험 결과</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
+      <thead>
+        <tr style="background:#1e293b">
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8">exp</th>
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8">Head</th>
+          <th style="padding:10px 14px;text-align:left;color:#94a3b8">원형</th>
+          <th style="padding:10px 14px;text-align:center;color:#94a3b8">val_acc</th>
+          <th style="padding:10px 14px;text-align:center;color:#94a3b8">CL ↑</th>
+          <th style="padding:10px 14px;text-align:center;color:#94a3b8">FPE ↓</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:1px solid #1e293b">
+          <td style="padding:10px 14px;color:#94a3b8">exp68</td>
+          <td style="padding:10px 14px;color:#e2e8f0">Linear</td>
+          <td style="padding:10px 14px;color:#94a3b8">1-layer FC</td>
+          <td style="padding:10px 14px;text-align:center;color:#f87171">76.8%</td>
+          <td style="padding:10px 14px;text-align:center;color:#f87171">69.0%</td>
+          <td style="padding:10px 14px;text-align:center;color:#f87171">0.377m</td>
+        </tr>
+        <tr style="border-top:1px solid #1e293b;background:#0f172a">
+          <td style="padding:10px 14px;color:#94a3b8">exp69</td>
+          <td style="padding:10px 14px;color:#e2e8f0">FCHead</td>
+          <td style="padding:10px 14px;color:#94a3b8">RoboVLMs FCDecoder (deep MLP)</td>
+          <td style="padding:10px 14px;text-align:center;color:#fbbf24">95.3%</td>
+          <td style="padding:10px 14px;text-align:center;color:#fbbf24">93.1%</td>
+          <td style="padding:10px 14px;text-align:center;color:#fbbf24">0.109m</td>
+        </tr>
+        <tr style="border-top:1px solid #1e293b">
+          <td style="padding:10px 14px;color:#94a3b8">exp70</td>
+          <td style="padding:10px 14px;font-weight:700;color:#a78bfa">LSTMHead</td>
+          <td style="padding:10px 14px;color:#94a3b8">RoboVLMs MobileVLAClassificationDecoder</td>
+          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">95.7%</td>
+          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
+          <td style="padding:10px 14px;text-align:center;color:#4ade80">0.112m</td>
+        </tr>
+        <tr style="border-top:1px solid #1e293b;background:#0a1628">
+          <td style="padding:10px 14px;color:#94a3b8">exp54</td>
+          <td style="padding:10px 14px;font-weight:700;color:#38bdf8">ActionMLP (ours)</td>
+          <td style="padding:10px 14px;color:#94a3b8">— (baseline)</td>
+          <td style="padding:10px 14px;text-align:center;color:#38bdf8">92.6%</td>
+          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
+          <td style="padding:10px 14px;text-align:center;color:#4ade80">0.110m</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 해석 -->
+  <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:0.85rem;margin-bottom:24px">
+    <div style="background:#1a0d3a;border-left:3px solid #8b5cf6;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+      <strong style="color:#c4b5fd">1. LSTM = ActionMLP — 96.6% 동일</strong><br>
+      RoboVLMs의 LSTM 기반 decoder(MobileVLAClassificationDecoder 구조)가 우리 ActionMLP와 동일한 96.6% CL 달성.
+      <em>Window-baked flat input이 sequential LSTM과 등가임을 실험으로 확인.</em>
+      우리 MLP는 LSTM보다 파라미터 적고 추론 더 빠르다.
+    </div>
+    <div style="background:#1a1200;border-left:3px solid #f59e0b;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+      <strong style="color:#fcd34d">2. FCHead 93.1% — depth는 필요, temporal은 optional</strong><br>
+      Deep MLP(no temporal)로도 93.1% 달성. 단순 linear(69%)보다 훨씬 높다.
+      <em>작업의 복잡도가 단순 선형 분리를 초과함을 확인.</em>
+      하지만 temporal context(LSTM/window) 없이는 96.6%까지 오르지 못한다 → bbox window가 중요.
+    </div>
+    <div style="background:#1a0000;border-left:3px solid #ef4444;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
+      <strong style="color:#fca5a5">3. Linear 69% — temporal 없으면 한계 명확</strong><br>
+      1-layer linear는 각 timestep을 독립적으로만 봄. 69% CL — Stage2의 task가 temporal 맥락을 필요로 함을 재확인.
+    </div>
+  </div>
+
+  <!-- RoboVLMs 기여 클레임 -->
+  <div style="background:#0d2818;border:1px solid #166534;border-radius:12px;padding:18px 22px;margin-bottom:20px">
+    <div style="color:#4ade80;font-size:0.85rem;font-weight:700;margin-bottom:10px">RoboVLMs 기여 클레임 정리</div>
+    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
+      <span style="color:#4ade80">①</span> Kosmos-2 (RoboVLMs) backbone → Stage1 grounding encoder로 활용<br>
+      <span style="color:#4ade80">②</span> RoboVLMs E2E (MobileVLAClassificationDecoder) → 0% CL baseline 제공 → decomposition 필요성 증명<br>
+      <span style="color:#4ade80">③</span> lora_B=0 구조적 버그 발견 (forward_continuous에서 gradient 단절)<br>
+      <span style="color:#4ade80">④</span> <strong>LSTM vs MLP head 비교 (이번)</strong> → window-flattened MLP가 RoboVLMs LSTM과 동등·더 경량 → 설계 검증
+    </div>
+  </div>
+
+  <!-- 다음 스텝 -->
+  <div style="background:#1e293b;border-radius:12px;padding:18px 22px">
+    <div style="color:#94a3b8;font-size:0.82rem;font-weight:700;margin-bottom:12px">다음 스텝</div>
+    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
+      <span style="color:#4ade80">✅</span> exp68 linear — 69.0% CL<br>
+      <span style="color:#4ade80">✅</span> exp69 FCHead — 93.1% CL<br>
+      <span style="color:#4ade80">✅</span> exp70 LSTMHead — 96.6% CL (RoboVLMs LSTM과 비교 완료)<br>
+      <span style="color:#fbbf24">⏳</span> 의자(chair) 데이터 수집 (좌/우 에피소드 추가 필요)<br>
+      <span style="color:#94a3b8">🔲</span> 논문 Table 2-C 확정 후 제출 준비
+    </div>
+  </div>
+</div>
+
+<!-- ══ 미팅 준비 — 추천 동선 & 자료 ══ -->
+<div class="chapter" id="meeting-guide" style="padding-bottom:100px">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#ef4444;color:#fff">MEETING</span>
+    <h2 class="chapter-title">미팅 준비 — 추천 읽기 순서 & 자료 링크</h2>
+  </div>
+
+  <!-- ── 날짜 배지 ── -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <span style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 14px;font-size:0.78rem;color:#94a3b8">마지막 업데이트</span>
+    <span style="background:#0d2818;border:1px solid #166534;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:#4ade80">2026-06-12</span>
+    <span style="color:#64748b;font-size:0.78rem">window ablation 완료 (CH35) · head ablation (CH34) · 파이프라인 원인 확정 (CH33)</span>
+  </div>
+
+  <!-- ── 핵심 숫자 3개 ── -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">
+    <div style="background:#0d2818;border:1px solid #166534;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.8rem;font-weight:900;color:#4ade80">96.6%</div>
+      <div style="font-size:0.78rem;color:#86efac;margin-top:4px">Closed-Loop 성공률</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">exp54/66/67/70 공통</div>
+    </div>
+    <div style="background:#1a0a00;border:1px solid #7c2d12;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.8rem;font-weight:900;color:#f97316">0%</div>
+      <div style="font-size:0.78rem;color:#fdba74;margin-top:4px">E2E VLA (Exp11) CL</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">text attn=0%, lora_B=0 버그</div>
+    </div>
+    <div style="background:#0c1f3f;border:1px solid #1e3a5f;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.8rem;font-weight:900;color:#38bdf8">×9.4</div>
+      <div style="font-size:0.78rem;color:#7dd3fc;margin-top:4px">파이프라인 효과</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">10.3% → 96.6%</div>
+    </div>
+  </div>
+
+  <!-- ── 6/12 핵심 발견 링크 ── -->
+  <div style="background:#1a0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:20px;margin-bottom:16px">
+    <div style="color:#fca5a5;font-size:0.85rem;font-weight:700;margin-bottom:14px">⚡ 교수님 미팅 동선 (2026-06-12 기준)</div>
+    <ol style="margin:0;padding-left:20px;font-size:0.85rem;color:#cbd5e1;line-height:2.3">
+      <li>
+        <a href="#ch33" style="color:#4ade80;font-weight:700">CH33 — 파이프라인이 범인 (exp65~67)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — cx 소스 무관, L2+aug가 유일 결정 요소. <strong style="color:#fbbf24">10.3% → 96.6% (×9.4)</strong></span>
+      </li>
+      <li>
+        <a href="#ch34" style="color:#a78bfa;font-weight:700">CH34 — RoboVLMs Head Ablation (exp68~70)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — LSTM = ActionMLP 96.6%. RoboVLMs 기여 클레임 4항목</span>
+      </li>
+      <li>
+        <a href="#ch35" style="color:#14b8a6;font-weight:700">CH35 — Window Size Ablation</a>
+        <span style="color:#64748b;font-size:0.8rem"> — MLP w≥4 포화. LSTM w=16 FPE 0.080m 최저. 성공률은 window-insensitive</span>
+      </li>
+      <li>
+        <a href="#ch29" style="color:#f87171;font-weight:700">CH29 — RoboVLMs 해부 (lora_B=0 버그 · text attn=0%)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — E2E 0% 원인. Google-robot post-training이 언어 경로 파괴</span>
+      </li>
+      <li>
+        <a href="#ch25" style="color:#7dd3fc;font-weight:700">CH25 — 학술 기여점 & 핵심 피처 5선</a>
+        <span style="color:#64748b;font-size:0.8rem"> — 논문 서술 포인트 정리</span>
+      </li>
+      <li>
+        <a href="#ch30" style="color:#7dd3fc;font-weight:700">CH30 — 의자 객체 전환 (chair 파이프라인)</a>
+        <span style="color:#64748b;font-size:0.8rem"> — 의자 grounding 100% hit. 좌/우 수집 후 재학습 예정</span>
+      </li>
+    </ol>
+  </div>
+
+  <!-- ── 별도 문서 링크 ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+    <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:16px">
+      <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:10px">📄 6/12 생성 문서</div>
+      <div style="font-size:0.82rem;line-height:2.1">
+        <a href="PROF_UPDATE_20260612_PIPELINE.md" style="color:#fbbf24;font-weight:700">▶ 교수님 업데이트 6/12</a> — 파이프라인 원인 확정 요약<br>
+        <a href="TABLE1_PAPER_DRAFT.md" style="color:#fbbf24;font-weight:700">▶ 논문 Table 초안</a> — Table 1/2A/2B/2C/3 전체<br>
+        <a href="../grounding_hub.html#section-f" style="color:#a78bfa">▶ Grounding Hub Section F</a> — Pipeline ablation 시각화<br>
+        <a href="../grounding_hub.html#section-g" style="color:#2dd4bf;font-weight:700">▶ Grounding Hub Section G</a> — Head &amp; Window Ablation 전체 결과
+      </div>
+    </div>
+    <div style="background:#0c1a0c;border:1px solid #1a3a1a;border-radius:12px;padding:16px">
+      <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">🔑 핵심 결론 (논문 서술용)</div>
+      <div style="font-size:0.81rem;line-height:2.1;color:#cbd5e1">
+        파이프라인(L2+aug) = 유일 결정 변수<br>
+        cx 소스(grounding 품질) = 무관<br>
+        LSTM ≡ ActionMLP (window-baked 등가)<br>
+        Decomposition: E2E 0% → 96.6%<br>
+        lora_B=0 구조적 버그 (RoboVLMs 발견)
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 배경 CH 링크 (여유시) ── -->
+  <div style="background:#0a1628;border-radius:8px;padding:14px 16px;font-size:0.82rem;color:#94a3b8;line-height:1.8;margin-bottom:16px">
+    <strong style="color:#e2e8f0">배경 이해 필요 시:</strong>
+    <a href="#ch10" style="color:#7dd3fc">CH10</a> 5/15 미팅·Exp54 설계 →
+    <a href="#ch11" style="color:#7dd3fc">CH11</a> 5/22 교수님 반박 3가지 →
+    <a href="#ch21" style="color:#7dd3fc">CH21</a> 전체 연구 흐름 요약 →
+    <a href="#ch32" style="color:#7dd3fc">CH32</a> LoRA 해부 →
+    <a href="#next-step" style="color:#7dd3fc">NEXT</a> 다음 방향
+  </div>
+
+  <!-- ── 남은 TODO ── -->
+  <div style="background:#1e293b;border-radius:10px;padding:16px;font-size:0.83rem;color:#cbd5e1;line-height:2.1">
+    <div style="color:#94a3b8;font-size:0.8rem;font-weight:700;margin-bottom:8px">현재 상태 / 남은 TODO</div>
+    <span style="color:#4ade80">✅</span> 파이프라인 원인 확정 (exp65~67) — CH33<br>
+    <span style="color:#4ade80">✅</span> RoboVLMs head ablation (exp68~70) — CH34, LSTM=MLP 확인<br>
+    <span style="color:#4ade80">✅</span> 의자 grounding 파이프라인 구축 (100% hit, 스크립트 완료)<br>
+    <span style="color:#fbbf24">⏳</span> 의자 좌/우 에피소드 수집 (현재 0ep/1ep → 목표 15+15ep)<br>
+    <span style="color:#94a3b8">🔲</span> 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)<br>
+    <span style="color:#94a3b8">🔲</span> 논문 최종 작성 (Table 1/2A/2B/2C/2D 확정 완료, 본문 서술 필요)
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     CH 35 — Window Size Ablation
+     ════════════════════════════════════════════════════════════════ -->
+<div class="chapter" id="ch35">
+  <div class="chapter-header" style="background:linear-gradient(135deg,#0f3d38 0%,#0f2d3a 100%);border-left:4px solid #14b8a6">
+    <div class="chapter-number" style="color:#14b8a6">CH 35</div>
+    <div class="chapter-title">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</div>
+    <div class="chapter-subtitle">파이프라인 고정(L2+aug), head별 window 크기 변화 실험</div>
+  </div>
+
+  <!-- 핵심 결과 배지 -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    <div style="background:#0c2b2b;border:1px solid #134e4a;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:900;color:#2dd4bf">w=4</div>
+      <div style="font-size:0.78rem;color:#5eead4;margin-top:4px">MLP 최소 필요 window</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">CL 96.6% 포화</div>
+    </div>
+    <div style="background:#0c1f3f;border:1px solid #1e3a5f;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:900;color:#38bdf8">0.080m</div>
+      <div style="font-size:0.78rem;color:#7dd3fc;margin-top:4px">LSTM w=16 최저 FPE</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">긴 시퀀스 활용</div>
+    </div>
+    <div style="background:#1a1000;border:1px solid #3a2500;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:900;color:#fbbf24">93.1%</div>
+      <div style="font-size:0.78rem;color:#fcd34d;margin-top:4px">MLP w=2 — 부족</div>
+      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">최근 2프레임 불충분</div>
+    </div>
+  </div>
+
+  <!-- 결과 테이블 -->
+  <div style="background:#0a1628;border:1px solid #1e3050;border-radius:12px;padding:20px;margin-bottom:20px">
+    <div style="color:#7dd3fc;font-size:0.85rem;font-weight:700;margin-bottom:14px">Table 2-D — Window Size Ablation 전체 결과</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.83rem">
+      <thead>
+        <tr style="border-bottom:1px solid #1e3050">
+          <th style="color:#94a3b8;padding:8px 12px;text-align:left">Head</th>
+          <th style="color:#94a3b8;padding:8px 12px;text-align:center">Window</th>
+          <th style="color:#94a3b8;padding:8px 12px;text-align:center">val_acc</th>
+          <th style="color:#94a3b8;padding:8px 12px;text-align:center">CL (↑)</th>
+          <th style="color:#94a3b8;padding:8px 12px;text-align:center">FPE (↓)</th>
+          <th style="color:#94a3b8;padding:8px 12px;text-align:left">비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #0f1f38">
+          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
+          <td style="color:#fbbf24;padding:8px 12px;text-align:center;font-weight:700">2</td>
+          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">94.88%</td>
+          <td style="color:#f87171;padding:8px 12px;text-align:center;font-weight:700">93.1%</td>
+          <td style="color:#f87171;padding:8px 12px;text-align:center">0.145m</td>
+          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">방향 파악 불충분</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f1f38;background:rgba(20,184,166,0.05)">
+          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
+          <td style="color:#2dd4bf;padding:8px 12px;text-align:center;font-weight:700">4 ★</td>
+          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">92.91%</td>
+          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
+          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">0.094m</td>
+          <td style="color:#2dd4bf;padding:8px 12px;font-size:0.8rem">MLP 최소 필요 window. FPE 최저</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f1f38">
+          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">8 (baseline)</td>
+          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">92.6%</td>
+          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.110m</td>
+          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">exp54 기본값</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f1f38">
+          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">16</td>
+          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">89.57%</td>
+          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.102m</td>
+          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">val_acc 하락, CL 유지</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f1f38">
+          <td style="color:#a78bfa;padding:8px 12px">LSTM</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">4</td>
+          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">95.08%</td>
+          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.123m</td>
+          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">—</td>
+        </tr>
+        <tr style="border-bottom:1px solid #0f1f38">
+          <td style="color:#a78bfa;padding:8px 12px">LSTM</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">8 (baseline)</td>
+          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">95.7%</td>
+          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
+          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.112m</td>
+          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">exp70 기본값</td>
+        </tr>
+        <tr>
+          <td style="color:#a78bfa;padding:8px 12px">LSTM</td>
+          <td style="color:#38bdf8;padding:8px 12px;text-align:center;font-weight:700">16 ★</td>
+          <td style="color:#38bdf8;padding:8px 12px;text-align:center;font-weight:700">96.85%</td>
+          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
+          <td style="color:#38bdf8;padding:8px 12px;text-align:center;font-weight:700">0.080m</td>
+          <td style="color:#38bdf8;padding:8px 12px;font-size:0.8rem">전체 최저 FPE. 긴 맥락 LSTM 강점</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 해석 -->
+  <div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:12px;padding:18px;margin-bottom:16px">
+    <div style="color:#4ade80;font-size:0.85rem;font-weight:700;margin-bottom:12px">🔍 핵심 해석</div>
+    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2.1">
+      <strong style="color:#2dd4bf">1. MLP: w≥4에서 CL 포화</strong> — w=2는 93.1%로 하락. 최소 4프레임 히스토리 필요.<br>
+      방향 전환(left/right) 판단에 <strong style="color:#fbbf24">적어도 4타임스텝</strong>의 bbox 이동 패턴이 필요.<br><br>
+      <strong style="color:#2dd4bf">2. MLP w=4가 FPE 최저(0.094m)</strong> — w=8(0.110m)보다 낮음.<br>
+      너무 긴 window는 MLP에 noise로 작용. flat concatenation의 한계.<br><br>
+      <strong style="color:#2dd4bf">3. LSTM: 모든 window에서 96.6% 유지, w=16에서 FPE 0.080m</strong><br>
+      LSTM은 긴 시퀀스를 선택적으로 활용 가능 → window 길수록 FPE 개선.<br><br>
+      <strong style="color:#2dd4bf">4. CL vs val_acc 해리</strong> — MLP w=16: val_acc 89.57%로 가장 낮지만 CL은 동일 96.6%.<br>
+      val_acc는 per-frame 분류 정확도. CL은 trajectory 누적 오차. 두 지표는 별개.
+    </div>
+  </div>
+
+  <!-- 결론 -->
+  <div style="background:#1a0d2e;border:1px solid #4c1d95;border-radius:12px;padding:18px;margin-bottom:16px">
+    <div style="color:#a78bfa;font-size:0.85rem;font-weight:700;margin-bottom:10px">📌 논문 서술용 결론</div>
+    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2.0">
+      MLP는 <strong style="color:#2dd4bf">w=4가 최소·최적</strong> (경량 배포 시 권장).<br>
+      LSTM은 <strong style="color:#38bdf8">w=16에서 최저 FPE 0.080m</strong> 달성 — temporal context가 풍부할수록 궤적 정밀도 향상.<br>
+      두 head 모두 CL 96.6% 동일 → <strong style="color:#fbbf24">성공률은 window-insensitive, FPE는 window-sensitive</strong>.
+    </div>
+  </div>
+
+  <!-- 관련 문서 링크 -->
+  <div style="margin-bottom:16px;padding:12px 16px;background:#0c2b2b;border:1px solid #14b8a6;border-radius:10px;font-size:0.83rem">
+    <span style="color:#2dd4bf;font-weight:700">→ </span>
+    <a href="../grounding_hub.html#section-g" style="color:#2dd4bf;font-weight:700">Grounding Hub §G</a> —
+    Head Ablation(CH34) + Window Ablation(CH35) 전체 결과 시각화 · 통합 비교표 포함
+  </div>
+
+  <!-- TODO 업데이트 -->
+  <div style="background:#1e293b;border-radius:10px;padding:16px;font-size:0.83rem;color:#cbd5e1;line-height:2.1">
+    <div style="color:#94a3b8;font-size:0.8rem;font-weight:700;margin-bottom:8px">현재 상태 / 남은 TODO</div>
+    <span style="color:#4ade80">✅</span> 파이프라인 원인 확정 (exp65~67) — CH33<br>
+    <span style="color:#4ade80">✅</span> RoboVLMs head ablation (exp68~70) — CH34, LSTM=MLP 확인<br>
+    <span style="color:#4ade80">✅</span> Window size ablation — CH35, MLP w≥4 포화·LSTM w=16 최저 FPE<br>
+    <span style="color:#4ade80">✅</span> Grounding Hub §G 연동 — CH34/35 전체 결과 통합 시각화<br>
+    <span style="color:#4ade80">✅</span> 의자 grounding 파이프라인 구축 (100% hit, 스크립트 완료)<br>
+    <span style="color:#fbbf24">⏳</span> 의자 좌/우 에피소드 수집 (현재 0ep/1ep → 목표 15+15ep)<br>
+    <span style="color:#94a3b8">🔲</span> 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)<br>
+    <span style="color:#94a3b8">🔲</span> 논문 최종 작성 (Table 1/2A/2B/2C/2D 확정 완료, 본문 서술 필요)
+  </div>
+</div>
+
+<script>
+(function() {
+  const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','next-step','summary'];
+  const items = document.querySelectorAll('.toc-item[data-target]');
+
+  function getActive() {
+    const mid = window.scrollY + window.innerHeight * 0.35;
+    let active = SECTIONS[0];
+    for (const id of SECTIONS) {
+      const el = document.getElementById(id);
+      if (el && el.getBoundingClientRect().top + window.scrollY <= mid) active = id;
+    }
+    return active;
+  }
+
+  function update() {
+    const active = getActive();
+    items.forEach(item => {
+      item.classList.toggle('active', item.dataset.target === active);
+    });
+  }
+
+  window.addEventListener('scroll', update, {passive: true});
+  update();
+
+  /* 클릭 시 패널 자동 닫기 (선택) */
+  items.forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('toc-panel').classList.remove('open');
+    });
+  });
+})();
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════
+     VIS — 시각 자료 모음 (논문 부록)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="chapter" id="vis" style="padding-bottom:80px">
+  <div class="chapter-header" style="background:linear-gradient(135deg,#1a0a0f 0%,#0a1628 100%);border-left:4px solid #fb7185">
+    <span class="chapter-num" style="background:#fb7185;color:#0a0f1a">VIS</span>
+    <div class="chapter-title">시각 자료 모음</div>
+    <div class="chapter-subtitle">로봇 · 아키텍처 · 결과 테이블 · 실험 증거</div>
+  </div>
+
+  <!-- A. 로봇 & 실험 환경 -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">A. 로봇 & 실험 환경</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="../SCR-20260609-oxdv.png" alt="Robot close-up" style="width:100%;display:block;object-fit:cover">
+        <div style="padding:10px 14px;font-size:0.8rem;color:#94a3b8">Fig A-1. 3축 옴니휠 로봇 (바스켓 포함). 카메라·컨트롤러·배터리 일체형.</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="../SCR-20260609-oxhg.png" alt="Robot on track" style="width:100%;display:block;object-fit:cover">
+        <div style="padding:10px 14px;font-size:0.8rem;color:#94a3b8">Fig A-2. 실험 트랙 전경. 테이프로 9가지 경로 설계, 150 에피소드 수집.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B. 시스템 아키텍처 -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">B. 시스템 아키텍처 — Decomposition Pipeline</div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;padding:16px">
+      <object data="portfolio/architecture_diagram.svg" type="image/svg+xml" style="width:100%;border-radius:8px;display:block">
+        <pre style="color:#94a3b8;font-size:0.8rem;line-height:1.9;margin:0">[RGB Frame 224×224]
+       ↓
+[Kosmos-2 Vision Encoder]  — frozen
+       ↓ 1024-dim
+[image_proj → 256-dim, L2-normalize]           ← Stage 1 (val acc 98.1%)
+       ↓
+[Concatenate 288-dim] ← BBox History ×8 (cx,cy,area,has_bbox) = 32-dim
+       ↓
+[ActionMLP: 256→128→64→8]                      ← Stage 2 (val acc 93.5%)
+       ↓
+[8 Actions: STOP / FORWARD / LEFT / RIGHT / FWD+L / FWD+R / ROT_L / ROT_R]</pre>
+      </object>
+      <div style="margin-top:8px;font-size:0.8rem;color:#94a3b8">Fig B-1. Stage2 v2 파이프라인. Kosmos-2 vision encoder frozen, image_proj + ActionMLP만 학습. BBox cx는 PaliGemma2 zero-shot grounding에서 추출.</div>
+    </div>
+  </div>
+
+  <!-- C. Main Results Table -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">C. Full Comparison — E2E VLA 전수 vs Decomposition</div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
+        <thead>
+          <tr style="background:#0f1e35;border-bottom:2px solid #1e3050">
+            <th style="padding:10px 14px;text-align:left;color:#94a3b8">카테고리</th>
+            <th style="padding:10px 14px;text-align:left;color:#94a3b8">Exp</th>
+            <th style="padding:10px 14px;text-align:left;color:#94a3b8">Architecture</th>
+            <th style="padding:10px 14px;text-align:center;color:#94a3b8">CL ↑</th>
+            <th style="padding:10px 14px;text-align:center;color:#94a3b8">FPE ↓</th>
+            <th style="padding:10px 14px;text-align:center;color:#94a3b8">n</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- E2E VLA 그룹 -->
+          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
+            <td rowspan="5" style="padding:10px 14px;color:#fca5a5;font-weight:700;font-size:0.78rem;vertical-align:top;border-right:2px solid #2d1010">E2E VLA<br><span style="font-weight:400;color:#64748b;font-size:0.72rem">전부 실패</span></td>
+            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp11</td>
+            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 (Google-robot) + LoRA</td>
+            <td style="padding:10px 14px;text-align:center;color:#fca5a5;font-weight:900;font-size:1.05rem">0%</td>
+            <td style="padding:10px 14px;text-align:center;color:#fca5a5">1.454</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
+            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp17</td>
+            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 + balanced 33/33/34</td>
+            <td style="padding:10px 14px;text-align:center;color:#fca5a5;font-weight:700">11.1%</td>
+            <td style="padding:10px 14px;text-align:center;color:#fca5a5">1.045</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
+            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp18</td>
+            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 + text embedding fusion</td>
+            <td style="padding:10px 14px;text-align:center;color:#fca5a5;font-weight:700">11.1%</td>
+            <td style="padding:10px 14px;text-align:center;color:#fca5a5">1.045</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
+            <td style="padding:10px 14px;color:#fbbf24;font-size:0.8rem;font-weight:600">Exp63 ★best</td>
+            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 (HF pure) + LoRA adapter</td>
+            <td style="padding:10px 14px;text-align:center;color:#fbbf24;font-weight:700">18.8%</td>
+            <td style="padding:10px 14px;text-align:center;color:#fbbf24">1.953</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">32</td>
+          </tr>
+          <tr style="border-bottom:2px solid #1e3050;background:#1a0a0a">
+            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">v5_ablation ×6</td>
+            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">PaliGemma + vision LoRA (top2/4/6/8)</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-style:italic">미측정</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569">—</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">—</td>
+          </tr>
+          <!-- Decomposition 그룹 -->
+          <tr style="border-bottom:1px solid #0f1e35;background:#0a1a0a">
+            <td rowspan="2" style="padding:10px 14px;color:#4ade80;font-weight:700;font-size:0.78rem;vertical-align:top;border-right:2px solid #0d2d0d">Decomposition<br><span style="font-weight:400;color:#64748b;font-size:0.72rem">2-stage</span></td>
+            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp14 (v1)</td>
+            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">CLIP + BBox MLP</td>
+            <td style="padding:10px 14px;text-align:center;color:#fbbf24;font-weight:700">66.7%</td>
+            <td style="padding:10px 14px;text-align:center;color:#fbbf24">0.555</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
+          </tr>
+          <tr style="background:#051a0a">
+            <td style="padding:10px 14px;color:#4ade80;font-size:0.8rem;font-weight:700">Exp66 ★</td>
+            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 frozen + L2-norm + bbox aug</td>
+            <td style="padding:10px 14px;text-align:center;color:#4ade80;font-weight:900;font-size:1.1rem">96.6%</td>
+            <td style="padding:10px 14px;text-align:center;color:#4ade80;font-weight:700">0.102</td>
+            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">29</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:10px 16px;font-size:0.78rem;color:#475569;border-top:1px solid #0f1e35;line-height:1.7">
+        Table C-1. CL = Closed-Loop 성공률 (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). 동일 V5 150 ep 데이터셋. n은 테스트 에피소드 수.<br>
+        E2E best(Exp63) 18.8% vs Ours 96.6% — <strong>+77.8%p 차이</strong>. v5_ablation×6: val_loss 0.43~0.45 (학습 수렴했으나 CL 미측정, 패턴상 Exp63 수준 예상).
+      </div>
+    </div>
+  </div>
+
+  <!-- D. Pipeline Ablation -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">D. Pipeline Ablation (cx 소스 고정, 파이프라인 변경)</div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:0.86rem">
+        <thead>
+          <tr style="background:#0f1e35;border-bottom:2px solid #1e3050">
+            <th style="padding:11px 16px;text-align:left;color:#94a3b8">Exp</th>
+            <th style="padding:11px 16px;text-align:left;color:#94a3b8">Pipeline</th>
+            <th style="padding:11px 16px;text-align:left;color:#94a3b8">cx Source</th>
+            <th style="padding:11px 16px;text-align:center;color:#94a3b8">CL ↑</th>
+            <th style="padding:11px 16px;text-align:center;color:#94a3b8">FPE ↓</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp65b</td>
+            <td style="padding:10px 16px;color:#94a3b8">단순 MLP (no L2, no aug)</td>
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">base PG2</td>
+            <td style="padding:10px 16px;text-align:center;color:#fca5a5;font-weight:700">10.3%</td>
+            <td style="padding:10px 16px;text-align:center;color:#fca5a5">0.941</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f1e35">
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp67</td>
+            <td style="padding:10px 16px;color:#94a3b8">L2-norm + bbox aug</td>
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">HSV</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80;font-weight:700">96.6%</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80">0.110</td>
+          </tr>
+          <tr style="background:#051a0a">
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp66 ★</td>
+            <td style="padding:10px 16px;font-weight:700;color:#e2e8f0">L2-norm + bbox aug</td>
+            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">base PG2</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80;font-weight:900">96.6%</td>
+            <td style="padding:10px 16px;text-align:center;color:#4ade80">0.102</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:10px 16px;font-size:0.79rem;color:#475569;border-top:1px solid #0f1e35">Table D-1. cx 소스 3종(HSV · base PG2 · Exp59 LoRA) 모두 CL 96.6% → grounding 품질은 action에 무관. 파이프라인(L2+aug)이 결정 변수.</div>
+    </div>
+  </div>
+
+  <!-- E. Head & Window Ablation -->
+  <div style="margin-bottom:32px">
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">E. Head & Window Ablation</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <div style="padding:10px 16px;background:#0f1e35;font-size:0.78rem;color:#94a3b8;font-weight:700">Table E-1. Action Head 비교 (파이프라인 고정)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
+          <thead><tr style="border-bottom:1px solid #1e3050">
+            <th style="padding:8px 14px;text-align:left;color:#64748b">Head</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">CL</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">FPE</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fca5a5">Linear</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">69.0%</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">0.377</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fbbf24">FCHead</td><td style="padding:8px 14px;text-align:center;color:#fbbf24">93.1%</td><td style="padding:8px 14px;text-align:center;color:#fbbf24">0.109</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#4ade80">LSTMHead</td><td style="padding:8px 14px;text-align:center;color:#4ade80">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.112</td></tr>
+            <tr style="background:#051a0a"><td style="padding:8px 14px;color:#e2e8f0;font-weight:700">ActionMLP ★</td><td style="padding:8px 14px;text-align:center;color:#4ade80;font-weight:700">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.110</td></tr>
+          </tbody>
+        </table>
+        <div style="padding:8px 14px;font-size:0.76rem;color:#475569">LSTM = MLP → 경량 flat MLP 채택</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <div style="padding:10px 16px;background:#0f1e35;font-size:0.78rem;color:#94a3b8;font-weight:700">Table E-2. Window Size (MLP / LSTM)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
+          <thead><tr style="border-bottom:1px solid #1e3050">
+            <th style="padding:8px 14px;text-align:left;color:#64748b">Head</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">w</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">CL</th>
+            <th style="padding:8px 14px;text-align:center;color:#64748b">FPE</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fca5a5">MLP</td><td style="padding:8px 14px;text-align:center;color:#64748b">2</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">93.1%</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">0.145</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35;background:#051a0a"><td style="padding:8px 14px;color:#4ade80">MLP ★</td><td style="padding:8px 14px;text-align:center;color:#4ade80">4</td><td style="padding:8px 14px;text-align:center;color:#4ade80">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.094</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#94a3b8">MLP</td><td style="padding:8px 14px;text-align:center;color:#64748b">16</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">96.6%</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">0.102</td></tr>
+            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#94a3b8">LSTM</td><td style="padding:8px 14px;text-align:center;color:#64748b">4</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">96.6%</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">0.123</td></tr>
+            <tr style="background:#051204"><td style="padding:8px 14px;color:#2dd4bf">LSTM</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf">16</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf">96.6%</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf;font-weight:700">0.080</td></tr>
+          </tbody>
+        </table>
+        <div style="padding:8px 14px;font-size:0.76rem;color:#475569">CL: w≥4 포화. FPE: LSTM w=16 전체 최저.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F. 시각적 증거 -->
+  <div>
+    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">F. 시각적 증거</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="portfolio/linear_probe_results.png" alt="Zero-shot Linear Probe" style="width:100%;display:block">
+        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-1. Zero-shot Linear Probe. Frozen CLIP이 학습 없이 96.6% 위치 분류 → Stage 1이 basket을 이미 "본다"는 증거.</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+        <img src="portfolio/masking_comparison.png" alt="Basket Masking Ablation" style="width:100%;display:block">
+        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-2. Basket Masking Ablation (Exp66 Stage2 v2, SOTA). bbox history=zeros 조건에서 basket 마스킹 → 9/9 (100%) 행동 반전. 이미지 경로가 basket 위치를 독립적으로 인식함을 증명.</div>
+      </div>
+    </div>
+    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
+      <img src="portfolio/track_summary.png" alt="5-Track Validation" style="width:100%;display:block">
+      <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 9/9 flip (Exp66, PG2)) → "basket을 본다" 이중 증명.</div>
+    </div>
+  </div>
+
+</div>
+
 <!-- ════════════════════════════════════════════════════════════════
      CH 36 — 6/12 미팅 노트
      ════════════════════════════════════════════════════════════════ -->
@@ -10446,825 +11266,6 @@ graph TD
     </div>
   </div>
 </div>
-</div>
-
-<!-- ══ CH33 ══ -->
-<div class="chapter" id="ch33">
-  <div class="chapter-header">
-    <span class="chapter-num" style="background:#22c55e;color:#0a0f1a">CHAPTER 33</span>
-    <h2 class="chapter-title">파이프라인이 범인이었다 — CL 성능 격차의 진짜 원인 규명 (exp65~66)</h2>
-  </div>
-
-  <!-- 결론 요약 배너 -->
-  <div style="background:#052e16;border:1px solid #16632a;border-radius:12px;padding:18px 22px;margin-bottom:24px">
-    <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">✅ 핵심 결론 (2026-06-12)</div>
-    <div style="font-size:0.9rem;color:#bbf7d0;line-height:1.9">
-      base PG2 cx를 <strong>올바른 파이프라인(L2-norm + 증강)</strong>에 연결하면 HSV cx와 동일한 <strong>96.6% CL</strong>을 달성한다.<br>
-      exp65b(10.3%)와의 격차는 cx 소스가 아니라 <strong>학습 파이프라인 차이</strong>에서 비롯됐다.
-    </div>
-  </div>
-
-  <!-- 배경: 왜 의문이 생겼나 -->
-  <div style="margin-bottom:28px">
-    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">배경 — "그라운딩 품질과 CL이 대응되지 않는다"</h3>
-    <div style="font-size:0.88rem;color:#cbd5e1;line-height:1.85">
-      CH32까지의 결론은 <em>"base PG2 cx로 Stage2를 학습하면 CL이 망한다"</em>였다(exp65b 10.3%). 그런데 base PG2 grounding 품질은 hit 97%, full-frame 0%, cx_std 0.056으로 exp59(full-frame 6~22%, cx_std 0.159)보다 오히려 <strong>더 깔끔했다</strong>. 품질이 더 좋은데 CL이 더 낮다는 역설이 발생했다.
-      <br><br>
-      의심스러운 두 가지 교란:
-      <ul style="margin:8px 0 0 16px;line-height:2">
-        <li><strong>학습 데이터 크기:</strong> exp60/65b는 150 ep 기준이었지만 exp54는 더 많은 에피소드</li>
-        <li><strong>학습 파이프라인:</strong> exp54(<code>train_exp54_stage2_v2_action.py</code>)는 exp60/65b와 <em>다른</em> 스크립트</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- 파이프라인 차이 해부 -->
-  <div style="margin-bottom:28px">
-    <h3 style="color:#fbbf24;font-size:1rem;margin-bottom:12px">파이프라인 차이 해부</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.82rem">
-      <div style="background:#1a0d00;border:1px solid #78350f;border-radius:10px;padding:14px">
-        <div style="color:#fbbf24;font-weight:700;margin-bottom:8px">exp60/65b 파이프라인 (단순 MLP)</div>
-        <div style="color:#fde68a;line-height:1.8">
-          • 이미지 피처: 그대로 사용<br>
-          • bbox feat: cx/cy/area/detected 그대로<br>
-          • 증강: 없음<br>
-          • L2 정규화: 없음
-        </div>
-      </div>
-      <div style="background:#052e16;border:1px solid #16632a;border-radius:10px;padding:14px">
-        <div style="color:#4ade80;font-weight:700;margin-bottom:8px">exp54 파이프라인 (L2 + 증강)</div>
-        <div style="color:#bbf7d0;line-height:1.8">
-          • 이미지 피처: <code>F.normalize(..., dim=-1)</code><br>
-          • bbox feat: PG2 분포 모사 노이즈 주입<br>
-          • 증강: <code>--augment</code> flag<br>
-          • 통계 기반: <code>exp60_bbox_offset_stats.json</code>
-        </div>
-      </div>
-    </div>
-    <div style="background:#0a1628;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:0.82rem;color:#94a3b8;line-height:1.7">
-      <strong style="color:#e2e8f0">L2-norm의 역할:</strong> 이미지 피처 크기(scale)가 방향(direction)보다 분류에 과대 영향을 미치는 것을 차단. 유사도 기반 분류에서 표준적으로 쓰이는 안정화 기법.<br>
-      <strong style="color:#e2e8f0">bbox 증강의 역할:</strong> PG2 grounding의 실제 cx 분포(offset 노이즈, miss 확률)를 학습 데이터에 반영 → 추론 시 실제 PG2 출력과 분포 정합.
-    </div>
-  </div>
-
-  <!-- 통제 실험 설계 -->
-  <div style="margin-bottom:28px">
-    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">통제 실험 설계</h3>
-    <div style="font-size:0.85rem;color:#cbd5e1;line-height:1.8;margin-bottom:12px">
-      파이프라인 교란을 제거하기 위해 cx 소스만 바꾸고 나머지는 완전 동일하게 고정:
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-      <tr style="background:#1e293b;color:#94a3b8">
-        <th style="padding:8px 12px;text-align:left;border-radius:6px 0 0 0">실험</th>
-        <th style="padding:8px 12px;text-align:center">cx 소스</th>
-        <th style="padding:8px 12px;text-align:center">파이프라인</th>
-        <th style="padding:8px 12px;text-align:center">학습 데이터</th>
-        <th style="padding:8px 12px;text-align:center;border-radius:0 6px 0 0">CL 데이터</th>
-      </tr>
-      <tr style="background:#0f172a;border-bottom:1px solid #1e293b">
-        <td style="padding:8px 12px;color:#7dd3fc">exp54 (기준)</td>
-        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">HSV</td>
-        <td style="padding:8px 12px;text-align:center;color:#4ade80">L2 + aug</td>
-        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">bbox_nav_exp46</td>
-        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">HSV 벤치마크</td>
-      </tr>
-      <tr style="background:#0a0f1a;border-bottom:1px solid #1e293b">
-        <td style="padding:8px 12px;color:#f87171">exp65b (비교)</td>
-        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">base PG2</td>
-        <td style="padding:8px 12px;text-align:center;color:#ef4444">단순 MLP</td>
-        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">243 ep</td>
-        <td style="padding:8px 12px;text-align:center;color:#cbd5e1">base PG2 cx</td>
-      </tr>
-      <tr style="background:#0f172a">
-        <td style="padding:8px 12px;color:#4ade80;font-weight:700">exp66 (핵심 통제)</td>
-        <td style="padding:8px 12px;text-align:center;color:#4ade80">base PG2</td>
-        <td style="padding:8px 12px;text-align:center;color:#4ade80">L2 + aug</td>
-        <td style="padding:8px 12px;text-align:center;color:#4ade80">cl_data_base_pg2</td>
-        <td style="padding:8px 12px;text-align:center;color:#4ade80">base PG2 cx</td>
-      </tr>
-    </table>
-    <div style="font-size:0.78rem;color:#64748b;margin-top:6px">
-      * CL 데이터는 <code>build_cl_cx_variants.py</code>로 생성 — 동일 150 ep, 동일 stratified split(seed=42), cx만 소스별 교체
-    </div>
-  </div>
-
-  <!-- 결과 비교 -->
-  <div style="margin-bottom:28px">
-    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">결과</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-bottom:14px">
-      <tr style="background:#1e293b;color:#94a3b8">
-        <th style="padding:10px 14px;text-align:left">실험</th>
-        <th style="padding:10px 14px;text-align:center">cx 소스</th>
-        <th style="padding:10px 14px;text-align:center">파이프라인</th>
-        <th style="padding:10px 14px;text-align:center">val_acc</th>
-        <th style="padding:10px 14px;text-align:center">CL 성공률</th>
-        <th style="padding:10px 14px;text-align:center">평균 FPE</th>
-      </tr>
-      <tr style="background:#0f172a;border-bottom:1px solid #1e293b">
-        <td style="padding:10px 14px;color:#7dd3fc">exp54 (참고)</td>
-        <td style="padding:10px 14px;text-align:center;color:#94a3b8">HSV</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">L2 + aug</td>
-        <td style="padding:10px 14px;text-align:center;color:#cbd5e1">92.6%</td>
-        <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
-        <td style="padding:10px 14px;text-align:center;color:#cbd5e1">0.09m</td>
-      </tr>
-      <tr style="background:#0a0f1a;border-bottom:1px solid #1e293b">
-        <td style="padding:10px 14px;color:#f87171">exp65b (대조)</td>
-        <td style="padding:10px 14px;text-align:center;color:#94a3b8">base PG2</td>
-        <td style="padding:10px 14px;text-align:center;color:#ef4444">단순 MLP</td>
-        <td style="padding:10px 14px;text-align:center;color:#cbd5e1">90.2%</td>
-        <td style="padding:10px 14px;text-align:center;font-weight:700;color:#ef4444">10.3%</td>
-        <td style="padding:10px 14px;text-align:center;color:#94a3b8">—</td>
-      </tr>
-      <tr style="background:#0f172a;border-bottom:1px solid #1e293b">
-        <td style="padding:10px 14px;color:#4ade80;font-weight:700">exp66 ✅</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">base PG2</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">L2 + aug</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">93.5%</td>
-        <td style="padding:10px 14px;text-align:center;font-weight:700;font-size:1.05rem;color:#4ade80">96.6%</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">0.10m</td>
-      </tr>
-      <tr style="background:#052e16;border:2px solid #16632a">
-        <td style="padding:10px 14px;color:#4ade80;font-weight:700">exp67 ✅</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">exp59 LoRA</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">L2 + aug</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">94.5%</td>
-        <td style="padding:10px 14px;text-align:center;font-weight:700;font-size:1.05rem;color:#4ade80">96.6%</td>
-        <td style="padding:10px 14px;text-align:center;color:#4ade80">0.11m</td>
-      </tr>
-    </table>
-    <div style="background:#1a1a00;border:1px solid #854d0e;border-radius:8px;padding:12px 14px;font-size:0.83rem;color:#fde68a;line-height:1.7">
-      <strong>핵심 관찰:</strong> exp66(base PG2)과 exp67(exp59 LoRA)이 동일한 96.6%에 수렴. cx 소스를 바꿔도 CL 결과가 변하지 않는다.
-      right_right 경로만 공통으로 2/3(67%) — cx 소스와 무관한 경로 고유 난이도.
-    </div>
-  </div>
-
-  <!-- 해석 -->
-  <div style="margin-bottom:28px">
-    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">해석</h3>
-    <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:0.85rem">
-      <div style="background:#0c1f3f;border-left:3px solid #3b82f6;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
-        <strong style="color:#93c5fd">1. cx 소스는 CL 성능에 영향을 주지 않는다 — 실험으로 확정</strong><br>
-        base PG2(exp66) vs exp59 LoRA(exp67) 모두 96.6%. 심지어 HSV(exp54)도 96.6%. cx의 품질(hit률, full-frame 여부, std)이 다름에도 CL 결과가 동일 → <em>현재 파이프라인 구조에서 cx 소스는 병목이 아니다.</em>
-      </div>
-      <div style="background:#1a0d00;border-left:3px solid #f59e0b;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
-        <strong style="color:#fcd34d">2. L2-norm + bbox 증강이 유일한 성능 결정 요소</strong><br>
-        동일 cx 소스(base PG2)에서 파이프라인만 바꿨을 때 10.3% → 96.6%(×9.4). L2 정규화와 PG2 분포 모사 증강이 없으면 MLP가 실 환경 bbox 노이즈에 취약. <em>파이프라인이 cx보다 훨씬 중요한 변수였다.</em>
-      </div>
-      <div style="background:#1a0010;border-left:3px solid #ec4899;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
-        <strong style="color:#f9a8d4">3. LoRA grounding 개선이 action 성능에 기여하지 않는다</strong><br>
-        exp59 LoRA는 full-frame 붕괴·실환경 취약 등 grounding 품질 문제가 있음에도 exp66과 CL 동일. 즉 <em>grounding LoRA를 개선해도 현재 decomposition 구조에서 action 성능은 올라가지 않는다.</em> 연구 방향 설정에 중요한 음성 결과.
-      </div>
-      <div style="background:#0f2a1a;border-left:3px solid #22c55e;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
-        <strong style="color:#86efac">4. "단일 프레임 그라운딩 품질 ≠ 궤적 액션 성능"의 실제 의미</strong><br>
-        CH32의 이 명제는 반만 맞았다. 원인은 두 가지: (a) 파이프라인 교란(exp65b), (b) 실험으로 확인된 cx 소스 무관성(exp66/67). 올바른 파이프라인 아래서는 <em>어떤 cx 소스를 써도</em> 96.6%에 수렴 — grounding 정확도가 action 성능의 상한을 이미 초과해 있거나, cx 신호가 포화(saturation) 상태일 가능성.
-      </div>
-    </div>
-  </div>
-
-  <!-- 이후 할 일 -->
-  <div style="background:#1e293b;border-radius:12px;padding:18px 22px">
-    <div style="color:#94a3b8;font-size:0.82rem;font-weight:700;margin-bottom:12px">다음 스텝</div>
-    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
-      <span style="color:#4ade80">✅</span> exp65b — base PG2 cx + 단순 MLP = 10.3% (파이프라인 취약 확인)<br>
-      <span style="color:#4ade80">✅</span> exp66 — base PG2 cx + L2+aug = 96.6% (파이프라인이 원인 확정)<br>
-      <span style="color:#4ade80">✅</span> exp67 — exp59 LoRA cx + L2+aug = 96.6% (cx 소스 무관성 확정)<br>
-      <span style="color:#fbbf24">⏳</span> 의자(chair) 데이터 수집 (350~500 ep, 33/33/33 좌/직/우) — 로봇 시간 필요<br>
-      <span style="color:#94a3b8">🔲</span> 의자 데이터로 Stage2 재학습 + CL 평가<br>
-      <span style="color:#94a3b8">🔲</span> 논문 Table 1 확정 (exp65b/exp66/exp67 ablation 3행)
-    </div>
-  </div>
-</div>
-
-<!-- ══ CH34 ══ -->
-<div class="chapter" id="ch34">
-  <div class="chapter-header">
-    <span class="chapter-num" style="background:#8b5cf6;color:#fff">CH 34</span>
-    <h2 class="chapter-title">RoboVLMs Action Head Ablation — LSTM vs MLP (exp68~70)</h2>
-  </div>
-
-  <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:0.85rem;color:#c4b5fd;line-height:1.8">
-    <strong>연구 질문:</strong> RoboVLMs의 action head (LSTM, FCDecoder 등)를 Stage2에 직접 적용하면 성능이 달라지는가?
-    파이프라인·cx 소스 고정, head 구조만 변경하는 4-way ablation.
-  </div>
-
-  <!-- 결과 테이블 -->
-  <div style="margin-bottom:24px">
-    <h3 style="color:#7dd3fc;font-size:1rem;margin-bottom:12px">실험 결과</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
-      <thead>
-        <tr style="background:#1e293b">
-          <th style="padding:10px 14px;text-align:left;color:#94a3b8">exp</th>
-          <th style="padding:10px 14px;text-align:left;color:#94a3b8">Head</th>
-          <th style="padding:10px 14px;text-align:left;color:#94a3b8">원형</th>
-          <th style="padding:10px 14px;text-align:center;color:#94a3b8">val_acc</th>
-          <th style="padding:10px 14px;text-align:center;color:#94a3b8">CL ↑</th>
-          <th style="padding:10px 14px;text-align:center;color:#94a3b8">FPE ↓</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="border-top:1px solid #1e293b">
-          <td style="padding:10px 14px;color:#94a3b8">exp68</td>
-          <td style="padding:10px 14px;color:#e2e8f0">Linear</td>
-          <td style="padding:10px 14px;color:#94a3b8">1-layer FC</td>
-          <td style="padding:10px 14px;text-align:center;color:#f87171">76.8%</td>
-          <td style="padding:10px 14px;text-align:center;color:#f87171">69.0%</td>
-          <td style="padding:10px 14px;text-align:center;color:#f87171">0.377m</td>
-        </tr>
-        <tr style="border-top:1px solid #1e293b;background:#0f172a">
-          <td style="padding:10px 14px;color:#94a3b8">exp69</td>
-          <td style="padding:10px 14px;color:#e2e8f0">FCHead</td>
-          <td style="padding:10px 14px;color:#94a3b8">RoboVLMs FCDecoder (deep MLP)</td>
-          <td style="padding:10px 14px;text-align:center;color:#fbbf24">95.3%</td>
-          <td style="padding:10px 14px;text-align:center;color:#fbbf24">93.1%</td>
-          <td style="padding:10px 14px;text-align:center;color:#fbbf24">0.109m</td>
-        </tr>
-        <tr style="border-top:1px solid #1e293b">
-          <td style="padding:10px 14px;color:#94a3b8">exp70</td>
-          <td style="padding:10px 14px;font-weight:700;color:#a78bfa">LSTMHead</td>
-          <td style="padding:10px 14px;color:#94a3b8">RoboVLMs MobileVLAClassificationDecoder</td>
-          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">95.7%</td>
-          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
-          <td style="padding:10px 14px;text-align:center;color:#4ade80">0.112m</td>
-        </tr>
-        <tr style="border-top:1px solid #1e293b;background:#0a1628">
-          <td style="padding:10px 14px;color:#94a3b8">exp54</td>
-          <td style="padding:10px 14px;font-weight:700;color:#38bdf8">ActionMLP (ours)</td>
-          <td style="padding:10px 14px;color:#94a3b8">— (baseline)</td>
-          <td style="padding:10px 14px;text-align:center;color:#38bdf8">92.6%</td>
-          <td style="padding:10px 14px;text-align:center;font-weight:700;color:#4ade80">96.6%</td>
-          <td style="padding:10px 14px;text-align:center;color:#4ade80">0.110m</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- 해석 -->
-  <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:0.85rem;margin-bottom:24px">
-    <div style="background:#1a0d3a;border-left:3px solid #8b5cf6;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
-      <strong style="color:#c4b5fd">1. LSTM = ActionMLP — 96.6% 동일</strong><br>
-      RoboVLMs의 LSTM 기반 decoder(MobileVLAClassificationDecoder 구조)가 우리 ActionMLP와 동일한 96.6% CL 달성.
-      <em>Window-baked flat input이 sequential LSTM과 등가임을 실험으로 확인.</em>
-      우리 MLP는 LSTM보다 파라미터 적고 추론 더 빠르다.
-    </div>
-    <div style="background:#1a1200;border-left:3px solid #f59e0b;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
-      <strong style="color:#fcd34d">2. FCHead 93.1% — depth는 필요, temporal은 optional</strong><br>
-      Deep MLP(no temporal)로도 93.1% 달성. 단순 linear(69%)보다 훨씬 높다.
-      <em>작업의 복잡도가 단순 선형 분리를 초과함을 확인.</em>
-      하지만 temporal context(LSTM/window) 없이는 96.6%까지 오르지 못한다 → bbox window가 중요.
-    </div>
-    <div style="background:#1a0000;border-left:3px solid #ef4444;padding:14px 16px;border-radius:0 8px 8px 0;line-height:1.8;color:#cbd5e1">
-      <strong style="color:#fca5a5">3. Linear 69% — temporal 없으면 한계 명확</strong><br>
-      1-layer linear는 각 timestep을 독립적으로만 봄. 69% CL — Stage2의 task가 temporal 맥락을 필요로 함을 재확인.
-    </div>
-  </div>
-
-  <!-- RoboVLMs 기여 클레임 -->
-  <div style="background:#0d2818;border:1px solid #166534;border-radius:12px;padding:18px 22px;margin-bottom:20px">
-    <div style="color:#4ade80;font-size:0.85rem;font-weight:700;margin-bottom:10px">RoboVLMs 기여 클레임 정리</div>
-    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
-      <span style="color:#4ade80">①</span> Kosmos-2 (RoboVLMs) backbone → Stage1 grounding encoder로 활용<br>
-      <span style="color:#4ade80">②</span> RoboVLMs E2E (MobileVLAClassificationDecoder) → 0% CL baseline 제공 → decomposition 필요성 증명<br>
-      <span style="color:#4ade80">③</span> lora_B=0 구조적 버그 발견 (forward_continuous에서 gradient 단절)<br>
-      <span style="color:#4ade80">④</span> <strong>LSTM vs MLP head 비교 (이번)</strong> → window-flattened MLP가 RoboVLMs LSTM과 동등·더 경량 → 설계 검증
-    </div>
-  </div>
-
-  <!-- 다음 스텝 -->
-  <div style="background:#1e293b;border-radius:12px;padding:18px 22px">
-    <div style="color:#94a3b8;font-size:0.82rem;font-weight:700;margin-bottom:12px">다음 스텝</div>
-    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2">
-      <span style="color:#4ade80">✅</span> exp68 linear — 69.0% CL<br>
-      <span style="color:#4ade80">✅</span> exp69 FCHead — 93.1% CL<br>
-      <span style="color:#4ade80">✅</span> exp70 LSTMHead — 96.6% CL (RoboVLMs LSTM과 비교 완료)<br>
-      <span style="color:#fbbf24">⏳</span> 의자(chair) 데이터 수집 (좌/우 에피소드 추가 필요)<br>
-      <span style="color:#94a3b8">🔲</span> 논문 Table 2-C 확정 후 제출 준비
-    </div>
-  </div>
-</div>
-
-<!-- ══ 미팅 준비 — 추천 동선 & 자료 ══ -->
-<div class="chapter" id="meeting-guide" style="padding-bottom:100px">
-  <div class="chapter-header">
-    <span class="chapter-num" style="background:#ef4444;color:#fff">MEETING</span>
-    <h2 class="chapter-title">미팅 준비 — 추천 읽기 순서 & 자료 링크</h2>
-  </div>
-
-  <!-- ── 날짜 배지 ── -->
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-    <span style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 14px;font-size:0.78rem;color:#94a3b8">마지막 업데이트</span>
-    <span style="background:#0d2818;border:1px solid #166534;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:#4ade80">2026-06-12</span>
-    <span style="color:#64748b;font-size:0.78rem">window ablation 완료 (CH35) · head ablation (CH34) · 파이프라인 원인 확정 (CH33)</span>
-  </div>
-
-  <!-- ── 핵심 숫자 3개 ── -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">
-    <div style="background:#0d2818;border:1px solid #166534;border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:1.8rem;font-weight:900;color:#4ade80">96.6%</div>
-      <div style="font-size:0.78rem;color:#86efac;margin-top:4px">Closed-Loop 성공률</div>
-      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">exp54/66/67/70 공통</div>
-    </div>
-    <div style="background:#1a0a00;border:1px solid #7c2d12;border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:1.8rem;font-weight:900;color:#f97316">0%</div>
-      <div style="font-size:0.78rem;color:#fdba74;margin-top:4px">E2E VLA (Exp11) CL</div>
-      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">text attn=0%, lora_B=0 버그</div>
-    </div>
-    <div style="background:#0c1f3f;border:1px solid #1e3a5f;border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:1.8rem;font-weight:900;color:#38bdf8">×9.4</div>
-      <div style="font-size:0.78rem;color:#7dd3fc;margin-top:4px">파이프라인 효과</div>
-      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">10.3% → 96.6%</div>
-    </div>
-  </div>
-
-  <!-- ── 6/12 핵심 발견 링크 ── -->
-  <div style="background:#1a0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:20px;margin-bottom:16px">
-    <div style="color:#fca5a5;font-size:0.85rem;font-weight:700;margin-bottom:14px">⚡ 교수님 미팅 동선 (2026-06-12 기준)</div>
-    <ol style="margin:0;padding-left:20px;font-size:0.85rem;color:#cbd5e1;line-height:2.3">
-      <li>
-        <a href="#ch33" style="color:#4ade80;font-weight:700">CH33 — 파이프라인이 범인 (exp65~67)</a>
-        <span style="color:#64748b;font-size:0.8rem"> — cx 소스 무관, L2+aug가 유일 결정 요소. <strong style="color:#fbbf24">10.3% → 96.6% (×9.4)</strong></span>
-      </li>
-      <li>
-        <a href="#ch34" style="color:#a78bfa;font-weight:700">CH34 — RoboVLMs Head Ablation (exp68~70)</a>
-        <span style="color:#64748b;font-size:0.8rem"> — LSTM = ActionMLP 96.6%. RoboVLMs 기여 클레임 4항목</span>
-      </li>
-      <li>
-        <a href="#ch35" style="color:#14b8a6;font-weight:700">CH35 — Window Size Ablation</a>
-        <span style="color:#64748b;font-size:0.8rem"> — MLP w≥4 포화. LSTM w=16 FPE 0.080m 최저. 성공률은 window-insensitive</span>
-      </li>
-      <li>
-        <a href="#ch29" style="color:#f87171;font-weight:700">CH29 — RoboVLMs 해부 (lora_B=0 버그 · text attn=0%)</a>
-        <span style="color:#64748b;font-size:0.8rem"> — E2E 0% 원인. Google-robot post-training이 언어 경로 파괴</span>
-      </li>
-      <li>
-        <a href="#ch25" style="color:#7dd3fc;font-weight:700">CH25 — 학술 기여점 & 핵심 피처 5선</a>
-        <span style="color:#64748b;font-size:0.8rem"> — 논문 서술 포인트 정리</span>
-      </li>
-      <li>
-        <a href="#ch30" style="color:#7dd3fc;font-weight:700">CH30 — 의자 객체 전환 (chair 파이프라인)</a>
-        <span style="color:#64748b;font-size:0.8rem"> — 의자 grounding 100% hit. 좌/우 수집 후 재학습 예정</span>
-      </li>
-    </ol>
-  </div>
-
-  <!-- ── 별도 문서 링크 ── -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-    <div style="background:#07111e;border:1px solid #1e3040;border-radius:12px;padding:16px">
-      <div style="color:#7dd3fc;font-size:0.82rem;font-weight:700;margin-bottom:10px">📄 6/12 생성 문서</div>
-      <div style="font-size:0.82rem;line-height:2.1">
-        <a href="PROF_UPDATE_20260612_PIPELINE.md" style="color:#fbbf24;font-weight:700">▶ 교수님 업데이트 6/12</a> — 파이프라인 원인 확정 요약<br>
-        <a href="TABLE1_PAPER_DRAFT.md" style="color:#fbbf24;font-weight:700">▶ 논문 Table 초안</a> — Table 1/2A/2B/2C/3 전체<br>
-        <a href="../grounding_hub.html#section-f" style="color:#a78bfa">▶ Grounding Hub Section F</a> — Pipeline ablation 시각화<br>
-        <a href="../grounding_hub.html#section-g" style="color:#2dd4bf;font-weight:700">▶ Grounding Hub Section G</a> — Head &amp; Window Ablation 전체 결과
-      </div>
-    </div>
-    <div style="background:#0c1a0c;border:1px solid #1a3a1a;border-radius:12px;padding:16px">
-      <div style="color:#4ade80;font-size:0.82rem;font-weight:700;margin-bottom:10px">🔑 핵심 결론 (논문 서술용)</div>
-      <div style="font-size:0.81rem;line-height:2.1;color:#cbd5e1">
-        파이프라인(L2+aug) = 유일 결정 변수<br>
-        cx 소스(grounding 품질) = 무관<br>
-        LSTM ≡ ActionMLP (window-baked 등가)<br>
-        Decomposition: E2E 0% → 96.6%<br>
-        lora_B=0 구조적 버그 (RoboVLMs 발견)
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 배경 CH 링크 (여유시) ── -->
-  <div style="background:#0a1628;border-radius:8px;padding:14px 16px;font-size:0.82rem;color:#94a3b8;line-height:1.8;margin-bottom:16px">
-    <strong style="color:#e2e8f0">배경 이해 필요 시:</strong>
-    <a href="#ch10" style="color:#7dd3fc">CH10</a> 5/15 미팅·Exp54 설계 →
-    <a href="#ch11" style="color:#7dd3fc">CH11</a> 5/22 교수님 반박 3가지 →
-    <a href="#ch21" style="color:#7dd3fc">CH21</a> 전체 연구 흐름 요약 →
-    <a href="#ch32" style="color:#7dd3fc">CH32</a> LoRA 해부 →
-    <a href="#next-step" style="color:#7dd3fc">NEXT</a> 다음 방향
-  </div>
-
-  <!-- ── 남은 TODO ── -->
-  <div style="background:#1e293b;border-radius:10px;padding:16px;font-size:0.83rem;color:#cbd5e1;line-height:2.1">
-    <div style="color:#94a3b8;font-size:0.8rem;font-weight:700;margin-bottom:8px">현재 상태 / 남은 TODO</div>
-    <span style="color:#4ade80">✅</span> 파이프라인 원인 확정 (exp65~67) — CH33<br>
-    <span style="color:#4ade80">✅</span> RoboVLMs head ablation (exp68~70) — CH34, LSTM=MLP 확인<br>
-    <span style="color:#4ade80">✅</span> 의자 grounding 파이프라인 구축 (100% hit, 스크립트 완료)<br>
-    <span style="color:#fbbf24">⏳</span> 의자 좌/우 에피소드 수집 (현재 0ep/1ep → 목표 15+15ep)<br>
-    <span style="color:#94a3b8">🔲</span> 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)<br>
-    <span style="color:#94a3b8">🔲</span> 논문 최종 작성 (Table 1/2A/2B/2C/2D 확정 완료, 본문 서술 필요)
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════════
-     CH 35 — Window Size Ablation
-     ════════════════════════════════════════════════════════════════ -->
-<div class="chapter" id="ch35">
-  <div class="chapter-header" style="background:linear-gradient(135deg,#0f3d38 0%,#0f2d3a 100%);border-left:4px solid #14b8a6">
-    <div class="chapter-number" style="color:#14b8a6">CH 35</div>
-    <div class="chapter-title">Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</div>
-    <div class="chapter-subtitle">파이프라인 고정(L2+aug), head별 window 크기 변화 실험</div>
-  </div>
-
-  <!-- 핵심 결과 배지 -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
-    <div style="background:#0c2b2b;border:1px solid #134e4a;border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:1.6rem;font-weight:900;color:#2dd4bf">w=4</div>
-      <div style="font-size:0.78rem;color:#5eead4;margin-top:4px">MLP 최소 필요 window</div>
-      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">CL 96.6% 포화</div>
-    </div>
-    <div style="background:#0c1f3f;border:1px solid #1e3a5f;border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:1.6rem;font-weight:900;color:#38bdf8">0.080m</div>
-      <div style="font-size:0.78rem;color:#7dd3fc;margin-top:4px">LSTM w=16 최저 FPE</div>
-      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">긴 시퀀스 활용</div>
-    </div>
-    <div style="background:#1a1000;border:1px solid #3a2500;border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:1.6rem;font-weight:900;color:#fbbf24">93.1%</div>
-      <div style="font-size:0.78rem;color:#fcd34d;margin-top:4px">MLP w=2 — 부족</div>
-      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">최근 2프레임 불충분</div>
-    </div>
-  </div>
-
-  <!-- 결과 테이블 -->
-  <div style="background:#0a1628;border:1px solid #1e3050;border-radius:12px;padding:20px;margin-bottom:20px">
-    <div style="color:#7dd3fc;font-size:0.85rem;font-weight:700;margin-bottom:14px">Table 2-D — Window Size Ablation 전체 결과</div>
-    <table style="width:100%;border-collapse:collapse;font-size:0.83rem">
-      <thead>
-        <tr style="border-bottom:1px solid #1e3050">
-          <th style="color:#94a3b8;padding:8px 12px;text-align:left">Head</th>
-          <th style="color:#94a3b8;padding:8px 12px;text-align:center">Window</th>
-          <th style="color:#94a3b8;padding:8px 12px;text-align:center">val_acc</th>
-          <th style="color:#94a3b8;padding:8px 12px;text-align:center">CL (↑)</th>
-          <th style="color:#94a3b8;padding:8px 12px;text-align:center">FPE (↓)</th>
-          <th style="color:#94a3b8;padding:8px 12px;text-align:left">비고</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="border-bottom:1px solid #0f1f38">
-          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
-          <td style="color:#fbbf24;padding:8px 12px;text-align:center;font-weight:700">2</td>
-          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">94.88%</td>
-          <td style="color:#f87171;padding:8px 12px;text-align:center;font-weight:700">93.1%</td>
-          <td style="color:#f87171;padding:8px 12px;text-align:center">0.145m</td>
-          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">방향 파악 불충분</td>
-        </tr>
-        <tr style="border-bottom:1px solid #0f1f38;background:rgba(20,184,166,0.05)">
-          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
-          <td style="color:#2dd4bf;padding:8px 12px;text-align:center;font-weight:700">4 ★</td>
-          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">92.91%</td>
-          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
-          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">0.094m</td>
-          <td style="color:#2dd4bf;padding:8px 12px;font-size:0.8rem">MLP 최소 필요 window. FPE 최저</td>
-        </tr>
-        <tr style="border-bottom:1px solid #0f1f38">
-          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">8 (baseline)</td>
-          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">92.6%</td>
-          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.110m</td>
-          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">exp54 기본값</td>
-        </tr>
-        <tr style="border-bottom:1px solid #0f1f38">
-          <td style="color:#cbd5e1;padding:8px 12px">MLP</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">16</td>
-          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">89.57%</td>
-          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.102m</td>
-          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">val_acc 하락, CL 유지</td>
-        </tr>
-        <tr style="border-bottom:1px solid #0f1f38">
-          <td style="color:#a78bfa;padding:8px 12px">LSTM</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">4</td>
-          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">95.08%</td>
-          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.123m</td>
-          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">—</td>
-        </tr>
-        <tr style="border-bottom:1px solid #0f1f38">
-          <td style="color:#a78bfa;padding:8px 12px">LSTM</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">8 (baseline)</td>
-          <td style="color:#cbd5e1;padding:8px 12px;text-align:center">95.7%</td>
-          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
-          <td style="color:#94a3b8;padding:8px 12px;text-align:center">0.112m</td>
-          <td style="color:#64748b;padding:8px 12px;font-size:0.8rem">exp70 기본값</td>
-        </tr>
-        <tr>
-          <td style="color:#a78bfa;padding:8px 12px">LSTM</td>
-          <td style="color:#38bdf8;padding:8px 12px;text-align:center;font-weight:700">16 ★</td>
-          <td style="color:#38bdf8;padding:8px 12px;text-align:center;font-weight:700">96.85%</td>
-          <td style="color:#4ade80;padding:8px 12px;text-align:center;font-weight:700">96.6%</td>
-          <td style="color:#38bdf8;padding:8px 12px;text-align:center;font-weight:700">0.080m</td>
-          <td style="color:#38bdf8;padding:8px 12px;font-size:0.8rem">전체 최저 FPE. 긴 맥락 LSTM 강점</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- 해석 -->
-  <div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:12px;padding:18px;margin-bottom:16px">
-    <div style="color:#4ade80;font-size:0.85rem;font-weight:700;margin-bottom:12px">🔍 핵심 해석</div>
-    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2.1">
-      <strong style="color:#2dd4bf">1. MLP: w≥4에서 CL 포화</strong> — w=2는 93.1%로 하락. 최소 4프레임 히스토리 필요.<br>
-      방향 전환(left/right) 판단에 <strong style="color:#fbbf24">적어도 4타임스텝</strong>의 bbox 이동 패턴이 필요.<br><br>
-      <strong style="color:#2dd4bf">2. MLP w=4가 FPE 최저(0.094m)</strong> — w=8(0.110m)보다 낮음.<br>
-      너무 긴 window는 MLP에 noise로 작용. flat concatenation의 한계.<br><br>
-      <strong style="color:#2dd4bf">3. LSTM: 모든 window에서 96.6% 유지, w=16에서 FPE 0.080m</strong><br>
-      LSTM은 긴 시퀀스를 선택적으로 활용 가능 → window 길수록 FPE 개선.<br><br>
-      <strong style="color:#2dd4bf">4. CL vs val_acc 해리</strong> — MLP w=16: val_acc 89.57%로 가장 낮지만 CL은 동일 96.6%.<br>
-      val_acc는 per-frame 분류 정확도. CL은 trajectory 누적 오차. 두 지표는 별개.
-    </div>
-  </div>
-
-  <!-- 결론 -->
-  <div style="background:#1a0d2e;border:1px solid #4c1d95;border-radius:12px;padding:18px;margin-bottom:16px">
-    <div style="color:#a78bfa;font-size:0.85rem;font-weight:700;margin-bottom:10px">📌 논문 서술용 결론</div>
-    <div style="font-size:0.83rem;color:#cbd5e1;line-height:2.0">
-      MLP는 <strong style="color:#2dd4bf">w=4가 최소·최적</strong> (경량 배포 시 권장).<br>
-      LSTM은 <strong style="color:#38bdf8">w=16에서 최저 FPE 0.080m</strong> 달성 — temporal context가 풍부할수록 궤적 정밀도 향상.<br>
-      두 head 모두 CL 96.6% 동일 → <strong style="color:#fbbf24">성공률은 window-insensitive, FPE는 window-sensitive</strong>.
-    </div>
-  </div>
-
-  <!-- 관련 문서 링크 -->
-  <div style="margin-bottom:16px;padding:12px 16px;background:#0c2b2b;border:1px solid #14b8a6;border-radius:10px;font-size:0.83rem">
-    <span style="color:#2dd4bf;font-weight:700">→ </span>
-    <a href="../grounding_hub.html#section-g" style="color:#2dd4bf;font-weight:700">Grounding Hub §G</a> —
-    Head Ablation(CH34) + Window Ablation(CH35) 전체 결과 시각화 · 통합 비교표 포함
-  </div>
-
-  <!-- TODO 업데이트 -->
-  <div style="background:#1e293b;border-radius:10px;padding:16px;font-size:0.83rem;color:#cbd5e1;line-height:2.1">
-    <div style="color:#94a3b8;font-size:0.8rem;font-weight:700;margin-bottom:8px">현재 상태 / 남은 TODO</div>
-    <span style="color:#4ade80">✅</span> 파이프라인 원인 확정 (exp65~67) — CH33<br>
-    <span style="color:#4ade80">✅</span> RoboVLMs head ablation (exp68~70) — CH34, LSTM=MLP 확인<br>
-    <span style="color:#4ade80">✅</span> Window size ablation — CH35, MLP w≥4 포화·LSTM w=16 최저 FPE<br>
-    <span style="color:#4ade80">✅</span> Grounding Hub §G 연동 — CH34/35 전체 결과 통합 시각화<br>
-    <span style="color:#4ade80">✅</span> 의자 grounding 파이프라인 구축 (100% hit, 스크립트 완료)<br>
-    <span style="color:#fbbf24">⏳</span> 의자 좌/우 에피소드 수집 (현재 0ep/1ep → 목표 15+15ep)<br>
-    <span style="color:#94a3b8">🔲</span> 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)<br>
-    <span style="color:#94a3b8">🔲</span> 논문 최종 작성 (Table 1/2A/2B/2C/2D 확정 완료, 본문 서술 필요)
-  </div>
-</div>
-
-<script>
-(function() {
-  const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','next-step','summary'];
-  const items = document.querySelectorAll('.toc-item[data-target]');
-
-  function getActive() {
-    const mid = window.scrollY + window.innerHeight * 0.35;
-    let active = SECTIONS[0];
-    for (const id of SECTIONS) {
-      const el = document.getElementById(id);
-      if (el && el.getBoundingClientRect().top + window.scrollY <= mid) active = id;
-    }
-    return active;
-  }
-
-  function update() {
-    const active = getActive();
-    items.forEach(item => {
-      item.classList.toggle('active', item.dataset.target === active);
-    });
-  }
-
-  window.addEventListener('scroll', update, {passive: true});
-  update();
-
-  /* 클릭 시 패널 자동 닫기 (선택) */
-  items.forEach(item => {
-    item.addEventListener('click', () => {
-      document.getElementById('toc-panel').classList.remove('open');
-    });
-  });
-})();
-</script>
-
-<!-- ════════════════════════════════════════════════════════════════
-     VIS — 시각 자료 모음 (논문 부록)
-     ════════════════════════════════════════════════════════════════ -->
-<div class="chapter" id="vis" style="padding-bottom:80px">
-  <div class="chapter-header" style="background:linear-gradient(135deg,#1a0a0f 0%,#0a1628 100%);border-left:4px solid #fb7185">
-    <span class="chapter-num" style="background:#fb7185;color:#0a0f1a">VIS</span>
-    <div class="chapter-title">시각 자료 모음</div>
-    <div class="chapter-subtitle">로봇 · 아키텍처 · 결과 테이블 · 실험 증거</div>
-  </div>
-
-  <!-- A. 로봇 & 실험 환경 -->
-  <div style="margin-bottom:32px">
-    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">A. 로봇 & 실험 환경</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-        <img src="../SCR-20260609-oxdv.png" alt="Robot close-up" style="width:100%;display:block;object-fit:cover">
-        <div style="padding:10px 14px;font-size:0.8rem;color:#94a3b8">Fig A-1. 3축 옴니휠 로봇 (바스켓 포함). 카메라·컨트롤러·배터리 일체형.</div>
-      </div>
-      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-        <img src="../SCR-20260609-oxhg.png" alt="Robot on track" style="width:100%;display:block;object-fit:cover">
-        <div style="padding:10px 14px;font-size:0.8rem;color:#94a3b8">Fig A-2. 실험 트랙 전경. 테이프로 9가지 경로 설계, 150 에피소드 수집.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- B. 시스템 아키텍처 -->
-  <div style="margin-bottom:32px">
-    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">B. 시스템 아키텍처 — Decomposition Pipeline</div>
-    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;padding:16px">
-      <object data="portfolio/architecture_diagram.svg" type="image/svg+xml" style="width:100%;border-radius:8px;display:block">
-        <pre style="color:#94a3b8;font-size:0.8rem;line-height:1.9;margin:0">[RGB Frame 224×224]
-       ↓
-[Kosmos-2 Vision Encoder]  — frozen
-       ↓ 1024-dim
-[image_proj → 256-dim, L2-normalize]           ← Stage 1 (val acc 98.1%)
-       ↓
-[Concatenate 288-dim] ← BBox History ×8 (cx,cy,area,has_bbox) = 32-dim
-       ↓
-[ActionMLP: 256→128→64→8]                      ← Stage 2 (val acc 93.5%)
-       ↓
-[8 Actions: STOP / FORWARD / LEFT / RIGHT / FWD+L / FWD+R / ROT_L / ROT_R]</pre>
-      </object>
-      <div style="margin-top:8px;font-size:0.8rem;color:#94a3b8">Fig B-1. Stage2 v2 파이프라인. Kosmos-2 vision encoder frozen, image_proj + ActionMLP만 학습. BBox cx는 PaliGemma2 zero-shot grounding에서 추출.</div>
-    </div>
-  </div>
-
-  <!-- C. Main Results Table -->
-  <div style="margin-bottom:32px">
-    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">C. Full Comparison — E2E VLA 전수 vs Decomposition</div>
-    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-      <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
-        <thead>
-          <tr style="background:#0f1e35;border-bottom:2px solid #1e3050">
-            <th style="padding:10px 14px;text-align:left;color:#94a3b8">카테고리</th>
-            <th style="padding:10px 14px;text-align:left;color:#94a3b8">Exp</th>
-            <th style="padding:10px 14px;text-align:left;color:#94a3b8">Architecture</th>
-            <th style="padding:10px 14px;text-align:center;color:#94a3b8">CL ↑</th>
-            <th style="padding:10px 14px;text-align:center;color:#94a3b8">FPE ↓</th>
-            <th style="padding:10px 14px;text-align:center;color:#94a3b8">n</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- E2E VLA 그룹 -->
-          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
-            <td rowspan="5" style="padding:10px 14px;color:#fca5a5;font-weight:700;font-size:0.78rem;vertical-align:top;border-right:2px solid #2d1010">E2E VLA<br><span style="font-weight:400;color:#64748b;font-size:0.72rem">전부 실패</span></td>
-            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp11</td>
-            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 (Google-robot) + LoRA</td>
-            <td style="padding:10px 14px;text-align:center;color:#fca5a5;font-weight:900;font-size:1.05rem">0%</td>
-            <td style="padding:10px 14px;text-align:center;color:#fca5a5">1.454</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
-          </tr>
-          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
-            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp17</td>
-            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 + balanced 33/33/34</td>
-            <td style="padding:10px 14px;text-align:center;color:#fca5a5;font-weight:700">11.1%</td>
-            <td style="padding:10px 14px;text-align:center;color:#fca5a5">1.045</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
-          </tr>
-          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
-            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp18</td>
-            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 + text embedding fusion</td>
-            <td style="padding:10px 14px;text-align:center;color:#fca5a5;font-weight:700">11.1%</td>
-            <td style="padding:10px 14px;text-align:center;color:#fca5a5">1.045</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
-          </tr>
-          <tr style="border-bottom:1px solid #0f1e35;background:#1a0a0a">
-            <td style="padding:10px 14px;color:#fbbf24;font-size:0.8rem;font-weight:600">Exp63 ★best</td>
-            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 (HF pure) + LoRA adapter</td>
-            <td style="padding:10px 14px;text-align:center;color:#fbbf24;font-weight:700">18.8%</td>
-            <td style="padding:10px 14px;text-align:center;color:#fbbf24">1.953</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">32</td>
-          </tr>
-          <tr style="border-bottom:2px solid #1e3050;background:#1a0a0a">
-            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">v5_ablation ×6</td>
-            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">PaliGemma + vision LoRA (top2/4/6/8)</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-style:italic">미측정</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569">—</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">—</td>
-          </tr>
-          <!-- Decomposition 그룹 -->
-          <tr style="border-bottom:1px solid #0f1e35;background:#0a1a0a">
-            <td rowspan="2" style="padding:10px 14px;color:#4ade80;font-weight:700;font-size:0.78rem;vertical-align:top;border-right:2px solid #0d2d0d">Decomposition<br><span style="font-weight:400;color:#64748b;font-size:0.72rem">2-stage</span></td>
-            <td style="padding:10px 14px;color:#64748b;font-size:0.8rem">Exp14 (v1)</td>
-            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">CLIP + BBox MLP</td>
-            <td style="padding:10px 14px;text-align:center;color:#fbbf24;font-weight:700">66.7%</td>
-            <td style="padding:10px 14px;text-align:center;color:#fbbf24">0.555</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">9</td>
-          </tr>
-          <tr style="background:#051a0a">
-            <td style="padding:10px 14px;color:#4ade80;font-size:0.8rem;font-weight:700">Exp66 ★</td>
-            <td style="padding:10px 14px;color:#94a3b8;font-size:0.79rem">Kosmos-2 frozen + L2-norm + bbox aug</td>
-            <td style="padding:10px 14px;text-align:center;color:#4ade80;font-weight:900;font-size:1.1rem">96.6%</td>
-            <td style="padding:10px 14px;text-align:center;color:#4ade80;font-weight:700">0.102</td>
-            <td style="padding:10px 14px;text-align:center;color:#475569;font-size:0.78rem">29</td>
-          </tr>
-        </tbody>
-      </table>
-      <div style="padding:10px 16px;font-size:0.78rem;color:#475569;border-top:1px solid #0f1e35;line-height:1.7">
-        Table C-1. CL = Closed-Loop 성공률 (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). 동일 V5 150 ep 데이터셋. n은 테스트 에피소드 수.<br>
-        E2E best(Exp63) 18.8% vs Ours 96.6% — <strong>+77.8%p 차이</strong>. v5_ablation×6: val_loss 0.43~0.45 (학습 수렴했으나 CL 미측정, 패턴상 Exp63 수준 예상).
-      </div>
-    </div>
-  </div>
-
-  <!-- D. Pipeline Ablation -->
-  <div style="margin-bottom:32px">
-    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">D. Pipeline Ablation (cx 소스 고정, 파이프라인 변경)</div>
-    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-      <table style="width:100%;border-collapse:collapse;font-size:0.86rem">
-        <thead>
-          <tr style="background:#0f1e35;border-bottom:2px solid #1e3050">
-            <th style="padding:11px 16px;text-align:left;color:#94a3b8">Exp</th>
-            <th style="padding:11px 16px;text-align:left;color:#94a3b8">Pipeline</th>
-            <th style="padding:11px 16px;text-align:left;color:#94a3b8">cx Source</th>
-            <th style="padding:11px 16px;text-align:center;color:#94a3b8">CL ↑</th>
-            <th style="padding:11px 16px;text-align:center;color:#94a3b8">FPE ↓</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="border-bottom:1px solid #0f1e35">
-            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp65b</td>
-            <td style="padding:10px 16px;color:#94a3b8">단순 MLP (no L2, no aug)</td>
-            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">base PG2</td>
-            <td style="padding:10px 16px;text-align:center;color:#fca5a5;font-weight:700">10.3%</td>
-            <td style="padding:10px 16px;text-align:center;color:#fca5a5">0.941</td>
-          </tr>
-          <tr style="border-bottom:1px solid #0f1e35">
-            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp67</td>
-            <td style="padding:10px 16px;color:#94a3b8">L2-norm + bbox aug</td>
-            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">HSV</td>
-            <td style="padding:10px 16px;text-align:center;color:#4ade80;font-weight:700">96.6%</td>
-            <td style="padding:10px 16px;text-align:center;color:#4ade80">0.110</td>
-          </tr>
-          <tr style="background:#051a0a">
-            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">Exp66 ★</td>
-            <td style="padding:10px 16px;font-weight:700;color:#e2e8f0">L2-norm + bbox aug</td>
-            <td style="padding:10px 16px;color:#64748b;font-size:0.8rem">base PG2</td>
-            <td style="padding:10px 16px;text-align:center;color:#4ade80;font-weight:900">96.6%</td>
-            <td style="padding:10px 16px;text-align:center;color:#4ade80">0.102</td>
-          </tr>
-        </tbody>
-      </table>
-      <div style="padding:10px 16px;font-size:0.79rem;color:#475569;border-top:1px solid #0f1e35">Table D-1. cx 소스 3종(HSV · base PG2 · Exp59 LoRA) 모두 CL 96.6% → grounding 품질은 action에 무관. 파이프라인(L2+aug)이 결정 변수.</div>
-    </div>
-  </div>
-
-  <!-- E. Head & Window Ablation -->
-  <div style="margin-bottom:32px">
-    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">E. Head & Window Ablation</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-        <div style="padding:10px 16px;background:#0f1e35;font-size:0.78rem;color:#94a3b8;font-weight:700">Table E-1. Action Head 비교 (파이프라인 고정)</div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
-          <thead><tr style="border-bottom:1px solid #1e3050">
-            <th style="padding:8px 14px;text-align:left;color:#64748b">Head</th>
-            <th style="padding:8px 14px;text-align:center;color:#64748b">CL</th>
-            <th style="padding:8px 14px;text-align:center;color:#64748b">FPE</th>
-          </tr></thead>
-          <tbody>
-            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fca5a5">Linear</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">69.0%</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">0.377</td></tr>
-            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fbbf24">FCHead</td><td style="padding:8px 14px;text-align:center;color:#fbbf24">93.1%</td><td style="padding:8px 14px;text-align:center;color:#fbbf24">0.109</td></tr>
-            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#4ade80">LSTMHead</td><td style="padding:8px 14px;text-align:center;color:#4ade80">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.112</td></tr>
-            <tr style="background:#051a0a"><td style="padding:8px 14px;color:#e2e8f0;font-weight:700">ActionMLP ★</td><td style="padding:8px 14px;text-align:center;color:#4ade80;font-weight:700">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.110</td></tr>
-          </tbody>
-        </table>
-        <div style="padding:8px 14px;font-size:0.76rem;color:#475569">LSTM = MLP → 경량 flat MLP 채택</div>
-      </div>
-      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-        <div style="padding:10px 16px;background:#0f1e35;font-size:0.78rem;color:#94a3b8;font-weight:700">Table E-2. Window Size (MLP / LSTM)</div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.84rem">
-          <thead><tr style="border-bottom:1px solid #1e3050">
-            <th style="padding:8px 14px;text-align:left;color:#64748b">Head</th>
-            <th style="padding:8px 14px;text-align:center;color:#64748b">w</th>
-            <th style="padding:8px 14px;text-align:center;color:#64748b">CL</th>
-            <th style="padding:8px 14px;text-align:center;color:#64748b">FPE</th>
-          </tr></thead>
-          <tbody>
-            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#fca5a5">MLP</td><td style="padding:8px 14px;text-align:center;color:#64748b">2</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">93.1%</td><td style="padding:8px 14px;text-align:center;color:#fca5a5">0.145</td></tr>
-            <tr style="border-bottom:1px solid #0f1e35;background:#051a0a"><td style="padding:8px 14px;color:#4ade80">MLP ★</td><td style="padding:8px 14px;text-align:center;color:#4ade80">4</td><td style="padding:8px 14px;text-align:center;color:#4ade80">96.6%</td><td style="padding:8px 14px;text-align:center;color:#4ade80">0.094</td></tr>
-            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#94a3b8">MLP</td><td style="padding:8px 14px;text-align:center;color:#64748b">16</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">96.6%</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">0.102</td></tr>
-            <tr style="border-bottom:1px solid #0f1e35"><td style="padding:8px 14px;color:#94a3b8">LSTM</td><td style="padding:8px 14px;text-align:center;color:#64748b">4</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">96.6%</td><td style="padding:8px 14px;text-align:center;color:#94a3b8">0.123</td></tr>
-            <tr style="background:#051204"><td style="padding:8px 14px;color:#2dd4bf">LSTM</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf">16</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf">96.6%</td><td style="padding:8px 14px;text-align:center;color:#2dd4bf;font-weight:700">0.080</td></tr>
-          </tbody>
-        </table>
-        <div style="padding:8px 14px;font-size:0.76rem;color:#475569">CL: w≥4 포화. FPE: LSTM w=16 전체 최저.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- F. 시각적 증거 -->
-  <div>
-    <div style="color:#fb7185;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">F. 시각적 증거</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-        <img src="portfolio/linear_probe_results.png" alt="Zero-shot Linear Probe" style="width:100%;display:block">
-        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-1. Zero-shot Linear Probe. Frozen CLIP이 학습 없이 96.6% 위치 분류 → Stage 1이 basket을 이미 "본다"는 증거.</div>
-      </div>
-      <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-        <img src="portfolio/masking_comparison.png" alt="Basket Masking Ablation" style="width:100%;display:block">
-        <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-2. Basket Masking Ablation (Exp66 Stage2 v2, SOTA). bbox history=zeros 조건에서 basket 마스킹 → 9/9 (100%) 행동 반전. 이미지 경로가 basket 위치를 독립적으로 인식함을 증명.</div>
-      </div>
-    </div>
-    <div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;overflow:hidden">
-      <img src="portfolio/track_summary.png" alt="5-Track Validation" style="width:100%;display:block">
-      <div style="padding:10px 14px;font-size:0.79rem;color:#94a3b8">Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 9/9 flip (Exp66, PG2)) → "basket을 본다" 이중 증명.</div>
-    </div>
-  </div>
-
 </div>
 
 <!-- ── Robot Tests 하단 버튼 ── -->
