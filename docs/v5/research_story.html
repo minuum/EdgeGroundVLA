@@ -58,6 +58,10 @@
   .frame-strip { display:flex; gap:12px; flex-wrap:wrap; }
   .frame-cell { text-align:center; }
   .frame-cell img { width:200px; height:112px; object-fit:cover; border-radius:8px; border:1px solid #334155; display:block; }
+  .frame-strip-scroll { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; }
+  .frame-strip-scroll .frame-cell { flex:0 0 auto; }
+  .frame-strip-scroll .frame-cell img { width:220px; height:auto; object-fit:contain; background:#0a0f1a; }
+  .frame-strip-scroll .frame-cap { margin-top:6px; font-size:0.72rem; color:#94a3b8; max-width:220px; }
   .frame-meta { margin-top:6px; }
   .frame-label { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }
 
@@ -9982,6 +9986,12 @@ graph TD
       38-2의 질문("헤드 입력을 bbox 대신 PG2 hidden state로 바꾸면 다를까")을 재학습 없이 바로 확인했다.
       <code style="font-size:0.78rem">scripts/measure_hidden_state_pg2.py</code> — attention 가중치가 아니라
       <strong>action head가 실제로 받을 표현(벡터) 자체</strong>가 instruction에 따라 얼마나 갈리는지, 코사인거리로 측정.
+      <div class="frame-strip-scroll" style="margin-top:10px">
+        <div class="frame-cell"><img src="grounding_frames/s6/frame_0001.jpg" alt="S6 baseline f1"><div class="frame-cap">S6 baseline (f1)</div></div>
+        <div class="frame-cell"><img src="grounding_frames/s6/frame_0070.jpg" alt="S6 dead-zone f70"><div class="frame-cap">S6 dead-zone (f70)</div></div>
+        <div class="frame-cell"><img src="grounding_frames/s7/frame_0054.jpg" alt="S7 정상검출"><div class="frame-cap">S7 정상검출 (f54)</div></div>
+        <div class="frame-cell"><img src="grounding_frames/s8/frame_0020.jpg" alt="S8 production"><div class="frame-cap">S8 production/mix-448 (f20)</div></div>
+      </div>
       <div style="overflow-x:auto;margin-top:10px">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
           <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">비교</th><th style="padding:6px;color:#7dd3fc">cos_dist(이미지1)</th><th style="padding:6px;color:#7dd3fc">cos_dist(이미지2)</th><th style="padding:6px;color:#7dd3fc">의미</th></tr></thead>
@@ -10009,6 +10019,11 @@ graph TD
       38-4의 cos_dist 수치는 추상적이라, <strong>PG2가 실제로 무엇을 생성하는지</strong>를 4개의 서로 다른 실제 바스켓 세션 사진
       (S6 baseline·S6 dead-zone·S7 정상검출·S8 production/mix-448)에서 직접 확인했다 — 사진과 raw 출력은
       <a href="today_visual_summary.html" style="color:#7dd3fc">today_visual_summary.html 6막</a>에 전부 첨부.
+      <div class="frame-strip-scroll" style="margin-top:10px">
+        <div class="frame-cell"><img src="grounding_frames/s6/frame_0001.jpg" alt="basket S6"><div class="frame-cap">"detect gray basket" — S6</div></div>
+        <div class="frame-cell"><img src="grounding_frames/s7/frame_0052.jpg" alt="basket S7"><div class="frame-cap">"detect gray basket" — S7</div></div>
+        <div class="frame-cell"><img src="../object_test_images/test_apple_floor_1768456959811.png" alt="apple control"><div class="frame-cap">대조군: "detect green apple" — 객체가 바뀌면 출력도 확실히 바뀜</div></div>
+      </div>
       <div style="overflow-x:auto;margin-top:10px">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
           <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">프롬프트</th><th style="padding:6px;color:#7dd3fc">4개 세션 결과</th></tr></thead>
@@ -10055,6 +10070,13 @@ graph TD
       soda 실측 중 사과(apple) grounding이 종종 실패하는 걸 발견 — 원인은 PG2가 아니라
       <code>PG2Grounder.run()</code>에 박혀있던 4개 후처리 필터 중 <code>cy_val&lt;0.35</code>("바구니는 화면 상단에 없다"는
       가정)였다. 사과의 정상 bbox는 cy=0.344로 이 임계값에 걸려 false negative 처리됐다.
+      <div class="frame-strip-scroll" style="margin-top:10px">
+        <div class="frame-cell"><img src="attention_analysis/ground_filter_examples/coke_can_bbox.png" alt="coke can bbox"><div class="frame-cap">콜라캔 — area=0.063, 정상</div></div>
+        <div class="frame-cell"><img src="attention_analysis/ground_filter_examples/chair_bbox.png" alt="chair bbox"><div class="frame-cap">의자 — area=0.125, 정상</div></div>
+        <div class="frame-cell"><img src="attention_analysis/ground_filter_examples/cone_bbox.png" alt="cone bbox"><div class="frame-cap">콘 — area=0.056, 정상</div></div>
+        <div class="frame-cell"><img src="attention_analysis/ground_filter_examples/apple_bbox.png" alt="apple bbox"><div class="frame-cap">사과 — GB10에선 area=0.010 정상검출(필터 버그 수정 효과). soda(Jetson)에서만 5/5 풀프레임 환각</div></div>
+        <div class="frame-cell"><img src="attention_analysis/ground_filter_examples/mug_bbox.png" alt="mug bbox"><div class="frame-cap">머그컵 — GB10에선 area=0.035 정상검출. soda에서만 5/5 풀프레임 환각</div></div>
+      </div>
       <div style="overflow-x:auto;margin-top:10px">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
           <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">객체</th><th style="padding:6px;color:#7dd3fc">soda 검증(수정 후)</th><th style="padding:6px;color:#7dd3fc">비고</th></tr></thead>
@@ -10079,6 +10101,18 @@ graph TD
       이번엔 다른 질문: <strong>텍스트는 고정("detect gray basket")인데 이미지(실제 주행 장면)만 다를 때</strong>
       hidden state가 경로방향과 상관되게 갈리는가 — 새 데이터 수집 없이 V5 220개 에피소드
       (파일명에 이미 <code>target_{시작위치}_{방향}_path</code> 라벨 존재)의 중간 프레임으로 frozen 선형 probe(Exp54와 동일 방법론) 측정.
+      <div style="margin-top:10px;font-size:0.78rem;color:#94a3b8">probe가 90%로 구분한 게 실제로 어떻게 다르게 생긴 화면인지 — 9개 (시작위치×방향) 조합의 실제 예시 프레임:</div>
+      <div class="frame-strip-scroll" style="margin-top:6px">
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/center_left.png" alt="center-left"><div class="frame-cap">중앙 출발 · 좌회전 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/center_straight.png" alt="center-straight"><div class="frame-cap">중앙 출발 · 직진 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/center_right.png" alt="center-right"><div class="frame-cap">중앙 출발 · 우회전 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/left_left.png" alt="left-left"><div class="frame-cap">좌측 출발 · 좌회전 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/left_straight.png" alt="left-straight"><div class="frame-cap">좌측 출발 · 직진 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/left_right.png" alt="left-right"><div class="frame-cap">좌측 출발 · 우회전 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/right_left.png" alt="right-left"><div class="frame-cap">우측 출발 · 좌회전 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/right_straight.png" alt="right-straight"><div class="frame-cap">우측 출발 · 직진 경로</div></div>
+        <div class="frame-cell"><img src="attention_analysis/direction_probe_examples/right_right.png" alt="right-right"><div class="frame-cap">우측 출발 · 우회전 경로</div></div>
+      </div>
       <div style="overflow-x:auto;margin-top:10px">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
           <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">probe</th><th style="padding:6px;color:#7dd3fc">n_class</th><th style="padding:6px;color:#7dd3fc">chance</th><th style="padding:6px;color:#7dd3fc">5-fold CV acc</th><th style="padding:6px;color:#7dd3fc">chance 대비</th></tr></thead>
