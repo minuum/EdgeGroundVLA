@@ -291,11 +291,11 @@
     <a class="toc-item" href="#ch41" data-target="ch41"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 41</span><span class="toc-label">그라운딩 품질이 핵심 — 오류는 객체를 못 잡은 프레임에 몰림</span></a>
     <a class="toc-item" href="#ch42" data-target="ch42"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 42</span><span class="toc-label">거짓 prompt도 이미지 방향 신호를 못 흔든다</span></a>
     <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+LSTM head — 진짜 핵심 factor는 head 구조(96.85%)</span></a>
-    <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트 ★NEW</span></a>
+    <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트</span></a>
+    <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
-    <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span></a>
     <a class="toc-item" href="#vis" data-target="vis"><span class="toc-badge" style="background:rgba(244,63,94,0.2);color:#fb7185;font-weight:900">VIS</span><span class="toc-label">시각 자료 모음 — 논문 부록</span></a>
     <a class="toc-item" href="robot_tests.html" style="margin-top:8px;border-top:1px solid rgba(245,158,11,0.2);padding-top:10px"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">🤖</span><span class="toc-label">Robot Tests — 실제 추론 세션 분석</span></a>
   </div>
@@ -11576,90 +11576,6 @@ graph TD
   </div>
 </div>
 
-<!-- ══ SUMMARY ══ -->
-<hr class="chapter-divider">
-<div class="chapter" id="summary" style="padding-bottom:80px">
-  <div class="chapter-header">
-    <span class="chapter-num">SUMMARY</span>
-    <h2 class="chapter-title">전체 흐름 요약</h2>
-  </div>
-
-  <!-- 확정 결론 배너 (2026-06-16) -->
-  <div style="background:linear-gradient(135deg,#052e16,#0a1628);border:2px solid #22c55e;border-radius:16px;padding:24px 28px;margin-bottom:28px;text-align:center">
-    <div style="color:#86efac;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">확정 결론 (CH1→CH36 여정 완료 · 2026-06-16)</div>
-    <div style="color:#e2e8f0;font-size:1.05rem;font-weight:700;line-height:1.7">
-      Decomposition 파이프라인(CLIP + L2-norm + bbox aug)으로 <span style="color:#4ade80;font-weight:900">96.6% CL</span> 달성.<br>
-      단순 MLP 10.3% 대비 <span style="color:#4ade80;font-weight:900">×9.4배</span> 향상. grounding 소스(HSV/PG2/LoRA)는 성능에 무관.<br>
-      <span style="color:#94a3b8;font-size:0.9rem">Exp66 (MLP w=4 FPE 0.094m) · Exp70 (LSTM w=16 FPE 0.080m) · 6/12 실사 테스트 확인 완료.</span>
-    </div>
-  </div>
-
-  <!-- 확정 결론 카드 6개 -->
-  <div class="finding-grid">
-    <div class="finding-card bad">
-      <div class="finding-num" style="color:#ef4444">0%</div>
-      <div class="finding-title">❌ E2E VLA 실패 — 구조적 한계</div>
-      <div class="finding-body">Google-robot backbone의 text attention = 0.000% (per-layer 측정). LoRA·head-only 모두 복구 불가. Exp11 CL 0%, Exp15 동일. PM 58.6%는 FORWARD bias 암기. <a href="#ch13" style="color:#94a3b8">→ CH13</a></div>
-    </div>
-    <div class="finding-card warn">
-      <div class="finding-num" style="color:#4ade80">×9.4</div>
-      <div class="finding-title">🔑 파이프라인이 유일한 결정 변수</div>
-      <div class="finding-body">동일 cx 소스(base PG2), 파이프라인만 교체: 단순 MLP(Exp65b) <strong>10.3%</strong> → L2+aug(Exp66) <strong>96.6%</strong>. 나머지(grounding 품질, 모델 구조)는 2차 요인. <a href="#ch33" style="color:#94a3b8">→ CH33</a></div>
-    </div>
-    <div class="finding-card good">
-      <div class="finding-num" style="color:#22c55e">96.6%</div>
-      <div class="finding-title">✅ Grounding 소스 무관 확정</div>
-      <div class="finding-body">HSV(Exp54) = base PG2(Exp66) = Exp59 LoRA(Exp67) — 모두 CL 96.6%. grounding LoRA 개선 7개(Exp56~64)의 action 기여 = 0. 명확한 음성 결과. <a href="#ch33" style="color:#94a3b8">→ CH33</a></div>
-    </div>
-    <div class="finding-card info">
-      <div class="finding-num" style="color:#a78bfa">96.6%</div>
-      <div class="finding-title">✅ Head Ablation — LSTM = ActionMLP</div>
-      <div class="finding-body">Linear <strong style="color:#ef4444">69.0%</strong> → FCHead <strong style="color:#fbbf24">93.1%</strong> → LSTMHead(RoboVLMs) <strong style="color:#4ade80">96.6%</strong> = ActionMLP(ours) <strong style="color:#4ade80">96.6%</strong>. window-flat MLP가 LSTM과 등가·더 경량. <a href="#ch34" style="color:#94a3b8">→ CH34</a></div>
-    </div>
-    <div class="finding-card good">
-      <div class="finding-num" style="color:#14b8a6">w≥4</div>
-      <div class="finding-title">✅ Window Ablation — MLP w≥4 포화</div>
-      <div class="finding-body">MLP w=2만 CL <strong style="color:#ef4444">93.1%</strong> 하락. w≥4 전부 <strong style="color:#4ade80">96.6%</strong> 포화. LSTM w=16이 FPE <strong style="color:#2dd4bf">0.080m</strong> 전체 최저 → 정밀도는 긴 맥락 활용 가능. <a href="#ch35" style="color:#94a3b8">→ CH35</a></div>
-    </div>
-    <div class="finding-card good">
-      <div class="finding-num" style="color:#22c55e">9/9</div>
-      <div class="finding-title">✅ Basket 이중 증명 완료</div>
-      <div class="finding-body">Zero-shot linear probe <strong>96.6%</strong>(frozen CLIP 위). Basket masking → <strong>9/9 프레임 행동 반전</strong>(curated PG2, Exp66). 이미지 경로가 basket 픽셀을 독립적으로 인식. <a href="masking_ablation_proof.html" style="color:#94a3b8">→ 상세</a></div>
-    </div>
-  </div>
-
-  <!-- LEGACY SUMMARY (6/4 업데이트 — 보존) -->
-  <!--
-  <div style="background:...">
-    <div>현재 핵심 결론 (6/4 업데이트)</div>
-    <div>"PaliGemma-3B 기반 ... RISE 사업 은상 ... SigLIP LoRA ..."</div>
-  </div>
-  <div class="finding-grid">
-    [E2E 한계 / PM 한계 / 박스를 본다 / 다음 관문 / R2-2 해결 / R2-3 해결 / within-class 한계]
-    → 6/4 기준 카드 7개. 상세 내용은 각 챕터(CH13~CH32)에 유지됨.
-  </div>
-  -->
-
-
-
-  <div style="text-align:center;margin-top:48px;padding:32px;background:var(--surface);border-radius:16px">
-    <p style="color:var(--muted);margin-bottom:16px">상세 문서 및 데이터</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <a href="exp_all_results.html" style="background:linear-gradient(135deg,#0c2040,#0a1a2e);color:#38bdf8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #1e4060;font-weight:700">📊 전체 실험 결과 총집합 (Exp01~55)</a>
-      <a href="masking_ablation_proof.html" style="background:linear-gradient(135deg,#1e1b4b,#0f0a2e);color:#a78bfa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #4338ca;font-weight:700">🧪 마스킹 & STOP 게이트 검증 리포트</a>
-      <a href="prof_qa_evidence_20260529.html" style="background:linear-gradient(135deg,#064e3b,#022c22);color:#34d399;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #047857;font-weight:700">🎓 교수님 질의 대응 검증</a>
-      <a href="devlog.html" style="background:#1e293b;color:#f59e0b;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🛠 V5 개발 로그</a>
-      <a href="exp_flow_0512.html" style="background:#1e293b;color:#60a5fa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🗺 실험 플로우 맵</a>
-      <a href="ablation_visual_proof.html" style="background:#1e293b;color:#ec4899;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🎨 기존 마스킹 시각 대시보드</a>
-      <a href="../reports/viewer.html?file=v5/GLOSSARY.md" style="background:#1e293b;color:#38bdf8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">📖 용어 사전</a>
-      <a href="closed_loop_eval/index.html" style="background:#1e293b;color:#22c55e;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">📊 Closed-Loop 상세</a>
-      <a href="exp11_image_viewer/index.html" style="background:#1e293b;color:#94a3b8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🖼 이미지 파이프라인 뷰어</a>
-      <a href="../index.html" style="background:#1e293b;color:#e2e8f0;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🏠 메인으로</a>
-    </div>
-  </div>
-</div>
-</div>
-
 <hr class="chapter-divider">
 <div class="chapter" id="weekly-meeting" style="padding-bottom:40px">
   <div class="chapter-header">
@@ -11753,6 +11669,90 @@ graph TD
     <a href="#ch43" style="color:#7dd3fc">CH43</a> &nbsp;|&nbsp;
     <a href="hidden_state_hub.html" style="color:#7dd3fc">🧠 Hidden State Hub(한 페이지 요약)</a> &nbsp;|&nbsp; 2026-06-22
   </div>
+</div>
+
+<!-- ══ SUMMARY ══ -->
+<hr class="chapter-divider">
+<div class="chapter" id="summary" style="padding-bottom:80px">
+  <div class="chapter-header">
+    <span class="chapter-num">SUMMARY</span>
+    <h2 class="chapter-title">전체 흐름 요약</h2>
+  </div>
+
+  <!-- 확정 결론 배너 (2026-06-16) -->
+  <div style="background:linear-gradient(135deg,#052e16,#0a1628);border:2px solid #22c55e;border-radius:16px;padding:24px 28px;margin-bottom:28px;text-align:center">
+    <div style="color:#86efac;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">확정 결론 (CH1→CH36 여정 완료 · 2026-06-16)</div>
+    <div style="color:#e2e8f0;font-size:1.05rem;font-weight:700;line-height:1.7">
+      Decomposition 파이프라인(CLIP + L2-norm + bbox aug)으로 <span style="color:#4ade80;font-weight:900">96.6% CL</span> 달성.<br>
+      단순 MLP 10.3% 대비 <span style="color:#4ade80;font-weight:900">×9.4배</span> 향상. grounding 소스(HSV/PG2/LoRA)는 성능에 무관.<br>
+      <span style="color:#94a3b8;font-size:0.9rem">Exp66 (MLP w=4 FPE 0.094m) · Exp70 (LSTM w=16 FPE 0.080m) · 6/12 실사 테스트 확인 완료.</span>
+    </div>
+  </div>
+
+  <!-- 확정 결론 카드 6개 -->
+  <div class="finding-grid">
+    <div class="finding-card bad">
+      <div class="finding-num" style="color:#ef4444">0%</div>
+      <div class="finding-title">❌ E2E VLA 실패 — 구조적 한계</div>
+      <div class="finding-body">Google-robot backbone의 text attention = 0.000% (per-layer 측정). LoRA·head-only 모두 복구 불가. Exp11 CL 0%, Exp15 동일. PM 58.6%는 FORWARD bias 암기. <a href="#ch13" style="color:#94a3b8">→ CH13</a></div>
+    </div>
+    <div class="finding-card warn">
+      <div class="finding-num" style="color:#4ade80">×9.4</div>
+      <div class="finding-title">🔑 파이프라인이 유일한 결정 변수</div>
+      <div class="finding-body">동일 cx 소스(base PG2), 파이프라인만 교체: 단순 MLP(Exp65b) <strong>10.3%</strong> → L2+aug(Exp66) <strong>96.6%</strong>. 나머지(grounding 품질, 모델 구조)는 2차 요인. <a href="#ch33" style="color:#94a3b8">→ CH33</a></div>
+    </div>
+    <div class="finding-card good">
+      <div class="finding-num" style="color:#22c55e">96.6%</div>
+      <div class="finding-title">✅ Grounding 소스 무관 확정</div>
+      <div class="finding-body">HSV(Exp54) = base PG2(Exp66) = Exp59 LoRA(Exp67) — 모두 CL 96.6%. grounding LoRA 개선 7개(Exp56~64)의 action 기여 = 0. 명확한 음성 결과. <a href="#ch33" style="color:#94a3b8">→ CH33</a></div>
+    </div>
+    <div class="finding-card info">
+      <div class="finding-num" style="color:#a78bfa">96.6%</div>
+      <div class="finding-title">✅ Head Ablation — LSTM = ActionMLP</div>
+      <div class="finding-body">Linear <strong style="color:#ef4444">69.0%</strong> → FCHead <strong style="color:#fbbf24">93.1%</strong> → LSTMHead(RoboVLMs) <strong style="color:#4ade80">96.6%</strong> = ActionMLP(ours) <strong style="color:#4ade80">96.6%</strong>. window-flat MLP가 LSTM과 등가·더 경량. <a href="#ch34" style="color:#94a3b8">→ CH34</a></div>
+    </div>
+    <div class="finding-card good">
+      <div class="finding-num" style="color:#14b8a6">w≥4</div>
+      <div class="finding-title">✅ Window Ablation — MLP w≥4 포화</div>
+      <div class="finding-body">MLP w=2만 CL <strong style="color:#ef4444">93.1%</strong> 하락. w≥4 전부 <strong style="color:#4ade80">96.6%</strong> 포화. LSTM w=16이 FPE <strong style="color:#2dd4bf">0.080m</strong> 전체 최저 → 정밀도는 긴 맥락 활용 가능. <a href="#ch35" style="color:#94a3b8">→ CH35</a></div>
+    </div>
+    <div class="finding-card good">
+      <div class="finding-num" style="color:#22c55e">9/9</div>
+      <div class="finding-title">✅ Basket 이중 증명 완료</div>
+      <div class="finding-body">Zero-shot linear probe <strong>96.6%</strong>(frozen CLIP 위). Basket masking → <strong>9/9 프레임 행동 반전</strong>(curated PG2, Exp66). 이미지 경로가 basket 픽셀을 독립적으로 인식. <a href="masking_ablation_proof.html" style="color:#94a3b8">→ 상세</a></div>
+    </div>
+  </div>
+
+  <!-- LEGACY SUMMARY (6/4 업데이트 — 보존) -->
+  <!--
+  <div style="background:...">
+    <div>현재 핵심 결론 (6/4 업데이트)</div>
+    <div>"PaliGemma-3B 기반 ... RISE 사업 은상 ... SigLIP LoRA ..."</div>
+  </div>
+  <div class="finding-grid">
+    [E2E 한계 / PM 한계 / 박스를 본다 / 다음 관문 / R2-2 해결 / R2-3 해결 / within-class 한계]
+    → 6/4 기준 카드 7개. 상세 내용은 각 챕터(CH13~CH32)에 유지됨.
+  </div>
+  -->
+
+
+
+  <div style="text-align:center;margin-top:48px;padding:32px;background:var(--surface);border-radius:16px">
+    <p style="color:var(--muted);margin-bottom:16px">상세 문서 및 데이터</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="exp_all_results.html" style="background:linear-gradient(135deg,#0c2040,#0a1a2e);color:#38bdf8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #1e4060;font-weight:700">📊 전체 실험 결과 총집합 (Exp01~55)</a>
+      <a href="masking_ablation_proof.html" style="background:linear-gradient(135deg,#1e1b4b,#0f0a2e);color:#a78bfa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #4338ca;font-weight:700">🧪 마스킹 & STOP 게이트 검증 리포트</a>
+      <a href="prof_qa_evidence_20260529.html" style="background:linear-gradient(135deg,#064e3b,#022c22);color:#34d399;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px;border:1px solid #047857;font-weight:700">🎓 교수님 질의 대응 검증</a>
+      <a href="devlog.html" style="background:#1e293b;color:#f59e0b;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🛠 V5 개발 로그</a>
+      <a href="exp_flow_0512.html" style="background:#1e293b;color:#60a5fa;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🗺 실험 플로우 맵</a>
+      <a href="ablation_visual_proof.html" style="background:#1e293b;color:#ec4899;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🎨 기존 마스킹 시각 대시보드</a>
+      <a href="../reports/viewer.html?file=v5/GLOSSARY.md" style="background:#1e293b;color:#38bdf8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">📖 용어 사전</a>
+      <a href="closed_loop_eval/index.html" style="background:#1e293b;color:#22c55e;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">📊 Closed-Loop 상세</a>
+      <a href="exp11_image_viewer/index.html" style="background:#1e293b;color:#94a3b8;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🖼 이미지 파이프라인 뷰어</a>
+      <a href="../index.html" style="background:#1e293b;color:#e2e8f0;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:14px">🏠 메인으로</a>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- ── Robot Tests 하단 버튼 ── -->
