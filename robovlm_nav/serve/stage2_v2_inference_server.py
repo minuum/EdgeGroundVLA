@@ -91,6 +91,11 @@ WINDOW_DEFAULT = 8
 VIS_DIM  = 1024
 PROJ_DIM = 256
 SEQ_DIM  = PROJ_DIM + 4   # 260: per-frame LSTM input
+HIDDEN_DIM = 2304         # PG2 last-layer hidden state dim (plan_20260622_hidden_state_*)
+
+# CH40 hidden-state head 체크포인트 — 없으면 head_mode="add"/"replace" 요청 시 baseline로 폴백
+HIDDEN_ADD_CKPT     = ROOT / "runs" / "v5_nav" / "mlp" / "exp_hidden_state" / "stage2_v2" / "stage2_hidden_add.pt"
+HIDDEN_REPLACE_CKPT = ROOT / "runs" / "v5_nav" / "mlp" / "exp_hidden_state" / "stage2_v2" / "stage2_hidden_replace.pt"
 
 CLASS_NAMES = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
 
@@ -344,14 +349,29 @@ class PG2Grounder:
             logger.info("PG2Grounder: ready")
 
     def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
-            return_raw: bool = False, phrase: str = "gray basket") -> dict[str, Any]:
-        """Run PaliGemma2 grounding → {'cx', 'cy', 'area', 'has_bbox', 'raw_output'}."""
+            return_raw: bool = False, phrase: str = "gray basket",
+            return_hidden: bool = False) -> dict[str, Any]:
+        """Run PaliGemma2 grounding → {'cx', 'cy', 'area', 'has_bbox', 'raw_output'}.
+
+        return_hidden=True면 같은 generate() 호출의 prefill 단계 hidden state(2304차원,
+        마지막 레이어·마지막 입력 위치)도 같이 반환 — 별도 forward 없음
+        (plan_20260622_hidden_state_hub_integration.md §1-2).
+        """
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
         inp = self._proc(text=f"detect {phrase}", images=pil, return_tensors="pt").to(self._device)
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
+        hidden_vec = None
         with torch.no_grad():
-            gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
+            if return_hidden:
+                out = self._model.generate(
+                    **inp, max_new_tokens=48, min_new_tokens=1, do_sample=False,
+                    output_hidden_states=True, return_dict_in_generate=True,
+                )
+                gen = out.sequences
+                hidden_vec = out.hidden_states[0][-1][0, -1, :].float().cpu().numpy()
+            else:
+                gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
         raw = self._proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
         locs = [int(v) / 1023.0 for v in _LOC_RE.findall(raw)]
         if len(locs) >= 4:
@@ -384,6 +404,8 @@ class PG2Grounder:
                       "x1": None, "y1": None, "x2": None, "y2": None}
         if return_raw:
             result["raw_output"] = raw
+        if return_hidden:
+            result["hidden_state"] = hidden_vec
         return result
 
 
@@ -442,6 +464,23 @@ class Stage2V2Model:
         )
         logger.info("Stage2 ckpt: %s", stage2_path)
 
+        # CH40 hidden-state head 변형(add/replace) — 있으면 같이 로드, 없으면 head_mode 요청 시 baseline 폴백.
+        # plan_20260622_hidden_state_hub_integration.md §1-1 — 기본 head_mode="baseline"은 동작 불변.
+        self.hidden_heads: dict[str, nn.Module] = {}
+        for mode, ckpt_path, mode_d_in in [
+            ("add", HIDDEN_ADD_CKPT, self.window * 4 + PROJ_DIM + HIDDEN_DIM),
+            ("replace", HIDDEN_REPLACE_CKPT, PROJ_DIM + HIDDEN_DIM),
+        ]:
+            if ckpt_path.exists():
+                h_ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
+                h_mlp = ActionMLP(d_in=h_ckpt.get("d_in", mode_d_in)).to(device)
+                h_mlp.load_state_dict(h_ckpt["mlp"])
+                h_mlp.eval()
+                self.hidden_heads[mode] = h_mlp
+                logger.info("Hidden-state head[%s] 로드 — val_acc=%.4f", mode, h_ckpt.get("val_acc", 0.0))
+            else:
+                logger.info("Hidden-state head[%s] 체크포인트 없음(%s) — head_mode='%s' 요청 시 baseline 폴백", mode, ckpt_path, mode)
+
         # Rolling history: list of {cx, cy, area, has_bbox, vis_feat}
         self.history: list[dict] = []
 
@@ -495,14 +534,22 @@ class Stage2V2Model:
             seq.append(torch.cat([vf, bbox_t]))  # (SEQ_DIM,)
         return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
 
-    def predict(self, image_b64: str, instruction: str = "basket") -> dict[str, Any]:
+    def predict(self, image_b64: str, instruction: str = "basket",
+                head_mode: str = "baseline") -> dict[str, Any]:
         start = time.time()
         image_rgb = self._decode_image(image_b64)
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
 
-        # Grounding (with optional caching)
+        # CH40 hidden-state head 사용 여부 — 체크포인트 없으면 baseline으로 자동 폴백
+        # (plan_20260622_hidden_state_hub_integration.md §1-1).
+        use_hidden = head_mode in ("add", "replace") and head_mode in self.hidden_heads
+        effective_head_mode = head_mode if use_hidden else "baseline"
+
+        # Grounding (with optional caching) — hidden state 모드는 항상 새로 계산(캐시에 hidden_state가
+        # 없을 수 있어 단순화를 위해 skip-cache 비적용, 데모/테스트 용도라 비용 영향 적음).
         use_cache = (
-            self._grounding_skip_n > 1
+            not use_hidden
+            and self._grounding_skip_n > 1
             and self.inference_count > 0
             and self.inference_count % self._grounding_skip_n != 0
             and self._grounding_cache is not None
@@ -516,9 +563,13 @@ class Stage2V2Model:
             bbox = self._grounding_cache
             grounding_latency_ms = 0.0
         else:
-            bbox = self.grounder.run(image_rgb, phrase=phrase)
+            bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=use_hidden)
             self._grounding_cache = bbox
             grounding_latency_ms = (time.time() - g_start) * 1000.0
+
+        # hidden_state(numpy array)는 JSON 응답에 그대로 넣으면 pydantic 직렬화가 깨짐 —
+        # feature 계산용으로만 빼두고 응답 bbox에서는 제거 (plan_20260622_hidden_state_hub_integration.md).
+        hidden_vec_from_bbox = bbox.pop("hidden_state", None) if use_hidden else None
 
         # Stage1 encode
         vis_feat = self.enc.encode_image(pil)  # (256,)
@@ -526,17 +577,29 @@ class Stage2V2Model:
         # Update history
         frame = self._bbox_frame(bbox)
         frame["vis_feat"] = vis_feat
+        if use_hidden:
+            frame["hidden_state"] = hidden_vec_from_bbox
         self.history.append(frame)
         if len(self.history) > max(self.window, 8):
             self.history = self.history[-max(self.window, 8):]
 
         # Build feature and predict
         with torch.no_grad():
-            if self.is_lstm:
+            if use_hidden:
+                hv = frame.get("hidden_state")
+                h_t = (torch.from_numpy(hv.astype(np.float32)).to(self.device)
+                       if hv is not None else torch.zeros(HIDDEN_DIM, device=self.device))
+                if effective_head_mode == "add":
+                    x = torch.cat([self._build_flat_feature(vis_feat), h_t]).unsqueeze(0)
+                else:  # replace
+                    x = torch.cat([vis_feat, h_t]).unsqueeze(0)
+                logits = self.hidden_heads[effective_head_mode](x)
+            elif self.is_lstm:
                 x = self._build_seq_feature().unsqueeze(0)  # (1, window, SEQ_DIM)
+                logits = self.head(x)
             else:
                 x = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, d_in)
-            logits = self.head(x)
+                logits = self.head(x)
             pred_class = int(logits.argmax(dim=-1).item())
 
         # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
@@ -603,6 +666,7 @@ class Stage2V2Model:
             "stop_latched": self.stop_latched,
             "stop_mode": STOP_MODE,
             "grounding_cached": use_cache,
+            "head_mode": effective_head_mode,
             "buffer_status": {
                 "history_size": len(self.history),
                 "window": self.window,
@@ -647,6 +711,7 @@ def get_model(reload: bool = False) -> Stage2V2Model:
 class InferenceRequest(BaseModel):
     image: str
     instruction: str = "basket"
+    head_mode: str = "baseline"  # "baseline" | "add" | "replace" (plan_20260622_hidden_state_hub_integration.md)
 
 
 class InferenceResponse(BaseModel):
@@ -667,6 +732,7 @@ class InferenceResponse(BaseModel):
     stop_latched: Optional[bool] = None
     stop_mode: Optional[str] = None
     grounding_cached: Optional[bool] = None
+    head_mode: Optional[str] = None
 
 
 class LoadRequest(BaseModel):
@@ -748,7 +814,7 @@ async def predict(
     _check_api_key(x_api_key)
     try:
         m = get_model()
-        result = m.predict(request.image, request.instruction)
+        result = m.predict(request.image, request.instruction, request.head_mode)
         return InferenceResponse(
             action=result["action"],
             action_3d=result["action_3d"],
@@ -762,6 +828,7 @@ async def predict(
             goal_near_proxy=result["goal_near_proxy"],
             proximity_override=result["proximity_override"],
             grounding_cached=result["grounding_cached"],
+            head_mode=result["head_mode"],
         )
     except HTTPException:
         raise

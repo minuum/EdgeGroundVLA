@@ -716,11 +716,13 @@ def run_vqa(image, prompt: str, adapter_label: str, add_grounding_tag: bool):
 
 # ─── VLA 로직 ────────────────────────────────────────────────────────────────
 
-def _vla_call(img_np: np.ndarray, instruction: str, vlm_model: str = "kosmos") -> dict:
+def _vla_call(img_np: np.ndarray, instruction: str, vlm_model: str = "kosmos",
+              head_mode: str = "baseline") -> dict:
     b64 = _img_to_b64(img_np)
     r = requests.post(
         f"{API_URL}/predict",
-        json={"image": b64, "instruction": instruction, "vlm_model": vlm_model},
+        json={"image": b64, "instruction": instruction, "vlm_model": vlm_model,
+              "head_mode": head_mode},
         headers=_API_HEADERS,
         timeout=30,
     )
@@ -735,7 +737,7 @@ VLM_NAME_MAP = {
 }
 
 
-def run_vla_predict(image, instruction: str, vlm_model_name: str):
+def run_vla_predict(image, instruction: str, vlm_model_name: str, head_mode: str = "baseline"):
     if image is None:
         return None, "⚠️ 카메라 프레임 없음 (카메라 연결 또는 업로드)", ""
     instruction = instruction.strip()
@@ -745,15 +747,19 @@ def run_vla_predict(image, instruction: str, vlm_model_name: str):
     img_np = _to_numpy(image)
     vlm_model = VLM_NAME_MAP.get(vlm_model_name, "kosmos")
     try:
-        d = _vla_call(img_np, instruction, vlm_model)
+        d = _vla_call(img_np, instruction, vlm_model, head_mode)
     except Exception as e:
         return None, f"❌ API 오류: {e}", ""
 
     label = d.get("predicted_label", "?")
     out_arr = annotate_image(img_np, d.get("bbox"), label)
 
+    # head_mode가 요청과 다르면(체크포인트 없어 baseline 폴백) 그대로 보여줌 —
+    # plan_20260622_hidden_state_hub_integration.md §1-1
+    actual_mode = d.get("head_mode", "baseline")
+    mode_tag = f" [head_mode={actual_mode}]" if actual_mode != "baseline" or head_mode != "baseline" else ""
     status = (
-        f"▶  {label}\n"
+        f"▶  {label}{mode_tag}\n"
         f"latency: {d['latency_ms']:.1f}ms  |  grounding: {d.get('grounding_latency_ms',0):.1f}ms\n"
         f"goal_near: {d.get('goal_near_proxy','?')}  |  model: {d.get('model_name','?')}\n"
         f"caption: {d.get('grounding_caption','')}"
@@ -842,6 +848,12 @@ def build_ui() -> gr.Blocks:
                 choices=["Kosmos-2", "PaliGemma-3B", "Moondream2"],
                 value="Kosmos-2",
                 label="VLA API VLM", scale=2,
+            )
+            head_mode_dd = gr.Dropdown(
+                choices=["baseline", "add", "replace"],
+                value="baseline",
+                label="Action Head (CH40)", scale=2,
+                info="baseline=bbox+image / add=+hidden state / replace=image+hidden만",
             )
 
         with gr.Tabs():
@@ -958,7 +970,7 @@ def build_ui() -> gr.Blocks:
                 reset_btn.click(reset_api_history,
                                 outputs=gr.Textbox(visible=False))
                 btn_v.click(run_vla_predict,
-                            inputs=[img_v, instr_txt, vla_vlm_dd],
+                            inputs=[img_v, instr_txt, vla_vlm_dd, head_mode_dd],
                             outputs=[out_img_v, out_status_v, out_bbox_v])
 
             # ── 탭 4: VLA Alias Test ─────────────────────────────────────────
