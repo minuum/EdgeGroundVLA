@@ -11551,6 +11551,27 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:20px">
+    <div class="finding-title" style="color:#86efac">6. 5번 디버깅 진행 상황 — "4초"의 진짜 원인 확인, 학습/추론 리사이즈 통일 배포 완료</div>
+    <div class="finding-body">
+      5번 디버깅 중 두 가지를 확정했습니다:
+      <ul style="margin:8px 0 0 20px;line-height:1.8">
+        <li><strong>학습/추론 이미지 리사이즈는 이미 같았다</strong> — 둘 다 1280×720 원본을 HuggingFace
+        processor에 넘기고 내부적으로 224×224로 줄어드는 동일 경로. 다만 "암묵적으로 같음"이었던 걸
+        <code>robovlm_nav/image_preprocess.py</code> 공유 함수로 명시적으로 강제 — soda 운영서버에 안전하게
+        배포·검증 완료(latency 1.32~1.36초로 회귀 없음).</li>
+        <li><strong>"4초 차이"의 진짜 원인 = 단발 latency가 아니라 누적 드리프트.</strong> S6 세션(105프레임,
+        1fps 가정) 분석 결과 단일 호출 latency는 한 번도 2.5초를 넘은 적이 없었고, 실제로는
+        "1fps 가정 vs 평균 1.36초/프레임 실제 처리속도"의 차이가 프레임이 갈수록 누적되어 frame 10번
+        근처에서 정확히 4.0초 차이가 나는 것이었습니다(<code>scripts/eval/diagnose_pipeline_health.py</code> B.drift 체크로 재현 검증).</li>
+      </ul>
+      <div style="margin-top:8px;color:#94a3b8;font-size:0.85rem">
+        재발 방지용 체크리스트 5종(latency/drift/continuity/resize/grounding)을 만들어 GB10·soda 양쪽에 배포함 —
+        <a href="https://github.com/minuum/MoNaVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a>
+      </div>
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     근거: <a href="#ch39" style="color:#7dd3fc">CH39</a> · <a href="#ch40" style="color:#7dd3fc">CH40</a> ·
     <a href="#ch41" style="color:#7dd3fc">CH41</a> · <a href="#ch42" style="color:#7dd3fc">CH42</a> ·
