@@ -1,0 +1,31 @@
+{
+  "n_episodes": 220,
+  "image_direction_via_P0": {
+    "n_class": 3,
+    "chance": 0.3333333333333333,
+    "cv_acc_mean": 0.9,
+    "cv_acc_std": 0.03082877265056941,
+    "ratio_vs_chance": 2.7
+  },
+  "image_direction_via_P1_left": {
+    "n_class": 3,
+    "chance": 0.3333333333333333,
+    "cv_acc_mean": 0.9227272727272726,
+    "cv_acc_std": 0.034015067152490384,
+    "ratio_vs_chance": 2.768181818181818
+  },
+  "image_direction_via_P2_right": {
+    "n_class": 3,
+    "chance": 0.3333333333333333,
+    "cv_acc_mean": 0.9181818181818182,
+    "cv_acc_std": 0.030828772650569398,
+    "ratio_vs_chance": 2.754545454545455
+  },
+  "prompt_identity_same_image": {
+    "n_class": 3,
+    "chance": 0.3333333333333333,
+    "cv_acc_mean": 0.9924242424242424,
+    "cv_acc_std": 0.004791329788133904,
+    "ratio_vs_chance": 2.9772727272727275
+  }
+}

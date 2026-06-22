@@ -185,9 +185,9 @@
       그래서 실제 PG2가 <strong>무엇을 생성하는지(raw 텍스트 출력)</strong>를 4개의 서로 다른 실제 바스켓 세션 사진(S6 baseline·S6 dead-zone·S7 정상검출·S8 production)에서 직접 확인했다.</p>
     <div class="scrollrow">
       <div class="card wide">
-        <img src="grounding_frames/s6/frame_0001.jpg" alt="s6 f1">
+        <img src="grounding_frames/ch38_5_boxed/s6_f1_boxed.png" alt="s6 f1 boxed">
         <div class="cap">
-          <span class="tag tag-info">S6 baseline (frame 1)</span><br>
+          <span class="tag tag-info">S6 baseline (frame 1) — 초록 박스 = detect 출력 그대로</span><br>
           <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0483&gt;&lt;loc0441&gt;&lt;loc0714&gt;&lt;loc0579&gt;</code><br>
           <code style="font-size:0.72rem;color:#86efac">detect+left → 동일 좌표</code><br>
           <code style="font-size:0.72rem;color:#86efac">detect+right → 동일 좌표</code><br>
@@ -196,36 +196,36 @@
         </div>
       </div>
       <div class="card wide">
-        <img src="grounding_frames/s6/frame_0070.jpg" alt="s6 f70">
+        <img src="grounding_frames/ch38_5_boxed/s6_f70_boxed.png" alt="s6 f70 boxed">
         <div class="cap">
-          <span class="tag tag-info">S6 dead-zone (frame 70)</span><br>
+          <span class="tag tag-info">S6 dead-zone (frame 70) — 박스가 세로로 거의 풀프레임</span><br>
           <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0000&gt;&lt;loc0451&gt;&lt;loc0951&gt;&lt;loc0726&gt;</code><br>
           <code style="font-size:0.72rem;color:#86efac">detect+left/right → &lt;loc0460&gt;...(±1픽셀급 차이, 노이즈 수준)</code><br>
           <code style="font-size:0.72rem;color:#f87171">nav_left/right → 둘 다 'yes&lt;eos&gt;'</code>
         </div>
       </div>
       <div class="card wide">
-        <img src="grounding_frames/s7/frame_0084.jpg" alt="s7 f84">
+        <img src="grounding_frames/ch38_5_boxed/s7_f84_boxed.png" alt="s7 f84 boxed">
         <div class="cap">
-          <span class="tag tag-info">S7 정상검출 (frame 84)</span><br>
+          <span class="tag tag-info">S7 정상검출 (frame 84) — 타이트하게 정상 검출</span><br>
           <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0478&gt;&lt;loc0290&gt;&lt;loc0833&gt;&lt;loc0499&gt;</code><br>
           <code style="font-size:0.72rem;color:#86efac">detect+left/right → 동일(±1 노이즈)</code><br>
           <code style="font-size:0.72rem;color:#f87171">nav_left/right → 둘 다 'yes&lt;eos&gt;'</code>
         </div>
       </div>
       <div class="card wide">
-        <img src="grounding_frames/s8/frame_0008.jpg" alt="s8 f8">
+        <img src="grounding_frames/ch38_5_boxed/s8_f8_boxed.png" alt="s8 f8 boxed">
         <div class="cap">
-          <span class="tag tag-info">S8 production·mix-448 (frame 8)</span><br>
+          <span class="tag tag-info">S8 production·mix-448 (frame 8) — 박스가 바구니보다 넓게 잡힘</span><br>
           <code style="font-size:0.72rem;color:#86efac">detect → &lt;loc0462&gt;&lt;loc0591&gt;&lt;loc0857&gt;&lt;loc0822&gt;</code><br>
           <code style="font-size:0.72rem;color:#86efac">detect+left/right → 동일(±1 노이즈)</code><br>
           <code style="font-size:0.72rem;color:#f87171">nav_left/right → 둘 다 'yes&lt;eos&gt;'</code>
         </div>
       </div>
       <div class="card wide">
-        <img src="../object_test_images/test_apple_floor_1768456959811.png" alt="apple control">
+        <img src="grounding_frames/ch38_5_boxed/apple_control_boxed.png" alt="apple control boxed">
         <div class="cap">
-          <span class="tag tag-good">대조군 — 진짜 다른 객체(사과)</span><br>
+          <span class="tag tag-good">대조군 — 진짜 다른 객체(사과), 박스가 사과를 정확히 잡음</span><br>
           <code style="font-size:0.72rem;color:#86efac">detect green apple → &lt;loc0559&gt;&lt;loc0464&gt;&lt;loc0671&gt;&lt;loc0561&gt; (바스켓과 완전히 다른 좌표)</code><br>
           <span style="color:#4ade80">→ 객체가 진짜 바뀌면 출력도 확실히 바뀐다</span>
         </div>
