@@ -285,7 +285,8 @@
     <a class="toc-item" href="#ch39" data-target="ch39"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 39</span><span class="toc-label">그라운딩 필터 보정 + hidden state 방향 신호 확인(90%)</span></a>
     <a class="toc-item" href="#ch40" data-target="ch40"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 40</span><span class="toc-label">hidden state action head 재학습 — PM 개선 착시였음(정정)</span></a>
     <a class="toc-item" href="#ch41" data-target="ch41"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 41</span><span class="toc-label">그라운딩 품질이 핵심 — 오류는 객체를 못 잡은 프레임에 몰림</span></a>
-    <a class="toc-item" href="#ch42" data-target="ch42"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 42</span><span class="toc-label">거짓 prompt도 이미지 방향 신호를 못 흔든다 ★NEW</span></a>
+    <a class="toc-item" href="#ch42" data-target="ch42"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 42</span><span class="toc-label">거짓 prompt도 이미지 방향 신호를 못 흔든다</span></a>
+    <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+head ablation — hidden state가 드디어 baseline을 넘었다 ★NEW</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -8382,7 +8383,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','next-step','summary'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -11216,7 +11217,7 @@ graph TD
         </table>
       </div>
       <div style="margin-top:10px">
-        <strong style="color:#86efac">결론:</strong> prompt가 거짓 방향("on the left")을 우겨도, 같은 이미지의 **진짜 방향** 인식 정확도는
+        <strong style="color:#86efac">결론:</strong> prompt가 거짓 방향("on the left")을 우겨도, 같은 이미지의 <strong>진짜 방향</strong> 인식 정확도는
         90.0%→92.3%로 오히려 살짝 높다(노이즈 범위 내, 통계적으로 떨어지지 않았다는 게 핵심) — <strong>이미지 신호가 prompt의
         거짓 주장에 전혀 안 흔들린다.</strong> 반면 prompt 종류 자체는 99.2%로 거의 완벽히 구분되는데, 이건 "방향을 이해해서"가
         아니라 <strong style="color:#fbbf24">단순히 다른 토큰 시퀀스라 hidden state가 다른 것</strong>(CH38-4의 cos_dist
@@ -11227,8 +11228,114 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#94a3b8">42-2. 토큰 길이를 통제해도 같은 결론 — "gray"를 "left/right"로 1단어만 치환</div>
+    <div class="finding-body">
+      42-1의 P1/P2는 P0보다 단어 수가 2배 길어서("on the left" 추가) "prompt 종류 99.2% 구분"이 방향 이해가 아니라
+      <strong>단순 길이 차이</strong>일 수 있다는 지적(사용자)이 있었다. 그래서 단어 수를 완전히 맞춘 버전으로 재실행했다 —
+      <code>P0="detect gray basket"</code> / <code>P1="detect left basket"</code> / <code>P2="detect right basket"</code>
+      (전부 3단어, "gray"만 "left/right"로 치환).
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">probe</th><th style="padding:6px;color:#7dd3fc">5-fold CV acc</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">이미지 방향 vs P0("gray", 기존)</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">90.0% ± 3.1%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">이미지 방향 vs P1("left"로 1단어 치환)</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">89.5% ± 4.0%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">이미지 방향 vs P2("right"로 1단어 치환)</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">90.5% ± 3.6%</td></tr>
+            <tr><td style="padding:6px">prompt 종류(P0/P1/P2) 자체</td><td style="padding:6px;text-align:center;font-weight:700;color:#fbbf24">99.5% ± 0.6%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">결론:</strong> 길이를 완전히 맞춰도(단어 수 동일, 1단어만 다름) 결과는 그대로다 —
+        이미지 방향 인식은 89.5~90.5%로 안정적이고, prompt 종류 구분은 오히려 더 선명해졌다(99.5%). 즉 "단어 1개만 달라도
+        hidden state는 쉽게 구분하지만, 그 단어가 방향 단어("left"/"right")인지와 실제 이미지 방향 인식 사이엔 관계가 없다"는
+        걸 더 깨끗하게 확인 — 42-1의 결론이 길이 차이로 인한 착시가 아님이 재확인됐다.
+      </div>
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     plans: plan_20260622_text_prompt_hidden_state_direction.md &nbsp;|&nbsp; 2026-06-22
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch43">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 43</span>
+    <h2 class="chapter-title">차원을 줄이고 head를 바꾸니 — hidden state가 드디어 baseline을 넘었다</h2>
+    <p class="chapter-subtitle">CH40/41이 미뤘던 "C안"(학습 가능한 projection으로 차원축소) 실행 — 14개 조합, 여러 구성이 baseline을 +2~3%p 상회</p>
+  </div>
+
+  <p class="chapter-desc">
+    CH40/41은 원시 2304차원 hidden state를 그대로 concat/대체해서 baseline(window=8, 91.54%)을 못 넘었다.
+    이번엔 hidden state 앞에 <strong>학습 가능한 linear projection</strong>(2304→proj_dim)을 둬서 "어떤 정보를 얼마나 쓸지"를
+    역전파로 배우게 했다 — 명시적 가중치 스칼라보다 표현력이 높고 구현은 단순하다. 거기에 head 구조(linear/mlp/fc)까지
+    같이 바꿔가며 14개 조합을 비교했다.
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">43-1. Projection 차원 ablation — 작을수록 좋다, 32에서 baseline을 처음으로 넘었다</div>
+    <div class="finding-body">
+      <code>scripts/train_hidden_state_projected.py --proj_dim {32,64,128,256}</code>, head=mlp(기본) 고정, window=8.
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">proj_dim</th><th style="padding:6px;color:#7dd3fc">add</th><th style="padding:6px;color:#7dd3fc">replace</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px"><strong>32</strong></td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">94.29%</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">93.31%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">64</td><td style="padding:6px;text-align:center">91.34%</td><td style="padding:6px;text-align:center">91.34%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">128</td><td style="padding:6px;text-align:center">90.35%</td><td style="padding:6px;text-align:center">90.35%</td></tr>
+            <tr><td style="padding:6px">256</td><td style="padding:6px;text-align:center">89.76%</td><td style="padding:6px;text-align:center">88.58%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">결론:</strong> proj_dim이 작을수록 일관되게 좋다(32 > 64 > 128 > 256) — CH40/41의 가설(2304차원이
+        너무 고차원이라 작은 MLP가 못 배운다)이 맞았다. <strong>proj_dim=32에서 처음으로 baseline(91.54%)을 넘었다</strong>(add 94.29%,
+        +2.75%p / replace 93.31%, +1.77%p).
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">43-2. Head 구조 ablation(proj_dim=32 고정) — FC head+replace가 전체 최고</div>
+    <div class="finding-body">
+      <code>--head_type {linear,mlp,fc}</code>, proj_dim=32 고정(43-1 최선값).
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">head</th><th style="padding:6px;color:#7dd3fc">add</th><th style="padding:6px;color:#7dd3fc">replace</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">linear(1-layer)</td><td style="padding:6px;text-align:center">91.34%</td><td style="padding:6px;text-align:center">90.55%</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">mlp(기존, 43-1과 동일 설정 재실행)</td><td style="padding:6px;text-align:center">93.70%</td><td style="padding:6px;text-align:center">92.72%</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>fc(deep MLP, RoboVLMs 스타일)</strong></td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">93.90%</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">94.09% ← 전체 최고</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#fbbf24">참고:</strong> mlp/add/proj32는 43-1에서 94.29%였는데 같은 설정을 43-2에서 다시 돌리니 93.70%로
+        0.6%p 차이가 났다 — 학습 셔플 순서가 고정 시드가 아니라서 생기는 <strong>런 간 노이즈 폭(±0.5~1%p)</strong>으로 해석해야 한다.
+        그래도 <strong>14개 조합 중 다수가 baseline(91.54%)을 일관되게 넘는다</strong>는 큰 그림은 노이즈로 설명되지 않는다.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">43-3. 종합 — "차원이 핵심 factor였다", CH41 결론과 어떻게 같이 가는가</div>
+    <div class="finding-body">
+      CH40/41에서 "head 구조를 바꿔도 안 된다"고 했던 건 사실 <strong>"2304차원을 그대로 쓰면 head 구조와 무관하게 안 된다"</strong>가
+      더 정확했다 — 차원을 32로 줄이니(linear부터도 baseline 근처, mlp/fc는 baseline을 확실히 넘김) 같은 hidden state 정보가
+      실제로 쓸모 있어졌다. 즉 이번 세션에서 찾은 "어떤 factor가 핵심인가"의 답은: <strong>① 그라운딩 품질(CH41, 가장 강한 단일
+      factor) ② hidden state의 차원(43-1, 작을수록 좋음) ③ head 구조(43-2, FC가 근소 우위)</strong> 순으로 보인다.
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">다음 단계(범위 밖):</strong> proj_dim을 32보다 더 줄여서(16/8) 한계를 찾기, fc+replace+proj32
+        조합을 closed-loop으로 평가, 그리고 CH41의 그라운딩 품질 개선과 병행 — 둘은 서로 배타적이지 않다.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260622_hidden_state_projection_weighting.md &nbsp;|&nbsp; 2026-06-22
   </div>
 </div>
 
