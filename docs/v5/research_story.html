@@ -294,6 +294,7 @@
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
+    <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span></a>
     <a class="toc-item" href="#vis" data-target="vis"><span class="toc-badge" style="background:rgba(244,63,94,0.2);color:#fb7185;font-weight:900">VIS</span><span class="toc-label">시각 자료 모음 — 논문 부록</span></a>
     <a class="toc-item" href="robot_tests.html" style="margin-top:8px;border-top:1px solid rgba(245,158,11,0.2);padding-top:10px"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">🤖</span><span class="toc-label">Robot Tests — 실제 추론 세션 분석</span></a>
   </div>
@@ -8387,7 +8388,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','next-step','summary'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','next-step','summary','weekly-meeting'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -11497,6 +11498,65 @@ graph TD
     </div>
   </div>
 </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="weekly-meeting" style="padding-bottom:40px">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MEETING</span>
+    <h2 class="chapter-title">이번주 미팅 준비 (2026-06-22 기준 분석)</h2>
+    <p class="chapter-subtitle">오늘 CH39~43 분석 결과 요약 — 보여줄 장면 / 정직하게 언급할 것 / 다음 우선순위 / 별도 진행 중인 디버깅 예고</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:20px">
+    <div class="finding-title" style="color:#86efac">1. 한 줄 헤드라인</div>
+    <div class="finding-body">
+      "실주행이 안 되는 원인을 head(행동 결정 구조)보다 <strong>그라운딩/인식 단계</strong>로 좁혔고, head 구조 자체도
+      LSTM이 MLP보다 훨씬 강하다는 걸 정량으로 확인했습니다."
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">2. 보여줄 장면 — CH41의 실제 프레임 9장</div>
+    <div class="finding-body">
+      <a href="#ch41" style="color:#7dd3fc">CH41</a>의 9개 path_type 프레임(그라운딩=청록 박스, 액션예측=빨강/노랑 테두리로 분리 표기)을
+      나란히 보여주면서: "그라운딩이 실패하거나 박스가 작게 잡힌 프레임에서 오류율이 3~5배 높습니다(7%→40%)." —
+      가장 직관적이고 다음 단계(그라운딩 개선)의 근거가 됨.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:20px">
+    <div class="finding-title" style="color:#fbbf24">3. 정직하게 보여줄 것 — 자기 검증 과정 (CH40)</div>
+    <div class="finding-body">
+      "처음엔 PG2 hidden state를 추가하면 PM이 13%p 오른다고 봤는데, 같은 코드로 baseline을 다시 측정해보니
+      측정 오류였고 실제로는 효과가 없었습니다. 발견 즉시 정정했습니다." — 숨기지 않고 짧게 언급하면 검증 과정이
+      제대로 작동했다는 신뢰도로 이어짐. (<a href="#ch40" style="color:#7dd3fc">CH40</a> 참고)
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:20px">
+    <div class="finding-title" style="color:#86efac">4. 다음 우선순위 한 줄</div>
+    <div class="finding-body">
+      "head 구조(LSTM)가 가장 강한 factor라는 걸 확인했으니, 다음은 ① 그라운딩/인식 품질 자체를 올리는 작업과
+      ② LSTM+hidden state 조합을 더 큰 데이터로 검증하는 작업을 병행합니다." (<a href="#ch43" style="color:#7dd3fc">CH43</a> 참고)
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0a2e,#150a1f);border-color:#7c3aed;margin-bottom:20px">
+    <div class="finding-title" style="color:#a78bfa">5. 별도 진행 중 — 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅</div>
+    <div class="finding-body">
+      이번 CH39~43 분석과는 별도로, <strong>실제 로봇이 서버에서 학습할 때와 로봇에서 추론할 때 이미지 데이터
+      프로세싱 과정의 차이</strong>를 디버깅 중입니다. 토요일까지 진행해보고, 주말에 온라인으로 보여드리기는
+      어려우니 <strong>페이지나 이미지로 정리해서 따로 연락</strong>드릴 예정입니다.
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    근거: <a href="#ch39" style="color:#7dd3fc">CH39</a> · <a href="#ch40" style="color:#7dd3fc">CH40</a> ·
+    <a href="#ch41" style="color:#7dd3fc">CH41</a> · <a href="#ch42" style="color:#7dd3fc">CH42</a> ·
+    <a href="#ch43" style="color:#7dd3fc">CH43</a> &nbsp;|&nbsp;
+    <a href="hidden_state_hub.html" style="color:#7dd3fc">🧠 Hidden State Hub(한 페이지 요약)</a> &nbsp;|&nbsp; 2026-06-22
+  </div>
 </div>
 
 <!-- ── Robot Tests 하단 버튼 ── -->
