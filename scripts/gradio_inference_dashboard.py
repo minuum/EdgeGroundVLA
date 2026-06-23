@@ -1486,11 +1486,13 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
       with gr.Tab("🤖 Drive / Inference"):
         # ── 기존 메인 탭 내용 시작 ──
         with gr.Row(equal_height=False):
-          with gr.Column(scale=1):
-            gr.Markdown("## 🎮 제어 (카메라/모델/조작)")
+          with gr.Column(scale=2):
+            gr.Markdown("## 📷 Live Camera")
             camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
             gr.Markdown("🟢 Continuous polling via GetImage service")
 
+          with gr.Column(scale=1):
+            gr.Markdown("## 🎮 Operation Mode")
             with gr.Group():
                 gr.Markdown("### 🕹️ Operation Mode")
                 mode_radio = gr.Radio(
