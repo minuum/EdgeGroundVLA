@@ -302,7 +302,7 @@
     <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트</span><span class="toc-cat cat-diag">진단</span></a>
     <a class="toc-item" href="#ch45" data-target="ch45"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 45</span><span class="toc-label">BGR/RGB 검증(기각) + 그라운딩 실패 패턴 → 45-2 CH46에서 정정</span><span class="toc-cat cat-diag">진단</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch46" data-target="ch46"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 46</span><span class="toc-label">bbox PG2 재주석 + CH43 재학습 — 낡은 데이터가 만든 착시</span><span class="toc-cat cat-exp">실험</span><span class="toc-cat cat-fix">정정</span></a>
-    <a class="toc-item" href="#ch47" data-target="ch47"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 47</span><span class="toc-label">area_delta feature — SR/FPE 복원(93.1%→96.6%) ★NEW</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch47" data-target="ch47"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 47</span><span class="toc-label">area_delta feature — LSTM-replace FPE 0.098m 전체 최저 ★NEW</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
@@ -11901,10 +11901,40 @@ graph TD
       </div>
       <div style="margin-top:10px">
         <strong style="color:#86efac">결론: CH46-5의 가설이 맞았다.</strong> SR이 기존(Kosmos-2 시절) 수준으로
-        완전히 복원됐고, FPE도 PG2 단독(0.145m) 대비 개선(0.121m) — 다만 기존(0.101m)에는 아직 못 미친다.
-        <strong style="color:#7dd3fc">PG2의 정밀함 + 윈도우 변화율의 근접 신호</strong>를 합치는 게 올바른 방향임을
-        확인했지만, area_delta 하나로 옛 데이터의 우연한 신호를 완전히 대체하진 못함 — cy_delta나 다른 보조
-        feature 추가, 또는 hidden state(add/replace) 결합까지가 다음 후보(이번 plan 범위는 none만이었음, 범위 밖).
+        완전히 복원됐고, FPE도 PG2 단독(0.145m) 대비 개선(0.121m) — none 모드 단독으로는 기존(0.101m)에 아직
+        못 미치지만, <strong style="color:#7dd3fc">add/replace까지 확장한 결과는 47-2 참고</strong>.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">47-2. add/replace까지 확장 — LSTM-replace+area_delta가 전체 최저 FPE 달성</div>
+    <div class="finding-body">
+      같은 area_delta feature로 MLP/LSTM × add/replace까지 전부 재학습 + closed-loop 재평가.
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">구성</th><th style="padding:6px;color:#7dd3fc">PG2만(CH46) val_acc</th><th style="padding:6px;color:#7dd3fc">+area_delta val_acc</th><th style="padding:6px;color:#7dd3fc">+area_delta SR/FPE</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">MLP add</td><td style="padding:6px;text-align:center">89.17%</td><td style="padding:6px;text-align:center;color:#4ade80">89.37%(+0.20%p)</td><td style="padding:6px;text-align:center;color:#64748b">—</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">MLP replace</td><td style="padding:6px;text-align:center">88.78%</td><td style="padding:6px;text-align:center;color:#4ade80">88.98%(+0.20%p)</td><td style="padding:6px;text-align:center;color:#64748b">—</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">LSTM none</td><td style="padding:6px;text-align:center">94.88%</td><td style="padding:6px;text-align:center;color:#4ade80">95.08%(+0.20%p)</td><td style="padding:6px;text-align:center">96.6% / 0.121m</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">LSTM add</td><td style="padding:6px;text-align:center">95.67%</td><td style="padding:6px;text-align:center;color:#94a3b8">95.67%(±0)</td><td style="padding:6px;text-align:center">96.6% / 0.125m</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>LSTM replace</strong></td><td style="padding:6px;text-align:center">95.47%</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">96.46%(+0.99%p)</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">96.6% / <strong>0.098m ← 전체 최저</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#4ade80">LSTM-replace + area_delta(0.098m)가 이 챕터 전체에서(기존 Kosmos-2 데이터 포함) 가장 낮은
+        FPE를 달성</strong> — PG2-only replace(0.120m) 대비 18% 개선, 기존 Kosmos-2-none(0.101m)보다도 낮다.
+        val_acc 개선폭도 6구성 중 가장 큼(+0.99%p) — hidden state를 bbox 32차원과 완전히 대체하는 replace 모드가
+        area_delta의 추가 정보를 가장 잘 활용한 것으로 보인다(bbox 채널이 없어서 area_delta 같은 보조 신호의
+        상대적 비중이 더 큼).
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">CH47 최종 결론:</strong> CH46-5에서 발견한 "PG2가 정밀해지며 잃은 근접
+        신호"는 <code>area_delta</code> 하나로 상당 부분 복원 가능했고, 특히 LSTM-replace 조합에서는 기존
+        데이터보다도 더 나은 결과를 냈다. 다음 best 모델 후보: <code>LSTM + replace + area_delta</code>
+        (val_acc 96.46%, closed-loop FPE 0.098m).
       </div>
     </div>
   </div>
