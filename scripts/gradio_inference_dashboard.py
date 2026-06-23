@@ -1494,34 +1494,41 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
           with gr.Column(scale=1):
             gr.Markdown("## 📡 모니터링 1 (실험설정/상태)")
             with gr.Group():
-                exp_mode = gr.Dropdown(
-                    choices=EXP_MODE_NAMES,
-                    value=EXP_MODE_NAMES[0],
-                    label="실험 모드",
-                )
-                exp_config_status = gr.Textbox(label="서버 Config 상태", value="미적용", interactive=False)
-                goal_dropdown = gr.Dropdown(
-                    choices=["(직접 입력)"] + GOAL_NAV_PRESETS,
-                    value=GOAL_NAV_PRESETS[0],
-                    label="Goal Object 선택",
-                    visible=True,
-                )
-                path_dropdown = gr.Dropdown(
-                    choices=PATH_TYPES,
-                    value="right_right",
-                    label="Path Type 선택",
-                    visible=False,
-                )
+                with gr.Row():
+                    exp_mode = gr.Dropdown(
+                        choices=EXP_MODE_NAMES,
+                        value=EXP_MODE_NAMES[0],
+                        label="실험 모드",
+                        scale=2,
+                    )
+                    exp_config_status = gr.Textbox(label="서버 Config", value="미적용", interactive=False, scale=1)
+                with gr.Row():
+                    goal_dropdown = gr.Dropdown(
+                        choices=["(직접 입력)"] + GOAL_NAV_PRESETS,
+                        value=GOAL_NAV_PRESETS[0],
+                        label="Goal Object 선택",
+                        visible=True,
+                        scale=1,
+                    )
+                    path_dropdown = gr.Dropdown(
+                        choices=PATH_TYPES,
+                        value="right_right",
+                        label="Path Type 선택",
+                        visible=False,
+                        scale=1,
+                    )
                 instr_box_real = gr.Textbox(
                     label="🤖 Robot Prompt (모델에게 주는 프롬프트 — 틀린 값 테스트 가능)",
                     value=DEFAULT_INSTRUCTION,
                 )
-                gt_object_box = gr.Textbox(
-                    label="🎯 GT Object (실제 있는 물체 — 로깅/평가용, 모델에 전달 안됨)",
-                    value="gray basket",
-                    placeholder="예: gray basket (wrong prompt 테스트 시 실제 물체 기록)",
-                )
-            camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False)
+                with gr.Row():
+                    gt_object_box = gr.Textbox(
+                        label="🎯 GT Object (모델에 전달 안됨, 로깅용)",
+                        value="gray basket",
+                        placeholder="예: gray basket",
+                        scale=1,
+                    )
+                    camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False, scale=1)
 
           with gr.Column(scale=1):
             gr.Markdown("## 📟 모니터링 2 (실시간 상태)")
