@@ -1480,8 +1480,9 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
     with gr.Tabs():
       with gr.Tab("🤖 Drive / Inference"):
         # ── 기존 메인 탭 내용 시작 ──
-        with gr.Tabs():
-          with gr.Tab("🎮 제어 (카메라/모델/조작)"):
+        with gr.Row(equal_height=False):
+          with gr.Column(scale=1):
+            gr.Markdown("## 🎮 제어 (카메라/모델/조작)")
             camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
             gr.Markdown("🟢 Continuous polling via GetImage service")
 
@@ -1565,9 +1566,9 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                         info="SYNC: 이동→정착→캡처 (기본) | PRE: 캡처→추론→이동 | ASYNC: 추론(3Hz)+실행(10Hz) 분리스레드",
                     )
                     with gr.Row():
-                        btn_start_inf = gr.Button("▶️ START", variant="primary")
-                        btn_stop_inf = gr.Button("⏹️ STOP", variant="stop")
-                    btn_return = gr.Button("🔄 시작 위치 복귀", variant="secondary")
+                        btn_start_inf = gr.Button("▶️ START", variant="primary", scale=1)
+                        btn_stop_inf = gr.Button("⏹️ STOP", variant="stop", scale=1)
+                        btn_return = gr.Button("🔄 복귀", variant="secondary", scale=1)
                     run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
 
                 def on_backend_change(backend):
@@ -1601,17 +1602,17 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                     label="속도 (lx/ly/az 크기)",
                 )
                 with gr.Row():
-                    btn_q = gr.Button("↖ Q", scale=1, size="lg")
-                    btn_w = gr.Button("▲ W", scale=1, size="lg")
-                    btn_e = gr.Button("↗ E", scale=1, size="lg")
+                    btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    btn_e = gr.Button("↗ E", scale=1, size="sm")
                 with gr.Row():
-                    btn_a = gr.Button("◀ A", scale=1, size="lg")
-                    btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="lg")
-                    btn_d = gr.Button("▶ D", scale=1, size="lg")
+                    btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    btn_d = gr.Button("▶ D", scale=1, size="sm")
                 with gr.Row():
-                    btn_r = gr.Button("↺ R (CCW)", scale=1, size="lg")
-                    btn_s = gr.Button("▼ S", scale=1, size="lg")
-                    btn_t = gr.Button("↻ T (CW)", scale=1, size="lg")
+                    btn_r = gr.Button("↺ R (CCW)", scale=1, size="sm")
+                    btn_s = gr.Button("▼ S", scale=1, size="sm")
+                    btn_t = gr.Button("↻ T (CW)", scale=1, size="sm")
 
             with gr.Group():
                 gr.Markdown("### 🕹️ Joystick (DragonRise)")
@@ -1659,7 +1660,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
 
                 btn_js_toggle.click(fn=_js_toggle, outputs=[js_status, btn_js_toggle])
 
-          with gr.Tab("📡 모니터링 (실험설정/로그/그래프)"):
+          with gr.Column(scale=1):
+            gr.Markdown("## 📡 모니터링 (실험설정/로그/그래프)")
             with gr.Group():
                 exp_mode = gr.Dropdown(
                     choices=EXP_MODE_NAMES,
