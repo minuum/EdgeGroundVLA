@@ -1689,10 +1689,14 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                       label="Model Status",
                       value="API Server 연결됨" if _is_api else "Not Loaded",
                       interactive=False,
-                      scale=3,
+                      scale=2,
+                      min_width=100,
                   )
-                  toggle_cc = gr.Checkbox(label="🎨 Red Gain Boost", value=False, scale=1)
-              model_path = gr.Textbox(label="Active Model / Checkpoint", value="N/A", interactive=False)
+                  toggle_cc = gr.Checkbox(label="🎨 Red Gain Boost", value=False, scale=1, min_width=80)
+                  model_path = gr.Textbox(
+                      label="Active Model / Checkpoint", value="N/A", interactive=False,
+                      scale=2, min_width=120,
+                  )
 
               # 추론 제어 — Inference (Auto) 선택 시만 표시
               with gr.Column(visible=False) as inference_panel:
