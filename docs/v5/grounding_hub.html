@@ -126,7 +126,7 @@
   </div>
 
   <!-- B. 비교 매트릭스 -->
-  <h2><span class="badge" style="background:#7dd3fc;color:#0a0f1a">B</span> 모델 비교 매트릭스 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 표준 49프레임 + 의자 11장</span></h2>
+  <h2 id="section-b"><span class="badge" style="background:#7dd3fc;color:#0a0f1a">B</span> 모델 비교 매트릭스 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 표준 49프레임 + 의자 11장</span></h2>
   <div class="card">
     <table>
       <thead><tr><th>모델</th><th>백본 / LoRA</th><th>hit</th><th>cx_MAE</th><th>full-frame</th><th>OOD 오탐</th><th>판정</th></tr></thead>
@@ -141,6 +141,8 @@
       </tbody>
     </table>
     <div class="note">cx_MAE = 중심 오차(낮을수록 정확) · full-frame = area&gt;0.9 박스 비율(높을수록 붕괴) · OOD 오탐 = 의자에 basket 박스 친 비율.</div>
+    <div class="note" style="margin-top:8px">위 <strong style="color:#7dd3fc">base PG2</strong>(snapshot 8e40ab4c, LoRA 없음)는 2026-06-23 CH46/47 재주석에 쓴 운영
+    <code>DEFAULT_PG2</code>와 <strong>동일 체크포인트</strong> — 모델 일치성 검증: <a href="research_story.html#ch48" style="color:#7dd3fc">research_story.html#CH48</a></div>
   </div>
 
   <!-- C. 측면 경로 갤러리 -->
