@@ -1474,7 +1474,9 @@ def _make_env_banner() -> str:
     )
 
 
-with gr.Blocks(title="MoNaVLA Dashboard") as demo:
+_FONT_SCALE_CSS = ".gradio-container { font-size: 120% !important; }"
+
+with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
     gr.Markdown("# MoNaVLA Real-time Dashboard")
     gr.HTML(_make_env_banner())
 
@@ -1737,47 +1739,50 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
               outputs=[load_status, model_path],
           )
 
-          with gr.Group():
-              gr.Markdown("### 🎮 Manual Controls")
-              manual_speed_slider = gr.Slider(
-                  minimum=0.3, maximum=2.0, step=0.05, value=1.15,
-                  label="속도 (lx/ly/az 크기)",
-              )
-              with gr.Row():
-                  btn_q = gr.Button("↖ Q", scale=1, size="sm")
-                  btn_w = gr.Button("▲ W", scale=1, size="sm")
-                  btn_e = gr.Button("↗ E", scale=1, size="sm")
-              with gr.Row():
-                  btn_a = gr.Button("◀ A", scale=1, size="sm")
-                  btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
-                  btn_d = gr.Button("▶ D", scale=1, size="sm")
-              with gr.Row():
-                  btn_r = gr.Button("↺ R (CCW)", scale=1, size="sm")
-                  btn_s = gr.Button("▼ S", scale=1, size="sm")
-                  btn_t = gr.Button("↻ T (CW)", scale=1, size="sm")
+          with gr.Row():
+            with gr.Column(scale=1, min_width=200):
+              with gr.Group():
+                gr.Markdown("### 🎮 Manual Controls")
+                manual_speed_slider = gr.Slider(
+                    minimum=0.3, maximum=2.0, step=0.05, value=1.15,
+                    label="속도 (lx/ly/az 크기)",
+                )
+                with gr.Row():
+                    btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    btn_e = gr.Button("↗ E", scale=1, size="sm")
+                with gr.Row():
+                    btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    btn_d = gr.Button("▶ D", scale=1, size="sm")
+                with gr.Row():
+                    btn_r = gr.Button("↺ R (CCW)", scale=1, size="sm")
+                    btn_s = gr.Button("▼ S", scale=1, size="sm")
+                    btn_t = gr.Button("↻ T (CW)", scale=1, size="sm")
 
-          with gr.Group():
-              gr.Markdown("### 🕹️ Joystick (DragonRise)")
-              with gr.Row():
-                  js_status = gr.Textbox(
-                      label="상태",
-                      value="🔌 초기화 중...",
-                      interactive=False,
-                      scale=4,
-                  )
-                  btn_js_toggle = gr.Button(
-                      "비활성화",
-                      variant="primary",
-                      scale=1,
-                  )
-              gr.Markdown(
-                  "<small>"
-                  "Left Stick → 이동 | Right Stick X → 회전 | "
-                  "A → STOP | Start → **SYNC↔ASYNC 모드 전환**<br>"
-                  "📸 SYNC: 0.45s bang-bang (V5 호환) | "
-                  "🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold"
-                  "</small>",
-              )
+            with gr.Column(scale=1, min_width=200):
+              with gr.Group():
+                gr.Markdown("### 🕹️ Joystick (DragonRise)")
+                with gr.Row():
+                    js_status = gr.Textbox(
+                        label="상태",
+                        value="🔌 초기화 중...",
+                        interactive=False,
+                        scale=4,
+                    )
+                    btn_js_toggle = gr.Button(
+                        "비활성화",
+                        variant="primary",
+                        scale=1,
+                    )
+                gr.Markdown(
+                    "<small>"
+                    "Left Stick → 이동 | Right Stick X → 회전 | "
+                    "A → STOP | Start → **SYNC↔ASYNC 모드 전환**<br>"
+                    "📸 SYNC: 0.45s bang-bang (V5 호환) | "
+                    "🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold"
+                    "</small>",
+                )
 
               def _js_status_text() -> str:
                   s = _joystick.status
