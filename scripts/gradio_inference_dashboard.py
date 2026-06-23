@@ -1480,8 +1480,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
     with gr.Tabs():
       with gr.Tab("🤖 Drive / Inference"):
         # ── 기존 메인 탭 내용 시작 ──
-        with gr.Row(equal_height=False):
-          with gr.Column(scale=1):
+        with gr.Tabs():
+          with gr.Tab("🎮 제어 (카메라/모델/조작)"):
             camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
             gr.Markdown("🟢 Continuous polling via GetImage service")
 
@@ -1659,7 +1659,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
 
                 btn_js_toggle.click(fn=_js_toggle, outputs=[js_status, btn_js_toggle])
 
-        with gr.Column(scale=1):
+          with gr.Tab("📡 모니터링 (실험설정/로그/그래프)"):
             with gr.Group():
                 exp_mode = gr.Dropdown(
                     choices=EXP_MODE_NAMES,
