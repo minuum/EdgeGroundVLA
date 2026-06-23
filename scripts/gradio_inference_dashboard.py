@@ -105,6 +105,11 @@ GOAL_NAV_PRESETS = [
 ]
 
 # 실험 모드: (표시 이름, instruction, backend_instruction_mode, speed_scaling, grounding_skip_n)
+# grounding_skip_n=3 고정 — 의도적 결정, 버그 아님 (docs/v5/research_story.html CH49 참고).
+# skip_n=1(매프레임 그라운딩)은 실측 latency 1.3~1.4s/frame이라 실시간 주행 불가능했고,
+# 오히려 skip_n=3의 bbox 캐시 재사용이 잡음 저역통과 필터처럼 작동해 baseline 성능을
+# 끌어올림(CL 93.1%→96.6%, FPE 0.145→0.119m). area_delta 기법(CH47, FPE 0.098m)은
+# skip_n=1 조건에서만 유효해서 현재는 미배포 — 이 둘을 같이 바꾸려 하지 말 것.
 EXP_MODES = {
     # ── SOTA: Stage2 v2 분해 파이프라인 ──────────────────────────────────
     "⭐ Exp66 — Stage2 v2 SOTA (base PG2, L2)": {
