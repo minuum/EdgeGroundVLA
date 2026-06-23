@@ -1857,6 +1857,18 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 gnd_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
             gnd_rec_display = gr.Textbox(label="녹화 경로", value="—", interactive=False)
 
+            with gr.Group():
+                gr.Markdown("### 🎮 수동 조작 (탭 전환 없이 미세조정)")
+                with gr.Row():
+                    gnd_btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    gnd_btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    gnd_btn_e = gr.Button("↗ E", scale=1, size="sm")
+                with gr.Row():
+                    gnd_btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    gnd_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    gnd_btn_d = gr.Button("▶ D", scale=1, size="sm")
+                gnd_manual_status = gr.Textbox(label="조작 로그", value="—", interactive=False, lines=1)
+
         # ── Grounding 탭 로직 ─────────────────────────────────────────
         _gnd_auto_state   = gr.State(False)
         _gnd_history_rows = gr.State([])
@@ -2129,6 +2141,12 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
             outputs=[_gnd_history_rows, _gnd_count, gnd_log_display],
         )
 
+        for _btn, _dir in [
+            (gnd_btn_q, "Q"), (gnd_btn_w, "W"), (gnd_btn_e, "E"),
+            (gnd_btn_a, "A"), (gnd_btn_stop, "STOP"), (gnd_btn_d, "D"),
+        ]:
+            _btn.click(fn=handle_control, inputs=[gr.State(_dir), manual_speed_slider], outputs=gnd_manual_status)
+
       # ────────────────────────────────────────────────────────────────
       with gr.Tab("📊 Latency/Drift 진단"):
         gr.Markdown(
@@ -2179,6 +2197,18 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 )
                 drift_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
             drift_diag_result = gr.Textbox(label="진단 결과", value="—", interactive=False, lines=3)
+
+            with gr.Group():
+                gr.Markdown("### 🎮 수동 조작 (탭 전환 없이 미세조정)")
+                with gr.Row():
+                    drift_btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    drift_btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    drift_btn_e = gr.Button("↗ E", scale=1, size="sm")
+                with gr.Row():
+                    drift_btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    drift_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    drift_btn_d = gr.Button("▶ D", scale=1, size="sm")
+                drift_manual_status = gr.Textbox(label="조작 로그", value="—", interactive=False, lines=1)
 
         # ── Drift 탭 로직 ──────────────────────────────────────────────
         _drift_session = gr.State([])  # [{frame, latency_ms}, ...]
@@ -2350,6 +2380,12 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
             fn=_drift_new_session,
             outputs=[_drift_session, drift_plot, drift_log_display],
         )
+
+        for _btn, _dir in [
+            (drift_btn_q, "Q"), (drift_btn_w, "W"), (drift_btn_e, "E"),
+            (drift_btn_a, "A"), (drift_btn_stop, "STOP"), (drift_btn_d, "D"),
+        ]:
+            _btn.click(fn=handle_control, inputs=[gr.State(_dir), manual_speed_slider], outputs=drift_manual_status)
 
         def _drift_run_diagnostics(api_url):
             try:
