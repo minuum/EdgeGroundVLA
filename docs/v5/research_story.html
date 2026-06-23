@@ -301,7 +301,8 @@
     <a class="toc-item" href="#todo-ch44" data-target="todo-ch44"><span class="toc-badge" style="background:rgba(249,115,22,0.15);color:#f97316">TODO</span><span class="toc-label">사용자 지시 5개 — 이미지 파이프라인 가설 ★NEW</span></a>
     <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트</span><span class="toc-cat cat-diag">진단</span></a>
     <a class="toc-item" href="#ch45" data-target="ch45"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 45</span><span class="toc-label">BGR/RGB 검증(기각) + 그라운딩 실패 패턴 → 45-2 CH46에서 정정</span><span class="toc-cat cat-diag">진단</span><span class="toc-cat cat-fix">정정</span></a>
-    <a class="toc-item" href="#ch46" data-target="ch46"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 46</span><span class="toc-label">bbox PG2 재주석 + CH43 재학습 — 낡은 데이터가 만든 착시 ★NEW</span><span class="toc-cat cat-exp">실험</span><span class="toc-cat cat-fix">정정</span></a>
+    <a class="toc-item" href="#ch46" data-target="ch46"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 46</span><span class="toc-label">bbox PG2 재주석 + CH43 재학습 — 낡은 데이터가 만든 착시</span><span class="toc-cat cat-exp">실험</span><span class="toc-cat cat-fix">정정</span></a>
+    <a class="toc-item" href="#ch47" data-target="ch47"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 47</span><span class="toc-label">area_delta feature — SR/FPE 복원(93.1%→96.6%) ★NEW</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
@@ -8432,7 +8433,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','next-step','summary','weekly-meeting'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','ch47','next-step','summary','weekly-meeting'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -11867,6 +11868,48 @@ graph TD
 
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     plans: plan_20260623_bbox_pg2_reannotation.md &nbsp;|&nbsp; 2026-06-23
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch47">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 47</span>
+    <h2 class="chapter-title">area_delta(변화율) feature 추가 — 잃은 근접 신호 복원</h2>
+    <p class="chapter-subtitle">CH46-5 가설 검증 — 회전 직전 area 분산 소실로 FPE 악화됐던 문제를 윈도우 내 변화율 feature로 복원 시도</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">47-1. 결과 — SR/FPE 모두 복원됨</div>
+    <div class="finding-body">
+      윈도우 8프레임 × [cx,cy,area,has_bbox]에 <code>area_delta = area[t]-area[t-1]</code>를 5번째 채널로 추가
+      (32→40차원). <code>--use_hidden_state none</code>만 1차 검증(MLP+LSTM).
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">구성</th><th style="padding:6px;color:#7dd3fc">SR</th><th style="padding:6px;color:#7dd3fc">FPE</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">기존(5월 Kosmos-2, CH43)</td><td style="padding:6px;text-align:center">96.6%</td><td style="padding:6px;text-align:center">0.101m</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">PG2만(CH46, area_delta 없음)</td><td style="padding:6px;text-align:center;color:#f87171">93.1%</td><td style="padding:6px;text-align:center;color:#f87171">0.145m</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>PG2 + area_delta(이번)</strong></td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">96.6%</td><td style="padding:6px;text-align:center;font-weight:700;color:#4ade80">0.121m</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        val_acc(PM)도 함께 개선: MLP-none 93.90%→<strong style="color:#4ade80">94.29%</strong>(+0.39%p),
+        LSTM-none 94.88%→<strong style="color:#4ade80">95.08%</strong>(+0.20%p).
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">결론: CH46-5의 가설이 맞았다.</strong> SR이 기존(Kosmos-2 시절) 수준으로
+        완전히 복원됐고, FPE도 PG2 단독(0.145m) 대비 개선(0.121m) — 다만 기존(0.101m)에는 아직 못 미친다.
+        <strong style="color:#7dd3fc">PG2의 정밀함 + 윈도우 변화율의 근접 신호</strong>를 합치는 게 올바른 방향임을
+        확인했지만, area_delta 하나로 옛 데이터의 우연한 신호를 완전히 대체하진 못함 — cy_delta나 다른 보조
+        feature 추가, 또는 hidden state(add/replace) 결합까지가 다음 후보(이번 plan 범위는 none만이었음, 범위 밖).
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260623_area_delta_proximity_feature.md &nbsp;|&nbsp; 2026-06-23
   </div>
 </div>
 
