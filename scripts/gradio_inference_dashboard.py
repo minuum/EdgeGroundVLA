@@ -792,7 +792,19 @@ class DashboardJoystickReader:
                 print(f"[JS-Dashboard] 연결됨: {js.get_name()}")
 
             try:
-                pygame.event.pump()
+                # USB 재연결(다른 로봇에 꽂았다가 같은 포트로 복귀 등) 감지 — 핸들이 죽은 채로
+                # 예외 없이 0만 반환하는 걸 막기 위해 핫플러그 이벤트로 강제 재초기화한다.
+                # quit()/init()은 호출하지 않는다 — 그 자체가 새 ADDED 이벤트를 만들어
+                # 무한 재연결 루프에 빠진다. js=None만 하고 다음 루프의 기존 재탐지 로직에 맡긴다.
+                hotplugged = False
+                for ev in pygame.event.get():
+                    if ev.type in (pygame.JOYDEVICEREMOVED, pygame.JOYDEVICEADDED):
+                        hotplugged = True
+                if hotplugged:
+                    print("[JS-Dashboard] 핫플러그 이벤트 — 재초기화")
+                    js = None
+                    time.sleep(0.3)
+                    continue
 
                 def rd(idx):
                     v = js.get_axis(idx)
@@ -1332,9 +1344,9 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
             state["is_busy"] = False
 
     info = backend_model_info(backend_mode, api_url)
-    if info["model_loaded"]:
-        state["model_path"] = info["checkpoint_path"]
-        state["model_status"] = f"{backend_mode} ({info['precision']})"
+    if info.get("model_loaded"):
+        state["model_path"] = info.get("checkpoint_path", state["model_path"])
+        state["model_status"] = f"{backend_mode} ({info.get('precision', 'N/A')})"
     return annotate_image(img), f"📡 Live | {state['current_log']}", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
 
 
@@ -2045,9 +2057,17 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             "계속 커진다. 이 탭은 운영 서버를 실시간으로 호출해 그 드리프트를 직접 재현·기록한다. "
             "(`docs/v5/s6_cl_sim.json` 105프레임 분석: frame 10에서 drift 3.96s ≈ \"4초\")"
         )
+        drift_basis_radio = gr.Radio(
+            ["1.0s (1fps 운영)", "1.35s (학습 수집 cadence)", "1.92s (SYNC 실측 풀사이클)", "전체 비교"],
+            value="1.0s (1fps 운영)", label="가정시간 기준",
+            info=(
+                "1.35s = auto_play_core() 0.4s 이동타이머+0.15s stop펄스+0.8s rest (학습 데이터 수집 cadence) / "
+                "1.92s = move_and_stop_ramped ramp(0.05s)+settle(0.15s)+그라운딩·MLP 추론(실측 ~1.717s) — 실제 SYNC 운영 풀사이클"
+            ),
+        )
         with gr.Row():
           with gr.Column(scale=3):
-            drift_plot = gr.Plot(label="누적 실제시간 vs 1fps 가정시간")
+            drift_plot = gr.Plot(label="누적 실제시간 vs 가정시간")
             with gr.Row():
                 drift_run_btn  = gr.Button("▶ 단발 측정", variant="primary", scale=2)
                 drift_auto_btn = gr.Button("🔄 자동 (1fps)", variant="secondary", scale=2)
@@ -2059,8 +2079,11 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             drift_latency   = gr.Textbox(label="이번 호출 latency", value="—", interactive=False)
             drift_frame_n   = gr.Textbox(label="누적 프레임 수", value="0", interactive=False)
             drift_cum_real  = gr.Textbox(label="누적 실제시간", value="0.00s", interactive=False)
-            drift_cum_nom   = gr.Textbox(label="누적 가정시간(1fps)", value="0.0s", interactive=False)
+            drift_cum_nom   = gr.Textbox(label="누적 가정시간", value="0.0s", interactive=False)
             drift_now       = gr.HTML(value="<div style='font-size:1.3rem;font-weight:800;color:#22c55e'>drift: 0.00s</div>")
+            drift_dual_panel = gr.Textbox(
+                label="기준별 drift 비교 (전체 비교 모드)", value="—", interactive=False,
+            )
             drift_history   = gr.Dataframe(
                 headers=["#", "latency(ms)", "누적실제(s)", "누적가정(s)", "drift(s)"],
                 datatype=["number", "number", "number", "number", "number"],
@@ -2094,15 +2117,35 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             _drift_log_last_write[0] = now
             return _drift_log_file[0]
 
-        def _drift_build_plot(session):
+        def _drift_basis_values(basis):
+            if basis and basis.startswith("1.35"):
+                return [1.35]
+            if basis and basis.startswith("1.92"):
+                return [1.92]
+            if basis == "전체 비교":
+                return [1.0, 1.35, 1.92]
+            return [1.0]
+
+        _DRIFT_BASIS_STYLE = {
+            1.0: ("#64748b", "1.0s 가정 (1fps 운영)"),
+            1.35: ("#3b82f6", "1.35s 가정 (학습 수집 cadence)"),
+            # ramp(0.05s, move_and_stop_ramped 블로킹 구간) + settle(0.15s) + 추론(그라운딩+MLP, 실측 ~1.717s)
+            1.92: ("#a855f7", "1.92s 가정 (SYNC 실측 풀사이클)"),
+        }
+
+        def _drift_build_plot(session, basis):
             frames = [e["frame"] for e in session]
             cum_real = list(np.cumsum([e["latency_ms"] for e in session]) / 1000.0)
-            cum_nom = [f * 1.0 for f in frames]
+            bases = _drift_basis_values(basis)
             fig, ax = plt.subplots(figsize=(6, 4))
-            ax.plot(frames, cum_nom, "--", color="#64748b", linewidth=2, label="1fps 가정")
+            for b in bases:
+                color, label = _DRIFT_BASIS_STYLE[b]
+                cum_nom_b = [f * b for f in frames]
+                ax.plot(frames, cum_nom_b, "--", color=color, linewidth=2, label=label)
             ax.plot(frames, cum_real, "-", color="#ef4444", linewidth=2.5, label="실제 처리시간")
-            ax.fill_between(frames, cum_nom, cum_real, color="#ef4444", alpha=0.15)
-            over4 = [f for f, r, n in zip(frames, cum_real, cum_nom) if (r - n) >= 4.0]
+            primary_nom = [f * bases[0] for f in frames]
+            ax.fill_between(frames, primary_nom, cum_real, color="#ef4444", alpha=0.15)
+            over4 = [f for f, r, n in zip(frames, cum_real, primary_nom) if (r - n) >= 4.0]
             if over4:
                 f0 = over4[0]
                 ax.axvline(f0, color="#facc15", linestyle=":", linewidth=1.5)
@@ -2110,13 +2153,15 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                             color="#facc15", fontsize=9, fontweight="bold")
             ax.set_xlabel("frame")
             ax.set_ylabel("누적시간(s)")
-            ax.set_title("실제 vs 1fps 가정 — 누적시간")
+            ax.set_title("실제 vs 가정 — 누적시간")
             ax.legend(loc="upper left")
             ax.grid(True, linestyle="--", alpha=0.4)
             return fig
 
-        def _drift_run(api_url, backend_mode, instr, session):
+        def _drift_run(api_url, backend_mode, instr, session, basis):
             import json as _json
+            bases = _drift_basis_values(basis)
+            primary_basis = bases[0]
             frame = None
             if ROS_AVAILABLE and ros_node:
                 frame = ros_node.get_inference_frame()
@@ -2125,7 +2170,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
 
             if frame is None:
                 return (now_str, "❌ 카메라 없음", str(len(session)), "—", "—",
-                        "<div style='color:#ef4444'>카메라 연결 필요</div>",
+                        "<div style='color:#ef4444'>카메라 연결 필요</div>", "—",
                         [[e["frame"], round(e["latency_ms"]), 0, 0, 0] for e in session[-10:][::-1]],
                         None, log_path_str, session)
 
@@ -2134,14 +2179,14 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 lat_ms = float(result.get("latency_ms") or 0.0)
             except Exception as e:
                 return (now_str, f"❌ 오류: {e}", str(len(session)), "—", "—",
-                        "<div style='color:#ef4444'>호출 실패</div>",
+                        "<div style='color:#ef4444'>호출 실패</div>", "—",
                         [[e2["frame"], round(e2["latency_ms"]), 0, 0, 0] for e2 in session[-10:][::-1]],
                         None, log_path_str, session)
 
             frame_idx = len(session) + 1
             session = session + [{"frame": frame_idx, "latency_ms": lat_ms}]
             cum_real = sum(e["latency_ms"] for e in session) / 1000.0
-            cum_nom = frame_idx * 1.0
+            cum_nom = frame_idx * primary_basis
             drift = cum_real - cum_nom
 
             color = "#22c55e" if drift < 1.0 else "#f59e0b" if drift < 4.0 else "#ef4444"
@@ -2149,31 +2194,42 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             if drift >= 4.0:
                 drift_html += "<div style='color:#facc15;font-size:0.8rem'>⚠ 4초 돌파 — 단발 latency 아니라 누적 드리프트</div>"
 
+            if len(bases) > 1:
+                parts = []
+                for b in bases:
+                    d_b = cum_real - frame_idx * b
+                    parts.append(f"{b}s 기준: {d_b:+.2f}s")
+                dual_panel_str = " | ".join(parts)
+            else:
+                dual_panel_str = "—"
+
             rows, cr = [], 0.0
             for e in session:
                 cr += e["latency_ms"] / 1000.0
-                rows.append([e["frame"], round(e["latency_ms"]), round(cr, 2), float(e["frame"]), round(cr - e["frame"], 2)])
+                nom_e = e["frame"] * primary_basis
+                rows.append([e["frame"], round(e["latency_ms"]), round(cr, 2), round(nom_e, 2), round(cr - nom_e, 2)])
             history_rows = rows[-10:][::-1]
 
             record = {
                 "ts": _dt.datetime.now().isoformat(timespec="milliseconds"),
                 "frame": frame_idx, "latency_ms": round(lat_ms, 1),
-                "cum_real_s": round(cum_real, 3), "cum_nominal_s": cum_nom, "drift_s": round(drift, 3),
+                "cum_real_s": round(cum_real, 3), "cum_nominal_s": round(cum_nom, 3), "drift_s": round(drift, 3),
+                "nominal_basis_s": primary_basis,
             }
             with open(_drift_log_file[0], "a") as f:
                 f.write(_json.dumps(record, ensure_ascii=False) + "\n")
 
-            fig = _drift_build_plot(session)
+            fig = _drift_build_plot(session, basis)
             status = "PASS" if lat_ms < 1000 else "WARN" if lat_ms < 2000 else "FAIL"
             return (now_str, f"{lat_ms:.0f}ms [{status}]", str(frame_idx), f"{cum_real:.2f}s", f"{cum_nom:.1f}s",
-                    drift_html, history_rows, fig, log_path_str, session)
+                    drift_html, dual_panel_str, history_rows, fig, log_path_str, session)
 
         _drift_outputs = [drift_clock, drift_latency, drift_frame_n, drift_cum_real, drift_cum_nom,
-                           drift_now, drift_history, drift_plot, drift_log_display, _drift_session]
+                           drift_now, drift_dual_panel, drift_history, drift_plot, drift_log_display, _drift_session]
 
         drift_run_btn.click(
             fn=_drift_run,
-            inputs=[api_url_box, backend_radio, instr_box_real, _drift_session],
+            inputs=[api_url_box, backend_radio, instr_box_real, _drift_session, drift_basis_radio],
             outputs=_drift_outputs,
         )
 
@@ -2193,7 +2249,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
         )
         drift_timer.tick(
             fn=_drift_run,
-            inputs=[api_url_box, backend_radio, instr_box_real, _drift_session],
+            inputs=[api_url_box, backend_radio, instr_box_real, _drift_session, drift_basis_radio],
             outputs=_drift_outputs,
         )
 
@@ -2270,9 +2326,16 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             outputs=status_log,
         )
 
-    # 슬라이더 변경 → 조이스틱 속도 동기화
+    # 슬라이더 변경 → 조이스틱 속도 동기화 + 실제 하드웨어 throttle(PWM%) 반영
+    # (데이터 수집 그라디오의 throttle_sl → node.throttle 패턴과 동일. 기존엔 lx/ly/az
+    # 벡터 크기만 바뀌고 VLAControlManager.throttle은 생성 시 고정값(50)이라 실제
+    # PWM 출력엔 영향이 없었음 — 슬라이더 기본값 1.15가 throttle=50과 같아지도록 비례.)
     def _sync_js_speed(spd):
-        _joystick._speed = float(spd)
+        spd = float(spd)
+        _joystick._speed = spd
+        if ROS_AVAILABLE and ros_node:
+            throttle = int(round(spd / 1.15 * 50))
+            ros_node.control.throttle = max(10, min(100, throttle))
         return gr.update()
     manual_speed_slider.change(fn=_sync_js_speed, inputs=manual_speed_slider)
 

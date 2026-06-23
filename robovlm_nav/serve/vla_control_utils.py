@@ -46,7 +46,7 @@ class VLAControlManager:
         # 1. Logging (Data Collector Style)
         log_msg = (f"📤 [CMD#{self.command_counter}] {timestamp} | "
                    f"Src: {source} | Type: {action_type} | "
-                   f"Action: lx={lx:.2f}, ly={ly:.2f}, az={az:.2f}")
+                   f"Action: lx={lx:.2f}, ly={ly:.2f}, az={az:.2f} | throttle={self.throttle}")
         self.node.get_logger().info(log_msg)
 
         # 2. ROS Topic Publishing
