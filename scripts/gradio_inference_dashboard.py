@@ -792,7 +792,19 @@ class DashboardJoystickReader:
                 print(f"[JS-Dashboard] 연결됨: {js.get_name()}")
 
             try:
-                pygame.event.pump()
+                # USB 재연결(다른 로봇에 꽂았다가 같은 포트로 복귀 등) 감지 — 핸들이 죽은 채로
+                # 예외 없이 0만 반환하는 걸 막기 위해 핫플러그 이벤트로 강제 재초기화한다.
+                # quit()/init()은 호출하지 않는다 — 그 자체가 새 ADDED 이벤트를 만들어
+                # 무한 재연결 루프에 빠진다. js=None만 하고 다음 루프의 기존 재탐지 로직에 맡긴다.
+                hotplugged = False
+                for ev in pygame.event.get():
+                    if ev.type in (pygame.JOYDEVICEREMOVED, pygame.JOYDEVICEADDED):
+                        hotplugged = True
+                if hotplugged:
+                    print("[JS-Dashboard] 핫플러그 이벤트 — 재초기화")
+                    js = None
+                    time.sleep(0.3)
+                    continue
 
                 def rd(idx):
                     v = js.get_axis(idx)
@@ -1332,9 +1344,9 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
             state["is_busy"] = False
 
     info = backend_model_info(backend_mode, api_url)
-    if info["model_loaded"]:
-        state["model_path"] = info["checkpoint_path"]
-        state["model_status"] = f"{backend_mode} ({info['precision']})"
+    if info.get("model_loaded"):
+        state["model_path"] = info.get("checkpoint_path", state["model_path"])
+        state["model_status"] = f"{backend_mode} ({info.get('precision', 'N/A')})"
     return annotate_image(img), f"📡 Live | {state['current_log']}", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
 
 
