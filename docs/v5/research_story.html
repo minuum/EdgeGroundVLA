@@ -300,7 +300,8 @@
     <a class="toc-item" href="#ch43" data-target="ch43"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 43</span><span class="toc-label">차원축소+LSTM head — 진짜 핵심 factor는 head 구조(96.85%)</span><span class="toc-cat cat-exp">실험</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#todo-ch44" data-target="todo-ch44"><span class="toc-badge" style="background:rgba(249,115,22,0.15);color:#f97316">TODO</span><span class="toc-label">사용자 지시 5개 — 이미지 파이프라인 가설 ★NEW</span></a>
     <a class="toc-item" href="#ch44" data-target="ch44"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 44</span><span class="toc-label">학습/추론 이미지 통일 + "4초"=누적 드리프트</span><span class="toc-cat cat-diag">진단</span></a>
-    <a class="toc-item" href="#ch45" data-target="ch45"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 45</span><span class="toc-label">BGR/RGB 검증(기각) + 그라운딩 실패 패턴(오른쪽 경로 초반) ★NEW</span><span class="toc-cat cat-diag">진단</span></a>
+    <a class="toc-item" href="#ch45" data-target="ch45"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 45</span><span class="toc-label">BGR/RGB 검증(기각) + 그라운딩 실패 패턴 → 45-2 CH46에서 정정</span><span class="toc-cat cat-diag">진단</span><span class="toc-cat cat-fix">정정</span></a>
+    <a class="toc-item" href="#ch46" data-target="ch46"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 46</span><span class="toc-label">bbox PG2 재주석 + CH43 재학습 — 낡은 데이터가 만든 착시 ★NEW</span><span class="toc-cat cat-exp">실험</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
@@ -8431,7 +8432,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','next-step','summary','weekly-meeting'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','next-step','summary','weekly-meeting'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -11685,8 +11686,154 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0a0a,#200a0a);border-color:#7f1d1d;margin-bottom:24px">
+    <div class="finding-title" style="color:#f87171">45-2b. ⚠️ 정정 — 위 진단은 2026-05 Kosmos-2 시절 데이터 기준, 현재 PG2 모델로 재현 안 됨</div>
+    <div class="finding-body">
+      CH46(다음 챕터) 작업 중 45-2의 has_bbox=False 5건을 <strong>현재 운영 중인 PG2Grounder로 직접 재실행</strong>했더니
+      <strong style="color:#4ade80">5건 전부 정상 탐지(has_bbox=True)</strong>로 나왔다. git 히스토리 추적 결과
+      <code>bbox_dataset_full.json</code>은 2026-05-08(커밋 77683562)에 <strong>Kosmos-2 기반 Tier1/Tier3 그라운딩</strong>으로
+      생성된 데이터였고, 현재 운영 모델(PaliGemma2)은 그 이후 도입됐다 — 45-2가 분석한 "그라운딩 실패"는 이미
+      교체된 옛 모델의 결과였다. <strong style="color:#7dd3fc">자세한 재주석·재학습 결과는 CH46 참고.</strong>
+      (이 카드는 45-2를 지우지 않고 남겨둠 — 진단 과정 자체는 정상적인 절차였고, 데이터 신선도 문제라는 걸
+      나중에 알게 된 것일 뿐.)
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     plans: plan_20260622_train_inference_image_pipeline_unify.md &nbsp;|&nbsp; 2026-06-23
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch46">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 46</span>
+    <h2 class="chapter-title">bbox 주석 재생성(PG2) + CH43 재학습 — 낡은 데이터가 만든 착시</h2>
+    <p class="chapter-subtitle">5월 Kosmos-2 시절 그라운딩 라벨을 현재 PG2 모델로 재생성 → MLP/LSTM 6구성 재학습 + closed-loop 재평가</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">46-0. 작업 타임라인 (2026-06-23)</div>
+    <div class="finding-body">
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">단계</th><th style="padding:6px;color:#7dd3fc">시작</th><th style="padding:6px;color:#7dd3fc">완료</th><th style="padding:6px;color:#7dd3fc">소요</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">1. bbox 재주석(150ep, 2,572프레임)</td><td style="padding:6px;text-align:center">16:55:36</td><td style="padding:6px;text-align:center">17:18:52</td><td style="padding:6px;text-align:center;color:#fbbf24">22.1분</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">2. 재학습 6구성(MLP/LSTM×none/add/replace)</td><td style="padding:6px;text-align:center">17:46:48</td><td style="padding:6px;text-align:center">18:06:37</td><td style="padding:6px;text-align:center;color:#fbbf24">약 20분(개별 2.3~4.4분)</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">3. closed-loop 재평가(LSTM 3종, val 29ep)</td><td style="padding:6px;text-align:center">18:08:27</td><td style="padding:6px;text-align:center">18:09경</td><td style="padding:6px;text-align:center;color:#fbbf24">&lt;1분</td></tr>
+            <tr><td style="padding:6px">3b. CH45-2 재진단(grounding_quality_vs_error)</td><td style="padding:6px;text-align:center">18:11:10</td><td style="padding:6px;text-align:center">18:12경</td><td style="padding:6px;text-align:center;color:#fbbf24">&lt;1분</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;font-size:0.78rem;color:#94a3b8">
+        주의: 150개 에피소드 중 4개(left_straight 일부)가 로컬에 h5 파일이 없어 재주석에서 건너뜀 →
+        해당 ~54/2,626 프레임은 여전히 5월 Kosmos-2 라벨을 유지(전체의 2% 미만, 결론에 영향 없음).
+        새 파일은 기존 <code>bbox_dataset_full.json</code>을 덮어쓰지 않고
+        <code>bbox_dataset_full_pg2.json</code>로 별도 저장(스크립트: <code>scripts/eval/reannotate_bbox_pg2.py</code>).
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">46-1. 재주석 자체의 변화 — has_bbox율은 거의 그대로, area 분포가 확 달라짐</div>
+    <div class="finding-body">
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">지표</th><th style="padding:6px;color:#7dd3fc">기존(5월 Kosmos-2)</th><th style="padding:6px;color:#7dd3fc">신규(현재 PG2)</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">has_bbox=True 비율</td><td style="padding:6px;text-align:center">2603/2626 (99.1%)</td><td style="padding:6px;text-align:center;color:#4ade80">2621/2626 (99.8%)</td></tr>
+            <tr><td style="padding:6px">area p25 / median / p75</td><td style="padding:6px;text-align:center">0.050 / 0.075 / <strong style="color:#fbbf24">0.666</strong></td><td style="padding:6px;text-align:center;color:#4ade80">0.039 / 0.070 / <strong>0.172</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        has_bbox율은 둘 다 99%대로 큰 차이가 없다(애초에 "전혀 탐지 안 됨"은 드문 일이었다는 뜻). 진짜 차이는
+        <strong style="color:#fbbf24">area p75</strong> — 기존 데이터엔 area≈0.6~0.8짜리 "비정상적으로 큰" 박스가
+        다수 있었는데(45-2가 본 bimodal 분포의 "가까운 그룹"), 신규 PG2 데이터에는 그런 거대 박스가 거의 없다.
+        Kosmos-2 시절 그라운딩이 종종 과대 박스(혹은 거의 전체 화면)를 잡았던 것으로 추정.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">46-2. 재학습 결과 — MLP가 LSTM 격차를 거의 따라잡음</div>
+    <div class="finding-body">
+      같은 seed=42 split, 같은 optimizer/epoch — 데이터만 교체한 순수 ablation.
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">구성</th><th style="padding:6px;color:#7dd3fc">기존(val_acc)</th><th style="padding:6px;color:#7dd3fc">신규(val_acc)</th><th style="padding:6px;color:#7dd3fc">Δ</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">MLP none(baseline)</td><td style="padding:6px;text-align:center">89.76%</td><td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">93.90%</td><td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">+4.14%p</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">MLP add</td><td style="padding:6px;text-align:center">89.17%</td><td style="padding:6px;text-align:center">89.17%</td><td style="padding:6px;text-align:center;color:#94a3b8">±0.00%p</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">MLP replace</td><td style="padding:6px;text-align:center">87.80%</td><td style="padding:6px;text-align:center">88.78%</td><td style="padding:6px;text-align:center;color:#4ade80">+0.98%p</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">LSTM none</td><td style="padding:6px;text-align:center">95.87%</td><td style="padding:6px;text-align:center;color:#f87171">94.88%</td><td style="padding:6px;text-align:center;color:#f87171">-0.99%p</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">LSTM add</td><td style="padding:6px;text-align:center">95.39%±0.20%p(5-seed)</td><td style="padding:6px;text-align:center">95.67%(단일run)</td><td style="padding:6px;text-align:center;color:#94a3b8">노이즈 범위 내</td></tr>
+            <tr><td style="padding:6px">LSTM replace</td><td style="padding:6px;text-align:center;color:#64748b">(CH43 미측정)</td><td style="padding:6px;text-align:center">95.47%</td><td style="padding:6px;text-align:center;color:#64748b">신규</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#f87171">핵심 신호:</strong> MLP-none과 LSTM-none의 격차가 기존 <strong>+6.11%p → 신규
+        +0.98%p</strong>로 거의 사라졌다. CH43-3의 결론("head 구조가 가장 큰 factor")은 부분적으로
+        <strong>낡은 데이터가 만든 인공물</strong>이었을 가능성이 크다 — bbox 라벨이 나쁠 때는 LSTM의 시간적 맥락이
+        그 노이즈를 보정해 더 큰 이득을 봤지만, bbox 라벨이 깨끗해지자 MLP도 거의 같은 수준에 도달했다.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0a05,#20100a);border-color:#9a3412;margin-bottom:24px">
+    <div class="finding-title" style="color:#fb923c">46-3. closed-loop 재평가 — PM은 비슷한데 FPE는 전부 악화</div>
+    <div class="finding-body">
+      val 29 에피소드, override 없이 argmax trajectory로 비교 (<code>closed_loop_eval_lstm_pg2.py</code>).
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">구성</th><th style="padding:6px;color:#7dd3fc">SR(기존→신규)</th><th style="padding:6px;color:#7dd3fc">FPE(기존→신규)</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">LSTM none</td><td style="padding:6px;text-align:center;color:#f87171">96.6%→93.1%</td><td style="padding:6px;text-align:center;color:#f87171">0.101m→0.145m</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">LSTM add</td><td style="padding:6px;text-align:center">96.6%→96.6%</td><td style="padding:6px;text-align:center;color:#f87171">0.086m→0.131m</td></tr>
+            <tr><td style="padding:6px">LSTM replace</td><td style="padding:6px;text-align:center;color:#64748b">(미측정)→96.6%</td><td style="padding:6px;text-align:center;color:#64748b">(미측정)→0.120m</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#f87171">솔직한 결과:</strong> "더 정확한 그라운딩 라벨"이 단순히 더 좋은 결과로 이어지지
+        않았다 — PM(프레임 정확도)은 비슷하거나 일부 개선됐지만, <strong>closed-loop FPE는 3개 구성 전부 악화</strong>됐고
+        LSTM-none은 SR도 96.6%→93.1%로 떨어졌다. 가능한 해석: 신규 area 분포가 더 좁아지면서(46-1) 모델이
+        기존에 의존하던 "거대 박스=매우 가까움" 신호가 사라져, 정지/근접 판단의 강한 신호 하나를 잃었을 수 있다 —
+        검증 안 된 가설. <strong style="color:#7dd3fc">이 챕터의 결론은 "데이터를 새로 하면 다 좋아진다"가 아니라
+        "낡은 데이터가 만든 착시(head 구조 효과 과대평가)는 확인됐지만, 신규 데이터가 모든 지표에서 우월한 건 아니다."</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">46-4. CH45-2 재진단 — has_bbox=False가 0건으로 사라짐, 그러나 area-오류 상관은 여전</div>
+    <div class="finding-body">
+      <code>grounding_quality_vs_error_pg2.py</code>로 같은 val 508프레임(×3 모드)을 재분석.
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">모드</th><th style="padding:6px;color:#7dd3fc">has_bbox=False</th><th style="padding:6px;color:#7dd3fc">오류 프레임 area 평균</th><th style="padding:6px;color:#7dd3fc">정답 프레임 area 평균</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">baseline(none)</td><td style="padding:6px;text-align:center;color:#4ade80">0건</td><td style="padding:6px;text-align:center">0.0715</td><td style="padding:6px;text-align:center">0.1191</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">add</td><td style="padding:6px;text-align:center;color:#4ade80">0건</td><td style="padding:6px;text-align:center">0.0712</td><td style="padding:6px;text-align:center">0.1214</td></tr>
+            <tr><td style="padding:6px">replace</td><td style="padding:6px;text-align:center;color:#4ade80">0건</td><td style="padding:6px;text-align:center">0.0680</td><td style="padding:6px;text-align:center">0.1220</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        45-2가 본 "right_* 경로 초반 has_bbox=False 5건"은 <strong style="color:#4ade80">신규 데이터에서 완전히
+        사라졌다</strong>(45-2b에서 이미 확인된 내용과 일치). 하지만 <strong style="color:#fbbf24">area 자체와
+        오류율의 상관은 3개 모드 전부에서 여전히 뚜렷하다</strong>(오류 프레임 area가 정답 프레임보다 약 40% 작음) —
+        즉 "탐지 성공/실패(binary)"가 아니라 <strong>"객체가 작게/멀게 잡힐수록 오류 확률이 높다(continuous)"</strong>가
+        더 정확한 버전의 결론이다. 45-2의 방향(작은/먼 객체가 약점)은 유지되지만, "그라운딩이 아예 안 된다"는
+        표현은 더 이상 맞지 않음 — "탐지는 되지만 작게 잡히면 액션 예측이 불안정해진다"로 정정.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    plans: plan_20260623_bbox_pg2_reannotation.md &nbsp;|&nbsp; 2026-06-23
   </div>
 </div>
 
@@ -11774,8 +11921,9 @@ graph TD
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🧠 모델 — 그라운딩/인식</div>
       <ul style="margin-left:18px;line-height:2">
         <li>🔄 <strong>그라운딩/인식 품질 개선</strong> — <a href="#ch41" style="color:#7dd3fc">CH41</a>이 가장 강한 factor로 지목(has_bbox=False 오류율 3~5배).
-        <a href="#ch45" style="color:#7dd3fc">CH45-2</a>에서 실패 패턴 특정 완료(오른쪽 시작/회전 경로의 초반 프레임에 집중, area 분포 이산적) —
-        <strong>진단 끝, 실제 개선(모델 교체/앙상블/multi-frame consistency)은 아직 ☐ 미착수.</strong></li>
+        <a href="#ch45" style="color:#7dd3fc">CH45-2</a>의 "오른쪽 경로 초반 has_bbox=False" 진단은 <a href="#ch46" style="color:#7dd3fc">CH46-4</a>에서
+        재현 안 됨 확인(현재 PG2 모델로는 0건) — <strong>대신 "area(거리)와 오류율의 연속적 상관"으로 결론 정정.</strong>
+        <strong>실제 개선(작은/먼 객체 보강)은 아직 ☐ 미착수.</strong></li>
       </ul>
 
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🏋️ 학습/평가</div>
