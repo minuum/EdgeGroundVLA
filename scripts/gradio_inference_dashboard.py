@@ -1494,21 +1494,23 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
           with gr.Column(scale=1):
             gr.Markdown("## 📡 모니터링 1 (실험설정/상태)")
             with gr.Group():
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     exp_mode = gr.Dropdown(
                         choices=EXP_MODE_NAMES,
                         value=EXP_MODE_NAMES[0],
                         label="실험 모드",
                         scale=2,
+                        min_width=60,
                     )
-                    exp_config_status = gr.Textbox(label="서버 Config", value="미적용", interactive=False, scale=1)
-                with gr.Row():
+                    exp_config_status = gr.Textbox(label="서버 Config", value="미적용", interactive=False, scale=1, min_width=60)
+                with gr.Row(equal_height=True):
                     goal_dropdown = gr.Dropdown(
                         choices=["(직접 입력)"] + GOAL_NAV_PRESETS,
                         value=GOAL_NAV_PRESETS[0],
                         label="Goal Object 선택",
                         visible=True,
                         scale=1,
+                        min_width=60,
                     )
                     path_dropdown = gr.Dropdown(
                         choices=PATH_TYPES,
@@ -1516,19 +1518,21 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                         label="Path Type 선택",
                         visible=False,
                         scale=1,
+                        min_width=60,
                     )
                 instr_box_real = gr.Textbox(
                     label="🤖 Robot Prompt (모델에게 주는 프롬프트 — 틀린 값 테스트 가능)",
                     value=DEFAULT_INSTRUCTION,
                 )
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     gt_object_box = gr.Textbox(
                         label="🎯 GT Object (모델에 전달 안됨, 로깅용)",
                         value="gray basket",
                         placeholder="예: gray basket",
                         scale=1,
+                        min_width=60,
                     )
-                    camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False, scale=1)
+                    camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False, scale=1, min_width=60)
 
           with gr.Column(scale=1):
             gr.Markdown("## 📟 모니터링 2 (실시간 상태)")
@@ -1618,24 +1622,28 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
           gr.Markdown("## 🎮 Operation Mode (항상 펼쳐짐, 전체 너비)")
           with gr.Group():
               gr.Markdown("### 🕹️ Operation Mode")
-              mode_radio = gr.Radio(
-                  choices=["Manual Drive", "Inference (Auto)"],
-                  value="Manual Drive",
-                  label="Controller Mode",
-              )
-
-              # Inference Backend — 항상 표시 (Manual Drive에서도 exp_mode config push에 사용)
+              # Controller Mode + Inference Backend + API URL — 한 행 (항상 표시,
+              # Manual Drive에서도 exp_mode config push에 사용)
               with gr.Row():
+                  mode_radio = gr.Radio(
+                      choices=["Manual Drive", "Inference (Auto)"],
+                      value="Manual Drive",
+                      label="Controller Mode",
+                      scale=1,
+                      min_width=120,
+                  )
                   backend_radio = gr.Radio(
                       choices=["Local Runtime", "API Server"],
                       value=DEFAULT_BACKEND_MODE,
                       label="Inference Backend",
                       scale=1,
+                      min_width=120,
                   )
                   api_url_box = gr.Textbox(
                       label="API URL",
                       value=DEFAULT_API_URL,
                       scale=2,
+                      min_width=120,
                       info="포트 8001 = soda 추론 서버 (proxy_inference_server)",
                   )
 
