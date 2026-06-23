@@ -1822,7 +1822,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
             "추론 시작 전 bbox area가 올라가는지 여기서 먼저 체크."
         )
         with gr.Row(equal_height=False):
-          with gr.Column(scale=1):
+          with gr.Column(scale=2):
             gnd_image = gr.Image(
                 label="Camera + BBox Overlay",
                 interactive=False,
@@ -1834,13 +1834,20 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 gnd_rec_btn  = gr.Button("🔴 녹화", variant="secondary", scale=1)
 
           with gr.Column(scale=1):
+            gr.Markdown("##### 검출 상태")
             gnd_clock    = gr.Textbox(label="현재 시각", value="—", interactive=False)
             gnd_has_bbox = gr.Textbox(label="검출 결과", value="—", interactive=False)
             gnd_area_bar = gr.HTML(value=_gnd_area_html(0.06, False), label="")
             gnd_cx_bar   = gr.HTML(value=_gnd_cx_html(0.5, False),   label="")
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### Latency/Raw")
             gnd_latency  = gr.Textbox(label="Grounding latency", value="—", interactive=False)
             gnd_raw      = gr.Textbox(label="PG2 raw output", value="—", interactive=False, lines=2)
             gnd_server_cmp = gr.Textbox(label="서버 예측", value="—", interactive=False)
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### 이력/세션")
             gnd_history   = gr.Dataframe(
                 headers=["#", "bbox", "area", "cx", "pred", "lat(ms)"],
                 datatype=["number", "str", "number", "number", "str", "number"],
@@ -1849,12 +1856,11 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 col_count=6,
                 interactive=False,
             )
-            with gr.Row():
-                gnd_log_display = gr.Textbox(
-                    label="JSONL 경로", value="(첫 검증 시 생성됨)",
-                    interactive=False, scale=3,
-                )
-                gnd_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
+            gnd_log_display = gr.Textbox(
+                label="JSONL 경로", value="(첫 검증 시 생성됨)",
+                interactive=False,
+            )
+            gnd_new_session_btn = gr.Button("🆕 새 세션", size="sm")
             gnd_rec_display = gr.Textbox(label="녹화 경로", value="—", interactive=False)
 
         with gr.Column():
@@ -2164,7 +2170,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
             ),
         )
         with gr.Row(equal_height=False):
-          with gr.Column(scale=1):
+          with gr.Column(scale=2):
             drift_plot = gr.Plot(label="누적 실제시간 vs 가정시간")
             with gr.Row():
                 drift_run_btn  = gr.Button("▶ 단발 측정", variant="primary", scale=2)
@@ -2173,15 +2179,22 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 drift_diag_btn = gr.Button("🩺 진단 실행 (A+D 체크)", scale=2)
 
           with gr.Column(scale=1):
+            gr.Markdown("##### 실시간 수치")
             drift_clock     = gr.Textbox(label="현재 시각", value="—", interactive=False)
             drift_latency   = gr.Textbox(label="이번 호출 latency", value="—", interactive=False)
             drift_frame_n   = gr.Textbox(label="누적 프레임 수", value="0", interactive=False)
             drift_cum_real  = gr.Textbox(label="누적 실제시간", value="0.00s", interactive=False)
             drift_cum_nom   = gr.Textbox(label="누적 가정시간", value="0.0s", interactive=False)
             drift_now       = gr.HTML(value="<div style='font-size:1.3rem;font-weight:800;color:#22c55e'>drift: 0.00s</div>")
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### 기준 비교/진단")
             drift_dual_panel = gr.Textbox(
                 label="기준별 drift 비교 (전체 비교 모드)", value="—", interactive=False,
             )
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### 이력/세션")
             drift_history   = gr.Dataframe(
                 headers=["#", "latency(ms)", "누적실제(s)", "누적가정(s)", "drift(s)"],
                 datatype=["number", "number", "number", "number", "number"],
@@ -2190,12 +2203,11 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 col_count=5,
                 interactive=False,
             )
-            with gr.Row():
-                drift_log_display = gr.Textbox(
-                    label="JSONL 경로", value="(첫 측정 시 생성됨)",
-                    interactive=False, scale=3,
-                )
-                drift_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
+            drift_log_display = gr.Textbox(
+                label="JSONL 경로", value="(첫 측정 시 생성됨)",
+                interactive=False,
+            )
+            drift_new_session_btn = gr.Button("🆕 새 세션", size="sm")
             drift_diag_result = gr.Textbox(label="진단 결과", value="—", interactive=False, lines=3)
 
         with gr.Column():
