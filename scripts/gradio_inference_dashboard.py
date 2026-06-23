@@ -1523,13 +1523,15 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 )
             camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False)
 
+          with gr.Column(scale=1):
+            gr.Markdown("## 📟 모니터링 2 (실시간 상태)")
             status_log = gr.Textbox(label="Status", value="Ready")
             latency_val = gr.Textbox(label="Latency", value="0 ms")
             action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
             chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
 
           with gr.Column(scale=1):
-            gr.Markdown("## 📊 모니터링 2 (그래프/히스토리)")
+            gr.Markdown("## 📊 모니터링 3 (그래프/히스토리)")
             traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
             run_history_table = gr.Dataframe(
                 headers=["step", "action", "total(ms)", "grounding(ms)", "mlp(ms)", "bbox_area"],
