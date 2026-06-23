@@ -816,6 +816,11 @@ class DashboardJoystickReader:
                 raw_key = self._axis_to_key(lx, ly, az)
                 key = raw_key
 
+                # L+R 합성 (gradio_data_collector.py와 동일) — L스틱으로 이동 중일 때
+                # R스틱 az를 곡선 회전으로 블렌드. 순수 회전(R/T)에는 적용하지 않음.
+                l_moving = abs(lx) > self.DEADZONE or abs(ly) > self.DEADZONE
+                az_blend = az if (l_moving and key not in ('R', 'T')) else 0.0
+
                 # ASYNC 모드: 300ms Jitter Hold — 순간 중립 튐 방지
                 if self._js_mode == 'async':
                     now_j = time.time()
@@ -838,6 +843,8 @@ class DashboardJoystickReader:
                         if base:
                             # 속도 슬라이더 반영: 방향(부호)은 유지, 크기만 스케일
                             spd = self._speed / 1.15  # 1.15 기준 정규화
+                            if az_blend != 0.0:
+                                base = (base[0], base[1], az_blend * 0.15)
                             vel = tuple(v * spd for v in base)
                             if self._js_mode == 'sync':
                                 if (now - self._last_step_time) >= self.STEP_INTERVAL:
@@ -1207,6 +1214,28 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
     }
 
 
+def _append_run_history(step: int, result: dict) -> None:
+    """SYNC/PRE 모드 추론 step마다 호출 — run history 표(그라운딩/MLP latency 분리)에 누적."""
+    total_ms = result.get("latency_ms") or 0.0
+    grounding_ms = result.get("grounding_latency_ms")
+    mlp_ms = (total_ms - grounding_ms) if grounding_ms is not None else None
+    bbox = result.get("bbox") or {}
+    state.setdefault("run_history", []).append([
+        step,
+        result.get("predicted_label") or result.get("log_str", ""),
+        round(total_ms),
+        round(grounding_ms) if grounding_ms is not None else "—",
+        round(mlp_ms) if mlp_ms is not None else "—",
+        round(bbox.get("area", 0.0), 3) if bbox else "—",
+    ])
+    state["run_history"] = state["run_history"][-30:]
+
+
+def _run_history_rows():
+    rows = state.get("run_history", [])
+    return rows[-10:][::-1]
+
+
 def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=False,
               _run_status=None, infer_move_mode=None):
     # 로드 타이밍에 None 입력이 올 수 있음 — 기본값으로 안전 처리
@@ -1273,6 +1302,7 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
             current_step = state["step_count"]
 
             if current_step == 1:
+                state["run_history"] = []
                 if logger_instance:
                     logger_instance.start_session(short_model_name(state["model_path"]), instr, instruction_mode=backend_mode)
                     if logger_instance and state.get("gt_object"):
@@ -1310,6 +1340,7 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
                     state["stable_frame_cc"] = apply_cc
             display_img = annotate_image(img, bbox=result.get("bbox"))
             fig = ros_node.generate_trajectory_plot(result["chunk"])
+            _append_run_history(current_step, result)
             if logger_instance:
                 logger_instance.log_step(
                     current_step,
@@ -1449,8 +1480,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
     with gr.Tabs():
       with gr.Tab("🤖 Drive / Inference"):
         # ── 기존 메인 탭 내용 시작 ──
-        with gr.Row():
-          with gr.Column(scale=2):
+        with gr.Row(equal_height=False):
+          with gr.Column(scale=1):
             camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
             gr.Markdown("🟢 Continuous polling via GetImage service")
 
@@ -1731,6 +1762,14 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
             chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
             traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
+            run_history_table = gr.Dataframe(
+                headers=["step", "action", "total(ms)", "grounding(ms)", "mlp(ms)", "bbox_area"],
+                datatype=["number", "str", "number", "number", "number", "number"],
+                label="Run 히스토리 (최근 10 step, SYNC/PRE 모드만 — ASYNC 미지원)",
+                row_count=10,
+                col_count=6,
+                interactive=False,
+            )
             btn_reset = gr.Button("🔄 Reset Model History")
         # ── 기존 메인 탭 내용 끝 ──
 
@@ -2364,6 +2403,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
     timer.tick(fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs)
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
     timer.tick(fn=_js_status_text, outputs=js_status)
+    timer.tick(fn=_run_history_rows, outputs=run_history_table)
     # 페이지 열리자마자 첫 프레임 즉시 표시
     demo.load(fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs)
     # 카메라 시작 버튼 완료 후 즉시 프레임 가져오기
