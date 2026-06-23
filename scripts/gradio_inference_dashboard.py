@@ -2046,9 +2046,12 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             "(`docs/v5/s6_cl_sim.json` 105프레임 분석: frame 10에서 drift 3.96s ≈ \"4초\")"
         )
         drift_basis_radio = gr.Radio(
-            ["1.0s (1fps 운영)", "1.35s (학습 수집 cadence)", "둘 다 비교"],
+            ["1.0s (1fps 운영)", "1.35s (학습 수집 cadence)", "1.92s (SYNC 실측 풀사이클)", "전체 비교"],
             value="1.0s (1fps 운영)", label="가정시간 기준",
-            info="1.35s = auto_play_core() 0.4s 이동타이머+0.15s stop펄스+0.8s rest (학습 데이터 수집 cadence)",
+            info=(
+                "1.35s = auto_play_core() 0.4s 이동타이머+0.15s stop펄스+0.8s rest (학습 데이터 수집 cadence) / "
+                "1.92s = move_and_stop_ramped ramp(0.05s)+settle(0.15s)+그라운딩·MLP 추론(실측 ~1.717s) — 실제 SYNC 운영 풀사이클"
+            ),
         )
         with gr.Row():
           with gr.Column(scale=3):
@@ -2067,7 +2070,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             drift_cum_nom   = gr.Textbox(label="누적 가정시간", value="0.0s", interactive=False)
             drift_now       = gr.HTML(value="<div style='font-size:1.3rem;font-weight:800;color:#22c55e'>drift: 0.00s</div>")
             drift_dual_panel = gr.Textbox(
-                label="기준별 drift 비교 (둘 다 비교 모드)", value="—", interactive=False,
+                label="기준별 drift 비교 (전체 비교 모드)", value="—", interactive=False,
             )
             drift_history   = gr.Dataframe(
                 headers=["#", "latency(ms)", "누적실제(s)", "누적가정(s)", "drift(s)"],
@@ -2105,13 +2108,17 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
         def _drift_basis_values(basis):
             if basis and basis.startswith("1.35"):
                 return [1.35]
-            if basis == "둘 다 비교":
-                return [1.0, 1.35]
+            if basis and basis.startswith("1.92"):
+                return [1.92]
+            if basis == "전체 비교":
+                return [1.0, 1.35, 1.92]
             return [1.0]
 
         _DRIFT_BASIS_STYLE = {
             1.0: ("#64748b", "1.0s 가정 (1fps 운영)"),
             1.35: ("#3b82f6", "1.35s 가정 (학습 수집 cadence)"),
+            # ramp(0.05s, move_and_stop_ramped 블로킹 구간) + settle(0.15s) + 추론(그라운딩+MLP, 실측 ~1.717s)
+            1.92: ("#a855f7", "1.92s 가정 (SYNC 실측 풀사이클)"),
         }
 
         def _drift_build_plot(session, basis):
