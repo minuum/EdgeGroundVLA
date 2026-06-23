@@ -11832,6 +11832,39 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">46-5. 46-3의 "FPE 악화" 원인 검증 — 회전 클래스의 area 분산이 거의 사라짐</div>
+    <div class="finding-body">
+      46-3에서 검증 안 된 가설로 남겼던 "신규 데이터가 area 분산을 좁혀서 근접 신호를 잃었을 수 있다"를
+      클래스별 area 분포로 직접 확인했다.
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">클래스</th><th style="padding:6px;color:#7dd3fc">기존 area(평균/p90)</th><th style="padding:6px;color:#7dd3fc">신규 area(평균/p90)</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">FORWARD(n=1955)</td><td style="padding:6px;text-align:center">0.335 / 0.757</td><td style="padding:6px;text-align:center;color:#fbbf24">0.144 / 0.304</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">LEFT(n=60)</td><td style="padding:6px;text-align:center">0.225 / 0.636</td><td style="padding:6px;text-align:center;color:#f87171">0.031 / 0.032</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#021c0c"><td style="padding:6px">RIGHT(n=46)</td><td style="padding:6px;text-align:center">0.280 / 0.636</td><td style="padding:6px;text-align:center;color:#f87171">0.031 / 0.033</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">FWD+L(n=255)</td><td style="padding:6px;text-align:center">0.254 / 0.666</td><td style="padding:6px;text-align:center;color:#fbbf24">0.059 / 0.140</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">FWD+R(n=270)</td><td style="padding:6px;text-align:center">0.195 / 0.636</td><td style="padding:6px;text-align:center;color:#fbbf24">0.055 / 0.122</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px">ROT_L(n=20)</td><td style="padding:6px;text-align:center">0.368 / 0.605</td><td style="padding:6px;text-align:center;color:#f87171">0.028 / 0.029</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#f87171">가설 확인됨.</strong> LEFT/RIGHT/ROT_L은 신규 데이터에서 평균과 p90이
+        거의 같다(분산이 사실상 0) — "박스가 커짐=가까워짐"이라는 신호가 완전히 사라졌다. 기존 Kosmos-2 데이터는
+        부정확했지만(45-2/46-1이 본 거대 박스 다수) 그 부정확함이 <strong>"회전 직전 박스가 비정상적으로 커지는"
+        우연한 근접 신호</strong>로 작용해 모델이 암묵적으로 활용했던 것으로 보인다. PG2가 더 정밀하고 일관된
+        박스를 만들면서 이 신호가 사라져 FPE가 악화됐다는 게 가장 설득력 있는 설명.
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#7dd3fc">함의:</strong> bbox feature 설계에 <code>area</code> 외에 명시적인
+        근접도/거리 추정치(예: 윈도우 내 area 변화율, 또는 cy 기반 거리 proxy)를 추가하면 PG2의 정밀함을
+        유지하면서 잃어버린 근접 신호를 복원할 수 있을 것 — 다음 실험 후보로 남김(이번 plan 범위 밖, 별도 plan 필요).
+      </div>
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     plans: plan_20260623_bbox_pg2_reannotation.md &nbsp;|&nbsp; 2026-06-23
   </div>
