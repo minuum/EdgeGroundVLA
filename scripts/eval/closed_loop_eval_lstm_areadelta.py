@@ -82,7 +82,7 @@ def main():
     enc = FrozenCLIPV2(VLM_PATH, STAGE1_CKPT, device).to(device).eval()
 
     results = {}
-    for mode in ["none"]:
+    for mode in ["none", "add", "replace"]:
         ckpt_path = LSTM_DIR / f"stage2_lstm_{mode}.pt"
         ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
         proj_dim = ckpt.get("proj_dim", 32)
