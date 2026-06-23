@@ -2326,9 +2326,16 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             outputs=status_log,
         )
 
-    # 슬라이더 변경 → 조이스틱 속도 동기화
+    # 슬라이더 변경 → 조이스틱 속도 동기화 + 실제 하드웨어 throttle(PWM%) 반영
+    # (데이터 수집 그라디오의 throttle_sl → node.throttle 패턴과 동일. 기존엔 lx/ly/az
+    # 벡터 크기만 바뀌고 VLAControlManager.throttle은 생성 시 고정값(50)이라 실제
+    # PWM 출력엔 영향이 없었음 — 슬라이더 기본값 1.15가 throttle=50과 같아지도록 비례.)
     def _sync_js_speed(spd):
-        _joystick._speed = float(spd)
+        spd = float(spd)
+        _joystick._speed = spd
+        if ROS_AVAILABLE and ros_node:
+            throttle = int(round(spd / 1.15 * 50))
+            ros_node.control.throttle = max(10, min(100, throttle))
         return gr.update()
     manual_speed_slider.change(fn=_sync_js_speed, inputs=manual_speed_slider)
 
