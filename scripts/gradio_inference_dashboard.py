@@ -1821,8 +1821,8 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
             "카메라 프레임을 서버로 전송해 PG2가 바구니를 검출하는지 확인. "
             "추론 시작 전 bbox area가 올라가는지 여기서 먼저 체크."
         )
-        with gr.Row():
-          with gr.Column(scale=3):
+        with gr.Row(equal_height=False):
+          with gr.Column(scale=1):
             gnd_image = gr.Image(
                 label="Camera + BBox Overlay",
                 interactive=False,
@@ -1833,7 +1833,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 gnd_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
                 gnd_rec_btn  = gr.Button("🔴 녹화", variant="secondary", scale=1)
 
-          with gr.Column(scale=2):
+          with gr.Column(scale=1):
             gnd_clock    = gr.Textbox(label="현재 시각", value="—", interactive=False)
             gnd_has_bbox = gr.Textbox(label="검출 결과", value="—", interactive=False)
             gnd_area_bar = gr.HTML(value=_gnd_area_html(0.06, False), label="")
@@ -1857,13 +1857,13 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 gnd_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
             gnd_rec_display = gr.Textbox(label="녹화 경로", value="—", interactive=False)
 
+        with gr.Column():
             with gr.Group():
                 gr.Markdown("### 🎮 수동 조작 (탭 전환 없이 미세조정)")
                 with gr.Row():
                     gnd_btn_q = gr.Button("↖ Q", scale=1, size="sm")
                     gnd_btn_w = gr.Button("▲ W", scale=1, size="sm")
                     gnd_btn_e = gr.Button("↗ E", scale=1, size="sm")
-                with gr.Row():
                     gnd_btn_a = gr.Button("◀ A", scale=1, size="sm")
                     gnd_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
                     gnd_btn_d = gr.Button("▶ D", scale=1, size="sm")
@@ -2163,8 +2163,8 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 "1.92s = move_and_stop_ramped ramp(0.05s)+settle(0.15s)+그라운딩·MLP 추론(실측 ~1.717s) — 실제 SYNC 운영 풀사이클"
             ),
         )
-        with gr.Row():
-          with gr.Column(scale=3):
+        with gr.Row(equal_height=False):
+          with gr.Column(scale=1):
             drift_plot = gr.Plot(label="누적 실제시간 vs 가정시간")
             with gr.Row():
                 drift_run_btn  = gr.Button("▶ 단발 측정", variant="primary", scale=2)
@@ -2172,7 +2172,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 drift_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
                 drift_diag_btn = gr.Button("🩺 진단 실행 (A+D 체크)", scale=2)
 
-          with gr.Column(scale=2):
+          with gr.Column(scale=1):
             drift_clock     = gr.Textbox(label="현재 시각", value="—", interactive=False)
             drift_latency   = gr.Textbox(label="이번 호출 latency", value="—", interactive=False)
             drift_frame_n   = gr.Textbox(label="누적 프레임 수", value="0", interactive=False)
@@ -2198,13 +2198,13 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 drift_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
             drift_diag_result = gr.Textbox(label="진단 결과", value="—", interactive=False, lines=3)
 
+        with gr.Column():
             with gr.Group():
                 gr.Markdown("### 🎮 수동 조작 (탭 전환 없이 미세조정)")
                 with gr.Row():
                     drift_btn_q = gr.Button("↖ Q", scale=1, size="sm")
                     drift_btn_w = gr.Button("▲ W", scale=1, size="sm")
                     drift_btn_e = gr.Button("↗ E", scale=1, size="sm")
-                with gr.Row():
                     drift_btn_a = gr.Button("◀ A", scale=1, size="sm")
                     drift_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
                     drift_btn_d = gr.Button("▶ D", scale=1, size="sm")
