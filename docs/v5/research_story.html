@@ -11517,7 +11517,9 @@ graph TD
         <li>🔄 <strong>latency 1초 이내(현재 4초)</strong> — "4초"는 단발 latency가 아니라 1fps 가정 대비 처리속도 누적 드리프트로 확인됨(진짜 단발 latency는 soda 1.3초). <strong>1초 목표는 아직 미달성</strong> → <a href="#ch44" style="color:#7dd3fc">CH44-2</a></li>
         <li>🔄 <strong>40~50cm 이전에 정지하도록</strong> — 현재 STOP 임계값은 정규화 면적(area&gt;0.25) 기준이라 cm 단위가 아님.
         핀홀 카메라 모델(area ∝ 1/distance²) 기반 캘리브레이션 계산기는 작성 완료(<code>scripts/eval/calibrate_stop_distance.py</code>) —
-        <strong>실측 데이터(거리별 area 2곳 이상)만 입력하면 즉시 threshold 역산 가능. 실측 자체는 soda 현장 작업 필요해 ☐ 미착수</strong> → <a href="#ch44" style="color:#7dd3fc">CH44-3</a></li>
+        <strong>실측 데이터(거리별 area 2곳 이상)만 입력하면 즉시 threshold 역산 가능.</strong>
+        2026-06-24 soda 현장 작업용 핸드오프 문서 작성·push 완료(<code>docs/STOP_DISTANCE_CALIBRATION_HANDOFF.md</code> —
+        측정 거리 4곳, 기존 도구 <code>calibrate_goal_area.py</code> 재사용, 명령어까지 정리) — <strong>실측 자체는 soda 현장 작업 필요해 ☐ 미착수</strong> → <a href="#ch44" style="color:#7dd3fc">CH44-3</a></li>
         <li>✅ <strong>VLM 의미벡터(HS)와 입력 해상도의 alignment 의심</strong> — 코드 검증 결과 해상도 자체는 이미 정렬되어 있어 <strong>원인이 아닌 것으로 확인</strong>(가설 기각). 남은 의심 지점이었던 "카메라 vs h5 색공간 차이"도 <a href="#ch45" style="color:#7dd3fc">CH45-1</a>에서 실측으로 추가 기각됨 → <a href="#ch44" style="color:#7dd3fc">CH44-1</a></li>
       </ol>
       <div style="margin-top:10px;font-size:0.74rem;color:#64748b">범례: ✅ 완료/검증됨 · 🔄 부분 해결 · ❓ 확인 불가 · ☐ 미착수</div>
