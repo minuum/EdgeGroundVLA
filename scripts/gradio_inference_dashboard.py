@@ -1432,7 +1432,14 @@ def return_to_start() -> str:
                 if not state["is_returning"]:
                     break
                 if ROS_AVAILABLE and ros_node:
-                    ros_node.control.move_and_stop_ramped(lx, ly, az, source="return")
+                    # move_and_stop_ramped()는 내부에 move_duration 후 자동 STOP을
+                    # 쏘는 Timer가 있어서, sleep(move_duration)으로 다음 step을
+                    # 부르면 매 step마다 "이동→자동STOP→이동→자동STOP"으로 끊김
+                    # (정지 명령이 매 step마다 섞여 들어감). publish_and_move()는
+                    # 그 auto-stop Timer가 없어 끊김 없이 연속 재생됨 — STOP은
+                    # 루프 끝난 뒤 robust_stop()으로 한 번만.
+                    ros_node.control.publish_and_move(lx, ly, az, source="return")
+                    time.sleep(ros_node.control.move_duration)
             if ROS_AVAILABLE and ros_node:
                 ros_node.control.robust_stop(source="return_done")
         finally:
@@ -1474,7 +1481,9 @@ def _make_env_banner() -> str:
     )
 
 
-with gr.Blocks(title="MoNaVLA Dashboard") as demo:
+_FONT_SCALE_CSS = ".gradio-container { font-size: 120% !important; }"
+
+with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
     gr.Markdown("# MoNaVLA Real-time Dashboard")
     gr.HTML(_make_env_banner())
 
@@ -1486,216 +1495,73 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
       with gr.Tab("🤖 Drive / Inference"):
         # ── 기존 메인 탭 내용 시작 ──
         with gr.Row(equal_height=False):
-          with gr.Column(scale=1):
-            gr.Markdown("## 🎮 제어 (카메라/모델/조작)")
+          with gr.Column(scale=2):
+            gr.Markdown("## 📷 Live Camera")
             camera_output = gr.Image(label="Live Camera (via Service)", interactive=False)
             gr.Markdown("🟢 Continuous polling via GetImage service")
 
-            with gr.Group():
-                gr.Markdown("### 🕹️ Operation Mode")
-                mode_radio = gr.Radio(
-                    choices=["Manual Drive", "Inference (Auto)"],
-                    value="Manual Drive",
-                    label="Controller Mode",
-                )
-
-                # Inference Backend — 항상 표시 (Manual Drive에서도 exp_mode config push에 사용)
-                with gr.Row():
-                    backend_radio = gr.Radio(
-                        choices=["Local Runtime", "API Server"],
-                        value=DEFAULT_BACKEND_MODE,
-                        label="Inference Backend",
-                        scale=1,
-                    )
-                    api_url_box = gr.Textbox(
-                        label="API URL",
-                        value=DEFAULT_API_URL,
-                        scale=2,
-                        info="포트 8001 = soda 추론 서버 (proxy_inference_server)",
-                    )
-
-                ckpts, confs = scan_local_files()
-                _is_api = DEFAULT_BACKEND_MODE == "API Server"
-
-                def _default_from_exp(key: str, choices):
-                    """기본 EXP_MODE(Exp66)의 checkpoint/config 절대경로를 초기값으로."""
-                    default_cfg = EXP_MODES[EXP_MODE_NAMES[0]]
-                    rel = default_cfg.get(key)
-                    if rel:
-                        abs_path = str(PROJECT_ROOT / rel)
-                        for _label, val in choices:
-                            if val == abs_path:
-                                return abs_path
-                    return pick_default_choice(choices, "VLA_CHECKPOINT_PATH" if key == "checkpoint" else "VLA_CONFIG_PATH")
-
-                # Local Runtime 전용 — API Server 선택 시 숨김
-                with gr.Column(visible=not _is_api) as local_panel:
-                    with gr.Row():
-                        ckpt_dropdown = gr.Dropdown(
-                            choices=ckpts,
-                            label="🎯 Checkpoint (.ckpt/.pth)",
-                            value=_default_from_exp("checkpoint", ckpts),
-                            scale=2,
-                        )
-                        conf_dropdown = gr.Dropdown(
-                            choices=confs,
-                            label="⚙️ Config (.json)",
-                            value=_default_from_exp("config", confs),
-                            scale=2,
-                        )
-                        quant_radio = gr.Radio(
-                            choices=["INT8 (Fast)", "FP16 (Accurate)"],
-                            value="FP16 (Accurate)",
-                            label="Precision",
-                            scale=1,
-                        )
-                    btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
-
-                with gr.Row():
-                    load_status = gr.Textbox(
-                        label="Model Status",
-                        value="API Server 연결됨" if _is_api else "Not Loaded",
-                        interactive=False,
-                        scale=3,
-                    )
-                    toggle_cc = gr.Checkbox(label="🎨 Red Gain Boost", value=False, scale=1)
-                model_path = gr.Textbox(label="Active Model / Checkpoint", value="N/A", interactive=False)
-
-                # 추론 제어 — Inference (Auto) 선택 시만 표시
-                with gr.Column(visible=False) as inference_panel:
-                    gr.Markdown("#### 🏁 Inference Control")
-                    infer_move_radio = gr.Radio(
-                        choices=["SYNC", "PRE", "ASYNC"],
-                        value="SYNC",
-                        label="이동 모드",
-                        info="SYNC: 이동→정착→캡처 (기본) | PRE: 캡처→추론→이동 | ASYNC: 추론(3Hz)+실행(10Hz) 분리스레드",
-                    )
-                    with gr.Row():
-                        btn_start_inf = gr.Button("▶️ START", variant="primary", scale=1)
-                        btn_stop_inf = gr.Button("⏹️ STOP", variant="stop", scale=1)
-                        btn_return = gr.Button("🔄 복귀", variant="secondary", scale=1)
-                    run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
-
-                def on_backend_change(backend):
-                    is_api = backend == "API Server"
-                    status = "API Server 연결됨" if is_api else "Not Loaded"
-                    return gr.update(visible=not is_api), gr.update(value=status)
-
-                backend_radio.change(
-                    fn=on_backend_change,
-                    inputs=[backend_radio],
-                    outputs=[local_panel, load_status],
-                )
-
-            def on_mode_change(selected_mode):
-                state["auto_inference"] = selected_mode == "Inference (Auto)"
-                state["is_running"] = False
-                state["step_count"] = 0
-                return gr.update(visible=state["auto_inference"])
-
-            mode_radio.change(fn=on_mode_change, inputs=[mode_radio], outputs=[inference_panel])
-            btn_load_model.click(
-                fn=load_model_wrapper,
-                inputs=[backend_radio, api_url_box, quant_radio, ckpt_dropdown, conf_dropdown],
-                outputs=[load_status, model_path],
-            )
-
-            with gr.Group():
-                gr.Markdown("### 🎮 Manual Controls")
-                manual_speed_slider = gr.Slider(
-                    minimum=0.3, maximum=2.0, step=0.05, value=1.15,
-                    label="속도 (lx/ly/az 크기)",
-                )
-                with gr.Row():
-                    btn_q = gr.Button("↖ Q", scale=1, size="sm")
-                    btn_w = gr.Button("▲ W", scale=1, size="sm")
-                    btn_e = gr.Button("↗ E", scale=1, size="sm")
-                with gr.Row():
-                    btn_a = gr.Button("◀ A", scale=1, size="sm")
-                    btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
-                    btn_d = gr.Button("▶ D", scale=1, size="sm")
-                with gr.Row():
-                    btn_r = gr.Button("↺ R (CCW)", scale=1, size="sm")
-                    btn_s = gr.Button("▼ S", scale=1, size="sm")
-                    btn_t = gr.Button("↻ T (CW)", scale=1, size="sm")
-
-            with gr.Group():
-                gr.Markdown("### 🕹️ Joystick (DragonRise)")
-                with gr.Row():
-                    js_status = gr.Textbox(
-                        label="상태",
-                        value="🔌 초기화 중...",
-                        interactive=False,
-                        scale=4,
-                    )
-                    btn_js_toggle = gr.Button(
-                        "비활성화",
-                        variant="primary",
-                        scale=1,
-                    )
-                gr.Markdown(
-                    "<small>"
-                    "Left Stick → 이동 | Right Stick X → 회전 | "
-                    "A → STOP | Start → **SYNC↔ASYNC 모드 전환**<br>"
-                    "📸 SYNC: 0.45s bang-bang (V5 호환) | "
-                    "🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold"
-                    "</small>",
-                )
-
-                def _js_status_text() -> str:
-                    s = _joystick.status
-                    if not s["connected"]:
-                        return "🔌 미연결 (DragonRise 꽂으면 자동 인식)"
-                    en    = "🟢 ON" if s["enabled"] else "⚫ OFF"
-                    mode  = s.get("mode", "SYNC")
-                    badge = "📸 SYNC" if mode == "SYNC" else "🌊 ASYNC"
-                    key   = s.get("label", "○")
-                    name  = s.get("name", "Controller")
-                    # key가 있으면 강조
-                    key_str = f"[ {key} ]" if s.get("key") else "○ 중립"
-                    return f"{en}  |  {badge}  |  {name}\n▶ {key_str}"
-
-                def _js_toggle() -> tuple:
-                    _joystick.toggle_enabled()
-                    btn_label = "비활성화" if _joystick._enabled else "활성화"
-                    return _js_status_text(), gr.update(
-                        value=btn_label,
-                        variant="primary" if _joystick._enabled else "secondary",
-                    )
-
-                btn_js_toggle.click(fn=_js_toggle, outputs=[js_status, btn_js_toggle])
-
           with gr.Column(scale=1):
-            gr.Markdown("## 📡 모니터링 (실험설정/로그/그래프)")
+            gr.Markdown("## 📡 모니터링 1 (실험설정/상태)")
             with gr.Group():
-                exp_mode = gr.Dropdown(
-                    choices=EXP_MODE_NAMES,
-                    value=EXP_MODE_NAMES[0],
-                    label="실험 모드",
-                )
-                exp_config_status = gr.Textbox(label="서버 Config 상태", value="미적용", interactive=False)
-                goal_dropdown = gr.Dropdown(
-                    choices=["(직접 입력)"] + GOAL_NAV_PRESETS,
-                    value=GOAL_NAV_PRESETS[0],
-                    label="Goal Object 선택",
-                    visible=True,
-                )
-                path_dropdown = gr.Dropdown(
-                    choices=PATH_TYPES,
-                    value="right_right",
-                    label="Path Type 선택",
-                    visible=False,
-                )
+                with gr.Row(equal_height=True):
+                    exp_mode = gr.Dropdown(
+                        choices=EXP_MODE_NAMES,
+                        value=EXP_MODE_NAMES[0],
+                        label="실험 모드",
+                        scale=2,
+                        min_width=60,
+                    )
+                    exp_config_status = gr.Textbox(label="서버 Config", value="미적용", interactive=False, scale=1, min_width=60)
+                with gr.Row(equal_height=True):
+                    goal_dropdown = gr.Dropdown(
+                        choices=["(직접 입력)"] + GOAL_NAV_PRESETS,
+                        value=GOAL_NAV_PRESETS[0],
+                        label="Goal Object 선택",
+                        visible=True,
+                        scale=1,
+                        min_width=60,
+                    )
+                    path_dropdown = gr.Dropdown(
+                        choices=PATH_TYPES,
+                        value="right_right",
+                        label="Path Type 선택",
+                        visible=False,
+                        scale=1,
+                        min_width=60,
+                    )
                 instr_box_real = gr.Textbox(
                     label="🤖 Robot Prompt (모델에게 주는 프롬프트 — 틀린 값 테스트 가능)",
                     value=DEFAULT_INSTRUCTION,
                 )
-                gt_object_box = gr.Textbox(
-                    label="🎯 GT Object (실제 있는 물체 — 로깅/평가용, 모델에 전달 안됨)",
-                    value="gray basket",
-                    placeholder="예: gray basket (wrong prompt 테스트 시 실제 물체 기록)",
-                )
-            camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False)
+                with gr.Row(equal_height=True):
+                    gt_object_box = gr.Textbox(
+                        label="🎯 GT Object (모델에 전달 안됨, 로깅용)",
+                        value="gray basket",
+                        placeholder="예: gray basket",
+                        scale=1,
+                        min_width=60,
+                    )
+                    camera_status = gr.Textbox(label="Camera Status", value="Unknown", interactive=False, scale=1, min_width=60)
+
+          with gr.Column(scale=1):
+            gr.Markdown("## 📟 모니터링 2 (실시간 상태)")
+            status_log = gr.Textbox(label="Status", value="Ready")
+            latency_val = gr.Textbox(label="Latency", value="0 ms")
+            action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
+            chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
+
+          with gr.Column(scale=1):
+            gr.Markdown("## 📊 모니터링 3 (그래프/히스토리)")
+            traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
+            run_history_table = gr.Dataframe(
+                headers=["step", "action", "total(ms)", "grounding(ms)", "mlp(ms)", "bbox_area"],
+                datatype=["number", "str", "number", "number", "number", "number"],
+                label="Run 히스토리 (최근 10 step, SYNC/PRE 모드만 — ASYNC 미지원)",
+                row_count=10,
+                col_count=6,
+                interactive=False,
+            )
+            btn_reset = gr.Button("🔄 Reset Model History")
 
             _is_learned = (_SERVER_STOP_MODE == "learned")
             _stop_acc_label = (
@@ -1703,7 +1569,7 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 if _is_learned else
                 "📐 자동 정지 — Proximity Threshold"
             )
-            with gr.Accordion(_stop_acc_label, open=True):
+            with gr.Accordion(_stop_acc_label, open=False):
                 if _is_learned:
                     gr.Markdown(
                         "**현재 서버: `VLA_STOP_MODE=learned`**\n\n"
@@ -1758,26 +1624,201 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                     interactive=not _is_learned,
                 )
                 stop_config_status = gr.Textbox(label="", value="", interactive=False, lines=1)
-                stop_apply_btn.click(
-                    fn=apply_stop_config,
-                    inputs=[stop_area_slider, stop_cx_slider, api_url_box],
-                    outputs=stop_config_status,
+                # .click() 바인딩은 api_url_box(Operation Mode 블록, 아래에서 정의)가 생긴 뒤로 미룸 — 끝부분 참고
+
+
+        with gr.Column():
+          gr.Markdown("## 🎮 Operation Mode (항상 펼쳐짐, 전체 너비)")
+          with gr.Group():
+              gr.Markdown("### 🕹️ Operation Mode")
+              # Controller Mode + Inference Backend + API URL — 한 행 (항상 표시,
+              # Manual Drive에서도 exp_mode config push에 사용)
+              with gr.Row():
+                  mode_radio = gr.Radio(
+                      choices=["Manual Drive", "Inference (Auto)"],
+                      value="Manual Drive",
+                      label="Controller Mode",
+                      scale=1,
+                      min_width=120,
+                  )
+                  backend_radio = gr.Radio(
+                      choices=["Local Runtime", "API Server"],
+                      value=DEFAULT_BACKEND_MODE,
+                      label="Inference Backend",
+                      scale=1,
+                      min_width=120,
+                  )
+                  api_url_box = gr.Textbox(
+                      label="API URL",
+                      value=DEFAULT_API_URL,
+                      scale=2,
+                      min_width=120,
+                      info="포트 8001 = soda 추론 서버 (proxy_inference_server)",
+                  )
+
+              ckpts, confs = scan_local_files()
+              _is_api = DEFAULT_BACKEND_MODE == "API Server"
+
+              def _default_from_exp(key: str, choices):
+                  """기본 EXP_MODE(Exp66)의 checkpoint/config 절대경로를 초기값으로."""
+                  default_cfg = EXP_MODES[EXP_MODE_NAMES[0]]
+                  rel = default_cfg.get(key)
+                  if rel:
+                      abs_path = str(PROJECT_ROOT / rel)
+                      for _label, val in choices:
+                          if val == abs_path:
+                              return abs_path
+                  return pick_default_choice(choices, "VLA_CHECKPOINT_PATH" if key == "checkpoint" else "VLA_CONFIG_PATH")
+
+              # Local Runtime 전용 — API Server 선택 시 숨김
+              with gr.Column(visible=not _is_api) as local_panel:
+                  with gr.Row():
+                      ckpt_dropdown = gr.Dropdown(
+                          choices=ckpts,
+                          label="🎯 Checkpoint (.ckpt/.pth)",
+                          value=_default_from_exp("checkpoint", ckpts),
+                          scale=2,
+                      )
+                      conf_dropdown = gr.Dropdown(
+                          choices=confs,
+                          label="⚙️ Config (.json)",
+                          value=_default_from_exp("config", confs),
+                          scale=2,
+                      )
+                      quant_radio = gr.Radio(
+                          choices=["INT8 (Fast)", "FP16 (Accurate)"],
+                          value="FP16 (Accurate)",
+                          label="Precision",
+                          scale=1,
+                      )
+                  btn_load_model = gr.Button("📂 Load Selected Model", variant="primary")
+
+              with gr.Row():
+                  load_status = gr.Textbox(
+                      label="Model Status",
+                      value="API Server 연결됨" if _is_api else "Not Loaded",
+                      interactive=False,
+                      scale=2,
+                      min_width=100,
+                  )
+                  toggle_cc = gr.Checkbox(label="🎨 Red Gain Boost", value=False, scale=1, min_width=80)
+                  model_path = gr.Textbox(
+                      label="Active Model / Checkpoint", value="N/A", interactive=False,
+                      scale=2, min_width=120,
+                  )
+
+              # 추론 제어 — Inference (Auto) 선택 시만 표시
+              with gr.Column(visible=False) as inference_panel:
+                  gr.Markdown("#### 🏁 Inference Control")
+                  infer_move_radio = gr.Radio(
+                      choices=["SYNC", "PRE", "ASYNC"],
+                      value="SYNC",
+                      label="이동 모드",
+                      info="SYNC: 이동→정착→캡처 (기본) | PRE: 캡처→추론→이동 | ASYNC: 추론(3Hz)+실행(10Hz) 분리스레드",
+                  )
+                  with gr.Row():
+                      btn_start_inf = gr.Button("▶️ START", variant="primary", scale=1)
+                      btn_stop_inf = gr.Button("⏹️ STOP", variant="stop", scale=1)
+                      btn_return = gr.Button("🔄 복귀", variant="secondary", scale=1)
+                  run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
+
+              def on_backend_change(backend):
+                  is_api = backend == "API Server"
+                  status = "API Server 연결됨" if is_api else "Not Loaded"
+                  return gr.update(visible=not is_api), gr.update(value=status)
+
+              backend_radio.change(
+                  fn=on_backend_change,
+                  inputs=[backend_radio],
+                  outputs=[local_panel, load_status],
+              )
+
+          def on_mode_change(selected_mode):
+              state["auto_inference"] = selected_mode == "Inference (Auto)"
+              state["is_running"] = False
+              state["step_count"] = 0
+              return gr.update(visible=state["auto_inference"])
+
+          mode_radio.change(fn=on_mode_change, inputs=[mode_radio], outputs=[inference_panel])
+          btn_load_model.click(
+              fn=load_model_wrapper,
+              inputs=[backend_radio, api_url_box, quant_radio, ckpt_dropdown, conf_dropdown],
+              outputs=[load_status, model_path],
+          )
+
+          with gr.Row():
+            with gr.Column(scale=1, min_width=200):
+              with gr.Group():
+                gr.Markdown("### 🎮 Manual Controls")
+                manual_speed_slider = gr.Slider(
+                    minimum=0.3, maximum=2.0, step=0.05, value=1.15,
+                    label="속도 (lx/ly/az 크기)",
+                )
+                with gr.Row():
+                    btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    btn_e = gr.Button("↗ E", scale=1, size="sm")
+                with gr.Row():
+                    btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    btn_d = gr.Button("▶ D", scale=1, size="sm")
+                with gr.Row():
+                    btn_r = gr.Button("↺ R (CCW)", scale=1, size="sm")
+                    btn_s = gr.Button("▼ S", scale=1, size="sm")
+                    btn_t = gr.Button("↻ T (CW)", scale=1, size="sm")
+
+            with gr.Column(scale=1, min_width=200):
+              with gr.Group():
+                gr.Markdown("### 🕹️ Joystick (DragonRise)")
+                with gr.Row():
+                    js_status = gr.Textbox(
+                        label="상태",
+                        value="🔌 초기화 중...",
+                        interactive=False,
+                        scale=4,
+                    )
+                    btn_js_toggle = gr.Button(
+                        "비활성화",
+                        variant="primary",
+                        scale=1,
+                    )
+                gr.Markdown(
+                    "<small>"
+                    "Left Stick → 이동 | Right Stick X → 회전 | "
+                    "A → STOP | Start → **SYNC↔ASYNC 모드 전환**<br>"
+                    "📸 SYNC: 0.45s bang-bang (V5 호환) | "
+                    "🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold"
+                    "</small>",
                 )
 
-            status_log = gr.Textbox(label="Status", value="Ready")
-            latency_val = gr.Textbox(label="Latency", value="0 ms")
-            action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
-            chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
-            traj_plot = gr.Plot(label="Predicted Trajectory (XY)")
-            run_history_table = gr.Dataframe(
-                headers=["step", "action", "total(ms)", "grounding(ms)", "mlp(ms)", "bbox_area"],
-                datatype=["number", "str", "number", "number", "number", "number"],
-                label="Run 히스토리 (최근 10 step, SYNC/PRE 모드만 — ASYNC 미지원)",
-                row_count=10,
-                col_count=6,
-                interactive=False,
-            )
-            btn_reset = gr.Button("🔄 Reset Model History")
+              def _js_status_text() -> str:
+                  s = _joystick.status
+                  if not s["connected"]:
+                      return "🔌 미연결 (DragonRise 꽂으면 자동 인식)"
+                  en    = "🟢 ON" if s["enabled"] else "⚫ OFF"
+                  mode  = s.get("mode", "SYNC")
+                  badge = "📸 SYNC" if mode == "SYNC" else "🌊 ASYNC"
+                  key   = s.get("label", "○")
+                  name  = s.get("name", "Controller")
+                  # key가 있으면 강조
+                  key_str = f"[ {key} ]" if s.get("key") else "○ 중립"
+                  return f"{en}  |  {badge}  |  {name}\n▶ {key_str}"
+
+              def _js_toggle() -> tuple:
+                  _joystick.toggle_enabled()
+                  btn_label = "비활성화" if _joystick._enabled else "활성화"
+                  return _js_status_text(), gr.update(
+                      value=btn_label,
+                      variant="primary" if _joystick._enabled else "secondary",
+                  )
+
+              btn_js_toggle.click(fn=_js_toggle, outputs=[js_status, btn_js_toggle])
+
+        stop_apply_btn.click(
+            fn=apply_stop_config,
+            inputs=[stop_area_slider, stop_cx_slider, api_url_box],
+            outputs=stop_config_status,
+        )
         # ── 기존 메인 탭 내용 끝 ──
 
       # ────────────────────────────────────────────────────────────────
@@ -1787,8 +1828,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             "카메라 프레임을 서버로 전송해 PG2가 바구니를 검출하는지 확인. "
             "추론 시작 전 bbox area가 올라가는지 여기서 먼저 체크."
         )
-        with gr.Row():
-          with gr.Column(scale=3):
+        with gr.Row(equal_height=False):
+          with gr.Column(scale=2):
             gnd_image = gr.Image(
                 label="Camera + BBox Overlay",
                 interactive=False,
@@ -1799,14 +1840,21 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 gnd_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
                 gnd_rec_btn  = gr.Button("🔴 녹화", variant="secondary", scale=1)
 
-          with gr.Column(scale=2):
+          with gr.Column(scale=1):
+            gr.Markdown("##### 검출 상태")
             gnd_clock    = gr.Textbox(label="현재 시각", value="—", interactive=False)
             gnd_has_bbox = gr.Textbox(label="검출 결과", value="—", interactive=False)
             gnd_area_bar = gr.HTML(value=_gnd_area_html(0.06, False), label="")
             gnd_cx_bar   = gr.HTML(value=_gnd_cx_html(0.5, False),   label="")
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### Latency/Raw")
             gnd_latency  = gr.Textbox(label="Grounding latency", value="—", interactive=False)
             gnd_raw      = gr.Textbox(label="PG2 raw output", value="—", interactive=False, lines=2)
             gnd_server_cmp = gr.Textbox(label="서버 예측", value="—", interactive=False)
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### 이력/세션")
             gnd_history   = gr.Dataframe(
                 headers=["#", "bbox", "area", "cx", "pred", "lat(ms)"],
                 datatype=["number", "str", "number", "number", "str", "number"],
@@ -1815,13 +1863,24 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 col_count=6,
                 interactive=False,
             )
-            with gr.Row():
-                gnd_log_display = gr.Textbox(
-                    label="JSONL 경로", value="(첫 검증 시 생성됨)",
-                    interactive=False, scale=3,
-                )
-                gnd_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
+            gnd_log_display = gr.Textbox(
+                label="JSONL 경로", value="(첫 검증 시 생성됨)",
+                interactive=False,
+            )
+            gnd_new_session_btn = gr.Button("🆕 새 세션", size="sm")
             gnd_rec_display = gr.Textbox(label="녹화 경로", value="—", interactive=False)
+
+        with gr.Column():
+            with gr.Group():
+                gr.Markdown("### 🎮 수동 조작 (탭 전환 없이 미세조정)")
+                with gr.Row():
+                    gnd_btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    gnd_btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    gnd_btn_e = gr.Button("↗ E", scale=1, size="sm")
+                    gnd_btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    gnd_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    gnd_btn_d = gr.Button("▶ D", scale=1, size="sm")
+                gnd_manual_status = gr.Textbox(label="조작 로그", value="—", interactive=False, lines=1)
 
         # ── Grounding 탭 로직 ─────────────────────────────────────────
         _gnd_auto_state   = gr.State(False)
@@ -2095,6 +2154,12 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             outputs=[_gnd_history_rows, _gnd_count, gnd_log_display],
         )
 
+        for _btn, _dir in [
+            (gnd_btn_q, "Q"), (gnd_btn_w, "W"), (gnd_btn_e, "E"),
+            (gnd_btn_a, "A"), (gnd_btn_stop, "STOP"), (gnd_btn_d, "D"),
+        ]:
+            _btn.click(fn=handle_control, inputs=[gr.State(_dir), manual_speed_slider], outputs=gnd_manual_status)
+
       # ────────────────────────────────────────────────────────────────
       with gr.Tab("📊 Latency/Drift 진단"):
         gr.Markdown(
@@ -2111,8 +2176,8 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 "1.92s = move_and_stop_ramped ramp(0.05s)+settle(0.15s)+그라운딩·MLP 추론(실측 ~1.717s) — 실제 SYNC 운영 풀사이클"
             ),
         )
-        with gr.Row():
-          with gr.Column(scale=3):
+        with gr.Row(equal_height=False):
+          with gr.Column(scale=2):
             drift_plot = gr.Plot(label="누적 실제시간 vs 가정시간")
             with gr.Row():
                 drift_run_btn  = gr.Button("▶ 단발 측정", variant="primary", scale=2)
@@ -2120,16 +2185,23 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 drift_stop_btn = gr.Button("⏹ 정지", variant="stop", scale=1)
                 drift_diag_btn = gr.Button("🩺 진단 실행 (A+D 체크)", scale=2)
 
-          with gr.Column(scale=2):
+          with gr.Column(scale=1):
+            gr.Markdown("##### 실시간 수치")
             drift_clock     = gr.Textbox(label="현재 시각", value="—", interactive=False)
             drift_latency   = gr.Textbox(label="이번 호출 latency", value="—", interactive=False)
             drift_frame_n   = gr.Textbox(label="누적 프레임 수", value="0", interactive=False)
             drift_cum_real  = gr.Textbox(label="누적 실제시간", value="0.00s", interactive=False)
             drift_cum_nom   = gr.Textbox(label="누적 가정시간", value="0.0s", interactive=False)
             drift_now       = gr.HTML(value="<div style='font-size:1.3rem;font-weight:800;color:#22c55e'>drift: 0.00s</div>")
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### 기준 비교/진단")
             drift_dual_panel = gr.Textbox(
                 label="기준별 drift 비교 (전체 비교 모드)", value="—", interactive=False,
             )
+
+          with gr.Column(scale=1):
+            gr.Markdown("##### 이력/세션")
             drift_history   = gr.Dataframe(
                 headers=["#", "latency(ms)", "누적실제(s)", "누적가정(s)", "drift(s)"],
                 datatype=["number", "number", "number", "number", "number"],
@@ -2138,13 +2210,24 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
                 col_count=5,
                 interactive=False,
             )
-            with gr.Row():
-                drift_log_display = gr.Textbox(
-                    label="JSONL 경로", value="(첫 측정 시 생성됨)",
-                    interactive=False, scale=3,
-                )
-                drift_new_session_btn = gr.Button("🆕 새 세션", scale=1, size="sm")
+            drift_log_display = gr.Textbox(
+                label="JSONL 경로", value="(첫 측정 시 생성됨)",
+                interactive=False,
+            )
+            drift_new_session_btn = gr.Button("🆕 새 세션", size="sm")
             drift_diag_result = gr.Textbox(label="진단 결과", value="—", interactive=False, lines=3)
+
+        with gr.Column():
+            with gr.Group():
+                gr.Markdown("### 🎮 수동 조작 (탭 전환 없이 미세조정)")
+                with gr.Row():
+                    drift_btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    drift_btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    drift_btn_e = gr.Button("↗ E", scale=1, size="sm")
+                    drift_btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    drift_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    drift_btn_d = gr.Button("▶ D", scale=1, size="sm")
+                drift_manual_status = gr.Textbox(label="조작 로그", value="—", interactive=False, lines=1)
 
         # ── Drift 탭 로직 ──────────────────────────────────────────────
         _drift_session = gr.State([])  # [{frame, latency_ms}, ...]
@@ -2316,6 +2399,12 @@ with gr.Blocks(title="MoNaVLA Dashboard") as demo:
             fn=_drift_new_session,
             outputs=[_drift_session, drift_plot, drift_log_display],
         )
+
+        for _btn, _dir in [
+            (drift_btn_q, "Q"), (drift_btn_w, "W"), (drift_btn_e, "E"),
+            (drift_btn_a, "A"), (drift_btn_stop, "STOP"), (drift_btn_d, "D"),
+        ]:
+            _btn.click(fn=handle_control, inputs=[gr.State(_dir), manual_speed_slider], outputs=drift_manual_status)
 
         def _drift_run_diagnostics(api_url):
             try:
