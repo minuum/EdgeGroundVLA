@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-plan_20260624_zoom_regrounding_small_objects.md §2 — area<0.05 줌 재그라운딩
-데이터(bbox_dataset_full_pg2_zoomsmall.json)로 LSTM-none closed-loop 재평가.
+grounding_skip_n=3 운영 캐시 동작을 시뮬레이션한 데이터(bbox_dataset_full_pg2_skip3.json)로
+LSTM-replace+area_delta(CH47 best)를 재평가 — area_delta 이득이 실제 운영 환경(skip_n=3)에서도
+살아있는지 확인. simulate_skip_n.py로 생성한 데이터 + 그 데이터로 재학습한
+stage2_lstm_replace_skip3.pt를 사용.
 
 Usage:
-  .venv/bin/python3 scripts/eval/closed_loop_eval_zoomsmall.py
+  .venv/bin/python3 scripts/eval/closed_loop_eval_skip3.py
 """
-import argparse
 import sys
 import json
 from pathlib import Path
@@ -23,15 +24,15 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from scripts.sim.rollout_core import build_trajectory, DT_DEFAULT  # noqa: E402
-from scripts.train_hidden_state_lstm import (  # noqa: E402
+from scripts.train_hidden_state_lstm_areadelta import (  # noqa: E402
     LSTMHidden, build_seq, load_hidden_cache, filter_episodes_with_hidden,
     PROJ_DIM, NUM_CLASSES, WINDOW,
 )
 
 VLM_PATH = ROOT / ".vlms" / "kosmos-2-patch14-224"
 STAGE1_CKPT = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
-DATA_PATH = ROOT / "docs/v5/bbox_nav_exp46/bbox_dataset_full_pg2_zoomsmall.json"
-LSTM_DIR = ROOT / "runs/v5_nav/mlp/exp_hidden_state/stage2_v2_lstm"
+DATA_PATH = ROOT / "docs/v5/bbox_nav_exp46/bbox_dataset_full_pg2_skip3.json"
+LSTM_DIR = ROOT / "runs/v5_nav/mlp/exp_hidden_state/stage2_v2_lstm_areadelta"
 SUCCESS_FPE = 0.5
 
 
@@ -70,11 +71,6 @@ def load_images(h5_path, indices):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ckpt", default=None, help="stage2_lstm_none_zoomsmall.pt 대신 사용할 체크포인트 경로(5-seed 검증용)")
-    parser.add_argument("--out", default=None, help="결과 json 출력 경로 override")
-    args = parser.parse_args()
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     data = json.loads(DATA_PATH.read_text())
     ep_labels = [ep["path_type"] for ep in data]
@@ -87,8 +83,8 @@ def main():
     enc = FrozenCLIPV2(VLM_PATH, STAGE1_CKPT, device).to(device).eval()
 
     results = {}
-    for mode in ["none"]:
-        ckpt_path = Path(args.ckpt) if args.ckpt else LSTM_DIR / f"stage2_lstm_{mode}_zoomsmall.pt"
+    for mode in ["add"]:
+        ckpt_path = LSTM_DIR / f"stage2_lstm_{mode}_skip3.pt"
         ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
         proj_dim = ckpt.get("proj_dim", 32)
 
@@ -96,7 +92,7 @@ def main():
 
         seq_dim = PROJ_DIM
         if mode != "replace":
-            seq_dim += 4
+            seq_dim += 5
         if mode != "none":
             seq_dim += proj_dim
         model = LSTMHidden(seq_dim, proj_dim, mode).to(device)
@@ -136,7 +132,7 @@ def main():
                           "val_acc_pm": ckpt.get("val_acc")}
         print(f"\n[LSTM-{mode}] n={len(successes)}  SR={sr*100:.1f}%  FPE={np.mean(fpes):.3f}m  TLD={np.mean(tlds):.3f}  (PM={ckpt.get('val_acc',0)*100:.2f}%)")
 
-    out_path = Path(args.out) if args.out else ROOT / "docs/v5/closed_loop_eval/lstm_comparison_zoomsmall.json"
+    out_path = ROOT / "docs/v5/closed_loop_eval/lstm_comparison_skip3_add.json"
     out_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
     print(f"\n[저장] {out_path}")
 
