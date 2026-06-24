@@ -1432,12 +1432,13 @@ def return_to_start() -> str:
                 if not state["is_returning"]:
                     break
                 if ROS_AVAILABLE and ros_node:
-                    ros_node.control.move_and_stop_ramped(lx, ly, az, source="return")
-                    # move_and_stop_ramped()는 ramp(0.05s)만 블로킹하고 나머지는
-                    # 백그라운드 Timer로 처리 후 즉시 반환됨 — 대기 없이 다음 step을
-                    # 바로 호출하면 이전 step의 movement_timer가 취소·덮어써져서
-                    # 마지막 step만 실행된 것처럼 보이는 버그였음(액션 한 번만 송출).
-                    # 한 step이 실제로 끝날 시간(move_duration)만큼 대기 후 다음으로.
+                    # move_and_stop_ramped()는 내부에 move_duration 후 자동 STOP을
+                    # 쏘는 Timer가 있어서, sleep(move_duration)으로 다음 step을
+                    # 부르면 매 step마다 "이동→자동STOP→이동→자동STOP"으로 끊김
+                    # (정지 명령이 매 step마다 섞여 들어감). publish_and_move()는
+                    # 그 auto-stop Timer가 없어 끊김 없이 연속 재생됨 — STOP은
+                    # 루프 끝난 뒤 robust_stop()으로 한 번만.
+                    ros_node.control.publish_and_move(lx, ly, az, source="return")
                     time.sleep(ros_node.control.move_duration)
             if ROS_AVAILABLE and ros_node:
                 ros_node.control.robust_stop(source="return_done")
