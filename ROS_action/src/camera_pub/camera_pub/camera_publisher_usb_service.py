@@ -50,9 +50,11 @@ class USBCameraServiceServer(Node):
         try:
             # 1. Jetson CSI 카메라 시도 (open 8초 timeout — Argus 초기화 여유, hang 방지)
             self.get_logger().info('📷 Jetson CSI 카메라 시도 중...')
+            # framerate 30/1 — 추론 루프(3~10Hz)에는 60fps가 불필요하고, videoconvert(CPU 소프트웨어
+            # 컬러 변환)가 프레임레이트에 비례해 CPU를 소모하므로 30으로 낮춰 부하를 절반으로 줄인다.
             gst_str = (
                 "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, "
-                "format=NV12, framerate=60/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
+                "format=NV12, framerate=30/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
                 "videoconvert ! video/x-raw, format=BGR ! appsink drop=true max-buffers=1"
             )
             _csi_cap = [None]
@@ -134,11 +136,14 @@ class USBCameraServiceServer(Node):
     def _capture_loop(self):
         """백그라운드에서 실시간으로 프레임을 캡처하여 최신 프레임을 유지합니다."""
         import time
+        TARGET_FRAME_DUR = 1.0 / 30  # 33.3ms — CAP_PROP_FPS=30과 동일
         self.get_logger().info('🌀 백그라운드 카메라 캡처 루프 시작')
         while rclpy.ok() and self.is_running:
+            loop_start = time.monotonic()
             if self.cap is not None and self.cap.isOpened():
-                # 인위적인 grab() 루프 및 sleep 대기를 없애고, 드라이버 read() 블로킹에 자연스럽게 동기화시킵니다.
-                # 드라이버 수준의 auto-blocking 덕분에 큐가 쌓이지 않고 최신 프레임 최고 FPS가 보장됩니다.
+                # V4L2 드라이버는 버퍼링 때문에 read()가 거의 즉시 반환되는 경우가 많아
+                # 드라이버 블로킹에만 의존하면 busy-loop가 되어 CPU 코어를 거의 다 점유함.
+                # 루프 종료 시점에 목표 주기(33ms)까지 남은 시간만큼 명시적으로 sleep한다.
                 ret, frame = self.cap.read()
                 if ret:
                     with self.buffer_lock:
@@ -149,12 +154,12 @@ class USBCameraServiceServer(Node):
                         self.failed_reads += 1
                     if self.failed_reads % 30 == 0:
                         self.get_logger().warn(f'⚠️ [Capture Loop] 프레임 읽기 실패 ({self.failed_reads}회 누적)')
-                    time.sleep(0.05)
             else:
                 with self.buffer_lock:
                     self.latest_frame = self.generate_virtual_frame()
-                time.sleep(0.033)
-            time.sleep(0.001)
+
+            elapsed = time.monotonic() - loop_start
+            time.sleep(max(0.0, TARGET_FRAME_DUR - elapsed))
 
     def reset_camera_callback(self, request, response):
         """USB 카메라를 완전히 재시작하여 버퍼를 초기화합니다."""
