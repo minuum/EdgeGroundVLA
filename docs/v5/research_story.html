@@ -306,7 +306,7 @@
     <a class="toc-item" href="#ch48" data-target="ch48"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 48</span><span class="toc-label">Grounding Hub "base PG2" 모델 일치성 검증</span><span class="toc-cat cat-cmp">비교</span></a>
     <a class="toc-item" href="#ch49" data-target="ch49"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 49</span><span class="toc-label">skip_n=3 재검증 + 실세션 실측 — 메인 디폴트 확정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch50" data-target="ch50"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 50</span><span class="toc-label">작은 객체 줌 재그라운딩 — 5-seed 검증 결과 단일런 노이즈로 정정</span><span class="toc-cat cat-fix">정정</span></a>
-    <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">CH 51</span><span class="toc-label">에피소드 초반 N프레임 줌크롭 — 실세션 ablation(n=2, 결론 보류)</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 51</span><span class="toc-label">에피소드 초반 N프레임 줌크롭 — n=737 ablation, 도움 안 됨 확정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
@@ -12300,8 +12300,8 @@ graph TD
 <div class="chapter" id="ch51">
   <div class="chapter-header">
     <span class="chapter-num">CH 51</span>
-    <h2 class="chapter-title">에피소드 초반 N프레임 한정 줌크롭 — 실세션 ablation (n=2, 결론 보류)</h2>
-    <p class="chapter-subtitle">조이스틱 체감 테스트 중 "맨 처음이 너무 멀어서 안 될 때도 있다"는 보고 — CH50과 스코프가 다른 재검토(런타임 조건부, 학습 미개입)</p>
+    <h2 class="chapter-title">에피소드 초반 N프레임 한정 줌크롭 — 실세션+학습데이터 ablation (n=737, 도움 안 됨 확정)</h2>
+    <p class="chapter-subtitle">조이스틱 체감 테스트 중 "맨 처음이 너무 멀어서 안 될 때도 있다"는 보고 — CH50과 스코프가 다른 재검토(런타임 조건부, 학습 미개입). 표본을 세션 4개(n=2)에서 737건으로 확장</p>
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
@@ -12317,42 +12317,65 @@ graph TD
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#92660a;margin-bottom:24px">
-    <div class="finding-title" style="color:#fbbf24">51-2. 실세션 ablation 결과 — 표본 2건, 결과가 엇갈림</div>
+    <div class="finding-title" style="color:#fbbf24">51-2. 1차 결과(n=2) — 표본 부족으로 결론 보류</div>
     <div class="finding-body">
       <code>scripts/eval/ablate_first_frame_zoom.py</code>로 오늘(6/24) 조이스틱 체감 테스트 세션 4개
-      (<code>docs/inference_sessions/session_20260624_*.h5</code>)를 오프라인 리플레이. 첫 5개 "실제
-      그라운딩 프레임"(placeholder frame0 제외) 중 area&lt;0.05인 후보는 <strong>2건뿐</strong> — 나머지
-      2세션은 8프레임 미만으로 끝나 후보가 0건이었다(<code>151056</code>은 그라운딩 호출 전 정지,
-      <code>105123</code>은 첫 프레임 area=0.066로 임계값 통과).
-      <div style="overflow-x:auto;margin-top:6px">
+      (<code>docs/inference_sessions/session_20260624_*.h5</code>)만 먼저 오프라인 리플레이했을 때는
+      후보가 <strong>2건뿐</strong>이었다(하나는 area 2배 개선, 하나는 72% 악화) — 방향조차 판단 불가능한
+      표본. 아래 51-3에서 표본을 737건으로 확장해 재검증.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0a0a,#200a0a);border-color:#7f1d1d;margin-bottom:24px">
+    <div class="finding-title" style="color:#f87171">51-3. 표본 확장(n=737) — 줌크롭이 오히려 약간 악화시킴, 도움 안 됨 확정</div>
+    <div class="finding-body">
+      사용자 지시(2026-06-25, "표본세션들말고 그동안 그라운딩이나 다른 테스트했던 여러것들에 대해서
+      진행")에 따라 표본을 3개 소스로 확장:
+      <ul style="margin:8px 0 0 18px;padding:0">
+        <li><strong>A) 저장된 grounding 있는 세션</strong>(오늘 4개) — n=2 (51-2와 동일)</li>
+        <li><strong>B) grounding 필드 없는 구버전 로컬 세션</strong>(12개 중 8개 h5, 나머지는
+          n_frames&lt;1) — raw 이미지로 PG2Grounder를 처음부터 다시 실행해 첫 5프레임 baseline 생성 — n=16</li>
+        <li><strong>C) CH46/50에서 이미 PG2로 재주석한 V5 학습 에피소드 150개</strong>의 "에피소드 시작
+          첫 5프레임"만 추출(사람이 로봇을 막 세팅한 순간과 동일한 상황) — n=719</li>
+      </ul>
+      <div style="overflow-x:auto;margin-top:10px">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">세션/프레임</th><th style="padding:6px;color:#7dd3fc">줌 전 area</th><th style="padding:6px;color:#7dd3fc">줌 후 area</th><th style="padding:6px;color:#7dd3fc">cx 이동</th></tr></thead>
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">소스</th><th style="padding:6px;color:#7dd3fc">n</th><th style="padding:6px;color:#7dd3fc">area_delta 평균</th><th style="padding:6px;color:#7dd3fc">개선/악화</th></tr></thead>
           <tbody>
-            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">104411 / frame2</td><td style="padding:6px;text-align:center">0.0446</td><td style="padding:6px;text-align:center;color:#f87171">0.0123(↓72%)</td><td style="padding:6px;text-align:center;color:#f87171">0.527→0.747(큰 이동)</td></tr>
-            <tr><td style="padding:6px">150541 / frame5</td><td style="padding:6px;text-align:center">0.0337</td><td style="padding:6px;text-align:center;color:#4ade80">0.0715(↑112%)</td><td style="padding:6px;text-align:center">0.505→0.542(작은 이동)</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">A(저장된 세션)</td><td style="padding:6px;text-align:center">2</td><td style="padding:6px;text-align:center">+0.0029</td><td style="padding:6px;text-align:center">1 / 1</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">B(재그라운딩 세션)</td><td style="padding:6px;text-align:center">16</td><td style="padding:6px;text-align:center;color:#f87171">-0.0020</td><td style="padding:6px;text-align:center">1 / 15</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">C(V5 학습 에피소드)</td><td style="padding:6px;text-align:center">719</td><td style="padding:6px;text-align:center;color:#f87171">-0.0025</td><td style="padding:6px;text-align:center">79 / 640</td></tr>
+            <tr style="background:#021c0c"><td style="padding:6px"><strong>전체</strong></td><td style="padding:6px;text-align:center;font-weight:700">737</td><td style="padding:6px;text-align:center;font-weight:700;color:#f87171">-0.0025</td><td style="padding:6px;text-align:center;font-weight:700">81 / 656(11% / 89%)</td></tr>
           </tbody>
         </table>
       </div>
       <div style="margin-top:10px">
-        <strong style="color:#f87171">정직한 결론: 표본 2건으로는 어떤 방향으로도 결론 낼 수 없다.</strong>
-        한 건은 area가 2배 넘게 좋아졌지만, 다른 한 건은 오히려 72% 줄었고 cx도 0.22만큼 크게 이동했다
-        — 줌 크롭이 엉뚱한 영역(원래 객체가 아닌 다른 부분)을 다시 그라운딩했을 가능성. has_bbox가
-        False→True로 바뀐 사례는 0건(둘 다 원래도 has_bbox=True였음 — "완전 실패"가 아니라 "작게 잡힘"
-        케이스만 표본에 있었음, CH50과 동일한 한계).
+        <strong style="color:#f87171">3개 소스 모두 같은 방향 — 줌 재시도가 도움이 안 된다.</strong>
+        89%(656/737)의 프레임에서 줌 후 area가 오히려 작아졌다. 다만 크기는 작음(median Δarea=-0.0015,
+        평균 cx/cy 이동 0.0069 — CH50-1에서 본 "bbox 좌표값 자체는 거의 안 변함"과 일치하는 수준).
+        <code>has_bbox</code>가 False→True로 바뀐 사례는 <strong>0/737</strong> — "완전 실패를 살려주는"
+        효과는 이 표본에서 한 번도 관측되지 않았다. cx/cy 거의 그대로인 채 area만 살짝 줄어드는 패턴은,
+        2배 확대된 크롭 안에서 PG2가 객체 경계를 오히려 더 보수적으로(타이트하게) 잡는 경향으로 추정 —
+        "더 가까이서 보면 더 정확하게 큰 박스를 그릴 것"이라는 직관과는 반대 결과.
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#86efac">CH50과 같은 결론으로 수렴.</strong> CH50은 학습된 모델의 closed-loop
+        지표(5-seed)로 "노이즈, 효과 없음"을 확인했고, 이번은 <strong>그라운딩 자체의 1차 지표(area)에서
+        n=737로 "효과 없음, 오히려 약간 손해"</strong>를 직접 확인했다 — 서로 다른 레벨(다운스트림 task
+        지표 vs 그라운딩 raw 출력)에서 같은 결론에 도달한 교차검증.
       </div>
     </div>
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#1c0a05,#20100a);border-color:#9a3412;margin-bottom:24px">
-    <div class="finding-title" style="color:#fb923c">51-3. 결정 — 운영 코드 반영 보류, 표본 누적 필요</div>
+    <div class="finding-title" style="color:#fb923c">51-4. 결정 — 운영 코드 반영하지 않음(확정)</div>
     <div class="finding-body">
-      n=2는 동전 던지기와 다를 바 없는 표본 크기다. <strong style="color:#7dd3fc">plan_20260624_first_frame_zoom_crop_ablation.md
-      §3에서 명시했던 대로, 운영 코드(<code>stage2_v2_inference_server.py</code> predict()) 반영은
-      이번 단계에서 진행하지 않는다.</strong> soda에는 grounding 필드가 없는 구버전 세션이 16개 더
-      있으나(2026-06-04~22, 6/24 직전까지), 모두 PG2 기록 전 스키마라 이 ablation에 직접 쓸 수 없음
-      — 필요하면 raw 이미지로 오프라인 재그라운딩(CH46과 같은 절차)부터 해야 한다. 앞으로 쌓이는
-      조이스틱 체감 테스트 세션을 <code>ablate_first_frame_zoom.py</code>로 누적 재실행해 표본을
-      늘리는 것이 다음 단계.
+      n=737, 3개 독립 소스, CH50의 다운스트림 결론과도 일치 — <strong style="color:#7dd3fc">에피소드
+      초반 N프레임 줌크롭 재시도는 운영 코드(<code>stage2_v2_inference_server.py</code> predict())에
+      반영하지 않는다.</strong> "맨 처음이 너무 멀어서 안 될 때도 있다"는 체감 보고 자체는 유효하지만
+      (실측 area 0.03~0.09대 다수 확인, <a href="#ch51" style="color:#7dd3fc">51-1</a>), 이 ablation이
+      시사하는 건 <strong>"줌 크롭 재시도"가 그 해법이 아니라는 것</strong> — 다른 접근(예: 첫 프레임
+      진입 전 짧은 정렬/접근 단계, 또는 STOP 캘리브레이션처럼 별도 트랙)이 필요할 수 있음, 별도 논의.
     </div>
   </div>
 
