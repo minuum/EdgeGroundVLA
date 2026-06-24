@@ -11836,6 +11836,18 @@ graph TD
         더 정확한 버전의 결론이다. 45-2의 방향(작은/먼 객체가 약점)은 유지되지만, "그라운딩이 아예 안 된다"는
         표현은 더 이상 맞지 않음 — "탐지는 되지만 작게 잡히면 액션 예측이 불안정해진다"로 정정.
       </div>
+      <div style="margin-top:14px">
+        <strong style="color:#fbbf24">실제 프레임 비교(같은 이미지, 왼쪽=Kosmos2 구 주석/빨강, 오른쪽=PG2 신규 재주석/초록):</strong>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+          <img src="ch46_50_viz/ch46_kosmos_vs_pg2_1.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+          <img src="ch46_50_viz/ch46_kosmos_vs_pg2_3.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+        </div>
+        <div style="font-size:0.78rem;color:#64748b;margin-top:6px">
+          오른쪽 쌍(원본 두번째 줄)이 가장 극단적인 사례 — Kosmos2는 벽·바닥까지 포함한 거의 풀프레임 박스
+          (area≈0.6+)를 그렸는데 PG2는 바스켓만 정확히 잡았다(area 차이 -0.576). 이런 프레임들이
+          CH43 전체 ablation 결과를 왜곡시킨 원인.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -12048,6 +12060,16 @@ graph TD
       3프레임 중 2프레임은 <strong>직전 grounding 결과를 그대로 재사용</strong>(cx/cy/area 완전 동일).
       CH47의 <code>area_delta = area[t]-area[t-1]</code>는 정확히 이 "변화"를 신호로 쓰므로, skip_n=3 환경에서는
       2/3 프레임의 delta가 항상 0이 되어 이득이 줄어들 수 있다는 의심 — 실측으로 확인.
+      <div style="margin-top:14px">
+        <strong style="color:#fbbf24">실제 캐시 동작(연속 3프레임, t/t+1/t+2 — 노란 박스 area가 완전히 고정됨):</strong>
+        <div style="margin-top:8px">
+          <img src="ch46_50_viz/ch49_skip3_cache_seq_1.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+        </div>
+        <div style="font-size:0.78rem;color:#64748b;margin-top:6px">
+          3프레임 모두 동일 bbox(area 소수점까지 일치) — 가운데/오른쪽 프레임은 실제로는 새로 그라운딩하지 않고
+          맨 왼쪽 프레임의 결과를 그대로 재사용한 것. area_delta는 이 구간에서 항상 0.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -12192,7 +12214,19 @@ graph TD
         (재그라운딩된 949프레임의 cx 평균변화 0.0016, area 평균변화 -0.0012 — 노이즈 수준). 그런데도
         val_acc/SR/FPE는 전부 개선됐다 — bbox 좌표값보다는 <strong>"같은 작은 객체를 다시 봤을 때도 일관된
         결과가 나온다"는 재현성 확인 자체</strong>, 혹은 단일 run의 학습 노이즈일 가능성도 배제 못 함
-        (CH43-2d 사례처럼 5-seed 검증은 안 함 — 1차 결과로만 보고).
+        (CH43-2d 사례처럼 5-seed 검증은 안 함 — 1차 결과로만 보고. <strong style="color:#f87171">→ 실제로
+        노이즈였음, <a href="#ch50" style="color:#7dd3fc">50-3</a> 참고</strong>).
+      </div>
+      <div style="margin-top:14px">
+        <strong style="color:#fbbf24">실제 프레임 비교(작은 객체, 왼쪽=줌 전 원본 bbox/빨강, 오른쪽=2배 줌 재그라운딩/초록):</strong>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+          <img src="ch46_50_viz/ch50_zoom_before_after_1.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+          <img src="ch46_50_viz/ch50_zoom_before_after_3.png" style="width:100%;border-radius:6px;border:1px solid #334155">
+        </div>
+        <div style="font-size:0.78rem;color:#64748b;margin-top:6px">
+          본문에서 언급한 대로 박스 위치/크기 차이는 시각적으로도 거의 안 보임 — 50-3에서 이 미미한 차이가
+          실제 성능 개선과 무관(노이즈)했음이 5-seed로 확인됨.
+        </div>
       </div>
     </div>
   </div>
