@@ -305,7 +305,7 @@
     <a class="toc-item" href="#ch47" data-target="ch47"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 47</span><span class="toc-label">area_delta feature — LSTM-replace FPE 0.098m 전체 최저</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch48" data-target="ch48"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 48</span><span class="toc-label">Grounding Hub "base PG2" 모델 일치성 검증</span><span class="toc-cat cat-cmp">비교</span></a>
     <a class="toc-item" href="#ch49" data-target="ch49"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 49</span><span class="toc-label">skip_n=3 재검증 + 실세션 실측 — 메인 디폴트 확정</span><span class="toc-cat cat-fix">정정</span></a>
-    <a class="toc-item" href="#ch50" data-target="ch50"><span class="toc-badge" style="background:rgba(134,239,172,0.15);color:#86efac">CH 50</span><span class="toc-label">작은 객체 줌 재그라운딩 — SR 93.1%→96.6% ★NEW</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch50" data-target="ch50"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 50</span><span class="toc-label">작은 객체 줌 재그라운딩 — 5-seed 검증 결과 단일런 노이즈로 정정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
@@ -12211,8 +12211,39 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c0a0a,#200a0a);border-color:#7f1d1d;margin-bottom:24px">
+    <div class="finding-title" style="color:#f87171">50-3. 5-seed 검증 결과 — 50-1의 "개선"은 단일 run 노이즈였다</div>
+    <div class="finding-body">
+      50-1에서 명시했던 우려(CH43-2d 사례처럼 5-seed 검증 안 함)를 실제로 실행
+      (<code>scripts/eval/run_5seed_zoomsmall.sh</code>, 동일 데이터·동일 학습 코드를 5회 반복, RNG는
+      torch/np 기본 상태에 맡김).
+      <div style="overflow-x:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155"><th style="padding:6px;text-align:left;color:#7dd3fc">seed</th><th style="padding:6px;color:#7dd3fc">1</th><th style="padding:6px;color:#7dd3fc">2</th><th style="padding:6px;color:#7dd3fc">3</th><th style="padding:6px;color:#7dd3fc">4</th><th style="padding:6px;color:#7dd3fc">5</th><th style="padding:6px;color:#7dd3fc">평균±표준편차</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px">SR</td><td style="padding:6px;text-align:center">89.7%</td><td style="padding:6px;text-align:center;color:#4ade80">96.6%</td><td style="padding:6px;text-align:center">86.2%</td><td style="padding:6px;text-align:center">86.2%</td><td style="padding:6px;text-align:center">89.7%</td><td style="padding:6px;text-align:center;font-weight:700">89.7%±3.8%p</td></tr>
+            <tr><td style="padding:6px">FPE</td><td style="padding:6px;text-align:center">0.151m</td><td style="padding:6px;text-align:center;color:#4ade80">0.122m</td><td style="padding:6px;text-align:center">0.181m</td><td style="padding:6px;text-align:center">0.165m</td><td style="padding:6px;text-align:center">0.179m</td><td style="padding:6px;text-align:center;font-weight:700">0.159m±0.022m</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        50-1에서 보고한 SR 96.6% / FPE 0.132m는 <strong style="color:#f87171">5개 중 가장 좋은 seed(2번)였다</strong>
+        — 분포의 최댓값을 대표값으로 잘못 보고한 것. 5-seed 평균(SR 89.7%)은 <strong>줌 재그라운딩을 적용하지
+        않은 CH46 baseline의 단일 실행값(SR 93.1%, FPE 0.145m)보다도 낮다</strong> — 단, baseline도 5-seed
+        검증을 안 했으므로 이 비교 자체가 완전한 apples-to-apples는 아니다(둘 다 단일/평균 섞인 비교).
+      </div>
+      <div style="margin-top:10px">
+        <strong style="color:#fbbf24">정정된 결론:</strong> "작은 객체 줌 재그라운딩이 학습 데이터 품질을
+        개선한다"는 50-1의 주장은 <strong style="color:#f87171">현재 증거로는 뒷받침되지 않는다</strong> —
+        CH43-2d와 동일한 패턴(단일 실행 고점을 개선으로 착각). 50-1/50-2는 지우지 않고 이 카드로 정정한다.
+        배포 보류 결정(50-2)은 이 정정으로 인해 더 확고해짐 — latency 문제(CH49)와 별개로, 효과 자체가
+        불확실하므로 추가 조치 불필요.
+      </div>
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
-    plans: plan_20260624_zoom_regrounding_small_objects.md &nbsp;|&nbsp; 2026-06-24
+    plans: plan_20260624_zoom_regrounding_small_objects.md &nbsp;|&nbsp; 2026-06-24 (50-1/50-2) · 2026-06-24 (50-3 정정)
   </div>
 </div>
 
