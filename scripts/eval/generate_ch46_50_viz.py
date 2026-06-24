@@ -62,6 +62,16 @@ def side_by_side(im1, im2, gap=8):
     return canvas
 
 
+WEB_MAX_W = 1000  # 웹 표시용 다운스케일 — 원본 해상도 불필요(파일당 ~1.3MB -> ~150KB)
+
+
+def save_web(img, path):
+    if img.width > WEB_MAX_W:
+        ratio = WEB_MAX_W / img.width
+        img = img.resize((WEB_MAX_W, int(img.height * ratio)), Image.LANCZOS)
+    img.save(path, quality=85, optimize=True)
+
+
 def find_existing(h5_episode):
     p = Path(h5_episode)
     return p if p.exists() else None
@@ -86,8 +96,8 @@ def gen_ch46_kosmos_vs_pg2(n=4):
             im_o = draw_box(img, box_o, (248, 113, 113), f"Kosmos2(구) area={fr_o['area']:.3f}")
             im_n = draw_box(img, box_n, (74, 222, 128), f"PG2(신) area={fr_n['area']:.3f}")
             combo = side_by_side(im_o, im_n)
-            out = OUT_DIR / f"ch46_kosmos_vs_pg2_{saved+1}.png"
-            combo.save(out)
+            out = OUT_DIR / f"ch46_kosmos_vs_pg2_{saved+1}.jpg"
+            save_web(combo, out)
             print(f"[저장] {out}  (delta_area={fr_n['area']-fr_o['area']:+.3f})")
             saved += 1
             break
@@ -113,8 +123,8 @@ def gen_ch50_zoom_before_after(n=4):
             im_o = draw_box(img, box_o, (248, 113, 113), f"원본 area={fr_o['area']:.4f}")
             im_n = draw_box(img, box_n, (74, 222, 128), f"줌 재그라운딩 area={fr_n['area']:.4f}")
             combo = side_by_side(im_o, im_n)
-            out = OUT_DIR / f"ch50_zoom_before_after_{saved+1}.png"
-            combo.save(out)
+            out = OUT_DIR / f"ch50_zoom_before_after_{saved+1}.jpg"
+            save_web(combo, out)
             print(f"[저장] {out}")
             saved += 1
             break
@@ -146,8 +156,8 @@ def gen_ch49_skip3_cache_seq(n=2):
                 canvas = Image.new("RGB", (w * 3 + gap * 2, h), (20, 20, 20))
                 for i, im in enumerate(imgs):
                     canvas.paste(im, (i * (w + gap), 0))
-                out = OUT_DIR / f"ch49_skip3_cache_seq_{saved+1}.png"
-                canvas.save(out)
+                out = OUT_DIR / f"ch49_skip3_cache_seq_{saved+1}.jpg"
+                save_web(canvas, out)
                 print(f"[저장] {out}")
                 saved += 1
                 break
@@ -155,7 +165,7 @@ def gen_ch49_skip3_cache_seq(n=2):
 
 
 if __name__ == "__main__":
-    n1 = gen_ch46_kosmos_vs_pg2()
-    n2 = gen_ch50_zoom_before_after()
-    n3 = gen_ch49_skip3_cache_seq()
+    n1 = gen_ch46_kosmos_vs_pg2(n=12)
+    n2 = gen_ch50_zoom_before_after(n=12)
+    n3 = gen_ch49_skip3_cache_seq(n=6)
     print(f"\n총 생성: ch46={n1}, ch50={n2}, ch49={n3}")
