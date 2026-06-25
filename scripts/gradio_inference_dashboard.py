@@ -2463,23 +2463,21 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 "**11ep 검증 목표: 7/11 (63.6%) 이상**\n\n"
                 "---\n\n"
                 "### 🗺️ Top-Down 배치도\n\n"
+                "▦ = 바스켓 (모든 경로 공통 목표, 항상 정면 고정)\n\n"
                 "```\n"
-                "             ▦  (바스켓 — 항상 정면 고정)\n"
-                "\n"
-                "    L_L  L_S  L_R    C_L  C_S  C_R    R_L  R_S  R_R\n"
-                "     ↗    ↑    ╲      ╱    ↑    ╲      ╱    ↑    ↖\n"
-                "    ╱     │     ╲    ╱     │     ╲    ╱     │     ╲\n"
-                "   ╱      │      ╲  ╱      │      ╲  ╱      │      ╲\n"
-                "  ╱       │       ╲╱       │       ╲╱       │       ╲\n"
-                " 🤖L              🤖C              🤖R\n"
-                "(좌측 출발)      (중앙 출발)      (우측 출발)\n"
+                "  ▦               ▦               ▦\n"
+                "  │               │               │\n"
+                " ╱│╲             ╱│╲             ╱│╲\n"
+                "╱ │ ╲           ╱ │ ╲           ╱ │ ╲\n"
+                "L_L L_S L_R   C_L C_S C_R   R_L R_S R_R\n"
+                "     🤖L              🤖C              🤖R\n"
+                "  (좌측 출발)      (중앙 출발)      (우측 출발)\n"
                 "```\n\n"
-                "**배치 방법:**  \n"
-                "바스켓은 항상 전방 정중앙에 두고, **로봇 시작 위치만 이동**  \n"
-                "- `*_straight` → 로봇 출발 후 바스켓까지 직선  \n"
-                "- `*_left` → 출발 후 좌측으로 휘어 접근  \n"
-                "- `*_right` → 출발 후 우측으로 휘어 접근  \n"
-                "- `right_left` ★ = 우측에서 좌측 곡선 → 가장 어려운 경로, 우선 검증"
+                "**배치 방법 (바스켓 고정, 로봇 시작 위치만 이동):**  \n"
+                "- `*_straight` → 직진으로 바스켓까지  \n"
+                "- `*_left` → 좌측으로 휘어서 바스켓 접근  \n"
+                "- `*_right` → 우측으로 휘어서 바스켓 접근  \n"
+                "- `right_left` ★ = 우측 출발 + 좌회전 → 우선 검증 대상"
             )
             progress_test = gr.Textbox(label="진행률", value="0/11 (목표 7)", interactive=False)
             path_type_test = gr.Dropdown(
@@ -2784,17 +2782,15 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
         row = [len(log_list) + 1, path_type, success, stop_flag, round(area, 3), round(cx, 2), fpe, note]
         log_list = log_list + [row]
 
-        targets = {"center_straight": 3, "left_diagonal": 3, "right_diagonal": 3, "center_curve": 2}
-        done = {k: 0 for k in targets}
+        done = {k: 0 for k in PATH_TYPES}
         success_count = 0
         for r in log_list:
             done[r[1]] = done.get(r[1], 0) + 1
             if r[2] == "성공":
                 success_count += 1
         total = len(log_list)
-        prog = f"{total}/11 (성공 {success_count}, 목표 7) | " + ", ".join(
-            f"{k}:{done.get(k, 0)}/{v}" for k, v in targets.items()
-        )
+        per_path = " | ".join(f"{k}:{done[k]}" for k in PATH_TYPES if done[k] > 0)
+        prog = f"{total}ep  성공 {success_count}  (목표 7/11)  ─  {per_path}" if per_path else f"{total}ep  성공 {success_count}  (목표 7/11)"
         return log_list, log_list, prog
 
     btn_log_episode.click(
