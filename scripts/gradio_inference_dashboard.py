@@ -2463,23 +2463,35 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 "**11ep 검증 목표: 7/11 (63.6%) 이상**\n\n"
                 "---\n\n"
                 "### 🗺️ Top-Down 배치도\n\n"
-                "▦ = 바스켓 (모든 경로 공통 목표, 항상 정면 고정)\n\n"
+                "▦ = 바스켓 (공통 목표, 항상 정면 고정) | 경로명 = [시작위치]_[꺾는방향]\n\n"
                 "```\n"
-                "  ▦               ▦               ▦\n"
-                "  │               │               │\n"
-                " ╱│╲             ╱│╲             ╱│╲\n"
-                "╱ │ ╲           ╱ │ ╲           ╱ │ ╲\n"
-                "L_L L_S L_R   C_L C_S C_R   R_L R_S R_R\n"
-                "     🤖L              🤖C              🤖R\n"
-                "  (좌측 출발)      (중앙 출발)      (우측 출발)\n"
+                "   ▦                  ▦                  ▦\n"
+                "   │                  │                  │\n"
+                "  ╱│╲                ╱│╲                ╱│╲\n"
+                " ╱ │ ╲              ╱ │ ╲              ╱ │ ╲\n"
+                "L_L L_S L_R      C_L C_S C_R      R_R R_S R_L\n"
+                "←바깥  안→       ←좌   우→       ←바깥  안→\n"
+                "      🤖L                🤖C                🤖R\n"
+                "   (좌측 출발)        (중앙 출발)        (우측 출발)\n"
                 "```\n\n"
-                "**배치 방법 (바스켓 고정, 로봇 시작 위치만 이동):**  \n"
-                "- `*_straight` → 직진으로 바스켓까지  \n"
-                "- `*_left` → 좌측으로 휘어서 바스켓 접근  \n"
-                "- `*_right` → 우측으로 휘어서 바스켓 접근  \n"
-                "- `right_left` ★ = 우측 출발 + 좌회전 → 우선 검증 대상"
+                "- 좌측 그룹: L\\_L(더 좌로) · L\\_S(직진) · L\\_R(우로 꺾어 바스켓 접근)  \n"
+                "- 중앙 그룹: C\\_L(좌로) · C\\_S(직진) · C\\_R(우로)  \n"
+                "- 우측 그룹: R\\_R(더 우로) · R\\_S(직진) · R\\_L(좌로 꺾어 바스켓 접근) ★"
             )
-            progress_test = gr.Textbox(label="진행률", value="0/11 (목표 7)", interactive=False)
+            progress_test = gr.Textbox(label="총 진행률", value="0ep  성공 0  (목표 7/11)", interactive=False)
+            path_summary_table = gr.Dataframe(
+                headers=["경로", "총", "성공", "경로", "총", "성공", "경로", "총", "성공"],
+                datatype=["str","number","number","str","number","number","str","number","number"],
+                value=[
+                    ["left_left",0,0, "center_left",0,0, "right_right",0,0],
+                    ["left_straight",0,0, "center_straight",0,0, "right_straight",0,0],
+                    ["left_right",0,0, "center_right",0,0, "right_left ★",0,0],
+                ],
+                label="경로별 에피소드 집계 (실시간)",
+                row_count=3,
+                col_count=9,
+                interactive=False,
+            )
             path_type_test = gr.Dropdown(
                 choices=PATH_TYPES,
                 value="right_left",
@@ -2782,21 +2794,36 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
         row = [len(log_list) + 1, path_type, success, stop_flag, round(area, 3), round(cx, 2), fpe, note]
         log_list = log_list + [row]
 
-        done = {k: 0 for k in PATH_TYPES}
+        done_total = {k: 0 for k in PATH_TYPES}
+        done_succ  = {k: 0 for k in PATH_TYPES}
         success_count = 0
         for r in log_list:
-            done[r[1]] = done.get(r[1], 0) + 1
+            pt = r[1]
+            done_total[pt] = done_total.get(pt, 0) + 1
             if r[2] == "성공":
+                done_succ[pt] = done_succ.get(pt, 0) + 1
                 success_count += 1
         total = len(log_list)
-        per_path = " | ".join(f"{k}:{done[k]}" for k in PATH_TYPES if done[k] > 0)
-        prog = f"{total}ep  성공 {success_count}  (목표 7/11)  ─  {per_path}" if per_path else f"{total}ep  성공 {success_count}  (목표 7/11)"
-        return log_list, log_list, prog
+        prog = f"{total}ep  성공 {success_count}  (목표 7/11)"
+
+        # 3×9 요약 테이블: 좌/중/우 그룹 × [_left, _straight, _right] 행
+        # 우측 그룹은 x축 대칭으로 right_right / right_straight / right_left 순
+        rows = []
+        for suffix in ("left", "straight", "right"):
+            lk = f"left_{suffix}"
+            ck = f"center_{suffix}"
+            rk = f"right_{'right' if suffix == 'left' else ('straight' if suffix == 'straight' else 'left')}"
+            rows.append([
+                lk, done_total[lk], done_succ[lk],
+                ck, done_total[ck], done_succ[ck],
+                rk + (" ★" if rk == "right_left" else ""), done_total.get(rk, 0), done_succ.get(rk, 0),
+            ])
+        return log_list, log_list, prog, rows
 
     btn_log_episode.click(
         fn=log_episode,
         inputs=[path_type_test, success_test, fpe_test, note_test, _episode_log_state],
-        outputs=[_episode_log_state, episode_log_table, progress_test],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
     )
 
     def export_episode_log(log_list):
