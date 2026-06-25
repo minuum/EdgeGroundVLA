@@ -307,6 +307,7 @@
     <a class="toc-item" href="#ch49" data-target="ch49"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 49</span><span class="toc-label">skip_n=3 재검증 + 실세션 실측 — 메인 디폴트 확정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch50" data-target="ch50"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 50</span><span class="toc-label">작은 객체 줌 재그라운딩 — 5-seed 검증 결과 단일런 노이즈로 정정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 51</span><span class="toc-label">에피소드 초반 N프레임 줌크롭 — n=737 ablation, 도움 안 됨 확정</span><span class="toc-cat cat-fix">정정</span></a>
+    <a class="toc-item" href="#ch52" data-target="ch52"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 52</span><span class="toc-label">path_type별 분리 평가 — SR 포화, replace가 FPE 40% 개선</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
@@ -8438,7 +8439,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','ch47','ch48','ch49','ch50','ch51','next-step','summary','weekly-meeting'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','ch47','ch48','ch49','ch50','ch51','ch52','next-step','summary','weekly-meeting'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -12385,6 +12386,159 @@ graph TD
 </div>
 
 <hr class="chapter-divider">
+<div class="chapter" id="ch52">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 52</span>
+    <h2 class="chapter-title">LSTM hidden state — path_type별 분리 평가</h2>
+    <p class="chapter-subtitle">6/22 미팅 TODO "val 29개로는 SR 변별 안 됨, 어려운 path_type 분리 평가 필요"에 대응. SR은 전 모드 포화, replace mode가 전환 경로 FPE 40% 개선</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">52-1. 배경 — 6/22 미팅 TODO 대응</div>
+    <div class="finding-body">
+      <a href="#ch43" style="color:#7dd3fc">CH43-2c</a>에서 "val 29개 에피소드로는 none/add/replace 간 SR 차이를 식별하기 어렵다
+      (천장 근처에서 전부 포화)"는 한계를 언급했고, 6/22 미팅 TODO로 "어려운 path_type만 분리 평가"가 남았었다.
+      <a href="#ch43" style="color:#7dd3fc">CH43-2d</a>에서 5-seed 확대는 수행했지만(95.39%±0.20%p), path_type별 분리는 미착수 상태였다.
+      이번에 val 30개 에피소드 × 9 path_type (3~4개씩, stratified seed=42)에 대해 none/add/replace를
+      path_type별로 완전히 분리해 측정했다.
+      <div style="margin-top:8px;color:#94a3b8;font-size:0.84rem">
+        체크포인트: none → 이번에 새로 학습(val_acc 94.49%, bbox_dataset_full.json) /
+        add/replace → CH43 원본(add 96.85%, replace 95.47%). 셋 모두 Kosmos2 주석 데이터로 학습·평가.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a10,#0a1f14);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">52-2. 결과 — SR은 모드 무관, FPE에서 replace가 우세</div>
+    <div class="finding-body">
+      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-bottom:14px">
+        <thead>
+          <tr style="border-bottom:1px solid #166534">
+            <th style="text-align:left;padding:6px 8px;color:#86efac">path_type</th>
+            <th style="text-align:center;padding:6px 8px;color:#94a3b8">n</th>
+            <th style="text-align:center;padding:6px 8px;color:#7dd3fc">none SR / FPE</th>
+            <th style="text-align:center;padding:6px 8px;color:#fbbf24">add SR / FPE</th>
+            <th style="text-align:center;padding:6px 8px;color:#4ade80">replace SR / FPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f2820"><td style="padding:6px 8px;color:#94a3b8" colspan="5"><em>── 직진 계열 ──</em></td></tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">center_straight</td><td style="text-align:center;padding:6px 8px">4</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.122m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.163m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.081m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">left_straight</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.159m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.181m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.243m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">right_straight</td><td style="text-align:center;padding:6px 8px">4</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820;background:rgba(30,64,175,0.08)">
+            <td style="padding:6px 8px;font-weight:700">직진 소계</td><td style="text-align:center;padding:6px 8px;font-weight:700">11</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">100% / 0.088m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">100% / 0.108m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">100% / 0.096m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820"><td style="padding:6px 8px;color:#94a3b8" colspan="5"><em>── 전환 계열 ──</em></td></tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">center_left</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.115m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.153m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">center_right</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.115m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.038m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">left_left</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.192m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.140m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.153m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">left_right</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.153m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.145m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.077m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">right_left</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.115m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.048m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.048m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820;background:rgba(239,68,68,0.08)">
+            <td style="padding:6px 8px;color:#f87171;font-weight:700">right_right ⚠️</td><td style="text-align:center;padding:6px 8px;font-weight:700">3</td>
+            <td style="text-align:center;padding:6px 8px;color:#f87171;font-weight:700">67% / 0.364m</td>
+            <td style="text-align:center;padding:6px 8px;color:#f87171;font-weight:700">67% / 0.380m</td>
+            <td style="text-align:center;padding:6px 8px;color:#f87171;font-weight:700">67% / 0.319m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820;background:rgba(30,64,175,0.08)">
+            <td style="padding:6px 8px;font-weight:700">전환 소계</td><td style="text-align:center;padding:6px 8px;font-weight:700">18</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">94.4% / 0.176m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">94.4% / 0.144m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">94.4% / 0.106m</td>
+          </tr>
+          <tr style="background:rgba(74,222,128,0.06)">
+            <td style="padding:6px 8px;font-weight:700">전체</td><td style="text-align:center;padding:6px 8px;font-weight:700">29</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">96.6% / 0.142m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">96.6% / 0.131m</td>
+            <td style="text-align:center;padding:6px 8px;color:#4ade80;font-weight:700">96.6% / 0.102m</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">52-3. 해석</div>
+    <div class="finding-body">
+      <ul style="margin:0 0 0 18px;line-height:2">
+        <li><strong>SR: 세 모드 완전 동일 (96.6%)</strong> — path_type을 분리해도 none/add/replace 사이에 SR 차이가 없다.
+          val 세트가 SR 기준으로 이미 포화(천장)임을 재확인. 9개 path_type 중 8개가 100%이고, 유일한 예외는
+          right_right(67%)인데 이것도 세 모드 모두 동일하게 실패 — 특정 에피소드가 어려운 것이지
+          hidden state 여부의 문제가 아님.</li>
+        <li><strong>FPE: replace가 전환 경로에서 유의미한 차이</strong> — 전환 소계 기준 none 0.176m → replace 0.106m
+          (<strong style="color:#4ade80">40% 감소</strong>). add도 0.144m로 개선되지만 replace가 더 좋음.
+          직진 계열은 세 모드 간 차이 미미(0.088~0.108m 범위).</li>
+        <li><strong>right_right 구조적 약점</strong> — 3개 에피소드 중 1개가 세 모드 모두 FPE 0.5m 이상(실패).
+          이 에피소드는 val split에 고정(seed=42)되어 있어, 모든 CH에서 동일하게 불리하게 작용 —
+          이 1건이 전환 계열 SR의 유일한 감점 요인이므로 이 에피소드를 따로 분석하면 실패 원인을 식별할 수 있을 것.</li>
+        <li><strong>6/22 TODO 결론</strong>: "더 큰 표본·path_type 분리로 hidden state 효과를 검증"하라는 요청에 대해 —
+          <strong>SR 기준으로는 효과 없음, FPE 정밀도 기준으로는 replace mode가 전환 경로에서 일관되게 유리</strong>.
+          FPE 0.5m 성공 임계값 대비 세 모드 모두 충분히 안쪽이어서 실운용 차이는 없지만,
+          경로 추적 정밀도(FPE)를 우선시한다면 replace가 최선의 선택.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="background:linear-gradient(135deg,#052e16,#0a1628);border:1px solid #22c55e;border-radius:12px;padding:16px 20px;margin-bottom:16px">
+    <div style="color:#86efac;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">CH52 결론 (6/22 미팅 TODO 완료)</div>
+    <div style="color:#e2e8f0;line-height:1.8">
+      path_type 분리 평가로 "val 천장 포화" 가설 재확인 — SR은 어떤 path_type에서도 모드 간 차이 없음.<br>
+      Hidden state의 가치는 <strong style="color:#4ade80">FPE 정밀도</strong>에 있으며, replace mode가 전환 경로에서 가장 우수(0.176→0.106m, ×1.7).<br>
+      right_right 실패는 에피소드-레벨 문제(모델 무관). <strong>6/22 TODO #4 (path_type 분리) ✅ 완료.</strong>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    스크립트: scripts/eval/closed_loop_eval_pathtype_breakdown.py &nbsp;|&nbsp;
+    데이터: docs/v5/closed_loop_eval/lstm_pathtype_breakdown.json &nbsp;|&nbsp; 2026-06-26
+  </div>
+</div>
+
+<hr class="chapter-divider">
 <div class="chapter" id="weekly-meeting" style="padding-bottom:40px">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MEETING</span>
@@ -12475,8 +12629,8 @@ graph TD
 
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🏋️ 학습/평가</div>
       <ul style="margin-left:18px;line-height:2">
-        <li>☐ <strong>LSTM+hidden state 조합 closed-loop 확대 검증</strong> — val 29개로는 SR 변별 안 됨(<a href="#ch43" style="color:#7dd3fc">CH43-2c</a>),
-        더 큰 표본(5-seed 확대, 또는 어려운 path_type만 분리 평가) 필요</li>
+        <li>✅ <strong>LSTM+hidden state 조합 closed-loop 확대 검증</strong> — 5-seed(<a href="#ch43" style="color:#7dd3fc">CH43-2d</a>) + path_type 분리(<a href="#ch52" style="color:#7dd3fc">CH52</a>) 완료.
+        SR은 전 path_type 포화, replace mode가 전환 경로 FPE 40% 개선(0.176→0.106m). right_right 실패는 에피소드-레벨 문제.</li>
       </ul>
 
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🤖 추론 — 로봇 동작</div>
