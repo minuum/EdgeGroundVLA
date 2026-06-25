@@ -2429,50 +2429,113 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
 
       # ────────────────────────────────────────────────────────────────
       with gr.Tab("🧪 경로 검증 (Path Test)"):
-        gr.Markdown(
-            "### 📋 실로봇 11-Episode 테스트 매트릭스\n\n"
-            "| 경로 타입 | 목표 횟수 | 성공 기준 |\n"
-            "|---|---|---|\n"
-            "| center_straight | 3회 | TLD 0.7~1.5, FPE<0.5m, STOP 필수 |\n"
-            "| left_diagonal | 3회 | TLD 0.7~1.5, FPE<0.5m |\n"
-            "| right_diagonal | 3회 (★우선) | TLD 0.7~1.5, FPE<0.5m |\n"
-            "| center_curve | 2회 (옵션) | TLD 0.7~1.5, FPE<0.5m |\n\n"
-            "**목표: 7/11 (63.6%) 이상 성공** — START/STOP/복귀는 탭1과 동일 상태를 공유함."
-        )
         with gr.Row(equal_height=False):
+          # ── 왼쪽: 카메라 + 상태 모니터링 (Tab1 미러) ──────────────────
           with gr.Column(scale=2):
-            camera_output_test = gr.Image(label="Live Camera (탭1 미러)", interactive=False)
-            with gr.Row():
-                btn_start_test = gr.Button("▶️ START", variant="primary", scale=1)
-                btn_stop_test = gr.Button("⏹️ STOP", variant="stop", scale=1)
-                btn_return_test = gr.Button("🔄 복귀", variant="secondary", scale=1)
-            run_status_test = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
-            bbox_area_display_test = gr.Textbox(label="현재 bbox area/cx (STOP 판단 참고용)", value="—", interactive=False)
+            gr.Markdown("## 📷 Live Camera")
+            camera_output_test = gr.Image(label="Live Camera", interactive=False)
+            gr.Markdown("🟢 탭1 state 공유 — 추론/주행 상태 동기화됨")
 
           with gr.Column(scale=1):
-            gr.Markdown("#### 📝 에피소드 기록")
+            gr.Markdown("## 📡 모니터링")
+            status_log_test = gr.Textbox(label="Status", value="Ready")
+            latency_val_test = gr.Textbox(label="Latency", value="0 ms")
+            action_val_test = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
+            bbox_area_display_test = gr.Textbox(label="bbox area/cx (STOP 판단)", value="—", interactive=False)
+            run_status_test = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
+
+          # ── 오른쪽: 매트릭스 표 + 에피소드 기록 ──────────────────────
+          with gr.Column(scale=1):
+            gr.Markdown(
+                "## 📋 테스트 매트릭스\n\n"
+                "| 경로 타입 | 목표 | 성공 기준 |\n"
+                "|---|---|---|\n"
+                "| center_straight | **3회** | FPE<0.5m, STOP 필수 |\n"
+                "| left_diagonal | **3회** | FPE<0.5m |\n"
+                "| right_diagonal | **3회** ★ | FPE<0.5m |\n"
+                "| center_curve | **2회** | FPE<0.5m |\n\n"
+                "**목표: 7/11 (63.6%) 이상**"
+            )
+            progress_test = gr.Textbox(label="진행률", value="0/11 (목표 7)", interactive=False)
             path_type_test = gr.Dropdown(
                 choices=["center_straight", "left_diagonal", "right_diagonal", "center_curve"],
                 value="right_diagonal",
                 label="이번 에피소드 경로 타입",
             )
             success_test = gr.Radio(choices=["성공", "실패"], value="성공", label="결과")
-            fpe_test = gr.Number(label="FPE 추정(육안, m)", value=0.0)
+            fpe_test = gr.Slider(minimum=0.0, maximum=5.0, step=0.05, value=0.0, label="FPE 추정(육안, m)")
             note_test = gr.Textbox(label="특이사항", value="")
             btn_log_episode = gr.Button("📝 에피소드 기록", variant="primary")
-            progress_test = gr.Textbox(label="진행률", value="0/11 (목표 7)", interactive=False)
             with gr.Row():
-                btn_export_test = gr.Button("💾 CSV로 저장", scale=2)
+                btn_export_test = gr.Button("💾 CSV 저장", scale=2)
                 export_status_test = gr.Textbox(label="", value="", interactive=False, scale=3)
 
-        episode_log_table = gr.Dataframe(
-            headers=["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "특이사항"],
-            datatype=["number", "str", "str", "str", "number", "number", "number", "str"],
-            label="에피소드 기록 (누적, 세션 단위)",
-            row_count=11,
-            col_count=8,
-            interactive=False,
-        )
+        # ── 하단 전체 너비: 제어 + 기록 테이블 ───────────────────────────
+        with gr.Column():
+          gr.Markdown("## 🎮 Operation Mode")
+          with gr.Group():
+            with gr.Row():
+                mode_radio_test = gr.Radio(
+                    choices=["Manual Drive", "Inference (Auto)"],
+                    value="Manual Drive",
+                    label="Controller Mode",
+                    scale=1,
+                )
+                with gr.Column(visible=False) as inference_panel_test:
+                    gr.Markdown("#### 🏁 Inference Control")
+                    infer_move_radio_test = gr.Radio(
+                        choices=["SYNC", "PRE", "ASYNC"],
+                        value="SYNC",
+                        label="이동 모드",
+                    )
+                    with gr.Row():
+                        btn_start_test = gr.Button("▶️ START", variant="primary", scale=1)
+                        btn_stop_test = gr.Button("⏹️ STOP", variant="stop", scale=1)
+                        btn_return_test = gr.Button("🔄 복귀", variant="secondary", scale=1)
+
+            def on_mode_change_test(selected_mode):
+                return gr.update(visible=selected_mode == "Inference (Auto)")
+            mode_radio_test.change(fn=on_mode_change_test, inputs=[mode_radio_test], outputs=[inference_panel_test])
+
+          with gr.Row():
+            with gr.Column(scale=1, min_width=200):
+              with gr.Group():
+                gr.Markdown("### 🎮 Manual Controls")
+                t4_speed_slider = gr.Slider(
+                    minimum=0.3, maximum=2.0, step=0.05, value=1.15,
+                    label="속도 (lx/ly/az 크기)",
+                )
+                with gr.Row():
+                    t4_btn_q = gr.Button("↖ Q", scale=1, size="sm")
+                    t4_btn_w = gr.Button("▲ W", scale=1, size="sm")
+                    t4_btn_e = gr.Button("↗ E", scale=1, size="sm")
+                with gr.Row():
+                    t4_btn_a = gr.Button("◀ A", scale=1, size="sm")
+                    t4_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
+                    t4_btn_d = gr.Button("▶ D", scale=1, size="sm")
+                with gr.Row():
+                    t4_btn_r = gr.Button("↺ R (CCW)", scale=1, size="sm")
+                    t4_btn_s = gr.Button("▼ S", scale=1, size="sm")
+                    t4_btn_t = gr.Button("↻ T (CW)", scale=1, size="sm")
+
+            with gr.Column(scale=1, min_width=200):
+              with gr.Group():
+                gr.Markdown("### 🕹️ Joystick 상태")
+                js_status_test = gr.Textbox(label="상태", value="🔌 초기화 중...", interactive=False)
+                gr.Markdown(
+                    "<small>Left Stick → 이동 | Right Stick X → 회전 | A → STOP</small>"
+                )
+
+            with gr.Column(scale=2):
+              episode_log_table = gr.Dataframe(
+                  headers=["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "특이사항"],
+                  datatype=["number", "str", "str", "str", "number", "number", "number", "str"],
+                  label="에피소드 기록 (누적, 세션 단위)",
+                  row_count=11,
+                  col_count=8,
+                  interactive=False,
+              )
+
         _episode_log_state = gr.State([])
 
     btn_start_inf.click(
@@ -2657,9 +2720,11 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
         """,
     )
 
-    # ── 탭4: 경로 검증(Path Test) — 탭1 상태/함수 재사용, 탭1 코드는 무수정 ──
+    # ── 탭4: 경로 검증(Path Test) — 탭1 state/함수 재사용, 탭1 코드 무수정 ──
+    # 카메라: state["last_img"]는 탭1 update_ui가 매 0.5s 갱신 → 별도 backend 호출 없음
     timer.tick(fn=lambda: state.get("last_img"), outputs=camera_output_test)
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display_test)
+    timer.tick(fn=_js_status_text, outputs=js_status_test)
 
     btn_start_test.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
@@ -2668,6 +2733,16 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
     )
     btn_stop_test.click(fn=lambda: set_running(False, "", "", ""), outputs=run_status_test)
     btn_return_test.click(fn=return_to_start, outputs=run_status_test)
+
+    t4_directions = {
+        t4_btn_w: "W", t4_btn_s: "S", t4_btn_a: "A", t4_btn_d: "D",
+        t4_btn_q: "Q", t4_btn_e: "E", t4_btn_r: "R", t4_btn_t: "T",
+        t4_btn_stop: "STOP",
+    }
+    for _btn, _dir in t4_directions.items():
+        _btn.click(fn=handle_control, inputs=[gr.State(_dir), t4_speed_slider], outputs=status_log_test)
+
+    t4_speed_slider.change(fn=_sync_js_speed, inputs=t4_speed_slider)
 
     def log_episode(path_type, success, fpe, note, log_list):
         import requests as _req
