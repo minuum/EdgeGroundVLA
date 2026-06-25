@@ -89,15 +89,13 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
 #   left_straight, left_left, left_right,
 #   right_straight, right_right, right_left
 # 미매칭 시 bbox cx 위치에서 자동 추론 (right_right / left_left / center_straight).
-DEFAULT_INSTRUCTION = "the gray basket on right"
+DEFAULT_INSTRUCTION = "the gray basket"
 PATH_TYPES = [
     "right_right", "right_left", "right_straight",
     "center_straight", "center_left", "center_right",
     "left_straight", "left_left", "left_right",
 ]
 GOAL_NAV_PRESETS = [
-    "the gray basket on right",
-    "the gray basket on left",
     "the gray basket",
     "the door",
     "the corridor on the left",
@@ -2429,6 +2427,54 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
             outputs=drift_clock,
         )
 
+      # ────────────────────────────────────────────────────────────────
+      with gr.Tab("🧪 경로 검증 (Path Test)"):
+        gr.Markdown(
+            "### 📋 실로봇 11-Episode 테스트 매트릭스\n\n"
+            "| 경로 타입 | 목표 횟수 | 성공 기준 |\n"
+            "|---|---|---|\n"
+            "| center_straight | 3회 | TLD 0.7~1.5, FPE<0.5m, STOP 필수 |\n"
+            "| left_diagonal | 3회 | TLD 0.7~1.5, FPE<0.5m |\n"
+            "| right_diagonal | 3회 (★우선) | TLD 0.7~1.5, FPE<0.5m |\n"
+            "| center_curve | 2회 (옵션) | TLD 0.7~1.5, FPE<0.5m |\n\n"
+            "**목표: 7/11 (63.6%) 이상 성공** — START/STOP/복귀는 탭1과 동일 상태를 공유함."
+        )
+        with gr.Row(equal_height=False):
+          with gr.Column(scale=2):
+            camera_output_test = gr.Image(label="Live Camera (탭1 미러)", interactive=False)
+            with gr.Row():
+                btn_start_test = gr.Button("▶️ START", variant="primary", scale=1)
+                btn_stop_test = gr.Button("⏹️ STOP", variant="stop", scale=1)
+                btn_return_test = gr.Button("🔄 복귀", variant="secondary", scale=1)
+            run_status_test = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
+            bbox_area_display_test = gr.Textbox(label="현재 bbox area/cx (STOP 판단 참고용)", value="—", interactive=False)
+
+          with gr.Column(scale=1):
+            gr.Markdown("#### 📝 에피소드 기록")
+            path_type_test = gr.Dropdown(
+                choices=["center_straight", "left_diagonal", "right_diagonal", "center_curve"],
+                value="right_diagonal",
+                label="이번 에피소드 경로 타입",
+            )
+            success_test = gr.Radio(choices=["성공", "실패"], value="성공", label="결과")
+            fpe_test = gr.Number(label="FPE 추정(육안, m)", value=0.0)
+            note_test = gr.Textbox(label="특이사항", value="")
+            btn_log_episode = gr.Button("📝 에피소드 기록", variant="primary")
+            progress_test = gr.Textbox(label="진행률", value="0/11 (목표 7)", interactive=False)
+            with gr.Row():
+                btn_export_test = gr.Button("💾 CSV로 저장", scale=2)
+                export_status_test = gr.Textbox(label="", value="", interactive=False, scale=3)
+
+        episode_log_table = gr.Dataframe(
+            headers=["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "특이사항"],
+            datatype=["number", "str", "str", "str", "number", "number", "number", "str"],
+            label="에피소드 기록 (누적, 세션 단위)",
+            row_count=11,
+            col_count=8,
+            interactive=False,
+        )
+        _episode_log_state = gr.State([])
+
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
         inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box, toggle_cc],
@@ -2610,6 +2656,64 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
         }
         """,
     )
+
+    # ── 탭4: 경로 검증(Path Test) — 탭1 상태/함수 재사용, 탭1 코드는 무수정 ──
+    timer.tick(fn=lambda: state.get("last_img"), outputs=camera_output_test)
+    timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display_test)
+
+    btn_start_test.click(
+        fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
+        inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box, toggle_cc],
+        outputs=run_status_test,
+    )
+    btn_stop_test.click(fn=lambda: set_running(False, "", "", ""), outputs=run_status_test)
+    btn_return_test.click(fn=return_to_start, outputs=run_status_test)
+
+    def log_episode(path_type, success, fpe, note, log_list):
+        import requests as _req
+        area, cx = 0.0, 0.5
+        try:
+            r = _req.get(f"{DEFAULT_API_URL}/recent", timeout=2)
+            preds = r.json().get("predictions", [])
+            if preds:
+                bbox = preds[0].get("bbox", {})
+                area, cx = bbox.get("area", 0.0), bbox.get("cx", 0.5)
+        except Exception:
+            pass
+        stop_flag = "Y" if area >= 0.18 else "N"
+        row = [len(log_list) + 1, path_type, success, stop_flag, round(area, 3), round(cx, 2), fpe, note]
+        log_list = log_list + [row]
+
+        targets = {"center_straight": 3, "left_diagonal": 3, "right_diagonal": 3, "center_curve": 2}
+        done = {k: 0 for k in targets}
+        success_count = 0
+        for r in log_list:
+            done[r[1]] = done.get(r[1], 0) + 1
+            if r[2] == "성공":
+                success_count += 1
+        total = len(log_list)
+        prog = f"{total}/11 (성공 {success_count}, 목표 7) | " + ", ".join(
+            f"{k}:{done.get(k, 0)}/{v}" for k, v in targets.items()
+        )
+        return log_list, log_list, prog
+
+    btn_log_episode.click(
+        fn=log_episode,
+        inputs=[path_type_test, success_test, fpe_test, note_test, _episode_log_state],
+        outputs=[_episode_log_state, episode_log_table, progress_test],
+    )
+
+    def export_episode_log(log_list):
+        import csv
+        import datetime as _dt2
+        out_path = PROJECT_ROOT / "logs" / f"realtest_{_dt2.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        with open(out_path, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "특이사항"])
+            w.writerows(log_list)
+        return f"✅ 저장: {out_path}"
+
+    btn_export_test.click(fn=export_episode_log, inputs=[_episode_log_state], outputs=export_status_test)
 
 
 if __name__ == "__main__":
