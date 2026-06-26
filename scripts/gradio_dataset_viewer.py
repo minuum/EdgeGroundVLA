@@ -22,13 +22,23 @@ import numpy as np
 import gradio as gr
 from PIL import Image
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
-_ROS_ROOT     = _PROJECT_ROOT / "ROS_action"
-_LOG_DIR      = _PROJECT_ROOT / "logs"
-_EPISODE_CSV  = _LOG_DIR / "episode_log.csv"
-_GND_DIR      = _LOG_DIR / "grounding_sessions"
-_DRIFT_DIR    = _LOG_DIR / "drift_sessions"
-_CALIB_DIR    = _LOG_DIR / "calib_sessions"
+_PROJECT_ROOT     = Path(__file__).resolve().parents[1]
+_ROS_ROOT         = _PROJECT_ROOT / "ROS_action"
+_LOG_DIR          = _PROJECT_ROOT / "logs"
+_EPISODE_CSV      = _LOG_DIR / "episode_log.csv"
+_GND_DIR          = _LOG_DIR / "grounding_sessions"
+_DRIFT_DIR        = _LOG_DIR / "drift_sessions"
+_CALIB_DIR        = _LOG_DIR / "calib_sessions"
+_INFER_H5_DIR     = _PROJECT_ROOT / "docs" / "inference_sessions"   # H5
+_INFER_REPORT_DIR = _PROJECT_ROOT / "docs" / "inference_reports"    # JSON
+
+_INFER_DS_KEY = "inference_sessions"   # 데이터셋 드롭다운에 표시되는 키
+
+def _ds_root(ds_name: str) -> Path:
+    """ds_name → 실제 디렉터리 경로."""
+    if ds_name == _INFER_DS_KEY:
+        return _INFER_H5_DIR
+    return _ds_root(ds_name)
 
 CLASS_NAMES = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
 CLASS_SYM   = {0:"●", 1:"▲", 2:"◀", 3:"▶", 4:"↖", 5:"↗", 6:"↺", 7:"↻"}
@@ -77,6 +87,11 @@ def list_datasets():
         h5s = list(d.glob("*.h5"))
         if h5s:
             results.append((d.name, len(h5s)))
+    # 추론 세션 H5
+    if _INFER_H5_DIR.exists():
+        h5s = list(_INFER_H5_DIR.glob("session_*.h5"))
+        if h5s:
+            results.append((_INFER_DS_KEY, len(h5s)))
     return results
 
 
@@ -90,17 +105,21 @@ def dataset_display_choices():
 def dataset_stats(ds_name: str):
     if not ds_name:
         return "_(데이터셋을 선택하세요)_", ["(전체)"]
-    root = _ROS_ROOT / ds_name
+    root = _ds_root(ds_name)
+    is_infer = ds_name == _INFER_DS_KEY
     files = list(root.glob("*.h5"))
     scenarios = Counter()
     bad = 0
     for f in files:
         try:
             with h5py.File(f) as h:
-                sc = h.attrs.get("scenario", "")
-                if not sc:
-                    parts = f.stem.split("_")
-                    sc = "_".join(parts[2:5]) if len(parts) > 4 else "unknown"
+                if is_infer:
+                    sc = h.attrs.get("model_name", "unknown")[:30] or "unknown"
+                else:
+                    sc = h.attrs.get("scenario", "")
+                    if not sc:
+                        parts = f.stem.split("_")
+                        sc = "_".join(parts[2:5]) if len(parts) > 4 else "unknown"
                 scenarios[sc] += 1
         except Exception:
             bad += 1
@@ -120,18 +139,19 @@ def dataset_stats(ds_name: str):
 def list_episodes(ds_name: str, scenario_filter: str = "(전체)"):
     if not ds_name:
         return []
-    root = _ROS_ROOT / ds_name
+    root = _ds_root(ds_name)
     files = sorted(root.glob("*.h5"), key=os.path.getmtime, reverse=True)
     result = []
+    is_infer = ds_name == _INFER_DS_KEY
     for f in files:
         if scenario_filter and scenario_filter != "(전체)":
-            if scenario_filter not in f.name:
-                try:
-                    with h5py.File(f) as h:
-                        if h.attrs.get("scenario", "") != scenario_filter:
-                            continue
-                except Exception:
-                    continue
+            try:
+                with h5py.File(f) as h:
+                    attr_val = h.attrs.get("model_name", "") if is_infer else h.attrs.get("scenario", "")
+                    if attr_val != scenario_filter and scenario_filter not in f.name:
+                        continue
+            except Exception:
+                continue
         result.append(f.name)
     return result
 
@@ -141,7 +161,7 @@ def list_episodes(ds_name: str, scenario_filter: str = "(전체)"):
 def load_episode(ds_name: str, fname: str, frame_start: int = 0, frame_end: int = -1):
     if not ds_name or not fname:
         return [], "_(에피소드를 선택하세요)_", 0, 1
-    path = _ROS_ROOT / ds_name / fname
+    path = _ds_root(ds_name) / fname
     if not path.exists():
         return [], f"⚠️ 파일 없음: {fname}", 0, 1
     try:
@@ -190,16 +210,28 @@ def load_episode(ds_name: str, fname: str, frame_start: int = 0, frame_end: int 
         for i, c in enumerate(counts) if c > 0
     )
     size_kb = path.stat().st_size // 1024
-    scenario = attrs.get("scenario", Path(fname).stem)
-    info = (
-        f"### 📄 `{fname}`\n"
-        f"- 포맷: **{ver}** / 이미지저장: **{fmt}**  ·  크기: {size_kb} KB\n"
-        f"- 전체 프레임: **{n_total}**  (표시: {fs}~{fe-1})\n"
-        f"- scenario: `{scenario}`  ·  pattern: `{attrs.get('pattern','?')}`  "
-        f"·  end_pos: `{attrs.get('end_pos','?')}`\n"
-        f"- instruction: {instr or '—'}\n\n"
-        f"**전체 액션 분포**\n```\n{dist}\n```"
-    )
+    if ds_name == _INFER_DS_KEY:
+        instr_txt = attrs.get("instruction", "—")
+        info = (
+            f"### 🤖 `{fname}`\n"
+            f"- 포맷: **{ver}**  ·  크기: {size_kb} KB\n"
+            f"- 전체 프레임: **{n_total}**  (표시: {fs}~{fe-1})\n"
+            f"- model: `{attrs.get('model_name','?')}`\n"
+            f"- instruction: {instr_txt}\n"
+            f"- status: `{attrs.get('status','?')}`\n\n"
+            f"**전체 액션 분포**\n```\n{dist}\n```"
+        )
+    else:
+        scenario = attrs.get("scenario", Path(fname).stem)
+        info = (
+            f"### 📄 `{fname}`\n"
+            f"- 포맷: **{ver}** / 이미지저장: **{fmt}**  ·  크기: {size_kb} KB\n"
+            f"- 전체 프레임: **{n_total}**  (표시: {fs}~{fe-1})\n"
+            f"- scenario: `{scenario}`  ·  pattern: `{attrs.get('pattern','?')}`  "
+            f"·  end_pos: `{attrs.get('end_pos','?')}`\n"
+            f"- instruction: {instr or '—'}\n\n"
+            f"**전체 액션 분포**\n```\n{dist}\n```"
+        )
     return gallery, info, n_total, fe
 
 
@@ -209,7 +241,7 @@ def show_full(ds_name: str, fname: str, frame_start: int, evt: gr.SelectData):
     if evt is None or not ds_name or not fname:
         return None, ""
     i = int(evt.index) + frame_start
-    path = _ROS_ROOT / ds_name / fname
+    path = _ds_root(ds_name) / fname
     try:
         with h5py.File(path) as h:
             ver = _detect_version(h)
@@ -237,7 +269,7 @@ def show_full(ds_name: str, fname: str, frame_start: int, evt: gr.SelectData):
 def delete_episode(ds_name, fname, scenario_filter):
     if not ds_name or not fname:
         return gr.update(), [], "_(선택 없음)_"
-    path = _ROS_ROOT / ds_name / fname
+    path = _ds_root(ds_name) / fname
     try:
         path.unlink(missing_ok=True)
         msg = f"🗑️ 삭제: `{fname}`"
@@ -380,6 +412,71 @@ def gnd_session_to_table(rows):
         f"|  평균 latency **{avg_lat}ms**  |  평균 area **{avg_area}**"
     )
     return table, summary
+
+
+def _list_infer_reports() -> list[str]:
+    if not _INFER_REPORT_DIR.exists():
+        return []
+    return sorted([f.name for f in _INFER_REPORT_DIR.glob("session_*.json")], reverse=True)
+
+
+def load_infer_report(fname: str):
+    """추론 세션 JSON → (table_rows, summary_md, matching_h5_name_or_None)"""
+    if not fname:
+        return [], "_(선택하세요)_", None
+    path = _INFER_REPORT_DIR / fname
+    try:
+        with open(path) as f:
+            d = json.load(f)
+    except Exception as e:
+        return [], f"❌ {e}", None
+
+    history = d.get("history", [])
+    sm = d.get("summary", {})
+
+    # 테이블: step, action, latency, predicted_label, bbox area/cx
+    table = []
+    for h in history:
+        a = h.get("action", [0, 0, 0])
+        cls = classify_8(a)
+        bbox = h.get("bbox") or {}
+        table.append([
+            h.get("step", ""),
+            f"{CLASS_SYM[cls]} {CLASS_NAMES[cls]}",
+            f"[{a[0]:+.2f},{a[1]:+.2f},{a[2]:+.2f}]",
+            round(h.get("latency_ms", 0), 1),
+            h.get("predicted_label", ""),
+            round(bbox.get("area", 0), 4) if bbox else 0,
+            round(bbox.get("cx", 0), 3) if bbox else 0,
+            "✅" if bbox.get("has_bbox") else ("—" if not bbox else "❌"),
+            str(h.get("timestamp", ""))[:19],
+        ])
+
+    # action 분포
+    act_counts: Counter = Counter()
+    for h in history:
+        act_counts[classify_8(h.get("action", [0, 0, 0]))] += 1
+    dist = " | ".join(
+        f"{CLASS_SYM[i]}{CLASS_NAMES[i]}: {c}"
+        for i, c in sorted(act_counts.items()) if c > 0
+    )
+
+    summary = (
+        f"**{d.get('session_id','')}**  |  "
+        f"model: `{d.get('model_name','?')}`  |  "
+        f"steps: **{len(history)}**  |  "
+        f"avg lat: **{sm.get('avg_latency_ms',0)}ms**  |  "
+        f"status: `{d.get('status','?')}`\n\n"
+        f"instruction: {d.get('instruction','—')}\n\n"
+        f"액션 분포: {dist or '—'}"
+    )
+
+    # 매칭 H5 (session_id 기반)
+    sid = d.get("session_id", "")
+    h5_name = f"session_{sid}.h5" if sid else None
+    h5_exists = h5_name and (_INFER_H5_DIR / h5_name).exists()
+
+    return table, summary, (h5_name if h5_exists else None)
 
 
 def calib_session_to_table(rows):
@@ -727,6 +824,48 @@ with gr.Blocks(
                 outputs=[calib_table, calib_summary_md, calib_video, calib_gallery],
             )
             calib_refresh_btn.click(refresh_calib_list, outputs=calib_dd)
+
+            gr.Markdown("---")
+
+            # ── Inference Sessions ────────────────────────────────────────
+            gr.Markdown("## 🤖 추론 세션 (`inference_reports/`)\n"
+                        f"> H5 이미지는 **Tab 1 → `{_INFER_DS_KEY}`** 데이터셋에서 볼 수 있습니다.")
+            with gr.Row():
+                infer_dd = gr.Dropdown(
+                    choices=_list_infer_reports(),
+                    value=None, label="세션 JSON", scale=5,
+                )
+                infer_load_btn    = gr.Button("불러오기",         scale=1)
+                infer_refresh_btn = gr.Button("🔄 목록 새로고침", scale=1)
+
+            infer_summary_md = gr.Markdown("_(세션을 선택하세요)_")
+            infer_h5_link_md = gr.Markdown("")
+            infer_table = gr.Dataframe(
+                headers=["step", "cls", "action", "lat(ms)", "predicted_label",
+                         "bbox area", "bbox cx", "has_bbox", "timestamp"],
+                datatype=["number","str","str","number","str","number","number","str","str"],
+                label="스텝별 추론 데이터", elem_id="infer-table",
+                interactive=False,
+            )
+
+            def load_infer(fname):
+                table, summary, h5_name = load_infer_report(fname)
+                if h5_name:
+                    link = (f"**H5 이미지 데이터**: Tab 1에서 "
+                            f"`{_INFER_DS_KEY}` 선택 후 `{h5_name}` 에피소드를 열면 실제 영상 확인 가능")
+                else:
+                    link = "_(이 세션에 대응하는 H5 이미지 파일 없음)_"
+                return table, summary, link
+
+            def refresh_infer_list():
+                files = _list_infer_reports()
+                return gr.update(choices=files, value=(files[0] if files else None))
+
+            infer_load_btn.click(
+                load_infer, inputs=infer_dd,
+                outputs=[infer_table, infer_summary_md, infer_h5_link_md],
+            )
+            infer_refresh_btn.click(refresh_infer_list, outputs=infer_dd)
 
     # ── 초기 로드 (lazy) ─────────────────────────────────────────────
     def _init():

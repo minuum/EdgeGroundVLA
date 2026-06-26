@@ -1460,7 +1460,18 @@ def return_to_start() -> str:
 
 def reset_model_wrapper(backend_mode: str, api_url: str, instruction: str):
     try:
-        return make_backend(backend_mode, api_url).reset(instruction)
+        result = make_backend(backend_mode, api_url).reset(instruction)
+        return result
+    except RuntimeError as e:
+        if "not loaded" in str(e).lower():
+            # Local 모드이지만 모델이 없는 경우 → API 서버로 fallback
+            try:
+                import requests as _r
+                _r.post(f"{api_url}/reset", json={}, timeout=3)
+                return f"✅ API reset ({api_url})"
+            except Exception as e2:
+                return f"❌ Reset failed (local: {e}, api: {e2})"
+        return f"❌ Reset failed: {e}"
     except Exception as e:
         return f"❌ Reset failed: {e}"
 
@@ -2517,62 +2528,55 @@ with gr.Blocks(
           with gr.Column(scale=2):
             camera_output_test = gr.Image(label="📷 Live Camera", interactive=False)
             with gr.Row():
-              status_log_test        = gr.Textbox(label="Status",      value="Ready",   scale=3, max_lines=1)
-              latency_val_test       = gr.Textbox(label="Latency",     value="0 ms",    scale=1, max_lines=1)
-              action_val_test        = gr.Textbox(label="Action",      value="0, 0, 0", scale=2, max_lines=1)
-              bbox_area_display_test = gr.Textbox(label="area/cx",     value="—",       scale=2, max_lines=1, interactive=False)
-              run_status_test        = gr.Textbox(label="Run",         value="Stopped", scale=1, max_lines=1, interactive=False)
+              status_log_test        = gr.Textbox(label="Status",  value="Ready",   scale=3, max_lines=1)
+              latency_val_test       = gr.Textbox(label="Latency", value="0 ms",    scale=1, max_lines=1)
+              action_val_test        = gr.Textbox(label="Action",  value="0,0,0",   scale=2, max_lines=1)
+              bbox_area_display_test = gr.Textbox(label="area/cx", value="—",       scale=2, max_lines=1, interactive=False)
+              run_status_test        = gr.Textbox(label="Run",     value="Stopped", scale=1, max_lines=1, interactive=False)
+            # 그라운딩 상세 행
+            with gr.Row():
+              gnd_entity_test  = gr.Textbox(label="🔍 대상 entity",  value="—", scale=3, max_lines=1, interactive=False)
+              gnd_cached_test  = gr.Textbox(label="캐시",             value="—", scale=1, max_lines=1, interactive=False)
+              gnd_bbox_test    = gr.Textbox(label="bbox (cx,cy,area)", value="—", scale=3, max_lines=1, interactive=False)
+              pred_label_test  = gr.Textbox(label="예측 레이블",       value="—", scale=2, max_lines=1, interactive=False)
 
           # ── Col 2 (scale=1): 경로표 + 기록 ───────────────────────────
           with gr.Column(scale=1):
-            gr.Markdown(
-                "**📋 V5 9종 경로** (목표 7/11)\n\n"
-                "| 경로 | 시작 | 방향 |\n"
-                "|---|---|---|\n"
-                "| L\\_L | 좌 | 좌회전 |\n"
-                "| L\\_S | 좌 | 직진 |\n"
-                "| L\\_R | 좌 | 우회전 |\n"
-                "| C\\_L | 중 | 좌회전 |\n"
-                "| C\\_S | 중 | 직진 ✅ |\n"
-                "| C\\_R | 중 | 우회전 |\n"
-                "| R\\_L | 우 | 좌회전 ★ |\n"
-                "| R\\_S | 우 | 직진 |\n"
-                "| R\\_R | 우 | 우회전 |\n\n"
-                "```\n"
-                " ▦      ▦      ▦\n"
-                " │      │      │\n"
-                "╱│╲    ╱│╲    ╱│╲\n"
-                "L S R  C S L  R S L\n"
-                " 🤖L    🤖C    🤖R\n"
-                "```"
-            )
+            with gr.Accordion("📋 경로 다이어그램", open=False):
+              gr.Markdown(
+                  "```\n"
+                  " ▦      ▦      ▦\n"
+                  "╱│╲    ╱│╲    ╱│╲\n"
+                  "L S R  C S L  R S L\n"
+                  " 🤖L    🤖C    🤖R\n"
+                  "```\n"
+                  "L=left, C=center, R=right 시작위치\n"
+                  "방향: L(좌)/S(직)/R(우)  ★=right\\_left 우선"
+              )
             progress_test = gr.Textbox(
-                label="총 진행률", value="0ep  성공 0  (목표 7/11)",
+                label="진행률", value="0ep  성공 0  (목표 7/11)",
                 interactive=False, max_lines=1, elem_id="t4-progress",
             )
             path_summary_table = gr.Dataframe(
-                headers=["경로", "총", "✓", "경로", "총", "✓", "경로", "총", "✓"],
-                datatype=["str","number","number","str","number","number","str","number","number"],
-                value=[
-                    ["left_left",0,0, "center_left",0,0, "right_right",0,0],
-                    ["left_straight",0,0, "center_straight",0,0, "right_straight",0,0],
-                    ["left_right",0,0, "center_right",0,0, "right_left★",0,0],
-                ],
-                label="경로별 집계", row_count=3, col_count=9, interactive=False,
+                headers=["경로", "총", "✓"],
+                datatype=["str","number","number"],
+                value=[[pt + (" ★" if pt == "right_left" else ""), 0, 0] for pt in PATH_TYPES],
+                label="경로별 집계", row_count=9, col_count=3, interactive=False,
             )
             with gr.Row():
-              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="right_left", label="경로 타입", scale=2)
-              success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=1)
+              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="right_left", label="경로", scale=3)
+              success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=2)
             with gr.Row():
               fpe_test  = gr.Slider(minimum=0.0, maximum=5.0, step=0.05, value=0.0, label="FPE(m)", scale=3)
-              note_test = gr.Textbox(label="메모", value="", scale=3)
+              note_test = gr.Textbox(label="메모", value="", scale=3, max_lines=1)
             with gr.Row():
-              btn_log_episode   = gr.Button("📝 기록",      variant="primary",   scale=2, elem_id="btn-log")
-              btn_undo_episode  = gr.Button("↩ 마지막삭제", variant="secondary", scale=1, elem_id="btn-undo")
-              btn_clear_episode = gr.Button("🗑 전체초기화", variant="stop",      scale=1, elem_id="btn-clear")
+              btn_log_episode   = gr.Button("📝 기록",  variant="primary",   scale=2)
+              btn_undo_episode  = gr.Button("↩ 삭제",  variant="secondary", scale=1)
+              btn_clear_episode = gr.Button("🗑 초기화", variant="stop",     scale=1)
             with gr.Row():
-              btn_export_test    = gr.Button("💾 CSV", scale=1)
-              export_status_test = gr.Textbox(label="", value="", interactive=False, scale=3, max_lines=1)
+              btn_refresh_log    = gr.Button("🔄 CSV복원", scale=1)
+              btn_export_test    = gr.Button("💾 CSV저장", scale=1)
+              export_status_test = gr.Textbox(label="", value="", interactive=False, scale=2, max_lines=1)
 
           # ── Col 3 (scale=1): 제어 + 에피소드 로그 ────────────────────
           with gr.Column(scale=1):
@@ -2614,10 +2618,10 @@ with gr.Blocks(
                 gr.Markdown("<small>Left → 이동\nRight X → 회전\nA → STOP</small>")
 
             episode_log_table = gr.Dataframe(
-                headers=["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모"],
-                datatype=["number","str","str","number","number","str","number","number","number","str","number","str"],
+                headers=["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜"],
+                datatype=["number","str","str","number","number","str","number","number","number","str","number","str","str"],
                 label="에피소드 기록 (누적 — 세션 간 유지)",
-                row_count=11, col_count=12, interactive=False,
+                row_count=11, col_count=13, interactive=False,
             )
 
         _episode_log_state = gr.State([])
@@ -2691,6 +2695,135 @@ with gr.Blocks(
                 "**📂 8083 뷰어에서 세션 확인**\n\n"
                 "`logs/calib_sessions/` → 8083 뷰어 「세션 로그」 탭 → Calib 섹션"
             )
+
+      # ════════════════════════════════════════════════════════════════════
+      # 탭 6: 세션 히스토리
+      # ════════════════════════════════════════════════════════════════════
+      with gr.Tab("📚 세션 히스토리"):
+        _INFER_REPORT_DIR_T6 = PROJECT_ROOT / "docs" / "inference_reports"
+        _INFER_H5_DIR_T6     = PROJECT_ROOT / "docs" / "inference_sessions"
+
+        def _t6_list_sessions():
+            import glob as _gl
+            files = sorted(_gl.glob(str(_INFER_REPORT_DIR_T6 / "session_*.json")), reverse=True)
+            if not files:
+                return []
+            import json as _js2, os as _os2
+            choices = []
+            for f in files:
+                try:
+                    d = _js2.load(open(f))
+                    sid   = d.get("session_id", "")
+                    steps = d.get("summary", {}).get("total_steps", len(d.get("history", [])))
+                    model = d.get("model_name", "—")[:18]
+                    gt    = d.get("gt_object", "")
+                    instr = d.get("instruction", "")[:30]
+                    label = f"[{sid}] {steps}steps  {model}  {gt or instr}"
+                    choices.append((label, _os2.path.basename(f)))
+                except Exception:
+                    choices.append((_os2.path.basename(f), _os2.path.basename(f)))
+            return choices
+
+        def _t6_load_session(fname):
+            import json as _js3, os as _os3
+            from collections import Counter as _Cnt
+            if not fname:
+                return "_(선택하세요)_", [], None, []
+            path = _INFER_REPORT_DIR_T6 / fname
+            try:
+                d = _js3.load(open(path))
+            except Exception as e:
+                return f"❌ {e}", [], None, []
+
+            hist = d.get("history", [])
+            sm   = d.get("summary", {})
+            act_cnt = sm.get("action_label_counts", {})
+            dist_str = "  ".join(f"{k}:{v}" for k, v in act_cnt.items()) or "—"
+            summary_md = (
+                f"**{d.get('session_id','')}**  |  "
+                f"model: `{d.get('model_name','?')}`  |  "
+                f"steps: **{sm.get('total_steps', len(hist))}**  |  "
+                f"avg_lat: **{sm.get('avg_latency_ms', sm.get('avg_latency', 0))}ms**  |  "
+                f"status: `{d.get('status','?')}`\n\n"
+                f"instruction: {d.get('instruction','—')}  |  gt_object: {d.get('gt_object','—')}\n\n"
+                f"액션 분포: {dist_str}"
+            )
+            # step 테이블 (step, label, action, latency, bbox_area, cx)
+            rows = []
+            for h in hist:
+                a   = h.get("action", [0,0,0])
+                bb  = h.get("bbox") or {}
+                rows.append([
+                    h.get("step", ""),
+                    h.get("predicted_label", "—"),
+                    f"[{a[0] if isinstance(a,list) else a:.2f}]" if not isinstance(a,list) else f"[{a[0]:+.2f},{a[1]:+.2f},{a[2]:+.2f}]",
+                    round(h.get("latency_ms", 0), 1),
+                    round(bb.get("area", 0), 4),
+                    round(bb.get("cx", 0), 3),
+                    "✅" if bb.get("has_bbox") else "—",
+                    str(h.get("timestamp",""))[:19],
+                ])
+
+            # 매칭 H5
+            sid   = d.get("session_id", "")
+            h5name = f"session_{sid}.h5"
+            h5_link = f"H5 이미지: `{h5name}` {'✅ 있음' if (_INFER_H5_DIR_T6/h5name).exists() else '❌ 없음'}"
+
+            return summary_md, rows, h5_link, []
+
+        def _t6_load_h5_frames(fname):
+            """매칭 H5에서 이미지 프레임 균등 추출 (최대 20장)."""
+            import json as _js4, h5py as _h5, numpy as _np4
+            from PIL import Image as _PIL4
+            if not fname:
+                return []
+            path = _INFER_REPORT_DIR_T6 / fname
+            try:
+                d = _js4.load(open(path))
+                sid = d.get("session_id", "")
+                h5p = _INFER_H5_DIR_T6 / f"session_{sid}.h5"
+                if not h5p.exists():
+                    return []
+                with _h5.File(h5p) as f:
+                    imgs = f["observations/images"][:]  # (N, H, W, 3)
+                n = len(imgs)
+                if n == 0:
+                    return []
+                idxs = [int(i * n / min(20, n)) for i in range(min(20, n))]
+                frames = []
+                for i in idxs:
+                    arr = imgs[i]
+                    h, w = arr.shape[:2]
+                    arr_small = _PIL4.fromarray(arr).resize((w//4, h//4))
+                    frames.append((arr_small, f"frame {i}"))
+                return frames
+            except Exception:
+                return []
+
+        with gr.Row():
+            t6_session_dd = gr.Dropdown(
+                choices=_t6_list_sessions(), value=None,
+                label="세션 선택 (session_*.json)", scale=6,
+            )
+            t6_refresh_btn    = gr.Button("🔄 목록",    scale=1)
+            t6_load_btn       = gr.Button("불러오기",   scale=1)
+            t6_load_img_btn   = gr.Button("📷 이미지",  scale=1)
+
+        t6_summary_md = gr.Markdown("_(세션을 선택하세요)_")
+        t6_h5_md      = gr.Markdown("")
+
+        with gr.Row(equal_height=False):
+            with gr.Column(scale=3):
+                t6_gallery = gr.Gallery(
+                    label="H5 프레임 (클릭→원본)", columns=5,
+                    height=280, object_fit="contain",
+                )
+            with gr.Column(scale=2):
+                t6_table = gr.Dataframe(
+                    headers=["step","label","action","lat(ms)","area","cx","bbox","timestamp"],
+                    datatype=["number","str","str","number","number","number","str","str"],
+                    label="스텝별 상세", interactive=False,
+                )
 
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
@@ -2881,9 +3014,32 @@ with gr.Blocks(
     timer.tick(fn=lambda: state.get("last_img"), outputs=camera_output_test)
     timer.tick(fn=lambda: state.get("_t4_log", "Ready"), outputs=status_log_test)
     timer.tick(fn=lambda: state.get("_t4_lat", "0 ms"), outputs=latency_val_test)
-    timer.tick(fn=lambda: state.get("_t4_act", "0, 0, 0"), outputs=action_val_test)
+    timer.tick(fn=lambda: state.get("_t4_act", "0,0,0"), outputs=action_val_test)
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display_test)
     timer.tick(fn=_js_status_text, outputs=js_status_test)
+
+    def _gnd_detail_tick():
+        """그라운딩 상세 정보 (entity, cached, bbox, 예측레이블) 반환."""
+        try:
+            import requests as _rq
+            r = _rq.get(f"{DEFAULT_API_URL}/recent", timeout=1.5)
+            preds = r.json().get("predictions", [])
+            if preds:
+                p = preds[0]
+                bbox = p.get("bbox", {})
+                entity  = bbox.get("entity", "—")[:30]
+                cached  = "✅ cached" if p.get("grounding_cached") else "🔄 live"
+                cx      = bbox.get("cx",   0.5)
+                cy      = bbox.get("cy",   0.5)
+                area    = bbox.get("area", 0.0)
+                label   = p.get("predicted_label", "—")
+                return entity, cached, f"cx={cx:.3f}  cy={cy:.3f}  area={area:.4f}", label
+        except Exception:
+            pass
+        return "—", "—", "—", "—"
+
+    timer.tick(fn=_gnd_detail_tick,
+               outputs=[gnd_entity_test, gnd_cached_test, gnd_bbox_test, pred_label_test])
 
     btn_start_test.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
@@ -2936,14 +3092,13 @@ with gr.Blocks(
 
     def _append_episode_csv(row: list):
         import csv as _csv
-        import datetime as _dt3
         _EPISODE_CSV.parent.mkdir(parents=True, exist_ok=True)
         write_header = not _EPISODE_CSV.exists()
         with open(_EPISODE_CSV, "a", newline="", encoding="utf-8") as f:
             w = _csv.writer(f)
             if write_header:
                 w.writerow(_EP_HEADERS)
-            w.writerow(row + [_dt3.datetime.now().strftime("%Y-%m-%d %H:%M")])
+            w.writerow(row)  # row already includes 날짜 as last column
 
     def _overwrite_episode_csv(rows: list):
         import csv as _csv
@@ -2954,7 +3109,7 @@ with gr.Blocks(
             w.writerows(rows)
 
     def _build_summary(log_list):
-        """log_list → (prog_str, path_summary_rows). 공통 로직."""
+        """log_list → (prog_str, path_summary_rows 9×3). 공통 로직."""
         done_total = {k: 0 for k in PATH_TYPES}
         done_succ  = {k: 0 for k in PATH_TYPES}
         success_count = 0
@@ -2966,16 +3121,10 @@ with gr.Blocks(
                 success_count += 1
         total = len(log_list)
         prog  = f"{total}ep  성공 {success_count}  (목표 7/11)"
-        tbl = []
-        for suffix in ("left", "straight", "right"):
-            lk = f"left_{suffix}"
-            ck = f"center_{suffix}"
-            rk = f"right_{'right' if suffix == 'left' else ('straight' if suffix == 'straight' else 'left')}"
-            tbl.append([
-                lk, done_total[lk], done_succ[lk],
-                ck, done_total[ck], done_succ[ck],
-                rk + (" ★" if rk == "right_left" else ""), done_total.get(rk, 0), done_succ.get(rk, 0),
-            ])
+        tbl = [
+            [pt + (" ★" if pt == "right_left" else ""), done_total.get(pt, 0), done_succ.get(pt, 0)]
+            for pt in PATH_TYPES
+        ]
         return prog, tbl
 
     def _init_episode_log():
@@ -3018,10 +3167,12 @@ with gr.Blocks(
         except Exception:
             pass
 
+        import datetime as _dt_ep
         row = [
             len(log_list) + 1, path_type, success,
             steps, avg_lat, top_action, gnd_pct,
             round(area, 3), round(cx, 2), stop_flag, fpe, note,
+            _dt_ep.datetime.now().strftime("%Y-%m-%d %H:%M"),
         ]
         _append_episode_csv(row)
         log_list = log_list + [row]
@@ -3045,6 +3196,11 @@ with gr.Blocks(
         return f"✅ 저장: {out_path}"
 
     btn_export_test.click(fn=export_episode_log, inputs=[_episode_log_state], outputs=export_status_test)
+
+    btn_refresh_log.click(
+        fn=_init_episode_log,
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+    )
 
     def undo_episode(log_list):
         new_list = log_list[:-1] if log_list else []
@@ -3314,6 +3470,22 @@ with gr.Blocks(
         _c5b.click(fn=handle_control, inputs=[gr.State(_c5d), c5_speed_slider], outputs=calib_rec_status)
 
     c5_speed_slider.change(fn=_sync_js_speed, inputs=c5_speed_slider)
+
+    # ── 탭6: 세션 히스토리 ────────────────────────────────────────────────
+    def _t6_refresh_list():
+        return gr.update(choices=_t6_list_sessions(), value=None)
+
+    t6_refresh_btn.click(fn=_t6_refresh_list, outputs=t6_session_dd)
+    t6_load_btn.click(
+        fn=lambda fname: _t6_load_session(fname)[:3],
+        inputs=t6_session_dd,
+        outputs=[t6_summary_md, t6_table, t6_h5_md],
+    )
+    t6_load_img_btn.click(
+        fn=_t6_load_h5_frames,
+        inputs=t6_session_dd,
+        outputs=t6_gallery,
+    )
 
     # ── 대시보드 재시작 (맨 아래 고정) ───────────────────────────────────
     gr.Markdown("---\n### 🔄 대시보드 재시작  _(코드 업데이트 후 현재 프로세스 종료 → 새 버전으로 즉시 재기동)_")
