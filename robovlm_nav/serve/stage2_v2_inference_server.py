@@ -22,7 +22,7 @@ Environment variables:
   VLA_STOP_CONSEC           consecutive frames required for STOP override (default: 2)
   VLA_API_KEY               optional API key for authentication
   VLA_PREVIEW_MODEL         CH54: YOLO 모델명/경로 (e.g. yolov8n.pt). 미설정 시 프리뷰 비활성.
-  VLA_PREVIEW_CLASSES       CH54: YOLO 탐지 대상 COCO class id (기본 56=chair, 복수: "56,39")
+  VLA_PREVIEW_CLASSES       CH54: YOLO 탐지 대상 COCO class id (기본 ""=클래스 무관, 복수: "56,39")
   VLA_PREVIEW_AREA_THRESH   CH54: 그라운딩 실패 판정 area 임계값 (기본 0.03)
   VLA_PREVIEW_MAX_RETRY     CH54: 최대 재시도 횟수 (기본 5)
   VLA_PREVIEW_N_ROT         CH54: 한 번에 회전할 스텝 수 (기본 2)
@@ -503,9 +503,11 @@ class Stage2V2Model:
             try:
                 from ultralytics import YOLO as _YOLO
                 self._yolo = _YOLO(_preview_name)
-                self._preview_classes = [
-                    int(c) for c in os.getenv("VLA_PREVIEW_CLASSES", "56").split(",")
-                ]
+                _cls_env = os.getenv("VLA_PREVIEW_CLASSES", "").strip()
+                self._preview_classes = (
+                    [int(c) for c in _cls_env.split(",") if c.strip()]
+                    if _cls_env else []   # 빈 문자열 = 클래스 필터 없음 (basket 시나리오 기본값)
+                )
                 self._preview_area_thresh = float(os.getenv("VLA_PREVIEW_AREA_THRESH", "0.03"))
                 self._preview_max_retry   = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
                 self._preview_n_rot       = int(os.getenv("VLA_PREVIEW_N_ROT", "2"))
@@ -535,11 +537,15 @@ class Stage2V2Model:
         [6,...] → ROT_L 스텝들
         [7,...] → ROT_R 스텝들
         """
-        results = self._yolo(image_rgb, classes=self._preview_classes, conf=0.4, verbose=False)
+        _cls = self._preview_classes if self._preview_classes else None  # None = 클래스 무관
+        results = self._yolo(image_rgb, classes=_cls, conf=0.4, verbose=False)
         if not results or len(results[0].boxes) == 0:
-            # 탐지 실패 — 기본 ROT_R로 조금씩 돌기
+            # 탐지 실패 — 기본 ROT_R로 조금씩 돌기 (basket은 COCO 미포함 → fallback)
             return [7] * self._preview_n_rot
-        box = results[0].boxes[0]
+        # 가장 큰 bbox(넓이 기준) 선택 — 타겟이 가장 크게 보이는 객체일 가능성 높음
+        boxes = results[0].boxes
+        areas = [(b.xyxy[0][2]-b.xyxy[0][0])*(b.xyxy[0][3]-b.xyxy[0][1]) for b in boxes]
+        box = boxes[int(np.argmax(areas))]
         x1, _, x2, _ = box.xyxy[0].tolist()
         cx_norm = (x1 + x2) / 2.0 / image_rgb.shape[1]
         if cx_norm < 0.4:
@@ -567,10 +573,13 @@ class Stage2V2Model:
         yolo_cx = None
         if needs and self._yolo:
             rot_cmds = self._preview_rot_cmds(image_rgb)
-            # cx 다시 계산해서 반환
-            results = self._yolo(image_rgb, classes=self._preview_classes, conf=0.4, verbose=False)
+            # cx 다시 계산해서 반환 (클래스 필터 동일하게 적용)
+            _cls = self._preview_classes if self._preview_classes else None
+            results = self._yolo(image_rgb, classes=_cls, conf=0.4, verbose=False)
             if results and len(results[0].boxes) > 0:
-                b = results[0].boxes[0]
+                boxes = results[0].boxes
+                areas_l = [(b.xyxy[0][2]-b.xyxy[0][0])*(b.xyxy[0][3]-b.xyxy[0][1]) for b in boxes]
+                b = boxes[int(np.argmax(areas_l))]
                 x1, _, x2, _ = b.xyxy[0].tolist()
                 yolo_cx = (x1 + x2) / 2.0 / image_rgb.shape[1]
         return {
