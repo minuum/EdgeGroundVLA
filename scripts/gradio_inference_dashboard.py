@@ -1481,7 +1481,10 @@ def _make_env_banner() -> str:
         info = _req.get(f"{api}/health", timeout=1.5).json()
         if info.get("model_loaded"):
             srv_color = "#22c55e"
-            srv_label = f"✅ {info.get('head','?')} w={info.get('window','?')} | GPU {info.get('gpu',{}).get('allocated_gb','?'):.2f}GB"
+            stop_mode = info.get("stop_mode", "?")
+            latched = info.get("stop_latched", False)
+            latch_tag = " 🔒LATCHED" if latched else ""
+            srv_label = f"✅ {info.get('head','?')} w={info.get('window','?')} | {stop_mode}{latch_tag} | GPU {info.get('gpu',{}).get('allocated_gb','?'):.2f}GB"
             ckpt = info.get("checkpoint_path", "")
             if ckpt:
                 model_label = Path(ckpt).stem[:28]
@@ -3124,6 +3127,13 @@ with gr.Blocks(
                 "note": "",
             })
             state["calib_frames"] = frames
+            # 카메라 프레임 함께 저장 (최대 120장)
+            img = state.get("last_img")
+            if img is not None:
+                imgs = state.get("calib_imgs", [])
+                if len(imgs) < 120:
+                    imgs.append(img)
+                state["calib_imgs"] = imgs
 
         # 표시값
         area_s = f"{area:.4f}" if has_bbox else "—"
@@ -3177,6 +3187,7 @@ with gr.Blocks(
         import datetime as _dt5
         state["calib_recording"] = True
         state["calib_frames"]    = []
+        state["calib_imgs"]      = []
         state["_calib_tick_n"]   = 0
         fname = session_name.strip() or f"calib_{_dt5.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         state["calib_session_name"] = fname
@@ -3216,10 +3227,18 @@ with gr.Blocks(
             "note": "manual",
         })
         state["calib_frames"] = frames
+        # 이미지 캡처 (최대 120장)
+        img = state.get("last_img")
+        if img is not None:
+            imgs = state.get("calib_imgs", [])
+            if len(imgs) < 120:
+                imgs.append(img)
+            state["calib_imgs"] = imgs
         return f"📸 {n}번 스냅 (area={area:.4f})"
 
     def calib_clear():
         state["calib_frames"]    = []
+        state["calib_imgs"]      = []
         state["calib_recording"] = False
         return "🗑 초기화 완료", [], "_(데이터 없음)_"
 
@@ -3239,16 +3258,19 @@ with gr.Blocks(
     def calib_save(session_name):
         import json as _json5
         import datetime as _dt5
+        import cv2 as _cv5
+        import numpy as _np5
         frames = state.get("calib_frames", [])
         if not frames:
             return "⚠️ 저장할 데이터 없음"
-        fname = (session_name.strip() or state.get("calib_session_name")
-                 or f"calib_{_dt5.datetime.now().strftime('%Y%m%d_%H%M%S')}")
-        if not fname.endswith(".jsonl"):
-            fname += ".jsonl"
+        base = (session_name.strip() or state.get("calib_session_name")
+                or f"calib_{_dt5.datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        base = base.replace(".jsonl", "")
         _CALIB_DIR.mkdir(parents=True, exist_ok=True)
-        out = _CALIB_DIR / fname
-        with open(out, "w") as f:
+
+        # 1. JSONL
+        jsonl_path = _CALIB_DIR / (base + ".jsonl")
+        with open(jsonl_path, "w") as f:
             for frm in frames:
                 _json5.dump({
                     "n":              frm["n"],
@@ -3262,7 +3284,28 @@ with gr.Blocks(
                     "stop_triggered": frm["stop"] == "Y",
                 }, f)
                 f.write("\n")
-        return f"✅ 저장: {out.name} ({len(frames)}개)"
+
+        # 2. 캡처 이미지 → MP4
+        imgs = state.get("calib_imgs", [])
+        mp4_msg = ""
+        if imgs:
+            try:
+                mp4_path = _CALIB_DIR / (base + ".mp4")
+                arr0 = _np5.array(imgs[0], dtype=_np5.uint8)
+                h, w = arr0.shape[:2]
+                writer = _cv5.VideoWriter(
+                    str(mp4_path),
+                    _cv5.VideoWriter_fourcc(*"mp4v"),
+                    2, (w, h),
+                )
+                for img in imgs:
+                    writer.write(_cv5.cvtColor(_np5.array(img, dtype=_np5.uint8), _cv5.COLOR_RGB2BGR))
+                writer.release()
+                mp4_msg = f" + MP4({len(imgs)}프레임)"
+            except Exception as e:
+                mp4_msg = f" (MP4 실패: {e})"
+
+        return f"✅ {jsonl_path.name} ({len(frames)}개){mp4_msg}"
 
     calib_start_rec_btn.click(fn=calib_start, inputs=calib_session_name, outputs=calib_rec_status)
     calib_stop_rec_btn.click(fn=calib_stop_recording, outputs=calib_rec_status)

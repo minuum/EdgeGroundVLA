@@ -290,6 +290,54 @@ def _list_jsonl(directory: Path, prefix: str):
     return sorted([f.name for f in directory.glob(f"{prefix}*.jsonl")], reverse=True)
 
 
+def _ts_from_fname(fname: str) -> int:
+    """파일명에서 YYYYmmdd_HHMMSS 타임스탬프 → 초 단위 정수. 실패 시 0."""
+    import re, datetime as _dt
+    m = re.search(r"(\d{8}_\d{6})", fname)
+    if not m:
+        return 0
+    try:
+        return int(_dt.datetime.strptime(m.group(1), "%Y%m%d_%H%M%S").timestamp())
+    except Exception:
+        return 0
+
+
+def _find_matching_mp4(directory: Path, jsonl_fname: str, max_delta: int = 60) -> Path | None:
+    """같은 디렉터리에서 타임스탬프가 가장 가까운 .mp4 반환 (delta ≤ max_delta초)."""
+    ts_ref = _ts_from_fname(jsonl_fname)
+    if ts_ref == 0:
+        return None
+    best, best_delta = None, max_delta + 1
+    for mp4 in directory.glob("*.mp4"):
+        delta = abs(_ts_from_fname(mp4.name) - ts_ref)
+        if delta < best_delta:
+            best, best_delta = mp4, delta
+    return best if best_delta <= max_delta else None
+
+
+def _extract_frames(mp4_path: Path, max_frames: int = 30) -> list:
+    """MP4에서 균등 간격으로 최대 max_frames장 PIL 썸네일 추출."""
+    cap = cv2.VideoCapture(str(mp4_path))
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if total <= 0:
+        cap.release()
+        return []
+    step = max(1, total // max_frames)
+    frames = []
+    for i in range(0, total, step):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+        ok, frm = cap.read()
+        if not ok:
+            continue
+        frm = cv2.cvtColor(frm, cv2.COLOR_BGR2RGB)
+        th  = _thumb(frm, w=180)
+        frames.append((Image.fromarray(th.astype(np.uint8)), f"[{i}]"))
+        if len(frames) >= max_frames:
+            break
+    cap.release()
+    return frames
+
+
 def load_jsonl_session(directory: Path, fname: str):
     if not fname:
         return [], "_(세션을 선택하세요)_"
@@ -565,17 +613,25 @@ with gr.Blocks(
             with gr.Row():
                 gnd_dd = gr.Dropdown(
                     choices=_list_jsonl(_GND_DIR, "gnd_"),
-                    value=None, label="세션 파일", scale=4,
+                    value=None, label="세션 파일", scale=5,
                 )
                 gnd_load_btn = gr.Button("불러오기", scale=1)
 
             gnd_summary = gr.Markdown("_(세션을 선택하세요)_")
-            gnd_table = gr.Dataframe(
-                headers=["n","bbox","area","cx","cy","lat(ms)","pred"],
-                datatype=["number","str","number","number","number","number","str"],
-                label="스텝별 Grounding 데이터", elem_id="gnd-table",
-                interactive=False,
-            )
+            with gr.Row(equal_height=False):
+                with gr.Column(scale=3):
+                    gnd_video = gr.Video(label="📹 세션 영상", interactive=False, height=360)
+                    gnd_gallery = gr.Gallery(
+                        label="프레임 갤러리 (균등 추출, 클릭 → 확대)",
+                        columns=6, height=220, object_fit="contain",
+                    )
+                with gr.Column(scale=2):
+                    gnd_table = gr.Dataframe(
+                        headers=["n","bbox","area","cx","cy","lat(ms)","pred"],
+                        datatype=["number","str","number","number","number","number","str"],
+                        label="스텝별 Grounding 데이터", elem_id="gnd-table",
+                        interactive=False,
+                    )
 
             gr.Markdown("---")
 
@@ -584,7 +640,7 @@ with gr.Blocks(
             with gr.Row():
                 dft_dd = gr.Dropdown(
                     choices=_list_jsonl(_DRIFT_DIR, "drift_"),
-                    value=None, label="세션 파일", scale=4,
+                    value=None, label="세션 파일", scale=5,
                 )
                 dft_load_btn = gr.Button("불러오기", scale=1)
 
@@ -603,18 +659,26 @@ with gr.Blocks(
             with gr.Row():
                 calib_dd = gr.Dropdown(
                     choices=_list_jsonl(_CALIB_DIR, "calib_"),
-                    value=None, label="세션 파일", scale=4,
+                    value=None, label="세션 파일", scale=5,
                 )
-                calib_load_btn = gr.Button("불러오기", scale=1)
+                calib_load_btn   = gr.Button("불러오기",     scale=1)
                 calib_refresh_btn = gr.Button("🔄 목록 새로고침", scale=1)
 
             calib_summary_md = gr.Markdown("_(세션을 선택하세요)_")
-            calib_table = gr.Dataframe(
-                headers=["n","area","cx","cy","lat(ms)","STOP?","시각","메모"],
-                datatype=["number","number","number","number","number","str","str","str"],
-                label="스텝별 캘리브레이션 데이터", elem_id="calib-table",
-                interactive=False,
-            )
+            with gr.Row(equal_height=False):
+                with gr.Column(scale=3):
+                    calib_video = gr.Video(label="📹 세션 영상", interactive=False, height=360)
+                    calib_gallery = gr.Gallery(
+                        label="프레임 갤러리 (균등 추출)",
+                        columns=6, height=220, object_fit="contain",
+                    )
+                with gr.Column(scale=2):
+                    calib_table = gr.Dataframe(
+                        headers=["n","area","cx","cy","lat(ms)","STOP?","시각","메모"],
+                        datatype=["number","number","number","number","number","str","str","str"],
+                        label="스텝별 캘리브레이션 데이터", elem_id="calib-table",
+                        interactive=False,
+                    )
 
             # ── 이벤트 ───────────────────────────────────────────────────
             def refresh_ep_csv():
@@ -624,9 +688,12 @@ with gr.Blocks(
             def load_gnd(fname):
                 rows, _ = load_jsonl_session(_GND_DIR, fname)
                 if isinstance(rows, str):
-                    return [], rows
+                    return [], rows, None, []
                 table, summary = gnd_session_to_table(rows)
-                return table, summary
+                mp4 = _find_matching_mp4(_GND_DIR, fname)
+                video_path = str(mp4) if mp4 else None
+                frames = _extract_frames(mp4) if mp4 else []
+                return table, summary, video_path, frames
 
             def load_dft(fname):
                 rows, _ = load_jsonl_session(_DRIFT_DIR, fname)
@@ -638,18 +705,27 @@ with gr.Blocks(
             def load_calib(fname):
                 rows, _ = load_jsonl_session(_CALIB_DIR, fname)
                 if isinstance(rows, str):
-                    return [], rows
+                    return [], rows, None, []
                 table, summary = calib_session_to_table(rows)
-                return table, summary
+                mp4 = _find_matching_mp4(_CALIB_DIR, fname)
+                video_path = str(mp4) if mp4 else None
+                frames = _extract_frames(mp4) if mp4 else []
+                return table, summary, video_path, frames
 
             def refresh_calib_list():
                 files = _list_jsonl(_CALIB_DIR, "calib_")
                 return gr.update(choices=files, value=(files[0] if files else None))
 
             ep_csv_refresh.click(refresh_ep_csv, outputs=[ep_csv_table, ep_csv_summary])
-            gnd_load_btn.click(load_gnd, inputs=gnd_dd, outputs=[gnd_table, gnd_summary])
+            gnd_load_btn.click(
+                load_gnd, inputs=gnd_dd,
+                outputs=[gnd_table, gnd_summary, gnd_video, gnd_gallery],
+            )
             dft_load_btn.click(load_dft, inputs=dft_dd, outputs=[dft_table, dft_summary])
-            calib_load_btn.click(load_calib, inputs=calib_dd, outputs=[calib_table, calib_summary_md])
+            calib_load_btn.click(
+                load_calib, inputs=calib_dd,
+                outputs=[calib_table, calib_summary_md, calib_video, calib_gallery],
+            )
             calib_refresh_btn.click(refresh_calib_list, outputs=calib_dd)
 
     # ── 초기 로드 (lazy) ─────────────────────────────────────────────
