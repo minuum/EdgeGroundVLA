@@ -1489,9 +1489,56 @@ def _make_env_banner() -> str:
     )
 
 
-_FONT_SCALE_CSS = ".gradio-container { font-size: 120% !important; }"
+_FONT_SCALE_CSS = """
+.gradio-container { font-size: 120% !important; }
 
-with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
+/* ── Tab 4 전용 대형 폰트 ── */
+#tab4-root label,
+#tab4-root .label-wrap span,
+#tab4-root .textbox textarea,
+#tab4-root .textbox input,
+#tab4-root .prose,
+#tab4-root p,
+#tab4-root td,
+#tab4-root th {
+    font-size: 1.15rem !important;
+    line-height: 1.5 !important;
+}
+#tab4-root .gr-button {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    padding: 10px 16px !important;
+}
+#tab4-root code, #tab4-root pre {
+    font-size: 0.95rem !important;
+}
+#tab4-root .gr-radio label span,
+#tab4-root .gr-dropdown label span {
+    font-size: 1.15rem !important;
+}
+/* 진행률 강조 */
+#t4-progress textarea {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+    color: #1a6b3c !important;
+    background: #e8f5e9 !important;
+}
+/* 기록 버튼 강조 */
+#btn-log { background: #1565c0 !important; font-size: 1.2rem !important; }
+#btn-undo { font-size: 1.1rem !important; }
+#btn-clear { font-size: 1.1rem !important; }
+"""
+
+with gr.Blocks(
+    title="MoNaVLA Dashboard",
+    css=_FONT_SCALE_CSS,
+    theme=gr.themes.Soft(
+        primary_hue=gr.themes.colors.blue,
+        secondary_hue=gr.themes.colors.cyan,
+        neutral_hue=gr.themes.colors.slate,
+        font=[gr.themes.GoogleFont("Noto Sans KR"), "sans-serif"],
+    ),
+) as demo:
     gr.Markdown("# MoNaVLA Real-time Dashboard")
     gr.HTML(_make_env_banner())
 
@@ -2439,7 +2486,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
 
       # ────────────────────────────────────────────────────────────────
       with gr.Tab("🧪 경로 검증 (Path Test)"):
-        with gr.Row(equal_height=False):
+        with gr.Row(equal_height=False, elem_id="tab4-root"):
 
           # ── 왼쪽: 카메라 + 모니터링 + 경로표 + 에피소드 기록 ─────────
           with gr.Column(scale=3):
@@ -2478,7 +2525,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                     "```"
                 )
               with gr.Column(scale=2):
-                progress_test = gr.Textbox(label="총 진행률", value="0ep  성공 0  (목표 7/11)", interactive=False, max_lines=1)
+                progress_test = gr.Textbox(label="총 진행률", value="0ep  성공 0  (목표 7/11)", interactive=False, max_lines=1, elem_id="t4-progress")
                 path_summary_table = gr.Dataframe(
                     headers=["경로", "총", "✓", "경로", "총", "✓", "경로", "총", "✓"],
                     datatype=["str","number","number","str","number","number","str","number","number"],
@@ -2499,9 +2546,9 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                   fpe_test   = gr.Slider(minimum=0.0, maximum=5.0, step=0.05, value=0.0, label="FPE(m)", scale=3)
                   note_test  = gr.Textbox(label="메모", value="", scale=3)
                 with gr.Row():
-                  btn_log_episode   = gr.Button("📝 기록",    variant="primary",   scale=2)
-                  btn_undo_episode  = gr.Button("↩ 마지막삭제", variant="secondary", scale=1)
-                  btn_clear_episode = gr.Button("🗑 전체초기화", variant="stop",      scale=1)
+                  btn_log_episode   = gr.Button("📝 기록",    variant="primary",   scale=2, elem_id="btn-log")
+                  btn_undo_episode  = gr.Button("↩ 마지막삭제", variant="secondary", scale=1, elem_id="btn-undo")
+                  btn_clear_episode = gr.Button("🗑 전체초기화", variant="stop",      scale=1, elem_id="btn-clear")
                 with gr.Row():
                   btn_export_test    = gr.Button("💾 CSV", scale=1)
                   export_status_test = gr.Textbox(label="", value="", interactive=False, scale=3, max_lines=1)
@@ -2549,11 +2596,11 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 gr.Markdown("<small>Left → 이동 | Right X → 회전 | A → STOP</small>")
 
             episode_log_table = gr.Dataframe(
-                headers=["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "메모"],
-                datatype=["number", "str", "str", "str", "number", "number", "number", "str"],
-                label="에피소드 기록 (세션)",
+                headers=["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모"],
+                datatype=["number","str","str","number","number","str","number","number","number","str","number","str"],
+                label="에피소드 기록 (세션) — 세션 그라운딩/액션 자동 수집",
                 row_count=11,
-                col_count=8,
+                col_count=12,
                 interactive=False,
             )
 
@@ -2770,6 +2817,8 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
 
     def log_episode(path_type, success, fpe, note, log_list):
         import requests as _req
+
+        # ── 1. API /recent 에서 최신 bbox ──────────────────────────────
         area, cx = 0.0, 0.5
         try:
             r = _req.get(f"{DEFAULT_API_URL}/recent", timeout=2)
@@ -2780,7 +2829,33 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
         except Exception:
             pass
         stop_flag = "Y" if area >= 0.18 else "N"
-        row = [len(log_list) + 1, path_type, success, stop_flag, round(area, 3), round(cx, 2), fpe, note]
+
+        # ── 2. 현재 세션 (inference_logger) 에서 통계 수집 ─────────────
+        steps = 0
+        avg_lat = 0.0
+        top_action = "—"
+        gnd_pct = 0.0
+        try:
+            if logger_instance and hasattr(logger_instance, "data") and logger_instance.data:
+                hist = logger_instance.data.get("history", [])
+                steps = len(hist)
+                lats = [h["latency_ms"] for h in hist if isinstance(h.get("latency_ms"), (int, float))]
+                avg_lat = round(sum(lats) / len(lats), 1) if lats else 0.0
+                labels = [h.get("predicted_label") for h in hist if h.get("predicted_label")]
+                if labels:
+                    from collections import Counter
+                    top_action = Counter(labels).most_common(1)[0][0]
+                gnd_ok = sum(1 for h in hist if h.get("bbox") and h["bbox"].get("has_bbox"))
+                gnd_pct = round(gnd_ok / steps * 100, 1) if steps > 0 else 0.0
+        except Exception:
+            pass
+
+        row = [
+            len(log_list) + 1, path_type, success,
+            steps, avg_lat, top_action, gnd_pct,
+            round(area, 3), round(cx, 2), stop_flag,
+            fpe, note,
+        ]
         log_list = log_list + [row]
 
         done_total = {k: 0 for k in PATH_TYPES}
@@ -2821,7 +2896,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
         out_path = PROJECT_ROOT / "logs" / f"realtest_{_dt2.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         with open(out_path, "w", newline="") as f:
             w = csv.writer(f)
-            w.writerow(["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "특이사항"])
+            w.writerow(["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모"])
             w.writerows(log_list)
         return f"✅ 저장: {out_path}"
 
