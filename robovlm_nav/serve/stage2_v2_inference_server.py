@@ -524,14 +524,15 @@ class Stage2V2Model:
 
     def _preview_rot_from_bbox(self, bbox: dict) -> int:
         """
-        PG2 bbox의 cx 위치로 회전 방향 결정.
-        has_bbox=True : cx < 0.4 → ROT_L(6), cx > 0.6 → ROT_R(7), 중앙 → ROT_R(default)
-        has_bbox=False: fallback 방향(VLA_PREVIEW_ROT_DIR, 기본 ROT_R)
+        has_bbox=False 시 sweep 패턴으로 방향 결정 (attempt 기반).
+        has_bbox=True  : cx < 0.4 → ROT_L, cx > 0.6 → ROT_R, 중앙 → ROT_R
+        has_bbox=False : attempt 0→ROT_R, 1→ROT_L, 2→ROT_R, ... 교대
         """
         if bbox.get("has_bbox", False):
             cx = float(bbox.get("cx", 0.5))
-            return 6 if cx < 0.4 else 7  # ROT_L or ROT_R
-        return self._preview_fallback_rot
+            return 6 if cx < 0.4 else 7
+        # sweep: 짝수 attempt → ROT_R, 홀수 → ROT_L
+        return 7 if self._preview_attempt % 2 == 0 else 6
 
     def preview_align(self, image_b64: str, phrase: str) -> dict:
         """
