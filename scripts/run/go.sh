@@ -206,6 +206,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--viewer" ]]; then
     echo "▶ 데이터셋 뷰어 (포트 $VIEWER_PORT)"
     pkill -f "gradio_dataset_viewer" 2>/dev/null && sleep 1 || true
 
+    VLA_API_KEY="${VLA_API_KEY:-}" \
     "$PY" scripts/gradio_dataset_viewer.py \
         >> logs/dataset_viewer.log 2>&1 &
     _viewer_pid=$!
