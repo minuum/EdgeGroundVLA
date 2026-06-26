@@ -2498,7 +2498,10 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
                 with gr.Row():
                   fpe_test   = gr.Slider(minimum=0.0, maximum=5.0, step=0.05, value=0.0, label="FPE(m)", scale=3)
                   note_test  = gr.Textbox(label="메모", value="", scale=3)
-                  btn_log_episode = gr.Button("📝 기록", variant="primary", scale=1)
+                with gr.Row():
+                  btn_log_episode   = gr.Button("📝 기록",    variant="primary",   scale=2)
+                  btn_undo_episode  = gr.Button("↩ 마지막삭제", variant="secondary", scale=1)
+                  btn_clear_episode = gr.Button("🗑 전체초기화", variant="stop",      scale=1)
                 with gr.Row():
                   btn_export_test    = gr.Button("💾 CSV", scale=1)
                   export_status_test = gr.Textbox(label="", value="", interactive=False, scale=3, max_lines=1)
@@ -2823,6 +2826,53 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
         return f"✅ 저장: {out_path}"
 
     btn_export_test.click(fn=export_episode_log, inputs=[_episode_log_state], outputs=export_status_test)
+
+    def _recompute_summary(log_list):
+        done_total = {k: 0 for k in PATH_TYPES}
+        done_succ  = {k: 0 for k in PATH_TYPES}
+        success_count = 0
+        for r in log_list:
+            pt = r[1]
+            done_total[pt] = done_total.get(pt, 0) + 1
+            if r[2] == "성공":
+                done_succ[pt] = done_succ.get(pt, 0) + 1
+                success_count += 1
+        total = len(log_list)
+        prog = f"{total}ep  성공 {success_count}  (목표 7/11)"
+        rows = []
+        for suffix in ("left", "straight", "right"):
+            lk = f"left_{suffix}"
+            ck = f"center_{suffix}"
+            rk = f"right_{'right' if suffix == 'left' else ('straight' if suffix == 'straight' else 'left')}"
+            rows.append([
+                lk, done_total[lk], done_succ[lk],
+                ck, done_total[ck], done_succ[ck],
+                rk + (" ★" if rk == "right_left" else ""), done_total.get(rk, 0), done_succ.get(rk, 0),
+            ])
+        return log_list, log_list, prog, rows
+
+    def undo_episode(log_list):
+        new_list = log_list[:-1] if log_list else []
+        return _recompute_summary(new_list)
+
+    def clear_episodes(_log_list):
+        empty = []
+        return empty, empty, "0ep  성공 0  (목표 7/11)", [
+            ["left_left",0,0, "center_left",0,0, "right_right",0,0],
+            ["left_straight",0,0, "center_straight",0,0, "right_straight",0,0],
+            ["left_right",0,0, "center_right",0,0, "right_left★",0,0],
+        ]
+
+    btn_undo_episode.click(
+        fn=undo_episode,
+        inputs=[_episode_log_state],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+    )
+    btn_clear_episode.click(
+        fn=clear_episodes,
+        inputs=[_episode_log_state],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+    )
 
 
 if __name__ == "__main__":

@@ -163,6 +163,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--dashboard" ]]; then
     FULL_PATH="${ROS_DIST}/bin:$PATH"
 
     VLA_API_SERVER="http://localhost:$SERVER_PORT" \
+    VLA_SERVER_ROLE=jetson \
     VLA_INFERENCE_PORT="$DASH_PORT" \
     VLA_ROS_WS="$ROS_WS" \
     ROS_DOMAIN_ID=42 \
