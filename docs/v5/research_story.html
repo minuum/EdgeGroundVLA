@@ -309,6 +309,7 @@
     <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 51</span><span class="toc-label">에피소드 초반 N프레임 줌크롭 — n=737 ablation, 도움 안 됨 확정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch52" data-target="ch52"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 52</span><span class="toc-label">path_type별 분리 평가 — SR 포화, replace가 FPE 40% 개선</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch53" data-target="ch53"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 53</span><span class="toc-label">6/24·6/26 실세션 + v5_2 의자 타겟 신규 데이터셋 분석</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -8441,7 +8442,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','ch47','ch48','ch49','ch50','ch51','ch52','ch53','meeting-0626','next-step','summary','weekly-meeting'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','ch47','ch48','ch49','ch50','ch51','ch52','ch53','ch54','meeting-0626','next-step','summary','weekly-meeting'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -12790,6 +12791,137 @@ graph TD
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     분석 스크립트: scripts/analyze_sessions_ch53.py &nbsp;|&nbsp;
     이미지: docs/v5/ch46_50_viz/v5_2_*.jpg · session_20260624_*.jpg &nbsp;|&nbsp; 2026-06-26
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch54" style="padding-bottom:40px">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:linear-gradient(135deg,#7c3aed,#d946ef);color:#fff">CH 54</span>
+    <h2 class="chapter-title">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정</h2>
+    <p class="chapter-subtitle">6/26 미팅 결정사항: "그라운딩 못 하면 YOLO로 방향 먼저 잡고 PG2 재시도" 아이디어 설계 문서</p>
+  </div>
+
+  <!-- 동기 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
+    <div class="finding-title" style="color:#d946ef">동기 — 왜 필요한가</div>
+    <div class="finding-body" style="font-size:0.92rem;line-height:1.9">
+      오늘(6/26) 실주행에서 <strong>시작 위치가 좌우로 치우칠 경우 PG2 그라운딩 실패</strong>(area 너무 작거나 has_bbox=False)가 확인됐다.
+      각도를 먼저 틀어주면 9/10 성공으로 올라가지만 지금은 사람이 수동으로 방향을 잡아주는 상황.
+      <br><br>
+      <strong>해결 아이디어</strong>: 첫 프레임 그라운딩이 실패하면 YOLO(경량 객체탐지)로 타겟 방향을 추정하고,
+      로봇을 조금씩 회전시켜 PG2가 그라운딩에 성공할 수 있는 각도를 먼저 잡는다.
+      성공 후 정상 항법(Exp66 ActionMLP)으로 넘어간다.
+    </div>
+  </div>
+
+  <!-- 플로우 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">실행 플로우 (3단계)</div>
+    <div class="finding-body">
+      <div style="font-family:monospace;font-size:0.85rem;line-height:2;background:#0a0f1a;border-radius:8px;padding:14px;border:1px solid #1e3a5f">
+        <span style="color:#4ade80">[시작]</span> 로봇 출발 위치 고정<br>
+        &nbsp;&nbsp;↓<br>
+        <span style="color:#7dd3fc">① PG2 그라운딩 시도</span><br>
+        &nbsp;&nbsp;├─ <span style="color:#4ade80">has_bbox=True &amp;&amp; area ≥ 0.03</span> → 정상 항법(Exp66) 시작<br>
+        &nbsp;&nbsp;└─ <span style="color:#f87171">실패 (has_bbox=False 또는 area &lt; 0.03)</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+        <span style="color:#d946ef">② YOLO 탐지</span> (YOLOv8n, basket/chair class)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;├─ bbox.cx &lt; 0.4 → <span style="color:#fbbf24">ROT_L</span> (N_ROT 스텝)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;├─ bbox.cx &gt; 0.6 → <span style="color:#fbbf24">ROT_R</span> (N_ROT 스텝)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;├─ 0.4 ≤ cx ≤ 0.6 → PG2 재시도 ①로 루프<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;└─ 탐지 실패 → ROT_R 기본 방향으로 소량 회전 후 재시도<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;↓ (최대 MAX_RETRY=5회)<br>
+        <span style="color:#4ade80">성공</span> → 정상 항법 / <span style="color:#f87171">실패</span> → STOP + 알림
+      </div>
+    </div>
+  </div>
+
+  <!-- 설계 상세 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">설계 상세</div>
+    <div class="finding-body">
+      <table style="width:100%;border-collapse:collapse;font-size:0.86rem">
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8;width:32%">YOLO 모델</td>
+          <td style="padding:6px 10px"><code>ultralytics YOLOv8n</code> (nano, ~6MB, &lt;10ms GPU) — soda에 ultralytics 설치 필요</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">탐지 대상 class</td>
+          <td style="padding:6px 10px">COCO 기준: <code>basket→"sports ball"</code> 또는 파인튜닝. chair→<code>"chair"</code>(COCO 기본 포함). <strong>zero-shot 먼저 시도</strong></td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">트리거 조건</td>
+          <td style="padding:6px 10px"><code>has_bbox == False OR area &lt; AREA_THRESHOLD</code> (기본값 0.03, 환경변수로 오버라이드 가능)</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">회전 단위</td>
+          <td style="padding:6px 10px">ROT_L / ROT_R 1스텝 (서버 action 한 번 = 로봇 약 5~10° 회전) × <code>N_ROT=2</code> 스텝 후 재그라운딩</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">최대 재시도</td>
+          <td style="padding:6px 10px"><code>MAX_RETRY=5</code> (환경변수 <code>VLA_PREVIEW_MAX_RETRY</code>)</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">구현 위치</td>
+          <td style="padding:6px 10px"><code>robovlm_nav/serve/stage2_v2_inference_server.py</code> — <code>_preview_align()</code> 메서드 추가</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#94a3b8">활성화 방법</td>
+          <td style="padding:6px 10px">환경변수 <code>VLA_PREVIEW_MODEL=yolov8n</code> (미설정 시 프리뷰 비활성, 기존 동작 유지)</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 트레이드오프 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
+    <div class="finding-title" style="color:#a78bfa">트레이드오프</div>
+    <div class="finding-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.87rem">
+        <div style="background:rgba(74,222,128,0.06);border:1px solid #166534;border-radius:8px;padding:10px">
+          <div style="color:#4ade80;font-weight:700;margin-bottom:6px">장점</div>
+          <ul style="margin:0 0 0 14px;line-height:1.9">
+            <li>추가 학습 없음 — YOLO zero-shot</li>
+            <li>기존 항법 파이프라인 손대지 않음</li>
+            <li>비활성 시 완전 롤백 가능 (env var)</li>
+            <li>side-position SR 70%→90% 기대</li>
+            <li>YOLOv8n 레이턴시 &lt;10ms GPU (PG2 대비 무시 가능)</li>
+          </ul>
+        </div>
+        <div style="background:rgba(239,68,68,0.06);border:1px solid #7f1d1d;border-radius:8px;padding:10px">
+          <div style="color:#f87171;font-weight:700;margin-bottom:6px">리스크</div>
+          <ul style="margin:0 0 0 14px;line-height:1.9">
+            <li>YOLO가 basket을 인식 못할 경우 프리뷰 루프에서 헤맬 가능성</li>
+            <li>ROT 단위 크기 튜닝 필요 (너무 크면 오버슈팅)</li>
+            <li>ultralytics 설치 필요 (soda 의존성 추가)</li>
+            <li>YOLO가 다른 물체를 basket으로 혼동 시 방향 반대로 돌 수 있음</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:10px;color:#94a3b8;font-size:0.82rem">
+        <strong>완화책</strong>: confidence 임계값(≥0.5)으로 오탐지 필터링. basket은 COCO에 없으므로 초기엔 chair 시나리오(v5_2)로 먼저 검증.
+        YOLO 탐지 실패 시에도 기본 ROT_R 전략으로 fallback (탐지 없이 조금씩 돌며 PG2 재시도).
+      </div>
+    </div>
+  </div>
+
+  <!-- 미팅 연결 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:20px">
+    <div class="finding-title" style="color:#fbbf24">미팅 연결 — 6/26 결정사항과의 매핑</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
+      Speaker 2의 "프리뷰 모델로 객체 인식 가능 각도로 회전" 계획과 동일 방향.
+      <strong>Speaker 2 쪽은 별도 프리뷰 모델(학습 기반 가능성)</strong>이고,
+      <strong>이 CH54는 YOLO zero-shot + inference_server 통합으로 즉시 테스트 가능한 경로</strong>.<br>
+      두 트랙이 독립적으로 진행되고, 먼저 동작하는 쪽이 채택되는 구조로 운영 가능.
+    </div>
+  </div>
+
+  <!-- 구현 상태 -->
+  <div style="background:rgba(217,70,239,0.08);border:1px solid #7c3aed;border-radius:10px;padding:12px 16px;font-size:0.85rem;color:#e2e8f0">
+    <span style="color:#d946ef;font-weight:700">구현 상태:</span> 아이디어 확정 · plan.md 작성 완료 ·
+    <span style="color:#fbbf24">구현 미착수</span> (Speaker 2 트랙과 병행 여부 확인 후 착수 예정)
+    <span style="color:#94a3b8;font-size:0.78rem;margin-left:8px">→ docs/plans/plan_ch54_yolo_preview.md</span>
   </div>
 </div>
 
