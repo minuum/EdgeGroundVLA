@@ -1193,6 +1193,22 @@ if __name__ == "__main__":
     args_cli = parser.parse_args()
 
     logger.info("Pre-loading Stage2V2 model ...")
-    get_model()
+    m = get_model()
+
+    # Stage 0 워밍업: PG2 콜드스타트를 서버 시작 시점에 소진 (CH54 ablation)
+    # 분석: 6/26 세션 39개 전부 frame 0 has_bbox=0% → frame 1+ 100% 성공
+    # 원인: 첫 그라운딩 호출 시 PG2 미웜업 → 빈 결과 반환
+    # 해결: 더미 이미지로 첫 PG2 호출을 서버 시작 시 미리 소진
+    logger.info("[Warmup] PG2 워밍업 시작 ...")
+    _t_wu = time.time()
+    try:
+        import io as _io
+        _dummy_pil = Image.new("RGB", (224, 224), (100, 100, 100))
+        _dummy_np = np.array(_dummy_pil)
+        m.grounder.run(_dummy_np, phrase="gray basket")
+        logger.info("[Warmup] PG2 워밍업 완료 (%.1fs)", time.time() - _t_wu)
+    except Exception as _e:
+        logger.warning("[Warmup] PG2 워밍업 실패 (무시됨): %s", _e)
+
     logger.info("Model ready. Starting uvicorn on %s:%d", args_cli.host, args_cli.port)
     uvicorn.run(app, host=args_cli.host, port=args_cli.port, log_level="info")
