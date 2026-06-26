@@ -95,6 +95,20 @@ PATH_TYPES = [
     "center_straight", "center_left", "center_right",
     "left_straight", "left_left", "left_right",
 ]
+# 경로별 목표 에피소드 수 — 합계 11, 성공 목표 7
+# right_right·right_left 는 교차 경로(난이도↑)라 2회씩 검증
+PATH_TARGETS = {
+    "right_right":    2,
+    "right_left":     2,   # ★ 최우선 — 가장 어려운 교차
+    "right_straight": 1,
+    "center_straight":1,
+    "center_left":    1,
+    "center_right":   1,
+    "left_straight":  1,
+    "left_left":      1,
+    "left_right":     1,
+}  # sum = 11
+GOAL_SUCCESS_TARGET = 7  # 논문 기준
 GOAL_NAV_PRESETS = [
     "the gray basket",
     "the door",
@@ -528,6 +542,9 @@ class ApiInferenceBackend:
 
 def make_backend(mode: str, api_url: str):
     if mode == "API Server":
+        return ApiInferenceBackend(api_url)
+    # Local Runtime 요청이지만 모델 미로드 시 → API Server 자동 폴백
+    if not shared_runtime.get_model_info().get("model_loaded"):
         return ApiInferenceBackend(api_url)
     return LocalInferenceBackend()
 
@@ -1321,8 +1338,16 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
                     state["stable_frame_cc"] = apply_cc
                 try:
                     make_backend(backend_mode, api_url).reset(instr)
-                except Exception as e:
-                    return annotate_image(img), f"❌ Reset failed: {e}", "0 ms", "STOP", "Waiting...", gr.update(value="Stopped"), state["camera_status"], state["model_path"], None
+                except RuntimeError as _re:
+                    if "not loaded" in str(_re).lower():
+                        # Local 모드이지만 모델 없음 → API 서버로 fallback
+                        try:
+                            import requests as _rr
+                            _rr.post(f"{api_url}/reset", json={}, timeout=3)
+                        except Exception:
+                            pass  # reset 실패해도 추론은 계속
+                except Exception:
+                    pass  # reset 실패해도 추론은 계속
                 return annotate_image(img), "Step 1 (Start/Wait)", "0 ms", "0.0000, 0.0000, 0.0000", "Waiting...", gr.update(value="Running (step 1)..."), state["camera_status"], state["model_path"], None
 
             if state["infer_move_mode"] == "PRE":
@@ -1640,6 +1665,13 @@ with gr.Blocks(
             latency_val = gr.Textbox(label="Latency", value="0 ms")
             action_val = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
             chunk_val = gr.Textbox(label="Action Chunk Preview", value="N/A", lines=3)
+            srv_status_t1 = gr.Textbox(
+                label="🖥️ 서버 상태", value="—", interactive=False, max_lines=2,
+            )
+            srv_log_t1 = gr.Textbox(
+                label="📋 추론 서버 로그 (최근 4줄)", value="—",
+                interactive=False, lines=4, max_lines=4,
+            )
 
           with gr.Column(scale=1):
             gr.Markdown("## 📊 모니터링 3 (그래프/히스토리)")
@@ -2539,6 +2571,65 @@ with gr.Blocks(
               gnd_cached_test  = gr.Textbox(label="캐시",             value="—", scale=1, max_lines=1, interactive=False)
               gnd_bbox_test    = gr.Textbox(label="bbox (cx,cy,area)", value="—", scale=3, max_lines=1, interactive=False)
               pred_label_test  = gr.Textbox(label="예측 레이블",       value="—", scale=2, max_lines=1, interactive=False)
+            # 서버 로그 행
+            with gr.Row():
+              srv_status_t4 = gr.Textbox(
+                  label="🖥️ 서버 상태", value="—",
+                  interactive=False, max_lines=2, scale=2,
+              )
+              srv_log_t4 = gr.Textbox(
+                  label="📋 추론 서버 로그 (스크롤 가능)", value="—",
+                  interactive=False, lines=8, max_lines=200, scale=5,
+              )
+
+          # ── 에피소드 CSV 프리로드 (UI 빌드 시점) ─────────────────────────
+          def _preload_episode_csv_early() -> list:
+              import csv as _pcsv2
+              _ep_csv2 = PROJECT_ROOT / "logs" / "episode_log.csv"
+              if not _ep_csv2.exists():
+                  return []
+              rows = []
+              with open(_ep_csv2, newline="", encoding="utf-8") as _pf2:
+                  for row in _pcsv2.reader(_pf2):
+                      if not row or row[0] == "#":
+                          continue
+                      while len(row) < 13:
+                          row.append("")
+                      try:
+                          row[0]  = int(row[0])   if row[0]  else 0
+                          row[3]  = int(row[3])   if row[3]  else 0
+                          row[4]  = float(row[4]) if row[4]  else 0.0
+                          row[6]  = float(row[6]) if row[6]  else 0.0
+                          row[7]  = float(row[7]) if row[7]  else 0.0
+                          row[8]  = float(row[8]) if row[8]  else 0.0
+                          row[10] = float(row[10]) if row[10] else 0.0
+                      except Exception:
+                          pass
+                      rows.append(row[:13])
+              return rows
+
+          def _build_summary_early(log_list):
+              done_total = {k: 0 for k in PATH_TYPES}
+              done_succ  = {k: 0 for k in PATH_TYPES}
+              success_count = 0
+              for r in log_list:
+                  pt = str(r[1]).replace(" ★", "").replace("★", "")
+                  done_total[pt] = done_total.get(pt, 0) + 1
+                  if r[2] == "성공":
+                      done_succ[pt] = done_succ.get(pt, 0) + 1
+                      success_count += 1
+              total = len(log_list)
+              total_target = sum(PATH_TARGETS.values())
+              prog = f"{total}/{total_target}ep  성공 {success_count}/{GOAL_SUCCESS_TARGET}"
+              tbl  = [[pt + (" ★" if pt == "right_left" else ""),
+                       PATH_TARGETS.get(pt, 1),
+                       done_total.get(pt, 0),
+                       done_succ.get(pt, 0)]
+                      for pt in PATH_TYPES]
+              return prog, tbl
+
+          _preloaded_rows_early = _preload_episode_csv_early()
+          _preloaded_prog, _preloaded_tbl = _build_summary_early(_preloaded_rows_early)
 
           # ── Col 2 (scale=1): 경로표 + 기록 ───────────────────────────
           with gr.Column(scale=1):
@@ -2554,29 +2645,59 @@ with gr.Blocks(
                   "방향: L(좌)/S(직)/R(우)  ★=right\\_left 우선"
               )
             progress_test = gr.Textbox(
-                label="진행률", value="0ep  성공 0  (목표 7/11)",
+                label="진행률", value=_preloaded_prog,
                 interactive=False, max_lines=1, elem_id="t4-progress",
             )
             path_summary_table = gr.Dataframe(
-                headers=["경로", "총", "✓"],
-                datatype=["str","number","number"],
-                value=[[pt + (" ★" if pt == "right_left" else ""), 0, 0] for pt in PATH_TYPES],
-                label="경로별 집계", row_count=9, col_count=3, interactive=False,
+                headers=["경로", "목표", "완료", "✓"],
+                datatype=["str","number","number","number"],
+                value=_preloaded_tbl,
+                label="경로별 집계 (경로명=시작위치_목표방향 레이블 — 실제 이동경로와 다를 수 있음)",
+                row_count=9, col_count=4, interactive=False,
             )
+            with gr.Accordion("📋 프롬프트 전문 보기", open=False):
+              with gr.Row():
+                btn_show_prompt = gr.Button("🔄 현재 프롬프트 조회", size="sm", scale=1)
+              prompt_detail_box = gr.Textbox(
+                  label="",
+                  value="위 버튼을 눌러 확인",
+                  interactive=False,
+                  lines=10,
+                  max_lines=20,
+              )
+              gr.Markdown(
+                  "<small>💡 경로명(right_left 등)은 **시작위치_목표방향**의 실험 분류 레이블입니다. "
+                  "실제 이동경로는 오브젝트 위치·카메라 시점·모델 학습 상태에 따라 달라집니다.</small>"
+              )
             with gr.Row():
-              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="right_left", label="경로", scale=3)
+              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="right_left", label="경로 레이블 (시작_목표)", scale=3)
               success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=2)
             with gr.Row():
-              fpe_test  = gr.Slider(minimum=0.0, maximum=5.0, step=0.05, value=0.0, label="FPE(m)", scale=3)
-              note_test = gr.Textbox(label="메모", value="", scale=3, max_lines=1)
+              fpe_test  = gr.Number(minimum=0.0, maximum=9.9, step=0.05, value=0.0, label="FPE (m)", precision=2, scale=2)
+              note_test = gr.Textbox(label="메모", value="", scale=4, max_lines=1)
+            # FPE 프리셋 빠른 입력
             with gr.Row():
-              btn_log_episode   = gr.Button("📝 기록",  variant="primary",   scale=2)
-              btn_undo_episode  = gr.Button("↩ 삭제",  variant="secondary", scale=1)
-              btn_clear_episode = gr.Button("🗑 초기화", variant="stop",     scale=1)
+              _fpe_b = [gr.Button(v, size="sm", scale=1) for v in ["0.0","0.3","0.5","0.8","1.0","1.5","2.0","3.0"]]
+            btn_log_episode   = gr.Button("📝 기록", variant="primary",   size="lg")
             with gr.Row():
-              btn_refresh_log    = gr.Button("🔄 CSV복원", scale=1)
-              btn_export_test    = gr.Button("💾 CSV저장", scale=1)
+              btn_undo_episode  = gr.Button("↩ 삭제",  variant="secondary", scale=1, size="lg")
+              btn_clear_episode = gr.Button("🗑 초기화", variant="stop",     scale=1, size="lg")
+            with gr.Row():
+              btn_refresh_log    = gr.Button("🔄 CSV복원", scale=1, size="sm")
+              btn_export_test    = gr.Button("💾 CSV저장", scale=1, size="sm")
               export_status_test = gr.Textbox(label="", value="", interactive=False, scale=2, max_lines=1)
+            with gr.Accordion("✏️ 에피소드 수정", open=False):
+              edit_ep_dd      = gr.Dropdown(choices=[], label="수정할 에피소드 선택", interactive=True)
+              with gr.Row():
+                edit_path_dd  = gr.Dropdown(choices=PATH_TYPES, label="경로", scale=3)
+                edit_succ_r   = gr.Radio(choices=["성공", "실패"], label="결과", scale=2)
+              with gr.Row():
+                edit_fpe_n    = gr.Number(minimum=0.0, maximum=9.9, step=0.05, value=0.0,
+                                          label="FPE (m)", precision=2, scale=2)
+                edit_note_b   = gr.Textbox(label="메모", value="", scale=4, max_lines=1)
+              with gr.Row():
+                btn_edit_ep   = gr.Button("💾 수정 저장", variant="primary", size="lg", scale=2)
+                edit_status   = gr.Textbox(label="", value="", interactive=False, scale=3, max_lines=1)
 
           # ── Col 3 (scale=1): 제어 + 에피소드 로그 ────────────────────
           with gr.Column(scale=1):
@@ -2617,14 +2738,26 @@ with gr.Blocks(
                 js_status_test = gr.Textbox(label="상태", value="🔌 초기화 중...", interactive=False)
                 gr.Markdown("<small>Left → 이동\nRight X → 회전\nA → STOP</small>")
 
+            ep_view_radio = gr.Radio(
+                choices=["전체", "정상만", "🚨 이상치만"],
+                value="전체", label="필터", interactive=True,
+            )
             episode_log_table = gr.Dataframe(
                 headers=["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜"],
                 datatype=["number","str","str","number","number","str","number","number","number","str","number","str","str"],
                 label="에피소드 기록 (누적 — 세션 간 유지)",
+                value=_preloaded_rows_early if _preloaded_rows_early else None,
                 row_count=11, col_count=13, interactive=False,
             )
+            outlier_panel = gr.Dataframe(
+                headers=["#", "경로", "결과", "lat(ms)", "steps", "이상치 유형", "원인"],
+                datatype=["number","str","str","number","number","str","str"],
+                label="🚨 이상치 분석",
+                value=None, row_count=4, col_count=7, interactive=False,
+                visible=False,
+            )
 
-        _episode_log_state = gr.State([])
+        _episode_log_state = gr.State(_preloaded_rows_early)
 
       # ════════════════════════════════════════════════════════════════════
       # 탭 5: STOP 캘리브레이션
@@ -2888,6 +3021,61 @@ with gr.Blocks(
             pass
         return "—"
 
+    # 현재 추론서버(stage2_v2)의 로그 파일 — 기동 방식에 따라 다를 수 있음
+    _SRV_LOG_CANDIDATES = [
+        PROJECT_ROOT / "logs" / "s2v2_server.log",
+        PROJECT_ROOT / "logs" / "api_server.log",
+        PROJECT_ROOT / "logs" / "inference_server_8001.log",
+    ]
+
+    def _srv_status_str():
+        """서버 /health → 상태 문자열."""
+        try:
+            import requests as _rq2
+            h = _rq2.get(f"{DEFAULT_API_URL}/health", timeout=1.5).json()
+            loaded = "✅ 로드됨" if h.get("model_loaded") else "❌ 모델 없음"
+            gpu = h.get("gpu", {})
+            return (
+                f"{loaded}  head={h.get('head','?')}  win={h.get('window','?')}\n"
+                f"stop={h.get('stop_mode','?')}  GPU {gpu.get('allocated_gb',0):.2f}GB [{gpu.get('device_name','?')}]"
+            )
+        except Exception as _e:
+            return f"⚠️ 서버 응답 없음 ({_e})"
+
+    def _srv_log_lines(n: int | None = None):
+        """서버 로그에서 [#N] 예측 라인 추출. n=None이면 전체."""
+        try:
+            log_file = next((p for p in _SRV_LOG_CANDIDATES if p.exists()), None)
+            if not log_file:
+                return "(로그 파일 없음)"
+            # 전체 파일 읽기 (최대 300KB)
+            with open(log_file, "rb") as _lf:
+                _lf.seek(0, 2)
+                size = _lf.tell()
+                _lf.seek(max(0, size - 300_000))
+                tail = _lf.read().decode("utf-8", errors="replace")
+            pred_lines = [l.split("INFO:__main__:")[-1]
+                          for l in tail.splitlines()
+                          if "__main__" in l and "[#" in l]
+            if pred_lines:
+                return "\n".join(pred_lines if n is None else pred_lines[-n:])
+            # 예측 없으면 시작 메시지 전체에서
+            with open(log_file, "rb") as _lf2:
+                full = _lf2.read().decode("utf-8", errors="replace")
+            init_lines = [l.split("INFO:__main__:")[-1]
+                          for l in full.splitlines() if "__main__" in l]
+            return "\n".join(init_lines) if init_lines else "(추론 로그 없음 — 추론 실행 후 표시)"
+        except Exception:
+            return "(로그 읽기 실패)"
+
+    def _server_info_tick():
+        """Tab 1용: 상태 + 최근 4줄."""
+        return _srv_status_str(), _srv_log_lines(4)
+
+    def _server_info_tick_full():
+        """Tab 4용: 상태 + 전체 히스토리 (스크롤 가능)."""
+        return _srv_status_str(), _srv_log_lines(None)
+
     _ui_inputs = [mode_radio, backend_radio, api_url_box, instr_box_real, toggle_cc, run_status_box, infer_move_radio]
     _ui_outputs = [camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot]
 
@@ -2896,6 +3084,7 @@ with gr.Blocks(
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
     timer.tick(fn=_js_status_text, outputs=js_status)
     timer.tick(fn=_run_history_rows, outputs=run_history_table)
+    timer.tick(fn=_server_info_tick, outputs=[srv_status_t1, srv_log_t1])
     # 환경 배너 10초마다 갱신 (API 서버 상태 실시간 반영)
     _banner_timer.tick(fn=_make_env_banner, outputs=_env_banner)
     # 페이지 열리자마자 첫 프레임 즉시 표시
@@ -3010,8 +3199,21 @@ with gr.Blocks(
     )
 
     # ── 탭4: 경로 검증(Path Test) — 탭1 state/함수 재사용, 탭1 코드 무수정 ──
-    # 카메라: state["last_img"]는 탭1 update_ui가 매 0.5s 갱신 → 별도 backend 호출 없음
-    timer.tick(fn=lambda: state.get("last_img"), outputs=camera_output_test)
+    def _t4_camera_tick():
+        """Tab 4 카메라: 격자 + bbox 오버레이 적용 (Tab 1과 동일)."""
+        img = state.get("last_img")
+        if img is None:
+            return None
+        try:
+            import requests as _rq_cam
+            preds = _rq_cam.get(f"{DEFAULT_API_URL}/recent", timeout=0.8).json().get("predictions", [])
+            if preds:
+                return annotate_image(img, preds[0].get("bbox"))
+        except Exception:
+            pass
+        return annotate_image(img)  # 격자만 (bbox 없음)
+
+    timer.tick(fn=_t4_camera_tick, outputs=camera_output_test)
     timer.tick(fn=lambda: state.get("_t4_log", "Ready"), outputs=status_log_test)
     timer.tick(fn=lambda: state.get("_t4_lat", "0 ms"), outputs=latency_val_test)
     timer.tick(fn=lambda: state.get("_t4_act", "0,0,0"), outputs=action_val_test)
@@ -3040,6 +3242,7 @@ with gr.Blocks(
 
     timer.tick(fn=_gnd_detail_tick,
                outputs=[gnd_entity_test, gnd_cached_test, gnd_bbox_test, pred_label_test])
+    timer.tick(fn=_server_info_tick_full, outputs=[srv_status_t4, srv_log_t4])
 
     btn_start_test.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
@@ -3109,7 +3312,7 @@ with gr.Blocks(
             w.writerows(rows)
 
     def _build_summary(log_list):
-        """log_list → (prog_str, path_summary_rows 9×3). 공통 로직."""
+        """log_list → (prog_str, path_summary_rows 9×4). 공통 로직."""
         done_total = {k: 0 for k in PATH_TYPES}
         done_succ  = {k: 0 for k in PATH_TYPES}
         success_count = 0
@@ -3120,9 +3323,13 @@ with gr.Blocks(
                 done_succ[pt]  = done_succ.get(pt, 0) + 1
                 success_count += 1
         total = len(log_list)
-        prog  = f"{total}ep  성공 {success_count}  (목표 7/11)"
+        total_target = sum(PATH_TARGETS.values())
+        prog  = f"{total}/{total_target}ep  성공 {success_count}/{GOAL_SUCCESS_TARGET}"
         tbl = [
-            [pt + (" ★" if pt == "right_left" else ""), done_total.get(pt, 0), done_succ.get(pt, 0)]
+            [pt + (" ★" if pt == "right_left" else ""),
+             PATH_TARGETS.get(pt, 1),
+             done_total.get(pt, 0),
+             done_succ.get(pt, 0)]
             for pt in PATH_TYPES
         ]
         return prog, tbl
@@ -3179,6 +3386,10 @@ with gr.Blocks(
         prog, tbl = _build_summary(log_list)
         return log_list, log_list, prog, tbl
 
+    # FPE 프리셋 버튼 핸들러
+    for _fb, _fv in zip(_fpe_b, [0.0, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0]):
+        _fb.click(fn=lambda v=_fv: v, outputs=fpe_test)
+
     btn_log_episode.click(
         fn=log_episode,
         inputs=[path_type_test, success_test, fpe_test, note_test, _episode_log_state],
@@ -3197,9 +3408,138 @@ with gr.Blocks(
 
     btn_export_test.click(fn=export_episode_log, inputs=[_episode_log_state], outputs=export_status_test)
 
+    def _refresh_and_reset_filter():
+        rows, rows2, prog, tbl = _init_episode_log()
+        return rows, rows2, prog, tbl, gr.update(value="전체"), gr.update(visible=False, value=None)
+
     btn_refresh_log.click(
-        fn=_init_episode_log,
-        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+        fn=_refresh_and_reset_filter,
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table,
+                 ep_view_radio, outlier_panel],
+    )
+
+    # ── 에피소드 수정 ─────────────────────────────────────────────────────
+
+    def _ep_choices(log_list):
+        return [f"#{r[0]}  {r[1]}  {r[2]}  FPE={r[10]}" for r in log_list]
+
+    # State 변경될 때마다 드롭다운 자동 갱신
+    _episode_log_state.change(
+        fn=lambda rows: gr.update(choices=_ep_choices(rows), value=None),
+        inputs=_episode_log_state,
+        outputs=edit_ep_dd,
+    )
+
+    def _on_edit_select(choice, log_list):
+        """에피소드 선택 → 필드 자동 채움."""
+        if not choice or not log_list:
+            return gr.update(), gr.update(), gr.update(), gr.update()
+        try:
+            ep_num = int(choice.split()[0].lstrip("#"))
+        except Exception:
+            return gr.update(), gr.update(), gr.update(), gr.update()
+        for r in log_list:
+            if r[0] == ep_num:
+                return (
+                    gr.update(value=str(r[1])),
+                    gr.update(value=str(r[2])),
+                    gr.update(value=float(r[10]) if r[10] != "" else 0.0),
+                    gr.update(value=str(r[11]) if len(r) > 11 else ""),
+                )
+        return gr.update(), gr.update(), gr.update(), gr.update()
+
+    edit_ep_dd.change(
+        fn=_on_edit_select,
+        inputs=[edit_ep_dd, _episode_log_state],
+        outputs=[edit_path_dd, edit_succ_r, edit_fpe_n, edit_note_b],
+    )
+
+    def _save_edit(choice, new_path, new_succ, new_fpe, new_note, log_list):
+        """에피소드 필드 수정 후 CSV 덮어쓰기."""
+        if not choice or not log_list:
+            return log_list, log_list, *_build_summary(log_list), "❌ 선택 없음"
+        try:
+            ep_num = int(choice.split()[0].lstrip("#"))
+        except Exception:
+            return log_list, log_list, *_build_summary(log_list), "❌ 파싱 오류"
+        new_list = [r[:] for r in log_list]
+        modified = False
+        for r in new_list:
+            if r[0] == ep_num:
+                r[1]  = new_path
+                r[2]  = new_succ
+                r[10] = float(new_fpe)
+                if len(r) > 11:
+                    r[11] = new_note
+                modified = True
+                break
+        if not modified:
+            return log_list, log_list, *_build_summary(log_list), f"❌ #{ep_num} 없음"
+        _overwrite_episode_csv(new_list)
+        prog, tbl = _build_summary(new_list)
+        return new_list, new_list, prog, tbl, f"✅ #{ep_num} 수정 완료"
+
+    btn_edit_ep.click(
+        fn=_save_edit,
+        inputs=[edit_ep_dd, edit_path_dd, edit_succ_r, edit_fpe_n, edit_note_b, _episode_log_state],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table, edit_status],
+    )
+
+    def _build_prompt_detail(instr, gt_obj):
+        """프롬프트 전문 + 서버 호출 구조 설명 생성."""
+        instr = (instr or "").strip()
+        gt_obj = (gt_obj or "").strip()
+        # 서버 내부 phrase 변환 (stage2_v2_inference_server.py line 564)
+        phrase = "gray basket" if instr == "basket" else instr
+        mapping_note = '  ⚠ "basket" → "gray basket" 자동 매핑 적용됨\n' if instr == "basket" else ""
+
+        # /recent에서 마지막 예측 정보 가져오기
+        recent_note = ""
+        try:
+            import requests as _rp
+            preds = _rp.get(f"{DEFAULT_API_URL}/recent", timeout=1.5).json().get("predictions", [])
+            if preds:
+                p = preds[0]
+                recent_note = (
+                    f"\n📡 마지막 추론 결과 (/recent):\n"
+                    f"  predicted_label : {p.get('predicted_label', '?')}\n"
+                    f"  latency_ms      : {p.get('latency_ms', '?')}\n"
+                    f"  grounding_cached: {p.get('grounding_cached', '?')}\n"
+                    f"  bbox entity     : {p.get('bbox', {}).get('entity', '?')}\n"
+                    f"  bbox cx/cy/area : {p.get('bbox', {}).get('cx', '?'):.3f} / "
+                    f"{p.get('bbox', {}).get('cy', '?'):.3f} / "
+                    f"{p.get('bbox', {}).get('area', '?'):.4f}"
+                )
+        except Exception:
+            pass
+
+        return (
+            f"━━ POST /predict (stage2_v2_inference_server) ━━\n"
+            f"{{\n"
+            f'  "instruction": "{instr}",\n'
+            f'  "image": "<base64 PNG — 현재 카메라 프레임>"\n'
+            f"}}\n\n"
+            f"━━ 그라운딩 (PaliGemma2 bbox 검출) ━━\n"
+            f"  phrase: \"{phrase}\"\n"
+            f"{mapping_note}"
+            f"  → 모델이 이 객체를 화면에서 찾아 cx/cy/area 추출\n\n"
+            f"━━ GT Object (로깅 전용 — 모델 미전달) ━━\n"
+            f"  \"{gt_obj}\"\n\n"
+            f"━━ 경로 레이블 안내 ━━\n"
+            f"  right_left / center_straight 등 경로명은\n"
+            f"  [시작위치]_[목표방향] 실험 분류 레이블입니다.\n"
+            f"  실제 이동경로는 아래 요소에 따라 달라집니다:\n"
+            f"   • 오브젝트 실제 위치 (수동 배치)\n"
+            f"   • 카메라 시점 / 조명 조건\n"
+            f"   • 모델 학습 수준 (Exp14 Step2 기준)\n"
+            f"   • 그라운딩 bbox 정확도"
+            f"{recent_note}"
+        )
+
+    btn_show_prompt.click(
+        fn=_build_prompt_detail,
+        inputs=[instr_box_real, gt_object_box],
+        outputs=prompt_detail_box,
     )
 
     def undo_episode(log_list):
@@ -3232,6 +3572,43 @@ with gr.Blocks(
     demo.load(
         fn=_init_episode_log,
         outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+    )
+
+    # ── 이상치 분류 필터 ────────────────────────────────────────────────────
+    _LAT_HIGH_MS  = 3000.0   # PG2 cold-start 판정 임계값
+    _LAT_ZERO_MS  = 0.0
+
+    def _classify_outlier(row):
+        """row[4]=lat(ms), row[3]=steps, row[5]=top액션.
+        반환: (is_outlier: bool, 유형: str, 원인: str)"""
+        try:
+            lat   = float(row[4])
+            steps = int(row[3])
+            top   = str(row[5])
+        except Exception:
+            return False, "", ""
+        if lat >= _LAT_HIGH_MS:
+            return True, "high-latency", f"PG2 cold-start — 서버 첫 추론 시 3B 모델 GPU warmup ({lat:.0f}ms)"
+        if lat == _LAT_ZERO_MS and steps <= 1 and top in ("—", "", "None"):
+            return True, "zero-latency", "추론 미실행 상태에서 LOG 버튼 누름 (logger 비어있음 → avg_lat=0)"
+        return False, "", ""
+
+    def _apply_ep_filter(log_list, view):
+        if view == "🚨 이상치만":
+            rows = [r for r in log_list if _classify_outlier(r)[0]]
+            outlier_rows = [[r[0], r[1], r[2], r[4], r[3],
+                             _classify_outlier(r)[1], _classify_outlier(r)[2]] for r in rows]
+            return rows, gr.update(visible=True, value=outlier_rows or None)
+        elif view == "정상만":
+            rows = [r for r in log_list if not _classify_outlier(r)[0]]
+            return rows, gr.update(visible=False, value=None)
+        else:
+            return log_list, gr.update(visible=False, value=None)
+
+    ep_view_radio.change(
+        fn=_apply_ep_filter,
+        inputs=[_episode_log_state, ep_view_radio],
+        outputs=[episode_log_table, outlier_panel],
     )
 
 
