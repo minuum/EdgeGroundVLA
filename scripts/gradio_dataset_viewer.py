@@ -28,6 +28,7 @@ _LOG_DIR      = _PROJECT_ROOT / "logs"
 _EPISODE_CSV  = _LOG_DIR / "episode_log.csv"
 _GND_DIR      = _LOG_DIR / "grounding_sessions"
 _DRIFT_DIR    = _LOG_DIR / "drift_sessions"
+_CALIB_DIR    = _LOG_DIR / "calib_sessions"
 
 CLASS_NAMES = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
 CLASS_SYM   = {0:"●", 1:"▲", 2:"◀", 3:"▶", 4:"↖", 5:"↗", 6:"↺", 7:"↻"}
@@ -309,7 +310,6 @@ def gnd_session_to_table(rows):
     """grounding JSONL → Dataframe rows + summary markdown"""
     if not rows:
         return [], "_(없음)_"
-    headers = ["n", "has_bbox", "area", "cx", "cy", "lat(ms)", "pred_label"]
     table = []
     for r in rows:
         table.append([
@@ -331,6 +331,35 @@ def gnd_session_to_table(rows):
         f"**{n}** 스텝  |  grounding **{has}/{n}** ({has/n*100:.1f}%)  "
         f"|  평균 latency **{avg_lat}ms**  |  평균 area **{avg_area}**"
     )
+    return table, summary
+
+
+def calib_session_to_table(rows):
+    """calib JSONL → Dataframe rows + summary + 추천 임계값"""
+    if not rows:
+        return [], "_(없음)_"
+    table = []
+    for r in rows:
+        table.append([
+            r.get("n", ""),
+            round(r.get("area", 0), 4),
+            round(r.get("cx", 0), 3),
+            round(r.get("cy", 0), 3),
+            round(r.get("latency_ms", 0), 1),
+            "Y" if r.get("stop_triggered") else "N",
+            str(r.get("ts", "")),
+            str(r.get("pred_label", "")),
+        ])
+    n = len(rows)
+    areas = sorted(r.get("area", 0) for r in rows if r.get("area", 0) > 0.01)
+    stop_n = sum(1 for r in rows if r.get("stop_triggered"))
+    if areas:
+        p85 = areas[int(len(areas) * 0.85)]
+        avg_a = round(sum(areas) / len(areas), 4)
+        rec = f"추천 임계값: **`{p85:.3f}`** (85퍼센타일, {len(areas)}개)  |  avg: {avg_a}  min: {areas[0]:.4f}  max: {areas[-1]:.4f}"
+    else:
+        rec = "_(area 데이터 없음)_"
+    summary = f"**{n}** 샘플  |  STOP 발생 **{stop_n}회**  |  {rec}"
     return table, summary
 
 
@@ -567,6 +596,26 @@ with gr.Blocks(
                 interactive=False,
             )
 
+            gr.Markdown("---")
+
+            # ── Calib Sessions ────────────────────────────────────────────
+            gr.Markdown("## 🔧 Calib 세션 (`calib_sessions/`)")
+            with gr.Row():
+                calib_dd = gr.Dropdown(
+                    choices=_list_jsonl(_CALIB_DIR, "calib_"),
+                    value=None, label="세션 파일", scale=4,
+                )
+                calib_load_btn = gr.Button("불러오기", scale=1)
+                calib_refresh_btn = gr.Button("🔄 목록 새로고침", scale=1)
+
+            calib_summary_md = gr.Markdown("_(세션을 선택하세요)_")
+            calib_table = gr.Dataframe(
+                headers=["n","area","cx","cy","lat(ms)","STOP?","시각","메모"],
+                datatype=["number","number","number","number","number","str","str","str"],
+                label="스텝별 캘리브레이션 데이터", elem_id="calib-table",
+                interactive=False,
+            )
+
             # ── 이벤트 ───────────────────────────────────────────────────
             def refresh_ep_csv():
                 rows, summary = load_episode_csv()
@@ -586,9 +635,22 @@ with gr.Blocks(
                 table, summary = drift_session_to_table(rows)
                 return table, summary
 
+            def load_calib(fname):
+                rows, _ = load_jsonl_session(_CALIB_DIR, fname)
+                if isinstance(rows, str):
+                    return [], rows
+                table, summary = calib_session_to_table(rows)
+                return table, summary
+
+            def refresh_calib_list():
+                files = _list_jsonl(_CALIB_DIR, "calib_")
+                return gr.update(choices=files, value=(files[0] if files else None))
+
             ep_csv_refresh.click(refresh_ep_csv, outputs=[ep_csv_table, ep_csv_summary])
             gnd_load_btn.click(load_gnd, inputs=gnd_dd, outputs=[gnd_table, gnd_summary])
             dft_load_btn.click(load_dft, inputs=dft_dd, outputs=[dft_table, dft_summary])
+            calib_load_btn.click(load_calib, inputs=calib_dd, outputs=[calib_table, calib_summary_md])
+            calib_refresh_btn.click(refresh_calib_list, outputs=calib_dd)
 
     # ── 초기 로드 (lazy) ─────────────────────────────────────────────
     def _init():

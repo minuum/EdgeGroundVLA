@@ -2628,6 +2628,76 @@ with gr.Blocks(
 
         _episode_log_state = gr.State([])
 
+      # ════════════════════════════════════════════════════════════════════
+      # 탭 5: STOP 캘리브레이션
+      # ════════════════════════════════════════════════════════════════════
+      with gr.Tab("🔧 STOP 캘리브레이션"):
+        with gr.Row(equal_height=False, elem_id="tab5-root"):
+
+          # ── 왼쪽: 카메라 + 게이지 ────────────────────────────────────
+          with gr.Column(scale=3):
+            camera_output_calib = gr.Image(label="📷 Live Camera", interactive=False)
+            with gr.Row():
+              calib_area_disp = gr.Textbox(label="bbox area",  value="—",      scale=2, max_lines=1, interactive=False)
+              calib_cx_disp   = gr.Textbox(label="cx",         value="—",      scale=1, max_lines=1, interactive=False)
+              calib_stop_disp = gr.Textbox(label="STOP 상태",  value="—",      scale=2, max_lines=1, interactive=False)
+              calib_rec_disp  = gr.Textbox(label="녹화",        value="■ 정지", scale=1, max_lines=1, interactive=False)
+
+            calib_gauge_md = gr.Markdown("_(area 게이지 — 카메라 앞으로 접근하면서 변화 확인)_")
+
+            gr.Markdown("---\n**📸 수동 조작 (Tab 4와 동일 조이스틱 사용)**")
+            with gr.Row():
+              c5_btn_q = gr.Button("↖Q", scale=1, size="sm")
+              c5_btn_w = gr.Button("▲W", scale=1, size="sm")
+              c5_btn_e = gr.Button("↗E", scale=1, size="sm")
+            with gr.Row():
+              c5_btn_a = gr.Button("◀A", scale=1, size="sm")
+              c5_btn_stop = gr.Button("⏹", variant="stop", scale=1, size="sm")
+              c5_btn_d = gr.Button("▶D", scale=1, size="sm")
+            with gr.Row():
+              c5_btn_r = gr.Button("↺R", scale=1, size="sm")
+              c5_btn_s = gr.Button("▼S", scale=1, size="sm")
+              c5_btn_t = gr.Button("↻T", scale=1, size="sm")
+            c5_speed_slider = gr.Slider(minimum=0.3, maximum=2.0, step=0.05, value=1.15, label="속도")
+
+          # ── 오른쪽: 임계값 + 세션 + 데이터 ──────────────────────────
+          with gr.Column(scale=2):
+            gr.Markdown("### 🎯 STOP 임계값 설정")
+            with gr.Row():
+              calib_thr_slider = gr.Slider(
+                  minimum=0.05, maximum=0.50, step=0.005, value=0.18,
+                  label="area 임계값 (서버 기본 0.18)", scale=4,
+              )
+              calib_apply_thr_btn = gr.Button("서버 적용", scale=1)
+            calib_thr_status = gr.Textbox(label="적용 결과", value="", interactive=False, max_lines=1)
+
+            gr.Markdown("---\n### 🎬 캘리브레이션 세션 녹화")
+            calib_session_name = gr.Textbox(
+                label="세션명 (비워두면 자동)", value="", placeholder="calib_YYYYMMDD_HHMMSS",
+                max_lines=1,
+            )
+            with gr.Row():
+              calib_start_rec_btn = gr.Button("⏺ 녹화 시작", variant="primary",  scale=2)
+              calib_stop_rec_btn  = gr.Button("⏹ 녹화 중지", variant="stop",      scale=2)
+              calib_snap_btn      = gr.Button("📸 스냅",      variant="secondary", scale=1)
+            with gr.Row():
+              calib_clear_btn = gr.Button("🗑 초기화",  scale=1)
+              calib_save_btn  = gr.Button("💾 저장",    variant="primary", scale=1)
+            calib_rec_status = gr.Textbox(label="", value="준비", interactive=False, max_lines=1)
+
+            calib_data_table = gr.Dataframe(
+                headers=["n", "area", "cx", "cy", "lat(ms)", "STOP?", "시각", "메모"],
+                datatype=["number","number","number","number","number","str","str","str"],
+                label="캡처 데이터 (최근 20개)",
+                interactive=False, row_count=8,
+            )
+
+            calib_recommend_md = gr.Markdown("_(데이터 캡처 후 추천 임계값 표시)_")
+            gr.Markdown(
+                "**📂 8083 뷰어에서 세션 확인**\n\n"
+                "`logs/calib_sessions/` → 8083 뷰어 「세션 로그」 탭 → Calib 섹션"
+            )
+
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
         inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box, toggle_cc],
@@ -3013,6 +3083,203 @@ with gr.Blocks(
         fn=_init_episode_log,
         outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
     )
+
+
+    # ── 탭5: STOP 캘리브레이션 ────────────────────────────────────────────
+    _CALIB_DIR = PROJECT_ROOT / "logs" / "calib_sessions"
+
+    timer.tick(fn=lambda: state.get("last_img"), outputs=camera_output_calib)
+
+    def _calib_tick():
+        import requests as _req5
+        import datetime as _dt5
+        area, cx, cy, latency, has_bbox = 0.0, 0.5, 0.5, 0.0, False
+        try:
+            r = _req5.get(f"{DEFAULT_API_URL}/recent", timeout=1.5)
+            preds = r.json().get("predictions", [])
+            if preds:
+                p = preds[0]
+                bbox = p.get("bbox", {})
+                area    = bbox.get("area", 0.0)
+                cx      = bbox.get("cx",   0.5)
+                cy      = bbox.get("cy",   0.5)
+                latency = p.get("latency_ms", 0.0)
+                has_bbox = bbox.get("has_bbox", False)
+        except Exception:
+            pass
+
+        thr = float(state.get("calib_thr", 0.18))
+        stop_triggered = has_bbox and area >= thr and abs(cx - 0.5) <= 0.25
+
+        # 자동 녹화: 2틱(~1s)마다 1 샘플
+        state["_calib_tick_n"] = state.get("_calib_tick_n", 0) + 1
+        if state.get("calib_recording") and state["_calib_tick_n"] % 2 == 0:
+            frames = state.get("calib_frames", [])
+            n = len(frames) + 1
+            frames.append({
+                "n": n, "area": round(area, 4), "cx": round(cx, 3),
+                "cy": round(cy, 3), "latency_ms": round(latency, 1),
+                "stop": "Y" if stop_triggered else "N",
+                "ts":   _dt5.datetime.now().strftime("%H:%M:%S"),
+                "note": "",
+            })
+            state["calib_frames"] = frames
+
+        # 표시값
+        area_s = f"{area:.4f}" if has_bbox else "—"
+        cx_s   = f"{cx:.3f}"   if has_bbox else "—"
+        stop_s = ("🔴 STOP!" if stop_triggered
+                  else ("🟡 근접" if area >= thr * 0.7 and has_bbox else "🟢 이동 중"))
+        rec_s  = "⏺ 녹화 중" if state.get("calib_recording") else "■ 정지"
+
+        # 게이지
+        MAX_A = 0.40
+        bar_n = min(40, int(area / MAX_A * 40))
+        thr_n = min(39, int(thr   / MAX_A * 40))
+        bar   = ["█" if i < bar_n else " " for i in range(40)]
+        # 임계 마커
+        bar[thr_n] = "┃"
+        gauge = (
+            f"```\n0.0 {''.join(bar)} 0.4\n"
+            f"    {' '*thr_n}↑{thr:.3f}  현재:{area:.4f}\n```"
+        )
+
+        # 데이터 테이블 (최근 20)
+        frames = state.get("calib_frames", [])
+        table = [
+            [f["n"], f["area"], f["cx"], f["cy"], f["latency_ms"], f["stop"], f["ts"], f["note"]]
+            for f in frames[-20:]
+        ]
+
+        # 추천 임계값
+        valid = [f for f in frames if f["area"] > 0.03]
+        if len(valid) >= 5:
+            areas = sorted(f["area"] for f in valid)
+            p85 = areas[int(len(areas) * 0.85)]
+            rec = (
+                f"**추천 임계값: `{p85:.3f}`**  "
+                f"(캡처 {len(valid)}개 기준, 85퍼센타일)\n\n"
+                f"현재 설정: `{thr:.3f}`  |  "
+                f"min: {min(areas):.4f}  max: {max(areas):.4f}"
+            )
+        else:
+            rec = f"_(5개 이상 필요 — 현재 {len(frames)}개)_"
+
+        return area_s, cx_s, stop_s, rec_s, gauge, table, rec
+
+    timer.tick(
+        fn=_calib_tick,
+        outputs=[calib_area_disp, calib_cx_disp, calib_stop_disp,
+                 calib_rec_disp, calib_gauge_md, calib_data_table, calib_recommend_md],
+    )
+
+    def calib_start(session_name):
+        import datetime as _dt5
+        state["calib_recording"] = True
+        state["calib_frames"]    = []
+        state["_calib_tick_n"]   = 0
+        fname = session_name.strip() or f"calib_{_dt5.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        state["calib_session_name"] = fname
+        return f"⏺ 녹화 시작 — {fname}"
+
+    def calib_stop_recording():
+        state["calib_recording"] = False
+        n = len(state.get("calib_frames", []))
+        return f"■ 정지 ({n}개 캡처됨)"
+
+    def calib_snap():
+        import requests as _req5
+        import datetime as _dt5
+        area, cx, cy, latency, has_bbox = 0.0, 0.5, 0.5, 0.0, False
+        try:
+            r = _req5.get(f"{DEFAULT_API_URL}/recent", timeout=2)
+            preds = r.json().get("predictions", [])
+            if preds:
+                p = preds[0]
+                bbox = p.get("bbox", {})
+                area    = bbox.get("area", 0.0)
+                cx      = bbox.get("cx",   0.5)
+                cy      = bbox.get("cy",   0.5)
+                latency = p.get("latency_ms", 0.0)
+                has_bbox = bbox.get("has_bbox", False)
+        except Exception:
+            pass
+        thr  = float(state.get("calib_thr", 0.18))
+        stop = has_bbox and area >= thr and abs(cx - 0.5) <= 0.25
+        frames = state.get("calib_frames", [])
+        n = len(frames) + 1
+        frames.append({
+            "n": n, "area": round(area, 4), "cx": round(cx, 3),
+            "cy": round(cy, 3), "latency_ms": round(latency, 1),
+            "stop": "Y" if stop else "N",
+            "ts":   _dt5.datetime.now().strftime("%H:%M:%S"),
+            "note": "manual",
+        })
+        state["calib_frames"] = frames
+        return f"📸 {n}번 스냅 (area={area:.4f})"
+
+    def calib_clear():
+        state["calib_frames"]    = []
+        state["calib_recording"] = False
+        return "🗑 초기화 완료", [], "_(데이터 없음)_"
+
+    def calib_apply_threshold(thr):
+        import requests as _req5
+        state["calib_thr"] = float(thr)
+        try:
+            r = _req5.post(
+                f"{DEFAULT_API_URL}/set_stop_threshold",
+                json={"stop_area_threshold": float(thr), "stop_cx_tolerance": 0.25},
+                timeout=3,
+            )
+            return f"✅ 서버 적용: area≥{thr:.3f}" if r.status_code == 200 else f"⚠️ {r.status_code} (로컬 적용만)"
+        except Exception as e:
+            return f"⚠️ 서버 오류: {e} (로컬 적용만)"
+
+    def calib_save(session_name):
+        import json as _json5
+        import datetime as _dt5
+        frames = state.get("calib_frames", [])
+        if not frames:
+            return "⚠️ 저장할 데이터 없음"
+        fname = (session_name.strip() or state.get("calib_session_name")
+                 or f"calib_{_dt5.datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        if not fname.endswith(".jsonl"):
+            fname += ".jsonl"
+        _CALIB_DIR.mkdir(parents=True, exist_ok=True)
+        out = _CALIB_DIR / fname
+        with open(out, "w") as f:
+            for frm in frames:
+                _json5.dump({
+                    "n":              frm["n"],
+                    "ts":             frm["ts"],
+                    "has_bbox":       frm["area"] > 0.01,
+                    "area":           frm["area"],
+                    "cx":             frm["cx"],
+                    "cy":             frm["cy"],
+                    "latency_ms":     frm["latency_ms"],
+                    "pred_label":     frm["note"],
+                    "stop_triggered": frm["stop"] == "Y",
+                }, f)
+                f.write("\n")
+        return f"✅ 저장: {out.name} ({len(frames)}개)"
+
+    calib_start_rec_btn.click(fn=calib_start, inputs=calib_session_name, outputs=calib_rec_status)
+    calib_stop_rec_btn.click(fn=calib_stop_recording, outputs=calib_rec_status)
+    calib_snap_btn.click(fn=calib_snap, outputs=calib_rec_status)
+    calib_clear_btn.click(fn=calib_clear, outputs=[calib_rec_status, calib_data_table, calib_recommend_md])
+    calib_save_btn.click(fn=calib_save, inputs=calib_session_name, outputs=calib_rec_status)
+    calib_apply_thr_btn.click(fn=calib_apply_threshold, inputs=calib_thr_slider, outputs=calib_thr_status)
+
+    c5_directions = {
+        c5_btn_w: "W", c5_btn_s: "S", c5_btn_a: "A", c5_btn_d: "D",
+        c5_btn_q: "Q", c5_btn_e: "E", c5_btn_r: "R", c5_btn_t: "T",
+        c5_btn_stop: "STOP",
+    }
+    for _c5b, _c5d in c5_directions.items():
+        _c5b.click(fn=handle_control, inputs=[gr.State(_c5d), c5_speed_slider], outputs=calib_rec_status)
+
+    c5_speed_slider.change(fn=_sync_js_speed, inputs=c5_speed_slider)
 
 
 if __name__ == "__main__":
