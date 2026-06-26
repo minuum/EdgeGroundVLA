@@ -1260,7 +1260,8 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
             gr.update(),
         )
 
-    state["auto_inference"] = mode == "Inference (Auto)"
+    # is_running=True (Tab4 START 등)이면 mode_radio 값과 무관하게 inference 활성
+    state["auto_inference"] = (mode == "Inference (Auto)") or state["is_running"]
     state["infer_move_mode"] = infer_move_mode or state.get("infer_move_mode") or "SYNC"
 
     if not ROS_AVAILABLE:
@@ -1382,6 +1383,15 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
         state["model_path"] = info.get("checkpoint_path", state["model_path"])
         state["model_status"] = f"{backend_mode} ({info.get('precision', 'N/A')})"
     return annotate_image(img), f"📡 Live | {state['current_log']}", "N/A", "N/A", "N/A", gr.update(), state["camera_status"], state["model_path"], None
+
+
+def _update_ui_and_cache(*args, **kwargs):
+    result = update_ui(*args, **kwargs)
+    if isinstance(result, tuple) and len(result) >= 4:
+        for i, key in [(1, "_t4_log"), (2, "_t4_lat"), (3, "_t4_act")]:
+            if isinstance(result[i], str):
+                state[key] = result[i]
+    return result
 
 
 def handle_control(direction, speed=1.15):
@@ -2640,7 +2650,7 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
     _ui_outputs = [camera_output, status_log, latency_val, action_val, chunk_val, run_status_box, camera_status, model_path, traj_plot]
 
     timer = gr.Timer(0.5, active=True)
-    timer.tick(fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs)
+    timer.tick(fn=_update_ui_and_cache, inputs=_ui_inputs, outputs=_ui_outputs)
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
     timer.tick(fn=_js_status_text, outputs=js_status)
     timer.tick(fn=_run_history_rows, outputs=run_history_table)
@@ -2758,6 +2768,9 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
     # ── 탭4: 경로 검증(Path Test) — 탭1 state/함수 재사용, 탭1 코드 무수정 ──
     # 카메라: state["last_img"]는 탭1 update_ui가 매 0.5s 갱신 → 별도 backend 호출 없음
     timer.tick(fn=lambda: state.get("last_img"), outputs=camera_output_test)
+    timer.tick(fn=lambda: state.get("_t4_log", "Ready"), outputs=status_log_test)
+    timer.tick(fn=lambda: state.get("_t4_lat", "0 ms"), outputs=latency_val_test)
+    timer.tick(fn=lambda: state.get("_t4_act", "0, 0, 0"), outputs=action_val_test)
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display_test)
     timer.tick(fn=_js_status_text, outputs=js_status_test)
 
