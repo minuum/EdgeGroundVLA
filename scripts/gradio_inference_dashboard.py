@@ -2620,7 +2620,7 @@ with gr.Blocks(
             episode_log_table = gr.Dataframe(
                 headers=["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모"],
                 datatype=["number","str","str","number","number","str","number","number","number","str","number","str"],
-                label="에피소드 기록 (세션) — 세션 그라운딩/액션 자동 수집",
+                label="에피소드 기록 (누적 — 세션 간 유지)",
                 row_count=11,
                 col_count=12,
                 interactive=False,
@@ -2839,10 +2839,93 @@ with gr.Blocks(
 
     t4_speed_slider.change(fn=_sync_js_speed, inputs=t4_speed_slider)
 
+    # ── 누적 에피소드 로그 영구 저장 경로 ─────────────────────────────
+    _EPISODE_CSV = PROJECT_ROOT / "logs" / "episode_log.csv"
+    _EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜"]
+
+    def _load_episode_csv() -> list:
+        import csv as _csv
+        if not _EPISODE_CSV.exists():
+            return []
+        rows = []
+        with open(_EPISODE_CSV, newline="", encoding="utf-8") as f:
+            reader = _csv.reader(f)
+            next(reader, None)  # 헤더 건너뜀
+            for row in reader:
+                if not row:
+                    continue
+                # 숫자 컬럼 캐스팅 (호환성: 컬럼 수 부족한 구버전 CSV 패딩)
+                while len(row) < 13:
+                    row.append("")
+                try:
+                    row[0]  = int(row[0])   if row[0]  else 0
+                    row[3]  = int(row[3])   if row[3]  else 0
+                    row[4]  = float(row[4]) if row[4]  else 0.0
+                    row[6]  = float(row[6]) if row[6]  else 0.0
+                    row[7]  = float(row[7]) if row[7]  else 0.0
+                    row[8]  = float(row[8]) if row[8]  else 0.0
+                    row[10] = float(row[10]) if row[10] else 0.0
+                except Exception:
+                    pass
+                rows.append(row[:13])
+        return rows
+
+    def _append_episode_csv(row: list):
+        import csv as _csv
+        import datetime as _dt3
+        _EPISODE_CSV.parent.mkdir(parents=True, exist_ok=True)
+        write_header = not _EPISODE_CSV.exists()
+        with open(_EPISODE_CSV, "a", newline="", encoding="utf-8") as f:
+            w = _csv.writer(f)
+            if write_header:
+                w.writerow(_EP_HEADERS)
+            w.writerow(row + [_dt3.datetime.now().strftime("%Y-%m-%d %H:%M")])
+
+    def _overwrite_episode_csv(rows: list):
+        import csv as _csv
+        _EPISODE_CSV.parent.mkdir(parents=True, exist_ok=True)
+        with open(_EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+            w = _csv.writer(f)
+            w.writerow(_EP_HEADERS)
+            w.writerows(rows)
+
+    def _build_summary(log_list):
+        """log_list → (prog_str, path_summary_rows). 공통 로직."""
+        done_total = {k: 0 for k in PATH_TYPES}
+        done_succ  = {k: 0 for k in PATH_TYPES}
+        success_count = 0
+        for r in log_list:
+            pt = str(r[1]).replace(" ★", "").replace("★", "")
+            done_total[pt] = done_total.get(pt, 0) + 1
+            if r[2] == "성공":
+                done_succ[pt]  = done_succ.get(pt, 0) + 1
+                success_count += 1
+        total = len(log_list)
+        prog  = f"{total}ep  성공 {success_count}  (목표 7/11)"
+        tbl = []
+        for suffix in ("left", "straight", "right"):
+            lk = f"left_{suffix}"
+            ck = f"center_{suffix}"
+            rk = f"right_{'right' if suffix == 'left' else ('straight' if suffix == 'straight' else 'left')}"
+            tbl.append([
+                lk, done_total[lk], done_succ[lk],
+                ck, done_total[ck], done_succ[ck],
+                rk + (" ★" if rk == "right_left" else ""), done_total.get(rk, 0), done_succ.get(rk, 0),
+            ])
+        return prog, tbl
+
+    def _init_episode_log():
+        rows = _load_episode_csv()
+        # 번호 재정렬
+        for i, r in enumerate(rows):
+            r[0] = i + 1
+        prog, tbl = _build_summary(rows)
+        return rows, rows, prog, tbl
+
     def log_episode(path_type, success, fpe, note, log_list):
         import requests as _req
 
-        # ── 1. API /recent 에서 최신 bbox ──────────────────────────────
+        # 1. bbox
         area, cx = 0.0, 0.5
         try:
             r = _req.get(f"{DEFAULT_API_URL}/recent", timeout=2)
@@ -2854,11 +2937,8 @@ with gr.Blocks(
             pass
         stop_flag = "Y" if area >= 0.18 else "N"
 
-        # ── 2. 현재 세션 (inference_logger) 에서 통계 수집 ─────────────
-        steps = 0
-        avg_lat = 0.0
-        top_action = "—"
-        gnd_pct = 0.0
+        # 2. inference_logger 세션 통계
+        steps, avg_lat, top_action, gnd_pct = 0, 0.0, "—", 0.0
         try:
             if logger_instance and hasattr(logger_instance, "data") and logger_instance.data:
                 hist = logger_instance.data.get("history", [])
@@ -2877,36 +2957,12 @@ with gr.Blocks(
         row = [
             len(log_list) + 1, path_type, success,
             steps, avg_lat, top_action, gnd_pct,
-            round(area, 3), round(cx, 2), stop_flag,
-            fpe, note,
+            round(area, 3), round(cx, 2), stop_flag, fpe, note,
         ]
+        _append_episode_csv(row)
         log_list = log_list + [row]
-
-        done_total = {k: 0 for k in PATH_TYPES}
-        done_succ  = {k: 0 for k in PATH_TYPES}
-        success_count = 0
-        for r in log_list:
-            pt = r[1]
-            done_total[pt] = done_total.get(pt, 0) + 1
-            if r[2] == "성공":
-                done_succ[pt] = done_succ.get(pt, 0) + 1
-                success_count += 1
-        total = len(log_list)
-        prog = f"{total}ep  성공 {success_count}  (목표 7/11)"
-
-        # 3×9 요약 테이블: 좌/중/우 그룹 × [_left, _straight, _right] 행
-        # 우측 그룹은 x축 대칭으로 right_right / right_straight / right_left 순
-        rows = []
-        for suffix in ("left", "straight", "right"):
-            lk = f"left_{suffix}"
-            ck = f"center_{suffix}"
-            rk = f"right_{'right' if suffix == 'left' else ('straight' if suffix == 'straight' else 'left')}"
-            rows.append([
-                lk, done_total[lk], done_succ[lk],
-                ck, done_total[ck], done_succ[ck],
-                rk + (" ★" if rk == "right_left" else ""), done_total.get(rk, 0), done_succ.get(rk, 0),
-            ])
-        return log_list, log_list, prog, rows
+        prog, tbl = _build_summary(log_list)
+        return log_list, log_list, prog, tbl
 
     btn_log_episode.click(
         fn=log_episode,
@@ -2915,52 +2971,31 @@ with gr.Blocks(
     )
 
     def export_episode_log(log_list):
-        import csv
+        import csv as _csv2
         import datetime as _dt2
         out_path = PROJECT_ROOT / "logs" / f"realtest_{_dt2.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        with open(out_path, "w", newline="") as f:
-            w = csv.writer(f)
-            w.writerow(["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모"])
+        with open(out_path, "w", newline="", encoding="utf-8") as f:
+            w = _csv2.writer(f)
+            w.writerow(_EP_HEADERS)
             w.writerows(log_list)
         return f"✅ 저장: {out_path}"
 
     btn_export_test.click(fn=export_episode_log, inputs=[_episode_log_state], outputs=export_status_test)
 
-    def _recompute_summary(log_list):
-        done_total = {k: 0 for k in PATH_TYPES}
-        done_succ  = {k: 0 for k in PATH_TYPES}
-        success_count = 0
-        for r in log_list:
-            pt = r[1]
-            done_total[pt] = done_total.get(pt, 0) + 1
-            if r[2] == "성공":
-                done_succ[pt] = done_succ.get(pt, 0) + 1
-                success_count += 1
-        total = len(log_list)
-        prog = f"{total}ep  성공 {success_count}  (목표 7/11)"
-        rows = []
-        for suffix in ("left", "straight", "right"):
-            lk = f"left_{suffix}"
-            ck = f"center_{suffix}"
-            rk = f"right_{'right' if suffix == 'left' else ('straight' if suffix == 'straight' else 'left')}"
-            rows.append([
-                lk, done_total[lk], done_succ[lk],
-                ck, done_total[ck], done_succ[ck],
-                rk + (" ★" if rk == "right_left" else ""), done_total.get(rk, 0), done_succ.get(rk, 0),
-            ])
-        return log_list, log_list, prog, rows
-
     def undo_episode(log_list):
         new_list = log_list[:-1] if log_list else []
-        return _recompute_summary(new_list)
+        # 번호 재정렬 후 CSV 덮어쓰기
+        for i, r in enumerate(new_list):
+            r[0] = i + 1
+        _overwrite_episode_csv(new_list)
+        prog, tbl = _build_summary(new_list)
+        return new_list, new_list, prog, tbl
 
     def clear_episodes(_log_list):
-        empty = []
-        return empty, empty, "0ep  성공 0  (목표 7/11)", [
-            ["left_left",0,0, "center_left",0,0, "right_right",0,0],
-            ["left_straight",0,0, "center_straight",0,0, "right_straight",0,0],
-            ["left_right",0,0, "center_right",0,0, "right_left★",0,0],
-        ]
+        if _EPISODE_CSV.exists():
+            _EPISODE_CSV.unlink()
+        prog, tbl = _build_summary([])
+        return [], [], prog, tbl
 
     btn_undo_episode.click(
         fn=undo_episode,
@@ -2970,6 +3005,12 @@ with gr.Blocks(
     btn_clear_episode.click(
         fn=clear_episodes,
         inputs=[_episode_log_state],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+    )
+
+    # 페이지 열릴 때 과거 기록 복원
+    demo.load(
+        fn=_init_episode_log,
         outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
     )
 
