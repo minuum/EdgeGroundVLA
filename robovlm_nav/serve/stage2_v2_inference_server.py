@@ -518,8 +518,9 @@ class Stage2V2Model:
     # ── CH54: PG2 재시도 루프 helpers ───────────────────────────────────────
 
     def _needs_preview(self, bbox: dict) -> bool:
-        """PG2 그라운딩 결과가 불충분한지 판단."""
-        return (not bbox.get("has_bbox", False)) or (float(bbox.get("area", 0.0)) < self._preview_area_thresh)
+        """PG2 bbox 미탐지(has_bbox=False) 시에만 회전 필요 판단.
+        area<thresh but has_bbox=True 케이스는 basket이 보이므로 VLA가 처리."""
+        return not bbox.get("has_bbox", False)
 
     def _preview_rot_from_bbox(self, bbox: dict) -> int:
         """
