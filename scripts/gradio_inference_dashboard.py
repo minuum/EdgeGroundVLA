@@ -3315,6 +3315,30 @@ with gr.Blocks(
 
     c5_speed_slider.change(fn=_sync_js_speed, inputs=c5_speed_slider)
 
+    # ── 대시보드 재시작 (맨 아래 고정) ───────────────────────────────────
+    gr.Markdown("---\n### 🔄 대시보드 재시작  _(코드 업데이트 후 현재 프로세스 종료 → 새 버전으로 즉시 재기동)_")
+    with gr.Row():
+        restart_btn    = gr.Button("🔄 지금 재시작", variant="stop", scale=1, min_width=140)
+        restart_status = gr.Textbox(label="", value="", interactive=False, scale=4, max_lines=1)
+
+    def do_restart():
+        import subprocess as _sp2
+        import sys as _sys2
+        import threading as _th2
+        def _exec():
+            import time as _t2
+            _t2.sleep(1.5)
+            _sp2.Popen(
+                [_sys2.executable] + _sys2.argv,
+                close_fds=True,
+                start_new_session=True,
+            )
+            _sys2.exit(0)
+        _th2.Thread(target=_exec, daemon=True).start()
+        return "⏳ 1.5s 후 재시작... 페이지를 새로고침하세요"
+
+    restart_btn.click(fn=do_restart, outputs=restart_status)
+
 
 if __name__ == "__main__":
     import socket
