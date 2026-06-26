@@ -13,7 +13,7 @@ Environment variables:
   VLA_GROUNDING_MODEL_PATH  path to Kosmos-2 model dir (.vlms/kosmos-2-patch14-224)
   VLA_PG2_PATH              path to PaliGemma2 model dir (default: HF cache)
   VLA_PORT                  server port (default: 8001)
-  VLA_GROUNDING_SKIP_N      run grounding every N steps, cache in between (default: 1)
+  VLA_GROUNDING_SKIP_N      run grounding every N steps, cache in between (default: 3, CH49 확정)
   VLA_STOP_MODE             STOP 결정 방식: proximity (기본) | learned
                               proximity: area+cx threshold로 강제 override
                               learned:   모델이 STOP(class 0) 예측 시 latch (한 번 멈추면 유지)
@@ -433,7 +433,7 @@ class Stage2V2Model:
         self.device = device
         self.vlm_path = vlm_path
         self.inference_count = 0
-        self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "1"))
+        self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "3"))  # CH49: skip_n=3 SR/FPE 변화 없음 확정
         self._grounding_cache: Optional[dict] = None
 
         # Stage1 (Kosmos-2 vision encoder — image features only)
