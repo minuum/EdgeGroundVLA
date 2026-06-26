@@ -1467,22 +1467,43 @@ def reset_model_wrapper(backend_mode: str, api_url: str, instruction: str):
 
 def _make_env_banner() -> str:
     import socket as _sock
+    import requests as _req
     hostname = _sock.gethostname()
     role = os.getenv("VLA_SERVER_ROLE", "unknown")
-    model = os.getenv("VLA_MODEL", "exp66")
     api = os.getenv("VLA_API_SERVER", "http://localhost:8001")
     exp_name = EXP_MODE_NAMES[0] if EXP_MODE_NAMES else "—"
+
+    # API 서버 실시간 상태
+    srv_color = "#ef4444"
+    srv_label = "❌ 서버 오프라인"
+    model_label = os.getenv("VLA_MODEL", "—")
+    try:
+        info = _req.get(f"{api}/health", timeout=1.5).json()
+        if info.get("model_loaded"):
+            srv_color = "#22c55e"
+            srv_label = f"✅ {info.get('head','?')} w={info.get('window','?')} | GPU {info.get('gpu',{}).get('allocated_gb','?'):.2f}GB"
+            ckpt = info.get("checkpoint_path", "")
+            if ckpt:
+                model_label = Path(ckpt).stem[:28]
+        else:
+            srv_color = "#f59e0b"
+            srv_label = "⚠️ 서버 온라인 (모델 미로드)"
+    except Exception:
+        pass
+
     return (
-        f'<div style="background:#0f172a;border-left:4px solid #22c55e;padding:10px 14px;'
+        f'<div style="background:#0f172a;border-left:4px solid {srv_color};padding:10px 14px;'
         f'border-radius:4px;margin-bottom:12px;color:#e2e8f0;font-size:0.88rem;line-height:1.6;">'
         f'<strong style="color:#4ade80;font-size:0.95rem;">MoNaVLA 환경</strong>'
         f'&nbsp;&nbsp;|&nbsp;&nbsp;'
         f'<code style="color:#86efac">{hostname}</code>'
         f'&nbsp;(<span style="color:#fbbf24">{role}</span>)'
         f'&nbsp;&nbsp;|&nbsp;&nbsp;'
-        f'모델&nbsp;<code style="color:#67e8f9">{model}</code>'
+        f'모델&nbsp;<code style="color:#67e8f9">{model_label}</code>'
         f'&nbsp;&nbsp;|&nbsp;&nbsp;'
         f'API&nbsp;<code style="color:#a5b4fc">{api}</code>'
+        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
+        f'<span style="color:{srv_color}">{srv_label}</span>'
         f'&nbsp;&nbsp;|&nbsp;&nbsp;'
         f'실험&nbsp;<span style="color:#f9a8d4">{exp_name}</span>'
         f'</div>'
@@ -1540,7 +1561,8 @@ with gr.Blocks(
     ),
 ) as demo:
     gr.Markdown("# MoNaVLA Real-time Dashboard")
-    gr.HTML(_make_env_banner())
+    _env_banner = gr.HTML(_make_env_banner())
+    _banner_timer = gr.Timer(10.0, active=True)
 
     _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
     _cam_start_btn.click(fn=start_camera, outputs=_cam_st)
@@ -2677,6 +2699,8 @@ with gr.Blocks(
     timer.tick(fn=_get_bbox_area_display, outputs=bbox_area_display)
     timer.tick(fn=_js_status_text, outputs=js_status)
     timer.tick(fn=_run_history_rows, outputs=run_history_table)
+    # 환경 배너 10초마다 갱신 (API 서버 상태 실시간 반영)
+    _banner_timer.tick(fn=_make_env_banner, outputs=_env_banner)
     # 페이지 열리자마자 첫 프레임 즉시 표시
     demo.load(fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs)
     # 카메라 시작 버튼 완료 후 즉시 프레임 가져오기
