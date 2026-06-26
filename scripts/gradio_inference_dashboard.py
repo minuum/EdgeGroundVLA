@@ -2440,146 +2440,119 @@ with gr.Blocks(title="MoNaVLA Dashboard", css=_FONT_SCALE_CSS) as demo:
       # ────────────────────────────────────────────────────────────────
       with gr.Tab("🧪 경로 검증 (Path Test)"):
         with gr.Row(equal_height=False):
-          # ── 왼쪽: 카메라 + 상태 모니터링 (Tab1 미러) ──────────────────
+
+          # ── 왼쪽: 카메라 + 모니터링 + 경로표 + 에피소드 기록 ─────────
+          with gr.Column(scale=3):
+            camera_output_test = gr.Image(label="📷 Live Camera", interactive=False)
+
+            # 카메라 아래: 모니터링 4개 + Run Status 한 줄로
+            with gr.Row():
+              status_log_test    = gr.Textbox(label="Status",   value="Ready",   scale=3, max_lines=1)
+              latency_val_test   = gr.Textbox(label="Latency",  value="0 ms",    scale=1, max_lines=1)
+              action_val_test    = gr.Textbox(label="Action",   value="0, 0, 0", scale=2, max_lines=1)
+              bbox_area_display_test = gr.Textbox(label="bbox area/cx", value="—", scale=2, max_lines=1, interactive=False)
+              run_status_test    = gr.Textbox(label="Run",      value="Stopped", scale=1, max_lines=1, interactive=False)
+
+            # 경로표(좌) + 배치도+기록(우) 2열
+            with gr.Row():
+              with gr.Column(scale=1):
+                gr.Markdown(
+                    "**📋 V5 9종 경로** (목표 7/11)\n\n"
+                    "| 경로 | 시작 | 방향 |\n"
+                    "|---|---|---|\n"
+                    "| L\\_L | 좌 | 좌회전 |\n"
+                    "| L\\_S | 좌 | 직진 |\n"
+                    "| L\\_R | 좌 | 우회전 |\n"
+                    "| C\\_L | 중 | 좌회전 |\n"
+                    "| C\\_S | 중 | 직진 ✅ |\n"
+                    "| C\\_R | 중 | 우회전 |\n"
+                    "| R\\_L | 우 | 좌회전 ★ |\n"
+                    "| R\\_S | 우 | 직진 |\n"
+                    "| R\\_R | 우 | 우회전 |\n\n"
+                    "```\n"
+                    " ▦      ▦      ▦\n"
+                    " │      │      │\n"
+                    "╱│╲    ╱│╲    ╱│╲\n"
+                    "L_L S R C_L S R R_R S L\n"
+                    " 🤖L    🤖C    🤖R\n"
+                    "```"
+                )
+              with gr.Column(scale=2):
+                progress_test = gr.Textbox(label="총 진행률", value="0ep  성공 0  (목표 7/11)", interactive=False, max_lines=1)
+                path_summary_table = gr.Dataframe(
+                    headers=["경로", "총", "✓", "경로", "총", "✓", "경로", "총", "✓"],
+                    datatype=["str","number","number","str","number","number","str","number","number"],
+                    value=[
+                        ["left_left",0,0, "center_left",0,0, "right_right",0,0],
+                        ["left_straight",0,0, "center_straight",0,0, "right_straight",0,0],
+                        ["left_right",0,0, "center_right",0,0, "right_left★",0,0],
+                    ],
+                    label="경로별 집계",
+                    row_count=3,
+                    col_count=9,
+                    interactive=False,
+                )
+                with gr.Row():
+                  path_type_test = gr.Dropdown(choices=PATH_TYPES, value="right_left", label="경로 타입", scale=2)
+                  success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=1)
+                with gr.Row():
+                  fpe_test   = gr.Slider(minimum=0.0, maximum=5.0, step=0.05, value=0.0, label="FPE(m)", scale=3)
+                  note_test  = gr.Textbox(label="메모", value="", scale=3)
+                  btn_log_episode = gr.Button("📝 기록", variant="primary", scale=1)
+                with gr.Row():
+                  btn_export_test    = gr.Button("💾 CSV", scale=1)
+                  export_status_test = gr.Textbox(label="", value="", interactive=False, scale=3, max_lines=1)
+
+          # ── 오른쪽: 제어 + 에피소드 로그 ──────────────────────────────
           with gr.Column(scale=2):
-            gr.Markdown("## 📷 Live Camera")
-            camera_output_test = gr.Image(label="Live Camera", interactive=False)
-            gr.Markdown("🟢 탭1 state 공유 — 추론/주행 상태 동기화됨")
-
-          with gr.Column(scale=1):
-            gr.Markdown("## 📡 모니터링")
-            status_log_test = gr.Textbox(label="Status", value="Ready")
-            latency_val_test = gr.Textbox(label="Latency", value="0 ms")
-            action_val_test = gr.Textbox(label="Predicted Action [lx, ly, az]", value="0, 0, 0")
-            bbox_area_display_test = gr.Textbox(label="bbox area/cx (STOP 판단)", value="—", interactive=False)
-            run_status_test = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
-
-          # ── 오른쪽: 매트릭스 표 + 에피소드 기록 ──────────────────────
-          with gr.Column(scale=1):
-            gr.Markdown(
-                "## 📋 V5 정형 경로 9종\n\n"
-                "경로명 = **[로봇 시작 위치]\\_[이동 방향]** (바스켓은 항상 정면 고정)\n\n"
-                "| 경로 타입 | 시작 | 방향 | 11ep 검증 |\n"
-                "|---|---|---|---|\n"
-                "| left\\_left | 좌측 | 좌회전 | |\n"
-                "| left\\_straight | 좌측 | 직진 | |\n"
-                "| left\\_right | 좌측 | 우회전 | ≈left\\_diag |\n"
-                "| center\\_left | 중앙 | 좌회전 | ≈curve |\n"
-                "| center\\_straight | 중앙 | 직진 | ✅ 3회 |\n"
-                "| center\\_right | 중앙 | 우회전 | ≈curve |\n"
-                "| right\\_left | 우측 | 좌회전 | ≈right\\_diag ★ |\n"
-                "| right\\_straight | 우측 | 직진 | |\n"
-                "| right\\_right | 우측 | 우회전 | |\n\n"
-                "**11ep 검증 목표: 7/11 (63.6%) 이상**\n\n"
-                "---\n\n"
-                "### 🗺️ Top-Down 배치도\n\n"
-                "▦ = 바스켓 (공통 목표, 항상 정면 고정) | 경로명 = [시작위치]_[꺾는방향]\n\n"
-                "```\n"
-                "   ▦                  ▦                  ▦\n"
-                "   │                  │                  │\n"
-                "  ╱│╲                ╱│╲                ╱│╲\n"
-                " ╱ │ ╲              ╱ │ ╲              ╱ │ ╲\n"
-                "L_L L_S L_R      C_L C_S C_R      R_R R_S R_L\n"
-                "←바깥  안→       ←좌   우→       ←바깥  안→\n"
-                "      🤖L                🤖C                🤖R\n"
-                "   (좌측 출발)        (중앙 출발)        (우측 출발)\n"
-                "```\n\n"
-                "- 좌측 그룹: L\\_L(더 좌로) · L\\_S(직진) · L\\_R(우로 꺾어 바스켓 접근)  \n"
-                "- 중앙 그룹: C\\_L(좌로) · C\\_S(직진) · C\\_R(우로)  \n"
-                "- 우측 그룹: R\\_R(더 우로) · R\\_S(직진) · R\\_L(좌로 꺾어 바스켓 접근) ★"
-            )
-            progress_test = gr.Textbox(label="총 진행률", value="0ep  성공 0  (목표 7/11)", interactive=False)
-            path_summary_table = gr.Dataframe(
-                headers=["경로", "총", "성공", "경로", "총", "성공", "경로", "총", "성공"],
-                datatype=["str","number","number","str","number","number","str","number","number"],
-                value=[
-                    ["left_left",0,0, "center_left",0,0, "right_right",0,0],
-                    ["left_straight",0,0, "center_straight",0,0, "right_straight",0,0],
-                    ["left_right",0,0, "center_right",0,0, "right_left ★",0,0],
-                ],
-                label="경로별 에피소드 집계 (실시간)",
-                row_count=3,
-                col_count=9,
-                interactive=False,
-            )
-            path_type_test = gr.Dropdown(
-                choices=PATH_TYPES,
-                value="right_left",
-                label="이번 에피소드 경로 타입",
-            )
-            success_test = gr.Radio(choices=["성공", "실패"], value="성공", label="결과")
-            fpe_test = gr.Slider(minimum=0.0, maximum=5.0, step=0.05, value=0.0, label="FPE 추정(육안, m)")
-            note_test = gr.Textbox(label="특이사항", value="")
-            btn_log_episode = gr.Button("📝 에피소드 기록", variant="primary")
-            with gr.Row():
-                btn_export_test = gr.Button("💾 CSV 저장", scale=2)
-                export_status_test = gr.Textbox(label="", value="", interactive=False, scale=3)
-
-        # ── 하단 전체 너비: 제어 + 기록 테이블 ───────────────────────────
-        with gr.Column():
-          gr.Markdown("## 🎮 Operation Mode")
-          with gr.Group():
-            with gr.Row():
+            with gr.Group():
+              with gr.Row():
                 mode_radio_test = gr.Radio(
                     choices=["Manual Drive", "Inference (Auto)"],
                     value="Manual Drive",
-                    label="Controller Mode",
+                    label="🎮 Mode",
                     scale=1,
                 )
                 with gr.Column(visible=False) as inference_panel_test:
-                    gr.Markdown("#### 🏁 Inference Control")
-                    infer_move_radio_test = gr.Radio(
-                        choices=["SYNC", "PRE", "ASYNC"],
-                        value="SYNC",
-                        label="이동 모드",
-                    )
+                    infer_move_radio_test = gr.Radio(choices=["SYNC", "PRE", "ASYNC"], value="SYNC", label="이동 모드")
                     with gr.Row():
-                        btn_start_test = gr.Button("▶️ START", variant="primary", scale=1)
-                        btn_stop_test = gr.Button("⏹️ STOP", variant="stop", scale=1)
-                        btn_return_test = gr.Button("🔄 복귀", variant="secondary", scale=1)
+                        btn_start_test  = gr.Button("▶️ START",  variant="primary",   scale=1)
+                        btn_stop_test   = gr.Button("⏹️ STOP",   variant="stop",      scale=1)
+                        btn_return_test = gr.Button("🔄 복귀",   variant="secondary", scale=1)
 
             def on_mode_change_test(selected_mode):
                 return gr.update(visible=selected_mode == "Inference (Auto)")
             mode_radio_test.change(fn=on_mode_change_test, inputs=[mode_radio_test], outputs=[inference_panel_test])
 
-          with gr.Row():
-            with gr.Column(scale=1, min_width=200):
-              with gr.Group():
-                gr.Markdown("### 🎮 Manual Controls")
-                t4_speed_slider = gr.Slider(
-                    minimum=0.3, maximum=2.0, step=0.05, value=1.15,
-                    label="속도 (lx/ly/az 크기)",
-                )
+            with gr.Row():
+              with gr.Column(scale=1):
+                gr.Markdown("**🎮 Manual**")
+                t4_speed_slider = gr.Slider(minimum=0.3, maximum=2.0, step=0.05, value=1.15, label="속도")
                 with gr.Row():
-                    t4_btn_q = gr.Button("↖ Q", scale=1, size="sm")
-                    t4_btn_w = gr.Button("▲ W", scale=1, size="sm")
-                    t4_btn_e = gr.Button("↗ E", scale=1, size="sm")
+                    t4_btn_q = gr.Button("↖Q", scale=1, size="sm")
+                    t4_btn_w = gr.Button("▲W", scale=1, size="sm")
+                    t4_btn_e = gr.Button("↗E", scale=1, size="sm")
                 with gr.Row():
-                    t4_btn_a = gr.Button("◀ A", scale=1, size="sm")
-                    t4_btn_stop = gr.Button("⏹ STOP", variant="stop", scale=1, size="sm")
-                    t4_btn_d = gr.Button("▶ D", scale=1, size="sm")
+                    t4_btn_a = gr.Button("◀A", scale=1, size="sm")
+                    t4_btn_stop = gr.Button("⏹", variant="stop", scale=1, size="sm")
+                    t4_btn_d = gr.Button("▶D", scale=1, size="sm")
                 with gr.Row():
-                    t4_btn_r = gr.Button("↺ R (CCW)", scale=1, size="sm")
-                    t4_btn_s = gr.Button("▼ S", scale=1, size="sm")
-                    t4_btn_t = gr.Button("↻ T (CW)", scale=1, size="sm")
-
-            with gr.Column(scale=1, min_width=200):
-              with gr.Group():
-                gr.Markdown("### 🕹️ Joystick 상태")
+                    t4_btn_r = gr.Button("↺R", scale=1, size="sm")
+                    t4_btn_s = gr.Button("▼S", scale=1, size="sm")
+                    t4_btn_t = gr.Button("↻T", scale=1, size="sm")
+              with gr.Column(scale=1):
+                gr.Markdown("**🕹️ Joystick**")
                 js_status_test = gr.Textbox(label="상태", value="🔌 초기화 중...", interactive=False)
-                gr.Markdown(
-                    "<small>Left Stick → 이동 | Right Stick X → 회전 | A → STOP</small>"
-                )
+                gr.Markdown("<small>Left → 이동 | Right X → 회전 | A → STOP</small>")
 
-            with gr.Column(scale=2):
-              episode_log_table = gr.Dataframe(
-                  headers=["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "특이사항"],
-                  datatype=["number", "str", "str", "str", "number", "number", "number", "str"],
-                  label="에피소드 기록 (누적, 세션 단위)",
-                  row_count=11,
-                  col_count=8,
-                  interactive=False,
-              )
+            episode_log_table = gr.Dataframe(
+                headers=["#", "경로타입", "결과", "STOP", "area", "cx", "FPE(m)", "메모"],
+                datatype=["number", "str", "str", "str", "number", "number", "number", "str"],
+                label="에피소드 기록 (세션)",
+                row_count=11,
+                col_count=8,
+                interactive=False,
+            )
 
         _episode_log_state = gr.State([])
 
