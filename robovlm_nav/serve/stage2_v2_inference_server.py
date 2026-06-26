@@ -614,10 +614,11 @@ class Stage2V2Model:
 
         if STOP_MODE == "learned":
             # 모델이 STOP(0) 예측 → latch. 한 번 멈추면 reset() 전까지 유지.
+            # has_bbox=False(미검출 fallback)일 때는 래치 금지 — 진짜 도착 신호가 아님.
             if self.stop_latched:
                 pred_class  = 0
                 learned_stop = True
-            elif pred_class == 0:
+            elif pred_class == 0 and frame.get("has_bbox", False):
                 self.stop_latched = True
                 learned_stop = True
         else:
@@ -793,6 +794,8 @@ async def health() -> dict[str, Any]:
         "model_loaded": m is not None,
         "head": m.head_name if m else None,
         "window": m.window if m else None,
+        "stop_mode": STOP_MODE,
+        "stop_latched": m.stop_latched if m else False,
         "gpu": gpu,
     }
 
@@ -847,6 +850,30 @@ async def reset(x_api_key: Optional[str] = Header(default=None)) -> dict[str, An
     _check_api_key(x_api_key)
     get_model().reset()
     return {"status": "success", "message": "History reset"}
+
+
+@app.get("/recent")
+async def recent_predictions(x_api_key: Optional[str] = Header(default=None)) -> dict[str, Any]:
+    """proxy_inference_server 호환 — 최근 예측 기록 반환."""
+    m = _model
+    if m is None:
+        return {"count": 0, "predictions": []}
+    history = list(m.history[-30:]) if hasattr(m, "history") else []
+    preds = [
+        {
+            "cx": h.get("cx", 0.5),
+            "area": h.get("area", 0.0),
+            "has_bbox": h.get("has_bbox", False),
+        }
+        for h in reversed(history)
+    ]
+    return {
+        "count": len(preds),
+        "predictions": preds,
+        "inference_count": m.inference_count,
+        "stop_latched": m.stop_latched,
+        "stop_mode": STOP_MODE,
+    }
 
 
 @app.post("/config")
