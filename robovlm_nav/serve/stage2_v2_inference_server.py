@@ -21,6 +21,11 @@ Environment variables:
   VLA_STOP_CX_TOL           cx tolerance from center for proximity STOP (default: 0.35)
   VLA_STOP_CONSEC           consecutive frames required for STOP override (default: 2)
   VLA_API_KEY               optional API key for authentication
+  VLA_PREVIEW_MODEL         CH54: YOLO 모델명/경로 (e.g. yolov8n.pt). 미설정 시 프리뷰 비활성.
+  VLA_PREVIEW_CLASSES       CH54: YOLO 탐지 대상 COCO class id (기본 56=chair, 복수: "56,39")
+  VLA_PREVIEW_AREA_THRESH   CH54: 그라운딩 실패 판정 area 임계값 (기본 0.03)
+  VLA_PREVIEW_MAX_RETRY     CH54: 최대 재시도 횟수 (기본 5)
+  VLA_PREVIEW_N_ROT         CH54: 한 번에 회전할 스텝 수 (기본 2)
 
 Usage:
   # 기본 (proximity override)
@@ -492,11 +497,90 @@ class Stage2V2Model:
         # Learned-STOP latch: once model predicts STOP(0), stay stopped until reset()
         self.stop_latched: bool = False
 
+        # CH54: YOLO preview model — 첫 그라운딩 실패 시 각도 자동 조정
+        _preview_name = os.getenv("VLA_PREVIEW_MODEL", "")
+        if _preview_name:
+            try:
+                from ultralytics import YOLO as _YOLO
+                self._yolo = _YOLO(_preview_name)
+                self._preview_classes = [
+                    int(c) for c in os.getenv("VLA_PREVIEW_CLASSES", "56").split(",")
+                ]
+                self._preview_area_thresh = float(os.getenv("VLA_PREVIEW_AREA_THRESH", "0.03"))
+                self._preview_max_retry   = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
+                self._preview_n_rot       = int(os.getenv("VLA_PREVIEW_N_ROT", "2"))
+                logger.info("[CH54] Preview model 활성: %s  classes=%s", _preview_name, self._preview_classes)
+            except ImportError:
+                logger.warning("[CH54] ultralytics 미설치 — preview model 비활성. pip install ultralytics")
+                self._yolo = None
+        else:
+            self._yolo = None
+
     def reset(self) -> None:
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
         self.stop_latched = False
+
+    # ── CH54: YOLO preview helpers ───────────────────────────────────────────
+
+    def _needs_preview(self, bbox: dict) -> bool:
+        """PG2 그라운딩 결과가 불충분한지 판단."""
+        return (not bbox.get("has_bbox", False)) or (float(bbox.get("area", 0.0)) < self._preview_area_thresh)
+
+    def _preview_rot_cmds(self, image_rgb: np.ndarray) -> list[int]:
+        """
+        YOLO로 타겟 방향 탐지 후 ROT 명령 리스트 반환.
+        [] → 정렬 완료(PG2 재시도 가능)
+        [6,...] → ROT_L 스텝들
+        [7,...] → ROT_R 스텝들
+        """
+        results = self._yolo(image_rgb, classes=self._preview_classes, conf=0.4, verbose=False)
+        if not results or len(results[0].boxes) == 0:
+            # 탐지 실패 — 기본 ROT_R로 조금씩 돌기
+            return [7] * self._preview_n_rot
+        box = results[0].boxes[0]
+        x1, _, x2, _ = box.xyxy[0].tolist()
+        cx_norm = (x1 + x2) / 2.0 / image_rgb.shape[1]
+        if cx_norm < 0.4:
+            return [6] * self._preview_n_rot   # ROT_L
+        if cx_norm > 0.6:
+            return [7] * self._preview_n_rot   # ROT_R
+        return []  # 중앙 정렬 완료
+
+    def preview_align(self, image_b64: str, phrase: str) -> dict:
+        """
+        CH54 외부 API용: 한 번 호출해 현재 YOLO 탐지 결과와 권장 회전 명령을 반환.
+        엔드포인트 /preview_align 에서 호출됨.
+        Returns:
+          {
+            "needs_align": bool,
+            "rot_cmds": list[int],   # ROT_L=6 / ROT_R=7 / [] 정렬 완료
+            "yolo_cx": float | None,
+            "pg2_bbox": dict,        # 현재 PG2 그라운딩 결과
+          }
+        """
+        image_rgb = self._decode_image(image_b64)
+        bbox = self.grounder.run(image_rgb, phrase=phrase)
+        needs = self._needs_preview(bbox) if self._yolo else False
+        rot_cmds: list[int] = []
+        yolo_cx = None
+        if needs and self._yolo:
+            rot_cmds = self._preview_rot_cmds(image_rgb)
+            # cx 다시 계산해서 반환
+            results = self._yolo(image_rgb, classes=self._preview_classes, conf=0.4, verbose=False)
+            if results and len(results[0].boxes) > 0:
+                b = results[0].boxes[0]
+                x1, _, x2, _ = b.xyxy[0].tolist()
+                yolo_cx = (x1 + x2) / 2.0 / image_rgb.shape[1]
+        return {
+            "needs_align": needs,
+            "rot_cmds": rot_cmds,
+            "yolo_cx": yolo_cx,
+            "pg2_bbox": bbox,
+        }
+
+    # ─────────────────────────────────────────────────────────────────────────
 
     def _decode_image(self, image_b64: str) -> np.ndarray:
         image_bytes = base64.b64decode(image_b64)
@@ -545,6 +629,52 @@ class Stage2V2Model:
         image_rgb = self._decode_image(image_b64)
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
 
+        # instruction="basket"(기본값)은 기존 하위호환 placeholder — "gray basket"으로 매핑.
+        # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
+        phrase = "gray basket" if instruction == "basket" else instruction
+
+        # CH54: YOLO 프리뷰 정렬 — 첫 프레임(inference_count==0)에서 PG2 그라운딩 실패 시
+        # YOLO로 방향 탐지 → ROT 명령을 pending_preview_actions 에 쌓아두고
+        # 첫 번째 predict() 호출은 ROT 명령으로 대체 반환.
+        preview_rot: Optional[int] = None
+        if self._yolo is not None and self.inference_count == 0:
+            first_bbox = self.grounder.run(image_rgb, phrase=phrase)
+            if self._needs_preview(first_bbox):
+                for _ in range(self._preview_max_retry):
+                    rot_cmds = self._preview_rot_cmds(image_rgb)
+                    if not rot_cmds:
+                        # 중앙 정렬 완료 — 이 프레임으로 정상 추론 진행
+                        break
+                    # 첫 번째 ROT 명령만 이번 predict() 에서 반환 (로봇이 한 스텝 실행 후 다음 predict 호출)
+                    preview_rot = rot_cmds[0]
+                    logger.info("[CH54] preview ROT: %s (retry %d)", CLASS_NAMES[preview_rot], _)
+                    break  # 로봇이 움직인 후 다음 predict()에서 재검사
+            # 그라운딩 결과를 캐시에 저장 (정상 추론으로 이어질 경우 재사용)
+            if preview_rot is None:
+                self._grounding_cache = first_bbox
+
+        if preview_rot is not None:
+            total_ms = (time.time() - start) * 1000.0
+            logger.info("[CH54] preview 반환: %s | latency=%.0fms", CLASS_NAMES[preview_rot], total_ms)
+            return {
+                "action": ACTION_2D[preview_rot],
+                "action_3d": ACTION_3D[preview_rot],
+                "predicted_class": preview_rot,
+                "predicted_label": CLASS_NAMES[preview_rot],
+                "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
+                "grounding_latency_ms": 0.0,
+                "latency_ms": total_ms,
+                "goal_near_proxy": False,
+                "proximity_override": False,
+                "learned_stop": False,
+                "stop_latched": False,
+                "stop_mode": STOP_MODE,
+                "grounding_cached": False,
+                "head_mode": "preview",
+                "preview_align": True,
+                "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+            }
+
         # CH40 hidden-state head 사용 여부 — 체크포인트 없으면 baseline으로 자동 폴백
         # (plan_20260622_hidden_state_hub_integration.md §1-1).
         use_hidden = head_mode in ("add", "replace") and head_mode in self.hidden_heads
@@ -559,9 +689,6 @@ class Stage2V2Model:
             and self.inference_count % self._grounding_skip_n != 0
             and self._grounding_cache is not None
         )
-        # instruction="basket"(기본값)은 기존 하위호환 placeholder — "gray basket"으로 매핑.
-        # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
-        phrase = "gray basket" if instruction == "basket" else instruction
 
         g_start = time.time()
         if use_cache:
@@ -1012,6 +1139,39 @@ async def load_model(
     _model = None
     m = get_model(reload=True)
     return {"status": "success", "head": m.head_name, "window": m.window, "val_acc": m.val_acc}
+
+
+class PreviewAlignRequest(BaseModel):
+    image: str               # base64 RGB
+    instruction: str = "basket"
+
+
+class PreviewAlignResponse(BaseModel):
+    needs_align: bool
+    rot_cmds: list[int]      # ROT_L=6, ROT_R=7, [] = 정렬 완료
+    yolo_cx: Optional[float]
+    pg2_bbox: dict
+
+
+@app.post("/preview_align", response_model=PreviewAlignResponse)
+async def preview_align(
+    request: PreviewAlignRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> PreviewAlignResponse:
+    """
+    CH54 — YOLO 프리뷰 정렬 엔드포인트.
+    VLA_PREVIEW_MODEL 미설정 시 needs_align=False, rot_cmds=[] 반환.
+    """
+    _check_api_key(x_api_key)
+    m = get_model()
+    phrase = "gray basket" if request.instruction == "basket" else request.instruction
+    if m._yolo is None:
+        bbox = m.grounder.run(m._decode_image(request.image), phrase=phrase)
+        return PreviewAlignResponse(
+            needs_align=False, rot_cmds=[], yolo_cx=None, pg2_bbox=bbox
+        )
+    result = m.preview_align(request.image, phrase)
+    return PreviewAlignResponse(**result)
 
 
 if __name__ == "__main__":
