@@ -605,6 +605,10 @@ class Stage2V2Model:
             else:
                 x = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, d_in)
                 logits = self.head(x)
+            # ROT_L(6) / ROT_R(7) 마스킹 — 학습 데이터 ~0%, OOD 입력에서 잘못 활성화
+            if logits.shape[-1] > 6:
+                logits[:, 6] = float("-inf")
+                logits[:, 7] = float("-inf")
             pred_class = int(logits.argmax(dim=-1).item())
 
         # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
