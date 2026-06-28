@@ -47,7 +47,8 @@
     <a href="#section-g2" style="padding:6px 14px;background:#0a1628;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;color:#2dd4bf;text-decoration:none">&sect;G2 Window</a>
     <a href="#section-g3" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">&sect;G3 전체비교</a>
     <a href="#section-h" style="padding:6px 14px;background:#1e0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#d8b4fe;text-decoration:none">&sect;H Detector 비교(GDINO/YOLO-World)</a>
-    <a href="#section-i" style="padding:6px 14px;background:#1a0a0a;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;I STOP 로직 ★NEW</a>
+    <a href="#section-i" style="padding:6px 14px;background:#1a0a0a;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;I STOP 로직 ★NEW</a>sect;I STOP 로직</a>
+    <a href="#section-j" style="padding:6px 14px;background:#1a0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">&sect;J Perception Ablation ★NEW</a>
     <a href="today_visual_summary.html" style="padding:6px 14px;background:#0a1628;border:1px solid #7dd3fc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">📷 오늘 한눈에 보기(사진)</a>
     <a href="hidden_state_hub.html" style="padding:6px 14px;background:#0a1628;border:1px solid #86efac;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">🧠 Hidden State Hub</a>
     <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
@@ -97,6 +98,37 @@
       </div>
     </div>
     <div class="note">⚠️ cx_MAE의 정답(HSV 중심)은 색분할 기반 근사값이라 그 자체로 ±오차가 있다 — 모델 간 <strong>상대 비교</strong>용으로 해석.</div>
+    
+    <!-- 46-1. 재주석 자체의 변화 -->
+    <div style="margin-top:20px; padding:16px; background:#0f172a; border:1px solid #1e3a5f; border-radius:10px">
+      <div style="color:#7dd3fc; font-weight:800; font-size:0.95rem; margin-bottom:10px">📊 46-1. 재주석 자체의 변화 (기존 Kosmos-2 vs 신규 PG2)</div>
+      <table style="margin-bottom:12px">
+        <thead>
+          <tr>
+            <th>지표</th>
+            <th>기존 (5월 Kosmos-2)</th>
+            <th>신규 (현재 PG2)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>has_bbox=True 비율</strong></td>
+            <td>2603/2626 (99.1%)</td>
+            <td>2621/2626 (99.8%)</td>
+          </tr>
+          <tr>
+            <td><strong>area p25 / median / p75</strong></td>
+            <td>0.050 / 0.075 / 0.666</td>
+            <td>0.039 / 0.070 / 0.172</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="color:#94a3b8; font-size:0.82rem; line-height:1.6">
+        has_bbox율은 둘 다 99%대로 큰 차이가 없습니다(애초에 "전혀 탐지 안 됨"은 드문 일이었다는 뜻).<br>
+        진짜 차이는 <strong>area p75</strong> 지표입니다. 기존 데이터에는 area ≈ 0.6~0.8짜리 "비정상적으로 큰" 박스가 다수 존재했으나, 신규 PG2 데이터에는 그런 거대 박스가 거의 발견되지 않습니다.<br>
+        즉, Kosmos-2 시절의 그라운딩이 종종 과대 박스(혹은 전체 화면 크기)를 오탐지했던 반면, 신규 PG2 기반 그라운딩은 바구니를 매우 타이트하고 정확하게 검출하고 있음을 입증합니다.
+      </div>
+    </div>
   </div>
 
   <!-- A. 핵심 결론 -->
@@ -829,6 +861,107 @@
     </div>
     <div class="note" style="margin-top:8px">관련 코드: <code>robovlm_nav/serve/stage2_v2_inference_server.py:108-114,486-517</code> · Task #4 연동</div>
   </div>
+
+<h2 id="section-j"><span class="badge" style="background:#a855f7;color:#fff">J</span> Perception Model Ablation — basket 탐지 모델 비교 (CH55) <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 2026-06-27, zero-shot + fine-tuned</span></h2>
+<div class="card">
+  <div style="background:#0f0a1a;border:1px solid #6d28d9;border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:0.88rem;color:#e2e8f0;line-height:1.7">
+    <strong style="color:#c4b5fd">동기:</strong> CH54 프리뷰 루프 설계 과정에서 YOLO zero-shot이 basket≠COCO로 탈락 (det~53%, cx~8%) →
+    대안 비전 모델 전수 비교. 6/26 세션 frame 0 기준, PG2 frame 1을 pseudo-GT로 사용. 5 seeds × 80/20 split.
+  </div>
+
+  <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:0 0 10px">J1 · 같은 척도로 보는 모델 비교표</h3>
+  <table style="font-size:0.82rem;width:100%">
+    <thead>
+      <tr>
+        <th>모델</th>
+        <th style="text-align:center">ZS det</th>
+        <th style="text-align:center">ZS cx (±0.2)</th>
+        <th style="text-align:center">ZS dir</th>
+        <th style="text-align:center">FT cx</th>
+        <th style="text-align:center">FT dir</th>
+        <th style="text-align:center">latency</th>
+        <th>비고</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong style="color:#86efac">Kosmos-2 ★</strong></td>
+        <td style="text-align:center;color:#86efac">100%</td>
+        <td style="text-align:center;color:#86efac">77.5%±14.6%</td>
+        <td style="text-align:center;color:#86efac">60.0%±9.4%</td>
+        <td style="text-align:center;color:#86efac">92.5%±10%</td>
+        <td style="text-align:center">60.0%±18.4%</td>
+        <td style="text-align:center">314ms</td>
+        <td style="color:#64748b">로컬, ZS 자체 강함</td>
+      </tr>
+      <tr style="background:#111">
+        <td style="color:#7dd3fc">OWL-v2</td>
+        <td style="text-align:center">92.5%</td>
+        <td style="text-align:center">75.0%±17.7%</td>
+        <td style="text-align:center">52.5%±16.6%</td>
+        <td style="text-align:center;color:#f87171">0% (CF)</td>
+        <td style="text-align:center;color:#f87171">0%</td>
+        <td style="text-align:center">427ms</td>
+        <td style="color:#64748b">FT 후 catastrophic forgetting</td>
+      </tr>
+      <tr>
+        <td style="color:#fde68a">CLIP</td>
+        <td style="text-align:center">92.5%</td>
+        <td style="text-align:center;color:#f87171">0%*</td>
+        <td style="text-align:center;color:#f87171">0%*</td>
+        <td style="text-align:center">100%* (착시)</td>
+        <td style="text-align:center">65%±16.6%</td>
+        <td style="text-align:center;color:#86efac">43ms</td>
+        <td style="color:#64748b">항상 L 예측 · cx 허용범위 착시</td>
+      </tr>
+      <tr style="background:#111">
+        <td style="color:#94a3b8">Florence-2</td>
+        <td style="text-align:center">100%</td>
+        <td style="text-align:center;color:#f87171">12.5%±11.2%</td>
+        <td style="text-align:center;color:#f87171">7.5%±10%</td>
+        <td style="text-align:center;color:#64748b">미완</td>
+        <td style="text-align:center;color:#64748b">—</td>
+        <td style="text-align:center">180ms</td>
+        <td style="color:#64748b">bbox 위치 엉망</td>
+      </tr>
+      <tr>
+        <td style="color:#475569">YOLO (ZS)</td>
+        <td style="text-align:center;color:#475569">53%</td>
+        <td style="text-align:center;color:#f87171">8%</td>
+        <td style="text-align:center;color:#f87171">6%</td>
+        <td style="text-align:center;color:#475569">—</td>
+        <td style="text-align:center;color:#475569">—</td>
+        <td style="text-align:center;color:#475569">~30ms</td>
+        <td style="color:#475569">basket≠COCO로 탈락</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.78rem;color:#475569;margin-top:6px">* CLIP zero-shot은 cx 결과가 완전히 벗어남 (basket이 항상 center인데 오히려 잡지 못함). FT cx 100%는 ±0.2 허용범위 착시 (항상 L 예측 probe가 center 분포 커버). dir=65%가 실제 성능.</p>
+
+  <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">J2 · frame 0 시각 비교 — 8개 세션 대표 프레임</h3>
+  <p style="color:#94a3b8;font-size:0.84rem;margin-bottom:10px">왼쪽→오른쪽: <span style="color:#00cfff">PG2 oracle</span> / <span style="color:#fde68a">CLIP 방향화살표</span> / <span style="color:#86efac">Kosmos-2 bbox</span> / <span style="color:#ff82c8">OWL-v2 bbox</span></p>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <img src="ch55_viz/compare_100316.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+    <img src="ch55_viz/compare_104455.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+    <img src="ch55_viz/compare_104644.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+    <img src="ch55_viz/compare_132751.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+    <img src="ch55_viz/compare_133013.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+    <img src="ch55_viz/compare_135622.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+    <img src="ch55_viz/compare_135837.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+    <img src="ch55_viz/compare_140139.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+  </div>
+
+  <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">J3 · 결론 & 운영 전략</h3>
+  <div style="background:#0a1520;border:1px solid #0369a1;border-radius:8px;padding:14px 16px;font-size:0.88rem;color:#e2e8f0;line-height:1.8">
+    <ul style="padding-left:1.2em;margin:0;color:#94a3b8">
+      <li><strong style="color:#86efac">Stage 0 워밍업</strong>이 핵심 해법 — 22s GPU cold-start를 서버 시작 시점에 소진. frame 0 성공률 0%→91%.</li>
+      <li><strong style="color:#86efac">Sweep fallback</strong> R→L→R (max_retry=1) — 남은 9% (basket FOV 밖) 대응.</li>
+      <li>추가 비전 모델 후보: <strong>Kosmos-2 zero-shot</strong> (det 100%, cx 77.5%, 로컬 보유). PG2 실패 케이스 대체 가능.</li>
+      <li>OWL-v2: head-only FT 불가 (CF). CLIP: 착시 성능. Florence-2: bbox 엉망.</li>
+    </ul>
+  </div>
+  <div class="note" style="margin-top:8px">scripts: ablate_perception_models.py · ablate_perception_v2.py · gen_perception_viz.py · 2026-06-27</div>
+</div>
 </div>
 
 <script>
