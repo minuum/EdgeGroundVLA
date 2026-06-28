@@ -177,6 +177,13 @@
     <code>DEFAULT_PG2</code>와 <strong>동일 체크포인트</strong> — 모델 일치성 검증: <a href="research_story.html#ch48" style="color:#7dd3fc">research_story.html#CH48</a></div>
   </div>
 
+  <!-- C2. 통합 프리뷰 모델 테스트 비교 매트릭스 (동적 로딩) -->
+  <div id="integrated-preview-ablation-ch">
+    <div style="margin:20px 0; padding:18px; background:#0f172a; border:1px solid #1e3a8a; border-radius:12px; text-align:center; color:#94a3b8">
+      🔄 통합 프리뷰 모델 테스트 비교 매트릭스를 불러오는 중...
+    </div>
+  </div>
+
   <!-- C. 측면 경로 갤러리 -->
   <h2><span class="badge" style="background:#a78bfa;color:#0a0f1a">C</span> 측면 경로 에피소드 갤러리 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— base PG2, 교수님 오예측 대응</span></h2>
   <div class="card">
@@ -999,6 +1006,91 @@ document.getElementById('g2-tabs').querySelectorAll('.tab').forEach(function(t){
   sp.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
     sp.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); cur.p=t.dataset.p; upd(); }));
 })();
+
+// C2. 통합 프리뷰 모델 테스트 비교 매트릭스 동적 로드
+async function loadAblationTables() {
+  try {
+    const res = await fetch('ablate_preview_ft_v2.json');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    let html = `
+      <div class="card" style="margin-top:20px; border:1px solid #1e3a8a">
+        <h3 style="font-size:1.05rem; font-weight:900; color:#38bdf8; margin:0 0 12px 0">📊 통합 프리뷰 모델 테스트 비교 매트릭스 (FT 방법론별)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left">모델</th>
+              <th style="text-align:left">학습 방법론</th>
+              <th style="text-align:center">V5 방향정확도</th>
+              <th style="text-align:center">V5 cx MAE</th>
+              <th style="text-align:center">실주행 방향정확도</th>
+              <th style="text-align:center">실주행 cx MAE</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    const models = {
+      "clip": "CLIP",
+      "kosmos": "Kosmos-2",
+      "owlv2": "OWL-v2",
+      "florence": "Florence-2"
+    };
+    const methods = {
+      "zs": "Zero-Shot",
+      "lp_pool": "Linear Probe (Pool)",
+      "lp_patch": "Linear Probe (Patch)",
+      "mlp_patch": "MLP Probe (Patch)",
+      "lora": "LoRA Tuning"
+    };
+
+    for (const [mKey, mName] of Object.entries(models)) {
+      const mData = data[mKey] || {};
+      const methodKeys = mKey === "florence" ? ["zs", "lp_patch", "mlp_patch", "lora"] : Object.keys(methods);
+      
+      methodKeys.forEach((metKey, idx) => {
+        const metName = methods[metKey];
+        const metData = mData[metKey] || null;
+        
+        let v5_dir = "TBD", v5_mae = "TBD", ss_dir = "TBD", ss_mae = "TBD";
+        if (mKey === "florence" && metKey === "lora") {
+          v5_dir = v5_mae = ss_dir = ss_mae = "N/A (스킵)";
+        } else if (metData) {
+          const v5 = metData.v5 || {};
+          const ss = metData.session || {};
+          if (v5.dir_bin !== undefined) v5_dir = (v5.dir_bin * 100).toFixed(1) + "%";
+          if (v5.cx_mae !== undefined) v5_mae = v5.cx_mae.toFixed(3);
+          if (ss.dir_bin !== undefined) ss_dir = (ss.dir_bin * 100).toFixed(1) + "%";
+          if (ss.cx_mae !== undefined) ss_mae = ss.cx_mae.toFixed(3);
+        }
+
+        const borderStyle = idx === 0 ? "border-top:1px solid #1e293b;" : "";
+        html += `
+          <tr style="${borderStyle}">
+            <td><strong>${idx === 0 ? mName : ''}</strong></td>
+            <td style="color:#cbd5e1">${metName}</td>
+            <td style="text-align:center; color:#38bdf8; font-weight:bold">${v5_dir}</td>
+            <td style="text-align:center; color:#94a3b8">${v5_mae}</td>
+            <td style="text-align:center; color:#fbbf24; font-weight:bold">${ss_dir}</td>
+            <td style="text-align:center; color:#94a3b8">${ss_mae}</td>
+          </tr>
+        `;
+      });
+    }
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    document.getElementById('integrated-preview-ablation-ch').innerHTML = html;
+  } catch (e) {
+    console.error("Ablation 테이블 렌더링 에러:", e);
+  }
+}
+loadAblationTables();
 </script>
 </body>
 </html>
