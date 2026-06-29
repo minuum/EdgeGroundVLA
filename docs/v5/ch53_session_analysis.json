@@ -1,0 +1,213 @@
+{
+  "inference_sessions": [
+    {
+      "session": "session_20260624_104411",
+      "n_frames": 3,
+      "n_grounded": 2,
+      "n_cached": 1,
+      "skip_n_detected": 0,
+      "area_min": 0.0,
+      "area_max": 0.05236930772662163,
+      "area_mean": 0.03233641758561134,
+      "has_bbox_count": 2,
+      "action_dist": {
+        "STOP": 1,
+        "FWD+R": 1,
+        "LEFT": 1
+      },
+      "lat_mean_ms": 1404.49609375,
+      "lat_max_ms": 1426.786865234375
+    },
+    {
+      "session": "session_20260624_105123",
+      "n_frames": 2,
+      "n_grounded": 1,
+      "n_cached": 1,
+      "skip_n_detected": 0,
+      "area_min": 0.0,
+      "area_max": 0.06604690104722977,
+      "area_mean": 0.03302345052361488,
+      "has_bbox_count": 1,
+      "action_dist": {
+        "STOP": 1,
+        "FWD": 1
+      },
+      "lat_mean_ms": 1361.82763671875,
+      "lat_max_ms": 1361.82763671875
+    },
+    {
+      "session": "session_20260624_150541",
+      "n_frames": 8,
+      "n_grounded": 7,
+      "n_cached": 1,
+      "skip_n_detected": 0,
+      "area_min": 0.0,
+      "area_max": 0.09560174494981766,
+      "area_mean": 0.05624222755432129,
+      "has_bbox_count": 7,
+      "action_dist": {
+        "STOP": 1,
+        "FWD+L": 1,
+        "FWD": 6
+      },
+      "lat_mean_ms": 4399.5537109375,
+      "lat_max_ms": 22284.544921875
+    },
+    {
+      "session": "session_20260624_151056",
+      "n_frames": 1,
+      "n_grounded": 0,
+      "n_cached": 1,
+      "skip_n_detected": -1,
+      "area_min": 0.0,
+      "area_max": 0.0,
+      "area_mean": 0.0,
+      "has_bbox_count": 0,
+      "action_dist": {
+        "STOP": 1
+      },
+      "lat_mean_ms": null,
+      "lat_max_ms": null
+    },
+    {
+      "session": "session_20260626_100316",
+      "n_frames": 5,
+      "n_grounded": 4,
+      "n_cached": 1,
+      "skip_n_detected": 0,
+      "area_min": 0.0,
+      "area_max": 0.07376766204833984,
+      "area_mean": 0.04389653727412224,
+      "has_bbox_count": 4,
+      "action_dist": {
+        "STOP": 1,
+        "FWD+L": 2,
+        "FWD": 1,
+        "FWD+R": 1
+      },
+      "lat_mean_ms": 1390.2564697265625,
+      "lat_max_ms": 1469.348388671875
+    },
+    {
+      "session": "session_20260626_104455",
+      "n_frames": 4,
+      "n_grounded": 1,
+      "n_cached": 3,
+      "skip_n_detected": 1,
+      "area_min": 0.0,
+      "area_max": 0.05307545140385628,
+      "area_mean": 0.03980658948421478,
+      "has_bbox_count": 3,
+      "action_dist": {
+        "STOP": 1,
+        "FWD+R": 1,
+        "FWD": 2
+      },
+      "lat_mean_ms": 22444.185546875,
+      "lat_max_ms": 22444.185546875
+    },
+    {
+      "session": "session_20260626_104644",
+      "n_frames": 7,
+      "n_grounded": 2,
+      "n_cached": 5,
+      "skip_n_detected": 1,
+      "area_min": 0.0,
+      "area_max": 0.04965653270483017,
+      "area_mean": 0.028541287407279015,
+      "has_bbox_count": 6,
+      "action_dist": {
+        "STOP": 1,
+        "FWD": 4,
+        "FWD+L": 2
+      },
+      "lat_mean_ms": 1347.53759765625,
+      "lat_max_ms": 1361.9049072265625
+    }
+  ],
+  "v5_2_dataset": {
+    "free_center": {
+      "n_episodes": 9,
+      "avg_frames": 54.77777777777778,
+      "action_dist": {
+        "FWD": 436,
+        "STOP": 54,
+        "OTHER": 3
+      },
+      "sample_instruction": "Navigate until the chair is centered and fills the lower half of the frame."
+    },
+    "free_left": {
+      "n_episodes": 10,
+      "avg_frames": 67.8,
+      "action_dist": {
+        "FWD": 236,
+        "FWD+R": 270,
+        "OTHER": 3,
+        "STOP": 60,
+        "RIGHT": 28,
+        "FWD+L": 77,
+        "LEFT": 4
+      },
+      "sample_instruction": "Navigate until the chair is centered and fills the lower half of the frame."
+    },
+    "free_right": {
+      "n_episodes": 9,
+      "avg_frames": 64.0,
+      "action_dist": {
+        "FWD": 236,
+        "FWD+L": 207,
+        "LEFT": 31,
+        "FWD+R": 35,
+        "STOP": 54,
+        "OTHER": 13
+      },
+      "sample_instruction": "Navigate until the chair is centered and fills the lower half of the frame."
+    },
+    "target_center_left_path": {
+      "n_episodes": 10,
+      "avg_frames": 66.8,
+      "action_dist": {
+        "FWD": 246,
+        "FWD+R": 262,
+        "STOP": 60,
+        "RIGHT": 24,
+        "FWD+L": 72,
+        "LEFT": 4
+      },
+      "sample_instruction": "Navigate until the chair is centered and fills the lower half of the frame."
+    },
+    "target_center_right_path": {
+      "n_episodes": 10,
+      "avg_frames": 63.3,
+      "action_dist": {
+        "FWD": 246,
+        "FWD+L": 243,
+        "LEFT": 37,
+        "STOP": 60,
+        "FWD+R": 32,
+        "OTHER": 15
+      },
+      "sample_instruction": "Navigate until the chair is centered and fills the lower half of the frame."
+    },
+    "target_center_straight_path": {
+      "n_episodes": 10,
+      "avg_frames": 50.9,
+      "action_dist": {
+        "FWD": 450,
+        "STOP": 59
+      },
+      "sample_instruction": "Navigate until the chair is centered and fills the lower half of the frame."
+    },
+    "target_right_left_path": {
+      "n_episodes": 1,
+      "avg_frames": 61.0,
+      "action_dist": {
+        "FWD": 9,
+        "FWD+L": 38,
+        "LEFT": 8,
+        "STOP": 6
+      },
+      "sample_instruction": "Navigate until the chair is centered and fills the lower half of the frame."
+    }
+  }
+}

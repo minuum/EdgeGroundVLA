@@ -77,12 +77,50 @@ def prepare_sample(proc, img_np, action_id, device, dtype):
     return inp, tgt_ids
 
 
+def _get_image_embeds(model, pixel_values, dtype):
+    if hasattr(model, "base_model"):
+        raw_model = model.base_model.model
+    else:
+        raw_model = model
+    
+    vision_outputs = raw_model.vision_model(pixel_values=pixel_values)
+    
+    v_model = raw_model.vision_model
+    v_transformer = None
+    queue = [v_model]
+    visited = set()
+    while queue:
+        curr = queue.pop(0)
+        if curr in visited:
+            continue
+        visited.add(curr)
+        if hasattr(curr, "post_layernorm"):
+            v_transformer = curr
+            break
+        for child in curr.children():
+            queue.append(child)
+            
+    if v_transformer is None:
+        raise RuntimeError("Kosmos-2 post_layernorm module not found.")
+        
+    image_embeds = v_transformer.post_layernorm(vision_outputs.last_hidden_state)
+    image_embeds = F.normalize(image_embeds, dim=-1)
+    image_embeds, _ = raw_model.image_to_text_projection(image_embeds)
+    return image_embeds
+
+
 @torch.no_grad()
 def predict_action(proc, model, img_np, device, dtype):
     """추론: 이미지 → 액션 문자열"""
     pil = Image.fromarray(img_np).convert("RGB")
     inp = proc(text=PROMPT, images=pil, return_tensors="pt").to(device)
-    inp["pixel_values"] = inp["pixel_values"].to(dtype)
+    
+    pvs = inp["pixel_values"].to(dtype)
+    image_embeds = _get_image_embeds(model, pvs, dtype)
+    
+    del inp["pixel_values"]
+    inp["image_embeds"] = image_embeds
+    
     gen = model.generate(**inp, max_new_tokens=5, do_sample=False)
     raw = proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=True)[0].strip()
     # 가장 가까운 액션 이름 매핑
@@ -171,10 +209,13 @@ def main():
                 img_np = imgs[fr["frame_idx"]].astype("uint8")
                 inp, tgt_ids = prepare_sample(proc, img_np, fr["gt_class"], device, dtype)
 
+                pvs = inp["pixel_values"].to(dtype)
+                image_embeds = _get_image_embeds(model, pvs, dtype)
+                del inp["pixel_values"]
+                inp["image_embeds"] = image_embeds
+
                 # 프롬프트 + 액션을 합쳐서 CE loss
                 tgt_tensor = torch.tensor([tgt_ids], dtype=torch.long, device=device)
-                # Kosmos-2: pixel_values는 prompt 부분에만 연결됨
-                # 액션 토큰을 label로 teacher-forcing
                 # prompt만으로 forward → 마지막 hidden state에서 action logits 예측
                 prompt_out = model(**inp)
                 # 마지막 토큰 hidden state로 action logit 계산
