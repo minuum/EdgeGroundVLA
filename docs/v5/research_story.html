@@ -307,7 +307,11 @@
     <a class="toc-item" href="#ch49" data-target="ch49"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 49</span><span class="toc-label">skip_n=3 재검증 + 실세션 실측 — 메인 디폴트 확정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch50" data-target="ch50"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 50</span><span class="toc-label">작은 객체 줌 재그라운딩 — 5-seed 검증 결과 단일런 노이즈로 정정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 51</span><span class="toc-label">에피소드 초반 N프레임 줌크롭 — n=737 ablation, 도움 안 됨 확정</span><span class="toc-cat cat-fix">정정</span></a>
-    <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">이번주 미팅 준비 ★NEW</span><span class="toc-cat cat-meet">미팅</span></a>
+    <a class="toc-item" href="#ch52" data-target="ch52"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 52</span><span class="toc-label">path_type별 분리 평가 — SR 포화, replace가 FPE 40% 개선</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch53" data-target="ch53"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 53</span><span class="toc-label">6/24·6/26 실세션 + v5_2 의자 타겟 신규 데이터셋 분석</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
+    <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
+    <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
     <a class="toc-item" href="#next-step" data-target="next-step"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">NEXT</span><span class="toc-label">6/12 미팅 3줄 결론 & 로드맵</span></a>
     <a class="toc-item" href="#summary" data-target="summary"><span class="toc-badge">SUM</span><span class="toc-label">전체 흐름 요약</span></a>
@@ -8438,7 +8442,7 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
 <script>
 (function() {
   const SECTIONS = ['ch1','ch2','ch3','ch4','ch5','cl-overview','cl-dive',
-                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','ch47','ch48','ch49','ch50','ch51','next-step','summary','weekly-meeting'];
+                    'ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','ch23','ch24','ch25','ch26','ch27','ch28','ch29','ch30','ch31','ch32','ch33','ch34','ch35','ch36','ch37','ch38','ch39','ch40','ch41','ch42','ch43','todo-ch44','ch44','ch45','ch46','ch47','ch48','ch49','ch50','ch51','ch52','ch53','ch54','meeting-0626','next-step','summary','weekly-meeting'];
   const items = document.querySelectorAll('.toc-item[data-target]');
 
   function getActive() {
@@ -12385,6 +12389,916 @@ graph TD
 </div>
 
 <hr class="chapter-divider">
+<div class="chapter" id="ch52">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 52</span>
+    <h2 class="chapter-title">LSTM hidden state — path_type별 분리 평가</h2>
+    <p class="chapter-subtitle">6/22 미팅 TODO "val 29개로는 SR 변별 안 됨, 어려운 path_type 분리 평가 필요"에 대응. SR은 전 모드 포화, replace mode가 전환 경로 FPE 40% 개선</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">52-1. 배경 — 6/22 미팅 TODO 대응</div>
+    <div class="finding-body">
+      <a href="#ch43" style="color:#7dd3fc">CH43-2c</a>에서 "val 29개 에피소드로는 none/add/replace 간 SR 차이를 식별하기 어렵다
+      (천장 근처에서 전부 포화)"는 한계를 언급했고, 6/22 미팅 TODO로 "어려운 path_type만 분리 평가"가 남았었다.
+      <a href="#ch43" style="color:#7dd3fc">CH43-2d</a>에서 5-seed 확대는 수행했지만(95.39%±0.20%p), path_type별 분리는 미착수 상태였다.
+      이번에 val 30개 에피소드 × 9 path_type (3~4개씩, stratified seed=42)에 대해 none/add/replace를
+      path_type별로 완전히 분리해 측정했다.
+      <div style="margin-top:8px;color:#94a3b8;font-size:0.84rem">
+        체크포인트: none → 이번에 새로 학습(val_acc 94.49%, bbox_dataset_full.json) /
+        add/replace → CH43 원본(add 96.85%, replace 95.47%). 셋 모두 Kosmos2 주석 데이터로 학습·평가.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a10,#0a1f14);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">52-2. 결과 — SR은 모드 무관, FPE에서 replace가 우세</div>
+    <div class="finding-body">
+      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-bottom:14px">
+        <thead>
+          <tr style="border-bottom:1px solid #166534">
+            <th style="text-align:left;padding:6px 8px;color:#86efac">path_type</th>
+            <th style="text-align:center;padding:6px 8px;color:#94a3b8">n</th>
+            <th style="text-align:center;padding:6px 8px;color:#7dd3fc">none SR / FPE</th>
+            <th style="text-align:center;padding:6px 8px;color:#fbbf24">add SR / FPE</th>
+            <th style="text-align:center;padding:6px 8px;color:#4ade80">replace SR / FPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f2820"><td style="padding:6px 8px;color:#94a3b8" colspan="5"><em>── 직진 계열 ──</em></td></tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">center_straight</td><td style="text-align:center;padding:6px 8px">4</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.122m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.163m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.081m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">left_straight</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.159m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.181m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.243m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">right_straight</td><td style="text-align:center;padding:6px 8px">4</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820;background:rgba(30,64,175,0.08)">
+            <td style="padding:6px 8px;font-weight:700">직진 소계</td><td style="text-align:center;padding:6px 8px;font-weight:700">11</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">100% / 0.088m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">100% / 0.108m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">100% / 0.096m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820"><td style="padding:6px 8px;color:#94a3b8" colspan="5"><em>── 전환 계열 ──</em></td></tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">center_left</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.115m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.153m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">center_right</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.115m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.000m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.038m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">left_left</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.192m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.140m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.153m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">left_right</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.153m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.145m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.077m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820">
+            <td style="padding:6px 8px">right_left</td><td style="text-align:center;padding:6px 8px">3</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.115m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.048m</td>
+            <td style="text-align:center;padding:6px 8px">100% / 0.048m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820;background:rgba(239,68,68,0.08)">
+            <td style="padding:6px 8px;color:#f87171;font-weight:700">right_right ⚠️</td><td style="text-align:center;padding:6px 8px;font-weight:700">3</td>
+            <td style="text-align:center;padding:6px 8px;color:#f87171;font-weight:700">67% / 0.364m</td>
+            <td style="text-align:center;padding:6px 8px;color:#f87171;font-weight:700">67% / 0.380m</td>
+            <td style="text-align:center;padding:6px 8px;color:#f87171;font-weight:700">67% / 0.319m</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2820;background:rgba(30,64,175,0.08)">
+            <td style="padding:6px 8px;font-weight:700">전환 소계</td><td style="text-align:center;padding:6px 8px;font-weight:700">18</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">94.4% / 0.176m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">94.4% / 0.144m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">94.4% / 0.106m</td>
+          </tr>
+          <tr style="background:rgba(74,222,128,0.06)">
+            <td style="padding:6px 8px;font-weight:700">전체</td><td style="text-align:center;padding:6px 8px;font-weight:700">29</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">96.6% / 0.142m</td>
+            <td style="text-align:center;padding:6px 8px;font-weight:700">96.6% / 0.131m</td>
+            <td style="text-align:center;padding:6px 8px;color:#4ade80;font-weight:700">96.6% / 0.102m</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">52-3. 해석</div>
+    <div class="finding-body">
+      <ul style="margin:0 0 0 18px;line-height:2">
+        <li><strong>SR: 세 모드 완전 동일 (96.6%)</strong> — path_type을 분리해도 none/add/replace 사이에 SR 차이가 없다.
+          val 세트가 SR 기준으로 이미 포화(천장)임을 재확인. 9개 path_type 중 8개가 100%이고, 유일한 예외는
+          right_right(67%)인데 이것도 세 모드 모두 동일하게 실패 — 특정 에피소드가 어려운 것이지
+          hidden state 여부의 문제가 아님.</li>
+        <li><strong>FPE: replace가 전환 경로에서 유의미한 차이</strong> — 전환 소계 기준 none 0.176m → replace 0.106m
+          (<strong style="color:#4ade80">40% 감소</strong>). add도 0.144m로 개선되지만 replace가 더 좋음.
+          직진 계열은 세 모드 간 차이 미미(0.088~0.108m 범위).</li>
+        <li><strong>right_right 구조적 약점</strong> — 3개 에피소드 중 1개가 세 모드 모두 FPE 0.5m 이상(실패).
+          이 에피소드는 val split에 고정(seed=42)되어 있어, 모든 CH에서 동일하게 불리하게 작용 —
+          이 1건이 전환 계열 SR의 유일한 감점 요인이므로 이 에피소드를 따로 분석하면 실패 원인을 식별할 수 있을 것.</li>
+        <li><strong>6/22 TODO 결론</strong>: "더 큰 표본·path_type 분리로 hidden state 효과를 검증"하라는 요청에 대해 —
+          <strong>SR 기준으로는 효과 없음, FPE 정밀도 기준으로는 replace mode가 전환 경로에서 일관되게 유리</strong>.
+          FPE 0.5m 성공 임계값 대비 세 모드 모두 충분히 안쪽이어서 실운용 차이는 없지만,
+          경로 추적 정밀도(FPE)를 우선시한다면 replace가 최선의 선택.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="background:linear-gradient(135deg,#052e16,#0a1628);border:1px solid #22c55e;border-radius:12px;padding:16px 20px;margin-bottom:16px">
+    <div style="color:#86efac;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">CH52 결론 (6/22 미팅 TODO 완료)</div>
+    <div style="color:#e2e8f0;line-height:1.8">
+      path_type 분리 평가로 "val 천장 포화" 가설 재확인 — SR은 어떤 path_type에서도 모드 간 차이 없음.<br>
+      Hidden state의 가치는 <strong style="color:#4ade80">FPE 정밀도</strong>에 있으며, replace mode가 전환 경로에서 가장 우수(0.176→0.106m, ×1.7).<br>
+      right_right 실패는 에피소드-레벨 문제(모델 무관). <strong>6/22 TODO #4 (path_type 분리) ✅ 완료.</strong>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    스크립트: scripts/eval/closed_loop_eval_pathtype_breakdown.py &nbsp;|&nbsp;
+    데이터: docs/v5/closed_loop_eval/lstm_pathtype_breakdown.json &nbsp;|&nbsp; 2026-06-26
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch53" style="padding-bottom:40px">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 53</span>
+    <h2 class="chapter-title">6/24·6/26 실세션 분석 + v5_2 의자 타겟 신규 데이터셋</h2>
+    <p class="chapter-subtitle">rsync로 수신된 7개 실세션(6/24 4개·6/26 3개)과 v5_2 신규 데이터셋(의자 타겟, 59 에피소드) 종합 분석</p>
+  </div>
+
+  <!-- 헤드라인 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:20px">
+    <div class="finding-title" style="color:#86efac">핵심 발견 2가지</div>
+    <div class="finding-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:rgba(74,222,128,0.06);border:1px solid #166534;border-radius:8px;padding:10px">
+          <div style="color:#4ade80;font-weight:700;margin-bottom:4px">① skip_n=3 배포 실측 확인</div>
+          6/26 104455·104644 세션에서 캐시 패턴(실호출→캐시→캐시) 실측. 정상 레이턴시 1,348~1,469ms. 22.4s 이상치 1건은 콜드스타트 추정.
+        </div>
+        <div style="background:rgba(251,191,36,0.06);border:1px solid #a16207;border-radius:8px;padding:10px">
+          <div style="color:#fbbf24;font-weight:700;margin-bottom:4px">② v5_2: 의자 타겟 신규 데이터 59 ep</div>
+          타겟이 바구니→의자로 변경. free/target 두 종류 각 3 경로. 평균 50~68 프레임/에피소드. instruction: "Navigate until the chair is centered…"
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6/24 세션 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">6/24 실세션 4개 — skip_n=1(구버전), 짧은 세션 패턴</div>
+    <div class="finding-body">
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:12px">
+        <thead>
+          <tr style="border-bottom:1px solid #1e3a5f">
+            <th style="text-align:left;padding:4px 8px;color:#7dd3fc">세션</th>
+            <th style="text-align:center;padding:4px 8px">프레임</th>
+            <th style="text-align:center;padding:4px 8px">skip_n</th>
+            <th style="text-align:center;padding:4px 8px">has_bbox</th>
+            <th style="text-align:center;padding:4px 8px">area 범위</th>
+            <th style="text-align:center;padding:4px 8px">주요 액션</th>
+            <th style="text-align:center;padding:4px 8px">레이턴시</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f2840">
+            <td style="padding:4px 8px">104411</td>
+            <td style="text-align:center">3</td>
+            <td style="text-align:center;color:#94a3b8">1 (구)</td>
+            <td style="text-align:center">2/3</td>
+            <td style="text-align:center">0.000~0.052</td>
+            <td style="text-align:center">FWD+R, LEFT</td>
+            <td style="text-align:center">1,404ms</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2840">
+            <td style="padding:4px 8px">105123</td>
+            <td style="text-align:center">2</td>
+            <td style="text-align:center;color:#94a3b8">1 (구)</td>
+            <td style="text-align:center">1/2</td>
+            <td style="text-align:center">0.000~0.066</td>
+            <td style="text-align:center">FWD</td>
+            <td style="text-align:center">1,362ms</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2840">
+            <td style="padding:4px 8px">150541</td>
+            <td style="text-align:center">8</td>
+            <td style="text-align:center;color:#94a3b8">1 (구)</td>
+            <td style="text-align:center">7/8</td>
+            <td style="text-align:center">0.000~0.096</td>
+            <td style="text-align:center;color:#4ade80">FWD×6</td>
+            <td style="text-align:center;color:#f87171">4,400ms avg ⚠️</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 8px">151056</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center;color:#94a3b8">–</td>
+            <td style="text-align:center;color:#f87171">0/1</td>
+            <td style="text-align:center;color:#f87171">0.000</td>
+            <td style="text-align:center;color:#f87171">STOP</td>
+            <td style="text-align:center;color:#94a3b8">–</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="color:#94a3b8;font-size:0.83rem;margin-bottom:10px">
+        150541: 22,285ms 최대 레이턴시 → 콜드스타트 패턴(6/26 104455의 22.4s와 동일). 이후 frames은 정상.
+        151056: has_bbox=False·area=0 → 로봇이 바구니를 전혀 못 찾은 상태로 1프레임 후 중단.
+        104411~105123: 전형적인 "너무 멀어서" 시나리오(area 0.05 내외).
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <div>
+          <img src="ch46_50_viz/session_20260624_104411_0.jpg" style="width:100%;border-radius:6px;border:1px solid #334155" loading="lazy">
+          <div style="font-size:0.7rem;color:#64748b;text-align:center;margin-top:2px">104411 t=0 area=0.000</div>
+        </div>
+        <div>
+          <img src="ch46_50_viz/session_20260624_104411_1.jpg" style="width:100%;border-radius:6px;border:1px solid #4ade80" loading="lazy">
+          <div style="font-size:0.7rem;color:#64748b;text-align:center;margin-top:2px">104411 t=1 area=0.052</div>
+        </div>
+        <div>
+          <img src="ch46_50_viz/session_20260624_150541_0.jpg" style="width:100%;border-radius:6px;border:1px solid #4ade80" loading="lazy">
+          <div style="font-size:0.7rem;color:#64748b;text-align:center;margin-top:2px">150541 t=0 (22.3s cold)</div>
+        </div>
+        <div>
+          <img src="ch46_50_viz/session_20260624_151056_0.jpg" style="width:100%;border-radius:6px;border:1px solid #f87171" loading="lazy">
+          <div style="font-size:0.7rem;color:#64748b;text-align:center;margin-top:2px">151056 t=0 has_bbox=MISS</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v5_2 데이터셋 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
+    <div class="finding-title" style="color:#a78bfa">v5_2 신규 데이터셋 — 의자(Chair) 타겟, 6/10~6/11 수집, 59 에피소드</div>
+    <div class="finding-body">
+      <div style="color:#94a3b8;font-size:0.84rem;margin-bottom:10px">
+        <strong style="color:#c4b5fd">타겟 변경:</strong> 바구니(basket) → 의자(chair, chair_left_extreme 시나리오)<br>
+        <strong style="color:#c4b5fd">instruction:</strong> "Navigate until the chair is centered and fills the lower half of the frame."<br>
+        <strong style="color:#c4b5fd">두 가지 종류:</strong> <code>free_*</code> (자유 출발 위치) · <code>target_*</code> (경로 지정)
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:12px">
+        <thead>
+          <tr style="border-bottom:1px solid #4c1d95">
+            <th style="text-align:left;padding:4px 8px;color:#a78bfa">시나리오</th>
+            <th style="text-align:center;padding:4px 8px">에피소드</th>
+            <th style="text-align:center;padding:4px 8px">평균 프레임</th>
+            <th style="text-align:left;padding:4px 8px">주요 액션 분포</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #2d1b69">
+            <td style="padding:4px 8px">free_center</td>
+            <td style="text-align:center">9</td>
+            <td style="text-align:center">54.8</td>
+            <td style="padding:4px 8px">FWD 436, STOP 54</td>
+          </tr>
+          <tr style="border-bottom:1px solid #2d1b69">
+            <td style="padding:4px 8px">free_left</td>
+            <td style="text-align:center">10</td>
+            <td style="text-align:center">67.8</td>
+            <td style="padding:4px 8px">FWD+R 270, FWD 236, FWD+L 77, STOP 60</td>
+          </tr>
+          <tr style="border-bottom:1px solid #2d1b69">
+            <td style="padding:4px 8px">free_right</td>
+            <td style="text-align:center">9</td>
+            <td style="text-align:center">64.0</td>
+            <td style="padding:4px 8px">FWD 236, FWD+L 207, LEFT 31, STOP 54</td>
+          </tr>
+          <tr style="border-bottom:1px solid #2d1b69">
+            <td style="padding:4px 8px">target_center_straight</td>
+            <td style="text-align:center">10</td>
+            <td style="text-align:center">50.9</td>
+            <td style="padding:4px 8px">FWD 450, STOP 59 — 직진만</td>
+          </tr>
+          <tr style="border-bottom:1px solid #2d1b69">
+            <td style="padding:4px 8px">target_center_left</td>
+            <td style="text-align:center">10</td>
+            <td style="text-align:center">66.8</td>
+            <td style="padding:4px 8px">FWD+R 262, FWD 246, FWD+L 72, STOP 60</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 8px">target_center_right</td>
+            <td style="text-align:center">10</td>
+            <td style="text-align:center">63.3</td>
+            <td style="padding:4px 8px">FWD 246, FWD+L 243, STOP 60</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 6개 시나리오 × 시작/중간/끝 이미지 -->
+      <div style="margin-bottom:10px">
+        <div style="color:#c4b5fd;font-size:0.82rem;font-weight:700;margin-bottom:6px">free 계열 (자유 출발) — 시작·중간·끝</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
+          <div><img src="ch46_50_viz/v5_2_free_center_0.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_center 시작</div></div>
+          <div><img src="ch46_50_viz/v5_2_free_center_27.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_center 중간</div></div>
+          <div><img src="ch46_50_viz/v5_2_free_center_54.jpg" style="width:100%;border-radius:4px;border:1px solid #a78bfa" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_center 끝(STOP)</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
+          <div><img src="ch46_50_viz/v5_2_free_left_0.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_left 시작(좌측 치우침)</div></div>
+          <div><img src="ch46_50_viz/v5_2_free_left_34.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_left 중간(FWD+R로 정렬)</div></div>
+          <div><img src="ch46_50_viz/v5_2_free_left_68.jpg" style="width:100%;border-radius:4px;border:1px solid #a78bfa" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_left 끝</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+          <div><img src="ch46_50_viz/v5_2_free_right_0.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_right 시작(우측 치우침)</div></div>
+          <div><img src="ch46_50_viz/v5_2_free_right_32.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_right 중간(FWD+L로 정렬)</div></div>
+          <div><img src="ch46_50_viz/v5_2_free_right_64.jpg" style="width:100%;border-radius:4px;border:1px solid #a78bfa" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_right 끝</div></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="color:#c4b5fd;font-size:0.82rem;font-weight:700;margin-bottom:6px">target 계열 (경로 지정) — 시작·중간·끝</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
+          <div><img src="ch46_50_viz/v5_2_target_center_straight_0.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">straight 시작</div></div>
+          <div><img src="ch46_50_viz/v5_2_target_center_straight_28.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">straight 중간</div></div>
+          <div><img src="ch46_50_viz/v5_2_target_center_straight_55.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">straight 끝</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
+          <div><img src="ch46_50_viz/v5_2_target_center_left_0.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_left 시작</div></div>
+          <div><img src="ch46_50_viz/v5_2_target_center_left_33.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_left 중간</div></div>
+          <div><img src="ch46_50_viz/v5_2_target_center_left_66.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_left 끝</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+          <div><img src="ch46_50_viz/v5_2_target_center_right_0.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_right 시작</div></div>
+          <div><img src="ch46_50_viz/v5_2_target_center_right_32.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_right 중간</div></div>
+          <div><img src="ch46_50_viz/v5_2_target_center_right_64.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_right 끝</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v5_2 해석 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#fbbf24">v5_2 데이터셋 해석 — 무엇을 위한 데이터인가?</div>
+    <div class="finding-body">
+      <ul style="margin:0 0 0 16px;line-height:2.0;font-size:0.9rem">
+        <li><strong style="color:#c4b5fd">타겟 일반화 테스트용</strong>: basket 대신 chair로 수집 → 현재 모델(바구니 학습)이 의자 시나리오에서도 동작하는지 테스트 가능한 데이터 기반 확보.</li>
+        <li><strong style="color:#c4b5fd">free + target 두 트랙</strong>: free는 임의 출발 위치에서 의자를 향한 자유 항법 궤적, target은 지정 경로. instruction은 동일. 학습 시 free 트랙을 섞으면 시작 위치 다양성 증가 가능.</li>
+        <li><strong style="color:#c4b5fd">액션 분포 건강함</strong>: STOP이 에피소드마다 정확히 1회 배치(e.g. free_center: 9ep × 6 STOP = 54). FWD+L/FWD+R 대칭적으로 분포. 데이터 품질 양호.</li>
+        <li><strong style="color:#c4b5fd">현재 상태</strong>: 분석 완료. 학습 통합 여부는 미결 — 교수님 확인 필요 (이 데이터로 학습할지, 의자 일반화 테스트에만 쓸지).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 레이턴시 콜드스타트 패턴 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:20px">
+    <div class="finding-title" style="color:#fbbf24">콜드스타트 22s 레이턴시 — 6/24·6/26 공통 패턴</div>
+    <div class="finding-body" style="font-size:0.9rem;line-height:1.9">
+      6/24 150541(22,285ms)과 6/26 104455(22,444ms)에서 동일한 22초대 레이턴시가 1번씩 발생.<br>
+      두 경우 모두 <strong>해당 세션의 첫 실그라운딩 호출</strong>에서만 발생, 이후 호출은 정상(1,300~1,500ms).<br>
+      PaliGemma2 모델이 처음 로드되는 <strong>콜드스타트</strong>(GPU 모델 메모리 로딩) 지연으로 추정.<br>
+      <span style="color:#94a3b8;font-size:0.82rem">→ 서버가 이미 웜업된 상태라면 발생하지 않음. 실운용 시 더미 이미지로 워밍업 필요 여부 검토 대상.</span>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    분석 스크립트: scripts/analyze_sessions_ch53.py &nbsp;|&nbsp;
+    이미지: docs/v5/ch46_50_viz/v5_2_*.jpg · session_20260624_*.jpg &nbsp;|&nbsp; 2026-06-26
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch54" style="padding-bottom:40px">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:linear-gradient(135deg,#7c3aed,#d946ef);color:#fff">CH 54</span>
+    <h2 class="chapter-title">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정</h2>
+    <p class="chapter-subtitle">6/26 미팅 결정사항: "그라운딩 못 하면 YOLO로 방향 먼저 잡고 PG2 재시도" 아이디어 설계 문서</p>
+  </div>
+
+  <!-- 동기 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
+    <div class="finding-title" style="color:#d946ef">동기 — 왜 필요한가</div>
+    <div class="finding-body" style="font-size:0.92rem;line-height:1.9">
+      오늘(6/26) 실주행에서 <strong>시작 위치가 좌우로 치우칠 경우 PG2 그라운딩 실패</strong>(area 너무 작거나 has_bbox=False)가 확인됐다.
+      각도를 먼저 틀어주면 9/10 성공으로 올라가지만 지금은 사람이 수동으로 방향을 잡아주는 상황.
+      <br><br>
+      <strong>해결 아이디어</strong>: 첫 프레임 그라운딩이 실패하면 YOLO(경량 객체탐지)로 타겟 방향을 추정하고,
+      로봇을 조금씩 회전시켜 PG2가 그라운딩에 성공할 수 있는 각도를 먼저 잡는다.
+      성공 후 정상 항법(Exp66 ActionMLP)으로 넘어간다.
+    </div>
+  </div>
+
+  <!-- 플로우 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">실행 플로우 (3단계)</div>
+    <div class="finding-body">
+      <div style="font-family:monospace;font-size:0.85rem;line-height:2;background:#0a0f1a;border-radius:8px;padding:14px;border:1px solid #1e3a5f">
+        <span style="color:#4ade80">[시작]</span> 로봇 출발 위치 고정<br>
+        &nbsp;&nbsp;↓<br>
+        <span style="color:#7dd3fc">① PG2 그라운딩 시도</span><br>
+        &nbsp;&nbsp;├─ <span style="color:#4ade80">has_bbox=True &amp;&amp; area ≥ 0.03</span> → 정상 항법(Exp66) 시작<br>
+        &nbsp;&nbsp;└─ <span style="color:#f87171">실패 (has_bbox=False 또는 area &lt; 0.03)</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+        <span style="color:#d946ef">② YOLO 탐지</span> (YOLOv8n, basket/chair class)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;├─ bbox.cx &lt; 0.4 → <span style="color:#fbbf24">ROT_L</span> (N_ROT 스텝)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;├─ bbox.cx &gt; 0.6 → <span style="color:#fbbf24">ROT_R</span> (N_ROT 스텝)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;├─ 0.4 ≤ cx ≤ 0.6 → PG2 재시도 ①로 루프<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;└─ 탐지 실패 → ROT_R 기본 방향으로 소량 회전 후 재시도<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;↓ (최대 MAX_RETRY=5회)<br>
+        <span style="color:#4ade80">성공</span> → 정상 항법 / <span style="color:#f87171">실패</span> → STOP + 알림
+      </div>
+    </div>
+  </div>
+
+  <!-- 설계 상세 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">설계 상세</div>
+    <div class="finding-body">
+      <table style="width:100%;border-collapse:collapse;font-size:0.86rem">
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8;width:32%">YOLO 모델</td>
+          <td style="padding:6px 10px"><code>ultralytics YOLOv8n</code> (nano, ~6MB, &lt;10ms GPU) — soda에 ultralytics 설치 필요</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">탐지 대상 class</td>
+          <td style="padding:6px 10px">COCO 기준: <code>basket→"sports ball"</code> 또는 파인튜닝. chair→<code>"chair"</code>(COCO 기본 포함). <strong>zero-shot 먼저 시도</strong></td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">트리거 조건</td>
+          <td style="padding:6px 10px"><code>has_bbox == False OR area &lt; AREA_THRESHOLD</code> (기본값 0.03, 환경변수로 오버라이드 가능)</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">회전 단위</td>
+          <td style="padding:6px 10px">ROT_L / ROT_R 1스텝 (서버 action 한 번 = 로봇 약 5~10° 회전) × <code>N_ROT=2</code> 스텝 후 재그라운딩</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">최대 재시도</td>
+          <td style="padding:6px 10px"><code>MAX_RETRY=5</code> (환경변수 <code>VLA_PREVIEW_MAX_RETRY</code>)</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">구현 위치</td>
+          <td style="padding:6px 10px"><code>robovlm_nav/serve/stage2_v2_inference_server.py</code> — <code>_preview_align()</code> 메서드 추가</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#94a3b8">활성화 방법</td>
+          <td style="padding:6px 10px">환경변수 <code>VLA_PREVIEW_MODEL=yolov8n</code> (미설정 시 프리뷰 비활성, 기존 동작 유지)</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 트레이드오프 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
+    <div class="finding-title" style="color:#a78bfa">트레이드오프</div>
+    <div class="finding-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.87rem">
+        <div style="background:rgba(74,222,128,0.06);border:1px solid #166534;border-radius:8px;padding:10px">
+          <div style="color:#4ade80;font-weight:700;margin-bottom:6px">장점</div>
+          <ul style="margin:0 0 0 14px;line-height:1.9">
+            <li>추가 학습 없음 — YOLO zero-shot</li>
+            <li>기존 항법 파이프라인 손대지 않음</li>
+            <li>비활성 시 완전 롤백 가능 (env var)</li>
+            <li>side-position SR 70%→90% 기대</li>
+            <li>YOLOv8n 레이턴시 &lt;10ms GPU (PG2 대비 무시 가능)</li>
+          </ul>
+        </div>
+        <div style="background:rgba(239,68,68,0.06);border:1px solid #7f1d1d;border-radius:8px;padding:10px">
+          <div style="color:#f87171;font-weight:700;margin-bottom:6px">리스크</div>
+          <ul style="margin:0 0 0 14px;line-height:1.9">
+            <li>YOLO가 basket을 인식 못할 경우 프리뷰 루프에서 헤맬 가능성</li>
+            <li>ROT 단위 크기 튜닝 필요 (너무 크면 오버슈팅)</li>
+            <li>ultralytics 설치 필요 (soda 의존성 추가)</li>
+            <li>YOLO가 다른 물체를 basket으로 혼동 시 방향 반대로 돌 수 있음</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:10px;color:#94a3b8;font-size:0.82rem">
+        <strong>완화책</strong>: confidence 임계값(≥0.5)으로 오탐지 필터링. basket은 COCO에 없으므로 초기엔 chair 시나리오(v5_2)로 먼저 검증.
+        YOLO 탐지 실패 시에도 기본 ROT_R 전략으로 fallback (탐지 없이 조금씩 돌며 PG2 재시도).
+      </div>
+    </div>
+  </div>
+
+  <!-- 미팅 연결 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:20px">
+    <div class="finding-title" style="color:#fbbf24">미팅 연결 — 6/26 결정사항과의 매핑</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
+      Speaker 2의 "프리뷰 모델로 객체 인식 가능 각도로 회전" 계획과 동일 방향.
+      <strong>Speaker 2 쪽은 별도 프리뷰 모델(학습 기반 가능성)</strong>이고,
+      <strong>이 CH54는 YOLO zero-shot + inference_server 통합으로 즉시 테스트 가능한 경로</strong>.<br>
+      두 트랙이 독립적으로 진행되고, 먼저 동작하는 쪽이 채택되는 구조로 운영 가능.
+    </div>
+  </div>
+
+  <!-- 구현 상태 -->
+  <div style="background:rgba(217,70,239,0.08);border:1px solid #7c3aed;border-radius:10px;padding:12px 16px;font-size:0.85rem;color:#e2e8f0">
+    <span style="color:#d946ef;font-weight:700">구현 상태:</span> 아이디어 확정 · plan.md 작성 완료 ·
+    <span style="color:#fbbf24">구현 미착수</span> (Speaker 2 트랙과 병행 여부 확인 후 착수 예정)
+    <span style="color:#94a3b8;font-size:0.78rem;margin-left:8px">→ docs/plans/plan_ch54_yolo_preview.md</span>
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="meeting-0626" style="padding-bottom:40px">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MTG</span>
+    <h2 class="chapter-title">6/26 미팅 — 6/22 질문 해결 논리 전개 전체 정리</h2>
+    <p class="chapter-subtitle">6/22 미팅에서 열린 질문 4개의 연구 흐름 · 검증 과정 · 최종 결론 + 오늘(6/26) 추론 세션 결과</p>
+  </div>
+
+  <!-- ─── 실제 미팅 결과 (2026-06-26) ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#22c55e;margin-bottom:20px">
+    <div class="finding-title" style="color:#4ade80;font-size:1.0rem">✅ 실제 미팅 결과 — 2026-06-26 · 이민우, Speaker 2, Speaker 3</div>
+    <div class="finding-body">
+
+      <!-- 실주행 성공률 -->
+      <div style="margin-bottom:14px">
+        <div style="color:#86efac;font-size:0.82rem;font-weight:700;margin-bottom:6px">실로봇 테스트 성공률 (오늘 확인)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div style="background:rgba(74,222,128,0.08);border:1px solid #166534;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:1.6rem;font-weight:900;color:#4ade80">80%</div>
+            <div style="font-size:0.78rem;color:#86efac;margin-top:2px">직선 경로</div>
+            <div style="font-size:0.72rem;color:#64748b">10회 중 8회 성공</div>
+          </div>
+          <div style="background:rgba(74,222,128,0.08);border:1px solid #166534;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:1.6rem;font-weight:900;color:#4ade80">70%</div>
+            <div style="font-size:0.78rem;color:#86efac;margin-top:2px">좌우 오프셋</div>
+            <div style="font-size:0.72rem;color:#64748b">10회 중 7회 성공</div>
+          </div>
+          <div style="background:rgba(74,222,128,0.12);border:1px solid #22c55e;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:1.6rem;font-weight:900;color:#86efac">90%</div>
+            <div style="font-size:0.78rem;color:#86efac;margin-top:2px">각도 조정 후</div>
+            <div style="font-size:0.72rem;color:#64748b">방향 먼저 틀고 재시도</div>
+          </div>
+        </div>
+        <div style="font-size:0.78rem;color:#64748b;margin-top:6px">그라운딩 센터 성공률: <strong style="color:#fbbf24">85.7%</strong> · STOP은 전부 수동 처리</div>
+      </div>
+
+      <!-- 레이턴시 실측 -->
+      <div style="margin-bottom:14px">
+        <div style="color:#86efac;font-size:0.82rem;font-weight:700;margin-bottom:6px">레이턴시 실측 (skip_n=3 적용 후)</div>
+        <div style="background:rgba(74,222,128,0.06);border:1px solid #166534;border-radius:8px;padding:10px">
+          <span style="font-size:1.3rem;font-weight:900;color:#4ade80">450~600ms</span>
+          <span style="color:#94a3b8;font-size:0.85rem;margin-left:8px">/ frame (실주행 평균)</span>
+          <div style="color:#94a3b8;font-size:0.8rem;margin-top:4px">
+            수식 확인: 실그라운딩 1,400ms ÷ 3프레임 ≈ 467ms/frame — 미팅 실측값과 일치 ✅<br>
+            기존 skip_n=1 대비 <strong style="color:#4ade80">약 3배 빠름</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- 결정 사항 -->
+      <div style="margin-bottom:14px">
+        <div style="color:#fbbf24;font-size:0.82rem;font-weight:700;margin-bottom:6px">결정 사항</div>
+        <ul style="margin:0 0 0 16px;line-height:2.0;font-size:0.88rem">
+          <li>skip_n=3 (추론 3회당 그라운딩 1회) → <strong>레이턴시 감소 확정 적용</strong> (이미 배포 완료)</li>
+          <li>출발 위치 고정 + <strong>프리뷰 모델</strong>로 객체 인식 가능 각도 먼저 회전 → 표준 워크플로우로 채택</li>
+          <li>박스 위치 테스트: 중앙 기준 <strong>10cm / 20cm / 30cm</strong>에서 각 10회씩 성공률 산출</li>
+          <li>각도 조정 방식으로 총 <strong>30~40회</strong> 테스트 수량 확대</li>
+          <li>다음 미팅: <strong>월요일 오전 9시</strong>, 바쁘면 카카오톡으로 결과 공유</li>
+        </ul>
+      </div>
+
+      <!-- 리스크 -->
+      <div style="margin-bottom:14px">
+        <div style="color:#f87171;font-size:0.82rem;font-weight:700;margin-bottom:6px">리스크 & 블로커</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.83rem">
+          <div style="background:rgba(239,68,68,0.06);border:1px solid #7f1d1d;border-radius:6px;padding:8px">
+            <div style="color:#f87171;font-weight:700">🟠 그라운딩 인식률 저하</div>
+            좌우 오프셋에서 인식 불안정. 각도 조정(프리뷰 모델)으로 우회.
+          </div>
+          <div style="background:rgba(239,68,68,0.06);border:1px solid #7f1d1d;border-radius:6px;padding:8px">
+            <div style="color:#f87171;font-weight:700">🟠 STOP 수동 처리</div>
+            자동 정지 미구현. 이번 테스트 단계는 수동 유지, 추후 과제.
+          </div>
+          <div style="background:rgba(251,191,36,0.06);border:1px solid #a16207;border-radius:6px;padding:8px">
+            <div style="color:#fbbf24;font-weight:700">🟡 프리뷰 모델 미완성</div>
+            Speaker 2 담당. 일정 다음 주까지 연장 가능성.
+          </div>
+          <div style="background:rgba(251,191,36,0.06);border:1px solid #a16207;border-radius:6px;padding:8px">
+            <div style="color:#fbbf24;font-weight:700">🟡 시작 위치 의존성</div>
+            학습 데이터 미포함 위치 → 액션헤드 출력 변동. 출발 위치 고정으로 완화.
+          </div>
+        </div>
+      </div>
+
+      <!-- 액션 아이템 -->
+      <div style="background:rgba(30,58,95,0.3);border:1px solid #1e3a5f;border-radius:8px;padding:10px;font-size:0.83rem">
+        <div style="color:#7dd3fc;font-weight:700;margin-bottom:6px">Action Items</div>
+        <ul style="margin:0 0 0 16px;line-height:1.9">
+          <li>☐ <strong>이민우</strong>: 결과 GitHub 업로드 및 팀 공유 <span style="color:#4ade80;font-size:0.75rem">(이 페이지가 해당)</span></li>
+          <li>☐ <strong>Speaker 2</strong>: 기존 수집 세션 확인 → 그라운딩 성능 최선 모델 선정 + 프리뷰 기능 활성화</li>
+          <li>☐ <strong>Speaker 2</strong>: 프리뷰 모델 완성 → 좌/중/우 각 30회 테스트, 성공률 산출</li>
+          <li>☐ <strong>Speaker 2</strong>: 박스 10/20/30cm 거리 × 10회씩 테스트, 성공률(%) 산출</li>
+          <li>☐ <strong>Speaker 2</strong>: 월요일 9시 미팅 브리핑 (또는 카카오톡 공유)</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── 한 줄 헤드라인 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">헤드라인 한 줄</div>
+    <div class="finding-body" style="font-size:1.02rem;line-height:1.9">
+      "6/22 질문 4개 중 3개는 음성 결과로 종결됐고 1개(STOP 실측)는 미착수입니다.
+      운영 모델(Exp66)은 현재 연구 범위에서 이미 최선에 가까운 상태이며,
+      확인된 유일한 개선은 <strong style="color:#4ade80">레이턴시 66% 절감(grounding_skip_n=3)</strong>으로 오늘 오전 배포·실측 확인 완료했습니다."
+    </div>
+  </div>
+
+  <!-- ─── Q1: 그라운딩 품질 개선 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">Q1 (6/22). "그라운딩/인식 품질 개선 — has_bbox=False 오류율 3~5배, 실제 개선 미착수"</div>
+    <div class="finding-body">
+      <div style="color:#94a3b8;font-size:0.82rem;margin-bottom:10px">
+        CH41에서 has_bbox=False 구간의 오류율이 정상 구간 대비 3~5배 높다는 것을 확인, 개선 방법 찾기가 목표였다.
+      </div>
+
+      <div style="border-left:2px solid #334155;padding-left:12px;margin-bottom:10px">
+        <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:4px">Step 1 — 현상 재확인 (CH45~46)</div>
+        <div>CH45: BGR/RGB 정상, 오른쪽 경로 초반에서 has_bbox=False 집중을 진단.<br>
+        CH46: PG2로 bbox 재주석 후 재확인 → <strong>has_bbox=False 0건</strong>으로 줄어듦.
+        "문제는 has_bbox=False가 아니라 <strong>area(거리)와 오류율의 연속적 상관</strong>"으로 결론 정정.</div>
+      </div>
+
+      <div style="border-left:2px solid #334155;padding-left:12px;margin-bottom:10px">
+        <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:4px">Step 2 — 학습 데이터 품질 개선 시도 (CH47~50)</div>
+        <div>CH47: area_delta feature 추가 → 단일런 FPE 개선 주장.<br>
+        CH48: Grounding Hub 모델 일치성 검증 ✅<br>
+        CH49: skip_n=3 환경에서 area_delta 이득 <strong>사라짐</strong> → area_delta 폐기 확정.<br>
+        CH50-1: 작은 객체(area&lt;0.05) 줌 재그라운딩으로 학습 데이터 정제 → 단일런 SR 96.6% 보고.<br>
+        <span style="color:#f87171">CH50-3: 5-seed 검증 → 평균 89.7%±3.8%, <strong>baseline 93.1%보다 낮음</strong>. 단일런 노이즈 정정.</span></div>
+      </div>
+
+      <div style="border-left:2px solid #334155;padding-left:12px;margin-bottom:10px">
+        <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:4px">Step 3 — 런타임 조건부 재시도 시도 (CH51)</div>
+        <div>CH50과 스코프가 다름(런타임 첫 5프레임, 재학습 없음). n=737(세션 8개 + V5 학습 에피소드 150개)으로 확장.<br>
+        <span style="color:#f87171">결과: 89%(656/737) 프레임에서 area 오히려 감소, False→True 전환 <strong>0건</strong>. 도움 안 됨 확정.</span><br>
+        <span style="color:#94a3b8;font-size:0.82rem">추론: PG2가 2× 줌 크롭 시 씬 컨텍스트 소실 → grounding 오히려 혼란. 해상도 문제가 아닌 컨텍스트 문제.</span></div>
+      </div>
+
+      <div style="background:rgba(239,68,68,0.08);border:1px solid #7f1d1d;border-radius:8px;padding:10px 14px;margin-top:8px">
+        <span style="color:#f87171;font-weight:700">Q1 결론 (음성)</span>
+        시도한 두 방향(학습 데이터 정제 CH50, 런타임 재시도 CH51) 모두 효과 없음 확정.
+        "area와 오류율 상관"은 실재하지만, 줌 크롭으로는 해결 불가.
+        근본 해결책은 별도 트랙(최소 거리 운영 프로토콜 또는 초기 접근 매뉴버)이 필요하며 <strong>현재 미결</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Q2: LSTM hidden state 확대 검증 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">Q2 (6/22). "LSTM+hidden state — val 29개로는 SR 변별 안 됨, 더 큰 표본 필요"</div>
+    <div class="finding-body">
+      <div style="color:#94a3b8;font-size:0.82rem;margin-bottom:10px">
+        CH43에서 LSTM add mode 96.85%를 보고했으나 CH43-2d에서 이미 5-seed 정정(95.39%±0.20%p).
+        path_type별 분리 평가가 6/22 시점 미착수로 남아있었다.
+      </div>
+
+      <div style="border-left:2px solid #334155;padding-left:12px;margin-bottom:10px">
+        <div style="color:#fbbf24;font-size:0.8rem;font-weight:700;margin-bottom:4px">Step 1 — path_type 분리 평가 (CH52, 오늘)</div>
+        <div>val 30개 에피소드 × 9 path_type을 none/add/replace 모드별로 완전 분리 측정.<br>
+        <strong>SR: 세 모드 완전 동일 (96.6%)</strong> — 어떤 path_type에서도 hidden state 모드 간 차이 없음.<br>
+        <strong>FPE: replace 모드가 전환 경로에서 0.176m → 0.106m (40% 개선)</strong>.<br>
+        <span style="color:#f87171">right_right만 67% (모든 모드 동일) → 특정 에피소드가 어려운 것, hidden state 문제 아님.</span></div>
+      </div>
+
+      <div style="background:rgba(74,222,128,0.06);border:1px solid #14532d;border-radius:8px;padding:10px 14px;margin-top:8px">
+        <span style="color:#4ade80;font-weight:700">Q2 결론 (완료)</span>
+        SR 기준으로는 hidden state가 어떤 path_type에서도 도움 안 됨. val 세트가 이미 SR 포화(천장) 상태.
+        FPE 정밀도에서 replace mode가 전환 경로에서 일관되게 우세 — 실운용 가치가 있다면 replace 채택 근거.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Q3: grounding_skip_n 배포 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:20px">
+    <div class="finding-title" style="color:#86efac">Q3 (파생). "skip_n=3이 안전하다면 배포" → 오늘 완료</div>
+    <div class="finding-body">
+      CH49에서 skip_n=3이 SR/FPE 변화 없이 레이턴시를 66% 절감한다는 것을 확인(all 3 modes 검증).
+      오늘 <code>stage2_v2_inference_server.py</code>의 기본값을 1→3으로 변경·푸시·배포.<br>
+      <strong style="color:#4ade80">오늘 6/26 세션 두 개(104455, 104644)에서 skip_n=3 동작 실측 확인</strong>
+      — `1 call + 2 cached` / `2 calls + 4 cached` 패턴 정확히 일치.
+      정상 레이턴시: 1,348~1,469ms/call (104455의 22.4s는 콜드스타트 단발 이상치로 추정).
+    </div>
+  </div>
+
+  <!-- ─── Q4: STOP 거리 실측 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:20px">
+    <div class="finding-title" style="color:#fbbf24">Q4 (6/22). "STOP 거리 40~50cm 캘리브레이션 — 현장 실측만 남음" → 미착수</div>
+    <div class="finding-body">
+      계산기(<code>calibrate_stop_distance.py</code>)와 핸드오프 문서(<code>docs/STOP_DISTANCE_CALIBRATION_HANDOFF.md</code>)는 완성.
+      soda 로봇 앞에서 30/40/45/50cm에서 area 기록하는 실측만 남았으나, 로봇 직접 접근 기회가 없어 미착수.
+      <div style="margin-top:8px;color:#94a3b8;font-size:0.84rem">
+        실측 방법: 로봇-바구니 거리 4곳(30/40/45/50cm)에서 PG2 grounding area 각 5회씩 기록 →
+        <code>calibrate_stop_distance.py</code>에 입력 → area=k/d² 핀홀 모델로 최적 STOP 임계값 도출.
+        현재 하드코딩 area≥0.25는 미검증 추정값.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 오늘 추론 세션 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#7dd3fc">오늘(6/26) 추론 세션 3개 — skip_n=3 첫 실주행 확인</div>
+    <div class="finding-body">
+      <table style="width:100%;border-collapse:collapse;font-size:0.86rem;margin-bottom:10px">
+        <thead>
+          <tr style="border-bottom:1px solid #1e3a5f">
+            <th style="text-align:left;padding:5px 8px;color:#7dd3fc">세션</th>
+            <th style="text-align:center;padding:5px 8px">프레임</th>
+            <th style="text-align:center;padding:5px 8px">skip_n</th>
+            <th style="text-align:center;padding:5px 8px">그라운딩</th>
+            <th style="text-align:center;padding:5px 8px">area 범위</th>
+            <th style="text-align:center;padding:5px 8px">모델 행동</th>
+            <th style="text-align:center;padding:5px 8px">비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #0f2840">
+            <td style="padding:5px 8px">100316</td>
+            <td style="text-align:center;padding:5px 8px">5</td>
+            <td style="text-align:center;padding:5px 8px;color:#94a3b8">1 (구)</td>
+            <td style="text-align:center;padding:5px 8px">4/4 실호출</td>
+            <td style="text-align:center;padding:5px 8px">0.028~0.074</td>
+            <td style="text-align:center;padding:5px 8px;color:#4ade80">FWD/FWD+L/FWD+R</td>
+            <td style="text-align:center;padding:5px 8px">배포 전 세션</td>
+          </tr>
+          <tr style="border-bottom:1px solid #0f2840;background:rgba(74,222,128,0.04)">
+            <td style="padding:5px 8px">104455</td>
+            <td style="text-align:center;padding:5px 8px">4</td>
+            <td style="text-align:center;padding:5px 8px;color:#4ade80">3 ✅</td>
+            <td style="text-align:center;padding:5px 8px">1실+2캐시</td>
+            <td style="text-align:center;padding:5px 8px">0.053</td>
+            <td style="text-align:center;padding:5px 8px;color:#4ade80">FWD+R/FWD</td>
+            <td style="text-align:center;padding:5px 8px;color:#f87171">레이턴시 22.4s ⚠️</td>
+          </tr>
+          <tr style="background:rgba(74,222,128,0.04)">
+            <td style="padding:5px 8px">104644</td>
+            <td style="text-align:center;padding:5px 8px">7</td>
+            <td style="text-align:center;padding:5px 8px;color:#4ade80">3 ✅</td>
+            <td style="text-align:center;padding:5px 8px">2실+4캐시</td>
+            <td style="text-align:center;padding:5px 8px">0.017~0.050</td>
+            <td style="text-align:center;padding:5px 8px;color:#4ade80">FWD/FWD+L</td>
+            <td style="text-align:center;padding:5px 8px">정상 1.35s</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="color:#94a3b8;font-size:0.83rem">
+        area 전체 0.017~0.074 — "처음이 너무 멀어서" 시나리오 그대로 실측. 그라운딩 자체는 됨(has_bbox=True).
+        모델은 세 세션 모두 FWD 계열로 정상 항법 시도. 104455의 22.4s 이상치는 단발 콜드스타트 추정.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 현재 상태 요약 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
+    <div class="finding-title" style="color:#fbbf24">현재 운영 모델(Exp66) 상태 — 6/26 기준</div>
+    <div class="finding-body">
+      <table style="width:100%;border-collapse:collapse;font-size:0.86rem">
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:5px 8px;color:#94a3b8;width:38%">CL 성공률 (시뮬)</td>
+          <td style="padding:5px 8px;color:#4ade80;font-weight:700">96.6%</td>
+          <td style="padding:5px 8px;color:#94a3b8;font-size:0.8rem">6/22 이후 변동 없음</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:5px 8px;color:#94a3b8">FPE (시뮬)</td>
+          <td style="padding:5px 8px">0.094m</td>
+          <td style="padding:5px 8px;color:#94a3b8;font-size:0.8rem">변동 없음</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:5px 8px;color:#94a3b8">grounding 레이턴시</td>
+          <td style="padding:5px 8px;color:#4ade80;font-weight:700">↓ 66% (skip_n=3)</td>
+          <td style="padding:5px 8px;color:#94a3b8;font-size:0.8rem">오늘 배포·실측 확인 ✅</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:5px 8px;color:#94a3b8">area_delta feature</td>
+          <td style="padding:5px 8px;color:#f87171">미적용 (효과 없음 확정)</td>
+          <td style="padding:5px 8px;color:#94a3b8;font-size:0.8rem">CH49</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:5px 8px;color:#94a3b8">줌 재그라운딩</td>
+          <td style="padding:5px 8px;color:#f87171">미적용 (학습·런타임 모두 효과 없음)</td>
+          <td style="padding:5px 8px;color:#94a3b8;font-size:0.8rem">CH50-3, CH51</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 8px;color:#94a3b8">STOP 거리 캘리브레이션</td>
+          <td style="padding:5px 8px;color:#fbbf24">현장 실측 대기 중</td>
+          <td style="padding:5px 8px;color:#94a3b8;font-size:0.8rem">계산기 완비, 로봇 실측만 남음</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─── Q&A ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
+    <div class="finding-title" style="color:#a78bfa;font-size:1.05rem">Q &amp; A</div>
+    <div class="finding-body">
+
+      <!-- QA-1 -->
+      <div style="border-left:3px solid #7c3aed;padding:10px 14px;margin-bottom:16px;background:rgba(124,58,237,0.06);border-radius:0 8px 8px 0">
+        <div style="color:#c4b5fd;font-weight:700;margin-bottom:4px">Q1. "6/22 이후 뭐가 달라졌어요?"</div>
+        <div style="color:#e2e8f0;line-height:1.8">
+          grounding_skip_n=3 배포(레이턴시 ↓66%)만 실질 개선. 나머지 5개 실험(area_delta, 줌재그라운딩 학습, 줌재그라운딩 런타임, LSTM-add, LSTM-replace)은 모두 음성 결과.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+          <div><img src="ch46_50_viz/session_20260626_100316_1.jpg" style="width:100%;border-radius:6px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">skip_n=1 (배포 전) · area=0.053</div></div>
+          <div><img src="ch46_50_viz/session_20260626_104455_1.jpg" style="width:100%;border-radius:6px;border:1px solid #4ade80" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">skip_n=3 적용 후 · 정상 그라운딩</div></div>
+          <div><img src="ch46_50_viz/session_20260626_104644_1.jpg" style="width:100%;border-radius:6px;border:1px solid #4ade80" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">skip_n=3 · area=0.017 (멀리서 출발)</div></div>
+        </div>
+      </div>
+
+      <!-- QA-2 -->
+      <div style="border-left:3px solid #7c3aed;padding:10px 14px;margin-bottom:16px;background:rgba(124,58,237,0.06);border-radius:0 8px 8px 0">
+        <div style="color:#c4b5fd;font-weight:700;margin-bottom:4px">Q2. "그라운딩 품질 개선은 왜 안 됐어요?"</div>
+        <div style="color:#e2e8f0;line-height:1.8">
+          2× 줌 크롭 시 바구니 주변 씬 컨텍스트(바닥·벽·주변 환경)가 잘린다. PG2는 "gray basket"을 맥락 전체로 인식하는데 그 맥락이 소실되어 오히려 혼란. n=737 실측에서 89% 프레임에서 area가 감소, False→True 전환 0건.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+          <div><img src="ch46_50_viz/ch50_zoom_before_after_1.jpg" style="width:100%;border-radius:6px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">CH50: 원본(빨강) vs 줌재그라운딩(초록) — 박스 거의 안 변함</div></div>
+          <div><img src="ch46_50_viz/ch50_zoom_before_after_3.jpg" style="width:100%;border-radius:6px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">CH50: 줌 후 area 오히려 감소한 사례</div></div>
+        </div>
+      </div>
+
+      <!-- QA-3 -->
+      <div style="border-left:3px solid #7c3aed;padding:10px 14px;margin-bottom:16px;background:rgba(124,58,237,0.06);border-radius:0 8px 8px 0">
+        <div style="color:#c4b5fd;font-weight:700;margin-bottom:4px">Q3. "처음이 너무 멀어서 안 되는 문제는?"</div>
+        <div style="color:#e2e8f0;line-height:1.8">
+          오늘 세션 3개 모두 area 0.017~0.074로 출발 — "너무 멀어서" 시나리오 그대로. 줌크롭으로 해결 안 됨 확인(CH51). 대안: (a) 최소 시작 거리 운영 프로토콜, (b) 초기 접근 매뉴버. 방향은 교수님 결정 필요.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+          <div><img src="ch46_50_viz/session_20260626_100316_1.jpg" style="width:100%;border-radius:6px;border:1px solid #f87171" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">area=0.053 — 멀리서 FWD+L</div></div>
+          <div><img src="ch46_50_viz/session_20260626_104644_1.jpg" style="width:100%;border-radius:6px;border:1px solid #f87171" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">area=0.017 — 가장 작은 케이스</div></div>
+          <div><img src="ch46_50_viz/session_20260626_100316_3.jpg" style="width:100%;border-radius:6px;border:1px solid #f87171" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">area=0.029 — FWD+R로 전환</div></div>
+        </div>
+      </div>
+
+      <!-- QA-4 -->
+      <div style="border-left:3px solid #7c3aed;padding:10px 14px;margin-bottom:16px;background:rgba(124,58,237,0.06);border-radius:0 8px 8px 0">
+        <div style="color:#c4b5fd;font-weight:700;margin-bottom:4px">Q4. "LSTM hidden state는 의미 있어요?"</div>
+        <div style="color:#e2e8f0;line-height:1.8">
+          SR 기준으로는 none/add/replace 전 모드 동일(96.6%). replace mode가 전환 경로(left_left, center_left 등) FPE 40% 개선(0.176m→0.106m). 정밀도를 우선하면 replace 채택 근거 있음.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+          <div><img src="ch46_50_viz/ch49_skip3_cache_seq_1.jpg" style="width:100%;border-radius:6px;border:1px solid #334155" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">skip_n=3 캐시 시퀀스 — 3프레임 bbox 고정</div></div>
+          <div><img src="ch46_50_viz/session_20260626_104644_skip3_strip.jpg" style="width:100%;border-radius:6px;border:1px solid #4ade80" loading="lazy">
+            <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:2px">오늘 실세션 104644 — 초록=실호출 노랑=캐시</div></div>
+        </div>
+      </div>
+
+      <!-- QA-5 -->
+      <div style="border-left:3px solid #7c3aed;padding:10px 14px;background:rgba(124,58,237,0.06);border-radius:0 8px 8px 0">
+        <div style="color:#c4b5fd;font-weight:700;margin-bottom:4px">Q5. "다음에 뭘 해야 해요?"</div>
+        <div style="color:#e2e8f0;line-height:1.8">
+          ① STOP 거리 현장 실측(30/40/45/50cm, 로봇 필요 — 계산기·핸드오프 완비) ② 그라운딩 실패 대응 방향 결정(교수님 판단). 시뮬 기준 96.6%에서 더 올릴 방법은 현재 식별되지 않음.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    CH44~CH52 전체 근거 &nbsp;|&nbsp; 6/26 세션: docs/inference_sessions/session_20260626_*.h5 &nbsp;|&nbsp; 2026-06-26
+  </div>
+</div>
+
+<hr class="chapter-divider">
 <div class="chapter" id="weekly-meeting" style="padding-bottom:40px">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MEETING</span>
@@ -12475,8 +13389,8 @@ graph TD
 
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🏋️ 학습/평가</div>
       <ul style="margin-left:18px;line-height:2">
-        <li>☐ <strong>LSTM+hidden state 조합 closed-loop 확대 검증</strong> — val 29개로는 SR 변별 안 됨(<a href="#ch43" style="color:#7dd3fc">CH43-2c</a>),
-        더 큰 표본(5-seed 확대, 또는 어려운 path_type만 분리 평가) 필요</li>
+        <li>✅ <strong>LSTM+hidden state 조합 closed-loop 확대 검증</strong> — 5-seed(<a href="#ch43" style="color:#7dd3fc">CH43-2d</a>) + path_type 분리(<a href="#ch52" style="color:#7dd3fc">CH52</a>) 완료.
+        SR은 전 path_type 포화, replace mode가 전환 경로 FPE 40% 개선(0.176→0.106m). right_right 실패는 에피소드-레벨 문제.</li>
       </ul>
 
       <div style="color:#fbbf24;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px">🤖 추론 — 로봇 동작</div>

@@ -106,20 +106,27 @@
 
 ---
 
-## 현재 상태 / 다음 단계 (2026-06-17 갱신)
+## 현재 상태 / 다음 단계 (2026-06-28 갱신)
 
-1. **실로봇 테스트 진행 중** (2026-06-16~17)
+1. **CH55 Preview Model Ablation 완료** (2026-06-27~28)
+   - CLIP / OWL-v2 / Kosmos-2 / Florence-2 × ZS/probe/LoRA/last-layer-FT
+   - **핵심 결론**: Stage 0 워밍업(CH54)이 frame 0 cold-start 해결 → preview model 필요성 낮음
+   - PG2 warm=1440ms, det≈100% → 가장 신뢰도 높음 (대체 모델 불필요)
+   - 최선 대안: OWL-v2 ZS (432ms, sess dir=50%), Kosmos-2 ZS (711ms, det=100%, sess dir=36%)
+   - FT 방법: 140개 학습 데이터로는 오버피팅 심함. ft_last1이 LoRA보다 나음 (sess 51.7%)
+   - 스크립트: `scripts/ablate_preview_ft_v2.py`, `scripts/ablate_last_layers.py`
+   - 결과: `docs/v5/ablate_preview_ft_v2.json`, `docs/v5/ablate_last_layers.json`
+
+2. **실로봇 테스트** (2026-06-16~17)
    - Exp66 Stage2 v2 soda 배포 완료, 대시보드 http://100.85.118.58:7865
    - 체크리스트: `docs/v5/REAL_ROBOT_CHECKLIST_20260616.md`
-   - 목표: 실환경에서 96.6% CL 재현
 
-2. **논문 제출 결정** (6/12 미팅)
+3. **논문 제출 결정** (6/12 미팅)
    - Table 1 초안: `docs/v5/TABLE1_PAPER_DRAFT.md`
    - 실로봇 결과 나오면 `mona-sync --add-exp` 로 이력 추가
 
-3. **카메라 서비스 미연결** (soda)
+4. **카메라 서비스 미연결** (soda)
    - `ros2 run` / entry_point 메타데이터 오류 (importlib.metadata)
-   - 대시보드 카메라 탭 타임아웃 — 추후 수동 수정 필요
 
 ---
 
