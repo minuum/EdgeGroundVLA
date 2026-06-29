@@ -956,9 +956,9 @@
     <div class="tab" data-mode="owl">OWL-v2 (BBox)</div>
   </div>
 
-  <div id="compare-images-container" style="display:flex;flex-direction:column;gap:8px">
+  <div id="compare-images-container" style="display:flex;flex-direction:row;gap:16px;overflow-x:auto;padding-bottom:16px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch">
     <!-- 동적 이미지 로드 -->
-    <div style="color:#64748b;font-size:0.85rem;text-align:center;padding:20px">시각화 로딩 중...</div>
+    <div style="color:#64748b;font-size:0.85rem;text-align:center;padding:20px;width:100%">시각화 로딩 중...</div>
   </div>
 
   <script>
@@ -970,7 +970,7 @@
         const container = document.getElementById('compare-images-container');
         container.innerHTML = '';
         if (!manifestData || !manifestData.compare_strips) {
-          container.innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px">불러올 이미지가 없습니다.</div>';
+          container.innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px;width:100%">불러올 이미지가 없습니다.</div>';
           return;
         }
 
@@ -985,27 +985,31 @@
 
           const imgWrapper = document.createElement('div');
           imgWrapper.style.position = 'relative';
-          imgWrapper.style.width = '100%';
+          imgWrapper.style.flex = '0 0 66.67%'; // 현재 너비의 2/3
+          imgWrapper.style.width = '66.67%';
+          imgWrapper.style.minWidth = '280px'; // 모바일 가독성 최소폭 확보
 
           const img = document.createElement('img');
           img.src = src;
           img.style.width = '100%';
-          img.style.borderRadius = '4px';
-          img.style.border = '1px solid #334155';
+          img.style.borderRadius = '6px';
+          img.style.border = '1px solid #1e3a5f';
+          img.style.display = 'block';
           img.loading = 'lazy';
 
           const label = document.createElement('div');
           label.style.position = 'absolute';
           label.style.top = '8px';
           label.style.left = '8px';
-          label.style.background = 'rgba(0,0,0,0.85)';
+          label.style.background = 'rgba(7,13,26,0.85)';
           label.style.color = '#7dd3fc';
-          label.style.padding = '3px 8px';
+          label.style.padding = '4px 10px';
           label.style.borderRadius = '4px';
           label.style.fontSize = '0.72rem';
           label.style.fontWeight = 'bold';
           label.style.fontFamily = 'monospace';
           label.style.border = '1px solid #1e3a8a';
+          label.style.zIndex = '10';
           label.innerText = `Session: ${tag}`;
 
           imgWrapper.appendChild(img);
@@ -1022,7 +1026,7 @@
         })
         .catch(err => {
           console.error('Failed to load visualizations:', err);
-          document.getElementById('compare-images-container').innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px">시각 자료 로드 실패</div>';
+          document.getElementById('compare-images-container').innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px;width:100%">시각 자료 로드 실패</div>';
         });
 
       document.getElementById('j2-filter-tabs').querySelectorAll('.tab').forEach(tab => {
@@ -1035,6 +1039,7 @@
       });
     })();
   </script>
+
 
 
 
