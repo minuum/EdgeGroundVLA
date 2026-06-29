@@ -312,7 +312,7 @@
     <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
     <a class="toc-item" href="#ch55" data-target="ch55"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 55</span><span class="toc-label">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch56" data-target="ch56"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 56</span><span class="toc-label">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</span><span class="toc-cat cat-exp">실험</span></a>
-    <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">CH 57</span><span class="toc-label">Frame 0 Cold-Start → Window 오염 → LEFT 오예측 가설</span><span class="toc-cat cat-exp" style="background:rgba(251,191,36,0.15);color:#fbbf24">가설</span></a>
+    <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(107,114,128,0.15);color:#6b7280">CH 57</span><span class="toc-label">Frame 0 Cold-Start → Window 오염 가설 (기각됨)</span><span class="toc-cat cat-exp" style="background:rgba(107,114,128,0.15);color:#6b7280">기각</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -13047,14 +13047,17 @@ graph TD
 <div class="chapter" id="ch57">
   <div class="chapter-header">
     <span class="chapter-num">CH 57</span>
-    <h2 class="chapter-title">Frame 0 Cold-Start → Window 오염 → LEFT 오예측 — 가설 및 근거</h2>
-    <p class="chapter-subtitle">6/26 실주행 세션 4개에서 그라운딩이 cx&gt;0.5임에도 LEFT 출력된 현상의 원인 분석. <strong style="color:#fbbf24">⚠️ 가설 단계 — 실험자 검토 필요</strong></p>
+    <h2 class="chapter-title">Frame 0 Cold-Start → Window 오염 → LEFT 오예측 — 가설 기각됨</h2>
+    <p class="chapter-subtitle">6/26 실주행 세션 4개에서 그라운딩이 cx&gt;0.5임에도 LEFT 출력된 현상의 원인 분석. <strong style="color:#6b7280">🚫 2026-06-30 실험자 검증으로 기각됨</strong></p>
   </div>
 
-  <div class="finding-card" style="background:linear-gradient(135deg,#1a0a00,#1f1000);border-color:#92400e;margin-bottom:24px">
-    <div class="finding-title" style="color:#fbbf24">⚠️ 상태: 가설 (2026-06-29 Claude 분석) — 실험자 미검증</div>
-    <div class="finding-body" style="font-size:0.88rem;line-height:1.9;color:#fde68a">
-      아래 내용은 코드 분석 + 세션 데이터에서 도출한 <strong>가설</strong>입니다. 실제 인과 여부는 실험자가 검토해주세요.
+  <div class="finding-card" style="background:linear-gradient(135deg,#0d1117,#111827);border-color:#374151;margin-bottom:24px">
+    <div class="finding-title" style="color:#9ca3af">🚫 상태: 기각됨 (2026-06-30 실험자 검증)</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9;color:#6b7280">
+      실험자가 실제 사진으로 확인한 결과:<br>
+      • bbox 오염 단독 테스트 → LEFT 재현 안 됨 (MLP 출력 FWD 98%)<br>
+      • 정상 세션도 frame1 예측이 바스켓 위치에 맞지 않음 → 가설의 전제(LEFT 세션 특이성) 성립 안 함<br>
+      → <strong>CH57 bbox window 오염 메커니즘 기각.</strong> 근본 원인은 미확인 (vis_feat 또는 학습 분포 편향 탐색 필요)
     </div>
   </div>
 
@@ -13166,8 +13169,22 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#1a0a1a,#1f1030);border-color:#4c1d95;margin-bottom:24px">
+    <div class="finding-title" style="color:#c4b5fd">57-4. 새 관찰 — frame1 불안정은 모든 세션의 공통 현상</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
+      정상 세션(140928/150611)도 frame1 예측이 바스켓 위치에 맞지 않음이 확인됨.<br>
+      즉 LEFT 오예측 4개 세션만의 특이 현상이 아니라 <strong style="color:#c4b5fd">모든 세션의 frame1이 불안정한 구조적 문제</strong>일 가능성.<br><br>
+      <strong>새 탐색 방향:</strong>
+      <ul style="margin:6px 0 0 18px;line-height:2">
+        <li>학습 데이터에서 에피소드 시작 프레임(frame0~2)의 액션 분포가 LEFT로 편향됐는가?</li>
+        <li>vis_feat (Kosmos-2 이미지 특징)이 frame1에서 LEFT를 강하게 유발하는가? — soda 서버 전체 파이프라인 테스트 필요</li>
+        <li>Stage 0 워밍업은 PG2 latency를 해결하지만 frame1 예측 불안정과는 무관할 수 있음</li>
+      </ul>
+    </div>
+  </div>
+
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
-    2026-06-29 &nbsp;|&nbsp; 분석: Claude (가설) &nbsp;|&nbsp; 검토 대기 중
+    2026-06-29 작성 &nbsp;|&nbsp; 2026-06-30 기각 확정 &nbsp;|&nbsp; 검증: 실험자 직접 확인
   </div>
 </div>
 
