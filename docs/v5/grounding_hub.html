@@ -946,36 +946,96 @@
   <p style="font-size:0.78rem;color:#475569;margin-top:6px">* CLIP zero-shot은 cx 결과가 완전히 벗어남 (basket이 항상 center인데 오히려 잡지 못함). FT cx 100%는 ±0.2 허용범위 착시 (항상 L 예측 probe가 center 분포 커버). dir=65%가 실제 성능.</p>
 
   <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">J2 · frame 0 시각 비교 — 전체 세션 대표 프레임</h3>
-  <p style="color:#94a3b8;font-size:0.84rem;margin-bottom:10px">왼쪽→오른쪽: <span style="color:#00cfff">PG2 oracle</span> / <span style="color:#fde68a">CLIP 방향화살표</span> / <span style="color:#86efac">Kosmos-2 bbox</span> / <span style="color:#ff82c8">OWL-v2 bbox</span></p>
+  <p style="color:#94a3b8;font-size:0.84rem;margin-bottom:12px">동일 세션 프레임 0에서 각 모델별 그라운딩/방향 예측 결과를 비교 분석합니다. 아래 탭을 통해 모델별 시각 결과를 필터링할 수 있습니다.</p>
+  
+  <div class="tabs" id="j2-filter-tabs" style="margin-bottom:16px">
+    <div class="tab active" data-mode="compare">통합 비교 (4-Panel)</div>
+    <div class="tab" data-mode="pg2">PG2 (Oracle)</div>
+    <div class="tab" data-mode="clip">CLIP (방향 화살표)</div>
+    <div class="tab" data-mode="kosmos">Kosmos-2 (BBox)</div>
+    <div class="tab" data-mode="owl">OWL-v2 (BBox)</div>
+  </div>
+
   <div id="compare-images-container" style="display:flex;flex-direction:column;gap:8px">
     <!-- 동적 이미지 로드 -->
     <div style="color:#64748b;font-size:0.85rem;text-align:center;padding:20px">시각화 로딩 중...</div>
   </div>
+
   <script>
-    fetch('ch55_viz/manifest.json')
-      .then(r => r.json())
-      .then(data => {
+    (function() {
+      let currentMode = 'compare';
+      let manifestData = null;
+
+      function renderImages() {
         const container = document.getElementById('compare-images-container');
         container.innerHTML = '';
-        if (data.compare_strips && data.compare_strips.length > 0) {
-          data.compare_strips.forEach(imgName => {
-            const img = document.createElement('img');
-            img.src = 'ch55_viz/' + imgName;
-            img.style.width = '100%';
-            img.style.borderRadius = '4px';
-            img.style.border = '1px solid #334155';
-            img.loading = 'lazy';
-            container.appendChild(img);
-          });
-        } else {
+        if (!manifestData || !manifestData.compare_strips) {
           container.innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px">불러올 이미지가 없습니다.</div>';
+          return;
         }
-      })
-      .catch(err => {
-        console.error('Failed to load visualizations dynamically:', err);
-        document.getElementById('compare-images-container').innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px">시각 자료 로드 실패</div>';
+
+        manifestData.compare_strips.forEach(compareName => {
+          const tag = compareName.replace('compare_', '').replace('.jpg', '');
+          let src = '';
+          if (currentMode === 'compare') {
+            src = 'ch55_viz/' + compareName;
+          } else {
+            src = `ch55_viz/${tag}_${currentMode}.jpg`;
+          }
+
+          const imgWrapper = document.createElement('div');
+          imgWrapper.style.position = 'relative';
+          imgWrapper.style.width = '100%';
+
+          const img = document.createElement('img');
+          img.src = src;
+          img.style.width = '100%';
+          img.style.borderRadius = '4px';
+          img.style.border = '1px solid #334155';
+          img.loading = 'lazy';
+
+          const label = document.createElement('div');
+          label.style.position = 'absolute';
+          label.style.top = '8px';
+          label.style.left = '8px';
+          label.style.background = 'rgba(0,0,0,0.85)';
+          label.style.color = '#7dd3fc';
+          label.style.padding = '3px 8px';
+          label.style.borderRadius = '4px';
+          label.style.fontSize = '0.72rem';
+          label.style.fontWeight = 'bold';
+          label.style.fontFamily = 'monospace';
+          label.style.border = '1px solid #1e3a8a';
+          label.innerText = `Session: ${tag}`;
+
+          imgWrapper.appendChild(img);
+          imgWrapper.appendChild(label);
+          container.appendChild(imgWrapper);
+        });
+      }
+
+      fetch('ch55_viz/manifest.json')
+        .then(r => r.json())
+        .then(data => {
+          manifestData = data;
+          renderImages();
+        })
+        .catch(err => {
+          console.error('Failed to load visualizations:', err);
+          document.getElementById('compare-images-container').innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px">시각 자료 로드 실패</div>';
+        });
+
+      document.getElementById('j2-filter-tabs').querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          document.getElementById('j2-filter-tabs').querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+          tab.classList.add('active');
+          currentMode = tab.dataset.mode;
+          renderImages();
+        });
       });
+    })();
   </script>
+
 
 
   <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">J3 · 결론 & 운영 전략</h3>
