@@ -312,6 +312,7 @@
     <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
     <a class="toc-item" href="#ch55" data-target="ch55"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 55</span><span class="toc-label">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch56" data-target="ch56"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 56</span><span class="toc-label">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">CH 57</span><span class="toc-label">Frame 0 Cold-Start → Window 오염 → LEFT 오예측 가설</span><span class="toc-cat cat-exp" style="background:rgba(251,191,36,0.15);color:#fbbf24">가설</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -329,10 +330,21 @@
   <p class="subtitle">데이터 수집부터 closed-loop 검증까지 — 이미지와 함께 보는 전체 학습 과정</p>
   <div class="kpi-row">
     <div class="kpi"><div class="num" style="color:#60a5fa">150</div><div class="lbl">H5 에피소드</div></div>
-    <div class="kpi"><div class="num" style="color:#fbbf24">55+</div><div class="lbl">총 실험 수</div></div>
+    <div class="kpi"><div class="num" style="color:#fbbf24">57+</div><div class="lbl">총 챕터 수</div></div>
     <div class="kpi"><div class="num" style="color:#ef4444">0%</div><div class="lbl">Exp11 CL 성공률</div></div>
     <div class="kpi"><div class="num" style="color:#22c55e">96.6%</div><div class="lbl">최신 CL 성공률</div></div>
     <div class="kpi"><div class="num" style="color:#a78bfa">0%</div><div class="lbl">Text Attention</div></div>
+  </div>
+
+  <!-- 주요 페이지 빠른 이동 -->
+  <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:28px">
+    <span style="font-size:0.75rem;color:#475569;align-self:center;margin-right:4px">주요 페이지 →</span>
+    <a href="grounding_hub.html" style="padding:7px 16px;background:#0c2b2b;border:1px solid #0d9488;border-radius:8px;font-size:0.78rem;font-weight:700;color:#2dd4bf;text-decoration:none">🎯 Grounding Hub</a>
+    <a href="masking_ablation_proof.html" style="padding:7px 16px;background:#1e0a2b;border:1px solid #7c3aed;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔬 Masking Ablation Proof</a>
+    <a href="robot_tests.html" style="padding:7px 16px;background:#1a0a00;border:1px solid #d97706;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">🤖 Robot Tests</a>
+    <a href="hidden_state_hub.html" style="padding:7px 16px;background:#052e16;border:1px solid #15803d;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">🧠 Hidden State Hub</a>
+    <a href="grounding_hub.html#section-k" style="padding:7px 16px;background:#1a0a00;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">⚠️ CH57 Frame0 가설</a>
+    <a href="../index.html" style="padding:7px 16px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">🏠 메인</a>
   </div>
 </div>
 <a class="back-link" href="../index.html">← 메인으로</a>
