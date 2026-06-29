@@ -13,7 +13,8 @@ PROJECT_DIR="${VLA_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 PROFILE_SCRIPT="$PROJECT_DIR/scripts/vla_profile.py"
 E2E_SERVER_SCRIPT="$PROJECT_DIR/robovlm_nav/serve/inference_server.py"
 PROXY_SERVER_SCRIPT="$PROJECT_DIR/robovlm_nav/serve/proxy_inference_server.py"
-SERVER_SCRIPT="$E2E_SERVER_SCRIPT"  # overridden by resolve_profile_env for proxy_server runtime
+STAGE2V2_SERVER_SCRIPT="$PROJECT_DIR/robovlm_nav/serve/stage2_v2_inference_server.py"
+SERVER_SCRIPT="$E2E_SERVER_SCRIPT"  # overridden by resolve_profile_env for proxy_server/stage2_v2 runtime
 LOG_DIR="$PROJECT_DIR/logs"
 LOG_FILE="$LOG_DIR/api_server.log"
 PID_FILE="$LOG_DIR/api_server.pid"
@@ -54,6 +55,9 @@ resolve_profile_env() {
     elif [ "${VLA_MODEL_RUNTIME:-}" = "proxy_server" ]; then
         SERVER_SCRIPT="$PROXY_SERVER_SCRIPT"
         export VLA_PROXY_WEIGHTS_PATH="${VLA_PROXY_WEIGHTS_PATH:-${VLA_CHECKPOINT_PATH:-}}"
+    elif [ "${VLA_MODEL_RUNTIME:-}" = "stage2_v2" ]; then
+        SERVER_SCRIPT="$STAGE2V2_SERVER_SCRIPT"
+        PORT="${VLA_PORT:-8001}"
     else
         SERVER_SCRIPT="$E2E_SERVER_SCRIPT"
     fi

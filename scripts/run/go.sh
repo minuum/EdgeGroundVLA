@@ -2,22 +2,25 @@
 # mona-up / vla-go — soda에서 실행. 추론 서버 + 대시보드 + 허브 한 번에 시작
 #
 # 사용법:
-#   go.sh              # 전부 (서버 + 대시보드 + 허브)
+#   go.sh              # 전부 (서버 + 대시보드 + 허브 + 뷰어)
 #   go.sh --server     # 추론 서버만 (포트 8001)
 #   go.sh --dashboard  # 대시보드만 (포트 7865) ← 주 제어 UI
 #   go.sh --hub        # 허브만 (포트 7860)
+#   go.sh --viewer     # 데이터셋 뷰어만 (포트 8083)
 #   go.sh --status     # 실행 중 서비스 확인
 #   go.sh --stop       # 모두 종료
 
 set -euo pipefail
 cd "${VLA_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
-SODA_IP=$(hostname -I | awk '{print $1}')
+# Tailscale IP 우선 사용 (원격 접속용), 없으면 로컬 IP fallback
+SODA_IP=$(ip addr show tailscale0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1)
+[[ -z "$SODA_IP" ]] && SODA_IP=$(hostname -I | awk '{print $1}')
 SERVER_PORT=8001
 DASH_PORT=7865
 HUB_PORT=7860
 S1_PT="runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
-S2_PT="runs/v5_nav/mlp/exp66/action_mlp.pt"
+S2_PT="runs/v5_nav/mlp/stop_lastN/stop_N1.pt"
 
 # .venv 있으면 우선, 없으면 시스템 python3
 if [[ -x ".venv/bin/python3" ]]; then
@@ -76,6 +79,7 @@ if [[ "$MODE" == "--stop" ]]; then
     pkill -f "stage2_v2_inference_server" 2>/dev/null && echo "  추론 서버 종료"     || echo "  추론 서버: 실행 중 아님"
     pkill -f "gradio_inference_dashboard" 2>/dev/null && echo "  추론 대시보드 종료" || echo "  추론 대시보드: 실행 중 아님"
     pkill -f "gradio_hub"                 2>/dev/null && echo "  허브 종료"          || echo "  허브: 실행 중 아님"
+    pkill -f "gradio_dataset_viewer"      2>/dev/null && echo "  데이터셋 뷰어 종료" || echo "  데이터셋 뷰어: 실행 중 아님"
     exit 0
 fi
 
@@ -86,14 +90,14 @@ fi
 # ── 체크포인트 확인 ───────────────────────────────────────────────────────
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  mona-up  (Exp66 SOTA — Stage2 v2)"
+echo "  mona-up  (stop_N1 CL 96.6% — Stage2 v2 + learned STOP)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 for f in "$S1_PT" "$S2_PT"; do
     if [[ -f "$f" ]]; then
         echo "  ✓ $(du -sh "$f" | cut -f1)  $f"
     else
         echo "  ✗ 없음: $f  ←  mona-ship 먼저 실행 필요"
-        [[ "$MODE" == "--hub" || "$MODE" == "--dashboard" ]] || exit 1
+        [[ "$MODE" == "--hub" || "$MODE" == "--dashboard" || "$MODE" == "--viewer" ]] || exit 1
     fi
 done
 mkdir -p logs
@@ -104,7 +108,8 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
     echo "▶ 1/3  추론 서버 (포트 $SERVER_PORT)"
     pkill -f "stage2_v2_inference_server" 2>/dev/null && sleep 1 || true
 
-    nohup "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
+    nohup env VLA_S2V2_STAGE2="$S2_PT" VLA_STOP_MODE=learned \
+        "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
         --port "$SERVER_PORT" > logs/s2v2_server.log 2>&1 &
     disown $!
     echo "  PID=$!  logs/s2v2_server.log"
@@ -139,7 +144,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--dashboard" ]]; then
     ROS_WS="$PWD/ROS_action/install"
 
     # PYTHONPATH: rclpy + geometry_msgs + camera_interfaces + ros_action_msgs
-    ROS2_PY="${ROS_DIST}/local/lib/python3.10/dist-packages"
+    ROS2_PY="${ROS_DIST}/local/lib/python3.10/dist-packages:${ROS_DIST}/lib/python3.10/site-packages"
     WS_PY_PATHS=""
     for pkg in camera_interfaces ros_action_msgs; do
         p="$ROS_WS/$pkg/local/lib/python3.10/dist-packages"
@@ -160,11 +165,15 @@ if [[ "$MODE" == "--all" || "$MODE" == "--dashboard" ]]; then
     FULL_PATH="${ROS_DIST}/bin:$PATH"
 
     VLA_API_SERVER="http://localhost:$SERVER_PORT" \
+    VLA_SERVER_ROLE=jetson \
     VLA_INFERENCE_PORT="$DASH_PORT" \
     VLA_ROS_WS="$ROS_WS" \
     ROS_DOMAIN_ID=42 \
     RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
     GRADIO_SHARE=0 \
+    VLA_ASYNC_MODE=1 \
+    VLA_INFERENCE_HZ=3.0 \
+    VLA_EXECUTION_HZ=10.0 \
     PYTHONPATH="$FULL_PY" \
     LD_LIBRARY_PATH="$FULL_LIB" \
     PATH="$FULL_PATH" \
@@ -190,9 +199,24 @@ if [[ "$MODE" == "--all" || "$MODE" == "--hub" ]]; then
     wait_port "허브" "$HUB_PORT" 40 "logs/hub.log"
 fi
 
+# ── 4. 데이터셋 뷰어 (Gradio, 포트 8083) ────────────────────────────────
+VIEWER_PORT=8083
+if [[ "$MODE" == "--all" || "$MODE" == "--viewer" ]]; then
+    echo ""
+    echo "▶ 데이터셋 뷰어 (포트 $VIEWER_PORT)"
+    pkill -f "gradio_dataset_viewer" 2>/dev/null && sleep 1 || true
+
+    "$PY" scripts/gradio_dataset_viewer.py \
+        >> logs/dataset_viewer.log 2>&1 &
+    _viewer_pid=$!
+    disown $_viewer_pid 2>/dev/null || true
+    echo "  PID=$_viewer_pid  logs/dataset_viewer.log  (시작 ~20s)"
+fi
+
 status_check
 
 echo ""
 echo "  ★ 주 제어:   http://$SODA_IP:$DASH_PORT"
 echo "  허브:        http://$SODA_IP:$HUB_PORT"
+echo "  데이터셋:    http://$SODA_IP:$VIEWER_PORT"
 echo "  서버 로그:   ssh soda@$SODA_IP 'tail -f ~/MoNaVLA/logs/s2v2_server.log'"

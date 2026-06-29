@@ -1,0 +1,18 @@
+{
+  "s6/frame_0001.jpg": {
+    "basket_vs_ball (객체 다름)": 0.3626355997493349,
+    "left_vs_right (방향만 다름)": 0.02923913265680178,
+    "left_vs_forward (방향만 다름)": 0.04285404118802816,
+    "right_vs_forward (방향만 다름)": 0.03893112168633395,
+    "basket_vs_basket_repeat (노이즈 바닥선)": 4.107825191113079e-13,
+    "object_vs_direction_ratio": 9.798817403373079
+  },
+  "s7/frame_0084.jpg": {
+    "basket_vs_ball (객체 다름)": 0.44075320331200896,
+    "left_vs_right (방향만 다름)": 0.04101338333341664,
+    "left_vs_forward (방향만 다름)": 0.05132292106992542,
+    "right_vs_forward (방향만 다름)": 0.03712840836996889,
+    "basket_vs_basket_repeat (노이즈 바닥선)": 3.7680969455777813e-13,
+    "object_vs_direction_ratio": 10.213281917608438
+  }
+}

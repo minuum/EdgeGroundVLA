@@ -89,6 +89,21 @@
       "evidence": ["runs/v5_nav/mlp/exp49/exp49_mlp.pt"],
       "notes": "acc 96.4%, CL 100% success. GoalNav: vis(1024)+bbox_history+goal(3)=1059-dim, window=8."
     },
+    "exp66_stage2v2": {
+      "label": "Exp66 Stage2 v2 SOTA (base PG2, L2)",
+      "kind": "decomposition",
+      "runtime": "stage2_v2",
+      "checkpoint": "runs/v5_nav/mlp/exp66/action_mlp.pt",
+      "config": "",
+      "status": "validated",
+      "pinned": true,
+      "evidence": [
+        "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
+        "docs/v5/STAGE2_V2_CHECKPOINTS.md",
+        "docs/v5/REAL_ROBOT_CHECKLIST_20260616.md"
+      ],
+      "notes": "val_acc 93.5%, CL 96.6%, FPE 0.102m. Stage1(공유) + ActionMLP w=8, PG2 zero-shot grounding. 운영 기본값(port 8001)."
+    },
     "local_v4_balanced_fallback": {
       "label": "Local V4 Balanced Fallback",
       "kind": "end_to_end",
@@ -155,6 +170,12 @@
       "default_model": "exp49_goal_nav",
       "fallback_models": ["exp46_proxy"],
       "allow_runtimes": ["proxy_server"]
+    },
+    "stage2v2_default": {
+      "label": "Stage2 v2 Default (Exp66 SOTA)",
+      "default_model": "exp66_stage2v2",
+      "fallback_models": [],
+      "allow_runtimes": ["stage2_v2"]
     },
     "collect_default": {
       "label": "Collector Default",

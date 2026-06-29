@@ -71,8 +71,9 @@ def build_vlm(vlm_config, tokenizer_config, precision="bf16", quantization_confi
         
         # V4 모델의 확장된 Vocab(65037) 대응: 모델 로드 후 임베딩 레이어 강제 리사이즈
         load_kwargs.pop("pretrained_model_name_or_path", None)
+        # 인터넷 연결을 시도하지 않고 로컬 가중치만 즉시 읽도록 local_files_only=True 강제
         model = Kosmos2ForConditionalGeneration.from_pretrained(
-            model_id, **load_kwargs, ignore_mismatched_sizes=True
+            model_id, **load_kwargs, ignore_mismatched_sizes=True, local_files_only=True
         )
         print(f"🔧 Resizing token embeddings to 65037 for checkpoint compatibility...")
         model.resize_token_embeddings(65037)
@@ -83,7 +84,8 @@ def build_vlm(vlm_config, tokenizer_config, precision="bf16", quantization_confi
         except Exception as e:
             print(f"⚠️ Standard build_tokenizer failed: {e}. Trying raw AutoProcessor fallback...")
             from transformers import AutoProcessor
-            tokenizer = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+            # 인터넷 연결을 시도하지 않고 로컬 가중치만 즉시 읽도록 local_files_only=True 강제
+            tokenizer = AutoProcessor.from_pretrained(model_id, trust_remote_code=True, local_files_only=True)
         
     else:
         # Handle deprecated AutoModelForVision2Seq -> AutoModelForImageTextToText

@@ -46,6 +46,12 @@
     <a href="#section-g1" style="padding:6px 14px;background:#0a1628;border:1px solid #7c3aed;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">&sect;G1 Head</a>
     <a href="#section-g2" style="padding:6px 14px;background:#0a1628;border:1px solid #14b8a6;border-radius:8px;font-size:0.78rem;color:#2dd4bf;text-decoration:none">&sect;G2 Window</a>
     <a href="#section-g3" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">&sect;G3 전체비교</a>
+    <a href="#section-h" style="padding:6px 14px;background:#1e0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#d8b4fe;text-decoration:none">&sect;H Detector 비교(GDINO/YOLO-World)</a>
+    <a href="#section-i" style="padding:6px 14px;background:#1a0a0a;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;I STOP 로직 ★NEW</a>sect;I STOP 로직</a>
+    <a href="#section-j" style="padding:6px 14px;background:#1a0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">&sect;J Perception Ablation ★NEW</a>
+    <a href="#section-k" style="padding:6px 14px;background:#1a0a00;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;K Frame0 Cold-Start 분석 ★가설</a>
+    <a href="today_visual_summary.html" style="padding:6px 14px;background:#0a1628;border:1px solid #7dd3fc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">📷 오늘 한눈에 보기(사진)</a>
+    <a href="hidden_state_hub.html" style="padding:6px 14px;background:#0a1628;border:1px solid #86efac;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">🧠 Hidden State Hub</a>
     <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
     <a href="research_story.html#ch33" style="padding:6px 14px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">← CH33</a>
     <a href="research_story.html#ch34" style="padding:6px 14px;background:#0a1628;border:1px solid #4c1d95;border-radius:8px;font-size:0.78rem;color:#a78bfa;text-decoration:none">← CH34</a>
@@ -93,6 +99,37 @@
       </div>
     </div>
     <div class="note">⚠️ cx_MAE의 정답(HSV 중심)은 색분할 기반 근사값이라 그 자체로 ±오차가 있다 — 모델 간 <strong>상대 비교</strong>용으로 해석.</div>
+    
+    <!-- 46-1. 재주석 자체의 변화 -->
+    <div style="margin-top:20px; padding:16px; background:#0f172a; border:1px solid #1e3a5f; border-radius:10px">
+      <div style="color:#7dd3fc; font-weight:800; font-size:0.95rem; margin-bottom:10px">📊 46-1. 재주석 자체의 변화 (기존 Kosmos-2 vs 신규 PG2)</div>
+      <table style="margin-bottom:12px">
+        <thead>
+          <tr>
+            <th>지표</th>
+            <th>기존 (5월 Kosmos-2)</th>
+            <th>신규 (현재 PG2)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>has_bbox=True 비율</strong></td>
+            <td>2603/2626 (99.1%)</td>
+            <td>2621/2626 (99.8%)</td>
+          </tr>
+          <tr>
+            <td><strong>area p25 / median / p75</strong></td>
+            <td>0.050 / 0.075 / 0.666</td>
+            <td>0.039 / 0.070 / 0.172</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="color:#94a3b8; font-size:0.82rem; line-height:1.6">
+        has_bbox율은 둘 다 99%대로 큰 차이가 없습니다(애초에 "전혀 탐지 안 됨"은 드문 일이었다는 뜻).<br>
+        진짜 차이는 <strong>area p75</strong> 지표입니다. 기존 데이터에는 area ≈ 0.6~0.8짜리 "비정상적으로 큰" 박스가 다수 존재했으나, 신규 PG2 데이터에는 그런 거대 박스가 거의 발견되지 않습니다.<br>
+        즉, Kosmos-2 시절의 그라운딩이 종종 과대 박스(혹은 전체 화면 크기)를 오탐지했던 반면, 신규 PG2 기반 그라운딩은 바구니를 매우 타이트하고 정확하게 검출하고 있음을 입증합니다.
+      </div>
+    </div>
   </div>
 
   <!-- A. 핵심 결론 -->
@@ -122,7 +159,7 @@
   </div>
 
   <!-- B. 비교 매트릭스 -->
-  <h2><span class="badge" style="background:#7dd3fc;color:#0a0f1a">B</span> 모델 비교 매트릭스 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 표준 49프레임 + 의자 11장</span></h2>
+  <h2 id="section-b"><span class="badge" style="background:#7dd3fc;color:#0a0f1a">B</span> 모델 비교 매트릭스 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 표준 49프레임 + 의자 11장</span></h2>
   <div class="card">
     <table>
       <thead><tr><th>모델</th><th>백본 / LoRA</th><th>hit</th><th>cx_MAE</th><th>full-frame</th><th>OOD 오탐</th><th>판정</th></tr></thead>
@@ -137,6 +174,15 @@
       </tbody>
     </table>
     <div class="note">cx_MAE = 중심 오차(낮을수록 정확) · full-frame = area&gt;0.9 박스 비율(높을수록 붕괴) · OOD 오탐 = 의자에 basket 박스 친 비율.</div>
+    <div class="note" style="margin-top:8px">위 <strong style="color:#7dd3fc">base PG2</strong>(snapshot 8e40ab4c, LoRA 없음)는 2026-06-23 CH46/47 재주석에 쓴 운영
+    <code>DEFAULT_PG2</code>와 <strong>동일 체크포인트</strong> — 모델 일치성 검증: <a href="research_story.html#ch48" style="color:#7dd3fc">research_story.html#CH48</a></div>
+  </div>
+
+  <!-- C2. 통합 프리뷰 모델 테스트 비교 매트릭스 (동적 로딩) -->
+  <div id="integrated-preview-ablation-ch">
+    <div style="margin:20px 0; padding:18px; background:#0f172a; border:1px solid #1e3a8a; border-radius:12px; text-align:center; color:#94a3b8">
+      🔄 통합 프리뷰 모델 테스트 비교 매트릭스를 불러오는 중...
+    </div>
   </div>
 
   <!-- C. 측면 경로 갤러리 -->
@@ -663,6 +709,353 @@
       <div style="padding:8px 14px;background:#0f172a;border-radius:8px;border:1px solid #14b8a6;color:#2dd4bf"><strong>Window:</strong> MLP w≥4 96.6%, w=2 93.1% · LSTM w=16 FPE 최저 0.080m</div>
     </div>
   </div>
+
+  <!-- H. GroundingDINO zero-shot 비교 -->
+  <h2 id="section-h"><span class="badge" style="background:#a855f7;color:#fff">H</span> GroundingDINO(tiny/base) zero-shot vs base PG2 zero-shot <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 2026-06-21, 로컬(GB10) 실측</span></h2>
+  <div class="card" id="section-h-card">
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:14px;line-height:1.7">
+      §A/§E 결론(LoRA가 PG2 grounding을 깨뜨린다)과 같은 철학으로, GroundingDINO도 <strong style="color:#e2e8f0">fine-tune 없이 frozen zero-shot</strong>으로만 비교했다 —
+      최근 VLA 5편 조사 결과 detector를 직접 학습시키는 사례가 없었던 것과 동일한 방향.
+      대상: <code style="color:#86efac">IDEA-Research/grounding-dino-tiny</code>(172M) · <code style="color:#86efac">grounding-dino-base</code>.
+      프롬프트는 GroundingDINO 문법에 맞춰 <code>"gray basket."</code>(마침표 구분).
+      세트는 §B/§C에서 이미 만든 표준 49프레임 + OOD 의자 11장 + 측면 4경로를 그대로 재사용, S6 dead-zone(56/70/85) · S7 near-miss(39/41) 실패케이스를 추가.
+      실행: <code>scripts/eval/eval_groundingdino_vs_pg2.py</code> · 데이터: <code>docs/v5/grounding_hub/gdino_vs_pg2.json</code>.
+    </div>
+
+    <div style="background:#1e0a2b;border:1px solid #7c3aed;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:#e2e8f0;line-height:1.6">
+      <strong style="color:#d8b4fe">⚠️ GPU 환경 노트:</strong> 이 GB10(Grace-Blackwell) 머신의 torch nvrtc가 일부 reduction(<code>.prod()</code>) JIT 커널을 못 컴파일해
+      GroundingDINO 인코더가 그대로는 실행 안 됨 — 작은 텐서에 한해 CPU로 우회하는 monkeypatch로 해결(스크립트에 포함, 결과 자체에는 영향 없음).
+    </div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:18px 0 10px">H1 · 표준 세트 비교 (49프레임 + OOD 11장)</h3>
+    <table>
+      <thead><tr><th>모델</th><th>hit</th><th>cx_MAE</th><th>full-frame</th><th>OOD 오탐</th><th>latency</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr style="background:#071a0a"><td class="key">base PG2</td><td>98%</td><td>0.126</td><td>0%</td><td class="key">9%</td><td>599ms</td><td class="key">정밀도·OOD 균형 최고</td></tr>
+        <tr><td>gdino-tiny</td><td>100%</td><td class="key">0.125</td><td>0%</td><td class="bad">100%</td><td class="key">423ms</td><td class="bad">빠르지만 OOD 전면 오탐</td></tr>
+        <tr><td>gdino-base</td><td>100%</td><td class="key">0.125</td><td>0%</td><td class="bad">91%</td><td>578ms</td><td class="bad">base도 OOD 오탐 심각</td></tr>
+      </tbody>
+    </table>
+    <div class="note">cx_MAE·hit·full-frame은 base PG2와 GroundingDINO가 거의 동일 — 바스켓을 보는 능력 자체는 차이 없음. <strong style="color:#fca5a5">차이는 OOD에서 갈린다.</strong></div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">H2 · OOD 오탐 — "gray basket"이 너무 일반적인 프롬프트</h3>
+    <div style="padding:14px;background:#0f172a;border-radius:8px;font-size:0.85rem;color:#94a3b8;line-height:1.7">
+      의자 11장 중 GroundingDINO-tiny가 <strong class="bad">11장 전부</strong>(100%)에 0.37~0.55 confidence로 박스를 침 — 의자 다리·등받이를 "gray basket"으로 인식.
+      threshold를 문헌 기본값(0.35)보다 높여 0.5로 올려도 <strong class="bad">7/11(64%) 그대로 오탐</strong> — threshold 튜닝만으로는 해결 안 됨.
+      base PG2는 동일 세트에서 9%(11장 중 1장, Eames 가죽의자만) — <strong class="key">negative 구분력은 base PG2가 압도적으로 우수.</strong>
+    </div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">H3 · 측면 4경로</h3>
+    <table style="font-size:0.82rem">
+      <thead><tr><th>모델</th><th>left_left</th><th>right_right</th><th>left_right</th><th>right_left</th></tr></thead>
+      <tbody>
+        <tr><td>base PG2</td><td>100%</td><td>83%</td><td>100%</td><td>83%</td></tr>
+        <tr style="background:#1e0a2b"><td class="key">gdino-tiny</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td></tr>
+        <tr style="background:#1e0a2b"><td class="key">gdino-base</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td><td class="key">100%</td></tr>
+      </tbody>
+    </table>
+    <div class="note">셀=hit rate. full-frame은 전 모델·전 경로 0%(생략). base PG2의 miss(83%)는 §C에서 이미 확인된 출발 첫 프레임(바구니 화면 밖) — GroundingDINO는 이 프레임도 잡아 측면 hit가 더 높다.</div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">H4 · S6 dead-zone / S7 near-miss — 실패케이스 재현 (시각 스폿체크 완료)</h3>
+    <table style="font-size:0.8rem">
+      <thead><tr><th>세션:프레임</th><th>base PG2</th><th>gdino-tiny</th><th>gdino-base</th><th>스폿체크 소견</th></tr></thead>
+      <tbody>
+        <tr><td>s6:f56</td><td>a=0.218 cx=0.289</td><td>a=0.220 cx=0.288</td><td>a=0.218 cx=0.288</td><td>3모델 거의 동일</td></tr>
+        <tr style="background:#1e0a2b"><td>s6:f70</td><td class="bad">a=0.250 cx=0.575</td><td class="key">a=0.134 cx=0.572</td><td class="key">a=0.133 cx=0.572</td><td>이미지 직접 확인 — f70·f85는 <strong>정지장면(거의 동일 화면)</strong>인데 PG2만 area를 0.250으로 부풀림</td></tr>
+        <tr><td>s6:f85</td><td>a=0.130 cx=0.572</td><td>a=0.134 cx=0.571</td><td>a=0.133 cx=0.571</td><td>GDINO 둘 다 f70=f85로 일관 — <strong class="key">PG2의 dead-zone 흔들림을 GDINO는 안 보임</strong></td></tr>
+        <tr><td>s7:f39</td><td>a=0.078 cx=0.685</td><td>a=0.079 cx=0.689</td><td>a=0.080 cx=0.688</td><td rowspan="2">3모델 거의 동일 박스 — <strong class="bad">근접-미스가 모델 문제가 아니라 장면 자체의 모호성</strong>일 가능성</td></tr>
+        <tr><td>s7:f41</td><td>a=0.141 cx=0.873</td><td>a=0.139 cx=0.874</td><td>a=0.139 cx=0.873</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;padding:12px 16px;background:#0f172a;border-left:3px solid #a855f7;border-radius:8px;font-size:0.85rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#d8b4fe">두 가지 다른 결론이 한 표에 같이 나온다:</strong><br>
+      <strong class="key">① S6 dead-zone:</strong> 정지장면(f70≈f85, 직접 이미지 대조로 확인)에서 base PG2만 area를 0.13→0.25로 흔들고, GroundingDINO 둘 다 0.133~0.134로 일관됨 → 이 특정 실패는 <strong>PG2 zero-shot의 시간적 불안정성</strong>이고 GroundingDINO가 더 안정적.<br>
+      <strong class="bad">② S7 near-miss:</strong> 세 모델이 전부 거의 같은 박스를 낸다 → <strong>모델을 바꿔도 동일하게 실패</strong>한다는 뜻 — 이 케이스는 장면(조명·각도·배경)이 본질적으로 모호해서 어떤 zero-shot detector도 못 푸는 쪽에 가깝다.
+    </div>
+    <div class="note" style="margin-top:8px">⚠️ <code>docs/v5/grounding_frames/s7/</code> 프레임 일부는 당시 대시보드 디버그 오버레이(녹색 박스·크로스헤어·텍스트)가 원본 이미지에 이미 합성되어 저장된 것으로 확인됨(스폿체크 중 발견). 세 모델이 동일 프레임에 동일 결과를 냈으므로 모델 간 상대 비교는 유효하지만, "이 박스가 실제 바스켓과 얼마나 가까운가"의 절대 판정은 원본(오버레이 없는) 프레임으로 재확인이 필요 — 다음 라운드 시 raw mp4/H5에서 직접 재추출 권장.</div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div><img src="grounding_hub/grid_base_pg2_gdino_compare.png"><div class="note">base PG2 (이번 H 비교용 재평가)</div></div>
+      <div><img src="grounding_hub/grid_gdino_tiny.png"><div class="note">gdino-tiny</div></div>
+    </div>
+
+    <div style="margin-top:16px;padding:16px;background:#1e0a2b;border:1px solid #7c3aed;border-radius:10px;font-size:0.9rem;line-height:1.8">
+      <strong style="color:#d8b4fe">결정 게이트 결과:</strong>
+      GroundingDINO가 S6 dead-zone은 base PG2보다 <strong class="key">명확히 개선</strong>했지만, S7 near-miss는 <strong class="bad">동일하게 재현</strong>했고 OOD 오탐은 <strong class="bad">9%→91~100%로 크게 악화</strong>됐다.
+      "표준세트·OOD에서 크게 밀리지 않으면 교체 후보"라는 plan §6 기준에 OOD가 걸린다 — <strong style="color:#e2e8f0">현재 임계값으로는 production 교체 부적합.</strong>
+    </div>
+    <div class="note" style="margin-top:10px">연관 plan: <code>docs/plans/plan_20260621_groundingdino_vs_pg2.md</code> · 해상도 ablation: <a href="robot_tests.html#resolution-analysis" style="color:#a78bfa">robot_tests.html#resolution-analysis</a></div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:26px 0 10px">H5 · Phase A — GroundingDINO 프롬프트 구체화 재시도</h3>
+    <table style="font-size:0.82rem">
+      <thead><tr><th>프롬프트</th><th>basket hit (10장)</th><th>OOD FP (11장)</th></tr></thead>
+      <tbody>
+        <tr><td><code>"gray basket."</code></td><td>100%</td><td class="bad">100%</td></tr>
+        <tr><td><code>"plastic laundry basket."</code></td><td>100%</td><td class="bad">100%</td></tr>
+        <tr><td><code>"gray plastic laundry basket with holes."</code></td><td>100%</td><td class="bad">91%</td></tr>
+        <tr style="background:#1e0a2b"><td><code>"gray plastic laundry basket. chair."</code> (경쟁 클래스 명시)</td><td>100%</td><td class="bad">73%(최선)</td></tr>
+      </tbody>
+    </table>
+    <div class="note">프롬프트를 구체화하거나 "chair"를 경쟁 클래스로 명시해도 최선이 73% — PG2의 9%에 한참 못 미친다. <strong style="color:#fca5a5">프롬프트 엔지니어링만으로는 해결 불가로 결론.</strong></div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:26px 0 10px">H6 · Phase B — YOLO-World 비교</h3>
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;line-height:1.7">
+      <code>ultralytics</code> 공식 지원 <code>yolov8s-worldv2.pt</code>, 클래스 <code>["gray basket"]</code>, frozen zero-shot.
+      conf threshold를 0.03/0.05/0.1/0.2로 스윕 — recall과 OOD 억제가 정반대로 움직인다.
+    </div>
+    <table style="font-size:0.82rem">
+      <thead><tr><th>conf</th><th>hit</th><th>cx_MAE</th><th>OOD FP</th><th>latency</th></tr></thead>
+      <tbody>
+        <tr><td>0.03</td><td>98%</td><td>0.132</td><td class="bad">27%</td><td class="key">34ms</td></tr>
+        <tr style="background:#1e0a2b"><td><strong>0.05 (채택)</strong></td><td>92%</td><td>0.136</td><td class="key">18%</td><td class="key">33ms</td></tr>
+        <tr><td>0.1</td><td>80%</td><td>0.140</td><td>18%</td><td class="key">34ms</td></tr>
+        <tr><td>0.2</td><td>65%</td><td>0.126</td><td class="key">9%</td><td class="key">34ms</td></tr>
+      </tbody>
+    </table>
+    <div class="note">참고: base PG2 = hit98%/OOD9%/599ms, gdino-tiny = hit100%/OOD100%/423ms. <strong style="color:#86efac">YOLO-World는 latency가 PG2의 약 18배 빠르고(34ms) OOD 억제는 GroundingDINO보다 훨씬 우수</strong>(conf=0.05일 때 18% vs 91~100%) — 셋 중 가장 균형 잡힌 trade-off.</div>
+
+    <div style="margin-top:10px;padding:12px 16px;background:#0f172a;border-left:3px solid #ef4444;border-radius:8px;font-size:0.85rem;color:#94a3b8;line-height:1.7">
+      <strong style="color:#fca5a5">그런데 정확히 우리가 가장 신경 쓰는 실패케이스에서 발이 걸린다.</strong> conf=0.05(채택값) 기준 S6/S7 5건 중 <strong class="bad">3건 MISS</strong>(s6:f56, s6:f85, s7:f41) — PG2·GroundingDINO는 5건 전부 HIT였다.
+      conf=0.03으로 recall을 올리면 hit는 올라가지만 s6:f56(area=0.008)·f85(area=0.007) 같은 <strong class="bad">tiny 노이즈 박스로 "가짜 hit"</strong>가 섞인다(실제 바스켓 area는 ~0.13) — 통계상 개선처럼 보이지만 신뢰 불가.
+    </div>
+
+    <div style="margin-top:16px;padding:16px;background:#1e0a2b;border:1px solid #7c3aed;border-radius:10px;font-size:0.9rem;line-height:1.8">
+      <strong style="color:#d8b4fe">Phase A+B 종합 결정:</strong> 두 detector 후보 모두 단독으로는 PG2를 깨끗하게 이기지 못한다 —
+      GroundingDINO는 OOD에서, YOLO-World는 가장 어려운 S6/S7 실패케이스 recall에서 막힌다.
+      <strong style="color:#e2e8f0">production 교체는 보류.</strong> 남은 방향: S7류 근접-미스는 애초에 detector 종류와 무관하게 3모델이 동일 실패를 보였으므로(§H4)
+      <strong style="color:#fbbf24">detector가 아니라 STOP/근접 로직(Task #4) 쪽 문제일 가능성이 가장 높다</strong> — Phase C로 이어서 검증.
+    </div>
+    <div class="note" style="margin-top:8px">스크립트: <code>scripts/eval/eval_yoloworld_vs_pg2.py</code> · 데이터: 동일 <code>docs/v5/grounding_hub/gdino_vs_pg2.json</code>(yoloworld_s_conf* 키)</div>
+  </div>
+
+  <!-- I. STOP/근접 로직 ablation (Phase C, Task #4) -->
+  <h2 id="section-i"><span class="badge" style="background:#f59e0b;color:#0a0f1a">I</span> STOP/근접 로직 ablation <span style="font-size:0.8rem;color:#64748b;font-weight:400">— Phase C, Task #4, 2026-06-21</span></h2>
+  <div class="card">
+    <div style="background:#1a0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:0.88rem;color:#e2e8f0;line-height:1.7">
+      <strong class="bad">🔍 재조사 결과: S7 "near-miss"는 grounding 실패가 아니었다.</strong>
+      §H4에서 "3모델(PG2/GDINO tiny/base)이 동일 박스를 낸다 → 장면 자체의 모호성"으로 일단 결론 냈었는데,
+      실제 운영 STOP 로직 코드(<code>stage2_v2_inference_server.py:486-517</code>)와 S7 세션 기록(<code>docs/v5/s7_cl_sim.json</code>)을 대조하니
+      <strong>frame 53에서 area=0.297로 GOAL_AREA(0.25)를 실제로 넘었다</strong> — bbox 자체는 정상이었다.
+      문제는 <code>GOAL_CONSEC_FRAMES=3</code>(3프레임 연속 조건) — 앞뒤 프레임(f52=0.072, f54=0.070)이 못 따라가 단발성 스파이크로 걸러져 proximity STOP이 한 번도 발동하지 않았고,
+      이후 바스켓을 완전히 놓쳐(NO_BBOX 연속) 에피소드 끝까지 정지하지 못했다.
+    </div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:18px 0 10px">I1 · STOP 모드 재생(replay) 비교 — 기존 세션 기록 재사용, 서버 미수정</h3>
+    <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:12px;line-height:1.7">
+      운영 서버를 건드리지 않고 <code>docs/v5/s6_cl_sim.json</code>/<code>s7_cl_sim.json</code>에 이미 기록된 프레임별 bbox 히스토리에
+      3가지 STOP 모드(<code>proximity</code>=운영 기본값 · <code>learned</code>=모델 raw 예측+latch · <code>hybrid</code>=둘의 OR, latch 없음)를
+      <code>GOAL_CONSEC_FRAMES</code>(1~5) 스윕으로 재생. 스크립트: <code>scripts/eval/ablation_stop_mode.py</code>.
+    </div>
+    <table style="font-size:0.82rem">
+      <thead><tr><th>세션</th><th>learned(latch)</th><th>proximity n=3(운영값)</th><th>hybrid n=3</th><th>proximity/hybrid n=1</th><th>area 최댓값</th></tr></thead>
+      <tbody>
+        <tr><td>S6 dead-zone</td><td>frame 24에서 발동</td><td class="bad">미발동(끝까지)</td><td class="key">frame 24(=learned)</td><td class="key">frame 24</td><td>0.159 (임계 미달)</td></tr>
+        <tr style="background:#1a0a0a"><td>S7 near-miss</td><td class="bad">미발동(끝까지)</td><td class="bad">미발동(끝까지)</td><td class="bad">미발동(끝까지)</td><td class="key">frame 53 ✅</td><td>0.297 (임계 초과)</td></tr>
+      </tbody>
+    </table>
+    <div class="note">S6은 학습된 헤드가 frame 24에서 자체적으로 STOP을 예측해 그 뒤 105프레임 끝까지 한 번도 안 풀림(0/82 복귀) — proximity가 한 번도 안 떴어도 결과는 같다. 즉 <strong style="color:#fca5a5">§H4의 dead-zone 풀프레임 환각(f56/70/85)은 이미 STOP된 이후에 벌어진 일이라 로봇 동작에는 영향이 없었다</strong>(새로 확인된 사실 — §H4 갱신 필요).</div>
+
+    <h3 style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">I2 · 결론 — S7은 STOP 로직(연속프레임 임계값) 문제, 모델/detector 문제가 아니다</h3>
+    <div style="margin-top:10px;padding:16px;background:#1e0a2b;border:1px solid #7c3aed;border-radius:10px;font-size:0.9rem;line-height:1.8">
+      <strong style="color:#d8b4fe">GOAL_CONSEC_FRAMES=1일 때만 S7의 frame 53을 잡는다</strong>(n=2조차 못 잡음 — 진짜 단일 프레임 스파이크였음).
+      이건 §H/Phase A·B(detector 교체)로는 원천적으로 해결할 수 없는 문제였다는 뜻 — <strong style="color:#e2e8f0">detector가 무엇이든 같은 area/cx를 봤을 것이고, 같은 연속프레임 필터에 걸렸을 것</strong>.<br>
+      <strong style="color:#fbbf24">단, n=1로 낮추면 노이즈 방어가 사라진다</strong>(코드 주석: "초반 false positive 방지" 목적으로 도입됨). S6/S7 두 세션만으로는 n=1이 다른 곳에서 오발동을 안 일으키는지 확신할 수 없다(S6은 area 최댓값이 0.159로 임계 자체를 안 넘어 이번엔 검증 불가).
+    </div>
+    <div style="background:#1a0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:14px 16px;margin-top:12px;font-size:0.86rem;color:#e2e8f0;line-height:1.7">
+      <strong class="bad">⚠️ 운영 서버 파라미터 변경 보류 — 사용자 확인 필요.</strong>
+      <code>GOAL_CONSEC_FRAMES</code>는 실제 로봇이 멈추는 시점을 결정하는 안전 관련 파라미터라 이번 replay 분석(2개 세션)만으로 바로 운영값을 바꾸지 않았다.
+      제안: ① n=1 전면 적용 대신 <strong>n=2 + GOAL_AREA를 0.22로 살짝 낮추는</strong> 절충안으로 더 많은 세션에 재생 테스트, 또는 ② "연속 n프레임 평균 area"처럼 단일 스파이크에 덜 취약한 대안 로직 검토.
+      둘 다 실로봇 배포 전 추가 세션으로 false-positive 재검증이 필요.
+    </div>
+    <div class="note" style="margin-top:8px">관련 코드: <code>robovlm_nav/serve/stage2_v2_inference_server.py:108-114,486-517</code> · Task #4 연동</div>
+  </div>
+
+<h2 id="section-j"><span class="badge" style="background:#a855f7;color:#fff">J</span> Perception Model Ablation — basket 탐지 모델 비교 (CH55) <span style="font-size:0.8rem;color:#64748b;font-weight:400">— 2026-06-27, zero-shot + fine-tuned</span></h2>
+<div class="card">
+  <div style="background:#0f0a1a;border:1px solid #6d28d9;border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:0.88rem;color:#e2e8f0;line-height:1.7">
+    <strong style="color:#c4b5fd">동기:</strong> CH54 프리뷰 루프 설계 과정에서 YOLO zero-shot이 basket≠COCO로 탈락 (det~53%, cx~8%) →
+    대안 비전 모델 전수 비교. 6/26 세션 frame 0 기준, PG2 frame 1을 pseudo-GT로 사용. 5 seeds × 80/20 split.
+  </div>
+
+  <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:0 0 10px">J1 · 같은 척도로 보는 모델 비교표</h3>
+  <table style="font-size:0.82rem;width:100%">
+    <thead>
+      <tr>
+        <th>모델</th>
+        <th style="text-align:center">ZS det</th>
+        <th style="text-align:center">ZS cx (±0.2)</th>
+        <th style="text-align:center">ZS dir</th>
+        <th style="text-align:center">FT cx</th>
+        <th style="text-align:center">FT dir</th>
+        <th style="text-align:center">latency</th>
+        <th>비고</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong style="color:#86efac">Kosmos-2 ★</strong></td>
+        <td style="text-align:center;color:#86efac">100%</td>
+        <td style="text-align:center;color:#86efac">77.5%±14.6%</td>
+        <td style="text-align:center;color:#86efac">60.0%±9.4%</td>
+        <td style="text-align:center;color:#86efac">92.5%±10%</td>
+        <td style="text-align:center">60.0%±18.4%</td>
+        <td style="text-align:center">314ms</td>
+        <td style="color:#64748b">로컬, ZS 자체 강함</td>
+      </tr>
+      <tr style="background:#111">
+        <td style="color:#7dd3fc">OWL-v2</td>
+        <td style="text-align:center">92.5%</td>
+        <td style="text-align:center">75.0%±17.7%</td>
+        <td style="text-align:center">52.5%±16.6%</td>
+        <td style="text-align:center;color:#f87171">0% (CF)</td>
+        <td style="text-align:center;color:#f87171">0%</td>
+        <td style="text-align:center">427ms</td>
+        <td style="color:#64748b">FT 후 catastrophic forgetting</td>
+      </tr>
+      <tr>
+        <td style="color:#fde68a">CLIP</td>
+        <td style="text-align:center">92.5%</td>
+        <td style="text-align:center;color:#f87171">0%*</td>
+        <td style="text-align:center;color:#f87171">0%*</td>
+        <td style="text-align:center">100%* (착시)</td>
+        <td style="text-align:center">65%±16.6%</td>
+        <td style="text-align:center;color:#86efac">43ms</td>
+        <td style="color:#64748b">항상 L 예측 · cx 허용범위 착시</td>
+      </tr>
+      <tr style="background:#111">
+        <td style="color:#94a3b8">Florence-2</td>
+        <td style="text-align:center">100%</td>
+        <td style="text-align:center;color:#f87171">12.5%±11.2%</td>
+        <td style="text-align:center;color:#f87171">7.5%±10%</td>
+        <td style="text-align:center;color:#64748b">미완</td>
+        <td style="text-align:center;color:#64748b">—</td>
+        <td style="text-align:center">180ms</td>
+        <td style="color:#64748b">bbox 위치 엉망</td>
+      </tr>
+      <tr>
+        <td style="color:#475569">YOLO (ZS)</td>
+        <td style="text-align:center;color:#475569">53%</td>
+        <td style="text-align:center;color:#f87171">8%</td>
+        <td style="text-align:center;color:#f87171">6%</td>
+        <td style="text-align:center;color:#475569">—</td>
+        <td style="text-align:center;color:#475569">—</td>
+        <td style="text-align:center;color:#475569">~30ms</td>
+        <td style="color:#475569">basket≠COCO로 탈락</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.78rem;color:#475569;margin-top:6px">* CLIP zero-shot은 cx 결과가 완전히 벗어남 (basket이 항상 center인데 오히려 잡지 못함). FT cx 100%는 ±0.2 허용범위 착시 (항상 L 예측 probe가 center 분포 커버). dir=65%가 실제 성능.</p>
+
+  <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">J2 · frame 0 시각 비교 — 전체 세션 대표 프레임</h3>
+  <p style="color:#94a3b8;font-size:0.84rem;margin-bottom:12px">동일 세션 프레임 0에서 각 모델별 그라운딩/방향 예측 결과를 비교 분석합니다. 아래 탭을 통해 모델별 시각 결과를 필터링할 수 있습니다.</p>
+  
+  <div class="tabs" id="j2-filter-tabs" style="margin-bottom:16px">
+    <div class="tab active" data-mode="compare">통합 비교 (4-Panel)</div>
+    <div class="tab" data-mode="pg2">PG2 (Oracle)</div>
+    <div class="tab" data-mode="clip">CLIP (방향 화살표)</div>
+    <div class="tab" data-mode="kosmos">Kosmos-2 (BBox)</div>
+    <div class="tab" data-mode="owl">OWL-v2 (BBox)</div>
+  </div>
+
+  <div id="compare-images-container" style="display:flex;flex-direction:row;gap:16px;overflow-x:auto;padding-bottom:16px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch">
+    <!-- 동적 이미지 로드 -->
+    <div style="color:#64748b;font-size:0.85rem;text-align:center;padding:20px;width:100%">시각화 로딩 중...</div>
+  </div>
+
+  <script>
+    (function() {
+      let currentMode = 'compare';
+      let manifestData = null;
+
+      function renderImages() {
+        const container = document.getElementById('compare-images-container');
+        container.innerHTML = '';
+        if (!manifestData || !manifestData.compare_strips) {
+          container.innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px;width:100%">불러올 이미지가 없습니다.</div>';
+          return;
+        }
+
+        manifestData.compare_strips.forEach(compareName => {
+          const tag = compareName.replace('compare_', '').replace('.jpg', '');
+          let src = '';
+          if (currentMode === 'compare') {
+            src = 'ch55_viz/' + compareName;
+          } else {
+            src = `ch55_viz/${tag}_${currentMode}.jpg`;
+          }
+
+          const imgWrapper = document.createElement('div');
+          imgWrapper.style.position = 'relative';
+          imgWrapper.style.flex = '0 0 133.33%'; // 현재 크기(2/3)의 2배인 133.33%로 확대
+          imgWrapper.style.width = '133.33%';
+          imgWrapper.style.minWidth = '400px'; // 모바일/데스크톱 가독성 최소폭 확대
+
+          const img = document.createElement('img');
+          img.src = src;
+          img.style.width = '100%';
+          img.style.borderRadius = '6px';
+          img.style.border = '1px solid #1e3a5f';
+          img.style.display = 'block';
+          img.loading = 'lazy';
+
+
+          const label = document.createElement('div');
+          label.style.position = 'absolute';
+          label.style.top = '8px';
+          label.style.left = '8px';
+          label.style.background = 'rgba(7,13,26,0.85)';
+          label.style.color = '#7dd3fc';
+          label.style.padding = '4px 10px';
+          label.style.borderRadius = '4px';
+          label.style.fontSize = '0.72rem';
+          label.style.fontWeight = 'bold';
+          label.style.fontFamily = 'monospace';
+          label.style.border = '1px solid #1e3a8a';
+          label.style.zIndex = '10';
+          label.innerText = `Session: ${tag}`;
+
+          imgWrapper.appendChild(img);
+          imgWrapper.appendChild(label);
+          container.appendChild(imgWrapper);
+        });
+      }
+
+      fetch('ch55_viz/manifest.json')
+        .then(r => r.json())
+        .then(data => {
+          manifestData = data;
+          renderImages();
+        })
+        .catch(err => {
+          console.error('Failed to load visualizations:', err);
+          document.getElementById('compare-images-container').innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:20px;width:100%">시각 자료 로드 실패</div>';
+        });
+
+      document.getElementById('j2-filter-tabs').querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          document.getElementById('j2-filter-tabs').querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+          tab.classList.add('active');
+          currentMode = tab.dataset.mode;
+          renderImages();
+        });
+      });
+    })();
+  </script>
+
+
+
+
+  <h3 style="font-size:0.95rem;font-weight:800;color:#e2e8f0;margin:20px 0 10px">J3 · 결론 & 운영 전략</h3>
+  <div style="background:#0a1520;border:1px solid #0369a1;border-radius:8px;padding:14px 16px;font-size:0.88rem;color:#e2e8f0;line-height:1.8">
+    <ul style="padding-left:1.2em;margin:0;color:#94a3b8">
+      <li><strong style="color:#86efac">Stage 0 워밍업</strong>이 핵심 해법 — 22s GPU cold-start를 서버 시작 시점에 소진. frame 0 성공률 0%→91%.</li>
+      <li><strong style="color:#86efac">Sweep fallback</strong> R→L→R (max_retry=1) — 남은 9% (basket FOV 밖) 대응.</li>
+      <li>추가 비전 모델 후보: <strong>Kosmos-2 zero-shot</strong> (det 100%, cx 77.5%, 로컬 보유). PG2 실패 케이스 대체 가능.</li>
+      <li>OWL-v2: head-only FT 불가 (CF). CLIP: 착시 성능. Florence-2: bbox 엉망.</li>
+    </ul>
+  </div>
+  <div class="note" style="margin-top:8px">scripts: ablate_perception_models.py · ablate_perception_v2.py · gen_perception_viz.py · 2026-06-27</div>
+</div>
 </div>
 
 <script>
@@ -700,6 +1093,155 @@ document.getElementById('g2-tabs').querySelectorAll('.tab').forEach(function(t){
   sp.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
     sp.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); cur.p=t.dataset.p; upd(); }));
 })();
+
+// C2. 통합 프리뷰 모델 테스트 비교 매트릭스 동적 로드
+async function loadAblationTables() {
+  try {
+    const res = await fetch('ablate_preview_ft_v2.json');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    let html = `
+      <div class="card" style="margin-top:20px; border:1px solid #1e3a8a">
+        <h3 style="font-size:1.05rem; font-weight:900; color:#38bdf8; margin:0 0 12px 0">📊 통합 프리뷰 모델 테스트 비교 매트릭스 (FT 방법론별)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left">모델</th>
+              <th style="text-align:left">학습 방법론</th>
+              <th style="text-align:center">V5 방향정확도</th>
+              <th style="text-align:center">V5 cx MAE</th>
+              <th style="text-align:center">실주행 방향정확도</th>
+              <th style="text-align:center">실주행 cx MAE</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    const models = {
+      "clip": "CLIP",
+      "kosmos": "Kosmos-2",
+      "owlv2": "OWL-v2",
+      "florence": "Florence-2"
+    };
+    const methods = {
+      "zs": "Zero-Shot",
+      "lp_pool": "Linear Probe (Pool)",
+      "lp_patch": "Linear Probe (Patch)",
+      "mlp_patch": "MLP Probe (Patch)",
+      "lora": "LoRA Tuning"
+    };
+
+    for (const [mKey, mName] of Object.entries(models)) {
+      const mData = data[mKey] || {};
+      const methodKeys = mKey === "florence" ? ["zs", "lp_patch", "mlp_patch", "lora"] : Object.keys(methods);
+      
+      methodKeys.forEach((metKey, idx) => {
+        const metName = methods[metKey];
+        const metData = mData[metKey] || null;
+        
+        let v5_dir = "TBD", v5_mae = "TBD", ss_dir = "TBD", ss_mae = "TBD";
+        if (mKey === "florence" && metKey === "lora") {
+          v5_dir = v5_mae = ss_dir = ss_mae = "N/A (스킵)";
+        } else if (metData) {
+          const v5 = metData.v5 || {};
+          const ss = metData.session || {};
+          if (v5.dir_bin !== undefined) v5_dir = (v5.dir_bin * 100).toFixed(1) + "%";
+          if (v5.cx_mae !== undefined) v5_mae = v5.cx_mae.toFixed(3);
+          if (ss.dir_bin !== undefined) ss_dir = (ss.dir_bin * 100).toFixed(1) + "%";
+          if (ss.cx_mae !== undefined) ss_mae = ss.cx_mae.toFixed(3);
+        }
+
+        const borderStyle = idx === 0 ? "border-top:1px solid #1e293b;" : "";
+        html += `
+          <tr style="${borderStyle}">
+            <td><strong>${idx === 0 ? mName : ''}</strong></td>
+            <td style="color:#cbd5e1">${metName}</td>
+            <td style="text-align:center; color:#38bdf8; font-weight:bold">${v5_dir}</td>
+            <td style="text-align:center; color:#94a3b8">${v5_mae}</td>
+            <td style="text-align:center; color:#fbbf24; font-weight:bold">${ss_dir}</td>
+            <td style="text-align:center; color:#94a3b8">${ss_mae}</td>
+          </tr>
+        `;
+      });
+    }
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    document.getElementById('integrated-preview-ablation-ch').innerHTML = html;
+  } catch (e) {
+    console.error("Ablation 테이블 렌더링 에러:", e);
+  }
+}
+loadAblationTables();
 </script>
+
+<!-- §K: Frame 0 Cold-Start 분석 (CH57) -->
+<div id="section-k" style="margin-top:48px">
+  <h2><span class="badge" style="background:#f59e0b;color:#0a0f1a">K</span> Frame 0 Cold-Start → Window 오염 가설 <span style="font-size:0.7rem;background:#78350f;color:#fde68a;padding:2px 8px;border-radius:4px;margin-left:8px">⚠️ 가설 — 미검증</span></h2>
+
+  <div class="card" style="border-color:#92400e;background:linear-gradient(135deg,#1a0a00,#1f1000);margin-bottom:16px">
+    <div style="color:#fde68a;font-size:0.85rem;line-height:1.8">
+      <strong style="color:#fbbf24">분석 출처:</strong> 2026-06-29 Claude 코드+데이터 분석. 실험자 검증 전 가설임.
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#7dd3fc;margin:0 0 12px 0">K-1. 관측 사실 (6/26 세션 39개)</h3>
+    <table>
+      <thead><tr>
+        <th style="text-align:left">항목</th>
+        <th>수치</th>
+        <th>근거</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Frame 0 has_bbox=True</td><td style="color:#f87171;font-weight:700">0 / 39 (0%)</td><td>전 세션 <code>[0.5,0.6,0,0]</code> 디폴트</td></tr>
+        <tr><td>Frame 0 latency</td><td style="color:#94a3b8">0ms (전 세션)</td><td>PG2 미호출 또는 결과 미기록</td></tr>
+        <tr><td>Frame 1+ has_bbox=True</td><td style="color:#4ade80;font-weight:700">36 / 36 (100%)</td><td>정상 그라운딩</td></tr>
+        <tr><td>Frame 1 avg latency</td><td style="color:#7dd3fc">~1,440ms</td><td>warm PG2 안정 구간</td></tr>
+        <tr><td>Frame 1 latency 이상치</td><td style="color:#fbbf24">2개 세션 &gt;20,000ms</td><td>콜드스타트 충격 전이 추정</td></tr>
+        <tr><td>cx&gt;0.5인데 LEFT 출력</td><td style="color:#f87171;font-weight:700">4개 세션 frame1</td><td>142109 / 142941 / 143011 / 143058</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#86efac;margin:0 0 12px 0">K-2. 제안 메커니즘</h3>
+    <div style="font-size:0.88rem;line-height:1.9;color:#cbd5e1">
+      <strong>코드 근거</strong> — <code>_build_flat_feature</code> (stage2_v2_inference_server.py):
+      <pre style="background:#0a0f1a;padding:12px;border-radius:6px;margin:8px 0;font-size:0.8rem;overflow-x:auto">idx = max(0, len(self.history) - 1 - (window - 1 - k))
+# history 길이=2 (f0,f1), window=8 → k=0~6: 모두 history[0]=f0 반복</pre>
+      Frame 1 예측 시 모델이 받는 window(8프레임) 구성:
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:8px 0;font-size:0.72rem;text-align:center">
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[0]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[1]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[2]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[3]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[4]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[5]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[6]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#0a2a1a;border:1px solid #166534;border-radius:4px;padding:3px">[7]f1<br><span style="color:#4ade80">cx=.6<br>has=T</span></div>
+      </div>
+      → 7/8이 "미검출 디폴트" → 모델이 바스켓 미발견 상태로 판단 → LEFT 출력 추정
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#1e3a5f;margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">K-3. 검증 방법 & Stage 0 연결</h3>
+    <ul style="font-size:0.88rem;line-height:2;color:#cbd5e1;margin:0 0 0 18px">
+      <li><strong>검증:</strong> Stage 0 워밍업 적용 전/후 세션의 frame 1 LEFT 발생률 비교</li>
+      <li><strong>예측:</strong> 워밍업 후 frame 0 has_bbox=True → window[0~6] 올바른 cx → LEFT 0건</li>
+      <li><strong>대안 가설:</strong> 모델 자체 편향 (학습 분포에서 세션 초반 LEFT가 많은 경우) — 독립 실험 필요</li>
+    </ul>
+    <div style="margin-top:10px;font-size:0.82rem;color:#64748b">
+      관련: <code>research_story.html#ch57</code> &nbsp;|&nbsp; <code>research_story.html#ch54</code> (Stage 0 워밍업)
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

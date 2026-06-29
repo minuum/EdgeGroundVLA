@@ -1,0 +1,47 @@
+[
+  {
+    "phrase": "green apple",
+    "file": "test_apple_floor_1768456959811.png",
+    "hit": true,
+    "area": 0.010380983231233916,
+    "cx": 0.5009775171065494,
+    "cy": 0.6011730205278591,
+    "raw": "<loc0559><loc0464><loc0671><loc0561> green apple<eos>"
+  },
+  {
+    "phrase": "blue mug",
+    "file": "test_blue_mug_floor_1768456939932.png",
+    "hit": true,
+    "area": 0.03503581840541447,
+    "cx": 0.520039100684262,
+    "cy": 0.5234604105571847,
+    "raw": "<loc0441><loc0435><loc0630><loc0629> blue mug<eos>"
+  },
+  {
+    "phrase": "red coke can",
+    "file": "test_coke_can_floor_1768456916967.png",
+    "hit": true,
+    "area": 0.06273882520216831,
+    "cx": 0.4995112414467253,
+    "cy": 0.5029325513196481,
+    "raw": "<loc0338><loc0418><loc0691><loc0604> red coke can<eos>"
+  },
+  {
+    "phrase": "chair",
+    "file": "test_chair_obstacle_1768456981699.png",
+    "hit": true,
+    "area": 0.12457179877480701,
+    "cx": 0.5175953079178885,
+    "cy": 0.3812316715542522,
+    "raw": "<loc0166><loc0384><loc0614><loc0675> chair<eos>"
+  },
+  {
+    "phrase": "orange cone",
+    "file": "test_cone_obstacle_1768457003835.png",
+    "hit": true,
+    "area": 0.05601851453710314,
+    "cx": 0.5009775171065494,
+    "cy": 0.4042033235581623,
+    "raw": "<loc0246><loc0425><loc0581><loc0600> orange cone<eos>"
+  }
+]

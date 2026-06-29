@@ -1,0 +1,37 @@
+{
+  "PG2(oracle)": {
+    "label": "PG2(oracle)",
+    "det": 1.0,
+    "cx_match": 1.0,
+    "dir_match": 1.0,
+    "n": 36
+  },
+  "clip": {
+    "label": "clip",
+    "det": 0.7222222222222222,
+    "cx_match": 0.25,
+    "dir_match": 0.1388888888888889,
+    "n": 36
+  },
+  "owlv2": {
+    "label": "owlv2",
+    "det": 1.0,
+    "cx_match": 0.8333333333333334,
+    "dir_match": 0.5277777777777778,
+    "n": 36
+  },
+  "florence": {
+    "label": "florence",
+    "det": 1.0,
+    "cx_match": 0.1111111111111111,
+    "dir_match": 0.027777777777777776,
+    "n": 36
+  },
+  "kosmos": {
+    "label": "kosmos",
+    "det": 1.0,
+    "cx_match": 0.8333333333333334,
+    "dir_match": 0.5277777777777778,
+    "n": 36
+  }
+}

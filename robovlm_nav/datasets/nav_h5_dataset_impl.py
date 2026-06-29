@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import h5py
 import numpy as np
+import cv2  # JPEG vlen 이미지 디코딩 (저장 포맷 자동 분기)
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -539,7 +540,14 @@ class MobileVLAH5Dataset(Dataset):
             # 이미지 로드 (window_size 만큼)
             images = []
             for t in range(start_frame, min(start_frame + total_frames_needed, total_len)):
-                img_array = images_src[t]
+                raw = images_src[t]
+                # [저장 포맷 자동 분기] JPEG vlen(1D bytes) vs raw 배열(3D HWC)
+                if getattr(raw, 'ndim', 3) == 1:
+                    dec = cv2.imdecode(np.asarray(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
+                    # save_h5는 RGB 배열을 JPEG 인코딩 → imdecode 결과도 동일 RGB 순서
+                    img_array = dec
+                else:
+                    img_array = raw
                 img = Image.fromarray(img_array.astype(np.uint8))
                 
                 # [V3] Color Jitter

@@ -110,11 +110,6 @@ class InferenceLogger:
                 "action_label_counts": label_counts,
             }
 
-        # ── JSON 저장 ────────────────────────────────────────────────────────
-        with open(self.log_file, "w") as f:
-            json.dump(self.data, f, indent=4)
-        print(f"✅ JSON 저장: {self.log_file}")
-
         # ── H5 저장 (데이터셋 동일 포맷) ─────────────────────────────────────
         if self._frames:
             try:
@@ -128,9 +123,29 @@ class InferenceLogger:
                     a = h.get("action", [0.0, 0.0, 0.0])
                     actions.append(a if isinstance(a, list) else list(a))
 
+                # bbox 시퀀스 수집 (per-frame: cx, cy, area, has_bbox)
+                bboxes, grounding_cached_arr, grounding_latency_arr = [], [], []
+                for h in self.data["history"]:
+                    b = h.get("bbox") or {}
+                    bboxes.append([
+                        float(b.get("cx", 0.5)),
+                        float(b.get("cy", 0.6)),
+                        float(b.get("area", 0.0)),
+                        float(b.get("has_bbox", False)),
+                    ])
+                    gc = h.get("grounding_cached")
+                    grounding_cached_arr.append(float(gc) if gc is not None else -1.0)
+                    grounding_latency_arr.append(float(h.get("grounding_latency_ms") or 0.0))
+
                 with h5py.File(h5_path, "w") as f:
                     f.create_dataset("observations/images", data=imgs, compression="gzip")
                     f.create_dataset("actions", data=np.array(actions, dtype=np.float32))
+                    f.create_dataset("grounding/bbox",
+                                     data=np.array(bboxes, dtype=np.float32))
+                    f.create_dataset("grounding/cached",
+                                     data=np.array(grounding_cached_arr, dtype=np.float32))
+                    f.create_dataset("grounding/latency_ms",
+                                     data=np.array(grounding_latency_arr, dtype=np.float32))
                     f.attrs["session_id"] = self.session_id
                     f.attrs["model_name"] = self.data.get("model_name", "")
                     f.attrs["instruction"] = self.data.get("instruction", "")
@@ -141,6 +156,11 @@ class InferenceLogger:
                 self.data["h5_path"] = h5_path
             except Exception as e:
                 print(f"⚠️ H5 저장 실패: {e}")
+
+        # ── JSON 저장 ────────────────────────────────────────────────────────
+        with open(self.log_file, "w") as f:
+            json.dump(self.data, f, indent=4)
+        print(f"✅ JSON 저장: {self.log_file}")
 
         return self.log_file
 

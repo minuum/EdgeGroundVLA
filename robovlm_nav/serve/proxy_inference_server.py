@@ -163,6 +163,8 @@ class ConfigRequest(BaseModel):
     smooth_enabled: Optional[bool] = None
     smooth_alpha_xy: Optional[float] = None
     smooth_alpha_az: Optional[float] = None
+    stop_area_threshold: Optional[float] = None
+    stop_cx_tolerance: Optional[float] = None
     model: Optional[str] = None  # "exp49" | "exp50" | "exp51" | "exp52"
 
 
@@ -606,9 +608,18 @@ def load_episode_frames(stem: str) -> np.ndarray:
     path = next(DATA_DIR.glob(f"{stem}.h5"))
     with h5py.File(path, "r") as handle:
         if "observations" in handle and "images" in handle["observations"]:
-            images = handle["observations"]["images"][:]
+            src = handle["observations"]["images"]
         else:
-            images = handle["images"][:]
+            src = handle["images"]
+        # 저장 포맷 자동 분기: JPEG vlen(프레임당 1D bytes) vs raw 배열
+        if src.ndim == 1:
+            import cv2
+            images = np.stack([
+                cv2.imdecode(np.asarray(src[i], dtype=np.uint8), cv2.IMREAD_COLOR)
+                for i in range(len(src))
+            ])
+        else:
+            images = src[:]
     return images
 
 
@@ -1551,6 +1562,8 @@ async def set_config(
             smooth_enabled=request.smooth_enabled,
             smooth_alpha_xy=request.smooth_alpha_xy,
             smooth_alpha_az=request.smooth_alpha_az,
+            stop_area_threshold=request.stop_area_threshold,
+            stop_cx_tolerance=request.stop_cx_tolerance,
         )
         cfg["active_model"] = _active_goal_nav_model
         return {"status": "success", "config": cfg}

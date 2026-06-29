@@ -2,7 +2,7 @@
 
 이 파일은 Menemory 프롬프트에 항상 포함되는 핵심 메모리입니다.
 
-**마지막 업데이트: 2026-05-05**
+**마지막 업데이트: 2026-06-17**
 
 ---
 
@@ -28,39 +28,28 @@
 
 ---
 
-## 현재 최선 모델 (2026-04-30 기준)
+## 현재 최선 모델 (2026-06-17 기준)
 
-### End-to-end (practical baseline)
-- **Exp25** — balanced objective, Pure HF Kosmos-2
-  - closed-loop success: **55.6%**, PM: 52.38%, FPE: 0.382, TLD: 0.936
-  - ckpt: `runs/v5_nav/kosmos/mobile_vla_v5_exp25/2026-04-22/v5-exp25-step3-balanced-objective/epoch_epoch=epoch=02-val_loss=val_loss=10.117.ckpt`
-  - config: `configs/mobile_vla_v5_exp25_step3_balanced_objective.json`
+### Decomposition SOTA ★ (실로봇 배포 중)
+- **Exp66** — Stage2 v2 FrozenCLIP + MLP + L2-norm + bbox aug
+  - closed-loop: **96.6%**, FPE: **0.094 m**, val_acc: 93.5%
+  - ckpt S1: `runs/v5_nav/mlp/shared/stage1_v2_projs.pt` (3.1 MB)
+  - ckpt S2: `runs/v5_nav/mlp/exp66/action_mlp.pt` (456 KB)
+  - 추론 서버: `robovlm_nav/serve/stage2_v2_inference_server.py --port 8001`
+  - 대시보드: `scripts/gradio_inference_dashboard.py` (포트 7865)
 
-### Decomposition (research baseline — 로봇 서버 미연결)
-- **Exp14 Step 2 / Exp19** — BBox+Image MLP
-  - PM: 75.9~76.6%, closed-loop: **66.7%**, FPE: 0.55m
-  - 스크립트: `scripts/test_v5_bbox_nav_exp19_proxy.py`
-  - bbox cache: `docs/v5/bbox_nav_step1/bbox_dataset.json`
+- **Exp66 LSTM w=16** — 동일 파이프라인, LSTM head
+  - closed-loop: 96.6%, FPE: **0.080 m** (최저 FPE)
 
-### 학습 완료 (5/2~5/5)
-- **Exp39** — Exp25 + last-4 LoRA, **PM 21.7%** (235 samples, epoch 14, val_loss 8.229) — 실패
-  - confusion: FORWARD 113/126이 FWD+L로 새는 collapse, Exp25 baseline(52%) 대비 후퇴
-  - 결과: `docs/v5/pm_eval/exp39_epoch14_results.json`
-  - 결론: last-4 LoRA만으로는 Exp25 재현 불가
-- **Exp40** — Exp39 + chunking 버그 fix + grounding_aux (epoch 02, val_loss 0.575)
-  - config: `configs/mobile_vla_v5_exp40_fix_chunking_grounding.json`
-  - PM: **모든 클래스를 FORWARD로 100% collapse** (235 frames 전부 class 1) — 액션 head 망가짐
-  - **그러나 grounding은 살아있음**: visual_grounding_proof Avg IoU **0.679** (20 frames)
-    - "the pole" 0.96, "the white wall" 0.96, "the gray basket" 0.04~0.96 (frame-dependent)
-    - 보고서: `docs/v5/exp40_object_recognition_proof.md`
-  - 의의: 교수님 미팅 방어 논리 ("단순 픽셀 매핑 아님, 객체 인식 67% 보존") 확보. 실용 모델은 아님.
-  - 의심 원인: grounding_aux의 learned loss balance가 action loss를 깎아내림
+### End-to-end (폐기 — 연구 기록용)
+- **Exp11** — Kosmos-2 + LoRA: CL **0%**, FPE 1.454m
+  - text attention 구조적 사망 (Google-robot backbone 기인) → E2E 경로 완전 종료
+- **Exp25** — Pure HF Kosmos-2 balanced: CL 55.6% — 이전 practical baseline, 현재 폐기
 
-### 로봇 서버 현재 배포
-- Primary end-to-end: **Exp17** (CL 11.1%)
-- Fallback: **Exp18** (CL 11.1%)
-- 서버: `soda@100.85.118.58 ~/MoNaVLA`
-- API: `robovlm_nav/serve/inference_server.py`
+### 로봇 서버 현재 배포 (soda@100.85.118.58)
+- Primary: **Exp66** Stage2 v2 (포트 8001)
+- 실행: `mona-up` (go.sh — 서버+대시보드+허브 동시 시작)
+- API: `robovlm_nav/serve/stage2_v2_inference_server.py`
 
 ---
 
@@ -76,14 +65,14 @@
    - bbox_only: 67.4%±9.8% / image_only: 75.6%±0.8% / bbox+image: 76.7%±1.3%
    - Pure Kosmos-2 grounding의 cx,cy,area < raw 16×16 image 정보량
 
-3. **Shortcut collapse 미해결**
-   - Exp37 (left_left 30ep overfit): train-PM 35%, 전 프레임을 LEFT로 예측
-   - 데이터 제약/class weight만으로 해결 안 됨 — 구조적 문제
+3. **Pipeline이 유일 결정 변수** — L2-norm + bbox augmentation
+   - Simple MLP(Exp65b) 10.3% → L2+aug(Exp66) 96.6% (×9.4)
+   - Grounding 소스 무관: HSV = base PG2 = LoRA cx → 모두 96.6%
 
-4. **Pure HF grounding 오인식**
-   - gray basket을 "trash can", "air conditioner" 등으로 잘못 명명
-   - coarse 방향은 맞음 (seed_coarse_agreement=1.0), 명시 인식은 33%
-   - 증거: `docs/v5/RECOGNITION_PROOF_RESULT_20260428.md`
+4. **Basket localization 이중 증명**
+   - Zero-shot linear probe: 96.6% (frozen CLIP, 학습 없이)
+   - Masking ablation: 9/9 프레임 행동 반전 (Exp66, base PG2)
+   - 증거: `docs/v5/masking_ablation_proof.html`
 
 5. **Offline PM vs Closed-loop 괴리**
    - Exp26: PM 70.2%, CL 0% (offline 강함 ≠ rollout 강함)
@@ -107,40 +96,37 @@
 | Exp18 | VLA text fusion (로봇 서버 fallback) | — | 11.1% |
 | Exp19 | BBox proxy MLP, Exp14 기반 | 76.6% | 55.6% |
 | Exp21~24 | Pure HF controlled ablation | — | — |
-| **Exp25** | **현재 practical baseline** | **52.4%** | **55.6%** |
-| Exp26 | direct224, offline 강/rollout 약 | 70.2% | 0% |
-| Exp27 | letterbox224 ablation | 15.5% | 33.3% |
-| Exp28 | grounding aux + turn boost | 38.1% | 0% |
-| Exp29~31 | 5ep short ablation (loss mixing) | 14~21% | — |
-| Exp32~36 | Pure HF last-4 LoRA, left-family | val 6.5~7.5 | 미평가 |
-| Exp37 | left_left 30ep overfit | 35%(collapse) | — |
-| Exp38 | all-path head-only 20ep sanity | 미평가 | — |
-| **Exp39** | **Exp25 + last-4 LoRA** | **학습 예정** | — |
+| Exp25 | Pure HF balanced (구 baseline, 폐기) | 52.4% | 55.6% |
+| Exp39~45 | LoRA/grounding 시도, 전부 collapse | — | — |
+| Exp54 | Stage2 v2 첫 SOTA | — | 96.6% |
+| Exp65b | Simple MLP (pipeline ablation) | — | 10.3% |
+| **Exp66** | **Stage2 v2 SOTA (base PG2)** | **93.5% val** | **96.6%** |
+| Exp66-LSTM | LSTM w=16, best FPE 0.080m | — | 96.6% |
+| Exp67 | HSV cx (grounding source test) | — | 96.6% |
 
 ---
 
-## 미해결 / 다음 단계 (2026-05-05 갱신)
+## 현재 상태 / 다음 단계 (2026-06-28 갱신)
 
-1. **Exp40 액션 head collapse 디버깅** — val_loss 0.575로 낮지만 PM은 100% FORWARD 단일 출력
-   - grounding_aux의 `loss_balance_mode=learned`가 action loss를 짓눌렀을 가능성
-   - 처방 후보: (a) `loss_balance_mode=fixed`로 회귀, (b) `lambda_bbox/coarse` 0.1→0.01로 축소, (c) action loss min_share 강제
-2. **Prompt-conditioning lock-in (이번 세션 메인)**
-   - 현재: 4개 grounding 모델(kosmos/paligemma/paligemma2/moondream) 비교 verbose log에서 **전부 "텍스트 변화에 무감각"** (액션 diff < 1e-3)
-   - 즉 left/right 프롬프트를 줘도 동일 액션 — text→action 경로 끊김
-   - Google-robot post-train의 text=0% attention 문제는 backbone 기인 (LoRA로 복구 불가)
-   - 다음: prompt path를 어디서 fuse하는지 코드 추적 후 explicit text-conditioning head 설계
-3. **3-Tier Grounding 모두 broken (5/5 ablation)** — `docs/v5/grounding_3tier_ablation.md`
-   - Tier 1 LoRA adapter: entity 0/72 (target_text 토큰화 의심)
-   - Tier 2 caption 13-pat: dir_acc 25% (5→13 효과 +1.4%p, 미미)
-   - Tier 3 coarse_clf: unseen 36% (silver/gold 라벨 mismatch, RIGHT class 6%)
-   - proxy_inference_server.py에서 LoRA 자동 merge 디폴트 OFF로 패치됨 (env opt-in)
-   - 재시도: gold annotation 72→200+ 확장 또는 silver threshold 재정의
-4. **BBox proxy 배포 진행 중** — `docs/plans/plan_20260501_bbox_proxy_deploy.md`
-   - 완료: `bbox_dataset_full.json` 150ep 추출 (2626 frames), path resolver, 배포 섹션 문서
-   - 미완: proxy MLP 가중치 학습/검증, 로봇 서버 호출 검증, 변경 커밋
-5. **미커밋 변경 다수** — proxy_inference_server.py(+135), nav_trainer.py(+4), test_v5_pm_dm.py(+35), 신규 스크립트 10+
-6. **Exp31, Exp35, Exp36, Exp38 PM/rollout 평가 미완** (이월)
-7. **Shortcut collapse 근본 해결책 미확보** (이월)
+1. **CH55 Preview Model Ablation 완료** (2026-06-27~28)
+   - CLIP / OWL-v2 / Kosmos-2 / Florence-2 × ZS/probe/LoRA/last-layer-FT
+   - **핵심 결론**: Stage 0 워밍업(CH54)이 frame 0 cold-start 해결 → preview model 필요성 낮음
+   - PG2 warm=1440ms, det≈100% → 가장 신뢰도 높음 (대체 모델 불필요)
+   - 최선 대안: OWL-v2 ZS (432ms, sess dir=50%), Kosmos-2 ZS (711ms, det=100%, sess dir=36%)
+   - FT 방법: 140개 학습 데이터로는 오버피팅 심함. ft_last1이 LoRA보다 나음 (sess 51.7%)
+   - 스크립트: `scripts/ablate_preview_ft_v2.py`, `scripts/ablate_last_layers.py`
+   - 결과: `docs/v5/ablate_preview_ft_v2.json`, `docs/v5/ablate_last_layers.json`
+
+2. **실로봇 테스트** (2026-06-16~17)
+   - Exp66 Stage2 v2 soda 배포 완료, 대시보드 http://100.85.118.58:7865
+   - 체크리스트: `docs/v5/REAL_ROBOT_CHECKLIST_20260616.md`
+
+3. **논문 제출 결정** (6/12 미팅)
+   - Table 1 초안: `docs/v5/TABLE1_PAPER_DRAFT.md`
+   - 실로봇 결과 나오면 `mona-sync --add-exp` 로 이력 추가
+
+4. **카메라 서비스 미연결** (soda)
+   - `ros2 run` / entry_point 메타데이터 오류 (importlib.metadata)
 
 ---
 

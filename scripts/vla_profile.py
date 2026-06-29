@@ -79,8 +79,8 @@ def resolve_profile(registry: dict, profile_name: str) -> dict:
                 "launchable": False,
             }
 
-        # proxy_server: MLP 체크포인트만 있으면 실행 가능, config 불필요
-        config_required = runtime != "proxy_server"
+        # proxy_server/stage2_v2: MLP 체크포인트만 있으면 실행 가능, config 불필요
+        config_required = runtime not in ("proxy_server", "stage2_v2")
         if checkpoint_ok and (config_ok or not config_required) and launchable:
             return {
                 "profile": profile_name,
@@ -128,7 +128,13 @@ def shell_exports(resolved: dict) -> str:
         lines.append(f'export VLA_CONFIG_PATH="{resolved["config_path"]}"')
     if resolved["runtime"] == "proxy_server" and resolved["checkpoint_path"]:
         lines.append(f'export VLA_PROXY_WEIGHTS_PATH="{resolved["checkpoint_path"]}"')
-        lines.append(f'export VLA_SERVER_SCRIPT="robovlm_nav/serve/proxy_inference_server.py"')
+        lines.append('export VLA_SERVER_SCRIPT="robovlm_nav/serve/proxy_inference_server.py"')
+    if resolved["runtime"] == "stage2_v2":
+        lines.append('export VLA_SERVER_SCRIPT="robovlm_nav/serve/stage2_v2_inference_server.py"')
+        lines.append('export VLA_S2V2_STAGE1="runs/v5_nav/mlp/shared/stage1_v2_projs.pt"')
+        if resolved["checkpoint_path"]:
+            lines.append(f'export VLA_S2V2_STAGE2="{resolved["checkpoint_path"]}"')
+        lines.append('export VLA_PORT="${VLA_PORT:-8001}"')
     return "\n".join(lines)
 
 

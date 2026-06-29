@@ -1,0 +1,1467 @@
+{
+  "session": "gnd_20260620_110911",
+  "total_frames": 85,
+  "goal_params": {
+    "area": 0.25,
+    "cx_tol": 0.35,
+    "n": 3
+  },
+  "summary": {
+    "proximity_stops": 0,
+    "no_bbox": 61,
+    "ok": 23,
+    "near": 1,
+    "max_consec_near": 1,
+    "action_dist": {
+      "FWD+R": 55,
+      "FORWARD": 30
+    }
+  },
+  "frames": [
+    {
+      "frame": 1,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 22774.224996566772,
+      "total_latency_ms": 23341.896295547485
+    },
+    {
+      "frame": 2,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 505.8009624481201,
+      "total_latency_ms": 615.0531768798828
+    },
+    {
+      "frame": 3,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.0300765673956479,
+        "cx": 0.5219941348973607,
+        "cy": 0.6099706744868034,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1211.6599082946777,
+      "total_latency_ms": 1295.9353923797607
+    },
+    {
+      "frame": 4,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.04983139502106487,
+        "cx": 0.7038123167155426,
+        "cy": 0.5801564027370478,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1221.9805717468262,
+      "total_latency_ms": 1304.269790649414
+    },
+    {
+      "frame": 5,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.07816601355528607,
+        "cx": 0.5576735092864125,
+        "cy": 0.5821114369501466,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1208.5654735565186,
+      "total_latency_ms": 1290.4248237609863
+    },
+    {
+      "frame": 6,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1199.7854709625244,
+      "total_latency_ms": 1280.8425426483154
+    },
+    {
+      "frame": 7,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1202.392816543579,
+      "total_latency_ms": 1283.0283641815186
+    },
+    {
+      "frame": 8,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1228.705644607544,
+      "total_latency_ms": 1310.0805282592773
+    },
+    {
+      "frame": 9,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1203.003168106079,
+      "total_latency_ms": 1282.5257778167725
+    },
+    {
+      "frame": 10,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.09556734691537457,
+        "cx": 0.37732160312805474,
+        "cy": 0.8841642228739003,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1205.6000232696533,
+      "total_latency_ms": 1284.7564220428467
+    },
+    {
+      "frame": 11,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1199.2535591125488,
+      "total_latency_ms": 1281.7554473876953
+    },
+    {
+      "frame": 12,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1203.8648128509521,
+      "total_latency_ms": 1290.2207374572754
+    },
+    {
+      "frame": 13,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.09212931509781382,
+        "cx": 0.4037145650048876,
+        "cy": 0.8719452590420332,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1215.0933742523193,
+      "total_latency_ms": 1295.0255870819092
+    },
+    {
+      "frame": 14,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.12455459906032226,
+        "cx": 0.5083088954056696,
+        "cy": 0.8841642228739003,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1205.8086395263672,
+      "total_latency_ms": 1286.0033512115479
+    },
+    {
+      "frame": 15,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.12546045068985187,
+        "cx": 0.5102639296187683,
+        "cy": 0.8841642228739003,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1218.3055877685547,
+      "total_latency_ms": 1297.4178791046143
+    },
+    {
+      "frame": 16,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.03399236906000694,
+        "cx": 0.7390029325513197,
+        "cy": 0.5664711632453567,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1201.4427185058594,
+      "total_latency_ms": 1280.94482421875
+    },
+    {
+      "frame": 17,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1219.5699214935303,
+      "total_latency_ms": 1301.712989807129
+    },
+    {
+      "frame": 18,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 500.34213066101074,
+      "total_latency_ms": 580.8465480804443
+    },
+    {
+      "frame": 19,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 505.41234016418457,
+      "total_latency_ms": 585.2420330047607
+    },
+    {
+      "frame": 20,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1204.1375637054443,
+      "total_latency_ms": 1284.339189529419
+    },
+    {
+      "frame": 21,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1208.9829444885254,
+      "total_latency_ms": 1288.7589931488037
+    },
+    {
+      "frame": 22,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1209.6774578094482,
+      "total_latency_ms": 1290.846824645996
+    },
+    {
+      "frame": 23,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1212.083101272583,
+      "total_latency_ms": 1293.9519882202148
+    },
+    {
+      "frame": 24,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1207.4658870697021,
+      "total_latency_ms": 1294.3902015686035
+    },
+    {
+      "frame": 25,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1206.82954788208,
+      "total_latency_ms": 1289.212942123413
+    },
+    {
+      "frame": 26,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1214.8826122283936,
+      "total_latency_ms": 1294.814109802246
+    },
+    {
+      "frame": 27,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1215.6257629394531,
+      "total_latency_ms": 1295.4490184783936
+    },
+    {
+      "frame": 28,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1216.8269157409668,
+      "total_latency_ms": 1297.6469993591309
+    },
+    {
+      "frame": 29,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1219.425916671753,
+      "total_latency_ms": 1301.2497425079346
+    },
+    {
+      "frame": 30,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1206.7413330078125,
+      "total_latency_ms": 1285.843849182129
+    },
+    {
+      "frame": 31,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.747241973877,
+      "total_latency_ms": 1293.1909561157227
+    },
+    {
+      "frame": 32,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.763931274414,
+      "total_latency_ms": 1290.26460647583
+    },
+    {
+      "frame": 33,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1211.9126319885254,
+      "total_latency_ms": 1292.4115657806396
+    },
+    {
+      "frame": 34,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1209.7790241241455,
+      "total_latency_ms": 1290.008306503296
+    },
+    {
+      "frame": 35,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1239.3286228179932,
+      "total_latency_ms": 1319.242238998413
+    },
+    {
+      "frame": 36,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1209.6302509307861,
+      "total_latency_ms": 1288.7489795684814
+    },
+    {
+      "frame": 37,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1209.9401950836182,
+      "total_latency_ms": 1295.6252098083496
+    },
+    {
+      "frame": 38,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1205.4965496063232,
+      "total_latency_ms": 1286.2138748168945
+    },
+    {
+      "frame": 39,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.11015461587782086,
+        "cx": 0.565982404692082,
+        "cy": 0.6588465298142717,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1208.5585594177246,
+      "total_latency_ms": 1291.372537612915
+    },
+    {
+      "frame": 40,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.11604074039037617,
+        "cx": 0.565982404692082,
+        "cy": 0.6510263929618768,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1223.4573364257812,
+      "total_latency_ms": 1303.187370300293
+    },
+    {
+      "frame": 41,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.05092835458931382,
+        "cx": 0.6720430107526881,
+        "cy": 0.6080156402737047,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1208.1248760223389,
+      "total_latency_ms": 1286.909580230713
+    },
+    {
+      "frame": 42,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.04967564205100862,
+        "cx": 0.6818181818181819,
+        "cy": 0.6065493646138806,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1222.4533557891846,
+      "total_latency_ms": 1302.4466037750244
+    },
+    {
+      "frame": 43,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.06129596026483741,
+        "cx": 0.6832844574780059,
+        "cy": 0.6275659824046921,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1212.2652530670166,
+      "total_latency_ms": 1293.7262058258057
+    },
+    {
+      "frame": 44,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.04852039456145028,
+        "cx": 0.6818181818181819,
+        "cy": 0.6080156402737047,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1221.0159301757812,
+      "total_latency_ms": 1304.2936325073242
+    },
+    {
+      "frame": 45,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.20328533657452402,
+        "cx": 0.6070381231671554,
+        "cy": 0.7448680351906158,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.1538181304932,
+      "total_latency_ms": 1292.036533355713
+    },
+    {
+      "frame": 46,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.04852039456145028,
+        "cx": 0.6818181818181819,
+        "cy": 0.6080156402737047,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1204.8888206481934,
+      "total_latency_ms": 1286.5562438964844
+    },
+    {
+      "frame": 47,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1197.8914737701416,
+      "total_latency_ms": 1279.1986465454102
+    },
+    {
+      "frame": 48,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.026741027832,
+      "total_latency_ms": 1291.0799980163574
+    },
+    {
+      "frame": 49,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1207.4947357177734,
+      "total_latency_ms": 1288.804292678833
+    },
+    {
+      "frame": 50,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.10216630403935294,
+        "cx": 0.565982404692082,
+        "cy": 0.6006842619745846,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1214.6193981170654,
+      "total_latency_ms": 1302.797794342041
+    },
+    {
+      "frame": 51,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.07013661350999355,
+        "cx": 0.5136852394916911,
+        "cy": 0.592375366568915,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1215.6760692596436,
+      "total_latency_ms": 1297.9402542114258
+    },
+    {
+      "frame": 52,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.07222160112142136,
+        "cx": 0.5180840664711632,
+        "cy": 0.5615835777126099,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1213.3078575134277,
+      "total_latency_ms": 1293.8835620880127
+    },
+    {
+      "frame": 53,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.297058179945324,
+        "cx": 0.6725317693059629,
+        "cy": 0.7732160312805474,
+        "cat": "NEAR"
+      },
+      "consec_local": 1,
+      "grounding_latency_ms": 1215.1896953582764,
+      "total_latency_ms": 1294.1629886627197
+    },
+    {
+      "frame": 54,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.06995601650790373,
+        "cx": 0.6788856304985338,
+        "cy": 0.5821114369501466,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1209.0363502502441,
+      "total_latency_ms": 1288.2680892944336
+    },
+    {
+      "frame": 55,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1221.4760780334473,
+      "total_latency_ms": 1301.8696308135986
+    },
+    {
+      "frame": 56,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1213.120937347412,
+      "total_latency_ms": 1294.3031787872314
+    },
+    {
+      "frame": 57,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1225.0044345855713,
+      "total_latency_ms": 1306.3173294067383
+    },
+    {
+      "frame": 58,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1257.2321891784668,
+      "total_latency_ms": 1339.0400409698486
+    },
+    {
+      "frame": 59,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1219.1510200500488,
+      "total_latency_ms": 1304.661750793457
+    },
+    {
+      "frame": 60,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1204.871654510498,
+      "total_latency_ms": 1286.6356372833252
+    },
+    {
+      "frame": 61,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1213.315725326538,
+      "total_latency_ms": 1293.5395240783691
+    },
+    {
+      "frame": 62,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1215.942621231079,
+      "total_latency_ms": 1296.5996265411377
+    },
+    {
+      "frame": 63,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1213.8192653656006,
+      "total_latency_ms": 1294.6710586547852
+    },
+    {
+      "frame": 64,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1208.2548141479492,
+      "total_latency_ms": 1289.468765258789
+    },
+    {
+      "frame": 65,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 504.26483154296875,
+      "total_latency_ms": 591.5391445159912
+    },
+    {
+      "frame": 66,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 504.0311813354492,
+      "total_latency_ms": 588.9413356781006
+    },
+    {
+      "frame": 67,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1218.313217163086,
+      "total_latency_ms": 1304.4559955596924
+    },
+    {
+      "frame": 68,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 507.48300552368164,
+      "total_latency_ms": 593.8947200775146
+    },
+    {
+      "frame": 69,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 504.6098232269287,
+      "total_latency_ms": 589.2255306243896
+    },
+    {
+      "frame": 70,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.6919288635254,
+      "total_latency_ms": 1294.8439121246338
+    },
+    {
+      "frame": 71,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.02140504467625837,
+        "cx": 0.7150537634408602,
+        "cy": 0.5527859237536656,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1214.5366668701172,
+      "total_latency_ms": 1299.5784282684326
+    },
+    {
+      "frame": 72,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.00075340271,
+      "total_latency_ms": 1292.4129962921143
+    },
+    {
+      "frame": 73,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1206.8290710449219,
+      "total_latency_ms": 1288.3763313293457
+    },
+    {
+      "frame": 74,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1211.7209434509277,
+      "total_latency_ms": 1294.9483394622803
+    },
+    {
+      "frame": 75,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1204.0321826934814,
+      "total_latency_ms": 1285.5195999145508
+    },
+    {
+      "frame": 76,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1231.0762405395508,
+      "total_latency_ms": 1312.6177787780762
+    },
+    {
+      "frame": 77,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.5367183685303,
+      "total_latency_ms": 1292.4203872680664
+    },
+    {
+      "frame": 78,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1202.8403282165527,
+      "total_latency_ms": 1283.1487655639648
+    },
+    {
+      "frame": 79,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1213.160514831543,
+      "total_latency_ms": 1293.7140464782715
+    },
+    {
+      "frame": 80,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1219.3522453308105,
+      "total_latency_ms": 1302.2065162658691
+    },
+    {
+      "frame": 81,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1206.770420074463,
+      "total_latency_ms": 1287.9419326782227
+    },
+    {
+      "frame": 82,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.05820096719727786,
+        "cx": 0.3651026392961877,
+        "cy": 0.8841642228739003,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1210.8588218688965,
+      "total_latency_ms": 1293.0667400360107
+    },
+    {
+      "frame": 83,
+      "label": "FORWARD",
+      "cls_id": 1,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": true,
+        "area": 0.06182437371539633,
+        "cx": 0.3572825024437928,
+        "cy": 0.8841642228739003,
+        "cat": "OK"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1211.8816375732422,
+      "total_latency_ms": 1293.9503192901611
+    },
+    {
+      "frame": 84,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1215.2519226074219,
+      "total_latency_ms": 1297.7023124694824
+    },
+    {
+      "frame": 85,
+      "label": "FWD+R",
+      "cls_id": 5,
+      "proximity_override": false,
+      "goal_near_proxy": false,
+      "bbox": {
+        "has_bbox": false,
+        "area": 0.06,
+        "cx": 0.5,
+        "cy": 0.6,
+        "cat": "NO_BBOX"
+      },
+      "consec_local": 0,
+      "grounding_latency_ms": 1204.1068077087402,
+      "total_latency_ms": 1286.4701747894287
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
@@ -138,13 +138,14 @@ class CameraServiceServer(Node):
         frame, camera_type = self.get_fresh_frame()
         
         if frame is not None:
-            response.image = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
+            # CompressedImage(JPEG) 전송 — raw bgr8 대비 대역폭 ~10x↓
+            response.image = self.bridge.cv2_to_compressed_imgmsg(frame, dst_format='jpg')
             response.image.header.stamp = self.get_clock().now().to_msg()
             response.image.header.frame_id = 'camera_frame'
             self.get_logger().info(f'📸 {camera_type} 최신 이미지 서비스 요청 처리 완료!')
         else:
             self.get_logger().error('❌ 이미지 캡처/생성 실패 - 서비스 요청에 빈 이미지 반환')
-            response.image = Image()
+            response.image = CompressedImage()
 
         return response
     

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>컨트롤러 어노테이션 에디터 — MoNaVLA</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d1117; color: #c9d1d9;
+  font-family: 'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  user-select: none;
+}
+
+/* ── Toolbar ── */
+#toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; background: #161b22; border-bottom: 1px solid #30363d;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+#toolbar h1 { font-size: 13px; color: #c9d1d9; white-space: nowrap; }
+.sep { width: 1px; height: 22px; background: #30363d; flex-shrink: 0; }
+.btn {
+  padding: 4px 10px; border: 1px solid #30363d; background: #21262d;
+  color: #c9d1d9; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap;
+}
+.btn:hover { background: #2d333b; }
+.btn.active { background: #1f6feb; border-color: #58a6ff; color: #fff; }
+.btn.green  { border-color: #3fb950; color: #3fb950; }
+.btn.green:hover  { background: #3fb950; color: #000; }
+.btn.red    { border-color: #f85149; color: #f85149; }
+.btn.red:hover    { background: #f85149; color: #fff; }
+#hint { font-size: 11px; color: #6e7681; }
+#zoom-info { font-size: 11px; color: #484f58; margin-left: auto; white-space: nowrap; }
+
+/* ── Main ── */
+#main { display: flex; flex: 1; overflow: hidden; }
+
+/* Canvas wrap */
+#canvas-wrap {
+  flex: 1; overflow: auto; background: #010409;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 16px; position: relative;
+}
+#canvas { display: block; }
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 272px; background: #161b22; border-left: 1px solid #30363d;
+  display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+}
+#sb-head {
+  padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #30363d;
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+  font-size: 12px;
+}
+#box-list { flex: 1; overflow-y: auto; padding: 4px; }
+
+.bi {
+  display: flex; align-items: center; gap: 5px; padding: 4px 6px;
+  border-radius: 4px; cursor: pointer; border: 1px solid transparent; margin-bottom: 1px;
+}
+.bi:hover { background: #21262d; }
+.bi.selected { border-color: #58a6ff; background: #21262d; }
+.bi-num { font-size: 10px; color: #484f58; width: 16px; text-align: right; flex-shrink: 0; }
+.bi-swatch {
+  width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.bi-label { flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bi-vis  { color: #484f58; cursor: pointer; font-size: 12px; padding: 0 1px; }
+.bi-vis:hover { color: #c9d1d9; }
+.bi-del  { color: #333; cursor: pointer; font-size: 15px; padding: 0 1px; line-height: 1; flex-shrink: 0; }
+.bi-del:hover { color: #f85149; }
+
+/* Props panel */
+#props { border-top: 1px solid #30363d; padding: 10px 12px; flex-shrink: 0; }
+#props-empty { color: #484f58; font-size: 12px; text-align: center; padding: 14px 0; }
+.pr { margin-bottom: 8px; }
+.pr label { display: block; font-size: 11px; color: #6e7681; margin-bottom: 3px; }
+.pr input[type=text] {
+  width: 100%; padding: 4px 7px; background: #21262d; border: 1px solid #30363d;
+  color: #c9d1d9; border-radius: 4px; font-size: 12px;
+}
+.pr input[type=text]:focus { outline: none; border-color: #58a6ff; }
+.pr input[type=color] {
+  width: 100%; height: 26px; padding: 0 2px; background: #21262d;
+  border: 1px solid #30363d; border-radius: 4px; cursor: pointer;
+}
+.pr-row { display: flex; gap: 6px; }
+.pr-row input[type=number] {
+  width: 100%; padding: 3px 6px; background: #21262d; border: 1px solid #30363d;
+  color: #c9d1d9; border-radius: 4px; font-size: 11px; text-align: right;
+}
+.pr-row input[type=number]:focus { outline: none; border-color: #58a6ff; }
+.pr-row .coord-lbl { font-size: 10px; color: #484f58; text-align: center; margin-top: 2px; }
+
+/* Keyboard hint */
+#kb { padding: 6px 12px; border-top: 1px solid #30363d; font-size: 10px; color: #484f58; line-height: 1.7; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>🎮 컨트롤러 어노테이션 에디터</h1>
+  <div class="sep"></div>
+  <button class="btn" onclick="document.getElementById('fi').click()">📂 이미지 열기</button>
+  <div class="sep"></div>
+  <button class="btn" id="btn-add" onclick="toggleMode()">✚ 박스 추가  <small style="opacity:.6">[A]</small></button>
+  <button class="btn red" onclick="deleteSelected()">🗑 선택 삭제  <small style="opacity:.6">[Del]</small></button>
+  <button class="btn" onclick="clearAll()">전체 삭제</button>
+  <div class="sep"></div>
+  <button class="btn green" onclick="exportPng()">⬇ PNG 내보내기</button>
+  <button class="btn" style="border-color:#a371f7;color:#a371f7" onclick="exportJson()">📋 좌표 JSON 저장</button>
+  <span id="hint" style="margin-left:4px">이미지 자동 로드 중…</span>
+  <span id="zoom-info"></span>
+</div>
+
+<div id="main">
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div id="sidebar">
+    <div id="sb-head">
+      박스 목록 <span id="box-count" style="color:#484f58;font-weight:400">(0)</span>
+      <button class="btn" style="padding:2px 7px;font-size:10px" onclick="resetBoxes()">기본값 복원</button>
+    </div>
+    <div id="box-list"></div>
+
+    <div id="props">
+      <div id="props-empty">박스를 클릭해 선택</div>
+      <div id="props-form" style="display:none">
+        <div class="pr">
+          <label>레이블</label>
+          <input type="text" id="p-label" oninput="updateSel('label',this.value)" placeholder="버튼명: 기능 설명">
+        </div>
+        <div class="pr">
+          <label>색상</label>
+          <input type="color" id="p-color" oninput="updateSel('color',this.value)">
+        </div>
+        <div class="pr">
+          <label>위치 / 크기 (px, 이미지 좌표)</label>
+          <div class="pr-row">
+            <div><input type="number" id="p-x" oninput="updateCoord()"><div class="coord-lbl">X</div></div>
+            <div><input type="number" id="p-y" oninput="updateCoord()"><div class="coord-lbl">Y</div></div>
+            <div><input type="number" id="p-w" oninput="updateCoord()"><div class="coord-lbl">W</div></div>
+            <div><input type="number" id="p-h" oninput="updateCoord()"><div class="coord-lbl">H</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="kb">
+      <b style="color:#6e7681">단축키</b><br>
+      A: 박스 추가 모드 토글 &nbsp;|&nbsp; Del: 삭제<br>
+      Esc: 선택 해제 &nbsp;|&nbsp; 화살표: 1px 이동<br>
+      Shift+화살표: 10px 이동 &nbsp;|&nbsp; H: 숨기기 토글
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fi" accept="image/*" style="display:none" onchange="loadFile(this)">
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvas-wrap');
+
+let img = null, imgW = 0, imgH = 0, scale = 1;
+let boxes = [], nextId = 1, selId = null;
+let mode = 'select';   // 'select' | 'create'
+let drag = null;
+
+const HR = 5; // handle half-size (canvas px)
+
+// ── 초기 박스 데이터 (700×718 이미지 좌표) ────────────────────────────────
+const DEFAULT_BOXES = [
+  // 페이스 버튼
+  { func:'stop',      label:'A: STOP 기록',             x:492, y:183, w:38, h:36, color:'#3cd264' },
+  { func:'undo',      label:'B: UNDO',                  x:530, y:157, w:37, h:36, color:'#64b4ff' },
+  { func:'discard',   label:'X: DISCARD',               x:455, y:157, w:37, h:36, color:'#ff9b3c' },
+  { func:'teleop',    label:'Y: TELEOP 토글',           x:492, y:130, w:37, h:36, color:'#ff5050' },
+  // 숄더
+  { func:'rec_start', label:'L1: REC 시작',             x:100, y: 68, w: 65, h:28, color:'#3cd264' },
+  { func:'rec_save',  label:'R1: REC 저장',             x:515, y: 68, w: 65, h:28, color:'#3cd264' },
+  { func:'l2',        label:'L2: 미사용',               x: 82, y: 50, w: 60, h:20, color:'#666666' },
+  { func:'r2',        label:'R2: 미사용',               x:538, y: 50, w: 60, h:20, color:'#666666' },
+  // 중앙
+  { func:'select',    label:'SELECT: 시나리오 ◀',      x:248, y:179, w:35, h:22, color:'#d4d43c' },
+  { func:'start',     label:'START: 시나리오 ▶',       x:337, y:179, w:35, h:22, color:'#d4d43c' },
+  { func:'mode',      label:'MODE: 모드 전환',          x:292, y:182, w:32, h:22, color:'#666666' },
+  // D-pad
+  { func:'d_left',    label:'D◀: 시나리오 이전',       x: 57, y:162, w:32, h:32, color:'#c8c83c' },
+  { func:'d_right',   label:'D▶: 시나리오 다음',       x:101, y:162, w:32, h:32, color:'#c8c83c' },
+  { func:'d_up',      label:'D▲: 예비',                x: 79, y:140, w:32, h:22, color:'#666666' },
+  { func:'d_down',    label:'D▼: 미사용',              x: 79, y:194, w:32, h:22, color:'#666666' },
+  // 스틱
+  { func:'l_stick',   label:'L-Stick: 로봇 이동',      x:148, y:198, w:58, h:58, color:'#ffffff' },
+  { func:'r_stick',   label:'R-Stick: 예비',           x:402, y:198, w:58, h:58, color:'#666666' },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Image loading
+// ═══════════════════════════════════════════════════════════════════════════
+function loadFile(input) {
+  const file = input.files[0]; if (!file) return;
+  loadUrl(URL.createObjectURL(file));
+}
+
+function loadUrl(url) {
+  const i = new Image();
+  i.onload = () => {
+    img = i; imgW = i.naturalWidth; imgH = i.naturalHeight;
+    computeScale();
+    if (boxes.length === 0) resetBoxes();
+    render(); updateUI();
+    setHint('클릭으로 선택 | A: 박스 추가 | Del: 삭제');
+  };
+  i.onerror = () => setHint('⚠ 이미지 자동 로드 실패 — "이미지 열기"로 직접 선택하세요');
+  i.src = url;
+}
+
+function resetBoxes() {
+  boxes = DEFAULT_BOXES.map(b => ({ ...b, id: nextId++, hidden: false }));
+  selId = null; updateUI(); render();
+}
+
+function computeScale() {
+  const mw = wrap.clientWidth - 32, mh = wrap.clientHeight - 32;
+  scale = Math.min(mw / imgW, mh / imgH, 2);
+  canvas.width  = Math.round(imgW * scale);
+  canvas.height = Math.round(imgH * scale);
+  document.getElementById('zoom-info').textContent =
+    Math.round(scale*100) + '%  (' + imgW + '×' + imgH + 'px)';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Coords
+// ═══════════════════════════════════════════════════════════════════════════
+const c2i = (cx,cy) => ({ x: cx/scale, y: cy/scale });
+const bToC = b => ({ x:b.x*scale, y:b.y*scale, w:b.w*scale, h:b.h*scale });
+
+function getHandles(b) {
+  const {x,y,w,h} = bToC(b);
+  return [
+    {id:'tl',x,             y,      cur:'nw-resize'},
+    {id:'t', x:x+w/2,       y,      cur:'n-resize'},
+    {id:'tr',x:x+w,         y,      cur:'ne-resize'},
+    {id:'ml',x,             y:y+h/2,cur:'w-resize'},
+    {id:'mr',x:x+w,         y:y+h/2,cur:'e-resize'},
+    {id:'bl',x,             y:y+h,  cur:'sw-resize'},
+    {id:'b', x:x+w/2,       y:y+h,  cur:'s-resize'},
+    {id:'br',x:x+w,         y:y+h,  cur:'se-resize'},
+  ];
+}
+
+function hitHandle(b, cx, cy) {
+  for (const h of getHandles(b))
+    if (Math.abs(cx-h.x)<HR+3 && Math.abs(cy-h.y)<HR+3) return h;
+  return null;
+}
+
+function hitBox(cx, cy) {
+  for (let i=boxes.length-1; i>=0; i--) {
+    const b=boxes[i]; if (b.hidden) continue;
+    const {x,y,w,h}=bToC(b);
+    if (cx>=x&&cx<=x+w&&cy>=y&&cy<=y+h) return b;
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Mouse
+// ═══════════════════════════════════════════════════════════════════════════
+canvas.addEventListener('mousedown', e => {
+  e.preventDefault();
+  const cx=e.offsetX, cy=e.offsetY;
+
+  if (mode==='create') {
+    const p=c2i(cx,cy);
+    const nb={id:nextId++,label:'새 박스',x:p.x,y:p.y,w:0,h:0,color:'#58a6ff',hidden:false};
+    boxes.push(nb); selId=nb.id;
+    drag={type:'create',x0:p.x,y0:p.y,id:nb.id};
+    updateUI(); return;
+  }
+
+  const sel=boxes.find(b=>b.id===selId);
+  if (sel) {
+    const h=hitHandle(sel,cx,cy);
+    if (h) {
+      drag={type:'resize',handle:h.id,box:sel,
+            origX:sel.x,origY:sel.y,origW:sel.w,origH:sel.h,
+            sx:cx,sy:cy};
+      return;
+    }
+  }
+  const hit=hitBox(cx,cy);
+  if (hit) {
+    selId=hit.id;
+    drag={type:'move',box:hit,sx:cx,sy:cy,ox:hit.x,oy:hit.y};
+    updateUI(); render(); return;
+  }
+  selId=null; updateUI(); render();
+});
+
+canvas.addEventListener('mousemove', e => {
+  const cx=e.offsetX, cy=e.offsetY;
+  if (!drag) { updateCursor(cx,cy); return; }
+  const dx=(cx-(drag.sx||0))/scale, dy=(cy-(drag.sy||0))/scale;
+
+  if (drag.type==='create') {
+    const b=boxes.find(b=>b.id===drag.id); if (!b) return;
+    const p=c2i(cx,cy);
+    b.x=Math.min(drag.x0,p.x); b.y=Math.min(drag.y0,p.y);
+    b.w=Math.abs(p.x-drag.x0); b.h=Math.abs(p.y-drag.y0);
+  } else if (drag.type==='move') {
+    drag.box.x=drag.ox+dx; drag.box.y=drag.oy+dy;
+  } else if (drag.type==='resize') {
+    const {handle:hid,origX:ox,origY:oy,origW:ow,origH:oh,box}=drag;
+    let nx=ox,ny=oy,nw=ow,nh=oh;
+    if (hid.includes('l')){nx=ox+dx;nw=ow-dx;}
+    if (hid.includes('r')) nw=ow+dx;
+    if (hid.includes('t')){ny=oy+dy;nh=oh-dy;}
+    if (hid.includes('b')) nh=oh+dy;
+    if (nw>4){box.x=nx;box.w=nw;} if (nh>4){box.y=ny;box.h=nh;}
+  }
+  render(); if (selId) syncPropsCoords();
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (drag?.type==='create') {
+    const b=boxes.find(b=>b.id===drag.id);
+    if (b&&b.w<4&&b.h<4){boxes=boxes.filter(b=>b.id!==drag.id);selId=null;}
+    setMode('select');
+  }
+  drag=null; updateUI(); render();
+});
+canvas.addEventListener('mouseleave', ()=>{ drag=null; });
+
+function updateCursor(cx,cy) {
+  const sel=boxes.find(b=>b.id===selId);
+  if (sel){const h=hitHandle(sel,cx,cy);if(h){canvas.style.cursor=h.cur;return;}}
+  const hit=hitBox(cx,cy);
+  canvas.style.cursor=hit?'move':(mode==='create'?'crosshair':'default');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Render
+// ═══════════════════════════════════════════════════════════════════════════
+function render() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (img) ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  for (const b of boxes) if (!b.hidden) drawBox(b, b.id===selId);
+}
+
+function drawBox(b, selected) {
+  const {x,y,w,h}=bToC(b);
+  ctx.save();
+  ctx.strokeStyle=b.color; ctx.lineWidth=selected?2.5:1.5;
+  ctx.strokeRect(x,y,w,h);
+  if (selected){ctx.fillStyle=b.color+'28';ctx.fillRect(x,y,w,h);}
+
+  // Label tag
+  ctx.font='bold 11px monospace,sans-serif';
+  const tw=ctx.measureText(b.label).width;
+  const tagH=15, tagY=(y>=tagH+2)?y-tagH-1:y+1;
+  ctx.fillStyle=b.color; ctx.fillRect(x,tagY,tw+8,tagH);
+  ctx.fillStyle=lum(b.color)>.45?'#000':'#fff';
+  ctx.fillText(b.label,x+4,tagY+tagH-3);
+  ctx.restore();
+
+  // Handles
+  if (selected) {
+    ctx.save();
+    for (const h of getHandles(b)) {
+      ctx.fillStyle='#fff'; ctx.strokeStyle=b.color; ctx.lineWidth=1.5;
+      ctx.fillRect(h.x-HR,h.y-HR,HR*2,HR*2);
+      ctx.strokeRect(h.x-HR,h.y-HR,HR*2,HR*2);
+    }
+    ctx.restore();
+  }
+}
+
+function lum(hex){
+  const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+  return .2126*r+.7152*g+.0722*b;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════════════
+function updateUI() {
+  document.getElementById('box-count').textContent='('+boxes.length+')';
+  const list=document.getElementById('box-list');
+  list.innerHTML='';
+  boxes.forEach((b,i)=>{
+    const d=document.createElement('div');
+    d.className='bi'+(b.id===selId?' selected':'');
+    d.dataset.id=b.id;
+    d.innerHTML=
+      `<span class="bi-num">${i+1}</span>`+
+      `<span class="bi-swatch" style="background:${b.color}"></span>`+
+      `<span class="bi-label" style="${b.hidden?'opacity:.35':''}">${esc(b.label)}</span>`+
+      `<span class="bi-vis" title="숨기기" onclick="toggleHide(${b.id},event)">${b.hidden?'👁️':'👁'}</span>`+
+      `<span class="bi-del" onclick="deleteBox(${b.id},event)">×</span>`;
+    d.addEventListener('click',()=>{selId=b.id;updateUI();render();});
+    list.appendChild(d);
+  });
+  const si=list.querySelector('.bi.selected');
+  if(si) si.scrollIntoView({block:'nearest'});
+
+  const sel=boxes.find(b=>b.id===selId);
+  document.getElementById('props-empty').style.display=sel?'none':'';
+  document.getElementById('props-form').style.display=sel?'':'none';
+  if (sel){
+    const pl=document.getElementById('p-label'),pc=document.getElementById('p-color');
+    if(document.activeElement!==pl) pl.value=sel.label;
+    pc.value=sel.color; syncPropsCoords();
+  }
+}
+
+function syncPropsCoords() {
+  const b=boxes.find(b=>b.id===selId); if(!b) return;
+  const fields=['p-x','p-y','p-w','p-h'];
+  const vals=[b.x,b.y,b.w,b.h];
+  fields.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(document.activeElement!==el) el.value=Math.round(vals[i]);
+  });
+}
+
+function updateSel(key,val){
+  const b=boxes.find(b=>b.id===selId); if(!b) return;
+  b[key]=val;
+  const li=document.querySelector('.bi[data-id="'+selId+'"]');
+  if(li){
+    if(key==='color'){li.querySelector('.bi-swatch').style.background=val;}
+    if(key==='label'){li.querySelector('.bi-label').textContent=val;}
+  }
+  render();
+}
+
+function updateCoord(){
+  const b=boxes.find(b=>b.id===selId); if(!b) return;
+  b.x=+document.getElementById('p-x').value||b.x;
+  b.y=+document.getElementById('p-y').value||b.y;
+  b.w=+document.getElementById('p-w').value||b.w;
+  b.h=+document.getElementById('p-h').value||b.h;
+  render();
+}
+
+function toggleHide(id,e){
+  e.stopPropagation();
+  const b=boxes.find(b=>b.id===id); if(!b) return;
+  b.hidden=!b.hidden; updateUI(); render();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Actions
+// ═══════════════════════════════════════════════════════════════════════════
+function setMode(m){
+  mode=m;
+  document.getElementById('btn-add').classList.toggle('active',m==='create');
+  canvas.style.cursor=m==='create'?'crosshair':'default';
+  setHint(m==='create'?'드래그로 새 박스 그리기 (Esc: 취소)':'클릭으로 선택, 드래그로 이동/리사이즈');
+}
+function toggleMode(){setMode(mode==='create'?'select':'create');}
+
+function deleteSelected(){if(!selId)return;deleteBox(selId);}
+function deleteBox(id,e){
+  if(e)e.stopPropagation();
+  boxes=boxes.filter(b=>b.id!==id);
+  if(selId===id)selId=null;
+  updateUI();render();
+}
+function clearAll(){if(boxes.length&&!confirm('박스를 모두 삭제할까요?'))return;boxes=[];selId=null;updateUI();render();}
+
+// ── Export JSON (bbox → Python 연동) ─────────────────────────────────────
+function exportJson(){
+  if(!img){alert('이미지를 먼저 열어주세요');return;}
+  const data=boxes.map(b=>({
+    func: b.func || b.label.split(':')[0].trim().toLowerCase().replace(/[^a-z0-9_]/g,'_'),
+    label:b.label, x:Math.round(b.x), y:Math.round(b.y),
+    w:Math.round(b.w), h:Math.round(b.h), color:b.color
+  }));
+  const a=document.createElement('a');
+  a.href='data:application/json,'+encodeURIComponent(JSON.stringify(data,null,2));
+  a.download='controller_bbox.json'; a.click();
+  setHint('✅ controller_bbox.json 다운로드 — docs/assets/에 넣으면 Python 자동 반영');
+}
+
+// ── Export PNG ────────────────────────────────────────────────────────────
+function exportPng(){
+  if(!img){alert('이미지를 먼저 열어주세요');return;}
+  const ec=document.createElement('canvas');
+  ec.width=imgW; ec.height=imgH;
+  const ex=ec.getContext('2d');
+  ex.drawImage(img,0,0);
+  for(const b of boxes){
+    if(b.hidden) continue;
+    ex.strokeStyle=b.color; ex.lineWidth=2;
+    ex.strokeRect(b.x,b.y,b.w,b.h);
+    ex.font='bold 12px monospace,sans-serif';
+    const tw=ex.measureText(b.label).width, tagH=16;
+    const tagY=(b.y>=tagH+2)?b.y-tagH-1:b.y+1;
+    ex.fillStyle=b.color; ex.fillRect(b.x,tagY,tw+8,tagH);
+    ex.fillStyle=lum(b.color)>.45?'#000':'#fff';
+    ex.fillText(b.label,b.x+4,tagY+tagH-3);
+  }
+  const a=document.createElement('a');
+  a.href=ec.toDataURL('image/png');
+  a.download='controller_annotated.png';
+  a.click();
+}
+
+// ── Keyboard ─────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='Delete'||e.key==='Backspace'){deleteSelected();return;}
+  if(e.key==='Escape'){
+    if(mode==='create')setMode('select');
+    else{selId=null;updateUI();render();}
+    return;
+  }
+  if(e.key.toLowerCase()==='a'){toggleMode();return;}
+  if(e.key.toLowerCase()==='h'&&selId){toggleHide(selId,{stopPropagation:()=>{}});return;}
+  const b=boxes.find(b=>b.id===selId);
+  if(!b) return;
+  const d=e.shiftKey?10:1;
+  if(e.key==='ArrowLeft') {b.x-=d;e.preventDefault();}
+  if(e.key==='ArrowRight'){b.x+=d;e.preventDefault();}
+  if(e.key==='ArrowUp')   {b.y-=d;e.preventDefault();}
+  if(e.key==='ArrowDown') {b.y+=d;e.preventDefault();}
+  syncPropsCoords(); render();
+});
+
+// ── Resize observer ───────────────────────────────────────────────────────
+new ResizeObserver(()=>{if(img){computeScale();render();}}).observe(wrap);
+
+// ── Util ──────────────────────────────────────────────────────────────────
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function setHint(t){document.getElementById('hint').textContent=t;}
+
+// ── Auto-load (HTML is in docs/, image in docs/assets/) ───────────────────
+loadUrl('assets/SCR-20260611-obsw.png');
+</script>
+</body>
+</html>

@@ -133,7 +133,7 @@ vla-model-env() {
 
 # 환경 변수 확인
 unalias vla-env 2>/dev/null || true
-vla-env() {
+_vla_core_env() {
     echo "=========================================="
     echo "MoNaVLA Environment Variables"
     echo "=========================================="
@@ -156,6 +156,7 @@ vla-env() {
         echo "  ROS_DOMAIN_ID  = $ROS_DOMAIN_ID"
     fi
 }
+vla-env() { _vla_core_env "$@"; }
 
 # ========================================
 # API 서버 관리 (Model 서버 전용)
@@ -206,7 +207,9 @@ alias vla-curl-test='curl -s -H "X-API-Key: $VLA_API_KEY" $VLA_API_SERVER/test |
 alias vla-ps='ps aux | grep -E "(api_server|PID)" | grep -v grep'
 
 # 프로젝트 디렉토리로 이동
-alias vla-cd='cd $VLA_PROJECT_DIR'
+_vla_core_cd() { cd "$VLA_PROJECT_DIR"; }
+unalias vla-cd 2>/dev/null || true
+vla-cd() { _vla_core_cd "$@"; }
 
 # GPU 상태
 if [ "$VLA_SERVER_ROLE" = "jetson" ]; then
@@ -263,7 +266,7 @@ vla-network-check() {
 # ========================================
 
 unalias vla-help 2>/dev/null || true
-vla-help() {
+_vla_core_help() {
     echo "=========================================="
     echo "MoNaVLA Commands - $VLA_SERVER_NAME"
     echo "=========================================="
@@ -309,15 +312,15 @@ vla-help() {
     echo "  mona-help          - 이 도움말 [alias: vla-help]"
     echo "=========================================="
 }
+vla-help() { _vla_core_help "$@"; }
 
 # ========================================
 # MoNaVLA Aliases (Compatibility)
 # ========================================
 
 # Base aliases
-alias mona-help='vla-help'
-alias mona-env='vla-env'
-alias mona-cd='vla-cd'
+# mona-help/mona-env/mona-cd는 §"mona-* 통합 디스패처"(파일 하단)에서 함수로
+# 정의됨 — --pi 분기를 흡수하기 위해 단순 alias가 아니라 함수로 승격.
 alias mona-network-check='vla-network-check'
 alias mona-gpu='vla-gpu'
 
@@ -509,7 +512,7 @@ vla-server-running() {
     curl -s "${api_url%/}/health" > /dev/null 2>&1
 }
 
-vla-server() {
+_vla_core_server() {
     local action="start"
     case "${1:-start}" in
         start|stop|restart|status|logs|http|admin|urls)
@@ -546,6 +549,9 @@ vla-server() {
 
     "$VLA_PROJECT_DIR/scripts/manage_api_server.sh" "$action" "$profile_name"
 }
+# 항상 _vla_core_server를 직접 호출 — 다른 sourced 파일이 vla-server를 나중에
+# 재정의해도(예: MoNa-pi) mona-server/_mona_dispatch는 이 core를 그대로 호출함.
+vla-server() { _vla_core_server "$@"; }
 
 vla-start() { vla-server start "$@"; }
 vla-restart() { vla-server restart "$@"; }
@@ -581,8 +587,8 @@ vla-inference-gradio() {
     local profile_name="${1:-${VLA_PROFILE:-proxy_default}}"
     # profile 로드 실패 시 현재 env 변수 그대로 사용
     eval "$(python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" env --profile "$profile_name" 2>/dev/null)" || true
-    # proxy_server 또는 api_server 런타임이 아니면 env 변수로 fallback
-    if [ "$VLA_MODEL_RUNTIME" != "api_server" ] && [ "$VLA_MODEL_RUNTIME" != "proxy_server" ]; then
+    # proxy_server/api_server/stage2_v2 런타임이 아니면 env 변수로 fallback
+    if [ "$VLA_MODEL_RUNTIME" != "api_server" ] && [ "$VLA_MODEL_RUNTIME" != "proxy_server" ] && [ "$VLA_MODEL_RUNTIME" != "stage2_v2" ]; then
         if [ -n "$VLA_API_SERVER" ]; then
             echo "⚠️  Profile runtime 미확인, VLA_API_SERVER=$VLA_API_SERVER 로 fallback"
             export VLA_MODEL_RUNTIME="proxy_server"
@@ -621,7 +627,7 @@ vla-inference-gradio() {
 }
 
 unalias vla-collect-gradio 2>/dev/null || true
-vla-collect-gradio() {
+_vla_core_collect_gradio() {
     local profile_name="${1:-collect_default}"
     eval "$(python3 "$VLA_PROJECT_DIR/scripts/vla_profile.py" env --profile "$profile_name")"
     if [ -f "/opt/ros/humble/setup.zsh" ]; then
@@ -637,15 +643,17 @@ vla-collect-gradio() {
     echo "Launching collector with profile $VLA_PROFILE"
     python3 "$VLA_PROJECT_DIR/scripts/gradio_data_collector.py"
 }
+vla-collect-gradio() { _vla_core_collect_gradio "$@"; }
 
 # Compatibility aliases
 unalias vla-collect 2>/dev/null || true
-vla-collect() { vla-collect-gradio "$@"; }
+_vla_core_collect() { _vla_core_collect_gradio "$@"; }
+vla-collect() { _vla_core_collect "$@"; }
 unalias vla-dashboard 2>/dev/null || true
 vla-dashboard() { vla-inference-gradio "$@"; }
 alias mona-collect-gradio='vla-collect-gradio'
 alias mona-inference-gradio='vla-inference-gradio'
-alias mona-server='vla-server'
+# mona-server는 §"mona-* 통합 디스패처"(파일 하단)에서 함수로 정의됨
 alias mona-clean='vla-clean'
 alias mona-profile='vla-profile'
 alias mona-models='vla-models'
@@ -863,4 +871,113 @@ mona-help() {
     echo "════════════════════════════════════════════════════"
 }
 alias vla-help='mona-help'
+
+# ════════════════════════════════════════════════════════════════
+# mona-* 통합 디스패처 — MoNa-pi(--pi)를 hook으로 흡수 (2026-06-22)
+# ════════════════════════════════════════════════════════════════
+# 배경: MoNa-pi 확장(~/MoNa-pi/.mona_pi_aliases)이 .zshrc에서 이 파일보다
+# *나중에* 소스되면서 vla-cd/vla-collect/vla-server/vla-inference/vla-train/
+# vla-eval/vla-analyze/vla-env/vla-close/vla-help를 직접 재정의해 "기존 동작
+# 유지"를 의도했지만, 실제로는 그 시점의 스냅샷을 하드코딩해서 이후 이 파일이
+# 바뀌면(예: vla-server가 manage_api_server.sh로 확장된 것) 조용히 깨졌다
+# (exp66 stage2_v2 프로필 도입 때 실제로 발생한 버그).
+#
+# 해결: 이 파일의 진짜 구현은 전부 _vla_core_<name>으로 분리돼 있고
+# (위 vla-cd/vla-env/vla-help/vla-server/vla-collect 참고), mona-<name>은
+# 그 core를 직접 호출한다 — 이후 누가 vla-<name>을 다시 가로채도 mona-<name>은
+# 영향받지 않는다. --pi 분기는 _monapi_<name> hook 존재 여부로 위임한다.
+# MoNa-pi 쪽은 .mona_pi_aliases에 vla-*를 더 이상 건드리지 않고
+# _monapi_<name>() { ... } 만 정의하면 된다 — 이 파일을 다시 고칠 필요 없음.
+
+_mona_dispatch() {
+    local name="$1"; shift
+    if [ "$1" = "--pi" ]; then
+        shift
+        local hook="_monapi_${name//-/_}"
+        if typeset -f "$hook" >/dev/null; then
+            "$hook" "$@"
+        else
+            echo "⚠️  MoNa-pi hook(${hook})이 로드 안 됨 — ~/MoNa-pi/.mona_pi_aliases 확인"
+            return 1
+        fi
+    else
+        "_vla_core_${name//-/_}" "$@"
+    fi
+}
+
+# ── 새로 필요한 core (이전엔 MoNa-pi 쪽 하드코딩 스냅샷에만 있던 것들) ──
+_vla_core_inference() {
+    vla-load-env 2>/dev/null
+    export VLA_LOCAL_MODEL=false
+    ros2 run mobile_vla_package api_client_node "$@"
+}
+_vla_core_train() {
+    echo "사용법:"
+    echo "  mona-train --pi [configs/train.yaml]   MoNa-pi 학습"
+    echo "  MoNaVLA 학습은 별도 스크립트를 사용하세요"
+    echo "    cd \$VLA_PROJECT_DIR && python3 robovlm_nav/train.py configs/<config>.json"
+}
+_vla_core_eval() {
+    echo "사용법: mona-eval --pi [checkpoints/best]"
+}
+_vla_core_analyze() {
+    python3 "$VLA_PROJECT_DIR/scripts/gradio_offline_h5_analyzer.py" "$@"
+}
+_vla_core_collect_ros() {
+    if [ -f "/opt/ros/humble/setup.zsh" ]; then source /opt/ros/humble/setup.zsh
+    elif [ -f "/opt/ros/humble/setup.bash" ]; then source /opt/ros/humble/setup.bash; fi
+    python3 "$VLA_PROJECT_DIR/scripts/gradio_data_collector.py" "$@"
+}
+_vla_core_close() {
+    pkill -f "gradio_inference_dashboard.py|mobile_vla|simple_robot_mover|camera_service_server|vla_inference|scripts/.*_inference.*\.py" 2>/dev/null
+    pkill -9 -f "ros2 run" 2>/dev/null
+    echo "✅ Killed VLA processes."
+    fuser -k -9 /dev/video* 2>/dev/null
+}
+
+unalias vla-inference 2>/dev/null || true
+vla-inference() { _vla_core_inference "$@"; }
+unalias vla-train 2>/dev/null || true
+vla-train() { _vla_core_train "$@"; }
+unalias vla-eval 2>/dev/null || true
+vla-eval() { _vla_core_eval "$@"; }
+unalias vla-analyze 2>/dev/null || true
+vla-analyze() { _vla_core_analyze "$@"; }
+unalias vla-collect-ros 2>/dev/null || true
+vla-collect-ros() { _vla_core_collect_ros "$@"; }
+unalias vla-close 2>/dev/null || true
+vla-close() { _vla_core_close "$@"; }
+
+# ── mona-<name> 디스패처 — 실제 공개 커맨드 ──────────────────────────
+unalias mona-cd 2>/dev/null || true
+mona-cd() { _mona_dispatch cd "$@"; }
+unalias mona-env 2>/dev/null || true
+mona-env() { _mona_dispatch env "$@"; }
+unalias mona-server 2>/dev/null || true
+mona-server() { _mona_dispatch server "$@"; }
+unalias mona-collect 2>/dev/null || true
+mona-collect() { _mona_dispatch collect "$@"; }
+unalias mona-collect-ros 2>/dev/null || true
+mona-collect-ros() { _mona_dispatch collect-ros "$@"; }
+unalias mona-inference 2>/dev/null || true
+mona-inference() { _mona_dispatch inference "$@"; }
+unalias mona-train 2>/dev/null || true
+mona-train() { _mona_dispatch train "$@"; }
+unalias mona-eval 2>/dev/null || true
+mona-eval() { _mona_dispatch eval "$@"; }
+unalias mona-analyze 2>/dev/null || true
+mona-analyze() { _mona_dispatch analyze "$@"; }
+unalias mona-close 2>/dev/null || true
+mona-close() { _mona_dispatch close "$@"; }
+
+# vla-* 쪽에서도 --pi를 받아주면 헷갈리지 않음 (mona-*와 동일하게 동작)
+vla-cd()        { _mona_dispatch cd "$@"; }
+vla-env()       { _mona_dispatch env "$@"; }
+vla-server()    { _mona_dispatch server "$@"; }
+vla-collect()   { _mona_dispatch collect "$@"; }
+vla-inference() { _mona_dispatch inference "$@"; }
+vla-train()     { _mona_dispatch train "$@"; }
+vla-eval()      { _mona_dispatch eval "$@"; }
+vla-analyze()   { _mona_dispatch analyze "$@"; }
+vla-close()     { _mona_dispatch close "$@"; }
 

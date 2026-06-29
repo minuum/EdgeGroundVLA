@@ -1,0 +1,53 @@
+{
+  "tag": "L1_param_sweep",
+  "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/exp54/stage2_v2/stage2_v2_mlp.pt",
+  "data": "/home/minum/26CS/MoNaVLA/docs/v5/bbox_nav_exp46/bbox_dataset_full.json",
+  "seeds": 5,
+  "success_fpe": 0.5,
+  "variants": [
+    "V0_no_override",
+    "V1_current_server",
+    "V2_cx_removed",
+    "V3_cx_rm_cy045",
+    "V4_area_adaptive",
+    "V5_area_only_035"
+  ],
+  "summary": {
+    "V0_no_override": {
+      "sr_mean": 0.9866666666666667,
+      "sr_std": 0.01632993161855452,
+      "fpe_mean": 0.07082400009850812,
+      "fpe_std": 0.012942578295908886
+    },
+    "V1_current_server": {
+      "sr_mean": 0.23517241379310344,
+      "sr_std": 0.03201598226860447,
+      "fpe_mean": 1.23255390820735,
+      "fpe_std": 0.058937840701966226
+    },
+    "V2_cx_removed": {
+      "sr_mean": 0.23517241379310344,
+      "sr_std": 0.03201598226860447,
+      "fpe_mean": 1.23255390820735,
+      "fpe_std": 0.058937840701966226
+    },
+    "V3_cx_rm_cy045": {
+      "sr_mean": 0.9597701149425287,
+      "sr_std": 0.024887114671676976,
+      "fpe_mean": 0.1160145803710988,
+      "fpe_std": 0.029769479235317437
+    },
+    "V4_area_adaptive": {
+      "sr_mean": 0.23517241379310344,
+      "sr_std": 0.03201598226860447,
+      "fpe_mean": 1.23255390820735,
+      "fpe_std": 0.058937840701966226
+    },
+    "V5_area_only_035": {
+      "sr_mean": 0.2418390804597701,
+      "sr_std": 0.04028305189591378,
+      "fpe_mean": 1.2273761310894824,
+      "fpe_std": 0.0632162809899377
+    }
+  }
+}

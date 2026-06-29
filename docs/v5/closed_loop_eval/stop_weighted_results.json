@@ -1,0 +1,39 @@
+{
+  "tag": "L3_stop_weighted",
+  "data": "/home/minum/26CS/MoNaVLA/docs/v5/bbox_nav_exp46/bbox_dataset_full.json",
+  "epochs": 300,
+  "results": [
+    {
+      "tag": "sw1x",
+      "stop_weight_mult": 1.0,
+      "val_acc": 0.797244094488189,
+      "n_synth_stop": 118,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_weighted/stop_wt_sw1x.pt",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3_eval_sw1x.log"
+    },
+    {
+      "tag": "sw2x",
+      "stop_weight_mult": 2.0,
+      "val_acc": 0.8090551181102362,
+      "n_synth_stop": 118,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_weighted/stop_wt_sw2x.pt",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3_eval_sw2x.log"
+    },
+    {
+      "tag": "sw5x",
+      "stop_weight_mult": 5.0,
+      "val_acc": 0.7992125984251969,
+      "n_synth_stop": 118,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_weighted/stop_wt_sw5x.pt",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3_eval_sw5x.log"
+    },
+    {
+      "tag": "sw10x",
+      "stop_weight_mult": 10.0,
+      "val_acc": 0.7913385826771654,
+      "n_synth_stop": 118,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_weighted/stop_wt_sw10x.pt",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3_eval_sw10x.log"
+    }
+  ]
+}

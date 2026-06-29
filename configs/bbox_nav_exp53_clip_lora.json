@@ -1,4 +1,6 @@
 {
+  "robovlm_name": "RoboKosMos",
+  "use_hand_rgb": false,
   "_comment": "Exp53: CLIP LoRA Visual Grounding — 5/15 교수님 지시",
   "exp_name": "exp53_clip_lora",
 
