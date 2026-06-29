@@ -1230,8 +1230,42 @@ loadAblationTables();
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#f87171;margin:0 0 12px 0">K-3. LEFT 오예측 세션 실제 사진 (frame0 → frame1 → frame2)</h3>
+    <p style="font-size:0.82rem;color:#94a3b8;margin:0 0 14px 0">
+      빨간 박스 = PG2 바스켓 bbox &nbsp;|&nbsp; 빨간 헤더 = LEFT 출력 &nbsp;|&nbsp; 초록 헤더 = 정상 액션<br>
+      frame0은 항상 미검출(has_bbox=NO) → 헤더 없음. frame1부터 그라운딩 결과 있음.
+    </p>
+
+    <div style="margin-bottom:20px">
+      <div style="font-size:0.8rem;font-weight:700;color:#fbbf24;margin-bottom:6px">⚠️ session_20260626_142109 — frame1 cx=0.514 (오른쪽)인데 LEFT 출력</div>
+      <img src="ch57_frames/ch57_109.jpg" style="width:100%;border-radius:6px;border:1px solid #7f1d1d" loading="lazy">
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:0.8rem;font-weight:700;color:#fbbf24;margin-bottom:6px">⚠️ session_20260626_142941 — frame1 cx=0.526인데 LEFT 출력</div>
+      <img src="ch57_frames/ch57_941.jpg" style="width:100%;border-radius:6px;border:1px solid #7f1d1d" loading="lazy">
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:0.8rem;font-weight:700;color:#fbbf24;margin-bottom:6px">⚠️ session_20260626_143011 — frame1 cx=0.602 (명확히 오른쪽)인데 LEFT 출력</div>
+      <img src="ch57_frames/ch57_011.jpg" style="width:100%;border-radius:6px;border:1px solid #7f1d1d" loading="lazy">
+    </div>
+    <div style="margin-bottom:24px">
+      <div style="font-size:0.8rem;font-weight:700;color:#fbbf24;margin-bottom:6px">⚠️ session_20260626_143058 — frame1 cx=0.592인데 LEFT 출력</div>
+      <img src="ch57_frames/ch57_058.jpg" style="width:100%;border-radius:6px;border:1px solid #7f1d1d" loading="lazy">
+    </div>
+
+    <div style="border-top:1px solid #1e293b;padding-top:16px;margin-top:4px">
+      <div style="font-size:0.8rem;font-weight:700;color:#86efac;margin-bottom:6px">✅ 정상 비교 — session_20260626_140928 (STOP 위주)</div>
+      <img src="ch57_frames/ch57_928.jpg" style="width:100%;border-radius:6px;border:1px solid #166534" loading="lazy">
+    </div>
+    <div style="margin-top:12px">
+      <div style="font-size:0.8rem;font-weight:700;color:#86efac;margin-bottom:6px">✅ 정상 비교 — session_20260626_150611 (FWD 정상 출력)</div>
+      <img src="ch57_frames/ch57_611.jpg" style="width:100%;border-radius:6px;border:1px solid #166534" loading="lazy">
+    </div>
+  </div>
+
   <div class="card" style="border-color:#1e3a5f;margin-bottom:16px">
-    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">K-3. 검증 방법 & Stage 0 연결</h3>
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">K-4. 검증 방법 & Stage 0 연결</h3>
     <ul style="font-size:0.88rem;line-height:2;color:#cbd5e1;margin:0 0 0 18px">
       <li><strong>검증:</strong> Stage 0 워밍업 적용 전/후 세션의 frame 1 LEFT 발생률 비교</li>
       <li><strong>예측:</strong> 워밍업 후 frame 0 has_bbox=True → window[0~6] 올바른 cx → LEFT 0건</li>
