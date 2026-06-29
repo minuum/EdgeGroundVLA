@@ -1264,12 +1264,39 @@ loadAblationTables();
     </div>
   </div>
 
+  <!-- K-4: 반증 테스트 -->
+  <div class="card" style="border-color:#7c3aed;background:linear-gradient(135deg,#1a0a2b,#120828);margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#c4b5fd;margin:0 0 12px 0">K-4. 반증 테스트 결과 (2026-06-30)</h3>
+    <div style="background:#0d0a1a;border:1px solid #4c1d95;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.8rem;line-height:1.9;color:#a5b4fc;margin-bottom:12px">
+      <div style="color:#6d28d9;margin-bottom:4px"># Exp54 Stage2 V2 MLP (val_acc=92.6%) — bbox 슬롯만 변경, vis_feat=0 고정</div>
+      <div><span style="color:#94a3b8">세션 142109  cx=0.514 :</span></div>
+      <div>&nbsp;&nbsp;[오염 window 7/8=default] → <span style="color:#4ade80">FWD</span>  LEFT=0.000  FWD=<span style="color:#4ade80">0.979</span></div>
+      <div>&nbsp;&nbsp;[픽스 window 8/8=real]    → <span style="color:#4ade80">FWD</span>  LEFT=0.000  FWD=<span style="color:#4ade80">0.998</span></div>
+      <div style="margin-top:4px"><span style="color:#94a3b8">세션 142941  cx=0.526 :</span></div>
+      <div>&nbsp;&nbsp;[오염] → <span style="color:#4ade80">FWD</span>  LEFT=0.000  FWD=0.978 &nbsp;|&nbsp; [픽스] → <span style="color:#4ade80">FWD</span>  FWD=0.997</div>
+      <div style="margin-top:4px"><span style="color:#94a3b8">세션 143011  cx=0.602 :</span></div>
+      <div>&nbsp;&nbsp;[오염] → <span style="color:#4ade80">FWD</span>  LEFT=0.000  FWD=0.974 &nbsp;|&nbsp; [픽스] → <span style="color:#4ade80">FWD</span>  FWD=0.999</div>
+      <div style="margin-top:4px"><span style="color:#94a3b8">세션 143058  cx=0.592 :</span></div>
+      <div>&nbsp;&nbsp;[오염] → <span style="color:#4ade80">FWD</span>  LEFT=0.000  FWD=0.975 &nbsp;|&nbsp; [픽스] → <span style="color:#4ade80">FWD</span>  FWD=0.999</div>
+    </div>
+    <div style="background:#1a0a00;border-left:3px solid #f59e0b;padding:10px 14px;border-radius:4px;font-size:0.85rem;color:#fde68a;line-height:1.8">
+      <strong>결론:</strong> bbox 윈도우 오염만으로는 LEFT가 재현되지 않음.<br>
+      • vis_feat(Kosmos-2 이미지 특징 256dim)이 0일 때 두 케이스 모두 FWD ~98%<br>
+      • 실제 LEFT는 이미지 특징(vis_feat)이 주도하거나, vis_feat × bbox 상호작용에 기인할 가능성<br>
+      • CH57 가설의 bbox-window 오염 메커니즘은 <strong>단독 원인으로는 기각</strong> — vis_feat 포함 전체 테스트 필요
+    </div>
+    <div style="margin-top:10px;font-size:0.78rem;color:#64748b">
+      한계: image_proj에 trained Kosmos-2 weights 없이 vis=zeros 사용 → vis_feat 효과 미측정
+    </div>
+  </div>
+
   <div class="card" style="border-color:#1e3a5f;margin-bottom:16px">
-    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">K-4. 검증 방법 & Stage 0 연결</h3>
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">K-5. 다음 검증 단계</h3>
     <ul style="font-size:0.88rem;line-height:2;color:#cbd5e1;margin:0 0 0 18px">
-      <li><strong>검증:</strong> Stage 0 워밍업 적용 전/후 세션의 frame 1 LEFT 발생률 비교</li>
-      <li><strong>예측:</strong> 워밍업 후 frame 0 has_bbox=True → window[0~6] 올바른 cx → LEFT 0건</li>
-      <li><strong>대안 가설:</strong> 모델 자체 편향 (학습 분포에서 세션 초반 LEFT가 많은 경우) — 독립 실험 필요</li>
+      <li><strong>필수:</strong> 실제 Kosmos-2 vis_feat 포함 전체 파이프라인 재테스트 (soda 서버 필요)</li>
+      <li><strong>대안 가설 A:</strong> 이미지 자체가 LEFT를 유발 (바스켓 왼쪽 이미지 특성) — 사진 육안 확인</li>
+      <li><strong>대안 가설 B:</strong> 학습 데이터에서 세션 초반 LEFT가 많은 분포 편향</li>
+      <li><strong>Stage 0 연결:</strong> 워밍업은 PG2 latency 문제를 해결하지, LEFT 자체를 막진 않을 수도</li>
     </ul>
     <div style="margin-top:10px;font-size:0.82rem;color:#64748b">
       관련: <code>research_story.html#ch57</code> &nbsp;|&nbsp; <code>research_story.html#ch54</code> (Stage 0 워밍업)
