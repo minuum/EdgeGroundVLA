@@ -845,6 +845,8 @@ class InferenceResponse(BaseModel):
     stop_mode: Optional[str] = None
     grounding_cached: Optional[bool] = None
     head_mode: Optional[str] = None
+    preview_align: Optional[bool] = None
+    preview_attempt: Optional[int] = None
 
 
 class LoadRequest(BaseModel):
@@ -943,6 +945,8 @@ async def predict(
             proximity_override=result["proximity_override"],
             grounding_cached=result["grounding_cached"],
             head_mode=result["head_mode"],
+            preview_align=result.get("preview_align"),
+            preview_attempt=result.get("preview_attempt"),
         )
     except HTTPException:
         raise
@@ -979,6 +983,9 @@ async def recent_predictions(x_api_key: Optional[str] = Header(default=None)) ->
         "inference_count": m.inference_count,
         "stop_latched": m.stop_latched,
         "stop_mode": STOP_MODE,
+        "preview_enabled": m._preview_enabled,
+        "preview_attempt": m._preview_attempt,
+        "preview_max_retry": m._preview_max_retry,
     }
 
 

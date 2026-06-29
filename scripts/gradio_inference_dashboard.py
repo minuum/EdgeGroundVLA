@@ -1233,8 +1233,12 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
     strategy = result.get("strategy", "")
     pred_label = result.get("predicted_label") or ""
     goal_near = result.get("goal_near_proxy")
+    is_preview = bool(result.get("preview_align"))
+    preview_attempt = result.get("preview_attempt")
 
     label_prefix = f"[{pred_label}] " if pred_label else ""
+    if is_preview and preview_attempt is not None:
+        label_prefix = f"[🔄PREVIEW {preview_attempt}] [{pred_label}] "
     act_str = f"{label_prefix}{action[0]:.4f}, {action[1]:.4f}, {action[2] if action.size > 2 else 0.0:.4f}"
 
     speed_scale = result.get("speed_scale")
@@ -1254,6 +1258,9 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
             chunk_display += f"\ngrounding: {caption}"
     else:
         chunk_display = f"Chunk (N={len(chunk)}):\n{np.array2string(chunk, precision=2, separator=', ', suppress_small=True)}"
+        if is_preview:
+            chunk_display = (f"🔄 PREVIEW 모드 — attempt {preview_attempt}\n"
+                             f"bbox 미탐지 → ROT 후 PG2 재검사 중\n") + chunk_display
 
     return {
         "log_str": f"✅ {backend.name}: {state['current_log']}",
@@ -3275,21 +3282,35 @@ with gr.Blocks(
     timer.tick(fn=_js_status_text, outputs=js_status_test)
 
     def _gnd_detail_tick():
-        """그라운딩 상세 정보 (entity, cached, bbox, 예측레이블) 반환."""
+        """그라운딩 상세 정보 (entity, cached/preview상태, bbox, 예측레이블) 반환."""
         try:
             import requests as _rq
-            r = _rq.get(f"{DEFAULT_API_URL}/recent", timeout=1.5)
-            preds = r.json().get("predictions", [])
+            data = _rq.get(f"{DEFAULT_API_URL}/recent", timeout=1.5).json()
+            preds = data.get("predictions", [])
+            preview_enabled = data.get("preview_enabled", False)
+            preview_attempt = data.get("preview_attempt", 0)
+            preview_max     = data.get("preview_max_retry", 5)
+            inf_count       = data.get("inference_count", -1)
+
+            # preview 중이면 cached 필드를 preview 상태로 대체
+            if preview_enabled and inf_count == 0 and preview_attempt > 0:
+                cached_str = f"🔄 PREVIEW {preview_attempt}/{preview_max}"
+            elif preview_enabled and inf_count == 0:
+                cached_str = "⏳ PREVIEW 대기"
+            elif preview_enabled:
+                cached_str = "✅ preview 완료"
+            else:
+                cached_str = "—"
+
             if preds:
                 p = preds[0]
-                bbox = p.get("bbox", {})
-                entity  = bbox.get("entity", "—")[:30]
-                cached  = "✅ cached" if p.get("grounding_cached") else "🔄 live"
-                cx      = bbox.get("cx",   0.5)
-                cy      = bbox.get("cy",   0.5)
-                area    = bbox.get("area", 0.0)
-                label   = p.get("predicted_label", "—")
-                return entity, cached, f"cx={cx:.3f}  cy={cy:.3f}  area={area:.4f}", label
+                cx   = p.get("cx",   0.5)
+                area = p.get("area", 0.0)
+                has  = p.get("has_bbox", False)
+                entity = "gray basket"
+                label  = "—"
+                return entity, cached_str, f"cx={cx:.3f}  area={area:.4f}  {'✓BBOX' if has else '✗NONE'}", label
+            return "—", cached_str, "—", "—"
         except Exception:
             pass
         return "—", "—", "—", "—"
