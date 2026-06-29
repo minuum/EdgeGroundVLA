@@ -13032,106 +13032,130 @@ graph TD
 </div>
 
 <hr class="chapter-divider">
-<div class="chapter" id="ch55">
+<div class="chapter" id="ch57">
   <div class="chapter-header">
-    <span class="chapter-num">CH 55</span>
-    <h2 class="chapter-title">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</h2>
-    <p class="chapter-subtitle">그라운딩 통일성(Consistency)이 깨졌을 때 Closed-Loop 성공률이 급락(A2 52.4%, A3 47.6%)하는 현상을 기반으로, 비전 백본별 파인튜닝 기법의 정량 효과를 입증</p>
+    <span class="chapter-num">CH 57</span>
+    <h2 class="chapter-title">Frame 0 Cold-Start → Window 오염 → LEFT 오예측 — 가설 및 근거</h2>
+    <p class="chapter-subtitle">6/26 실주행 세션 4개에서 그라운딩이 cx&gt;0.5임에도 LEFT 출력된 현상의 원인 분석. <strong style="color:#fbbf24">⚠️ 가설 단계 — 실험자 검토 필요</strong></p>
   </div>
 
-  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
-    <div class="finding-title" style="color:#86efac">55-1. 핵심 발견 — Grounding Consistency의 파괴와 주행 실패 인과성</div>
-    <div class="finding-body">
-      동일한 PaliGemma-2 항법 헤드 구조 하에서, 학습 시 사용한 그라운딩 데이터(PG2)와 실런타임 추론 시 그라운딩 데이터(HSV 150ep)의 일치도가 깨진 경우, Closed-Loop 주행 성공률이 96.6%에서 50% 수준으로 하락함을 입증했습니다:
-      <ul style="margin:8px 0 0 18px;line-height:2">
-        <li><strong>A2 (HSV 150ep, no-flip)</strong>: Closed-Loop 성공률 <strong style="color:#f87171">52.4%</strong> (FPE 0.28m)</li>
-        <li><strong>A3 (HSV 150ep, flip-aug)</strong>: Closed-Loop 성공률 <strong style="color:#f87171">47.6%</strong> (FPE 0.31m)</li>
-      </ul>
-      이는 비전 모델의 grounding 일관성이 주행 제어 정밀도에 미치는 파괴적인 영향력을 실증한 최초의 사례입니다.
+  <div class="finding-card" style="background:linear-gradient(135deg,#1a0a00,#1f1000);border-color:#92400e;margin-bottom:24px">
+    <div class="finding-title" style="color:#fbbf24">⚠️ 상태: 가설 (2026-06-29 Claude 분석) — 실험자 미검증</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9;color:#fde68a">
+      아래 내용은 코드 분석 + 세션 데이터에서 도출한 <strong>가설</strong>입니다. 실제 인과 여부는 실험자가 검토해주세요.
     </div>
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:24px">
-    <div class="finding-title" style="color:#7dd3fc">55-2. 비전 모델 & 어댑터 튜닝 기법별 정량 어블레이션 (TBD)</div>
+    <div class="finding-title" style="color:#7dd3fc">57-1. 관측 사실 (데이터 확인)</div>
     <div class="finding-body">
-      비전 타워 4종(CLIP, Kosmos-2, OWL-v2, Florence-2) 및 튜닝 기법(Zero-shot, Linear Probe, MLP, LoRA 5 seeds)에 대한 V5 데이터셋 검증 결과입니다:
-      <div style="overflow-x:auto;margin-top:10px">
+      <strong>6/26 세션 39개 전수 조사 결과:</strong>
+      <ul style="margin:10px 0 0 18px;line-height:2">
+        <li>Frame 0: 전부 <code>[0.5, 0.6, 0, 0]</code> (has_bbox=False, latency=0ms) — 그라운딩 미검출</li>
+        <li>Frame 1+: 36/36 has_bbox=True, latency 1,333~1,476ms (안정)</li>
+        <li>예외 2개 세션: frame 1 latency &gt; 20,000ms (콜드스타트 충격 전이)</li>
+      </ul>
+      <strong style="color:#f87171;margin-top:12px;display:block">LEFT 오예측 4개 세션 (cx&gt;0.5인데 LEFT 출력):</strong>
+      <div style="overflow-x:auto;margin-top:8px">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
           <thead>
             <tr style="border-bottom:1px solid #334155">
-              <th style="padding:6px;text-align:left;color:#7dd3fc">비전 모델</th>
-              <th style="padding:6px;color:#7dd3fc">Zero-Shot</th>
-              <th style="padding:6px;color:#7dd3fc">Linear Probe (LP)</th>
-              <th style="padding:6px;color:#7dd3fc">MLP Probe</th>
-              <th style="padding:6px;color:#7dd3fc">LoRA (5 seeds 평균)</th>
+              <th style="padding:6px;text-align:left;color:#7dd3fc">세션</th>
+              <th style="padding:6px;color:#7dd3fc">frame</th>
+              <th style="padding:6px;color:#7dd3fc">cx</th>
+              <th style="padding:6px;color:#7dd3fc">has_bbox</th>
+              <th style="padding:6px;color:#7dd3fc">latency</th>
+              <th style="padding:6px;color:#f87171">액션</th>
             </tr>
           </thead>
           <tbody>
             <tr style="border-bottom:1px solid #1e293b">
-              <td style="padding:6px;font-weight:700">CLIP (ViT-L)</td>
-              <td style="padding:6px;text-align:center">80.0% / 0.157m</td>
-              <td style="padding:6px;text-align:center">73.6% / 0.081m</td>
-              <td style="padding:6px;text-align:center">67.9% / 0.346m</td>
-              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">83.6% / 0.032m</td>
+              <td rowspan="2" style="padding:6px;font-weight:700">142109</td>
+              <td style="padding:6px;text-align:center">0</td>
+              <td style="padding:6px;text-align:center">0.500</td>
+              <td style="padding:6px;text-align:center;color:#f87171">❌</td>
+              <td style="padding:6px;text-align:center">0ms</td>
+              <td style="padding:6px;text-align:center">STOP</td>
+            </tr>
+            <tr style="border-bottom:1px solid #334155">
+              <td style="padding:6px;text-align:center">1</td>
+              <td style="padding:6px;text-align:center;color:#4ade80">0.514</td>
+              <td style="padding:6px;text-align:center;color:#4ade80">✅</td>
+              <td style="padding:6px;text-align:center">1,434ms</td>
+              <td style="padding:6px;text-align:center;color:#f87171"><strong>LEFT</strong></td>
             </tr>
             <tr style="border-bottom:1px solid #1e293b">
-              <td style="padding:6px;font-weight:700">Kosmos-2</td>
-              <td style="padding:6px;text-align:center">67.9% / 0.169m</td>
-              <td style="padding:6px;text-align:center">62.9% / 0.119m</td>
-              <td style="padding:6px;text-align:center">80.7% / 0.201m</td>
-              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">77.1% / 0.042m</td>
+              <td rowspan="2" style="padding:6px;font-weight:700">143011</td>
+              <td style="padding:6px;text-align:center">0</td>
+              <td style="padding:6px;text-align:center">0.500</td>
+              <td style="padding:6px;text-align:center;color:#f87171">❌</td>
+              <td style="padding:6px;text-align:center">0ms</td>
+              <td style="padding:6px;text-align:center">STOP</td>
+            </tr>
+            <tr style="border-bottom:1px solid #334155">
+              <td style="padding:6px;text-align:center">1</td>
+              <td style="padding:6px;text-align:center;color:#4ade80">0.602</td>
+              <td style="padding:6px;text-align:center;color:#4ade80">✅</td>
+              <td style="padding:6px;text-align:center">1,424ms</td>
+              <td style="padding:6px;text-align:center;color:#f87171"><strong>LEFT</strong></td>
             </tr>
             <tr style="border-bottom:1px solid #1e293b">
-              <td style="padding:6px;font-weight:700">OWL-v2</td>
-              <td style="padding:6px;text-align:center">76.0% / 0.016m</td>
-              <td style="padding:6px;text-align:center">59.3% / 0.154m</td>
-              <td style="padding:6px;text-align:center">80.7% / 0.359m</td>
-              <td style="padding:6px;text-align:center;color:#e2e8f0">연산 진행 중 (TBD)</td>
+              <td rowspan="2" style="padding:6px;font-weight:700">143058</td>
+              <td style="padding:6px;text-align:center">0</td>
+              <td style="padding:6px;text-align:center">0.500</td>
+              <td style="padding:6px;text-align:center;color:#f87171">❌</td>
+              <td style="padding:6px;text-align:center">0ms</td>
+              <td style="padding:6px;text-align:center">STOP</td>
             </tr>
-            <tr>
-              <td style="padding:6px;font-weight:700">Florence-2</td>
-              <td style="padding:6px;text-align:center">65.7% / 0.148m</td>
-              <td style="padding:6px;text-align:center">63.6% / 0.118m</td>
-              <td style="padding:6px;text-align:center">57.1% / 0.282m</td>
-              <td style="padding:6px;text-align:center;color:#94a3b8">N/A</td>
+            <tr style="border-bottom:1px solid #334155">
+              <td style="padding:6px;text-align:center">1</td>
+              <td style="padding:6px;text-align:center;color:#4ade80">0.592</td>
+              <td style="padding:6px;text-align:center;color:#4ade80">✅</td>
+              <td style="padding:6px;text-align:center">1,428ms</td>
+              <td style="padding:6px;text-align:center;color:#f87171"><strong>LEFT</strong></td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div style="margin-top:10px;font-size:0.85rem">
-        지표 포맷: <code>방향 정확도(%) / BBox CX MAE</code> (상세 레이어 튜닝 어블레이션도 백그라운드 구동 완료되는 대로 종합 보고서 및 Hub에 추가 반영 예정)
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c1a0c,#0a1a12);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">57-2. 제안 메커니즘 (가설) — Window 패딩 오염</div>
+    <div class="finding-body">
+      <code>_build_flat_feature</code> 코드에서 history가 window(=8)보다 짧으면 가장 오래된 프레임으로 패딩:
+      <pre style="background:#0a0f1a;padding:12px;border-radius:6px;margin:10px 0;font-size:0.8rem;overflow-x:auto">idx = max(0, len(self.history) - 1 - (window - 1 - k))</pre>
+      <strong>Frame 1 시점 모델 입력 (window=8, history=[f0, f1]):</strong>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:10px 0;font-size:0.75rem;text-align:center">
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:4px">[0]<br><span style="color:#f87171">f0<br>cx=0.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:4px">[1]<br><span style="color:#f87171">f0<br>cx=0.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:4px">[2]<br><span style="color:#f87171">f0<br>cx=0.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:4px">[3]<br><span style="color:#f87171">f0<br>cx=0.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:4px">[4]<br><span style="color:#f87171">f0<br>cx=0.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:4px">[5]<br><span style="color:#f87171">f0<br>cx=0.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:4px">[6]<br><span style="color:#f87171">f0<br>cx=0.5<br>has=F</span></div>
+        <div style="background:#0a2a1a;border:1px solid #166534;border-radius:4px;padding:4px">[7]<br><span style="color:#4ade80">f1<br>cx=0.6<br>has=T</span></div>
+      </div>
+      7/8 슬롯이 <code>has_bbox=False, cx=0.5</code>로 채워짐 → 모델이 "바스켓 미발견" 상태로 인식 → LEFT 출력 추정
+      <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,0.08);border:1px solid #78350f;border-radius:6px;font-size:0.85rem;color:#fde68a">
+        <strong>⚠️ 미검증:</strong> 이 패딩이 실제로 LEFT를 유발하는지, 아니면 다른 원인(모델 자체 편향, 학습 분포 편향 등)이 있는지는 추가 실험 필요. 예: frame 0 그라운딩을 강제로 성공시킨 후 frame 1 액션 비교.
       </div>
     </div>
   </div>
 
-  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
-    2026-06-29 &nbsp;|&nbsp; 관련: <code>scripts/ablate_preview_ft_v2.py</code>, <code>docs/v5/ablate_preview_ft_v2.json</code>
-  </div>
-</div>
-
-<hr class="chapter-divider">
-<div class="chapter" id="ch56">
-  <div class="chapter-header">
-    <span class="chapter-num">CH 56</span>
-    <h2 class="chapter-title">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</h2>
-    <p class="chapter-subtitle">Google-robot post-trained 백본의 구조적 Text Attention 붕괴(0%)를 회피하여, 순수 백본 기반 튜닝으로 E2E VLA 복구 유효성 검증</p>
-  </div>
-
-  <div class="finding-card" style="background:linear-gradient(135deg,#0c2040,#0a1a2e);border-color:#1e4060;margin-bottom:24px">
-    <div class="finding-title" style="color:#38bdf8">56-1. 학습 사양 및 정량 성과</div>
-    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
-      <ul style="margin:0 0 0 18px">
-        <li><strong>훈련 데이터셋</strong>: V5 Trajectory 140개 에피소드</li>
-        <li><strong>학습 에폭</strong>: 20 epochs</li>
-        <li><strong>우회 패치 적용</strong>: PEFT (LoRA) 래핑 시 vision model of image projection embeds 수동 추출 매핑을 통해 backbone gradient 유실 방지.</li>
-        <li><strong>최종 검증 정확도 (Val Acc)</strong>: <strong style="color:#4ade80;font-size:1.05rem">78.6%</strong></li>
-      </ul>
-      순수 VLM 백본 기반 파인튜닝이 텍스트-액션 통합 경로(Text Pathway)의 구조적 복구에 실제로 기여할 수 있음을 실증했습니다.
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a0c1a,#080a18);border-color:#312e81;margin-bottom:24px">
+    <div class="finding-title" style="color:#a78bfa">57-3. Stage 0 워밍업과의 관계</div>
+    <div class="finding-body">
+      CH54 Stage 0 워밍업 (서버 시작 시 더미 PG2 호출)은 frame 0 콜드스타트를 소진하여 frame 0부터 has_bbox=True 가 되도록 설계됨.<br>
+      <br>
+      만약 가설이 맞다면: Stage 0 워밍업 → frame 0 그라운딩 성공 → window 패딩이 올바른 cx로 채워짐 → frame 1 LEFT 오예측 방지.<br>
+      <br>
+      <strong>검증 방법 제안:</strong> Stage 0 워밍업 적용 전/후 세션에서 frame 1 LEFT 발생률 비교.
     </div>
   </div>
 
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
-    2026-06-28 &nbsp;|&nbsp; 관련: <code>scripts/train_exp63_e2e_kosmos.py</code>, <code>runs/v5_nav/e2e/exp63</code>
+    2026-06-29 &nbsp;|&nbsp; 분석: Claude (가설) &nbsp;|&nbsp; 검토 대기 중
   </div>
 </div>
 

@@ -49,6 +49,7 @@
     <a href="#section-h" style="padding:6px 14px;background:#1e0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#d8b4fe;text-decoration:none">&sect;H Detector 비교(GDINO/YOLO-World)</a>
     <a href="#section-i" style="padding:6px 14px;background:#1a0a0a;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;I STOP 로직 ★NEW</a>sect;I STOP 로직</a>
     <a href="#section-j" style="padding:6px 14px;background:#1a0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">&sect;J Perception Ablation ★NEW</a>
+    <a href="#section-k" style="padding:6px 14px;background:#1a0a00;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;K Frame0 Cold-Start 분석 ★가설</a>
     <a href="today_visual_summary.html" style="padding:6px 14px;background:#0a1628;border:1px solid #7dd3fc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">📷 오늘 한눈에 보기(사진)</a>
     <a href="hidden_state_hub.html" style="padding:6px 14px;background:#0a1628;border:1px solid #86efac;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">🧠 Hidden State Hub</a>
     <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
@@ -1178,5 +1179,69 @@ async function loadAblationTables() {
 }
 loadAblationTables();
 </script>
+
+<!-- §K: Frame 0 Cold-Start 분석 (CH57) -->
+<div id="section-k" style="margin-top:48px">
+  <h2><span class="badge" style="background:#f59e0b;color:#0a0f1a">K</span> Frame 0 Cold-Start → Window 오염 가설 <span style="font-size:0.7rem;background:#78350f;color:#fde68a;padding:2px 8px;border-radius:4px;margin-left:8px">⚠️ 가설 — 미검증</span></h2>
+
+  <div class="card" style="border-color:#92400e;background:linear-gradient(135deg,#1a0a00,#1f1000);margin-bottom:16px">
+    <div style="color:#fde68a;font-size:0.85rem;line-height:1.8">
+      <strong style="color:#fbbf24">분석 출처:</strong> 2026-06-29 Claude 코드+데이터 분석. 실험자 검증 전 가설임.
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#7dd3fc;margin:0 0 12px 0">K-1. 관측 사실 (6/26 세션 39개)</h3>
+    <table>
+      <thead><tr>
+        <th style="text-align:left">항목</th>
+        <th>수치</th>
+        <th>근거</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Frame 0 has_bbox=True</td><td style="color:#f87171;font-weight:700">0 / 39 (0%)</td><td>전 세션 <code>[0.5,0.6,0,0]</code> 디폴트</td></tr>
+        <tr><td>Frame 0 latency</td><td style="color:#94a3b8">0ms (전 세션)</td><td>PG2 미호출 또는 결과 미기록</td></tr>
+        <tr><td>Frame 1+ has_bbox=True</td><td style="color:#4ade80;font-weight:700">36 / 36 (100%)</td><td>정상 그라운딩</td></tr>
+        <tr><td>Frame 1 avg latency</td><td style="color:#7dd3fc">~1,440ms</td><td>warm PG2 안정 구간</td></tr>
+        <tr><td>Frame 1 latency 이상치</td><td style="color:#fbbf24">2개 세션 &gt;20,000ms</td><td>콜드스타트 충격 전이 추정</td></tr>
+        <tr><td>cx&gt;0.5인데 LEFT 출력</td><td style="color:#f87171;font-weight:700">4개 세션 frame1</td><td>142109 / 142941 / 143011 / 143058</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#86efac;margin:0 0 12px 0">K-2. 제안 메커니즘</h3>
+    <div style="font-size:0.88rem;line-height:1.9;color:#cbd5e1">
+      <strong>코드 근거</strong> — <code>_build_flat_feature</code> (stage2_v2_inference_server.py):
+      <pre style="background:#0a0f1a;padding:12px;border-radius:6px;margin:8px 0;font-size:0.8rem;overflow-x:auto">idx = max(0, len(self.history) - 1 - (window - 1 - k))
+# history 길이=2 (f0,f1), window=8 → k=0~6: 모두 history[0]=f0 반복</pre>
+      Frame 1 예측 시 모델이 받는 window(8프레임) 구성:
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:8px 0;font-size:0.72rem;text-align:center">
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[0]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[1]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[2]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[3]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[4]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[5]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:4px;padding:3px">[6]f0<br><span style="color:#f87171">cx=.5<br>has=F</span></div>
+        <div style="background:#0a2a1a;border:1px solid #166534;border-radius:4px;padding:3px">[7]f1<br><span style="color:#4ade80">cx=.6<br>has=T</span></div>
+      </div>
+      → 7/8이 "미검출 디폴트" → 모델이 바스켓 미발견 상태로 판단 → LEFT 출력 추정
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#1e3a5f;margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">K-3. 검증 방법 & Stage 0 연결</h3>
+    <ul style="font-size:0.88rem;line-height:2;color:#cbd5e1;margin:0 0 0 18px">
+      <li><strong>검증:</strong> Stage 0 워밍업 적용 전/후 세션의 frame 1 LEFT 발생률 비교</li>
+      <li><strong>예측:</strong> 워밍업 후 frame 0 has_bbox=True → window[0~6] 올바른 cx → LEFT 0건</li>
+      <li><strong>대안 가설:</strong> 모델 자체 편향 (학습 분포에서 세션 초반 LEFT가 많은 경우) — 독립 실험 필요</li>
+    </ul>
+    <div style="margin-top:10px;font-size:0.82rem;color:#64748b">
+      관련: <code>research_story.html#ch57</code> &nbsp;|&nbsp; <code>research_story.html#ch54</code> (Stage 0 워밍업)
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
