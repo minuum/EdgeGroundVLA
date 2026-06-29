@@ -503,6 +503,7 @@ class Stage2V2Model:
         self._preview_max_retry   = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
         _rot_dir                  = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
         self._preview_fallback_rot = 7 if _rot_dir != "L" else 6  # ROT_R=7, ROT_L=6
+        self._preview_attempt = 0  # 세션당 프리뷰 재시도 횟수 (reset()으로 초기화)
         if self._preview_enabled:
             logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s",
                         self._preview_area_thresh, self._preview_max_retry,
