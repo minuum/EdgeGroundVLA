@@ -35,8 +35,8 @@ for sp in sorted(SESSIONS_DIR.glob("session_20260626*.h5")):
         if "observations" not in f: continue
         raw = f["observations"]["images"][0]
         TARGET_SESSIONS.append((sp, cx, raw))
-        if len(TARGET_SESSIONS) >= 8:
-            break
+        # 8개 제한 없이 전체 매칭 세션 수집
+
 
 print(f"대표 프레임 {len(TARGET_SESSIONS)}개 선택")
 
