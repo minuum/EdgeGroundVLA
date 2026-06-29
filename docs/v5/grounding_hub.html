@@ -985,9 +985,9 @@
 
           const imgWrapper = document.createElement('div');
           imgWrapper.style.position = 'relative';
-          imgWrapper.style.flex = '0 0 66.67%'; // 현재 너비의 2/3
-          imgWrapper.style.width = '66.67%';
-          imgWrapper.style.minWidth = '280px'; // 모바일 가독성 최소폭 확보
+          imgWrapper.style.flex = '0 0 133.33%'; // 현재 크기(2/3)의 2배인 133.33%로 확대
+          imgWrapper.style.width = '133.33%';
+          imgWrapper.style.minWidth = '400px'; // 모바일/데스크톱 가독성 최소폭 확대
 
           const img = document.createElement('img');
           img.src = src;
@@ -996,6 +996,7 @@
           img.style.border = '1px solid #1e3a5f';
           img.style.display = 'block';
           img.loading = 'lazy';
+
 
           const label = document.createElement('div');
           label.style.position = 'absolute';
