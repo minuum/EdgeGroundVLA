@@ -1167,6 +1167,7 @@ def set_running(running: bool, backend_mode: str, api_url: str, instruction: str
                 _rq_pw.post(
                     f"{api_url}/ground",
                     json={"image": _b64_pw_str, "prompt": f"detect {_phrase_pw}"},
+                    headers={"X-API-Key": API_KEY},
                     timeout=12,
                 )
         except Exception:
