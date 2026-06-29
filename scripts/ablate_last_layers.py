@@ -18,7 +18,7 @@ Usage:
   .venv/bin/python3 -u scripts/ablate_last_layers.py --models clip kosmos --layers 1 2 4
 """
 
-import argparse, io, json, random, time
+import argparse, gc, io, json, random, time
 from pathlib import Path
 
 import h5py
@@ -127,7 +127,7 @@ def _pr(tag, rv5, rss=None):
 def run_last_layers(fresh_vm_fn, feat_fn, feat_dim, n_unfreeze_blocks, get_blocks_fn,
                     pvs, frames, splits, sess_pvs, sess_frames, label):
     """
-    fresh_vm_fn()  → 새 vision model (frozen)
+    fresh_vm_fn()  → 새 vision model (frozen, loaded once, state_dict reset per seed)
     feat_fn(vm, pv) → [B, feat_dim]
     get_blocks_fn(vm) → list of nn.Module (transformer blocks)
     n_unfreeze_blocks: 마지막 N개 블록만 unfreeze
@@ -135,9 +135,14 @@ def run_last_layers(fresh_vm_fn, feat_fn, feat_dim, n_unfreeze_blocks, get_block
     tag = f"{label} ft_last{n_unfreeze_blocks}"
     print(f"  [{tag}] EPOCHS={EPOCHS} LR={LR} WD={WD} batch={BATCH}...")
 
+    vm = fresh_vm_fn().to(DEVICE)
+    # 초기 가중치 CPU 백업
+    init_sd = {k: v.cpu().clone() for k, v in vm.state_dict().items()}
+
     v5_res, ss_res = [], []
     for s_i, (tr_idx, va_idx) in enumerate(splits):
-        vm   = fresh_vm_fn().to(DEVICE)
+        if s_i > 0:
+            vm.load_state_dict(init_sd)
 
         # 전체 frozen
         for p in vm.parameters(): p.requires_grad_(False)
@@ -189,7 +194,9 @@ def run_last_layers(fresh_vm_fn, feat_fn, feat_dim, n_unfreeze_blocks, get_block
         if sess_frames and sess_pvs:
             ss_res.append(eval_preds(_inf(sess_pvs), sess_frames))
         print(f"    seed {s_i+1}/{N_SEEDS} v5_dir={v5_res[-1]['dir_bin']:.1%}")
-        del vm; import gc; gc.collect(); torch.cuda.empty_cache()
+        del head, opt; gc.collect(); torch.cuda.empty_cache()
+        
+    del vm; gc.collect(); torch.cuda.empty_cache()
 
     return _agg(v5_res), _agg(ss_res) if ss_res else None
 
