@@ -1153,6 +1153,24 @@ def set_running(running: bool, backend_mode: str, api_url: str, instruction: str
             make_backend(backend_mode, api_url).reset(instruction)
         except Exception:
             pass
+        # 그라운딩 캐시 프리워밍 — START 버튼 시점에 현재 프레임으로 /ground 선호출
+        # 이를 통해 첫 /predict에서 cached=1이 되어 frame0 STOP 제거
+        try:
+            import requests as _rq_pw, base64 as _b64_pw, io as _io_pw
+            _img_pw = state.get("last_img")
+            if _img_pw is not None:
+                _pil_pw = Image.fromarray(_img_pw) if isinstance(_img_pw, np.ndarray) else _img_pw
+                _buf_pw = _io_pw.BytesIO()
+                _pil_pw.save(_buf_pw, format="JPEG", quality=85)
+                _b64_pw_str = _b64_pw.b64encode(_buf_pw.getvalue()).decode()
+                _phrase_pw = gt_object if gt_object else "gray basket"
+                _rq_pw.post(
+                    f"{api_url}/ground",
+                    json={"image": _b64_pw_str, "prompt": f"detect {_phrase_pw}"},
+                    timeout=12,
+                )
+        except Exception:
+            pass
         if state.get("infer_move_mode") == "ASYNC":
             if logger_instance:
                 logger_instance.start_session("async", instruction, instruction_mode=backend_mode)
@@ -2678,10 +2696,10 @@ with gr.Blocks(
             # FPE 프리셋 빠른 입력
             with gr.Row():
               _fpe_b = [gr.Button(v, size="sm", scale=1) for v in ["0.0","0.3","0.5","0.8","1.0","1.5","2.0","3.0"]]
-            btn_log_episode   = gr.Button("📝 기록", variant="primary",   size="lg")
+            btn_log_episode   = gr.Button("📝 에피소드 기록 추가", variant="primary",   size="lg")
             with gr.Row():
-              btn_undo_episode  = gr.Button("↩ 삭제",  variant="secondary", scale=1, size="lg")
-              btn_clear_episode = gr.Button("🗑 초기화", variant="stop",     scale=1, size="lg")
+              btn_undo_episode  = gr.Button("↩ 마지막 기록 취소 (1건 삭제)",  variant="secondary", scale=1, size="lg")
+              btn_clear_episode = gr.Button("🗑 전체 기록 영구 삭제", variant="stop",     scale=1, size="lg")
             with gr.Row():
               btn_refresh_log    = gr.Button("🔄 CSV복원", scale=1, size="sm")
               btn_export_test    = gr.Button("💾 CSV저장", scale=1, size="sm")
@@ -3566,6 +3584,14 @@ with gr.Blocks(
         fn=clear_episodes,
         inputs=[_episode_log_state],
         outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+        js="""
+        (log_list) => {
+            if (!confirm("⚠️ 정말로 모든 에피소드 기록(CSV 파일)을 영구 삭제하시겠습니까?\\n이 작업은 되돌릴 수 없으며 복구가 불가능합니다.")) {
+                throw new Error("사용자가 초기화 작업을 취소했습니다.");
+            }
+            return log_list;
+        }
+        """
     )
 
     # 페이지 열릴 때 과거 기록 복원

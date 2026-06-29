@@ -40,7 +40,7 @@ def _ds_root(ds_name: str) -> Path:
     """ds_name → 실제 디렉터리 경로."""
     if ds_name == _INFER_DS_KEY:
         return _INFER_H5_DIR
-    return _ds_root(ds_name)
+    return _ROS_ROOT / ds_name
 
 CLASS_NAMES = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
 CLASS_SYM   = {0:"●", 1:"▲", 2:"◀", 3:"▶", 4:"↖", 5:"↗", 6:"↺", 7:"↻"}

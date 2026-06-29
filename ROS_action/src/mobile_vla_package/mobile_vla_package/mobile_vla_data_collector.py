@@ -48,8 +48,8 @@ class MobileVLADataCollector(Node):
             'e': {"linear_x": 1.15, "linear_y": -1.15, "angular_z": 0.0},
             'z': {"linear_x": -1.15, "linear_y": 1.15, "angular_z": 0.0},
             'c': {"linear_x": -1.15, "linear_y": -1.15, "angular_z": 0.0},
-            'r': {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 1.15},
-            't': {"linear_x": 0.0, "linear_y": 0.0, "angular_z": -1.15},
+            'r': {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.25},
+            't': {"linear_x": 0.0, "linear_y": 0.0, "angular_z": -0.25},
             ' ': {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0}
         }
         self.STOP_ACTION = {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0}
