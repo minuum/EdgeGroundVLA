@@ -91,13 +91,18 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
 # 미매칭 시 bbox cx 위치에서 자동 추론 (right_right / left_left / center_straight).
 DEFAULT_INSTRUCTION = "the gray basket"
 PATH_TYPES = [
+    # ── 경로 검증 (시작위치_목표방향) ────────────────────────────────
     "right_right", "right_left", "right_straight",
     "center_straight", "center_left", "center_right",
     "left_straight", "left_left", "left_right",
+    # ── 교수님 프로토콜: 오브젝트 위치별 (각 30회) ───────────────────
+    "obj_left", "obj_center", "obj_right",
+    # ── 교수님 프로토콜: 박스 거리별 (각 10회) ───────────────────────
+    "dist_10cm", "dist_20cm", "dist_30cm",
 ]
-# 경로별 목표 에피소드 수 — 합계 11, 성공 목표 7
-# right_right·right_left 는 교차 경로(난이도↑)라 2회씩 검증
+# 경로별 목표 에피소드 수
 PATH_TARGETS = {
+    # 경로 검증 — 합계 11, 성공 목표 7
     "right_right":    2,
     "right_left":     2,   # ★ 최우선 — 가장 어려운 교차
     "right_straight": 1,
@@ -107,8 +112,27 @@ PATH_TARGETS = {
     "left_straight":  1,
     "left_left":      1,
     "left_right":     1,
-}  # sum = 11
-GOAL_SUCCESS_TARGET = 7  # 논문 기준
+    # 오브젝트 위치별 — 합계 90
+    "obj_left":   30,
+    "obj_center": 30,
+    "obj_right":  30,
+    # 박스 거리별 — 합계 30
+    "dist_10cm":  10,
+    "dist_20cm":  10,
+    "dist_30cm":  10,
+}
+GOAL_SUCCESS_TARGET = 7  # 논문 기준 (경로 검증)
+# 그룹 구분선 — 집계 테이블 렌더링 시 섹션 헤더 삽입
+_PATH_GROUPS = [
+    ("── 경로 검증 ──────────────",
+     ["right_right","right_left","right_straight",
+      "center_straight","center_left","center_right",
+      "left_straight","left_left","left_right"]),
+    ("── 오브젝트 위치별 ──────────",
+     ["obj_left","obj_center","obj_right"]),
+    ("── 박스 거리별 ──────────────",
+     ["dist_10cm","dist_20cm","dist_30cm"]),
+]
 GOAL_NAV_PRESETS = [
     "the gray basket",
     "the door",
@@ -2630,21 +2654,32 @@ with gr.Blocks(
           def _build_summary_early(log_list):
               done_total = {k: 0 for k in PATH_TYPES}
               done_succ  = {k: 0 for k in PATH_TYPES}
-              success_count = 0
+              nav_succ = 0
               for r in log_list:
-                  pt = str(r[1]).replace(" ★", "").replace("★", "")
+                  pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
                   done_total[pt] = done_total.get(pt, 0) + 1
                   if r[2] == "성공":
                       done_succ[pt] = done_succ.get(pt, 0) + 1
-                      success_count += 1
-              total = len(log_list)
-              total_target = sum(PATH_TARGETS.values())
-              prog = f"{total}/{total_target}ep  성공 {success_count}/{GOAL_SUCCESS_TARGET}"
-              tbl  = [[pt + (" ★" if pt == "right_left" else ""),
-                       PATH_TARGETS.get(pt, 1),
-                       done_total.get(pt, 0),
-                       done_succ.get(pt, 0)]
-                      for pt in PATH_TYPES]
+                      if pt in PATH_TARGETS and not pt.startswith(("obj_", "dist_")):
+                          nav_succ += 1
+              nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS
+                              if not k.startswith(("obj_", "dist_")))
+              obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
+              obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
+              dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
+              dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
+              prog = (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_')))}/{nav_total}"
+                      f"  성공 {nav_succ}/{GOAL_SUCCESS_TARGET}"
+                      f"  |  위치별 {obj_done}/90 ({obj_succ}성공)"
+                      f"  |  거리별 {dist_done}/30 ({dist_succ}성공)")
+              tbl = []
+              for header, keys in _PATH_GROUPS:
+                  tbl.append([header, "", "", ""])
+                  for pt in keys:
+                      tbl.append([pt + (" ★" if pt == "right_left" else ""),
+                                  PATH_TARGETS.get(pt, 1),
+                                  done_total.get(pt, 0),
+                                  done_succ.get(pt, 0)])
               return prog, tbl
 
           _preloaded_rows_early = _preload_episode_csv_early()
@@ -2668,11 +2703,11 @@ with gr.Blocks(
                 interactive=False, max_lines=1, elem_id="t4-progress",
             )
             path_summary_table = gr.Dataframe(
-                headers=["경로", "목표", "완료", "✓"],
-                datatype=["str","number","number","number"],
+                headers=["경로/테스트", "목표", "완료", "✓"],
+                datatype=["str","str","str","str"],
                 value=_preloaded_tbl,
-                label="경로별 집계 (경로명=시작위치_목표방향 레이블 — 실제 이동경로와 다를 수 있음)",
-                row_count=9, col_count=4, interactive=False,
+                label="집계 (경로검증 | 오브젝트위치별 | 박스거리별)",
+                row_count=18, col_count=4, interactive=False,
             )
             with gr.Accordion("📋 프롬프트 전문 보기", open=False):
               with gr.Row():
@@ -2689,7 +2724,7 @@ with gr.Blocks(
                   "실제 이동경로는 오브젝트 위치·카메라 시점·모델 학습 상태에 따라 달라집니다.</small>"
               )
             with gr.Row():
-              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="right_left", label="경로 레이블 (시작_목표)", scale=3)
+              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="obj_center", label="테스트 레이블", scale=3)
               success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=2)
             with gr.Row():
               fpe_test  = gr.Number(minimum=0.0, maximum=9.9, step=0.05, value=0.0, label="FPE (m)", precision=2, scale=2)
@@ -3331,26 +3366,35 @@ with gr.Blocks(
             w.writerows(rows)
 
     def _build_summary(log_list):
-        """log_list → (prog_str, path_summary_rows 9×4). 공통 로직."""
+        """log_list → (prog_str, path_summary_rows with group headers). 공통 로직."""
         done_total = {k: 0 for k in PATH_TYPES}
         done_succ  = {k: 0 for k in PATH_TYPES}
-        success_count = 0
+        nav_succ = 0
         for r in log_list:
-            pt = str(r[1]).replace(" ★", "").replace("★", "")
+            pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
             done_total[pt] = done_total.get(pt, 0) + 1
             if r[2] == "성공":
-                done_succ[pt]  = done_succ.get(pt, 0) + 1
-                success_count += 1
-        total = len(log_list)
-        total_target = sum(PATH_TARGETS.values())
-        prog  = f"{total}/{total_target}ep  성공 {success_count}/{GOAL_SUCCESS_TARGET}"
-        tbl = [
-            [pt + (" ★" if pt == "right_left" else ""),
-             PATH_TARGETS.get(pt, 1),
-             done_total.get(pt, 0),
-             done_succ.get(pt, 0)]
-            for pt in PATH_TYPES
-        ]
+                done_succ[pt] = done_succ.get(pt, 0) + 1
+                if not pt.startswith(("obj_", "dist_")):
+                    nav_succ += 1
+        nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS
+                        if not k.startswith(("obj_", "dist_")))
+        obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
+        obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
+        dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
+        dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
+        prog = (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_')))}/{nav_total}"
+                f"  성공 {nav_succ}/{GOAL_SUCCESS_TARGET}"
+                f"  |  위치별 {obj_done}/90 ({obj_succ}성공)"
+                f"  |  거리별 {dist_done}/30 ({dist_succ}성공)")
+        tbl = []
+        for header, keys in _PATH_GROUPS:
+            tbl.append([header, "", "", ""])
+            for pt in keys:
+                tbl.append([pt + (" ★" if pt == "right_left" else ""),
+                             PATH_TARGETS.get(pt, 1),
+                             done_total.get(pt, 0),
+                             done_succ.get(pt, 0)])
         return prog, tbl
 
     def _init_episode_log():
