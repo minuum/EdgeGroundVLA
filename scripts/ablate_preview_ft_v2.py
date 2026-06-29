@@ -12,7 +12,7 @@ Usage:
   .venv/bin/python3 -u scripts/ablate_preview_ft_v2.py --models kosmos --methods zs lp_patch lora
 """
 
-import argparse, gc, io, json, random, time
+import argparse, copy, gc, io, json, random, time
 from pathlib import Path
 
 import h5py
@@ -169,21 +169,14 @@ def run_probe(feats, frames, splits, sess_frames, sess_feats, hidden=None):
 def run_lora_batched(fresh_vm_fn, feat_fn, feat_dim,
                      pvs, frames, splits, sess_pvs, sess_frames, label):
     """
-    fresh_vm_fn() → LoRA-wrapped vision model (loaded once, state_dict reset each seed).
+    fresh_vm_fn() → LoRA-wrapped vision model (loaded fresh each seed).
     feat_fn(vm, pv_batch) → [B, feat_dim] float tensor.
     pvs: list of [1, C, H, W] CPU tensors.
     """
     print(f"  [{label} lora] LoRA batch={LORA_BATCH}×{EPOCHS}ep×{N_SEEDS}seeds...")
-    
-    vm = fresh_vm_fn().to(DEVICE)
-    # 초기 가중치 CPU 백업
-    init_sd = {k: v.cpu().clone() for k, v in vm.state_dict().items()}
-    
     v5_res, ss_res = [], []
     for s_i, (tr_idx, va_idx) in enumerate(splits):
-        if s_i > 0:
-            vm.load_state_dict(init_sd)
-            
+        vm   = fresh_vm_fn()
         head = nn.Linear(feat_dim, 1).to(DEVICE)
         opt  = torch.optim.Adam(list(vm.parameters()) + list(head.parameters()), lr=LORA_LR)
         tr_pv = [pvs[i] for i in tr_idx]
@@ -213,9 +206,8 @@ def run_lora_batched(fresh_vm_fn, feat_fn, feat_dim,
         v5_res.append(eval_preds(_inf(va_pv), [frames[i] for i in va_idx]))
         if sess_frames and sess_pvs: ss_res.append(eval_preds(_inf(sess_pvs), sess_frames))
         print(f"    seed {s_i+1}/{N_SEEDS} v5_dir={v5_res[-1]['dir_bin']:.1%}")
-        del head, opt; gc.collect(); torch.cuda.empty_cache()
-        
-    del vm; gc.collect(); torch.cuda.empty_cache()
+        del vm, head, opt; gc.collect(); torch.cuda.empty_cache()
+
     return _agg(v5_res), _agg(ss_res) if ss_res else None
 
 
@@ -286,9 +278,10 @@ def run_clip(frames, splits, sess_frames, methods):
 
     if "lora" in methods:
         from peft import get_peft_model, LoraConfig
+        base_vm = model.vision_model.cpu()
         def fresh():
-            vm = CLIPModel.from_pretrained("openai/clip-vit-large-patch14").vision_model
-            return get_peft_model(vm, LoraConfig(r=LORA_RANK, lora_alpha=16,
+            vm_copy = copy.deepcopy(base_vm).to(DEVICE)
+            return get_peft_model(vm_copy, LoraConfig(r=LORA_RANK, lora_alpha=16,
                     target_modules=["q_proj","v_proj"], lora_dropout=0.05, bias="none"))
         def feat_fn(vm, pv): return vm(pixel_values=pv).last_hidden_state[:,1:,:].mean(1).float()
         rv5, rss = run_lora_batched(fresh, feat_fn, 1024, pvs_v5, frames, splits, sess_pvs, sess_frames, "CLIP")
@@ -367,9 +360,10 @@ def run_kosmos(frames, splits, sess_frames, methods):
     if "lora" in methods:
         from peft import get_peft_model, LoraConfig
         feat_dim = patch_f.shape[1]
+        base_vm = model.vision_model.cpu()
         def fresh():
-            vm = AutoModelForVision2Seq.from_pretrained(str(LOCAL)).vision_model
-            return get_peft_model(vm, LoraConfig(r=LORA_RANK, lora_alpha=16,
+            vm_copy = copy.deepcopy(base_vm).to(DEVICE)
+            return get_peft_model(vm_copy, LoraConfig(r=LORA_RANK, lora_alpha=16,
                     target_modules=["q_proj","v_proj"], lora_dropout=0.05, bias="none"))
         def feat_fn(vm, pv): return vm(pixel_values=pv).last_hidden_state[:,1:,:].mean(1).float()
         rv5, rss = run_lora_batched(fresh, feat_fn, feat_dim, pvs_v5, frames, splits, sess_pvs, sess_frames, "Kosmos-2")
@@ -443,9 +437,10 @@ def run_owlv2(frames, splits, sess_frames, methods):
     if "lora" in methods:
         from peft import get_peft_model, LoraConfig
         feat_dim = patch_f.shape[1]
+        base_vm = model.owlv2.vision_model.cpu()
         def fresh():
-            vm = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble").owlv2.vision_model
-            return get_peft_model(vm, LoraConfig(r=LORA_RANK, lora_alpha=16,
+            vm_copy = copy.deepcopy(base_vm).to(DEVICE)
+            return get_peft_model(vm_copy, LoraConfig(r=LORA_RANK, lora_alpha=16,
                     target_modules=["q_proj","v_proj"], lora_dropout=0.05, bias="none"))
         def feat_fn(vm, pv): return vm(pixel_values=pv).last_hidden_state[:,1:,:].mean(1).float()
         rv5, rss = run_lora_batched(fresh, feat_fn, feat_dim, pvs_v5, frames, splits, sess_pvs, sess_frames, "OWL-v2")
