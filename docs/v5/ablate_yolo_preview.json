@@ -1,0 +1,56 @@
+{
+  "yolov8n": {
+    "conf": 0.3,
+    "seeds": 3,
+    "metrics": [
+      {
+        "n_valid_pg2": 237,
+        "yolo_det_rate": 0.5316455696202531,
+        "cx_match_rate": 0.08438818565400844,
+        "dir_match_rate": 0.06329113924050633,
+        "cx_match_rate_cond": 0.15873015873015872
+      },
+      {
+        "n_valid_pg2": 237,
+        "yolo_det_rate": 0.5316455696202531,
+        "cx_match_rate": 0.08438818565400844,
+        "dir_match_rate": 0.06329113924050633,
+        "cx_match_rate_cond": 0.15873015873015872
+      },
+      {
+        "n_valid_pg2": 237,
+        "yolo_det_rate": 0.5316455696202531,
+        "cx_match_rate": 0.08438818565400844,
+        "dir_match_rate": 0.06329113924050633,
+        "cx_match_rate_cond": 0.15873015873015872
+      }
+    ]
+  },
+  "yolov8s": {
+    "conf": 0.3,
+    "seeds": 3,
+    "metrics": [
+      {
+        "n_valid_pg2": 237,
+        "yolo_det_rate": 0.46835443037974683,
+        "cx_match_rate": 0.09282700421940929,
+        "dir_match_rate": 0.05485232067510549,
+        "cx_match_rate_cond": 0.1981981981981982
+      },
+      {
+        "n_valid_pg2": 237,
+        "yolo_det_rate": 0.46835443037974683,
+        "cx_match_rate": 0.09282700421940929,
+        "dir_match_rate": 0.05485232067510549,
+        "cx_match_rate_cond": 0.1981981981981982
+      },
+      {
+        "n_valid_pg2": 237,
+        "yolo_det_rate": 0.46835443037974683,
+        "cx_match_rate": 0.09282700421940929,
+        "dir_match_rate": 0.05485232067510549,
+        "cx_match_rate_cond": 0.1981981981981982
+      }
+    ]
+  }
+}

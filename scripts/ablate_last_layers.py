@@ -18,7 +18,7 @@ Usage:
   .venv/bin/python3 -u scripts/ablate_last_layers.py --models clip kosmos --layers 1 2 4
 """
 
-import argparse, gc, io, json, random, time
+import argparse, copy, gc, io, json, random, time
 from pathlib import Path
 
 import h5py
@@ -127,7 +127,7 @@ def _pr(tag, rv5, rss=None):
 def run_last_layers(fresh_vm_fn, feat_fn, feat_dim, n_unfreeze_blocks, get_blocks_fn,
                     pvs, frames, splits, sess_pvs, sess_frames, label):
     """
-    fresh_vm_fn()  → 새 vision model (frozen, loaded once, state_dict reset per seed)
+    fresh_vm_fn()  → 새 vision model (frozen, loaded fresh each seed)
     feat_fn(vm, pv) → [B, feat_dim]
     get_blocks_fn(vm) → list of nn.Module (transformer blocks)
     n_unfreeze_blocks: 마지막 N개 블록만 unfreeze
@@ -135,14 +135,9 @@ def run_last_layers(fresh_vm_fn, feat_fn, feat_dim, n_unfreeze_blocks, get_block
     tag = f"{label} ft_last{n_unfreeze_blocks}"
     print(f"  [{tag}] EPOCHS={EPOCHS} LR={LR} WD={WD} batch={BATCH}...")
 
-    vm = fresh_vm_fn().to(DEVICE)
-    # 초기 가중치 CPU 백업
-    init_sd = {k: v.cpu().clone() for k, v in vm.state_dict().items()}
-
     v5_res, ss_res = [], []
     for s_i, (tr_idx, va_idx) in enumerate(splits):
-        if s_i > 0:
-            vm.load_state_dict(init_sd)
+        vm   = fresh_vm_fn()
 
         # 전체 frozen
         for p in vm.parameters(): p.requires_grad_(False)
@@ -194,9 +189,9 @@ def run_last_layers(fresh_vm_fn, feat_fn, feat_dim, n_unfreeze_blocks, get_block
         if sess_frames and sess_pvs:
             ss_res.append(eval_preds(_inf(sess_pvs), sess_frames))
         print(f"    seed {s_i+1}/{N_SEEDS} v5_dir={v5_res[-1]['dir_bin']:.1%}")
-        del head, opt; gc.collect(); torch.cuda.empty_cache()
-        
-    del vm; gc.collect(); torch.cuda.empty_cache()
+        del vm, head, opt; gc.collect(); torch.cuda.empty_cache()
+
+    return _agg(v5_res), _agg(ss_res) if ss_res else None
 
     return _agg(v5_res), _agg(ss_res) if ss_res else None
 
@@ -211,13 +206,14 @@ def run_clip(frames, splits, sess_frames, n_layers_list):
 
     pvs_v5 = [proc(images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in frames]
     sess_pvs = [proc(images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in sess_frames] if sess_frames else None
+    base_vm = model.vision_model.cpu()
     del model; torch.cuda.empty_cache()
 
     results = {}
     feat_dim = 1024
 
     def fresh_vm():
-        return CLIPModel.from_pretrained("openai/clip-vit-large-patch14").vision_model
+        return copy.deepcopy(base_vm)
 
     def feat_fn(vm, pv):
         return vm(pixel_values=pv).last_hidden_state[:,1:,:].mean(1).float()
@@ -244,13 +240,14 @@ def run_kosmos(frames, splits, sess_frames, n_layers_list):
 
     pvs_v5 = [proc(text="<grounding>", images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in frames]
     sess_pvs = [proc(text="<grounding>", images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in sess_frames] if sess_frames else None
+    base_vm = model.vision_model.cpu()
     del model; torch.cuda.empty_cache()
 
     results = {}
     feat_dim = 1024
 
     def fresh_vm():
-        return AutoModelForVision2Seq.from_pretrained(str(LOCAL)).vision_model
+        return copy.deepcopy(base_vm)
 
     def feat_fn(vm, pv):
         return vm(pixel_values=pv).last_hidden_state[:,1:,:].mean(1).float()
@@ -276,12 +273,13 @@ def run_owlv2(frames, splits, sess_frames, n_layers_list):
 
     pvs_v5 = [proc(text=[[PHRASE]], images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in frames]
     sess_pvs = [proc(text=[[PHRASE]], images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in sess_frames] if sess_frames else None
+    base_vm = model.owlv2.vision_model.cpu()
     del model; torch.cuda.empty_cache()
 
     results = {}
 
     def fresh_vm():
-        return Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble").owlv2.vision_model
+        return copy.deepcopy(base_vm)
 
     def feat_fn(vm, pv):
         return vm(pixel_values=pv).last_hidden_state[:,1:,:].mean(1).float()
@@ -314,12 +312,13 @@ def run_florence(frames, splits, sess_frames, n_layers_list):
 
     pvs_v5 = [proc(text="<MORE_DETAILED_CAPTION>", images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in frames]
     sess_pvs = [proc(text="<MORE_DETAILED_CAPTION>", images=fr["img"], return_tensors="pt")["pixel_values"].cpu() for fr in sess_frames] if sess_frames else None
+    base_vm = model.vision_tower.cpu()
     del model; torch.cuda.empty_cache()
 
     results = {}
 
     def fresh_vm():
-        return AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True).vision_tower
+        return copy.deepcopy(base_vm)
 
     def feat_fn(vm, pv):
         return vm(pv)[:,1:,:].mean(1).float()

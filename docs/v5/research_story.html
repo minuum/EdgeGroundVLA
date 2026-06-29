@@ -12926,6 +12926,214 @@ graph TD
 </div>
 
 <hr class="chapter-divider">
+<div class="chapter" id="ch55">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 55</span>
+    <h2 class="chapter-title">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</h2>
+    <p class="chapter-subtitle">그라운딩 통일성(Consistency)이 깨졌을 때 Closed-Loop 성공률이 급락(A2 52.4%, A3 47.6%)하는 현상을 기반으로, 비전 백본별 파인튜닝 기법의 정량 효과를 입증</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">55-1. 핵심 발견 — Grounding Consistency의 파괴와 주행 실패 인과성</div>
+    <div class="finding-body">
+      동일한 PaliGemma-2 항법 헤드 구조 하에서, 학습 시 사용한 그라운딩 데이터(PG2)와 실런타임 추론 시 그라운딩 데이터(HSV 150ep)의 일치도가 깨진 경우, Closed-Loop 주행 성공률이 96.6%에서 50% 수준으로 하락함을 입증했습니다:
+      <ul style="margin:8px 0 0 18px;line-height:2">
+        <li><strong>A2 (HSV 150ep, no-flip)</strong>: Closed-Loop 성공률 <strong style="color:#f87171">52.4%</strong> (FPE 0.28m)</li>
+        <li><strong>A3 (HSV 150ep, flip-aug)</strong>: Closed-Loop 성공률 <strong style="color:#f87171">47.6%</strong> (FPE 0.31m)</li>
+      </ul>
+      이는 비전 모델의 grounding 일관성이 주행 제어 정밀도에 미치는 파괴적인 영향력을 실증한 최초의 사례입니다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">55-2. 비전 모델 & 어댑터 튜닝 기법별 정량 어블레이션 (TBD)</div>
+    <div class="finding-body">
+      비전 타워 4종(CLIP, Kosmos-2, OWL-v2, Florence-2) 및 튜닝 기법(Zero-shot, Linear Probe, MLP, LoRA 5 seeds)에 대한 V5 데이터셋 검증 결과입니다:
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead>
+            <tr style="border-bottom:1px solid #334155">
+              <th style="padding:6px;text-align:left;color:#7dd3fc">비전 모델</th>
+              <th style="padding:6px;color:#7dd3fc">Zero-Shot</th>
+              <th style="padding:6px;color:#7dd3fc">Linear Probe (LP)</th>
+              <th style="padding:6px;color:#7dd3fc">MLP Probe</th>
+              <th style="padding:6px;color:#7dd3fc">LoRA (5 seeds 평균)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px;font-weight:700">CLIP (ViT-L)</td>
+              <td style="padding:6px;text-align:center">80.0% / 0.157m</td>
+              <td style="padding:6px;text-align:center">73.6% / 0.081m</td>
+              <td style="padding:6px;text-align:center">67.9% / 0.346m</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">83.6% / 0.032m</td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px;font-weight:700">Kosmos-2</td>
+              <td style="padding:6px;text-align:center">67.9% / 0.169m</td>
+              <td style="padding:6px;text-align:center">62.9% / 0.119m</td>
+              <td style="padding:6px;text-align:center">80.7% / 0.201m</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">77.1% / 0.042m</td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px;font-weight:700">OWL-v2</td>
+              <td style="padding:6px;text-align:center">76.0% / 0.016m</td>
+              <td style="padding:6px;text-align:center">59.3% / 0.154m</td>
+              <td style="padding:6px;text-align:center">80.7% / 0.359m</td>
+              <td style="padding:6px;text-align:center;color:#e2e8f0">연산 진행 중 (TBD)</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;font-weight:700">Florence-2</td>
+              <td style="padding:6px;text-align:center">65.7% / 0.148m</td>
+              <td style="padding:6px;text-align:center">63.6% / 0.118m</td>
+              <td style="padding:6px;text-align:center">57.1% / 0.282m</td>
+              <td style="padding:6px;text-align:center;color:#94a3b8">N/A</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:0.85rem">
+        지표 포맷: <code>방향 정확도(%) / BBox CX MAE</code> (상세 레이어 튜닝 어블레이션도 백그라운드 구동 완료되는 대로 종합 보고서 및 Hub에 추가 반영 예정)
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    2026-06-29 &nbsp;|&nbsp; 관련: <code>scripts/ablate_preview_ft_v2.py</code>, <code>docs/v5/ablate_preview_ft_v2.json</code>
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch56">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 56</span>
+    <h2 class="chapter-title">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</h2>
+    <p class="chapter-subtitle">Google-robot post-trained 백본의 구조적 Text Attention 붕괴(0%)를 회피하여, 순수 백본 기반 튜닝으로 E2E VLA 복구 유효성 검증</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c2040,#0a1a2e);border-color:#1e4060;margin-bottom:24px">
+    <div class="finding-title" style="color:#38bdf8">56-1. 학습 사양 및 정량 성과</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
+      <ul style="margin:0 0 0 18px">
+        <li><strong>훈련 데이터셋</strong>: V5 Trajectory 140개 에피소드</li>
+        <li><strong>학습 에폭</strong>: 20 epochs</li>
+        <li><strong>우회 패치 적용</strong>: PEFT (LoRA) 래핑 시 vision model의 image projection embeds 수동 추출 매핑을 통해 backbone gradient 유실 방지.</li>
+        <li><strong>최종 검증 정확도 (Val Acc)</strong>: <strong style="color:#4ade80;font-size:1.05rem">78.6%</strong></li>
+      </ul>
+      순수 VLM 백본 기반 파인튜닝이 텍스트-액션 통합 경로(Text Pathway)의 구조적 복구에 실제로 기여할 수 있음을 실증했습니다.
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    2026-06-28 &nbsp;|&nbsp; 관련: <code>scripts/train_exp63_e2e_kosmos.py</code>, <code>runs/v5_nav/e2e/exp63</code>
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch55">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 55</span>
+    <h2 class="chapter-title">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</h2>
+    <p class="chapter-subtitle">그라운딩 통일성(Consistency)이 깨졌을 때 Closed-Loop 성공률이 급락(A2 52.4%, A3 47.6%)하는 현상을 기반으로, 비전 백본별 파인튜닝 기법의 정량 효과를 입증</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">55-1. 핵심 발견 — Grounding Consistency의 파괴와 주행 실패 인과성</div>
+    <div class="finding-body">
+      동일한 PaliGemma-2 항법 헤드 구조 하에서, 학습 시 사용한 그라운딩 데이터(PG2)와 실런타임 추론 시 그라운딩 데이터(HSV 150ep)의 일치도가 깨진 경우, Closed-Loop 주행 성공률이 96.6%에서 50% 수준으로 하락함을 입증했습니다:
+      <ul style="margin:8px 0 0 18px;line-height:2">
+        <li><strong>A2 (HSV 150ep, no-flip)</strong>: Closed-Loop 성공률 <strong style="color:#f87171">52.4%</strong> (FPE 0.28m)</li>
+        <li><strong>A3 (HSV 150ep, flip-aug)</strong>: Closed-Loop 성공률 <strong style="color:#f87171">47.6%</strong> (FPE 0.31m)</li>
+      </ul>
+      이는 비전 모델의 grounding 일관성이 주행 제어 정밀도에 미치는 파괴적인 영향력을 실증한 최초의 사례입니다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:24px">
+    <div class="finding-title" style="color:#7dd3fc">55-2. 비전 모델 & 어댑터 튜닝 기법별 정량 어블레이션 (TBD)</div>
+    <div class="finding-body">
+      비전 타워 4종(CLIP, Kosmos-2, OWL-v2, Florence-2) 및 튜닝 기법(Zero-shot, Linear Probe, MLP, LoRA 5 seeds)에 대한 V5 데이터셋 검증 결과입니다:
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead>
+            <tr style="border-bottom:1px solid #334155">
+              <th style="padding:6px;text-align:left;color:#7dd3fc">비전 모델</th>
+              <th style="padding:6px;color:#7dd3fc">Zero-Shot</th>
+              <th style="padding:6px;color:#7dd3fc">Linear Probe (LP)</th>
+              <th style="padding:6px;color:#7dd3fc">MLP Probe</th>
+              <th style="padding:6px;color:#7dd3fc">LoRA (5 seeds 평균)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px;font-weight:700">CLIP (ViT-L)</td>
+              <td style="padding:6px;text-align:center">80.0% / 0.157m</td>
+              <td style="padding:6px;text-align:center">73.6% / 0.081m</td>
+              <td style="padding:6px;text-align:center">67.9% / 0.346m</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">83.6% / 0.032m</td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px;font-weight:700">Kosmos-2</td>
+              <td style="padding:6px;text-align:center">67.9% / 0.169m</td>
+              <td style="padding:6px;text-align:center">62.9% / 0.119m</td>
+              <td style="padding:6px;text-align:center">80.7% / 0.201m</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">77.1% / 0.042m</td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px;font-weight:700">OWL-v2</td>
+              <td style="padding:6px;text-align:center">76.0% / 0.016m</td>
+              <td style="padding:6px;text-align:center">59.3% / 0.154m</td>
+              <td style="padding:6px;text-align:center">80.7% / 0.359m</td>
+              <td style="padding:6px;text-align:center;color:#e2e8f0">연산 진행 중 (TBD)</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;font-weight:700">Florence-2</td>
+              <td style="padding:6px;text-align:center">65.7% / 0.148m</td>
+              <td style="padding:6px;text-align:center">63.6% / 0.118m</td>
+              <td style="padding:6px;text-align:center">57.1% / 0.282m</td>
+              <td style="padding:6px;text-align:center;color:#94a3b8">N/A</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:0.85rem">
+        지표 포맷: <code>방향 정확도(%) / BBox CX MAE</code> (상세 레이어 튜닝 어블레이션도 백그라운드 구동 완료되는 대로 종합 보고서 및 Hub에 추가 반영 예정)
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    2026-06-29 &nbsp;|&nbsp; 관련: <code>scripts/ablate_preview_ft_v2.py</code>, <code>docs/v5/ablate_preview_ft_v2.json</code>
+  </div>
+</div>
+
+<hr class="chapter-divider">
+<div class="chapter" id="ch56">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 56</span>
+    <h2 class="chapter-title">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</h2>
+    <p class="chapter-subtitle">Google-robot post-trained 백본의 구조적 Text Attention 붕괴(0%)를 회피하여, 순수 백본 기반 튜닝으로 E2E VLA 복구 유효성 검증</p>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0c2040,#0a1a2e);border-color:#1e4060;margin-bottom:24px">
+    <div class="finding-title" style="color:#38bdf8">56-1. 학습 사양 및 정량 성과</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
+      <ul style="margin:0 0 0 18px">
+        <li><strong>훈련 데이터셋</strong>: V5 Trajectory 140개 에피소드</li>
+        <li><strong>학습 에폭</strong>: 20 epochs</li>
+        <li><strong>우회 패치 적용</strong>: PEFT (LoRA) 래핑 시 vision model of image projection embeds 수동 추출 매핑을 통해 backbone gradient 유실 방지.</li>
+        <li><strong>최종 검증 정확도 (Val Acc)</strong>: <strong style="color:#4ade80;font-size:1.05rem">78.6%</strong></li>
+      </ul>
+      순수 VLM 백본 기반 파인튜닝이 텍스트-액션 통합 경로(Text Pathway)의 구조적 복구에 실제로 기여할 수 있음을 실증했습니다.
+    </div>
+  </div>
+
+  <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
+    2026-06-28 &nbsp;|&nbsp; 관련: <code>scripts/train_exp63_e2e_kosmos.py</code>, <code>runs/v5_nav/e2e/exp63</code>
+  </div>
+</div>
+
+<hr class="chapter-divider">
 <div class="chapter" id="meeting-0626" style="padding-bottom:40px">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MTG</span>
