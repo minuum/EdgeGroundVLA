@@ -2,10 +2,11 @@
 # mona-up / vla-go — soda에서 실행. 추론 서버 + 대시보드 + 허브 한 번에 시작
 #
 # 사용법:
-#   go.sh              # 전부 (서버 + 대시보드 + 허브)
+#   go.sh              # 전부 (서버 + 대시보드 + 허브 + 뷰어)
 #   go.sh --server     # 추론 서버만 (포트 8001)
 #   go.sh --dashboard  # 대시보드만 (포트 7865) ← 주 제어 UI
 #   go.sh --hub        # 허브만 (포트 7860)
+#   go.sh --viewer     # 데이터셋 뷰어만 (포트 8083)
 #   go.sh --status     # 실행 중 서비스 확인
 #   go.sh --stop       # 모두 종료
 
@@ -78,6 +79,7 @@ if [[ "$MODE" == "--stop" ]]; then
     pkill -f "stage2_v2_inference_server" 2>/dev/null && echo "  추론 서버 종료"     || echo "  추론 서버: 실행 중 아님"
     pkill -f "gradio_inference_dashboard" 2>/dev/null && echo "  추론 대시보드 종료" || echo "  추론 대시보드: 실행 중 아님"
     pkill -f "gradio_hub"                 2>/dev/null && echo "  허브 종료"          || echo "  허브: 실행 중 아님"
+    pkill -f "gradio_dataset_viewer"      2>/dev/null && echo "  데이터셋 뷰어 종료" || echo "  데이터셋 뷰어: 실행 중 아님"
     exit 0
 fi
 
@@ -88,14 +90,14 @@ fi
 # ── 체크포인트 확인 ───────────────────────────────────────────────────────
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  mona-up  (Exp66 SOTA — Stage2 v2)"
+echo "  mona-up  (stop_N1 CL 96.6% — Stage2 v2 + learned STOP)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 for f in "$S1_PT" "$S2_PT"; do
     if [[ -f "$f" ]]; then
         echo "  ✓ $(du -sh "$f" | cut -f1)  $f"
     else
         echo "  ✗ 없음: $f  ←  mona-ship 먼저 실행 필요"
-        [[ "$MODE" == "--hub" || "$MODE" == "--dashboard" ]] || exit 1
+        [[ "$MODE" == "--hub" || "$MODE" == "--dashboard" || "$MODE" == "--viewer" ]] || exit 1
     fi
 done
 mkdir -p logs
@@ -197,9 +199,24 @@ if [[ "$MODE" == "--all" || "$MODE" == "--hub" ]]; then
     wait_port "허브" "$HUB_PORT" 40 "logs/hub.log"
 fi
 
+# ── 4. 데이터셋 뷰어 (Gradio, 포트 8083) ────────────────────────────────
+VIEWER_PORT=8083
+if [[ "$MODE" == "--all" || "$MODE" == "--viewer" ]]; then
+    echo ""
+    echo "▶ 데이터셋 뷰어 (포트 $VIEWER_PORT)"
+    pkill -f "gradio_dataset_viewer" 2>/dev/null && sleep 1 || true
+
+    "$PY" scripts/gradio_dataset_viewer.py \
+        >> logs/dataset_viewer.log 2>&1 &
+    _viewer_pid=$!
+    disown $_viewer_pid 2>/dev/null || true
+    echo "  PID=$_viewer_pid  logs/dataset_viewer.log  (시작 ~20s)"
+fi
+
 status_check
 
 echo ""
 echo "  ★ 주 제어:   http://$SODA_IP:$DASH_PORT"
 echo "  허브:        http://$SODA_IP:$HUB_PORT"
+echo "  데이터셋:    http://$SODA_IP:$VIEWER_PORT"
 echo "  서버 로그:   ssh soda@$SODA_IP 'tail -f ~/MoNaVLA/logs/s2v2_server.log'"

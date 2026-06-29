@@ -21,6 +21,10 @@ Environment variables:
   VLA_STOP_CX_TOL           cx tolerance from center for proximity STOP (default: 0.35)
   VLA_STOP_CONSEC           consecutive frames required for STOP override (default: 2)
   VLA_API_KEY               optional API key for authentication
+  VLA_PREVIEW_ENABLED       CH54: "1" 설정 시 PG2 재시도 루프 활성 (기본 비활성)
+  VLA_PREVIEW_AREA_THRESH   CH54: 그라운딩 실패 판정 area 임계값 (기본 0.03)
+  VLA_PREVIEW_MAX_RETRY     CH54: 최대 재시도 횟수 (기본 5)
+  VLA_PREVIEW_ROT_DIR       CH54: has_bbox=False 시 기본 회전 방향 "L" or "R" (기본 "R")
 
 Usage:
   # 기본 (proximity override)
@@ -492,11 +496,61 @@ class Stage2V2Model:
         # Learned-STOP latch: once model predicts STOP(0), stay stopped until reset()
         self.stop_latched: bool = False
 
+        # CH54: PG2 재시도 루프 — 첫 그라운딩 실패 시 ROT 후 PG2 재시도
+        # YOLO ablation(6/26 세션 46개) 결과 cx 일치율 6~9% → PG2 직접 재시도로 전환
+        self._preview_enabled     = os.getenv("VLA_PREVIEW_ENABLED", "") == "1"
+        self._preview_area_thresh = float(os.getenv("VLA_PREVIEW_AREA_THRESH", "0.03"))
+        self._preview_max_retry   = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
+        _rot_dir                  = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
+        self._preview_fallback_rot = 7 if _rot_dir != "L" else 6  # ROT_R=7, ROT_L=6
+        if self._preview_enabled:
+            logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s",
+                        self._preview_area_thresh, self._preview_max_retry,
+                        "ROT_R" if self._preview_fallback_rot == 7 else "ROT_L")
+
     def reset(self) -> None:
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
         self.stop_latched = False
+        self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
+
+    # ── CH54: PG2 재시도 루프 helpers ───────────────────────────────────────
+
+    def _needs_preview(self, bbox: dict) -> bool:
+        """PG2 bbox 미탐지(has_bbox=False) 시에만 회전 필요 판단.
+        area<thresh but has_bbox=True 케이스는 basket이 보이므로 VLA가 처리."""
+        return not bbox.get("has_bbox", False)
+
+    def _preview_rot_from_bbox(self, bbox: dict) -> int:
+        """
+        has_bbox=False 시 sweep 패턴으로 방향 결정 (attempt 기반).
+        has_bbox=True  : cx < 0.4 → ROT_L, cx > 0.6 → ROT_R, 중앙 → ROT_R
+        has_bbox=False : attempt 0→ROT_R, 1→ROT_L, 2→ROT_R, ... 교대
+        """
+        if bbox.get("has_bbox", False):
+            cx = float(bbox.get("cx", 0.5))
+            return 6 if cx < 0.4 else 7
+        # sweep: 짝수 attempt → ROT_R, 홀수 → ROT_L
+        return 7 if self._preview_attempt % 2 == 0 else 6
+
+    def preview_align(self, image_b64: str, phrase: str) -> dict:
+        """
+        CH54 외부 API용: PG2 그라운딩 결과와 권장 회전 명령 반환.
+        엔드포인트 /preview_align 에서 호출됨.
+        """
+        image_rgb = self._decode_image(image_b64)
+        bbox = self.grounder.run(image_rgb, phrase=phrase)
+        needs = self._needs_preview(bbox) if self._preview_enabled else False
+        rot_cmd = self._preview_rot_from_bbox(bbox) if needs else None
+        return {
+            "needs_align": needs,
+            "rot_cmds": [rot_cmd] if rot_cmd is not None else [],
+            "pg2_cx": float(bbox.get("cx", 0.5)) if bbox.get("has_bbox") else None,
+            "pg2_bbox": bbox,
+        }
+
+    # ─────────────────────────────────────────────────────────────────────────
 
     def _decode_image(self, image_b64: str) -> np.ndarray:
         image_bytes = base64.b64decode(image_b64)
@@ -545,6 +599,57 @@ class Stage2V2Model:
         image_rgb = self._decode_image(image_b64)
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
 
+        # instruction="basket"(기본값)은 기존 하위호환 placeholder — "gray basket"으로 매핑.
+        # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
+        phrase = "gray basket" if instruction == "basket" else instruction
+
+        # CH54: PG2 재시도 루프 — 첫 프레임에서 그라운딩 실패 시 ROT 후 PG2 재시도
+        # inference_count==0 이고 _preview_attempt < max_retry 인 동안 활성.
+        # PG2 bbox cx 로 회전 방향 결정 (has_bbox=False 이면 fallback 방향).
+        # 로봇이 ROT 한 스텝 실행 → 다음 predict() 호출에서 재검사 → 성공 시 정상 추론.
+        preview_rot: Optional[int] = None
+        if self._preview_enabled and self.inference_count == 0:
+            if self._preview_attempt < self._preview_max_retry:
+                first_bbox = self.grounder.run(image_rgb, phrase=phrase)
+                if self._needs_preview(first_bbox):
+                    preview_rot = self._preview_rot_from_bbox(first_bbox)
+                    self._preview_attempt += 1
+                    logger.info("[CH54] preview ROT: %s  attempt=%d/%d  bbox_cx=%.3f has=%s",
+                                CLASS_NAMES[preview_rot], self._preview_attempt,
+                                self._preview_max_retry,
+                                float(first_bbox.get("cx", 0.5)),
+                                first_bbox.get("has_bbox", False))
+                else:
+                    # 그라운딩 성공 → 정상 추론으로 이어짐, 결과 캐시
+                    self._grounding_cache = first_bbox
+                    logger.info("[CH54] preview 성공: cx=%.3f area=%.4f (attempt=%d)",
+                                float(first_bbox.get("cx", 0.5)),
+                                float(first_bbox.get("area", 0.0)),
+                                self._preview_attempt)
+            # max_retry 초과 시 preview 포기 → 정상 추론으로 낙하 (preview_rot=None)
+
+        if preview_rot is not None:
+            total_ms = (time.time() - start) * 1000.0
+            return {
+                "action": ACTION_2D[preview_rot],
+                "action_3d": ACTION_3D[preview_rot],
+                "predicted_class": preview_rot,
+                "predicted_label": CLASS_NAMES[preview_rot],
+                "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
+                "grounding_latency_ms": 0.0,
+                "latency_ms": total_ms,
+                "goal_near_proxy": False,
+                "proximity_override": False,
+                "learned_stop": False,
+                "stop_latched": False,
+                "stop_mode": STOP_MODE,
+                "grounding_cached": False,
+                "head_mode": "preview",
+                "preview_align": True,
+                "preview_attempt": self._preview_attempt,
+                "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+            }
+
         # CH40 hidden-state head 사용 여부 — 체크포인트 없으면 baseline으로 자동 폴백
         # (plan_20260622_hidden_state_hub_integration.md §1-1).
         use_hidden = head_mode in ("add", "replace") and head_mode in self.hidden_heads
@@ -559,9 +664,6 @@ class Stage2V2Model:
             and self.inference_count % self._grounding_skip_n != 0
             and self._grounding_cache is not None
         )
-        # instruction="basket"(기본값)은 기존 하위호환 placeholder — "gray basket"으로 매핑.
-        # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
-        phrase = "gray basket" if instruction == "basket" else instruction
 
         g_start = time.time()
         if use_cache:
@@ -614,10 +716,11 @@ class Stage2V2Model:
 
         if STOP_MODE == "learned":
             # 모델이 STOP(0) 예측 → latch. 한 번 멈추면 reset() 전까지 유지.
+            # has_bbox=False(미검출 fallback)일 때는 래치 금지 — 진짜 도착 신호가 아님.
             if self.stop_latched:
                 pred_class  = 0
                 learned_stop = True
-            elif pred_class == 0:
+            elif pred_class == 0 and frame.get("has_bbox", False):
                 self.stop_latched = True
                 learned_stop = True
         else:
@@ -793,6 +896,8 @@ async def health() -> dict[str, Any]:
         "model_loaded": m is not None,
         "head": m.head_name if m else None,
         "window": m.window if m else None,
+        "stop_mode": STOP_MODE,
+        "stop_latched": m.stop_latched if m else False,
         "gpu": gpu,
     }
 
@@ -847,6 +952,30 @@ async def reset(x_api_key: Optional[str] = Header(default=None)) -> dict[str, An
     _check_api_key(x_api_key)
     get_model().reset()
     return {"status": "success", "message": "History reset"}
+
+
+@app.get("/recent")
+async def recent_predictions(x_api_key: Optional[str] = Header(default=None)) -> dict[str, Any]:
+    """proxy_inference_server 호환 — 최근 예측 기록 반환."""
+    m = _model
+    if m is None:
+        return {"count": 0, "predictions": []}
+    history = list(m.history[-30:]) if hasattr(m, "history") else []
+    preds = [
+        {
+            "cx": h.get("cx", 0.5),
+            "area": h.get("area", 0.0),
+            "has_bbox": h.get("has_bbox", False),
+        }
+        for h in reversed(history)
+    ]
+    return {
+        "count": len(preds),
+        "predictions": preds,
+        "inference_count": m.inference_count,
+        "stop_latched": m.stop_latched,
+        "stop_mode": STOP_MODE,
+    }
 
 
 @app.post("/config")
@@ -987,6 +1116,34 @@ async def load_model(
     return {"status": "success", "head": m.head_name, "window": m.window, "val_acc": m.val_acc}
 
 
+class PreviewAlignRequest(BaseModel):
+    image: str               # base64 RGB
+    instruction: str = "basket"
+
+
+class PreviewAlignResponse(BaseModel):
+    needs_align: bool
+    rot_cmds: list[int]       # ROT_L=6, ROT_R=7, [] = 정렬 완료
+    pg2_cx: Optional[float]   # PG2 bbox cx (has_bbox=False 이면 None)
+    pg2_bbox: dict
+
+
+@app.post("/preview_align", response_model=PreviewAlignResponse)
+async def preview_align(
+    request: PreviewAlignRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> PreviewAlignResponse:
+    """
+    CH54 — PG2 재시도 프리뷰 엔드포인트.
+    VLA_PREVIEW_ENABLED 미설정 시 needs_align=False, rot_cmds=[] 반환.
+    """
+    _check_api_key(x_api_key)
+    m = get_model()
+    phrase = "gray basket" if request.instruction == "basket" else request.instruction
+    result = m.preview_align(request.image, phrase)
+    return PreviewAlignResponse(**result)
+
+
 if __name__ == "__main__":
     import argparse
     import uvicorn
@@ -997,6 +1154,22 @@ if __name__ == "__main__":
     args_cli = parser.parse_args()
 
     logger.info("Pre-loading Stage2V2 model ...")
-    get_model()
+    m = get_model()
+
+    # Stage 0 워밍업: PG2 콜드스타트를 서버 시작 시점에 소진 (CH54 ablation)
+    # 분석: 6/26 세션 39개 전부 frame 0 has_bbox=0% → frame 1+ 100% 성공
+    # 원인: 첫 그라운딩 호출 시 PG2 미웜업 → 빈 결과 반환
+    # 해결: 더미 이미지로 첫 PG2 호출을 서버 시작 시 미리 소진
+    logger.info("[Warmup] PG2 워밍업 시작 ...")
+    _t_wu = time.time()
+    try:
+        import io as _io
+        _dummy_pil = Image.new("RGB", (224, 224), (100, 100, 100))
+        _dummy_np = np.array(_dummy_pil)
+        m.grounder.run(_dummy_np, phrase="gray basket")
+        logger.info("[Warmup] PG2 워밍업 완료 (%.1fs)", time.time() - _t_wu)
+    except Exception as _e:
+        logger.warning("[Warmup] PG2 워밍업 실패 (무시됨): %s", _e)
+
     logger.info("Model ready. Starting uvicorn on %s:%d", args_cli.host, args_cli.port)
     uvicorn.run(app, host=args_cli.host, port=args_cli.port, log_level="info")
