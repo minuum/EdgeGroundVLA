@@ -314,6 +314,7 @@
     <a class="toc-item" href="#ch56" data-target="ch56"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 56</span><span class="toc-label">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Grounding 실패 → CH54 Preview 폴백으로 해결 ✅ 검증</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
     <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — PG2 최선 확인, 新프리뷰 모델 탐색 진행 중</span><span class="toc-cat cat-exp" style="background:rgba(167,139,250,0.15);color:#a78bfa">완료+진행중</span></a>
+    <a class="toc-item" href="#ch59" data-target="ch59"><span class="toc-badge" style="background:rgba(34,211,238,0.15);color:#22d3ee">CH 59</span><span class="toc-label">5-Model 셀프라벨링 평가 — Kr/PG448 99.1%, soda PG224↔448 검출률 격차 확인</span><span class="toc-cat cat-exp" style="background:rgba(34,211,238,0.15);color:#22d3ee">분석</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -13442,6 +13443,184 @@ graph TD
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH58 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH59 ═ -->
+<div class="chapter" id="ch59">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 59</span>
+    <h2 class="chapter-title">5-Model 셀프라벨링 평가 & soda PG2 버전 격차 분석</h2>
+    <p class="chapter-subtitle">V5 + 세션 185프레임 × 5모델 수동 ground truth 비교 — Kr/PG448 99.1% 달성, soda PG224 검출률 73% 확인 (2026-06-30)</p>
+  </div>
+
+  <!-- 59-1. 실험 설계 -->
+  <div class="finding-card">
+    <div class="finding-title">59-1. 실험 설계 — 왜 셀프라벨링인가</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      CH58 ablation은 세션(39개) 기준 dir 정확도를 썼지만 <strong style="color:#e2e8f0">ground truth가 cx 방향이 아닌 주관적 위치</strong>라는 한계가 있었다.
+      이번 실험은 <strong style="color:#e2e8f0">V5 데이터셋(9 path_type × 3ep) + 39세션 × frame 0~2 = 185프레임</strong>에 대해
+      5개 모델이 bbox를 동시에 그린 썸네일을 보며 사람이 직접 바스켓 위치(L/C/R/없음)를 라벨링하고,
+      각 모델의 cx &gt; 0.5 예측과 비교하는 방식으로 정확도를 측정했다.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px">
+      <div style="background:#1a0a0a;border:1px solid #ff5050;border-radius:5px;padding:8px;text-align:center;font-size:0.75rem">
+        <div style="color:#fca5a5;font-weight:700">Kc (빨강)</div>
+        <div style="color:#475569;margin-top:3px">completion<br>"The basket is at"</div>
+      </div>
+      <div style="background:#0a1a0a;border:1px solid #3cdc3c;border-radius:5px;padding:8px;text-align:center;font-size:0.75rem">
+        <div style="color:#86efac;font-weight:700">Kr (초록)</div>
+        <div style="color:#475569;margin-top:3px">refexp<br>"gray laundry basket"</div>
+      </div>
+      <div style="background:#1a1600;border:1px solid #f0c800;border-radius:5px;padding:8px;text-align:center;font-size:0.75rem">
+        <div style="color:#fde68a;font-weight:700">Ow (노랑)</div>
+        <div style="color:#475569;margin-top:3px">OWL-v2<br>text query</div>
+      </div>
+      <div style="background:#050a1a;border:1px solid #5096ff;border-radius:5px;padding:8px;text-align:center;font-size:0.75rem">
+        <div style="color:#93c5fd;font-weight:700">PG448 (파랑)</div>
+        <div style="color:#475569;margin-top:3px">PaliGemma2<br>448px detect</div>
+      </div>
+      <div style="background:#0d0515;border:1px solid #ff8c00;border-radius:5px;padding:8px;text-align:center;font-size:0.75rem">
+        <div style="color:#fed7aa;font-weight:700">F2 (주황)</div>
+        <div style="color:#475569;margin-top:3px">Florence-2<br>OVD basket</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 59-2. 결과 -->
+  <div class="finding-card" style="margin-top:16px">
+    <div class="finding-title">59-2. 방향 정확도 결과 (L/R 110프레임 기준)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.83rem;margin-top:8px">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;color:#64748b">
+            <th style="padding:7px 10px;text-align:left">모델</th>
+            <th style="padding:7px;text-align:center">L/R 정확도</th>
+            <th style="padding:7px;text-align:center">검출률</th>
+            <th style="padding:7px;text-align:left">특이사항</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:7px 10px;color:#86efac;font-weight:700">Kr (refexp)</td>
+            <td style="padding:7px;text-align:center;color:#4ade80;font-size:1rem;font-weight:800">99.1%</td>
+            <td style="padding:7px;text-align:center">185/185</td>
+            <td style="padding:7px;color:#94a3b8;font-size:0.78rem">100% 검출 + 거의 완벽한 방향</td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:7px 10px;color:#93c5fd;font-weight:700">PG448</td>
+            <td style="padding:7px;text-align:center;color:#4ade80;font-size:1rem;font-weight:800">99.1%</td>
+            <td style="padding:7px;text-align:center">183/185</td>
+            <td style="padding:7px;color:#94a3b8;font-size:0.78rem">detect 포맷, 높은 검출률</td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:7px 10px;color:#fde68a;font-weight:700">Ow (OWL-v2)</td>
+            <td style="padding:7px;text-align:center;color:#4ade80;font-size:1rem;font-weight:800">99.1%</td>
+            <td style="padding:7px;text-align:center">184/185</td>
+            <td style="padding:7px;color:#94a3b8;font-size:0.78rem">cx 기준 방향은 정확하나 bbox 크기 작음</td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:7px 10px;color:#fca5a5;font-weight:700">Kc (current)</td>
+            <td style="padding:7px;text-align:center;color:#fbbf24;font-weight:700">55.0%</td>
+            <td style="padding:7px;text-align:center">138/185</td>
+            <td style="padding:7px;color:#f87171;font-size:0.78rem">실제로는 cx=0.5/0.15/0.85 하드코딩 fallback</td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:7px 10px;color:#fed7aa;font-weight:700">F2 (Florence)</td>
+            <td style="padding:7px;text-align:center;color:#f87171;font-weight:700">51.8%</td>
+            <td style="padding:7px;text-align:center">185/185</td>
+            <td style="padding:7px;color:#f87171;font-size:0.78rem">cx max=0.559 — 우측 절반 전혀 못 잡음(구조적 결함)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;background:#0f1f0f;border-left:3px solid #4ade80;padding:10px 14px;border-radius:4px;font-size:0.83rem;color:#86efac;line-height:1.8">
+      <strong>핵심 발견:</strong> Kc(현재 production)는 실제 grounding 없이 caption 키워드 fallback으로 작동 중.
+      cx 값이 0.5/0.15/0.85 세 값에 집중됨 (138회 중 92회=0.5, 31회=0.15, 14회=0.85).
+      <strong style="color:#fbbf24">→ 현재 서버가 바스켓을 실제로 보고 있지 않다.</strong>
+    </div>
+  </div>
+
+  <!-- 59-3. soda PG224 vs PG448 -->
+  <div class="finding-card" style="margin-top:16px;border-color:#1e3a5f">
+    <div class="finding-title" style="color:#22d3ee">59-3. soda 추론 서버 분석 — PG224 vs PG448 격차</div>
+    <div style="font-size:0.83rem;color:#94a3b8;margin-bottom:12px;line-height:1.8">
+      soda (Jetson Orin NX)의 <code style="color:#7dd3fc">stage2_v2_inference_server.py</code>가
+      <code style="color:#fbbf24">paligemma2-3b-mix-<strong>224</strong></code>을 사용하는 것을 확인.
+      본 테스트는 <code style="color:#93c5fd">paligemma2-3b-mix-<strong>448</strong></code> 기준이었으므로 같은 조건으로 224 버전도 동일 185프레임 평가.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#050a1a;border:1px solid #93c5fd;border-radius:6px;padding:12px">
+        <div style="font-weight:800;color:#93c5fd;margin-bottom:8px">PG448 (minum 서버)</div>
+        <div style="font-size:0.82rem;line-height:1.9;color:#cbd5e1">
+          검출률: <strong style="color:#4ade80">183/185 (98.9%)</strong><br>
+          L/R 정확도: <strong style="color:#4ade80">99.1%</strong><br>
+          cx 분포: 정상 (L/R 고르게 분포)<br>
+          미검출: 2개
+        </div>
+      </div>
+      <div style="background:#0d0515;border:1px solid #b47aff;border-radius:6px;padding:12px">
+        <div style="font-weight:800;color:#b47aff;margin-bottom:8px">PG224 (soda 서버)</div>
+        <div style="font-size:0.82rem;line-height:1.9;color:#cbd5e1">
+          검출률: <strong style="color:#fbbf24">136/185 (73.5%)</strong><br>
+          L/R 정확도: <strong style="color:#4ade80">98.7%</strong> (검출된 것 한정)<br>
+          cx 분포: 정상 (방향 편향 없음)<br>
+          미검출: <strong style="color:#f87171">32개 (17.3%)</strong>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;background:#130a00;border-left:3px solid #f59e0b;padding:10px 14px;border-radius:4px;font-size:0.83rem;color:#fed7aa;line-height:1.8">
+      <strong>해석:</strong> 정확도 자체는 동급 (98.7% vs 99.1%), 차이는 <strong>검출률 25.4%p</strong>.
+      224px 해상도에서 바스켓이 작거나 멀리 있을 때 loc token 예측 실패율이 높아짐.
+      soda에서 바스켓을 못 찾는 케이스 중 상당수가 해상도 문제일 가능성.
+    </div>
+  </div>
+
+  <!-- 59-4. 환경 비교 -->
+  <div class="finding-card" style="margin-top:16px">
+    <div class="finding-title">59-4. soda vs minum 추론 환경 비교</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.80rem;margin-top:8px">
+      <thead><tr style="border-bottom:1px solid #334155;color:#64748b">
+        <th style="padding:6px 10px;text-align:left">항목</th>
+        <th style="padding:6px;text-align:center">soda (로봇)</th>
+        <th style="padding:6px;text-align:center">minum (테스트)</th>
+      </tr></thead>
+      <tbody style="color:#cbd5e1">
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 10px;color:#64748b">GPU</td><td style="padding:6px;text-align:center">Jetson Orin NX (15.6GB 공유)</td><td style="padding:6px;text-align:center">NVIDIA GB10 (124GB)</td></tr>
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 10px;color:#64748b">PG2 버전</td><td style="padding:6px;text-align:center;color:#fbbf24">paligemma2-3b-mix-<strong>224</strong></td><td style="padding:6px;text-align:center;color:#93c5fd">paligemma2-3b-mix-<strong>448</strong></td></tr>
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 10px;color:#64748b">양자화</td><td style="padding:6px;text-align:center">없음 (float16)</td><td style="padding:6px;text-align:center">없음 (bfloat16)</td></tr>
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 10px;color:#64748b">RAM 점유</td><td style="padding:6px;text-align:center;color:#f87171">14.4/15.6GB (92%)</td><td style="padding:6px;text-align:center;color:#4ade80">여유 충분</td></tr>
+        <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 10px;color:#64748b">서버 구조</td><td style="padding:6px;text-align:center">stage2_v2 (FrozenCLIP + MLP)</td><td style="padding:6px;text-align:center">오프라인 배치</td></tr>
+        <tr><td style="padding:6px 10px;color:#64748b">Grounding 모델</td><td style="padding:6px;text-align:center">Kosmos-2 + PG224 혼용</td><td style="padding:6px;text-align:center">5개 모델 비교</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 59-5. 결론 및 액션 -->
+  <div class="finding-card" style="margin-top:16px;background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#22d3ee">
+    <div class="finding-title" style="color:#22d3ee">59-5. 결론 및 로봇 서버 구현 권고</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.83rem;line-height:1.9">
+      <div>
+        <div style="color:#fbbf24;font-weight:700;margin-bottom:6px">즉시 적용 가능</div>
+        <ul style="margin:0 0 0 16px;color:#94a3b8">
+          <li><strong style="color:#86efac">Kc → Kr 프롬프트 교체</strong> — 모델 동일, 코드 1줄 변경. fallback cx 하드코딩 제거 가능</li>
+          <li><strong style="color:#93c5fd">PG224 → PG448 업그레이드</strong> — 검출률 73%→98%로 개선. 모델 파일만 교체</li>
+          <li>soda RAM 92% 포화 상태 — PG448 교체 전 메모리 실측 필요</li>
+        </ul>
+      </div>
+      <div>
+        <div style="color:#fbbf24;font-weight:700;margin-bottom:6px">검토 필요</div>
+        <ul style="margin:0 0 0 16px;color:#94a3b8">
+          <li>Florence-2 제외 — 구조적 우편향(cx max=0.56), 수정 방법 없음</li>
+          <li>OWL-v2 방향 추정 용도 부적합 — bbox 너무 작아 cx 의미 없음</li>
+          <li>PG448 INT8 양자화 테스트 (메모리 부족 시 대안)</li>
+          <li>Kr이 MLP 학습 분포(PG2)와 다르므로 grounding 교체 시 MLP 재학습 필요 여부 확인</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH59 ═ -->
 
 <hr class="chapter-divider">
 <div class="chapter" id="meeting-0626" style="padding-bottom:40px">

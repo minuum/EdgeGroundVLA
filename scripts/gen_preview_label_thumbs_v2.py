@@ -31,12 +31,13 @@ MODEL_COLORS = {
     "K_current":        (255,  80,  80),   # 빨강
     "K_refexp_laundry": ( 60, 220,  60),   # 초록
     "O_laundry":        (240, 200,   0),   # 노랑
-    "PG":               ( 80, 150, 255),   # 파랑
+    "PG":               ( 80, 150, 255),   # 파랑 (448)
+    "PG224":            (180,  80, 255),   # 보라 (224, soda와 동일)
     "Florence2":        (255, 140,   0),   # 주황
 }
 MODEL_SHORT = {
     "K_current":"Kc", "K_refexp_laundry":"Kr",
-    "O_laundry":"Ow", "PG":"PG", "Florence2":"F2",
+    "O_laundry":"Ow", "PG":"PG448", "PG224":"PG224", "Florence2":"F2",
 }
 
 
@@ -49,19 +50,46 @@ def raw_to_pil(raw):
 
 
 def draw_thumb(img, model_results):
-    thumb = img.resize((THUMB_W, THUMB_H), Image.LANCZOS)
-    draw  = ImageDraw.Draw(thumb)
-    # 중앙선
-    draw.line([(THUMB_W//2, 0), (THUMB_W//2, THUMB_H)], fill=(160,160,160), width=1)
+    thumb = img.resize((THUMB_W, THUMB_H), Image.LANCZOS).convert("RGBA")
+    W, H  = THUMB_W, THUMB_H
+
+    # ── L/C/R 구역 오버레이 (매우 얇은 반투명) ──────────────────────────
+    L_X  = int(0.40 * W)  # L|C 경계
+    R_X  = int(0.60 * W)  # C|R 경계
+    MID  = W // 2
+
+    overlay = Image.new("RGBA", (W, H), (0,0,0,0))
+    od = ImageDraw.Draw(overlay)
+
+    # L 영역 (파랑 10%)
+    od.rectangle([0, 0, L_X, H], fill=(80, 140, 255, 22))
+    # R 영역 (노랑 10%)
+    od.rectangle([R_X, 0, W, H], fill=(255, 180, 0, 22))
+    # C 영역은 투명 (건드리지 않음)
+
+    # 경계선 L_X / MID / R_X
+    od.line([(L_X, 0), (L_X, H)], fill=(80, 140, 255, 140), width=1)
+    od.line([(MID, 0), (MID, H)], fill=(180, 180, 180, 100), width=1)
+    od.line([(R_X, 0), (R_X, H)], fill=(255, 180, 0, 140),  width=1)
+
+    # 라벨 텍스트 (이미지 위쪽)
+    od.text((4,   3), "L",  fill=(80,  140, 255, 180))
+    od.text((L_X+4, 3), "C", fill=(200, 200, 200, 150))
+    od.text((R_X+4, 3), "R", fill=(255, 180,   0, 180))
+
+    thumb = Image.alpha_composite(thumb, overlay).convert("RGB")
+
+    # ── 모델 bbox ────────────────────────────────────────────────────────
+    draw = ImageDraw.Draw(thumb)
     for mname, r in model_results.items():
         if r is None:
             continue
         color = MODEL_COLORS[mname]
         cx = r["cx"]
-        x1 = int(r.get("x1", cx-0.07) * THUMB_W)
-        y1 = int(r.get("y1", 0.30)    * THUMB_H)
-        x2 = int(r.get("x2", cx+0.07) * THUMB_W)
-        y2 = int(r.get("y2", 0.80)    * THUMB_H)
+        x1 = int(r.get("x1", cx-0.07) * W)
+        y1 = int(r.get("y1", 0.30)    * H)
+        x2 = int(r.get("x2", cx+0.07) * W)
+        y2 = int(r.get("y2", 0.80)    * H)
         draw.rectangle([x1,y1,x2,y2], outline=color, width=2)
         draw.text((x1+2, y1+1), MODEL_SHORT[mname], fill=color)
     return thumb
@@ -124,7 +152,7 @@ _CAPTION_DIR = [
 _TARGET_KW = {"basket","container","bin","laundry","gray box","pot"}
 
 
-def _kosmos_parse(caption, entities):
+def _kosmos_parse(caption, entities, refexp=False):
     for ename, _span, boxes in entities:
         for box in boxes:
             x1,y1,x2,y2 = [float(v) for v in box]
@@ -132,8 +160,13 @@ def _kosmos_parse(caption, entities):
                 x1,y1,x2,y2 = x1/1000,y1/1000,x2/1000,y2/1000
             area = (x2-x1)*(y2-y1)
             if area > 0.85: continue
+            # refexp: entity name = "<patch_index_XXX>..." → first entity is the grounded phrase
+            if refexp and ename.startswith("<patch_index_"):
+                return {"cx":(x1+x2)/2,"x1":x1,"y1":y1,"x2":x2,"y2":y2}
             if any(k in ename.lower() for k in _TARGET_KW):
                 return {"cx":(x1+x2)/2,"x1":x1,"y1":y1,"x2":x2,"y2":y2}
+    if refexp:
+        return None  # refexp mode에서는 caption fallback 안 씀
     for phrases, cx in _CAPTION_DIR:
         if any(p in caption.lower() for p in phrases):
             return {"cx":cx,"x1":cx-0.06,"y1":0.35,"x2":cx+0.06,"y2":0.75}
@@ -149,7 +182,7 @@ def run_kosmos(frames):
                 str(ROOT/".vlms"/"kosmos-2-patch14-224")).to(DEVICE).eval()
     print(f"  로드 {time.time()-t0:.1f}s")
 
-    def _run(img, prompt):
+    def _run(img, prompt, refexp=False):
         inp = proc(text=prompt, images=img, return_tensors="pt")
         inp = {k: v.to(DEVICE) for k,v in inp.items()}
         with torch.no_grad():
@@ -157,12 +190,12 @@ def run_kosmos(frames):
         new_ids = gen[:, inp["input_ids"].shape[1]:]
         raw = proc.batch_decode(new_ids, skip_special_tokens=False)[0]
         caption, entities = proc.post_process_generation(raw)
-        return _kosmos_parse(caption, entities)
+        return _kosmos_parse(caption, entities, refexp=refexp)
 
     K_current = {}; K_ref = {}
     for i, fr in enumerate(frames):
-        K_current[fr["key"]] = _run(fr["img"], "<grounding>The basket is at")
-        K_ref[fr["key"]]     = _run(fr["img"], "<grounding><phrase>gray laundry basket</phrase>")
+        K_current[fr["key"]] = _run(fr["img"], "<grounding>The basket is at", refexp=False)
+        K_ref[fr["key"]]     = _run(fr["img"], "<grounding><phrase>gray laundry basket</phrase>", refexp=True)
         if (i+1) % 20 == 0:
             print(f"  {i+1}/{len(frames)} ({(time.time()-t0):.0f}s)")
 
@@ -204,21 +237,21 @@ def run_owlv2(frames):
     return results
 
 
-# ── PaliGemma2 ────────────────────────────────────────────────────────────────
+# ── PaliGemma2 (448 또는 224) ─────────────────────────────────────────────────
 
-def run_paligemma(frames):
+def run_paligemma(frames, res=448):
     from transformers import AutoProcessor, PaliGemmaForConditionalGeneration
-    print("\n[PaliGemma2] 로딩...")
+    model_id = f"google/paligemma2-3b-mix-{res}"
+    print(f"\n[PaliGemma2-{res}] 로딩...")
     t0 = time.time()
-    proc  = AutoProcessor.from_pretrained("google/paligemma2-3b-mix-448")
+    proc  = AutoProcessor.from_pretrained(model_id)
     model = PaliGemmaForConditionalGeneration.from_pretrained(
-                "google/paligemma2-3b-mix-448",
-                torch_dtype=torch.bfloat16).to(DEVICE).eval()
+                model_id, torch_dtype=torch.bfloat16).to(DEVICE).eval()
     print(f"  로드 {time.time()-t0:.1f}s")
 
     results = {}
     for i, fr in enumerate(frames):
-        img = fr["img"].resize((448,448))
+        img = fr["img"].resize((res, res))
         inp = proc(text="<image>detect basket", images=img,
                    return_tensors="pt").to(DEVICE)
         with torch.no_grad():
@@ -275,18 +308,37 @@ def run_florence(frames):
 
 # ── 메인 ──────────────────────────────────────────────────────────────────────
 
+CACHE_DIR = OUT_DIR / "_cache"
+
+def _cache_path(model_key): return CACHE_DIR / f"{model_key}.json"
+
+def load_cache(model_key):
+    p = _cache_path(model_key)
+    if p.exists():
+        print(f"  캐시 로드: {model_key}")
+        return json.load(open(p))
+    return None
+
+def save_cache(model_key, data):
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    json.dump(data, open(_cache_path(model_key),"w"), ensure_ascii=False)
+    print(f"  캐시 저장: {model_key} ({len(data)}항목)")
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--n-per-type", type=int, default=3)
     p.add_argument("--max-frames", type=int, default=3)
     p.add_argument("--models", nargs="+",
                    default=["kosmos","owlv2","paligemma","florence"],
-                   choices=["kosmos","owlv2","paligemma","florence"])
+                   choices=["kosmos","owlv2","paligemma","paligemma224","florence"])
+    p.add_argument("--no-cache", action="store_true", help="캐시 무시하고 재추론")
     args = p.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 프레임 수집
+    # 프레임 수집 (항상 동일 순서)
     v5_eps   = select_v5_episodes(args.n_per_type)
     sess_eps = select_sessions()
     all_frames = []
@@ -294,22 +346,58 @@ def main():
         all_frames.extend(load_frames(ep, args.max_frames))
     print(f"총 {len(all_frames)}프레임")
 
-    # 추론
+    # 추론 (캐시 우선)
     all_res = {m: {} for m in MODEL_COLORS}
 
     if "kosmos" in args.models:
-        k = run_kosmos(all_frames)
-        all_res["K_current"]        = k["K_current"]
-        all_res["K_refexp_laundry"] = k["K_refexp_laundry"]
+        cached = None if args.no_cache else (
+            load_cache("K_current") and load_cache("K_refexp_laundry"))
+        if not args.no_cache:
+            kc = load_cache("K_current")
+            kr = load_cache("K_refexp_laundry")
+        else:
+            kc = kr = None
+        if kc is not None and kr is not None:
+            all_res["K_current"]        = kc
+            all_res["K_refexp_laundry"] = kr
+        else:
+            k = run_kosmos(all_frames)
+            all_res["K_current"]        = k["K_current"]
+            all_res["K_refexp_laundry"] = k["K_refexp_laundry"]
+            save_cache("K_current",        all_res["K_current"])
+            save_cache("K_refexp_laundry", all_res["K_refexp_laundry"])
 
     if "owlv2" in args.models:
-        all_res["O_laundry"] = run_owlv2(all_frames)
+        cached = None if args.no_cache else load_cache("O_laundry")
+        if cached is not None:
+            all_res["O_laundry"] = cached
+        else:
+            all_res["O_laundry"] = run_owlv2(all_frames)
+            save_cache("O_laundry", all_res["O_laundry"])
 
     if "paligemma" in args.models:
-        all_res["PG"] = run_paligemma(all_frames)
+        cached = None if args.no_cache else load_cache("PG")
+        if cached is not None:
+            all_res["PG"] = cached
+        else:
+            all_res["PG"] = run_paligemma(all_frames, res=448)
+            save_cache("PG", all_res["PG"])
+
+    if "paligemma224" in args.models:
+        cached = None if args.no_cache else load_cache("PG224")
+        if cached is not None:
+            all_res["PG224"] = cached
+        else:
+            all_res["PG224"] = run_paligemma(all_frames, res=224)
+            save_cache("PG224", all_res["PG224"])
 
     if "florence" in args.models:
-        all_res["Florence2"] = run_florence(all_frames)
+        cached = None if args.no_cache else load_cache("Florence2")
+        if cached is not None:
+            all_res["Florence2"] = cached
+        else:
+            all_res["Florence2"] = run_florence(all_frames)
+            save_cache("Florence2", all_res["Florence2"])
 
     # 썸네일 생성 + 메타
     print("\n[썸네일] 생성 중...")
