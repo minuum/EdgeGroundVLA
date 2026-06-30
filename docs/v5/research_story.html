@@ -12324,6 +12324,30 @@ graph TD
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">51-0. 줌크롭 구체적 구현 (<code>regroun_zoom_small.py:zoom_crop()</code>)</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
+      <pre style="background:#0a0f1a;padding:12px;border-radius:6px;font-size:0.78rem;overflow-x:auto;margin:0 0 10px 0">def zoom_crop(img, cx, cy, zoom=2.0):
+    H, W = img.shape[:2]
+    cw, ch = W / zoom, H / zoom          # 크롭 크기 = 원본의 50%
+    x0 = clip(cx*W - cw/2, 0, W-cw)     # anchor 기준 중앙 정렬, 경계 클리핑
+    y0 = clip(cy*H - ch/2, 0, H-ch)
+    crop = img[y0:y0+ch, x0:x0+cw]      # 실제 크롭
+    return crop, x0, y0, cw, ch, W, H   # 역변환용 좌표 반환</pre>
+      <strong>동작 순서:</strong>
+      <ol style="margin:6px 0 0 18px;line-height:2">
+        <li>anchor 결정 — 이전 프레임 cx,cy (첫 프레임이면 0.5, 0.5 중앙)</li>
+        <li>anchor 중심으로 원본 이미지의 <strong>50% 영역(zoom=2.0)</strong>을 크롭</li>
+        <li>크롭 이미지로 PG2 재실행 → bbox 검출</li>
+        <li>bbox 좌표를 원본 해상도 기준으로 역변환 (<code>remap_zoom_bbox()</code>)</li>
+        <li>역변환 결과로 area/cx/cy 교체</li>
+      </ol>
+      <div style="margin-top:8px;padding:8px 12px;background:#0c1a2a;border-left:3px solid #3b82f6;border-radius:4px;font-size:0.82rem;color:#93c5fd">
+        직관: "anchor 근처 50% 영역만 잘라서 2배 확대된 시야로 PG2에게 다시 보여주면 더 크고 정확한 bbox를 그릴 것"
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1530,#0c1a35);border-color:#1e40af;margin-bottom:24px">
     <div class="finding-title" style="color:#7dd3fc">51-1. CH50과의 차이 — 학습 데이터 전체가 아니라 런타임 첫 5프레임 한정</div>
     <div class="finding-body">
       CH50(50-3에서 노이즈로 정정됨)은 <strong>학습 데이터셋 전체</strong>(area&lt;0.05, 36.2%)를 영구
