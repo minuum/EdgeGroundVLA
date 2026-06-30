@@ -122,6 +122,21 @@ PATH_TARGETS = {
     "dist_30cm":  10,
 }
 GOAL_SUCCESS_TARGET = 7  # 논문 기준 (경로 검증)
+
+def make_progress_bar_html(current_ep, target_ep=131):
+    pct = min(100.0, max(0.0, (current_ep / target_ep) * 100))
+    return f"""
+    <div style="margin: 4px 0 12px 0; font-family: sans-serif;">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8b949e; margin-bottom: 5px;">
+        <span style="font-weight: 500;">📊 에피소드 누적 수집율 (전체 목표 {target_ep} ep)</span>
+        <span style="font-weight: bold; color: #58a6ff;">{pct:.1f}% ({current_ep}/{target_ep} ep)</span>
+      </div>
+      <div style="width: 100%; background-color: #21262d; border: 1px solid #30363d; height: 10px; border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);">
+        <div style="width: {pct:.1f}%; height: 100%; background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%); border-radius: 4px; transition: width 0.4s ease;"></div>
+      </div>
+    </div>
+    """
+
 # 그룹 구분선 — 집계 테이블 렌더링 시 섹션 헤더 삽입
 _PATH_GROUPS = [
     ("── 오브젝트 위치별 ──────────",
@@ -2766,17 +2781,10 @@ with gr.Blocks(
 
           # ── Col 2 (scale=1): 경로표 + 기록 ───────────────────────────
           with gr.Column(scale=1, min_width=330):
-            with gr.Accordion("📋 경로 다이어그램", open=False):
-              gr.Markdown(
-                  "```\n"
-                  " ▦      ▦      ▦\n"
-                  "╱│╲    ╱│╲    ╱│╲\n"
-                  "L S R  C S L  R S L\n"
-                  " 🤖L    🤖C    🤖R\n"
-                  "```\n"
-                  "L=left, C=center, R=right 시작위치\n"
-                  "방향: L(좌)/S(직)/R(우)  ★=right\\_left 우선"
-              )
+            progress_bar_html = gr.HTML(
+                value=make_progress_bar_html(len(_preloaded_rows_early)),
+                elem_id="t4-progress-bar"
+            )
             progress_test = gr.Textbox(
                 label="진행률", value=_preloaded_prog,
                 interactive=False, max_lines=1, elem_id="t4-progress",
@@ -2862,6 +2870,18 @@ with gr.Blocks(
                   btn_start_test  = gr.Button("▶️ START", variant="primary",   scale=1)
                   btn_stop_test   = gr.Button("⏹️ STOP",  variant="stop",      scale=1)
                   btn_return_test = gr.Button("🔄 복귀",  variant="secondary", scale=1)
+
+            with gr.Accordion("📋 경로 다이어그램", open=False):
+              gr.Markdown(
+                  "```\n"
+                  " ▦      ▦      ▦\n"
+                  "╱│╲    ╱│╲    ╱│╲\n"
+                  "L S R  C S L  R S L\n"
+                  " 🤖L    🤖C    🤖R\n"
+                  "```\n"
+                  "L=left, C=center, R=right 시작위치\n"
+                  "방향: L(좌)/S(직)/R(우)  ★=right\\_left 우선"
+              )
 
             def on_mode_change_test(selected_mode):
                 return gr.update(visible=selected_mode == "Inference (Auto)")
@@ -3666,6 +3686,7 @@ with gr.Blocks(
             w.writerow(_EP_HEADERS)
             w.writerows(rows)
 
+
     def _build_summary(log_list):
         """log_list → (prog_str, path_summary_rows with group headers). 공통 로직."""
         done_total = {k: 0 for k in PATH_TYPES}
@@ -3704,7 +3725,7 @@ with gr.Blocks(
         for i, r in enumerate(rows):
             r[0] = i + 1
         prog, tbl = _build_summary(rows)
-        return rows, rows, prog, tbl
+        return rows, rows, prog, tbl, make_progress_bar_html(len(rows))
 
     def log_episode(path_type, success, fpe, note, log_list):
         import requests as _req
@@ -3748,7 +3769,7 @@ with gr.Blocks(
         _append_episode_csv(row)
         log_list = log_list + [row]
         prog, tbl = _build_summary(log_list)
-        return log_list, log_list, prog, tbl
+        return log_list, log_list, prog, tbl, make_progress_bar_html(len(log_list))
 
     # FPE 프리셋 버튼 핸들러
     for _fb, _fv in zip(_fpe_b, [0.0, 0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3, 0.5]):
@@ -3775,7 +3796,7 @@ with gr.Blocks(
     btn_log_episode.click(
         fn=log_episode,
         inputs=[path_type_test, success_test, fpe_test, note_test, _episode_log_state],
-        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table, progress_bar_html],
     )
 
     def export_episode_log(log_list):
@@ -3791,13 +3812,13 @@ with gr.Blocks(
     btn_export_test.click(fn=export_episode_log, inputs=[_episode_log_state], outputs=export_status_test)
 
     def _refresh_and_reset_filter():
-        rows, rows2, prog, tbl = _init_episode_log()
-        return rows, rows2, prog, tbl, gr.update(value="전체"), gr.update(visible=False, value=None)
+        rows, rows2, prog, tbl, bar_html = _init_episode_log()
+        return rows, rows2, prog, tbl, bar_html, gr.update(value="전체"), gr.update(visible=False, value=None)
 
     btn_refresh_log.click(
         fn=_refresh_and_reset_filter,
         outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table,
-                 ep_view_radio, outlier_panel],
+                 progress_bar_html, ep_view_radio, outlier_panel],
     )
 
     # ── 에피소드 수정 ─────────────────────────────────────────────────────
@@ -3931,23 +3952,23 @@ with gr.Blocks(
             r[0] = i + 1
         _overwrite_episode_csv(new_list)
         prog, tbl = _build_summary(new_list)
-        return new_list, new_list, prog, tbl
+        return new_list, new_list, prog, tbl, make_progress_bar_html(len(new_list))
 
     def clear_episodes(_log_list):
         if _EPISODE_CSV.exists():
             _EPISODE_CSV.unlink()
         prog, tbl = _build_summary([])
-        return [], [], prog, tbl
+        return [], [], prog, tbl, make_progress_bar_html(0)
 
     btn_undo_episode.click(
         fn=undo_episode,
         inputs=[_episode_log_state],
-        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table, progress_bar_html],
     )
     btn_clear_episode.click(
         fn=clear_episodes,
         inputs=[_episode_log_state],
-        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table, progress_bar_html],
         js="""
         (log_list) => {
             if (!confirm("⚠️ 정말로 모든 에피소드 기록(CSV 파일)을 영구 삭제하시겠습니까?\\n이 작업은 되돌릴 수 없으며 복구가 불가능합니다.")) {
@@ -3961,7 +3982,7 @@ with gr.Blocks(
     # 페이지 열릴 때 과거 기록 복원
     demo.load(
         fn=_init_episode_log,
-        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+        outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table, progress_bar_html],
     )
 
     # ── 이상치 분류 필터 ────────────────────────────────────────────────────
