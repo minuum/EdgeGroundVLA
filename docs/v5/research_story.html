@@ -306,7 +306,7 @@
     <a class="toc-item" href="#ch48" data-target="ch48"><span class="toc-badge" style="background:rgba(125,211,252,0.15);color:#7dd3fc">CH 48</span><span class="toc-label">Grounding Hub "base PG2" 모델 일치성 검증</span><span class="toc-cat cat-cmp">비교</span></a>
     <a class="toc-item" href="#ch49" data-target="ch49"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 49</span><span class="toc-label">skip_n=3 재검증 + 실세션 실측 — 메인 디폴트 확정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch50" data-target="ch50"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 50</span><span class="toc-label">작은 객체 줌 재그라운딩 — 5-seed 검증 결과 단일런 노이즈로 정정</span><span class="toc-cat cat-fix">정정</span></a>
-    <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 51</span><span class="toc-label">에피소드 초반 N프레임 줌크롭 — n=737 ablation, 도움 안 됨 확정</span><span class="toc-cat cat-fix">정정</span></a>
+    <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 51</span><span class="toc-label">줌크롭 ablation — Anchor방식 ❌ / Center크롭 ✅ 59%개선 (2026-06-30 추가)</span><span class="toc-cat cat-exp" style="background:rgba(74,222,128,0.15);color:#4ade80">업데이트</span></a>
     <a class="toc-item" href="#ch52" data-target="ch52"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 52</span><span class="toc-label">path_type별 분리 평가 — SR 포화, replace가 FPE 40% 개선</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch53" data-target="ch53"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 53</span><span class="toc-label">6/24·6/26 실세션 + v5_2 의자 타겟 신규 데이터셋 분석</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
@@ -12411,14 +12411,43 @@ graph TD
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#1c0a05,#20100a);border-color:#9a3412;margin-bottom:24px">
-    <div class="finding-title" style="color:#fb923c">51-4. 결정 — 운영 코드 반영하지 않음(확정)</div>
+    <div class="finding-title" style="color:#fb923c">51-4. 결정 — <strong>Anchor 방식</strong> 운영 코드 반영 안 함. Center 크롭은 유효 (2026-06-30 추가)</div>
     <div class="finding-body">
-      n=737, 3개 독립 소스, CH50의 다운스트림 결론과도 일치 — <strong style="color:#7dd3fc">에피소드
-      초반 N프레임 줌크롭 재시도는 운영 코드(<code>stage2_v2_inference_server.py</code> predict())에
-      반영하지 않는다.</strong> "맨 처음이 너무 멀어서 안 될 때도 있다"는 체감 보고 자체는 유효하지만
-      (실측 area 0.03~0.09대 다수 확인, <a href="#ch51" style="color:#7dd3fc">51-1</a>), 이 ablation이
-      시사하는 건 <strong>"줌 크롭 재시도"가 그 해법이 아니라는 것</strong> — 다른 접근(예: 첫 프레임
-      진입 전 짧은 정렬/접근 단계, 또는 STOP 캘리브레이션처럼 별도 트랙)이 필요할 수 있음, 별도 논의.
+      n=737 ablation 결론은 <strong>"이전 프레임 bbox를 anchor로 삼는 줌크롭"이 도움 안 됨</strong>으로 확정.
+      단, 2026-06-30 추가 실험에서 <strong style="color:#4ade80">anchor를 항상 이미지 정중앙(0.5, 0.5)으로 고정하면 결과가 완전히 반전됨</strong>을 발견:
+      <div style="overflow-x:auto;margin:10px 0">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155">
+            <th style="padding:6px;text-align:left;color:#7dd3fc">방식</th>
+            <th style="padding:6px;color:#7dd3fc">표본</th>
+            <th style="padding:6px;color:#7dd3fc">개선율</th>
+            <th style="padding:6px;color:#7dd3fc">has_bbox 살린 건수</th>
+            <th style="padding:6px;color:#7dd3fc">평균 Δarea</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px;color:#f87171">이전 anchor (prev_cx,cy)</td>
+              <td style="padding:6px;text-align:center">737</td>
+              <td style="padding:6px;text-align:center;color:#f87171">11%</td>
+              <td style="padding:6px;text-align:center;color:#f87171">0건</td>
+              <td style="padding:6px;text-align:center;color:#f87171">-0.0025</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;color:#4ade80;font-weight:700">Center 크롭 (고정 중앙)</td>
+              <td style="padding:6px;text-align:center">54</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">59.3%</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">20건</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">+0.0093</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <strong>원인 해석:</strong> anchor 방식은 이전 프레임 bbox가 틀렸을 때 오염된 위치를 증폭시킴.
+      center 크롭은 바스켓이 항상 화면 중앙 근처에 있다는 실주행 조건과 일치해 안정적.
+      특히 <strong style="color:#fbbf24">frame 0 (has_bbox=False) 살린 건수 20건</strong> — anchor 방식 0건 대비 결정적 차이.
+      <div style="margin-top:10px;padding:8px 12px;background:#0a1a12;border-left:3px solid #16a34a;border-radius:4px;font-size:0.82rem;color:#86efac">
+        → <strong>Center 크롭 방식 운영 코드 반영 검토 중.</strong> 기존 anchor 방식 코드는 반영 안 함.
+      </div>
     </div>
   </div>
 
