@@ -315,6 +315,7 @@
     <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Grounding 실패 → CH54 Preview 폴백으로 해결 ✅ 검증</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
     <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — PG2 최선 확인, 新프리뷰 모델 탐색 진행 중</span><span class="toc-cat cat-exp" style="background:rgba(167,139,250,0.15);color:#a78bfa">완료+진행중</span></a>
     <a class="toc-item" href="#ch59" data-target="ch59"><span class="toc-badge" style="background:rgba(34,211,238,0.15);color:#22d3ee">CH 59</span><span class="toc-label">5-Model 셀프라벨링 평가 — Kr/PG448 99.1%, soda PG224↔448 검출률 격차 확인</span><span class="toc-cat cat-exp" style="background:rgba(34,211,238,0.15);color:#22d3ee">분석</span></a>
+    <a class="toc-item" href="#ch60" data-target="ch60"><span class="toc-badge" style="background:rgba(52,211,153,0.15);color:#34d399">CH 60</span><span class="toc-label">Action Head Ablation — PG448 재어노테이션 + Transformer/cx-Geom 헤드 비교 (exp67/71/72)</span><span class="toc-cat cat-exp" style="background:rgba(52,211,153,0.15);color:#34d399">ablation</span></a>
     <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — Grounding 정량 평가 & Kc fallback 문제 발견</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
@@ -13770,6 +13771,157 @@ graph TD
   </div>
 </div>
 <!-- ══════════ /meeting-0630 ══════════ -->
+
+<!-- ══════════════════════════════════════════════════════ CH60 ═ -->
+<div class="chapter" id="ch60">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 60</span>
+    <h2 class="chapter-title">Action Head Ablation — PG448 재어노테이션 + Transformer / cx-Geom 헤드 비교</h2>
+    <p class="chapter-subtitle">exp67(MLP) · exp71(Transformer) · exp72(cx-Geom) 3종 헤드를 PG448 어노테이션 기반으로 학습·CL 평가 (2026-07-01)</p>
+  </div>
+
+  <!-- 60-1 배경 -->
+  <div class="finding-card">
+    <div class="finding-title">60-1. 배경 — 왜 헤드 ablation인가</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      CH59에서 PG448 검출률이 99.8%(vs PG224 95.9%)임을 확인했다. 그러나 기존 Stage2 MLP(exp65/66)는 <strong style="color:#e2e8f0">PG224 어노테이션으로 학습</strong>된 상태였다 — 학습/추론 분포 불일치가 잠재적 병목.<br><br>
+      동시에, 이산 액션 공간에서 <strong style="color:#e2e8f0">히스토리를 flat-concat하는 MLP가 최선인지</strong>도 불명확했다.
+      시간적 순서(Transformer)나 현재 기하 정보의 명시적 분리(cx-Geom)가 더 유리할 수 있다는 가설을 검증한다.
+    </div>
+  </div>
+
+  <!-- 60-2 실험 설계 -->
+  <div class="finding-card">
+    <div class="finding-title">60-2. 실험 설계</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">공통 조건:</strong> FrozenCLIPV2 (Kosmos-2 vision encoder, 256-dim), WINDOW=8, PG448 어노테이션(<code>bbox_dataset_pg448_cx.json</code>, 2567/2572=99.8% 검출).<br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155">
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">실험</th>
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">헤드 구조</th>
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">아이디어</th>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp67</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">MLP flat FC 4-layer (288→256→128→64→8)</td>
+          <td style="padding:6px 10px;color:#94a3b8">exp66 구조 + PG448 어노테이션 교체</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp71</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">TransformerEncoder (d=260, nhead=4, 2층) + CLS token</td>
+          <td style="padding:6px 10px;color:#94a3b8">히스토리를 시퀀스로 처리 → 순서·attention 활용</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp72</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">2-branch: temporal(288→128) + geom(4→32) → merge(160→64→8)</td>
+          <td style="padding:6px 10px;color:#94a3b8">현재 프레임 cx/cy를 별도 기하 경로로 명시적 주입</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 60-3 cx-rule 효과 -->
+  <div class="finding-card">
+    <div class="finding-title">60-3. cx-rule 기하학 오버라이드 — 효과 없음</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      이산 액션 경계에서 방향 전환이 늦는 경우를 개선하기 위해 <strong style="color:#e2e8f0">cx-rule</strong>을 도입했다: bbox 중심 cx 값으로 모델 출력을 강제 오버라이드하는 룰.<br><br>
+      <code>cx &lt; 0.25 → ROT_L · &lt;0.40 → FWD+L · ≤0.60 → FORWARD · ≤0.75 → FWD+R · &gt;0.75 → ROT_R</code><br><br>
+      <strong style="color:#f87171">결과: exp67(PG448 MLP) + cx-rule → CL SR 100% → 50%, FPE 0.02m → 0.41m 악화.</strong><br>
+      MLP가 이미 cx를 히스토리 내부에서 잘 처리하고 있는 상태에서 룰이 오버라이드하면 오히려 방해가 된다.
+      <code>VLA_CX_RULE</code> 기본값 off 유지.
+    </div>
+  </div>
+
+  <!-- 60-4 CL 결과 표 -->
+  <div class="finding-card">
+    <div class="finding-title">60-4. Action Head Ablation 결과</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155">
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">실험</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">어노테이션</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">val_acc</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">CL SR</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">CL FPE</th>
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">비고</th>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">exp65 (MLP)</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">PG224</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">96.6%</td>
+          <td style="padding:6px 10px;text-align:center;color:#f87171">0%</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">—</td>
+          <td style="padding:6px 10px;color:#94a3b8">PG224 검출 실패로 collapse</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp67</strong> (MLP)</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#e2e8f0">96.8%</td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80"><strong>100%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80">0.02m</td>
+          <td style="padding:6px 10px;color:#94a3b8">PG448 교체만으로 CL 완전 회복</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b;background:rgba(52,211,153,0.05)">
+          <td style="padding:6px 10px;color:#34d399"><strong>exp71</strong> (Transformer) ⭐</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399"><strong>97.6%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80"><strong>100%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399"><strong>0.00m</strong></td>
+          <td style="padding:6px 10px;color:#34d399">val_acc+FPE 모두 best</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp72</strong> (cx-Geom)</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#e2e8f0">96.8%</td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80"><strong>100%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399"><strong>0.00m</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">FPE=0.00m, 구조 단순해 soda 배포 유리</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#f87171">exp67 + cx-rule</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">—</td>
+          <td style="padding:6px 10px;text-align:center;color:#f87171">50% ↓↓</td>
+          <td style="padding:6px 10px;text-align:center;color:#f87171">0.41m ↑↑</td>
+          <td style="padding:6px 10px;color:#f87171">룰 오버라이드 역효과</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 60-5 발견 -->
+  <div class="finding-card">
+    <div class="finding-title">60-5. 핵심 발견 요약</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#f59e0b">① 어노테이션 품질이 헤드 구조보다 결정적이다.</strong><br>
+      PG224(95.9%) → PG448(99.8%)으로 교체만으로 CL SR 0% → 100%로 회복. 헤드 설계 전에 데이터 품질 병목 해소가 선행되어야 함.<br><br>
+      <strong style="color:#34d399">② Transformer 헤드(exp71)가 val_acc·FPE 모두 최고.</strong><br>
+      히스토리를 시퀀스로 처리 + CLS attention → val_acc +0.8%p, FPE 0.00m 완전 수렴. 8/8 CL 에피소드 전승.<br><br>
+      <strong style="color:#94a3b8">③ cx-Geom(exp72)도 FPE 0.00m — 단순한 기하 prior도 충분히 유효.</strong><br>
+      TransformerEncoder 없이도 현재 프레임 cx를 명시적 경로로 주입하면 MLP 대비 동등한 CL 정확도를 달성.<br><br>
+      <strong style="color:#f87171">④ cx-rule 룰 오버라이드는 역효과.</strong><br>
+      학습된 MLP가 이미 cx를 내재화한 상황에서 외부 룰이 간섭 → SR 반토막. 제거하고 <code>VLA_CX_RULE=0</code> 유지.
+    </div>
+  </div>
+
+  <!-- 60-6 다음 -->
+  <div class="finding-card">
+    <div class="finding-title">60-6. 다음 단계</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      1. <strong>soda 실주행 CL</strong> — exp71(Transformer) 또는 exp72(cx-Geom) 체크포인트를 soda에 배포해 실환경 SR 측정.<br>
+      2. <strong>데이터 추가 수집</strong> — center/left/right 각 20개씩 → exp71 재학습 + 통계 강화.<br>
+      3. <strong>Phase E(논문)</strong> — decomposition + PG448 grounding + Transformer head 구조를 modular VLM 프레임워크로 정리.
+    </div>
+  </div>
+
+  <div style="font-size:0.72rem;color:#475569;margin-top:12px;padding-top:8px;border-top:1px solid #1e293b">
+    exp67: <code>runs/v5_nav/mlp/exp67/action_mlp.pt</code> &nbsp;|&nbsp;
+    exp71: <code>runs/v5_nav/mlp/exp71/action_transformer.pt</code> &nbsp;|&nbsp;
+    exp72: <code>runs/v5_nav/mlp/exp72/action_cxgeom.pt</code> &nbsp;|&nbsp;
+    어노테이션: <code>docs/v5/bbox_frame_level/bbox_dataset_pg448_cx.json</code> &nbsp;|&nbsp; 2026-07-01
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH60 ═ -->
 
 <hr class="chapter-divider">
 

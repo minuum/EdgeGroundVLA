@@ -3,15 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>V5 Closed-Loop Simulation (Phase 1)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  body { font-family:'Noto Sans KR',-apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }
   h1 { font-size: 2rem; margin-bottom: 8px; }
   .sub { color: #94a3b8; margin-bottom: 24px; max-width: 900px; line-height: 1.6; }
   .back { color: #60a5fa; text-decoration: none; display: inline-block; margin-bottom: 16px; }
-  .grid { display: grid; grid-template-columns: repeat(14, 1fr); gap: 16px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(41, 1fr); gap: 16px; margin-bottom: 20px; }
   .box { background: #1e293b; padding: 16px 20px; border-radius: 10px; }
   .num { font-size: 2.5rem; font-weight: 800; }
   table { border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; width: 100%; margin-top: 16px; }
@@ -31,10 +28,10 @@
   <div class="grid">
     <div class="box">
       <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">step2</div>
-      <div class="num" style="color:#22c55e;">66.7%</div>
+      <div class="num" style="color:#22c55e;">50.0%</div>
       <div style="color:#64748b;">success rate</div>
       <div style="margin-top:8px; font-size:0.85rem;">
-        FPE: 0.55m &nbsp; TLD: 1.03
+        FPE: 0.70m &nbsp; TLD: 0.93
       </div>
     </div>
     <div class="box">
@@ -111,10 +108,10 @@
     </div>
     <div class="box">
       <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp54_s2v2</div>
-      <div class="num" style="color:#94a3b8;">96.7%</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
       <div style="color:#64748b;">success rate</div>
       <div style="margin-top:8px; font-size:0.85rem;">
-        FPE: 0.11m &nbsp; TLD: 1.01
+        FPE: 0.10m &nbsp; TLD: 1.01
       </div>
     </div>
     <div class="box">
@@ -141,12 +138,228 @@
         FPE: 0.13m &nbsp; TLD: 0.99
       </div>
     </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp65_base</div>
+      <div class="num" style="color:#94a3b8;">0.0%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 1.56m &nbsp; TLD: 1.24
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp60_exp59</div>
+      <div class="num" style="color:#94a3b8;">62.1%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.47m &nbsp; TLD: 1.04
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp54_hsv</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.11m &nbsp; TLD: 1.01
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp65b_base243</div>
+      <div class="num" style="color:#94a3b8;">10.3%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.94m &nbsp; TLD: 0.93
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp66_basepg2_aug</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.10m &nbsp; TLD: 1.01
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp67_exp59_aug</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.11m &nbsp; TLD: 1.00
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">chair_pg2_aug_cl</div>
+      <div class="num" style="color:#94a3b8;">57.1%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.87m &nbsp; TLD: 1.02
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp68_linear</div>
+      <div class="num" style="color:#94a3b8;">69.0%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.38m &nbsp; TLD: 1.00
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp69_fc</div>
+      <div class="num" style="color:#94a3b8;">93.1%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.11m &nbsp; TLD: 0.99
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp70_lstm</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.11m &nbsp; TLD: 0.99
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">lstm_w4</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.12m &nbsp; TLD: 0.99
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">lstm_w16</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.08m &nbsp; TLD: 0.99
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp66_base150</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.10m &nbsp; TLD: 1.01
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">balanced174_pg2</div>
+      <div class="num" style="color:#94a3b8;">82.4%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.31m &nbsp; TLD: 1.00
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">all243_pg2</div>
+      <div class="num" style="color:#94a3b8;">93.8%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.25m &nbsp; TLD: 1.01
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">sw1x</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.25m &nbsp; TLD: 0.96
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">sw2x</div>
+      <div class="num" style="color:#94a3b8;">89.7%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.26m &nbsp; TLD: 0.96
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">sw5x</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.26m &nbsp; TLD: 0.96
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">sw10x</div>
+      <div class="num" style="color:#94a3b8;">89.7%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.26m &nbsp; TLD: 0.98
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">baseline_v0_stop_aware</div>
+      <div class="num" style="color:#94a3b8;">79.3%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.26m &nbsp; TLD: 0.99
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">sw5x_stop_aware</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.26m &nbsp; TLD: 0.96
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">N1</div>
+      <div class="num" style="color:#94a3b8;">96.6%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.26m &nbsp; TLD: 0.96
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">N3</div>
+      <div class="num" style="color:#94a3b8;">41.4%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.61m &nbsp; TLD: 0.87
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">N5</div>
+      <div class="num" style="color:#94a3b8;">13.8%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.76m &nbsp; TLD: 0.82
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">N10</div>
+      <div class="num" style="color:#94a3b8;">0.0%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 1.30m &nbsp; TLD: 0.43
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp71</div>
+      <div class="num" style="color:#94a3b8;">100.0%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.00m &nbsp; TLD: 1.00
+      </div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">exp72</div>
+      <div class="num" style="color:#94a3b8;">100.0%</div>
+      <div style="color:#64748b;">success rate</div>
+      <div style="margin-top:8px; font-size:0.85rem;">
+        FPE: 0.00m &nbsp; TLD: 1.00
+      </div>
+    </div>
   </div>
 
   <h2>Per Path Type</h2>
   <table>
-    <tr><th>Path Type</th><th style='color:#22c55e'>step2 success</th><th style='color:#22c55e'>step2 FPE</th><th style='color:#60a5fa'>exp11 success</th><th style='color:#60a5fa'>exp11 FPE</th><th style='color:#fff'>step3 success</th><th style='color:#fff'>step3 FPE</th><th style='color:#fff'>exp17 success</th><th style='color:#fff'>exp17 FPE</th><th style='color:#fff'>exp18 success</th><th style='color:#fff'>exp18 FPE</th><th style='color:#fff'>exp19 success</th><th style='color:#fff'>exp19 FPE</th><th style='color:#fff'>exp49 success</th><th style='color:#fff'>exp49 FPE</th><th style='color:#fff'>exp50 success</th><th style='color:#fff'>exp50 FPE</th><th style='color:#fff'>exp51 success</th><th style='color:#fff'>exp51 FPE</th><th style='color:#fff'>exp52 success</th><th style='color:#fff'>exp52 FPE</th><th style='color:#fff'>exp54_s2v2 success</th><th style='color:#fff'>exp54_s2v2 FPE</th><th style='color:#fff'>exp55 success</th><th style='color:#fff'>exp55 FPE</th><th style='color:#fff'>exp54_s2v2_free success</th><th style='color:#fff'>exp54_s2v2_free FPE</th><th style='color:#fff'>exp53 success</th><th style='color:#fff'>exp53 FPE</th></tr>
-    <tr><td>center_straight</td><td style='color:#ef4444'>0% (0/1)</td><td>0.95m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.72m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.29m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.61m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.61m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.33m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.10m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.25m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.22m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.13m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.15m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.18m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (4/4)</td><td>0.09m</td></tr><tr><td>center_left</td><td style='color:#22c55e'>100% (1/1)</td><td>0.36m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.85m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.74m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.70m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.70m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.23m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.38m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.28m</td></tr><tr><td>center_right</td><td style='color:#22c55e'>100% (1/1)</td><td>0.23m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.14m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.52m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.46m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.46m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.49m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.42m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td></tr><tr><td>left_straight</td><td style='color:#22c55e'>100% (1/1)</td><td>0.23m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.19m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.21m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.82m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.82m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.46m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.05m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.06m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td></tr><tr><td>left_left</td><td style='color:#22c55e'>100% (1/1)</td><td>0.21m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.80m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.53m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.22m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.22m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.85m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.16m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.16m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td></tr><tr><td>left_right</td><td style='color:#22c55e'>100% (1/1)</td><td>0.38m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.18m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.50m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.98m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.98m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.63m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.12m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.47m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.20m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.12m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.24m</td></tr><tr><td>right_straight</td><td style='color:#22c55e'>100% (1/1)</td><td>0.34m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.26m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.25m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.12m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.12m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.23m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.03m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.09m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td></tr><tr><td>right_left</td><td style='color:#ef4444'>0% (0/1)</td><td>0.52m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.91m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.85m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.17m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.17m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.73m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.32m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.23m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.12m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td></tr><tr><td>right_right</td><td style='color:#ef4444'>0% (0/1)</td><td>1.77m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.03m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.79m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.31m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.31m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.60m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.32m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.69m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.39m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.42m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.39m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.42m</td><td>—</td><td>—</td><td style='color:#22c55e'>67% (2/3)</td><td>0.39m</td></tr>
+    <tr><th>Path Type</th><th style='color:#22c55e'>step2 success</th><th style='color:#22c55e'>step2 FPE</th><th style='color:#60a5fa'>exp11 success</th><th style='color:#60a5fa'>exp11 FPE</th><th style='color:#fff'>step3 success</th><th style='color:#fff'>step3 FPE</th><th style='color:#fff'>exp17 success</th><th style='color:#fff'>exp17 FPE</th><th style='color:#fff'>exp18 success</th><th style='color:#fff'>exp18 FPE</th><th style='color:#fff'>exp19 success</th><th style='color:#fff'>exp19 FPE</th><th style='color:#fff'>exp49 success</th><th style='color:#fff'>exp49 FPE</th><th style='color:#fff'>exp50 success</th><th style='color:#fff'>exp50 FPE</th><th style='color:#fff'>exp51 success</th><th style='color:#fff'>exp51 FPE</th><th style='color:#fff'>exp52 success</th><th style='color:#fff'>exp52 FPE</th><th style='color:#fff'>exp54_s2v2 success</th><th style='color:#fff'>exp54_s2v2 FPE</th><th style='color:#fff'>exp55 success</th><th style='color:#fff'>exp55 FPE</th><th style='color:#fff'>exp54_s2v2_free success</th><th style='color:#fff'>exp54_s2v2_free FPE</th><th style='color:#fff'>exp53 success</th><th style='color:#fff'>exp53 FPE</th><th style='color:#fff'>exp65_base success</th><th style='color:#fff'>exp65_base FPE</th><th style='color:#fff'>exp60_exp59 success</th><th style='color:#fff'>exp60_exp59 FPE</th><th style='color:#fff'>exp54_hsv success</th><th style='color:#fff'>exp54_hsv FPE</th><th style='color:#fff'>exp65b_base243 success</th><th style='color:#fff'>exp65b_base243 FPE</th><th style='color:#fff'>exp66_basepg2_aug success</th><th style='color:#fff'>exp66_basepg2_aug FPE</th><th style='color:#fff'>exp67_exp59_aug success</th><th style='color:#fff'>exp67_exp59_aug FPE</th><th style='color:#fff'>chair_pg2_aug_cl success</th><th style='color:#fff'>chair_pg2_aug_cl FPE</th><th style='color:#fff'>exp68_linear success</th><th style='color:#fff'>exp68_linear FPE</th><th style='color:#fff'>exp69_fc success</th><th style='color:#fff'>exp69_fc FPE</th><th style='color:#fff'>exp70_lstm success</th><th style='color:#fff'>exp70_lstm FPE</th><th style='color:#fff'>lstm_w4 success</th><th style='color:#fff'>lstm_w4 FPE</th><th style='color:#fff'>lstm_w16 success</th><th style='color:#fff'>lstm_w16 FPE</th><th style='color:#fff'>exp66_base150 success</th><th style='color:#fff'>exp66_base150 FPE</th><th style='color:#fff'>balanced174_pg2 success</th><th style='color:#fff'>balanced174_pg2 FPE</th><th style='color:#fff'>all243_pg2 success</th><th style='color:#fff'>all243_pg2 FPE</th><th style='color:#fff'>sw1x success</th><th style='color:#fff'>sw1x FPE</th><th style='color:#fff'>sw2x success</th><th style='color:#fff'>sw2x FPE</th><th style='color:#fff'>sw5x success</th><th style='color:#fff'>sw5x FPE</th><th style='color:#fff'>sw10x success</th><th style='color:#fff'>sw10x FPE</th><th style='color:#fff'>baseline_v0_stop_aware success</th><th style='color:#fff'>baseline_v0_stop_aware FPE</th><th style='color:#fff'>sw5x_stop_aware success</th><th style='color:#fff'>sw5x_stop_aware FPE</th><th style='color:#fff'>N1 success</th><th style='color:#fff'>N1 FPE</th><th style='color:#fff'>N3 success</th><th style='color:#fff'>N3 FPE</th><th style='color:#fff'>N5 success</th><th style='color:#fff'>N5 FPE</th><th style='color:#fff'>N10 success</th><th style='color:#fff'>N10 FPE</th><th style='color:#fff'>exp71 success</th><th style='color:#fff'>exp71 FPE</th><th style='color:#fff'>exp72 success</th><th style='color:#fff'>exp72 FPE</th></tr>
+    <tr><td>center_straight</td><td style='color:#ef4444'>0% (0/1)</td><td>0.64m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.72m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.29m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.61m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.61m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.33m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.10m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.25m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.22m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.13m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.15m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.18m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (4/4)</td><td>0.09m</td><td style='color:#ef4444'>0% (0/4)</td><td>1.35m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.15m</td><td style='color:#ef4444'>0% (0/4)</td><td>1.20m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.19m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.27m</td><td style='color:#22c55e'>100% (2/2)</td><td>0.43m</td><td style='color:#22c55e'>50% (2/4)</td><td>0.43m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.18m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.08m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.08m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.12m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.19m</td><td style='color:#22c55e'>100% (5/5)</td><td>0.18m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.14m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.29m</td><td style='color:#22c55e'>50% (2/4)</td><td>0.39m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.33m</td><td style='color:#22c55e'>75% (3/4)</td><td>0.31m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.15m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.33m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.33m</td><td style='color:#ef4444'>0% (0/4)</td><td>0.98m</td><td style='color:#ef4444'>0% (0/4)</td><td>1.14m</td><td style='color:#ef4444'>0% (0/4)</td><td>1.33m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr><tr><td>center_left</td><td style='color:#ef4444'>0% (0/1)</td><td>1.63m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.85m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.74m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.70m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.70m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.23m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.38m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.28m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.35m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.40m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.21m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#ef4444'>0% (0/2)</td><td>1.09m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.54m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.09m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.35m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.35m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.26m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.33m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.24m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.84m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.96m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.37m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr><tr><td>center_right</td><td style='color:#22c55e'>100% (1/1)</td><td>0.35m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.14m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.52m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.46m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.46m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.49m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.42m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.92m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.55m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.38m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>67% (2/3)</td><td>1.02m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.46m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.16m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.16m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.26m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.26m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.26m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.26m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.37m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.65m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.21m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr><tr><td>left_straight</td><td>—</td><td>—</td><td style='color:#ef4444'>0% (0/1)</td><td>1.19m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.21m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.82m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.82m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.46m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.05m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.06m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.89m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.16m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.32m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.23m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.12m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.13m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.13m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.12m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.28m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.53m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.27m</td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr><td>left_left</td><td style='color:#ef4444'>0% (0/1)</td><td>1.24m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.80m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.53m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.22m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.22m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.85m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.16m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.88m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.38m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.16m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.83m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.31m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.13m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.27m</td><td style='color:#22c55e'>100% (5/5)</td><td>0.05m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.34m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.28m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.33m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.32m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.20m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.33m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.33m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.59m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.69m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.43m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr><tr><td>left_right</td><td style='color:#22c55e'>100% (1/1)</td><td>0.30m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.18m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.50m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.98m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.98m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.63m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.12m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.47m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.20m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.24m</td><td style='color:#ef4444'>0% (0/3)</td><td>2.15m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.31m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.74m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td>—</td><td>—</td><td style='color:#22c55e'>67% (2/3)</td><td>0.33m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.15m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.20m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.24m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.05m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (5/5)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.25m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.22m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.21m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.38m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.56m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.76m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.48m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr><tr><td>right_straight</td><td style='color:#22c55e'>100% (1/1)</td><td>0.23m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.26m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.25m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.12m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.12m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.23m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.09m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#ef4444'>0% (0/4)</td><td>1.42m</td><td style='color:#22c55e'>75% (3/4)</td><td>0.36m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.03m</td><td style='color:#ef4444'>0% (0/4)</td><td>0.71m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (4/4)</td><td>0.11m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.06m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.00m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.15m</td><td style='color:#22c55e'>100% (7/7)</td><td>0.13m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.18m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.22m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.25m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.21m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.09m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.25m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.25m</td><td style='color:#22c55e'>100% (4/4)</td><td>0.45m</td><td style='color:#fbbf24'>25% (1/4)</td><td>0.55m</td><td style='color:#ef4444'>0% (0/4)</td><td>1.30m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr><tr><td>right_left</td><td style='color:#22c55e'>100% (1/1)</td><td>0.49m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.91m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.85m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.17m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.17m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.73m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.32m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.23m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.12m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.04m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.03m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.31m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.81m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.09m</td><td>—</td><td>—</td><td style='color:#22c55e'>100% (3/3)</td><td>0.26m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.19m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.00m</td><td style='color:#22c55e'>100% (7/7)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.11m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.69m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.08m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.52m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.54m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.04m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr><tr><td>right_right</td><td style='color:#ef4444'>0% (0/1)</td><td>0.71m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.03m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.79m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.31m</td><td style='color:#ef4444'>0% (0/1)</td><td>1.31m</td><td style='color:#ef4444'>0% (0/1)</td><td>0.60m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.32m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.69m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.39m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.42m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.32m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.42m</td><td>—</td><td>—</td><td style='color:#22c55e'>67% (2/3)</td><td>0.39m</td><td style='color:#ef4444'>0% (0/3)</td><td>2.13m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.92m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.39m</td><td style='color:#22c55e'>100% (3/3)</td><td>0.38m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.27m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.36m</td><td>—</td><td>—</td><td style='color:#ef4444'>0% (0/3)</td><td>0.70m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.47m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.35m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.36m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.32m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.27m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.27m</td><td style='color:#22c55e'>100% (6/6)</td><td>0.19m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.51m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.52m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.54m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.61m</td><td style='color:#22c55e'>33% (1/3)</td><td>0.47m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.54m</td><td style='color:#22c55e'>67% (2/3)</td><td>0.54m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.88m</td><td style='color:#ef4444'>0% (0/3)</td><td>0.95m</td><td style='color:#ef4444'>0% (0/3)</td><td>1.31m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td><td style='color:#22c55e'>100% (1/1)</td><td>0.00m</td></tr>
   </table>
 
   <div class="diag">
