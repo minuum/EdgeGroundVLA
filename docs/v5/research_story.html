@@ -312,7 +312,8 @@
     <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
     <a class="toc-item" href="#ch55" data-target="ch55"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 55</span><span class="toc-label">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch56" data-target="ch56"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 56</span><span class="toc-label">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</span><span class="toc-cat cat-exp">실험</span></a>
-    <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Cold-Start → Grounding 100% 실패 — Stage 0 워밍업으로 해결</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
+    <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Grounding 실패 → CH54 Preview 폴백으로 해결 ✅ 검증</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
+    <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — Kosmos-2(6) + OWL-v2(5) 변형 × 39세션</span><span class="toc-cat" style="background:rgba(251,191,36,0.15);color:#fbbf24">진행중</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -13047,21 +13048,62 @@ graph TD
 <div class="chapter" id="ch57">
   <div class="chapter-header">
     <span class="chapter-num">CH 57</span>
-    <h2 class="chapter-title">Frame 0 Cold-Start → Grounding 100% 실패 확인 — Stage 0 워밍업으로 해결</h2>
-    <p class="chapter-subtitle">6/26 실주행 47세션 전수 조사: Frame 0에서 PG2 그라운딩이 100% 실패(has_bbox=False). 액션 오예측과 무관하며, 그라운딩 품질 자체가 핵심 이슈. Stage 0 워밍업 적용 후 검증 예정.</p>
+    <h2 class="chapter-title">Frame 0 Cold-Start → Grounding 100% 실패 — CH54 Preview로 폴백 처리 ✅ 검증 완료</h2>
+    <p class="chapter-subtitle">47세션 전수 조사 + 워밍업 적용 후 실검증(2026-06-30): Frame 0 그라운딩은 여전히 실패하나, CH54 Preview 모델이 폴백으로 커버. Frame 1부터 정상 동작.</p>
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1a12,#0c2417);border-color:#166534;margin-bottom:24px">
-    <div class="finding-title" style="color:#86efac">✅ 핵심 발견 — Frame 0 Grounding 100% 실패 (데이터 확인)</div>
+    <div class="finding-title" style="color:#86efac">✅ 실검증 완료 (2026-06-30, 세션 100316)</div>
     <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
-      6/26 실주행 47세션(+이전 날짜 포함) 전수 조사 결과, <strong style="color:#f87171">frame 0의 has_bbox=False가 100%</strong>:<br>
-      <ul style="margin:10px 0 0 18px;line-height:2">
-        <li>날짜 불문(6/18·6/22·6/24·6/26) 47세션 전부 frame 0 그라운딩 실패</li>
-        <li>Frame 1+: 98% has_bbox=True, latency 1,333~1,972ms (PG2 정상 동작)</li>
-        <li><strong>원인: PG2 콜드스타트</strong> — 첫 호출 시 GPU 초기화로 2,000~22,000ms 소요, 타임아웃 초과</li>
-        <li>Frame 0 액션(대부분 STOP)은 has_bbox=False → cx=0.5 default 값으로 MLP 추론한 결과</li>
+      Stage 0 워밍업 적용 후 실주행 세션 검증 결과:
+      <div style="overflow-x:auto;margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="border-bottom:1px solid #334155">
+            <th style="padding:6px;text-align:left;color:#7dd3fc">frame</th>
+            <th style="padding:6px;color:#7dd3fc">상태</th>
+            <th style="padding:6px;color:#7dd3fc">label</th>
+            <th style="padding:6px;color:#7dd3fc">has_bbox</th>
+            <th style="padding:6px;color:#7dd3fc">latency</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px">0</td>
+              <td style="padding:6px;color:#fbbf24">🔄 PREVIEW 1</td>
+              <td style="padding:6px;color:#fbbf24">ROT_R</td>
+              <td style="padding:6px;color:#f87171">False</td>
+              <td style="padding:6px">1,235ms</td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px">1</td>
+              <td style="padding:6px;color:#86efac">✅ normal</td>
+              <td style="padding:6px;color:#86efac">FORWARD</td>
+              <td style="padding:6px;color:#86efac">True</td>
+              <td style="padding:6px">3,102ms</td>
+            </tr>
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:6px">2</td>
+              <td style="padding:6px;color:#86efac">✅ normal</td>
+              <td style="padding:6px;color:#86efac">FORWARD</td>
+              <td style="padding:6px;color:#86efac">True (cached)</td>
+              <td style="padding:6px">69ms</td>
+            </tr>
+            <tr>
+              <td style="padding:6px">3</td>
+              <td style="padding:6px;color:#86efac">✅ normal</td>
+              <td style="padding:6px;color:#86efac">FWD+L</td>
+              <td style="padding:6px;color:#86efac">True (cached)</td>
+              <td style="padding:6px">71ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul style="margin:12px 0 0 18px;line-height:2">
+        <li><strong>Frame 0: has_bbox=False 지속</strong> — 워밍업 후에도 첫 실이미지 그라운딩은 실패</li>
+        <li><strong style="color:#fbbf24">CH54 Preview 폴백</strong>이 ROT_R 출력 → 로봇이 탐색 회전으로 대응</li>
+        <li>Frame 1: PG2 재검사 → has_bbox=True (cx=0.568), 3,102ms (이전 22,000ms에서 대폭 개선)</li>
+        <li>Frame 2+: 캐시 사용, 69~71ms — 정상 운용</li>
       </ul>
-      <strong style="color:#fbbf24;display:block;margin-top:10px">💡 액션 오예측(LEFT 등)은 MLP가 학습한 trajectory 경로의 정상 동작일 수 있음 — 그라운딩 실패가 본질 문제.</strong>
+      <strong style="color:#4ade80;display:block;margin-top:10px">결론: Stage 0 워밍업 + CH54 Preview의 2-layer 방어로 Frame 0 문제 실질적 해결. 실로봇 세션 준비 완료.</strong>
     </div>
   </div>
 
@@ -13191,6 +13233,94 @@ graph TD
     2026-06-29 작성 &nbsp;|&nbsp; 2026-06-30 기각 확정 &nbsp;|&nbsp; 검증: 실험자 직접 확인
   </div>
 </div>
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH58 ══ -->
+<div class="chapter" id="ch58">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 58</span>
+    <h2 class="chapter-title">Kosmos-2 + OWL-v2 Grounding 프롬프트 어블레이션</h2>
+    <p class="chapter-subtitle">현재 박스 검출 품질 46.2% → 프롬프트/쿼리 변형만으로 얼마나 개선되는가? 6가지 Kosmos-2 + 5가지 OWL-v2 변형 × 39세션 실험 (2026-06-30)</p>
+  </div>
+
+  <!-- 58-1. 배경 -->
+  <div class="finding-card">
+    <div class="finding-title">58-1. 배경 — 왜 프롬프트가 문제인가</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:6px;padding:12px 14px;font-size:0.82rem;line-height:1.9">
+        <div style="font-weight:700;color:#7dd3fc;margin-bottom:6px">현재 방식 (inference_server.py:1341)</div>
+        <code style="color:#fbbf24;font-size:0.78rem">&lt;grounding&gt;The basket is at</code>
+        <div style="color:#94a3b8;margin-top:6px;font-size:0.78rem">비공식 completion — 모델이 이어서 위치 토큰 생성.<br>entity 검출 실패 시 caption 텍스트 fallback.</div>
+      </div>
+      <div style="background:#0a1a08;border:1px solid #166534;border-radius:6px;padding:12px 14px;font-size:0.82rem;line-height:1.9">
+        <div style="font-weight:700;color:#86efac;margin-bottom:6px">Kosmos-2 공식 refexp 형식</div>
+        <code style="color:#4ade80;font-size:0.78rem">&lt;grounding&gt;&lt;phrase&gt;basket&lt;/phrase&gt;</code>
+        <div style="color:#94a3b8;margin-top:6px;font-size:0.78rem">processor가 &lt;object&gt;&lt;patch_index&gt; 파싱에 최적화.<br>명시적 reference expression → 더 정확한 bbox 기대.</div>
+      </div>
+    </div>
+    <div style="background:#130a00;border-left:3px solid #f59e0b;padding:10px 14px;border-radius:4px;font-size:0.85rem;color:#fed7aa;line-height:1.8">
+      <strong>수동 레이블 기준선 (39세션):</strong> FULL 20.5% / PART_IN 25.6% / PART_OUT 17.9% / WRONG 35.9% → <strong>점이 바스켓 안 46.2%</strong>
+    </div>
+  </div>
+
+  <!-- 58-2. 어블레이션 설계 -->
+  <div class="finding-card" style="margin-top:16px">
+    <div class="finding-title">58-2. 어블레이션 설계 — 11가지 변형</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="font-weight:700;color:#7dd3fc;margin-bottom:8px;font-size:0.85rem">Kosmos-2 (K_*) — 6가지</div>
+        <table style="width:100%;font-size:0.78rem;border-collapse:collapse">
+          <thead><tr style="color:#64748b;border-bottom:1px solid #1e293b">
+            <th style="text-align:left;padding:4px 6px">ID</th>
+            <th style="text-align:left;padding:4px 6px">프롬프트</th>
+            <th style="text-align:left;padding:4px 6px">방식</th>
+          </tr></thead>
+          <tbody style="color:#cbd5e1">
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px;color:#fbbf24">K_current</td><td style="padding:4px 6px"><code style="font-size:0.72rem">The basket is at</code></td><td style="padding:4px 6px">completion ★</td></tr>
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px;color:#7dd3fc">K_refexp</td><td style="padding:4px 6px"><code style="font-size:0.72rem">&lt;phrase&gt;basket&lt;/phrase&gt;</code></td><td style="padding:4px 6px">refexp</td></tr>
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px;color:#7dd3fc">K_refexp_gray</td><td style="padding:4px 6px"><code style="font-size:0.72rem">&lt;phrase&gt;gray basket&lt;/phrase&gt;</code></td><td style="padding:4px 6px">refexp</td></tr>
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px;color:#7dd3fc">K_refexp_laundry</td><td style="padding:4px 6px"><code style="font-size:0.72rem">&lt;phrase&gt;gray laundry basket&lt;/phrase&gt;</code></td><td style="padding:4px 6px">refexp</td></tr>
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px">K_locate</td><td style="padding:4px 6px"><code style="font-size:0.72rem">The gray basket is located at</code></td><td style="padding:4px 6px">completion</td></tr>
+            <tr><td style="padding:4px 6px">K_nav</td><td style="padding:4px 6px"><code style="font-size:0.72rem">robot navigating toward basket</code></td><td style="padding:4px 6px">completion</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#86efac;margin-bottom:8px;font-size:0.85rem">OWL-v2 / PG2 (O_*) — 5가지</div>
+        <table style="width:100%;font-size:0.78rem;border-collapse:collapse">
+          <thead><tr style="color:#64748b;border-bottom:1px solid #1e293b">
+            <th style="text-align:left;padding:4px 6px">ID</th>
+            <th style="text-align:left;padding:4px 6px">쿼리</th>
+          </tr></thead>
+          <tbody style="color:#cbd5e1">
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px;color:#fbbf24">O_current</td><td style="padding:4px 6px"><code style="font-size:0.72rem">"gray basket"</code> ★</td></tr>
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px">O_basket</td><td style="padding:4px 6px"><code style="font-size:0.72rem">"basket"</code></td></tr>
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px">O_laundry</td><td style="padding:4px 6px"><code style="font-size:0.72rem">"gray laundry basket"</code></td></tr>
+            <tr style="border-bottom:1px solid #0f172a"><td style="padding:4px 6px">O_container</td><td style="padding:4px 6px"><code style="font-size:0.72rem">"gray container"</code></td></tr>
+            <tr><td style="padding:4px 6px">O_multi</td><td style="padding:4px 6px"><code style="font-size:0.72rem">basket + laundry + gray container</code></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:10px;font-size:0.75rem;color:#64748b">★ = 현재 production 기준선</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 58-3. 결과 (실험 완료 후 채울 것) -->
+  <div class="finding-card" style="margin-top:16px;border-color:#1e3a5f">
+    <div class="finding-title" style="color:#7dd3fc">58-3. 실험 결과 <span style="font-size:0.78rem;font-weight:400;color:#f59e0b">⏳ 실행 중 — 완료 후 업데이트</span></div>
+    <div id="ch58-result-table" style="background:#0a1628;border:1px solid #1e3a5f;border-radius:6px;padding:16px;font-size:0.82rem;color:#475569;text-align:center;min-height:80px;display:flex;align-items:center;justify-content:center">
+      ablate_grounding_prompt.py 실행 완료 후 결과 표 삽입 예정
+    </div>
+  </div>
+
+  <!-- 58-4. 결론 (실험 완료 후 채울 것) -->
+  <div class="finding-card" style="margin-top:16px;border-color:#1e3a5f">
+    <div class="finding-title" style="color:#7dd3fc">58-4. 결론 및 다음 단계 <span style="font-size:0.78rem;font-weight:400;color:#475569">— 업데이트 대기</span></div>
+    <div style="color:#475569;font-size:0.85rem;font-style:italic;padding:8px 0">실험 완료 후 최선 변형 + 박스 비교 이미지 삽입</div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH58 ═ -->
 
 <hr class="chapter-divider">
 <div class="chapter" id="meeting-0626" style="padding-bottom:40px">

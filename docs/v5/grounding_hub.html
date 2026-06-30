@@ -1182,11 +1182,11 @@ loadAblationTables();
 
 <!-- §K: Frame 0 Cold-Start 분석 (CH57) -->
 <div id="section-k" style="margin-top:48px">
-  <h2><span class="badge" style="background:#166534;color:#86efac">K</span> Frame 0 Cold-Start → PG2 Grounding 100% 실패 <span style="font-size:0.7rem;background:#0a2212;color:#86efac;padding:2px 8px;border-radius:4px;margin-left:8px">✅ 데이터 확인 — Stage 0 워밍업으로 해결</span></h2>
+  <h2><span class="badge" style="background:#166534;color:#86efac">K</span> Frame 0 Cold-Start → Grounding 100% 실패 → CH54 Preview 폴백 <span style="font-size:0.7rem;background:#0a2212;color:#86efac;padding:2px 8px;border-radius:4px;margin-left:8px">✅ 실검증 완료 2026-06-30</span></h2>
 
   <div class="card" style="border-color:#166534;background:linear-gradient(135deg,#0a1a12,#0c2417);margin-bottom:16px">
     <div style="color:#86efac;font-size:0.85rem;line-height:1.8">
-      <strong style="color:#4ade80">분석 결과:</strong> 47세션 전수 조사(2026-06-30) — frame 0 has_bbox=True: <strong style="color:#f87171">0/47 (0%)</strong>. 날짜·세션 불문 100% 실패. 액션 오예측은 MLP trajectory 학습의 정상 동작이며, <strong>그라운딩 품질 자체가 핵심 이슈.</strong>
+      <strong style="color:#4ade80">검증 결과 (세션 100316):</strong> Stage 0 워밍업 후에도 frame 0 has_bbox=False 지속. 단, <strong style="color:#fbbf24">CH54 Preview 모델이 폴백으로 ROT_R 출력</strong> → frame 1 PG2 정상(3,102ms, 이전 22,000ms 대비 개선) → frame 2+ 캐시 69ms. 47세션 전수 조사: frame 0 has_bbox=True 0/47(0%). <strong>2-layer 방어로 실질 해결. 실로봇 세션 준비 완료.</strong>
     </div>
   </div>
 
@@ -1310,6 +1310,32 @@ loadAblationTables();
     <div style="margin-top:10px;font-size:0.82rem;color:#64748b">
       관련: <code>research_story.html#ch57</code> &nbsp;|&nbsp; <code>research_story.html#ch54</code>
     </div>
+  </div>
+</div>
+
+<!-- §L: Grounding 프롬프트 어블레이션 (CH58) -->
+<div id="section-l" style="margin-top:48px">
+  <h2><span class="badge" style="background:#fbbf24;color:#0a0f1a">L</span> Grounding 프롬프트 어블레이션 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— CH58, 2026-06-30, 진행 중</span></h2>
+
+  <div class="card" style="border-color:#78350f">
+    <h3 style="font-size:1rem;font-weight:900;color:#fbbf24;margin:0 0 10px 0">L-1. 동기 — 현재 PG2 박스 품질 46.2%</h3>
+    <div style="background:#130a00;border:1px solid #78350f;border-radius:6px;padding:12px 14px;font-size:0.82rem;line-height:1.9;margin-bottom:12px">
+      <div>수동 레이블 39세션: ✅ FULL 20.5% / 🟡 PART_IN 25.6% / ⚠️ PART_OUT 17.9% / ❌ WRONG 35.9%</div>
+      <div style="color:#fbbf24;font-weight:700">→ 점이 바스켓 안 = 46.2% (18/39). PG2 cx 방향 일치율 = 58.3%</div>
+      <div style="color:#94a3b8">현재 프롬프트: <code>&lt;grounding&gt;The basket is at</code> (비공식 completion 방식)</div>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#1e3a5f;margin-top:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">L-2. 실험 결과 <span style="font-size:0.78rem;font-weight:400;color:#f59e0b">⏳ 실행 중</span></h3>
+    <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:6px;padding:16px;color:#475569;font-size:0.82rem;text-align:center;min-height:60px;display:flex;align-items:center;justify-content:center">
+      ablate_grounding_prompt.py 완료 후 결과 표 삽입
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#1e3a5f;margin-top:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">L-3. 결론 및 권고 <span style="font-size:0.78rem;font-weight:400;color:#475569">— 업데이트 대기</span></h3>
+    <div style="color:#475569;font-size:0.85rem;font-style:italic">실험 완료 후 최선 변형 + 서버 적용 여부 판단</div>
   </div>
 </div>
 
