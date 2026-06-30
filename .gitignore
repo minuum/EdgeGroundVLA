@@ -182,8 +182,11 @@ ROS_action/mobile_vla_dataset_v5_2/
 # 교수 연락 이메일 초안 (개인 문서)
 docs/contact/
 
-# 임시 스크린샷/이미지 (docs 루트 직접 드롭)
+# 이미지 파일 — docs 하위 전체 제외 (분석용 jpg/png는 git 불필요)
+docs/**/*.jpg
+docs/**/*.jpeg
+docs/**/*.png
 docs/*.jpg
-docs/*.png
 docs/*.jpeg
+docs/*.png
 

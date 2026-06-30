@@ -1,0 +1,147 @@
+{
+  "ch58_prompt_ablation": {
+    "PG2_baseline": {
+      "det_rate": 0.9231,
+      "det_n": 36,
+      "cx_mean": 0.556,
+      "cx_std": 0.0451,
+      "dir_vs_manual": 0.5833,
+      "dir_n": 12,
+      "source": "session_h5_grounding/bbox[1]"
+    },
+    "K_current": {
+      "det_rate": 1.0,
+      "det_n": 39,
+      "cx_mean": 0.4696,
+      "cx_std": 0.1758,
+      "dir_vs_manual": 0.2143,
+      "dir_n": 14,
+      "lat_ms": 975.9,
+      "fallback_rate": 0.0,
+      "prompt": "<grounding>The basket is at",
+      "mode": "completion"
+    },
+    "K_locate": {
+      "det_rate": 0.8974,
+      "det_n": 35,
+      "cx_mean": 0.3865,
+      "cx_std": 0.2018,
+      "dir_vs_manual": 0.4286,
+      "dir_n": 14,
+      "lat_ms": 942.5,
+      "fallback_rate": 0.0256,
+      "prompt": "<grounding>The gray basket is located at",
+      "mode": "completion"
+    },
+    "K_nav": {
+      "det_rate": 1.0,
+      "det_n": 39,
+      "cx_mean": 0.4611,
+      "cx_std": 0.2238,
+      "dir_vs_manual": 0.5,
+      "dir_n": 14,
+      "lat_ms": 816.0,
+      "fallback_rate": 0.0,
+      "prompt": "<grounding>An image of a robot navigating toward the basket",
+      "mode": "completion"
+    },
+    "K_refexp": {
+      "det_rate": 1.0,
+      "det_n": 39,
+      "cx_mean": 0.47,
+      "cx_std": 0.2374,
+      "dir_vs_manual": 0.4286,
+      "dir_n": 14,
+      "lat_ms": 577.0,
+      "fallback_rate": 0.0,
+      "prompt": "<grounding><phrase>basket</phrase>",
+      "mode": "refexp"
+    },
+    "K_refexp_gray": {
+      "det_rate": 1.0,
+      "det_n": 39,
+      "cx_mean": 0.4239,
+      "cx_std": 0.1533,
+      "dir_vs_manual": 0.5,
+      "dir_n": 14,
+      "lat_ms": 646.5,
+      "fallback_rate": 0.0,
+      "prompt": "<grounding><phrase>gray basket</phrase>",
+      "mode": "refexp"
+    },
+    "K_refexp_laundry": {
+      "det_rate": 1.0,
+      "det_n": 39,
+      "cx_mean": 0.4335,
+      "cx_std": 0.1299,
+      "dir_vs_manual": 0.5,
+      "dir_n": 14,
+      "lat_ms": 688.7,
+      "fallback_rate": 0.0,
+      "prompt": "<grounding><phrase>gray laundry basket</phrase>",
+      "mode": "refexp"
+    },
+    "O_current": {
+      "det_rate": 0.9744,
+      "det_n": 38,
+      "cx_mean": 0.4721,
+      "cx_std": 0.1561,
+      "dir_vs_manual": 0.0,
+      "dir_n": 14,
+      "lat_ms": 427.7,
+      "queries": [
+        "gray basket"
+      ]
+    },
+    "O_basket": {
+      "det_rate": 0.359,
+      "det_n": 14,
+      "cx_mean": 0.415,
+      "cx_std": 0.2621,
+      "dir_vs_manual": 0.0,
+      "dir_n": 8,
+      "lat_ms": 426.0,
+      "queries": [
+        "basket"
+      ]
+    },
+    "O_laundry": {
+      "det_rate": 1.0,
+      "det_n": 39,
+      "cx_mean": 0.4858,
+      "cx_std": 0.1454,
+      "dir_vs_manual": 0.0,
+      "dir_n": 14,
+      "lat_ms": 425.6,
+      "queries": [
+        "gray laundry basket"
+      ]
+    },
+    "O_container": {
+      "det_rate": 0.7692,
+      "det_n": 30,
+      "cx_mean": 0.4859,
+      "cx_std": 0.1788,
+      "dir_vs_manual": 0.0,
+      "dir_n": 13,
+      "lat_ms": 426.2,
+      "queries": [
+        "gray container"
+      ]
+    },
+    "O_multi": {
+      "det_rate": 1.0,
+      "det_n": 39,
+      "cx_mean": 0.4858,
+      "cx_std": 0.1454,
+      "dir_vs_manual": 0.0,
+      "dir_n": 14,
+      "lat_ms": 429.1,
+      "queries": [
+        "basket",
+        "laundry basket",
+        "gray container"
+      ]
+    }
+  }
+}
