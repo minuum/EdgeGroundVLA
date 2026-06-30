@@ -315,7 +315,7 @@
     <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Grounding 실패 → CH54 Preview 폴백으로 해결 ✅ 검증</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
     <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — PG2 최선 확인, 新프리뷰 모델 탐색 진행 중</span><span class="toc-cat cat-exp" style="background:rgba(167,139,250,0.15);color:#a78bfa">완료+진행중</span></a>
     <a class="toc-item" href="#ch59" data-target="ch59"><span class="toc-badge" style="background:rgba(34,211,238,0.15);color:#22d3ee">CH 59</span><span class="toc-label">5-Model 셀프라벨링 평가 — Kr/PG448 99.1%, soda PG224↔448 검출률 격차 확인</span><span class="toc-cat cat-exp" style="background:rgba(34,211,238,0.15);color:#22d3ee">분석</span></a>
-    <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — 5-Model Grounding 평가 & soda 서버 개선</span><span class="toc-cat cat-meet">미팅</span></a>
+    <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — Grounding 정량 평가 & Kc fallback 문제 발견</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -13627,103 +13627,199 @@ graph TD
 <div class="chapter" id="meeting-0630" style="padding-bottom:40px">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MTG</span>
-    <h2 class="chapter-title">6/30 미팅 보고</h2>
-    <p class="chapter-subtitle">5-Model Grounding 평가 완료 · 현재 서버(Kc) 문제 발견 · PG448 업그레이드 반영</p>
+    <h2 class="chapter-title">6/30 미팅 보고 — 6/26 이후 작업 정리</h2>
+    <p class="chapter-subtitle">Grounding 정량 평가 프레임워크 구축 · Kc fallback 문제 발견 · 해상도별 검출률 비교 · 서버 코드 수정 완료</p>
   </div>
 
-  <!-- ─── 핵심 질문과 답 ─── -->
-  <div class="finding-card" style="background:linear-gradient(135deg,#0a1525,#0c1a30);border-color:#38bdf8;margin-bottom:16px">
-    <div class="finding-title" style="color:#7dd3fc">이번 기간 핵심 질문: "현재 서버가 바스켓을 제대로 보고 있는가?"</div>
-    <div style="font-size:0.9rem;line-height:2.0;color:#cbd5e1;margin-top:8px">
-      → 답: <strong style="color:#f87171">NO.</strong>
-      현재 서버(Kosmos-2 completion 방식, Kc)는 바스켓을 못 찾을 때
-      <code style="color:#fbbf24">cx = 0.5 / 0.15 / 0.85</code> 하드코딩 값으로 대체하고 있었음.
-      185프레임 중 47%(87프레임)가 이 fallback으로 동작 →
-      방향 정확도 <strong style="color:#f87171">55%</strong> (우연 수준).
+  <!-- ─── 6/26 이후 작업 타임라인 ─── -->
+  <div class="finding-card" style="margin-bottom:16px">
+    <div class="finding-title">6/26 이후 진행 순서</div>
+    <div style="font-size:0.83rem;line-height:1;color:#94a3b8">
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e293b">
+          <div style="min-width:60px;color:#64748b;font-size:0.78rem;padding-top:2px">6/27</div>
+          <div><strong style="color:#e2e8f0">5-Model 썸네일 평가 프레임워크 구축</strong><br>
+            <span style="color:#64748b;font-size:0.78rem">V5 데이터 + 실주행 세션 185프레임 × 5개 모델 bbox 동시 시각화 툴 제작.
+            각 프레임 이미지에 L/C/R 존 경계(cx=0.40/0.60)를 오버레이하고 모델별 bbox를 색상으로 구분.</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e293b">
+          <div style="min-width:60px;color:#64748b;font-size:0.78rem;padding-top:2px">6/27~28</div>
+          <div><strong style="color:#e2e8f0">수동 라벨링 + Kr 버그 발견·수정</strong><br>
+            <span style="color:#64748b;font-size:0.78rem">185프레임 직접 라벨링(L/C/R). 라벨링 중 Kr(Kosmos-2 refexp)이 검출 0%로 표시되는 것 발견 →
+            refexp 모드에서 entity 이름이 "basket"이 아닌 <code>&lt;patch_index_N&gt;</code>으로 반환된다는 원인 확인 후 파서 수정.
+            수정 후 Kr 185/185 검출.</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e293b">
+          <div style="min-width:60px;color:#64748b;font-size:0.78rem;padding-top:2px">6/28~29</div>
+          <div><strong style="color:#e2e8f0">soda 서버 코드 분석 (원격 접속)</strong><br>
+            <span style="color:#64748b;font-size:0.78rem">soda(로봇 서버, Jetson Orin NX)에 SSH 접속하여 실제 서버 코드 확인.
+            Kosmos-2(Kc) + PaliGemma2-<strong>224</strong> 사용 중, 양자화 없음(FP16), RAM 14.4/15.6GB(92%) 포화 상태 확인.
+            ※ 이 시점에 soda에서 실제 추론을 돌려 측정한 것은 아님 — 코드 분석 기준.</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e293b">
+          <div style="min-width:60px;color:#64748b;font-size:0.78rem;padding-top:2px">6/29</div>
+          <div><strong style="color:#e2e8f0">PG224 vs PG448 비교 실험 — minum 서버에서 실행</strong><br>
+            <span style="color:#64748b;font-size:0.78rem">soda와 동일한 PaliGemma2-224 모델을 minum(GB10 GPU)에서 동일 185프레임에 실행하여 비교 기준 마련.
+            이후 PG448도 동일 조건 실행. 두 실험 모두 minum 하드웨어 기준이며 soda 실측값은 아님.</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;padding:10px 0">
+          <div style="min-width:60px;color:#64748b;font-size:0.78rem;padding-top:2px">6/30</div>
+          <div><strong style="color:#e2e8f0">서버 코드 수정 완료 → monavla-driving 브랜치 배포</strong><br>
+            <span style="color:#64748b;font-size:0.78rem">Kc→Kr 프롬프트 교체 + PG224→PG448 기본 경로 변경. soda에서 git pull 후 재기동하면 적용.</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ─── 실험 요약 ─── -->
+  <!-- ─── 핵심 발견 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#150505,#1a0808);border-color:#ef4444;margin-bottom:16px">
+    <div class="finding-title" style="color:#fca5a5">핵심 발견 — "현재 서버(Kc)가 바스켓을 실제로 보고 있지 않다"</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#cbd5e1;margin-top:8px">
+      Kosmos-2 completion 방식(Kc)은 바스켓 entity를 탐지하지 못하면 caption 텍스트의 키워드로
+      방향을 추정하는 <strong style="color:#fbbf24">hardcoded fallback</strong>을 가짐.<br>
+      185프레임 분석 결과: <code style="color:#fbbf24">cx=0.5</code> 92회 · <code style="color:#fbbf24">cx=0.15</code> 31회 · <code style="color:#fbbf24">cx=0.85</code> 14회
+      → 전체의 47%가 실제 bbox 없이 하드코딩 값으로 동작.<br>
+      <strong style="color:#f87171">방향 정확도 55% = 우연 수준.</strong>
+      6/26 미팅에서 "그라운딩 센터 성공률 85.7%"로 보고된 수치와 맞지 않는 이유가 이것일 수 있음.
+    </div>
+  </div>
+
+  <!-- ─── 모델별 평가 결과 ─── -->
   <div class="finding-card" style="margin-bottom:16px">
-    <div class="finding-title">실험 요약 — 5-Model Grounding 평가 (185프레임)</div>
-    <div style="font-size:0.82rem;color:#64748b;margin-bottom:10px">V5 데이터셋(25 ep) + 실주행 세션(39개) 첫 프레임 합계 · 수동 L/C/R 라벨링 → 각 모델 cx 방향 정확도 비교</div>
-    <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+    <div class="finding-title">모델별 정량 평가 (minum 서버, 185프레임 기준)</div>
+    <div style="font-size:0.78rem;color:#64748b;margin-bottom:8px">
+      ⚠️ 아래 수치는 <strong>minum(GB10)</strong>에서 측정. soda 하드웨어(Jetson Orin NX) 실측값 아님.
+      모델 자체의 정확도 비교이므로 방향 정확도는 하드웨어 무관하게 유효.
+      검출률도 모델 기준이며 실제 ROS 환경과는 다를 수 있음.
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.83rem">
       <thead><tr style="border-bottom:1px solid #334155;color:#64748b">
         <th style="padding:8px 10px;text-align:left">모델</th>
-        <th style="padding:8px;text-align:center">방향 정확도</th>
+        <th style="padding:8px;text-align:center">방향 정확도<br><span style="font-size:0.72rem;font-weight:400">(L/R 110프레임)</span></th>
         <th style="padding:8px;text-align:center">검출률</th>
-        <th style="padding:8px;text-align:left">판정</th>
+        <th style="padding:8px;text-align:left">비고</th>
       </tr></thead>
       <tbody>
-        <tr style="border-bottom:1px solid #1e293b">
-          <td style="padding:8px 10px;font-weight:700;color:#86efac">Kr (Kosmos-2 refexp)</td>
+        <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.03)">
+          <td style="padding:8px 10px;font-weight:700;color:#86efac">Kr — Kosmos-2 refexp<br><span style="font-size:0.75rem;color:#64748b">⬡ 모델 동일, 프롬프트만 변경</span></td>
           <td style="padding:8px;text-align:center;font-size:1.1rem;font-weight:900;color:#4ade80">99.1%</td>
-          <td style="padding:8px;text-align:center;color:#cbd5e1">185/185</td>
-          <td style="padding:8px;color:#4ade80;font-size:0.8rem">✅ 채택</td>
+          <td style="padding:8px;text-align:center">185/185</td>
+          <td style="padding:8px;color:#86efac;font-size:0.78rem">Kc와 같은 Kosmos-2 모델, 프롬프트 방식만 다름</td>
         </tr>
         <tr style="border-bottom:1px solid #1e293b">
-          <td style="padding:8px 10px;font-weight:700;color:#93c5fd">PG448 (PaliGemma2)</td>
+          <td style="padding:8px 10px;font-weight:700;color:#93c5fd">PG448 — PaliGemma2 448px<br><span style="font-size:0.75rem;color:#64748b">현재 minum 서버 기본값</span></td>
           <td style="padding:8px;text-align:center;font-size:1.1rem;font-weight:900;color:#4ade80">99.1%</td>
-          <td style="padding:8px;text-align:center;color:#cbd5e1">183/185</td>
-          <td style="padding:8px;color:#4ade80;font-size:0.8rem">✅ 메인 grounder</td>
+          <td style="padding:8px;text-align:center">183/185</td>
+          <td style="padding:8px;color:#94a3b8;font-size:0.78rem">메인 grounder, 높은 검출률</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b;background:rgba(245,158,11,0.03)">
+          <td style="padding:8px 10px;font-weight:700;color:#fcd34d">PG224 — PaliGemma2 224px<br><span style="font-size:0.75rem;color:#64748b">soda 서버 현재 사용 모델</span></td>
+          <td style="padding:8px;text-align:center;font-weight:700;color:#4ade80">98.7%<br><span style="font-size:0.75rem;color:#64748b">(검출된 것 한정)</span></td>
+          <td style="padding:8px;text-align:center;color:#fbbf24">136/185<br><span style="font-size:0.75rem">(73.5%)</span></td>
+          <td style="padding:8px;color:#fbbf24;font-size:0.78rem">검출만 되면 정확도는 448과 동급. 미검출 32프레임이 문제</td>
         </tr>
         <tr style="border-bottom:1px solid #1e293b">
-          <td style="padding:8px 10px;color:#fca5a5">Kc (기존 서버)</td>
+          <td style="padding:8px 10px;color:#fca5a5">Kc — Kosmos-2 completion<br><span style="font-size:0.75rem;color:#64748b">soda 서버 fallback (현재)</span></td>
           <td style="padding:8px;text-align:center;font-weight:700;color:#f87171">55.0%</td>
-          <td style="padding:8px;text-align:center;color:#cbd5e1">138/185 <span style="color:#f87171;font-size:0.75rem">(가짜)</span></td>
-          <td style="padding:8px;color:#f87171;font-size:0.8rem">❌ 교체</td>
+          <td style="padding:8px;text-align:center;color:#64748b">138/185<br><span style="color:#f87171;font-size:0.75rem">(47%는 fallback)</span></td>
+          <td style="padding:8px;color:#f87171;font-size:0.78rem">실제 bbox 탐지 아님, 하드코딩 값 혼재</td>
         </tr>
         <tr>
-          <td style="padding:8px 10px;color:#fed7aa">Florence-2</td>
+          <td style="padding:8px 10px;color:#fed7aa">Florence-2 OVD</td>
           <td style="padding:8px;text-align:center;font-weight:700;color:#f87171">51.8%</td>
           <td style="padding:8px;text-align:center;color:#cbd5e1">185/185</td>
-          <td style="padding:8px;color:#f87171;font-size:0.8rem">❌ 구조적 좌편향</td>
+          <td style="padding:8px;color:#f87171;font-size:0.78rem">cx 최대 0.56 — 우측 탐지 구조적 불가, 폐기</td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <!-- ─── 주요 발견 ─── -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    <div class="finding-card" style="margin:0;border-color:#ef4444">
-      <div class="finding-title" style="color:#fca5a5">발견 1 — Kc의 실체</div>
-      <div style="font-size:0.82rem;line-height:1.9;color:#94a3b8">
-        "basket" 키워드 미탐지 시 caption 텍스트 분석으로 fallback:<br>
-        <code style="color:#fbbf24">cx=0.5</code> 92회 / <code style="color:#fbbf24">cx=0.15</code> 31회 / <code style="color:#fbbf24">cx=0.85</code> 14회<br>
-        → 실제 bbox 없이 <strong style="color:#f87171">방향을 추정해온 것</strong>
+  <!-- ─── Kc vs Kr 핵심 비교 (교수님 설명용) ─── -->
+  <div class="finding-card" style="margin-bottom:16px;border-color:#a78bfa">
+    <div class="finding-title" style="color:#c4b5fd">Kc vs Kr — 같은 모델, 다른 프롬프트 방식 (교수님 설명 포인트)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;font-size:0.82rem">
+      <div style="background:#120a1a;border:1px solid #ef4444;border-radius:6px;padding:12px">
+        <div style="color:#fca5a5;font-weight:700;margin-bottom:6px">Kc (기존 — completion)</div>
+        <div style="color:#94a3b8;line-height:1.9">
+          프롬프트: <code style="font-size:0.75rem">"The basket is at"</code><br>
+          모델이 문장을 <em>완성</em>하며 위치 생성<br>
+          못 찾으면 → 문장 패턴으로 방향 추측<br>
+          → <strong style="color:#f87171">cx 0.5/0.15/0.85 하드코딩</strong>
+        </div>
+      </div>
+      <div style="background:#0a120a;border:1px solid #4ade80;border-radius:6px;padding:12px">
+        <div style="color:#86efac;font-weight:700;margin-bottom:6px">Kr (신규 — refexp)</div>
+        <div style="color:#94a3b8;line-height:1.9">
+          프롬프트: <code style="font-size:0.75rem">"&lt;phrase&gt;gray laundry basket&lt;/phrase&gt;"</code><br>
+          모델이 <em>지정된 객체</em>의 bbox를 직접 예측<br>
+          못 찾으면 → 그냥 None 반환 (fallback 없음)<br>
+          → <strong style="color:#4ade80">185/185 실제 bbox 탐지</strong>
+        </div>
       </div>
     </div>
-    <div class="finding-card" style="margin:0;border-color:#f59e0b">
-      <div class="finding-title" style="color:#fde68a">발견 2 — PG224 vs PG448</div>
-      <div style="font-size:0.82rem;line-height:1.9;color:#94a3b8">
-        soda 서버는 PG<strong style="color:#f87171">224</strong> 사용 중이었음<br>
-        같은 조건 185프레임 테스트:<br>
-        PG224 검출 <strong style="color:#fbbf24">73%</strong> vs PG448 <strong style="color:#4ade80">99%</strong><br>
-        방향 정확도는 동급 → <strong>해상도만 올리면 됨</strong>
+    <div style="margin-top:10px;font-size:0.78rem;color:#64748b;background:#0f172a;padding:8px 12px;border-radius:4px">
+      두 방식 모두 동일한 Kosmos-2 모델 가중치 사용. 프롬프트 형식 차이만으로 방향 정확도 55% → 99.1%.
+    </div>
+  </div>
+
+  <!-- ─── 보여드릴 것 ─── -->
+  <div class="finding-card" style="margin-bottom:16px;border-color:#38bdf8">
+    <div class="finding-title" style="color:#7dd3fc">미팅에서 보여드릴 것</div>
+    <div style="font-size:0.83rem;line-height:1;color:#94a3b8">
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #1e293b">
+          <div style="min-width:24px;color:#7dd3fc;text-align:center">①</div>
+          <div><strong style="color:#e2e8f0">이 페이지 CH59 섹션</strong> — 5모델 결과표 + Kc fallback 수치 (위 테이블 포함)
+            <div style="font-size:0.75rem;color:#64748b;margin-top:2px">GitHub Pages → research_story.html #ch59</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #1e293b">
+          <div style="min-width:24px;color:#7dd3fc;text-align:center">②</div>
+          <div><strong style="color:#e2e8f0">썸네일 비교 화면</strong> — 한 프레임에 5개 모델 bbox가 동시에 표시된 이미지
+            <div style="font-size:0.75rem;color:#64748b;margin-top:2px">Kc가 bbox를 그리지 못하는 프레임 vs Kr이 정확히 잡는 프레임 대비</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #1e293b">
+          <div style="min-width:24px;color:#7dd3fc;text-align:center">③</div>
+          <div><strong style="color:#e2e8f0">cx 분포 비교</strong> — Kc의 0.5/0.15/0.85 군집 vs Kr/PG448의 연속 분포
+            <div style="font-size:0.75rem;color:#64748b;margin-top:2px">하드코딩 fallback을 시각적으로 가장 직관적으로 보여주는 근거</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;padding:9px 0">
+          <div style="min-width:24px;color:#7dd3fc;text-align:center">④</div>
+          <div><strong style="color:#e2e8f0">grounding_hub.html</strong> — 프롬프트 어블레이션 전체 이력 (CH58 결과)
+            <div style="font-size:0.75rem;color:#64748b;margin-top:2px">6/26 이전부터 누적된 실험 흐름을 보여드릴 때</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ─── 적용된 수정 ─── -->
-  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#22c55e;margin-bottom:16px">
-    <div class="finding-title" style="color:#4ade80">서버에 반영 완료 (monavla-driving 브랜치)</div>
-    <ul style="margin:8px 0 0 16px;line-height:2.1;font-size:0.87rem;color:#cbd5e1">
-      <li><strong style="color:#86efac">Kc → Kr 프롬프트 교체</strong> — <code>"&lt;grounding&gt;&lt;phrase&gt;gray laundry basket&lt;/phrase&gt;"</code><br>
-        <span style="color:#64748b;font-size:0.78rem">+ _parse_bbox에서 &lt;patch_index_N&gt; entity 이름 허용 추가</span></li>
-      <li><strong style="color:#86efac">PG224 → PG448</strong> — 기본 모델 경로 변경, 검출률 73%→99% 개선 예상<br>
-        <span style="color:#64748b;font-size:0.78rem">soda에 448 모델 없을 시 VLA_PG2_PATH env var로 override 가능</span></li>
-    </ul>
-  </div>
-
-  <!-- ─── 다음 할일 ─── -->
-  <div class="finding-card">
-    <div class="finding-title">다음 단계 제안</div>
-    <ol style="margin:8px 0 0 16px;line-height:2.1;font-size:0.87rem;color:#94a3b8">
-      <li>soda에서 <code>git pull monavla-driving</code> → 서버 재기동 → 실주행 재테스트</li>
-      <li>PG448 모델 soda에 없으면 HF 다운로드 또는 minum→soda 전송 (약 6.4GB)</li>
-      <li>Kr+PG448 조합으로 기존 11-run 드라이브 매트릭스 재실행 → 성공률 비교</li>
-      <li>(중기) Kr 기반으로 MLP head 재학습 분포 검토 (현재 MLP는 PG2 grounding으로 학습됨)</li>
-    </ol>
+  <!-- ─── 코드 수정 완료 + 다음 단계 ─── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="finding-card" style="margin:0;background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#22c55e">
+      <div class="finding-title" style="color:#4ade80">코드 수정 완료 (monavla-driving)</div>
+      <ul style="margin:8px 0 0 16px;line-height:2.0;font-size:0.82rem;color:#cbd5e1">
+        <li>Kc → Kr 프롬프트 교체</li>
+        <li>refexp entity 파서 수정</li>
+        <li>PG224 → PG448 기본 경로 변경</li>
+        <li>soda git pull 후 즉시 적용 가능</li>
+      </ul>
+    </div>
+    <div class="finding-card" style="margin:0">
+      <div class="finding-title">다음 단계</div>
+      <ol style="margin:8px 0 0 16px;line-height:2.0;font-size:0.82rem;color:#94a3b8">
+        <li>soda git pull → 서버 재기동</li>
+        <li>PG448 모델 soda 전송 (없을 시)</li>
+        <li>실주행 재테스트 — 성공률 비교</li>
+        <li>Kr 기준 MLP 재학습 필요 여부 검토</li>
+      </ol>
+    </div>
   </div>
 </div>
 <!-- ══════════ /meeting-0630 ══════════ -->
