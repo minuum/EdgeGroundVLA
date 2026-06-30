@@ -315,6 +315,7 @@
     <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Grounding 실패 → CH54 Preview 폴백으로 해결 ✅ 검증</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
     <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — PG2 최선 확인, 新프리뷰 모델 탐색 진행 중</span><span class="toc-cat cat-exp" style="background:rgba(167,139,250,0.15);color:#a78bfa">완료+진행중</span></a>
     <a class="toc-item" href="#ch59" data-target="ch59"><span class="toc-badge" style="background:rgba(34,211,238,0.15);color:#22d3ee">CH 59</span><span class="toc-label">5-Model 셀프라벨링 평가 — Kr/PG448 99.1%, soda PG224↔448 검출률 격차 확인</span><span class="toc-cat cat-exp" style="background:rgba(34,211,238,0.15);color:#22d3ee">분석</span></a>
+    <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — 5-Model Grounding 평가 & soda 서버 개선</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -13623,6 +13624,112 @@ graph TD
 <!-- ══════════════════════════════════════════════════════ /CH59 ═ -->
 
 <hr class="chapter-divider">
+<div class="chapter" id="meeting-0630" style="padding-bottom:40px">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MTG</span>
+    <h2 class="chapter-title">6/30 미팅 보고</h2>
+    <p class="chapter-subtitle">5-Model Grounding 평가 완료 · 현재 서버(Kc) 문제 발견 · PG448 업그레이드 반영</p>
+  </div>
+
+  <!-- ─── 핵심 질문과 답 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1525,#0c1a30);border-color:#38bdf8;margin-bottom:16px">
+    <div class="finding-title" style="color:#7dd3fc">이번 기간 핵심 질문: "현재 서버가 바스켓을 제대로 보고 있는가?"</div>
+    <div style="font-size:0.9rem;line-height:2.0;color:#cbd5e1;margin-top:8px">
+      → 답: <strong style="color:#f87171">NO.</strong>
+      현재 서버(Kosmos-2 completion 방식, Kc)는 바스켓을 못 찾을 때
+      <code style="color:#fbbf24">cx = 0.5 / 0.15 / 0.85</code> 하드코딩 값으로 대체하고 있었음.
+      185프레임 중 47%(87프레임)가 이 fallback으로 동작 →
+      방향 정확도 <strong style="color:#f87171">55%</strong> (우연 수준).
+    </div>
+  </div>
+
+  <!-- ─── 실험 요약 ─── -->
+  <div class="finding-card" style="margin-bottom:16px">
+    <div class="finding-title">실험 요약 — 5-Model Grounding 평가 (185프레임)</div>
+    <div style="font-size:0.82rem;color:#64748b;margin-bottom:10px">V5 데이터셋(25 ep) + 실주행 세션(39개) 첫 프레임 합계 · 수동 L/C/R 라벨링 → 각 모델 cx 방향 정확도 비교</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+      <thead><tr style="border-bottom:1px solid #334155;color:#64748b">
+        <th style="padding:8px 10px;text-align:left">모델</th>
+        <th style="padding:8px;text-align:center">방향 정확도</th>
+        <th style="padding:8px;text-align:center">검출률</th>
+        <th style="padding:8px;text-align:left">판정</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px 10px;font-weight:700;color:#86efac">Kr (Kosmos-2 refexp)</td>
+          <td style="padding:8px;text-align:center;font-size:1.1rem;font-weight:900;color:#4ade80">99.1%</td>
+          <td style="padding:8px;text-align:center;color:#cbd5e1">185/185</td>
+          <td style="padding:8px;color:#4ade80;font-size:0.8rem">✅ 채택</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px 10px;font-weight:700;color:#93c5fd">PG448 (PaliGemma2)</td>
+          <td style="padding:8px;text-align:center;font-size:1.1rem;font-weight:900;color:#4ade80">99.1%</td>
+          <td style="padding:8px;text-align:center;color:#cbd5e1">183/185</td>
+          <td style="padding:8px;color:#4ade80;font-size:0.8rem">✅ 메인 grounder</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px 10px;color:#fca5a5">Kc (기존 서버)</td>
+          <td style="padding:8px;text-align:center;font-weight:700;color:#f87171">55.0%</td>
+          <td style="padding:8px;text-align:center;color:#cbd5e1">138/185 <span style="color:#f87171;font-size:0.75rem">(가짜)</span></td>
+          <td style="padding:8px;color:#f87171;font-size:0.8rem">❌ 교체</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;color:#fed7aa">Florence-2</td>
+          <td style="padding:8px;text-align:center;font-weight:700;color:#f87171">51.8%</td>
+          <td style="padding:8px;text-align:center;color:#cbd5e1">185/185</td>
+          <td style="padding:8px;color:#f87171;font-size:0.8rem">❌ 구조적 좌편향</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ─── 주요 발견 ─── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div class="finding-card" style="margin:0;border-color:#ef4444">
+      <div class="finding-title" style="color:#fca5a5">발견 1 — Kc의 실체</div>
+      <div style="font-size:0.82rem;line-height:1.9;color:#94a3b8">
+        "basket" 키워드 미탐지 시 caption 텍스트 분석으로 fallback:<br>
+        <code style="color:#fbbf24">cx=0.5</code> 92회 / <code style="color:#fbbf24">cx=0.15</code> 31회 / <code style="color:#fbbf24">cx=0.85</code> 14회<br>
+        → 실제 bbox 없이 <strong style="color:#f87171">방향을 추정해온 것</strong>
+      </div>
+    </div>
+    <div class="finding-card" style="margin:0;border-color:#f59e0b">
+      <div class="finding-title" style="color:#fde68a">발견 2 — PG224 vs PG448</div>
+      <div style="font-size:0.82rem;line-height:1.9;color:#94a3b8">
+        soda 서버는 PG<strong style="color:#f87171">224</strong> 사용 중이었음<br>
+        같은 조건 185프레임 테스트:<br>
+        PG224 검출 <strong style="color:#fbbf24">73%</strong> vs PG448 <strong style="color:#4ade80">99%</strong><br>
+        방향 정확도는 동급 → <strong>해상도만 올리면 됨</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 적용된 수정 ─── -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#22c55e;margin-bottom:16px">
+    <div class="finding-title" style="color:#4ade80">서버에 반영 완료 (monavla-driving 브랜치)</div>
+    <ul style="margin:8px 0 0 16px;line-height:2.1;font-size:0.87rem;color:#cbd5e1">
+      <li><strong style="color:#86efac">Kc → Kr 프롬프트 교체</strong> — <code>"&lt;grounding&gt;&lt;phrase&gt;gray laundry basket&lt;/phrase&gt;"</code><br>
+        <span style="color:#64748b;font-size:0.78rem">+ _parse_bbox에서 &lt;patch_index_N&gt; entity 이름 허용 추가</span></li>
+      <li><strong style="color:#86efac">PG224 → PG448</strong> — 기본 모델 경로 변경, 검출률 73%→99% 개선 예상<br>
+        <span style="color:#64748b;font-size:0.78rem">soda에 448 모델 없을 시 VLA_PG2_PATH env var로 override 가능</span></li>
+    </ul>
+  </div>
+
+  <!-- ─── 다음 할일 ─── -->
+  <div class="finding-card">
+    <div class="finding-title">다음 단계 제안</div>
+    <ol style="margin:8px 0 0 16px;line-height:2.1;font-size:0.87rem;color:#94a3b8">
+      <li>soda에서 <code>git pull monavla-driving</code> → 서버 재기동 → 실주행 재테스트</li>
+      <li>PG448 모델 soda에 없으면 HF 다운로드 또는 minum→soda 전송 (약 6.4GB)</li>
+      <li>Kr+PG448 조합으로 기존 11-run 드라이브 매트릭스 재실행 → 성공률 비교</li>
+      <li>(중기) Kr 기반으로 MLP head 재학습 분포 검토 (현재 MLP는 PG2 grounding으로 학습됨)</li>
+    </ol>
+  </div>
+</div>
+<!-- ══════════ /meeting-0630 ══════════ -->
+
+<hr class="chapter-divider">
+
 <div class="chapter" id="meeting-0626" style="padding-bottom:40px">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MTG</span>
