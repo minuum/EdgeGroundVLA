@@ -174,7 +174,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--dashboard" ]]; then
     ROS_DOMAIN_ID=42 \
     RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
     GRADIO_SHARE=0 \
-    VLA_ASYNC_MODE=1 \
+    VLA_ASYNC_MODE=0 \
     VLA_INFERENCE_HZ=3.0 \
     VLA_EXECUTION_HZ=10.0 \
     PYTHONPATH="$FULL_PY" \
