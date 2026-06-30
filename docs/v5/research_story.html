@@ -313,7 +313,7 @@
     <a class="toc-item" href="#ch55" data-target="ch55"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 55</span><span class="toc-label">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch56" data-target="ch56"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 56</span><span class="toc-label">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Grounding 실패 → CH54 Preview 폴백으로 해결 ✅ 검증</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
-    <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — Kosmos-2(6) + OWL-v2(5) 변형 × 39세션</span><span class="toc-cat" style="background:rgba(251,191,36,0.15);color:#fbbf24">진행중</span></a>
+    <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — PG2 최선 확인, 新프리뷰 모델 탐색 진행 중</span><span class="toc-cat cat-exp" style="background:rgba(167,139,250,0.15);color:#a78bfa">완료+진행중</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -12961,9 +12961,9 @@ graph TD
   </div>
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:24px">
-    <div class="finding-title" style="color:#7dd3fc">55-2. 비전 모델 & 어댑터 튜닝 기법별 정량 어블레이션 (TBD)</div>
+    <div class="finding-title" style="color:#7dd3fc">55-2. 비전 모델 & 어댑터 튜닝 기법별 정량 어블레이션 ✅ 완료</div>
     <div class="finding-body">
-      비전 타워 4종(CLIP, Kosmos-2, OWL-v2, Florence-2) 및 튜닝 기법(Zero-shot, Linear Probe, MLP, LoRA 5 seeds)에 대한 V5 데이터셋 검증 결과입니다:
+      비전 타워 4종(CLIP, Kosmos-2, OWL-v2, Florence-2) 및 튜닝 기법(Zero-shot, Linear Probe, MLP, LoRA 5 seeds) 전체 실험 완료. <strong style="color:#fbbf24">sess_dir(실주행 세션 방향 정확도)가 실전 지표.</strong>
       <div style="overflow-x:auto;margin-top:10px">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
           <thead>
@@ -13306,18 +13306,86 @@ graph TD
     </div>
   </div>
 
-  <!-- 58-3. 결과 (실험 완료 후 채울 것) -->
+  <!-- 58-3. 결과 -->
   <div class="finding-card" style="margin-top:16px;border-color:#1e3a5f">
-    <div class="finding-title" style="color:#7dd3fc">58-3. 실험 결과 <span style="font-size:0.78rem;font-weight:400;color:#f59e0b">⏳ 실행 중 — 완료 후 업데이트</span></div>
-    <div id="ch58-result-table" style="background:#0a1628;border:1px solid #1e3a5f;border-radius:6px;padding:16px;font-size:0.82rem;color:#475569;text-align:center;min-height:80px;display:flex;align-items:center;justify-content:center">
-      ablate_grounding_prompt.py 실행 완료 후 결과 표 삽입 예정
+    <div class="finding-title" style="color:#7dd3fc">58-3. 실험 결과 ✅ 완료 (2026-06-30)</div>
+    <div id="ch58-result-table" style="overflow-x:auto;margin-top:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <thead>
+          <tr style="border-bottom:1px solid #334155">
+            <th style="padding:6px;text-align:left;color:#7dd3fc">ID</th>
+            <th style="padding:6px;color:#7dd3fc">det율</th>
+            <th style="padding:6px;color:#7dd3fc">dir정확도</th>
+            <th style="padding:6px;color:#7dd3fc">cx_std</th>
+            <th style="padding:6px;color:#7dd3fc">latency</th>
+            <th style="padding:6px;text-align:left;color:#94a3b8;font-size:0.75rem">프롬프트</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #1e293b;background:rgba(250,204,21,0.05)">
+            <td style="padding:6px;color:#fbbf24;font-weight:700">PG2 baseline</td>
+            <td style="padding:6px;text-align:center">92.3%</td>
+            <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">58.3%</td>
+            <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">0.045</td>
+            <td style="padding:6px;text-align:center">—</td>
+            <td style="padding:6px;font-size:0.75rem;color:#94a3b8">현재 production (★기준)</td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:6px;color:#86efac;font-weight:700">K_refexp_laundry</td>
+            <td style="padding:6px;text-align:center">100%</td>
+            <td style="padding:6px;text-align:center;color:#86efac;font-weight:700">50%</td>
+            <td style="padding:6px;text-align:center;color:#86efac;font-weight:700">0.130</td>
+            <td style="padding:6px;text-align:center">689ms</td>
+            <td style="padding:6px;font-size:0.75rem;color:#94a3b8"><code>&lt;phrase&gt;gray laundry basket&lt;/phrase&gt;</code></td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:6px">K_nav</td>
+            <td style="padding:6px;text-align:center">100%</td>
+            <td style="padding:6px;text-align:center">50%</td>
+            <td style="padding:6px;text-align:center">0.224</td>
+            <td style="padding:6px;text-align:center">816ms</td>
+            <td style="padding:6px;font-size:0.75rem;color:#94a3b8"><code>robot navigating toward the basket</code></td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:6px">K_refexp_gray</td>
+            <td style="padding:6px;text-align:center">100%</td>
+            <td style="padding:6px;text-align:center">50%</td>
+            <td style="padding:6px;text-align:center">0.153</td>
+            <td style="padding:6px;text-align:center">647ms</td>
+            <td style="padding:6px;font-size:0.75rem;color:#94a3b8"><code>&lt;phrase&gt;gray basket&lt;/phrase&gt;</code></td>
+          </tr>
+          <tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:6px;color:#fbbf24">K_current ★</td>
+            <td style="padding:6px;text-align:center">100%</td>
+            <td style="padding:6px;text-align:center;color:#f87171">21.4%</td>
+            <td style="padding:6px;text-align:center">0.176</td>
+            <td style="padding:6px;text-align:center">976ms</td>
+            <td style="padding:6px;font-size:0.75rem;color:#94a3b8"><code>The basket is at</code> (현재 서버)</td>
+          </tr>
+          <tr style="border-bottom:1px solid #334155;background:rgba(248,113,113,0.04)">
+            <td style="padding:6px;color:#f87171">OWL-v2 전체</td>
+            <td style="padding:6px;text-align:center">35~100%</td>
+            <td style="padding:6px;text-align:center;color:#f87171;font-weight:700">0%</td>
+            <td style="padding:6px;text-align:center">—</td>
+            <td style="padding:6px;text-align:center">~427ms</td>
+            <td style="padding:6px;font-size:0.75rem;color:#f87171">쿼리 불문 방향 추정 불가</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- 58-4. 결론 (실험 완료 후 채울 것) -->
-  <div class="finding-card" style="margin-top:16px;border-color:#1e3a5f">
-    <div class="finding-title" style="color:#7dd3fc">58-4. 결론 및 다음 단계 <span style="font-size:0.78rem;font-weight:400;color:#475569">— 업데이트 대기</span></div>
-    <div style="color:#475569;font-size:0.85rem;font-style:italic;padding:8px 0">실험 완료 후 최선 변형 + 박스 비교 이미지 삽입</div>
+  <!-- 58-4. 결론 -->
+  <div class="finding-card" style="margin-top:16px;background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f">
+    <div class="finding-title" style="color:#7dd3fc">58-4. 결론</div>
+    <div style="font-size:0.88rem;line-height:1.9">
+      <ul style="margin:0 0 0 18px">
+        <li><strong style="color:#4ade80">PG2가 여전히 최선</strong> (dir 58.3%, cx_std 0.045) — 교체 불필요</li>
+        <li>Kosmos-2 refexp 방식이 현재 completion 방식보다 dir 2.3배 높음 (21%→50%). 단, MLP가 PG2 분포로 학습됐으므로 <strong>Kosmos-2로 교체 시 MLP 재학습 필요</strong></li>
+        <li>OWL-v2는 방향 추정 불가 — 프리뷰 모델 대안으로 부적합 확인</li>
+        <li style="color:#fbbf24"><strong>진행 중:</strong> 새 프리뷰 모델 테스트 스크립트 작성 중 (PG2 외 경량 대안 탐색)</li>
+      </ul>
+    </div>
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH58 ═ -->
