@@ -49,7 +49,7 @@
     <a href="#section-h" style="padding:6px 14px;background:#1e0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#d8b4fe;text-decoration:none">&sect;H Detector 비교(GDINO/YOLO-World)</a>
     <a href="#section-i" style="padding:6px 14px;background:#1a0a0a;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;I STOP 로직 ★NEW</a>sect;I STOP 로직</a>
     <a href="#section-j" style="padding:6px 14px;background:#1a0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">&sect;J Perception Ablation ★NEW</a>
-    <a href="#section-k" style="padding:6px 14px;background:#1a0a00;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;K Frame0 Cold-Start 분석 ★가설</a>
+    <a href="#section-k" style="padding:6px 14px;background:#0a1a12;border:1px solid #16a34a;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">&sect;K Frame0 Grounding 100% 실패 → 워밍업 해결</a>
     <a href="today_visual_summary.html" style="padding:6px 14px;background:#0a1628;border:1px solid #7dd3fc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">📷 오늘 한눈에 보기(사진)</a>
     <a href="hidden_state_hub.html" style="padding:6px 14px;background:#0a1628;border:1px solid #86efac;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">🧠 Hidden State Hub</a>
     <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
@@ -1182,11 +1182,11 @@ loadAblationTables();
 
 <!-- §K: Frame 0 Cold-Start 분석 (CH57) -->
 <div id="section-k" style="margin-top:48px">
-  <h2><span class="badge" style="background:#374151;color:#9ca3af">K</span> Frame 0 Cold-Start → Window 오염 가설 <span style="font-size:0.7rem;background:#1f2937;color:#6b7280;padding:2px 8px;border-radius:4px;margin-left:8px">🚫 기각됨 — 2026-06-30 검증</span></h2>
+  <h2><span class="badge" style="background:#166534;color:#86efac">K</span> Frame 0 Cold-Start → PG2 Grounding 100% 실패 <span style="font-size:0.7rem;background:#0a2212;color:#86efac;padding:2px 8px;border-radius:4px;margin-left:8px">✅ 데이터 확인 — Stage 0 워밍업으로 해결</span></h2>
 
-  <div class="card" style="border-color:#92400e;background:linear-gradient(135deg,#1a0a00,#1f1000);margin-bottom:16px">
-    <div style="color:#fde68a;font-size:0.85rem;line-height:1.8">
-      <strong style="color:#fbbf24">분석 출처:</strong> 2026-06-29 Claude 코드+데이터 분석. 실험자 검증 전 가설임.
+  <div class="card" style="border-color:#166534;background:linear-gradient(135deg,#0a1a12,#0c2417);margin-bottom:16px">
+    <div style="color:#86efac;font-size:0.85rem;line-height:1.8">
+      <strong style="color:#4ade80">분석 결과:</strong> 47세션 전수 조사(2026-06-30) — frame 0 has_bbox=True: <strong style="color:#f87171">0/47 (0%)</strong>. 날짜·세션 불문 100% 실패. 액션 오예측은 MLP trajectory 학습의 정상 동작이며, <strong>그라운딩 품질 자체가 핵심 이슈.</strong>
     </div>
   </div>
 

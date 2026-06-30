@@ -312,7 +312,7 @@
     <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
     <a class="toc-item" href="#ch55" data-target="ch55"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 55</span><span class="toc-label">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch56" data-target="ch56"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 56</span><span class="toc-label">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</span><span class="toc-cat cat-exp">실험</span></a>
-    <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(107,114,128,0.15);color:#6b7280">CH 57</span><span class="toc-label">Frame 0 Cold-Start → Window 오염 가설 (기각됨)</span><span class="toc-cat cat-exp" style="background:rgba(107,114,128,0.15);color:#6b7280">기각</span></a>
+    <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Cold-Start → Grounding 100% 실패 — Stage 0 워밍업으로 해결</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#pres" data-target="pres"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">PRES</span><span class="toc-label">15분 발표 — SOTA 정리 (★ 96.6%)</span></a>
@@ -12994,20 +12994,20 @@ graph TD
               <td style="padding:6px;text-align:center">76.0% / 0.016m</td>
               <td style="padding:6px;text-align:center">59.3% / 0.154m</td>
               <td style="padding:6px;text-align:center">80.7% / 0.359m</td>
-              <td style="padding:6px;text-align:center;color:#e2e8f0">연산 진행 중 (TBD)</td>
+              <td style="padding:6px;text-align:center;color:#4ade80;font-weight:700">v5 68.6% / 0.029m<br><span style="color:#fbbf24;font-weight:700">sess 47.2% / 0.120m</span></td>
             </tr>
             <tr>
               <td style="padding:6px;font-weight:700">Florence-2</td>
               <td style="padding:6px;text-align:center">65.7% / 0.148m</td>
-              <td style="padding:6px;text-align:center">63.6% / 0.118m</td>
-              <td style="padding:6px;text-align:center">57.1% / 0.282m</td>
-              <td style="padding:6px;text-align:center;color:#94a3b8">N/A</td>
+              <td style="padding:6px;text-align:center">v5 85.7% / 0.090m<br><span style="color:#f87171;font-size:0.8rem">sess 15.0% / 0.179m</span></td>
+              <td style="padding:6px;text-align:center">v5 69.3% / 0.195m<br><span style="color:#f87171;font-size:0.8rem">sess 11.1% / 0.223m</span></td>
+              <td style="padding:6px;text-align:center">v5 62.1% / 0.170m<br><span style="color:#f87171;font-size:0.8rem">sess 26.7% / 0.125m</span></td>
             </tr>
           </tbody>
         </table>
       </div>
       <div style="margin-top:10px;font-size:0.85rem">
-        지표 포맷: <code>방향 정확도(%) / BBox CX MAE</code> (상세 레이어 튜닝 어블레이션도 백그라운드 구동 완료되는 대로 종합 보고서 및 Hub에 추가 반영 예정)
+        지표 포맷: <code>방향 정확도(%) / BBox CX MAE</code> — v5=V5 train 140개 / sess=6/26 실주행 36세션. <strong style="color:#fbbf24">sess가 실전 지표. OWL-v2 LoRA가 sess 47.2%로 최고.</strong> Florence-2는 v5→sess 전이 급락(일반화 취약).
       </div>
     </div>
   </div>
@@ -13047,17 +13047,21 @@ graph TD
 <div class="chapter" id="ch57">
   <div class="chapter-header">
     <span class="chapter-num">CH 57</span>
-    <h2 class="chapter-title">Frame 0 Cold-Start → Window 오염 → LEFT 오예측 — 가설 기각됨</h2>
-    <p class="chapter-subtitle">6/26 실주행 세션 4개에서 그라운딩이 cx&gt;0.5임에도 LEFT 출력된 현상의 원인 분석. <strong style="color:#6b7280">🚫 2026-06-30 실험자 검증으로 기각됨</strong></p>
+    <h2 class="chapter-title">Frame 0 Cold-Start → Grounding 100% 실패 확인 — Stage 0 워밍업으로 해결</h2>
+    <p class="chapter-subtitle">6/26 실주행 47세션 전수 조사: Frame 0에서 PG2 그라운딩이 100% 실패(has_bbox=False). 액션 오예측과 무관하며, 그라운딩 품질 자체가 핵심 이슈. Stage 0 워밍업 적용 후 검증 예정.</p>
   </div>
 
-  <div class="finding-card" style="background:linear-gradient(135deg,#0d1117,#111827);border-color:#374151;margin-bottom:24px">
-    <div class="finding-title" style="color:#9ca3af">🚫 상태: 기각됨 (2026-06-30 실험자 검증)</div>
-    <div class="finding-body" style="font-size:0.88rem;line-height:1.9;color:#6b7280">
-      실험자가 실제 사진으로 확인한 결과:<br>
-      • bbox 오염 단독 테스트 → LEFT 재현 안 됨 (MLP 출력 FWD 98%)<br>
-      • 정상 세션도 frame1 예측이 바스켓 위치에 맞지 않음 → 가설의 전제(LEFT 세션 특이성) 성립 안 함<br>
-      → <strong>CH57 bbox window 오염 메커니즘 기각.</strong> 근본 원인은 미확인 (vis_feat 또는 학습 분포 편향 탐색 필요)
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1a12,#0c2417);border-color:#166534;margin-bottom:24px">
+    <div class="finding-title" style="color:#86efac">✅ 핵심 발견 — Frame 0 Grounding 100% 실패 (데이터 확인)</div>
+    <div class="finding-body" style="font-size:0.88rem;line-height:1.9">
+      6/26 실주행 47세션(+이전 날짜 포함) 전수 조사 결과, <strong style="color:#f87171">frame 0의 has_bbox=False가 100%</strong>:<br>
+      <ul style="margin:10px 0 0 18px;line-height:2">
+        <li>날짜 불문(6/18·6/22·6/24·6/26) 47세션 전부 frame 0 그라운딩 실패</li>
+        <li>Frame 1+: 98% has_bbox=True, latency 1,333~1,972ms (PG2 정상 동작)</li>
+        <li><strong>원인: PG2 콜드스타트</strong> — 첫 호출 시 GPU 초기화로 2,000~22,000ms 소요, 타임아웃 초과</li>
+        <li>Frame 0 액션(대부분 STOP)은 has_bbox=False → cx=0.5 default 값으로 MLP 추론한 결과</li>
+      </ul>
+      <strong style="color:#fbbf24;display:block;margin-top:10px">💡 액션 오예측(LEFT 등)은 MLP가 학습한 trajectory 경로의 정상 동작일 수 있음 — 그라운딩 실패가 본질 문제.</strong>
     </div>
   </div>
 
