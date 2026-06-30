@@ -3843,8 +3843,8 @@ with gr.Blocks(
             f"  실제 이동경로는 아래 요소에 따라 달라집니다:\n"
             f"   • 오브젝트 실제 위치 (수동 배치)\n"
             f"   • 카메라 시점 / 조명 조건\n"
-            f"   • 모델 학습 수준 (Exp14 Step2 기준)\n"
-            f"   • 그라운딩 bbox 정확도"
+            f"   • 모델: stop_N1.pt (Exp66 기반, CL 96.6%, learned STOP)\n"
+            f"   • 그라운딩 bbox 정확도 (PG2 \"detect {phrase}\")"
             f"{recent_note}"
         )
 
