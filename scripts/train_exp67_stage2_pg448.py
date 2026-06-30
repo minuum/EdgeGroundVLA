@@ -73,13 +73,15 @@ class ActionMLP(nn.Module):
     def forward(self, x): return self.net(x)
 
 
-def build_dataset(ann, enc, device):
+def build_dataset(ann, enc, device, filter_no_bbox=False):
     X, y = [], []
     for ep in ann:
         h5_path = Path(ep["episode"])
         if not h5_path.exists():
             continue
         frames = [fr for fr in ep["frames"] if fr.get("gt_class") is not None]
+        if filter_no_bbox:
+            frames = [fr for fr in frames if fr.get("has_bbox", fr.get("detected", False))]
         if not frames:
             continue
         try:
@@ -116,6 +118,8 @@ def main():
     parser.add_argument("--val-ratio", type=float, default=0.15)
     parser.add_argument("--ann", type=str, default=str(ANN_PG448))
     parser.add_argument("--out", type=str, default=str(OUT_DIR))
+    parser.add_argument("--filter-no-bbox", action="store_true",
+                        help="has_bbox=False 프레임 학습 제외 (Axis3 어블레이션)")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -137,9 +141,12 @@ def main():
     print("[MODEL] Stage1 v2 CLIP 로드...")
     enc = FrozenCLIPV2(VLM_PATH, STAGE1_PT, device).to(device).eval()
 
+    fnb = args.filter_no_bbox
+    if fnb:
+        print("[DATA] has_bbox=False 프레임 제외 (--filter-no-bbox)")
     print("[DATA] 학습 데이터 준비 중...")
-    X_tr, y_tr = build_dataset(train_eps, enc, device)
-    X_va, y_va = build_dataset(val_eps,   enc, device)
+    X_tr, y_tr = build_dataset(train_eps, enc, device, filter_no_bbox=fnb)
+    X_va, y_va = build_dataset(val_eps,   enc, device, filter_no_bbox=fnb)
     print(f"  Train: {len(X_tr)}샘플 / Val: {len(X_va)}샘플")
 
     X_tr_t = torch.from_numpy(X_tr).to(device)
