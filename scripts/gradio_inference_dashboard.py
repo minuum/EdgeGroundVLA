@@ -1589,42 +1589,84 @@ def _make_env_banner() -> str:
     api = os.getenv("VLA_API_SERVER", "http://localhost:8001")
     exp_name = EXP_MODE_NAMES[0] if EXP_MODE_NAMES else "—"
 
-    # API 서버 실시간 상태
     srv_color = "#ef4444"
-    srv_label = "❌ 서버 오프라인"
-    model_label = os.getenv("VLA_MODEL", "—")
+    info = {}
     try:
         info = _req.get(f"{api}/health", timeout=1.5).json()
-        if info.get("model_loaded"):
-            srv_color = "#22c55e"
-            stop_mode = info.get("stop_mode", "?")
-            latched = info.get("stop_latched", False)
-            latch_tag = " 🔒LATCHED" if latched else ""
-            srv_label = f"✅ {info.get('head','?')} w={info.get('window','?')} | {stop_mode}{latch_tag} | GPU {info.get('gpu',{}).get('allocated_gb','?'):.2f}GB"
-            ckpt = info.get("checkpoint_path", "")
-            if ckpt:
-                model_label = Path(ckpt).stem[:28]
-        else:
-            srv_color = "#f59e0b"
-            srv_label = "⚠️ 서버 온라인 (모델 미로드)"
     except Exception:
         pass
 
+    loaded = info.get("model_loaded", False)
+    if loaded:
+        srv_color = "#22c55e"
+    elif info:
+        srv_color = "#f59e0b"
+
+    # ── Row 1: 환경 + 서버 상태
+    status_dot = '<span style="color:#22c55e">●</span> 온라인' if loaded else \
+                 ('<span style="color:#f59e0b">●</span> 로딩 중' if info else '<span style="color:#ef4444">●</span> 오프라인')
+    gpu = info.get("gpu", {})
+    gpu_str = f'{gpu.get("allocated_gb","?"):.2f}GB&nbsp;({gpu.get("device_name","?")})' if gpu else "—"
+    infer_cnt = info.get("inference_count", 0)
+    latched = info.get("stop_latched", False)
+    latch_tag = '&nbsp;<span style="color:#f59e0b;font-weight:700">🔒LATCHED</span>' if latched else ""
+    row1 = (
+        f'<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;">'
+        f'<span><strong style="color:#4ade80">MoNaVLA</strong>'
+        f'&nbsp;&nbsp;<code style="color:#86efac">{hostname}</code>'
+        f'&nbsp;<span style="color:#94a3b8">({role})</span></span>'
+        f'<span style="color:#94a3b8">API</span>&nbsp;<code style="color:#a5b4fc;font-size:0.82rem">{api}</code>'
+        f'<span>{status_dot}{latch_tag}</span>'
+        f'<span style="color:#94a3b8">GPU</span>&nbsp;<code style="color:#fbbf24">{gpu_str}</code>'
+        f'<span style="color:#94a3b8">추론</span>&nbsp;<code style="color:#e2e8f0">{infer_cnt}회</code>'
+        f'</div>'
+    )
+
+    # ── Row 2: 모델 상세
+    head = info.get("head", "—")
+    window = info.get("window", "—")
+    stop_mode = info.get("stop_mode", "—")
+    val_acc = info.get("val_acc")
+    acc_str = f'{val_acc*100:.1f}%' if val_acc else "—"
+    ckpt = Path(info.get("checkpoint_path", "")).stem or "—"
+    ckpt_short = ckpt[:32] if ckpt != "—" else "—"
+    row2 = (
+        f'<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-top:5px;">'
+        f'<span style="color:#94a3b8">모델</span>&nbsp;'
+        f'<code style="color:#67e8f9">{ckpt_short}</code>'
+        f'&nbsp;<span style="color:#cbd5e1">({head}&nbsp;w={window},&nbsp;{stop_mode}-STOP,&nbsp;val_acc&nbsp;{acc_str})</span>'
+        f'&nbsp;&nbsp;<span style="color:#f9a8d4">실험&nbsp;{exp_name}</span>'
+        f'</div>'
+    )
+
+    # ── Row 3: Grounder + Preview
+    g = info.get("grounder", {})
+    prev = info.get("preview", {})
+    g_model = g.get("model", "PG2-448")
+    g_px = g.get("input_px", 448)
+    g_phrase = g.get("phrase", "gray basket")
+    prev_on = prev.get("enabled", False)
+    prev_retry = prev.get("max_retry", 5)
+    prev_az = prev.get("rot_az", 0.15)
+    prev_attempt = prev.get("attempt_count", 0)
+    prev_badge = (
+        f'<span style="color:#4ade80">ON</span>&nbsp;(max={prev_retry},&nbsp;az={prev_az},&nbsp;누적={prev_attempt}회)'
+        if prev_on else '<span style="color:#94a3b8">OFF</span>'
+    )
+    row3 = (
+        f'<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-top:5px;">'
+        f'<span style="color:#94a3b8">그라운더</span>&nbsp;'
+        f'<code style="color:#34d399">{g_model}&nbsp;{g_px}px</code>'
+        f'&nbsp;<span style="color:#cbd5e1">"detect&nbsp;{g_phrase}"</span>'
+        f'&nbsp;&nbsp;<span style="color:#94a3b8">Preview</span>&nbsp;{prev_badge}'
+        f'&nbsp;&nbsp;<span style="color:#94a3b8">ROT&nbsp;az</span>&nbsp;<code style="color:#fbbf24">{prev_az}</code>'
+        f'</div>'
+    )
+
     return (
-        f'<div style="background:#0f172a;border-left:4px solid {srv_color};padding:10px 14px;'
-        f'border-radius:4px;margin-bottom:12px;color:#e2e8f0;font-size:0.88rem;line-height:1.6;">'
-        f'<strong style="color:#4ade80;font-size:0.95rem;">MoNaVLA 환경</strong>'
-        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
-        f'<code style="color:#86efac">{hostname}</code>'
-        f'&nbsp;(<span style="color:#fbbf24">{role}</span>)'
-        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
-        f'모델&nbsp;<code style="color:#67e8f9">{model_label}</code>'
-        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
-        f'API&nbsp;<code style="color:#a5b4fc">{api}</code>'
-        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
-        f'<span style="color:{srv_color}">{srv_label}</span>'
-        f'&nbsp;&nbsp;|&nbsp;&nbsp;'
-        f'실험&nbsp;<span style="color:#f9a8d4">{exp_name}</span>'
+        f'<div style="background:#0f172a;border-left:4px solid {srv_color};padding:10px 16px;'
+        f'border-radius:6px;margin-bottom:12px;color:#e2e8f0;font-size:0.86rem;line-height:1.7;">'
+        f'{row1}{row2}{row3}'
         f'</div>'
     )
 

@@ -915,14 +915,33 @@ async def health() -> dict[str, Any]:
             "allocated_gb": round(torch.cuda.memory_allocated() / 1e9, 3),
             "device_name": torch.cuda.get_device_name(0),
         }
+    rot_az = round(abs(ACTION_3D[6][2]), 3)  # ROT_L az magnitude
+    preview_cfg = {
+        "enabled": m._preview_enabled if m else False,
+        "max_retry": m._preview_max_retry if m else 0,
+        "area_thresh": m._preview_area_thresh if m else 0.0,
+        "rot_az": rot_az,
+        "attempt_count": m._preview_attempt if m else 0,
+    } if m else {}
     return {
         "status": "healthy",
         "model_loaded": m is not None,
         "head": m.head_name if m else None,
         "window": m.window if m else None,
+        "val_acc": round(m.val_acc, 4) if m and m.val_acc else None,
+        "inference_count": m.inference_count if m else 0,
         "stop_mode": STOP_MODE,
         "stop_latched": m.stop_latched if m else False,
         "gpu": gpu,
+        "grounder": {
+            "model": "PG2-448",
+            "path": str(DEFAULT_PG2.name),
+            "prompt": "detect {phrase}",
+            "phrase": "gray basket",
+            "input_px": 448,
+        },
+        "preview": preview_cfg,
+        "checkpoint_path": str(os.getenv("VLA_S2V2_STAGE2", "")),
     }
 
 
