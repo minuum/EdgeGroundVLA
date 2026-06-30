@@ -12544,7 +12544,7 @@ graph TD
       center 크롭은 바스켓이 항상 화면 중앙 근처에 있다는 실주행 조건과 일치해 안정적.
       특히 <strong style="color:#fbbf24">frame 0 (has_bbox=False) 살린 건수 20건</strong> — anchor 방식 0건 대비 결정적 차이.
       <div style="margin-top:10px;padding:8px 12px;background:#0a1a12;border-left:3px solid #16a34a;border-radius:4px;font-size:0.82rem;color:#86efac">
-        → <strong>Center 크롭 방식 운영 코드 반영 검토 중.</strong> 기존 anchor 방식 코드는 반영 안 함.
+        → Center 크롭 방식 자체는 유효. 단, <strong>CH54 Stage 0 워밍업 배포 이후</strong> frame 0 cold-start 문제가 다른 경로로 해결됨 → 배포 우선순위 낮아짐. 필요 시 재검토.
       </div>
     </div>
   </div>
@@ -12697,7 +12697,10 @@ graph TD
     <div style="color:#e2e8f0;line-height:1.8">
       path_type 분리 평가로 "val 천장 포화" 가설 재확인 — SR은 어떤 path_type에서도 모드 간 차이 없음.<br>
       Hidden state의 가치는 <strong style="color:#4ade80">FPE 정밀도</strong>에 있으며, replace mode가 전환 경로에서 가장 우수(0.176→0.106m, ×1.7).<br>
-      right_right 실패는 에피소드-레벨 문제(모델 무관). <strong>6/22 TODO #4 (path_type 분리) ✅ 완료.</strong>
+      right_right 실패는 에피소드-레벨 문제(모델 무관). <strong>6/22 TODO #4 (path_type 분리) ✅ 완료.</strong><br>
+      <span style="color:#94a3b8;font-size:0.84rem;margin-top:8px;display:block">
+        ※ 최신 기준: Exp66 LSTM w=16이 CL 96.6% / FPE <strong style="color:#4ade80">0.080m</strong>으로 현재 SOTA — replace mode의 FPE 개선 인사이트가 LSTM 설계에 기여한 것으로 봄. 현재 프로덕션 서버는 baseline head 배포 중 (replace 체크포인트 미배포).
+      </span>
     </div>
   </div>
 
@@ -12814,7 +12817,8 @@ graph TD
       6/24 150541(22,285ms)과 6/26 104455(22,444ms)에서 동일한 22초대 레이턴시가 1번씩 발생.<br>
       두 경우 모두 <strong>해당 세션의 첫 실그라운딩 호출</strong>에서만 발생, 이후 호출은 정상(1,300~1,500ms).<br>
       PaliGemma2 모델이 처음 로드되는 <strong>콜드스타트</strong>(GPU 모델 메모리 로딩) 지연으로 추정.<br>
-      <span style="color:#94a3b8;font-size:0.82rem">→ 서버가 이미 웜업된 상태라면 발생하지 않음. 실운용 시 더미 이미지로 워밍업 필요 여부 검토 대상.</span>
+      <span style="color:#94a3b8;font-size:0.82rem">→ 서버가 이미 웜업된 상태라면 발생하지 않음. 실운용 시 더미 이미지로 워밍업 필요 여부 검토 대상.</span><br>
+      <span style="color:#4ade80;font-size:0.82rem">✅ <strong>CH54 Stage 0 워밍업으로 해결됨</strong> — 서버 시작 시 더미 이미지로 PG2 첫 호출 사전 소진. f1 레이턴시 22,000ms → 3,102ms 개선.</span>
     </div>
   </div>
 
@@ -13119,6 +13123,9 @@ graph TD
         <li>Frame 2+: 캐시 사용, 69~71ms — 정상 운용</li>
       </ul>
       <strong style="color:#4ade80;display:block;margin-top:10px">결론: Stage 0 워밍업 + CH54 Preview의 2-layer 방어로 Frame 0 문제 실질적 해결. 실로봇 세션 준비 완료.</strong>
+      <span style="color:#94a3b8;font-size:0.82rem;display:block;margin-top:6px">
+        ※ 최신 기준(CH55 ablation 완료): Preview model 추가 탐색 결과 PG2 대체 모델 불필요 확인 — Stage 0 워밍업 단독으로 충분. 현재 Exp66 CL 96.6% 달성 상태에서 2-layer 방어 유지 중. <code>VLA_PREVIEW_ENABLED=1</code> 기본 비활성.
+      </span>
     </div>
   </div>
 
