@@ -1,0 +1,314 @@
+[
+  {
+    "key": "316.h5",
+    "fname": "session_20260626_100316.h5",
+    "pg2_cx": 0.5684,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "455.h5",
+    "fname": "session_20260626_104455.h5",
+    "pg2_cx": 0.5508,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "644.h5",
+    "fname": "session_20260626_104644.h5",
+    "pg2_cx": 0.5098,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "751.h5",
+    "fname": "session_20260626_132751.h5",
+    "pg2_cx": 0.5508,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "013.h5",
+    "fname": "session_20260626_133013.h5",
+    "pg2_cx": 0.4985,
+    "pg2_side": "L",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "622.h5",
+    "fname": "session_20260626_135622.h5",
+    "pg2_cx": 0.5543,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "837.h5",
+    "fname": "session_20260626_135837.h5",
+    "pg2_cx": 0.498,
+    "pg2_side": "L",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "139.h5",
+    "fname": "session_20260626_140139.h5",
+    "pg2_cx": 0.4951,
+    "pg2_side": "L",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "247.h5",
+    "fname": "session_20260626_140247.h5",
+    "pg2_cx": 0.6354,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "355.h5",
+    "fname": "session_20260626_140355.h5",
+    "pg2_cx": 0.6178,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "535.h5",
+    "fname": "session_20260626_140535.h5",
+    "pg2_cx": 0.5,
+    "pg2_side": "L",
+    "model_act": "STOP",
+    "frame": 0
+  },
+  {
+    "key": "752.h5",
+    "fname": "session_20260626_140752.h5",
+    "pg2_cx": 0.6022,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "928.h5",
+    "fname": "session_20260626_140928.h5",
+    "pg2_cx": 0.5225,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "153.h5",
+    "fname": "session_20260626_141153.h5",
+    "pg2_cx": 0.5137,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "337.h5",
+    "fname": "session_20260626_141337.h5",
+    "pg2_cx": 0.5,
+    "pg2_side": "L",
+    "model_act": "STOP",
+    "frame": 0
+  },
+  {
+    "key": "536.h5",
+    "fname": "session_20260626_141536.h5",
+    "pg2_cx": 0.6022,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "658.h5",
+    "fname": "session_20260626_141658.h5",
+    "pg2_cx": 0.5225,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "823.h5",
+    "fname": "session_20260626_141823.h5",
+    "pg2_cx": 0.6354,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "109.h5",
+    "fname": "session_20260626_142109.h5",
+    "pg2_cx": 0.5142,
+    "pg2_side": "R",
+    "model_act": "LEFT",
+    "frame": 1
+  },
+  {
+    "key": "941.h5",
+    "fname": "session_20260626_142941.h5",
+    "pg2_cx": 0.5264,
+    "pg2_side": "R",
+    "model_act": "LEFT",
+    "frame": 1
+  },
+  {
+    "key": "011.h5",
+    "fname": "session_20260626_143011.h5",
+    "pg2_cx": 0.6022,
+    "pg2_side": "R",
+    "model_act": "LEFT",
+    "frame": 1
+  },
+  {
+    "key": "058.h5",
+    "fname": "session_20260626_143058.h5",
+    "pg2_cx": 0.5924,
+    "pg2_side": "R",
+    "model_act": "LEFT",
+    "frame": 1
+  },
+  {
+    "key": "249.h5",
+    "fname": "session_20260626_143249.h5",
+    "pg2_cx": 0.6022,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "600.h5",
+    "fname": "session_20260626_144600.h5",
+    "pg2_cx": 0.6452,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "935.h5",
+    "fname": "session_20260626_144935.h5",
+    "pg2_cx": 0.4951,
+    "pg2_side": "L",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "530.h5",
+    "fname": "session_20260626_145530.h5",
+    "pg2_cx": 0.5,
+    "pg2_side": "L",
+    "model_act": "STOP",
+    "frame": 0
+  },
+  {
+    "key": "545.h5",
+    "fname": "session_20260626_145545.h5",
+    "pg2_cx": 0.5049,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "651.h5",
+    "fname": "session_20260626_145651.h5",
+    "pg2_cx": 0.5103,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "758.h5",
+    "fname": "session_20260626_145758.h5",
+    "pg2_cx": 0.6041,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "853.h5",
+    "fname": "session_20260626_145853.h5",
+    "pg2_cx": 0.5684,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "945.h5",
+    "fname": "session_20260626_145945.h5",
+    "pg2_cx": 0.6036,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "352.h5",
+    "fname": "session_20260626_150352.h5",
+    "pg2_cx": 0.5103,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "512.h5",
+    "fname": "session_20260626_150512.h5",
+    "pg2_cx": 0.5269,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "611.h5",
+    "fname": "session_20260626_150611.h5",
+    "pg2_cx": 0.5469,
+    "pg2_side": "R",
+    "model_act": "FWD",
+    "frame": 1
+  },
+  {
+    "key": "747.h5",
+    "fname": "session_20260626_150747.h5",
+    "pg2_cx": 0.5386,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "946.h5",
+    "fname": "session_20260626_150946.h5",
+    "pg2_cx": 0.563,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "643.h5",
+    "fname": "session_20260626_151643.h5",
+    "pg2_cx": 0.5543,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "739.h5",
+    "fname": "session_20260626_151739.h5",
+    "pg2_cx": 0.6036,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  },
+  {
+    "key": "814.h5",
+    "fname": "session_20260626_151814.h5",
+    "pg2_cx": 0.5264,
+    "pg2_side": "R",
+    "model_act": "STOP",
+    "frame": 1
+  }
+]
