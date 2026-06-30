@@ -84,11 +84,13 @@ ROOT = Path(project_root)
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp66" / "action_mlp.pt"
 DEFAULT_VLM    = ROOT / ".vlms" / "kosmos-2-patch14-224"
-# PaliGemma2: HF cache path (used for grounding, matches Exp65/66 training distribution)
+# PaliGemma2: HF cache path
+# Upgraded to 448 from 224 — detection rate 73% → 99% on 185-frame eval (CH59).
+# Snapshot hash for 448: use env var VLA_PG2_PATH to override on soda if hash differs.
 _PG2_HF_CACHE = (
     Path.home() / ".cache" / "huggingface" / "hub"
-    / "models--google--paligemma2-3b-mix-224"
-    / "snapshots" / "8e40ab4cc5df93dfb7fd2fff754bcdff8b62ee78"
+    / "models--google--paligemma2-3b-mix-448"
+    / "snapshots" / "1406c92ec87d32cc6b983239278901b904ba7a51"
 )
 DEFAULT_PG2 = Path(os.getenv("VLA_PG2_PATH", str(_PG2_HF_CACHE)))
 
@@ -116,6 +118,9 @@ ACTION_3D = {
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
 _LOC_RE = re.compile(r"<loc(\d{4})>")
+# Kosmos-2 grounding prompt — refexp mode (Kr): entity name comes back as <patch_index_N>
+# Kc completion mode was "<grounding>The gray basket is at" but had 47% fallback-cx rate.
+GROUNDING_PROMPT = "<grounding><phrase>gray laundry basket</phrase>"
 # Stop-proximity thresholds (tuned from PG2 grounding on last frames: area≈0.25-0.46 vs mid 0.08-0.10)
 GOAL_AREA_THRESHOLD = float(os.getenv("VLA_STOP_AREA", "0.25"))
 GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.35"))
@@ -327,6 +332,9 @@ class Grounder:
                 area = (x2 - x1) * (y2 - y1)
                 if area > FULLSCREEN_AREA_THRESHOLD:
                     continue
+                # refexp mode: entity name is "<patch_index_N><patch_index_M>" — accept any
+                if entity_name.startswith("<patch_index_"):
+                    return {"cx": (x1+x2)/2, "cy": (y1+y2)/2, "area": area}
                 if "basket" in entity_name.lower() or "container" in entity_name.lower():
                     return {"cx": (x1+x2)/2, "cy": (y1+y2)/2, "area": area}
         return None
