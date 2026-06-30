@@ -2921,37 +2921,90 @@ with gr.Blocks(
             )
 
       # ════════════════════════════════════════════════════════════════════
-      # 탭 6: 세션 히스토리 (프레임 슬라이더 + bbox 오버레이 + preview 하이라이팅)
+      # 탭 6: 세션 히스토리 + 셀프 라벨링 + 이상치 검증
       # ════════════════════════════════════════════════════════════════════
       with gr.Tab("📚 세션 히스토리"):
         _INFER_REPORT_DIR_T6 = PROJECT_ROOT / "docs" / "inference_reports"
         _INFER_H5_DIR_T6     = PROJECT_ROOT / "docs" / "inference_sessions"
+        _LABEL_JSON_PATH     = Path("/tmp/mona_preview_labels.json")
 
+        # ── 라벨 파일 I/O ───────────────────────────────────────────────
+        def _t6_load_labels() -> dict:
+            import json as _jl
+            if _LABEL_JSON_PATH.exists():
+                try: return _jl.loads(_LABEL_JSON_PATH.read_text())
+                except Exception: pass
+            return {}
+
+        def _t6_save_labels(labels: dict):
+            import json as _jl
+            _LABEL_JSON_PATH.write_text(_jl.dumps(labels, indent=2, ensure_ascii=False))
+
+        def _t6_frame_key(sid, idx):
+            return f"session_{sid}_f{idx}"
+
+        # ── 이상치 감지 ─────────────────────────────────────────────────
+        def _t6_check_anomaly(m: dict, is_old_session: bool) -> list:
+            """프레임 메타에서 이상치 판단. 경고 문자열 리스트 반환."""
+            warns = []
+            ca, lat, has, cx, area = m["cached"], m["latency_ms"], m["has_bbox"], m["cx"], m["area"]
+            # 1. live PG2인데 latency=0 (구버전 기록 버그)
+            if ca == 0 and lat == 0:
+                warns.append("⚠️ live PG2 latency=0ms (6/30 이전 기록 버그)")
+            # 2. has_bbox=True인데 cx가 정확히 0.5 (fallback 값 — 실제 탐지 아님)
+            if has and abs(cx - 0.5) < 0.001:
+                warns.append("⚠️ has_bbox=True지만 cx=0.5 (fallback 의심)")
+            # 3. has_bbox=True인데 area=0
+            if has and area == 0:
+                warns.append("⚠️ has_bbox=True지만 area=0")
+            # 4. has_bbox=False인데 cx≠0.5 (불가능한 상태)
+            if not has and abs(cx - 0.5) > 0.01:
+                warns.append(f"⚠️ has_bbox=False인데 cx={cx:.3f} (모순)")
+            # 5. preview인데 latency=0 AND 신규 버전 (버그 수정 후에도 0이면 이상)
+            if ca == -1 and lat == 0 and not is_old_session:
+                warns.append("⚠️ preview latency=0ms (신규 세션인데 기록 없음)")
+            return warns
+
+        def _t6_label_cx_check(user_label: str, cx: float, has_bbox: bool) -> str:
+            """사용자 라벨 vs PG2 cx 일관성 검증."""
+            if not has_bbox or user_label == "NONE":
+                return ""
+            if user_label == "L" and cx > 0.55:
+                return f"⚠️ 라벨=L이지만 cx={cx:.3f} (오른쪽에 있음)"
+            if user_label == "R" and cx < 0.45:
+                return f"⚠️ 라벨=R이지만 cx={cx:.3f} (왼쪽에 있음)"
+            if user_label == "C" and (cx < 0.35 or cx > 0.65):
+                return f"⚠️ 라벨=C이지만 cx={cx:.3f} (중앙 아님)"
+            return "✅ 라벨↔cx 일관"
+
+        # ── 세션 목록 ───────────────────────────────────────────────────
         def _t6_list_sessions():
             import glob as _gl, json as _js2, os as _os2
-            # H5 직접 + JSON 리포트 둘 다 지원
             h5_files  = sorted(_gl.glob(str(_INFER_H5_DIR_T6 / "session_*.h5")), reverse=True)
             json_files = {
                 _os2.path.splitext(_os2.path.basename(f))[0].replace("session_", ""): f
                 for f in _gl.glob(str(_INFER_REPORT_DIR_T6 / "session_*.json"))
             }
+            labels = _t6_load_labels()
             choices = []
             for h5p in h5_files:
                 sid = _os2.path.basename(h5p).replace("session_", "").replace(".h5", "")
-                label = f"[{sid}]"
+                n_labeled = sum(1 for k in labels if k.startswith(f"session_{sid}_f"))
+                tag = f"[{n_labeled}라벨]" if n_labeled else ""
+                label = f"[{sid}] {tag}"
                 if sid in json_files:
                     try:
                         d = _js2.load(open(json_files[sid]))
                         steps = d.get("summary", {}).get("total_steps", "?")
-                        label += f"  {steps}steps  {d.get('instruction','')[:25]}"
+                        label += f"  {steps}steps  {d.get('instruction','')[:20]}"
                     except Exception:
                         pass
                 choices.append((label, sid))
             return choices
 
-        def _t6_draw_frame(img_arr, cx, cy, area, has_bbox, is_preview, is_arrival):
-            """프레임에 bbox 오버레이 + 배너 추가."""
-            from PIL import Image as _PIL5, ImageDraw as _IDraw, ImageFont as _IFont
+        # ── 프레임 렌더 ─────────────────────────────────────────────────
+        def _t6_draw_frame(img_arr, cx, cy, area, has_bbox, frame_type, user_label, warns):
+            from PIL import Image as _PIL5, ImageDraw as _IDraw
             import numpy as _np5
             H, W = img_arr.shape[:2]
             pil = _PIL5.fromarray(img_arr.astype(_np5.uint8)).convert("RGB")
@@ -2959,146 +3012,235 @@ with gr.Blocks(
             W2, H2 = pil.size
             draw = _IDraw.Draw(pil)
 
-            if has_bbox and area > 0:
+            # bbox 사각형
+            if has_bbox and area > 0 and abs(cx - 0.5) > 0.001:
                 px, py = cx * W2, cy * H2
                 half = (area ** 0.5) * min(W2, H2) * 0.5
                 x0, y0 = max(0, px - half), max(0, py - half)
                 x1, y1 = min(W2, px + half), min(H2, py + half)
-                draw.rectangle([x0, y0, x1, y1], outline=(0, 255, 80), width=3)
-                draw.ellipse([px-5, py-5, px+5, py+5], fill=(0, 255, 80))
+                col = (0, 255, 80) if not warns else (255, 180, 0)
+                draw.rectangle([x0, y0, x1, y1], outline=col, width=3)
+                draw.ellipse([px-5, py-5, px+5, py+5], fill=col)
 
-            # 배너
-            if is_preview:
-                draw.rectangle([0, 0, W2, 36], fill=(180, 0, 0, 200))
-                draw.text((8, 6), "🔄 PREVIEW — basket 탐색 중", fill=(255, 255, 100))
-            elif is_arrival:
-                draw.rectangle([0, 0, W2, 36], fill=(0, 120, 0, 200))
-                draw.text((8, 6), "★ ARRIVAL FRAME", fill=(255, 255, 255))
+            # 상단 배너
+            if frame_type == "🔄PREVIEW":
+                draw.rectangle([0, 0, W2, 36], fill=(160, 0, 0))
+                draw.text((8, 8), "🔄 PREVIEW", fill=(255, 220, 80))
+            elif frame_type == "★ARRIVAL":
+                draw.rectangle([0, 0, W2, 36], fill=(0, 110, 0))
+                draw.text((8, 8), "★ ARRIVAL", fill=(255, 255, 255))
+            elif warns:
+                draw.rectangle([0, 0, W2, 36], fill=(160, 100, 0))
+                draw.text((8, 8), "⚠️ ANOMALY", fill=(255, 240, 80))
+
+            # 라벨 표시 (우상단)
+            if user_label:
+                lc = {"L": (80,160,255), "R": (80,160,255), "C": (80,255,120), "NONE": (160,160,160)}
+                draw.rectangle([W2-60, 0, W2, 36], fill=lc.get(user_label, (100,100,100)))
+                draw.text((W2-52, 8), user_label, fill=(0, 0, 0))
 
             return pil
 
+        # ── H5 로드 ─────────────────────────────────────────────────────
         def _t6_load_h5(sid):
-            """H5에서 전체 프레임 + 메타 로딩. returns (frames_pil, meta_list, summary_md, table_rows)"""
-            import h5py as _h5, numpy as _np6, json as _js5
+            import h5py as _h5, numpy as _np6
             if not sid:
-                return [], [], "_(선택하세요)_", []
+                return [], [], "_(선택하세요)_", [], {}
             h5p = _INFER_H5_DIR_T6 / f"session_{sid}.h5"
             if not h5p.exists():
-                return [], [], f"❌ H5 없음: {h5p}", []
+                return [], [], f"❌ H5 없음: {h5p}", [], {}
 
             with _h5.File(h5p) as f:
-                imgs    = f["observations/images"][()]
-                acts    = f["actions"][()]
-                bbox    = f["grounding/bbox"][()]
-                cached  = f["grounding/cached"][()]
-                lats    = f["grounding/latency_ms"][()]
-                attrs   = dict(f.attrs)
+                imgs   = f["observations/images"][()]
+                acts   = f["actions"][()]
+                bbox   = f["grounding/bbox"][()]
+                cached = f["grounding/cached"][()]
+                lats   = f["grounding/latency_ms"][()]
+                attrs  = dict(f.attrs)
 
             n = len(imgs)
-            _label_map = {
-                (0.0,0.0,0.0):"STOP", (1.15,0.0,0.0):"FORWARD",
+            # 구버전 세션 판단 (6/30 이전 = latency 버그 있음)
+            is_old = sid < "20260630"
+
+            _amap = {
+                (0.0,0.0,0.0):"STOP", (1.15,0.0,0.0):"FWD",
                 (0.0,1.15,0.0):"LEFT", (0.0,-1.15,0.0):"RIGHT",
                 (1.15,1.15,0.0):"FWD+L", (1.15,-1.15,0.0):"FWD+R",
                 (0.0,0.0,0.25):"ROT_L", (0.0,0.0,-0.25):"ROT_R",
             }
             def _lbl(a):
-                for k, v in _label_map.items():
+                for k, v in _amap.items():
                     if all(abs(float(a[i])-k[i])<0.05 for i in range(3)): return v
-                return f"({a[0]:.1f},{a[1]:.1f},{a[2]:.1f})"
+                return f"({a[0]:.1f},{a[1]:.1f})"
 
+            labels = _t6_load_labels()
             frames_pil, meta_list, table_rows = [], [], []
+            n_anomaly = 0
+
             for i in range(n):
                 cx, cy, area, has = float(bbox[i,0]), float(bbox[i,1]), float(bbox[i,2]), bool(bbox[i,3])
-                ca   = float(cached[i])
-                is_preview = (ca == -1.0)
-                is_arrival = (i == n - 1 and not has)
-                pil = _t6_draw_frame(imgs[i], cx, cy, area, has, is_preview, is_arrival)
+                ca  = float(cached[i])
+                lat = float(lats[i])
+                is_prev    = (ca == -1.0) and (_lbl(acts[i]) in ("ROT_L","ROT_R","STOP"))
+                is_arrival = (i == n-1 and ca == -1.0 and _lbl(acts[i]) == "STOP")
+                if is_arrival: is_prev = False
+                ftype = ("★ARRIVAL" if is_arrival else
+                         "🔄PREVIEW" if is_prev else
+                         "📡live" if ca == 0 else "💾cache")
+
+                warns  = _t6_check_anomaly({"cached":ca,"latency_ms":lat,"has_bbox":has,"cx":cx,"area":area}, is_old)
+                if warns: n_anomaly += 1
+
+                ulabel = labels.get(_t6_frame_key(sid, i), "")
+                pil    = _t6_draw_frame(imgs[i], cx, cy, area, has, ftype, ulabel, warns)
                 frames_pil.append(pil)
-                lbl = _lbl(acts[i])
-                type_tag = "🔄PREVIEW" if is_preview else ("★ARRIVAL" if is_arrival else ("📡live" if ca == 0 else "💾cache"))
+
+                anomaly_tag = "⚠️" if warns else "✅"
                 meta_list.append({
-                    "idx": i, "label": lbl, "cx": cx, "cy": cy, "area": area,
-                    "has_bbox": has, "latency_ms": float(lats[i]),
-                    "cached": ca, "type": type_tag,
+                    "idx": i, "sid": sid, "action": _lbl(acts[i]),
+                    "cx": cx, "cy": cy, "area": area, "has_bbox": has,
+                    "latency_ms": lat, "cached": ca, "type": ftype,
+                    "warns": warns, "user_label": ulabel,
                 })
                 table_rows.append([
-                    i, type_tag, lbl,
-                    round(float(lats[i]), 0),
-                    round(area, 4), round(cx, 3),
-                    "✅" if has else "—",
+                    i, ftype, _lbl(acts[i]),
+                    round(lat, 0), round(area, 4), round(cx, 3),
+                    "✅" if has else "—", anomaly_tag,
+                    ulabel or "—",
                 ])
 
-            # 요약
             n_preview = sum(1 for m in meta_list if "PREVIEW" in m["type"])
             n_live    = sum(1 for m in meta_list if m["type"] == "📡live")
-            n_cached  = sum(1 for m in meta_list if m["type"] == "💾cache")
             live_lats = [m["latency_ms"] for m in meta_list if m["type"] == "📡live" and m["latency_ms"] > 0]
             bbox_rate = sum(1 for m in meta_list if m["has_bbox"]) / max(1, n)
-            summary_md = (
-                f"**{sid}**  |  총 **{n}프레임**  |  "
-                f"instruction: `{attrs.get('instruction','?')}`  |  status: `{attrs.get('status','?')}`\n\n"
-                f"🔄 preview: **{n_preview}** 프레임  |  📡 live PG2: **{n_live}**  |  "
-                f"💾 cached: **{n_cached}**  |  has_bbox: **{bbox_rate:.0%}**"
-                + (f"  |  live PG2 평균: **{sum(live_lats)/len(live_lats):.0f}ms**" if live_lats else "")
-            )
-            return frames_pil, meta_list, summary_md, table_rows
+            dist = {}
+            for k in labels:
+                if k.startswith(f"session_{sid}_f"):
+                    dist[labels[k]] = dist.get(labels[k], 0) + 1
+            dist_str = "  ".join(f"{k}:{v}" for k,v in sorted(dist.items())) or "라벨 없음"
 
-        def _t6_show_frame(frames_pil, meta_list, idx):
-            """슬라이더 값 → 해당 프레임 이미지 + 정보 마크다운."""
+            summary_md = (
+                f"**{sid}**  |  {n}프레임  |  `{attrs.get('instruction','?')}`  |  `{attrs.get('status','?')}`\n\n"
+                f"🔄preview:{n_preview}  📡live:{n_live}  "
+                f"{'💾cache:'+str(n-n_preview-n_live)+'  ' if n-n_preview-n_live>0 else ''}"
+                f"has_bbox:{bbox_rate:.0%}  "
+                + (f"live평균:{sum(live_lats)/len(live_lats):.0f}ms  " if live_lats else "")
+                + f"⚠️이상:{n_anomaly}건\n\n"
+                f"라벨 분포: {dist_str}"
+            )
+            return frames_pil, meta_list, summary_md, table_rows, labels
+
+        # ── 프레임 표시 + 이상치 패널 ───────────────────────────────────
+        def _t6_show_frame(frames_pil, meta_list, labels, sid, idx):
             if not frames_pil or idx is None:
-                return None, "—"
+                return None, "—", "—"
             idx = int(idx)
-            pil = frames_pil[idx]
             m   = meta_list[idx]
+            ul  = labels.get(_t6_frame_key(sid, idx), "")
+            cx_check = _t6_label_cx_check(ul, m["cx"], m["has_bbox"]) if ul else ""
+
             info = (
                 f"**frame {idx}/{len(frames_pil)-1}**  |  {m['type']}  |  "
-                f"액션: **{m['label']}**  |  "
-                f"has_bbox: {'✅' if m['has_bbox'] else '❌'}  |  "
-                f"cx: {m['cx']:.3f}  area: {m['area']:.4f}  |  "
-                f"latency: **{m['latency_ms']:.0f}ms**"
+                f"**{m['action']}**  |  "
+                f"has_bbox:{'✅' if m['has_bbox'] else '❌'}  "
+                f"cx:{m['cx']:.3f}  area:{m['area']:.4f}  "
+                f"lat:{m['latency_ms']:.0f}ms"
+                + (f"  |  라벨: **{ul}**" if ul else "  |  라벨: 미지정")
             )
-            return pil, info
+            warns_md = ""
+            if m["warns"]:
+                warns_md += "**이상치 경고:**\n" + "\n".join(f"- {w}" for w in m["warns"])
+            if cx_check:
+                warns_md += ("\n\n" if warns_md else "") + cx_check
+            if not warns_md:
+                warns_md = "✅ 정상"
+            return frames_pil[idx], info, warns_md
 
         def _t6_on_load(sid):
-            frames_pil, meta_list, summary_md, table_rows = _t6_load_h5(sid)
+            frames_pil, meta_list, summary_md, table_rows, labels = _t6_load_h5(sid)
             n = len(frames_pil)
-            first_img, first_info = _t6_show_frame(frames_pil, meta_list, 0) if n > 0 else (None, "")
-            slider_update = gr.update(maximum=max(0, n-1), value=0, visible=n > 0)
-            return frames_pil, meta_list, summary_md, table_rows, first_img, first_info, slider_update
+            img, info, warns = _t6_show_frame(frames_pil, meta_list, labels, sid, 0) if n > 0 else (None, "", "")
+            slider_up = gr.update(maximum=max(0, n-1), value=0, visible=n > 0)
+            return frames_pil, meta_list, labels, sid, summary_md, table_rows, img, info, warns, slider_up
+
+        # ── 라벨 저장 ───────────────────────────────────────────────────
+        def _t6_set_label(frames_pil, meta_list, labels, sid, idx, user_lbl):
+            if not frames_pil or not sid:
+                return frames_pil, meta_list, labels, "저장 실패", "—", "—"
+            idx = int(idx)
+            key = _t6_frame_key(sid, idx)
+            labels = dict(labels)
+            labels[key] = user_lbl
+            _t6_save_labels(labels)
+            # 프레임 다시 렌더 (라벨 표시 반영)
+            m = meta_list[idx]
+            new_pil = _t6_draw_frame(
+                # 원본 이미지는 없으니 기존 pil에서 라벨만 재렌더 → _t6_load_h5 재호출 없이
+                # 간단히 현재 pil 위에 라벨 오버레이
+                frames_pil[idx], m["cx"], m["cy"], m["area"],
+                m["has_bbox"], m["type"], user_lbl, m["warns"]
+            )
+            # PIL input은 numpy array 필요 → pil을 numpy로 변환 후 재렌더
+            import numpy as _npL
+            new_pil = _t6_draw_frame(
+                _npL.array(frames_pil[idx].convert("RGB")),
+                m["cx"], m["cy"], m["area"], m["has_bbox"], m["type"], user_lbl, m["warns"]
+            )
+            frames_pil = list(frames_pil)
+            frames_pil[idx] = new_pil
+            meta_list = list(meta_list)
+            meta_list[idx] = {**m, "user_label": user_lbl}
+            img, info, warns_md = _t6_show_frame(frames_pil, meta_list, labels, sid, idx)
+
+            dist = {}
+            for k in labels:
+                if k.startswith(f"session_{sid}_f"):
+                    dist[labels[k]] = dist.get(labels[k], 0) + 1
+            save_msg = f"💾 저장됨: {key}={user_lbl}  |  분포: " + " ".join(f"{k}:{v}" for k,v in sorted(dist.items()))
+            return frames_pil, meta_list, labels, save_msg, img, warns_md
 
         # ── UI ──────────────────────────────────────────────────────────
         with gr.Row():
-            t6_session_dd = gr.Dropdown(
-                choices=_t6_list_sessions(), value=None,
-                label="세션 선택", scale=7,
-            )
+            t6_session_dd  = gr.Dropdown(choices=_t6_list_sessions(), value=None,
+                                         label="세션 선택", scale=7)
             t6_refresh_btn = gr.Button("🔄", scale=1)
             t6_load_btn    = gr.Button("불러오기", scale=1, variant="primary")
 
         t6_summary_md = gr.Markdown("_(세션을 선택하고 불러오기)_")
 
-        with gr.Row(equal_height=True):
+        with gr.Row(equal_height=False):
+            # 왼쪽: 이미지 + 탐색 + 라벨 버튼
             with gr.Column(scale=3):
-                t6_frame_img  = gr.Image(label="프레임 (bbox 오버레이)", type="pil", height=380)
-                t6_frame_info = gr.Markdown("—")
+                t6_frame_img   = gr.Image(label="프레임", type="pil", height=360)
+                t6_frame_info  = gr.Markdown("—")
+                t6_warns_md    = gr.Markdown("—")
                 with gr.Row():
-                    t6_prev_btn    = gr.Button("◀ prev", scale=1)
-                    t6_frame_slider = gr.Slider(
-                        minimum=0, maximum=0, step=1, value=0,
-                        label="frame", scale=5,
-                    )
-                    t6_next_btn    = gr.Button("next ▶", scale=1)
+                    t6_prev_btn     = gr.Button("◀", scale=1)
+                    t6_frame_slider = gr.Slider(minimum=0, maximum=0, step=1,
+                                                value=0, label="frame", scale=5)
+                    t6_next_btn     = gr.Button("▶", scale=1)
+                gr.Markdown("**셀프 라벨링** — basket 위치:")
+                with gr.Row():
+                    t6_lbl_L    = gr.Button("⬅ L (왼쪽)", scale=1)
+                    t6_lbl_C    = gr.Button("⬆ C (중앙)", scale=1, variant="primary")
+                    t6_lbl_R    = gr.Button("➡ R (오른쪽)", scale=1)
+                    t6_lbl_NONE = gr.Button("✕ NONE", scale=1, variant="stop")
+                t6_save_status = gr.Markdown("—")
+
+            # 오른쪽: 테이블 (이상치 + 라벨 컬럼 포함)
             with gr.Column(scale=2):
                 t6_table = gr.Dataframe(
-                    headers=["f", "type", "action", "lat(ms)", "area", "cx", "bbox"],
-                    datatype=["number","str","str","number","number","number","str"],
-                    label="스텝별 상세 (🔄=preview  ★=arrival  📡=live  💾=cached)",
+                    headers=["f","type","action","lat(ms)","area","cx","bbox","⚠️","label"],
+                    datatype=["number","str","str","number","number","number","str","str","str"],
+                    label="스텝별 (⚠️=이상치  label=셀프라벨)",
                     interactive=False, row_count=12,
                 )
 
-        # state: 로드된 프레임 + 메타
+        # state
         t6_state_frames = gr.State([])
         t6_state_meta   = gr.State([])
+        t6_state_labels = gr.State({})
+        t6_state_sid    = gr.State("")
 
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
@@ -4021,45 +4163,56 @@ with gr.Blocks(
 
     c5_speed_slider.change(fn=_sync_js_speed, inputs=c5_speed_slider)
 
-    # ── 탭6: 세션 히스토리 ────────────────────────────────────────────────
+    # ── 탭6: 세션 히스토리 + 셀프 라벨링 ────────────────────────────────
     def _t6_refresh_list():
         return gr.update(choices=_t6_list_sessions(), value=None)
 
     t6_refresh_btn.click(fn=_t6_refresh_list, outputs=t6_session_dd)
 
-    t6_load_btn.click(
-        fn=_t6_on_load,
-        inputs=t6_session_dd,
-        outputs=[t6_state_frames, t6_state_meta, t6_summary_md, t6_table,
-                 t6_frame_img, t6_frame_info, t6_frame_slider],
-    )
+    _T6_LOAD_OUT = [t6_state_frames, t6_state_meta, t6_state_labels, t6_state_sid,
+                    t6_summary_md, t6_table, t6_frame_img, t6_frame_info,
+                    t6_warns_md, t6_frame_slider]
+
+    t6_load_btn.click(fn=_t6_on_load, inputs=t6_session_dd, outputs=_T6_LOAD_OUT)
+
+    def _t6_on_slide(frames, meta, labels, sid, idx):
+        img, info, warns = _t6_show_frame(frames, meta, labels, sid, idx)
+        return img, info, warns
 
     t6_frame_slider.change(
-        fn=_t6_show_frame,
-        inputs=[t6_state_frames, t6_state_meta, t6_frame_slider],
-        outputs=[t6_frame_img, t6_frame_info],
+        fn=_t6_on_slide,
+        inputs=[t6_state_frames, t6_state_meta, t6_state_labels, t6_state_sid, t6_frame_slider],
+        outputs=[t6_frame_img, t6_frame_info, t6_warns_md],
     )
 
-    def _t6_prev(frames, meta, idx):
-        new_idx = max(0, int(idx) - 1)
-        img, info = _t6_show_frame(frames, meta, new_idx)
-        return img, info, gr.update(value=new_idx)
-
-    def _t6_next(frames, meta, idx):
-        new_idx = min(len(frames) - 1, int(idx) + 1) if frames else 0
-        img, info = _t6_show_frame(frames, meta, new_idx)
-        return img, info, gr.update(value=new_idx)
+    def _t6_nav(frames, meta, labels, sid, idx, delta):
+        new_idx = max(0, min(len(frames)-1, int(idx)+delta)) if frames else 0
+        img, info, warns = _t6_show_frame(frames, meta, labels, sid, new_idx)
+        return img, info, warns, gr.update(value=new_idx)
 
     t6_prev_btn.click(
-        fn=_t6_prev,
-        inputs=[t6_state_frames, t6_state_meta, t6_frame_slider],
-        outputs=[t6_frame_img, t6_frame_info, t6_frame_slider],
+        fn=lambda f,m,l,s,i: _t6_nav(f,m,l,s,i,-1),
+        inputs=[t6_state_frames, t6_state_meta, t6_state_labels, t6_state_sid, t6_frame_slider],
+        outputs=[t6_frame_img, t6_frame_info, t6_warns_md, t6_frame_slider],
     )
     t6_next_btn.click(
-        fn=_t6_next,
-        inputs=[t6_state_frames, t6_state_meta, t6_frame_slider],
-        outputs=[t6_frame_img, t6_frame_info, t6_frame_slider],
+        fn=lambda f,m,l,s,i: _t6_nav(f,m,l,s,i,+1),
+        inputs=[t6_state_frames, t6_state_meta, t6_state_labels, t6_state_sid, t6_frame_slider],
+        outputs=[t6_frame_img, t6_frame_info, t6_warns_md, t6_frame_slider],
     )
+
+    # 라벨 버튼 공통 핸들러
+    _T6_LBL_IN  = [t6_state_frames, t6_state_meta, t6_state_labels,
+                   t6_state_sid, t6_frame_slider]
+    _T6_LBL_OUT = [t6_state_frames, t6_state_meta, t6_state_labels,
+                   t6_save_status, t6_frame_img, t6_warns_md]
+
+    for _btn, _lbl in [(t6_lbl_L,"L"),(t6_lbl_C,"C"),(t6_lbl_R,"R"),(t6_lbl_NONE,"NONE")]:
+        _btn.click(
+            fn=lambda f,m,l,s,i,lbl=_lbl: _t6_set_label(f,m,l,s,i,lbl),
+            inputs=_T6_LBL_IN,
+            outputs=_T6_LBL_OUT,
+        )
 
     # ── 대시보드 재시작 (맨 아래 고정) ───────────────────────────────────
     gr.Markdown("---\n### 🔄 대시보드 재시작  _(코드 업데이트 후 현재 프로세스 종료 → 새 버전으로 즉시 재기동)_")
