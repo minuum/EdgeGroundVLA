@@ -1062,12 +1062,29 @@ def load_model_wrapper(backend_mode: str, api_url: str, precision_label: str, ck
 
 def _flush_session(status: str = "manual_stop"):
     """진행 중인 세션을 저장하고 경로를 반환한다."""
-    if logger_instance and logger_instance.data and logger_instance.data.get("history"):
-        path = logger_instance.end_session(status)
-        if path:
-            print(f"💾 세션 저장: {path} ({status})")
-        return path
-    return None
+    if not (logger_instance and logger_instance.data and logger_instance.data.get("history")):
+        return None
+    # 도착/정지 직후 최종 프레임을 한 장 더 수집 (arrival frame)
+    try:
+        if ROS_AVAILABLE and ros_node:
+            import time as _t
+            _t.sleep(0.25)
+            final_frame = ros_node.get_inference_frame()
+            if final_frame is not None:
+                n_steps = len(logger_instance.data["history"])
+                logger_instance.log_step(
+                    n_steps + 1,
+                    [0.0, 0.0, 0.0],
+                    0,
+                    image=final_frame,
+                    predicted_label="STOP",
+                )
+    except Exception:
+        pass
+    path = logger_instance.end_session(status)
+    if path:
+        print(f"💾 세션 저장: {path} ({status})")
+    return path
 
 
 # ── ASYNC 추론 인프라 ──────────────────────────────────────────────────────
@@ -1101,6 +1118,19 @@ def _async_inference_worker(backend_mode: str, api_url: str, instr: str, apply_c
         _async_q.append(result)
         state["_async_result"] = result
         state["_async_step"] = step
+        # 프레임 로깅 (ASYNC 모드에서도 세션 H5 기록)
+        if logger_instance:
+            logger_instance.log_step(
+                step,
+                result.get("action", [0.0, 0.0, 0.0]),
+                result.get("latency_ms", 0),
+                image=img,
+                predicted_label=result.get("predicted_label"),
+                bbox=result.get("bbox"),
+                grounding_cached=result.get("grounding_cached"),
+                grounding_latency_ms=result.get("grounding_latency_ms"),
+                goal_near=result.get("goal_near"),
+            )
         # goal 도달 확인
         if result.get("goal_near"):
             state["is_running"] = False
@@ -1444,8 +1474,8 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
                 state["step_count"] = 0
                 ros_node.control.robust_stop(source="goal_reached")
                 if logger_instance:
-                    report_path = logger_instance.end_session()
-                    log = f"🎯 Goal Reached! (step {current_step}) | Log: {Path(report_path).name}"
+                    report_path = _flush_session("goal_reached")
+                    log = f"🎯 Goal Reached! (step {current_step}) | Log: {Path(report_path).name if report_path else '?'}"
                 else:
                     log = f"🎯 Goal Reached! (step {current_step})"
                 return display_img, log, result["lat_str"], result["act_str"], result["chunk_display"], gr.update(value="Stopped (Goal Reached)"), state["camera_status"], state["model_path"], fig
