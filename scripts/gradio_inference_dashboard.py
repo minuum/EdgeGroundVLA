@@ -91,12 +91,12 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
 # 미매칭 시 bbox cx 위치에서 자동 추론 (right_right / left_left / center_straight).
 DEFAULT_INSTRUCTION = "gray basket"  # PG2 학습 분포 일치: "detect gray basket"
 PATH_TYPES = [
+    # ── 교수님 프로토콜: 오브젝트 위치별 (각 30회) ───────────────────
+    "obj_left", "obj_center", "obj_right",
     # ── 경로 검증 (시작위치_목표방향) ────────────────────────────────
     "right_right", "right_left", "right_straight",
     "center_straight", "center_left", "center_right",
     "left_straight", "left_left", "left_right",
-    # ── 교수님 프로토콜: 오브젝트 위치별 (각 30회) ───────────────────
-    "obj_left", "obj_center", "obj_right",
     # ── 교수님 프로토콜: 박스 거리별 (각 10회) ───────────────────────
     "dist_10cm", "dist_20cm", "dist_30cm",
 ]
@@ -124,12 +124,12 @@ PATH_TARGETS = {
 GOAL_SUCCESS_TARGET = 7  # 논문 기준 (경로 검증)
 # 그룹 구분선 — 집계 테이블 렌더링 시 섹션 헤더 삽입
 _PATH_GROUPS = [
+    ("── 오브젝트 위치별 ──────────",
+     ["obj_left","obj_center","obj_right"]),
     ("── 경로 검증 ──────────────",
      ["right_right","right_left","right_straight",
       "center_straight","center_left","center_right",
       "left_straight","left_left","left_right"]),
-    ("── 오브젝트 위치별 ──────────",
-     ["obj_left","obj_center","obj_right"]),
     ("── 박스 거리별 ──────────────",
      ["dist_10cm","dist_20cm","dist_30cm"]),
 ]
@@ -2679,7 +2679,7 @@ with gr.Blocks(
         with gr.Row(equal_height=False, elem_id="tab4-root"):
 
           # ── Col 1 (scale=2): 카메라 + 모니터링 ───────────────────────
-          with gr.Column(scale=2):
+          with gr.Column(scale=2, min_width=450):
             camera_output_test = gr.Image(label="📷 Live Camera", interactive=False)
             with gr.Row():
               status_log_test        = gr.Textbox(label="Status",  value="Ready",   scale=3, max_lines=1)
@@ -2765,7 +2765,7 @@ with gr.Blocks(
           _preloaded_prog, _preloaded_tbl = _build_summary_early(_preloaded_rows_early)
 
           # ── Col 2 (scale=1): 경로표 + 기록 ───────────────────────────
-          with gr.Column(scale=1):
+          with gr.Column(scale=1, min_width=330):
             with gr.Accordion("📋 경로 다이어그램", open=False):
               gr.Markdown(
                   "```\n"
@@ -2803,14 +2803,31 @@ with gr.Blocks(
                   "실제 이동경로는 오브젝트 위치·카메라 시점·모델 학습 상태에 따라 달라집니다.</small>"
               )
             with gr.Row():
-              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="obj_center", label="테스트 레이블", scale=3)
+              path_type_test = gr.Textbox(label="현재 선택된 테스트 레이블", value="obj_center", interactive=False, scale=3)
               success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=2)
+            
+            # 버튼식 레이블 선택 그룹 추가
+            with gr.Group():
+              gr.Markdown("<small>👉 아래 버튼을 누르거나 집계 표의 경로명을 클릭하여 테스트 레이블을 선택하세요:</small>")
+              with gr.Row():
+                obj_btns = [gr.Button(pt, size="sm", variant="secondary") for pt in ["obj_left", "obj_center", "obj_right"]]
+              with gr.Row():
+                nav_btns_1 = [gr.Button(pt, size="sm", variant="secondary") for pt in ["left_left", "left_straight", "left_right", "center_left", "center_straight", "center_right"]]
+              with gr.Row():
+                nav_btns_2 = [gr.Button(pt, size="sm", variant="secondary") for pt in ["right_left", "right_straight", "right_right"]]
+              with gr.Row():
+                dist_btns = [gr.Button(pt, size="sm", variant="secondary") for pt in ["dist_10cm", "dist_20cm", "dist_30cm"]]
+              all_path_btns = obj_btns + nav_btns_1 + nav_btns_2 + dist_btns
+
             with gr.Row():
               fpe_test  = gr.Number(minimum=0.0, maximum=9.9, step=0.05, value=0.0, label="FPE (m)", precision=2, scale=2)
               note_test = gr.Textbox(label="메모", value="", scale=4, max_lines=1)
-            # FPE 프리셋 빠른 입력
+            # FPE 프리셋 세분화 (2행 구성)
             with gr.Row():
-              _fpe_b = [gr.Button(v, size="sm", scale=1) for v in ["0.0","0.3","0.5","0.8","1.0","1.5","2.0","3.0"]]
+              _fpe_b1 = [gr.Button(v, size="sm", scale=1) for v in ["0.0", "0.01", "0.02", "0.03", "0.05", "0.08"]]
+            with gr.Row():
+              _fpe_b2 = [gr.Button(v, size="sm", scale=1) for v in ["0.1", "0.15", "0.2", "0.3", "0.5"]]
+            _fpe_b = _fpe_b1 + _fpe_b2
             btn_log_episode   = gr.Button("📝 에피소드 기록 추가", variant="primary",   size="lg")
             with gr.Row():
               btn_undo_episode  = gr.Button("↩ 마지막 기록 취소 (1건 삭제)",  variant="secondary", scale=1, size="lg")
@@ -2833,7 +2850,7 @@ with gr.Blocks(
                 edit_status   = gr.Textbox(label="", value="", interactive=False, scale=3, max_lines=1)
 
           # ── Col 3 (scale=1): 제어 + 에피소드 로그 ────────────────────
-          with gr.Column(scale=1):
+          with gr.Column(scale=1, min_width=330):
             with gr.Group():
               mode_radio_test = gr.Radio(
                   choices=["Manual Drive", "Inference (Auto)"],
@@ -3734,8 +3751,26 @@ with gr.Blocks(
         return log_list, log_list, prog, tbl
 
     # FPE 프리셋 버튼 핸들러
-    for _fb, _fv in zip(_fpe_b, [0.0, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0]):
+    for _fb, _fv in zip(_fpe_b, [0.0, 0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3, 0.5]):
         _fb.click(fn=lambda v=_fv: v, outputs=fpe_test)
+
+    # 경로 선택 버튼 클릭 시 텍스트박스 업데이트
+    for btn in all_path_btns:
+        btn.click(fn=lambda x: x, inputs=[btn], outputs=[path_type_test])
+
+    # 표의 경로명 클릭 시 텍스트박스 업데이트
+    def on_select_path_summary(evt: gr.SelectData):
+        if evt.index[1] != 0:
+            return gr.update()
+        val = str(evt.value).replace(" ★", "").replace("★", "").strip()
+        if val in PATH_TYPES:
+            return gr.update(value=val)
+        return gr.update()
+
+    path_summary_table.select(
+        fn=on_select_path_summary,
+        outputs=[path_type_test]
+    )
 
     btn_log_episode.click(
         fn=log_episode,
