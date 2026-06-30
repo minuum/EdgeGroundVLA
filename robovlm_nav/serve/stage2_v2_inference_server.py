@@ -646,6 +646,7 @@ class Stage2V2Model:
                 "stop_mode": STOP_MODE,
                 "grounding_cached": False,
                 "head_mode": "preview",
+                "source": "preview",
                 "preview_align": True,
                 "preview_attempt": self._preview_attempt,
                 "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
