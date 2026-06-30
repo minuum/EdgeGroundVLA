@@ -2944,25 +2944,28 @@ with gr.Blocks(
             return f"session_{sid}_f{idx}"
 
         # ── 이상치 감지 ─────────────────────────────────────────────────
-        def _t6_check_anomaly(m: dict, is_old_session: bool) -> list:
+        def _t6_check_anomaly(m: dict, is_old_session: bool, is_prev: bool = False, is_arrival: bool = False) -> list:
             """프레임 메타에서 이상치 판단. 경고 문자열 리스트 반환."""
             warns = []
             ca, lat, has, cx, area = m["cached"], m["latency_ms"], m["has_bbox"], m["cx"], m["area"]
-            # 1. live PG2인데 latency=0 (구버전 기록 버그)
-            if ca == 0 and lat == 0:
-                warns.append("⚠️ live PG2 latency=0ms (6/30 이전 기록 버그)")
-            # 2. has_bbox=True인데 cx가 정확히 0.5 (fallback 값 — 실제 탐지 아님)
+            # 1a. preview ROT인데 latency=0 → 6/30 이전 기록 버그
+            if is_prev and lat == 0 and is_old_session:
+                warns.append("⚠️ preview latency=0ms (6/30 이전 기록 버그)")
+            # 1b. preview ROT인데 latency=0 → 신규 세션에서도 0이면 버그
+            if is_prev and lat == 0 and not is_old_session:
+                warns.append("⚠️ preview latency=0ms (신규 세션 — 기록 누락)")
+            # 2. live/preview PG2인데 latency=0 (arrival/cached/init은 제외)
+            if ca == 0.0 and lat == 0 and not is_prev and not is_arrival:
+                warns.append("⚠️ live PG2 latency=0ms (기록 버그)")
+            # 3. has_bbox=True인데 cx=0.5 (fallback 값 — 실제 탐지 아님)
             if has and abs(cx - 0.5) < 0.001:
                 warns.append("⚠️ has_bbox=True지만 cx=0.5 (fallback 의심)")
-            # 3. has_bbox=True인데 area=0
+            # 4. has_bbox=True인데 area=0
             if has and area == 0:
                 warns.append("⚠️ has_bbox=True지만 area=0")
-            # 4. has_bbox=False인데 cx≠0.5 (불가능한 상태)
+            # 5. has_bbox=False인데 cx≠0.5 (모순)
             if not has and abs(cx - 0.5) > 0.01:
                 warns.append(f"⚠️ has_bbox=False인데 cx={cx:.3f} (모순)")
-            # 5. preview인데 latency=0 AND 신규 버전 (버그 수정 후에도 0이면 이상)
-            if ca == -1 and lat == 0 and not is_old_session:
-                warns.append("⚠️ preview latency=0ms (신규 세션인데 기록 없음)")
             return warns
 
         def _t6_label_cx_check(user_label: str, cx: float, has_bbox: bool) -> str:
@@ -3081,14 +3084,16 @@ with gr.Blocks(
                 cx, cy, area, has = float(bbox[i,0]), float(bbox[i,1]), float(bbox[i,2]), bool(bbox[i,3])
                 ca  = float(cached[i])
                 lat = float(lats[i])
-                is_prev    = (ca == -1.0) and (_lbl(acts[i]) in ("ROT_L","ROT_R","STOP"))
+                # preview ROT: grounding_cached=False → ca=0.0, action=ROT_L/ROT_R
+                # arrival: last frame, ca=-1 (no grounding), action=STOP
+                # initial STOP: first frame, ca=-1, action=STOP (before first inference)
                 is_arrival = (i == n-1 and ca == -1.0 and _lbl(acts[i]) == "STOP")
-                if is_arrival: is_prev = False
+                is_prev    = (ca == 0.0 and _lbl(acts[i]) in ("ROT_L", "ROT_R"))
                 ftype = ("★ARRIVAL" if is_arrival else
                          "🔄PREVIEW" if is_prev else
-                         "📡live" if ca == 0 else "💾cache")
+                         "📡live" if ca == 0.0 else "💾cache")
 
-                warns  = _t6_check_anomaly({"cached":ca,"latency_ms":lat,"has_bbox":has,"cx":cx,"area":area}, is_old)
+                warns  = _t6_check_anomaly({"cached":ca,"latency_ms":lat,"has_bbox":has,"cx":cx,"area":area}, is_old, is_prev, is_arrival)
                 if warns: n_anomaly += 1
 
                 ulabel = labels.get(_t6_frame_key(sid, i), "")
