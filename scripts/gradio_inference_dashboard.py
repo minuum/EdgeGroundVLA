@@ -89,7 +89,7 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
 #   left_straight, left_left, left_right,
 #   right_straight, right_right, right_left
 # 미매칭 시 bbox cx 위치에서 자동 추론 (right_right / left_left / center_straight).
-DEFAULT_INSTRUCTION = "the gray basket"
+DEFAULT_INSTRUCTION = "gray basket"  # PG2 학습 분포 일치: "detect gray basket"
 PATH_TYPES = [
     # ── 경로 검증 (시작위치_목표방향) ────────────────────────────────
     "right_right", "right_left", "right_straight",
