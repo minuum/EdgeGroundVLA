@@ -518,6 +518,7 @@ class Stage2V2Model:
         _rot_dir                  = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
         self._preview_fallback_rot = 7 if _rot_dir != "L" else 6  # ROT_R=7, ROT_L=6
         self._preview_attempt = 0  # 세션당 프리뷰 재시도 횟수 (reset()으로 초기화)
+        self._last_valid_bbox: Optional[dict] = None  # has_bbox=True였던 마지막 bbox
         if self._preview_enabled:
             logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s",
                         self._preview_area_thresh, self._preview_max_retry,
@@ -527,8 +528,9 @@ class Stage2V2Model:
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
+        self._last_valid_bbox = None
         self.stop_latched = False
-        self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
+        self._preview_attempt = 0
 
     # ── CH54: PG2 재시도 루프 helpers ───────────────────────────────────────
 
@@ -618,63 +620,20 @@ class Stage2V2Model:
         # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
         phrase = "gray basket" if instruction == "basket" else instruction
 
-        # CH54: PG2 재시도 루프 — 첫 프레임에서 그라운딩 실패 시 ROT 후 PG2 재시도
-        # inference_count==0 이고 _preview_attempt < max_retry 인 동안 활성.
-        # PG2 bbox cx 로 회전 방향 결정 (has_bbox=False 이면 fallback 방향).
-        # 로봇이 ROT 한 스텝 실행 → 다음 predict() 호출에서 재검사 → 성공 시 정상 추론.
-        preview_rot: Optional[int] = None
-        if self._preview_enabled and self.inference_count == 0:
-            if self._preview_attempt < self._preview_max_retry:
-                _g_start = time.time()
-                first_bbox = self.grounder.run(image_rgb, phrase=phrase)
-                _preview_grounding_ms = (time.time() - _g_start) * 1000.0
-                if self._needs_preview(first_bbox):
-                    preview_rot = self._preview_rot_from_bbox(first_bbox)
-                    self._preview_attempt += 1
-                    logger.info("[CH54] preview ROT: %s  attempt=%d/%d  bbox_cx=%.3f has=%s",
-                                CLASS_NAMES[preview_rot], self._preview_attempt,
-                                self._preview_max_retry,
-                                float(first_bbox.get("cx", 0.5)),
-                                first_bbox.get("has_bbox", False))
-                else:
-                    # 그라운딩 성공 → 정상 추론으로 이어짐, 결과 캐시
-                    self._grounding_cache = first_bbox
-                    logger.info("[CH54] preview 성공: cx=%.3f area=%.4f (attempt=%d)",
-                                float(first_bbox.get("cx", 0.5)),
-                                float(first_bbox.get("area", 0.0)),
-                                self._preview_attempt)
-            # max_retry 초과 시 preview 포기 → 정상 추론으로 낙하 (preview_rot=None)
-
-        if preview_rot is not None:
-            total_ms = (time.time() - start) * 1000.0
-            return {
-                "action": ACTION_2D[preview_rot],
-                "action_3d": ACTION_3D[preview_rot],
-                "predicted_class": preview_rot,
-                "predicted_label": CLASS_NAMES[preview_rot],
-                "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
-                "grounding_latency_ms": _preview_grounding_ms,
-                "latency_ms": total_ms,
-                "goal_near_proxy": False,
-                "proximity_override": False,
-                "learned_stop": False,
-                "stop_latched": False,
-                "stop_mode": STOP_MODE,
-                "grounding_cached": False,
-                "head_mode": "preview",
-                "source": "preview",
-                "preview_align": True,
-                "preview_attempt": self._preview_attempt,
-                "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
-            }
-
         # CH40 hidden-state head 사용 여부 — 체크포인트 없으면 baseline으로 자동 폴백
-        # (plan_20260622_hidden_state_hub_integration.md §1-1).
         use_hidden = head_mode in ("add", "replace") and head_mode in self.hidden_heads
         effective_head_mode = head_mode if use_hidden else "baseline"
 
-        # Grounding (with optional caching) — hidden state 모드는 항상 새로 계산(캐시에 hidden_state가
-        # 없을 수 있어 단순화를 위해 skip-cache 비적용, 데모/테스트 용도라 비용 영향 적음).
+        # ── Grounding (CH54 재설계) ──────────────────────────────────────────
+        # 원칙: has_bbox=False 인 값을 MLP에 절대 넘기지 않는다.
+        #
+        # skip-N 캐시 프레임: _grounding_cache 사용 (항상 has_bbox=True 값만 저장)
+        # 신규 PG2 호출:
+        #   has_bbox=True  → _grounding_cache / _last_valid_bbox 갱신, preview 카운터 리셋
+        #   has_bbox=False:
+        #     _last_valid_bbox 있음 → 해당 값으로 대체 (주행 유지, _grounding_cache 오염 방지)
+        #     _last_valid_bbox 없음 + preview 가능 → ROT 반환 (탐색 재시도)
+        #     _last_valid_bbox 없음 + 재시도 소진 → STOP 반환 (basket 불검출 완전 포기)
         use_cache = (
             not use_hidden
             and self._grounding_skip_n > 1
@@ -684,13 +643,82 @@ class Stage2V2Model:
         )
 
         g_start = time.time()
+        grounding_used_stale = False
         if use_cache:
             bbox = self._grounding_cache
             grounding_latency_ms = 0.0
         else:
-            bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=use_hidden)
-            self._grounding_cache = bbox
+            raw_bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=use_hidden)
             grounding_latency_ms = (time.time() - g_start) * 1000.0
+
+            if raw_bbox.get("has_bbox", False):
+                # 정상 그라운딩: 캐시 갱신, preview 카운터 리셋
+                bbox = raw_bbox
+                self._grounding_cache = bbox
+                self._last_valid_bbox = bbox
+                self._preview_attempt = 0
+            else:
+                # has_bbox=False 처리
+                if self._last_valid_bbox is not None:
+                    # 직전 유효 bbox로 대체 — MLP에 cx=0.5 fallback 들어가는 것 방지
+                    bbox = self._last_valid_bbox
+                    grounding_used_stale = True
+                    logger.info("[GND] has_bbox=False → last_valid 대체 cx=%.3f area=%.4f count=%d",
+                                float(bbox.get("cx", 0.5)), float(bbox.get("area", 0.0)),
+                                self.inference_count)
+                elif self._preview_enabled and self._preview_attempt < self._preview_max_retry:
+                    # basket 미발견 상태 → ROT 후 재탐색
+                    preview_rot = self._preview_rot_from_bbox(raw_bbox)
+                    self._preview_attempt += 1
+                    logger.info("[CH54] preview ROT: %s  attempt=%d/%d  count=%d",
+                                CLASS_NAMES[preview_rot], self._preview_attempt,
+                                self._preview_max_retry, self.inference_count)
+                    total_ms = (time.time() - start) * 1000.0
+                    return {
+                        "action": ACTION_2D[preview_rot],
+                        "action_3d": ACTION_3D[preview_rot],
+                        "predicted_class": preview_rot,
+                        "predicted_label": CLASS_NAMES[preview_rot],
+                        "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
+                        "grounding_latency_ms": grounding_latency_ms,
+                        "latency_ms": total_ms,
+                        "goal_near_proxy": False,
+                        "proximity_override": False,
+                        "learned_stop": False,
+                        "stop_latched": False,
+                        "stop_mode": STOP_MODE,
+                        "grounding_cached": False,
+                        "head_mode": "preview",
+                        "source": "preview",
+                        "preview_align": True,
+                        "preview_attempt": self._preview_attempt,
+                        "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+                    }
+                else:
+                    # 재시도 소진 + last_valid 없음 → STOP (basket 미발견 완전 포기)
+                    logger.info("[CH54] 재시도 소진 + last_valid 없음 → STOP (attempt=%d)",
+                                self._preview_attempt)
+                    total_ms = (time.time() - start) * 1000.0
+                    return {
+                        "action": ACTION_2D[0],
+                        "action_3d": ACTION_3D[0],
+                        "predicted_class": 0,
+                        "predicted_label": "STOP",
+                        "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.6, "area": 0.06},
+                        "grounding_latency_ms": grounding_latency_ms,
+                        "latency_ms": total_ms,
+                        "goal_near_proxy": False,
+                        "proximity_override": False,
+                        "learned_stop": False,
+                        "stop_latched": False,
+                        "stop_mode": STOP_MODE,
+                        "grounding_cached": False,
+                        "head_mode": "grounding_failed",
+                        "source": "grounding_failed",
+                        "preview_align": False,
+                        "preview_attempt": self._preview_attempt,
+                        "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+                    }
 
         # hidden_state(numpy array)는 JSON 응답에 그대로 넣으면 pydantic 직렬화가 깨짐 —
         # feature 계산용으로만 빼두고 응답 bbox에서는 제거 (plan_20260622_hidden_state_hub_integration.md).
@@ -795,7 +823,8 @@ class Stage2V2Model:
             "learned_stop": learned_stop,
             "stop_latched": self.stop_latched,
             "stop_mode": STOP_MODE,
-            "grounding_cached": use_cache,
+            "grounding_cached": use_cache or grounding_used_stale,
+            "grounding_stale": grounding_used_stale,
             "head_mode": effective_head_mode,
             "buffer_status": {
                 "history_size": len(self.history),
