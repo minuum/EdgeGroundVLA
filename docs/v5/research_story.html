@@ -308,13 +308,14 @@
     <a class="toc-item" href="#ch50" data-target="ch50"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 50</span><span class="toc-label">작은 객체 줌 재그라운딩 — 5-seed 검증 결과 단일런 노이즈로 정정</span><span class="toc-cat cat-fix">정정</span></a>
     <a class="toc-item" href="#ch51" data-target="ch51"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 51</span><span class="toc-label">줌크롭 ablation — Anchor방식 ❌ / Center크롭 ✅ 59%개선 (2026-06-30 추가)</span><span class="toc-cat cat-exp" style="background:rgba(74,222,128,0.15);color:#4ade80">업데이트</span></a>
     <a class="toc-item" href="#ch52" data-target="ch52"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 52</span><span class="toc-label">path_type별 분리 평가 — SR 포화, replace가 FPE 40% 개선</span><span class="toc-cat cat-exp">실험</span></a>
-    <a class="toc-item" href="#ch53" data-target="ch53"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 53</span><span class="toc-label">6/24·6/26 실세션 + v5_2 의자 타겟 신규 데이터셋 분석</span><span class="toc-cat cat-exp">실험</span></a>
+    <a class="toc-item" href="#ch53" data-target="ch53"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 53</span><span class="toc-label">6/24·6/26 실세션 분析 — skip_n=3 실測 확인</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch54" data-target="ch54"><span class="toc-badge" style="background:rgba(168,85,247,0.2);color:#d946ef">CH 54</span><span class="toc-label">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정 아이디어</span><span class="toc-cat cat-exp">아이디어</span></a>
     <a class="toc-item" href="#ch55" data-target="ch55"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 55</span><span class="toc-label">Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch56" data-target="ch56"><span class="toc-badge" style="background:rgba(74,222,128,0.15);color:#4ade80">CH 56</span><span class="toc-label">Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</span><span class="toc-cat cat-exp">실험</span></a>
     <a class="toc-item" href="#ch57" data-target="ch57"><span class="toc-badge" style="background:rgba(34,197,94,0.15);color:#86efac">CH 57</span><span class="toc-label">Frame 0 Grounding 실패 → CH54 Preview 폴백으로 해결 ✅ 검증</span><span class="toc-cat cat-exp" style="background:rgba(34,197,94,0.15);color:#86efac">확인</span></a>
     <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — PG2 최선 확인, 新프리뷰 모델 탐색 진행 중</span><span class="toc-cat cat-exp" style="background:rgba(167,139,250,0.15);color:#a78bfa">완료+진행중</span></a>
     <a class="toc-item" href="#ch59" data-target="ch59"><span class="toc-badge" style="background:rgba(34,211,238,0.15);color:#22d3ee">CH 59</span><span class="toc-label">5-Model 셀프라벨링 평가 — Kr/PG448 99.1%, soda PG224↔448 검출률 격차 확인</span><span class="toc-cat cat-exp" style="background:rgba(34,211,238,0.15);color:#22d3ee">분석</span></a>
+    <a class="toc-item" href="#ch60" data-target="ch60"><span class="toc-badge" style="background:rgba(52,211,153,0.15);color:#34d399">CH 60</span><span class="toc-label">Action Head Ablation — PG448 재어노테이션 + Transformer/cx-Geom 헤드 비교 (exp67/71/72)</span><span class="toc-cat cat-exp" style="background:rgba(52,211,153,0.15);color:#34d399">ablation</span></a>
     <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — Grounding 정량 평가 & Kc fallback 문제 발견</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
@@ -12544,7 +12545,7 @@ graph TD
       center 크롭은 바스켓이 항상 화면 중앙 근처에 있다는 실주행 조건과 일치해 안정적.
       특히 <strong style="color:#fbbf24">frame 0 (has_bbox=False) 살린 건수 20건</strong> — anchor 방식 0건 대비 결정적 차이.
       <div style="margin-top:10px;padding:8px 12px;background:#0a1a12;border-left:3px solid #16a34a;border-radius:4px;font-size:0.82rem;color:#86efac">
-        → <strong>Center 크롭 방식 운영 코드 반영 검토 중.</strong> 기존 anchor 방식 코드는 반영 안 함.
+        → Center 크롭 방식 자체는 유효. 단, <strong>CH54 Stage 0 워밍업 배포 이후</strong> frame 0 cold-start 문제가 다른 경로로 해결됨 → 배포 우선순위 낮아짐. 필요 시 재검토.
       </div>
     </div>
   </div>
@@ -12697,7 +12698,10 @@ graph TD
     <div style="color:#e2e8f0;line-height:1.8">
       path_type 분리 평가로 "val 천장 포화" 가설 재확인 — SR은 어떤 path_type에서도 모드 간 차이 없음.<br>
       Hidden state의 가치는 <strong style="color:#4ade80">FPE 정밀도</strong>에 있으며, replace mode가 전환 경로에서 가장 우수(0.176→0.106m, ×1.7).<br>
-      right_right 실패는 에피소드-레벨 문제(모델 무관). <strong>6/22 TODO #4 (path_type 분리) ✅ 완료.</strong>
+      right_right 실패는 에피소드-레벨 문제(모델 무관). <strong>6/22 TODO #4 (path_type 분리) ✅ 완료.</strong><br>
+      <span style="color:#94a3b8;font-size:0.84rem;margin-top:8px;display:block">
+        ※ 최신 기준: Exp66 LSTM w=16이 CL 96.6% / FPE <strong style="color:#4ade80">0.080m</strong>으로 현재 SOTA — replace mode의 FPE 개선 인사이트가 LSTM 설계에 기여한 것으로 봄. 현재 프로덕션 서버는 baseline head 배포 중 (replace 체크포인트 미배포).
+      </span>
     </div>
   </div>
 
@@ -12711,23 +12715,17 @@ graph TD
 <div class="chapter" id="ch53" style="padding-bottom:40px">
   <div class="chapter-header">
     <span class="chapter-num">CH 53</span>
-    <h2 class="chapter-title">6/24·6/26 실세션 분석 + v5_2 의자 타겟 신규 데이터셋</h2>
-    <p class="chapter-subtitle">rsync로 수신된 7개 실세션(6/24 4개·6/26 3개)과 v5_2 신규 데이터셋(의자 타겟, 59 에피소드) 종합 분석</p>
+    <h2 class="chapter-title">6/24·6/26 실세션 분석 — skip_n=3 실측 확인</h2>
+    <p class="chapter-subtitle">rsync로 수신된 7개 실세션(6/24 4개·6/26 3개) 분석 — 캐시 패턴 실측 및 콜드스타트 레이턴시 확인</p>
   </div>
 
   <!-- 헤드라인 -->
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1f14,#0c2417);border-color:#166534;margin-bottom:20px">
-    <div class="finding-title" style="color:#86efac">핵심 발견 2가지</div>
+    <div class="finding-title" style="color:#86efac">핵심 발견</div>
     <div class="finding-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div style="background:rgba(74,222,128,0.06);border:1px solid #166534;border-radius:8px;padding:10px">
-          <div style="color:#4ade80;font-weight:700;margin-bottom:4px">① skip_n=3 배포 실측 확인</div>
-          6/26 104455·104644 세션에서 캐시 패턴(실호출→캐시→캐시) 실측. 정상 레이턴시 1,348~1,469ms. 22.4s 이상치 1건은 콜드스타트 추정.
-        </div>
-        <div style="background:rgba(251,191,36,0.06);border:1px solid #a16207;border-radius:8px;padding:10px">
-          <div style="color:#fbbf24;font-weight:700;margin-bottom:4px">② v5_2: 의자 타겟 신규 데이터 59 ep</div>
-          타겟이 바구니→의자로 변경. free/target 두 종류 각 3 경로. 평균 50~68 프레임/에피소드. instruction: "Navigate until the chair is centered…"
-        </div>
+      <div style="background:rgba(74,222,128,0.06);border:1px solid #166534;border-radius:8px;padding:10px">
+        <div style="color:#4ade80;font-weight:700;margin-bottom:4px">skip_n=3 배포 실측 확인</div>
+        6/26 104455·104644 세션에서 캐시 패턴(실호출→캐시→캐시) 실측. 정상 레이턴시 1,348~1,469ms. 22.4s 이상치 1건은 콜드스타트 추정.
       </div>
     </div>
   </div>
@@ -12813,136 +12811,6 @@ graph TD
     </div>
   </div>
 
-  <!-- v5_2 데이터셋 -->
-  <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
-    <div class="finding-title" style="color:#a78bfa">v5_2 신규 데이터셋 — 의자(Chair) 타겟, 6/10~6/11 수집, 59 에피소드</div>
-    <div class="finding-body">
-      <div style="color:#94a3b8;font-size:0.84rem;margin-bottom:10px">
-        <strong style="color:#c4b5fd">타겟 변경:</strong> 바구니(basket) → 의자(chair, chair_left_extreme 시나리오)<br>
-        <strong style="color:#c4b5fd">instruction:</strong> "Navigate until the chair is centered and fills the lower half of the frame."<br>
-        <strong style="color:#c4b5fd">두 가지 종류:</strong> <code>free_*</code> (자유 출발 위치) · <code>target_*</code> (경로 지정)
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:12px">
-        <thead>
-          <tr style="border-bottom:1px solid #4c1d95">
-            <th style="text-align:left;padding:4px 8px;color:#a78bfa">시나리오</th>
-            <th style="text-align:center;padding:4px 8px">에피소드</th>
-            <th style="text-align:center;padding:4px 8px">평균 프레임</th>
-            <th style="text-align:left;padding:4px 8px">주요 액션 분포</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="border-bottom:1px solid #2d1b69">
-            <td style="padding:4px 8px">free_center</td>
-            <td style="text-align:center">9</td>
-            <td style="text-align:center">54.8</td>
-            <td style="padding:4px 8px">FWD 436, STOP 54</td>
-          </tr>
-          <tr style="border-bottom:1px solid #2d1b69">
-            <td style="padding:4px 8px">free_left</td>
-            <td style="text-align:center">10</td>
-            <td style="text-align:center">67.8</td>
-            <td style="padding:4px 8px">FWD+R 270, FWD 236, FWD+L 77, STOP 60</td>
-          </tr>
-          <tr style="border-bottom:1px solid #2d1b69">
-            <td style="padding:4px 8px">free_right</td>
-            <td style="text-align:center">9</td>
-            <td style="text-align:center">64.0</td>
-            <td style="padding:4px 8px">FWD 236, FWD+L 207, LEFT 31, STOP 54</td>
-          </tr>
-          <tr style="border-bottom:1px solid #2d1b69">
-            <td style="padding:4px 8px">target_center_straight</td>
-            <td style="text-align:center">10</td>
-            <td style="text-align:center">50.9</td>
-            <td style="padding:4px 8px">FWD 450, STOP 59 — 직진만</td>
-          </tr>
-          <tr style="border-bottom:1px solid #2d1b69">
-            <td style="padding:4px 8px">target_center_left</td>
-            <td style="text-align:center">10</td>
-            <td style="text-align:center">66.8</td>
-            <td style="padding:4px 8px">FWD+R 262, FWD 246, FWD+L 72, STOP 60</td>
-          </tr>
-          <tr>
-            <td style="padding:4px 8px">target_center_right</td>
-            <td style="text-align:center">10</td>
-            <td style="text-align:center">63.3</td>
-            <td style="padding:4px 8px">FWD 246, FWD+L 243, STOP 60</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- 6개 시나리오 × 시작/중간/끝 이미지 -->
-      <div style="margin-bottom:10px">
-        <div style="color:#c4b5fd;font-size:0.82rem;font-weight:700;margin-bottom:6px">free 계열 (자유 출발) — 시작·중간·끝</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
-          <div><img src="ch46_50_viz/v5_2_free_center_0.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_center 시작</div></div>
-          <div><img src="ch46_50_viz/v5_2_free_center_27.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_center 중간</div></div>
-          <div><img src="ch46_50_viz/v5_2_free_center_54.jpg" style="width:100%;border-radius:4px;border:1px solid #a78bfa" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_center 끝(STOP)</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
-          <div><img src="ch46_50_viz/v5_2_free_left_0.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_left 시작(좌측 치우침)</div></div>
-          <div><img src="ch46_50_viz/v5_2_free_left_34.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_left 중간(FWD+R로 정렬)</div></div>
-          <div><img src="ch46_50_viz/v5_2_free_left_68.jpg" style="width:100%;border-radius:4px;border:1px solid #a78bfa" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_left 끝</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
-          <div><img src="ch46_50_viz/v5_2_free_right_0.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_right 시작(우측 치우침)</div></div>
-          <div><img src="ch46_50_viz/v5_2_free_right_32.jpg" style="width:100%;border-radius:4px;border:1px solid #4c1d95" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_right 중간(FWD+L로 정렬)</div></div>
-          <div><img src="ch46_50_viz/v5_2_free_right_64.jpg" style="width:100%;border-radius:4px;border:1px solid #a78bfa" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">free_right 끝</div></div>
-        </div>
-      </div>
-
-      <div>
-        <div style="color:#c4b5fd;font-size:0.82rem;font-weight:700;margin-bottom:6px">target 계열 (경로 지정) — 시작·중간·끝</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
-          <div><img src="ch46_50_viz/v5_2_target_center_straight_0.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">straight 시작</div></div>
-          <div><img src="ch46_50_viz/v5_2_target_center_straight_28.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">straight 중간</div></div>
-          <div><img src="ch46_50_viz/v5_2_target_center_straight_55.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">straight 끝</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
-          <div><img src="ch46_50_viz/v5_2_target_center_left_0.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_left 시작</div></div>
-          <div><img src="ch46_50_viz/v5_2_target_center_left_33.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_left 중간</div></div>
-          <div><img src="ch46_50_viz/v5_2_target_center_left_66.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_left 끝</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
-          <div><img src="ch46_50_viz/v5_2_target_center_right_0.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_right 시작</div></div>
-          <div><img src="ch46_50_viz/v5_2_target_center_right_32.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_right 중간</div></div>
-          <div><img src="ch46_50_viz/v5_2_target_center_right_64.jpg" style="width:100%;border-radius:4px;border:1px solid #334155" loading="lazy">
-            <div style="font-size:0.68rem;color:#64748b;text-align:center">center_right 끝</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- v5_2 해석 -->
-  <div class="finding-card" style="background:linear-gradient(135deg,#0a1628,#0f172a);border-color:#1e3a5f;margin-bottom:20px">
-    <div class="finding-title" style="color:#fbbf24">v5_2 데이터셋 해석 — 무엇을 위한 데이터인가?</div>
-    <div class="finding-body">
-      <ul style="margin:0 0 0 16px;line-height:2.0;font-size:0.9rem">
-        <li><strong style="color:#c4b5fd">타겟 일반화 테스트용</strong>: basket 대신 chair로 수집 → 현재 모델(바구니 학습)이 의자 시나리오에서도 동작하는지 테스트 가능한 데이터 기반 확보.</li>
-        <li><strong style="color:#c4b5fd">free + target 두 트랙</strong>: free는 임의 출발 위치에서 의자를 향한 자유 항법 궤적, target은 지정 경로. instruction은 동일. 학습 시 free 트랙을 섞으면 시작 위치 다양성 증가 가능.</li>
-        <li><strong style="color:#c4b5fd">액션 분포 건강함</strong>: STOP이 에피소드마다 정확히 1회 배치(e.g. free_center: 9ep × 6 STOP = 54). FWD+L/FWD+R 대칭적으로 분포. 데이터 품질 양호.</li>
-        <li><strong style="color:#c4b5fd">현재 상태</strong>: 분석 완료. 학습 통합 여부는 미결 — 교수님 확인 필요 (이 데이터로 학습할지, 의자 일반화 테스트에만 쓸지).</li>
-      </ul>
-    </div>
-  </div>
-
   <!-- 레이턴시 콜드스타트 패턴 -->
   <div class="finding-card" style="background:linear-gradient(135deg,#1c1505,#201a0a);border-color:#a16207;margin-bottom:20px">
     <div class="finding-title" style="color:#fbbf24">콜드스타트 22s 레이턴시 — 6/24·6/26 공통 패턴</div>
@@ -12950,7 +12818,8 @@ graph TD
       6/24 150541(22,285ms)과 6/26 104455(22,444ms)에서 동일한 22초대 레이턴시가 1번씩 발생.<br>
       두 경우 모두 <strong>해당 세션의 첫 실그라운딩 호출</strong>에서만 발생, 이후 호출은 정상(1,300~1,500ms).<br>
       PaliGemma2 모델이 처음 로드되는 <strong>콜드스타트</strong>(GPU 모델 메모리 로딩) 지연으로 추정.<br>
-      <span style="color:#94a3b8;font-size:0.82rem">→ 서버가 이미 웜업된 상태라면 발생하지 않음. 실운용 시 더미 이미지로 워밍업 필요 여부 검토 대상.</span>
+      <span style="color:#94a3b8;font-size:0.82rem">→ 서버가 이미 웜업된 상태라면 발생하지 않음. 실운용 시 더미 이미지로 워밍업 필요 여부 검토 대상.</span><br>
+      <span style="color:#4ade80;font-size:0.82rem">✅ <strong>CH54 Stage 0 워밍업으로 해결됨</strong> — 서버 시작 시 더미 이미지로 PG2 첫 호출 사전 소진. f1 레이턴시 22,000ms → 3,102ms 개선.</span>
     </div>
   </div>
 
@@ -13255,6 +13124,9 @@ graph TD
         <li>Frame 2+: 캐시 사용, 69~71ms — 정상 운용</li>
       </ul>
       <strong style="color:#4ade80;display:block;margin-top:10px">결론: Stage 0 워밍업 + CH54 Preview의 2-layer 방어로 Frame 0 문제 실질적 해결. 실로봇 세션 준비 완료.</strong>
+      <span style="color:#94a3b8;font-size:0.82rem;display:block;margin-top:6px">
+        ※ 최신 기준(CH55 ablation 완료): Preview model 추가 탐색 결과 PG2 대체 모델 불필요 확인 — Stage 0 워밍업 단독으로 충분. 현재 Exp66 CL 96.6% 달성 상태에서 2-layer 방어 유지 중. <code>VLA_PREVIEW_ENABLED=1</code> 기본 비활성.
+      </span>
     </div>
   </div>
 
@@ -13899,6 +13771,157 @@ graph TD
   </div>
 </div>
 <!-- ══════════ /meeting-0630 ══════════ -->
+
+<!-- ══════════════════════════════════════════════════════ CH60 ═ -->
+<div class="chapter" id="ch60">
+  <div class="chapter-header">
+    <span class="chapter-num">CH 60</span>
+    <h2 class="chapter-title">Action Head Ablation — PG448 재어노테이션 + Transformer / cx-Geom 헤드 비교</h2>
+    <p class="chapter-subtitle">exp67(MLP) · exp71(Transformer) · exp72(cx-Geom) 3종 헤드를 PG448 어노테이션 기반으로 학습·CL 평가 (2026-07-01)</p>
+  </div>
+
+  <!-- 60-1 배경 -->
+  <div class="finding-card">
+    <div class="finding-title">60-1. 배경 — 왜 헤드 ablation인가</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      CH59에서 PG448 검출률이 99.8%(vs PG224 95.9%)임을 확인했다. 그러나 기존 Stage2 MLP(exp65/66)는 <strong style="color:#e2e8f0">PG224 어노테이션으로 학습</strong>된 상태였다 — 학습/추론 분포 불일치가 잠재적 병목.<br><br>
+      동시에, 이산 액션 공간에서 <strong style="color:#e2e8f0">히스토리를 flat-concat하는 MLP가 최선인지</strong>도 불명확했다.
+      시간적 순서(Transformer)나 현재 기하 정보의 명시적 분리(cx-Geom)가 더 유리할 수 있다는 가설을 검증한다.
+    </div>
+  </div>
+
+  <!-- 60-2 실험 설계 -->
+  <div class="finding-card">
+    <div class="finding-title">60-2. 실험 설계</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">공통 조건:</strong> FrozenCLIPV2 (Kosmos-2 vision encoder, 256-dim), WINDOW=8, PG448 어노테이션(<code>bbox_dataset_pg448_cx.json</code>, 2567/2572=99.8% 검출).<br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155">
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">실험</th>
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">헤드 구조</th>
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">아이디어</th>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp67</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">MLP flat FC 4-layer (288→256→128→64→8)</td>
+          <td style="padding:6px 10px;color:#94a3b8">exp66 구조 + PG448 어노테이션 교체</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp71</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">TransformerEncoder (d=260, nhead=4, 2층) + CLS token</td>
+          <td style="padding:6px 10px;color:#94a3b8">히스토리를 시퀀스로 처리 → 순서·attention 활용</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp72</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">2-branch: temporal(288→128) + geom(4→32) → merge(160→64→8)</td>
+          <td style="padding:6px 10px;color:#94a3b8">현재 프레임 cx/cy를 별도 기하 경로로 명시적 주입</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 60-3 cx-rule 효과 -->
+  <div class="finding-card">
+    <div class="finding-title">60-3. cx-rule 기하학 오버라이드 — 효과 없음</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      이산 액션 경계에서 방향 전환이 늦는 경우를 개선하기 위해 <strong style="color:#e2e8f0">cx-rule</strong>을 도입했다: bbox 중심 cx 값으로 모델 출력을 강제 오버라이드하는 룰.<br><br>
+      <code>cx &lt; 0.25 → ROT_L · &lt;0.40 → FWD+L · ≤0.60 → FORWARD · ≤0.75 → FWD+R · &gt;0.75 → ROT_R</code><br><br>
+      <strong style="color:#f87171">결과: exp67(PG448 MLP) + cx-rule → CL SR 100% → 50%, FPE 0.02m → 0.41m 악화.</strong><br>
+      MLP가 이미 cx를 히스토리 내부에서 잘 처리하고 있는 상태에서 룰이 오버라이드하면 오히려 방해가 된다.
+      <code>VLA_CX_RULE</code> 기본값 off 유지.
+    </div>
+  </div>
+
+  <!-- 60-4 CL 결과 표 -->
+  <div class="finding-card">
+    <div class="finding-title">60-4. Action Head Ablation 결과</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155">
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">실험</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">어노테이션</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">val_acc</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">CL SR</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8">CL FPE</th>
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8">비고</th>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#94a3b8">exp65 (MLP)</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">PG224</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">96.6%</td>
+          <td style="padding:6px 10px;text-align:center;color:#f87171">0%</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">—</td>
+          <td style="padding:6px 10px;color:#94a3b8">PG224 검출 실패로 collapse</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp67</strong> (MLP)</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#e2e8f0">96.8%</td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80"><strong>100%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80">0.02m</td>
+          <td style="padding:6px 10px;color:#94a3b8">PG448 교체만으로 CL 완전 회복</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b;background:rgba(52,211,153,0.05)">
+          <td style="padding:6px 10px;color:#34d399"><strong>exp71</strong> (Transformer) ⭐</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399"><strong>97.6%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80"><strong>100%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399"><strong>0.00m</strong></td>
+          <td style="padding:6px 10px;color:#34d399">val_acc+FPE 모두 best</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:6px 10px;color:#e2e8f0"><strong>exp72</strong> (cx-Geom)</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#e2e8f0">96.8%</td>
+          <td style="padding:6px 10px;text-align:center;color:#4ade80"><strong>100%</strong></td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399"><strong>0.00m</strong></td>
+          <td style="padding:6px 10px;color:#94a3b8">FPE=0.00m, 구조 단순해 soda 배포 유리</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#f87171">exp67 + cx-rule</td>
+          <td style="padding:6px 10px;text-align:center;color:#34d399">PG448</td>
+          <td style="padding:6px 10px;text-align:center;color:#94a3b8">—</td>
+          <td style="padding:6px 10px;text-align:center;color:#f87171">50% ↓↓</td>
+          <td style="padding:6px 10px;text-align:center;color:#f87171">0.41m ↑↑</td>
+          <td style="padding:6px 10px;color:#f87171">룰 오버라이드 역효과</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 60-5 발견 -->
+  <div class="finding-card">
+    <div class="finding-title">60-5. 핵심 발견 요약</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#f59e0b">① 어노테이션 품질이 헤드 구조보다 결정적이다.</strong><br>
+      PG224(95.9%) → PG448(99.8%)으로 교체만으로 CL SR 0% → 100%로 회복. 헤드 설계 전에 데이터 품질 병목 해소가 선행되어야 함.<br><br>
+      <strong style="color:#34d399">② Transformer 헤드(exp71)가 val_acc·FPE 모두 최고.</strong><br>
+      히스토리를 시퀀스로 처리 + CLS attention → val_acc +0.8%p, FPE 0.00m 완전 수렴. 8/8 CL 에피소드 전승.<br><br>
+      <strong style="color:#94a3b8">③ cx-Geom(exp72)도 FPE 0.00m — 단순한 기하 prior도 충분히 유효.</strong><br>
+      TransformerEncoder 없이도 현재 프레임 cx를 명시적 경로로 주입하면 MLP 대비 동등한 CL 정확도를 달성.<br><br>
+      <strong style="color:#f87171">④ cx-rule 룰 오버라이드는 역효과.</strong><br>
+      학습된 MLP가 이미 cx를 내재화한 상황에서 외부 룰이 간섭 → SR 반토막. 제거하고 <code>VLA_CX_RULE=0</code> 유지.
+    </div>
+  </div>
+
+  <!-- 60-6 다음 -->
+  <div class="finding-card">
+    <div class="finding-title">60-6. 다음 단계</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      1. <strong>soda 실주행 CL</strong> — exp71(Transformer) 또는 exp72(cx-Geom) 체크포인트를 soda에 배포해 실환경 SR 측정.<br>
+      2. <strong>데이터 추가 수집</strong> — center/left/right 각 20개씩 → exp71 재학습 + 통계 강화.<br>
+      3. <strong>Phase E(논문)</strong> — decomposition + PG448 grounding + Transformer head 구조를 modular VLM 프레임워크로 정리.
+    </div>
+  </div>
+
+  <div style="font-size:0.72rem;color:#475569;margin-top:12px;padding-top:8px;border-top:1px solid #1e293b">
+    exp67: <code>runs/v5_nav/mlp/exp67/action_mlp.pt</code> &nbsp;|&nbsp;
+    exp71: <code>runs/v5_nav/mlp/exp71/action_transformer.pt</code> &nbsp;|&nbsp;
+    exp72: <code>runs/v5_nav/mlp/exp72/action_cxgeom.pt</code> &nbsp;|&nbsp;
+    어노테이션: <code>docs/v5/bbox_frame_level/bbox_dataset_pg448_cx.json</code> &nbsp;|&nbsp; 2026-07-01
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH60 ═ -->
 
 <hr class="chapter-divider">
 

@@ -82,7 +82,7 @@ ROOT = Path(project_root)
 
 # --- defaults ---
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
-DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp66" / "action_mlp.pt"
+DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp67" / "action_mlp.pt"
 DEFAULT_VLM    = ROOT / ".vlms" / "kosmos-2-patch14-224"
 # PaliGemma2: HF cache path
 # Upgraded to 448 from 224 — detection rate 73% → 99% on 185-frame eval (CH59).
@@ -117,6 +117,17 @@ ACTION_3D = {
 }
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
+# cx-rule: 환경변수로 켜면 MLP 예측 대신 bbox cx 기반 기하학 룰로 액션 결정.
+# has_bbox=True일 때만 적용; has_bbox=False면 MLP 따름.
+# VLA_CX_RULE=1 로 활성화 (default: off)
+CX_RULE_ENABLED = os.getenv("VLA_CX_RULE", "0") == "1"
+# cx → action 임계값 (0=left edge, 1=right edge)
+CX_RULE_THRESHOLDS = {
+    "rot_l":   float(os.getenv("VLA_CX_ROT_L",  "0.25")),  # cx < 0.25 → ROT_L
+    "fwd_l":   float(os.getenv("VLA_CX_FWD_L",  "0.40")),  # cx < 0.40 → FWD+L
+    "fwd_r":   float(os.getenv("VLA_CX_FWD_R",  "0.60")),  # cx > 0.60 → FWD+R
+    "rot_r":   float(os.getenv("VLA_CX_ROT_R",  "0.75")),  # cx > 0.75 → ROT_R
+}  # cx ∈ [fwd_l, fwd_r] → FORWARD
 _LOC_RE = re.compile(r"<loc(\d{4})>")
 # Kosmos-2 grounding prompt — refexp mode (Kr): entity name comes back as <patch_index_N>
 # Kc completion mode was "<grounding>The gray basket is at" but had 47% fallback-cx rate.
@@ -723,6 +734,17 @@ class Stage2V2Model:
                 logits[:, 7] = float("-inf")
             pred_class = int(logits.argmax(dim=-1).item())
 
+        # ── cx-rule override (VLA_CX_RULE=1일 때) ───────────────────────────
+        # bbox가 있을 때만 기하학 룰로 덮어씀. has_bbox=False면 MLP 예측 유지.
+        if CX_RULE_ENABLED and frame.get("has_bbox", False):
+            cx = frame.get("cx", 0.5)
+            thr = CX_RULE_THRESHOLDS
+            if   cx < thr["rot_l"]:  pred_class = 6  # ROT_L
+            elif cx < thr["fwd_l"]:  pred_class = 4  # FWD+L
+            elif cx <= thr["fwd_r"]: pred_class = 1  # FORWARD
+            elif cx <= thr["rot_r"]: pred_class = 5  # FWD+R
+            else:                    pred_class = 7  # ROT_R
+
         # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
         proximity_override = False
         learned_stop       = False
@@ -758,6 +780,7 @@ class Stage2V2Model:
                 proximity_override = True
                 pred_class = 0
 
+        cx_rule_tag = " [CX-RULE]" if CX_RULE_ENABLED and frame.get("has_bbox", False) else ""
         stop_tag = ""
         if proximity_override: stop_tag = " [PROXIMITY STOP]"
         elif learned_stop and self.stop_latched and self.inference_count > 0:
@@ -769,8 +792,8 @@ class Stage2V2Model:
         total_ms = (time.time() - start) * 1000.0
         temporal_tag = f" [near {near_frames}/{GOAL_CONSEC_FRAMES}]" if STOP_MODE != "learned" else ""
         logger.info(
-            "[#%d] %s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
-            self.inference_count, CLASS_NAMES[pred_class], stop_tag, temporal_tag,
+            "[#%d] %s%s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            self.inference_count, CLASS_NAMES[pred_class], stop_tag, temporal_tag, cx_rule_tag,
             frame["cx"], frame["area"], frame["has_bbox"], total_ms,
         )
 
