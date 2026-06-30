@@ -2921,133 +2921,184 @@ with gr.Blocks(
             )
 
       # ════════════════════════════════════════════════════════════════════
-      # 탭 6: 세션 히스토리
+      # 탭 6: 세션 히스토리 (프레임 슬라이더 + bbox 오버레이 + preview 하이라이팅)
       # ════════════════════════════════════════════════════════════════════
       with gr.Tab("📚 세션 히스토리"):
         _INFER_REPORT_DIR_T6 = PROJECT_ROOT / "docs" / "inference_reports"
         _INFER_H5_DIR_T6     = PROJECT_ROOT / "docs" / "inference_sessions"
 
         def _t6_list_sessions():
-            import glob as _gl
-            files = sorted(_gl.glob(str(_INFER_REPORT_DIR_T6 / "session_*.json")), reverse=True)
-            if not files:
-                return []
-            import json as _js2, os as _os2
+            import glob as _gl, json as _js2, os as _os2
+            # H5 직접 + JSON 리포트 둘 다 지원
+            h5_files  = sorted(_gl.glob(str(_INFER_H5_DIR_T6 / "session_*.h5")), reverse=True)
+            json_files = {
+                _os2.path.splitext(_os2.path.basename(f))[0].replace("session_", ""): f
+                for f in _gl.glob(str(_INFER_REPORT_DIR_T6 / "session_*.json"))
+            }
             choices = []
-            for f in files:
-                try:
-                    d = _js2.load(open(f))
-                    sid   = d.get("session_id", "")
-                    steps = d.get("summary", {}).get("total_steps", len(d.get("history", [])))
-                    model = d.get("model_name", "—")[:18]
-                    gt    = d.get("gt_object", "")
-                    instr = d.get("instruction", "")[:30]
-                    label = f"[{sid}] {steps}steps  {model}  {gt or instr}"
-                    choices.append((label, _os2.path.basename(f)))
-                except Exception:
-                    choices.append((_os2.path.basename(f), _os2.path.basename(f)))
+            for h5p in h5_files:
+                sid = _os2.path.basename(h5p).replace("session_", "").replace(".h5", "")
+                label = f"[{sid}]"
+                if sid in json_files:
+                    try:
+                        d = _js2.load(open(json_files[sid]))
+                        steps = d.get("summary", {}).get("total_steps", "?")
+                        label += f"  {steps}steps  {d.get('instruction','')[:25]}"
+                    except Exception:
+                        pass
+                choices.append((label, sid))
             return choices
 
-        def _t6_load_session(fname):
-            import json as _js3, os as _os3
-            from collections import Counter as _Cnt
-            if not fname:
-                return "_(선택하세요)_", [], None, []
-            path = _INFER_REPORT_DIR_T6 / fname
-            try:
-                d = _js3.load(open(path))
-            except Exception as e:
-                return f"❌ {e}", [], None, []
+        def _t6_draw_frame(img_arr, cx, cy, area, has_bbox, is_preview, is_arrival):
+            """프레임에 bbox 오버레이 + 배너 추가."""
+            from PIL import Image as _PIL5, ImageDraw as _IDraw, ImageFont as _IFont
+            import numpy as _np5
+            H, W = img_arr.shape[:2]
+            pil = _PIL5.fromarray(img_arr.astype(_np5.uint8)).convert("RGB")
+            pil = pil.resize((W // 2, H // 2))
+            W2, H2 = pil.size
+            draw = _IDraw.Draw(pil)
 
-            hist = d.get("history", [])
-            sm   = d.get("summary", {})
-            act_cnt = sm.get("action_label_counts", {})
-            dist_str = "  ".join(f"{k}:{v}" for k, v in act_cnt.items()) or "—"
-            summary_md = (
-                f"**{d.get('session_id','')}**  |  "
-                f"model: `{d.get('model_name','?')}`  |  "
-                f"steps: **{sm.get('total_steps', len(hist))}**  |  "
-                f"avg_lat: **{sm.get('avg_latency_ms', sm.get('avg_latency', 0))}ms**  |  "
-                f"status: `{d.get('status','?')}`\n\n"
-                f"instruction: {d.get('instruction','—')}  |  gt_object: {d.get('gt_object','—')}\n\n"
-                f"액션 분포: {dist_str}"
-            )
-            # step 테이블 (step, label, action, latency, bbox_area, cx)
-            rows = []
-            for h in hist:
-                a   = h.get("action", [0,0,0])
-                bb  = h.get("bbox") or {}
-                rows.append([
-                    h.get("step", ""),
-                    h.get("predicted_label", "—"),
-                    f"[{a[0] if isinstance(a,list) else a:.2f}]" if not isinstance(a,list) else f"[{a[0]:+.2f},{a[1]:+.2f},{a[2]:+.2f}]",
-                    round(h.get("latency_ms", 0), 1),
-                    round(bb.get("area", 0), 4),
-                    round(bb.get("cx", 0), 3),
-                    "✅" if bb.get("has_bbox") else "—",
-                    str(h.get("timestamp",""))[:19],
+            if has_bbox and area > 0:
+                px, py = cx * W2, cy * H2
+                half = (area ** 0.5) * min(W2, H2) * 0.5
+                x0, y0 = max(0, px - half), max(0, py - half)
+                x1, y1 = min(W2, px + half), min(H2, py + half)
+                draw.rectangle([x0, y0, x1, y1], outline=(0, 255, 80), width=3)
+                draw.ellipse([px-5, py-5, px+5, py+5], fill=(0, 255, 80))
+
+            # 배너
+            if is_preview:
+                draw.rectangle([0, 0, W2, 36], fill=(180, 0, 0, 200))
+                draw.text((8, 6), "🔄 PREVIEW — basket 탐색 중", fill=(255, 255, 100))
+            elif is_arrival:
+                draw.rectangle([0, 0, W2, 36], fill=(0, 120, 0, 200))
+                draw.text((8, 6), "★ ARRIVAL FRAME", fill=(255, 255, 255))
+
+            return pil
+
+        def _t6_load_h5(sid):
+            """H5에서 전체 프레임 + 메타 로딩. returns (frames_pil, meta_list, summary_md, table_rows)"""
+            import h5py as _h5, numpy as _np6, json as _js5
+            if not sid:
+                return [], [], "_(선택하세요)_", []
+            h5p = _INFER_H5_DIR_T6 / f"session_{sid}.h5"
+            if not h5p.exists():
+                return [], [], f"❌ H5 없음: {h5p}", []
+
+            with _h5.File(h5p) as f:
+                imgs    = f["observations/images"][()]
+                acts    = f["actions"][()]
+                bbox    = f["grounding/bbox"][()]
+                cached  = f["grounding/cached"][()]
+                lats    = f["grounding/latency_ms"][()]
+                attrs   = dict(f.attrs)
+
+            n = len(imgs)
+            _label_map = {
+                (0.0,0.0,0.0):"STOP", (1.15,0.0,0.0):"FORWARD",
+                (0.0,1.15,0.0):"LEFT", (0.0,-1.15,0.0):"RIGHT",
+                (1.15,1.15,0.0):"FWD+L", (1.15,-1.15,0.0):"FWD+R",
+                (0.0,0.0,0.25):"ROT_L", (0.0,0.0,-0.25):"ROT_R",
+            }
+            def _lbl(a):
+                for k, v in _label_map.items():
+                    if all(abs(float(a[i])-k[i])<0.05 for i in range(3)): return v
+                return f"({a[0]:.1f},{a[1]:.1f},{a[2]:.1f})"
+
+            frames_pil, meta_list, table_rows = [], [], []
+            for i in range(n):
+                cx, cy, area, has = float(bbox[i,0]), float(bbox[i,1]), float(bbox[i,2]), bool(bbox[i,3])
+                ca   = float(cached[i])
+                is_preview = (ca == -1.0)
+                is_arrival = (i == n - 1 and not has)
+                pil = _t6_draw_frame(imgs[i], cx, cy, area, has, is_preview, is_arrival)
+                frames_pil.append(pil)
+                lbl = _lbl(acts[i])
+                type_tag = "🔄PREVIEW" if is_preview else ("★ARRIVAL" if is_arrival else ("📡live" if ca == 0 else "💾cache"))
+                meta_list.append({
+                    "idx": i, "label": lbl, "cx": cx, "cy": cy, "area": area,
+                    "has_bbox": has, "latency_ms": float(lats[i]),
+                    "cached": ca, "type": type_tag,
+                })
+                table_rows.append([
+                    i, type_tag, lbl,
+                    round(float(lats[i]), 0),
+                    round(area, 4), round(cx, 3),
+                    "✅" if has else "—",
                 ])
 
-            # 매칭 H5
-            sid   = d.get("session_id", "")
-            h5name = f"session_{sid}.h5"
-            h5_link = f"H5 이미지: `{h5name}` {'✅ 있음' if (_INFER_H5_DIR_T6/h5name).exists() else '❌ 없음'}"
+            # 요약
+            n_preview = sum(1 for m in meta_list if "PREVIEW" in m["type"])
+            n_live    = sum(1 for m in meta_list if m["type"] == "📡live")
+            n_cached  = sum(1 for m in meta_list if m["type"] == "💾cache")
+            live_lats = [m["latency_ms"] for m in meta_list if m["type"] == "📡live" and m["latency_ms"] > 0]
+            bbox_rate = sum(1 for m in meta_list if m["has_bbox"]) / max(1, n)
+            summary_md = (
+                f"**{sid}**  |  총 **{n}프레임**  |  "
+                f"instruction: `{attrs.get('instruction','?')}`  |  status: `{attrs.get('status','?')}`\n\n"
+                f"🔄 preview: **{n_preview}** 프레임  |  📡 live PG2: **{n_live}**  |  "
+                f"💾 cached: **{n_cached}**  |  has_bbox: **{bbox_rate:.0%}**"
+                + (f"  |  live PG2 평균: **{sum(live_lats)/len(live_lats):.0f}ms**" if live_lats else "")
+            )
+            return frames_pil, meta_list, summary_md, table_rows
 
-            return summary_md, rows, h5_link, []
+        def _t6_show_frame(frames_pil, meta_list, idx):
+            """슬라이더 값 → 해당 프레임 이미지 + 정보 마크다운."""
+            if not frames_pil or idx is None:
+                return None, "—"
+            idx = int(idx)
+            pil = frames_pil[idx]
+            m   = meta_list[idx]
+            info = (
+                f"**frame {idx}/{len(frames_pil)-1}**  |  {m['type']}  |  "
+                f"액션: **{m['label']}**  |  "
+                f"has_bbox: {'✅' if m['has_bbox'] else '❌'}  |  "
+                f"cx: {m['cx']:.3f}  area: {m['area']:.4f}  |  "
+                f"latency: **{m['latency_ms']:.0f}ms**"
+            )
+            return pil, info
 
-        def _t6_load_h5_frames(fname):
-            """매칭 H5에서 이미지 프레임 균등 추출 (최대 20장)."""
-            import json as _js4, h5py as _h5, numpy as _np4
-            from PIL import Image as _PIL4
-            if not fname:
-                return []
-            path = _INFER_REPORT_DIR_T6 / fname
-            try:
-                d = _js4.load(open(path))
-                sid = d.get("session_id", "")
-                h5p = _INFER_H5_DIR_T6 / f"session_{sid}.h5"
-                if not h5p.exists():
-                    return []
-                with _h5.File(h5p) as f:
-                    imgs = f["observations/images"][:]  # (N, H, W, 3)
-                n = len(imgs)
-                if n == 0:
-                    return []
-                idxs = [int(i * n / min(20, n)) for i in range(min(20, n))]
-                frames = []
-                for i in idxs:
-                    arr = imgs[i]
-                    h, w = arr.shape[:2]
-                    arr_small = _PIL4.fromarray(arr).resize((w//4, h//4))
-                    frames.append((arr_small, f"frame {i}"))
-                return frames
-            except Exception:
-                return []
+        def _t6_on_load(sid):
+            frames_pil, meta_list, summary_md, table_rows = _t6_load_h5(sid)
+            n = len(frames_pil)
+            first_img, first_info = _t6_show_frame(frames_pil, meta_list, 0) if n > 0 else (None, "")
+            slider_update = gr.update(maximum=max(0, n-1), value=0, visible=n > 0)
+            return frames_pil, meta_list, summary_md, table_rows, first_img, first_info, slider_update
 
+        # ── UI ──────────────────────────────────────────────────────────
         with gr.Row():
             t6_session_dd = gr.Dropdown(
                 choices=_t6_list_sessions(), value=None,
-                label="세션 선택 (session_*.json)", scale=6,
+                label="세션 선택", scale=7,
             )
-            t6_refresh_btn    = gr.Button("🔄 목록",    scale=1)
-            t6_load_btn       = gr.Button("불러오기",   scale=1)
-            t6_load_img_btn   = gr.Button("📷 이미지",  scale=1)
+            t6_refresh_btn = gr.Button("🔄", scale=1)
+            t6_load_btn    = gr.Button("불러오기", scale=1, variant="primary")
 
-        t6_summary_md = gr.Markdown("_(세션을 선택하세요)_")
-        t6_h5_md      = gr.Markdown("")
+        t6_summary_md = gr.Markdown("_(세션을 선택하고 불러오기)_")
 
-        with gr.Row(equal_height=False):
+        with gr.Row(equal_height=True):
             with gr.Column(scale=3):
-                t6_gallery = gr.Gallery(
-                    label="H5 프레임 (클릭→원본)", columns=5,
-                    height=280, object_fit="contain",
-                )
+                t6_frame_img  = gr.Image(label="프레임 (bbox 오버레이)", type="pil", height=380)
+                t6_frame_info = gr.Markdown("—")
+                with gr.Row():
+                    t6_prev_btn    = gr.Button("◀ prev", scale=1)
+                    t6_frame_slider = gr.Slider(
+                        minimum=0, maximum=0, step=1, value=0,
+                        label="frame", scale=5,
+                    )
+                    t6_next_btn    = gr.Button("next ▶", scale=1)
             with gr.Column(scale=2):
                 t6_table = gr.Dataframe(
-                    headers=["step","label","action","lat(ms)","area","cx","bbox","timestamp"],
-                    datatype=["number","str","str","number","number","number","str","str"],
-                    label="스텝별 상세", interactive=False,
+                    headers=["f", "type", "action", "lat(ms)", "area", "cx", "bbox"],
+                    datatype=["number","str","str","number","number","number","str"],
+                    label="스텝별 상세 (🔄=preview  ★=arrival  📡=live  💾=cached)",
+                    interactive=False, row_count=12,
                 )
+
+        # state: 로드된 프레임 + 메타
+        t6_state_frames = gr.State([])
+        t6_state_meta   = gr.State([])
 
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
@@ -3975,15 +4026,39 @@ with gr.Blocks(
         return gr.update(choices=_t6_list_sessions(), value=None)
 
     t6_refresh_btn.click(fn=_t6_refresh_list, outputs=t6_session_dd)
+
     t6_load_btn.click(
-        fn=lambda fname: _t6_load_session(fname)[:3],
+        fn=_t6_on_load,
         inputs=t6_session_dd,
-        outputs=[t6_summary_md, t6_table, t6_h5_md],
+        outputs=[t6_state_frames, t6_state_meta, t6_summary_md, t6_table,
+                 t6_frame_img, t6_frame_info, t6_frame_slider],
     )
-    t6_load_img_btn.click(
-        fn=_t6_load_h5_frames,
-        inputs=t6_session_dd,
-        outputs=t6_gallery,
+
+    t6_frame_slider.change(
+        fn=_t6_show_frame,
+        inputs=[t6_state_frames, t6_state_meta, t6_frame_slider],
+        outputs=[t6_frame_img, t6_frame_info],
+    )
+
+    def _t6_prev(frames, meta, idx):
+        new_idx = max(0, int(idx) - 1)
+        img, info = _t6_show_frame(frames, meta, new_idx)
+        return img, info, gr.update(value=new_idx)
+
+    def _t6_next(frames, meta, idx):
+        new_idx = min(len(frames) - 1, int(idx) + 1) if frames else 0
+        img, info = _t6_show_frame(frames, meta, new_idx)
+        return img, info, gr.update(value=new_idx)
+
+    t6_prev_btn.click(
+        fn=_t6_prev,
+        inputs=[t6_state_frames, t6_state_meta, t6_frame_slider],
+        outputs=[t6_frame_img, t6_frame_info, t6_frame_slider],
+    )
+    t6_next_btn.click(
+        fn=_t6_next,
+        inputs=[t6_state_frames, t6_state_meta, t6_frame_slider],
+        outputs=[t6_frame_img, t6_frame_info, t6_frame_slider],
     )
 
     # ── 대시보드 재시작 (맨 아래 고정) ───────────────────────────────────
