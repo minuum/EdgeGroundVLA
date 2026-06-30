@@ -113,7 +113,7 @@ ACTION_2D = {
 }
 ACTION_3D = {
     0: [0.0, 0.0, 0.0], 1: [1.15, 0.0, 0.0], 2: [0.0, 1.15, 0.0], 3: [0.0, -1.15, 0.0],
-    4: [1.15, 1.15, 0.0], 5: [1.15, -1.15, 0.0], 6: [0.0, 0.0, 0.075], 7: [0.0, 0.0, -0.075],
+    4: [1.15, 1.15, 0.0], 5: [1.15, -1.15, 0.0], 6: [0.0, 0.0, 0.10], 7: [0.0, 0.0, -0.10],
 }
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
@@ -541,15 +541,13 @@ class Stage2V2Model:
 
     def _preview_rot_from_bbox(self, bbox: dict) -> int:
         """
-        has_bbox=False 시 sweep 패턴으로 방향 결정 (attempt 기반).
+        has_bbox=False 시 설정된 fallback 회전 방향으로 지속 회전.
         has_bbox=True  : cx < 0.4 → ROT_L, cx > 0.6 → ROT_R, 중앙 → ROT_R
-        has_bbox=False : attempt 0→ROT_R, 1→ROT_L, 2→ROT_R, ... 교대
         """
         if bbox.get("has_bbox", False):
             cx = float(bbox.get("cx", 0.5))
             return 6 if cx < 0.4 else 7
-        # sweep: 짝수 attempt → ROT_R, 홀수 → ROT_L
-        return 7 if self._preview_attempt % 2 == 0 else 6
+        return self._preview_fallback_rot
 
     def preview_align(self, image_b64: str, phrase: str) -> dict:
         """
@@ -666,13 +664,17 @@ class Stage2V2Model:
                     logger.info("[GND] has_bbox=False → last_valid 대체 cx=%.3f area=%.4f count=%d",
                                 float(bbox.get("cx", 0.5)), float(bbox.get("area", 0.0)),
                                 self.inference_count)
-                elif self._preview_enabled and self._preview_attempt < self._preview_max_retry:
-                    # basket 미발견 상태 → ROT 후 재탐색
+                elif self._preview_enabled:
+                    # 최초 그라운딩 성공 전 + preview 활성화 ➔ 한 방향으로 지속 회전 탐색하며 조기 리턴
                     preview_rot = self._preview_rot_from_bbox(raw_bbox)
                     self._preview_attempt += 1
                     logger.info("[CH54] preview ROT: %s  attempt=%d/%d  count=%d",
                                 CLASS_NAMES[preview_rot], self._preview_attempt,
                                 self._preview_max_retry, self.inference_count)
+                    
+                    if self._preview_attempt >= self._preview_max_retry:
+                        logger.info("[CH54] preview max_retry 초과 ➔ 타겟 검출 시까지 계속 지속 탐색 루프")
+                        
                     total_ms = (time.time() - start) * 1000.0
                     return {
                         "action": ACTION_2D[preview_rot],
@@ -695,16 +697,15 @@ class Stage2V2Model:
                         "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
                     }
                 else:
-                    # 재시도 소진 + last_valid 없음 → STOP (basket 미발견 완전 포기)
-                    logger.info("[CH54] 재시도 소진 + last_valid 없음 → STOP (attempt=%d)",
-                                self._preview_attempt)
+                    # 최초 그라운딩 성공 전 + preview 비활성화 ➔ 전진을 막고 안전하게 STOP 반환 후 조기 리턴
+                    logger.info("[CH54] 최초 그라운딩 실패 및 preview 미활성 ➔ 안전 STOP 반환")
                     total_ms = (time.time() - start) * 1000.0
                     return {
                         "action": ACTION_2D[0],
                         "action_3d": ACTION_3D[0],
                         "predicted_class": 0,
                         "predicted_label": "STOP",
-                        "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.6, "area": 0.06},
+                        "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
                         "grounding_latency_ms": grounding_latency_ms,
                         "latency_ms": total_ms,
                         "goal_near_proxy": False,
@@ -716,7 +717,7 @@ class Stage2V2Model:
                         "head_mode": "grounding_failed",
                         "source": "grounding_failed",
                         "preview_align": False,
-                        "preview_attempt": self._preview_attempt,
+                        "preview_attempt": 0,
                         "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
                     }
 
