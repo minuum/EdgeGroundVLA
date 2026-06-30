@@ -1185,7 +1185,7 @@ def set_running(running: bool, backend_mode: str, api_url: str, instruction: str
             if _img_pw is not None:
                 _pil_pw = Image.fromarray(_img_pw) if isinstance(_img_pw, np.ndarray) else _img_pw
                 _buf_pw = _io_pw.BytesIO()
-                _pil_pw.save(_buf_pw, format="JPEG", quality=85)
+                _pil_pw.save(_buf_pw, format="PNG")
                 _b64_pw_str = _b64_pw.b64encode(_buf_pw.getvalue()).decode()
                 _phrase_pw = gt_object if gt_object else "gray basket"
                 _rq_pw.post(
