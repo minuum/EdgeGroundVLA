@@ -123,16 +123,84 @@ PATH_TARGETS = {
 }
 GOAL_SUCCESS_TARGET = 7  # 논문 기준 (경로 검증)
 
-def make_progress_bar_html(current_ep, target_ep=131):
-    pct = min(100.0, max(0.0, (current_ep / target_ep) * 100))
+def make_progress_bar_html(log_list):
+    done_total = {k: 0 for k in PATH_TYPES}
+    done_succ  = {k: 0 for k in PATH_TYPES}
+    nav_done = 0
+    nav_succ = 0
+    for r in log_list:
+        pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
+        done_total[pt] = done_total.get(pt, 0) + 1
+        if r[2] == "성공":
+            done_succ[pt] = done_succ.get(pt, 0) + 1
+            if not pt.startswith(("obj_", "dist_")):
+                nav_succ += 1
+        if pt in PATH_TARGETS and not pt.startswith(("obj_", "dist_")):
+            nav_done += 1
+
+    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS if not k.startswith(("obj_", "dist_")))
+    obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
+    obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
+    dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
+    dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
+
+    total_done = len(log_list)
+    total_target = 131 # 11 + 90 + 30
+
+    pct_total = min(100.0, max(0.0, (total_done / total_target) * 100))
+    pct_nav   = min(100.0, max(0.0, (nav_done / nav_total) * 100))
+    pct_obj   = min(100.0, max(0.0, (obj_done / 90) * 100))
+    pct_dist  = min(100.0, max(0.0, (dist_done / 30) * 100))
+
     return f"""
-    <div style="margin: 4px 0 12px 0; font-family: sans-serif;">
-      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8b949e; margin-bottom: 5px;">
-        <span style="font-weight: 500;">📊 에피소드 누적 수집율 (전체 목표 {target_ep} ep)</span>
-        <span style="font-weight: bold; color: #58a6ff;">{pct:.1f}% ({current_ep}/{target_ep} ep)</span>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; width: 100%; box-sizing: border-box; padding: 4px 0;">
+      <!-- 전체 수집 완료도 카드 -->
+      <div style="margin-bottom: 12px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #c9d1d9; margin-bottom: 6px; font-weight: bold;">
+          <span>🌐 전체 수집 완료도 (목표 {total_target} ep)</span>
+          <span style="color: #58a6ff;">{pct_total:.1f}% ({total_done}/{total_target} ep)</span>
+        </div>
+        <div style="width: 100%; background-color: #21262d; height: 12px; border-radius: 6px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
+          <div style="width: {pct_total:.1f}%; height: 100%; background: linear-gradient(90deg, #1f6feb 0%, #388bfd 100%); border-radius: 5px; transition: width 0.3s ease;"></div>
+        </div>
       </div>
-      <div style="width: 100%; background-color: #21262d; border: 1px solid #30363d; height: 10px; border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);">
-        <div style="width: {pct:.1f}%; height: 100%; background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%); border-radius: 4px; transition: width 0.4s ease;"></div>
+
+      <!-- 세부 카테고리별 분할 카드 (3개 열) -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
+        
+        <!-- 1. 경로 검증 (블루) -->
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px;">
+          <div style="font-size: 11px; margin-bottom: 4px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <span style="color: #58a6ff; font-weight: 600;">🛣️ 경로 검증</span>
+            <span style="color: #8b949e;">{nav_done}/{nav_total} ep ({nav_succ}✓)</span>
+          </div>
+          <div style="width: 100%; background-color: #21262d; height: 8px; border-radius: 4px; overflow: hidden;">
+            <div style="width: {pct_nav:.1f}%; height: 100%; background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- 2. 위치별 검증 (그린) -->
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px;">
+          <div style="font-size: 11px; margin-bottom: 4px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <span style="color: #3fb950; font-weight: 600;">🎯 위치별 검증</span>
+            <span style="color: #8b949e;">{obj_done}/90 ep ({obj_succ}✓)</span>
+          </div>
+          <div style="width: 100%; background-color: #21262d; height: 8px; border-radius: 4px; overflow: hidden;">
+            <div style="width: {pct_obj:.1f}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- 3. 거리별 검증 (퍼플) -->
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px;">
+          <div style="font-size: 11px; margin-bottom: 4px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <span style="color: #a371f7; font-weight: 600;">📦 거리별 검증</span>
+            <span style="color: #8b949e;">{dist_done}/30 ep ({dist_succ}✓)</span>
+          </div>
+          <div style="width: 100%; background-color: #21262d; height: 8px; border-radius: 4px; overflow: hidden;">
+            <div style="width: {pct_dist:.1f}%; height: 100%; background: linear-gradient(90deg, #8957e5 0%, #a371f7 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
       </div>
     </div>
     """
@@ -2782,7 +2850,7 @@ with gr.Blocks(
           # ── Col 2 (scale=1): 경로표 + 기록 ───────────────────────────
           with gr.Column(scale=1, min_width=330):
             progress_bar_html = gr.HTML(
-                value=make_progress_bar_html(len(_preloaded_rows_early)),
+                value=make_progress_bar_html(_preloaded_rows_early),
                 elem_id="t4-progress-bar"
             )
             progress_test = gr.Textbox(
@@ -3725,7 +3793,7 @@ with gr.Blocks(
         for i, r in enumerate(rows):
             r[0] = i + 1
         prog, tbl = _build_summary(rows)
-        return rows, rows, prog, tbl, make_progress_bar_html(len(rows))
+        return rows, rows, prog, tbl, make_progress_bar_html(rows)
 
     def log_episode(path_type, success, fpe, note, log_list):
         import requests as _req
@@ -3769,7 +3837,7 @@ with gr.Blocks(
         _append_episode_csv(row)
         log_list = log_list + [row]
         prog, tbl = _build_summary(log_list)
-        return log_list, log_list, prog, tbl, make_progress_bar_html(len(log_list))
+        return log_list, log_list, prog, tbl, make_progress_bar_html(log_list)
 
     # FPE 프리셋 버튼 핸들러
     for _fb, _fv in zip(_fpe_b, [0.0, 0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3, 0.5]):
@@ -3952,13 +4020,13 @@ with gr.Blocks(
             r[0] = i + 1
         _overwrite_episode_csv(new_list)
         prog, tbl = _build_summary(new_list)
-        return new_list, new_list, prog, tbl, make_progress_bar_html(len(new_list))
+        return new_list, new_list, prog, tbl, make_progress_bar_html(new_list)
 
     def clear_episodes(_log_list):
         if _EPISODE_CSV.exists():
             _EPISODE_CSV.unlink()
         prog, tbl = _build_summary([])
-        return [], [], prog, tbl, make_progress_bar_html(0)
+        return [], [], prog, tbl, make_progress_bar_html([])
 
     btn_undo_episode.click(
         fn=undo_episode,
