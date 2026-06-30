@@ -3177,15 +3177,8 @@ with gr.Blocks(
             labels = dict(labels)
             labels[key] = user_lbl
             _t6_save_labels(labels)
-            # 프레임 다시 렌더 (라벨 표시 반영)
+            # 프레임 다시 렌더 (라벨 표시 반영) — PIL→numpy 변환 필수
             m = meta_list[idx]
-            new_pil = _t6_draw_frame(
-                # 원본 이미지는 없으니 기존 pil에서 라벨만 재렌더 → _t6_load_h5 재호출 없이
-                # 간단히 현재 pil 위에 라벨 오버레이
-                frames_pil[idx], m["cx"], m["cy"], m["area"],
-                m["has_bbox"], m["type"], user_lbl, m["warns"]
-            )
-            # PIL input은 numpy array 필요 → pil을 numpy로 변환 후 재렌더
             import numpy as _npL
             new_pil = _t6_draw_frame(
                 _npL.array(frames_pil[idx].convert("RGB")),

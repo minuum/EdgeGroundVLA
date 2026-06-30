@@ -113,7 +113,7 @@ ACTION_2D = {
 }
 ACTION_3D = {
     0: [0.0, 0.0, 0.0], 1: [1.15, 0.0, 0.0], 2: [0.0, 1.15, 0.0], 3: [0.0, -1.15, 0.0],
-    4: [1.15, 1.15, 0.0], 5: [1.15, -1.15, 0.0], 6: [0.0, 0.0, 0.25], 7: [0.0, 0.0, -0.25],
+    4: [1.15, 1.15, 0.0], 5: [1.15, -1.15, 0.0], 6: [0.0, 0.0, 0.15], 7: [0.0, 0.0, -0.15],
 }
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
@@ -391,6 +391,7 @@ class PG2Grounder:
                 gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
         raw = self._proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
         locs = [int(v) / 1023.0 for v in _LOC_RE.findall(raw)]
+        logger.info("[PG2] phrase=%r  locs=%d  raw=%r", phrase, len(locs), raw[:80])
         if len(locs) >= 4:
             y1, x1, y2, x2 = locs[:4]
             x1, x2 = min(x1, x2), max(x1, x2)
@@ -405,18 +406,23 @@ class PG2Grounder:
             # min_area/min_cy는 바스켓 전용 휴리스틱(바구니는 항상 화면 하단~중단)이라
             # phrase별로 오버라이드 가능하게 함(configs/ground_filter_map.json).
             filters = get_ground_filters(phrase)
-            if area > 0.9:          # full-frame collapse (loc0000~loc1022 전체)
+            if area > 0.9:
+                logger.info("[PG2] FILTER full-frame: area=%.3f cx=%.3f cy=%.3f", area, cx_val, cy_val)
                 result = _fallback
-            elif area < filters["min_area"]:       # tiny noise detection
+            elif area < filters["min_area"]:
+                logger.info("[PG2] FILTER tiny: area=%.4f < min_area=%.4f cx=%.3f cy=%.3f", area, filters["min_area"], cx_val, cy_val)
                 result = _fallback
-            elif cy_val < filters["min_cy"]:     # 상단 오탐 (바구니가 프레임 상단에 있을 수 없음)
+            elif cy_val < filters["min_cy"]:
+                logger.info("[PG2] FILTER top: cy=%.3f < min_cy=%.3f area=%.4f cx=%.3f", cy_val, filters["min_cy"], area, cx_val)
                 result = _fallback
-            elif x1 < 0.02 and x2 > 0.98:  # x-full-width collapse (cx≈0.5 항상)
+            elif x1 < 0.02 and x2 > 0.98:
+                logger.info("[PG2] FILTER x-full: x1=%.3f x2=%.3f", x1, x2)
                 result = _fallback
             else:
                 result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
                           "x1": x1, "y1": y1, "x2": x2, "y2": y2}
         else:
+            logger.info("[PG2] NO LOC TOKENS: locs=%d  raw=%r", len(locs), raw[:120])
             result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
                       "x1": None, "y1": None, "x2": None, "y2": None}
         if return_raw:
