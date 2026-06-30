@@ -352,6 +352,102 @@
 </div>
 <a class="back-link" href="../index.html">← 메인으로</a>
 
+<!-- ══ 연구 Phase 로드맵 ══ -->
+<div style="max-width:1200px;margin:0 auto;padding:48px 40px 0">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+    <span style="background:#a78bfa;color:#0a0f1a;font-weight:900;font-size:0.8rem;padding:4px 12px;border-radius:20px">PHASE</span>
+    <h2 style="font-size:1.6rem;font-weight:800">연구 전체 단계</h2>
+    <span style="color:#64748b;font-size:0.82rem;margin-left:4px">— 최신 기준 (2026-06-30)</span>
+  </div>
+  <p style="color:#64748b;font-size:0.83rem;margin-bottom:28px;padding-left:4px">각 Phase는 하나의 핵심 질문을 갖는다. 질문이 해결되면 다음 Phase로.</p>
+
+  <!-- Phase 타임라인 -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative">
+
+    <!-- 연결선 -->
+    <div style="position:absolute;top:36px;left:10%;right:10%;height:2px;background:linear-gradient(90deg,#3b82f6,#a78bfa,#22c55e,#f59e0b,#64748b);z-index:0"></div>
+
+    <!-- Phase A -->
+    <div style="position:relative;z-index:1;padding:0 6px;text-align:center">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1e3a5f,#0f172a);border:2px solid #3b82f6;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;flex-direction:column">
+        <div style="color:#60a5fa;font-weight:900;font-size:0.7rem">Phase</div>
+        <div style="color:#93c5fd;font-weight:900;font-size:1.3rem;line-height:1">A</div>
+      </div>
+      <div style="font-weight:800;color:#93c5fd;font-size:0.85rem;margin-bottom:6px">E2E VLA</div>
+      <div style="color:#64748b;font-size:0.74rem;line-height:1.7">CH1~16<br>Exp01~11<br>text attn 0% 확인<br>→ 구조적 한계</div>
+      <div style="margin-top:8px;background:#0c1a2e;border:1px solid #1e3a5f;border-radius:6px;padding:6px 8px;font-size:0.72rem;color:#3b82f6;font-weight:700">❌ FORWARD collapse</div>
+    </div>
+
+    <!-- Phase B -->
+    <div style="position:relative;z-index:1;padding:0 6px;text-align:center">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#2e1065,#0f172a);border:2px solid #a78bfa;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;flex-direction:column">
+        <div style="color:#c4b5fd;font-weight:900;font-size:0.7rem">Phase</div>
+        <div style="color:#ddd6fe;font-weight:900;font-size:1.3rem;line-height:1">B</div>
+      </div>
+      <div style="font-weight:800;color:#c4b5fd;font-size:0.85rem;margin-bottom:6px">Decomposition</div>
+      <div style="color:#64748b;font-size:0.74rem;line-height:1.7">CH17~36<br>Exp14/Exp54/65/66<br>BBox+Image MLP<br>Stage2 아키텍처</div>
+      <div style="margin-top:8px;background:#1a0d2e;border:1px solid #4c1d95;border-radius:6px;padding:6px 8px;font-size:0.72rem;color:#a78bfa;font-weight:700">✅ CL 66.7%</div>
+    </div>
+
+    <!-- Phase C -->
+    <div style="position:relative;z-index:1;padding:0 6px;text-align:center">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#052e16,#0f172a);border:2px solid #22c55e;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;flex-direction:column">
+        <div style="color:#86efac;font-weight:900;font-size:0.7rem">Phase</div>
+        <div style="color:#4ade80;font-weight:900;font-size:1.3rem;line-height:1">C</div>
+      </div>
+      <div style="font-weight:800;color:#4ade80;font-size:0.85rem;margin-bottom:6px">CL 고도화</div>
+      <div style="color:#64748b;font-size:0.74rem;line-height:1.7">CH37~54<br>Exp54~63<br>Stage0 워밍업<br>Preview 재시도 루프</div>
+      <div style="margin-top:8px;background:#0a1f14;border:1px solid #166534;border-radius:6px;padding:6px 8px;font-size:0.72rem;color:#22c55e;font-weight:700">✅ CL 96.6%</div>
+    </div>
+
+    <!-- Phase D (현재) -->
+    <div style="position:relative;z-index:1;padding:0 6px;text-align:center">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#451a03,#0f172a);border:2px solid #f59e0b;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 0 16px #f59e0b55">
+        <div style="color:#fde68a;font-weight:900;font-size:0.7rem">Phase</div>
+        <div style="color:#fbbf24;font-weight:900;font-size:1.3rem;line-height:1">D</div>
+      </div>
+      <div style="font-weight:800;color:#fbbf24;font-size:0.85rem;margin-bottom:6px">Grounding 정밀화</div>
+      <div style="color:#64748b;font-size:0.74rem;line-height:1.7">CH55~59<br>5-Model 비교<br>PG448 채택<br>Kr 프롬프트</div>
+      <div style="margin-top:8px;background:#1a0e00;border:1px solid #92400e;border-radius:6px;padding:6px 8px;font-size:0.72rem;color:#f59e0b;font-weight:700">🔄 진행 중</div>
+    </div>
+
+    <!-- Phase E (다음) -->
+    <div style="position:relative;z-index:1;padding:0 6px;text-align:center;opacity:0.55">
+      <div style="width:72px;height:72px;border-radius:50%;background:#111827;border:2px dashed #334155;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;flex-direction:column">
+        <div style="color:#475569;font-weight:900;font-size:0.7rem">Phase</div>
+        <div style="color:#64748b;font-weight:900;font-size:1.3rem;line-height:1">E</div>
+      </div>
+      <div style="font-weight:800;color:#64748b;font-size:0.85rem;margin-bottom:6px">논문 & 실증</div>
+      <div style="color:#475569;font-size:0.74rem;line-height:1.7">데이터 재수집<br>MLP 재학습<br>베이스라인 5종<br>모듈화 공헌</div>
+      <div style="margin-top:8px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:6px 8px;font-size:0.72rem;color:#475569;font-weight:700">⏳ 다음 단계</div>
+    </div>
+
+  </div>
+
+  <!-- 현재 위치 + 핵심 지표 -->
+  <div style="margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div style="background:#1a0e00;border:1px solid #92400e;border-radius:10px;padding:16px 20px">
+      <div style="color:#fbbf24;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📍 현재 — Phase D</div>
+      <div style="font-size:0.83rem;line-height:1.9;color:#cbd5e1">
+        <strong style="color:#4ade80">PG448 채택</strong> — 방향 정확도 99.1%, 검출률 99%<br>
+        <strong style="color:#86efac">Kr 프롬프트</strong> — 동일 모델, 55%→99.1% (fallback 제거)<br>
+        <strong style="color:#fbbf24">블로커</strong> — soda(16GB) PG448 동작 여부 미확인<br>
+        <strong style="color:#94a3b8">다음</strong> — 오늘 실험실 테스트 + 20개씩 수집 시작
+      </div>
+    </div>
+    <div style="background:#0a1f14;border:1px solid #166534;border-radius:10px;padding:16px 20px">
+      <div style="color:#4ade80;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🎯 Phase E 목표 (목요일 전)</div>
+      <div style="font-size:0.83rem;line-height:1.9;color:#cbd5e1">
+        PG448 soda 실증 완료<br>
+        가운데/왼쪽/오른쪽 각 20개 데이터 수집<br>
+        실험 버전 정리 문서 교수님 공유<br>
+        공헌 3종 문서화: 파이프라인 · 베이스라인 · 모듈화
+      </div>
+    </div>
+  </div>
+</div>
+<div style="max-width:1200px;margin:32px auto 0;padding:0 40px"><hr style="border:none;border-top:1px solid #1e293b"></div>
+
 <!-- ══ 결론 체크포인트 지도 ══ -->
 <div id="checkpoint" style="max-width:1200px;margin:0 auto;padding:48px 40px 32px">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
