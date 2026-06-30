@@ -28,6 +28,8 @@ _LOG_DIR          = _PROJECT_ROOT / "logs"
 _EPISODE_CSV      = _LOG_DIR / "episode_log.csv"
 _GND_DIR          = _LOG_DIR / "grounding_sessions"
 _DRIFT_DIR        = _LOG_DIR / "drift_sessions"
+_INFER_API_URL    = os.getenv("VLA_API_URL", "http://localhost:8001")
+_INFER_API_KEY    = os.getenv("VLA_API_KEY", "")
 _CALIB_DIR        = _LOG_DIR / "calib_sessions"
 _INFER_H5_DIR     = _PROJECT_ROOT / "docs" / "inference_sessions"   # H5
 _INFER_REPORT_DIR = _PROJECT_ROOT / "docs" / "inference_reports"    # JSON
@@ -38,7 +40,7 @@ def _ds_root(ds_name: str) -> Path:
     """ds_name → 실제 디렉터리 경로."""
     if ds_name == _INFER_DS_KEY:
         return _INFER_H5_DIR
-    return _ds_root(ds_name)
+    return _ROS_ROOT / ds_name
 
 CLASS_NAMES = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
 CLASS_SYM   = {0:"●", 1:"▲", 2:"◀", 3:"▶", 4:"↖", 5:"↗", 6:"↺", 7:"↻"}
@@ -612,6 +614,22 @@ with gr.Blocks(
                     full_info = gr.Markdown("_(썸네일 클릭 → 원본 화질)_")
                     full_view = gr.Image(label="🔍 원본 화질", interactive=False, height=500)
 
+                    # ── 그라운딩 + 추론 패널 ───────────────────────────────
+                    with gr.Accordion("🔍 그라운딩 / 🤖 추론 (추론 서버 8001)", open=False):
+                      with gr.Row():
+                        infer_phrase = gr.Textbox(
+                            value="gray basket", label="그라운딩 phrase / instruction",
+                            scale=4, max_lines=1,
+                        )
+                        btn_ground  = gr.Button("🔍 그라운딩",  variant="secondary", scale=1)
+                        btn_predict = gr.Button("🤖 추론",       variant="primary",   scale=1)
+                      with gr.Row():
+                        infer_annotated = gr.Image(
+                            label="결과 이미지 (bbox 오버레이)", interactive=False, height=360, scale=3,
+                        )
+                        with gr.Column(scale=2):
+                          infer_result_md = gr.Markdown("_(실행 전)_")
+
                 with gr.Column(scale=1):
                     ep_info_md = gr.Markdown("_(에피소드를 선택하세요)_", elem_id="ep-info")
                     gr.Markdown("---")
@@ -683,6 +701,97 @@ with gr.Blocks(
             prev_btn.click(on_prev, [ds_dd, ep_dd, sc_dd], [ep_dd, gallery, ep_info_md, frame_range, frame_end])
             next_btn.click(on_next, [ds_dd, ep_dd, sc_dd], [ep_dd, gallery, ep_info_md, frame_range, frame_end])
             refresh_btn.click(on_refresh, ds_dd, [sc_dd, ep_dd, stats_md])
+
+            # ── 그라운딩 / 추론 핸들러 ────────────────────────────────────
+            def _img_to_b64(pil_img) -> str:
+                import base64, io as _io
+                buf = _io.BytesIO()
+                pil_img.save(buf, format="PNG")
+                return base64.b64encode(buf.getvalue()).decode()
+
+            def _draw_bbox(pil_img, bbox: dict) -> Image.Image:
+                arr = np.array(pil_img)
+                h, w = arr.shape[:2]
+                # 3×3 격자
+                for x in [w//3, 2*w//3]:
+                    cv2.line(arr, (x,0),(x,h),(100,255,100),1)
+                for y in [h//3, 2*h//3]:
+                    cv2.line(arr, (0,y),(w,y),(100,255,100),1)
+                if bbox.get("has_bbox"):
+                    cx_px = int(bbox["cx"]*w); cy_px = int(bbox["cy"]*h)
+                    if "x1" in bbox and bbox["x1"] is not None:
+                        x1,y1,x2,y2 = int(bbox["x1"]*w),int(bbox["y1"]*h),int(bbox["x2"]*w),int(bbox["y2"]*h)
+                        cv2.rectangle(arr,(x1,y1),(x2,y2),(255,80,80),2)
+                    cv2.circle(arr,(cx_px,cy_px),5,(255,80,80),-1)
+                    cv2.putText(arr, f"cx={bbox['cx']:.3f} area={bbox['area']:.4f}",
+                                (max(cx_px-60,0), max(cy_px-10,12)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255,80,80), 1, cv2.LINE_AA)
+                return Image.fromarray(arr)
+
+            def _run_ground(img, phrase):
+                import requests as _rq
+                if img is None:
+                    return None, "❌ 이미지 없음 — 썸네일을 먼저 클릭하세요"
+                pil = Image.fromarray(img) if isinstance(img, np.ndarray) else img
+                b64 = _img_to_b64(pil)
+                try:
+                    _hdrs = {"X-API-Key": _INFER_API_KEY} if _INFER_API_KEY else {}
+                    r = _rq.post(f"{_INFER_API_URL}/ground",
+                                 json={"image": b64, "prompt": f"detect {phrase}"},
+                                 headers=_hdrs, timeout=15)
+                    b = r.json()
+                    annotated = _draw_bbox(pil, b)
+                    md = (
+                        f"**🔍 그라운딩 결과**\n\n"
+                        f"- phrase: `detect {phrase}`\n"
+                        f"- has_bbox: `{b.get('has_bbox')}`\n"
+                        f"- cx / cy: `{b.get('cx',0):.4f}` / `{b.get('cy',0):.4f}`\n"
+                        f"- area: `{b.get('area',0):.5f}`\n"
+                        f"- bbox: x1={b.get('x1','?')}  x2={b.get('x2','?')}\n"
+                        f"- raw_output: `{b.get('raw_output','')[:80]}`\n"
+                        f"- latency: `{b.get('latency_ms','?')} ms`"
+                    )
+                    return annotated, md
+                except Exception as e:
+                    return None, f"❌ 그라운딩 실패: {e}"
+
+            def _run_predict(img, phrase):
+                import requests as _rq
+                if img is None:
+                    return None, "❌ 이미지 없음 — 썸네일을 먼저 클릭하세요"
+                pil = Image.fromarray(img) if isinstance(img, np.ndarray) else img
+                b64 = _img_to_b64(pil)
+                try:
+                    _hdrs = {"X-API-Key": _INFER_API_KEY} if _INFER_API_KEY else {}
+                    # 1. 추론 (predict)
+                    r = _rq.post(f"{_INFER_API_URL}/predict",
+                                 json={"image": b64, "instruction": phrase},
+                                 headers=_hdrs, timeout=20)
+                    p = r.json()
+                    bbox = p.get("bbox", {}) or {}
+                    annotated = _draw_bbox(pil, bbox)
+
+                    action_3d = p.get("action_3d") or p.get("action") or [0,0,0]
+                    md = (
+                        f"**🤖 추론 결과**\n\n"
+                        f"- instruction: `{phrase}`\n"
+                        f"- **predicted_label: `{p.get('predicted_label','?')}`**\n"
+                        f"- action_3d: `{[round(v,3) for v in action_3d]}`\n"
+                        f"- grounding_cached: `{p.get('grounding_cached','?')}`\n"
+                        f"- latency: `{p.get('latency_ms','?')} ms` "
+                        f"(grounding: `{p.get('grounding_latency_ms','?')} ms`)\n\n"
+                        f"**bbox:**\n"
+                        f"- entity: `{bbox.get('entity','?')}`\n"
+                        f"- cx/cy: `{bbox.get('cx',0):.4f}` / `{bbox.get('cy',0):.4f}`\n"
+                        f"- area: `{bbox.get('area',0):.5f}`\n"
+                        f"- has_bbox: `{bbox.get('has_bbox','?')}`"
+                    )
+                    return annotated, md
+                except Exception as e:
+                    return None, f"❌ 추론 실패: {e}"
+
+            btn_ground.click(_run_ground,   inputs=[full_view, infer_phrase], outputs=[infer_annotated, infer_result_md])
+            btn_predict.click(_run_predict, inputs=[full_view, infer_phrase], outputs=[infer_annotated, infer_result_md])
 
         # ══════════════════════════════════════════════════════════════════
         # 탭 2: 세션 로그

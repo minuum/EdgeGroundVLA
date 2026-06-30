@@ -109,6 +109,9 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
     pkill -f "stage2_v2_inference_server" 2>/dev/null && sleep 1 || true
 
     nohup env VLA_S2V2_STAGE2="$S2_PT" VLA_STOP_MODE=learned \
+        VLA_PREVIEW_ENABLED="${VLA_PREVIEW_ENABLED:-1}" \
+        VLA_PREVIEW_MAX_RETRY="${VLA_PREVIEW_MAX_RETRY:-5}" \
+        VLA_PREVIEW_ROT_DIR="${VLA_PREVIEW_ROT_DIR:-R}" \
         "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
         --port "$SERVER_PORT" > logs/s2v2_server.log 2>&1 &
     disown $!
@@ -206,6 +209,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--viewer" ]]; then
     echo "▶ 데이터셋 뷰어 (포트 $VIEWER_PORT)"
     pkill -f "gradio_dataset_viewer" 2>/dev/null && sleep 1 || true
 
+    VLA_API_KEY="${VLA_API_KEY:-}" \
     "$PY" scripts/gradio_dataset_viewer.py \
         >> logs/dataset_viewer.log 2>&1 &
     _viewer_pid=$!

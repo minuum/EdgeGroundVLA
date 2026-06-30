@@ -91,13 +91,18 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".vla_env_settings"
 # 미매칭 시 bbox cx 위치에서 자동 추론 (right_right / left_left / center_straight).
 DEFAULT_INSTRUCTION = "the gray basket"
 PATH_TYPES = [
+    # ── 경로 검증 (시작위치_목표방향) ────────────────────────────────
     "right_right", "right_left", "right_straight",
     "center_straight", "center_left", "center_right",
     "left_straight", "left_left", "left_right",
+    # ── 교수님 프로토콜: 오브젝트 위치별 (각 30회) ───────────────────
+    "obj_left", "obj_center", "obj_right",
+    # ── 교수님 프로토콜: 박스 거리별 (각 10회) ───────────────────────
+    "dist_10cm", "dist_20cm", "dist_30cm",
 ]
-# 경로별 목표 에피소드 수 — 합계 11, 성공 목표 7
-# right_right·right_left 는 교차 경로(난이도↑)라 2회씩 검증
+# 경로별 목표 에피소드 수
 PATH_TARGETS = {
+    # 경로 검증 — 합계 11, 성공 목표 7
     "right_right":    2,
     "right_left":     2,   # ★ 최우선 — 가장 어려운 교차
     "right_straight": 1,
@@ -107,8 +112,27 @@ PATH_TARGETS = {
     "left_straight":  1,
     "left_left":      1,
     "left_right":     1,
-}  # sum = 11
-GOAL_SUCCESS_TARGET = 7  # 논문 기준
+    # 오브젝트 위치별 — 합계 90
+    "obj_left":   30,
+    "obj_center": 30,
+    "obj_right":  30,
+    # 박스 거리별 — 합계 30
+    "dist_10cm":  10,
+    "dist_20cm":  10,
+    "dist_30cm":  10,
+}
+GOAL_SUCCESS_TARGET = 7  # 논문 기준 (경로 검증)
+# 그룹 구분선 — 집계 테이블 렌더링 시 섹션 헤더 삽입
+_PATH_GROUPS = [
+    ("── 경로 검증 ──────────────",
+     ["right_right","right_left","right_straight",
+      "center_straight","center_left","center_right",
+      "left_straight","left_left","left_right"]),
+    ("── 오브젝트 위치별 ──────────",
+     ["obj_left","obj_center","obj_right"]),
+    ("── 박스 거리별 ──────────────",
+     ["dist_10cm","dist_20cm","dist_30cm"]),
+]
 GOAL_NAV_PRESETS = [
     "the gray basket",
     "the door",
@@ -1153,6 +1177,25 @@ def set_running(running: bool, backend_mode: str, api_url: str, instruction: str
             make_backend(backend_mode, api_url).reset(instruction)
         except Exception:
             pass
+        # 그라운딩 캐시 프리워밍 — START 버튼 시점에 현재 프레임으로 /ground 선호출
+        # 이를 통해 첫 /predict에서 cached=1이 되어 frame0 STOP 제거
+        try:
+            import requests as _rq_pw, base64 as _b64_pw, io as _io_pw
+            _img_pw = state.get("last_img")
+            if _img_pw is not None:
+                _pil_pw = Image.fromarray(_img_pw) if isinstance(_img_pw, np.ndarray) else _img_pw
+                _buf_pw = _io_pw.BytesIO()
+                _pil_pw.save(_buf_pw, format="JPEG", quality=85)
+                _b64_pw_str = _b64_pw.b64encode(_buf_pw.getvalue()).decode()
+                _phrase_pw = gt_object if gt_object else "gray basket"
+                _rq_pw.post(
+                    f"{api_url}/ground",
+                    json={"image": _b64_pw_str, "prompt": f"detect {_phrase_pw}"},
+                    headers={"X-API-Key": API_KEY},
+                    timeout=12,
+                )
+        except Exception:
+            pass
         if state.get("infer_move_mode") == "ASYNC":
             if logger_instance:
                 logger_instance.start_session("async", instruction, instruction_mode=backend_mode)
@@ -1190,8 +1233,12 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
     strategy = result.get("strategy", "")
     pred_label = result.get("predicted_label") or ""
     goal_near = result.get("goal_near_proxy")
+    is_preview = bool(result.get("preview_align"))
+    preview_attempt = result.get("preview_attempt")
 
     label_prefix = f"[{pred_label}] " if pred_label else ""
+    if is_preview and preview_attempt is not None:
+        label_prefix = f"[🔄PREVIEW {preview_attempt}] [{pred_label}] "
     act_str = f"{label_prefix}{action[0]:.4f}, {action[1]:.4f}, {action[2] if action.size > 2 else 0.0:.4f}"
 
     speed_scale = result.get("speed_scale")
@@ -1211,6 +1258,9 @@ def run_backend_inference(image: Image.Image, instruction: str, backend_mode: st
             chunk_display += f"\ngrounding: {caption}"
     else:
         chunk_display = f"Chunk (N={len(chunk)}):\n{np.array2string(chunk, precision=2, separator=', ', suppress_small=True)}"
+        if is_preview:
+            chunk_display = (f"🔄 PREVIEW 모드 — attempt {preview_attempt}\n"
+                             f"bbox 미탐지 → ROT 후 PG2 재검사 중\n") + chunk_display
 
     return {
         "log_str": f"✅ {backend.name}: {state['current_log']}",
@@ -2611,21 +2661,32 @@ with gr.Blocks(
           def _build_summary_early(log_list):
               done_total = {k: 0 for k in PATH_TYPES}
               done_succ  = {k: 0 for k in PATH_TYPES}
-              success_count = 0
+              nav_succ = 0
               for r in log_list:
-                  pt = str(r[1]).replace(" ★", "").replace("★", "")
+                  pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
                   done_total[pt] = done_total.get(pt, 0) + 1
                   if r[2] == "성공":
                       done_succ[pt] = done_succ.get(pt, 0) + 1
-                      success_count += 1
-              total = len(log_list)
-              total_target = sum(PATH_TARGETS.values())
-              prog = f"{total}/{total_target}ep  성공 {success_count}/{GOAL_SUCCESS_TARGET}"
-              tbl  = [[pt + (" ★" if pt == "right_left" else ""),
-                       PATH_TARGETS.get(pt, 1),
-                       done_total.get(pt, 0),
-                       done_succ.get(pt, 0)]
-                      for pt in PATH_TYPES]
+                      if pt in PATH_TARGETS and not pt.startswith(("obj_", "dist_")):
+                          nav_succ += 1
+              nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS
+                              if not k.startswith(("obj_", "dist_")))
+              obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
+              obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
+              dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
+              dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
+              prog = (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_')))}/{nav_total}"
+                      f"  성공 {nav_succ}/{GOAL_SUCCESS_TARGET}"
+                      f"  |  위치별 {obj_done}/90 ({obj_succ}성공)"
+                      f"  |  거리별 {dist_done}/30 ({dist_succ}성공)")
+              tbl = []
+              for header, keys in _PATH_GROUPS:
+                  tbl.append([header, "", "", ""])
+                  for pt in keys:
+                      tbl.append([pt + (" ★" if pt == "right_left" else ""),
+                                  PATH_TARGETS.get(pt, 1),
+                                  done_total.get(pt, 0),
+                                  done_succ.get(pt, 0)])
               return prog, tbl
 
           _preloaded_rows_early = _preload_episode_csv_early()
@@ -2649,11 +2710,11 @@ with gr.Blocks(
                 interactive=False, max_lines=1, elem_id="t4-progress",
             )
             path_summary_table = gr.Dataframe(
-                headers=["경로", "목표", "완료", "✓"],
-                datatype=["str","number","number","number"],
+                headers=["경로/테스트", "목표", "완료", "✓"],
+                datatype=["str","str","str","str"],
                 value=_preloaded_tbl,
-                label="경로별 집계 (경로명=시작위치_목표방향 레이블 — 실제 이동경로와 다를 수 있음)",
-                row_count=9, col_count=4, interactive=False,
+                label="집계 (경로검증 | 오브젝트위치별 | 박스거리별)",
+                row_count=18, col_count=4, interactive=False,
             )
             with gr.Accordion("📋 프롬프트 전문 보기", open=False):
               with gr.Row():
@@ -2670,7 +2731,7 @@ with gr.Blocks(
                   "실제 이동경로는 오브젝트 위치·카메라 시점·모델 학습 상태에 따라 달라집니다.</small>"
               )
             with gr.Row():
-              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="right_left", label="경로 레이블 (시작_목표)", scale=3)
+              path_type_test = gr.Dropdown(choices=PATH_TYPES, value="obj_center", label="테스트 레이블", scale=3)
               success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=2)
             with gr.Row():
               fpe_test  = gr.Number(minimum=0.0, maximum=9.9, step=0.05, value=0.0, label="FPE (m)", precision=2, scale=2)
@@ -2678,10 +2739,10 @@ with gr.Blocks(
             # FPE 프리셋 빠른 입력
             with gr.Row():
               _fpe_b = [gr.Button(v, size="sm", scale=1) for v in ["0.0","0.3","0.5","0.8","1.0","1.5","2.0","3.0"]]
-            btn_log_episode   = gr.Button("📝 기록", variant="primary",   size="lg")
+            btn_log_episode   = gr.Button("📝 에피소드 기록 추가", variant="primary",   size="lg")
             with gr.Row():
-              btn_undo_episode  = gr.Button("↩ 삭제",  variant="secondary", scale=1, size="lg")
-              btn_clear_episode = gr.Button("🗑 초기화", variant="stop",     scale=1, size="lg")
+              btn_undo_episode  = gr.Button("↩ 마지막 기록 취소 (1건 삭제)",  variant="secondary", scale=1, size="lg")
+              btn_clear_episode = gr.Button("🗑 전체 기록 영구 삭제", variant="stop",     scale=1, size="lg")
             with gr.Row():
               btn_refresh_log    = gr.Button("🔄 CSV복원", scale=1, size="sm")
               btn_export_test    = gr.Button("💾 CSV저장", scale=1, size="sm")
@@ -3221,21 +3282,35 @@ with gr.Blocks(
     timer.tick(fn=_js_status_text, outputs=js_status_test)
 
     def _gnd_detail_tick():
-        """그라운딩 상세 정보 (entity, cached, bbox, 예측레이블) 반환."""
+        """그라운딩 상세 정보 (entity, cached/preview상태, bbox, 예측레이블) 반환."""
         try:
             import requests as _rq
-            r = _rq.get(f"{DEFAULT_API_URL}/recent", timeout=1.5)
-            preds = r.json().get("predictions", [])
+            data = _rq.get(f"{DEFAULT_API_URL}/recent", timeout=1.5).json()
+            preds = data.get("predictions", [])
+            preview_enabled = data.get("preview_enabled", False)
+            preview_attempt = data.get("preview_attempt", 0)
+            preview_max     = data.get("preview_max_retry", 5)
+            inf_count       = data.get("inference_count", -1)
+
+            # preview 중이면 cached 필드를 preview 상태로 대체
+            if preview_enabled and inf_count == 0 and preview_attempt > 0:
+                cached_str = f"🔄 PREVIEW {preview_attempt}/{preview_max}"
+            elif preview_enabled and inf_count == 0:
+                cached_str = "⏳ PREVIEW 대기"
+            elif preview_enabled:
+                cached_str = "✅ preview 완료"
+            else:
+                cached_str = "—"
+
             if preds:
                 p = preds[0]
-                bbox = p.get("bbox", {})
-                entity  = bbox.get("entity", "—")[:30]
-                cached  = "✅ cached" if p.get("grounding_cached") else "🔄 live"
-                cx      = bbox.get("cx",   0.5)
-                cy      = bbox.get("cy",   0.5)
-                area    = bbox.get("area", 0.0)
-                label   = p.get("predicted_label", "—")
-                return entity, cached, f"cx={cx:.3f}  cy={cy:.3f}  area={area:.4f}", label
+                cx   = p.get("cx",   0.5)
+                area = p.get("area", 0.0)
+                has  = p.get("has_bbox", False)
+                entity = "gray basket"
+                label  = "—"
+                return entity, cached_str, f"cx={cx:.3f}  area={area:.4f}  {'✓BBOX' if has else '✗NONE'}", label
+            return "—", cached_str, "—", "—"
         except Exception:
             pass
         return "—", "—", "—", "—"
@@ -3312,26 +3387,35 @@ with gr.Blocks(
             w.writerows(rows)
 
     def _build_summary(log_list):
-        """log_list → (prog_str, path_summary_rows 9×4). 공통 로직."""
+        """log_list → (prog_str, path_summary_rows with group headers). 공통 로직."""
         done_total = {k: 0 for k in PATH_TYPES}
         done_succ  = {k: 0 for k in PATH_TYPES}
-        success_count = 0
+        nav_succ = 0
         for r in log_list:
-            pt = str(r[1]).replace(" ★", "").replace("★", "")
+            pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
             done_total[pt] = done_total.get(pt, 0) + 1
             if r[2] == "성공":
-                done_succ[pt]  = done_succ.get(pt, 0) + 1
-                success_count += 1
-        total = len(log_list)
-        total_target = sum(PATH_TARGETS.values())
-        prog  = f"{total}/{total_target}ep  성공 {success_count}/{GOAL_SUCCESS_TARGET}"
-        tbl = [
-            [pt + (" ★" if pt == "right_left" else ""),
-             PATH_TARGETS.get(pt, 1),
-             done_total.get(pt, 0),
-             done_succ.get(pt, 0)]
-            for pt in PATH_TYPES
-        ]
+                done_succ[pt] = done_succ.get(pt, 0) + 1
+                if not pt.startswith(("obj_", "dist_")):
+                    nav_succ += 1
+        nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS
+                        if not k.startswith(("obj_", "dist_")))
+        obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
+        obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
+        dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
+        dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
+        prog = (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_')))}/{nav_total}"
+                f"  성공 {nav_succ}/{GOAL_SUCCESS_TARGET}"
+                f"  |  위치별 {obj_done}/90 ({obj_succ}성공)"
+                f"  |  거리별 {dist_done}/30 ({dist_succ}성공)")
+        tbl = []
+        for header, keys in _PATH_GROUPS:
+            tbl.append([header, "", "", ""])
+            for pt in keys:
+                tbl.append([pt + (" ★" if pt == "right_left" else ""),
+                             PATH_TARGETS.get(pt, 1),
+                             done_total.get(pt, 0),
+                             done_succ.get(pt, 0)])
         return prog, tbl
 
     def _init_episode_log():
@@ -3566,6 +3650,14 @@ with gr.Blocks(
         fn=clear_episodes,
         inputs=[_episode_log_state],
         outputs=[_episode_log_state, episode_log_table, progress_test, path_summary_table],
+        js="""
+        (log_list) => {
+            if (!confirm("⚠️ 정말로 모든 에피소드 기록(CSV 파일)을 영구 삭제하시겠습니까?\\n이 작업은 되돌릴 수 없으며 복구가 불가능합니다.")) {
+                throw new Error("사용자가 초기화 작업을 취소했습니다.");
+            }
+            return log_list;
+        }
+        """
     )
 
     # 페이지 열릴 때 과거 기록 복원

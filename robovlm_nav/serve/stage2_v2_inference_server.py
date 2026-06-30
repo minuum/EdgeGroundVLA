@@ -503,6 +503,7 @@ class Stage2V2Model:
         self._preview_max_retry   = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
         _rot_dir                  = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
         self._preview_fallback_rot = 7 if _rot_dir != "L" else 6  # ROT_R=7, ROT_L=6
+        self._preview_attempt = 0  # 세션당 프리뷰 재시도 횟수 (reset()으로 초기화)
         if self._preview_enabled:
             logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s",
                         self._preview_area_thresh, self._preview_max_retry,
@@ -707,6 +708,10 @@ class Stage2V2Model:
             else:
                 x = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, d_in)
                 logits = self.head(x)
+            # ROT_L(6) / ROT_R(7) 마스킹 — 학습 데이터 ~0%, OOD 입력에서 잘못 활성화
+            if logits.shape[-1] > 6:
+                logits[:, 6] = float("-inf")
+                logits[:, 7] = float("-inf")
             pred_class = int(logits.argmax(dim=-1).item())
 
         # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
@@ -841,6 +846,8 @@ class InferenceResponse(BaseModel):
     stop_mode: Optional[str] = None
     grounding_cached: Optional[bool] = None
     head_mode: Optional[str] = None
+    preview_align: Optional[bool] = None
+    preview_attempt: Optional[int] = None
 
 
 class LoadRequest(BaseModel):
@@ -939,6 +946,8 @@ async def predict(
             proximity_override=result["proximity_override"],
             grounding_cached=result["grounding_cached"],
             head_mode=result["head_mode"],
+            preview_align=result.get("preview_align"),
+            preview_attempt=result.get("preview_attempt"),
         )
     except HTTPException:
         raise
@@ -975,6 +984,9 @@ async def recent_predictions(x_api_key: Optional[str] = Header(default=None)) ->
         "inference_count": m.inference_count,
         "stop_latched": m.stop_latched,
         "stop_mode": STOP_MODE,
+        "preview_enabled": m._preview_enabled,
+        "preview_attempt": m._preview_attempt,
+        "preview_max_retry": m._preview_max_retry,
     }
 
 
