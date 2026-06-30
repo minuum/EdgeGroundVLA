@@ -649,77 +649,112 @@ class Stage2V2Model:
             raw_bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=use_hidden)
             grounding_latency_ms = (time.time() - g_start) * 1000.0
 
-            if raw_bbox.get("has_bbox", False):
-                # 정상 그라운딩: 캐시 갱신, preview 카운터 리셋
-                bbox = raw_bbox
-                self._grounding_cache = bbox
-                self._last_valid_bbox = bbox
-                self._preview_attempt = 0
+            # PaliGemma2 fresh 그라운딩 결과 추출
+            has_bbox = raw_bbox.get("has_bbox", False)
+            cx = float(raw_bbox.get("cx", 0.5))
+
+            if self._last_valid_bbox is None:
+                # ── 1. 최초 그라운딩 & 정면 정렬 성공 전 단계 (VLA 진입 제한) ──
+                if has_bbox:
+                    if 0.4 <= cx <= 0.6:
+                        # 정면에 잘 들어옴 ➔ 최초로 VLA MLP 주행 진입 허가
+                        logger.info("[CH54] 최초 그라운딩 정면 정렬 성공 (cx=%.3f) ➔ VLA 진입 허가", cx)
+                        bbox = raw_bbox
+                        self._grounding_cache = bbox
+                        self._last_valid_bbox = bbox
+                        self._preview_attempt = 0
+                    else:
+                        # 타겟을 감지했으나 좌/우 치우침 ➔ 프리뷰 피드백 회전으로 정면 정렬 유도 (MLP 차단)
+                        preview_rot = 6 if cx < 0.4 else 7  # 6: ROT_L, 7: ROT_R
+                        self._preview_attempt += 1
+                        logger.info("[CH54] 오브젝트 발견(cx=%.3f) ➔ 정면 정렬 유도 회전 (%s) 수행",
+                                    cx, CLASS_NAMES[preview_rot])
+                        total_ms = (time.time() - start) * 1000.0
+                        return {
+                            "action": ACTION_2D[preview_rot],
+                            "action_3d": ACTION_3D[preview_rot],
+                            "predicted_class": preview_rot,
+                            "predicted_label": CLASS_NAMES[preview_rot],
+                            "bbox": raw_bbox,
+                            "grounding_latency_ms": grounding_latency_ms,
+                            "latency_ms": total_ms,
+                            "goal_near_proxy": False,
+                            "proximity_override": False,
+                            "learned_stop": False,
+                            "stop_latched": False,
+                            "stop_mode": STOP_MODE,
+                            "grounding_cached": False,
+                            "head_mode": "preview_align",
+                            "source": "preview_align",
+                            "preview_align": True,
+                            "preview_attempt": self._preview_attempt,
+                            "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+                        }
+                else:
+                    # 타겟 미검출 상태
+                    if self._preview_enabled:
+                        # fallback 회전 방향으로 계속 지속 회전 탐색
+                        preview_rot = self._preview_fallback_rot
+                        self._preview_attempt += 1
+                        logger.info("[CH54] 오브젝트 미발견 ➔ fallback 회전 (%s) 지속 탐색", CLASS_NAMES[preview_rot])
+                        total_ms = (time.time() - start) * 1000.0
+                        return {
+                            "action": ACTION_2D[preview_rot],
+                            "action_3d": ACTION_3D[preview_rot],
+                            "predicted_class": preview_rot,
+                            "predicted_label": CLASS_NAMES[preview_rot],
+                            "bbox": raw_bbox,
+                            "grounding_latency_ms": grounding_latency_ms,
+                            "latency_ms": total_ms,
+                            "goal_near_proxy": False,
+                            "proximity_override": False,
+                            "learned_stop": False,
+                            "stop_latched": False,
+                            "stop_mode": STOP_MODE,
+                            "grounding_cached": False,
+                            "head_mode": "preview_search",
+                            "source": "preview_search",
+                            "preview_align": True,
+                            "preview_attempt": self._preview_attempt,
+                            "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+                        }
+                    else:
+                        # preview 비활성 시 안전 정지
+                        logger.info("[CH54] 최초 그라운딩 실패 및 preview 미활성 ➔ 안전 STOP 반환")
+                        total_ms = (time.time() - start) * 1000.0
+                        return {
+                            "action": ACTION_2D[0],
+                            "action_3d": ACTION_3D[0],
+                            "predicted_class": 0,
+                            "predicted_label": "STOP",
+                            "bbox": raw_bbox,
+                            "grounding_latency_ms": grounding_latency_ms,
+                            "latency_ms": total_ms,
+                            "goal_near_proxy": False,
+                            "proximity_override": False,
+                            "learned_stop": False,
+                            "stop_latched": False,
+                            "stop_mode": STOP_MODE,
+                            "grounding_cached": False,
+                            "head_mode": "grounding_failed",
+                            "source": "grounding_failed",
+                            "preview_align": False,
+                            "preview_attempt": 0,
+                            "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+                        }
             else:
-                # has_bbox=False 처리
-                if self._last_valid_bbox is not None:
-                    # 직전 유효 bbox로 대체 — MLP에 cx=0.5 fallback 들어가는 것 방지
+                # ── 2. 이미 최초 정면 정렬 성공 이후 단계 (주행 중) ──
+                if has_bbox:
+                    bbox = raw_bbox
+                    self._grounding_cache = bbox
+                    self._last_valid_bbox = bbox
+                    self._preview_attempt = 0
+                else:
                     bbox = self._last_valid_bbox
                     grounding_used_stale = True
-                    logger.info("[GND] has_bbox=False → last_valid 대체 cx=%.3f area=%.4f count=%d",
+                    logger.info("[GND] 주행 중 has_bbox=False ➔ last_valid 대체 cx=%.3f area=%.4f count=%d",
                                 float(bbox.get("cx", 0.5)), float(bbox.get("area", 0.0)),
                                 self.inference_count)
-                elif self._preview_enabled:
-                    # 최초 그라운딩 성공 전 + preview 활성화 ➔ 한 방향으로 지속 회전 탐색하며 조기 리턴
-                    preview_rot = self._preview_rot_from_bbox(raw_bbox)
-                    self._preview_attempt += 1
-                    logger.info("[CH54] preview ROT: %s  attempt=%d/%d  count=%d",
-                                CLASS_NAMES[preview_rot], self._preview_attempt,
-                                self._preview_max_retry, self.inference_count)
-                    
-                    if self._preview_attempt >= self._preview_max_retry:
-                        logger.info("[CH54] preview max_retry 초과 ➔ 타겟 검출 시까지 계속 지속 탐색 루프")
-                        
-                    total_ms = (time.time() - start) * 1000.0
-                    return {
-                        "action": ACTION_2D[preview_rot],
-                        "action_3d": ACTION_3D[preview_rot],
-                        "predicted_class": preview_rot,
-                        "predicted_label": CLASS_NAMES[preview_rot],
-                        "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
-                        "grounding_latency_ms": grounding_latency_ms,
-                        "latency_ms": total_ms,
-                        "goal_near_proxy": False,
-                        "proximity_override": False,
-                        "learned_stop": False,
-                        "stop_latched": False,
-                        "stop_mode": STOP_MODE,
-                        "grounding_cached": False,
-                        "head_mode": "preview",
-                        "source": "preview",
-                        "preview_align": True,
-                        "preview_attempt": self._preview_attempt,
-                        "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
-                    }
-                else:
-                    # 최초 그라운딩 성공 전 + preview 비활성화 ➔ 전진을 막고 안전하게 STOP 반환 후 조기 리턴
-                    logger.info("[CH54] 최초 그라운딩 실패 및 preview 미활성 ➔ 안전 STOP 반환")
-                    total_ms = (time.time() - start) * 1000.0
-                    return {
-                        "action": ACTION_2D[0],
-                        "action_3d": ACTION_3D[0],
-                        "predicted_class": 0,
-                        "predicted_label": "STOP",
-                        "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
-                        "grounding_latency_ms": grounding_latency_ms,
-                        "latency_ms": total_ms,
-                        "goal_near_proxy": False,
-                        "proximity_override": False,
-                        "learned_stop": False,
-                        "stop_latched": False,
-                        "stop_mode": STOP_MODE,
-                        "grounding_cached": False,
-                        "head_mode": "grounding_failed",
-                        "source": "grounding_failed",
-                        "preview_align": False,
-                        "preview_attempt": 0,
-                        "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
-                    }
 
         # hidden_state(numpy array)는 JSON 응답에 그대로 넣으면 pydantic 직렬화가 깨짐 —
         # feature 계산용으로만 빼두고 응답 bbox에서는 제거 (plan_20260622_hidden_state_hub_integration.md).
