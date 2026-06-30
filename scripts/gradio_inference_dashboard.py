@@ -1018,11 +1018,11 @@ state = {
     # None이면 get_inference_frame() 폴백
     "stable_frame": None,
     "stable_frame_cc": False,  # color correction 적용 여부 기록
-    # 추론 이동 모드
-    # SYNC : 이동 완료 후 150ms settle → stable_frame 캡처 → 다음 스텝 추론 (현재 기본)
+    # 추론 이동 모드 — VLA_ASYNC_MODE=1 env var로 ASYNC 강제 가능 (go.sh 제어)
+    # SYNC : 이동 완료 후 150ms settle → stable_frame 캡처 → 다음 스텝 추론 (기본, 데이터 수집용)
     # PRE  : 이동 직전 live frame → 추론 → 이동 (수집 PRE_CACHE와 동일 분포)
-    # ASYNC: inference_thread(3Hz) + execution_thread(10Hz) 완전 분리
-    "infer_move_mode": "SYNC",
+    # ASYNC: inference_thread(3Hz) + execution_thread(10Hz) 완전 분리 (데모용)
+    "infer_move_mode": "ASYNC" if os.environ.get("VLA_ASYNC_MODE", "0") == "1" else "SYNC",
     # ASYNC 모드 공유 상태
     "_async_result": None,   # 최신 추론 결과 (UI 표시용)
     "_async_step": 0,
@@ -1915,9 +1915,9 @@ with gr.Blocks(
                   gr.Markdown("#### 🏁 Inference Control")
                   infer_move_radio = gr.Radio(
                       choices=["SYNC", "PRE", "ASYNC"],
-                      value="SYNC",
+                      value="ASYNC" if os.environ.get("VLA_ASYNC_MODE", "0") == "1" else "SYNC",
                       label="이동 모드",
-                      info="SYNC: 이동→정착→캡처 (기본) | PRE: 캡처→추론→이동 | ASYNC: 추론(3Hz)+실행(10Hz) 분리스레드",
+                      info="SYNC: 정지→추론→이동 (데이터수집용) | PRE: 캡처→추론→이동 | ASYNC: 추론(3Hz)+실행(10Hz) 분리 (데모용)",
                   )
                   with gr.Row():
                       btn_start_inf = gr.Button("▶️ START", variant="primary", scale=1)
