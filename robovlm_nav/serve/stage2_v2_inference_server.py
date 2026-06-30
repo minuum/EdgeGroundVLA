@@ -619,7 +619,9 @@ class Stage2V2Model:
         preview_rot: Optional[int] = None
         if self._preview_enabled and self.inference_count == 0:
             if self._preview_attempt < self._preview_max_retry:
+                _g_start = time.time()
                 first_bbox = self.grounder.run(image_rgb, phrase=phrase)
+                _preview_grounding_ms = (time.time() - _g_start) * 1000.0
                 if self._needs_preview(first_bbox):
                     preview_rot = self._preview_rot_from_bbox(first_bbox)
                     self._preview_attempt += 1
@@ -645,7 +647,7 @@ class Stage2V2Model:
                 "predicted_class": preview_rot,
                 "predicted_label": CLASS_NAMES[preview_rot],
                 "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
-                "grounding_latency_ms": 0.0,
+                "grounding_latency_ms": _preview_grounding_ms,
                 "latency_ms": total_ms,
                 "goal_near_proxy": False,
                 "proximity_override": False,
