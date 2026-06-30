@@ -2847,7 +2847,7 @@ with gr.Blocks(
           _preloaded_rows_early = _preload_episode_csv_early()
           _preloaded_prog, _preloaded_tbl = _build_summary_early(_preloaded_rows_early)
 
-          # ── Col 2 (scale=1): 경로표 + 기록 ───────────────────────────
+          # ── Col 2 (scale=1): 경로표 + 제어 ───────────────────────────
           with gr.Column(scale=1, min_width=330):
             progress_bar_html = gr.HTML(
                 value=make_progress_bar_html(_preloaded_rows_early),
@@ -2878,6 +2878,48 @@ with gr.Blocks(
                   "<small>💡 경로명(right_left 등)은 **시작위치_목표방향**의 실험 분류 레이블입니다. "
                   "실제 이동경로는 오브젝트 위치·카메라 시점·모델 학습 상태에 따라 달라집니다.</small>"
               )
+
+            # 주행 제어 패널 배치
+            with gr.Group():
+              mode_radio_test = gr.Radio(
+                  choices=["Manual Drive", "Inference (Auto)"],
+                  value="Manual Drive", label="🎮 Mode",
+              )
+              with gr.Column(visible=False) as inference_panel_test:
+                infer_move_radio_test = gr.Radio(choices=["SYNC", "PRE", "ASYNC"], value="SYNC", label="이동 모드")
+                with gr.Row():
+                  btn_start_test  = gr.Button("▶️ START", variant="primary",   scale=1)
+                  btn_stop_test   = gr.Button("⏹️ STOP",  variant="stop",      scale=1)
+                  btn_return_test = gr.Button("🔄 복귀",  variant="secondary", scale=1)
+
+            def on_mode_change_test(selected_mode):
+                return gr.update(visible=selected_mode == "Inference (Auto)")
+            mode_radio_test.change(fn=on_mode_change_test, inputs=[mode_radio_test], outputs=[inference_panel_test])
+
+            with gr.Row():
+              with gr.Column(scale=1):
+                gr.Markdown("**🎮 Manual**")
+                t4_speed_slider = gr.Slider(minimum=0.3, maximum=2.0, step=0.05, value=1.15, label="속도")
+                with gr.Row():
+                  t4_btn_q = gr.Button("↖Q", scale=1, size="sm")
+                  t4_btn_w = gr.Button("▲W", scale=1, size="sm")
+                  t4_btn_e = gr.Button("↗E", scale=1, size="sm")
+                with gr.Row():
+                  t4_btn_a = gr.Button("◀A", scale=1, size="sm")
+                  t4_btn_stop = gr.Button("⏹", variant="stop", scale=1, size="sm")
+                  t4_btn_d = gr.Button("▶D", scale=1, size="sm")
+                with gr.Row():
+                  t4_btn_r = gr.Button("↺R", scale=1, size="sm")
+                  t4_btn_s = gr.Button("▼S", scale=1, size="sm")
+                  t4_btn_t = gr.Button("↻T", scale=1, size="sm")
+              with gr.Column(scale=1):
+                gr.Markdown("**🕹️ Joystick**")
+                js_status_test = gr.Textbox(label="상태", value="🔌 초기화 중...", interactive=False)
+                gr.Markdown("<small>Left → 이동\nRight X → 회전\nA → STOP</small>")
+
+          # ── Col 3 (scale=1): 기록 + 에피소드 로그 ────────────────────
+          with gr.Column(scale=1, min_width=330):
+            # 에피소드 기록 입력 인터페이스 배치
             with gr.Row():
               path_type_test = gr.Textbox(label="현재 선택된 테스트 레이블", value="obj_center", interactive=False, scale=3)
               success_test   = gr.Radio(choices=["성공", "실패"], value="성공", label="결과", scale=2)
@@ -2925,20 +2967,7 @@ with gr.Blocks(
                 btn_edit_ep   = gr.Button("💾 수정 저장", variant="primary", size="lg", scale=2)
                 edit_status   = gr.Textbox(label="", value="", interactive=False, scale=3, max_lines=1)
 
-          # ── Col 3 (scale=1): 제어 + 에피소드 로그 ────────────────────
-          with gr.Column(scale=1, min_width=330):
-            with gr.Group():
-              mode_radio_test = gr.Radio(
-                  choices=["Manual Drive", "Inference (Auto)"],
-                  value="Manual Drive", label="🎮 Mode",
-              )
-              with gr.Column(visible=False) as inference_panel_test:
-                infer_move_radio_test = gr.Radio(choices=["SYNC", "PRE", "ASYNC"], value="SYNC", label="이동 모드")
-                with gr.Row():
-                  btn_start_test  = gr.Button("▶️ START", variant="primary",   scale=1)
-                  btn_stop_test   = gr.Button("⏹️ STOP",  variant="stop",      scale=1)
-                  btn_return_test = gr.Button("🔄 복귀",  variant="secondary", scale=1)
-
+            # 우측 하단 경로 다이어그램 이전 배치
             with gr.Accordion("📋 경로 다이어그램", open=False):
               gr.Markdown(
                   "```\n"
@@ -2950,31 +2979,6 @@ with gr.Blocks(
                   "L=left, C=center, R=right 시작위치\n"
                   "방향: L(좌)/S(직)/R(우)  ★=right\\_left 우선"
               )
-
-            def on_mode_change_test(selected_mode):
-                return gr.update(visible=selected_mode == "Inference (Auto)")
-            mode_radio_test.change(fn=on_mode_change_test, inputs=[mode_radio_test], outputs=[inference_panel_test])
-
-            with gr.Row():
-              with gr.Column(scale=1):
-                gr.Markdown("**🎮 Manual**")
-                t4_speed_slider = gr.Slider(minimum=0.3, maximum=2.0, step=0.05, value=1.15, label="속도")
-                with gr.Row():
-                  t4_btn_q = gr.Button("↖Q", scale=1, size="sm")
-                  t4_btn_w = gr.Button("▲W", scale=1, size="sm")
-                  t4_btn_e = gr.Button("↗E", scale=1, size="sm")
-                with gr.Row():
-                  t4_btn_a = gr.Button("◀A", scale=1, size="sm")
-                  t4_btn_stop = gr.Button("⏹", variant="stop", scale=1, size="sm")
-                  t4_btn_d = gr.Button("▶D", scale=1, size="sm")
-                with gr.Row():
-                  t4_btn_r = gr.Button("↺R", scale=1, size="sm")
-                  t4_btn_s = gr.Button("▼S", scale=1, size="sm")
-                  t4_btn_t = gr.Button("↻T", scale=1, size="sm")
-              with gr.Column(scale=1):
-                gr.Markdown("**🕹️ Joystick**")
-                js_status_test = gr.Textbox(label="상태", value="🔌 초기화 중...", interactive=False)
-                gr.Markdown("<small>Left → 이동\nRight X → 회전\nA → STOP</small>")
 
             ep_view_radio = gr.Radio(
                 choices=["전체", "정상만", "🚨 이상치만"],
