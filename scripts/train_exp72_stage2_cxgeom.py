@@ -129,8 +129,10 @@ def main():
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--val-ratio", type=float, default=0.15)
+    p.add_argument("--out-dir", type=str, default=str(OUT_DIR))
     args = p.parse_args()
 
+    out_dir = Path(args.out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
 
@@ -182,14 +184,14 @@ def main():
                 best_acc = acc
                 torch.save({"model": model.state_dict(), "val_acc": acc,
                             "hist_dim": Xh_tr.shape[1], "geom_dim": GEOM_DIM,
-                            "source": "pg448", "exp": "exp72", "head": "cx_geom"},
-                           str(OUT_DIR / "action_cxgeom.pt"))
+                            "source": "pg448", "exp": "exp72", "head": "cx_geom",
+                            "seed": args.seed},
+                           str(out_dir / "action_cxgeom.pt"))
                 print(f"    [BEST] {acc*100:.1f}% → 저장")
 
     print(f"\n=== exp72 cx-Geom 결과 ===")
-    print(f"  val_acc: {best_acc*100:.1f}%")
-    print(f"  비교: exp67 MLP=96.8%  exp71 Transformer=?%")
-    print(f"  체크포인트 → {OUT_DIR}/action_cxgeom.pt")
+    print(f"  val_acc: {best_acc*100:.1f}%  seed={args.seed}")
+    print(f"  체크포인트 → {out_dir}/action_cxgeom.pt")
 
 
 if __name__ == "__main__":
