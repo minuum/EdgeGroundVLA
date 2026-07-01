@@ -13920,6 +13920,74 @@ graph TD
     exp72: <code>runs/v5_nav/mlp/exp72/action_cxgeom.pt</code> &nbsp;|&nbsp;
     어노테이션: <code>docs/v5/bbox_frame_level/bbox_dataset_pg448_cx.json</code> &nbsp;|&nbsp; 2026-07-01
   </div>
+
+  <!-- 60-7 추론 시각화 갤러리 -->
+  <div class="finding-card">
+    <div class="finding-title">60-7. 추론 시각화 — 대표 프레임별 3모델 비교</div>
+    <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+      <strong style="color:#94a3b8">오버레이 범례:</strong>
+      <span style="color:#34d399">■</span> PG448 bbox &nbsp;
+      <span style="color:#fbbf24">┼</span> cx/cy 십자선 &nbsp;
+      <span style="color:#60a5fa">●</span> 히스토리 궤적(WINDOW=8) &nbsp;
+      우측 패널: exp67 MLP / exp71 Transformer / exp72 cx-Geom 각 softmax bar
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(480px,1fr));gap:16px">
+
+      <div style="background:#0f172a;border-radius:8px;overflow:hidden;border:1px solid #1e293b">
+        <div style="padding:6px 10px;background:#1e293b;font-size:0.75rem;color:#94a3b8;display:flex;justify-content:space-between">
+          <span><strong style="color:#72e3a0">GT: FORWARD</strong> — cx≈0.41, basket 중앙</span>
+          <a href="../inference_viz/viz_forward_fidx10.png" target="_blank" style="color:#60a5fa;text-decoration:none">↗ 원본</a>
+        </div>
+        <img src="../inference_viz/viz_forward_fidx10.png" style="width:100%;display:block" loading="lazy" alt="FORWARD inference viz">
+      </div>
+
+      <div style="background:#0f172a;border-radius:8px;overflow:hidden;border:1px solid #1e293b">
+        <div style="padding:6px 10px;background:#1e293b;font-size:0.75rem;color:#94a3b8;display:flex;justify-content:space-between">
+          <span><strong style="color:#a7f3d0">GT: FWD+L</strong> — cx≈0.61, basket 살짝 우측</span>
+          <a href="../inference_viz/viz_fwd_l_fidx1.png" target="_blank" style="color:#60a5fa;text-decoration:none">↗ 원본</a>
+        </div>
+        <img src="../inference_viz/viz_fwd_l_fidx1.png" style="width:100%;display:block" loading="lazy" alt="FWD+L inference viz">
+      </div>
+
+      <div style="background:#0f172a;border-radius:8px;overflow:hidden;border:1px solid #1e293b">
+        <div style="padding:6px 10px;background:#1e293b;font-size:0.75rem;color:#94a3b8;display:flex;justify-content:space-between">
+          <span><strong style="color:#fcd34d">GT: ROT_L</strong> — cx≈0.73, basket 극우 → 좌회전</span>
+          <a href="../inference_viz/viz_rot_l_fidx0.png" target="_blank" style="color:#60a5fa;text-decoration:none">↗ 원본</a>
+        </div>
+        <img src="../inference_viz/viz_rot_l_fidx0.png" style="width:100%;display:block" loading="lazy" alt="ROT_L inference viz">
+      </div>
+
+      <div style="background:#0f172a;border-radius:8px;overflow:hidden;border:1px solid #1e293b">
+        <div style="padding:6px 10px;background:#1e293b;font-size:0.75rem;color:#94a3b8;display:flex;justify-content:space-between">
+          <span><strong style="color:#c4b5fd">GT: ROT_R</strong> — cx≈0.24, basket 극좌 → 우회전</span>
+          <a href="../inference_viz/viz_rot_r_fidx0.png" target="_blank" style="color:#60a5fa;text-decoration:none">↗ 원본</a>
+        </div>
+        <img src="../inference_viz/viz_rot_r_fidx0.png" style="width:100%;display:block" loading="lazy" alt="ROT_R inference viz">
+      </div>
+
+      <div style="background:#0f172a;border-radius:8px;overflow:hidden;border:1px solid #1e293b">
+        <div style="padding:6px 10px;background:#1e293b;font-size:0.75rem;color:#94a3b8;display:flex;justify-content:space-between">
+          <span><strong style="color:#93c5fd">GT: LEFT</strong> — cx≈0.52, 에피소드 초반</span>
+          <a href="../inference_viz/viz_left_fidx0.png" target="_blank" style="color:#60a5fa;text-decoration:none">↗ 원본</a>
+        </div>
+        <img src="../inference_viz/viz_left_fidx0.png" style="width:100%;display:block" loading="lazy" alt="LEFT inference viz">
+      </div>
+
+      <div style="background:#0f172a;border-radius:8px;overflow:hidden;border:1px solid #1e293b">
+        <div style="padding:6px 10px;background:#1e293b;font-size:0.75rem;color:#94a3b8;display:flex;justify-content:space-between">
+          <span><strong style="color:#fdba74">GT: RIGHT</strong> — cx≈0.50, 에피소드 초반</span>
+          <a href="../inference_viz/viz_right_fidx0.png" target="_blank" style="color:#60a5fa;text-decoration:none">↗ 원본</a>
+        </div>
+        <img src="../inference_viz/viz_right_fidx0.png" style="width:100%;display:block" loading="lazy" alt="RIGHT inference viz">
+      </div>
+
+    </div>
+    <div style="margin-top:12px;font-size:0.75rem;color:#475569">
+      생성 스크립트: <code>scripts/visualize_inference_exp67_71_72.py</code> &nbsp;|&nbsp;
+      Raw 이미지: <a href="https://raw.githubusercontent.com/minuum/MoNaVLA/monavla-driving/docs/v5/inference_viz/viz_forward_fidx10.png" target="_blank" style="color:#60a5fa">GitHub Raw</a>
+    </div>
+  </div>
+
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH60 ═ -->
 
