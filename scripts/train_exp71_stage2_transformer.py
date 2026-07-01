@@ -92,7 +92,7 @@ class TransformerActionHead(nn.Module):
         return self.head(x[:, 0])                    # CLS token output
 
 
-def build_dataset(ann, enc, device):
+def build_dataset(ann, enc, device, window=WINDOW):
     X, y = [], []
     for ep in ann:
         h5_path = Path(ep["episode"])
@@ -111,13 +111,13 @@ def build_dataset(ann, enc, device):
 
         for t, fr in enumerate(frames):
             seq = []
-            for k in range(WINDOW):
-                fidx = max(0, t - (WINDOW - 1 - k))
+            for k in range(window):
+                fidx = max(0, t - (window - 1 - k))
                 f2 = frames[fidx]
                 bbox = [f2.get("cx_det", 0.5), f2.get("cy_det", 0.5),
                         f2.get("area_det", 0.05), float(f2.get("has_bbox", False))]
                 seq.append(bbox + vis[fidx].cpu().tolist())
-            X.append(seq)   # (WINDOW, FRAME_DIM)
+            X.append(seq)   # (window, FRAME_DIM)
             y.append(fr["gt_class"])
     return np.array(X, dtype=np.float32), np.array(y, dtype=np.int64)
 
@@ -129,8 +129,12 @@ def main():
     p.add_argument("--lr", type=float, default=5e-4)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--val-ratio", type=float, default=0.15)
+    p.add_argument("--out-dir", type=str, default=str(OUT_DIR))
+    p.add_argument("--window", type=int, default=WINDOW)
     args = p.parse_args()
 
+    out_dir = Path(args.out_dir); out_dir.mkdir(parents=True, exist_ok=True)
+    win = args.window
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
 
@@ -140,21 +144,20 @@ def main():
     n_val = max(1, int(len(ann) * args.val_ratio))
     val_eps, train_eps = ann[:n_val], ann[n_val:]
 
-    print(f"[DATA] Train {len(train_eps)} / Val {len(val_eps)} eps")
+    print(f"[DATA] Train {len(train_eps)} / Val {len(val_eps)} eps  WINDOW={win}")
     enc = FrozenCLIPV2(VLM_PATH, STAGE1_PT, device).eval()
 
     print("[DATA] 준비 중 (시퀀스 형태)...")
-    X_tr, y_tr = build_dataset(train_eps, enc, device)
-    X_va, y_va = build_dataset(val_eps, enc, device)
+    X_tr, y_tr = build_dataset(train_eps, enc, device, window=win)
+    X_va, y_va = build_dataset(val_eps, enc, device, window=win)
     print(f"  Train: {len(X_tr)} / Val: {len(X_va)} samples")
-    # X shape: (N, WINDOW, FRAME_DIM)
 
     X_tr_t = torch.from_numpy(X_tr).to(device)
     y_tr_t = torch.from_numpy(y_tr).to(device)
     X_va_t = torch.from_numpy(X_va).to(device)
     y_va_t = torch.from_numpy(y_va).to(device)
 
-    model = TransformerActionHead().to(device)
+    model = TransformerActionHead(window=win).to(device)
     opt   = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, args.epochs)
 
@@ -180,14 +183,14 @@ def main():
             if acc >= best_acc:
                 best_acc = acc
                 torch.save({"model": model.state_dict(), "val_acc": acc,
-                            "source": "pg448", "exp": "exp71", "head": "transformer"},
-                           str(OUT_DIR / "action_transformer.pt"))
+                            "source": "pg448", "exp": "exp71", "head": "transformer",
+                            "seed": args.seed, "window": win},
+                           str(out_dir / "action_transformer.pt"))
                 print(f"    [BEST] {acc*100:.1f}% → 저장")
 
     print(f"\n=== exp71 Transformer 결과 ===")
-    print(f"  val_acc: {best_acc*100:.1f}%")
-    print(f"  비교: exp67 MLP={96.8:.1f}%")
-    print(f"  체크포인트 → {OUT_DIR}/action_transformer.pt")
+    print(f"  val_acc: {best_acc*100:.1f}%  seed={args.seed}  window={win}")
+    print(f"  체크포인트 → {out_dir}/action_transformer.pt")
 
 
 if __name__ == "__main__":

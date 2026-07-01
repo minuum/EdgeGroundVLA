@@ -1,15 +1,27 @@
 """
-Stage2 v2 inference server (Exp54/66/67/68/69/70).
+Stage2 v2 inference server (Exp67/71/72 — CH60 ablation).
 
 Pipeline: Kosmos-2 vision encoder → image_proj (256-dim, L2-norm) + bbox history → ActionHead
-Grounding: PaliGemma2 "detect gray basket" (matches training distribution, Exp65/66)
+Grounding: PaliGemma2-448 "detect gray basket" (99.8% detection, CH59/60)
 
-Architecture: FrozenCLIPV2 (Stage1) + ActionMLP/LSTMHead/FCHead/LinearHead (Stage2)
+Default model: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m)
+
+지원 헤드 타입 (VLA_S2V2_HEAD 또는 ckpt["head"] 자동 감지):
+  mlp         ActionMLP flat 4-layer         exp67  PG448 (val 96.8%, FPE 0.027m)
+  transformer TransformerEncoder WINDOW=6    exp71  PG448 (val 99.2%, FPE 0.000m) ← DEFAULT
+  cx_geom     2-branch temporal+geom MLP    exp72  PG448 (val 96.8%, FPE 0.016m)
+  lstm        LSTMHead                       (레거시)
+  linear/fc                                  (ablation용)
+
+환경변수로 모델 교체:
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp67/action_mlp.pt          # MLP
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp71_window6/action_transformer.pt  # Transformer W=6 (기본)
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp72/action_cxgeom.pt       # cx-Geom
 
 Environment variables:
   VLA_S2V2_STAGE1           path to stage1_v2_projs.pt
-  VLA_S2V2_STAGE2           path to stage2 checkpoint (e.g. stage2_v2_mlp_base_pg2_aug.pt)
-  VLA_S2V2_HEAD             head type: mlp | linear | fc | lstm (auto-detected from ckpt)
+  VLA_S2V2_STAGE2           path to stage2 checkpoint
+  VLA_S2V2_HEAD             head type 강제 지정 (auto-detected from ckpt 권장)
   VLA_GROUNDING_MODEL_PATH  path to Kosmos-2 model dir (.vlms/kosmos-2-patch14-224)
   VLA_PG2_PATH              path to PaliGemma2 model dir (default: HF cache)
   VLA_PORT                  server port (default: 8001)
@@ -82,7 +94,9 @@ ROOT = Path(project_root)
 
 # --- defaults ---
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
-DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp67" / "action_mlp.pt"
+# 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
+# 폴백: VLA_S2V2_STAGE2 환경변수로 exp67(MLP) 또는 exp72(cx-Geom) 교체 가능
+DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp71_window6" / "action_transformer.pt"
 DEFAULT_VLM    = ROOT / ".vlms" / "kosmos-2-patch14-224"
 # PaliGemma2: HF cache path
 # Upgraded to 448 from 224 — detection rate 73% → 99% on 185-frame eval (CH59).
@@ -237,8 +251,48 @@ class LSTMHead(nn.Module):
         return self.classifier(out[:, -1])
 
 
+class TransformerActionHead(nn.Module):
+    """exp71: per-frame (bbox+vis) 시퀀스 → CLS token → 8-class action."""
+    def __init__(self, frame_dim: int = PROJ_DIM + 4, window: int = WINDOW_DEFAULT):
+        super().__init__()
+        self.window = window
+        self.cls_token = nn.Parameter(torch.randn(1, 1, frame_dim))
+        self.pos_emb   = nn.Embedding(window + 1, frame_dim)
+        el = nn.TransformerEncoderLayer(
+            d_model=frame_dim, nhead=4, dim_feedforward=512,
+            dropout=0.1, batch_first=True, norm_first=True)
+        self.encoder = nn.TransformerEncoder(el, num_layers=2)
+        self.head = nn.Sequential(
+            nn.LayerNorm(frame_dim),
+            nn.Linear(frame_dim, 128), nn.ReLU(), nn.Dropout(0.1),
+            nn.Linear(128, NUM_CLASSES))
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B = x.size(0)
+        cls = self.cls_token.expand(B, -1, -1)
+        x = torch.cat([cls, x], dim=1)
+        pos = torch.arange(x.size(1), device=x.device)
+        x = x + self.pos_emb(pos)
+        return self.head(self.encoder(x)[:, 0])
+
+
+class CxGeomMLP(nn.Module):
+    """exp72: temporal history + explicit current-frame geometry → 8-class."""
+    def __init__(self, hist_dim: int = WINDOW_DEFAULT * 4 + PROJ_DIM, geom_dim: int = 4):
+        super().__init__()
+        self.branch_a = nn.Sequential(
+            nn.Linear(hist_dim, 256), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(256, 128),      nn.ReLU(), nn.Dropout(0.1))
+        self.branch_b = nn.Sequential(nn.Linear(geom_dim, 32), nn.ReLU())
+        self.merge = nn.Sequential(
+            nn.Linear(160, 64), nn.ReLU(), nn.Dropout(0.1),
+            nn.Linear(64, NUM_CLASSES))
+    def forward(self, hist: torch.Tensor, geom: torch.Tensor) -> torch.Tensor:
+        return self.merge(torch.cat([self.branch_a(hist), self.branch_b(geom)], dim=-1))
+
+
 HEAD_REGISTRY: dict[str, type] = {
-    "mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead
+    "mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead,
+    "transformer": TransformerActionHead, "cx_geom": CxGeomMLP,
 }
 
 
@@ -476,13 +530,27 @@ class Stage2V2Model:
         ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
         self.window: int = int(ckpt.get("window", WINDOW_DEFAULT))
         head_name: str = head_override or ckpt.get("head", "mlp")
-        is_lstm = (head_name == "lstm")
-        d_in = self.window * 4 + PROJ_DIM
+        is_lstm        = (head_name == "lstm")
+        is_transformer = (head_name == "transformer")
+        is_cx_geom     = (head_name == "cx_geom")
+        d_in = self.window * 4 + PROJ_DIM  # flat MLP/linear/fc용
         HeadCls = HEAD_REGISTRY[head_name]
-        self.head: nn.Module = (HeadCls() if is_lstm else HeadCls(d_in=d_in)).to(device)
-        self.head.load_state_dict(ckpt["mlp"])
+        if is_lstm:
+            self.head: nn.Module = HeadCls().to(device)
+        elif is_transformer:
+            self.head = HeadCls(frame_dim=PROJ_DIM + 4, window=self.window).to(device)
+        elif is_cx_geom:
+            hist_dim = ckpt.get("hist_dim", d_in)
+            self.head = HeadCls(hist_dim=hist_dim).to(device)
+        else:
+            self.head = HeadCls(d_in=d_in).to(device)
+        # ckpt key: transformer/cx_geom → "model", others → "mlp"
+        sd_key = "model" if (is_transformer or is_cx_geom) else "mlp"
+        self.head.load_state_dict(ckpt[sd_key])
         self.head.eval()
-        self.is_lstm = is_lstm
+        self.is_lstm        = is_lstm
+        self.is_transformer = is_transformer
+        self.is_cx_geom     = is_cx_geom
         self.head_name = head_name
         self.val_acc: float = float(ckpt.get("val_acc", 0.0))
 
@@ -596,7 +664,7 @@ class Stage2V2Model:
         return torch.cat([bbox_t, vis_feat])  # (d_in,)
 
     def _build_seq_feature(self) -> torch.Tensor:
-        """LSTM: (window, SEQ_DIM) sequence."""
+        """LSTM: (window, SEQ_DIM) — [vis(256), bbox(4)] per frame."""
         seq = []
         for k in range(self.window):
             idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
@@ -611,6 +679,23 @@ class Stage2V2Model:
             )
             seq.append(torch.cat([vf, bbox_t]))  # (SEQ_DIM,)
         return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
+
+    def _build_seq_feature_trans(self) -> torch.Tensor:
+        """Transformer: (window, 4+PROJ_DIM=260) — [bbox(4), vis(256)] per frame."""
+        seq = []
+        for k in range(self.window):
+            idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
+            idx = min(idx, len(self.history) - 1)
+            item = self.history[idx]
+            vf = item.get("vis_feat")
+            if vf is None:
+                vf = torch.zeros(PROJ_DIM, device=self.device)
+            bbox_t = torch.tensor(
+                [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
+                dtype=torch.float32, device=self.device,
+            )
+            seq.append(torch.cat([bbox_t, vf]))  # bbox 먼저 — train과 동일 순서
+        return torch.stack(seq, dim=0)  # (window, 260)
 
     def predict(self, image_b64: str, instruction: str = "basket",
                 head_mode: str = "baseline") -> dict[str, Any]:
@@ -720,6 +805,15 @@ class Stage2V2Model:
                 else:  # replace
                     x = torch.cat([vis_feat, h_t]).unsqueeze(0)
                 logits = self.hidden_heads[effective_head_mode](x)
+            elif self.is_transformer:
+                x = self._build_seq_feature_trans().unsqueeze(0)  # (1, window, 260)
+                logits = self.head(x)
+            elif self.is_cx_geom:
+                xh = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, hist_dim)
+                xg = torch.tensor(
+                    [frame["cx"], frame["cy"], frame["area"], float(frame["has_bbox"])],
+                    dtype=torch.float32, device=self.device).unsqueeze(0)  # (1, 4)
+                logits = self.head(xh, xg)
             elif self.is_lstm:
                 x = self._build_seq_feature().unsqueeze(0)  # (1, window, SEQ_DIM)
                 logits = self.head(x)
