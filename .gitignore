@@ -189,4 +189,6 @@ docs/**/*.png
 docs/*.jpg
 docs/*.jpeg
 docs/*.png
+# 예외: 공개 시각화 이미지 (GitHub Pages 서빙 대상)
+!docs/v5/inference_viz/*.png
 
