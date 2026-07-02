@@ -3890,17 +3890,18 @@ L S R  C S L  R S L
     }
 
     function drawBbox(ctx, bbox, W, H) {
-      // bbox: {ymin, xmin, ymax, xmax, cx, cy, area}
-      const x0 = bbox.xmin * W;
-      const y0 = bbox.ymin * H;
-      const w = (bbox.xmax - bbox.xmin) * W;
-      const h = (bbox.ymax - bbox.ymin) * H;
-      
-      ctx.strokeStyle = "#10b981";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x0, y0, w, h);
-      
-      // 중심점
+      // bbox: {x1, y1, x2, y2, cx, cy, area, has_bbox} — 서버 필드명은 x1/y1/x2/y2 (xmin/ymin 아님)
+      if (bbox.x1 != null && bbox.y1 != null && bbox.x2 != null && bbox.y2 != null) {
+        const x0 = bbox.x1 * W;
+        const y0 = bbox.y1 * H;
+        const w = (bbox.x2 - bbox.x1) * W;
+        const h = (bbox.y2 - bbox.y1) * H;
+        ctx.strokeStyle = "#10b981";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x0, y0, w, h);
+      }
+
+      // 중심점 (PG2 grounding이 실제로 내놓은 cx, cy)
       ctx.fillStyle = "#10b981";
       ctx.beginPath();
       ctx.arc(bbox.cx * W, bbox.cy * H, 6, 0, 2 * Math.PI);
