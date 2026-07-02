@@ -89,6 +89,12 @@ if [[ "$MODE" == "--stop" ]]; then
     pkill -f "gradio_inference_dashboard" 2>/dev/null && echo "  Gradio 대시보드 종료" || echo "  Gradio 대시보드: 실행 중 아님"
     pkill -f "gradio_hub"                 2>/dev/null && echo "  허브 종료"             || echo "  허브: 실행 중 아님"
     pkill -f "gradio_dataset_viewer"      2>/dev/null && echo "  데이터셋 뷰어 종료"   || echo "  데이터셋 뷰어: 실행 중 아님"
+    # MJPEG 스트림 등 오래 붙잡는 커넥션이 있으면 SIGTERM만으론 안 죽는 경우가
+    # 있어 잠깐 대기 후 강제종료로 마무리 (좀비가 옛 스트림을 계속 서빙하는 것 방지)
+    sleep 0.5
+    for pat in "stage2_v2_inference_server" "mona_dashboard" "gradio_inference_dashboard" "gradio_hub" "gradio_dataset_viewer"; do
+        pkill -9 -f "$pat" 2>/dev/null || true
+    done
     exit 0
 fi
 
@@ -152,7 +158,18 @@ fi
 if [[ "$MODE" == "--all" || "$MODE" == "--mona-dash" ]]; then
     echo ""
     echo "▶ FastAPI 대시보드 (포트 $DRIVE_PORT)  ★ 신규 권장 UI"
-    pkill -f "mona_dashboard" 2>/dev/null && sleep 1 || true
+    # SIGTERM만 보내고 안 기다리면, MJPEG 스트림처럼 오래 붙잡고 있는 커넥션이
+    # 있는 프로세스가 완전히 안 죽은 채 좀비로 남아 옛 스트림을 계속 서빙하는
+    # 문제가 있었음(2026-07-02 실측) — 죽었는지 확인 후 안 죽으면 강제종료.
+    if pgrep -f "mona_dashboard" > /dev/null 2>&1; then
+        pkill -f "mona_dashboard" 2>/dev/null || true
+        for i in $(seq 1 10); do
+            pgrep -f "mona_dashboard" > /dev/null 2>&1 || break
+            sleep 0.3
+        done
+        pkill -9 -f "mona_dashboard" 2>/dev/null || true
+        sleep 0.5
+    fi
 
     # ROS2 환경 주입
     ROS_DIST="/opt/ros/humble"
