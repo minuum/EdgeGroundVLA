@@ -650,7 +650,12 @@ class Stage2V2Model:
         """
         has_bbox=True  : cx 기반 방향 (cx<0.4→ROT_L, else→ROT_R)
         has_bbox=False + hint_cx ON : FILTER top/tiny의 cx로 방향 결정
-        has_bbox=False              : attempt 교대 sweep (짝수→ROT_R, 홀수→ROT_L)
+        has_bbox=False (신호 없음)   : self._preview_fallback_rot(VLA_PREVIEW_ROT_DIR)
+                                       고정 방향으로 계속 회전 (한쪽으로 스윕)
+
+        2026-07-02: 예전엔 신호 없을 때 attempt%2로 R/L을 교대(alternating)했는데,
+        이러면 회전→반대회전으로 서로 상쇄돼 5번을 돌아도 순 회전량이 0에 수렴해
+        새 화각을 못 봄(RLRLR 반복 버그). 한 방향 고정 스윕으로 변경.
         """
         if bbox.get("has_bbox", False):
             cx = float(bbox.get("cx", 0.5))
@@ -661,7 +666,7 @@ class Stage2V2Model:
                 rot = 6 if float(hint_cx) < 0.5 else 7
                 logger.info("[CH54] hint_cx=%.3f → %s (필터됐지만 방향 유효)", float(hint_cx), CLASS_NAMES[rot])
                 return rot
-        return 7 if self._preview_attempt % 2 == 0 else 6
+        return self._preview_fallback_rot
 
     def preview_align(self, image_b64: str, phrase: str) -> dict:
         """
