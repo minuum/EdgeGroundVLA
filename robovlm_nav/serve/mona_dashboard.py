@@ -1367,7 +1367,7 @@ def sessions_delete(sid: str):
 
 
 EPISODE_CSV = ROOT / "logs" / "episode_log.csv"
-EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜"]
+EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id"]
 PATH_TYPES = ["right_right", "right_left", "right_straight",
               "center_straight", "center_left", "center_right",
               "left_straight", "left_left", "left_right",
@@ -1463,7 +1463,8 @@ def episodes_log(req: EpisodeLogReq):
         stop_flag,
         req.fpe,
         req.note,
-        date_str
+        date_str,
+        _state.get("session_id") or "",
     ]
     
     import csv
@@ -2058,7 +2059,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           <div class="card" style="padding:16px;">
             <div class="card-title">📷 Real-Time Video Stream
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
-                <input type="checkbox" id="toggle-grid" onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
+                <input type="checkbox" id="toggle-grid" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
@@ -2102,8 +2103,8 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div class="form-group">
                 <label>이동 모드 (Cadence)</label>
                 <select id="drive-mode">
-                  <option value="ASYNC" selected>ASYNC (연속 비차단)</option>
-                  <option value="SYNC">SYNC (안정화 대기 1.92s)</option>
+                  <option value="ASYNC">ASYNC (연속 비차단)</option>
+                  <option value="SYNC" selected>SYNC (안정화 대기 1.92s)</option>
                   <option value="PRE">PRE (격리회전 탐색 루프)</option>
                 </select>
               </div>
@@ -2299,7 +2300,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
             <div class="card-title">📷 Live Verification Stream
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
-                <input type="checkbox" id="toggle-grid-vfy" onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
+                <input type="checkbox" id="toggle-grid-vfy" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
@@ -2450,8 +2451,8 @@ L S R  C S L  R S L
                 <div class="form-group" style="margin-bottom:0;">
                   <label style="font-size:11px;">이동 모드 (Cadence)</label>
                   <select id="drive-mode-vfy" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
-                    <option value="ASYNC" selected>ASYNC (연속 비차단)</option>
-                    <option value="SYNC">SYNC (안정화 대기 1.92s)</option>
+                    <option value="ASYNC">ASYNC (연속 비차단)</option>
+                    <option value="SYNC" selected>SYNC (안정화 대기 1.92s)</option>
                     <option value="PRE">PRE (격리회전 탐색 루프)</option>
                   </select>
                 </div>

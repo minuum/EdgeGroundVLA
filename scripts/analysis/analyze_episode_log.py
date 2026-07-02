@@ -64,6 +64,9 @@ def _read_episodes() -> list[dict]:
                 "top_action": r[5], "gnd_pct": r[6], "area": r[7], "cx": r[8],
                 "stop": r[9], "fpe": float(r[10]) if r[10] else None,
                 "note": r[11], "date": r[12] if len(r) > 12 else "",
+                # session_id는 2026-07-02 이후 기록에만 있음(구버전 행은 빈 문자열) —
+                # 없으면 dump_session_frames()에서 날짜로 근사 매칭.
+                "session_id": r[13] if len(r) > 13 else "",
             })
     return rows
 
@@ -108,6 +111,34 @@ def print_group_stats(rows: list[dict], group_prefix: str | None = None):
             print(f"  {cat:<20} {len(rs)}건  (예: #{rs[0]['n']} \"{rs[0]['note'][:40]}\")")
 
 
+def _find_episode_notes(sid: str, rows: list[dict] | None = None) -> list[dict]:
+    """세션 ID로 episode_log.csv에서 해당하는 기록(메모 포함)을 찾는다.
+    2026-07-02 이후 기록은 session_id로 정확히 매칭, 그 이전 구버전 기록은
+    session_id가 비어있어 세션 시작시각(±3분)으로 근사 매칭한다."""
+    if rows is None:
+        try:
+            rows = _read_episodes()
+        except SystemExit:
+            return []
+    exact = [r for r in rows if r.get("session_id") == sid]
+    if exact:
+        return exact
+    try:
+        from datetime import datetime as _dt
+        sess_ts = _dt.strptime(sid, "%Y%m%d_%H%M%S")
+    except ValueError:
+        return []
+    near = []
+    for r in rows:
+        try:
+            row_ts = _dt.strptime(r["date"], "%Y-%m-%d %H:%M")
+        except (ValueError, KeyError):
+            continue
+        if abs((row_ts - sess_ts).total_seconds()) <= 180:
+            near.append(r)
+    return near
+
+
 def dump_session_frames(sid: str):
     import h5py
     h5p = H5_DIR / f"session_{sid}.h5"
@@ -122,6 +153,15 @@ def dump_session_frames(sid: str):
 
     print(f"\n=== 세션 {sid} ===")
     print(f"attrs: {attrs}")
+
+    notes = _find_episode_notes(sid)
+    if notes:
+        print("episode_log.csv 매칭 기록:")
+        for r in notes:
+            print(f"  #{r['n']} {r['path']} 결과={r['result']} FPE={r['fpe']} "
+                  f"메모: \"{r['note']}\"")
+    else:
+        print("(episode_log.csv에 매칭되는 기록 없음 — 기록 저장 버튼을 안 눌렀을 수 있음)")
     print(f"{'#':>3} {'action':<10} {'cx':>6} {'cy':>6} {'area':>7} {'has':>5} "
           f"{'cached':>6} {'lat(ms)':>8}")
     amap = {
