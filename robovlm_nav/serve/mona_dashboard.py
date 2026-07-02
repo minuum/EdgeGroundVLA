@@ -51,6 +51,13 @@ except ImportError as e:
     logging.warning(f"ROS2 unavailable: {e}")
     class Node: pass
 
+# ── 조이스틱 (선택적, DragonRise 게임패드) ──────────────────────────
+try:
+    import pygame
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
+
 # ── 환경 변수 ─────────────────────────────────────────────────────
 INFER_URL  = os.getenv("VLA_API_SERVER", "http://localhost:8001")
 API_KEY    = os.getenv("VLA_API_KEY",    "vla_devel_key_2026")
@@ -158,6 +165,231 @@ class MoNaROSNode(Node):
 # ═══════════════════════════════════════════════════════════════════
 _ros: Optional[MoNaROSNode] = None
 
+
+# ═══════════════════════════════════════════════════════════════════
+# 조이스틱 (DragonRise 게임패드) — Gradio 대시보드 DashboardJoystickReader 이식
+# ═══════════════════════════════════════════════════════════════════
+class DashboardJoystickReader:
+    """DragonRise 게임패드로 대시보드 로봇을 직접 제어.
+
+    버튼 매핑:
+      A (0)     → STOP (robust_stop)
+      Start (7) → SYNC ↔ ASYNC 모드 전환
+
+    SYNC 모드: 0.45s 간격으로 move_and_stop_timed() — V5 bang-bang 호환
+    ASYNC 모드: 10Hz 연속 publish_and_move() + 300ms Jitter Hold + 중립 시 robust_stop()
+    """
+
+    DEADZONE       = 0.15
+    THRESHOLD      = 0.50
+    STEP_INTERVAL  = 0.45   # SYNC bang-bang 간격 (s)
+    ASYNC_INTERVAL = 0.10   # ASYNC 연속 발행 간격 (s) — 10Hz
+    JITTER_HOLD    = 0.30   # ASYNC 중립 후 정지 유예 시간 (s)
+    DEFAULT_AXES   = {"left_x": 0, "left_y": 1, "right_x": 2}
+    BTN_STOP       = 0   # A
+    BTN_TOGGLE     = 7   # Start → SYNC/ASYNC 모드 전환
+
+    WASD_TO_VEL = {
+        'W': ( 1.15, 0.0,  0.0),
+        'S': (-1.15, 0.0,  0.0),
+        'Q': ( 1.15, 1.15, 0.0),
+        'E': ( 1.15,-1.15, 0.0),
+        'A': ( 0.0,  1.15, 0.0),
+        'D': ( 0.0, -1.15, 0.0),
+        'R': ( 0.0,  0.0,  1.15),
+        'T': ( 0.0,  0.0, -1.15),
+    }
+
+    def __init__(self):
+        self._running  = False
+        self._enabled  = True    # 시작 시 기본 활성화
+        self._js_mode  = 'async'  # 'sync' | 'async' (Start 버튼으로 전환)
+        self._speed    = 1.15
+        self._thread   = None
+        self._btn_prev = {}
+        self._last_step_time = 0.0
+        self._prev_key = None
+        self._neutral_start_time = 0.0
+        self._last_non_neutral_key = None
+        self._axes = self._load_axes()
+        self.status: dict = {
+            "connected": False, "name": "—",
+            "key": None, "label": "—",
+            "enabled": True, "mode": "ASYNC",
+        }
+
+    def _load_axes(self):
+        cfg = ROOT / "scripts" / "joystick_config.json"
+        if cfg.exists():
+            try:
+                return json.load(open(cfg)).get("axes", self.DEFAULT_AXES)
+            except Exception:
+                pass
+        return dict(self.DEFAULT_AXES)
+
+    def start(self):
+        if not PYGAME_AVAILABLE:
+            log.warning("[Joystick] pygame 없음 — pip install pygame")
+            return
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._loop, daemon=True, name="joystick")
+        self._thread.start()
+
+    def toggle_enabled(self) -> bool:
+        self._enabled = not self._enabled
+        self.status = {**self.status, "enabled": self._enabled}
+        log.info(f"[Joystick] {'활성화' if self._enabled else '비활성화'}")
+        return self._enabled
+
+    def toggle_mode(self) -> str:
+        self._js_mode = 'async' if self._js_mode == 'sync' else 'sync'
+        self.status = {**self.status, "mode": self._js_mode.upper()}
+        log.info(f"[Joystick] 모드 전환 → {self._js_mode.upper()}")
+        return self._js_mode.upper()
+
+    def set_speed(self, spd: float):
+        self._speed = float(spd)
+        if _ros is not None and _ros.ctrl is not None:
+            throttle = int(round(self._speed / 1.15 * 50))
+            _ros.ctrl.throttle = max(10, min(100, throttle))
+
+    def _axis_to_key(self, lx, ly, az):
+        T = self.THRESHOLD
+        fwd = lx >=  T; bwd = lx <= -T
+        lft = ly >=  T; rgt = ly <= -T
+        rl  = az >=  T; rr  = az <= -T
+        if fwd and lft: return 'Q'
+        if fwd and rgt: return 'E'
+        if fwd:         return 'W'
+        if bwd:         return 'S'
+        if lft:         return 'A'
+        if rgt:         return 'D'
+        if rl:          return 'R'
+        if rr:          return 'T'
+        return None
+
+    def _loop(self):
+        os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+        os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+        try:
+            pygame.init()
+            pygame.joystick.init()
+        except Exception as e:
+            log.warning(f"[Joystick] pygame init 실패: {e}")
+            return
+
+        js = None
+        LABELS = {
+            'W': '▲FWD', 'S': '▼BWD', 'Q': '↖FWD+L', 'E': '↗FWD+R',
+            'A': '←LEFT', 'D': '→RIGHT',
+            'R': '↺ROT_L', 'T': '↻ROT_R',
+        }
+
+        while self._running:
+            if js is None:
+                if pygame.joystick.get_count() == 0:
+                    self.status = {**self.status, "connected": False, "name": "—"}
+                    pygame.joystick.quit(); pygame.joystick.init()
+                    time.sleep(1.0)
+                    continue
+                js = pygame.joystick.Joystick(0)
+                js.init()
+                self.status = {**self.status, "connected": True, "name": js.get_name()}
+                self._btn_prev = {i: 0 for i in range(js.get_numbuttons())}
+                log.info(f"[Joystick] 연결됨: {js.get_name()}")
+
+            try:
+                # USB 재연결(다른 로봇에 꽂았다가 같은 포트로 복귀 등) 감지 — 핸들이 죽은 채로
+                # 예외 없이 0만 반환하는 걸 막기 위해 핫플러그 이벤트로 강제 재초기화한다.
+                hotplugged = False
+                for ev in pygame.event.get():
+                    if ev.type in (pygame.JOYDEVICEREMOVED, pygame.JOYDEVICEADDED):
+                        hotplugged = True
+                if hotplugged:
+                    log.info("[Joystick] 핫플러그 이벤트 — 재초기화")
+                    js = None
+                    time.sleep(0.3)
+                    continue
+
+                def rd(idx):
+                    v = js.get_axis(idx)
+                    return v if abs(v) > self.DEADZONE else 0.0
+
+                lx = -rd(self._axes["left_y"])
+                ly = -rd(self._axes["left_x"])
+                az = -rd(self._axes["right_x"])
+                raw_key = self._axis_to_key(lx, ly, az)
+                key = raw_key
+
+                l_moving = abs(lx) > self.DEADZONE or abs(ly) > self.DEADZONE
+                az_blend = az if (l_moving and key not in ('R', 'T')) else 0.0
+
+                if self._js_mode == 'async':
+                    now_j = time.time()
+                    if raw_key is not None:
+                        self._last_non_neutral_key = raw_key
+                        self._neutral_start_time = 0.0
+                    else:
+                        if self._neutral_start_time == 0.0:
+                            self._neutral_start_time = now_j
+                        if now_j - self._neutral_start_time < self.JITTER_HOLD:
+                            key = self._last_non_neutral_key
+                        else:
+                            key = None
+
+                now = time.time()
+                if self._enabled and _ros is not None and _ros.ctrl is not None:
+                    ctrl = _ros.ctrl
+                    if key:
+                        base = self.WASD_TO_VEL.get(key)
+                        if base:
+                            spd = self._speed / 1.15
+                            if az_blend != 0.0:
+                                base = (base[0], base[1], az_blend * 0.15)
+                            vel = tuple(v * spd for v in base)
+                            if self._js_mode == 'sync':
+                                if (now - self._last_step_time) >= self.STEP_INTERVAL:
+                                    ctrl.move_and_stop_timed(*vel, source="joystick")
+                                    self._last_step_time = now
+                            else:  # async
+                                if (now - self._last_step_time) >= self.ASYNC_INTERVAL:
+                                    ctrl.publish_and_move(*vel, source="joystick")
+                                    self._last_step_time = now
+                    elif self._prev_key:
+                        if self._js_mode == 'async':
+                            ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
+
+                self._prev_key = key
+                self.status = {
+                    "connected": True, "name": js.get_name(),
+                    "enabled": self._enabled,
+                    "mode": self._js_mode.upper(),
+                    "key": key, "label": LABELS.get(key, "●") if key else "○",
+                }
+
+                for i in range(js.get_numbuttons()):
+                    cur = js.get_button(i)
+                    if cur and not self._btn_prev.get(i, 0):
+                        if i == self.BTN_STOP:
+                            if _ros is not None and _ros.ctrl is not None:
+                                _ros.ctrl.robust_stop(source="joystick_A")
+                        elif i == self.BTN_TOGGLE:
+                            self.toggle_mode()
+                    self._btn_prev[i] = cur
+
+            except Exception as e:
+                log.warning(f"[Joystick] 루프 오류: {e}")
+                js = None
+                self.status = {**self.status, "connected": False}
+
+            time.sleep(0.04)  # 25 Hz
+
+
+_joystick = DashboardJoystickReader()
+_joystick.start()
+
 _state: dict[str, Any] = {
     "running": False,
     "mode": "ASYNC",
@@ -241,6 +473,7 @@ def _append_history(step, result):
         round(gnd) if gnd is not None else "—",
         round(mlp) if mlp is not None else "—",
         round(bbox.get("area", 0.0), 3) if bbox else "—",
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     ])
     _state["run_history"] = _state["run_history"][-30:]
 
@@ -1864,10 +2097,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                   <th>Gnd Latency</th>
                   <th>MLP Latency</th>
                   <th>Bbox Area</th>
+                  <th>수집 시각</th>
                 </tr>
               </thead>
               <tbody id="drive-history-table">
-                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
+                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
               </tbody>
             </table>
           </div>
@@ -2347,15 +2581,31 @@ L S R  C S L  R S L
               <div style="flex:1; margin-left:24px;">
                 <div class="form-group">
                   <label id="joy-speed-lbl">이동 수동 속도: 1.15</label>
-                  <input type="range" id="joy-speed" min="0.3" max="2.0" step="0.05" value="1.15" oninput="document.getElementById('joy-speed-lbl').textContent = '이동 수동 속도: ' + this.value">
+                  <input type="range" id="joy-speed" min="0.3" max="2.0" step="0.05" value="1.15" oninput="document.getElementById('joy-speed-lbl').textContent = '이동 수동 속도: ' + this.value" onchange="syncJoystickSpeed(this.value)">
                 </div>
                 <div style="font-size:11px;color:var(--text-muted);">
                   키보드 단축키 지원: 키패드 WASD 및 Q/E/R/T/SpaceBar 정지 대응
                 </div>
               </div>
             </div>
+
+            <!-- 🕹️ 게임패드 (DragonRise) -->
+            <div style="margin-top:16px; background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">🕹️ 게임패드 (DragonRise)</span>
+                <div style="display:flex; gap:6px;">
+                  <button id="js-toggle-btn" class="btn btn-cyan" style="font-size:11px; padding:4px 10px;" onclick="joystickToggle()">비활성화</button>
+                  <button id="js-mode-btn" class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="joystickMode()">SYNC↔ASYNC</button>
+                </div>
+              </div>
+              <div id="js-status" style="font-size:12px; font-family:var(--font-mono); color:var(--cyan); white-space:pre-line;">🔌 초기화 중...</div>
+              <div style="font-size:10px; color:var(--text-muted); line-height:1.4;">
+                Left Stick → 이동 | Right Stick X → 회전 | A → STOP | Start → SYNC↔ASYNC 전환<br>
+                📸 SYNC: 0.45s bang-bang | 🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold
+              </div>
+            </div>
           </div>
-          
+
           <!-- 오른쪽: 캘리브레이션 세팅 -->
           <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
             <div>
@@ -2650,6 +2900,46 @@ L S R  C S L  R S L
       _setCamProcText("⏳ 정지 중...");
       const res = await api("/camera_proc/stop", { method: "POST" });
       _setCamProcText(res.text || "—");
+    }
+
+    // ── 🕹️ 게임패드(DragonRise) 제어 — Gradio 대시보드에서 이식 ──
+    async function joystickRefresh() {
+      const el = document.getElementById("js-status");
+      const btn = document.getElementById("js-toggle-btn");
+      if (!el || !btn) return;
+      const s = await api("/joystick/status");
+      if (!s.pygame_available) {
+        el.textContent = "⚠️ pygame 미설치 — 게임패드 사용 불가";
+        return;
+      }
+      if (!s.connected) {
+        el.textContent = "🔌 미연결 (DragonRise 꽂으면 자동 인식)";
+      } else {
+        const en = s.enabled ? "🟢 ON" : "⚫ OFF";
+        const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
+        const keyStr = s.key ? `[ ${s.label} ]` : "○ 중립";
+        el.textContent = `${en}  |  ${badge}  |  ${s.name}\n▶ ${keyStr}`;
+      }
+      btn.textContent = s.enabled ? "비활성화" : "활성화";
+      btn.className = s.enabled ? "btn btn-cyan" : "btn btn-outline";
+    }
+
+    async function joystickToggle() {
+      await api("/joystick/toggle", { method: "POST" });
+      joystickRefresh();
+    }
+
+    async function joystickMode() {
+      await api("/joystick/mode", { method: "POST" });
+      joystickRefresh();
+    }
+
+    async function syncJoystickSpeed(v) {
+      await api("/joystick/speed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ speed: parseFloat(v) })
+      });
     }
 
     function switchTab(el, tab) {
@@ -3648,6 +3938,7 @@ L S R  C S L  R S L
               <td>${r[3]} ms</td>
               <td>${r[4]} ms</td>
               <td><strong class="text-emerald">${r[5]}</strong></td>
+              <td style="font-size:11px; color:var(--text-muted); white-space:nowrap;">${r[6] || "—"}</td>
             </tr>
           `).join("");
           document.getElementById("drive-history-table").innerHTML = historyHtml;
@@ -3774,10 +4065,12 @@ L S R  C S L  R S L
     setInterval(pollStatus, 500);
     setInterval(pollHealth, 3000);
     setInterval(camProcRefresh, 10000);
+    setInterval(joystickRefresh, 500);
     pollStatus();
     pollHealth();
     loadEpisodeHistory();
     camProcRefresh();
+    joystickRefresh();
 
   </script>
 </body>
@@ -3835,6 +4128,37 @@ def camera_proc_stop():
     time.sleep(0.4)
     pids = _cam_pids()
     return {"ok": True, "text": (f"🟢 실행 중 pid={','.join(pids)}" if pids else "🔴 정지됨")}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 조이스틱(DragonRise 게임패드) 제어 — Gradio 대시보드 기능 이식
+# ═══════════════════════════════════════════════════════════════════
+@app.get("/joystick/status")
+def joystick_status():
+    s = _joystick.status
+    return {"pygame_available": PYGAME_AVAILABLE, **s}
+
+
+@app.post("/joystick/toggle")
+def joystick_toggle():
+    enabled = _joystick.toggle_enabled()
+    return {"ok": True, "enabled": enabled}
+
+
+@app.post("/joystick/mode")
+def joystick_mode():
+    mode = _joystick.toggle_mode()
+    return {"ok": True, "mode": mode}
+
+
+class JoystickSpeedReq(BaseModel):
+    speed: float = 1.15
+
+
+@app.post("/joystick/speed")
+def joystick_speed(req: JoystickSpeedReq):
+    _joystick.set_speed(req.speed)
+    return {"ok": True, "speed": _joystick._speed}
 
 
 # ═══════════════════════════════════════════════════════════════════
