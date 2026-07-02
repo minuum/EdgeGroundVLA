@@ -3935,6 +3935,84 @@ L S R  C S L  R S L
       ctx.fill();
     }
 
+    // ── 에피소드 저장 / 실행 취소 / 누적 기록 로드 ──────────────────────────
+    async function loadEpisodeHistory() {
+      try {
+        const res = await api("/episodes/list");
+        if (res.ok) {
+          // 경로 집계 패널(진행바 및 요약 표)을 갱신합니다.
+          updatePathSummary(res.episodes || []);
+          const tbody = document.getElementById("episodes-table-body");
+          if (!tbody) return;
+          if (!res.episodes || res.episodes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">기록이 없습니다.</td></tr>`;
+            return;
+          }
+          tbody.innerHTML = res.episodes.map(ep => {
+            const pathAbbr = {
+              right_right: "R→R", right_left: "R→L★", right_straight: "R→S",
+              center_straight: "C→S", center_left: "C→L", center_right: "C→R",
+              left_straight: "L→S", left_left: "L→L", left_right: "L→R",
+              obj_left: "위치:좌", obj_center: "위치:중", obj_right: "위치:우",
+              dist_10cm: "10cm", dist_20cm: "20cm", dist_30cm: "30cm",
+            }[ep[1]] || ep[1];
+            
+            const resColor = ep[2] === "성공" ? "text-emerald" : "text-rose";
+            return `
+              <tr>
+                <td>${ep[0]}</td>
+                <td><strong class="text-cyan">${pathAbbr}</strong></td>
+                <td><strong class="${resColor}">${ep[2]}</strong></td>
+                <td>${ep[3]}</td>
+                <td style="font-family:var(--font-sans); color:var(--text-muted); font-size:11px; white-space:nowrap;">${ep[4]}</td>
+                <td class="font-mono text-cyan" style="font-size:10px;">${ep[5] || "—"}</td>
+                <td class="font-mono" style="font-size:10px; color:var(--text-muted);">${ep[6] || "—"}</td>
+                <td style="font-size:11px; color:var(--text-muted);">${ep[7] || "—"}</td>
+              </tr>
+            `;
+          }).reverse().join("");
+        }
+      } catch (e) {
+        console.error("loadEpisodeHistory error:", e);
+      }
+    }
+
+    async function commitEpisode() {
+      const pathType = document.getElementById("ep-path-type").value;
+      const success = document.getElementById("ep-success").value;
+      const fpe = parseFloat(document.getElementById("ep-fpe").value);
+      const note = document.getElementById("ep-note").value;
+      
+      const res = await api("/episodes/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path_type: pathType,
+          success: success,
+          fpe: fpe,
+          note: note
+        })
+      });
+      if (res.ok) {
+        document.getElementById("ep-note").value = "";
+        alert("에피소드 기록이 정상적으로 추가되었습니다.");
+        loadEpisodeHistory();
+      } else {
+        alert("기록 실패: " + res.error);
+      }
+    }
+
+    async function undoEpisode() {
+      if (!confirm("⚠️ 정말로 마지막 에피소드 기록 1건을 삭제하시겠습니까?")) return;
+      const res = await api("/episodes/undo", { method: "POST" });
+      if (res.ok) {
+        alert("마지막 기록이 삭제되었습니다.");
+        loadEpisodeHistory();
+      } else {
+        alert("삭제 실패: " + res.error);
+      }
+    }
+
     // ── 주기적 폴링 루프 (500ms) ──────────────────────────────────────
     async function pollStatus() {
       try {
