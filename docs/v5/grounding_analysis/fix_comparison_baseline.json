@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-07-02",
+  "fix1_applied": false,
+  "fix2_applied": false,
+  "server_config": {
+    "head": "transformer",
+    "window": 6,
+    "multi_prompt": true,
+    "grounder_input_px": 448,
+    "cx_jump_filter": false,
+    "preview": false
+  },
+  "grounding_stats": {
+    "live_cx_std_mean": 0.0164,
+    "live_cx_mean": 0.505,
+    "has_bbox_pct_mean": 61.2,
+    "none_pct_135419": 62.5
+  },
+  "episode_stats": {
+    "obj_success_rate": 0.333,
+    "obj_n": 18,
+    "obj_n_ok": 6,
+    "area_zero_pct": 100.0
+  },
+  "sessions": "20260702 9개 (유효 6개)",
+  "notes": "Fix1 미적용 기준점. live_cx std=0.016 — 학습(0.110)의 15% 수준으로 center anchoring 확인."
+}
