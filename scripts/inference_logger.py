@@ -79,6 +79,14 @@ class InferenceLogger:
         if image is not None:
             arr = self._to_rgb_array(image)
             if arr is not None:
+                # 카메라 프로세스가 응답은 하지만 실제로는 같은 프레임만 반복
+                # 전달하는 상태(2026-07-02에 실제 관찰됨 — H5 세션 18프레임이
+                # 전부 픽셀단위로 동일했음)를 수집 중에 바로 잡기 위한 가드.
+                if self._frames and arr.shape == self._frames[-1].shape \
+                        and np.array_equal(arr, self._frames[-1]):
+                    step_data["frame_duplicate_warning"] = True
+                    print(f"⚠️  [InferenceLogger] step {step_idx}: 이전 프레임과 픽셀단위로 "
+                          f"동일한 이미지 — 카메라가 멈췄을 수 있음")
                 self._frames.append(arr)
                 step_data["frame_idx"] = len(self._frames) - 1
 

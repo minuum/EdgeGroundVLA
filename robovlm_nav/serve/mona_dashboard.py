@@ -757,15 +757,20 @@ class EpisodeLogReq(BaseModel):
 # HTTP 엔드포인트
 # ═══════════════════════════════════════════════════════════════════
 
+CAMERA_STALE_S = 3.0  # 이 시간 동안 새 프레임이 없으면 카메라가 멈춘 것으로 판단
+
 @app.get("/health")
 def health():
     cam_ok = age = None
     fc = 0
     if _ros:
-        cam_ok = _ros._frame is not None
-        fc     = _ros.frame_count
+        fc = _ros.frame_count
         if _ros.last_ts:
             age = round(time.time() - _ros.last_ts, 2)
+        # 프레임을 받은 적이 있는지뿐 아니라 "최근에" 받았는지까지 확인 —
+        # camera_pub 서비스가 응답은 하지만 동일 프레임만 반복 전달하는
+        # (요청은 성공하지만 실제 캡처는 멈춘) 상태를 잡기 위함.
+        cam_ok = _ros._frame is not None and age is not None and age < CAMERA_STALE_S
     return {"status": "ok", "ros": ROS_AVAILABLE, "node_up": _ros is not None,
             "camera_ok": cam_ok, "frame_count": fc, "frame_age_s": age,
             "infer_url": INFER_URL}
@@ -1825,9 +1830,22 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     background-color: rgba(255, 255, 255, 0.03);
     border-color: var(--cyan);
   }
+  .btn:active:not(:disabled) {
+    transform: scale(0.94);
+    filter: brightness(0.85);
+  }
   .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+  /* 주행 START 버튼 — 눌러서 실행 중일 때 명확한 "실행 중" 표시 (페이드아웃 대신 펄스) */
+  .btn-cyan.is-running {
+    opacity: 1;
+    animation: btnRunPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes btnRunPulse {
+    0%, 100% { box-shadow: 0 0 12px var(--cyan-glow); }
+    50%      { box-shadow: 0 0 26px var(--cyan-glow); }
   }
 
   /* ── 조이스틱 패널 ── */
@@ -2358,8 +2376,8 @@ L S R  C S L  R S L
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;">
               <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">🎮 Quick Autopilot</div>
               <div style="display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:8px;">
-                <button class="btn btn-cyan" onclick="startAutopilot()" style="padding:8px 0; font-size:12px; font-weight:bold;">▶️ START</button>
-                <button class="btn btn-rose" onclick="stopAutopilot()" style="padding:8px 0; font-size:12px; font-weight:bold;">⏹️ STOP</button>
+                <button class="btn btn-cyan" id="quick-start-btn" onclick="startAutopilot()" style="padding:8px 0; font-size:12px; font-weight:bold;">▶️ START</button>
+                <button class="btn btn-rose" id="quick-stop-btn" onclick="stopAutopilot()" style="padding:8px 0; font-size:12px; font-weight:bold;" disabled>⏹️ STOP</button>
                 <button class="btn btn-outline" onclick="returnToStart()" style="padding:8px 0; font-size:12px; font-weight:bold;">🔄 복귀</button>
               </div>
             </div>
@@ -3010,6 +3028,23 @@ L S R  C S L  R S L
     }
 
     // ── Autopilot 시작 / 정지 / 복귀 ─────────────────────────────────
+    // START/STOP 버튼 눌린 순간 즉시 피드백 (폴링 500ms 기다리지 않고) +
+    // 실행 중일 때는 펄스 애니메이션으로 "실행 중" 명확히 표시
+    function _syncStartStopBtn(startId, stopId, startLabel, running) {
+      const startBtn = document.getElementById(startId);
+      const stopBtn = document.getElementById(stopId);
+      if (!startBtn || !stopBtn) return;
+      startBtn.disabled = running;
+      stopBtn.disabled = !running;
+      if (running) {
+        startBtn.textContent = "🟢 실행 중...";
+        startBtn.classList.add("is-running");
+      } else {
+        startBtn.textContent = startLabel;
+        startBtn.classList.remove("is-running");
+      }
+    }
+
     async function startAutopilot() {
       // Path Test 탭에도 동일한 설정 입력창이 있음 — 활성 탭 기준으로 읽음
       const suf = (activeTab === "verify") ? "-vfy" : "";
@@ -3019,6 +3054,11 @@ L S R  C S L  R S L
         gt_object: document.getElementById("drive-gt" + suf).value,
         apply_cc: document.getElementById("drive-cc" + suf).checked
       };
+      // 눌린 즉시 피드백 — 서버 응답(폴링) 기다리지 않음
+      ["drive-start-btn", "quick-start-btn"].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) { b.disabled = true; b.textContent = "⏳ 시작 중..."; }
+      });
       const res = await api("/drive/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3026,12 +3066,18 @@ L S R  C S L  R S L
       });
       if (!res.ok) {
         alert("Autopilot 시작 실패: " + res.error);
+        _syncStartStopBtn("drive-start-btn", "drive-stop-btn", "▶ START DRIVE", false);
+        _syncStartStopBtn("quick-start-btn", "quick-stop-btn", "▶️ START", false);
         return;
       }
       pollStatus();
     }
 
     async function stopAutopilot() {
+      ["drive-stop-btn", "quick-stop-btn"].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = true;
+      });
       await api("/drive/stop", { method: "POST" });
       pollStatus();
     }
@@ -3922,9 +3968,9 @@ L S R  C S L  R S L
         
         document.getElementById("drive-log").textContent = state.status_log || "";
         
-        // 2. 버튼 활성화 동기화
-        document.getElementById("drive-start-btn").disabled = state.running;
-        document.getElementById("drive-stop-btn").disabled  = !state.running;
+        // 2. 버튼 활성화 동기화 — 눌렸을 때(pending)와 실행 중일 때를 명확히 구분해서 표시
+        _syncStartStopBtn("drive-start-btn", "drive-stop-btn", "▶ START DRIVE", state.running);
+        _syncStartStopBtn("quick-start-btn", "quick-stop-btn", "▶️ START", state.running);
         document.getElementById("drive-return-btn").textContent = state.is_returning ? "⏹️ 복귀 중단" : "🔄 START 위치로 복귀";
         
         // 3. Grounding 정보 노출
