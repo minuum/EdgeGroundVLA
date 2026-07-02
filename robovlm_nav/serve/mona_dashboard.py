@@ -2360,57 +2360,49 @@ L S R  C S L  R S L
               </div>
             </div>
 
-            <!-- 런타임 모드 토글 패널 -->
-            <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">⚙️ 런타임 설정</span>
-                <button class="btn btn-outline" onclick="syncVerifyRuntimeParams()" style="font-size:10px; padding:2px 8px;">🔄 불러오기</button>
-              </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button id="vfy-rt-preview" class="btn btn-outline" onclick="toggleVerifyRuntime('preview')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🟢 프리뷰<br><span style="font-size:9px;color:var(--text-muted)">격리회전</span></button>
-                <button id="vfy-rt-hint" class="btn btn-outline" onclick="toggleVerifyRuntime('hint')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">⚫ hint_cx<br><span style="font-size:9px;color:var(--text-muted)">방향회전</span></button>
-              </div>
-              <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:6px;">
-                <button id="vfy-rt-skip" class="btn btn-outline" onclick="toggleVerifyRuntime('skip')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">📦 skip 3<br><span style="font-size:9px;color:var(--text-muted)">캐시 사용</span></button>
-                <button id="vfy-rt-jump" class="btn btn-outline" onclick="toggleVerifyRuntime('jump')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">⚫ P2필터<br><span style="font-size:9px;color:var(--text-muted)">오탐제거</span></button>
-              </div>
-              <div style="display:grid; grid-template-columns:1fr; gap:6px;">
+            <!-- 런타임 설정 + Autopilot Configuration 통합 패널 (같은 카드, 2열) -->
+            <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <!-- 좌: 런타임 모드 토글 -->
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">⚙️ 런타임 설정</span>
+                  <button class="btn btn-outline" onclick="syncVerifyRuntimeParams()" style="font-size:10px; padding:2px 8px;">🔄</button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                  <button id="vfy-rt-preview" class="btn btn-outline" onclick="toggleVerifyRuntime('preview')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🟢 프리뷰<br><span style="font-size:9px;color:var(--text-muted)">격리회전</span></button>
+                  <button id="vfy-rt-hint" class="btn btn-outline" onclick="toggleVerifyRuntime('hint')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">⚫ hint_cx<br><span style="font-size:9px;color:var(--text-muted)">방향회전</span></button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:6px;">
+                  <button id="vfy-rt-skip" class="btn btn-outline" onclick="toggleVerifyRuntime('skip')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">📦 skip 3<br><span style="font-size:9px;color:var(--text-muted)">캐시 사용</span></button>
+                  <button id="vfy-rt-jump" class="btn btn-outline" onclick="toggleVerifyRuntime('jump')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">⚫ P2필터<br><span style="font-size:9px;color:var(--text-muted)">오탐제거</span></button>
+                </div>
                 <button id="vfy-rt-thr" class="btn btn-outline" onclick="toggleVerifyRuntime('thr')" disabled style="font-size:11px; padding:6px; line-height:1.2; text-align:center; opacity:0.5;">🎚 민감도 (P2 꺼짐)</button>
-              </div>
-              <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
-            </div>
-
-            <!-- ⚙️ Autopilot Configuration (Drive Control 탭과 동일, Path Test 탭에도 노출) -->
-            <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
-              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">⚙️ Autopilot Configuration</div>
-
-              <div class="form-group" style="margin-bottom:0;">
-                <label>Instruction</label>
-                <input type="text" id="drive-instr-vfy" value="gray basket" placeholder="Gray basket을 찾아가세요" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+                <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
               </div>
 
-              <div class="form-group" style="margin-bottom:0;">
-                <label>GT Target Object (Optional)</label>
-                <input type="text" id="drive-gt-vfy" placeholder="예: gray basket" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
-              </div>
-
-              <div class="form-group" style="margin-bottom:0;">
-                <label>이동 모드 (Cadence)</label>
-                <select id="drive-mode-vfy" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
-                  <option value="ASYNC" selected>ASYNC (연속 비차단)</option>
-                  <option value="SYNC">SYNC (안정화 대기 1.92s)</option>
-                  <option value="PRE">PRE (격리회전 탐색 루프)</option>
-                </select>
-              </div>
-
-              <div class="chk-row" style="display:flex;align-items:center;gap:8px;">
-                <input type="checkbox" id="drive-cc-vfy" style="width:16px;height:16px;accent-color:var(--cyan);">
-                <label for="drive-cc-vfy" style="margin:0;font-size:12px;cursor:pointer;">화이트 밸런스 컬러 보정 적용</label>
-              </div>
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <button class="btn btn-cyan" id="drive-start-btn-vfy" onclick="startAutopilot()" style="font-size:12px; font-weight:bold;">▶ START DRIVE</button>
-                <button class="btn btn-rose" id="drive-stop-btn-vfy" onclick="stopAutopilot()" disabled style="font-size:12px; font-weight:bold;">■ STOP DRIVE</button>
+              <!-- 우: Autopilot Configuration (START/STOP은 위 Quick Autopilot 버튼 사용) -->
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">🎯 Config</span>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:11px;">Instruction</label>
+                  <input type="text" id="drive-instr-vfy" value="gray basket" placeholder="Gray basket을 찾아가세요" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:11px;">GT Target Object (Optional)</label>
+                  <input type="text" id="drive-gt-vfy" placeholder="예: gray basket" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:11px;">이동 모드 (Cadence)</label>
+                  <select id="drive-mode-vfy" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+                    <option value="ASYNC" selected>ASYNC (연속 비차단)</option>
+                    <option value="SYNC">SYNC (안정화 대기 1.92s)</option>
+                    <option value="PRE">PRE (격리회전 탐색 루프)</option>
+                  </select>
+                </div>
+                <div class="chk-row" style="display:flex;align-items:center;gap:8px;">
+                  <input type="checkbox" id="drive-cc-vfy" style="width:15px;height:15px;accent-color:var(--cyan);">
+                  <label for="drive-cc-vfy" style="margin:0;font-size:11px;cursor:pointer;">화이트 밸런스 컬러 보정 적용</label>
+                </div>
               </div>
             </div>
 
@@ -3907,11 +3899,9 @@ L S R  C S L  R S L
         
         document.getElementById("drive-log").textContent = state.status_log || "";
         
-        // 2. 버튼 활성화 동기화 (Drive Control 탭 + Path Test 탭 사본 동시 반영)
+        // 2. 버튼 활성화 동기화
         document.getElementById("drive-start-btn").disabled = state.running;
         document.getElementById("drive-stop-btn").disabled  = !state.running;
-        document.getElementById("drive-start-btn-vfy").disabled = state.running;
-        document.getElementById("drive-stop-btn-vfy").disabled  = !state.running;
         document.getElementById("drive-return-btn").textContent = state.is_returning ? "⏹️ 복귀 중단" : "🔄 START 위치로 복귀";
         
         // 3. Grounding 정보 노출
