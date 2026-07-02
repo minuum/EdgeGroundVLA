@@ -3018,9 +3018,24 @@ L S R  C S L  R S L
     };
 
     window.addEventListener("keydown", (e) => {
+      // 입력 폼에 포커스가 가있으면 단축키 동작 방지
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
+
+      // 경로검증(verify) 탭일 때 프레임 인스펙터 재생 단축키 바인딩
+      if (activeTab === "verify") {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          prevInspectFrame();
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          nextInspectFrame();
+        } else if (e.key === " ") {
+          e.preventDefault();
+          toggleInspectPlay();
+        }
+      }
+
       if (activeTab === "calib" && joyKeys[e.key]) {
-        // 입력 폼에 포커스 가있으면 조이스틱 조작 방지
-        if (document.activeElement.tagName === "INPUT") return;
         e.preventDefault();
         const dir = joyKeys[e.key];
         const btn = document.getElementById("joy-" + dir);
@@ -4021,6 +4036,47 @@ L S R  C S L  R S L
         loadEpisodeHistory();
       } else {
         alert("삭제 실패: " + res.error);
+      }
+    }
+
+    // ── Frame-by-Frame Inspector 프레임 재생 및 탐색 제어 ───────────────────
+    function nextInspectFrame() {
+      const slider = document.getElementById("inspect-slider");
+      if (!slider) return;
+      let val = parseInt(slider.value) + 1;
+      if (val <= parseInt(slider.max)) {
+        slider.value = val;
+        showInspectFrame(val);
+      }
+    }
+
+    function prevInspectFrame() {
+      const slider = document.getElementById("inspect-slider");
+      if (!slider) return;
+      let val = parseInt(slider.value) - 1;
+      if (val >= 0) {
+        slider.value = val;
+        showInspectFrame(val);
+      }
+    }
+
+    function toggleInspectPlay() {
+      const btn = document.getElementById("btn-inspect-play");
+      if (!btn) return;
+      if (inspectPlayTimer) {
+        clearInterval(inspectPlayTimer);
+        inspectPlayTimer = null;
+        btn.textContent = "▶ PLAY";
+      } else {
+        btn.textContent = "⏸ PAUSE";
+        inspectPlayTimer = setInterval(() => {
+          const slider = document.getElementById("inspect-slider");
+          if (!slider) return;
+          let val = parseInt(slider.value) + 1;
+          if (val > parseInt(slider.max)) val = 0;
+          slider.value = val;
+          showInspectFrame(val);
+        }, 300);
       }
     }
 
