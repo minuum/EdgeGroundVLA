@@ -2146,10 +2146,11 @@ L S R  C S L  R S L
 
               <div class="form-group" style="margin-bottom:0;">
                 <label>주행 결과</label>
-                <select id="ep-success" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
-                  <option value="성공">성공 (Success)</option>
-                  <option value="실패">실패 (Failure)</option>
-                </select>
+                <input type="hidden" id="ep-success" value="성공">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <button type="button" id="ep-result-succ" class="btn btn-cyan" style="font-weight:bold;" onclick="setEpResult('성공')">✅ 성공 (Success)</button>
+                  <button type="button" id="ep-result-fail" class="btn btn-outline" style="font-weight:bold;" onclick="setEpResult('실패')">❌ 실패 (Failure)</button>
+                </div>
               </div>
 
               <div class="form-group" style="margin-bottom:0;">
@@ -2244,9 +2245,41 @@ L S R  C S L  R S L
                 </table>
               </div>
             </div>
-            
+
           </div>
-          
+
+        </div>
+
+        <!-- 하단: 간이 히스토리 (Drive Control 탭과 동일 데이터, Path Test 탭에도 노출) -->
+        <div class="card" style="margin-top:24px;">
+          <div class="card-title">📋 Recent Runs Timeline</div>
+          <div id="collect-summary-vfy" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; font-size:11px;">
+            <div style="background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:6px 10px;">
+              <div style="color:var(--cyan); font-weight:700; margin-bottom:3px;">📋 수집 세션</div>
+              <div id="cs-session-vfy" style="color:var(--text-muted); font-family:var(--font-mono);">—</div>
+            </div>
+            <div style="background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:6px 10px;">
+              <div style="color:var(--amber); font-weight:700; margin-bottom:3px;">🔍 Grounding</div>
+              <div id="cs-grounding-vfy" style="color:var(--text-muted); font-family:var(--font-mono);">—</div>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Step</th>
+                  <th>Predicted Label</th>
+                  <th>Total Latency</th>
+                  <th>Gnd Latency</th>
+                  <th>MLP Latency</th>
+                  <th>Bbox Area</th>
+                </tr>
+              </thead>
+              <tbody id="drive-history-table-vfy">
+                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -2827,6 +2860,14 @@ L S R  C S L  R S L
           fpeLbl.textContent = 'False Positive Error (FPE): ' + val;
         }
       }
+    }
+
+    function setEpResult(val) {
+      document.getElementById("ep-success").value = val;
+      const succBtn = document.getElementById("ep-result-succ");
+      const failBtn = document.getElementById("ep-result-fail");
+      succBtn.className = val === "성공" ? "btn btn-cyan" : "btn btn-outline";
+      failBtn.className = val === "실패" ? "btn btn-rose" : "btn btn-outline";
     }
 
     async function syncVerifyRuntimeParams() {
@@ -3517,25 +3558,28 @@ L S R  C S L  R S L
         document.getElementById("gnd-pred-label").value = state.predicted_label || "—";
         
         // 4-0. 수집 세션 요약 (세션ID / 스텝 / live·cache·평균 latency)
+        // Drive Control 탭과 Path Test 탭에 동일 데이터를 함께 반영 (-vfy 접미사가 Path Test 탭 사본)
         {
           const rh = state.run_history || [];
           const nInfer = rh.length;
           const runBadge = state.running ? "🟢 실행중" : "⚫ 정지";
-          document.getElementById("cs-session").innerHTML =
-            `${runBadge} · ${state.mode || "—"} · 스텝 ${state.step || 0}<br>`
+          const sessionHtml = `${runBadge} · ${state.mode || "—"} · 스텝 ${state.step || 0}<br>`
             + `기록 ${nInfer}개 · ID ${state.session_id || "—"}`;
+          document.getElementById("cs-session").innerHTML = sessionHtml;
+          document.getElementById("cs-session-vfy").innerHTML = sessionHtml;
           const liveN  = rh.filter(r => r[3] !== "—" && r[3] !== null && r[3] !== undefined).length;
           const cacheN = nInfer - liveN;
           const lats   = rh.map(r => r[3]).filter(v => typeof v === "number");
           const avgGnd = lats.length ? Math.round(lats.reduce((a,b)=>a+b,0)/lats.length) : 0;
-          document.getElementById("cs-grounding").innerHTML =
-            `live ${liveN} · 캐시 ${cacheN}<br>평균 gnd ${avgGnd}ms`;
+          const groundingHtml = `live ${liveN} · 캐시 ${cacheN}<br>평균 gnd ${avgGnd}ms`;
+          document.getElementById("cs-grounding").innerHTML = groundingHtml;
+          document.getElementById("cs-grounding-vfy").innerHTML = groundingHtml;
         }
 
-        // 4. 타임라인 히스토리 업데이트
+        // 4. 타임라인 히스토리 업데이트 (Drive Control 탭 + Path Test 탭 동시 반영)
         if (state.run_history && state.run_history.length > 0) {
           const rows = state.run_history.slice(-10).reverse();
-          document.getElementById("drive-history-table").innerHTML = rows.map(r => `
+          const historyHtml = rows.map(r => `
             <tr>
               <td>${r[0]}</td>
               <td><span class="text-cyan">${r[1]}</span></td>
@@ -3545,6 +3589,8 @@ L S R  C S L  R S L
               <td><strong class="text-emerald">${r[5]}</strong></td>
             </tr>
           `).join("");
+          document.getElementById("drive-history-table").innerHTML = historyHtml;
+          document.getElementById("drive-history-table-vfy").innerHTML = historyHtml;
         }
 
         // 5. 궤적 차트는 경로 검증 탭으로 대체되어 더 이상 사용되지 않습니다.
