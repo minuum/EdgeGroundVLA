@@ -551,7 +551,7 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
             _state["status_log"] = f"추론 에러: {e}"
             time.sleep(0.5); continue
 
-        action = res.get("action", [0.0, 0.0, 0.0])
+        action = res.get("action_3d") or res.get("action", [0.0, 0.0, 0.0])
         lx, ly = float(action[0]), float(action[1])
         az = float(action[2]) if len(action) > 2 else 0.0
 
@@ -643,7 +643,7 @@ def _async_infer(instr: str, apply_cc: bool, logger):
         if _state["calib_recording"]:
             _record_calib_frame(img, res)
 
-        action = res.get("action", [0.0, 0.0, 0.0])
+        action = res.get("action_3d") or res.get("action", [0.0, 0.0, 0.0])
         logger.log_step(step, np.array(action), res.get("latency_ms", 0),
                         image=img, predicted_label=res.get("predicted_label"),
                         bbox=res.get("bbox"),
@@ -1206,9 +1206,11 @@ def sessions_load(sid: str):
             (0.0,0.0,0.25):"ROT_L", (0.0,0.0,-0.25):"ROT_R",
         }
         def _lbl(a):
+            # 구버전 세션은 az 없이 (lx, ly) 2열만 기록된 경우가 있음 — az=0으로 패딩
+            a3 = [float(a[0]), float(a[1]), float(a[2]) if len(a) > 2 else 0.0]
             for k, v in _amap.items():
-                if all(abs(float(a[i])-k[i])<0.05 for i in range(3)): return v
-            return f"({a[0]:.1f},{a[1]:.1f})"
+                if all(abs(a3[i]-k[i])<0.05 for i in range(3)): return v
+            return f"({a3[0]:.1f},{a3[1]:.1f})"
 
         frames_meta = []
         for i in range(n_frames):
