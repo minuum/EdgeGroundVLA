@@ -47,6 +47,16 @@ print('head:', h['head'], 'window:', h['window'])
 print('multi_prompt:', h.get('multi_prompt'), 'fallback:', h.get('fallback_prompts'))
 print('cx_jump_filter:', h.get('cx_jump_filter'), 'fix1_applied:', h.get('fix1_applied', False))
 print('grounder input_px:', h['grounder']['input_px'])
+
+# Fix 3: 코드-프로세스 버전 불일치 자동 감지
+git_commit  = h.get('git_commit', 'unknown')
+code_mtime  = h.get('code_mtime')
+started_at  = h.get('process_started_at')
+print(f'git_commit: {git_commit}  process_started_at: {started_at}  code_mtime: {code_mtime}')
+if code_mtime and started_at and code_mtime > started_at:
+    print('⚠️ 경고: 코드 파일이 프로세스 시작 이후 수정됨 → 이 세션은 구코드(버그 미수정)로 수집됐을 가능성 있음. soda 서버 재시작 필요.')
+elif not code_mtime or not started_at:
+    print('⚠️ 참고: git_commit/process_started_at/code_mtime 필드 없음 — soda가 FIX3_SERVER_VERSION_HANDSHAKE.md 미반영 상태. 버전 검증 불가.')
 "
 ```
 
@@ -54,6 +64,7 @@ print('grounder input_px:', h['grounder']['input_px'])
 - `grounder.input_px` — 448이면 Fix1 미적용(processor가 224→448 업스케일), 없으면 확인 불가
 - `multi_prompt` — True면 fallback_prompts 순환 탐지 중
 - `cx_jump_filter` — True면 급변 필터 활성
+- `code_mtime > process_started_at` — **코드는 고쳐졌지만 서버가 재시작 안 된 상태**. 이 세션들은 구 코드로 수집됨(2026-07-02 Fix1 사고와 동일 패턴). 관련: `FIX3_SERVER_VERSION_HANDSHAKE.md`
 
 ---
 
