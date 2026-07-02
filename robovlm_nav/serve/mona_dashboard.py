@@ -739,6 +739,7 @@ class ConfigToggleReq(BaseModel):
     cx_jump_filter: Optional[bool] = None
     cx_jump_thresh: Optional[float] = None
     stop_area_threshold: Optional[float] = None
+    multi_prompt: Optional[bool] = None
 
 class LabelSaveReq(BaseModel):
     session_id: str
@@ -921,6 +922,7 @@ def config_update(req: ConfigToggleReq):
     if req.cx_jump_filter is not None: payload["cx_jump_filter"] = req.cx_jump_filter
     if req.cx_jump_thresh is not None: payload["cx_jump_thresh"] = req.cx_jump_thresh
     if req.stop_area_threshold is not None: payload["stop_area_threshold"] = req.stop_area_threshold
+    if req.multi_prompt is not None: payload["multi_prompt"] = req.multi_prompt
 
     try:
         res = _infer_post("/config", payload, timeout=3)
@@ -2376,7 +2378,10 @@ L S R  C S L  R S L
                   <button id="vfy-rt-skip" class="btn btn-outline" onclick="toggleVerifyRuntime('skip')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">📦 skip 3<br><span style="font-size:9px;color:var(--text-muted)">캐시 사용</span></button>
                   <button id="vfy-rt-jump" class="btn btn-outline" onclick="toggleVerifyRuntime('jump')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">⚫ P2필터<br><span style="font-size:9px;color:var(--text-muted)">오탐제거</span></button>
                 </div>
-                <button id="vfy-rt-thr" class="btn btn-outline" onclick="toggleVerifyRuntime('thr')" disabled style="font-size:11px; padding:6px; line-height:1.2; text-align:center; opacity:0.5;">🎚 민감도 (P2 꺼짐)</button>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                  <button id="vfy-rt-thr" class="btn btn-outline" onclick="toggleVerifyRuntime('thr')" disabled style="font-size:11px; padding:6px; line-height:1.2; text-align:center; opacity:0.5;">🎚 민감도<br><span style="font-size:9px;color:var(--text-muted)">(P2 꺼짐)</span></button>
+                  <button id="vfy-rt-multi" class="btn btn-outline" onclick="toggleVerifyRuntime('multi')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🟢 멀티프롬프트<br><span style="font-size:9px;color:var(--text-muted)">fallback</span></button>
+                </div>
                 <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
               </div>
 
@@ -3216,7 +3221,8 @@ L S R  C S L  R S L
       preview_hint_cx: false,
       grounding_skip_n: 3,
       cx_jump_filter: false,
-      cx_jump_thresh: 0.30
+      cx_jump_thresh: 0.30,
+      multi_prompt: true
     };
 
     function selectPathType(type) {
@@ -3261,7 +3267,8 @@ L S R  C S L  R S L
         runtimeState.grounding_skip_n = res.grounding_skip_n !== undefined ? parseInt(res.grounding_skip_n) : 3;
         runtimeState.cx_jump_filter = res.cx_jump_filter === true;
         runtimeState.cx_jump_thresh = res.cx_jump_thresh !== undefined ? parseFloat(res.cx_jump_thresh) : 0.30;
-        
+        runtimeState.multi_prompt = res.multi_prompt !== false;
+
         updateVerifyRuntimeUI();
         statusEl.textContent = "✅ 동기화 완료";
       } catch(e) {
@@ -3320,6 +3327,16 @@ L S R  C S L  R S L
         thrBtn.className = "btn btn-outline";
         thrBtn.innerHTML = "🎚 민감도<br><span style='font-size:9px;color:var(--text-muted);'>(P2 꺼짐)</span>";
       }
+
+      // multi-prompt
+      const multiBtn = document.getElementById("vfy-rt-multi");
+      if (runtimeState.multi_prompt) {
+        multiBtn.className = "btn btn-cyan";
+        multiBtn.innerHTML = "🟢 멀티프롬프트<br><span style='font-size:9px;color:#000;'>fallback ON</span>";
+      } else {
+        multiBtn.className = "btn btn-outline";
+        multiBtn.innerHTML = "⚫ 멀티프롬프트<br><span style='font-size:9px;color:var(--text-muted);'>fallback OFF</span>";
+      }
     }
 
     async function toggleVerifyRuntime(param) {
@@ -3337,10 +3354,12 @@ L S R  C S L  R S L
         let idx = thresholds.indexOf(runtimeState.cx_jump_thresh);
         if (idx === -1) idx = 1;
         runtimeState.cx_jump_thresh = thresholds[(idx + 1) % thresholds.length];
+      } else if (param === 'multi') {
+        runtimeState.multi_prompt = !runtimeState.multi_prompt;
       }
-      
+
       updateVerifyRuntimeUI();
-      
+
       try {
         const res = await api("/config", {
           method: "POST",
@@ -3350,7 +3369,8 @@ L S R  C S L  R S L
             preview_hint_cx: runtimeState.preview_hint_cx,
             grounding_skip_n: runtimeState.grounding_skip_n,
             cx_jump_filter: runtimeState.cx_jump_filter,
-            cx_jump_thresh: runtimeState.cx_jump_thresh
+            cx_jump_thresh: runtimeState.cx_jump_thresh,
+            multi_prompt: runtimeState.multi_prompt
           })
         });
         if (res.ok) {
