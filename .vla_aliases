@@ -765,12 +765,42 @@ mona-down() {
 unalias mona-restart 2>/dev/null || true
 mona-restart() { mona-down; sleep 1; mona-up "$@"; }
 
+# FastAPI 대시보드 (포트 7800) — 신규 권장
+unalias mona-up-fast 2>/dev/null || true
+mona-up-fast() {
+    # 서버(8001) + FastAPI 대시보드(7800) + 허브(7860)
+    local proj="${VLA_PROJECT_DIR:-$(cd ~/MoNaVLA && pwd)}"
+    bash "${proj}/scripts/run/go.sh" --server && \
+    bash "${proj}/scripts/run/go.sh" --mona-dash && \
+    bash "${proj}/scripts/run/go.sh" --hub
+}
+
+# Gradio 대시보드 (포트 7865) — 구버전
+unalias mona-up-gradio 2>/dev/null || true
+mona-up-gradio() {
+    # 서버(8001) + Gradio 대시보드(7865) + 허브(7860)
+    local proj="${VLA_PROJECT_DIR:-$(cd ~/MoNaVLA && pwd)}"
+    bash "${proj}/scripts/run/go.sh" --server && \
+    bash "${proj}/scripts/run/go.sh" --dashboard && \
+    bash "${proj}/scripts/run/go.sh" --hub
+}
+
+# 하위호환 vla-* 래퍼
+vla-up-fast()   { mona-up-fast "$@"; }
+vla-up-gradio() { mona-up-gradio "$@"; }
+
 unalias mona-log 2>/dev/null || true
 mona-log() {
     local target="${1:-server}"
     case "$target" in
-        hub)  tail -f "${VLA_PROJECT_DIR}/logs/hub.log" ;;
-        *)    tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
+        dash|dashboard|mona-dash)
+            tail -f "${VLA_PROJECT_DIR}/logs/mona_dashboard.log" ;;
+        hub)
+            tail -f "${VLA_PROJECT_DIR}/logs/hub.log" ;;
+        gradio)
+            tail -f "${VLA_PROJECT_DIR}/logs/inference_dashboard.log" ;;
+        *)
+            tail -f "${VLA_PROJECT_DIR}/logs/s2v2_server.log" ;;
     esac
 }
 
@@ -833,12 +863,15 @@ mona-help() {
     echo "  mona-ship --dry-run    실제 전송 없이 미리보기"
     echo ""
     echo "■ 실행 (soda에서 / minum에서 원격):"
-    echo "  mona-up                서버 + 대시보드 + 허브 전부 ON ★"
+    echo "  mona-up-fast           서버+FastAPI대시보드(7800)+허브  ★ 권장"
+    echo "  mona-up-gradio         서버+Gradio대시보드(7865)+허브   (구버전)"
+    echo "  mona-up                전부 ON (= mona-up-fast 동일)"
     echo "  mona-up --server       추론 서버만 (포트 8001)"
-    echo "  mona-up --dashboard    추론 대시보드만 (포트 7865) ← 주 제어 UI"
+    echo "  mona-up --mona-dash    FastAPI 대시보드만 (포트 7800)"
+    echo "  mona-up --dashboard    Gradio 대시보드만 (포트 7865)"
     echo "  mona-up --hub          허브만 (포트 7860)"
     echo "  mona-up --status       실행 중 서비스 확인"
-    echo "  mona-down              서버 + 허브 모두 종료"
+    echo "  mona-down              서버 + 대시보드 전부 종료"
     echo "  mona-restart           재시작 (down + up)"
     echo "  mona-remote-up         minum→soda 원격 up"
     echo "  mona-remote-down       minum→soda 원격 down"
@@ -846,6 +879,8 @@ mona-help() {
     echo "■ 모니터링:"
     echo "  mona-probe             /health + /recent 빠른 확인"
     echo "  mona-log               추론 서버 로그 실시간"
+    echo "  mona-log dash          FastAPI 대시보드 로그 (mona_dashboard.log)"
+    echo "  mona-log gradio        Gradio 대시보드 로그 (구버전)"
     echo "  mona-log hub           허브 로그"
     echo "  mona-dryrun            STOP 로직 정적 이미지 테스트"
     echo "  mona-status            시스템 전체 상태"
@@ -864,10 +899,11 @@ mona-help() {
     echo "  mona-doctor            환경 진단"
     echo ""
     echo "■ 오늘 실기 순서:"
-    echo "  [minum] mona-dryrun    → STOP 로직 검증"
-    echo "  [minum] mona-ship      → soda 배포 + 서버 시작"
-    echo "  [soda]  mona-up --dashboard → 대시보드만 추가 시작"
-    echo "  [브라우저] http://100.85.118.58:7860"
+    echo "  [minum] mona-dryrun         → STOP 로직 검증"
+    echo "  [minum] mona-ship           → soda 배포 + 서버 시작"
+    echo "  [soda]  mona-up --mona-dash → FastAPI 대시보드 시작 (포트 7800)"
+    echo "  [브라우저] http://100.85.118.58:7800  ← 신규 권장"
+    echo "  [브라우저] http://100.85.118.58:7865  ← Gradio 구버전"
     echo "════════════════════════════════════════════════════"
 }
 alias vla-help='mona-help'
