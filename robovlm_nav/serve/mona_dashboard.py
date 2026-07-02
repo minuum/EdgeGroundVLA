@@ -3944,11 +3944,22 @@ L S R  C S L  R S L
           updatePathSummary(res.episodes || []);
           const tbody = document.getElementById("episodes-table-body");
           if (!tbody) return;
-          if (!res.episodes || res.episodes.length === 0) {
+          
+          let episodes = res.episodes || [];
+          
+          // 필터 선택 값에 따라 에피소드 성공/실패 여부를 걸러냅니다.
+          const filterVal = document.getElementById("vfy-filter") ? document.getElementById("vfy-filter").value : "all";
+          if (filterVal === "success") {
+            episodes = episodes.filter(ep => ep[2] === "성공");
+          } else if (filterVal === "fail") {
+            episodes = episodes.filter(ep => ep[2] === "실패");
+          }
+
+          if (episodes.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">기록이 없습니다.</td></tr>`;
             return;
           }
-          tbody.innerHTML = res.episodes.map(ep => {
+          tbody.innerHTML = episodes.map(ep => {
             const pathAbbr = {
               right_right: "R→R", right_left: "R→L★", right_straight: "R→S",
               center_straight: "C→S", center_left: "C→L", center_right: "C→R",
@@ -3964,10 +3975,10 @@ L S R  C S L  R S L
                 <td><strong class="text-cyan">${pathAbbr}</strong></td>
                 <td><strong class="${resColor}">${ep[2]}</strong></td>
                 <td>${ep[3]}</td>
-                <td style="font-family:var(--font-sans); color:var(--text-muted); font-size:11px; white-space:nowrap;">${ep[4]}</td>
-                <td class="font-mono text-cyan" style="font-size:10px;">${ep[5] || "—"}</td>
-                <td class="font-mono" style="font-size:10px; color:var(--text-muted);">${ep[6] || "—"}</td>
-                <td style="font-size:11px; color:var(--text-muted);">${ep[7] || "—"}</td>
+                <td>${ep[6]} ms</td>
+                <td class="font-mono text-cyan" style="font-size:10px;">${ep[4] || "—"}</td>
+                <td style="font-size:11px; color:var(--text-muted);">${ep[11] || "—"}</td>
+                <td style="font-family:var(--font-sans); color:var(--text-muted); font-size:10px; white-space:nowrap;">${ep[12] || "—"}</td>
               </tr>
             `;
           }).reverse().join("");
