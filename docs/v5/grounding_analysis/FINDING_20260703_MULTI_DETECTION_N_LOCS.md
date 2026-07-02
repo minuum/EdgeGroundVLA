@@ -6,6 +6,28 @@
 
 ---
 
+## 추가 (같은 날 재확인): stopping criteria 실측 결과 — 대부분 해결, 엣지케이스 1건
+
+minum이 이미 세미콜론 `StoppingCriteria`(`bd65c96a`)를 구현해놓은 걸 확인하고 soda에서
+재시작 후 실측했습니다. **대부분 케이스는 잘 잘림** — 재시작 직후 8회 호출 중 7회가
+`n_locs=4`, ~2.1~2.2s로 정상화됨.
+
+**근데 1건은 여전히 새어나감**: `n_locs=23`, `latency=7906ms`. raw_output 확인 결과
+`phrase="gray plastic bin"`(멀티프롬프트 fallback 프롬프트)로 호출된 케이스였고,
+`;`가 포함된 긴 출력이 그대로 나왔습니다.
+
+**추정 원인**: `self._proc.tokenizer.encode(";", add_special_tokens=False)`이 **독립된
+";"의 토큰 ID**(235289)를 구하는데, 실제 생성 컨텍스트에서는 `" ;"`(공백+세미콜론)이
+BPE 규칙상 **다른 토큰 ID로 병합**될 수 있습니다. `phrase`가 바뀌면 앞뒤 문맥이
+달라지니 이 병합 결과도 달라질 수 있어서, 특정 프롬프트/문맥에서만 새어나가는
+것으로 보입니다.
+
+**개선 방향 제안**: 토큰 ID 단일 매칭 대신, `" ;"`/`";"` 등 공백 유무 두 variant를
+모두 인코딩해서 stop 토큰 집합에 넣거나, `StoppingCriteria`에서 디코딩된 텍스트가
+`";"`로 끝나는지 문자열 기준으로 검사하는 방식이 더 견고할 것 같습니다.
+
+---
+
 ## 상태: Fix3 + Fix4 구현·검증·적용 완료
 
 - Fix3(버전 핸드셰이크): `/health`에 `git_commit`/`process_started_at`/`code_mtime` 추가,
