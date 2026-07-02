@@ -3364,8 +3364,12 @@ L S R  C S L  R S L
           return;
         }
         
-        runtimeState.preview_enabled = res.preview_enabled !== false;
-        runtimeState.preview_hint_cx = res.preview_hint_cx === true;
+        // /health의 preview 상태는 최상위가 아니라 preview.{enabled,hint_cx}에 중첩됨 —
+        // 예전엔 res.preview_enabled(항상 undefined)를 읽어서 프리뷰=항상 ON,
+        // hint=항상 OFF로 표시되던 버그가 있었음 (2026-07-02 B4)
+        const prev = res.preview || {};
+        runtimeState.preview_enabled = prev.enabled !== false;
+        runtimeState.preview_hint_cx = prev.hint_cx === true;
         runtimeState.grounding_skip_n = res.grounding_skip_n !== undefined ? parseInt(res.grounding_skip_n) : 3;
         runtimeState.cx_jump_filter = res.cx_jump_filter === true;
         runtimeState.cx_jump_thresh = res.cx_jump_thresh !== undefined ? parseFloat(res.cx_jump_thresh) : 0.30;
@@ -3476,7 +3480,18 @@ L S R  C S L  R S L
           })
         });
         if (res.ok) {
-          document.getElementById("vfy-rt-status").textContent = "✅ 적용 완료";
+          // "적용 완료"라는 낙관 문구 대신 추론 서버가 실제로 적용했다고
+          // 응답한 값을 그대로 표시 — 토글이 조용히 무시된(applied 비어있음)
+          // 케이스를 눈으로 바로 잡기 위함 (2026-07-02 B4)
+          const inner = (res.applied && res.applied.applied) || {};
+          const parts = Object.entries(inner).map(([k, v]) => `${k}=${v}`);
+          if (parts.length > 0) {
+            document.getElementById("vfy-rt-status").textContent = "✅ 서버 적용: " + parts.join(", ");
+          } else {
+            document.getElementById("vfy-rt-status").textContent = "⚠️ 서버가 아무것도 적용 안 함 (applied 비어있음) — 필드명/프록시 확인";
+          }
+          // 서버 실제 상태로 UI 재동기화 (로컬 추측값과의 불일치 방지)
+          setTimeout(syncVerifyRuntimeParams, 800);
         } else {
           document.getElementById("vfy-rt-status").textContent = "⚠️ 적용 실패: " + res.error;
         }
@@ -4281,6 +4296,8 @@ def camera_proc_status():
 
 @app.post("/camera_proc/start")
 def camera_proc_start():
+    global _cam_user_stopped
+    _cam_user_stopped = False  # 사용자가 다시 켰으면 워치독 재개
     if _cam_pids():
         return {"ok": True, "already_running": True, "text": f"🟢 이미 실행 중 pid={','.join(_cam_pids())}"}
     _subprocess.Popen(["bash", "-c", _CAM_START_CMD])
@@ -4289,10 +4306,47 @@ def camera_proc_start():
 
 @app.post("/camera_proc/stop")
 def camera_proc_stop():
+    global _cam_user_stopped
+    _cam_user_stopped = True  # 의도적 정지 — 워치독이 되살리지 않도록
     _subprocess.run(["pkill", "-9", "-f", _CAM_KILL_PATTERN])
     time.sleep(0.4)
     pids = _cam_pids()
     return {"ok": True, "text": (f"🟢 실행 중 pid={','.join(pids)}" if pids else "🔴 정지됨")}
+
+
+# ── 카메라 워치독 (B3) ───────────────────────────────────────────────
+# usb_camera_service_server가 살아있는 척하며 같은 프레임만 반복 전달하는
+# 행(hang)이 2026-07-02 하루 3회 발생 — frame 정체가 지속되면 자동 재시작.
+CAM_WATCHDOG_STALE_S    = 10.0   # 이 시간 이상 새 프레임 없으면 행으로 판정
+CAM_WATCHDOG_COOLDOWN_S = 120.0  # 자동 재시작 간 최소 간격 (재시작 루프 방지)
+_cam_user_stopped = False        # 사용자가 ■정지 누른 상태면 워치독 개입 금지
+_cam_auto_restart_ts = 0.0
+
+
+def _camera_watchdog_loop():
+    global _cam_auto_restart_ts
+    while True:
+        time.sleep(5.0)
+        try:
+            if _ros is None or _cam_user_stopped:
+                continue
+            if not _ros.last_ts:          # 아직 첫 프레임 전 (기동 직후)
+                continue
+            age = time.time() - _ros.last_ts
+            if age < CAM_WATCHDOG_STALE_S:
+                continue
+            if time.time() - _cam_auto_restart_ts < CAM_WATCHDOG_COOLDOWN_S:
+                continue
+            _cam_auto_restart_ts = time.time()
+            log.warning(f"🐶 [CamWatchdog] 프레임 정체 {age:.1f}s — 카메라 서비스 자동 재시작")
+            _subprocess.run(["pkill", "-9", "-f", _CAM_KILL_PATTERN])
+            time.sleep(1.0)
+            _subprocess.Popen(["bash", "-c", _CAM_START_CMD])
+        except Exception as e:
+            log.warning(f"[CamWatchdog] 오류(무시): {e}")
+
+
+threading.Thread(target=_camera_watchdog_loop, daemon=True, name="cam-watchdog").start()
 
 
 # ═══════════════════════════════════════════════════════════════════
