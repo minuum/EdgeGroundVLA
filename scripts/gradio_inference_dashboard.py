@@ -761,6 +761,21 @@ class ROSDashboardNode(Node):
 ros_node = None
 _ros_node_lock = threading.Lock()
 
+def _spin_with_recovery(node):
+    """spin 스레드 — ExternalShutdownException은 정상 종료로 처리, 그 외 예외는 재초기화."""
+    try:
+        from rclpy.executors import ExternalShutdownException as _ESE
+    except ImportError:
+        _ESE = Exception
+    try:
+        rclpy.spin(node)
+    except _ESE:
+        pass  # rclpy.shutdown() 호출로 인한 정상 종료 — traceback 없이 조용히 종료
+    except Exception as _e:
+        print(f"[Dashboard] ROS spin 비정상 종료: {_e} → 재초기화 시도")
+        threading.Thread(target=_init_ros_node, daemon=True).start()
+
+
 def _init_ros_node():
     global ros_node
     try:
@@ -770,7 +785,7 @@ def _init_ros_node():
             pass
         rclpy.init()
         node = ROSDashboardNode()
-        threading.Thread(target=lambda: rclpy.spin(node), daemon=True).start()
+        threading.Thread(target=_spin_with_recovery, args=(node,), daemon=True).start()
         ros_node = node
         print("[Dashboard] ROSDashboardNode 초기화 ✅")
         return True
@@ -1109,6 +1124,8 @@ state = {
     # ASYNC 모드 공유 상태
     "_async_result": None,   # 최신 추론 결과 (UI 표시용)
     "_async_step": 0,
+    # 마무리 이동용 컨텍스트 — 세션 시작 시 저장, _flush_session에서 사용
+    "_infer_ctx": None,  # {"backend_mode", "api_url", "instr", "apply_cc"}
 }
 
 
@@ -1147,21 +1164,17 @@ def _flush_session(status: str = "manual_stop"):
     """진행 중인 세션을 저장하고 경로를 반환한다."""
     if not (logger_instance and logger_instance.data and logger_instance.data.get("history")):
         return None
-    # 도착/정지 직후 최종 프레임을 한 장 더 수집 (arrival frame)
+    # 마지막 이동 완료 후 캡처된 stable_frame을 도착 프레임으로 기록
     try:
         if ROS_AVAILABLE and ros_node:
-            import time as _t
-            _t.sleep(0.25)
-            final_frame = ros_node.get_inference_frame()
-            if final_frame is not None:
-                n_steps = len(logger_instance.data["history"])
+            _stable = state.get("stable_frame")
+            if _stable is not None:
+                n_base = len(logger_instance.data["history"])
                 logger_instance.log_step(
-                    n_steps + 1,
-                    [0.0, 0.0, 0.0],
-                    0,
-                    image=final_frame,
-                    predicted_label="STOP",
+                    n_base + 1, [0.0, 0.0, 0.0], 0,
+                    image=_stable, predicted_label="STOP",
                 )
+                state["stable_frame"] = None
     except Exception:
         pass
     path = logger_instance.end_session(status)
@@ -1309,6 +1322,13 @@ def set_running(running: bool, backend_mode: str, api_url: str, instruction: str
                 )
         except Exception:
             pass
+        # 마무리 이동용 컨텍스트 저장 (STOP 시 _flush_session에서 사용)
+        state["_infer_ctx"] = {
+            "backend_mode": backend_mode,
+            "api_url": api_url,
+            "instr": instruction,
+            "apply_cc": apply_cc,
+        }
         if state.get("infer_move_mode") == "ASYNC":
             if logger_instance:
                 logger_instance.start_session("async", instruction, instruction_mode=backend_mode)
@@ -1524,7 +1544,7 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
                 infer_img = state.get("stable_frame") or img
                 state["stable_frame"] = None  # consume
                 result = run_backend_inference(infer_img, instr, backend_mode, api_url)
-                # 이동 완료 후 150ms settle → 다음 스텝용 stable_frame 미리 캡처
+                # 이동 완료 후 150ms settle → 액션당 1장 동기 캡처
                 time.sleep(0.15)
                 _sf = ros_node.get_inference_frame()
                 if _sf is not None:
@@ -1551,6 +1571,15 @@ def update_ui(mode=None, backend_mode=None, api_url=None, instr=None, apply_cc=F
                     speed_scale=result.get("speed_scale"),
                     grounding_cached=result.get("grounding_cached"),
                 )
+                # 액션 완료 직후 캡처한 프레임 즉시 기록
+                _post = state.get("stable_frame")
+                if _post is not None:
+                    logger_instance.log_step(
+                        f"{current_step}p",
+                        result["action"],
+                        0,
+                        image=_post,
+                    )
             log = f"Step {current_step} | {result['log_str']}"
             if result.get("goal_near"):
                 state["is_running"] = False
@@ -1670,14 +1699,18 @@ def _make_env_banner() -> str:
     hostname = _sock.gethostname()
     role = os.getenv("VLA_SERVER_ROLE", "unknown")
     api = os.getenv("VLA_API_SERVER", "http://localhost:8001")
-    exp_name = EXP_MODE_NAMES[0] if EXP_MODE_NAMES else "—"
-
     srv_color = "#ef4444"
     info = {}
     try:
         info = _req.get(f"{api}/health", timeout=1.5).json()
     except Exception:
         pass
+
+    # checkpoint 경로에서 실험명 자동 감지 (드롭다운 하드코딩 대신)
+    ckpt_for_exp = info.get("checkpoint_path", "")
+    _ckpt_stem = Path(ckpt_for_exp).stem if ckpt_for_exp else ""
+    _ckpt_parent = Path(ckpt_for_exp).parent.name if ckpt_for_exp else ""
+    exp_name = _ckpt_parent or _ckpt_stem or (EXP_MODE_NAMES[0] if EXP_MODE_NAMES else "—")
 
     loaded = info.get("model_loaded", False)
     if loaded:
@@ -1783,15 +1816,88 @@ _FONT_SCALE_CSS = """
 }
 /* 진행률 강조 */
 #t4-progress textarea {
-    font-size: 1.4rem !important;
+    font-size: 1.05rem !important;
     font-weight: 800 !important;
     color: #1a6b3c !important;
     background: #e8f5e9 !important;
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    overflow: hidden !important;
+    resize: none !important;
 }
 /* 기록 버튼 강조 */
 #btn-log { background: #1565c0 !important; font-size: 1.2rem !important; }
 #btn-undo { font-size: 1.1rem !important; }
 #btn-clear { font-size: 1.1rem !important; }
+/* 경로 집계 표 — 스크롤 없이 전체 표시 */
+#path-summary-table .table-wrap,
+#path-summary-table .scroll-hide,
+#path-summary-table div[data-testid="table-root"] {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+}
+#path-summary-table table {
+    width: 100% !important;
+}
+#path-summary-table td, #path-summary-table th {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 160px !important;
+}
+
+/* ── 런타임 모드 토글 버튼 ── */
+#rt-mode-panel {
+    background: linear-gradient(180deg,#1e293b 0%,#172033 100%) !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+}
+#rt-mode-panel .gr-button {
+    min-height: 60px !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: 0.98rem !important;
+    letter-spacing: -0.2px !important;
+    line-height: 1.25 !important;
+    white-space: pre-line !important;
+    transition: transform .08s ease, box-shadow .15s ease !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25) !important;
+}
+#rt-mode-panel .gr-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35) !important;
+}
+#rt-mode-panel .gr-button:active { transform: translateY(0) !important; }
+/* 비활성(민감도 P2 꺼짐) — 흐리게 + 클릭 불가 표시 */
+#rt-mode-panel .gr-button[disabled],
+#rt-mode-panel .gr-button:disabled {
+    opacity: 0.4 !important;
+    filter: grayscale(0.6) !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+/* ON = primary(파랑 글로우) / OFF = secondary(차분) */
+#rt-mode-panel .gr-button.primary {
+    background: linear-gradient(180deg,#3b82f6 0%,#2563eb 100%) !important;
+    border: 1px solid #60a5fa !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 1px #3b82f6, 0 2px 10px rgba(59,130,246,.4) !important;
+}
+#rt-mode-panel .gr-button.secondary {
+    background: #273449 !important;
+    border: 1px solid #3b4a63 !important;
+    color: #94a3b8 !important;
+}
+#rt-mode-panel .textbox textarea {
+    background: #0f172a !important;
+    color: #7dd3fc !important;
+    font-family: ui-monospace,monospace !important;
+    font-size: 0.9rem !important;
+    border-radius: 8px !important;
+}
 """
 
 with gr.Blocks(
@@ -1805,12 +1911,101 @@ with gr.Blocks(
     ),
 ) as demo:
     gr.Markdown("# MoNaVLA Real-time Dashboard")
-    _env_banner = gr.HTML(_make_env_banner())
-    _banner_timer = gr.Timer(10.0, active=True)
+    with gr.Row(equal_height=True):
+        with gr.Column(scale=3):
+            _env_banner = gr.HTML(_make_env_banner())
+            # 카메라 제어 버튼 — API 배너 바로 아래 배치
+            _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
+            _cam_start_btn.click(fn=start_camera, outputs=_cam_st)
+            _cam_stop_btn.click(fn=stop_camera,   outputs=_cam_st)
+        with gr.Column(scale=2):
+            def _make_collect_banner() -> str:
+                import datetime as _dtcb
+                now = _dtcb.datetime.now().strftime("%H:%M:%S")
+                def _card(title, body, border="#334155"):
+                    return (f'<div style="background:#1e293b;border-left:3px solid {border};'
+                            f'border-radius:6px;padding:8px 12px;margin-bottom:8px">'
+                            f'<div style="color:#94a3b8;font-size:0.75rem;margin-bottom:4px;font-weight:600">{title}</div>'
+                            f'{body}</div>')
+                def _row(k, v, vc="#e2e8f0"):
+                    return (f'<div style="display:flex;justify-content:space-between;padding:2px 0">'
+                            f'<span style="color:#94a3b8;font-size:0.82rem">{k}</span>'
+                            f'<span style="color:{vc};font-family:monospace;font-size:0.82rem">{v}</span></div>')
 
-    _cam_st, _cam_start_btn, _cam_stop_btn = camera_control_widget()
-    _cam_start_btn.click(fn=start_camera, outputs=_cam_st)
-    _cam_stop_btn.click(fn=stop_camera,   outputs=_cam_st)
+                html = f'<div style="font-size:0.85rem;color:#e2e8f0">'
+
+                # 세션 상태
+                is_run = state.get("is_running", False)
+                step_n = state.get("step_count", 0)
+                mode   = state.get("infer_move_mode", "—")
+                run_color = "#4ade80" if is_run else "#64748b"
+                run_badge = f'<span style="color:{run_color}">{"🟢 실행 중" if is_run else "⚫ 정지"}</span>'
+
+                n_total = n_infer = n_post = n_frames = 0
+                sess_id = "—"
+                last_steps_html = '<span style="color:#64748b;font-size:0.8rem">없음</span>'
+
+                if logger_instance and logger_instance.data and logger_instance.data.get("history"):
+                    hist = logger_instance.data["history"]
+                    n_total  = len(hist)
+                    n_post   = sum(1 for h in hist if str(h.get("step","")).endswith("p"))
+                    n_infer  = n_total - n_post
+                    n_frames = len(logger_instance._frames)
+                    sess_id  = logger_instance.data.get("session_id", "—")
+
+                    # 최근 8 스텝 인라인
+                    rows_h = []
+                    for h in hist[-8:]:
+                        sid   = h.get("step", "?")
+                        label = h.get("predicted_label") or "—"
+                        gc    = h.get("grounding_cached")
+                        gc_s  = '<span style="color:#fbbf24">live</span>' if gc == 0 else ('<span style="color:#4ade80">캐시</span>' if gc == 1 else '—')
+                        is_p  = str(sid).endswith("p")
+                        sc    = "#a5b4fc" if is_p else "#e2e8f0"
+                        tag   = ' <span style="color:#fbbf24;font-size:0.72rem">[p]</span>' if is_p else ''
+                        rows_h.append(
+                            f'<div style="display:flex;gap:8px;padding:1px 0">'
+                            f'<span style="color:{sc};font-family:monospace;min-width:40px">{sid}{tag}</span>'
+                            f'<span style="color:#4ade80;min-width:60px">{label}</span>'
+                            f'<span>{gc_s}</span></div>'
+                        )
+                    last_steps_html = "".join(rows_h) if rows_h else last_steps_html
+
+                    # grounding 통계
+                    gc_vals = [h.get("grounding_cached") for h in hist if h.get("grounding_cached") is not None]
+                    n_live  = sum(1 for v in gc_vals if v == 0)
+                    n_cache = sum(1 for v in gc_vals if v == 1)
+                    lat_l   = [h.get("grounding_latency_ms",0) for h in hist if h.get("grounding_latency_ms")]
+                    avg_lat = f'{sum(lat_l)/len(lat_l):.0f}ms' if lat_l else "—"
+                    gnd_body = (_row("live PG2", f"{n_live}회", "#fbbf24") +
+                                _row("캐시 재사용", f"{n_cache}회", "#4ade80") +
+                                _row("평균 latency", avg_lat))
+                else:
+                    gnd_body = _row("상태", "세션 없음", "#64748b")
+
+                sess_body = (
+                    _row("상태", run_badge) +
+                    _row("모드", mode) +
+                    _row("스텝", f"{step_n}") +
+                    _row("기록", f"추론 {n_infer} + post {n_post} = {n_total}") +
+                    _row("H5 프레임", f"{n_frames}장") +
+                    _row("세션 ID", f'<span style="font-size:0.78rem">{sess_id}</span>')
+                )
+
+                # 좌: 수집 세션 / 우: Grounding + 최근 스텝
+                col_l = _card("📋 수집 세션", sess_body, "#3b82f6")
+                col_r = (_card("🔍 Grounding", gnd_body, "#f59e0b") +
+                         _card("🔢 최근 스텝", last_steps_html, "#6366f1"))
+                html += (f'<div style="display:flex;gap:8px;align-items:flex-start">'
+                         f'<div style="flex:1">{col_l}</div>'
+                         f'<div style="flex:1">{col_r}</div>'
+                         f'</div>')
+                html += f'<div style="color:#475569;font-size:0.72rem;text-align:right;margin-top:2px">갱신 {now}</div>'
+                html += "</div>"
+                return html
+
+            _collect_banner = gr.HTML(_make_collect_banner())
+    _banner_timer = gr.Timer(5.0, active=True)
 
     with gr.Tabs():
       with gr.Tab("🤖 Drive / Inference"):
@@ -2048,6 +2243,9 @@ with gr.Blocks(
                       btn_start_inf = gr.Button("▶️ START", variant="primary", scale=1)
                       btn_stop_inf = gr.Button("⏹️ STOP", variant="stop", scale=1)
                       btn_return = gr.Button("🔄 복귀", variant="secondary", scale=1)
+                  with gr.Row():
+                      btn_preview_toggle = gr.Button("🔍 Preview ON", variant="primary", scale=1)
+                  _preview_state = gr.State(True)
                   run_status_box = gr.Textbox(label="Run Status", value="Stopped", interactive=False)
 
               def on_backend_change(backend):
@@ -2832,7 +3030,7 @@ with gr.Blocks(
               dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
               prog = (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_')))}/{nav_total}"
                       f"  성공 {nav_succ}/{GOAL_SUCCESS_TARGET}"
-                      f"  |  위치별 {obj_done}/90 ({obj_succ}성공)"
+                      f"\n위치별 {obj_done}/90 ({obj_succ}성공)"
                       f"  |  거리별 {dist_done}/30 ({dist_succ}성공)")
               tbl = []
               for header, keys in _PATH_GROUPS:
@@ -2855,7 +3053,7 @@ with gr.Blocks(
             )
             progress_test = gr.Textbox(
                 label="진행률", value=_preloaded_prog,
-                interactive=False, max_lines=1, elem_id="t4-progress",
+                interactive=False, lines=2, max_lines=2, elem_id="t4-progress",
             )
             path_summary_table = gr.Dataframe(
                 headers=["경로/테스트", "목표", "완료", "✓"],
@@ -2863,6 +3061,7 @@ with gr.Blocks(
                 value=_preloaded_tbl,
                 label="집계 (경로검증 | 오브젝트위치별 | 박스거리별)",
                 row_count=18, col_count=4, interactive=False,
+                elem_id="path-summary-table",
             )
             with gr.Accordion("📋 프롬프트 전문 보기", open=False):
               with gr.Row():
@@ -2906,9 +3105,9 @@ with gr.Blocks(
             with gr.Group():
               mode_radio_test = gr.Radio(
                   choices=["Manual Drive", "Inference (Auto)"],
-                  value="Manual Drive", label="🎮 Mode",
+                  value="Inference (Auto)", label="🎮 Mode",
               )
-              with gr.Column(visible=False) as inference_panel_test:
+              with gr.Column(visible=True) as inference_panel_test:
                 infer_move_radio_test = gr.Radio(choices=["SYNC", "PRE", "ASYNC"], value="SYNC", label="이동 모드")
                 with gr.Row():
                   btn_start_test  = gr.Button("▶️ START", variant="primary",   scale=1)
@@ -2918,6 +3117,98 @@ with gr.Blocks(
             def on_mode_change_test(selected_mode):
                 return gr.update(visible=selected_mode == "Inference (Auto)")
             mode_radio_test.change(fn=on_mode_change_test, inputs=[mode_radio_test], outputs=[inference_panel_test])
+
+            # ── 런타임 모드 전환 (서버 재시작 불필요) — 균등 토글 버튼 ──────
+            with gr.Group(elem_id="rt-mode-panel"):
+              gr.Markdown("### ⚙️ 런타임 모드\n<small>버튼 탭 → 즉시 반영 (재시작 없음) · 파랑=ON</small>")
+              # 5개 토글 상태 (버튼 클릭마다 flip + /config POST)
+              st_preview = gr.State(True)
+              st_hint    = gr.State(False)
+              st_skip    = gr.State(3)
+              st_jump    = gr.State(False)
+              st_thr     = gr.State(0.30)
+
+              # 균등 폭 버튼 5개 (전부 scale=1) — 2줄 라벨(이름 + 5글자 설명)
+              with gr.Row(equal_height=True):
+                rt_btn_preview = gr.Button("🟢 프리뷰\n격리회전",   variant="primary",   scale=1)
+                rt_btn_hint    = gr.Button("⚫ hint_cx\n방향회전",  variant="secondary", scale=1)
+                rt_btn_skip    = gr.Button("📦 skip 3\n캐시",       variant="secondary", scale=1)
+                rt_btn_jump    = gr.Button("⚫ P2필터\n오탐제거",   variant="secondary", scale=1)
+                rt_btn_thr     = gr.Button("🎚 민감도\n(P2 꺼짐)",  variant="secondary", scale=1, interactive=False)
+              rt_status = gr.Textbox(label="", value="눌러서 토글 →", interactive=False, max_lines=2)
+
+              def _rt_post(preview, hint, skip, jump, thr, api_url):
+                  try:
+                      import requests as _rtreq
+                      payload = {"preview_enabled": bool(preview), "preview_hint_cx": bool(hint),
+                                 "grounding_skip_n": int(skip), "cx_jump_filter": bool(jump),
+                                 "cx_jump_thresh": float(thr)}
+                      _rtreq.post(f"{api_url.rstrip('/')}/config", json=payload,
+                                  headers={"X-API-Key": API_KEY}, timeout=5)
+                      return (f"✅ 적용: Preview={'ON' if preview else 'OFF'} · hint_cx={'ON' if hint else 'OFF'} · "
+                              f"skip_n={skip} · P2={'ON' if jump else 'OFF'}(>{thr:.2f})")
+                  except Exception as e:
+                      return f"⚠️ 적용 실패: {e}"
+
+              def _bt(on, on_txt, off_txt):
+                  return gr.update(value=on_txt if on else off_txt,
+                                   variant="primary" if on else "secondary")
+
+              def _tog_preview(preview, hint, skip, jump, thr, api):
+                  preview = not preview
+                  return _bt(preview, "🟢 프리뷰\n격리회전", "⚫ 프리뷰\n격리회전"), preview, _rt_post(preview, hint, skip, jump, thr, api)
+              def _tog_hint(preview, hint, skip, jump, thr, api):
+                  hint = not hint
+                  return _bt(hint, "🟢 hint_cx\n방향회전", "⚫ hint_cx\n방향회전"), hint, _rt_post(preview, hint, skip, jump, thr, api)
+              def _tog_skip(preview, hint, skip, jump, thr, api):
+                  skip = 1 if skip == 3 else 3
+                  _txt = "📦 skip 1\n매프레임" if skip == 1 else "📦 skip 3\n캐시"
+                  lbl = gr.update(value=_txt, variant="primary" if skip == 1 else "secondary")
+                  return lbl, skip, _rt_post(preview, hint, skip, jump, thr, api)
+              def _tog_jump(preview, hint, skip, jump, thr, api):
+                  jump = not jump
+                  # 민감도 버튼: P2 ON일 때만 활성 + 값 표시, OFF면 비활성 dim
+                  thr_btn = gr.update(value=f"🎚 민감도\n{thr:.2f}" if jump else "🎚 민감도\n(P2 꺼짐)",
+                                      interactive=jump)
+                  return (_bt(jump, "🟢 P2필터\n오탐제거", "⚫ P2필터\n오탐제거"),
+                          jump, thr_btn, _rt_post(preview, hint, skip, jump, thr, api))
+              def _tog_thr(preview, hint, skip, jump, thr, api):
+                  # 0.20 → 0.30 → 0.40 → 0.50 → 0.20 순환 (P2 민감도)
+                  order = [0.20, 0.30, 0.40, 0.50]
+                  thr = order[(order.index(thr) + 1) % len(order)] if thr in order else 0.30
+                  return gr.update(value=f"🎚 민감도\n{thr:.2f}"), thr, _rt_post(preview, hint, skip, jump, thr, api)
+
+              _rt_inputs = [st_preview, st_hint, st_skip, st_jump, st_thr, api_url_box]
+              rt_btn_preview.click(_tog_preview, inputs=_rt_inputs, outputs=[rt_btn_preview, st_preview, rt_status])
+              rt_btn_hint.click(_tog_hint,       inputs=_rt_inputs, outputs=[rt_btn_hint, st_hint, rt_status])
+              rt_btn_skip.click(_tog_skip,       inputs=_rt_inputs, outputs=[rt_btn_skip, st_skip, rt_status])
+              rt_btn_jump.click(_tog_jump,       inputs=_rt_inputs, outputs=[rt_btn_jump, st_jump, rt_btn_thr, rt_status])
+              rt_btn_thr.click(_tog_thr,         inputs=_rt_inputs, outputs=[rt_btn_thr, st_thr, rt_status])
+
+              # 서버 현재값 → UI 버튼 동기화
+              def _rt_sync(api_url):
+                  try:
+                      import requests as _rs
+                      h = _rs.get(f"{api_url.rstrip('/')}/health", timeout=3).json()
+                      p = h.get("preview", {})
+                      pv = bool(p.get("enabled", True)); ht = bool(p.get("hint_cx", False))
+                      sk = int(h.get("grounding_skip_n", 3)); jp = bool(h.get("cx_jump_filter", False))
+                      tr = float(h.get("cx_jump_thresh", 0.30))
+                      return (_bt(pv, "🟢 프리뷰\n격리회전", "⚫ 프리뷰\n격리회전"),
+                              _bt(ht, "🟢 hint_cx\n방향회전", "⚫ hint_cx\n방향회전"),
+                              gr.update(value=("📦 skip 1\n매프레임" if sk == 1 else "📦 skip 3\n캐시"),
+                                        variant="primary" if sk == 1 else "secondary"),
+                              _bt(jp, "🟢 P2필터\n오탐제거", "⚫ P2필터\n오탐제거"),
+                              gr.update(value=f"🎚 민감도\n{tr:.2f}" if jp else "🎚 민감도\n(P2 꺼짐)",
+                                        interactive=jp),
+                              pv, ht, sk, jp, tr,
+                              f"🔄 서버값 동기화: Preview={pv} hint_cx={ht} skip_n={sk} P2={jp}")
+                  except Exception as e:
+                      return (gr.update(),)*5 + (gr.update(),)*5 + (f"⚠️ 동기화 실패: {e}",)
+              rt_sync_btn = gr.Button("🔄 서버 현재값 불러오기", variant="secondary", size="sm")
+              rt_sync_btn.click(_rt_sync, inputs=[api_url_box],
+                                outputs=[rt_btn_preview, rt_btn_hint, rt_btn_skip, rt_btn_jump, rt_btn_thr,
+                                         st_preview, st_hint, st_skip, st_jump, st_thr, rt_status])
 
             # 그 아래에 에피소드 기록 입력 인터페이스 배치
             with gr.Row():
@@ -3391,6 +3682,199 @@ with gr.Blocks(
         t6_state_labels = gr.State({})
         t6_state_sid    = gr.State("")
 
+      # ════════════════════════════════════════════════════════════════════
+      # 탭 7: 시스템 상태
+      # ════════════════════════════════════════════════════════════════════
+      with gr.Tab("🖥️ 시스템"):
+        def _make_sys_status() -> str:
+            import subprocess as _sp7
+            import requests as _rq7
+            import datetime as _dt7
+            now = _dt7.datetime.now().strftime("%H:%M:%S")
+            api = os.getenv("VLA_API_SERVER", "http://localhost:8001")
+            try:
+                h = _rq7.get(f"{api}/health", timeout=1.5).json()
+                srv_ok = h.get("model_loaded", False)
+                gpu = h.get("gpu", {})
+                gpu_str = f'{gpu.get("allocated_gb","?"):.2f}GB ({gpu.get("device_name","?")})' if gpu else "—"
+                prev = h.get("preview", {})
+                grnd = h.get("grounder", {})
+                srv_rows = [
+                    ("상태", f'{"🟢 온라인" if srv_ok else "🟡 로딩"}'),
+                    ("GPU", gpu_str),
+                    ("추론 횟수", f'{h.get("inference_count",0)}회'),
+                    ("모델", Path(h.get("checkpoint_path","")).stem or "—"),
+                    ("head / window", f'{h.get("head","—")} / w={h.get("window","—")}'),
+                    ("val_acc", f'{h.get("val_acc",0)*100:.1f}%' if h.get("val_acc") else "—"),
+                    ("STOP mode", h.get("stop_mode","—")),
+                    ("Grounder", f'{grnd.get("model","?")} {grnd.get("input_px","?")}px'),
+                    ("phrase", f'"detect {grnd.get("phrase","?")}"'),
+                    ("Preview", f'{"ON" if prev.get("enabled") else "OFF"}'
+                                f'  max={prev.get("max_retry","?")} az={prev.get("rot_az","?")}'
+                                f'  hint_cx={"ON" if prev.get("hint_cx") else "OFF"}'),
+                    ("Preview 누적", f'{prev.get("attempt_count",0)}회'),
+                ]
+            except Exception as _e7:
+                srv_rows = [("상태", f"🔴 오프라인 ({_e7})")]
+            try:
+                ros_nodes = _sp7.check_output(["ros2","node","list"], timeout=2, text=True).strip().splitlines()
+            except Exception:
+                ros_nodes = ["(ROS2 불가)"]
+            try:
+                topics = _sp7.check_output(["ros2","topic","list"], timeout=2, text=True).strip().splitlines()
+            except Exception:
+                topics = []
+            cmd_vel_info = "—"
+            try:
+                ti = _sp7.check_output(["ros2","topic","info","/cmd_vel"], timeout=2, text=True)
+                pub = next((l for l in ti.splitlines() if "Publisher" in l), "")
+                sub = next((l for l in ti.splitlines() if "Subscription" in l), "")
+                cmd_vel_info = f'{pub.strip()} / {sub.strip()}'
+            except Exception:
+                pass
+            def _tbl7(rows):
+                cells = "".join(
+                    f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;white-space:nowrap">{k}</td>'
+                    f'<td style="color:#e2e8f0;padding:3px 0;font-family:monospace">{v}</td></tr>'
+                    for k, v in rows)
+                return f'<table style="border-collapse:collapse;width:100%">{cells}</table>'
+            def _lst7(items, color="#4ade80"):
+                if not items:
+                    return '<span style="color:#94a3b8">없음</span>'
+                return "".join(
+                    f'<div style="color:{color};font-family:monospace;font-size:0.85rem">{n}</div>'
+                    for n in items)
+            def _card7(title, body, border="#334155"):
+                return (f'<div style="background:#1e293b;border-left:3px solid {border};'
+                        f'border-radius:6px;padding:10px 14px;margin-bottom:10px">'
+                        f'<div style="color:#94a3b8;font-size:0.78rem;margin-bottom:6px;font-weight:600">{title}</div>'
+                        f'{body}</div>')
+            html = f'<div style="font-size:0.88rem;color:#e2e8f0"><p style="color:#64748b;margin:0 0 8px">갱신: {now}</p>'
+            html += _card7("🤖 추론 서버 (port 8001)", _tbl7(srv_rows), "#3b82f6")
+            html += _card7("🔗 ROS2 노드", _lst7(ros_nodes, "#4ade80"), "#22c55e")
+            html += _card7("📡 /cmd_vel", f'<code style="color:#fbbf24">{cmd_vel_info}</code>', "#f59e0b")
+            html += _card7("🗂️ 활성 토픽", _lst7(topics, "#a5b4fc"), "#6366f1")
+            html += "</div>"
+            return html
+
+        _sys_html = gr.HTML(_make_sys_status())
+        _sys_timer = gr.Timer(5.0, active=True)
+        _sys_timer.tick(fn=_make_sys_status, outputs=_sys_html)
+
+      with gr.Tab("📷 수집 모니터"):
+        def _make_collect_status() -> str:
+            import datetime as _dtc
+            now = _dtc.datetime.now().strftime("%H:%M:%S")
+
+            def _card(title, body, border="#334155"):
+                return (f'<div style="background:#1e293b;border-left:3px solid {border};'
+                        f'border-radius:6px;padding:10px 14px;margin-bottom:10px">'
+                        f'<div style="color:#94a3b8;font-size:0.78rem;margin-bottom:6px;font-weight:600">{title}</div>'
+                        f'{body}</div>')
+            def _tbl(rows):
+                cells = "".join(
+                    f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;white-space:nowrap">{k}</td>'
+                    f'<td style="color:#e2e8f0;padding:3px 0;font-family:monospace">{v}</td></tr>'
+                    for k, v in rows)
+                return f'<table style="border-collapse:collapse;width:100%">{cells}</table>'
+
+            html = f'<div style="font-size:0.88rem;color:#e2e8f0"><p style="color:#64748b;margin:0 0 8px">갱신: {now}</p>'
+
+            # ── 세션 상태 ──────────────────────────────────────────────────
+            is_run = state.get("is_running", False)
+            step_n = state.get("step_count", 0)
+            mode   = state.get("infer_move_mode", "—")
+            run_badge = '🟢 실행 중' if is_run else '⚫ 정지'
+            sess_rows = [
+                ("상태", run_badge),
+                ("이동 모드", mode),
+                ("현재 스텝", f"{step_n}"),
+            ]
+            if logger_instance and logger_instance.data and logger_instance.data.get("history"):
+                hist = logger_instance.data["history"]
+                n_total = len(hist)
+                n_infer = sum(1 for h in hist if not str(h.get("step","")).endswith("p") and h.get("predicted_label") not in (None, ""))
+                n_post  = sum(1 for h in hist if str(h.get("step","")).endswith("p"))
+                n_frames = len(logger_instance._frames)
+                sess_rows += [
+                    ("기록된 스텝", f"{n_total}개 (추론 {n_infer} / post-action {n_post})"),
+                    ("H5 프레임", f"{n_frames}장"),
+                    ("세션 ID", logger_instance.data.get("session_id", "—")),
+                    ("instruction", logger_instance.data.get("instruction", "—")),
+                ]
+            else:
+                sess_rows.append(("세션", "없음 (START 전)"))
+            html += _card("📋 현재 세션", _tbl(sess_rows), "#3b82f6")
+
+            # ── 최근 스텝 기록 ─────────────────────────────────────────────
+            step_html = ""
+            if logger_instance and logger_instance.data and logger_instance.data.get("history"):
+                hist = logger_instance.data["history"]
+                recent = hist[-12:]  # 최근 12개
+                rows_h = []
+                for h in recent:
+                    sid    = h.get("step", "?")
+                    act    = h.get("action", [0,0,0])
+                    label  = h.get("predicted_label") or "—"
+                    gc     = h.get("grounding_cached")
+                    gc_str = "캐시✓" if gc == 1 else ("live" if gc == 0 else "—")
+                    is_post = str(sid).endswith("p")
+                    color  = "#a5b4fc" if is_post else "#e2e8f0"
+                    tag    = " <span style='color:#fbbf24;font-size:0.75rem'>[post]</span>" if is_post else ""
+                    act_s  = f"[{act[0]:.2f},{act[1]:.2f},{act[2] if len(act)>2 else 0:.2f}]"
+                    rows_h.append(
+                        f'<tr>'
+                        f'<td style="color:{color};padding:2px 8px 2px 0;font-family:monospace">{sid}{tag}</td>'
+                        f'<td style="color:#94a3b8;font-family:monospace;font-size:0.82rem">{act_s}</td>'
+                        f'<td style="color:#4ade80;padding:0 8px">{label}</td>'
+                        f'<td style="color:#64748b;font-size:0.8rem">{gc_str}</td>'
+                        f'</tr>'
+                    )
+                step_html = (f'<table style="border-collapse:collapse;width:100%">'
+                             f'<tr><th style="color:#64748b;text-align:left;padding:2px 8px 4px 0;font-size:0.78rem">step</th>'
+                             f'<th style="color:#64748b;text-align:left;font-size:0.78rem">action</th>'
+                             f'<th style="color:#64748b;text-align:left;padding:0 8px;font-size:0.78rem">label</th>'
+                             f'<th style="color:#64748b;font-size:0.78rem">grnd</th></tr>'
+                             + "".join(rows_h) + "</table>")
+            else:
+                step_html = '<span style="color:#64748b">스텝 기록 없음</span>'
+            html += _card("🔢 최근 스텝 (최대 12)", step_html, "#6366f1")
+
+            # ── grounding 통계 ─────────────────────────────────────────────
+            if logger_instance and logger_instance.data and logger_instance.data.get("history"):
+                hist = logger_instance.data["history"]
+                gc_vals = [h.get("grounding_cached") for h in hist if h.get("grounding_cached") is not None]
+                n_live  = sum(1 for v in gc_vals if v == 0)
+                n_cache = sum(1 for v in gc_vals if v == 1)
+                lat_vals= [h.get("grounding_latency_ms",0) for h in hist if h.get("grounding_latency_ms")]
+                avg_lat = sum(lat_vals)/len(lat_vals) if lat_vals else 0
+                gnd_rows = [
+                    ("live PG2", f"{n_live}회"),
+                    ("캐시 재사용", f"{n_cache}회"),
+                    ("평균 grounding latency", f"{avg_lat:.0f}ms"),
+                ]
+                html += _card("🔍 Grounding 통계", _tbl(gnd_rows), "#f59e0b")
+
+            html += "</div>"
+            return html
+
+        _col_html = gr.HTML(_make_collect_status())
+        _col_timer = gr.Timer(2.0, active=True)
+        _col_timer.tick(fn=_make_collect_status, outputs=_col_html)
+
+      with gr.Tab("📖 모드 가이드 / 변경이력"):
+        def _load_guide() -> str:
+            _p = PROJECT_ROOT / "docs" / "RUNTIME_MODE_GUIDE.md"
+            try:
+                return _p.read_text(encoding="utf-8")
+            except Exception as _e:
+                return f"⚠️ 가이드 로드 실패: {_e}\n경로: {_p}"
+        gr.Markdown("### 📖 런타임 모드 가이드 & 변경 이력\n"
+                    "<small>Tab 4 런타임 버튼 설명 + 최근 반영 사항 · `docs/RUNTIME_MODE_GUIDE.md`</small>")
+        _guide_md = gr.Markdown(_load_guide())
+        _guide_refresh = gr.Button("🔄 새로고침", variant="secondary", size="sm")
+        _guide_refresh.click(fn=_load_guide, outputs=_guide_md)
+
     btn_start_inf.click(
         fn=lambda mode, url, instr, gt, cc: set_running(True, mode, url, instr, gt, apply_cc=cc),
         inputs=[backend_radio, api_url_box, instr_box_real, gt_object_box, toggle_cc],
@@ -3403,6 +3887,24 @@ with gr.Blocks(
     btn_return.click(
         fn=return_to_start,
         outputs=run_status_box,
+    )
+
+    def _toggle_preview(currently_on):
+        import requests as _rqp
+        new_state = not currently_on
+        api = os.getenv("VLA_API_SERVER", "http://localhost:8001")
+        try:
+            _rqp.post(f"{api}/config", json={"preview_enabled": new_state}, timeout=2)
+        except Exception:
+            pass
+        label = f'🔍 Preview {"ON" if new_state else "OFF"}'
+        variant = "primary" if new_state else "secondary"
+        return gr.update(value=label, variant=variant), new_state
+
+    btn_preview_toggle.click(
+        fn=_toggle_preview,
+        inputs=[_preview_state],
+        outputs=[btn_preview_toggle, _preview_state],
     )
 
     directions = {
@@ -3448,8 +3950,10 @@ with gr.Blocks(
                 area = bbox.get("area", 0)
                 entity = bbox.get("entity", "?")
                 cx = bbox.get("cx", 0.5)
+                hint_cx = bbox.get("hint_cx")
                 near = "🔴 STOP 조건 충족!" if area >= 0.18 and abs(cx - 0.5) <= 0.25 and entity not in ("coarse_clf", "center_fallback", "") and not entity.startswith("caption:") else ""
-                return f"area={area:.3f}  cx={cx:.2f}  [{entity[:20]}]  {near}"
+                hint_str = f"  hint_cx={hint_cx:.3f}({'→L' if hint_cx < 0.5 else '→R'})" if hint_cx is not None else ""
+                return f"area={area:.3f}  cx={cx:.2f}{hint_str}  [{entity[:20]}]  {near}"
         except Exception:
             pass
         return "—"
@@ -3520,6 +4024,7 @@ with gr.Blocks(
     timer.tick(fn=_server_info_tick, outputs=[srv_status_t1, srv_log_t1])
     # 환경 배너 10초마다 갱신 (API 서버 상태 실시간 반영)
     _banner_timer.tick(fn=_make_env_banner, outputs=_env_banner)
+    _banner_timer.tick(fn=_make_collect_banner, outputs=_collect_banner)
     # 페이지 열리자마자 첫 프레임 즉시 표시
     demo.load(fn=update_ui, inputs=_ui_inputs, outputs=_ui_outputs)
     # 카메라 시작 버튼 완료 후 즉시 프레임 가져오기
@@ -3779,13 +4284,25 @@ with gr.Blocks(
         dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
         prog = (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_')))}/{nav_total}"
                 f"  성공 {nav_succ}/{GOAL_SUCCESS_TARGET}"
-                f"  |  위치별 {obj_done}/90 ({obj_succ}성공)"
+                f"\n위치별 {obj_done}/90 ({obj_succ}성공)"
                 f"  |  거리별 {dist_done}/30 ({dist_succ}성공)")
+        _PT_ABBR = {
+            "right_right": "R→R", "right_left": "R→L★", "right_straight": "R→S",
+            "center_straight": "C→S", "center_left": "C→L", "center_right": "C→R",
+            "left_straight": "L→S", "left_left": "L→L", "left_right": "L→R",
+            "obj_left": "위치:좌", "obj_center": "위치:중", "obj_right": "위치:우",
+            "dist_10cm": "10cm", "dist_20cm": "20cm", "dist_30cm": "30cm",
+        }
+        _GRP_ABBR = {
+            "── 경로 검증 ──────────────": "── 경로 검증 ──",
+            "── 오브젝트 위치별 ──────────": "── 오브젝트 위치별 ──",
+            "── 박스 거리별 ──────────────": "── 박스 거리별 ──",
+        }
         tbl = []
         for header, keys in _PATH_GROUPS:
-            tbl.append([header, "", "", ""])
+            tbl.append([_GRP_ABBR.get(header, header), "", "", ""])
             for pt in keys:
-                tbl.append([pt + (" ★" if pt == "right_left" else ""),
+                tbl.append([_PT_ABBR.get(pt, pt),
                              PATH_TARGETS.get(pt, 1),
                              done_total.get(pt, 0),
                              done_succ.get(pt, 0)])
@@ -3851,11 +4368,19 @@ with gr.Blocks(
     for btn in all_path_btns:
         btn.click(fn=lambda x: x, inputs=[btn], outputs=[path_type_test])
 
-    # 표의 경로명 클릭 시 텍스트박스 업데이트
+    # 표의 경로명 클릭 시 텍스트박스 업데이트 (약어 → 원래 키 역매핑)
+    _ABBR_TO_PT = {
+        "R→R": "right_right", "R→L★": "right_left", "R→S": "right_straight",
+        "C→S": "center_straight", "C→L": "center_left", "C→R": "center_right",
+        "L→S": "left_straight", "L→L": "left_left", "L→R": "left_right",
+        "위치:좌": "obj_left", "위치:중": "obj_center", "위치:우": "obj_right",
+        "10cm": "dist_10cm", "20cm": "dist_20cm", "30cm": "dist_30cm",
+    }
     def on_select_path_summary(evt: gr.SelectData):
         if evt.index[1] != 0:
             return gr.update()
-        val = str(evt.value).replace(" ★", "").replace("★", "").strip()
+        raw = str(evt.value).replace(" ★", "").replace("★", "").strip()
+        val = _ABBR_TO_PT.get(raw, raw)
         if val in PATH_TYPES:
             return gr.update(value=val)
         return gr.update()

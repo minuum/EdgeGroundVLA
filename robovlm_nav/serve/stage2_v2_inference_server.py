@@ -1,15 +1,27 @@
 """
-Stage2 v2 inference server (Exp54/66/67/68/69/70).
+Stage2 v2 inference server (Exp67/71/72 — CH60 ablation).
 
 Pipeline: Kosmos-2 vision encoder → image_proj (256-dim, L2-norm) + bbox history → ActionHead
-Grounding: PaliGemma2 "detect gray basket" (matches training distribution, Exp65/66)
+Grounding: PaliGemma2-448 "detect gray basket" (99.8% detection, CH59/60)
 
-Architecture: FrozenCLIPV2 (Stage1) + ActionMLP/LSTMHead/FCHead/LinearHead (Stage2)
+Default model: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m)
+
+지원 헤드 타입 (VLA_S2V2_HEAD 또는 ckpt["head"] 자동 감지):
+  mlp         ActionMLP flat 4-layer         exp67  PG448 (val 96.8%, FPE 0.027m)
+  transformer TransformerEncoder WINDOW=6    exp71  PG448 (val 99.2%, FPE 0.000m) ← DEFAULT
+  cx_geom     2-branch temporal+geom MLP    exp72  PG448 (val 96.8%, FPE 0.016m)
+  lstm        LSTMHead                       (레거시)
+  linear/fc                                  (ablation용)
+
+환경변수로 모델 교체:
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp67/action_mlp.pt          # MLP
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp71_window6/action_transformer.pt  # Transformer W=6 (기본)
+  VLA_S2V2_STAGE2=runs/v5_nav/mlp/exp72/action_cxgeom.pt       # cx-Geom
 
 Environment variables:
   VLA_S2V2_STAGE1           path to stage1_v2_projs.pt
-  VLA_S2V2_STAGE2           path to stage2 checkpoint (e.g. stage2_v2_mlp_base_pg2_aug.pt)
-  VLA_S2V2_HEAD             head type: mlp | linear | fc | lstm (auto-detected from ckpt)
+  VLA_S2V2_STAGE2           path to stage2 checkpoint
+  VLA_S2V2_HEAD             head type 강제 지정 (auto-detected from ckpt 권장)
   VLA_GROUNDING_MODEL_PATH  path to Kosmos-2 model dir (.vlms/kosmos-2-patch14-224)
   VLA_PG2_PATH              path to PaliGemma2 model dir (default: HF cache)
   VLA_PORT                  server port (default: 8001)
@@ -82,7 +94,9 @@ ROOT = Path(project_root)
 
 # --- defaults ---
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
-DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp66" / "action_mlp.pt"
+# 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
+# 폴백: VLA_S2V2_STAGE2 환경변수로 exp67(MLP) 또는 exp72(cx-Geom) 교체 가능
+DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp71_window6" / "action_transformer.pt"
 DEFAULT_VLM    = ROOT / ".vlms" / "kosmos-2-patch14-224"
 # PaliGemma2: HF cache path
 # Upgraded to 448 from 224 — detection rate 73% → 99% on 185-frame eval (CH59).
@@ -113,10 +127,21 @@ ACTION_2D = {
 }
 ACTION_3D = {
     0: [0.0, 0.0, 0.0], 1: [1.15, 0.0, 0.0], 2: [0.0, 1.15, 0.0], 3: [0.0, -1.15, 0.0],
-    4: [1.15, 1.15, 0.0], 5: [1.15, -1.15, 0.0], 6: [0.0, 0.0, 0.10], 7: [0.0, 0.0, -0.10],
+    4: [1.15, 1.15, 0.0], 5: [1.15, -1.15, 0.0], 6: [0.0, 0.0, 0.25], 7: [0.0, 0.0, -0.25],
 }
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
+# cx-rule: 환경변수로 켜면 MLP 예측 대신 bbox cx 기반 기하학 룰로 액션 결정.
+# has_bbox=True일 때만 적용; has_bbox=False면 MLP 따름.
+# VLA_CX_RULE=1 로 활성화 (default: off)
+CX_RULE_ENABLED = os.getenv("VLA_CX_RULE", "0") == "1"
+# cx → action 임계값 (0=left edge, 1=right edge)
+CX_RULE_THRESHOLDS = {
+    "rot_l":   float(os.getenv("VLA_CX_ROT_L",  "0.25")),  # cx < 0.25 → ROT_L
+    "fwd_l":   float(os.getenv("VLA_CX_FWD_L",  "0.40")),  # cx < 0.40 → FWD+L
+    "fwd_r":   float(os.getenv("VLA_CX_FWD_R",  "0.60")),  # cx > 0.60 → FWD+R
+    "rot_r":   float(os.getenv("VLA_CX_ROT_R",  "0.75")),  # cx > 0.75 → ROT_R
+}  # cx ∈ [fwd_l, fwd_r] → FORWARD
 _LOC_RE = re.compile(r"<loc(\d{4})>")
 # Kosmos-2 grounding prompt — refexp mode (Kr): entity name comes back as <patch_index_N>
 # Kc completion mode was "<grounding>The gray basket is at" but had 47% fallback-cx rate.
@@ -226,8 +251,48 @@ class LSTMHead(nn.Module):
         return self.classifier(out[:, -1])
 
 
+class TransformerActionHead(nn.Module):
+    """exp71: per-frame (bbox+vis) 시퀀스 → CLS token → 8-class action."""
+    def __init__(self, frame_dim: int = PROJ_DIM + 4, window: int = WINDOW_DEFAULT):
+        super().__init__()
+        self.window = window
+        self.cls_token = nn.Parameter(torch.randn(1, 1, frame_dim))
+        self.pos_emb   = nn.Embedding(window + 1, frame_dim)
+        el = nn.TransformerEncoderLayer(
+            d_model=frame_dim, nhead=4, dim_feedforward=512,
+            dropout=0.1, batch_first=True, norm_first=True)
+        self.encoder = nn.TransformerEncoder(el, num_layers=2)
+        self.head = nn.Sequential(
+            nn.LayerNorm(frame_dim),
+            nn.Linear(frame_dim, 128), nn.ReLU(), nn.Dropout(0.1),
+            nn.Linear(128, NUM_CLASSES))
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B = x.size(0)
+        cls = self.cls_token.expand(B, -1, -1)
+        x = torch.cat([cls, x], dim=1)
+        pos = torch.arange(x.size(1), device=x.device)
+        x = x + self.pos_emb(pos)
+        return self.head(self.encoder(x)[:, 0])
+
+
+class CxGeomMLP(nn.Module):
+    """exp72: temporal history + explicit current-frame geometry → 8-class."""
+    def __init__(self, hist_dim: int = WINDOW_DEFAULT * 4 + PROJ_DIM, geom_dim: int = 4):
+        super().__init__()
+        self.branch_a = nn.Sequential(
+            nn.Linear(hist_dim, 256), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(256, 128),      nn.ReLU(), nn.Dropout(0.1))
+        self.branch_b = nn.Sequential(nn.Linear(geom_dim, 32), nn.ReLU())
+        self.merge = nn.Sequential(
+            nn.Linear(160, 64), nn.ReLU(), nn.Dropout(0.1),
+            nn.Linear(64, NUM_CLASSES))
+    def forward(self, hist: torch.Tensor, geom: torch.Tensor) -> torch.Tensor:
+        return self.merge(torch.cat([self.branch_a(hist), self.branch_b(geom)], dim=-1))
+
+
 HEAD_REGISTRY: dict[str, type] = {
-    "mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead
+    "mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead,
+    "transformer": TransformerActionHead, "cx_geom": CxGeomMLP,
 }
 
 
@@ -375,7 +440,9 @@ class PG2Grounder:
         """
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
-        pil = resize_for_vlm(pil)
+        # Fix B-1: PG2-448은 raw 프레임을 PaliGemmaProcessor의 네이티브 448 처리에 맡긴다.
+        # 학습 annotation(gen_pg448_annotation.py)이 resize 없이 원본을 넣었으므로 동일 경로 유지.
+        # (기존 resize_for_vlm=224 다운스케일 → 448 업스케일은 디테일 손실 + full-frame 환각 유발)
         inp = self._proc(text=f"detect {phrase}", images=pil, return_tensors="pt").to(self._device)
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
         hidden_vec = None
@@ -391,7 +458,6 @@ class PG2Grounder:
                 gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
         raw = self._proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
         locs = [int(v) / 1023.0 for v in _LOC_RE.findall(raw)]
-        logger.info("[PG2] phrase=%r  locs=%d  raw=%r", phrase, len(locs), raw[:80])
         if len(locs) >= 4:
             y1, x1, y2, x2 = locs[:4]
             x1, x2 = min(x1, x2), max(x1, x2)
@@ -406,23 +472,23 @@ class PG2Grounder:
             # min_area/min_cy는 바스켓 전용 휴리스틱(바구니는 항상 화면 하단~중단)이라
             # phrase별로 오버라이드 가능하게 함(configs/ground_filter_map.json).
             filters = get_ground_filters(phrase)
-            if area > 0.9:
+            if area > 0.9:          # full-frame collapse (loc0000~loc1022 전체)
                 logger.info("[PG2] FILTER full-frame: area=%.3f cx=%.3f cy=%.3f", area, cx_val, cy_val)
                 result = _fallback
-            elif area < filters["min_area"]:
-                logger.info("[PG2] FILTER tiny: area=%.4f < min_area=%.4f cx=%.3f cy=%.3f", area, filters["min_area"], cx_val, cy_val)
-                result = _fallback
-            elif cy_val < filters["min_cy"]:
-                logger.info("[PG2] FILTER top: cy=%.3f < min_cy=%.3f area=%.4f cx=%.3f", cy_val, filters["min_cy"], area, cx_val)
-                result = _fallback
-            elif x1 < 0.02 and x2 > 0.98:
+            elif area < filters["min_area"]:       # tiny noise detection
+                logger.info("[PG2] FILTER tiny: area=%.4f < min_area=%.4f cx=%.3f cy=%.3f",
+                            area, filters["min_area"], cx_val, cy_val)
+                result = {**_fallback, "hint_cx": cx_val}  # 방향 힌트 보존
+            elif cy_val < filters["min_cy"]:     # 상단 오탐 (바구니가 프레임 상단에 있을 수 없음)
+                logger.info("[PG2] FILTER top: cy=%.3f < min_cy=%.3f cx=%.3f", cy_val, filters["min_cy"], cx_val)
+                result = {**_fallback, "hint_cx": cx_val}  # 방향 힌트 보존
+            elif x1 < 0.02 and x2 > 0.98:  # x-full-width collapse (cx≈0.5 항상)
                 logger.info("[PG2] FILTER x-full: x1=%.3f x2=%.3f", x1, x2)
                 result = _fallback
             else:
                 result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
                           "x1": x1, "y1": y1, "x2": x2, "y2": y2}
         else:
-            logger.info("[PG2] NO LOC TOKENS: locs=%d  raw=%r", len(locs), raw[:120])
             result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
                       "x1": None, "y1": None, "x2": None, "y2": None}
         if return_raw:
@@ -450,9 +516,21 @@ class Stage2V2Model:
     ):
         self.device = device
         self.vlm_path = vlm_path
+        self.checkpoint_path = str(stage2_path)
         self.inference_count = 0
         self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "3"))  # CH49: skip_n=3 SR/FPE 변화 없음 확정
         self._grounding_cache: Optional[dict] = None
+        # P2 (minum FIX_GUIDE): cx 급변 필터 — 직전 대비 cx 점프가 크면 오탐으로 보고 캐시 유지
+        self._cx_jump_filter: bool  = os.getenv("VLA_CX_JUMP_FILTER", "0") == "1"
+        self._cx_jump_thresh: float = float(os.getenv("VLA_CX_JUMP_THRESH", "0.30"))
+        # 멀티프롬프트 fallback: PG2가 full-frame 환각(has_bbox=False)일 때 대체 프롬프트 순차 재시도.
+        # 실패가 (프레임×프롬프트)마다 거의 독립적이라 조합 시 누적 검출률 급등 (2/12→6/12 실측).
+        self._multi_prompt: bool = os.getenv("VLA_MULTI_PROMPT", "1") == "1"
+        self._fallback_prompts: list[str] = [
+            p.strip() for p in os.getenv(
+                "VLA_FALLBACK_PROMPTS", "laundry basket,gray plastic bin,gray bin"
+            ).split(",") if p.strip()
+        ]
 
         # Stage1 (Kosmos-2 vision encoder — image features only)
         self.enc = Stage1Encoder(vlm_path, stage1_path, device)
@@ -471,13 +549,27 @@ class Stage2V2Model:
         ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
         self.window: int = int(ckpt.get("window", WINDOW_DEFAULT))
         head_name: str = head_override or ckpt.get("head", "mlp")
-        is_lstm = (head_name == "lstm")
-        d_in = self.window * 4 + PROJ_DIM
+        is_lstm        = (head_name == "lstm")
+        is_transformer = (head_name == "transformer")
+        is_cx_geom     = (head_name == "cx_geom")
+        d_in = self.window * 4 + PROJ_DIM  # flat MLP/linear/fc용
         HeadCls = HEAD_REGISTRY[head_name]
-        self.head: nn.Module = (HeadCls() if is_lstm else HeadCls(d_in=d_in)).to(device)
-        self.head.load_state_dict(ckpt["mlp"])
+        if is_lstm:
+            self.head: nn.Module = HeadCls().to(device)
+        elif is_transformer:
+            self.head = HeadCls(frame_dim=PROJ_DIM + 4, window=self.window).to(device)
+        elif is_cx_geom:
+            hist_dim = ckpt.get("hist_dim", d_in)
+            self.head = HeadCls(hist_dim=hist_dim).to(device)
+        else:
+            self.head = HeadCls(d_in=d_in).to(device)
+        # ckpt key: transformer/cx_geom → "model", others → "mlp"
+        sd_key = "model" if (is_transformer or is_cx_geom) else "mlp"
+        self.head.load_state_dict(ckpt[sd_key])
         self.head.eval()
-        self.is_lstm = is_lstm
+        self.is_lstm        = is_lstm
+        self.is_transformer = is_transformer
+        self.is_cx_geom     = is_cx_geom
         self.head_name = head_name
         self.val_acc: float = float(ckpt.get("val_acc", 0.0))
 
@@ -512,25 +604,40 @@ class Stage2V2Model:
 
         # CH54: PG2 재시도 루프 — 첫 그라운딩 실패 시 ROT 후 PG2 재시도
         # YOLO ablation(6/26 세션 46개) 결과 cx 일치율 6~9% → PG2 직접 재시도로 전환
-        self._preview_enabled     = os.getenv("VLA_PREVIEW_ENABLED", "") == "1"
-        self._preview_area_thresh = float(os.getenv("VLA_PREVIEW_AREA_THRESH", "0.03"))
-        self._preview_max_retry   = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
-        _rot_dir                  = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
+        self._preview_enabled      = os.getenv("VLA_PREVIEW_ENABLED", "") == "1"
+        self._preview_area_thresh  = float(os.getenv("VLA_PREVIEW_AREA_THRESH", "0.03"))
+        self._preview_max_retry    = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
+        _rot_dir                   = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
         self._preview_fallback_rot = 7 if _rot_dir != "L" else 6  # ROT_R=7, ROT_L=6
-        self._preview_attempt = 0  # 세션당 프리뷰 재시도 횟수 (reset()으로 초기화)
-        self._last_valid_bbox: Optional[dict] = None  # has_bbox=True였던 마지막 bbox
+        self._preview_use_hint_cx  = os.getenv("VLA_PREVIEW_HINT_CX", "0") == "1"
         if self._preview_enabled:
-            logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s",
+            logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s  hint_cx=%s",
                         self._preview_area_thresh, self._preview_max_retry,
-                        "ROT_R" if self._preview_fallback_rot == 7 else "ROT_L")
+                        "ROT_R" if self._preview_fallback_rot == 7 else "ROT_L",
+                        "ON" if self._preview_use_hint_cx else "OFF")
 
     def reset(self) -> None:
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
-        self._last_valid_bbox = None
         self.stop_latched = False
-        self._preview_attempt = 0
+        self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
+
+    def _ground_multi(self, image_rgb: np.ndarray, phrase: str) -> dict:
+        """멀티프롬프트 grounding: 1차 phrase 미검출이면 fallback 프롬프트 순차 재시도.
+        preview 체크와 메인 추론 양쪽에서 공용 (첫 프레임 full-frame 환각 복구)."""
+        bbox = self.grounder.run(image_rgb, phrase=phrase)
+        if self._multi_prompt and not bbox.get("has_bbox", False):
+            for _alt in self._fallback_prompts:
+                if _alt == phrase:
+                    continue
+                _alt_bbox = self.grounder.run(image_rgb, phrase=_alt)
+                if _alt_bbox.get("has_bbox", False):
+                    logger.info("[MULTI-PROMPT] '%s' 미검출 → '%s' 성공 cx=%.3f area=%.3f",
+                                phrase, _alt, float(_alt_bbox.get("cx", 0.5)),
+                                float(_alt_bbox.get("area", 0.0)))
+                    return _alt_bbox
+        return bbox
 
     # ── CH54: PG2 재시도 루프 helpers ───────────────────────────────────────
 
@@ -541,13 +648,20 @@ class Stage2V2Model:
 
     def _preview_rot_from_bbox(self, bbox: dict) -> int:
         """
-        has_bbox=False 시 설정된 fallback 회전 방향으로 지속 회전.
-        has_bbox=True  : cx < 0.4 → ROT_L, cx > 0.6 → ROT_R, 중앙 → ROT_R
+        has_bbox=True  : cx 기반 방향 (cx<0.4→ROT_L, else→ROT_R)
+        has_bbox=False + hint_cx ON : FILTER top/tiny의 cx로 방향 결정
+        has_bbox=False              : attempt 교대 sweep (짝수→ROT_R, 홀수→ROT_L)
         """
         if bbox.get("has_bbox", False):
             cx = float(bbox.get("cx", 0.5))
             return 6 if cx < 0.4 else 7
-        return self._preview_fallback_rot
+        if self._preview_use_hint_cx:
+            hint_cx = bbox.get("hint_cx")
+            if hint_cx is not None:
+                rot = 6 if float(hint_cx) < 0.5 else 7
+                logger.info("[CH54] hint_cx=%.3f → %s (필터됐지만 방향 유효)", float(hint_cx), CLASS_NAMES[rot])
+                return rot
+        return 7 if self._preview_attempt % 2 == 0 else 6
 
     def preview_align(self, image_b64: str, phrase: str) -> dict:
         """
@@ -592,7 +706,7 @@ class Stage2V2Model:
         return torch.cat([bbox_t, vis_feat])  # (d_in,)
 
     def _build_seq_feature(self) -> torch.Tensor:
-        """LSTM: (window, SEQ_DIM) sequence."""
+        """LSTM: (window, SEQ_DIM) — [vis(256), bbox(4)] per frame."""
         seq = []
         for k in range(self.window):
             idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
@@ -608,6 +722,23 @@ class Stage2V2Model:
             seq.append(torch.cat([vf, bbox_t]))  # (SEQ_DIM,)
         return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
 
+    def _build_seq_feature_trans(self) -> torch.Tensor:
+        """Transformer: (window, 4+PROJ_DIM=260) — [bbox(4), vis(256)] per frame."""
+        seq = []
+        for k in range(self.window):
+            idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
+            idx = min(idx, len(self.history) - 1)
+            item = self.history[idx]
+            vf = item.get("vis_feat")
+            if vf is None:
+                vf = torch.zeros(PROJ_DIM, device=self.device)
+            bbox_t = torch.tensor(
+                [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
+                dtype=torch.float32, device=self.device,
+            )
+            seq.append(torch.cat([bbox_t, vf]))  # bbox 먼저 — train과 동일 순서
+        return torch.stack(seq, dim=0)  # (window, 260)
+
     def predict(self, image_b64: str, instruction: str = "basket",
                 head_mode: str = "baseline") -> dict[str, Any]:
         start = time.time()
@@ -618,20 +749,61 @@ class Stage2V2Model:
         # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
         phrase = "gray basket" if instruction == "basket" else instruction
 
+        # CH54: PG2 재시도 루프 — 첫 프레임에서 그라운딩 실패 시 ROT 후 PG2 재시도
+        # inference_count==0 이고 _preview_attempt < max_retry 인 동안 활성.
+        # PG2 bbox cx 로 회전 방향 결정 (has_bbox=False 이면 fallback 방향).
+        # 로봇이 ROT 한 스텝 실행 → 다음 predict() 호출에서 재검사 → 성공 시 정상 추론.
+        preview_rot: Optional[int] = None
+        if self._preview_enabled and self.inference_count == 0:
+            if self._preview_attempt < self._preview_max_retry:
+                first_bbox = self._ground_multi(image_rgb, phrase)
+                if self._needs_preview(first_bbox):
+                    preview_rot = self._preview_rot_from_bbox(first_bbox)
+                    self._preview_attempt += 1
+                    logger.info("[CH54] preview ROT: %s  attempt=%d/%d  bbox_cx=%.3f has=%s",
+                                CLASS_NAMES[preview_rot], self._preview_attempt,
+                                self._preview_max_retry,
+                                float(first_bbox.get("cx", 0.5)),
+                                first_bbox.get("has_bbox", False))
+                else:
+                    # 그라운딩 성공 → 정상 추론으로 이어짐, 결과 캐시
+                    self._grounding_cache = first_bbox
+                    logger.info("[CH54] preview 성공: cx=%.3f area=%.4f (attempt=%d)",
+                                float(first_bbox.get("cx", 0.5)),
+                                float(first_bbox.get("area", 0.0)),
+                                self._preview_attempt)
+            # max_retry 초과 시 preview 포기 → 정상 추론으로 낙하 (preview_rot=None)
+
+        if preview_rot is not None:
+            total_ms = (time.time() - start) * 1000.0
+            return {
+                "action": ACTION_2D[preview_rot],
+                "action_3d": ACTION_3D[preview_rot],
+                "predicted_class": preview_rot,
+                "predicted_label": CLASS_NAMES[preview_rot],
+                "bbox": {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0},
+                "grounding_latency_ms": 0.0,
+                "latency_ms": total_ms,
+                "goal_near_proxy": False,
+                "proximity_override": False,
+                "learned_stop": False,
+                "stop_latched": False,
+                "stop_mode": STOP_MODE,
+                "grounding_cached": False,
+                "head_mode": "preview",
+                "preview_align": True,
+                "preview_attempt": self._preview_attempt,
+                "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+                "source": "stage2_v2",  # Fix A: preview 응답 누락 시 /predict 500 방지
+            }
+
         # CH40 hidden-state head 사용 여부 — 체크포인트 없으면 baseline으로 자동 폴백
+        # (plan_20260622_hidden_state_hub_integration.md §1-1).
         use_hidden = head_mode in ("add", "replace") and head_mode in self.hidden_heads
         effective_head_mode = head_mode if use_hidden else "baseline"
 
-        # ── Grounding (CH54 재설계) ──────────────────────────────────────────
-        # 원칙: has_bbox=False 인 값을 MLP에 절대 넘기지 않는다.
-        #
-        # skip-N 캐시 프레임: _grounding_cache 사용 (항상 has_bbox=True 값만 저장)
-        # 신규 PG2 호출:
-        #   has_bbox=True  → _grounding_cache / _last_valid_bbox 갱신, preview 카운터 리셋
-        #   has_bbox=False:
-        #     _last_valid_bbox 있음 → 해당 값으로 대체 (주행 유지, _grounding_cache 오염 방지)
-        #     _last_valid_bbox 없음 + preview 가능 → ROT 반환 (탐색 재시도)
-        #     _last_valid_bbox 없음 + 재시도 소진 → STOP 반환 (basket 불검출 완전 포기)
+        # Grounding (with optional caching) — hidden state 모드는 항상 새로 계산(캐시에 hidden_state가
+        # 없을 수 있어 단순화를 위해 skip-cache 비적용, 데모/테스트 용도라 비용 영향 적음).
         use_cache = (
             not use_hidden
             and self._grounding_skip_n > 1
@@ -641,120 +813,26 @@ class Stage2V2Model:
         )
 
         g_start = time.time()
-        grounding_used_stale = False
         if use_cache:
             bbox = self._grounding_cache
             grounding_latency_ms = 0.0
         else:
-            raw_bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=use_hidden)
-            grounding_latency_ms = (time.time() - g_start) * 1000.0
-
-            # PaliGemma2 fresh 그라운딩 결과 추출
-            has_bbox = raw_bbox.get("has_bbox", False)
-            cx = float(raw_bbox.get("cx", 0.5))
-
-            if self._last_valid_bbox is None:
-                # ── 1. 최초 그라운딩 & 정면 정렬 성공 전 단계 (VLA 진입 제한) ──
-                if has_bbox:
-                    if 0.4 <= cx <= 0.6:
-                        # 정면에 잘 들어옴 ➔ 최초로 VLA MLP 주행 진입 허가
-                        logger.info("[CH54] 최초 그라운딩 정면 정렬 성공 (cx=%.3f) ➔ VLA 진입 허가", cx)
-                        bbox = raw_bbox
-                        self._grounding_cache = bbox
-                        self._last_valid_bbox = bbox
-                        self._preview_attempt = 0
-                    else:
-                        # 타겟을 감지했으나 좌/우 치우침 ➔ 프리뷰 피드백 회전으로 정면 정렬 유도 (MLP 차단)
-                        preview_rot = 6 if cx < 0.4 else 7  # 6: ROT_L, 7: ROT_R
-                        self._preview_attempt += 1
-                        logger.info("[CH54] 오브젝트 발견(cx=%.3f) ➔ 정면 정렬 유도 회전 (%s) 수행",
-                                    cx, CLASS_NAMES[preview_rot])
-                        total_ms = (time.time() - start) * 1000.0
-                        return {
-                            "action": ACTION_2D[preview_rot],
-                            "action_3d": ACTION_3D[preview_rot],
-                            "predicted_class": preview_rot,
-                            "predicted_label": CLASS_NAMES[preview_rot],
-                            "bbox": raw_bbox,
-                            "grounding_latency_ms": grounding_latency_ms,
-                            "latency_ms": total_ms,
-                            "goal_near_proxy": False,
-                            "proximity_override": False,
-                            "learned_stop": False,
-                            "stop_latched": False,
-                            "stop_mode": STOP_MODE,
-                            "grounding_cached": False,
-                            "head_mode": "preview_align",
-                            "source": "preview_align",
-                            "preview_align": True,
-                            "preview_attempt": self._preview_attempt,
-                            "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
-                        }
-                else:
-                    # 타겟 미검출 상태
-                    if self._preview_enabled:
-                        # fallback 회전 방향으로 계속 지속 회전 탐색
-                        preview_rot = self._preview_fallback_rot
-                        self._preview_attempt += 1
-                        logger.info("[CH54] 오브젝트 미발견 ➔ fallback 회전 (%s) 지속 탐색", CLASS_NAMES[preview_rot])
-                        total_ms = (time.time() - start) * 1000.0
-                        return {
-                            "action": ACTION_2D[preview_rot],
-                            "action_3d": ACTION_3D[preview_rot],
-                            "predicted_class": preview_rot,
-                            "predicted_label": CLASS_NAMES[preview_rot],
-                            "bbox": raw_bbox,
-                            "grounding_latency_ms": grounding_latency_ms,
-                            "latency_ms": total_ms,
-                            "goal_near_proxy": False,
-                            "proximity_override": False,
-                            "learned_stop": False,
-                            "stop_latched": False,
-                            "stop_mode": STOP_MODE,
-                            "grounding_cached": False,
-                            "head_mode": "preview_search",
-                            "source": "preview_search",
-                            "preview_align": True,
-                            "preview_attempt": self._preview_attempt,
-                            "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
-                        }
-                    else:
-                        # preview 비활성 시 안전 정지
-                        logger.info("[CH54] 최초 그라운딩 실패 및 preview 미활성 ➔ 안전 STOP 반환")
-                        total_ms = (time.time() - start) * 1000.0
-                        return {
-                            "action": ACTION_2D[0],
-                            "action_3d": ACTION_3D[0],
-                            "predicted_class": 0,
-                            "predicted_label": "STOP",
-                            "bbox": raw_bbox,
-                            "grounding_latency_ms": grounding_latency_ms,
-                            "latency_ms": total_ms,
-                            "goal_near_proxy": False,
-                            "proximity_override": False,
-                            "learned_stop": False,
-                            "stop_latched": False,
-                            "stop_mode": STOP_MODE,
-                            "grounding_cached": False,
-                            "head_mode": "grounding_failed",
-                            "source": "grounding_failed",
-                            "preview_align": False,
-                            "preview_attempt": 0,
-                            "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
-                        }
+            if use_hidden:
+                bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=True)
             else:
-                # ── 2. 이미 최초 정면 정렬 성공 이후 단계 (주행 중) ──
-                if has_bbox:
-                    bbox = raw_bbox
-                    self._grounding_cache = bbox
-                    self._last_valid_bbox = bbox
-                    self._preview_attempt = 0
-                else:
-                    bbox = self._last_valid_bbox
-                    grounding_used_stale = True
-                    logger.info("[GND] 주행 중 has_bbox=False ➔ last_valid 대체 cx=%.3f area=%.4f count=%d",
-                                float(bbox.get("cx", 0.5)), float(bbox.get("area", 0.0)),
-                                self.inference_count)
+                bbox = self._ground_multi(image_rgb, phrase)  # 멀티프롬프트 fallback 포함
+            grounding_latency_ms = (time.time() - g_start) * 1000.0
+            # P2: cx 급변 필터 — 직전 유효 bbox 대비 cx가 임계값 이상 점프하면 오탐 판정 → 캐시 유지
+            _prev = self._grounding_cache
+            if (self._cx_jump_filter and _prev is not None
+                    and bbox.get("has_bbox") and _prev.get("has_bbox")
+                    and abs(float(bbox["cx"]) - float(_prev["cx"])) > self._cx_jump_thresh):
+                logger.info("[FILTER] cx jump %.3f→%.3f (>%.2f) rejected, keep cache",
+                            float(_prev["cx"]), float(bbox["cx"]), self._cx_jump_thresh)
+                bbox = _prev
+                use_cache = True
+            else:
+                self._grounding_cache = bbox
 
         # hidden_state(numpy array)는 JSON 응답에 그대로 넣으면 pydantic 직렬화가 깨짐 —
         # feature 계산용으로만 빼두고 응답 bbox에서는 제거 (plan_20260622_hidden_state_hub_integration.md).
@@ -783,17 +861,33 @@ class Stage2V2Model:
                 else:  # replace
                     x = torch.cat([vis_feat, h_t]).unsqueeze(0)
                 logits = self.hidden_heads[effective_head_mode](x)
+            elif self.is_transformer:
+                x = self._build_seq_feature_trans().unsqueeze(0)  # (1, window, 260)
+                logits = self.head(x)
+            elif self.is_cx_geom:
+                xh = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, hist_dim)
+                xg = torch.tensor(
+                    [frame["cx"], frame["cy"], frame["area"], float(frame["has_bbox"])],
+                    dtype=torch.float32, device=self.device).unsqueeze(0)  # (1, 4)
+                logits = self.head(xh, xg)
             elif self.is_lstm:
                 x = self._build_seq_feature().unsqueeze(0)  # (1, window, SEQ_DIM)
                 logits = self.head(x)
             else:
                 x = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, d_in)
                 logits = self.head(x)
-            # ROT_L(6) / ROT_R(7) 마스킹 — 학습 데이터 ~0%, OOD 입력에서 잘못 활성화
-            if logits.shape[-1] > 6:
-                logits[:, 6] = float("-inf")
-                logits[:, 7] = float("-inf")
             pred_class = int(logits.argmax(dim=-1).item())
+
+        # ── cx-rule override (VLA_CX_RULE=1일 때) ───────────────────────────
+        # bbox가 있을 때만 기하학 룰로 덮어씀. has_bbox=False면 MLP 예측 유지.
+        if CX_RULE_ENABLED and frame.get("has_bbox", False):
+            cx = frame.get("cx", 0.5)
+            thr = CX_RULE_THRESHOLDS
+            if   cx < thr["rot_l"]:  pred_class = 6  # ROT_L
+            elif cx < thr["fwd_l"]:  pred_class = 4  # FWD+L
+            elif cx <= thr["fwd_r"]: pred_class = 1  # FORWARD
+            elif cx <= thr["rot_r"]: pred_class = 5  # FWD+R
+            else:                    pred_class = 7  # ROT_R
 
         # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
         proximity_override = False
@@ -830,6 +924,7 @@ class Stage2V2Model:
                 proximity_override = True
                 pred_class = 0
 
+        cx_rule_tag = " [CX-RULE]" if CX_RULE_ENABLED and frame.get("has_bbox", False) else ""
         stop_tag = ""
         if proximity_override: stop_tag = " [PROXIMITY STOP]"
         elif learned_stop and self.stop_latched and self.inference_count > 0:
@@ -841,8 +936,8 @@ class Stage2V2Model:
         total_ms = (time.time() - start) * 1000.0
         temporal_tag = f" [near {near_frames}/{GOAL_CONSEC_FRAMES}]" if STOP_MODE != "learned" else ""
         logger.info(
-            "[#%d] %s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
-            self.inference_count, CLASS_NAMES[pred_class], stop_tag, temporal_tag,
+            "[#%d] %s%s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            self.inference_count, CLASS_NAMES[pred_class], stop_tag, temporal_tag, cx_rule_tag,
             frame["cx"], frame["area"], frame["has_bbox"], total_ms,
         )
 
@@ -859,8 +954,7 @@ class Stage2V2Model:
             "learned_stop": learned_stop,
             "stop_latched": self.stop_latched,
             "stop_mode": STOP_MODE,
-            "grounding_cached": use_cache or grounding_used_stale,
-            "grounding_stale": grounding_used_stale,
+            "grounding_cached": use_cache,
             "head_mode": effective_head_mode,
             "buffer_status": {
                 "history_size": len(self.history),
@@ -928,8 +1022,6 @@ class InferenceResponse(BaseModel):
     stop_mode: Optional[str] = None
     grounding_cached: Optional[bool] = None
     head_mode: Optional[str] = None
-    preview_align: Optional[bool] = None
-    preview_attempt: Optional[int] = None
 
 
 class LoadRequest(BaseModel):
@@ -945,6 +1037,12 @@ class ConfigRequest(BaseModel):
     stop_consec_frames: Optional[int] = None
     stop_mode: Optional[str] = None          # "proximity" | "learned"
     stop_latched: Optional[bool] = None      # None=그대로, False=latch 해제
+    # 런타임 모드 토글 (서버 재시작 불필요) — 재현 주행용
+    preview_enabled: Optional[bool] = None   # preview 격리 회전 on/off
+    preview_hint_cx: Optional[bool] = None   # FILTER cx 힌트 회전 on/off
+    cx_jump_filter: Optional[bool] = None    # P2: cx 급변 오탐 필터 on/off
+    cx_jump_thresh: Optional[float] = None   # P2: 급변 임계값 (기본 0.30)
+    multi_prompt: Optional[bool] = None      # 멀티프롬프트 fallback on/off
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
@@ -980,33 +1078,42 @@ async def health() -> dict[str, Any]:
             "allocated_gb": round(torch.cuda.memory_allocated() / 1e9, 3),
             "device_name": torch.cuda.get_device_name(0),
         }
-    rot_az = round(abs(ACTION_3D[6][2]), 3)  # ROT_L az magnitude
-    preview_cfg = {
-        "enabled": m._preview_enabled if m else False,
-        "max_retry": m._preview_max_retry if m else 0,
-        "area_thresh": m._preview_area_thresh if m else 0.0,
-        "rot_az": rot_az,
-        "attempt_count": m._preview_attempt if m else 0,
-    } if m else {}
+    prev: dict[str, Any] = {}
+    grnd: dict[str, Any] = {}
+    if m:
+        prev = {
+            "enabled": getattr(m, "_preview_enabled", False),
+            "max_retry": getattr(m, "_preview_max_retry", 5),
+            "area_thresh": getattr(m, "_preview_area_thresh", 0.03),
+            "rot_az": ACTION_3D[6][2],
+            "attempt_count": getattr(m, "_preview_attempt", 0),
+            "hint_cx": getattr(m, "_preview_use_hint_cx", False),
+        }
+        if hasattr(m, "grounder") and m.grounder is not None:
+            g = m.grounder
+            grnd = {
+                "model": getattr(g, "_model_tag", "PG2-448"),
+                "input_px": getattr(g, "_input_px", 448),
+                "phrase": getattr(g, "_phrase", "gray basket"),
+            }
     return {
         "status": "healthy",
         "model_loaded": m is not None,
         "head": m.head_name if m else None,
         "window": m.window if m else None,
-        "val_acc": round(m.val_acc, 4) if m and m.val_acc else None,
-        "inference_count": m.inference_count if m else 0,
+        "val_acc": m.val_acc if m else None,
+        "checkpoint_path": m.checkpoint_path if m else None,
         "stop_mode": STOP_MODE,
         "stop_latched": m.stop_latched if m else False,
         "gpu": gpu,
-        "grounder": {
-            "model": "PG2-448",
-            "path": str(DEFAULT_PG2.name),
-            "prompt": "detect {phrase}",
-            "phrase": "gray basket",
-            "input_px": 448,
-        },
-        "preview": preview_cfg,
-        "checkpoint_path": str(os.getenv("VLA_S2V2_STAGE2", "")),
+        "preview": prev,
+        "grounder": grnd,
+        "grounding_skip_n": getattr(m, "_grounding_skip_n", None) if m else None,
+        "cx_jump_filter": getattr(m, "_cx_jump_filter", False) if m else False,
+        "cx_jump_thresh": getattr(m, "_cx_jump_thresh", 0.30) if m else 0.30,
+        "multi_prompt": getattr(m, "_multi_prompt", False) if m else False,
+        "fallback_prompts": getattr(m, "_fallback_prompts", []) if m else [],
+        "inference_count": m.inference_count if m else 0,
     }
 
 
@@ -1037,7 +1144,7 @@ async def predict(
             action=result["action"],
             action_3d=result["action_3d"],
             latency_ms=result["latency_ms"],
-            source=result["source"],
+            source=result.get("source", "stage2_v2"),
             buffer_status=result["buffer_status"],
             predicted_class=result["predicted_class"],
             predicted_label=result["predicted_label"],
@@ -1047,8 +1154,6 @@ async def predict(
             proximity_override=result["proximity_override"],
             grounding_cached=result["grounding_cached"],
             head_mode=result["head_mode"],
-            preview_align=result.get("preview_align"),
-            preview_attempt=result.get("preview_attempt"),
         )
     except HTTPException:
         raise
@@ -1085,9 +1190,6 @@ async def recent_predictions(x_api_key: Optional[str] = Header(default=None)) ->
         "inference_count": m.inference_count,
         "stop_latched": m.stop_latched,
         "stop_mode": STOP_MODE,
-        "preview_enabled": m._preview_enabled,
-        "preview_attempt": m._preview_attempt,
-        "preview_max_retry": m._preview_max_retry,
     }
 
 
@@ -1132,6 +1234,33 @@ async def set_config(
         m = get_model()
         m.stop_latched = bool(request.stop_latched)
         applied["stop_latched"] = m.stop_latched
+
+    if request.preview_enabled is not None:
+        m = get_model()
+        m._preview_enabled = bool(request.preview_enabled)
+        if not m._preview_enabled:
+            m._preview_attempt = 0
+        applied["preview_enabled"] = m._preview_enabled
+
+    if request.preview_hint_cx is not None:
+        m = get_model()
+        m._preview_use_hint_cx = bool(request.preview_hint_cx)
+        applied["preview_hint_cx"] = m._preview_use_hint_cx
+
+    if request.cx_jump_filter is not None:
+        m = get_model()
+        m._cx_jump_filter = bool(request.cx_jump_filter)
+        applied["cx_jump_filter"] = m._cx_jump_filter
+
+    if request.cx_jump_thresh is not None:
+        m = get_model()
+        m._cx_jump_thresh = float(request.cx_jump_thresh)
+        applied["cx_jump_thresh"] = m._cx_jump_thresh
+
+    if request.multi_prompt is not None:
+        m = get_model()
+        m._multi_prompt = bool(request.multi_prompt)
+        applied["multi_prompt"] = m._multi_prompt
 
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
@@ -1186,7 +1315,7 @@ async def ground_debug(
         grounder._ensure_loaded()
     image_rgb = m._decode_image(request.image)
     pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
-    pil = resize_for_vlm(pil)
+    # Fix B-1: PG2 네이티브 448 (resize_for_vlm=224 제거, run()과 동일 경로)
     prompt = request.prompt or "detect gray basket"
     inp = grounder._proc(text=prompt, images=pil, return_tensors="pt").to(grounder._device)
     inp["pixel_values"] = inp["pixel_values"].to(grounder._dtype)

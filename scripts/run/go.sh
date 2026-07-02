@@ -21,6 +21,7 @@ DASH_PORT=7865
 HUB_PORT=7860
 S1_PT="runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 S2_PT="runs/v5_nav/mlp/stop_lastN/stop_N1.pt"
+ACTION_PT="runs/v5_nav/mlp/exp71_window6/action_transformer.pt"
 
 # .venv 있으면 우선, 없으면 시스템 python3
 if [[ -x ".venv/bin/python3" ]]; then
@@ -90,9 +91,9 @@ fi
 # ── 체크포인트 확인 ───────────────────────────────────────────────────────
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  mona-up  (stop_N1 CL 96.6% — Stage2 v2 + learned STOP)"
+echo "  mona-up  (exp71 Transformer W=6 val_acc=99.2% — Stage2 v2 + learned STOP)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-for f in "$S1_PT" "$S2_PT"; do
+for f in "$S1_PT" "$S2_PT" "$ACTION_PT"; do
     if [[ -f "$f" ]]; then
         echo "  ✓ $(du -sh "$f" | cut -f1)  $f"
     else
@@ -108,10 +109,11 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
     echo "▶ 1/3  추론 서버 (포트 $SERVER_PORT)"
     pkill -f "stage2_v2_inference_server" 2>/dev/null && sleep 1 || true
 
-    nohup env VLA_S2V2_STAGE2="$S2_PT" VLA_STOP_MODE=learned \
+    nohup env VLA_S2V2_STAGE2="$ACTION_PT" VLA_STOP_MODE=learned \
         VLA_PREVIEW_ENABLED="${VLA_PREVIEW_ENABLED:-1}" \
         VLA_PREVIEW_MAX_RETRY="${VLA_PREVIEW_MAX_RETRY:-5}" \
         VLA_PREVIEW_ROT_DIR="${VLA_PREVIEW_ROT_DIR:-R}" \
+        VLA_PREVIEW_HINT_CX="${VLA_PREVIEW_HINT_CX:-1}" \
         "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
         --port "$SERVER_PORT" > logs/s2v2_server.log 2>&1 &
     disown $!
