@@ -1775,6 +1775,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <input type="checkbox" id="toggle-grid" onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
             </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
+              <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
+              <span id="cam-proc-status-drive" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
+              <button class="btn btn-outline" onclick="camProcStart()" style="font-size:10px; padding:2px 8px;">▶ 시작</button>
+              <button class="btn btn-outline" onclick="camProcStop()" style="font-size:10px; padding:2px 8px;">■ 정지</button>
+              <button class="btn btn-outline" onclick="camProcRefresh()" style="font-size:10px; padding:2px 8px;">↻</button>
+            </div>
             <div class="viewport-wrapper" id="drive-viewport">
               <img id="live-stream-img" class="viewport-img" src="/camera/stream" onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
               <canvas id="live-canvas" class="viewport-canvas" width="640" height="360"></canvas>
@@ -1878,6 +1885,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           <!-- 왼쪽: 그라운딩 모니터 -->
           <div class="card">
             <div class="card-title">🔍 Grounding Live Monitor</div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
+              <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
+              <span id="cam-proc-status-gnd" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
+              <button class="btn btn-outline" onclick="camProcStart()" style="font-size:10px; padding:2px 8px;">▶ 시작</button>
+              <button class="btn btn-outline" onclick="camProcStop()" style="font-size:10px; padding:2px 8px;">■ 정지</button>
+              <button class="btn btn-outline" onclick="camProcRefresh()" style="font-size:10px; padding:2px 8px;">↻</button>
+            </div>
             <div class="viewport-wrapper">
               <img id="gnd-stream-img" class="viewport-img" src="/camera/stream">
               <canvas id="gnd-canvas" class="viewport-canvas" width="640" height="360"></canvas>
@@ -2000,6 +2014,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid-vfy" onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
+              <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
+              <span id="cam-proc-status-vfy" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
+              <button class="btn btn-outline" onclick="camProcStart()" style="font-size:10px; padding:2px 8px;">▶ 시작</button>
+              <button class="btn btn-outline" onclick="camProcStop()" style="font-size:10px; padding:2px 8px;">■ 정지</button>
+              <button class="btn btn-outline" onclick="camProcRefresh()" style="font-size:10px; padding:2px 8px;">↻</button>
             </div>
             <div class="viewport-wrapper" style="position:relative; border-radius:12px; overflow:hidden; background-color:#000; aspect-ratio:16/9; border:1px solid var(--border-glow);">
               <img id="verify-stream-img" class="viewport-img" src="/camera/stream" style="width:100%; height:100%; object-fit:contain;">
@@ -2295,6 +2316,13 @@ L S R  C S L  R S L
           <!-- 왼쪽: 뷰어 및 수동 조작 -->
           <div class="card">
             <div class="card-title">📷 Live Calibration Camera</div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
+              <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
+              <span id="cam-proc-status-calib" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
+              <button class="btn btn-outline" onclick="camProcStart()" style="font-size:10px; padding:2px 8px;">▶ 시작</button>
+              <button class="btn btn-outline" onclick="camProcStop()" style="font-size:10px; padding:2px 8px;">■ 정지</button>
+              <button class="btn btn-outline" onclick="camProcRefresh()" style="font-size:10px; padding:2px 8px;">↻</button>
+            </div>
             <div class="viewport-wrapper">
               <img id="calib-stream-img" class="viewport-img" src="/camera/stream">
               <canvas id="calib-canvas" class="viewport-canvas" width="640" height="360"></canvas>
@@ -2597,6 +2625,31 @@ L S R  C S L  R S L
     async function api(path, opts={}) {
       const r = await fetch(API + path, opts);
       return r.json();
+    }
+
+    // ── 카메라 프로세스(usb_camera_service_server) 제어 — 모든 탭 공용 ──
+    function _setCamProcText(text) {
+      document.querySelectorAll(".cam-proc-status").forEach(el => el.textContent = text);
+    }
+
+    async function camProcRefresh() {
+      _setCamProcText("확인 중...");
+      const res = await api("/camera_proc/status");
+      _setCamProcText(res.text || "—");
+    }
+
+    async function camProcStart() {
+      _setCamProcText("⏳ 시작 중...");
+      const res = await api("/camera_proc/start", { method: "POST" });
+      _setCamProcText(res.text || "—");
+      setTimeout(camProcRefresh, 3000);
+    }
+
+    async function camProcStop() {
+      if (!confirm("카메라 프로세스를 정지하시겠습니까? (스트림이 끊깁니다)")) return;
+      _setCamProcText("⏳ 정지 중...");
+      const res = await api("/camera_proc/stop", { method: "POST" });
+      _setCamProcText(res.text || "—");
     }
 
     function switchTab(el, tab) {
@@ -3720,13 +3773,68 @@ L S R  C S L  R S L
     // 초기 스타트
     setInterval(pollStatus, 500);
     setInterval(pollHealth, 3000);
+    setInterval(camProcRefresh, 10000);
     pollStatus();
     pollHealth();
     loadEpisodeHistory();
+    camProcRefresh();
 
   </script>
 </body>
 </html>"""
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 카메라 프로세스 제어 (usb_camera_service_server) — Gradio 대시보드 이식
+# ═══════════════════════════════════════════════════════════════════
+import subprocess as _subprocess
+
+_CAM_KILL_PATTERN = "usb_camera_service_server"
+_CAM_ROS_DIST = "/opt/ros/humble"
+_CAM_ROS_WS = str(ROOT / "ROS_action" / "install")
+_CAM_START_CMD = (
+    f"export PATH={_CAM_ROS_DIST}/bin:$PATH; "
+    f"export PYTHONPATH={_CAM_ROS_DIST}/local/lib/python3.10/dist-packages"
+    f":{_CAM_ROS_DIST}/lib/python3.10/site-packages"
+    f":{_CAM_ROS_WS}/camera_interfaces/local/lib/python3.10/dist-packages"
+    f":{_CAM_ROS_WS}/camera_pub/local/lib/python3.10/dist-packages:$PYTHONPATH; "
+    f"export LD_LIBRARY_PATH={_CAM_ROS_DIST}/lib"
+    f":{_CAM_ROS_WS}/camera_interfaces/lib:{_CAM_ROS_WS}/camera_pub/lib:$LD_LIBRARY_PATH; "
+    f"source {_CAM_ROS_DIST}/setup.bash 2>/dev/null; "
+    f"cd {_CAM_ROS_WS} && source setup.bash 2>/dev/null; "
+    "export ROS_DOMAIN_ID=42; "
+    "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp; "
+    "nohup ros2 run camera_pub usb_camera_service_server "
+    f"> {ROOT}/logs/camera_pub.log 2>&1 &"
+)
+
+
+def _cam_pids() -> list[str]:
+    r = _subprocess.run(["pgrep", "-f", _CAM_KILL_PATTERN], capture_output=True, text=True)
+    return [p for p in r.stdout.strip().split() if p]
+
+
+@app.get("/camera_proc/status")
+def camera_proc_status():
+    pids = _cam_pids()
+    return {"running": bool(pids), "pids": pids,
+            "text": (f"🟢 실행 중 pid={','.join(pids)}" if pids else "🔴 정지됨")}
+
+
+@app.post("/camera_proc/start")
+def camera_proc_start():
+    if _cam_pids():
+        return {"ok": True, "already_running": True, "text": f"🟢 이미 실행 중 pid={','.join(_cam_pids())}"}
+    _subprocess.Popen(["bash", "-c", _CAM_START_CMD])
+    return {"ok": True, "already_running": False, "text": "⏳ 시작 중... (몇 초 후 새로고침)"}
+
+
+@app.post("/camera_proc/stop")
+def camera_proc_stop():
+    _subprocess.run(["pkill", "-9", "-f", _CAM_KILL_PATTERN])
+    time.sleep(0.4)
+    pids = _cam_pids()
+    return {"ok": True, "text": (f"🟢 실행 중 pid={','.join(pids)}" if pids else "🔴 정지됨")}
 
 
 # ═══════════════════════════════════════════════════════════════════

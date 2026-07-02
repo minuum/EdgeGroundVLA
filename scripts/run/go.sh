@@ -123,6 +123,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
         VLA_PREVIEW_MAX_RETRY="${VLA_PREVIEW_MAX_RETRY:-5}" \
         VLA_PREVIEW_ROT_DIR="${VLA_PREVIEW_ROT_DIR:-R}" \
         VLA_PREVIEW_HINT_CX="${VLA_PREVIEW_HINT_CX:-1}" \
+        VLA_API_KEY="${VLA_API_KEY:-vla_devel_key_2026}" \
         "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
         --port "$SERVER_PORT" > logs/s2v2_server.log 2>&1 &
     disown $!
