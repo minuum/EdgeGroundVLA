@@ -92,6 +92,58 @@ app = FastAPI(title="Stage2 v2 VLA API", version="1.0.0")
 
 ROOT = Path(project_root)
 
+# ── Fix3: 서버 버전 핸드셰이크 (FIX3_SERVER_VERSION_HANDSHAKE.md) ────────────
+# 2026-07-02 사고: Fix1 커밋(13:46) 후 서버 재시작(15:49) 전까지 수집된 세션
+# 5개가 구 코드로 그라운딩됐는데 아무도 즉시 알 수 없었음.
+# /health에 git_commit/process_started_at/code_mtime을 노출해 수신측이
+# "코드 수정시각 > 프로세스 기동시각" 불일치를 자동 감지하게 한다.
+_PROCESS_START_TS = time.time()
+
+
+def _get_git_commit() -> str:
+    import subprocess
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=ROOT, stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:
+        return "unknown"
+
+
+_GIT_COMMIT = _get_git_commit()  # 기동 시 1회만 계산
+
+# ── Fix4: PG2 판정 영구 로그 (FIX4_PG2_DECISION_LOG.md) ─────────────────────
+# [PG2] FILTER 로그가 일반 서버 로그에만 남아 로테이션되면 특정 프레임의
+# 판정 근거를 재구성할 방법이 없었음(212648 t9/t15 flicker 조사 실패).
+# 별도 JSONL에 append — 재시작/로테이션 무관하게 영구 보존.
+_PG2_DECISION_LOG = ROOT / "logs" / "grounding_decisions.jsonl"
+_PG2_DECISION_LOG.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _log_pg2_decision(phrase: str, raw: str, locs: list, result: dict,
+                      latency_ms: float = 0.0) -> None:
+    """PG2 grounding 판정 근거를 영구 JSONL에 append."""
+    try:
+        from datetime import datetime
+        entry = {
+            "ts": datetime.now().isoformat(),          # H5 프레임과 시각 기반 매칭용
+            "phrase": phrase,
+            "raw_output": raw[:200],
+            "n_locs": len(locs),
+            "locs": [round(v, 4) for v in locs[:8]],   # 필터 전 raw 좌표 보존
+            "has_bbox": result.get("has_bbox", False),
+            "filter_reason": result.get("filter_reason"),  # None=통과
+            "cx": result.get("cx"),
+            "cy": result.get("cy"),
+            "area": result.get("area"),
+            "latency_ms": round(latency_ms, 1),        # 호출 1회당 (멀티프롬프트 합산 아님)
+        }
+        with open(_PG2_DECISION_LOG, "a") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass  # 로깅 실패가 추론을 막아서는 안 됨
+
 # --- defaults ---
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 # 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
@@ -410,6 +462,19 @@ class Grounder:
 # Matches Exp65/66 training distribution; more reliable than Kosmos-2 for basket detection.
 # ---------------------------------------------------------------------------
 
+from transformers import StoppingCriteria, StoppingCriteriaList
+
+class StopOnTokenCriteria(StoppingCriteria):
+    """특정 토큰(예: 세미콜론)이 생성되면 출력을 즉시 중단하는 criteria 클래스"""
+    def __init__(self, stop_token_id: int):
+        self.stop_token_id = stop_token_id
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        if input_ids.shape[1] == 0:
+            return False
+        # 마지막으로 예측된 토큰이 중단 타겟 토큰인지 확인합니다.
+        return input_ids[0, -1].item() == self.stop_token_id
+
 class PG2Grounder:
     """PaliGemma2-based bbox grounder using 'detect gray basket' prompt."""
 
@@ -427,7 +492,14 @@ class PG2Grounder:
             self._model = PaliGemmaForConditionalGeneration.from_pretrained(
                 str(self._pg2_path), torch_dtype=self._dtype, low_cpu_mem_usage=True
             ).to(self._device).eval()
-            logger.info("PG2Grounder: ready")
+            
+            # 토크나이저로부터 세미콜론 토큰 ID 추출 (기본값=235289)
+            try:
+                semicolon_ids = self._proc.tokenizer.encode(";", add_special_tokens=False)
+                self._semicolon_token_id = semicolon_ids[0] if semicolon_ids else 235289
+            except Exception:
+                self._semicolon_token_id = 235289
+            logger.info("PG2Grounder: ready (semicolon_token_id=%d)", self._semicolon_token_id)
 
     def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
             return_raw: bool = False, phrase: str = "gray basket",
@@ -438,22 +510,31 @@ class PG2Grounder:
         마지막 레이어·마지막 입력 위치)도 같이 반환 — 별도 forward 없음
         (plan_20260622_hidden_state_hub_integration.md §1-2).
         """
+        _t0 = time.time()  # Fix4: 호출 1회당 latency (predict 레벨 합산과 별개)
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
-        pil = resize_for_vlm(pil)
+        # Fix B-1: PG2-448은 raw 프레임을 PaliGemmaProcessor의 네이티브 448 처리에 맡긴다.
+        # 학습 annotation(gen_pg448_annotation.py)이 resize 없이 원본을 넣었으므로 동일 경로 유지.
+        # (기존 resize_for_vlm=224 다운스케일 → 448 업스케일은 디테일 손실 + full-frame 환각 유발)
         inp = self._proc(text=f"detect {phrase}", images=pil, return_tensors="pt").to(self._device)
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
         hidden_vec = None
+        # 세미콜론 토큰 검출 시 즉시 토큰 생성을 중단하는 criteria를 적용합니다.
+        stopping_criteria = StoppingCriteriaList([StopOnTokenCriteria(self._semicolon_token_id)])
         with torch.no_grad():
             if return_hidden:
                 out = self._model.generate(
                     **inp, max_new_tokens=48, min_new_tokens=1, do_sample=False,
+                    stopping_criteria=stopping_criteria,
                     output_hidden_states=True, return_dict_in_generate=True,
                 )
                 gen = out.sequences
                 hidden_vec = out.hidden_states[0][-1][0, -1, :].float().cpu().numpy()
             else:
-                gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
+                gen = self._model.generate(
+                    **inp, max_new_tokens=48, min_new_tokens=1, do_sample=False,
+                    stopping_criteria=stopping_criteria,
+                )
         raw = self._proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
         locs = [int(v) / 1023.0 for v in _LOC_RE.findall(raw)]
         if len(locs) >= 4:
@@ -470,24 +551,37 @@ class PG2Grounder:
             # min_area/min_cy는 바스켓 전용 휴리스틱(바구니는 항상 화면 하단~중단)이라
             # phrase별로 오버라이드 가능하게 함(configs/ground_filter_map.json).
             filters = get_ground_filters(phrase)
+            # Fix4: filter_reason — has_bbox=False가 "생성 실패(no-locs)"인지
+            # "필터 걸림(tiny/top/full-frame/x-full)"인지 jsonl에서 즉시 구분
             if area > 0.9:          # full-frame collapse (loc0000~loc1022 전체)
-                result = _fallback
+                logger.info("[PG2] FILTER full-frame: area=%.3f cx=%.3f cy=%.3f", area, cx_val, cy_val)
+                result = {**_fallback, "filter_reason": "full-frame"}
             elif area < filters["min_area"]:       # tiny noise detection
-                result = _fallback
+                logger.info("[PG2] FILTER tiny: area=%.4f < min_area=%.4f cx=%.3f cy=%.3f",
+                            area, filters["min_area"], cx_val, cy_val)
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "tiny"}  # 방향 힌트 보존
             elif cy_val < filters["min_cy"]:     # 상단 오탐 (바구니가 프레임 상단에 있을 수 없음)
-                result = _fallback
+                logger.info("[PG2] FILTER top: cy=%.3f < min_cy=%.3f cx=%.3f", cy_val, filters["min_cy"], cx_val)
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "top"}  # 방향 힌트 보존
             elif x1 < 0.02 and x2 > 0.98:  # x-full-width collapse (cx≈0.5 항상)
-                result = _fallback
+                logger.info("[PG2] FILTER x-full: x1=%.3f x2=%.3f", x1, x2)
+                result = {**_fallback, "filter_reason": "x-full"}
             else:
                 result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
                           "x1": x1, "y1": y1, "x2": x2, "y2": y2}
         else:
             result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
-                      "x1": None, "y1": None, "x2": None, "y2": None}
+                      "x1": None, "y1": None, "x2": None, "y2": None,
+                      "filter_reason": "no-locs"}  # loc 토큰 <4개 = 생성 자체 실패
         if return_raw:
             result["raw_output"] = raw
         if return_hidden:
             result["hidden_state"] = hidden_vec
+
+        # Fix4: 판정 근거 영구 기록 (로그 로테이션 무관)
+        _log_pg2_decision(phrase=phrase, raw=raw, locs=locs, result=result,
+                          latency_ms=(time.time() - _t0) * 1000.0)
+
         return result
 
 
@@ -509,9 +603,21 @@ class Stage2V2Model:
     ):
         self.device = device
         self.vlm_path = vlm_path
+        self.checkpoint_path = str(stage2_path)
         self.inference_count = 0
         self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "3"))  # CH49: skip_n=3 SR/FPE 변화 없음 확정
         self._grounding_cache: Optional[dict] = None
+        # P2 (minum FIX_GUIDE): cx 급변 필터 — 직전 대비 cx 점프가 크면 오탐으로 보고 캐시 유지
+        self._cx_jump_filter: bool  = os.getenv("VLA_CX_JUMP_FILTER", "0") == "1"
+        self._cx_jump_thresh: float = float(os.getenv("VLA_CX_JUMP_THRESH", "0.30"))
+        # 멀티프롬프트 fallback: PG2가 full-frame 환각(has_bbox=False)일 때 대체 프롬프트 순차 재시도.
+        # 실패가 (프레임×프롬프트)마다 거의 독립적이라 조합 시 누적 검출률 급등 (2/12→6/12 실측).
+        self._multi_prompt: bool = os.getenv("VLA_MULTI_PROMPT", "1") == "1"
+        self._fallback_prompts: list[str] = [
+            p.strip() for p in os.getenv(
+                "VLA_FALLBACK_PROMPTS", "laundry basket,gray plastic bin,gray bin"
+            ).split(",") if p.strip()
+        ]
 
         # Stage1 (Kosmos-2 vision encoder — image features only)
         self.enc = Stage1Encoder(vlm_path, stage1_path, device)
@@ -585,15 +691,17 @@ class Stage2V2Model:
 
         # CH54: PG2 재시도 루프 — 첫 그라운딩 실패 시 ROT 후 PG2 재시도
         # YOLO ablation(6/26 세션 46개) 결과 cx 일치율 6~9% → PG2 직접 재시도로 전환
-        self._preview_enabled     = os.getenv("VLA_PREVIEW_ENABLED", "") == "1"
-        self._preview_area_thresh = float(os.getenv("VLA_PREVIEW_AREA_THRESH", "0.03"))
-        self._preview_max_retry   = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
-        _rot_dir                  = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
+        self._preview_enabled      = os.getenv("VLA_PREVIEW_ENABLED", "") == "1"
+        self._preview_area_thresh  = float(os.getenv("VLA_PREVIEW_AREA_THRESH", "0.03"))
+        self._preview_max_retry    = int(os.getenv("VLA_PREVIEW_MAX_RETRY", "5"))
+        _rot_dir                   = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
         self._preview_fallback_rot = 7 if _rot_dir != "L" else 6  # ROT_R=7, ROT_L=6
+        self._preview_use_hint_cx  = os.getenv("VLA_PREVIEW_HINT_CX", "0") == "1"
         if self._preview_enabled:
-            logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s",
+            logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s  hint_cx=%s",
                         self._preview_area_thresh, self._preview_max_retry,
-                        "ROT_R" if self._preview_fallback_rot == 7 else "ROT_L")
+                        "ROT_R" if self._preview_fallback_rot == 7 else "ROT_L",
+                        "ON" if self._preview_use_hint_cx else "OFF")
 
     def reset(self) -> None:
         self.history.clear()
@@ -601,6 +709,22 @@ class Stage2V2Model:
         self._grounding_cache = None
         self.stop_latched = False
         self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
+
+    def _ground_multi(self, image_rgb: np.ndarray, phrase: str) -> dict:
+        """멀티프롬프트 grounding: 1차 phrase 미검출이면 fallback 프롬프트 순차 재시도.
+        preview 체크와 메인 추론 양쪽에서 공용 (첫 프레임 full-frame 환각 복구)."""
+        bbox = self.grounder.run(image_rgb, phrase=phrase)
+        if self._multi_prompt and not bbox.get("has_bbox", False):
+            for _alt in self._fallback_prompts:
+                if _alt == phrase:
+                    continue
+                _alt_bbox = self.grounder.run(image_rgb, phrase=_alt)
+                if _alt_bbox.get("has_bbox", False):
+                    logger.info("[MULTI-PROMPT] '%s' 미검출 → '%s' 성공 cx=%.3f area=%.3f",
+                                phrase, _alt, float(_alt_bbox.get("cx", 0.5)),
+                                float(_alt_bbox.get("area", 0.0)))
+                    return _alt_bbox
+        return bbox
 
     # ── CH54: PG2 재시도 루프 helpers ───────────────────────────────────────
 
@@ -611,15 +735,25 @@ class Stage2V2Model:
 
     def _preview_rot_from_bbox(self, bbox: dict) -> int:
         """
-        has_bbox=False 시 sweep 패턴으로 방향 결정 (attempt 기반).
-        has_bbox=True  : cx < 0.4 → ROT_L, cx > 0.6 → ROT_R, 중앙 → ROT_R
-        has_bbox=False : attempt 0→ROT_R, 1→ROT_L, 2→ROT_R, ... 교대
+        has_bbox=True  : cx 기반 방향 (cx<0.4→ROT_L, else→ROT_R)
+        has_bbox=False + hint_cx ON : FILTER top/tiny의 cx로 방향 결정
+        has_bbox=False (신호 없음)   : self._preview_fallback_rot(VLA_PREVIEW_ROT_DIR)
+                                       고정 방향으로 계속 회전 (한쪽으로 스윕)
+
+        2026-07-02: 예전엔 신호 없을 때 attempt%2로 R/L을 교대(alternating)했는데,
+        이러면 회전→반대회전으로 서로 상쇄돼 5번을 돌아도 순 회전량이 0에 수렴해
+        새 화각을 못 봄(RLRLR 반복 버그). 한 방향 고정 스윕으로 변경.
         """
         if bbox.get("has_bbox", False):
             cx = float(bbox.get("cx", 0.5))
             return 6 if cx < 0.4 else 7
-        # sweep: 짝수 attempt → ROT_R, 홀수 → ROT_L
-        return 7 if self._preview_attempt % 2 == 0 else 6
+        if self._preview_use_hint_cx:
+            hint_cx = bbox.get("hint_cx")
+            if hint_cx is not None:
+                rot = 6 if float(hint_cx) < 0.5 else 7
+                logger.info("[CH54] hint_cx=%.3f → %s (필터됐지만 방향 유효)", float(hint_cx), CLASS_NAMES[rot])
+                return rot
+        return self._preview_fallback_rot
 
     def preview_align(self, image_b64: str, phrase: str) -> dict:
         """
@@ -714,7 +848,7 @@ class Stage2V2Model:
         preview_rot: Optional[int] = None
         if self._preview_enabled and self.inference_count == 0:
             if self._preview_attempt < self._preview_max_retry:
-                first_bbox = self.grounder.run(image_rgb, phrase=phrase)
+                first_bbox = self._ground_multi(image_rgb, phrase)
                 if self._needs_preview(first_bbox):
                     preview_rot = self._preview_rot_from_bbox(first_bbox)
                     self._preview_attempt += 1
@@ -752,6 +886,7 @@ class Stage2V2Model:
                 "preview_align": True,
                 "preview_attempt": self._preview_attempt,
                 "buffer_status": {"history_size": 0, "window": self.window, "head": self.head_name},
+                "source": "stage2_v2",  # Fix A: preview 응답 누락 시 /predict 500 방지
             }
 
         # CH40 hidden-state head 사용 여부 — 체크포인트 없으면 baseline으로 자동 폴백
@@ -774,9 +909,25 @@ class Stage2V2Model:
             bbox = self._grounding_cache
             grounding_latency_ms = 0.0
         else:
-            bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=use_hidden)
-            self._grounding_cache = bbox
+            if use_hidden:
+                bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=True)
+            else:
+                # 2026-07-02: 멀티프롬프트(최대 4x PG2 호출)를 주행 중 매 스텝에도 걸어놨더니
+                # 실패 시 8~12초를 태우고도 대부분 그대로 실패로 끝남(3세션 실측, 이득 없음).
+                # preview(첫 프레임 탐색, 764번 줄)에서만 쓰고 본 그라운딩은 단일 프롬프트로 제한.
+                bbox = self.grounder.run(image_rgb, phrase=phrase)
             grounding_latency_ms = (time.time() - g_start) * 1000.0
+            # P2: cx 급변 필터 — 직전 유효 bbox 대비 cx가 임계값 이상 점프하면 오탐 판정 → 캐시 유지
+            _prev = self._grounding_cache
+            if (self._cx_jump_filter and _prev is not None
+                    and bbox.get("has_bbox") and _prev.get("has_bbox")
+                    and abs(float(bbox["cx"]) - float(_prev["cx"])) > self._cx_jump_thresh):
+                logger.info("[FILTER] cx jump %.3f→%.3f (>%.2f) rejected, keep cache",
+                            float(_prev["cx"]), float(bbox["cx"]), self._cx_jump_thresh)
+                bbox = _prev
+                use_cache = True
+            else:
+                self._grounding_cache = bbox
 
         # hidden_state(numpy array)는 JSON 응답에 그대로 넣으면 pydantic 직렬화가 깨짐 —
         # feature 계산용으로만 빼두고 응답 bbox에서는 제거 (plan_20260622_hidden_state_hub_integration.md).
@@ -981,6 +1132,12 @@ class ConfigRequest(BaseModel):
     stop_consec_frames: Optional[int] = None
     stop_mode: Optional[str] = None          # "proximity" | "learned"
     stop_latched: Optional[bool] = None      # None=그대로, False=latch 해제
+    # 런타임 모드 토글 (서버 재시작 불필요) — 재현 주행용
+    preview_enabled: Optional[bool] = None   # preview 격리 회전 on/off
+    preview_hint_cx: Optional[bool] = None   # FILTER cx 힌트 회전 on/off
+    cx_jump_filter: Optional[bool] = None    # P2: cx 급변 오탐 필터 on/off
+    cx_jump_thresh: Optional[float] = None   # P2: 급변 임계값 (기본 0.30)
+    multi_prompt: Optional[bool] = None      # 멀티프롬프트 fallback on/off
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
@@ -1016,14 +1173,47 @@ async def health() -> dict[str, Any]:
             "allocated_gb": round(torch.cuda.memory_allocated() / 1e9, 3),
             "device_name": torch.cuda.get_device_name(0),
         }
+    prev: dict[str, Any] = {}
+    grnd: dict[str, Any] = {}
+    if m:
+        prev = {
+            "enabled": getattr(m, "_preview_enabled", False),
+            "max_retry": getattr(m, "_preview_max_retry", 5),
+            "area_thresh": getattr(m, "_preview_area_thresh", 0.03),
+            "rot_az": ACTION_3D[6][2],
+            "attempt_count": getattr(m, "_preview_attempt", 0),
+            "hint_cx": getattr(m, "_preview_use_hint_cx", False),
+        }
+        if hasattr(m, "grounder") and m.grounder is not None:
+            g = m.grounder
+            grnd = {
+                "model": getattr(g, "_model_tag", "PG2-448"),
+                "input_px": getattr(g, "_input_px", 448),
+                "phrase": getattr(g, "_phrase", "gray basket"),
+            }
     return {
         "status": "healthy",
         "model_loaded": m is not None,
         "head": m.head_name if m else None,
         "window": m.window if m else None,
+        "val_acc": m.val_acc if m else None,
+        "checkpoint_path": m.checkpoint_path if m else None,
         "stop_mode": STOP_MODE,
         "stop_latched": m.stop_latched if m else False,
         "gpu": gpu,
+        "preview": prev,
+        "grounder": grnd,
+        "grounding_skip_n": getattr(m, "_grounding_skip_n", None) if m else None,
+        "cx_jump_filter": getattr(m, "_cx_jump_filter", False) if m else False,
+        "cx_jump_thresh": getattr(m, "_cx_jump_thresh", 0.30) if m else 0.30,
+        "multi_prompt": getattr(m, "_multi_prompt", False) if m else False,
+        "fallback_prompts": getattr(m, "_fallback_prompts", []) if m else [],
+        "inference_count": m.inference_count if m else 0,
+        # Fix3: 서버 버전 핸드셰이크 — code_mtime > process_started_at 이면
+        # "코드는 고쳐졌는데 프로세스는 구버전" (2026-07-02 Fix1 사고 패턴)
+        "git_commit": _GIT_COMMIT,
+        "process_started_at": _PROCESS_START_TS,
+        "code_mtime": os.path.getmtime(__file__),
     }
 
 
@@ -1054,7 +1244,7 @@ async def predict(
             action=result["action"],
             action_3d=result["action_3d"],
             latency_ms=result["latency_ms"],
-            source=result["source"],
+            source=result.get("source", "stage2_v2"),
             buffer_status=result["buffer_status"],
             predicted_class=result["predicted_class"],
             predicted_label=result["predicted_label"],
@@ -1145,6 +1335,33 @@ async def set_config(
         m.stop_latched = bool(request.stop_latched)
         applied["stop_latched"] = m.stop_latched
 
+    if request.preview_enabled is not None:
+        m = get_model()
+        m._preview_enabled = bool(request.preview_enabled)
+        if not m._preview_enabled:
+            m._preview_attempt = 0
+        applied["preview_enabled"] = m._preview_enabled
+
+    if request.preview_hint_cx is not None:
+        m = get_model()
+        m._preview_use_hint_cx = bool(request.preview_hint_cx)
+        applied["preview_hint_cx"] = m._preview_use_hint_cx
+
+    if request.cx_jump_filter is not None:
+        m = get_model()
+        m._cx_jump_filter = bool(request.cx_jump_filter)
+        applied["cx_jump_filter"] = m._cx_jump_filter
+
+    if request.cx_jump_thresh is not None:
+        m = get_model()
+        m._cx_jump_thresh = float(request.cx_jump_thresh)
+        applied["cx_jump_thresh"] = m._cx_jump_thresh
+
+    if request.multi_prompt is not None:
+        m = get_model()
+        m._multi_prompt = bool(request.multi_prompt)
+        applied["multi_prompt"] = m._multi_prompt
+
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
             ignored.append(field)
@@ -1198,7 +1415,7 @@ async def ground_debug(
         grounder._ensure_loaded()
     image_rgb = m._decode_image(request.image)
     pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
-    pil = resize_for_vlm(pil)
+    # Fix B-1: PG2 네이티브 448 (resize_for_vlm=224 제거, run()과 동일 경로)
     prompt = request.prompt or "detect gray basket"
     inp = grounder._proc(text=prompt, images=pil, return_tensors="pt").to(grounder._device)
     inp["pixel_values"] = inp["pixel_values"].to(grounder._dtype)
