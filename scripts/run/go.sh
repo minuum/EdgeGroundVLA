@@ -124,6 +124,9 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
     echo "▶ 1/3  추론 서버 (포트 $SERVER_PORT)"
     pkill -f "stage2_v2_inference_server" 2>/dev/null && sleep 1 || true
 
+    # 재시작마다 로그를 덮어써서 이전 세션 분석에 필요한 로그가 통째로 사라지는
+    # 문제가 있었음(2026-07-02) — 덮어쓰기 전에 타임스탬프 붙여 보관
+    [[ -f logs/s2v2_server.log ]] && mv logs/s2v2_server.log "logs/s2v2_server.$(date +%Y%m%d_%H%M%S).log"
     nohup env VLA_S2V2_STAGE2="$ACTION_PT" VLA_STOP_MODE=learned \
         VLA_PREVIEW_ENABLED="${VLA_PREVIEW_ENABLED:-1}" \
         VLA_PREVIEW_MAX_RETRY="${VLA_PREVIEW_MAX_RETRY:-5}" \
@@ -170,6 +173,9 @@ if [[ "$MODE" == "--all" || "$MODE" == "--mona-dash" ]]; then
         pkill -9 -f "mona_dashboard" 2>/dev/null || true
         sleep 0.5
     fi
+    # 재시작마다 로그를 덮어써서 이전 세션 분석에 필요한 로그가 통째로 사라지는
+    # 문제가 있었음(2026-07-02) — 덮어쓰기 전에 타임스탬프 붙여 보관
+    [[ -f logs/mona_dashboard.log ]] && mv logs/mona_dashboard.log "logs/mona_dashboard.$(date +%Y%m%d_%H%M%S).log"
 
     # ROS2 환경 주입
     ROS_DIST="/opt/ros/humble"

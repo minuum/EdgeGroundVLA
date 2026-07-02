@@ -159,6 +159,11 @@ class InferenceLogger:
                     f.attrs["instruction"] = self.data.get("instruction", "")
                     f.attrs["n_frames"] = len(imgs)
                     f.attrs["status"] = status
+                    # 2026-07-02: 재시작마다 로그가 사라져서 "이 세션 때 런타임 설정이
+                    # 뭐였는지" 나중에 알 수 없던 문제 — 세션 시작 시점 스냅샷을 H5에
+                    # 직접 박아둠(로그 없이도 세션 파일만으로 확인 가능하도록).
+                    if self.data.get("runtime_config"):
+                        f.attrs["runtime_config"] = json.dumps(self.data["runtime_config"])
 
                 print(f"✅ H5 저장: {h5_path}  ({len(imgs)} frames, {imgs.shape})")
                 self.data["h5_path"] = h5_path

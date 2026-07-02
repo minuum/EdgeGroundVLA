@@ -542,6 +542,7 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
     logger.start_session("stage2_v2", instr, instruction_mode=mode)
     if gt_obj:
         logger.data["gt_object"] = gt_obj
+    logger.data["runtime_config"] = _snapshot_runtime_config()
     _state["session_id"] = logger.session_id
 
     _ros.ctrl.robust_stop(source="start")
@@ -860,6 +861,7 @@ def drive_start(req: DriveReq):
         logger = get_logger()
         logger.start_session("stage2_v2", req.instruction, instruction_mode="ASYNC")
         if req.gt_object: logger.data["gt_object"] = req.gt_object
+        logger.data["runtime_config"] = _snapshot_runtime_config()
         _state["session_id"] = logger.session_id
 
         threading.Thread(target=_async_infer,
@@ -986,6 +988,26 @@ def infer_health():
         return r.json()
     except Exception as e:
         return {"status": "error", "detail": str(e)}
+
+
+def _snapshot_runtime_config() -> dict:
+    """세션 시작 시점의 런타임 설정 스냅샷 — H5 attrs에 박아서 나중에
+    로그 없이도 '이 세션 때 뭘 켜놨었는지' 확인 가능하게 함(2026-07-02)."""
+    try:
+        import requests as rq
+        r = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2)
+        h = r.json()
+        return {
+            "preview_enabled": h.get("preview", {}).get("enabled"),
+            "preview_hint_cx": h.get("preview", {}).get("hint_cx"),
+            "grounding_skip_n": h.get("grounding_skip_n"),
+            "cx_jump_filter": h.get("cx_jump_filter"),
+            "cx_jump_thresh": h.get("cx_jump_thresh"),
+            "multi_prompt": h.get("multi_prompt"),
+            "head": h.get("head"),
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ─── 캘리브레이션 녹화 ─────────────────────────────────────────────

@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 import glob
+import json
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -153,6 +154,15 @@ def dump_session_frames(sid: str):
 
     print(f"\n=== 세션 {sid} ===")
     print(f"attrs: {attrs}")
+    if attrs.get("runtime_config"):
+        try:
+            cfg = json.loads(attrs["runtime_config"])
+            print("런타임 설정(세션 시작 시점 스냅샷): "
+                  + ", ".join(f"{k}={v}" for k, v in cfg.items()))
+        except (ValueError, TypeError):
+            pass
+    else:
+        print("⚠️ 런타임 설정 스냅샷 없음 (2026-07-02 이전 세션 — 구버전)")
 
     notes = _find_episode_notes(sid)
     if notes:
