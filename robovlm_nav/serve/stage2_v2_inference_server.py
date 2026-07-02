@@ -462,6 +462,19 @@ class Grounder:
 # Matches Exp65/66 training distribution; more reliable than Kosmos-2 for basket detection.
 # ---------------------------------------------------------------------------
 
+from transformers import StoppingCriteria, StoppingCriteriaList
+
+class StopOnTokenCriteria(StoppingCriteria):
+    """특정 토큰(예: 세미콜론)이 생성되면 출력을 즉시 중단하는 criteria 클래스"""
+    def __init__(self, stop_token_id: int):
+        self.stop_token_id = stop_token_id
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        if input_ids.shape[1] == 0:
+            return False
+        # 마지막으로 예측된 토큰이 중단 타겟 토큰인지 확인합니다.
+        return input_ids[0, -1].item() == self.stop_token_id
+
 class PG2Grounder:
     """PaliGemma2-based bbox grounder using 'detect gray basket' prompt."""
 
@@ -479,7 +492,14 @@ class PG2Grounder:
             self._model = PaliGemmaForConditionalGeneration.from_pretrained(
                 str(self._pg2_path), torch_dtype=self._dtype, low_cpu_mem_usage=True
             ).to(self._device).eval()
-            logger.info("PG2Grounder: ready")
+            
+            # 토크나이저로부터 세미콜론 토큰 ID 추출 (기본값=235289)
+            try:
+                semicolon_ids = self._proc.tokenizer.encode(";", add_special_tokens=False)
+                self._semicolon_token_id = semicolon_ids[0] if semicolon_ids else 235289
+            except Exception:
+                self._semicolon_token_id = 235289
+            logger.info("PG2Grounder: ready (semicolon_token_id=%d)", self._semicolon_token_id)
 
     def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
             return_raw: bool = False, phrase: str = "gray basket",
@@ -499,16 +519,22 @@ class PG2Grounder:
         inp = self._proc(text=f"detect {phrase}", images=pil, return_tensors="pt").to(self._device)
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
         hidden_vec = None
+        # 세미콜론 토큰 검출 시 즉시 토큰 생성을 중단하는 criteria를 적용합니다.
+        stopping_criteria = StoppingCriteriaList([StopOnTokenCriteria(self._semicolon_token_id)])
         with torch.no_grad():
             if return_hidden:
                 out = self._model.generate(
                     **inp, max_new_tokens=48, min_new_tokens=1, do_sample=False,
+                    stopping_criteria=stopping_criteria,
                     output_hidden_states=True, return_dict_in_generate=True,
                 )
                 gen = out.sequences
                 hidden_vec = out.hidden_states[0][-1][0, -1, :].float().cpu().numpy()
             else:
-                gen = self._model.generate(**inp, max_new_tokens=48, min_new_tokens=1, do_sample=False)
+                gen = self._model.generate(
+                    **inp, max_new_tokens=48, min_new_tokens=1, do_sample=False,
+                    stopping_criteria=stopping_criteria,
+                )
         raw = self._proc.batch_decode(gen[:, inp["input_ids"].shape[1]:], skip_special_tokens=False)[0]
         locs = [int(v) / 1023.0 for v in _LOC_RE.findall(raw)]
         if len(locs) >= 4:

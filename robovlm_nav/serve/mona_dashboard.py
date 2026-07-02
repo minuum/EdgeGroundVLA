@@ -833,7 +833,49 @@ def camera_stream():
 
 @app.get("/drive/status")
 def drive_status():
+<<<<<<< HEAD
     return dict(_state)
+=======
+    from scripts.inference_logger import get_logger
+    logger = get_logger()
+    ret = dict(_state)
+    
+    if logger and hasattr(logger, "data") and logger.data:
+        hist = logger.data.get("history", [])
+        ret["n_total"] = len(hist)
+        ret["n_post"] = sum(1 for h in hist if str(h.get("step","")).endswith("p"))
+        ret["n_infer"] = ret["n_total"] - ret["n_post"]
+        ret["n_frames"] = len(logger._frames)
+        ret["session_id"] = logger.session_id
+        
+        last_steps = []
+        for h in hist[-8:]:
+            last_steps.append({
+                "step": h.get("step", "?"),
+                "predicted_label": h.get("predicted_label") or "—",
+                "grounding_cached": h.get("grounding_cached"),
+                "latency_ms": h.get("latency_ms", 0),
+            })
+        ret["last_steps"] = last_steps
+        
+        gc_vals = [h.get("grounding_cached") for h in hist if h.get("grounding_cached") is not None]
+        ret["gnd_live"] = sum(1 for v in gc_vals if v == 0)
+        ret["gnd_cache"] = sum(1 for v in gc_vals if v == 1)
+        
+        lat_l = [h.get("grounding_latency_ms", 0) for h in hist if h.get("grounding_latency_ms")]
+        ret["gnd_avg_lat"] = round(sum(lat_l) / len(lat_l)) if lat_l else 0
+    else:
+        ret["n_total"] = 0
+        ret["n_post"] = 0
+        ret["n_infer"] = 0
+        ret["n_frames"] = 0
+        ret["last_steps"] = []
+        ret["gnd_live"] = 0
+        ret["gnd_cache"] = 0
+        ret["gnd_avg_lat"] = 0
+        
+    return ret
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
 
 
 @app.post("/drive/start")
@@ -2358,12 +2400,50 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
             </div>
 
+<<<<<<< HEAD
             <div class="form-group" style="margin-bottom:0; display:flex; flex-direction:column; gap:6px;">
               <label>🔍 Grounding Detail</label>
               <div id="vfy-gnd-detail" style="padding:10px 14px; font-size:12px; font-family:var(--font-sans); color:var(--text-muted); background:#151f32; border:1px solid var(--border-glow); border-radius:8px; display:flex; flex-direction:column; gap:4px;">
                 <div>대상: <span id="vfy-gnd-entity" class="text-cyan font-mono" style="font-weight:600;">—</span></div>
                 <div>레이블: <span id="vfy-pred-label" class="text-emerald font-mono" style="font-weight:600;">—</span></div>
                 <div>캐시: <span id="vfy-gnd-cached" class="font-mono">—</span></div>
+=======
+            <!-- 📋 실시간 수집 세션 정보 카드 -->
+            <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
+                <span>📋 수집 세션 모니터링</span>
+                <span id="vfy-update-time" style="font-size:9px; color:#58a6ff;">갱신 —</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; line-height:1.6;">
+                <div>상태: <span id="vfy-sess-run-status">—</span></div>
+                <div>모드: <span id="vfy-sess-mode" class="text-cyan font-mono">—</span></div>
+                <div>스텝: <span id="vfy-sess-step" class="text-emerald font-mono">—</span></div>
+                <div>H5 프레임: <span id="vfy-sess-frames" class="text-violet font-mono">—</span></div>
+              </div>
+              <div style="font-size:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:6px; display:flex; flex-direction:column; gap:2px;">
+                <div>기록: <span id="vfy-sess-record-lbl">—</span></div>
+                <div>세션 ID: <span id="vfy-sess-id-lbl" class="font-mono text-cyan" style="font-size:10px;">—</span></div>
+              </div>
+            </div>
+
+            <!-- 🔍 Grounding & 🔢 최근 스텝 카드 -->
+            <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
+                <span>🔍 Grounding 통계</span>
+                <span id="vfy-gnd-cached" class="font-mono" style="font-size:10px;">—</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; line-height:1.6;">
+                <div>live PG2: <span id="vfy-gnd-live-cnt" class="text-amber font-mono">—</span></div>
+                <div>캐시 재사용: <span id="vfy-gnd-cache-cnt" class="text-emerald font-mono">—</span></div>
+                <div style="grid-column: span 2;">평균 latency: <span id="vfy-gnd-avg-lat" class="text-cyan font-mono">—</span></div>
+                <div>대상: <span id="vfy-gnd-entity" class="text-cyan font-mono" style="font-weight:600;">—</span></div>
+                <div>레이블: <span id="vfy-pred-label" class="text-emerald font-mono" style="font-weight:600;">—</span></div>
+              </div>
+              
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; border-top:1px solid rgba(255,255,255,0.05); padding-top:6px; margin-top:2px;">🔢 최근 스텝</div>
+              <div id="vfy-last-steps-container" style="font-size:11px; line-height:1.5; font-family:var(--font-mono); background:#0c1322; border-radius:6px; padding:6px; border:1px solid rgba(255,255,255,0.05); max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
+                <span style="color:var(--text-muted);">스텝 이력 없음</span>
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
               </div>
             </div>
 
@@ -2541,10 +2621,14 @@ L S R  C S L  R S L
               </div>
 
               <button class="btn btn-cyan" style="width:100%; font-weight:bold; margin-top:4px;" onclick="commitEpisode()">💾 기록 저장 (Log Episode)</button>
+<<<<<<< HEAD
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                 <button class="btn btn-outline text-rose" style="font-size:11px;" onclick="undoEpisode()">↩ 마지막 삭제</button>
                 <button class="btn btn-rose" style="font-size:11px;" onclick="clearEpisodeAll()">🗑 전체 삭제</button>
               </div>
+=======
+              <button class="btn btn-outline text-rose" style="width:100%; font-size:11px;" onclick="undoEpisode()">↩ 마지막 삭제</button>
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
             </div>
 
             <!-- 빠른 경로선택 버튼들 -->
@@ -2977,6 +3061,22 @@ L S R  C S L  R S L
       }
     });
 
+<<<<<<< HEAD
+=======
+    function setSafeText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+    function setSafeHtml(id, html) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = html;
+    }
+    function setSafeValue(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
     async function api(path, opts={}) {
       const r = await fetch(API + path, opts);
       return r.json();
@@ -3930,6 +4030,7 @@ L S R  C S L  R S L
       }
     }
 
+<<<<<<< HEAD
     async function clearEpisodeAll() {
       if (!confirm("⚠️ 정말로 모든 에피소드 기록(CSV 파일)을 영구 삭제하시겠습니까?\\\\n이 작업은 복구가 불가능합니다.")) return;
       const res = await api("/episodes/clear", { method: "POST" });
@@ -3940,6 +4041,8 @@ L S R  C S L  R S L
         alert("초기화 실패: " + res.error);
       }
     }
+=======
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
 
 
     // ── Canvas Overlay 드로잉 ─────────────────────────────────────────
@@ -4028,6 +4131,7 @@ L S R  C S L  R S L
       try {
         state = await api("/drive/status");
         
+<<<<<<< HEAD
         // 1. 상태 배지 & 정보 바인딩
         document.getElementById("badge-step-lbl").textContent = "Step: " + state.step;
         document.getElementById("badge-mode-lbl").textContent = "Mode: " + state.mode;
@@ -4041,20 +4145,46 @@ L S R  C S L  R S L
         _syncStartStopBtn("drive-start-btn", "drive-stop-btn", "▶ START DRIVE", state.running);
         _syncStartStopBtn("quick-start-btn", "quick-stop-btn", "▶️ START", state.running);
         document.getElementById("drive-return-btn").textContent = state.is_returning ? "⏹️ 복귀 중단" : "🔄 START 위치로 복귀";
+=======
+        // 1. 상태 배지 & 정보 바인딩 (안전 헬퍼 적용)
+        setSafeText("badge-step-lbl", "Step: " + state.step);
+        setSafeText("badge-mode-lbl", "Mode: " + state.mode);
+        
+        const actStr = state.last_action ? state.last_action.map(v => v.toFixed(2)).join(", ") : "0.00, 0.00, 0.00";
+        setSafeText("badge-action-lbl", "Action: " + actStr);
+        
+        setSafeText("drive-log", state.status_log || "");
+        
+        // 2. 버튼 활성화 동기화
+        _syncStartStopBtn("drive-start-btn", "drive-stop-btn", "▶ START DRIVE", state.running);
+        _syncStartStopBtn("quick-start-btn", "quick-stop-btn", "▶️ START", state.running);
+        
+        const returnBtn = document.getElementById("drive-return-btn");
+        if (returnBtn) {
+          returnBtn.textContent = state.is_returning ? "⏹️ 복귀 중단" : "🔄 START 위치로 복귀";
+        }
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
         
         // 3. Grounding 정보 노출
         if (state.bbox) {
           const area = state.bbox.area || 0;
           const cx = state.bbox.cx || 0.5;
           const cy = state.bbox.cy || 0.5;
+<<<<<<< HEAD
           document.getElementById("gnd-coords").value = `cx:${cx.toFixed(3)}, cy:${cy.toFixed(3)}, area:${area.toFixed(4)}`;
           document.getElementById("gnd-area").value = area.toFixed(4);
           document.getElementById("gnd-cx").value = cx.toFixed(3);
+=======
+          setSafeValue("gnd-coords", `cx:${cx.toFixed(3)}, cy:${cy.toFixed(3)}, area:${area.toFixed(4)}`);
+          setSafeValue("gnd-area", area.toFixed(4));
+          setSafeValue("gnd-cx", cx.toFixed(3));
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
           
           // 게이지 업데이트
           const MAX_A = 0.40;
           const pct = Math.min(100, (area / MAX_A) * 100);
           const fill = document.getElementById("gnd-gauge-fill");
+<<<<<<< HEAD
           fill.style.width = pct + "%";
           
           if (state.goal_near) {
@@ -4076,24 +4206,61 @@ L S R  C S L  R S L
         
         // 4-0. 수집 세션 요약 (세션ID / 스텝 / live·cache·평균 latency)
         // Drive Control 탭과 Path Test 탭에 동일 데이터를 함께 반영 (-vfy 접미사가 Path Test 탭 사본)
+=======
+          if (fill) {
+            fill.style.width = pct + "%";
+            if (state.goal_near) {
+              fill.style.backgroundColor = "var(--rose)";
+            } else if (area >= 0.18 * 0.7) {
+              fill.style.backgroundColor = "var(--amber)";
+            } else {
+              fill.style.backgroundColor = "var(--emerald)";
+            }
+          }
+        } else {
+          setSafeValue("gnd-coords", "—");
+          setSafeValue("gnd-area", "—");
+          setSafeValue("gnd-cx", "—");
+          const fill = document.getElementById("gnd-gauge-fill");
+          if (fill) fill.style.width = "0%";
+        }
+        
+        setSafeValue("gnd-entity", state.instruction || "—");
+        setSafeValue("gnd-pred-label", state.predicted_label || "—");
+        
+        // 4-0. 수집 세션 요약
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
         {
           const rh = state.run_history || [];
           const nInfer = rh.length;
           const runBadge = state.running ? "🟢 실행중" : "⚫ 정지";
           const sessionHtml = `${runBadge} · ${state.mode || "—"} · 스텝 ${state.step || 0}<br>`
             + `기록 ${nInfer}개 · ID ${state.session_id || "—"}`;
+<<<<<<< HEAD
           document.getElementById("cs-session").innerHTML = sessionHtml;
           document.getElementById("cs-session-vfy").innerHTML = sessionHtml;
+=======
+          setSafeHtml("cs-session", sessionHtml);
+          setSafeHtml("cs-session-vfy", sessionHtml);
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
           const liveN  = rh.filter(r => r[3] !== "—" && r[3] !== null && r[3] !== undefined).length;
           const cacheN = nInfer - liveN;
           const lats   = rh.map(r => r[3]).filter(v => typeof v === "number");
           const avgGnd = lats.length ? Math.round(lats.reduce((a,b)=>a+b,0)/lats.length) : 0;
           const groundingHtml = `live ${liveN} · 캐시 ${cacheN}<br>평균 gnd ${avgGnd}ms`;
+<<<<<<< HEAD
           document.getElementById("cs-grounding").innerHTML = groundingHtml;
           document.getElementById("cs-grounding-vfy").innerHTML = groundingHtml;
         }
 
         // 4. 타임라인 히스토리 업데이트 (Drive Control 탭 + Path Test 탭 동시 반영)
+=======
+          setSafeHtml("cs-grounding", groundingHtml);
+          setSafeHtml("cs-grounding-vfy", groundingHtml);
+        }
+ 
+        // 4. 타임라인 히스토리 업데이트
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
         if (state.run_history && state.run_history.length > 0) {
           const rows = state.run_history.slice(-10).reverse();
           const historyHtml = rows.map(r => `
@@ -4107,6 +4274,7 @@ L S R  C S L  R S L
               <td style="font-size:11px; color:var(--text-muted); white-space:nowrap;">${r[6] || "—"}</td>
             </tr>
           `).join("");
+<<<<<<< HEAD
           document.getElementById("drive-history-table").innerHTML = historyHtml;
           document.getElementById("drive-history-table-vfy").innerHTML = historyHtml;
         }
@@ -4116,12 +4284,22 @@ L S R  C S L  R S L
         // 6. 🧪 경로 검증(Verify) 탭 실시간 업데이트
         if (activeTab === "verify") {
           document.getElementById("vfy-status-log").textContent = state.status_log || "Ready";
+=======
+          setSafeHtml("drive-history-table", historyHtml);
+          setSafeHtml("drive-history-table-vfy", historyHtml);
+        }
+ 
+        // 5. 🧪 경로 검증(Verify) 탭 실시간 업데이트
+        if (activeTab === "verify") {
+          setSafeText("vfy-status-log", state.status_log || "Ready");
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
           
           let latMs = 0;
           if (state.run_history && state.run_history.length > 0) {
             const latestRun = state.run_history[state.run_history.length - 1];
             latMs = latestRun[2] || 0;
           }
+<<<<<<< HEAD
           document.getElementById("vfy-latency-val").textContent = latMs + " ms";
           
           const actStr = state.last_action ? state.last_action.map(v => v.toFixed(2)).join(", ") : "0.00, 0.00, 0.00";
@@ -4146,6 +4324,65 @@ L S R  C S L  R S L
         // 7. 오버레이 드로잉 호출
         drawOverlay();
 
+=======
+          setSafeText("vfy-latency-val", latMs + " ms");
+          
+          setSafeText("vfy-action-val", actStr);
+          
+          if (state.bbox) {
+            setSafeText("vfy-bbox-val", `${state.bbox.area.toFixed(4)} / ${state.bbox.cx.toFixed(3)}`);
+          } else {
+            setSafeText("vfy-bbox-val", "—");
+          }
+          
+          setSafeText("vfy-gnd-entity", state.instruction || "—");
+          setSafeText("vfy-pred-label", state.predicted_label || "—");
+          
+          // 그라운딩 캐시 상태
+          let cacheStatus = "—";
+          if (state.grounding_cached !== undefined && state.grounding_cached !== null) {
+            cacheStatus = state.grounding_cached === 1 ? "Yes (Cached)" : (state.grounding_cached === 0 ? "No (Computed)" : "—");
+          }
+          setSafeText("vfy-gnd-cached", cacheStatus);
+
+          // 📋 신규 추가: 수집 세션 상태
+          const nowStr = new Date().toLocaleTimeString("ko-KR", {hour12:false});
+          setSafeHtml("vfy-update-time", "갱신 " + nowStr);
+          setSafeText("vfy-sess-run-status", state.running ? "🟢 실행중" : "⚫ 정지");
+          setSafeText("vfy-sess-mode", state.mode || "SYNC");
+          setSafeText("vfy-sess-step", state.step || "0");
+          setSafeText("vfy-sess-frames", state.n_frames !== undefined ? state.n_frames + "장" : "0장");
+          setSafeText("vfy-sess-record-lbl", `추론 ${state.n_infer || 0} + post ${state.n_post || 0} = ${state.n_total || 0}`);
+          setSafeText("vfy-sess-id-lbl", state.session_id || "—");
+
+          // 🔍 신규 추가: 그라운딩 통계
+          setSafeText("vfy-gnd-live-cnt", state.gnd_live !== undefined ? state.gnd_live + "회" : "0회");
+          setSafeText("vfy-gnd-cache-cnt", state.gnd_cache !== undefined ? state.gnd_cache + "회" : "0회");
+          setSafeText("vfy-gnd-avg-lat", state.gnd_avg_lat !== undefined ? state.gnd_avg_lat + "ms" : "0ms");
+
+          // 🔢 신규 추가: 최근 스텝 타임라인 이력
+          let stepsHtml = "";
+          if (state.last_steps && state.last_steps.length > 0) {
+            stepsHtml = state.last_steps.map(s => {
+              const isCached = s.grounding_cached === 1;
+              const gndType = isCached ? '<span style="color:var(--emerald);">[캐시]</span>' : (s.grounding_cached === 0 ? '<span style="color:var(--amber);">[live]</span>' : '<span style="color:var(--text-muted);">[-]</span>');
+              const isPost = String(s.step).endsWith("p");
+              const stepColor = isPost ? "color:var(--violet);" : "color:var(--cyan);";
+              return `<div style="display:flex; justify-content:space-between; gap:8px;">`
+                   + `<span style="${stepColor}">Step ${s.step}</span>`
+                   + `<span style="color:var(--text-muted);">${s.predicted_label}</span>`
+                   + `<span>${gndType} ${s.latency_ms}ms</span>`
+                   + `</div>`;
+            }).reverse().join("");
+          } else {
+            stepsHtml = `<span style="color:var(--text-muted);">스텝 이력 없음</span>`;
+          }
+          setSafeHtml("vfy-last-steps-container", stepsHtml);
+        }
+ 
+        // 7. 오버레이 드로잉 호출
+        drawOverlay();
+>>>>>>> cdb88dd3 (feat(inference): port PaliGemma2 stopping criteria and mona dashboard fixes from soda)
       } catch(e) {
         console.error("Polling status error:", e);
       }
