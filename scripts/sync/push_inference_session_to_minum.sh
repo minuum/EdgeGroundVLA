@@ -99,6 +99,30 @@ print(f'  grounder: {g.get(\"model\")} {g.get(\"input_px\")}px phrase=\"{g.get(\
 } > "$MANIFEST"
 echo "  ✓ 매니페스트 작성"
 
+# ── 3.5 grounding_decisions.jsonl 추출 (Fix4 — 필수 동봉) ────────────────
+# 전송 대상 세션들의 날짜에 해당하는 PG2 판정 로그만 잘라서 함께 보낸다.
+# minum receive-inference-session이 H5 LIVE 프레임과 ts로 매칭해 판정 근거 표시.
+GND_JSONL="${LOCAL_ROOT}/logs/grounding_decisions.jsonl"
+GND_OUT="${STAGE}/grounding_decisions_${DATE_TAG}.jsonl"
+if [[ -f "$GND_JSONL" ]]; then
+  # 세션 파일명(session_YYYYMMDD_HHMMSS.h5)에서 날짜들을 뽑아 해당 날짜 항목만 추출
+  declare -A _DATES=()
+  for s in "${SESSIONS[@]}"; do
+    d="$(basename "$s" | sed -E 's/session_([0-9]{8})_.*/\1/')"
+    _DATES["$d"]=1
+  done
+  : > "$GND_OUT"
+  for d in "${!_DATES[@]}"; do
+    iso="${d:0:4}-${d:4:2}-${d:6:2}"
+    grep "\"ts\": \"${iso}" "$GND_JSONL" >> "$GND_OUT" || true
+  done
+  N_GND=$(wc -l < "$GND_OUT")
+  echo "  ✓ grounding_decisions 추출: ${N_GND}줄 (${!_DATES[*]})"
+else
+  echo "  ⚠️ grounding_decisions.jsonl 없음 — Fix4 미반영 서버로 수집된 세션일 수 있음"
+  GND_OUT=""
+fi
+
 # ── 4. 원격 디렉토리 생성 + 전송 ────────────────────────────────────────
 ssh "${MINUM_HOST}" "mkdir -p ${REMOTE_DIR}/models" >/dev/null 2>&1 \
   || { echo "❌ minum 접속 실패 (${MINUM_HOST})"; exit 1; }
@@ -107,6 +131,8 @@ echo ""
 echo "▶ 전송 → ${MINUM_HOST}:${REMOTE_DIR}/"
 rsync -avh "${SESSIONS[@]}" "${MINUM_HOST}:${REMOTE_DIR}/" 2>&1 | tail -2
 rsync -avh "$HEALTH_JSON" "$MANIFEST" "${MINUM_HOST}:${REMOTE_DIR}/" 2>&1 | tail -1
+[[ -n "$GND_OUT" && -s "$GND_OUT" ]] && \
+  rsync -avh "$GND_OUT" "${MINUM_HOST}:${REMOTE_DIR}/" 2>&1 | tail -1
 [[ -f "${LOCAL_ROOT}/logs/episode_log.csv" ]] && \
   rsync -avh "${LOCAL_ROOT}/logs/episode_log.csv" "${MINUM_HOST}:${REMOTE_DIR}/" 2>&1 | tail -1
 if [[ -n "$CKPT_PATH" && -f "${LOCAL_ROOT}/${CKPT_PATH}" ]]; then

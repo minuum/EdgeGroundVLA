@@ -30,16 +30,22 @@ bash scripts/sync/push_inference_session_to_minum.sh 20260702_100143  # 특정 �
 ## 무엇을 보내나 (한 세트)
 1. **세션 H5** — 선택된 `docs/inference_sessions/session_*.h5`
 2. **서버 설정 스냅샷** — `curl /health` → `server_health.json`
-   (head/window/val_acc/checkpoint · preview · grounder(PG2-448) · skip_n · multi_prompt · cx_jump 등)
+   (head/window/val_acc/checkpoint · preview · grounder(PG2-448) · skip_n · multi_prompt · cx_jump
+   + Fix3 버전 핸드셰이크: git_commit / process_started_at / code_mtime)
 3. **활성 모델 ckpt** — `/health`의 checkpoint_path를 자동 추출해 `models/`로
 4. **episode_log.csv** — 실주행 에피소드 기록
-5. **README.txt** — 위 설정 요약 + H5 구조 매니페스트
+5. **grounding_decisions_YYYYMMDD.jsonl** — **필수 동봉 (Fix4)**: 전송 세션 날짜의
+   PG2 판정 영구 로그 (filter_reason: no-locs/tiny/top/full-frame/x-full/None,
+   필터 전 raw locs, 호출 1회당 latency). minum receive-inference-session이 H5
+   LIVE 프레임과 ts로 매칭해 flicker 원인을 확정하는 데 사용.
+6. **README.txt** — 위 설정 요약 + H5 구조 매니페스트
 
 ## 전송 위치
 ```
 minum:~/MoNaVLA/inference_sessions_recv/<YYYYMMDD>/
    ├── session_*.h5
    ├── server_health.json
+   ├── grounding_decisions_<YYYYMMDD>.jsonl
    ├── README.txt
    ├── episode_log.csv
    └── models/<ckpt>.pt

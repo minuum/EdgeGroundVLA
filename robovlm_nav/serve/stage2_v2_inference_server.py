@@ -92,6 +92,58 @@ app = FastAPI(title="Stage2 v2 VLA API", version="1.0.0")
 
 ROOT = Path(project_root)
 
+# ── Fix3: 서버 버전 핸드셰이크 (FIX3_SERVER_VERSION_HANDSHAKE.md) ────────────
+# 2026-07-02 사고: Fix1 커밋(13:46) 후 서버 재시작(15:49) 전까지 수집된 세션
+# 5개가 구 코드로 그라운딩됐는데 아무도 즉시 알 수 없었음.
+# /health에 git_commit/process_started_at/code_mtime을 노출해 수신측이
+# "코드 수정시각 > 프로세스 기동시각" 불일치를 자동 감지하게 한다.
+_PROCESS_START_TS = time.time()
+
+
+def _get_git_commit() -> str:
+    import subprocess
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=ROOT, stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:
+        return "unknown"
+
+
+_GIT_COMMIT = _get_git_commit()  # 기동 시 1회만 계산
+
+# ── Fix4: PG2 판정 영구 로그 (FIX4_PG2_DECISION_LOG.md) ─────────────────────
+# [PG2] FILTER 로그가 일반 서버 로그에만 남아 로테이션되면 특정 프레임의
+# 판정 근거를 재구성할 방법이 없었음(212648 t9/t15 flicker 조사 실패).
+# 별도 JSONL에 append — 재시작/로테이션 무관하게 영구 보존.
+_PG2_DECISION_LOG = ROOT / "logs" / "grounding_decisions.jsonl"
+_PG2_DECISION_LOG.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _log_pg2_decision(phrase: str, raw: str, locs: list, result: dict,
+                      latency_ms: float = 0.0) -> None:
+    """PG2 grounding 판정 근거를 영구 JSONL에 append."""
+    try:
+        from datetime import datetime
+        entry = {
+            "ts": datetime.now().isoformat(),          # H5 프레임과 시각 기반 매칭용
+            "phrase": phrase,
+            "raw_output": raw[:200],
+            "n_locs": len(locs),
+            "locs": [round(v, 4) for v in locs[:8]],   # 필터 전 raw 좌표 보존
+            "has_bbox": result.get("has_bbox", False),
+            "filter_reason": result.get("filter_reason"),  # None=통과
+            "cx": result.get("cx"),
+            "cy": result.get("cy"),
+            "area": result.get("area"),
+            "latency_ms": round(latency_ms, 1),        # 호출 1회당 (멀티프롬프트 합산 아님)
+        }
+        with open(_PG2_DECISION_LOG, "a") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass  # 로깅 실패가 추론을 막아서는 안 됨
+
 # --- defaults ---
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 # 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
@@ -438,6 +490,7 @@ class PG2Grounder:
         마지막 레이어·마지막 입력 위치)도 같이 반환 — 별도 forward 없음
         (plan_20260622_hidden_state_hub_integration.md §1-2).
         """
+        _t0 = time.time()  # Fix4: 호출 1회당 latency (predict 레벨 합산과 별개)
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
         # Fix B-1: PG2-448은 raw 프레임을 PaliGemmaProcessor의 네이티브 448 처리에 맡긴다.
@@ -472,29 +525,37 @@ class PG2Grounder:
             # min_area/min_cy는 바스켓 전용 휴리스틱(바구니는 항상 화면 하단~중단)이라
             # phrase별로 오버라이드 가능하게 함(configs/ground_filter_map.json).
             filters = get_ground_filters(phrase)
+            # Fix4: filter_reason — has_bbox=False가 "생성 실패(no-locs)"인지
+            # "필터 걸림(tiny/top/full-frame/x-full)"인지 jsonl에서 즉시 구분
             if area > 0.9:          # full-frame collapse (loc0000~loc1022 전체)
                 logger.info("[PG2] FILTER full-frame: area=%.3f cx=%.3f cy=%.3f", area, cx_val, cy_val)
-                result = _fallback
+                result = {**_fallback, "filter_reason": "full-frame"}
             elif area < filters["min_area"]:       # tiny noise detection
                 logger.info("[PG2] FILTER tiny: area=%.4f < min_area=%.4f cx=%.3f cy=%.3f",
                             area, filters["min_area"], cx_val, cy_val)
-                result = {**_fallback, "hint_cx": cx_val}  # 방향 힌트 보존
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "tiny"}  # 방향 힌트 보존
             elif cy_val < filters["min_cy"]:     # 상단 오탐 (바구니가 프레임 상단에 있을 수 없음)
                 logger.info("[PG2] FILTER top: cy=%.3f < min_cy=%.3f cx=%.3f", cy_val, filters["min_cy"], cx_val)
-                result = {**_fallback, "hint_cx": cx_val}  # 방향 힌트 보존
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "top"}  # 방향 힌트 보존
             elif x1 < 0.02 and x2 > 0.98:  # x-full-width collapse (cx≈0.5 항상)
                 logger.info("[PG2] FILTER x-full: x1=%.3f x2=%.3f", x1, x2)
-                result = _fallback
+                result = {**_fallback, "filter_reason": "x-full"}
             else:
                 result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
                           "x1": x1, "y1": y1, "x2": x2, "y2": y2}
         else:
             result = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
-                      "x1": None, "y1": None, "x2": None, "y2": None}
+                      "x1": None, "y1": None, "x2": None, "y2": None,
+                      "filter_reason": "no-locs"}  # loc 토큰 <4개 = 생성 자체 실패
         if return_raw:
             result["raw_output"] = raw
         if return_hidden:
             result["hidden_state"] = hidden_vec
+
+        # Fix4: 판정 근거 영구 기록 (로그 로테이션 무관)
+        _log_pg2_decision(phrase=phrase, raw=raw, locs=locs, result=result,
+                          latency_ms=(time.time() - _t0) * 1000.0)
+
         return result
 
 
@@ -1122,6 +1183,11 @@ async def health() -> dict[str, Any]:
         "multi_prompt": getattr(m, "_multi_prompt", False) if m else False,
         "fallback_prompts": getattr(m, "_fallback_prompts", []) if m else [],
         "inference_count": m.inference_count if m else 0,
+        # Fix3: 서버 버전 핸드셰이크 — code_mtime > process_started_at 이면
+        # "코드는 고쳐졌는데 프로세스는 구버전" (2026-07-02 Fix1 사고 패턴)
+        "git_commit": _GIT_COMMIT,
+        "process_started_at": _PROCESS_START_TS,
+        "code_mtime": os.path.getmtime(__file__),
     }
 
 
