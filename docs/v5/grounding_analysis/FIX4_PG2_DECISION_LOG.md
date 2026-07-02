@@ -37,10 +37,39 @@ soda 실측은 False였음 — 이 불일치가 "필터 때문"인지 "raw 생�
             result["hidden_state"] = hidden_vec
 
         # Fix 4: 판정 근거를 영구 JSONL로 기록 (일반 로그와 분리, 로테이션 영향 없음)
-        _log_pg2_decision(phrase=phrase, raw=raw, locs=locs, result=result)
+        _log_pg2_decision(phrase=phrase, raw=raw, locs=locs, result=result,
+                          latency_ms=(time.time() - _t0) * 1000.0)
 
         return result
 ```
+
+`run()` 진입부(=`self._ensure_loaded()` 직전)에 `_t0 = time.time()` 한 줄을 추가해
+호출 단위 latency를 잰다. (기존 `grounding_latency_ms`는 predict() 레벨이라
+멀티프롬프트 4회 호출이 합산됨 — 여기서는 **호출 1회당** latency를 기록해야
+2.1s/8s 2단 분포를 개별 호출로 분해할 수 있다.)
+
+### filter_reason 기록 — 필터 분기마다 사유 문자열 저장
+
+필터 4분기 + loc 미생성 분기에 `result["filter_reason"]`을 넣는다:
+
+```python
+            if area > 0.9:
+                result = {**_fallback, "filter_reason": "full-frame"}
+            elif area < filters["min_area"]:
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "tiny"}
+            elif cy_val < filters["min_cy"]:
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "top"}
+            elif x1 < 0.02 and x2 > 0.98:
+                result = {**_fallback, "filter_reason": "x-full"}
+            else:
+                result = {..., "has_bbox": True}   # filter_reason 없음 = 통과
+        else:
+            result = {..., "has_bbox": False, "filter_reason": "no-locs"}  # loc 토큰 <4개
+```
+
+이러면 jsonl에서 `filter_reason` 값 하나로
+**"생성 실패(no-locs)" vs "필터 걸림(tiny/top/...)"을 즉시 구분**할 수 있다 —
+2026-07-02 flicker 조사에서 가장 알고 싶었지만 알 수 없었던 바로 그 정보.
 
 ### 로깅 함수 정의 (파일 상단, `PG2Grounder` 클래스 정의 이전)
 
@@ -52,25 +81,33 @@ _PG2_DECISION_LOG = ROOT / "logs" / "grounding_decisions.jsonl"
 _PG2_DECISION_LOG.parent.mkdir(parents=True, exist_ok=True)
 
 
-def _log_pg2_decision(phrase: str, raw: str, locs: list[float], result: dict) -> None:
+def _log_pg2_decision(phrase: str, raw: str, locs: list[float], result: dict,
+                      latency_ms: float = 0.0) -> None:
     """PG2 grounding 판정 근거를 영구 JSONL에 append. 로그 로테이션과 무관하게 보존.
     2026-07-02 사고(해당 시각 로그 소실로 원인 규명 불가) 재발 방지."""
     try:
         entry = {
-            "ts": _dt_pg2.now().isoformat(),
+            "ts": _dt_pg2.now().isoformat(),          # H5 프레임과 시각 기반 매칭용
             "phrase": phrase,
             "raw_output": raw[:200],
             "n_locs": len(locs),
+            "locs": [round(v, 4) for v in locs[:8]],  # raw 좌표 자체도 보존 (필터 전 값)
             "has_bbox": result.get("has_bbox", False),
+            "filter_reason": result.get("filter_reason"),  # None=통과, no-locs/tiny/top/full-frame/x-full
             "cx": result.get("cx"),
             "cy": result.get("cy"),
             "area": result.get("area"),
+            "latency_ms": round(latency_ms, 1),       # 호출 1회당 (멀티프롬프트 합산 아님)
         }
         with open(_PG2_DECISION_LOG, "a") as f:
             f.write(_json_pg2.dumps(entry, ensure_ascii=False) + "\n")
     except Exception:
         pass  # 로깅 실패가 추론을 막아서는 안 됨
 ```
+
+> `filter_reason`은 클라이언트 응답 스키마에 영향 없도록 jsonl 기록 후
+> `result.pop("filter_reason", None)`으로 제거하고 반환해도 되고,
+> 그대로 둬도 됨(추가 키는 하위호환 문제 없음) — soda 판단에 맡김.
 
 ---
 
@@ -85,21 +122,32 @@ def _log_pg2_decision(phrase: str, raw: str, locs: list[float], result: dict) ->
 
 ```python
 import json
+from collections import Counter
 entries = [json.loads(l) for l in open("logs/grounding_decisions.jsonl")]
 false_entries = [e for e in entries if not e["has_bbox"]]
 print(f"has_bbox=False 비율: {len(false_entries)/len(entries)*100:.1f}%")
-# raw_output이 비어있으면(<loc> 토큰 미생성) 진짜 미탐지
-# raw_output에 <loc>가 있는데 has_bbox=False면 필터에 걸린 것 (area/cy 값으로 확인)
+print("실패 사유 분포:", Counter(e["filter_reason"] for e in false_entries))
+# no-locs 다수 → PG2 생성 자체 실패 (Jetson 수치 불안정 가설 확정)
+# tiny/top 다수 → 필터 임계값 조정으로 해결 가능
 ```
 
 ---
 
-## sync-inference-session 반영
+## sync-inference-session 반영 (필수 — 이번 스코프 포함)
 
-soda `sync-inference-session` 스킬이 `server_health.json`과 함께
-`logs/grounding_decisions.jsonl`의 최근 세션 구간(전송 시각 -N분)만 잘라
-같이 전송하도록 확장하면, minum 쪽에서 특정 프레임의 판정 근거를 즉시 재구성 가능.
-(이번 스코프에는 미포함 — 필요 시 `sync-inference-session` SKILL.md에 Step 추가)
+soda `sync-inference-session` 스킬에 Step 추가: 세션 전송 시
+`logs/grounding_decisions.jsonl`에서 **전송 대상 세션들의 시간 구간에 해당하는 줄만**
+잘라 `grounding_decisions_YYYYMMDD.jsonl`로 함께 전송한다.
+
+```bash
+# 예: 오늘 날짜 항목만 추출해 패키지에 포함
+grep '"ts": "2026-07-02' ~/MoNaVLA/logs/grounding_decisions.jsonl \
+  > /tmp/grounding_decisions_20260702.jsonl
+# → 세션 h5들과 함께 minum:~/MoNaVLA/inference_sessions_recv/YYYYMMDD/ 로 전송
+```
+
+minum 쪽 receive-inference-session 스킬은 이 파일이 있으면
+H5의 LIVE 프레임과 ts 기준으로 매칭해 판정 근거를 표시한다.
 
 ---
 
