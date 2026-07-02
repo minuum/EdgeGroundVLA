@@ -825,7 +825,10 @@ class Stage2V2Model:
             if use_hidden:
                 bbox = self.grounder.run(image_rgb, phrase=phrase, return_hidden=True)
             else:
-                bbox = self._ground_multi(image_rgb, phrase)  # 멀티프롬프트 fallback 포함
+                # 2026-07-02: 멀티프롬프트(최대 4x PG2 호출)를 주행 중 매 스텝에도 걸어놨더니
+                # 실패 시 8~12초를 태우고도 대부분 그대로 실패로 끝남(3세션 실측, 이득 없음).
+                # preview(첫 프레임 탐색, 764번 줄)에서만 쓰고 본 그라운딩은 단일 프롬프트로 제한.
+                bbox = self.grounder.run(image_rgb, phrase=phrase)
             grounding_latency_ms = (time.time() - g_start) * 1000.0
             # P2: cx 급변 필터 — 직전 유효 bbox 대비 cx가 임계값 이상 점프하면 오탐 판정 → 캐시 유지
             _prev = self._grounding_cache
