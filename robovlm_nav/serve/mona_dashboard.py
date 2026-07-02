@@ -2055,14 +2055,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
                   <tr style="background:#151f32; border-bottom:1px solid var(--border-glow); text-align:left;">
-                    <th style="padding:8px 12px; color:var(--cyan); font-weight:700;">경로 / 테스트</th>
-                    <th style="padding:8px 12px; width:50px;">목표</th>
-                    <th style="padding:8px 12px; width:50px;">완료</th>
-                    <th style="padding:8px 12px; width:50px; color:var(--emerald);">✓</th>
+                    <th style="padding:8px 6px; width:28%; color:var(--cyan); font-weight:700;">경로 / 테스트</th>
+                    <th style="padding:8px 4px; width:38px;">목표</th>
+                    <th style="padding:8px 4px; width:38px;">완료</th>
+                    <th style="padding:8px 4px; width:38px; color:var(--rose);">실패</th>
+                    <th style="padding:8px 4px; width:38px; color:var(--emerald);">성공</th>
+                    <th style="padding:8px 4px; width:48px; color:var(--cyan);">성공률</th>
                   </tr>
                 </thead>
                 <tbody id="vfy-summary-table-body">
-                  <tr><td colspan="4" style="text-align:center; padding:16px; color:var(--text-muted);">에피소드 데이터를 집계하는 중...</td></tr>
+                  <tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">에피소드 데이터를 집계하는 중...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2117,38 +2119,6 @@ L S R  C S L  R S L
                 <button id="vfy-rt-thr" class="btn btn-outline" onclick="toggleVerifyRuntime('thr')" disabled style="font-size:11px; padding:6px; line-height:1.2; text-align:center; opacity:0.5;">🎚 민감도 (P2 꺼짐)</button>
               </div>
               <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
-            </div>
-
-            <!-- 빠른 경로선택 버튼들 -->
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">🎯 빠른 레이블 선택</div>
-              <div style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);">
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
-                  <button class="btn btn-outline" onclick="selectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
-                  <button class="btn btn-outline" onclick="selectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
-                  <button class="btn btn-outline" onclick="selectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
-                  <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
-                </div>
-              </div>
             </div>
 
             <!-- 에피소드 입력 폼 -->
@@ -2209,6 +2179,38 @@ L S R  C S L  R S L
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                 <button class="btn btn-outline text-rose" style="font-size:11px;" onclick="undoEpisode()">↩ 마지막 삭제</button>
                 <button class="btn btn-rose" style="font-size:11px;" onclick="clearEpisodeAll()">🗑 전체 삭제</button>
+              </div>
+            </div>
+
+            <!-- 빠른 경로선택 버튼들 -->
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">🎯 빠른 레이블 선택</div>
+              <div style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);">
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
+                  <button class="btn btn-outline" onclick="selectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
+                  <button class="btn btn-outline" onclick="selectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
+                  <button class="btn btn-outline" onclick="selectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
+                  <button class="btn btn-outline" onclick="selectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
+                  <button class="btn btn-outline" onclick="selectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
+                  <button class="btn btn-outline" onclick="selectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
+                  <button class="btn btn-outline" onclick="selectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
+                  <button class="btn btn-outline" onclick="selectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
+                  <button class="btn btn-outline" onclick="selectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
+                  <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
+                </div>
               </div>
             </div>
 
@@ -3045,21 +3047,25 @@ L S R  C S L  R S L
       PATH_GROUPS.forEach(group => {
         const header = group[0];
         const keys = group[1];
-        tblHtml += `<tr style="background:#1c2638; font-weight:bold;"><td colspan="4" style="padding:4px 8px; color:var(--text-muted); font-size:11px;">${header}</td></tr>`;
+        tblHtml += `<tr style="background:#1c2638; font-weight:bold;"><td colspan="6" style="padding:4px 6px; color:var(--text-muted); font-size:11px;">${header}</td></tr>`;
         keys.forEach(pt => {
           const pt_display = pt + (pt === "right_left" ? " ★" : "");
           const target = PATH_TARGETS[pt];
           const total = done_total[pt] || 0;
           const succ = done_succ[pt] || 0;
+          const fail = total - succ;
+          const rate = total > 0 ? Math.round((succ / total) * 100) + "%" : "—";
           const is_done = total >= target;
           const rowStyle = is_done ? "color:var(--text-muted); opacity:0.75;" : "";
-          
+
           tblHtml += `
           <tr style="border-bottom:1px solid rgba(29,43,69,0.5); ${rowStyle}">
-            <td style="padding:6px 12px; font-family:var(--font-mono); color:#58a6ff; cursor:pointer;" onclick="selectPathType('${pt}')">${pt_display}</td>
-            <td style="padding:6px 12px;">${target}</td>
-            <td style="padding:6px 12px;">${total}</td>
-            <td style="padding:6px 12px; color:var(--emerald); font-weight:bold;">${succ}</td>
+            <td style="padding:6px; font-family:var(--font-mono); color:#58a6ff; cursor:pointer;" onclick="selectPathType('${pt}')">${pt_display}</td>
+            <td style="padding:6px 4px;">${target}</td>
+            <td style="padding:6px 4px;">${total}</td>
+            <td style="padding:6px 4px; color:var(--rose); font-weight:bold;">${fail}</td>
+            <td style="padding:6px 4px; color:var(--emerald); font-weight:bold;">${succ}</td>
+            <td style="padding:6px 4px; color:var(--cyan); font-weight:bold;">${rate}</td>
           </tr>
           `;
         });
