@@ -2380,6 +2380,40 @@ L S R  C S L  R S L
               <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
             </div>
 
+            <!-- ⚙️ Autopilot Configuration (Drive Control 탭과 동일, Path Test 탭에도 노출) -->
+            <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">⚙️ Autopilot Configuration</div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Instruction</label>
+                <input type="text" id="drive-instr-vfy" value="gray basket" placeholder="Gray basket을 찾아가세요" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label>GT Target Object (Optional)</label>
+                <input type="text" id="drive-gt-vfy" placeholder="예: gray basket" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label>이동 모드 (Cadence)</label>
+                <select id="drive-mode-vfy" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+                  <option value="ASYNC" selected>ASYNC (연속 비차단)</option>
+                  <option value="SYNC">SYNC (안정화 대기 1.92s)</option>
+                  <option value="PRE">PRE (격리회전 탐색 루프)</option>
+                </select>
+              </div>
+
+              <div class="chk-row" style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="drive-cc-vfy" style="width:16px;height:16px;accent-color:var(--cyan);">
+                <label for="drive-cc-vfy" style="margin:0;font-size:12px;cursor:pointer;">화이트 밸런스 컬러 보정 적용</label>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button class="btn btn-cyan" id="drive-start-btn-vfy" onclick="startAutopilot()" style="font-size:12px; font-weight:bold;">▶ START DRIVE</button>
+                <button class="btn btn-rose" id="drive-stop-btn-vfy" onclick="stopAutopilot()" disabled style="font-size:12px; font-weight:bold;">■ STOP DRIVE</button>
+              </div>
+            </div>
+
             <!-- 에피소드 입력 폼 -->
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
               <div class="form-group" style="margin-bottom:0;">
@@ -2978,11 +3012,13 @@ L S R  C S L  R S L
 
     // ── Autopilot 시작 / 정지 / 복귀 ─────────────────────────────────
     async function startAutopilot() {
+      // Path Test 탭에도 동일한 설정 입력창이 있음 — 활성 탭 기준으로 읽음
+      const suf = (activeTab === "verify") ? "-vfy" : "";
       const body = {
-        mode: document.getElementById("drive-mode").value,
-        instruction: document.getElementById("drive-instr").value,
-        gt_object: document.getElementById("drive-gt").value,
-        apply_cc: document.getElementById("drive-cc").checked
+        mode: document.getElementById("drive-mode" + suf).value,
+        instruction: document.getElementById("drive-instr" + suf).value,
+        gt_object: document.getElementById("drive-gt" + suf).value,
+        apply_cc: document.getElementById("drive-cc" + suf).checked
       };
       const res = await api("/drive/start", {
         method: "POST",
@@ -3871,9 +3907,11 @@ L S R  C S L  R S L
         
         document.getElementById("drive-log").textContent = state.status_log || "";
         
-        // 2. 버튼 활성화 동기화
+        // 2. 버튼 활성화 동기화 (Drive Control 탭 + Path Test 탭 사본 동시 반영)
         document.getElementById("drive-start-btn").disabled = state.running;
         document.getElementById("drive-stop-btn").disabled  = !state.running;
+        document.getElementById("drive-start-btn-vfy").disabled = state.running;
+        document.getElementById("drive-stop-btn-vfy").disabled  = !state.running;
         document.getElementById("drive-return-btn").textContent = state.is_returning ? "⏹️ 복귀 중단" : "🔄 START 위치로 복귀";
         
         // 3. Grounding 정보 노출
