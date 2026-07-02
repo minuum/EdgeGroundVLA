@@ -3297,7 +3297,6 @@ L S R  C S L  R S L
       try {
         const res = await api("/episodes/list");
         if (res.ok) {
-          document.getElementById("ep-summary-lbl").textContent = res.summary;
           // 경로 집계 패널(진행바/요약표) 갱신 — 이 호출이 없으면 "집계 중..."에서 멈춤
           updatePathSummary(res.episodes || []);
           const tbody = document.getElementById("episodes-table-body");
