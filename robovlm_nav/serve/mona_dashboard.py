@@ -1996,7 +1996,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- Column 1: Live Camera & Telemetry -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
-            <div class="card-title">📷 Live Verification Stream</div>
+            <div class="card-title">📷 Live Verification Stream
+              <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
+                <input type="checkbox" id="toggle-grid-vfy" onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
+              </label>
+            </div>
             <div class="viewport-wrapper" style="position:relative; border-radius:12px; overflow:hidden; background-color:#000; aspect-ratio:16/9; border:1px solid var(--border-glow);">
               <img id="verify-stream-img" class="viewport-img" src="/camera/stream" style="width:100%; height:100%; object-fit:contain;">
               <canvas id="verify-canvas" class="viewport-canvas" width="640" height="360" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:5;"></canvas>
@@ -3467,6 +3471,10 @@ L S R  C S L  R S L
       if (cvVfy) {
         const ctxVfy = cvVfy.getContext("2d");
         ctxVfy.clearRect(0, 0, cvVfy.width, cvVfy.height);
+        const showGridVfy = document.getElementById("toggle-grid-vfy").checked;
+        if (showGridVfy) {
+          drawGridLines(ctxVfy, cvVfy.width, cvVfy.height);
+        }
         if (state.bbox && state.bbox.area > 0) {
           drawBbox(ctxVfy, state.bbox, cvVfy.width, cvVfy.height);
         }
@@ -3474,8 +3482,8 @@ L S R  C S L  R S L
     }
 
     function drawGridLines(ctx, W, H) {
-      ctx.strokeStyle = "rgba(6, 182, 212, 0.25)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(132, 204, 22, 0.55)"; // 연두색(lime), 기존보다 진하게
+      ctx.lineWidth = 1.5;
       
       // 수직 3분할 그리드
       ctx.beginPath();
