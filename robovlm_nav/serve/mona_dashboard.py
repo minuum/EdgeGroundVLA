@@ -165,6 +165,12 @@ class MoNaROSNode(Node):
 # ═══════════════════════════════════════════════════════════════════
 _ros: Optional[MoNaROSNode] = None
 
+# 프로세스 시작 시각/PID — 좀비 프로세스 감지 및 UI 신선도 표시용
+# (2026-07-02: go.sh 재시작 시 SIGTERM만으론 안 죽는 프로세스가 좀비로 남아
+#  옛 MJPEG 스트림을 계속 서빙하던 사고가 있었음 — 재발 시 바로 알아채기 위함)
+_PROCESS_PID = os.getpid()
+_PROCESS_START_TS = time.time()
+
 
 # ═══════════════════════════════════════════════════════════════════
 # 조이스틱 (DragonRise 게임패드) — Gradio 대시보드 DashboardJoystickReader 이식
@@ -442,6 +448,8 @@ STATIC_DIR = Path(__file__).parent / "static"
 @app.on_event("startup")
 def _startup():
     global _ros
+    log.info(f"🆔 프로세스 시작 PID={_PROCESS_PID}")
+    _warn_if_duplicate_process()
     if not ROS_AVAILABLE:
         log.warning("ROS 없음 — camera/control 비활성")
         return
@@ -450,6 +458,23 @@ def _startup():
     _ros = MoNaROSNode()
     threading.Thread(target=lambda: rclpy.spin(_ros), daemon=True, name="ros-spin").start()
     log.info("✅ ROS spin 시작")
+
+
+def _warn_if_duplicate_process():
+    """같은 스크립트를 서빙하는 다른 프로세스가 이미 떠 있는지 확인 —
+    2026-07-02 좀비 프로세스 사고(옛 프로세스가 안 죽고 MJPEG 스트림을
+    계속 물고 있던 문제) 재발 감지용. 자동으로 죽이지는 않음 — 자기 자신을
+    잘못 종료할 위험이 있어 경고만 남기고 판단은 사람이 하도록 함."""
+    try:
+        import subprocess as _sp
+        out = _sp.run(["pgrep", "-f", "robovlm_nav/serve/mona_dashboard.py"],
+                       capture_output=True, text=True, timeout=3).stdout
+        pids = [p for p in out.split() if p and int(p) != _PROCESS_PID]
+        if pids:
+            log.warning(f"⚠️ 중복 프로세스 감지! PID={pids} — 이전 재시작이 완전히 "
+                        f"종료되지 않았을 수 있음. 필요시 수동 확인: kill -9 {' '.join(pids)}")
+    except Exception as e:
+        log.debug(f"중복 프로세스 확인 실패(무시): {e}")
 
 
 # ─── 유틸 ─────────────────────────────────────────────────────────
@@ -773,7 +798,10 @@ def health():
         cam_ok = _ros._frame is not None and age is not None and age < CAMERA_STALE_S
     return {"status": "ok", "ros": ROS_AVAILABLE, "node_up": _ros is not None,
             "camera_ok": cam_ok, "frame_count": fc, "frame_age_s": age,
-            "infer_url": INFER_URL}
+            "infer_url": INFER_URL,
+            "pid": _PROCESS_PID,
+            "started_at": datetime.datetime.fromtimestamp(_PROCESS_START_TS).strftime("%Y-%m-%d %H:%M:%S"),
+            "uptime_s": round(time.time() - _PROCESS_START_TS, 1)}
 
 
 @app.get("/camera/frame")
@@ -2012,6 +2040,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         <h2 id="page-title" style="font-size:18px;font-weight:700;">🤖 Drive Control</h2>
       </div>
       <div class="srv-status-group">
+        <div class="srv-pill online" id="proc-pill" title="현재 서빙 중인 대시보드 프로세스 PID/가동시간 — 재시작 후 오래된 값이면 좀비 프로세스 의심">
+          <span class="indicator"></span> <span id="proc-pill-text">PID —</span>
+        </div>
         <div class="srv-pill" id="ros-pill"><span class="indicator"></span> ROS2 Node</div>
         <div class="srv-pill" id="infer-pill"><span class="indicator"></span> Inference Server</div>
         <div class="srv-pill" id="camera-pill"><span class="indicator"></span> Camera Stream</div>
@@ -4083,10 +4114,24 @@ L S R  C S L  R S L
     }
 
     // ── 헬스 체크 루프 (3초) ──────────────────────────────────────────
+    function _fmtUptime(s) {
+      if (s < 60) return `${Math.floor(s)}s`;
+      if (s < 3600) return `${Math.floor(s/60)}m`;
+      const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+      return `${h}h ${m}m`;
+    }
+
     async function pollHealth() {
       try {
         const h = await api("/health");
-        
+
+        // 프로세스 PID/가동시간 — 재시작 후에도 옛날 PID/긴 가동시간이 보이면
+        // 좀비 프로세스에 붙어있는 것일 수 있음 (2026-07-02 사고 참고)
+        const procEl = document.getElementById("proc-pill-text");
+        if (procEl && h.pid) {
+          procEl.textContent = `PID ${h.pid} · ${_fmtUptime(h.uptime_s)} (${h.started_at})`;
+        }
+
         // ROS Node status
         const rosPill = document.getElementById("ros-pill");
         if (h.node_up) {
