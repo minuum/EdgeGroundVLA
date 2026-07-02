@@ -193,3 +193,4 @@ docs/*.png
 !docs/v5/inference_viz/*.png
 
 !docs/v5/grounding_analysis/*.jpg
+.vla_api_key

@@ -14,6 +14,15 @@
 set -euo pipefail
 cd "${VLA_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
+# API 키 단일 소스: .vla_api_key 파일이 있으면 셸 환경변수보다 우선한다.
+# 서버/대시보드를 서로 다른 셸에서 재시작하면 키가 어긋나 403 연쇄→STOP만
+# 발행되는 사고가 2026-07-02에 두 번 발생 — 어느 셸에서 실행해도 같은 키를
+# 쓰도록 파일 하나로 고정 (plan_20260702_healthcheck_routine.md B2).
+if [[ -f .vla_api_key ]]; then
+    VLA_API_KEY="$(head -1 .vla_api_key | tr -d '[:space:]')"
+    export VLA_API_KEY
+fi
+
 # Tailscale IP 우선 사용 (원격 접속용), 없으면 로컬 IP fallback
 SODA_IP=$(ip addr show tailscale0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1)
 [[ -z "$SODA_IP" ]] && SODA_IP=$(hostname -I | awk '{print $1}')
