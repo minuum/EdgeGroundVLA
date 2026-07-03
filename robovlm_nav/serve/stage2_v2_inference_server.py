@@ -466,15 +466,21 @@ class Grounder:
 from transformers import StoppingCriteria, StoppingCriteriaList
 
 class StopOnTokenCriteria(StoppingCriteria):
-    """특정 토큰(예: 세미콜론)이 생성되면 출력을 즉시 중단하는 criteria 클래스"""
-    def __init__(self, stop_token_id: int):
-        self.stop_token_id = stop_token_id
+    """세미콜론이 포함된 토큰이 생성되면 출력을 즉시 중단하는 criteria 클래스.
+
+    PaliGemma2 토크나이저는 ';'(id=235289)와 ' ;'(공백+세미콜론, id=2161)를
+    서로 다른 토큰으로 병합한다 — 단일 id만 비교하면 ' ;' 변형에서 stopping이
+    누락되어 다중 탐지 중복 생성 버그가 재발한다. 디코드된 문자열에 ';'가
+    포함되는지로 체크해 병합 변형까지 커버한다.
+    """
+    def __init__(self, tokenizer):
+        self._tokenizer = tokenizer
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
         if input_ids.shape[1] == 0:
             return False
-        # 마지막으로 예측된 토큰이 중단 타겟 토큰인지 확인합니다.
-        return input_ids[0, -1].item() == self.stop_token_id
+        last_str = self._tokenizer.decode([input_ids[0, -1].item()], skip_special_tokens=False)
+        return ";" in last_str
 
 class PG2Grounder:
     """PaliGemma2-based bbox grounder using 'detect gray basket' prompt."""
@@ -493,14 +499,7 @@ class PG2Grounder:
             self._model = PaliGemmaForConditionalGeneration.from_pretrained(
                 str(self._pg2_path), torch_dtype=self._dtype, low_cpu_mem_usage=True
             ).to(self._device).eval()
-            
-            # 토크나이저로부터 세미콜론 토큰 ID 추출 (기본값=235289)
-            try:
-                semicolon_ids = self._proc.tokenizer.encode(";", add_special_tokens=False)
-                self._semicolon_token_id = semicolon_ids[0] if semicolon_ids else 235289
-            except Exception:
-                self._semicolon_token_id = 235289
-            logger.info("PG2Grounder: ready (semicolon_token_id=%d)", self._semicolon_token_id)
+            logger.info("PG2Grounder: ready")
 
     def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
             return_raw: bool = False, phrase: str = "gray basket",
@@ -521,7 +520,7 @@ class PG2Grounder:
         inp["pixel_values"] = inp["pixel_values"].to(self._dtype)
         hidden_vec = None
         # 세미콜론 토큰 검출 시 즉시 토큰 생성을 중단하는 criteria를 적용합니다.
-        stopping_criteria = StoppingCriteriaList([StopOnTokenCriteria(self._semicolon_token_id)])
+        stopping_criteria = StoppingCriteriaList([StopOnTokenCriteria(self._proc.tokenizer)])
         with torch.no_grad():
             if return_hidden:
                 out = self._model.generate(
