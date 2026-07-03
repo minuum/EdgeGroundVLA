@@ -122,12 +122,13 @@ _PG2_DECISION_LOG.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _log_pg2_decision(phrase: str, raw: str, locs: list, result: dict,
-                      latency_ms: float = 0.0) -> None:
-    """PG2 grounding 판정 근거를 영구 JSONL에 append."""
+                      latency_ms: float = 0.0, model: str = "pg2") -> None:
+    """Grounding 판정 근거를 영구 JSONL에 append. model: "pg2" | "owlv2" (A/B 구분용)."""
     try:
         from datetime import datetime
         entry = {
             "ts": datetime.now().isoformat(),          # H5 프레임과 시각 기반 매칭용
+            "model": model,                            # A/B 비교용 — 기존 로그는 "pg2"로 간주
             "phrase": phrase,
             "raw_output": raw[:200],
             "n_locs": len(locs),
@@ -580,7 +581,75 @@ class PG2Grounder:
 
         # Fix4: 판정 근거 영구 기록 (로그 로테이션 무관)
         _log_pg2_decision(phrase=phrase, raw=raw, locs=locs, result=result,
-                          latency_ms=(time.time() - _t0) * 1000.0)
+                          latency_ms=(time.time() - _t0) * 1000.0, model="pg2")
+
+        return result
+
+
+class OwlV2Grounder:
+    """OWL-v2 zero-shot detector 기반 bbox grounder — PG2Grounder와 동일 반환 스키마.
+    구조상 단일 forward pass라 PG2의 ';' 중복검출/8초 지연이 원천 불가능
+    (plan_20260703_owlv2_ab_grounder.md, A/B 후보). VLA_GROUNDER=owlv2로 활성화.
+    """
+
+    def __init__(self, device: torch.device):
+        self._device = device
+        self._proc: Optional[Any] = None
+        self._model: Optional[Any] = None
+
+    def _ensure_loaded(self) -> None:
+        if self._model is None:
+            from transformers import Owlv2Processor, Owlv2ForObjectDetection
+            logger.info("OwlV2Grounder: loading google/owlv2-base-patch16-ensemble")
+            self._proc = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
+            self._model = Owlv2ForObjectDetection.from_pretrained(
+                "google/owlv2-base-patch16-ensemble").to(self._device).eval()
+
+    def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
+            return_raw: bool = False, phrase: str = "gray basket",
+            return_hidden: bool = False) -> dict[str, Any]:
+        _t0 = time.time()
+        self._ensure_loaded()
+        pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+        W, H = pil.width, pil.height
+        query = phrase if "gray" in phrase else f"gray {phrase}"
+        inp = self._proc(text=[[query]], images=pil, return_tensors="pt").to(self._device)
+        with torch.no_grad():
+            out = self._model(**inp)
+        res = self._proc.post_process_object_detection(
+            out, threshold=0.1, target_sizes=[(H, W)])[0]
+        boxes = res["boxes"]
+        _fallback = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
+                     "x1": None, "y1": None, "x2": None, "y2": None}
+        if len(boxes) == 0:
+            result = {**_fallback, "filter_reason": "no-locs"}
+        else:
+            best = int(res["scores"].argmax())
+            bx1, by1, bx2, by2 = boxes[best].cpu().tolist()
+            x1, x2 = bx1 / W, bx2 / W
+            y1, y2 = by1 / H, by2 / H
+            area = (x2 - x1) * (y2 - y1)
+            cx_val, cy_val = (x1 + x2) / 2, (y1 + y2) / 2
+            filters = get_ground_filters(phrase)
+            if area > 0.9:
+                result = {**_fallback, "filter_reason": "full-frame"}
+            elif area < filters["min_area"]:
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "tiny"}
+            elif cy_val < filters["min_cy"]:
+                result = {**_fallback, "hint_cx": cx_val, "filter_reason": "top"}
+            else:
+                result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
+                          "x1": x1, "y1": y1, "x2": x2, "y2": y2}
+        raw_str = f"owlv2 n_boxes={len(boxes)}"
+        if return_raw:
+            result["raw_output"] = raw_str
+        if return_hidden:
+            # OWL-v2는 PG2 hidden-state 파이프라인과 호환되지 않음 — hidden-state 의존
+            # head(exp71/72 등)와는 A/B 불가, 순수 bbox 경로(MLP/Transformer head)에서만 유효.
+            result["hidden_state"] = None
+
+        _log_pg2_decision(phrase=phrase, raw=raw_str, locs=[], result=result,
+                          latency_ms=(time.time() - _t0) * 1000.0, model="owlv2")
 
         return result
 
@@ -624,8 +693,13 @@ class Stage2V2Model:
         self.enc.eval()
 
         # Grounder: PG2 if available (matches training), Kosmos-2 fallback
+        # VLA_GROUNDER=owlv2 로 A/B 전환 (plan_20260703_owlv2_ab_grounder.md) — 기본값 pg2, 롤백 리스크 없음.
+        _grounder_kind = os.getenv("VLA_GROUNDER", "pg2").lower()
         _pg2 = pg2_path or DEFAULT_PG2
-        if _pg2.exists():
+        if _grounder_kind == "owlv2":
+            self.grounder: Any = OwlV2Grounder(device)
+            logger.info("[A/B] Grounder: OWL-v2 (google/owlv2-base-patch16-ensemble)")
+        elif _pg2.exists():
             self.grounder: Any = PG2Grounder(_pg2, device)
             logger.info("Grounder: PaliGemma2 (%s)", _pg2)
         else:
