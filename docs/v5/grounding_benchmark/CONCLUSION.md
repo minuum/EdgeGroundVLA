@@ -105,9 +105,35 @@ text feature 주입은 **언어가 행동 예측에 인과적으로 개입하는
 text 헤드의 open-loop 이득(+4.4%p)은 closed-loop으로 전이 안 됨 (경로 prior 중복).
 **최종 운영 권장: OWL-v2(th0.25) + w6 헤드.**
 
+## 추가 — 헤드 구조(MLP/LSTM/Transformer)별 텍스트 조건화 비교 (2026-07-05)
+
+`scripts/ablate_instr_head_arch.py` → `docs/v5/bbox_nav_owl/instr_head_arch_compare.json`.
+같은 텍스트 주입 방식(broadcast-concat, window=6)을 헤드 구조만 바꿔서 비교:
+
+| 헤드 | PM(none) | PM(real) | PM(shuffled) | permutation drop | cf 변화율 |
+|---|---|---|---|---|---|
+| MLP | 75.3% | 75.1% | 74.9% | 8.2%p | 13.3% |
+| **LSTM** | 77.2% | **79.4% (최고 PM)** | 75.9% | 7.0%p | **0.0%** |
+| Transformer | 74.4% | 72.2% (하락) | 72.4% | **0.0%p** | 0.0% |
+
+**직관과 반대 결과**: 시퀀스 구조(LSTM/Transformer)가 텍스트를 더 잘 흡수할 것이라는
+가설과 달리, 구조가 복잡해질수록 텍스트를 방향 명령이 아니라 노이즈/보조신호로
+흡수한다.
+- Transformer: permutation drop 0%, real이 none보다 오히려 나쁨 → 텍스트 완전 무시
+  (43ep 소량 데이터에 파라미터 과다 — 노이즈로 취급하며 수렴)
+- LSTM: PM은 최고로 오르지만(+2.2%p) counterfactual 변화율 0% — 텍스트를 "쓰지만"
+  내용(왼쪽/오른쪽)이 아니라 임베딩의 존재/크기 자체를 보조신호로만 사용하는 것으로 추정
+- MLP만 counterfactual에서 미약하게나마 방향 반응(오른쪽 지시 25.3%) — 가장 단순한
+  구조가 오히려 유일하게 명령형 신호를 일부 학습
+
+**결론**: 명령 순응 부재는 헤드 구조 문제가 아니라 데이터 문제로 재확인됨(오히려 더
+강하게) — 헤드를 바꿔서 해결될 사안이 아니고, 장면-지시 상관이 깨진 데이터(조이스틱
+좌/중/우 수집) 없이는 어떤 구조를 써도 명령 순응은 안 생길 것으로 판단.
+
 ## 산출물
 
 - `scripts/eval/grounding_benchmark.py` — 고정 벤치마크 (신규 그라운더 자동 채점 API 포함)
 - `scripts/eval/eval_iou_truth_mini.py` — 72프레임 IoU (+ truth_mini_preds.json 캐시)
 - `scripts/gen_bbox_dataset_owl.py` → `docs/v5/bbox_nav_owl/bbox_dataset_owl.json` (758프레임)
 - `scripts/train_step2_owl_head.py` → `docs/v5/bbox_nav_owl/head_compare.json`
+- `scripts/ablate_instr_head_arch.py` → `docs/v5/bbox_nav_owl/instr_head_arch_compare.json`
