@@ -28,3 +28,36 @@
 
 - 그리드 라벨러: http://localhost:7791 (포트 7791, `scripts/label/fallback_grid_labeler.py`, 현재 실행 중)
 - 라벨 저장: `docs/v5/fallback_multimodel_20260703/human_labels.json`
+
+## 추가 (2026-07-05) — Jetson vs 로컬 환경 버전 비교 요청
+
+이 문서 작성 당시 "torch/transformers 버전 비교가 다음 우선순위"라고만 적어두고 로컬
+버전 정보 자체를 안 남겨서 지금 추가. **재현성 gap의 근본 원인은 아직 미해결.**
+
+### 로컬(minum) 환경
+
+```
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
+transformers==4.49.0
+accelerate==1.13.0
+numpy==1.26.4
+opencv-python==4.11.0.86
+pillow==12.1.1
+python 3.10.20 (venv), CUDA 12.8
+GPU: NVIDIA GB10 (driver 580.142)
+```
+
+### soda(Jetson)에 요청할 것
+
+```bash
+.venv/bin/python3 -m pip freeze | grep -iE "^torch|^transformers|^accelerate|^pillow|^numpy|^opencv"
+python3 --version
+nvidia-smi --query-gpu=name,driver_version --format=csv,noheader  # 또는 jetson_release
+```
+
+버전이 다르면 → 동일 버전으로 맞춰서 fallback 재현율 변화 확인.
+버전이 같으면 → 하드웨어(Jetson fp16/양자화) 또는 이미 수정된 PG2 stopping-criteria
+세미콜론 버그(`bc8f310d`)가 원인일 가능성으로 좁혀짐. 단, OWL-v2 전환(`d07ead37`)으로
+이 실패 경로 자체가 우회되므로 실무 우선순위는 낮아졌음 — 그래도 근본 원인 규명 자체는
+별도로 남겨둘 가치 있음(다른 유사 재현성 이슈 예방).
