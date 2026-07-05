@@ -40,3 +40,23 @@ export VLA_GROUNDER=owlv2          # 메인 그라운더 A/B
 
 `VLA_GROUNDER` 미설정(또는 `pg2`) 시 기존 동작 완전 동일. `VLA_OWLV2_THRESH`도
 0.1로 되돌리면 이전 동작 재현 가능(비권장 — 오탐 급증).
+
+## 별건 — Jetson vs 로컬 환경 버전 비교 요청 (재현성 gap 미해결 건)
+
+`docs/v5/grounding_analysis/CONCLUSION_20260704_fallback_repro_gap.md`에서 확인된
+"서버 fallback 프레임 100%가 로컬 재실행 시 탐지됨" 문제의 근본 원인 후보가
+Jetson-vs-local 환경 버전 차이입니다. OWL-v2 전환으로 이 실패 경로 자체는 우회되지만,
+근본 원인은 아직 안 밝혀졌으니 시간 될 때 아래 부탁드립니다:
+
+```bash
+.venv/bin/python3 -m pip freeze | grep -iE "^torch|^transformers|^accelerate|^pillow|^numpy|^opencv"
+python3 --version
+nvidia-smi --query-gpu=name,driver_version --format=csv,noheader  # 또는 jetson_release
+```
+
+로컬(minum) 기준값:
+```
+torch==2.11.0+cu128 / transformers==4.49.0 / accelerate==1.13.0
+numpy==1.26.4 / opencv-python==4.11.0.86 / pillow==12.1.1
+python 3.10.20, CUDA 12.8, GPU NVIDIA GB10 (driver 580.142)
+```
