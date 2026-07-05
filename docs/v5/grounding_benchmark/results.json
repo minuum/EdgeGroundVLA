@@ -1,0 +1,71 @@
+{
+  "h1": {
+    "source": "human_ox",
+    "acc_present": 0.009216589861751152,
+    "n_present_labeled": 217,
+    "fp_absent": 0.9493670886075949,
+    "n_absent": 79
+  },
+  "h2": {
+    "source": "human_ox",
+    "acc_present": 0.027649769585253458,
+    "n_present_labeled": 217,
+    "fp_absent": 0.9493670886075949,
+    "n_absent": 79
+  },
+  "ow": {
+    "source": "human_ox",
+    "acc_present": 0.9907834101382489,
+    "n_present_labeled": 217,
+    "fp_absent": 0.7468354430379747,
+    "n_absent": 79
+  },
+  "pg": {
+    "source": "human_ox",
+    "acc_present": 0.9631336405529954,
+    "n_present_labeled": 217,
+    "fp_absent": 1.0,
+    "n_absent": 79,
+    "truthmini_iou_mean": 0.9271393707174118,
+    "truthmini_iou_median": 0.9393624884378887,
+    "truthmini_iou_mean_visible": 0.9240373708534652,
+    "truthmini_iou_mean_partial": 0.9379963702412251,
+    "truthmini_cx_mae": 0.002358891332681653,
+    "truthmini_lcr_match": 0.7916666666666666,
+    "truthmini_n_detected": 72,
+    "truthmini_n_missed": 0,
+    "truthmini_n_total": 72
+  },
+  "kr": {
+    "source": "human_ox",
+    "acc_present": 0.9769585253456221,
+    "n_present_labeled": 217,
+    "fp_absent": 0.9746835443037974,
+    "n_absent": 79,
+    "truthmini_iou_mean": 0.8846050597579915,
+    "truthmini_iou_median": 0.8949709867514588,
+    "truthmini_iou_mean_visible": 0.8674989172299957,
+    "truthmini_iou_mean_partial": 0.9444765586059769,
+    "truthmini_cx_mae": 0.005128472222222222,
+    "truthmini_lcr_match": 0.7916666666666666,
+    "truthmini_n_detected": 72,
+    "truthmini_n_missed": 0,
+    "truthmini_n_total": 72
+  },
+  "ow_th025": {
+    "source": "human_ox+score_threshold",
+    "acc_present": 0.9493087557603687,
+    "n_present_labeled": 217,
+    "fp_absent": 0.0,
+    "n_absent": 79,
+    "truthmini_iou_mean": 0.9321336083761395,
+    "truthmini_iou_median": 0.9431566267160485,
+    "truthmini_iou_mean_visible": 0.9296207129712633,
+    "truthmini_iou_mean_partial": 0.9415150845543441,
+    "truthmini_cx_mae": 0.001769858094168379,
+    "truthmini_lcr_match": 0.7887323943661971,
+    "truthmini_n_detected": 71,
+    "truthmini_n_missed": 1,
+    "truthmini_n_total": 72
+  }
+}

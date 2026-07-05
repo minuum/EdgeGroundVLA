@@ -193,3 +193,7 @@ docs/*.png
 !docs/v5/inference_viz/*.png
 
 !docs/v5/grounding_analysis/*.jpg
+
+# 세션 검증용 원본 프레임 (대용량, rsync로 별도 전송)
+data/fallback_verify_frames/
+data/fallback_verify_labeled/

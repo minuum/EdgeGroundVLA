@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>BBox 수동 검수 | MoNaVLA</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1117; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
+
+  header { background: #1a1d2e; padding: 12px 20px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #2a2d3e; }
+  header h1 { font-size: 16px; color: #7c8cf8; font-weight: 700; }
+  .progress-bar { flex: 1; height: 8px; background: #2a2d3e; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #7c8cf8, #38bdf8); transition: width 0.4s; }
+  .stats { font-size: 13px; color: #888; white-space: nowrap; }
+  .nav-btns { display: flex; gap: 8px; }
+  .nav-btns button { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+  #btn-prev { background: #2a2d3e; color: #aaa; }
+  #btn-prev:hover { background: #3a3d4e; }
+  #btn-next { background: #7c8cf8; color: #fff; }
+  #btn-next:hover { background: #6a7ae8; }
+  #btn-skip { background: #2a2d3e; color: #f97316; border: 1px solid #f97316; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* 이미지 패널 */
+  .img-panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; position: relative; background: #0a0c14; }
+  .img-wrap { position: relative; cursor: crosshair; }
+  #frame-img { max-width: 100%; max-height: calc(100vh - 160px); display: block; border-radius: 8px; border: 2px solid #2a2d3e; }
+  #bbox-canvas { position: absolute; top: 0; left: 0; pointer-events: none; border-radius: 8px; }
+  .img-info { margin-top: 8px; font-size: 12px; color: #555; text-align: center; }
+
+  /* 사이드바 */
+  .sidebar { width: 340px; background: #1a1d2e; border-left: 1px solid #2a2d3e; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  .card { background: #0f1117; border-radius: 10px; padding: 14px; border: 1px solid #2a2d3e; }
+  .card h3 { font-size: 12px; color: #7c8cf8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+
+  .meta-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+  .meta-key { color: #666; }
+  .meta-val { color: #e0e0e0; font-weight: 600; max-width: 180px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* 라벨 필드 */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: #aaa; margin-bottom: 6px; font-weight: 600; }
+  .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .toggle-group button { padding: 5px 12px; border-radius: 6px; border: 1px solid #3a3d4e; background: #0f1117; color: #aaa; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .toggle-group button.active { background: #7c8cf8; border-color: #7c8cf8; color: #fff; font-weight: 700; }
+  .toggle-group button.active-green { background: #22c55e; border-color: #22c55e; color: #fff; }
+  .toggle-group button.active-red { background: #ef4444; border-color: #ef4444; color: #fff; }
+  .toggle-group button.active-orange { background: #f97316; border-color: #f97316; color: #fff; }
+
+  .bbox-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .bbox-inputs label { font-size: 11px; color: #888; display: flex; flex-direction: column; gap: 3px; }
+  .bbox-inputs input { background: #0f1117; border: 1px solid #3a3d4e; border-radius: 5px; color: #e0e0e0; padding: 5px 8px; font-size: 13px; width: 100%; }
+  .bbox-hint { font-size: 11px; color: #555; margin-top: 4px; }
+
+  textarea { width: 100%; background: #0f1117; border: 1px solid #3a3d4e; border-radius: 6px; color: #e0e0e0; padding: 8px; font-size: 12px; resize: vertical; min-height: 60px; }
+
+  .save-btn { width: 100%; padding: 10px; background: linear-gradient(90deg, #7c8cf8, #38bdf8); border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+  .save-btn:hover { opacity: 0.9; }
+  .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .status-pending { background: #f97316; color: #fff; }
+  .status-done { background: #22c55e; color: #fff; }
+  .status-skip { background: #555; color: #fff; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #22c55e; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; }
+
+  #draw-mode-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid #7c8cf8; background: transparent; color: #7c8cf8; font-size: 12px; cursor: pointer; margin-top: 6px; transition: all 0.15s; }
+  #draw-mode-btn.active { background: #7c8cf8; color: #fff; }
+  .yolo-bar { display: none !important; }
+  .yolo-accept-bar { display: none !important; }
+  #yolo-btn { padding: 5px 14px; border-radius: 6px; border: 1px solid #f59e0b; background: transparent; color: #f59e0b; font-size: 12px; cursor: pointer; font-weight: 700; transition: all 0.15s; }
+  #yolo-btn:hover { background: #f59e0b22; }
+  #yolo-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .yolo-result { font-size: 12px; color: #888; }
+  .yolo-result.found { color: #22c55e; font-weight: 700; }
+  .yolo-result.notfound { color: #ef4444; }
+  .yolo-accept-bar { display: none; gap: 6px; margin-top: 6px; }
+  .yolo-accept-bar.show { display: flex; }
+  #yolo-accept { padding: 4px 12px; border-radius: 5px; border: none; background: #22c55e; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #yolo-reject { padding: 4px 12px; border-radius: 5px; border: none; background: #3a3d4e; color: #aaa; font-size: 12px; cursor: pointer; }
+  #draw-mode-btn.active { background: #7c8cf8; color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏷️ BBox 수동 검수</h1>
+  <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+  <div class="stats" id="stats-text">로딩 중...</div>
+  <div style="font-size:11px;color:#555;cursor:pointer" onclick="window.open('/api/status','_blank')" title="클릭하면 서버 상태 JSON">🔍 서버상태</div>
+  <div class="nav-btns">
+    <button id="btn-prev">◀ 이전</button>
+    <button id="btn-skip">건너뜀</button>
+    <button id="btn-next">다음 ▶</button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- 이미지 패널 -->
+  <div class="img-panel">
+    <div class="img-wrap" id="img-wrap">
+      <img id="frame-img" src="" alt="프레임 이미지">
+      <canvas id="bbox-canvas"></canvas>
+    </div>
+    <div class="img-info" id="img-info"></div>
+    <div class="yolo-bar">
+      <button id="yolo-btn">🤖 YOLO 자동 탐지</button>
+      <span class="yolo-result" id="yolo-result">—</span>
+      <button id="draw-mode-btn">🖊️ 드래그</button>
+    </div>
+    <div class="yolo-accept-bar" id="yolo-accept-bar">
+      <button id="yolo-accept">✅ YOLO BBox 승인</button>
+      <button id="yolo-reject">❌ 무시</button>
+    </div>
+  </div>
+
+  <!-- 사이드바 -->
+  <div class="sidebar">
+    <!-- 메타 정보 -->
+    <div class="card">
+      <h3>📋 프레임 정보</h3>
+      <div class="meta-row"><span class="meta-key">인덱스</span><span class="meta-val" id="m-idx">-</span></div>
+      <div class="meta-row"><span class="meta-key">상태</span><span class="meta-val" id="m-status">-</span></div>
+      <div class="meta-row"><span class="meta-key">에피소드</span><span class="meta-val" id="m-episode" title="">-</span></div>
+      <div class="meta-row"><span class="meta-key">anchor</span><span class="meta-val" id="m-anchor">-</span></div>
+      <div class="meta-row"><span class="meta-key">진행도</span><span class="meta-val" id="m-progress">-</span></div>
+      <div class="meta-row"><span class="meta-key">GT 액션</span><span class="meta-val" id="m-action">-</span></div>
+      <div class="meta-row"><span class="meta-key">seed BBox</span><span class="meta-val" id="m-seed-bbox">-</span></div>
+    </div>
+
+    <!-- 라벨 필드 -->
+    <div class="card">
+      <h3>🎯 검수 항목</h3>
+
+      <div class="field">
+        <label>① target_visible — 바스켓이 보이는가?</label>
+        <div class="toggle-group" id="tg-visible">
+          <button data-val="true" class="active-green">✅ 보임</button>
+          <button data-val="false" class="active-red">❌ 안보임</button>
+          <button data-val="partial" class="active-orange">⚠️ 일부만</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>② coarse_position — 이미지 내 위치</label>
+        <div class="toggle-group" id="tg-pos">
+          <button data-val="left">⬅️ LEFT</button>
+          <button data-val="center">⬆️ CENTER</button>
+          <button data-val="right">➡️ RIGHT</button>
+          <button data-val="not_visible">🚫 없음</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>③ goal_near — 바스켓이 충분히 가까운가?</label>
+        <div class="toggle-group" id="tg-near">
+          <button data-val="true" class="active-green">✅ 근접</button>
+          <button data-val="false" class="active-red">❌ 멀리</button>
+          <button data-val="null">❓ 모름</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>④ bbox_xyxy_norm — [x1, y1, x2, y2] (0.0~1.0) <br>
+          <small style="color:#555">이미지 클릭 드래그 또는 직접 입력</small>
+        </label>
+        <div class="bbox-inputs">
+          <label>x1 (left)<input type="number" id="bb-x1" step="0.01" min="0" max="1" placeholder="0.0"></label>
+          <label>y1 (top)<input type="number" id="bb-y1" step="0.01" min="0" max="1" placeholder="0.0"></label>
+          <label>x2 (right)<input type="number" id="bb-x2" step="0.01" min="0" max="1" placeholder="1.0"></label>
+          <label>y2 (bottom)<input type="number" id="bb-y2" step="0.01" min="0" max="1" placeholder="1.0"></label>
+        </div>
+        <div class="bbox-hint">바스켓 미감지 시 전부 비워두세요</div>
+      </div>
+
+      <div class="field">
+        <label>📝 notes (선택)</label>
+        <textarea id="notes-input" placeholder="특이사항 메모..."></textarea>
+      </div>
+    </div>
+
+    <button class="save-btn" id="save-btn">💾 저장 후 다음</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let frames = [];
+let currentIdx = 0;
+let drawMode = false;
+let yoloBBox = null;  // YOLO 예측 결과 임시 저장
+let yoloAssisted = false;
+let dragStart = null;
+let currentBBox = null;
+
+// ── 데이터 로드 ──────────────────────────────────
+async function loadFrames() {
+  const res = await fetch('/api/frames');
+  const data = await res.json();
+  frames = data.frames;
+  updateStats(data.summary);
+  renderFrame(0);
+}
+
+function updateStats(summary) {
+  const pct = Math.round((summary.done / summary.total) * 100) || 0;
+  document.getElementById('stats-text').textContent =
+    `✅ 완료 ${summary.done} | ⏳ 미검수 ${summary.pending} | 전체 ${summary.total} (${pct}%)`;
+  document.getElementById('prog-fill').style.width = pct + '%';
+}
+
+// ── 프레임 렌더 ──────────────────────────────────
+function renderFrame(idx) {
+  if (idx < 0 || idx >= frames.length) return;
+  currentIdx = idx;
+  const f = frames[idx];
+
+  // 이미지
+  // YOLO 상태 초기화
+  yoloBBox = null;
+  yoloAssisted = false;
+  document.getElementById('yolo-result').textContent = '—';
+  document.getElementById('yolo-result').className = 'yolo-result';
+  document.getElementById('yolo-accept-bar').classList.remove('show');
+  document.getElementById('frame-img').src =
+    '/api/image?path=' + encodeURIComponent(f.frame_path);
+  document.getElementById('img-info').textContent =
+    `Frame ${f.frame_idx} | ${f.episode.split('_target_')[1] || f.episode}`;
+
+  // 메타
+  document.getElementById('m-idx').textContent = `${idx + 1} / ${frames.length}`;
+  const statusEl = document.getElementById('m-status');
+  statusEl.innerHTML = `<span class="status-badge status-${f.review_status}">${f.review_status}</span>`;
+  document.getElementById('m-episode').textContent = f.episode;
+  document.getElementById('m-episode').title = f.episode;
+  document.getElementById('m-anchor').textContent = f.anchor_tag + ' (' + (f.normalized_progress * 100).toFixed(0) + '%)';
+  document.getElementById('m-progress').textContent = f.normalized_progress;
+  const actionMap = {1:'FWD', 2:'LEFT', 3:'RIGHT', 4:'STOP'};
+  document.getElementById('m-action').textContent = actionMap[f.gt_action_class] || f.gt_action_class;
+  document.getElementById('m-seed-bbox').textContent = f.seed_has_bbox ? JSON.stringify(f.seed_bbox_xyxy_norm) : '없음';
+
+  // 기존 라벨 복원
+  setToggle('tg-visible', f.target_visible === null ? null : String(f.target_visible));
+  setToggle('tg-pos', f.coarse_position);
+  setToggle('tg-near', f.goal_near === null ? null : String(f.goal_near));
+
+  if (f.bbox_xyxy_norm) {
+    document.getElementById('bb-x1').value = f.bbox_xyxy_norm[0] ?? '';
+    document.getElementById('bb-y1').value = f.bbox_xyxy_norm[1] ?? '';
+    document.getElementById('bb-x2').value = f.bbox_xyxy_norm[2] ?? '';
+    document.getElementById('bb-y2').value = f.bbox_xyxy_norm[3] ?? '';
+    currentBBox = f.bbox_xyxy_norm;
+  } else {
+    ['bb-x1','bb-y1','bb-x2','bb-y2'].forEach(id => document.getElementById(id).value = '');
+    currentBBox = null;
+  }
+  document.getElementById('notes-input').value = f.notes || '';
+
+  // 캔버스 초기화
+  clearCanvas();
+  if (currentBBox) redrawBBox();
+}
+
+// ── 토글 버튼 ────────────────────────────────────
+function setToggle(groupId, val) {
+  document.querySelectorAll(`#${groupId} button`).forEach(btn => btn.classList.remove('active'));
+  if (val !== null && val !== undefined) {
+    const target = document.querySelector(`#${groupId} button[data-val="${val}"]`);
+    if (target) target.classList.add('active');
+  }
+}
+
+function initToggle(groupId) {
+  document.querySelectorAll(`#${groupId} button`).forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll(`#${groupId} button`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+}
+
+function getToggleVal(groupId) {
+  const active = document.querySelector(`#${groupId} button.active`);
+  if (!active) return null;
+  const v = active.dataset.val;
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  if (v === 'null') return null;
+  return v;
+}
+
+// ── BBox 드래그 (이미지 위) ───────────────────────
+const imgWrap = document.getElementById('img-wrap');
+const canvas = document.getElementById('bbox-canvas');
+const ctx = canvas.getContext('2d');
+
+document.getElementById('frame-img').addEventListener('load', function() {
+  canvas.width = this.naturalWidth;
+  canvas.height = this.naturalHeight;
+  canvas.style.width = this.clientWidth + 'px';
+  canvas.style.height = this.clientHeight + 'px';
+  if (currentBBox) redrawBBox();
+});
+
+document.getElementById('draw-mode-btn').addEventListener('click', () => {
+  drawMode = !drawMode;
+  const btn = document.getElementById('draw-mode-btn');
+  btn.classList.toggle('active', drawMode);
+  canvas.style.pointerEvents = drawMode ? 'all' : 'none';
+  canvas.style.cursor = drawMode ? 'crosshair' : 'default';
+});
+
+canvas.addEventListener('mousedown', e => {
+  if (!drawMode) return;
+  const rect = canvas.getBoundingClientRect();
+  dragStart = {
+    x: (e.clientX - rect.left) / rect.width,
+    y: (e.clientY - rect.top) / rect.height
+  };
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!drawMode || !dragStart) return;
+  const rect = canvas.getBoundingClientRect();
+  const cx = (e.clientX - rect.left) / rect.width;
+  const cy = (e.clientY - rect.top) / rect.height;
+  clearCanvas();
+  drawRect(dragStart.x, dragStart.y, cx, cy, '#7c8cf8');
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!drawMode || !dragStart) return;
+  const rect = canvas.getBoundingClientRect();
+  const ex = (e.clientX - rect.left) / rect.width;
+  const ey = (e.clientY - rect.top) / rect.height;
+  const x1 = Math.min(dragStart.x, ex).toFixed(3);
+  const y1 = Math.min(dragStart.y, ey).toFixed(3);
+  const x2 = Math.max(dragStart.x, ex).toFixed(3);
+  const y2 = Math.max(dragStart.y, ey).toFixed(3);
+  document.getElementById('bb-x1').value = x1;
+  document.getElementById('bb-y1').value = y1;
+  document.getElementById('bb-x2').value = x2;
+  document.getElementById('bb-y2').value = y2;
+  currentBBox = [parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2)];
+  dragStart = null;
+  clearCanvas();
+  redrawBBox();
+});
+
+// bbox 입력값 변경 시 캔버스 업데이트
+['bb-x1','bb-y1','bb-x2','bb-y2'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const x1 = parseFloat(document.getElementById('bb-x1').value);
+    const y1 = parseFloat(document.getElementById('bb-y1').value);
+    const x2 = parseFloat(document.getElementById('bb-x2').value);
+    const y2 = parseFloat(document.getElementById('bb-y2').value);
+    if ([x1,y1,x2,y2].every(v => !isNaN(v))) {
+      currentBBox = [x1, y1, x2, y2];
+      clearCanvas();
+      redrawBBox();
+    }
+  });
+});
+
+function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+function drawRect(x1, y1, x2, y2, color) {
+  const W = canvas.width, H = canvas.height;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([]);
+  ctx.strokeRect(x1*W, y1*H, (x2-x1)*W, (y2-y1)*H);
+  ctx.fillStyle = color + '33';
+  ctx.fillRect(x1*W, y1*H, (x2-x1)*W, (y2-y1)*H);
+  // 중심 십자
+  const cx = (x1+x2)/2*W, cy = (y1+y2)/2*H;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-8,cy); ctx.lineTo(cx+8,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy-8); ctx.lineTo(cx,cy+8); ctx.stroke();
+}
+
+function redrawBBox() {
+  if (!currentBBox) return;
+  drawRect(currentBBox[0], currentBBox[1], currentBBox[2], currentBBox[3], '#22c55e');
+}
+
+// ── YOLO 호출 ────────────────────────────────────
+document.getElementById('yolo-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('yolo-btn');
+  const resultEl = document.getElementById('yolo-result');
+  btn.disabled = true;
+  btn.textContent = '⏳ 탐지 중...';
+  resultEl.textContent = '분석 중...';
+  resultEl.className = 'yolo-result';
+
+  try {
+    const res = await fetch(`/api/yolo/${currentIdx}`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    if (data.yolo_found && data.yolo_bbox) {
+      yoloBBox = data.yolo_bbox;
+      const cls = data.yolo_cls ? ` [${data.yolo_cls}]` : '';
+      const saved = data.saved_image ? ` 💾` : '';
+      resultEl.textContent = `탐지됨 (conf:${data.yolo_conf})${cls}·${data.num_detections}개${saved}`;
+      resultEl.className = 'yolo-result found';
+      // 모든 박스 표시 후 best만 노란색으로
+      clearCanvas();
+      if (data.all_detections) {
+        data.all_detections.slice(1).forEach(d => {
+          drawRect(d.bbox_norm[0],d.bbox_norm[1],d.bbox_norm[2],d.bbox_norm[3],'#555');
+        });
+      }
+      drawRect(yoloBBox[0], yoloBBox[1], yoloBBox[2], yoloBBox[3], '#f59e0b');
+      document.getElementById('yolo-accept-bar').classList.add('show');
+    } else {
+      yoloBBox = null;
+      resultEl.textContent = `탐지 없음 (${data.num_detections}개) — 직접 드래그하세요`;
+      resultEl.className = 'yolo-result notfound';
+      document.getElementById('yolo-accept-bar').classList.remove('show');
+    }
+  } catch(e) {
+    resultEl.textContent = `오류: ${e.message}`;
+    resultEl.className = 'yolo-result notfound';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🤖 YOLO 자동 탐지';
+});
+
+document.getElementById('yolo-accept').addEventListener('click', () => {
+  if (!yoloBBox) return;
+  document.getElementById('bb-x1').value = yoloBBox[0];
+  document.getElementById('bb-y1').value = yoloBBox[1];
+  document.getElementById('bb-x2').value = yoloBBox[2];
+  document.getElementById('bb-y2').value = yoloBBox[3];
+  currentBBox = [...yoloBBox];
+  yoloAssisted = true;
+  clearCanvas();
+  redrawBBox();  // 초록색으로 전환
+  document.getElementById('yolo-accept-bar').classList.remove('show');
+  showToast('✅ YOLO BBox 적용됨');
+});
+
+document.getElementById('yolo-reject').addEventListener('click', () => {
+  yoloBBox = null;
+  clearCanvas();
+  if (currentBBox) redrawBBox();
+  document.getElementById('yolo-accept-bar').classList.remove('show');
+  document.getElementById('yolo-result').textContent = '무시됨';
+});
+
+// ── 저장 ─────────────────────────────────────────
+async function saveFrame(status='done', goNext=true) {
+  const x1 = document.getElementById('bb-x1').value;
+  const y1 = document.getElementById('bb-y1').value;
+  const x2 = document.getElementById('bb-x2').value;
+  const y2 = document.getElementById('bb-y2').value;
+  const hasBBox = [x1,y1,x2,y2].every(v => v !== '');
+
+  const payload = {
+    target_visible: getToggleVal('tg-visible'),
+    coarse_position: getToggleVal('tg-pos'),
+    goal_near: getToggleVal('tg-near'),
+    bbox_xyxy_norm: hasBBox ? [parseFloat(x1),parseFloat(y1),parseFloat(x2),parseFloat(y2)] : null,
+    notes: document.getElementById('notes-input').value,
+    yolo_assisted: yoloAssisted,
+    review_status: status
+  };
+
+  await fetch(`/api/save/${currentIdx}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  // 로컬 캐시 업데이트
+  Object.assign(frames[currentIdx], payload);
+  showToast(status === 'skip' ? '⏭️ 건너뜀' : '✅ 저장 완료');
+
+  if (goNext) {
+    const next = findNextPending(currentIdx + 1);
+    if (next !== -1) renderFrame(next);
+    else showToast('🎉 모든 프레임 검수 완료!');
+  }
+
+  await reloadStats();
+}
+
+function findNextPending(startIdx) {
+  for (let i = startIdx; i < frames.length; i++) {
+    if (frames[i].review_status === 'pending') return i;
+  }
+  return -1;
+}
+
+async function reloadStats() {
+  const res = await fetch('/api/frames');
+  const data = await res.json();
+  frames = data.frames;
+  updateStats(data.summary);
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── 버튼 바인딩 ──────────────────────────────────
+document.getElementById('save-btn').addEventListener('click', () => saveFrame('done', true));
+document.getElementById('btn-skip').addEventListener('click', () => saveFrame('skip', true));
+document.getElementById('btn-next').addEventListener('click', () => renderFrame(Math.min(currentIdx+1, frames.length-1)));
+document.getElementById('btn-prev').addEventListener('click', () => renderFrame(Math.max(currentIdx-1, 0)));
+
+// 키보드 단축키
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'Enter') saveFrame('done', true);
+  if (e.key === 'ArrowRight') renderFrame(Math.min(currentIdx+1, frames.length-1));
+  if (e.key === 'ArrowLeft') renderFrame(Math.max(currentIdx-1, 0));
+  if (e.key === 's') saveFrame('skip', true);
+});
+
+initToggle('tg-visible');
+initToggle('tg-pos');
+initToggle('tg-near');
+
+loadFrames();
+</script>
+</body>
+</html>
