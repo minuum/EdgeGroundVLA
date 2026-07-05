@@ -74,6 +74,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from robovlm_nav.image_preprocess import resize_for_vlm
+from robovlm_nav.perception.hsv_basket import detect_basket_cx
 
 import re
 
@@ -611,12 +612,17 @@ class OwlV2Grounder:
         self._ensure_loaded()
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
         W, H = pil.width, pil.height
-        query = phrase if "gray" in phrase else f"gray {phrase}"
+        # phrase 그대로 사용 — "gray" 강제 접두는 임의 객체("red ball")를 망가뜨림
+        # (plan_20260705_vla_ladder_step1_2.md ①: 언어→타겟 선택)
+        query = phrase
         inp = self._proc(text=[[query]], images=pil, return_tensors="pt").to(self._device)
         with torch.no_grad():
             out = self._model(**inp)
+        # threshold=0.25: owlv2_threshold_roc.py 실측 확정값 — 정탐 95.3% 유지하며
+        # 오탐(객체없음 프레임) 0% (CH60/CONCLUSION.md). 0.1은 오탐 74.7%로 부재판정 불가.
+        owl_thresh = float(os.getenv("VLA_OWLV2_THRESH", "0.25"))
         res = self._proc.post_process_object_detection(
-            out, threshold=0.1, target_sizes=[(H, W)])[0]
+            out, threshold=owl_thresh, target_sizes=[(H, W)])[0]
         boxes = res["boxes"]
         _fallback = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
                      "x1": None, "y1": None, "x2": None, "y2": None}
@@ -770,11 +776,15 @@ class Stage2V2Model:
         _rot_dir                   = os.getenv("VLA_PREVIEW_ROT_DIR", "R").upper()
         self._preview_fallback_rot = 7 if _rot_dir != "L" else 6  # ROT_R=7, ROT_L=6
         self._preview_use_hint_cx  = os.getenv("VLA_PREVIEW_HINT_CX", "0") == "1"
+        # plan_20260703_hsv_preview_align.md: 프리뷰(콜드스타트 정렬)만 HSV 룰로 교체 가능.
+        # 기본값 "pg2" 유지 시 기존 동작 완전 동일 — 메인 grounding(정상 추론)은 항상 PG2.
+        self._preview_grounder_kind = os.getenv("VLA_PREVIEW_GROUNDER", "pg2").lower()
         if self._preview_enabled:
-            logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s  hint_cx=%s",
+            logger.info("[CH54] Preview 활성: area_thresh=%.3f  max_retry=%d  fallback=%s  hint_cx=%s  grounder=%s",
                         self._preview_area_thresh, self._preview_max_retry,
                         "ROT_R" if self._preview_fallback_rot == 7 else "ROT_L",
-                        "ON" if self._preview_use_hint_cx else "OFF")
+                        "ON" if self._preview_use_hint_cx else "OFF",
+                        self._preview_grounder_kind)
 
     def reset(self) -> None:
         self.history.clear()
@@ -798,6 +808,22 @@ class Stage2V2Model:
                                 float(_alt_bbox.get("area", 0.0)))
                     return _alt_bbox
         return bbox
+
+    def _ground_hsv(self, image_rgb: np.ndarray) -> dict:
+        """HSV 회색 마스크 기반 coarse grounding — 프리뷰(콜드스타트 정렬) 전용.
+        _needs_preview/_preview_rot_from_bbox는 has_bbox/cx 키만 보므로 그대로 재사용."""
+        det = detect_basket_cx(image_rgb)
+        if det is None:
+            return {"has_bbox": False, "cx": 0.5, "cy": 0.6, "area": 0.0}
+        cx, cy, area, conf = det
+        return {"has_bbox": True, "cx": cx, "cy": cy, "area": area, "hsv_confidence": conf}
+
+    def _ground_preview(self, image_rgb: np.ndarray, phrase: str) -> dict:
+        """프리뷰(콜드스타트 정렬) 전용 grounding 진입점 — VLA_PREVIEW_GROUNDER로 PG2/HSV 선택.
+        메인 grounding(_ground_multi, 정상 추론용)과는 별개 — 헤드 입력 분포에 영향 없음."""
+        if self._preview_grounder_kind == "hsv":
+            return self._ground_hsv(image_rgb)
+        return self._ground_multi(image_rgb, phrase)
 
     # ── CH54: PG2 재시도 루프 helpers ───────────────────────────────────────
 
@@ -834,7 +860,7 @@ class Stage2V2Model:
         엔드포인트 /preview_align 에서 호출됨.
         """
         image_rgb = self._decode_image(image_b64)
-        bbox = self.grounder.run(image_rgb, phrase=phrase)
+        bbox = self._ground_preview(image_rgb, phrase)
         needs = self._needs_preview(bbox) if self._preview_enabled else False
         rot_cmd = self._preview_rot_from_bbox(bbox) if needs else None
         return {
@@ -921,22 +947,27 @@ class Stage2V2Model:
         preview_rot: Optional[int] = None
         if self._preview_enabled and self.inference_count == 0:
             if self._preview_attempt < self._preview_max_retry:
-                first_bbox = self._ground_multi(image_rgb, phrase)
+                first_bbox = self._ground_preview(image_rgb, phrase)
                 if self._needs_preview(first_bbox):
                     preview_rot = self._preview_rot_from_bbox(first_bbox)
                     self._preview_attempt += 1
-                    logger.info("[CH54] preview ROT: %s  attempt=%d/%d  bbox_cx=%.3f has=%s",
+                    logger.info("[CH54] preview ROT: %s  attempt=%d/%d  bbox_cx=%.3f has=%s  grounder=%s",
                                 CLASS_NAMES[preview_rot], self._preview_attempt,
                                 self._preview_max_retry,
                                 float(first_bbox.get("cx", 0.5)),
-                                first_bbox.get("has_bbox", False))
+                                first_bbox.get("has_bbox", False),
+                                self._preview_grounder_kind)
                 else:
-                    # 그라운딩 성공 → 정상 추론으로 이어짐, 결과 캐시
-                    self._grounding_cache = first_bbox
-                    logger.info("[CH54] preview 성공: cx=%.3f area=%.4f (attempt=%d)",
+                    # 그라운딩 성공 → 정상 추론으로 이어짐.
+                    # HSV 경로는 캐시하지 않는다: 헤드는 PG2 bbox 분포로 학습됐으므로
+                    # 정상 추론 첫 스텝은 항상 PG2가 자연히 실행되도록 캐시를 비워둔다
+                    # (plan_20260703_hsv_preview_align.md §2-1 4번).
+                    if self._preview_grounder_kind != "hsv":
+                        self._grounding_cache = first_bbox
+                    logger.info("[CH54] preview 성공: cx=%.3f area=%.4f (attempt=%d) grounder=%s",
                                 float(first_bbox.get("cx", 0.5)),
                                 float(first_bbox.get("area", 0.0)),
-                                self._preview_attempt)
+                                self._preview_attempt, self._preview_grounder_kind)
             # max_retry 초과 시 preview 포기 → 정상 추론으로 낙하 (preview_rot=None)
 
         if preview_rot is not None:
