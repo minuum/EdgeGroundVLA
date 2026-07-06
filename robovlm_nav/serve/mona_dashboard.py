@@ -4539,10 +4539,18 @@ L S R  C S L  R S L
             <div class="form-group"><label>Stop Mode</label><input type="text" readonly value="${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'})"></div>
           `;
           
-          // verify 탭 서버 상태 갱신
+          // verify 탭 서버 상태 갱신 — 메인 모델 + 그라운딩 모델을 서버 변경 즉시 반영
           const vfySrvStatus = document.getElementById("vfy-srv-status");
           if (vfySrvStatus) {
-            vfySrvStatus.innerHTML = `Model: ${inf.checkpoint_path ? inf.checkpoint_path.split('/').pop() : '—'}<br>StopMode: ${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'})`;
+            const vg = inf.grounder || {};
+            const grIsOwl = (vg.model || "").toLowerCase().includes("owl");
+            const grBadge = grIsOwl
+              ? `<span style="color:var(--emerald); font-weight:700;">🔭 ${vg.model}</span> th=${vg.owlv2_thresh ?? '—'}`
+              : `<span style="color:var(--amber); font-weight:700;">🔭 ${vg.model || '—'}</span>`;
+            vfySrvStatus.innerHTML =
+              `<span style="color:var(--cyan); font-weight:700;">🧠 ${inf.checkpoint_path ? inf.checkpoint_path.split('/').pop() : '—'}</span> (${inf.head} W${inf.window})<br>`
+              + `${grBadge} · phrase="${vg.phrase || '—'}"<br>`
+              + `STOP: ${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'}) · git ${inf.git_commit || '—'}`;
           }
 
           // 시스템 토글 스위치 동기화
