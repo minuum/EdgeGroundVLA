@@ -4861,19 +4861,44 @@ def server_proc_restart(req: ServerRestartReq):
 
     go.sh가 pkill→로그 보관→기동→헬스대기까지 처리하므로 여기선 env만 조립해
     던진다. PG2 로딩 포함 최대 ~120s — UI가 /infer/health를 폴링해 완료 감지.
+
+    req의 필드가 비어있으면(=UI에서 명시적으로 안 건드림) go.sh 자체의 하드코딩된
+    기본값(VLA_GROUNDER=pg2 등)으로 조용히 되돌아가버리는 문제가 있었음 — "변경
+    없음 — 현재 설정 유지" 버튼을 눌러도 실제로는 유지가 안 되고 grounder/ckpt가
+    리셋됐음(2026-07-07 실측). 재시작 전 현재 /health를 조회해서 명시 안 된 필드는
+    "지금 떠 있는 값"으로 채워 넣어 진짜로 유지되게 함.
     """
+    current = {}
+    try:
+        import requests as rq
+        h = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2).json()
+        g = h.get("grounder", {}) or {}
+        current = {
+            "grounder": "owlv2" if "owl" in (g.get("model") or "").lower() else "pg2",
+            "owlv2_thresh": g.get("owlv2_thresh"),
+            "owlv2_area_scale": g.get("owlv2_area_scale"),
+            "ckpt": h.get("checkpoint_path"),
+        }
+    except Exception:
+        pass  # 서버가 이미 내려가 있으면 go.sh 기본값으로 진행
+
+    grounder = req.grounder if req.grounder in ("pg2", "owlv2") else current.get("grounder")
+    owlv2_thresh = req.owlv2_thresh if req.owlv2_thresh is not None else current.get("owlv2_thresh")
+    owlv2_area_scale = req.owlv2_area_scale if req.owlv2_area_scale is not None else current.get("owlv2_area_scale")
+    ckpt = req.ckpt if req.ckpt else current.get("ckpt")
+
     env_parts = []
-    if req.grounder in ("pg2", "owlv2"):
-        env_parts.append(f"VLA_GROUNDER={req.grounder}")
-    if req.owlv2_thresh is not None:
-        env_parts.append(f"VLA_OWLV2_THRESH={float(req.owlv2_thresh)}")
-    if req.owlv2_area_scale is not None:
-        env_parts.append(f"VLA_OWLV2_AREA_SCALE={float(req.owlv2_area_scale)}")
-    if req.ckpt:
-        ckpt_path = (ROOT / req.ckpt).resolve()
+    if grounder in ("pg2", "owlv2"):
+        env_parts.append(f"VLA_GROUNDER={grounder}")
+    if owlv2_thresh is not None:
+        env_parts.append(f"VLA_OWLV2_THRESH={float(owlv2_thresh)}")
+    if owlv2_area_scale is not None:
+        env_parts.append(f"VLA_OWLV2_AREA_SCALE={float(owlv2_area_scale)}")
+    if ckpt:
+        ckpt_path = (ROOT / ckpt).resolve()
         if not str(ckpt_path).startswith(str(ROOT)) or not ckpt_path.exists():
-            return {"ok": False, "error": f"체크포인트 없음/경로 이탈: {req.ckpt}"}
-        env_parts.append(f"VLA_S2V2_STAGE2={req.ckpt}")
+            return {"ok": False, "error": f"체크포인트 없음/경로 이탈: {ckpt}"}
+        env_parts.append(f"VLA_S2V2_STAGE2={ckpt}")
     cmd = f"cd {ROOT} && {' '.join(env_parts)} nohup bash scripts/run/go.sh --server > logs/server_restart_from_dash.log 2>&1 &"
     _subprocess.Popen(["bash", "-c", cmd])
     log.warning(f"🔁 [ServerRestart] 대시보드에서 추론서버 재시작 요청: {env_parts or '(현재 설정 유지)'}")
