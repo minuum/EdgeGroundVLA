@@ -79,20 +79,43 @@ MANIFEST="${STAGE}/README.txt"
   echo "── 세션 (${#SESSIONS[@]}) ──"
   for s in "${SESSIONS[@]}"; do echo "  $(basename "$s")  ($(du -h "$s"|cut -f1))"; done
   echo ""
-  echo "── 서버 설정/모델 스냅샷 (server_health.json 전문) ──"
+  echo "── 전송 시점 서버 설정/모델 스냅샷 (server_health.json 전문) ──"
+  echo "  ⚠️ 아래는 '지금' 설정 — 세션 수집 당시 설정은 각 세션의 runtime_config 참조 (다를 수 있음)"
   python3 -c "
 import json
 d=json.load(open('$HEALTH_JSON'))
-for k in ['head','window','val_acc','checkpoint_path','stop_mode','grounding_skip_n','multi_prompt','fallback_prompts','cx_jump_filter','cx_jump_thresh']:
+for k in ['head','window','val_acc','checkpoint_path','stop_mode','grounding_skip_n','multi_prompt','fallback_prompts','cx_jump_filter','cx_jump_thresh','git_commit']:
     print(f'  {k}: {d.get(k)}')
 p=d.get('preview',{}); g=d.get('grounder',{})
 print(f'  preview: enabled={p.get(\"enabled\")} hint_cx={p.get(\"hint_cx\")} max_retry={p.get(\"max_retry\")}')
-print(f'  grounder: {g.get(\"model\")} {g.get(\"input_px\")}px phrase=\"{g.get(\"phrase\")}\"')
+print(f'  grounder: {g.get(\"model\")} {g.get(\"input_px\")}px phrase=\"{g.get(\"phrase\")}\" owlv2_thresh={g.get(\"owlv2_thresh\")}')
 " 2>/dev/null || echo "  (health 파싱 실패)"
+  echo ""
+  echo "── 세션별 실제 수집 설정 (H5 attrs.runtime_config — 2026-07-06부터 그라운더 정보 포함) ──"
+  for s in "${SESSIONS[@]}"; do
+    echo "  $(basename "$s"):"
+    python3 -c "
+import h5py, json
+try:
+    f = h5py.File('$s', 'r')
+    rc_raw = f.attrs.get('runtime_config')
+    if not rc_raw:
+        print('    (runtime_config 없음 — 2026-07-02 이전 구버전 세션)')
+    else:
+        rc = json.loads(rc_raw)
+        gm = rc.get('grounder_model', '(구버전 세션 — 그라운더 정보 없음)')
+        print(f'    grounder={gm} owlv2_thresh={rc.get(\"owlv2_thresh\")} checkpoint={rc.get(\"checkpoint_path\")}')
+        print(f'    preview={rc.get(\"preview_enabled\")} hint_cx={rc.get(\"preview_hint_cx\")} skip_n={rc.get(\"grounding_skip_n\")} '
+              f'cx_jump={rc.get(\"cx_jump_filter\")} multi_prompt={rc.get(\"multi_prompt\")} git={rc.get(\"git_commit\")}')
+except Exception as e:
+    print(f'    (읽기 실패: {e})')
+" 2>/dev/null
+  done
   echo ""
   echo "── H5 구조 ──"
   echo "  observations/images (N,720,1280,3) / actions (N,3)"
   echo "  grounding/bbox (N,4)=[cx,cy,area,has_bbox] / cached (N,) -1=없음 0=live 1=캐시 / latency_ms (N,)"
+  echo "  attrs.runtime_config: 세션 시작 시점 그라운더/설정 스냅샷(JSON 문자열, 2026-07-02+)"
   echo ""
   echo "── 활성 모델 ckpt ── ${CKPT_PATH:-(불명)}"
   echo "── episode_log.csv ── 실주행 에피소드 기록 포함"

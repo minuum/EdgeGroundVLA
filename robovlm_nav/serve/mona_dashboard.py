@@ -1031,11 +1031,17 @@ def infer_health():
 
 def _snapshot_runtime_config() -> dict:
     """세션 시작 시점의 런타임 설정 스냅샷 — H5 attrs에 박아서 나중에
-    로그 없이도 '이 세션 때 뭘 켜놨었는지' 확인 가능하게 함(2026-07-02)."""
+    로그 없이도 '이 세션 때 뭘 켜놨었는지' 확인 가능하게 함(2026-07-02).
+
+    2026-07-06: OWL-v2 A/B 그라운더 도입 후 이 스냅샷에 grounder 정보가
+    빠져있던 걸 발견 — 어느 그라운더로 수집한 세션인지가 오늘 분석의
+    핵심인데 누락되고 있었음. grounder/owlv2_thresh/checkpoint/git_commit 추가.
+    """
     try:
         import requests as rq
         r = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2)
         h = r.json()
+        g = h.get("grounder", {}) or {}
         return {
             "preview_enabled": h.get("preview", {}).get("enabled"),
             "preview_hint_cx": h.get("preview", {}).get("hint_cx"),
@@ -1044,6 +1050,11 @@ def _snapshot_runtime_config() -> dict:
             "cx_jump_thresh": h.get("cx_jump_thresh"),
             "multi_prompt": h.get("multi_prompt"),
             "head": h.get("head"),
+            "grounder_model": g.get("model"),
+            "grounder_input_px": g.get("input_px"),
+            "owlv2_thresh": g.get("owlv2_thresh"),
+            "checkpoint_path": h.get("checkpoint_path"),
+            "git_commit": h.get("git_commit"),
         }
     except Exception as e:
         return {"error": str(e)}
