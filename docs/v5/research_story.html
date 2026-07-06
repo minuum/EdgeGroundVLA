@@ -316,6 +316,7 @@
     <a class="toc-item" href="#ch58" data-target="ch58"><span class="toc-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">CH 58</span><span class="toc-label">Grounding 프롬프트 어블레이션 — PG2 최선 확인, 新프리뷰 모델 탐색 진행 중</span><span class="toc-cat cat-exp" style="background:rgba(167,139,250,0.15);color:#a78bfa">완료+진행중</span></a>
     <a class="toc-item" href="#ch59" data-target="ch59"><span class="toc-badge" style="background:rgba(34,211,238,0.15);color:#22d3ee">CH 59</span><span class="toc-label">5-Model 셀프라벨링 평가 — Kr/PG448 99.1%, soda PG224↔448 검출률 격차 확인</span><span class="toc-cat cat-exp" style="background:rgba(34,211,238,0.15);color:#22d3ee">분석</span></a>
     <a class="toc-item" href="#ch60" data-target="ch60"><span class="toc-badge" style="background:rgba(52,211,153,0.15);color:#34d399">CH 60</span><span class="toc-label">Action Head Ablation — PG448 재어노테이션 + Transformer/cx-Geom 헤드 비교 (exp67/71/72)</span><span class="toc-cat cat-exp" style="background:rgba(52,211,153,0.15);color:#34d399">ablation</span></a>
+    <a class="toc-item" href="#ch61" data-target="ch61"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 61</span><span class="toc-label">실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증</span><span class="toc-cat cat-exp" style="background:rgba(248,113,113,0.15);color:#f87171">버그/분석</span></a>
     <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — Grounding 정량 평가 & Kc fallback 문제 발견</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
@@ -13990,6 +13991,112 @@ graph TD
 
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH60 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH61 ═ -->
+<div class="chapter" id="ch61">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f87171;color:#0a0f1a">CH 61</span>
+    <h2 class="chapter-title">실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증</h2>
+    <p class="chapter-subtitle">7/6 OWL-v2(th=0.25) 실로봇 첫 배포에서 obj_left/right 반복 실패 → 원인 추적 도중
+    연구 재현 파이프라인의 치명적 버그 발견, 여러 결론이 정정됨 (2026-07-06~07)</p>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-1. 실로봇 실패 관측</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      obj_right(타겟 우측) 16개 에피소드 <strong style="color:#f87171">전부 실패(SR 0%)</strong>, obj_left도
+      top액션이 오히려 반대방향(우측계열) 편향. 7/6 세션 h5 직접 분석 결과, cx가 0.75→0.94로
+      실제 우측 드리프트가 있었는데도 <strong style="color:#e2e8f0">14프레임 전부 FORWARD 고정</strong>인
+      사례 확인 — 그라운딩 신호는 정상인데 헤드가 무시하는 패턴.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-2. 그라운더 vs 헤드 — clean bbox 검증으로 헤드 무죄 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      사람이 직접 라벨링한 <code>bbox_truth_mini.json</code>(72프레임/18ep)으로 "완전히 깨끗한 bbox를
+      주면 헤드가 맞게 예측하는가" 검증. 1차 시도(100%)는 18ep 중 15개가 학습셋에 포함된
+      <strong style="color:#f87171">오염</strong>으로 무효 판정 → truth_mini 완전 격리 후 재학습,
+      진짜 held-out으로 재검증:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">구성</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">val_acc</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">truth_mini 진짜 held-out acc</th></tr>
+        <tr><td style="padding:6px 10px">baseline_w6</td><td style="padding:6px 10px">97.0%</td><td style="padding:6px 10px">95.8%</td></tr>
+        <tr><td style="padding:6px 10px">window3</td><td style="padding:6px 10px">94.8%</td><td style="padding:6px 10px;color:#4ade80;font-weight:700">98.6%</td></tr>
+      </table>
+      <strong style="color:#4ade80">헤드는 clean bbox에 대해 진짜로 일반화한다</strong> — 문제는 헤드
+      구조/학습능력이 아니라 실전 입력 분포(flicker) 쪽으로 좁혀짐.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-3. 진짜 병목 — 학습/실전 flicker 분포 불일치</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      exp71 실제 학습 데이터(<code>bbox_dataset_pg448_cx.json</code>) has_bbox=97.8%인데,
+      soda 관측 실전 OWL-v2 세션은 has_bbox=False가 <strong style="color:#f87171">40~60%</strong> —
+      큰 분포 괴리. 상관형 flicker(근접 직후 집중 dropout) 주입 재학습:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">변형</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">val_acc</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">진동율</th></tr>
+        <tr><td style="padding:6px 10px">baseline (w6)</td><td style="padding:6px 10px">98.4%</td><td style="padding:6px 10px">3.0%</td></tr>
+        <tr><td style="padding:6px 10px">dropout_aug</td><td style="padding:6px 10px">97.1%</td><td style="padding:6px 10px;color:#f87171">5.2% (최악)</td></tr>
+        <tr><td style="padding:6px 10px">sticky_aug</td><td style="padding:6px 10px">98.1%</td><td style="padding:6px 10px;color:#4ade80">1.9%</td></tr>
+        <tr><td style="padding:6px 10px">window3</td><td style="padding:6px 10px;color:#4ade80;font-weight:700">98.7%</td><td style="padding:6px 10px;color:#4ade80">1.9%</td></tr>
+      </table>
+      단, 진짜 성공기준(FPE/SR/TLD, rollout_core 리플레이)으로 재확인하면 window3와 운영중인
+      window6이 <strong style="color:#e2e8f0">사실상 동률</strong>(SR 97.7% 동일) — "진동율" 대리지표
+      기준 window3 우위 결론은 철회. 리플레이 자체가 카메라 피드백이 없는 근본적 한계라
+      더 이상 오프라인으로는 판별 불가.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-4. 치명적 버그 — vis_feat L2-정규화 누락</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      운영 서버(<code>Stage1Encoder.encode_image</code>)는 이미지 feature를 <code>F.normalize()</code>로
+      L2 정규화하는데, 연구 재현 스크립트(<code>train_exp71_stage2_transformer.py</code>)는
+      정규화를 안 함. soda 실제 세션으로 검증한 재현 일치율:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">세션</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">정규화 없이</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">정규화 후</th></tr>
+        <tr><td style="padding:6px 10px">233327</td><td style="padding:6px 10px;color:#f87171">25.0%</td><td style="padding:6px 10px;color:#4ade80;font-weight:700">91.7%</td></tr>
+        <tr><td style="padding:6px 10px">233424</td><td style="padding:6px 10px;color:#f87171">11.1%</td><td style="padding:6px 10px;color:#4ade80;font-weight:700">88.9%</td></tr>
+      </table>
+      <strong style="color:#f87171">이 세션에서 "진짜 exp71 레시피"라 진행했던 실험 다수가 이 버그
+      상태로 이뤄짐</strong> — 발견 후 정규화 수정하여 재검증.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-5. VLA 사다리 ② 언어조건화 재검증 — 버그 수정 후 결론이 더 강하게 부정적으로</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">비교군</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">PM (43ep 프록시, 버그있음)</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">PM (150ep 실제 레시피, 버그수정)</th></tr>
+        <tr><td style="padding:6px 10px">no_text</td><td style="padding:6px 10px">78.4%</td><td style="padding:6px 10px">87.5%</td></tr>
+        <tr><td style="padding:6px 10px">with_text</td><td style="padding:6px 10px;color:#4ade80">81.8% (+3.4%p)</td><td style="padding:6px 10px;color:#f87171">85.0% (오히려 하락)</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">Counterfactual 변화율: 43ep 실험 20.3% → 150ep 실제 레시피 정확히 0.0%</strong> —
+      왼쪽/오른쪽 지시를 강제로 바꿔도 예측이 단 하나도 안 바뀜. 텍스트를 참조는 하지만
+      (permutation −16.1%p) "명령"이 아니라 "경로 맥락(prior)"으로만 쓰인다는 결론이 버그
+      수정 후 오히려 더 명확해짐. <strong style="color:#f59e0b">조이스틱 이질 지시 데이터 없이는
+      해결 불가</strong>로 재확인.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">61-6. 종합 결론 및 다음 단계</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      1) 그라운더(OWL-v2)는 무죄에 가까움 — clean bbox 검증에서 헤드 일반화力 확인<br>
+      2) 진짜 병목은 (a) flicker 분포 불일치, (b) 언어 미조건화<br>
+      3) 오프라인 리플레이 방법론은 한계 도달 — 실로봇 A/B가 유일하게 남은 확정적 검증<br>
+      4) 다음 우선순위: (a) 실로봇 window3 vs window6 A/B, (b) 조이스틱 이질 지시 데이터 수집,
+      (c) 프리뷰 옵션 D(attempt별 cx 로깅)부터<br><br>
+      전체 상세: <a href="closed_loop_eval/CH61_OWL_LIVE_FAILURE_AND_FIX.md" style="color:#60a5fa">CH61_OWL_LIVE_FAILURE_AND_FIX.md</a>
+      &nbsp;|&nbsp; 프리뷰 재설계 플랜: <a href="../plans/plan_20260706_preview_redesign.md" style="color:#60a5fa">plan_20260706_preview_redesign.md</a>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH61 ═ -->
 
 <hr class="chapter-divider">
 
