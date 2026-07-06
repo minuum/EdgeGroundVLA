@@ -3319,19 +3319,35 @@ L S R  C S L  R S L
       if (g.owlv2_thresh !== undefined)
         document.getElementById("srvcfg-owl-thr").value = g.owlv2_thresh;
 
-      // 체크포인트 목록
+      // 체크포인트 목록 — kind별 섹션 그룹핑, 액션 헤드만 선택 가능
       const c = await api("/server_proc/checkpoints");
       const cb = document.getElementById("srvcfg-ckpt-body");
       if (c.ok) {
-        cb.innerHTML = c.checkpoints.map(it => {
-          const isActive = c.active && it.path === c.active;
-          const isSel = srvcfgSel.ckpt === it.path;
-          return `<tr onclick="selCkpt('${it.path}')" style="cursor:pointer; border-bottom:1px solid rgba(29,43,69,0.5); ${isActive ? 'background:rgba(16,185,129,0.10);' : isSel ? 'background:rgba(6,182,212,0.10);' : ''}">
-            <td style="padding:5px 8px; font-family:var(--font-mono); word-break:break-all;">${isActive ? '🟢 ' : isSel ? '🔵 ' : ''}${it.path}</td>
-            <td style="padding:5px 8px;">${it.size_mb}MB</td>
-            <td style="padding:5px 8px; color:var(--text-muted);">${it.mtime}</td>
-          </tr>`;
-        }).join("");
+        const order = ["action", "stop", "stage1", "other"];
+        const kindIcons = { action: "🎯", stop: "🛑", stage1: "🧠", other: "📎" };
+        let html = "";
+        for (const kind of order) {
+          const group = c.checkpoints.filter(it => it.kind === kind);
+          if (!group.length) continue;
+          const note = kind === "action" ? "행 클릭으로 선택 → 재시작 시 적용"
+                                          : "Stage2 교체 대상 아님 — 참고용";
+          html += `<tr style="background:#1c2638;"><td colspan="3" style="padding:5px 8px; font-size:10px; font-weight:700; color:var(--text-muted);">${kindIcons[kind]} ${group[0].kind_label} (${group.length}) — ${note}</td></tr>`;
+          html += group.map(it => {
+            const isActive = c.active && it.path === c.active;
+            const isSel = srvcfgSel.ckpt === it.path;
+            const sel = it.selectable;
+            return `<tr ${sel ? `onclick="selCkpt('${it.path}')"` : ""} title="${it.path}"
+              style="${sel ? 'cursor:pointer;' : 'opacity:0.45; cursor:not-allowed;'} border-bottom:1px solid rgba(29,43,69,0.5); ${isActive ? 'background:rgba(16,185,129,0.10);' : isSel ? 'background:rgba(6,182,212,0.10);' : ''}">
+              <td style="padding:5px 8px;">
+                <div style="font-weight:600; font-size:11px;">${isActive ? '🟢 ' : isSel ? '🔵 ' : ''}${it.label}</div>
+                <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted); word-break:break-all;">${it.path}</div>
+              </td>
+              <td style="padding:5px 8px;">${it.size_mb}MB</td>
+              <td style="padding:5px 8px; color:var(--text-muted);">${it.mtime}</td>
+            </tr>`;
+          }).join("");
+        }
+        cb.innerHTML = html;
       }
       _srvcfgUpdatePreview();
     }
@@ -4639,16 +4655,71 @@ class ServerRestartReq(BaseModel):
     ckpt: Optional[str] = None           # runs/ 상대경로 (VLA_S2V2_STAGE2)
 
 
+def _classify_ckpt(rel_path: str) -> dict:
+    """체크포인트 경로를 종류/실험/헤드로 파싱해 사람이 읽을 라벨 생성.
+
+    kind 분류가 중요한 이유: VLA_S2V2_STAGE2로 교체 가능한 건 Stage2 액션
+    헤드뿐 — stop_*(STOP 헤드)나 stage1_*(인코더 projection)을 넣으면 서버가
+    로드 단계에서 깨진다. UI에서 액션 헤드만 선택 가능하게 막는 근거.
+    """
+    import re as _re
+    p = Path(rel_path)
+    name = p.stem            # e.g. action_transformer, stop_N1, mlp_w16
+    parent = p.parent.name   # e.g. exp71_window6, stop_lastN, ablation_window
+    full = f"{parent}/{name}".lower()
+
+    # kind
+    if "stop" in full:
+        kind, kind_label = "stop", "STOP 헤드"
+    elif "stage1" in full or "projs" in full:
+        kind, kind_label = "stage1", "Stage1 인코더"
+    elif "clip" in full or "lora" in full:
+        kind, kind_label = "other", "기타 (CLIP/LoRA)"
+    else:
+        kind, kind_label = "action", "액션 헤드"
+
+    # head 아키텍처
+    head = next((h for h in ("transformer", "lstm", "cx_geom", "linear", "mlp", "fc")
+                 if h in full), None)
+
+    # 실험 그룹
+    m = _re.search(r"(exp\d+)", full)
+    if m:
+        group = m.group(1)
+    elif "ablation" in full:
+        group = "ablation"
+    elif "data_exp" in full:
+        group = "data_exp"
+    elif parent in ("mlp", "runs"):
+        group = "루트"
+    else:
+        group = parent
+
+    # window 크기
+    w = _re.search(r"w(?:indow)?[_]?(\d+)", full)
+    label_parts = [group]
+    if head: label_parts.append(head.upper() if head in ("mlp", "fc", "lstm") else head.capitalize())
+    if w: label_parts.append(f"W{w.group(1)}")
+    extra = _re.sub(r"^(action|mlp|lstm|fc|linear|stop|stage1)[_]?", "", name)
+    extra = _re.sub(r"w(?:indow)?\d+|transformer|lstm|cx_geom|linear|mlp|fc", "", extra).strip("_")
+    if extra and extra not in group: label_parts.append(extra)
+
+    return {"kind": kind, "kind_label": kind_label,
+            "label": " · ".join(label_parts), "selectable": kind == "action"}
+
+
 @app.get("/server_proc/checkpoints")
 def server_proc_checkpoints():
-    """runs/ 아래 .pt 체크포인트 목록 — 서버 설정 탭에서 선택/전환용."""
+    """runs/ 아래 .pt 체크포인트 목록 — 종류별 분류 + 라벨 포함."""
     items = []
-    for p in sorted((ROOT / "runs").rglob("*.pt"), key=lambda x: -x.stat().st_mtime)[:60]:
+    for p in sorted((ROOT / "runs").rglob("*.pt"), key=lambda x: -x.stat().st_mtime)[:80]:
         st = p.stat()
+        rel = str(p.relative_to(ROOT))
         items.append({
-            "path": str(p.relative_to(ROOT)),
+            "path": rel,
             "size_mb": round(st.st_size / 1e6, 1),
             "mtime": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
+            **_classify_ckpt(rel),
         })
     active = None
     try:
