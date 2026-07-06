@@ -1,0 +1,47 @@
+{
+  "tag": "L3b_stop_lastN",
+  "data": "/home/minum/26CS/MoNaVLA/docs/v5/bbox_nav_exp46/bbox_dataset_full.json",
+  "epochs": 300,
+  "results": [
+    {
+      "tag": "N1",
+      "last_n": 1,
+      "stop_wt_mult": 5.0,
+      "val_acc": 0.7992125984251969,
+      "n_synth_stop": 118,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_lastN/stop_N1.pt",
+      "cl_summary": "성공: 28/29 = 96.6%  (FPE<0.5m & TLD∈[0.7,1.5])",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3b_eval_N1.log"
+    },
+    {
+      "tag": "N3",
+      "last_n": 3,
+      "stop_wt_mult": 5.0,
+      "val_acc": 0.6240157480314961,
+      "n_synth_stop": 354,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_lastN/stop_N3.pt",
+      "cl_summary": "성공: 12/29 = 41.4%  (FPE<0.5m & TLD∈[0.7,1.5])",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3b_eval_N3.log"
+    },
+    {
+      "tag": "N5",
+      "last_n": 5,
+      "stop_wt_mult": 5.0,
+      "val_acc": 0.5374015748031497,
+      "n_synth_stop": 590,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_lastN/stop_N5.pt",
+      "cl_summary": "성공: 4/29 = 13.8%  (FPE<0.5m & TLD∈[0.7,1.5])",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3b_eval_N5.log"
+    },
+    {
+      "tag": "N10",
+      "last_n": 10,
+      "stop_wt_mult": 5.0,
+      "val_acc": 0.2677165354330709,
+      "n_synth_stop": 1180,
+      "ckpt": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stop_lastN/stop_N10.pt",
+      "cl_summary": "성공: 0/29 = 0.0%  (FPE<0.5m & TLD∈[0.7,1.5])",
+      "cl_log": "/home/minum/26CS/MoNaVLA/logs/stop_ablation/L3b_eval_N10.log"
+    }
+  ]
+}

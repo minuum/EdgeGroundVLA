@@ -1,0 +1,185 @@
+{
+  "step2_test_pm": 0.7784810066223145,
+  "sessions": {
+    "session_20260706_171922.h5": {
+      "rows": [
+        {
+          "t": 0,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "ROT_R",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 1,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "ROT_R",
+          "step2": "FWD+R"
+        },
+        {
+          "t": 2,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "ROT_R",
+          "step2": "FWD+R"
+        },
+        {
+          "t": 3,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "ROT_R",
+          "step2": "ROT_L"
+        },
+        {
+          "t": 4,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "ROT_R",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 5,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FWD+L",
+          "step2": "RIGHT"
+        },
+        {
+          "t": 6,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "RIGHT",
+          "step2": "RIGHT"
+        },
+        {
+          "t": 7,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "RIGHT",
+          "step2": "RIGHT"
+        },
+        {
+          "t": 8,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "RIGHT",
+          "step2": "FWD+L"
+        },
+        {
+          "t": 9,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FWD+L",
+          "step2": "FWD+L"
+        }
+      ],
+      "diff_count": 7,
+      "n": 10
+    },
+    "session_20260706_172030.h5": {
+      "rows": [
+        {
+          "t": 0,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 1,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 2,
+          "cx": 0.7473337054252625,
+          "has_bbox": 1,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 3,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 4,
+          "cx": 0.766791820526123,
+          "has_bbox": 1,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 5,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 6,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 7,
+          "cx": 0.8730636835098267,
+          "has_bbox": 1,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 8,
+          "cx": 0.9198876023292542,
+          "has_bbox": 1,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 9,
+          "cx": 0.9376636743545532,
+          "has_bbox": 1,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 10,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 11,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 12,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        },
+        {
+          "t": 13,
+          "cx": 0.5,
+          "has_bbox": 0,
+          "exp71": "FORWARD",
+          "step2": "FORWARD"
+        }
+      ],
+      "diff_count": 0,
+      "n": 14
+    }
+  }
+}

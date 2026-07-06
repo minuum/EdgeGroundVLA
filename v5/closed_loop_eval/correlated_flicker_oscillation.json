@@ -1,0 +1,27 @@
+{
+  "1_baseline": {
+    "clean_pm": 0.7848101258277893,
+    "oscillation_rate_mean": 0.21158730158730157,
+    "oscillation_rate_std": 0.22580814247578593
+  },
+  "2_dropout_aug": {
+    "clean_pm": 0.7848101258277893,
+    "oscillation_rate_mean": 0.477037037037037,
+    "oscillation_rate_std": 0.3327455723405024
+  },
+  "3_sticky_aug": {
+    "clean_pm": 0.7784810066223145,
+    "oscillation_rate_mean": 0.3037037037037037,
+    "oscillation_rate_std": 0.33913267895751337
+  },
+  "4_window3": {
+    "clean_pm": 0.7784810066223145,
+    "oscillation_rate_mean": 0.47629629629629633,
+    "oscillation_rate_std": 0.3516010802257471
+  },
+  "5_cx_aux_loss": {
+    "clean_pm": 0.7848101258277893,
+    "oscillation_rate_mean": 0.21158730158730157,
+    "oscillation_rate_std": 0.22580814247578593
+  }
+}

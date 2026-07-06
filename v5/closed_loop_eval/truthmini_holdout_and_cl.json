@@ -1,0 +1,24 @@
+{
+  "A": {
+    "baseline_w6_val_acc": 0.9696969389915466,
+    "window3_val_acc": 0.9484848380088806,
+    "baseline_w6_truthmini_holdout_acc": 0.9583333134651184,
+    "baseline_w6_truthmini_n": 72,
+    "window3_truthmini_holdout_acc": 0.9861111044883728,
+    "window3_truthmini_n": 72
+  },
+  "B": {
+    "window6": {
+      "sr": 0.9767441860465116,
+      "fpe_mean": 0.086609980914943,
+      "tld_mean": 0.9943318074455514,
+      "n": 129
+    },
+    "window3": {
+      "sr": 0.9767441860465116,
+      "fpe_mean": 0.09064103283964176,
+      "tld_mean": 0.9929576478848913,
+      "n": 129
+    }
+  }
+}

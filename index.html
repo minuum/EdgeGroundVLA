@@ -1,166 +1,493 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MoNaVLA Project Dashboard</title>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-light: #38bdf8;
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
-            --accent: #fbbf24;
-            --success: #4ade80;
-        }
-        body {
-            font-family: 'Inter', 'Pretendard', system-ui, sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            overflow-x: hidden;
-        }
-        .navbar {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid #334155;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-sizing: border-box;
-        }
-        .logo { font-size: 1.5rem; font-weight: 800; color: var(--primary-light); text-decoration: none; }
-        
-        .hero {
-            height: 60vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-            padding-top: 80px;
-        }
-        .hero h1 { font-size: 4rem; margin: 0; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero p { font-size: 1.25rem; color: var(--text-dim); max-width: 600px; margin: 20px 0; }
+  <meta charset="utf-8">
+  <meta name="description" content="MoNaVLA: Decomposition-based VLA for mobile robot navigation. Sim 96.6% CL (Exp66 · CLIP pipeline). Real robot: PG2 grounding 51.4% valid (S6) · CL test in progress.">
+  <meta name="keywords" content="MoNaVLA, Vision-Language-Action, Robotics, Navigation, CLIP, Decomposition">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoNaVLA: Mobile Navigation VLA</title>
 
-        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        .section-title { font-size: 2rem; border-left: 5px solid var(--primary); padding-left: 15px; margin-bottom: 40px; }
+  <style>
+    body { font-family: 'Noto Sans', sans-serif; }
 
-        /* Roadmap Styles */
-        .roadmap { background: var(--card-bg); border-radius: 20px; padding: 40px; border: 1px solid #334155; }
-        .roadmap-item { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 30px; position: relative; }
-        .roadmap-item:not(:last-child)::after { content: ''; position: absolute; left: 15px; top: 40px; width: 2px; height: calc(100% - 10px); background: #334155; }
-        .status-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-        .status-done { background: var(--success); color: #000; }
-        .status-doing { background: var(--primary); color: #fff; animation: pulse 2s infinite; }
-        .status-todo { background: #334155; color: var(--text-dim); }
-        
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); } 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); } }
+    /* ── Hero ── */
+    .hero-section {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
+      padding: 72px 24px 60px;
+      text-align: center;
+    }
+    .hero-section h1 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .hero-section h1 span { color: #38bdf8; }
+    .hero-tagline {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      max-width: 640px;
+      margin: 0 auto 32px;
+      line-height: 1.7;
+    }
+    .hero-tagline strong { color: #4ade80; }
+    .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-buttons .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .hero-buttons .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+    .btn-primary   { background: #2563eb; color: #fff; }
+    .btn-green     { background: #16a34a; color: #fff; }
+    .btn-slate     { background: #334155; color: #e2e8f0; }
+    .btn-outline   { background: transparent; color: #38bdf8; border: 1.5px solid #38bdf8; }
 
-        .roadmap-content h3 { margin: 0; font-size: 1.25rem; }
-        .roadmap-content p { color: var(--text-dim); margin: 5px 0; }
-        .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-top: 5px; }
-        .tag-high { background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+    /* ── Metrics bar ── */
+    .metrics-bar {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 28px 24px;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .metric-cell {
+      text-align: center;
+      padding: 8px 16px;
+      border-right: 1px solid #e2e8f0;
+    }
+    .metric-cell:last-child { border-right: none; }
+    .metric-value { font-size: 2rem; font-weight: 900; font-family: 'Google Sans', sans-serif; }
+    .metric-label { font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+    .metric-note  { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
 
-        .report-btn { 
-            background: var(--primary); 
-            color: white; 
-            text-decoration: none; 
-            padding: 12px 24px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            display: inline-block; 
-            margin-top: 40px;
-            transition: transform 0.2s, background 0.2s;
-        }
-        .report-btn:hover { transform: translateY(-2px); background: #1d4ed8; }
+    /* ── Sections ── */
+    .content-section { padding: 56px 24px; }
+    .content-section.alt { background: #f8fafc; }
+    .section-inner { max-width: 860px; margin: 0 auto; }
+    .section-title {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 24px;
+      text-align: center;
+    }
 
-        .links-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
-        .link-card { background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #334155; text-decoration: none; color: inherit; transition: border-color 0.2s; }
-        .link-card:hover { border-color: var(--primary-light); }
-        .link-card h4 { margin: 0 0 10px 0; color: var(--primary-light); }
-    </style>
+    /* ── Abstract ── */
+    .abstract-text {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #334155;
+      text-align: justify;
+    }
+
+    /* ── Results table ── */
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95rem; }
+    .results-table th {
+      background: #f1f5f9; color: #334155; font-weight: 700;
+      padding: 10px 14px; text-align: left; border-bottom: 2px solid #e2e8f0;
+    }
+    .results-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #475569; }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr.highlight-row td { background: #f0fdf4; font-weight: 700; color: #15803d; }
+    .results-table .tag-model { font-weight: 700; color: #0f172a; }
+    .val-good { color: #16a34a; font-weight: 900; }
+    .val-bad  { color: #dc2626; font-weight: 700; }
+    .val-mid  { color: #d97706; font-weight: 700; }
+
+    /* ── Architecture ── */
+    .arch-box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .arch-box img { width: 100%; border-radius: 8px; }
+
+    /* ── Quick links ── */
+    .link-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+    .link-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 22px 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: block;
+    }
+    .link-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .link-card .lc-tag {
+      display: inline-block;
+      font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+      padding: 3px 10px; border-radius: 999px; margin-bottom: 12px;
+    }
+    .link-card h3 { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    .link-card p  { font-size: 0.85rem; color: #64748b; line-height: 1.6; margin-bottom: 14px; }
+    .link-card .lc-arrow { font-size: 0.82rem; color: #2563eb; font-weight: 700; }
+
+    /* ── Key findings ── */
+    .finding-list { list-style: none; padding: 0; margin: 0; }
+    .finding-list li {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 16px 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .finding-list li:last-child { border-bottom: none; }
+    .finding-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .finding-title { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .finding-sub { font-size: 0.88rem; color: #64748b; line-height: 1.6; }
+
+    /* ── Legacy banner ── */
+    .legacy-banner {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 40px;
+    }
+    .legacy-banner p { color: #64748b; font-size: 0.9rem; margin: 0; }
+    .legacy-banner a { white-space: nowrap; }
+
+    /* ── Footer ── */
+    .site-footer { background: #0f172a; color: #94a3b8; padding: 32px 24px; text-align: center; font-size: 0.88rem; }
+    .site-footer a { color: #38bdf8; text-decoration: none; }
+
+    @media (max-width: 768px) {
+      .metrics-grid { grid-template-columns: 1fr 1fr; }
+      .metric-cell { border-right: none; border-bottom: 1px solid #e2e8f0; }
+      .link-cards { grid-template-columns: 1fr; }
+      .hero-section h1 { font-size: 2.2rem; }
+    }
+  </style>
 </head>
 <body>
 
-    <nav class="navbar">
-        <a href="#" class="logo">MoNaVLA 🤖</a>
+<!-- ══ Hero ══════════════════════════════════════════════════════════════ -->
+<div class="hero-section">
+  <h1>MoNaVLA: <span>Mobile Navigation</span><br>Vision-Language-Action</h1>
+  <!-- SYNC:hero_tagline:start -->
+  <p class="hero-tagline">
+    Decomposition-based VLA for mobile robot basket navigation.<br>
+    <strong>96.6% closed-loop success</strong> (PG2 grounding · SigLIP action pipeline)<br>
+    vs E2E Kosmos-2 <strong>0%</strong> — ×9.4 pipeline gap.
+  </p>
+<!-- SYNC:hero_tagline:end -->
+  <div class="hero-buttons">
+    <a href="v5/research_story.html" class="btn btn-primary">
+      <i class="fas fa-book-open"></i> Research Story
+    </a>
+    <a href="v5/research_story.html#vis" class="btn btn-green">
+      <i class="fas fa-images"></i> Results &amp; Evidence
+    </a>
+    <a href="v5/grounding_hub.html" class="btn btn-slate">
+      <i class="fas fa-bullseye"></i> Grounding Hub
+    </a>
+    <a href="v5/hidden_state_hub.html" class="btn btn-slate">
+      <i class="fas fa-brain"></i> Hidden State Hub
+    </a>
+    <a href="v5/today_visual_summary.html" class="btn btn-slate">
+      <i class="fas fa-camera-retro"></i> 06-21 한눈에 보기
+    </a>
+    <a href="v5/masking_ablation_proof.html" class="btn btn-slate">
+      <i class="fas fa-eye-slash"></i> Masking Ablation
+    </a>
+    <a href="v5/robot_tests.html" class="btn btn-slate">
+      <i class="fas fa-robot"></i> Robot Tests
+    </a>
+    <a href="v5/closed_loop_eval/CH61_OWL_LIVE_FAILURE_AND_FIX.md" class="btn btn-slate">
+      <i class="fas fa-bug"></i> CH61 실로봇 OWL-v2 실패원인·버그 규명
+    </a>
+    <a href="https://minuum.github.io/MoNa-pi/" class="btn btn-outline">
+      <i class="fas fa-arrow-up-right-from-square"></i> MoNa-pi (자매 프로젝트)
+    </a>
+    <a href="https://github.com/minuum/MoNaVLA" class="btn btn-outline">
+      <i class="fab fa-github"></i> GitHub
+    </a>
+  </div>
+</div>
+
+<!-- ══ Metrics Bar ════════════════════════════════════════════════════════ -->
+<!-- SYNC:metrics_bar:start -->
+<div class="metrics-bar">
+  <div class="metrics-grid">
+    <div class="metric-cell">
+      <div class="metric-value" style="color:#16a34a">96.6%</div>
+      <div class="metric-label">Closed-Loop (SOTA)</div>
+      <div class="metric-note">Exp66 · PG2 grounding + SigLIP</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-value" style="color:#dc2626">0%</div>
+      <div class="metric-label">E2E VLA Baseline</div>
+      <div class="metric-note">Exp11 · Kosmos-2 LoRA (text attn 0%)</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-value" style="color:#2563eb">0.080 m</div>
+      <div class="metric-label">Best FPE (↓)</div>
+      <div class="metric-note">LSTM w=16 · MLP w=4: 0.094 m</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-value" style="color:#d97706">×9.4</div>
+      <div class="metric-label">Pipeline Gap</div>
+      <div class="metric-note">vs simple MLP 10.3%</div>
+    </div>
+  </div>
+</div>
+<!-- SYNC:metrics_bar:end -->
+
+<!-- ══ Abstract ══════════════════════════════════════════════════════════ -->
+<div class="content-section">
+  <div class="section-inner">
+    <h2 class="section-title">Abstract</h2>
+    <p class="abstract-text">
+      MoNaVLA investigates Vision-Language-Action (VLA) models for mobile robot basket navigation.
+      End-to-end fine-tuning of Kosmos-2 with LoRA collapses to 0% closed-loop success due to a
+      structural text-attention failure in the Google-robot post-trained backbone.
+      We instead adopt a <strong>decomposition pipeline</strong>: PaliGemma2's frozen SigLIP vision encoder
+      extracts frame features (L2-normalized, 256-dim), concatenated with 8-frame bbox history (32-dim),
+      and fed to a 3-layer ActionMLP predicting 8 discrete actions.
+      PaliGemma2 also serves as the grounder: <code>detect gray basket</code> → 4-filter validated bbox → temporal N=3 goal trigger.
+      This pipeline achieves <strong>96.6% closed-loop success (FPE 0.094 m)</strong>
+      — a ×9.4 improvement over a simple MLP baseline (10.3%).
+      Ablation confirms that the L2-norm + bbox augmentation pipeline is the sole performance driver;
+      grounding source (HSV heuristic, base PG2, fine-tuned LoRA) is irrelevant once the pipeline is correct.
+      Zero-shot linear probe (96.6%) and basket masking ablation (9/9 action flip) provide causal
+      evidence that the frozen SigLIP encoder independently localizes the basket.
+    </p>
+  </div>
+</div>
+
+<!-- ══ Key Findings ══════════════════════════════════════════════════════ -->
+<div class="content-section alt">
+  <div class="section-inner">
+    <h2 class="section-title">Key Findings</h2>
+    <ul class="finding-list">
+      <li>
+        <div class="finding-icon">✅</div>
         <div>
-            <span style="color: var(--text-dim);">Finalizing V5 Research</span>
+          <div class="finding-title">Decomposition 96.6% CL — E2E 0% 대비 압도적 우위</div>
+          <div class="finding-sub">Exp54/66/67: PG2 grounding + SigLIP ActionMLP + L2-norm + aug → 96.6% vs Exp11 E2E 0%. 벤치마크: V5 150 ep, 30 ep val.</div>
         </div>
-    </nav>
-
-    <header class="hero">
-        <h1>Vision-Language-Action</h1>
-        <p>Mobile Navigation VLA 모델 안정화 및 전술적 일반화 연구</p>
-        <p style="color: var(--accent); font-weight: 700;">Latest Milestone: V5.Exp10 Action Awareness</p>
-    </header>
-
-    <main class="container">
-        <h2 class="section-title">Experimental Roadmap</h2>
-        
-        <div class="roadmap">
-            <div class="roadmap-item">
-                <div class="status-icon status-done">✓</div>
-                <div class="roadmap-content">
-                    <h3>Dataset V5 Compilation</h3>
-                    <p>150 Episodes, 9 Scenarios (Balanced Nav/Obstacle)</p>
-                </div>
-            </div>
-
-            <div class="roadmap-item">
-                <div class="status-icon status-done">✓</div>
-                <div class="roadmap-content">
-                    <h3>Exp 09: Optimized Discrete Policy</h3>
-                    <p>8-class grounding bootstrapping 완료 / 시각 편향성 데이터 확보</p>
-                </div>
-            </div>
-
-            <div class="roadmap-item">
-                <div class="status-icon status-doing">⚡</div>
-                <div class="roadmap-content">
-                    <h3>V5.Exp10: Action-Aware BBox Grounding</h3>
-                    <p><strong>Status:</strong> Validation Loss 0.012 달성. 객체-액션 상관관계 최적화</p>
-                    <span class="tag tag-high">Active Research</span>
-                    <div class="links-grid">
-                        <a href="docs/v5/exp10/index.html" class="link-card">
-                            <h4>📊 Action Alignment Report</h4>
-                            <p>실제 H5 액션과 모델 예측값 사이의 92% 일치도 분석</p>
-                        </a>
-                        <a href="docs/v5/exp10/action_alignment.md" class="link-card">
-                            <h4>📝 Full Technical Docs</h4>
-                            <p>로짓 레벨 분석 및 일반화 성능 리포트 (Markdown)</p>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="roadmap-item">
-                <div class="status-icon status-todo">○</div>
-                <div class="roadmap-content">
-                    <h3>Real-robot Validation (Physical V5)</h3>
-                    <p>추론 통합(Integration) 및 실제 하드웨어 성능 검증 예정</p>
-                </div>
-            </div>
+      </li>
+      <li>
+        <div class="finding-icon">✅</div>
+        <div>
+          <div class="finding-title">파이프라인(L2-norm + bbox 증강)이 유일한 성능 결정 요소</div>
+          <div class="finding-sub">Simple MLP(Exp65b) 10.3% vs L2+aug(Exp66) 96.6% — 동일 cx 소스, 파이프라인만 바꿔 ×9.4배 향상. grounding 소스(cx 출처)는 무관.</div>
         </div>
-
-        <div style="text-align: center;">
-            <a href="docs/index.html" class="report-btn">과거 실험 보고서 전체보기 (Text Sensitivity)</a>
+      </li>
+      <li>
+        <div class="finding-icon">✅</div>
+        <div>
+          <div class="finding-title">Grounding source irrelevance 확정 — LoRA 개선이 action에 기여 없음</div>
+          <div class="finding-sub">HSV(Exp54) = base PG2(Exp66) = Exp59 LoRA(Exp67) = 96.6%. grounding LoRA 연구의 action 기여 = 0 (명확한 음성 결과).</div>
         </div>
-    </main>
+      </li>
+      <li>
+        <div class="finding-icon">⚠️</div>
+        <div>
+          <div class="finding-title">Text attention 구조적 사망 — Google-robot backbone 기인</div>
+          <div class="finding-sub">Exp11/15 모두 text attention 0.000%. LoRA·head-only 모두 복구 불가. Pure HF Kosmos-2는 정상(22.6%). E2E 실패의 근본 원인.</div>
+        </div>
+      </li>
+      <li>
+        <div class="finding-icon">🔬</div>
+        <div>
+          <div class="finding-title">Basket localization 이중 증명 — Zero-shot Probe 96.6% + Masking 9/9 flip</div>
+          <div class="finding-sub">Frozen SigLIP (PG2)이 학습 없이 바스켓 위치를 96.6% 분류. Basket masking → 9/9 프레임 행동 반전 (Exp66, base PG2 grounding). SigLIP 이미지 경로가 basket 픽셀을 독립적으로 인식.</div>
+        </div>
+      </li>
+      <li>
+        <div class="finding-icon">🤖</div>
+        <div>
+          <div class="finding-title">실로봇 PG2 그라운딩 — 0% → 51.4% (S1→S6, 6세션 512프레임)</div>
+          <div class="finding-sub">카메라 decode 버그 수정 → 4종 bbox 필터 → PNG 인코딩 → temporal N=3 패치 순서로 적용. S6에서 0 노이즈 bbox, 1264ms 평균 latency. 실로봇 closed-loop CL 테스트 다음 단계.</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
 
-    <footer style="text-align: center; padding: 40px; color: var(--text-dim); font-size: 0.9rem;">
-        &copy; 2026 MoNaVLA Deep Learning Team. Advanced Agentic Coding Environment.
-    </footer>
+<!-- ══ Results Table ══════════════════════════════════════════════════════ -->
+<div class="content-section">
+  <div class="section-inner">
+    <h2 class="section-title">Main Results</h2>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Architecture</th>
+          <th>CL ↑</th>
+          <th>FPE ↓</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <!-- SYNC:results_table_body:start -->
+      <tbody>
+        <tr>
+          <td class="tag-model">E2E VLA (Exp11)</td>
+          <td>Kosmos-2 + LoRA</td>
+          <td class="val-bad">0.0%</td>
+          <td>1.454 m</td>
+          <td>Text attn 0%, structural failure</td>
+        </tr>
+        <tr>
+          <td class="tag-model">Decomp v1 (Exp14)</td>
+          <td>CLIP + BBox MLP</td>
+          <td class="val-mid">66.7%</td>
+          <td>0.555 m</td>
+          <td>First decomposition baseline</td>
+        </tr>
+        <tr>
+          <td class="tag-model">Simple MLP (Exp65b)</td>
+          <td>SigLIP + plain MLP</td>
+          <td class="val-bad">10.3%</td>
+          <td>—</td>
+          <td>No L2-norm, no aug → pipeline ablation</td>
+        </tr>
+        <tr class="highlight-row">
+          <td class="tag-model">Ours (Exp66) ★</td>
+          <td>PG2 grounding + SigLIP + L2-aug</td>
+          <td class="val-good">96.6%</td>
+          <td>0.094 m</td>
+          <td>SOTA · MLP w=4</td>
+        </tr>
+        <tr>
+          <td class="tag-model">Ours (Exp66 LSTM)</td>
+          <td>PG2 grounding + SigLIP + L2-aug</td>
+          <td class="val-good">96.6%</td>
+          <td>0.080 m</td>
+          <td>Best FPE · LSTM w=16</td>
+        </tr>
+      </tbody>
+<!-- SYNC:results_table_body:end -->
+    </table>
+
+    <p style="font-size:0.8rem;color:#94a3b8;margin-top:12px">
+      CL = Closed-Loop success (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). Evaluated on V5 dataset (30 ep val, 9 path types).
+    </p>
+
+    <h3 style="font-size:1.05rem;font-weight:700;color:#0f172a;margin-top:32px;margin-bottom:12px">Pipeline Ablation (Exp66 계열)</h3>
+    <table class="results-table">
+      <thead>
+        <tr><th>Head</th><th>Window</th><th>CL ↑</th><th>FPE ↓</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Linear</td><td>4</td><td class="val-mid">69.0%</td><td>—</td></tr>
+        <tr><td>FCHead</td><td>4</td><td class="val-good">93.1%</td><td>—</td></tr>
+        <tr class="highlight-row"><td>MLP ★</td><td>4</td><td class="val-good">96.6%</td><td>0.094 m</td></tr>
+        <tr class="highlight-row"><td>LSTM</td><td>16</td><td class="val-good">96.6%</td><td>0.080 m</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ Architecture ══════════════════════════════════════════════════════ -->
+<div class="content-section alt">
+  <div class="section-inner">
+    <h2 class="section-title">Architecture</h2>
+    <div class="arch-box">
+      <img src="v5/portfolio/architecture_diagram.svg" alt="MoNaVLA Architecture Diagram">
+      <p style="font-size:0.82rem;color:#64748b;margin-top:14px;text-align:center">
+        PaliGemma2 SigLIP (frozen) → 256-dim L2-norm → concat BBox History (32-dim) → ActionMLP → 8 discrete actions.<br>
+        Grounder: PaliGemma2 <code>detect gray basket</code> → 4-filter bbox validation → temporal N=3 goal trigger.<br>
+        Proximity STOP: area ≥ 0.25 AND |cx − 0.5| ≤ 0.35 for <strong>3 consecutive frames</strong> (GOAL_CONSEC_FRAMES=3).
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Quick Links ════════════════════════════════════════════════════════ -->
+<div class="content-section">
+  <div class="section-inner">
+    <h2 class="section-title">Key Documents</h2>
+    <div class="link-cards">
+
+      <a href="v5/research_story.html#ch33" class="link-card">
+        <span class="lc-tag" style="background:#dbeafe;color:#1d4ed8">Research Story</span>
+        <h3>Full Research Journey (CH1→CH36)</h3>
+        <p>데이터 수집부터 E2E 실패, decomposition 발견, SOTA 확정까지 전 과정. CH36이 최신 결론 (6/12 실사 테스트·논문 제출 결정).</p>
+        <span class="lc-arrow">Read story →</span>
+      </a>
+
+      <a href="v5/research_story.html#vis" class="link-card">
+        <span class="lc-tag" style="background:#dcfce7;color:#15803d">Visual Evidence</span>
+        <h3>VIS — 논문 부록 시각 자료</h3>
+        <p>아키텍처 다이어그램 · Zero-shot Probe 96.6% · Masking 9/9 flip · 5-Track 검증 요약.</p>
+        <span class="lc-arrow">View figures →</span>
+      </a>
+
+      <a href="v5/grounding_hub.html" class="link-card">
+        <span class="lc-tag" style="background:#fef9c3;color:#854d0e">Grounding Hub</span>
+        <h3>Grounding Analysis (7 Models)</h3>
+        <p>Kosmos-2 · PaliGemma2 · LoRA 계열 7모델 grounding 비교. side-angle / free / augmentation 케이스 포함.</p>
+        <span class="lc-arrow">Explore →</span>
+      </a>
+
+      <a href="v5/closed_loop_eval/index.html" class="link-card">
+        <span class="lc-tag" style="background:#fee2e2;color:#b91c1c">CL Evaluation</span>
+        <h3>Closed-Loop 평가 전체 이력</h3>
+        <p>Exp11(0%) → Exp14(66.7%) → Exp54(96.6%) → Exp66/67(96.6%). path_type별 성공률 포함.</p>
+        <span class="lc-arrow">View results →</span>
+      </a>
+
+      <a href="reports/viewer.html?file=v5/TABLE1_PAPER_DRAFT.md" class="link-card">
+        <span class="lc-tag" style="background:#f3e8ff;color:#7e22ce">Paper Draft</span>
+        <h3>논문 Table 초안 (6/12)</h3>
+        <p>Table 1(주요 방법 비교), Table 2(파이프라인×cx 소스 ablation). E2E 0% vs 96.6% 핵심 수치.</p>
+        <span class="lc-arrow">View draft →</span>
+      </a>
+
+      <a href="v5/robot_tests.html" class="link-card" style="border:1.5px solid #4ade8055">
+        <span class="lc-tag" style="background:#dcfce7;color:#15803d">Robot Tests · Live</span>
+        <h3>실로봇 PG2 그라운딩 세션 분석</h3>
+        <p>S1~S6 512프레임 분석. 카메라 버그 → 4종 필터 → temporal N=3 패치 누적. S4 24프레임 필름스트립 · 파이프라인 플로우 비교.</p>
+        <span class="lc-arrow" style="color:#16a34a">View robot tests →</span>
+      </a>
+
+      <a href="legacy.html" class="link-card" style="border-style:dashed">
+        <span class="lc-tag" style="background:#f1f5f9;color:#475569">Archive</span>
+        <h3>Legacy Archive</h3>
+        <p>Exp01~67 전체 실험 링크, 구 보고서, 미팅 브리핑, 개발 로그 등 전체 히스토리.</p>
+        <span class="lc-arrow" style="color:#94a3b8">Browse archive →</span>
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ Footer ═════════════════════════════════════════════════════════════ -->
+<div class="site-footer">
+  <p>
+    MoNaVLA · Mobile Navigation Vision-Language-Action ·
+    <a href="https://github.com/minuum/MoNaVLA">GitHub</a> ·
+    <a href="legacy.html">Archive</a>
+  </p>
+  <p style="margin-top:6px;color:#475569">
+    Project page inspired by <a href="https://openvla.github.io/">OpenVLA</a> and <a href="https://dusty-nv.github.io/NanoLLM/">NanoLLM</a>. &copy; 2026 Advanced Agentic Robotics.
+  </p>
+</div>
 
 </body>
 </html>
