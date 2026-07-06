@@ -2198,11 +2198,21 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <button class="btn btn-outline" id="drive-return-btn" style="width:100%;" onclick="returnToStart()">🔄 START 위치로 복귀</button>
             </div>
-            
+
+            <!-- 저장된 세션 스택 — STOP(또는 목표 도달로 자동 정지)될 때 갱신되어
+                 지금까지 쌓인 세션이 몇 개/어떻게 저장됐는지 바로 보이게 함 -->
+            <div id="session-stack-panel" style="margin-top:14px; display:none; background:#101726; border:1px solid var(--border-glow); border-radius:10px; padding:10px 12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11px; color:var(--emerald); font-weight:700;">💾 세션 저장됨 — 최근 스택</span>
+                <button class="btn btn-outline" onclick="document.getElementById('session-stack-panel').style.display='none'" style="font-size:10px; padding:2px 8px;">✕</button>
+              </div>
+              <div id="session-stack-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);"></div>
+            </div>
+
           </div>
-          
+
         </div>
-        
+
         <!-- 하단: 간이 히스토리 -->
         <div class="card" style="margin-top:24px;">
           <div class="card-title">📋 최근 주행 타임라인</div>
@@ -3101,6 +3111,7 @@ L S R  C S L  R S L
     const API = "";
     let activeTab = "drive";
     let state = {};
+    let _prevRunning = false;
     let driftChartInstance = null;
     let trajChartInstance = null;
 
@@ -3504,11 +3515,36 @@ L S R  C S L  R S L
       });
       await api("/drive/stop", { method: "POST" });
       pollStatus();
+      showSessionStack();
     }
 
     async function returnToStart() {
       const res = await api("/drive/return", { method: "POST" });
       alert(res.message);
+    }
+
+    // STOP(수동) 또는 목표 도달로 인한 자동 정지 직후 호출 — 지금까지
+    // 저장된 세션들을 최근순으로 스택처럼 보여줘서 몇 개가 쌓였는지,
+    // 방금 세션이 제대로 저장됐는지 바로 확인 가능하게 함.
+    async function showSessionStack(n = 5) {
+      try {
+        const res = await api("/sessions/list");
+        if (!res.ok || !res.sessions || !res.sessions.length) return;
+        const panel = document.getElementById("session-stack-panel");
+        const list  = document.getElementById("session-stack-list");
+        if (!panel || !list) return;
+        const top = res.sessions.slice(0, n);
+        list.innerHTML = top.map((s, i) => {
+          const isNewest = i === 0;
+          return `<div style="display:flex; justify-content:space-between; gap:8px; padding:4px 6px; border-radius:4px;
+                       background:${isNewest ? 'rgba(16,185,129,0.12)' : 'transparent'};
+                       border-left:2px solid ${isNewest ? 'var(--emerald)' : 'var(--border-glow)'};">
+                    <span style="color:${isNewest ? 'var(--emerald)' : 'var(--text-muted)'};">${isNewest ? '🆕 ' : ''}${s.sid}</span>
+                    <span style="color:var(--text-muted);">${s.steps}steps · ${s.h5_size_mb}MB</span>
+                  </div>`;
+        }).join("");
+        panel.style.display = "block";
+      } catch(e) { /* 조용히 무시 — 상태 확인용 부가 UI */ }
     }
 
     // ── 수동 제어 / 캘리브레이션 ─────────────────────────────────────
@@ -4410,7 +4446,12 @@ L S R  C S L  R S L
         // 2. 버튼 활성화 동기화
         _syncStartStopBtn("drive-start-btn", "drive-stop-btn", "▶ START DRIVE", state.running);
         _syncStartStopBtn("quick-start-btn", "quick-stop-btn", "▶️ START", state.running);
-        
+
+        // running: true→false 전환 감지 — 목표 도달로 인한 자동 정지처럼
+        // STOP 버튼을 안 눌러도 세션이 끝난 경우까지 세션 스택을 갱신
+        if (_prevRunning && !state.running) showSessionStack();
+        _prevRunning = state.running;
+
         const returnBtn = document.getElementById("drive-return-btn");
         if (returnBtn) {
           returnBtn.textContent = state.is_returning ? "⏹️ 복귀 중단" : "🔄 START 위치로 복귀";
