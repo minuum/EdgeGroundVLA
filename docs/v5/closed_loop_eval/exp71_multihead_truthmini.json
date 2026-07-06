@@ -1,0 +1,9 @@
+{
+  "window": 3,
+  "mlp_val_acc": 0.9734042286872864,
+  "lstm_val_acc": 0.9787233471870422,
+  "transformer_val_acc": 0.9867020845413208,
+  "mlp_truthmini_acc": 1.0,
+  "lstm_truthmini_acc": 1.0,
+  "transformer_truthmini_acc": 1.0
+}
