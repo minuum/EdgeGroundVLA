@@ -29,16 +29,25 @@ bash scripts/sync/push_inference_session_to_minum.sh 20260702_100143  # 특정 �
 
 ## 무엇을 보내나 (한 세트)
 1. **세션 H5** — 선택된 `docs/inference_sessions/session_*.h5`
+   - `attrs.runtime_config`(JSON 문자열)에 **그 세션 수집 시점**의 그라운더/설정
+     스냅샷이 세션마다 개별 저장돼 있음(2026-07-02+, 2026-07-06부터 grounder_model/
+     owlv2_thresh/checkpoint_path/git_commit 포함) — 여러 세션이 다른 설정으로
+     수집됐어도(예: PG2 vs OWL-v2 A/B) 세션별로 정확히 구분 가능
 2. **서버 설정 스냅샷** — `curl /health` → `server_health.json`
-   (head/window/val_acc/checkpoint · preview · grounder(PG2-448) · skip_n · multi_prompt · cx_jump
+   (head/window/val_acc/checkpoint · preview · grounder(PG2-448 또는 OWL-v2, A/B) ·
+   owlv2_thresh · skip_n · multi_prompt · cx_jump
    + Fix3 버전 핸드셰이크: git_commit / process_started_at / code_mtime)
+   ⚠️ 이건 **전송 시점의 현재 설정**만 찍음 — 세션 수집 당시와 다를 수 있으니
+   각 세션의 실제 설정은 1번의 runtime_config를 봐야 함(매니페스트에 자동 포함됨)
 3. **활성 모델 ckpt** — `/health`의 checkpoint_path를 자동 추출해 `models/`로
 4. **episode_log.csv** — 실주행 에피소드 기록
 5. **grounding_decisions_YYYYMMDD.jsonl** — **필수 동봉 (Fix4)**: 전송 세션 날짜의
-   PG2 판정 영구 로그 (filter_reason: no-locs/tiny/top/full-frame/x-full/None,
-   필터 전 raw locs, 호출 1회당 latency). minum receive-inference-session이 H5
-   LIVE 프레임과 ts로 매칭해 flicker 원인을 확정하는 데 사용.
-6. **README.txt** — 위 설정 요약 + H5 구조 매니페스트
+   그라운딩 판정 영구 로그 — PG2는 filter_reason(no-locs/tiny/top/full-frame/x-full/
+   None) + 필터 전 raw locs, OWL-v2는 `"model":"owlv2"` 태그로 구분(no-locs=미검출).
+   호출 1회당 latency 포함. minum receive-inference-session이 H5 LIVE 프레임과
+   ts로 매칭해 원인 분석에 사용.
+6. **README.txt** — 전송 시점 서버 설정 + **세션별 실제 수집 설정(runtime_config)** +
+   H5 구조 매니페스트
 
 ## 전송 위치
 ```
@@ -59,7 +68,12 @@ minum:~/MoNaVLA/inference_sessions_recv/<YYYYMMDD>/
 | `VLA_API_KEY` | `vla_devel_key_2026` | /health 인증 |
 
 ## 주의
-- 설정 스냅샷은 **전송 시점의 서버 상태**를 찍는다. 세션 수집 당시와 서버 설정이 바뀌었으면
-  런타임 토글(preview/skip_n/multi_prompt 등)이 달라졌을 수 있으니, 가능하면 **수집 직후** 전송.
+- `server_health.json`은 **전송 시점의 서버 상태**만 찍는다 — 세션 수집 당시와
+  서버 설정(그라운더 A/B, preview, skip_n 등)이 바뀌었을 수 있으니, 최종 근거는
+  항상 각 세션의 `attrs.runtime_config`를 봐야 함(매니페스트가 자동으로 보여줌).
+  가능하면 **수집 직후** 전송하는 게 여전히 안전.
+- 2026-07-06 이전 세션은 `runtime_config`에 그라운더 필드가 없음(구버전) —
+  이 경우 서버 프로세스 재시작 이력(`ps -ef`로 기동 시각 확인)으로 그 시점
+  활성 그라운더를 역추정해야 함. 근거 없이 추정하지 말 것.
 - 서버가 내려가 있으면 설정 스냅샷은 `{"error":"server offline"}`으로 남고 세션만 전송된다.
 - 전송 후 확인: `ssh minum 'ls -lh ~/MoNaVLA/inference_sessions_recv/<date>/'`
