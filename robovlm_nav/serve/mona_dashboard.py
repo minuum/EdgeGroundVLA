@@ -2079,13 +2079,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
     
     <nav>
-      <div class="nav-item active" onclick="switchTab(this, 'drive')">🤖 Drive Control</div>
-      <div class="nav-item" onclick="switchTab(this, 'grounding')">🔍 Grounding 검증</div>
-      <div class="nav-item" onclick="switchTab(this, 'latency')">📊 Latency & Drift</div>
-      <div class="nav-item" onclick="switchTab(this, 'verify')">🧪 경로 검증 (Path Test)</div>
-      <div class="nav-item" onclick="switchTab(this, 'calib')">🔧 STOP & Calibration</div>
-      <div class="nav-item" onclick="switchTab(this, 'history')">📚 Session History</div>
-      <div class="nav-item" onclick="switchTab(this, 'system')">🖥️ System Manage</div>
+      <div class="nav-item active" onclick="switchTab(this, 'drive')">🤖 주행 제어</div>
+      <div class="nav-item" onclick="switchTab(this, 'grounding')">🔍 그라운딩 검증</div>
+      <div class="nav-item" onclick="switchTab(this, 'latency')">📊 지연 · 드리프트</div>
+      <div class="nav-item" onclick="switchTab(this, 'verify')">🧪 경로 검증</div>
+      <div class="nav-item" onclick="switchTab(this, 'calib')">🔧 캘리브레이션</div>
+      <div class="nav-item" onclick="switchTab(this, 'history')">📚 세션 히스토리</div>
+      <div class="nav-item" onclick="switchTab(this, 'system')">🖥️ 시스템</div>
       <div class="nav-item" onclick="switchTab(this, 'srvcfg')">⚙️ 서버 설정</div>
     </nav>
     
@@ -2100,7 +2100,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   <main>
     <header>
       <div style="display:flex;align-items:center;gap:12px;">
-        <h2 id="page-title" style="font-size:18px;font-weight:700;">🤖 Drive Control</h2>
+        <h2 id="page-title" style="font-size:18px;font-weight:700;">🤖 주행 제어</h2>
       </div>
       <div class="srv-status-group">
         <div class="srv-pill online" id="proc-pill" title="현재 서빙 중인 대시보드 프로세스 PID/가동시간 — 재시작 후 오래된 값이면 좀비 프로세스 의심">
@@ -2119,7 +2119,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- 왼쪽: 라이브 카메라 스트림 -->
           <div class="card" style="padding:16px;">
-            <div class="card-title">📷 Real-Time Video Stream
+            <div class="card-title">📷 실시간 카메라
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
@@ -2150,7 +2150,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           <!-- 오른쪽: 폼 및 조작 -->
           <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
             <div>
-              <div class="card-title">⚙️ Autopilot Configuration</div>
+              <div class="card-title">⚙️ 자율주행 설정</div>
               
               <div class="form-group">
                 <label>Instruction</label>
@@ -2191,7 +2191,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         
         <!-- 하단: 간이 히스토리 -->
         <div class="card" style="margin-top:24px;">
-          <div class="card-title">📋 Recent Runs Timeline</div>
+          <div class="card-title">📋 최근 주행 타임라인</div>
           <!-- 수집 세션 요약 (Gradio 수집 모니터 이식) -->
           <div id="collect-summary" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; font-size:11px;">
             <div style="background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:6px 10px;">
@@ -2234,7 +2234,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         <div class="grid-main">
           <!-- 왼쪽: 그라운딩 모니터 -->
           <div class="card">
-            <div class="card-title">🔍 Grounding Live Monitor</div>
+            <div class="card-title">🔍 그라운딩 라이브 모니터</div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
               <span id="cam-proc-status-gnd" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
@@ -2261,7 +2261,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- 오른쪽: 예측값과 속성 정보 -->
           <div class="card" style="display:flex;flex-direction:column;gap:20px;">
-            <div class="card-title">📊 Detection Metadata</div>
+            <div class="card-title">📊 탐지 상세 정보</div>
             
             <div class="kv-grid">
               <div class="form-group">
@@ -2305,7 +2305,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         <div class="grid-main">
           <!-- 왼쪽: 차트 시각화 -->
           <div class="card">
-            <div class="card-title">📈 Cumulative Time Drift Simulator</div>
+            <div class="card-title">📈 누적 시간 드리프트 시뮬레이터</div>
             <div style="position:relative; height:320px; width:100%">
               <canvas id="drift-chart"></canvas>
             </div>
@@ -2320,7 +2320,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           <!-- 오른쪽: 상세 수치 -->
           <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
             <div>
-              <div class="card-title">🩺 Drift Diagnosis</div>
+              <div class="card-title">🩺 드리프트 진단</div>
               
               <div class="form-group">
                 <label>가정시간 기준</label>
@@ -2360,7 +2360,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- Column 1: Live Camera & Telemetry -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
-            <div class="card-title">📷 Live Verification Stream
+            <div class="card-title">📷 실시간 검증 화면
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid-vfy" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
@@ -2682,7 +2682,7 @@ L S R  C S L  R S L
 
         <!-- 하단: 간이 히스토리 (Drive Control 탭과 동일 데이터, Path Test 탭에도 노출) -->
         <div class="card" style="margin-top:24px;">
-          <div class="card-title">📋 Recent Runs Timeline</div>
+          <div class="card-title">📋 최근 주행 타임라인</div>
           <div id="collect-summary-vfy" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; font-size:11px;">
             <div style="background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:6px 10px;">
               <div style="color:var(--cyan); font-weight:700; margin-bottom:3px;">📋 수집 세션</div>
@@ -2720,7 +2720,7 @@ L S R  C S L  R S L
         <div class="grid-main">
           <!-- 왼쪽: 뷰어 및 수동 조작 -->
           <div class="card">
-            <div class="card-title">📷 Live Calibration Camera</div>
+            <div class="card-title">📷 캘리브레이션 카메라</div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
               <span id="cam-proc-status-calib" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
@@ -2824,7 +2824,7 @@ L S R  C S L  R S L
           
           <!-- H5 세션 리스트 -->
           <div class="card" style="padding:16px; overflow-y:auto; max-height:calc(100vh - 150px);">
-            <div class="card-title">📂 Saved Sessions</div>
+            <div class="card-title">📂 저장된 세션</div>
             <button class="btn btn-outline" style="width:100%; margin-bottom:12px; font-size:12px;" onclick="loadSessionList()">🔄 리스트 새로고침</button>
             <div id="session-list-group" style="display:flex; flex-direction:column; gap:8px;">
               <!-- 동적 로드 -->
@@ -2833,7 +2833,7 @@ L S R  C S L  R S L
           
           <!-- H5 프레임 인스펙터 -->
           <div class="card">
-            <div class="card-title">📚 Frame-by-Frame Inspector <span id="inspect-sid-lbl" class="text-cyan" style="font-size:13px; text-transform:none;"></span></div>
+            <div class="card-title">📚 프레임 인스펙터 <span id="inspect-sid-lbl" class="text-cyan" style="font-size:13px; text-transform:none;"></span></div>
             
             <div id="inspector-placeholder" style="text-align:center; padding:80px 0; color:var(--text-muted);">
               왼쪽 목록에서 세션을 선택하면 상세 프레임 분석 패널이 활성화됩니다.
@@ -2917,7 +2917,7 @@ L S R  C S L  R S L
         <div class="grid-main">
           <!-- 왼쪽: 스위치 제어 -->
           <div class="card" style="display:flex; flex-direction:column; gap:20px;">
-            <div class="card-title">⚙️ Server Runtime Parameters</div>
+            <div class="card-title">⚙️ 서버 런타임 파라미터</div>
             
             <div style="display:flex; flex-direction:column; gap:16px;">
               <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -2976,7 +2976,7 @@ L S R  C S L  R S L
           <!-- 오른쪽: 추론서버 정보 & 리셋 -->
           <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
             <div>
-              <div class="card-title">🖥️ Inference Server Status</div>
+              <div class="card-title">🖥️ 추론 서버 상태</div>
               <div class="kv-grid" id="sys-info-panel">
                 <!-- 동적 채움 -->
               </div>
@@ -3230,14 +3230,14 @@ L S R  C S L  R S L
       }
       
       const titleMap = {
-        drive: "🤖 Drive Control",
-        grounding: "🔍 Grounding 검증",
-        latency: "📊 Latency & Drift",
-        verify: "🧪 경로 검증 (Path Test)",
-        calib: "🔧 STOP & Calibration",
-        history: "📚 Session History",
-        system: "🖥️ System Manage",
-        srvcfg: "⚙️ 서버 설정"
+        drive: "🤖 주행 제어",
+        grounding: "🔍 그라운딩 검증",
+        latency: "📊 지연 · 드리프트",
+        verify: "🧪 경로 검증",
+        calib: "🔧 캘리브레이션 (STOP·수동조작)",
+        history: "📚 세션 히스토리",
+        system: "🖥️ 시스템",
+        srvcfg: "⚙️ 서버 설정 (모델·그라운더)"
       };
       document.getElementById("page-title").textContent = titleMap[tab] || (tab.toUpperCase() + " Panel");
 
