@@ -80,6 +80,8 @@ if [[ -n "$INFER_H" ]]; then
     echo "$INFER_H" | python3 -c "
 import sys,json; d=json.load(sys.stdin)
 p = d.get('preview') or {}
+g = d.get('grounder') or {}
+print(f\"    grounder={g.get('model')} ({g.get('input_px')}px) git={d.get('git_commit')}\")
 print(f\"    preview={p.get('enabled')} hint_cx={p.get('hint_cx')} \"
       f\"skip_n={d.get('grounding_skip_n')} multi_prompt={d.get('multi_prompt')} \"
       f\"cx_jump={d.get('cx_jump_filter')}({d.get('cx_jump_thresh')}) \"

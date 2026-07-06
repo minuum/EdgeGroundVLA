@@ -596,6 +596,10 @@ class OwlV2Grounder:
         self._device = device
         self._proc: Optional[Any] = None
         self._model: Optional[Any] = None
+        # /health의 grounder 표시용 — 없으면 getattr 기본값 "PG2-448"이 나와서
+        # 배포 체크리스트("OWL 활성인지 /health로 확인")가 오판됨
+        self._model_tag = "OWL-v2"
+        self._input_px = 960  # owlv2-base-patch16-ensemble 기본 입력 해상도
 
     def _ensure_loaded(self) -> None:
         if self._model is None:
