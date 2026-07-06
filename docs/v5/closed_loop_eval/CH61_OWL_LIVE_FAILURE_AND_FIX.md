@@ -112,6 +112,31 @@ robustness, 헤드 구조 비교, truth_mini 검증, window3 vs window6 라이�
   왼쪽/오른쪽 지시를 강제로 바꿔도 예측이 단 하나도 안 바뀜. 버그를 고치니 오히려
   "텍스트는 경로 맥락(prior)일 뿐 명령이 아니다"라는 결론이 더 명확해짐
 
+## 8. Vision encoder 비교 — PG2(SigLIP) vs Kosmos-2
+
+exp71 계열이 지금까지 전부 Kosmos-2 vision encoder(`FrozenCLIPV2`, 실제로는 CLIP이
+아님)를 썼는데, PG2(PaliGemma2-448)의 SigLIP vision tower(1152d)로 교체해도 동등한지
+확인 (`scripts/train_exp71_pg2vision_head.py`).
+
+| Vision 소스 | val_acc |
+|---|---|
+| Kosmos-2 (256d, 정규화 수정판) | 97.0~98.4% |
+| **PG2/SigLIP (1152d→256 학습된 projection)** | **96.2%** |
+
+1차 시도(raw 1152d를 그대로 Transformer에 투입)는 val_acc 73.4%로 다수클래스(FORWARD
+72.2%) 붕괴와 정확히 일치 — 학습 실패였음. Kosmos-2 버전처럼 gradient가 정상 흐르는
+학습형 projection을 헤드 내부에 넣어 재학습하니 96.2%로 정상화, **Kosmos-2와 사실상
+대등**. → 어떤 vision encoder를 쓰든 큰 차이 없음, 병목은 다른 곳(§3, §7)에 있음이
+재확인됨.
+
+## 9. 조이스틱 이질 지시 — 합성 근사 테스트 (실물 수집 전 사전 확인)
+
+실물 조이스틱 데이터 없이, 같은 프레임에 상충되는 두 합성 지시("curve left
+decisively"/"curve right decisively")를 강제로 붙이고 각각 다른 정답 클래스
+(FWD+L / FWD+R)로 라벨링한 합성 쌍을 훈련 데이터에 섞어서, "같은 이미지에 다른
+지시 → 다른 정답"이 실제로 존재할 때 counterfactual 반응이 살아나는지 확인.
+(`scripts/train_exp71_synthetic_obedience.py`)
+
 **결론**: 조이스틱 이질 지시 데이터(장면-지시 상관이 깨진 데이터) 없이는 언어 조건화가
 헤드 구조/레시피를 어떻게 고쳐도 명령 순응으로 이어지지 않는다는 게 이번 재검증으로
 더 확고해짐.
