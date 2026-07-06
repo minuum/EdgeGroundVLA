@@ -32,7 +32,8 @@ DASH_PORT=7865       # Gradio 대시보드 (구버전)
 HUB_PORT=7860
 S1_PT="runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
 S2_PT="runs/v5_nav/mlp/stop_lastN/stop_N1.pt"
-ACTION_PT="runs/v5_nav/mlp/exp71_window6/action_transformer.pt"
+# VLA_S2V2_STAGE2 env로 오버라이드 가능 (대시보드 ⚙️ 서버 설정 탭의 체크포인트 전환)
+ACTION_PT="${VLA_S2V2_STAGE2:-runs/v5_nav/mlp/exp71_window6/action_transformer.pt}"
 
 # .venv 있으면 우선, 없으면 시스템 python3
 if [[ -x ".venv/bin/python3" ]]; then

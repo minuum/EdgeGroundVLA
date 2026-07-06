@@ -766,6 +766,7 @@ class ConfigToggleReq(BaseModel):
     cx_jump_thresh: Optional[float] = None
     stop_area_threshold: Optional[float] = None
     multi_prompt: Optional[bool] = None
+    owlv2_thresh: Optional[float] = None
 
 class LabelSaveReq(BaseModel):
     session_id: str
@@ -995,6 +996,7 @@ def config_update(req: ConfigToggleReq):
     if req.cx_jump_thresh is not None: payload["cx_jump_thresh"] = req.cx_jump_thresh
     if req.stop_area_threshold is not None: payload["stop_area_threshold"] = req.stop_area_threshold
     if req.multi_prompt is not None: payload["multi_prompt"] = req.multi_prompt
+    if req.owlv2_thresh is not None: payload["owlv2_thresh"] = req.owlv2_thresh
 
     try:
         res = _infer_post("/config", payload, timeout=3)
@@ -2084,6 +2086,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       <div class="nav-item" onclick="switchTab(this, 'calib')">🔧 STOP & Calibration</div>
       <div class="nav-item" onclick="switchTab(this, 'history')">📚 Session History</div>
       <div class="nav-item" onclick="switchTab(this, 'system')">🖥️ System Manage</div>
+      <div class="nav-item" onclick="switchTab(this, 'srvcfg')">⚙️ 서버 설정</div>
     </nav>
     
     <div class="sidebar-footer">
@@ -2990,6 +2993,83 @@ L S R  C S L  R S L
       </div>
     </div>
 
+    <!-- 탭 8: ⚙️ 서버 설정 (모델/그라운더/체크포인트 관리) -->
+    <div id="tab-srvcfg" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:20px; align-items:start;">
+
+          <!-- Column 1: 서버 상태 + 체크포인트 목록 -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🖥️ 추론 서버(8001) 상태
+                <button class="btn btn-outline" onclick="loadSrvCfg()" style="font-size:11px; padding:4px 10px;">↻ 새로고침</button>
+              </div>
+              <div id="srvcfg-handshake" style="display:none; margin-bottom:10px; padding:8px 12px; border-radius:8px; background:rgba(244,63,94,0.12); border:1px solid var(--rose); color:var(--rose); font-size:12px; font-weight:600;"></div>
+              <div class="table-wrapper">
+                <table style="width:100%; font-size:12px;">
+                  <tbody id="srvcfg-status-body">
+                    <tr><td colspan="2" style="text-align:center; color:var(--text-muted); padding:12px;">로딩 중...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📦 체크포인트 목록 (runs/*.pt)</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+                행 클릭 → 선택. 전환은 우측 "서버 재시작" 필요 (~120s).
+              </div>
+              <div class="table-wrapper" style="max-height:340px; overflow-y:auto;">
+                <table style="width:100%; font-size:11px;">
+                  <thead><tr style="text-align:left; background:#151f32;">
+                    <th style="padding:6px 8px;">경로</th><th style="padding:6px 8px; width:70px;">크기</th><th style="padding:6px 8px; width:110px;">수정</th>
+                  </tr></thead>
+                  <tbody id="srvcfg-ckpt-body">
+                    <tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:12px;">로딩 중...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: 그라운더/설정 변경 + 재시작 + 로그 -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🔭 그라운더 (A/B)</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                <button id="srvcfg-gr-pg2"   class="btn btn-outline" onclick="selGrounder('pg2')">PG2-448<br><span style="font-size:9px;color:var(--text-muted)">3B · 가변 latency</span></button>
+                <button id="srvcfg-gr-owlv2" class="btn btn-outline" onclick="selGrounder('owlv2')">OWL-v2<br><span style="font-size:9px;color:var(--text-muted)">경량 · ~2s 고정</span></button>
+              </div>
+              <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:11px;">OWL-v2 threshold (기본 0.25 — 실측 확정값)</label>
+                <input type="number" id="srvcfg-owl-thr" min="0.05" max="0.9" step="0.05" value="0.25" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+              </div>
+              <button class="btn btn-cyan" style="width:100%; font-size:12px;" onclick="applyOwlThresh()">threshold 즉시 적용 (재시작 불필요)</button>
+              <div style="font-size:10px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                그라운더 전환(PG2↔OWL)은 모델 로딩이 필요해 아래 재시작으로만 적용됨.
+                threshold는 런타임 즉시 반영.
+              </div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🔁 서버 재시작 (선택 설정 적용)</div>
+              <div id="srvcfg-restart-preview" style="font-size:11px; font-family:var(--font-mono); color:var(--amber); background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:8px 10px; margin-bottom:10px;">변경 없음 — 현재 설정으로 재시작</div>
+              <button id="srvcfg-restart-btn" class="btn btn-rose" style="width:100%; font-weight:bold;" onclick="restartInferServer()">🔁 추론 서버 재시작</button>
+              <div id="srvcfg-restart-status" style="font-size:11px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:8px;">—</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📜 서버 로그 (tail)
+                <button class="btn btn-outline" onclick="loadSrvLog()" style="font-size:11px; padding:4px 10px;">↻</button>
+              </div>
+              <pre id="srvcfg-log" style="font-size:10px; font-family:var(--font-mono); background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:10px; max-height:260px; overflow:auto; white-space:pre-wrap; color:var(--text-muted);">—</pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- JS 컨트롤 스크립트 -->
@@ -3156,10 +3236,11 @@ L S R  C S L  R S L
         verify: "🧪 경로 검증 (Path Test)",
         calib: "🔧 STOP & Calibration",
         history: "📚 Session History",
-        system: "🖥️ System Manage"
+        system: "🖥️ System Manage",
+        srvcfg: "⚙️ 서버 설정"
       };
       document.getElementById("page-title").textContent = titleMap[tab] || (tab.toUpperCase() + " Panel");
-      
+
       if (tab === "history") {
         loadSessionList();
       }
@@ -3170,6 +3251,148 @@ L S R  C S L  R S L
         syncVerifyRuntimeParams();
         loadEpisodeHistory();
       }
+      if (tab === "srvcfg") {
+        loadSrvCfg();
+        loadSrvLog();
+      }
+    }
+
+    // ── ⚙️ 서버 설정 탭 ─────────────────────────────────────────────
+    let srvcfgSel = { grounder: null, ckpt: null, activeGrounder: null, activeCkpt: null };
+
+    function _srvcfgUpdatePreview() {
+      const parts = [];
+      if (srvcfgSel.grounder && srvcfgSel.grounder !== srvcfgSel.activeGrounder)
+        parts.push(`VLA_GROUNDER=${srvcfgSel.grounder}`);
+      if (srvcfgSel.ckpt && srvcfgSel.ckpt !== srvcfgSel.activeCkpt)
+        parts.push(`VLA_S2V2_STAGE2=${srvcfgSel.ckpt}`);
+      document.getElementById("srvcfg-restart-preview").textContent =
+        parts.length ? parts.join("\n") : "변경 없음 — 현재 설정으로 재시작";
+    }
+
+    function selGrounder(g) {
+      srvcfgSel.grounder = g;
+      document.getElementById("srvcfg-gr-pg2").className   = g === "pg2"   ? "btn btn-cyan" : "btn btn-outline";
+      document.getElementById("srvcfg-gr-owlv2").className = g === "owlv2" ? "btn btn-cyan" : "btn btn-outline";
+      _srvcfgUpdatePreview();
+    }
+
+    async function loadSrvCfg() {
+      const h = await api("/infer/health");
+      const body = document.getElementById("srvcfg-status-body");
+      if (h.status === "error") {
+        body.innerHTML = `<tr><td colspan="2" style="color:var(--rose); padding:12px;">서버 응답 없음: ${h.detail}</td></tr>`;
+        return;
+      }
+      const g = h.grounder || {};
+      const rows = [
+        ["상태", h.status],
+        ["git_commit", h.git_commit],
+        ["프로세스 시작", h.process_started_at ? new Date(h.process_started_at*1000).toLocaleString() : "—"],
+        ["그라운더", `${g.model} (${g.input_px}px, phrase="${g.phrase}")`],
+        ["OWL threshold", g.owlv2_thresh !== undefined ? g.owlv2_thresh : "—"],
+        ["헤드", `${h.head} (window=${h.window}, val_acc=${h.val_acc ? (h.val_acc*100).toFixed(1)+'%' : '—'})`],
+        ["체크포인트", h.checkpoint_path],
+        ["STOP 모드", `${h.stop_mode} (latched=${h.stop_latched})`],
+        ["GPU", h.gpu ? `${h.gpu.device_name} · ${h.gpu.allocated_gb}GB 할당` : "—"],
+        ["skip_n / multi_prompt", `${h.grounding_skip_n} / ${h.multi_prompt}`],
+      ];
+      body.innerHTML = rows.map(([k,v]) => `
+        <tr style="border-bottom:1px solid rgba(29,43,69,0.5);">
+          <td style="padding:6px 10px; color:var(--text-muted); width:140px;">${k}</td>
+          <td style="padding:6px 10px; font-family:var(--font-mono); word-break:break-all;">${v ?? "—"}</td>
+        </tr>`).join("");
+
+      // Fix3 핸드셰이크 경고: 코드가 프로세스 기동 이후 수정됐으면 표시
+      const hs = document.getElementById("srvcfg-handshake");
+      if (h.code_mtime && h.process_started_at && h.code_mtime > h.process_started_at) {
+        hs.style.display = "block";
+        hs.textContent = "⚠️ 코드 파일이 프로세스 기동 이후 수정됨 — 서버가 구버전 코드로 실행 중일 수 있음. 재시작 권장.";
+      } else {
+        hs.style.display = "none";
+      }
+
+      // 활성 상태 반영
+      srvcfgSel.activeGrounder = (g.model || "").toLowerCase().includes("owl") ? "owlv2" : "pg2";
+      srvcfgSel.activeCkpt = h.checkpoint_path || null;
+      if (!srvcfgSel.grounder) selGrounder(srvcfgSel.activeGrounder);
+      if (g.owlv2_thresh !== undefined)
+        document.getElementById("srvcfg-owl-thr").value = g.owlv2_thresh;
+
+      // 체크포인트 목록
+      const c = await api("/server_proc/checkpoints");
+      const cb = document.getElementById("srvcfg-ckpt-body");
+      if (c.ok) {
+        cb.innerHTML = c.checkpoints.map(it => {
+          const isActive = c.active && it.path === c.active;
+          const isSel = srvcfgSel.ckpt === it.path;
+          return `<tr onclick="selCkpt('${it.path}')" style="cursor:pointer; border-bottom:1px solid rgba(29,43,69,0.5); ${isActive ? 'background:rgba(16,185,129,0.10);' : isSel ? 'background:rgba(6,182,212,0.10);' : ''}">
+            <td style="padding:5px 8px; font-family:var(--font-mono); word-break:break-all;">${isActive ? '🟢 ' : isSel ? '🔵 ' : ''}${it.path}</td>
+            <td style="padding:5px 8px;">${it.size_mb}MB</td>
+            <td style="padding:5px 8px; color:var(--text-muted);">${it.mtime}</td>
+          </tr>`;
+        }).join("");
+      }
+      _srvcfgUpdatePreview();
+    }
+
+    function selCkpt(p) {
+      srvcfgSel.ckpt = (srvcfgSel.ckpt === p) ? null : p;  // 재클릭 시 해제
+      loadSrvCfg();
+    }
+
+    async function applyOwlThresh() {
+      const v = parseFloat(document.getElementById("srvcfg-owl-thr").value);
+      const res = await api("/config", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ owlv2_thresh: v })
+      });
+      const inner = (res.applied && res.applied.applied) || {};
+      document.getElementById("srvcfg-restart-status").textContent =
+        inner.owlv2_thresh !== undefined ? `✅ threshold=${inner.owlv2_thresh} 즉시 적용됨` : "⚠️ 적용 실패 — 서버 로그 확인";
+      setTimeout(loadSrvCfg, 500);
+    }
+
+    async function restartInferServer() {
+      const body = {};
+      if (srvcfgSel.grounder && srvcfgSel.grounder !== srvcfgSel.activeGrounder) body.grounder = srvcfgSel.grounder;
+      if (srvcfgSel.ckpt && srvcfgSel.ckpt !== srvcfgSel.activeCkpt) body.ckpt = srvcfgSel.ckpt;
+      const thr = parseFloat(document.getElementById("srvcfg-owl-thr").value);
+      if (!isNaN(thr)) body.owlv2_thresh = thr;
+      const desc = Object.keys(body).length ? JSON.stringify(body) : "현재 설정 유지";
+      if (!confirm(`추론 서버(8001)를 재시작합니다 (~120s, 주행 불가).\n적용: ${desc}\n계속할까요?`)) return;
+
+      const btn = document.getElementById("srvcfg-restart-btn");
+      const st  = document.getElementById("srvcfg-restart-status");
+      btn.disabled = true;
+      const res = await api("/server_proc/restart", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) { st.textContent = "⚠️ " + res.error; btn.disabled = false; return; }
+
+      let sec = 0;
+      const iv = setInterval(async () => {
+        sec += 5;
+        st.textContent = `⏳ 재시작 중... ${sec}s (PG2 포함 최대 ~120s)`;
+        try {
+          const h = await api("/infer/health");
+          if (h.status === "healthy" && h.process_started_at &&
+              (Date.now()/1000 - h.process_started_at) < sec + 30) {
+            clearInterval(iv);
+            st.textContent = "✅ 재시작 완료";
+            btn.disabled = false;
+            srvcfgSel.grounder = null; srvcfgSel.ckpt = null;
+            loadSrvCfg(); loadSrvLog();
+          }
+        } catch(e) {}
+        if (sec >= 180) { clearInterval(iv); st.textContent = "⚠️ 타임아웃 — 서버 로그 확인 필요"; btn.disabled = false; }
+      }, 5000);
+    }
+
+    async function loadSrvLog() {
+      const res = await api("/server_proc/log?n=40");
+      document.getElementById("srvcfg-log").textContent = (res.lines || []).join("\n");
     }
 
     // ── Autopilot 시작 / 정지 / 복귀 ─────────────────────────────────
@@ -4405,6 +4628,69 @@ def camera_proc_stop():
     time.sleep(0.4)
     pids = _cam_pids()
     return {"ok": True, "text": (f"🟢 실행 중 pid={','.join(pids)}" if pids else "🔴 정지됨")}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 추론 서버(8001) 프로세스 관리 — ⚙️ 서버 설정 탭용
+# ═══════════════════════════════════════════════════════════════════
+class ServerRestartReq(BaseModel):
+    grounder: Optional[str] = None       # "pg2" | "owlv2"
+    owlv2_thresh: Optional[float] = None
+    ckpt: Optional[str] = None           # runs/ 상대경로 (VLA_S2V2_STAGE2)
+
+
+@app.get("/server_proc/checkpoints")
+def server_proc_checkpoints():
+    """runs/ 아래 .pt 체크포인트 목록 — 서버 설정 탭에서 선택/전환용."""
+    items = []
+    for p in sorted((ROOT / "runs").rglob("*.pt"), key=lambda x: -x.stat().st_mtime)[:60]:
+        st = p.stat()
+        items.append({
+            "path": str(p.relative_to(ROOT)),
+            "size_mb": round(st.st_size / 1e6, 1),
+            "mtime": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
+        })
+    active = None
+    try:
+        import requests as rq
+        h = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2).json()
+        active = h.get("checkpoint_path")
+    except Exception:
+        pass
+    return {"ok": True, "checkpoints": items, "active": active}
+
+
+@app.post("/server_proc/restart")
+def server_proc_restart(req: ServerRestartReq):
+    """추론 서버(8001)를 지정 설정으로 재시작 — go.sh --server를 백그라운드 실행.
+
+    go.sh가 pkill→로그 보관→기동→헬스대기까지 처리하므로 여기선 env만 조립해
+    던진다. PG2 로딩 포함 최대 ~120s — UI가 /infer/health를 폴링해 완료 감지.
+    """
+    env_parts = []
+    if req.grounder in ("pg2", "owlv2"):
+        env_parts.append(f"VLA_GROUNDER={req.grounder}")
+    if req.owlv2_thresh is not None:
+        env_parts.append(f"VLA_OWLV2_THRESH={float(req.owlv2_thresh)}")
+    if req.ckpt:
+        ckpt_path = (ROOT / req.ckpt).resolve()
+        if not str(ckpt_path).startswith(str(ROOT)) or not ckpt_path.exists():
+            return {"ok": False, "error": f"체크포인트 없음/경로 이탈: {req.ckpt}"}
+        env_parts.append(f"VLA_S2V2_STAGE2={req.ckpt}")
+    cmd = f"cd {ROOT} && {' '.join(env_parts)} nohup bash scripts/run/go.sh --server > logs/server_restart_from_dash.log 2>&1 &"
+    _subprocess.Popen(["bash", "-c", cmd])
+    log.warning(f"🔁 [ServerRestart] 대시보드에서 추론서버 재시작 요청: {env_parts or '(현재 설정 유지)'}")
+    return {"ok": True, "message": "재시작 시작 — PG2 포함 시 최대 ~120s. 아래 상태가 갱신될 때까지 대기.",
+            "env": env_parts}
+
+
+@app.get("/server_proc/log")
+def server_proc_log(n: int = 40):
+    p = ROOT / "logs" / "s2v2_server.log"
+    if not p.exists():
+        return {"ok": False, "lines": ["(로그 없음)"]}
+    lines = p.read_text(errors="replace").splitlines()[-max(5, min(n, 200)):]
+    return {"ok": True, "lines": lines}
 
 
 # ── 카메라 워치독 (B3) ───────────────────────────────────────────────

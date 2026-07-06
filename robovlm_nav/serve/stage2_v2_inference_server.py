@@ -1246,6 +1246,7 @@ class ConfigRequest(BaseModel):
     cx_jump_filter: Optional[bool] = None    # P2: cx 급변 오탐 필터 on/off
     cx_jump_thresh: Optional[float] = None   # P2: 급변 임계값 (기본 0.30)
     multi_prompt: Optional[bool] = None      # 멀티프롬프트 fallback on/off
+    owlv2_thresh: Optional[float] = None     # OWL-v2 detection threshold (run()이 매 호출 env를 읽음)
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
@@ -1298,6 +1299,7 @@ async def health() -> dict[str, Any]:
                 "model": getattr(g, "_model_tag", "PG2-448"),
                 "input_px": getattr(g, "_input_px", 448),
                 "phrase": getattr(g, "_phrase", "gray basket"),
+                "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
             }
     return {
         "status": "healthy",
@@ -1469,6 +1471,11 @@ async def set_config(
         m = get_model()
         m._multi_prompt = bool(request.multi_prompt)
         applied["multi_prompt"] = m._multi_prompt
+
+    if request.owlv2_thresh is not None:
+        # OwlV2Grounder.run()이 매 호출 os.getenv를 읽으므로 env 갱신 = 즉시 적용
+        os.environ["VLA_OWLV2_THRESH"] = str(float(request.owlv2_thresh))
+        applied["owlv2_thresh"] = float(request.owlv2_thresh)
 
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
