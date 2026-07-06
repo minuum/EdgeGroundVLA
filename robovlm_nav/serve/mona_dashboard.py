@@ -767,6 +767,7 @@ class ConfigToggleReq(BaseModel):
     stop_area_threshold: Optional[float] = None
     multi_prompt: Optional[bool] = None
     owlv2_thresh: Optional[float] = None
+    owlv2_area_scale: Optional[float] = None
 
 class LabelSaveReq(BaseModel):
     session_id: str
@@ -997,6 +998,7 @@ def config_update(req: ConfigToggleReq):
     if req.stop_area_threshold is not None: payload["stop_area_threshold"] = req.stop_area_threshold
     if req.multi_prompt is not None: payload["multi_prompt"] = req.multi_prompt
     if req.owlv2_thresh is not None: payload["owlv2_thresh"] = req.owlv2_thresh
+    if req.owlv2_area_scale is not None: payload["owlv2_area_scale"] = req.owlv2_area_scale
 
     try:
         res = _infer_post("/config", payload, timeout=3)
@@ -1053,6 +1055,7 @@ def _snapshot_runtime_config() -> dict:
             "grounder_model": g.get("model"),
             "grounder_input_px": g.get("input_px"),
             "owlv2_thresh": g.get("owlv2_thresh"),
+            "owlv2_area_scale": g.get("owlv2_area_scale"),
             "checkpoint_path": h.get("checkpoint_path"),
             "git_commit": h.get("git_commit"),
         }
@@ -2537,6 +2540,11 @@ L S R  C S L  R S L
                   <button id="vfy-rt-multi" class="btn btn-outline" onclick="toggleVerifyRuntime('multi')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🟢 멀티프롬프트<br><span style="font-size:9px;color:var(--text-muted)">fallback</span></button>
                 </div>
                 <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
+                <div id="vfy-owl-row" style="display:none; align-items:center; gap:6px; margin-top:2px;">
+                  <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 OWL 보정계수</span>
+                  <input type="number" id="vfy-owl-area-scale" min="0.5" max="10" step="0.1" value="3.0" style="width:52px; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
+                  <button class="btn btn-outline" onclick="applyVerifyOwlAreaScale()" style="font-size:10px; padding:3px 8px; flex:1;">적용</button>
+                </div>
               </div>
 
               <!-- 우: Autopilot Configuration (START/STOP은 위 Quick Autopilot 버튼 사용) -->
@@ -3056,6 +3064,11 @@ L S R  C S L  R S L
                 <input type="number" id="srvcfg-owl-thr" min="0.05" max="0.9" step="0.05" value="0.25" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
               </div>
               <button class="btn btn-cyan" style="width:100%; font-size:12px;" onclick="applyOwlThresh()">threshold 즉시 적용 (재시작 불필요)</button>
+              <div class="form-group" style="margin:10px 0 8px;">
+                <label style="font-size:11px;">OWL-v2 bbox 보정계수 (기본 3.0 — PG2 대비 area 축소 보정)</label>
+                <input type="number" id="srvcfg-owl-area-scale" min="0.5" max="10" step="0.1" value="3.0" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+              </div>
+              <button class="btn btn-cyan" style="width:100%; font-size:12px;" onclick="applyOwlAreaScale()">보정계수 즉시 적용 (재시작 불필요)</button>
               <div style="font-size:10px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
                 그라운더 전환(PG2↔OWL)은 모델 로딩이 필요해 아래 재시작으로만 적용됨.
                 threshold는 런타임 즉시 반영.
@@ -3329,6 +3342,8 @@ L S R  C S L  R S L
       if (!srvcfgSel.grounder) selGrounder(srvcfgSel.activeGrounder);
       if (g.owlv2_thresh !== undefined)
         document.getElementById("srvcfg-owl-thr").value = g.owlv2_thresh;
+      if (g.owlv2_area_scale !== undefined)
+        document.getElementById("srvcfg-owl-area-scale").value = g.owlv2_area_scale;
 
       // 체크포인트 목록 — kind별 섹션 그룹핑, 액션 헤드만 선택 가능
       const c = await api("/server_proc/checkpoints");
@@ -3380,12 +3395,26 @@ L S R  C S L  R S L
       setTimeout(loadSrvCfg, 500);
     }
 
+    async function applyOwlAreaScale() {
+      const v = parseFloat(document.getElementById("srvcfg-owl-area-scale").value);
+      const res = await api("/config", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ owlv2_area_scale: v })
+      });
+      const inner = (res.applied && res.applied.applied) || {};
+      document.getElementById("srvcfg-restart-status").textContent =
+        inner.owlv2_area_scale !== undefined ? `✅ 보정계수=${inner.owlv2_area_scale} 즉시 적용됨` : "⚠️ 적용 실패 — 서버 로그 확인";
+      setTimeout(loadSrvCfg, 500);
+    }
+
     async function restartInferServer() {
       const body = {};
       if (srvcfgSel.grounder && srvcfgSel.grounder !== srvcfgSel.activeGrounder) body.grounder = srvcfgSel.grounder;
       if (srvcfgSel.ckpt && srvcfgSel.ckpt !== srvcfgSel.activeCkpt) body.ckpt = srvcfgSel.ckpt;
       const thr = parseFloat(document.getElementById("srvcfg-owl-thr").value);
       if (!isNaN(thr)) body.owlv2_thresh = thr;
+      const areaScale = parseFloat(document.getElementById("srvcfg-owl-area-scale").value);
+      if (!isNaN(areaScale)) body.owlv2_area_scale = areaScale;
       const desc = Object.keys(body).length ? JSON.stringify(body) : "현재 설정 유지";
       if (!confirm(`추론 서버(8001)를 재시작합니다 (~120s, 주행 불가).\\n적용: ${desc}\\n계속할까요?`)) return;
 
@@ -3716,6 +3745,15 @@ L S R  C S L  R S L
         runtimeState.cx_jump_thresh = res.cx_jump_thresh !== undefined ? parseFloat(res.cx_jump_thresh) : 0.30;
         runtimeState.multi_prompt = res.multi_prompt !== false;
 
+        const g = res.grounder || {};
+        const owlRow = document.getElementById("vfy-owl-row");
+        if ((g.model || "").toLowerCase().includes("owl")) {
+          owlRow.style.display = "flex";
+          document.getElementById("vfy-owl-area-scale").value = g.owlv2_area_scale ?? 3.0;
+        } else {
+          owlRow.style.display = "none";
+        }
+
         updateVerifyRuntimeUI();
         statusEl.textContent = "✅ 동기화 완료";
       } catch(e) {
@@ -3838,6 +3876,31 @@ L S R  C S L  R S L
         }
       } catch(e) {
         document.getElementById("vfy-rt-status").textContent = "⚠️ 서버 오류: " + e;
+      }
+    }
+
+    async function applyVerifyOwlAreaScale() {
+      const statusEl = document.getElementById("vfy-rt-status");
+      const v = parseFloat(document.getElementById("vfy-owl-area-scale").value);
+      if (isNaN(v) || v <= 0) { statusEl.textContent = "⚠️ 보정계수 값이 올바르지 않음"; return; }
+      statusEl.textContent = "OWL 보정계수 적용 중...";
+      try {
+        const res = await api("/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ owlv2_area_scale: v })
+        });
+        if (res.ok) {
+          const inner = (res.applied && res.applied.applied) || {};
+          const parts = Object.entries(inner).map(([k, v2]) => `${k}=${v2}`);
+          statusEl.textContent = parts.length > 0
+            ? "✅ 서버 적용: " + parts.join(", ")
+            : "⚠️ 서버가 아무것도 적용 안 함 (applied 비어있음)";
+        } else {
+          statusEl.textContent = "⚠️ 적용 실패: " + res.error;
+        }
+      } catch(e) {
+        statusEl.textContent = "⚠️ 서버 오류: " + e;
       }
     }
 
@@ -4556,7 +4619,7 @@ L S R  C S L  R S L
             const vg = inf.grounder || {};
             const grIsOwl = (vg.model || "").toLowerCase().includes("owl");
             const grBadge = grIsOwl
-              ? `<span style="color:var(--emerald); font-weight:700;">🔭 ${vg.model}</span> th=${vg.owlv2_thresh ?? '—'}`
+              ? `<span style="color:var(--emerald); font-weight:700;">🔭 ${vg.model}</span> th=${vg.owlv2_thresh ?? '—'} scale=${vg.owlv2_area_scale ?? '—'}`
               : `<span style="color:var(--amber); font-weight:700;">🔭 ${vg.model || '—'}</span>`;
             vfySrvStatus.innerHTML =
               `<span style="color:var(--cyan); font-weight:700;">🧠 ${inf.checkpoint_path ? inf.checkpoint_path.split('/').pop() : '—'}</span> (${inf.head} W${inf.window})<br>`
@@ -4671,6 +4734,7 @@ def camera_proc_stop():
 class ServerRestartReq(BaseModel):
     grounder: Optional[str] = None       # "pg2" | "owlv2"
     owlv2_thresh: Optional[float] = None
+    owlv2_area_scale: Optional[float] = None
     ckpt: Optional[str] = None           # runs/ 상대경로 (VLA_S2V2_STAGE2)
 
 
@@ -4762,6 +4826,8 @@ def server_proc_restart(req: ServerRestartReq):
         env_parts.append(f"VLA_GROUNDER={req.grounder}")
     if req.owlv2_thresh is not None:
         env_parts.append(f"VLA_OWLV2_THRESH={float(req.owlv2_thresh)}")
+    if req.owlv2_area_scale is not None:
+        env_parts.append(f"VLA_OWLV2_AREA_SCALE={float(req.owlv2_area_scale)}")
     if req.ckpt:
         ckpt_path = (ROOT / req.ckpt).resolve()
         if not str(ckpt_path).startswith(str(ROOT)) or not ckpt_path.exists():

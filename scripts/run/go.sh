@@ -145,6 +145,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
         VLA_API_KEY="${VLA_API_KEY:-vla_devel_key_2026}" \
         VLA_GROUNDER="${VLA_GROUNDER:-pg2}" \
         VLA_OWLV2_THRESH="${VLA_OWLV2_THRESH:-0.25}" \
+        VLA_OWLV2_AREA_SCALE="${VLA_OWLV2_AREA_SCALE:-3.0}" \
         VLA_PREVIEW_GROUNDER="${VLA_PREVIEW_GROUNDER:-pg2}" \
         "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
         --port "$SERVER_PORT" > logs/s2v2_server.log 2>&1 &

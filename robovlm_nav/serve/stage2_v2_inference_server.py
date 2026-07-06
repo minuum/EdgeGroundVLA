@@ -139,6 +139,8 @@ def _log_pg2_decision(phrase: str, raw: str, locs: list, result: dict,
             "cx": result.get("cx"),
             "cy": result.get("cy"),
             "area": result.get("area"),
+            "area_raw": result.get("area_raw"),         # OWL-v2 보정 전 원시 area (있으면)
+            "area_scale": result.get("area_scale"),     # 적용된 보정 계수 (있으면)
             "latency_ms": round(latency_ms, 1),        # 호출 1회당 (멀티프롬프트 합산 아님)
         }
         with open(_PG2_DECISION_LOG, "a") as f:
@@ -640,6 +642,14 @@ class OwlV2Grounder:
             area = (x2 - x1) * (y2 - y1)
             cx_val, cy_val = (x1 + x2) / 2, (y1 + y2) / 2
             filters = get_ground_filters(phrase)
+            # 2026-07-06: 실주행 실측(obj_right 3세션)으로 확인 — OWL-v2 박스가 PG2보다
+            # 훨씬 타이트해서 area가 근접 시에도 0.07 수준(PG2는 근접 시 0.7~0.8까지 나옴).
+            # STOP 임계값(GOAL_AREA_THRESHOLD=0.25)과 Stage2 헤드 둘 다 PG2 스케일로
+            # 학습/캘리브레이션돼 있어서, 스케일 보정 없이는 "가까워져도 멀다고 인식"해
+            # 직진 전환/STOP 타이밍을 놓치고 학습 밖 조합에서 엉뚱한 방향으로 튐.
+            # 필터(tiny/full-frame/top)는 박스 형태 자체의 sanity check라 raw area 유지,
+            # 모델 입력/STOP 판단에 쓰이는 area만 보정.
+            owl_area_scale = float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0"))
             if area > 0.9:
                 result = {**_fallback, "filter_reason": "full-frame"}
             elif area < filters["min_area"]:
@@ -647,8 +657,10 @@ class OwlV2Grounder:
             elif cy_val < filters["min_cy"]:
                 result = {**_fallback, "hint_cx": cx_val, "filter_reason": "top"}
             else:
-                result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
-                          "x1": x1, "y1": y1, "x2": x2, "y2": y2}
+                area_calibrated = min(area * owl_area_scale, 1.0)
+                result = {"cx": cx_val, "cy": cy_val, "area": area_calibrated, "has_bbox": True,
+                          "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                          "area_raw": area, "area_scale": owl_area_scale}
         raw_str = f"owlv2 n_boxes={len(boxes)}"
         if return_raw:
             result["raw_output"] = raw_str
@@ -1247,6 +1259,7 @@ class ConfigRequest(BaseModel):
     cx_jump_thresh: Optional[float] = None   # P2: 급변 임계값 (기본 0.30)
     multi_prompt: Optional[bool] = None      # 멀티프롬프트 fallback on/off
     owlv2_thresh: Optional[float] = None     # OWL-v2 detection threshold (run()이 매 호출 env를 읽음)
+    owlv2_area_scale: Optional[float] = None # OWL-v2 area 보정 계수 (PG2 스케일 정합용, run()이 매 호출 env를 읽음)
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
@@ -1300,6 +1313,7 @@ async def health() -> dict[str, Any]:
                 "input_px": getattr(g, "_input_px", 448),
                 "phrase": getattr(g, "_phrase", "gray basket"),
                 "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
+                "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
             }
     return {
         "status": "healthy",
@@ -1476,6 +1490,10 @@ async def set_config(
         # OwlV2Grounder.run()이 매 호출 os.getenv를 읽으므로 env 갱신 = 즉시 적용
         os.environ["VLA_OWLV2_THRESH"] = str(float(request.owlv2_thresh))
         applied["owlv2_thresh"] = float(request.owlv2_thresh)
+
+    if request.owlv2_area_scale is not None:
+        os.environ["VLA_OWLV2_AREA_SCALE"] = str(float(request.owlv2_area_scale))
+        applied["owlv2_area_scale"] = float(request.owlv2_area_scale)
 
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
