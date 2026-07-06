@@ -3267,7 +3267,7 @@ L S R  C S L  R S L
       if (srvcfgSel.ckpt && srvcfgSel.ckpt !== srvcfgSel.activeCkpt)
         parts.push(`VLA_S2V2_STAGE2=${srvcfgSel.ckpt}`);
       document.getElementById("srvcfg-restart-preview").textContent =
-        parts.length ? parts.join("\n") : "변경 없음 — 현재 설정으로 재시작";
+        parts.length ? parts.join("\\n") : "변경 없음 — 현재 설정으로 재시작";
     }
 
     function selGrounder(g) {
@@ -3360,7 +3360,7 @@ L S R  C S L  R S L
       const thr = parseFloat(document.getElementById("srvcfg-owl-thr").value);
       if (!isNaN(thr)) body.owlv2_thresh = thr;
       const desc = Object.keys(body).length ? JSON.stringify(body) : "현재 설정 유지";
-      if (!confirm(`추론 서버(8001)를 재시작합니다 (~120s, 주행 불가).\n적용: ${desc}\n계속할까요?`)) return;
+      if (!confirm(`추론 서버(8001)를 재시작합니다 (~120s, 주행 불가).\\n적용: ${desc}\\n계속할까요?`)) return;
 
       const btn = document.getElementById("srvcfg-restart-btn");
       const st  = document.getElementById("srvcfg-restart-status");
@@ -3392,7 +3392,7 @@ L S R  C S L  R S L
 
     async function loadSrvLog() {
       const res = await api("/server_proc/log?n=40");
-      document.getElementById("srvcfg-log").textContent = (res.lines || []).join("\n");
+      document.getElementById("srvcfg-log").textContent = (res.lines || []).join("\\n");
     }
 
     // ── Autopilot 시작 / 정지 / 복귀 ─────────────────────────────────
