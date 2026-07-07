@@ -205,3 +205,37 @@ decisively"/"curve right decisively")를 강제로 붙이고 각각 다른 정�
 - `scripts/eval_live_sessions_owl_flicker_windows.py` — soda 실제 세션 재현 + 정규화 버그 발견
 - `scripts/train_exp71_instr_conditioning.py` — VLA 사다리 ② 정규화-수정 재검증
 - `docs/plans/plan_20260706_preview_redesign.md` — 프리뷰 재설계 플랜
+
+## 11. 좌/우 비대칭 발견 + bbox_scale 대응 + 배포
+
+**발견**: FWD+L recall 88.5%인데 FWD+R recall 67.6%(21.6%가 FORWARD로 오분류) — 극단
+cx가 아닌 정상범위에서도 좌/우 비대칭 존재. cx 0.6~0.75 구간의 실제 정답이 FWD+L이
+더 많은 경우도 확인(경로 곡선 형태 때문 — cx 단독으로는 정답이 안 정해짐, §10 정정 참고).
+
+**원인 후보 검증**: class-weight(`diag_mult`)만으로는 단일시드 표준편차가 24~27%p로
+극도로 불안정(같은 설정 재현 시 89.8%↔72.4% 널뛰기 확인). **`bbox_scale`(bbox 4dim을
+이미지feature 대비 상대적으로 키우는 것)이 훨씬 효과적** — 멀티시드(5) 비교:
+
+| 조합 | val_acc | FWD+L recall | FWD+R recall |
+|---|---|---|---|
+| diag1.0+bbox1x(기존) | 72.3%±5.1% | 43.8%±27.5% | 47.6%±24.9% |
+| diag2.0+bbox1x | 69.0%±5.2% | 80.0%±7.6% | 68.6%±6.1% |
+| **diag1.0+bbox3x** | **84.6%±2.9%** | 88.1%±3.9% | 70.8%±4.0% |
+| diag2.0+bbox3x | 80.2%±3.7% | 91.5%±4.0% | **77.8%±4.3%** |
+
+bbox_scale=3x가 정확도 향상뿐 아니라 **학습 안정성(표준편차 27%p→4%p)을 크게 개선**.
+
+**배포**: `bbox_scale`을 학습에만 적용하면 정규화 버그(§5)와 같은 종류의 학습/추론
+불일치가 재발하므로, 서버 코드(`stage2_v2_inference_server.py`)에 `ckpt.get("bbox_scale",
+1.0)`을 읽어 `_build_flat/seq/seq_trans_feature`에 일괄 적용하는 하위호환 지원을 먼저
+추가(기본값 1.0, 기존 체크포인트 무영향). 이후 전체 150ep로 **window=3 + bbox_scale=3.0**
+최종 체크포인트를 5-seed 학습(`scripts/train_exp71_window3_bboxscale_final.py`) —
+val_acc 80.7%±4.3%(최고 84.4%, seed=4) 선정.
+
+**전달 완료 (2026-07-07)**:
+- 서버 코드: `monavla-driving` 커밋 `51adce65`(preview 옵션D 로깅) + `604f2661`(bbox_scale
+  지원) — soda 서버에 `git pull`로 fast-forward 반영 확인
+- 체크포인트: `runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt`(4.4MB)
+  rsync로 `soda@100.85.118.58:~/MoNaVLA/`에 전송 완료
+- **아직 안 한 것**: checkpoint_path 전환 + 서버 재시작(운영 중인 로봇 서비스라 soda
+  확인 후 진행 필요) — 이게 되면 실로봇 window3+bbox_scale3 vs 기존 window6 A/B 가능
