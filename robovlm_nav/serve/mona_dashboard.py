@@ -1222,6 +1222,30 @@ def drive_manual(req: ManualDriveReq):
     return {"ok": True, "log": _state["status_log"]}
 
 
+@app.get("/collect/ground")
+def collect_ground():
+    """데이터수집 탭 — 바구니 배치용 실시간 cx 피드백.
+    액션예측 없이 그라운딩만 수행하는 추론서버 /ground를 프록시."""
+    if not ROS_AVAILABLE or not _ros:
+        return {"ok": False, "error": "ROS 연결 불가"}
+    frame = _ros.latest_bgr()
+    if frame is None:
+        return {"ok": False, "error": "카메라 프레임 없음"}
+    import requests as rq
+    rgb = frame[:, :, ::-1]
+    buf = io.BytesIO()
+    Image.fromarray(rgb).save(buf, "JPEG", quality=80)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    try:
+        r = rq.post(f"{INFER_URL}/ground", json={"image": b64},
+                    headers={"X-API-Key": API_KEY}, timeout=3)
+        d = r.json()
+        d["ok"] = True
+        return d
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @app.get("/collect/state")
 def collect_state():
     if _collect is None:
@@ -3408,6 +3432,14 @@ L S R  C S L  R S L
 
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
+              <div class="card-title">🎯 실시간 cx (바구니 배치용)
+                <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
+              </div>
+              <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px;">—</div>
+              <div id="collect-cx-band" style="font-size:12px; text-align:center; color:var(--text-muted);">극단 배치 기준: 0.10~0.15 강한좌 · 0.20~0.25 준극단좌 · 0.75~0.80 준극단우 · 0.85~0.90 강한우</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
               <div class="card-title">🕹️ 조작 (탭 클릭 후 키보드 W A S D Q E Z C R T Space)</div>
               <div id="collect-key-surface" tabindex="0"
                    style="outline:none; border:2px dashed var(--border-glow); border-radius:10px; padding:24px; text-align:center; background:#090d16; cursor:pointer;">
@@ -3721,6 +3753,45 @@ L S R  C S L  R S L
       _collectSendKey(key, "up");
     }
 
+    let _collectCxTimer = null;
+
+    function _collectCxBand(cx) {
+      if (cx >= 0.10 && cx <= 0.15) return {label: "강한좌", color: "var(--rose)"};
+      if (cx >= 0.20 && cx <= 0.25) return {label: "준극단좌", color: "var(--amber)"};
+      if (cx >= 0.75 && cx <= 0.80) return {label: "준극단우", color: "var(--amber)"};
+      if (cx >= 0.85 && cx <= 0.90) return {label: "강한우", color: "var(--rose)"};
+      return {label: "목표 구간 밖", color: "var(--text-muted)"};
+    }
+
+    async function _collectCxPoll() {
+      const res = await api("/collect/ground");
+      const valEl = document.getElementById("collect-cx-value");
+      const bandEl = document.getElementById("collect-cx-band");
+      if (!res.ok) { valEl.textContent = "⚠️ " + (res.error || "실패"); return; }
+      if (!res.has_bbox) { valEl.textContent = "검출 안 됨"; valEl.style.color = "var(--text-muted)"; return; }
+      const band = _collectCxBand(res.cx);
+      valEl.textContent = "cx = " + res.cx.toFixed(3);
+      valEl.style.color = band.color;
+      bandEl.innerHTML = `<span style="color:${band.color}; font-weight:700;">${band.label}</span> · area=${res.area.toFixed(3)} · ${res.latency_ms}ms`;
+    }
+
+    function collectToggleCxFeed() {
+      const badge = document.getElementById("collect-cx-toggle-badge");
+      if (_collectCxTimer) {
+        clearInterval(_collectCxTimer);
+        _collectCxTimer = null;
+        badge.textContent = "⏸ 꺼짐 — 클릭해서 시작";
+        badge.style.background = "rgba(100,116,139,0.2)";
+        badge.style.color = "var(--text-muted)";
+      } else {
+        _collectCxPoll();
+        _collectCxTimer = setInterval(_collectCxPoll, 600);
+        badge.textContent = "🔴 실시간 중 — 클릭해서 정지";
+        badge.style.background = "rgba(244,63,94,0.15)";
+        badge.style.color = "var(--rose)";
+      }
+    }
+
     async function collectRefreshState() {
       const res = await api("/collect/state");
       if (!res.ok) return;
@@ -3772,6 +3843,12 @@ L S R  C S L  R S L
       if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
       if (_collectPollTimer) { clearInterval(_collectPollTimer); _collectPollTimer = null; }
       if (_collectPressedKey) { _collectSendKey(_collectPressedKey, "up"); _collectPressedKey = null; }
+      if (_collectCxTimer) {
+        clearInterval(_collectCxTimer);
+        _collectCxTimer = null;
+        const badge = document.getElementById("collect-cx-toggle-badge");
+        if (badge) { badge.textContent = "⏸ 꺼짐 — 클릭해서 시작"; badge.style.background = "rgba(100,116,139,0.2)"; badge.style.color = "var(--text-muted)"; }
+      }
     }
 
     async function collectStartEpisode() {
