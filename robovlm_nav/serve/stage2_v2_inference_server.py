@@ -763,6 +763,13 @@ class Stage2V2Model:
         # Stage2 head
         ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
         self.window: int = int(ckpt.get("window", WINDOW_DEFAULT))
+        # 2026-07-07: bbox(4dim)가 vis_feat(256dim, L2정규화)에 비해 신호가 너무 작아
+        # 학습이 대각클래스(FWD+L/R)를 잘 못 배우는 문제 확인(ablate_diagweight_bboxscale
+        # _multiseed.json) → bbox_scale 배수로 키워서 학습한 체크포인트 대응.
+        # 기본값 1.0(하위호환, 기존 체크포인트는 영향 없음) — 학습 시 사용한 값과
+        # 반드시 동일해야 함(2026-07-07 vis_feat 정규화 버그와 같은 종류의 학습/추론
+        # 불일치를 피하기 위해 체크포인트 메타데이터에서 직접 읽음).
+        self._bbox_scale: float = float(ckpt.get("bbox_scale", 1.0))
         head_name: str = head_override or ckpt.get("head", "mlp")
         is_lstm        = (head_name == "lstm")
         is_transformer = (head_name == "transformer")
@@ -944,7 +951,7 @@ class Stage2V2Model:
             idx = min(idx, len(self.history) - 1)
             item = self.history[idx]
             bbox_parts.extend([item["cx"], item["cy"], item["area"], float(item["has_bbox"])])
-        bbox_t = torch.tensor(bbox_parts, dtype=torch.float32, device=self.device)
+        bbox_t = torch.tensor(bbox_parts, dtype=torch.float32, device=self.device) * self._bbox_scale
         return torch.cat([bbox_t, vis_feat])  # (d_in,)
 
     def _build_seq_feature(self) -> torch.Tensor:
@@ -960,7 +967,7 @@ class Stage2V2Model:
             bbox_t = torch.tensor(
                 [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
                 dtype=torch.float32, device=self.device,
-            )
+            ) * self._bbox_scale
             seq.append(torch.cat([vf, bbox_t]))  # (SEQ_DIM,)
         return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
 
@@ -977,7 +984,7 @@ class Stage2V2Model:
             bbox_t = torch.tensor(
                 [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
                 dtype=torch.float32, device=self.device,
-            )
+            ) * self._bbox_scale
             seq.append(torch.cat([bbox_t, vf]))  # bbox 먼저 — train과 동일 순서
         return torch.stack(seq, dim=0)  # (window, 260)
 
