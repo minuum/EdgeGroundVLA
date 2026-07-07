@@ -3432,6 +3432,13 @@ L S R  C S L  R S L
 
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
+              <div class="card-title">📹 실시간 카메라</div>
+              <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
+                   style="width:100%; border-radius:8px; border:1px solid var(--border-glow); background:#090d16;"
+                   onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
+            </div>
+
+            <div class="card" style="padding:16px;">
               <div class="card-title">🎯 실시간 cx (바구니 배치용)
                 <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
               </div>
