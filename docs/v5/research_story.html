@@ -14099,6 +14099,9 @@ graph TD
   <div class="finding-card">
     <div class="finding-title">61-7. obj_left/right/center 테스트는 학습 분포 밖(OOD) 스트레스 테스트였다</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <span style="color:#fbbf24">정정(path_type 명명): 첫 단어는 "로봇 시작위치"가 아니라 <strong>목표(바구니) 위치</strong>(좌/중/우),
+      두 번째 단어는 <strong>접근 경로의 곡선 방향</strong>(좌/직진/우) — <code>mobile_vla_data_collector.py</code> 원본 확인.
+      교수님 Step3 "33/33/33(left/straight/right)"은 경로곡선 축만 3분류한 커리큘럼. 아래 cx 실측 수치는 이 정정과 무관하게 유효.</span><br><br>
       <code>right_left</code>(exp66 시절, 6/26, V5 9종 path_type 중 하나)는 <strong style="color:#4ade80">34/34(100%)</strong>
       성공 — in-distribution 테스트라 당연한 결과. 반면 <code>obj_left/center/right</code>(6/30~,
       9종 path_type 어디에도 없는 별개 스트레스 테스트)는 3/8, 3/8, <strong style="color:#f87171">0/26</strong> —
