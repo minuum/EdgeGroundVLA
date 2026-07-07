@@ -148,6 +148,39 @@ def _log_pg2_decision(phrase: str, raw: str, locs: list, result: dict,
     except Exception:
         pass  # 로깅 실패가 추론을 막아서는 안 됨
 
+
+# ── plan_20260706_preview_redesign.md 옵션 D: attempt별 cx 로깅 강화 ────────
+# 지금까지 preview 실패/성공이 logger.info로만 남아 로테이션되면 세션별 preview
+# 성공률·재시도별 cx 추이를 재구성할 방법이 없었음. grounding_decisions.jsonl과
+# 같은 패턴으로 별도 영구 JSONL에 attempt 단위로 append.
+_PREVIEW_DECISION_LOG = ROOT / "logs" / "preview_decisions.jsonl"
+_PREVIEW_DECISION_LOG.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _log_preview_decision(session_id: str, attempt: int, max_retry: int, bbox: dict,
+                           outcome: str, rot_class: Optional[int] = None,
+                           grounder_kind: str = "pg2") -> None:
+    """preview 매 attempt의 판정 근거를 영구 JSONL에 append.
+    outcome: "retry"(미탐지->회전) | "success"(탐지 성공, 정상추론 진입) | "giveup"(max_retry 초과)."""
+    try:
+        from datetime import datetime
+        entry = {
+            "ts": datetime.now().isoformat(),
+            "session_id": session_id,
+            "attempt": attempt,
+            "max_retry": max_retry,
+            "has_bbox": bool(bbox.get("has_bbox", False)),
+            "cx": bbox.get("cx"),
+            "area": bbox.get("area"),
+            "outcome": outcome,
+            "rot_class": CLASS_NAMES[rot_class] if rot_class is not None else None,
+            "grounder_kind": grounder_kind,
+        }
+        with open(_PREVIEW_DECISION_LOG, "a") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass  # 로깅 실패가 추론을 막아서는 안 됨
+
 # --- defaults ---
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 # 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
@@ -808,6 +841,8 @@ class Stage2V2Model:
         self._grounding_cache = None
         self.stop_latched = False
         self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
+        from datetime import datetime
+        self._session_tag = datetime.now().strftime("%Y%m%d_%H%M%S")  # 옵션 D: preview 로그용 세션 식별자
 
     def _ground_multi(self, image_rgb: np.ndarray, phrase: str) -> dict:
         """멀티프롬프트 grounding: 1차 phrase 미검출이면 fallback 프롬프트 순차 재시도.
@@ -973,6 +1008,9 @@ class Stage2V2Model:
                                 float(first_bbox.get("cx", 0.5)),
                                 first_bbox.get("has_bbox", False),
                                 self._preview_grounder_kind)
+                    _log_preview_decision(getattr(self, "_session_tag", None) or "unknown",
+                                          self._preview_attempt, self._preview_max_retry,
+                                          first_bbox, "retry", preview_rot, self._preview_grounder_kind)
                 else:
                     # 그라운딩 성공 → 정상 추론으로 이어짐.
                     # HSV 경로는 캐시하지 않는다: 헤드는 PG2 bbox 분포로 학습됐으므로
@@ -984,6 +1022,17 @@ class Stage2V2Model:
                                 float(first_bbox.get("cx", 0.5)),
                                 float(first_bbox.get("area", 0.0)),
                                 self._preview_attempt, self._preview_grounder_kind)
+                    _log_preview_decision(getattr(self, "_session_tag", None) or "unknown",
+                                          self._preview_attempt, self._preview_max_retry,
+                                          first_bbox, "success", None, self._preview_grounder_kind)
+            elif self._preview_attempt >= self._preview_max_retry:
+                # max_retry 도달한 바로 그 호출에서 1회만 giveup 기록 (매 predict마다 중복 방지)
+                if self._preview_attempt == self._preview_max_retry:
+                    _log_preview_decision(getattr(self, "_session_tag", None) or "unknown",
+                                          self._preview_attempt, self._preview_max_retry,
+                                          {"has_bbox": False, "cx": None, "area": None},
+                                          "giveup", None, self._preview_grounder_kind)
+                    self._preview_attempt += 1  # 중복 기록 방지용 1회성 증가
             # max_retry 초과 시 preview 포기 → 정상 추론으로 낙하 (preview_rot=None)
 
         if preview_rot is not None:
