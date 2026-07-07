@@ -165,6 +165,225 @@ class MoNaROSNode(Node):
 # ═══════════════════════════════════════════════════════════════════
 _ros: Optional[MoNaROSNode] = None
 
+
+# ═══════════════════════════════════════════════════════════════════
+# 데이터수집 (mobile_vla_data_collector.py 이식) — Phase 1+2
+# H5 스키마는 원본과 100% 동일 유지 (기존 resync_scenario_progress/분석
+# 스크립트 호환). 입력은 VLAControlManager.publish_and_move() 단일 진입점을
+# 통과하므로 키보드/조이스틱 어느 쪽으로 명령을 내려도 자동으로 기록됨.
+# ═══════════════════════════════════════════════════════════════════
+
+# 원본 mobile_vla_data_collector.py WASD_TO_CONTINUOUS 그대로 (line 42-54)
+COLLECT_KEY_TO_VEL = {
+    "w": (1.15, 0.0, 0.0),
+    "a": (0.0, 1.15, 0.0),
+    "s": (-1.15, 0.0, 0.0),
+    "d": (0.0, -1.15, 0.0),
+    "q": (1.15, 1.15, 0.0),
+    "e": (1.15, -1.15, 0.0),
+    "z": (-1.15, 1.15, 0.0),
+    "c": (-1.15, -1.15, 0.0),
+    "r": (0.0, 0.0, 0.25),
+    "t": (0.0, 0.0, -0.25),
+    " ": (0.0, 0.0, 0.0),
+}
+
+# 원본 mode="2" (V5 Phase-1.5) cup_scenarios 그대로 (line 89-99)
+COLLECT_SCENARIOS = {
+    "target_left_left_path":     {"target": 15, "key": "1", "label": "좌측 위치 · 좌회전 경로"},
+    "target_left_straight_path": {"target": 20, "key": "2", "label": "좌측 위치 · 직진 경로"},
+    "target_left_right_path":    {"target": 15, "key": "3", "label": "좌측 위치 · 우회전 경로"},
+    "target_center_left_path":     {"target": 15, "key": "4", "label": "중앙 위치 · 좌회전 경로"},
+    "target_center_straight_path": {"target": 20, "key": "5", "label": "중앙 위치 · 직진 경로"},
+    "target_center_right_path":    {"target": 15, "key": "6", "label": "중앙 위치 · 우회전 경로"},
+    "target_right_left_path":     {"target": 15, "key": "7", "label": "우측 위치 · 좌회전 경로"},
+    "target_right_straight_path": {"target": 20, "key": "8", "label": "우측 위치 · 직진 경로"},
+    "target_right_right_path":    {"target": 15, "key": "9", "label": "우측 위치 · 우회전 경로"},
+}
+COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (Variant)"}
+
+
+def _collect_classify_time_period(hour: int) -> str:
+    if 5 <= hour < 8:
+        return "dawn"
+    if 8 <= hour < 18:
+        return "morning"
+    if 18 <= hour < 21:
+        return "evening"
+    return "night"
+
+
+class DataCollectSession:
+    """웹 대시보드용 데이터수집 세션 — 원본 스크립트의 상태머신/H5 스키마 이식."""
+
+    ACTION_CHUNK_SIZE = 8
+    DEFAULT_LAYOUT_TYPE = "hori"
+
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.progress_file = self.data_dir / "scenario_progress.json"
+        self.time_period_file = self.data_dir / "time_period_stats.json"
+        self.core_pattern_file = self.data_dir / "core_patterns.json"
+
+        self._lock = threading.Lock()
+        self.active = False
+        self.episode_data: List[dict] = []
+        self.episode_name: Optional[str] = None
+        self.episode_started_at: Optional[float] = None
+        self.selected_scenario: Optional[str] = None
+        self.selected_pattern: Optional[str] = None
+
+        self.scenario_stats: dict = collections.defaultdict(int)
+        self.time_period_stats: dict = collections.defaultdict(int)
+        self.core_patterns: dict = {}
+        self._load_progress()
+
+    # ── VLAControlManager.on_command 훅 — source 무관(키보드/조이스틱) 기록 ──
+    # publish_and_move()는 robust_stop()의 5x 중복 정지펄스(0.05s 간격)처럼
+    # 의미 없는 반복 호출도 거치므로, 연속된 STOP 프레임은 1개로만 눌러 담아
+    # H5가 중복 정지 프레임으로 도배되는 것을 막는다 (원본 collector는 이런
+    # 워치독/robust_stop 반복 펄스를 애초에 collect_data=False로 기록 안 함).
+    def on_command(self, lx, ly, az, source):
+        if not self.active or _ros is None:
+            return
+        is_stop = abs(lx) < 0.01 and abs(ly) < 0.01 and abs(az) < 0.01
+        with self._lock:
+            if not self.active:
+                return
+            if is_stop and self.episode_data:
+                last = self.episode_data[-1]["action"]
+                if abs(last["linear_x"]) < 0.01 and abs(last["linear_y"]) < 0.01 and abs(last["angular_z"]) < 0.01:
+                    return  # 직전도 STOP이면 중복 기록 생략
+            frame = _ros.latest_bgr()
+            if frame is None:
+                return
+            self.episode_data.append({
+                "image": frame.copy(),
+                "action": {"linear_x": lx, "linear_y": ly, "angular_z": az},
+                "action_event_type": source,
+            })
+
+    def start_episode(self, episode_name=None, scenario=None, pattern=None) -> str:
+        with self._lock:
+            self.episode_data = []
+            self.selected_scenario = scenario
+            self.selected_pattern = pattern
+            if not episode_name:
+                ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                parts = [f"episode_{ts}"]
+                if scenario:
+                    parts.append(scenario)
+                if pattern:
+                    parts.append(pattern)
+                episode_name = "_".join(parts)
+            self.episode_name = episode_name
+            self.episode_started_at = time.time()
+            self.active = True
+        log.info(f"📷 [DataCollect] 에피소드 시작: {episode_name}")
+        return episode_name
+
+    def stop_episode(self, save=True) -> dict:
+        with self._lock:
+            self.active = False
+            data = self.episode_data
+            name = self.episode_name
+            duration = time.time() - self.episode_started_at if self.episode_started_at else 0.0
+            self.episode_data = []
+        if not save:
+            return {"ok": True, "saved": False, "steps": len(data)}
+        if len(data) <= 1:
+            return {"ok": False, "saved": False, "reason": "스텝 부족(<=1) — 저장 안 함", "steps": len(data)}
+        path = self._save_episode_data(data, name, duration)
+        if self.selected_scenario:
+            self.scenario_stats[self.selected_scenario] += 1
+        self.time_period_stats[_collect_classify_time_period(datetime.datetime.now().hour)] += 1
+        self._save_progress()
+        log.info(f"✅ [DataCollect] 에피소드 저장: {path} ({len(data)} steps, {duration:.1f}s)")
+        return {"ok": True, "saved": True, "path": str(path), "steps": len(data), "duration": duration}
+
+    def _save_episode_data(self, data: List[dict], name: str, duration: float) -> Path:
+        images = np.stack([d["image"] for d in data])
+        actions = np.array(
+            [[d["action"]["linear_x"], d["action"]["linear_y"], d["action"]["angular_z"]] for d in data],
+            dtype=np.float32,
+        )
+        event_types = np.array([d["action_event_type"] for d in data], dtype=h5py.string_dtype(encoding="utf-8"))
+        save_path = self.data_dir / f"{name}.h5"
+        now = datetime.datetime.now()
+        with h5py.File(save_path, "w") as f:
+            f.attrs["episode_name"] = name
+            f.attrs["total_duration"] = duration
+            f.attrs["num_frames"] = len(data)
+            f.attrs["action_chunk_size"] = self.ACTION_CHUNK_SIZE
+            f.attrs["obstacle_layout_type"] = self.DEFAULT_LAYOUT_TYPE
+            f.attrs["time_period"] = _collect_classify_time_period(now.hour)
+            f.attrs["collection_datetime"] = now.isoformat()
+            f.attrs["collection_hour"] = now.hour
+            f.attrs["collection_minute"] = now.minute
+            f.create_dataset("images", data=images, compression="gzip")
+            f.create_dataset("actions", data=actions, compression="gzip")
+            f.create_dataset("action_event_types", data=event_types, compression="gzip")
+        return save_path
+
+    def _load_progress(self):
+        try:
+            if self.progress_file.exists():
+                d = json.loads(self.progress_file.read_text(encoding="utf-8"))
+                for k, v in d.get("scenario_stats", {}).items():
+                    self.scenario_stats[k] = v
+        except Exception as e:
+            log.warning(f"[DataCollect] scenario_progress.json 로드 실패: {e}")
+        try:
+            if self.time_period_file.exists():
+                d = json.loads(self.time_period_file.read_text(encoding="utf-8"))
+                for k, v in d.get("time_period_stats", {}).items():
+                    self.time_period_stats[k] = v
+        except Exception as e:
+            log.warning(f"[DataCollect] time_period_stats.json 로드 실패: {e}")
+        try:
+            if self.core_pattern_file.exists():
+                self.core_patterns = json.loads(self.core_pattern_file.read_text(encoding="utf-8"))
+        except Exception as e:
+            log.warning(f"[DataCollect] core_patterns.json 로드 실패: {e}")
+
+    def _save_progress(self):
+        try:
+            self.progress_file.write_text(json.dumps({
+                "last_updated": datetime.datetime.now().isoformat(),
+                "scenario_stats": dict(self.scenario_stats),
+                "total_completed": sum(self.scenario_stats.values()),
+                "total_target": sum(s["target"] for s in COLLECT_SCENARIOS.values()),
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            log.warning(f"[DataCollect] scenario_progress.json 저장 실패: {e}")
+        try:
+            self.time_period_file.write_text(json.dumps({
+                "last_updated": datetime.datetime.now().isoformat(),
+                "time_period_stats": dict(self.time_period_stats),
+                "total_completed": sum(self.time_period_stats.values()),
+                "total_target": 1000,
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            log.warning(f"[DataCollect] time_period_stats.json 저장 실패: {e}")
+
+    def state(self) -> dict:
+        return {
+            "active": self.active,
+            "episode_name": self.episode_name,
+            "steps": len(self.episode_data),
+            "scenario": self.selected_scenario,
+            "pattern": self.selected_pattern,
+            "scenarios": COLLECT_SCENARIOS,
+            "patterns": COLLECT_PATTERNS,
+            "scenario_stats": dict(self.scenario_stats),
+            "total_target": sum(s["target"] for s in COLLECT_SCENARIOS.values()),
+            "total_completed": sum(self.scenario_stats.values()),
+        }
+
+
+_collect: Optional[DataCollectSession] = None
+
 # 프로세스 시작 시각/PID — 좀비 프로세스 감지 및 UI 신선도 표시용
 # (2026-07-02: go.sh 재시작 시 SIGTERM만으론 안 죽는 프로세스가 좀비로 남아
 #  옛 MJPEG 스트림을 계속 서빙하던 사고가 있었음 — 재발 시 바로 알아채기 위함)
@@ -447,15 +666,21 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 @app.on_event("startup")
 def _startup():
-    global _ros
+    global _ros, _collect
     log.info(f"🆔 프로세스 시작 PID={_PROCESS_PID}")
     _warn_if_duplicate_process()
+
+    collect_dir = Path(os.getenv("VLA_DATASET_DIR", str(ROOT / "ROS_action" / "mobile_vla_dataset_v5")))
+    _collect = DataCollectSession(collect_dir)
+    log.info(f"📷 [DataCollect] 데이터 디렉토리: {collect_dir}")
+
     if not ROS_AVAILABLE:
         log.warning("ROS 없음 — camera/control 비활성")
         return
     if not rclpy.ok():
         rclpy.init()
     _ros = MoNaROSNode()
+    _ros.ctrl.on_command = _collect.on_command
     threading.Thread(target=lambda: rclpy.spin(_ros), daemon=True, name="ros-spin").start()
     log.info("✅ ROS spin 시작")
 
@@ -758,6 +983,18 @@ class ManualDriveReq(BaseModel):
     direction: str             # W, S, A, D, Q, E, R, T, STOP
     speed: float = 1.15
 
+class CollectKeyReq(BaseModel):
+    key: str                   # w,a,s,d,q,e,z,c,r,t,' '
+    event: str = "down"        # "down" | "up"
+
+class CollectEpisodeStartReq(BaseModel):
+    episode_name: Optional[str] = None
+    scenario: Optional[str] = None
+    pattern: Optional[str] = None
+
+class CollectEpisodeStopReq(BaseModel):
+    save: bool = True
+
 class ConfigToggleReq(BaseModel):
     preview_enabled: Optional[bool] = None
     preview_hint_cx: Optional[bool] = None
@@ -983,6 +1220,47 @@ def drive_manual(req: ManualDriveReq):
             })
 
     return {"ok": True, "log": _state["status_log"]}
+
+
+@app.get("/collect/state")
+def collect_state():
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    return {"ok": True, **_collect.state()}
+
+
+@app.post("/collect/key")
+def collect_key(req: CollectKeyReq):
+    """데이터수집 탭 키보드 입력 — keydown마다 원본과 동일한 400ms
+    watchdog(move_and_stop_timed)을 재무장. keyup은 즉시 정지로 반응성 확보."""
+    if not ROS_AVAILABLE or not _ros:
+        return {"ok": False, "error": "ROS 연결 불가"}
+    key = req.key.lower()
+    if key not in COLLECT_KEY_TO_VEL:
+        return {"ok": False, "error": f"알 수 없는 키: {req.key}"}
+    lx, ly, az = COLLECT_KEY_TO_VEL[key]
+    if req.event == "up":
+        _ros.ctrl.robust_stop(source=f"collect_key_up_{key}")
+        return {"ok": True}
+    _ros.ctrl.move_and_stop_timed(lx, ly, az, source=f"collect_key_{key}")
+    return {"ok": True, "action": {"lx": lx, "ly": ly, "az": az}}
+
+
+@app.post("/collect/episode/start")
+def collect_episode_start(req: CollectEpisodeStartReq):
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern)
+    return {"ok": True, "episode_name": name}
+
+
+@app.post("/collect/episode/stop")
+def collect_episode_stop(req: CollectEpisodeStopReq):
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    if _ros:
+        _ros.ctrl.robust_stop(source="collect_episode_stop")
+    return _collect.stop_episode(save=req.save)
 
 
 # ─── 런타임 설정 프록시 ────────────────────────────────────────────
@@ -1489,6 +1767,22 @@ def _read_episode_csv():
                 if r: rows.append(r)
     except Exception: pass
     return rows, _get_episode_summary(rows)
+
+_WIKI_FILES = {
+    "info": ROOT / "docs" / "DASHBOARD_WIKI.md",
+    "status": ROOT / "docs" / "DASHBOARD_LIVE_STATUS.md",
+}
+
+@app.get("/wiki/{name}")
+def wiki_content(name: str):
+    path = _WIKI_FILES.get(name)
+    if path is None:
+        return {"ok": False, "error": f"알 수 없는 위키: {name}"}
+    if not path.exists():
+        return {"ok": False, "error": f"파일 없음: {path}"}
+    content = path.read_text(encoding="utf-8")
+    mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    return {"ok": True, "content": content, "mtime": mtime}
 
 @app.get("/episodes/list")
 def episodes_list():
@@ -2101,6 +2395,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       <div class="nav-item" onclick="switchTab(this, 'history')">📚 세션 히스토리</div>
       <div class="nav-item" onclick="switchTab(this, 'system')">🖥️ 시스템</div>
       <div class="nav-item" onclick="switchTab(this, 'srvcfg')">⚙️ 서버 설정</div>
+      <div class="nav-item" onclick="switchTab(this, 'collect')">📷 데이터수집</div>
+      <div class="nav-item" onclick="switchTab(this, 'wikiinfo')">📖 위키</div>
+      <div class="nav-item" onclick="switchTab(this, 'wikistatus')">📡 최신현황</div>
     </nav>
     
     <div class="sidebar-footer">
@@ -3104,6 +3401,87 @@ L S R  C S L  R S L
       </div>
     </div>
 
+    <!-- 탭 9: 📷 데이터수집 (mobile_vla_data_collector.py 웹 이식) -->
+    <div id="tab-collect" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div style="display:grid; grid-template-columns:1.1fr 1fr; gap:20px; align-items:start;">
+
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🕹️ 조작 (탭 클릭 후 키보드 W A S D Q E Z C R T Space)</div>
+              <div id="collect-key-surface" tabindex="0"
+                   style="outline:none; border:2px dashed var(--border-glow); border-radius:10px; padding:24px; text-align:center; background:#090d16; cursor:pointer;">
+                <div style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">여기 클릭해서 포커스 → 키보드로 조작 (조이스틱은 그대로 사용 가능, 자동 기록됨)</div>
+                <div id="collect-last-action" style="font-size:20px; font-family:var(--font-mono); color:var(--emerald); font-weight:700;">STOP</div>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:10px;">
+                <span id="collect-active-badge" style="font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">⏸ 대기중</span>
+                <span id="collect-steps-badge" style="font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">0 steps</span>
+              </div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🎯 시나리오 (선택사항)</div>
+              <select id="collect-scenario-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;">
+                <option value="">— 미지정 (episode_name 수동) —</option>
+              </select>
+              <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+                <option value="">— 패턴 미지정 —</option>
+                <option value="core">핵심 패턴 (Core)</option>
+                <option value="variant">변형 패턴 (Variant)</option>
+              </select>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📼 에피소드 제어</div>
+              <input type="text" id="collect-episode-name" placeholder="episode_name (비우면 자동 생성)"
+                     style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-cyan" style="flex:1;" onclick="collectStartEpisode()">▶ 시작</button>
+                <button class="btn btn-outline" style="flex:1; border-color:var(--rose); color:var(--rose);" onclick="collectStopEpisode()">⏹ 정지 & 저장</button>
+              </div>
+              <div id="collect-episode-status" style="font-size:11px; color:var(--text-muted); margin-top:8px;">—</div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">📊 시나리오별 진행률</div>
+            <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 10: 📖 위키 (정적 참조 정보) -->
+    <div id="tab-wikiinfo" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div class="card" style="padding:16px;">
+          <div class="card-title">📖 프로젝트 위키 (핵심 요약)</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+            docs/DASHBOARD_WIKI.md — 거의 안 바뀌는 참조 정보. CLAUDE.md 바뀔 때 수동 갱신.
+          </div>
+          <pre id="wiki-info-content" style="font-size:12px; font-family:var(--font-mono); background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:14px; max-height:70vh; overflow:auto; white-space:pre-wrap; color:#e2e8f0;">로딩 중...</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 11: 📡 최신현황 (스킬로 갱신) -->
+    <div id="tab-wikistatus" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div class="card" style="padding:16px;">
+          <div class="card-title">📡 최신현황
+            <button class="btn btn-outline" onclick="loadWikiContent('status')" style="font-size:11px; padding:4px 10px;">↻ 새로고침</button>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+            docs/DASHBOARD_LIVE_STATUS.md — <span id="wiki-status-mtime">-</span>.
+            실시간 자동 갱신 아님 — "대시보드 최신현황 갱신해줘" 요청 시 스킬이 이 파일을 다시 씀.
+          </div>
+          <pre id="wiki-status-content" style="font-size:12px; font-family:var(--font-mono); background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:14px; max-height:70vh; overflow:auto; white-space:pre-wrap; color:#e2e8f0;">로딩 중...</pre>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- JS 컨트롤 스크립트 -->
@@ -3272,7 +3650,10 @@ L S R  C S L  R S L
         calib: "🔧 캘리브레이션 (STOP·수동조작)",
         history: "📚 세션 히스토리",
         system: "🖥️ 시스템",
-        srvcfg: "⚙️ 서버 설정 (모델·그라운더)"
+        srvcfg: "⚙️ 서버 설정 (모델·그라운더)",
+        collect: "📷 데이터수집",
+        wikiinfo: "📖 위키",
+        wikistatus: "📡 최신현황"
       };
       document.getElementById("page-title").textContent = titleMap[tab] || (tab.toUpperCase() + " Panel");
 
@@ -3289,6 +3670,157 @@ L S R  C S L  R S L
       if (tab === "srvcfg") {
         loadSrvCfg();
         loadSrvLog();
+      }
+      if (tab === "wikiinfo") {
+        loadWikiContent("info");
+      }
+      if (tab === "wikistatus") {
+        loadWikiContent("status");
+      }
+      if (tab === "collect") {
+        collectRefreshState();
+        collectStartKeyPolling();
+        document.getElementById("collect-key-surface")?.focus();
+      } else {
+        collectStopKeyPolling();
+      }
+    }
+
+    // ── 📷 데이터수집 탭 ─────────────────────────────────────────
+    const COLLECT_KEYS = new Set(["w","a","s","d","q","e","z","c","r","t"," "]);
+    const COLLECT_LABELS = {w:"FORWARD", s:"BACKWARD", a:"LEFT", d:"RIGHT", q:"FWD+LEFT", e:"FWD+RIGHT",
+                             z:"BACK+LEFT", c:"BACK+RIGHT", r:"ROT_L", t:"ROT_R", " ":"STOP"};
+    let _collectPressedKey = null;
+    let _collectRepeatTimer = null;
+    let _collectPollTimer = null;
+    let _collectScenariosLoaded = false;
+
+    function _collectSendKey(key, event) {
+      api("/collect/key", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ key, event }) });
+    }
+
+    function collectKeyDown(e) {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : (e.key === " " ? " " : null);
+      if (key === null || !COLLECT_KEYS.has(key)) return;
+      e.preventDefault();
+      if (_collectPressedKey === key) return;  // 이미 눌려있음(브라우저 autorepeat) — 무시
+      _collectPressedKey = key;
+      document.getElementById("collect-last-action").textContent = COLLECT_LABELS[key] || key;
+      _collectSendKey(key, "down");
+      if (_collectRepeatTimer) clearInterval(_collectRepeatTimer);
+      _collectRepeatTimer = setInterval(() => _collectSendKey(key, "down"), 150);
+    }
+
+    function collectKeyUp(e) {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : (e.key === " " ? " " : null);
+      if (key === null || key !== _collectPressedKey) return;
+      _collectPressedKey = null;
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      document.getElementById("collect-last-action").textContent = "STOP";
+      _collectSendKey(key, "up");
+    }
+
+    async function collectRefreshState() {
+      const res = await api("/collect/state");
+      if (!res.ok) return;
+      const activeBadge = document.getElementById("collect-active-badge");
+      const stepsBadge = document.getElementById("collect-steps-badge");
+      if (activeBadge) {
+        activeBadge.textContent = res.active ? "🔴 수집중: " + (res.episode_name || "") : "⏸ 대기중";
+        activeBadge.style.background = res.active ? "rgba(244,63,94,0.15)" : "rgba(100,116,139,0.2)";
+        activeBadge.style.color = res.active ? "var(--rose)" : "var(--text-muted)";
+      }
+      if (stepsBadge) stepsBadge.textContent = res.steps + " steps";
+
+      if (!_collectScenariosLoaded && res.scenarios) {
+        const sel = document.getElementById("collect-scenario-select");
+        Object.entries(res.scenarios).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = `${info.label} (목표 ${info.target})`;
+          sel.appendChild(opt);
+        });
+        _collectScenariosLoaded = true;
+      }
+
+      const progList = document.getElementById("collect-progress-list");
+      if (progList && res.scenarios) {
+        progList.innerHTML = Object.entries(res.scenarios).map(([id, info]) => {
+          const done = (res.scenario_stats || {})[id] || 0;
+          const pct = Math.min(100, Math.round(done / info.target * 100));
+          return `<div style="display:flex; justify-content:space-between; gap:8px; padding:3px 6px;">
+                    <span style="color:var(--text-muted);">${info.label}</span>
+                    <span>${done}/${info.target} (${pct}%)</span>
+                  </div>`;
+        }).join("") + `<div style="margin-top:6px; padding-top:6px; border-top:1px solid var(--border-glow); display:flex; justify-content:space-between;">
+                    <span style="color:var(--emerald); font-weight:700;">전체</span>
+                    <span style="color:var(--emerald); font-weight:700;">${res.total_completed}/${res.total_target}</span>
+                  </div>`;
+      }
+
+      const nameInput = document.getElementById("collect-episode-name");
+      if (nameInput && res.active && res.episode_name) nameInput.value = res.episode_name;
+    }
+
+    function collectStartKeyPolling() {
+      if (_collectPollTimer) return;
+      _collectPollTimer = setInterval(collectRefreshState, 2000);
+    }
+
+    function collectStopKeyPolling() {
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      if (_collectPollTimer) { clearInterval(_collectPollTimer); _collectPollTimer = null; }
+      if (_collectPressedKey) { _collectSendKey(_collectPressedKey, "up"); _collectPressedKey = null; }
+    }
+
+    async function collectStartEpisode() {
+      const episode_name = document.getElementById("collect-episode-name").value.trim() || null;
+      const scenario = document.getElementById("collect-scenario-select").value || null;
+      const pattern = document.getElementById("collect-pattern-select").value || null;
+      const res = await api("/collect/episode/start", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ episode_name, scenario, pattern }) });
+      const statusEl = document.getElementById("collect-episode-status");
+      statusEl.textContent = res.ok ? "▶ 시작됨: " + res.episode_name : "⚠️ " + res.error;
+      collectRefreshState();
+    }
+
+    async function collectStopEpisode() {
+      const res = await api("/collect/episode/stop", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ save: true }) });
+      const statusEl = document.getElementById("collect-episode-status");
+      statusEl.textContent = res.ok
+        ? (res.saved ? `✅ 저장됨: ${res.path} (${res.steps} steps, ${res.duration.toFixed(1)}s)` : "⚠️ 저장 안 함: " + (res.reason || ""))
+        : "⚠️ " + res.error;
+      document.getElementById("collect-episode-name").value = "";
+      collectRefreshState();
+    }
+
+    (function collectInit() {
+      const surface = document.getElementById("collect-key-surface");
+      if (!surface) return;
+      surface.addEventListener("keydown", collectKeyDown);
+      surface.addEventListener("keyup", collectKeyUp);
+      surface.addEventListener("blur", () => { if (_collectPressedKey) collectKeyUp({key: _collectPressedKey}); });
+      collectStartKeyPolling();
+    })();
+
+    async function loadWikiContent(name) {
+      const contentEl = document.getElementById(name === "info" ? "wiki-info-content" : "wiki-status-content");
+      if (!contentEl) return;
+      try {
+        const res = await api("/wiki/" + name);
+        if (res.ok) {
+          contentEl.textContent = res.content;
+          if (name === "status") {
+            const mtimeEl = document.getElementById("wiki-status-mtime");
+            if (mtimeEl) mtimeEl.textContent = "최근 갱신: " + res.mtime;
+          }
+        } else {
+          contentEl.textContent = "⚠️ 로드 실패: " + res.error;
+        }
+      } catch (e) {
+        contentEl.textContent = "⚠️ 서버 오류: " + e;
       }
     }
 

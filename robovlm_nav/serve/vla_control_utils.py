@@ -24,6 +24,7 @@ class VLAControlManager:
         self.movement_lock = threading.Lock()
         self.current_action = {"lx": 0.0, "ly": 0.0, "az": 0.0}
         self.STOP_ACTION = {"lx": 0.0, "ly": 0.0, "az": 0.0}
+        self.on_command = None  # optional callback(lx, ly, az, source) — e.g. data-collection hook
 
         # Initialize Hardware
         if ROBOT_AVAILABLE:
@@ -75,7 +76,13 @@ class VLAControlManager:
                     self.driver.stop()
             except Exception as e:
                 self.node.get_logger().error(f"❌ [VLA-Control] HW Drive Error: {e}")
-        
+
+        if self.on_command:
+            try:
+                self.on_command(lx, ly, az, source)
+            except Exception as e:
+                self.node.get_logger().error(f"❌ [VLA-Control] on_command hook error: {e}")
+
         return log_msg
 
     def robust_stop(self, source="robust_stop", count=5):
