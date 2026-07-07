@@ -146,6 +146,39 @@ def _log_pg2_decision(phrase: str, raw: str, locs: list, result: dict,
     except Exception:
         pass  # 로깅 실패가 추론을 막아서는 안 됨
 
+
+# ── plan_20260706_preview_redesign.md 옵션 D: attempt별 cx 로깅 강화 ────────
+# 지금까지 preview 실패/성공이 logger.info로만 남아 로테이션되면 세션별 preview
+# 성공률·재시도별 cx 추이를 재구성할 방법이 없었음. grounding_decisions.jsonl과
+# 같은 패턴으로 별도 영구 JSONL에 attempt 단위로 append.
+_PREVIEW_DECISION_LOG = ROOT / "logs" / "preview_decisions.jsonl"
+_PREVIEW_DECISION_LOG.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _log_preview_decision(session_id: str, attempt: int, max_retry: int, bbox: dict,
+                           outcome: str, rot_class: Optional[int] = None,
+                           grounder_kind: str = "pg2") -> None:
+    """preview 매 attempt의 판정 근거를 영구 JSONL에 append.
+    outcome: "retry"(미탐지->회전) | "success"(탐지 성공, 정상추론 진입) | "giveup"(max_retry 초과)."""
+    try:
+        from datetime import datetime
+        entry = {
+            "ts": datetime.now().isoformat(),
+            "session_id": session_id,
+            "attempt": attempt,
+            "max_retry": max_retry,
+            "has_bbox": bool(bbox.get("has_bbox", False)),
+            "cx": bbox.get("cx"),
+            "area": bbox.get("area"),
+            "outcome": outcome,
+            "rot_class": CLASS_NAMES[rot_class] if rot_class is not None else None,
+            "grounder_kind": grounder_kind,
+        }
+        with open(_PREVIEW_DECISION_LOG, "a") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass  # 로깅 실패가 추론을 막아서는 안 됨
+
 # --- defaults ---
 DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
 # 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
@@ -714,6 +747,13 @@ class Stage2V2Model:
         # Stage2 head
         ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
         self.window: int = int(ckpt.get("window", WINDOW_DEFAULT))
+        # 2026-07-07: bbox(4dim)가 vis_feat(256dim, L2정규화)에 비해 신호가 너무 작아
+        # 학습이 대각클래스(FWD+L/R)를 잘 못 배우는 문제 확인(ablate_diagweight_bboxscale
+        # _multiseed.json) → bbox_scale 배수로 키워서 학습한 체크포인트 대응.
+        # 기본값 1.0(하위호환, 기존 체크포인트는 영향 없음) — 학습 시 사용한 값과
+        # 반드시 동일해야 함(2026-07-07 vis_feat 정규화 버그와 같은 종류의 학습/추론
+        # 불일치를 피하기 위해 체크포인트 메타데이터에서 직접 읽음).
+        self._bbox_scale: float = float(ckpt.get("bbox_scale", 1.0))
         head_name: str = head_override or ckpt.get("head", "mlp")
         is_lstm        = (head_name == "lstm")
         is_transformer = (head_name == "transformer")
@@ -792,6 +832,8 @@ class Stage2V2Model:
         self._grounding_cache = None
         self.stop_latched = False
         self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
+        from datetime import datetime
+        self._session_tag = datetime.now().strftime("%Y%m%d_%H%M%S")  # 옵션 D: preview 로그용 세션 식별자
 
     def _ground_multi(self, image_rgb: np.ndarray, phrase: str) -> dict:
         """멀티프롬프트 grounding: 1차 phrase 미검출이면 fallback 프롬프트 순차 재시도.
@@ -893,7 +935,7 @@ class Stage2V2Model:
             idx = min(idx, len(self.history) - 1)
             item = self.history[idx]
             bbox_parts.extend([item["cx"], item["cy"], item["area"], float(item["has_bbox"])])
-        bbox_t = torch.tensor(bbox_parts, dtype=torch.float32, device=self.device)
+        bbox_t = torch.tensor(bbox_parts, dtype=torch.float32, device=self.device) * self._bbox_scale
         return torch.cat([bbox_t, vis_feat])  # (d_in,)
 
     def _build_seq_feature(self) -> torch.Tensor:
@@ -909,7 +951,7 @@ class Stage2V2Model:
             bbox_t = torch.tensor(
                 [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
                 dtype=torch.float32, device=self.device,
-            )
+            ) * self._bbox_scale
             seq.append(torch.cat([vf, bbox_t]))  # (SEQ_DIM,)
         return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
 
@@ -926,7 +968,7 @@ class Stage2V2Model:
             bbox_t = torch.tensor(
                 [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
                 dtype=torch.float32, device=self.device,
-            )
+            ) * self._bbox_scale
             seq.append(torch.cat([bbox_t, vf]))  # bbox 먼저 — train과 동일 순서
         return torch.stack(seq, dim=0)  # (window, 260)
 
@@ -957,6 +999,9 @@ class Stage2V2Model:
                                 float(first_bbox.get("cx", 0.5)),
                                 first_bbox.get("has_bbox", False),
                                 self._preview_grounder_kind)
+                    _log_preview_decision(getattr(self, "_session_tag", None) or "unknown",
+                                          self._preview_attempt, self._preview_max_retry,
+                                          first_bbox, "retry", preview_rot, self._preview_grounder_kind)
                 else:
                     # 그라운딩 성공 → 정상 추론으로 이어짐.
                     # HSV 경로는 캐시하지 않는다: 헤드는 PG2 bbox 분포로 학습됐으므로
@@ -968,6 +1013,17 @@ class Stage2V2Model:
                                 float(first_bbox.get("cx", 0.5)),
                                 float(first_bbox.get("area", 0.0)),
                                 self._preview_attempt, self._preview_grounder_kind)
+                    _log_preview_decision(getattr(self, "_session_tag", None) or "unknown",
+                                          self._preview_attempt, self._preview_max_retry,
+                                          first_bbox, "success", None, self._preview_grounder_kind)
+            elif self._preview_attempt >= self._preview_max_retry:
+                # max_retry 도달한 바로 그 호출에서 1회만 giveup 기록 (매 predict마다 중복 방지)
+                if self._preview_attempt == self._preview_max_retry:
+                    _log_preview_decision(getattr(self, "_session_tag", None) or "unknown",
+                                          self._preview_attempt, self._preview_max_retry,
+                                          {"has_bbox": False, "cx": None, "area": None},
+                                          "giveup", None, self._preview_grounder_kind)
+                    self._preview_attempt += 1  # 중복 기록 방지용 1회성 증가
             # max_retry 초과 시 preview 포기 → 정상 추론으로 낙하 (preview_rot=None)
 
         if preview_rot is not None:

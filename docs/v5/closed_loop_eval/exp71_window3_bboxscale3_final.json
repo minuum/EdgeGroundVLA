@@ -1,0 +1,32 @@
+{
+  "window": 3,
+  "bbox_scale": 3.0,
+  "diag_mult": 1.0,
+  "best_seed": 4,
+  "best_val_acc": 0.8439897894859314,
+  "seed_mean_acc": 0.8071611285209656,
+  "seed_std_acc": 0.04287531797232836,
+  "all_seeds": [
+    {
+      "seed": 0,
+      "val_acc": 0.8414322137832642
+    },
+    {
+      "seed": 1,
+      "val_acc": 0.7340153455734253
+    },
+    {
+      "seed": 2,
+      "val_acc": 0.782608687877655
+    },
+    {
+      "seed": 3,
+      "val_acc": 0.833759605884552
+    },
+    {
+      "seed": 4,
+      "val_acc": 0.8439897894859314
+    }
+  ],
+  "checkpoint_path": "runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt"
+}
