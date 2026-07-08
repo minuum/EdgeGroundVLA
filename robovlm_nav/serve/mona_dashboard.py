@@ -3432,10 +3432,12 @@ L S R  C S L  R S L
 
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
-              <div class="card-title">📹 실시간 카메라</div>
-              <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
-                   style="width:100%; border-radius:8px; border:1px solid var(--border-glow); background:#090d16;"
-                   onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
+              <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)</div>
+              <div class="viewport-wrapper">
+                <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
+                     onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
+                <canvas id="collect-cx-canvas" class="viewport-canvas" width="1280" height="720"></canvas>
+              </div>
             </div>
 
             <div class="card" style="padding:16px;">
@@ -3813,16 +3815,40 @@ L S R  C S L  R S L
       return {label: "목표 구간 밖", color: "var(--text-muted)"};
     }
 
+    function _collectCxDrawOverlay(cx, color) {
+      const cv = document.getElementById("collect-cx-canvas");
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (cx == null) return;
+      const x = cx * cv.width;
+      // 목표 밴드 배경(참고용, 반투명)
+      ctx.fillStyle = "rgba(244,63,94,0.08)";
+      ctx.fillRect(0.10 * cv.width, 0, 0.05 * cv.width, cv.height);
+      ctx.fillRect(0.85 * cv.width, 0, 0.05 * cv.width, cv.height);
+      ctx.fillStyle = "rgba(245,158,11,0.08)";
+      ctx.fillRect(0.20 * cv.width, 0, 0.05 * cv.width, cv.height);
+      ctx.fillRect(0.75 * cv.width, 0, 0.05 * cv.width, cv.height);
+      // 현재 cx 세로선
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, cv.height);
+      ctx.stroke();
+    }
+
     async function _collectCxPoll() {
       const res = await api("/collect/ground");
       const valEl = document.getElementById("collect-cx-value");
       const bandEl = document.getElementById("collect-cx-band");
-      if (!res.ok) { valEl.textContent = "⚠️ " + (res.error || "실패"); return; }
-      if (!res.has_bbox) { valEl.textContent = "검출 안 됨"; valEl.style.color = "var(--text-muted)"; return; }
+      if (!res.ok) { valEl.textContent = "⚠️ " + (res.error || "실패"); _collectCxDrawOverlay(null); return; }
+      if (!res.has_bbox) { valEl.textContent = "검출 안 됨"; valEl.style.color = "var(--text-muted)"; _collectCxDrawOverlay(null); return; }
       const band = _collectCxBand(res.cx);
       valEl.textContent = "cx = " + res.cx.toFixed(3);
       valEl.style.color = band.color;
       bandEl.innerHTML = `<span style="color:${band.color}; font-weight:700;">${band.label}</span> · area=${res.area.toFixed(3)} · ${res.latency_ms}ms`;
+      _collectCxDrawOverlay(res.cx, band.color);
     }
 
     function collectToggleCxFeed() {
@@ -3833,6 +3859,7 @@ L S R  C S L  R S L
         badge.textContent = "⏸ 꺼짐 — 클릭해서 시작";
         badge.style.background = "rgba(100,116,139,0.2)";
         badge.style.color = "var(--text-muted)";
+        _collectCxDrawOverlay(null);
       } else {
         _collectCxPoll();
         _collectCxTimer = setInterval(_collectCxPoll, 600);
