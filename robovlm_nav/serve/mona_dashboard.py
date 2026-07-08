@@ -2304,6 +2304,27 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     background-color: var(--rose);
   }
 
+  /* ── 조이스틱 버튼 라이트(숫자 블록) ── */
+  .btn-light {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: #131b2d;
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    font-size: 13px; font-weight: 700; font-family: var(--font-mono);
+    color: var(--text-muted);
+    transition: all 0.1s;
+  }
+  .btn-light.active {
+    background-color: var(--emerald);
+    color: #000;
+    box-shadow: 0 0 12px rgba(16,185,129,0.6);
+    transform: scale(1.08);
+  }
+  .btn-light.last {
+    border-color: var(--cyan);
+  }
+
   /* ── 테이블 ── */
   .table-wrapper {
     overflow-x: auto;
@@ -3485,19 +3506,6 @@ L S R  C S L  R S L
             </div>
 
             <div class="card" style="padding:16px;">
-              <div class="card-title">🕹️ 조이스틱 (DragonRise) — 이 탭 켜져 있으면 자동으로 같이 기록됨</div>
-              <div id="collect-js-status" style="font-size:12px; font-family:var(--font-mono); color:var(--cyan); white-space:pre-line; margin-bottom:8px;">🔌 초기화 중...</div>
-              <div id="collect-js-buttons" style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">🔢 눌린 버튼: —</div>
-              <div style="font-size:10px; color:var(--text-muted); line-height:1.5; border-top:1px solid var(--border-glow); padding-top:8px;">
-                <b>조작 설명서</b><br>
-                왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전<br>
-                A(버튼0) → STOP &nbsp;|&nbsp; Start(버튼7) → SYNC↔ASYNC 모드 전환<br>
-                📸 SYNC: 0.45s bang-bang &nbsp;|&nbsp; 🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold<br>
-                ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
-              </div>
-            </div>
-
-            <div class="card" style="padding:16px;">
               <div class="card-title">🎯 시나리오 (선택사항)</div>
               <select id="collect-scenario-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;">
                 <option value="">— 미지정 (episode_name 수동) —</option>
@@ -3521,9 +3529,25 @@ L S R  C S L  R S L
             </div>
           </div>
 
-          <div class="card" style="padding:16px;">
-            <div class="card-title">📊 시나리오별 진행률</div>
-            <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🕹️ 조이스틱 (DragonRise) — 자동 기록됨
+                <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (숫자 = 물리 버튼 인덱스)</div>
+              <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;"></div>
+              <div style="font-size:10px; color:var(--text-muted); line-height:1.5; border-top:1px solid var(--border-glow); padding-top:8px;">
+                <b>조작 설명서</b><br>
+                왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (방향은 왼쪽 버튼패드에 라이트업)<br>
+                A(버튼0) → STOP &nbsp;|&nbsp; Start(버튼7) → SYNC↔ASYNC 모드 전환<br>
+                ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
+              </div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📊 시나리오별 진행률</div>
+              <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
+            </div>
           </div>
 
         </div>
@@ -3690,24 +3714,39 @@ L S R  C S L  R S L
         btn.className = s.enabled ? "btn btn-cyan" : "btn btn-outline";
       }
 
-      const cjs = document.getElementById("collect-js-status");
-      const cjb = document.getElementById("collect-js-buttons");
-      if (cjs) {
+      const cjBadge = document.getElementById("collect-js-badge");
+      if (cjBadge) {
         if (!s.pygame_available) {
-          cjs.textContent = "⚠️ pygame 미설치 — 게임패드 사용 불가";
+          cjBadge.textContent = "⚠️ pygame 없음";
         } else if (!s.connected) {
-          cjs.textContent = "🔌 미연결 (DragonRise 꽂으면 자동 인식)";
+          cjBadge.textContent = "🔌 미연결";
         } else {
           const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
-          const keyStr = s.key ? `[ ${s.label} ]` : "○ 중립";
-          cjs.textContent = `🟢 ${s.name}  |  ${badge}\n▶ ${keyStr}`;
+          cjBadge.textContent = `🟢 ${s.name} · ${badge}`;
+          cjBadge.style.background = "rgba(16,185,129,0.15)";
+          cjBadge.style.color = "var(--emerald)";
         }
       }
-      if (cjb) {
-        const pressed = s.buttons || [];
-        const pressedStr = pressed.length ? pressed.map(i => `[${i}]`).join(" ") : "—";
-        const lastStr = (s.last_btn !== null && s.last_btn !== undefined) ? `#${s.last_btn}` : "—";
-        cjb.textContent = `🔢 눌린 버튼: ${pressedStr}  (최근 ${lastStr})`;
+      const lights = document.getElementById("collect-js-btn-lights");
+      if (lights) {
+        const pressed = new Set(s.buttons || []);
+        const n = Math.max(10, ...(s.buttons || []).map(i => i + 1));
+        if (lights.children.length !== n) {
+          lights.innerHTML = "";
+          for (let i = 0; i < n; i++) {
+            const d = document.createElement("div");
+            d.className = "btn-light";
+            d.id = "collect-js-light-" + i;
+            d.textContent = i;
+            lights.appendChild(d);
+          }
+        }
+        for (let i = 0; i < n; i++) {
+          const d = document.getElementById("collect-js-light-" + i);
+          if (!d) continue;
+          d.classList.toggle("active", pressed.has(i));
+          d.classList.toggle("last", s.last_btn === i);
+        }
       }
 
       // 조이스틱으로 실제 이동 중인 방향키를 버튼패드에도 라이트업
@@ -3805,6 +3844,11 @@ L S R  C S L  R S L
         body: JSON.stringify({ key, event }) });
     }
 
+    function _collectPadLight(key, on) {
+      const padBtn = document.getElementById("collect-pad-" + key);
+      if (padBtn) padBtn.classList.toggle("active", on);
+    }
+
     function collectKeyDown(e) {
       const key = e.key.length === 1 ? e.key.toLowerCase() : (e.key === " " ? " " : null);
       if (key === null || !COLLECT_KEYS.has(key)) return;
@@ -3812,6 +3856,7 @@ L S R  C S L  R S L
       if (_collectPressedKey === key) return;  // 이미 눌려있음(브라우저 autorepeat) — 무시
       _collectPressedKey = key;
       document.getElementById("collect-last-action").textContent = COLLECT_LABELS[key] || key;
+      _collectPadLight(key, true);
       _collectSendKey(key, "down");
       if (_collectRepeatTimer) clearInterval(_collectRepeatTimer);
       _collectRepeatTimer = setInterval(() => _collectSendKey(key, "down"), 150);
@@ -3823,6 +3868,7 @@ L S R  C S L  R S L
       _collectPressedKey = null;
       if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
       document.getElementById("collect-last-action").textContent = "STOP";
+      _collectPadLight(key, false);
       _collectSendKey(key, "up");
     }
 
@@ -3831,6 +3877,7 @@ L S R  C S L  R S L
       if (_collectPressedKey === key) return;
       _collectPressedKey = key;
       document.getElementById("collect-last-action").textContent = COLLECT_LABELS[key] || key;
+      _collectPadLight(key, true);
       _collectSendKey(key, "down");
       if (_collectRepeatTimer) clearInterval(_collectRepeatTimer);
       _collectRepeatTimer = setInterval(() => _collectSendKey(key, "down"), 150);
@@ -3841,6 +3888,7 @@ L S R  C S L  R S L
       _collectPressedKey = null;
       if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
       document.getElementById("collect-last-action").textContent = "STOP";
+      _collectPadLight(key, false);
       _collectSendKey(key, "up");
     }
 
