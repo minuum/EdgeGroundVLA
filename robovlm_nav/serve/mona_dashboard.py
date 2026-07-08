@@ -437,10 +437,12 @@ class DashboardJoystickReader:
         self._neutral_start_time = 0.0
         self._last_non_neutral_key = None
         self._axes = self._load_axes()
+        self._last_btn = None
         self.status: dict = {
             "connected": False, "name": "—",
             "key": None, "label": "—",
             "enabled": True, "mode": "ASYNC",
+            "buttons": [], "last_btn": None,
         }
 
     def _load_axes(self):
@@ -587,16 +589,19 @@ class DashboardJoystickReader:
                             ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
 
                 self._prev_key = key
+                pressed_buttons = [i for i in range(js.get_numbuttons()) if js.get_button(i)]
                 self.status = {
                     "connected": True, "name": js.get_name(),
                     "enabled": self._enabled,
                     "mode": self._js_mode.upper(),
                     "key": key, "label": LABELS.get(key, "●") if key else "○",
+                    "buttons": pressed_buttons, "last_btn": self._last_btn,
                 }
 
                 for i in range(js.get_numbuttons()):
                     cur = js.get_button(i)
                     if cur and not self._btn_prev.get(i, 0):
+                        self._last_btn = i
                         if i == self.BTN_STOP:
                             if _ros is not None and _ros.ctrl is not None:
                                 _ros.ctrl.robust_stop(source="joystick_A")
@@ -3462,21 +3467,34 @@ L S R  C S L  R S L
 
               <div style="margin-top:16px; display:flex; justify-content:center;">
                 <div class="joystick-grid">
-                  <button class="joy-btn" onpointerdown="_collectPadDown('q')" onpointerup="_collectPadUp('q')" onpointerleave="_collectPadUp('q')">↖Q</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('w')" onpointerup="_collectPadUp('w')" onpointerleave="_collectPadUp('w')">▲W</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('e')" onpointerup="_collectPadUp('e')" onpointerleave="_collectPadUp('e')">↗E</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('a')" onpointerup="_collectPadUp('a')" onpointerleave="_collectPadUp('a')">◀A</button>
+                  <button id="collect-pad-q" class="joy-btn" onpointerdown="_collectPadDown('q')" onpointerup="_collectPadUp('q')" onpointerleave="_collectPadUp('q')">↖Q</button>
+                  <button id="collect-pad-w" class="joy-btn" onpointerdown="_collectPadDown('w')" onpointerup="_collectPadUp('w')" onpointerleave="_collectPadUp('w')">▲W</button>
+                  <button id="collect-pad-e" class="joy-btn" onpointerdown="_collectPadDown('e')" onpointerup="_collectPadUp('e')" onpointerleave="_collectPadUp('e')">↗E</button>
+                  <button id="collect-pad-a" class="joy-btn" onpointerdown="_collectPadDown('a')" onpointerup="_collectPadUp('a')" onpointerleave="_collectPadUp('a')">◀A</button>
                   <button class="joy-btn stop" onclick="_collectPadStop()">⏹</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('d')" onpointerup="_collectPadUp('d')" onpointerleave="_collectPadUp('d')">▶D</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('z')" onpointerup="_collectPadUp('z')" onpointerleave="_collectPadUp('z')">↙Z</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('s')" onpointerup="_collectPadUp('s')" onpointerleave="_collectPadUp('s')">▼S</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('c')" onpointerup="_collectPadUp('c')" onpointerleave="_collectPadUp('c')">↘C</button>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('r')" onpointerup="_collectPadUp('r')" onpointerleave="_collectPadUp('r')">↺R</button>
+                  <button id="collect-pad-d" class="joy-btn" onpointerdown="_collectPadDown('d')" onpointerup="_collectPadUp('d')" onpointerleave="_collectPadUp('d')">▶D</button>
+                  <button id="collect-pad-z" class="joy-btn" onpointerdown="_collectPadDown('z')" onpointerup="_collectPadUp('z')" onpointerleave="_collectPadUp('z')">↙Z</button>
+                  <button id="collect-pad-s" class="joy-btn" onpointerdown="_collectPadDown('s')" onpointerup="_collectPadUp('s')" onpointerleave="_collectPadUp('s')">▼S</button>
+                  <button id="collect-pad-c" class="joy-btn" onpointerdown="_collectPadDown('c')" onpointerup="_collectPadUp('c')" onpointerleave="_collectPadUp('c')">↘C</button>
+                  <button id="collect-pad-r" class="joy-btn" onpointerdown="_collectPadDown('r')" onpointerup="_collectPadUp('r')" onpointerleave="_collectPadUp('r')">↺R</button>
                   <div></div>
-                  <button class="joy-btn" onpointerdown="_collectPadDown('t')" onpointerup="_collectPadUp('t')" onpointerleave="_collectPadUp('t')">↻T</button>
+                  <button id="collect-pad-t" class="joy-btn" onpointerdown="_collectPadDown('t')" onpointerup="_collectPadUp('t')" onpointerleave="_collectPadUp('t')">↻T</button>
                 </div>
               </div>
               <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;">버튼을 누르고 있으면 계속 이동, 떼면 정지 (키보드와 동일하게 기록됨)</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🕹️ 조이스틱 (DragonRise) — 이 탭 켜져 있으면 자동으로 같이 기록됨</div>
+              <div id="collect-js-status" style="font-size:12px; font-family:var(--font-mono); color:var(--cyan); white-space:pre-line; margin-bottom:8px;">🔌 초기화 중...</div>
+              <div id="collect-js-buttons" style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">🔢 눌린 버튼: —</div>
+              <div style="font-size:10px; color:var(--text-muted); line-height:1.5; border-top:1px solid var(--border-glow); padding-top:8px;">
+                <b>조작 설명서</b><br>
+                왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전<br>
+                A(버튼0) → STOP &nbsp;|&nbsp; Start(버튼7) → SYNC↔ASYNC 모드 전환<br>
+                📸 SYNC: 0.45s bang-bang &nbsp;|&nbsp; 🌊 ASYNC: 10Hz 연속 + 300ms Jitter Hold<br>
+                ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
+              </div>
             </div>
 
             <div class="card" style="padding:16px;">
@@ -3651,25 +3669,53 @@ L S R  C S L  R S L
     }
 
     // ── 🕹️ 게임패드(DragonRise) 제어 — Gradio 대시보드에서 이식 ──
+    const _collectPadIds = ["q","w","e","a","d","z","s","c","r","t"];
     async function joystickRefresh() {
+      const s = await api("/joystick/status");
+
       const el = document.getElementById("js-status");
       const btn = document.getElementById("js-toggle-btn");
-      if (!el || !btn) return;
-      const s = await api("/joystick/status");
-      if (!s.pygame_available) {
-        el.textContent = "⚠️ pygame 미설치 — 게임패드 사용 불가";
-        return;
+      if (el && btn) {
+        if (!s.pygame_available) {
+          el.textContent = "⚠️ pygame 미설치 — 게임패드 사용 불가";
+        } else if (!s.connected) {
+          el.textContent = "🔌 미연결 (DragonRise 꽂으면 자동 인식)";
+        } else {
+          const en = s.enabled ? "🟢 ON" : "⚫ OFF";
+          const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
+          const keyStr = s.key ? `[ ${s.label} ]` : "○ 중립";
+          el.textContent = `${en}  |  ${badge}  |  ${s.name}\n▶ ${keyStr}`;
+        }
+        btn.textContent = s.enabled ? "비활성화" : "활성화";
+        btn.className = s.enabled ? "btn btn-cyan" : "btn btn-outline";
       }
-      if (!s.connected) {
-        el.textContent = "🔌 미연결 (DragonRise 꽂으면 자동 인식)";
-      } else {
-        const en = s.enabled ? "🟢 ON" : "⚫ OFF";
-        const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
-        const keyStr = s.key ? `[ ${s.label} ]` : "○ 중립";
-        el.textContent = `${en}  |  ${badge}  |  ${s.name}\n▶ ${keyStr}`;
+
+      const cjs = document.getElementById("collect-js-status");
+      const cjb = document.getElementById("collect-js-buttons");
+      if (cjs) {
+        if (!s.pygame_available) {
+          cjs.textContent = "⚠️ pygame 미설치 — 게임패드 사용 불가";
+        } else if (!s.connected) {
+          cjs.textContent = "🔌 미연결 (DragonRise 꽂으면 자동 인식)";
+        } else {
+          const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
+          const keyStr = s.key ? `[ ${s.label} ]` : "○ 중립";
+          cjs.textContent = `🟢 ${s.name}  |  ${badge}\n▶ ${keyStr}`;
+        }
       }
-      btn.textContent = s.enabled ? "비활성화" : "활성화";
-      btn.className = s.enabled ? "btn btn-cyan" : "btn btn-outline";
+      if (cjb) {
+        const pressed = s.buttons || [];
+        const pressedStr = pressed.length ? pressed.map(i => `[${i}]`).join(" ") : "—";
+        const lastStr = (s.last_btn !== null && s.last_btn !== undefined) ? `#${s.last_btn}` : "—";
+        cjb.textContent = `🔢 눌린 버튼: ${pressedStr}  (최근 ${lastStr})`;
+      }
+
+      // 조이스틱으로 실제 이동 중인 방향키를 버튼패드에도 라이트업
+      const activeKey = (s.connected && s.key) ? s.key.toLowerCase() : null;
+      for (const k of _collectPadIds) {
+        const padBtn = document.getElementById("collect-pad-" + k);
+        if (padBtn) padBtn.classList.toggle("active", k === activeKey);
+      }
     }
 
     async function joystickToggle() {
