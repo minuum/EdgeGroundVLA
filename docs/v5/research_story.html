@@ -14122,17 +14122,45 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card">
+    <div class="finding-title">61-9. 좌/우 비대칭 발견 + bbox_scale 대응 + soda 배포 (2026-07-07~08)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      FWD+L recall 88.5%인데 <strong style="color:#f87171">FWD+R recall 67.6%</strong>(21.6%가 FORWARD로
+      오분류) — 극단 cx가 아닌 정상범위에서도 좌/우 비대칭 확인. class-weight(<code>diag_mult</code>)만으론
+      단일시드 표준편차 24~27%p로 극도로 불안정(같은 설정 재현 시 89.8%↔72.4% 널뛰기 확인).<br><br>
+      <strong style="color:#4ade80">bbox_scale</strong>(bbox 4dim을 이미지feature 대비 상대적으로 키우는 것)이
+      훨씬 효과적 — 멀티시드(5) 비교:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">조합</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">val_acc</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">진동율</th></tr>
+        <tr><td style="padding:6px 10px">window6+bbox1x(기존)</td><td style="padding:6px 10px;color:#f87171">69.7%±4.7%</td><td style="padding:6px 10px">19.0%±4.3%</td></tr>
+        <tr><td style="padding:6px 10px"><strong>window6+bbox3x</strong></td><td style="padding:6px 10px;color:#4ade80;font-weight:700">85.4%±2.3%</td><td style="padding:6px 10px;color:#4ade80;font-weight:700">14.3%±7.2%</td></tr>
+        <tr><td style="padding:6px 10px">window3+bbox3x</td><td style="padding:6px 10px">78.6%±4.4%</td><td style="padding:6px 10px">18.4%±3.0%</td></tr>
+        <tr><td style="padding:6px 10px">window3+bbox3x+sticky_aug</td><td style="padding:6px 10px">80.2%±5.1%</td><td style="padding:6px 10px;color:#f87171">21.2%±0.2%(악화)</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">window6+bbox_scale3x가 정확도·진동율 둘 다 최고</strong> — window을
+      줄이는 것(window3)보다 window은 그대로 두고 bbox 신호만 키우는 게 더 나은 것으로 재확인.
+      sticky_aug는 bbox_scale 적용 후에도 여전히 무효.<br><br>
+      <strong style="color:#fbbf24">배포 완료</strong>: 서버에 <code>ckpt.get("bbox_scale",1.0)</code> 하위호환
+      지원 추가 후, <code>exp71_window3_bboxscale3</code>(5-seed 80.7%±4.3%)와
+      <code>exp71_window6_bboxscale3</code>(5-seed 84.6%±2.9%, 최고 88.5%, <strong>가장 유력 후보</strong>)
+      두 체크포인트 모두 soda 서버로 rsync 전송 완료 — 실로봇 3자 A/B(기존 window6 / window3+bboxscale3 /
+      window6+bboxscale3) 대기 중.
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#f87171">
-    <div class="finding-title" style="color:#f87171">61-8. 종합 결론 및 다음 단계</div>
+    <div class="finding-title" style="color:#f87171">61-10. 종합 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       1) 그라운더(OWL-v2)는 무죄에 가까움 — clean bbox 검증에서 헤드 일반화力 확인<br>
       2) 진짜 병목은 (a) flicker 분포 불일치, (b) 언어 미조건화, (c) obj_* 테스트 자체가
-      학습 분포 밖(강한좌/우 구간 3.2%뿐)<br>
+      학습 분포 밖(강한좌/우 구간 3.2%뿐), (d) bbox 신호가 이미지feature 대비 너무 약함(bbox_scale로 해결)<br>
       3) 오프라인 리플레이 방법론은 한계 도달 — 실로봇 A/B가 유일하게 남은 확정적 검증<br>
-      4) 다음 우선순위: (a) 실로봇 window3 vs window6 A/B, (b) 조이스틱 이질 지시 +
-      강한좌/우 구간 데이터 수집, (c) 프리뷰 옵션 D(attempt별 cx 로깅)부터<br><br>
+      4) 다음 우선순위: (a) 실로봇 3자 A/B(기존/window3+bboxscale3/window6+bboxscale3), (b) 조이스틱
+      이질 지시 + 강한좌/우 구간 데이터 수집(120ep, 대시보드 새 탭으로 준비 완료), (c) 프리뷰 옵션 D
+      로깅 배포 완료 — 다음 세션에서 실측 축적<br><br>
       전체 상세: <a href="closed_loop_eval/CH61_OWL_LIVE_FAILURE_AND_FIX.md" style="color:#60a5fa">CH61_OWL_LIVE_FAILURE_AND_FIX.md</a>
       &nbsp;|&nbsp; 프리뷰 재설계 플랜: <a href="../plans/plan_20260706_preview_redesign.md" style="color:#60a5fa">plan_20260706_preview_redesign.md</a>
+      &nbsp;|&nbsp; 조이스틱 수집 플랜: <a href="../plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md" style="color:#60a5fa">plan_20260707_heterogeneous_instruction_extreme_cx_collection.md</a>
     </div>
   </div>
 
