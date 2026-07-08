@@ -239,3 +239,17 @@ val_acc 80.7%±4.3%(최고 84.4%, seed=4) 선정.
   rsync로 `soda@100.85.118.58:~/MoNaVLA/`에 전송 완료
 - **아직 안 한 것**: checkpoint_path 전환 + 서버 재시작(운영 중인 로봇 서비스라 soda
   확인 후 진행 필요) — 이게 되면 실로봇 window3+bbox_scale3 vs 기존 window6 A/B 가능
+
+## 12. soda 제기 BGR/RGB 의심 건 — 실물 대조로 기각 (2026-07-08)
+
+soda가 `mobile_vla_data_collector.py`의 `cv_bridge.compressed_imgmsg_to_cv2(...,"bgr8")`로
+받은 배열이 JPEG 인코딩 없이 H5 raw로 저장되는데, 학습 로더(`nav_h5_dataset_impl.py`)는
+이를 RGB로 가정하고 읽는다는 의심을 제기(241/241 에피소드 전부 raw 저장 확인).
+색 채널을 반전(BGR→RGB)해서 vis_feat 캐시 재생성 + window6+bbox_scale3 재학습까지
+진행했으나(5-seed 79.6%±3.7%, 원본 84.6%±2.9%와 큰 차이 없음), **사용자가 실제 촬영
+공간을 직접 눈으로 확인한 결과 현재 로더(반전 없음) 쪽이 실물 색에 더 가까움**을 확인.
+
+코드 추적(명시적 `"bgr8"` 요청, 중간 변환 없음)은 여전히 이론상 스왑 가능성을 가리키나,
+실물 대조라는 더 강한 증거 앞에서 기각 — 카메라 원본 인코딩이 이미 bgr8이라 무변환
+(no-op)이었을 가능성. **재학습 불필요, 어제 배포한 window6+bbox_scale3(원본) 그대로
+유지.** 색 반전판 체크포인트(`exp71_window6_bboxscale3_colorfixed`)는 참고용으로만 보존.
