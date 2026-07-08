@@ -283,6 +283,13 @@ class DataCollectSession:
         log.info(f"📷 [DataCollect] 에피소드 시작: {episode_name}")
         return episode_name
 
+    def undo_last_frame(self) -> dict:
+        with self._lock:
+            if not self.active or not self.episode_data:
+                return {"ok": False, "steps": len(self.episode_data)}
+            self.episode_data.pop()
+            return {"ok": True, "steps": len(self.episode_data)}
+
     def stop_episode(self, save=True) -> dict:
         with self._lock:
             self.active = False
@@ -411,8 +418,15 @@ class DashboardJoystickReader:
     ASYNC_INTERVAL = 0.10   # ASYNC 연속 발행 간격 (s) — 10Hz
     JITTER_HOLD    = 0.30   # ASYNC 중립 후 정지 유예 시간 (s)
     DEFAULT_AXES   = {"left_x": 0, "left_y": 1, "right_x": 2}
-    BTN_STOP       = 0   # A
-    BTN_TOGGLE     = 7   # Start → SYNC/ASYNC 모드 전환
+    # DragonRise 기본 버튼 인덱스 (Gradio gradio_data_collector.py와 동일 매핑)
+    BTN_STOP       = 0   # A     — STOP (robust_stop)
+    BTN_UNDO       = 1   # B     — 마지막 프레임 취소
+    BTN_DISCARD    = 2   # X     — 에피소드 폐기(저장 안 함)
+    BTN_TELEOP     = 3   # Y     — 미사용 (대시보드엔 teleop 개념 없음)
+    BTN_REC_START  = 4   # L1    — 녹화 시작
+    BTN_REC_SAVE   = 5   # R1    — 정지 & 저장
+    BTN_SELECT     = 6   # Select — 녹화 토글(시작↔저장)
+    BTN_TOGGLE     = 7   # Start  — SYNC/ASYNC 모드 전환
 
     WASD_TO_VEL = {
         'W': ( 1.15, 0.0,  0.0),
@@ -607,6 +621,24 @@ class DashboardJoystickReader:
                                 _ros.ctrl.robust_stop(source="joystick_A")
                         elif i == self.BTN_TOGGLE:
                             self.toggle_mode()
+                        elif i == self.BTN_UNDO:
+                            if _collect is not None:
+                                _collect.undo_last_frame()
+                        elif i == self.BTN_DISCARD:
+                            if _collect is not None and _collect.active:
+                                _collect.stop_episode(save=False)
+                        elif i == self.BTN_REC_START:
+                            if _collect is not None and not _collect.active:
+                                _collect.start_episode()
+                        elif i == self.BTN_REC_SAVE:
+                            if _collect is not None and _collect.active:
+                                _collect.stop_episode(save=True)
+                        elif i == self.BTN_SELECT:
+                            if _collect is not None:
+                                if _collect.active:
+                                    _collect.stop_episode(save=True)
+                                else:
+                                    _collect.start_episode()
                     self._btn_prev[i] = cur
 
             except Exception as e:
@@ -2324,6 +2356,15 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   .btn-light.last {
     border-color: var(--cyan);
   }
+  .btn-light-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .btn-light-name {
+    font-size: 9px; color: var(--text-muted); font-family: var(--font-mono);
+  }
+  .btn-light-name.active {
+    color: var(--emerald); font-weight: 700;
+  }
 
   /* ── 테이블 ── */
   .table-wrapper {
@@ -3502,6 +3543,7 @@ L S R  C S L  R S L
                   <button id="collect-pad-t" class="joy-btn" onpointerdown="_collectPadDown('t')" onpointerup="_collectPadUp('t')" onpointerleave="_collectPadUp('t')">↻T</button>
                 </div>
               </div>
+              <div id="collect-pad-caption" style="font-size:13px; font-family:var(--font-mono); text-align:center; margin-top:10px; padding:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">대기 중 — 버튼/키보드를 누르면 여기 표시</div>
               <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;">버튼을 누르고 있으면 계속 이동, 떼면 정지 (키보드와 동일하게 기록됨)</div>
             </div>
 
@@ -3534,12 +3576,22 @@ L S R  C S L  R S L
               <div class="card-title">🕹️ 조이스틱 (DragonRise) — 자동 기록됨
                 <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
               </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (숫자 = 물리 버튼 인덱스)</div>
-              <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;"></div>
-              <div style="font-size:10px; color:var(--text-muted); line-height:1.5; border-top:1px solid var(--border-glow); padding-top:8px;">
-                <b>조작 설명서</b><br>
-                왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (방향은 왼쪽 버튼패드에 라이트업)<br>
-                A(버튼0) → STOP &nbsp;|&nbsp; Start(버튼7) → SYNC↔ASYNC 모드 전환<br>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (번호 + 물리 버튼 이름, DragonRise 기준)</div>
+              <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px;"></div>
+              <div id="collect-js-btn-caption" style="font-size:13px; font-family:var(--font-mono); text-align:center; margin-bottom:12px; padding:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">대기 중 — 버튼을 누르면 여기 표시</div>
+              <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
+                <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
+                왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
+                <table style="width:100%; border-collapse:collapse; margin-top:6px;">
+                  <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
+                      <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td>에피소드 폐기</td>
+                      <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:#555;">미사용</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td>녹화 시작</td>
+                      <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
+                      <td style="padding:1px 4px;"><b>START</b>(7)</td><td>SYNC↔ASYNC 모드</td></tr>
+                </table>
                 ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
               </div>
             </div>
@@ -3734,26 +3786,66 @@ L S R  C S L  R S L
         if (lights.children.length !== n) {
           lights.innerHTML = "";
           for (let i = 0; i < n; i++) {
+            const info = JOYSTICK_BTN_INFO[i] || {name: "#" + i, desc: "미사용"};
+            const wrap = document.createElement("div");
+            wrap.className = "btn-light-wrap";
             const d = document.createElement("div");
             d.className = "btn-light";
             d.id = "collect-js-light-" + i;
             d.textContent = i;
-            lights.appendChild(d);
+            const nameEl = document.createElement("div");
+            nameEl.className = "btn-light-name";
+            nameEl.id = "collect-js-name-" + i;
+            nameEl.textContent = info.name;
+            wrap.appendChild(d);
+            wrap.appendChild(nameEl);
+            lights.appendChild(wrap);
           }
         }
+        const cap = document.getElementById("collect-js-btn-caption");
+        let activeInfo = null;
         for (let i = 0; i < n; i++) {
           const d = document.getElementById("collect-js-light-" + i);
+          const nameEl = document.getElementById("collect-js-name-" + i);
           if (!d) continue;
-          d.classList.toggle("active", pressed.has(i));
+          const isPressed = pressed.has(i);
+          d.classList.toggle("active", isPressed);
           d.classList.toggle("last", s.last_btn === i);
+          if (nameEl) nameEl.classList.toggle("active", isPressed);
+          if (isPressed) activeInfo = JOYSTICK_BTN_INFO[i] || {name: "#" + i, desc: "미사용"};
+        }
+        if (cap) {
+          if (activeInfo) {
+            cap.textContent = `${activeInfo.name} — ${activeInfo.desc}`;
+            cap.style.color = "var(--emerald)";
+            cap.style.borderColor = "var(--emerald)";
+          } else {
+            cap.textContent = "대기 중 — 버튼을 누르면 여기 표시";
+            cap.style.color = "var(--text-muted)";
+            cap.style.borderColor = "var(--border-glow)";
+          }
         }
       }
 
-      // 조이스틱으로 실제 이동 중인 방향키를 버튼패드에도 라이트업
+      // 조이스틱으로 실제 이동 중인 방향키를 버튼패드에도 라이트업 (수동/키보드 입력 중이 아닐 때만)
       const activeKey = (s.connected && s.key) ? s.key.toLowerCase() : null;
-      for (const k of _collectPadIds) {
-        const padBtn = document.getElementById("collect-pad-" + k);
-        if (padBtn) padBtn.classList.toggle("active", k === activeKey);
+      if (!_collectPressedKey) {
+        for (const k of _collectPadIds) {
+          const padBtn = document.getElementById("collect-pad-" + k);
+          if (padBtn) padBtn.classList.toggle("active", k === activeKey);
+        }
+        const cap = document.getElementById("collect-pad-caption");
+        if (cap) {
+          if (activeKey) {
+            cap.textContent = "🕹️ " + (COLLECT_DESC[activeKey] || activeKey);
+            cap.style.color = "var(--emerald)";
+            cap.style.borderColor = "var(--emerald)";
+          } else {
+            cap.textContent = "대기 중 — 버튼/키보드를 누르면 여기 표시";
+            cap.style.color = "var(--text-muted)";
+            cap.style.borderColor = "var(--border-glow)";
+          }
+        }
       }
     }
 
@@ -3834,6 +3926,22 @@ L S R  C S L  R S L
     const COLLECT_KEYS = new Set(["w","a","s","d","q","e","z","c","r","t"," "]);
     const COLLECT_LABELS = {w:"FORWARD", s:"BACKWARD", a:"LEFT", d:"RIGHT", q:"FWD+LEFT", e:"FWD+RIGHT",
                              z:"BACK+LEFT", c:"BACK+RIGHT", r:"ROT_L", t:"ROT_R", " ":"STOP"};
+    const COLLECT_DESC = {
+      q: "↖ Q — 전진+좌 (FWD+LEFT)", w: "▲ W — 전진 (FORWARD)", e: "↗ E — 전진+우 (FWD+RIGHT)",
+      a: "◀ A — 좌 (LEFT)", d: "▶ D — 우 (RIGHT)",
+      z: "↙ Z — 후진+좌 (BACK+LEFT)", s: "▼ S — 후진 (BACKWARD)", c: "↘ C — 후진+우 (BACK+RIGHT)",
+      r: "↺ R — 좌회전 (ROT_L)", t: "↻ T — 우회전 (ROT_R)", " ": "⏹ SPACE — 정지 (STOP)",
+    };
+    const JOYSTICK_BTN_INFO = {
+      0: {name:"A",     desc:"STOP"},
+      1: {name:"B",     desc:"마지막 프레임 취소"},
+      2: {name:"X",     desc:"에피소드 폐기"},
+      3: {name:"Y",     desc:"미사용"},
+      4: {name:"L1",    desc:"녹화 시작"},
+      5: {name:"R1",    desc:"정지 & 저장"},
+      6: {name:"SEL",   desc:"녹화 토글"},
+      7: {name:"START", desc:"SYNC↔ASYNC 모드"},
+    };
     let _collectPressedKey = null;
     let _collectRepeatTimer = null;
     let _collectPollTimer = null;
@@ -3847,6 +3955,18 @@ L S R  C S L  R S L
     function _collectPadLight(key, on) {
       const padBtn = document.getElementById("collect-pad-" + key);
       if (padBtn) padBtn.classList.toggle("active", on);
+      const cap = document.getElementById("collect-pad-caption");
+      if (cap) {
+        if (on) {
+          cap.textContent = COLLECT_DESC[key] || key;
+          cap.style.color = "var(--emerald)";
+          cap.style.borderColor = "var(--emerald)";
+        } else {
+          cap.textContent = "대기 중 — 버튼/키보드를 누르면 여기 표시";
+          cap.style.color = "var(--text-muted)";
+          cap.style.borderColor = "var(--border-glow)";
+        }
+      }
     }
 
     function collectKeyDown(e) {
@@ -3896,6 +4016,8 @@ L S R  C S L  R S L
       if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
       _collectPressedKey = null;
       document.getElementById("collect-last-action").textContent = "STOP";
+      const cap = document.getElementById("collect-pad-caption");
+      if (cap) { cap.textContent = COLLECT_DESC[" "]; cap.style.color = "var(--rose)"; cap.style.borderColor = "var(--rose)"; }
       _collectSendKey(" ", "down");
     }
 
