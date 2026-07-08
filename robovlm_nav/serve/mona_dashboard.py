@@ -3457,6 +3457,24 @@ L S R  C S L  R S L
                 <span id="collect-active-badge" style="font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">⏸ 대기중</span>
                 <span id="collect-steps-badge" style="font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">0 steps</span>
               </div>
+
+              <div style="margin-top:16px; display:flex; justify-content:center;">
+                <div class="joystick-grid">
+                  <button class="joy-btn" onpointerdown="_collectPadDown('q')" onpointerup="_collectPadUp('q')" onpointerleave="_collectPadUp('q')">↖Q</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('w')" onpointerup="_collectPadUp('w')" onpointerleave="_collectPadUp('w')">▲W</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('e')" onpointerup="_collectPadUp('e')" onpointerleave="_collectPadUp('e')">↗E</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('a')" onpointerup="_collectPadUp('a')" onpointerleave="_collectPadUp('a')">◀A</button>
+                  <button class="joy-btn stop" onclick="_collectPadStop()">⏹</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('d')" onpointerup="_collectPadUp('d')" onpointerleave="_collectPadUp('d')">▶D</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('z')" onpointerup="_collectPadUp('z')" onpointerleave="_collectPadUp('z')">↙Z</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('s')" onpointerup="_collectPadUp('s')" onpointerleave="_collectPadUp('s')">▼S</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('c')" onpointerup="_collectPadUp('c')" onpointerleave="_collectPadUp('c')">↘C</button>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('r')" onpointerup="_collectPadUp('r')" onpointerleave="_collectPadUp('r')">↺R</button>
+                  <div></div>
+                  <button class="joy-btn" onpointerdown="_collectPadDown('t')" onpointerup="_collectPadUp('t')" onpointerleave="_collectPadUp('t')">↻T</button>
+                </div>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;">버튼을 누르고 있으면 계속 이동, 떼면 정지 (키보드와 동일하게 기록됨)</div>
             </div>
 
             <div class="card" style="padding:16px;">
@@ -3758,6 +3776,31 @@ L S R  C S L  R S L
       if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
       document.getElementById("collect-last-action").textContent = "STOP";
       _collectSendKey(key, "up");
+    }
+
+    // 버튼 패드 — 키보드와 동일한 press/repeat 상태(_collectPressedKey) 공유
+    function _collectPadDown(key) {
+      if (_collectPressedKey === key) return;
+      _collectPressedKey = key;
+      document.getElementById("collect-last-action").textContent = COLLECT_LABELS[key] || key;
+      _collectSendKey(key, "down");
+      if (_collectRepeatTimer) clearInterval(_collectRepeatTimer);
+      _collectRepeatTimer = setInterval(() => _collectSendKey(key, "down"), 150);
+    }
+
+    function _collectPadUp(key) {
+      if (_collectPressedKey !== key) return;
+      _collectPressedKey = null;
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      document.getElementById("collect-last-action").textContent = "STOP";
+      _collectSendKey(key, "up");
+    }
+
+    function _collectPadStop() {
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      _collectPressedKey = null;
+      document.getElementById("collect-last-action").textContent = "STOP";
+      _collectSendKey(" ", "down");
     }
 
     let _collectCxTimer = null;
