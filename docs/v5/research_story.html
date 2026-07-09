@@ -14189,6 +14189,45 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card">
+    <div class="finding-title">61-13. obj_right에서 왜 하필 FWD+L이 반복됐나 — 세 번째 confound (2026-07-09)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      실로봇 <code>obj_right</code> 실패에서 그라운딩(OWL-v2)은 정상 동작했는데 액션이 반복적으로
+      <strong style="color:#f87171">FWD+L</strong>로 나온 이유를 데이터셋에서 역추적.
+      <code>bbox_dataset_pg448_cx.json</code>에서 cx&gt;0.6(화면 오른쪽) 프레임의 gt_class 분포:
+      <code>FORWARD:259, FWD+L:67, RIGHT:29, ROT_L:20, FWD+R:19, ROT_R:3</code> — FWD+L(67개) 중
+      대부분이 <strong>path_type="right_left"</strong>(목표=우측, 접근 경로=좌곡선) 한 종류에 집중
+      (cx&gt;0.6 구간의 68%, 55/81건이 gt_class=FWD+L).<br><br>
+      원인: `right_left`는 "바구니는 오른쪽에 있지만 접근 경로 자체를 왼쪽으로 크게 돌아 들어가는"
+      시나리오라, 물체가 화면 오른쪽에 보이는 순간에도 정답 라벨이 FWD+L로 기록됨. 모델은 이 패턴을
+      정확히 학습했을 뿐 — <code>CX_RULE_THRESHOLDS</code> 룰 기반 오버라이드는 기본 꺼져있어(<code>VLA_CX_RULE=0</code>)
+      관여하지 않음, 순수 학습된 헤드의 정직한 예측.<br><br>
+      <strong style="color:#fbbf24">세 번째 confound로 정리</strong>: ①극단cx 커버리지 부족, ②텍스트-장면 confound에 이어
+      <strong style="color:#e2e8f0">"화면상 위치(cx)"와 "경로 곡선 방향"이 path_type 설계 단계에서 뒤섞여 있어서</strong>,
+      cx만으로는 목표 방향을 안정적으로 추론할 수 없는 구조. 61-12의 지시-경로 디커플링 수집으로
+      함께 해소될 것으로 기대.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-14. 수집/학습 Hz 정합 + action chunking 검토 (2026-07-09)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      현재 수집: <code>on_command()</code> 이벤트 트리거(명령 변경 시에만 프레임 기록), 실질
+      4~7Hz. 실추론 레이턴시는 450~600ms/frame(<strong>~2Hz</strong>). 문제는 window(3/6프레임)가
+      프레임 "개수" 기준이라, 조작 밀도에 따라 체감 시간폭이 최대 3배 이상 들쭉날쭉(촘촘한 조작 구간
+      ~0.85초 vs 성긴 구간 ~3초) — 추론 시 실제 시간폭(window=6 @ ~2Hz ≈ 3초)과 불일치.<br><br>
+      <strong style="color:#e2e8f0">타 VLA 비교</strong>: RT-1/RT-2(~1~3Hz, closed-loop), ViNT/NoMaD(~4Hz,
+      우리 수집 레이트와 가장 근접), <strong style="color:#4ade80">π0/SmolVLA</strong>는 "느린 VLM 추론 +
+      빠른 실행"을 action chunking으로 구조적으로 분리(π0는 청크 내부 50Hz open-loop 실행, 재계획은
+      청크 단위로만).<br><br>
+      <strong style="color:#fbbf24">결론</strong>: 수집 Hz(4~7Hz)는 그대로 유지(조작 해상도 보존).
+      대신 학습 window 구성 시 <strong>~2Hz(500ms) 간격으로 리샘플링</strong>해서 추론 cadence와
+      시간폭을 정합 — 현재 액션헤드 구조를 유지한 채 적용 가능한 값싼 절충. 근본적으로는
+      <strong>action chunking 구조 도입</strong>을 별도 트랙으로 검토 (우선순위: 리샘플링 먼저 검증 →
+      부족 시 chunking 검토). 플랜 문서 §4에 두 항목 모두 추가.
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#f87171">
     <div class="finding-title" style="color:#f87171">61-10. 종합 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
