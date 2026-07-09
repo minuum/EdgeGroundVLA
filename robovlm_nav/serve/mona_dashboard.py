@@ -202,6 +202,14 @@ COLLECT_SCENARIOS = {
 }
 COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (Variant)"}
 
+# 극단 배치 데이터수집 — 1일차 목표 120ep (4포지션 × 지시 2종 × 15회, 지시별 카운트는 미분리)
+COLLECT_CX_POSITIONS = {
+    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 30},
+    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 30},
+    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 30},
+    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 30},
+}
+
 
 def _collect_classify_time_period(hour: int) -> str:
     if 5 <= hour < 8:
@@ -234,8 +242,10 @@ class DataCollectSession:
         self.selected_scenario: Optional[str] = None
         self.selected_pattern: Optional[str] = None
         self.staged_scenario: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 시나리오
+        self.selected_cx_position: Optional[str] = None  # 극단 배치 4포지션(강한좌/준극단좌/준극단우/강한우)
 
         self.scenario_stats: dict = collections.defaultdict(int)
+        self.cx_position_stats: dict = collections.defaultdict(int)
         self.time_period_stats: dict = collections.defaultdict(int)
         self.core_patterns: dict = {}
         self._load_progress()
@@ -265,11 +275,12 @@ class DataCollectSession:
                 "action_event_type": source,
             })
 
-    def start_episode(self, episode_name=None, scenario=None, pattern=None) -> str:
+    def start_episode(self, episode_name=None, scenario=None, pattern=None, cx_position=None) -> str:
         with self._lock:
             self.episode_data = []
             self.selected_scenario = scenario
             self.selected_pattern = pattern
+            self.selected_cx_position = cx_position
             if not episode_name:
                 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 parts = [f"episode_{ts}"]
@@ -277,6 +288,8 @@ class DataCollectSession:
                     parts.append(scenario)
                 if pattern:
                     parts.append(pattern)
+                if cx_position:
+                    parts.append(cx_position)
                 episode_name = "_".join(parts)
             self.episode_name = episode_name
             self.episode_started_at = time.time()
@@ -325,6 +338,8 @@ class DataCollectSession:
         path = self._save_episode_data(data, name, duration)
         if self.selected_scenario:
             self.scenario_stats[self.selected_scenario] += 1
+        if self.selected_cx_position:
+            self.cx_position_stats[self.selected_cx_position] += 1
         self.time_period_stats[_collect_classify_time_period(datetime.datetime.now().hour)] += 1
         self._save_progress()
         log.info(f"✅ [DataCollect] 에피소드 저장: {path} ({len(data)} steps, {duration:.1f}s)")
@@ -341,6 +356,7 @@ class DataCollectSession:
         now = datetime.datetime.now()
         with h5py.File(save_path, "w") as f:
             f.attrs["episode_name"] = name
+            f.attrs["cx_position"] = self.selected_cx_position or ""
             f.attrs["total_duration"] = duration
             f.attrs["num_frames"] = len(data)
             f.attrs["action_chunk_size"] = self.ACTION_CHUNK_SIZE
@@ -360,6 +376,8 @@ class DataCollectSession:
                 d = json.loads(self.progress_file.read_text(encoding="utf-8"))
                 for k, v in d.get("scenario_stats", {}).items():
                     self.scenario_stats[k] = v
+                for k, v in d.get("cx_position_stats", {}).items():
+                    self.cx_position_stats[k] = v
         except Exception as e:
             log.warning(f"[DataCollect] scenario_progress.json 로드 실패: {e}")
         try:
@@ -382,6 +400,7 @@ class DataCollectSession:
                 "scenario_stats": dict(self.scenario_stats),
                 "total_completed": sum(self.scenario_stats.values()),
                 "total_target": sum(s["target"] for s in COLLECT_SCENARIOS.values()),
+                "cx_position_stats": dict(self.cx_position_stats),
             }, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as e:
             log.warning(f"[DataCollect] scenario_progress.json 저장 실패: {e}")
@@ -408,6 +427,9 @@ class DataCollectSession:
             "scenario_stats": dict(self.scenario_stats),
             "total_target": sum(s["target"] for s in COLLECT_SCENARIOS.values()),
             "total_completed": sum(self.scenario_stats.values()),
+            "cx_position": self.selected_cx_position,
+            "cx_positions": COLLECT_CX_POSITIONS,
+            "cx_position_stats": dict(self.cx_position_stats),
         }
 
 
@@ -1064,6 +1086,7 @@ class CollectEpisodeStartReq(BaseModel):
     episode_name: Optional[str] = None
     scenario: Optional[str] = None
     pattern: Optional[str] = None
+    cx_position: Optional[str] = None
 
 class CollectEpisodeStopReq(BaseModel):
     save: bool = True
@@ -1374,7 +1397,7 @@ def collect_key(req: CollectKeyReq):
 def collect_episode_start(req: CollectEpisodeStartReq):
     if _collect is None:
         return {"ok": False, "error": "데이터수집 세션 미초기화"}
-    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern)
+    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern, req.cx_position)
     return {"ok": True, "episode_name": name}
 
 
@@ -3679,6 +3702,14 @@ L S R  C S L  R S L
               </select>
               <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
             </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📏 극단 배치 진행률 (cx축 막대그래프)</div>
+              <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
+                <option value="">— cx 위치 미지정 —</option>
+              </select>
+              <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
+            </div>
           </div>
 
         </div>
@@ -4025,6 +4056,7 @@ L S R  C S L  R S L
     let _collectRepeatTimer = null;
     let _collectPollTimer = null;
     let _collectScenariosLoaded = false;
+    let _collectCxPosLoaded = false;
 
     function _collectSendKey(key, event) {
       api("/collect/key", { method: "POST", headers: {"Content-Type":"application/json"},
@@ -4279,8 +4311,51 @@ L S R  C S L  R S L
                   </div>`;
       }
 
+      if (!_collectCxPosLoaded && res.cx_positions) {
+        const cxSel = document.getElementById("collect-cxpos-select");
+        Object.entries(res.cx_positions).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = `${info.label} (${info.lo.toFixed(2)}~${info.hi.toFixed(2)}, 목표 ${info.target})`;
+          cxSel.appendChild(opt);
+        });
+        _collectCxPosLoaded = true;
+      }
+      _collectRenderCxPosChart(res);
+
       const nameInput = document.getElementById("collect-episode-name");
       if (nameInput && res.active && res.episode_name) nameInput.value = res.episode_name;
+    }
+
+    // 극단 배치 4포지션을 cx축(0~1) 위에 사각형 막대로 표시 — 각 막대 채움 = 수집 진행률
+    function _collectRenderCxPosChart(res) {
+      const chart = document.getElementById("collect-cxpos-chart");
+      if (!chart || !res.cx_positions) return;
+      const curCx = document.getElementById("collect-cxpos-select")?.value || "";
+      const order = ["strong_left", "weak_left", "weak_right", "strong_right"];
+      const stats = res.cx_position_stats || {};
+      let totalDone = 0, totalTarget = 0;
+      const rows = order.filter(id => res.cx_positions[id]).map((id, i) => {
+        const info = res.cx_positions[id];
+        const done = stats[id] || 0;
+        totalDone += done; totalTarget += info.target;
+        const pct = Math.min(100, Math.round(done / info.target * 100));
+        const isSel = id === curCx;
+        const centerGap = (i === 2) ? `<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:2px 0;">(중앙 미해당 구간)</div>` : "";
+        return centerGap + `
+          <div style="display:flex; align-items:center; gap:8px; ${isSel ? "outline:1px solid var(--cyan); border-radius:6px; padding:2px 4px;" : ""}">
+            <span style="width:52px; color:${isSel ? "var(--cyan)" : "var(--text-muted)"}; font-weight:${isSel ? "700" : "400"};">${info.label}</span>
+            <div style="flex:1; height:16px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
+              <div style="width:${pct}%; height:100%; background:${pct >= 100 ? "var(--emerald)" : "var(--cyan)"};"></div>
+            </div>
+            <span style="width:52px; text-align:right;">${done}/${info.target}</span>
+            <span style="width:78px; text-align:right; color:var(--text-muted);">${info.lo.toFixed(2)}~${info.hi.toFixed(2)}</span>
+          </div>`;
+      }).join("");
+      chart.innerHTML = rows + `<div style="margin-top:4px; padding-top:6px; border-top:1px solid var(--border-glow); display:flex; justify-content:space-between;">
+                  <span style="color:var(--emerald); font-weight:700;">전체</span>
+                  <span style="color:var(--emerald); font-weight:700;">${totalDone}/${totalTarget}</span>
+                </div>`;
     }
 
     // 진행률 목록의 행을 클릭해서 시나리오 선택 — 서버 staged_scenario에 반영(조이스틱 D-pad와 동일 소스 공유)
@@ -4317,8 +4392,9 @@ L S R  C S L  R S L
       const episode_name = document.getElementById("collect-episode-name").value.trim() || null;
       const scenario = document.getElementById("collect-scenario-select").value || null;
       const pattern = document.getElementById("collect-pattern-select").value || null;
+      const cx_position = document.getElementById("collect-cxpos-select").value || null;
       const res = await api("/collect/episode/start", { method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ episode_name, scenario, pattern }) });
+        body: JSON.stringify({ episode_name, scenario, pattern, cx_position }) });
       const statusEl = document.getElementById("collect-episode-status");
       statusEl.textContent = res.ok ? "▶ 시작됨: " + res.episode_name : "⚠️ " + res.error;
       collectRefreshState();
