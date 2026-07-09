@@ -2117,6 +2117,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     overflow-y: auto;
     padding: 32px;
   }
+  #tab-collect .scroll-container {
+    zoom: 1.5; /* 데이터수집 탭 전체 글씨/버튼 50% 확대 (사용자 요청) */
+  }
 
   /* ── 카드 및 레이아웃 ── */
   .grid-2 {
@@ -3499,7 +3502,11 @@ L S R  C S L  R S L
 
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
-              <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)</div>
+              <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
+                <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
+                  <input type="checkbox" id="toggle-grid-collect" checked onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--cyan);"> Grid 표시
+                </label>
+              </div>
               <div class="viewport-wrapper">
                 <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
                      onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
@@ -3548,18 +3555,6 @@ L S R  C S L  R S L
             </div>
 
             <div class="card" style="padding:16px;">
-              <div class="card-title">🎯 시나리오 (선택사항)</div>
-              <select id="collect-scenario-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;">
-                <option value="">— 미지정 (episode_name 수동) —</option>
-              </select>
-              <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
-                <option value="">— 패턴 미지정 —</option>
-                <option value="core">핵심 패턴 (Core)</option>
-                <option value="variant">변형 패턴 (Variant)</option>
-              </select>
-            </div>
-
-            <div class="card" style="padding:16px;">
               <div class="card-title">📼 에피소드 제어</div>
               <input type="text" id="collect-episode-name" placeholder="episode_name (비우면 자동 생성)"
                      style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
@@ -3597,7 +3592,15 @@ L S R  C S L  R S L
             </div>
 
             <div class="card" style="padding:16px;">
-              <div class="card-title">📊 시나리오별 진행률</div>
+              <div class="card-title">🎯 시나리오 & 진행률 (행 클릭해서 선택)</div>
+              <select id="collect-scenario-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;" onchange="_collectSyncScenarioHighlight()">
+                <option value="">— 미지정 (episode_name 수동) —</option>
+              </select>
+              <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
+                <option value="">— 패턴 미지정 —</option>
+                <option value="core">핵심 패턴 (Core)</option>
+                <option value="variant">변형 패턴 (Variant)</option>
+              </select>
               <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
             </div>
           </div>
@@ -4031,11 +4034,20 @@ L S R  C S L  R S L
       return {label: "목표 구간 밖", color: "var(--text-muted)"};
     }
 
+    let _collectLastCx = null;
+    let _collectLastColor = null;
+
     function _collectCxDrawOverlay(cx, color) {
+      _collectLastCx = cx;
+      _collectLastColor = color;
       const cv = document.getElementById("collect-cx-canvas");
       if (!cv) return;
       const ctx = cv.getContext("2d");
       ctx.clearRect(0, 0, cv.width, cv.height);
+      const gridChk = document.getElementById("toggle-grid-collect");
+      if (!gridChk || gridChk.checked) {
+        drawGridLines(ctx, cv.width, cv.height);
+      }
       if (cx == null) return;
       const x = cx * cv.width;
       // 목표 밴드 배경(참고용, 반투명)
@@ -4109,12 +4121,17 @@ L S R  C S L  R S L
       }
 
       const progList = document.getElementById("collect-progress-list");
+      const curSel = document.getElementById("collect-scenario-select")?.value || "";
       if (progList && res.scenarios) {
         progList.innerHTML = Object.entries(res.scenarios).map(([id, info]) => {
           const done = (res.scenario_stats || {})[id] || 0;
           const pct = Math.min(100, Math.round(done / info.target * 100));
-          return `<div style="display:flex; justify-content:space-between; gap:8px; padding:3px 6px;">
-                    <span style="color:var(--text-muted);">${info.label}</span>
+          const isSel = id === curSel;
+          return `<div onclick="_collectClickScenario('${id}')"
+                       style="display:flex; justify-content:space-between; gap:8px; padding:4px 6px; cursor:pointer; border-radius:4px;
+                              background:${isSel ? "rgba(56,189,248,0.15)" : "transparent"};
+                              border:1px solid ${isSel ? "var(--cyan)" : "transparent"};">
+                    <span style="color:${isSel ? "var(--cyan)" : "var(--text-muted)"}; font-weight:${isSel ? "700" : "400"};">${isSel ? "▶ " : ""}${info.label}</span>
                     <span>${done}/${info.target} (${pct}%)</span>
                   </div>`;
         }).join("") + `<div style="margin-top:6px; padding-top:6px; border-top:1px solid var(--border-glow); display:flex; justify-content:space-between;">
@@ -4125,6 +4142,17 @@ L S R  C S L  R S L
 
       const nameInput = document.getElementById("collect-episode-name");
       if (nameInput && res.active && res.episode_name) nameInput.value = res.episode_name;
+    }
+
+    // 진행률 목록의 행을 클릭해서 시나리오 선택(=select 값 변경) — 드롭다운 없이 원클릭 선택
+    function _collectClickScenario(id) {
+      const sel = document.getElementById("collect-scenario-select");
+      if (!sel) return;
+      sel.value = id;
+      collectRefreshState();
+    }
+    function _collectSyncScenarioHighlight() {
+      collectRefreshState();
     }
 
     function collectStartKeyPolling() {
@@ -4173,6 +4201,7 @@ L S R  C S L  R S L
       surface.addEventListener("keyup", collectKeyUp);
       surface.addEventListener("blur", () => { if (_collectPressedKey) collectKeyUp({key: _collectPressedKey}); });
       collectStartKeyPolling();
+      _collectCxDrawOverlay(null, null);
     })();
 
     async function loadWikiContent(name) {
