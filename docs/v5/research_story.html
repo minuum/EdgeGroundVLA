@@ -14148,6 +14148,47 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card">
+    <div class="finding-title">61-11. soda 제기 BGR/RGB 의심 건 — 실물 대조로 기각 (2026-07-08)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda가 <code>mobile_vla_data_collector.py</code>의 <code>cv_bridge.compressed_imgmsg_to_cv2(...,"bgr8")</code>로
+      받은 배열이 JPEG 인코딩 없이 H5 raw로 저장되는데, 학습 로더(<code>nav_h5_dataset_impl.py</code>)는
+      이를 RGB로 가정하고 읽는다는 의심을 제기 (241/241 에피소드 전부 raw 저장 확인 — 전수 영향권).<br><br>
+      색 채널을 반전(BGR→RGB)해서 vis_feat 캐시 재생성 + window6+bbox_scale3 재학습까지 진행:
+      <strong style="color:#e2e8f0">5-seed 79.6%±3.7%</strong> — 원본(반전 없음) 84.6%±2.9%와 유의미한 차이 없음.<br><br>
+      결정적으로 <strong style="color:#fbbf24">사용자가 실제 촬영 공간을 직접 눈으로 대조</strong>한 결과,
+      현재 로더(반전 없음) 쪽이 실물 색에 더 가까움을 확인. 코드 추적(명시적 <code>"bgr8"</code> 요청,
+      중간 변환 없음)은 여전히 이론상 스왑 가능성을 가리키지만, 실물 대조라는 더 강한 증거 앞에서 기각 —
+      카메라 원본 인코딩이 이미 bgr8이라 반전이 사실상 무변환(no-op)이었을 가능성.<br><br>
+      <strong style="color:#4ade80">결론: 재학습 불필요, 어제 배포한 window6+bbox_scale3(원본) 그대로 유지.</strong>
+      색 반전판 체크포인트(<code>exp71_window6_bboxscale3_colorfixed</code>)는 참고용으로만 보존.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-12. 조이스틱 재수집 설계 정정 — "지시-경로 디커플링" (2026-07-09)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      이번 주 결론: 그라운더 수정, vis_feat 정규화 버그 수정, bbox_scale로 좌우비대칭 완화, PG2 비전인코더 비교 —
+      <strong style="color:#e2e8f0">가능한 모델/학습 레벨 레버는 거의 다 당겨봤고</strong>, 남은 두 근본 원인은
+      코드로 해결 불가능:
+      <ul style="margin:8px 0 8px 18px;line-height:1.9">
+        <li>극단 cx(강한좌/우) 학습 데이터 자체가 3.2%뿐 — <strong>입력 분포 커버리지 부족</strong> (더 모으면 해결)</li>
+        <li>텍스트-장면이 1:1 상관 — counterfactual changed_rate 정확히 0.0% — <strong>라벨링 구조상 언어를
+        따르는 신호 자체가 데이터에 없음</strong> (같은 방식으로 더 모아도 해결 안 됨)</li>
+      </ul>
+      <strong style="color:#fbbf24">수집 설계 정정</strong>: 타겟은 gray basket 하나뿐이라 "다른 목적지 지시"
+      분기는 불가능. 대신 바뀌는 축은 <strong>바구니까지 접근하는 경로 곡선</strong>(좌곡선/직진/우곡선)이며,
+      이 지시를 화면상 바구니 위치(cx)와의 결박을 끊고 <strong>매 회차 무작위 배정</strong> —
+      같은 극단 cx 시작 장면에서 좌곡선 지시를 받은 에피소드와 우곡선 지시를 받은 에피소드가 모두 존재하게
+      되고, 오퍼레이터는 실제로 그 지시를 따라 조이스틱으로 다르게 주행 → 실제 궤적(라벨)이 갈라지는
+      <strong style="color:#4ade80">진짜 counterfactual 쌍</strong>이 생성됨. 지시를 무시한 임의 주행은
+      금지(그러면 반대로 "지시=노이즈"라는 잘못된 신호를 학습시킴).<br><br>
+      수집 인프라(대시보드 📷 데이터수집 탭)는 soda가 이미 구현 완료 — 남은 것은 이 디커플링 프로토콜을
+      적용한 실제 물리적 수집.<br><br>
+      상세: <a href="../plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md" style="color:#60a5fa">plan_20260707_heterogeneous_instruction_extreme_cx_collection.md</a> §1-1
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#f87171">
     <div class="finding-title" style="color:#f87171">61-10. 종합 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
