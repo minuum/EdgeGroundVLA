@@ -14228,6 +14228,31 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card">
+    <div class="finding-title">61-15. 수집 플랜 트랙 분리 — 도달성능(A) vs 언어조건화(B) (2026-07-09)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      질문: "목표(gray basket)에 다가가는 것만이 목표라면 지시-경로 디커플링(61-12)까지
+      할 필요가 있나?" — 정답은 <strong style="color:#e2e8f0">아니오, 순수 도달 성능에는
+      불필요</strong>. 텍스트-장면 confound(②)는 목표가 하나뿐인 태스크에서는 실패 원인이
+      아니고, 실제 obj_* 실패의 직접 원인은 ①극단cx 부족과 ③cx-경로곡선 confound
+      (61-13, FWD+L 반복)뿐이기 때문.<br><br>
+      그래서 수집 플랜을 <strong style="color:#4ade80">두 트랙으로 분리</strong>:
+      <ul style="margin:8px 0 8px 18px;line-height:1.9">
+        <li><strong>트랙 A(핵심, 180ep)</strong>: 극단cx 4곳 × 경로 다양성, 지시문 불필요 —
+        오퍼레이터가 같은 위치에서 자유롭게 다른 경로로 여러 번 주행. obj_* 도달성능 직결.</li>
+        <li><strong>트랙 B(선택, 60ep)</strong>: 지시-경로 디커플링(61-12) — 언어조건화
+        로드맵 대비용으로 격을 낮춰 "수집 세트 중 하나"로 포함, 트랙A 대비 후순위.</li>
+      </ul>
+      <strong style="color:#fbbf24">재확인된 결론</strong>: 어느 트랙이든 <strong>현재 150ep
+      데이터셋만으로는(학습 기법을 뭘 써도) 해결 불가</strong> — 이번 주 시도한 모든 학습레벨
+      우회(정규화 수정, bbox_scale, PG2 교체, synthetic augmentation)가 이미 한계에 도달했고,
+      근본 원인이 데이터에 신호 자체가 없는 것이라 재수집이 유일한 해법.<br><br>
+      soda 쪽에서도 이미 같은 방향(4-position 극단 배치 수집 UI)을 대시보드에 구현 중
+      (`930a6180` cx-axis 진행률 차트, `984b0ae4` 조이스틱 D-pad 시나리오 전환).<br><br>
+      상세: <a href="../plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md" style="color:#60a5fa">plan_20260707_heterogeneous_instruction_extreme_cx_collection.md</a> §0,§1
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#f87171">
     <div class="finding-title" style="color:#f87171">61-10. 종합 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
