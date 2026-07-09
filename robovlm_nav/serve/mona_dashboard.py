@@ -251,6 +251,11 @@ class DataCollectSession:
         self.core_patterns: dict = {}
         self._load_progress()
 
+        # 복귀(경로 역재생) — Gradio start_auto_return() 이식용. 저장/폐기와 무관하게
+        # 직전 에피소드의 액션+타임스탬프만 남겨둠(이미지 없음, 가벼움).
+        self._last_episode_actions: List[dict] = []
+        self._returning = False
+
     # ── VLAControlManager.on_command 훅 — source 무관(키보드/조이스틱) 기록 ──
     # publish_and_move()는 robust_stop()의 5x 중복 정지펄스(0.05s 간격)처럼
     # 의미 없는 반복 호출도 거치므로, 연속된 STOP 프레임은 1개로만 눌러 담아
@@ -274,6 +279,7 @@ class DataCollectSession:
                 "image": frame.copy(),
                 "action": {"linear_x": lx, "linear_y": ly, "angular_z": az},
                 "action_event_type": source,
+                "t": time.time(),
             })
 
     def start_episode(self, episode_name=None, scenario=None, pattern=None, cx_position=None) -> str:
@@ -325,6 +331,39 @@ class DataCollectSession:
             self.episode_data.pop()
             return {"ok": True, "steps": len(self.episode_data)}
 
+    def start_auto_return(self) -> dict:
+        """Gradio start_auto_return() 이식 — 직전 에피소드 경로를 역순+반전 액션으로
+        재생해 대략 시작 위치로 되돌아간다. 저장/폐기 여부와 무관하게 동작(토글 가능)."""
+        if self.active:
+            return {"ok": False, "msg": "녹화 중엔 복귀 불가"}
+        if self._returning:
+            self._returning = False
+            return {"ok": True, "msg": "복귀 중지"}
+        if not self._last_episode_actions or _ros is None or _ros.ctrl is None:
+            return {"ok": False, "msg": "되돌아갈 경로 없음"}
+
+        def run():
+            self._returning = True
+            try:
+                buf = self._last_episode_actions[:]
+                rev_acts = [(-a["action"]["linear_x"], -a["action"]["linear_y"], -a["action"]["angular_z"])
+                            for a in reversed(buf)]
+                ts = [a["t"] for a in buf]
+                dts = [max(0.05, min(ts[i + 1] - ts[i], 0.6)) for i in range(len(ts) - 1)]
+                dts.append(dts[-1] if dts else 0.1)
+                for act, dt in zip(rev_acts, dts):
+                    if not self._returning:
+                        break
+                    _ros.ctrl.publish_and_move(*act, source="joystick_return")
+                    time.sleep(dt)
+                if self._returning:
+                    _ros.ctrl.robust_stop(source="joystick_return_end")
+            finally:
+                self._returning = False
+
+        threading.Thread(target=run, daemon=True, name="collect-return").start()
+        return {"ok": True, "msg": "🔄 복귀 시작 — 다시 누르면 중지"}
+
     def stop_episode(self, save=True) -> dict:
         with self._lock:
             self.active = False
@@ -332,6 +371,9 @@ class DataCollectSession:
             name = self.episode_name
             duration = time.time() - self.episode_started_at if self.episode_started_at else 0.0
             self.episode_data = []
+            if len(data) > 1:
+                # 저장/폐기 여부와 무관하게 남겨둠 — Gradio와 동일하게 "복귀"는 저장 안 해도 가능
+                self._last_episode_actions = [{"action": d["action"], "t": d["t"]} for d in data]
         if not save:
             return {"ok": True, "saved": False, "steps": len(data)}
         if len(data) <= 1:
@@ -431,6 +473,8 @@ class DataCollectSession:
             "cx_position": self.selected_cx_position,
             "cx_positions": COLLECT_CX_POSITIONS,
             "cx_position_stats": dict(self.cx_position_stats),
+            "returning": self._returning,
+            "has_return_path": len(self._last_episode_actions) > 1,
         }
 
 
@@ -472,6 +516,8 @@ class DashboardJoystickReader:
     BTN_REC_SAVE   = 5   # R1    — 정지 & 저장
     BTN_SELECT     = 6   # Select — 녹화 토글(시작↔저장)
     BTN_TOGGLE     = 7   # Start  — SYNC/ASYNC 모드 전환
+    TRIG_R2        = 5   # R2(트리거, 축) — Gradio "controller" 레이아웃과 동일: 경로 역재생 복귀
+    TRIG_THRESHOLD = 0.30
 
     WASD_TO_VEL = {
         'W': ( 1.15, 0.0,  0.0),
@@ -499,6 +545,7 @@ class DashboardJoystickReader:
         self._last_btn = None
         self._hat_prev = (0, 0)  # D-pad 엣지 검출용 (시나리오 넘기기)
         self._last_hat_dir = None  # 마지막으로 눌린 D-pad 방향 ("left"/"right"/"up"/"down")
+        self._trig_r2_prev = -1.0  # R2 트리거 엣지 검출용 (복귀)
         self.status: dict = {
             "connected": False, "name": "—",
             "key": None, "label": "—",
@@ -705,6 +752,15 @@ class DashboardJoystickReader:
                             if _collect is not None:
                                 _collect.cycle_scenario(-1 if hy > 0 else 1)
                         self._hat_prev = hat
+
+                # R2(트리거, 축) 엣지 → 복귀(경로 역재생), Gradio "controller" 레이아웃과 동일
+                nax = js.get_numaxes()
+                if 0 <= self.TRIG_R2 < nax:
+                    tv = js.get_axis(self.TRIG_R2)
+                    if tv > self.TRIG_THRESHOLD and self._trig_r2_prev <= self.TRIG_THRESHOLD:
+                        if _collect is not None:
+                            _collect.start_auto_return()
+                    self._trig_r2_prev = tv
 
             except Exception as e:
                 log.warning(f"[Joystick] 루프 오류: {e}")
@@ -1386,6 +1442,14 @@ def collect_scenario_cycle(req: CollectScenarioCycleReq):
         return {"ok": False, "error": "데이터수집 세션 미초기화"}
     staged = _collect.cycle_scenario(req.step)
     return {"ok": True, "staged_scenario": staged}
+
+
+@app.post("/collect/return")
+def collect_return():
+    """조이스틱 R2(트리거) 또는 화면 버튼으로 직전 경로를 역재생해 시작 위치로 복귀 (Gradio 이식)."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    return _collect.start_auto_return()
 
 
 @app.get("/collect/state")
@@ -3682,6 +3746,7 @@ L S R  C S L  R S L
                 <button class="btn btn-cyan" style="flex:1;" onclick="collectStartEpisode()">▶ 시작</button>
                 <button class="btn btn-outline" style="flex:1; border-color:var(--rose); color:var(--rose);" onclick="collectStopEpisode()">⏹ 정지 & 저장</button>
               </div>
+              <button id="collect-return-btn" class="btn btn-outline" style="width:100%; margin-top:8px; border-color:var(--amber); color:var(--amber);" onclick="collectAutoReturn()">🔄 복귀 (직전 경로 역주행)</button>
               <div id="collect-episode-status" style="font-size:11px; color:var(--text-muted); margin-top:8px;">—</div>
             </div>
           </div>
@@ -3714,6 +3779,7 @@ L S R  C S L  R S L
                       <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
                   <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
                       <td style="padding:1px 4px;"><b>START</b>(7)</td><td>SYNC↔ASYNC 모드</td></tr>
+                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>R2</b>(트리거)</td><td colspan="3" style="color:var(--amber);">🔄 복귀 — 직전 경로 역주행 (Gradio 이식, 다시 당기면 중지)</td></tr>
                 </table>
                 ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
               </div>
@@ -4337,6 +4403,19 @@ L S R  C S L  R S L
       }
       if (stepsBadge) stepsBadge.textContent = res.steps + " steps";
 
+      const returnBtn = document.getElementById("collect-return-btn");
+      if (returnBtn) {
+        returnBtn.disabled = res.active || !res.has_return_path;
+        returnBtn.style.opacity = returnBtn.disabled ? "0.4" : "1";
+        if (res.returning) {
+          returnBtn.textContent = "🛑 복귀 중지";
+          returnBtn.style.background = "rgba(245,158,11,0.15)";
+        } else {
+          returnBtn.textContent = "🔄 복귀 (직전 경로 역주행)";
+          returnBtn.style.background = "";
+        }
+      }
+
       if (!_collectScenariosLoaded && res.scenarios) {
         const sel = document.getElementById("collect-scenario-select");
         Object.entries(res.scenarios).forEach(([id, info]) => {
@@ -4489,6 +4568,14 @@ L S R  C S L  R S L
         ? (res.saved ? `✅ 저장됨: ${res.path} (${res.steps} steps, ${res.duration.toFixed(1)}s)` : "⚠️ 저장 안 함: " + (res.reason || ""))
         : "⚠️ " + res.error;
       document.getElementById("collect-episode-name").value = "";
+      collectRefreshState();
+    }
+
+    // 직전 경로를 역재생해 시작 위치로 복귀 — 조이스틱 R2 트리거와 동일 기능(화면 버튼)
+    async function collectAutoReturn() {
+      const res = await api("/collect/return", { method: "POST" });
+      const statusEl = document.getElementById("collect-episode-status");
+      if (statusEl) statusEl.textContent = res.ok ? res.msg : "⚠️ " + (res.error || res.msg);
       collectRefreshState();
     }
 
