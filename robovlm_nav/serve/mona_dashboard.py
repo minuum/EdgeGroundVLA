@@ -233,6 +233,7 @@ class DataCollectSession:
         self.episode_started_at: Optional[float] = None
         self.selected_scenario: Optional[str] = None
         self.selected_pattern: Optional[str] = None
+        self.staged_scenario: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 시나리오
 
         self.scenario_stats: dict = collections.defaultdict(int)
         self.time_period_stats: dict = collections.defaultdict(int)
@@ -282,6 +283,26 @@ class DataCollectSession:
             self.active = True
         log.info(f"📷 [DataCollect] 에피소드 시작: {episode_name}")
         return episode_name
+
+    def stage_scenario(self, scenario: Optional[str]) -> Optional[str]:
+        """웹 UI(진행률 행 클릭)로 시나리오를 직접 지정 — D-pad cycle_scenario와 동일한 staged_scenario를 공유."""
+        with self._lock:
+            if self.active:
+                return self.staged_scenario
+            self.staged_scenario = scenario or None
+            return self.staged_scenario
+
+    def cycle_scenario(self, step: int) -> Optional[str]:
+        """조이스틱 D-pad 좌/우(상/하)로 녹화 시작 전 시나리오를 순환 선택 (Gradio D-pad와 동일 동작)."""
+        with self._lock:
+            if self.active:
+                return self.staged_scenario  # 녹화 중엔 변경 불가
+            keys = list(COLLECT_SCENARIOS.keys())
+            if not keys:
+                return None
+            i = (keys.index(self.staged_scenario) + step) % len(keys) if self.staged_scenario in keys else 0
+            self.staged_scenario = keys[i]
+            return self.staged_scenario
 
     def undo_last_frame(self) -> dict:
         with self._lock:
@@ -381,6 +402,7 @@ class DataCollectSession:
             "steps": len(self.episode_data),
             "scenario": self.selected_scenario,
             "pattern": self.selected_pattern,
+            "staged_scenario": self.staged_scenario,
             "scenarios": COLLECT_SCENARIOS,
             "patterns": COLLECT_PATTERNS,
             "scenario_stats": dict(self.scenario_stats),
@@ -452,6 +474,7 @@ class DashboardJoystickReader:
         self._last_non_neutral_key = None
         self._axes = self._load_axes()
         self._last_btn = None
+        self._hat_prev = (0, 0)  # D-pad 엣지 검출용 (시나리오 넘기기)
         self.status: dict = {
             "connected": False, "name": "—",
             "key": None, "label": "—",
@@ -629,7 +652,7 @@ class DashboardJoystickReader:
                                 _collect.stop_episode(save=False)
                         elif i == self.BTN_REC_START:
                             if _collect is not None and not _collect.active:
-                                _collect.start_episode()
+                                _collect.start_episode(scenario=_collect.staged_scenario)
                         elif i == self.BTN_REC_SAVE:
                             if _collect is not None and _collect.active:
                                 _collect.stop_episode(save=True)
@@ -638,8 +661,21 @@ class DashboardJoystickReader:
                                 if _collect.active:
                                     _collect.stop_episode(save=True)
                                 else:
-                                    _collect.start_episode()
+                                    _collect.start_episode(scenario=_collect.staged_scenario)
                     self._btn_prev[i] = cur
+
+                # D-pad(hat) 엣지 → 시나리오 넘기기 (좌=이전 / 우=다음, 상/하도 동일, Gradio와 동일 매핑)
+                if js.get_numhats() > 0:
+                    hat = js.get_hat(0)
+                    if hat != self._hat_prev:
+                        hx, hy = hat
+                        phx, phy = self._hat_prev
+                        if _collect is not None:
+                            if hx != 0 and hx != phx:
+                                _collect.cycle_scenario(1 if hx > 0 else -1)
+                            elif hy != 0 and hy != phy:
+                                _collect.cycle_scenario(-1 if hy > 0 else 1)
+                        self._hat_prev = hat
 
             except Exception as e:
                 log.warning(f"[Joystick] 루프 오류: {e}")
@@ -1032,6 +1068,9 @@ class CollectEpisodeStartReq(BaseModel):
 class CollectEpisodeStopReq(BaseModel):
     save: bool = True
 
+class CollectScenarioStageReq(BaseModel):
+    scenario: Optional[str] = None
+
 class ConfigToggleReq(BaseModel):
     preview_enabled: Optional[bool] = None
     preview_hint_cx: Optional[bool] = None
@@ -1281,6 +1320,30 @@ def collect_ground():
         return d
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+@app.get("/collect/snapshot")
+def collect_snapshot():
+    """데이터수집 탭 — 현재 카메라 1프레임을 캡처해 base64 JPEG로 반환 (cx 기준 가이드 이미지용)."""
+    if not ROS_AVAILABLE or not _ros:
+        return {"ok": False, "error": "ROS 연결 불가"}
+    frame = _ros.latest_bgr()
+    if frame is None:
+        return {"ok": False, "error": "카메라 프레임 없음"}
+    rgb = frame[:, :, ::-1]
+    buf = io.BytesIO()
+    Image.fromarray(rgb).save(buf, "JPEG", quality=85)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return {"ok": True, "image": b64}
+
+
+@app.post("/collect/scenario/stage")
+def collect_scenario_stage(req: CollectScenarioStageReq):
+    """진행률 행 클릭으로 시나리오 선택 — 조이스틱 D-pad와 동일한 staged_scenario를 공유(단일 소스)."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.stage_scenario(req.scenario)
+    return {"ok": True, "staged_scenario": staged}
 
 
 @app.get("/collect/state")
@@ -3523,6 +3586,16 @@ L S R  C S L  R S L
             </div>
 
             <div class="card" style="padding:16px;">
+              <div class="card-title">📍 시작 프레임 기준 cx 배치 가이드
+                <button class="btn btn-outline" style="font-size:11px; padding:3px 10px; float:right;" onclick="_collectCaptureGuide()">📸 캡처</button>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">지금 화면을 캡처해서 극단 cx 구간을 선/밴드+수치로 표시 — 바구니를 어디에 놓아야 하는지 참고용 스냅샷</div>
+              <div class="viewport-wrapper">
+                <canvas id="collect-guide-canvas" class="viewport-img" width="1280" height="720"></canvas>
+              </div>
+            </div>
+
+            <div class="card" style="padding:16px;">
               <div class="card-title">🕹️ 조작 (탭 클릭 후 키보드 W A S D Q E Z C R T Space)</div>
               <div id="collect-key-surface" tabindex="0"
                    style="outline:none; border:2px dashed var(--border-glow); border-radius:10px; padding:24px; text-align:center; background:#090d16; cursor:pointer;">
@@ -3577,6 +3650,7 @@ L S R  C S L  R S L
               <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
                 <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
                 왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
+                <b>D-pad(방향키)</b> 좌/우(상/하도 동일) → 녹화 시작 전 <b>시나리오 순환 선택</b> (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 시나리오로 태깅됨)<br>
                 <table style="width:100%; border-collapse:collapse; margin-top:6px;">
                   <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
                       <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
@@ -3592,7 +3666,9 @@ L S R  C S L  R S L
             </div>
 
             <div class="card" style="padding:16px;">
-              <div class="card-title">🎯 시나리오 & 진행률 (행 클릭해서 선택)</div>
+              <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
+                <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
+              </div>
               <select id="collect-scenario-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;" onchange="_collectSyncScenarioHighlight()">
                 <option value="">— 미지정 (episode_name 수동) —</option>
               </select>
@@ -4079,6 +4155,62 @@ L S R  C S L  R S L
       _collectCxDrawOverlay(res.cx, band.color);
     }
 
+    // 시작 프레임 캡처 → 극단 cx 구간을 밴드+선+수치로 정적 표시 (에피소드 시작 전 배치 참고용)
+    async function _collectCaptureGuide() {
+      const res = await api("/collect/snapshot");
+      const cv = document.getElementById("collect-guide-canvas");
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      if (!res.ok) {
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "24px sans-serif";
+        ctx.fillText("⚠️ " + (res.error || "캡처 실패"), 20, 40);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        _collectDrawCxGuideBands(ctx, cv.width, cv.height);
+      };
+      img.src = "data:image/jpeg;base64," + res.image;
+    }
+
+    function _collectDrawCxGuideBands(ctx, W, H) {
+      const bands = [
+        {lo: 0.10, hi: 0.15, label: "강한좌", color: "rgba(244,63,94,0.95)", fill: "rgba(244,63,94,0.22)"},
+        {lo: 0.20, hi: 0.25, label: "준극단좌", color: "rgba(245,158,11,0.95)", fill: "rgba(245,158,11,0.22)"},
+        {lo: 0.75, hi: 0.80, label: "준극단우", color: "rgba(245,158,11,0.95)", fill: "rgba(245,158,11,0.22)"},
+        {lo: 0.85, hi: 0.90, label: "강한우", color: "rgba(244,63,94,0.95)", fill: "rgba(244,63,94,0.22)"},
+      ];
+      bands.forEach(b => {
+        const x0 = b.lo * W, x1 = b.hi * W;
+        ctx.fillStyle = b.fill;
+        ctx.fillRect(x0, 0, x1 - x0, H);
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0, H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, 0); ctx.lineTo(x1, H); ctx.stroke();
+        ctx.fillStyle = b.color;
+        ctx.textAlign = "center";
+        ctx.font = "bold 22px monospace";
+        const midX = (x0 + x1) / 2;
+        ctx.fillText(b.label, midX, 30);
+        ctx.font = "16px monospace";
+        ctx.fillText(b.lo.toFixed(2) + "~" + b.hi.toFixed(2), midX, 54);
+      });
+      ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = "rgba(148,163,184,0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(148,163,184,0.95)";
+      ctx.textAlign = "center";
+      ctx.font = "16px monospace";
+      ctx.fillText("center 0.50", W / 2, H - 12);
+    }
+
     function collectToggleCxFeed() {
       const badge = document.getElementById("collect-cx-toggle-badge");
       if (_collectCxTimer) {
@@ -4120,6 +4252,13 @@ L S R  C S L  R S L
         _collectScenariosLoaded = true;
       }
 
+      const selEl = document.getElementById("collect-scenario-select");
+      if (selEl && !res.active && selEl.value !== (res.staged_scenario || "")) {
+        selEl.value = res.staged_scenario || "";
+      }
+      const dpadBadge = document.getElementById("collect-scenario-dpad-badge");
+      if (dpadBadge) dpadBadge.style.display = res.staged_scenario ? "inline" : "none";
+
       const progList = document.getElementById("collect-progress-list");
       const curSel = document.getElementById("collect-scenario-select")?.value || "";
       if (progList && res.scenarios) {
@@ -4144,14 +4283,16 @@ L S R  C S L  R S L
       if (nameInput && res.active && res.episode_name) nameInput.value = res.episode_name;
     }
 
-    // 진행률 목록의 행을 클릭해서 시나리오 선택(=select 값 변경) — 드롭다운 없이 원클릭 선택
-    function _collectClickScenario(id) {
-      const sel = document.getElementById("collect-scenario-select");
-      if (!sel) return;
-      sel.value = id;
+    // 진행률 목록의 행을 클릭해서 시나리오 선택 — 서버 staged_scenario에 반영(조이스틱 D-pad와 동일 소스 공유)
+    async function _collectClickScenario(id) {
+      await api("/collect/scenario/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ scenario: id }) });
       collectRefreshState();
     }
-    function _collectSyncScenarioHighlight() {
+    async function _collectSyncScenarioHighlight() {
+      const sel = document.getElementById("collect-scenario-select");
+      await api("/collect/scenario/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ scenario: sel?.value || null }) });
       collectRefreshState();
     }
 
