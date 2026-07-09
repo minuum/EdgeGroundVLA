@@ -498,11 +498,13 @@ class DashboardJoystickReader:
         self._axes = self._load_axes()
         self._last_btn = None
         self._hat_prev = (0, 0)  # D-pad 엣지 검출용 (시나리오 넘기기)
+        self._last_hat_dir = None  # 마지막으로 눌린 D-pad 방향 ("left"/"right"/"up"/"down")
         self.status: dict = {
             "connected": False, "name": "—",
             "key": None, "label": "—",
             "enabled": True, "mode": "ASYNC",
             "buttons": [], "last_btn": None,
+            "hat": (0, 0), "last_hat_dir": None,
         }
 
     def _load_axes(self):
@@ -656,6 +658,7 @@ class DashboardJoystickReader:
                     "mode": self._js_mode.upper(),
                     "key": key, "label": LABELS.get(key, "●") if key else "○",
                     "buttons": pressed_buttons, "last_btn": self._last_btn,
+                    "hat": self._hat_prev, "last_hat_dir": self._last_hat_dir,
                 }
 
                 for i in range(js.get_numbuttons()):
@@ -693,10 +696,13 @@ class DashboardJoystickReader:
                     if hat != self._hat_prev:
                         hx, hy = hat
                         phx, phy = self._hat_prev
-                        if _collect is not None:
-                            if hx != 0 and hx != phx:
+                        if hx != 0 and hx != phx:
+                            self._last_hat_dir = "right" if hx > 0 else "left"
+                            if _collect is not None:
                                 _collect.cycle_scenario(1 if hx > 0 else -1)
-                            elif hy != 0 and hy != phy:
+                        elif hy != 0 and hy != phy:
+                            self._last_hat_dir = "up" if hy > 0 else "down"
+                            if _collect is not None:
                                 _collect.cycle_scenario(-1 if hy > 0 else 1)
                         self._hat_prev = hat
 
@@ -1095,6 +1101,9 @@ class CollectEpisodeStopReq(BaseModel):
 class CollectScenarioStageReq(BaseModel):
     scenario: Optional[str] = None
 
+class CollectScenarioCycleReq(BaseModel):
+    step: int = 1
+
 class ConfigToggleReq(BaseModel):
     preview_enabled: Optional[bool] = None
     preview_hint_cx: Optional[bool] = None
@@ -1367,6 +1376,15 @@ def collect_scenario_stage(req: CollectScenarioStageReq):
     if _collect is None:
         return {"ok": False, "error": "데이터수집 세션 미초기화"}
     staged = _collect.stage_scenario(req.scenario)
+    return {"ok": True, "staged_scenario": staged}
+
+
+@app.post("/collect/scenario/cycle")
+def collect_scenario_cycle(req: CollectScenarioCycleReq):
+    """화면의 ◀/▶ 버튼으로 시나리오 순환 — 조이스틱 D-pad 없이도 동일하게 사용 가능."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.cycle_scenario(req.step)
     return {"ok": True, "staged_scenario": staged}
 
 
@@ -2455,6 +2473,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   .btn-light-name.active {
     color: var(--emerald); font-weight: 700;
   }
+  @keyframes flashHighlight {
+    0%   { background: rgba(56,189,248,0.45); box-shadow: 0 0 0 2px var(--cyan); }
+    100% { background: transparent; box-shadow: none; }
+  }
+  .flash-highlight { animation: flashHighlight 1s ease-out; border-radius: 8px; }
 
   /* ── 테이블 ── */
   .table-wrapper {
@@ -3669,8 +3692,15 @@ L S R  C S L  R S L
                 <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (번호 + 물리 버튼 이름, DragonRise 기준)</div>
-              <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px;"></div>
-              <div id="collect-js-btn-caption" style="font-size:13px; font-family:var(--font-mono); text-align:center; margin-bottom:12px; padding:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">대기 중 — 버튼을 누르면 여기 표시</div>
+              <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">D-pad (시나리오 순환 전용)</div>
+              <div style="display:flex; justify-content:center; gap:8px; margin-bottom:12px;">
+                <div id="collect-dpad-left" class="btn-light">◀</div>
+                <div id="collect-dpad-up" class="btn-light">▲</div>
+                <div id="collect-dpad-down" class="btn-light">▼</div>
+                <div id="collect-dpad-right" class="btn-light">▶</div>
+              </div>
+              <div id="collect-js-btn-caption" style="font-size:16px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:12px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
               <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
                 <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
                 왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
@@ -3693,9 +3723,13 @@ L S R  C S L  R S L
               <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
                 <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
               </div>
-              <select id="collect-scenario-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;" onchange="_collectSyncScenarioHighlight()">
-                <option value="">— 미지정 (episode_name 수동) —</option>
-              </select>
+              <div id="collect-scenario-row" style="display:flex; gap:6px; margin-bottom:8px; padding:4px;">
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(-1)" title="이전 시나리오 (D-pad 좌와 동일)">◀</button>
+                <select id="collect-scenario-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncScenarioHighlight()">
+                  <option value="">— 미지정 (episode_name 수동) —</option>
+                </select>
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(1)" title="다음 시나리오 (D-pad 우와 동일)">▶</button>
+              </div>
               <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
                 <option value="">— 패턴 미지정 —</option>
                 <option value="core">핵심 패턴 (Core)</option>
@@ -3928,13 +3962,37 @@ L S R  C S L  R S L
           if (nameEl) nameEl.classList.toggle("active", isPressed);
           if (isPressed) activeInfo = JOYSTICK_BTN_INFO[i] || {name: "#" + i, desc: "미사용"};
         }
+
+        // D-pad 방향 라이트 + 캡션 — 버튼과 동일한 자리에 크게 표시
+        const hat = s.hat || [0, 0];
+        const dpadState = {
+          left:  hat[0] < 0, right: hat[0] > 0,
+          up:    hat[1] > 0, down:  hat[1] < 0,
+        };
+        const DPAD_LABEL = {left: "◀ D-pad LEFT", right: "▶ D-pad RIGHT", up: "▲ D-pad UP", down: "▼ D-pad DOWN"};
+        let dpadInfo = null;
+        for (const dir of ["left", "up", "down", "right"]) {
+          const el = document.getElementById("collect-dpad-" + dir);
+          if (!el) continue;
+          const isHeld = dpadState[dir];
+          el.classList.toggle("active", isHeld);
+          el.classList.toggle("last", s.last_hat_dir === dir && !isHeld);
+          if (isHeld) dpadInfo = { name: DPAD_LABEL[dir], desc: "시나리오 순환 선택 중" };
+        }
+        // 방금 뗀 D-pad 방향도 짧게 표시(순간 탭이라 held로 못 잡을 때 대비)
+        if (!dpadInfo && !activeInfo && s.last_hat_dir && s.last_hat_dir !== _collectLastHatDirShown) {
+          dpadInfo = { name: DPAD_LABEL[s.last_hat_dir], desc: "시나리오 순환 선택됨" };
+        }
+        if (s.last_hat_dir !== _collectLastHatDirShown) _collectLastHatDirShown = s.last_hat_dir;
+
+        const shown = activeInfo || dpadInfo;
         if (cap) {
-          if (activeInfo) {
-            cap.textContent = `${activeInfo.name} — ${activeInfo.desc}`;
+          if (shown) {
+            cap.textContent = `${shown.name} — ${shown.desc}`;
             cap.style.color = "var(--emerald)";
             cap.style.borderColor = "var(--emerald)";
           } else {
-            cap.textContent = "대기 중 — 버튼을 누르면 여기 표시";
+            cap.textContent = "대기 중 — 버튼/D-pad를 누르면 여기 크게 표시";
             cap.style.color = "var(--text-muted)";
             cap.style.borderColor = "var(--border-glow)";
           }
@@ -4061,6 +4119,8 @@ L S R  C S L  R S L
     let _collectPollTimer = null;
     let _collectScenariosLoaded = false;
     let _collectCxPosLoaded = false;
+    let _collectPrevStagedScenario = undefined;
+    let _collectLastHatDirShown = null;
 
     function _collectSendKey(key, event) {
       api("/collect/key", { method: "POST", headers: {"Content-Type":"application/json"},
@@ -4295,6 +4355,17 @@ L S R  C S L  R S L
       const dpadBadge = document.getElementById("collect-scenario-dpad-badge");
       if (dpadBadge) dpadBadge.style.display = res.staged_scenario ? "inline" : "none";
 
+      // 시나리오가 바뀔 때마다(D-pad/◀▶/클릭 무관) 눈에 잘 띄게 카드 행을 잠깐 강조
+      if (res.staged_scenario !== _collectPrevStagedScenario) {
+        _collectPrevStagedScenario = res.staged_scenario;
+        const row = document.getElementById("collect-scenario-row");
+        if (row) {
+          row.classList.remove("flash-highlight");
+          void row.offsetWidth; // 리플로우 강제 — 연속 변경 시에도 애니메이션 재시작
+          row.classList.add("flash-highlight");
+        }
+      }
+
       const progList = document.getElementById("collect-progress-list");
       const curSel = document.getElementById("collect-scenario-select")?.value || "";
       if (progList && res.scenarios) {
@@ -4366,6 +4437,12 @@ L S R  C S L  R S L
     async function _collectClickScenario(id) {
       await api("/collect/scenario/stage", { method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ scenario: id }) });
+      collectRefreshState();
+    }
+    // 화면 ◀/▶ 버튼으로 시나리오 순환 — 조이스틱 D-pad와 동일한 서버 로직(cycle_scenario) 재사용
+    async function _collectCycleScenario(step) {
+      await api("/collect/scenario/cycle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step }) });
       collectRefreshState();
     }
     async function _collectSyncScenarioHighlight() {
