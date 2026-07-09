@@ -202,12 +202,13 @@ COLLECT_SCENARIOS = {
 }
 COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (Variant)"}
 
-# 극단 배치 데이터수집 — 1일차 목표 120ep (4포지션 × 지시 2종 × 15회, 지시별 카운트는 미분리)
+# 극단 배치 데이터수집 트랙A (plan_20260707_heterogeneous_instruction_extreme_cx_collection.md)
+# — 4포지션 × 접근경로 3종(좌곡선/직진/우곡선, 지시 불필요·오퍼레이터 재량) × 15회 = 180ep
 COLLECT_CX_POSITIONS = {
-    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 30},
-    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 30},
-    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 30},
-    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 30},
+    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 45},
+    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 45},
+    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 45},
+    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 45},
 }
 
 
@@ -3704,7 +3705,10 @@ L S R  C S L  R S L
             </div>
 
             <div class="card" style="padding:16px;">
-              <div class="card-title">📏 극단 배치 진행률 (cx축 막대그래프)</div>
+              <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
+              </div>
               <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
                 <option value="">— cx 위치 미지정 —</option>
               </select>
