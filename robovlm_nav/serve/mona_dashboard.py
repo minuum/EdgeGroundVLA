@@ -3685,16 +3685,36 @@ L S R  C S L  R S L
 
         <!-- 상단 줄: 카메라 : 조이스틱 : 시나리오&진행률 = 2:1:1, 한눈에 쭉 보이도록 -->
         <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
-          <div class="card" style="padding:16px;">
-            <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
-              <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
-                <input type="checkbox" id="toggle-grid-collect" checked onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--cyan);"> Grid 표시
-              </label>
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
+                <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
+                  <input type="checkbox" id="toggle-grid-collect" checked onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--cyan);"> Grid 표시
+                </label>
+              </div>
+              <div class="viewport-wrapper">
+                <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
+                     onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
+                <canvas id="collect-cx-canvas" class="viewport-canvas" width="1280" height="720"></canvas>
+              </div>
             </div>
-            <div class="viewport-wrapper">
-              <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
-                   onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
-              <canvas id="collect-cx-canvas" class="viewport-canvas" width="1280" height="720"></canvas>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🎯 실시간 cx (바구니 배치용)
+                <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
+              </div>
+              <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px;">—</div>
+              <div id="collect-cx-band" style="font-size:12px; text-align:center; color:var(--text-muted);">극단 배치 기준: 0.10~0.15 강한좌 · 0.20~0.25 준극단좌 · 0.75~0.80 준극단우 · 0.85~0.90 강한우</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📍 시작 프레임 기준 cx 배치 가이드
+                <button class="btn btn-outline" style="font-size:11px; padding:3px 10px; float:right;" onclick="_collectCaptureGuide()">📸 캡처</button>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">지금 화면을 캡처해서 극단 cx 구간을 선/밴드+수치로 표시 — 바구니를 어디에 놓아야 하는지 참고용 스냅샷</div>
+              <div class="viewport-wrapper">
+                <canvas id="collect-guide-canvas" class="viewport-img" width="1280" height="720"></canvas>
+              </div>
             </div>
           </div>
 
@@ -3767,24 +3787,6 @@ L S R  C S L  R S L
         <div style="display:grid; grid-template-columns:1fr; gap:20px; align-items:start;">
 
           <div style="display:flex; flex-direction:column; gap:16px;">
-            <div class="card" style="padding:16px;">
-              <div class="card-title">🎯 실시간 cx (바구니 배치용)
-                <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
-              </div>
-              <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px;">—</div>
-              <div id="collect-cx-band" style="font-size:12px; text-align:center; color:var(--text-muted);">극단 배치 기준: 0.10~0.15 강한좌 · 0.20~0.25 준극단좌 · 0.75~0.80 준극단우 · 0.85~0.90 강한우</div>
-            </div>
-
-            <div class="card" style="padding:16px;">
-              <div class="card-title">📍 시작 프레임 기준 cx 배치 가이드
-                <button class="btn btn-outline" style="font-size:11px; padding:3px 10px; float:right;" onclick="_collectCaptureGuide()">📸 캡처</button>
-              </div>
-              <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">지금 화면을 캡처해서 극단 cx 구간을 선/밴드+수치로 표시 — 바구니를 어디에 놓아야 하는지 참고용 스냅샷</div>
-              <div class="viewport-wrapper">
-                <canvas id="collect-guide-canvas" class="viewport-img" width="1280" height="720"></canvas>
-              </div>
-            </div>
-
             <div class="card" style="padding:16px;">
               <div class="card-title">🕹️ 조작 (탭 클릭 후 키보드 W A S D Q E Z C R T Space)</div>
               <div id="collect-key-surface" tabindex="0"
