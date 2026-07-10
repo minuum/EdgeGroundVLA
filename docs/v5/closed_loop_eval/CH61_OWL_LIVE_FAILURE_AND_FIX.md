@@ -253,3 +253,53 @@ soda가 `mobile_vla_data_collector.py`의 `cv_bridge.compressed_imgmsg_to_cv2(..
 실물 대조라는 더 강한 증거 앞에서 기각 — 카메라 원본 인코딩이 이미 bgr8이라 무변환
 (no-op)이었을 가능성. **재학습 불필요, 어제 배포한 window6+bbox_scale3(원본) 그대로
 유지.** 색 반전판 체크포인트(`exp71_window6_bboxscale3_colorfixed`)는 참고용으로만 보존.
+
+## 13. FWD+L이 obj_right에서 반복된 이유 — 세 번째 confound (2026-07-09)
+
+`bbox_dataset_pg448_cx.json`의 cx>0.6 프레임 gt_class 분포: `FORWARD:259, FWD+L:67,
+RIGHT:29, ROT_L:20, FWD+R:19, ROT_R:3`. FWD+L(67개) 대부분이 `path_type="right_left"`
+(목표=우측, 접근경로=좌곡선) 한 종류에 집중(cx>0.6 구간의 68%, 55/81건). 원인: 이
+path_type은 바구니가 화면 오른쪽에 보여도 접근 경로 자체가 좌곡선이라 정답 라벨이
+FWD+L로 기록됨 — 모델은 이 패턴을 정확히 학습했을 뿐. `CX_RULE_THRESHOLDS` 룰 오버라이드는
+기본 꺼져있어(`VLA_CX_RULE=0`) 관여 안 함, 순수 학습된 헤드의 정직한 예측. ①극단cx
+부족, ②텍스트-장면 confound에 이은 **세 번째 confound**: "화면상 위치(cx)"와
+"경로 곡선 방향"이 path_type 설계 단계에서 뒤섞여 있어 cx만으로 목표 방향을 안정적으로
+추론 불가.
+
+## 14. 수집/학습 Hz 정합 + action chunking 검토 (2026-07-09)
+
+실추론 레이턴시 450~600ms(~2Hz) vs 수집 4~7Hz(이벤트 트리거) — window(3/6프레임)가
+프레임개수 기준이라 조작 밀도에 따라 체감 시간폭이 최대 3배 이상 들쭉날쭉, 추론 시
+실제 시간폭과 불일치. 타 VLA 비교: RT-1/RT-2 ~1~3Hz, ViNT/NoMaD ~4Hz(우리 수집레이트와
+근접), π0/SmolVLA는 action chunking으로 "느린 추론+빠른 실행"을 구조적으로 분리.
+결론: 수집 Hz는 유지, 학습 window 구성 시 ~2Hz(500ms) 리샘플링으로 추론 cadence 정합
+(값싼 절충), 근본적으로는 action chunking 도입을 별도 트랙으로 검토.
+
+## 15. 수집 플랜 트랙 분리 — 도달성능(A) vs 언어조건화(B) (2026-07-09)
+
+목표가 gray basket 도달뿐이라면 텍스트-장면 confound(②)는 실패 원인이 아님 — obj_*
+실패의 직접 원인은 ①극단cx 부족과 ③cx-경로곡선 confound뿐. 수집 플랜을 트랙 A(핵심,
+180ep, 극단cx 4곳×경로다양성, 지시문 불필요, 도달성능 직결)와 트랙 B(선택, 60ep,
+지시-경로 디커플링, 언어조건화 로드맵용 후순위)로 분리. soda 쪽도 이미 같은 방향
+(4-position 극단배치 수집 UI, `930a6180`/`984b0ae4`)으로 대시보드 구현 중.
+
+## 16. 재수집 전 마지막 완화책 3종 실측 — 전부 무효 확인 (2026-07-10)
+
+재수집 없이 현재 150ep로 시도 가능한 마지막 학습레벨 완화책을 window6+bbox_scale3
+기준 5-seed로 비교(`scripts/train_exp71_confound_mitigation.py`):
+
+| 설정 | val_acc | FWD+L recall | cx>0.75 acc(n=2) | cx<0.25 acc(n=10) |
+|---|---|---|---|---|
+| A. 현재 배포(baseline) | 76.0%±4.5% | 0.78 | 1.00 | 0.44 |
+| B. confound reweight(right_left 모순라벨 downweight) | 75.2%±5.1% | 0.63↓ | 1.00 | 0.42 |
+| C. hybrid cx-rule 오버레이(극단cx만 기하규칙 덮어쓰기) | 74.2%±4.4% | 0.78 | **0.00** | **0.00** |
+
+B: FWD+L 과확신은 줄였지만(0.78→0.63) 전체 정확도만 깎이고 극단cx 개선 없음 — 그
+구간엔 "맞는 방향" 대안 신호 자체가 없어 downweight해도 대체할 게 없음. C: 오히려
+완전 악화(0%) — 서버 `CX_RULE_THRESHOLDS`가 가정하는 "cx>0.75→ROT_R"이 현재 데이터
+라벨과 실제로 안 맞음(그런 기하학적 가정 없이 수집됐기 때문) — 극단cx 라벨 자체가
+기하학적으로 일관되지 않다는 직접 증거. (cx 서브셋 n=2/n=10은 표본 작아 절대수치
+신뢰 낮지만 방향성은 결론 뒷받침 충분)
+
+**결론**: "재수집 없이는 안 된다"가 이론이 아니라 실측으로 재확인됨. 배포된
+window6+bbox_scale3(baseline) 그대로 유지 — 어떤 학습레벨 트릭도 도움 안 됨.

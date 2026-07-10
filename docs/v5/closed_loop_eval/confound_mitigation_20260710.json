@@ -1,0 +1,38 @@
+{
+  "A_baseline(deployed)": {
+    "val_acc_mean": 0.7595907928388747,
+    "val_acc_std": 0.04523312730319004,
+    "fwdl_recall_mean": 0.7807692307692308,
+    "fwdl_recall_std": 0.0745796901140974,
+    "fwdr_recall_mean": 0.664864864864865,
+    "fwdr_recall_std": 0.04712323182206135,
+    "cx_gt_0.75_acc_mean": 1.0,
+    "cx_gt_0.75_acc_std": 0.0,
+    "cx_lt_0.25_acc_mean": 0.48,
+    "cx_lt_0.25_acc_std": 0.15999999999999998
+  },
+  "B_confound_reweight": {
+    "val_acc_mean": 0.7524296675191815,
+    "val_acc_std": 0.05054371080116882,
+    "fwdl_recall_mean": 0.6307692307692307,
+    "fwdl_recall_std": 0.10058997562016939,
+    "fwdr_recall_mean": 0.6486486486486486,
+    "fwdr_recall_std": 0.04522486629913924,
+    "cx_gt_0.75_acc_mean": 1.0,
+    "cx_gt_0.75_acc_std": 0.0,
+    "cx_lt_0.25_acc_mean": 0.42000000000000004,
+    "cx_lt_0.25_acc_std": 0.18330302779823357
+  },
+  "C_hybrid_cxrule_eval": {
+    "val_acc_mean": 0.7421994884910486,
+    "val_acc_std": 0.04359544911030696,
+    "fwdl_recall_mean": 0.7807692307692308,
+    "fwdl_recall_std": 0.0745796901140974,
+    "fwdr_recall_mean": 0.664864864864865,
+    "fwdr_recall_std": 0.04712323182206135,
+    "cx_gt_0.75_acc_mean": 0.0,
+    "cx_gt_0.75_acc_std": 0.0,
+    "cx_lt_0.25_acc_mean": 0.0,
+    "cx_lt_0.25_acc_std": 0.0
+  }
+}
