@@ -244,7 +244,11 @@ class DataCollectSession:
         self.selected_scenario: Optional[str] = None
         self.selected_pattern: Optional[str] = None
         self.staged_scenario: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 시나리오
+        self.staged_cx_position: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 트랙A cx위치
         self.selected_cx_position: Optional[str] = None  # 극단 배치 4포지션(강한좌/준극단좌/준극단우/강한우)
+        # D-pad 좌/우가 어느 축을 순환시킬지: "trackA"(cx위치, 기본) | "scenario"(9종 시나리오)
+        # D-pad 상/하로 전환. 웹 UI에서 해당 카드의 행/◀▶를 쓰면 자동으로 그 축으로 전환됨.
+        self.collect_mode = "trackA"
 
         self.scenario_stats: dict = collections.defaultdict(int)
         self.cx_position_stats: dict = collections.defaultdict(int)
@@ -311,6 +315,7 @@ class DataCollectSession:
             if self.active:
                 return self.staged_scenario
             self.staged_scenario = scenario or None
+            self.collect_mode = "scenario"
             return self.staged_scenario
 
     def cycle_scenario(self, step: int) -> Optional[str]:
@@ -323,7 +328,45 @@ class DataCollectSession:
                 return None
             i = (keys.index(self.staged_scenario) + step) % len(keys) if self.staged_scenario in keys else 0
             self.staged_scenario = keys[i]
+            self.collect_mode = "scenario"
             return self.staged_scenario
+
+    def stage_cx_position(self, cx_position: Optional[str]) -> Optional[str]:
+        """웹 UI(트랙A 막대 행 클릭)로 cx위치를 직접 지정 — D-pad cycle_cx_position과 동일 축 공유."""
+        with self._lock:
+            if self.active:
+                return self.staged_cx_position
+            self.staged_cx_position = cx_position or None
+            self.collect_mode = "trackA"
+            return self.staged_cx_position
+
+    def cycle_cx_position(self, step: int) -> Optional[str]:
+        """조이스틱 D-pad 좌/우로 녹화 시작 전 트랙A cx위치를 순환 선택."""
+        with self._lock:
+            if self.active:
+                return self.staged_cx_position
+            keys = list(COLLECT_CX_POSITIONS.keys())
+            if not keys:
+                return None
+            i = (keys.index(self.staged_cx_position) + step) % len(keys) if self.staged_cx_position in keys else 0
+            self.staged_cx_position = keys[i]
+            self.collect_mode = "trackA"
+            return self.staged_cx_position
+
+    def cycle_current(self, step: int) -> dict:
+        """D-pad 좌/우 — 현재 활성 축(collect_mode)에 따라 트랙A cx위치 또는 시나리오를 순환."""
+        if self.collect_mode == "scenario":
+            self.cycle_scenario(step)
+        else:
+            self.cycle_cx_position(step)
+        return {"mode": self.collect_mode, "staged_scenario": self.staged_scenario,
+                "staged_cx_position": self.staged_cx_position}
+
+    def toggle_collect_mode(self) -> str:
+        """D-pad 상/하 — 트랙A(cx위치) ↔ 시나리오(9종) 중 어느 축을 좌/우로 순환시킬지 전환."""
+        with self._lock:
+            self.collect_mode = "scenario" if self.collect_mode == "trackA" else "trackA"
+            return self.collect_mode
 
     def undo_last_frame(self) -> dict:
         with self._lock:
@@ -483,6 +526,8 @@ class DataCollectSession:
             "cx_position": self.selected_cx_position,
             "cx_positions": COLLECT_CX_POSITIONS,
             "cx_position_stats": dict(self.cx_position_stats),
+            "staged_cx_position": self.staged_cx_position,
+            "collect_mode": self.collect_mode,
             "returning": self._returning,
             "has_return_path": len(self._last_episode_actions) > 1,
         }
@@ -747,7 +792,7 @@ class DashboardJoystickReader:
                                     _collect.start_episode(scenario=_collect.staged_scenario)
                     self._btn_prev[i] = cur
 
-                # D-pad(hat) 엣지 → 시나리오 넘기기 (좌=이전 / 우=다음, 상/하도 동일, Gradio와 동일 매핑)
+                # D-pad(hat) 엣지 → 좌/우: 현재 활성 축(collect_mode) 순환, 상/하: 트랙A↔시나리오 축 전환
                 if js.get_numhats() > 0:
                     hat = js.get_hat(0)
                     if hat != self._hat_prev:
@@ -756,11 +801,11 @@ class DashboardJoystickReader:
                         if hx != 0 and hx != phx:
                             self._last_hat_dir = "right" if hx > 0 else "left"
                             if _collect is not None:
-                                _collect.cycle_scenario(1 if hx > 0 else -1)
+                                _collect.cycle_current(1 if hx > 0 else -1)
                         elif hy != 0 and hy != phy:
                             self._last_hat_dir = "up" if hy > 0 else "down"
                             if _collect is not None:
-                                _collect.cycle_scenario(-1 if hy > 0 else 1)
+                                _collect.toggle_collect_mode()
                         self._hat_prev = hat
 
                 # R2(트리거, 축) 엣지 → 복귀(경로 역재생), Gradio "controller" 레이아웃과 동일
@@ -1170,6 +1215,12 @@ class CollectScenarioStageReq(BaseModel):
 class CollectScenarioCycleReq(BaseModel):
     step: int = 1
 
+class CollectCxPosStageReq(BaseModel):
+    cx_position: Optional[str] = None
+
+class CollectCxPosCycleReq(BaseModel):
+    step: int = 1
+
 class ConfigToggleReq(BaseModel):
     preview_enabled: Optional[bool] = None
     preview_hint_cx: Optional[bool] = None
@@ -1452,6 +1503,33 @@ def collect_scenario_cycle(req: CollectScenarioCycleReq):
         return {"ok": False, "error": "데이터수집 세션 미초기화"}
     staged = _collect.cycle_scenario(req.step)
     return {"ok": True, "staged_scenario": staged}
+
+
+@app.post("/collect/cxpos/stage")
+def collect_cxpos_stage(req: CollectCxPosStageReq):
+    """트랙A 막대 행 클릭으로 cx위치 선택 — 조이스틱 D-pad와 동일한 staged_cx_position 공유."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.stage_cx_position(req.cx_position)
+    return {"ok": True, "staged_cx_position": staged}
+
+
+@app.post("/collect/cxpos/cycle")
+def collect_cxpos_cycle(req: CollectCxPosCycleReq):
+    """화면의 ◀/▶ 버튼으로 트랙A cx위치 순환."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.cycle_cx_position(req.step)
+    return {"ok": True, "staged_cx_position": staged}
+
+
+@app.post("/collect/mode/toggle")
+def collect_mode_toggle():
+    """D-pad 상/하(또는 화면 버튼) — 트랙A(cx위치) ↔ 시나리오(9종) 중 좌/우 순환 대상 전환."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    mode = _collect.toggle_collect_mode()
+    return {"ok": True, "collect_mode": mode}
 
 
 @app.post("/collect/return")
@@ -3735,7 +3813,7 @@ L S R  C S L  R S L
             <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
               <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
               왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
-              <b>D-pad(방향키)</b> 좌/우(상/하도 동일) → 녹화 시작 전 <b>시나리오 순환 선택</b> (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 시나리오로 태깅됨)<br>
+              <b>D-pad 좌/우</b> → 현재 활성 축(트랙A cx위치 또는 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 트랙A↔시나리오 축 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
               <table style="width:100%; border-collapse:collapse; margin-top:6px;">
                 <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
                     <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
@@ -3753,13 +3831,21 @@ L S R  C S L  R S L
 
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
-              <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
-                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
+              <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)
+                <span id="collect-mode-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🎮 D-pad 대상: 트랙A</span>
               </div>
-              <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
-                <option value="">— cx 위치 미지정 —</option>
-              </select>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)<br>
+                D-pad ◀▶(또는 아래 ◀▶)= 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 트랙A↔시나리오 전환
+              </div>
+              <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(-1)" title="이전 cx위치 (D-pad 좌와 동일)">◀</button>
+                <select id="collect-cxpos-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncCxPosHighlight()">
+                  <option value="">— cx 위치 미지정 —</option>
+                </select>
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(1)" title="다음 cx위치 (D-pad 우와 동일)">▶</button>
+                <button class="btn btn-outline" style="padding:6px 8px; font-size:13px;" onclick="_collectToggleMode()" title="트랙A↔시나리오 전환 (D-pad 상/하와 동일)">▲▼</button>
+              </div>
               <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
             </div>
 
@@ -4461,6 +4547,18 @@ L S R  C S L  R S L
         }
       }
 
+      const cxSelEl = document.getElementById("collect-cxpos-select");
+      if (cxSelEl && !res.active && cxSelEl.value !== (res.staged_cx_position || "")) {
+        cxSelEl.value = res.staged_cx_position || "";
+      }
+      const modeBadge = document.getElementById("collect-mode-badge");
+      if (modeBadge) {
+        const isTrackA = res.collect_mode !== "scenario";
+        modeBadge.textContent = "🎮 D-pad 대상: " + (isTrackA ? "트랙A" : "시나리오");
+        modeBadge.style.background = isTrackA ? "rgba(56,189,248,0.15)" : "rgba(163,113,247,0.15)";
+        modeBadge.style.color = isTrackA ? "var(--cyan)" : "#a371f7";
+      }
+
       const progList = document.getElementById("collect-progress-list");
       const curSel = document.getElementById("collect-scenario-select")?.value || "";
       if (progList && res.scenarios) {
@@ -4513,7 +4611,8 @@ L S R  C S L  R S L
         const isSel = id === curCx;
         const centerGap = (i === 2) ? `<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:2px 0;">(중앙 미해당 구간)</div>` : "";
         return centerGap + `
-          <div style="display:flex; align-items:center; gap:8px; ${isSel ? "outline:1px solid var(--cyan); border-radius:6px; padding:2px 4px;" : ""}">
+          <div onclick="_collectClickCxPos('${id}')"
+               style="display:flex; align-items:center; gap:8px; cursor:pointer; ${isSel ? "outline:1px solid var(--cyan); border-radius:6px; padding:2px 4px;" : ""}">
             <span style="width:52px; color:${isSel ? "var(--cyan)" : "var(--text-muted)"}; font-weight:${isSel ? "700" : "400"};">${info.label}</span>
             <div style="flex:1; height:16px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
               <div style="width:${pct}%; height:100%; background:${pct >= 100 ? "var(--emerald)" : "var(--cyan)"};"></div>
@@ -4544,6 +4643,28 @@ L S R  C S L  R S L
       const sel = document.getElementById("collect-scenario-select");
       await api("/collect/scenario/stage", { method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ scenario: sel?.value || null }) });
+      collectRefreshState();
+    }
+
+    // 트랙A 막대 행 클릭 → 서버 staged_cx_position에 반영(조이스틱 D-pad와 동일 소스 공유), 모드도 트랙A로 전환
+    async function _collectClickCxPos(id) {
+      await api("/collect/cxpos/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_position: id }) });
+      collectRefreshState();
+    }
+    async function _collectSyncCxPosHighlight() {
+      const sel = document.getElementById("collect-cxpos-select");
+      await api("/collect/cxpos/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_position: sel?.value || null }) });
+      collectRefreshState();
+    }
+    async function _collectCycleCxPos(step) {
+      await api("/collect/cxpos/cycle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step }) });
+      collectRefreshState();
+    }
+    async function _collectToggleMode() {
+      await api("/collect/mode/toggle", { method: "POST" });
       collectRefreshState();
     }
 
