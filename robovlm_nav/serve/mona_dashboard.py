@@ -3753,6 +3753,17 @@ L S R  C S L  R S L
 
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
+              <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
+              </div>
+              <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
+                <option value="">— cx 위치 미지정 —</option>
+              </select>
+              <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
               <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
                 <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
               </div>
@@ -3769,17 +3780,6 @@ L S R  C S L  R S L
                 <option value="variant">변형 패턴 (Variant)</option>
               </select>
               <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
-            </div>
-
-            <div class="card" style="padding:16px;">
-              <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
-                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
-              </div>
-              <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
-                <option value="">— cx 위치 미지정 —</option>
-              </select>
-              <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
             </div>
           </div>
         </div>
