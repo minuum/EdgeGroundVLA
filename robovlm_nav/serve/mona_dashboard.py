@@ -1307,6 +1307,15 @@ class EpisodeLogReq(BaseModel):
     fpe: float
     note: str
 
+class EpisodeUpdateReq(BaseModel):
+    row: int  # 테이블의 "#" (1-based)
+    path_type: str
+    success: str
+    steps: int
+    lat_ms: float
+    fpe: float
+    note: str
+
 
 # ═══════════════════════════════════════════════════════════════════
 # HTTP 엔드포인트
@@ -2269,6 +2278,29 @@ def episodes_clear():
     if EPISODE_CSV.exists():
         EPISODE_CSV.unlink()
     return {"ok": True, "episodes": [], "summary": "에피소드 기록 없음"}
+
+
+@app.post("/episodes/update")
+def episodes_update(req: EpisodeUpdateReq):
+    """테이블 행 클릭 → 수정 패널에서 값 편집 후 저장 — 해당 # 행만 in-place 수정."""
+    rows, _ = _read_episode_csv()
+    idx = next((i for i, r in enumerate(rows) if str(r[0]) == str(req.row)), None)
+    if idx is None:
+        return {"ok": False, "error": f"#{req.row} 행을 찾을 수 없습니다."}
+    r = rows[idx]
+    r[1] = req.path_type
+    r[2] = req.success
+    r[3] = req.steps
+    r[4] = req.lat_ms
+    r[10] = req.fpe
+    r[11] = req.note
+    import csv
+    with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(EP_HEADERS)
+        w.writerows(rows)
+    _, summary = _read_episode_csv()
+    return {"ok": True, "episodes": rows, "summary": summary}
 
 
 # ─── 대시보드 메인 ────────────────────────────────────────────────
@@ -3436,6 +3468,48 @@ L S R  C S L  R S L
                     <tr><td colspan="8" style="text-align:center; padding:12px; color:var(--text-muted);">기록이 없습니다.</td></tr>
                   </tbody>
                 </table>
+              </div>
+
+              <!-- 행 클릭 시 이 패널이 해당 세션으로 바뀜 — 항상 떠 있음 -->
+              <div class="card" style="padding:12px; background:#101726;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">✏️ 에피소드 수정</span>
+                  <span id="ep-edit-target" style="font-size:11px; color:var(--cyan); font-family:var(--font-mono);">— 행을 클릭하세요 —</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">경로</label>
+                    <select id="ep-edit-path" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;"></select>
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">결과</label>
+                    <select id="ep-edit-success" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                      <option value="성공">성공</option>
+                      <option value="실패">실패</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">steps</label>
+                    <input id="ep-edit-steps" type="number" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">lat (ms)</label>
+                    <input id="ep-edit-lat" type="number" step="0.1" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">FPE</label>
+                    <input id="ep-edit-fpe" type="number" step="0.1" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">메모</label>
+                    <input id="ep-edit-note" type="text" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-cyan" style="flex:1;" onclick="_epEditSave()">💾 저장</button>
+                  <button class="btn btn-outline" style="flex:1;" onclick="_epEditClear()">닫기</button>
+                </div>
+                <div id="ep-edit-status" style="font-size:10px; color:var(--text-muted); margin-top:6px;">—</div>
               </div>
             </div>
 
@@ -5907,6 +5981,59 @@ L S R  C S L  R S L
     }
 
     // ── 에피소드 저장 / 실행 취소 / 누적 기록 로드 ──────────────────────────
+    let _epEditingRow = null;
+    let _epByRow = {};
+
+    function _epEditLoadByRow(rowKey) {
+      const ep = _epByRow[rowKey];
+      if (ep) _epEditLoad(ep);
+    }
+
+    function _epEditLoad(ep) {
+      _epEditingRow = ep[0];
+      const pathSel = document.getElementById("ep-edit-path");
+      if (pathSel && pathSel.options.length === 0) {
+        pathSel.innerHTML = document.getElementById("ep-path-type").innerHTML;
+      }
+      document.getElementById("ep-edit-target").textContent = `#${ep[0]} 수정 중`;
+      pathSel.value = ep[1];
+      document.getElementById("ep-edit-success").value = ep[2];
+      document.getElementById("ep-edit-steps").value = ep[3];
+      document.getElementById("ep-edit-lat").value = ep[4];
+      document.getElementById("ep-edit-fpe").value = ep[10];
+      document.getElementById("ep-edit-note").value = ep[11] || "";
+      document.getElementById("ep-edit-status").textContent = "—";
+      loadEpisodeHistory(); // 클릭한 행 하이라이트 갱신
+    }
+
+    function _epEditClear() {
+      _epEditingRow = null;
+      document.getElementById("ep-edit-target").textContent = "— 행을 클릭하세요 —";
+      document.getElementById("ep-edit-status").textContent = "—";
+      loadEpisodeHistory();
+    }
+
+    async function _epEditSave() {
+      if (_epEditingRow == null) {
+        document.getElementById("ep-edit-status").textContent = "⚠️ 먼저 행을 클릭하세요";
+        return;
+      }
+      const body = {
+        row: parseInt(_epEditingRow),
+        path_type: document.getElementById("ep-edit-path").value,
+        success: document.getElementById("ep-edit-success").value,
+        steps: parseInt(document.getElementById("ep-edit-steps").value) || 0,
+        lat_ms: parseFloat(document.getElementById("ep-edit-lat").value) || 0,
+        fpe: parseFloat(document.getElementById("ep-edit-fpe").value) || 0,
+        note: document.getElementById("ep-edit-note").value,
+      };
+      const res = await api("/episodes/update", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body) });
+      const statusEl = document.getElementById("ep-edit-status");
+      statusEl.textContent = res.ok ? `✅ #${body.row} 저장됨` : "⚠️ " + (res.error || "저장 실패");
+      if (res.ok) loadEpisodeHistory();
+    }
+
     async function loadEpisodeHistory() {
       try {
         const res = await api("/episodes/list");
@@ -5930,6 +6057,8 @@ L S R  C S L  R S L
             tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">기록이 없습니다.</td></tr>`;
             return;
           }
+          _epByRow = {};
+          episodes.forEach(ep => { _epByRow[ep[0]] = ep; });
           tbody.innerHTML = episodes.map(ep => {
             const pathAbbr = {
               right_right: "R→R", right_left: "R→L★", right_straight: "R→S",
@@ -5940,14 +6069,15 @@ L S R  C S L  R S L
             }[ep[1]] || ep[1];
             
             const resColor = ep[2] === "성공" ? "text-emerald" : "text-rose";
+            const isEditing = String(ep[0]) === String(_epEditingRow);
             return `
-              <tr>
+              <tr onclick="_epEditLoadByRow(${JSON.stringify(String(ep[0]))})" style="cursor:pointer; ${isEditing ? "background:rgba(56,189,248,0.12);" : ""}">
                 <td>${ep[0]}</td>
                 <td><strong class="text-cyan">${pathAbbr}</strong></td>
                 <td><strong class="${resColor}">${ep[2]}</strong></td>
                 <td>${ep[3]}</td>
-                <td>${ep[6]} ms</td>
-                <td class="font-mono text-cyan" style="font-size:10px;">${ep[4] || "—"}</td>
+                <td>${ep[4]} ms</td>
+                <td class="font-mono text-cyan" style="font-size:10px;">${ep[10] || "—"}</td>
                 <td style="font-size:11px; color:var(--text-muted);">${ep[11] || "—"}</td>
                 <td style="font-family:var(--font-sans); color:var(--text-muted); font-size:10px; white-space:nowrap;">${ep[12] || "—"}</td>
               </tr>
