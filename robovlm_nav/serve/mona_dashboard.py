@@ -210,6 +210,13 @@ COLLECT_CX_POSITIONS = {
     "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 45},
     "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 45},
 }
+# 위치당 45개가 "경로 다양하게"로 뭉뚱그려져 있으면 실제로 15/15/15가 지켜졌는지
+# 검증이 안 됨 — 위치×경로 조합별로 세분화해서 목표 15씩 따로 추적.
+COLLECT_TRACKA_PATHS = {
+    "left_curve":  {"label": "좌곡선", "target": 15},
+    "straight":    {"label": "직진",   "target": 15},
+    "right_curve": {"label": "우곡선", "target": 15},
+}
 
 
 def _collect_classify_time_period(hour: int) -> str:
@@ -246,12 +253,16 @@ class DataCollectSession:
         self.staged_scenario: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 시나리오
         self.staged_cx_position: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 트랙A cx위치
         self.selected_cx_position: Optional[str] = None  # 극단 배치 4포지션(강한좌/준극단좌/준극단우/강한우)
+        self.staged_cx_path: Optional[str] = None  # 트랙A 접근경로(좌곡선/직진/우곡선) — 위치와 별개 축
+        self.selected_cx_path: Optional[str] = None
         # D-pad 좌/우가 어느 축을 순환시킬지: "trackA"(cx위치, 기본) | "scenario"(9종 시나리오)
         # D-pad 상/하로 전환. 웹 UI에서 해당 카드의 행/◀▶를 쓰면 자동으로 그 축으로 전환됨.
         self.collect_mode = "trackA"
 
         self.scenario_stats: dict = collections.defaultdict(int)
         self.cx_position_stats: dict = collections.defaultdict(int)
+        # 위치×경로 세분화 카운트 — 키: "{position}::{path}" (예: "strong_left::left_curve")
+        self.cx_position_path_stats: dict = collections.defaultdict(int)
         self.time_period_stats: dict = collections.defaultdict(int)
         self.core_patterns: dict = {}
         self._load_progress()
@@ -287,12 +298,13 @@ class DataCollectSession:
                 "t": time.time(),
             })
 
-    def start_episode(self, episode_name=None, scenario=None, pattern=None, cx_position=None) -> str:
+    def start_episode(self, episode_name=None, scenario=None, pattern=None, cx_position=None, cx_path=None) -> str:
         with self._lock:
             self.episode_data = []
             self.selected_scenario = scenario
             self.selected_pattern = pattern
             self.selected_cx_position = cx_position
+            self.selected_cx_path = cx_path
             if not episode_name:
                 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 parts = [f"episode_{ts}"]
@@ -302,6 +314,8 @@ class DataCollectSession:
                     parts.append(pattern)
                 if cx_position:
                     parts.append(cx_position)
+                if cx_path:
+                    parts.append(cx_path)
                 episode_name = "_".join(parts)
             self.episode_name = episode_name
             self.episode_started_at = time.time()
@@ -352,6 +366,27 @@ class DataCollectSession:
             self.staged_cx_position = keys[i]
             self.collect_mode = "trackA"
             return self.staged_cx_position
+
+    def stage_cx_path(self, cx_path: Optional[str]) -> Optional[str]:
+        """웹 UI(경로 select/행 클릭)로 트랙A 접근경로(좌곡선/직진/우곡선)를 지정 — 위치와 별개 축."""
+        with self._lock:
+            if self.active:
+                return self.staged_cx_path
+            self.staged_cx_path = cx_path or None
+            self.collect_mode = "trackA"
+            return self.staged_cx_path
+
+    def cycle_cx_path(self, step: int) -> Optional[str]:
+        with self._lock:
+            if self.active:
+                return self.staged_cx_path
+            keys = list(COLLECT_TRACKA_PATHS.keys())
+            if not keys:
+                return None
+            i = (keys.index(self.staged_cx_path) + step) % len(keys) if self.staged_cx_path in keys else 0
+            self.staged_cx_path = keys[i]
+            self.collect_mode = "trackA"
+            return self.staged_cx_path
 
     def cycle_current(self, step: int) -> dict:
         """D-pad 좌/우 — 현재 활성 축(collect_mode)에 따라 트랙A cx위치 또는 시나리오를 순환."""
@@ -435,6 +470,8 @@ class DataCollectSession:
             self.scenario_stats[self.selected_scenario] += 1
         if self.selected_cx_position:
             self.cx_position_stats[self.selected_cx_position] += 1
+            if self.selected_cx_path:
+                self.cx_position_path_stats[f"{self.selected_cx_position}::{self.selected_cx_path}"] += 1
         self.time_period_stats[_collect_classify_time_period(datetime.datetime.now().hour)] += 1
         self._save_progress()
         log.info(f"✅ [DataCollect] 에피소드 저장: {path} ({len(data)} steps, {duration:.1f}s)")
@@ -452,6 +489,7 @@ class DataCollectSession:
         with h5py.File(save_path, "w") as f:
             f.attrs["episode_name"] = name
             f.attrs["cx_position"] = self.selected_cx_position or ""
+            f.attrs["cx_path"] = self.selected_cx_path or ""
             f.attrs["total_duration"] = duration
             f.attrs["num_frames"] = len(data)
             f.attrs["stop_inject_n"] = self.STOP_INJECT_N
@@ -474,6 +512,8 @@ class DataCollectSession:
                     self.scenario_stats[k] = v
                 for k, v in d.get("cx_position_stats", {}).items():
                     self.cx_position_stats[k] = v
+                for k, v in d.get("cx_position_path_stats", {}).items():
+                    self.cx_position_path_stats[k] = v
         except Exception as e:
             log.warning(f"[DataCollect] scenario_progress.json 로드 실패: {e}")
         try:
@@ -497,6 +537,7 @@ class DataCollectSession:
                 "total_completed": sum(self.scenario_stats.values()),
                 "total_target": sum(s["target"] for s in COLLECT_SCENARIOS.values()),
                 "cx_position_stats": dict(self.cx_position_stats),
+                "cx_position_path_stats": dict(self.cx_position_path_stats),
             }, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as e:
             log.warning(f"[DataCollect] scenario_progress.json 저장 실패: {e}")
@@ -527,6 +568,10 @@ class DataCollectSession:
             "cx_positions": COLLECT_CX_POSITIONS,
             "cx_position_stats": dict(self.cx_position_stats),
             "staged_cx_position": self.staged_cx_position,
+            "cx_paths": COLLECT_TRACKA_PATHS,
+            "cx_path": self.selected_cx_path,
+            "staged_cx_path": self.staged_cx_path,
+            "cx_position_path_stats": dict(self.cx_position_path_stats),
             "collect_mode": self.collect_mode,
             "returning": self._returning,
             "has_return_path": len(self._last_episode_actions) > 1,
@@ -780,7 +825,9 @@ class DashboardJoystickReader:
                                 _collect.stop_episode(save=False)
                         elif i == self.BTN_REC_START:
                             if _collect is not None and not _collect.active:
-                                _collect.start_episode(scenario=_collect.staged_scenario)
+                                _collect.start_episode(scenario=_collect.staged_scenario,
+                                                        cx_position=_collect.staged_cx_position,
+                                                        cx_path=_collect.staged_cx_path)
                         elif i == self.BTN_REC_SAVE:
                             if _collect is not None and _collect.active:
                                 _collect.stop_episode(save=True)
@@ -789,7 +836,9 @@ class DashboardJoystickReader:
                                 if _collect.active:
                                     _collect.stop_episode(save=True)
                                 else:
-                                    _collect.start_episode(scenario=_collect.staged_scenario)
+                                    _collect.start_episode(scenario=_collect.staged_scenario,
+                                                        cx_position=_collect.staged_cx_position,
+                                                        cx_path=_collect.staged_cx_path)
                     self._btn_prev[i] = cur
 
                 # D-pad(hat) 엣지 → 좌/우: 현재 활성 축(collect_mode) 순환, 상/하: 트랙A↔시나리오 축 전환
@@ -1205,6 +1254,7 @@ class CollectEpisodeStartReq(BaseModel):
     scenario: Optional[str] = None
     pattern: Optional[str] = None
     cx_position: Optional[str] = None
+    cx_path: Optional[str] = None
 
 class CollectEpisodeStopReq(BaseModel):
     save: bool = True
@@ -1219,6 +1269,12 @@ class CollectCxPosStageReq(BaseModel):
     cx_position: Optional[str] = None
 
 class CollectCxPosCycleReq(BaseModel):
+    step: int = 1
+
+class CollectCxPathStageReq(BaseModel):
+    cx_path: Optional[str] = None
+
+class CollectCxPathCycleReq(BaseModel):
     step: int = 1
 
 class ConfigToggleReq(BaseModel):
@@ -1523,6 +1579,23 @@ def collect_cxpos_cycle(req: CollectCxPosCycleReq):
     return {"ok": True, "staged_cx_position": staged}
 
 
+@app.post("/collect/cxpath/stage")
+def collect_cxpath_stage(req: CollectCxPathStageReq):
+    """트랙A 접근경로(좌곡선/직진/우곡선) 선택 — 위치와 별개 축, 위치×경로 세분화 카운트에 사용."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.stage_cx_path(req.cx_path)
+    return {"ok": True, "staged_cx_path": staged}
+
+
+@app.post("/collect/cxpath/cycle")
+def collect_cxpath_cycle(req: CollectCxPathCycleReq):
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.cycle_cx_path(req.step)
+    return {"ok": True, "staged_cx_path": staged}
+
+
 @app.post("/collect/mode/toggle")
 def collect_mode_toggle():
     """D-pad 상/하(또는 화면 버튼) — 트랙A(cx위치) ↔ 시나리오(9종) 중 좌/우 순환 대상 전환."""
@@ -1568,7 +1641,7 @@ def collect_key(req: CollectKeyReq):
 def collect_episode_start(req: CollectEpisodeStartReq):
     if _collect is None:
         return {"ok": False, "error": "데이터수집 세션 미초기화"}
-    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern, req.cx_position)
+    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern, req.cx_position, req.cx_path)
     return {"ok": True, "episode_name": name}
 
 
@@ -3835,8 +3908,9 @@ L S R  C S L  R S L
                 <span id="collect-mode-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🎮 D-pad 대상: 트랙A</span>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
-                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)<br>
-                D-pad ◀▶(또는 아래 ◀▶)= 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 트랙A↔시나리오 전환
+                위치×경로(좌곡선/직진/우곡선) 조합별로 각 15개씩 — 위치당 3×15=45개, 총 180개.
+                <b>경로도 아래서 직접 선택</b>해야 실제로 15/15/15가 채워졌는지 추적됨 (안 고르면 "미지정"으로만 카운트).<br>
+                D-pad ◀▶(또는 아래 ◀▶)= 위치 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 트랙A↔시나리오 전환
               </div>
               <div style="display:flex; gap:6px; margin-bottom:8px;">
                 <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(-1)" title="이전 cx위치 (D-pad 좌와 동일)">◀</button>
@@ -3846,7 +3920,14 @@ L S R  C S L  R S L
                 <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(1)" title="다음 cx위치 (D-pad 우와 동일)">▶</button>
                 <button class="btn btn-outline" style="padding:6px 8px; font-size:13px;" onclick="_collectToggleMode()" title="트랙A↔시나리오 전환 (D-pad 상/하와 동일)">▲▼</button>
               </div>
-              <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
+              <div style="display:flex; gap:6px; margin-bottom:10px;">
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPath(-1)" title="이전 접근경로">◀</button>
+                <select id="collect-cxpath-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncCxPathHighlight()">
+                  <option value="">— 접근경로 미지정 —</option>
+                </select>
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPath(1)" title="다음 접근경로">▶</button>
+              </div>
+              <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:10px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
             </div>
 
             <div class="card" style="padding:16px;">
@@ -4287,6 +4368,7 @@ L S R  C S L  R S L
     let _collectPollTimer = null;
     let _collectScenariosLoaded = false;
     let _collectCxPosLoaded = false;
+    let _collectCxPathsLoaded = false;
     let _collectPrevStagedScenario = undefined;
     let _collectLastHatDirShown = null;
 
@@ -4589,6 +4671,20 @@ L S R  C S L  R S L
         });
         _collectCxPosLoaded = true;
       }
+      if (!_collectCxPathsLoaded && res.cx_paths) {
+        const pathSel = document.getElementById("collect-cxpath-select");
+        Object.entries(res.cx_paths).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = `${info.label} (목표 ${info.target})`;
+          pathSel.appendChild(opt);
+        });
+        _collectCxPathsLoaded = true;
+      }
+      const cxPathSelEl = document.getElementById("collect-cxpath-select");
+      if (cxPathSelEl && !res.active && cxPathSelEl.value !== (res.staged_cx_path || "")) {
+        cxPathSelEl.value = res.staged_cx_path || "";
+      }
       _collectRenderCxPosChart(res);
 
       const nameInput = document.getElementById("collect-episode-name");
@@ -4600,28 +4696,52 @@ L S R  C S L  R S L
       const chart = document.getElementById("collect-cxpos-chart");
       if (!chart || !res.cx_positions) return;
       const curCx = document.getElementById("collect-cxpos-select")?.value || "";
+      const curPath = document.getElementById("collect-cxpath-select")?.value || "";
       const order = ["strong_left", "weak_left", "weak_right", "strong_right"];
-      const stats = res.cx_position_stats || {};
+      const pathOrder = ["left_curve", "straight", "right_curve"];
+      const posStats = res.cx_position_stats || {};
+      const pathStats = res.cx_position_path_stats || {};
+      const paths = res.cx_paths || {};
       let totalDone = 0, totalTarget = 0;
-      const rows = order.filter(id => res.cx_positions[id]).map((id, i) => {
+      const blocks = order.filter(id => res.cx_positions[id]).map((id, i) => {
         const info = res.cx_positions[id];
-        const done = stats[id] || 0;
+        const done = posStats[id] || 0;
         totalDone += done; totalTarget += info.target;
         const pct = Math.min(100, Math.round(done / info.target * 100));
         const isSel = id === curCx;
         const centerGap = (i === 2) ? `<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:2px 0;">(중앙 미해당 구간)</div>` : "";
+
+        const pathRows = pathOrder.filter(p => paths[p]).map(p => {
+          const pinfo = paths[p];
+          const pdone = pathStats[`${id}::${p}`] || 0;
+          const ppct = Math.min(100, Math.round(pdone / pinfo.target * 100));
+          const isPathSel = isSel && p === curPath;
+          return `
+            <div onclick="_collectClickCxPath('${id}','${p}')"
+                 style="display:flex; align-items:center; gap:6px; padding-left:14px; cursor:pointer; ${isPathSel ? "outline:1px solid var(--amber); border-radius:4px;" : ""}">
+              <span style="width:44px; font-size:10px; color:${isPathSel ? "var(--amber)" : "var(--text-muted)"};">${pinfo.label}</span>
+              <div style="flex:1; height:10px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
+                <div style="width:${ppct}%; height:100%; background:${ppct >= 100 ? "var(--emerald)" : "var(--amber)"};"></div>
+              </div>
+              <span style="width:34px; text-align:right; font-size:10px;">${pdone}/${pinfo.target}</span>
+            </div>`;
+        }).join("");
+
         return centerGap + `
-          <div onclick="_collectClickCxPos('${id}')"
-               style="display:flex; align-items:center; gap:8px; cursor:pointer; ${isSel ? "outline:1px solid var(--cyan); border-radius:6px; padding:2px 4px;" : ""}">
-            <span style="width:52px; color:${isSel ? "var(--cyan)" : "var(--text-muted)"}; font-weight:${isSel ? "700" : "400"};">${info.label}</span>
-            <div style="flex:1; height:16px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
-              <div style="width:${pct}%; height:100%; background:${pct >= 100 ? "var(--emerald)" : "var(--cyan)"};"></div>
+          <div>
+            <div onclick="_collectClickCxPos('${id}')"
+                 style="display:flex; align-items:center; gap:8px; cursor:pointer; ${isSel ? "outline:1px solid var(--cyan); border-radius:6px; padding:2px 4px;" : ""}">
+              <span style="width:52px; color:${isSel ? "var(--cyan)" : "var(--text-muted)"}; font-weight:${isSel ? "700" : "400"};">${info.label}</span>
+              <div style="flex:1; height:16px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
+                <div style="width:${pct}%; height:100%; background:${pct >= 100 ? "var(--emerald)" : "var(--cyan)"};"></div>
+              </div>
+              <span style="width:52px; text-align:right;">${done}/${info.target}</span>
+              <span style="width:78px; text-align:right; color:var(--text-muted);">${info.lo.toFixed(2)}~${info.hi.toFixed(2)}</span>
             </div>
-            <span style="width:52px; text-align:right;">${done}/${info.target}</span>
-            <span style="width:78px; text-align:right; color:var(--text-muted);">${info.lo.toFixed(2)}~${info.hi.toFixed(2)}</span>
+            <div style="display:flex; flex-direction:column; gap:2px; margin-top:3px;">${pathRows}</div>
           </div>`;
       }).join("");
-      chart.innerHTML = rows + `<div style="margin-top:4px; padding-top:6px; border-top:1px solid var(--border-glow); display:flex; justify-content:space-between;">
+      chart.innerHTML = blocks + `<div style="margin-top:4px; padding-top:6px; border-top:1px solid var(--border-glow); display:flex; justify-content:space-between;">
                   <span style="color:var(--emerald); font-weight:700;">전체</span>
                   <span style="color:var(--emerald); font-weight:700;">${totalDone}/${totalTarget}</span>
                 </div>`;
@@ -4667,6 +4787,24 @@ L S R  C S L  R S L
       await api("/collect/mode/toggle", { method: "POST" });
       collectRefreshState();
     }
+    async function _collectCycleCxPath(step) {
+      await api("/collect/cxpath/cycle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step }) });
+      collectRefreshState();
+    }
+    async function _collectSyncCxPathHighlight() {
+      const sel = document.getElementById("collect-cxpath-select");
+      await api("/collect/cxpath/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_path: sel?.value || null }) });
+      collectRefreshState();
+    }
+    async function _collectClickCxPath(posId, pathId) {
+      await api("/collect/cxpos/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_position: posId }) });
+      await api("/collect/cxpath/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_path: pathId }) });
+      collectRefreshState();
+    }
 
     function collectStartKeyPolling() {
       if (_collectPollTimer) return;
@@ -4690,8 +4828,9 @@ L S R  C S L  R S L
       const scenario = document.getElementById("collect-scenario-select").value || null;
       const pattern = document.getElementById("collect-pattern-select").value || null;
       const cx_position = document.getElementById("collect-cxpos-select").value || null;
+      const cx_path = document.getElementById("collect-cxpath-select").value || null;
       const res = await api("/collect/episode/start", { method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ episode_name, scenario, pattern, cx_position }) });
+        body: JSON.stringify({ episode_name, scenario, pattern, cx_position, cx_path }) });
       const statusEl = document.getElementById("collect-episode-status");
       statusEl.textContent = res.ok ? "▶ 시작됨: " + res.episode_name : "⚠️ " + res.error;
       collectRefreshState();
