@@ -3684,7 +3684,7 @@ L S R  C S L  R S L
       <div class="scroll-container" style="padding:20px;">
 
         <!-- 상단 줄: 카메라 : 조이스틱 : 시나리오&진행률 = 2:1:1, 한눈에 쭉 보이도록 -->
-        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
           <div class="card" style="padding:16px;">
             <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
               <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
@@ -3749,9 +3749,20 @@ L S R  C S L  R S L
             </select>
             <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
           </div>
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+              지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
+            </div>
+            <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
+              <option value="">— cx 위치 미지정 —</option>
+            </select>
+            <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
+          </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1.1fr 1fr; gap:20px; align-items:start;">
+        <div style="display:grid; grid-template-columns:1fr; gap:20px; align-items:start;">
 
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
@@ -3814,19 +3825,6 @@ L S R  C S L  R S L
               </div>
               <button id="collect-return-btn" class="btn btn-outline" style="width:100%; margin-top:8px; border-color:var(--amber); color:var(--amber);" onclick="collectAutoReturn()">🔄 복귀 (직전 경로 역주행)</button>
               <div id="collect-episode-status" style="font-size:11px; color:var(--text-muted); margin-top:8px;">—</div>
-            </div>
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:16px;">
-            <div class="card" style="padding:16px;">
-              <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
-                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
-              </div>
-              <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
-                <option value="">— cx 위치 미지정 —</option>
-              </select>
-              <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
             </div>
           </div>
 
