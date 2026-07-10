@@ -1244,11 +1244,14 @@ def sessions_list():
         try: labels = json.loads(LABEL_JSON_PATH.read_text())
         except Exception: pass
 
+    csv_rows, _ = _read_episode_csv()
+    csv_by_sid = {r[13]: r for r in csv_rows if len(r) >= 14}
+
     session_list = []
     for h5p in h5_files:
         sid = Path(h5p).stem.replace("session_", "")
         n_labeled = sum(1 for k in labels if k.startswith(f"session_{sid}_f"))
-        
+
         # 기본 정보
         steps = "?"
         instruction = "—"
@@ -1260,13 +1263,22 @@ def sessions_list():
                     steps = d.get("summary", {}).get("total_steps", "?")
                     instruction = d.get("instruction", "—")
             except Exception: pass
-            
+
+        # episode_log.csv 실주행 결과 배지 (있으면)
+        result = None
+        path_type = None
+        r = csv_by_sid.get(sid)
+        if r:
+            path_type, result = r[1], r[2]
+
         session_list.append({
             "sid": sid,
             "steps": steps,
             "instruction": instruction,
             "labeled_count": n_labeled,
-            "h5_size_mb": round(os.path.getsize(h5p) / (1024*1024), 2)
+            "h5_size_mb": round(os.path.getsize(h5p) / (1024*1024), 2),
+            "result": result,
+            "path_type": path_type,
         })
     return {"ok": True, "sessions": session_list}
 
@@ -1281,6 +1293,18 @@ def sessions_load(sid: str):
     if LABEL_JSON_PATH.exists():
         try: labels = json.loads(LABEL_JSON_PATH.read_text())
         except Exception: pass
+
+    # episode_log.csv에서 이 세션의 실주행 결과/오퍼레이터 메모 join (마지막 컬럼=session_id)
+    episode_row = None
+    csv_rows, _ = _read_episode_csv()
+    for r in csv_rows:
+        if len(r) >= 14 and r[13] == sid:
+            episode_row = {
+                "path_type": r[1], "result": r[2], "steps": r[3], "lat_ms": r[4],
+                "top_action": r[5], "gnd_pct": r[6], "area": r[7], "cx": r[8],
+                "stop": r[9], "fpe": r[10], "note": r[11], "date": r[12],
+            }
+            break
 
     try:
         with h5py.File(h5p, "r") as f:
@@ -1355,6 +1379,7 @@ def sessions_load(sid: str):
             "ok": True,
             "sid": sid,
             "attrs": {k: str(v) for k, v in attrs.items()},
+            "episode": episode_row,
             "frames": frames_meta
         }
     except Exception as e:
@@ -2867,6 +2892,11 @@ L S R  C S L  R S L
               <!-- 프레임 메타데이터 & 셀프 라벨링 -->
               <div style="display:flex; flex-direction:column; justify-content:space-between;">
                 <div>
+                  <div class="form-group" id="inspect-episode-group" style="display:none;">
+                    <label>실주행 에피소드 결과 (episode_log.csv)</label>
+                    <div id="inspect-episode-box" style="padding:10px; border-radius:8px; background:#101726; border:1px solid var(--border-glow); font-size:12px; line-height:1.6;">—</div>
+                  </div>
+
                   <div class="form-group">
                     <label>Action & Latency</label>
                     <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px;">
@@ -3715,16 +3745,22 @@ L S R  C S L  R S L
         return;
       }
       
-      listEl.innerHTML = res.sessions.map(s => `
+      listEl.innerHTML = res.sessions.map(s => {
+        const badge = s.result
+          ? `<span class="${s.result === '성공' ? 'text-emerald' : 'text-rose'}" style="font-weight:700;">${s.result === '성공' ? '✅' : '❌'} ${s.path_type}</span>`
+          : `<span style="color:var(--text-muted);">(에피소드 기록 없음)</span>`;
+        return `
         <div class="srv-pill" style="cursor:pointer; display:flex; flex-direction:column; align-items:flex-start; padding:12px; gap:4px; hover:border-color:var(--cyan);" onclick="loadSessionDetail('${s.sid}')">
           <div style="font-weight:700; font-size:13px; color:var(--cyan);">${s.sid}</div>
+          <div style="font-size:11px;">${badge}</div>
           <div style="font-size:11px; color:var(--text-muted); word-break:break-all;">Entity: ${s.instruction}</div>
           <div style="display:flex; justify-content:space-between; width:100%; font-size:11px; margin-top:2px;">
             <span>Steps: ${s.steps}</span>
             <span class="text-emerald">[${s.labeled_count} Labeled]</span>
           </div>
         </div>
-      `).join("");
+      `;
+      }).join("");
     }
 
     async function loadSessionDetail(sid) {
@@ -3751,7 +3787,25 @@ L S R  C S L  R S L
         attrText += `${k}: ${res.attrs[k]}\n`;
       }
       document.getElementById("inspect-attrs-lbl").textContent = attrText || "속성 없음";
-      
+
+      // 실주행 에피소드 결과(episode_log.csv join) 노출
+      const epGroup = document.getElementById("inspect-episode-group");
+      const epBox = document.getElementById("inspect-episode-box");
+      if (res.episode) {
+        const e = res.episode;
+        const resultColor = e.result === "성공" ? "text-emerald" : "text-rose";
+        epGroup.style.display = "block";
+        epBox.innerHTML = `
+          <span class="${resultColor}" style="font-weight:700;">${e.result}</span>
+          &nbsp;| 경로: ${e.path_type} | steps: ${e.steps} | 레이턴시: ${e.lat_ms}ms<br>
+          top액션: ${e.top_action} | 그라운딩: ${e.gnd_pct}% | area: ${e.area} | cx: ${e.cx} | STOP: ${e.stop} | FPE: ${e.fpe}m<br>
+          ${e.note ? `📝 ${e.note}<br>` : ""}
+          <span style="color:var(--text-muted); font-size:11px;">${e.date}</span>
+        `;
+      } else {
+        epGroup.style.display = "none";
+      }
+
       showInspectFrame(0);
     }
 

@@ -96,8 +96,9 @@ counterfactual changed_rate를 실제로 움직일 수 있는 유일한 신호 �
 
 ## 3. 준비 체크리스트 (제가 지금 준비 가능한 것)
 
-- [ ] `mobile_vla_data_collector.py`의 `cup_scenarios`에 극단 배치 4개 시나리오 키 추가
-      (`target_extreme_left`, `target_near_left`, `target_extreme_right`, `target_near_right`)
+- [x] `mobile_vla_data_collector.py`의 `cup_scenarios`에 극단 배치 4개 시나리오 키 추가
+      (`target_extreme_left`, `target_near_left`, `target_extreme_right`, `target_near_right`,
+      각 target=45 = 3경로×15회, 키 10~13) — 2026-07-10 완료
 - [ ] (트랙B 전용) 에피소드별 **instruction 문자열을 h5 attrs에 기록**하는 필드 추가
       (현재는 시나리오 이름만 기록되고 자유형 instruction 텍스트 필드가 없음 — 확인 필요.
       트랙A는 지시 기록 불필요)
