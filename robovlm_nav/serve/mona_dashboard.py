@@ -547,6 +547,9 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
 
     _ros.ctrl.robust_stop(source="start")
     time.sleep(0.20)
+    # 이전 세션 마지막 스텝 이후(로그에는 안 남는 "정착 프레임")가 여기 남아있으면
+    # 새 세션 첫 스텝이 그 이전 세션 꼬리 프레임을 그대로 읽어버림 — 반드시 초기화.
+    _ros._stable = None
     try: _infer_post("/reset", {}, timeout=5)
     except Exception: pass
 
