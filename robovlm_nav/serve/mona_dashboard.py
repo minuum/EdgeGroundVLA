@@ -3682,22 +3682,78 @@ L S R  C S L  R S L
     <!-- 탭 9: 📷 데이터수집 (mobile_vla_data_collector.py 웹 이식) -->
     <div id="tab-collect" class="tab-content">
       <div class="scroll-container" style="padding:20px;">
+
+        <!-- 상단 줄: 카메라 : 조이스틱 : 시나리오&진행률 = 2:1:1, 한눈에 쭉 보이도록 -->
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
+          <div class="card" style="padding:16px;">
+            <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
+              <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
+                <input type="checkbox" id="toggle-grid-collect" checked onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--cyan);"> Grid 표시
+              </label>
+            </div>
+            <div class="viewport-wrapper">
+              <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
+                   onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
+              <canvas id="collect-cx-canvas" class="viewport-canvas" width="1280" height="720"></canvas>
+            </div>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">🕹️ 조이스틱 (DragonRise) — 자동 기록됨
+              <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (번호 + 물리 버튼 이름, DragonRise 기준)</div>
+            <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
+            <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">D-pad (시나리오 순환 전용)</div>
+            <div style="display:flex; justify-content:center; gap:8px; margin-bottom:12px;">
+              <div id="collect-dpad-left" class="btn-light">◀</div>
+              <div id="collect-dpad-up" class="btn-light">▲</div>
+              <div id="collect-dpad-down" class="btn-light">▼</div>
+              <div id="collect-dpad-right" class="btn-light">▶</div>
+            </div>
+            <div id="collect-js-btn-caption" style="font-size:16px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:12px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
+            <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
+              <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
+              왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
+              <b>D-pad(방향키)</b> 좌/우(상/하도 동일) → 녹화 시작 전 <b>시나리오 순환 선택</b> (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 시나리오로 태깅됨)<br>
+              <table style="width:100%; border-collapse:collapse; margin-top:6px;">
+                <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
+                    <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
+                <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td>에피소드 폐기</td>
+                    <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:#555;">미사용</td></tr>
+                <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td>녹화 시작</td>
+                    <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
+                <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
+                    <td style="padding:1px 4px;"><b>START</b>(7)</td><td>SYNC↔ASYNC 모드</td></tr>
+                <tr><td style="padding:1px 4px; color:var(--amber);"><b>R2</b>(트리거)</td><td colspan="3" style="color:var(--amber);">🔄 복귀 — 직전 경로 역주행 (Gradio 이식, 다시 당기면 중지)</td></tr>
+              </table>
+              ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
+            </div>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
+              <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
+            </div>
+            <div id="collect-scenario-row" style="display:flex; gap:6px; margin-bottom:8px; padding:4px;">
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(-1)" title="이전 시나리오 (D-pad 좌와 동일)">◀</button>
+              <select id="collect-scenario-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncScenarioHighlight()">
+                <option value="">— 미지정 (episode_name 수동) —</option>
+              </select>
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(1)" title="다음 시나리오 (D-pad 우와 동일)">▶</button>
+            </div>
+            <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
+              <option value="">— 패턴 미지정 —</option>
+              <option value="core">핵심 패턴 (Core)</option>
+              <option value="variant">변형 패턴 (Variant)</option>
+            </select>
+            <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
+          </div>
+        </div>
+
         <div style="display:grid; grid-template-columns:1.1fr 1fr; gap:20px; align-items:start;">
 
           <div style="display:flex; flex-direction:column; gap:16px;">
-            <div class="card" style="padding:16px;">
-              <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
-                <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
-                  <input type="checkbox" id="toggle-grid-collect" checked onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--cyan);"> Grid 표시
-                </label>
-              </div>
-              <div class="viewport-wrapper">
-                <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
-                     onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
-                <canvas id="collect-cx-canvas" class="viewport-canvas" width="1280" height="720"></canvas>
-              </div>
-            </div>
-
             <div class="card" style="padding:16px;">
               <div class="card-title">🎯 실시간 cx (바구니 배치용)
                 <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
@@ -3762,58 +3818,6 @@ L S R  C S L  R S L
           </div>
 
           <div style="display:flex; flex-direction:column; gap:16px;">
-            <div class="card" style="padding:16px;">
-              <div class="card-title">🕹️ 조이스틱 (DragonRise) — 자동 기록됨
-                <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (번호 + 물리 버튼 이름, DragonRise 기준)</div>
-              <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">D-pad (시나리오 순환 전용)</div>
-              <div style="display:flex; justify-content:center; gap:8px; margin-bottom:12px;">
-                <div id="collect-dpad-left" class="btn-light">◀</div>
-                <div id="collect-dpad-up" class="btn-light">▲</div>
-                <div id="collect-dpad-down" class="btn-light">▼</div>
-                <div id="collect-dpad-right" class="btn-light">▶</div>
-              </div>
-              <div id="collect-js-btn-caption" style="font-size:16px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:12px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
-              <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
-                <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
-                왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
-                <b>D-pad(방향키)</b> 좌/우(상/하도 동일) → 녹화 시작 전 <b>시나리오 순환 선택</b> (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 시나리오로 태깅됨)<br>
-                <table style="width:100%; border-collapse:collapse; margin-top:6px;">
-                  <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
-                      <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
-                  <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td>에피소드 폐기</td>
-                      <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:#555;">미사용</td></tr>
-                  <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td>녹화 시작</td>
-                      <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
-                  <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
-                      <td style="padding:1px 4px;"><b>START</b>(7)</td><td>SYNC↔ASYNC 모드</td></tr>
-                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>R2</b>(트리거)</td><td colspan="3" style="color:var(--amber);">🔄 복귀 — 직전 경로 역주행 (Gradio 이식, 다시 당기면 중지)</td></tr>
-                </table>
-                ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
-              </div>
-            </div>
-
-            <div class="card" style="padding:16px;">
-              <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
-                <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
-              </div>
-              <div id="collect-scenario-row" style="display:flex; gap:6px; margin-bottom:8px; padding:4px;">
-                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(-1)" title="이전 시나리오 (D-pad 좌와 동일)">◀</button>
-                <select id="collect-scenario-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncScenarioHighlight()">
-                  <option value="">— 미지정 (episode_name 수동) —</option>
-                </select>
-                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(1)" title="다음 시나리오 (D-pad 우와 동일)">▶</button>
-              </div>
-              <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
-                <option value="">— 패턴 미지정 —</option>
-                <option value="core">핵심 패턴 (Core)</option>
-                <option value="variant">변형 패턴 (Variant)</option>
-              </select>
-              <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
-            </div>
-
             <div class="card" style="padding:16px;">
               <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
