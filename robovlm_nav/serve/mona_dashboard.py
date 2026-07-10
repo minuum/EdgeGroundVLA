@@ -6071,7 +6071,7 @@ L S R  C S L  R S L
             const resColor = ep[2] === "성공" ? "text-emerald" : "text-rose";
             const isEditing = String(ep[0]) === String(_epEditingRow);
             return `
-              <tr onclick="_epEditLoadByRow(${JSON.stringify(String(ep[0]))})" style="cursor:pointer; ${isEditing ? "background:rgba(56,189,248,0.12);" : ""}">
+              <tr onclick='_epEditLoadByRow("${String(ep[0]).replace(/"/g, "&quot;")}")' style="cursor:pointer; ${isEditing ? "background:rgba(56,189,248,0.12);" : ""}">
                 <td>${ep[0]}</td>
                 <td><strong class="text-cyan">${pathAbbr}</strong></td>
                 <td><strong class="${resColor}">${ep[2]}</strong></td>
