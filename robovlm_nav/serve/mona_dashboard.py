@@ -3684,7 +3684,7 @@ L S R  C S L  R S L
       <div class="scroll-container" style="padding:20px;">
 
         <!-- 상단 줄: 카메라 : 조이스틱 : 시나리오&진행률 = 2:1:1, 한눈에 쭉 보이도록 -->
-        <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
           <div class="card" style="padding:16px;">
             <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
               <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
@@ -3731,34 +3731,36 @@ L S R  C S L  R S L
             </div>
           </div>
 
-          <div class="card" style="padding:16px;">
-            <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
-              <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
-            </div>
-            <div id="collect-scenario-row" style="display:flex; gap:6px; margin-bottom:8px; padding:4px;">
-              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(-1)" title="이전 시나리오 (D-pad 좌와 동일)">◀</button>
-              <select id="collect-scenario-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncScenarioHighlight()">
-                <option value="">— 미지정 (episode_name 수동) —</option>
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
+                <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
+              </div>
+              <div id="collect-scenario-row" style="display:flex; gap:6px; margin-bottom:8px; padding:4px;">
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(-1)" title="이전 시나리오 (D-pad 좌와 동일)">◀</button>
+                <select id="collect-scenario-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncScenarioHighlight()">
+                  <option value="">— 미지정 (episode_name 수동) —</option>
+                </select>
+                <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(1)" title="다음 시나리오 (D-pad 우와 동일)">▶</button>
+              </div>
+              <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
+                <option value="">— 패턴 미지정 —</option>
+                <option value="core">핵심 패턴 (Core)</option>
+                <option value="variant">변형 패턴 (Variant)</option>
               </select>
-              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(1)" title="다음 시나리오 (D-pad 우와 동일)">▶</button>
+              <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
             </div>
-            <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
-              <option value="">— 패턴 미지정 —</option>
-              <option value="core">핵심 패턴 (Core)</option>
-              <option value="variant">변형 패턴 (Variant)</option>
-            </select>
-            <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
-          </div>
 
-          <div class="card" style="padding:16px;">
-            <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
-            <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
-              지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)</div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+                지시 불필요 — 같은 위치에서 좌곡선/직진/우곡선 <b>경로만 다양하게</b> 15회씩 (위치당 45개, 총 180개)
+              </div>
+              <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
+                <option value="">— cx 위치 미지정 —</option>
+              </select>
+              <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
             </div>
-            <select id="collect-cxpos-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;" onchange="collectRefreshState()">
-              <option value="">— cx 위치 미지정 —</option>
-            </select>
-            <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
           </div>
         </div>
 
