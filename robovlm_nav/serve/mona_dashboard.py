@@ -227,6 +227,7 @@ class DataCollectSession:
 
     ACTION_CHUNK_SIZE = 8
     DEFAULT_LAYOUT_TYPE = "hori"
+    STOP_INJECT_N = 5  # 저장 직전 마지막 프레임을 STOP 액션으로 N번 복제 (Gradio stop_inject_n 이식)
 
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
@@ -378,6 +379,14 @@ class DataCollectSession:
             return {"ok": True, "saved": False, "steps": len(data)}
         if len(data) <= 1:
             return {"ok": False, "saved": False, "reason": "스텝 부족(<=1) — 저장 안 함", "steps": len(data)}
+        if self.STOP_INJECT_N > 0:
+            last_image = data[-1]["image"]
+            for _ in range(self.STOP_INJECT_N):
+                data.append({
+                    "image": last_image,
+                    "action": {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0},
+                    "action_event_type": "stop_inject",
+                })
         path = self._save_episode_data(data, name, duration)
         if self.selected_scenario:
             self.scenario_stats[self.selected_scenario] += 1
@@ -402,6 +411,7 @@ class DataCollectSession:
             f.attrs["cx_position"] = self.selected_cx_position or ""
             f.attrs["total_duration"] = duration
             f.attrs["num_frames"] = len(data)
+            f.attrs["stop_inject_n"] = self.STOP_INJECT_N
             f.attrs["action_chunk_size"] = self.ACTION_CHUNK_SIZE
             f.attrs["obstacle_layout_type"] = self.DEFAULT_LAYOUT_TYPE
             f.attrs["time_period"] = _collect_classify_time_period(now.hour)
@@ -4565,7 +4575,7 @@ L S R  C S L  R S L
         body: JSON.stringify({ save: true }) });
       const statusEl = document.getElementById("collect-episode-status");
       statusEl.textContent = res.ok
-        ? (res.saved ? `✅ 저장됨: ${res.path} (${res.steps} steps, ${res.duration.toFixed(1)}s)` : "⚠️ 저장 안 함: " + (res.reason || ""))
+        ? (res.saved ? `✅ 저장됨: ${res.path} (${res.steps} steps, ${res.duration.toFixed(1)}s, STOP프레임 +5 포함)` : "⚠️ 저장 안 함: " + (res.reason || ""))
         : "⚠️ " + res.error;
       document.getElementById("collect-episode-name").value = "";
       collectRefreshState();
