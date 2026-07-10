@@ -388,19 +388,24 @@ class DataCollectSession:
             self.collect_mode = "trackA"
             return self.staged_cx_path
 
+    COLLECT_MODES = ["trackA", "cxpath", "scenario"]  # D-pad 상/하로 순환하는 축 3종
+
     def cycle_current(self, step: int) -> dict:
-        """D-pad 좌/우 — 현재 활성 축(collect_mode)에 따라 트랙A cx위치 또는 시나리오를 순환."""
+        """D-pad 좌/우 — 현재 활성 축(collect_mode)에 따라 트랙A cx위치/접근경로/시나리오 중 하나를 순환."""
         if self.collect_mode == "scenario":
             self.cycle_scenario(step)
+        elif self.collect_mode == "cxpath":
+            self.cycle_cx_path(step)
         else:
             self.cycle_cx_position(step)
         return {"mode": self.collect_mode, "staged_scenario": self.staged_scenario,
-                "staged_cx_position": self.staged_cx_position}
+                "staged_cx_position": self.staged_cx_position, "staged_cx_path": self.staged_cx_path}
 
-    def toggle_collect_mode(self) -> str:
-        """D-pad 상/하 — 트랙A(cx위치) ↔ 시나리오(9종) 중 어느 축을 좌/우로 순환시킬지 전환."""
+    def toggle_collect_mode(self, step: int = 1) -> str:
+        """D-pad 상/하(또는 화면 ▲▼) — 트랙A(cx위치) → 접근경로 → 시나리오(9종) 3축을 순환 전환."""
         with self._lock:
-            self.collect_mode = "scenario" if self.collect_mode == "trackA" else "trackA"
+            i = self.COLLECT_MODES.index(self.collect_mode) if self.collect_mode in self.COLLECT_MODES else 0
+            self.collect_mode = self.COLLECT_MODES[(i + step) % len(self.COLLECT_MODES)]
             return self.collect_mode
 
     def undo_last_frame(self) -> dict:
@@ -854,7 +859,7 @@ class DashboardJoystickReader:
                         elif hy != 0 and hy != phy:
                             self._last_hat_dir = "up" if hy > 0 else "down"
                             if _collect is not None:
-                                _collect.toggle_collect_mode()
+                                _collect.toggle_collect_mode(1 if hy > 0 else -1)
                         self._hat_prev = hat
 
                 # R2(트리거, 축) 엣지 → 복귀(경로 역재생), Gradio "controller" 레이아웃과 동일
@@ -1277,6 +1282,9 @@ class CollectCxPathStageReq(BaseModel):
 class CollectCxPathCycleReq(BaseModel):
     step: int = 1
 
+class CollectModeToggleReq(BaseModel):
+    step: int = 1
+
 class ConfigToggleReq(BaseModel):
     preview_enabled: Optional[bool] = None
     preview_hint_cx: Optional[bool] = None
@@ -1597,11 +1605,11 @@ def collect_cxpath_cycle(req: CollectCxPathCycleReq):
 
 
 @app.post("/collect/mode/toggle")
-def collect_mode_toggle():
-    """D-pad 상/하(또는 화면 버튼) — 트랙A(cx위치) ↔ 시나리오(9종) 중 좌/우 순환 대상 전환."""
+def collect_mode_toggle(req: CollectModeToggleReq = CollectModeToggleReq()):
+    """D-pad 상/하(또는 화면 ▲▼) — 트랙A(cx위치)/접근경로/시나리오(9종) 3축을 순환 전환."""
     if _collect is None:
         return {"ok": False, "error": "데이터수집 세션 미초기화"}
-    mode = _collect.toggle_collect_mode()
+    mode = _collect.toggle_collect_mode(req.step)
     return {"ok": True, "collect_mode": mode}
 
 
@@ -3886,7 +3894,7 @@ L S R  C S L  R S L
             <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
               <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
               왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
-              <b>D-pad 좌/우</b> → 현재 활성 축(트랙A cx위치 또는 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 트랙A↔시나리오 축 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
+              <b>D-pad 좌/우</b> → 현재 활성 축(트랙A cx위치 / 접근경로 / 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 3축 순환 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
               <table style="width:100%; border-collapse:collapse; margin-top:6px;">
                 <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
                     <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
@@ -3910,7 +3918,7 @@ L S R  C S L  R S L
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
                 위치×경로(좌곡선/직진/우곡선) 조합별로 각 15개씩 — 위치당 3×15=45개, 총 180개.
                 <b>경로도 아래서 직접 선택</b>해야 실제로 15/15/15가 채워졌는지 추적됨 (안 고르면 "미지정"으로만 카운트).<br>
-                D-pad ◀▶(또는 아래 ◀▶)= 위치 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 트랙A↔시나리오 전환
+                D-pad ◀▶(또는 아래 ◀▶)= 현재 축 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 트랙A위치↔접근경로↔시나리오 전환
               </div>
               <div style="display:flex; gap:6px; margin-bottom:8px;">
                 <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(-1)" title="이전 cx위치 (D-pad 좌와 동일)">◀</button>
@@ -3918,7 +3926,8 @@ L S R  C S L  R S L
                   <option value="">— cx 위치 미지정 —</option>
                 </select>
                 <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(1)" title="다음 cx위치 (D-pad 우와 동일)">▶</button>
-                <button class="btn btn-outline" style="padding:6px 8px; font-size:13px;" onclick="_collectToggleMode()" title="트랙A↔시나리오 전환 (D-pad 상/하와 동일)">▲▼</button>
+                <button class="btn btn-outline" style="padding:6px 8px; font-size:13px;" onclick="_collectToggleMode(1)" title="다음 축 (D-pad 상과 동일)">▲</button>
+                <button class="btn btn-outline" style="padding:6px 8px; font-size:13px;" onclick="_collectToggleMode(-1)" title="이전 축 (D-pad 하와 동일)">▼</button>
               </div>
               <div style="display:flex; gap:6px; margin-bottom:10px;">
                 <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPath(-1)" title="이전 접근경로">◀</button>
@@ -4635,10 +4644,15 @@ L S R  C S L  R S L
       }
       const modeBadge = document.getElementById("collect-mode-badge");
       if (modeBadge) {
-        const isTrackA = res.collect_mode !== "scenario";
-        modeBadge.textContent = "🎮 D-pad 대상: " + (isTrackA ? "트랙A" : "시나리오");
-        modeBadge.style.background = isTrackA ? "rgba(56,189,248,0.15)" : "rgba(163,113,247,0.15)";
-        modeBadge.style.color = isTrackA ? "var(--cyan)" : "#a371f7";
+        const MODE_LABELS = {trackA: "트랙A(위치)", cxpath: "접근경로", scenario: "시나리오"};
+        const MODE_COLORS = {trackA: ["rgba(56,189,248,0.15)", "var(--cyan)"],
+                              cxpath: ["rgba(245,158,11,0.15)", "var(--amber)"],
+                              scenario: ["rgba(163,113,247,0.15)", "#a371f7"]};
+        const m = res.collect_mode || "trackA";
+        const [bg, fg] = MODE_COLORS[m] || MODE_COLORS.trackA;
+        modeBadge.textContent = "🎮 D-pad 대상: " + (MODE_LABELS[m] || m);
+        modeBadge.style.background = bg;
+        modeBadge.style.color = fg;
       }
 
       const progList = document.getElementById("collect-progress-list");
@@ -4783,8 +4797,9 @@ L S R  C S L  R S L
         body: JSON.stringify({ step }) });
       collectRefreshState();
     }
-    async function _collectToggleMode() {
-      await api("/collect/mode/toggle", { method: "POST" });
+    async function _collectToggleMode(step) {
+      await api("/collect/mode/toggle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step: step || 1 }) });
       collectRefreshState();
     }
     async function _collectCycleCxPath(step) {
