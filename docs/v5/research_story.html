@@ -14306,6 +14306,45 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card">
+    <div class="finding-title">61-18. 전체 108개 세션 시계열 종합분석 — 그라운더 교체는 무효, 체크포인트 교체가 유일한 변곡점 (2026-07-11)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>episode_log.csv</code> 누적본(108행, 2026-06-26~07-10) 전체를 path_type·날짜·
+      그라운더·체크포인트 축으로 교차분석. in-dist 시나리오(right_left, center_straight —
+      100% 성공)는 제외하고 OOD인 obj_* 계열만 봄(n=72).
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">path_type</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">성공률</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">평균 레이턴시</th></tr>
+        <tr><td style="padding:6px 10px">obj_right</td><td style="padding:6px 10px">17/56 = 30.4%</td><td style="padding:6px 10px">1731ms</td></tr>
+        <tr><td style="padding:6px 10px">obj_left</td><td style="padding:6px 10px">3/8 = 37.5%</td><td style="padding:6px 10px">1712ms</td></tr>
+        <tr><td style="padding:6px 10px">obj_center</td><td style="padding:6px 10px">3/8 = 37.5%</td><td style="padding:6px 10px">886ms</td></tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:12px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">날짜</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">성공률</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">그라운더</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">체크포인트</th></tr>
+        <tr><td style="padding:6px 10px">06-30</td><td style="padding:6px 10px">3/6=50.0%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-01</td><td style="padding:6px 10px">0/1=0%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-02</td><td style="padding:6px 10px">3/21=14.3%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-03</td><td style="padding:6px 10px">0/2=0%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-06</td><td style="padding:6px 10px;color:#f87171;font-weight:700">0/12=0%</td><td style="padding:6px 10px;font-weight:700">OWL-v2로 교체</td><td style="padding:6px 10px">window6(그대로)</td></tr>
+        <tr><td style="padding:6px 10px">07-10</td><td style="padding:6px 10px;color:#34d399;font-weight:700">17/30=56.7%</td><td style="padding:6px 10px">OWL-v2(그대로)</td><td style="padding:6px 10px;font-weight:700">window3+bboxscale3로 교체</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">핵심 발견</strong>: 그라운더를 PG2-448→OWL-v2로 교체한
+      07-06 시점엔 obj_* 성공률에 전혀 변화가 없었다(0%→0%). 체크포인트를 교체한 07-10에야
+      비로소 개선이 나타남. 즉 61-17의 "그라운딩 성공/실패가 성공률을 가른다"는 결론은
+      <strong>07-10 배치 안에서는</strong> 맞지만, 더 긴 시계열로 보면 <strong style="color:#fbbf24">체크포인트
+      교체가 그라운더 교체보다 훨씬 크게 기여</strong>한다 — 두 결론은 상충하지 않고 시간축으로
+      포개진다(체크포인트가 나쁘면 그라운딩이 잘 돼도 액션이 틀리고, 체크포인트가 좋아진
+      뒤에야 그라운딩 실패가 남은 병목으로 드러남).<br><br>
+      실패 49건 메모 분류(전체 108건 기준): 그라운딩/인식 실패 13, 방향 반전/엇나감 8,
+      제자리 회전(웜업 이상) 5, 프리뷰 관련 오류 4, 직진 고착 1, 메모없음/기타 18. FPE는
+      성공 평균 0.031m vs 실패 평균 0.638m로 라벨링과 잘 정합됨.<br><br>
+      <strong style="color:#fbbf24">의미</strong>: obj_*(극단cx) 계열은 그라운더가 바뀌어도
+      체크포인트가 바뀌어도 전체 기간 평균 34.7%(25/72)를 벗어나지 못함 — 트랙A(극단cx
+      재수집) 필요성이 시계열 전체로 재확인됨. preview/hint_cx/multi_prompt 등은 이 기간
+      내내 체크포인트 교체와 lockstep으로 같이 바뀌어서 개별 효과를 이 데이터로는 분리
+      불가 — 향후 같은 체크포인트 고정 상태로 토글만 바꾸는 A/B 필요.
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#f87171">
     <div class="finding-title" style="color:#f87171">61-10. 종합 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
