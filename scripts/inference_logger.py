@@ -159,6 +159,11 @@ class InferenceLogger:
                     f.attrs["instruction"] = self.data.get("instruction", "")
                     f.attrs["n_frames"] = len(imgs)
                     f.attrs["status"] = status
+                    # 경로검증(Tab 4) 당시 실제로 켜놨던 값 — mode/GT object/색보정 여부.
+                    # 세션 파일만 봐도 "그때 뭘로 돌렸는지" 알 수 있도록 H5에 직접 기록.
+                    f.attrs["instruction_mode"] = self.data.get("instruction_mode") or ""
+                    f.attrs["gt_object"] = self.data.get("gt_object") or ""
+                    f.attrs["apply_cc"] = bool(self.data.get("apply_cc", False))
                     # 2026-07-02: 재시작마다 로그가 사라져서 "이 세션 때 런타임 설정이
                     # 뭐였는지" 나중에 알 수 없던 문제 — 세션 시작 시점 스냅샷을 H5에
                     # 직접 박아둠(로그 없이도 세션 파일만으로 확인 가능하도록).

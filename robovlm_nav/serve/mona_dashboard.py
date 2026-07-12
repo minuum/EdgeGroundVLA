@@ -1034,6 +1034,7 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
     logger.start_session("stage2_v2", instr, instruction_mode=mode)
     if gt_obj:
         logger.data["gt_object"] = gt_obj
+    logger.data["apply_cc"] = apply_cc
     logger.data["runtime_config"] = _snapshot_runtime_config()
     _state["session_id"] = logger.session_id
 
@@ -1042,8 +1043,16 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
     # 이전 세션 마지막 스텝 이후(로그에는 안 남는 "정착 프레임")가 여기 남아있으면
     # 새 세션 첫 스텝이 그 이전 세션 꼬리 프레임을 그대로 읽어버림 — 반드시 초기화.
     _ros._stable = None
-    try: _infer_post("/reset", {}, timeout=5)
-    except Exception: pass
+    _reset_ok = False
+    for _attempt in range(2):
+        try:
+            _infer_post("/reset", {}, timeout=5)
+            _reset_ok = True
+            break
+        except Exception as _e:
+            print(f"⚠️ [SYNC] /reset 실패 (attempt {_attempt+1}/2): {_e}")
+    if not _reset_ok:
+        _state["status_log"] = "⚠️ /reset 실패 — 이전 세션 grounding 상태가 남아있을 수 있음"
 
     step = 0
     while not _stop_ev.is_set() and _state["running"]:
@@ -1128,8 +1137,16 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
 # ═══════════════════════════════════════════════════════════════════
 def _async_infer(instr: str, apply_cc: bool, logger):
     step = 0
-    try: _infer_post("/reset", {}, timeout=5)
-    except Exception: pass
+    _reset_ok = False
+    for _attempt in range(2):
+        try:
+            _infer_post("/reset", {}, timeout=5)
+            _reset_ok = True
+            break
+        except Exception as _e:
+            print(f"⚠️ [ASYNC] /reset 실패 (attempt {_attempt+1}/2): {_e}")
+    if not _reset_ok:
+        _state["status_log"] = "⚠️ /reset 실패 — 이전 세션 grounding 상태가 남아있을 수 있음"
 
     while not _stop_ev.is_set() and _state["running"]:
         bgr = _ros.latest_bgr()
@@ -1426,6 +1443,7 @@ def drive_start(req: DriveReq):
                   instruction=req.instruction, gt_object=req.gt_object,
                   apply_cc=req.apply_cc, goal_near=False,
                   grounding_cached=None, grounding_caption=None,
+                  bbox=None, chunk=None,
                   run_history=[], action_history=[], last_action=[0.0,0.0,0.0])
     _stop_ev.clear()
     _async_q.clear()
@@ -1439,6 +1457,7 @@ def drive_start(req: DriveReq):
         logger = get_logger()
         logger.start_session("stage2_v2", req.instruction, instruction_mode="ASYNC")
         if req.gt_object: logger.data["gt_object"] = req.gt_object
+        logger.data["apply_cc"] = req.apply_cc
         logger.data["runtime_config"] = _snapshot_runtime_config()
         _state["session_id"] = logger.session_id
 
@@ -2052,11 +2071,28 @@ def sessions_load(sid: str):
                 "user_label": user_label
             })
             
+        # 경로검증(episode_log.csv) 기록 중 이 세션과 매칭되는 행 — 있으면 동봉
+        episode = None
+        try:
+            ep_rows, _ = _read_episode_csv()
+            for r in ep_rows:
+                if len(r) > 13 and r[13] == sid:
+                    episode = {
+                        "row": r[0], "path_type": r[1], "success": r[2],
+                        "steps": r[3], "lat_ms": r[4], "top_action": r[5],
+                        "gnd_pct": r[6], "area": r[7], "cx": r[8], "stop": r[9],
+                        "fpe": r[10], "note": r[11], "date": r[12],
+                    }
+                    break
+        except Exception:
+            pass
+
         return {
             "ok": True,
             "sid": sid,
             "attrs": {k: str(v) for k, v in attrs.items()},
-            "frames": frames_meta
+            "frames": frames_meta,
+            "episode": episode,
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"ok": False, "error": f"H5 로딩 오류: {e}"})
@@ -2475,6 +2511,125 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     background-color: var(--rose);
     box-shadow: 0 0 8px var(--rose);
   }
+
+  /* ── 세션 히스토리 카드 리스트 ── */
+  .session-date-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-dark);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 4px 4px;
+  }
+  .session-card {
+    background: #151f32;
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  }
+  .session-card:hover {
+    border-color: rgba(6,182,212,0.5);
+    background: #1a2540;
+  }
+  .session-card.active {
+    border-color: var(--cyan);
+    background: rgba(6,182,212,0.08);
+    box-shadow: 0 0 0 1px rgba(6,182,212,0.25);
+  }
+  .session-card .sc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .session-card .sc-sid {
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--cyan);
+    font-family: var(--font-mono);
+  }
+  .session-card .sc-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .session-card .sc-entity {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .session-card .sc-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+  }
+  .session-card .sc-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: rgba(148,163,184,0.12);
+    color: var(--text-muted);
+  }
+  .session-card .sc-badge.labeled {
+    background: rgba(16,185,129,0.15);
+    color: var(--emerald);
+  }
+
+  /* ── 프레임 인스펙터 — 요약/경로검증 기록용 미니 타일 ── */
+  .mini-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 6px;
+  }
+  .mini-tile {
+    background: #101726;
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 7px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .mini-tile .mt-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mini-tile .mt-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mini-tile .mt-sub {
+    font-size: 9px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .mini-tile.mt-good .mt-value { color: var(--emerald); }
+  .mini-tile.mt-bad .mt-value { color: var(--rose); }
+  .mini-tile.mt-warn .mt-value { color: var(--amber); }
+  .mini-tile.mt-accent .mt-value { color: var(--cyan); }
 
   /* ── 탭 레이아웃 ── */
   .tab-content {
@@ -3453,8 +3608,8 @@ L S R  C S L  R S L
                   <option value="fail">🚨 실패만</option>
                 </select>
               </div>
-              <div class="table-wrapper" style="max-height:240px; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
-                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+              <div class="table-wrapper" style="max-height:520px; overflow-y:auto; overflow-x:auto; border:1px solid var(--border-glow); border-radius:8px;">
+                <table style="width:100%; min-width:820px; border-collapse:collapse; font-size:11px;">
                   <thead style="background:#151f32; border-bottom:1px solid var(--border-glow); text-align:left; position:sticky; top:0;">
                     <tr>
                       <th style="padding:6px 8px;">#</th>
@@ -3462,13 +3617,19 @@ L S R  C S L  R S L
                       <th style="padding:6px 8px;">결과</th>
                       <th style="padding:6px 8px;">steps</th>
                       <th style="padding:6px 8px;">lat</th>
+                      <th style="padding:6px 8px;">top액션</th>
+                      <th style="padding:6px 8px;">gnd%</th>
+                      <th style="padding:6px 8px;">area</th>
+                      <th style="padding:6px 8px;">cx</th>
+                      <th style="padding:6px 8px;">STOP</th>
                       <th style="padding:6px 8px;">FPE</th>
                       <th style="padding:6px 8px;">메모</th>
                       <th style="padding:6px 8px;">날짜</th>
+                      <th style="padding:6px 8px;">session_id</th>
                     </tr>
                   </thead>
                   <tbody id="episodes-table-body">
-                    <tr><td colspan="8" style="text-align:center; padding:12px; color:var(--text-muted);">기록이 없습니다.</td></tr>
+                    <tr><td colspan="14" style="text-align:center; padding:12px; color:var(--text-muted);">기록이 없습니다.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -3680,13 +3841,14 @@ L S R  C S L  R S L
             </div>
             
             <div id="inspector-body" class="frame-inspector" style="display:none;">
+
               <!-- 프레임 비디오/이미지 뷰어 -->
               <div>
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="inspect-frame-img" class="viewport-img" src="">
                   <canvas id="inspect-canvas" class="viewport-canvas" width="640" height="360"></canvas>
                 </div>
-                
+
                 <!-- 플레이어 컨트롤 슬라이더 -->
                 <div style="margin-top:16px;">
                   <input type="range" id="inspect-slider" min="0" max="0" value="0" oninput="showInspectFrame(this.value)">
@@ -3695,14 +3857,162 @@ L S R  C S L  R S L
                     <span id="inspect-frame-type-lbl">📡 live</span>
                   </div>
                 </div>
-                
+
+                <!-- 프레임 타임라인 스트립 — 이상치/타입을 색으로, 클릭하면 바로 점프 -->
+                <div id="inspect-timeline" style="display:flex; gap:1px; margin-top:10px; height:20px; border-radius:4px; overflow:hidden; border:1px solid var(--border-glow);"></div>
+                <div style="display:flex; gap:12px; font-size:9px; color:var(--text-muted); margin-top:4px;">
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:2px;margin-right:3px;"></span>정상</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#f43f5e;border-radius:2px;margin-right:3px;"></span>이상치</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:2px;margin-right:3px;"></span>ARRIVAL</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#8b5cf6;border-radius:2px;margin-right:3px;"></span>PREVIEW</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#06b6d4;border-radius:2px;margin-right:3px;"></span>현재</span>
+                </div>
+
                 <div style="display:flex; gap:8px; margin-top:12px; justify-content:center;">
                   <button class="btn btn-outline" onclick="prevInspectFrame()">◀ 이전</button>
                   <button class="btn btn-outline" id="btn-inspect-play" onclick="toggleInspectPlay()">▶ PLAY</button>
                   <button class="btn btn-outline" onclick="nextInspectFrame()">다음 ▶</button>
+                  <button class="btn btn-outline" onclick="jumpToNextAnomaly()">⚠️ 다음 이상치로</button>
+                </div>
+
+              <!-- 세션 요약 + 경로검증 기록 — 1:1 두 컬럼으로 나란히, 딱 2행만 차지 -->
+              <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+              <!-- 세션 요약 — 스크럽하기 전에 한눈에 보는 통계, 타일 블록 형태 -->
+              <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px;">
+                <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:8px;">📊 세션 요약</div>
+                <div class="mini-tile-grid">
+                  <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value" id="inspect-sum-frames">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">평균 지연</span><span class="mt-value" id="inspect-sum-lat">—</span><span class="mt-sub" id="inspect-sum-lat-sub">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">총 소요</span><span class="mt-value" id="inspect-sum-total">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">Live / Cache</span><span class="mt-value" id="inspect-sum-cache">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">라벨링</span><span class="mt-value" id="inspect-sum-labeled">—</span></div>
+                  <div class="mini-tile" id="inspect-sum-warns-tile"><span class="mt-label">이상치</span><span class="mt-value" id="inspect-sum-warns">—</span></div>
+                </div>
+                <div style="margin-top:10px;">
+                  <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">액션 분포</div>
+                  <div id="inspect-sum-actions" class="mini-tile-grid"></div>
                 </div>
               </div>
-              
+
+              <!-- 경로검증(Tab 4 episode_log) 매칭 기록 — 도착 위치(cx/area/STOP) 등 실제 검증 결과 + 수정 -->
+              <div id="inspect-episode-box" style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">🧪 경로검증 기록 (episode_log)</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="inspect-ep-status" style="font-size:10px; color:var(--text-muted);">—</span>
+                    <button class="btn btn-outline" style="font-size:10px; padding:3px 8px;" onclick="toggleInspectEpEdit()">✏️ 수정</button>
+                  </div>
+                </div>
+                <div id="inspect-ep-view" style="display:none;">
+                  <div class="mini-tile-grid">
+                    <div class="mini-tile"><span class="mt-label">경로</span><span class="mt-value" id="iep-path">—</span></div>
+                    <div class="mini-tile" id="iep-success-tile"><span class="mt-label">결과</span><span class="mt-value" id="iep-success">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">steps</span><span class="mt-value" id="iep-steps">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">평균 지연</span><span class="mt-value" id="iep-lat">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">top액션</span><span class="mt-value" id="iep-topaction">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">grounding</span><span class="mt-value" id="iep-gnd">—</span></div>
+                    <div class="mini-tile" title="도착 시점 bbox 면적 — 클수록 근접"><span class="mt-label">도착 area</span><span class="mt-value" id="iep-area">—</span></div>
+                    <div class="mini-tile" title="도착 시점 bbox 중심 x좌표 — 0.5가 중앙"><span class="mt-label">도착 cx</span><span class="mt-value" id="iep-cx">—</span></div>
+                    <div class="mini-tile" id="iep-stop-tile"><span class="mt-label">STOP</span><span class="mt-value" id="iep-stop">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">FPE</span><span class="mt-value" id="iep-fpe">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">날짜</span><span class="mt-value" id="iep-date" style="font-size:11px;">—</span></div>
+                  </div>
+                  <div class="mini-tile" style="margin-top:6px;">
+                    <span class="mt-label">메모</span>
+                    <span id="iep-note" style="font-size:12px; font-weight:400; color:#fff; font-family:var(--font-sans, inherit); white-space:pre-wrap; word-break:break-word;">—</span>
+                  </div>
+                </div>
+                <div id="inspect-ep-empty" style="font-size:11px; color:var(--text-muted); display:none;">
+                  이 세션에 매칭되는 경로검증 기록이 없습니다 — Tab 4(🧪 경로 검증)에서 기록을 저장하면 session_id로 자동 연결됩니다.
+                </div>
+                <div id="inspect-ep-edit" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--border-glow);">
+
+                  <!-- 경로 — Tab 4 빠른 레이블 선택과 동일한 버튼 그리드 -->
+                  <div style="margin-bottom:10px;">
+                    <label style="font-size:10px; color:var(--text-muted);">경로 (path_type)</label>
+                    <div style="display:flex; flex-direction:column; gap:4px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow); margin-top:4px;">
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="obj_left" onclick="selectInspectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="obj_center" onclick="selectInspectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="obj_right" onclick="selectInspectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="left_left" onclick="selectInspectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="left_straight" onclick="selectInspectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="left_right" onclick="selectInspectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="center_left" onclick="selectInspectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="center_straight" onclick="selectInspectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="center_right" onclick="selectInspectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="right_left" onclick="selectInspectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="right_straight" onclick="selectInspectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="right_right" onclick="selectInspectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="dist_10cm" onclick="selectInspectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="dist_20cm" onclick="selectInspectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="dist_30cm" onclick="selectInspectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 결과 — Tab 4 성공/실패 큰 버튼과 동일 -->
+                  <div style="margin-bottom:10px;">
+                    <label style="font-size:10px; color:var(--text-muted);">주행 결과</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+                      <button type="button" id="iep-edit-succ-btn" class="btn btn-outline" style="font-weight:bold; font-size:11px;" onclick="setInspectEpResult('성공')">✅ 성공</button>
+                      <button type="button" id="iep-edit-fail-btn" class="btn btn-outline" style="font-weight:bold; font-size:11px;" onclick="setInspectEpResult('실패')">❌ 실패</button>
+                    </div>
+                  </div>
+
+                  <!-- FPE — Tab 4와 동일한 슬라이더 + 프리셋 버튼 -->
+                  <div style="margin-bottom:10px;">
+                    <label id="iep-edit-fpe-lbl" style="font-size:10px; color:var(--text-muted);">FPE: 0.00</label>
+                    <input type="range" id="iep-edit-fpe" min="0.0" max="0.5" step="0.01" value="0.0" style="width:100%; accent-color:var(--cyan);" oninput="document.getElementById('iep-edit-fpe-lbl').textContent = 'FPE: ' + this.value">
+                    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.0)" style="font-size:9px; padding:2px 4px;">0.0</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.01)" style="font-size:9px; padding:2px 4px;">0.01</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.02)" style="font-size:9px; padding:2px 4px;">0.02</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.03)" style="font-size:9px; padding:2px 4px;">0.03</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.05)" style="font-size:9px; padding:2px 4px;">0.05</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.08)" style="font-size:9px; padding:2px 4px;">0.08</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.1)" style="font-size:9px; padding:2px 4px;">0.1</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.15)" style="font-size:9px; padding:2px 4px;">0.15</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.2)" style="font-size:9px; padding:2px 4px;">0.2</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.3)" style="font-size:9px; padding:2px 4px;">0.3</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.5)" style="font-size:9px; padding:2px 4px;">0.5</button>
+                    </div>
+                  </div>
+
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                      <label style="font-size:10px; color:var(--text-muted);">steps</label>
+                      <input id="iep-edit-steps" type="number" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                    </div>
+                    <div>
+                      <label style="font-size:10px; color:var(--text-muted);">lat (ms)</label>
+                      <input id="iep-edit-lat" type="number" step="0.1" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                    </div>
+                  </div>
+                  <div style="margin-bottom:8px;">
+                    <label style="font-size:10px; color:var(--text-muted);">메모</label>
+                    <input id="iep-edit-note" type="text" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+
+                  <div style="display:flex; gap:8px;">
+                    <button class="btn btn-cyan" style="flex:1;" onclick="saveInspectEpisode()">💾 저장</button>
+                    <button class="btn btn-outline" style="flex:1;" onclick="toggleInspectEpEdit()">닫기</button>
+                  </div>
+                </div>
+              </div>
+
+              </div><!-- /세션 요약 + 경로검증 기록 1:1 컬럼 -->
+              </div>
+
               <!-- 프레임 메타데이터 & 셀프 라벨링 -->
               <div style="display:flex; flex-direction:column; justify-content:space-between;">
                 <div>
@@ -3710,17 +4020,30 @@ L S R  C S L  R S L
                     <label>Action & Latency</label>
                     <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px;">
                       <div class="srv-pill" style="padding:4px 8px;">액션: <strong id="inspect-action-lbl">—</strong></div>
-                      <div class="srv-pill" style="padding:4px 8px;">지연: <strong id="inspect-lat-lbl">—ms</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px; flex-direction:column; align-items:flex-start; gap:1px;">
+                        <span>지연: <strong id="inspect-lat-lbl">—ms</strong></span>
+                        <span id="inspect-lat-sec-lbl" style="font-size:10px; font-weight:400; color:var(--text-muted);">—</span>
+                      </div>
                     </div>
                   </div>
-                  
+
+                  <div class="form-group" style="margin-top:14px;">
+                    <label>Grounding (bbox)</label>
+                    <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+                      <div class="srv-pill" style="padding:4px 8px;">cx: <strong id="inspect-cx-lbl">—</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px;">cy: <strong id="inspect-cy-lbl">—</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px;">area: <strong id="inspect-area-lbl">—</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px;">has_bbox: <strong id="inspect-hasbbox-lbl">—</strong></div>
+                    </div>
+                  </div>
+
                   <div class="form-group" style="margin-top:16px;">
                     <label>이상치 감지 알림 (Anomaly warnings)</label>
                     <div id="inspect-anomaly-box" style="padding:10px; border-radius:8px; background:#1e1b1b; border:1px solid #3d2323; font-size:12px; min-height:60px;">
                       ✅ 감지된 이상치 경고 없음
                     </div>
                   </div>
-                  
+
                   <div class="form-group" style="margin-top:20px;">
                     <label>셀프 라벨링 (Self-Labeling)</label>
                     <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:6px;">
@@ -3734,18 +4057,23 @@ L S R  C S L  R S L
                     </div>
                   </div>
                 </div>
-                
-                <div class="srv-pill" style="font-size:11px; margin-top:20px; display:block;">
+
+                <div class="form-group" id="inspect-runtime-cfg-box" style="margin-top:20px; display:none;">
+                  <label>⚙️ 당시 런타임 설정 (경로검증 Config + 서버 스냅샷)</label>
+                  <div id="inspect-runtime-cfg-grid" class="mini-tile-grid" style="margin-top:6px;"></div>
+                </div>
+
+                <div class="srv-pill" style="font-size:11px; margin-top:16px; display:block;">
                   H5 파일 속성:<br>
                   <span id="inspect-attrs-lbl" style="font-family:var(--font-mono); color:var(--text-muted); word-break:break-all;">—</span>
                 </div>
-                
+
                 <div style="margin-top:16px;">
                   <button class="btn btn-rose" style="width:100%; font-size:12px; padding:8px 12px;" onclick="deleteActiveSession()">🗑️ 세션 파일 영구 삭제</button>
                 </div>
               </div>
             </div>
-            
+
           </div>
         </div>
       </div>
@@ -4150,8 +4478,8 @@ L S R  C S L  R S L
       // 입력 폼에 포커스가 가있으면 단축키 동작 방지
       if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
 
-      // 경로검증(verify) 탭일 때 프레임 인스펙터 재생 단축키 바인딩
-      if (activeTab === "verify") {
+      // 세션 히스토리(history) 탭일 때 프레임 인스펙터 재생 단축키 바인딩
+      if (activeTab === "history") {
         if (e.key === "ArrowLeft") {
           e.preventDefault();
           prevInspectFrame();
@@ -5751,6 +6079,15 @@ L S R  C S L  R S L
     }
 
     // ── H5 세션 리스트 & 인스펙터 ─────────────────────────────────────
+    let _activeSid = null;
+
+    function _sidToDateLabel(sid) {
+      // sid: YYYYMMDD_HHMMSS
+      const m = sid.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})$/);
+      if (!m) return { date: sid, time: "" };
+      return { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}` };
+    }
+
     async function loadSessionList() {
       const res = await api("/sessions/list");
       const listEl = document.getElementById("session-list-group");
@@ -5758,20 +6095,39 @@ L S R  C S L  R S L
         listEl.innerHTML = "<div style='text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;'>H5 세션 파일 없음</div>";
         return;
       }
-      
-      listEl.innerHTML = res.sessions.map(s => `
-        <div class="srv-pill" style="cursor:pointer; display:flex; flex-direction:column; align-items:flex-start; padding:12px; gap:4px; hover:border-color:var(--cyan);" onclick="loadSessionDetail('${s.sid}')">
-          <div style="font-weight:700; font-size:13px; color:var(--cyan);">${s.sid}</div>
-          <div style="font-size:11px; color:var(--text-muted); word-break:break-all;">Entity: ${s.instruction}</div>
-          <div style="display:flex; justify-content:space-between; width:100%; font-size:11px; margin-top:2px;">
-            <span>Steps: ${s.steps}</span>
-            <span class="text-emerald">[${s.labeled_count} Labeled]</span>
+
+      let html = "";
+      let lastDate = null;
+      res.sessions.forEach(s => {
+        const { date, time } = _sidToDateLabel(s.sid);
+        if (date !== lastDate) {
+          html += `<div class="session-date-header">${date}</div>`;
+          lastDate = date;
+        }
+        const labeledCls = s.labeled_count > 0 ? "labeled" : "";
+        const activeCls = s.sid === _activeSid ? "active" : "";
+        html += `
+          <div class="session-card ${activeCls}" data-sid="${s.sid}" onclick="loadSessionDetail('${s.sid}')">
+            <div class="sc-top">
+              <span class="sc-sid">${s.sid}</span>
+              <span class="sc-time">${time}</span>
+            </div>
+            <div class="sc-entity" title="${s.instruction}">${s.instruction}</div>
+            <div class="sc-bottom">
+              <span class="sc-badge">Steps ${s.steps}</span>
+              <span class="sc-badge ${labeledCls}">${s.labeled_count} Labeled</span>
+            </div>
           </div>
-        </div>
-      `).join("");
+        `;
+      });
+      listEl.innerHTML = html;
     }
 
     async function loadSessionDetail(sid) {
+      _activeSid = sid;
+      document.querySelectorAll("#session-list-group .session-card").forEach(el => {
+        el.classList.toggle("active", el.dataset.sid === sid);
+      });
       document.getElementById("inspect-sid-lbl").textContent = "[" + sid + "]";
       document.getElementById("inspector-placeholder").style.display = "none";
       document.getElementById("inspector-body").style.display = "grid";
@@ -5783,20 +6139,218 @@ L S R  C S L  R S L
       }
       
       inspectSession = res;
-      
+
       // 슬라이더 초기화
       const slider = document.getElementById("inspect-slider");
       slider.max = res.frames.length - 1;
       slider.value = 0;
-      
+
       // 속성 노출
       let attrText = "";
       for (const k in res.attrs) {
         attrText += `${k}: ${res.attrs[k]}\n`;
       }
       document.getElementById("inspect-attrs-lbl").textContent = attrText || "속성 없음";
-      
+
+      renderInspectRuntimeConfig(res.attrs);
+      renderInspectSummary(res.frames);
+      renderInspectEpisode(res.episode);
+      renderInspectTimeline(res.frames, 0);
       showInspectFrame(0);
+    }
+
+    // ── 경로검증(episode_log) 기록 표시/수정 — session_id로 Tab 4 기록과 연결 ──
+    let _inspEpisode = null;
+
+    function renderInspectEpisode(episode) {
+      _inspEpisode = episode;
+      document.getElementById("inspect-episode-box").style.display = "block";
+      document.getElementById("inspect-ep-edit").style.display = "none";
+      document.getElementById("inspect-ep-status").textContent = "—";
+      const view = document.getElementById("inspect-ep-view");
+      const empty = document.getElementById("inspect-ep-empty");
+      if (!episode) {
+        view.style.display = "none";
+        empty.style.display = "block";
+        return;
+      }
+      view.style.display = "block";
+      empty.style.display = "none";
+      document.getElementById("iep-path").textContent = episode.path_type;
+      document.getElementById("iep-success").textContent = episode.success;
+      document.getElementById("iep-steps").textContent = episode.steps;
+      document.getElementById("iep-lat").textContent = episode.lat_ms + "ms";
+      document.getElementById("iep-topaction").textContent = episode.top_action;
+      document.getElementById("iep-gnd").textContent = episode.gnd_pct + "%";
+      document.getElementById("iep-area").textContent = episode.area;
+      document.getElementById("iep-cx").textContent = episode.cx;
+      document.getElementById("iep-stop").textContent = episode.stop;
+      document.getElementById("iep-fpe").textContent = episode.fpe;
+      document.getElementById("iep-date").textContent = episode.date;
+      document.getElementById("iep-note").textContent = episode.note || "—";
+
+      document.getElementById("iep-success-tile").className = "mini-tile " + (episode.success === "성공" ? "mt-good" : "mt-bad");
+      document.getElementById("iep-stop-tile").className = "mini-tile " + (episode.stop === "Y" ? "mt-accent" : "");
+    }
+
+    let _inspEditPath = null;
+    let _inspEditSuccess = null;
+
+    function selectInspectPathType(pt) {
+      _inspEditPath = pt;
+      document.querySelectorAll(".iep-path-btn").forEach(btn => {
+        btn.className = btn.dataset.path === pt ? "btn btn-cyan iep-path-btn" : "btn btn-outline iep-path-btn";
+      });
+    }
+
+    function setInspectEpResult(val) {
+      _inspEditSuccess = val;
+      document.getElementById("iep-edit-succ-btn").className = val === "성공" ? "btn btn-cyan" : "btn btn-outline";
+      document.getElementById("iep-edit-fail-btn").className = val === "실패" ? "btn btn-rose" : "btn btn-outline";
+    }
+
+    function setInspectFpeValue(val) {
+      document.getElementById("iep-edit-fpe").value = val;
+      document.getElementById("iep-edit-fpe-lbl").textContent = "FPE: " + val;
+    }
+
+    function toggleInspectEpEdit() {
+      if (!_inspEpisode) return;
+      const editBox = document.getElementById("inspect-ep-edit");
+      if (editBox.style.display !== "none") { editBox.style.display = "none"; return; }
+      selectInspectPathType(_inspEpisode.path_type);
+      setInspectEpResult(_inspEpisode.success);
+      setInspectFpeValue(_inspEpisode.fpe);
+      document.getElementById("iep-edit-steps").value = _inspEpisode.steps;
+      document.getElementById("iep-edit-lat").value = _inspEpisode.lat_ms;
+      document.getElementById("iep-edit-note").value = _inspEpisode.note || "";
+      editBox.style.display = "block";
+    }
+
+    async function saveInspectEpisode() {
+      if (!_inspEpisode) return;
+      const body = {
+        row: parseInt(_inspEpisode.row),
+        path_type: _inspEditPath || _inspEpisode.path_type,
+        success: _inspEditSuccess || _inspEpisode.success,
+        steps: parseInt(document.getElementById("iep-edit-steps").value) || 0,
+        lat_ms: parseFloat(document.getElementById("iep-edit-lat").value) || 0,
+        fpe: parseFloat(document.getElementById("iep-edit-fpe").value) || 0,
+        note: document.getElementById("iep-edit-note").value,
+      };
+      const res = await api("/episodes/update", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body) });
+      const statusEl = document.getElementById("inspect-ep-status");
+      if (res.ok) {
+        Object.assign(_inspEpisode, body);
+        renderInspectEpisode(_inspEpisode);
+        document.getElementById("inspect-ep-status").textContent = `✅ 저장됨 (${new Date().toLocaleTimeString()})`;
+      } else {
+        statusEl.textContent = "⚠️ " + (res.error || "저장 실패");
+      }
+    }
+
+    function renderInspectRuntimeConfig(attrs) {
+      const box = document.getElementById("inspect-runtime-cfg-box");
+      const grid = document.getElementById("inspect-runtime-cfg-grid");
+      let cfg = {};
+      const raw = attrs && attrs.runtime_config;
+      if (raw) {
+        try { cfg = JSON.parse(raw); } catch (e) { cfg = {}; }
+      }
+
+      // 경로검증(Tab 4) 당시 Config 패널 값 — H5 attrs에 직접 기록됨(instruction_mode/gt_object/apply_cc).
+      // 서버 스냅샷(cfg)과 달리 이건 그 세션에서 "실제로 눌렀던" 값.
+      const VFY_KEYS = [
+        ["instruction", "instruction"], ["instruction_mode", "이동 모드"],
+        ["gt_object", "GT object"], ["apply_cc", "색보정(CC)"],
+      ];
+      const CFG_KEYS = [
+        ["checkpoint_path", "checkpoint"], ["head", "head"], ["git_commit", "git"],
+        ["grounder_model", "grounder"], ["grounder_input_px", "grounder px"],
+        ["owlv2_thresh", "owlv2_thresh"], ["owlv2_area_scale", "area_scale"],
+        ["grounding_skip_n", "skip_n"], ["preview_enabled", "preview"],
+        ["preview_hint_cx", "hint_cx"], ["multi_prompt", "multi_prompt"],
+        ["cx_jump_filter", "cx_jump_filter"], ["cx_jump_thresh", "cx_jump_thresh"],
+      ];
+
+      const vfyTiles = VFY_KEYS.filter(([k]) => attrs && attrs[k] !== undefined && attrs[k] !== "")
+        .map(([k, label]) => `<div class="mini-tile mt-accent"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${attrs[k]}</span></div>`);
+      const cfgTiles = CFG_KEYS.filter(([k]) => cfg[k] !== undefined)
+        .map(([k, label]) => `<div class="mini-tile"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${cfg[k]}</span></div>`);
+
+      if (vfyTiles.length === 0 && cfgTiles.length === 0) {
+        box.style.display = "none";
+        return;
+      }
+      grid.innerHTML = vfyTiles.concat(cfgTiles).join("");
+      box.style.display = "block";
+    }
+
+    function renderInspectSummary(frames) {
+      const n = frames.length;
+      const avgLat = n ? (frames.reduce((s, f) => s + (f.latency_ms || 0), 0) / n) : 0;
+      const liveN = frames.filter(f => f.cached === 0.0).length;
+      const cacheN = frames.filter(f => f.cached === 1.0).length;
+      const labeledN = frames.filter(f => f.user_label).length;
+      const warnN = frames.filter(f => f.warns && f.warns.length > 0).length;
+      const counts = {};
+      frames.forEach(f => { counts[f.action] = (counts[f.action] || 0) + 1; });
+      const sortedActions = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+      const maxCount = sortedActions.length ? sortedActions[0][1] : 1;
+
+      const totalLatSec = frames.reduce((s, f) => s + (f.latency_ms || 0), 0) / 1000;
+
+      document.getElementById("inspect-sum-frames").textContent = n;
+      document.getElementById("inspect-sum-lat").textContent = `${avgLat.toFixed(0)}ms`;
+      document.getElementById("inspect-sum-lat-sub").textContent = `약 ${(avgLat/1000).toFixed(1)}초`;
+      document.getElementById("inspect-sum-total").textContent = `${totalLatSec.toFixed(1)}초`;
+      document.getElementById("inspect-sum-cache").textContent = `${liveN} / ${cacheN}`;
+      document.getElementById("inspect-sum-labeled").textContent = `${labeledN}/${n}`;
+      document.getElementById("inspect-sum-warns").textContent = warnN;
+      document.getElementById("inspect-sum-warns-tile").className = "mini-tile " + (warnN > 0 ? "mt-bad" : "mt-good");
+
+      document.getElementById("inspect-sum-actions").innerHTML = sortedActions.map(([k, v]) => `
+        <div class="mini-tile">
+          <span class="mt-label">${k}</span>
+          <span class="mt-value">${v}</span>
+          <div style="height:4px; background:#1d2b45; border-radius:2px; margin-top:2px; overflow:hidden;">
+            <div style="height:100%; width:${(v / maxCount * 100).toFixed(0)}%; background:var(--cyan);"></div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function _timelineColor(f) {
+      if (f.type === "★ARRIVAL") return "#f59e0b";
+      if (f.type === "🔄PREVIEW") return "#8b5cf6";
+      if (f.warns && f.warns.length > 0) return "#f43f5e";
+      return "#10b981";
+    }
+
+    function renderInspectTimeline(frames, activeIdx) {
+      const el = document.getElementById("inspect-timeline");
+      el.innerHTML = frames.map((f, i) => `
+        <div title="Frame ${i+1}: ${f.action}${f.warns.length ? ' — ' + f.warns.length + '건 경고' : ''}"
+             onclick="document.getElementById('inspect-slider').value=${i}; showInspectFrame(${i});"
+             style="flex:1; min-width:2px; cursor:pointer; background:${_timelineColor(f)};
+                    ${i === activeIdx ? 'outline:2px solid #06b6d4; outline-offset:-2px;' : 'opacity:0.75;'}">
+        </div>
+      `).join("");
+    }
+
+    function jumpToNextAnomaly() {
+      if (!inspectSession) return;
+      const cur = parseInt(document.getElementById("inspect-slider").value);
+      const frames = inspectSession.frames;
+      for (let i = cur + 1; i < frames.length; i++) {
+        if (frames[i].warns && frames[i].warns.length > 0) {
+          document.getElementById("inspect-slider").value = i;
+          showInspectFrame(i);
+          return;
+        }
+      }
+      alert("이후 프레임에 이상치가 없습니다.");
     }
 
     function showInspectFrame(idx) {
@@ -5808,10 +6362,16 @@ L S R  C S L  R S L
       document.getElementById("inspect-frame-type-lbl").textContent = frame.type;
       document.getElementById("inspect-action-lbl").textContent = frame.action;
       document.getElementById("inspect-lat-lbl").textContent = frame.latency_ms.toFixed(0) + "ms";
-      
+      document.getElementById("inspect-lat-sec-lbl").textContent = `약 ${(frame.latency_ms/1000).toFixed(1)}초`;
+      document.getElementById("inspect-cx-lbl").textContent = frame.cx.toFixed(3);
+      document.getElementById("inspect-cy-lbl").textContent = frame.cy.toFixed(3);
+      document.getElementById("inspect-area-lbl").textContent = frame.area.toFixed(3);
+      document.getElementById("inspect-hasbbox-lbl").textContent = frame.has_bbox ? "true" : "false";
+
       // 이미지 소스 설정
       document.getElementById("inspect-frame-img").src = `/sessions/frame?sid=${inspectSession.sid}&idx=${idx}`;
-      
+      renderInspectTimeline(inspectSession.frames, idx);
+
       // 아노말리 출력
       const abox = document.getElementById("inspect-anomaly-box");
       if (frame.warns.length > 0) {
@@ -6057,7 +6617,7 @@ L S R  C S L  R S L
           }
 
           if (episodes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">기록이 없습니다.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; color:var(--text-muted);">기록이 없습니다.</td></tr>`;
             return;
           }
           _epByRow = {};
@@ -6070,9 +6630,10 @@ L S R  C S L  R S L
               obj_left: "위치:좌", obj_center: "위치:중", obj_right: "위치:우",
               dist_10cm: "10cm", dist_20cm: "20cm", dist_30cm: "30cm",
             }[ep[1]] || ep[1];
-            
+
             const resColor = ep[2] === "성공" ? "text-emerald" : "text-rose";
             const isEditing = String(ep[0]) === String(_epEditingRow);
+            const stopColor = ep[9] === "Y" ? "text-emerald" : "text-muted";
             return `
               <tr onclick='_epEditLoadByRow("${String(ep[0]).replace(/"/g, "&quot;")}")' style="cursor:pointer; ${isEditing ? "background:rgba(56,189,248,0.12);" : ""}">
                 <td>${ep[0]}</td>
@@ -6080,9 +6641,15 @@ L S R  C S L  R S L
                 <td><strong class="${resColor}">${ep[2]}</strong></td>
                 <td>${ep[3]}</td>
                 <td>${ep[4]} ms</td>
+                <td style="font-size:10px; color:var(--text-muted);">${ep[5] || "—"}</td>
+                <td class="font-mono" style="font-size:10px;">${ep[6] ?? "—"}</td>
+                <td class="font-mono" style="font-size:10px;">${ep[7] ?? "—"}</td>
+                <td class="font-mono" style="font-size:10px;">${ep[8] ?? "—"}</td>
+                <td class="${stopColor}" style="font-size:10px;">${ep[9] || "—"}</td>
                 <td class="font-mono text-cyan" style="font-size:10px;">${ep[10] || "—"}</td>
                 <td style="font-size:11px; color:var(--text-muted);">${ep[11] || "—"}</td>
                 <td style="font-family:var(--font-sans); color:var(--text-muted); font-size:10px; white-space:nowrap;">${ep[12] || "—"}</td>
+                <td class="font-mono" style="font-size:9px; color:var(--text-muted); white-space:nowrap;">${ep[13] || "—"}</td>
               </tr>
             `;
           }).reverse().join("");
