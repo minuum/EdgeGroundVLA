@@ -173,6 +173,19 @@ counterfactual changed_rate를 실제로 움직일 수 있는 유일한 신호 �
 데이터셋에서 빼는 방안은 **비권장**(패턴 자체가 문제가 아니라 다양성 부족이 문제라
 삭제보다 추가가 맞음). 상세: `docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md`
 
+## 6. 기존 free 에피소드 49개 처리 방침 (2026-07-12 추가)
+
+재수집 전 "혹시 이미 쓸 수 있는 데이터가 있나" 확인한 결과:
+
+| 데이터셋 | 위치 | 개수 | 상태 | 이번 트랙과의 관계 |
+|---|---|---|---|---|
+| basket free | `ROS_action/mobile_vla_dataset_v5/` (2026-05-21/22) | 21 | annotation·exp55 학습 완료(oversample3x val_acc 81.2%), 단 exp71엔 미포함 | 오버슈트 궤적은 없지만 극단위치/거리/조명 다양성은 있음 → **재학습 시 병합 권장** |
+| chair free | `ROS_action/mobile_vla_dataset_v5_2/` | 28 | annotation 완료(`bbox_chair/`), 미학습 | 목표물이 basket이 아니라 chair — R3 멀티오브젝트 일반화 로드맵 전용, **이번 트랙과 분리 유지** |
+
+**방침**: 트랙A(180)+트랙C(64) 물리 수집 완료 후 재학습 시, 기존 150ep + 트랙A/C 244ep +
+basket free 21개 = **총 415ep**으로 학습(exp55 방식대로 free는 오버샘플 고려).
+chair 28개는 포함하지 않음(별도 로드맵).
+
 ## DoD
 
 - [ ] 촬영 시나리오/instruction 세트 확정
@@ -180,4 +193,4 @@ counterfactual changed_rate를 실제로 움직일 수 있는 유일한 신호 �
 - [x] 트랙A 극단cx 4개 시나리오 키 추가 — 2026-07-10 완료
 - [ ] 트랙C(오버슈트→재수렴) 시나리오 키 추가 — CH62 근거, 신규
 - [ ] 1일차 트랙A+C(244ep, 우선) 수집 완료
-- [ ] 재학습 + §5 평가지표(VSC/오버슈트회복률/반응지연/first_detect그룹 격차) 재검증으로 개선 여부 확인
+- [ ] 재학습(150ep+트랙A/C 244ep+basket free21=415ep) + §5 평가지표(VSC/오버슈트회복률/반응지연/first_detect그룹 격차) 재검증으로 개선 여부 확인

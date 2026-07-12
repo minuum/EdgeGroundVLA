@@ -71,7 +71,7 @@ html = f"""<!doctype html>
 <body>
 
 <h1>CH61 §19 — window3+bboxscale3 FWD 고착 원인 분석</h1>
-<div class="sub">2026-07-11 obj_right 세션 11개(유효) · frame0 / 첫 탐지 / 마지막 프레임 이미지 비교 · 생성 2026-07-12</div>
+<div class="sub">2026-07-11 obj_right 세션 11개(유효) · frame0 / 첫 탐지 / 마지막 프레임 이미지 비교 · 생성 2026-07-12 · <a href="todo_20260712.html" style="color:#60a5fa">진행상황 TODO →</a></div>
 
 <div class="summary">
   <b>결정적 발견</b>: 성공 세션은 전부 <span class="ok">first_detect_frame = 0</span> (첫 프레임부터 즉시 grounding 탐지),
