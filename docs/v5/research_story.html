@@ -14366,6 +14366,127 @@ graph TD
 
 <hr class="chapter-divider">
 
+<!-- ══════════════════════════════════════════════════════ CH62 ═ -->
+<div class="chapter" id="ch62">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 62</span>
+    <h2 class="chapter-title">FWD 고착의 진짜 원인 — 그라운딩 실패가 아니라 액션-그라운딩 라벨 confound</h2>
+  </div>
+  <p class="chapter-desc">
+    CH61 §17/§18은 "그라운딩 성공/실패가 obj_* 성공률을 가른다"고 결론냈다.
+    2026-07-11 신규 13세션의 H5 raw 데이터(images/actions/grounding)를 프레임 단위로
+    직접 대조한 결과, 더 근본적인 원인이 드러났다 — <strong style="color:#fbbf24">grounding이
+    나중에 정확히 성공해도 액션은 반응하지 않는다.</strong>
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1a1410,#241a10);border-color:#f87171">
+    <div class="finding-title">62-1. 결정적 반례: grounding 성공 ≠ 액션 반응</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      2026-07-11 obj_right 11세션(유효)을 H5 raw 배열로 직접 대조.
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">세션</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">결과</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">첫 탐지 프레임</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">회전 액션 낸 프레임</th></tr>
+        <tr><td style="padding:6px 10px">205228</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2,9</td></tr>
+        <tr><td style="padding:6px 10px">205354</td><td style="padding:6px 10px;color:#34d399">성공</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2</td></tr>
+        <tr><td style="padding:6px 10px">205621</td><td style="padding:6px 10px;color:#34d399">성공</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2</td></tr>
+        <tr><td style="padding:6px 10px">205726</td><td style="padding:6px 10px;color:#34d399">성공</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2,3,4</td></tr>
+        <tr><td style="padding:6px 10px">213650</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">6</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">213749</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">214155</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px">5 (1프레임뿐)</td></tr>
+        <tr><td style="padding:6px 10px">215709</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">220142</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">6</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">220233</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">220439</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">없음(미탐지)</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+      </table>
+      성공 4개 전부 <code>first_detect_frame=0</code>, 실패 7개 전부 <code>first_detect_frame≥3</code>
+      또는 미탐지 — 완벽하게 갈린다. 회전 액션은 예외 없이 초반 0~4프레임에서만 나온다.
+      213650·220142는 grounding이 나중에(frame 6) 정확히 잡혔는데도(cx 0.73~0.76 연속) 회전
+      액션이 단 한 프레임도 없었다 — <strong style="color:#f87171">grounding 문제가 아니라 액션
+      헤드가 초반 window 이후 grounding 업데이트를 무시한다</strong>는 직접 증거.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">62-2. 첫 탐지 성공했는데도 실패한 반례(205228) — 오버슈트 후 미회복</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8"></th><th style="padding:6px 10px;text-align:left;color:#f87171">205228(실패)</th><th style="padding:6px 10px;text-align:left;color:#34d399">205354(성공)</th><th style="padding:6px 10px;text-align:left;color:#34d399">205621(성공)</th><th style="padding:6px 10px;text-align:left;color:#34d399">205726(성공)</th></tr>
+        <tr><td style="padding:6px 10px">frame0 cx</td><td style="padding:6px 10px">0.730</td><td style="padding:6px 10px">0.706</td><td style="padding:6px 10px">0.711</td><td style="padding:6px 10px">0.711</td></tr>
+        <tr><td style="padding:6px 10px">f3~5 cx</td><td style="padding:6px 10px;color:#f87171">0.318 (Δ0.41)</td><td style="padding:6px 10px">0.377 (Δ0.33)</td><td style="padding:6px 10px">0.465 (Δ0.25)</td><td style="padding:6px 10px">0.575 (Δ0.14)</td></tr>
+        <tr><td style="padding:6px 10px">f6~8 cx</td><td style="padding:6px 10px;color:#f87171">0.186 (계속 하강)</td><td style="padding:6px 10px;color:#34d399">0.410 (반등)</td><td style="padding:6px 10px;color:#34d399">0.437 (반등)</td><td style="padding:6px 10px;color:#34d399">0.612 (반등)</td></tr>
+        <tr><td style="padding:6px 10px">재회전 시도</td><td style="padding:6px 10px">f9 (늦음, grounding 놓친 직후)</td><td style="padding:6px 10px">없음</td><td style="padding:6px 10px">없음</td><td style="padding:6px 10px">f4 미세보정 1회</td></tr>
+        <tr><td style="padding:6px 10px">마지막 유효 cx</td><td style="padding:6px 10px;color:#f87171">0.082~0.112 (가장자리)</td><td style="padding:6px 10px">0.278~0.407</td><td style="padding:6px 10px">0.428~0.432</td><td style="padding:6px 10px">0.171~0.322</td></tr>
+      </table>
+      성공 케이스는 초기 회전 후 cx가 반등하며 중앙으로 재수렴한다. 205228은 초기 회전량이
+      과도해(vyaw=-1.15 3프레임 유지) cx가 반등 없이 계속 밀리고, 뒤늦은 재보정(f9)도 방향/타이밍이
+      어긋나 화면 가장자리로 빗나간 채 종료(오퍼레이터 메모: "살짝 엇나감").
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">62-3. 정량 검증: cx-액션 방향 일치율(VSC)이 우연 이하 — 라벨 자체의 confound</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>bbox_dataset_owl_150ep.json</code>(147ep, 2559프레임)에서 방향성 액션(LEFT/RIGHT류)만
+      골라 <code>sign(cx-0.5)</code>(시각적 기대 방향)과 실제 라벨 방향의 일치율(VSC) 계산:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">cx 구간</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">일치/전체</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">VSC</th></tr>
+        <tr><td style="padding:6px 10px">0.15~0.30</td><td style="padding:6px 10px">26/55</td><td style="padding:6px 10px">47.3%</td></tr>
+        <tr><td style="padding:6px 10px">0.30~0.45</td><td style="padding:6px 10px">51/200</td><td style="padding:6px 10px;color:#f87171;font-weight:700">25.5%</td></tr>
+        <tr><td style="padding:6px 10px">0.45~0.55</td><td style="padding:6px 10px">88/192</td><td style="padding:6px 10px">45.8%</td></tr>
+        <tr><td style="padding:6px 10px">0.55~0.70</td><td style="padding:6px 10px">44/166</td><td style="padding:6px 10px;color:#f87171;font-weight:700">26.5%</td></tr>
+        <tr><td style="padding:6px 10px">0.70~0.85</td><td style="padding:6px 10px">26/49</td><td style="padding:6px 10px">53.1%</td></tr>
+        <tr style="border-top:2px solid #334155"><td style="padding:6px 10px"><b>전체</b></td><td style="padding:6px 10px"><b>235/662</b></td><td style="padding:6px 10px;color:#f87171;font-weight:700"><b>35.5%</b></td></tr>
+      </table>
+      50%(우연)보다 낮다 — 라벨 방향이 시각적 cx 기대와 <strong style="color:#f87171">오히려 반대로
+      겹치는 경향</strong>이 있다. 원인: 액션 라벨은 "이 순간 물체가 화면 어디 있으니 이 방향으로
+      튼다"가 아니라 <strong style="color:#fbbf24">"사전에 정한 경로(path_type)를 재생한 기록"</strong>이기
+      때문 — 곡선 진입 중 회전 자체가 물체를 화면 반대쪽으로 밀어내는 motion parallax 효과까지
+      겹쳐 cx와 액션이 원래도 강하게 연결돼 있지 않다.<br><br>
+      <strong style="color:#e2e8f0">결론</strong>: 실시간 물리 드리프트로 cx가 바뀌어도 모델이
+      반응하지 않는 게 이상한 게 아니라 — 애초에 학습 라벨 자체가 "라이브 cx에 반응하는
+      제어기"가 아니라 "초반에 본 장면으로 경로 하나를 고르고 그 경로를 재생하는 함수"에
+      가깝게 구성돼 있다.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">62-4. 오프라인 지표: 오버슈트 회복률 14.3%</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      cx가 방향 반전(|Δ|>0.03)하는 지점에서 이후 5프레임 이내 회전 액션이 나오는지 확인
+      (2026-07-11 obj_right 11세션): <strong style="color:#f87171">오버슈트 이벤트 7건 중
+      회복시도 1건 = 14.3%</strong>. 성공 케이스의 반전은 근접 접근 중 측정 노이즈일 가능성이
+      있어 62-3(VSC)보다 노이즈에 민감한 보조지표로 취급.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f1a14,#10241a);border-color:#34d399">
+    <div class="finding-title" style="color:#34d399">62-5. 향후 시도 평가지표 (재수집/재학습 전후 비교용)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">#</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">지표</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">현재값</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">목표</th></tr>
+        <tr><td style="padding:6px 10px">1</td><td style="padding:6px 10px">VSC(방향 일치율)</td><td style="padding:6px 10px;color:#f87171">35.5% 전체</td><td style="padding:6px 10px;color:#34d399">70%+</td></tr>
+        <tr><td style="padding:6px 10px">2</td><td style="padding:6px 10px">오버슈트 회복률</td><td style="padding:6px 10px;color:#f87171">14.3%(1/7)</td><td style="padding:6px 10px;color:#34d399">유의미한 증가</td></tr>
+        <tr><td style="padding:6px 10px">3</td><td style="padding:6px 10px">Grounding-Action 반응 지연</td><td style="padding:6px 10px;color:#f87171">사실상 무한</td><td style="padding:6px 10px;color:#34d399">유한값 감소</td></tr>
+        <tr><td style="padding:6px 10px">4</td><td style="padding:6px 10px">first_detect_frame 무관 성공률</td><td style="padding:6px 10px">75%(0군) vs <span style="color:#f87171">0%(≥3군)</span></td><td style="padding:6px 10px;color:#34d399">격차 축소</td></tr>
+        <tr><td style="padding:6px 10px">5</td><td style="padding:6px 10px">closed-loop obj_* 종합 성공률</td><td style="padding:6px 10px">34.7%(25/72)</td><td style="padding:6px 10px;color:#34d399">유지/개선</td></tr>
+      </table>
+      지표 1·2는 <strong style="color:#fbbf24">재수집 없이 기존 학습 annotation만으로 오프라인
+      측정 가능</strong> — 새 데이터의 "지시-경로 디커플링"이 confound를 실제로 끊었는지
+      로봇 재수집 전에 먼저 검증 가능.<br><br>
+      <strong style="color:#e2e8f0">다음 결정 필요</strong>: 트랙A/B에 "일부러 과도하게 꺾은 뒤
+      되돌아오는(오버슈트→재수렴) 궤적"을 세팅당 몇 회 명시적으로 포함할지 결정 필요 — 현재
+      플랜은 극단cx 위치·경로 다양성만 다루고 이 유형은 없음. 초반 1회 회전 데이터를
+      <strong style="color:#f87171">빼는 것은 비권장</strong> — 그 패턴 자체가 문제가 아니라
+      "그 패턴만 있다"는 다양성 부족이 문제이므로, 삭제보다 추가가 맞는 방향.<br><br>
+      전체 상세: <a href="closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md" style="color:#60a5fa">CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md</a>
+      &nbsp;|&nbsp; 이미지 비교(bbox/cx 오버레이): 로컬 리포트 <code>docs/v5/analysis_reports/ch61_forward_lock_20260712.html</code>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH62 ═ -->
+
+<hr class="chapter-divider">
+
 <div class="chapter" id="meeting-0626" style="padding-bottom:40px">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#f59e0b;color:#0a0f1a">MTG</span>
