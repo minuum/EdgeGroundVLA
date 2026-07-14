@@ -22,7 +22,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 
 import numpy as np
 import h5py
@@ -219,6 +219,36 @@ COLLECT_TRACKA_PATHS = {
 }
 
 
+# Gradio 데이터수집기(scripts/gradio_data_collector.py)의 8-class 분류/기호와
+# 동일 정의 — 임계값도 robovlm_nav/datasets/nav_h5_dataset_impl.py와 일치시킴.
+COLLECT_CLASS_NAMES_8 = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
+COLLECT_CLASS_SYMBOLS = {0: "●", 1: "▲", 2: "◀", 3: "▶", 4: "↖", 5: "↗", 6: "↺", 7: "↻"}
+
+
+def _collect_classify_8class(action: dict) -> int:
+    x, y = float(action["linear_x"]), float(action["linear_y"])
+    az = float(action.get("angular_z", 0.0))
+    is_x, is_y = abs(x) > 0.3, abs(y) > 0.3
+    if not is_x and not is_y:
+        if az > 0.1:
+            return 6
+        if az < -0.1:
+            return 7
+        return 0
+    if x > 0.3:
+        if y > 0.3:
+            return 4
+        if y < -0.3:
+            return 5
+        return 1
+    if abs(x) < 0.3:
+        if y > 0.3:
+            return 2
+        if y < -0.3:
+            return 3
+    return 0
+
+
 def _collect_classify_time_period(hour: int) -> str:
     if 5 <= hour < 8:
         return "dawn"
@@ -271,6 +301,10 @@ class DataCollectSession:
         # 직전 에피소드의 액션+타임스탬프만 남겨둠(이미지 없음, 가벼움).
         self._last_episode_actions: List[dict] = []
         self._returning = False
+        # 최근 저장/폐기 내역 — "녹화했는지 안했는지" 한눈에 보이도록 (최신이 [0])
+        self._recent_saves: List[dict] = []
+        # 마지막 저장 세션의 프레임/소요시간/실측Hz — Gradio session_summary_md 이식
+        self._last_session_summary: Optional[dict] = None
 
     # ── VLAControlManager.on_command 훅 — source 무관(키보드/조이스틱) 기록 ──
     # publish_and_move()는 robust_stop()의 5x 중복 정지펄스(0.05s 간격)처럼
@@ -459,8 +493,18 @@ class DataCollectSession:
                 # 저장/폐기 여부와 무관하게 남겨둠 — Gradio와 동일하게 "복귀"는 저장 안 해도 가능
                 self._last_episode_actions = [{"action": d["action"], "t": d["t"]} for d in data]
         if not save:
+            self._recent_saves.insert(0, {
+                "name": name, "saved": False, "reason": "사용자가 폐기(save=False)",
+                "steps": len(data), "duration": duration, "ts": time.time(),
+            })
+            self._recent_saves = self._recent_saves[:10]
             return {"ok": True, "saved": False, "steps": len(data)}
         if len(data) <= 1:
+            self._recent_saves.insert(0, {
+                "name": name, "saved": False, "reason": "스텝 부족(<=1) — 저장 안 함",
+                "steps": len(data), "duration": duration, "ts": time.time(),
+            })
+            self._recent_saves = self._recent_saves[:10]
             return {"ok": False, "saved": False, "reason": "스텝 부족(<=1) — 저장 안 함", "steps": len(data)}
         if self.STOP_INJECT_N > 0:
             last_image = data[-1]["image"]
@@ -480,6 +524,15 @@ class DataCollectSession:
         self.time_period_stats[_collect_classify_time_period(datetime.datetime.now().hour)] += 1
         self._save_progress()
         log.info(f"✅ [DataCollect] 에피소드 저장: {path} ({len(data)} steps, {duration:.1f}s)")
+        self._recent_saves.insert(0, {
+            "name": name, "saved": True, "path": str(path),
+            "steps": len(data), "duration": duration, "ts": time.time(),
+        })
+        self._recent_saves = self._recent_saves[:10]
+        hz = (len(data) - 1) / duration if duration > 0 else 0.0
+        self._last_session_summary = {
+            "frames": len(data), "duration_s": round(duration, 2), "hz": round(hz, 2),
+        }
         return {"ok": True, "saved": True, "path": str(path), "steps": len(data), "duration": duration}
 
     def _save_episode_data(self, data: List[dict], name: str, duration: float) -> Path:
@@ -556,11 +609,39 @@ class DataCollectSession:
         except Exception as e:
             log.warning(f"[DataCollect] time_period_stats.json 저장 실패: {e}")
 
+    def _episode_timeline(self) -> dict:
+        """현재 에피소드 버퍼의 최근 액션 기호열 + 실측 Hz + 8-class 분포
+        (Gradio episode_timeline_md/episode_dist_md 이식)."""
+        buf = self.episode_data
+        n = len(buf)
+        if n == 0:
+            return {"n": 0, "symbols": "", "hz": 0.0, "dist": {}}
+        symbols = "".join(COLLECT_CLASS_SYMBOLS[_collect_classify_8class(d["action"])] for d in buf[-28:])
+        ts = [d["t"] for d in buf[-12:] if "t" in d]
+        hz = 0.0
+        if len(ts) >= 2:
+            dts = [ts[i + 1] - ts[i] for i in range(len(ts) - 1)]
+            mean_dt = sum(dts) / len(dts)
+            if mean_dt > 0:
+                hz = round(1.0 / mean_dt, 1)
+        dist: Dict[str, int] = collections.defaultdict(int)
+        for d in buf:
+            cls = _collect_classify_8class(d["action"])
+            dist[COLLECT_CLASS_NAMES_8[cls]] += 1
+        return {"n": n, "symbols": symbols, "hz": hz, "dist": dict(dist)}
+
     def state(self) -> dict:
+        cur_scenario = self.selected_scenario or self.staged_scenario
+        scenario_target = COLLECT_SCENARIOS.get(cur_scenario, {}).get("target", 0) if cur_scenario else 0
         return {
             "active": self.active,
             "episode_name": self.episode_name,
+            "episode_started_at": self.episode_started_at,
             "steps": len(self.episode_data),
+            "recent_saves": self._recent_saves[:10],
+            "last_session_summary": self._last_session_summary,
+            "episode_timeline": self._episode_timeline(),
+            "current_scenario_target": scenario_target,
             "scenario": self.selected_scenario,
             "pattern": self.selected_pattern,
             "staged_scenario": self.staged_scenario,
@@ -1563,8 +1644,12 @@ def collect_ground():
         d = r.json()
         d["ok"] = True
         return d
+    except rq.exceptions.ConnectionError:
+        return {"ok": False, "error": "추론서버(8001) 연결 안 됨"}
+    except rq.exceptions.Timeout:
+        return {"ok": False, "error": "추론서버 응답 지연(timeout)"}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": type(e).__name__}
 
 
 @app.get("/collect/snapshot")
@@ -2896,6 +2981,27 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   @keyframes btnRunPulse {
     0%, 100% { box-shadow: 0 0 12px var(--cyan-glow); }
     50%      { box-shadow: 0 0 26px var(--cyan-glow); }
+  }
+
+  /* ── 데이터수집 상태카드 — Gradio gradio_data_collector.py .status-card 이식 ── */
+  .collect-status-card {
+    text-align:center; font-family:var(--font-mono); font-size:1.15rem; font-weight:700;
+    background:#161b22; border-radius:10px; padding:14px 16px; margin-bottom:16px;
+    border-left:5px solid var(--cyan); color:var(--text-primary);
+  }
+  .collect-status-card.rec { border-left-color:var(--rose); color:var(--rose); }
+  .collect-status-card.done { border-left-color:var(--emerald); color:var(--emerald); }
+  .collect-status-card.idle { border-left-color:var(--text-muted); color:var(--text-muted); }
+
+  /* ── 데이터수집 REC 표시 — 녹화 중임을 놓치지 않도록 점 깜빡임 ── */
+  .collect-rec-dot {
+    display:inline-block; width:9px; height:9px; border-radius:50%;
+    background:var(--rose); margin-right:7px; vertical-align:middle;
+    animation: collectRecPulse 1.1s ease-in-out infinite;
+  }
+  @keyframes collectRecPulse {
+    0%, 100% { opacity:1; box-shadow:0 0 6px var(--rose); }
+    50%      { opacity:0.25; box-shadow:0 0 0 var(--rose); }
   }
 
   /* ── 조이스틱 패널 ── */
@@ -4394,8 +4500,13 @@ L S R  C S L  R S L
     <div id="tab-collect" class="tab-content">
       <div class="scroll-container" style="padding:20px;">
 
-        <!-- 상단 줄: 카메라 : 조이스틱 : 시나리오&진행률 = 2:1:1, 한눈에 쭉 보이도록 -->
-        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
+        <!-- Gradio 데이터수집기 status-card 이식 — 녹화 여부/진행률을 한눈에 -->
+        <div id="collect-status-card" class="collect-status-card">⏸ IDLE</div>
+
+        <!-- 3열 배치 (2:1:1) — 1열: 카메라+cx가이드+키보드조작 / 중간열: 에피소드제어+타임라인 / 3열: 조이스틱+진행률 -->
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:20px; align-items:start;">
+
+          <!-- 1열 (2fr): 카메라 · 실시간cx · 배치가이드 · 키보드 조작 -->
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
               <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
@@ -4414,7 +4525,7 @@ L S R  C S L  R S L
               <div class="card-title">🎯 실시간 cx (바구니 배치용)
                 <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
               </div>
-              <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px;">—</div>
+              <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px; min-height:44px; max-height:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</div>
               <div id="collect-cx-band" style="font-size:12px; text-align:center; color:var(--text-muted);">극단 배치 기준: 0.10~0.15 강한좌 · 0.20~0.25 준극단좌 · 0.75~0.80 준극단우 · 0.85~0.90 강한우</div>
             </div>
 
@@ -4427,42 +4538,109 @@ L S R  C S L  R S L
                 <canvas id="collect-guide-canvas" class="viewport-img" width="1280" height="720"></canvas>
               </div>
             </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🕹️ 조작 (탭 클릭 후 키보드 W A S D Q E Z C R T Space)</div>
+              <div id="collect-key-surface" tabindex="0"
+                   style="outline:none; border:2px dashed var(--border-glow); border-radius:10px; padding:24px; text-align:center; background:#090d16; cursor:pointer;">
+                <div style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">여기 클릭해서 포커스 → 키보드로 조작 (조이스틱은 그대로 사용 가능, 자동 기록됨)</div>
+                <div id="collect-last-action" style="font-size:20px; font-family:var(--font-mono); color:var(--emerald); font-weight:700;">STOP</div>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
+                <span id="collect-active-badge" style="font-size:13px; font-weight:700; padding:5px 14px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">⏸ 대기중</span>
+                <span id="collect-steps-badge" style="font-size:12px; padding:4px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted); font-family:var(--font-mono);">0 steps</span>
+                <span id="collect-timer-badge" style="font-size:12px; padding:4px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted); font-family:var(--font-mono);"></span>
+              </div>
+
+              <div style="margin-top:16px; display:flex; justify-content:center;">
+                <div class="joystick-grid">
+                  <button id="collect-pad-q" class="joy-btn" onpointerdown="_collectPadDown('q')" onpointerup="_collectPadUp('q')" onpointerleave="_collectPadUp('q')">↖Q</button>
+                  <button id="collect-pad-w" class="joy-btn" onpointerdown="_collectPadDown('w')" onpointerup="_collectPadUp('w')" onpointerleave="_collectPadUp('w')">▲W</button>
+                  <button id="collect-pad-e" class="joy-btn" onpointerdown="_collectPadDown('e')" onpointerup="_collectPadUp('e')" onpointerleave="_collectPadUp('e')">↗E</button>
+                  <button id="collect-pad-a" class="joy-btn" onpointerdown="_collectPadDown('a')" onpointerup="_collectPadUp('a')" onpointerleave="_collectPadUp('a')">◀A</button>
+                  <button class="joy-btn stop" onclick="_collectPadStop()">⏹</button>
+                  <button id="collect-pad-d" class="joy-btn" onpointerdown="_collectPadDown('d')" onpointerup="_collectPadUp('d')" onpointerleave="_collectPadUp('d')">▶D</button>
+                  <button id="collect-pad-z" class="joy-btn" onpointerdown="_collectPadDown('z')" onpointerup="_collectPadUp('z')" onpointerleave="_collectPadUp('z')">↙Z</button>
+                  <button id="collect-pad-s" class="joy-btn" onpointerdown="_collectPadDown('s')" onpointerup="_collectPadUp('s')" onpointerleave="_collectPadUp('s')">▼S</button>
+                  <button id="collect-pad-c" class="joy-btn" onpointerdown="_collectPadDown('c')" onpointerup="_collectPadUp('c')" onpointerleave="_collectPadUp('c')">↘C</button>
+                  <button id="collect-pad-r" class="joy-btn" onpointerdown="_collectPadDown('r')" onpointerup="_collectPadUp('r')" onpointerleave="_collectPadUp('r')">↺R</button>
+                  <div></div>
+                  <button id="collect-pad-t" class="joy-btn" onpointerdown="_collectPadDown('t')" onpointerup="_collectPadUp('t')" onpointerleave="_collectPadUp('t')">↻T</button>
+                </div>
+              </div>
+              <div id="collect-pad-caption" style="font-size:13px; font-family:var(--font-mono); text-align:center; margin-top:10px; padding:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">대기 중 — 버튼/키보드를 누르면 여기 표시</div>
+              <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;">버튼을 누르고 있으면 계속 이동, 떼면 정지 (키보드와 동일하게 기록됨)</div>
+            </div>
           </div>
 
-          <div class="card" style="padding:16px;">
-            <div class="card-title">🕹️ 조이스틱 (DragonRise) — 자동 기록됨
-              <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
-            </div>
-            <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (번호 + 물리 버튼 이름, DragonRise 기준)</div>
-            <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
-            <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">D-pad (시나리오 순환 전용)</div>
-            <div style="display:flex; justify-content:center; gap:8px; margin-bottom:12px;">
-              <div id="collect-dpad-left" class="btn-light">◀</div>
-              <div id="collect-dpad-up" class="btn-light">▲</div>
-              <div id="collect-dpad-down" class="btn-light">▼</div>
-              <div id="collect-dpad-right" class="btn-light">▶</div>
-            </div>
-            <div id="collect-js-btn-caption" style="font-size:16px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:12px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
-            <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
-              <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
-              왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
-              <b>D-pad 좌/우</b> → 현재 활성 축(트랙A cx위치 / 접근경로 / 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 3축 순환 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
-              <table style="width:100%; border-collapse:collapse; margin-top:6px;">
-                <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
-                    <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
-                <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td>에피소드 폐기</td>
-                    <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:#555;">미사용</td></tr>
-                <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td>녹화 시작</td>
-                    <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
-                <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
-                    <td style="padding:1px 4px;"><b>START</b>(7)</td><td>SYNC↔ASYNC 모드</td></tr>
-                <tr><td style="padding:1px 4px; color:var(--amber);"><b>R2</b>(트리거)</td><td colspan="3" style="color:var(--amber);">🔄 복귀 — 직전 경로 역주행 (Gradio 이식, 다시 당기면 중지)</td></tr>
-              </table>
-              ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
-            </div>
-          </div>
-
+          <!-- 중간열 (1fr): 에피소드 제어 + 현재 에피소드 타임라인 -->
           <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📼 에피소드 제어</div>
+              <input type="text" id="collect-episode-name" placeholder="episode_name (비우면 자동 생성)"
+                     style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-cyan" style="flex:1;" onclick="collectStartEpisode()">▶ 시작</button>
+                <button class="btn btn-outline" style="flex:1; border-color:var(--rose); color:var(--rose);" onclick="collectStopEpisode()">⏹ 정지 & 저장</button>
+              </div>
+              <button id="collect-return-btn" class="btn btn-outline" style="width:100%; margin-top:8px; border-color:var(--amber); color:var(--amber);" onclick="collectAutoReturn()">🔄 복귀 (직전 경로 역주행)</button>
+              <div id="collect-episode-status" style="font-size:12px; font-weight:600; color:var(--text-muted); margin-top:10px; padding:8px 10px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); min-height:16px;">—</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📊 현재 에피소드 타임라인 (Gradio 이식 — 기호 시퀀스 + 실측 Hz)</div>
+              <div id="collect-timeline-box" style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">대기 중 — 시나리오 선택 후 녹화 시작</div>
+              <div id="collect-dist-box" style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); margin-top:8px; white-space:pre;"></div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">⏱️ 마지막 세션 (Hz 설계용)</div>
+              <div id="collect-session-summary" style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:pre;">도착 시 정지 → 저장하면 소요 초·Hz가 여기 표시됩니다</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🗂️ 최근 저장 내역 (녹화 성공/폐기 이력)</div>
+              <div id="collect-recent-saves" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;">
+                <div style="font-size:11px; color:var(--text-muted); padding:6px 0;">아직 없음</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3열 (1fr): 조이스틱 (그대로 유지) + 트랙A/시나리오 진행률 -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🕹️ 조이스틱 (DragonRise) — 자동 기록됨
+                <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (번호 + 물리 버튼 이름, DragonRise 기준)</div>
+              <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">D-pad (시나리오 순환 전용)</div>
+              <div style="display:flex; justify-content:center; gap:8px; margin-bottom:12px;">
+                <div id="collect-dpad-left" class="btn-light">◀</div>
+                <div id="collect-dpad-up" class="btn-light">▲</div>
+                <div id="collect-dpad-down" class="btn-light">▼</div>
+                <div id="collect-dpad-right" class="btn-light">▶</div>
+              </div>
+              <div id="collect-js-btn-caption" style="font-size:16px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:12px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
+              <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
+                <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
+                왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
+                <b>D-pad 좌/우</b> → 현재 활성 축(트랙A cx위치 / 접근경로 / 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 3축 순환 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
+                <table style="width:100%; border-collapse:collapse; margin-top:6px;">
+                  <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
+                      <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td>에피소드 폐기</td>
+                      <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:#555;">미사용</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td>녹화 시작</td>
+                      <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
+                      <td style="padding:1px 4px;"><b>START</b>(7)</td><td>SYNC↔ASYNC 모드</td></tr>
+                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>R2</b>(트리거)</td><td colspan="3" style="color:var(--amber);">🔄 복귀 — 직전 경로 역주행 (Gradio 이식, 다시 당기면 중지)</td></tr>
+                </table>
+                ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
+              </div>
+            </div>
+
             <div class="card" style="padding:16px;">
               <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)
                 <span id="collect-mode-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🎮 D-pad 대상: 트랙A</span>
@@ -4508,55 +4686,6 @@ L S R  C S L  R S L
                 <option value="variant">변형 패턴 (Variant)</option>
               </select>
               <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr; gap:20px; align-items:start;">
-
-          <div style="display:flex; flex-direction:column; gap:16px;">
-            <div class="card" style="padding:16px;">
-              <div class="card-title">🕹️ 조작 (탭 클릭 후 키보드 W A S D Q E Z C R T Space)</div>
-              <div id="collect-key-surface" tabindex="0"
-                   style="outline:none; border:2px dashed var(--border-glow); border-radius:10px; padding:24px; text-align:center; background:#090d16; cursor:pointer;">
-                <div style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">여기 클릭해서 포커스 → 키보드로 조작 (조이스틱은 그대로 사용 가능, 자동 기록됨)</div>
-                <div id="collect-last-action" style="font-size:20px; font-family:var(--font-mono); color:var(--emerald); font-weight:700;">STOP</div>
-              </div>
-              <div style="display:flex; gap:8px; margin-top:10px;">
-                <span id="collect-active-badge" style="font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">⏸ 대기중</span>
-                <span id="collect-steps-badge" style="font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">0 steps</span>
-              </div>
-
-              <div style="margin-top:16px; display:flex; justify-content:center;">
-                <div class="joystick-grid">
-                  <button id="collect-pad-q" class="joy-btn" onpointerdown="_collectPadDown('q')" onpointerup="_collectPadUp('q')" onpointerleave="_collectPadUp('q')">↖Q</button>
-                  <button id="collect-pad-w" class="joy-btn" onpointerdown="_collectPadDown('w')" onpointerup="_collectPadUp('w')" onpointerleave="_collectPadUp('w')">▲W</button>
-                  <button id="collect-pad-e" class="joy-btn" onpointerdown="_collectPadDown('e')" onpointerup="_collectPadUp('e')" onpointerleave="_collectPadUp('e')">↗E</button>
-                  <button id="collect-pad-a" class="joy-btn" onpointerdown="_collectPadDown('a')" onpointerup="_collectPadUp('a')" onpointerleave="_collectPadUp('a')">◀A</button>
-                  <button class="joy-btn stop" onclick="_collectPadStop()">⏹</button>
-                  <button id="collect-pad-d" class="joy-btn" onpointerdown="_collectPadDown('d')" onpointerup="_collectPadUp('d')" onpointerleave="_collectPadUp('d')">▶D</button>
-                  <button id="collect-pad-z" class="joy-btn" onpointerdown="_collectPadDown('z')" onpointerup="_collectPadUp('z')" onpointerleave="_collectPadUp('z')">↙Z</button>
-                  <button id="collect-pad-s" class="joy-btn" onpointerdown="_collectPadDown('s')" onpointerup="_collectPadUp('s')" onpointerleave="_collectPadUp('s')">▼S</button>
-                  <button id="collect-pad-c" class="joy-btn" onpointerdown="_collectPadDown('c')" onpointerup="_collectPadUp('c')" onpointerleave="_collectPadUp('c')">↘C</button>
-                  <button id="collect-pad-r" class="joy-btn" onpointerdown="_collectPadDown('r')" onpointerup="_collectPadUp('r')" onpointerleave="_collectPadUp('r')">↺R</button>
-                  <div></div>
-                  <button id="collect-pad-t" class="joy-btn" onpointerdown="_collectPadDown('t')" onpointerup="_collectPadUp('t')" onpointerleave="_collectPadUp('t')">↻T</button>
-                </div>
-              </div>
-              <div id="collect-pad-caption" style="font-size:13px; font-family:var(--font-mono); text-align:center; margin-top:10px; padding:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">대기 중 — 버튼/키보드를 누르면 여기 표시</div>
-              <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;">버튼을 누르고 있으면 계속 이동, 떼면 정지 (키보드와 동일하게 기록됨)</div>
-            </div>
-
-            <div class="card" style="padding:16px;">
-              <div class="card-title">📼 에피소드 제어</div>
-              <input type="text" id="collect-episode-name" placeholder="episode_name (비우면 자동 생성)"
-                     style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
-              <div style="display:flex; gap:8px;">
-                <button class="btn btn-cyan" style="flex:1;" onclick="collectStartEpisode()">▶ 시작</button>
-                <button class="btn btn-outline" style="flex:1; border-color:var(--rose); color:var(--rose);" onclick="collectStopEpisode()">⏹ 정지 & 저장</button>
-              </div>
-              <button id="collect-return-btn" class="btn btn-outline" style="width:100%; margin-top:8px; border-color:var(--amber); color:var(--amber);" onclick="collectAutoReturn()">🔄 복귀 (직전 경로 역주행)</button>
-              <div id="collect-episode-status" style="font-size:11px; color:var(--text-muted); margin-top:8px;">—</div>
             </div>
           </div>
 
@@ -4946,6 +5075,8 @@ L S R  C S L  R S L
     let _collectCxPathsLoaded = false;
     let _collectPrevStagedScenario = undefined;
     let _collectLastHatDirShown = null;
+    let _collectEpisodeStartedAt = null;  // 서버 episode_started_at(epoch초) — REC 타이머용
+    let _collectTimerTick = null;
 
     function _collectSendKey(key, event) {
       api("/collect/key", { method: "POST", headers: {"Content-Type":"application/json"},
@@ -5150,17 +5281,135 @@ L S R  C S L  R S L
       }
     }
 
+    function _collectUpdateTimerBadge() {
+      const timerBadge = document.getElementById("collect-timer-badge");
+      if (!timerBadge || !_collectEpisodeStartedAt) return;
+      const elapsed = Math.max(0, Date.now() / 1000 - _collectEpisodeStartedAt);
+      const m = Math.floor(elapsed / 60);
+      const s = Math.floor(elapsed % 60);
+      timerBadge.textContent = `⏱ ${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function _collectRenderRecentSaves(saves) {
+      const el = document.getElementById("collect-recent-saves");
+      if (!el) return;
+      if (!saves.length) {
+        el.innerHTML = `<div style="font-size:11px; color:var(--text-muted); padding:6px 0;">아직 없음</div>`;
+        return;
+      }
+      el.innerHTML = saves.map(s => {
+        const t = new Date(s.ts * 1000);
+        const timeStr = t.toLocaleTimeString("ko-KR", { hour12: false });
+        const ok = s.saved;
+        const color = ok ? "var(--emerald)" : "var(--amber)";
+        const icon = ok ? "✅" : "⚠️";
+        const detail = ok
+          ? `${s.steps} steps · ${s.duration.toFixed(1)}s`
+          : (s.reason || "저장 안 됨");
+        return `
+          <div style="border-left:3px solid ${color}; background:#090d16; border-radius:4px; padding:6px 10px;">
+            <div style="display:flex; justify-content:space-between; gap:8px;">
+              <span style="font-size:11px; color:${color}; font-weight:700;">${icon} ${_wikiEscapeHtml(s.name || "")}</span>
+              <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap;">${timeStr}</span>
+            </div>
+            <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">${_wikiEscapeHtml(detail)}</div>
+          </div>`;
+      }).join("");
+    }
+
+    // Gradio update_ui_state() 이식 — IDLE/REC/TARGET MET/RETURNING 큰 상태카드
+    function _collectRenderStatusCard(res) {
+      const el = document.getElementById("collect-status-card");
+      if (!el) return;
+      const scenarioKey = res.scenario || res.staged_scenario;
+      const scenarioLabel = (res.scenarios && scenarioKey && res.scenarios[scenarioKey])
+        ? res.scenarios[scenarioKey].label : "";
+      let text, cls;
+      if (res.returning) {
+        text = "🔄 RETURNING..."; cls = "rec";
+      } else if (res.active) {
+        const n = res.steps;
+        const target = res.current_scenario_target || 0;
+        if (target > 0) {
+          const pct = Math.min(100, Math.floor(n / target * 100));
+          const bar = "█".repeat(Math.floor(pct / 10)) + "░".repeat(10 - Math.floor(pct / 10));
+          if (n >= target) { text = `✅ TARGET MET [${n}/${target}] ${bar} 100% — ${scenarioLabel}`; cls = "done"; }
+          else { text = `● REC [${n}/${target}] ${bar} ${pct}% — ${scenarioLabel}`; cls = "rec"; }
+        } else {
+          text = `● REC [${n}] — ${scenarioLabel}`; cls = "rec";
+        }
+      } else if (scenarioKey) {
+        text = `⏸ IDLE — 선택: [${scenarioKey}] ${scenarioLabel}  ▶ 아래 시작 버튼으로 녹화 시작`; cls = "idle";
+      } else {
+        text = "⏸ IDLE — 시나리오 선택 필요 (D-pad 좌/우 또는 화면 드롭다운)"; cls = "idle";
+      }
+      el.textContent = text;
+      el.className = "collect-status-card " + cls;
+    }
+
+    // Gradio episode_timeline_md/episode_dist_md 이식 — 최근 액션 기호열 + Hz + 8-class 분포
+    function _collectRenderTimeline(t) {
+      const box = document.getElementById("collect-timeline-box");
+      const distBox = document.getElementById("collect-dist-box");
+      if (!box) return;
+      if (!t.n) {
+        box.textContent = "대기 중 — 시나리오 선택 후 녹화 시작";
+        if (distBox) distBox.textContent = "";
+        return;
+      }
+      const hzStr = t.hz ? ` · ${t.hz}Hz` : "";
+      box.textContent = `${t.n} frames${hzStr}\\n최근→  ${t.symbols}`;
+      if (distBox && t.dist) {
+        const entries = Object.entries(t.dist);
+        const mx = Math.max(...entries.map(([, c]) => c), 1);
+        distBox.textContent = entries.map(([name, c]) =>
+          `${name.padEnd(8)} ${"█".repeat(Math.round(c / mx * 12)).padEnd(12)} ${c}`
+        ).join("\\n");
+      }
+    }
+
+    // Gradio session_summary_md 이식 — 마지막 저장 세션의 프레임/소요시간/실측Hz
+    function _collectRenderSessionSummary(s) {
+      const el = document.getElementById("collect-session-summary");
+      if (!el) return;
+      if (!s) {
+        el.textContent = "도착 시 정지 → 저장하면 소요 초·Hz가 여기 표시됩니다";
+        return;
+      }
+      el.textContent = `프레임    : ${s.frames}\\n소요 시간 : ${s.duration_s} s\\n실측 Hz   : ${s.hz} Hz`;
+    }
+
     async function collectRefreshState() {
       const res = await api("/collect/state");
       if (!res.ok) return;
       const activeBadge = document.getElementById("collect-active-badge");
       const stepsBadge = document.getElementById("collect-steps-badge");
       if (activeBadge) {
-        activeBadge.textContent = res.active ? "🔴 수집중: " + (res.episode_name || "") : "⏸ 대기중";
+        activeBadge.innerHTML = res.active
+          ? `<span class="collect-rec-dot"></span>REC: ${res.episode_name || ""}`
+          : "⏸ 대기중 (녹화 안 됨)";
         activeBadge.style.background = res.active ? "rgba(244,63,94,0.15)" : "rgba(100,116,139,0.2)";
         activeBadge.style.color = res.active ? "var(--rose)" : "var(--text-muted)";
       }
       if (stepsBadge) stepsBadge.textContent = res.steps + " steps";
+
+      const timerBadge = document.getElementById("collect-timer-badge");
+      if (res.active && res.episode_started_at) {
+        _collectEpisodeStartedAt = res.episode_started_at;
+        if (!_collectTimerTick) {
+          _collectTimerTick = setInterval(_collectUpdateTimerBadge, 500);
+          _collectUpdateTimerBadge();
+        }
+      } else {
+        _collectEpisodeStartedAt = null;
+        if (_collectTimerTick) { clearInterval(_collectTimerTick); _collectTimerTick = null; }
+        if (timerBadge) timerBadge.textContent = "";
+      }
+
+      _collectRenderRecentSaves(res.recent_saves || []);
+      _collectRenderStatusCard(res);
+      _collectRenderTimeline(res.episode_timeline || {});
+      _collectRenderSessionSummary(res.last_session_summary);
 
       const returnBtn = document.getElementById("collect-return-btn");
       if (returnBtn) {
@@ -5414,6 +5663,7 @@ L S R  C S L  R S L
         body: JSON.stringify({ episode_name, scenario, pattern, cx_position, cx_path }) });
       const statusEl = document.getElementById("collect-episode-status");
       statusEl.textContent = res.ok ? "▶ 시작됨: " + res.episode_name : "⚠️ " + res.error;
+      statusEl.style.color = res.ok ? "var(--rose)" : "var(--amber)";
       collectRefreshState();
     }
 
@@ -5424,6 +5674,7 @@ L S R  C S L  R S L
       statusEl.textContent = res.ok
         ? (res.saved ? `✅ 저장됨: ${res.path} (${res.steps} steps, ${res.duration.toFixed(1)}s, STOP프레임 +5 포함)` : "⚠️ 저장 안 함: " + (res.reason || ""))
         : "⚠️ " + res.error;
+      statusEl.style.color = (res.ok && res.saved) ? "var(--emerald)" : "var(--amber)";
       document.getElementById("collect-episode-name").value = "";
       collectRefreshState();
     }
