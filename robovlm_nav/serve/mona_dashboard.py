@@ -2231,6 +2231,60 @@ def wiki_content(name: str):
     mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
     return {"ok": True, "content": content, "mtime": mtime}
 
+def _journal_kind(subject: str) -> str:
+    """커밋 제목에서 타임라인 색상 분류 (research_story.html .timeline-item 관례 따름)."""
+    s = subject.lower()
+    if any(k in subject for k in ("재규명", "확정", "pivot", "번복")):
+        return "pivot"
+    if s.startswith("fix") or "버그" in subject or "bug" in s:
+        return "bad"
+    if s.startswith("feat") or s.startswith("docs"):
+        return "good"
+    return "info"
+
+@app.get("/journal")
+def research_journal(limit: int = 40):
+    """연구일지 — md 파일 버전이 아니라 프로젝트 전체 커밋을 research_story.html
+    타임라인 감성으로 훑어보는 용도. 위키/최신현황 탭 공용."""
+    import subprocess as _sp_wiki
+    try:
+        out = _sp_wiki.run(
+            ["git", "log", f"-{max(1, min(limit, 100))}",
+             "--format=%H%x1f%ad%x1f%s", "--date=format:%Y-%m-%d %H:%M"],
+            cwd=str(ROOT), capture_output=True, text=True, timeout=10,
+        )
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if out.returncode != 0:
+        return {"ok": False, "error": out.stderr.strip() or "git log 실패"}
+    entries = []
+    for line in out.stdout.strip().split("\n"):
+        if not line:
+            continue
+        parts = line.split("\x1f")
+        if len(parts) == 3:
+            sha, date, subject = parts
+            entries.append({"sha": sha, "date": date, "subject": subject, "kind": _journal_kind(subject)})
+    return {"ok": True, "entries": entries}
+
+@app.get("/journal/{sha}")
+def research_journal_entry(sha: str):
+    """연구일지 엔트리 펼치기 — 커밋 전체 메시지 + 변경 파일 목록."""
+    import re as _re_wiki
+    import subprocess as _sp_wiki
+    if not _re_wiki.fullmatch(r"[0-9a-fA-F]{7,40}", sha):
+        return {"ok": False, "error": "잘못된 커밋 해시"}
+    try:
+        body_out = _sp_wiki.run(["git", "show", "-s", "--format=%B", sha],
+                                 cwd=str(ROOT), capture_output=True, text=True, timeout=10)
+        files_out = _sp_wiki.run(["git", "show", "--stat", "--format=", sha],
+                                  cwd=str(ROOT), capture_output=True, text=True, timeout=10)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if body_out.returncode != 0:
+        return {"ok": False, "error": body_out.stderr.strip() or "git show 실패"}
+    return {"ok": True, "sha": sha, "body": body_out.stdout.strip(), "files": files_out.stdout.strip()}
+
 @app.get("/episodes/list")
 def episodes_list():
     rows, summary = _read_episode_csv()
@@ -2352,6 +2406,11 @@ def index():
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+# 위키/최신현황 탭에서 docs/v5 아래 실험 그래프 이미지를 상대경로로 쓰기 위한 마운트
+_DOCS_V5_DIR = ROOT / "docs" / "v5"
+if _DOCS_V5_DIR.exists():
+    app.mount("/docs-static/v5", StaticFiles(directory=str(_DOCS_V5_DIR)), name="docs-v5-static")
+
 
 # ═══════════════════════════════════════════════════════════════════
 # 내장 대시보드 HTML (Premium Command Center Style)
@@ -2364,6 +2423,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 <title>MoNaVLA Command Center</title>
 <!-- Google Fonts & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root {
@@ -3002,6 +3062,93 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     grid-template-columns: 1.5fr 1fr;
     gap: 20px;
   }
+
+  /* ── 위키/최신현황 탭 — docs/v5/research_story.html 스타일 이식 ──
+     탭 스코프 한정: 다른 탭들의 Outfit/JetBrains Mono는 그대로 유지 */
+  #tab-wikiinfo, #tab-wikistatus {
+    --wiki-bg: #0a0f1a; --wiki-surface: #111827; --wiki-surface2: #1e293b;
+    --wiki-border: #1e293b; --wiki-text: #f1f5f9; --wiki-muted: #94a3b8;
+    --wiki-accent: #38bdf8; --wiki-green: #22c55e; --wiki-red: #ef4444;
+    --wiki-yellow: #fbbf24; --wiki-purple: #a78bfa;
+    font-family: 'Noto Sans KR', var(--font-sans);
+  }
+  #tab-wikiinfo .wiki-render, #tab-wikistatus .wiki-render {
+    color: var(--wiki-text); line-height: 1.7;
+  }
+  .wiki-render h1, .wiki-render h2 {
+    display:flex; align-items:center; gap:14px; margin:32px 0 18px;
+    font-size:1.95rem; font-weight:800; color:var(--wiki-text);
+  }
+  .wiki-render h1:first-child, .wiki-render h2:first-child { margin-top:0; }
+  .wiki-render h3 { font-size:1.43rem; font-weight:700; margin:22px 0 10px; color:var(--wiki-text); }
+  .wiki-render p { margin-bottom:12px; color:var(--wiki-muted); font-size:1.22rem; }
+  .wiki-render strong { color:var(--wiki-text); }
+  .wiki-render ul { margin:0 0 14px 22px; color:var(--wiki-muted); font-size:1.22rem; }
+  .wiki-render ul li { margin-bottom:4px; }
+  .wiki-render code { font-family:var(--font-mono); background:var(--wiki-surface2);
+    padding:1px 6px; border-radius:4px; font-size:0.85em; color:#7dd3fc; }
+  .wiki-render pre { background:#0b1220; border:1px solid var(--wiki-border);
+    border-radius:8px; padding:12px 14px; overflow:auto; margin-bottom:14px; }
+  .wiki-render pre code { background:none; padding:0; color:var(--wiki-muted); }
+  .wiki-chapter-num { background:var(--wiki-accent); color:#0a0f1a; font-weight:900;
+    font-size:1.01rem; padding:3px 11px; border-radius:20px; white-space:nowrap; }
+  .wiki-render table.cl-table { width:100%; border-collapse:collapse; background:var(--wiki-surface);
+    border-radius:12px; overflow:hidden; margin-bottom:20px; font-size:1.14rem; }
+  .wiki-render table.cl-table th { background:#0b1220; padding:10px 16px; text-align:left;
+    color:var(--wiki-muted); font-size:1.01rem; text-transform:uppercase; letter-spacing:0.5px; }
+  .wiki-render table.cl-table td { padding:10px 16px; border-bottom:1px solid var(--wiki-border); }
+  .wiki-render table.cl-table tr:last-child td { border-bottom:none; }
+  .wiki-render .callout { border-radius:10px; padding:14px 18px; margin-bottom:16px;
+    line-height:1.7; font-size:1.17rem; }
+  .wiki-render .callout.info { background:#0c2340; border-left:4px solid var(--wiki-accent); color:#bae6fd; }
+  .wiki-render .callout.warn { background:#2d1b00; border-left:4px solid var(--wiki-yellow); color:#fde68a; }
+  .wiki-render .callout.critical { background:#2d0000; border-left:4px solid var(--wiki-red); color:#fca5a5; }
+  .wiki-render .callout.success { background:#052e16; border-left:4px solid var(--wiki-green); color:#bbf7d0; }
+  .wiki-render .finding-card { background:var(--wiki-surface); border-radius:12px; padding:18px;
+    border-left:4px solid var(--wiki-accent); margin-bottom:14px; }
+  .wiki-render .img-grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  .wiki-render .img-grid-3 img, .wiki-render .fig-card img { width:100%; display:block; border-radius:8px; }
+  .wiki-render .fig-card { background:var(--wiki-surface); border-radius:12px; overflow:hidden; margin-bottom:14px; }
+  .wiki-render .fig-caption { padding:10px 14px; font-size:1.07rem; color:var(--wiki-muted); }
+  @media(max-width:760px){ .wiki-render .img-grid-3 { grid-template-columns:1fr; } }
+
+  /* ── 연구일지(research journal) 타임라인 — research_story.html .timeline 이식 ── */
+  /* ── 연구일지 — Tab6 세션 히스토리와 동일한 list+detail 스플릿 UX ── */
+  .wj-grid { display:grid; grid-template-columns:260px 1fr; gap:14px; align-items:start; }
+  @media(max-width:760px){ .wj-grid { grid-template-columns:1fr; } }
+  .wj-list { display:flex; flex-direction:column; gap:6px; max-height:420px; overflow-y:auto; padding-right:4px; }
+  .wj-card {
+    background:#151f32; border:1px solid var(--border-glow); border-radius:8px;
+    padding:9px 11px; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease;
+    border-left:3px solid var(--wiki-accent);
+  }
+  .wj-card.bad { border-left-color:var(--wiki-red); }
+  .wj-card.good { border-left-color:var(--wiki-green); }
+  .wj-card.pivot { border-left-color:var(--wiki-purple); }
+  .wj-card:hover { border-color:rgba(6,182,212,0.5); background:#1a2540; }
+  .wj-card.active { border-color:var(--cyan); background:rgba(6,182,212,0.08);
+    box-shadow:0 0 0 1px rgba(6,182,212,0.25); }
+  .wj-card .wj-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .wj-card .wj-date { font-weight:700; font-size:12px; color:var(--wiki-accent); font-family:var(--font-mono); }
+  .wj-card.bad .wj-date { color:var(--wiki-red); }
+  .wj-card.good .wj-date { color:var(--wiki-green); }
+  .wj-card.pivot .wj-date { color:var(--wiki-purple); }
+  .wj-card .wj-rel { font-size:9.5px; color:var(--text-muted); white-space:nowrap; }
+  .wj-card .wj-title { font-size:11px; color:var(--text-muted); margin-top:3px; overflow:hidden;
+    text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .wj-card .wj-sha { font-size:9.5px; color:var(--text-muted); font-family:var(--font-mono); margin-top:3px; }
+  .wj-detail {
+    background:#090d16; border:1px solid var(--border-glow); border-radius:8px;
+    padding:16px 18px; min-height:200px; max-height:420px; overflow-y:auto;
+  }
+  .wj-detail .wjd-placeholder { color:var(--wiki-muted); font-size:12px; text-align:center; padding:60px 0; }
+  .wj-detail .wjd-head { display:flex; align-items:baseline; gap:10px; margin-bottom:10px;
+    padding-bottom:10px; border-bottom:1px solid var(--wiki-border); }
+  .wj-detail .wjd-sha { font-family:var(--font-mono); color:var(--cyan); font-weight:700; font-size:13px; }
+  .wj-detail .wjd-date { color:var(--wiki-muted); font-size:12px; }
+  .wj-detail .wjd-body { color:var(--wiki-text); font-size:0.88rem; line-height:1.7; white-space:pre-wrap; margin-bottom:12px; }
+  .wj-detail .wjd-files { color:#7dd3fc; font-size:0.78rem; font-family:var(--font-mono); white-space:pre-wrap;
+    background:var(--wiki-surface); border-radius:6px; padding:10px 12px; }
 </style>
 </head>
 <body>
@@ -4425,7 +4572,14 @@ L S R  C S L  R S L
           <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
             docs/DASHBOARD_WIKI.md — 거의 안 바뀌는 참조 정보. CLAUDE.md 바뀔 때 수동 갱신.
           </div>
-          <pre id="wiki-info-content" style="font-size:12px; font-family:var(--font-mono); background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:14px; max-height:70vh; overflow:auto; white-space:pre-wrap; color:#e2e8f0;">로딩 중...</pre>
+          <div id="wiki-info-content" class="wiki-render" style="background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:20px 24px;">로딩 중...</div>
+        </div>
+        <div class="card" style="padding:16px; margin-top:16px;">
+          <div class="card-title">🗓️ 연구일지 (git 커밋 기준 — 클릭해서 상세보기)</div>
+          <div class="wj-grid">
+            <div id="wiki-info-journal-list" class="wj-list">로딩 중...</div>
+            <div id="wiki-info-journal-detail" class="wj-detail"><div class="wjd-placeholder">← 항목을 클릭하면 커밋 상세가 여기 표시됩니다</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -4438,10 +4592,17 @@ L S R  C S L  R S L
             <button class="btn btn-outline" onclick="loadWikiContent('status')" style="font-size:11px; padding:4px 10px;">↻ 새로고침</button>
           </div>
           <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
-            docs/DASHBOARD_LIVE_STATUS.md — <span id="wiki-status-mtime">-</span>.
+            docs/DASHBOARD_LIVE_STATUS.md — <span id="wiki-status-mtime" style="color:var(--amber); font-weight:700; font-family:var(--font-mono);">-</span>.
             실시간 자동 갱신 아님 — "대시보드 최신현황 갱신해줘" 요청 시 스킬이 이 파일을 다시 씀.
           </div>
-          <pre id="wiki-status-content" style="font-size:12px; font-family:var(--font-mono); background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:14px; max-height:70vh; overflow:auto; white-space:pre-wrap; color:#e2e8f0;">로딩 중...</pre>
+          <div id="wiki-status-content" class="wiki-render" style="background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:20px 24px;">로딩 중...</div>
+        </div>
+        <div class="card" style="padding:16px; margin-top:16px;">
+          <div class="card-title">🗓️ 연구일지 (git 커밋 기준 — 클릭해서 상세보기)</div>
+          <div class="wj-grid">
+            <div id="wiki-status-journal-list" class="wj-list">로딩 중...</div>
+            <div id="wiki-status-journal-detail" class="wj-detail"><div class="wjd-placeholder">← 항목을 클릭하면 커밋 상세가 여기 표시됩니다</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -5291,10 +5452,10 @@ L S R  C S L  R S L
       try {
         const res = await api("/wiki/" + name);
         if (res.ok) {
-          contentEl.textContent = res.content;
+          contentEl.innerHTML = renderWikiMarkdown(res.content);
           if (name === "status") {
             const mtimeEl = document.getElementById("wiki-status-mtime");
-            if (mtimeEl) mtimeEl.textContent = "최근 갱신: " + res.mtime;
+            if (mtimeEl) mtimeEl.textContent = `최근 갱신: ${res.mtime} (${_wikiRelTime(res.mtime)})`;
           }
         } else {
           contentEl.textContent = "⚠️ 로드 실패: " + res.error;
@@ -5302,6 +5463,202 @@ L S R  C S L  R S L
       } catch (e) {
         contentEl.textContent = "⚠️ 서버 오류: " + e;
       }
+      loadResearchJournal(name);
+    }
+
+    // ── 🗓️ 연구일지 — Tab6 세션 히스토리(list + Frame Inspector)와 동일한
+    // list+detail 스플릿 UX로 git 커밋을 훑어보기. 같은 md 파일의 과거 버전을
+    // 보여주는 게 아니라, 프로젝트 전체 진행 기록을 날짜순으로 브라우징하는 용도.
+    let _wjActiveSha = { info: null, status: null };
+
+    async function loadResearchJournal(name) {
+      const listEl = document.getElementById(`wiki-${name}-journal-list`);
+      if (!listEl) return;
+      try {
+        const res = await api("/journal");
+        if (!res.ok || !res.entries || res.entries.length === 0) {
+          listEl.innerHTML = `<div style="font-size:11px; color:var(--wiki-muted); padding:6px 0;">연구일지 없음</div>`;
+          return;
+        }
+        listEl.innerHTML = res.entries.map(e => `
+          <div class="wj-card ${e.kind}" data-sha="${e.sha}" onclick="selectJournalEntry('${name}', '${e.sha}', '${e.date}')">
+            <div class="wj-top">
+              <span class="wj-date">${e.date}</span>
+              <span class="wj-rel">${_wikiRelTime(e.date)}</span>
+            </div>
+            <div class="wj-title" title="${_wikiEscapeHtml(e.subject)}">${_wikiEscapeHtml(e.subject)}</div>
+            <div class="wj-sha">${e.sha.slice(0, 7)}</div>
+          </div>
+        `).join("");
+      } catch (e) {
+        listEl.innerHTML = `<div style="font-size:11px; color:var(--wiki-red);">연구일지 로드 실패</div>`;
+      }
+    }
+
+    async function selectJournalEntry(name, sha, dateStr) {
+      _wjActiveSha[name] = sha;
+      document.querySelectorAll(`#wiki-${name}-journal-list .wj-card`).forEach(el => {
+        el.classList.toggle("active", el.dataset.sha === sha);
+      });
+      const detailEl = document.getElementById(`wiki-${name}-journal-detail`);
+      if (!detailEl) return;
+      detailEl.innerHTML = `<div class="wjd-placeholder">로딩 중...</div>`;
+      try {
+        const res = await api(`/journal/${sha}`);
+        if (res.ok) {
+          detailEl.innerHTML = `
+            <div class="wjd-head">
+              <span class="wjd-sha">${res.sha.slice(0, 7)}</span>
+              <span class="wjd-date">${dateStr} (${_wikiRelTime(dateStr)})</span>
+            </div>
+            <div class="wjd-body">${_wikiEscapeHtml(res.body)}</div>
+            ${res.files ? `<div class="wjd-files">${_wikiEscapeHtml(res.files)}</div>` : ""}
+          `;
+        } else {
+          detailEl.innerHTML = `<div class="wjd-placeholder">⚠️ 로드 실패: ${_wikiEscapeHtml(res.error || "")}</div>`;
+        }
+      } catch (e) {
+        detailEl.innerHTML = `<div class="wjd-placeholder">⚠️ 서버 오류: ${e}</div>`;
+      }
+    }
+
+    // ── 위키/최신현황 탭 전용 경량 markdown → HTML 렌더러 ──────────────
+    // docs/v5/research_story.html 양식(챕터/콜아웃/표/이미지그리드)에 맞춘
+    // 최소 문법만 지원 (헤더 #~###, 표, **굵게**, `코드`, ``` 블록,
+    // > [!info|warn|critical|success] 콜아웃, ![](경로) 이미지)
+    function _wikiRelTime(dateStr) {
+      // "YYYY-MM-DD HH:MM" (KST, 로컬 표시와 동일 타임존 가정) → "N분/시간/일 전"
+      const t = new Date(dateStr.replace(" ", "T"));
+      if (isNaN(t.getTime())) return "";
+      const diffMin = Math.round((Date.now() - t.getTime()) / 60000);
+      if (diffMin < 1) return "방금 전";
+      if (diffMin < 60) return `${diffMin}분 전`;
+      const diffHr = Math.round(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}시간 전`;
+      const diffDay = Math.round(diffHr / 24);
+      return `${diffDay}일 전`;
+    }
+    function _wikiEscapeHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function _wikiInline(text) {
+      let t = _wikiEscapeHtml(text);
+      t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+      t = t.replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>");
+      return t;
+    }
+    function _wikiSplitRow(line) {
+      return line.trim().replace(/^\\||\\|$/g, "").split("|").map(s => s.trim());
+    }
+    function _wikiResolveImgSrc(path) {
+      if (/^https?:\\/\\//.test(path) || path.startsWith("/")) return path;
+      return "/docs-static/v5/" + path.replace(/^docs\\/v5\\//, "").replace(/^\\.\\//, "");
+    }
+    function renderWikiMarkdown(md) {
+      const lines = (md || "").split(/\\r?\\n/);
+      let html = "";
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+
+        // 코드 블록
+        if (line.trim().startsWith("```")) {
+          const buf = [];
+          i++;
+          while (i < lines.length && !lines[i].trim().startsWith("```")) { buf.push(lines[i]); i++; }
+          i++;
+          html += `<pre><code>${_wikiEscapeHtml(buf.join("\\n"))}</code></pre>`;
+          continue;
+        }
+
+        // 콜아웃: > [!info|warn|critical|success] ...
+        const calloutMatch = line.match(/^>\\s*\\[!(info|warn|critical|success)\\]\\s*(.*)$/);
+        if (calloutMatch) {
+          const type = calloutMatch[1];
+          const buf = [calloutMatch[2]];
+          i++;
+          while (i < lines.length && lines[i].startsWith(">")) {
+            buf.push(lines[i].replace(/^>\\s?/, ""));
+            i++;
+          }
+          html += `<div class="callout ${type}">${buf.map(_wikiInline).join("<br>")}</div>`;
+          continue;
+        }
+
+        // 표
+        if (line.includes("|") && lines[i + 1] && /^\\s*\\|?\\s*[-:]+\\s*(\\|\\s*[-:]+\\s*)+\\|?\\s*$/.test(lines[i + 1])) {
+          const headerCells = _wikiSplitRow(line);
+          i += 2;
+          const rows = [];
+          while (i < lines.length && lines[i].includes("|")) { rows.push(_wikiSplitRow(lines[i])); i++; }
+          html += '<table class="cl-table"><thead><tr>' +
+            headerCells.map(c => `<th>${_wikiInline(c)}</th>`).join("") +
+            "</tr></thead><tbody>" +
+            rows.map(r => "<tr>" + r.map(c => `<td>${_wikiInline(c)}</td>`).join("") + "</tr>").join("") +
+            "</tbody></table>";
+          continue;
+        }
+
+        // 이미지 (연속되면 3열 그리드, 단독이면 카드)
+        const imgMatch = line.match(/^!\\[(.*?)\\]\\((.*?)\\)\\s*$/);
+        if (imgMatch) {
+          const imgs = [];
+          while (i < lines.length) {
+            const m = lines[i].match(/^!\\[(.*?)\\]\\((.*?)\\)\\s*$/);
+            if (!m) break;
+            imgs.push(m);
+            i++;
+          }
+          const fig = m => `<img src="${_wikiResolveImgSrc(m[2])}" alt="${_wikiEscapeHtml(m[1])}">` +
+            (m[1] ? `<div class="fig-caption">${_wikiEscapeHtml(m[1])}</div>` : "");
+          if (imgs.length >= 2) {
+            html += '<div class="img-grid-3">' + imgs.map(m => `<div class="fig-card">${fig(m)}</div>`).join("") + "</div>";
+          } else {
+            html += `<div class="fig-card">${fig(imgs[0])}</div>`;
+          }
+          continue;
+        }
+
+        // 헤더
+        const h = line.match(/^(#{1,3})\\s+(.*)$/);
+        if (h) {
+          const level = h[1].length;
+          const text = h[2];
+          const numMatch = text.match(/^(\\d+[.)])\\s*(.*)$/);
+          const inner = (level <= 2 && numMatch)
+            ? `<span class="wiki-chapter-num">${_wikiEscapeHtml(numMatch[1])}</span> ${_wikiInline(numMatch[2])}`
+            : _wikiInline(text);
+          const tag = level === 1 ? "h1" : level === 2 ? "h2" : "h3";
+          html += `<${tag}>${inner}</${tag}>`;
+          i++;
+          continue;
+        }
+
+        // 빈 줄
+        if (line.trim() === "") { i++; continue; }
+
+        // 불릿 리스트
+        if (/^\\s*[-*]\\s+/.test(line)) {
+          const items = [];
+          while (i < lines.length && /^\\s*[-*]\\s+/.test(lines[i])) {
+            items.push(lines[i].replace(/^\\s*[-*]\\s+/, ""));
+            i++;
+          }
+          html += "<ul>" + items.map(it => `<li>${_wikiInline(it)}</li>`).join("") + "</ul>";
+          continue;
+        }
+
+        // 문단 (다음 특수 블록/빈 줄까지 누적)
+        const buf = [line];
+        i++;
+        while (i < lines.length && lines[i].trim() !== "" &&
+               !/^(#{1,3}\\s|```|>\\s*\\[!|!\\[|\\s*[-*]\\s)/.test(lines[i]) && !lines[i].includes("|")) {
+          buf.push(lines[i]);
+          i++;
+        }
+        html += `<p>${_wikiInline(buf.join(" "))}</p>`;
+      }
+      return html;
     }
 
     // ── ⚙️ 서버 설정 탭 ─────────────────────────────────────────────

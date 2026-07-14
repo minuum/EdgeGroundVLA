@@ -43,9 +43,20 @@ VLM 기반 모바일 로봇 내비게이션 프로젝트. Kosmos-2(frozen) + LoR
 | 세션 전송(→minum) | `scripts/sync/push_inference_session_to_minum.sh` |
 
 ## 알려진 금지사항 / 함정
-- `third_party/RoboVLMs/` 수정 금지
-- **Google-robot backbone으로 `generate()` 절대 호출 금지** — 무한반복 텍스트 생성
-- Jetson Orin에서 서버 실행 중 PG2 직접 로드 시 OOM → 반드시 서버 내리고 테스트
+
+> [!critical]
+> **Google-robot backbone으로 `generate()` 절대 호출 금지** — "Tin Tin Tin Roof..." 식
+> 무한반복 텍스트 생성이 발생함. `third_party/RoboVLMs/`도 수정 금지.
+
+> [!warn]
+> Jetson Orin에서 서버(8001) 실행 중 PG2 그라운더를 직접 로드하면 OOM 발생 —
+> 반드시 서버 내리고 테스트할 것.
+
+> [!warn]
+> **극단cx(cx>0.75 강한우 / cx<0.25 강한좌) 구간에서 grounding이 정상 검출돼도
+> FORWARD로 고착되는 현상** — 학습데이터의 1.4~3.2%뿐이라 발생. 자세한 내용은
+> 📡 최신현황 탭 또는 `docs/v5/closed_loop_eval/CH61_OWL_LIVE_FAILURE_AND_FIX.md` 참고.
+
 - `go.sh --drive`는 존재하지 않는 MODE — 대시보드만 재시작하려면 `--mona-dash`
 - 조이스틱: 다른 로봇에 옮겼다 복귀 시 HID 스트림 죽음 → 물리 재연결만 해결
 - text attention = 0% (Google-robot post-training이 text 경로 붕괴시킴, 우리 LoRA와 무관)
