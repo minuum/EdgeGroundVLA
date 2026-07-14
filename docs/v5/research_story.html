@@ -14472,13 +14472,40 @@ graph TD
       지표 1·2는 <strong style="color:#fbbf24">재수집 없이 기존 학습 annotation만으로 오프라인
       측정 가능</strong> — 새 데이터의 "지시-경로 디커플링"이 confound를 실제로 끊었는지
       로봇 재수집 전에 먼저 검증 가능.<br><br>
-      <strong style="color:#e2e8f0">다음 결정 필요</strong>: 트랙A/B에 "일부러 과도하게 꺾은 뒤
-      되돌아오는(오버슈트→재수렴) 궤적"을 세팅당 몇 회 명시적으로 포함할지 결정 필요 — 현재
-      플랜은 극단cx 위치·경로 다양성만 다루고 이 유형은 없음. 초반 1회 회전 데이터를
-      <strong style="color:#f87171">빼는 것은 비권장</strong> — 그 패턴 자체가 문제가 아니라
-      "그 패턴만 있다"는 다양성 부족이 문제이므로, 삭제보다 추가가 맞는 방향.<br><br>
+      <strong style="color:#34d399">결정 완료(2026-07-12)</strong>: §61-16 오프라인 완화책
+      (재가중치/hybrid rule)이 전부 무효로 재확인됨에 따라, 트랙C(오버슈트→재수렴, 64ep)를
+      신규 필수 트랙으로 확정 — 극단cx 위치 4곳 × 오버슈트방향 2종 × 8회. 초반 1회 회전
+      데이터를 <strong style="color:#f87171">빼는 것은 비권장</strong> — 그 패턴 자체가 문제가
+      아니라 "그 패턴만 있다"는 다양성 부족이 문제이므로, 삭제보다 추가가 맞는 방향. 상세는
+      <code>docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md</code> §1
+      "트랙 C" 참고.<br><br>
       전체 상세: <a href="closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md" style="color:#60a5fa">CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md</a>
       &nbsp;|&nbsp; 이미지 비교(bbox/cx 오버레이): 로컬 리포트 <code>docs/v5/analysis_reports/ch61_forward_lock_20260712.html</code>
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">62-6. 거리축(area) confound — 근접해도 STOP 없음, 방향축과 별개 문제</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      2026-07-12 신규 세션 215344 raw 대조(94스텝): area가 0.06→1.0(완전 근접)→0.06으로
+      3~4차례 왕복하는 동안 grounding은 이 왕복을 잘 추적하는데도
+      <strong style="color:#f87171">FORWARD 88/94(93.6%), STOP 0회</strong> — area=1.0(화면을
+      거의 채운 근접 상태)에서도 정지 신호 없음. cx도 극단(0.877→0.95)까지 튀는데 FORWARD
+      유지 — 62-1·62-3의 방향축 confound와 정확히 같은 구조가 <strong style="color:#fbbf24">거리축에도
+      독립적으로 존재</strong>함을 보여주는 반례.<br><br>
+      <strong style="color:#e2e8f0">단, 방향축 문제와는 원인이 다르다</strong>: STOP은 애초에
+      학습 데이터에 "에피소드 끝 프레임 합성" 라벨뿐이라 실제 근접-정지 신호 자체가 원천
+      부재 — 트랙A/C(방향 다양화)로는 해결 안 됨. 확장 옵션을 정리:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">방향</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">내용</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">비용/위험</th></tr>
+        <tr><td style="padding:6px 10px">트랙D(근접정지 신규 수집)</td><td style="padding:6px 10px">area 임계치별(0.7/0.85/1.0) 실제 근접-정지 궤적 수집</td><td style="padding:6px 10px">물리수집 추가 필요</td></tr>
+        <tr><td style="padding:6px 10px">AVSC(거리축 VSC)</td><td style="padding:6px 10px">area↑→STOP/후진 일치율을 62-3처럼 정량화</td><td style="padding:6px 10px;color:#34d399">기존 annotation으로 오프라인 즉시 가능</td></tr>
+        <tr><td style="padding:6px 10px">서버 룰 오버라이드</td><td style="padding:6px 10px">area≥임계치일 때 강제 STOP (안전장치, 코드만 변경)</td><td style="padding:6px 10px;color:#f87171">§61-16 hybrid rule과 같은 종류 완화책 — 방향축에서 무효였던 전례, 안전용 임시책으로만 고려</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">결론</strong>: STOP을 룰로 임시 처리하더라도 exp72(트랙A/C
+      재학습)의 범위·필요성은 그대로 유지 — 방향축(VSC/오버슈트회복률)과 거리축(STOP/근접)은
+      독립된 별개 confound이며, 이번 캠페인은 방향축만 타겟한다. 트랙D/AVSC는 범위 확정 전
+      백로그로 별도 기록.
     </div>
   </div>
 
