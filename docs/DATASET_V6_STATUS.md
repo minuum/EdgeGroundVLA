@@ -53,20 +53,26 @@
   V6 파일은 시나리오 필터가 정상 동작함(과거엔 cx_position/cx_path만 있고
   scenario가 비어 있었음)
 
-## 현재 상태 — V6 첫 실데이터 1건 수집됨 (2026-07-15 19:23)
+## 현재 상태 — V6 실데이터 15건 (2026-07-15 저녁 수집, 라벨 정정 완료)
 
-세션 후반부에 "방금 수집한 데이터셋이 하나 있을 것"이라는 문의가 있었고,
-처음 재스캔 시점엔 실제로 없었으나(당시엔 테스트 파일 삭제 직후였음),
-이후 실제로 1건이 새로 수집됨을 확인:
+2026-07-15 저녁 실시간으로 트랙A 극단배치 데이터를 수집(총 17건). 수집
+직후 확인 결과 **"준극단좌(weak_left)"로 라벨링된 15건이 실제로는 전부
+준극단우(weak_right) 위치에서 촬영된 것으로 확인**(프레임 0 이미지 직접
+확인 — 바구니가 화면 우측 cx≈0.7~0.75 부근, weak_left 밴드 0.20~0.25와
+불일치, weak_right 밴드 0.75~0.80과 일치). 코드 버그가 아니라 수집 중
+실제 배치 위치와 UI 선택이 어긋난 오퍼레이터 실수로 판단, **파일명 +
+H5 attrs(`cx_position`) 둘 다 `weak_left`→`weak_right`로 일괄 정정**:
 
-- `episode_20260715_192339_weak_left_left_curve.h5`
-- `cx_position=weak_left`, `cx_path=left_curve` (트랙A 극단배치 — 준극단좌 + 좌곡선)
-- 72 frames, 15.0s, `time_period=evening`, 93.7MB
-- `scenario` attr은 빈 문자열 — 트랙A 수집이라 9-시나리오 축은 안 씀(정상)
-- `🗂 데이터셋 히스토리` 탭에서 V6/오늘날짜/weak_left+left_curve로 정상 노출 확인
-
-`scenario_progress.json`/`time_period_stats.json`에도 반영됨
-(`cx_position_stats.weak_left=1`, `time_period_stats.evening=1`).
+- 정정 15건: `episode_{ts}_weak_right_left_curve.h5` (구 파일명
+  `..._weak_left_left_curve.h5`에서 rename, H5 attrs `cx_position`도
+  `weak_right`로 수정, `episode_name` attr도 새 파일명과 일치하도록 갱신)
+- 삭제 2건: `weak_left_straight` 2건 — 별도 지시로 정정 대상에서 제외,
+  삭제 처리 (직선 경로 수집 자체가 불필요 판단된 건)
+- `scenario_progress.json`: `cx_position_stats.weak_right=15`,
+  `cx_position_path_stats["weak_right::left_curve"]=15`
+- `time_period_stats.json`: `evening=15`, `total_completed=15`
+- `🗂 데이터셋 히스토리` 탭(`/dataset/list`)에서 15건 모두 `weak_right` +
+  `left_curve`로 정상 노출 재확인
 
 ## 관련 문서
 

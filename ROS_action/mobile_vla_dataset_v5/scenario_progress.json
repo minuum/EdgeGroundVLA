@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-07-15T19:24:03.932901",
+  "last_updated": "2026-07-15T20:20:08.608030",
   "scenario_stats": {},
   "total_completed": 0,
   "total_target": 150,
   "cx_position_stats": {
-    "weak_left": 1
+    "weak_right": 15
   },
   "cx_position_path_stats": {
-    "weak_left::left_curve": 1
+    "weak_right::left_curve": 15
   }
 }
