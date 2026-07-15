@@ -4800,11 +4800,15 @@ L S R  C S L  R S L
           <!-- 좌 (3fr): 카메라 + 조이스틱 요약 -->
           <div style="display:flex; flex-direction:column; gap:12px;">
             <div class="card" style="padding:16px;">
-              <div class="card-title">📹 실시간 카메라 (cx 오버레이는 실시간 cx 켜면 표시)
-                <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
+              <div class="card-title">📹 실시간 카메라
+                <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer; margin-left:10px;">
                   <input type="checkbox" id="toggle-grid-collect" checked onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--cyan);"> Grid 표시
                 </label>
+                <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
+                  <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드 표시
+                </label>
               </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
               <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
                 <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
                 <span id="cam-proc-status-collect" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
@@ -4868,24 +4872,12 @@ L S R  C S L  R S L
             </div>
 
             <div class="card" style="padding:16px;">
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-                <div>
-                  <div class="card-title">🎯 실시간 cx (바구니 배치용)
-                    <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
-                  </div>
-                  <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px; min-height:44px; max-height:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</div>
-                  <div id="collect-cx-band" style="font-size:11px; text-align:center; color:var(--text-muted);">극단 배치 기준: 0.10~0.15 강한좌 · 0.20~0.25 준극단좌 · 0.75~0.80 준극단우 · 0.85~0.90 강한우</div>
-                </div>
-                <div>
-                  <div class="card-title">📍 cx 배치 가이드
-                    <button class="btn btn-outline" style="font-size:11px; padding:3px 10px; float:right;" onclick="_collectCaptureGuide()">📸 캡처</button>
-                  </div>
-                  <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">지금 화면 캡처 → 극단 cx 구간 선/밴드+수치 오버레이</div>
-                  <div class="viewport-wrapper">
-                    <canvas id="collect-guide-canvas" class="viewport-img" width="1280" height="720"></canvas>
-                  </div>
-                </div>
+              <div class="card-title">🎯 실시간 cx (바구니 배치용)
+                <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
               </div>
+              <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px; min-height:44px; max-height:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</div>
+              <div id="collect-cx-band" style="font-size:11px; text-align:center; color:var(--text-muted);">극단 배치 기준: 0.10~0.15 강한좌 · 0.20~0.25 준극단좌 · 0.75~0.80 준극단우 · 0.85~0.90 강한우</div>
+              <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:4px;">📍 배치가이드(밴드+라벨)는 왼쪽 카메라 박스에서 "배치가이드 표시" 체크박스로 확인</div>
             </div>
           </div>
 
@@ -5654,6 +5646,10 @@ L S R  C S L  R S L
       if (!cv) return;
       const ctx = cv.getContext("2d");
       ctx.clearRect(0, 0, cv.width, cv.height);
+      const guideChk = document.getElementById("toggle-cxguide-collect");
+      if (guideChk && guideChk.checked) {
+        _collectDrawCxGuideBands(ctx, cv.width, cv.height);
+      }
       const gridChk = document.getElementById("toggle-grid-collect");
       if (!gridChk || gridChk.checked) {
         drawGridLines(ctx, cv.width, cv.height);
@@ -5687,28 +5683,6 @@ L S R  C S L  R S L
       valEl.style.color = band.color;
       bandEl.innerHTML = `<span style="color:${band.color}; font-weight:700;">${band.label}</span> · area=${res.area.toFixed(3)} · ${res.latency_ms}ms`;
       _collectCxDrawOverlay(res.cx, band.color);
-    }
-
-    // 시작 프레임 캡처 → 극단 cx 구간을 밴드+선+수치로 정적 표시 (에피소드 시작 전 배치 참고용)
-    async function _collectCaptureGuide() {
-      const res = await api("/collect/snapshot");
-      const cv = document.getElementById("collect-guide-canvas");
-      if (!cv) return;
-      const ctx = cv.getContext("2d");
-      if (!res.ok) {
-        ctx.clearRect(0, 0, cv.width, cv.height);
-        ctx.fillStyle = "#94a3b8";
-        ctx.font = "24px sans-serif";
-        ctx.fillText("⚠️ " + (res.error || "캡처 실패"), 20, 40);
-        return;
-      }
-      const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, cv.width, cv.height);
-        ctx.drawImage(img, 0, 0, cv.width, cv.height);
-        _collectDrawCxGuideBands(ctx, cv.width, cv.height);
-      };
-      img.src = "data:image/jpeg;base64," + res.image;
     }
 
     function _collectDrawCxGuideBands(ctx, W, H) {
