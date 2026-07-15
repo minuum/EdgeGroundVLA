@@ -14279,6 +14279,72 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card">
+    <div class="finding-title">61-17. window3+bbox_scale3 배포 후 obj_right 실측 — 병목이 confound에서 그라운딩으로 이동 (2026-07-10/11)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda 로봇에서 window3+bbox_scale3(val_acc 84.4%) 체크포인트로 obj_right 30회
+      실주행(<code>episode_log.csv</code> row 79~108) 결과:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">구분</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">성공/전체</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">성공률</th></tr>
+        <tr><td style="padding:6px 10px">전체</td><td style="padding:6px 10px">17/30</td><td style="padding:6px 10px">56.7%</td></tr>
+        <tr><td style="padding:6px 10px">OWL-v2 그라운딩 성공(실제 bbox 검출)</td><td style="padding:6px 10px;color:#34d399;font-weight:700">16/18</td><td style="padding:6px 10px;color:#34d399;font-weight:700">88.9%</td></tr>
+        <tr><td style="padding:6px 10px">그라운딩 실패(폴백 cx=0.5,area=0.06)</td><td style="padding:6px 10px;color:#f87171">1/12</td><td style="padding:6px 10px;color:#f87171">8.3%</td></tr>
+      </table>
+      이전 세션들(§7~15, window6 체크포인트 기준)에서는 obj_right 성공률이 0%였고 원인이
+      주로 FWD+L 반복(confound) 자체였다. 이번엔 그 confound가 사실상 해소된 채로(top액션이
+      거의 전부 FORWARD로 수렴) <strong style="color:#e2e8f0">그라운딩 성공 케이스에서
+      88.9%</strong>라는 높은 성공률이 나왔고, 실패 13건 중 10건은 "OWL-v2가 바구니를 못
+      찾아 중심좌표로 폴백"한 케이스였다.<br><br>
+      <strong style="color:#fbbf24">의미</strong>: 실주행 핵심은 그라운딩/인식 개선이라는
+      가설이 실측으로 뒷받침됨. 트랙A(극단cx) 재수집과 별개로, OWL-v2 그라운딩 실패율
+      자체를 낮추는 것(임계값 튜닝, multi_prompt 폴백, 재시도 전략)이 지금 시점에서 성공률을
+      가장 빠르게 올릴 수 있는 지렛대로 보임.<br><br>
+      세션 뷰어(<code>mona_dashboard.py</code> Session History 탭)에 이 분석을 세션별로
+      바로 볼 수 있도록 <code>episode_log.csv</code> 조인(실주행 결과/메모/FPE 배지)을
+      추가함 — 기존엔 H5 attrs 원본 텍스트만 노출되어 오퍼레이터가 남긴 성공/실패 메모가
+      묻혀 있었음.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">61-18. 전체 108개 세션 시계열 종합분석 — 그라운더 교체는 무효, 체크포인트 교체가 유일한 변곡점 (2026-07-11)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>episode_log.csv</code> 누적본(108행, 2026-06-26~07-10) 전체를 path_type·날짜·
+      그라운더·체크포인트 축으로 교차분석. in-dist 시나리오(right_left, center_straight —
+      100% 성공)는 제외하고 OOD인 obj_* 계열만 봄(n=72).
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">path_type</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">성공률</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">평균 레이턴시</th></tr>
+        <tr><td style="padding:6px 10px">obj_right</td><td style="padding:6px 10px">17/56 = 30.4%</td><td style="padding:6px 10px">1731ms</td></tr>
+        <tr><td style="padding:6px 10px">obj_left</td><td style="padding:6px 10px">3/8 = 37.5%</td><td style="padding:6px 10px">1712ms</td></tr>
+        <tr><td style="padding:6px 10px">obj_center</td><td style="padding:6px 10px">3/8 = 37.5%</td><td style="padding:6px 10px">886ms</td></tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:12px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">날짜</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">성공률</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">그라운더</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">체크포인트</th></tr>
+        <tr><td style="padding:6px 10px">06-30</td><td style="padding:6px 10px">3/6=50.0%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-01</td><td style="padding:6px 10px">0/1=0%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-02</td><td style="padding:6px 10px">3/21=14.3%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-03</td><td style="padding:6px 10px">0/2=0%</td><td style="padding:6px 10px">PG2-448</td><td style="padding:6px 10px">window6</td></tr>
+        <tr><td style="padding:6px 10px">07-06</td><td style="padding:6px 10px;color:#f87171;font-weight:700">0/12=0%</td><td style="padding:6px 10px;font-weight:700">OWL-v2로 교체</td><td style="padding:6px 10px">window6(그대로)</td></tr>
+        <tr><td style="padding:6px 10px">07-10</td><td style="padding:6px 10px;color:#34d399;font-weight:700">17/30=56.7%</td><td style="padding:6px 10px">OWL-v2(그대로)</td><td style="padding:6px 10px;font-weight:700">window3+bboxscale3로 교체</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">핵심 발견</strong>: 그라운더를 PG2-448→OWL-v2로 교체한
+      07-06 시점엔 obj_* 성공률에 전혀 변화가 없었다(0%→0%). 체크포인트를 교체한 07-10에야
+      비로소 개선이 나타남. 즉 61-17의 "그라운딩 성공/실패가 성공률을 가른다"는 결론은
+      <strong>07-10 배치 안에서는</strong> 맞지만, 더 긴 시계열로 보면 <strong style="color:#fbbf24">체크포인트
+      교체가 그라운더 교체보다 훨씬 크게 기여</strong>한다 — 두 결론은 상충하지 않고 시간축으로
+      포개진다(체크포인트가 나쁘면 그라운딩이 잘 돼도 액션이 틀리고, 체크포인트가 좋아진
+      뒤에야 그라운딩 실패가 남은 병목으로 드러남).<br><br>
+      실패 49건 메모 분류(전체 108건 기준): 그라운딩/인식 실패 13, 방향 반전/엇나감 8,
+      제자리 회전(웜업 이상) 5, 프리뷰 관련 오류 4, 직진 고착 1, 메모없음/기타 18. FPE는
+      성공 평균 0.031m vs 실패 평균 0.638m로 라벨링과 잘 정합됨.<br><br>
+      <strong style="color:#fbbf24">의미</strong>: obj_*(극단cx) 계열은 그라운더가 바뀌어도
+      체크포인트가 바뀌어도 전체 기간 평균 34.7%(25/72)를 벗어나지 못함 — 트랙A(극단cx
+      재수집) 필요성이 시계열 전체로 재확인됨. preview/hint_cx/multi_prompt 등은 이 기간
+      내내 체크포인트 교체와 lockstep으로 같이 바뀌어서 개별 효과를 이 데이터로는 분리
+      불가 — 향후 같은 체크포인트 고정 상태로 토글만 바꾸는 A/B 필요.
+    </div>
+  </div>
+
   <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#f87171">
     <div class="finding-title" style="color:#f87171">61-10. 종합 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
@@ -14297,6 +14363,154 @@ graph TD
 
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH61 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH62 ═ -->
+<div class="chapter" id="ch62">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 62</span>
+    <h2 class="chapter-title">FWD 고착의 진짜 원인 — 그라운딩 실패가 아니라 액션-그라운딩 라벨 confound</h2>
+  </div>
+  <p class="chapter-desc">
+    CH61 §17/§18은 "그라운딩 성공/실패가 obj_* 성공률을 가른다"고 결론냈다.
+    2026-07-11 신규 13세션의 H5 raw 데이터(images/actions/grounding)를 프레임 단위로
+    직접 대조한 결과, 더 근본적인 원인이 드러났다 — <strong style="color:#fbbf24">grounding이
+    나중에 정확히 성공해도 액션은 반응하지 않는다.</strong>
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1a1410,#241a10);border-color:#f87171">
+    <div class="finding-title">62-1. 결정적 반례: grounding 성공 ≠ 액션 반응</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      2026-07-11 obj_right 11세션(유효)을 H5 raw 배열로 직접 대조.
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">세션</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">결과</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">첫 탐지 프레임</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">회전 액션 낸 프레임</th></tr>
+        <tr><td style="padding:6px 10px">205228</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2,9</td></tr>
+        <tr><td style="padding:6px 10px">205354</td><td style="padding:6px 10px;color:#34d399">성공</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2</td></tr>
+        <tr><td style="padding:6px 10px">205621</td><td style="padding:6px 10px;color:#34d399">성공</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2</td></tr>
+        <tr><td style="padding:6px 10px">205726</td><td style="padding:6px 10px;color:#34d399">성공</td><td style="padding:6px 10px">0</td><td style="padding:6px 10px">0,1,2,3,4</td></tr>
+        <tr><td style="padding:6px 10px">213650</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">6</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">213749</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">214155</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px">5 (1프레임뿐)</td></tr>
+        <tr><td style="padding:6px 10px">215709</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">220142</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">6</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">220233</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">3</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+        <tr><td style="padding:6px 10px">220439</td><td style="padding:6px 10px;color:#f87171">실패</td><td style="padding:6px 10px">없음(미탐지)</td><td style="padding:6px 10px;color:#f87171;font-weight:700">없음</td></tr>
+      </table>
+      성공 4개 전부 <code>first_detect_frame=0</code>, 실패 7개 전부 <code>first_detect_frame≥3</code>
+      또는 미탐지 — 완벽하게 갈린다. 회전 액션은 예외 없이 초반 0~4프레임에서만 나온다.
+      213650·220142는 grounding이 나중에(frame 6) 정확히 잡혔는데도(cx 0.73~0.76 연속) 회전
+      액션이 단 한 프레임도 없었다 — <strong style="color:#f87171">grounding 문제가 아니라 액션
+      헤드가 초반 window 이후 grounding 업데이트를 무시한다</strong>는 직접 증거.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">62-2. 첫 탐지 성공했는데도 실패한 반례(205228) — 오버슈트 후 미회복</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8"></th><th style="padding:6px 10px;text-align:left;color:#f87171">205228(실패)</th><th style="padding:6px 10px;text-align:left;color:#34d399">205354(성공)</th><th style="padding:6px 10px;text-align:left;color:#34d399">205621(성공)</th><th style="padding:6px 10px;text-align:left;color:#34d399">205726(성공)</th></tr>
+        <tr><td style="padding:6px 10px">frame0 cx</td><td style="padding:6px 10px">0.730</td><td style="padding:6px 10px">0.706</td><td style="padding:6px 10px">0.711</td><td style="padding:6px 10px">0.711</td></tr>
+        <tr><td style="padding:6px 10px">f3~5 cx</td><td style="padding:6px 10px;color:#f87171">0.318 (Δ0.41)</td><td style="padding:6px 10px">0.377 (Δ0.33)</td><td style="padding:6px 10px">0.465 (Δ0.25)</td><td style="padding:6px 10px">0.575 (Δ0.14)</td></tr>
+        <tr><td style="padding:6px 10px">f6~8 cx</td><td style="padding:6px 10px;color:#f87171">0.186 (계속 하강)</td><td style="padding:6px 10px;color:#34d399">0.410 (반등)</td><td style="padding:6px 10px;color:#34d399">0.437 (반등)</td><td style="padding:6px 10px;color:#34d399">0.612 (반등)</td></tr>
+        <tr><td style="padding:6px 10px">재회전 시도</td><td style="padding:6px 10px">f9 (늦음, grounding 놓친 직후)</td><td style="padding:6px 10px">없음</td><td style="padding:6px 10px">없음</td><td style="padding:6px 10px">f4 미세보정 1회</td></tr>
+        <tr><td style="padding:6px 10px">마지막 유효 cx</td><td style="padding:6px 10px;color:#f87171">0.082~0.112 (가장자리)</td><td style="padding:6px 10px">0.278~0.407</td><td style="padding:6px 10px">0.428~0.432</td><td style="padding:6px 10px">0.171~0.322</td></tr>
+      </table>
+      성공 케이스는 초기 회전 후 cx가 반등하며 중앙으로 재수렴한다. 205228은 초기 회전량이
+      과도해(vyaw=-1.15 3프레임 유지) cx가 반등 없이 계속 밀리고, 뒤늦은 재보정(f9)도 방향/타이밍이
+      어긋나 화면 가장자리로 빗나간 채 종료(오퍼레이터 메모: "살짝 엇나감").
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#1a0f0f,#241010);border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">62-3. 정량 검증: cx-액션 방향 일치율(VSC)이 우연 이하 — 라벨 자체의 confound</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>bbox_dataset_owl_150ep.json</code>(147ep, 2559프레임)에서 방향성 액션(LEFT/RIGHT류)만
+      골라 <code>sign(cx-0.5)</code>(시각적 기대 방향)과 실제 라벨 방향의 일치율(VSC) 계산:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">cx 구간</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">일치/전체</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">VSC</th></tr>
+        <tr><td style="padding:6px 10px">0.15~0.30</td><td style="padding:6px 10px">26/55</td><td style="padding:6px 10px">47.3%</td></tr>
+        <tr><td style="padding:6px 10px">0.30~0.45</td><td style="padding:6px 10px">51/200</td><td style="padding:6px 10px;color:#f87171;font-weight:700">25.5%</td></tr>
+        <tr><td style="padding:6px 10px">0.45~0.55</td><td style="padding:6px 10px">88/192</td><td style="padding:6px 10px">45.8%</td></tr>
+        <tr><td style="padding:6px 10px">0.55~0.70</td><td style="padding:6px 10px">44/166</td><td style="padding:6px 10px;color:#f87171;font-weight:700">26.5%</td></tr>
+        <tr><td style="padding:6px 10px">0.70~0.85</td><td style="padding:6px 10px">26/49</td><td style="padding:6px 10px">53.1%</td></tr>
+        <tr style="border-top:2px solid #334155"><td style="padding:6px 10px"><b>전체</b></td><td style="padding:6px 10px"><b>235/662</b></td><td style="padding:6px 10px;color:#f87171;font-weight:700"><b>35.5%</b></td></tr>
+      </table>
+      50%(우연)보다 낮다 — 라벨 방향이 시각적 cx 기대와 <strong style="color:#f87171">오히려 반대로
+      겹치는 경향</strong>이 있다. 원인: 액션 라벨은 "이 순간 물체가 화면 어디 있으니 이 방향으로
+      튼다"가 아니라 <strong style="color:#fbbf24">"사전에 정한 경로(path_type)를 재생한 기록"</strong>이기
+      때문 — 곡선 진입 중 회전 자체가 물체를 화면 반대쪽으로 밀어내는 motion parallax 효과까지
+      겹쳐 cx와 액션이 원래도 강하게 연결돼 있지 않다.<br><br>
+      <strong style="color:#e2e8f0">결론</strong>: 실시간 물리 드리프트로 cx가 바뀌어도 모델이
+      반응하지 않는 게 이상한 게 아니라 — 애초에 학습 라벨 자체가 "라이브 cx에 반응하는
+      제어기"가 아니라 "초반에 본 장면으로 경로 하나를 고르고 그 경로를 재생하는 함수"에
+      가깝게 구성돼 있다.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">62-4. 오프라인 지표: 오버슈트 회복률 14.3%</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      cx가 방향 반전(|Δ|>0.03)하는 지점에서 이후 5프레임 이내 회전 액션이 나오는지 확인
+      (2026-07-11 obj_right 11세션): <strong style="color:#f87171">오버슈트 이벤트 7건 중
+      회복시도 1건 = 14.3%</strong>. 성공 케이스의 반전은 근접 접근 중 측정 노이즈일 가능성이
+      있어 62-3(VSC)보다 노이즈에 민감한 보조지표로 취급.
+    </div>
+  </div>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#0f1a14,#10241a);border-color:#34d399">
+    <div class="finding-title" style="color:#34d399">62-5. 향후 시도 평가지표 (재수집/재학습 전후 비교용)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">#</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">지표</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">현재값</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">목표</th></tr>
+        <tr><td style="padding:6px 10px">1</td><td style="padding:6px 10px">VSC(방향 일치율)</td><td style="padding:6px 10px;color:#f87171">35.5% 전체</td><td style="padding:6px 10px;color:#34d399">70%+</td></tr>
+        <tr><td style="padding:6px 10px">2</td><td style="padding:6px 10px">오버슈트 회복률</td><td style="padding:6px 10px;color:#f87171">14.3%(1/7)</td><td style="padding:6px 10px;color:#34d399">유의미한 증가</td></tr>
+        <tr><td style="padding:6px 10px">3</td><td style="padding:6px 10px">Grounding-Action 반응 지연</td><td style="padding:6px 10px;color:#f87171">사실상 무한</td><td style="padding:6px 10px;color:#34d399">유한값 감소</td></tr>
+        <tr><td style="padding:6px 10px">4</td><td style="padding:6px 10px">first_detect_frame 무관 성공률</td><td style="padding:6px 10px">75%(0군) vs <span style="color:#f87171">0%(≥3군)</span></td><td style="padding:6px 10px;color:#34d399">격차 축소</td></tr>
+        <tr><td style="padding:6px 10px">5</td><td style="padding:6px 10px">closed-loop obj_* 종합 성공률</td><td style="padding:6px 10px">34.7%(25/72)</td><td style="padding:6px 10px;color:#34d399">유지/개선</td></tr>
+      </table>
+      지표 1·2는 <strong style="color:#fbbf24">재수집 없이 기존 학습 annotation만으로 오프라인
+      측정 가능</strong> — 새 데이터의 "지시-경로 디커플링"이 confound를 실제로 끊었는지
+      로봇 재수집 전에 먼저 검증 가능.<br><br>
+      <strong style="color:#34d399">결정 완료(2026-07-12)</strong>: §61-16 오프라인 완화책
+      (재가중치/hybrid rule)이 전부 무효로 재확인됨에 따라, 트랙C(오버슈트→재수렴, 64ep)를
+      신규 필수 트랙으로 확정 — 극단cx 위치 4곳 × 오버슈트방향 2종 × 8회. 초반 1회 회전
+      데이터를 <strong style="color:#f87171">빼는 것은 비권장</strong> — 그 패턴 자체가 문제가
+      아니라 "그 패턴만 있다"는 다양성 부족이 문제이므로, 삭제보다 추가가 맞는 방향. 상세는
+      <code>docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md</code> §1
+      "트랙 C" 참고.<br><br>
+      전체 상세: <a href="closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md" style="color:#60a5fa">CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md</a>
+      &nbsp;|&nbsp; 이미지 비교(bbox/cx 오버레이): 로컬 리포트 <code>docs/v5/analysis_reports/ch61_forward_lock_20260712.html</code>
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">62-6. 거리축(area) confound — 근접해도 STOP 없음, 방향축과 별개 문제</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      2026-07-12 신규 세션 215344 raw 대조(94스텝): area가 0.06→1.0(완전 근접)→0.06으로
+      3~4차례 왕복하는 동안 grounding은 이 왕복을 잘 추적하는데도
+      <strong style="color:#f87171">FORWARD 88/94(93.6%), STOP 0회</strong> — area=1.0(화면을
+      거의 채운 근접 상태)에서도 정지 신호 없음. cx도 극단(0.877→0.95)까지 튀는데 FORWARD
+      유지 — 62-1·62-3의 방향축 confound와 정확히 같은 구조가 <strong style="color:#fbbf24">거리축에도
+      독립적으로 존재</strong>함을 보여주는 반례.<br><br>
+      <strong style="color:#e2e8f0">단, 방향축 문제와는 원인이 다르다</strong>: STOP은 애초에
+      학습 데이터에 "에피소드 끝 프레임 합성" 라벨뿐이라 실제 근접-정지 신호 자체가 원천
+      부재 — 트랙A/C(방향 다양화)로는 해결 안 됨. 확장 옵션을 정리:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">방향</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">내용</th><th style="padding:6px 10px;text-align:left;color:#94a3b8">비용/위험</th></tr>
+        <tr><td style="padding:6px 10px">트랙D(근접정지 신규 수집)</td><td style="padding:6px 10px">area 임계치별(0.7/0.85/1.0) 실제 근접-정지 궤적 수집</td><td style="padding:6px 10px">물리수집 추가 필요</td></tr>
+        <tr><td style="padding:6px 10px">AVSC(거리축 VSC)</td><td style="padding:6px 10px">area↑→STOP/후진 일치율을 62-3처럼 정량화</td><td style="padding:6px 10px;color:#34d399">기존 annotation으로 오프라인 즉시 가능</td></tr>
+        <tr><td style="padding:6px 10px">서버 룰 오버라이드</td><td style="padding:6px 10px">area≥임계치일 때 강제 STOP (안전장치, 코드만 변경)</td><td style="padding:6px 10px;color:#f87171">§61-16 hybrid rule과 같은 종류 완화책 — 방향축에서 무효였던 전례, 안전용 임시책으로만 고려</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">결론</strong>: STOP을 룰로 임시 처리하더라도 exp72(트랙A/C
+      재학습)의 범위·필요성은 그대로 유지 — 방향축(VSC/오버슈트회복률)과 거리축(STOP/근접)은
+      독립된 별개 confound이며, 이번 캠페인은 방향축만 타겟한다. 트랙D/AVSC는 범위 확정 전
+      백로그로 별도 기록.
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH62 ═ -->
 
 <hr class="chapter-divider">
 
