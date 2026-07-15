@@ -36,6 +36,38 @@
 전례 있음, `docs/plans/plan_20260707_dashboard_data_collector_tab.md` 참조).
 **현재 V6 스키마 실데이터는 0건 — 아직 본 수집 시작 전.**
 
+## 2026-07-15 세션 변경사항 요약 (대시보드 코드, `mona_dashboard.py`)
+
+- **🗂 데이터셋 히스토리 탭 신설** (📷 데이터수집 바로 아래) — V5/V6 두 스키마를
+  자동 판별해 목록+프레임인스펙터로 브라우징. 신규 엔드포인트
+  `/dataset/list`, `/dataset/load`, `/dataset/frame` (`/sessions/*`와는
+  별개 — 그쪽은 추론세션 전용, 이쪽은 원본 학습데이터 전용)
+- 목록 필터: 스키마(V5/V6) 버튼, 시나리오 버튼, 트랙A cx위치 클릭형 칩,
+  이름 검색 — 전부 버튼 클릭형으로 구성(드롭다운 최소화)
+- 다중 선택(체크박스, 최대 6개) → 비교 카드 모드, 개별 "🔍 자세히"로 단일
+  상세 전환
+- 상세 패널: 세션 히스토리와 동일하게 좌/우 방향키로 프레임 넘기기, Space로
+  재생/정지. 수집 설정(패턴/장애물배치/시간대/STOP주입/액션청크/파일크기)과
+  입력 소스(키보드/조이스틱/stop_inject 등 event_type) 분포 추가 노출
+- `_save_episode_data()`에 `scenario` attr 저장 추가 — 이제부터 저장되는
+  V6 파일은 시나리오 필터가 정상 동작함(과거엔 cx_position/cx_path만 있고
+  scenario가 비어 있었음)
+
+## 현재 상태 — V6 첫 실데이터 1건 수집됨 (2026-07-15 19:23)
+
+세션 후반부에 "방금 수집한 데이터셋이 하나 있을 것"이라는 문의가 있었고,
+처음 재스캔 시점엔 실제로 없었으나(당시엔 테스트 파일 삭제 직후였음),
+이후 실제로 1건이 새로 수집됨을 확인:
+
+- `episode_20260715_192339_weak_left_left_curve.h5`
+- `cx_position=weak_left`, `cx_path=left_curve` (트랙A 극단배치 — 준극단좌 + 좌곡선)
+- 72 frames, 15.0s, `time_period=evening`, 93.7MB
+- `scenario` attr은 빈 문자열 — 트랙A 수집이라 9-시나리오 축은 안 씀(정상)
+- `🗂 데이터셋 히스토리` 탭에서 V6/오늘날짜/weak_left+left_curve로 정상 노출 확인
+
+`scenario_progress.json`/`time_period_stats.json`에도 반영됨
+(`cx_position_stats.weak_left=1`, `time_period_stats.evening=1`).
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
