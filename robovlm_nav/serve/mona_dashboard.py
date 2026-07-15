@@ -2441,6 +2441,50 @@ def dataset_frame(name: str, idx: int):
         return Response(status_code=500, content=f"Frame load error: {e}")
 
 
+@app.post("/dataset/delete")
+def dataset_delete(name: str):
+    """데이터셋 히스토리 탭에서 선택 삭제 — H5 파일 제거 + 실행 중인 서버의
+    in-memory 진행률(scenario_stats/cx_position_stats/time_period_stats)도
+    같이 감소시켜 scenario_progress.json/time_period_stats.json에 반영.
+    (재시작 없이 즉시 /collect/state에 반영되도록 _collect._save_progress() 재사용)"""
+    h5p = _collect.data_dir / f"{name}.h5"
+    if not h5p.exists():
+        return JSONResponse(status_code=404, content={"ok": False, "error": f"파일 없음: {name}.h5"})
+
+    try:
+        with h5py.File(h5p, "r") as f:
+            attrs = dict(f.attrs)
+    except Exception as e:
+        attrs = {}
+        log.warning(f"[DatasetHistory] 삭제 전 attrs 읽기 실패({name}): {e}")
+
+    try:
+        h5p.unlink()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"ok": False, "error": f"삭제 실패: {e}"})
+
+    scenario = str(attrs.get("scenario", "") or "")
+    cx_position = str(attrs.get("cx_position", "") or "")
+    cx_path = str(attrs.get("cx_path", "") or "")
+    time_period = str(attrs.get("time_period", "") or "")
+
+    def _dec(d: dict, key: str):
+        if key and key in d:
+            d[key] = max(0, d[key] - 1)
+            if d[key] == 0:
+                del d[key]
+
+    with _collect._lock:
+        _dec(_collect.scenario_stats, scenario)
+        _dec(_collect.cx_position_stats, cx_position)
+        _dec(_collect.cx_position_path_stats, f"{cx_position}::{cx_path}" if cx_position and cx_path else "")
+        _dec(_collect.time_period_stats, time_period)
+    _collect._save_progress()
+
+    log.info(f"🗑️ [DatasetHistory] 삭제: {name} (scenario={scenario or '-'}, cx={cx_position or '-'}::{cx_path or '-'})")
+    return {"ok": True, "deleted": name}
+
+
 @app.post("/sessions/label")
 def sessions_label(req: LabelSaveReq):
     labels = {}
@@ -5065,6 +5109,7 @@ L S R  C S L  R S L
                   <button class="btn btn-outline" id="btn-ds-play" onclick="toggleDsPlay()">▶ PLAY</button>
                   <button class="btn btn-outline" onclick="dsNextFrame()">다음 ▶</button>
                   <button class="btn btn-outline" onclick="if (_dsSelected.size >= 2) { renderDatasetCompare(); } else { setDatasetCompareMode(false); document.getElementById('ds-placeholder').style.display='block'; }">← 목록으로</button>
+                  <button class="btn btn-outline" style="border-color:var(--rose); color:var(--rose);" onclick="if (_dsDetail) _dsDeleteOne(_dsDetail.meta.name)">🗑️ 이 에피소드 삭제</button>
                 </div>
 
                 <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; margin-top:16px;">
@@ -8097,6 +8142,62 @@ L S R  C S L  R S L
     const DS_MAX_COMPARE = 6;
     const DS_SCHEMA_VERSION = {legacy: "V5", new: "V6"};  // docs/DATASET_V6_STATUS.md 명명 규정
 
+    // cx_position/cx_path/scenario/schema를 아이콘+색깔 칩으로 파싱 — 리스트 카드에서
+    // 파일명 전체를 안 보여줘도(제목=날짜시간, 파일명은 title 툴팁) 한눈에 구분되도록.
+    const DS_CXPOS_STYLE = {
+      strong_left:  {icon: "◀◀", bg: "rgba(56,189,248,0.15)", fg: "var(--cyan)"},
+      weak_left:    {icon: "◀",  bg: "rgba(56,189,248,0.15)", fg: "var(--cyan)"},
+      weak_right:   {icon: "▶",  bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
+      strong_right: {icon: "▶▶", bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
+    };
+    const DS_CXPATH_ICON = {left_curve: "↰", straight: "↑", right_curve: "↱"};
+
+    function _dsInfoChips(it) {
+      const chip = (text, bg, fg) =>
+        `<span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:${bg}; color:${fg};">${text}</span>`;
+      const chips = [];
+      if (it.cx_position) {
+        const st = DS_CXPOS_STYLE[it.cx_position] || {icon: "●", bg: "rgba(148,163,184,0.15)", fg: "var(--text-muted)"};
+        const label = _dsCxPosLabels[it.cx_position] || it.cx_position;
+        chips.push(chip(`${st.icon} ${label}`, st.bg, st.fg));
+      }
+      if (it.cx_path) {
+        chips.push(chip(`${DS_CXPATH_ICON[it.cx_path] || "•"} ${it.cx_path}`, "rgba(163,113,247,0.15)", "#a371f7"));
+      }
+      if (it.scenario) {
+        chips.push(chip(`🎯 ${_dsScenarioLabels[it.scenario] || it.scenario}`, "rgba(16,185,129,0.15)", "var(--emerald)"));
+      }
+      chips.push(chip(DS_SCHEMA_VERSION[it.schema] || it.schema, "rgba(148,163,184,0.15)", "var(--text-muted)"));
+      return chips.join("");
+    }
+
+    async function _dsDeleteOne(name) {
+      if (!confirm(`삭제하시겠습니까?\\n${name}`)) return;
+      const res = await api("/dataset/delete?name=" + encodeURIComponent(name), { method: "POST" });
+      if (!res.ok) { alert("삭제 실패: " + res.error); return; }
+      _dsSelected.delete(name);
+      if (_dsDetail && _dsDetail.meta.name === name) {
+        _dsDetail = null;
+        setDatasetCompareMode(false);
+        document.getElementById("ds-placeholder").style.display = "block";
+      }
+      await loadDatasetList();
+    }
+
+    async function _dsDeleteSelected() {
+      if (_dsSelected.size === 0) return;
+      const names = [..._dsSelected];
+      if (!confirm(`선택한 ${names.length}개를 삭제하시겠습니까?\\n\\n${names.join("\\n")}`)) return;
+      for (const name of names) {
+        const res = await api("/dataset/delete?name=" + encodeURIComponent(name), { method: "POST" });
+        if (!res.ok) console.error("삭제 실패:", name, res.error);
+      }
+      _dsSelected.clear();
+      setDatasetCompareMode(false);
+      document.getElementById("ds-placeholder").style.display = "block";
+      await loadDatasetList();
+    }
+
     async function loadDatasetList() {
       const res = await api("/dataset/list");
       if (!res.ok) return;
@@ -8204,22 +8305,19 @@ L S R  C S L  R S L
           lastDate = it.date;
         }
         const checked = _dsSelected.has(it.name) ? "checked" : "";
-        const scLabel = it.scenario ? (_dsScenarioLabels[it.scenario] || it.scenario) : "—";
-        const cxLabel = it.cx_position ? (_dsCxPosLabels[it.cx_position] || it.cx_position) : "";
         const checkbox = compareMode
           ? `<input type="checkbox" ${checked} onclick="event.stopPropagation(); _dsToggleSelect('${it.name}')" style="accent-color:var(--cyan); margin-right:6px;">`
           : "";
         html += `
-          <div class="session-card" data-name="${it.name}" onclick="_dsCardClick('${it.name}')">
+          <div class="session-card" data-name="${it.name}" title="${it.name}" onclick="_dsCardClick('${it.name}')">
             <div class="sc-top">
-              ${checkbox}<span class="sc-sid" style="font-size:11px;">${it.name}</span>
-              <span class="sc-time">${it.time}</span>
+              ${checkbox}<span style="font-weight:700; font-size:13px; color:var(--cyan); font-family:var(--font-mono);">${it.date} ${it.time}</span>
+              <button class="btn btn-outline" style="font-size:10px; padding:2px 7px; margin-left:auto; border-color:var(--rose); color:var(--rose);" onclick="event.stopPropagation(); _dsDeleteOne('${it.name}')">🗑️</button>
             </div>
-            <div class="sc-entity" style="font-size:14px; font-weight:600;">${scLabel}${cxLabel ? " · " + cxLabel : ""}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;">${_dsInfoChips(it)}</div>
             <div class="sc-bottom">
               <span class="sc-badge">${it.num_frames}f</span>
               <span class="sc-badge">${it.duration_s}s</span>
-              <span class="sc-badge" style="font-size:13px; font-weight:700;">${DS_SCHEMA_VERSION[it.schema] || it.schema}</span>
             </div>
           </div>
         `;
@@ -8273,14 +8371,18 @@ L S R  C S L  R S L
       setDatasetCompareMode(true);
       document.getElementById("ds-detail-lbl").textContent = `[비교 ${_dsSelected.size}개]`;
       const items = _dsItems.filter(it => _dsSelected.has(it.name));
-      document.getElementById("ds-compare-body").innerHTML = items.map(it => {
+      const header = `
+        <div style="display:flex; justify-content:flex-end;">
+          <button class="btn btn-outline" style="font-size:12px; padding:5px 12px; border-color:var(--rose); color:var(--rose);" onclick="_dsDeleteSelected()">🗑️ 선택 ${items.length}개 전부 삭제</button>
+        </div>`;
+      const cards = items.map(it => {
         const scLabel = it.scenario ? (_dsScenarioLabels[it.scenario] || it.scenario) : "미지정";
         const cxLabel = it.cx_position ? (_dsCxPosLabels[it.cx_position] || it.cx_position) : "미지정";
         return `
           <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; display:flex; align-items:center; gap:14px;">
             <div style="flex:1; min-width:0;">
-              <div style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${it.name}</div>
-              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${it.date} ${it.time} · ${scLabel} · ${cxLabel}${it.cx_path ? " + " + (it.cx_path) : ""}</div>
+              <div style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${it.name}">${it.date} ${it.time}</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${scLabel} · ${cxLabel}${it.cx_path ? " + " + (it.cx_path) : ""}</div>
             </div>
             <div class="mini-tile-grid" style="flex:0 0 auto; grid-template-columns:repeat(3,1fr); gap:6px;">
               <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value">${it.num_frames}</span></div>
@@ -8288,9 +8390,11 @@ L S R  C S L  R S L
               <div class="mini-tile"><span class="mt-label">크기</span><span class="mt-value">${it.size_mb}MB</span></div>
             </div>
             <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; flex:0 0 auto;" onclick="_dsOpenDetailFromCompare('${it.name}')">🔍 자세히</button>
+            <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; flex:0 0 auto; border-color:var(--rose); color:var(--rose);" onclick="_dsDeleteOne('${it.name}')">🗑️</button>
           </div>
         `;
       }).join("");
+      document.getElementById("ds-compare-body").innerHTML = header + cards;
     }
 
     function _dsOpenDetailFromCompare(name) {
