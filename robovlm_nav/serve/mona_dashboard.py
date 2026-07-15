@@ -861,7 +861,7 @@ class DashboardJoystickReader:
             throttle = int(round(self._speed / 1.15 * 50))
             throttle = max(10, min(100, throttle))
             _ros.ctrl.throttle = throttle
-            _ros.ctrl.rot_throttle = throttle * 0.5  # 회전은 항상 직진의 절반 유지
+            _ros.ctrl.rot_throttle = throttle * 0.35  # 회전은 항상 직진의 35% 유지 (2026-07-15 추가 30% 축소)
 
     def _axis_to_key(self, lx, ly, az):
         T = self.THRESHOLD
