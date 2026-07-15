@@ -18,6 +18,10 @@ class VLAControlManager:
     def __init__(self, node, default_throttle=50, move_duration=0.4):
         self.node = node  # ROS2 Node instance for logging and publishing
         self.throttle = default_throttle
+        # 회전(spin)만 별도 throttle — 직진/스트레이프(move)는 self.throttle 그대로 사용.
+        # 회전이 체감상 너무 빨라 절반으로 낮춤 (2026-07-15). set_speed()가 throttle을
+        # 바꿀 때 이 비율(0.5)을 유지하도록 같이 갱신함.
+        self.rot_throttle = default_throttle * 0.5
         self.move_duration = move_duration
         self.command_counter = 0
         self.movement_timer = None
@@ -65,8 +69,8 @@ class VLAControlManager:
             try:
                 if action_type == "MOVE":
                     if abs(az) > 0.1:
-                        # Rotation (Spin)
-                        self.driver.spin(int(np.sign(az) * self.throttle))
+                        # Rotation (Spin) — 직진(move)과 분리된 throttle 사용
+                        self.driver.spin(int(np.sign(az) * self.rot_throttle))
                     else:
                         # translation move
                         angle = np.degrees(np.arctan2(ly, lx))

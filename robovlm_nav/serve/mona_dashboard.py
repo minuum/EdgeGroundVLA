@@ -859,7 +859,9 @@ class DashboardJoystickReader:
         self._speed = float(spd)
         if _ros is not None and _ros.ctrl is not None:
             throttle = int(round(self._speed / 1.15 * 50))
-            _ros.ctrl.throttle = max(10, min(100, throttle))
+            throttle = max(10, min(100, throttle))
+            _ros.ctrl.throttle = throttle
+            _ros.ctrl.rot_throttle = throttle * 0.5  # 회전은 항상 직진의 절반 유지
 
     def _axis_to_key(self, lx, ly, az):
         T = self.THRESHOLD
