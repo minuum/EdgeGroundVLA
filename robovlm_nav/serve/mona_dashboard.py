@@ -205,18 +205,25 @@ COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (V
 
 # 극단 배치 데이터수집 트랙A (plan_20260707_heterogeneous_instruction_extreme_cx_collection.md)
 # — 4포지션 × 접근경로 3종(좌곡선/직진/우곡선, 지시 불필요·오퍼레이터 재량) × 15회 = 180ep
+# + 트랙C(오버슈트→재수렴, CH62 근거, 2026-07-16 추가) — 같은 4포지션 재사용,
+# 위치당 목표 45(트랙A) + 16(트랙C 2방향×8) = 61
 COLLECT_CX_POSITIONS = {
-    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 45},
-    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 45},
-    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 45},
-    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 45},
+    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 61},
+    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 61},
+    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 61},
+    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 61},
 }
 # 위치당 45개가 "경로 다양하게"로 뭉뚱그려져 있으면 실제로 15/15/15가 지켜졌는지
 # 검증이 안 됨 — 위치×경로 조합별로 세분화해서 목표 15씩 따로 추적.
+# overshoot_* 2종은 트랙C(CH62 근거, docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md
+# §7, plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §1 "트랙 C") —
+# 지시 없이 자유주행이되 "일부러 과하게 꺾었다가 반대로 재보정"하는 동작을 명시적으로 수집.
 COLLECT_TRACKA_PATHS = {
     "left_curve":  {"label": "좌곡선", "target": 15},
     "straight":    {"label": "직진",   "target": 15},
     "right_curve": {"label": "우곡선", "target": 15},
+    "overshoot_left_recover":  {"label": "오버슈트→우", "target": 8},
+    "overshoot_right_recover": {"label": "오버슈트→좌", "target": 8},
 }
 
 
@@ -6063,7 +6070,7 @@ L S R  C S L  R S L
       const curCx = document.getElementById("collect-cxpos-select")?.value || "";
       const curPath = document.getElementById("collect-cxpath-select")?.value || "";
       const order = ["strong_left", "weak_left", "weak_right", "strong_right"];
-      const pathOrder = ["left_curve", "straight", "right_curve"];
+      const pathOrder = ["left_curve", "straight", "right_curve", "overshoot_left_recover", "overshoot_right_recover"];
       const posStats = res.cx_position_stats || {};
       const pathStats = res.cx_position_path_stats || {};
       const paths = res.cx_paths || {};
@@ -6084,7 +6091,7 @@ L S R  C S L  R S L
           return `
             <div onclick="_collectClickCxPath('${id}','${p}')"
                  style="display:flex; align-items:center; gap:6px; padding-left:14px; cursor:pointer; ${isPathSel ? "outline:1px solid var(--amber); border-radius:4px;" : ""}">
-              <span style="width:44px; font-size:10px; color:${isPathSel ? "var(--amber)" : "var(--text-muted)"};">${pinfo.label}</span>
+              <span style="width:60px; font-size:10px; color:${isPathSel ? "var(--amber)" : "var(--text-muted)"};">${pinfo.label}</span>
               <div style="flex:1; height:10px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
                 <div style="width:${ppct}%; height:100%; background:${ppct >= 100 ? "var(--emerald)" : "var(--amber)"};"></div>
               </div>
@@ -8236,7 +8243,8 @@ L S R  C S L  R S L
       weak_right:   {icon: "▶",  bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
       strong_right: {icon: "▶▶", bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
     };
-    const DS_CXPATH_ICON = {left_curve: "↰", straight: "↑", right_curve: "↱"};
+    const DS_CXPATH_ICON = {left_curve: "↰", straight: "↑", right_curve: "↱",
+      overshoot_left_recover: "⟲", overshoot_right_recover: "⟳"};
 
     function _dsInfoChips(it) {
       const chip = (text, bg, fg) =>
