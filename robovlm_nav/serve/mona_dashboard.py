@@ -2559,8 +2559,8 @@ PATH_TARGETS = {
     "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
     "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
 }
-# 2026-07-16 기준 미수집 트랙A 조합 — 버튼 비활성화/배지 표시에 사용
-TRACKA_UNCOLLECTED = {"trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve"}
+# 트랙A 12종 전체 수집 완료(2026-07-16, 180/180) — 미수집 조합 없음
+TRACKA_UNCOLLECTED = set()
 
 def _get_episode_summary(rows):
     done_total = {k: 0 for k in PATH_TYPES}
@@ -4097,6 +4097,20 @@ L S R  C S L  R S L
                   <option value="dist_10cm">거리:10cm (dist_10cm)</option>
                   <option value="dist_20cm">거리:20cm (dist_20cm)</option>
                   <option value="dist_30cm">거리:30cm (dist_30cm)</option>
+                  <optgroup label="🎯 트랙A 극단배치 (V6)">
+                    <option value="trackA_weak_left_left_curve" selected>V6 준극단좌·좌곡선 (weak_left/left_curve)</option>
+                    <option value="trackA_weak_left_straight">V6 준극단좌·직진 (weak_left/straight)</option>
+                    <option value="trackA_weak_left_right_curve">V6 준극단좌·우곡선 (weak_left/right_curve)</option>
+                    <option value="trackA_weak_right_left_curve">V6 준극단우·좌곡선 (weak_right/left_curve)</option>
+                    <option value="trackA_weak_right_straight">V6 준극단우·직진 (weak_right/straight)</option>
+                    <option value="trackA_weak_right_right_curve">V6 준극단우·우곡선 (weak_right/right_curve)</option>
+                    <option value="trackA_strong_right_left_curve">V6 강극단우·좌곡선 (strong_right/left_curve)</option>
+                    <option value="trackA_strong_right_straight">V6 강극단우·직진 (strong_right/straight)</option>
+                    <option value="trackA_strong_right_right_curve">V6 강극단우·우곡선 (strong_right/right_curve)</option>
+                    <option value="trackA_strong_left_left_curve">V6 강극단좌·좌곡선 (strong_left/left_curve)</option>
+                    <option value="trackA_strong_left_straight">V6 강극단좌·직진 (strong_left/straight)</option>
+                    <option value="trackA_strong_left_right_curve">V6 강극단좌·우곡선 (strong_left/right_curve)</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -6868,8 +6882,8 @@ L S R  C S L  R S L
       "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
     };
 
-    // 2026-07-16 기준 미수집(strong_left 데이터 자체가 0건) — 버튼 비활성화용
-    const TRACKA_UNCOLLECTED = new Set(["trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve"]);
+    // 트랙A 12종 전체 수집 완료(2026-07-16, 180/180) — 미수집 조합 없음
+    const TRACKA_UNCOLLECTED = new Set([]);
 
     const PATH_GROUPS = [
       ["── 오브젝트 위치별 ──────────", ["obj_left","obj_center","obj_right"]],
