@@ -1,6 +1,6 @@
 # 데이터셋 V6 — 명명 규정 (2026-07-15)
 
-> 로봇서버(soda, `monavla-driving`)/학습서버(minum, `monavla-train`) 공유 문서.
+> 로봇서버(soda, `monavla-driving`)/학습서버(minum, `inference-integration`) 공유 문서.
 > H5 데이터 자체는 `.gitignore`로 제외되어 git에 올라가지 않음 — 이 문서는
 > "지금부터 새로 수집되는 데이터를 V6로 부른다"는 **명명 규정과 근거**만 공유.
 
@@ -14,6 +14,21 @@
   버전을 구분하면 하위 호환이 깨짐. **버전 구분은 H5 파일 스키마로 한다**,
   아래 참조)
 - `VLA_DATASET_DIR` 환경변수로 오버라이드 가능(변경 없음)
+- 저장 로직(`mona_dashboard.py:_save_episode_data`, 539~565줄)은 시나리오
+  종류와 무관하게 항상 `episode_name/scenario/cx_position/cx_path/...` 등
+  V6 attrs + `images`/`actions`/`action_event_types` 최상위 키로 저장 —
+  **7800 대시보드로 수집하는 모든 신규 데이터는 자동으로 V6 스키마**
+  (2026-07-16 코드 재확인 완료)
+
+## 저장 위치 (2026-07-16 확인)
+
+| 서버 | 경로 | git 브랜치 | 비고 |
+|---|---|---|---|
+| soda (로봇서버) | `/home/soda/MoNaVLA/ROS_action/mobile_vla_dataset_v5/` | `monavla-driving` | 실제 수집 발생 지점, `VLA_DATASET_DIR` 기본값 |
+| minum (학습서버) | `/home/minum/26CS/MoNaVLA/ROS_action/mobile_vla_dataset_v5/` | `inference-integration` | soda→minum rsync 수신처. `/home/minum/MoNaVLA/`는 미사용 구 체크아웃(비어있음, 혼동 주의) |
+
+전송: `rsync -avz` soda → minum, 목적지 디렉터리는 위 표와 동일 (전용 스크립트는
+`scripts/sync/push_free_episodes_to_minum.sh` 참고해 트랙A용으로 변형 실행).
 
 ## V5 vs V6 스키마 차이 (자동 판별 가능)
 
@@ -82,15 +97,32 @@ H5 attrs(`cx_position`) 둘 다 `weak_left`→`weak_right`로 일괄 정정**:
 | 위치 \ 경로 | left_curve | straight | right_curve | 소계 |
 |---|---|---|---|---|
 | weak_right | 15 | 15 | 15 | 45 |
-| strong_right | 15 | 15(+1 초과분 별도) | 15 | 45 |
+| strong_right | 15 | 15 | 15 | 45 |
 | weak_left | 15 | 15 | 15 | 45 |
-| strong_left | 15 | 15(+2 초과분 별도) | 15 | 45 |
+| strong_left | 15 | 15 | 15 | 45 |
 
-- `total_completed` (time_period_stats.json): 180
-- soda → minum(`/home/minum/26CS/MoNaVLA`) rsync 전송 상태: weak_right/strong_right/weak_left
-  기존 전송 완료(136건), strong_left 47건(초과분 2건 포함) 2026-07-16 전송
+- `total_completed` (time_period_stats.json): 180 — soda/minum 양쪽 모두 정확히
+  45/45/45/45 (180) 일치 확인 (2026-07-16)
+- soda → minum(`/home/minum/26CS/MoNaVLA`) rsync 전송 완료. minum 최종 카운트도
+  180으로 일치
 - H5 원본 파일은 `.gitignore` 대상이라 로컬 삭제 여부와 무관하게 git 이력에는
-  영향 없음 — soda 로컬 h5는 보존 상태 유지(전송 확인 후 별도 삭제 여부 판단 예정)
+  영향 없음
+
+### 손상 파일 발견 및 처리 (2026-07-16)
+
+수집 도중 `strong_left::straight`에 손상 파일 2건 혼입 확인:
+`episode_20260716_105343_strong_left_straight.h5`(9.0MB),
+`episode_20260716_111458_strong_left_straight.h5`(14.9MB) — 정상 파일(90~120MB)
+대비 크기가 크게 작고 h5py로 열면 `bad object header version number` 오류.
+
+- soda 로컬 원본 자체가 이미 손상된 상태로 확인됨(전송 문제 아님) → minum에는
+  애초에 전송된 적 없음
+- 추정 원인: 수집 당시 soda 디스크 사용률 94%(여유 14GB)로, 저장 도중 디스크
+  압박으로 HDF5 finalize가 중간에 끊겼을 가능성. 레거시 V5
+  `target_right_left_path` 세트에서도 동일 오류 시그니처의 손상 파일 1건 발견
+  (`episode_260506_214859_...h5`, 조치 보류 — 별도 트랙)
+- `strong_left::straight`는 정상 파일만으로 이미 목표 15건 충족 → 손상 2건은
+  재수집 없이 soda 로컬에서 삭제 처리 완료
 
 ## 관련 문서
 
