@@ -124,9 +124,31 @@ H5 attrs(`cx_position`) 둘 다 `weak_left`→`weak_right`로 일괄 정정**:
 - `strong_left::straight`는 정상 파일만으로 이미 목표 15건 충족 → 손상 2건은
   재수집 없이 soda 로컬에서 삭제 처리 완료
 
+## 트랙F(center 위치) 수집 완료 — 2026-07-16
+
+minum `inference-integration` 브랜치가 요청한 plan §1-2(트랙F, V6 단독 학습을
+위한 center 커버리지) 물리 수집 완료. 목표 45건(1위치 × 3경로 × 15) 전량:
+
+| 위치 \ 경로 | left_curve | straight | right_curve | 소계 |
+|---|---|---|---|---|
+| center | 15 | 15 | 15 | 45 |
+
+- `scenario_progress.json`: `cx_position_stats.center=45`,
+  `cx_position_path_stats["center::left_curve"/"straight"/"right_curve"]=15`
+- `time_period_stats.json`: `total_completed=225` — 트랙A(180) + 트랙F(45) 완결
+- soda → minum rsync 전송 완료(검증 완료, 아래 참조)
+- **V6가 5위치(weak_right/strong_right/weak_left/strong_left/center) × 3경로 =
+  225ep로 완결** — `v6` 단독 arm만으로 중앙+양끝 전 구간 커버, V5 레거시 혼합 불필요
+
+## 남은 물리 수집 — 트랙C(오버슈트→재수렴, 64ep)
+
+트랙A(180)+트랙F(45)=225ep 완료. 트랙C(64ep, CH62 근거)만 남음 — 총 289ep로
+V6 완결 예정. 우선순위(트랙C 진행 시점)는 minum의 exp73(트랙A 단독 학습 실험)
+결과 확인 후 결정하기로 함.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
   히스토리 탭 — schema 자동 분기, scenario/cx_position 필터, 프레임 인스펙터)
 - 수집 UI 이식 이력: `docs/plans/plan_20260707_dashboard_data_collector_tab.md`
-- 트랙A 극단배치 설계: `docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md`
+- 트랙A/C/F 극단배치+오버슈트+center 설계: `docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md`
