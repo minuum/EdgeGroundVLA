@@ -31,7 +31,7 @@ from fastapi import FastAPI, Response, Header
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from PIL import Image
+from PIL import Image, ImageOps
 
 # ── 프로젝트 루트 추가 ────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parents[2]   # MoNaVLA/
@@ -2137,6 +2137,21 @@ def drive_drift_reset():
     return {"ok": True}
 
 
+# 액션 레이블 매핑 도우미 — /sessions/load, /overshoot_guide/load 공용
+_ACTION_LABEL_MAP = {
+    (0.0,0.0,0.0):"STOP", (1.15,0.0,0.0):"FWD",
+    (0.0,1.15,0.0):"LEFT", (0.0,-1.15,0.0):"RIGHT",
+    (1.15,1.15,0.0):"FWD+L", (1.15,-1.15,0.0):"FWD+R",
+    (0.0,0.0,0.25):"ROT_L", (0.0,0.0,-0.25):"ROT_R",
+}
+def _infer_action_label(a):
+    # 구버전 세션은 az 없이 (lx, ly) 2열만 기록된 경우가 있음 — az=0으로 패딩
+    a3 = [float(a[0]), float(a[1]), float(a[2]) if len(a) > 2 else 0.0]
+    for k, v in _ACTION_LABEL_MAP.items():
+        if all(abs(a3[i]-k[i])<0.05 for i in range(3)): return v
+    return f"({a3[0]:.1f},{a3[1]:.1f})"
+
+
 # ─── 세션 히스토리 & 셀프 라벨링 ───────────────────────────────────────
 @app.get("/sessions/list")
 def sessions_list():
@@ -2197,20 +2212,7 @@ def sessions_load(sid: str):
         # 구버전 여부 판단 (6/30 이전)
         is_old = sid < "20260630"
         n_frames = len(acts)
-        
-        # 액션 레이블 매핑 도우미
-        _amap = {
-            (0.0,0.0,0.0):"STOP", (1.15,0.0,0.0):"FWD",
-            (0.0,1.15,0.0):"LEFT", (0.0,-1.15,0.0):"RIGHT",
-            (1.15,1.15,0.0):"FWD+L", (1.15,-1.15,0.0):"FWD+R",
-            (0.0,0.0,0.25):"ROT_L", (0.0,0.0,-0.25):"ROT_R",
-        }
-        def _lbl(a):
-            # 구버전 세션은 az 없이 (lx, ly) 2열만 기록된 경우가 있음 — az=0으로 패딩
-            a3 = [float(a[0]), float(a[1]), float(a[2]) if len(a) > 2 else 0.0]
-            for k, v in _amap.items():
-                if all(abs(a3[i]-k[i])<0.05 for i in range(3)): return v
-            return f"({a3[0]:.1f},{a3[1]:.1f})"
+        _lbl = _infer_action_label
 
         frames_meta = []
         for i in range(n_frames):
@@ -2295,6 +2297,96 @@ def sessions_frame(sid: str, idx: int):
             
         # JPEG 변환
         pil = Image.fromarray(img_arr.astype(np.uint8))
+        buf = io.BytesIO()
+        pil.save(buf, format="JPEG", quality=80)
+        return Response(content=buf.getvalue(), media_type="image/jpeg")
+    except Exception as e:
+        return Response(status_code=500, content=f"Frame load error: {e}")
+
+
+# ─── 🌀 오버슈트 가이드 — 트랙C(오버슈트→재수렴) 수집 예시 ─────────────────
+# CH62(docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md §2)의
+# 실패 반례 세션(205228)에서 "과도한 회전 → 반등 없이 계속 밀림" 실구간을 그대로
+# 보여주고, 이후 "이렇게 반대로 재보정했어야 함"을 같은 세션 프레임을
+# 좌우반전+역순재생한 합성(실제 센서 데이터 아님) 구간으로 이어붙여 시연한다.
+# 실제 재보정 데이터 자체가 없다는 게 CH62/트랙C의 문제의식이라 합성 외엔 방법이 없음.
+OVERSHOOT_DEMO_SID = "20260711_205228"
+OVERSHOOT_DEMO_REAL_FRAMES = 9  # idx 0..8 — CH62 표에서 cx가 0.73→0.19로 반등없이 하강한 구간
+
+
+def _overshoot_guide_compose(direction: str, idx: int):
+    """합성 타임라인 idx -> (원본 real_idx, phase, mirror 여부).
+
+    idx 0..8: 실제 프레임 그대로(phase=real)
+    idx 9..16: 실제 8..1 프레임을 좌우반전한 합성 재보정 예시(phase=synthetic)
+    direction=right_recover면 전체를 한 번 더 좌우반전(왼쪽 극단 사례를
+    오른쪽 극단 사례처럼 보이게) — 실제로 새 세션을 만들지 않고 기존
+    좌측 반례 하나로 양쪽 방향 예시를 다 보여주기 위한 트릭.
+    """
+    real_n = OVERSHOOT_DEMO_REAL_FRAMES
+    if idx < real_n:
+        real_idx, phase, local_mirror = idx, "real", False
+    else:
+        j = idx - real_n
+        real_idx, phase, local_mirror = (real_n - 2 - j), "synthetic", True
+    global_mirror = (direction == "right_recover")
+    return real_idx, phase, (local_mirror != global_mirror)
+
+
+def _overshoot_guide_len():
+    return OVERSHOOT_DEMO_REAL_FRAMES + (OVERSHOOT_DEMO_REAL_FRAMES - 1)
+
+
+@app.get("/overshoot_guide/load")
+def overshoot_guide_load(direction: str = "left_recover"):
+    if direction not in ("left_recover", "right_recover"):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "direction은 left_recover|right_recover만 허용"})
+    h5p = INFER_H5_DIR / f"session_{OVERSHOOT_DEMO_SID}.h5"
+    if not h5p.exists():
+        return JSONResponse(status_code=404, content={"ok": False, "error": f"예시 원본 세션 없음: {h5p}"})
+    try:
+        with h5py.File(h5p, "r") as f:
+            acts = f["actions"][()]
+            bbox = f["grounding/bbox"][()]
+
+        frames = []
+        total = _overshoot_guide_len()
+        for idx in range(total):
+            real_idx, phase, mirror = _overshoot_guide_compose(direction, idx)
+            cx = float(bbox[real_idx, 0])
+            action = _infer_action_label(acts[real_idx])
+            if mirror:
+                cx = 1.0 - cx
+            note = (
+                "실제 데이터 — 과도한 회전 이후 cx가 반등 없이 계속 밀림 (CH62 205228)"
+                if phase == "real" else
+                "합성 예시 — 같은 세션 프레임 좌우반전, 실제 센서 데이터 아님. "
+                "\"여기서부터 반대방향 재보정이 있었어야 함\"을 보여주기 위한 시각 자료"
+            )
+            frames.append({
+                "idx": idx, "source_real_idx": real_idx, "phase": phase,
+                "mirrored": mirror, "cx": cx, "action": action, "note": note,
+            })
+        return {
+            "ok": True, "direction": direction, "source_sid": OVERSHOOT_DEMO_SID,
+            "real_frame_count": OVERSHOOT_DEMO_REAL_FRAMES, "frames": frames,
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"ok": False, "error": f"로딩 오류: {e}"})
+
+
+@app.get("/overshoot_guide/frame")
+def overshoot_guide_frame(direction: str, idx: int):
+    h5p = INFER_H5_DIR / f"session_{OVERSHOOT_DEMO_SID}.h5"
+    if not h5p.exists():
+        return Response(status_code=404, content="H5 file not found")
+    try:
+        real_idx, _phase, mirror = _overshoot_guide_compose(direction, idx)
+        with h5py.File(h5p, "r") as f:
+            img_arr = f["observations/images"][real_idx]
+        pil = Image.fromarray(img_arr.astype(np.uint8))
+        if mirror:
+            pil = ImageOps.mirror(pil)
         buf = io.BytesIO()
         pil.save(buf, format="JPEG", quality=80)
         return Response(content=buf.getvalue(), media_type="image/jpeg")
@@ -3596,6 +3688,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       <div class="nav-item" onclick="switchTab(this, 'verify')">🧪 경로 검증</div>
       <div class="nav-item" onclick="switchTab(this, 'calib')">🔧 캘리브레이션</div>
       <div class="nav-item" onclick="switchTab(this, 'history')">📚 세션 히스토리</div>
+      <div class="nav-item" onclick="switchTab(this, 'overshoot')">🌀 오버슈트 가이드</div>
       <div class="nav-item" onclick="switchTab(this, 'system')">🖥️ 시스템</div>
       <div class="nav-item" onclick="switchTab(this, 'srvcfg')">⚙️ 서버 설정</div>
       <div class="nav-item" onclick="switchTab(this, 'collect')">📷 데이터수집</div>
@@ -4678,6 +4771,84 @@ L S R  C S L  R S L
       </div>
     </div>
 
+    <!-- 탭 6.5: 🌀 오버슈트 가이드 (트랙C 수집 예시) -->
+    <div id="tab-overshoot" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div class="card" style="padding:16px; margin-bottom:16px; background:rgba(245,158,11,0.08); border:1px solid var(--amber);">
+          <div class="card-title" style="color:var(--amber);">⚠️ 이 탭은 실제 학습 데이터가 아닙니다</div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+            트랙C(오버슈트→재수렴, CH62 근거)가 필요한 이유는 <b>"과하게 꺾은 뒤 반대로
+            재보정하는" 궤적 자체가 기존 데이터에 없기 때문</b>입니다. 아래는 실패
+            반례 세션(<code>session_20260711_205228</code>)의 <b>실제 프레임</b>으로
+            "과도한 회전 → 반등 없이 계속 밀림" 구간을 보여주고, 이어서 같은 프레임을
+            <b>좌우반전+역순재생한 합성 구간</b>으로 "여기서부터 반대방향 재보정이
+            있었어야 함"을 시각적으로 예시할 뿐입니다. 실제 물리 수집은
+            📷 데이터수집 탭에서 <code>오버슈트→우</code> / <code>오버슈트→좌</code>
+            라벨로 직접 진행해야 합니다.
+          </div>
+        </div>
+
+        <div class="grid-main">
+          <div class="card" style="padding:16px;">
+            <div class="card-title">🎬 예시 재생
+              <div style="display:flex; gap:6px; margin-left:auto;">
+                <button class="btn btn-outline" id="osg-btn-left" onclick="osgSetDirection('left_recover')">오버슈트→우 재보정</button>
+                <button class="btn btn-outline" id="osg-btn-right" onclick="osgSetDirection('right_recover')">오버슈트→좌 재보정</button>
+              </div>
+            </div>
+            <div class="viewport-wrapper" style="position:relative; border-radius:12px; overflow:hidden; background:#000; aspect-ratio:16/9; border:1px solid var(--border-glow);">
+              <img id="osg-frame-img" style="width:100%; height:100%; object-fit:contain;">
+              <div class="overlay-info">
+                <div class="overlay-badge" id="osg-phase-badge">—</div>
+                <div class="overlay-badge" id="osg-idx-badge">Frame: 0/0</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+              <button class="btn btn-outline" onclick="osgStep(-1)">◀ 이전</button>
+              <button class="btn btn-cyan" id="osg-play-btn" onclick="osgTogglePlay()">▶ 재생</button>
+              <button class="btn btn-outline" onclick="osgStep(1)">다음 ▶</button>
+              <input type="range" id="osg-scrub" min="0" max="0" value="0" style="flex:1;" oninput="osgSeek(this.value)">
+            </div>
+            <div id="osg-timeline" style="display:flex; gap:2px; margin-top:10px; height:14px;"></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
+              <span>◀ 실제 프레임(과도한 회전)</span>
+              <span>합성 예시(재보정 시연) ▶</span>
+            </div>
+          </div>
+
+          <div class="card" style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card-title">📊 현재 프레임 정보</div>
+            <div class="kv-grid">
+              <div class="form-group">
+                <label>구간</label>
+                <input type="text" id="osg-info-phase" readonly value="—">
+              </div>
+              <div class="form-group">
+                <label>원본 프레임 idx</label>
+                <input type="text" id="osg-info-realidx" readonly value="—">
+              </div>
+              <div class="form-group">
+                <label>cx (표시용, 합성 구간은 1-cx)</label>
+                <input type="text" id="osg-info-cx" readonly value="—">
+              </div>
+              <div class="form-group">
+                <label>원본 액션 라벨</label>
+                <input type="text" id="osg-info-action" readonly value="—">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>설명</label>
+              <div id="osg-info-note" class="status-console" style="min-height:70px; font-size:12px;">—</div>
+            </div>
+            <div class="srv-pill" style="font-size:11px;">
+              원본 세션: <code id="osg-source-sid">—</code> · CH62 참고:
+              <code>docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 탭 7: System Manage -->
     <div id="tab-system" class="tab-content">
       <div class="scroll-container">
@@ -5537,7 +5708,8 @@ L S R  C S L  R S L
         collect: "📷 데이터수집",
         dataset: "🗂 데이터셋 히스토리",
         wikiinfo: "📖 위키",
-        wikistatus: "📡 최신현황"
+        wikistatus: "📡 최신현황",
+        overshoot: "🌀 오버슈트 가이드"
       };
       document.getElementById("page-title").textContent = titleMap[tab] || (tab.toUpperCase() + " Panel");
 
@@ -5560,6 +5732,9 @@ L S R  C S L  R S L
       }
       if (tab === "wikistatus") {
         loadWikiContent("status");
+      }
+      if (tab === "overshoot" && !osgState.frames.length) {
+        osgSetDirection(osgState.direction);
       }
       if (tab === "collect") {
         collectRefreshState();
@@ -6951,6 +7126,80 @@ L S R  C S L  R S L
         }).join("");
         return `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">${btns}</div>`;
       }).join("");
+    }
+
+    // ── 🌀 오버슈트 가이드 (트랙C 수집 예시) ──────────────────────────────
+    let osgState = { direction: "left_recover", frames: [], idx: 0, playing: false, playTimer: null };
+
+    async function osgSetDirection(direction) {
+      osgState.direction = direction;
+      const leftBtn = document.getElementById("osg-btn-left");
+      const rightBtn = document.getElementById("osg-btn-right");
+      if (leftBtn) leftBtn.className = direction === "left_recover" ? "btn btn-cyan" : "btn btn-outline";
+      if (rightBtn) rightBtn.className = direction === "right_recover" ? "btn btn-cyan" : "btn btn-outline";
+      const res = await api(`/overshoot_guide/load?direction=${direction}`);
+      if (!res.ok) {
+        document.getElementById("osg-info-note").textContent = "로딩 실패: " + (res.error || "");
+        return;
+      }
+      osgState.frames = res.frames;
+      osgState.idx = 0;
+      document.getElementById("osg-source-sid").textContent = res.source_sid;
+      const scrub = document.getElementById("osg-scrub");
+      scrub.max = res.frames.length - 1;
+      osgRenderFrame();
+    }
+
+    function osgRenderTimeline() {
+      const el = document.getElementById("osg-timeline");
+      if (!el) return;
+      el.innerHTML = osgState.frames.map((f, i) => {
+        const bg = f.phase === "real" ? "var(--cyan)" : "var(--amber)";
+        const outline = i === osgState.idx ? "outline:2px solid #fff;" : "";
+        return `<div onclick="osgSeek(${i})" style="flex:1; background:${bg}; opacity:${i === osgState.idx ? 1 : 0.5}; cursor:pointer; border-radius:2px; ${outline}"></div>`;
+      }).join("");
+    }
+
+    function osgRenderFrame() {
+      const f = osgState.frames[osgState.idx];
+      if (!f) return;
+      document.getElementById("osg-frame-img").src = `/overshoot_guide/frame?direction=${osgState.direction}&idx=${f.idx}`;
+      document.getElementById("osg-phase-badge").textContent = f.phase === "real" ? "🟦 실제" : "🟧 합성(좌우반전)";
+      document.getElementById("osg-idx-badge").textContent = `Frame: ${osgState.idx + 1}/${osgState.frames.length}`;
+      document.getElementById("osg-info-phase").value = f.phase === "real" ? "실제 데이터" : "합성 예시(실제 아님)";
+      document.getElementById("osg-info-realidx").value = f.source_real_idx;
+      document.getElementById("osg-info-cx").value = f.cx.toFixed(3);
+      document.getElementById("osg-info-action").value = f.action;
+      document.getElementById("osg-info-note").textContent = f.note;
+      document.getElementById("osg-scrub").value = osgState.idx;
+      osgRenderTimeline();
+    }
+
+    function osgStep(delta) {
+      if (!osgState.frames.length) return;
+      osgState.idx = Math.max(0, Math.min(osgState.frames.length - 1, osgState.idx + delta));
+      osgRenderFrame();
+    }
+
+    function osgSeek(v) {
+      osgState.idx = parseInt(v);
+      osgRenderFrame();
+    }
+
+    function osgTogglePlay() {
+      const btn = document.getElementById("osg-play-btn");
+      if (osgState.playing) {
+        clearInterval(osgState.playTimer);
+        osgState.playing = false;
+        btn.textContent = "▶ 재생";
+        return;
+      }
+      osgState.playing = true;
+      btn.textContent = "⏸ 정지";
+      osgState.playTimer = setInterval(() => {
+        if (osgState.idx >= osgState.frames.length - 1) { osgTogglePlay(); return; }
+        osgStep(1);
+      }, 400);
     }
 
     function setFpeValue(val) {
