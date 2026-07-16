@@ -207,9 +207,14 @@ COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (V
 # — 4포지션 × 접근경로 3종(좌곡선/직진/우곡선, 지시 불필요·오퍼레이터 재량) × 15회 = 180ep
 # + 트랙C(오버슈트→재수렴, CH62 근거, 2026-07-16 추가) — 같은 4포지션 재사용,
 # 위치당 목표 45(트랙A) + 16(트랙C 2방향×8) = 61
+# center는 트랙F(중앙 위치 커버리지, 2026-07-16 추가, plan §1-2) — 트랙A와 동일
+# 3경로×15회=45ep만 필요, 트랙C(오버슈트) 대상 아님(오버슈트는 극단 4위치 전용).
+# cx 밴드는 plan에 구체 수치가 없어 다른 위치들과 동일한 폭(0.05)으로 화면 정중앙
+# 대칭 배치.
 COLLECT_CX_POSITIONS = {
     "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 61},
     "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 61},
+    "center":       {"label": "중앙",     "lo": 0.475, "hi": 0.525, "target": 45},
     "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 61},
     "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 61},
 }
@@ -6244,7 +6249,7 @@ L S R  C S L  R S L
       if (!chart || !res.cx_positions) return;
       const curCx = document.getElementById("collect-cxpos-select")?.value || "";
       const curPath = document.getElementById("collect-cxpath-select")?.value || "";
-      const order = ["strong_left", "weak_left", "weak_right", "strong_right"];
+      const order = ["strong_left", "weak_left", "center", "weak_right", "strong_right"];
       const pathOrder = ["left_curve", "straight", "right_curve", "overshoot_left_recover", "overshoot_right_recover"];
       const posStats = res.cx_position_stats || {};
       const pathStats = res.cx_position_path_stats || {};
@@ -6256,9 +6261,9 @@ L S R  C S L  R S L
         totalDone += done; totalTarget += info.target;
         const pct = Math.min(100, Math.round(done / info.target * 100));
         const isSel = id === curCx;
-        const centerGap = (i === 2) ? `<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:2px 0;">(중앙 미해당 구간)</div>` : "";
 
-        const pathRows = pathOrder.filter(p => paths[p]).map(p => {
+        // center(트랙F)는 오버슈트(트랙C, 극단 4위치 전용) 대상이 아니라 해당 경로는 숨김
+        const pathRows = pathOrder.filter(p => paths[p] && !(id === "center" && p.startsWith("overshoot"))).map(p => {
           const pinfo = paths[p];
           const pdone = pathStats[`${id}::${p}`] || 0;
           const ppct = Math.min(100, Math.round(pdone / pinfo.target * 100));
@@ -6274,7 +6279,7 @@ L S R  C S L  R S L
             </div>`;
         }).join("");
 
-        return centerGap + `
+        return `
           <div>
             <div onclick="_collectClickCxPos('${id}')"
                  style="display:flex; align-items:center; gap:8px; cursor:pointer; ${isSel ? "outline:1px solid var(--cyan); border-radius:6px; padding:2px 4px;" : ""}">
@@ -8489,6 +8494,7 @@ L S R  C S L  R S L
     const DS_CXPOS_STYLE = {
       strong_left:  {icon: "◀◀", bg: "rgba(56,189,248,0.15)", fg: "var(--cyan)"},
       weak_left:    {icon: "◀",  bg: "rgba(56,189,248,0.15)", fg: "var(--cyan)"},
+      center:       {icon: "●",  bg: "rgba(148,163,184,0.15)", fg: "var(--text-muted)"},
       weak_right:   {icon: "▶",  bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
       strong_right: {icon: "▶▶", bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
     };
