@@ -100,6 +100,12 @@ def load_episode(path: str) -> dict | None:
         data["images"] = data["images"][:n]
         data["actions"] = data["actions"][:n]
         data["event_types"] = data["event_types"][:n]
+
+    expected_shape = (720, 1280, 3)
+    if data["images"].shape[1:] != expected_shape:
+        print(f"  [스킵] {os.path.basename(path)}: 이미지 해상도 불일치 "
+              f"({data['images'].shape[1:]} != {expected_shape})", file=sys.stderr)
+        return None
     return data
 
 
