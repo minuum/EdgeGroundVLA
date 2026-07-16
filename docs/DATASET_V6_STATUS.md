@@ -74,6 +74,24 @@ H5 attrs(`cx_position`) 둘 다 `weak_left`→`weak_right`로 일괄 정정**:
 - `🗂 데이터셋 히스토리` 탭(`/dataset/list`)에서 15건 모두 `weak_right` +
   `left_curve`로 정상 노출 재확인
 
+## 트랙A(V6 극단배치) 수집 완료 — 2026-07-16
+
+목표 180건(4 위치 × 3 경로 × 15) 전량 수집 완료. `scenario_progress.json`
+기준 최종 카운트:
+
+| 위치 \ 경로 | left_curve | straight | right_curve | 소계 |
+|---|---|---|---|---|
+| weak_right | 15 | 15 | 15 | 45 |
+| strong_right | 15 | 15(+1 초과분 별도) | 15 | 45 |
+| weak_left | 15 | 15 | 15 | 45 |
+| strong_left | 15 | 15(+2 초과분 별도) | 15 | 45 |
+
+- `total_completed` (time_period_stats.json): 180
+- soda → minum(`/home/minum/26CS/MoNaVLA`) rsync 전송 상태: weak_right/strong_right/weak_left
+  기존 전송 완료(136건), strong_left 47건(초과분 2건 포함) 2026-07-16 전송
+- H5 원본 파일은 `.gitignore` 대상이라 로컬 삭제 여부와 무관하게 git 이력에는
+  영향 없음 — soda 로컬 h5는 보존 상태 유지(전송 확인 후 별도 삭제 여부 판단 예정)
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
