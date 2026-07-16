@@ -178,8 +178,9 @@ def main():
                 "observation.images.cam_front": ep["images"][t],
                 "action": ep["actions"][t],
                 "action.event_type": ep["event_types"][t],
+                "task": ep["task"],
             })
-        dataset.save_episode(task=ep["task"])
+        dataset.save_episode()
         print(f"  [{i+1}/{len(episodes)}] {ep['episode_name']} ({n} frames, schema={ep['schema']}) 저장됨")
 
     dataset.finalize()
