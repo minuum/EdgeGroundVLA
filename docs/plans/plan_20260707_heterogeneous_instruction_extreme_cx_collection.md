@@ -191,6 +191,15 @@ chair 28개는 포함하지 않음(별도 로드맵).
 - [ ] 촬영 시나리오/instruction 세트 확정
 - [ ] `mobile_vla_data_collector.py` 시나리오 추가 + instruction 필드 기록 확인
 - [x] 트랙A 극단cx 4개 시나리오 키 추가 — 2026-07-10 완료
-- [ ] 트랙C(오버슈트→재수렴) 시나리오 키 추가 — CH62 근거, 신규
-- [ ] 1일차 트랙A+C(244ep, 우선) 수집 완료
-- [ ] 재학습(150ep+트랙A/C 244ep+basket free21=415ep) + §5 평가지표(VSC/오버슈트회복률/반응지연/first_detect그룹 격차) 재검증으로 개선 여부 확인
+- [x] 트랙A 극단cx 4위치×3경로(180ep) 물리 수집 완료 — 2026-07-16 (soda, monavla-driving)
+- [x] 트랙C(오버슈트→재수렴) 시나리오 키(overshoot_left_recover/
+      overshoot_right_recover cx_path) 추가 완료 — 2026-07-16, CH62 근거
+      (soda, monavla-driving). 물리 수집(64ep)은 아직 미착수.
+- [x] **트랙F(center 위치, 45ep) 신규 추가 + 물리 수집 완료 — 2026-07-16/17
+      (soda, monavla-driving).** V6가 5위치×3경로=225ep로 완결, V5 혼합
+      불필요해짐. 상세: `docs/DATASET_V6_STATUS.md` "최신 현황 업데이트" 참조.
+- [ ] 트랙C(오버슈트→재수렴, 64ep) 물리 수집 — exp73(트랙A 단독 학습) 결과
+      확인 후 우선순위 판단 예정
+- [ ] 재학습(V6 단독 225ep+트랙C 64ep=289ep, 또는 기존 150ep+트랙A/C 244ep+
+      트랙F 45ep+basket free21=460ep) + §5 평가지표(VSC/오버슈트회복률/
+      반응지연/first_detect그룹 격차) 재검증으로 개선 여부 확인

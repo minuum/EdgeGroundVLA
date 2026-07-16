@@ -68,6 +68,34 @@
 `scenario_progress.json`/`time_period_stats.json`에도 반영됨
 (`cx_position_stats.weak_left=1`, `time_period_stats.evening=1`).
 
+## 최신 현황 업데이트 (soda → inference-integration 동기화, 2026-07-17)
+
+> 이 섹션은 soda `monavla-driving`에서 이후 진행된 물리 수집 결과를
+> 요약 반영한 것 — 위 "V6 첫 실데이터 1건" 이후 실제로는 트랙A+트랙F
+> 전량 수집이 끝났음. `monavla-driving`은 대시보드 코드(V6/트랙C/트랙F
+> UI, LeRobotDataset 변환 스크립트 등) 커밋이 20개 이상 더 있어 전체
+> 브랜치를 merge하지 않고 이 요약만 옮김 — 상세 커밋 이력이 필요하면
+> `monavla-driving` 참조.
+
+- **트랙A(극단배치 4위치×3경로) 180/180 완료** — weak_right/strong_right/
+  weak_left/strong_left 각 45(15×3), soda→minum rsync 전송 완료
+  (`/home/minum/26CS/MoNaVLA/ROS_action/mobile_vla_dataset_v5/`)
+- **트랙F(center 위치, plan §1-2) 45/45 완료 — 2026-07-16/17.**
+  `mona_dashboard.py`의 `cx_position`에 `center`(cx 0.475~0.525) 추가,
+  동일 3경로(left_curve/straight/right_curve)×15회. soda→minum 전송
+  완료, minum 쪽 개수 45건 일치 확인.
+- **→ V6가 5위치(weak_right/strong_right/weak_left/strong_left/center)
+  × 3경로 = 225ep로 완결.** V5 레거시 혼합 없이 v6 단독 arm 학습 가능.
+- 손상 파일 2건(`strong_left::straight`, 디스크 압박 추정) 발견·soda
+  로컬에서 삭제 처리 — 정상 파일만으로 목표 충족이라 재수집 불필요.
+- **남은 것: 트랙C(오버슈트→재수렴, 64ep)만.** soda `mona_dashboard.py`에
+  `overshoot_left_recover`/`overshoot_right_recover` cx_path 라벨 추가
+  완료(수집 UI 준비됨), 실제 물리 수집은 미착수 — exp73(트랙A 단독 학습)
+  결과 확인 후 우선순위 판단 예정.
+- 참고용 데모 탭도 추가됨: 🌀 오버슈트 가이드(soda 7800 대시보드) — CH62
+  반례 세션(`session_20260711_205228`)의 실제 프레임 + 좌우반전 합성으로
+  "왜 트랙C가 필요한지" 시각적으로 보여주는 탭(실제 학습데이터 아님, 예시용).
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
