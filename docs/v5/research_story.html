@@ -14666,16 +14666,43 @@ graph TD
   </div>
 
   <div class="finding-card">
+    <div class="finding-title">63-8. closed-loop(FPE/TLD/Success) 사전검증 — mlp가 offline·closed-loop 양쪽 모두 1위</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      63-7의 "val_acc만으로 결론 내지 말라"는 원칙에 따라, exp73_v6_vis_cache(이미 인코딩된
+      vis+bbox)를 재사용해 window=6/bbox_scale=3.0 피처로 val 33ep에 대해 실제 궤적을
+      구성(<code>scripts/sim/evaluate_closed_loop_exp73.py</code>)하고 FPE/TLD/Success@0.5m을
+      측정했다. CH62의 exp11(PM 58.6%, CL 0%)·step2(75.9%, CL 66.7%) 사례와 apples-to-apples로
+      비교 가능.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">구성</th><th style="padding:4px">val_acc(offline)</th><th style="padding:4px">FPE(m)</th><th style="padding:4px">TLD</th><th style="padding:4px">Success@0.5m</th></tr>
+        <tr><td style="padding:4px">pg448_trackF/v6/<strong>mlp</strong>(225ep, 최종 추천 구성)</td><td style="padding:4px;text-align:center">77.9%</td><td style="padding:4px;text-align:center">0.345±0.447</td><td style="padding:4px;text-align:center">0.996</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>72.7%</strong></td></tr>
+        <tr><td style="padding:4px">owl/v6/cxgeom(180ep, offline 1위 78.2%)</td><td style="padding:4px;text-align:center">78.2%</td><td style="padding:4px;text-align:center">0.802±0.774</td><td style="padding:4px;text-align:center">1.003</td><td style="padding:4px;text-align:center">48.5%</td></tr>
+        <tr><td style="padding:4px">pg448/v6/mlp(180ep, 트랙F 미포함)</td><td style="padding:4px;text-align:center">78.0%</td><td style="padding:4px;text-align:center">0.569±0.646</td><td style="padding:4px;text-align:center">0.979</td><td style="padding:4px;text-align:center">63.6%</td></tr>
+        <tr><td style="padding:4px">pg448/v6/cxgeom(180ep, 동일 그라운더 대조군)</td><td style="padding:4px;text-align:center">77.8%</td><td style="padding:4px;text-align:center">0.711±0.939</td><td style="padding:4px;text-align:center">0.975</td><td style="padding:4px;text-align:center">57.6%</td></tr>
+        <tr style="border-top:1px solid #334155;color:#64748b"><td style="padding:4px">(참고) CH62 exp11 / step2</td><td style="padding:4px;text-align:center">58.6% / 75.9%</td><td style="padding:4px;text-align:center">1.45 / 0.55</td><td style="padding:4px;text-align:center">—</td><td style="padding:4px;text-align:center">0% / 66.7%</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">핵심: offline 1위(cxgeom 78.2%)가 closed-loop 최하위(48.5%)</strong>
+      — offline 격차 0.3%p(77.9 vs 78.2)가 closed-loop에서 24%p 격차(72.7 vs 48.5)로 벌어짐.
+      동일 그라운더(pg448/v6) 내 대조에서도 mlp(63.6%)가 cxgeom(57.6%)을 앞서 — 헤드 랭킹은
+      offline 지표만으론 확정 불가하며 cxgeom의 "geometric branch가 최근 프레임에 과의존"하는
+      구조가 오차 누적에 더 취약할 가능성. 트랙F(center) 추가가 mlp 구성의 closed-loop도
+      개선(FPE 0.569→0.345, Success 63.6%→72.7%) — 63-3의 offline 강건성(-0.1%p)이
+      closed-loop에서도 재현됨.
+    </div>
+  </div>
+
+  <div class="finding-card">
     <div class="finding-title">63-7. 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      <strong style="color:#e2e8f0">최종 추천: mlp 헤드, 그라운더 무관(PG448/OWL 격차
-      미미)</strong> — 225ep(트랙A+F) 기준 최상위·최강건. 배포 중인 transformer는 이
+      <strong style="color:#e2e8f0">최종 추천: mlp 헤드, pg448+트랙F(225ep) 구성</strong> —
+      offline(77.9%)·closed-loop(FPE 0.345m, Success 72.7%) 양쪽 모두 최상위·최강건함을
+      63-8에서 확인. exp11(0%)·step2(66.7%) 대비 큰 개선. 배포 중인 transformer는 이
       ablation에서 반복적으로 최하위권(74.5→71.8%, center 추가에 가장 취약) — 교체
       검토 필요.<br><br>
-      단, <strong style="color:#fbbf24">val_acc만으로 배포 결정 금지</strong>(CH62
-      교훈: offline 지표와 closed-loop 성능 불일치 전례, exp11 PM 58.6%인데 CL 0% 사례).
       트랙C(64ep, 오버슈트→재수렴) 물리 수집 완료 후 최종 289ep(트랙A+C+F)로 재확정
-      학습 → closed-loop(FPE/Success) 검증까지 거쳐야 실제 배포 교체 가능.
+      학습 → 동일 방법으로 closed-loop 재검증까지 거쳐야 실제 배포 교체 확정.
     </div>
   </div>
 </div>
