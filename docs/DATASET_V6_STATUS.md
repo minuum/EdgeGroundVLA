@@ -146,6 +146,21 @@ minum `inference-integration` 브랜치가 요청한 plan §1-2(트랙F, V6 단�
 V6 완결 예정. 우선순위(트랙C 진행 시점)는 minum의 exp73(트랙A 단독 학습 실험)
 결과 확인 후 결정하기로 함.
 
+## 문의 — lx/ly 연속값 보존 가능한지 (minum, 2026-07-17)
+
+exp73 hybrid 헤드 개발 중 raw 액션(lx,ly,az) 실측 스캔 결과:
+- **az**: `_loop()`에서 `rd(self._axes["right_x"])` 그대로 기록 — 실측 225ep에서
+  고유값 33개+ (진짜 연속 신호 보존됨)
+- **lx, ly**: 물리적으로는 동일하게 연속 axis(`left_x`,`left_y`)를 읽지만
+  `_axis_to_key()`가 8방향 키로 변환 후 고정속도 1.15 매핑 — 실측값이 항상
+  {-1.15, 0, +1.15} 3개뿐. 하드웨어 제약이 아니라 소프트웨어 설계 때문으로 확인.
+
+**문의**: az처럼 lx/ly도 원본 아날로그 값(또는 deadzone 클리핑만 적용)을 그대로
+기록하도록 바꾸는 게 가능한지 검토 요청. 기존 8-class 이산 라벨은 임계값 재적용으로
+그대로 호환되므로 하위호환 문제 없음. 기존 수집분 재촬영 불필요 — **트랙C(64ep)부터
+적용 여부만 판단**해주면 됨. 상세 배경:
+`docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md` §7.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
