@@ -305,6 +305,100 @@ def train_flow(X_tr, A_tr, X_va, y_va, A_va, seed, epochs=300, lr=5e-4):
     return best_acc, best_state, per_class, best_mse
 
 
+class HybridHead(nn.Module):
+    """lx,ly는 원본이 이미 {-1.15,0,1.15} 3값 이산 신호(실측 확인됨) — 6-way 분류로 충분.
+    az만 실제 연속 스펙트럼(33+ 고유값) — 별도 회귀 브랜치. mlp와 동일 trunk 크기."""
+    LAT_FWD_CLASSES = 6  # STOP,F,L,R,FL,FR (az 무관, lx/ly만으로 결정)
+
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW):
+        super().__init__()
+        self.trunk = nn.Sequential(
+            nn.Linear(frame_dim * window, 512), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(512, 128), nn.ReLU())
+        self.disc_head = nn.Linear(128, self.LAT_FWD_CLASSES)
+        self.az_head = nn.Sequential(nn.Linear(128, 32), nn.ReLU(), nn.Linear(32, 1), nn.Tanh())
+
+    def forward(self, x):
+        h = self.trunk(x.flatten(1))
+        return self.disc_head(h), self.az_head(h).squeeze(-1)
+
+
+def hybrid_targets(y, A, az_scale=1.15):
+    """8-class gt → (6-way lat/fwd label, az_norm) 쌍. ROT_L/R(6,7)은 lat/fwd 관점에서 STOP(0)."""
+    lat_fwd = np.where(y >= 6, 0, y).astype(np.int64)
+    az_norm = (A[:, 2] / az_scale).astype(np.float32)
+    return lat_fwd, az_norm
+
+
+def hybrid_combine(lat_fwd_pred, az_pred, az_thresh=0.1):
+    """(6-way 예측, 연속 az 예측) → 최종 8-class. nav_h5_dataset_impl.py 규칙과 동일 threshold."""
+    cls = lat_fwd_pred.clone()
+    is_stop = lat_fwd_pred == 0
+    cls[is_stop & (az_pred > az_thresh)] = 6
+    cls[is_stop & (az_pred < -az_thresh)] = 7
+    return cls
+
+
+def train_hybrid(X_tr, y_tr, A_tr, X_va, y_va, A_va, seed, epochs=300, lr=5e-4, az_scale=1.15):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    lat_fwd_tr, az_tr = hybrid_targets(y_tr, A_tr, az_scale=az_scale)
+
+    cls_counts = np.bincount(lat_fwd_tr, minlength=HybridHead.LAT_FWD_CLASSES).astype(np.float32)
+    cls_counts = np.where(cls_counts == 0, 1.0, cls_counts)
+    weights = 1.0 / cls_counts
+    weights = weights / weights.sum() * HybridHead.LAT_FWD_CLASSES
+    weights_t = torch.tensor(weights, dtype=torch.float32, device=DEVICE)
+
+    X_tr_t = torch.tensor(X_tr, device=DEVICE)
+    lat_fwd_tr_t = torch.tensor(lat_fwd_tr, device=DEVICE)
+    az_tr_t = torch.tensor(az_tr, device=DEVICE)
+    X_va_t = torch.tensor(X_va, device=DEVICE)
+    y_va_t = torch.tensor(y_va, device=DEVICE)
+    az_va = (A_va[:, 2] / az_scale).astype(np.float32)
+    az_va_t = torch.tensor(az_va, device=DEVICE)
+
+    model = HybridHead().to(DEVICE)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
+    best_acc, best_state = 0.0, None
+
+    def eval_acc():
+        model.eval()
+        with torch.no_grad():
+            disc_logit, az_pred = model(X_va_t)
+            lat_fwd_pred = disc_logit.argmax(1)
+            final_pred = hybrid_combine(lat_fwd_pred, az_pred, az_thresh=0.1 / az_scale)
+            acc = (final_pred == y_va_t).float().mean().item()
+        return acc, final_pred
+
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(X_tr_t), device=DEVICE)
+        for i in range(0, len(perm), 128):
+            b = perm[i:i + 128]
+            disc_logit, az_pred = model(X_tr_t[b])
+            loss = (F.cross_entropy(disc_logit, lat_fwd_tr_t[b], weight=weights_t)
+                    + F.mse_loss(az_pred, az_tr_t[b]))
+            opt.zero_grad(); loss.backward(); opt.step()
+        sched.step()
+        if ep % 25 == 0 or ep == epochs - 1:
+            acc, _ = eval_acc()
+            if acc >= best_acc:
+                best_acc = acc
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+
+    model.load_state_dict(best_state)
+    _, pred = eval_acc()
+    pred = pred.cpu().numpy()
+    per_class = {}
+    for c in range(NUM_CLASSES):
+        m = (y_va == c)
+        if m.sum() > 0:
+            per_class[c] = float((pred[m] == c).mean())
+    return best_acc, best_state, per_class
+
+
 HEADS = {"transformer": TransformerActionHead, "mlp": MLPActionHead, "cxgeom": CxGeomHead}
 
 
@@ -477,7 +571,7 @@ def main():
         X_tr, y_tr, A_tr = build_windows(arm_train[arm])
         print(f"\n=== ARM {arm}: train {len(X_tr)} / val {len(X_va)} samples ===", flush=True)
         for head in args.heads.split(","):
-            if head in ("contreg", "flow") and np.isnan(A_tr).any():
+            if head in ("contreg", "flow", "hybrid") and np.isnan(A_tr).any():
                 print(f"  [{arm}/{head}] raw 액션 없는 에피소드 포함(레거시 V5) → 스킵", flush=True)
                 continue
             accs = []
@@ -489,6 +583,9 @@ def main():
                 elif head == "flow":
                     acc, state, per_class, mse = train_flow(
                         X_tr, A_tr, X_va, y_va, A_va, seed, epochs=args.epochs)
+                elif head == "hybrid":
+                    acc, state, per_class = train_hybrid(
+                        X_tr, y_tr, A_tr, X_va, y_va, A_va, seed, epochs=args.epochs)
                 else:
                     acc, state, per_class = train_one(HEADS[head], X_tr, y_tr, X_va, y_va,
                                                        seed, epochs=args.epochs)

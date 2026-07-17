@@ -14694,15 +14694,51 @@ graph TD
   </div>
 
   <div class="finding-card">
+    <div class="finding-title">63-9. lx/ly는 이미 이산, az만 진짜 연속 — hybrid(6-way lat/fwd + 연속 az) 헤드가 최종 1위</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      63-6 이후 "연속 헤드로 정의 자체를 바꿀 수 있는가"를 검토하며 225ep 원본 raw
+      액션(lx,ly,az)의 실측 고유값 분포를 직접 스캔했다. 결과: <strong style="color:#e2e8f0">lx,
+      ly는 정확히 {-1.15, 0, +1.15} 3값</strong>만 존재(연속 신호가 아예 없음 — 수집
+      대시보드(<code>mona_dashboard.py</code>)가 아날로그 축을 <code>_axis_to_key()</code>로
+      8방향 키에 고정속도 매핑하기 때문), 반면 <strong style="color:#e2e8f0">az는 33개+
+      서로 다른 실측값을 가진 진짜 연속 신호</strong>(우측 스틱 raw 값이 그대로 보존됨).
+      즉 기존 8-class 정의가 "이산 신호(lx,ly)"와 "연속 신호(az)"를 하나의 분류기에
+      억지로 섞고 있었다는 뜻.
+      <br><br>
+      이에 따라 <strong style="color:#e2e8f0">HybridHead</strong>를 신규 구현:
+      lx,ly만으로 결정되는 6-way 분류(STOP/F/L/R/FL/FR, cross-entropy) + az 연속
+      회귀(MSE, tanh 출력) 두 브랜치를 공유 trunk 위에 얹고, 추론 시 6-way 예측이
+      STOP이면서 |az_pred|&gt;0.1일 때만 ROT_L/R로 override하는 규칙(원본
+      <code>nav_h5_dataset_impl.py</code> 임계값과 동일)으로 최종 8-class 결합.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">구성</th><th style="padding:4px">val_acc(offline)</th><th style="padding:4px">FPE(m)</th><th style="padding:4px">Success@0.5m</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>pg448_trackF/v6/hybrid (신규, 최종 1위)</strong></td><td style="padding:4px;text-align:center">78.1%</td><td style="padding:4px;text-align:center"><strong>0.274±0.353</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>84.8%</strong></td></tr>
+        <tr><td style="padding:4px">pg448_trackF/v6/mlp (이전 1위)</td><td style="padding:4px;text-align:center">77.9%</td><td style="padding:4px;text-align:center">0.345±0.447</td><td style="padding:4px;text-align:center">72.7%</td></tr>
+        <tr><td style="padding:4px">owl/v6/cxgeom (offline 역대 최고 78.2%)</td><td style="padding:4px;text-align:center">78.2%</td><td style="padding:4px;text-align:center">0.802±0.774</td><td style="padding:4px;text-align:center">48.5%</td></tr>
+      </table>
+      <br>
+      offline 지표로는 hybrid(78.1%)가 mlp(77.9%)보다 근소 우위(+0.2%p)에 불과하지만
+      closed-loop에서는 FPE 0.345→0.274m, Success 72.7%→84.8%로 격차가 크게 벌어짐 —
+      "신호의 실제 성질(이산 vs 연속)에 맞게 헤드 출력 공간을 분리"하는 것이 단일 8-class
+      분류보다 오차 누적에 훨씬 강건함을 시사. lx/ly를 무리하게 연속으로 취급한 이전
+      contreg/flow 헤드(63-6, 71~75%)가 부진했던 이유도 이걸로 설명됨 — 애초에 없는
+      연속 신호를 만들려다 학습만 어려워진 것.
+    </div>
+  </div>
+
+  <div class="finding-card">
     <div class="finding-title">63-7. 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      <strong style="color:#e2e8f0">최종 추천: mlp 헤드, pg448+트랙F(225ep) 구성</strong> —
-      offline(77.9%)·closed-loop(FPE 0.345m, Success 72.7%) 양쪽 모두 최상위·최강건함을
-      63-8에서 확인. exp11(0%)·step2(66.7%) 대비 큰 개선. 배포 중인 transformer는 이
-      ablation에서 반복적으로 최하위권(74.5→71.8%, center 추가에 가장 취약) — 교체
+      <strong style="color:#e2e8f0">최종 추천: hybrid 헤드, pg448+트랙F(225ep) 구성</strong>
+      (63-9) — offline(78.1%)·closed-loop(FPE 0.274m, Success 84.8%) 양쪽 모두 최상위.
+      mlp(63-8, 72.7%)·exp11(0%)·step2(66.7%) 순으로 뚜렷한 개선. 배포 중인 transformer는
+      이 ablation에서 반복적으로 최하위권(74.5→71.8%, center 추가에 가장 취약) — 교체
       검토 필요.<br><br>
       트랙C(64ep, 오버슈트→재수렴) 물리 수집 완료 후 최종 289ep(트랙A+C+F)로 재확정
-      학습 → 동일 방법으로 closed-loop 재검증까지 거쳐야 실제 배포 교체 확정.
+      학습 → 동일 방법으로 closed-loop 재검증까지 거쳐야 실제 배포 교체 확정. az가
+      진짜 연속 신호임이 확인됐으므로, 향후 수집에서도 lx/ly는 현재 방식(고정 8방향)을
+      유지하되 az만큼은 연속 값 보존이 유지되도록 soda 쪽에 확인 요청함(§DoD 참고).
     </div>
   </div>
 </div>

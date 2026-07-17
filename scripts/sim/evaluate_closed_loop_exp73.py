@@ -24,7 +24,8 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.sim.rollout_core import ACTION_VEL, build_trajectory, compute_metrics
 from scripts.train_exp73_trackA_heads import (
-    MLPActionHead, CxGeomHead, TransformerActionHead, WINDOW, BBOX_SCALE, FRAME_DIM,
+    MLPActionHead, CxGeomHead, TransformerActionHead, HybridHead, hybrid_combine,
+    WINDOW, BBOX_SCALE, FRAME_DIM,
 )
 
 CACHE_V6 = ROOT / "docs/v5/closed_loop_eval/exp73_v6_vis_cache.pt"
@@ -32,7 +33,8 @@ OUT_DIR = ROOT / "docs/v5/closed_loop_eval"
 VAL_RATIO = 0.15
 SPLIT_SEED = 42
 
-HEAD_CLS = {"mlp": MLPActionHead, "cxgeom": CxGeomHead, "transformer": TransformerActionHead}
+HEAD_CLS = {"mlp": MLPActionHead, "cxgeom": CxGeomHead, "transformer": TransformerActionHead,
+            "hybrid": HybridHead}
 
 
 def val_split(eps, seed=SPLIT_SEED, ratio=VAL_RATIO):
@@ -56,9 +58,13 @@ def build_episode_windows(ep, window=WINDOW, bbox_scale=BBOX_SCALE):
 
 
 @torch.no_grad()
-def eval_episode(ep, model, device):
+def eval_episode(ep, model, device, is_hybrid=False):
     X = torch.tensor(build_episode_windows(ep), device=device)
-    pred = model(X).argmax(1).cpu().numpy()
+    if is_hybrid:
+        disc_logit, az_pred = model(X)
+        pred = hybrid_combine(disc_logit.argmax(1), az_pred, az_thresh=0.1 / 1.15).cpu().numpy()
+    else:
+        pred = model(X).argmax(1).cpu().numpy()
 
     gt_classes = np.asarray(ep["gts"], dtype=np.int64)
     expert_traj = build_trajectory(gt_classes.tolist())
@@ -90,7 +96,7 @@ def main():
     model.eval()
     print(f"[LOAD] ckpt {args.ckpt} (val_acc_at_save={ckpt.get('val_acc')})", flush=True)
 
-    results = [eval_episode(ep, model, device) for ep in val_eps]
+    results = [eval_episode(ep, model, device, is_hybrid=(args.head == "hybrid")) for ep in val_eps]
 
     fpe = np.array([r["fpe"] for r in results])
     tld = np.array([r["tld"] for r in results])
