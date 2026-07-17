@@ -72,7 +72,8 @@ def main():
             continue
 
         with h5py.File(str(h5_path), "r") as f:
-            imgs = f["observations"]["images"][:]
+            # V5: observations/images, V6(트랙A): images 최상위
+            imgs = (f["observations"]["images"] if "observations" in f else f["images"])[:]
 
         new_frames = []
         for fr in ep["frames"]:

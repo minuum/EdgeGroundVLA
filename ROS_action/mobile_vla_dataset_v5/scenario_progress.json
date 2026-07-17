@@ -1,12 +1,22 @@
 {
-  "last_updated": "2026-07-15T20:20:08.608030",
+  "last_updated": "2026-07-16T04:54:10.369768",
   "scenario_stats": {},
   "total_completed": 0,
   "total_target": 150,
   "cx_position_stats": {
-    "weak_right": 15
+    "weak_right": 45,
+    "strong_right": 45,
+    "weak_left": 45
   },
   "cx_position_path_stats": {
-    "weak_right::left_curve": 15
+    "weak_right::left_curve": 15,
+    "weak_right::straight": 15,
+    "weak_right::right_curve": 15,
+    "strong_right::right_curve": 15,
+    "strong_right::straight": 15,
+    "strong_right::left_curve": 15,
+    "weak_left::left_curve": 15,
+    "weak_left::right_curve": 15,
+    "weak_left::straight": 15
   }
 }

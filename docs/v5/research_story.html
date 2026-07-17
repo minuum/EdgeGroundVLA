@@ -14509,8 +14509,177 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card">
+    <div class="finding-title">62-7. ROT_L/R(제자리 회전 재센터링) — 희소 클래스, 백로그 (2026-07-15 결정)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      2026-07-15 Track A `weak_right::left_curve` 15ep(1194프레임) 품질 체크 중 확인: 근접
+      상황에서 바구니 중심을 맞추려 제자리 회전(ROT_L/R)하는 장면이 실제 존재하나, 8-class
+      분포상 <strong style="color:#f87171">ROT_L 0.3%(4/1194), ROT_R 0.3%(3/1194)</strong>로
+      극히 희소 — 기존 V5 150ep 분포(각 ~0.8%)와 동일한 수준. 이 비율로는 cross-entropy
+      학습에서 그래디언트 기여가 사실상 없어 모델이 해당 행동 자체를 못 배울 가능성.<br><br>
+      <strong style="color:#e2e8f0">오프라인 오버샘플링(class-weight)은 기각</strong>: exp71에서
+      이미 reweight 설정을 방향축 confound 완화책으로 시도했으나 무효 확인됨
+      (`confound_mitigation_20260710.json`) — 같은 방식이 이 축에서도 통할 근거 없음.
+      대신 트랙D(거리축)와 같은 방식으로, <strong style="color:#fbbf24">근접-재센터링(ROT_L/R)
+      전용 물리 수집을 별도 소규모 트랙(가칭 Track E, 15~20ep)으로</strong> 신규 확보하는
+      쪽이 현실적 대안.<br><br>
+      <strong style="color:#e2e8f0">결정</strong>: Track A(180ep)/Track C(64ep) 물리 수집을
+      우선 완료 후 재검토. Track E는 트랙D/AVSC와 함께 범위 확정 전 백로그로 기록.
+    </div>
+  </div>
+
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH62 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH63 ═ -->
+<div class="chapter" id="ch63">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 63</span>
+    <h2 class="chapter-title">exp73 — V6(트랙A+F) 액션헤드 종합 ablation, mlp가 배포 아키텍처(transformer)를 상회</h2>
+  </div>
+  <p class="chapter-desc">
+    2026-07-16/17 진행. V6(6.2Hz 연속 조이스틱 수집) 데이터가 처음으로 충분한 규모(트랙A
+    180ep→트랙F(center) 45ep 추가로 225ep)를 갖추면서, 배포 중인 head 아키텍처(exp71
+    Transformer w6 bbox_scale3, 85.4%)가 실제로 최선인지 V6 기준으로 재검증. 그라운더
+    2종(PG448/OWL-v2) × 데이터 arm 2종(v6 단독/v6+V5 혼합) × 헤드 5종(transformer/mlp/
+    cxgeom/contreg/flow) × seed 3개, 총 <strong style="color:#fbbf24">27개 학습 조합</strong>을
+    동일 val(V6 고정 15%)로 비교.
+  </p>
+
+  <div class="finding-card" style="background:linear-gradient(135deg,#101a14,#0f2418);border-color:#34d399">
+    <div class="finding-title">63-1. 전체 순위 — mlp가 1위권, 배포 아키텍처(transformer)가 최하위권</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:5px 8px;text-align:left;color:#94a3b8">조합</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">mean</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">std</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">best</th></tr>
+        <tr><td style="padding:5px 8px">owl/v6(180ep)/cxgeom</td><td style="padding:5px 8px;text-align:right">78.1%</td><td style="padding:5px 8px;text-align:right">0.1</td><td style="padding:5px 8px;text-align:right;color:#34d399">78.2%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6(180ep)/mlp</td><td style="padding:5px 8px;text-align:right">77.9%</td><td style="padding:5px 8px;text-align:right">0.2</td><td style="padding:5px 8px;text-align:right">78.0%</td></tr>
+        <tr><td style="padding:5px 8px">owl/v6(180ep)/mlp</td><td style="padding:5px 8px;text-align:right">77.7%</td><td style="padding:5px 8px;text-align:right">0.2</td><td style="padding:5px 8px;text-align:right">78.0%</td></tr>
+        <tr><td style="padding:5px 8px"><strong style="color:#e2e8f0">pg448/v6(225ep,+트랙F)/mlp</strong></td><td style="padding:5px 8px;text-align:right">77.4%</td><td style="padding:5px 8px;text-align:right">0.4</td><td style="padding:5px 8px;text-align:right">77.9%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6(180ep)/cxgeom</td><td style="padding:5px 8px;text-align:right">77.7%</td><td style="padding:5px 8px;text-align:right">0.1</td><td style="padding:5px 8px;text-align:right">77.8%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6v5(혼합)/cxgeom</td><td style="padding:5px 8px;text-align:right">77.0%</td><td style="padding:5px 8px;text-align:right">0.5</td><td style="padding:5px 8px;text-align:right">77.7%</td></tr>
+        <tr><td style="padding:5px 8px">owl/v6(225ep)/mlp</td><td style="padding:5px 8px;text-align:right">76.7%</td><td style="padding:5px 8px;text-align:right">0.4</td><td style="padding:5px 8px;text-align:right">77.1%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6v5/mlp</td><td style="padding:5px 8px;text-align:right">77.0%</td><td style="padding:5px 8px;text-align:right">0.2</td><td style="padding:5px 8px;text-align:right">77.1%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6(225ep)/cxgeom</td><td style="padding:5px 8px;text-align:right">76.2%</td><td style="padding:5px 8px;text-align:right">0.3</td><td style="padding:5px 8px;text-align:right">76.6%</td></tr>
+        <tr><td style="padding:5px 8px">owl/v6(225ep)/cxgeom</td><td style="padding:5px 8px;text-align:right">75.8%</td><td style="padding:5px 8px;text-align:right">0.1</td><td style="padding:5px 8px;text-align:right">76.0%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6(180ep)/contreg</td><td style="padding:5px 8px;text-align:right">75.2%</td><td style="padding:5px 8px;text-align:right">0.6</td><td style="padding:5px 8px;text-align:right">75.9%</td></tr>
+        <tr><td style="padding:5px 8px">owl/v6(180ep)/transformer</td><td style="padding:5px 8px;text-align:right">74.9%</td><td style="padding:5px 8px;text-align:right">0.7</td><td style="padding:5px 8px;text-align:right">75.9%</td></tr>
+        <tr><td style="padding:5px 8px">owl/v6(180ep)/contreg</td><td style="padding:5px 8px;text-align:right">74.4%</td><td style="padding:5px 8px;text-align:right">0.6</td><td style="padding:5px 8px;text-align:right">75.1%</td></tr>
+        <tr><td style="padding:5px 8px"><strong style="color:#f87171">pg448/v6(180ep)/transformer(배포 아키텍처)</strong></td><td style="padding:5px 8px;text-align:right">74.5%</td><td style="padding:5px 8px;text-align:right">0.4</td><td style="padding:5px 8px;text-align:right">74.9%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6(225ep)/contreg</td><td style="padding:5px 8px;text-align:right">74.0%</td><td style="padding:5px 8px;text-align:right">0.5</td><td style="padding:5px 8px;text-align:right">74.7%</td></tr>
+        <tr><td style="padding:5px 8px">owl/v6(225ep)/contreg</td><td style="padding:5px 8px;text-align:right">74.0%</td><td style="padding:5px 8px;text-align:right">0.3</td><td style="padding:5px 8px;text-align:right">74.4%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6v5/transformer</td><td style="padding:5px 8px;text-align:right">72.9%</td><td style="padding:5px 8px;text-align:right">0.5</td><td style="padding:5px 8px;text-align:right">73.7%</td></tr>
+        <tr><td style="padding:5px 8px">owl/v6(225ep)/transformer</td><td style="padding:5px 8px;text-align:right">71.8%</td><td style="padding:5px 8px;text-align:right">0.4</td><td style="padding:5px 8px;text-align:right">72.3%</td></tr>
+        <tr><td style="padding:5px 8px">pg448/v6(225ep)/transformer</td><td style="padding:5px 8px;text-align:right">71.8%</td><td style="padding:5px 8px;text-align:right">0.2</td><td style="padding:5px 8px;text-align:right">72.0%</td></tr>
+        <tr><td style="padding:5px 8px"><strong style="color:#e2e8f0">pg448/v6(225ep)/flow(MoNa-pi 경량판)</strong></td><td style="padding:5px 8px;text-align:right">71.2%</td><td style="padding:5px 8px;text-align:right">0.8</td><td style="padding:5px 8px;text-align:right">72.0%</td></tr>
+        <tr><td style="padding:5px 8px;color:#f87171">owl/v6(225ep)/flow(MoNa-pi 경량판)</td><td style="padding:5px 8px;text-align:right">71.1%</td><td style="padding:5px 8px;text-align:right">0.3</td><td style="padding:5px 8px;text-align:right;color:#f87171">71.3% (전체 최하위)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">63-2. V5 혼합(v6v5)은 전 헤드에서 손해 — 시간축 이질성 확정</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      V5(키프레임 ~17프레임/ep, STOP 라벨 없음)를 V6(6.2Hz 연속, STOP 8.4%)에 섞은
+      <code>v6v5</code> arm은 <strong style="color:#f87171">transformer -1.6%p, mlp -0.9%p,
+      cxgeom -0.7%p</strong> — 예외 없이 v6 단독보다 하락. window=8이 V5에선 에피소드
+      절반(~7초) 히스토리, V6에선 1.3초 히스토리를 의미하는 시간축 불일치가 실측으로
+      확정됨(§0 사전 예측과 일치). <strong style="color:#e2e8f0">V6를 메인으로 갈 경우
+      V5 혼합은 배제</strong>.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">63-3. 트랙F(center 45ep) 추가 — val 난이도 상승, mlp만 안정적으로 버팀</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      트랙A(180ep, 4극단위치만)에 트랙F(center, 45ep)를 더해 V6를 225ep로 완결한 뒤
+      재학습 — val_acc가 전 헤드에서 하락했으나 이는 성능 저하가 아니라
+      <strong style="color:#fbbf24">center 근처(방향 판단이 애매한 구간)가 처음으로 val에
+      포함되며 더 정직한(어려운) 검증셋이 된 것</strong>으로 해석.
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">헤드</th><th style="padding:6px 10px;text-align:right;color:#94a3b8">180ep best</th><th style="padding:6px 10px;text-align:right;color:#94a3b8">225ep best</th><th style="padding:6px 10px;text-align:right;color:#94a3b8">변화</th></tr>
+        <tr><td style="padding:6px 10px"><strong style="color:#34d399">mlp</strong></td><td style="padding:6px 10px;text-align:right">78.0%</td><td style="padding:6px 10px;text-align:right">77.9%</td><td style="padding:6px 10px;text-align:right;color:#34d399">-0.1%p (거의 무영향)</td></tr>
+        <tr><td style="padding:6px 10px">cxgeom</td><td style="padding:6px 10px;text-align:right">77.8%</td><td style="padding:6px 10px;text-align:right">76.6%</td><td style="padding:6px 10px;text-align:right">-1.2%p</td></tr>
+        <tr><td style="padding:6px 10px">contreg</td><td style="padding:6px 10px;text-align:right">75.9%</td><td style="padding:6px 10px;text-align:right">74.7%</td><td style="padding:6px 10px;text-align:right">-1.2%p</td></tr>
+        <tr><td style="padding:6px 10px;color:#f87171">transformer(배포)</td><td style="padding:6px 10px;text-align:right">74.9%</td><td style="padding:6px 10px;text-align:right">72.0%</td><td style="padding:6px 10px;text-align:right;color:#f87171">-2.9%p (가장 크게 흔들림)</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">mlp가 압도적으로 강건</strong> — center 데이터 추가에도
+      거의 흔들리지 않음. 반면 배포 중인 transformer가 가장 취약한 조합일 가능성.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">63-4. V6 위치별 8-class 분포 — 좌우 대칭 확인, center는 회전 거의 0%</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      트랙A+F(225ep, 16,599프레임) 전체를 위치별로 집계.
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:5px 8px;text-align:left;color:#94a3b8">위치</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">N</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">STOP</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">F</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">L</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">R</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">FL</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">FR</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">ROT_L</th><th style="padding:5px 8px;text-align:right;color:#94a3b8">ROT_R</th></tr>
+        <tr><td style="padding:5px 8px">weak_right</td><td style="padding:5px 8px;text-align:right">3268</td><td style="padding:5px 8px;text-align:right">9.1%</td><td style="padding:5px 8px;text-align:right">39.7%</td><td style="padding:5px 8px;text-align:right">0.6%</td><td style="padding:5px 8px;text-align:right">9.5%</td><td style="padding:5px 8px;text-align:right">15.0%</td><td style="padding:5px 8px;text-align:right">23.4%</td><td style="padding:5px 8px;text-align:right">1.9%</td><td style="padding:5px 8px;text-align:right">0.8%</td></tr>
+        <tr><td style="padding:5px 8px">strong_right</td><td style="padding:5px 8px;text-align:right">3602</td><td style="padding:5px 8px;text-align:right">8.0%</td><td style="padding:5px 8px;text-align:right">40.9%</td><td style="padding:5px 8px;text-align:right">0.2%</td><td style="padding:5px 8px;text-align:right">11.2%</td><td style="padding:5px 8px;text-align:right">17.9%</td><td style="padding:5px 8px;text-align:right">19.9%</td><td style="padding:5px 8px;text-align:right">1.8%</td><td style="padding:5px 8px;text-align:right">0.1%</td></tr>
+        <tr><td style="padding:5px 8px">weak_left</td><td style="padding:5px 8px;text-align:right">3299</td><td style="padding:5px 8px;text-align:right">8.6%</td><td style="padding:5px 8px;text-align:right">49.4%</td><td style="padding:5px 8px;text-align:right">7.8%</td><td style="padding:5px 8px;text-align:right">0.7%</td><td style="padding:5px 8px;text-align:right">15.0%</td><td style="padding:5px 8px;text-align:right">16.6%</td><td style="padding:5px 8px;text-align:right">0.1%</td><td style="padding:5px 8px;text-align:right">1.8%</td></tr>
+        <tr><td style="padding:5px 8px">strong_left</td><td style="padding:5px 8px;text-align:right">3611</td><td style="padding:5px 8px;text-align:right">8.6%</td><td style="padding:5px 8px;text-align:right">50.6%</td><td style="padding:5px 8px;text-align:right">9.9%</td><td style="padding:5px 8px;text-align:right">0.6%</td><td style="padding:5px 8px;text-align:right">11.5%</td><td style="padding:5px 8px;text-align:right">17.1%</td><td style="padding:5px 8px;text-align:right">0.2%</td><td style="padding:5px 8px;text-align:right">1.5%</td></tr>
+        <tr><td style="padding:5px 8px">center(신규)</td><td style="padding:5px 8px;text-align:right">2819</td><td style="padding:5px 8px;text-align:right">9.6%</td><td style="padding:5px 8px;text-align:right">50.1%</td><td style="padding:5px 8px;text-align:right">2.7%</td><td style="padding:5px 8px;text-align:right">3.5%</td><td style="padding:5px 8px;text-align:right">17.3%</td><td style="padding:5px 8px;text-align:right">16.6%</td><td style="padding:5px 8px;text-align:right">0.0%</td><td style="padding:5px 8px;text-align:right">0.1%</td></tr>
+      </table>
+      right 위치는 R/FR 우세, left 위치는 L/FL 우세로 좌우 대칭 확인(설계대로).
+      center는 L/R이 둘 다 낮고(2.7%/3.5%) FL/FR이 균형(17.3%/16.6%) — 중앙 시작이라
+      큰 방향 보정 없이 대각선 접근이 주를 이룸. ROT_L/R은 center에서 사실상 0%
+      ([[62-7 근접-재센터링 백로그]]와 별개로, center 위치 자체는 회전 필요성이 낮음을 시사).
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">63-5. 그라운더(PG448 vs OWL-v2)는 헤드·arm 대비 부차적 변수</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      같은 헤드·arm 내에서 그라운더 교체 시 격차가 대부분 1%p 이내(예: v6(180ep)/mlp
+      pg448 77.9% vs owl 77.7%, v6(225ep)/cxgeom pg448 76.2% vs owl 75.8%) — CH60/61에서
+      확인된 "그라운더보다 확인해야 할 다른 축이 더 크다"는 패턴이 헤드 선택 축에서도
+      재확인됨. 그라운더 교체는 비용 대비 개선폭이 작아 우선순위가 낮음.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">63-6. MoNa-pi(π0 계열) 비교 — 연속/flow 헤드가 이 규모에서 이산 헤드를 못 이김</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      자매 프로젝트 MoNa-pi(Flow Matching + AdaLN-Zero, 별도 π0 계열 VLA)의 실측 결과:
+      closed-loop Success@0.5m 45.8%(FPE 0.823), 약점은 <code>center_left</code> 0%,
+      <code>center_right</code> 33% — <strong style="color:#fbbf24">우리 CH62 결론(헤드
+      구조보다 라벨/데이터 confound가 원인)을 독립적으로 재현</strong>. 본 세션에서 그
+      가설을 직접 검증하고자 rectified-flow 경량판(velocity field 예측 + 10-step Euler
+      적분, MoNa-pi AdaLN-Zero의 축소판)을 exp73에 4번째 연속계열 헤드로 추가:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:6px 10px;text-align:left;color:#94a3b8">헤드</th><th style="padding:6px 10px;text-align:right;color:#94a3b8">best(225ep,pg448)</th></tr>
+        <tr><td style="padding:6px 10px">mlp(이산, 1위)</td><td style="padding:6px 10px;text-align:right;color:#34d399">77.9%</td></tr>
+        <tr><td style="padding:6px 10px">cxgeom(이산)</td><td style="padding:6px 10px;text-align:right">76.6%</td></tr>
+        <tr><td style="padding:6px 10px">contreg(연속, 단일회귀)</td><td style="padding:6px 10px;text-align:right">74.7%</td></tr>
+        <tr><td style="padding:6px 10px">transformer(이산, 배포)</td><td style="padding:6px 10px;text-align:right">72.0%</td></tr>
+        <tr><td style="padding:6px 10px"><strong>flow(연속, MoNa-pi 경량판)</strong></td><td style="padding:6px 10px;text-align:right">72.0% (owl 71.3%)</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">이 데이터 규모(225ep)에서는 연속/flow 계열이 이산
+      분류(mlp/cxgeom)를 못 이김</strong> — flow의 ODE 적분·velocity field 학습이 주는
+      이점보다 소규모 데이터에서의 최적화 난이도가 더 크게 작용하는 것으로 보임.
+      MoNa-pi 원본은 별도 데이터(92ep train)·풀 AdaLN-Zero로 45.8% closed-loop를
+      냈으므로 직접 비교는 아니지만, <strong style="color:#fbbf24">"헤드를 연속/flow로
+      바꾸면 저절로 좋아진다"는 가설은 이번 규모에서 기각</strong> — CH62 결론(데이터
+      confound가 우선)이 헤드 선택 축에서도 다시 확인됨.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">63-7. 결론 및 다음 단계</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">최종 추천: mlp 헤드, 그라운더 무관(PG448/OWL 격차
+      미미)</strong> — 225ep(트랙A+F) 기준 최상위·최강건. 배포 중인 transformer는 이
+      ablation에서 반복적으로 최하위권(74.5→71.8%, center 추가에 가장 취약) — 교체
+      검토 필요.<br><br>
+      단, <strong style="color:#fbbf24">val_acc만으로 배포 결정 금지</strong>(CH62
+      교훈: offline 지표와 closed-loop 성능 불일치 전례, exp11 PM 58.6%인데 CL 0% 사례).
+      트랙C(64ep, 오버슈트→재수렴) 물리 수집 완료 후 최종 289ep(트랙A+C+F)로 재확정
+      학습 → closed-loop(FPE/Success) 검증까지 거쳐야 실제 배포 교체 가능.
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH63 ═ -->
 
 <hr class="chapter-divider">
 
