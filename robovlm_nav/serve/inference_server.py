@@ -2189,6 +2189,11 @@ class GoalNavMLPInference:
 
     GOAL_DIM = 3  # (cx0, cy0, area0) — 에피소드 첫 프레임 grounded 위치 (exp49/50/51/53)
 
+    # exp73 hybrid 전용 규격 (plan_20260707_..md §7, CH63 63-9/63-10 검증 결과 고정)
+    EXP73_WINDOW = 6
+    EXP73_BBOX_SCALE = 3.0
+    EXP73_AZ_THRESH = 0.1  # rad/s 단위 (63-10: 0.05~0.2 스윕 결과 불변 확인)
+
     # variant별: mlp 가중치 경로 + (옵션) stage1 image_proj + (옵션) CLIP LoRA adapter
     # use_goal / d_in / arch 는 체크포인트에서 동적으로 판정한다 (하드코딩 금지).
     _DEFAULT_CKPTS = {
@@ -2207,9 +2212,14 @@ class GoalNavMLPInference:
             "stage1": "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
             "mlp":    "runs/v5_nav/mlp/exp55/exp55_mlp.pt",
         },
+        "exp73_hybrid": {
+            "stage1": "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
+            "mlp":    "runs/v5_nav/mlp/exp73/exp73_pg448_trackF_v6_hybrid.pt",
+        },
     }
     _GOAL_VARIANTS = ("exp49", "exp50", "exp51", "exp53")    # goal(3) 입력 포함
-    _PROJ_VARIANTS = ("exp54_s2v2", "exp55")                 # stage1 image_proj 사용
+    _PROJ_VARIANTS = ("exp54_s2v2", "exp55", "exp73_hybrid")  # stage1 image_proj 사용
+    _HYBRID_VARIANTS = ("exp73_hybrid",)                      # 이산 lx/ly + 연속 az 헤드
 
     def __init__(self, variant: str = "exp54_s2v2", device: str = "cuda"):
         assert variant in self._DEFAULT_CKPTS, f"Unknown variant: {variant}"
@@ -2217,13 +2227,19 @@ class GoalNavMLPInference:
         self.device = device if torch.cuda.is_available() else "cpu"
 
         self._use_goal = variant in self._GOAL_VARIANTS
-        self._image_proj = None  # only for exp54_s2v2 / exp55
+        self._is_hybrid = variant in self._HYBRID_VARIANTS
+        # exp73_hybrid는 window=6/bbox_scale=3.0 배포 규격(train_exp73_trackA_heads.py 고정값),
+        # 그 외 variant는 기존 클래스 상수(WINDOW=8, bbox_scale 없음) 유지.
+        self._window = self.EXP73_WINDOW if self._is_hybrid else self.WINDOW
+        self._bbox_scale = self.EXP73_BBOX_SCALE if self._is_hybrid else 1.0
+        self._image_proj = None  # only for exp54_s2v2 / exp55 / exp73_hybrid
         self._d_in = None        # _load_weights() 에서 체크포인트로부터 확정
         self._mlp = None
 
         self._load_weights()     # d_in/arch 판정 후 MLP 빌드 + 가중치 로드
 
         self._bbox_history: list = []
+        self._vis_history: list = []  # exp73_hybrid 전용 — 프레임별 vis_feat(창 전체 필요)
         self._vis_feat_cache: torch.Tensor | None = None
         self._goal: list | None = None  # 에피소드 첫 grounded bbox (cx0,cy0,area0)
 
@@ -2251,8 +2267,29 @@ class GoalNavMLPInference:
         logger.info("✅ [GoalNavMLP] variant=%s D_IN=%d device=%s stop_rule=%s stop_learned=%s",
                     variant, self._d_in, self.device, self._stop_enabled, self._stop_learned_enabled)
 
+    def _build_hybrid_head(self, frame_dim: int, window: int) -> torch.nn.Module:
+        """exp73 HybridHead — 공유 trunk + 6-way(lx/ly) 분류 브랜치 + az 연속 회귀 브랜치.
+        train_exp73_trackA_heads.py의 HybridHead와 동일 구조(가중치 키 호환)."""
+        class _HybridHead(torch.nn.Module):
+            def __init__(self, frame_dim, window):
+                super().__init__()
+                self.trunk = torch.nn.Sequential(
+                    torch.nn.Linear(frame_dim * window, 512), torch.nn.ReLU(), torch.nn.Dropout(0.25),
+                    torch.nn.Linear(512, 128), torch.nn.ReLU())
+                self.disc_head = torch.nn.Linear(128, 6)
+                self.az_head = torch.nn.Sequential(
+                    torch.nn.Linear(128, 32), torch.nn.ReLU(), torch.nn.Linear(32, 1), torch.nn.Tanh())
+
+            def forward(self, x):
+                h = self.trunk(x.flatten(1))
+                return self.disc_head(h), self.az_head(h).squeeze(-1)
+
+        return _HybridHead(frame_dim, window)
+
     def _build_mlp(self, d_in: int) -> torch.nn.Module:
         """arch는 d_in으로 선택: goal variant(1059)=5-layer(512시작), proj variant(288)=4-layer(256시작)."""
+        if self._is_hybrid:
+            return self._build_hybrid_head(frame_dim=d_in, window=self._window)
         if self._use_goal:  # exp49/50/51/53 — 5-layer (d_in→512→256→128→64→8)
             return torch.nn.Sequential(
                 torch.nn.Linear(d_in, 512), torch.nn.ReLU(), torch.nn.Dropout(0.25),
@@ -2275,11 +2312,13 @@ class GoalNavMLPInference:
 
     @staticmethod
     def _extract_mlp_state(ckpt) -> dict:
-        """체크포인트 포맷 3종 통합: model_state_dict / mlp / plain. 'net.' prefix 제거."""
+        """체크포인트 포맷 4종 통합: model_state_dict / mlp / model(exp73) / plain. 'net.' prefix 제거."""
         if isinstance(ckpt, dict) and "model_state_dict" in ckpt:   # exp49/50/51
             sd = ckpt["model_state_dict"]
         elif isinstance(ckpt, dict) and "mlp" in ckpt:              # exp53/54/55
             sd = ckpt["mlp"]
+        elif isinstance(ckpt, dict) and "model" in ckpt:            # exp73 (train_exp73_trackA_heads.py)
+            sd = ckpt["model"]
         else:                                                       # plain Sequential
             sd = ckpt
         if any(k.startswith("net.") for k in sd):
@@ -2289,7 +2328,7 @@ class GoalNavMLPInference:
     def _load_weights(self):
         defaults = self._DEFAULT_CKPTS[self.variant]
 
-        # exp54_s2v2 / exp55: stage1 image_proj (1024→256)
+        # exp54_s2v2 / exp55 / exp73_hybrid: stage1 image_proj (1024→256)
         if self.variant in self._PROJ_VARIANTS:
             stage1_path = self._resolve_path("VLA_GOALNAV_STAGE1_CKPT", defaults["stage1"])
             s1_ckpt = torch.load(stage1_path, map_location="cpu")
@@ -2302,14 +2341,18 @@ class GoalNavMLPInference:
         ckpt = torch.load(mlp_path, map_location="cpu")
         sd = self._extract_mlp_state(ckpt)
 
-        # d_in 동적 판정: 첫 Linear weight의 in-dim (1059=goal포함 / 288=proj)
-        self._d_in = int(sd["0.weight"].shape[1])
+        if self._is_hybrid:
+            # HybridHead: trunk.0.weight shape = (512, frame_dim * window)
+            self._d_in = int(sd["trunk.0.weight"].shape[1] // self._window)
+        else:
+            # d_in 동적 판정: 첫 Linear weight의 in-dim (1059=goal포함 / 288=proj)
+            self._d_in = int(sd["0.weight"].shape[1])
         self._mlp = self._build_mlp(self._d_in).to(self.device)
         self._mlp.load_state_dict(sd)
         self._mlp.eval()
         self._weights_path = mlp_path
-        logger.info("✅ [GoalNavMLP] MLP 가중치 로드: %s (d_in=%d, use_goal=%s)",
-                    mlp_path, self._d_in, self._use_goal)
+        logger.info("✅ [GoalNavMLP] MLP 가중치 로드: %s (d_in=%d, use_goal=%s, hybrid=%s, window=%d)",
+                    mlp_path, self._d_in, self._use_goal, self._is_hybrid, self._window)
 
     def update_bbox(self, cx: float, cy: float, area: float, has_bbox: bool):
         # goal = 에피소드 첫 grounded bbox (cx0,cy0,area0). 한 번만 캡처해 고정.
@@ -2317,8 +2360,8 @@ class GoalNavMLPInference:
             self._goal = [float(cx), float(cy), float(area)]
             logger.info("🎯 [GoalNavMLP] goal 캡처: cx0=%.3f cy0=%.3f area0=%.3f", cx, cy, area)
         self._bbox_history.append([cx, cy, area, float(has_bbox)])
-        if len(self._bbox_history) > self.WINDOW:
-            self._bbox_history = self._bbox_history[-self.WINDOW:]
+        if len(self._bbox_history) > self._window:
+            self._bbox_history = self._bbox_history[-self._window:]
 
     def update_vision_feature(self, image_b64: str):
         """base64 이미지 → Pure Kosmos-2 → vis_feat 캐시 갱신."""
@@ -2340,6 +2383,13 @@ class GoalNavMLPInference:
             feat = F.normalize(self._image_proj(feat), dim=-1)  # (1, 256)
 
         self._vis_feat_cache = feat
+        if self._is_hybrid:
+            # exp73 hybrid는 학습 시(train_exp73_trackA_heads.py build_windows)와 동일하게
+            # 창 안 프레임마다 서로 다른 vis_feat를 사용 — 현재 프레임만 캐시하는 다른
+            # variant와 달리 프레임별 히스토리를 유지해야 함.
+            self._vis_history.append(feat.squeeze(0))
+            if len(self._vis_history) > self._window:
+                self._vis_history = self._vis_history[-self._window:]
 
     def _arrival_stop(self) -> bool:
         """도착 area 규칙 (래치). True면 STOP(0) override.
@@ -2374,23 +2424,53 @@ class GoalNavMLPInference:
         if self._stopped:
             cls_idx = 0
         else:
-            # bbox window 패딩 (부족하면 0 패딩)
-            history = self._bbox_history[-self.WINDOW:]
-            while len(history) < self.WINDOW:
-                history = [[0.0, 0.0, 0.0, 0.0]] + history
-            bbox_feat = torch.tensor(history, dtype=torch.float32).flatten().unsqueeze(0).to(self.device)  # (1,32)
+            if self._is_hybrid:
+                # exp73 hybrid: 프레임별 [bbox*scale(4) + vis(256)] = 260을 window=6개 이어붙임
+                # (train_exp73_trackA_heads.py build_windows와 동일 규격, 부족분은 최초 프레임 반복 패딩)
+                bbox_hist = self._bbox_history[-self._window:]
+                vis_hist = self._vis_history[-self._window:]
+                while len(bbox_hist) < self._window:
+                    bbox_hist = [bbox_hist[0] if bbox_hist else [0.5, 0.5, 0.05, 0.0]] + bbox_hist
+                while len(vis_hist) < self._window:
+                    pad = vis_hist[0] if vis_hist else torch.zeros(self.PROJ_DIM, device=self.device)
+                    vis_hist = [pad] + vis_hist
 
-            parts = [bbox_feat, self._vis_feat_cache]
-            if self._use_goal:
-                goal = self._goal if self._goal is not None else [0.5, 0.5, 0.0]  # fallback (학습과 동일)
-                parts.append(torch.tensor([goal], dtype=torch.float32, device=self.device))  # (1,3)
-            x = torch.cat(parts, dim=-1)  # (1, D_IN)
+                seq = []
+                for bb, vf in zip(bbox_hist, vis_hist):
+                    bb_scaled = [v * self._bbox_scale for v in bb]
+                    seq.append(torch.cat([
+                        torch.tensor(bb_scaled, dtype=torch.float32, device=self.device), vf
+                    ]))
+                x = torch.stack(seq).unsqueeze(0)  # (1, window, 260)
 
-            with torch.no_grad():
-                logits = self._mlp(x)
-                cls_idx = int(logits.argmax(dim=-1).item())
-                probs = torch.nn.functional.softmax(logits, dim=-1)[0]
-                p_stop = float(probs[0].item())
+                with torch.no_grad():
+                    disc_logit, az_pred = self._mlp(x)
+                    lat_fwd_pred = disc_logit.argmax(dim=-1)
+                    is_stop = lat_fwd_pred == 0
+                    cls_t = lat_fwd_pred.clone()
+                    cls_t[is_stop & (az_pred > self.EXP73_AZ_THRESH / 1.15)] = 6
+                    cls_t[is_stop & (az_pred < -self.EXP73_AZ_THRESH / 1.15)] = 7
+                    cls_idx = int(cls_t.item())
+                    probs = torch.nn.functional.softmax(disc_logit, dim=-1)[0]
+                    p_stop = float(probs[0].item())  # lat/fwd STOP 확률(ROT 전 단계) — 학습형 STOP 룰과 근사 호환
+            else:
+                # bbox window 패딩 (부족하면 0 패딩)
+                history = self._bbox_history[-self._window:]
+                while len(history) < self._window:
+                    history = [[0.0, 0.0, 0.0, 0.0]] + history
+                bbox_feat = torch.tensor(history, dtype=torch.float32).flatten().unsqueeze(0).to(self.device)  # (1,32)
+
+                parts = [bbox_feat, self._vis_feat_cache]
+                if self._use_goal:
+                    goal = self._goal if self._goal is not None else [0.5, 0.5, 0.0]  # fallback (학습과 동일)
+                    parts.append(torch.tensor([goal], dtype=torch.float32, device=self.device))  # (1,3)
+                x = torch.cat(parts, dim=-1)  # (1, D_IN)
+
+                with torch.no_grad():
+                    logits = self._mlp(x)
+                    cls_idx = int(logits.argmax(dim=-1).item())
+                    probs = torch.nn.functional.softmax(logits, dim=-1)[0]
+                    p_stop = float(probs[0].item())
 
             # 1. 학습형 STOP 윈도우 스무딩
             if self._stop_learned_enabled:
@@ -2420,6 +2500,7 @@ class GoalNavMLPInference:
 
     def reset(self):
         self._bbox_history.clear()
+        self._vis_history.clear()
         self._vis_feat_cache = None
         self._goal = None
         self._stopped = False

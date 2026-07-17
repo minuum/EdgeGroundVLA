@@ -113,6 +113,12 @@ variant별 값으로 분기(현재 클래스 상수라 인스턴스 속성으로
 - [x] C(부분): az_thresh {0.05,0.1,0.2} 스윕 완료 — 결과 사실상 불변, 임계값 민감하지
       않음 확인. seed 3개 전체 closed-loop 분산은 **미착수**(학습 스크립트가 best-of-3만
       저장 — 재학습 필요, 배포 결정 안 바뀔 것으로 판단해 낮은 우선순위로 보류)
-- [ ] B: inference_server `--model exp73-hybrid` 동작 (API 레벨 검증까지, 실기는 soda 조율)
+- [x] B: `GoalNavMLPInference`에 `variant="exp73_hybrid"` 추가, API 레벨(모델 로드+forward+
+      reset) 검증 완료 — 2026-07-18. d_in=260/window=6 정상 판정, 8-class 예측 정상
+      동작(CPU 스모크 테스트), `EXP73_AZ_THRESH=0.1`(63-10 근거)로 고정. env var
+      `VLA_GOALNAV_VARIANT=exp73_hybrid`로 선택 가능(기본값은 여전히 exp49 — 실기
+      전환은 soda와 별도 조율). **부수 발견(범위 밖)**: 기존 exp49 체크포인트 로드가
+      이 환경 torch 버전(weights_only 기본값 변경)에서 실패 — 내 diff와 무관한 기존
+      코드 줄이라 별도 이슈로 분리, 이번 작업 범위에서 수정하지 않음.
 - [ ] D: 289ep 원버튼 재학습 절차 문서화
 - [ ] soda 실기 테스트 일정 문의 동기화 (monavla-driving 문서)
