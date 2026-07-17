@@ -22,7 +22,7 @@ import torch.nn as nn
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from scripts.sim.rollout_core import ACTION_VEL, build_trajectory, compute_metrics
+from scripts.sim.rollout_core import ACTION_VEL, Pose, build_trajectory, compute_metrics, pose_step
 from scripts.train_exp73_trackA_heads import (
     MLPActionHead, CxGeomHead, TransformerActionHead, HybridHead, hybrid_combine,
     WINDOW, BBOX_SCALE, FRAME_DIM,
@@ -57,18 +57,40 @@ def build_episode_windows(ep, window=WINDOW, bbox_scale=BBOX_SCALE):
     return np.asarray(X, dtype=np.float32)
 
 
+def build_trajectory_continuous_az(lat_fwd_pred, az_pred, az_scale=1.15, dt=0.1):
+    """lx/ly는 ACTION_VEL의 클래스 고정값, az는 모델의 연속 예측을 그대로 적분."""
+    poses = [Pose()]
+    for cls, az_n in zip(lat_fwd_pred, az_pred):
+        lx, ly, _ = ACTION_VEL.get(int(cls), (0.0, 0.0, 0.0))
+        poses.append(pose_step(poses[-1], lx, ly, float(az_n) * az_scale, dt))
+    from scripts.sim.rollout_core import Trajectory
+    traj = Trajectory()
+    for p, cls in zip(poses[:-1], lat_fwd_pred):
+        traj.append(p, int(cls))
+    traj.append(poses[-1], -1)
+    return traj
+
+
 @torch.no_grad()
-def eval_episode(ep, model, device, is_hybrid=False):
+def eval_episode(ep, model, device, is_hybrid=False, az_mode="discrete", az_thresh=0.1):
     X = torch.tensor(build_episode_windows(ep), device=device)
     if is_hybrid:
         disc_logit, az_pred = model(X)
-        pred = hybrid_combine(disc_logit.argmax(1), az_pred, az_thresh=0.1 / 1.15).cpu().numpy()
+        lat_fwd = disc_logit.argmax(1)
+        if az_mode == "continuous":
+            pred_traj_override = build_trajectory_continuous_az(
+                lat_fwd.cpu().numpy(), az_pred.cpu().numpy())
+            pred = hybrid_combine(lat_fwd, az_pred, az_thresh=az_thresh / 1.15).cpu().numpy()
+        else:
+            pred = hybrid_combine(lat_fwd, az_pred, az_thresh=az_thresh / 1.15).cpu().numpy()
+            pred_traj_override = None
     else:
         pred = model(X).argmax(1).cpu().numpy()
+        pred_traj_override = None
 
     gt_classes = np.asarray(ep["gts"], dtype=np.int64)
     expert_traj = build_trajectory(gt_classes.tolist())
-    pred_traj = build_trajectory(pred.tolist())
+    pred_traj = pred_traj_override if pred_traj_override is not None else build_trajectory(pred.tolist())
     m = compute_metrics(expert_traj, pred_traj)
     m["val_acc"] = float((pred == gt_classes).mean())
     return m
@@ -79,6 +101,10 @@ def main():
     ap.add_argument("--ckpt", default=str(ROOT / "runs/v5_nav/mlp/exp73/exp73_pg448_trackF_v6_mlp.pt"))
     ap.add_argument("--head", default="mlp", choices=list(HEAD_CLS))
     ap.add_argument("--cache", default=str(CACHE_V6))
+    ap.add_argument("--az-mode", default="discrete", choices=["discrete", "continuous"],
+                     help="hybrid 헤드 전용: az를 ROT_L/R 이산 클래스로 되돌릴지, 연속값 그대로 적분할지")
+    ap.add_argument("--az-thresh", type=float, default=0.1,
+                     help="hybrid_combine의 STOP→ROT 전환 임계값 (az_norm*1.15 단위, rad/s)")
     args = ap.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -96,7 +122,11 @@ def main():
     model.eval()
     print(f"[LOAD] ckpt {args.ckpt} (val_acc_at_save={ckpt.get('val_acc')})", flush=True)
 
-    results = [eval_episode(ep, model, device, is_hybrid=(args.head == "hybrid")) for ep in val_eps]
+    results = [
+        eval_episode(ep, model, device, is_hybrid=(args.head == "hybrid"),
+                     az_mode=args.az_mode, az_thresh=args.az_thresh)
+        for ep in val_eps
+    ]
 
     fpe = np.array([r["fpe"] for r in results])
     tld = np.array([r["tld"] for r in results])
@@ -105,6 +135,7 @@ def main():
 
     summary = {
         "head": args.head, "ckpt": args.ckpt, "n_episodes": len(val_eps),
+        "az_mode": args.az_mode, "az_thresh": args.az_thresh,
         "fpe_mean": float(fpe.mean()), "fpe_std": float(fpe.std()),
         "tld_mean": float(tld.mean()),
         "val_acc_mean": float(acc.mean()),
@@ -114,9 +145,12 @@ def main():
             for ep, r in zip(val_eps, results)
         ],
     }
-    out = OUT_DIR / f"exp73_closed_loop_{Path(args.ckpt).stem}.json"
+    suffix = ""
+    if args.head == "hybrid":
+        suffix = f"_az{args.az_mode}_thr{args.az_thresh}"
+    out = OUT_DIR / f"exp73_closed_loop_{Path(args.ckpt).stem}{suffix}.json"
     out.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
-    print(f"\n=== exp73 {args.head} closed-loop ===")
+    print(f"\n=== exp73 {args.head} closed-loop (az_mode={args.az_mode}, az_thresh={args.az_thresh}) ===")
     print(f"  FPE: {summary['fpe_mean']:.3f} ± {summary['fpe_std']:.3f} m")
     print(f"  TLD: {summary['tld_mean']:.3f}")
     print(f"  val_acc: {summary['val_acc_mean']*100:.1f}%")

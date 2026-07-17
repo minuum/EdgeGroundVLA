@@ -14728,6 +14728,45 @@ graph TD
   </div>
 
   <div class="finding-card">
+    <div class="finding-title">63-10. 연속 az를 궤적에 그대로 적분 → 오히려 악화 (부정 결과, az_thresh 스윕은 안정)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      63-9의 <code>hybrid_combine()</code>은 6-way 예측이 STOP일 때만 연속 az_pred를
+      ROT_L/R 이산 클래스로 "되돌려" 평가한다 — hybrid의 연속 회귀 출력을 궤적 적분에는
+      전혀 못 쓰는 셈. 실기 배포라면 cmd_vel.angular.z에 연속값을 직접 실을 수 있으므로,
+      "그렇게 하면 더 정밀한 회전 보정이 가능해 FPE가 더 줄지 않을까"를 검증했다.
+      <br><br>
+      <code>evaluate_closed_loop_exp73.py</code>에 <code>--az-mode {discrete,continuous}</code>
+      추가: continuous 모드는 6-way 클래스의 (lx,ly) 고정값은 그대로 쓰되 az만
+      매 프레임 모델의 연속 예측값(<code>az_pred×1.15</code>)을 직접 적분.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">az 모드</th><th style="padding:4px">FPE(m)</th><th style="padding:4px">TLD</th><th style="padding:4px">Success@0.5m</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>discrete (기존, thresh 0.05~0.2 전부 동일)</strong></td><td style="padding:4px;text-align:center"><strong>0.269~0.274</strong></td><td style="padding:4px;text-align:center">1.003</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>84.8%</strong></td></tr>
+        <tr><td style="padding:4px">continuous (thresh 무관 동일)</td><td style="padding:4px;text-align:center">0.885±0.821</td><td style="padding:4px;text-align:center">1.003</td><td style="padding:4px;text-align:center;color:#f87171">48.5%</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">원인 추정</strong>: az_head는 STOP 프레임에서의 회전
+      의도만 정확히 맞히면 되도록 학습됐지, FORWARD/LEFT/RIGHT 등 비-STOP 프레임에서도
+      "진짜 0"을 정밀 회귀하도록 압박받지 않았다 — 그런 프레임에서 나오는 작은
+      az_pred 잡음이 (기존엔 discrete 결합으로 자동 0 처리됐던 것이) continuous
+      모드에서는 매 스텝 그대로 적분되어 헤딩 드리프트로 누적된다. 즉 discrete
+      결합이 우연이 아니라 **"클래스가 회전 의도가 없을 때 az를 0으로 강제 클램프하는"
+      암묵적 정규화 역할**을 하고 있었던 것.
+      <br><br>
+      az_thresh(0.05/0.1/0.2 → 0.1/1.15 정규화)는 discrete·continuous 두 모드 모두에서
+      결과가 사실상 불변(±0.005m, success 동일) — STOP↔ROT 전환 임계값 자체는 민감하지
+      않음을 확인. <strong style="color:#e2e8f0">결론: 84.8% 배포 시에도 az_mode=discrete
+      그대로 유지</strong>. 연속 az 회귀를 궤적에 직접 쓰려면 non-STOP 프레임에서도
+      az≈0을 명시적으로 학습(예: 보조 손실)해야 할 것 — 향후 여지로만 기록.
+      <br><br>
+      ⚠️ 시드 분산은 미확인: 학습 스크립트가 3-seed 중 best-of-3 체크포인트만 저장하므로
+      (offline val_acc는 77.0/78.1/78.0%로 seed 간 안정 확인됨), closed-loop 상의 seed
+      분산은 3-seed 전체를 별도 저장해 재평가해야 확인 가능 — 배포 결정을 바꿀 정도는
+      아니라 판단해 이번 라운드에서는 보류.
+    </div>
+  </div>
+
+  <div class="finding-card">
     <div class="finding-title">63-7. 결론 및 다음 단계</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       <strong style="color:#e2e8f0">최종 추천: hybrid 헤드, pg448+트랙F(225ep) 구성</strong>
