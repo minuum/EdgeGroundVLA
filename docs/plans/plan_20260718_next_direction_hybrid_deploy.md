@@ -54,16 +54,37 @@ def build_trajectory_hybrid(lat_fwd_pred, az_pred, az_scale=1.15, dt=0.1):
 - 기대: FPE 추가 감소(회전 미세보정 가능). 악화되면 az 회귀 품질 문제로 진단.
 - 결과는 CH63에 63-10 카드로 추가.
 
-### B. 추론 서버에 hybrid 헤드 탑재 (1일)
+### B. 추론 서버에 hybrid 헤드 탑재 (리서치 완료 — 아래는 구체 계획, 구현은 승인 후)
 
-`robovlm_nav/serve/inference_server.py`에 exp73 경로(FrozenCLIPV2 + HybridHead) 추가:
+`inference_server.py`(3227줄, 운영 중인 FastAPI 서버)를 직접 리서치한 결과, **exp73은
+이미 존재하는 `GoalNavMLPInference`(exp49~55 계열) 패턴에 신규 variant로 얹는 것으로
+충분**하다는 걸 확인함 — 새 서브시스템이 필요 없음:
 
-- 기존 exp11/step2 경로 유지, `--model exp73-hybrid` 선택지 추가.
-- 출력: 이산 6-way → (lx,ly) 매핑 + 연속 az → cmd_vel 직접 구성.
-- window=6 프레임 버퍼(기존 서버의 시퀀스 처리 방식 재사용), bbox는 서버의 기존
-  grounding 경로(pg448) 그대로.
-- ⚠️ soda PG2 동시로드 크래시 메모리 준수 — 운영 서버 떠있을 때 별도 로드 금지,
-  API 테스트만. 실기 구동 자체는 soda와 일정 조율 필요(문서로 요청).
+- `GoalNavMLPInference._DEFAULT_CKPTS`의 `exp54_s2v2`/`exp55`가 이미 exp73과 동일한
+  `stage1_v2_projs.pt`(FrozenCLIPV2, VIS_DIM=1024→PROJ_DIM=256)를 인코더로 공유하고
+  있음 — exp73(`train_exp73_trackA_heads.py`)도 정확히 같은 `STAGE1_PT` 경로를 사용.
+- `CLASS_NAMES`/`CLASS_ACTIONS`(8-class → linear_x/y/angular_z 매핑)도 이미 서버에
+  존재 — hybrid의 6-way+연속az 출력을 8-class로 결합(`hybrid_combine`, 63-10 검증 결과
+  az_mode=**discrete** 유지)한 뒤 그대로 재사용 가능.
+- **차이점**(신규 구현 필요한 부분만): (1) `WINDOW=6`(서버 기본은 8) — variant별
+  분기 필요, (2) `BBOX_SCALE=3.0` 적용 위치 확인, (3) `HybridHead`(disc_head 6-way +
+  az_head 연속) 클래스 자체를 서버에 import, (4) 결합 로직(`hybrid_combine`)을
+  `az_mode=discrete`, `az_thresh=0.1`(63-10에서 민감하지 않음 확인)로 고정.
+
+**계획된 변경**: `GoalNavMLPInference`에 `variant="exp73_hybrid"`를
+`_DEFAULT_CKPTS`/`_GOAL_VARIANTS`/`_PROJ_VARIANTS` 판정 로직에 추가하고, `WINDOW`를
+variant별 값으로 분기(현재 클래스 상수라 인스턴스 속성으로 변경 필요 — 다른 variant
+영향 없는지 확인 필수), forward 시 `HybridHead` 사용 + `hybrid_combine` 결합.
+
+⚠️ 실행 전 재확인 필요:
+1. soda PG2 동시로드 크래시 메모리 — 운영 서버 떠있을 때 이 variant 로드 테스트는
+   API 레벨(모델 로드+forward 1회)까지만, 실제 서버 재기동/실기 구동은 soda와 일정
+   조율 필요.
+2. `WINDOW`를 클래스 상수→인스턴스 속성으로 바꾸는 게 기존 exp49~55 variant 동작에
+   영향 없는지 diff 확인.
+
+**승인 대기** — 위 변경은 운영 중인 서버 파일(3227줄)에 대한 수정이라 CLAUDE.md
+5단계 워크플로우(리서치 완료 → 이 계획 → 승인 → 구현)를 따름. 사용자 검토 후 진행.
 
 ### C. hybrid 견고성 확인 (0.5일, A와 같은 스크립트)
 
