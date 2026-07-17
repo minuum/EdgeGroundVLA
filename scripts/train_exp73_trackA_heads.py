@@ -1,0 +1,526 @@
+#!/usr/bin/env python3
+"""
+exp73: 트랙A(V6 180ep) 중간 점검 학습 — 2-arm × multi-head × multi-seed.
+
+Arms:
+  v6    — V6 트랙A 180ep 단독
+  v6v5  — V6 train + 레거시 V5 150ep(colorfixed 캐시) 혼합
+  ※ 두 arm 모두 val = V6 val(고정 15%, split seed 42) → arm 간 직접 비교 가능
+
+Heads (모두 window=6, bbox_scale=3.0 — 배포 규격):
+  transformer — 배포 아키텍처 (exp71_window6_bboxscale_final 동일)
+  mlp         — flatten(window×260) → FC
+  cxgeom      — temporal branch + 현재 프레임 geometric branch (exp72 아이디어)
+
+V6 vis 캐시는 BGR→RGB 반전 + F.normalize (colorfixed 규격)로 생성.
+
+Usage:
+  .venv/bin/python3 scripts/train_exp73_trackA_heads.py            # 전체
+  .venv/bin/python3 scripts/train_exp73_trackA_heads.py --heads transformer --arms v6
+"""
+import json, argparse
+from pathlib import Path
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import h5py
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parent.parent
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+VLM_PATH   = ROOT / ".vlms" / "kosmos-2-patch14-224"
+STAGE1_PT  = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
+ANN_V6     = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_v6_pg448_cx.json"   # --ann-v6로 교체 가능 (owl ablation)
+CACHE_V6   = ROOT / "docs/v5/closed_loop_eval/exp73_v6_vis_cache.pt"           # vis는 그라운더와 무관 — 공유
+CACHE_V5   = ROOT / "docs/v5/closed_loop_eval/exp71_vis_cache_colorfixed.pt"
+OUT_DIR    = ROOT / "runs/v5_nav/mlp/exp73"
+OUT_LOG    = ROOT / "docs/v5/closed_loop_eval/exp73_trackA_heads.json"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+WINDOW = 6
+BBOX_SCALE = 3.0
+NUM_CLASSES = 8
+PROJ_DIM = 256
+VIS_DIM = 1024
+FRAME_DIM = 4 + PROJ_DIM  # 260
+VAL_RATIO = 0.15
+SPLIT_SEED = 42
+
+
+# ── 인코더 (exp71 FrozenCLIPV2 + 배치 처리) ──────────────────────────────
+class FrozenCLIPV2(nn.Module):
+    def __init__(self, vlm_path, stage1_pt, device):
+        super().__init__()
+        from transformers import AutoModelForVision2Seq, AutoProcessor
+        ckpt = torch.load(str(stage1_pt), map_location=device, weights_only=False)
+        self.processor = AutoProcessor.from_pretrained(str(vlm_path))
+        base = AutoModelForVision2Seq.from_pretrained(str(vlm_path), torch_dtype=torch.float16)
+        self.vm = base.vision_model.to(device).eval()
+        self.proj = nn.Linear(VIS_DIM, PROJ_DIM).to(device)
+        self.proj.load_state_dict(ckpt["image_proj"])
+        self.proj.eval()
+
+    @torch.no_grad()
+    def encode(self, pil_imgs, batch=32):
+        feats = []
+        for b in range(0, len(pil_imgs), batch):
+            inp = self.processor(images=pil_imgs[b:b + batch], return_tensors="pt")
+            pv = inp["pixel_values"].to(DEVICE, dtype=torch.float16)
+            f = self.vm(pixel_values=pv).last_hidden_state.mean(1).float()
+            feats.append(self.proj(f))
+        return torch.cat(feats)
+
+
+def build_v6_cache():
+    """V6 주석 → colorfixed 규격 캐시 (BGR→RGB, F.normalize)."""
+    with open(ANN_V6) as f:
+        ann = json.load(f)
+    print("[CACHE] FrozenCLIPV2 로드...", flush=True)
+    enc = FrozenCLIPV2(VLM_PATH, STAGE1_PT, DEVICE).eval()
+    episodes = []
+    for i, ep in enumerate(ann):
+        h5_path = Path(ep["episode"])
+        if not h5_path.exists():
+            continue
+        frames = [fr for fr in ep["frames"] if fr.get("gt_class") is not None]
+        if not frames:
+            continue
+        with h5py.File(str(h5_path), "r") as f:
+            imgs_np = (f["observations"]["images"] if "observations" in f else f["images"])[:]
+            acts_np = f["actions"][:] if "actions" in f else None
+        pil_imgs = [Image.fromarray(imgs_np[fr["frame_idx"]][:, :, ::-1].astype("uint8"))
+                    for fr in frames]
+        vis = F.normalize(enc.encode(pil_imgs), dim=-1).cpu()
+        bboxes = [(fr.get("cx_det", 0.5), fr.get("cy_det", 0.5),
+                   fr.get("area_det", 0.05), float(fr.get("has_bbox", False))) for fr in frames]
+        gts = [fr["gt_class"] for fr in frames]
+        # 연속 회귀 헤드용 raw 액션 (lx, ly, az)
+        acts = ([tuple(float(v) for v in acts_np[fr["frame_idx"]]) for fr in frames]
+                if acts_np is not None else None)
+        episodes.append({"stem": h5_path.stem, "path_type": ep["path_type"],
+                          "bboxes": bboxes, "vis": vis, "gts": gts, "acts": acts})
+        if (i + 1) % 20 == 0:
+            print(f"  encoded {i+1}/{len(ann)}", flush=True)
+    torch.save(episodes, str(CACHE_V6))
+    del enc
+    torch.cuda.empty_cache()
+    print(f"[CACHE] 저장 → {CACHE_V6} ({len(episodes)}ep)", flush=True)
+    return episodes
+
+
+# ── 헤드 정의 ────────────────────────────────────────────────────────────
+class TransformerActionHead(nn.Module):
+    """배포 아키텍처 (exp71_window6_bboxscale_final 동일)."""
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW, nhead=4, num_layers=2):
+        super().__init__()
+        self.cls_token = nn.Parameter(torch.randn(1, 1, frame_dim))
+        self.pos_emb = nn.Embedding(window + 1, frame_dim)
+        el = nn.TransformerEncoderLayer(d_model=frame_dim, nhead=nhead, dim_feedforward=512,
+                                         dropout=0.1, batch_first=True, norm_first=True)
+        self.encoder = nn.TransformerEncoder(el, num_layers=num_layers)
+        self.head = nn.Sequential(nn.LayerNorm(frame_dim), nn.Linear(frame_dim, 128), nn.ReLU(),
+                                   nn.Dropout(0.1), nn.Linear(128, NUM_CLASSES))
+
+    def forward(self, x):
+        B = x.size(0)
+        x = torch.cat([self.cls_token.expand(B, -1, -1), x], dim=1)
+        pos = torch.arange(x.size(1), device=x.device)
+        return self.head(self.encoder(x + self.pos_emb(pos))[:, 0])
+
+
+class MLPActionHead(nn.Module):
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(frame_dim * window, 512), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(512, 128), nn.ReLU(), nn.Dropout(0.1),
+            nn.Linear(128, NUM_CLASSES))
+
+    def forward(self, x):
+        return self.net(x.flatten(1))
+
+
+class CxGeomHead(nn.Module):
+    """temporal branch(flatten) + 현재 프레임 bbox geometric branch."""
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW):
+        super().__init__()
+        self.branch_t = nn.Sequential(
+            nn.Linear(frame_dim * window, 256), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(256, 128), nn.ReLU())
+        self.branch_g = nn.Sequential(nn.Linear(4, 32), nn.ReLU())
+        self.merge = nn.Sequential(
+            nn.Linear(128 + 32, 64), nn.ReLU(), nn.Dropout(0.1),
+            nn.Linear(64, NUM_CLASSES))
+
+    def forward(self, x):
+        # x: (B, window, 260); 마지막 프레임의 bbox 4채널이 geometric 입력
+        t = self.branch_t(x.flatten(1))
+        g = self.branch_g(x[:, -1, :4])
+        return self.merge(torch.cat([t, g], dim=1))
+
+
+class ContRegHead(nn.Module):
+    """연속 회귀 헤드 — 배포 transformer trunk 동일, 출력만 (lx,ly,az) 3-dim.
+    이산 vs 연속 비교용 (MoNa-pi flow 계열의 최소 버전)."""
+    ACTION_SCALE = 1.15  # 조이스틱 최대값
+
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW, nhead=4, num_layers=2):
+        super().__init__()
+        self.cls_token = nn.Parameter(torch.randn(1, 1, frame_dim))
+        self.pos_emb = nn.Embedding(window + 1, frame_dim)
+        el = nn.TransformerEncoderLayer(d_model=frame_dim, nhead=nhead, dim_feedforward=512,
+                                         dropout=0.1, batch_first=True, norm_first=True)
+        self.encoder = nn.TransformerEncoder(el, num_layers=num_layers)
+        self.head = nn.Sequential(nn.LayerNorm(frame_dim), nn.Linear(frame_dim, 128), nn.ReLU(),
+                                   nn.Dropout(0.1), nn.Linear(128, 3), nn.Tanh())
+
+    def forward(self, x):
+        B = x.size(0)
+        x = torch.cat([self.cls_token.expand(B, -1, -1), x], dim=1)
+        pos = torch.arange(x.size(1), device=x.device)
+        return self.head(self.encoder(x + self.pos_emb(pos))[:, 0])  # (B,3) in [-1,1]
+
+
+def cont_to_class_t(a):
+    """(B,3) raw 액션 → 8-class (nav_h5_dataset_impl.py 규칙, 텐서 벡터화)."""
+    x, y, az = a[:, 0], a[:, 1], a[:, 2]
+    cls = torch.zeros(len(a), dtype=torch.long, device=a.device)
+    is_x, is_y = x.abs() > 0.3, y.abs() > 0.3
+    neither = ~is_x & ~is_y
+    cls[neither & (az > 0.1)] = 6
+    cls[neither & (az < -0.1)] = 7
+    fwd = x > 0.3
+    cls[fwd & (y > 0.3)] = 4
+    cls[fwd & (y < -0.3)] = 5
+    cls[fwd & (y.abs() <= 0.3)] = 1
+    lat = (x.abs() <= 0.3)
+    cls[lat & (y > 0.3)] = 2
+    cls[lat & (y < -0.3)] = 3
+    return cls
+
+
+class FlowMatchingHead(nn.Module):
+    """경량 rectified-flow 헤드 — MoNa-pi(AdaLN-Zero flow) 핵심 아이디어의 최소 버전.
+    trunk(transformer encoder)로 window 컨텍스트를 CLS 벡터 c로 압축한 뒤,
+    velocity field v_theta(x_t, t, c)를 작은 MLP로 예측. 학습은 rectified flow
+    (x_t = (1-t)x0 + t*a_target, target = a_target - x0), 추론은 Euler ODE 적분."""
+    ACTION_SCALE = 1.15
+    N_STEPS = 10  # 추론 시 ODE 적분 스텝 수
+
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW, nhead=4, num_layers=2):
+        super().__init__()
+        self.cls_token = nn.Parameter(torch.randn(1, 1, frame_dim))
+        self.pos_emb = nn.Embedding(window + 1, frame_dim)
+        el = nn.TransformerEncoderLayer(d_model=frame_dim, nhead=nhead, dim_feedforward=512,
+                                         dropout=0.1, batch_first=True, norm_first=True)
+        self.encoder = nn.TransformerEncoder(el, num_layers=num_layers)
+        self.context_norm = nn.LayerNorm(frame_dim)
+        self.velocity_net = nn.Sequential(
+            nn.Linear(frame_dim + 3 + 1, 128), nn.ReLU(),
+            nn.Linear(128, 128), nn.ReLU(),
+            nn.Linear(128, 3))
+
+    def encode_context(self, x):
+        B = x.size(0)
+        seq = torch.cat([self.cls_token.expand(B, -1, -1), x], dim=1)
+        pos = torch.arange(seq.size(1), device=seq.device)
+        return self.context_norm(self.encoder(seq + self.pos_emb(pos))[:, 0])
+
+    def velocity(self, x_t, t, c):
+        t_ = t.view(-1, 1).expand(x_t.size(0), 1)
+        return self.velocity_net(torch.cat([x_t, t_, c], dim=-1))
+
+    @torch.no_grad()
+    def forward(self, x, x0=None):
+        """추론: x0에서 시작해 N_STEPS Euler 적분으로 action 예측."""
+        c = self.encode_context(x)
+        B = x.size(0)
+        cur = torch.zeros(B, 3, device=x.device) if x0 is None else x0
+        dt = 1.0 / self.N_STEPS
+        for i in range(self.N_STEPS):
+            t = torch.full((B,), i * dt, device=x.device)
+            cur = cur + self.velocity(cur, t, c) * dt
+        return cur
+
+
+def train_flow(X_tr, A_tr, X_va, y_va, A_va, seed, epochs=300, lr=5e-4):
+    """rectified flow 학습 — MSE(velocity_pred, target_velocity), 평가는 ODE 적분 후
+    8-class 변환 val_acc (다른 헤드와 직접 비교)."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    scale = FlowMatchingHead.ACTION_SCALE
+    X_tr_t = torch.tensor(X_tr, device=DEVICE)
+    A_tr_t = torch.tensor(A_tr / scale, device=DEVICE)
+    X_va_t = torch.tensor(X_va, device=DEVICE)
+    y_va_t = torch.tensor(y_va, device=DEVICE)
+    A_va_t = torch.tensor(A_va, device=DEVICE)
+
+    model = FlowMatchingHead().to(DEVICE)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
+    best_acc, best_state, best_mse = 0.0, None, float("inf")
+
+    def eval_acc():
+        model.eval()
+        with torch.no_grad():
+            gen = torch.Generator(device=DEVICE).manual_seed(seed)
+            x0 = torch.randn(len(X_va_t), 3, device=DEVICE, generator=gen)
+            pred = model(X_va_t, x0=x0) * scale
+            acc = (cont_to_class_t(pred) == y_va_t).float().mean().item()
+            mse = F.mse_loss(pred, A_va_t).item()
+        return acc, mse, pred
+
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(X_tr_t), device=DEVICE)
+        for i in range(0, len(perm), 128):
+            b = perm[i:i + 128]
+            xb, ab = X_tr_t[b], A_tr_t[b]
+            t = torch.rand(len(b), device=DEVICE)
+            x0 = torch.randn_like(ab)
+            x_t = (1 - t.view(-1, 1)) * x0 + t.view(-1, 1) * ab
+            target_v = ab - x0
+            c = model.encode_context(xb)
+            v_pred = model.velocity(x_t, t, c)
+            loss = F.mse_loss(v_pred, target_v)
+            opt.zero_grad(); loss.backward(); opt.step()
+        sched.step()
+        if ep % 25 == 0 or ep == epochs - 1:
+            acc, mse, _ = eval_acc()
+            if acc >= best_acc:
+                best_acc, best_mse = acc, mse
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+
+    model.load_state_dict(best_state)
+    _, _, pred = eval_acc()
+    pred_cls = cont_to_class_t(pred).cpu().numpy()
+    per_class = {}
+    for c in range(NUM_CLASSES):
+        m = (y_va == c)
+        if m.sum() > 0:
+            per_class[c] = float((pred_cls[m] == c).mean())
+    return best_acc, best_state, per_class, best_mse
+
+
+HEADS = {"transformer": TransformerActionHead, "mlp": MLPActionHead, "cxgeom": CxGeomHead}
+
+
+# ── 데이터 빌드 (exp71 build_windows 동일) ──────────────────────────────
+def build_windows(eps, window=WINDOW, bbox_scale=BBOX_SCALE):
+    """returns X, y(8-class), A(raw 액션 — 없는 에피소드는 NaN)"""
+    X, y, A = [], [], []
+    for ep in eps:
+        bboxes, vis, gts = ep["bboxes"], ep["vis"], ep["gts"]
+        acts = ep.get("acts")
+        for t in range(len(gts)):
+            seq = []
+            for k in range(window):
+                idx = max(0, t - (window - 1 - k))
+                seq.append([v * bbox_scale for v in bboxes[idx]] + vis[idx].tolist())
+            X.append(seq)
+            y.append(gts[t])
+            A.append(acts[t] if acts is not None else (float("nan"),) * 3)
+    return (np.asarray(X, dtype=np.float32), np.asarray(y, dtype=np.int64),
+            np.asarray(A, dtype=np.float32))
+
+
+def train_contreg(X_tr, A_tr, X_va, y_va, A_va, seed, epochs=300, lr=5e-4):
+    """연속 회귀 학습 — MSE(raw/1.15), 평가는 클래스 변환 후 val_acc (이산 헤드와 직접 비교)."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    scale = ContRegHead.ACTION_SCALE
+    X_tr_t = torch.tensor(X_tr, device=DEVICE)
+    A_tr_t = torch.tensor(A_tr / scale, device=DEVICE)
+    X_va_t = torch.tensor(X_va, device=DEVICE)
+    y_va_t = torch.tensor(y_va, device=DEVICE)
+    A_va_t = torch.tensor(A_va, device=DEVICE)
+
+    model = ContRegHead().to(DEVICE)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
+    best_acc, best_state, best_mse = 0.0, None, float("inf")
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(X_tr_t), device=DEVICE)
+        for i in range(0, len(perm), 128):
+            b = perm[i:i + 128]
+            loss = F.mse_loss(model(X_tr_t[b]), A_tr_t[b])
+            opt.zero_grad(); loss.backward(); opt.step()
+        sched.step()
+        if ep % 25 == 0 or ep == epochs - 1:
+            model.eval()
+            with torch.no_grad():
+                pred = model(X_va_t) * scale
+                acc = (cont_to_class_t(pred) == y_va_t).float().mean().item()
+                mse = F.mse_loss(pred, A_va_t).item()
+            if acc >= best_acc:
+                best_acc = acc
+                best_mse = mse
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+    model.load_state_dict(best_state)
+    model.eval()
+    with torch.no_grad():
+        pred = cont_to_class_t(model(X_va_t) * scale).cpu().numpy()
+    per_class = {}
+    for c in range(NUM_CLASSES):
+        m = (y_va == c)
+        if m.sum() > 0:
+            per_class[c] = float((pred[m] == c).mean())
+    return best_acc, best_state, per_class, best_mse
+
+
+def train_one(head_cls, X_tr, y_tr, X_va, y_va, seed, epochs=300, lr=5e-4):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    cls_counts = np.bincount(y_tr, minlength=NUM_CLASSES).astype(np.float32)
+    cls_counts = np.where(cls_counts == 0, 1.0, cls_counts)
+    weights = 1.0 / cls_counts
+    weights = weights / weights.sum() * NUM_CLASSES
+    weights_t = torch.tensor(weights, dtype=torch.float32, device=DEVICE)
+
+    X_tr_t = torch.tensor(X_tr, device=DEVICE)
+    y_tr_t = torch.tensor(y_tr, device=DEVICE)
+    X_va_t = torch.tensor(X_va, device=DEVICE)
+    y_va_t = torch.tensor(y_va, device=DEVICE)
+
+    model = head_cls().to(DEVICE)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
+    best_acc, best_state = 0.0, None
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(X_tr_t), device=DEVICE)
+        for i in range(0, len(perm), 128):
+            b = perm[i:i + 128]
+            loss = F.cross_entropy(model(X_tr_t[b]), y_tr_t[b], weight=weights_t)
+            opt.zero_grad(); loss.backward(); opt.step()
+        sched.step()
+        if ep % 25 == 0 or ep == epochs - 1:
+            model.eval()
+            with torch.no_grad():
+                acc = (model(X_va_t).argmax(1) == y_va_t).float().mean().item()
+            if acc >= best_acc:
+                best_acc = acc
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+    # per-class acc (best state 기준)
+    model.load_state_dict(best_state)
+    model.eval()
+    with torch.no_grad():
+        pred = model(X_va_t).argmax(1).cpu().numpy()
+    per_class = {}
+    for c in range(NUM_CLASSES):
+        m = (y_va == c)
+        if m.sum() > 0:
+            per_class[c] = float((pred[m] == c).mean())
+    return best_acc, best_state, per_class
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--heads", default="transformer,mlp,cxgeom,contreg")
+    ap.add_argument("--arms", default="v6,v6v5")
+    ap.add_argument("--seeds", default="0,1,2")
+    ap.add_argument("--epochs", type=int, default=300)
+    ap.add_argument("--ann-v6", default=str(ANN_V6),
+                    help="V6 주석 json — owl ablation 시 bbox_dataset_v6_owl.json 지정")
+    ap.add_argument("--tag", default="pg448",
+                    help="결과/체크포인트 접미사 (그라운더 구분)")
+    args = ap.parse_args()
+
+    # V6 캐시 (vis는 그라운더와 무관 — 최초 1회만 인코딩)
+    if CACHE_V6.exists():
+        v6_eps = torch.load(str(CACHE_V6), weights_only=False)
+        print(f"[CACHE] V6 캐시 로드: {len(v6_eps)}ep")
+    else:
+        v6_eps = build_v6_cache()
+
+    # 선택한 주석으로 bbox 교체 (vis 재사용)
+    if Path(args.ann_v6) != ANN_V6:
+        with open(args.ann_v6) as f:
+            alt = json.load(f)
+        alt_by_stem = {Path(e["episode"]).stem: e for e in alt}
+        replaced = 0
+        for ep in v6_eps:
+            src = alt_by_stem.get(ep["stem"])
+            if src is None:
+                continue
+            frames = [fr for fr in src["frames"] if fr.get("gt_class") is not None]
+            ep["bboxes"] = [(fr.get("cx_det", 0.5), fr.get("cy_det", 0.5),
+                             fr.get("area_det", 0.05), float(fr.get("has_bbox", False)))
+                            for fr in frames]
+            replaced += 1
+        print(f"[ANN] bbox 교체({args.tag}): {replaced}/{len(v6_eps)}ep")
+    v5_eps = torch.load(str(CACHE_V5), weights_only=False)
+    print(f"[CACHE] V5 레거시 캐시: {len(v5_eps)}ep")
+
+    # V6 split (고정) — 두 arm 공통 val
+    rng = np.random.default_rng(SPLIT_SEED)
+    idx = list(range(len(v6_eps)))
+    rng.shuffle(idx)
+    n_val = max(1, int(len(idx) * VAL_RATIO))
+    val_eps  = [v6_eps[i] for i in idx[:n_val]]
+    v6_train = [v6_eps[i] for i in idx[n_val:]]
+    print(f"[SPLIT] V6 train={len(v6_train)} / val={len(val_eps)} (공통 val)")
+
+    X_va, y_va, A_va = build_windows(val_eps)
+    arm_train = {
+        "v6":   v6_train,
+        "v6v5": v6_train + v5_eps,
+    }
+
+    results = {}
+    class_names = ["STOP", "F", "L", "R", "FL", "FR", "ROT_L", "ROT_R"]
+    for arm in args.arms.split(","):
+        X_tr, y_tr, A_tr = build_windows(arm_train[arm])
+        print(f"\n=== ARM {arm}: train {len(X_tr)} / val {len(X_va)} samples ===", flush=True)
+        for head in args.heads.split(","):
+            if head in ("contreg", "flow") and np.isnan(A_tr).any():
+                print(f"  [{arm}/{head}] raw 액션 없는 에피소드 포함(레거시 V5) → 스킵", flush=True)
+                continue
+            accs = []
+            best_overall, best_state_overall = 0.0, None
+            for seed in [int(s) for s in args.seeds.split(",")]:
+                if head == "contreg":
+                    acc, state, per_class, mse = train_contreg(
+                        X_tr, A_tr, X_va, y_va, A_va, seed, epochs=args.epochs)
+                elif head == "flow":
+                    acc, state, per_class, mse = train_flow(
+                        X_tr, A_tr, X_va, y_va, A_va, seed, epochs=args.epochs)
+                else:
+                    acc, state, per_class = train_one(HEADS[head], X_tr, y_tr, X_va, y_va,
+                                                       seed, epochs=args.epochs)
+                accs.append(acc)
+                if acc > best_overall:
+                    best_overall, best_state_overall = acc, state
+                    best_per_class = per_class
+                print(f"  [{arm}/{head}] seed={seed} val_acc={acc*100:.1f}%", flush=True)
+            key = f"{args.tag}/{arm}/{head}"
+            results[key] = {
+                "val_acc_mean": float(np.mean(accs)),
+                "val_acc_std": float(np.std(accs)),
+                "val_acc_best": best_overall,
+                "seeds": accs,
+                "per_class_best": {class_names[c]: v for c, v in best_per_class.items()},
+            }
+            ckpt = OUT_DIR / f"exp73_{args.tag}_{arm}_{head}.pt"
+            torch.save({"model": best_state_overall, "val_acc": best_overall,
+                        "head": head, "arm": arm, "window": WINDOW,
+                        "bbox_scale": BBOX_SCALE, "exp": "exp73"}, str(ckpt))
+            print(f"  [{arm}/{head}] mean={np.mean(accs)*100:.1f}±{np.std(accs)*100:.1f}% "
+                  f"best={best_overall*100:.1f}% → {ckpt.name}", flush=True)
+
+    # 기존 결과에 병합 (그라운더 태그별 누적)
+    merged = json.loads(OUT_LOG.read_text()) if OUT_LOG.exists() else {}
+    merged.update(results)
+    OUT_LOG.write_text(json.dumps(merged, indent=2, ensure_ascii=False))
+    print(f"\n결과 저장 → {OUT_LOG}")
+    print("\n=== 요약 ===")
+    for k, v in results.items():
+        print(f"  {k:22s} {v['val_acc_mean']*100:5.1f}±{v['val_acc_std']*100:.1f}%  best {v['val_acc_best']*100:.1f}%")
+
+
+if __name__ == "__main__":
+    main()
