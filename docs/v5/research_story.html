@@ -14665,9 +14665,63 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#2a0a0a,#1a0505);border-color:#ef4444">
+    <div class="finding-title" style="color:#f87171">⚠️ 63-11. [정정] 63-8~63-10 closed-loop 수치 전부 오염됨 — val split 버그, 실제 순위 뒤바뀜 (2026-07-19)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#f87171">버그</strong>: <code>evaluate_closed_loop_exp73.py</code>의
+      <code>val_split()</code>이 <code>np.random.RandomState(42)</code>(레거시 API)를
+      사용했는데, 학습 스크립트(<code>train_exp73_trackA_heads.py</code>)는
+      <code>np.random.default_rng(42)</code>를 사용함 — <strong style="color:#e2e8f0">같은
+      seed=42라도 완전히 다른 셔플 순서</strong>가 나온다. 그 결과 "val 33ep" 중
+      <strong style="color:#e2e8f0">27ep가 실제로는 학습에 쓰인 데이터</strong>였음(6ep만
+      진짜 겹침) — 63-8/63-9/63-10에서 보고한 모든 closed-loop 수치(FPE/TLD/Success)가
+      held-out이 아니라 대부분 train 데이터로 측정된 것.
+      <br><br>
+      <code>np.random.default_rng()</code>로 통일해 수정 후 진짜 held-out 33ep로
+      exp73 전 체크포인트(mlp/cxgeom/transformer/hybrid × pg448/owl × trackF유무/v6v5)를
+      재평가:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">구성</th><th style="padding:4px">offline val_acc</th><th style="padding:4px">FPE(m)</th><th style="padding:4px">Success@0.5m</th><th style="padding:4px">비고</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>pg448/v6/mlp (트랙F 없음)</strong></td><td style="padding:4px;text-align:center">85.3%</td><td style="padding:4px;text-align:center">0.825</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>60.6%</strong></td><td style="padding:4px;text-align:center">신규 1위</td></tr>
+        <tr><td style="padding:4px">pg448/v6v5/mlp</td><td style="padding:4px;text-align:center">83.6%</td><td style="padding:4px;text-align:center">1.055</td><td style="padding:4px;text-align:center">57.6%</td><td style="padding:4px;text-align:center"></td></tr>
+        <tr><td style="padding:4px">owl/v6/mlp</td><td style="padding:4px;text-align:center">85.5%</td><td style="padding:4px;text-align:center">0.900</td><td style="padding:4px;text-align:center">54.5%</td><td style="padding:4px;text-align:center"></td></tr>
+        <tr><td style="padding:4px">owl/v6/cxgeom, pg448/v6/cxgeom</td><td style="padding:4px;text-align:center">83~85%</td><td style="padding:4px;text-align:center">0.90~0.95</td><td style="padding:4px;text-align:center">54.5%</td><td style="padding:4px;text-align:center"></td></tr>
+        <tr style="background:rgba(248,113,113,0.08)"><td style="padding:4px">pg448_trackF/v6/hybrid (구 "최종 1위")</td><td style="padding:4px;text-align:center">78.5%</td><td style="padding:4px;text-align:center">1.082</td><td style="padding:4px;text-align:center;color:#f87171">39.4%</td><td style="padding:4px;text-align:center">84.8%→39.4% 급락</td></tr>
+        <tr><td style="padding:4px">pg448_trackF/v6/mlp (구 63-8 "1위")</td><td style="padding:4px;text-align:center">78.3%</td><td style="padding:4px;text-align:center">1.001</td><td style="padding:4px;text-align:center">48.5%</td><td style="padding:4px;text-align:center">72.7%→48.5%</td></tr>
+        <tr><td style="padding:4px">transformer 전 조합(배포 아키텍처)</td><td style="padding:4px;text-align:center">72~75%</td><td style="padding:4px;text-align:center">1.37~2.07</td><td style="padding:4px;text-align:center;color:#f87171">12~30%</td><td style="padding:4px;text-align:center">최하위권 결론은 유지</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">뒤집힌 결론</strong>:
+      (1) hybrid가 최종 1위가 아니라 <strong style="color:#e2e8f0">트랙F 없는 평범한
+      mlp(트랙A 180ep 단독)가 60.6%로 실제 1위</strong> — hybrid의 6-way/az 분리
+      구조가 오히려 일반화에는 더 취약했을 가능성(디자인 자체가 held-out에서 손해를
+      보는 방향인지는 재검증 필요).
+      (2) 63-8에서 "트랙F 추가가 closed-loop를 개선한다"고 봤던 것도 반대 —
+      <strong style="color:#e2e8f0">트랙F(center 45ep) 추가가 mlp/cxgeom 성능을 오히려
+      낮춤</strong>(60.6%→48.5%, 54.5%→36.4%). center 커버리지가 offline 강건성엔
+      도움이 되지만(63-3) closed-loop 일반화엔 손해일 수 있음 — 원인 미규명.
+      (3) transformer 최하위권 결론만 유지됨.
+      <br><br>
+      <strong style="color:#fbbf24">남은 미세 불일치(경미, 원인 미규명)</strong>: 수정
+      후에도 학습 스크립트가 기록한 offline val_acc(mlp 78.0%)와 이 재평가 스크립트가
+      계산한 val_acc(85.3%)가 정확히 일치하진 않음(hybrid는 78.1%/78.5%로 거의 일치) —
+      두 스크립트의 윈도우 구성 방식 차이일 가능성, closed-loop 결론 자체(순위·success)에는
+      영향 없다고 판단해 이번 라운드에서는 보류.
+      <br><br>
+      <strong style="color:#f87171">영향받는 후속 조치</strong>: 이 세션에서 완료했던
+      "B. 추론 서버 통합"(<code>GoalNavMLPInference</code>에 <code>exp73_hybrid</code>
+      variant 추가)은 잘못된 승자 기준으로 선택된 것 — 코드 인프라(variant 확장 메커니즘)
+      자체는 재사용 가능하나, 실제 배포 후보는 hybrid가 아니라
+      <strong style="color:#e2e8f0">pg448/v6/mlp(트랙F 없음)</strong>로 재검토 필요.
+      soda에 전달했던 "hybrid 최종 1위" 메시지도 정정 필요(§DoD/soda 동기화 참고).
+    </div>
+  </div>
+
   <div class="finding-card">
     <div class="finding-title">63-8. closed-loop(FPE/TLD/Success) 사전검증 — mlp가 offline·closed-loop 양쪽 모두 1위</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <span style="color:#f87171">⚠️ 아래 수치는 val split 버그로 오염됨 — 정정된 결과는 위 63-11 참고.</span><br><br>
       63-7의 "val_acc만으로 결론 내지 말라"는 원칙에 따라, exp73_v6_vis_cache(이미 인코딩된
       vis+bbox)를 재사용해 window=6/bbox_scale=3.0 피처로 val 33ep에 대해 실제 궤적을
       구성(<code>scripts/sim/evaluate_closed_loop_exp73.py</code>)하고 FPE/TLD/Success@0.5m을
@@ -14694,8 +14748,11 @@ graph TD
   </div>
 
   <div class="finding-card">
-    <div class="finding-title">63-9. lx/ly는 이미 이산, az만 진짜 연속 — hybrid(6-way lat/fwd + 연속 az) 헤드가 최종 1위</div>
+    <div class="finding-title">63-9. lx/ly는 이미 이산, az만 진짜 연속 — hybrid(6-way lat/fwd + 연속 az) 헤드 신규 구현</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <span style="color:#f87171">⚠️ "최종 1위"였던 closed-loop 84.8%는 val split 버그로
+      오염된 수치 — 정정 결과(진짜 39.4%, 순위 하락)는 위 63-11 참고. lx/ly 이산·az
+      연속이라는 진단 자체와 HybridHead 구조는 유효, 성능 우위 결론만 철회.</span><br><br>
       63-6 이후 "연속 헤드로 정의 자체를 바꿀 수 있는가"를 검토하며 225ep 원본 raw
       액션(lx,ly,az)의 실측 고유값 분포를 직접 스캔했다. 결과: <strong style="color:#e2e8f0">lx,
       ly는 정확히 {-1.15, 0, +1.15} 3값</strong>만 존재(연속 신호가 아예 없음 — 수집
@@ -14730,6 +14787,10 @@ graph TD
   <div class="finding-card">
     <div class="finding-title">63-10. 연속 az를 궤적에 그대로 적분 → 오히려 악화 (부정 결과, az_thresh 스윕은 안정)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <span style="color:#fbbf24">⚠️ 최초 측정치(discrete 84.8%/continuous 48.5%)는 63-11
+      val split 버그 영향권. 수정된 split으로 재검증한 결과 <strong style="color:#e2e8f0">
+      discrete(39.4%) &gt; continuous(33.3%) 상대적 순위는 그대로 유지</strong> — "discrete
+      결합이 낫다"는 결론 자체는 유효, 절대 수치만 하향 정정.</span><br><br>
       63-9의 <code>hybrid_combine()</code>은 6-way 예측이 STOP일 때만 연속 az_pred를
       ROT_L/R 이산 클래스로 "되돌려" 평가한다 — hybrid의 연속 회귀 출력을 궤적 적분에는
       전혀 못 쓰는 셈. 실기 배포라면 cmd_vel.angular.z에 연속값을 직접 실을 수 있으므로,
@@ -14767,17 +14828,29 @@ graph TD
   </div>
 
   <div class="finding-card">
-    <div class="finding-title">63-7. 결론 및 다음 단계</div>
+    <div class="finding-title">63-7. 결론 및 다음 단계 <span style="color:#f87171;font-size:0.8rem">[2026-07-19 정정]</span></div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      <strong style="color:#e2e8f0">최종 추천: hybrid 헤드, pg448+트랙F(225ep) 구성</strong>
-      (63-9) — offline(78.1%)·closed-loop(FPE 0.274m, Success 84.8%) 양쪽 모두 최상위.
-      mlp(63-8, 72.7%)·exp11(0%)·step2(66.7%) 순으로 뚜렷한 개선. 배포 중인 transformer는
-      이 ablation에서 반복적으로 최하위권(74.5→71.8%, center 추가에 가장 취약) — 교체
-      검토 필요.<br><br>
-      트랙C(64ep, 오버슈트→재수렴) 물리 수집 완료 후 최종 289ep(트랙A+C+F)로 재확정
-      학습 → 동일 방법으로 closed-loop 재검증까지 거쳐야 실제 배포 교체 확정. az가
-      진짜 연속 신호임이 확인됐으므로, 향후 수집에서도 lx/ly는 현재 방식(고정 8방향)을
-      유지하되 az만큼은 연속 값 보존이 유지되도록 soda 쪽에 확인 요청함(§DoD 참고).
+      <span style="color:#f87171">⚠️ 아래는 63-11에서 정정된 결론(원래 hybrid 최종 1위였던
+      버전은 val split 버그로 무효).</span><br><br>
+      <strong style="color:#e2e8f0">최종 추천: mlp 헤드, pg448+트랙A(180ep, 트랙F 제외)
+      구성</strong> — closed-loop Success@0.5m <strong style="color:#4ade80">60.6%</strong>
+      (FPE 0.825m)로 진짜 held-out 기준 최고. hybrid(39.4%)·pg448_trackF/mlp(48.5%)
+      모두 이보다 낮음 — **트랙F(center) 추가와 hybrid 헤드 둘 다 closed-loop
+      일반화에는 오히려 손해**였다는 게 정정된 결론(63-11). exp11(0%)·step2(66.7%,
+      CH62)와 비교하면 step2가 여전히 근소 우위 — decomposition 접근의 우위가
+      재확인됨. 배포 중인 transformer는 이 ablation에서 반복적으로 최하위권(12~30%
+      success) — 교체 검토는 유효하되 mlp가 새 후보.<br><br>
+      <strong style="color:#fbbf24">즉시 조치</strong>: 이 세션에서 진행했던 "추론 서버에
+      exp73_hybrid variant 통합"(B)은 잘못된 승자 기준 선택 — variant 확장 메커니즘
+      자체는 재사용하되, 실제 서버에 태울 체크포인트는 hybrid가 아니라
+      <code>exp73_pg448_v6_mlp.pt</code>로 교체 검토 필요. soda에 전달했던 "hybrid
+      최종 1위" 메시지도 정정 동기화 완료(monavla-driving).<br><br>
+      트랙C(64ep, 오버슈트→재수렴) 물리 수집 완료 후 재학습 시 **반드시 이 정정된
+      val_split(<code>np.random.default_rng</code>)로 평가할 것** — 재발 방지를 위해
+      두 스크립트의 split 로직을 단일 유틸로 통합하는 게 안전(§D 재학습 런북 갱신 예정).
+      az가 진짜 연속 신호임이 확인됐으므로, 향후 수집에서도 lx/ly는 현재 방식(고정
+      8방향)을 유지하되 az만큼은 연속 값 보존이 유지되도록 soda 쪽에 확인 요청함
+      (§DoD 참고) — 이 부분은 정정과 무관하게 유효.
     </div>
   </div>
 </div>

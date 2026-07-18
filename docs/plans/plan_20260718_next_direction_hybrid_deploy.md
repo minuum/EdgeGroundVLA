@@ -3,6 +3,12 @@
 > 작성일: 2026-07-18
 > 근거: CH61(수집 캠페인 설계) → CH62(closed-loop 함정: offline 지표 ≠ 배포 성능) →
 > CH63(exp73 ablation, hybrid 헤드 84.8% success 최종 1위)
+>
+> ⚠️ **2026-07-19 정정**: `evaluate_closed_loop_exp73.py`의 val split이 학습 스크립트와
+> 다른 랜덤 API(`RandomState` vs `default_rng`)를 써서 val 33ep 중 27ep가 실제로는
+> 학습 데이터였음이 드러남 — 이 플랜에 기록된 "hybrid 84.8%" 등 A/B/C 항목의 수치는
+> 전부 오염됨. 수정 후 재검증 결과는 CH63 63-11 및 아래 각 항목의 [정정] 표시 참고.
+> **정정된 실제 1위는 hybrid가 아니라 pg448/v6/mlp(트랙F 없음, Success 60.6%)**.
 > 상태: **검토 대기 — 승인 전 구현 금지**
 
 ## 0. 현황 분석 (최근 CH 종합)
@@ -138,23 +144,44 @@ variant별 값으로 분기(현재 클래스 상수라 인스턴스 속성으로
 ## 4. DoD
 
 - [x] A: continuous-az closed-loop 결과 (discrete 대비 비교표) + CH63 63-10 기록 — 2026-07-18.
-      **부정 결과**: continuous 모드가 오히려 악화(Success 84.8%→48.5%). az_mode=discrete
-      유지로 결론. 원인: hybrid_combine의 discrete 결합이 비-STOP 프레임에서 az를
-      암묵적으로 0-클램프하는 정규화 역할을 하고 있었음.
+      **부정 결과(상대 순위는 정정 후에도 유지)**: continuous 모드가 오히려 악화.
+      최초 측정 discrete 84.8%→continuous 48.5%는 val split 버그로 오염(아래 정정 참고),
+      수정된 split 재검증 결과 discrete 39.4% > continuous 33.3% — discrete 우위
+      결론은 그대로 유효, 절대 수치만 하향 정정.
 - [x] C(부분): az_thresh {0.05,0.1,0.2} 스윕 완료 — 결과 사실상 불변, 임계값 민감하지
-      않음 확인. seed 3개 전체 closed-loop 분산은 **미착수**(학습 스크립트가 best-of-3만
-      저장 — 재학습 필요, 배포 결정 안 바뀔 것으로 판단해 낮은 우선순위로 보류)
+      않음 확인(이 결론은 split 버그와 무관하게 유효). seed 3개 전체 closed-loop 분산은
+      **미착수**(학습 스크립트가 best-of-3만 저장 — 재학습 필요, 낮은 우선순위로 보류)
 - [x] B: `GoalNavMLPInference`에 `variant="exp73_hybrid"` 추가, API 레벨(모델 로드+forward+
       reset) 검증 완료 — 2026-07-18. d_in=260/window=6 정상 판정, 8-class 예측 정상
-      동작(CPU 스모크 테스트), `EXP73_AZ_THRESH=0.1`(63-10 근거)로 고정. env var
-      `VLA_GOALNAV_VARIANT=exp73_hybrid`로 선택 가능(기본값은 여전히 exp49 — 실기
-      전환은 soda와 별도 조율). **부수 발견(범위 밖)**: 기존 exp49 체크포인트 로드가
-      이 환경 torch 버전(weights_only 기본값 변경)에서 실패 — 내 diff와 무관한 기존
-      코드 줄이라 별도 이슈로 분리, 이번 작업 범위에서 수정하지 않음.
+      동작(CPU 스모크 테스트). **[2026-07-19 정정] 아래 val split 버그로 hybrid가
+      "최종 1위"라는 선정 근거 자체가 무효 — 코드 인프라(variant 확장 메커니즘)는
+      재사용 가능하나 실제 서버에 태울 체크포인트는 `exp73_pg448_v6_mlp.pt`(트랙F
+      없는 mlp, 정정된 진짜 1위)로 재검토 필요. 서버에 별도 `exp73_mlp` variant 추가는
+      후속 작업으로 분리.** 부수 발견(범위 밖, 무관): 기존 exp49 체크포인트 로드가
+      이 환경 torch 버전(weights_only 기본값 변경)에서 실패 — 별도 이슈로 분리.
 - [x] D: 289ep 재학습 런북 문서화 완료 — 2026-07-18. 기존 4단계 파이프라인 재사용
       가능함을 확인, 단 (a) `gen_v6_frame_level.py`의 날짜 glob 하드코딩은 트랙C 수집 후
       반드시 먼저 수정 필요, (b) 오버슈트회복률 집계는 기존 스크립트로 안 되고 신규
-      스크립트 필요함을 사전 확인. 실행은 트랙C 물리 수집 완료 후.
+      스크립트 필요함을 사전 확인, **(c) [2026-07-19 추가] 재학습 후 재평가 시
+      `evaluate_closed_loop_exp73.py`의 `val_split()`이 학습 스크립트와 동일한
+      `np.random.default_rng` 기반인지 반드시 재확인할 것(이번에 발견된 버그 재발 방지)**.
+      실행은 트랙C 물리 수집 완료 후.
 - [x] soda 실기 테스트 일정 문의 동기화 — 2026-07-18, `monavla-driving`
       `docs/DATASET_V6_STATUS.md`에 exp73_hybrid 서버 통합 완료 + 실기 테스트 일정
-      문의 추가.
+      문의 추가. **[2026-07-19] 정정 메시지 추가 동기화 완료(아래)**.
+
+## 5. [2026-07-19 정정] val split 버그 및 재평가 결과
+
+`evaluate_closed_loop_exp73.py`의 `val_split()`이 `np.random.RandomState(42)`(레거시 API)를
+쓰고 있었는데, 학습 스크립트(`train_exp73_trackA_heads.py` `main()`)는
+`np.random.default_rng(42)`를 씀 — **같은 seed=42라도 다른 셔플 순서**가 나와서
+"val 33ep" 중 27ep가 실제로는 학습 데이터였다(6ep만 진짜 겹침). A/B/C 전 항목에
+보고된 closed-loop 수치가 오염됨.
+
+`np.random.default_rng`로 통일 후 exp73 전 체크포인트 재평가 — 정정된 리더보드는
+CH63 63-11 참고. 핵심 변경: **hybrid(구 84.8%)가 아니라 pg448/v6/mlp(트랙F 없음,
+60.6%)가 진짜 1위**. 트랙F 추가가 closed-loop를 개선한다던 결론도 반대로 뒤집힘.
+
+이 버그는 minum이 스스로 발견한 게 아니라, 사용자가 "정확도 낮은 부분"을 물어봐서
+클래스/청크 단위로 파고들다 val split 불일치를 우연히 포착한 것 — 향후 두 스크립트의
+split 로직을 단일 유틸 함수로 통합해 재발을 막는 게 안전(§D에 반영).

@@ -38,8 +38,12 @@ HEAD_CLS = {"mlp": MLPActionHead, "cxgeom": CxGeomHead, "transformer": Transform
 
 
 def val_split(eps, seed=SPLIT_SEED, ratio=VAL_RATIO):
-    idx = np.arange(len(eps))
-    rng = np.random.RandomState(seed)
+    """train_exp73_trackA_heads.py main()과 반드시 동일한 분할 로직(np.random.default_rng)을
+    써야 함 — RandomState(레거시 API)는 같은 seed라도 다른 셔플 순서를 내므로 절대 섞어 쓰지 말 것.
+    (2026-07-19: 기존에 RandomState를 쓰고 있어 val 33ep 중 27ep가 실제로는 학습 train
+    셋이었음을 발견 — closed-loop 수치 오염 버그, 이 수정으로 해결)"""
+    idx = list(range(len(eps)))
+    rng = np.random.default_rng(seed)
     rng.shuffle(idx)
     n_val = max(1, int(len(eps) * ratio))
     return [eps[i] for i in idx[:n_val]]
