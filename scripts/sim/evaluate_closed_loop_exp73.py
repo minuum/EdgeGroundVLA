@@ -104,8 +104,23 @@ def eval_episode_chunk(ep, model, device, chunk_k=CHUNK_K):
     return m
 
 
+def causal_smooth_probs(probs: np.ndarray, smooth_window: int) -> np.ndarray:
+    """실기 배포에서 재현 가능한 인과적(과거만 사용) 이동평균 — 미래 프레임은 절대 안 씀.
+    63-12에서 확인한 앙상블 효과(구간형 방향 오판을 여러 시점 평균으로 완화)를
+    새 헤드 없이 기존 챔피언(mlp)의 추론 단계 후처리만으로 재현할 수 있는지 검증."""
+    if smooth_window <= 1:
+        return probs
+    T = probs.shape[0]
+    out = np.zeros_like(probs)
+    for t in range(T):
+        lo = max(0, t - smooth_window + 1)
+        out[t] = probs[lo:t + 1].mean(axis=0)
+    return out
+
+
 @torch.no_grad()
-def eval_episode(ep, model, device, is_hybrid=False, az_mode="discrete", az_thresh=0.1):
+def eval_episode(ep, model, device, is_hybrid=False, az_mode="discrete", az_thresh=0.1,
+                  smooth_window=1):
     X = torch.tensor(build_episode_windows(ep), device=device)
     if is_hybrid:
         disc_logit, az_pred = model(X)
@@ -118,7 +133,13 @@ def eval_episode(ep, model, device, is_hybrid=False, az_mode="discrete", az_thre
             pred = hybrid_combine(lat_fwd, az_pred, az_thresh=az_thresh / 1.15).cpu().numpy()
             pred_traj_override = None
     else:
-        pred = model(X).argmax(1).cpu().numpy()
+        logits = model(X)
+        if smooth_window > 1:
+            probs = torch.softmax(logits, dim=-1).cpu().numpy()
+            probs = causal_smooth_probs(probs, smooth_window)
+            pred = probs.argmax(axis=1)
+        else:
+            pred = logits.argmax(1).cpu().numpy()
         pred_traj_override = None
 
     gt_classes = np.asarray(ep["gts"], dtype=np.int64)
@@ -138,6 +159,8 @@ def main():
                      help="hybrid 헤드 전용: az를 ROT_L/R 이산 클래스로 되돌릴지, 연속값 그대로 적분할지")
     ap.add_argument("--az-thresh", type=float, default=0.1,
                      help="hybrid_combine의 STOP→ROT 전환 임계값 (az_norm*1.15 단위, rad/s)")
+    ap.add_argument("--smooth-window", type=int, default=1,
+                     help="mlp/cxgeom/transformer 전용: 인과적(과거만) softmax 이동평균 윈도우 크기 (1=미적용)")
     args = ap.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -160,7 +183,8 @@ def main():
     else:
         results = [
             eval_episode(ep, model, device, is_hybrid=(args.head == "hybrid"),
-                         az_mode=args.az_mode, az_thresh=args.az_thresh)
+                         az_mode=args.az_mode, az_thresh=args.az_thresh,
+                         smooth_window=args.smooth_window)
             for ep in val_eps
         ]
 
@@ -172,6 +196,7 @@ def main():
     summary = {
         "head": args.head, "ckpt": args.ckpt, "n_episodes": len(val_eps),
         "az_mode": args.az_mode, "az_thresh": args.az_thresh,
+        "smooth_window": args.smooth_window,
         "fpe_mean": float(fpe.mean()), "fpe_std": float(fpe.std()),
         "tld_mean": float(tld.mean()),
         "val_acc_mean": float(acc.mean()),
@@ -184,6 +209,8 @@ def main():
     suffix = ""
     if args.head == "hybrid":
         suffix = f"_az{args.az_mode}_thr{args.az_thresh}"
+    if args.smooth_window > 1:
+        suffix += f"_smooth{args.smooth_window}"
     out = OUT_DIR / f"exp73_closed_loop_{Path(args.ckpt).stem}{suffix}.json"
     out.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
     print(f"\n=== exp73 {args.head} closed-loop (az_mode={args.az_mode}, az_thresh={args.az_thresh}) ===")
