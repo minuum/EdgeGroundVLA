@@ -92,11 +92,42 @@ variant별 값으로 분기(현재 클래스 상수라 인스턴스 속성으로
 - seed 3개 체크포인트 각각 closed-loop 평가 → success 분산 확인 (offline은 이미
   77.0/78.1/78.0으로 안정, closed-loop 분산은 미확인).
 
-### D. 트랙C 도착 대비 원버튼 재학습 스크립트 (0.5일, 트랙C 일정 확정 후)
+### D. 트랙C 도착 대비 289ep 재학습 런북 (리서치 완료 — soda 물리수집 완료 후 실행)
 
-- `train_exp73_trackA_heads.py`에 신규 에피소드 디렉토리 추가만으로 289ep 재학습 +
-  A의 closed-loop 재평가까지 이어지는 실행 순서를 플랜/스크립트로 고정.
-- §5 평가지표(VSC/오버슈트회복률) 재검증 훅 포함.
+기존 exp73 파이프라인(`scripts/run_exp73_pipeline.sh`) 리서치 결과, 트랙C(64ep) 추가는
+**신규 파이프라인이 아니라 기존 4단계에 소스 파일 갱신만 끼워 넣으면 된다**:
+
+1. **frame-level 소스 갱신** (`scripts/gen_v6_frame_level.py`)
+   - 현재 `DATA.glob("episode_2026071*.h5")`로 V6 225ep(2026-07-1x 수집분)만 하드코딩
+     매칭 중. 트랙C가 수집되면 날짜 prefix가 다를 것이므로(예: `2026072*`),
+     `--src-glob` 인자를 추가하거나 glob 패턴을 트랙C 날짜까지 포함하도록 수정 필요
+     — **파일 자체가 이미 트랙A+F(225ep) 전용으로 하드코딩돼 있어 트랙C를 그냥
+     넣으면 씹힘. 실행 전 반드시 glob 패턴부터 확인.**
+   - 출력을 `bbox_dataset_v6c_frame_level.json`(신규 파일명, 기존 225ep본 보존)으로 분리 저장 권장.
+   - `to_class()` 8-class 규칙은 트랙C도 동일 임계값(|x|>0.3, az>±0.1)이라 수정 불필요.
+
+2. **PG448 그라운딩 주석** (`scripts/gen_v6_pg448_annotation.py`)
+   - `--src bbox_dataset_v6c_frame_level.json --out bbox_dataset_v6c_pg448_cx.json`
+   - 신규 트랙C 프레임만 그라운딩되므로 기존 225ep 결과 재계산 불필요(`--resume` 지원 확인됨).
+
+3. **vis 캐시 재생성 + 학습** (`train_exp73_trackA_heads.py`)
+   - `CACHE_V6`(`exp73_v6_vis_cache.pt`)는 225ep 전용 — 289ep용 신규 캐시 경로 필요.
+     `--ann-v6 .../bbox_dataset_v6c_pg448_cx.json` 지정 시 캐시가 없으면 자동 재인코딩됨
+     (§ANN_V6 캐시 로직 확인됨, 코드 수정 불필요 — 인자만 다르게 실행).
+   - `--heads hybrid --arms v6 --tag pg448_trackC` 로 hybrid 헤드만 재학습(다른 헤드는
+     이미 결론 났으므로 재확인 불필요, 63-7 결론 참고).
+   - 3-seed 그대로 유지, best-of-3 저장 방식도 기존과 동일.
+
+4. **closed-loop 재검증** (`scripts/sim/evaluate_closed_loop_exp73.py`, 이번 세션에 완성)
+   - `--ckpt runs/v5_nav/mlp/exp73/exp73_pg448_trackC_v6_hybrid.pt --head hybrid`
+     (az_mode는 discrete 고정 — 63-10 결론).
+   - §5 평가지표(VSC/오버슈트회복률/반응지연) 중 **오버슈트회복률**이 트랙C 추가의
+     직접 목적이므로, 이 지표만큼은 `evaluate_closed_loop_exp73.py`에 없는 별도 계산이
+     필요 — 트랙C(overshoot_left_recover/overshoot_right_recover) episode만 필터링해
+     별도 success/FPE 집계 스크립트 추가가 이 단계에서 신규로 필요함(기존 스크립트
+     재사용 불가, 사전 확인 완료).
+
+**실행 시점**: 트랙C 64ep 물리 수집(soda) 완료 통보 후 착수. 현재는 실행하지 않음.
 
 ## 3. 하지 않을 것
 
@@ -120,5 +151,10 @@ variant별 값으로 분기(현재 클래스 상수라 인스턴스 속성으로
       전환은 soda와 별도 조율). **부수 발견(범위 밖)**: 기존 exp49 체크포인트 로드가
       이 환경 torch 버전(weights_only 기본값 변경)에서 실패 — 내 diff와 무관한 기존
       코드 줄이라 별도 이슈로 분리, 이번 작업 범위에서 수정하지 않음.
-- [ ] D: 289ep 원버튼 재학습 절차 문서화
-- [ ] soda 실기 테스트 일정 문의 동기화 (monavla-driving 문서)
+- [x] D: 289ep 재학습 런북 문서화 완료 — 2026-07-18. 기존 4단계 파이프라인 재사용
+      가능함을 확인, 단 (a) `gen_v6_frame_level.py`의 날짜 glob 하드코딩은 트랙C 수집 후
+      반드시 먼저 수정 필요, (b) 오버슈트회복률 집계는 기존 스크립트로 안 되고 신규
+      스크립트 필요함을 사전 확인. 실행은 트랙C 물리 수집 완료 후.
+- [x] soda 실기 테스트 일정 문의 동기화 — 2026-07-18, `monavla-driving`
+      `docs/DATASET_V6_STATUS.md`에 exp73_hybrid 서버 통합 완료 + 실기 테스트 일정
+      문의 추가.
