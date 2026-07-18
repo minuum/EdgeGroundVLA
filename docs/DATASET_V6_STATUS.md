@@ -161,9 +161,30 @@ exp73 hybrid 헤드 개발 중 raw 액션(lx,ly,az) 실측 스캔 결과:
 적용 여부만 판단**해주면 됨. 상세 배경:
 `docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md` §7.
 
+## exp73 hybrid 헤드 서버 통합 완료 + 실기 테스트 일정 문의 (minum, 2026-07-18)
+
+exp73 hybrid 헤드(이산 6-way lx/ly + 연속 az, offline 78.1%/closed-loop Success
+84.8% — 기존 mlp 72.7% 대비 최종 1위, CH63 63-9/63-10)를 `inference_server.py`의
+`GoalNavMLPInference`에 `variant="exp73_hybrid"`로 통합 완료. 기존 exp54_s2v2/exp55와
+동일 인코더(`stage1_v2_projs.pt`)를 재사용해 새 서브시스템 추가 없이 확장했고,
+CPU 스모크 테스트(모델 로드+forward+reset)까지 확인함.
+
+**문의**: 이건 어디까지나 kinematic replay(teacher-forcing 재생) 기반 offline/closed-loop
+수치라, 실제 배포 판단에는 Jetson 실기 구동 확인이 필요함(CH62 교훈 — "offline 지표
+≠ 배포 성능"). 다음 중 어느 쪽이 가능한지 확인 요청:
+1. `VLA_GOALNAV_VARIANT=exp73_hybrid` 환경변수로 운영 서버에서 A/B 테스트 가능한
+   일정이 있는지 (기본값은 여전히 exp49라 명시적으로 켜야만 영향 있음)
+2. PG2 동시로드 크래시 이력이 있어(`feedback_soda_pg2_concurrent_load_crash` 메모리)
+   운영 서버가 떠 있는 동안은 API 레벨 테스트만 하고, 실제 재기동/실기 구동은
+   soda 쪽 스케줄에 맞춰 진행하는 게 맞다고 보는데 맞는지
+3. 트랙C(64ep) 물리 수집과 이 실기 테스트 중 우선순위를 어떻게 둘지
+
+상세: `docs/plans/plan_20260718_next_direction_hybrid_deploy.md` 참고.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
   히스토리 탭 — schema 자동 분기, scenario/cx_position 필터, 프레임 인스펙터)
 - 수집 UI 이식 이력: `docs/plans/plan_20260707_dashboard_data_collector_tab.md`
 - 트랙A/C/F 극단배치+오버슈트+center 설계: `docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md`
+- exp73 hybrid 서버 통합 + 다음 방향 플랜: `docs/plans/plan_20260718_next_direction_hybrid_deploy.md`
