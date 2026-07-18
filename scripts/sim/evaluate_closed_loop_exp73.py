@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.sim.rollout_core import ACTION_VEL, Pose, build_trajectory, compute_metrics, pose_step
 from scripts.train_exp73_trackA_heads import (
     MLPActionHead, CxGeomHead, TransformerActionHead, HybridHead, hybrid_combine,
+    ActionChunkHead, CHUNK_K, NUM_CLASSES,
     WINDOW, BBOX_SCALE, FRAME_DIM,
 )
 
@@ -34,7 +35,7 @@ VAL_RATIO = 0.15
 SPLIT_SEED = 42
 
 HEAD_CLS = {"mlp": MLPActionHead, "cxgeom": CxGeomHead, "transformer": TransformerActionHead,
-            "hybrid": HybridHead}
+            "hybrid": HybridHead, "chunk": ActionChunkHead}
 
 
 def val_split(eps, seed=SPLIT_SEED, ratio=VAL_RATIO):
@@ -73,6 +74,34 @@ def build_trajectory_continuous_az(lat_fwd_pred, az_pred, az_scale=1.15, dt=0.1)
         traj.append(p, int(cls))
     traj.append(poses[-1], -1)
     return traj
+
+
+@torch.no_grad()
+def eval_episode_chunk(ep, model, device, chunk_k=CHUNK_K):
+    """ACT식 temporal ensembling: 프레임 t는 그걸 예측 범위 안에 포함하는 모든 과거
+    청크(origin<=t, offset=t-origin<chunk_k)의 softmax 확률을 균등 평균해 최종 결정.
+    (63-11 이후 가설 검증 — 구간형 방향 오판을 여러 시점의 겹친 예측으로 평균화."""
+    X = torch.tensor(build_episode_windows(ep), device=device)
+    logits = model(X)  # (T, chunk_k, NUM_CLASSES)
+    probs = torch.softmax(logits, dim=-1).cpu().numpy()
+    T = probs.shape[0]
+    acc_probs = np.zeros((T, NUM_CLASSES), dtype=np.float64)
+    counts = np.zeros(T, dtype=np.int64)
+    for origin in range(T):
+        for o in range(chunk_k):
+            t = origin + o
+            if t < T:
+                acc_probs[t] += probs[origin, o]
+                counts[t] += 1
+    acc_probs /= np.maximum(counts, 1)[:, None]
+    pred = acc_probs.argmax(axis=1)
+
+    gt_classes = np.asarray(ep["gts"], dtype=np.int64)
+    expert_traj = build_trajectory(gt_classes.tolist())
+    pred_traj = build_trajectory(pred.tolist())
+    m = compute_metrics(expert_traj, pred_traj)
+    m["val_acc"] = float((pred == gt_classes).mean())
+    return m
 
 
 @torch.no_grad()
@@ -126,11 +155,14 @@ def main():
     model.eval()
     print(f"[LOAD] ckpt {args.ckpt} (val_acc_at_save={ckpt.get('val_acc')})", flush=True)
 
-    results = [
-        eval_episode(ep, model, device, is_hybrid=(args.head == "hybrid"),
-                     az_mode=args.az_mode, az_thresh=args.az_thresh)
-        for ep in val_eps
-    ]
+    if args.head == "chunk":
+        results = [eval_episode_chunk(ep, model, device) for ep in val_eps]
+    else:
+        results = [
+            eval_episode(ep, model, device, is_hybrid=(args.head == "hybrid"),
+                         az_mode=args.az_mode, az_thresh=args.az_thresh)
+            for ep in val_eps
+        ]
 
     fpe = np.array([r["fpe"] for r in results])
     tld = np.array([r["tld"] for r in results])

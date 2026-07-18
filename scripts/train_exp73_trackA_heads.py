@@ -399,6 +399,90 @@ def train_hybrid(X_tr, y_tr, A_tr, X_va, y_va, A_va, seed, epochs=300, lr=5e-4, 
     return best_acc, best_state, per_class
 
 
+CHUNK_K = 4  # action-chunk 크기(offset 0..3 동시 예측) — ACT식 temporal ensembling용
+
+
+class ActionChunkHead(nn.Module):
+    """window 프레임 컨텍스트로 향후 K프레임(offset 0..K-1)의 8-class 액션을 동시 예측.
+    63-11 정정 이후 발견: closed-loop 실패가 프레임 단위 오분류가 아니라 "구간 전체의
+    방향 오판"에서 옴(청크 최빈값 acc≈프레임 acc, 즉 오류가 국소적이지 않고 구간
+    전체에 걸쳐 일관되게 틀림) — 여러 시점에서 겹쳐 예측한 청크를 앙상블하면 이
+    구간형 오류가 평균화되어 줄어들 것이라는 가설. trunk는 mlp와 동일."""
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW, chunk_k=CHUNK_K):
+        super().__init__()
+        self.chunk_k = chunk_k
+        self.trunk = nn.Sequential(
+            nn.Linear(frame_dim * window, 512), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(512, 128), nn.ReLU())
+        self.head = nn.Linear(128, chunk_k * NUM_CLASSES)
+
+    def forward(self, x):
+        h = self.trunk(x.flatten(1))
+        return self.head(h).view(-1, self.chunk_k, NUM_CLASSES)
+
+
+def build_chunk_targets(eps, chunk_k=CHUNK_K):
+    """build_windows()와 동일 순서로 순회 — X는 build_windows() 결과를 그대로 재사용 가능.
+    경계(에피소드 끝)는 마지막 프레임 클래스를 반복(ACT 관례)."""
+    y_chunk = []
+    for ep in eps:
+        gts = ep["gts"]
+        n = len(gts)
+        for t in range(n):
+            y_chunk.append([gts[min(t + o, n - 1)] for o in range(chunk_k)])
+    return np.asarray(y_chunk, dtype=np.int64)
+
+
+def train_chunk(X_tr, y_chunk_tr, X_va, y_chunk_va, seed, epochs=300, lr=5e-4, chunk_k=CHUNK_K):
+    """offset별 CE 평균으로 학습. val_acc는 offset-0(=다른 헤드와 동일 정의, 즉시 다음
+    프레임 예측)만 기준 — 헤드 간 비교 가능하게 유지. 실제 이점은 closed-loop 앙상블에서 검증."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    y0_tr = y_chunk_tr[:, 0]
+    cls_counts = np.bincount(y0_tr, minlength=NUM_CLASSES).astype(np.float32)
+    cls_counts = np.where(cls_counts == 0, 1.0, cls_counts)
+    weights = 1.0 / cls_counts
+    weights = weights / weights.sum() * NUM_CLASSES
+    weights_t = torch.tensor(weights, dtype=torch.float32, device=DEVICE)
+
+    X_tr_t = torch.tensor(X_tr, device=DEVICE)
+    y_tr_t = torch.tensor(y_chunk_tr, device=DEVICE)
+    X_va_t = torch.tensor(X_va, device=DEVICE)
+    y_va_t = torch.tensor(y_chunk_va, device=DEVICE)
+
+    model = ActionChunkHead(chunk_k=chunk_k).to(DEVICE)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
+    best_acc, best_state = 0.0, None
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(X_tr_t), device=DEVICE)
+        for i in range(0, len(perm), 128):
+            b = perm[i:i + 128]
+            logits = model(X_tr_t[b])  # (B, K, C)
+            loss = sum(F.cross_entropy(logits[:, o], y_tr_t[b, o], weight=weights_t)
+                       for o in range(chunk_k)) / chunk_k
+            opt.zero_grad(); loss.backward(); opt.step()
+        sched.step()
+        if ep % 25 == 0 or ep == epochs - 1:
+            model.eval()
+            with torch.no_grad():
+                acc = (model(X_va_t)[:, 0].argmax(1) == y_va_t[:, 0]).float().mean().item()
+            if acc >= best_acc:
+                best_acc = acc
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+    model.load_state_dict(best_state)
+    model.eval()
+    with torch.no_grad():
+        pred0 = model(X_va_t)[:, 0].argmax(1).cpu().numpy()
+    per_class = {}
+    for c in range(NUM_CLASSES):
+        m = (y_chunk_va[:, 0] == c)
+        if m.sum() > 0:
+            per_class[c] = float((pred0[m] == c).mean())
+    return best_acc, best_state, per_class
+
+
 HEADS = {"transformer": TransformerActionHead, "mlp": MLPActionHead, "cxgeom": CxGeomHead}
 
 
@@ -560,6 +644,7 @@ def main():
     print(f"[SPLIT] V6 train={len(v6_train)} / val={len(val_eps)} (공통 val)")
 
     X_va, y_va, A_va = build_windows(val_eps)
+    y_chunk_va = build_chunk_targets(val_eps)
     arm_train = {
         "v6":   v6_train,
         "v6v5": v6_train + v5_eps,
@@ -586,6 +671,10 @@ def main():
                 elif head == "hybrid":
                     acc, state, per_class = train_hybrid(
                         X_tr, y_tr, A_tr, X_va, y_va, A_va, seed, epochs=args.epochs)
+                elif head == "chunk":
+                    y_chunk_tr = build_chunk_targets(arm_train[arm])
+                    acc, state, per_class = train_chunk(
+                        X_tr, y_chunk_tr, X_va, y_chunk_va, seed, epochs=args.epochs)
                 else:
                     acc, state, per_class = train_one(HEADS[head], X_tr, y_tr, X_va, y_va,
                                                        seed, epochs=args.epochs)
