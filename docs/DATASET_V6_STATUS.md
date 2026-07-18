@@ -161,7 +161,24 @@ exp73 hybrid 헤드 개발 중 raw 액션(lx,ly,az) 실측 스캔 결과:
 적용 여부만 판단**해주면 됨. 상세 배경:
 `docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md` §7.
 
-## exp73 hybrid 헤드 서버 통합 완료 + 실기 테스트 일정 문의 (minum, 2026-07-18)
+## ⚠️ [2026-07-19 정정] 아래 "hybrid 최종 1위(84.8%)" 수치 철회 — val split 버그
+
+바로 아래 2026-07-18 항목에서 전달한 "hybrid가 최종 1위(closed-loop 84.8%)"는
+**평가 스크립트의 val split 버그로 오염된 수치**였음이 드러남 — 정정합니다.
+
+- 원인: `evaluate_closed_loop_exp73.py`가 `np.random.RandomState(42)`(레거시 API)로
+  val 33ep를 뽑았는데, 실제 학습 스크립트는 `np.random.default_rng(42)`를 사용 —
+  같은 seed=42라도 다른 셔플 순서가 나와서, "val"이라 부른 33ep 중 **27ep가 실제로는
+  학습에 쓰인 데이터**였음(진짜 겹치는 건 6ep뿐).
+- 수정 후 진짜 held-out 33ep로 재평가 → **hybrid는 84.8%가 아니라 39.4%**, 오히려
+  트랙F 없는 평범한 mlp(트랙A 180ep 단독)가 **60.6%로 실제 1위**로 뒤바뀜. 트랙F
+  추가가 closed-loop를 개선한다던 결론도 반대(트랙F 추가가 오히려 성능을 낮춤).
+- **아래 서버 통합(`variant="exp73_hybrid"`) 자체는 코드로는 정상 동작하지만,
+  "이게 최선"이라는 근거는 무효** — 실기 A/B 테스트를 계획 중이었다면 hybrid가
+  아니라 `exp73_pg448_v6_mlp.pt`(트랙F 없는 mlp)를 우선 후보로 봐주시길 요청.
+- 상세: `docs/v5/research_story.html` CH63 63-11, `docs/plans/plan_20260718_next_direction_hybrid_deploy.md` §5.
+
+## exp73 hybrid 헤드 서버 통합 완료 + 실기 테스트 일정 문의 (minum, 2026-07-18, 위 정정 참고)
 
 exp73 hybrid 헤드(이산 6-way lx/ly + 연속 az, offline 78.1%/closed-loop Success
 84.8% — 기존 mlp 72.7% 대비 최종 1위, CH63 63-9/63-10)를 `inference_server.py`의
