@@ -2216,10 +2216,25 @@ class GoalNavMLPInference:
             "stage1": "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
             "mlp":    "runs/v5_nav/mlp/exp73/exp73_pg448_trackF_v6_hybrid.pt",
         },
+        # exp73 plain mlp(8-class, head="mlp") — hybrid와 동일 window=6/bbox_scale=3.0
+        # 규격(체크포인트 자체 메타 window/bbox_scale 필드로 확인, 2026-07-22)이지만
+        # 헤드는 HybridHead가 아니라 일반 3-layer(d_in→512→128→8) 분류기.
+        "exp73_mlp": {
+            "stage1": "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
+            "mlp":    "runs/v5_nav/mlp/exp73/exp73_pg448_v6_mlp.pt",
+        },
+        "exp73_trackF_mlp": {
+            "stage1": "runs/v5_nav/mlp/shared/stage1_v2_projs.pt",
+            "mlp":    "runs/v5_nav/mlp/exp73/exp73_pg448_trackF_v6_mlp.pt",
+        },
     }
     _GOAL_VARIANTS = ("exp49", "exp50", "exp51", "exp53")    # goal(3) 입력 포함
-    _PROJ_VARIANTS = ("exp54_s2v2", "exp55", "exp73_hybrid")  # stage1 image_proj 사용
+    _EXP73_MLP_VARIANTS = ("exp73_mlp", "exp73_trackF_mlp")  # exp73 plain 8-class 헤드
+    _PROJ_VARIANTS = ("exp54_s2v2", "exp55", "exp73_hybrid") + _EXP73_MLP_VARIANTS  # stage1 image_proj 사용
     _HYBRID_VARIANTS = ("exp73_hybrid",)                      # 이산 lx/ly + 연속 az 헤드
+    # window=6/bbox_scale=3.0 + 프레임별 vis_feat 히스토리가 필요한 variant 전체
+    # (헤드 구조는 서로 다름 — _is_hybrid만 HybridHead를 씀, 이건 입력 구성 규격 공유 여부)
+    _EXP73_WINDOWED_VARIANTS = ("exp73_hybrid",) + _EXP73_MLP_VARIANTS
 
     def __init__(self, variant: str = "exp54_s2v2", device: str = "cuda"):
         assert variant in self._DEFAULT_CKPTS, f"Unknown variant: {variant}"
@@ -2228,11 +2243,13 @@ class GoalNavMLPInference:
 
         self._use_goal = variant in self._GOAL_VARIANTS
         self._is_hybrid = variant in self._HYBRID_VARIANTS
-        # exp73_hybrid는 window=6/bbox_scale=3.0 배포 규격(train_exp73_trackA_heads.py 고정값),
+        self._uses_exp73_window = variant in self._EXP73_WINDOWED_VARIANTS
+        # exp73 계열(hybrid/mlp)은 window=6/bbox_scale=3.0 배포 규격
+        # (train_exp73_trackA_heads.py 고정값, 체크포인트 자체 메타로도 확인됨),
         # 그 외 variant는 기존 클래스 상수(WINDOW=8, bbox_scale 없음) 유지.
-        self._window = self.EXP73_WINDOW if self._is_hybrid else self.WINDOW
-        self._bbox_scale = self.EXP73_BBOX_SCALE if self._is_hybrid else 1.0
-        self._image_proj = None  # only for exp54_s2v2 / exp55 / exp73_hybrid
+        self._window = self.EXP73_WINDOW if self._uses_exp73_window else self.WINDOW
+        self._bbox_scale = self.EXP73_BBOX_SCALE if self._uses_exp73_window else 1.0
+        self._image_proj = None  # only for exp54_s2v2 / exp55 / exp73_hybrid / exp73_mlp
         self._d_in = None        # _load_weights() 에서 체크포인트로부터 확정
         self._mlp = None
 
@@ -2290,6 +2307,12 @@ class GoalNavMLPInference:
         """arch는 d_in으로 선택: goal variant(1059)=5-layer(512시작), proj variant(288)=4-layer(256시작)."""
         if self._is_hybrid:
             return self._build_hybrid_head(frame_dim=d_in, window=self._window)
+        if self.variant in self._EXP73_MLP_VARIANTS:  # exp73 plain mlp — 3-layer (d_in→512→128→8)
+            return torch.nn.Sequential(
+                torch.nn.Linear(d_in, 512), torch.nn.ReLU(), torch.nn.Dropout(0.25),
+                torch.nn.Linear(512, 128),  torch.nn.ReLU(), torch.nn.Dropout(0.2),
+                torch.nn.Linear(128, self.NUM_CLASSES),
+            )
         if self._use_goal:  # exp49/50/51/53 — 5-layer (d_in→512→256→128→64→8)
             return torch.nn.Sequential(
                 torch.nn.Linear(d_in, 512), torch.nn.ReLU(), torch.nn.Dropout(0.25),
@@ -2383,10 +2406,10 @@ class GoalNavMLPInference:
             feat = F.normalize(self._image_proj(feat), dim=-1)  # (1, 256)
 
         self._vis_feat_cache = feat
-        if self._is_hybrid:
-            # exp73 hybrid는 학습 시(train_exp73_trackA_heads.py build_windows)와 동일하게
-            # 창 안 프레임마다 서로 다른 vis_feat를 사용 — 현재 프레임만 캐시하는 다른
-            # variant와 달리 프레임별 히스토리를 유지해야 함.
+        if self._uses_exp73_window:
+            # exp73 계열(hybrid/mlp)은 학습 시(train_exp73_trackA_heads.py build_windows)와
+            # 동일하게 창 안 프레임마다 서로 다른 vis_feat를 사용 — 현재 프레임만 캐시하는
+            # 다른 variant와 달리 프레임별 히스토리를 유지해야 함.
             self._vis_history.append(feat.squeeze(0))
             if len(self._vis_history) > self._window:
                 self._vis_history = self._vis_history[-self._window:]
@@ -2424,8 +2447,8 @@ class GoalNavMLPInference:
         if self._stopped:
             cls_idx = 0
         else:
-            if self._is_hybrid:
-                # exp73 hybrid: 프레임별 [bbox*scale(4) + vis(256)] = 260을 window=6개 이어붙임
+            if self._uses_exp73_window:
+                # exp73 계열: 프레임별 [bbox*scale(4) + vis(256)] = 260을 window=6개 이어붙임
                 # (train_exp73_trackA_heads.py build_windows와 동일 규격, 부족분은 최초 프레임 반복 패딩)
                 bbox_hist = self._bbox_history[-self._window:]
                 vis_hist = self._vis_history[-self._window:]
@@ -2444,15 +2467,22 @@ class GoalNavMLPInference:
                 x = torch.stack(seq).unsqueeze(0)  # (1, window, 260)
 
                 with torch.no_grad():
-                    disc_logit, az_pred = self._mlp(x)
-                    lat_fwd_pred = disc_logit.argmax(dim=-1)
-                    is_stop = lat_fwd_pred == 0
-                    cls_t = lat_fwd_pred.clone()
-                    cls_t[is_stop & (az_pred > self.EXP73_AZ_THRESH / 1.15)] = 6
-                    cls_t[is_stop & (az_pred < -self.EXP73_AZ_THRESH / 1.15)] = 7
-                    cls_idx = int(cls_t.item())
-                    probs = torch.nn.functional.softmax(disc_logit, dim=-1)[0]
-                    p_stop = float(probs[0].item())  # lat/fwd STOP 확률(ROT 전 단계) — 학습형 STOP 룰과 근사 호환
+                    if self._is_hybrid:
+                        disc_logit, az_pred = self._mlp(x)
+                        lat_fwd_pred = disc_logit.argmax(dim=-1)
+                        is_stop = lat_fwd_pred == 0
+                        cls_t = lat_fwd_pred.clone()
+                        cls_t[is_stop & (az_pred > self.EXP73_AZ_THRESH / 1.15)] = 6
+                        cls_t[is_stop & (az_pred < -self.EXP73_AZ_THRESH / 1.15)] = 7
+                        cls_idx = int(cls_t.item())
+                        probs = torch.nn.functional.softmax(disc_logit, dim=-1)[0]
+                        p_stop = float(probs[0].item())  # lat/fwd STOP 확률(ROT 전 단계) — 학습형 STOP 룰과 근사 호환
+                    else:
+                        # exp73 plain mlp: window*260을 flatten해 일반 8-class 분류기에 넣음
+                        logits = self._mlp(x.flatten(1))
+                        cls_idx = int(logits.argmax(dim=-1).item())
+                        probs = torch.nn.functional.softmax(logits, dim=-1)[0]
+                        p_stop = float(probs[0].item())
             else:
                 # bbox window 패딩 (부족하면 0 패딩)
                 history = self._bbox_history[-self._window:]
