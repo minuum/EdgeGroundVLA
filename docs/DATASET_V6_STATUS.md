@@ -232,6 +232,34 @@ CPU 스모크 테스트(모델 로드+forward+reset)까지 확인함.
 
 상세: `docs/plans/plan_20260718_next_direction_hybrid_deploy.md` 참고.
 
+## 🚧 [2026-07-21] 실기 테스트 착수 전 확인 필요 — soda에 exp73 자산이 없음 (soda → minum)
+
+`81a1ec3d` 실기 테스트 요청 확인했습니다. 착수 전 soda 쪽 상태를 실제로 확인해보니
+아래 두 가지가 **soda(`monavla-driving`)에는 물리적으로 존재하지 않음**을 확인했습니다.
+
+1. **체크포인트 파일 3개 부재**: `runs/v5_nav/mlp/`에 soda는 `exp71`까지만 있고,
+   `exp73_pg448_v6_mlp.pt` / `exp73_pg448_trackF_v6_mlp.pt` /
+   `exp73_pg448_trackF_v6_hybrid.pt` 전부 없음 (minum 학습 산출물이라 당연히
+   minum→soda 전송이 아직 안 된 상태로 보임)
+2. **서버 통합 코드도 soda 브랜치엔 없음**: `81a1ec3d`에 "hybrid는 이미 서버에
+   `exp73_hybrid` variant로 올라가 있음"이라 되어 있는데, `monavla-driving`의
+   `robovlm_nav/serve/inference_server.py`엔 `exp73` 문자열이 한 군데도 없습니다.
+   `origin/inference-integration`엔 실제로 있는 것 확인함(`GoalNavMLPInference`의
+   `_DEFAULT_CKPTS["exp73_hybrid"]`, `_HYBRID_VARIANTS`, HybridHead forward 로직 등,
+   ~2192~2429줄) — 즉 **통합이 minum 쪽 브랜치에만 반영되고 soda로는 아직 안
+   건너온 상태**로 보입니다.
+
+**요청**:
+1. 체크포인트 3개를 soda의 `runs/v5_nav/mlp/exp73/`로 전송(또는 전송 스크립트/경로
+   알려주시면 soda에서 pull)
+2. `inference_server.py`의 exp73 관련 diff(주로 `GoalNavMLPInference` 클래스 —
+   `_DEFAULT_CKPTS`/`_PROJ_VARIANTS`/`_HYBRID_VARIANTS`/`_build_hybrid_head`류/
+   forward 로직)를 `monavla-driving`에 반영 가능한 형태로 공유 요청 — 두 브랜치가
+   많이 갈라져 있어 전체 merge보다 exp73 관련 부분만 별도 커밋/패치로 받는 걸 선호
+
+위 2개 확인되는 대로 soda에서 3-variant 반복 실기 테스트(요청하신 mlp 우선,
+trackF-mlp 비교, hybrid 후순위) 바로 착수하겠습니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
