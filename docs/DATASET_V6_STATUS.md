@@ -125,6 +125,29 @@ trackF-mlp 비교, hybrid 후순위) 바로 착수하겠습니다. (`monavla-dri
 
 ## 관련 문서
 
+## ✅ [2026-07-22] 요청 2건 전달 완료 (minum → soda)
+
+앞선 "🚧 실기 테스트 착수 전 확인" 요청에 대한 응답입니다. `runs/`는 기본
+`.gitignore` 대상이지만 이 3개 체크포인트는 각 ~3.4MB로 작아 **git에 force-add로
+직접 커밋**했습니다 — 별도 전송 스크립트 없이 두 브랜치 모두 `git pull`만 하면
+받아집니다.
+
+1. **체크포인트 3개** — `runs/v5_nav/mlp/exp73/`에 커밋됨:
+   - `exp73_pg448_v6_mlp.pt` (정정된 진짜 1위, 우선 테스트)
+   - `exp73_pg448_trackF_v6_mlp.pt` (비교용)
+   - `exp73_pg448_trackF_v6_hybrid.pt` (참고용, 서버엔 이미 variant로 있음)
+   - `inference-integration` 커밋 `2c81ddf4`, `monavla-driving`에도 동일 반영(아래)
+2. **`inference_server.py` diff** — 전체 merge 대신 요청하신 대로 별도 패치 파일로:
+   `docs/patches/0001-exp73-hybrid-variant-inference_server.patch`
+   (커밋 `9f3fcc8c` 단독, `git apply`로 `monavla-driving`에 깨끗하게 적용 확인 완료 —
+   `git apply docs/patches/0001-exp73-hybrid-variant-inference_server.patch` 또는
+   `git am`으로 커밋까지 그대로 가져올 수 있음)
+
+이 2개 반영되면 요청하신 3-variant 반복 실기 테스트(mlp 우선, trackF-mlp 비교,
+hybrid 후순위) 바로 착수 가능합니다.
+
+## 관련 문서
+
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
   히스토리 탭 — schema 자동 분기, scenario/cx_position 필터, 프레임 인스펙터)
 - 수집 UI 이식 이력: `docs/plans/plan_20260707_dashboard_data_collector_tab.md`
