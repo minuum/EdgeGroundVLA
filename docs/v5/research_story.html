@@ -956,6 +956,14 @@
       본 학습 투자 전에 최소한의 근거를 확보했다. 단, 방향(L/R/F) 간 차이(1.4%p)는 객체유무 대비(basket/ball, 차이 ~6%p)보다 작아
       "방향성 instruction 구분력"은 추가 검증이 필요 — 전체 end-to-end 재학습보다는 grounding 단계에서만 instruction을 흘려보내는
       절충안(§Section H 이후 논의)이 더 안전한 다음 단계로 판단됨.
+      <br><br>
+      <strong style="color:#7dd3fc">2026-07-20 재현 확인</strong>: 위 spread(1.4%p)가 고정
+      이미지 1장의 우연이 아닌지, V6(트랙A+F, 15개 path_type — 극단cx 4곳 + center × 좌/직/우
+      곡선)의 각 대표 프레임으로 동일 측정을 반복(<code>scripts/measure_attention_pg2_v6.py</code>).
+      결과: 15개 path_type 평균 spread = <strong style="color:#e2e8f0">1.84%±1.07%p</strong>
+      (범위 0.29~3.74%p) — 기존 단일 프레임 값(1.40%p)과 같은 자릿수로 재현됨. "PG2가 방향
+      지시에 약하지만 실제로 반응한다"는 결론이 V6 전반에서 일관됨을 확인 — 다만 전체
+      end-to-end 재투자보다 grounding 절충안이 낫다는 기존 판단을 뒤집을 만큼 크지는 않음.
     </div>
   </div>
 </div>
