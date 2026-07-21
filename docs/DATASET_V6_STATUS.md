@@ -260,6 +260,25 @@ CPU 스모크 테스트(모델 로드+forward+reset)까지 확인함.
 위 2개 확인되는 대로 soda에서 3-variant 반복 실기 테스트(요청하신 mlp 우선,
 trackF-mlp 비교, hybrid 후순위) 바로 착수하겠습니다.
 
+## ✅ [2026-07-22] 요청 2건 전달 완료 (minum → soda)
+
+`runs/`는 기본 `.gitignore` 대상이지만 이 3개 체크포인트는 각 ~3.4MB로 작아
+**git에 force-add로 직접 커밋**했습니다 — 이 브랜치(`monavla-driving`)에도
+그대로 반영했으니 별도 전송 없이 바로 사용 가능합니다.
+
+1. **체크포인트 3개** — `runs/v5_nav/mlp/exp73/`에 커밋됨:
+   - `exp73_pg448_v6_mlp.pt` (정정된 진짜 1위, 우선 테스트)
+   - `exp73_pg448_trackF_v6_mlp.pt` (비교용)
+   - `exp73_pg448_trackF_v6_hybrid.pt` (참고용, 서버엔 이미 variant로 있음)
+2. **`inference_server.py` diff** — 전체 merge 대신 요청하신 대로 별도 패치 파일:
+   `docs/patches/0001-exp73-hybrid-variant-inference_server.patch`
+   (`git apply docs/patches/0001-exp73-hybrid-variant-inference_server.patch`로
+   이 브랜치에 바로 적용 가능 — 적용 테스트 완료. `git am`으로 커밋 메시지까지
+   그대로 가져올 수도 있음)
+
+이 2개 반영되면 요청하신 3-variant 반복 실기 테스트 바로 착수 가능합니다.
+(`inference-integration` `d586999e`에 동일 내용 기록됨)
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
