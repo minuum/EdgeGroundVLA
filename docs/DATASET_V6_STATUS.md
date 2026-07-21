@@ -161,6 +161,40 @@ exp73 hybrid 헤드 개발 중 raw 액션(lx,ly,az) 실측 스캔 결과:
 적용 여부만 판단**해주면 됨. 상세 배경:
 `docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md` §7.
 
+## 🎯 [2026-07-20] 실기(Jetson) 테스트 요청 정리 — 어떤 모델을, 왜
+
+지금까지 여러 헤드/버그 정정이 뒤섞여 혼란스러울 수 있어 **실기 테스트용으로
+확정된 요청만** 이 섹션에 정리합니다. 아래가 최신이고, 이전 섹션들은 그 과정
+기록(참고용)입니다.
+
+**테스트 요청 체크포인트**: `runs/v5_nav/mlp/exp73/exp73_pg448_v6_mlp.pt`
+(`VLA_GOALNAV_VARIANT`로 서버에 아직 안 올라가 있음 — hybrid만 variant로
+추가돼 있고 이 mlp는 별도 variant 추가가 필요. 요청 주시면 추가하겠습니다.)
+
+**왜 이 체크포인트인가**:
+- exp73 전체 ablation(트랙A 180ep, pg448/owl 그라운더 × mlp/cxgeom/transformer/
+  hybrid/chunk 헤드) 중 val split 버그 정정 후 진짜 held-out 33ep 기준 **closed-loop
+  Success@0.5m 60.6%로 최고**(CH63 63-11)
+- 다만 **⚠️ 아래 63-14 발견 때문에 이 60.6%도 "확정 1위"로 못 믿음** — 같은 seed로
+  재학습해도 33.3~60.6%로 결과가 크게 흔들림(GPU 비결정성 + val 33ep 소표본).
+  즉 **실기에서 한 번 돌려서 잘 나와도/안 나와도 "그 개별 결과"만으로 판단하면 안 됨**
+  — 이게 이번 요청의 핵심 포인트입니다.
+
+**실기 테스트 시 함께 확인 요청**:
+1. `exp73_pg448_v6_mlp.pt` 최소 2~3회 반복 주행(같은 코스) — 1회 결과만으로 판단
+   금지. offline/closed-loop 양쪽 다 노이즈가 커서, 실기도 반복해야 신뢰 가능.
+2. 가능하면 `exp73_pg448_trackF_v6_mlp.pt`(트랙F 포함 버전, closed-loop 48.5%로
+   더 낮게 나온 버전)와도 비교 — closed-loop에서 트랙F가 오히려 손해였다는
+   역설적 결론(63-11)이 실기에서도 재현되는지가 흥미로운 포인트.
+3. hybrid(`exp73_pg448_trackF_v6_hybrid.pt`, 서버에 이미 `exp73_hybrid` variant로
+   올라가 있음)는 우선순위 낮음 — closed-loop 39.4%로 mlp보다 낮게 정정됨.
+4. 트랙C(64ep) 물리 수집과 이 실기 테스트 중 무엇을 먼저 할지는 여전히 soda
+   판단에 맡김 — 다만 63-14(seed 분산 문제)를 보면 **표본을 늘리는 트랙C가
+   근본 해결책에 더 가까워 보임**.
+
+상세 배경 전부: `docs/v5/research_story.html` CH63 63-7/63-11/63-14,
+`docs/plans/plan_20260718_next_direction_hybrid_deploy.md`.
+
 ## ⚠️ [2026-07-19 정정] 아래 "hybrid 최종 1위(84.8%)" 수치 철회 — val split 버그
 
 바로 아래 2026-07-18 항목에서 전달한 "hybrid가 최종 1위(closed-loop 84.8%)"는
