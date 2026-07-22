@@ -1008,8 +1008,10 @@ class DashboardJoystickReader:
                         elif i == self.BTN_TOGGLE:
                             self.toggle_mode()
                         elif _joystick_verify_mode:
-                            # 🧪 경로검증 모드 배치 — 비상정지/스탑/추론시작 위주
-                            if i == self.BTN_TELEOP:
+                            # 🧪 경로검증 모드 배치 — 수집 모드와 뼈대 통일(2026-07-22):
+                            # L1=시작 / R1=좋게끝(성공) / X=나쁘게끝(실패) / SELECT=시작⇄정지
+                            # → 두 모드 손가락 위치 동일. B=주행 일시정지(검증 전용 예외).
+                            if i == self.BTN_REC_START:
                                 _joystick_drive_start()
                             elif i == self.BTN_UNDO:
                                 _joystick_drive_stop()
@@ -4218,7 +4220,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid-vfy" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
-              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증 모드: Y=추론시작 B=정지 SELECT=시작⇄정지 X=실패기록 R1=성공기록 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
+              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증 모드(수집과 키 통일): L1=추론시작 R1=성공기록 X=실패기록 SELECT=시작⇄정지 B=주행정지 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
@@ -5277,7 +5279,7 @@ L S R  C S L  R S L
                 <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
                   <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드 표시
                 </label>
-                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증 모드: Y=추론시작 B=정지 SELECT=시작⇄정지 X=실패기록 R1=성공기록 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
+                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증 모드(수집과 키 통일): L1=추론시작 R1=성공기록 X=실패기록 SELECT=시작⇄정지 B=주행정지 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
               <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
