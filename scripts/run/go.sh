@@ -142,6 +142,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
         VLA_PREVIEW_MAX_RETRY="${VLA_PREVIEW_MAX_RETRY:-5}" \
         VLA_PREVIEW_ROT_DIR="${VLA_PREVIEW_ROT_DIR:-R}" \
         VLA_PREVIEW_HINT_CX="${VLA_PREVIEW_HINT_CX:-1}" \
+        VLA_MULTI_PROMPT="${VLA_MULTI_PROMPT:-0}" \
         VLA_API_KEY="${VLA_API_KEY:-vla_devel_key_2026}" \
         VLA_GROUNDER="${VLA_GROUNDER:-pg2}" \
         VLA_OWLV2_THRESH="${VLA_OWLV2_THRESH:-0.25}" \
