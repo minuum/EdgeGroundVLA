@@ -1173,16 +1173,8 @@ _verify_screen_pos: str = "strong_left"       # D-pad ◀▶로 순환
 _verify_pending_result: Optional[str] = None  # "성공" | "실패" | None (X/A로 세팅)
 
 
-POS_DEFAULT_PATH_TYPES = {
-    "strong_left": "trackA_strong_left_straight",
-    "weak_left": "trackA_weak_left_straight",
-    "center": "trackF_center_straight",
-    "weak_right": "trackA_weak_right_straight",
-    "strong_right": "trackA_strong_right_straight",
-}
-
 def _verify_pos_to_path_type(pos: str) -> str:
-    return POS_DEFAULT_PATH_TYPES.get(pos, "trackF_center_straight")
+    return "trackF_center" if pos == "center" else f"trackA_{pos}"
 
 
 def _verify_cycle_pos(step: int):
@@ -4575,24 +4567,12 @@ L S R  C S L  R S L
                   <option value="dist_10cm">거리:10cm (dist_10cm)</option>
                   <option value="dist_20cm">거리:20cm (dist_20cm)</option>
                   <option value="dist_30cm">거리:30cm (dist_30cm)</option>
-                  <optgroup label="🎯 트랙A 극단배치 (V6)">
-                    <option value="trackA_weak_left_left_curve" selected>V6 준극단좌·좌곡선 (weak_left/left_curve)</option>
-                    <option value="trackA_weak_left_straight">V6 준극단좌·직진 (weak_left/straight)</option>
-                    <option value="trackA_weak_left_right_curve">V6 준극단좌·우곡선 (weak_left/right_curve)</option>
-                    <option value="trackA_weak_right_left_curve">V6 준극단우·좌곡선 (weak_right/left_curve)</option>
-                    <option value="trackA_weak_right_straight">V6 준극단우·직진 (weak_right/straight)</option>
-                    <option value="trackA_weak_right_right_curve">V6 준극단우·우곡선 (weak_right/right_curve)</option>
-                    <option value="trackA_strong_right_left_curve">V6 강극단우·좌곡선 (strong_right/left_curve)</option>
-                    <option value="trackA_strong_right_straight">V6 강극단우·직진 (strong_right/straight)</option>
-                    <option value="trackA_strong_right_right_curve">V6 강극단우·우곡선 (strong_right/right_curve)</option>
-                    <option value="trackA_strong_left_left_curve">V6 강극단좌·좌곡선 (strong_left/left_curve)</option>
-                    <option value="trackA_strong_left_straight">V6 강극단좌·직진 (strong_left/straight)</option>
-                    <option value="trackA_strong_left_right_curve">V6 강극단좌·우곡선 (strong_left/right_curve)</option>
-                  </optgroup>
-                  <optgroup label="● 트랙F 중앙 (V6)">
-                    <option value="trackF_center_left_curve">V6 중앙·좌곡선 (center/left_curve)</option>
-                    <option value="trackF_center_straight">V6 중앙·직진 (center/straight)</option>
-                    <option value="trackF_center_right_curve">V6 중앙·우곡선 (center/right_curve)</option>
+                  <optgroup label="🎯 V6 극단/중앙 배치 (위치 기준)">
+                    <option value="trackA_strong_left">V6 강극단좌 (strong_left)</option>
+                    <option value="trackA_weak_left">V6 약극단좌 (weak_left)</option>
+                    <option value="trackF_center" selected>V6 중앙 (center)</option>
+                    <option value="trackA_weak_right">V6 약극단우 (weak_right)</option>
+                    <option value="trackA_strong_right">V6 강극단우 (strong_right)</option>
                   </optgroup>
                 </select>
               </div>
@@ -5980,14 +5960,8 @@ L S R  C S L  R S L
             window._verifyScreenPos = s.verify_screen_pos;
             const sel = document.getElementById("ep-path-type");
             if (sel) {
-              let matchedOpt = null;
-              for (const opt of sel.options) {
-                if (verifyPosOf(opt.value) === s.verify_screen_pos) {
-                  if (!matchedOpt || opt.value.includes("straight")) matchedOpt = opt;
-                }
-              }
-              if (matchedOpt) sel.value = matchedOpt.value;
-              // 백엔드 _verify_current_path_type도 갱신 → L2 저장이 💾버튼과 같은 path_type 사용
+              const targetVal = (s.verify_screen_pos === "center") ? "trackF_center" : ("trackA_" + s.verify_screen_pos);
+              sel.value = targetVal;
               syncVerifyPathType(sel.value);
             }
             if (typeof drawOverlay === "function") drawOverlay();
