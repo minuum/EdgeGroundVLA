@@ -987,6 +987,9 @@ class DashboardJoystickReader:
 
                 self._prev_key = key
                 pressed_buttons = [i for i in range(js.get_numbuttons()) if js.get_button(i)]
+                _nax = js.get_numaxes()
+                _trig_l2_val = round(js.get_axis(self.TRIG_L2), 2) if 0 <= self.TRIG_L2 < _nax else None
+                _trig_r2_val = round(js.get_axis(self.TRIG_R2), 2) if 0 <= self.TRIG_R2 < _nax else None
                 self.status = {
                     "connected": True, "name": js.get_name(),
                     "enabled": self._enabled,
@@ -995,6 +998,8 @@ class DashboardJoystickReader:
                     "buttons": pressed_buttons, "last_btn": self._last_btn,
                     "hat": self._hat_prev, "last_hat_dir": self._last_hat_dir,
                     "btn_map": self._btn_map,
+                    "num_buttons": js.get_numbuttons(), "num_axes": _nax,
+                    "trig_l2_val": _trig_l2_val, "trig_r2_val": _trig_r2_val,
                     "verify_mode": _joystick_verify_mode,
                     "verify_screen_pos": _verify_screen_pos,
                     "verify_pending_result": _verify_pending_result,
