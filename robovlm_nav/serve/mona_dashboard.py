@@ -4220,6 +4220,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid-vfy" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
+              <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
+                <input type="checkbox" id="toggle-cxguide-vfy" onchange="drawOverlay()" style="accent-color:var(--amber)"> 배치가이드 표시
+              </label>
               <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증 모드(수집과 키 통일): L1=추론시작 R1=성공기록 X=실패기록 SELECT=시작⇄정지 B=주행정지 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
@@ -4310,6 +4313,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             
             <div id="vfy-progress-txt" style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-top:-8px;">
               경로검증 계산 중...
+            </div>
+
+            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개) -->
+            <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
+                <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">1차(빠른확인)</button>
+              </div>
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개. 조이스틱 R1(성공)/X(실패)로 자동 집계.</div>
+              <div id="vfy-screen-body">—</div>
             </div>
 
             <div class="table-wrapper" style="max-height:380px; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
@@ -4425,7 +4438,7 @@ L S R  C S L  R S L
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
               <div class="form-group" style="margin-bottom:0;">
                 <label>경로 구분 (path_type)</label>
-                <select id="ep-path-type" onchange="syncVerifyPathType(this.value)" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+                <select id="ep-path-type" onchange="syncVerifyPathType(this.value); drawOverlay();" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
                   <option value="right_right">R→R (right_right)</option>
                   <option value="right_left">R→L★ (right_left)</option>
                   <option value="right_straight">R→S (right_straight)</option>
@@ -7351,6 +7364,7 @@ L S R  C S L  R S L
         select.value = type;
       }
       syncVerifyPathType(type);
+      if (typeof drawOverlay === "function") drawOverlay();
     }
 
     // 조이스틱 경로검증 모드(X/R1 즉시기록)가 쓸 path_type을 서버에 동기화.
@@ -7382,6 +7396,70 @@ L S R  C S L  R S L
         btn.style.borderColor = joystickVerifyMode ? "var(--amber)" : "";
         btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
       });
+    }
+
+    // ── 🎯 추론 검증 스크리닝 패널 (데이터셋 목표와 별개) ──
+    // 바구니 위치별 목표: 1차(빠른확인) vs 확정(논문용). episode_log의 trackA_/trackF_
+    // path_type을 "위치"로 버킷팅해서 집계 — 경로(곡선방향)는 무시하고 cx 위치만.
+    const SCREEN_POSITIONS = [
+      {pos: "strong_left",  label: "강좌", icon: "◀◀", fg: "var(--cyan)"},
+      {pos: "weak_left",    label: "약좌", icon: "◀",   fg: "var(--cyan)"},
+      {pos: "center",       label: "중앙", icon: "●",   fg: "#3fb950"},
+      {pos: "weak_right",   label: "약우", icon: "▶",   fg: "var(--amber)"},
+      {pos: "strong_right", label: "강우", icon: "▶▶", fg: "var(--amber)"},
+    ];
+    const SCREEN_TARGETS = {
+      "1차":  {strong_left:5, weak_left:3, center:3, weak_right:3, strong_right:5},
+      "확정": {strong_left:15, weak_left:10, center:5, weak_right:10, strong_right:15},
+    };
+    let screenTargetMode = "1차";
+
+    function verifyPosOf(pt) {
+      // "trackA_strong_left_left_curve" → "strong_left", "trackF_center_straight" → "center"
+      if (!pt) return null;
+      let s = String(pt);
+      if (!s.startsWith("trackA_") && !s.startsWith("trackF_")) return null;
+      s = s.replace(/^track[AF]_/, "").replace(/_(left_curve|straight|right_curve)$/, "");
+      return s;
+    }
+
+    function toggleScreenTarget() {
+      screenTargetMode = (screenTargetMode === "1차") ? "확정" : "1차";
+      const btn = document.getElementById("vfy-screen-toggle");
+      if (btn) btn.textContent = screenTargetMode === "1차" ? "1차(빠른확인)" : "확정(논문용)";
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    function renderScreenPanel(rows) {
+      window._lastVfyRows = rows;
+      const tgt = SCREEN_TARGETS[screenTargetMode];
+      const done = {}, succ = {};
+      SCREEN_POSITIONS.forEach(p => { done[p.pos] = 0; succ[p.pos] = 0; });
+      (rows || []).forEach(r => {
+        if (r.length < 3) return;
+        const pos = verifyPosOf(String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim());
+        if (pos && done[pos] !== undefined) {
+          done[pos] += 1;
+          if (r[2] === "성공") succ[pos] += 1;
+        }
+      });
+      let totDone = 0, totTgt = 0, totSucc = 0;
+      const rowsHtml = SCREEN_POSITIONS.map(p => {
+        const d = done[p.pos], s = succ[p.pos], t = tgt[p.pos];
+        totDone += d; totTgt += t; totSucc += s;
+        const pct = Math.min(100, (d / t) * 100);
+        const doneColor = d >= t ? "#3fb950" : "var(--text-muted)";
+        return `<div style="display:grid; grid-template-columns:52px 1fr 62px; align-items:center; gap:6px; font-size:11px; padding:2px 0;">
+          <span><span style="color:${p.fg}">${p.icon}</span> ${p.label}</span>
+          <div style="background:#21262d; height:6px; border-radius:3px; overflow:hidden;">
+            <div style="width:${pct.toFixed(0)}%; height:100%; background:${p.fg}; border-radius:3px;"></div>
+          </div>
+          <span style="text-align:right; font-family:var(--font-mono); color:${doneColor}">${d}/${t} <span style="color:#3fb950">✓${s}</span></span>
+        </div>`;
+      }).join("");
+      const body = document.getElementById("vfy-screen-body");
+      if (body) body.innerHTML = rowsHtml +
+        `<div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:6px; padding-top:4px; font-size:10px; color:var(--text-muted); text-align:right;">합계 ${totDone}/${totTgt} · 방향성공 ${totSucc}</div>`;
     }
 
     // ── 트랙A/트랙F 극단배치+중앙(V6) 퀵라벨 버튼 — Tab4/Tab6 공용 렌더러.
@@ -7858,7 +7936,9 @@ L S R  C S L  R S L
         위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공) |
         트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공)
       `;
-      
+
+      renderScreenPanel(rows);
+
       let tblHtml = "";
       PATH_GROUPS.forEach(group => {
         const header = group[0];
@@ -8310,6 +8390,12 @@ L S R  C S L  R S L
       if (cvVfy) {
         const ctxVfy = cvVfy.getContext("2d");
         ctxVfy.clearRect(0, 0, cvVfy.width, cvVfy.height);
+        const guideVfy = document.getElementById("toggle-cxguide-vfy");
+        if (guideVfy && guideVfy.checked) {
+          // 데이터수집과 동일한 cx 배치가이드 밴드 재사용 + 현재 선택 위치 강조
+          _collectDrawCxGuideBands(ctxVfy, cvVfy.width, cvVfy.height);
+          _drawVerifyTargetHighlight(ctxVfy, cvVfy.width, cvVfy.height);
+        }
         const showGridVfy = document.getElementById("toggle-grid-vfy").checked;
         if (showGridVfy) {
           drawGridLines(ctxVfy, cvVfy.width, cvVfy.height);
@@ -8318,6 +8404,36 @@ L S R  C S L  R S L
           drawBbox(ctxVfy, state.bbox, cvVfy.width, cvVfy.height);
         }
       }
+    }
+
+    // 현재 Tab4에서 선택된 path_type의 위치를 카메라 위에 강하게 강조 —
+    // "지금 이 검증에서 바구니를 여기 놓아라"를 시각적으로 표시.
+    const VERIFY_TARGET_BANDS = {
+      strong_left:  {lo: 0.10, hi: 0.15, label: "강한좌 여기", color: "#f43f5e"},
+      weak_left:    {lo: 0.20, hi: 0.25, label: "준극단좌 여기", color: "#f59e0b"},
+      center:       {lo: 0.475, hi: 0.525, label: "중앙 여기", color: "#3fb950"},
+      weak_right:   {lo: 0.75, hi: 0.80, label: "준극단우 여기", color: "#f59e0b"},
+      strong_right: {lo: 0.85, hi: 0.90, label: "강한우 여기", color: "#f43f5e"},
+    };
+    function _drawVerifyTargetHighlight(ctx, W, H) {
+      const sel = document.getElementById("ep-path-type");
+      if (!sel) return;
+      const pos = verifyPosOf(sel.value);
+      const b = pos && VERIFY_TARGET_BANDS[pos];
+      if (!b) return;
+      const x0 = b.lo * W, x1 = b.hi * W;
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(x0, 0, x1 - x0, H);
+      ctx.restore();
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x0, 0, x1 - x0, H);
+      ctx.fillStyle = b.color;
+      ctx.textAlign = "center";
+      ctx.font = "bold 20px monospace";
+      ctx.fillText("🎯 " + b.label, (x0 + x1) / 2, H / 2);
     }
 
     function drawGridLines(ctx, W, H) {
