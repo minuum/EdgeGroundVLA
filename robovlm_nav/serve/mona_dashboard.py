@@ -4367,6 +4367,7 @@ L S R  C S L  R S L
               </summary>
               <div style="margin-top:8px; cursor:default;">
                 <div id="vfy-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+                <div id="vfy-js-caption" style="font-size:15px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:10px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
                 <table style="width:100%; border-collapse:collapse; font-size:10px; line-height:1.5;">
                   <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td style="color:#f43f5e;">🚨 비상정지</td>
                       <td style="padding:1px 4px;"><b>L1</b>(4)</td><td style="color:#3fb950;">▶ 추론 시작</td></tr>
@@ -5881,6 +5882,7 @@ L S R  C S L  R S L
             wrap.appendChild(d); wrap.appendChild(nm); vfyLights.appendChild(wrap);
           }
         }
+        let vfyActive = null;
         for (let i = 0; i < n2; i++) {
           const d = document.getElementById("vfy-js-light-" + i);
           const nm = document.getElementById("vfy-js-name-" + i);
@@ -5889,6 +5891,23 @@ L S R  C S L  R S L
           d.classList.toggle("active", isP);
           d.classList.toggle("last", s.last_btn === i);
           if (nm) { nm.classList.toggle("active", isP); nm.textContent = btnInfo2(i).name; }
+          if (isP) vfyActive = btnInfo2(i);
+        }
+        // 지금 눌린 버튼을 크게 표시 — 현재 모드(검증/수집)에 맞는 의미로
+        const vfyCap = document.getElementById("vfy-js-caption");
+        if (vfyCap) {
+          if (vfyActive) {
+            const meaning = s.verify_mode
+              ? (VERIFY_BTN_MEANING[vfyActive.name] || vfyActive.desc || "—")
+              : (vfyActive.desc || "—");
+            vfyCap.textContent = `${vfyActive.name} — ${meaning}`;
+            vfyCap.style.color = "var(--emerald)";
+            vfyCap.style.borderColor = "var(--emerald)";
+          } else {
+            vfyCap.textContent = "대기 중 — 버튼/D-pad를 누르면 여기 크게 표시";
+            vfyCap.style.color = "var(--text-muted)";
+            vfyCap.style.borderColor = "var(--border-glow)";
+          }
         }
       }
 
@@ -7458,6 +7477,13 @@ L S R  C S L  R S L
         btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
       });
     }
+
+    // 검증모드 버튼 의미 — 서버 btn_map name(STOP/UNDO/DISCARD/Y/L1/R1/SEL/START/R2) 기준
+    const VERIFY_BTN_MEANING = {
+      "STOP": "🚨 비상정지", "L1": "▶ 추론 시작", "R1": "✅ 성공 기록",
+      "DISCARD": "❌ 실패 기록", "UNDO": "⏹ 주행 정지", "SEL": "🔁 시작⇄정지",
+      "START": "⚙ SYNC↔ASYNC", "R2": "↩ 복귀", "Y": "미사용",
+    };
 
     // ── 🎯 추론 검증 스크리닝 패널 (데이터셋 목표와 별개) ──
     // 바구니 위치별 목표: 1차(빠른확인) vs 확정(논문용). episode_log의 trackA_/trackF_
