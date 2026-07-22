@@ -14935,27 +14935,81 @@ graph TD
     </div>
   </div>
 
-  <div class="finding-card">
-    <div class="finding-title">63-7. 결론 및 다음 단계 <span style="color:#f87171;font-size:0.8rem">[2026-07-19 정정]</span></div>
+  <div class="finding-card" style="background:linear-gradient(135deg,#2a0a0a,#1a0505);border-color:#ef4444">
+    <div class="finding-title" style="color:#f87171">🚨 63-15. [재정정] 63-14 분산의 진짜 원인 발견 — CACHE_V6 재빌드로 "v6" arm이 트랙F를 몰래 포함, 60.6%는 OOD 오염 착시였음 (2026-07-22)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      <span style="color:#f87171">⚠️ 아래는 63-11에서 정정된 결론(원래 hybrid 최종 1위였던
-      버전은 val split 버그로 무효).</span><br><br>
-      <strong style="color:#e2e8f0">최종 추천: mlp 헤드, pg448+트랙A(180ep, 트랙F 제외)
-      구성</strong> — closed-loop Success@0.5m <strong style="color:#4ade80">60.6%</strong>
-      (FPE 0.825m)로 진짜 held-out 기준 최고. hybrid(39.4%)·pg448_trackF/mlp(48.5%)
-      모두 이보다 낮음 — **트랙F(center) 추가와 hybrid 헤드 둘 다 closed-loop
-      일반화에는 오히려 손해**였다는 게 정정된 결론(63-11). exp11(0%)·step2(66.7%,
-      CH62)와 비교하면 step2가 여전히 근소 우위 — decomposition 접근의 우위가
-      재확인됨. 배포 중인 transformer는 이 ablation에서 반복적으로 최하위권(12~30%
-      success) — 교체 검토는 유효하되 mlp가 새 후보.<br><br>
-      <strong style="color:#fbbf24">즉시 조치</strong>: 이 세션에서 진행했던 "추론 서버에
-      exp73_hybrid variant 통합"(B)은 잘못된 승자 기준 선택 — variant 확장 메커니즘
-      자체는 재사용하되, 실제 서버에 태울 체크포인트는 hybrid가 아니라
-      <code>exp73_pg448_v6_mlp.pt</code>로 교체 검토 필요. soda에 전달했던 "hybrid
-      최종 1위" 메시지도 정정 동기화 완료(monavla-driving).<br><br>
-      트랙C(64ep, 오버슈트→재수렴) 물리 수집 완료 후 재학습 시 **반드시 이 정정된
-      val_split(<code>np.random.default_rng</code>)로 평가할 것** — 재발 방지를 위해
-      두 스크립트의 split 로직을 단일 유틸로 통합하는 게 안전(§D 재학습 런북 갱신 예정).
+      63-14에서 "60.6%는 낙관적 표본"이라 정리했지만, 실제 원인은 GPU 비결정성이 아니라
+      <strong style="color:#e2e8f0">데이터 조건 자체가 달랐던 것</strong>으로 확인됨.
+      학습 로그를 대조한 결과:
+      <br><br>
+      <ul style="margin:0 0 0 20px;padding:0">
+        <li><code>exp73_train_pg448.log</code>(champion, "pg448/v6" 원본): <code>encoded N/<strong>180</strong></code> — 트랙A 180ep만으로 학습</li>
+        <li><code>exp73_train_trackF_pg448.log</code>("pg448_trackF/v6"): <code>encoded N/<strong>225</strong></code> — 트랙A+F 225ep로 학습</li>
+      </ul>
+      <br>
+      즉 <code>CACHE_V6</code>(<code>exp73_v6_vis_cache.pt</code>) 파일이 트랙F 수집 이후
+      **180ep → 225ep로 덮어써졌고**, 코드의 <code>arm="v6"</code>는 "현재 캐시 전체"를
+      의미할 뿐 "트랙A만"을 뜻하지 않음. 그 결과 <strong style="color:#e2e8f0">closed-loop
+      재평가(및 63-14의 seed 재학습) 모두 225ep 풀에서 val 33ep를 뽑았는데, 그 중
+      7개(21%)가 center_*(트랙F) 에피소드</strong> — champion 체크포인트(180ep 학습, 트랙F를
+      단 한 프레임도 본 적 없음)에게는 완전히 분포 밖(OOD) 데이터로 평가된 것.
+      <br><br>
+      <code>train_exp73_trackA_heads.py</code>/<code>evaluate_closed_loop_exp73.py</code>에
+      <code>--exclude-trackf</code> 플래그를 추가해(center_* 필터링 후 분할) 원래 조건(180ep)을
+      재현, champion 체크포인트를 **올바른 180ep-only val(27ep)**로 재평가:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">체크포인트</th><th style="padding:4px">평가 조건</th><th style="padding:4px">Success@0.5m</th></tr>
+        <tr style="background:rgba(248,113,113,0.08)"><td style="padding:4px">champion(=seed0, 180ep 학습)</td><td style="padding:4px;text-align:center">225ep val(오염, 기존)</td><td style="padding:4px;text-align:center;color:#f87171">60.6% (착시)</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>champion(=seed0), 재평가</strong></td><td style="padding:4px;text-align:center">180ep val(정정, 27ep)</td><td style="padding:4px;text-align:center"><strong>25.9%</strong></td></tr>
+        <tr><td style="padding:4px">seed1 (180ep 재학습)</td><td style="padding:4px;text-align:center">180ep val(정정)</td><td style="padding:4px;text-align:center">33.3%</td></tr>
+        <tr><td style="padding:4px">seed2 (180ep 재학습)</td><td style="padding:4px;text-align:center">180ep val(정정)</td><td style="padding:4px;text-align:center">33.3%</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>pg448_trackF/v6/mlp(225ep 학습·평가, 내적 일관)</strong></td><td style="padding:4px;text-align:center">225ep val(정합)</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>48.5%</strong></td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">뒤집힌 결론(2회차)</strong>:
+      (1) champion(180ep-only)의 진짜 성능은 25.9~33.3%(seed 재현성은 오히려 양호,
+      GPU 비결정성 기여는 크지 않음) — 60.6%는 순전히 OOD 오염 착시였음.
+      (2) <strong style="color:#f87171">63-11의 "트랙F 추가가 closed-loop를 오히려
+      낮췄다"는 결론도 이 착시 위에 세워진 것 — apples-to-apples로 다시 보면
+      트랙F 포함 학습(48.5%)이 트랙A-only(25.9~33.3%)보다 확실히 낫다</strong>. 트랙F(center)
+      데이터가 실제로는 일반화에 도움이 됐는데, 오염된 비교 때문에 정반대로 결론 내렸던 것.
+      <br><br>
+      <strong style="color:#fbbf24">최종(3회차) 정정: 배포 후보는 pg448_trackF/v6/mlp
+      (225ep, Success 48.5%)</strong> — 지금까지 나온 exp73 전 조합 중 apples-to-apples로
+      검증된 진짜 최고 수치. hybrid(39.4%, 동일 225ep 조건)보다도 우위 유지.
+      <br><br>
+      <strong style="color:#e2e8f0">교훈</strong>: 공유 캐시 파일(<code>CACHE_V6</code>)을
+      실험 중간에 덮어쓰면, "같은 arm 이름"이 시점에 따라 다른 데이터를 가리키게 되어
+      재현성이 통째로 깨진다 — 데이터 버전을 코드가 아니라 사람이 암묵적으로 관리하고
+      있었던 게 근본 원인. 향후 캐시 파일은 버전 접미사(예: <code>_180ep</code>,
+      <code>_225ep</code>)를 붙여 불변으로 관리 권장.
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">63-7. 결론 및 다음 단계 <span style="color:#f87171;font-size:0.8rem">[2026-07-22 재정정 — 3회차]</span></div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <span style="color:#f87171">⚠️ 이 카드는 두 번 정정됐다. 63-11(val split 버그) →
+      63-14(60.6%가 낙관적 표본이라 오판) → <strong>63-15(진짜 원인은 CACHE_V6 재빌드로
+      인한 OOD 오염 — 60.6% 자체가 통째로 무효, 진짜는 25.9~33.3%)</strong>가 최신·최종.</span><br><br>
+      <strong style="color:#e2e8f0">최종 추천(3회차): mlp 헤드, pg448+트랙F(225ep) 구성</strong>
+      — closed-loop Success@0.5m <strong style="color:#4ade80">48.5%</strong>(내적 일관 조건,
+      학습·평가 데이터 정합 확인됨)로 apples-to-apples 검증된 진짜 최고. 트랙A-only(180ep) 버전은
+      25.9~33.3%로 오히려 더 낮음 — <strong style="color:#e2e8f0">63-11의 "트랙F가 손해"
+      결론은 정반대로 뒤집힘(트랙F가 실제로는 도움)</strong>. hybrid(39.4%, 동일 225ep 조건)도
+      여전히 mlp보다 낮음. exp11(0%)·step2(66.7%, CH62)와 비교하면 step2가 여전히
+      근소 우위. transformer는 전 조합에서 반복적으로 최하위권(12~30%) — 결론 유지.<br><br>
+      <strong style="color:#fbbf24">즉시 조치(정정 2회)</strong>: "추론 서버에 exp73_hybrid
+      variant 통합"(B)과 soda에 전달했던 "우선 테스트 체크포인트" 요청 <strong
+      style="color:#f87171">둘 다 잘못된 대상(exp73_pg448_v6_mlp.pt, 180ep-only)을
+      가리키고 있었음</strong> — 올바른 우선 후보는 <code>exp73_pg448_trackF_v6_mlp.pt</code>
+      (225ep, 48.5%). soda에 재정정 동기화 필요(§DoD).<br><br>
+      <strong style="color:#e2e8f0">근본 재발 방지책</strong>: (1) val_split은
+      <code>np.random.default_rng</code>로 통일(63-11), (2) 공유 캐시 파일(<code>CACHE_V6</code>)
+      덮어쓰기로 인한 arm 의미 변질 방지를 위해 <code>--exclude-trackf</code> 플래그로 트랙A-only
+      조건을 코드 레벨에서 재현 가능하게 함(63-15) — 두 가지 모두 트랙C(289ep) 재학습 시
+      §D 런북에 반영 완료.
       az가 진짜 연속 신호임이 확인됐으므로, 향후 수집에서도 lx/ly는 현재 방식(고정
       8방향)을 유지하되 az만큼은 연속 값 보존이 유지되도록 soda 쪽에 확인 요청함
       (§DoD 참고) — 이 부분은 정정과 무관하게 유효.

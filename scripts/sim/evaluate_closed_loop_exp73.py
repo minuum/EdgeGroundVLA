@@ -161,12 +161,20 @@ def main():
                      help="hybrid_combine의 STOP→ROT 전환 임계값 (az_norm*1.15 단위, rad/s)")
     ap.add_argument("--smooth-window", type=int, default=1,
                      help="mlp/cxgeom/transformer 전용: 인과적(과거만) softmax 이동평균 윈도우 크기 (1=미적용)")
+    ap.add_argument("--exclude-trackf", action="store_true",
+                     help="트랙F(center_*, 45ep) 제외 — train_exp73_trackA_heads.py의 동일 플래그로 "
+                          "학습된 체크포인트(트랙A-only 180ep 조건) 평가 시 반드시 함께 사용할 것. "
+                          "안 그러면 그 체크포인트가 전혀 본 적 없는 center_* 프레임이 val에 섞여 OOD 평가가 됨.")
     args = ap.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[LOAD] cache {args.cache}", flush=True)
     eps = torch.load(args.cache, weights_only=False)
     eps = [e for e in eps if e.get("acts") is not None]  # V6만 (raw action 있는 것)
+    if args.exclude_trackf:
+        before = len(eps)
+        eps = [e for e in eps if not e["path_type"].startswith("center")]
+        print(f"  [FILTER] --exclude-trackf: {before}ep → {len(eps)}ep", flush=True)
     val_eps = val_split(eps)
     print(f"  전체 {len(eps)}ep, val {len(val_eps)}ep", flush=True)
 
@@ -211,6 +219,8 @@ def main():
         suffix = f"_az{args.az_mode}_thr{args.az_thresh}"
     if args.smooth_window > 1:
         suffix += f"_smooth{args.smooth_window}"
+    if args.exclude_trackf:
+        suffix += "_notrackf"
     out = OUT_DIR / f"exp73_closed_loop_{Path(args.ckpt).stem}{suffix}.json"
     out.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
     print(f"\n=== exp73 {args.head} closed-loop (az_mode={args.az_mode}, az_thresh={args.az_thresh}) ===")

@@ -606,6 +606,11 @@ def main():
                     help="V6 주석 json — owl ablation 시 bbox_dataset_v6_owl.json 지정")
     ap.add_argument("--tag", default="pg448",
                     help="결과/체크포인트 접미사 (그라운더 구분)")
+    ap.add_argument("--exclude-trackf", action="store_true",
+                    help="트랙F(center_*, 45ep) 제외하고 트랙A(180ep)만 사용 — CACHE_V6가 "
+                         "225ep로 덮어써진 뒤에도 원래 'v6'(트랙A only) 조건을 재현하기 위함. "
+                         "2026-07-22: CACHE_V6 파일이 180ep→225ep로 재빌드되면서 'arm=v6'가 "
+                         "더 이상 트랙A만을 의미하지 않게 된 버그 발견 후 추가.")
     args = ap.parse_args()
 
     # V6 캐시 (vis는 그라운더와 무관 — 최초 1회만 인코딩)
@@ -633,6 +638,11 @@ def main():
         print(f"[ANN] bbox 교체({args.tag}): {replaced}/{len(v6_eps)}ep")
     v5_eps = torch.load(str(CACHE_V5), weights_only=False)
     print(f"[CACHE] V5 레거시 캐시: {len(v5_eps)}ep")
+
+    if args.exclude_trackf:
+        before = len(v6_eps)
+        v6_eps = [ep for ep in v6_eps if not ep["path_type"].startswith("center")]
+        print(f"[FILTER] --exclude-trackf: {before}ep → {len(v6_eps)}ep (트랙A only)")
 
     # V6 split (고정) — 두 arm 공통 val
     rng = np.random.default_rng(SPLIT_SEED)
