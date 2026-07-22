@@ -62,6 +62,8 @@ except ImportError:
 # ── 환경 변수 ─────────────────────────────────────────────────────
 INFER_URL  = os.getenv("VLA_API_SERVER", "http://localhost:8001")
 API_KEY    = os.getenv("VLA_API_KEY",    "vla_devel_key_2026")
+# exp73 GoalNav 전용 서버(inference_server.py, VLA_GOALNAV_ONLY=1) — stage2_v2(8001)와 별개 프로세스.
+GOALNAV_URL = os.getenv("VLA_GOALNAV_SERVER", "http://localhost:8000")
 SODA_IP    = os.getenv("SODA_IP",        "100.85.118.58")
 DRIVE_PORT = int(os.getenv("DRIVE_PORT", "7800"))
 
@@ -1105,6 +1107,7 @@ _state: dict[str, Any] = {
 
 _stop_ev   = threading.Event()
 _async_q: collections.deque = collections.deque(maxlen=2)
+_goalnav_q: collections.deque = collections.deque(maxlen=2)
 _drift_log_file = None
 
 
@@ -1155,12 +1158,32 @@ def _warn_if_duplicate_process():
 
 
 # ─── 유틸 ─────────────────────────────────────────────────────────
-def _infer_post(path: str, payload: dict, timeout=15) -> dict:
+def _infer_post(path: str, payload: dict, timeout=15, base_url: str = INFER_URL) -> dict:
     import requests as rq
-    r = rq.post(f"{INFER_URL}{path}", json=payload,
+    r = rq.post(f"{base_url}{path}", json=payload,
                 headers={"X-API-Key": API_KEY}, timeout=timeout)
     r.raise_for_status()
     return r.json()
+
+
+# ── exp73 GoalNav 전용: PG2(PaliGemma2-448) 그라운더 재사용 ──
+# stage2_v2_inference_server.py의 PG2Grounder를 그대로 import — exp73 학습
+# 라벨(gen_pg448_annotation.py)과 동일 코드 경로 보장(재구현 금지, 2026-07-22 결정).
+# 단, 라이브 PG2Grounder는 학습 annotation에 없던 x-full-width 필터가 추가돼 있어
+# (stage2_v2_inference_server.py:602) 학습 분포와 미세하게 다를 수 있음 — 실기에서
+# 이상 탐지(has_bbox=False 과다 등)가 잦으면 이 필터 비활성화를 디버깅 옵션으로 고려.
+_pg2_grounder = None
+
+
+def _get_pg2_grounder():
+    global _pg2_grounder
+    if _pg2_grounder is None:
+        import torch
+        from robovlm_nav.serve.stage2_v2_inference_server import PG2Grounder, DEFAULT_PG2
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        _pg2_grounder = PG2Grounder(DEFAULT_PG2, device)
+        log.info(f"[GoalNav] PG2Grounder 준비(lazy load): {DEFAULT_PG2}")
+    return _pg2_grounder
 
 
 def _append_history(step, result):
@@ -1405,6 +1428,95 @@ def _async_exec():
 
 
 # ═══════════════════════════════════════════════════════════════════
+# exp73 GoalNav 전용 드라이빙 루프 (PG2Grounder 재사용 + inference_server.py
+# /goalnav/predict, 8000포트 — stage2_v2/8001과는 별개 프로세스/모델)
+# ═══════════════════════════════════════════════════════════════════
+def _goalnav_infer(phrase: str, apply_cc: bool, logger):
+    step = 0
+    _reset_ok = False
+    for _attempt in range(2):
+        try:
+            _infer_post("/goalnav/reset", {}, timeout=5, base_url=GOALNAV_URL)
+            _reset_ok = True
+            break
+        except Exception as _e:
+            print(f"⚠️ [GOALNAV] /goalnav/reset 실패 (attempt {_attempt+1}/2): {_e}")
+    if not _reset_ok:
+        _state["status_log"] = "⚠️ /goalnav/reset 실패 — 이전 세션 bbox/vision 캐시가 남아있을 수 있음"
+
+    grounder = _get_pg2_grounder()
+
+    while not _stop_ev.is_set() and _state["running"]:
+        bgr = _ros.latest_bgr()
+        if bgr is None: time.sleep(0.05); continue
+
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(rgb)
+        if apply_cc: img = _correct(img); rgb = np.array(img)
+
+        try:
+            bbox = grounder.run(rgb, phrase=phrase)
+        except Exception as e:
+            log.warning(f"[GOALNAV grounding] {e}"); continue
+
+        buf = io.BytesIO(); img.save(buf, "JPEG", quality=80)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+
+        try:
+            res = _infer_post("/goalnav/predict", {
+                "image": b64,
+                "bbox_cx": bbox["cx"], "bbox_cy": bbox["cy"],
+                "bbox_area": bbox["area"], "has_bbox": bbox["has_bbox"],
+                "update_vision": True,
+            }, base_url=GOALNAV_URL)
+        except Exception as e:
+            log.warning(f"[GOALNAV infer] {e}"); continue
+
+        step += 1
+        _state["step"]          = step
+        _state["predicted_label"] = res.get("class_name")
+        _state["latency_ms"]    = res.get("latency_ms", 0)
+        _state["bbox"]          = bbox
+        _goalnav_q.append(res)
+        _append_history(step, {**res, "bbox": bbox})
+
+        if _state["calib_recording"]:
+            _record_calib_frame(img, {**res, "bbox": bbox})
+
+        action = res.get("action", {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0})
+        action_arr = [action.get("linear_x", 0.0), action.get("linear_y", 0.0), action.get("angular_z", 0.0)]
+        logger.log_step(step, np.array(action_arr), res.get("latency_ms", 0),
+                        image=img, predicted_label=res.get("class_name"),
+                        bbox=bbox)
+
+        if res.get("class_idx") == 0 and step > 1:
+            # STOP 예측 — GoalNav 자체 도착규칙(_arrival_stop)이 서버 내부에서 래치하므로
+            # 여기선 그냥 계속 진행(다음 스텝도 STOP 유지될 것). 별도 종료 처리 없음
+            # (stage2_v2의 goal_near 플래그 같은 명시적 "도달" 신호가 이 엔드포인트엔 없음).
+            pass
+
+
+def _goalnav_exec():
+    lx = ly = az = 0.0
+    last_upd = time.time()
+    COAST = 1.2
+    while not _stop_ev.is_set() and _state["running"]:
+        if _goalnav_q:
+            res = _goalnav_q.popleft()
+            action = res.get("action", {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0})
+            lx, ly, az = float(action.get("linear_x", 0.0)), float(action.get("linear_y", 0.0)), float(action.get("angular_z", 0.0))
+            last_upd = time.time()
+            _state["last_action"] = [lx, ly, az]
+            _state["action_history"].append([lx, ly, az])
+        if time.time() - last_upd > COAST:
+            lx = ly = az = 0.0
+        msg = _ros.ctrl.publish_and_move(lx, ly, az, source="goalnav_exec")
+        _state["status_log"] = msg
+        time.sleep(0.1)
+    _ros.ctrl.robust_stop(source="goalnav_end")
+
+
+# ═══════════════════════════════════════════════════════════════════
 # 시작위치로 복귀 실행 루프
 # ═══════════════════════════════════════════════════════════════════
 def _return_loop():
@@ -1632,11 +1744,27 @@ def drive_start(req: DriveReq):
                   run_history=[], action_history=[], last_action=[0.0,0.0,0.0])
     _stop_ev.clear()
     _async_q.clear()
+    _goalnav_q.clear()
 
     if req.mode in ("SYNC", "PRE"):
         threading.Thread(target=_loop_sync,
                          args=(req.mode, req.instruction, req.gt_object, req.apply_cc),
                          daemon=True, name="drive-sync").start()
+    elif req.mode == "GOALNAV":
+        from scripts.inference_logger import get_logger
+        logger = get_logger()
+        logger.start_session("goalnav_exp73", req.instruction, instruction_mode="GOALNAV")
+        if req.gt_object: logger.data["gt_object"] = req.gt_object
+        logger.data["apply_cc"] = req.apply_cc
+        logger.data["runtime_config"] = _snapshot_runtime_config()
+        _state["session_id"] = logger.session_id
+
+        phrase = req.gt_object or "gray basket"
+        threading.Thread(target=_goalnav_infer,
+                         args=(phrase, req.apply_cc, logger),
+                         daemon=True, name="goalnav-infer").start()
+        threading.Thread(target=_goalnav_exec,
+                         daemon=True, name="goalnav-exec").start()
     else:
         from scripts.inference_logger import get_logger
         logger = get_logger()
@@ -3781,9 +3909,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                   <option value="ASYNC">ASYNC (연속 비차단)</option>
                   <option value="SYNC" selected>SYNC (안정화 대기 1.92s)</option>
                   <option value="PRE">PRE (격리회전 탐색 루프)</option>
+                  <option value="GOALNAV">🎯 GOALNAV (exp73, 포트 8000)</option>
                 </select>
               </div>
-              
+
               <div class="chk-row" style="display:flex;align-items:center;gap:10px;margin:20px 0;">
                 <input type="checkbox" id="drive-cc" style="width:18px;height:18px;accent-color:var(--cyan);">
                 <label for="drive-cc" style="margin:0;font-size:14px;cursor:pointer;">화이트 밸런스 컬러 보정 적용</label>
@@ -4173,6 +4302,7 @@ L S R  C S L  R S L
                     <option value="ASYNC">ASYNC (연속 비차단)</option>
                     <option value="SYNC" selected>SYNC (안정화 대기 1.92s)</option>
                     <option value="PRE">PRE (격리회전 탐색 루프)</option>
+                    <option value="GOALNAV">🎯 GOALNAV (exp73, 포트 8000)</option>
                   </select>
                 </div>
                 <div class="chk-row" style="display:flex;align-items:center;gap:8px;">
