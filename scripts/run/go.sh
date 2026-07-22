@@ -138,7 +138,7 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
     # 문제가 있었음(2026-07-02) — 덮어쓰기 전에 타임스탬프 붙여 보관
     [[ -f logs/s2v2_server.log ]] && mv logs/s2v2_server.log "logs/s2v2_server.$(date +%Y%m%d_%H%M%S).log"
     nohup env VLA_S2V2_STAGE2="$ACTION_PT" VLA_STOP_MODE="${VLA_STOP_MODE:-proximity}" \
-        VLA_PREVIEW_ENABLED="${VLA_PREVIEW_ENABLED:-1}" \
+        VLA_PREVIEW_ENABLED="${VLA_PREVIEW_ENABLED:-0}" \
         VLA_PREVIEW_MAX_RETRY="${VLA_PREVIEW_MAX_RETRY:-5}" \
         VLA_PREVIEW_ROT_DIR="${VLA_PREVIEW_ROT_DIR:-R}" \
         VLA_PREVIEW_HINT_CX="${VLA_PREVIEW_HINT_CX:-1}" \
