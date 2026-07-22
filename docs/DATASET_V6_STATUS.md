@@ -300,6 +300,36 @@ CH64 대감사 결론을 실주행 데이터로 확증하려는데, 로컬(minum
 집계 형식이 부담되면 원본 로그만 주셔도 minum이 파싱해서 표로 만들겠습니다.
 상세 분석: `docs/v5/research_story.html` CH64.
 
+## 🔬 [2026-07-22] 세션 매트릭스 분석 결과 + 정밀 실기 테스트 요청 (minum → soda)
+
+받은 매트릭스(7f7513c3)를 시점×커밋×런타임으로 분해한 결과입니다. **obj_right를 단일
+31%로 보면 안 되고, 시점별로 완전히 다릅니다:**
+
+| 날짜 | obj_right | 체크포인트/설정 | 커밋 | 변경점 |
+|---|---|---|---|---|
+| 07-02~06 | 0/24 (0%) | transformer · **window6** · OWL | 08bb6f5/e286004 | — |
+| **07-10** | **17/30 (57%)** | transformer · **window3+bboxscale3** · OWL | **604f266** | **window3 교체=변곡점** |
+| 07-11 | 4/12 (33%) | window3 (일부 6207947) | 6207947 | tail-frame reuse 버그수정 후 0/4 |
+
+**경로별 실패 원인이 다름**(핵심):
+- **obj_right**: 그라운더 무죄(gnd 95~96%, gnd>80%인데도 45/65 실패) → 체크포인트/window가 변곡점. CH64 "그라운더 무죄"를 실기로 확증.
+- **obj_left**: 반대로 **그라운딩이 약함**(gnd<50%가 5/8, 성공 gnd 52.9 vs 실패 33.5) → 검출 실패가 원인. 단 06-30~07-02 old 설정이라 window3 이후 미검증.
+- **obj_center**: 그라운더 무죄(gnd 60~67%), 액션 한계.
+
+**정밀 실기 테스트 요청** — 이유: 현재 실기 obj_* 데이터는 전부 old `action_transformer.pt`이고,
+**exp73(CH64 챔피언)은 실기 거의 미검증**입니다(07-22 obj_center 3건뿐, 그것도 폐기된
+pg448_v6(180ep)). offline 어블레이션에선 mlp>transformer인데 실기 챔피언은 transformer라
+이 역전을 풀어야 합니다. 다음 조건으로 반복 테스트 부탁:
+
+1. **모델**: `exp73_pg448_trackF_v6_mlp.pt` (CH64 최종 후보, 225ep. 07-22에 쓴 v6-only 아님 — 그건 63-15에서 폐기됨). 이미 전달한 체크포인트 3종 중 하나.
+2. **런타임**: exp73는 native window6+bboxscale3 (window3는 transformer 전용 축이라 exp73엔 무의미). PG2-448 그라운더.
+3. **경로**: obj_left / obj_center / obj_right 각각 **최소 3회 반복** (seed·비결정성 노이즈 ±6.5%p라 1회 판단 금물).
+4. **필수 로깅**: **6207947(tail-frame reuse) 버그수정 이후** 런타임에서, obj_left는 **grounding 검출률(gnd%)도 함께** 기록(과거 obj_left grounding 약했던 게 지금 PG2-448에서 해소됐는지 확인).
+
+**이 결과로 판가름 나는 것**: (a) offline mlp>transformer가 실기에서도 유효한가, (b) exp73가
+transformer의 57%(obj_right)를 넘나, (c) 트랙C 재수집이 정말 필요한가(넘으면 재수집 우선순위↓,
+못 넘으면 트랙C 확정). 상세: `research_story.html` CH64.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
