@@ -243,6 +243,13 @@ GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.35"))
 GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "3"))
 # STOP mode: "proximity" (threshold-based override) | "learned" (model prediction + latch)
 STOP_MODE = os.getenv("VLA_STOP_MODE", "proximity")
+# learned 모드 전용 최소 스텝 가드 — 에피소드 시작 직후(콜드스타트 윈도우 패딩 =
+# 첫 프레임 6회 반복이라 실제 온도 없는 입력)의 스퓨리어스 STOP이 그대로 영구
+# 래치되는 사고를 막기 위함(2026-07-22, exp73_mlp 실기 테스트 중 area=0.077
+# 같은 명백히 미도착 상황에서 첫 프레임 STOP → 전체 세션 고착 확인).
+# inference_count(0-base) < 이 값이면 학습형 STOP을 무시(래치 자체를 안 검) —
+# proximity의 GOAL_CONSEC_FRAMES와 같은 취지.
+STOP_LEARNED_MIN_STEPS = int(os.getenv("VLA_STOP_LEARNED_MIN_STEPS", "3"))
 
 # 객체별 GOAL_AREA 매핑 — instruction(grounding phrase) → 정지 area 임계값.
 # GOAL_AREA_THRESHOLD(0.25)는 바스켓 실주행으로 캘리브레이션된 값이라 다른(특히 작은) 객체에
@@ -1226,10 +1233,14 @@ class Stage2V2Model:
         if STOP_MODE == "learned":
             # 모델이 STOP(0) 예측 → latch. 한 번 멈추면 reset() 전까지 유지.
             # has_bbox=False(미검출 fallback)일 때는 래치 금지 — 진짜 도착 신호가 아님.
+            # inference_count < STOP_LEARNED_MIN_STEPS(기본 3)인 동안은 래치 자체를
+            # 걸지 않음 — 콜드스타트 첫 프레임(윈도우가 첫 프레임 반복 패딩이라
+            # 실제 시간 변화가 없는 입력)의 스퓨리어스 STOP이 영구 고착되는 걸 방지.
             if self.stop_latched:
                 pred_class  = 0
                 learned_stop = True
-            elif pred_class == 0 and frame.get("has_bbox", False):
+            elif (pred_class == 0 and frame.get("has_bbox", False)
+                    and self.inference_count >= STOP_LEARNED_MIN_STEPS):
                 self.stop_latched = True
                 learned_stop = True
         else:
@@ -1366,6 +1377,7 @@ class ConfigRequest(BaseModel):
     stop_consec_frames: Optional[int] = None
     stop_mode: Optional[str] = None          # "proximity" | "learned"
     stop_latched: Optional[bool] = None      # None=그대로, False=latch 해제
+    stop_learned_min_steps: Optional[int] = None  # learned 모드 콜드스타트 가드(기본 3)
     # 런타임 모드 토글 (서버 재시작 불필요) — 재현 주행용
     preview_enabled: Optional[bool] = None   # preview 격리 회전 on/off
     preview_hint_cx: Optional[bool] = None   # FILTER cx 힌트 회전 on/off
@@ -1438,6 +1450,7 @@ async def health() -> dict[str, Any]:
         "checkpoint_path": m.checkpoint_path if m else None,
         "stop_mode": STOP_MODE,
         "stop_latched": m.stop_latched if m else False,
+        "stop_learned_min_steps": STOP_LEARNED_MIN_STEPS,
         "gpu": gpu,
         "preview": prev,
         "grounder": grnd,
@@ -1572,6 +1585,11 @@ async def set_config(
         m = get_model()
         m.stop_latched = bool(request.stop_latched)
         applied["stop_latched"] = m.stop_latched
+
+    if request.stop_learned_min_steps is not None:
+        global STOP_LEARNED_MIN_STEPS
+        STOP_LEARNED_MIN_STEPS = max(0, int(request.stop_learned_min_steps))
+        applied["stop_learned_min_steps"] = STOP_LEARNED_MIN_STEPS
 
     if request.preview_enabled is not None:
         m = get_model()

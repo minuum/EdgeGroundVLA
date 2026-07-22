@@ -4289,6 +4289,10 @@ L S R  C S L  R S L
                   <button id="vfy-rt-thr" class="btn btn-outline" onclick="toggleVerifyRuntime('thr')" disabled style="font-size:11px; padding:6px; line-height:1.2; text-align:center; opacity:0.5;">🎚 민감도<br><span style="font-size:9px;color:var(--text-muted)">(P2 꺼짐)</span></button>
                   <button id="vfy-rt-multi" class="btn btn-outline" onclick="toggleVerifyRuntime('multi')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🟢 멀티프롬프트<br><span style="font-size:9px;color:var(--text-muted)">fallback</span></button>
                 </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                  <button id="vfy-rt-stopmode" class="btn btn-outline" onclick="toggleVerifyRuntime('stopmode')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛑 proximity<br><span style="font-size:9px;color:var(--text-muted)">STOP 모드</span></button>
+                  <button id="vfy-rt-stopguard" class="btn btn-outline" onclick="toggleVerifyRuntime('stopguard')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛡 가드 3프레임<br><span style="font-size:9px;color:var(--text-muted)">learned 콜드스타트</span></button>
+                </div>
                 <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
                 <div id="vfy-owl-row" style="display:none; align-items:center; gap:6px; margin-top:2px;">
                   <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 OWL 보정계수</span>
@@ -7242,7 +7246,9 @@ L S R  C S L  R S L
       grounding_skip_n: 3,
       cx_jump_filter: false,
       cx_jump_thresh: 0.30,
-      multi_prompt: true
+      multi_prompt: true,
+      stop_mode: "proximity",
+      stop_learned_min_steps: 3
     };
 
     function selectPathType(type) {
@@ -7402,6 +7408,8 @@ L S R  C S L  R S L
         runtimeState.cx_jump_filter = res.cx_jump_filter === true;
         runtimeState.cx_jump_thresh = res.cx_jump_thresh !== undefined ? parseFloat(res.cx_jump_thresh) : 0.30;
         runtimeState.multi_prompt = res.multi_prompt !== false;
+        runtimeState.stop_mode = res.stop_mode || "proximity";
+        runtimeState.stop_learned_min_steps = res.stop_learned_min_steps !== undefined ? parseInt(res.stop_learned_min_steps) : 3;
 
         const g = res.grounder || {};
         const owlRow = document.getElementById("vfy-owl-row");
@@ -7480,6 +7488,32 @@ L S R  C S L  R S L
         multiBtn.className = "btn btn-outline";
         multiBtn.innerHTML = "⚫ 멀티프롬프트<br><span style='font-size:9px;color:var(--text-muted);'>fallback OFF</span>";
       }
+
+      // stop mode — proximity(안전, 3프레임 연속 임계값) vs learned(모델 예측+래치)
+      const stopModeBtn = document.getElementById("vfy-rt-stopmode");
+      if (stopModeBtn) {
+        if (runtimeState.stop_mode === "learned") {
+          stopModeBtn.className = "btn btn-outline";
+          stopModeBtn.style.borderColor = "var(--amber)";
+          stopModeBtn.style.color = "var(--amber)";
+          stopModeBtn.innerHTML = "🛑 learned<br><span style='font-size:9px;color:var(--amber);'>STOP 모드 (래치, 주의)</span>";
+        } else {
+          stopModeBtn.style.borderColor = "";
+          stopModeBtn.style.color = "";
+          stopModeBtn.className = "btn btn-cyan";
+          stopModeBtn.innerHTML = "🛑 proximity<br><span style='font-size:9px;color:#000;'>STOP 모드 (안전)</span>";
+        }
+      }
+
+      // stop guard — learned 모드 콜드스타트 최소 프레임(0=가드 없음, 예전 동작과 동일)
+      const stopGuardBtn = document.getElementById("vfy-rt-stopguard");
+      if (stopGuardBtn) {
+        const n = runtimeState.stop_learned_min_steps;
+        stopGuardBtn.className = n > 0 ? "btn btn-outline" : "btn btn-outline";
+        stopGuardBtn.innerHTML = n > 0
+          ? `🛡 가드 ${n}프레임<br><span style='font-size:9px;color:var(--text-muted)'>learned 콜드스타트</span>`
+          : `🚫 가드 없음<br><span style='font-size:9px;color:var(--text-muted)'>learned 콜드스타트</span>`;
+      }
     }
 
     async function toggleVerifyRuntime(param) {
@@ -7499,6 +7533,13 @@ L S R  C S L  R S L
         runtimeState.cx_jump_thresh = thresholds[(idx + 1) % thresholds.length];
       } else if (param === 'multi') {
         runtimeState.multi_prompt = !runtimeState.multi_prompt;
+      } else if (param === 'stopmode') {
+        runtimeState.stop_mode = runtimeState.stop_mode === "proximity" ? "learned" : "proximity";
+      } else if (param === 'stopguard') {
+        const steps = [0, 1, 3, 5, 10];
+        let idx = steps.indexOf(runtimeState.stop_learned_min_steps);
+        if (idx === -1) idx = 2;
+        runtimeState.stop_learned_min_steps = steps[(idx + 1) % steps.length];
       }
 
       updateVerifyRuntimeUI();
@@ -7513,7 +7554,9 @@ L S R  C S L  R S L
             grounding_skip_n: runtimeState.grounding_skip_n,
             cx_jump_filter: runtimeState.cx_jump_filter,
             cx_jump_thresh: runtimeState.cx_jump_thresh,
-            multi_prompt: runtimeState.multi_prompt
+            multi_prompt: runtimeState.multi_prompt,
+            stop_mode: runtimeState.stop_mode,
+            stop_learned_min_steps: runtimeState.stop_learned_min_steps
           })
         });
         if (res.ok) {
@@ -8600,7 +8643,14 @@ L S R  C S L  R S L
             <div class="form-group"><label>Loaded Checkpoint</label><input type="text" readonly value="${inf.checkpoint_path}"></div>
             <div class="form-group"><label>Precision</label><input type="text" readonly value="${inf.precision}"></div>
             <div class="form-group"><label>Model Head</label><input type="text" readonly value="${inf.head}"></div>
-            <div class="form-group"><label>Stop Mode</label><input type="text" readonly value="${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'})"></div>
+            <div class="form-group">
+              <label>Stop Mode</label>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" readonly value="${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'}) · guard=${inf.stop_learned_min_steps ?? 3}f" style="flex:1;">
+                <button class="btn btn-outline" onclick="toggleVerifyRuntime('stopmode')" style="font-size:11px; padding:6px 10px; white-space:nowrap;">🔁 전환</button>
+                <button class="btn btn-outline" onclick="toggleVerifyRuntime('stopguard')" style="font-size:11px; padding:6px 10px; white-space:nowrap;">🛡 가드</button>
+              </div>
+            </div>
           `;
           
           // verify 탭 서버 상태 갱신 — 메인 모델 + 그라운딩 모델을 서버 변경 즉시 반영
