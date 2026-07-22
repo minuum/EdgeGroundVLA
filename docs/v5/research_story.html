@@ -15107,6 +15107,7 @@ graph TD
         <tr><td style="padding:4px">mlp, pg448/v6(트랙F 없음)</td><td style="padding:4px;text-align:center">60.6%</td><td style="padding:4px;text-align:center;color:#f87171">버그B로 무효</td></tr>
         <tr style="background:rgba(74,222,128,0.06)"><td style="padding:4px"><strong>mlp, pg448+트랙F (225ep 정합)</strong></td><td style="padding:4px;text-align:center"><strong>48.5%(best)/39.4%(평균)</strong></td><td style="padding:4px;text-align:center;color:#4ade80">apples-to-apples 확정</td></tr>
       </table>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_1_waterfall.png" style="max-width:460px;width:100%;border-radius:8px;border:1px solid #223" alt="정정 워터폴"></div>
     </div>
   </div>
 
@@ -15132,6 +15133,12 @@ graph TD
       ② 상위 헤드 mlp·chunk·hybrid는 노이즈 안에서 구분 불가 — "최고 헤드"를 33ep val로는
       못 가림, ③ transformer(현 배포)만 확실한 최하위 → 교체 근거.
     </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:14px">
+      <img src="ch64_figs/fig_64_2_leaderboard.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="통일 리더보드">
+      <img src="ch64_figs/fig_64_2_offline_vs_cl.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="offline vs closed-loop">
+      <img src="ch64_figs/fig_64_2_grounder.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="그라운더 비교">
+      <img src="ch64_figs/fig_64_2_seed_variance.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="seed 분산">
+    </div>
   </div>
 
   <!-- 64-3 -->
@@ -15150,6 +15157,15 @@ graph TD
       <br><br>
       한 프레임 방향 오판 → dead-reckoning 적분에서 헤딩 오차 누적 → FPE가 4.6m까지 터짐.
       즉 "한 번 어긋나면 되돌리지 못하는" 것이 본질(CH62 "중간 재보정 불능"과 동일).
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:14px">
+      <img src="ch64_figs/fig_64_3_pathtype.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="경로별 성공률">
+      <img src="ch64_figs/fig_64_3_thirds.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="구간별 정확도">
+      <img src="ch64_figs/fig_64_3_confusion.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="혼동행렬">
+      <img src="ch64_figs/fig_64_3_traj_fail.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="곡선 실패 궤적">
+      <img src="ch64_figs/fig_64_3_traj_success.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="직진 성공 궤적">
+      <img src="ch64_figs/fig_64_3_cx_time.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="cx 시계열">
+      <img src="ch64_figs/fig_64_3_traj_grid.png" style="width:100%;border-radius:8px;border:1px solid #223;grid-column:1/-1" alt="궤적 그리드">
     </div>
   </div>
 
@@ -15172,6 +15188,7 @@ graph TD
       드리프트 누적. 이산 분류는 "3개 중 하나로 딱" 찍어 이 애매함을 원천 차단(정규화 효과).
       <strong style="color:#e2e8f0">연속이 의미 있으려면 수집 단계부터 아날로그 보존이 선행</strong>돼야 함(soda 문의 진행 중).
     </div>
+    <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_4_cont_vs_disc.png" style="max-width:520px;width:100%;border-radius:8px;border:1px solid #223" alt="연속 vs 이산"></div>
   </div>
 
   <!-- 64-5 -->
@@ -15191,6 +15208,10 @@ graph TD
       극단(cx&lt;0.15 or &gt;0.85)은 90프레임(0.6%)뿐. 즉 <strong style="color:#e2e8f0">인식은
       되는데, 극단 상황 자체가 데이터에 희소</strong>. 그라운더(PG448/OWL) 교체로는 안 풀리고
       (CH61-18 "그라운더 교체 무효"와 일치), 극단·오버슈트 프레임을 의도적으로 늘리는 재수집이 필요.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:14px">
+      <img src="ch64_figs/fig_64_5_cx_dist.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="cx 분포">
+      <img src="ch64_figs/fig_64_5_detection.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="검출률">
     </div>
   </div>
 
@@ -15214,6 +15235,7 @@ graph TD
       "지나쳤다 되돌리는" 궤적 자체가 데이터에 없으면 학습할 신호가 없다는 CH61 결론의 재확인.
       (V5+V6 혼합의 초기 57.6%는 best-of-3 운빨이었고 3-seed 평균은 39.4%로 무효 처리.)
     </div>
+    <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_6_tricks.png" style="max-width:520px;width:100%;border-radius:8px;border:1px solid #223" alt="학습 트릭 비교"></div>
   </div>
 
   <!-- 64-7 결론 -->
@@ -15239,6 +15261,7 @@ graph TD
       <code>owl_trackF/mlp</code> (best 48.5%, 평균 39.4%) — 가장 단순하고 상위권 동률.
       단 실기는 노이즈 ±6.5%p 때문에 반드시 반복 측정.
     </div>
+    <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_7_roadmap.png" style="max-width:600px;width:100%;border-radius:8px;border:1px solid #223" alt="남은 로드맵"></div>
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH64 ═ -->
