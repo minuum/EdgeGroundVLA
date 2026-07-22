@@ -756,6 +756,7 @@ class DashboardJoystickReader:
         self._hat_prev = (0, 0)  # D-pad 엣지 검출용 (시나리오 넘기기)
         self._last_hat_dir = None  # 마지막으로 눌린 D-pad 방향 ("left"/"right"/"up"/"down")
         self._trig_r2_prev = -1.0  # R2 트리거 엣지 검출용 (복귀)
+        self._trig_l2_prev = -1.0  # L2 트리거 엣지 검출용 (검증 세션 저장)
         self._btn_map: dict = {}
         self.status: dict = {
             "connected": False, "name": "—",
@@ -816,7 +817,7 @@ class DashboardJoystickReader:
             self.BTN_TOGGLE: {"name": "START", "desc": "SYNC↔ASYNC 모드"},
         }
         if self.BTN_L2 >= 0:
-            btn_map[self.BTN_L2] = {"name": "L2", "desc": "미사용"}
+            btn_map[self.BTN_L2] = {"name": "L2", "desc": "💾 검증 세션 저장(검증모드)"}
         if self.BTN_R2 >= 0:
             btn_map[self.BTN_R2] = {"name": "R2", "desc": "복귀(경로 역재생)"}
         self._btn_map = {str(k): v for k, v in btn_map.items()}
@@ -995,45 +996,45 @@ class DashboardJoystickReader:
                     "hat": self._hat_prev, "last_hat_dir": self._last_hat_dir,
                     "btn_map": self._btn_map,
                     "verify_mode": _joystick_verify_mode,
+                    "verify_screen_pos": _verify_screen_pos,
+                    "verify_pending_result": _verify_pending_result,
                 }
 
                 for i in range(js.get_numbuttons()):
                     cur = js.get_button(i)
                     if cur and not self._btn_prev.get(i, 0):
                         self._last_btn = i
-                        if i == self.BTN_STOP:
-                            # 비상정지 — 모드 무관 항상 공통(2026-07-22 설계)
-                            if _ros is not None and _ros.ctrl is not None:
-                                _ros.ctrl.robust_stop(source="joystick_A")
-                        elif i == self.BTN_TOGGLE:
+                        if i == self.BTN_TOGGLE:
                             self.toggle_mode()
                         elif i == self.BTN_TELEOP:
-                            # Y(3) = 조이스틱 배치모드 전환(collect⇄verify) — 두 모드 다 미사용이던
-                            # 유일한 여유 키(2026-07-22). 주행/녹화 중엔 무시(안전가드).
+                            # Y(3) = 조이스틱 배치모드 전환(collect⇄verify) — 주행/녹화 중엔 무시.
                             _joystick_toggle_verify_mode()
                         elif _joystick_verify_mode:
-                            # 🧪 경로검증 모드 배치 — 수집 모드와 뼈대 통일(2026-07-22):
-                            # L1=시작 / R1=좋게끝(성공) / X=나쁘게끝(실패) / SELECT=시작⇄정지
-                            # → 두 모드 손가락 위치 동일. B=주행 일시정지(검증 전용 예외).
-                            if i == self.BTN_REC_START:
+                            # 🧪 경로검증 모드 배치 (2026-07-23 재설계):
+                            # L1=추론시작 · R1=추론정지 · R2=복귀 · X=성공라벨 · A=실패라벨
+                            # · L2=최종 세션 저장 · D-pad◀▶=위치 순환
+                            # X/A는 즉시기록 아님(라벨만) → L2에서 1건 저장(중복 스팸 방지).
+                            # ⚠️ 검증모드엔 별도 비상정지 없음 — R1(추론정지=robust_stop)로 대체.
+                            if i == self.BTN_REC_START:      # L1 = 추론 시작
                                 _joystick_drive_start()
-                            elif i == self.BTN_UNDO:
+                            elif i == self.BTN_REC_SAVE:     # R1 = 추론 정지
                                 _joystick_drive_stop()
-                            elif i == self.BTN_SELECT:
-                                if _state["running"]:
-                                    _joystick_drive_stop()
-                                else:
-                                    _joystick_drive_start()
-                            elif i == self.BTN_DISCARD:
-                                _joystick_quick_commit("실패")
-                            elif i == self.BTN_REC_SAVE:
-                                _joystick_quick_commit("성공")
-                            elif self.BTN_R2 >= 0 and i == self.BTN_R2:
+                            elif i == self.BTN_DISCARD:      # X = 성공 라벨
+                                _verify_arm_result("성공")
+                            elif i == self.BTN_STOP:         # A = 실패 라벨
+                                _verify_arm_result("실패")
+                            elif self.BTN_L2 >= 0 and i == self.BTN_L2:   # L2(버튼 레이아웃) = 세션 저장
+                                _verify_save_session()
+                            elif self.BTN_R2 >= 0 and i == self.BTN_R2:   # R2(버튼 레이아웃) = 복귀
                                 if _collect is not None:
                                     _collect.start_auto_return()
                         else:
+                            # 📷 데이터수집 모드: A = 비상정지(모드 전용 유지)
+                            if i == self.BTN_STOP:
+                                if _ros is not None and _ros.ctrl is not None:
+                                    _ros.ctrl.robust_stop(source="joystick_A")
                             # 📷 데이터수집 모드 배치(기존 그대로, 변경 없음)
-                            if i == self.BTN_UNDO:
+                            elif i == self.BTN_UNDO:
                                 if _collect is not None:
                                     _collect.undo_last_frame()
                             elif i == self.BTN_DISCARD:
@@ -1069,15 +1070,19 @@ class DashboardJoystickReader:
                         phx, phy = self._hat_prev
                         if hx != 0 and hx != phx:
                             self._last_hat_dir = "right" if hx > 0 else "left"
-                            if _collect is not None:
+                            if _joystick_verify_mode:
+                                # 🧪 검증모드: D-pad ◀▶ = 스크리닝 위치 순환(수집 cx 순환과 동일 메커니즘)
+                                _verify_cycle_pos(1 if hx > 0 else -1)
+                            elif _collect is not None:
                                 _collect.cycle_current(1 if hx > 0 else -1)
                         elif hy != 0 and hy != phy:
                             self._last_hat_dir = "up" if hy > 0 else "down"
-                            if _collect is not None:
+                            if not _joystick_verify_mode and _collect is not None:
+                                # 상/하 축 전환은 수집 모드 전용(검증엔 위치 축 하나뿐)
                                 _collect.toggle_collect_mode(1 if hy > 0 else -1)
                         self._hat_prev = hat
 
-                # R2(트리거, 축) 엣지 → 복귀(경로 역재생), Gradio "controller" 레이아웃과 동일
+                # R2(트리거, 축) 엣지 → 복귀(경로 역재생), Gradio "controller" 레이아웃과 동일 (두 모드 공통)
                 nax = js.get_numaxes()
                 if 0 <= self.TRIG_R2 < nax:
                     tv = js.get_axis(self.TRIG_R2)
@@ -1085,6 +1090,15 @@ class DashboardJoystickReader:
                         if _collect is not None:
                             _collect.start_auto_return()
                     self._trig_r2_prev = tv
+
+                # L2(트리거, 축) 엣지 → 검증모드에서만 '최종 세션 저장'(추론세션 저장).
+                # Controller 레이아웃은 L2가 트리거축(TRIG_L2), DragonRise는 버튼(BTN_L2, 위 버튼루프서 처리).
+                if 0 <= self.TRIG_L2 < nax:
+                    tv = js.get_axis(self.TRIG_L2)
+                    if tv > self.TRIG_THRESHOLD and self._trig_l2_prev <= self.TRIG_THRESHOLD:
+                        if _joystick_verify_mode:
+                            _verify_save_session()
+                    self._trig_l2_prev = tv
 
             except Exception as e:
                 log.warning(f"[Joystick] 루프 오류: {e}")
@@ -1138,12 +1152,42 @@ _async_q: collections.deque = collections.deque(maxlen=2)
 _goalnav_q: collections.deque = collections.deque(maxlen=2)
 
 # ── 조이스틱 버튼 배치 모드(2026-07-22) — 📷 데이터수집 vs 🧪 경로검증 ──
-# 기본값 False(=collect) 유지 — 기존 동작 100% 불변. Tab4/데이터수집 탭의
-# UI 토글로만 전환(조이스틱 버튼 자체로는 전환 안 함 — 실수 방지).
+# 기본값 False(=collect) 유지 — 기존 동작 100% 불변. Y(3) 또는 UI 토글로 전환.
 _joystick_verify_mode: bool = False
 # 조이스틱 X/R1(경로검증 모드에서 성공/실패 즉시기록)이 쓸 path_type —
 # Tab4 select onchange가 /verify/path_type으로 동기화해줌.
 _verify_current_path_type: str = "trackA_weak_left_left_curve"
+
+# ── 검증 스크리닝 세션 상태(2026-07-23) — D-pad로 위치 순환 + X/A로 결과 라벨,
+# L2로 최종 저장하는 방식. X/A는 즉시 기록 안 하고 라벨만 세팅(중복 스팸 방지). ──
+# 순서/키는 JS SCREEN_POSITIONS와 일치. center는 trackF_, 나머지는 trackA_로 저장.
+VERIFY_SCREEN_POSITIONS = ["strong_left", "weak_left", "center", "weak_right", "strong_right"]
+_verify_screen_pos: str = "strong_left"       # D-pad ◀▶로 순환
+_verify_pending_result: Optional[str] = None  # "성공" | "실패" | None (X/A로 세팅)
+
+
+def _verify_pos_to_path_type(pos: str) -> str:
+    return f"trackF_{pos}" if pos == "center" else f"trackA_{pos}"
+
+
+def _verify_cycle_pos(step: int):
+    """D-pad ◀▶ — 검증 스크리닝 위치 순환(강좌↔약좌↔중앙↔약우↔강우)."""
+    global _verify_screen_pos
+    if _state.get("running"):
+        return  # 주행 중엔 변경 금지
+    keys = VERIFY_SCREEN_POSITIONS
+    i = (keys.index(_verify_screen_pos) + step) % len(keys) if _verify_screen_pos in keys else 0
+    _verify_screen_pos = keys[i]
+    log.info(f"[Verify] D-pad → 위치 = {_verify_screen_pos}")
+
+
+def _verify_arm_result(result: str):
+    """X=성공 / A=실패 — 즉시 기록 안 하고 결과 라벨만 세팅(L2에서 저장)."""
+    global _verify_pending_result
+    _verify_pending_result = result
+    log.info(f"[Verify] 결과 라벨 → {result} (L2로 저장 대기)")
+
+
 _drift_log_file = None
 
 
@@ -1852,16 +1896,25 @@ def _joystick_drive_stop():
         drive_stop()
 
 
-def _joystick_quick_commit(success: str):
-    """경로검증 모드 X/R1 — 현재 Tab4 선택 path_type으로 성공/실패 즉시 기록 + 정지."""
+def _verify_save_session():
+    """L2 — 최종 세션 저장(추론세션 저장). D-pad로 고른 위치 + X/A 라벨로 1건만 기록.
+    결과 라벨(X/A)이 아직 없으면 저장 안 함(실수 방지). 저장 후 라벨 초기화."""
+    global _verify_pending_result
+    if not _verify_pending_result:
+        _state["status_log"] = "⚠️ 결과 미지정 — X(성공)/A(실패) 먼저 누른 뒤 L2로 저장"
+        log.info("[Verify] L2 저장 취소 — 결과 라벨 없음")
+        return
     _joystick_drive_stop()
+    pt = _verify_pos_to_path_type(_verify_screen_pos)
+    result = _verify_pending_result
     try:
-        episodes_log(EpisodeLogReq(path_type=_verify_current_path_type,
-                                    success=success, fpe=0.0,
-                                    note="joystick quick-commit"))
-        log.info(f"[Joystick] 경로검증 기록: {_verify_current_path_type} = {success}")
+        episodes_log(EpisodeLogReq(path_type=pt, success=result, fpe=0.0,
+                                   note="검증 스크리닝(L2 저장)"))
+        log.info(f"[Verify] L2 세션 저장: {pt} = {result}")
+        _state["status_log"] = f"💾 저장: {_verify_screen_pos} = {result}"
+        _verify_pending_result = None  # 저장 후 라벨 초기화(다음 세션 대비)
     except Exception as e:
-        log.warning(f"[Joystick] quick-commit 실패: {e}")
+        log.warning(f"[Verify] L2 저장 실패: {e}")
 
 
 def _joystick_toggle_verify_mode():
@@ -4238,7 +4291,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-cxguide-vfy" onchange="drawOverlay()" style="accent-color:var(--amber)"> 배치가이드 표시
               </label>
-              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증 모드(수집과 키 통일): L1=추론시작 R1=성공기록 X=실패기록 SELECT=시작⇄정지 B=주행정지 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
+              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=세션저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
@@ -4336,7 +4389,8 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
                 <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">1차(빠른확인)</button>
               </div>
-              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개. 조이스틱 R1(성공)/X(실패)로 자동 집계.</div>
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(여기서만 기록).</div>
+              <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
               <div id="vfy-screen-body">—</div>
             </div>
 
@@ -4384,19 +4438,20 @@ L S R  C S L  R S L
                 <div id="vfy-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
                 <div id="vfy-js-caption" style="font-size:15px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:10px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
                 <table style="width:100%; border-collapse:collapse; font-size:10px; line-height:1.5;">
-                  <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td style="color:#f43f5e;">🚨 비상정지</td>
-                      <td style="padding:1px 4px;"><b>L1</b>(4)</td><td style="color:#3fb950;">▶ 추론 시작</td></tr>
-                  <tr><td style="padding:1px 4px;"><b>R1</b>(5)</td><td style="color:#3fb950;">✅ 성공 기록</td>
-                      <td style="padding:1px 4px;"><b>X</b>(2)</td><td style="color:var(--amber);">❌ 실패 기록</td></tr>
-                  <tr><td style="padding:1px 4px;"><b>B</b>(1)</td><td>⏹ 주행 정지</td>
-                      <td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>🔁 시작⇄정지</td></tr>
-                  <tr><td style="padding:1px 4px;"><b>START</b>(7)</td><td>⚙ SYNC↔ASYNC</td>
+                  <tr><td style="padding:1px 4px;"><b>D-pad◀▶</b></td><td colspan="3" style="color:var(--cyan);">📍 검증 위치 순환(강좌↔약좌↔중앙↔약우↔강우)</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td style="color:#3fb950;">▶ 추론 시작</td>
+                      <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>⏹ 추론 정지</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td style="color:#3fb950;">✅ 성공 라벨</td>
+                      <td style="padding:1px 4px;"><b>A</b>(0)</td><td style="color:#f43f5e;">❌ 실패 라벨</td></tr>
+                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>L2</b></td><td style="color:var(--amber);">💾 세션 저장</td>
                       <td style="padding:1px 4px; color:var(--amber);"><b>R2</b></td><td style="color:var(--amber);">↩ 복귀</td></tr>
-                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>Y</b>(3)</td><td colspan="3" style="color:var(--amber);">🔁 모드 전환(수집⇄검증) — 주행/녹화 중엔 무시</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>START</b>(7)</td><td>⚙ SYNC↔ASYNC</td>
+                      <td style="padding:1px 4px; color:var(--amber);"><b>Y</b>(3)</td><td style="color:var(--amber);">🔁 모드 전환</td></tr>
                 </table>
                 <div style="font-size:9px; color:var(--text-muted); margin-top:6px; line-height:1.5; border-top:1px solid var(--border-glow); padding-top:6px;">
-                  왼쪽 스틱=이동 · 오른쪽 스틱 X=회전 · 수집과 <b>키 통일</b>(L1시작/R1좋게끝/X나쁘게끝)<br>
-                  ⚠️ 위는 <b>🧪검증 모드</b> 의미 — 📷수집 모드에선 L1=녹화시작·R1=저장·X=폐기. <b>Y</b> 또는 상단 "🕹️ 조이스틱" 토글로 전환.
+                  순서: <b>D-pad로 위치 선택 → L1 시작 → (주행) → R1 정지 → X/A로 성공·실패 라벨 → L2로 저장</b><br>
+                  X/A는 <b>라벨만</b> 바꿈(즉시 기록 X) · L2 눌러야 1건 저장 → 중복 방지<br>
+                  ⚠️ 검증모드엔 별도 비상정지 없음 — <b>R1(추론정지)</b>이 robust_stop. <b>Y</b>로 수집모드 전환.
                 </div>
               </div>
             </details>
@@ -5333,7 +5388,7 @@ L S R  C S L  R S L
                 <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
                   <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드 표시
                 </label>
-                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증 모드(수집과 키 통일): L1=추론시작 R1=성공기록 X=실패기록 SELECT=시작⇄정지 B=주행정지 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
+                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=세션저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
               <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
@@ -5880,6 +5935,24 @@ L S R  C S L  R S L
           btn.style.borderColor = joystickVerifyMode ? "var(--amber)" : "";
           btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
         });
+      }
+
+      // 검증 스크리닝 현재 선택 위치 + 대기 라벨 표시
+      const vfyCur = document.getElementById("vfy-screen-current");
+      if (vfyCur) {
+        const POS_LABEL = {strong_left:"강좌◀◀", weak_left:"약좌◀", center:"중앙●", weak_right:"약우▶", strong_right:"강우▶▶"};
+        const pos = POS_LABEL[s.verify_screen_pos] || (s.verify_screen_pos || "—");
+        const res = s.verify_pending_result;
+        const resHtml = res
+          ? `<span style="color:${res === '성공' ? 'var(--emerald)' : 'var(--rose)'}">${res}</span> (L2로 저장)`
+          : `<span style="color:var(--text-muted)">— (X성공/A실패)</span>`;
+        vfyCur.innerHTML = `현재 위치: <span style="color:var(--amber)">${pos}</span> · 대기 라벨: ${resHtml}`;
+        vfyCur.style.borderColor = res ? "var(--amber)" : "var(--border-glow)";
+        // D-pad로 위치 바뀌면 카메라 배치가이드 강조도 따라가게(오버레이 재그리기)
+        if (s.verify_mode && s.verify_screen_pos && s.verify_screen_pos !== window._verifyScreenPos) {
+          window._verifyScreenPos = s.verify_screen_pos;
+          if (typeof drawOverlay === "function") drawOverlay();
+        }
       }
 
       // 🕹️ 검증 탭 조이스틱 가이드(컴팩트) — 같은 /joystick/status 재사용, 수집 패널과 독립(ID 다름)
@@ -7504,11 +7577,11 @@ L S R  C S L  R S L
       });
     }
 
-    // 검증모드 버튼 의미 — 서버 btn_map name(STOP/UNDO/DISCARD/Y/L1/R1/SEL/START/R2) 기준
+    // 검증모드 버튼 의미(2026-07-23 재설계) — 서버 btn_map name 기준
     const VERIFY_BTN_MEANING = {
-      "STOP": "🚨 비상정지", "L1": "▶ 추론 시작", "R1": "✅ 성공 기록",
-      "DISCARD": "❌ 실패 기록", "UNDO": "⏹ 주행 정지", "SEL": "🔁 시작⇄정지",
-      "START": "⚙ SYNC↔ASYNC", "R2": "↩ 복귀", "Y": "🔁 모드 전환(수집⇄검증)",
+      "L1": "▶ 추론 시작", "R1": "⏹ 추론 정지", "DISCARD": "✅ 성공 라벨",
+      "STOP": "❌ 실패 라벨", "L2": "💾 세션 저장", "R2": "↩ 복귀",
+      "START": "⚙ SYNC↔ASYNC", "Y": "🔁 모드 전환(수집⇄검증)",
     };
 
     // ── 🎯 추론 검증 스크리닝 패널 (데이터셋 목표와 별개) ──
@@ -8529,9 +8602,14 @@ L S R  C S L  R S L
       strong_right: {lo: 0.85, hi: 0.90, label: "강한우 여기", color: "#f43f5e"},
     };
     function _drawVerifyTargetHighlight(ctx, W, H) {
-      const sel = document.getElementById("ep-path-type");
-      if (!sel) return;
-      const pos = verifyPosOf(sel.value);
+      // 검증모드면 조이스틱 D-pad로 고른 위치(window._verifyScreenPos)를 우선,
+      // 아니면 Tab4 select의 path_type에서 위치 추출.
+      let pos = (joystickVerifyMode && window._verifyScreenPos) ? window._verifyScreenPos : null;
+      if (!pos) {
+        const sel = document.getElementById("ep-path-type");
+        if (!sel) return;
+        pos = verifyPosOf(sel.value);
+      }
       const b = pos && VERIFY_TARGET_BANDS[pos];
       if (!b) return;
       const x0 = b.lo * W, x1 = b.hi * W;
