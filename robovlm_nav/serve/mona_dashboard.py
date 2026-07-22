@@ -2779,7 +2779,12 @@ PATH_TYPES = ["right_right", "right_left", "right_straight",
               "trackA_weak_left_left_curve", "trackA_weak_left_straight", "trackA_weak_left_right_curve",
               "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
               "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
-              "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve"]
+              "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve",
+              # ── 트랙F 중앙위치(V6, 45ep 2026-07-16/17 수집 완료) ──
+              # "center_straight/left/right"(위 15종, 구 9-시나리오 target_center_*)와
+              # 이름이 겹쳐 보이지만 완전히 다른 taxonomy(cx_position="center")라
+              # trackF_ 접두어로 구분(2026-07-22, 실기 테스트 착수 전 정리).
+              "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"]
 PATH_TARGETS = {
     "right_right": 10, "right_left": 10, "right_straight": 10,
     "center_straight": 10, "center_left": 10, "center_right": 10,
@@ -2790,8 +2795,9 @@ PATH_TARGETS = {
     "trackA_weak_right_left_curve": 15, "trackA_weak_right_straight": 15, "trackA_weak_right_right_curve": 15,
     "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
     "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
+    "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
 }
-# 트랙A 12종 전체 수집 완료(2026-07-16, 180/180) — 미수집 조합 없음
+# 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
 TRACKA_UNCOLLECTED = set()
 
 def _get_episode_summary(rows):
@@ -2799,6 +2805,7 @@ def _get_episode_summary(rows):
     done_succ  = {k: 0 for k in PATH_TYPES}
     nav_succ = 0
     trackA_succ = 0
+    trackF_succ = 0
     for r in rows:
         if len(r) < 3: continue
         pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
@@ -2807,11 +2814,13 @@ def _get_episode_summary(rows):
             done_succ[pt] = done_succ.get(pt, 0) + 1
             if pt.startswith("trackA_"):
                 trackA_succ += 1
+            elif pt.startswith("trackF_"):
+                trackF_succ += 1
             elif not pt.startswith(("obj_", "dist_")):
                 nav_succ += 1
-    # 트랙A(V6)는 기존 9종 nav 집계와 별개로 집계 — 서로 다른 목표(10 vs 15)를
+    # 트랙A/트랙F(V6)는 기존 9종 nav 집계와 별개로 집계 — 서로 다른 목표(10 vs 15)를
     # 섞으면 퍼센트가 왜곡되므로 완전히 분리.
-    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS if not k.startswith(("obj_", "dist_", "trackA_")))
+    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS if not k.startswith(("obj_", "dist_", "trackA_", "trackF_")))
     obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
     obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
     dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
@@ -2819,9 +2828,12 @@ def _get_episode_summary(rows):
     trackA_keys = [k for k in PATH_TYPES if k.startswith("trackA_")]
     trackA_total = sum(PATH_TARGETS[k] for k in trackA_keys)
     trackA_done = sum(done_total.get(k, 0) for k in trackA_keys)
-    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_','trackA_')))}/{nav_total} "
+    trackF_keys = [k for k in PATH_TYPES if k.startswith("trackF_")]
+    trackF_total = sum(PATH_TARGETS[k] for k in trackF_keys)
+    trackF_done = sum(done_total.get(k, 0) for k in trackF_keys)
+    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_','trackA_','trackF_')))}/{nav_total} "
             f"성공 {nav_succ}/20 (목표) | 위치별 {obj_done}/90 ({obj_succ}성공) | 거리별 {dist_done}/30 ({dist_succ}성공) "
-            f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공)")
+            f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공) | 트랙F {trackF_done}/{trackF_total} ({trackF_succ}성공)")
 
 def _read_episode_csv():
     if not EPISODE_CSV.exists():
@@ -4345,6 +4357,11 @@ L S R  C S L  R S L
                     <option value="trackA_strong_left_left_curve">V6 강극단좌·좌곡선 (strong_left/left_curve)</option>
                     <option value="trackA_strong_left_straight">V6 강극단좌·직진 (strong_left/straight)</option>
                     <option value="trackA_strong_left_right_curve">V6 강극단좌·우곡선 (strong_left/right_curve)</option>
+                  </optgroup>
+                  <optgroup label="● 트랙F 중앙 (V6)">
+                    <option value="trackF_center_left_curve">V6 중앙·좌곡선 (center/left_curve)</option>
+                    <option value="trackF_center_straight">V6 중앙·직진 (center/straight)</option>
+                    <option value="trackF_center_right_curve">V6 중앙·우곡선 (center/right_curve)</option>
                   </optgroup>
                 </select>
               </div>
@@ -7184,7 +7201,8 @@ L S R  C S L  R S L
       "trackA_weak_left_left_curve", "trackA_weak_left_straight", "trackA_weak_left_right_curve",
       "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
       "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
-      "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve"
+      "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve",
+      "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
     ];
 
     const PATH_TARGETS = {
@@ -7197,9 +7215,10 @@ L S R  C S L  R S L
       "trackA_weak_right_left_curve": 15, "trackA_weak_right_straight": 15, "trackA_weak_right_right_curve": 15,
       "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
       "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
+      "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
     };
 
-    // 트랙A 12종 전체 수집 완료(2026-07-16, 180/180) — 미수집 조합 없음
+    // 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
     const TRACKA_UNCOLLECTED = new Set([]);
 
     const PATH_GROUPS = [
@@ -7211,6 +7230,9 @@ L S R  C S L  R S L
         "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
         "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
         "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve"
+      ]],
+      ["── 🎯 트랙F 중앙(V6) ──────", [
+        "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
       ]]
     ];
 
@@ -7230,13 +7252,16 @@ L S R  C S L  R S L
       }
     }
 
-    // ── 트랙A 극단배치(V6) 퀵라벨 버튼 — Tab4/Tab6 공용 렌더러.
-    // 데이터셋 히스토리 탭의 아이콘/색상 규칙(◀/▶/▶▶, ↰/↑/↱) 재사용.
+    // ── 트랙A/트랙F 극단배치+중앙(V6) 퀵라벨 버튼 — Tab4/Tab6 공용 렌더러.
+    // 데이터셋 히스토리 탭의 아이콘/색상 규칙(◀/▶/▶▶, ↰/↑/↱, ●) 재사용.
+    // prefix로 trackA(극단 4위치)/trackF(중앙, 2026-07-22 추가) 구분 — 서로
+    // 다른 target(15는 동일하나 별도 집계)이라 값 문자열이 겹치면 안 됨.
     const TRACKA_POS_ROWS = [
-      {pos: "weak_left",    icon: "◀",  fg: "var(--cyan)"},
-      {pos: "weak_right",   icon: "▶",  fg: "var(--amber)"},
-      {pos: "strong_right", icon: "▶▶", fg: "var(--amber)"},
-      {pos: "strong_left",  icon: "◀◀", fg: "var(--cyan)"},
+      {pos: "weak_left",    icon: "◀",  fg: "var(--cyan)",  prefix: "trackA"},
+      {pos: "weak_right",   icon: "▶",  fg: "var(--amber)", prefix: "trackA"},
+      {pos: "strong_right", icon: "▶▶", fg: "var(--amber)", prefix: "trackA"},
+      {pos: "strong_left",  icon: "◀◀", fg: "var(--cyan)",  prefix: "trackA"},
+      {pos: "center",       icon: "●",  fg: "var(--emerald, #3fb950)", prefix: "trackF"},
     ];
     const TRACKA_PATH_COLS = [
       {path: "left_curve", icon: "↰"},
@@ -7249,7 +7274,7 @@ L S R  C S L  R S L
       if (!el) return;
       el.innerHTML = TRACKA_POS_ROWS.map(row => {
         const btns = TRACKA_PATH_COLS.map(col => {
-          const pt = `trackA_${row.pos}_${col.path}`;
+          const pt = `${row.prefix}_${row.pos}_${col.path}`;
           const uncollected = TRACKA_UNCOLLECTED.has(pt);
           const disabledAttr = uncollected ? "disabled" : "";
           const title = uncollected ? "미수집 — 아직 이 조합의 데이터가 없음" : "";
@@ -7558,11 +7583,11 @@ L S R  C S L  R S L
           if (done_succ[pt] !== undefined) {
             done_succ[pt] += 1;
           }
-          if (!pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_")) {
+          if (!pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
             nav_succ += 1;
           }
         }
-        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_")) {
+        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
           nav_done += 1;
         }
       });
@@ -7572,20 +7597,25 @@ L S R  C S L  R S L
       const obj_succ = (done_succ["obj_left"] || 0) + (done_succ["obj_center"] || 0) + (done_succ["obj_right"] || 0);
       const dist_done = (done_total["dist_10cm"] || 0) + (done_total["dist_20cm"] || 0) + (done_total["dist_30cm"] || 0);
       const dist_succ = (done_succ["dist_10cm"] || 0) + (done_succ["dist_20cm"] || 0) + (done_succ["dist_30cm"] || 0);
-      // 트랙A(V6)는 기존 집계와 목표수(15 vs 10)가 달라 완전히 분리 집계
+      // 트랙A/트랙F(V6)는 기존 집계와 목표수(15 vs 10)가 달라 완전히 분리 집계
       const trackAKeys = PATH_TYPES.filter(k => k.startsWith("trackA_"));
       const trackA_total = trackAKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
       const trackA_done = trackAKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
       const trackA_succ = trackAKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
+      const trackFKeys = PATH_TYPES.filter(k => k.startsWith("trackF_"));
+      const trackF_total = trackFKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
+      const trackF_done = trackFKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
+      const trackF_succ = trackFKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
 
       const total_done = rows.length;
-      const total_target = 210; // 90 nav + 90 obj + 30 dist = 210 (트랙A 별개 집계, 미포함)
+      const total_target = 210; // 90 nav + 90 obj + 30 dist = 210 (트랙A/F 별개 집계, 미포함)
 
       const pct_total = Math.min(100.0, Math.max(0.0, (total_done / total_target) * 100));
       const pct_nav   = Math.min(100.0, Math.max(0.0, (nav_done / nav_total) * 100));
       const pct_obj   = Math.min(100.0, Math.max(0.0, (obj_done / 90) * 100));
       const pct_dist  = Math.min(100.0, Math.max(0.0, (dist_done / 30) * 100));
       const pct_trackA = Math.min(100.0, Math.max(0.0, (trackA_done / trackA_total) * 100));
+      const pct_trackF = Math.min(100.0, Math.max(0.0, (trackF_done / trackF_total) * 100));
       
       const progressHtml = `
       <div style="width: 100%; box-sizing: border-box; padding: 2px 0;">
@@ -7599,7 +7629,7 @@ L S R  C S L  R S L
           </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
             <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
               <span style="color: #58a6ff; font-weight: 600;">🛣️ 경로 검증</span>
@@ -7639,6 +7669,16 @@ L S R  C S L  R S L
               <div style="width: ${pct_trackA.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #b45309 0%, #f59e0b 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
+
+          <div style="background: #161b22; border: 1px solid #3fb950; border-radius: 6px; padding: 6px;">
+            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+              <span style="color: #3fb950; font-weight: 600;">● 트랙F(V6)</span>
+              <span style="color: #8b949e;">${trackF_done}/${trackF_total} (${trackF_succ}✓)</span>
+            </div>
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${pct_trackF.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
         </div>
       </div>
       `;
@@ -7647,7 +7687,7 @@ L S R  C S L  R S L
       document.getElementById("vfy-progress-txt").innerHTML = `
         경로검증 ${nav_done}/${nav_total} ep 성공 ${nav_succ}/20 (목표)<br>
         위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공) |
-        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공)
+        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공)
       `;
       
       let tblHtml = "";
