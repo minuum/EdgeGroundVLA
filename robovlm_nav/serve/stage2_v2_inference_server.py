@@ -379,10 +379,45 @@ class CxGeomMLP(nn.Module):
         return self.merge(torch.cat([self.branch_a(hist), self.branch_b(geom)], dim=-1))
 
 
+class Exp73MLPHead(nn.Module):
+    """exp73 plain mlp(head="mlp", exp="exp73"): window*(bbox+vis)=window*260 flat
+    → 3-layer → 8-class. 체크포인트 키(net.0/3/6)와 정확히 일치하도록 self.net 유지.
+    기존 "mlp"(ActionMLP, exp67, d_in=window*4+256=280)와 이름이 같아도 구조가
+    달라(d_in=window*260) exp="exp73" 메타로 별도 등록(2026-07-22)."""
+    def __init__(self, frame_dim: int = PROJ_DIM + 4, window: int = WINDOW_DEFAULT):
+        super().__init__()
+        d_in = frame_dim * window
+        self.net = nn.Sequential(
+            nn.Linear(d_in, 512), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(512, 128),  nn.ReLU(), nn.Dropout(0.2),
+            nn.Linear(128, NUM_CLASSES),
+        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x.flatten(1))
+
+
+class Exp73HybridHead(nn.Module):
+    """exp73 hybrid: 공유 trunk + 6-way(lx/ly) 분류 브랜치 + az 연속 회귀 브랜치.
+    inference_server.py._build_hybrid_head/GoalNavMLPInference와 동일 구조(가중치 키 호환)."""
+    def __init__(self, frame_dim: int = PROJ_DIM + 4, window: int = WINDOW_DEFAULT):
+        super().__init__()
+        self.trunk = nn.Sequential(
+            nn.Linear(frame_dim * window, 512), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(512, 128), nn.ReLU())
+        self.disc_head = nn.Linear(128, 6)
+        self.az_head = nn.Sequential(
+            nn.Linear(128, 32), nn.ReLU(), nn.Linear(32, 1), nn.Tanh())
+    def forward(self, x: torch.Tensor):
+        h = self.trunk(x.flatten(1))
+        return self.disc_head(h), self.az_head(h).squeeze(-1)
+
+
 HEAD_REGISTRY: dict[str, type] = {
     "mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead,
     "transformer": TransformerActionHead, "cx_geom": CxGeomMLP,
+    "exp73_mlp": Exp73MLPHead, "exp73_hybrid": Exp73HybridHead,
 }
+EXP73_AZ_THRESH = 0.1  # rad/s (CH63 63-10: 0.05~0.2 스윕 결과 불변 확인, inference_server.py와 동일 고정값)
 
 
 # ---------------------------------------------------------------------------
@@ -771,27 +806,39 @@ class Stage2V2Model:
         # 불일치를 피하기 위해 체크포인트 메타데이터에서 직접 읽음).
         self._bbox_scale: float = float(ckpt.get("bbox_scale", 1.0))
         head_name: str = head_override or ckpt.get("head", "mlp")
-        is_lstm        = (head_name == "lstm")
-        is_transformer = (head_name == "transformer")
-        is_cx_geom     = (head_name == "cx_geom")
+        # exp73(train_exp73_trackA_heads.py) 체크포인트는 head="mlp"/"hybrid"로 저장돼
+        # 기존 exp67 "mlp"(ActionMLP, d_in=280)와 이름이 충돌함 — d_in이 다른 별도
+        # 구조(Exp73MLPHead, d_in=window*260)라 exp="exp73" 메타로 구분(2026-07-22).
+        if ckpt.get("exp") == "exp73":
+            if head_name == "mlp":
+                head_name = "exp73_mlp"
+            elif head_name == "hybrid":
+                head_name = "exp73_hybrid"
+        is_lstm         = (head_name == "lstm")
+        is_transformer  = (head_name == "transformer")
+        is_cx_geom      = (head_name == "cx_geom")
+        is_exp73_mlp    = (head_name == "exp73_mlp")
+        is_exp73_hybrid = (head_name == "exp73_hybrid")
         d_in = self.window * 4 + PROJ_DIM  # flat MLP/linear/fc용
         HeadCls = HEAD_REGISTRY[head_name]
         if is_lstm:
             self.head: nn.Module = HeadCls().to(device)
-        elif is_transformer:
+        elif is_transformer or is_exp73_mlp or is_exp73_hybrid:
             self.head = HeadCls(frame_dim=PROJ_DIM + 4, window=self.window).to(device)
         elif is_cx_geom:
             hist_dim = ckpt.get("hist_dim", d_in)
             self.head = HeadCls(hist_dim=hist_dim).to(device)
         else:
             self.head = HeadCls(d_in=d_in).to(device)
-        # ckpt key: transformer/cx_geom → "model", others → "mlp"
-        sd_key = "model" if (is_transformer or is_cx_geom) else "mlp"
+        # ckpt key: transformer/cx_geom/exp73 계열 → "model", others → "mlp"
+        sd_key = "model" if (is_transformer or is_cx_geom or is_exp73_mlp or is_exp73_hybrid) else "mlp"
         self.head.load_state_dict(ckpt[sd_key])
         self.head.eval()
-        self.is_lstm        = is_lstm
-        self.is_transformer = is_transformer
-        self.is_cx_geom     = is_cx_geom
+        self.is_lstm         = is_lstm
+        self.is_transformer  = is_transformer
+        self.is_cx_geom      = is_cx_geom
+        self.is_exp73_mlp    = is_exp73_mlp
+        self.is_exp73_hybrid = is_exp73_hybrid
         self.head_name = head_name
         self.val_acc: float = float(ckpt.get("val_acc", 0.0))
 
@@ -1132,9 +1179,19 @@ class Stage2V2Model:
                 else:  # replace
                     x = torch.cat([vis_feat, h_t]).unsqueeze(0)
                 logits = self.hidden_heads[effective_head_mode](x)
-            elif self.is_transformer:
+            elif self.is_transformer or self.is_exp73_mlp:
                 x = self._build_seq_feature_trans().unsqueeze(0)  # (1, window, 260)
                 logits = self.head(x)
+            elif self.is_exp73_hybrid:
+                x = self._build_seq_feature_trans().unsqueeze(0)  # (1, window, 260)
+                disc_logit, az_pred = self.head(x)
+                lat_fwd_pred = disc_logit.argmax(dim=-1)
+                is_stop = lat_fwd_pred == 0
+                cls_t = lat_fwd_pred.clone()
+                cls_t[is_stop & (az_pred > EXP73_AZ_THRESH / 1.15)] = 6
+                cls_t[is_stop & (az_pred < -EXP73_AZ_THRESH / 1.15)] = 7
+                logits = None  # 아래 pred_class 직접 세팅 경로로 우회
+                pred_class = int(cls_t.item())
             elif self.is_cx_geom:
                 xh = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, hist_dim)
                 xg = torch.tensor(
@@ -1147,7 +1204,8 @@ class Stage2V2Model:
             else:
                 x = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, d_in)
                 logits = self.head(x)
-            pred_class = int(logits.argmax(dim=-1).item())
+            if logits is not None:  # exp73_hybrid는 위에서 pred_class를 직접 세팅함
+                pred_class = int(logits.argmax(dim=-1).item())
 
         # ── cx-rule override (VLA_CX_RULE=1일 때) ───────────────────────────
         # bbox가 있을 때만 기하학 룰로 덮어씀. has_bbox=False면 MLP 예측 유지.
