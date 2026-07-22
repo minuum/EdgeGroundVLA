@@ -994,6 +994,7 @@ class DashboardJoystickReader:
                     "buttons": pressed_buttons, "last_btn": self._last_btn,
                     "hat": self._hat_prev, "last_hat_dir": self._last_hat_dir,
                     "btn_map": self._btn_map,
+                    "verify_mode": _joystick_verify_mode,
                 }
 
                 for i in range(js.get_numbuttons()):
@@ -1001,36 +1002,57 @@ class DashboardJoystickReader:
                     if cur and not self._btn_prev.get(i, 0):
                         self._last_btn = i
                         if i == self.BTN_STOP:
+                            # 비상정지 — 모드 무관 항상 공통(2026-07-22 설계)
                             if _ros is not None and _ros.ctrl is not None:
                                 _ros.ctrl.robust_stop(source="joystick_A")
                         elif i == self.BTN_TOGGLE:
                             self.toggle_mode()
-                        elif i == self.BTN_UNDO:
-                            if _collect is not None:
-                                _collect.undo_last_frame()
-                        elif i == self.BTN_DISCARD:
-                            if _collect is not None and _collect.active:
-                                _collect.stop_episode(save=False)
-                        elif i == self.BTN_REC_START:
-                            if _collect is not None and not _collect.active:
-                                _collect.start_episode(scenario=_collect.staged_scenario,
-                                                        cx_position=_collect.staged_cx_position,
-                                                        cx_path=_collect.staged_cx_path)
-                        elif i == self.BTN_REC_SAVE:
-                            if _collect is not None and _collect.active:
-                                _collect.stop_episode(save=True)
-                        elif i == self.BTN_SELECT:
-                            if _collect is not None:
-                                if _collect.active:
-                                    _collect.stop_episode(save=True)
+                        elif _joystick_verify_mode:
+                            # 🧪 경로검증 모드 배치 — 비상정지/스탑/추론시작 위주
+                            if i == self.BTN_TELEOP:
+                                _joystick_drive_start()
+                            elif i == self.BTN_UNDO:
+                                _joystick_drive_stop()
+                            elif i == self.BTN_SELECT:
+                                if _state["running"]:
+                                    _joystick_drive_stop()
                                 else:
+                                    _joystick_drive_start()
+                            elif i == self.BTN_DISCARD:
+                                _joystick_quick_commit("실패")
+                            elif i == self.BTN_REC_SAVE:
+                                _joystick_quick_commit("성공")
+                            elif self.BTN_R2 >= 0 and i == self.BTN_R2:
+                                if _collect is not None:
+                                    _collect.start_auto_return()
+                        else:
+                            # 📷 데이터수집 모드 배치(기존 그대로, 변경 없음)
+                            if i == self.BTN_UNDO:
+                                if _collect is not None:
+                                    _collect.undo_last_frame()
+                            elif i == self.BTN_DISCARD:
+                                if _collect is not None and _collect.active:
+                                    _collect.stop_episode(save=False)
+                            elif i == self.BTN_REC_START:
+                                if _collect is not None and not _collect.active:
                                     _collect.start_episode(scenario=_collect.staged_scenario,
-                                                        cx_position=_collect.staged_cx_position,
-                                                        cx_path=_collect.staged_cx_path)
-                        elif self.BTN_R2 >= 0 and i == self.BTN_R2:
-                            # DragonRise는 R2가 트리거 축이 아니라 버튼으로 잡힘 (joystick_config.json 실측)
-                            if _collect is not None:
-                                _collect.start_auto_return()
+                                                            cx_position=_collect.staged_cx_position,
+                                                            cx_path=_collect.staged_cx_path)
+                            elif i == self.BTN_REC_SAVE:
+                                if _collect is not None and _collect.active:
+                                    _collect.stop_episode(save=True)
+                            elif i == self.BTN_SELECT:
+                                if _collect is not None:
+                                    if _collect.active:
+                                        _collect.stop_episode(save=True)
+                                    else:
+                                        _collect.start_episode(scenario=_collect.staged_scenario,
+                                                            cx_position=_collect.staged_cx_position,
+                                                            cx_path=_collect.staged_cx_path)
+                            elif self.BTN_R2 >= 0 and i == self.BTN_R2:
+                                # DragonRise는 R2가 트리거 축이 아니라 버튼으로 잡힘 (joystick_config.json 실측)
+                                if _collect is not None:
+                                    _collect.start_auto_return()
                     self._btn_prev[i] = cur
 
                 # D-pad(hat) 엣지 → 좌/우: 현재 활성 축(collect_mode) 순환, 상/하: 트랙A↔시나리오 축 전환
@@ -1108,6 +1130,14 @@ _state: dict[str, Any] = {
 _stop_ev   = threading.Event()
 _async_q: collections.deque = collections.deque(maxlen=2)
 _goalnav_q: collections.deque = collections.deque(maxlen=2)
+
+# ── 조이스틱 버튼 배치 모드(2026-07-22) — 📷 데이터수집 vs 🧪 경로검증 ──
+# 기본값 False(=collect) 유지 — 기존 동작 100% 불변. Tab4/데이터수집 탭의
+# UI 토글로만 전환(조이스틱 버튼 자체로는 전환 안 함 — 실수 방지).
+_joystick_verify_mode: bool = False
+# 조이스틱 X/R1(경로검증 모드에서 성공/실패 즉시기록)이 쓸 path_type —
+# Tab4 select onchange가 /verify/path_type으로 동기화해줌.
+_verify_current_path_type: str = "trackA_weak_left_left_curve"
 _drift_log_file = None
 
 
@@ -1795,6 +1825,66 @@ def drive_stop():
     except Exception: pass
     _state["status_log"] = "정지 완료"
     return {"ok": True}
+
+
+# ── 🧪 경로검증 모드 조이스틱 버튼용 헬퍼 — HTTP 왕복 없이 직접 호출 ──
+def _joystick_drive_start():
+    if _state["running"]:
+        return
+    req = DriveReq(mode=_state.get("mode") or "SYNC",
+                   instruction=_state.get("instruction") or "gray basket",
+                   gt_object=_state.get("gt_object") or "",
+                   apply_cc=bool(_state.get("apply_cc") or False))
+    try:
+        drive_start(req)
+    except Exception as e:
+        log.warning(f"[Joystick] drive_start 실패: {e}")
+
+
+def _joystick_drive_stop():
+    if _state["running"]:
+        drive_stop()
+
+
+def _joystick_quick_commit(success: str):
+    """경로검증 모드 X/R1 — 현재 Tab4 선택 path_type으로 성공/실패 즉시 기록 + 정지."""
+    _joystick_drive_stop()
+    try:
+        episodes_log(EpisodeLogReq(path_type=_verify_current_path_type,
+                                    success=success, fpe=0.0,
+                                    note="joystick quick-commit"))
+        log.info(f"[Joystick] 경로검증 기록: {_verify_current_path_type} = {success}")
+    except Exception as e:
+        log.warning(f"[Joystick] quick-commit 실패: {e}")
+
+
+class JoystickModeReq(BaseModel):
+    mode: str  # "collect" | "verify"
+
+
+@app.post("/joystick/mode")
+def joystick_set_mode(req: JoystickModeReq):
+    global _joystick_verify_mode
+    if req.mode not in ("collect", "verify"):
+        return {"ok": False, "error": f"알 수 없는 모드: {req.mode}"}
+    _joystick_verify_mode = (req.mode == "verify")
+    return {"ok": True, "mode": req.mode}
+
+
+@app.get("/joystick/mode")
+def joystick_get_mode():
+    return {"mode": "verify" if _joystick_verify_mode else "collect"}
+
+
+class VerifyPathTypeReq(BaseModel):
+    path_type: str
+
+
+@app.post("/verify/path_type")
+def verify_set_path_type(req: VerifyPathTypeReq):
+    global _verify_current_path_type
+    _verify_current_path_type = req.path_type
+    return {"ok": True, "path_type": _verify_current_path_type}
 
 
 @app.post("/drive/return")
@@ -4128,6 +4218,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid-vfy" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
+              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증 모드: Y=추론시작 B=정지 SELECT=시작⇄정지 X=실패기록 R1=성공기록 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
@@ -4332,7 +4423,7 @@ L S R  C S L  R S L
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
               <div class="form-group" style="margin-bottom:0;">
                 <label>경로 구분 (path_type)</label>
-                <select id="ep-path-type" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+                <select id="ep-path-type" onchange="syncVerifyPathType(this.value)" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
                   <option value="right_right">R→R (right_right)</option>
                   <option value="right_left">R→L★ (right_left)</option>
                   <option value="right_straight">R→S (right_straight)</option>
@@ -5186,6 +5277,7 @@ L S R  C S L  R S L
                 <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
                   <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드 표시
                 </label>
+                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증 모드: Y=추론시작 B=정지 SELECT=시작⇄정지 X=실패기록 R1=성공기록 (A=비상정지는 항상 공통)">🕹️ 조이스틱: 📷 수집</button>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
               <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
@@ -7256,6 +7348,38 @@ L S R  C S L  R S L
       if (select) {
         select.value = type;
       }
+      syncVerifyPathType(type);
+    }
+
+    // 조이스틱 경로검증 모드(X/R1 즉시기록)가 쓸 path_type을 서버에 동기화.
+    // select onchange + selectPathType(퀵라벨 버튼) 양쪽에서 호출됨.
+    async function syncVerifyPathType(type) {
+      try {
+        await api("/verify/path_type", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path_type: type })
+        });
+      } catch(e) { /* 조용히 무시 — 다음 선택 때 재시도됨 */ }
+    }
+
+    // 🕹️ 조이스틱 버튼 배치 모드 전환 — 📷 데이터수집 ⇄ 🧪 경로검증
+    let joystickVerifyMode = false;
+    async function toggleJoystickMode() {
+      joystickVerifyMode = !joystickVerifyMode;
+      const mode = joystickVerifyMode ? "verify" : "collect";
+      try {
+        await api("/joystick/mode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode })
+        });
+      } catch(e) { /* 무시 — 버튼 텍스트는 로컬 상태로도 갱신됨 */ }
+      document.querySelectorAll(".joystick-mode-btn").forEach(btn => {
+        btn.textContent = joystickVerifyMode ? "🕹️ 조이스틱: 🧪 검증" : "🕹️ 조이스틱: 📷 수집";
+        btn.style.borderColor = joystickVerifyMode ? "var(--amber)" : "";
+        btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
+      });
     }
 
     // ── 트랙A/트랙F 극단배치+중앙(V6) 퀵라벨 버튼 — Tab4/Tab6 공용 렌더러.
