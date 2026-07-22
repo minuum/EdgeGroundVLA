@@ -4,6 +4,7 @@
   "n_episodes": 33,
   "az_mode": "discrete",
   "az_thresh": 0.1,
+  "smooth_window": 1,
   "fpe_mean": 1.0009136352416719,
   "fpe_std": 1.0527959942516516,
   "tld_mean": 1.0006138909789828,

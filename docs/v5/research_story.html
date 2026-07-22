@@ -14987,6 +14987,51 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1420,#050a14);border-color:#38bdf8">
+    <div class="finding-title" style="color:#7dd3fc">📊 63-16. 통일 비교표 (apples-to-apples) — 전 조합 225ep 학습·225ep val 재평가 + seed 분산 (2026-07-22)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      63-15에서 드러난 조건 혼입을 청산하기 위해, <strong style="color:#e2e8f0">모든 헤드를
+      동일 데이터(225ep=트랙A+F)로 학습하고 동일 225ep val로 재평가</strong>한 통일표.
+      이전 리더보드(63-11)에 남아있던 stale JSON(hybrid 84.8% 등, 옛 버그값이 az-suffix
+      파일에 방치돼 있던 것)을 전부 폐기하고 신선 재평가로 대체. 2 그라운더(pg448/owl) ×
+      5 헤드(mlp/cxgeom/transformer/hybrid/chunk). contreg/flow는 회귀헤드라 closed-loop
+      스크립트 미지원 → 제외(offline 최하위권으로 이미 결론).
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">config (grounder/head, 225ep)</th><th style="padding:4px">Success@0.5m</th><th style="padding:4px">FPE(m)</th><th style="padding:4px">offline</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>pg448/mlp</strong></td><td style="padding:4px;text-align:center"><strong>48.5%</strong> (best-of-3)</td><td style="padding:4px;text-align:center">1.001</td><td style="padding:4px;text-align:center">78.3%</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>owl/mlp</strong></td><td style="padding:4px;text-align:center"><strong>48.5%</strong></td><td style="padding:4px;text-align:center">0.998</td><td style="padding:4px;text-align:center">77.6%</td></tr>
+        <tr><td style="padding:4px">pg448/chunk</td><td style="padding:4px;text-align:center">42.4%</td><td style="padding:4px;text-align:center">1.158</td><td style="padding:4px;text-align:center">76.6%</td></tr>
+        <tr><td style="padding:4px">owl/hybrid</td><td style="padding:4px;text-align:center">42.4%</td><td style="padding:4px;text-align:center">1.061</td><td style="padding:4px;text-align:center">77.5%</td></tr>
+        <tr><td style="padding:4px">pg448/hybrid</td><td style="padding:4px;text-align:center">39.4%</td><td style="padding:4px;text-align:center">1.082</td><td style="padding:4px;text-align:center">78.5%</td></tr>
+        <tr><td style="padding:4px">pg448/cxgeom, owl/cxgeom, owl/chunk</td><td style="padding:4px;text-align:center">36.4%</td><td style="padding:4px;text-align:center">1.07~1.20</td><td style="padding:4px;text-align:center">76~77%</td></tr>
+        <tr style="background:rgba(248,113,113,0.08)"><td style="padding:4px">pg448/transformer</td><td style="padding:4px;text-align:center">27.3%</td><td style="padding:4px;text-align:center">1.366</td><td style="padding:4px;text-align:center">72.6%</td></tr>
+        <tr style="background:rgba(248,113,113,0.08)"><td style="padding:4px">owl/transformer</td><td style="padding:4px;text-align:center">18.2%</td><td style="padding:4px;text-align:center">1.370</td><td style="padding:4px;text-align:center">72.8%</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">챔피언 seed 분산(pg448/mlp, 225ep, 3-seed)</strong>:
+      closed-loop Success = <strong style="color:#e2e8f0">33.3 / 36.4 / 48.5%</strong>
+      (평균 ~39.4%, std ~6.5%p) — 헤드라인 48.5%는 사실 best-of-3(seed2)였음.
+      <br><br>
+      <strong style="color:#fbbf24">핵심 결론 3가지</strong>:
+      <br>1) <strong style="color:#e2e8f0">그라운더(pg448 vs owl)는 사실상 무차별</strong> —
+      mlp에서 48.5%로 동률, 다른 헤드도 ±6%p 내. 실기에서 어느 그라운더를 쓰든 큰 차이
+      없을 것(61-18의 "그라운더 교체는 무효" 실기 결론과 일치).
+      <br>2) <strong style="color:#e2e8f0">헤드 상위권(mlp·chunk·hybrid)은 통계적으로 구분
+      불가</strong> — mlp 39.4±6.5%, chunk 42.4%, hybrid 39.4%가 seed 노이즈 폭 안에서
+      겹침. "어느 헤드가 최고냐"를 val 33ep로는 못 가림. 단 transformer(18~27%)는 확실히
+      최하위 — 이건 노이즈로 설명 안 되는 실질적 열위(배포 중인 아키텍처라 교체 근거).
+      <br>3) <strong style="color:#e2e8f0">지금 병목은 헤드/그라운더가 아니라 표본 크기</strong> —
+      33ep val로는 상위 조합을 못 가리므로, 새 헤드/그라운더 추가는 수확체감. 트랙C(64ep)로
+      표본을 289ep까지 늘려 val을 키우는 게 유일하게 순위를 신뢰 가능하게 만드는 길.
+      <br><br>
+      <strong style="color:#e2e8f0">배포 후보(4회차 확정)</strong>: <code>pg448_trackF/mlp</code>
+      또는 <code>owl_trackF/mlp</code> — 둘 다 48.5%(best), 평균 39.4%. mlp가 가장 단순하고
+      상위권과 동률이라 실기 우선 후보로 유지. 단 실기 테스트는 <strong style="color:#e2e8f0">
+      반드시 여러 회 반복</strong>(seed·비결정성 노이즈가 ±6%p이므로 1회 결과 신뢰 금물).
+    </div>
+  </div>
+
   <div class="finding-card">
     <div class="finding-title">63-7. 결론 및 다음 단계 <span style="color:#f87171;font-size:0.8rem">[2026-07-22 재정정 — 3회차]</span></div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
