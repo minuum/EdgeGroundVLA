@@ -15238,6 +15238,61 @@ graph TD
     <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_6_tricks.png" style="max-width:520px;width:100%;border-radius:8px;border:1px solid #223" alt="학습 트릭 비교"></div>
   </div>
 
+  <!-- 64-8 일반화 매트릭스 -->
+  <div class="finding-card" style="border-color:#ef4444">
+    <div class="finding-title" style="color:#f87171">64-8. 일반화 매트릭스 — "V5만 학습 → V6 = 2%" (쉬운 데이터는 전이 안 됨)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      "V5로 마무리해도 되나"를 정면으로 검증. bbox confound 제거(V5도 PG448 주석 사용),
+      train{V5,V6,V5+V6} × test{V5,V6}를 held-out·3-seed로 측정:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">train \ test</th><th style="padding:4px">→ V5(쉬움)</th><th style="padding:4px">→ V6(어려움)</th></tr>
+        <tr style="background:rgba(248,113,113,0.08)"><td style="padding:4px"><strong>V5만</strong></td><td style="padding:4px;text-align:center">69.7±11.9</td><td style="padding:4px;text-align:center;color:#f87171"><strong>2.0±1.4</strong></td></tr>
+        <tr><td style="padding:4px">V6만</td><td style="padding:4px;text-align:center">33.3±2.1</td><td style="padding:4px;text-align:center">39.4±6.5</td></tr>
+        <tr style="background:rgba(74,222,128,0.06)"><td style="padding:4px">V5+V6</td><td style="padding:4px;text-align:center"><strong>84.8±5.7</strong></td><td style="padding:4px;text-align:center">34.3±5.7</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">핵심</strong>: <strong style="color:#f87171">V5만 학습하면
+      V6에서 2.0%</strong> — 쉬운 벤치마크로 학습한 모델은 어려운 케이스에서 완전히 무너진다.
+      "V5로 마무리(쉬운 것 100%)"가 실전 능력을 전혀 보장하지 못한다는 정량 증거.
+      역방향(V6→V5 33.3%)도 완벽하진 않아 — V6는 극단 cx 분포라 중앙 위주 V5와도 다름.
+      V5+V6 혼합은 V5-test를 크게 올리지만(84.8%) V6-test는 못 올림(34.3%≈V6단독) —
+      <strong style="color:#e2e8f0">그냥 데이터를 더하는 것으론 어려운 케이스가 안 풀리고,
+      어려운 케이스를 겨냥한(트랙C) 데이터가 필요</strong>함을 재확인.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_8_genmatrix.png" style="max-width:440px;width:100%;border-radius:8px;border:1px solid #223" alt="일반화 매트릭스 히트맵"></div>
+    </div>
+  </div>
+
+  <!-- 64-9 실주행 시점 분해 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1420,#050a14);border-color:#38bdf8">
+    <div class="finding-title" style="color:#7dd3fc">64-9. 실주행 세션 시점 분해 — 집계 성공률의 함정 (soda 254세션 실측)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda가 5~7월 실주행 254세션 매트릭스를 전달(2026-07-22). obj_right 집계는 21/68(31%)이지만,
+      <strong style="color:#e2e8f0">시점×커밋×런타임으로 분해하면 완전히 다른 이야기</strong>:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">날짜</th><th style="padding:4px">obj_right</th><th style="padding:4px">체크포인트/런타임</th><th style="padding:4px">변경</th></tr>
+        <tr><td style="padding:4px">07-02~06</td><td style="padding:4px;text-align:center;color:#f87171">0/24 (0%)</td><td style="padding:4px">transformer · window6 · OWL</td><td style="padding:4px">—</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>07-10</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>17/30 (57%)</strong></td><td style="padding:4px">transformer · <strong>window3+bboxscale3</strong> · OWL</td><td style="padding:4px">체크포인트 교체(604f266)</td></tr>
+        <tr><td style="padding:4px">07-11</td><td style="padding:4px;text-align:center">4/12 (33%)</td><td style="padding:4px">window3 (일부 6207947)</td><td style="padding:4px">tail-frame 버그수정 후 0/4</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">확인된 것</strong>:
+      (1) <strong style="color:#e2e8f0">변곡점은 window6→window3+bboxscale3 체크포인트 교체</strong> —
+      그라운더는 OWL로 내내 고정이었음. CH64 "그라운더 무죄, 데이터/모델이 병목"을 실기 메타데이터로 확증.
+      (2) <strong style="color:#e2e8f0">경로별 실패 원인이 다름</strong>: obj_right는 그라운딩 정상(gnd 95%인데도
+      45/65 실패)·액션이 문제 / obj_left는 반대로 <strong style="color:#e2e8f0">그라운딩 자체가 약함</strong>(gnd&lt;50%가 5/8).
+      (3) 07-11 tail-frame reuse 버그수정 후 급감 → 이전 성공 일부가 프레임 재사용으로 부풀려졌을 가능성.
+      <br><br>
+      <strong style="color:#fbbf24">⚠️ 중대 공백</strong>: 실주행 obj_* 데이터는 <strong style="color:#e2e8f0">전부
+      old action_transformer.pt</strong>이고, <strong style="color:#e2e8f0">exp73(CH64 챔피언)은 실기 거의 미검증</strong>
+      (07-22 obj_center 3건뿐, 그것도 폐기된 v6-only 180ep). offline에선 mlp&gt;transformer인데 실기 챔피언은
+      transformer라 이 역전이 미해명 → <code>exp73_pg448_trackF_v6_mlp</code>를 obj_left/center/right로
+      반복 실기(6207947 버그수정 후)해야 판가름(soda에 요청 완료).
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_9_obj_right_timeline.png" style="max-width:520px;width:100%;border-radius:8px;border:1px solid #223" alt="obj_right 시점 분해"></div>
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
