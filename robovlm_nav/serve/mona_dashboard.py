@@ -809,7 +809,7 @@ class DashboardJoystickReader:
             self.BTN_STOP: {"name": "STOP", "desc": "STOP (robust_stop)"},
             self.BTN_UNDO: {"name": "UNDO", "desc": "마지막 프레임 취소"},
             self.BTN_DISCARD: {"name": "DISCARD", "desc": "에피소드 폐기"},
-            self.BTN_TELEOP: {"name": "Y", "desc": "미사용"},
+            self.BTN_TELEOP: {"name": "Y", "desc": "🔁 조이스틱 모드 전환(수집⇄검증)"},
             self.BTN_REC_START: {"name": "L1", "desc": "녹화 시작"},
             self.BTN_REC_SAVE: {"name": "R1", "desc": "정지 & 저장"},
             self.BTN_SELECT: {"name": "SEL", "desc": "녹화 토글"},
@@ -1007,6 +1007,10 @@ class DashboardJoystickReader:
                                 _ros.ctrl.robust_stop(source="joystick_A")
                         elif i == self.BTN_TOGGLE:
                             self.toggle_mode()
+                        elif i == self.BTN_TELEOP:
+                            # Y(3) = 조이스틱 배치모드 전환(collect⇄verify) — 두 모드 다 미사용이던
+                            # 유일한 여유 키(2026-07-22). 주행/녹화 중엔 무시(안전가드).
+                            _joystick_toggle_verify_mode()
                         elif _joystick_verify_mode:
                             # 🧪 경로검증 모드 배치 — 수집 모드와 뼈대 통일(2026-07-22):
                             # L1=시작 / R1=좋게끝(성공) / X=나쁘게끝(실패) / SELECT=시작⇄정지
@@ -1858,6 +1862,17 @@ def _joystick_quick_commit(success: str):
         log.info(f"[Joystick] 경로검증 기록: {_verify_current_path_type} = {success}")
     except Exception as e:
         log.warning(f"[Joystick] quick-commit 실패: {e}")
+
+
+def _joystick_toggle_verify_mode():
+    """Y(3) 버튼 — collect⇄verify 토글. 주행/녹화 중엔 무시(안전가드)."""
+    global _joystick_verify_mode
+    active = bool(_state.get("running")) or bool(_collect is not None and _collect.active)
+    if active:
+        log.info("[Joystick] Y 모드전환 무시 — 주행/녹화 진행 중")
+        return
+    _joystick_verify_mode = not _joystick_verify_mode
+    log.info(f"[Joystick] Y → 배치모드 = {'verify' if _joystick_verify_mode else 'collect'}")
 
 
 class JoystickModeReq(BaseModel):
@@ -4377,10 +4392,11 @@ L S R  C S L  R S L
                       <td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>🔁 시작⇄정지</td></tr>
                   <tr><td style="padding:1px 4px;"><b>START</b>(7)</td><td>⚙ SYNC↔ASYNC</td>
                       <td style="padding:1px 4px; color:var(--amber);"><b>R2</b></td><td style="color:var(--amber);">↩ 복귀</td></tr>
+                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>Y</b>(3)</td><td colspan="3" style="color:var(--amber);">🔁 모드 전환(수집⇄검증) — 주행/녹화 중엔 무시</td></tr>
                 </table>
                 <div style="font-size:9px; color:var(--text-muted); margin-top:6px; line-height:1.5; border-top:1px solid var(--border-glow); padding-top:6px;">
                   왼쪽 스틱=이동 · 오른쪽 스틱 X=회전 · 수집과 <b>키 통일</b>(L1시작/R1좋게끝/X나쁘게끝)<br>
-                  ⚠️ 위는 <b>🧪검증 모드</b> 의미 — 📷수집 모드에선 L1=녹화시작·R1=저장·X=폐기. 상단 "🕹️ 조이스틱" 토글로 전환.
+                  ⚠️ 위는 <b>🧪검증 모드</b> 의미 — 📷수집 모드에선 L1=녹화시작·R1=저장·X=폐기. <b>Y</b> 또는 상단 "🕹️ 조이스틱" 토글로 전환.
                 </div>
               </div>
             </details>
@@ -5447,7 +5463,7 @@ L S R  C S L  R S L
                 <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
                     <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
                 <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td>에피소드 폐기</td>
-                    <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:#555;">미사용</td></tr>
+                    <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:var(--amber);">🔁 모드 전환(수집⇄검증)</td></tr>
                 <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td>녹화 시작</td>
                     <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
                 <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
@@ -5856,6 +5872,16 @@ L S R  C S L  R S L
           cjBadge.style.color = "var(--emerald)";
         }
       }
+      // Y 버튼(조이스틱)으로 서버측 모드가 바뀌면 UI 토글 버튼도 동기화
+      if (s.verify_mode !== undefined && s.verify_mode !== joystickVerifyMode) {
+        joystickVerifyMode = s.verify_mode;
+        document.querySelectorAll(".joystick-mode-btn").forEach(btn => {
+          btn.textContent = joystickVerifyMode ? "🕹️ 조이스틱: 🧪 검증" : "🕹️ 조이스틱: 📷 수집";
+          btn.style.borderColor = joystickVerifyMode ? "var(--amber)" : "";
+          btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
+        });
+      }
+
       // 🕹️ 검증 탭 조이스틱 가이드(컴팩트) — 같은 /joystick/status 재사용, 수집 패널과 독립(ID 다름)
       const vfyBadge = document.getElementById("vfy-js-badge");
       if (vfyBadge) {
@@ -7482,7 +7508,7 @@ L S R  C S L  R S L
     const VERIFY_BTN_MEANING = {
       "STOP": "🚨 비상정지", "L1": "▶ 추론 시작", "R1": "✅ 성공 기록",
       "DISCARD": "❌ 실패 기록", "UNDO": "⏹ 주행 정지", "SEL": "🔁 시작⇄정지",
-      "START": "⚙ SYNC↔ASYNC", "R2": "↩ 복귀", "Y": "미사용",
+      "START": "⚙ SYNC↔ASYNC", "R2": "↩ 복귀", "Y": "🔁 모드 전환(수집⇄검증)",
     };
 
     // ── 🎯 추론 검증 스크리닝 패널 (데이터셋 목표와 별개) ──
