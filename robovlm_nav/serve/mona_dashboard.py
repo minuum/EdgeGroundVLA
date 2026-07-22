@@ -4359,8 +4359,32 @@ L S R  C S L  R S L
                 </div>
               </div>
             </details>
+
+            <!-- 🕹️ 조이스틱 가이드 (검증모드 기준, 컴팩트) — 데이터수집 패널과 독립 -->
+            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--amber); border-radius:8px; margin-top:4px;">
+              <summary style="font-size:12px; font-weight:700; color:var(--amber); outline:none;">🕹️ 조이스틱 가이드 (검증모드)
+                <span id="vfy-js-badge" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); margin-left:6px;">🔌 —</span>
+              </summary>
+              <div style="margin-top:8px; cursor:default;">
+                <div id="vfy-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+                <table style="width:100%; border-collapse:collapse; font-size:10px; line-height:1.5;">
+                  <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td style="color:#f43f5e;">🚨 비상정지</td>
+                      <td style="padding:1px 4px;"><b>L1</b>(4)</td><td style="color:#3fb950;">▶ 추론 시작</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>R1</b>(5)</td><td style="color:#3fb950;">✅ 성공 기록</td>
+                      <td style="padding:1px 4px;"><b>X</b>(2)</td><td style="color:var(--amber);">❌ 실패 기록</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>B</b>(1)</td><td>⏹ 주행 정지</td>
+                      <td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>🔁 시작⇄정지</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>START</b>(7)</td><td>⚙ SYNC↔ASYNC</td>
+                      <td style="padding:1px 4px; color:var(--amber);"><b>R2</b></td><td style="color:var(--amber);">↩ 복귀</td></tr>
+                </table>
+                <div style="font-size:9px; color:var(--text-muted); margin-top:6px; line-height:1.5; border-top:1px solid var(--border-glow); padding-top:6px;">
+                  왼쪽 스틱=이동 · 오른쪽 스틱 X=회전 · 수집과 <b>키 통일</b>(L1시작/R1좋게끝/X나쁘게끝)<br>
+                  ⚠️ 위는 <b>🧪검증 모드</b> 의미 — 📷수집 모드에선 L1=녹화시작·R1=저장·X=폐기. 상단 "🕹️ 조이스틱" 토글로 전환.
+                </div>
+              </div>
+            </details>
           </div>
-          
+
           <!-- Column 3: Control & Episode Editor -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; max-height:calc(100vh - 120px);">
             <div class="card-title">📝 주행 제어 및 기록</div>
@@ -5831,6 +5855,43 @@ L S R  C S L  R S L
           cjBadge.style.color = "var(--emerald)";
         }
       }
+      // 🕹️ 검증 탭 조이스틱 가이드(컴팩트) — 같은 /joystick/status 재사용, 수집 패널과 독립(ID 다름)
+      const vfyBadge = document.getElementById("vfy-js-badge");
+      if (vfyBadge) {
+        if (!s.pygame_available) vfyBadge.textContent = "⚠️ pygame 없음";
+        else if (!s.connected) vfyBadge.textContent = "🔌 미연결";
+        else {
+          const md = s.verify_mode ? "🧪검증" : "📷수집";
+          vfyBadge.textContent = `🟢 ${s.name} · ${md}`;
+          vfyBadge.style.background = "rgba(16,185,129,0.15)";
+          vfyBadge.style.color = "var(--emerald)";
+        }
+      }
+      const vfyLights = document.getElementById("vfy-js-btn-lights");
+      if (vfyLights) {
+        const btnInfo2 = (i) => (s.btn_map && s.btn_map[i]) || JOYSTICK_BTN_INFO[i] || {name: "#" + i};
+        const pressed2 = new Set(s.buttons || []);
+        const n2 = Math.max(10, ...(s.buttons || []).map(i => i + 1));
+        if (vfyLights.children.length !== n2) {
+          vfyLights.innerHTML = "";
+          for (let i = 0; i < n2; i++) {
+            const wrap = document.createElement("div"); wrap.className = "btn-light-wrap";
+            const d = document.createElement("div"); d.className = "btn-light"; d.id = "vfy-js-light-" + i; d.textContent = i;
+            const nm = document.createElement("div"); nm.className = "btn-light-name"; nm.id = "vfy-js-name-" + i; nm.textContent = btnInfo2(i).name;
+            wrap.appendChild(d); wrap.appendChild(nm); vfyLights.appendChild(wrap);
+          }
+        }
+        for (let i = 0; i < n2; i++) {
+          const d = document.getElementById("vfy-js-light-" + i);
+          const nm = document.getElementById("vfy-js-name-" + i);
+          if (!d) continue;
+          const isP = pressed2.has(i);
+          d.classList.toggle("active", isP);
+          d.classList.toggle("last", s.last_btn === i);
+          if (nm) { nm.classList.toggle("active", isP); nm.textContent = btnInfo2(i).name; }
+        }
+      }
+
       const lights = document.getElementById("collect-js-btn-lights");
       if (lights) {
         // 실제 감지된 매핑(btn_map)이 있으면 우선 사용 — 하드코딩 라벨은 연결 전 폴백일 뿐,
