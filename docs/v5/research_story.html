@@ -317,6 +317,7 @@
     <a class="toc-item" href="#ch59" data-target="ch59"><span class="toc-badge" style="background:rgba(34,211,238,0.15);color:#22d3ee">CH 59</span><span class="toc-label">5-Model 셀프라벨링 평가 — Kr/PG448 99.1%, soda PG224↔448 검출률 격차 확인</span><span class="toc-cat cat-exp" style="background:rgba(34,211,238,0.15);color:#22d3ee">분석</span></a>
     <a class="toc-item" href="#ch60" data-target="ch60"><span class="toc-badge" style="background:rgba(52,211,153,0.15);color:#34d399">CH 60</span><span class="toc-label">Action Head Ablation — PG448 재어노테이션 + Transformer/cx-Geom 헤드 비교 (exp67/71/72)</span><span class="toc-cat cat-exp" style="background:rgba(52,211,153,0.15);color:#34d399">ablation</span></a>
     <a class="toc-item" href="#ch61" data-target="ch61"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 61</span><span class="toc-label">실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증</span><span class="toc-cat cat-exp" style="background:rgba(248,113,113,0.15);color:#f87171">버그/분석</span></a>
+    <a class="toc-item" href="#ch64" data-target="ch64"><span class="toc-badge" style="background:rgba(56,189,248,0.15);color:#38bdf8">CH 64</span><span class="toc-label">exp73 대감사(大監査) — 숨은 버그 2개, 통일 리더보드, 진짜 병목은 재수집</span><span class="toc-cat cat-exp" style="background:rgba(56,189,248,0.15);color:#38bdf8">감사/결론</span></a>
     <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — Grounding 정량 평가 & Kc fallback 문제 발견</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
@@ -15062,6 +15063,185 @@ graph TD
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH63 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH64 ═ -->
+<div class="chapter" id="ch64">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#38bdf8;color:#0a0f1a">CH 64</span>
+    <h2 class="chapter-title">exp73 대감사 — 숨은 버그 2개, 통일 리더보드, 진짜 병목은 "재수집"</h2>
+    <p class="chapter-subtitle">"성능이 왜 이렇게 낮지?"에서 시작한 전면 재검증 (2026-07-22) — 그동안의 순위가 두 개의 조용한 버그로 오염돼 있었고, 정정하니 결론이 세 번 뒤집혔다. 최종적으로 헤드·그라운더·연속화 전부 막다른 길이고 병목은 데이터임을 데이터로 확정.</p>
+  </div>
+
+  <div class="callout critical">
+    🔴 <strong>3줄 요약</strong><br>
+    ① exp73 closed-loop 순위는 <strong>두 개의 숨은 버그</strong>(val_split RandomState↔default_rng 불일치 + 공유 캐시 CACHE_V6 덮어쓰기)로 통째로 오염돼 있었다. "hybrid 84.8% 최종 1위" → "mlp 60.6%" → 정정 후 <strong>전부 무효</strong>.<br>
+    ② 동일 조건(225ep 학습·225ep val)으로 통일 재평가하니 <strong>상위 헤드(mlp·chunk·hybrid)는 seed 노이즈(±6.5%p) 안에서 구분 불가</strong>, transformer만 확실한 최하위. 그라운더(PG448 vs OWL)는 무차별.<br>
+    ③ 학습 레벨 개선책(회전 부스트·오버샘플·V5 데이터 혼합) <strong>전부 무효</strong> → 병목은 알고리즘이 아니라 "곡선/오버슈트 액션 데이터의 부재" → <strong>트랙C 재수집이 유일한 해법</strong>.
+  </div>
+
+  <!-- 64-1 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#2a0a0a,#1a0505);border-color:#ef4444">
+    <div class="finding-title" style="color:#f87171">64-1. 숨은 버그 2개 — 그동안의 리더보드가 왜 못 믿을 값이었나</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">버그 A — val split API 불일치</strong>: 평가 스크립트가
+      <code>np.random.RandomState(42)</code>, 학습 스크립트가 <code>np.random.default_rng(42)</code>를
+      써서 <strong style="color:#e2e8f0">같은 seed라도 다른 셔플</strong> → "val 33ep" 중 27ep가
+      실제로는 학습 데이터였음(63-11).
+      <br><br>
+      <strong style="color:#e2e8f0">버그 B — 공유 캐시 덮어쓰기</strong>: <code>CACHE_V6</code>
+      (vis 캐시)가 트랙F 수집 후 <strong style="color:#e2e8f0">180ep→225ep로 덮어써지면서</strong>,
+      코드의 <code>arm="v6"</code>가 "트랙A만"이 아니라 "현재 캐시 전체"를 뜻하게 됨. 그 결과
+      180ep로 학습한 champion을 트랙F(center) 섞인 val로 평가 → <strong style="color:#e2e8f0">OOD
+      오염</strong>. champion을 올바른 180ep-only val로 재평가하니 <strong style="color:#f87171">60.6%
+      → 25.9%</strong>로 폭락(63-15).
+      <br><br>
+      <strong style="color:#fbbf24">교훈</strong>: 두 버그 모두 "데이터 버전/분할을 코드가 아닌
+      사람이 암묵적으로 관리"한 데서 옴. 정정책: split 로직 단일화(default_rng),
+      <code>--exclude-trackf</code> 플래그로 데이터 조건을 코드 레벨에서 명시·재현.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">시점별 "1위" 주장</th><th style="padding:4px">Success</th><th style="padding:4px">상태</th></tr>
+        <tr><td style="padding:4px">hybrid, pg448+트랙F</td><td style="padding:4px;text-align:center">84.8%</td><td style="padding:4px;text-align:center;color:#f87171">버그A로 무효</td></tr>
+        <tr><td style="padding:4px">mlp, pg448/v6(트랙F 없음)</td><td style="padding:4px;text-align:center">60.6%</td><td style="padding:4px;text-align:center;color:#f87171">버그B로 무효</td></tr>
+        <tr style="background:rgba(74,222,128,0.06)"><td style="padding:4px"><strong>mlp, pg448+트랙F (225ep 정합)</strong></td><td style="padding:4px;text-align:center"><strong>48.5%(best)/39.4%(평균)</strong></td><td style="padding:4px;text-align:center;color:#4ade80">apples-to-apples 확정</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 64-2 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1420,#050a14);border-color:#38bdf8">
+    <div class="finding-title" style="color:#7dd3fc">64-2. 통일 리더보드 (apples-to-apples: 전 조합 225ep 학습·225ep val)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      stale JSON을 전부 폐기하고 동일 프로토콜로 신선 재평가. 2 그라운더 × 5 헤드.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">config</th><th style="padding:4px">Success@0.5m</th><th style="padding:4px">FPE</th><th style="padding:4px">offline</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>pg448/mlp · owl/mlp</strong></td><td style="padding:4px;text-align:center"><strong>48.5%</strong></td><td style="padding:4px;text-align:center">~1.00</td><td style="padding:4px;text-align:center">77~78%</td></tr>
+        <tr><td style="padding:4px">pg448/chunk · owl/hybrid</td><td style="padding:4px;text-align:center">42.4%</td><td style="padding:4px;text-align:center">1.06~1.16</td><td style="padding:4px;text-align:center">76~78%</td></tr>
+        <tr><td style="padding:4px">pg448/hybrid</td><td style="padding:4px;text-align:center">39.4%</td><td style="padding:4px;text-align:center">1.08</td><td style="padding:4px;text-align:center">78.5%</td></tr>
+        <tr><td style="padding:4px">cxgeom(양쪽) · owl/chunk</td><td style="padding:4px;text-align:center">36.4%</td><td style="padding:4px;text-align:center">~1.1</td><td style="padding:4px;text-align:center">76~77%</td></tr>
+        <tr style="background:rgba(248,113,113,0.08)"><td style="padding:4px">transformer(양쪽, 현 배포)</td><td style="padding:4px;text-align:center">18~27%</td><td style="padding:4px;text-align:center">1.37</td><td style="padding:4px;text-align:center">72~73%</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">champion seed 분산</strong>: pg448/mlp 3-seed = 33.3/36.4/48.5%
+      (평균 39.4, std 6.5%p). 헤드라인 48.5%는 best-of-3였음.
+      <br><br>
+      <strong style="color:#fbbf24">결론</strong>: ① 그라운더 무차별(mlp 양쪽 48.5% 동률),
+      ② 상위 헤드 mlp·chunk·hybrid는 노이즈 안에서 구분 불가 — "최고 헤드"를 33ep val로는
+      못 가림, ③ transformer(현 배포)만 확실한 최하위 → 교체 근거.
+    </div>
+  </div>
+
+  <!-- 64-3 -->
+  <div class="finding-card">
+    <div class="finding-title">64-3. 어디서·언제 실패하나 — 프레임 단위 실패 시점 분석</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      경로 유형별로 보면 <strong style="color:#e2e8f0">직진 75~100% vs 곡선 0~67%</strong> —
+      실패가 곡선에 집중. 실패 곡선 에피소드를 프레임 단위로 까보니 오류는 두 지점에 집중된다:
+      <br><br>
+      <strong style="color:#e2e8f0">① 초반 1~3프레임 (cold-start)</strong> — window 패딩(과거
+      히스토리 없음) 상태라 방향을 반대로/STOP으로 시작. 거의 모든 곡선 에피소드가 frame 0에서 첫 오류.
+      <br><strong style="color:#e2e8f0">② 중반 회전 구간</strong> — 전/중/후 3구간 정확도에서
+      중반이 최저(일부 9%). GT의 짧은 회전 구간(예: 직진 중 2프레임 꺾음)을 감지 못하고
+      <strong style="color:#e2e8f0">FORWARD로 뭉갬</strong>. 데이터 71%가 FORWARD라 "애매하면 직진" 편향.
+      <br><strong style="color:#e2e8f0">③ 후반 직진 복귀</strong> — 대체로 회복(82~100%).
+      <br><br>
+      한 프레임 방향 오판 → dead-reckoning 적분에서 헤딩 오차 누적 → FPE가 4.6m까지 터짐.
+      즉 "한 번 어긋나면 되돌리지 못하는" 것이 본질(CH62 "중간 재보정 불능"과 동일).
+    </div>
+  </div>
+
+  <!-- 64-4 -->
+  <div class="finding-card">
+    <div class="finding-title">64-4. 연속형 액션으로 바꾸면? → 4가지 독립 증거로 "오히려 나쁨"</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      V6는 조이스틱으로 <strong style="color:#e2e8f0">이산 수집</strong>됐다(lx/ly 실측 {-1.15,0,+1.15} 3값).
+      "연속 회귀로 바꾸면 나아질까"를 4각도로 검증 — 전부 악화:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">증거</th><th style="padding:4px">이산</th><th style="padding:4px">연속</th></tr>
+        <tr><td style="padding:4px">원천 신호(63-9)</td><td style="padding:4px;text-align:center">lx/ly 3값뿐</td><td style="padding:4px;text-align:center;color:#f87171">회귀할 연속 타겟 없음</td></tr>
+        <tr><td style="padding:4px">offline(63-16)</td><td style="padding:4px;text-align:center">mlp 78%</td><td style="padding:4px;text-align:center;color:#f87171">contreg 75%/flow 72%</td></tr>
+        <tr><td style="padding:4px">연속 az 적분(63-10)</td><td style="padding:4px;text-align:center">39.4%</td><td style="padding:4px;text-align:center;color:#f87171">33.3%</td></tr>
+        <tr><td style="padding:4px">완전 연속 궤적(vs 실제 raw 정답)</td><td style="padding:4px;text-align:center">30.3%</td><td style="padding:4px;text-align:center;color:#f87171">15.2%</td></tr>
+      </table>
+      <br>
+      이유: lx/ly가 계단형 이산이라 회귀 헤드는 애매한 중간값을 뱉고, 그게 매 프레임 적분돼
+      드리프트 누적. 이산 분류는 "3개 중 하나로 딱" 찍어 이 애매함을 원천 차단(정규화 효과).
+      <strong style="color:#e2e8f0">연속이 의미 있으려면 수집 단계부터 아날로그 보존이 선행</strong>돼야 함(soda 문의 진행 중).
+    </div>
+  </div>
+
+  <!-- 64-5 -->
+  <div class="finding-card" style="border-color:#22c55e">
+    <div class="finding-title" style="color:#4ade80">64-5. 그라운더는 병목이 아니다 — V6 극단 cx 100% 검출</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      "오버슈트 중에도 바구니 cx가 잡혀야 한다"는 우려를 V6 데이터로 검증:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">값</th></tr>
+        <tr><td style="padding:4px">PG448 LIVE 검출률(V6)</td><td style="padding:4px;text-align:center;color:#4ade80">100% (5752/5752)</td></tr>
+        <tr><td style="padding:4px">검출된 cx 범위</td><td style="padding:4px;text-align:center">0.04 ~ 0.91 (극단까지 잡힘)</td></tr>
+        <tr><td style="padding:4px">PG448 vs OWL 검출률</td><td style="padding:4px;text-align:center">거의 동일(둘 다 극단 커버)</td></tr>
+      </table>
+      <br>
+      단, 검출된 프레임의 <strong style="color:#e2e8f0">91%가 중앙(cx 0.25~0.75)</strong>이고 아주
+      극단(cx&lt;0.15 or &gt;0.85)은 90프레임(0.6%)뿐. 즉 <strong style="color:#e2e8f0">인식은
+      되는데, 극단 상황 자체가 데이터에 희소</strong>. 그라운더(PG448/OWL) 교체로는 안 풀리고
+      (CH61-18 "그라운더 교체 무효"와 일치), 극단·오버슈트 프레임을 의도적으로 늘리는 재수집이 필요.
+    </div>
+  </div>
+
+  <!-- 64-6 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#2a1f0a,#1a1305);border-color:#f59e0b">
+    <div class="finding-title" style="color:#fbbf24">64-6. 학습 레벨 개선책 전부 무효 — "알고리즘으로는 못 고친다"</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      재수집 없이 곡선 실패를 완화하려는 시도(전부 mlp, 225ep, 3-seed 평균):
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">시도</th><th style="padding:4px">Success(평균)</th><th style="padding:4px">baseline 대비</th></tr>
+        <tr style="background:rgba(74,222,128,0.06)"><td style="padding:4px">baseline mlp</td><td style="padding:4px;text-align:center">39.4%</td><td style="padding:4px;text-align:center">—</td></tr>
+        <tr><td style="padding:4px">회전클래스 부스트 3배</td><td style="padding:4px;text-align:center">32.3%</td><td style="padding:4px;text-align:center;color:#f87171">-7%p</td></tr>
+        <tr><td style="padding:4px">회전클래스 부스트 6배</td><td style="padding:4px;text-align:center">28.3%</td><td style="padding:4px;text-align:center;color:#f87171">-11%p</td></tr>
+        <tr><td style="padding:4px">회전프레임 오버샘플 4배</td><td style="padding:4px;text-align:center">37.4%</td><td style="padding:4px;text-align:center">≈동일</td></tr>
+        <tr><td style="padding:4px">V5(쉬운셋) 데이터 혼합</td><td style="padding:4px;text-align:center">39.4%</td><td style="padding:4px;text-align:center">≈동일</td></tr>
+      </table>
+      <br>
+      회전 강조(부스트)는 FORWARD 정확도를 깎아 오히려 악화, 오버샘플·데이터혼합은 무변화.
+      <strong style="color:#e2e8f0">즉 지금 데이터 안에서 가중치·샘플링을 아무리 바꿔도 안 됨</strong> —
+      "지나쳤다 되돌리는" 궤적 자체가 데이터에 없으면 학습할 신호가 없다는 CH61 결론의 재확인.
+      (V5+V6 혼합의 초기 57.6%는 best-of-3 운빨이었고 3-seed 평균은 39.4%로 무효 처리.)
+    </div>
+  </div>
+
+  <!-- 64-7 결론 -->
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">막다른 길로 확인된 것</strong>: 헤드 교체(mlp≈chunk≈hybrid),
+      그라운더 교체(PG448≈OWL), 연속화(전부 악화), 학습 트릭(부스트/오버샘플/혼합 전부 무효),
+      end-to-end 언어조건화(CH61 text 경로 사망 + PG2도 방향 spread 1.4%p로 미약).
+      <br><br>
+      <strong style="color:#e2e8f0">유일하게 남은 근본 해법 — 트랙C 재수집</strong>: 실패의 본질이
+      "곡선에서 어긋났을 때 되돌리지 못함"이고, 그 원인이 "오버슈트→재보정 궤적의 부재"이므로,
+      의도적으로 <strong style="color:#e2e8f0">과하게 꺾었다 되돌리는(overshoot→recover)</strong>
+      궤적을 극단 cx에서 반복 수집하는 트랙C(64ep)가 정확히 이 빈틈을 메운다. 부수 효과로 표본이
+      289ep로 늘어 33ep val의 ±6.5%p 노이즈도 완화.
+      <br><br>
+      <strong style="color:#e2e8f0">실기 테스트 판단</strong>: 지금 시점 soda 실기는 "성능 검증"으로는
+      의미 낮음(곡선 실패 재확인일 뿐 + 노이즈로 1회 판단 불가). 단 <strong style="color:#e2e8f0">offline
+      재생 ↔ 실기의 gap을 처음 측정</strong>하는 캘리브레이션 용도로 쉬운 코스 1회는 가치 있음.
+      본격 실기 검증은 트랙C 재학습 이후.
+      <br><br>
+      <strong style="color:#fbbf24">배포 후보(현재)</strong>: <code>pg448_trackF/mlp</code> 또는
+      <code>owl_trackF/mlp</code> (best 48.5%, 평균 39.4%) — 가장 단순하고 상위권 동률.
+      단 실기는 노이즈 ±6.5%p 때문에 반드시 반복 측정.
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH64 ═ -->
 
 <hr class="chapter-divider">
 
