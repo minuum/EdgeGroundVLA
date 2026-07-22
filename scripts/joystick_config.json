@@ -1,5 +1,5 @@
 {
-  "_comment": "실측 버튼 매핑 (2026-06-11 DragonRise). 2026-07-23: Controller(15btn/6axis) — L2/R2 아날로그 트리거. 실측 결과 물리 L2=축5, R2=축4라 trig_l2=5/trig_r2=4로 스왑(L2=저장, R2=복귀). 얼굴버튼은 실측대로 유지.",
+  "_comment": "실측 버튼 매핑 (2026-06-11 DragonRise 기준).",
   "axes": {"left_x": 0, "left_y": 1, "right_x": 2},
   "force_layout": "dragonrise",
   "buttons": {
@@ -11,9 +11,9 @@
     "rec_save": 7,
     "select": 10,
     "start": 11,
-    "l2": -1,
+    "l2": 8,
     "r2": 9,
-    "trig_l2": 5,
-    "trig_r2": 4
+    "trig_l2": -1,
+    "trig_r2": -1
   }
 }

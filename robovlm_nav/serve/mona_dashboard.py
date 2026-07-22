@@ -817,7 +817,7 @@ class DashboardJoystickReader:
             self.BTN_TOGGLE: {"name": "START", "desc": "SYNC↔ASYNC 모드"},
         }
         if self.BTN_L2 >= 0:
-            btn_map[self.BTN_L2] = {"name": "L2", "desc": "💾 검증 세션 저장(검증모드)"}
+            btn_map[self.BTN_L2] = {"name": "L2", "desc": "💾 기록 저장(Log Episode)"}
         if self.BTN_R2 >= 0:
             btn_map[self.BTN_R2] = {"name": "R2", "desc": "복귀(경로 역재생)"}
         self._btn_map = {str(k): v for k, v in btn_map.items()}
@@ -1029,8 +1029,7 @@ class DashboardJoystickReader:
                             elif i == self.BTN_STOP:         # A = 실패 라벨
                                 _verify_arm_result("실패")
                             elif self.BTN_L2 >= 0 and i == self.BTN_L2:
-                                # 세션 저장 — L2 버튼(있는 패드만). 이 패드는 L2가 트리거축(축5)이라
-                                # 아래 트리거 블록에서 처리됨(버튼 L2는 -1).
+                                # 💾 기록 저장 (Log Episode) — L2 버튼(인덱스 8)
                                 _verify_save_session()
                             elif self.BTN_R2 >= 0 and i == self.BTN_R2:   # R2 버튼(있는 패드만) = 복귀
                                 _joystick_verify_return()
@@ -4461,14 +4460,14 @@ L S R  C S L  R S L
                       <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>⏹ 추론 정지</td></tr>
                   <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td style="color:#3fb950;">✅ 성공 라벨</td>
                       <td style="padding:1px 4px;"><b>A</b>(0)</td><td style="color:#f43f5e;">❌ 실패 라벨</td></tr>
-                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>L2</b></td><td style="color:var(--amber);">💾 세션 저장</td>
+                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>L2</b></td><td style="color:var(--amber);">💾 기록 저장</td>
                       <td style="padding:1px 4px; color:var(--amber);"><b>R2</b></td><td style="color:var(--amber);">↩ 복귀</td></tr>
                   <tr><td style="padding:1px 4px;"><b>START</b>(7)</td><td>⚙ SYNC↔ASYNC</td>
                       <td style="padding:1px 4px; color:var(--amber);"><b>Y</b>(3)</td><td style="color:var(--amber);">🔁 모드 전환</td></tr>
                 </table>
                 <div style="font-size:9px; color:var(--text-muted); margin-top:6px; line-height:1.5; border-top:1px solid var(--border-glow); padding-top:6px;">
-                  순서: <b>D-pad로 위치 선택 → L1 시작 → (주행) → R1 정지 → X/A로 성공·실패 라벨 → L2로 저장</b><br>
-                  X/A는 <b>라벨만</b> 바꿈(즉시 기록 X) · L2(트리거) 눌러야 1건 저장 → 💾버튼과 동일 기록, 중복 방지<br>
+                  순서: <b>D-pad로 위치 선택 → L1 시작 → (주행) → R1 정지 → X/A로 성공·실패 라벨 → L2로 💾 기록 저장</b><br>
+                  X/A는 <b>라벨만</b> 바꿈(즉시 기록 X) · L2 눌러야 1건 저장 → 💾 기록 저장 버튼과 100% 동일 기록, 중복 방지<br>
                   ⚠️ 별도 비상정지 없음 — <b>R1</b>이 robust_stop. <b>Y</b>=모드전환.
                 </div>
               </div>
@@ -5406,7 +5405,7 @@ L S R  C S L  R S L
                 <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
                   <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드 표시
                 </label>
-                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=세션저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
+                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=기록저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
               <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
@@ -7616,7 +7615,7 @@ L S R  C S L  R S L
     // 검증모드 버튼 의미(2026-07-23 재설계) — 서버 btn_map name 기준
     const VERIFY_BTN_MEANING = {
       "L1": "▶ 추론 시작", "R1": "⏹ 추론 정지", "DISCARD": "✅ 성공 라벨",
-      "STOP": "❌ 실패 라벨", "L2": "💾 세션 저장", "R2": "↩ 복귀",
+      "STOP": "❌ 실패 라벨", "L2": "💾 기록 저장", "R2": "↩ 복귀",
       "START": "⚙ SYNC↔ASYNC", "Y": "🔁 모드 전환(수집⇄검증)",
     };
 
