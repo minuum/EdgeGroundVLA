@@ -766,10 +766,12 @@ class Stage2V2Model:
         head_override: Optional[str],
         device: torch.device,
         pg2_path: Optional[Path] = None,
+        existing_enc: Optional["Stage1Encoder"] = None,
     ):
         self.device = device
         self.vlm_path = vlm_path
         self.checkpoint_path = str(stage2_path)
+        self._stage1_path = str(stage1_path)
         self.inference_count = 0
         self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "3"))  # CH49: skip_n=3 SR/FPE 변화 없음 확정
         self._grounding_cache: Optional[dict] = None
@@ -785,8 +787,16 @@ class Stage2V2Model:
             ).split(",") if p.strip()
         ]
 
-        # Stage1 (Kosmos-2 vision encoder — image features only)
-        self.enc = Stage1Encoder(vlm_path, stage1_path, device)
+        # Stage1 (Kosmos-2 vision encoder — image features only). 체크포인트가
+        # 바뀌어도 vlm_path/stage1_path는 거의 항상 동일(같은 Kosmos-2 백본 공유) —
+        # 그런데도 매번 재로드하면 6GB대 모델을 디스크에서 다시 읽어와서 전체
+        # 전환이 ~25s씩 걸림(2026-07-23, PG2↔OWL 체크포인트 전환 타임아웃 조사 중
+        # 확인). 그라운더/head만 바뀌는 흔한 케이스에선 그대로 재사용.
+        if existing_enc is not None:
+            self.enc = existing_enc
+            logger.info("Stage1(Kosmos-2) 재사용 — vlm_path/stage1_path 동일, 재로드 생략")
+        else:
+            self.enc = Stage1Encoder(vlm_path, stage1_path, device)
         self.enc.eval()
 
         # Grounder: PG2 if available (matches training), Kosmos-2 fallback
@@ -1328,7 +1338,7 @@ def _resolve_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def get_model(reload: bool = False) -> Stage2V2Model:
+def get_model(reload: bool = False, existing_enc: Optional["Stage1Encoder"] = None) -> Stage2V2Model:
     global _model
     if _model is None or reload:
         stage1_path = Path(os.getenv("VLA_S2V2_STAGE1", str(DEFAULT_STAGE1)))
@@ -1338,7 +1348,8 @@ def get_model(reload: bool = False) -> Stage2V2Model:
         device = _resolve_device()
         logger.info("Loading Stage2V2 model on %s ...", device)
         pg2_path = Path(os.getenv("VLA_PG2_PATH", str(DEFAULT_PG2)))
-        _model = Stage2V2Model(stage1_path, stage2_path, vlm_path, head_override, device, pg2_path=pg2_path)
+        _model = Stage2V2Model(stage1_path, stage2_path, vlm_path, head_override, device,
+                                pg2_path=pg2_path, existing_enc=existing_enc)
     return _model
 
 
@@ -1772,11 +1783,22 @@ async def load_model(
         os.environ["VLA_S2V2_HEAD"] = request.head
     if request.grounder:
         os.environ["VLA_GROUNDER"] = request.grounder
+
+    # Stage1(Kosmos-2)은 체크포인트가 바뀌어도 vlm_path/stage1_path가 거의 항상
+    # 동일한 백본 공유 — 그런데도 매번 재로드하면 전체 전환이 ~25s(디스크에서
+    # 6GB대 재로드)까지 걸림(2026-07-23, PG2↔OWL 체크포인트 전환 실측). 경로가
+    # 같으면 기존 Stage1Encoder를 그대로 물려받아 재로드 생략.
+    new_stage1_path = str(Path(os.getenv("VLA_S2V2_STAGE1", str(DEFAULT_STAGE1))))
+    reusable_enc = (_model.enc if (_model is not None and _model._stage1_path == new_stage1_path)
+                    else None)
+
     old_model = _model
     _model = None
+    if reusable_enc is not None and old_model is not None:
+        old_model.enc = None  # _free_cuda_memory()가 이 모델을 지울 때 재사용할 enc까지 같이 안 날아가게
     del old_model
     _free_cuda_memory()
-    m = get_model(reload=True)
+    m = get_model(reload=True, existing_enc=reusable_enc)
     grounder_kind = "owlv2" if isinstance(m.grounder, OwlV2Grounder) else "pg2"
     return {"status": "success", "head": m.head_name, "window": m.window,
             "val_acc": m.val_acc, "grounder": grounder_kind}
