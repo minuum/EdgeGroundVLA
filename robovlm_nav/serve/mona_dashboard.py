@@ -1499,7 +1499,12 @@ def _async_infer(instr: str, apply_cc: bool, logger):
 def _async_exec():
     lx = ly = az = 0.0
     last_upd = time.time()
-    COAST = 1.2
+    # 2026-07-23: grounding_decisions.jsonl 실측 PG2 latency p95=3.27s(grounding_skip_n=3의
+    # "신선 그라운딩" 스텝마다 발생) — 기존 COAST=1.2s는 이 정상 지연에도 발동해 로봇이
+    # 매 3스텝마다 강제로 velocity=0(정지)됐다가 재개하는 인위적 stop-go를 만들었음
+    # (수집 데이터는 ~6Hz 연속 조이스틱이라 이런 정지 구간이 전혀 없음 — train/inference
+    # 모션 연속성 불일치의 핵심 원인 중 하나). p95보다 여유있게 4.0s로 상향.
+    COAST = 4.0
     while not _stop_ev.is_set() and _state["running"]:
         if _async_q:
             res = _async_q.popleft()
@@ -1590,7 +1595,12 @@ def _goalnav_infer(phrase: str, apply_cc: bool, logger):
 def _goalnav_exec():
     lx = ly = az = 0.0
     last_upd = time.time()
-    COAST = 1.2
+    # 2026-07-23: grounding_decisions.jsonl 실측 PG2 latency p95=3.27s(grounding_skip_n=3의
+    # "신선 그라운딩" 스텝마다 발생) — 기존 COAST=1.2s는 이 정상 지연에도 발동해 로봇이
+    # 매 3스텝마다 강제로 velocity=0(정지)됐다가 재개하는 인위적 stop-go를 만들었음
+    # (수집 데이터는 ~6Hz 연속 조이스틱이라 이런 정지 구간이 전혀 없음 — train/inference
+    # 모션 연속성 불일치의 핵심 원인 중 하나). p95보다 여유있게 4.0s로 상향.
+    COAST = 4.0
     while not _stop_ev.is_set() and _state["running"]:
         if _goalnav_q:
             res = _goalnav_q.popleft()
