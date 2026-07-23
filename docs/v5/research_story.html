@@ -15403,6 +15403,12 @@ graph TD
       못 넘음. 트랙C(데이터)와 그라운딩 속도개선(제어)이 여전히 필요, 이건 그
       사이 즉시 배포 가능한 저비용 개선. 체크포인트:
       <code>exp73_pg448_trackF_v6_mlp_holdaware_seed{0,1,2}.pt</code>.
+      <br><br>
+      <strong style="color:#e2e8f0">그라운더 교차검증(OWL-v2)</strong>: 동일 방식을
+      OWL 그라운더로도 재현 — <strong style="color:#4ade80">HELD 25.3±3.8%</strong>
+      (PG448의 28.3±3.8%와 노이즈 안에서 동급). hold-aware 학습 효과가 그라운더
+      선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·hold-aware
+      OWL 체크포인트도 함께 전달, PG448 세트와 실기 A/B 비교 요청함.
       <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_12_holdaware.png" style="max-width:480px;width:100%;border-radius:8px;border:1px solid #223" alt="HELD-aware 학습 결과"></div>
     </div>
   </div>
