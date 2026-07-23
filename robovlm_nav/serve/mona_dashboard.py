@@ -1721,6 +1721,14 @@ class ConfigToggleReq(BaseModel):
     multi_prompt: Optional[bool] = None
     owlv2_thresh: Optional[float] = None
     owlv2_area_scale: Optional[float] = None
+    # STOP 모드 토글(Tab4 stopmode/stopguard 버튼) — Pydantic 모델에 필드가
+    # 없으면 FastAPI가 조용히 무시해서 버튼이 로컬 상태만 바뀌고 실제
+    # 추론서버엔 절대 안 걸리는 버그가 있었음(2026-07-23) — 필드 추가로 수정.
+    stop_mode: Optional[str] = None
+    stop_learned_min_steps: Optional[int] = None
+    stop_consec_frames: Optional[int] = None
+    stop_cx_tolerance: Optional[float] = None
+    stop_latched: Optional[bool] = None
 
 class LabelSaveReq(BaseModel):
     session_id: str
@@ -2239,6 +2247,11 @@ def config_update(req: ConfigToggleReq):
     if req.multi_prompt is not None: payload["multi_prompt"] = req.multi_prompt
     if req.owlv2_thresh is not None: payload["owlv2_thresh"] = req.owlv2_thresh
     if req.owlv2_area_scale is not None: payload["owlv2_area_scale"] = req.owlv2_area_scale
+    if req.stop_mode is not None: payload["stop_mode"] = req.stop_mode
+    if req.stop_learned_min_steps is not None: payload["stop_learned_min_steps"] = req.stop_learned_min_steps
+    if req.stop_consec_frames is not None: payload["stop_consec_frames"] = req.stop_consec_frames
+    if req.stop_cx_tolerance is not None: payload["stop_cx_tolerance"] = req.stop_cx_tolerance
+    if req.stop_latched is not None: payload["stop_latched"] = req.stop_latched
 
     try:
         res = _infer_post("/config", payload, timeout=3)
