@@ -2282,23 +2282,27 @@ def verify_model_list():
 
 class ModelSwitchReq(BaseModel):
     path: str  # runs/v5_nav/mlp/exp73/xxx.pt (repo-relative)
+    grounder: Optional[str] = None  # "pg2" | "owlv2" — 지정 시 그라운더도 같이 핫스왑
 
 
 @app.post("/verify/model_switch")
 def verify_model_switch(req: ModelSwitchReq):
     """추론서버(8001)의 /model/load 핫스왑 프록시 — 프로세스 재시작(go.sh, ~95s)
-    없이 체크포인트만 즉시 교체. PG2/Kosmos-2는 그대로 두고 head만 다시 만듦."""
+    없이 체크포인트(+옵션으로 그라운더)만 즉시 교체. Kosmos-2 vision encoder는 유지."""
     import requests as rq
     full_path = str((ROOT / req.path).resolve())
     if not os.path.exists(full_path):
         return {"ok": False, "error": f"파일 없음: {req.path}"}
     try:
+        payload = {"stage2_path": full_path}
+        if req.grounder:
+            payload["grounder"] = req.grounder
         r = rq.post(f"{INFER_URL}/model/load",
-                     json={"stage2_path": full_path},
+                     json=payload,
                      headers={"X-API-Key": API_KEY}, timeout=30)
         r.raise_for_status()
         result = r.json()
-        log.info(f"[ModelSwitch] {req.path} → {result}")
+        log.info(f"[ModelSwitch] {req.path} (grounder={req.grounder}) → {result}")
         return {"ok": True, **result}
     except Exception as e:
         log.warning(f"[ModelSwitch] 실패: {e}")
@@ -4508,7 +4512,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
                 <button class="btn btn-outline" onclick="event.preventDefault(); refreshModelList();" style="font-size:9px; padding:2px 6px; float:right;">🔄</button>
               </summary>
-              <div style="font-size:9px; color:var(--text-muted); margin:6px 0;">체크포인트 클릭 = 즉시 핫스왑(재시작 없음, PG2/Kosmos-2 유지). 전환 직후 첫 추론에 약간 지연 있을 수 있음.</div>
+              <div style="font-size:9px; color:var(--text-muted); margin:6px 0;">체크포인트 클릭 = 즉시 핫스왑(재시작 없음, Kosmos-2 vision encoder는 유지). 전환 직후 첫 추론에 약간 지연 있을 수 있음.</div>
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 그라운더:</span>
+                <span id="vfy-grounder-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
+                <button class="btn btn-outline" onclick="switchGrounder('pg2')" style="font-size:9px; padding:3px 8px;">PG2</button>
+                <button class="btn btn-outline" onclick="switchGrounder('owlv2')" style="font-size:9px; padding:3px 8px;">OWLv2</button>
+              </div>
               <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
             </details>
@@ -7784,8 +7794,11 @@ L S R  C S L  R S L
       try {
         const h = await api("/infer/health");
         current = (h.checkpoint_path || "").split("/").pop();
+        window._currentCheckpointPath = h.checkpoint_path || "";
         const curEl = document.getElementById("vfy-model-current");
         if (curEl) curEl.textContent = "현재: " + (current || "—");
+        const gEl = document.getElementById("vfy-grounder-current");
+        if (gEl) gEl.textContent = (h.grounder && h.grounder.model) || "—";
       } catch (e) { /* 무시 */ }
 
       try {
@@ -7825,6 +7838,28 @@ L S R  C S L  R S L
         });
         if (res.ok) {
           if (statusEl) statusEl.textContent = `✅ 전환 완료: ${filename} (head=${res.head}, val_acc=${res.val_acc})`;
+        } else {
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + res.error;
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "⚠️ 오류: " + e;
+      }
+      refreshModelList();
+    }
+
+    async function switchGrounder(kind) {
+      const statusEl = document.getElementById("vfy-model-status");
+      const path = window._currentCheckpointPath;
+      if (!path) { if (statusEl) statusEl.textContent = "⚠️ 현재 체크포인트 경로를 아직 모름 — 🔄 눌러서 새로고침 후 재시도"; return; }
+      if (statusEl) statusEl.textContent = `🔄 그라운더 → ${kind} 전환 중... (첫 호출은 모델 로딩으로 느릴 수 있음)`;
+      try {
+        const res = await api("/verify/model_switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path, grounder: kind })
+        });
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `✅ 그라운더 전환 완료: ${res.grounder}`;
         } else {
           if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + res.error;
         }

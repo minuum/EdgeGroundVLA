@@ -1376,6 +1376,7 @@ class LoadRequest(BaseModel):
     stage2_path: str
     stage1_path: Optional[str] = None
     head: Optional[str] = None
+    grounder: Optional[str] = None  # "pg2" | "owlv2" — VLA_GROUNDER 핫스왑(2026-07-23)
 
 
 class ConfigRequest(BaseModel):
@@ -1726,9 +1727,13 @@ async def load_model(
     os.environ["VLA_S2V2_STAGE2"] = request.stage2_path
     if request.head:
         os.environ["VLA_S2V2_HEAD"] = request.head
+    if request.grounder:
+        os.environ["VLA_GROUNDER"] = request.grounder
     _model = None
     m = get_model(reload=True)
-    return {"status": "success", "head": m.head_name, "window": m.window, "val_acc": m.val_acc}
+    grounder_kind = "owlv2" if isinstance(m.grounder, OwlV2Grounder) else "pg2"
+    return {"status": "success", "head": m.head_name, "window": m.window,
+            "val_acc": m.val_acc, "grounder": grounder_kind}
 
 
 class PreviewAlignRequest(BaseModel):
