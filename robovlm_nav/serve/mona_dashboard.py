@@ -3319,6 +3319,29 @@ def episodes_clear():
     return {"ok": True, "episodes": [], "summary": "에피소드 기록 없음"}
 
 
+class EpisodeDeleteReq(BaseModel):
+    row: int
+
+
+@app.post("/episodes/delete")
+def episodes_delete(req: EpisodeDeleteReq):
+    """수정 패널에서 특정 # 행 하나만 삭제 — undo(마지막 행만)와 달리 임의 행 삭제 가능."""
+    rows, _ = _read_episode_csv()
+    idx = next((i for i, r in enumerate(rows) if str(r[0]) == str(req.row)), None)
+    if idx is None:
+        return {"ok": False, "error": f"#{req.row} 행을 찾을 수 없습니다."}
+    new_rows = rows[:idx] + rows[idx + 1:]
+    for i, r in enumerate(new_rows):
+        r[0] = i + 1
+    import csv
+    with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(EP_HEADERS)
+        w.writerows(new_rows)
+    _, summary = _read_episode_csv()
+    return {"ok": True, "episodes": new_rows, "summary": summary}
+
+
 @app.post("/episodes/update")
 def episodes_update(req: EpisodeUpdateReq):
     """테이블 행 클릭 → 수정 패널에서 값 편집 후 저장 — 해당 # 행만 in-place 수정."""
@@ -4890,6 +4913,7 @@ L S R  C S L  R S L
                 </div>
                 <div style="display:flex; gap:8px;">
                   <button class="btn btn-cyan" style="flex:1;" onclick="_epEditSave()">💾 저장</button>
+                  <button class="btn btn-rose" style="flex:1;" onclick="_epEditDelete()">🗑️ 삭제</button>
                   <button class="btn btn-outline" style="flex:1;" onclick="_epEditClear()">닫기</button>
                 </div>
                 <div id="ep-edit-status" style="font-size:10px; color:var(--text-muted); margin-top:6px;">—</div>
@@ -9055,6 +9079,19 @@ L S R  C S L  R S L
       const statusEl = document.getElementById("ep-edit-status");
       statusEl.textContent = res.ok ? `✅ #${body.row} 저장됨` : "⚠️ " + (res.error || "저장 실패");
       if (res.ok) loadEpisodeHistory();
+    }
+
+    async function _epEditDelete() {
+      const statusEl = document.getElementById("ep-edit-status");
+      if (_epEditingRow == null) {
+        statusEl.textContent = "⚠️ 먼저 행을 클릭하세요";
+        return;
+      }
+      if (!confirm(`#${_epEditingRow} 에피소드를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      const res = await api("/episodes/delete", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ row: parseInt(_epEditingRow) }) });
+      statusEl.textContent = res.ok ? `🗑️ #${_epEditingRow} 삭제됨` : "⚠️ " + (res.error || "삭제 실패");
+      if (res.ok) { _epEditClear(); }
     }
 
     async function loadEpisodeHistory() {
