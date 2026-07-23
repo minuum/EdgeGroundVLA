@@ -2248,6 +2248,63 @@ def infer_health():
         return {"status": "error", "detail": str(e)}
 
 
+# ─── 🔀 모델 전환 (Tab4용) — /model/load 핫스왑 프록시, go.sh 재시작(95s) 불필요 ──
+EXP73_MODEL_DIR = ROOT / "runs" / "v5_nav" / "mlp" / "exp73"
+
+
+@app.get("/verify/model_list")
+def verify_model_list():
+    """runs/v5_nav/mlp/exp73/*.pt 스캔 + 메타데이터(val_acc/head/held_success/stride)
+    가벼운 torch.load(map_location='cpu')로 파싱 — 파일 몇 개뿐이라 부담 적음."""
+    import torch
+    out = []
+    if not EXP73_MODEL_DIR.exists():
+        return {"ok": True, "models": []}
+    for f in sorted(EXP73_MODEL_DIR.glob("*.pt")):
+        meta = {"filename": f.name, "path": str(f.relative_to(ROOT)),
+                "size_mb": round(f.stat().st_size / 1e6, 2)}
+        try:
+            ckpt = torch.load(str(f), map_location="cpu", weights_only=False)
+            meta["head"] = ckpt.get("head", "?")
+            meta["exp"] = ckpt.get("exp", "")
+            meta["window"] = ckpt.get("window", "")
+            meta["bbox_scale"] = ckpt.get("bbox_scale", "")
+            meta["stride"] = ckpt.get("stride", "")
+            va = ckpt.get("val_acc")
+            meta["val_acc"] = round(float(va), 4) if va else None
+            hs = ckpt.get("held_success")
+            meta["held_success"] = round(float(hs), 1) if hs is not None else None
+        except Exception as e:
+            meta["error"] = str(e)
+        out.append(meta)
+    return {"ok": True, "models": out}
+
+
+class ModelSwitchReq(BaseModel):
+    path: str  # runs/v5_nav/mlp/exp73/xxx.pt (repo-relative)
+
+
+@app.post("/verify/model_switch")
+def verify_model_switch(req: ModelSwitchReq):
+    """추론서버(8001)의 /model/load 핫스왑 프록시 — 프로세스 재시작(go.sh, ~95s)
+    없이 체크포인트만 즉시 교체. PG2/Kosmos-2는 그대로 두고 head만 다시 만듦."""
+    import requests as rq
+    full_path = str((ROOT / req.path).resolve())
+    if not os.path.exists(full_path):
+        return {"ok": False, "error": f"파일 없음: {req.path}"}
+    try:
+        r = rq.post(f"{INFER_URL}/model/load",
+                     json={"stage2_path": full_path},
+                     headers={"X-API-Key": API_KEY}, timeout=30)
+        r.raise_for_status()
+        result = r.json()
+        log.info(f"[ModelSwitch] {req.path} → {result}")
+        return {"ok": True, **result}
+    except Exception as e:
+        log.warning(f"[ModelSwitch] 실패: {e}")
+        return {"ok": False, "error": str(e)}
+
+
 def _snapshot_runtime_config() -> dict:
     """세션 시작 시점의 런타임 설정 스냅샷 — H5 attrs에 박아서 나중에
     로그 없이도 '이 세션 때 뭘 켜놨었는지' 확인 가능하게 함(2026-07-02).
@@ -4444,6 +4501,17 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             <div id="vfy-progress-txt" style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-top:-8px;">
               경로검증 계산 중...
             </div>
+
+            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23) -->
+            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--cyan); border-radius:8px; flex-shrink:0;" open>
+              <summary style="font-size:12px; font-weight:700; color:var(--cyan); outline:none; cursor:pointer;">🔀 모델 전환
+                <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
+                <button class="btn btn-outline" onclick="event.preventDefault(); refreshModelList();" style="font-size:9px; padding:2px 6px; float:right;">🔄</button>
+              </summary>
+              <div style="font-size:9px; color:var(--text-muted); margin:6px 0;">체크포인트 클릭 = 즉시 핫스왑(재시작 없음, PG2/Kosmos-2 유지). 전환 직후 첫 추론에 약간 지연 있을 수 있음.</div>
+              <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
+              <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
+            </details>
 
             <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개) -->
             <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
@@ -7707,6 +7775,65 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
+    // ── 🔀 모델 전환 패널 — /verify/model_list + /verify/model_switch (2026-07-23) ──
+    async function refreshModelList() {
+      const listEl = document.getElementById("vfy-model-list");
+      const statusEl = document.getElementById("vfy-model-status");
+      if (listEl) listEl.innerHTML = "불러오는 중...";
+      let current = "";
+      try {
+        const h = await api("/infer/health");
+        current = (h.checkpoint_path || "").split("/").pop();
+        const curEl = document.getElementById("vfy-model-current");
+        if (curEl) curEl.textContent = "현재: " + (current || "—");
+      } catch (e) { /* 무시 */ }
+
+      try {
+        const res = await api("/verify/model_list");
+        if (!res.ok || !listEl) return;
+        listEl.innerHTML = (res.models || []).map(m => {
+          const isCur = m.filename === current;
+          const bits = [];
+          if (m.head) bits.push(`head=${m.head}`);
+          if (m.window) bits.push(`w=${m.window}`);
+          if (m.bbox_scale) bits.push(`scale=${m.bbox_scale}`);
+          if (m.val_acc != null) bits.push(`val_acc=${m.val_acc}`);
+          if (m.held_success != null) bits.push(`held=${m.held_success}%`);
+          if (m.stride) bits.push(`stride=${m.stride}`);
+          bits.push(`${m.size_mb}MB`);
+          const info = bits.join(" · ") + (m.error ? ` ⚠️${m.error}` : "");
+          return `<div style="display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:center; padding:4px 6px; border-radius:6px; background:${isCur ? "rgba(6,182,212,0.12)" : "#090d16"}; border:1px solid ${isCur ? "var(--cyan)" : "var(--border-glow)"};">
+            <button class="btn ${isCur ? "btn-cyan" : "btn-outline"}" style="font-size:10px; padding:4px 8px; white-space:nowrap;" ${isCur ? "disabled" : ""} onclick="switchModel('${m.path}', '${m.filename}')">${isCur ? "✓ 로드됨" : "전환"}</button>
+            <div style="font-size:9px; color:var(--text-muted); line-height:1.4;">
+              <span style="color:#fff; font-weight:600;">${m.filename}</span><br>${info}
+            </div>
+          </div>`;
+        }).join("");
+      } catch (e) {
+        if (listEl) listEl.innerHTML = "⚠️ 목록 조회 실패: " + e;
+      }
+    }
+
+    async function switchModel(path, filename) {
+      const statusEl = document.getElementById("vfy-model-status");
+      if (statusEl) statusEl.textContent = `🔄 ${filename}로 전환 중...`;
+      try {
+        const res = await api("/verify/model_switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path })
+        });
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `✅ 전환 완료: ${filename} (head=${res.head}, val_acc=${res.val_acc})`;
+        } else {
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + res.error;
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "⚠️ 오류: " + e;
+      }
+      refreshModelList();
+    }
+
     // A/B 필터 — 체크포인트별/시점별로 스크리닝 집계를 나눠보기 위함(2026-07-23).
     // session_id → checkpoint 매핑을 서버에서 받아와 episode_log 행(마지막 컬럼이
     // session_id)과 조인해서 필터링.
@@ -9680,6 +9807,7 @@ L S R  C S L  R S L
     _renderTrackAPathButtons("verify-tracka-grid", "btn btn-outline", "selectPathType");
     _renderTrackAPathButtons("inspect-tracka-grid", "btn btn-outline iep-path-btn", "selectInspectPathType");
     refreshCheckpointOptions();
+    refreshModelList();
 
   </script>
 </body>
