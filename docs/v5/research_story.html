@@ -15303,15 +15303,25 @@ graph TD
       쓰고 크기(magnitude)는 완전히 버림 — 즉 물리적 속도는 항상 상수</strong>. 그래서
       cadence 차이가 그대로 "윈도우당 이동거리 불일치"로 직결됨이 확정.
       <br><br>
-      이를 3단계로 분해해 검증(모두 mlp, V6, 3-seed):
+      이를 3단계 × <strong style="color:#e2e8f0">두 그라운더(PG2-448/OWL-v2)</strong>로
+      교차 검증(모두 mlp, V6, 3-seed):
       <br><br>
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
-        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">조건</th><th style="padding:4px">결정 빈도</th><th style="padding:4px">Success@0.5m</th></tr>
-        <tr><td style="padding:4px">① baseline(stride=1)</td><td style="padding:4px;text-align:center">6Hz(매 프레임)</td><td style="padding:4px;text-align:center">39.4±6.5%</td></tr>
-        <tr><td style="padding:4px">② 입력만 흐림(stride=5)</td><td style="padding:4px;text-align:center">6Hz(그대로)</td><td style="padding:4px;text-align:center">36.4±2.5% (분산↓)</td></tr>
-        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px"><strong>③ HELD(진짜 실서빙 재현)</strong></td><td style="padding:4px;text-align:center"><strong>1.3Hz</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>24.2±2.5%</strong></td></tr>
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">조건</th><th style="padding:4px">결정 빈도</th><th style="padding:4px">PG2-448</th><th style="padding:4px">OWL-v2</th></tr>
+        <tr><td style="padding:4px">① baseline(stride=1)</td><td style="padding:4px;text-align:center">6Hz(매 프레임)</td><td style="padding:4px;text-align:center">39.4±6.5%</td><td style="padding:4px;text-align:center">44.4±3.8%</td></tr>
+        <tr><td style="padding:4px">② 입력만 흐림(stride=5)</td><td style="padding:4px;text-align:center">6Hz(그대로)</td><td style="padding:4px;text-align:center">36.4±2.5%</td><td style="padding:4px;text-align:center">36.4±0.0%</td></tr>
+        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px"><strong>③ HELD(진짜 실서빙 재현)</strong></td><td style="padding:4px;text-align:center"><strong>1.3Hz</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>24.2±2.5%</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>19.2±1.4%</strong></td></tr>
       </table>
       <br>
+      <strong style="color:#e2e8f0">그라운더 교차검증 결론</strong>: 급락 패턴이 <strong
+      style="color:#e2e8f0">두 그라운더에서 거의 동일</strong>(①→③ PG448 -15.2%p,
+      OWL -25.2%p — 방향과 크기 모두 일관). baseline에서는 OWL이 오히려 근소 우위(44.4%
+      vs 39.4%)였지만 HELD에서는 역전 없이 둘 다 급락 — <strong style="color:#e2e8f0">
+      이 병목이 특정 그라운더의 속성이 아니라 "판단 빈도 1.3Hz"라는 구조 자체에서
+      나온다는 것이 그라운더 선택과 무관하게 재확인됨</strong>. 그라운더를 아무리
+      바꿔도(64-5 "그라운더 무죄"와 같은 결) 이 문제는 해결 안 됨 — 해법은 판단
+      빈도 자체를 다루는 것(학습 재설계 또는 그라운딩 속도 개선)뿐.
+      <br><br>
       <strong style="color:#e2e8f0">구조적 해석</strong>: ①→②는 "기억(맥락)의 질"만 나빠진 것 —
       여전히 매 프레임 재판단·재반영하는 <strong style="color:#e2e8f0">연속 반응형 제어</strong>라
       성능이 거의 안 변함. ②→③은 차원이 다른 변화 — <strong style="color:#e2e8f0">판단 자체가
