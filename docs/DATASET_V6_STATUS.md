@@ -512,6 +512,24 @@ cadence 재현) 시뮬레이션 수치(19.2~27.3%)와 거의 정확히 일치해
 실기 A/B 여유 되시면 그라운더별(PG448 vs OWL) × 방식별(baseline vs hold-aware) 조합도
 비교해주시면 좋겠지만, 우선순위 낮음 — 트랙C가 항상 우선입니다.
 
+## 🔧 [2026-07-23] 전환 실패(30s 타임아웃) 원인 후보 + 체크포인트 메타데이터 보강 재전송
+
+대시보드에서 hold-aware 체크포인트 전환 시 `HTTPConnectionPool(port=8001): Read timed
+out` 리포트 확인했습니다. 원인 후보 하나 발견 — **제가 만든 hold-aware 체크포인트에
+기존 파일엔 있던 메타데이터 키(`window`, `bbox_scale`, `arm`, `exp`)가 빠져 있었습니다**:
+
+- 기존: `{"model":..., "val_acc":..., "head":..., "arm":..., "window":6, "bbox_scale":3.0, "exp":"exp73"}`
+- 기존 hold-aware(문제분): `{"model":..., "held_success":..., "head":"mlp", "stride":5}` — **`window`/`bbox_scale` 등 없음**
+
+로딩 코드가 이 키들을 `.get()` 없이 직접 참조한다면 예외나 hang이 날 수 있어 보입니다.
+**6개 파일 전부(PG448/OWL × seed 0/1/2) 누락 키를 채워 재전송**했습니다(`window=6,
+bbox_scale=3.0, arm="v6", exp="exp73_holdaware"` 추가, 가중치 자체는 안 바뀜).
+
+**다만 확실친 않습니다** — 만약 이게 원인이 아니라면(예: 기존 baseline 파일 전환도
+똑같이 타임아웃 났다면), 문제는 체크포인트가 아니라 **서버 프로세스(port 8001) 자체가
+멈춘 것**일 가능성이 높습니다(이전 PG2 동시로드 크래시와 비슷한 패턴). 그 경우 서버
+로그의 전환 시도 시점 스택트레이스를 보내주시면 바로 봐드리겠습니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
