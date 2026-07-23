@@ -15341,6 +15341,39 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-11 실기 검증 -->
+  <div class="finding-card" style="border-color:#22c55e">
+    <div class="finding-title" style="color:#4ade80">✅ 64-11. exp73 챔피언 첫 실기 검증 — HELD 예측과 정확히 일치 (soda, 2026-07-23, 21회)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda가 `logs/episode_log.csv`에 남긴 "트랙A/F 위치별 스크리닝 21회"가
+      <strong style="color:#e2e8f0">exp73 챔피언(mlp)의 사실상 첫 실기 검증</strong>임을
+      확인(경로명이 V6 path_type과 정확히 일치: trackA_weak/strong_left/right,
+      trackF_center). 64-9에서 지적한 "exp73는 실기 미검증" 공백이 여기서 메워짐.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">위치</th><th style="padding:4px">실기 성공</th></tr>
+        <tr><td style="padding:4px">trackA_strong_left</td><td style="padding:4px;text-align:center;color:#f87171">0/5 (0%)</td></tr>
+        <tr><td style="padding:4px">trackA_weak_left</td><td style="padding:4px;text-align:center">1/4 (25%)</td></tr>
+        <tr><td style="padding:4px">trackA_weak_right</td><td style="padding:4px;text-align:center">1/4 (25%)</td></tr>
+        <tr><td style="padding:4px">trackA_strong_right</td><td style="padding:4px;text-align:center;color:#4ade80">3/5 (60%)</td></tr>
+        <tr><td style="padding:4px">trackF_center</td><td style="padding:4px;text-align:center">0/1</td></tr>
+        <tr><td style="padding:4px">trackF_center_straight</td><td style="padding:4px;text-align:center;color:#4ade80">2/2 (100%)</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>전체 / 트랙A만</strong></td><td style="padding:4px;text-align:center"><strong>7/21(33.3%) / 5/18(27.8%)</strong></td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">핵심: 실기 27.8~33.3%가 baseline 예측(39~48%)이 아니라
+      HELD 예측(19.2~27.3%)과 거의 정확히 일치</strong> — 64-10에서 세운 가설(진짜
+      배포 성능은 offline baseline이 아니라 HELD 시뮬레이션에 가깝다)이 <strong
+      style="color:#4ade80">이번 세션 최초로 실기 데이터로 직접 검증됨</strong>.
+      <br><br>
+      <strong style="color:#fbbf24">추가 관찰(표본 작아 잠정)</strong>: strong_left(0%)와
+      strong_right(60%) 간 뚜렷한 좌우 비대칭 — 카메라/그라운더 좌우 편향 또는 물리적
+      요인(바퀴 드리프트 등) 가능성, n=4~5라 단정은 이름. 트랙C 재수집 시 좌우 균형
+      확인 필요.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_11_real_screening.png" style="max-width:560px;width:100%;border-radius:8px;border:1px solid #223" alt="실기 스크리닝 결과"></div>
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
