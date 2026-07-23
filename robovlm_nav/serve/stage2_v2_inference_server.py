@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import base64
 import io
+import gc
 import json
 import logging
 import os
@@ -1715,6 +1716,27 @@ async def ground_debug(
             "results": results}
 
 
+def _free_cuda_memory() -> None:
+    """참조가 끊긴 객체를 확실히 회수 — torch nn.Module은 참조 사이클이 흔해
+    CPython의 즉시 refcount 해제에 안 걸리는 경우가 있음. 그 상태에서 다음
+    모델을 바로 올리면 이전 그라운더/인코더 메모리가 안 빠진 채로 새 걸
+    같이 얹는 꼴이 돼 렉/메모리 스파이크가 남 — gc로 강제 수거 후 캐시 반환."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+
+
+def _build_grounder(kind: str, device: torch.device, pg2_path: Optional[Path] = None) -> Any:
+    kind = kind.lower()
+    if kind == "owlv2":
+        return OwlV2Grounder(device)
+    _pg2 = pg2_path or DEFAULT_PG2
+    if _pg2.exists():
+        return PG2Grounder(_pg2, device)
+    return Grounder(get_model().enc)
+
+
 @app.post("/model/load")
 async def load_model(
     request: LoadRequest,
@@ -1722,6 +1744,27 @@ async def load_model(
 ) -> dict[str, Any]:
     _check_api_key(x_api_key)
     global _model
+
+    # ── 그라운더만 바꾸는 경우: Stage1(Kosmos-2)/head는 그대로 두고
+    # 그라운더 하나만 "먼저 끄고 → 메모리 회수 확인 → 새로 로드" 순서로 교체.
+    # (동시에 두 그라운더가 메모리에 걸쳐있는 구간을 없애 전환 중 렉 방지)
+    same_ckpt = (_model is not None
+                 and str(request.stage2_path) == _model.checkpoint_path
+                 and (not request.head or request.head == os.getenv("VLA_S2V2_HEAD")))
+    if request.grounder and same_ckpt and not request.stage1_path:
+        old_grounder = _model.grounder
+        del _model.grounder
+        del old_grounder
+        _free_cuda_memory()
+        os.environ["VLA_GROUNDER"] = request.grounder
+        _model.grounder = _build_grounder(request.grounder, _model.device)
+        logger.info("[/model/load] 그라운더만 교체 완료 → %s (Stage1/head 유지)", request.grounder)
+        grounder_kind = "owlv2" if isinstance(_model.grounder, OwlV2Grounder) else "pg2"
+        return {"status": "success", "head": _model.head_name, "window": _model.window,
+                "val_acc": _model.val_acc, "grounder": grounder_kind}
+
+    # ── 그 외(체크포인트/head 변경 등): 기존 모델을 완전히 내리고 메모리
+    # 회수를 확인한 뒤에 새 모델을 구성 — 신구 모델이 겹치는 구간을 없앰.
     if request.stage1_path:
         os.environ["VLA_S2V2_STAGE1"] = request.stage1_path
     os.environ["VLA_S2V2_STAGE2"] = request.stage2_path
@@ -1729,7 +1772,10 @@ async def load_model(
         os.environ["VLA_S2V2_HEAD"] = request.head
     if request.grounder:
         os.environ["VLA_GROUNDER"] = request.grounder
+    old_model = _model
     _model = None
+    del old_model
+    _free_cuda_memory()
     m = get_model(reload=True)
     grounder_kind = "owlv2" if isinstance(m.grounder, OwlV2Grounder) else "pg2"
     return {"status": "success", "head": m.head_name, "window": m.window,
