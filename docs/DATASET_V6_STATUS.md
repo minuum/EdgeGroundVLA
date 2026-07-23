@@ -498,6 +498,20 @@ cadence 재현) 시뮬레이션 수치(19.2~27.3%)와 거의 정확히 일치해
 **주의**: 이 hold-aware 모델도 여전히 offline baseline(39~48%) 수준까지는 못
 올라옵니다(28.3%가 현재 최선) — 완전 해결이 아니라 트랙C 전까지의 임시 개선책입니다.
 
+## 🟢 [2026-07-23] OWL-v2 그라운더용 체크포인트도 추가 전송 (minum → soda)
+
+실기 스크리닝이 PG2-448 위주였는데, 저희 통일 리더보드(64-2)에서 OWL-v2도 mlp
+기준 거의 동급(48.5% 동률)이었어서 비교군으로 같이 보냅니다:
+
+- `exp73_owl_trackF_v6_mlp.pt` (baseline, OWL 그라운더)
+- `exp73_owl_trackF_v6_mlp_holdaware_seed{0,1,2}.pt` (신규, OWL HELD-aware)
+
+**OWL HELD-aware 결과: 25.3±3.8%** — PG2-448 hold-aware(28.3±3.8%)와 노이즈 안에서
+동급. 그라운더 무관하게 hold-aware 학습이 도움 된다는 게 다시 확인됐습니다.
+
+실기 A/B 여유 되시면 그라운더별(PG448 vs OWL) × 방식별(baseline vs hold-aware) 조합도
+비교해주시면 좋겠지만, 우선순위 낮음 — 트랙C가 항상 우선입니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
