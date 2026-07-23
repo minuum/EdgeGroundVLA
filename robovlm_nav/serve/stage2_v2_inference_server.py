@@ -804,23 +804,31 @@ class Stage2V2Model:
 
         # Stage2 head
         ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
-        self.window: int = int(ckpt.get("window", WINDOW_DEFAULT))
+        head_name: str = head_override or ckpt.get("head", "mlp")
+        # exp73(train_exp73_trackA_heads.py) 체크포인트는 head="mlp"/"hybrid"로 저장돼
+        # 기존 exp67 "mlp"(ActionMLP, d_in=280)와 이름이 충돌함 — d_in이 다른 별도
+        # 구조(Exp73MLPHead, d_in=window*260)라 구분 필요. 원래 exp="exp73" 메타로
+        # 구분했는데(2026-07-22), hold-aware 재학습 체크포인트(2026-07-23, stride
+        # 다수결 라벨)엔 이 필드(exp/window/bbox_scale 전부)가 없어 놓쳤음 — 대신
+        # "model" 키 유무로 판별(레거시 mlp/hybrid는 항상 "mlp" 키에 저장, exp73
+        # 계열만 "model" 키 사용, transformer/cx_geom과 동일 관례). exp 메타
+        # 있으면 그것도 계속 존중.
+        _is_exp73_ckpt = ckpt.get("exp") == "exp73" or ("model" in ckpt and head_name in ("mlp", "hybrid"))
+        if _is_exp73_ckpt:
+            if head_name == "mlp":
+                head_name = "exp73_mlp"
+            elif head_name == "hybrid":
+                head_name = "exp73_hybrid"
+        # exp73 계열은 window/bbox_scale 메타가 없어도 배포 규격(window=6, scale=3.0)
+        # 고정값으로 폴백 — hold-aware 체크포인트가 이 케이스(2026-07-23 확인).
+        self.window: int = int(ckpt.get("window", 6 if _is_exp73_ckpt else WINDOW_DEFAULT))
         # 2026-07-07: bbox(4dim)가 vis_feat(256dim, L2정규화)에 비해 신호가 너무 작아
         # 학습이 대각클래스(FWD+L/R)를 잘 못 배우는 문제 확인(ablate_diagweight_bboxscale
         # _multiseed.json) → bbox_scale 배수로 키워서 학습한 체크포인트 대응.
         # 기본값 1.0(하위호환, 기존 체크포인트는 영향 없음) — 학습 시 사용한 값과
         # 반드시 동일해야 함(2026-07-07 vis_feat 정규화 버그와 같은 종류의 학습/추론
         # 불일치를 피하기 위해 체크포인트 메타데이터에서 직접 읽음).
-        self._bbox_scale: float = float(ckpt.get("bbox_scale", 1.0))
-        head_name: str = head_override or ckpt.get("head", "mlp")
-        # exp73(train_exp73_trackA_heads.py) 체크포인트는 head="mlp"/"hybrid"로 저장돼
-        # 기존 exp67 "mlp"(ActionMLP, d_in=280)와 이름이 충돌함 — d_in이 다른 별도
-        # 구조(Exp73MLPHead, d_in=window*260)라 exp="exp73" 메타로 구분(2026-07-22).
-        if ckpt.get("exp") == "exp73":
-            if head_name == "mlp":
-                head_name = "exp73_mlp"
-            elif head_name == "hybrid":
-                head_name = "exp73_hybrid"
+        self._bbox_scale: float = float(ckpt.get("bbox_scale", 3.0 if _is_exp73_ckpt else 1.0))
         is_lstm         = (head_name == "lstm")
         is_transformer  = (head_name == "transformer")
         is_cx_geom      = (head_name == "cx_geom")
