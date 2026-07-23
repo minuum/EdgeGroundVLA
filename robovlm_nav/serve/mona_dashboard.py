@@ -1004,6 +1004,7 @@ class DashboardJoystickReader:
                     "verify_screen_pos": _verify_screen_pos,
                     "verify_pending_result": _verify_pending_result,
                     "verify_save_seq": _verify_save_seq,
+                    "verify_experimental": _verify_experimental,
                 }
 
                 for i in range(js.get_numbuttons()):
@@ -1034,6 +1035,8 @@ class DashboardJoystickReader:
                                 _verify_save_session()
                             elif self.BTN_R2 >= 0 and i == self.BTN_R2:   # R2 버튼(있는 패드만) = 복귀
                                 _joystick_verify_return()
+                            elif i == self.BTN_SELECT:       # SEL = 실험용/테스트 모드 토글
+                                _joystick_toggle_verify_experimental()
                         else:
                             # 📷 데이터수집 모드: A = 비상정지(모드 전용 유지)
                             if i == self.BTN_STOP:
@@ -1175,6 +1178,11 @@ _verify_pending_result: Optional[str] = None  # "성공" | "실패" | None (X/A�
 # L2(조이스틱)로 저장할 때마다 +1 — 브라우저가 /joystick/status 폴링 중 이 값이
 # 바뀐 걸 보면 loadEpisodeHistory()를 조용히 호출(팝업 없음, 스크리닝 패널 자동 갱신).
 _verify_save_seq: int = 0
+
+# 🧪 실험용/테스트 모드(2026-07-23) — 검증모드 SEL(남는 키)로 토글. True인 동안
+# L2 저장은 episode_log.csv 대신 episode_log_experimental.csv로 기록되어
+# 그라운더 A/B 테스트 등 "정식 스크리닝 집계에 안 셀" 시도를 분리 보관.
+_verify_experimental: bool = False
 
 
 def _verify_pos_to_path_type(pos: str) -> str:
@@ -1724,6 +1732,7 @@ class EpisodeLogReq(BaseModel):
     success: str
     fpe: float
     note: str
+    experimental: bool = False  # True면 별도 실험용 CSV(episode_log_experimental.csv)에 기록
 
 class EpisodeUpdateReq(BaseModel):
     row: int  # 테이블의 "#" (1-based)
@@ -1931,10 +1940,12 @@ def _verify_save_session():
     pt = _verify_current_path_type or _verify_pos_to_path_type(_verify_screen_pos)
     result = _verify_pending_result
     try:
+        note = "검증 스크리닝(L2 저장)" + ("· 🧪실험용" if _verify_experimental else "")
         episodes_log(EpisodeLogReq(path_type=pt, success=result, fpe=0.0,
-                                   note="검증 스크리닝(L2 저장)"))
-        log.info(f"[Verify] L2 세션 저장: {pt} = {result}")
-        _state["status_log"] = f"💾 저장: {pt} = {result}"
+                                   note=note, experimental=_verify_experimental))
+        tag = " [실험용]" if _verify_experimental else ""
+        log.info(f"[Verify] L2 세션 저장{tag}: {pt} = {result}")
+        _state["status_log"] = f"💾 저장{tag}: {pt} = {result}"
         _verify_pending_result = None  # 저장 후 라벨 초기화(다음 세션 대비)
         _verify_save_seq += 1          # 브라우저 폴링이 이 값 변화로 자동 갱신 트리거
     except Exception as e:
@@ -1958,6 +1969,18 @@ def _joystick_toggle_verify_mode():
         return
     _joystick_verify_mode = not _joystick_verify_mode
     log.info(f"[Joystick] Y → 배치모드 = {'verify' if _joystick_verify_mode else 'collect'}")
+
+
+def _joystick_toggle_verify_experimental():
+    """SEL 버튼(검증모드 전용) — 실험용/테스트 기록 모드 토글. 주행 중엔 무시(안전가드).
+    켜져 있는 동안 L2 저장은 episode_log_experimental.csv로 분리 기록됨."""
+    global _verify_experimental
+    if bool(_state.get("running")):
+        log.info("[Joystick] SEL 실험모드 전환 무시 — 주행 진행 중")
+        return
+    _verify_experimental = not _verify_experimental
+    _state["status_log"] = f"🧪 실험용 기록 모드: {'ON' if _verify_experimental else 'OFF'}"
+    log.info(f"[Joystick] SEL → 실험용 기록 모드 = {_verify_experimental}")
 
 
 class JoystickModeReq(BaseModel):
@@ -3019,6 +3042,10 @@ def sessions_delete(sid: str):
 
 
 EPISODE_CSV = ROOT / "logs" / "episode_log.csv"
+# 🧪 실험용/테스트용 기록 — 정식 스크리닝 집계(episode_log.csv)와 완전히 분리된
+# 별도 파일. 조이스틱 검증모드 SEL(2026-07-23, 남는 키)로 토글해서 기록 대상을
+# 여기로 돌림 — 그라운더 A/B 테스트처럼 "정식 수치로 안 셀" 시도를 위함.
+EXPERIMENTAL_EPISODE_CSV = ROOT / "logs" / "episode_log_experimental.csv"
 EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id"]
 PATH_TYPES = ["right_right", "right_left", "right_straight",
               "center_straight", "center_left", "center_right",
@@ -3088,13 +3115,14 @@ def _get_episode_summary(rows):
             f"성공 {nav_succ}/20 (목표) | 위치별 {obj_done}/90 ({obj_succ}성공) | 거리별 {dist_done}/30 ({dist_succ}성공) "
             f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공) | 트랙F {trackF_done}/{trackF_total} ({trackF_succ}성공)")
 
-def _read_episode_csv():
-    if not EPISODE_CSV.exists():
+def _read_episode_csv(csv_path=None):
+    csv_path = csv_path or EPISODE_CSV
+    if not csv_path.exists():
         return [], "에피소드 기록 없음"
     import csv
     rows = []
     try:
-        with open(EPISODE_CSV, newline="", encoding="utf-8") as f:
+        with open(csv_path, newline="", encoding="utf-8") as f:
             reader = csv.reader(f)
             next(reader, None) # skip header
             for r in reader:
@@ -3209,8 +3237,9 @@ def verify_checkpoint_index():
 
 @app.post("/episodes/log")
 def episodes_log(req: EpisodeLogReq):
-    rows, _ = _read_episode_csv()
-    
+    target_csv = EXPERIMENTAL_EPISODE_CSV if req.experimental else EPISODE_CSV
+    rows, _ = _read_episode_csv(target_csv)
+
     steps = _state["step"]
     avg_lat = 0.0
     top_action = "—"
@@ -3255,15 +3284,15 @@ def episodes_log(req: EpisodeLogReq):
     ]
     
     import csv
-    EPISODE_CSV.parent.mkdir(parents=True, exist_ok=True)
-    write_header = not EPISODE_CSV.exists()
-    with open(EPISODE_CSV, "a", newline="", encoding="utf-8") as f:
+    target_csv.parent.mkdir(parents=True, exist_ok=True)
+    write_header = not target_csv.exists()
+    with open(target_csv, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         if write_header:
             w.writerow(EP_HEADERS)
         w.writerow(new_row)
-        
-    _, summary = _read_episode_csv()
+
+    _, summary = _read_episode_csv(target_csv)
     return {"ok": True, "summary": summary}
 
 @app.post("/episodes/undo")
@@ -4529,8 +4558,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
                 <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">1차(빠른확인)</button>
               </div>
-              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀.</div>
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
               <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
+              <div id="vfy-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:6px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용 기록 모드 ON — episode_log_experimental.csv로 저장 (정식 집계 제외)</div>
 
               <!-- A/B 필터 — 어느 체크포인트/언제부터 기록을 셀지 (2026-07-23) -->
               <div style="display:flex; gap:6px; margin-bottom:6px;">
@@ -6091,6 +6121,8 @@ L S R  C S L  R S L
           : `<span style="color:var(--text-muted)">— (X성공/A실패)</span>`;
         vfyCur.innerHTML = `현재 위치: <span style="color:var(--amber)">${pos}</span> · 대기 라벨: ${resHtml}`;
         vfyCur.style.borderColor = res ? "var(--amber)" : "var(--border-glow)";
+        const expBadge = document.getElementById("vfy-experimental-badge");
+        if (expBadge) expBadge.style.display = s.verify_experimental ? "block" : "none";
         // A안 — 검증모드면 수동 폼(드롭다운/성공·실패 버튼)이 조이스틱 상태를 미러링
         if (s.verify_mode) {
           // D-pad 위치 → 드롭다운 동기화(같은 위치의 첫 옵션 선택) + 오버레이 강조 갱신
