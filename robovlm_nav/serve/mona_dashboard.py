@@ -1911,6 +1911,10 @@ def drive_stop():
         from scripts.inference_logger import get_logger
         get_logger().end_session("manual_stop")
     except Exception: pass
+    # drive_start()는 bbox/grounding_cached 등을 초기화하는데 stop 쪽은 안 하고
+    # 있었음 — 그래서 R1로 정지한 뒤 다음 L1 전까지, 화면엔 방금 끝난 에피소드의
+    # 마지막 프레임 bbox가 "아직 검출 중"인 것처럼 계속 남아있었음(2026-07-23).
+    _state.update(bbox=None, grounding_cached=None, grounding_caption=None)
     _state["status_log"] = "정지 완료"
     return {"ok": True}
 
@@ -3250,6 +3254,56 @@ def verify_checkpoint_index():
     m = _checkpoint_index_cache["map"]
     checkpoints = sorted(set(m.values()))
     return {"ok": True, "session_checkpoint": m, "checkpoints": checkpoints}
+
+@app.get("/verify/screening_batches")
+def verify_screening_batches():
+    """episode_log.csv를 (체크포인트 바뀜 또는 3시간 이상 공백)으로 배치 단위로
+    묶어서 반환 — "그 날 그 체크포인트로 몇 건 스크리닝했는지"를 나중에 날짜+
+    액션헤드 기준으로 다시 불러올 수 있게(2026-07-23). "since"만으론 그 뒤에
+    다른 배치가 또 쌓이면 예전 배치만 골라볼 방법이 없었음 — until도 같이 줌."""
+    rows, _ = _read_episode_csv()
+    idx = _checkpoint_index_cache.get("map", {})
+    if not idx:
+        verify_checkpoint_index()
+        idx = _checkpoint_index_cache.get("map", {})
+
+    def _parse(dt_str):
+        try:
+            return datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+        except Exception:
+            return None
+
+    enriched = []
+    for r in rows:
+        if len(r) < 14:
+            continue
+        dt = _parse(r[12])
+        if dt is None:
+            continue
+        sid = r[13]
+        ckpt = idx.get(sid, "(알수없음)")
+        enriched.append((dt, ckpt, r[2] == "성공"))
+    enriched.sort(key=lambda t: t[0])
+
+    batches = []
+    cur = None
+    GAP = datetime.timedelta(hours=3)
+    for dt, ckpt, ok in enriched:
+        if cur is None or ckpt != cur["checkpoint"] or dt - cur["_last"] > GAP:
+            cur = {"checkpoint": ckpt, "start": dt, "end": dt, "_last": dt, "count": 0, "success": 0}
+            batches.append(cur)
+        cur["count"] += 1
+        if ok: cur["success"] += 1
+        cur["end"] = dt
+        cur["_last"] = dt
+
+    out = [{"checkpoint": b["checkpoint"],
+            "start": b["start"].strftime("%Y-%m-%dT%H:%M"),
+            "end": b["end"].strftime("%Y-%m-%dT%H:%M"),
+            "count": b["count"], "success": b["success"]} for b in batches]
+    out.reverse()  # 최신 배치가 먼저 오게
+    return {"ok": True, "batches": out}
+
 
 @app.post("/episodes/log")
 def episodes_log(req: EpisodeLogReq):
@@ -4609,10 +4663,19 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <button class="btn btn-outline" onclick="refreshCheckpointOptions()" style="font-size:10px; padding:4px 8px;" title="체크포인트 목록 새로고침(새 세션 반영)">🔄</button>
               </div>
               <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
-                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">검증 시작:</span>
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">시작:</span>
                 <input type="datetime-local" id="vfy-screen-since" onchange="renderScreenPanel(window._lastVfyRows)" style="flex:1; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">~ 끝:</span>
+                <input type="datetime-local" id="vfy-screen-until" onchange="renderScreenPanel(window._lastVfyRows)" style="flex:1; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
                 <button class="btn btn-outline" onclick="setScreenSinceNow()" style="font-size:10px; padding:3px 8px; white-space:nowrap;">🔖 지금부터</button>
                 <button class="btn btn-outline" onclick="clearScreenSince()" style="font-size:10px; padding:3px 8px;">✕</button>
+              </div>
+              <!-- 지난 스크리닝 배치 불러오기 — 체크포인트+검증시작 날짜로 그룹핑된
+                   과거 배치를 골라서 시작/끝/체크포인트 필터를 한 번에 채움(2026-07-23) -->
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+                <select id="vfy-screen-batch" onchange="applyScreenBatch(this.value)" style="flex:1; padding:4px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                  <option value="">📂 지난 스크리닝 불러오기...</option>
+                </select>
               </div>
 
               <div id="vfy-screen-body">—</div>
@@ -7958,6 +8021,7 @@ L S R  C S L  R S L
           (res.checkpoints || []).map(c => `<option value="${c}">${c}</option>`).join("");
         if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
       } catch (e) { /* 무시 */ }
+      refreshScreenBatches();
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
@@ -7974,7 +8038,41 @@ L S R  C S L  R S L
 
     function clearScreenSince() {
       const el = document.getElementById("vfy-screen-since");
+      const untilEl = document.getElementById("vfy-screen-until");
       if (el) el.value = "";
+      if (untilEl) untilEl.value = "";
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // 지난 스크리닝 배치 목록 — 체크포인트가 바뀌거나 3시간 이상 공백이면
+    // 새 배치로 잡음(/verify/screening_batches). "그날 그 체크포인트로 몇 건
+    // 했는지"를 다시 골라볼 수 있게(2026-07-23).
+    async function refreshScreenBatches() {
+      const sel = document.getElementById("vfy-screen-batch");
+      if (!sel) return;
+      try {
+        const res = await api("/verify/screening_batches");
+        if (!res.ok) return;
+        window._screenBatches = res.batches || [];
+        sel.innerHTML = '<option value="">📂 지난 스크리닝 불러오기...</option>' +
+          window._screenBatches.map((b, i) => {
+            const s = b.start.replace("T", " ").slice(5);
+            const e = b.end.replace("T", " ").slice(11);
+            return `<option value="${i}">${s}~${e} · ${b.checkpoint} (${b.count}건, ✓${b.success})</option>`;
+          }).join("");
+      } catch (e) { /* 무시 */ }
+    }
+
+    function applyScreenBatch(idxStr) {
+      if (idxStr === "") return;
+      const b = (window._screenBatches || [])[parseInt(idxStr)];
+      if (!b) return;
+      const sinceEl = document.getElementById("vfy-screen-since");
+      const untilEl = document.getElementById("vfy-screen-until");
+      const ckptSel = document.getElementById("vfy-screen-ckpt");
+      if (sinceEl) sinceEl.value = b.start;
+      if (untilEl) untilEl.value = b.end;
+      if (ckptSel && [...ckptSel.options].some(o => o.value === b.checkpoint)) ckptSel.value = b.checkpoint;
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
@@ -7987,6 +8085,10 @@ L S R  C S L  R S L
       const wantCkpt = ckptSel ? ckptSel.value : "";
       const sinceEl = document.getElementById("vfy-screen-since");
       const sinceDate = (sinceEl && sinceEl.value) ? new Date(sinceEl.value) : null;
+      const untilEl = document.getElementById("vfy-screen-until");
+      // until은 분 단위 경계값이 포함되도록 +1분 여유를 둠(그 배치의 마지막
+      // 에피소드가 딱 그 분에 찍혀도 빠지지 않게).
+      const untilDate = (untilEl && untilEl.value) ? new Date(new Date(untilEl.value).getTime() + 60000) : null;
       const idx = window._checkpointIndex || {};
       const filtered = (rows || []).filter(r => {
         if (r.length < 3) return false;
@@ -7994,10 +8096,12 @@ L S R  C S L  R S L
           const sid = r[r.length - 1];
           if ((idx[sid] || "") !== wantCkpt) return false;
         }
-        if (sinceDate) {
+        if (sinceDate || untilDate) {
           const dateStr = r[12]; // "YYYY-MM-DD HH:MM"
           const rowDate = dateStr ? new Date(String(dateStr).replace(" ", "T")) : null;
-          if (!rowDate || isNaN(rowDate) || rowDate < sinceDate) return false;
+          if (!rowDate || isNaN(rowDate)) return false;
+          if (sinceDate && rowDate < sinceDate) return false;
+          if (untilDate && rowDate > untilDate) return false;
         }
         return true;
       });
@@ -9927,6 +10031,7 @@ L S R  C S L  R S L
     _renderTrackAPathButtons("verify-tracka-grid", "btn btn-outline", "selectPathType");
     _renderTrackAPathButtons("inspect-tracka-grid", "btn btn-outline iep-path-btn", "selectInspectPathType");
     refreshCheckpointOptions();
+    refreshScreenBatches();
     refreshModelList();
 
   </script>
