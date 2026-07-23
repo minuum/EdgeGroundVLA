@@ -4446,7 +4446,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             </div>
 
             <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개) -->
-            <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px;">
+            <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
                 <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">1차(빠른확인)</button>
@@ -4471,7 +4471,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div id="vfy-screen-body">—</div>
             </div>
 
-            <div class="table-wrapper" style="max-height:380px; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
+            <div class="table-wrapper" style="min-height:380px; max-height:380px; flex-shrink:0; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
                   <tr style="background:#151f32; border-bottom:1px solid var(--border-glow); text-align:left;">
