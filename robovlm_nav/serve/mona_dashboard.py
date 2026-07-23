@@ -2322,7 +2322,10 @@ def verify_model_switch(req: ModelSwitchReq):
             payload["grounder"] = req.grounder
         r = rq.post(f"{INFER_URL}/model/load",
                      json=payload,
-                     headers={"X-API-Key": API_KEY}, timeout=30)
+                     # 체크포인트 변경(Stage1 Kosmos-2까지 재로드)은 실측 ~25s로
+                     # 기존 30s 타임아웃과 여유가 거의 없어 종종 실패했음 — 60s로 완화.
+                     # (그라운더만 바꾸는 경우는 fast-path로 <1s, 여유 충분)
+                     headers={"X-API-Key": API_KEY}, timeout=60)
         r.raise_for_status()
         result = r.json()
         log.info(f"[ModelSwitch] {req.path} (grounder={req.grounder}) → {result}")
