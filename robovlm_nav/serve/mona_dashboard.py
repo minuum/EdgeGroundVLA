@@ -3116,6 +3116,36 @@ def episodes_list():
     rows, summary = _read_episode_csv()
     return {"ok": True, "episodes": rows, "summary": summary}
 
+
+# ── session_id → checkpoint 조회 (검증 스크리닝 체크포인트/시점 필터용, 2026-07-23) ──
+_checkpoint_index_cache: dict = {"mtime": 0.0, "map": {}}
+
+
+@app.get("/verify/checkpoint_index")
+def verify_checkpoint_index():
+    """docs/inference_reports/session_*.json을 스캔해 {session_id: checkpoint_basename}
+    맵을 만든다. A/B 체크포인트 전환 중 스크리닝 패널을 체크포인트별로 필터하는 데 씀.
+    폴더 mtime 기준 캐시 — 새 세션 없으면 재스캔 안 함."""
+    try:
+        cur_mtime = INFER_REPORT_DIR.stat().st_mtime
+    except Exception:
+        cur_mtime = 0.0
+    if _checkpoint_index_cache["mtime"] != cur_mtime:
+        idx = {}
+        for f in INFER_REPORT_DIR.glob("session_2026*.json"):
+            try:
+                d = json.loads(f.read_text())
+            except Exception:
+                continue
+            sid = d.get("session_id") or f.stem.replace("session_", "")
+            ckpt = (d.get("runtime_config") or {}).get("checkpoint_path", "")
+            idx[sid] = os.path.basename(ckpt) if ckpt else "(알수없음)"
+        _checkpoint_index_cache["map"] = idx
+        _checkpoint_index_cache["mtime"] = cur_mtime
+    m = _checkpoint_index_cache["map"]
+    checkpoints = sorted(set(m.values()))
+    return {"ok": True, "session_checkpoint": m, "checkpoints": checkpoints}
+
 @app.post("/episodes/log")
 def episodes_log(req: EpisodeLogReq):
     rows, _ = _read_episode_csv()
@@ -4423,6 +4453,21 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀.</div>
               <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
+
+              <!-- A/B 필터 — 어느 체크포인트/언제부터 기록을 셀지 (2026-07-23) -->
+              <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <select id="vfy-screen-ckpt" onchange="renderScreenPanel(window._lastVfyRows)" style="flex:1; padding:4px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                  <option value="">전체(누적)</option>
+                </select>
+                <button class="btn btn-outline" onclick="refreshCheckpointOptions()" style="font-size:10px; padding:4px 8px;" title="체크포인트 목록 새로고침(새 세션 반영)">🔄</button>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">검증 시작:</span>
+                <input type="datetime-local" id="vfy-screen-since" onchange="renderScreenPanel(window._lastVfyRows)" style="flex:1; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                <button class="btn btn-outline" onclick="setScreenSinceNow()" style="font-size:10px; padding:3px 8px; white-space:nowrap;">🔖 지금부터</button>
+                <button class="btn btn-outline" onclick="clearScreenSince()" style="font-size:10px; padding:3px 8px;">✕</button>
+              </div>
+
               <div id="vfy-screen-body">—</div>
             </div>
 
@@ -7662,13 +7707,70 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
+    // A/B 필터 — 체크포인트별/시점별로 스크리닝 집계를 나눠보기 위함(2026-07-23).
+    // session_id → checkpoint 매핑을 서버에서 받아와 episode_log 행(마지막 컬럼이
+    // session_id)과 조인해서 필터링.
+    window._checkpointIndex = window._checkpointIndex || {};
+
+    async function refreshCheckpointOptions() {
+      try {
+        const res = await api("/verify/checkpoint_index");
+        if (!res.ok) return;
+        window._checkpointIndex = res.session_checkpoint || {};
+        const sel = document.getElementById("vfy-screen-ckpt");
+        if (!sel) return;
+        const prevVal = sel.value;
+        sel.innerHTML = '<option value="">전체(누적)</option>' +
+          (res.checkpoints || []).map(c => `<option value="${c}">${c}</option>`).join("");
+        if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
+      } catch (e) { /* 무시 */ }
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    function _toDatetimeLocalValue(d) {
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function setScreenSinceNow() {
+      const el = document.getElementById("vfy-screen-since");
+      if (el) el.value = _toDatetimeLocalValue(new Date());
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    function clearScreenSince() {
+      const el = document.getElementById("vfy-screen-since");
+      if (el) el.value = "";
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
     function renderScreenPanel(rows) {
       window._lastVfyRows = rows;
       const tgt = SCREEN_TARGETS[screenTargetMode];
+
+      // A/B 필터 적용: 체크포인트 선택 + 검증 시작 시점
+      const ckptSel = document.getElementById("vfy-screen-ckpt");
+      const wantCkpt = ckptSel ? ckptSel.value : "";
+      const sinceEl = document.getElementById("vfy-screen-since");
+      const sinceDate = (sinceEl && sinceEl.value) ? new Date(sinceEl.value) : null;
+      const idx = window._checkpointIndex || {};
+      const filtered = (rows || []).filter(r => {
+        if (r.length < 3) return false;
+        if (wantCkpt) {
+          const sid = r[r.length - 1];
+          if ((idx[sid] || "") !== wantCkpt) return false;
+        }
+        if (sinceDate) {
+          const dateStr = r[12]; // "YYYY-MM-DD HH:MM"
+          const rowDate = dateStr ? new Date(String(dateStr).replace(" ", "T")) : null;
+          if (!rowDate || isNaN(rowDate) || rowDate < sinceDate) return false;
+        }
+        return true;
+      });
+
       const done = {}, succ = {};
       SCREEN_POSITIONS.forEach(p => { done[p.pos] = 0; succ[p.pos] = 0; });
-      (rows || []).forEach(r => {
-        if (r.length < 3) return;
+      filtered.forEach(r => {
         const pos = verifyPosOf(String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim());
         if (pos && done[pos] !== undefined) {
           done[pos] += 1;
@@ -9577,6 +9679,7 @@ L S R  C S L  R S L
     collectRefreshState();
     _renderTrackAPathButtons("verify-tracka-grid", "btn btn-outline", "selectPathType");
     _renderTrackAPathButtons("inspect-tracka-grid", "btn btn-outline iep-path-btn", "selectInspectPathType");
+    refreshCheckpointOptions();
 
   </script>
 </body>
