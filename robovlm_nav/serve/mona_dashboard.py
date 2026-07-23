@@ -1003,6 +1003,7 @@ class DashboardJoystickReader:
                     "verify_mode": _joystick_verify_mode,
                     "verify_screen_pos": _verify_screen_pos,
                     "verify_pending_result": _verify_pending_result,
+                    "verify_save_seq": _verify_save_seq,
                 }
 
                 for i in range(js.get_numbuttons()):
@@ -1171,6 +1172,9 @@ _verify_current_path_type: str = "trackA_weak_left_left_curve"
 VERIFY_SCREEN_POSITIONS = ["strong_left", "weak_left", "center", "weak_right", "strong_right"]
 _verify_screen_pos: str = "strong_left"       # D-pad ◀▶로 순환
 _verify_pending_result: Optional[str] = None  # "성공" | "실패" | None (X/A로 세팅)
+# L2(조이스틱)로 저장할 때마다 +1 — 브라우저가 /joystick/status 폴링 중 이 값이
+# 바뀐 걸 보면 loadEpisodeHistory()를 조용히 호출(팝업 없음, 스크리닝 패널 자동 갱신).
+_verify_save_seq: int = 0
 
 
 def _verify_pos_to_path_type(pos: str) -> str:
@@ -1906,7 +1910,7 @@ def _joystick_drive_stop():
 def _verify_save_session():
     """L2 — 최종 세션 저장(추론세션 저장). D-pad로 고른 위치 + X/A 라벨로 1건만 기록.
     결과 라벨(X/A)이 아직 없으면 저장 안 함(실수 방지). 저장 후 라벨 초기화."""
-    global _verify_pending_result
+    global _verify_pending_result, _verify_save_seq
     if not _verify_pending_result:
         _state["status_log"] = "⚠️ 결과 미지정 — X(성공)/A(실패) 먼저 누른 뒤 L2로 저장"
         log.info("[Verify] L2 저장 취소 — 결과 라벨 없음")
@@ -1922,6 +1926,7 @@ def _verify_save_session():
         log.info(f"[Verify] L2 세션 저장: {pt} = {result}")
         _state["status_log"] = f"💾 저장: {pt} = {result}"
         _verify_pending_result = None  # 저장 후 라벨 초기화(다음 세션 대비)
+        _verify_save_seq += 1          # 브라우저 폴링이 이 값 변화로 자동 갱신 트리거
     except Exception as e:
         log.warning(f"[Verify] L2 저장 실패: {e}")
 
@@ -5973,6 +5978,16 @@ L S R  C S L  R S L
           } else if (!s.verify_pending_result) {
             window._verifyPendingShown = null;
           }
+        }
+      }
+
+      // L2(조이스틱)로 저장될 때마다 서버 verify_save_seq가 +1 됨 — 값이 바뀌면
+      // 팝업/알림 없이 조용히 loadEpisodeHistory() 호출해 스크리닝 패널 즉시 갱신.
+      if (s.verify_save_seq !== undefined) {
+        if (window._verifySaveSeq === undefined) window._verifySaveSeq = s.verify_save_seq;
+        else if (s.verify_save_seq !== window._verifySaveSeq) {
+          window._verifySaveSeq = s.verify_save_seq;
+          if (typeof loadEpisodeHistory === "function") loadEpisodeHistory();
         }
       }
 
