@@ -8070,6 +8070,25 @@ L S R  C S L  R S L
       });
     }
 
+    // 모델 전환 성공 시 스크리닝 패널의 체크포인트 필터를 새 체크포인트로
+    // 자동 맞춰줌(2026-07-30) — 예전엔 전환해도 필터가 이전 값(또는 "전체")에
+    // 그대로 머물러서 방금 바꾼 모델의 진행률을 보려면 수동으로 다시 골라야 했음.
+    // until은 비워서(open-ended) 지금부터 계속 기록되는 걸 그대로 누적해서 보여줌.
+    function _syncScreeningFilterToCheckpoint(filename) {
+      const ckptSel = document.getElementById("vfy-screen-ckpt");
+      if (ckptSel) {
+        if (![...ckptSel.options].some(o => o.value === filename)) {
+          ckptSel.appendChild(new Option(filename, filename));
+        }
+        ckptSel.value = filename;
+      }
+      const sinceEl = document.getElementById("vfy-screen-since");
+      const untilEl = document.getElementById("vfy-screen-until");
+      if (sinceEl) sinceEl.value = "";
+      if (untilEl) untilEl.value = "";
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
     async function switchModel(path, filename) {
       const statusEl = document.getElementById("vfy-model-status");
       if (statusEl) statusEl.textContent = `🔄 ${filename}로 전환 중... (보통 25초 이내, 처음엔 더 걸릴 수 있어요)`;
@@ -8082,6 +8101,7 @@ L S R  C S L  R S L
         });
         if (res.ok) {
           if (statusEl) statusEl.textContent = `✅ 전환 완료: ${filename} (head=${res.head}, val_acc=${res.val_acc})`;
+          _syncScreeningFilterToCheckpoint(filename);
         } else {
           if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
         }
@@ -8183,7 +8203,12 @@ L S R  C S L  R S L
       const untilEl = document.getElementById("vfy-screen-until");
       const ckptSel = document.getElementById("vfy-screen-ckpt");
       if (sinceEl) sinceEl.value = b.start;
-      if (untilEl) untilEl.value = b.end;
+      // 지금 실제로 물려있는 체크포인트와 같은 배치를 불러오는 거면(=아직 진행
+      // 중인 배치) until을 비워서 이후 계속 저장되는 에피소드도 자동으로
+      // 누적 반영되게 함 — 다른(과거) 체크포인트 배치를 볼 때만 그 시점에서
+      // 딱 자르는 게 맞음(2026-07-30).
+      const curFile = (window._currentCheckpointPath || "").split("/").pop();
+      if (untilEl) untilEl.value = (b.checkpoint === curFile) ? "" : b.end;
       if (ckptSel && [...ckptSel.options].some(o => o.value === b.checkpoint)) ckptSel.value = b.checkpoint;
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
