@@ -320,6 +320,12 @@ class DataCollectSession:
         self._recent_saves: List[dict] = []
         # 마지막 저장 세션의 프레임/소요시간/실측Hz — Gradio session_summary_md 이식
         self._last_session_summary: Optional[dict] = None
+        # 🧪 실험용/모델이상 표기(2026-07-29) — 조이스틱 B(BTN_UNDO)로 토글.
+        # 녹화 시작 전에 켜두면 그 세션 전체("수집 세션 들어가는 것 자체")가
+        # H5 attrs에 flagged_model_issue=True로 남아, 학습 데이터셋에서 제외/검토
+        # 대상으로 구분 가능. B가 원래 undo_last_frame이었는데, 이 토글로 대체됨
+        # (undo는 이 UI/조이스틱 어디에도 대체 진입점이 없음 — 사용자 확인 후 결정).
+        self.experimental_mode: bool = False
 
     # ── VLAControlManager.on_command 훅 — source 무관(키보드/조이스틱) 기록 ──
     # publish_and_move()는 robust_stop()의 5x 중복 정지펄스(0.05s 간격)처럼
@@ -573,6 +579,7 @@ class DataCollectSession:
             f.attrs["collection_datetime"] = now.isoformat()
             f.attrs["collection_hour"] = now.hour
             f.attrs["collection_minute"] = now.minute
+            f.attrs["flagged_model_issue"] = bool(self.experimental_mode)
             f.create_dataset("images", data=images, compression="gzip")
             f.create_dataset("actions", data=actions, compression="gzip")
             f.create_dataset("action_event_types", data=event_types, compression="gzip")
@@ -808,7 +815,7 @@ class DashboardJoystickReader:
         # 하드코딩 라벨(0=A,1=B...)이 실측 매핑과 어긋나 혼동을 주지 않도록.
         btn_map = {
             self.BTN_STOP: {"name": "STOP", "desc": "STOP (robust_stop)"},
-            self.BTN_UNDO: {"name": "UNDO", "desc": "마지막 프레임 취소"},
+            self.BTN_UNDO: {"name": "B", "desc": "🧪 실험용(모델이상) 표기 토글 [수집모드 전용]"},
             self.BTN_DISCARD: {"name": "DISCARD", "desc": "에피소드 폐기"},
             self.BTN_TELEOP: {"name": "Y", "desc": "🔁 조이스틱 모드 전환(수집⇄검증)"},
             self.BTN_REC_START: {"name": "L1", "desc": "녹화 시작"},
@@ -1005,6 +1012,7 @@ class DashboardJoystickReader:
                     "verify_pending_result": _verify_pending_result,
                     "verify_save_seq": _verify_save_seq,
                     "verify_experimental": _verify_experimental,
+                    "collect_experimental": bool(_collect.experimental_mode) if _collect is not None else False,
                 }
 
                 for i in range(js.get_numbuttons()):
@@ -1042,10 +1050,11 @@ class DashboardJoystickReader:
                             if i == self.BTN_STOP:
                                 if _ros is not None and _ros.ctrl is not None:
                                     _ros.ctrl.robust_stop(source="joystick_A")
-                            # 📷 데이터수집 모드 배치(기존 그대로, 변경 없음)
+                            # 📷 데이터수집 모드 배치
                             elif i == self.BTN_UNDO:
-                                if _collect is not None:
-                                    _collect.undo_last_frame()
+                                # 2026-07-29부터 B는 실험용(모델이상) 표기 토글로 대체됨
+                                # (기존 undo_last_frame 기능은 제거 — 대체 진입점 없음, 확인 후 결정)
+                                _joystick_toggle_collect_experimental()
                             elif i == self.BTN_DISCARD:
                                 if _collect is not None and _collect.active:
                                     _collect.stop_episode(save=False)
@@ -1993,6 +2002,22 @@ def _joystick_toggle_verify_experimental():
     _verify_experimental = not _verify_experimental
     _state["status_log"] = f"🧪 실험용 기록 모드: {'ON' if _verify_experimental else 'OFF'}"
     log.info(f"[Joystick] SEL → 실험용 기록 모드 = {_verify_experimental}")
+
+
+def _joystick_toggle_collect_experimental():
+    """B(BTN_UNDO) 버튼(데이터수집 모드 전용, 2026-07-29) — 실험용/모델이상 표기 토글.
+    녹화 중(active)엔 무시(안전가드) — 세션 전체에 한 값으로 적용돼야 하므로
+    녹화 시작 전에만 바꿀 수 있음. 켜진 상태로 저장하면 H5 attrs에
+    flagged_model_issue=True로 남음. (기존 B=undo_last_frame 대체, 사용자 확인 후 결정 —
+    undo는 이 UI/조이스틱 어디에도 대체 진입점이 없음.)"""
+    if _collect is None:
+        return
+    if _collect.active:
+        log.info("[Joystick] B 실험모드 전환 무시 — 녹화 진행 중")
+        return
+    _collect.experimental_mode = not _collect.experimental_mode
+    _state["status_log"] = f"🧪 실험용(모델이상) 표기: {'ON' if _collect.experimental_mode else 'OFF'}"
+    log.info(f"[Joystick] B → 실험용(모델이상) 표기 = {_collect.experimental_mode}")
 
 
 class JoystickModeReq(BaseModel):
@@ -5709,6 +5734,7 @@ L S R  C S L  R S L
                 <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=기록저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
+              <div id="collect-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:8px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용(모델이상) 표기 ON — 저장 시 H5에 flagged_model_issue=True로 기록 (B로 끄기)</div>
               <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
                 <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
                 <span id="cam-proc-status-collect" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
@@ -6269,6 +6295,8 @@ L S R  C S L  R S L
         const expBadge = document.getElementById("vfy-experimental-badge");
         if (expBadge) expBadge.style.display = s.verify_experimental ? "block" : "none";
         // A안 — 검증모드면 수동 폼(드롭다운/성공·실패 버튼)이 조이스틱 상태를 미러링
+        const collectExpBadge = document.getElementById("collect-experimental-badge");
+        if (collectExpBadge) collectExpBadge.style.display = s.collect_experimental ? "block" : "none";
         if (s.verify_mode) {
           // D-pad 위치 → 드롭다운 동기화(같은 위치의 첫 옵션 선택) + 오버레이 강조 갱신
           if (s.verify_screen_pos && s.verify_screen_pos !== window._verifyScreenPos) {
