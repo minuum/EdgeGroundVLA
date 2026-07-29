@@ -4694,8 +4694,8 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
                 <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 그라운더:</span>
                 <span id="vfy-grounder-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
-                <button class="btn btn-outline" onclick="switchGrounder('pg2')" style="font-size:9px; padding:3px 8px;">PG2</button>
-                <button class="btn btn-outline" onclick="switchGrounder('owlv2')" style="font-size:9px; padding:3px 8px;">OWLv2</button>
+                <button id="vfy-grounder-pg2" class="btn btn-outline" onclick="switchGrounder('pg2')" style="font-size:9px; padding:3px 8px;">PG2</button>
+                <button id="vfy-grounder-owlv2" class="btn btn-outline" onclick="switchGrounder('owlv2')" style="font-size:9px; padding:3px 8px;">OWLv2</button>
               </div>
               <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
@@ -7996,6 +7996,24 @@ L S R  C S L  R S L
     }
 
     // ── 🔀 모델 전환 패널 — /verify/model_list + /verify/model_switch (2026-07-23) ──
+    // 🔀 모델 전환 패널 에러 메시지를 사람이 읽을 만하게 다듬음(2026-07-29) —
+    // 원래는 requests 예외의 raw 문자열("HTTPConnectionPool(...)ConnectionRefused...")을
+    // 그대로 노출해서 뭐가 문제인지 알기 어려웠음. 자주 나오는 패턴만 우선 매칭하고
+    // 나머진 원문을 그대로 보여줌(정보 손실 방지).
+    function _friendlyApiError(raw) {
+      const s = String(raw || "");
+      if (/Connection refused|Failed to establish a new connection|ECONNREFUSED/.test(s)) {
+        return "🔌 추론서버(8001)가 응답하지 않습니다 — 서버가 꺼져있거나 재시작 중일 수 있어요. 잠시 후 🔄로 다시 확인해주세요.";
+      }
+      if (/Read timed out|timeout/i.test(s)) {
+        return "⏱️ 응답이 너무 오래 걸립니다 — 체크포인트 전환은 보통 25초 안에 끝나는데 그보다 오래 걸리고 있어요. 서버가 무거운 작업 중일 수 있습니다.";
+      }
+      if (/Max retries exceeded/.test(s)) {
+        return "🔌 추론서버와 연결이 안 됩니다 — 서버 상태를 먼저 확인해주세요.";
+      }
+      return s;
+    }
+
     async function refreshModelList() {
       const listEl = document.getElementById("vfy-model-list");
       const statusEl = document.getElementById("vfy-model-status");
@@ -8033,13 +8051,25 @@ L S R  C S L  R S L
           </div>`;
         }).join("");
       } catch (e) {
-        if (listEl) listEl.innerHTML = "⚠️ 목록 조회 실패: " + e;
+        if (listEl) listEl.innerHTML = "⚠️ 목록 조회 실패: " + _friendlyApiError(e);
       }
+    }
+
+    // 전환 버튼 전부를 잠깐 비활성화 — 응답 오는 동안 연타로 중복 전환 요청이
+    // 쌓이는 걸 방지(특히 서버가 느려진 상태에서 여러 번 누르면 더 꼬임).
+    function _setModelPanelBusy(busy) {
+      const listEl = document.getElementById("vfy-model-list");
+      if (listEl) listEl.querySelectorAll("button").forEach(b => b.disabled = busy);
+      ["vfy-grounder-pg2", "vfy-grounder-owlv2"].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = busy;
+      });
     }
 
     async function switchModel(path, filename) {
       const statusEl = document.getElementById("vfy-model-status");
-      if (statusEl) statusEl.textContent = `🔄 ${filename}로 전환 중...`;
+      if (statusEl) statusEl.textContent = `🔄 ${filename}로 전환 중... (보통 25초 이내, 처음엔 더 걸릴 수 있어요)`;
+      _setModelPanelBusy(true);
       try {
         const res = await api("/verify/model_switch", {
           method: "POST",
@@ -8049,11 +8079,12 @@ L S R  C S L  R S L
         if (res.ok) {
           if (statusEl) statusEl.textContent = `✅ 전환 완료: ${filename} (head=${res.head}, val_acc=${res.val_acc})`;
         } else {
-          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + res.error;
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
         }
       } catch (e) {
-        if (statusEl) statusEl.textContent = "⚠️ 오류: " + e;
+        if (statusEl) statusEl.textContent = "⚠️ " + _friendlyApiError(e);
       }
+      _setModelPanelBusy(false);
       refreshModelList();
     }
 
@@ -8061,7 +8092,8 @@ L S R  C S L  R S L
       const statusEl = document.getElementById("vfy-model-status");
       const path = window._currentCheckpointPath;
       if (!path) { if (statusEl) statusEl.textContent = "⚠️ 현재 체크포인트 경로를 아직 모름 — 🔄 눌러서 새로고침 후 재시도"; return; }
-      if (statusEl) statusEl.textContent = `🔄 그라운더 → ${kind} 전환 중... (첫 호출은 모델 로딩으로 느릴 수 있음)`;
+      if (statusEl) statusEl.textContent = `🔄 그라운더 → ${kind} 전환 중... (보통 1초 이내, 체크포인트가 같이 바뀌는 경우만 더 걸릴 수 있어요)`;
+      _setModelPanelBusy(true);
       try {
         const res = await api("/verify/model_switch", {
           method: "POST",
@@ -8071,11 +8103,12 @@ L S R  C S L  R S L
         if (res.ok) {
           if (statusEl) statusEl.textContent = `✅ 그라운더 전환 완료: ${res.grounder}`;
         } else {
-          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + res.error;
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
         }
       } catch (e) {
-        if (statusEl) statusEl.textContent = "⚠️ 오류: " + e;
+        if (statusEl) statusEl.textContent = "⚠️ " + _friendlyApiError(e);
       }
+      _setModelPanelBusy(false);
       refreshModelList();
     }
 
