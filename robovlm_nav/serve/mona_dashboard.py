@@ -10408,6 +10408,7 @@ CAM_WATCHDOG_STALE_S    = 10.0   # 이 시간 이상 새 프레임 없으면 행
 CAM_WATCHDOG_COOLDOWN_S = 120.0  # 자동 재시작 간 최소 간격 (재시작 루프 방지)
 _cam_user_stopped = False        # 사용자가 ■정지 누른 상태면 워치독 개입 금지
 _cam_auto_restart_ts = 0.0
+_dash_start_ts = time.time()    # mona_dashboard 자체가 언제 떴는지 — 아래 콜드부트 케이스용
 
 
 def _camera_watchdog_loop():
@@ -10417,7 +10418,22 @@ def _camera_watchdog_loop():
         try:
             if _ros is None or _cam_user_stopped:
                 continue
-            if not _ros.last_ts:          # 아직 첫 프레임 전 (기동 직후)
+            if not _ros.last_ts:
+                # 콜드부트(이 프로세스 수명 동안 프레임을 한 번도 못 받음) — 대시보드
+                # 재시작 시 카메라 자식 프로세스가 같은 cgroup에 물려있어서 같이
+                # 죽는 경우가 있는데(2026-07-29 실측), 기존엔 "프레임을 한 번이라도
+                # 받은 뒤 끊긴" 경우만 감지해서 이 콜드부트 케이스는 영원히 방치됐음.
+                # 대시보드 기동 후 STALE_S 넘도록 첫 프레임도 못 받았고 카메라
+                # 프로세스 자체가 없으면 여기서도 새로 띄움.
+                if time.time() - _dash_start_ts < CAM_WATCHDOG_STALE_S:
+                    continue
+                if _cam_pids():
+                    continue  # 프로세스는 있는데 아직 첫 프레임 못 받은 것뿐 — 조금 더 기다림
+                if time.time() - _cam_auto_restart_ts < CAM_WATCHDOG_COOLDOWN_S:
+                    continue
+                _cam_auto_restart_ts = time.time()
+                log.warning("🐶 [CamWatchdog] 콜드부트 후 카메라 프로세스 없음 — 신규 시작")
+                _subprocess.Popen(["bash", "-c", _CAM_START_CMD])
                 continue
             age = time.time() - _ros.last_ts
             if age < CAM_WATCHDOG_STALE_S:
