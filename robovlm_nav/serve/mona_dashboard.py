@@ -1919,7 +1919,11 @@ def drive_stop():
     try:
         from scripts.inference_logger import get_logger
         get_logger().end_session("manual_stop")
-    except Exception: pass
+    except Exception as e:
+        # 2026-07-30: 이 예외가 조용히 삼켜지고 있어서 session_*.json 리포트가
+        # 2026-07-23 16:23 이후로 통째로 안 만들어지고 있었는데 아무 흔적도
+        # 안 남았음 — 원인 파악을 위해 로그로 남김.
+        log.warning(f"[drive_stop] end_session 실패: {e}")
     # drive_start()는 bbox/grounding_cached 등을 초기화하는데 stop 쪽은 안 하고
     # 있었음 — 그래서 R1로 정지한 뒤 다음 L1 전까지, 화면엔 방금 끝난 에피소드의
     # 마지막 프레임 bbox가 "아직 검출 중"인 것처럼 계속 남아있었음(2026-07-23).

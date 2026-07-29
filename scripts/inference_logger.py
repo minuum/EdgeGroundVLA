@@ -1,10 +1,20 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 import numpy as np
 
+# 2026-07-30: 예전엔 VLA_ROOT 환경변수(없으면 HOME)로 경로를 정했는데, 이 파일을
+# 호출하는 mona_dashboard.py/stage2_v2_inference_server.py는 둘 다 __file__ 기준
+# 경로(ROOT)를 쓰고 VLA_ROOT엔 의존 안 함 — 그래서 launch 방식이 바뀌어 VLA_ROOT가
+# 안 채워지면(예: systemd-run으로 직접 띄울 때) 조용히 HOME(/home/soda)으로
+# 새서 session_*.json/h5가 프로젝트 밖(/home/soda/docs/...)에 쌓이는 사고가 있었음
+# (2026-07-23 18:53 이후 전부 이 문제였음, 환경변수 미설정 = 조용한 실패라 발견이
+# 늦었음). 환경변수 대신 이 파일 위치 기준으로 고정.
+_DEFAULT_ROOT = str(Path(__file__).resolve().parents[1])  # scripts/ → MoNaVLA/
+
 H5_SAVE_DIR = os.path.join(
-    os.getenv("VLA_ROOT", os.getenv("HOME", "/tmp")),
+    os.getenv("VLA_ROOT", _DEFAULT_ROOT),
     "docs/inference_sessions"
 )
 
@@ -12,7 +22,7 @@ H5_SAVE_DIR = os.path.join(
 class InferenceLogger:
     def __init__(self, log_dir=None):
         if log_dir is None:
-            default_root = os.getenv("VLA_ROOT", os.getenv("HOME", "/tmp"))
+            default_root = os.getenv("VLA_ROOT", _DEFAULT_ROOT)
             log_dir = os.path.join(default_root, "docs/inference_reports")
         self.log_dir = log_dir
         os.makedirs(self.log_dir, exist_ok=True)
@@ -39,7 +49,7 @@ class InferenceLogger:
             "instruction_mode": instruction_mode,
             "history": [],
         }
-        print(f"📝 세션 시작: {self.log_file}")
+        print(f"📝 세션 시작: {self.log_file}", flush=True)
 
     def update_instruction(self, instruction: str):
         if hasattr(self, "data"):
@@ -94,7 +104,7 @@ class InferenceLogger:
 
     def end_session(self, status: str = "completed") -> str | None:
         if not hasattr(self, "data") or self.data is None:
-            print("⚠️ 저장할 세션 없음")
+            print("⚠️ 저장할 세션 없음", flush=True)
             return None
 
         self.data["status"] = status
@@ -170,15 +180,15 @@ class InferenceLogger:
                     if self.data.get("runtime_config"):
                         f.attrs["runtime_config"] = json.dumps(self.data["runtime_config"])
 
-                print(f"✅ H5 저장: {h5_path}  ({len(imgs)} frames, {imgs.shape})")
+                print(f"✅ H5 저장: {h5_path}  ({len(imgs)} frames, {imgs.shape})", flush=True)
                 self.data["h5_path"] = h5_path
             except Exception as e:
-                print(f"⚠️ H5 저장 실패: {e}")
+                print(f"⚠️ H5 저장 실패: {e}", flush=True)
 
         # ── JSON 저장 ────────────────────────────────────────────────────────
         with open(self.log_file, "w") as f:
             json.dump(self.data, f, indent=4)
-        print(f"✅ JSON 저장: {self.log_file}")
+        print(f"✅ JSON 저장: {self.log_file}", flush=True)
 
         return self.log_file
 
