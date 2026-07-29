@@ -42,9 +42,14 @@ BASE_CSS = """
 body { background:#0a0f1a; color:#e2e8f0; font-family:'Segoe UI',sans-serif; padding:20px; }
 h1 { font-size:1.3rem; margin-bottom:6px; }
 .sub { color:#94a3b8; font-size:0.85rem; margin-bottom:18px; }
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+.grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
 .card { background:#111827; border:1px solid #223; border-radius:10px; padding:10px; }
+.shots { display:grid; grid-template-columns:repeat(4, 1fr); gap:5px; margin-bottom:6px; }
+.shots img { width:100%; height:90px; object-fit:cover; border-radius:5px; background:#fff; }
+.shots .lbl { font-size:0.62rem; color:#64748b; text-align:center; margin-top:2px; }
 .card img { width:100%; border-radius:6px; background:#fff; }
+@media (max-width:1100px) { .grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:700px) { .grid { grid-template-columns:1fr; } .shots { grid-template-columns:repeat(2,1fr); } }
 .meta { font-size:0.78rem; color:#94a3b8; margin:6px 0; line-height:1.6; }
 .meta b { color:#e2e8f0; }
 .row { display:flex; gap:6px; margin-top:6px; }
@@ -87,9 +92,12 @@ def index():
         arrive = f"{e['arrive_cx']:.3f}" if e["arrive_cx"] is not None else "N/A"
         cards.append(f"""
         <div class="card">
-          <img src="/frame/ep{idx:02d}_frames.jpg" style="width:100%;border-radius:6px;margin-bottom:6px">
-          <div style="font-size:0.68rem;color:#64748b;margin:-4px 0 6px">↑ 실제 카메라(초/중/종), 초록=검출bbox, 노란선=화면중앙</div>
-          <img src="/img/{e['traj_img']}">
+          <div class="shots">
+            <div><img src="/frame/ep{idx:02d}_f0.jpg"><div class="lbl">초반</div></div>
+            <div><img src="/frame/ep{idx:02d}_f1.jpg"><div class="lbl">중반</div></div>
+            <div><img src="/frame/ep{idx:02d}_f2.jpg"><div class="lbl">종반</div></div>
+            <div><img src="/img/{e['traj_img']}"><div class="lbl">궤적그래프</div></div>
+          </div>
           <div class="meta">
             <b>{e['path_type']}</b> (#{idx})<br>
             FPE={e['fpe']:.3f}m · 자동판정=<b>{succ_txt}</b> · 도착cx={arrive}
