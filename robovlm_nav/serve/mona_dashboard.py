@@ -2352,6 +2352,23 @@ def verify_model_switch(req: ModelSwitchReq):
         return {"ok": False, "error": str(e)}
 
 
+def _current_checkpoint_basename() -> str:
+    """지금 이 순간 추론서버(8001)가 실제로 물려있는 체크포인트 파일명.
+    기존엔 session_id → docs/inference_reports/session_*.json 리포트 파일과
+    사후 조인해서 체크포인트를 알아냈는데(2026-07-23), 리포트 파일이 어떤
+    이유로든 안 만들어지면(2026-07-23 17:24~18:55 배치가 실제로 그랬음)
+    그 구간 전체가 "체크포인트 알 수 없음"으로 빠지는 문제가 있었음 —
+    저장 "그 순간"에 CSV 행 자체에 직접 박아서 별도 조인 없이도 항상
+    정확하게 남도록 함(2026-07-29)."""
+    try:
+        import requests as rq
+        r = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2)
+        ckpt = (r.json() or {}).get("checkpoint_path") or ""
+        return os.path.basename(ckpt) if ckpt else "(알수없음)"
+    except Exception:
+        return "(알수없음)"
+
+
 def _snapshot_runtime_config() -> dict:
     """세션 시작 시점의 런타임 설정 스냅샷 — H5 attrs에 박아서 나중에
     로그 없이도 '이 세션 때 뭘 켜놨었는지' 확인 가능하게 함(2026-07-02).
@@ -3066,7 +3083,8 @@ EPISODE_CSV = ROOT / "logs" / "episode_log.csv"
 # 별도 파일. 조이스틱 검증모드 SEL(2026-07-23, 남는 키)로 토글해서 기록 대상을
 # 여기로 돌림 — 그라운더 A/B 테스트처럼 "정식 수치로 안 셀" 시도를 위함.
 EXPERIMENTAL_EPISODE_CSV = ROOT / "logs" / "episode_log_experimental.csv"
-EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id"]
+EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id", "체크포인트"]
+EP_COL_CKPT = 14  # "체크포인트" 컬럼 인덱스 — 이 컬럼 추가 전(2026-07-29 이전) 행은 없을 수 있음(len(row)<=14)
 PATH_TYPES = ["right_right", "right_left", "right_straight",
               "center_straight", "center_left", "center_right",
               "left_straight", "left_left", "left_right",
@@ -3280,8 +3298,13 @@ def verify_screening_batches():
         dt = _parse(r[12])
         if dt is None:
             continue
-        sid = r[13]
-        ckpt = idx.get(sid, "(알수없음)")
+        # 2026-07-29부터는 저장 시점에 체크포인트를 CSV에 직접 박아둠(EP_COL_CKPT) —
+        # 그 이전 행(리포트 파일 사후조인 방식)만 session_id 인덱스로 폴백.
+        if len(r) > EP_COL_CKPT and r[EP_COL_CKPT]:
+            ckpt = r[EP_COL_CKPT]
+        else:
+            sid = r[13]
+            ckpt = idx.get(sid, "(알수없음)")
         enriched.append((dt, ckpt, r[2] == "성공"))
     enriched.sort(key=lambda t: t[0])
 
@@ -3335,7 +3358,8 @@ def episodes_log(req: EpisodeLogReq):
         
     stop_flag = "Y" if area >= 0.18 else "N"
     date_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    
+    checkpoint_name = _current_checkpoint_basename()
+
     new_row = [
         len(rows) + 1,
         req.path_type,
@@ -3351,6 +3375,7 @@ def episodes_log(req: EpisodeLogReq):
         req.note,
         date_str,
         _state.get("session_id") or "",
+        checkpoint_name,
     ]
     
     import csv
@@ -4679,6 +4704,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
 
               <div id="vfy-screen-body">—</div>
+
+              <!-- 체크포인트별 목표(100개) 진행률 — 필터 안 걸어도 항상 보임.
+                   "기존 모델 몇 개 남았고 새 모델(DEPLOY_v3 등)은 몇 개 했는지"를
+                   한눈에(2026-07-29). -->
+              <div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:8px; padding-top:6px;">
+                <div style="font-size:9px; color:var(--text-muted); margin-bottom:3px;">📊 체크포인트별 진행 (목표 100개)</div>
+                <div id="vfy-screen-ckpt-progress" style="font-size:9px;">—</div>
+              </div>
             </div>
 
             <div class="table-wrapper" style="min-height:380px; max-height:380px; flex-shrink:0; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
@@ -8081,6 +8114,15 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
+    // 행의 체크포인트 판별 — 2026-07-29부터는 CSV 15번째 컬럼(r[14])에 저장
+    // 시점 그대로 직접 박아둠(가장 신뢰 가능). 그 이전 행(컬럼 없음)만
+    // session_id(r[13]) → /verify/checkpoint_index 조인으로 폴백.
+    function _epCheckpointOf(r) {
+      if (r.length > 14 && r[14]) return r[14];
+      const idx = window._checkpointIndex || {};
+      return idx[r[13]] || "(알수없음)";
+    }
+
     function renderScreenPanel(rows) {
       window._lastVfyRows = rows;
       const tgt = SCREEN_TARGETS[screenTargetMode];
@@ -8094,13 +8136,9 @@ L S R  C S L  R S L
       // until은 분 단위 경계값이 포함되도록 +1분 여유를 둠(그 배치의 마지막
       // 에피소드가 딱 그 분에 찍혀도 빠지지 않게).
       const untilDate = (untilEl && untilEl.value) ? new Date(new Date(untilEl.value).getTime() + 60000) : null;
-      const idx = window._checkpointIndex || {};
       const filtered = (rows || []).filter(r => {
         if (r.length < 3) return false;
-        if (wantCkpt) {
-          const sid = r[r.length - 1];
-          if ((idx[sid] || "") !== wantCkpt) return false;
-        }
+        if (wantCkpt && _epCheckpointOf(r) !== wantCkpt) return false;
         if (sinceDate || untilDate) {
           const dateStr = r[12]; // "YYYY-MM-DD HH:MM"
           const rowDate = dateStr ? new Date(String(dateStr).replace(" ", "T")) : null;
@@ -8110,6 +8148,32 @@ L S R  C S L  R S L
         }
         return true;
       });
+
+      // 체크포인트별 목표(100개) 진행률 — 드롭다운으로 하나씩 골라야만 보이던 걸
+      // 항상 한눈에 보이게. "기존 모델 몇 개 남았고, 새 모델은 몇 개 했는지"를
+      // 매번 필터 토글 없이 바로 파악하기 위함(2026-07-29).
+      const ckptProgress = {};
+      (rows || []).forEach(r => {
+        if (r.length < 3) return;
+        const c = _epCheckpointOf(r);
+        if (!ckptProgress[c]) ckptProgress[c] = {done: 0, succ: 0};
+        ckptProgress[c].done += 1;
+        if (r[2] === "성공") ckptProgress[c].succ += 1;
+      });
+      const goalPerCkpt = Object.values(SCREEN_TARGETS["100"]).reduce((a, b) => a + b, 0); // 100
+      const progEl = document.getElementById("vfy-screen-ckpt-progress");
+      if (progEl) {
+        const entries = Object.entries(ckptProgress).sort((a, b) => b[1].done - a[1].done);
+        progEl.innerHTML = entries.length === 0 ? "" : entries.map(([ckpt, v]) => {
+          const pct = Math.min(100, (v.done / goalPerCkpt) * 100);
+          const doneColor = v.done >= goalPerCkpt ? "#3fb950" : "var(--text-muted)";
+          const short = ckpt.length > 34 ? ckpt.slice(0, 16) + "…" + ckpt.slice(-14) : ckpt;
+          return `<div style="display:grid; grid-template-columns:1fr 82px; align-items:center; gap:6px; font-size:9px; padding:1px 0;" title="${ckpt}">
+            <span style="color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${short}</span>
+            <span style="text-align:right; font-family:var(--font-mono); color:${doneColor};">${v.done}/${goalPerCkpt} <span style="color:#3fb950">✓${v.succ}</span></span>
+          </div>`;
+        }).join("");
+      }
 
       const done = {}, succ = {};
       SCREEN_POSITIONS.forEach(p => { done[p.pos] = 0; succ[p.pos] = 0; });
