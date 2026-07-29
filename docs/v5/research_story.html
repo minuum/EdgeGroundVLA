@@ -15413,6 +15413,42 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-13 경량화 방향 전환 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#0a1420,#050a14);border-color:#38bdf8">
+    <div class="finding-title" style="color:#7dd3fc">🔀 64-13. 논문 방향 전환 — 경량화(Raspberry Pi) + 좌우 데이터 불균형 발견 (2026-07-23 대면미팅)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      대면 미팅에서 논문 방향이 <strong style="color:#e2e8f0">"OOD 일반화 격차 진단"에서
+      "경량화(기존 VLA 대비 파라미터/자원 절감, Raspberry Pi 탑재 가능성 입증)"로
+      확정</strong>됨. 현재 파이프라인(Kosmos-2 vision 인코더 + OWL-v2 그라운딩 + MLP
+      액션헤드, 언어 디코더 미사용)이 사실 "VLA가 아니라 오픈보캐블러리 디텍션+액션헤드"
+      구조라는 점도 재정의됨 — CH64의 진단 결과(그라운더 무죄, 헤드 무차별, HELD/cadence
+      병목)는 메인 주장이 아니라 이 구조 선택의 방법론적 근거로 재배치.
+      <br><br>
+      <strong style="color:#e2e8f0">파라미터 수만으론 경량화 판단 불가(soda 실측)</strong>:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">Kosmos-2 vision</th><th style="padding:4px">OWL-v2</th></tr>
+        <tr><td style="padding:4px">파라미터</td><td style="padding:4px;text-align:center">0.303B</td><td style="padding:4px;text-align:center"><strong>0.155B(더 작음)</strong></td></tr>
+        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px"><strong>추론 지연</strong></td><td style="padding:4px;text-align:center">58.6ms</td><td style="padding:4px;text-align:center;color:#f87171"><strong>1901.7ms(32배 느림)</strong></td></tr>
+        <tr><td style="padding:4px">추론 중 GPU 피크</td><td style="padding:4px;text-align:center">0.625GB</td><td style="padding:4px;text-align:center;color:#f87171">1.982GB(3배)</td></tr>
+      </table>
+      <br>
+      <strong style="color:#fbbf24">시사점</strong>: "OWL-v2 단독이면 파라미터가 절반이라
+      가볍다"는 직관과 반대로, <strong style="color:#e2e8f0">실제 서빙 부담(레이턴시)은
+      OWL-v2가 압도적으로 큼</strong> — 라즈베리파이(GPU 없음, CPU 전용)로 가면 이 격차가
+      더 벌어질 가능성이 높아, 경량화 판단은 파라미터 수가 아니라 레이턴시/메모리
+      프로파일 기준으로 해야 함.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_lw_1_param_vs_latency.png" style="max-width:640px;width:100%;border-radius:8px;border:1px solid #223" alt="파라미터 vs 레이턴시"></div>
+      <br>
+      <strong style="color:#e2e8f0">좌우 데이터 불균형 재확인 결과</strong>: 목표
+      위치(에피소드 수 90:90)와 평균 길이(76.8:76.3프레임)는 완벽히 균형이나,
+      <strong style="color:#f87171">액션 클래스 프레임 수(LEFT+FWD+L+ROT_L=3384 vs
+      RIGHT+FWD+R+ROT_R=4122, 22% 불균형)</strong>는 실제로 존재 — 수집 설계가 아니라
+      실제 주행 중 발생한 액션 자체의 비대칭. 실기 좌측 약세(64-11)의 직접적 원인
+      후보로, 트랙C 재수집 시 액션 클래스 비율까지 맞춰야 함.
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
