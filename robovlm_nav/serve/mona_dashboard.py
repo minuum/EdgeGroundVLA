@@ -9259,8 +9259,8 @@ L S R  C S L  R S L
           if (cfgRaw) {
             try {
               const cfg = JSON.parse(cfgRaw);
-              cfgText += (cfgText ? "\n" : "") + Object.entries(cfg).map(([k, v]) => `${k}: ${v}`).join("\n");
-            } catch (e) { cfgText += (cfgText ? "\n" : "") + cfgRaw; }
+              cfgText += (cfgText ? "\\n" : "") + Object.entries(cfg).map(([k, v]) => `${k}: ${v}`).join("\\n");
+            } catch (e) { cfgText += (cfgText ? "\\n" : "") + cfgRaw; }
           }
           cfgEl.textContent = cfgText;
           cfgEl.style.display = "block";
