@@ -58,6 +58,9 @@ h1 { font-size:1.3rem; margin-bottom:6px; }
 .btn.active-o { background:#065f46; border-color:#10b981; }
 .btn.active-x { background:#7f1d1d; border-color:#ef4444; }
 .progress { position:sticky; top:0; background:#0a0f1a; padding:10px 0; z-index:10; }
+.criteria { background:#0f2233; border:1px solid #1e4a6b; border-radius:8px; padding:10px 14px;
+            font-size:0.8rem; color:#cbd5e1; line-height:1.7; margin-bottom:12px; }
+.criteria b { color:#7dd3fc; }
 """
 
 JS = """
@@ -103,12 +106,12 @@ def index():
             FPE={e['fpe']:.3f}m · 자동판정=<b>{succ_txt}</b> · 도착cx={arrive}
           </div>
           <div class="row">
-            <span style="font-size:0.72rem;color:#64748b;align-self:center">라벨:</span>
+            <span style="font-size:0.72rem;color:#64748b;align-self:center">목표위치:</span>
             <button class="btn {path_o}" data-idx="{idx}" data-kind="path" data-val="o" onclick="label({idx},'path','o')">✓ 맞음</button>
             <button class="btn {path_x}" data-idx="{idx}" data-kind="path" data-val="x" onclick="label({idx},'path','x')">✗ 틀림</button>
           </div>
           <div class="row">
-            <span style="font-size:0.72rem;color:#64748b;align-self:center">판정:</span>
+            <span style="font-size:0.72rem;color:#64748b;align-self:center">성공판정:</span>
             <button class="btn {succ_o}" data-idx="{idx}" data-kind="success" data-val="o" onclick="label({idx},'success','o')">✓ 맞음</button>
             <button class="btn {succ_x}" data-idx="{idx}" data-kind="success" data-val="x" onclick="label({idx},'success','x')">✗ 틀림</button>
           </div>
@@ -118,7 +121,15 @@ def index():
     <title>exp73 val 33ep 셀프검증</title><style>{BASE_CSS}</style></head>
     <body>
       <div class="progress"><h1>exp73 챔피언 val 33ep 셀프검증</h1>
-      <div class="sub">각 카드: 궤적(검정=정답, 주황=예측) · path_type 라벨이 맞는지, FPE 자동판정(성공/실패)이 맞는지 확정</div>
+      <div class="criteria">
+        <b>판정 기준</b><br>
+        ① <b>라벨</b>(목표 위치만 확인): <b>종반(3번째) 프레임</b>의 초록 bbox가 노란 중앙선 기준
+        좌/우 어느 쪽에 있는지 → weak/strong_left면 왼쪽, weak/strong_right면 오른쪽, center면 중앙 근처여야 맞음.
+        (경로 좌/직/우곡선 방향은 정적 3프레임으론 판단 어려워 이 라벨링에서는 제외)<br>
+        ② <b>판정</b>(자동 success/failure 확인): 궤적그래프의 <span style="color:#222;background:#ddd;padding:0 3px">검정(정답)</span>
+        선과 <span style="color:#D55E00">주황(예측)</span>선 끝점이 눈으로 봐도 가까우면 자동판정과 일치 → 맞음,
+        끝점이 멀리 떨어져 있는데 자동판정이 "성공"이면 → 틀림(FPE 수식 의심)
+      </div>
       <div id="progress">{done} / {len(meta)} 항목 확정</div></div>
       <div class="grid">{''.join(cards)}</div>
       <script>{JS}</script>
