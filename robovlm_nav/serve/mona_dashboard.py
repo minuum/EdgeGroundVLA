@@ -2352,21 +2352,22 @@ def verify_model_switch(req: ModelSwitchReq):
         return {"ok": False, "error": str(e)}
 
 
-def _current_checkpoint_basename() -> str:
-    """지금 이 순간 추론서버(8001)가 실제로 물려있는 체크포인트 파일명.
-    기존엔 session_id → docs/inference_reports/session_*.json 리포트 파일과
-    사후 조인해서 체크포인트를 알아냈는데(2026-07-23), 리포트 파일이 어떤
-    이유로든 안 만들어지면(2026-07-23 17:24~18:55 배치가 실제로 그랬음)
-    그 구간 전체가 "체크포인트 알 수 없음"으로 빠지는 문제가 있었음 —
-    저장 "그 순간"에 CSV 행 자체에 직접 박아서 별도 조인 없이도 항상
-    정확하게 남도록 함(2026-07-29)."""
+def _current_checkpoint_and_config() -> tuple[str, str]:
+    """지금 이 순간 추론서버(8001) 상태 — (체크포인트 파일명, 전체 런타임설정 JSON
+    문자열) 튜플. 기존엔 session_id → docs/inference_reports/session_*.json
+    리포트 파일과 사후 조인해서 알아냈는데(2026-07-23), 리포트 파일이 어떤
+    이유로든 안 만들어지면(2026-07-23 17:24~18:55 배치가 실제로 그랬음) 체크포인트
+    뿐 아니라 grounding_skip_n/multi_prompt 같은 세부값도 "직전 스냅샷 기준
+    추정"으로만 답할 수밖에 없었음 — 저장 "그 순간" CSV 행에 통째로 박아서
+    별도 조인/추정 없이 항상 정확하게 남도록 함(2026-07-29)."""
+    cfg = _snapshot_runtime_config()
+    ckpt_path = cfg.get("checkpoint_path") or ""
+    ckpt_name = os.path.basename(ckpt_path) if ckpt_path else "(알수없음)"
     try:
-        import requests as rq
-        r = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2)
-        ckpt = (r.json() or {}).get("checkpoint_path") or ""
-        return os.path.basename(ckpt) if ckpt else "(알수없음)"
+        cfg_json = json.dumps(cfg, ensure_ascii=False)
     except Exception:
-        return "(알수없음)"
+        cfg_json = "{}"
+    return ckpt_name, cfg_json
 
 
 def _snapshot_runtime_config() -> dict:
@@ -3083,8 +3084,12 @@ EPISODE_CSV = ROOT / "logs" / "episode_log.csv"
 # 별도 파일. 조이스틱 검증모드 SEL(2026-07-23, 남는 키)로 토글해서 기록 대상을
 # 여기로 돌림 — 그라운더 A/B 테스트처럼 "정식 수치로 안 셀" 시도를 위함.
 EXPERIMENTAL_EPISODE_CSV = ROOT / "logs" / "episode_log_experimental.csv"
-EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id", "체크포인트"]
+EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id", "체크포인트", "런타임설정"]
 EP_COL_CKPT = 14  # "체크포인트" 컬럼 인덱스 — 이 컬럼 추가 전(2026-07-29 이전) 행은 없을 수 있음(len(row)<=14)
+EP_COL_RUNTIME_CFG = 15  # "런타임설정"(JSON) 컬럼 — grounding_skip_n/cx_jump_filter/multi_prompt 등
+# 세부 옵션 전체를 저장 시점 그대로 통째로 남김. 체크포인트만 기록해서는 부족했던
+# 사례(2026-07-23 17:24~18:55 배치 재구성 시 grounding_skip_n/multi_prompt 등
+# 세부값을 "직전 스냅샷 기준 추정"으로만 답할 수밖에 없었음) 재발 방지(2026-07-29).
 PATH_TYPES = ["right_right", "right_left", "right_straight",
               "center_straight", "center_left", "center_right",
               "left_straight", "left_left", "left_right",
@@ -3358,7 +3363,7 @@ def episodes_log(req: EpisodeLogReq):
         
     stop_flag = "Y" if area >= 0.18 else "N"
     date_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    checkpoint_name = _current_checkpoint_basename()
+    checkpoint_name, runtime_cfg_json = _current_checkpoint_and_config()
 
     new_row = [
         len(rows) + 1,
@@ -3376,6 +3381,7 @@ def episodes_log(req: EpisodeLogReq):
         date_str,
         _state.get("session_id") or "",
         checkpoint_name,
+        runtime_cfg_json,
     ]
     
     import csv
@@ -5029,6 +5035,9 @@ L S R  C S L  R S L
                   <button class="btn btn-outline" style="flex:1;" onclick="_epEditClear()">닫기</button>
                 </div>
                 <div id="ep-edit-status" style="font-size:10px; color:var(--text-muted); margin-top:6px;">—</div>
+                <!-- 저장 시점의 체크포인트/그라운딩/STOP 세부설정 전체(2026-07-29) —
+                     "그때 정확히 뭘로 돌렸는지"를 나중에 추정 없이 바로 확인 가능 -->
+                <div id="ep-edit-runtime-cfg" style="font-size:9px; color:var(--text-muted); margin-top:6px; padding:6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; white-space:pre-wrap; word-break:break-all; display:none;"></div>
               </div>
             </div>
 
@@ -9239,6 +9248,24 @@ L S R  C S L  R S L
       document.getElementById("ep-edit-fpe").value = ep[10];
       document.getElementById("ep-edit-note").value = ep[11] || "";
       document.getElementById("ep-edit-status").textContent = "—";
+      const cfgEl = document.getElementById("ep-edit-runtime-cfg");
+      if (cfgEl) {
+        const ckpt = ep.length > 14 ? ep[14] : null;
+        const cfgRaw = ep.length > 15 ? ep[15] : null;
+        if (!ckpt && !cfgRaw) {
+          cfgEl.style.display = "none";
+        } else {
+          let cfgText = ckpt ? `체크포인트: ${ckpt}` : "";
+          if (cfgRaw) {
+            try {
+              const cfg = JSON.parse(cfgRaw);
+              cfgText += (cfgText ? "\n" : "") + Object.entries(cfg).map(([k, v]) => `${k}: ${v}`).join("\n");
+            } catch (e) { cfgText += (cfgText ? "\n" : "") + cfgRaw; }
+          }
+          cfgEl.textContent = cfgText;
+          cfgEl.style.display = "block";
+        }
+      }
       loadEpisodeHistory(); // 클릭한 행 하이라이트 갱신
     }
 
@@ -9246,6 +9273,8 @@ L S R  C S L  R S L
       _epEditingRow = null;
       document.getElementById("ep-edit-target").textContent = "— 행을 클릭하세요 —";
       document.getElementById("ep-edit-status").textContent = "—";
+      const cfgEl = document.getElementById("ep-edit-runtime-cfg");
+      if (cfgEl) cfgEl.style.display = "none";
       loadEpisodeHistory();
     }
 
