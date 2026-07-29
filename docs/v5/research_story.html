@@ -15449,6 +15449,28 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-14 셀프검증 라벨러 결과 -->
+  <div class="finding-card" style="border-color:#22c55e">
+    <div class="finding-title" style="color:#4ade80">✅ 64-14. 셀프검증 라벨러 — path 라벨·success 자동판정 33/33(100%) 사람이 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      챔피언(mlp) val 33ep 전체를 <strong style="color:#e2e8f0">실제 카메라 프레임(초/중/종
+      + bbox·중앙선 오버레이) + 궤적그래프</strong>로 사람이 직접 확인하는 로컬 라벨러
+      제작(포트 7794, `scripts/label/serve_exp73_val_review.py`). 기준: ① 목표위치는
+      종반 프레임 bbox 좌우 위치로만 확인(경로 곡선방향은 정적 3프레임으론 판단 불가해
+      제외), ② success는 그래프 검정(정답)·주황(예측) 선 끝점 거리로 확인.
+      <br><br>
+      <strong style="color:#4ade80">결과: 33/33(100%) 전부 일치</strong> — 목표위치
+      라벨도, FPE&lt;0.5m 자동 success 판정도 사람이 눈으로 봐도 전부 정확했음.
+      <br><br>
+      <strong style="color:#e2e8f0">의미</strong>: 앞서(64절 초반) 전체평균/80%tail
+      기준으로 "라벨-실측 불일치 45~86개"라 성급히 판단했던 건 방법론 문제였음이
+      재확인(weak_*는 도착시점 cx가 0.5 근처를 오가는 게 정상 노이즈). 이 셀프검증으로
+      <strong style="color:#e2e8f0">지금까지 CH64에서 인용한 모든 success 수치(39.4%,
+      48.5%, 60.6% 등)가 "수식 버그"가 아니라 실제 궤적 일치도를 정확히 반영</strong>함이
+      확인됨 — apples-to-apples 리더보드(64-2)의 신뢰도를 한 번 더 뒷받침.
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
