@@ -87,6 +87,8 @@ def index():
         arrive = f"{e['arrive_cx']:.3f}" if e["arrive_cx"] is not None else "N/A"
         cards.append(f"""
         <div class="card">
+          <img src="/frame/ep{idx:02d}_frames.jpg" style="width:100%;border-radius:6px;margin-bottom:6px">
+          <div style="font-size:0.68rem;color:#64748b;margin:-4px 0 6px">↑ 실제 카메라(초/중/종), 초록=검출bbox, 노란선=화면중앙</div>
           <img src="/img/{e['traj_img']}">
           <div class="meta">
             <b>{e['path_type']}</b> (#{idx})<br>
@@ -118,6 +120,11 @@ def index():
 @app.route("/img/<path:fname>")
 def img(fname):
     return send_file(ROOT / "traj" / fname)
+
+
+@app.route("/frame/<path:fname>")
+def frame(fname):
+    return send_file(ROOT / "frames" / fname)
 
 
 @app.route("/label", methods=["POST"])
