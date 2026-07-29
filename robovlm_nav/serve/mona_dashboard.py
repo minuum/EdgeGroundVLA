@@ -4649,7 +4649,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
-                <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">1차(빠른확인)</button>
+                <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
               </div>
               <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
               <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
@@ -7901,8 +7901,12 @@ L S R  C S L  R S L
     const SCREEN_TARGETS = {
       "1차":  {strong_left:5, weak_left:3, center:3, weak_right:3, strong_right:5},
       "확정": {strong_left:15, weak_left:10, center:5, weak_right:10, strong_right:15},
+      // 2026-07-23 대면미팅 결정: 5가짓수×20개=100개 (논문용 최종 표본 크기)
+      "100":  {strong_left:20, weak_left:20, center:20, weak_right:20, strong_right:20},
     };
-    let screenTargetMode = "1차";
+    const SCREEN_TARGET_LABELS = {"1차": "1차(빠른확인)", "확정": "확정(논문용)", "100": "100개(미팅확정)"};
+    const SCREEN_TARGET_ORDER = ["1차", "확정", "100"];
+    let screenTargetMode = "100";
 
     function verifyPosOf(pt) {
       // "trackA_strong_left_left_curve" → "strong_left", "trackF_center_straight" → "center"
@@ -7914,9 +7918,10 @@ L S R  C S L  R S L
     }
 
     function toggleScreenTarget() {
-      screenTargetMode = (screenTargetMode === "1차") ? "확정" : "1차";
+      const idx = SCREEN_TARGET_ORDER.indexOf(screenTargetMode);
+      screenTargetMode = SCREEN_TARGET_ORDER[(idx + 1) % SCREEN_TARGET_ORDER.length];
       const btn = document.getElementById("vfy-screen-toggle");
-      if (btn) btn.textContent = screenTargetMode === "1차" ? "1차(빠른확인)" : "확정(논문용)";
+      if (btn) btn.textContent = SCREEN_TARGET_LABELS[screenTargetMode];
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
