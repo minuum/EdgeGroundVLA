@@ -2379,13 +2379,54 @@ EXP73_MODEL_DIR = ROOT / "runs" / "v5_nav" / "mlp" / "exp73"
 _CKPT_EXP_RE = re.compile(r"exp(\d+)")
 
 
+def _parse_ckpt_tags(name: str) -> dict:
+    """체크포인트 파일명에서 카테고리 태그를 뽑아낸다 — 그라운더/exp/데이터셋
+    버전/트랙/헤드종류/holdaware/DEPLOY/seed. 정식 메타(val_acc 등)는 torch.load로만
+    알 수 있어 비싸지만, 이 태그들은 명명 규칙(exp73_owl_trackF_v6_mlp_holdaware_
+    seed0.pt류)만으로 충분히 뽑혀서 스크리닝 진행률 요약처럼 파일 없이 이름만
+    아는 곳에서도 씀(2026-07-30, "그라운더/exp/데이터셋/헤드/스킬 표기" 요청)."""
+    # 언더스코어는 정규식 \b 기준으로 "단어문자"라 경계가 안 잡힘(exp73_owl_...에서
+    # \bowl\b가 매치 안 되던 버그) — 언더스코어/점을 구분자로 직접 토큰화해서 검사.
+    n = name or ""
+    tokens = [t.lower() for t in re.split(r"[_.]", n) if t]
+    m = _CKPT_EXP_RE.search(n)
+    grounder = "OWL-v2" if "owl" in tokens else \
+               "PG2(448)" if ("pg448" in tokens or "pg2" in tokens) else None
+    track = "trackF" if "trackf" in tokens else \
+            "trackA" if "tracka" in tokens else None
+    dsm = re.search(r"_v(\d+)(?:_|\.)", n)
+    head = "hybrid" if "hybrid" in tokens else \
+           "MLP" if "mlp" in tokens else \
+           "transformer" if "transformer" in tokens else None
+    seedm = re.search(r"seed(\d+)", n, re.I)
+    deploym = re.search(r"DEPLOY[_-]?v(\d+)", n, re.I)
+    return {
+        "exp": int(m.group(1)) if m else None,
+        "grounder": grounder,
+        "track": track,
+        "dataset": f"V{dsm.group(1)}" if dsm else None,
+        "head": head,
+        "holdaware": bool(re.search(r"holdaware", n, re.I)),
+        "deploy": f"v{deploym.group(1)}" if deploym else None,
+        "seed": int(seedm.group(1)) if seedm else None,
+    }
+
+
 def _ckpt_sort_key(name: str):
-    """체크포인트 파일명 기준 정렬 키 — exp 번호가 큰(최신 실험) 걸 먼저,
-    같은 exp 안에서는 이름순. 스크리닝 필터 드롭다운/모델 목록/진행률 요약
-    3곳에 전부 이 기준을 씀(2026-07-30, "모델 기준으로 잘 sort" 요청)."""
-    m = _CKPT_EXP_RE.search(name or "")
-    exp_num = int(m.group(1)) if m else -1
-    return (-exp_num, name or "")
+    """체크포인트 파일명 기준 정렬 키 — exp 번호 큰(최신 실험) 것 먼저, 그 안에서
+    그라운더/헤드/데이터셋/seed 순으로 묶어서 같은 종류끼리 붙어 보이게 함
+    (2026-07-30, "카테고리를 좀더 잘 볼 수 있게" 요청). 태그가 없는 값(None)은
+    항상 맨 뒤로 밀리게 정렬 가능한 값으로 치환."""
+    t = _parse_ckpt_tags(name)
+    return (
+        -(t["exp"] if t["exp"] is not None else -1),
+        t["grounder"] or "￿",
+        t["head"] or "￿",
+        t["dataset"] or "￿",
+        t["deploy"] or "",
+        t["seed"] if t["seed"] is not None else -1,
+        name or "",
+    )
 
 
 @app.get("/verify/model_list")
@@ -2398,7 +2439,8 @@ def verify_model_list():
         return {"ok": True, "models": []}
     for f in sorted(EXP73_MODEL_DIR.glob("*.pt"), key=lambda p: _ckpt_sort_key(p.name)):
         meta = {"filename": f.name, "path": str(f.relative_to(ROOT)),
-                "size_mb": round(f.stat().st_size / 1e6, 2)}
+                "size_mb": round(f.stat().st_size / 1e6, 2),
+                "tags": _parse_ckpt_tags(f.name)}
         try:
             ckpt = torch.load(str(f), map_location="cpu", weights_only=False)
             meta["head"] = ckpt.get("head", "?")
@@ -3372,7 +3414,8 @@ def verify_checkpoint_index():
         _checkpoint_index_cache["mtime"] = cur_mtime
     m = _checkpoint_index_cache["map"]
     checkpoints = sorted(set(m.values()), key=_ckpt_sort_key)
-    return {"ok": True, "session_checkpoint": m, "checkpoints": checkpoints}
+    tags = {c: _parse_ckpt_tags(c) for c in checkpoints}
+    return {"ok": True, "session_checkpoint": m, "checkpoints": checkpoints, "tags": tags}
 
 @app.get("/verify/screening_batches")
 def verify_screening_batches():
@@ -8174,10 +8217,11 @@ L S R  C S L  R S L
           if (m.stride) bits.push(`stride=${m.stride}`);
           bits.push(`${m.size_mb}MB`);
           const info = bits.join(" · ") + (m.error ? ` ⚠️${m.error}` : "");
+          const tagsHtml = m.tags ? `<div style="margin:2px 0;">${_ckptTagsHtmlFromTags(m.tags)}</div>` : "";
           return `<div style="display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:center; padding:4px 6px; border-radius:6px; background:${isCur ? "rgba(6,182,212,0.12)" : "#090d16"}; border:1px solid ${isCur ? "var(--cyan)" : "var(--border-glow)"};">
             <button class="btn ${isCur ? "btn-cyan" : "btn-outline"}" style="font-size:10px; padding:4px 8px; white-space:nowrap;" ${isCur ? "disabled" : ""} onclick="switchModel('${m.path}', '${m.filename}')">${isCur ? "✓ 로드됨" : "전환"}</button>
             <div style="font-size:9px; color:var(--text-muted); line-height:1.4;">
-              <span style="color:#fff; font-weight:600;">${m.filename}</span><br>${info}
+              <span style="color:#fff; font-weight:600;">${m.filename}</span>${tagsHtml}${info}
             </div>
           </div>`;
         }).join("");
@@ -8282,11 +8326,12 @@ L S R  C S L  R S L
         const res = await api("/verify/checkpoint_index");
         if (!res.ok) return;
         window._checkpointIndex = res.session_checkpoint || {};
+        window._checkpointTags = res.tags || {};
         const sel = document.getElementById("vfy-screen-ckpt");
         if (!sel) return;
         const prevVal = sel.value;
         sel.innerHTML = '<option value="">전체(누적)</option>' +
-          (res.checkpoints || []).map(c => `<option value="${c}">${c}</option>`).join("");
+          (res.checkpoints || []).map(c => `<option value="${c}">${_ckptLabel(c)}</option>`).join("");
         if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
       } catch (e) { /* 무시 */ }
       refreshScreenBatches();
@@ -8359,12 +8404,69 @@ L S R  C S L  R S L
       return idx[r[13]] || "(알수없음)";
     }
 
-    // 모델 이름 기준 정렬 키 — mona_dashboard.py의 _ckpt_sort_key와 동일 기준
-    // (exp 번호 큰 것=최신 실험 먼저, 같은 exp면 이름순).
+    // 체크포인트 파일명 → 카테고리 태그 — 서버(/verify/checkpoint_index의 tags,
+    // /verify/model_list의 m.tags)에 이미 있으면 그걸 쓰고, 없으면(예: "(알수없음)")
+    // 여기서 파이썬 _parse_ckpt_tags와 동일 규칙으로 직접 뽑음(2026-07-30,
+    // "그라운더/exp/데이터셋/헤드 표기" 요청).
+    function _ckptTagsOf(name) {
+      const known = (window._checkpointTags || {})[name];
+      if (known) return known;
+      // 언더스코어는 JS \b 기준으로도 "단어문자"라 경계가 안 잡힘 — 토큰화해서 검사
+      // (파이썬 _parse_ckpt_tags와 동일 버그 수정, 2026-07-30).
+      const n = name || "";
+      const tokens = n.split(/[_.]/).map(t => t.toLowerCase()).filter(Boolean);
+      const em = /exp(\d+)/.exec(n);
+      const dsm = /_v(\d+)(?:_|\.)/.exec(n);
+      const sm = /seed(\d+)/i.exec(n);
+      const dm = /DEPLOY[_-]?v(\d+)/i.exec(n);
+      return {
+        exp: em ? parseInt(em[1], 10) : null,
+        grounder: tokens.includes("owl") ? "OWL-v2" : ((tokens.includes("pg448") || tokens.includes("pg2")) ? "PG2(448)" : null),
+        track: tokens.includes("trackf") ? "trackF" : (tokens.includes("tracka") ? "trackA" : null),
+        dataset: dsm ? `V${dsm[1]}` : null,
+        head: tokens.includes("hybrid") ? "hybrid" : (tokens.includes("mlp") ? "MLP" : (tokens.includes("transformer") ? "transformer" : null)),
+        holdaware: tokens.includes("holdaware"),
+        deploy: dm ? `v${dm[1]}` : null,
+        seed: sm ? parseInt(sm[1], 10) : null,
+      };
+    }
+
+    // 카테고리 기준 정렬 키 — mona_dashboard.py의 _ckpt_sort_key와 동일 기준
+    // (exp 번호 큰 것=최신 실험 먼저, 그 안에서 그라운더/헤드/데이터셋/seed 순으로
+    // 묶어서 같은 종류끼리 붙어 보이게 함).
     function _ckptSortKey(name) {
-      const m = /exp(\d+)/.exec(name || "");
-      const expNum = m ? parseInt(m[1], 10) : -1;
-      return [-expNum, name || ""];
+      const t = _ckptTagsOf(name);
+      return [
+        -(t.exp !== null && t.exp !== undefined ? t.exp : -1),
+        t.grounder || "￿",
+        t.head || "￿",
+        t.dataset || "￿",
+        t.deploy || "",
+        (t.seed !== null && t.seed !== undefined) ? t.seed : -1,
+        name || "",
+      ];
+    }
+
+    // 필터 드롭다운 등 <option> 텍스트용 — 원본 파일명 대신 카테고리 요약을
+    // 앞에 붙여서 스캔하기 쉽게(<option>은 색 배지를 못 넣으니 텍스트로만).
+    function _ckptLabel(name) {
+      const t = _ckptTagsOf(name);
+      const bits = [t.grounder, t.head, t.dataset, t.holdaware ? "holdaware" : null,
+                    t.deploy ? `DEPLOY${t.deploy}` : null,
+                    (t.seed !== null && t.seed !== undefined) ? `seed${t.seed}` : null].filter(Boolean);
+      return bits.length ? `${bits.join(" · ")} — ${name}` : name;
+    }
+
+    // 카테고리 배지 HTML — 진행률 요약/모델 목록에서 공용으로 씀.
+    function _ckptTagsHtmlFromTags(t) {
+      if (!t) return "";
+      const chip = (txt, color) => txt ? `<span style="font-size:8px; padding:1px 5px; border-radius:8px; background:${color}22; color:${color}; margin-right:3px; white-space:nowrap;">${txt}</span>` : "";
+      return chip(t.grounder, "#06b6d4") + chip(t.head, "#8b5cf6") + chip(t.dataset, "#f59e0b")
+           + chip(t.holdaware ? "holdaware" : null, "#3fb950") + chip(t.deploy ? `DEPLOY${t.deploy}` : null, "#f43f5e")
+           + chip((t.seed !== null && t.seed !== undefined) ? `seed${t.seed}` : null, "#94a3b8");
+    }
+    function _ckptTagsHtml(name) {
+      return _ckptTagsHtmlFromTags(_ckptTagsOf(name));
     }
 
     function renderScreenPanel(rows) {
@@ -8412,15 +8514,22 @@ L S R  C S L  R S L
         // 드롭다운/모델목록/진행률 요약 3곳이 항상 같은 순서로 보이게 함(2026-07-30).
         const entries = Object.entries(ckptProgress).sort((a, b) => {
           const ka = _ckptSortKey(a[0]), kb = _ckptSortKey(b[0]);
-          return ka[0] !== kb[0] ? ka[0] - kb[0] : (ka[1] < kb[1] ? -1 : ka[1] > kb[1] ? 1 : 0);
+          for (let i = 0; i < ka.length; i++) {
+            if (ka[i] === kb[i]) continue;
+            return ka[i] < kb[i] ? -1 : 1;
+          }
+          return 0;
         });
         progEl.innerHTML = entries.length === 0 ? "" : entries.map(([ckpt, v]) => {
           const pct = Math.min(100, (v.done / goalPerCkpt) * 100);
           const doneColor = v.done >= goalPerCkpt ? "#3fb950" : "var(--text-muted)";
           const short = ckpt.length > 34 ? ckpt.slice(0, 16) + "…" + ckpt.slice(-14) : ckpt;
-          return `<div style="display:grid; grid-template-columns:1fr 82px; align-items:center; gap:6px; font-size:9px; padding:1px 0;" title="${ckpt}">
-            <span style="color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${short}</span>
-            <span style="text-align:right; font-family:var(--font-mono); color:${doneColor};">${v.done}/${goalPerCkpt} <span style="color:#3fb950">✓${v.succ}</span></span>
+          return `<div style="padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.03);" title="${ckpt}">
+            <div style="display:grid; grid-template-columns:1fr 82px; align-items:center; gap:6px; font-size:9px;">
+              <span style="color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${short}</span>
+              <span style="text-align:right; font-family:var(--font-mono); color:${doneColor};">${v.done}/${goalPerCkpt} <span style="color:#3fb950">✓${v.succ}</span></span>
+            </div>
+            <div style="margin-top:1px;">${_ckptTagsHtml(ckpt)}</div>
           </div>`;
         }).join("");
       }
