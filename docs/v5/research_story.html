@@ -15513,6 +15513,37 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-16 OWL fp16 트레이드오프 -->
+  <div class="finding-card">
+    <div class="finding-title">64-16. OWL-v2 fp16 — 속도 1.98배↑, 검출률 10%p↓, 좌표정확도는 불변 (2026-07-30)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      64-13(파라미터 수만으론 경량화 판단 불가)의 후속 — OWL-v2를 fp16으로 돌리면
+      64-13의 레이턴시 격차(35배)를 줄일 수 있는지, 대신 검출 정확도가 희생되는지
+      직접 검증(V6 실제 프레임 120장, LIVE 그라운딩만, threshold=0.25 서버와 동일).
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">fp32</th><th style="padding:4px">fp16</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>속도</strong>(soda Jetson 실측)</td><td style="padding:4px;text-align:center">1901.7ms</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>962.1ms(1.98배↑)</strong></td></tr>
+        <tr style="background:rgba(248,113,113,0.08)"><td style="padding:4px"><strong>has_bbox 검출률</strong>(fp32 대비 일치)</td><td style="padding:4px;text-align:center">100%(기준)</td><td style="padding:4px;text-align:center;color:#f87171"><strong>90.0%(108/120)</strong></td></tr>
+        <tr><td style="padding:4px">불일치 방향</td><td style="padding:4px;text-align:center" colspan="2">전부 "fp32는 검출/fp16은 놓침"(12건) — fp16만 검출한 경우 0건</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>좌표 정확도</strong>(둘 다 검출된 108건)</td><td style="padding:4px;text-align:center" colspan="2"><strong>cx/cy/area 평균 차이 0.0001~0.0002 — 사실상 완전 동일</strong>, 0.05 이상 벌어진 경우 0건</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">해석</strong>: fp16은 <strong style="color:#e2e8f0">
+      "잡으면 정확히 잡지만, 애매한 경우(신뢰도가 threshold 0.25 근처) 조금 더 자주
+      놓치는"</strong> 트레이드오프 — 양자화로 좌표가 틀어지는 문제는 없고, 검출
+      민감도만 살짝 낮아짐. skip_n 재시도 로직이 이미 있어 단발 미검출은 다음
+      프레임에서 회복 가능하므로, 이 10%p 손실은 실사용에서 완전히 치명적이진
+      않을 수 있음(단, 64-15의 "그라운딩 실패 완전 미학습" 문제와 겹치면 악화 요인).
+      <br><br>
+      <strong style="color:#fbbf24">종합</strong>: fp16 전환은 "속도 개선 vs 검출률
+      소폭 희생"의 실질적 트레이드오프 — 경량화 방향에서 검토할 가치 있으나, Kosmos-2
+      (53.7ms)와 비교하면 fp16 OWL(962.1ms)도 여전히 약 18배 느려 "완전 해결"은 아님.
+      threshold를 살짝 낮추는 보완과 함께 검토 권장.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_lw_2_owl_fp16_tradeoff.png" style="max-width:640px;width:100%;border-radius:8px;border:1px solid #223" alt="OWL fp16 트레이드오프"></div>
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
