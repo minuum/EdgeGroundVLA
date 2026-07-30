@@ -8184,7 +8184,10 @@ L S R  C S L  R S L
     async function refreshModelList() {
       const listEl = document.getElementById("vfy-model-list");
       const statusEl = document.getElementById("vfy-model-status");
-      if (listEl) listEl.innerHTML = "불러오는 중...";
+      // 최초 로드일 때만 "불러오는 중..." 표시 — 5초 주기 폴링(2026-07-30 추가)마다
+      // 목록을 통째로 비웠다 다시 그려서 버튼 전체가 매번 깜빡이던 문제 수정.
+      // 이후 갱신은 기존 목록을 그대로 두고 있다가 새 데이터로 조용히 교체.
+      if (listEl && !listEl.dataset.loaded) listEl.innerHTML = "불러오는 중...";
       let current = "";
       try {
         const h = await api("/infer/health");
@@ -8227,8 +8230,9 @@ L S R  C S L  R S L
             </div>
           </div>`;
         }).join("");
+        if (listEl) listEl.dataset.loaded = "1";
       } catch (e) {
-        if (listEl) listEl.innerHTML = "⚠️ 목록 조회 실패: " + _friendlyApiError(e);
+        if (listEl && !listEl.dataset.loaded) listEl.innerHTML = "⚠️ 목록 조회 실패: " + _friendlyApiError(e);
       }
     }
 
