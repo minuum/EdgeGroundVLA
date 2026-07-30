@@ -775,6 +775,11 @@ class Stage2V2Model:
         self.inference_count = 0
         self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "3"))  # CH49: skip_n=3 SR/FPE 변화 없음 확정
         self._grounding_cache: Optional[dict] = None
+        # 2026-07-30: ROT_L/ROT_R 다음 스텝은 skip_n 캐시를 강제로 건너뛰고 항상
+        # 재그라운딩 — 회전 스텝이 caching 때문에 3스텝 동안 똑같은(오래된) cx를
+        # 보고 같은 회전을 반복하다가 타겟을 화면 밖으로 밀어내는 문제 확인됨
+        # (weak_left 세션 다수에서 ROT_R 3연속 후 has_bbox=False로 소실).
+        self._last_pred_class: Optional[int] = None
         # P2 (minum FIX_GUIDE): cx 급변 필터 — 직전 대비 cx 점프가 크면 오탐으로 보고 캐시 유지
         self._cx_jump_filter: bool  = os.getenv("VLA_CX_JUMP_FILTER", "0") == "1"
         self._cx_jump_thresh: float = float(os.getenv("VLA_CX_JUMP_THRESH", "0.30"))
@@ -919,6 +924,7 @@ class Stage2V2Model:
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
+        self._last_pred_class = None
         self.stop_latched = False
         self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
         from datetime import datetime
@@ -1145,8 +1151,13 @@ class Stage2V2Model:
 
         # Grounding (with optional caching) — hidden state 모드는 항상 새로 계산(캐시에 hidden_state가
         # 없을 수 있어 단순화를 위해 skip-cache 비적용, 데모/테스트 용도라 비용 영향 적음).
+        # 회전(ROT_L=6/ROT_R=7) 직후 스텝은 skip_n과 무관하게 강제 재그라운딩.
+        # 회전은 화각을 바꾸는 게 목적인데 캐시된(회전 전) cx를 계속 보면 같은
+        # 회전을 skip_n번 반복하다 타겟을 화면 밖으로 밀어낼 수 있음(2026-07-30 확인).
+        just_rotated = self._last_pred_class in (6, 7)
         use_cache = (
             not use_hidden
+            and not just_rotated
             and self._grounding_skip_n > 1
             and self.inference_count > 0
             and self.inference_count % self._grounding_skip_n != 0
@@ -1292,6 +1303,7 @@ class Stage2V2Model:
             stop_tag = " [LEARNED STOP]"
 
         self.inference_count += 1
+        self._last_pred_class = pred_class
         total_ms = (time.time() - start) * 1000.0
         temporal_tag = f" [near {near_frames}/{GOAL_CONSEC_FRAMES}]" if STOP_MODE != "learned" else ""
         logger.info(
