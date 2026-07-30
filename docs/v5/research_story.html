@@ -15544,6 +15544,56 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-17 threshold=0.25 재검증 -->
+  <div class="finding-card">
+    <div class="finding-title">64-17. OWL-v2 threshold=0.25 재검증 — Jetson 재실측 없이도 "knife-edge" 구조 확인 (2026-07-30)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda 보고(약좌 세션 6/6 has_bbox=False, threshold 0.15~0.20에서 실제 탐지 확인)가
+      7/4~7/5에 미해결로 남았던 Jetson-vs-local 재현성 gap(fallback 206/206 로컬 재탐지)과
+      같은 패턴임을 확인. 원본 ROC 데이터(<code>owlv2_threshold_roc.py</code>, 296프레임,
+      객체없음 79 / 객체있음 217)를 다시 뜯어봄 — Jetson 하드웨어가 없어 그 환경에서
+      ROC를 새로 돌릴 수는 없지만, <strong style="color:#e2e8f0">원본 로컬 ROC 곡선 자체가
+      이미 threshold=0.25 근방에서 매우 가파르다</strong>는 걸 재확인했다:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">threshold</th><th style="padding:4px">정탐유지</th><th style="padding:4px">오탐률</th></tr>
+        <tr><td style="padding:4px">0.15</td><td style="padding:4px;text-align:center">99.5%</td><td style="padding:4px;text-align:center">40.5%</td></tr>
+        <tr><td style="padding:4px">0.20</td><td style="padding:4px;text-align:center">97.7%</td><td style="padding:4px;text-align:center">12.7%</td></tr>
+        <tr style="background:rgba(251,191,36,0.1)"><td style="padding:4px"><strong>0.25(현재값)</strong></td><td style="padding:4px;text-align:center"><strong>95.3%</strong></td><td style="padding:4px;text-align:center"><strong>0.0%</strong></td></tr>
+        <tr><td style="padding:4px">0.30</td><td style="padding:4px;text-align:center">93.5%</td><td style="padding:4px;text-align:center">0.0%</td></tr>
+      </table>
+      <br>
+      0.20→0.25 구간에서 오탐률이 12.7%→0%로 뚝 떨어짐 — Youden J 최댓값이라 "정탐 거의
+      다 살리고 오탐 완전 차단"하는 최적점이 맞지만, 동시에 <strong style="color:#e2e8f0">
+      진짜 객체가 있는 프레임 중 4.2%(9/215)가 이미 로컬 환경에서도 0.20~0.30
+      밴드에 몰려있고, 11.6%(25/215)가 0.15~0.35 밴드</strong>에 있다는 뜻이기도 함.
+      즉 이 연산점은 원래부터 confidence가 ±0.05만 흔들려도 다수의 판정이 뒤집히는
+      민감 구간에 설정되어 있었다 — 이건 minum 로컬 환경만으로 계산해도 드러나는
+      구조적 특성이라, soda가 보고한 Jetson 쪽 "0.15~0.20 부근에 몰린 미검출"과 정합적이다.
+      <br><br>
+      <strong style="color:#e2e8f0">Jetson 환경에서 ROC를 다시 돌리지 못하는 이유</strong>:
+      원본 296프레임 라벨링 데이터셋은 minum 로컬에서 수집된 세션이라 Jetson 쪽에서
+      독립적으로 confidence 점수를 재추출하려면 soda 쪽 실물 접근이 필요함 — 내가
+      원격으로 재현할 수 없는 부분.
+      <br><br>
+      <strong style="color:#fbbf24">권장(soda 요청 2번 우선)</strong>: 버전을 맞추는 쪽이
+      더 빠르고 결정적임 — soda의 torch(2.3.0)/transformers(4.45.2)를 minum 쪽
+      (2.11.0/4.49.0)에 맞춰서 동일 프레임 재실행 시 confidence gap이 줄어드는지 먼저 확인.
+      <ol style="margin:6px 0 0 18px;padding:0">
+        <li>gap이 버전 문제였다면 → 버전 맞추면 즉시 해소, threshold 변경 불필요</li>
+        <li>버전 맞춰도 gap 남으면 → 하드웨어(Orin fp16/양자화) 원인으로 좁혀짐 →
+          이땐 threshold를 0.25→0.20으로 낮추는 게 임시 보완책이 되지만, 원본 로컬 데이터
+          기준 오탐 12.7%까지 감수해야 함(공짜 이득 아님)</li>
+        <li>64-16의 fp16 검출률 손실(10%p↓)과 겹치면 실패 빈도가 배가되므로,
+          이 gap을 낮추는 게 우선이고 threshold 완화 + fp16을 동시에 적용하는 건
+          지양 권장</li>
+      </ol>
+      <strong style="color:#e2e8f0">결론</strong>: threshold=0.25는 "잘못된 값"이 아니라
+      "원래부터 여유가 좁은 값" — Jetson gap이 그 좁은 여유를 넘어선 것이 이번 현상의
+      본질. 근본 해법은 재캘리브레이션보다 버전 정합이 우선.
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
