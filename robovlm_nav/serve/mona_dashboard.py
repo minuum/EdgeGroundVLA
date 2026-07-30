@@ -2376,6 +2376,17 @@ def infer_health():
 # ─── 🔀 모델 전환 (Tab4용) — /model/load 핫스왑 프록시, go.sh 재시작(95s) 불필요 ──
 EXP73_MODEL_DIR = ROOT / "runs" / "v5_nav" / "mlp" / "exp73"
 
+_CKPT_EXP_RE = re.compile(r"exp(\d+)")
+
+
+def _ckpt_sort_key(name: str):
+    """체크포인트 파일명 기준 정렬 키 — exp 번호가 큰(최신 실험) 걸 먼저,
+    같은 exp 안에서는 이름순. 스크리닝 필터 드롭다운/모델 목록/진행률 요약
+    3곳에 전부 이 기준을 씀(2026-07-30, "모델 기준으로 잘 sort" 요청)."""
+    m = _CKPT_EXP_RE.search(name or "")
+    exp_num = int(m.group(1)) if m else -1
+    return (-exp_num, name or "")
+
 
 @app.get("/verify/model_list")
 def verify_model_list():
@@ -2385,7 +2396,7 @@ def verify_model_list():
     out = []
     if not EXP73_MODEL_DIR.exists():
         return {"ok": True, "models": []}
-    for f in sorted(EXP73_MODEL_DIR.glob("*.pt")):
+    for f in sorted(EXP73_MODEL_DIR.glob("*.pt"), key=lambda p: _ckpt_sort_key(p.name)):
         meta = {"filename": f.name, "path": str(f.relative_to(ROOT)),
                 "size_mb": round(f.stat().st_size / 1e6, 2)}
         try:
@@ -3360,7 +3371,7 @@ def verify_checkpoint_index():
         _checkpoint_index_cache["map"] = idx
         _checkpoint_index_cache["mtime"] = cur_mtime
     m = _checkpoint_index_cache["map"]
-    checkpoints = sorted(set(m.values()))
+    checkpoints = sorted(set(m.values()), key=_ckpt_sort_key)
     return {"ok": True, "session_checkpoint": m, "checkpoints": checkpoints}
 
 @app.get("/verify/screening_batches")
@@ -8121,6 +8132,15 @@ L S R  C S L  R S L
         if (curEl) curEl.textContent = "현재: " + (current || "—");
         const gEl = document.getElementById("vfy-grounder-current");
         if (gEl) gEl.textContent = (h.grounder && h.grounder.model) || "—";
+
+        // 🔁 활성 체크포인트가 실제로 바뀐 경우에만 스크리닝 필터 자동 동기화.
+        // switchModel()을 거치지 않은 변경(외부 API로 /model/load 직접 호출,
+        // 서버 재기동 후 복원, 대시보드 새로고침 등)도 이 주기적 폴링으로 커버됨
+        // (2026-07-30, "현재 모델에 대해서 자동으로" 요청).
+        if (current && current !== window._lastAutoSyncedCkpt) {
+          window._lastAutoSyncedCkpt = current;
+          _syncScreeningFilterToCheckpoint(current);
+        }
       } catch (e) { /* 무시 */ }
 
       try {
@@ -8312,6 +8332,14 @@ L S R  C S L  R S L
       return idx[r[13]] || "(알수없음)";
     }
 
+    // 모델 이름 기준 정렬 키 — mona_dashboard.py의 _ckpt_sort_key와 동일 기준
+    // (exp 번호 큰 것=최신 실험 먼저, 같은 exp면 이름순).
+    function _ckptSortKey(name) {
+      const m = /exp(\d+)/.exec(name || "");
+      const expNum = m ? parseInt(m[1], 10) : -1;
+      return [-expNum, name || ""];
+    }
+
     function renderScreenPanel(rows) {
       window._lastVfyRows = rows;
       const tgt = SCREEN_TARGETS[screenTargetMode];
@@ -8352,7 +8380,13 @@ L S R  C S L  R S L
       const goalPerCkpt = Object.values(SCREEN_TARGETS["100"]).reduce((a, b) => a + b, 0); // 100
       const progEl = document.getElementById("vfy-screen-ckpt-progress");
       if (progEl) {
-        const entries = Object.entries(ckptProgress).sort((a, b) => b[1].done - a[1].done);
+        // 모델(exp 번호) 기준 정렬 — 파이썬 _ckpt_sort_key와 동일 기준(최신 exp 먼저,
+        // 같은 exp는 이름순). 진행량(done) 기준 정렬 대신 이걸로 통일해서
+        // 드롭다운/모델목록/진행률 요약 3곳이 항상 같은 순서로 보이게 함(2026-07-30).
+        const entries = Object.entries(ckptProgress).sort((a, b) => {
+          const ka = _ckptSortKey(a[0]), kb = _ckptSortKey(b[0]);
+          return ka[0] !== kb[0] ? ka[0] - kb[0] : (ka[1] < kb[1] ? -1 : ka[1] > kb[1] ? 1 : 0);
+        });
         progEl.innerHTML = entries.length === 0 ? "" : entries.map(([ckpt, v]) => {
           const pct = Math.min(100, (v.done / goalPerCkpt) * 100);
           const doneColor = v.done >= goalPerCkpt ? "#3fb950" : "var(--text-muted)";
@@ -10301,6 +10335,7 @@ L S R  C S L  R S L
     // 키 입력 없이도 즉시 반영되어야 하므로 별도로 상시 폴링 — 이전엔 키보드를
     // 누르고 있을 때(2000ms)만 갱신돼 D-pad 단독 조작 시 반응이 느려 보였음.
     setInterval(collectRefreshState, 500);
+    setInterval(refreshModelList, 5000);
     pollStatus();
     pollHealth();
     loadEpisodeHistory();
