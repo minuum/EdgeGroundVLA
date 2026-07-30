@@ -1255,6 +1255,15 @@ class Stage2V2Model:
             elif cx <= thr["rot_r"]: pred_class = 5  # FWD+R
             else:                    pred_class = 7  # ROT_R
 
+        # ── 연속 회전 차단 (2026-07-31) ──────────────────────────────────────
+        # 직전 스텝도 회전(ROT_L/ROT_R)이었는데 이번에도 또 회전이면 실행하지 않고
+        # 제자리에서 정지 — "1스텝 회전하고 반드시 재평가"를 강제. STOP(class 0)으로
+        # 바꾸면 STOP_MODE=learned 래치가 걸려 세션이 영구 정지되므로, predicted_label/
+        # class는 그대로 두고(로그에서 모델이 뭘 원했는지 보이게) 실행 액션 벡터만
+        # 0으로 덮어씀. 재그라운딩은 이미 매 회전 다음 스텝마다 강제되므로(위 use_cache
+        # 로직), 이 정지 스텝에서도 다음 스텝엔 새 화각으로 재평가됨.
+        blocked_second_rotation = (pred_class in (6, 7) and self._last_pred_class in (6, 7))
+
         # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
         proximity_override = False
         learned_stop       = False
@@ -1301,20 +1310,25 @@ class Stage2V2Model:
             stop_tag = " [LEARNED STOP — LATCHED]"
         elif learned_stop:
             stop_tag = " [LEARNED STOP]"
+        rot_block_tag = " [연속회전 차단 — 정지]" if blocked_second_rotation else ""
 
         self.inference_count += 1
         self._last_pred_class = pred_class
         total_ms = (time.time() - start) * 1000.0
         temporal_tag = f" [near {near_frames}/{GOAL_CONSEC_FRAMES}]" if STOP_MODE != "learned" else ""
         logger.info(
-            "[#%d] %s%s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            "[#%d] %s%s%s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
             self.inference_count, CLASS_NAMES[pred_class], stop_tag, temporal_tag, cx_rule_tag,
-            frame["cx"], frame["area"], frame["has_bbox"], total_ms,
+            rot_block_tag, frame["cx"], frame["area"], frame["has_bbox"], total_ms,
         )
 
+        _exec_action_2d = [0.0, 0.0] if blocked_second_rotation else ACTION_2D[pred_class]
+        _exec_action_3d = [0.0, 0.0, 0.0] if blocked_second_rotation else ACTION_3D[pred_class]
+
         return {
-            "action": ACTION_2D[pred_class],
-            "action_3d": ACTION_3D[pred_class],
+            "action": _exec_action_2d,
+            "action_3d": _exec_action_3d,
+            "blocked_second_rotation": blocked_second_rotation,
             "predicted_class": pred_class,
             "predicted_label": CLASS_NAMES[pred_class],
             "bbox": bbox,
