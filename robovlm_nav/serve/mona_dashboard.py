@@ -4867,14 +4867,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <button class="btn btn-outline" onclick="setScreenSinceNow()" style="font-size:10px; padding:3px 8px; white-space:nowrap;">🔖 지금부터</button>
                 <button class="btn btn-outline" onclick="clearScreenSince()" style="font-size:10px; padding:3px 8px;">✕</button>
               </div>
-              <!-- 지난 스크리닝 배치 불러오기 — 체크포인트+검증시작 날짜로 그룹핑된
-                   과거 배치를 골라서 시작/끝/체크포인트 필터를 한 번에 채움(2026-07-23) -->
-              <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
-                <select id="vfy-screen-batch" onchange="applyScreenBatch(this.value)" style="flex:1; padding:4px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
-                  <option value="">📂 지난 스크리닝 불러오기...</option>
-                </select>
-                <button class="btn btn-outline" onclick="applyScreenBatch('0')" style="font-size:10px; padding:4px 8px; white-space:nowrap;" title="배치 목록 맨 위(가장 최근) 항목을 바로 적용 — 예전 배치 보다가 지금으로 한 번에 복귀">📍 최신</button>
+              <!-- 지난 스크리닝 배치 불러오기 — 체크포인트(=카테고리) 기준으로 묶어서
+                   보여줌. 같은 체크포인트라도 threshold 등이 바뀌면 하위 항목으로
+                   나열(2026-07-30, "카테고리별로 분류 · 드롭다운 말고 다른 형태" 요청).
+                   평평한 <select> 대신 카테고리별 접이식 그룹 — 현재 활성 체크포인트
+                   그룹은 기본으로 펼쳐져 있음. -->
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:4px;">
+                <span style="font-size:9px; color:var(--text-muted); flex:1;">📂 지난 스크리닝 (모델별 그룹)</span>
+                <button class="btn btn-outline" onclick="applyScreenBatch('0')" style="font-size:10px; padding:3px 8px; white-space:nowrap;" title="가장 최근 배치를 바로 적용 — 예전 배치 보다가 지금으로 한 번에 복귀">📍 최신</button>
               </div>
+              <div id="vfy-screen-batch-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px; max-height:220px; overflow-y:auto;">—</div>
 
               <div id="vfy-screen-body">—</div>
 
@@ -8257,8 +8259,7 @@ L S R  C S L  R S L
         ckptSel.value = filename;
       }
       await refreshScreenBatches();
-      const batchSel = document.getElementById("vfy-screen-batch");
-      if (batchSel && batchSel.options.length > 1) {
+      if ((window._screenBatches || []).length > 0) {
         applyScreenBatch("0");  // 배치 목록은 최신이 맨 위(0번) — 자동 적용
         return;
       }
@@ -8361,19 +8362,55 @@ L S R  C S L  R S L
     // 새 배치로 잡음(/verify/screening_batches). "그날 그 체크포인트로 몇 건
     // 했는지"를 다시 골라볼 수 있게(2026-07-23).
     async function refreshScreenBatches() {
-      const sel = document.getElementById("vfy-screen-batch");
-      if (!sel) return;
+      const container = document.getElementById("vfy-screen-batch-groups");
+      if (!container) return;
       try {
         const res = await api("/verify/screening_batches");
         if (!res.ok) return;
         window._screenBatches = res.batches || [];
-        sel.innerHTML = '<option value="">📂 지난 스크리닝 불러오기...</option>' +
-          window._screenBatches.map((b, i) => {
-            const s = b.start.replace("T", " ").slice(5);
-            const e = b.end.replace("T", " ").slice(11);
-            const thTag = (b.owlv2_thresh !== null && b.owlv2_thresh !== undefined) ? ` th=${b.owlv2_thresh}` : "";
-            return `<option value="${i}">${s}~${e} · ${b.checkpoint}${thTag} (${b.count}건, ✓${b.success})</option>`;
-          }).join("");
+
+        // 체크포인트(=카테고리 조합: 그라운더/헤드/데이터셋/seed) 기준 그룹핑 —
+        // 같은 체크포인트에서 threshold만 바뀐 경우(2026-07-30 사례)는 한 그룹
+        // 안의 하위 항목으로만 나뉨. 평평한 드롭다운 대신 접이식 그룹으로 표시.
+        const groups = {};
+        window._screenBatches.forEach((b, i) => {
+          (groups[b.checkpoint] = groups[b.checkpoint] || []).push({...b, _idx: i});
+        });
+        const curFile = (window._currentCheckpointPath || "").split("/").pop();
+        const ckpts = Object.keys(groups).sort((a, b) => {
+          const ka = _ckptSortKey(a), kb = _ckptSortKey(b);
+          for (let i = 0; i < ka.length; i++) { if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1; }
+          return 0;
+        });
+
+        container.innerHTML = ckpts.length === 0
+          ? '<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:8px;">스크리닝 기록 없음</div>'
+          : ckpts.map(ckpt => {
+              const items = groups[ckpt];
+              const totCount = items.reduce((s, b) => s + b.count, 0);
+              const totSucc = items.reduce((s, b) => s + b.success, 0);
+              const isCurrent = ckpt === curFile;
+              const rows = items.map(b => {
+                const s = b.start.replace("T", " ").slice(5);
+                const e = b.end.replace("T", " ").slice(11);
+                const thTag = (b.owlv2_thresh !== null && b.owlv2_thresh !== undefined) ? ` · th=${b.owlv2_thresh}` : "";
+                const rate = b.count ? Math.round(b.success / b.count * 100) : 0;
+                return `<div onclick="applyScreenBatch('${b._idx}')"
+                    style="cursor:pointer; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+                  <span style="color:var(--text-muted);">${s}~${e}${thTag}</span>
+                  <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
+                </div>`;
+              }).join("");
+              return `<details ${isCurrent ? "open" : ""} style="background:#090d16; border:1px solid ${isCurrent ? "var(--cyan)" : "var(--border-glow)"}; border-radius:6px; padding:4px 6px;">
+                <summary style="cursor:pointer; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;">
+                  <span style="color:#fff; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="${ckpt}">${ckpt}</span>
+                  ${_ckptTagsHtml(ckpt)}
+                  <span style="margin-left:auto; font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap;">${totCount}건 ✓${totSucc}</span>
+                </summary>
+                <div style="margin-top:4px; display:flex; flex-direction:column; gap:1px; border-top:1px solid rgba(255,255,255,0.05); padding-top:3px;">${rows}</div>
+              </details>`;
+            }).join("");
       } catch (e) { /* 무시 */ }
     }
 
