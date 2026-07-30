@@ -3532,6 +3532,67 @@ def verify_screening_batches():
     return {"ok": True, "batches": out}
 
 
+# ── 🔗 스크리닝 배치 수동 병합 (2026-07-31) ─────────────────────────────────
+# 배치는 episode_log.csv에서 매번 다시 계산되는 값이라(체크포인트/threshold/3시간
+# 공백 기준 자동 분리) 실제로 파일을 합치는 게 아니라 "이 배치들을 하나로 보고
+# 싶다"는 사용자 지정을 이름 붙여 저장만 해두는 방식 — 드래그앤드랍으로 배치를
+# 모아서 저장하면, 그 뒤로는 계산된 합계를 다시 보여줌(원본 CSV는 안 건드림).
+_MANUAL_GROUPS_PATH = ROOT / "logs" / "manual_screening_groups.json"
+
+
+def _load_manual_groups() -> list:
+    if not _MANUAL_GROUPS_PATH.exists():
+        return []
+    try:
+        return json.loads(_MANUAL_GROUPS_PATH.read_text()).get("groups", [])
+    except Exception:
+        return []
+
+
+def _save_manual_groups(groups: list) -> None:
+    _MANUAL_GROUPS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _MANUAL_GROUPS_PATH.write_text(json.dumps({"groups": groups}, indent=2, ensure_ascii=False))
+
+
+class ManualGroupRange(BaseModel):
+    checkpoint: str
+    start: str
+    end: str
+
+
+class ManualGroupSaveReq(BaseModel):
+    name: str
+    ranges: list[ManualGroupRange]
+
+
+@app.get("/verify/manual_groups")
+def verify_manual_groups_list():
+    return {"ok": True, "groups": _load_manual_groups()}
+
+
+@app.post("/verify/manual_group/save")
+def verify_manual_group_save(req: ManualGroupSaveReq):
+    if not req.name.strip():
+        return {"ok": False, "error": "이름을 입력해주세요."}
+    if not req.ranges:
+        return {"ok": False, "error": "병합할 배치가 없습니다."}
+    groups = [g for g in _load_manual_groups() if g.get("name") != req.name]
+    groups.append({"name": req.name, "ranges": [r.model_dump() for r in req.ranges]})
+    _save_manual_groups(groups)
+    return {"ok": True, "groups": groups}
+
+
+class ManualGroupDeleteReq(BaseModel):
+    name: str
+
+
+@app.post("/verify/manual_group/delete")
+def verify_manual_group_delete(req: ManualGroupDeleteReq):
+    groups = [g for g in _load_manual_groups() if g.get("name") != req.name]
+    _save_manual_groups(groups)
+    return {"ok": True, "groups": groups}
+
+
 @app.post("/episodes/log")
 def episodes_log(req: EpisodeLogReq):
     target_csv = EXPERIMENTAL_EPISODE_CSV if req.experimental else EPISODE_CSV
@@ -4921,6 +4982,21 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <button class="btn btn-outline" onclick="applyScreenBatch('0')" style="font-size:10px; padding:3px 8px; white-space:nowrap;" title="가장 최근 배치를 바로 적용 — 예전 배치 보다가 지금으로 한 번에 복귀">📍 최신</button>
               </div>
               <div id="vfy-screen-batch-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px; max-height:220px; overflow-y:auto;">—</div>
+
+              <!-- 🧺 병합 트레이 — 배치를 드래그해서 여기 놓으면 모였다가, 저장하면
+                   이름 붙은 "병합 세트"로 남음(2026-07-31, "결과 합치고 싶을 때" 요청) -->
+              <div id="vfy-merge-tray" ondragover="event.preventDefault()" ondrop="_mergeTrayDrop(event)"
+                   style="border:1px dashed var(--border-glow); border-radius:6px; padding:6px; margin-bottom:6px; font-size:9px; min-height:34px;">
+                <div style="color:var(--text-muted); margin-bottom:3px;">🧺 여기로 배치를 드래그해서 합치기</div>
+                <div id="vfy-merge-tray-items" style="display:flex; flex-direction:column; gap:2px;"></div>
+                <div id="vfy-merge-tray-actions" style="display:none; margin-top:4px; gap:6px; align-items:center;">
+                  <span id="vfy-merge-tray-total" style="font-family:var(--font-mono); color:var(--text-muted); flex:1;"></span>
+                  <button class="btn btn-cyan" style="font-size:9px; padding:3px 8px;" onclick="_mergeTraySave()">💾 저장</button>
+                  <button class="btn btn-outline" style="font-size:9px; padding:3px 8px;" onclick="_mergeTrayClear()">✕ 비우기</button>
+                </div>
+              </div>
+
+              <div id="vfy-manual-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px;"></div>
 
               <div id="vfy-screen-body">—</div>
 
@@ -8444,9 +8520,10 @@ L S R  C S L  R S L
                 const thTag = (b.owlv2_thresh !== null && b.owlv2_thresh !== undefined) ? ` · th=${b.owlv2_thresh}` : "";
                 const rate = b.count ? Math.round(b.success / b.count * 100) : 0;
                 return `<div onclick="applyScreenBatch('${b._idx}')"
-                    style="cursor:pointer; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
+                    draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 아래 병합 트레이에 놓으면 다른 배치랑 합칠 수 있음"
+                    style="cursor:grab; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
                     onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
-                  <span style="color:var(--text-muted);">${s}~${e}${thTag}</span>
+                  <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}</span>
                   <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
                 </div>`;
               }).join("");
@@ -8478,6 +8555,132 @@ L S R  C S L  R S L
       if (untilEl) untilEl.value = (b.checkpoint === curFile) ? "" : b.end;
       if (ckptSel && [...ckptSel.options].some(o => o.value === b.checkpoint)) ckptSel.value = b.checkpoint;
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // 🧺 배치 드래그앤드랍 병합 — 여러 배치를 트레이에 모아서 이름 붙여 저장하면
+    // 스크리닝 CSV는 그대로 두고 "이 배치들을 하나로 본 합계"만 기억함(2026-07-31).
+    window._mergeTray = window._mergeTray || [];
+
+    function _batchDragStart(ev, idx) {
+      ev.dataTransfer.setData("text/plain", String(idx));
+    }
+
+    function _mergeTrayDrop(ev) {
+      ev.preventDefault();
+      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
+      const b = (window._screenBatches || [])[idx];
+      if (!b) return;
+      if (!window._mergeTray.some(x => x.checkpoint === b.checkpoint && x.start === b.start && x.end === b.end)) {
+        window._mergeTray.push({checkpoint: b.checkpoint, start: b.start, end: b.end});
+      }
+      _renderMergeTray();
+    }
+
+    function _mergeTrayClear() {
+      window._mergeTray = [];
+      _renderMergeTray();
+    }
+
+    function _mergeTrayRemove(i) {
+      window._mergeTray.splice(i, 1);
+      _renderMergeTray();
+    }
+
+    function _rowsInRange(rows, ckpt, startIso, endIso) {
+      const s = new Date(startIso.replace(" ", "T"));
+      const e = new Date(new Date(endIso.replace(" ", "T")).getTime() + 60000);
+      return (rows || []).filter(r => {
+        if (_epCheckpointOf(r) !== ckpt) return false;
+        const d = new Date(String(r[12]).replace(" ", "T"));
+        return !isNaN(d) && d >= s && d <= e;
+      });
+    }
+
+    function _renderMergeTray() {
+      const itemsEl = document.getElementById("vfy-merge-tray-items");
+      const actionsEl = document.getElementById("vfy-merge-tray-actions");
+      if (!itemsEl) return;
+      const tray = window._mergeTray;
+      if (tray.length === 0) {
+        itemsEl.innerHTML = "";
+        if (actionsEl) actionsEl.style.display = "none";
+        return;
+      }
+      itemsEl.innerHTML = tray.map((t, i) => {
+        const s = t.start.replace("T", " ").slice(5);
+        const e = t.end.replace("T", " ").slice(11);
+        return `<div style="display:flex; justify-content:space-between; gap:6px; padding:2px 4px; background:#090d16; border-radius:4px;">
+          <span style="color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.checkpoint} · ${s}~${e}</span>
+          <span onclick="_mergeTrayRemove(${i})" style="cursor:pointer; color:var(--rose);">✕</span>
+        </div>`;
+      }).join("");
+      let n = 0, succ = 0;
+      const rows = window._lastVfyRows || [];
+      tray.forEach(t => {
+        const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
+        n += matched.length;
+        succ += matched.filter(r => r[2] === "성공").length;
+      });
+      const totalEl = document.getElementById("vfy-merge-tray-total");
+      if (totalEl) totalEl.textContent = `합계 ${n}건 ✓${succ}`;
+      if (actionsEl) actionsEl.style.display = "flex";
+    }
+
+    async function _mergeTraySave() {
+      if (window._mergeTray.length < 2) {
+        alert("2개 이상 배치를 트레이에 담아야 병합 저장이 의미가 있습니다.");
+        return;
+      }
+      const name = prompt("병합 세트 이름을 입력하세요 (예: weak_left_threshold0.20_통합)");
+      if (!name) return;
+      const res = await api("/verify/manual_group/save", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name, ranges: window._mergeTray})
+      });
+      if (res.ok) {
+        _mergeTrayClear();
+        refreshManualGroups();
+      } else {
+        alert("저장 실패: " + (res.error || "알 수 없는 오류"));
+      }
+    }
+
+    async function refreshManualGroups() {
+      const el = document.getElementById("vfy-manual-groups");
+      if (!el) return;
+      try {
+        const res = await api("/verify/manual_groups");
+        if (!res.ok) return;
+        const rows = window._lastVfyRows || [];
+        el.innerHTML = (res.groups || []).map(g => {
+          let n = 0, succ = 0;
+          g.ranges.forEach(t => {
+            const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
+            n += matched.length;
+            succ += matched.filter(r => r[2] === "성공").length;
+          });
+          const rate = n ? Math.round(succ / n * 100) : 0;
+          return `<details style="background:#0d1420; border:1px solid var(--violet, #8b5cf6); border-radius:6px; padding:4px 6px;">
+            <summary style="cursor:pointer; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;">
+              <span style="color:#fff; font-weight:600;">🔗 ${g.name}</span>
+              <span style="margin-left:auto; font-family:var(--font-mono); color:${rate>=50?'#3fb950':'var(--rose)'};">${n}건 ✓${succ} (${rate}%)</span>
+              <span onclick="event.preventDefault(); _manualGroupDelete('${g.name}')" style="cursor:pointer; color:var(--rose);" title="병합 세트 삭제(원본 기록은 안 지워짐)">✕</span>
+            </summary>
+            <div style="margin-top:4px; font-size:9px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px;">
+              ${g.ranges.map(t => `<div>${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")}</div>`).join("")}
+            </div>
+          </details>`;
+        }).join("");
+      } catch (e) { /* 무시 */ }
+    }
+
+    async function _manualGroupDelete(name) {
+      if (!confirm(`병합 세트 "${name}"를 삭제할까요? (원본 스크리닝 기록은 그대로 남습니다)`)) return;
+      await api("/verify/manual_group/delete", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({name})
+      });
+      refreshManualGroups();
     }
 
     // 행의 체크포인트 판별 — 2026-07-29부터는 CSV 15번째 컬럼(r[14])에 저장
@@ -8645,6 +8848,9 @@ L S R  C S L  R S L
       const body = document.getElementById("vfy-screen-body");
       if (body) body.innerHTML = rowsHtml +
         `<div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:6px; padding-top:4px; font-size:10px; color:var(--text-muted); text-align:right;">합계 ${totDone}/${totTgt} · 방향성공 ${totSucc}</div>`;
+
+      if (window._mergeTray && window._mergeTray.length) _renderMergeTray();
+      refreshManualGroups();
     }
 
     // ── 트랙A/트랙F 극단배치+중앙(V6) 퀵라벨 버튼 — Tab4/Tab6 공용 렌더러.
@@ -10574,6 +10780,7 @@ L S R  C S L  R S L
     refreshCheckpointOptions();
     refreshScreenBatches();
     refreshModelList();
+    refreshManualGroups();
 
   </script>
 </body>
