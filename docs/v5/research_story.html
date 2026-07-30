@@ -15471,6 +15471,41 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-15 그라운딩 실패 완전 미학습 -->
+  <div class="finding-card" style="background:linear-gradient(135deg,#2a0a0a,#1a0505);border-color:#ef4444">
+    <div class="finding-title" style="color:#f87171">🚨 64-15. has_bbox=False 학습 프레임 0.00%(0/16599) — 그라운딩 실패 상황 완전 미학습 확정 (soda 발견, 2026-07-30)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda가 강한좌 실기 세션 3개를 프레임 단위 분석한 결과, 세션 내내 그라운더가
+      단 한 번도 타겟을 못 찾은(has_bbox=False) 상황에서 정책 헤드가 FWD+L을
+      <strong style="color:#e2e8f0">8초 넘게 그대로 유지</strong>하다 뒤늦게
+      FWD+R→ROT_L로 전환 — 회복이 전혀 없었음. `_build_flat_feature()`가
+      `has_bbox`를 입력 4번째 값으로 명시적으로 넣고 있어(신호 자체는 모델에
+      전달됨) "그럼 학습 데이터에 이 상황이 있었는지"를 minum에 확인 요청.
+      <br><br>
+      <strong style="color:#e2e8f0">확인 결과: 225ep 16,599프레임 중 has_bbox=False는
+      정확히 0개(0.00%)</strong> — 캐시(`exp73_v6_vis_cache.pt`)와 원본 그라운딩
+      주석(`bbox_dataset_v6_pg448_cx.json`) 양쪽 독립 재확인, 완전히 일치. 이는
+      64-5("PG448 LIVE 검출률 100%")와 같은 사실이지만, 이번엔 <strong
+      style="color:#f87171">"그라운딩 실패 시 어떻게 행동해야 하는지를 모델이
+      전혀 학습한 적이 없다"</strong>는 훨씬 날카로운 결론으로 이어짐.
+      <br><br>
+      <strong style="color:#e2e8f0">해석</strong>: 4번째 입력 피처(has_bbox)가
+      학습 내내 <strong style="color:#e2e8f0">상수(항상 1.0×bbox_scale)</strong>였음
+      — 모델에게 이 피처는 "정보"가 아니라 "늘 같은 값의 잡음"이었던 것. 실기에서
+      처음 has_bbox=False를 만나면 학습된 대응 전략이 없어 이전 프레임 관성에 의존한
+      사실상 미정의 동작을 함 — 64-9(obj_left 그라운딩 약세), 64-10(cadence/HELD
+      병목)과는 <strong style="color:#e2e8f0">또 다른, 독립적인 근본 원인</strong>.
+      <br><br>
+      <strong style="color:#fbbf24">시사점</strong>: 그라운더 앙상블/임계값 조정으로는
+      해결 안 됨(64-5 "그라운더 무죄"와 같은 결) — <strong style="color:#e2e8f0">
+      "그라운딩 실패 시 정지/탐색"을 의도적으로 수집하는 신규 데이터 트랙이 필요</strong>.
+      트랙C(오버슈트→재보정)와는 별개 시나리오라 우선순위 조율 필요. 그라운더
+      불일치 가능성도 있음(학습=PG448 100%검출, 이 세션=OWL-v2) — 어느 그라운더로
+      학습해도 실기 100% 검출은 보장 안 되므로(64-9 obj_left 사례) 그라운더 무관하게
+      존재하는 공백으로 판단.
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
