@@ -137,6 +137,15 @@ class USBCameraServiceServer(Node):
         """백그라운드에서 실시간으로 프레임을 캡처하여 최신 프레임을 유지합니다."""
         import time
         TARGET_FRAME_DUR = 1.0 / 30  # 33.3ms — CAP_PROP_FPS=30과 동일
+        # 2026-07-30: mona_dashboard 쪽에서 그라운딩/캐시 스텝 구분 없이 프레임
+        # 중복(픽셀단위 동일) 비율이 15~32%로 잡히는 게 확인됨 — 캐시 스텝(80ms
+        # 간격)과 실제 그라운딩 스텝(2000ms 간격) 둘 다 중복률이 비슷해서, "요청이
+        # 너무 잦아서"가 아니라 이 캡처 루프 자체가 가끔 초 단위로 멈추는 것으로
+        # 의심됨 — cap.read()가 실제로 얼마나 걸리는지, 목표(33ms) 대비 얼마나
+        # 밀리는지 직접 계측해서 확인.
+        SLOW_READ_WARN_S = 0.2  # 이 이상 걸리면 즉시 경고(단발성 블로킹 감지용)
+        STATS_WINDOW = 300      # 약 10초치(30fps 기준) 롤링 통계
+        read_durations: list = []
         self.get_logger().info('🌀 백그라운드 카메라 캡처 루프 시작')
         while rclpy.ok() and self.is_running:
             loop_start = time.monotonic()
@@ -144,7 +153,26 @@ class USBCameraServiceServer(Node):
                 # V4L2 드라이버는 버퍼링 때문에 read()가 거의 즉시 반환되는 경우가 많아
                 # 드라이버 블로킹에만 의존하면 busy-loop가 되어 CPU 코어를 거의 다 점유함.
                 # 루프 종료 시점에 목표 주기(33ms)까지 남은 시간만큼 명시적으로 sleep한다.
+                read_start = time.monotonic()
                 ret, frame = self.cap.read()
+                read_dur = time.monotonic() - read_start
+                if read_dur > SLOW_READ_WARN_S:
+                    self.get_logger().warn(
+                        f'🐌 [Capture Loop] cap.read() 지연 {read_dur*1000:.0f}ms '
+                        f'(목표 {TARGET_FRAME_DUR*1000:.0f}ms) — 이 구간 동안 소비자는 '
+                        f'같은 프레임을 재사용하게 됨')
+                read_durations.append(read_dur)
+                if len(read_durations) > STATS_WINDOW:
+                    read_durations.pop(0)
+                if len(read_durations) == STATS_WINDOW:
+                    avg = sum(read_durations) / len(read_durations)
+                    mx = max(read_durations)
+                    slow_n = sum(1 for d in read_durations if d > SLOW_READ_WARN_S)
+                    self.get_logger().info(
+                        f'📊 [Capture Loop 통계 {STATS_WINDOW}프레임] avg={avg*1000:.1f}ms '
+                        f'max={mx*1000:.0f}ms slow(>{SLOW_READ_WARN_S*1000:.0f}ms)={slow_n}건 '
+                        f'실측fps={1.0/avg if avg > 0 else 0:.1f}')
+                    read_durations.clear()
                 if ret:
                     with self.buffer_lock:
                         self.latest_frame = frame
