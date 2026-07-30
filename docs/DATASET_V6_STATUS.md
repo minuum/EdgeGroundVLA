@@ -832,6 +832,35 @@ confidence 분포가 이 캘리브레이션과 체계적으로 다를 가능성�
 
 트랙C 우선순위엔 안 밀리는 선에서, 여유 되실 때 봐주시면 됩니다.
 
+## ✅ [2026-07-30] transformers 버전 단독 테스트 결과 — 원인 아님으로 확인
+
+minum 회신(CH64: 버전 정합 먼저 시도 권장, threshold는 0.25 유지, fp16과
+threshold 동시 조정은 금지) 받고, 젯슨을 건드리지 않는 선에서 **격리된
+venv**로 transformers만 4.45.2→4.49.0 업그레이드해서(torch/CUDA는 기존
+2.3.0 그대로, `--system-site-packages`로 상속) 같은 애매한 프레임 2장을
+재실행했습니다.
+
+- venv 준비: `python3 -m venv ... --system-site-packages` 후 venv 안에서만
+  `pip install transformers==4.49.0` (시스템 레벨 4.45.2는 그대로 — 확인:
+  `pip3 show transformers` → Version 4.45.2 유지)
+- 서버(`vla-stage2.service`)는 GPU 메모리 여유 확보를 위해 테스트 직전
+  잠깐 내렸다가 테스트 후 즉시 재기동(체크포인트/설정 동일하게 복원 완료)
+- 결과 (동일 이미지 2장, GPU):
+
+| 이미지 | transformers 4.45.2 (프로덕션) | transformers 4.49.0 (venv) |
+|---|---|---|
+| f0 (약좌 세션 145452) | score=0.1642 | score=0.1642 |
+| f0b (약좌 세션 135321) | score=0.2327 | score=0.2327 |
+
+**소수점 4자리까지 완전히 동일** — transformers 버전 단독으로는 confidence
+차이를 전혀 설명하지 못합니다. **transformers 버전 gap 가설은 기각.**
+
+남은 후보는 torch(2.3.0 vs 2.11.0+cu128)나 GPU 하드웨어(Orin vs GB10) 차이인데,
+젯슨에 minum 쪽 torch 버전을 까는 건 아키텍처가 달라(aarch64 vs x86_64,
+JetPack에 종속된 별도 빌드) 사실상 불가능해서 이 경로로는 더 좁히기 어려울
+것 같습니다. `owlv2_threshold_roc.py` 원본 데이터셋으로 젯슨 환경 자체 ROC를
+직접 재측정하는 쪽(요청 1번)이 더 현실적인 다음 단계로 보입니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
