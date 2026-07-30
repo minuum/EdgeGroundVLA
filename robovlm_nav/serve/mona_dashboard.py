@@ -1147,7 +1147,7 @@ _state: dict[str, Any] = {
     "chunk": None,
     "grounding_cached": None,
     "grounding_caption": None,
-    "run_history": [],          # [[step, label, total_ms, gnd_ms, mlp_ms, area], ...]
+    "run_history": [],          # [[step, label, total_ms, gnd_ms, mlp_ms, area, ts, has_bbox], ...] (has_bbox 2026-07-30 추가)
     "action_history": [],       # [[lx, ly, az], ...] 주행 액션 이력
     "session_id": None,
     "is_returning": False,
@@ -1307,6 +1307,11 @@ def _append_history(step, result):
         round(mlp) if mlp is not None else "—",
         round(bbox.get("area", 0.0), 3) if bbox else "—",
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        bool(bbox.get("has_bbox", False)),  # [7] 2026-07-30: 실제 탐지 성공 여부.
+        # 기존 "gnd%"는 r[3]!="—"(grounding_latency_ms 유무)로 셌는데, 캐시
+        # 프레임도 grounding_latency_ms=0.0(None이 아님)을 반환해서 사실상
+        # 항상 100%로 찍히는 죽은 지표였음(탐지 실패해도 latency 자체는
+        # 항상 기록되므로) — has_bbox 기준으로 다시 계산.
     ])
     _state["run_history"] = _state["run_history"][-30:]
 
@@ -3383,7 +3388,11 @@ def episodes_log(req: EpisodeLogReq):
             from collections import Counter
             top_action = Counter(labels).most_common(1)[0][0]
             
-        gnd_ok = sum(1 for r in _state["run_history"] if r[3] != "—")
+        # 2026-07-30: 예전엔 r[3](grounding_latency_ms) != "—"로 셌는데, 캐시
+        # 프레임도 latency=0.0(None 아님)을 반환해서 탐지 실패 여부와 무관하게
+        # 항상 100%에 가깝게 찍히던 죽은 지표였음 — has_bbox(r[7], 옛 행은
+        # 필드 없어 기본 False) 기준 실제 탐지 성공률로 교체.
+        gnd_ok = sum(1 for r in _state["run_history"] if len(r) > 7 and r[7])
         gnd_pct = round(gnd_ok / len(_state["run_history"]) * 100, 1) if _state["run_history"] else 0.0
         
     if _state["bbox"]:
@@ -4442,11 +4451,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                   <th>Gnd Latency</th>
                   <th>MLP Latency</th>
                   <th>Bbox Area</th>
+                  <th>탐지</th>
                   <th>수집 시각</th>
                 </tr>
               </thead>
               <tbody id="drive-history-table">
-                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
+                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
               </tbody>
             </table>
           </div>
@@ -5097,10 +5107,12 @@ L S R  C S L  R S L
                   <th>Gnd Latency</th>
                   <th>MLP Latency</th>
                   <th>Bbox Area</th>
+                  <th>탐지</th>
+                  <th>수집 시각</th>
                 </tr>
               </thead>
               <tbody id="drive-history-table-vfy">
-                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
+                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
               </tbody>
             </table>
           </div>
@@ -9633,6 +9645,7 @@ L S R  C S L  R S L
               <td>${r[3]} ms</td>
               <td>${r[4]} ms</td>
               <td><strong class="text-emerald">${r[5]}</strong></td>
+              <td>${r[7] ? '<span class="text-emerald">✅</span>' : '<span class="text-rose">❌</span>'}</td>
               <td style="font-size:11px; color:var(--text-muted); white-space:nowrap;">${r[6] || "—"}</td>
             </tr>
           `).join("");
