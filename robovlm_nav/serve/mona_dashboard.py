@@ -4830,6 +4830,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <select id="vfy-screen-batch" onchange="applyScreenBatch(this.value)" style="flex:1; padding:4px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
                   <option value="">📂 지난 스크리닝 불러오기...</option>
                 </select>
+                <button class="btn btn-outline" onclick="applyScreenBatch('0')" style="font-size:10px; padding:4px 8px; white-space:nowrap;" title="배치 목록 맨 위(가장 최근) 항목을 바로 적용 — 예전 배치 보다가 지금으로 한 번에 복귀">📍 최신</button>
               </div>
 
               <div id="vfy-screen-body">—</div>
@@ -8199,14 +8200,23 @@ L S R  C S L  R S L
     // 모델 전환 성공 시 스크리닝 패널의 체크포인트 필터를 새 체크포인트로
     // 자동 맞춰줌(2026-07-30) — 예전엔 전환해도 필터가 이전 값(또는 "전체")에
     // 그대로 머물러서 방금 바꾼 모델의 진행률을 보려면 수동으로 다시 골라야 했음.
-    // until은 비워서(open-ended) 지금부터 계속 기록되는 걸 그대로 누적해서 보여줌.
-    function _syncScreeningFilterToCheckpoint(filename) {
+    // 배치 목록도 같이 새로고침해서 최신 배치(맨 위 항목)를 자동 적용 —
+    // 체크포인트는 안 바뀌어도 threshold만 바뀐 경우(2026-07-30) since를 안
+    // 맞추면 신구 threshold 데이터가 그냥 섞여서 집계됨. "지난 스크리닝
+    // 불러오기" 드롭다운을 매번 열어서 고를 필요 없게 자동화.
+    async function _syncScreeningFilterToCheckpoint(filename) {
       const ckptSel = document.getElementById("vfy-screen-ckpt");
       if (ckptSel) {
         if (![...ckptSel.options].some(o => o.value === filename)) {
           ckptSel.appendChild(new Option(filename, filename));
         }
         ckptSel.value = filename;
+      }
+      await refreshScreenBatches();
+      const batchSel = document.getElementById("vfy-screen-batch");
+      if (batchSel && batchSel.options.length > 1) {
+        applyScreenBatch("0");  // 배치 목록은 최신이 맨 위(0번) — 자동 적용
+        return;
       }
       const sinceEl = document.getElementById("vfy-screen-since");
       const untilEl = document.getElementById("vfy-screen-until");
