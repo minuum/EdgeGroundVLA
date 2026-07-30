@@ -916,6 +916,37 @@ post-process):
 0.20으로 진행합니다. 0.15는 오탐이 너무 커서 배제했습니다. 지금부터 이 설정으로
 weak_left 세션 재수집 시작합니다 — 결과 쌓이면 실측 성공률로 다시 공유드리겠습니다.
 
+## ⚠️ [2026-07-30] #200~209(10건) 설정 불일치 — 집계 시 제외 권장 + 재발 방지 완료
+
+제가 transformers venv 테스트하려고 `vla-stage2.service`를 잠깐 내렸다 켠 사이에
+`stop_mode`(learned→proximity), `multi_prompt`(False→True), `preview_hint_cx`
+(True→False)가 코드 기본값으로 조용히 리셋된 채 10건(episode_log.csv #200~209,
+16:12~16:41, checkpoint는 exp73_owl_trackF_v6_mlp_holdaware_seed0.pt로 동일)이
+돌아갔습니다. 7/29 확정 배치(#148~180, 31/33건)나 #183~199와는 **stop_mode 등
+3개 설정이 다른 상태**라 같은 표에 그대로 합산하지 말아주세요.
+
+**재발 방지**: 이 사고를 계기로 `/config`, `/model/load`로 바꾼 설정을
+`logs/stage2_runtime_state.json`에 자동 스냅샷하고, 서버 기동 시 자동 복원하도록
+고쳤습니다(`stage2_v2_inference_server.py`, `_persist_runtime_state`/
+`_restore_runtime_state_env`). 재기동 2회 테스트로 checkpoint/stop_mode/
+multi_prompt/preview_hint_cx/owlv2_thresh 전부 자동 복원되는 것 확인했습니다 —
+앞으로는 이런 설정 드리프트가 재발하지 않습니다.
+
+## 🔵 [2026-07-30] 신규 데이터 트랙 제안 — "그라운딩 실패 시 탐색/정지" 시범 수집
+
+64-15에서 확정된 has_bbox=False 학습 프레임 0%(0/16599) 문제의 실제 해법으로,
+Track C와 병행해서 **소규모 파일럿**을 제안합니다:
+
+- weak_left처럼 OWL-v2 confidence가 threshold 근처(0.15~0.25)인 위치에 바구니를
+  일부러 배치
+- has_bbox=False가 나오는 상황에서 **조이스틱으로 사람이 정답 행동(제자리 탐색
+  회전 ROT_L/R, 또는 STOP) 시범** → Tab 9 데이터수집으로 정식 저장
+- 주의: 오늘 분석한 실패 스크리닝 세션(#193~209)의 H5 `actions`는 **모델
+  자신의 오예측**이라 그대로 학습에 못 씁니다(자기 실수를 정답으로 재학습하는
+  꼴) — 반드시 새로 사람이 시범 보인 데이터가 필요합니다.
+
+파일럿 규모/우선순위는 Track C와 같이 놓고 판단 부탁드립니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋

@@ -51,6 +51,12 @@ class InferenceLogger:
         }
         print(f"📝 세션 시작: {self.log_file}", flush=True)
 
+    def discard_session(self):
+        """오탐/잘못 누른 세션 중단용 — end_session과 달리 JSON/H5를 저장하지 않고
+        메모리 상태만 비움(진행 중이던 세션을 파일로 남기지 않고 버릴 때 사용)."""
+        self._frames = []
+        self.data = {"history": []}
+
     def update_instruction(self, instruction: str):
         if hasattr(self, "data"):
             self.data["instruction"] = instruction

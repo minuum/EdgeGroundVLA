@@ -1937,6 +1937,57 @@ def drive_stop():
     return {"ok": True}
 
 
+class SessionDiscardReq(BaseModel):
+    session_id: Optional[str] = None
+
+
+@app.post("/session/discard")
+def session_discard(req: SessionDiscardReq):
+    """🗑️ 오탐/잘못 누른 수집 세션 폐기 — 실행 중이면 먼저 멈추고(저장 없이),
+    이미 저장된 session_*.json/h5와 episode_log.csv 매칭 행까지 함께 삭제한다."""
+    sid = req.session_id or _state.get("session_id")
+    if not sid:
+        return {"ok": False, "error": "폐기할 세션 ID가 없습니다."}
+
+    if _state.get("running"):
+        _state["running"] = False
+        _stop_ev.set()
+        if _ros and _ros.ctrl:
+            _ros.ctrl.robust_stop(source="session_discard")
+        try:
+            from scripts.inference_logger import get_logger
+            get_logger().discard_session()
+        except Exception as e:
+            log.warning(f"[session_discard] discard_session 실패: {e}")
+        _state.update(bbox=None, grounding_cached=None, grounding_caption=None)
+
+    deleted_files = []
+    for rel_dir, ext in (("docs/inference_reports", "json"), ("docs/inference_sessions", "h5")):
+        p = ROOT / rel_dir / f"session_{sid}.{ext}"
+        if p.exists():
+            p.unlink()
+            deleted_files.append(p.name)
+
+    removed_rows = 0
+    if EPISODE_CSV.exists():
+        rows, _ = _read_episode_csv()
+        kept = [r for r in rows if not (len(r) > 13 and r[13] == sid)]
+        removed_rows = len(rows) - len(kept)
+        if removed_rows:
+            for i, r in enumerate(kept):
+                r[0] = i + 1
+            import csv
+            with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)
+                w.writerow(EP_HEADERS)
+                w.writerows(kept)
+
+    if _state.get("session_id") == sid:
+        _state["session_id"] = None
+    _state["status_log"] = f"🗑️ 세션 {sid} 폐기 완료 (파일 {len(deleted_files)}개, 기록 {removed_rows}행 삭제)"
+    return {"ok": True, "session_id": sid, "deleted_files": deleted_files, "removed_csv_rows": removed_rows}
+
+
 # ── 🧪 경로검증 모드 조이스틱 버튼용 헬퍼 — HTTP 왕복 없이 직접 호출 ──
 def _joystick_drive_start():
     if _state["running"]:
@@ -4655,7 +4706,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <div style="font-size:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:6px; display:flex; flex-direction:column; gap:2px;">
                 <div>기록: <span id="vfy-sess-record-lbl">—</span></div>
-                <div>세션 ID: <span id="vfy-sess-id-lbl" class="font-mono text-cyan" style="font-size:10px;">—</span></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                  <span>세션 ID: <span id="vfy-sess-id-lbl" class="font-mono text-cyan" style="font-size:10px;">—</span></span>
+                  <button onclick="discardCurrentSession()" title="오탐/잘못 누른 세션 정지+삭제"
+                    style="font-size:10px; padding:3px 8px; border-radius:6px; border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.08); color:#f87171; cursor:pointer; white-space:nowrap;">
+                    🗑️ 세션 버리기
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -7691,6 +7748,27 @@ L S R  C S L  R S L
     async function returnToStart() {
       const res = await api("/drive/return", { method: "POST" });
       alert(res.message);
+    }
+
+    // 🗑️ 오탐/잘못 누른 세션 정지+삭제 — Tab 4 수집 세션 모니터링 카드 버튼
+    async function discardCurrentSession() {
+      const sid = document.getElementById("vfy-sess-id-lbl")?.textContent?.trim();
+      if (!sid || sid === "—") {
+        alert("버릴 세션이 없습니다.");
+        return;
+      }
+      if (!confirm(`세션 "${sid}"를 정지하고 완전히 삭제할까요?\n(H5/JSON 파일 + 스크리닝 기록 행이 삭제되며 되돌릴 수 없습니다)`)) {
+        return;
+      }
+      const res = await api("/session/discard", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ session_id: sid }) });
+      if (res.ok) {
+        alert(`폐기 완료: 파일 ${res.deleted_files.length}개, 기록 ${res.removed_csv_rows}행 삭제됨`);
+      } else {
+        alert("폐기 실패: " + (res.error || "알 수 없는 오류"));
+      }
+      pollStatus();
+      if (typeof loadEpisodeHistory === "function") loadEpisodeHistory();
     }
 
     // STOP(수동) 또는 목표 도달로 인한 자동 정지 직후 호출 — 지금까지

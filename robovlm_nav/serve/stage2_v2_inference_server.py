@@ -1419,6 +1419,82 @@ def _check_api_key(x_api_key: Optional[str]) -> None:
         raise HTTPException(status_code=403, detail="Invalid API Key")
 
 
+# ── 런타임 설정 영속화 (2026-07-30) ────────────────────────────────────────
+# /config, /model/load로 바꾼 값들은 전부 os.environ/모듈 전역/model 속성에만
+# 남아서, systemd-run으로 서버를 재기동하면(새 프로세스 = 새 환경) 조용히
+# 기본값으로 리셋됨 — 실제로 오늘 이걸로 stop_mode/multi_prompt/preview_hint_cx가
+# 말없이 바뀌어서 스크리닝 10건이 다른 설정으로 돌아간 사고가 있었음. 매 변경 시
+# 파일에 스냅샷을 남기고 기동 시 복원해서 재발 방지.
+_RUNTIME_STATE_PATH = ROOT / "logs" / "stage2_runtime_state.json"
+
+
+def _persist_runtime_state() -> None:
+    try:
+        m = _model
+        state = {
+            "checkpoint_path": (m.checkpoint_path if m else os.getenv("VLA_S2V2_STAGE2", str(DEFAULT_STAGE2))),
+            "stage1_path": os.getenv("VLA_S2V2_STAGE1", str(DEFAULT_STAGE1)),
+            "head": os.getenv("VLA_S2V2_HEAD") or (m.head_name if m else None),
+            "grounder": os.getenv("VLA_GROUNDER", "pg2"),
+            "stop_mode": STOP_MODE,
+            "stop_area_threshold": GOAL_AREA_THRESHOLD,
+            "stop_cx_tolerance": GOAL_CX_TOLERANCE,
+            "stop_consec_frames": GOAL_CONSEC_FRAMES,
+            "stop_learned_min_steps": STOP_LEARNED_MIN_STEPS,
+            "preview_enabled": getattr(m, "_preview_enabled", None) if m else None,
+            "preview_hint_cx": getattr(m, "_preview_use_hint_cx", None) if m else None,
+            "cx_jump_filter": getattr(m, "_cx_jump_filter", None) if m else None,
+            "cx_jump_thresh": getattr(m, "_cx_jump_thresh", None) if m else None,
+            "grounding_skip_n": getattr(m, "_grounding_skip_n", None) if m else None,
+            "multi_prompt": getattr(m, "_multi_prompt", None) if m else None,
+            "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
+            "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
+        }
+        _RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+    except Exception as e:
+        logger.warning("[_persist_runtime_state] 저장 실패(무시): %s", e)
+
+
+def _restore_runtime_state_env() -> Optional[dict]:
+    """기동 시 최우선 호출 — env로 복원 가능한 값은 여기서 os.environ에 심어서
+    get_model()/Stage2V2Model.__init__이 그 값을 읽게 만든다. STOP_MODE 등
+    모듈 전역 5개는 이미 import 시점에 굳어버려서 여기선 복원 안 되고,
+    __main__에서 get_model() 이후 직접 재대입으로 처리."""
+    if not _RUNTIME_STATE_PATH.exists():
+        return None
+    try:
+        state = json.loads(_RUNTIME_STATE_PATH.read_text())
+    except Exception as e:
+        logger.warning("[_restore_runtime_state_env] 읽기 실패(무시): %s", e)
+        return None
+
+    env_map = {
+        "stage1_path": "VLA_S2V2_STAGE1",
+        "checkpoint_path": "VLA_S2V2_STAGE2",
+        "head": "VLA_S2V2_HEAD",
+        "grounder": "VLA_GROUNDER",
+        "preview_enabled": "VLA_PREVIEW_ENABLED",
+        "preview_hint_cx": "VLA_PREVIEW_HINT_CX",
+        "cx_jump_filter": "VLA_CX_JUMP_FILTER",
+        "cx_jump_thresh": "VLA_CX_JUMP_THRESH",
+        "grounding_skip_n": "VLA_GROUNDING_SKIP_N",
+        "multi_prompt": "VLA_MULTI_PROMPT",
+        "owlv2_thresh": "VLA_OWLV2_THRESH",
+        "owlv2_area_scale": "VLA_OWLV2_AREA_SCALE",
+    }
+    for key, env_name in env_map.items():
+        val = state.get(key)
+        if val is None:
+            continue
+        if isinstance(val, bool):
+            os.environ[env_name] = "1" if val else "0"
+        else:
+            os.environ[env_name] = str(val)
+    logger.info("[_restore_runtime_state_env] 이전 런타임 설정 복원: %s", _RUNTIME_STATE_PATH)
+    return state
+
+
 @app.get("/")
 async def root() -> dict[str, Any]:
     m = _model
@@ -1652,6 +1728,8 @@ async def set_config(
         if getattr(request, field, None) is not None:
             ignored.append(field)
 
+    if applied:
+        _persist_runtime_state()
     return {"status": "ok", "applied": applied, "ignored": ignored}
 
 
@@ -1771,6 +1849,7 @@ async def load_model(
         _model.grounder = _build_grounder(request.grounder, _model.device)
         logger.info("[/model/load] 그라운더만 교체 완료 → %s (Stage1/head 유지)", request.grounder)
         grounder_kind = "owlv2" if isinstance(_model.grounder, OwlV2Grounder) else "pg2"
+        _persist_runtime_state()
         return {"status": "success", "head": _model.head_name, "window": _model.window,
                 "val_acc": _model.val_acc, "grounder": grounder_kind}
 
@@ -1800,6 +1879,7 @@ async def load_model(
     _free_cuda_memory()
     m = get_model(reload=True, existing_enc=reusable_enc)
     grounder_kind = "owlv2" if isinstance(m.grounder, OwlV2Grounder) else "pg2"
+    _persist_runtime_state()
     return {"status": "success", "head": m.head_name, "window": m.window,
             "val_acc": m.val_acc, "grounder": grounder_kind}
 
@@ -1839,10 +1919,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=int(os.getenv("VLA_PORT", "8001")))
     parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--no-restore", action="store_true",
+                         help="이전 재기동 시점 런타임 설정(logs/stage2_runtime_state.json) 복원 생략 — 코드 기본값으로 시작")
     args_cli = parser.parse_args()
+
+    _restored_state = None if args_cli.no_restore else _restore_runtime_state_env()
 
     logger.info("Pre-loading Stage2V2 model ...")
     m = get_model()
+
+    if _restored_state:
+        # STOP_MODE 등 5개는 모듈 최상단에서 import 시점에 이미 굳어서 env 복원이
+        # 안 먹힘(_restore_runtime_state_env 참고) — 여기서 직접 재대입.
+        STOP_MODE = _restored_state.get("stop_mode", STOP_MODE)
+        GOAL_AREA_THRESHOLD = _restored_state.get("stop_area_threshold", GOAL_AREA_THRESHOLD)
+        GOAL_CX_TOLERANCE = _restored_state.get("stop_cx_tolerance", GOAL_CX_TOLERANCE)
+        GOAL_CONSEC_FRAMES = _restored_state.get("stop_consec_frames", GOAL_CONSEC_FRAMES)
+        STOP_LEARNED_MIN_STEPS = _restored_state.get("stop_learned_min_steps", STOP_LEARNED_MIN_STEPS)
+        logger.info("[복원 완료] stop_mode=%s multi_prompt=%s preview_hint_cx=%s owlv2_thresh=%s checkpoint=%s",
+                    STOP_MODE, os.getenv("VLA_MULTI_PROMPT"), os.getenv("VLA_PREVIEW_HINT_CX"),
+                    os.getenv("VLA_OWLV2_THRESH"), m.checkpoint_path)
 
     # Stage 0 워밍업: PG2 콜드스타트를 서버 시작 시점에 소진 (CH54 ablation)
     # 분석: 6/26 세션 39개 전부 frame 0 has_bbox=0% → frame 1+ 100% 성공
