@@ -2008,8 +2008,12 @@ def _joystick_drive_stop():
 
 
 def _verify_save_session():
-    """L2 — 최종 세션 저장(추론세션 저장). D-pad로 고른 위치 + X/A 라벨로 1건만 기록.
-    결과 라벨(X/A)이 아직 없으면 저장 안 함(실수 방지). 저장 후 라벨 초기화."""
+    """L2 — 정지+최종 세션 저장+복귀를 한 번에 처리(2026-07-30 절차 통합).
+    D-pad로 고른 위치 + X/A 라벨로 1건만 기록. 결과 라벨(X/A)이 아직 없으면
+    저장 안 함(실수 방지). 저장 후 라벨 초기화 + 자동 복귀까지 이어서 실행 —
+    예전엔 R1(정지)/L2(저장)/R2(복귀) 3번 눌러야 했는데, 저장 다음엔 거의 항상
+    복귀를 눌렀어서(효율성 확인 결과) 굳이 분리해둘 이유가 없었음. 복귀만
+    다시 하고 싶으면 R2를 그대로 눌러도 됨(중복 실행돼도 무해)."""
     global _verify_pending_result, _verify_save_seq
     if not _verify_pending_result:
         _state["status_log"] = "⚠️ 결과 미지정 — X(성공)/A(실패) 먼저 누른 뒤 L2로 저장"
@@ -2026,9 +2030,10 @@ def _verify_save_session():
                                    note=note, experimental=_verify_experimental))
         tag = " [실험용]" if _verify_experimental else ""
         log.info(f"[Verify] L2 세션 저장{tag}: {pt} = {result}")
-        _state["status_log"] = f"💾 저장{tag}: {pt} = {result}"
+        _state["status_log"] = f"💾 저장{tag}: {pt} = {result} → 🔄 복귀 시작"
         _verify_pending_result = None  # 저장 후 라벨 초기화(다음 세션 대비)
         _verify_save_seq += 1          # 브라우저 폴링이 이 값 변화로 자동 갱신 트리거
+        _joystick_verify_return()
     except Exception as e:
         log.warning(f"[Verify] L2 저장 실패: {e}")
 
@@ -3406,22 +3411,38 @@ def verify_screening_batches():
         else:
             sid = r[13]
             ckpt = idx.get(sid, "(알수없음)")
-        enriched.append((dt, ckpt, r[2] == "성공"))
+        # 체크포인트가 같아도 owlv2_thresh 등 그라운딩 설정이 바뀌면 실질적으로
+        # 다른 실험이라 배치를 분리해야 함 — 2026-07-30에 threshold 0.25→0.20
+        # 변경이 같은 체크포인트/3시간 이내라 한 배치로 뭉쳐버려서 수동으로
+        # since를 다시 맞춰야 했던 문제 재발 방지.
+        owl_thresh = None
+        if len(r) > EP_COL_RUNTIME_CFG and r[EP_COL_RUNTIME_CFG]:
+            try:
+                owl_thresh = json.loads(r[EP_COL_RUNTIME_CFG]).get("owlv2_thresh")
+            except Exception:
+                owl_thresh = None
+        enriched.append((dt, ckpt, owl_thresh, r[2] == "성공"))
     enriched.sort(key=lambda t: t[0])
 
     batches = []
     cur = None
     GAP = datetime.timedelta(hours=3)
-    for dt, ckpt, ok in enriched:
-        if cur is None or ckpt != cur["checkpoint"] or dt - cur["_last"] > GAP:
-            cur = {"checkpoint": ckpt, "start": dt, "end": dt, "_last": dt, "count": 0, "success": 0}
+    for dt, ckpt, owl_thresh, ok in enriched:
+        thresh_changed = (cur is not None and owl_thresh is not None
+                           and cur.get("owl_thresh") is not None
+                           and owl_thresh != cur["owl_thresh"])
+        if cur is None or ckpt != cur["checkpoint"] or dt - cur["_last"] > GAP or thresh_changed:
+            cur = {"checkpoint": ckpt, "owl_thresh": owl_thresh, "start": dt, "end": dt,
+                   "_last": dt, "count": 0, "success": 0}
             batches.append(cur)
+        elif owl_thresh is not None:
+            cur["owl_thresh"] = owl_thresh
         cur["count"] += 1
         if ok: cur["success"] += 1
         cur["end"] = dt
         cur["_last"] = dt
 
-    out = [{"checkpoint": b["checkpoint"],
+    out = [{"checkpoint": b["checkpoint"], "owlv2_thresh": b["owl_thresh"],
             "start": b["start"].strftime("%Y-%m-%dT%H:%M"),
             "end": b["end"].strftime("%Y-%m-%dT%H:%M"),
             "count": b["count"], "success": b["success"]} for b in batches]
@@ -4668,7 +4689,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-cxguide-vfy" onchange="drawOverlay()" style="accent-color:var(--amber)"> 배치가이드 표시
               </label>
-              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=세션저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
+              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=저장+복귀(통합) · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
@@ -4789,7 +4810,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
                 <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
               </div>
-              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=저장+복귀(통합, 💾버튼과 동일 기록+자동복귀)</b> · R2=복귀만 다시 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
               <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
               <div id="vfy-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:6px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용 기록 모드 ON — episode_log_experimental.csv로 저장 (정식 집계 제외)</div>
 
@@ -5815,7 +5836,7 @@ L S R  C S L  R S L
                 <label style="font-size:11px; font-weight:400; color:var(--text-muted); float:right; cursor:pointer;">
                   <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드 표시
                 </label>
-                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=기록저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
+                <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px; float:right; margin-right:8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=저장+복귀(통합) · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
               <div id="collect-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:8px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용(모델이상) 표기 ON — 저장 시 H5에 flagged_model_issue=True로 기록 (B로 끄기)</div>
@@ -8300,7 +8321,8 @@ L S R  C S L  R S L
           window._screenBatches.map((b, i) => {
             const s = b.start.replace("T", " ").slice(5);
             const e = b.end.replace("T", " ").slice(11);
-            return `<option value="${i}">${s}~${e} · ${b.checkpoint} (${b.count}건, ✓${b.success})</option>`;
+            const thTag = (b.owlv2_thresh !== null && b.owlv2_thresh !== undefined) ? ` th=${b.owlv2_thresh}` : "";
+            return `<option value="${i}">${s}~${e} · ${b.checkpoint}${thTag} (${b.count}건, ✓${b.success})</option>`;
           }).join("");
       } catch (e) { /* 무시 */ }
     }
