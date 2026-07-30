@@ -15429,7 +15429,7 @@ graph TD
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
         <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">Kosmos-2 vision</th><th style="padding:4px">OWL-v2</th></tr>
         <tr><td style="padding:4px">파라미터</td><td style="padding:4px;text-align:center">0.303B</td><td style="padding:4px;text-align:center"><strong>0.155B(더 작음)</strong></td></tr>
-        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px"><strong>추론 지연</strong></td><td style="padding:4px;text-align:center">58.6ms</td><td style="padding:4px;text-align:center;color:#f87171"><strong>1901.7ms(32배 느림)</strong></td></tr>
+        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px"><strong>추론 지연</strong></td><td style="padding:4px;text-align:center">53.7ms<sup>†</sup></td><td style="padding:4px;text-align:center;color:#f87171"><strong>1901.7ms(35배 느림)</strong></td></tr>
         <tr><td style="padding:4px">추론 중 GPU 피크</td><td style="padding:4px;text-align:center">0.625GB</td><td style="padding:4px;text-align:center;color:#f87171">1.982GB(3배)</td></tr>
       </table>
       <br>
@@ -15438,6 +15438,13 @@ graph TD
       OWL-v2가 압도적으로 큼</strong> — 라즈베리파이(GPU 없음, CPU 전용)로 가면 이 격차가
       더 벌어질 가능성이 높아, 경량화 판단은 파라미터 수가 아니라 레이턴시/메모리
       프로파일 기준으로 해야 함.
+      <div style="font-size:0.75rem;color:#64748b;margin-top:6px">
+      † 최초 측정(58.6ms)은 실제 서버 코드(`resize_for_vlm`+`pixel_values.to(dtype=torch.float16)`)와
+      리사이즈·dtype 캐스팅이 달랐던 게 soda 검증으로 발견됨 — 서버 코드 그대로 재현해
+      재측정한 값(53.7ms)으로 교체. 리사이즈 자체는 프로젝트 문서(`image_preprocess.py`)에
+      "동작 안 바뀜(둘 다 224 귀결)"이 명시돼 있어 원래도 무관했음, dtype 재현 후에도
+      결론(OWL이 압도적으로 느림)은 그대로 유지.
+      </div>
       <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_lw_1_param_vs_latency.png" style="max-width:640px;width:100%;border-radius:8px;border:1px solid #223" alt="파라미터 vs 레이턴시"></div>
       <br>
       <strong style="color:#e2e8f0">좌우 데이터 불균형 재확인 결과</strong>: 목표
