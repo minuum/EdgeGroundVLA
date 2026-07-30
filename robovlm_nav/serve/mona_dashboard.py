@@ -3224,7 +3224,7 @@ def sessions_delete(sid: str):
         if jsonp.exists():
             jsonp.unlink()
             deleted_files.append(jsonp.name)
-        
+
         # /tmp/mona_preview_labels.json에서도 해당 세션 라벨 제거
         if LABEL_JSON_PATH.exists():
             try:
@@ -3234,8 +3234,29 @@ def sessions_delete(sid: str):
                     labels.pop(k, None)
                 LABEL_JSON_PATH.write_text(json.dumps(labels, indent=2, ensure_ascii=False))
             except Exception: pass
-            
-        return {"ok": True, "message": f"성공적으로 삭제됨: {', '.join(deleted_files)}"}
+
+        # 2026-07-31: 세션 인스펙터의 "영구삭제"가 H5/JSON만 지우고 episode_log.csv
+        # 행은 그대로 남겨서, 스크리닝 집계(합계/체크포인트별 진행률)에 삭제가 바로
+        # 반영 안 되는 문제 확인됨 — 매칭되는 CSV 행도 같이 지우도록 함
+        # (/session/discard와 동일 패턴, 그쪽은 "진행 중" 세션용/이건 과거 저장분용).
+        removed_rows = 0
+        if EPISODE_CSV.exists():
+            rows, _ = _read_episode_csv()
+            kept = [r for r in rows if not (len(r) > 13 and r[13] == sid)]
+            removed_rows = len(rows) - len(kept)
+            if removed_rows:
+                for i, r in enumerate(kept):
+                    r[0] = i + 1
+                import csv
+                with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+                    w = csv.writer(f)
+                    w.writerow(EP_HEADERS)
+                    w.writerows(kept)
+
+        msg = f"성공적으로 삭제됨: {', '.join(deleted_files) or '(파일 없음)'}"
+        if removed_rows:
+            msg += f" · 스크리닝 기록 {removed_rows}행도 함께 삭제됨"
+        return {"ok": True, "message": msg, "removed_csv_rows": removed_rows}
     except Exception as e:
         return JSONResponse(status_code=500, content={"ok": False, "error": f"파일 삭제 실패: {e}"})
 
@@ -9511,6 +9532,12 @@ L S R  C S L  R S L
         document.getElementById("inspector-placeholder").style.display = "block";
         document.getElementById("inspector-body").style.display = "none";
         loadSessionList();
+        // 스크리닝 집계(합계/체크포인트별 진행률/배치 그룹)에도 즉시 반영 —
+        // 예전엔 episode_log.csv 행이 삭제 안 돼서 스크리닝 쪽에 그대로 남아있었음(2026-07-31).
+        if (res.removed_csv_rows) {
+          loadEpisodeHistory();
+          refreshCheckpointOptions();
+        }
       } else {
         alert("삭제 실패: " + res.error);
       }
