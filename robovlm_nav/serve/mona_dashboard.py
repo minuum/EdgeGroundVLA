@@ -1527,16 +1527,39 @@ def _async_exec():
     # (수집 데이터는 ~6Hz 연속 조이스틱이라 이런 정지 구간이 전혀 없음 — train/inference
     # 모션 연속성 불일치의 핵심 원인 중 하나). p95보다 여유있게 4.0s로 상향.
     COAST = 4.0
+    # 2026-07-30: 회전(ROT_L/ROT_R)만 예외 — 위 COAST 설계 그대로 두면 실시간
+    # 그라운딩(~2s) 내내 같은 회전이 10Hz로 계속 재발행되어 "짧은 보정 한 번"이
+    # 아니라 논스톱 회전이 됨(weak_left 세션들에서 타겟이 화면 밖으로 밀려나가는
+    # 원인으로 확인). 회전일 때만 SYNC와 동일한 move_and_stop_ramped()로 짧게
+    # (move_duration≈0.4s) 돌고 자동정지 — 이동/스트레이프는 기존 연속 재발행 유지.
+    rot_busy_until = 0.0
     while not _stop_ev.is_set() and _state["running"]:
         if _async_q:
             res = _async_q.popleft()
             action = np.asarray(res.get("action_3d") or res["action"],
                                 dtype=np.float32).reshape(-1)
-            lx, ly = float(action[0]), float(action[1])
-            az = float(action[2]) if action.size > 2 else 0.0
+            new_lx, new_ly = float(action[0]), float(action[1])
+            new_az = float(action[2]) if action.size > 2 else 0.0
             last_upd = time.time()
-            _state["last_action"] = [lx, ly, az]
-            _state["action_history"].append([lx, ly, az])
+            _state["last_action"] = [new_lx, new_ly, new_az]
+            _state["action_history"].append([new_lx, new_ly, new_az])
+
+            is_rotation = abs(new_az) > 0.1 and abs(new_lx) < 0.05 and abs(new_ly) < 0.05
+            if is_rotation:
+                msg = _ros.ctrl.move_and_stop_ramped(new_lx, new_ly, new_az, source="async_exec_rot")
+                _state["status_log"] = msg
+                rot_busy_until = time.time() + _ros.ctrl.move_duration
+                lx = ly = az = 0.0
+                time.sleep(0.1)
+                continue
+            lx, ly, az = new_lx, new_ly, new_az
+
+        if time.time() < rot_busy_until:
+            # move_and_stop_ramped 자체 타이머가 정지까지 처리하는 중 — 아래
+            # publish_and_move 재발행을 건너뛰어야 회전이 즉시 취소되지 않음.
+            time.sleep(0.1)
+            continue
+
         if time.time() - last_upd > COAST:
             lx = ly = az = 0.0
         msg = _ros.ctrl.publish_and_move(lx, ly, az, source="async_exec")
