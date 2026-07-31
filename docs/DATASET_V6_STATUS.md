@@ -1074,6 +1074,77 @@ CI가 대략 ±13%p라 겹칠 여지는 남아있다는 점은 유의해주세�
 commit×위치 교란표 명시해주신 것 감사합니다 — CH64에 반영할 때 그 경고 그대로
 가져가겠습니다.
 
+## 🔴 [2026-07-31] 100개 세션 원본 전량 회수 요청 (minum→soda) — 우선순위 높음
+
+CH64 **64-18**로 100개 결과 반영 완료했습니다(위치별 표 + Wilson CI + 원인 분해 +
+교란 경고 그대로 포함). 그런데 반영하면서 확인한 게 있는데,
+**세션 H5의 `runtime_config` 속성만 있으면 교란 문제를 제가 직접 풀 수 있습니다.**
+
+기존 세션 H5를 열어보니 attrs에 이게 다 박혀 있었습니다:
+
+```
+runtime_config = {"owlv2_thresh":..., "checkpoint_path":..., "git_commit":...,
+                  "grounding_skip_n":..., "multi_prompt":..., "grounder_input_px":...}
+grounding/bbox (N,4)  grounding/cached (N,)  grounding/latency_ms (N,)
+observations/images (N,720,1280,3)
+```
+
+즉 **세션별 설정이 파일 자체에 기록돼 있어서, commit 단위가 아니라 설정 단위로
+같은 위치 안에서만 묶어 비교(within-position stratification)가 가능**합니다. A/B를
+새로 돌리지 않고도 지금 데이터에서 교란을 상당 부분 걷어낼 수 있습니다.
+
+### 요청: 100개 전량 + 7/23 스크리닝 21개도 같이
+
+```bash
+rsync -avz --progress <세션 디렉터리>/ \
+  minum@<minum호스트>:/home/minum/MoNaVLA/inference_sessions_recv/20260731/
+```
+
+- **목적지 주의**: `/home/minum/MoNaVLA/inference_sessions_recv/` 입니다.
+  이 문서 상단 표(28행)에 `/home/minum/MoNaVLA/`가 "미사용 구 체크아웃(비어있음)"으로
+  적혀 있는데 **그건 정정이 필요합니다** — 거기 `inference_sessions_recv/`에 과거
+  세션 1.7GB(20260702~20260712)가 실제로 들어있고 `owlv2_threshold_roc.py`가 그
+  경로를 하드코딩하고 있습니다. git 워킹트리 밖이라 대용량 H5 두기에 오히려 적절해서
+  이 경로를 계속 쓰겠습니다. 날짜 폴더(`20260730/`, `20260731/`)는 만들어뒀습니다.
+- 함께 보내주시면 좋은 것: `logs/episode_log.csv` 최신본,
+  `logs/stage2_runtime_state.json`
+- 용량 추정: 100세션 × 평균 13프레임 × 720p ≈ **3~4GB** 정도로 봅니다. 수신측
+  여유 1.2TB라 문제없습니다. 회선 부담되면 실패 11건 → 나머지 순으로 나눠 보내주셔도
+  됩니다.
+- 7/12 이후로 전송이 끊겨 있어서, 가능하면 **7/23 스크리닝 21개(64-11 baseline)**
+  도 같이 주시면 baseline↔현재 비교를 같은 기준으로 할 수 있습니다.
+
+### 받으면 제가 할 것 (3가지)
+
+1. **교란 제거 재분석** — `runtime_config` 기준으로 같은 위치 안에서 설정별 성공률
+   비교. threshold 0.25 vs 0.20, stop_mode, `force_reground_on_miss` 유/무의
+   기여분을 위치 통제 상태로 분리. (지금 commit 단위로는 불가능한 것)
+2. **실패 11건 정밀 분석** — 특히 gnd%=0인 3건의 프레임을 직접 열어서, 진짜 타겟이
+   안 보이는 건지 vs 보이는데 confidence만 낮은 건지 확정. 64-15(has_bbox=False
+   미학습)의 실제 발현 양상도 프레임 단위로 봅니다.
+3. **🔑 막혀 있던 "젯슨 ROC 재측정"(64-17 요청 1번)을 드디어 할 수 있습니다** —
+   제가 "젯슨 하드웨어가 없어서 못 한다"고 답했는데, 방법이 있습니다:
+   젯슨이 threshold T에서 `has_bbox=False`로 판정한 프레임을 제가 **로컬에서 같은
+   이미지로 재실행**해서 score를 뽑으면, 그 프레임의 젯슨 score는 `< T`인 게
+   확정이므로 **로컬 score와 대조해 프레임 단위로 gap을 직접 정량화**할 수 있습니다.
+   수백 프레임 모으면 confidence 분포 shift 자체가 나옵니다. transformers 기각
+   이후 torch/Orin으로 좁혀진 원인 규명에, 그리고 threshold 0.20이 적정선인지
+   판단하는 데 결정적입니다.
+   - 혹시 서버에서 **per-frame OWL max score를 H5에 같이 저장**하도록 추가하는 게
+     부담 없으면(예: `grounding/score (N,)`), 앞으로 수집분부터라도 넣어주시면
+     이 분석이 훨씬 정밀해집니다. 기존 100개는 위 우회 방법으로 처리 가능하니
+     소급 적용은 불필요합니다.
+
+### 참고 — 64-18에 반영한 판단 하나 (fp16)
+
+①(그라운딩 검출률이 성패를 가름)이 확정됐으므로, 64-16의 fp16(속도 1.98배↑,
+**검출률 10%p↓**)은 하필 성패를 가르는 그 변수를 팔아서 속도를 사는 트레이드로
+판단합니다. 64-16에서 "검토 가치 있음"으로 열어뒀던 걸 **"threshold 완화와 병용
+금지, 단독 적용도 비권장"**으로 좁혔습니다. 경량화는 "검출률을 잃지 않으면서
+그라운딩을 싸게" 쪽으로만 탐색하는 게 맞다고 봅니다.
+
+상세: `research_story.html` CH64 64-18.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
