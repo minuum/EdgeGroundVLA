@@ -15074,6 +15074,46 @@ graph TD
     <p class="chapter-subtitle">"성능이 왜 이렇게 낮지?"에서 시작한 전면 재검증 (2026-07-22) — 그동안의 순위가 두 개의 조용한 버그로 오염돼 있었고, 정정하니 결론이 세 번 뒤집혔다. 최종적으로 헤드·그라운더·연속화 전부 막다른 길이고 병목은 데이터임을 데이터로 확정.</p>
   </div>
 
+  <!-- 교수님 보고용 요약 (복사용) -->
+  <div class="finding-card" style="border-color:#38bdf8;background:rgba(56,189,248,0.05)">
+    <div class="finding-title" style="color:#38bdf8">📋 교수님 보고용 요약 (2026-07-31 · 복사해서 쓰는 용)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      아래 박스 내용만 그대로 복사하면 됩니다.
+      <div style="background:#0b1220;border:1px solid #1e2a3a;border-radius:8px;padding:14px 16px;margin-top:10px;font-size:0.83rem;line-height:2.0;color:#cbd5e1;white-space:pre-line">지시하신 100회 실기 테스트(5개 목표위치 × 20회)를 완료했습니다.
+
+<strong style="color:#e2e8f0">1. 결과: 100회 중 89회 성공 (89.0%)</strong>
+- 중앙 20/20(100%), 약우 19/20(95%), 강우 18/20(90%), 강좌 16/20(80%), 약좌 16/20(80%)
+- 직전 baseline은 동일 위치에서 20~30% 수준이었습니다.
+
+<strong style="color:#e2e8f0">2. 핵심 발견: 성패를 가르는 것은 주행 정책이 아니라 "객체 검출"입니다</strong>
+- 세션 내 객체 검출 성공률(gnd%)이 80% 이상이면 → 79/80 = <strong style="color:#4ade80">98.8% 주행 성공</strong>
+- 80% 미만이면 → 41/80 = 51.2%
+- 즉 로봇이 바구니를 계속 보고만 있으면 거의 반드시 도달하고, 실패는 전부 "보지 못한" 경우입니다.
+- 총 159개 세션에서 검증했고, 검출이 잘 된 세션의 실패는 단 1건이었습니다.
+
+<strong style="color:#e2e8f0">3. 따라서 경량화 방향을 다음과 같이 좁혔습니다</strong>
+- 행동 결정 모듈(MLP 헤드)은 이미 충분하고 계산량도 매우 작습니다 → 더 키울 이유가 없습니다.
+- 병목이자 가장 비싼 부분은 객체 검출기입니다 (OWL-v2 1901ms vs 비전 인코더 54ms).
+- 그런데 검출 정확도가 곧 성공률이므로, 양자화(fp16)로 속도를 얻는 방식은
+  검출률을 10%p 잃어 부적절하다고 판단했습니다.
+- <strong style="color:#e2e8f0">결론: 범용 검출기를 압축하는 대신, 저희 과제(회색 바구니·극단 배치)에
+  특화된 소형 검출기를 직접 학습하는 것이 속도·정확도 양쪽에서 유리합니다.</strong>
+  이것을 다음 단계로 제안드립니다.
+
+<strong style="color:#e2e8f0">4. 아직 단정하지 않는 부분 (정직하게 남겨둔 한계)</strong>
+- 개선이 "모델 교체" 때문인지 "검출 임계값 조정" 때문인지는 확정하지 못했습니다.
+  두 변경이 서로 다른 위치에서 이루어져 교란되어 있어, 통계 처리 방식에 따라 순위가 뒤바뀝니다.
+  → 동일 위치에서 설정만 바꾸는 A/B 재측정이 필요합니다.
+- 좌우 성능 차이(좌 80% vs 우 92.5%)는 표본 40개씩에서 통계적으로 유의하지 않습니다(p=0.19).
+  다만 좌측이 목표 도달까지 1.6배 더 많은 스텝을 쓰는 경향은 관찰됩니다.</div>
+      <div style="margin-top:10px;font-size:0.8rem;color:#64748b">
+        근거 상세: 64-18(100회 결과), 64-19(요인 분해 및 한계), 64-20(검출기 환경차 정량화).
+        <br>이 요약은 자체 검증에서 <strong style="color:#f87171">이전 카드 2건(64-11, 64-18 요인순위)을
+        철회·정정한 뒤</strong>의 최신 상태입니다.
+      </div>
+    </div>
+  </div>
+
   <div class="callout critical">
     🔴 <strong>3줄 요약</strong><br>
     ① exp73 closed-loop 순위는 <strong>두 개의 숨은 버그</strong>(val_split RandomState↔default_rng 불일치 + 공유 캐시 CACHE_V6 덮어쓰기)로 통째로 오염돼 있었다. "hybrid 84.8% 최종 1위" → "mlp 60.6%" → 정정 후 <strong>전부 무효</strong>.<br>
