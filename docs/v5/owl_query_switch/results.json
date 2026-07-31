@@ -1,0 +1,86 @@
+[
+  {
+    "key": "session_20260701_220400_f00",
+    "found": {
+      "gray laundry basket": {
+        "cx": 0.5131507396697998,
+        "score": 0.5528846383094788
+      },
+      "door": null,
+      "chair": null,
+      "trash can": null
+    }
+  },
+  {
+    "key": "session_20260702_100143_f10",
+    "found": {
+      "gray laundry basket": {
+        "cx": 0.8029199600219726,
+        "score": 0.6953729391098022
+      },
+      "door": {
+        "cx": 0.16119141578674318,
+        "score": 0.2103940099477768
+      },
+      "chair": {
+        "cx": 0.07741309776902199,
+        "score": 0.5277690887451172
+      },
+      "trash can": null
+    }
+  },
+  {
+    "key": "session_20260702_131204_f04",
+    "found": {
+      "gray laundry basket": null,
+      "door": null,
+      "chair": {
+        "cx": 0.7147876024246216,
+        "score": 0.49581167101860046
+      },
+      "trash can": {
+        "cx": 0.48946056365966795,
+        "score": 0.4912184476852417
+      }
+    }
+  },
+  {
+    "key": "session_20260703_012829_f05",
+    "found": {
+      "gray laundry basket": {
+        "cx": 0.34211755990982057,
+        "score": 0.5185736417770386
+      },
+      "door": null,
+      "chair": null,
+      "trash can": null
+    }
+  },
+  {
+    "key": "session_20260703_065407_f00",
+    "found": {
+      "gray laundry basket": {
+        "cx": 0.6911393880844117,
+        "score": 0.49638402462005615
+      },
+      "door": null,
+      "chair": null,
+      "trash can": null
+    }
+  },
+  {
+    "key": "session_20260702_212834_f15",
+    "found": {
+      "gray laundry basket": {
+        "cx": 0.3464177131652832,
+        "score": 0.4828774034976959
+      },
+      "door": null,
+      "chair": null,
+      "trash can": {
+        "cx": 0.9878835678100586,
+        "score": 0.31876644492149353
+      }
+    }
+  }
+]

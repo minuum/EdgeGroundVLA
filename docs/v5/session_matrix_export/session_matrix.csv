@@ -1,0 +1,255 @@
+session_id,timestamp,model_name,instruction_mode,status,checkpoint_path,exp,head,window,bbox_scale,grounder_model,grounder_input_px,preview_enabled,preview_hint_cx,grounding_skip_n,multi_prompt,git_commit,n_frames,avg_latency_ms,top_action,has_runtime_config
+20260303_225026,2026-03-03T22:50:26.183003,Test-Model-V3,,completed,,,,,,,,,,,,,3,,,False
+20260305_100321,2026-03-05T10:03:21.022159,unknown,,completed,,,,,,,,,,,,,,,,False
+20260305_100638,2026-03-05T10:06:38.572730,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_100719,2026-03-05T10:07:19.549830,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_100806,2026-03-05T10:08:06.560500,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_101633,2026-03-05T10:16:33.775304,v3_exp07_lora_light.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260305_101634,2026-03-05T10:16:34.059843,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_102030,2026-03-05T10:20:30.553690,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_102124,2026-03-05T10:21:24.546171,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_102739,2026-03-05T10:27:39.557603,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_103454,2026-03-05T10:34:54.560534,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_103542,2026-03-05T10:35:42.767633,v3_exp07_lora_light.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260305_103543,2026-03-05T10:35:43.052724,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_103630,2026-03-05T10:36:30.548813,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_104226,2026-03-05T10:42:26.549391,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_104306,2026-03-05T10:43:06.810176,v3_exp07_lora_light.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260305_104307,2026-03-05T10:43:07.094585,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_104605,2026-03-05T10:46:05.561199,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_104706,2026-03-05T10:47:06.777478,v3_exp07_lora_light.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260305_104707,2026-03-05T10:47:07.062236,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260305_104859,2026-03-05T10:48:59.554900,mobile_vla_v3_exp07_lora,,completed,,,,,,,,,,,,,34,,,False
+20260306_112328,2026-03-06T11:23:28.643064,unknown,,completed,,,,,,,,,,,,,,,,False
+20260306_113746,2026-03-06T11:37:46.345836,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_113830,2026-03-06T11:38:30.346144,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_113917,2026-03-06T11:39:17.340779,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_114003,2026-03-06T11:40:03.876567,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_114228,2026-03-06T11:42:28.848475,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_114426,2026-03-06T11:44:26.857502,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_114518,2026-03-06T11:45:18.349503,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_114549,2026-03-06T11:45:49.855649,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_114634,2026-03-06T11:46:34.366783,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_114708,2026-03-06T11:47:08.347748,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_115040,2026-03-06T11:50:40.853269,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_133937,2026-03-06T13:39:37.369503,unknown,,completed,,,,,,,,,,,,,,,,False
+20260306_134311,2026-03-06T13:43:11.725898,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_134346,2026-03-06T13:43:46.661706,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_134432,2026-03-06T13:44:32.675609,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_134532,2026-03-06T13:45:32.963209,epoch_epoch=07-val_loss=val_loss=0.031.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260306_134533,2026-03-06T13:45:33.248033,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_134610,2026-03-06T13:46:10.883583,epoch_epoch=07-val_loss=val_loss=0.031.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260306_134611,2026-03-06T13:46:11.168845,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_144701,2026-03-06T14:47:01.085140,unknown,,completed,,,,,,,,,,,,,,,,False
+20260306_145705,2026-03-06T14:57:05.574292,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_145812,2026-03-06T14:58:12.549537,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_151018,2026-03-06T15:10:18.795239,epoch_epoch=07-val_loss=val_loss=0.031.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260306_151019,2026-03-06T15:10:19.079518,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_151116,2026-03-06T15:11:16.580245,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_151313,2026-03-06T15:13:13.778788,epoch_epoch=07-val_loss=val_loss=0.031.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260306_151314,2026-03-06T15:13:14.063258,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_152836,2026-03-06T15:28:36.764076,epoch_epoch=07-val_loss=val_loss=0.031.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260306_152837,2026-03-06T15:28:37.052467,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260306_152919,2026-03-06T15:29:19.552486,mobile_vla_v3_exp08_center_goal,,completed,,,,,,,,,,,,,34,,,False
+20260313_151408,2026-03-13T15:14:08.530267,unknown,,completed,,,,,,,,,,,,,,,,False
+20260313_151619,2026-03-13T15:16:19.392867,mobile_vla_v4_exp01,,completed,,,,,,,,,,,,,34,,,False
+20260313_151709,2026-03-13T15:17:09.748787,mobile_vla_v4_exp01,,completed,,,,,,,,,,,,,34,,,False
+20260313_151838,2026-03-13T15:18:38.770896,mobile_vla_v4_exp01,,completed,,,,,,,,,,,,,34,,,False
+20260313_152502,2026-03-13T15:25:02.939572,best_v4_epoch03.ckpt,,completed,,,,,,,,,,,,,,,,False
+20260313_152503,2026-03-13T15:25:03.233397,mobile_vla_v4_exp01,,completed,,,,,,,,,,,,,34,,,False
+20260313_153628,2026-03-13T15:36:28.630852,unknown,,completed,,,,,,,,,,,,,,,,False
+20260313_153915,2026-03-13T15:39:15.853417,mobile_vla_v4_exp01,,completed,,,,,,,,,,,,,34,,,False
+20260313_155319,2026-03-13T15:53:19.843072,unknown,,completed,,,,,,,,,,,,,,,,False
+20260313_155518,2026-03-13T15:55:18.090871,best_v4_epoch03.ckpt,,completed,,,,,,,,,,,,,1,,,False
+20260313_155927,2026-03-13T15:59:27.509322,unknown,,completed,,,,,,,,,,,,,,,,False
+20260313_160128,2026-03-13T16:01:28.708243,best_v4_epoch03.ckpt,,completed,,,,,,,,,,,,,1,,,False
+20260423_221134,2026-04-23T22:11:34.784969,unknown,,completed,,,,,,,,,,,,,,,,False
+20260423_221551,2026-04-23T22:15:51.817848,v5-exp25-step3-balanced-objective/epoch_epoch=epoch=02-val_loss=val_loss=10.117.ckpt,,completed,,,,,,,,,,,,,1,,,False
+20260423_221552,2026-04-23T22:15:52.171319,mobile_vla_v5_exp25_step3_balanced_objective,,completed,,,,,,,,,,,,,33,,,False
+20260423_222239,2026-04-23T22:22:39.019355,unknown,,completed,,,,,,,,,,,,,,,,False
+20260423_222844,2026-04-23T22:28:44.899162,mobile_vla_v5_exp25_step3_balanced_objective,,completed,,,,,,,,,,,,,33,,,False
+20260508_163645,2026-05-08T16:36:45.538054,runs/exp47_mlp.pth,,completed,,,,,,,,,,,,,18,,,False
+20260513_102034,2026-05-13T10:20:34.970014,exp49/exp49_mlp.pt,,completed,,,,,,,,,,,,,18,,,False
+20260513_121008,2026-05-13T12:10:08.208389,exp49/exp49_mlp.pt,,completed,,,,,,,,,,,,,18,,,False
+20260515_090006,2026-05-15T09:00:06.641958,exp49/exp49_mlp.pt,,completed,,,,,,,,,,,,,36,,,False
+20260603_224617,2026-06-03T22:46:17.180382,N/A,API Server,completed,,,,,,,,,,,,,1,0.0,,False
+20260603_224626,2026-06-03T22:46:26.056597,checkpoints/best,API Server,stopped,,,,,,,,,,,,,10,395.4,FORWARD,False
+20260604_013459,2026-06-04T01:34:59.960223,checkpoints/best,API Server,stopped,,,,,,,,,,,,,102,423.2,FWD+L,False
+20260604_085923,2026-06-04T08:59:23.833445,checkpoints/best,API Server,stopped,,,,,,,,,,,,,21,391.9,FWD+L,False
+20260604_133007,2026-06-04T13:30:07.688594,checkpoints/best,API Server,stopped,,,,,,,,,,,,,92,427.8,FWD+L,False
+20260604_133150,2026-06-04T13:31:50.354801,checkpoints/best,API Server,stopped,,,,,,,,,,,,,17,404.2,FORWARD,False
+20260604_134607,2026-06-04T13:46:07.557277,checkpoints/best,API Server,stopped,,,,,,,,,,,,,32,422.8,FWD+L,False
+20260604_134732,2026-06-04T13:47:32.186189,checkpoints/best,API Server,stopped,,,,,,,,,,,,,23,416.0,FWD+L,False
+20260604_134810,2026-06-04T13:48:10.926160,checkpoints/best,API Server,stopped,,,,,,,,,,,,,16,403.8,FWD+L,False
+20260604_134905,2026-06-04T13:49:05.330920,checkpoints/best,API Server,stopped,,,,,,,,,,,,,23,416.5,FWD+L,False
+20260604_144622,2026-06-04T14:46:22.901080,checkpoints/best,API Server,stopped,,,,,,,,,,,,,23,386.1,FWD+L,False
+20260604_144822,2026-06-04T14:48:22.750640,checkpoints/best,API Server,stopped,,,,,,,,,,,,,24,367.4,FWD+L,False
+20260604_145818,2026-06-04T14:58:18.557692,checkpoints/best,Local Runtime,completed,,,,,,,,,,,,,1,0.0,,False
+20260604_163617,2026-06-04T16:36:17.665316,exp49/exp49_mlp.pt,API Server,stopped,,,,,,,,,,,,,14,575.1,REGRESSION,False
+20260604_164306,2026-06-04T16:43:06.912842,exp49/exp49_mlp.pt,API Server,stopped,,,,,,,,,,,,,18,410.0,REGRESSION,False
+20260604_165041,2026-06-04T16:50:41.174778,exp49/exp49_mlp.pt,API Server,completed,,,,,,,,,,,,,1,0.0,,False
+20260604_170037,2026-06-04T17:00:37.735605,N/A,API Server,completed,,,,,,,,,,,,,,,,False
+20260618_090119,2026-06-18T09:01:19.463959,N/A,API Server,manual_stop,,,,,,,,,,,,,17,406.4,FORWARD,False
+20260622_174115,2026-06-22T17:41:15.677815,N/A,API Server,completed,,,,,,,,,,,,,10,1325.6,FORWARD,False
+20260622_235501,2026-06-22T23:55:01.056295,N/A,API Server,manual_stop,,,,,,,,,,,,,6,1349.6,FORWARD,False
+20260622_235525,2026-06-22T23:55:25.559867,N/A,API Server,manual_stop,,,,,,,,,,,,,3,1080.5,FORWARD,False
+20260624_104411,2026-06-24T10:44:11.008485,N/A,API Server,manual_stop,,,,,,,,,,,,,3,1001.3,FWD+L,False
+20260624_105123,2026-06-24T10:51:23.825094,N/A,API Server,manual_stop,,,,,,,,,,,,,2,729.6,FORWARD,False
+20260624_150541,2026-06-24T15:05:41.681265,N/A,API Server,manual_stop,,,,,,,,,,,,,8,4009.4,FORWARD,False
+20260624_151056,2026-06-24T15:10:56.671509,N/A,API Server,manual_stop,,,,,,,,,,,,,1,0.0,,False
+20260626_100316,2026-06-26T10:03:16.258727,N/A,API Server,manual_stop,,,,,,,,,,,,,5,1182.2,FWD+R,False
+20260626_104455,2026-06-26T10:44:55.859955,N/A,API Server,manual_stop,,,,,,,,,,,,,4,5824.8,FORWARD,False
+20260626_104644,2026-06-26T10:46:44.363081,N/A,API Server,manual_stop,,,,,,,,,,,,,7,457.5,FORWARD,False
+20260626_132751,2026-06-26T13:27:51.334146,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,5650.9,FWD+L,False
+20260626_133013,2026-06-26T13:30:13.685151,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,7,484.8,FORWARD,False
+20260626_135622,2026-06-26T13:56:22.469012,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,7,537.7,FWD+L,False
+20260626_135837,2026-06-26T13:58:37.912467,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,423.7,FORWARD,False
+20260626_140139,2026-06-26T14:01:39.030131,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,427.8,FORWARD,False
+20260626_140247,2026-06-26T14:02:47.540601,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,421.4,FWD+L,False
+20260626_140355,2026-06-26T14:03:55.069748,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,2,767.8,FORWARD,False
+20260626_140535,2026-06-26T14:05:35.599316,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,1,0.0,,False
+20260626_140752,2026-06-26T14:07:52.192097,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,418.1,FWD+L,False
+20260626_140928,2026-06-26T14:09:28.675665,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,26,581.2,STOP,False
+20260626_141153,2026-06-26T14:11:53.864142,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,7,485.5,FWD+L,False
+20260626_141337,2026-06-26T14:13:37.181800,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,1,0.0,,False
+20260626_141536,2026-06-26T14:15:36.413741,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,427.0,FORWARD,False
+20260626_141658,2026-06-26T14:16:58.235712,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,7,486.6,FORWARD,False
+20260626_141823,2026-06-26T14:18:23.834705,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,422.2,FORWARD,False
+20260626_142109,2026-06-26T14:21:09.247743,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,4,424.9,ROT_L,False
+20260626_142941,2026-06-26T14:29:41.757173,N/A,API Server,manual_stop,,,,,,,,,,,,,8,695.2,ROT_L,False
+20260626_143011,2026-06-26T14:30:11.568548,N/A,API Server,manual_stop,,,,,,,,,,,,,7,487.3,FORWARD,False
+20260626_143058,2026-06-26T14:30:58.363150,N/A,API Server,manual_stop,,,,,,,,,,,,,9,555.8,FORWARD,False
+20260626_143249,2026-06-26T14:32:49.263312,N/A,API Server,manual_stop,,,,,,,,,,,,,7,492.8,FORWARD,False
+20260626_144600,2026-06-26T14:46:00.994303,N/A,API Server,manual_stop,,,,,,,,,,,,,4,432.8,FWD+L,False
+20260626_144935,2026-06-26T14:49:35.417940,N/A,API Server,manual_stop,,,,,,,,,,,,,4,427.4,FWD+L,False
+20260626_145530,2026-06-26T14:55:30.920750,N/A,API Server,manual_stop,,,,,,,,,,,,,1,0.0,,False
+20260626_145545,2026-06-26T14:55:45.734305,N/A,API Server,manual_stop,,,,,,,,,,,,,10,522.2,FORWARD,False
+20260626_145651,2026-06-26T14:56:51.304603,N/A,API Server,manual_stop,,,,,,,,,,,,,4,432.3,FWD+L,False
+20260626_145758,2026-06-26T14:57:58.886243,N/A,API Server,manual_stop,,,,,,,,,,,,,10,522.9,FORWARD,False
+20260626_145853,2026-06-26T14:58:53.822592,N/A,API Server,manual_stop,,,,,,,,,,,,,7,495.2,FORWARD,False
+20260626_145945,2026-06-26T14:59:45.733145,N/A,API Server,manual_stop,,,,,,,,,,,,,9,568.5,FWD+L,False
+20260626_150352,2026-06-26T15:03:52.517215,N/A,API Server,manual_stop,,,,,,,,,,,,,10,514.8,FORWARD,False
+20260626_150512,2026-06-26T15:05:12.782800,N/A,API Server,manual_stop,,,,,,,,,,,,,7,490.8,FORWARD,False
+20260626_150611,2026-06-26T15:06:11.336483,N/A,API Server,manual_stop,,,,,,,,,,,,,10,522.2,FORWARD,False
+20260626_150747,2026-06-26T15:07:47.335543,N/A,API Server,manual_stop,,,,,,,,,,,,,7,494.7,FORWARD,False
+20260626_150946,2026-06-26T15:09:46.387960,N/A,API Server,manual_stop,,,,,,,,,,,,,8,626.1,FORWARD,False
+20260626_151643,2026-06-26T15:16:43.038322,N/A,API Server,manual_stop,,,,,,,,,,,,,10,519.5,FORWARD,False
+20260626_151739,2026-06-26T15:17:39.489894,N/A,API Server,manual_stop,,,,,,,,,,,,,4,430.1,FWD+L,False
+20260626_151814,2026-06-26T15:18:14.485275,N/A,API Server,manual_stop,,,,,,,,,,,,,7,488.0,FORWARD,False
+20260630_201421,2026-06-30T20:14:21.183401,N/A,API Server,manual_stop,,,,,,,,,,,,,9,1617.3,ROT_R,False
+20260630_205404,2026-06-30T20:54:04.325789,N/A,API Server,manual_stop,,,,,,,,,,,,,7,1539.2,ROT_R,False
+20260630_212503,2026-06-30T21:25:03.559480,N/A,API Server,manual_stop,,,,,,,,,,,,,7,1582.0,ROT_R,False
+20260630_214537,2026-06-30T21:45:37.022882,N/A,API Server,manual_stop,,,,,,,,,,,,,16,1519.8,FORWARD,False
+20260630_223117,2026-06-30T22:31:17.146555,N/A,API Server,manual_stop,,,,,,,,,,,,,23,962.9,FWD+R,False
+20260630_223358,2026-06-30T22:33:58.767023,N/A,API Server,manual_stop,,,,,,,,,,,,,17,1335.6,FWD+R,False
+20260630_230845,2026-06-30T23:08:45.700266,N/A,API Server,manual_stop,,,,,,,,,,,,,20,2523.0,ROT_R,False
+20260701_002822,2026-07-01T00:28:22.809897,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,6,2520.7,ROT_R,False
+20260701_203240,2026-07-01T20:32:40.946041,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,2,0.0,STOP,False
+20260701_212540,2026-07-01T21:25:40.293880,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,14,793.1,FWD+L,False
+20260701_220400,2026-07-01T22:04:00.051104,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,14,1607.7,FWD+R,False
+20260702_070746,2026-07-02T07:07:46.365135,N/A,Local Runtime,manual_stop,,,,,,,,,,,,,2,0.0,STOP,False
+20260702_084101,2026-07-02T08:41:01.393449,N/A,API Server,manual_stop,,,,,,,,,,,,,5,1046.8,FWD+R,False
+20260702_084555,2026-07-02T08:45:55.823415,N/A,API Server,manual_stop,,,,,,,,,,,,,6,404.5,FORWARD,False
+20260702_100143,2026-07-02T10:01:43.107553,N/A,API Server,manual_stop,,,,,,,,,,,,,19,494.3,FWD+R,False
+20260702_125320,2026-07-02T12:53:20.352086,N/A,API Server,manual_stop,,,,,,,,,,,,,5,913.4,FORWARD,False
+20260702_131117,2026-07-02T13:11:17.168536,N/A,API Server,manual_stop,,,,,,,,,,,,,13,381.0,FORWARD,False
+20260702_131204,2026-07-02T13:12:04.503495,N/A,API Server,manual_stop,,,,,,,,,,,,,13,1377.8,FWD+R,False
+20260702_134629,2026-07-02T13:46:29.329848,N/A,API Server,manual_stop,,,,,,,,,,,,,14,516.9,FORWARD,False
+20260702_134836,2026-07-02T13:48:36.035135,N/A,API Server,manual_stop,,,,,,,,,,,,,8,2214.4,FORWARD,False
+20260702_135015,2026-07-02T13:50:15.031673,N/A,API Server,manual_stop,,,,,,,,,,,,,17,2991.2,ROT_R,False
+20260702_135238,2026-07-02T13:52:38.450252,N/A,API Server,manual_stop,,,,,,,,,,,,,9,5866.4,ROT_R,False
+20260702_135419,2026-07-02T13:54:19.708648,N/A,API Server,manual_stop,,,,,,,,,,,,,8,1328.6,FORWARD,False
+20260702_190305,2026-07-02T19:03:05.178272,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,,,,False
+20260702_192532,2026-07-02T19:25:32.168489,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,,,,False
+20260702_193034,2026-07-02T19:30:34.065914,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,2,9003.5,ROT_R,False
+20260702_193706,2026-07-02T19:37:06.081382,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,,,,False
+20260702_193732,2026-07-02T19:37:32.658985,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,1,9449.8,ROT_R,False
+20260702_200616,2026-07-02T20:06:16.418886,stage2_v2,SYNC,manual_stop,,,,,,,,,,,,,19,1047.0,RIGHT,False
+20260702_203952,2026-07-02T20:39:52.269094,stage2_v2,SYNC,manual_stop,,,,,,,,,,,,,18,4751.5,FWD+L,False
+20260702_204912,2026-07-02T20:49:12.378068,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,,,,False
+20260702_210722,2026-07-02T21:07:22.018602,stage2_v2,SYNC,manual_stop,,,,,,,,,,,,,31,1245.7,FWD+R,False
+20260702_211225,2026-07-02T21:12:25.769048,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,8,1765.5,ROT_R,False
+20260702_211519,2026-07-02T21:15:19.560074,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,,,,False
+20260702_212151,2026-07-02T21:21:51.555596,stage2_v2,PRE,manual_stop,,,,,,,,,,,,,4,10102.8,ROT_R,False
+20260702_212301,2026-07-02T21:23:01.276199,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,1,8646.4,ROT_R,False
+20260702_212341,2026-07-02T21:23:41.114077,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,19,2206.8,FWD+L,False
+20260702_212648,2026-07-02T21:26:48.723150,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,36,1272.3,FWD+L,False
+20260702_212834,2026-07-02T21:28:34.119032,stage2_v2,SYNC,manual_stop,,,,,,,,,,,,,31,1014.1,FORWARD,False
+20260702_215016,2026-07-02T21:50:16.517041,stage2_v2,ASYNC,manual_stop,,,,,,,,,,,,,,,,False
+20260702_215208,2026-07-02T21:52:08.973142,stage2_v2,SYNC,manual_stop,,,,,,,,,,,,,18,1847.2,FWD+L,False
+20260702_215702,2026-07-02T21:57:02.568814,stage2_v2,SYNC,manual_stop,,,,,,,,,,,,,7,1024.2,FORWARD,False
+20260702_215722,2026-07-02T21:57:22.855416,stage2_v2,SYNC,manual_stop,,,,,,,,,,,,,12,799.8,FORWARD,False
+20260702_215806,2026-07-02T21:58:06.108750,stage2_v2,ASYNC,manual_stop,,,transformer,,,,,False,True,3,False,,6,785.2,FORWARD,False
+20260702_220900,2026-07-02T22:09:00.388310,stage2_v2,SYNC,manual_stop,,,transformer,,,,,True,False,3,False,,19,960.2,FWD+L,False
+20260702_234152,2026-07-02T23:41:52.768666,stage2_v2,ASYNC,manual_stop,,,transformer,,,,,True,True,3,True,,,,,False
+20260702_235232,2026-07-02T23:52:32.818204,stage2_v2,SYNC,manual_stop,,,transformer,,,,,False,False,1,False,,5,4948.4,FWD+R,False
+20260702_235317,2026-07-02T23:53:17.575347,stage2_v2,SYNC,manual_stop,,,transformer,,,,,False,False,1,False,,19,3217.0,FWD+L,False
+20260703_012829,2026-07-03T01:28:29.495731,stage2_v2,SYNC,manual_stop,,,transformer,,,,,False,False,1,False,,15,2281.8,RIGHT,False
+20260703_015007,2026-07-03T01:50:07.111486,stage2_v2,SYNC,manual_stop,,,transformer,,,,,False,False,1,False,,7,4873.3,FORWARD,False
+20260703_020722,2026-07-03T02:07:22.371129,stage2_v2,SYNC,manual_stop,,,transformer,,,,,False,True,1,False,,15,2238.9,FWD+L,False
+20260703_065407,2026-07-03T06:54:07.587776,stage2_v2,ASYNC,manual_stop,,,transformer,,,,,True,True,3,True,,1,14389.9,ROT_R,False
+20260706_162037,2026-07-06T16:20:37.956582,stage2_v2,ASYNC,manual_stop,,,transformer,,,,,True,True,3,True,,,,,False
+20260706_162206,2026-07-06T16:22:06.172658,stage2_v2,ASYNC,manual_stop,,,transformer,,,,,True,True,3,True,,1,7791.4,ROT_R,False
+20260706_171922,2026-07-06T17:19:22.805176,stage2_v2,SYNC,manual_stop,,,transformer,,,,,True,True,1,False,,10,2035.3,ROT_R,False
+20260706_172030,2026-07-06T17:20:30.963145,stage2_v2,SYNC,manual_stop,,,transformer,,,,,False,True,1,False,,14,1988.2,FORWARD,False
+20260706_210126,2026-07-06T21:01:26.273489,stage2_v2,ASYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,e2860045,2,1993.3,RIGHT,True
+20260706_223702,2026-07-06T22:37:02.451445,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,e2860045,15,2008.9,FWD+L,True
+20260706_223831,2026-07-06T22:38:31.929527,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,False,1,False,e2860045,8,2008.4,RIGHT,True
+20260706_223929,2026-07-06T22:39:29.294729,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,False,1,False,e2860045,16,2010.3,FWD+L,True
+20260706_231153,2026-07-06T23:11:53.899191,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,15,2032.1,FWD+L,True
+20260706_231334,2026-07-06T23:13:34.032151,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,7,1992.1,RIGHT,True
+20260706_231407,2026-07-06T23:14:07.334245,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,16,2000.2,RIGHT,True
+20260706_231523,2026-07-06T23:15:23.508340,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,17,1993.3,FORWARD,True
+20260706_231638,2026-07-06T23:16:38.405315,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,16,2001.1,FORWARD,True
+20260706_231917,2026-07-06T23:19:17.250227,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,14,2045.6,FWD+R,True
+20260706_233159,2026-07-06T23:31:59.021368,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,15,1996.7,FWD+L,True
+20260706_233327,2026-07-06T23:33:27.645776,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,True,1,False,08bb6f5f,12,1998.1,FWD+L,True
+20260706_233424,2026-07-06T23:34:24.357159,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window6/action_transformer.pt,exp71,transformer,6,,OWL-v2,960,False,False,1,False,08bb6f5f,10,1996.1,RIGHT,True
+20260707_000051,2026-07-07T00:00:51.257949,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/data_exp/mlp_174ep_balanced.pt,,mlp,,,PG2-448,448,False,False,1,False,10a2d402,10,2264.2,RIGHT,True
+20260710_130942,2026-07-10T13:09:42.094175,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,True,True,3,True,604f2661,36,911.7,FORWARD,True
+20260710_131218,2026-07-10T13:12:18.756771,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,True,True,3,True,604f2661,7,891.6,FORWARD,True
+20260710_131329,2026-07-10T13:13:29.642531,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,False,3,False,604f2661,13,808.5,FORWARD,True
+20260710_131419,2026-07-10T13:14:19.141654,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,21,707.8,FORWARD,True
+20260710_131541,2026-07-10T13:15:41.081183,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,777.0,FORWARD,True
+20260710_131705,2026-07-10T13:17:05.555627,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,773.8,FORWARD,True
+20260710_132105,2026-07-10T13:21:05.267002,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,12,707.2,FORWARD,True
+20260710_132157,2026-07-10T13:21:57.051351,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,776.4,FORWARD,True
+20260710_132300,2026-07-10T13:23:00.799456,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,774.0,FORWARD,True
+20260710_152141,2026-07-10T15:21:41.953287,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,707.0,FORWARD,True
+20260710_153559,2026-07-10T15:35:59.573998,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,868.2,FORWARD,True
+20260710_153707,2026-07-10T15:37:07.452130,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,17,745.4,FORWARD,True
+20260710_153946,2026-07-10T15:39:46.319020,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,22,769.7,FORWARD,True
+20260710_154608,2026-07-10T15:46:08.874132,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,790.6,FORWARD,True
+20260710_154808,2026-07-10T15:48:08.561908,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,17,761.3,FORWARD,True
+20260710_154917,2026-07-10T15:49:17.580524,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,15,711.3,FORWARD,True
+20260710_155113,2026-07-10T15:51:13.940643,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,796.2,FORWARD,True
+20260710_155228,2026-07-10T15:52:28.087860,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,790.7,FORWARD,True
+20260710_155350,2026-07-10T15:53:50.496390,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,790.6,FORWARD,True
+20260710_155451,2026-07-10T15:54:51.378815,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,790.6,FORWARD,True
+20260710_155545,2026-07-10T15:55:45.356602,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,791.1,FORWARD,True
+20260710_155802,2026-07-10T15:58:02.702661,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,10,840.3,FORWARD,True
+20260710_155856,2026-07-10T15:58:56.184265,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,779.3,FORWARD,True
+20260710_160023,2026-07-10T16:00:23.015701,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,18,708.6,FORWARD,True
+20260710_160127,2026-07-10T16:01:27.349484,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,18,707.5,FORWARD,True
+20260710_160216,2026-07-10T16:02:16.755673,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,778.2,FORWARD,True
+20260710_160319,2026-07-10T16:03:19.084490,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,777.7,FORWARD,True
+20260710_160441,2026-07-10T16:04:41.229182,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,10,841.5,FORWARD,True
+20260710_160514,2026-07-10T16:05:14.971624,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,13,809.8,FORWARD,True
+20260710_160553,2026-07-10T16:05:53.677756,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,17,745.6,FORWARD,True
+20260710_160656,2026-07-10T16:06:56.660990,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,10,706.6,FORWARD,True
+20260711_205228,2026-07-11T20:52:28.824613,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,24,707.9,FORWARD,True
+20260711_205354,2026-07-11T20:53:54.840566,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,22,764.6,FORWARD,True
+20260711_205621,2026-07-11T20:56:21.777204,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,17,769.4,FORWARD,True
+20260711_205726,2026-07-11T20:57:26.101409,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,19,793.2,FORWARD,True
+20260711_213650,2026-07-11T21:36:50.202615,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,797.9,FORWARD,True
+20260711_213749,2026-07-11T21:37:49.932220,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,13,807.5,FORWARD,True
+20260711_214155,2026-07-11T21:41:55.151431,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,604f2661,16,787.0,FORWARD,True
+20260711_215344,2026-07-11T21:53:44.320836,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,62079476,94,725.8,FORWARD,True
+20260711_215709,2026-07-11T21:57:09.660907,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,62079476,14,753.4,FORWARD,True
+20260711_220142,2026-07-11T22:01:42.366188,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,62079476,16,829.9,FORWARD,True
+20260711_220233,2026-07-11T22:02:33.132801,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,62079476,16,788.6,FORWARD,True
+20260711_220337,2026-07-11T22:03:37.572318,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,62079476,15,716.9,FORWARD,True
+20260711_220439,2026-07-11T22:04:39.142235,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp71_window3_bboxscale3/action_transformer.pt,exp71,transformer,3,3,OWL-v2,960,False,True,3,False,62079476,15,705.4,FORWARD,True
+20260722_170047,2026-07-22T17:00:47.781421,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp73/exp73_pg448_v6_mlp.pt,exp73,exp73_mlp,6,3,PG2-448,448,False,False,3,False,bb5e91d9,19,992.0,FORWARD,True
+20260722_170224,2026-07-22T17:02:24.562628,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp73/exp73_pg448_v6_mlp.pt,exp73,exp73_mlp,6,3,PG2-448,448,False,False,3,False,bb5e91d9,16,883.6,STOP,True
+20260722_182856,2026-07-22T18:28:56.688708,stage2_v2,SYNC,manual_stop,runs/v5_nav/mlp/exp73/exp73_pg448_v6_mlp.pt,exp73,exp73_mlp,6,3,PG2-448,448,False,True,3,False,1a315a58,37,873.9,FORWARD,True

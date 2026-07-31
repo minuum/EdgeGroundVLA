@@ -1,0 +1,1426 @@
+{
+  "frames": [
+    {
+      "episode": "session_20260701_203240",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_203240_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4291300097751711,
+        "y1": 0.5053763440860215,
+        "x2": 0.5620723362658846,
+        "y2": 0.7311827956989247,
+        "cx": 0.49560117302052786,
+        "area": 0.03001923501403209,
+        "raw": "<loc0517><loc0439><loc0748><loc0575> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.5,
+        "x1": 0.421875,
+        "y1": 0.515625,
+        "x2": 0.578125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.4961275339126587,
+        "x1": 0.42972474098205565,
+        "y1": 0.5128570132785373,
+        "x2": 0.5625303268432618,
+        "y2": 0.7305396185980902
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260701_203240",
+      "frame_idx": 1,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_203240_f01.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.0,
+        "y1": 0.0,
+        "x2": 0.20234604105571846,
+        "y2": 0.5679374389051809,
+        "cx": 0.10117302052785923,
+        "area": 0.11491989232978733,
+        "raw": "<loc0000><loc0000><loc0581><loc0207> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.3125,
+        "x1": 0.234375,
+        "y1": 0.578125,
+        "x2": 0.390625,
+        "y2": 0.953125
+      },
+      "ow": {
+        "cx": 0.17519225180149078,
+        "x1": 0.021899253129959106,
+        "y1": 0.1701143052842882,
+        "x2": 0.32848525047302246,
+        "y2": 0.7085528055826823
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260701_212540",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_212540_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4125122189638319,
+        "y1": 0.5053763440860215,
+        "x2": 0.5454545454545454,
+        "y2": 0.7282502443792767,
+        "cx": 0.4789833822091887,
+        "area": 0.02962937481904466,
+        "raw": "<loc0517><loc0422><loc0745><loc0558> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.484375,
+        "x1": 0.421875,
+        "y1": 0.515625,
+        "x2": 0.546875,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.4775207042694092,
+        "x1": 0.41082425117492677,
+        "y1": 0.5124149322509766,
+        "x2": 0.5442171573638916,
+        "y2": 0.7310250176323785
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260701_212540",
+      "frame_idx": 13,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_212540_f13.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.9589442815249267,
+        "y1": 0.46920821114369504,
+        "x2": 0.9990224828934506,
+        "y2": 0.7800586510263929,
+        "cx": 0.9789833822091887,
+        "area": 0.012458326525113004,
+        "raw": "<loc0480><loc0981><loc0798><loc1022> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.96875,
+        "x1": 0.953125,
+        "y1": 0.453125,
+        "x2": 0.984375,
+        "y2": 0.765625
+      },
+      "ow": {
+        "cx": 0.9804310321807861,
+        "x1": 0.9625187873840332,
+        "y1": 0.47470932006835936,
+        "x2": 0.9983432769775391,
+        "y2": 0.7797194586859809
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260701_213204",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_213204_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.40078201368523947,
+        "y1": 0.5053763440860215,
+        "x2": 0.5347018572825024,
+        "y2": 0.7282502443792767,
+        "cx": 0.46774193548387094,
+        "area": 0.029847237869184706,
+        "raw": "<loc0517><loc0410><loc0745><loc0547> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.46875,
+        "x1": 0.390625,
+        "y1": 0.515625,
+        "x2": 0.546875,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.46774728298187257,
+        "x1": 0.40076937675476076,
+        "y1": 0.5111037360297309,
+        "x2": 0.5347251892089844,
+        "y2": 0.7298734876844618
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260701_213204",
+      "frame_idx": 1,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_213204_f01.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.0,
+        "y1": 0.0,
+        "x2": 0.9990224828934506,
+        "y2": 0.9980449657869013,
+        "cx": 0.4995112414467253,
+        "area": 0.9970693597597391,
+        "raw": "<loc0000><loc0000><loc1021><loc1022> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.21875,
+        "x1": 0.046875,
+        "y1": 0.015625,
+        "x2": 0.390625,
+        "y2": 0.546875
+      },
+      "ow": null,
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260701_220400",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_220400_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4447702834799609,
+        "y1": 0.5053763440860215,
+        "x2": 0.5777126099706745,
+        "y2": 0.7233626588465298,
+        "cx": 0.5112414467253177,
+        "area": 0.02897960782739897,
+        "raw": "<loc0517><loc0455><loc0740><loc0591> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.515625,
+        "x1": 0.453125,
+        "y1": 0.515625,
+        "x2": 0.578125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.5131507396697998,
+        "x1": 0.44615802764892576,
+        "y1": 0.5083388434516058,
+        "x2": 0.5801434516906738,
+        "y2": 0.7260157267252604
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260701_220400",
+      "frame_idx": 13,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260701_220400_f13.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.0,
+        "y1": 0.16324535679374388,
+        "x2": 0.13391984359726294,
+        "y2": 0.7204301075268817,
+        "cx": 0.06695992179863147,
+        "area": 0.07461809467296177,
+        "raw": "<loc0167><loc0000><loc0737><loc0137> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.078125,
+        "x1": 0.015625,
+        "y1": 0.171875,
+        "x2": 0.140625,
+        "y2": 0.734375
+      },
+      "ow": null,
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_070746",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_070746_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.3978494623655914,
+        "y1": 0.5034213098729228,
+        "x2": 0.5259042033235581,
+        "y2": 0.7233626588465298,
+        "cx": 0.46187683284457476,
+        "area": 0.028164532468761022,
+        "raw": "<loc0515><loc0407><loc0740><loc0538> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.453125,
+        "x1": 0.390625,
+        "y1": 0.515625,
+        "x2": 0.515625,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.4604702711105347,
+        "x1": 0.3938588619232178,
+        "y1": 0.5084294637044271,
+        "x2": 0.5270816802978515,
+        "y2": 0.7259980943467882
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_070746",
+      "frame_idx": 1,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_070746_f01.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.3978494623655914,
+        "y1": 0.5034213098729228,
+        "x2": 0.5259042033235581,
+        "y2": 0.7233626588465298,
+        "cx": 0.46187683284457476,
+        "area": 0.028164532468761022,
+        "raw": "<loc0515><loc0407><loc0740><loc0538> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.453125,
+        "x1": 0.390625,
+        "y1": 0.515625,
+        "x2": 0.515625,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.4606142282485962,
+        "x1": 0.3941004276275635,
+        "y1": 0.5083571539984809,
+        "x2": 0.527128028869629,
+        "y2": 0.726739501953125
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_084101",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_084101_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.3978494623655914,
+        "y1": 0.5053763440860215,
+        "x2": 0.5259042033235581,
+        "y2": 0.7233626588465298,
+        "cx": 0.46187683284457476,
+        "area": 0.0279141810690387,
+        "raw": "<loc0517><loc0407><loc0740><loc0538> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.453125,
+        "x1": 0.390625,
+        "y1": 0.515625,
+        "x2": 0.515625,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.46050567626953126,
+        "x1": 0.3938576698303223,
+        "y1": 0.5082326253255208,
+        "x2": 0.5271536827087402,
+        "y2": 0.7263640509711371
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_084101",
+      "frame_idx": 4,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_084101_f04.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.927663734115347,
+        "y1": 0.3998044965786901,
+        "x2": 0.9990224828934506,
+        "y2": 0.9980449657869013,
+        "cx": 0.9633431085043989,
+        "area": 0.042689691351123604,
+        "raw": "<loc0409><loc0949><loc1021><loc1022> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.953125,
+        "x1": 0.921875,
+        "y1": 0.390625,
+        "x2": 0.984375,
+        "y2": 0.984375
+      },
+      "ow": null,
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_084555",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_084555_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.34017595307917886,
+        "y1": 0.5034213098729228,
+        "x2": 0.4750733137829912,
+        "y2": 0.7262952101661779,
+        "cx": 0.407624633431085,
+        "area": 0.030065100919324753,
+        "raw": "<loc0515><loc0348><loc0743><loc0486> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.40625,
+        "x1": 0.328125,
+        "y1": 0.515625,
+        "x2": 0.484375,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.4081650376319885,
+        "x1": 0.34277007579803465,
+        "y1": 0.5085482703314887,
+        "x2": 0.4735599994659424,
+        "y2": 0.7259656270345052
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_084555",
+      "frame_idx": 4,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_084555_f04.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.0,
+        "y1": 0.46725317693059626,
+        "x2": 0.3176930596285435,
+        "y2": 0.9990224828934506,
+        "cx": 0.15884652981427175,
+        "area": 0.16893941782788627,
+        "raw": "<loc0478><loc0000><loc1022><loc0325> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.171875,
+        "x1": 0.015625,
+        "y1": 0.453125,
+        "x2": 0.328125,
+        "y2": 0.984375
+      },
+      "ow": {
+        "cx": 0.15911497324705123,
+        "x1": -0.0009009987115859985,
+        "y1": 0.4690464867485894,
+        "x2": 0.31913094520568847,
+        "y2": 1.0007433573404947
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_084555",
+      "frame_idx": 5,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_084555_f05.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.024437927663734114,
+        "y1": 0.4975562072336266,
+        "x2": 0.13098729227761485,
+        "y2": 0.6979472140762464,
+        "cx": 0.07771260997067449,
+        "area": 0.021351534453416966,
+        "raw": "<loc0509><loc0025><loc0714><loc0134> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.078125,
+        "x1": 0.015625,
+        "y1": 0.484375,
+        "x2": 0.140625,
+        "y2": 0.703125
+      },
+      "ow": {
+        "cx": 0.08145280033349991,
+        "x1": 0.029452279210090637,
+        "y1": 0.49636116027832033,
+        "x2": 0.1334533214569092,
+        "y2": 0.6966457790798611
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4447702834799609,
+        "y1": 0.5053763440860215,
+        "x2": 0.5728250244379277,
+        "y2": 0.7282502443792767,
+        "cx": 0.5087976539589443,
+        "area": 0.028540059568344513,
+        "raw": "<loc0517><loc0455><loc0745><loc0586> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.515625,
+        "x1": 0.453125,
+        "y1": 0.515625,
+        "x2": 0.578125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.511048150062561,
+        "x1": 0.44563636779785154,
+        "y1": 0.5143644544813368,
+        "x2": 0.5764599323272706,
+        "y2": 0.7317336188422309
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 2,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f02.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4447702834799609,
+        "y1": 0.5053763440860215,
+        "x2": 0.5728250244379277,
+        "y2": 0.7282502443792767,
+        "cx": 0.5087976539589443,
+        "area": 0.028540059568344513,
+        "raw": "<loc0517><loc0455><loc0745><loc0586> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.515625,
+        "x1": 0.453125,
+        "y1": 0.515625,
+        "x2": 0.578125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.5113710165023804,
+        "x1": 0.4459375858306885,
+        "y1": 0.5138915167914496,
+        "x2": 0.5768044471740723,
+        "y2": 0.730560302734375
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 4,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f04.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.48484848484848486,
+        "y1": 0.5053763440860215,
+        "x2": 0.6295210166177908,
+        "y2": 0.7419354838709677,
+        "cx": 0.5571847507331378,
+        "area": 0.03422360966585732,
+        "raw": "<loc0517><loc0496><loc0759><loc0644> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.5625,
+        "x1": 0.484375,
+        "y1": 0.515625,
+        "x2": 0.640625,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.5594965934753418,
+        "x1": 0.4897593975067139,
+        "y1": 0.5058881547715929,
+        "x2": 0.6292337894439697,
+        "y2": 0.7351827833387586
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 6,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f06.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.5151515151515151,
+        "y1": 0.512218963831867,
+        "x2": 0.6627565982404692,
+        "y2": 0.7595307917888563,
+        "cx": 0.5889540566959921,
+        "area": 0.0365044829144725,
+        "raw": "<loc0524><loc0527><loc0777><loc0678> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.59375,
+        "x1": 0.515625,
+        "y1": 0.515625,
+        "x2": 0.671875,
+        "y2": 0.765625
+      },
+      "ow": {
+        "cx": 0.5882592916488647,
+        "x1": 0.5151192665100097,
+        "y1": 0.5140539805094401,
+        "x2": 0.6613993167877197,
+        "y2": 0.7593978881835938
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 8,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f08.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.7233626588465298,
+        "y1": 0.501466275659824,
+        "x2": 0.9159335288367546,
+        "y2": 0.8543499511241447,
+        "cx": 0.8196480938416422,
+        "area": 0.06795511638951236,
+        "raw": "<loc0513><loc0740><loc0874><loc0937> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.8125,
+        "x1": 0.703125,
+        "y1": 0.484375,
+        "x2": 0.921875,
+        "y2": 0.859375
+      },
+      "ow": {
+        "cx": 0.818943452835083,
+        "x1": 0.7203882217407227,
+        "y1": 0.49884774949815536,
+        "x2": 0.9174986839294433,
+        "y2": 0.8526457044813368
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 10,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f10.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.7028347996089932,
+        "y1": 0.501466275659824,
+        "x2": 0.9002932551319648,
+        "y2": 0.8621700879765396,
+        "cx": 0.8015640273704789,
+        "area": 0.07122401768130647,
+        "raw": "<loc0513><loc0719><loc0882><loc0921> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.8125,
+        "x1": 0.703125,
+        "y1": 0.484375,
+        "x2": 0.921875,
+        "y2": 0.859375
+      },
+      "ow": {
+        "cx": 0.8029199600219726,
+        "x1": 0.7009824752807617,
+        "y1": 0.5014241536458334,
+        "x2": 0.9048574447631836,
+        "y2": 0.86473634507921
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 12,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f12.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.696969696969697,
+        "y1": 0.4975562072336266,
+        "x2": 0.9090909090909091,
+        "y2": 0.873900293255132,
+        "cx": 0.803030303030303,
+        "area": 0.07983056370153141,
+        "raw": "<loc0509><loc0713><loc0894><loc0930> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.8125,
+        "x1": 0.703125,
+        "y1": 0.484375,
+        "x2": 0.921875,
+        "y2": 0.890625
+      },
+      "ow": {
+        "cx": 0.8000555515289307,
+        "x1": 0.6938740730285644,
+        "y1": 0.4983341640896267,
+        "x2": 0.9062370300292969,
+        "y2": 0.873795912000868
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 14,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f14.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.7390029325513197,
+        "y1": 0.49266862170087977,
+        "x2": 0.9736070381231672,
+        "y2": 0.9012707722385142,
+        "cx": 0.8563049853372434,
+        "area": 0.09585974206161511,
+        "raw": "<loc0504><loc0756><loc0922><loc0996> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.859375,
+        "x1": 0.734375,
+        "y1": 0.484375,
+        "x2": 0.984375,
+        "y2": 0.921875
+      },
+      "ow": {
+        "cx": 0.8566159725189209,
+        "x1": 0.7392623901367188,
+        "y1": 0.49078165690104164,
+        "x2": 0.973969554901123,
+        "y2": 0.9116780598958333
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 16,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f16.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.8142717497556208,
+        "y1": 0.47214076246334313,
+        "x2": 0.9990224828934506,
+        "y2": 0.9638318670576735,
+        "cx": 0.9066471163245358,
+        "area": 0.09084029205115193,
+        "raw": "<loc0483><loc0833><loc0986><loc1022> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.890625,
+        "x1": 0.796875,
+        "y1": 0.484375,
+        "x2": 0.984375,
+        "y2": 0.984375
+      },
+      "ow": {
+        "cx": 0.9087103843688965,
+        "x1": 0.8166750907897949,
+        "y1": 0.48217103746202256,
+        "x2": 1.000745677947998,
+        "y2": 0.974659898546007
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_100143",
+      "frame_idx": 18,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_100143_f18.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.8660801564027371,
+        "y1": 0.4604105571847507,
+        "x2": 0.9980449657869013,
+        "y2": 0.9980449657869013,
+        "cx": 0.9320625610948192,
+        "area": 0.07094882224955065,
+        "raw": "<loc0471><loc0886><loc1021><loc1021> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.109375,
+        "x1": 0.015625,
+        "y1": 0.203125,
+        "x2": 0.203125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.9361157417297363,
+        "x1": 0.8731476783752441,
+        "y1": 0.46158226860894097,
+        "x2": 0.9990838050842286,
+        "y2": 1.0000631544325087
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_125320",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_125320_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.45356793743890517,
+        "y1": 0.5053763440860215,
+        "x2": 0.581622678396872,
+        "y2": 0.7253176930596286,
+        "cx": 0.5175953079178885,
+        "area": 0.028164532468761033,
+        "raw": "<loc0517><loc0464><loc0742><loc0595> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.515625,
+        "x1": 0.453125,
+        "y1": 0.515625,
+        "x2": 0.578125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.5195053339004516,
+        "x1": 0.4531130313873291,
+        "y1": 0.5100318060980903,
+        "x2": 0.5858976364135742,
+        "y2": 0.7289455837673611
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_125320",
+      "frame_idx": 2,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_125320_f02.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4252199413489736,
+        "y1": 0.5053763440860215,
+        "x2": 0.5620723362658846,
+        "y2": 0.739980449657869,
+        "cx": 0.49364613880742914,
+        "area": 0.032106133704847155,
+        "raw": "<loc0517><loc0435><loc0757><loc0575> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.5,
+        "x1": 0.421875,
+        "y1": 0.515625,
+        "x2": 0.578125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.4920166492462158,
+        "x1": 0.4207331657409668,
+        "y1": 0.5083478291829427,
+        "x2": 0.5633001327514648,
+        "y2": 0.7414798312717014
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_125320",
+      "frame_idx": 4,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_125320_f04.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.34017595307917886,
+        "y1": 0.5053763440860215,
+        "x2": 0.5347018572825024,
+        "y2": 0.8328445747800587,
+        "cx": 0.4374389051808406,
+        "area": 0.06370105367362014,
+        "raw": "<loc0517><loc0348><loc0852><loc0547> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.4375,
+        "x1": 0.328125,
+        "y1": 0.515625,
+        "x2": 0.546875,
+        "y2": 0.828125
+      },
+      "ow": {
+        "cx": 0.436375093460083,
+        "x1": 0.33731784820556643,
+        "y1": 0.5114227294921875,
+        "x2": 0.5354323387145996,
+        "y2": 0.8347874959309896
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131117",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131117_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4291300097751711,
+        "y1": 0.5053763440860215,
+        "x2": 0.5659824046920822,
+        "y2": 0.7253176930596286,
+        "cx": 0.4975562072336266,
+        "area": 0.03009950034829423,
+        "raw": "<loc0517><loc0439><loc0742><loc0579> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.5,
+        "x1": 0.421875,
+        "y1": 0.515625,
+        "x2": 0.578125,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.4991858243942261,
+        "x1": 0.4326930522918701,
+        "y1": 0.5097371419270833,
+        "x2": 0.565678596496582,
+        "y2": 0.7265954759385851
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131117",
+      "frame_idx": 2,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131117_f02.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4604105571847507,
+        "y1": 0.5053763440860215,
+        "x2": 0.5933528836754643,
+        "y2": 0.7321603128054741,
+        "cx": 0.5268817204301075,
+        "area": 0.030149188412361257,
+        "raw": "<loc0517><loc0471><loc0749><loc0607> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.53125,
+        "x1": 0.453125,
+        "y1": 0.515625,
+        "x2": 0.609375,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.5281199216842651,
+        "x1": 0.4610921382904053,
+        "y1": 0.5119351281060113,
+        "x2": 0.595147705078125,
+        "y2": 0.731832292344835
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131117",
+      "frame_idx": 4,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131117_f04.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4916911045943304,
+        "y1": 0.5083088954056696,
+        "x2": 0.6314760508308895,
+        "y2": 0.7487781036168133,
+        "cx": 0.5615835777126099,
+        "area": 0.03361397534134267,
+        "raw": "<loc0520><loc0503><loc0766><loc0646> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.5625,
+        "x1": 0.484375,
+        "y1": 0.515625,
+        "x2": 0.640625,
+        "y2": 0.765625
+      },
+      "ow": {
+        "cx": 0.5628615379333496,
+        "x1": 0.4904648780822754,
+        "y1": 0.508502451578776,
+        "x2": 0.6352581977844238,
+        "y2": 0.7453838772243924
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131117",
+      "frame_idx": 6,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131117_f06.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4965786901270772,
+        "y1": 0.5151515151515151,
+        "x2": 0.6490713587487781,
+        "y2": 0.7693059628543499,
+        "cx": 0.5728250244379276,
+        "area": 0.03875668997227979,
+        "raw": "<loc0527><loc0508><loc0787><loc0664> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.5625,
+        "x1": 0.484375,
+        "y1": 0.515625,
+        "x2": 0.640625,
+        "y2": 0.765625
+      },
+      "ow": {
+        "cx": 0.5723347663879395,
+        "x1": 0.4954362392425537,
+        "y1": 0.5153816646999783,
+        "x2": 0.6492332935333252,
+        "y2": 0.767124260796441
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131117",
+      "frame_idx": 8,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131117_f08.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.512218963831867,
+        "y1": 0.5053763440860215,
+        "x2": 0.6735092864125122,
+        "y2": 0.7800586510263929,
+        "cx": 0.5928641251221896,
+        "area": 0.044303597893608285,
+        "raw": "<loc0517><loc0524><loc0798><loc0689> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.59375,
+        "x1": 0.515625,
+        "y1": 0.515625,
+        "x2": 0.671875,
+        "y2": 0.796875
+      },
+      "ow": {
+        "cx": 0.5914857387542725,
+        "x1": 0.5089363098144531,
+        "y1": 0.5070606655544705,
+        "x2": 0.6740351676940918,
+        "y2": 0.7793865627712674
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131117",
+      "frame_idx": 10,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131117_f10.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.5503421309872922,
+        "y1": 0.512218963831867,
+        "x2": 0.729227761485826,
+        "y2": 0.8093841642228738,
+        "cx": 0.6397849462365591,
+        "area": 0.05315858423416839,
+        "raw": "<loc0524><loc0563><loc0828><loc0746> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.640625,
+        "x1": 0.546875,
+        "y1": 0.515625,
+        "x2": 0.734375,
+        "y2": 0.828125
+      },
+      "ow": {
+        "cx": 0.639041543006897,
+        "x1": 0.5498383045196533,
+        "y1": 0.5110948774549696,
+        "x2": 0.7282447814941406,
+        "y2": 0.8094405280219183
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131117",
+      "frame_idx": 12,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131117_f12.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.5689149560117303,
+        "y1": 0.512218963831867,
+        "x2": 0.761485826001955,
+        "y2": 0.8367546432062561,
+        "cx": 0.6652003910068427,
+        "area": 0.062496118119994754,
+        "raw": "<loc0524><loc0582><loc0856><loc0779> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.671875,
+        "x1": 0.578125,
+        "y1": 0.515625,
+        "x2": 0.765625,
+        "y2": 0.828125
+      },
+      "ow": {
+        "cx": 0.6658643960952759,
+        "x1": 0.5682623386383057,
+        "y1": 0.5097128550211588,
+        "x2": 0.7634664535522461,
+        "y2": 0.8370135837131076
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131204",
+      "frame_idx": 0,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131204_f00.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4252199413489736,
+        "y1": 0.5053763440860215,
+        "x2": 0.5483870967741935,
+        "y2": 0.7233626588465298,
+        "cx": 0.4868035190615836,
+        "area": 0.026848754310678433,
+        "raw": "<loc0517><loc0435><loc0740><loc0561> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.484375,
+        "x1": 0.421875,
+        "y1": 0.515625,
+        "x2": 0.546875,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.48705666065216063,
+        "x1": 0.42027959823608396,
+        "y1": 0.5106704711914063,
+        "x2": 0.5538337230682373,
+        "y2": 0.7287971496582031
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131204",
+      "frame_idx": 1,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131204_f01.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.4252199413489736,
+        "y1": 0.5053763440860215,
+        "x2": 0.5483870967741935,
+        "y2": 0.7282502443792767,
+        "cx": 0.4868035190615836,
+        "area": 0.02745074431764432,
+        "raw": "<loc0517><loc0435><loc0745><loc0561> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.484375,
+        "x1": 0.421875,
+        "y1": 0.515625,
+        "x2": 0.546875,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.48684542179107665,
+        "x1": 0.4202597618103027,
+        "y1": 0.5107458326551649,
+        "x2": 0.5534310817718506,
+        "y2": 0.728527577718099
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131204",
+      "frame_idx": 2,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131204_f02.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.6109481915933529,
+        "y1": 0.5004887585532747,
+        "x2": 0.7478005865102639,
+        "y2": 0.729227761485826,
+        "cx": 0.6793743890518085,
+        "area": 0.03130348036222599,
+        "raw": "<loc0512><loc0625><loc0746><loc0765> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.6875,
+        "x1": 0.609375,
+        "y1": 0.484375,
+        "x2": 0.765625,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.6802735328674316,
+        "x1": 0.6036951065063476,
+        "y1": 0.49982808430989584,
+        "x2": 0.7568519592285157,
+        "y2": 0.7264003329806857
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131204",
+      "frame_idx": 3,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131204_f03.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.6109481915933529,
+        "y1": 0.5004887585532747,
+        "x2": 0.7478005865102639,
+        "y2": 0.729227761485826,
+        "cx": 0.6793743890518085,
+        "area": 0.03130348036222599,
+        "raw": "<loc0512><loc0625><loc0746><loc0765> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.6875,
+        "x1": 0.609375,
+        "y1": 0.484375,
+        "x2": 0.765625,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.6802735328674316,
+        "x1": 0.6036951065063476,
+        "y1": 0.49982808430989584,
+        "x2": 0.7568519592285157,
+        "y2": 0.7264003329806857
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    },
+    {
+      "episode": "session_20260702_131204",
+      "frame_idx": 4,
+      "frame_path": "/home/minum/26CS/MoNaVLA/docs/v5/fallback_multimodel_20260703/thumb_session_20260702_131204_f04.jpg",
+      "server_cx": 0.5,
+      "server_area": 0.0,
+      "pg": {
+        "x1": 0.0,
+        "y1": 0.0,
+        "x2": 0.9990224828934506,
+        "y2": 0.9990224828934506,
+        "cx": 0.4995112414467253,
+        "area": 0.9980459213265949,
+        "raw": "<loc0000><loc0000><loc1022><loc1022> gray basket<eos>"
+      },
+      "kr": {
+        "cx": 0.125,
+        "x1": 0.015625,
+        "y1": 0.203125,
+        "x2": 0.234375,
+        "y2": 0.734375
+      },
+      "ow": {
+        "cx": 0.48946056365966795,
+        "x1": 0.4419266700744629,
+        "y1": 0.47114685906304254,
+        "x2": 0.536994457244873,
+        "y2": 0.6706992679172092
+      },
+      "target_visible": null,
+      "bbox_xyxy_norm": null,
+      "coarse_position": null,
+      "goal_near": null,
+      "notes": "",
+      "review_status": "pending"
+    }
+  ]
+}

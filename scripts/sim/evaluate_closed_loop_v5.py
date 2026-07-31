@@ -69,6 +69,13 @@ GOAL_NAV_VIS_KEYS = {
 GOAL_NAV_WINDOW = 8
 GOAL_NAV_GOAL_DIM = 3
 
+# exp67/71/72: FrozenCLIPV2 기반 헤드 경로
+EXP67_CKPT = ROOT / "runs/v5_nav/mlp/exp67/action_mlp.pt"
+EXP71_CKPT = ROOT / "runs/v5_nav/mlp/exp71/action_transformer.pt"
+EXP72_CKPT = ROOT / "runs/v5_nav/mlp/exp72/action_cxgeom.pt"
+EXP67_ANN  = ROOT / "docs/v5/bbox_frame_level/bbox_dataset_pg448_cx.json"
+CLIP_WINDOW = 8; CLIP_PROJ = 256; CLIP_VIS = 1024
+
 PATH_TYPES = [
     "center_straight", "center_left", "center_right",
     "left_straight", "left_left", "left_right",
@@ -308,6 +315,8 @@ def train_step2_mlp(bbox_dataset, train_eps, window=WINDOW, epochs=220, seed=0):
 
     X, y = [], []
     for ep in train_eps:
+        if not list(DATA_DIR.glob(f"{ep['episode']}.h5")):
+            continue
         frames = ep["frames"]
         img_feats = [frame_to_img_feat(ep["episode"], f["frame_idx"]) for f in frames]
         for t in range(len(frames)):
@@ -357,7 +366,22 @@ def train_step2_mlp(bbox_dataset, train_eps, window=WINDOW, epochs=220, seed=0):
     return model, DEVICE
 
 
-def eval_step2_episode(ep_entry, mlp, device, window=WINDOW):
+_CX_RULE_THR = {"rot_l": 0.25, "fwd_l": 0.40, "fwd_r": 0.60, "rot_r": 0.75}
+
+def _apply_cx_rule(cls: int, frame: dict) -> int:
+    """cx 기반 기하학 룰 override. has_bbox=False면 원래 cls 유지."""
+    if not frame.get("has_bbox", False):
+        return cls
+    cx = frame.get("cx", 0.5)
+    t = _CX_RULE_THR
+    if   cx < t["rot_l"]:  return 6  # ROT_L
+    elif cx < t["fwd_l"]:  return 4  # FWD+L
+    elif cx <= t["fwd_r"]: return 1  # FORWARD
+    elif cx <= t["rot_r"]: return 5  # FWD+R
+    else:                   return 7  # ROT_R
+
+
+def eval_step2_episode(ep_entry, mlp, device, window=WINDOW, cx_rule=False):
     """Predict action class for each frame in ep_entry using Step 2 MLP."""
     from PIL import Image
 
@@ -383,12 +407,143 @@ def eval_step2_episode(ep_entry, mlp, device, window=WINDOW):
         x = torch.tensor([feat], dtype=torch.float32, device=device)
         with torch.no_grad():
             cls = int(mlp(x).argmax(1).item())
+        if cx_rule:
+            cls = _apply_cx_rule(cls, frames[t])
         pred_classes.append(min(cls, NUM_CLASSES - 1))
 
     # Load expert actions from H5
     path = next(DATA_DIR.glob(f"{ep_entry['episode']}.h5"))
     with h5py.File(path, "r") as f:
         expert_actions = f["actions"][:]
+
+    return pred_classes, expert_actions[:len(frames)]
+
+
+# ── exp67/71/72: FrozenCLIPV2 기반 헤드 평가 ─────────────────────────────────
+
+def _load_frozen_clip(device):
+    """Stage1 v2 CLIP 인코더 로드 (공유)."""
+    from transformers import AutoModelForVision2Seq, AutoProcessor
+    vlm_path = ROOT / ".vlms/kosmos-2-patch14-224"
+    stage1_pt = ROOT / "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
+    ckpt = torch.load(str(stage1_pt), map_location=device, weights_only=False)
+    proc = AutoProcessor.from_pretrained(str(vlm_path))
+    base = AutoModelForVision2Seq.from_pretrained(str(vlm_path), torch_dtype=torch.float16)
+    vm = base.vision_model.to(device).eval()
+    proj = torch.nn.Linear(CLIP_VIS, CLIP_PROJ).to(device)
+    proj.load_state_dict(ckpt["image_proj"])
+    proj.eval()
+    return proc, vm, proj
+
+
+@torch.no_grad()
+def _encode_img(img_np, proc, vm, proj, device):
+    from PIL import Image
+    pil = Image.fromarray(img_np.astype("uint8"))
+    inp = proc(images=[pil], return_tensors="pt")
+    pv = inp["pixel_values"].to(device, dtype=torch.float16)
+    feat = vm(pixel_values=pv).last_hidden_state.mean(1).float()
+    return proj(feat).squeeze(0)
+
+
+def eval_exp67_episode(ep_entry, mlp, proc, vm, proj, device, cx_rule=False):
+    """exp67(MLP, WINDOW=8, FrozenCLIPV2) 기반 CL 에피소드 평가."""
+    frames = ep_entry["frames"]
+    ep_stem = Path(ep_entry["episode"]).stem
+    path   = next(DATA_DIR.glob(f"{ep_stem}.h5"))
+    with h5py.File(str(path), "r") as f:
+        imgs = f["observations"]["images"][:]
+        expert_actions = f["actions"][:]
+
+    cache = {}
+    def get_vis(fidx):
+        if fidx not in cache:
+            cache[fidx] = _encode_img(imgs[fidx], proc, vm, proj, device)
+        return cache[fidx]
+
+    pred_classes = []
+    for t, fr in enumerate(frames):
+        hist = []
+        for k in range(CLIP_WINDOW):
+            fidx = max(0, t - (CLIP_WINDOW - 1 - k))
+            f2 = frames[fidx]
+            hist.extend([f2.get("cx_det", 0.5), f2.get("cy_det", 0.5),
+                         f2.get("area_det", 0.05), float(f2.get("has_bbox", False))])
+        vis = get_vis(fr["frame_idx"]).cpu().tolist()
+        x = torch.tensor([hist + vis], dtype=torch.float32, device=device)
+        with torch.no_grad():
+            cls = int(mlp(x).argmax(1).item())
+        if cx_rule:
+            cls = _apply_cx_rule(cls, fr)
+        pred_classes.append(min(cls, NUM_CLASSES - 1))
+
+    return pred_classes, expert_actions[:len(frames)]
+
+
+def eval_exp71_episode(ep_entry, model, proc, vm, proj, device):
+    """exp71(Transformer, WINDOW=8) 기반 CL 에피소드 평가."""
+    frames = ep_entry["frames"]
+    ep_stem = Path(ep_entry["episode"]).stem
+    path   = next(DATA_DIR.glob(f"{ep_stem}.h5"))
+    with h5py.File(str(path), "r") as f:
+        imgs = f["observations"]["images"][:]
+        expert_actions = f["actions"][:]
+
+    cache = {}
+    def get_vis(fidx):
+        if fidx not in cache:
+            cache[fidx] = _encode_img(imgs[fidx], proc, vm, proj, device)
+        return cache[fidx]
+
+    pred_classes = []
+    for t, fr in enumerate(frames):
+        seq = []
+        for k in range(CLIP_WINDOW):
+            fidx_h = max(0, t - (CLIP_WINDOW - 1 - k))
+            f2 = frames[fidx_h]
+            bbox = [f2.get("cx_det", 0.5), f2.get("cy_det", 0.5),
+                    f2.get("area_det", 0.05), float(f2.get("has_bbox", False))]
+            vis = get_vis(frames[fidx_h]["frame_idx"]).cpu().tolist()
+            seq.append(bbox + vis)
+        x = torch.tensor([seq], dtype=torch.float32, device=device)  # (1, W, 260)
+        with torch.no_grad():
+            cls = int(model(x).argmax(1).item())
+        pred_classes.append(min(cls, NUM_CLASSES - 1))
+
+    return pred_classes, expert_actions[:len(frames)]
+
+
+def eval_exp72_episode(ep_entry, model, proc, vm, proj, device):
+    """exp72(cx-Geom, WINDOW=8) 기반 CL 에피소드 평가."""
+    frames = ep_entry["frames"]
+    ep_stem = Path(ep_entry["episode"]).stem
+    path   = next(DATA_DIR.glob(f"{ep_stem}.h5"))
+    with h5py.File(str(path), "r") as f:
+        imgs = f["observations"]["images"][:]
+        expert_actions = f["actions"][:]
+
+    cache = {}
+    def get_vis(fidx):
+        if fidx not in cache:
+            cache[fidx] = _encode_img(imgs[fidx], proc, vm, proj, device)
+        return cache[fidx]
+
+    pred_classes = []
+    for t, fr in enumerate(frames):
+        hist = []
+        for k in range(CLIP_WINDOW):
+            fidx_h = max(0, t - (CLIP_WINDOW - 1 - k))
+            f2 = frames[fidx_h]
+            hist.extend([f2.get("cx_det", 0.5), f2.get("cy_det", 0.5),
+                         f2.get("area_det", 0.05), float(f2.get("has_bbox", False))])
+        vis = get_vis(fr["frame_idx"]).cpu().tolist()
+        geom = [fr.get("cx_det", 0.5), fr.get("cy_det", 0.5),
+                fr.get("area_det", 0.05), float(fr.get("has_bbox", False))]
+        xh = torch.tensor([hist + vis], dtype=torch.float32, device=device)
+        xg = torch.tensor([geom], dtype=torch.float32, device=device)
+        with torch.no_grad():
+            cls = int(model(xh, xg).argmax(1).item())
+        pred_classes.append(min(cls, NUM_CLASSES - 1))
 
     return pred_classes, expert_actions[:len(frames)]
 
@@ -410,6 +565,8 @@ def train_exp19_proxy_mlp(bbox_dataset, train_eps, window=WINDOW, epochs=220, se
 
     X, y = [], []
     for ep in train_eps:
+        if not list(DATA_DIR.glob(f"{ep['episode']}.h5")):
+            continue
         frames = ep["frames"]
         img_feats = [frame_to_img_feat(ep["episode"], f["frame_idx"]) for f in frames]
         for t in range(len(frames)):
@@ -712,7 +869,8 @@ def build_html(results_by_model, summary_by_model):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", choices=["exp11", "step2", "step3", "step3_ablated", "exp17", "exp18", "exp19", "exp49", "exp50", "exp51", "exp52", "exp53", "both"], default="step2")
+    ap.add_argument("--model", choices=["exp11", "step2", "step3", "step3_ablated", "exp17", "exp18", "exp19", "exp49", "exp50", "exp51", "exp52", "exp53", "exp67", "exp71", "exp72", "both"], default="step2")
+    ap.add_argument("--cx-rule", action="store_true", help="cx 기반 기하학 override (step2/exp67 전용)")
     ap.add_argument("--config", default="configs/mobile_vla_v5_exp11_google_robot_8cls.json")
     ap.add_argument("--ckpt", default=None)
     ap.add_argument("--dt", type=float, default=DT_DEFAULT)
@@ -725,6 +883,9 @@ def main():
     run_step2 = args.model in ("step2", "both")
     run_step3 = args.model == "step3"
     run_exp19 = args.model == "exp19"
+    run_exp67 = args.model == "exp67"
+    run_exp71 = args.model == "exp71"
+    run_exp72 = args.model == "exp72"
 
     # Load existing results so partial runs merge rather than overwrite
     existing_json_path = OUT_DIR / "rollout_metrics.json"
@@ -761,7 +922,9 @@ def main():
 
         ep_results = defaultdict(list)
         for ep_entry in test_eps:
-            pred_classes, expert_actions = eval_step2_episode(ep_entry, mlp, device)
+            if not list(DATA_DIR.glob(f"{ep_entry['episode']}.h5")):
+                continue
+            pred_classes, expert_actions = eval_step2_episode(ep_entry, mlp, device, cx_rule=args.cx_rule)
             expert_cls = [continuous_to_class(*a[:3]) for a in expert_actions]
             expert_traj = build_trajectory(expert_cls, args.dt)
             pred_traj   = build_trajectory(pred_classes, args.dt)
@@ -1121,6 +1284,123 @@ def main():
         print(f"\n  EXP19 success: {summary_by_model['exp19']['success_rate']:.1%}"
               f"  FPE: {summary_by_model['exp19']['mean_fpe']:.2f}m"
               f"  TLD: {summary_by_model['exp19']['mean_tld']:.2f}")
+
+    # ── exp67/71/72: FrozenCLIPV2 기반 헤드 평가 ────────────────────────────
+    for exp_tag, run_flag, ckpt_path, eval_fn in [
+        ("exp67", run_exp67, EXP67_CKPT, "exp67"),
+        ("exp71", run_exp71, EXP71_CKPT, "exp71"),
+        ("exp72", run_exp72, EXP72_CKPT, "exp72"),
+    ]:
+        if not run_flag:
+            continue
+        if not ckpt_path.exists():
+            print(f"\n[SKIP] {exp_tag} 체크포인트 없음: {ckpt_path}")
+            continue
+
+        print(f"\n=== {exp_tag} (FrozenCLIPV2 head) ===")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        proc, vm, proj = _load_frozen_clip(device)
+        ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
+
+        # 헤드 모델 로드
+        if exp_tag == "exp67":
+            import torch.nn as nn
+            class _MLP(nn.Module):
+                def __init__(self, d):
+                    super().__init__()
+                    self.net = nn.Sequential(
+                        nn.Linear(d,256),nn.ReLU(),nn.Dropout(0.25),
+                        nn.Linear(256,128),nn.ReLU(),nn.Dropout(0.2),
+                        nn.Linear(128,64),nn.ReLU(),nn.Dropout(0.1),
+                        nn.Linear(64,NUM_CLASSES))
+                def forward(self,x): return self.net(x)
+            head = _MLP(ckpt["d_in"]).to(device)
+            head.load_state_dict(ckpt["mlp"]); head.eval()
+            cx_rule_on = args.cx_rule
+        elif exp_tag == "exp71":
+            import torch.nn as nn
+            class _TransHead(nn.Module):
+                def __init__(self, fd, w, nh=4, nl=2):
+                    super().__init__()
+                    self.cls_token = nn.Parameter(torch.randn(1,1,fd))
+                    self.pos_emb   = nn.Embedding(w+1, fd)
+                    el = nn.TransformerEncoderLayer(d_model=fd,nhead=nh,dim_feedforward=512,dropout=0.1,batch_first=True,norm_first=True)
+                    self.encoder = nn.TransformerEncoder(el, num_layers=nl)
+                    self.head = nn.Sequential(nn.LayerNorm(fd),nn.Linear(fd,128),nn.ReLU(),nn.Dropout(0.1),nn.Linear(128,NUM_CLASSES))
+                def forward(self,x):
+                    B=x.size(0); cls=self.cls_token.expand(B,-1,-1)
+                    x=torch.cat([cls,x],dim=1)
+                    pos=torch.arange(x.size(1),device=x.device)
+                    x=x+self.pos_emb(pos); x=self.encoder(x)
+                    return self.head(x[:,0])
+            head = _TransHead(fd=CLIP_PROJ+4, w=CLIP_WINDOW).to(device)
+            head.load_state_dict(ckpt["model"]); head.eval()
+            cx_rule_on = False
+        elif exp_tag == "exp72":
+            import torch.nn as nn
+            class _GeomMLP(nn.Module):
+                def __init__(self, hd, gd=4):
+                    super().__init__()
+                    self.branch_a = nn.Sequential(nn.Linear(hd,256),nn.ReLU(),nn.Dropout(0.25),nn.Linear(256,128),nn.ReLU(),nn.Dropout(0.1))
+                    self.branch_b = nn.Sequential(nn.Linear(gd,32),nn.ReLU())
+                    self.merge = nn.Sequential(nn.Linear(160,64),nn.ReLU(),nn.Dropout(0.1),nn.Linear(64,NUM_CLASSES))
+                def forward(self,h,g): return self.merge(torch.cat([self.branch_a(h),self.branch_b(g)],dim=-1))
+            head = _GeomMLP(hd=ckpt["hist_dim"]).to(device)
+            head.load_state_dict(ckpt["model"]); head.eval()
+            cx_rule_on = False
+
+        ann_pg448 = json.loads(EXP67_ANN.read_text())
+        rng2 = np.random.default_rng(42)
+        # pg448 JSON은 full path, step1은 stem만 → Path.stem으로 정규화
+        ep_stems = {Path(ep["episode"]).stem: ep for ep in ann_pg448}
+
+        # step2와 같은 split 사용 (path_type 기반 20% test)
+        bbox_ds_ref = json.loads((STEP1_DIR / "bbox_dataset.json").read_text())
+        by_path2 = defaultdict(list)
+        for i, ep in enumerate(bbox_ds_ref):
+            by_path2[ep["path_type"]].append(i)
+        test_idx2 = []
+        for _, idxs in by_path2.items():
+            rng2.shuffle(idxs)
+            k = max(1, int(len(idxs)*0.2))
+            test_idx2.extend(idxs[:k])
+        test_eps2 = [bbox_ds_ref[i] for i in test_idx2]
+
+        ep_results2 = defaultdict(list)
+        for ep_ref in test_eps2:
+            ep_stem = ep_ref["episode"]
+            if not list(DATA_DIR.glob(f"{ep_stem}.h5")):
+                continue
+            ann_ep = ep_stems.get(ep_stem)
+            if ann_ep is None:
+                continue
+
+            if exp_tag == "exp67":
+                pred_classes, expert_actions = eval_exp67_episode(ann_ep, head, proc, vm, proj, device, cx_rule=cx_rule_on)
+            elif exp_tag == "exp71":
+                pred_classes, expert_actions = eval_exp71_episode(ann_ep, head, proc, vm, proj, device)
+            elif exp_tag == "exp72":
+                pred_classes, expert_actions = eval_exp72_episode(ann_ep, head, proc, vm, proj, device)
+
+            expert_cls = [continuous_to_class(*a[:3]) for a in expert_actions]
+            expert_traj = build_trajectory(expert_cls, args.dt)
+            pred_traj   = build_trajectory(pred_classes, args.dt)
+            m = compute_metrics(expert_traj, pred_traj, args.success_fpe)
+            m["episode"] = ep_stem
+            path_type = ep_ref.get("path_type", "unknown")
+            ep_results2[path_type].append(m)
+            icon = "✅" if m["success"] else "❌"
+            print(f"  {path_type:25s} FPE={m['fpe']:.2f}m TLD={m['tld']:.2f} {icon}")
+
+        all_m2 = [m for ms in ep_results2.values() for m in ms]
+        if all_m2:
+            sr2  = np.mean([m["success"] for m in all_m2])
+            fpe2 = np.mean([m["fpe"]     for m in all_m2])
+            tld2 = np.mean([m["tld"]     for m in all_m2])
+            key  = exp_tag + ("_cxrule" if args.cx_rule and exp_tag == "exp67" else "")
+            summary_by_model[key] = {"success_rate": sr2, "mean_fpe": fpe2, "mean_tld": tld2}
+            results_by_model[key] = dict(ep_results2)
+            print(f"\n  {exp_tag} success: {sr2:.1%}  FPE: {fpe2:.2f}m  TLD: {tld2:.2f}")
 
     # ── Save & HTML ──────────────────────────────────────────────────────────
     out_json = {

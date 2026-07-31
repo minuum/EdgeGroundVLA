@@ -1,0 +1,299 @@
+[
+  {
+    "idx": 0,
+    "stem": "episode_20260715_231924_weak_right_right_curve",
+    "path_type": "weak_right_right_curve",
+    "fpe": 1.9365194825476528,
+    "auto_success": false,
+    "arrive_cx": 0.6827956989247312,
+    "traj_img": "ep00.png"
+  },
+  {
+    "idx": 1,
+    "stem": "episode_20260716_103531_strong_left_right_curve",
+    "path_type": "strong_left_right_curve",
+    "fpe": 1.6796211005878807,
+    "auto_success": false,
+    "arrive_cx": 0.5216139893559247,
+    "traj_img": "ep01.png"
+  },
+  {
+    "idx": 2,
+    "stem": "episode_20260716_214842_center_left_curve",
+    "path_type": "center_left_curve",
+    "fpe": 1.4409458699062945,
+    "auto_success": false,
+    "arrive_cx": 0.34570268441236185,
+    "traj_img": "ep02.png"
+  },
+  {
+    "idx": 3,
+    "stem": "episode_20260715_200619_weak_right_left_curve",
+    "path_type": "weak_right_left_curve",
+    "fpe": 2.0827385817716095,
+    "auto_success": false,
+    "arrive_cx": 0.8228739002932551,
+    "traj_img": "ep03.png"
+  },
+  {
+    "idx": 4,
+    "stem": "episode_20260716_043033_weak_left_right_curve",
+    "path_type": "weak_left_right_curve",
+    "fpe": 0.3636619309193643,
+    "auto_success": true,
+    "arrive_cx": 0.5416492110040496,
+    "traj_img": "ep04.png"
+  },
+  {
+    "idx": 5,
+    "stem": "episode_20260716_042806_weak_left_left_curve",
+    "path_type": "weak_left_left_curve",
+    "fpe": 0.8688386415124675,
+    "auto_success": false,
+    "arrive_cx": 0.30366281409924667,
+    "traj_img": "ep05.png"
+  },
+  {
+    "idx": 6,
+    "stem": "episode_20260716_004910_strong_right_right_curve",
+    "path_type": "strong_right_right_curve",
+    "fpe": 0.5142956348249518,
+    "auto_success": false,
+    "arrive_cx": 0.6560225915064625,
+    "traj_img": "ep06.png"
+  },
+  {
+    "idx": 7,
+    "stem": "episode_20260715_231654_weak_right_right_curve",
+    "path_type": "weak_right_right_curve",
+    "fpe": 2.5460437842571064,
+    "auto_success": false,
+    "arrive_cx": 0.4844208211143695,
+    "traj_img": "ep07.png"
+  },
+  {
+    "idx": 8,
+    "stem": "episode_20260716_005850_strong_right_right_curve",
+    "path_type": "strong_right_right_curve",
+    "fpe": 0.3252691193458125,
+    "auto_success": true,
+    "arrive_cx": 0.7103719709831765,
+    "traj_img": "ep08.png"
+  },
+  {
+    "idx": 9,
+    "stem": "episode_20260716_045035_weak_left_straight",
+    "path_type": "weak_left_straight",
+    "fpe": 0.2855857352849592,
+    "auto_success": true,
+    "arrive_cx": 0.3886006466651628,
+    "traj_img": "ep09.png"
+  },
+  {
+    "idx": 10,
+    "stem": "episode_20260716_044741_weak_left_straight",
+    "path_type": "weak_left_straight",
+    "fpe": 0.7152298817492965,
+    "auto_success": false,
+    "arrive_cx": 0.27803379416282636,
+    "traj_img": "ep10.png"
+  },
+  {
+    "idx": 11,
+    "stem": "episode_20260716_102232_strong_left_left_curve",
+    "path_type": "strong_left_left_curve",
+    "fpe": 0.7605639869106042,
+    "auto_success": false,
+    "arrive_cx": 0.5086580086580088,
+    "traj_img": "ep11.png"
+  },
+  {
+    "idx": 12,
+    "stem": "episode_20260716_043555_weak_left_right_curve",
+    "path_type": "weak_left_right_curve",
+    "fpe": 0.3636619309193643,
+    "auto_success": true,
+    "arrive_cx": 0.5651096215612343,
+    "traj_img": "ep12.png"
+  },
+  {
+    "idx": 13,
+    "stem": "episode_20260716_104603_strong_left_right_curve",
+    "path_type": "strong_left_right_curve",
+    "fpe": 0.41463839667835956,
+    "auto_success": true,
+    "arrive_cx": 0.560404807084124,
+    "traj_img": "ep13.png"
+  },
+  {
+    "idx": 14,
+    "stem": "episode_20260716_041653_weak_left_left_curve",
+    "path_type": "weak_left_left_curve",
+    "fpe": 1.0800885738169983,
+    "auto_success": false,
+    "arrive_cx": 0.29581392674371804,
+    "traj_img": "ep14.png"
+  },
+  {
+    "idx": 15,
+    "stem": "episode_20260716_005608_strong_right_right_curve",
+    "path_type": "strong_right_right_curve",
+    "fpe": 0.41463839667835956,
+    "auto_success": true,
+    "arrive_cx": 0.5734767025089605,
+    "traj_img": "ep15.png"
+  },
+  {
+    "idx": 16,
+    "stem": "episode_20260715_201139_weak_right_left_curve",
+    "path_type": "weak_right_left_curve",
+    "fpe": 2.0719339980213363,
+    "auto_success": false,
+    "arrive_cx": 0.6437866568914956,
+    "traj_img": "ep16.png"
+  },
+  {
+    "idx": 17,
+    "stem": "episode_20260716_044657_weak_left_straight",
+    "path_type": "weak_left_straight",
+    "fpe": 0.0,
+    "auto_success": true,
+    "arrive_cx": 0.6966313256635837,
+    "traj_img": "ep17.png"
+  },
+  {
+    "idx": 18,
+    "stem": "episode_20260716_214957_center_left_curve",
+    "path_type": "center_left_curve",
+    "fpe": 0.4879036790187187,
+    "auto_success": true,
+    "arrive_cx": 0.4270245883149108,
+    "traj_img": "ep18.png"
+  },
+  {
+    "idx": 19,
+    "stem": "episode_20260716_220911_center_right_curve",
+    "path_type": "center_right_curve",
+    "fpe": 0.5750000000000011,
+    "auto_success": false,
+    "arrive_cx": 0.7261824197308069,
+    "traj_img": "ep19.png"
+  },
+  {
+    "idx": 20,
+    "stem": "episode_20260716_214240_center_left_curve",
+    "path_type": "center_left_curve",
+    "fpe": 0.2571478174124763,
+    "auto_success": true,
+    "arrive_cx": 0.3087906716938975,
+    "traj_img": "ep20.png"
+  },
+  {
+    "idx": 21,
+    "stem": "episode_20260716_034517_strong_right_straight",
+    "path_type": "strong_right_straight",
+    "fpe": 0.040548160415016916,
+    "auto_success": true,
+    "arrive_cx": 0.3419430032333258,
+    "traj_img": "ep21.png"
+  },
+  {
+    "idx": 22,
+    "stem": "episode_20260716_213238_center_straight",
+    "path_type": "center_straight",
+    "fpe": 0.0,
+    "auto_success": true,
+    "arrive_cx": 0.3327557095885542,
+    "traj_img": "ep22.png"
+  },
+  {
+    "idx": 23,
+    "stem": "episode_20260716_214319_center_left_curve",
+    "path_type": "center_left_curve",
+    "fpe": 2.1880242229006543,
+    "auto_success": false,
+    "arrive_cx": 0.5963203463203464,
+    "traj_img": "ep23.png"
+  },
+  {
+    "idx": 24,
+    "stem": "episode_20260716_123203_strong_left_straight",
+    "path_type": "strong_left_straight",
+    "fpe": 0.2571478174124769,
+    "auto_success": true,
+    "arrive_cx": 0.58902387934646,
+    "traj_img": "ep24.png"
+  },
+  {
+    "idx": 25,
+    "stem": "episode_20260716_111414_strong_left_straight",
+    "path_type": "strong_left_straight",
+    "fpe": 0.11500000000000028,
+    "auto_success": true,
+    "arrive_cx": 0.5396270396270396,
+    "traj_img": "ep25.png"
+  },
+  {
+    "idx": 26,
+    "stem": "episode_20260716_041602_weak_left_left_curve",
+    "path_type": "weak_left_left_curve",
+    "fpe": 0.6192939528204692,
+    "auto_success": false,
+    "arrive_cx": 0.5575513196480938,
+    "traj_img": "ep26.png"
+  },
+  {
+    "idx": 27,
+    "stem": "episode_20260716_044313_weak_left_straight",
+    "path_type": "weak_left_straight",
+    "fpe": 0.06715087063755329,
+    "auto_success": true,
+    "arrive_cx": 0.4869163094969547,
+    "traj_img": "ep27.png"
+  },
+  {
+    "idx": 28,
+    "stem": "episode_20260716_042224_weak_left_left_curve",
+    "path_type": "weak_left_left_curve",
+    "fpe": 3.377373307145048,
+    "auto_success": false,
+    "arrive_cx": 0.6832301509720865,
+    "traj_img": "ep28.png"
+  },
+  {
+    "idx": 29,
+    "stem": "episode_20260716_043112_weak_left_right_curve",
+    "path_type": "weak_left_right_curve",
+    "fpe": 1.6979546519268438,
+    "auto_success": false,
+    "arrive_cx": 0.5175953079178885,
+    "traj_img": "ep29.png"
+  },
+  {
+    "idx": 30,
+    "stem": "episode_20260716_103958_strong_left_right_curve",
+    "path_type": "strong_left_right_curve",
+    "fpe": 0.46000000000000085,
+    "auto_success": true,
+    "arrive_cx": 0.5171370967741935,
+    "traj_img": "ep30.png"
+  },
+  {
+    "idx": 31,
+    "stem": "episode_20260716_221427_center_right_curve",
+    "path_type": "center_right_curve",
+    "fpe": 0.41463839667835956,
+    "auto_success": true,
+    "arrive_cx": 0.6672531769305963,
+    "traj_img": "ep31.png"
+  },
+  {
+    "idx": 32,
+    "stem": "episode_20260716_040623_strong_right_left_curve",
+    "path_type": "strong_right_left_curve",
+    "fpe": 4.60869204087513,
+    "auto_success": false,
+    "arrive_cx": 0.22950705208769717,
+    "traj_img": "ep32.png"
+  }
+]

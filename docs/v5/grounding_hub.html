@@ -49,7 +49,7 @@
     <a href="#section-h" style="padding:6px 14px;background:#1e0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#d8b4fe;text-decoration:none">&sect;H Detector 비교(GDINO/YOLO-World)</a>
     <a href="#section-i" style="padding:6px 14px;background:#1a0a0a;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;I STOP 로직 ★NEW</a>sect;I STOP 로직</a>
     <a href="#section-j" style="padding:6px 14px;background:#1a0a2b;border:1px solid #a855f7;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">&sect;J Perception Ablation ★NEW</a>
-    <a href="#section-k" style="padding:6px 14px;background:#1a0a00;border:1px solid #f59e0b;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fbbf24;text-decoration:none">&sect;K Frame0 Cold-Start 분석 ★가설</a>
+    <a href="#section-k" style="padding:6px 14px;background:#0a1a12;border:1px solid #16a34a;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">&sect;K Frame0 Grounding 100% 실패 → 워밍업 해결</a>
     <a href="today_visual_summary.html" style="padding:6px 14px;background:#0a1628;border:1px solid #7dd3fc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">📷 오늘 한눈에 보기(사진)</a>
     <a href="hidden_state_hub.html" style="padding:6px 14px;background:#0a1628;border:1px solid #86efac;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">🧠 Hidden State Hub</a>
     <span style="width:1px;background:#1e3a5f;margin:0 4px"></span>
@@ -1182,11 +1182,11 @@ loadAblationTables();
 
 <!-- §K: Frame 0 Cold-Start 분석 (CH57) -->
 <div id="section-k" style="margin-top:48px">
-  <h2><span class="badge" style="background:#374151;color:#9ca3af">K</span> Frame 0 Cold-Start → Window 오염 가설 <span style="font-size:0.7rem;background:#1f2937;color:#6b7280;padding:2px 8px;border-radius:4px;margin-left:8px">🚫 기각됨 — 2026-06-30 검증</span></h2>
+  <h2><span class="badge" style="background:#166534;color:#86efac">K</span> Frame 0 Cold-Start → Grounding 100% 실패 → CH54 Preview 폴백 <span style="font-size:0.7rem;background:#0a2212;color:#86efac;padding:2px 8px;border-radius:4px;margin-left:8px">✅ 실검증 완료 2026-06-30</span></h2>
 
-  <div class="card" style="border-color:#92400e;background:linear-gradient(135deg,#1a0a00,#1f1000);margin-bottom:16px">
-    <div style="color:#fde68a;font-size:0.85rem;line-height:1.8">
-      <strong style="color:#fbbf24">분석 출처:</strong> 2026-06-29 Claude 코드+데이터 분석. 실험자 검증 전 가설임.
+  <div class="card" style="border-color:#166534;background:linear-gradient(135deg,#0a1a12,#0c2417);margin-bottom:16px">
+    <div style="color:#86efac;font-size:0.85rem;line-height:1.8">
+      <strong style="color:#4ade80">검증 결과 (세션 100316):</strong> Stage 0 워밍업 후에도 frame 0 has_bbox=False 지속. 단, <strong style="color:#fbbf24">CH54 Preview 모델이 폴백으로 ROT_R 출력</strong> → frame 1 PG2 정상(3,102ms, 이전 22,000ms 대비 개선) → frame 2+ 캐시 69ms. 47세션 전수 조사: frame 0 has_bbox=True 0/47(0%). <strong>2-layer 방어로 실질 해결. 실로봇 세션 준비 완료.</strong>
     </div>
   </div>
 
@@ -1310,6 +1310,32 @@ loadAblationTables();
     <div style="margin-top:10px;font-size:0.82rem;color:#64748b">
       관련: <code>research_story.html#ch57</code> &nbsp;|&nbsp; <code>research_story.html#ch54</code>
     </div>
+  </div>
+</div>
+
+<!-- §L: Grounding 프롬프트 어블레이션 (CH58) -->
+<div id="section-l" style="margin-top:48px">
+  <h2><span class="badge" style="background:#fbbf24;color:#0a0f1a">L</span> Grounding 프롬프트 어블레이션 <span style="font-size:0.8rem;color:#64748b;font-weight:400">— CH58, 2026-06-30, 진행 중</span></h2>
+
+  <div class="card" style="border-color:#78350f">
+    <h3 style="font-size:1rem;font-weight:900;color:#fbbf24;margin:0 0 10px 0">L-1. 동기 — 현재 PG2 박스 품질 46.2%</h3>
+    <div style="background:#130a00;border:1px solid #78350f;border-radius:6px;padding:12px 14px;font-size:0.82rem;line-height:1.9;margin-bottom:12px">
+      <div>수동 레이블 39세션: ✅ FULL 20.5% / 🟡 PART_IN 25.6% / ⚠️ PART_OUT 17.9% / ❌ WRONG 35.9%</div>
+      <div style="color:#fbbf24;font-weight:700">→ 점이 바스켓 안 = 46.2% (18/39). PG2 cx 방향 일치율 = 58.3%</div>
+      <div style="color:#94a3b8">현재 프롬프트: <code>&lt;grounding&gt;The basket is at</code> (비공식 completion 방식)</div>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#1e3a5f;margin-top:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">L-2. 실험 결과 <span style="font-size:0.78rem;font-weight:400;color:#f59e0b">⏳ 실행 중</span></h3>
+    <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:6px;padding:16px;color:#475569;font-size:0.82rem;text-align:center;min-height:60px;display:flex;align-items:center;justify-content:center">
+      ablate_grounding_prompt.py 완료 후 결과 표 삽입
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#1e3a5f;margin-top:16px">
+    <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin:0 0 10px 0">L-3. 결론 및 권고 <span style="font-size:0.78rem;font-weight:400;color:#475569">— 업데이트 대기</span></h3>
+    <div style="color:#475569;font-size:0.85rem;font-style:italic">실험 완료 후 최선 변형 + 서버 적용 여부 판단</div>
   </div>
 </div>
 

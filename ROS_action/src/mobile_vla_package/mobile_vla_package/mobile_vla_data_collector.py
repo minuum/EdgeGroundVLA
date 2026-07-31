@@ -95,7 +95,13 @@ class MobileVLADataCollector(Node):
                 "target_center_right_path": {"target": 15, "description": "목표: 중앙 | 경로: 오른쪽 곡선 (Right Path)", "key": "6"},
                 "target_right_left_path": {"target": 15, "description": "목표: 우측 | 경로: 왼쪽 곡선 (Left Path)", "key": "7"},
                 "target_right_straight_path": {"target": 20, "description": "목표: 우측 | 경로: 메인 직선 (Straight Path)", "key": "8"},
-                "target_right_right_path": {"target": 15, "description": "목표: 우측 | 경로: 오른쪽 곡선 (Right Path)", "key": "9"}
+                "target_right_right_path": {"target": 15, "description": "목표: 우측 | 경로: 오른쪽 곡선 (Right Path)", "key": "9"},
+                # 2026-07-07 플랜 트랙A: 극단cx 커버리지 (지시 불필요, 오퍼레이터 자유 경로선택)
+                # cx<0.25 또는 >0.75 구간은 기존 9종에서 3.2%뿐 — obj_* 실패 직접 원인
+                "target_extreme_left": {"target": 45, "description": "목표: 강한좌측 (cx≈0.10) | 경로: 자유선택(좌/직/우 곡선 반복)", "key": "10"},
+                "target_near_left": {"target": 45, "description": "목표: 준극단좌측 (cx≈0.20) | 경로: 자유선택(좌/직/우 곡선 반복)", "key": "11"},
+                "target_extreme_right": {"target": 45, "description": "목표: 강한우측 (cx≈0.90) | 경로: 자유선택(좌/직/우 곡선 반복)", "key": "12"},
+                "target_near_right": {"target": 45, "description": "목표: 준극단우측 (cx≈0.80) | 경로: 자유선택(좌/직/우 곡선 반복)", "key": "13"}
             }
             # 장애물(박스) 위치 대체 (화분 위치 대신 거리/위치로 활용)
             self.distance_levels = {

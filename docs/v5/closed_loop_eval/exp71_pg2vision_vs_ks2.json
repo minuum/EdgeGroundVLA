@@ -1,0 +1,10 @@
+{
+  "pg2_vision_val_acc": 0.9616368412971497,
+  "train_eps": 125,
+  "val_eps": 22,
+  "ks2_vision_val_acc_ref_ch61": {
+    "baseline_w6": 0.97,
+    "window3": 0.948
+  },
+  "note": "ks2 참고값은 CH61 truth_mini 격리재학습 split 기준(동일 split 아님, 참고용)"
+}

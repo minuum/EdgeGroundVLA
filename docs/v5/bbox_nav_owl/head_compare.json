@@ -1,0 +1,104 @@
+{
+  "pg2_baseline": {
+    "pm_mean": 0.7721519231796264,
+    "pm_std": 0.008950700930161367,
+    "pm_seeds": [
+      0.7784810066223145,
+      0.7658228278160095,
+      0.7721519470214844,
+      0.7848101258277893,
+      0.7594937086105347
+    ],
+    "per_path_lastseed": {
+      "center_straight": {
+        "correct": 12,
+        "total": 14
+      },
+      "center_left": {
+        "correct": 9,
+        "total": 18
+      },
+      "center_right": {
+        "correct": 10,
+        "total": 18
+      },
+      "left_straight": {
+        "correct": 17,
+        "total": 18
+      },
+      "left_left": {
+        "correct": 15,
+        "total": 19
+      },
+      "left_right": {
+        "correct": 15,
+        "total": 19
+      },
+      "right_straight": {
+        "correct": 17,
+        "total": 18
+      },
+      "right_left": {
+        "correct": 13,
+        "total": 18
+      },
+      "right_right": {
+        "correct": 12,
+        "total": 16
+      }
+    },
+    "n_train": 600,
+    "n_test": 158
+  },
+  "owl_th025": {
+    "pm_mean": 0.7835443139076232,
+    "pm_std": 0.016697341558267492,
+    "pm_seeds": [
+      0.7848101258277893,
+      0.7911392450332642,
+      0.7531645894050598,
+      0.8037974834442139,
+      0.7848101258277893
+    ],
+    "per_path_lastseed": {
+      "center_straight": {
+        "correct": 12,
+        "total": 14
+      },
+      "center_left": {
+        "correct": 12,
+        "total": 18
+      },
+      "center_right": {
+        "correct": 13,
+        "total": 18
+      },
+      "left_straight": {
+        "correct": 15,
+        "total": 18
+      },
+      "left_left": {
+        "correct": 15,
+        "total": 19
+      },
+      "left_right": {
+        "correct": 16,
+        "total": 19
+      },
+      "right_straight": {
+        "correct": 15,
+        "total": 18
+      },
+      "right_left": {
+        "correct": 14,
+        "total": 18
+      },
+      "right_right": {
+        "correct": 12,
+        "total": 16
+      }
+    },
+    "n_train": 600,
+    "n_test": 158
+  }
+}

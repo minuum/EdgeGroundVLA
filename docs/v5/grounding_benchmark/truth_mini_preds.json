@@ -1,0 +1,1299 @@
+{
+  "pg": {
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f002": [
+      0.4252199413489736,
+      0.47214076246334313,
+      0.581622678396872,
+      0.7311827956989247
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f005": [
+      0.3978494623655914,
+      0.46725317693059626,
+      0.5884652981427175,
+      0.7908113391984359
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f009": [
+      0.27956989247311825,
+      0.4496578690127077,
+      0.5689149560117303,
+      0.9237536656891495
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f012": [
+      0.18963831867057673,
+      0.41837732160312807,
+      0.6715542521994134,
+      0.9980449657869013
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f002": [
+      0.4066471163245357,
+      0.47214076246334313,
+      0.5620723362658846,
+      0.7311827956989247
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f005": [
+      0.3841642228739003,
+      0.47214076246334313,
+      0.5777126099706745,
+      0.7976539589442815
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f009": [
+      0.3128054740957967,
+      0.44281524926686217,
+      0.6285434995112414,
+      0.9560117302052786
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f012": [
+      0.17595307917888564,
+      0.4066471163245357,
+      0.7409579667644184,
+      0.9990224828934506
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f003": [
+      0.4252199413489736,
+      0.46725317693059626,
+      0.5689149560117303,
+      0.7096774193548387
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f007": [
+      0.30596285434995113,
+      0.4780058651026393,
+      0.4965786901270772,
+      0.7908113391984359
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f012": [
+      0.27468230694037143,
+      0.4467253176930596,
+      0.5571847507331378,
+      0.9237536656891495
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f015": [
+      0.176930596285435,
+      0.4222873900293255,
+      0.6060606060606061,
+      0.9980449657869013
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f003": [
+      0.5034213098729228,
+      0.46725317693059626,
+      0.6441837732160313,
+      0.7047898338220919
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f007": [
+      0.3489736070381232,
+      0.47409579667644186,
+      0.530791788856305,
+      0.7800586510263929
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f012": [
+      0.29716520039100686,
+      0.4574780058651026,
+      0.5689149560117303,
+      0.9032258064516129
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f015": [
+      0.2404692082111437,
+      0.4222873900293255,
+      0.6373411534701857,
+      0.9990224828934506
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f003": [
+      0.38220918866080156,
+      0.46725317693059626,
+      0.5298142717497556,
+      0.7096774193548387
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f007": [
+      0.4809384164222874,
+      0.4760508308895406,
+      0.6754643206256109,
+      0.7976539589442815
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f012": [
+      0.4066471163245357,
+      0.4496578690127077,
+      0.6920821114369502,
+      0.9120234604105572
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f015": [
+      0.3870967741935484,
+      0.4222873900293255,
+      0.7888563049853372,
+      0.9980449657869013
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f003": [
+      0.39296187683284456,
+      0.46725317693059626,
+      0.5386119257086999,
+      0.7145650048875856
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f007": [
+      0.46529814271749753,
+      0.47702834799608995,
+      0.667644183773216,
+      0.8025415444770283
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f012": [
+      0.3597262952101662,
+      0.4467253176930596,
+      0.667644183773216,
+      0.9491691104594331
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f015": [
+      0.22287390029325513,
+      0.4222873900293255,
+      0.6891495601173021,
+      0.9990224828934506
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f003": [
+      0.4252199413489736,
+      0.47214076246334313,
+      0.5689149560117303,
+      0.7096774193548387
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f007": [
+      0.43792766373411535,
+      0.47409579667644186,
+      0.6295210166177908,
+      0.7839687194525904
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f012": [
+      0.4115347018572825,
+      0.45356793743890517,
+      0.7028347996089932,
+      0.9403714565004888
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f015": [
+      0.4310850439882698,
+      0.4222873900293255,
+      0.873900293255132,
+      0.9980449657869013
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f003": [
+      0.48484848484848486,
+      0.46725317693059626,
+      0.6314760508308895,
+      0.7145650048875856
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f007": [
+      0.5190615835777126,
+      0.47214076246334313,
+      0.7272727272727273,
+      0.8093841642228738
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f012": [
+      0.48484848484848486,
+      0.4222873900293255,
+      0.855327468230694,
+      0.9980449657869013
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f015": [
+      0.5386119257086999,
+      0.3704789833822092,
+      0.9990224828934506,
+      0.9980449657869013
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f003": [
+      0.3890518084066471,
+      0.4809384164222874,
+      0.5239491691104594,
+      0.7057673509286413
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f007": [
+      0.47214076246334313,
+      0.458455522971652,
+      0.6373411534701857,
+      0.729227761485826
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f013": [
+      0.21212121212121213,
+      0.4574780058651026,
+      0.5053763440860215,
+      0.9296187683284457
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f016": [
+      0.01466275659824047,
+      0.4222873900293255,
+      0.46529814271749753,
+      0.9980449657869013
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f003": [
+      0.36070381231671556,
+      0.4780058651026393,
+      0.5004887585532747,
+      0.7047898338220919
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f007": [
+      0.5454545454545454,
+      0.458455522971652,
+      0.7047898338220919,
+      0.7233626588465298
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f013": [
+      0.41837732160312807,
+      0.45356793743890517,
+      0.667644183773216,
+      0.8602150537634409
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f016": [
+      0.4447702834799609,
+      0.4496578690127077,
+      0.7888563049853372,
+      0.9980449657869013
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f003": [
+      0.2903225806451613,
+      0.47214076246334313,
+      0.4359726295210166,
+      0.7145650048875856
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f007": [
+      0.3841642228739003,
+      0.46725317693059626,
+      0.5659824046920822,
+      0.7712609970674487
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f013": [
+      0.3978494623655914,
+      0.4359726295210166,
+      0.7028347996089932,
+      0.9540566959921799
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f016": [
+      0.35581622678396874,
+      0.4359726295210166,
+      0.7888563049853372,
+      0.9990224828934506
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f003": [
+      0.2903225806451613,
+      0.4780058651026393,
+      0.4359726295210166,
+      0.7165200391006843
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f007": [
+      0.36070381231671556,
+      0.46725317693059626,
+      0.5454545454545454,
+      0.7712609970674487
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f013": [
+      0.39296187683284456,
+      0.4359726295210166,
+      0.7135874877810362,
+      0.9775171065493646
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f016": [
+      0.3890518084066471,
+      0.42717497556207235,
+      0.8484848484848485,
+      0.9990224828934506
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f003": [
+      0.447702834799609,
+      0.47214076246334313,
+      0.5913978494623656,
+      0.7145650048875856
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f007": [
+      0.4310850439882698,
+      0.4780058651026393,
+      0.6197458455522972,
+      0.7800586510263929
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f012": [
+      0.36070381231671556,
+      0.45454545454545453,
+      0.6422287390029325,
+      0.9237536656891495
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f015": [
+      0.3489736070381232,
+      0.4252199413489736,
+      0.7565982404692082,
+      0.9980449657869013
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f003": [
+      0.43206256109481916,
+      0.46725317693059626,
+      0.581622678396872,
+      0.7126099706744868
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f007": [
+      0.3870967741935484,
+      0.4780058651026393,
+      0.5728250244379277,
+      0.7839687194525904
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f012": [
+      0.2785923753665689,
+      0.45356793743890517,
+      0.5689149560117303,
+      0.9384164222873901
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f015": [
+      0.15640273704789834,
+      0.4222873900293255,
+      0.6089931573802542,
+      0.9980449657869013
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f003": [
+      0.5483870967741935,
+      0.4613880742913001,
+      0.6959921798631477,
+      0.7047898338220919
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f007": [
+      0.41544477028348,
+      0.46725317693059626,
+      0.5972629521016618,
+      0.7644183773216031
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f012": [
+      0.3548387096774194,
+      0.4467253176930596,
+      0.6383186705767351,
+      0.9266862170087976
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f015": [
+      0.2434017595307918,
+      0.42717497556207235,
+      0.6715542521994134,
+      0.9990224828934506
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f003": [
+      0.5845552297165201,
+      0.4613880742913001,
+      0.7360703812316716,
+      0.6999022482893451
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f007": [
+      0.46529814271749753,
+      0.46725317693059626,
+      0.6441837732160313,
+      0.761485826001955
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f013": [
+      0.5532746823069403,
+      0.4398826979472141,
+      0.8377321603128055,
+      0.9560117302052786
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f016": [
+      0.6490713587487781,
+      0.4095796676441838,
+      0.9990224828934506,
+      0.9980449657869013
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f002": [
+      0.40860215053763443,
+      0.4780058651026393,
+      0.5386119257086999,
+      0.6920821114369502
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f006": [
+      0.3998044965786901,
+      0.47214076246334313,
+      0.5454545454545454,
+      0.7145650048875856
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f011": [
+      0.26392961876832843,
+      0.4780058651026393,
+      0.46920821114369504,
+      0.8250244379276638
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f014": [
+      0.10459433040078202,
+      0.45356793743890517,
+      0.38514173998044965,
+      0.9247311827956989
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f002": [
+      0.581622678396872,
+      0.46725317693059626,
+      0.7253176930596286,
+      0.7028347996089932
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f006": [
+      0.555229716520039,
+      0.4780058651026393,
+      0.7272727272727273,
+      0.7595307917888563
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f010": [
+      0.4310850439882698,
+      0.4662756598240469,
+      0.667644183773216,
+      0.844574780058651
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f014": [
+      0.2570869990224829,
+      0.41837732160312807,
+      0.6285434995112414,
+      0.9980449657869013
+    ]
+  },
+  "ow_th025": {
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f002": [
+      0.42766222953796384,
+      0.477344724867079,
+      0.5831496238708496,
+      0.7289449903700087
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f005": [
+      0.39710474014282227,
+      0.47519251505533855,
+      0.5927650451660156,
+      0.7898204379611545
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f009": [
+      0.28063168525695803,
+      0.4465829637315538,
+      0.5713006019592285,
+      0.922918701171875
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f012": [
+      0.19405102729797363,
+      0.4249391343858507,
+      0.6666304588317871,
+      0.9978279961480034
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f002": [
+      0.4081234931945801,
+      0.47509078979492186,
+      0.5624899387359619,
+      0.7307204352484808
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f005": [
+      0.38505542278289795,
+      0.47508392333984373,
+      0.5836718082427979,
+      0.7991343180338542
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f009": [
+      0.3140976905822754,
+      0.44730356004503036,
+      0.6309961795806884,
+      0.9588907029893663
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f012": [
+      0.1804713010787964,
+      0.4173909929063585,
+      0.7399928569793701,
+      1.000782436794705
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f003": [
+      0.4260382175445557,
+      0.4721879323323568,
+      0.5730342388153076,
+      0.7102105458577473
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f007": [
+      0.30706474781036375,
+      0.48073243035210506,
+      0.4985494136810303,
+      0.7921131557888454
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f012": [
+      0.2687478542327881,
+      0.4462476094563802,
+      0.5577194213867187,
+      0.922141350640191
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f015": [
+      0.1800755500793457,
+      0.42633726331922744,
+      0.6046322822570801,
+      0.9929070366753472
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f003": [
+      0.5031556606292724,
+      0.47213452657063804,
+      0.6472415447235107,
+      0.708214611477322
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f007": [
+      0.3463402032852173,
+      0.4791020711263021,
+      0.5329380035400391,
+      0.7790396796332465
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f012": [
+      0.297553563117981,
+      0.4551964653862847,
+      0.5678323745727539,
+      0.9017172071668836
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f015": [
+      0.241333270072937,
+      0.4284976959228516,
+      0.6369722366333008,
+      0.9969846937391493
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f003": [
+      0.3803252220153809,
+      0.46827740139431423,
+      0.5276484012603759,
+      0.7116258409288194
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f007": [
+      0.483003568649292,
+      0.4787644280327691,
+      0.6733946323394775,
+      0.7950347900390625
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f012": [
+      0.40950403213500974,
+      0.4511769612630208,
+      0.69122314453125,
+      0.9164258321126302
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f015": [
+      0.38934717178344724,
+      0.4227575514051649,
+      0.7909140586853027,
+      0.9934421115451388
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f003": [
+      0.39147181510925294,
+      0.47011549207899306,
+      0.541419792175293,
+      0.7164665222167969
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f007": [
+      0.46952204704284667,
+      0.4793564690483941,
+      0.6651096820831299,
+      0.8051807827419705
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f012": [
+      0.35962471961975095,
+      0.4506728278266059,
+      0.666386604309082,
+      0.9517527262369792
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f015": [
+      0.224122953414917,
+      0.4295226626925998,
+      0.6898451805114746,
+      0.9990224202473958
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f003": [
+      0.4221019268035889,
+      0.4759815639919705,
+      0.5727500915527344,
+      0.7112616644965277
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f007": [
+      0.440150785446167,
+      0.4801330142550998,
+      0.6322794437408448,
+      0.7884884304470486
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f012": [
+      0.41327433586120604,
+      0.4563276926676432,
+      0.7054994106292725,
+      0.9480294121636285
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f015": [
+      0.4343864440917969,
+      0.42365375094943575,
+      0.8810608863830567,
+      1.002728017171224
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f003": [
+      0.48419756889343263,
+      0.4739788903130425,
+      0.6352732181549072,
+      0.7148033989800348
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f007": [
+      0.5213241577148438,
+      0.47100401984320744,
+      0.7272290229797364,
+      0.8112940470377604
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f012": [
+      0.48915748596191405,
+      0.4245702107747396,
+      0.8578094482421875,
+      0.9973580254448785
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f015": null,
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f003": [
+      0.38704648017883303,
+      0.4850811004638672,
+      0.5269804954528808,
+      0.7079430050320096
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f007": [
+      0.47615666389465333,
+      0.4593204074435764,
+      0.6394651412963868,
+      0.7312123616536458
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f013": [
+      0.2162837266921997,
+      0.4560959710015191,
+      0.5086100578308106,
+      0.9310750325520833
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f016": [
+      0.012537017464637756,
+      0.42603865729437934,
+      0.47044939994812013,
+      0.9984792073567709
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f003": [
+      0.35873677730560305,
+      0.48439657423231336,
+      0.4986229419708252,
+      0.7097288343641494
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f007": [
+      0.5451929569244385,
+      0.4564077589246962,
+      0.7041871547698975,
+      0.7221076117621528
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f013": [
+      0.4170808792114258,
+      0.45606405470106337,
+      0.6657505035400391,
+      0.8590653313530816
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f016": [
+      0.45043196678161623,
+      0.4484697977701823,
+      0.7928677558898926,
+      0.9974603441026476
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f003": [
+      0.2879147529602051,
+      0.47841385735405817,
+      0.4373745918273926,
+      0.7144124348958333
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f007": [
+      0.3825064182281494,
+      0.4745523664686415,
+      0.5704473495483399,
+      0.771323479546441
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f013": [
+      0.39729084968566897,
+      0.43694831000434026,
+      0.7028571128845215,
+      0.9518132527669271
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f016": [
+      0.35449862480163574,
+      0.4426753573947483,
+      0.790656566619873,
+      0.9971133761935764
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f003": [
+      0.28717951774597167,
+      0.48059938218858506,
+      0.43637428283691404,
+      0.7165193345811632
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f007": [
+      0.35991339683532714,
+      0.477587890625,
+      0.549091100692749,
+      0.7745134141710069
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f013": [
+      0.3927438735961914,
+      0.43911378648546007,
+      0.7113711357116699,
+      0.9798605177137587
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f016": [
+      0.39228737354278564,
+      0.43008660210503474,
+      0.8514303207397461,
+      0.9943406846788194
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f003": [
+      0.4469760894775391,
+      0.4805874294704861,
+      0.5942261219024658,
+      0.7132710774739583
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f007": [
+      0.43538389205932615,
+      0.4834008958604601,
+      0.6215516090393066,
+      0.7817633734809027
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f012": [
+      0.361448073387146,
+      0.4572491963704427,
+      0.6442124843597412,
+      0.9200542873806423
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f015": [
+      0.3518949031829834,
+      0.43054495917426217,
+      0.766597318649292,
+      0.9979789733886719
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f003": [
+      0.43569483757019045,
+      0.47612592909071183,
+      0.5851233005523682,
+      0.7084723578559028
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f007": [
+      0.38520681858062744,
+      0.48270560370551213,
+      0.5752496719360352,
+      0.7855492485894098
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f012": [
+      0.2797772645950317,
+      0.4544979519314236,
+      0.5717697143554688,
+      0.9377188788519966
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f015": [
+      0.15598108768463134,
+      0.42788382636176214,
+      0.6079859733581543,
+      0.9955010308159722
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f003": [
+      0.5467649459838867,
+      0.4684214274088542,
+      0.6947818756103515,
+      0.7022154066297743
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f007": [
+      0.4156495571136475,
+      0.47441414727105036,
+      0.5973629951477051,
+      0.7662462870279948
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f012": [
+      0.3574976921081543,
+      0.4507467057969835,
+      0.6399121761322022,
+      0.9302892049153646
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f015": [
+      0.246836519241333,
+      0.4321660359700521,
+      0.6690043449401856,
+      0.9987999810112848
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f003": [
+      0.5904232025146484,
+      0.46325208875868057,
+      0.7389662265777588,
+      0.6963777330186632
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f007": [
+      0.46744670867919924,
+      0.476116943359375,
+      0.6446609497070312,
+      0.7617615593804253
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f013": [
+      0.5547436714172364,
+      0.44648717244466146,
+      0.8418035507202148,
+      0.9601927863226997
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f016": [
+      0.651787281036377,
+      0.42737278408474394,
+      1.0042458534240724,
+      0.9991355048285591
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f002": [
+      0.40627341270446776,
+      0.4853246053059896,
+      0.5382134914398193,
+      0.6950371636284722
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f006": [
+      0.3982582092285156,
+      0.47748709784613713,
+      0.5435159206390381,
+      0.7150922987196181
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f011": [
+      0.26223719120025635,
+      0.4767559899224175,
+      0.47222185134887695,
+      0.8193376329210069
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f014": [
+      0.10657200813293458,
+      0.4528352949354384,
+      0.3840831756591797,
+      0.9251532660590278
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f002": [
+      0.5838250637054443,
+      0.4752307891845703,
+      0.723421049118042,
+      0.7042392730712891
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f006": [
+      0.5584094524383545,
+      0.4807156880696615,
+      0.7254774570465088,
+      0.7568777296278212
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f010": [
+      0.43653068542480467,
+      0.4684378306070964,
+      0.6650137901306152,
+      0.8434481302897135
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f014": [
+      0.2550034046173096,
+      0.4236487918429904,
+      0.6275343894958496,
+      0.9976130167643229
+    ]
+  },
+  "kr": {
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f002": [
+      0.421875,
+      0.484375,
+      0.578125,
+      0.734375
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f005": [
+      0.390625,
+      0.484375,
+      0.578125,
+      0.796875
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f009": [
+      0.265625,
+      0.453125,
+      0.578125,
+      0.921875
+    ],
+    "episode_260408_123008_target_center_straight_path__core__fixed_center_f012": [
+      0.171875,
+      0.421875,
+      0.671875,
+      0.984375
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f002": [
+      0.390625,
+      0.484375,
+      0.578125,
+      0.734375
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f005": [
+      0.390625,
+      0.484375,
+      0.578125,
+      0.796875
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f009": [
+      0.296875,
+      0.453125,
+      0.640625,
+      0.953125
+    ],
+    "episode_260408_130141_target_center_straight_path__core__fixed_center_f012": [
+      0.171875,
+      0.421875,
+      0.734375,
+      0.984375
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f003": [
+      0.421875,
+      0.453125,
+      0.578125,
+      0.703125
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f007": [
+      0.296875,
+      0.484375,
+      0.515625,
+      0.796875
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f012": [
+      0.265625,
+      0.453125,
+      0.546875,
+      0.921875
+    ],
+    "episode_260408_174654_target_center_left_path__core__fixed_center_f015": [
+      0.171875,
+      0.421875,
+      0.609375,
+      0.984375
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f003": [
+      0.484375,
+      0.453125,
+      0.640625,
+      0.703125
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f007": [
+      0.328125,
+      0.484375,
+      0.546875,
+      0.796875
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f012": [
+      0.296875,
+      0.453125,
+      0.578125,
+      0.921875
+    ],
+    "episode_260408_175129_target_center_left_path__core__fixed_center_f015": [
+      0.234375,
+      0.421875,
+      0.640625,
+      0.984375
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f003": [
+      0.390625,
+      0.453125,
+      0.546875,
+      0.703125
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f007": [
+      0.484375,
+      0.484375,
+      0.671875,
+      0.796875
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f012": [
+      0.390625,
+      0.453125,
+      0.703125,
+      0.921875
+    ],
+    "episode_260408_185014_target_center_right_path__core__fixed_center_f015": [
+      0.390625,
+      0.421875,
+      0.796875,
+      0.984375
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f003": [
+      0.390625,
+      0.453125,
+      0.546875,
+      0.734375
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f007": [
+      0.453125,
+      0.484375,
+      0.671875,
+      0.796875
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f012": [
+      0.359375,
+      0.453125,
+      0.671875,
+      0.953125
+    ],
+    "episode_260408_193251_target_center_right_path__core__fixed_center_f015": [
+      0.203125,
+      0.421875,
+      0.703125,
+      0.984375
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f003": [
+      0.421875,
+      0.484375,
+      0.578125,
+      0.703125
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f007": [
+      0.421875,
+      0.484375,
+      0.640625,
+      0.796875
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f012": [
+      0.421875,
+      0.453125,
+      0.703125,
+      0.953125
+    ],
+    "episode_260409_072214_target_left_straight_path__core__fixed_center_f015": [
+      0.421875,
+      0.421875,
+      0.890625,
+      0.984375
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f003": [
+      0.484375,
+      0.453125,
+      0.640625,
+      0.703125
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f007": [
+      0.515625,
+      0.453125,
+      0.734375,
+      0.828125
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f012": [
+      0.484375,
+      0.421875,
+      0.859375,
+      0.984375
+    ],
+    "episode_260409_114531_target_left_straight_path__core__fixed_center_f015": [
+      0.515625,
+      0.359375,
+      0.984375,
+      0.984375
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f003": [
+      0.390625,
+      0.484375,
+      0.515625,
+      0.703125
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f007": [
+      0.484375,
+      0.453125,
+      0.640625,
+      0.734375
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f013": [
+      0.203125,
+      0.453125,
+      0.515625,
+      0.953125
+    ],
+    "episode_260409_124157_target_left_left_path__core__fixed_center_f016": [
+      0.015625,
+      0.421875,
+      0.484375,
+      0.984375
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f003": [
+      0.359375,
+      0.484375,
+      0.515625,
+      0.703125
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f007": [
+      0.546875,
+      0.453125,
+      0.703125,
+      0.734375
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f013": [
+      0.421875,
+      0.453125,
+      0.671875,
+      0.859375
+    ],
+    "episode_260409_195531_target_left_left_path__core__fixed_center_f016": [
+      0.453125,
+      0.453125,
+      0.796875,
+      0.984375
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f003": [
+      0.296875,
+      0.484375,
+      0.453125,
+      0.734375
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f007": [
+      0.390625,
+      0.453125,
+      0.578125,
+      0.765625
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f013": [
+      0.390625,
+      0.421875,
+      0.703125,
+      0.953125
+    ],
+    "episode_260409_123044_target_left_right_path__core__fixed_center_f016": [
+      0.359375,
+      0.421875,
+      0.796875,
+      0.984375
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f003": [
+      0.296875,
+      0.484375,
+      0.453125,
+      0.734375
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f007": [
+      0.359375,
+      0.484375,
+      0.546875,
+      0.765625
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f013": [
+      0.390625,
+      0.421875,
+      0.703125,
+      0.984375
+    ],
+    "episode_260409_123501_target_left_right_path__core__fixed_center_f016": [
+      0.390625,
+      0.421875,
+      0.859375,
+      0.984375
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f003": [
+      0.453125,
+      0.453125,
+      0.609375,
+      0.703125
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f007": [
+      0.421875,
+      0.453125,
+      0.609375,
+      0.796875
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f012": [
+      0.359375,
+      0.453125,
+      0.640625,
+      0.921875
+    ],
+    "episode_260409_134030_target_right_straight_path__core__fixed_center_f015": [
+      0.359375,
+      0.421875,
+      0.765625,
+      0.984375
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f003": [
+      0.421875,
+      0.453125,
+      0.578125,
+      0.703125
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f007": [
+      0.390625,
+      0.484375,
+      0.578125,
+      0.796875
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f012": [
+      0.265625,
+      0.453125,
+      0.578125,
+      0.953125
+    ],
+    "episode_260409_164320_target_right_straight_path__core__fixed_center_f015": [
+      0.140625,
+      0.421875,
+      0.609375,
+      0.984375
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f003": [
+      0.546875,
+      0.453125,
+      0.703125,
+      0.703125
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f007": [
+      0.421875,
+      0.453125,
+      0.609375,
+      0.765625
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f012": [
+      0.359375,
+      0.453125,
+      0.640625,
+      0.921875
+    ],
+    "episode_260409_131126_target_right_left_path__core__fixed_center_f015": [
+      0.234375,
+      0.421875,
+      0.671875,
+      0.984375
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f003": [
+      0.578125,
+      0.453125,
+      0.734375,
+      0.703125
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f007": [
+      0.453125,
+      0.484375,
+      0.640625,
+      0.765625
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f013": [
+      0.546875,
+      0.453125,
+      0.828125,
+      0.953125
+    ],
+    "episode_260409_194325_target_right_left_path__core__fixed_center_f016": [
+      0.640625,
+      0.421875,
+      0.984375,
+      0.984375
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f002": [
+      0.390625,
+      0.484375,
+      0.546875,
+      0.703125
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f006": [
+      0.390625,
+      0.484375,
+      0.546875,
+      0.734375
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f011": [
+      0.265625,
+      0.484375,
+      0.484375,
+      0.828125
+    ],
+    "episode_260409_172906_target_right_right_path__core__fixed_center_f014": [
+      0.109375,
+      0.453125,
+      0.390625,
+      0.921875
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f002": [
+      0.578125,
+      0.453125,
+      0.734375,
+      0.703125
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f006": [
+      0.546875,
+      0.484375,
+      0.734375,
+      0.765625
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f010": [
+      0.421875,
+      0.453125,
+      0.671875,
+      0.859375
+    ],
+    "episode_260409_192131_target_right_right_path__core__fixed_center_f014": [
+      0.234375,
+      0.421875,
+      0.640625,
+      0.984375
+    ]
+  }
+}

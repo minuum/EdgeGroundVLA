@@ -1,0 +1,3050 @@
+{
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f0": {
+    "cx": 0.6964703321456909,
+    "cy": 0.5791501575046115,
+    "area": 0.027754537546843493,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f1": {
+    "cx": 0.6724898338317871,
+    "cy": 0.5781247244940864,
+    "area": 0.029712317846638647,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f2": {
+    "cx": 0.6381294250488281,
+    "cy": 0.5868578381008572,
+    "area": 0.03211035319528796,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f3": {
+    "cx": 0.6159031391143799,
+    "cy": 0.5876094818115234,
+    "area": 0.035526070471557133,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f4": {
+    "cx": 0.5951223850250245,
+    "cy": 0.5928298526340061,
+    "area": 0.0386087996907251,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f5": {
+    "cx": 0.5501769781112671,
+    "cy": 0.6115190717909071,
+    "area": 0.042534019720895044,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f6": {
+    "cx": 0.5154344797134399,
+    "cy": 0.6186630249023437,
+    "area": 0.0460957125128415,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f7": {
+    "cx": 0.513134765625,
+    "cy": 0.6219864315456815,
+    "area": 0.05295938799886953,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f8": {
+    "cx": 0.5224189043045044,
+    "cy": 0.6242826249864366,
+    "area": 0.0611521212049532,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f9": {
+    "cx": 0.5400365114212036,
+    "cy": 0.6386740154690213,
+    "area": 0.0701170483878559,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f10": {
+    "cx": 0.5190200090408326,
+    "cy": 0.6516561508178711,
+    "area": 0.08273515882913772,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f11": {
+    "cx": 0.5056452751159668,
+    "cy": 0.6604534361097547,
+    "area": 0.09808845244003656,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f12": {
+    "cx": 0.4901342034339905,
+    "cy": 0.677586915757921,
+    "area": 0.12070077864393576,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f13": {
+    "cx": 0.4873011112213135,
+    "cy": 0.6964752833048503,
+    "area": 0.14779204367991447,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f14": {
+    "cx": 0.4966450810432434,
+    "cy": 0.7221085230509441,
+    "area": 0.18033533052525855,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f15": {
+    "cx": 0.4708073019981384,
+    "cy": 0.7184226989746094,
+    "area": 0.20694283142117556,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f16": {
+    "cx": 0.4038645029067993,
+    "cy": 0.7126425001356337,
+    "area": 0.24325085336527588,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f17": {
+    "cx": 0.3960739731788635,
+    "cy": 0.7003281063503689,
+    "area": 0.29846749078099793,
+    "has_bbox": true
+  },
+  "episode_260409_194946_target_right_left_path__core__fixed_center_f18": {
+    "cx": 0.31133735179901123,
+    "cy": 0.6825992584228515,
+    "area": 0.37787864402422805,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f0": {
+    "cx": 0.6931647062301636,
+    "cy": 0.5807882520887586,
+    "area": 0.028293353643384773,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f1": {
+    "cx": 0.6646941900253296,
+    "cy": 0.5807121064927843,
+    "area": 0.03080710938056655,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f2": {
+    "cx": 0.6213095188140869,
+    "cy": 0.5885349485609267,
+    "area": 0.032648245482208356,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f3": {
+    "cx": 0.5911520004272461,
+    "cy": 0.5883639017740886,
+    "area": 0.03576142899226398,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f4": {
+    "cx": 0.5540694475173951,
+    "cy": 0.5938176049126519,
+    "area": 0.03854949341532726,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f5": {
+    "cx": 0.5092999935150146,
+    "cy": 0.6135229958428277,
+    "area": 0.042264765961590435,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f6": {
+    "cx": 0.4617457389831543,
+    "cy": 0.6214698367648654,
+    "area": 0.04746382869405756,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f7": {
+    "cx": 0.4695944309234619,
+    "cy": 0.6245572831895616,
+    "area": 0.0547105458772098,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f8": {
+    "cx": 0.48251153230667115,
+    "cy": 0.6325616200764974,
+    "area": 0.06291938752685179,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f9": {
+    "cx": 0.5076820373535156,
+    "cy": 0.6437172359890408,
+    "area": 0.07459170550707007,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f10": {
+    "cx": 0.5094470143318176,
+    "cy": 0.6565925386216905,
+    "area": 0.08946489702589133,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f11": {
+    "cx": 0.4853930711746216,
+    "cy": 0.6671265496148003,
+    "area": 0.10863416111956115,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f12": {
+    "cx": 0.4869267225265503,
+    "cy": 0.6871103286743164,
+    "area": 0.13414391014632604,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f13": {
+    "cx": 0.4817634463310242,
+    "cy": 0.7159396277533637,
+    "area": 0.16871109997166664,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f14": {
+    "cx": 0.45660566091537474,
+    "cy": 0.7212322658962673,
+    "area": 0.2015822576170467,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f15": {
+    "cx": 0.45332276821136475,
+    "cy": 0.7114442189534506,
+    "area": 0.23794951653418842,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f16": {
+    "cx": 0.44143190383911135,
+    "cy": 0.7034429338243273,
+    "area": 0.2864451277074113,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f17": {
+    "cx": 0.414635694026947,
+    "cy": 0.6825048446655273,
+    "area": 0.36615914698491,
+    "has_bbox": true
+  },
+  "episode_260409_195322_target_right_left_path__core__fixed_center_f18": {
+    "cx": 0.37837053537368776,
+    "cy": 0.6510892762078179,
+    "area": 0.5253592262977858,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f0": {
+    "cx": 0.2792854309082031,
+    "cy": 0.5829644733005099,
+    "area": 0.026407486029076818,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f1": {
+    "cx": 0.3192327618598938,
+    "cy": 0.581517473856608,
+    "area": 0.029718224314451095,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f2": {
+    "cx": 0.34592351913452146,
+    "cy": 0.5929393132527669,
+    "area": 0.03245011237993619,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f3": {
+    "cx": 0.36264467239379883,
+    "cy": 0.5964131461249458,
+    "area": 0.03527230937227916,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f4": {
+    "cx": 0.41118968725204463,
+    "cy": 0.5997251934475369,
+    "area": 0.039177135717585174,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f5": {
+    "cx": 0.4355524063110352,
+    "cy": 0.6019893646240235,
+    "area": 0.0440360645478197,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f6": {
+    "cx": 0.4887089967727661,
+    "cy": 0.6127808888753254,
+    "area": 0.048335955665020754,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f7": {
+    "cx": 0.4764768838882446,
+    "cy": 0.6229379230075412,
+    "area": 0.05577543938077119,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f8": {
+    "cx": 0.47113633155822754,
+    "cy": 0.6284241570366753,
+    "area": 0.06396192967859356,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f9": {
+    "cx": 0.5141278982162476,
+    "cy": 0.6410957124498156,
+    "area": 0.07447929395666508,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f10": {
+    "cx": 0.5087687849998475,
+    "cy": 0.6500553554958768,
+    "area": 0.08671270460394426,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f11": {
+    "cx": 0.5075154304504395,
+    "cy": 0.6630997551812066,
+    "area": 0.10388426299155175,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f12": {
+    "cx": 0.5310847043991089,
+    "cy": 0.6748019960191515,
+    "area": 0.12780900821637664,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f13": {
+    "cx": 0.5500739812850952,
+    "cy": 0.6943807813856336,
+    "area": 0.15732535661205474,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f14": {
+    "cx": 0.582633662223816,
+    "cy": 0.7215110354953341,
+    "area": 0.1889129838110845,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f15": {
+    "cx": 0.5949306488037109,
+    "cy": 0.7206682840983073,
+    "area": 0.21164090379262537,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f16": {
+    "cx": 0.5725775957107544,
+    "cy": 0.7198943667941624,
+    "area": 0.24182254514507806,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f17": {
+    "cx": 0.5574767589569092,
+    "cy": 0.7126717461480034,
+    "area": 0.28782039286573613,
+    "has_bbox": true
+  },
+  "episode_260409_123044_target_left_right_path__core__fixed_center_f18": {
+    "cx": 0.5193879127502441,
+    "cy": 0.6875377655029298,
+    "area": 0.37945348899441245,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f0": {
+    "cx": 0.2832109212875366,
+    "cy": 0.5772864871554905,
+    "area": 0.027386689500296296,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f1": {
+    "cx": 0.5117636919021606,
+    "cy": 0.5790370729234483,
+    "area": 0.027577844561619706,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f2": {
+    "cx": 0.5323082685470581,
+    "cy": 0.5911670684814453,
+    "area": 0.03177521968605612,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f3": {
+    "cx": 0.5574517965316772,
+    "cy": 0.5959461212158204,
+    "area": 0.034384972446403275,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f4": {
+    "cx": 0.5591279983520507,
+    "cy": 0.594314702351888,
+    "area": 0.03884896869809989,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f5": {
+    "cx": 0.568320894241333,
+    "cy": 0.6067000495062934,
+    "area": 0.04391906963525495,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f6": {
+    "cx": 0.5877849578857421,
+    "cy": 0.6153889338175456,
+    "area": 0.04914453659730497,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f7": {
+    "cx": 0.6231277704238891,
+    "cy": 0.6305330700344509,
+    "area": 0.054254971785030644,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f8": {
+    "cx": 0.6441179513931274,
+    "cy": 0.6388220469156901,
+    "area": 0.06173431230460362,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f9": {
+    "cx": 0.644522738456726,
+    "cy": 0.6444959852430556,
+    "area": 0.07131600926450728,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f10": {
+    "cx": 0.6819089174270629,
+    "cy": 0.6458143022325304,
+    "area": 0.08205315937167243,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f11": {
+    "cx": 0.6884272336959839,
+    "cy": 0.6585899776882596,
+    "area": 0.09646318509180778,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f12": {
+    "cx": 0.706697940826416,
+    "cy": 0.6793019824557834,
+    "area": 0.11672767286930237,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f13": {
+    "cx": 0.7116926908493042,
+    "cy": 0.69415406121148,
+    "area": 0.14075479307630306,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f14": {
+    "cx": 0.7142071723937988,
+    "cy": 0.7168098873562283,
+    "area": 0.17758714876860415,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f15": {
+    "cx": 0.7237219095230103,
+    "cy": 0.7128865559895833,
+    "area": 0.21743088304974664,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f16": {
+    "cx": 0.7825828075408936,
+    "cy": 0.7105382919311524,
+    "area": 0.24395332498398703,
+    "has_bbox": true
+  },
+  "episode_260409_121855_target_left_straight_path__core__fixed_center_f17": {
+    "cx": 0.797763442993164,
+    "cy": 0.705251333448622,
+    "area": 0.24278108179329128,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f0": {
+    "cx": 0.51636962890625,
+    "cy": 0.5897352854410808,
+    "area": 0.02938864876038377,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f1": {
+    "cx": 0.5097745180130004,
+    "cy": 0.5902619891696506,
+    "area": 0.034181271119824566,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f2": {
+    "cx": 0.4721503257751465,
+    "cy": 0.6028030183580186,
+    "area": 0.038940422679297634,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f3": {
+    "cx": 0.4822816848754883,
+    "cy": 0.608290312025282,
+    "area": 0.044741332405990555,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f4": {
+    "cx": 0.47477896213531495,
+    "cy": 0.613668229844835,
+    "area": 0.05063401429573586,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f5": {
+    "cx": 0.4543688178062439,
+    "cy": 0.6344519721137153,
+    "area": 0.058219583574201456,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f6": {
+    "cx": 0.46411585807800293,
+    "cy": 0.641686036851671,
+    "area": 0.06722586410445122,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f7": {
+    "cx": 0.42388466596603397,
+    "cy": 0.6530115551418728,
+    "area": 0.07940448533709363,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f8": {
+    "cx": 0.4063432335853577,
+    "cy": 0.663377465142144,
+    "area": 0.09430672421841639,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f9": {
+    "cx": 0.3798295259475708,
+    "cy": 0.6767053604125977,
+    "area": 0.11443945009690049,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f10": {
+    "cx": 0.33075559735298155,
+    "cy": 0.692824935913086,
+    "area": 0.1404955611697339,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f11": {
+    "cx": 0.274367892742157,
+    "cy": 0.7114132775200738,
+    "area": 0.17831005560028648,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f12": {
+    "cx": 0.28155036866664884,
+    "cy": 0.711099836561415,
+    "area": 0.21434659148064386,
+    "has_bbox": true
+  },
+  "episode_260408_164316_target_center_straight_path__core__fixed_center_f13": {
+    "cx": 0.24172401279211045,
+    "cy": 0.7115032196044921,
+    "area": 0.24804342303320207,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f0": {
+    "cx": 0.5,
+    "cy": 0.5,
+    "area": 0.05,
+    "has_bbox": false
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f1": {
+    "cx": 0.6713467836380005,
+    "cy": 0.579130490620931,
+    "area": 0.02997887069908149,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f2": {
+    "cx": 0.6398232460021973,
+    "cy": 0.5865389929877387,
+    "area": 0.032417817605609245,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f3": {
+    "cx": 0.6012809991836547,
+    "cy": 0.5844546424018012,
+    "area": 0.03572100902727269,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f4": {
+    "cx": 0.5663005113601685,
+    "cy": 0.5951329549153646,
+    "area": 0.03846895058433196,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f5": {
+    "cx": 0.5274329900741577,
+    "cy": 0.613067626953125,
+    "area": 0.04242415723048097,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f6": {
+    "cx": 0.48503345251083374,
+    "cy": 0.6178521050347222,
+    "area": 0.04720330785738041,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f7": {
+    "cx": 0.4811979651451111,
+    "cy": 0.624861356947157,
+    "area": 0.054096212769139417,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f8": {
+    "cx": 0.51067214012146,
+    "cy": 0.6254816691080729,
+    "area": 0.06207816452709571,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f9": {
+    "cx": 0.527597975730896,
+    "cy": 0.6445428848266601,
+    "area": 0.07288926331989085,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f10": {
+    "cx": 0.5379795074462891,
+    "cy": 0.654293950398763,
+    "area": 0.0868522750521758,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f11": {
+    "cx": 0.5224930047988892,
+    "cy": 0.6684658686319986,
+    "area": 0.10619213228544239,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f12": {
+    "cx": 0.5084275603294373,
+    "cy": 0.6841370900472006,
+    "area": 0.13032254131367155,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f13": {
+    "cx": 0.5236754536628723,
+    "cy": 0.7125932693481445,
+    "area": 0.1638853385823808,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f14": {
+    "cx": 0.5244343757629395,
+    "cy": 0.7236099243164062,
+    "area": 0.19562449633109888,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f15": {
+    "cx": 0.4718366146087647,
+    "cy": 0.7160990185207791,
+    "area": 0.22871213684286185,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f16": {
+    "cx": 0.47488951683044434,
+    "cy": 0.7050443437364367,
+    "area": 0.2758382010817311,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f17": {
+    "cx": 0.44229577779769896,
+    "cy": 0.69258910285102,
+    "area": 0.3438520098191475,
+    "has_bbox": true
+  },
+  "episode_260409_195221_target_right_left_path__core__fixed_center_f18": {
+    "cx": 0.47836430072784425,
+    "cy": 0.6552474657694499,
+    "area": 0.4693993981450179,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f0": {
+    "cx": 0.5056630373001099,
+    "cy": 0.5878441492716471,
+    "area": 0.029321265678075487,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f1": {
+    "cx": 0.3945717453956604,
+    "cy": 0.587405734592014,
+    "area": 0.02936794080915206,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f2": {
+    "cx": 0.41336835622787477,
+    "cy": 0.587432861328125,
+    "area": 0.033444087131073406,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f3": {
+    "cx": 0.44865199327468874,
+    "cy": 0.5935274759928386,
+    "area": 0.03721415545147062,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f4": {
+    "cx": 0.49617624282836914,
+    "cy": 0.6048966725667317,
+    "area": 0.04108908324235622,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f5": {
+    "cx": 0.5431405782699585,
+    "cy": 0.6155103895399305,
+    "area": 0.04557505134876312,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f6": {
+    "cx": 0.5588559150695801,
+    "cy": 0.6333919525146484,
+    "area": 0.053005253076359324,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f7": {
+    "cx": 0.5557638168334961,
+    "cy": 0.6387277603149414,
+    "area": 0.06189029517182562,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f8": {
+    "cx": 0.550539493560791,
+    "cy": 0.6488142013549805,
+    "area": 0.07161219971749233,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f9": {
+    "cx": 0.5309125423431397,
+    "cy": 0.6618430455525716,
+    "area": 0.08537660677314608,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f10": {
+    "cx": 0.5202084302902221,
+    "cy": 0.6725547366672092,
+    "area": 0.10351898786043924,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f11": {
+    "cx": 0.4769873023033142,
+    "cy": 0.6838102340698242,
+    "area": 0.11997146373635388,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f12": {
+    "cx": 0.44914281368255615,
+    "cy": 0.6915391710069445,
+    "area": 0.14414490219706852,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f13": {
+    "cx": 0.4260806679725647,
+    "cy": 0.7099149492051866,
+    "area": 0.1799338732793149,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f14": {
+    "cx": 0.4052143096923828,
+    "cy": 0.7148467169867622,
+    "area": 0.21390471813982007,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f15": {
+    "cx": 0.3795869588851929,
+    "cy": 0.7104635450575086,
+    "area": 0.25901510969662117,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f16": {
+    "cx": 0.3554317533969879,
+    "cy": 0.706496344672309,
+    "area": 0.309920467923348,
+    "has_bbox": true
+  },
+  "episode_260408_194030_target_center_right_path__core__fixed_center_f17": {
+    "cx": 0.3466544508934021,
+    "cy": 0.7030120001898872,
+    "area": 0.40919237036986794,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f0": {
+    "cx": 0.4904244184494019,
+    "cy": 0.5867465549045139,
+    "area": 0.02918003694418682,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f1": {
+    "cx": 0.3927358388900757,
+    "cy": 0.5840348773532444,
+    "area": 0.029205999153093427,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f2": {
+    "cx": 0.40494370460510254,
+    "cy": 0.5920789506700304,
+    "area": 0.032782895006635546,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f3": {
+    "cx": 0.4364973545074463,
+    "cy": 0.5909643385145399,
+    "area": 0.036003714173501865,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f4": {
+    "cx": 0.48403747081756593,
+    "cy": 0.6065271801418728,
+    "area": 0.04033035292014677,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f5": {
+    "cx": 0.507882833480835,
+    "cy": 0.6181669659084744,
+    "area": 0.04497280130190725,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f6": {
+    "cx": 0.5482486248016357,
+    "cy": 0.6305729336208767,
+    "area": 0.051389599274746914,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f7": {
+    "cx": 0.5351838350296021,
+    "cy": 0.6361503177218967,
+    "area": 0.06027326492967406,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f8": {
+    "cx": 0.5245275497436523,
+    "cy": 0.6414920383029514,
+    "area": 0.06996253878861254,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f9": {
+    "cx": 0.5037731051445007,
+    "cy": 0.6512921227349175,
+    "area": 0.0837013510206998,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f10": {
+    "cx": 0.4880006432533264,
+    "cy": 0.666336186726888,
+    "area": 0.10152203726794247,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f11": {
+    "cx": 0.44979392290115355,
+    "cy": 0.6803465949164497,
+    "area": 0.11667633791623101,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f12": {
+    "cx": 0.424235475063324,
+    "cy": 0.69029663933648,
+    "area": 0.1418345201373025,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f13": {
+    "cx": 0.40392948389053346,
+    "cy": 0.709532356262207,
+    "area": 0.17646577471308267,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f14": {
+    "cx": 0.38877567052841183,
+    "cy": 0.7152522193060982,
+    "area": 0.212710991777763,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f15": {
+    "cx": 0.38637483716011045,
+    "cy": 0.7079684363471137,
+    "area": 0.2634685462543439,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f16": {
+    "cx": 0.36555124521255494,
+    "cy": 0.7104560852050781,
+    "area": 0.3216307424952296,
+    "has_bbox": true
+  },
+  "episode_260408_190853_target_center_right_path__core__fixed_center_f17": {
+    "cx": 0.36021542847156524,
+    "cy": 0.69385740492079,
+    "area": 0.4420435908563135,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f0": {
+    "cx": 0.5,
+    "cy": 0.5,
+    "area": 0.05,
+    "has_bbox": false
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f1": {
+    "cx": 0.4690425157546997,
+    "cy": 0.5832623375786675,
+    "area": 0.028272437118814404,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f2": {
+    "cx": 0.5047465085983276,
+    "cy": 0.5866757922702366,
+    "area": 0.03103941637170364,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f3": {
+    "cx": 0.5104090690612793,
+    "cy": 0.5922991434733074,
+    "area": 0.03471916972978053,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f4": {
+    "cx": 0.5150227546691895,
+    "cy": 0.6040265401204427,
+    "area": 0.038992507813317284,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f5": {
+    "cx": 0.46068185567855835,
+    "cy": 0.6100707160101997,
+    "area": 0.04455392292689794,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f6": {
+    "cx": 0.4891479730606079,
+    "cy": 0.6215828789605035,
+    "area": 0.049696512906981925,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f7": {
+    "cx": 0.4802282452583313,
+    "cy": 0.634127426147461,
+    "area": 0.05755327039428773,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f8": {
+    "cx": 0.4825281023979187,
+    "cy": 0.633712641398112,
+    "area": 0.06677235900872094,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f9": {
+    "cx": 0.4647473573684693,
+    "cy": 0.6557821697658963,
+    "area": 0.07781859340841242,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f10": {
+    "cx": 0.44417309761047363,
+    "cy": 0.6593557357788086,
+    "area": 0.09462073424014106,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f11": {
+    "cx": 0.42407279014587407,
+    "cy": 0.6730757395426432,
+    "area": 0.11448127877520169,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f12": {
+    "cx": 0.42577348947525023,
+    "cy": 0.6961084153917101,
+    "area": 0.1410968622270472,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f13": {
+    "cx": 0.40152401924133296,
+    "cy": 0.7173249562581381,
+    "area": 0.1833589191939811,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f14": {
+    "cx": 0.3980266571044922,
+    "cy": 0.7111931694878473,
+    "area": 0.21869234130790574,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f15": {
+    "cx": 0.38198353052139283,
+    "cy": 0.7116924285888672,
+    "area": 0.2565657496056499,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f16": {
+    "cx": 0.35772035717964173,
+    "cy": 0.7060403611924914,
+    "area": 0.3267650220567096,
+    "has_bbox": true
+  },
+  "episode_260409_164320_target_right_straight_path__core__fixed_center_f17": {
+    "cx": 0.3138374835252762,
+    "cy": 0.6943599489000108,
+    "area": 0.3852316380829014,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f0": {
+    "cx": 0.25940283536911013,
+    "cy": 0.5822320726182726,
+    "area": 0.02692733864647986,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f1": {
+    "cx": 0.29055213928222656,
+    "cy": 0.582121213277181,
+    "area": 0.029020347608889604,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f2": {
+    "cx": 0.3336484551429748,
+    "cy": 0.5928076002332899,
+    "area": 0.032513973510326144,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f3": {
+    "cx": 0.36056797504425053,
+    "cy": 0.5982847849527995,
+    "area": 0.03483123301514246,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f4": {
+    "cx": 0.38908287286758425,
+    "cy": 0.6044374889797635,
+    "area": 0.03888194912998795,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f5": {
+    "cx": 0.42317049503326415,
+    "cy": 0.6087108612060548,
+    "area": 0.04327584069921108,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f6": {
+    "cx": 0.44729366302490237,
+    "cy": 0.6116628646850586,
+    "area": 0.04834137229699992,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f7": {
+    "cx": 0.42092945575714114,
+    "cy": 0.6255732642279731,
+    "area": 0.05540024465245452,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f8": {
+    "cx": 0.42310554981231685,
+    "cy": 0.6340994305080838,
+    "area": 0.0654935414193157,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f9": {
+    "cx": 0.4349216461181641,
+    "cy": 0.6433897866143121,
+    "area": 0.0755237631679241,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f10": {
+    "cx": 0.45864760875701904,
+    "cy": 0.647513559129503,
+    "area": 0.08971781176297658,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f11": {
+    "cx": 0.4409221649169922,
+    "cy": 0.6652594248453776,
+    "area": 0.10896526652309049,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f12": {
+    "cx": 0.4466129541397095,
+    "cy": 0.6804298400878906,
+    "area": 0.1356714334131296,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f13": {
+    "cx": 0.45252490043640137,
+    "cy": 0.7094501071506076,
+    "area": 0.16954665154318918,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f14": {
+    "cx": 0.4881656885147095,
+    "cy": 0.7203840891520182,
+    "area": 0.1996888006890246,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f15": {
+    "cx": 0.4802726149559021,
+    "cy": 0.7268773396809896,
+    "area": 0.21639624871316002,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f16": {
+    "cx": 0.5060577511787414,
+    "cy": 0.7173357009887695,
+    "area": 0.2573047517742422,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f17": {
+    "cx": 0.4629746496677399,
+    "cy": 0.7034315533108181,
+    "area": 0.31428849155806093,
+    "has_bbox": true
+  },
+  "episode_260409_123322_target_left_right_path__core__fixed_center_f18": {
+    "cx": 0.41384001076221466,
+    "cy": 0.6677283498975966,
+    "area": 0.4307874850716449,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f0": {
+    "cx": 0.7073476314544678,
+    "cy": 0.578150749206543,
+    "area": 0.027597753467590434,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f1": {
+    "cx": 0.47206118106842043,
+    "cy": 0.5820137659708658,
+    "area": 0.02820716742730332,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f2": {
+    "cx": 0.47592668533325194,
+    "cy": 0.5852830039130317,
+    "area": 0.03104704176770206,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f3": {
+    "cx": 0.5016280889511109,
+    "cy": 0.5932586034138997,
+    "area": 0.03464989988119366,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f4": {
+    "cx": 0.4910282135009766,
+    "cy": 0.6054952833387587,
+    "area": 0.03930180013040728,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f5": {
+    "cx": 0.4603786945343018,
+    "cy": 0.6124179416232639,
+    "area": 0.044086288289690856,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f6": {
+    "cx": 0.4896858215332031,
+    "cy": 0.6210894690619575,
+    "area": 0.049959196638454974,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f7": {
+    "cx": 0.5060512304306031,
+    "cy": 0.633676783243815,
+    "area": 0.05761013116160839,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f8": {
+    "cx": 0.520075511932373,
+    "cy": 0.6330447514851888,
+    "area": 0.06565198926260765,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f9": {
+    "cx": 0.5060524940490723,
+    "cy": 0.6561928007337782,
+    "area": 0.07701050460530193,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f10": {
+    "cx": 0.48688421249389646,
+    "cy": 0.6588653776380751,
+    "area": 0.09210319986164299,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f11": {
+    "cx": 0.47199511528015137,
+    "cy": 0.6700823889838325,
+    "area": 0.11129614343610432,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f12": {
+    "cx": 0.4673361539840698,
+    "cy": 0.6917743894788955,
+    "area": 0.1370409495141394,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f13": {
+    "cx": 0.4755449891090393,
+    "cy": 0.7149567074245877,
+    "area": 0.1752141388461496,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f14": {
+    "cx": 0.4961650609970093,
+    "cy": 0.7126381132337782,
+    "area": 0.212563973385014,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f15": {
+    "cx": 0.47030571699142454,
+    "cy": 0.7123411390516493,
+    "area": 0.24132411297776948,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f16": {
+    "cx": 0.4581860423088074,
+    "cy": 0.7102728101942275,
+    "area": 0.2950689047655033,
+    "has_bbox": true
+  },
+  "episode_260409_163701_target_right_straight_path__core__fixed_center_f17": {
+    "cx": 0.4652434229850769,
+    "cy": 0.6960693571302625,
+    "area": 0.39249198684921494,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f0": {
+    "cx": 0.2887911558151245,
+    "cy": 0.5824666553073459,
+    "area": 0.026974182171317,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f1": {
+    "cx": 0.2593790292739868,
+    "cy": 0.583457522922092,
+    "area": 0.030643837407842517,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f2": {
+    "cx": 0.3549195766448975,
+    "cy": 0.5933495627509223,
+    "area": 0.03099054055989351,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f3": {
+    "cx": 0.47433130741119384,
+    "cy": 0.5956394407484267,
+    "area": 0.03106573259572543,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f4": {
+    "cx": 0.576554822921753,
+    "cy": 0.5901061164008247,
+    "area": 0.03012799311084867,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f5": {
+    "cx": 0.5406849145889282,
+    "cy": 0.5842994054158529,
+    "area": 0.03279809293083114,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f6": {
+    "cx": 0.52663733959198,
+    "cy": 0.58300109439426,
+    "area": 0.0379716651020519,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f7": {
+    "cx": 0.5168781757354737,
+    "cy": 0.5914088355170356,
+    "area": 0.04294905994255614,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f8": {
+    "cx": 0.5214473247528076,
+    "cy": 0.6087457868787978,
+    "area": 0.04895395678512513,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f9": {
+    "cx": 0.5210682868957519,
+    "cy": 0.6246675703260633,
+    "area": 0.05662843793979846,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f10": {
+    "cx": 0.4939241170883179,
+    "cy": 0.6312664243910048,
+    "area": 0.0669028872547339,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f11": {
+    "cx": 0.46469395160675053,
+    "cy": 0.6349952061971029,
+    "area": 0.0795673076295316,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f12": {
+    "cx": 0.43558037281036377,
+    "cy": 0.6515181647406684,
+    "area": 0.09505027985652205,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f13": {
+    "cx": 0.3882541298866272,
+    "cy": 0.6746105617947049,
+    "area": 0.11809667991026801,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f14": {
+    "cx": 0.3433583498001099,
+    "cy": 0.7008487701416015,
+    "area": 0.14626384614754595,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f15": {
+    "cx": 0.3032359480857849,
+    "cy": 0.7246735678778754,
+    "area": 0.18423864231907222,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f16": {
+    "cx": 0.2721221804618835,
+    "cy": 0.7108298619588216,
+    "area": 0.2214163260186888,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f17": {
+    "cx": 0.25174138098955157,
+    "cy": 0.7097248713175456,
+    "area": 0.2603832497682597,
+    "has_bbox": true
+  },
+  "episode_260409_195440_target_left_left_path__core__fixed_center_f18": {
+    "cx": 0.23306668400764466,
+    "cy": 0.70601560804579,
+    "area": 0.2724337059101951,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f0": {
+    "cx": 0.5096393346786499,
+    "cy": 0.5912904527452256,
+    "area": 0.029834034628705305,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f1": {
+    "cx": 0.5174948453903199,
+    "cy": 0.5891763899061415,
+    "area": 0.034186546814857555,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f2": {
+    "cx": 0.5280598402023315,
+    "cy": 0.6051493750678169,
+    "area": 0.03937231999025243,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f3": {
+    "cx": 0.5112670421600342,
+    "cy": 0.6050899293687608,
+    "area": 0.04617179622920149,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f4": {
+    "cx": 0.5098296880722046,
+    "cy": 0.6216334025065104,
+    "area": 0.05304231226283367,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f5": {
+    "cx": 0.501609492301941,
+    "cy": 0.6384035322401259,
+    "area": 0.06175624635713677,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f6": {
+    "cx": 0.5008267045021058,
+    "cy": 0.6477047390407986,
+    "area": 0.07435292065386925,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f7": {
+    "cx": 0.46892728805541994,
+    "cy": 0.6570458941989474,
+    "area": 0.09002371525295734,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f8": {
+    "cx": 0.5309170484542847,
+    "cy": 0.6758123397827148,
+    "area": 0.10976508573022027,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f9": {
+    "cx": 0.5378937721252441,
+    "cy": 0.6886567221747505,
+    "area": 0.1394768143089661,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f10": {
+    "cx": 0.5303590893745422,
+    "cy": 0.7123453352186415,
+    "area": 0.18042210521070348,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f11": {
+    "cx": 0.5307217597961426,
+    "cy": 0.713872316148546,
+    "area": 0.22255128549732037,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f12": {
+    "cx": 0.53587406873703,
+    "cy": 0.7129009670681423,
+    "area": 0.26609586844388106,
+    "has_bbox": true
+  },
+  "episode_260408_164821_target_center_straight_path__core__fixed_center_f13": {
+    "cx": 0.524510407447815,
+    "cy": 0.7089270485772027,
+    "area": 0.3335746254245148,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f0": {
+    "cx": 0.6762532472610474,
+    "cy": 0.5835745069715712,
+    "area": 0.028093889053780005,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f1": {
+    "cx": 0.46692578792572026,
+    "cy": 0.5826592975192599,
+    "area": 0.02828998264658771,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f2": {
+    "cx": 0.44966881275177,
+    "cy": 0.5854739083184136,
+    "area": 0.03157872512247195,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f3": {
+    "cx": 0.48231821060180663,
+    "cy": 0.5973362180921766,
+    "area": 0.03504861610910061,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f4": {
+    "cx": 0.49007019996643064,
+    "cy": 0.6053356170654297,
+    "area": 0.039756207900128265,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f5": {
+    "cx": 0.47819855213165285,
+    "cy": 0.6085711161295573,
+    "area": 0.0453027850110973,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f6": {
+    "cx": 0.4931934833526611,
+    "cy": 0.626248402065701,
+    "area": 0.05222844052079583,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f7": {
+    "cx": 0.4911304473876953,
+    "cy": 0.6308576371934679,
+    "area": 0.06070881471711295,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f8": {
+    "cx": 0.5061506032943726,
+    "cy": 0.6457557254367404,
+    "area": 0.06962670657850444,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f9": {
+    "cx": 0.48643678426742554,
+    "cy": 0.6536130481296116,
+    "area": 0.0817583929935457,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f10": {
+    "cx": 0.4807198524475098,
+    "cy": 0.6668965021769205,
+    "area": 0.10014248895731727,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f11": {
+    "cx": 0.4690557241439819,
+    "cy": 0.6790743933783637,
+    "area": 0.12275906297987402,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f12": {
+    "cx": 0.4826498508453369,
+    "cy": 0.70794677734375,
+    "area": 0.15428225898571932,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f13": {
+    "cx": 0.5006803393363952,
+    "cy": 0.7158303790622287,
+    "area": 0.19788341457523528,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f14": {
+    "cx": 0.5226011872291565,
+    "cy": 0.7096070607503255,
+    "area": 0.22936244857099963,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f15": {
+    "cx": 0.522960615158081,
+    "cy": 0.709924676683214,
+    "area": 0.26936736788065896,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f16": {
+    "cx": 0.5215310096740723,
+    "cy": 0.7047525829739041,
+    "area": 0.33759726560335057,
+    "has_bbox": true
+  },
+  "episode_260409_165557_target_right_straight_path__core__fixed_center_f17": {
+    "cx": 0.4556833475828171,
+    "cy": 0.682200558980306,
+    "area": 0.4881432524067236,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f0": {
+    "cx": 0.3019083499908447,
+    "cy": 0.5802856869167752,
+    "area": 0.02701440832394534,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f1": {
+    "cx": 0.26240930557250974,
+    "cy": 0.5834250132242839,
+    "area": 0.030324731522341605,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f2": {
+    "cx": 0.3513594627380371,
+    "cy": 0.5909079445732964,
+    "area": 0.031213706852662042,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f3": {
+    "cx": 0.46164190769195557,
+    "cy": 0.596930037604438,
+    "area": 0.03132205561249064,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f4": {
+    "cx": 0.5817999362945556,
+    "cy": 0.5959680981106228,
+    "area": 0.030488609824424213,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f5": {
+    "cx": 0.5566651821136475,
+    "cy": 0.5867060131496853,
+    "area": 0.03284422182784815,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f6": {
+    "cx": 0.5614726543426514,
+    "cy": 0.5829569922553168,
+    "area": 0.03752400482328083,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f7": {
+    "cx": 0.5615293264389039,
+    "cy": 0.5948348151312934,
+    "area": 0.043724349091345274,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f8": {
+    "cx": 0.5488278150558472,
+    "cy": 0.6108501858181423,
+    "area": 0.049727178748742315,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f9": {
+    "cx": 0.5537424087524414,
+    "cy": 0.629745970831977,
+    "area": 0.05821686240320558,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f10": {
+    "cx": 0.5141524076461792,
+    "cy": 0.6313635084364149,
+    "area": 0.0685657559227386,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f11": {
+    "cx": 0.46616477966308595,
+    "cy": 0.6375505659315321,
+    "area": 0.08144424753109179,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f12": {
+    "cx": 0.4459664106369019,
+    "cy": 0.6535889731513129,
+    "area": 0.09888986500800459,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f13": {
+    "cx": 0.42413489818572997,
+    "cy": 0.6826012293497721,
+    "area": 0.12496094099225954,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f14": {
+    "cx": 0.37894430160522463,
+    "cy": 0.7057309256659614,
+    "area": 0.1582658981323766,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f15": {
+    "cx": 0.3463636517524719,
+    "cy": 0.7196118672688803,
+    "area": 0.19755227910872541,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f16": {
+    "cx": 0.3222160577774048,
+    "cy": 0.7077146954006619,
+    "area": 0.23790361376062313,
+    "has_bbox": true
+  },
+  "episode_260409_200506_target_left_left_path__core__fixed_center_f17": {
+    "cx": 0.25830057859420774,
+    "cy": 0.7087198257446289,
+    "area": 0.27446761789491886,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f0": {
+    "cx": 0.7216434478759766,
+    "cy": 0.5828071594238282,
+    "area": 0.027584049674785803,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f1": {
+    "cx": 0.5861632347106933,
+    "cy": 0.5831358167860243,
+    "area": 0.02800322385964036,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f2": {
+    "cx": 0.4722434520721436,
+    "cy": 0.5901808844672309,
+    "area": 0.02766949145686037,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f3": {
+    "cx": 0.3735403180122375,
+    "cy": 0.5805389192369249,
+    "area": 0.02641768247954133,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f4": {
+    "cx": 0.38597898483276366,
+    "cy": 0.5865640004475912,
+    "area": 0.028756207046010087,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f5": {
+    "cx": 0.4327947974205017,
+    "cy": 0.5964741600884331,
+    "area": 0.03137822686290342,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f6": {
+    "cx": 0.47088706493377686,
+    "cy": 0.5962896982828776,
+    "area": 0.034513987698119315,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f7": {
+    "cx": 0.46817843914031987,
+    "cy": 0.5948011186387804,
+    "area": 0.038970202014691806,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f8": {
+    "cx": 0.43336079120635984,
+    "cy": 0.6012087715996637,
+    "area": 0.046401096646968655,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f9": {
+    "cx": 0.4275691151618958,
+    "cy": 0.6299891577826606,
+    "area": 0.05238663404687839,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f10": {
+    "cx": 0.3976460099220276,
+    "cy": 0.6440087000528971,
+    "area": 0.060542412036960105,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f11": {
+    "cx": 0.36722952127456665,
+    "cy": 0.6480468114217122,
+    "area": 0.07193688987821487,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f12": {
+    "cx": 0.32323503494262695,
+    "cy": 0.6573722415500217,
+    "area": 0.08727207913543679,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f13": {
+    "cx": 0.30365078449249266,
+    "cy": 0.6656595865885417,
+    "area": 0.10540970963253737,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f14": {
+    "cx": 0.24532759189605713,
+    "cy": 0.6889942804972331,
+    "area": 0.13107351161013464,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f15": {
+    "cx": 0.19608445167541505,
+    "cy": 0.7021341111924913,
+    "area": 0.16764293215327297,
+    "has_bbox": true
+  },
+  "episode_260409_172906_target_right_right_path__core__fixed_center_f16": {
+    "cx": 0.1439836099743843,
+    "cy": 0.7153156280517579,
+    "area": 0.1658356922260067,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f0": {
+    "cx": 0.4972538232803345,
+    "cy": 0.5872048695882162,
+    "area": 0.02999271779103261,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f1": {
+    "cx": 0.36318998336791997,
+    "cy": 0.5879877938164605,
+    "area": 0.02960527414989581,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f2": {
+    "cx": 0.39594048261642456,
+    "cy": 0.5901986651950413,
+    "area": 0.032946965738735054,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f3": {
+    "cx": 0.4319446086883545,
+    "cy": 0.590512932671441,
+    "area": 0.03587365999720835,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f4": {
+    "cx": 0.4844633102416992,
+    "cy": 0.6083047231038412,
+    "area": 0.04085324068179438,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f5": {
+    "cx": 0.5227584362030029,
+    "cy": 0.6196684095594618,
+    "area": 0.0449146517381693,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f6": {
+    "cx": 0.5664939165115357,
+    "cy": 0.6314590877956814,
+    "area": 0.051542149686821255,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f7": {
+    "cx": 0.553902268409729,
+    "cy": 0.637987306382921,
+    "area": 0.060898288866596366,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f8": {
+    "cx": 0.5410340309143067,
+    "cy": 0.647191662258572,
+    "area": 0.07213143847701657,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f9": {
+    "cx": 0.5401497125625611,
+    "cy": 0.6627431233723958,
+    "area": 0.08664081270762836,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f10": {
+    "cx": 0.5492148876190186,
+    "cy": 0.6697092692057292,
+    "area": 0.10516868435289428,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f11": {
+    "cx": 0.5179154872894287,
+    "cy": 0.6865993711683485,
+    "area": 0.12283003355158147,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f12": {
+    "cx": 0.5006499290466309,
+    "cy": 0.693321312798394,
+    "area": 0.1463961067339632,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f13": {
+    "cx": 0.4800423145294189,
+    "cy": 0.7109532886081272,
+    "area": 0.18079174836801634,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f14": {
+    "cx": 0.46533008813858034,
+    "cy": 0.7117125829060873,
+    "area": 0.21345621064906486,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f15": {
+    "cx": 0.44310234785079955,
+    "cy": 0.7151372697618272,
+    "area": 0.25430158924047647,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f16": {
+    "cx": 0.454324209690094,
+    "cy": 0.7110377205742731,
+    "area": 0.3140175469576177,
+    "has_bbox": true
+  },
+  "episode_260408_195026_target_center_right_path__core__fixed_center_f17": {
+    "cx": 0.4302950739860535,
+    "cy": 0.705938254462348,
+    "area": 0.40172890049245524,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f0": {
+    "cx": 0.28168290853500366,
+    "cy": 0.5873015509711371,
+    "area": 0.0271548607690622,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f1": {
+    "cx": 0.25494112968444826,
+    "cy": 0.5854279200236002,
+    "area": 0.030442343014534953,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f2": {
+    "cx": 0.3656107902526855,
+    "cy": 0.5912179311116537,
+    "area": 0.03206304793341485,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f3": {
+    "cx": 0.46286582946777344,
+    "cy": 0.5962195926242404,
+    "area": 0.03147247325008114,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f4": {
+    "cx": 0.5825436115264893,
+    "cy": 0.5953451792399089,
+    "area": 0.03102262943218293,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f5": {
+    "cx": 0.545522403717041,
+    "cy": 0.5845398373074002,
+    "area": 0.03313818198963417,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f6": {
+    "cx": 0.5683818340301514,
+    "cy": 0.5839572482638888,
+    "area": 0.03782099356685651,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f7": {
+    "cx": 0.5938793897628785,
+    "cy": 0.5980055067274306,
+    "area": 0.04427921612089752,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f8": {
+    "cx": 0.5585443496704101,
+    "cy": 0.6139102088080512,
+    "area": 0.05106059533092775,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f9": {
+    "cx": 0.5465474605560303,
+    "cy": 0.6378067440456814,
+    "area": 0.06048826505684703,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f10": {
+    "cx": 0.5285131931304932,
+    "cy": 0.6351295895046658,
+    "area": 0.07253759823219702,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f11": {
+    "cx": 0.5149707198143005,
+    "cy": 0.6421433342827692,
+    "area": 0.08827248871180525,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f12": {
+    "cx": 0.5401233434677124,
+    "cy": 0.67043088277181,
+    "area": 0.11073439601235198,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f13": {
+    "cx": 0.5544838190078736,
+    "cy": 0.6976527955796983,
+    "area": 0.1410910526841589,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f14": {
+    "cx": 0.5620793700218201,
+    "cy": 0.7240693410237631,
+    "area": 0.18567614707368799,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f15": {
+    "cx": 0.5787767887115478,
+    "cy": 0.7134162267049154,
+    "area": 0.23375578749964915,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f16": {
+    "cx": 0.5636015295982361,
+    "cy": 0.7126222822401259,
+    "area": 0.28877690750436763,
+    "has_bbox": true
+  },
+  "episode_260409_200210_target_left_left_path__core__fixed_center_f17": {
+    "cx": 0.6251932382583618,
+    "cy": 0.7022143257988824,
+    "area": 0.38364028092262953,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f0": {
+    "cx": 0.7127899408340455,
+    "cy": 0.5811345842149522,
+    "area": 0.02720109536991206,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f1": {
+    "cx": 0.7498526334762573,
+    "cy": 0.5760244793362088,
+    "area": 0.03030455378487507,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f2": {
+    "cx": 0.6469367265701294,
+    "cy": 0.5866830613878038,
+    "area": 0.03195812668127474,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f3": {
+    "cx": 0.5319997787475585,
+    "cy": 0.5868346956041124,
+    "area": 0.03171034420241389,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f4": {
+    "cx": 0.5786161899566651,
+    "cy": 0.5937081019083659,
+    "area": 0.034680754007119195,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f5": {
+    "cx": 0.6150362014770507,
+    "cy": 0.596127086215549,
+    "area": 0.03926201269758974,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f6": {
+    "cx": 0.6014970541000366,
+    "cy": 0.6170324325561524,
+    "area": 0.04460504458784875,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f7": {
+    "cx": 0.5762950897216796,
+    "cy": 0.6290747536553277,
+    "area": 0.0519718257492665,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f8": {
+    "cx": 0.565468144416809,
+    "cy": 0.6406991958618165,
+    "area": 0.06104055115100789,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f9": {
+    "cx": 0.5618909597396851,
+    "cy": 0.6433503256903754,
+    "area": 0.07277180391131981,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f10": {
+    "cx": 0.5505452394485474,
+    "cy": 0.6545444700453016,
+    "area": 0.08805583912842645,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f11": {
+    "cx": 0.5432570457458497,
+    "cy": 0.6682257122463651,
+    "area": 0.10993159807355066,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f12": {
+    "cx": 0.5389757871627807,
+    "cy": 0.6897583431667752,
+    "area": 0.13957769298182635,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f13": {
+    "cx": 0.5507045269012452,
+    "cy": 0.7053373548719618,
+    "area": 0.18795573440341595,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f14": {
+    "cx": 0.5532147288322449,
+    "cy": 0.7102993859185113,
+    "area": 0.22957453519014354,
+    "has_bbox": true
+  },
+  "episode_260409_193630_target_right_right_path__core__fixed_center_f15": {
+    "cx": 0.5529624700546265,
+    "cy": 0.7118775049845378,
+    "area": 0.28029810908322667,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f0": {
+    "cx": 0.49130451679229736,
+    "cy": 0.5834508472018771,
+    "area": 0.029594665498825615,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f1": {
+    "cx": 0.5745326995849609,
+    "cy": 0.589463022020128,
+    "area": 0.029248245199261065,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f2": {
+    "cx": 0.5431772232055664,
+    "cy": 0.5940766228569878,
+    "area": 0.03176816132495231,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f3": {
+    "cx": 0.4867100954055786,
+    "cy": 0.5920515484280056,
+    "area": 0.0355570446081381,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f4": {
+    "cx": 0.4573428153991699,
+    "cy": 0.5864844640096029,
+    "area": 0.040611218006540876,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f5": {
+    "cx": 0.4192779302597046,
+    "cy": 0.6020965152316623,
+    "area": 0.04580291113157728,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f6": {
+    "cx": 0.3821313261985779,
+    "cy": 0.6251138051350911,
+    "area": 0.052326745930373966,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f7": {
+    "cx": 0.3450002670288086,
+    "cy": 0.6362188551161024,
+    "area": 0.05930345692193238,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f8": {
+    "cx": 0.33159575462341306,
+    "cy": 0.6419005923800998,
+    "area": 0.06833746330615313,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f9": {
+    "cx": 0.3235106110572815,
+    "cy": 0.6451905992296006,
+    "area": 0.08082006029807316,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f10": {
+    "cx": 0.3418769359588623,
+    "cy": 0.6592503441704644,
+    "area": 0.09783394243232679,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f11": {
+    "cx": 0.35755079984664917,
+    "cy": 0.674036365085178,
+    "area": 0.11136454408232264,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f12": {
+    "cx": 0.38459887504577633,
+    "cy": 0.6835134506225586,
+    "area": 0.13115092236973497,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f13": {
+    "cx": 0.3888360023498535,
+    "cy": 0.7001655154758029,
+    "area": 0.15692164271029468,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f14": {
+    "cx": 0.39345530271530155,
+    "cy": 0.7193039152357313,
+    "area": 0.1871725306829861,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f15": {
+    "cx": 0.35975192785263066,
+    "cy": 0.716670036315918,
+    "area": 0.2266839431111344,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f16": {
+    "cx": 0.3156692206859588,
+    "cy": 0.7131158828735351,
+    "area": 0.27453094451109333,
+    "has_bbox": true
+  },
+  "episode_260408_175831_target_center_left_path__core__fixed_center_f17": {
+    "cx": 0.3026792645454407,
+    "cy": 0.7093008677164714,
+    "area": 0.351740093603603,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f0": {
+    "cx": 0.5008200883865357,
+    "cy": 0.5882728788587782,
+    "area": 0.02998375350788694,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f1": {
+    "cx": 0.5925538063049316,
+    "cy": 0.5838577058580187,
+    "area": 0.02867758586906146,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f2": {
+    "cx": 0.5543260335922241,
+    "cy": 0.5932669109768338,
+    "area": 0.03143708202729008,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f3": {
+    "cx": 0.5164179325103759,
+    "cy": 0.5891146765814887,
+    "area": 0.035089458866851705,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f4": {
+    "cx": 0.4959047794342041,
+    "cy": 0.582750023735894,
+    "area": 0.03978354025708135,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f5": {
+    "cx": 0.4666636466979981,
+    "cy": 0.6025722079806858,
+    "area": 0.04546327930519411,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f6": {
+    "cx": 0.4285281300544739,
+    "cy": 0.6188306384616428,
+    "area": 0.05132489271806864,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f7": {
+    "cx": 0.4254113435745239,
+    "cy": 0.6348940107557509,
+    "area": 0.05867954904476696,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f8": {
+    "cx": 0.4161121368408203,
+    "cy": 0.6412567138671875,
+    "area": 0.07012625232979189,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f9": {
+    "cx": 0.388230562210083,
+    "cy": 0.6463015662299262,
+    "area": 0.0838544272421455,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f10": {
+    "cx": 0.40659343004226683,
+    "cy": 0.6628767649332682,
+    "area": 0.10085194852457183,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f11": {
+    "cx": 0.42895605564117434,
+    "cy": 0.6761567433675131,
+    "area": 0.11658888083250837,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f12": {
+    "cx": 0.45381840467453005,
+    "cy": 0.683078850640191,
+    "area": 0.13845241275162457,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f13": {
+    "cx": 0.47191596031188965,
+    "cy": 0.7016041649712457,
+    "area": 0.17190073306204184,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f14": {
+    "cx": 0.46753605604171755,
+    "cy": 0.7141326056586371,
+    "area": 0.2081466294343853,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f15": {
+    "cx": 0.4651252746582031,
+    "cy": 0.7143814722696941,
+    "area": 0.2531596097541397,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f16": {
+    "cx": 0.4618955612182617,
+    "cy": 0.7081793891059027,
+    "area": 0.3186065517996515,
+    "has_bbox": true
+  },
+  "episode_260408_175031_target_center_left_path__core__fixed_center_f17": {
+    "cx": 0.42738124430179597,
+    "cy": 0.6972456614176432,
+    "area": 0.44776689456893454,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f0": {
+    "cx": 0.28243308067321776,
+    "cy": 0.577440579732259,
+    "area": 0.026848434289705535,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f1": {
+    "cx": 0.5494353771209717,
+    "cy": 0.580432743496365,
+    "area": 0.02765552548347235,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f2": {
+    "cx": 0.5313529014587403,
+    "cy": 0.5884424845377604,
+    "area": 0.03108390771376434,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f3": {
+    "cx": 0.5107091903686524,
+    "cy": 0.5967446645100911,
+    "area": 0.0341828293154928,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f4": {
+    "cx": 0.5030820846557618,
+    "cy": 0.593513446384006,
+    "area": 0.0389897703183427,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f5": {
+    "cx": 0.5001838207244873,
+    "cy": 0.6063719855414497,
+    "area": 0.044344536462514156,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f6": {
+    "cx": 0.4965841770172119,
+    "cy": 0.6198643366495769,
+    "area": 0.05106211476933823,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f7": {
+    "cx": 0.5187351703643799,
+    "cy": 0.6352309121025933,
+    "area": 0.05697034335073113,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f8": {
+    "cx": 0.5333833694458008,
+    "cy": 0.6427374945746528,
+    "area": 0.06587606781459829,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f9": {
+    "cx": 0.5509358406066894,
+    "cy": 0.6467123667399088,
+    "area": 0.07669735259114534,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f10": {
+    "cx": 0.5371195793151855,
+    "cy": 0.6556831571790906,
+    "area": 0.09152999406986052,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f11": {
+    "cx": 0.5347745656967163,
+    "cy": 0.6692892286512587,
+    "area": 0.11001237474801503,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f12": {
+    "cx": 0.5447160005569458,
+    "cy": 0.6921550750732421,
+    "area": 0.13451511521586426,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f13": {
+    "cx": 0.5565476298332215,
+    "cy": 0.7178067101372613,
+    "area": 0.16813895148767793,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f14": {
+    "cx": 0.5614758849143981,
+    "cy": 0.7162881639268663,
+    "area": 0.2068689578226541,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f15": {
+    "cx": 0.559728467464447,
+    "cy": 0.7148034201727973,
+    "area": 0.2441961713499192,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f16": {
+    "cx": 0.5491080045700073,
+    "cy": 0.7100888358222114,
+    "area": 0.296627324325214,
+    "has_bbox": true
+  },
+  "episode_260409_121514_target_left_straight_path__core__fixed_center_f17": {
+    "cx": 0.5311779141426086,
+    "cy": 0.6967833201090494,
+    "area": 0.3978252764862494,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f0": {
+    "cx": 0.25569733381271365,
+    "cy": 0.5814864900377061,
+    "area": 0.02700559979143691,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f1": {
+    "cx": 0.5257395505905151,
+    "cy": 0.5807798597547743,
+    "area": 0.02799103038453015,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f2": {
+    "cx": 0.5462515115737915,
+    "cy": 0.5878609551323785,
+    "area": 0.031163704339511846,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f3": {
+    "cx": 0.5127135276794434,
+    "cy": 0.596394411722819,
+    "area": 0.034968146045777956,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f4": {
+    "cx": 0.495574164390564,
+    "cy": 0.5965259128146702,
+    "area": 0.039902242435952466,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f5": {
+    "cx": 0.500590705871582,
+    "cy": 0.6061034732394749,
+    "area": 0.04542524474697227,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f6": {
+    "cx": 0.48350704908370973,
+    "cy": 0.6222508748372395,
+    "area": 0.05243701516106132,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f7": {
+    "cx": 0.48603339195251466,
+    "cy": 0.6340050379435221,
+    "area": 0.06011044096081605,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f8": {
+    "cx": 0.529694676399231,
+    "cy": 0.643519401550293,
+    "area": 0.06957922011864258,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f9": {
+    "cx": 0.5403591394424438,
+    "cy": 0.6483342064751519,
+    "area": 0.08213587232515746,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f10": {
+    "cx": 0.5510255813598632,
+    "cy": 0.6629392200046116,
+    "area": 0.09835241112189878,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f11": {
+    "cx": 0.55964195728302,
+    "cy": 0.6788957595825196,
+    "area": 0.11863093214262134,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f12": {
+    "cx": 0.5885230779647828,
+    "cy": 0.7048975202772352,
+    "area": 0.14757766148464724,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f13": {
+    "cx": 0.5963545560836792,
+    "cy": 0.7222669177585178,
+    "area": 0.18912723667561296,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f14": {
+    "cx": 0.6473775863647461,
+    "cy": 0.7103823343912761,
+    "area": 0.22223905976654756,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f15": {
+    "cx": 0.6522640705108642,
+    "cy": 0.7102322684393989,
+    "area": 0.2667581624696201,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f16": {
+    "cx": 0.7070240020751953,
+    "cy": 0.7035335116916233,
+    "area": 0.33984075053336305,
+    "has_bbox": true
+  },
+  "episode_260409_122338_target_left_straight_path__core__fixed_center_f17": {
+    "cx": 0.7145486354827881,
+    "cy": 0.6776099099053277,
+    "area": 0.36761737376164094,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f0": {
+    "cx": 0.7196440696716309,
+    "cy": 0.5811949835883247,
+    "area": 0.028002029746858177,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f1": {
+    "cx": 0.758263635635376,
+    "cy": 0.5813488430447049,
+    "area": 0.030576583555375705,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f2": {
+    "cx": 0.6593677282333374,
+    "cy": 0.5883157094319661,
+    "area": 0.03185439323571094,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f3": {
+    "cx": 0.5567253828048706,
+    "cy": 0.5879926681518555,
+    "area": 0.032367816322603174,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f4": {
+    "cx": 0.5986899137496948,
+    "cy": 0.5920359293619791,
+    "area": 0.03553294325563509,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f5": {
+    "cx": 0.6294312477111816,
+    "cy": 0.5984354866875543,
+    "area": 0.04064773567753746,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f6": {
+    "cx": 0.6224960088729858,
+    "cy": 0.6198812696668836,
+    "area": 0.04586703771296018,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f7": {
+    "cx": 0.6045965433120728,
+    "cy": 0.6321857240464952,
+    "area": 0.05213818544379036,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f8": {
+    "cx": 0.58168523311615,
+    "cy": 0.6417159822252061,
+    "area": 0.06238769224050783,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f9": {
+    "cx": 0.5620949268341064,
+    "cy": 0.6484706030951606,
+    "area": 0.07374688773929343,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f10": {
+    "cx": 0.5332735538482666,
+    "cy": 0.6557560390896267,
+    "area": 0.08822943322779286,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f11": {
+    "cx": 0.4848670959472656,
+    "cy": 0.6678501976860893,
+    "area": 0.10987353137498655,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f12": {
+    "cx": 0.45485830307006836,
+    "cy": 0.6914441850450304,
+    "area": 0.1412972067791755,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f13": {
+    "cx": 0.4264051914215088,
+    "cy": 0.7056876712375217,
+    "area": 0.18835980261582233,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f14": {
+    "cx": 0.3775467872619629,
+    "cy": 0.7110141330295139,
+    "area": 0.22836562823711168,
+    "has_bbox": true
+  },
+  "episode_260409_173110_target_right_right_path__core__fixed_center_f15": {
+    "cx": 0.3228038907051086,
+    "cy": 0.7156550725301107,
+    "area": 0.2723484085063349,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f0": {
+    "cx": 0.2960703134536743,
+    "cy": 0.5821515189276801,
+    "area": 0.027173666943375186,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f1": {
+    "cx": 0.32877311706542967,
+    "cy": 0.5819428761800131,
+    "area": 0.03009578569323316,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f2": {
+    "cx": 0.3764997720718384,
+    "cy": 0.5921638276841905,
+    "area": 0.03251977241370697,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f3": {
+    "cx": 0.39866175651550295,
+    "cy": 0.5997466829088,
+    "area": 0.036137644243119424,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f4": {
+    "cx": 0.44172294139862056,
+    "cy": 0.6025217480129665,
+    "area": 0.040605015017748256,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f5": {
+    "cx": 0.4955624580383301,
+    "cy": 0.6052362230088976,
+    "area": 0.045343423516056226,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f6": {
+    "cx": 0.5345695495605469,
+    "cy": 0.6143385569254558,
+    "area": 0.050714938630650665,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f7": {
+    "cx": 0.5252229690551757,
+    "cy": 0.625717290242513,
+    "area": 0.0595762944272186,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f8": {
+    "cx": 0.5390313148498536,
+    "cy": 0.6390204535590278,
+    "area": 0.0691442204985328,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f9": {
+    "cx": 0.5131251811981201,
+    "cy": 0.6507090886433919,
+    "area": 0.08122569792765315,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f10": {
+    "cx": 0.5235878944396972,
+    "cy": 0.6620429356892904,
+    "area": 0.1008983875256793,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f11": {
+    "cx": 0.5320863246917724,
+    "cy": 0.6782730526394314,
+    "area": 0.12527161725766844,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f12": {
+    "cx": 0.5384864926338195,
+    "cy": 0.6982711368136936,
+    "area": 0.15783151813236446,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f13": {
+    "cx": 0.5189373016357421,
+    "cy": 0.7205653720431858,
+    "area": 0.1921877639639812,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f14": {
+    "cx": 0.48857190608978274,
+    "cy": 0.7232953813340929,
+    "area": 0.21731498292889437,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f15": {
+    "cx": 0.44473737478256226,
+    "cy": 0.7260851966010199,
+    "area": 0.24753548625043953,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f16": {
+    "cx": 0.3845888257026672,
+    "cy": 0.7023294236924913,
+    "area": 0.3178748108813913,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f17": {
+    "cx": 0.31356805860996245,
+    "cy": 0.6741301430596246,
+    "area": 0.412204602187992,
+    "has_bbox": true
+  },
+  "episode_260409_202055_target_left_right_path__core__fixed_center_f18": {
+    "cx": 0.3184758126735687,
+    "cy": 0.5857696851094564,
+    "area": 0.5353640024117756,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f0": {
+    "cx": 0.5043132305145264,
+    "cy": 0.5893880632188585,
+    "area": 0.02984197834690955,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f1": {
+    "cx": 0.4901950597763062,
+    "cy": 0.5929762946234809,
+    "area": 0.03431233344267335,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f2": {
+    "cx": 0.4696660041809082,
+    "cy": 0.6036195755004883,
+    "area": 0.03983102409721243,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f3": {
+    "cx": 0.4761883616447449,
+    "cy": 0.6084801355997722,
+    "area": 0.04582082139837543,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f4": {
+    "cx": 0.48862462043762206,
+    "cy": 0.6212045457628038,
+    "area": 0.05397966844302979,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f5": {
+    "cx": 0.48004976511001585,
+    "cy": 0.637665049235026,
+    "area": 0.06346351853846703,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f6": {
+    "cx": 0.4692383766174316,
+    "cy": 0.6488324059380426,
+    "area": 0.07584957328072052,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f7": {
+    "cx": 0.47796058654785156,
+    "cy": 0.663385009765625,
+    "area": 0.0932611122429888,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f8": {
+    "cx": 0.48653273582458495,
+    "cy": 0.6745762295193143,
+    "area": 0.11705798317620066,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f9": {
+    "cx": 0.4813241720199585,
+    "cy": 0.6946636199951172,
+    "area": 0.15229321837501628,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f10": {
+    "cx": 0.4827661395072937,
+    "cy": 0.7187888887193468,
+    "area": 0.1997023680969677,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f11": {
+    "cx": 0.4964909553527832,
+    "cy": 0.7043743133544922,
+    "area": 0.24706591407242134,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f12": {
+    "cx": 0.5035390138626099,
+    "cy": 0.7138334910074869,
+    "area": 0.30272073112155345,
+    "has_bbox": true
+  },
+  "episode_260408_153947_target_center_straight_path__core__fixed_center_f13": {
+    "cx": 0.5335504651069641,
+    "cy": 0.7025971094767252,
+    "area": 0.40514175637746724,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f0": {
+    "cx": 0.5001290321350098,
+    "cy": 0.5890119340684679,
+    "area": 0.029367800476175033,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f1": {
+    "cx": 0.6277099847793579,
+    "cy": 0.588907347785102,
+    "area": 0.02848528241523429,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f2": {
+    "cx": 0.5985863208770752,
+    "cy": 0.5931517283121744,
+    "area": 0.03121018241690763,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f3": {
+    "cx": 0.5453054904937744,
+    "cy": 0.5893534342447917,
+    "area": 0.0347169086396914,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f4": {
+    "cx": 0.5127133131027222,
+    "cy": 0.5844154993693034,
+    "area": 0.03857244852462828,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f5": {
+    "cx": 0.47420850992202757,
+    "cy": 0.5989882363213433,
+    "area": 0.04401900507396829,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f6": {
+    "cx": 0.44972251653671264,
+    "cy": 0.6110741509331596,
+    "area": 0.05049095401230362,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f7": {
+    "cx": 0.44379314184188845,
+    "cy": 0.6340407689412435,
+    "area": 0.05790224381698157,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f8": {
+    "cx": 0.4575232267379761,
+    "cy": 0.6367478900485568,
+    "area": 0.06930109347404141,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f9": {
+    "cx": 0.45057958364486694,
+    "cy": 0.6470673455132379,
+    "area": 0.08232293382566747,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f10": {
+    "cx": 0.4620378255844116,
+    "cy": 0.662592061360677,
+    "area": 0.10090857877859283,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f11": {
+    "cx": 0.48029699325561526,
+    "cy": 0.6775733947753906,
+    "area": 0.11707557868857599,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f12": {
+    "cx": 0.5189646005630493,
+    "cy": 0.6886018964979383,
+    "area": 0.1416935972116294,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f13": {
+    "cx": 0.5437794208526612,
+    "cy": 0.7134489271375868,
+    "area": 0.17745581747278472,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f14": {
+    "cx": 0.542658805847168,
+    "cy": 0.7123647054036458,
+    "area": 0.21664104428368675,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f15": {
+    "cx": 0.5251821994781494,
+    "cy": 0.7131996154785156,
+    "area": 0.25970770571293544,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f16": {
+    "cx": 0.5265960454940796,
+    "cy": 0.7108863406711154,
+    "area": 0.3206431033758053,
+    "has_bbox": true
+  },
+  "episode_260408_175333_target_center_left_path__core__fixed_center_f17": {
+    "cx": 0.5463778614997864,
+    "cy": 0.7041925642225477,
+    "area": 0.4142407700540632,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f0": {
+    "cx": 0.5161500453948975,
+    "cy": 0.5918925603230794,
+    "area": 0.029369620390348763,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f1": {
+    "cx": 0.5023116588592529,
+    "cy": 0.5931678771972656,
+    "area": 0.03415229200235141,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f2": {
+    "cx": 0.5028730630874634,
+    "cy": 0.6054272757636177,
+    "area": 0.0391805351794978,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f3": {
+    "cx": 0.48758649826049805,
+    "cy": 0.6075736575656467,
+    "area": 0.04608710904573348,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f4": {
+    "cx": 0.5029429197311401,
+    "cy": 0.6224574830796983,
+    "area": 0.05360150448395262,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f5": {
+    "cx": 0.477841567993164,
+    "cy": 0.6397390153672959,
+    "area": 0.06254784089129921,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f6": {
+    "cx": 0.4393040418624878,
+    "cy": 0.6470845116509332,
+    "area": 0.07531144437265742,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f7": {
+    "cx": 0.41540321111679074,
+    "cy": 0.6648060692681206,
+    "area": 0.09106988840241884,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f8": {
+    "cx": 0.3924022078514099,
+    "cy": 0.6734245936075847,
+    "area": 0.1147603333173346,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f9": {
+    "cx": 0.3662718772888183,
+    "cy": 0.6978713353474935,
+    "area": 0.14350141585786333,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f10": {
+    "cx": 0.3349471986293793,
+    "cy": 0.7150349511040581,
+    "area": 0.18922125084626715,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f11": {
+    "cx": 0.3275522410869598,
+    "cy": 0.7133839501274957,
+    "area": 0.23224839054160942,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f12": {
+    "cx": 0.336011677980423,
+    "cy": 0.712400245666504,
+    "area": 0.2825416289007974,
+    "has_bbox": true
+  },
+  "episode_260408_154351_target_center_straight_path__core__fixed_center_f13": {
+    "cx": 0.31275872588157655,
+    "cy": 0.7075388802422418,
+    "area": 0.3636832326548853,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f0": {
+    "cx": 0.7042506694793701,
+    "cy": 0.5775022718641493,
+    "area": 0.027553778024513222,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f1": {
+    "cx": 0.4823630571365356,
+    "cy": 0.5821723302205404,
+    "area": 0.0281079757954103,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f2": {
+    "cx": 0.4875805854797363,
+    "cy": 0.5873363706800673,
+    "area": 0.031238186973751008,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f3": {
+    "cx": 0.48862476348876954,
+    "cy": 0.5958481894599067,
+    "area": 0.03506038040553297,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f4": {
+    "cx": 0.4878624677658081,
+    "cy": 0.6060366736518012,
+    "area": 0.039440860910993546,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f5": {
+    "cx": 0.4645751237869263,
+    "cy": 0.6100000381469727,
+    "area": 0.04443533401792594,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f6": {
+    "cx": 0.4321932554244995,
+    "cy": 0.6201006571451823,
+    "area": 0.05061718004381367,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f7": {
+    "cx": 0.4237591028213501,
+    "cy": 0.630416742960612,
+    "area": 0.05871167501616179,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f8": {
+    "cx": 0.4424029588699341,
+    "cy": 0.6379637188381619,
+    "area": 0.0674106152345626,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f9": {
+    "cx": 0.4044783353805542,
+    "cy": 0.6528472476535373,
+    "area": 0.0793002985296698,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f10": {
+    "cx": 0.44082409143447876,
+    "cy": 0.6662868923611112,
+    "area": 0.09467328600021575,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f11": {
+    "cx": 0.4688063979148865,
+    "cy": 0.6719799041748047,
+    "area": 0.11577150772274561,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f12": {
+    "cx": 0.47144918441772465,
+    "cy": 0.696147706773546,
+    "area": 0.14183104604841598,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f13": {
+    "cx": 0.4754391193389893,
+    "cy": 0.7122817993164062,
+    "area": 0.18487699078614242,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f14": {
+    "cx": 0.4978599786758423,
+    "cy": 0.7105817159016927,
+    "area": 0.21759322338930767,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f15": {
+    "cx": 0.4934189558029175,
+    "cy": 0.7096872117784289,
+    "area": 0.2539610164120111,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f16": {
+    "cx": 0.4769024968147278,
+    "cy": 0.7067658106486002,
+    "area": 0.30903269071532025,
+    "has_bbox": true
+  },
+  "episode_260409_170145_target_right_straight_path__core__fixed_center_f17": {
+    "cx": 0.4655679941177368,
+    "cy": 0.6913219663831923,
+    "area": 0.42157876274466616,
+    "has_bbox": true
+  }
+}
