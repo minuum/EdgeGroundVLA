@@ -3596,6 +3596,73 @@ def verify_manual_group_delete(req: ManualGroupDeleteReq):
     return {"ok": True, "groups": groups}
 
 
+# ── 🔍 그라운딩 실패 분석기 (T1-1, plan_20260731_..._dashboard_repurpose.md) ──
+# 저장된 세션 H5의 grounding/score를 모아서 프론트로 넘김. threshold 슬라이더
+# 재판정/히스토그램은 JS에서 클라이언트 계산 — 데이터가 작아서(수천 float)
+# 왕복 없이 슬라이더가 즉시 반응하게 하려는 의도.
+_gnd_score_cache: dict = {"mtime": 0.0, "data": None}
+
+
+@app.get("/grounding/scores")
+def grounding_scores():
+    """세션별 per-frame 그라운더 score + has_bbox 배열을 반환.
+
+    score=-1.0은 결측(2026-07-31 이전 세션 / PG2 그라운더) — 프론트에서 제외한다.
+    폴더 mtime 캐시라 새 세션 없으면 재스캔 안 함."""
+    try:
+        cur_mtime = INFER_H5_DIR.stat().st_mtime
+    except Exception:
+        cur_mtime = 0.0
+    if _gnd_score_cache["mtime"] == cur_mtime and _gnd_score_cache["data"] is not None:
+        return _gnd_score_cache["data"]
+
+    # episode_log의 경로/결과를 session_id로 조인 — 히스토그램을 위치별/성패별로
+    # 쪼개볼 수 있어야 "약좌에서만 score가 낮게 몰린다" 같은 주장이 검증됨.
+    ep_by_sid: dict = {}
+    for r in _read_episode_csv()[0]:
+        if len(r) > 13 and r[13]:
+            ep_by_sid[r[13]] = {"path_type": r[1], "result": r[2],
+                                "checkpoint": r[14] if len(r) > 14 else ""}
+
+    sessions = []
+    n_with = 0
+    for h5p in sorted(INFER_H5_DIR.glob("session_*.h5"), reverse=True):
+        sid = h5p.stem.replace("session_", "")
+        try:
+            with h5py.File(h5p, "r") as f:
+                g = f.get("grounding")
+                if g is None or "bbox" not in g:
+                    continue
+                bbox = g["bbox"][:]
+                has_bbox = [bool(v) for v in bbox[:, 3]]
+                if "score" in g:
+                    scores = [round(float(v), 4) for v in g["score"][:]]
+                else:
+                    scores = [-1.0] * len(has_bbox)
+                thr = None
+                if "score_thresh" in g:
+                    tv = [float(v) for v in g["score_thresh"][:] if v > 0]
+                    if tv:
+                        thr = round(sum(tv) / len(tv), 3)
+                cached = [int(v) for v in g["cached"][:]] if "cached" in g else []
+        except Exception:
+            continue
+        if any(s >= 0 for s in scores):
+            n_with += 1
+        meta = ep_by_sid.get(sid, {})
+        sessions.append({
+            "sid": sid, "scores": scores, "has_bbox": has_bbox, "cached": cached,
+            "thresh_used": thr, "path_type": meta.get("path_type", ""),
+            "result": meta.get("result", ""), "checkpoint": meta.get("checkpoint", ""),
+        })
+
+    out = {"ok": True, "sessions": sessions,
+           "n_total": len(sessions), "n_with_scores": n_with}
+    _gnd_score_cache["data"] = out
+    _gnd_score_cache["mtime"] = cur_mtime
+    return out
+
+
 @app.post("/episodes/log")
 def episodes_log(req: EpisodeLogReq):
     target_csv = EXPERIMENTAL_EPISODE_CSV if req.experimental else EPISODE_CSV
@@ -4715,7 +4782,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <canvas id="gnd-canvas" class="viewport-canvas" width="640" height="360"></canvas>
             </div>
             
-            <div class="grid-2" style="margin-top:20px;">
+            <div class="grid-2" style="margin-top:14px;">
               <div class="form-group">
                 <label>BBOX Coordinates</label>
                 <input type="text" id="gnd-coords" readonly value="—">
@@ -4725,13 +4792,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <input type="text" id="gnd-cached" readonly value="—">
               </div>
             </div>
-          </div>
-          
-          <!-- 오른쪽: 예측값과 속성 정보 -->
-          <div class="card" style="display:flex;flex-direction:column;gap:20px;">
-            <div class="card-title">📊 탐지 상세 정보</div>
-            
-            <div class="kv-grid">
+            <div class="grid-2">
               <div class="form-group">
                 <label>Target entity</label>
                 <input type="text" id="gnd-entity" readonly value="—">
@@ -4749,8 +4810,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <input type="text" id="gnd-cx" readonly value="—">
               </div>
             </div>
-            
-            <div class="form-group" style="margin-top:auto;">
+            <!-- 2026-07-31: grounding_caption은 서버가 계속 보내주는데 지금껏
+                 화면 어디에도 렌더링되지 않던 데이터 — 실패 시 그라운더가 뭘
+                 봤는지 알 수 있는 유일한 단서라 여기 노출. -->
+            <div class="form-group">
+              <label>Grounder Raw Output (caption)</label>
+              <input type="text" id="gnd-caption" readonly value="—" style="font-family:var(--font-mono); font-size:10px;">
+            </div>
+            <div class="form-group">
               <label>임계값 게이지 (STOP 트리거 조건)</label>
               <div class="gauge-container" style="margin-top:8px;">
                 <div class="gauge-fill" id="gnd-gauge-fill"></div>
@@ -4761,6 +4828,53 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span id="gnd-gauge-thr-lbl">임계값: 0.18</span>
                 <span>0.4 (Close)</span>
               </div>
+            </div>
+          </div>
+
+          <!-- 오른쪽: 🔬 그라운딩 실패 분석기 (T1-1) -->
+          <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="card-title">🔬 그라운딩 실패 분석기</div>
+            <div style="font-size:10px; color:var(--text-muted); line-height:1.5;">
+              저장된 세션의 per-frame OWL score를 모아 <b>threshold를 바꿔가며 오프라인 재판정</b>합니다.
+              실기 재수집 없이 threshold-검출률 곡선을 뽑는 것이 목적입니다.
+            </div>
+            <div id="gnd-an-status" style="font-size:10px; padding:6px 8px; border-radius:6px; background:#101726; border:1px solid var(--border-glow); color:var(--text-muted);">불러오는 중...</div>
+
+            <!-- 필터 -->
+            <div style="display:flex; gap:6px; align-items:center; font-size:10px;">
+              <span style="color:var(--text-muted); white-space:nowrap;">위치</span>
+              <select id="gnd-an-pos" onchange="renderGroundingAnalyzer()" style="flex:1; padding:3px 5px; background:#090d16; border:1px solid var(--border-glow); border-radius:5px; color:#fff; font-size:10px;">
+                <option value="">전체</option>
+              </select>
+              <label style="display:flex; align-items:center; gap:3px; white-space:nowrap; cursor:pointer;">
+                <input type="checkbox" id="gnd-an-realonly" checked onchange="renderGroundingAnalyzer()" style="accent-color:var(--cyan);">
+                실호출만
+              </label>
+              <button class="btn btn-outline" onclick="loadGroundingScores(true)" style="font-size:10px; padding:3px 7px;">🔄</button>
+            </div>
+
+            <!-- threshold 슬라이더 -->
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:3px;">
+                <span style="color:var(--text-muted);">재판정 threshold</span>
+                <span id="gnd-an-thr-lbl" class="font-mono" style="color:var(--cyan); font-weight:700;">0.20</span>
+              </div>
+              <input type="range" id="gnd-an-thr" min="0.01" max="0.50" step="0.01" value="0.20"
+                     oninput="renderGroundingAnalyzer()" style="width:100%; accent-color:var(--cyan);">
+            </div>
+
+            <!-- confidence 히스토그램 (CDN 의존 없이 canvas 직접 렌더) -->
+            <div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:3px;">confidence 분포 (빨간선=현재 threshold, 회색선=0.25 구값)</div>
+              <canvas id="gnd-an-hist" width="420" height="150" style="width:100%; background:#090d16; border:1px solid var(--border-glow); border-radius:6px;"></canvas>
+            </div>
+
+            <div id="gnd-an-summary" style="font-size:11px; line-height:1.7;"></div>
+
+            <!-- threshold 스윕 표 -->
+            <div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:3px;">threshold 스윕 — 검출률 예측</div>
+              <div id="gnd-an-sweep" style="font-size:10px; font-family:var(--font-mono);"></div>
             </div>
           </div>
         </div>
@@ -6812,6 +6926,9 @@ L S R  C S L  R S L
       if (tab === "history") {
         loadSessionList();
       }
+      if (tab === "grounding") {
+        loadGroundingScores(false);   // 캐시 있으면 재사용(최초 스캔만 느림)
+      }
       if (tab === "latency") {
         initDriftChart();
       }
@@ -8573,6 +8690,133 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
+    // ── 🔬 그라운딩 실패 분석기 (T1-1) ──────────────────────────────────
+    // 저장된 세션의 per-frame OWL score로 threshold를 오프라인 재판정.
+    // Chart.js(CDN 의존, 오프라인에서 로드 실패) 대신 canvas 2D로 직접 그림.
+    window._gndScores = null;
+
+    async function loadGroundingScores(force) {
+      const st = document.getElementById("gnd-an-status");
+      if (!st) return;
+      if (window._gndScores && !force) { renderGroundingAnalyzer(); return; }
+      st.textContent = "세션 스캔 중... (최초 1회는 수십 초 걸릴 수 있음)";
+      try {
+        const res = await api("/grounding/scores");
+        if (!res.ok) { st.textContent = "⚠️ 로드 실패"; return; }
+        window._gndScores = res;
+        // 위치 필터 옵션 채우기
+        const sel = document.getElementById("gnd-an-pos");
+        if (sel) {
+          const cur = sel.value;
+          const positions = [...new Set(res.sessions.map(s => s.path_type).filter(Boolean))].sort();
+          sel.innerHTML = '<option value="">전체</option>' +
+            positions.map(p => `<option value="${p}">${p}</option>`).join("");
+          if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+        }
+        renderGroundingAnalyzer();
+      } catch (e) {
+        st.textContent = "⚠️ 오류: " + _friendlyApiError(e);
+      }
+    }
+
+    function renderGroundingAnalyzer() {
+      const res = window._gndScores;
+      const st = document.getElementById("gnd-an-status");
+      if (!res || !st) return;
+      const thr = parseFloat(document.getElementById("gnd-an-thr").value);
+      document.getElementById("gnd-an-thr-lbl").textContent = thr.toFixed(2);
+      const wantPos = document.getElementById("gnd-an-pos").value;
+      const realOnly = document.getElementById("gnd-an-realonly").checked;
+
+      // score가 있는 세션만 대상 (구버전은 -1)
+      let sess = res.sessions.filter(s => s.scores.some(v => v >= 0));
+      if (wantPos) sess = sess.filter(s => s.path_type === wantPos);
+
+      const vals = [];
+      sess.forEach(s => s.scores.forEach((v, i) => {
+        if (v < 0) return;
+        // 실호출만: cached==0 인 프레임(캐시 재사용분은 같은 score 중복이라 분포 왜곡)
+        if (realOnly && s.cached && s.cached.length > i && s.cached[i] !== 0) return;
+        vals.push(v);
+      }));
+
+      if (res.n_with_scores === 0) {
+        st.innerHTML = `⚠️ score가 기록된 세션이 <b>0개</b>입니다 — per-frame score 저장은 2026-07-31에 추가돼서, 그 이후 수집분부터 쌓입니다.<br>`
+          + `전체 ${res.n_total}개 세션은 score 결측(-1). 기존 세션을 분석하려면 백필(저장된 프레임 OWL 재실행)이 필요합니다.`;
+        st.style.color = "var(--amber)";
+      } else if (vals.length === 0) {
+        st.textContent = `필터 조건에 맞는 프레임 없음 (score 보유 세션 ${res.n_with_scores}개)`;
+        st.style.color = "var(--text-muted)";
+      } else {
+        st.textContent = `score 보유 세션 ${res.n_with_scores}/${res.n_total}개 · 분석 대상 프레임 ${vals.length}개`;
+        st.style.color = "var(--text-muted)";
+      }
+
+      _drawGndHistogram(vals, thr);
+
+      // 요약 + 스윕
+      const sumEl = document.getElementById("gnd-an-summary");
+      const swEl = document.getElementById("gnd-an-sweep");
+      if (vals.length === 0) { sumEl.innerHTML = ""; swEl.innerHTML = ""; return; }
+      const pass = vals.filter(v => v >= thr).length;
+      const sorted = [...vals].sort((a, b) => a - b);
+      const med = sorted[Math.floor(sorted.length / 2)];
+      sumEl.innerHTML =
+        `현재 threshold <b class="text-cyan">${thr.toFixed(2)}</b> → 검출 <b>${pass}/${vals.length}</b> `
+        + `(<b class="${pass/vals.length>=0.8?'text-emerald':'text-rose'}">${(pass/vals.length*100).toFixed(1)}%</b>)<br>`
+        + `<span style="color:var(--text-muted);">중앙값 ${med.toFixed(3)} · 최소 ${sorted[0].toFixed(3)} · 최대 ${sorted[sorted.length-1].toFixed(3)}</span>`;
+
+      const THRS = [0.10, 0.15, 0.20, 0.25, 0.30, 0.35];
+      swEl.innerHTML = THRS.map(t => {
+        const p = vals.filter(v => v >= t).length;
+        const pct = p / vals.length * 100;
+        const cur = Math.abs(t - thr) < 0.005;
+        return `<div style="display:grid; grid-template-columns:44px 1fr 74px; gap:6px; align-items:center; padding:1px 0; ${cur?'background:rgba(6,182,212,0.12);':''}">
+          <span style="color:${cur?'var(--cyan)':'var(--text-muted)'};">${t.toFixed(2)}</span>
+          <div style="background:#21262d; height:6px; border-radius:3px; overflow:hidden;">
+            <div style="width:${pct.toFixed(0)}%; height:100%; background:${pct>=80?'#3fb950':pct>=50?'var(--amber)':'var(--rose)'};"></div>
+          </div>
+          <span style="text-align:right; color:${cur?'var(--cyan)':'var(--text-muted)'};">${p}/${vals.length} ${pct.toFixed(0)}%</span>
+        </div>`;
+      }).join("");
+    }
+
+    function _drawGndHistogram(vals, thr) {
+      const cv = document.getElementById("gnd-an-hist");
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      const W = cv.width, H = cv.height, PAD = 18;
+      ctx.clearRect(0, 0, W, H);
+      if (!vals.length) {
+        ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("데이터 없음", W / 2, H / 2);
+        return;
+      }
+      const NB = 50, MAXV = 0.5;
+      const bins = new Array(NB).fill(0);
+      vals.forEach(v => { bins[Math.min(NB - 1, Math.floor(v / MAXV * NB))]++; });
+      const peak = Math.max(...bins) || 1;
+      const bw = (W - PAD * 2) / NB;
+      for (let i = 0; i < NB; i++) {
+        const c = (i + 0.5) / NB * MAXV;
+        const h = bins[i] / peak * (H - PAD * 2);
+        ctx.fillStyle = c >= thr ? "#3fb950" : "#f43f5e";
+        ctx.fillRect(PAD + i * bw, H - PAD - h, Math.max(1, bw - 1), h);
+      }
+      const xOf = v => PAD + (v / MAXV) * (W - PAD * 2);
+      // 0.25 (구 운영값) 기준선
+      ctx.strokeStyle = "#6b7280"; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xOf(0.25), PAD - 6); ctx.lineTo(xOf(0.25), H - PAD); ctx.stroke();
+      // 현재 threshold
+      ctx.setLineDash([]); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(xOf(thr), PAD - 6); ctx.lineTo(xOf(thr), H - PAD); ctx.stroke();
+      // 축
+      ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PAD, H - PAD); ctx.lineTo(W - PAD, H - PAD); ctx.stroke();
+      ctx.fillStyle = "#6b7280"; ctx.font = "9px monospace"; ctx.textAlign = "center";
+      [0, 0.1, 0.2, 0.3, 0.4, 0.5].forEach(v => ctx.fillText(v.toFixed(1), xOf(v), H - 5));
+    }
+
     // 🔗 배치 드래그앤드랍 병합 (2026-07-31 단순화) — "저장된 병합 세트" 목록이
     // 중심. 배치를 세트 위로 바로 드래그하면 즉시 그 세트에 추가되고(이름 재입력
     // 불필요), 없는 세트를 만들 땐 맨 아래 "+ 새 세트" 존에 드래그해서 이름만
@@ -10307,6 +10551,12 @@ L S R  C S L  R S L
         
         setSafeValue("gnd-entity", state.instruction || "—");
         setSafeValue("gnd-pred-label", state.predicted_label || "—");
+        // 2026-07-31: 그동안 서버가 보내주기만 하고 렌더링은 0회였던 두 값 —
+        // 캐시 히트 여부(gnd-cached는 HTML만 있고 쓰는 JS가 없었음)와 raw caption.
+        setSafeValue("gnd-cached",
+          state.grounding_cached === true ? "Yes (cached)" :
+          state.grounding_cached === false ? "No (live)" : "—");
+        setSafeValue("gnd-caption", state.grounding_caption || "—");
         
         // 4-0. 수집 세션 요약
         {
