@@ -4996,6 +4996,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 ➕ 새 세트 만들기 — 배치를 여기로 드래그
               </div>
 
+              <div id="vfy-active-group-banner" ondragover="event.preventDefault()" ondrop="_groupDropOnTarget(event)"
+                   style="display:none; align-items:center; gap:6px; font-size:9px; padding:4px 6px; margin-bottom:4px; background:rgba(139,92,246,0.12); border:1px solid var(--violet, #8b5cf6); border-radius:6px;">
+                <span style="color:var(--text-muted);">🔗 적용중:</span>
+                <span id="vfy-active-group-name" style="color:#fff; font-weight:600;"></span>
+                <span onclick="clearActiveManualGroup()" style="margin-left:auto; cursor:pointer; color:var(--rose);" title="적용 해제(체크포인트/기간 필터로 복귀)">✕ 해제</span>
+              </div>
+              <div id="vfy-group-target-drop" ondragover="event.preventDefault()" ondrop="_groupDropOnTarget(event)"
+                   style="border:1px dashed var(--violet, #8b5cf6); border-radius:6px; padding:4px 6px; margin-bottom:4px; font-size:9px; color:var(--text-muted); text-align:center;">
+                ⬇ 저장된 세트를 여기로 드래그해도 아래 목표 진행률에 반영됨
+              </div>
               <div id="vfy-screen-body">—</div>
 
               <!-- 체크포인트별 목표(100개) 진행률 — 필터 안 걸어도 항상 보임.
@@ -8467,12 +8477,14 @@ L S R  C S L  R S L
     }
 
     function setScreenSinceNow() {
+      window._activeManualGroup = null;  // 수동 기간 필터 조작 시 병합 세트 적용은 해제
       const el = document.getElementById("vfy-screen-since");
       if (el) el.value = _toDatetimeLocalValue(new Date());
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
     function clearScreenSince() {
+      window._activeManualGroup = null;
       const el = document.getElementById("vfy-screen-since");
       const untilEl = document.getElementById("vfy-screen-until");
       if (el) el.value = "";
@@ -8581,6 +8593,39 @@ L S R  C S L  R S L
       else window._openManualGroups.delete(name);
     }
 
+    // 세트 이름 클릭 → 스크리닝 목표(위치별 진행률) 패널에 바로 반영(2026-07-31,
+    // "누르면 바로 아래에 스크리닝 목표 반영되게" 요청). 체크포인트/기간 필터
+    // 대신 이 세트의 범위들(여러 개, OR 매칭)로 필터링. ranges는 매번 새로
+    // fetch하지 않고 refreshManualGroups()가 채워두는 캐시에서 조회.
+    window._manualGroupsCache = window._manualGroupsCache || {};
+
+    function applyManualGroup(ev, name) {
+      if (ev) ev.stopPropagation();  // <summary> 기본 펼침/접힘 토글은 그대로 유지
+      const ranges = window._manualGroupsCache[name];
+      if (!ranges) return;
+      window._activeManualGroup = {name, ranges};
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    function clearActiveManualGroup() {
+      window._activeManualGroup = null;
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // 세트를 목표 진행률 쪽으로 드래그해서 반영 — 클릭과 동일한 효과를 드래그로도
+    // 낼 수 있게(2026-07-31, "세트도 드래그하게 해줘도 좋음"). 배치 드래그
+    // ("text/plain"에 배치 인덱스)와 겹치지 않게 별도 MIME 타입 키 사용.
+    function _groupDragStart(ev, name) {
+      ev.dataTransfer.setData("application/x-manual-group", name);
+    }
+
+    function _groupDropOnTarget(ev) {
+      ev.preventDefault();
+      const name = ev.dataTransfer.getData("application/x-manual-group");
+      if (!name) return;
+      applyManualGroup(null, name);
+    }
+
     async function _mergeNewDrop(ev) {
       ev.preventDefault();
       const idx = parseInt(ev.dataTransfer.getData("text/plain"));
@@ -8625,9 +8670,11 @@ L S R  C S L  R S L
         const res = await api("/verify/manual_groups");
         if (!res.ok) return;
         const rows = window._lastVfyRows || [];
+        window._manualGroupsCache = {};
         el.innerHTML = (res.groups || []).length === 0
           ? '<div style="font-size:9px; color:var(--text-muted); text-align:center; padding:6px;">저장된 병합 세트 없음</div>'
           : res.groups.map(g => {
+          window._manualGroupsCache[g.name] = g.ranges;
           let n = 0, succ = 0;
           g.ranges.forEach(t => {
             const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
@@ -8636,11 +8683,12 @@ L S R  C S L  R S L
           });
           const rate = n ? Math.round(succ / n * 100) : 0;
           const isOpen = window._openManualGroups.has(g.name);
+          const isActive = window._activeManualGroup && window._activeManualGroup.name === g.name;
           return `<details ${isOpen ? "open" : ""} ontoggle="_trackManualGroupToggle('${g.name}', this.open)"
                 ondragover="event.preventDefault()" ondrop="_mergeAddToGroup(event, '${g.name}')"
-                style="background:#0d1420; border:1px solid var(--violet, #8b5cf6); border-radius:6px; padding:4px 6px;">
-            <summary style="cursor:pointer; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;">
-              <span style="color:#fff; font-weight:600;">🔗 ${g.name}</span>
+                style="background:#0d1420; border:1px solid ${isActive ? '#3fb950' : 'var(--violet, #8b5cf6)'}; border-radius:6px; padding:4px 6px;">
+            <summary onclick="applyManualGroup(event, '${g.name}')" draggable="true" ondragstart="_groupDragStart(event, '${g.name}')" style="cursor:grab; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;" title="누르면(또는 드래그해서 아래 목표 진행률에 놓으면) 이 세트가 바로 반영됩니다">
+              <span style="color:#fff; font-weight:600;">${isActive ? "✅" : "🔗"} ${g.name}</span>
               <span style="margin-left:auto; font-family:var(--font-mono); color:${rate>=50?'#3fb950':'var(--rose)'};">${n}건 ✓${succ} (${rate}%)</span>
               <span onclick="event.preventDefault(); event.stopPropagation(); _manualGroupDelete('${g.name}')" style="cursor:pointer; color:var(--rose);" title="병합 세트 삭제(원본 기록은 안 지워짐)">✕</span>
             </summary>
@@ -8761,7 +8809,11 @@ L S R  C S L  R S L
       window._lastVfyRows = rows;
       const tgt = SCREEN_TARGETS[screenTargetMode];
 
-      // A/B 필터 적용: 체크포인트 선택 + 검증 시작 시점
+      // A/B 필터 적용: 체크포인트 선택 + 검증 시작 시점 — 단, 병합 세트가
+      // 적용돼 있으면(window._activeManualGroup) 그 세트의 범위들(여러 개일 수
+      // 있음, OR 매칭)로 대신 필터링(2026-07-31, "세트 누르면 스크리닝 목표에
+      // 바로 반영" 요청).
+      const activeGroup = window._activeManualGroup;
       const ckptSel = document.getElementById("vfy-screen-ckpt");
       const wantCkpt = ckptSel ? ckptSel.value : "";
       const sinceEl = document.getElementById("vfy-screen-since");
@@ -8772,6 +8824,9 @@ L S R  C S L  R S L
       const untilDate = (untilEl && untilEl.value) ? new Date(new Date(untilEl.value).getTime() + 60000) : null;
       const filtered = (rows || []).filter(r => {
         if (r.length < 3) return false;
+        if (activeGroup) {
+          return activeGroup.ranges.some(t => _rowsInRange([r], t.checkpoint, t.start, t.end).length > 0);
+        }
         if (wantCkpt && _epCheckpointOf(r) !== wantCkpt) return false;
         if (sinceDate || untilDate) {
           const dateStr = r[12]; // "YYYY-MM-DD HH:MM"
@@ -8782,6 +8837,15 @@ L S R  C S L  R S L
         }
         return true;
       });
+
+      const activeBanner = document.getElementById("vfy-active-group-banner");
+      if (activeBanner) {
+        activeBanner.style.display = activeGroup ? "flex" : "none";
+        if (activeGroup) {
+          const nameEl = document.getElementById("vfy-active-group-name");
+          if (nameEl) nameEl.textContent = activeGroup.name;
+        }
+      }
 
       // 체크포인트별 목표(100개) 진행률 — 드롭다운으로 하나씩 골라야만 보이던 걸
       // 항상 한눈에 보이게. "기존 모델 몇 개 남았고, 새 모델은 몇 개 했는지"를
