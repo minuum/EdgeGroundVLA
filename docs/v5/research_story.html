@@ -15594,6 +15594,113 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-18 100개 스크리닝 -->
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">🎉 64-18. 100개 스크리닝 89% — 병목은 헤드가 아니라 그라운딩 가용성이었음 (soda, 2026-07-31, 100회)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      미팅 확정 목표(5위치×20개=100개)를 soda가 완주. 체크포인트는
+      <code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code>(OWL-v2 · MLP · V6 ·
+      hold-aware · seed0). <strong style="color:#4ade80">전체 89/100(89%)</strong> —
+      64-11의 7/23 baseline 33.3%(7/21)에서 <strong style="color:#4ade80">전 위치 개선</strong>
+      (Fisher exact p=3.3×10⁻⁷).
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">위치</th><th style="padding:4px">7/23(n=21)</th><th style="padding:4px">7/31(n=100)</th><th style="padding:4px">95% CI</th><th style="padding:4px">평균 스텝</th></tr>
+        <tr><td style="padding:4px">◀◀ 강좌</td><td style="padding:4px;text-align:center;color:#f87171">0/5 (0%)</td><td style="padding:4px;text-align:center">16/20 (80%)</td><td style="padding:4px;text-align:center;color:#64748b">58~92%</td><td style="padding:4px;text-align:center">17.2</td></tr>
+        <tr><td style="padding:4px">◀ 약좌</td><td style="padding:4px;text-align:center;color:#f87171">1/4 (25%)</td><td style="padding:4px;text-align:center">16/20 (80%)</td><td style="padding:4px;text-align:center;color:#64748b">58~92%</td><td style="padding:4px;text-align:center">18.6</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px">● 중앙</td><td style="padding:4px;text-align:center;color:#f87171">0/1</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>20/20 (100%)</strong></td><td style="padding:4px;text-align:center;color:#64748b">84~100%</td><td style="padding:4px;text-align:center">10.6</td></tr>
+        <tr><td style="padding:4px">▶ 약우</td><td style="padding:4px;text-align:center;color:#f87171">1/4 (25%)</td><td style="padding:4px;text-align:center">19/20 (95%)</td><td style="padding:4px;text-align:center;color:#64748b">76~99%</td><td style="padding:4px;text-align:center">11.8</td></tr>
+        <tr><td style="padding:4px">▶▶ 강우</td><td style="padding:4px;text-align:center">3/5 (60%)</td><td style="padding:4px;text-align:center">18/20 (90%)</td><td style="padding:4px;text-align:center;color:#64748b">70~97%</td><td style="padding:4px;text-align:center">10.2</td></tr>
+        <tr style="border-top:1px solid #334155;background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>전체</strong></td><td style="padding:4px;text-align:center">7/21 (33.3%)</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>89/100 (89.0%)</strong></td><td style="padding:4px;text-align:center;color:#64748b">81~94%</td><td style="padding:4px;text-align:center">—</td></tr>
+      </table>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_18_100test.png" style="max-width:900px;width:100%;border-radius:8px;border:1px solid #223" alt="100개 스크리닝 결과와 원인 분해"></div>
+      <br>
+      <strong style="color:#e2e8f0">왜 좋아졌나 — 순위별 근거</strong>
+      <br><br>
+      <strong style="color:#4ade80">① (확정) 그라운딩 가용성이 성패를 가른다</strong> —
+      성공 89건의 세션 평균 grounding 성공률(gnd%)은 <strong style="color:#e2e8f0">86.2%</strong>,
+      실패 11건은 <strong style="color:#f87171">45.7%</strong>(−40.5%p). 실패 11건 중
+      <strong style="color:#f87171">3건은 gnd%=0</strong>(세션 내내 한 번도 미검출),
+      4건이 50% 미만. 즉 헤드의 액션 결정 능력이 아니라
+      <strong style="color:#e2e8f0">"타겟을 계속 보고 있느냐"</strong>가 성패를 가름.
+      <br><br>
+      <strong style="color:#4ade80">② (실측 확인) threshold 0.25→0.20</strong> — 64-17에서
+      "0.25는 knife-edge"라고 진단한 대로, soda가 약좌 실패 세션의 실제 grounding
+      프레임 71장을 threshold만 바꿔 재계산: has_bbox=True가
+      <strong style="color:#e2e8f0">19.7%(14/71) → 33.8%(24/71), 1.71배</strong>.
+      실패 원인 프레임에 직접 작용한 변경이라 개선분의 상당 부분을 설명.
+      (부수 확인: transformers 4.45.2 vs 4.49.0은 score가 소수점 4자리까지 동일 →
+      <strong style="color:#e2e8f0">버전 gap 가설 기각</strong>, 원인은 torch/Orin 하드웨어로 좁혀짐)
+      <br><br>
+      <strong style="color:#4ade80">③ (구조적으로 중요) 회복 로직을 정책 밖으로 빼냄</strong> —
+      64-15에서 <strong style="color:#e2e8f0">has_bbox=False 학습 프레임이 0.00%(0/16599)</strong>
+      임을 확정했으므로, 모델은 그라운딩 실패 회복을 <strong style="color:#e2e8f0">배울 수가
+      없는 구조</strong>였다. 이번 개선은 그걸 재학습으로 고친 게 아니라
+      <strong style="color:#e2e8f0">서빙 제어 계층에 명시적 회복 로직을 넣어</strong> 우회한 것:
+      <code>force_reground_on_miss</code>(미검출 다음 스텝 캐시 강제 스킵), 회전 후 강제
+      재그라운딩, 회전 0.4s 제한+자동정지, 연속회전 차단, 콜드스타트 가드 3프레임.
+      <br><br>
+      <strong style="color:#4ade80">④ (분리 불가) 체크포인트 변경</strong> — 7/23은 PG448 계열
+      챔피언, 이번은 OWL+hold-aware seed0. 64-12의 오프라인 hold-aware 이득은 존재하지만
+      설정 변경과 교란돼 기여분을 분리할 수 없음.
+      <br><br>
+      <strong style="color:#fbbf24">⚠️ 64-10/64-11의 HELD 천장이 깨진 것에 대한 정리</strong> —
+      64-11은 "실기 33.3%가 baseline 예측(39~48%)이 아니라 HELD 예측(19.2~27.3%)과 일치"를
+      HELD 가설의 검증 근거로 삼았다. 이번 89%는 <strong style="color:#e2e8f0">HELD 예측은
+      물론 offline baseline 예측(39~48%)조차 크게 초과</strong>한다. 모순이 아니라 범위의
+      문제로 정리해야 한다: HELD 시뮬레이션은 <strong style="color:#e2e8f0">"5프레임마다
+      판단하고 유지하며, 어긋나도 회복 장치가 없는"</strong> 파이프라인을 모델링한 것이고,
+      ③의 명시적 회복 로직은 정확히 그 가정을 깨뜨린다. 즉
+      <strong style="color:#4ade80">HELD는 "가드 없는 파이프라인"의 성능을 정확히 예측했고,
+      가드가 그 천장을 들어올린 것</strong> — 천장의 위치와 그것을 들어올리는 메커니즘을
+      둘 다 특정했다는 점에서 오히려 강한 결과.
+      <br><br>
+      <strong style="color:#e2e8f0">좌우 비대칭 — n=40에서도 아직 유의하지 않음</strong>:
+      좌측 32/40(80.0%) vs 우측 37/40(92.5%)로 +12.5%p 우측 우세지만
+      <strong style="color:#e2e8f0">Wilson CI가 겹치고 Fisher exact p=0.193</strong>으로
+      유의하지 않다(soda의 n=20 CI 지적이 정확했고, 40개로 묶어도 아직 부족). 다만 평균
+      스텝이 좌 17~19 vs 우 10~12로 <strong style="color:#e2e8f0">1.6배</strong> —
+      "성공하긴 하는데 더 헤맨다"는 경향은 남아있고, 이는 좌측 배치에서 OWL confidence가
+      threshold 경계에 몰리는 현상(64-17)과 방향이 일치.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_18_leftright.png" style="max-width:520px;width:100%;border-radius:8px;border:1px solid #223" alt="좌우 비대칭 유의성"></div>
+      <br>
+      <strong style="color:#f87171">⚠️ 집계 시 필수 주의 — 설정구간×위치 교란(soda 명시)</strong>:
+      100개는 단일 설정 일괄 수집이 아니라 개선을 진행하며 쌓였고,
+      <strong style="color:#e2e8f0">각 commit 구간이 서로 다른 위치만 커버</strong>했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">commit</th><th style="padding:4px">강좌</th><th style="padding:4px">약좌</th><th style="padding:4px">중앙</th><th style="padding:4px">약우</th><th style="padding:4px">강우</th></tr>
+        <tr><td style="padding:4px">d967e0e7</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">7/9</td><td style="padding:4px;text-align:center">20/20</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">–</td></tr>
+        <tr><td style="padding:4px">f0fa1304</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">4/5</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">–</td></tr>
+        <tr><td style="padding:4px">e355b506</td><td style="padding:4px;text-align:center">12/16</td><td style="padding:4px;text-align:center">5/6</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">–</td></tr>
+        <tr><td style="padding:4px">08431fce</td><td style="padding:4px;text-align:center">4/4</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">–</td><td style="padding:4px;text-align:center">19/20</td><td style="padding:4px;text-align:center">18/20</td></tr>
+      </table>
+      <strong style="color:#f87171">따라서 commit별 성공률로 "설정 개선 효과"를 주장하면
+      안 된다</strong> — e355b506이 77.3%로 낮아 보이는 건 가장 어려운 강좌/약좌만 돌렸기
+      때문이고, d967e0e7이 93.1%로 높은 건 만점인 중앙이 포함돼서다. 개선 효과를 논문에
+      싣으려면 <strong style="color:#e2e8f0">동일 위치에서 설정 A/B를 따로</strong> 돌려야
+      하며 이건 아직 안 한 상태. (별건으로 #200~209 10건은 서버 재기동 중 stop_mode 등
+      3개 설정이 조용히 리셋된 채 수집돼 집계 제외 대상 — soda가 런타임 상태 자동
+      스냅샷/복원으로 재발 방지 완료)
+      <br><br>
+      <strong style="color:#fbbf24">💡 경량화 논문 방향에 주는 함의 — fp16의 매력이 반전됨</strong>:
+      ①이 확정된 이상 <strong style="color:#e2e8f0">액션 헤드는 병목이 아니고(헤드는 이미
+      충분하고 값싸다), 자원을 써야 하는 곳은 그라운딩 단계</strong>다. 그런데 그라운딩이
+      바로 가장 비싼 단계(64-13: OWL-v2 1901.7ms vs Kosmos-2 vision 53.7ms)이므로,
+      경량화 과제는 <strong style="color:#e2e8f0">"검출률을 잃지 않으면서 그라운딩을 싸게
+      만들기"</strong>로 좁혀진다. 이 기준에서 보면 64-16의 fp16(속도 1.98배↑,
+      <strong style="color:#f87171">검출률 10%p↓</strong>)은 하필
+      <strong style="color:#f87171">성패를 가르는 그 변수 하나를 팔아서 속도를 사는</strong>
+      잘못된 트레이드다 — 64-16에서 "검토할 가치 있음"으로 열어뒀던 판단을
+      <strong style="color:#e2e8f0">"threshold 완화와 병용은 금지, 단독 적용도 비권장"</strong>
+      으로 좁힌다.
+      <br><br>
+      <strong style="color:#e2e8f0">남은 것</strong>: (1) 동일 위치 설정 A/B 재검증,
+      (2) 좌측 그라운딩 개선(threshold 경계 문제의 근본 해결 — Orin confidence gap),
+      (3) 실패 11건 세션 원본을 우리 서버로 회수해 gnd%=0 3건의 프레임 직접 분석,
+      (4) 64-15 해법으로 제안된 "그라운딩 실패 시 사람 시범(탐색회전/STOP)" 파일럿 수집.
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
