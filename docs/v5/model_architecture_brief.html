@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MoNaVLA 모델 구조 & 학습 방식 정리 — 미팅 발표자료</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+:root{--bg:#0a0f1a;--card:#101827;--line:#1e2a3a;--tx:#cbd5e1;--dim:#94a3b8;
+      --hi:#e2e8f0;--gr:#4ade80;--or:#fbbf24;--rd:#f87171;--bl:#38bdf8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+     font-family:"Noto Sans KR","Malgun Gothic",-apple-system,sans-serif;
+     line-height:1.85;font-size:15px}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:1.75rem;color:var(--hi);margin:0 0 6px;line-height:1.35}
+.sub{color:var(--dim);font-size:0.92rem;margin-bottom:28px}
+h2{font-size:1.2rem;color:var(--bl);margin:38px 0 12px;padding-bottom:8px;
+   border-bottom:1px solid var(--line)}
+h3{font-size:1.02rem;color:var(--hi);margin:24px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+      padding:18px 20px;margin:14px 0}
+table{width:100%;border-collapse:collapse;font-size:0.88rem;margin:10px 0}
+th{text-align:left;color:var(--hi);border-bottom:1px solid var(--line);padding:7px 6px;font-weight:600}
+td{padding:7px 6px;border-bottom:1px solid rgba(30,42,58,0.5)}
+td.c,th.c{text-align:center}
+code{background:#0b1220;border:1px solid var(--line);border-radius:4px;
+     padding:1px 5px;font-size:0.86em;color:#a5d8ff}
+pre{background:#0b1220;border:1px solid var(--line);border-radius:8px;
+    padding:14px 16px;overflow-x:auto;font-size:0.84rem;line-height:1.75;color:#cbd5e1}
+.pipe{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:16px 0}
+.blk{flex:1 1 150px;min-width:145px;background:#0b1220;border:1px solid var(--line);
+     border-radius:8px;padding:12px;text-align:center}
+.blk .t{color:var(--hi);font-weight:600;font-size:0.9rem}
+.blk .p{color:var(--or);font-size:0.8rem;margin-top:3px}
+.blk .d{color:var(--dim);font-size:0.76rem;margin-top:5px;line-height:1.6}
+.arw{display:flex;align-items:center;color:var(--bl);font-size:1.3rem;flex:0 0 auto}
+.key{background:rgba(74,222,128,0.08);border-left:3px solid var(--gr);padding:12px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+.warn{background:rgba(248,113,113,0.08);border-left:3px solid var(--rd);padding:12px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+.note{background:rgba(251,191,36,0.08);border-left:3px solid var(--or);padding:12px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+.g{color:var(--gr)}.o{color:var(--or)}.r{color:var(--rd)}.h{color:var(--hi)}
+ul,ol{margin:8px 0 8px 20px;padding:0}li{margin:3px 0}
+.tag{display:inline-block;background:#0b1220;border:1px solid var(--line);
+     border-radius:20px;padding:2px 10px;font-size:0.78rem;color:var(--dim);margin-right:5px}
+a{color:var(--bl)}
+@media(max-width:700px){.pipe{flex-direction:column}.arw{transform:rotate(90deg);justify-content:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>MoNaVLA 모델 구조 &amp; 학습 방식 정리</h1>
+<div class="sub">미팅 발표용 · 2026-08-01 기준 · 모든 수치는 코드/체크포인트에서 직접 측정한 실측값
+&nbsp;|&nbsp; <a href="research_story.html#ch64">근거 상세 → CH64</a></div>
+
+<div class="key">
+<strong class="h">한 줄 요약</strong> — 이 시스템은 <strong class="h">VLA가 아니라
+"오픈 보캐블러리 객체 검출 + 액션 헤드"</strong>입니다. 언어 디코더는 로드만 되고 한 번도
+호출되지 않으며(실측), 실기 성패는 액션 헤드가 아니라 <strong class="h">객체 검출 성공률이
+결정</strong>합니다(gnd%≥80 → 98.8% 성공).
+</div>
+
+<h2>1. 추론 파이프라인</h2>
+
+<div class="pipe">
+  <div class="blk"><div class="t">카메라</div><div class="p">720×1280 RGB</div>
+    <div class="d">실기 저장 원본 해상도</div></div>
+  <div class="arw">→</div>
+  <div class="blk"><div class="t">OWL-v2</div><div class="p">0.155B · 1902ms</div>
+    <div class="d">"gray basket" zero-shot 검출<br>→ cx, cy, area, has_bbox</div></div>
+  <div class="arw">+</div>
+  <div class="blk"><div class="t">Kosmos-2 비전</div><div class="p">0.303B · 54ms</div>
+    <div class="d">vision_model만 사용(frozen)<br>1024차원 → mean pool</div></div>
+  <div class="arw">→</div>
+  <div class="blk"><div class="t">image_proj</div><div class="p">0.262M</div>
+    <div class="d">Linear 1024→256<br>+ L2 정규화</div></div>
+  <div class="arw">→</div>
+  <div class="blk" style="border-color:var(--gr)"><div class="t g">MLP 액션 헤드</div>
+    <div class="p">0.866M · 학습대상</div>
+    <div class="d">260×6 → 512 → 128 → 8</div></div>
+</div>
+
+<h3>프레임 특징 벡터 — 260차원</h3>
+<pre>FRAME_DIM = 4 + 256 = 260
+  ├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
+  └ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize
+
+헤드 입력 : window=6 프레임을 flatten → (6 × 260) = 1560차원
+헤드 출력 : 8클래스 로짓</pre>
+
+<div class="note">
+<strong class="o">has_bbox 채널의 의미</strong> — 검출 실패 시 <code>cx=0.5, cy=0.6,
+area=0.06</code>의 고정 fallback 값이 들어가고 <code>has_bbox=0</code>으로 표시됩니다.
+즉 헤드는 "지금 타겟을 못 보고 있다"는 신호를 입력으로 받습니다.
+<strong class="r">그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)</strong>여서,
+모델은 이 신호에 대응하는 법을 <strong class="h">배운 적이 없습니다</strong>(CH64 64-15).
+실기에서는 이를 학습이 아니라 <strong class="h">서빙 제어 로직</strong>으로 우회했습니다(4절).
+</div>
+
+<h3>액션 공간 — 3DOF 8클래스</h3>
+<table>
+<tr><th class="c">idx</th><th>클래스</th><th>동작</th><th class="c">학습 분포</th></tr>
+<tr><td class="c">0</td><td>STOP</td><td>정지 (에피소드 끝 프레임에 합성)</td><td class="c">—</td></tr>
+<tr><td class="c">1</td><td>FORWARD</td><td>직진</td><td class="c o">71~74% (최다)</td></tr>
+<tr><td class="c">2 / 3</td><td>LEFT / RIGHT</td><td>횡이동(strafe)</td><td class="c">—</td></tr>
+<tr><td class="c">4 / 5</td><td>FWD+LEFT / FWD+RIGHT</td><td>대각 전진</td><td class="c">—</td></tr>
+<tr><td class="c">6 / 7</td><td>ROT_L / ROT_R</td><td>제자리 회전</td><td class="c r">각 ~0.8% (극소)</td></tr>
+</table>
+<div class="warn">
+<strong class="r">주의 2건</strong>
+<ul>
+<li>로봇 펌웨어는 <strong class="h">속도 크기를 무시하고 방향만</strong> 사용합니다(상수속도 구조).
+  따라서 헤드가 8클래스 중 어느 방향을 고르는지가 전부이고, 세기 조절은 존재하지 않습니다.</li>
+<li>추론 서버는 9클래스 매핑을 쓰지만 <strong class="h">학습은 8클래스</strong>입니다 — 혼동 주의.</li>
+</ul>
+</div>
+
+<h2>2. 파라미터 — "0.46B"와 "1.8B"는 둘 다 맞습니다</h2>
+
+<p>이전 미팅에서 언급된 두 숫자가 서로 다른 것을 가리킵니다. 실측으로 정리하면:</p>
+
+<table>
+<tr><th>구성요소</th><th class="c">파라미터</th><th class="c">추론에 사용</th><th>비고</th></tr>
+<tr><td>Kosmos-2 <code>vision_model</code></td><td class="c">303.2M</td><td class="c g">✅ 사용</td><td>frozen, 이미지 피처 추출</td></tr>
+<tr><td><code>image_proj</code> (1024→256)</td><td class="c">0.262M</td><td class="c g">✅ 사용</td><td>frozen (Stage1에서 학습됨)</td></tr>
+<tr><td>OWL-v2 전체</td><td class="c">155.0M</td><td class="c g">✅ 사용</td><td>zero-shot, 학습 안 함</td></tr>
+<tr><td>MLP 액션 헤드</td><td class="c">0.866M</td><td class="c g">✅ 사용</td><td><strong class="g">유일한 학습 대상</strong></td></tr>
+<tr style="background:rgba(248,113,113,0.1)"><td>Kosmos-2 언어 디코더 외</td><td class="c r">1361.3M</td><td class="c r">❌ 미사용</td><td class="r">로드만 되고 호출 0회</td></tr>
+<tr style="border-top:2px solid var(--line)"><td><strong>실제 연산에 쓰이는 합</strong></td><td class="c g"><strong>459.3M (0.459B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 0.46B"</td></tr>
+<tr><td><strong>메모리에 로드되는 합</strong></td><td class="c o"><strong>1820.3M (1.820B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 1.8B"</td></tr>
+</table>
+
+<div class="key">
+<strong class="h">💡 경량화 관점에서 가장 값싼 개선</strong> —
+로드되는 1.82B 중 <strong class="h">1.36B(74.8%)가 언어 디코더로, 단 한 번도 호출되지
+않습니다.</strong> 현재 코드는 <code>AutoModelForVision2Seq.from_pretrained()</code>로 전체를
+불러온 뒤 <code>.vision_model</code>만 떼어 쓰기 때문입니다. 비전 타워만 로드하도록 바꾸면
+<strong class="g">성능 변화 0으로 1.82B → 0.46B (−74.8%)</strong>가 됩니다.
+논문의 경량화 주장에서 가장 먼저 확보할 수 있는 구간입니다.
+</div>
+
+<h3>레이턴시 — 병목은 검출기</h3>
+<table>
+<tr><th>단계</th><th class="c">파라미터</th><th class="c">지연</th><th class="c">비율</th></tr>
+<tr style="background:rgba(248,113,113,0.1)"><td>OWL-v2 그라운딩 (fp32)</td><td class="c">0.155B</td><td class="c r"><strong>1901.7ms</strong></td><td class="c r">~97%</td></tr>
+<tr><td>OWL-v2 그라운딩 (fp16)</td><td class="c">0.155B</td><td class="c o">962.1ms</td><td class="c">—</td></tr>
+<tr><td>Kosmos-2 비전 인코딩</td><td class="c">0.303B</td><td class="c g">53.7ms</td><td class="c">~3%</td></tr>
+<tr><td>MLP 헤드</td><td class="c">0.866M</td><td class="c g">&lt;1ms</td><td class="c">~0%</td></tr>
+</table>
+<p><strong class="h">파라미터 수와 속도가 역전</strong>되어 있습니다 — OWL-v2는 Kosmos-2 비전의
+절반 크기인데 <strong class="h">35배 느립니다</strong>. 따라서 "파라미터 수 줄이기"로는
+경량화가 되지 않고, 검출 단계를 직접 손대야 합니다.</p>
+
+<h2>3. 학습 방식</h2>
+
+<h3>학습되는 것 / 안 되는 것</h3>
+<table>
+<tr><th>모듈</th><th class="c">상태</th><th>이유</th></tr>
+<tr><td>OWL-v2</td><td class="c">frozen (zero-shot)</td><td>텍스트 프롬프트 <code>"gray basket"</code>로만 사용</td></tr>
+<tr><td>Kosmos-2 vision_model</td><td class="c">frozen</td><td>피처 추출기로만 사용</td></tr>
+<tr><td><code>image_proj</code></td><td class="c">frozen</td><td>Stage 1에서 사전 학습(<code>stage1_v2_projs.pt</code>)</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td><strong>MLP 액션 헤드</strong></td><td class="c g"><strong>학습</strong></td><td class="g">전체 파이프라인에서 유일하게 학습되는 0.866M</td></tr>
+<tr><td>언어 디코더</td><td class="c r">미사용</td><td class="r">호출 0회 (V5 실험에서 text attention = 0.000% 확정)</td></tr>
+</table>
+
+<h3>데이터셋 (V6)</h3>
+<table>
+<tr><th>항목</th><th>값</th></tr>
+<tr><td>에피소드</td><td><strong class="h">225개</strong> (트랙A 180 + 트랙F 45)</td></tr>
+<tr><td>총 프레임</td><td>16,599</td></tr>
+<tr><td>train / val</td><td>192 / 33 (<code>VAL_RATIO=0.15</code>, <code>SPLIT_SEED=42</code> 고정)</td></tr>
+<tr><td>비전 캐시</td><td><code>exp73_v6_vis_cache.pt</code> (BGR→RGB 반전 + L2 정규화 규격)</td></tr>
+<tr><td>bbox 주석</td><td><code>bbox_dataset_v6_pg448_cx.json</code> (OWL 버전 별도 존재)</td></tr>
+</table>
+
+<div class="warn">
+<strong class="r">한계 — 진짜 test set이 없습니다.</strong> val 33개를 <strong class="h">체크포인트
+선택에도, 최종 성능 보고에도 함께</strong> 쓰고 있어 낙관 편향이 있습니다. 표본이 225개로 작아
+현재는 감수하고 있으며, 트랙C(+64개, 총 289개) 수집 후 3분할로 정리할 계획입니다.
+<br><br>
+관련해서 실제 사고가 한 번 있었습니다 — 전체 데이터 재학습판을 만들 때 학습 데이터
+자체를 val로 써서 에폭을 고른 탓에 정확도가 94.5%로 부풀었고(정상 범위 75%),
+별도 홀드아웃을 분리해 74.5%로 재학습해 교체했습니다.
+</div>
+
+<h3>학습 하이퍼파라미터</h3>
+<pre>window       = 6 프레임          bbox_scale = 3.0
+num_classes  = 8                 optimizer  = Adam, lr = 5e-4
+epochs       = 300               scheduler  = CosineAnnealingLR
+class weight = 1/빈도 정규화      ← FORWARD 71~74% 편중 보정
+seeds        = 0, 1, 2 (다중 시드로 분산 확인)</pre>
+
+<h3>hold-aware 학습 — 실서빙 주기를 학습에 반영</h3>
+<p>그라운딩이 ~2초 걸려서 실기 판단 주기는 6Hz가 아니라 <strong class="h">약 1.3Hz</strong>이고,
+그 사이 로봇은 직전 명령을 그대로 유지합니다(zero-order hold). 매 프레임 재판단을 가정한
+학습과 이 조건은 어긋납니다. 그래서 <strong class="h">stride=5마다 한 번만 판단하고, 라벨은
+그 5프레임 구간의 다수결</strong>로 주는 방식으로 학습했습니다.</p>
+<table>
+<tr><th>학습 방식</th><th class="c">HELD 조건 평가</th></tr>
+<tr><td>연속(매 프레임) 학습</td><td class="c r">7.1 ± 3.8%</td></tr>
+<tr><td>stride5 입력만 적용</td><td class="c">24.2 ± 2.5%</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td><strong>hold-aware (구간 다수결 라벨)</strong></td><td class="c g"><strong>28.3 ± 3.8%</strong></td></tr>
+</table>
+<div class="note">
+<strong class="o">이 지표를 인용할 때 주의</strong> — HELD 수치는 <strong class="h">프레임 단위
+판단 정확도 프록시</strong>이고, 실기 89%는 <strong class="h">에피소드 도달 성공률</strong>입니다.
+서로 다른 척도라 직접 비교할 수 없습니다(중간에 몇 스텝 틀려도 재검출로 보정되면 성공).
+과거에 이 둘을 맞춰 해석했다가 잘못된 결론을 낸 사례가 있어 CH64 64-11을 철회했습니다.
+</div>
+
+<h2>4. 서빙 제어 로직 — 학습으로 못 고친 걸 여기서 막습니다</h2>
+<p>2절에서 말한 "has_bbox=False를 학습한 적이 없다"는 구조적 결함을, 재학습이 아니라
+제어 계층에서 우회했습니다. 현재 적용 중인 설정:</p>
+<table>
+<tr><th>설정</th><th>역할</th></tr>
+<tr><td><code>owlv2_thresh = 0.20</code></td><td>검출 임계값 (0.25에서 하향 — 실측 검출률 1.71배)</td></tr>
+<tr><td><code>force_reground_on_miss</code></td><td>미검출 시 다음 스텝 캐시를 강제로 건너뛰고 재검출</td></tr>
+<tr><td>회전 후 강제 재그라운딩</td><td>시야가 크게 바뀐 직후 캐시 신뢰 금지</td></tr>
+<tr><td>회전 0.4초 제한 + 자동정지</td><td>회전 폭주 방지</td></tr>
+<tr><td>연속 회전 차단</td><td>같은 방향 회전 반복 잠김 방지</td></tr>
+<tr><td><code>stop_mode = learned</code> + 콜드스타트 가드 3프레임</td><td>초기 프레임 오판으로 즉시 정지하는 것 방지</td></tr>
+<tr><td><code>grounding_skip_n = 3</code></td><td>3프레임마다 1회만 신선 그라운딩(속도 타협)</td></tr>
+</table>
+
+<h2>5. 실기 결과와 핵심 발견</h2>
+<table>
+<tr><th>목표 위치</th><th class="c">성공률</th><th class="c">평균 스텝</th></tr>
+<tr><td>● 중앙</td><td class="c g">20/20 (100%)</td><td class="c">10.6</td></tr>
+<tr><td>▶ 약우</td><td class="c">19/20 (95%)</td><td class="c">11.8</td></tr>
+<tr><td>▶▶ 강우</td><td class="c">18/20 (90%)</td><td class="c">10.2</td></tr>
+<tr><td>◀◀ 강좌</td><td class="c">16/20 (80%)</td><td class="c o">17.2</td></tr>
+<tr><td>◀ 약좌</td><td class="c">16/20 (80%)</td><td class="c o">18.6</td></tr>
+<tr style="border-top:2px solid var(--line);background:rgba(74,222,128,0.1)"><td><strong>전체</strong></td><td class="c g"><strong>89/100 (89.0%)</strong></td><td class="c">—</td></tr>
+</table>
+
+<div class="key">
+<strong class="h">핵심 발견 — 병목은 액션 헤드가 아니라 검출입니다</strong>
+<table style="margin-top:8px">
+<tr><th>조건</th><th class="c">주행 성공률</th></tr>
+<tr><td>세션 내 검출 성공률(gnd%) ≥ 80%</td><td class="c g"><strong>79/80 = 98.8%</strong></td></tr>
+<tr><td>gnd% &lt; 80%</td><td class="c r">41/80 = 51.2%</td></tr>
+</table>
+실기 159세션 기준. <strong class="h">타겟을 계속 보고만 있으면 거의 반드시 도달</strong>하고,
+실패는 전부 "보지 못한" 경우입니다. 따라서 0.866M짜리 MLP 헤드는 이미 충분하며,
+자원을 투입할 곳은 검출 단계입니다.
+</div>
+
+<h3>실패의 정체 — "안 보인다"가 아니라 "경계에 걸린다"</h3>
+<p>미검출 프레임 197장을 로컬에서 재실행해 confidence를 확인했습니다:</p>
+<table>
+<tr><th>로컬 score</th><th>해석</th><th class="c">비중</th></tr>
+<tr><td>&lt; 0.01</td><td>타겟이 화면에 없음</td><td class="c">2.5%</td></tr>
+<tr><td>0.01 ~ 0.10</td><td>매우 낮음</td><td class="c">21.3%</td></tr>
+<tr style="background:rgba(251,191,36,0.12)"><td><strong>0.10 ~ 0.20</strong></td><td><strong>보이지만 임계값 바로 아래 — 지배 구간</strong></td><td class="c o"><strong>54.8%</strong></td></tr>
+<tr><td>≥ 0.20</td><td>로컬은 검출 (환경차)</td><td class="c">21.3%</td></tr>
+</table>
+<p>즉 실패의 절반 이상이 <strong class="h">타겟이 보이는데도 confidence가 0.10~0.20에 걸리는</strong>
+경우입니다. 임계값을 0.15로 더 내려도 추가 회수는 +24.9%p인데 오탐이 0%→40.5%로 급증해
+<strong class="h">0.20이 적정선</strong>입니다.</p>
+
+<h2>6. 다음 단계 제안</h2>
+<div class="key">
+<ol>
+<li><strong class="h">언어 디코더 로드 제거</strong> — 성능 변화 없이 1.82B → 0.46B (−74.8%).
+  가장 값싼 개선이고 즉시 가능.</li>
+<li><strong class="h">도메인 특화 소형 검출기 직접 학습</strong> — 범용 OWL-v2(1902ms)를 양자화로
+  깎는 방식은 부적절합니다. fp16은 1.98배 빨라지지만 <strong class="r">검출률이 10%p 떨어지고</strong>,
+  위 발견대로 검출률이 곧 성공률이므로 성패를 가르는 변수를 팔아 속도를 사는 셈입니다.
+  우리 과제는 대상이 "회색 바구니" 하나로 고정되어 있어, 특화 검출기를 직접 학습하는 쪽이
+  속도·정확도 양쪽에서 유리합니다.</li>
+<li><strong class="h">has_bbox=False 상황 시범 데이터 수집</strong> — 현재 0.00%인 미검출 상황에
+  사람이 정답 행동(탐색 회전/정지)을 시범해 학습에 포함. 지금은 제어 로직으로 우회 중인 부분을
+  모델이 직접 처리하게 함.</li>
+<li><strong class="h">동일 위치 A/B 재측정</strong> — 89% 개선이 체크포인트 교체 때문인지
+  임계값+제어로직 때문인지 아직 확정하지 못했습니다(두 변경이 서로 다른 위치에서 이뤄져 교란).</li>
+</ol>
+</div>
+
+<h2>부록 — 배포 체크포인트 이력</h2>
+<p>세션 파일 메타데이터(<code>runtime_config</code>)로 복원한 실제 배포 이력입니다.</p>
+<table>
+<tr><th>최초 관측</th><th class="c">헤드</th><th>체크포인트</th><th class="c">검출기</th></tr>
+<tr><td>2026-07-06</td><td class="c">Transformer</td><td><code>exp71_window6/action_transformer.pt</code></td><td class="c">OWL-v2</td></tr>
+<tr><td>2026-07-10</td><td class="c">Transformer</td><td><code>exp71_window3_bboxscale3/action_transformer.pt</code></td><td class="c">OWL-v2</td></tr>
+<tr><td>2026-07-23 17:18</td><td class="c">MLP</td><td><code>exp73_pg448_trackF_v6_mlp_holdaware_seed0.pt</code></td><td class="c">OWL-v2</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td>2026-07-23 18:05 ~ 현재</td><td class="c g">MLP</td><td><code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code></td><td class="c">OWL-v2</td></tr>
+</table>
+<div class="note">
+<strong class="o">용어 확인</strong> — 이전 Transformer 헤드는
+<code>third_party/RoboVLMs</code>와 무관한 <strong class="h">자체 구현</strong>입니다
+(<code>TransformerActionHead</code>: <code>nn.TransformerEncoder</code>, d_model=260, nhead=4,
+num_layers=2). 서빙 코드에 RoboVLMs import은 없고, RoboVLMs는 손대지 않은 상태로 남아있으며
+현재 파이프라인에 포함되지 않습니다. 두 헤드 모두 프레임당 입력은 260차원으로 동일하고,
+window만 3(구) / 6(현재)으로 다릅니다.
+</div>
+
+<p style="margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:0.85rem">
+근거 상세: <a href="research_story.html#ch64">CH64</a>
+— 64-13(파라미터·레이턴시), 64-15(has_bbox 미학습), 64-17(임계값 ROC),
+64-18(100회 결과), 64-19(요인 분해·배포 이력), 64-20(미검출 정밀 분석).
+<br>이 문서의 모든 수치는 코드/체크포인트/세션 메타데이터에서 직접 측정했으며,
+과거 발표에서 철회·정정한 항목은 본문에 명시했습니다.
+</p>
+
+</div>
+</body>
+</html>
