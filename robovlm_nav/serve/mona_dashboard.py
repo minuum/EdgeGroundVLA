@@ -8612,7 +8612,11 @@ L S R  C S L  R S L
         }
       });
       const openEndedIdx = new Set(Object.values(latestIdxByCkpt));
-      const nowIso = new Date(Date.now() + 60000).toISOString().slice(0, 16);
+      // ⚠️ toISOString()은 UTC라서 KST(+9h)에선 "지금"이 실제보다 9시간 전으로
+      // 계산되어 확장된 end가 start보다 앞서버리는(범위가 뒤집히는) 버그가 있었음
+      // — 새로 추가한 범위의 세션들이 통째로 안 잡히던 원인(2026-07-31). 로컬
+      // 시간 그대로 쓰는 _toDatetimeLocalValue로 교체.
+      const nowIso = _toDatetimeLocalValue(new Date(Date.now() + 60000));
       return (ranges || []).map((t, i) => openEndedIdx.has(i) ? {...t, end: nowIso} : t);
     }
 
