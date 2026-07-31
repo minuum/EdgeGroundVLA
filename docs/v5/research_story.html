@@ -15342,13 +15342,35 @@ graph TD
   </div>
 
   <!-- 64-11 실기 검증 -->
-  <div class="finding-card" style="border-color:#22c55e">
-    <div class="finding-title" style="color:#4ade80">✅ 64-11. exp73 챔피언 첫 실기 검증 — HELD 예측과 정확히 일치 (soda, 2026-07-23, 21회)</div>
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">❌ 64-11. <s>exp73 챔피언 첫 실기 검증 — HELD 예측과 정확히 일치</s> — <strong>철회됨(2026-07-31, 64-19 참조)</strong></div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      soda가 `logs/episode_log.csv`에 남긴 "트랙A/F 위치별 스크리닝 21회"가
-      <strong style="color:#e2e8f0">exp73 챔피언(mlp)의 사실상 첫 실기 검증</strong>임을
-      확인(경로명이 V6 path_type과 정확히 일치: trackA_weak/strong_left/right,
-      trackF_center). 64-9에서 지적한 "exp73는 실기 미검증" 공백이 여기서 메워짐.
+      <div style="background:rgba(248,113,113,0.12);border-left:3px solid #f87171;padding:10px 12px;margin-bottom:12px">
+        <strong style="color:#f87171">🚫 이 카드의 핵심 결론은 철회한다.</strong> 7/31에 soda로부터
+        7/23 세션 원본 H5를 회수해 <code>runtime_config</code> attrs를 직접 읽어보니,
+        아래 21~23회 스크리닝은 <strong style="color:#e2e8f0">exp73 챔피언이 실행된 세션이
+        아니었다</strong>. 해당 에피소드(#125~147)는 모두 체크포인트 전달 시각(7/23 17:24)
+        <strong style="color:#e2e8f0">이전</strong>이라 H5도 메타데이터도 남아있지 않고,
+        17:24 직후부터 H5 attrs에 <code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code>가
+        기록되기 시작한다. 같은 날·같은 위치·동일 threshold(0.25)에서 진짜 exp73 챔피언은
+        <strong style="color:#4ade80">22/31 = 71.0%</strong>였다(64-19).
+        <br><br>
+        따라서 <strong style="color:#e2e8f0">"실기 33.3%가 HELD 예측(19.2~27.3%)과 일치한다"는
+        결론은 성립하지 않는다.</strong> 이 일치는 두 개의 오류가 우연히 상쇄된 결과였다:
+        (1) 예측 대상이 아닌 <strong style="color:#e2e8f0">다른(구) 모델</strong>의 성적을 가져다 댔고,
+        (2) 애초에 HELD는 프레임 단위 판단 정확도 프록시라 에피소드 성공률과 같은 척도가
+        아니다(64-18에서 정리). 두 척도를 잘못 맞춘 것이 우연히 근접해 <strong
+        style="color:#f87171">거짓 검증</strong>을 만들었다.
+        <br><br>
+        <strong style="color:#fbbf24">교훈</strong>: baseline 실측값의 <strong
+        style="color:#e2e8f0">실행 주체(체크포인트)를 메타데이터로 확인하지 않고</strong>
+        시각·경로만으로 귀속시키면 이런 오귀속이 발생한다. 아래 표의 숫자 자체는
+        유효하지만(구 배포모델의 성적으로서), 라벨과 결론은 무효다.
+      </div>
+      soda가 `logs/episode_log.csv`에 남긴 "트랙A/F 위치별 스크리닝 21회" —
+      <s>exp73 챔피언(mlp)의 사실상 첫 실기 검증</s>
+      <strong style="color:#f87171">→ 실제로는 구 배포모델(체크포인트 미상, soda 확인 대기)</strong>.
+      경로명은 V6 path_type과 정확히 일치(trackA_weak/strong_left/right, trackF_center).
       <br><br>
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
         <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">위치</th><th style="padding:4px">실기 성공</th></tr>
@@ -15361,10 +15383,11 @@ graph TD
         <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>전체 / 트랙A만</strong></td><td style="padding:4px;text-align:center"><strong>7/21(33.3%) / 5/18(27.8%)</strong></td></tr>
       </table>
       <br>
-      <strong style="color:#e2e8f0">핵심: 실기 27.8~33.3%가 baseline 예측(39~48%)이 아니라
-      HELD 예측(19.2~27.3%)과 거의 정확히 일치</strong> — 64-10에서 세운 가설(진짜
-      배포 성능은 offline baseline이 아니라 HELD 시뮬레이션에 가깝다)이 <strong
-      style="color:#4ade80">이번 세션 최초로 실기 데이터로 직접 검증됨</strong>.
+      <s>핵심: 실기 27.8~33.3%가 baseline 예측(39~48%)이 아니라 HELD 예측(19.2~27.3%)과
+      거의 정확히 일치 — 64-10에서 세운 가설이 이번 세션 최초로 실기 데이터로 직접
+      검증됨.</s>
+      <strong style="color:#f87171">→ 철회. 위 배너 참조. 이 성적은 exp73 챔피언이 아닌
+      구 모델의 것이고, HELD 가설은 이 데이터로 검증된 바 없다.</strong>
       <br><br>
       <strong style="color:#fbbf24">추가 관찰(표본 작아 잠정)</strong>: strong_left(0%)와
       strong_right(60%) 간 뚜렷한 좌우 비대칭 — 카메라/그라운더 좌우 편향 또는 물리적
@@ -15640,10 +15663,25 @@ graph TD
       <code>force_reground_on_miss</code>(미검출 다음 스텝 캐시 강제 스킵), 회전 후 강제
       재그라운딩, 회전 0.4s 제한+자동정지, 연속회전 차단, 콜드스타트 가드 3프레임.
       <br><br>
-      <strong style="color:#4ade80">④ (분리 불가) 체크포인트 변경</strong> — 7/23은 PG448 계열
-      챔피언, 이번은 OWL+hold-aware seed0. 64-12의 오프라인 hold-aware 이득은 존재하지만
-      설정 변경과 교란돼 기여분을 분리할 수 없음.
+      <strong style="color:#f87171">④ <s>(분리 불가) 체크포인트 변경</s> → 정정됨:
+      분리 가능하며 오히려 1위 요인</strong> — 7/31에 7/23 세션 원본을 회수해
+      H5 <code>runtime_config</code>를 읽은 결과, 체크포인트 교체의 순효과가
+      <strong style="color:#e2e8f0">+47.2%p로 분리 측정</strong>됐다(같은 날·같은 위치·
+      threshold 0.25 고정). ②의 threshold+회복로직은 +18.0%p로 <strong
+      style="color:#e2e8f0">2위</strong>다. <strong style="color:#f87171">위 ①~④ 순위는
+      이 시점에 무효이며, 64-19가 대체한다.</strong>
       <br><br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:10px 12px;margin:10px 0">
+        <strong style="color:#f87171">⚠️ 추가 정정 — 위치내 층화 시도는 실패했다.</strong>
+        아래 "동일 위치 A/B가 필요하다"는 지적을 우회하려고 세션 H5의 설정 메타데이터로
+        위치내 층화를 시도했으나, 100세트 안에서 threshold는 전부 0.20 고정이고 유일한
+        변동 설정 <code>force_reground_on_miss</code>는
+        <strong style="color:#e2e8f0">위치와 거의 완전 공선</strong>이었다(freg=False는
+        약좌 14 + 중앙 20뿐이고 중앙은 만점 위치, 둘 다 존재하는 위치는 약좌 하나로 14 vs 6).
+        교란은 commit뿐 아니라 설정 변수에도 그대로 있어서,
+        <strong style="color:#e2e8f0">동일 위치 A/B 재수집은 여전히 필요</strong>하다.
+        (단 A→B 체크포인트 효과는 7/23 데이터가 자연실험을 제공해 분리됨 — 64-19)
+      </div>
       <strong style="color:#fbbf24">⚠️ 64-10/64-11의 HELD 천장이 깨진 것에 대한 정리</strong> —
       64-11은 "실기 33.3%가 baseline 예측(39~48%)이 아니라 HELD 예측(19.2~27.3%)과 일치"를
       HELD 가설의 검증 근거로 삼았다. 이번 89%는 <strong style="color:#e2e8f0">HELD 예측은
@@ -15698,6 +15736,128 @@ graph TD
       (2) 좌측 그라운딩 개선(threshold 경계 문제의 근본 해결 — Orin confidence gap),
       (3) 실패 11건 세션 원본을 우리 서버로 회수해 gnd%=0 3건의 프레임 직접 분석,
       (4) 64-15 해법으로 제안된 "그라운딩 실패 시 사람 시범(탐색회전/STOP)" 파일럿 수집.
+    </div>
+  </div>
+
+  <!-- 64-19 3체제 분해 -->
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">🔧 64-19. 세션 원본 회수로 밝혀진 진짜 인과 — 주동력은 threshold가 아니라 체크포인트 교체 (2026-07-31)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda로부터 세션 H5 원본 176개(7/23 · 7/30 · 7/31, 3.7GB)를 회수해
+      <code>runtime_config</code> attrs를 직접 읽은 결과,
+      <strong style="color:#e2e8f0">7/23 데이터가 체크포인트 전달 시각(17:24)을 기준으로
+      두 체제로 갈린다</strong>는 것을 발견했다. 이는 <strong style="color:#e2e8f0">같은
+      날 · 같은 위치 · threshold 0.25 고정</strong> 상태에서 체크포인트만 교체된
+      <strong style="color:#4ade80">자연실험</strong>이라, 64-18에서 "분리 불가"로 남겨둔
+      체크포인트 순효과를 분리 측정할 수 있다.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">체제</th><th style="padding:4px">체크포인트</th><th style="padding:4px">thresh</th><th style="padding:4px">회복가드</th><th style="padding:4px">성공률</th><th style="padding:4px">95% CI</th></tr>
+        <tr><td style="padding:4px"><strong>A</strong> (#125~147)</td><td style="padding:4px;text-align:center;color:#94a3b8">구 배포모델<sup>†</sup></td><td style="padding:4px;text-align:center">0.25</td><td style="padding:4px;text-align:center">✗</td><td style="padding:4px;text-align:center;color:#f87171">5/21 = <strong>23.8%</strong></td><td style="padding:4px;text-align:center;color:#64748b">11~45%</td></tr>
+        <tr style="background:rgba(230,159,0,0.1)"><td style="padding:4px"><strong>B</strong> (#149~179)</td><td style="padding:4px;text-align:center">exp73_owl_holdaware_seed0</td><td style="padding:4px;text-align:center">0.25</td><td style="padding:4px;text-align:center">✗</td><td style="padding:4px;text-align:center;color:#fbbf24">22/31 = <strong>71.0%</strong></td><td style="padding:4px;text-align:center;color:#64748b">55~84%</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>C</strong> (100세트)</td><td style="padding:4px;text-align:center">exp73_owl_holdaware_seed0</td><td style="padding:4px;text-align:center">0.20</td><td style="padding:4px;text-align:center">✓</td><td style="padding:4px;text-align:center;color:#4ade80">89/100 = <strong>89.0%</strong></td><td style="padding:4px;text-align:center;color:#64748b">81~94%</td></tr>
+      </table>
+      <div style="font-size:0.78rem;color:#64748b;margin-top:4px">
+        <sup>†</sup> 체제 A는 H5·메타데이터가 남아있지 않아(전달 이전) 체크포인트를 직접 확인할 수
+        없다. 근거는 정황: (a) 17:24부터 H5 attrs에 전달 체크포인트가 기록되기 시작, (b) 같은 날·같은
+        위치·동일 threshold에서 그 시점에 성공률이 급격히 불연속. <strong style="color:#fbbf24">soda에
+        17:24 이전 로드 모델 확인 요청 중</strong> — 확인되면 이 각주를 갱신한다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">기여분 분해</strong>:
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li><strong style="color:#fbbf24">A→B 체크포인트 교체: +47.2%p</strong>
+          (Fisher exact p=0.0008) — <strong style="color:#e2e8f0">단일 최대 요인</strong></li>
+        <li><strong style="color:#4ade80">B→C threshold 0.20 + 회복로직: +18.0%p</strong>
+          (p=0.0254)</li>
+        <li>전체 A→C: 23.8% → 89.0% (+65.2%p)</li>
+      </ul>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_19_regimes.png" style="max-width:880px;width:100%;border-radius:8px;border:1px solid #223" alt="3체제 분해"></div>
+      <br>
+      <strong style="color:#f87171">이 발견이 정정하는 것 2건</strong>
+      <ol style="margin:6px 0 0 18px;padding:0">
+        <li><strong style="color:#e2e8f0">64-11 전면 철회</strong> — 64-11이 "exp73 챔피언 첫
+          실기 검증"이라 부른 33.3%는 체제 A(구 모델)의 성적이다. 진짜 exp73 챔피언은 같은
+          threshold에서 71.0%이고, 이는 HELD 예측(19.2~27.3%)과 전혀 맞지 않는다. 64-11의
+          "HELD 예측과 일치" 결론은 <strong style="color:#f87171">다른 모델의 성적을
+          다른 척도의 예측에 맞춘 거짓 검증</strong>이었다(두 오류의 우연한 상쇄).</li>
+        <li><strong style="color:#e2e8f0">64-18 요인 순위 정정</strong> — 64-18은 체크포인트를
+          "④ 분리 불가"로 놓고 threshold를 주요 정량 레버로 봤으나, 실제로는 체크포인트가
+          분리 가능하며 threshold의 2.6배 크기다.</li>
+      </ol>
+      <br>
+      <strong style="color:#4ade80">유지되는 것</strong>: 64-18의 <strong
+      style="color:#e2e8f0">①(그라운딩 가용성이 성패를 가른다: gnd% 86.2 vs 45.7)</strong>는
+      독립 재현으로 확인됐고(아래), 이 정정과 무관하게 유효하다. 오히려 A→B의 대부분이
+      "그라운더를 PG448에서 OWL-v2로 바꾼 것 + hold-aware 학습"이므로
+      <strong style="color:#e2e8f0">"그라운딩 품질이 지배적"이라는 결론은 강화된다</strong> —
+      바뀐 것이 정책 헤드가 아니라 인식 경로였다.
+      <br><br>
+      <strong style="color:#e2e8f0">검증 절차(재현 가능)</strong>: <code>episode_log.csv</code>에서
+      100세트를 복원할 때 101건이 나와 추적한 결과 <code>#230</code>(메모: "요상한경로임 상당히")이
+      soda의 제외 대상이었고, 이를 제외하니 <strong style="color:#4ade80">89/100 및 위치별
+      5/5가 정확히 일치</strong>. H5의 <code>grounding/bbox[:,3]</code>이 has_bbox 플래그임을
+      확인해 gnd%를 독립 재계산한 결과도 성공 85.3% / 실패 48.6%로 soda 보고(86.2/45.7)를
+      재현. 체제 B의 위치별 성적(강좌 5/10, 약좌 1/3, 중앙 4/5, 약우 2/3, 강우 10/10)은
+      이전에 사람이 기억으로 알려준 "30개 세션" 수치와 <strong style="color:#4ade80">5/5
+      완전 일치</strong>.
+    </div>
+  </div>
+
+  <!-- 64-20 젯슨-로컬 gap -->
+  <div class="finding-card">
+    <div class="finding-title">64-20. 젯슨-로컬 gap 정량화 — 부차적 요인으로 확정, 7/4 결론 정정 (2026-07-31)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      64-17에서 "젯슨 하드웨어가 없어 젯슨 ROC 재측정은 불가"라고 답했으나, 세션 원본을
+      회수하면서 <strong style="color:#e2e8f0">우회 경로</strong>가 생겼다: 젯슨이
+      threshold 0.20에서 <code>has_bbox=False</code>로 판정한 프레임은 정의상 젯슨 score &lt; 0.20이
+      확정이므로, <strong style="color:#e2e8f0">같은 이미지를 로컬에서 재실행</strong>해
+      score를 뽑으면 프레임 단위로 gap을 직접 정량화할 수 있다. 100세트의 미검출 프레임
+      <strong style="color:#e2e8f0">197장 전량</strong> + 대조군(젯슨이 검출한 프레임) 200장을
+      서버와 동일 조건(fp32, phrase="gray basket", 720×1280 원본)으로 재실행했다.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">결과</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>젯슨 미검출 → 로컬에서도 미검출</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>155/197 (78.7%)</strong></td></tr>
+        <tr><td style="padding:4px">젯슨 미검출 → 로컬은 검출(확정 gap)</td><td style="padding:4px;text-align:center;color:#fbbf24">42/197 (21.3%)</td></tr>
+        <tr><td style="padding:4px">젯슨 검출 → 로컬은 미검출(역방향)</td><td style="padding:4px;text-align:center">11/200 (5.5%)</td></tr>
+        <tr style="background:rgba(0,114,178,0.1)"><td style="padding:4px"><strong>젯슨×로컬 전체 일치도</strong></td><td style="padding:4px;text-align:center"><strong>344/397 = 86.6%</strong></td></tr>
+        <tr><td style="padding:4px">미검출군 로컬 score 중앙 / 검출군</td><td style="padding:4px;text-align:center">0.143 / 0.378</td></tr>
+      </table>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_20_jetson_gap.png" style="max-width:900px;width:100%;border-radius:8px;border:1px solid #223" alt="젯슨-로컬 gap"></div>
+      <br>
+      <strong style="color:#f87171">⚠️ 7/4 결론(<code>CONCLUSION_20260704_fallback_repro_gap.md</code>)
+      정정</strong>: 7/4 문서는 "서버 fallback 206프레임이 로컬에서 206/206(100%) 탐지됨 →
+      타겟 안 보임 가설 기각, Jetson-vs-local 환경 gap이 지배적 원인"이라고 결론했다. 그런데
+      그 100%는 <strong style="color:#e2e8f0">"PG2/Kr/OWL 3모델 중 하나라도 박스를 냈으면
+      탐지"</strong>라는 훨씬 느슨한 기준이었다. 이번처럼 <strong style="color:#e2e8f0">
+      실제 운영 기준(OWL-v2 단독, threshold 이상)</strong>으로 재실행하면
+      <strong style="color:#f87171">78.7%가 로컬에서도 미검출</strong>이다. 즉
+      <strong style="color:#e2e8f0">환경 gap은 미검출의 최대 21.3%만 설명하는 부차적 요인이고,
+      지배적 원인은 "이 프레임들이 OWL-v2에게 실제로 어렵다"는 것</strong>이다.
+      <br><br>
+      <strong style="color:#e2e8f0">비대칭(21.3% vs 5.5%)이 계통편향의 증거인가 — 아니다</strong>:
+      방향성은 "젯슨이 약간 낮다"를 시사하지만, <strong style="color:#e2e8f0">미검출군이
+      경계에 훨씬 가까이 몰려있어(중앙 0.143 vs 0.378, 0.15~0.25 밴드 비율 34.5% vs 12.0%)
+      경계 근접성만으로도 이 비대칭의 상당부분이 설명된다</strong>. 따라서 계통적
+      젯슨-저편향으로 단정할 수 없다. 참고로 이 불일치 폭(13.4%)은
+      <strong style="color:#e2e8f0">64-16의 fp32 vs fp16 불일치(10.0%)와 동급</strong>이라,
+      양자화 수준의 2차 효과로 보는 것이 적절하다.
+      <br><br>
+      <strong style="color:#fbbf24">실무 결론 — threshold 추가 인하는 답이 아니다</strong>:
+      로컬에서도 미검출인 155프레임의 로컬 score 평균은 0.1199이고 그중 54%가 0.15 이하다.
+      threshold를 0.20→0.15로 더 내려도 <strong style="color:#e2e8f0">회수되는 건 +24.9%p뿐인데
+      오탐률은 0%→40.5%로 폭증</strong>(0.10이면 +54.8%p 회수 / 오탐 74.7%). 즉
+      <strong style="color:#e2e8f0">0.20은 이미 합리적 지점이고, 남은 미검출은 캘리브레이션이
+      아니라 그라운더 자체의 능력 한계</strong>다.
+      <br><br>
+      <strong style="color:#4ade80">💡 경량화 방향에 주는 최종 함의</strong>: 남은 실패가
+      "threshold로 못 건지는, 검출기에게 본질적으로 어려운 프레임"이라면, 개선 경로는
+      threshold 튜닝도 환경 정합도 아니라 <strong style="color:#e2e8f0">더 나은/재학습된
+      검출기</strong>다. 이는 64-18의 함의(경량화는 "검출률을 잃지 않으면서 그라운딩을 싸게")를
+      한 단계 구체화한다 — <strong style="color:#e2e8f0">우리 도메인(회색 바구니, 극단 배치)에
+      특화된 소형 검출기를 직접 학습</strong>하는 것이, 범용 OWL-v2(1901.7ms)를 양자화로
+      깎는 것보다 경량화·정확도 양쪽에서 유망하다. 64-15가 제안한 파일럿 수집과 방향이 일치.
     </div>
   </div>
 
