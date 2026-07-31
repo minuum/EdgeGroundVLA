@@ -149,6 +149,12 @@ class InferenceLogger:
 
                 # bbox 시퀀스 수집 (per-frame: cx, cy, area, has_bbox)
                 bboxes, grounding_cached_arr, grounding_latency_arr = [], [], []
+                # 2026-07-31: per-frame 그라운더 raw max score. 운영 threshold 미달로
+                # has_bbox=False가 된 프레임도 "실제 몇 점이었는지"가 남아야
+                # (1) threshold 오프라인 재판정 (2) 젯슨-로컬 confidence gap 정량화가
+                # 가능함 (minum 64-18 요청 + grounding 탭 개편). 값이 없으면 -1.0
+                # (구버전 세션/PG2 그라운더 등) — 분석 시 -1은 결측으로 걸러낼 것.
+                grounding_score_arr, grounding_thresh_arr = [], []
                 for h in self.data["history"]:
                     b = h.get("bbox") or {}
                     bboxes.append([
@@ -160,6 +166,10 @@ class InferenceLogger:
                     gc = h.get("grounding_cached")
                     grounding_cached_arr.append(float(gc) if gc is not None else -1.0)
                     grounding_latency_arr.append(float(h.get("grounding_latency_ms") or 0.0))
+                    sc = b.get("score")
+                    grounding_score_arr.append(float(sc) if sc is not None else -1.0)
+                    th = b.get("score_thresh")
+                    grounding_thresh_arr.append(float(th) if th is not None else -1.0)
 
                 with h5py.File(h5_path, "w") as f:
                     f.create_dataset("observations/images", data=imgs, compression="gzip")
@@ -170,6 +180,13 @@ class InferenceLogger:
                                      data=np.array(grounding_cached_arr, dtype=np.float32))
                     f.create_dataset("grounding/latency_ms",
                                      data=np.array(grounding_latency_arr, dtype=np.float32))
+                    # -1.0 = 결측(구버전/PG2). 그 외는 그라운더 raw max score.
+                    f.create_dataset("grounding/score",
+                                     data=np.array(grounding_score_arr, dtype=np.float32))
+                    # 그 프레임 판정에 실제로 쓰인 threshold — 세션 중 threshold를
+                    # 바꿔도 프레임별로 정확히 추적되도록 같이 저장.
+                    f.create_dataset("grounding/score_thresh",
+                                     data=np.array(grounding_thresh_arr, dtype=np.float32))
                     f.attrs["session_id"] = self.session_id
                     f.attrs["model_name"] = self.data.get("model_name", "")
                     f.attrs["instruction"] = self.data.get("instruction", "")

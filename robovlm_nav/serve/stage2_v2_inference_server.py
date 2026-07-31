@@ -221,6 +221,11 @@ ACTION_3D = {
 }
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
+# 2026-07-31: OWL-v2 raw max score 기록용 floor. 운영 threshold(0.20)보다 훨씬 낮게
+# 잡아서 "미검출 프레임이 실제 몇 점이었는지"까지 남긴다. 판정에는 안 쓰이고
+# 기록 전용 — 값이 너무 낮으면 post-process가 느려질 수 있어 0.01로 둠
+# (threshold 스윕 관심구간 0.10~0.35를 충분히 커버).
+_OWL_SCORE_FLOOR = float(os.getenv("VLA_OWL_SCORE_FLOOR", "0.01"))
 # cx-rule: 환경변수로 켜면 MLP 예측 대신 bbox cx 기반 기하학 룰로 액션 결정.
 # has_bbox=True일 때만 적용; has_bbox=False면 MLP 따름.
 # VLA_CX_RULE=1 로 활성화 (default: off)
@@ -706,6 +711,24 @@ class OwlV2Grounder:
         res = self._proc.post_process_object_detection(
             out, threshold=owl_thresh, target_sizes=[(H, W)])[0]
         boxes = res["boxes"]
+
+        # 2026-07-31: 분석용 raw max score 기록 (minum 64-18 요청 + soda grounding 탭 개편).
+        # 위 post_process는 owl_thresh 미달 박스를 버리기 때문에, 정작 가장 알고 싶은
+        # "미검출 프레임이 실제로 몇 점이었나"가 남지 않음 — 낮은 floor로 한 번 더
+        # 뽑아서 max score만 따로 기록한다. forward(out)는 재사용이라 GPU 비용은 없고
+        # post-process만 한 번 더 도는 수준. 판정 경로(res/boxes)는 위 그대로 두므로
+        # 검출 동작에는 영향 없음.
+        # 용도: (1) threshold 오프라인 재판정 → 실기 재수집 없이 threshold-성능 곡선
+        #       (2) 젯슨 미검출 프레임을 로컬 재실행해 score 대조 → Jetson-vs-local gap 정량화
+        try:
+            _res_all = self._proc.post_process_object_detection(
+                out, threshold=_OWL_SCORE_FLOOR, target_sizes=[(H, W)])[0]
+            _sc = _res_all["scores"]
+            score_max = float(_sc.max().item()) if len(_sc) > 0 else 0.0
+        except Exception as _e:
+            logger.debug("[owlv2] score_max 추출 실패(무시): %s", _e)
+            score_max = None
+
         _fallback = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
                      "x1": None, "y1": None, "x2": None, "y2": None}
         if len(boxes) == 0:
@@ -737,7 +760,12 @@ class OwlV2Grounder:
                 result = {"cx": cx_val, "cy": cy_val, "area": area_calibrated, "has_bbox": True,
                           "x1": x1, "y1": y1, "x2": x2, "y2": y2,
                           "area_raw": area, "area_scale": owl_area_scale}
-        raw_str = f"owlv2 n_boxes={len(boxes)}"
+        # score는 판정 결과(has_bbox)와 무관하게 항상 실어보냄 — 미검출 프레임의
+        # score야말로 threshold 재판정/ROC gap 분석의 핵심 데이터.
+        result["score"] = score_max
+        result["score_thresh"] = owl_thresh
+
+        raw_str = f"owlv2 n_boxes={len(boxes)} score_max={score_max if score_max is None else round(score_max, 4)}"
         if return_raw:
             result["raw_output"] = raw_str
         if return_hidden:
@@ -1810,6 +1838,12 @@ async def ground(
         "raw_output": bbox.get("raw_output", ""),
         "latency_ms": round(latency_ms, 1),
         "prompt": request.prompt,
+        # 2026-07-31: 이 엔드포인트는 필드를 골라 반환하는 구조라 score가 누락되고
+        # 있었음. grounding 탭의 threshold 오프라인 재판정이 이 경로를 쓰므로 추가.
+        "score": bbox.get("score"),
+        "score_thresh": bbox.get("score_thresh"),
+        "filter_reason": bbox.get("filter_reason"),
+        "hint_cx": bbox.get("hint_cx"),
     }
 
 
