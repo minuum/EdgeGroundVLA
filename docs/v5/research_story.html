@@ -16001,6 +16001,74 @@ graph TD
     </div>
   </div>
 
+  <!-- 64-21 특화 검출기 스펙 -->
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🎯 64-21. 특화 검출기 스펙을 데이터로 정하기 — 그리고 "검출되면 성공"의 조건 정정 (2026-08-01)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      soda가 백필한 per-frame OWL-v2 confidence(<code>docs/inference_sessions/backfill_scores/</code>,
+      176세션 · 실제 검출 실행 1084프레임)로 <strong style="color:#e2e8f0">"어떤 프레임이 검출기에게
+      어려운가"</strong>를 분석했다. 64-20의 결론(개선 경로는 캘리브레이션이 아니라 검출기 자체)을
+      실행 가능한 스펙으로 옮기기 위한 단계다.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_21_detector_spec.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="특화 검출기 스펙"></div>
+      <br>
+      <strong style="color:#e2e8f0">① 어려움의 1차 축은 거리(=bbox 크기)다</strong> —
+      검출 성공 프레임에서 <strong style="color:#e2e8f0">area와 confidence의 상관이 r=+0.551</strong>
+      (n=418). 4분위로 나누면 score 중앙값이 0.320 → 0.330 → 0.444 → 0.519로 단조 증가한다.
+      즉 <strong style="color:#e2e8f0">멀리 있는(작은) 바구니를 못 잡는다</strong>.
+      반면 화면 가장자리 여부(|cx−0.5|)와의 상관은 −0.189로 약하다 —
+      <strong style="color:#e2e8f0">"가장자리"보다 "거리"가 지배적</strong>이다.
+      <br><br>
+      <strong style="color:#e2e8f0">② 위치별 난이도 — 강우가 압도적으로 어렵다</strong>
+      (동일 체크포인트 · threshold 0.20 구간 593프레임):
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">위치</th><th style="padding:4px">score 중앙값</th><th style="padding:4px">threshold 미달</th><th style="padding:4px">첫 프레임 검출률</th><th style="padding:4px">세션 gnd%</th><th style="padding:4px">실기 성공률</th></tr>
+        <tr><td style="padding:4px">중앙</td><td style="padding:4px;text-align:center">0.411</td><td style="padding:4px;text-align:center;color:#4ade80">3.0%</td><td style="padding:4px;text-align:center">100%</td><td style="padding:4px;text-align:center">98.8%</td><td style="padding:4px;text-align:center;color:#4ade80">100%</td></tr>
+        <tr><td style="padding:4px">약우</td><td style="padding:4px;text-align:center">0.297</td><td style="padding:4px;text-align:center">12.7%</td><td style="padding:4px;text-align:center">45%</td><td style="padding:4px;text-align:center">86.8%</td><td style="padding:4px;text-align:center">95%</td></tr>
+        <tr style="background:rgba(213,94,0,0.14)"><td style="padding:4px"><strong>강우</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>0.180</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>57.7%</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>20%</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>49.1%</strong></td><td style="padding:4px;text-align:center;color:#fbbf24"><strong>90%</strong></td></tr>
+        <tr><td style="padding:4px">약좌</td><td style="padding:4px;text-align:center">0.327</td><td style="padding:4px;text-align:center">19.9%</td><td style="padding:4px;text-align:center">95%</td><td style="padding:4px;text-align:center">83.8%</td><td style="padding:4px;text-align:center">80%</td></tr>
+        <tr><td style="padding:4px">강좌</td><td style="padding:4px;text-align:center">0.333</td><td style="padding:4px;text-align:center">17.9%</td><td style="padding:4px;text-align:center">95%</td><td style="padding:4px;text-align:center">87.8%</td><td style="padding:4px;text-align:center">80%</td></tr>
+      </table>
+      <br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:10px 12px;margin:10px 0">
+        <strong style="color:#fbbf24">⚠️ 64-19의 주장에 조건을 붙여야 한다 — 강우 예외</strong><br>
+        강우는 <strong style="color:#e2e8f0">gnd% 49.1%(최저) · 첫 프레임 검출률 20%(최저)인데
+        실기 성공률은 90%</strong>다. 즉 <strong style="color:#e2e8f0">"그라운딩이 되면 거의 반드시
+        성공한다"(gnd%≥80 → 98.8%)는 여전히 유효하지만, 그 역은 성립하지 않는다</strong> —
+        검출이 안 돼도 성공할 수 있다.
+        <br><br>
+        <strong style="color:#e2e8f0">메커니즘</strong>: 강우는 검출되는 순간의 area가 0.192로
+        가장 크고(=이미 가까워진 뒤에야 잡힌다), 평균 스텝이 10.2로 가장 짧다(나머지 14.5).
+        즉 <strong style="color:#e2e8f0">초반엔 못 보지만 경로가 짧아 FORWARD 편중 prior(71~74%)로
+        대충 접근한 뒤, 가까워져서 검출이 붙으면 후반에 보정</strong>되는 패턴이다.
+        <strong style="color:#e2e8f0">"검출 성공률 = 주행 성공률"이 아니라, 배치 기하학이 관대하면
+        정책 prior가 인식 실패를 가려준다.</strong> 논문에서 인과를 주장할 때 반드시 붙일 조건이다.
+      </div>
+      <strong style="color:#e2e8f0">③ 세션 진행도와는 무관</strong> — 0~25% / 25~50% / 50~75% /
+      75~100% 구간의 threshold 미달률이 33.3 / 35.7 / 31.0 / 33.5%로 <strong style="color:#e2e8f0">
+      평탄</strong>하다. "초반에만 어렵다"가 아니라 <strong style="color:#e2e8f0">거리가 먼 프레임이
+      어렵고, 그것이 세션 초반에 몰려 있을 뿐</strong>이다(강우 첫 프레임 검출률 20%가 그 증거).
+      <br><br>
+      <strong style="color:#38bdf8">💡 도출된 특화 검출기 스펙</strong>
+      <ol style="margin:6px 0 0 18px;padding:0">
+        <li><strong style="color:#e2e8f0">최우선 개선 대상 = 원거리 소형 객체</strong>
+          (area 0.05~0.09 구간, score 중앙 0.32 — threshold 0.20에서 간신히 통과).
+          이 구간을 0.5 이상으로 올리는 것이 목표.</li>
+        <li><strong style="color:#e2e8f0">학습 데이터는 강우·약좌 배치의 세션 초반 프레임에
+          가중</strong> — 이미 회수한 176세션 원본에서 바로 추출 가능하며,
+          백필 score가 있어 <strong style="color:#e2e8f0">"어려운 프레임"을 자동 선별</strong>할 수 있다.</li>
+        <li><strong style="color:#e2e8f0">평가 지표는 "score ≥ 0.5 비율"이 아니라 "threshold 0.20에서의
+          검출률"</strong> — 실기와 직결되는 것은 후자다. 대조군은 현재 OWL-v2 fp32.</li>
+        <li>대상이 회색 바구니 단일 클래스로 고정이라 범용 open-vocabulary 능력은 불필요 —
+          이것이 경량화 여지의 근거다(64-20 결론).</li>
+      </ol>
+      <br>
+      <strong style="color:#e2e8f0">데이터 출처</strong>: soda의
+      <code>scripts/backfill_grounding_scores.py --real-only</code> 결과(1084프레임 / 37분, 커밋 5e3c55fe).
+      soda 자체 검증에서 백필 score 기반 예측 검출률과 실측 has_bbox율이 위치별 ±11%p 내
+      일치(중앙 0.0%p)했고, 잔차는 area/cy 필터가 score 통과분을 추가로 거르기 때문으로 설명됨.
+    </div>
+  </div>
+
   <!-- 64-7 결론 -->
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">64-7. 종합 결론 & 다음 단계</div>
