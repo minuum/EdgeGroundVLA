@@ -2774,6 +2774,7 @@ def sessions_list():
         try: labels = json.loads(LABEL_JSON_PATH.read_text())
         except Exception: pass
 
+
     session_list = []
     for h5p in h5_files:
         sid = Path(h5p).stem.replace("session_", "")
@@ -2806,6 +2807,19 @@ def sessions_load(sid: str):
     h5p = INFER_H5_DIR / f"session_{sid}.h5"
     if not h5p.exists():
         return JSONResponse(status_code=404, content={"ok": False, "error": f"H5 파일이 없음: {h5p}"})
+
+    # T2-2: frame_duplicate_warning은 세션 JSON 리포트에만 있고 H5엔 없다.
+    # 이 함수가 H5만 읽어서, 카메라가 멈춰 같은 프레임이 반복된 사실(실기
+    # 실패의 교란요인)이 인스펙터 이상치 목록에 전혀 안 뜨고 있었음.
+    dup_frames: set = set()
+    _rep = INFER_REPORT_DIR / f"session_{sid}.json"
+    if _rep.exists():
+        try:
+            for _h in (json.loads(_rep.read_text()).get("history") or []):
+                if _h.get("frame_duplicate_warning") and _h.get("frame_idx") is not None:
+                    dup_frames.add(int(_h["frame_idx"]))
+        except Exception:
+            pass
 
     labels = {}
     if LABEL_JSON_PATH.exists():
@@ -2850,6 +2864,8 @@ def sessions_load(sid: str):
                 warns.append("⚠️ has_bbox=True지만 area=0")
             if not has and abs(cx - 0.5) > 0.01:
                 warns.append(f"⚠️ has_bbox=False인데 cx={cx:.3f} (모순)")
+            if i in dup_frames:
+                warns.append("⚠️ 직전 프레임과 픽셀단위 동일 — 카메라 멈춤 의심")
 
             user_label = labels.get(f"session_{sid}_f{i}", "")
 
@@ -3429,9 +3445,16 @@ def research_journal_entry(sha: str):
     return {"ok": True, "sha": sha, "body": body_out.stdout.strip(), "files": files_out.stdout.strip()}
 
 @app.get("/episodes/list")
-def episodes_list():
-    rows, summary = _read_episode_csv()
-    return {"ok": True, "episodes": rows, "summary": summary}
+def episodes_list(source: str = "main"):
+    """source=main(기본) | experimental
+
+    T2-3: episode_log_experimental.csv에 실제로 기록이 쌓이는데(조이스틱 SEL로
+    토글) 이 엔드포인트가 항상 메인 CSV만 읽어서 **볼 화면이 아예 없었음**.
+    소스 선택을 추가해 실험용 기록도 조회 가능하게 함."""
+    target = EXPERIMENTAL_EPISODE_CSV if source == "experimental" else EPISODE_CSV
+    rows, summary = _read_episode_csv(target)
+    return {"ok": True, "episodes": rows, "summary": summary, "source": source,
+            "experimental_exists": EXPERIMENTAL_EPISODE_CSV.exists()}
 
 
 # ── session_id → checkpoint 조회 (검증 스크리닝 체크포인트/시점 필터용, 2026-07-23) ──
@@ -3825,10 +3848,28 @@ def episodes_undo():
     _, summary = _read_episode_csv()
     return {"ok": True, "episodes": new_rows, "summary": summary}
 
+class EpisodesClearReq(BaseModel):
+    # 2026-08-01 (Tier 3 위생정리): 이 엔드포인트는 episode_log.csv를 통째로
+    # 지우는데 UI 어디에도 노출돼 있지 않았음 — 실수로 호출되면 100개 스크리닝
+    # 기록이 한 번에 날아가는 "잠자는 지뢰"였다. 확인 문구를 필수로 만들고
+    # 백업을 남기도록 바꿈(삭제 자체를 없애면 복구 수단이 사라지므로 유지).
+    confirm: str = ""
+
+
 @app.post("/episodes/clear")
-def episodes_clear():
+def episodes_clear(req: EpisodesClearReq):
+    if req.confirm != "DELETE-ALL-EPISODES":
+        return {"ok": False,
+                "error": "확인 문구 필요: {\"confirm\": \"DELETE-ALL-EPISODES\"} "
+                         "— 이 작업은 스크리닝 기록 전체를 삭제합니다."}
     if EPISODE_CSV.exists():
+        bak = EPISODE_CSV.with_name(
+            f"episode_log.backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        shutil.copy2(EPISODE_CSV, bak)
         EPISODE_CSV.unlink()
+        log.warning(f"[episodes_clear] 전체 삭제 — 백업: {bak.name}")
+        return {"ok": True, "episodes": [], "backup": bak.name,
+                "summary": f"삭제됨 (백업: {bak.name})"}
     return {"ok": True, "episodes": [], "summary": "에피소드 기록 없음"}
 
 
@@ -5457,11 +5498,19 @@ L S R  C S L  R S L
             <div style="display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">📋 에피소드 누적 기록</span>
-                <select id="vfy-filter" onchange="loadEpisodeHistory()" style="background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:10px; padding:2px 4px;">
-                  <option value="all">전체</option>
-                  <option value="success">성공만</option>
-                  <option value="fail">🚨 실패만</option>
-                </select>
+                <div style="display:flex; gap:4px;">
+                  <!-- T2-3: 실험용 CSV(episode_log_experimental.csv)는 기록만 쌓이고
+                       조회할 화면이 없었음 — 소스 전환 추가 -->
+                  <select id="vfy-source" onchange="loadEpisodeHistory()" title="정식 집계 / 실험용(SEL 토글로 기록) 전환" style="background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:10px; padding:2px 4px;">
+                    <option value="main">정식 집계</option>
+                    <option value="experimental">🧪 실험용</option>
+                  </select>
+                  <select id="vfy-filter" onchange="loadEpisodeHistory()" style="background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:10px; padding:2px 4px;">
+                    <option value="all">전체</option>
+                    <option value="success">성공만</option>
+                    <option value="fail">🚨 실패만</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrapper" style="max-height:520px; overflow-y:auto; overflow-x:auto; border:1px solid var(--border-glow); border-radius:8px;">
                 <table style="width:100%; min-width:820px; border-collapse:collapse; font-size:11px;">
@@ -5753,6 +5802,16 @@ L S R  C S L  R S L
                 <div style="margin-top:10px;">
                   <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">액션 분포</div>
                   <div id="inspect-sum-actions" class="mini-tile-grid"></div>
+                </div>
+                <!-- T1-3: 주행 궤적 — action 적분으로 복원. 지금까지 복귀 역재생에만
+                     쓰이고 시각화된 적 없던 데이터. ⚠️ 회전각 미측정 추정치라
+                     절대거리 주장엔 사용 금지(모양/효율 비교용). -->
+                <div style="margin-top:10px;">
+                  <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">
+                    주행 궤적 <span id="inspect-traj-stat" style="text-transform:none; font-weight:400; color:var(--cyan);"></span>
+                  </div>
+                  <canvas id="inspect-traj" width="300" height="200" style="width:100%; background:#090d16; border:1px solid var(--border-glow); border-radius:6px;"></canvas>
+                  <div style="font-size:8px; color:var(--text-muted); margin-top:3px;">🟢시작 🔴끝 · 빨간구간=미검출(has_bbox=False) · 회전각 추정치라 모양 비교용</div>
                 </div>
               </div>
 
@@ -6094,6 +6153,7 @@ L S R  C S L  R S L
             </div>
             
             <div>
+              <div id="sys-apply-status" style="font-size:11px; text-align:center; margin-bottom:8px; color:var(--text-muted); font-family:var(--font-mono);">—</div>
               <button class="btn btn-rose" style="width:100%; margin-bottom:12px;" onclick="resetServerModel()">🧹 CLEAR / RESET SERVER CACHE</button>
               <div style="font-size:11px; color:var(--text-muted); text-align:center;">
                 추론 서버가 예기치 않게 멈추거나 메모리 정리가 필요할 때 캐시를 초기화합니다.
@@ -6511,6 +6571,10 @@ L S R  C S L  R S L
                     <div class="mini-tile"><span class="mt-label">트랙A</span><span class="mt-value" id="ds-sum-cxpos" style="font-size:13px;">—</span></div>
                     <div class="mini-tile"><span class="mt-label">스키마</span><span class="mt-value" id="ds-sum-schema" style="font-size:15px; font-weight:700;">—</span></div>
                     <div class="mini-tile"><span class="mt-label">날짜</span><span class="mt-value" id="ds-sum-date" style="font-size:11px;">—</span></div>
+                    <!-- T2-1: 수집 시 B버튼으로 찍는 "실험용(모델이상)" 표기.
+                         H5 attrs에는 저장되는데 사후에 볼 화면이 없어서
+                         "학습에서 빼야 할 에피소드"가 사실상 안 보이던 문제 수정. -->
+                    <div class="mini-tile"><span class="mt-label">실험용 표기</span><span class="mt-value" id="ds-sum-flagged" style="font-size:13px;">—</span></div>
                   </div>
 
                   <!-- 수집 관련 상세 정보 — 데이터수집 탭 attrs 그대로 노출 -->
@@ -8768,6 +8832,107 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
+    // ── 🧭 주행 궤적 렌더링 (T1-3) ──────────────────────────────────────
+    async function loadInspectTrajectory(sid) {
+      const cv = document.getElementById("inspect-traj");
+      const statEl = document.getElementById("inspect-traj-stat");
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (statEl) statEl.textContent = "";
+      try {
+        const d = await api("/sessions/trajectory?sid=" + encodeURIComponent(sid));
+        if (!d.ok || !d.points || d.points.length < 2) {
+          ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("궤적 없음", cv.width / 2, cv.height / 2);
+          return;
+        }
+        const P = d.points, PAD = 16;
+        const xs = P.map(p => p.x), ys = P.map(p => p.y);
+        let minX = Math.min(...xs), maxX = Math.max(...xs);
+        let minY = Math.min(...ys), maxY = Math.max(...ys);
+        // 종횡비 유지 — 한쪽으로 눌린 궤적은 모양 비교가 무의미해짐
+        const spanX = Math.max(maxX - minX, 0.1), spanY = Math.max(maxY - minY, 0.1);
+        const span = Math.max(spanX, spanY);
+        const cxm = (minX + maxX) / 2, cym = (minY + maxY) / 2;
+        minX = cxm - span / 2; maxX = cxm + span / 2;
+        minY = cym - span / 2; maxY = cym + span / 2;
+        const sx = v => PAD + (v - minX) / (maxX - minX) * (cv.width - PAD * 2);
+        // y는 위가 +가 되도록 뒤집음(로봇 정면이 화면 위)
+        const sy = v => cv.height - PAD - (v - minY) / (maxY - minY) * (cv.height - PAD * 2);
+
+        ctx.lineWidth = 2;
+        for (let i = 1; i < P.length; i++) {
+          // 미검출 구간을 빨강으로 — "어디서 타겟을 놓쳤나"가 궤적 위에 바로 보임
+          ctx.strokeStyle = P[i].has_bbox ? "#3fb950" : "#f43f5e";
+          ctx.beginPath();
+          ctx.moveTo(sx(P[i - 1].x), sy(P[i - 1].y));
+          ctx.lineTo(sx(P[i].x), sy(P[i].y));
+          ctx.stroke();
+        }
+        const dot = (p, c) => { ctx.fillStyle = c; ctx.beginPath();
+          ctx.arc(sx(p.x), sy(p.y), 4, 0, Math.PI * 2); ctx.fill(); };
+        dot(P[0], "#3fb950");
+        dot(P[P.length - 1], "#ef4444");
+        if (statEl) {
+          statEl.textContent = `이동 ${d.net_displacement_m}m · 경로 ${d.path_length_m}m · 효율 ${d.efficiency}`;
+        }
+      } catch (e) {
+        ctx.fillStyle = "#6b7280"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("궤적 로드 실패", cv.width / 2, cv.height / 2);
+      }
+    }
+
+    // ── 🖥️ 시스템 탭 핸들러 (Tier 3 위생정리, 2026-08-01) ───────────────
+    // applySysParams / resetServerModel은 HTML에서 6곳이 참조하는데 정의가
+    // 아예 없어서, 이 탭의 모든 토글이 ReferenceError로 조용히 죽고 다음 health
+    // 폴링에 원래대로 되돌아가고 있었음(사용자는 "적용됐다"고 오해). verify 탭이
+    // 같은 기능을 제대로 구현해 대체한 뒤 방치된 것으로 보임.
+    // 탭을 지우는 대신, verify와 동일한 /config 경로로 실제 동작하게 배선한다.
+    async function applySysParams() {
+      const g = id => document.getElementById(id);
+      const body = {
+        preview_enabled: g("sys-preview")?.checked,
+        preview_hint_cx: g("sys-hint")?.checked,
+        cx_jump_filter:  g("sys-jump")?.checked,
+        grounding_skip_n: g("sys-skip")?.checked ? 1 : 3,
+        cx_jump_thresh:  parseFloat(g("sys-jump-thresh")?.value || "0.30"),
+      };
+      const st = g("sys-apply-status");
+      try {
+        const res = await api("/config", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(body)
+        });
+        const inner = (res.applied && res.applied.applied) || {};
+        const parts = Object.entries(inner).map(([k, v]) => `${k}=${v}`);
+        if (st) {
+          st.textContent = parts.length ? "✅ 적용: " + parts.join(", ")
+                                        : "⚠️ 서버가 아무것도 적용 안 함";
+          st.style.color = parts.length ? "var(--emerald)" : "var(--amber)";
+        }
+        // verify 탭과 상태가 갈리지 않게 동기화
+        if (typeof syncVerifyRuntimeParams === "function") syncVerifyRuntimeParams();
+      } catch (e) {
+        if (st) { st.textContent = "⚠️ " + _friendlyApiError(e); st.style.color = "var(--rose)"; }
+      }
+    }
+
+    async function resetServerModel() {
+      if (!confirm("추론 서버 세션/캐시를 초기화할까요?\\n(주행이 진행 중이면 정지됩니다)")) return;
+      const st = document.getElementById("sys-apply-status");
+      try {
+        const res = await api("/system/reset", { method: "POST" });
+        if (st) {
+          st.textContent = res.ok === false ? ("⚠️ " + (res.error || "실패")) : "✅ 서버 캐시 초기화 완료";
+          st.style.color = res.ok === false ? "var(--rose)" : "var(--emerald)";
+        }
+        pollStatus();
+      } catch (e) {
+        if (st) { st.textContent = "⚠️ " + _friendlyApiError(e); st.style.color = "var(--rose)"; }
+      }
+    }
+
     // ── 🔬 그라운딩 실패 분석기 (T1-1) ──────────────────────────────────
     // 저장된 세션의 per-frame OWL score로 threshold를 오프라인 재판정.
     // Chart.js(CDN 의존, 오프라인에서 로드 실패) 대신 canvas 2D로 직접 그림.
@@ -9882,6 +10047,7 @@ L S R  C S L  R S L
       document.getElementById("inspect-sid-lbl").textContent = "[" + sid + "]";
       document.getElementById("inspector-placeholder").style.display = "none";
       document.getElementById("inspector-body").style.display = "grid";
+      loadInspectTrajectory(sid);   // T1-3 — 비동기, 실패해도 인스펙터 나머지엔 영향 없음
       
       const res = await api("/sessions/load?sid=" + sid);
       if (!res.ok) {
@@ -10430,10 +10596,13 @@ L S R  C S L  R S L
 
     async function loadEpisodeHistory() {
       try {
-        const res = await api("/episodes/list");
+        // T2-3: 정식/실험용 CSV 전환. 실험용일 땐 스크리닝 집계(renderScreenPanel)를
+        // 오염시키면 안 되므로 updatePathSummary 호출을 건너뛴다.
+        const _src = document.getElementById("vfy-source")?.value || "main";
+        const res = await api("/episodes/list?source=" + encodeURIComponent(_src));
         if (res.ok) {
           // 경로 집계 패널(진행바 및 요약 표)을 갱신합니다.
-          updatePathSummary(res.episodes || []);
+          if (_src !== "experimental") updatePathSummary(res.episodes || []);
           const tbody = document.getElementById("episodes-table-body");
           if (!tbody) return;
           
@@ -11161,6 +11330,15 @@ L S R  C S L  R S L
         ? `${_dsCxPosLabels[m.cx_position] || m.cx_position}${m.cx_path ? " + " + m.cx_path : ""}` : "미지정";
       document.getElementById("ds-sum-schema").textContent = DS_SCHEMA_VERSION[m.schema] || m.schema;
       document.getElementById("ds-sum-date").textContent = m.date + " " + m.time;
+      // T2-1: flagged_model_issue — 수집 때 찍은 "학습 제외 후보" 표기를 사후 노출
+      const _flg = document.getElementById("ds-sum-flagged");
+      const _isFlagged = (a.flagged_model_issue === true || a.flagged_model_issue === 1
+                          || a.flagged_model_issue === "True");
+      if (_flg) {
+        _flg.textContent = _isFlagged ? "🧪 실험용" : "정상";
+        _flg.style.color = _isFlagged ? "#ff8080" : "var(--text-muted)";
+        _flg.style.fontWeight = _isFlagged ? "700" : "400";
+      }
 
       // 수집 설정 — 레거시/신규 스키마에 따라 존재하는 attrs가 다름
       document.getElementById("ds-sum-pattern").textContent = a.pattern || "—";
@@ -11534,10 +11712,10 @@ def joystick_toggle():
     return {"ok": True, "enabled": enabled}
 
 
-@app.post("/joystick/mode")
-def joystick_mode():
-    mode = _joystick.toggle_mode()
-    return {"ok": True, "mode": mode}
+# 2026-08-01 (Tier 3): 여기 있던 두 번째 @app.post("/joystick/mode") 정의를 제거함.
+# 같은 경로가 위쪽(2111행, collect/verify 모드 전환용)에 이미 등록돼 있어서
+# FastAPI가 항상 먼저 등록된 쪽으로 dispatch — 이 함수는 도달 불가능한 죽은
+# 코드였고, 하는 일도 달라서(_joystick.toggle_mode) 읽는 사람을 헷갈리게 했음.
 
 
 class JoystickSpeedReq(BaseModel):
