@@ -276,6 +276,51 @@ seeds        = 0, 1, 2 (다중 시드로 분산 확인)</pre>
 </ol>
 </div>
 
+<h2>7. RoboVLMs와의 관계 — "참고했으나 코드는 쓰지 않음"</h2>
+<p>자주 나오는 질문이라 코드 레벨로 확인한 결과를 정리합니다.
+<strong class="h">현재 89% 모델의 실행 경로에는 RoboVLMs 코드가 한 줄도 없습니다.</strong></p>
+
+<h3>RoboVLMs를 실제로 import하는 파일 — 구(舊) 파이프라인 2개뿐</h3>
+<table>
+<tr><th>파일</th><th>import 내용</th><th class="c">현재 사용</th></tr>
+<tr><td><code>robovlm_nav/train.py</code></td><td><code>robovlms.data</code>, <code>robovlms.model.policy_head</code>, <code>RoboKosMos</code></td><td class="c r">❌ V5 시절 LoRA 학습용</td></tr>
+<tr><td><code>robovlm_nav/serve/inference_server.py</code></td><td><code>MobileVLATrainer</code>, <code>RoboKosMos</code></td><td class="c r">❌ 구 9클래스 서버</td></tr>
+</table>
+
+<h3>현재 파이프라인 — 전부 무관</h3>
+<table>
+<tr><th>단계</th><th>파일 / 가중치</th><th class="c">RoboVLMs</th></tr>
+<tr><td>서빙</td><td><code>serve/stage2_v2_inference_server.py</code> <span class="tag">위 구 서버와 다른 파일</span></td><td class="c g">없음</td></tr>
+<tr><td>헤드 학습</td><td><code>train_exp73_trackA_heads.py</code>, <code>exp73_held_aware_train.py</code></td><td class="c g">없음</td></tr>
+<tr><td>Stage1 proj 학습</td><td><code>train_exp54_stage1_v2_frame_level.py</code> (순수 HF <code>AutoModelForVision2Seq</code>)</td><td class="c g">없음</td></tr>
+<tr><td>비전 가중치</td><td><code>.vlms/kosmos-2-patch14-224</code> — <strong class="h">순수 HuggingFace Kosmos-2</strong></td><td class="c g">없음</td></tr>
+</table>
+<p><strong class="h">가중치 계보도 없습니다</strong> — RoboVLMs로 post-train된
+<code>kosmos_ph_google-robot-post-train.pt</code>는 현재 파이프라인에서 참조 0건입니다.</p>
+
+<div class="note">
+<strong class="o">다만 "참고했다"는 사실이며, 세 가지 의미에서 계보가 있습니다</strong>
+<ol>
+<li><strong class="h">프로젝트 초기 V5는 실제로 RoboVLMs 기반</strong>이었습니다 — Kosmos-2 + LoRA를
+  <code>robovlm_nav/train.py</code>로 학습했고, 그 경로에서 <strong class="h">text attention이
+  0.000%</strong>로 측정되는 문제를 만나 현재 구조(언어 경로 배제 + 외부 검출기)로 이탈했습니다.</li>
+<li>패키지명 <code>robovlm_nav/</code> 자체가 그 시절의 유산입니다.</li>
+<li>ablation 헤드가 명시적으로 RoboVLMs 스타일을 참조합니다 —
+  <code>train_exp54_stage2_v2_action.py</code>에 "RoboVLMs FCDecoder / MLPNohHead 스타일",
+  "RoboVLMs MobileVLAClassificationDecoder 스타일"이 <strong class="h">비교 대상</strong>으로
+  구현돼 있습니다(배포된 것은 <code>mlp</code>).</li>
+</ol>
+</div>
+
+<div class="key">
+<strong class="h">논문 서술 권장</strong> — <strong class="h">"RoboVLMs 계열을 baseline/비교 대상으로
+삼되, 현재 구현은 독립적"</strong>이 정확합니다. 인용은 필요하지만
+<strong class="r">"RoboVLMs 기반"이라고 쓰면 사실과 다릅니다.</strong>
+오히려 이 프로젝트의 서사는 <strong class="h">"VLA(RoboVLMs 계열)에서 출발했으나 언어 경로가
+작동하지 않아, 오픈 보캐블러리 검출 + 경량 액션 헤드로 이탈한 과정"</strong>이고,
+그것이 경량화 논문의 동기와 직결됩니다.
+</div>
+
 <h2>부록 — 배포 체크포인트 이력</h2>
 <p>세션 파일 메타데이터(<code>runtime_config</code>)로 복원한 실제 배포 이력입니다.</p>
 <table>
