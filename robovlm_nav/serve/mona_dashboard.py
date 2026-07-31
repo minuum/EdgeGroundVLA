@@ -8588,6 +8588,28 @@ L S R  C S L  R S L
       });
     }
 
+    // 2026-07-31: 저장된 병합 세트의 범위 끝(end)이 고정값이라, 저장한 뒤 같은
+    // 체크포인트로 계속 스크리닝해서 새 에피소드가 쌓여도 세트 합계에 안 잡히던
+    // 문제 확인("저장 후 바로 반영 안 됨") — applyScreenBatch()의 기존 open-ended
+    // 처리(활성 체크포인트면 until 비움)와 동일한 개념을 세트에도 적용. 단, 세트
+    // 안에 같은 체크포인트 범위가 여러 개일 수 있어서(예: 260741 세트) 전부
+    // 열어두면 새 에피소드가 여러 범위에 중복으로 잡혀 합계가 부풀 수 있음 —
+    // 체크포인트별로 가장 최근(end가 가장 늦은) 범위 "하나만" 지금까지로 확장.
+    function _expandOpenEndedRanges(ranges) {
+      const curFile = (window._currentCheckpointPath || "").split("/").pop();
+      const latestIdxByCkpt = {};
+      (ranges || []).forEach((t, i) => {
+        if (!curFile || t.checkpoint !== curFile) return;
+        if (!(t.checkpoint in latestIdxByCkpt)
+            || new Date(t.end) > new Date(ranges[latestIdxByCkpt[t.checkpoint]].end)) {
+          latestIdxByCkpt[t.checkpoint] = i;
+        }
+      });
+      const openEndedIdx = new Set(Object.values(latestIdxByCkpt));
+      const nowIso = new Date(Date.now() + 60000).toISOString().slice(0, 16);
+      return (ranges || []).map((t, i) => openEndedIdx.has(i) ? {...t, end: nowIso} : t);
+    }
+
     function _trackManualGroupToggle(name, isOpen) {
       if (isOpen) window._openManualGroups.add(name);
       else window._openManualGroups.delete(name);
@@ -8676,7 +8698,7 @@ L S R  C S L  R S L
           : res.groups.map(g => {
           window._manualGroupsCache[g.name] = g.ranges;
           let n = 0, succ = 0;
-          g.ranges.forEach(t => {
+          _expandOpenEndedRanges(g.ranges).forEach(t => {
             const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
             n += matched.length;
             succ += matched.filter(r => r[2] === "성공").length;
@@ -8822,10 +8844,11 @@ L S R  C S L  R S L
       // until은 분 단위 경계값이 포함되도록 +1분 여유를 둠(그 배치의 마지막
       // 에피소드가 딱 그 분에 찍혀도 빠지지 않게).
       const untilDate = (untilEl && untilEl.value) ? new Date(new Date(untilEl.value).getTime() + 60000) : null;
+      const activeGroupRanges = activeGroup ? _expandOpenEndedRanges(activeGroup.ranges) : null;
       const filtered = (rows || []).filter(r => {
         if (r.length < 3) return false;
         if (activeGroup) {
-          return activeGroup.ranges.some(t => _rowsInRange([r], t.checkpoint, t.start, t.end).length > 0);
+          return activeGroupRanges.some(t => _rowsInRange([r], t.checkpoint, t.start, t.end).length > 0);
         }
         if (wantCkpt && _epCheckpointOf(r) !== wantCkpt) return false;
         if (sinceDate || untilDate) {
