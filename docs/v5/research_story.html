@@ -15352,8 +15352,9 @@ graph TD
         아니었다</strong>. 해당 에피소드(#125~147)는 모두 체크포인트 전달 시각(7/23 17:24)
         <strong style="color:#e2e8f0">이전</strong>이라 H5도 메타데이터도 남아있지 않고,
         17:24 직후부터 H5 attrs에 <code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code>가
-        기록되기 시작한다. 같은 날·같은 위치·동일 threshold(0.25)에서 진짜 exp73 챔피언은
-        <strong style="color:#4ade80">22/31 = 71.0%</strong>였다(64-19).
+        기록되기 시작한다. 동일 threshold(0.25)에서 진짜 exp73 챔피언은
+        <strong style="color:#4ade80">29/58 = 50.0%</strong>(가장 어려운 강좌·약좌만 보면
+        13/40 = 32.5%, 같은 위치의 구모델 1/11 = 9.1% 대비)였다 — 상세 및 위치별 비교는 64-19.
         <br><br>
         따라서 <strong style="color:#e2e8f0">"실기 33.3%가 HELD 예측(19.2~27.3%)과 일치한다"는
         결론은 성립하지 않는다.</strong> 이 일치는 두 개의 오류가 우연히 상쇄된 결과였다:
@@ -15663,13 +15664,15 @@ graph TD
       <code>force_reground_on_miss</code>(미검출 다음 스텝 캐시 강제 스킵), 회전 후 강제
       재그라운딩, 회전 0.4s 제한+자동정지, 연속회전 차단, 콜드스타트 가드 3프레임.
       <br><br>
-      <strong style="color:#f87171">④ <s>(분리 불가) 체크포인트 변경</s> → 정정됨:
-      분리 가능하며 오히려 1위 요인</strong> — 7/31에 7/23 세션 원본을 회수해
-      H5 <code>runtime_config</code>를 읽은 결과, 체크포인트 교체의 순효과가
-      <strong style="color:#e2e8f0">+47.2%p로 분리 측정</strong>됐다(같은 날·같은 위치·
-      threshold 0.25 고정). ②의 threshold+회복로직은 +18.0%p로 <strong
-      style="color:#e2e8f0">2위</strong>다. <strong style="color:#f87171">위 ①~④ 순위는
-      이 시점에 무효이며, 64-19가 대체한다.</strong>
+      <strong style="color:#f87171">④ <s>(분리 불가) 체크포인트 변경</s> → 부분 정정:
+      효과 크기는 측정됐으나 ②와의 순위는 여전히 미정</strong> — 7/31에 세션 원본을 회수해
+      H5 <code>runtime_config</code>로 arm을 구성한 결과, 체크포인트 교체와 threshold+가드
+      <strong style="color:#e2e8f0">둘 다 +23~48%p 규모로 크지만, 위치 가중 방식에 따라
+      순위가 뒤집혀 어느 쪽이 주동력인지 단정할 수 없다</strong>(표본이 충분한 강좌·약좌
+      한정으로는 threshold+가드가 +48.0%p로 우세). <strong style="color:#f87171">위 ①~④의
+      순위 서술은 무효이며, 64-19가 대체한다.</strong> ①(그라운딩 가용성)만은
+      전체 159세션에서 <strong style="color:#4ade80">gnd%≥80 → 98.8% 성공</strong>으로
+      재확인돼 유효하다.
       <br><br>
       <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:10px 12px;margin:10px 0">
         <strong style="color:#f87171">⚠️ 추가 정정 — 위치내 층화 시도는 실패했다.</strong>
@@ -15741,69 +15744,88 @@ graph TD
 
   <!-- 64-19 3체제 분해 -->
   <div class="finding-card" style="border-color:#fbbf24">
-    <div class="finding-title" style="color:#fbbf24">🔧 64-19. 세션 원본 회수로 밝혀진 진짜 인과 — 주동력은 threshold가 아니라 체크포인트 교체 (2026-07-31)</div>
+    <div class="finding-title" style="color:#fbbf24">🔧 64-19. 개선 요인 분해 — 두 효과 모두 크지만 순위는 단정 불가, 견고한 것은 "그라운딩 가용성" 하나 (2026-07-31)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      soda로부터 세션 H5 원본 176개(7/23 · 7/30 · 7/31, 3.7GB)를 회수해
-      <code>runtime_config</code> attrs를 직접 읽은 결과,
-      <strong style="color:#e2e8f0">7/23 데이터가 체크포인트 전달 시각(17:24)을 기준으로
-      두 체제로 갈린다</strong>는 것을 발견했다. 이는 <strong style="color:#e2e8f0">같은
-      날 · 같은 위치 · threshold 0.25 고정</strong> 상태에서 체크포인트만 교체된
-      <strong style="color:#4ade80">자연실험</strong>이라, 64-18에서 "분리 불가"로 남겨둔
-      체크포인트 순효과를 분리 측정할 수 있다.
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:10px 12px;margin-bottom:12px">
+        <strong style="color:#fbbf24">📝 이 카드는 같은 날 2회 자체 수정됐다.</strong>
+        처음엔 "체크포인트 교체 +47.2%p가 threshold(+18.0%p)의 2.6배"라고 썼으나 둘 다
+        틀린 수치였다. 원인 두 가지: (1) 세션 인덱싱 글로브를
+        <code>2026073*</code>로 써서 <strong style="color:#e2e8f0">7/23 폴더(20260723)가
+        threshold=0.25 arm에서 통째로 빠졌고</strong>, (2) arm 간
+        <strong style="color:#e2e8f0">위치 구성이 달라 통제가 안 된 상태</strong>로 조참
+        성공률을 비교했다 — 내가 64-18에서 soda에게 경고한 바로 그 함정에 스스로 빠진 것.
+        아래는 H5 <code>runtime_config</code>를 ground truth로 전체 재계산한 결과이며,
+        <strong style="color:#e2e8f0">결론은 "순위를 정할 수 없다"로 바뀌었다.</strong>
+      </div>
+      soda로부터 세션 H5 원본 176개(3.7GB)를 회수해 각 세션의
+      <code>runtime_config</code>(체크포인트·threshold)를 직접 읽어 arm을 구성했다.
+      날짜창 추정이 아니라 메타데이터 기준이다.
       <br><br>
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
-        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">체제</th><th style="padding:4px">체크포인트</th><th style="padding:4px">thresh</th><th style="padding:4px">회복가드</th><th style="padding:4px">성공률</th><th style="padding:4px">95% CI</th></tr>
-        <tr><td style="padding:4px"><strong>A</strong> (#125~147)</td><td style="padding:4px;text-align:center;color:#94a3b8">구 배포모델<sup>†</sup></td><td style="padding:4px;text-align:center">0.25</td><td style="padding:4px;text-align:center">✗</td><td style="padding:4px;text-align:center;color:#f87171">5/21 = <strong>23.8%</strong></td><td style="padding:4px;text-align:center;color:#64748b">11~45%</td></tr>
-        <tr style="background:rgba(230,159,0,0.1)"><td style="padding:4px"><strong>B</strong> (#149~179)</td><td style="padding:4px;text-align:center">exp73_owl_holdaware_seed0</td><td style="padding:4px;text-align:center">0.25</td><td style="padding:4px;text-align:center">✗</td><td style="padding:4px;text-align:center;color:#fbbf24">22/31 = <strong>71.0%</strong></td><td style="padding:4px;text-align:center;color:#64748b">55~84%</td></tr>
-        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>C</strong> (100세트)</td><td style="padding:4px;text-align:center">exp73_owl_holdaware_seed0</td><td style="padding:4px;text-align:center">0.20</td><td style="padding:4px;text-align:center">✓</td><td style="padding:4px;text-align:center;color:#4ade80">89/100 = <strong>89.0%</strong></td><td style="padding:4px;text-align:center;color:#64748b">81~94%</td></tr>
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">위치</th><th style="padding:4px">A 구모델 @0.25</th><th style="padding:4px">B exp73 @0.25</th><th style="padding:4px">C exp73 @0.20+가드</th></tr>
+        <tr><td style="padding:4px">강좌</td><td style="padding:4px;text-align:center;color:#f87171">0/7 (0%)</td><td style="padding:4px;text-align:center">9/20 (45%)</td><td style="padding:4px;text-align:center">16/20 (80%)</td></tr>
+        <tr><td style="padding:4px">약좌</td><td style="padding:4px;text-align:center">1/4 (25%)</td><td style="padding:4px;text-align:center;color:#f87171">4/20 (20%)</td><td style="padding:4px;text-align:center">17/21 (81%)</td></tr>
+        <tr><td style="padding:4px">중앙</td><td style="padding:4px;text-align:center;color:#64748b">0/1<sup>*</sup></td><td style="padding:4px;text-align:center;color:#fbbf24">4/5<sup>*</sup> (80%)</td><td style="padding:4px;text-align:center;color:#4ade80">20/20 (100%)</td></tr>
+        <tr><td style="padding:4px">약우</td><td style="padding:4px;text-align:center;color:#64748b">1/4<sup>*</sup> (25%)</td><td style="padding:4px;text-align:center;color:#fbbf24">2/3<sup>*</sup> (67%)</td><td style="padding:4px;text-align:center">19/20 (95%)</td></tr>
+        <tr><td style="padding:4px">강우</td><td style="padding:4px;text-align:center;color:#64748b">3/5<sup>*</sup> (60%)</td><td style="padding:4px;text-align:center">10/10 (100%)</td><td style="padding:4px;text-align:center">18/20 (90%)</td></tr>
+        <tr style="border-top:1px solid #334155"><td style="padding:4px"><strong>조참 합계</strong></td><td style="padding:4px;text-align:center"><strong>5/21 (23.8%)</strong></td><td style="padding:4px;text-align:center"><strong>29/58 (50.0%)</strong></td><td style="padding:4px;text-align:center"><strong>90/101 (89.1%)</strong></td></tr>
       </table>
       <div style="font-size:0.78rem;color:#64748b;margin-top:4px">
-        <sup>†</sup> 체제 A는 H5·메타데이터가 남아있지 않아(전달 이전) 체크포인트를 직접 확인할 수
-        없다. 근거는 정황: (a) 17:24부터 H5 attrs에 전달 체크포인트가 기록되기 시작, (b) 같은 날·같은
-        위치·동일 threshold에서 그 시점에 성공률이 급격히 불연속. <strong style="color:#fbbf24">soda에
-        17:24 이전 로드 모델 확인 요청 중</strong> — 확인되면 이 각주를 갱신한다.
+        <sup>*</sup> n&lt;6으로 신뢰 낮음. B의 중앙·약우 셀(n=5,3)이 아래 표준화 추정을 크게 흔든다.
       </div>
       <br>
-      <strong style="color:#e2e8f0">기여분 분해</strong>:
+      <strong style="color:#f87171">⚠️ 세 가지 추정 방식이 순위를 뒤집는다 → 주동력 단정 불가</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">추정 방식</th><th style="padding:4px">체크포인트(A→B)</th><th style="padding:4px">threshold+가드(B→C)</th><th style="padding:4px">우세</th></tr>
+        <tr><td style="padding:4px">위치 동일가중 표준화</td><td style="padding:4px;text-align:center">+40.3%p</td><td style="padding:4px;text-align:center">+26.9%p</td><td style="padding:4px;text-align:center;color:#fbbf24">체크포인트</td></tr>
+        <tr><td style="padding:4px">조참 pooled(전체)</td><td style="padding:4px;text-align:center">+26.2%p</td><td style="padding:4px;text-align:center">+39.1%p</td><td style="padding:4px;text-align:center;color:#4ade80">threshold</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>강좌+약좌만(3 arm 모두 표본 충분)</strong></td><td style="padding:4px;text-align:center">+23.4%p</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+48.0%p</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>threshold</strong></td></tr>
+      </table>
+      <br>
+      표준화가 체크포인트 우세로 나오는 건 순전히 <strong style="color:#e2e8f0">B의
+      중앙(4/5)·약우(2/3) 같은 n=3~5 셀에 1/5씩 가중이 실려서</strong>다. 세 arm 모두
+      표본이 확보된 <strong style="color:#e2e8f0">강좌·약좌(n=11/40/41)만 보면
+      threshold+가드가 +48.0%p로 명확히 우세</strong>하다(9.1%→32.5%→80.5%).
+      가장 검정력 있는 비교가 threshold를 지지하므로
+      <strong style="color:#e2e8f0">soda의 판단이 내 최초 주장보다 정확했다</strong>.
+      다만 표준화가 뒤집힌다는 사실 자체가 <strong style="color:#fbbf24">"어느 쪽이
+      주동력"이라고 논문에 쓸 수 없다</strong>는 뜻이다 — 둘 다 크고(각각 +23~48%p),
+      순위는 동일 위치 A/B 재수집 없이는 확정 불가.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_19_regimes.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="개선 요인 분해"></div>
+      <br>
+      <strong style="color:#4ade80">✅ 유일하게 견고한 불변량 — 그라운딩 가용성 (soda 발견, 확장 검증)</strong>:
+      soda가 "th=0.20에서 gnd%≥80이면 69/69=100% 성공"을 보고했고, 이를
+      <strong style="color:#e2e8f0">threshold·체크포인트 무관 전체 159세션으로 확장</strong>해
+      재검증했다:
       <ul style="margin:6px 0 0 18px;padding:0">
-        <li><strong style="color:#fbbf24">A→B 체크포인트 교체: +47.2%p</strong>
-          (Fisher exact p=0.0008) — <strong style="color:#e2e8f0">단일 최대 요인</strong></li>
-        <li><strong style="color:#4ade80">B→C threshold 0.20 + 회복로직: +18.0%p</strong>
-          (p=0.0254)</li>
-        <li>전체 A→C: 23.8% → 89.0% (+65.2%p)</li>
+        <li><strong style="color:#4ade80">gnd% ≥ 80 → 79/80 = 98.8% 성공</strong>
+          (예외 1건, gnd% 92.3%)</li>
+        <li>gnd% &lt; 80 → 41/80 = 51.2%</li>
+        <li>인과 경로도 일관: th 0.25→0.20에서 평균 gnd% 33.5%→81.1%,
+          완전미검출 세션 39.7%→3.0%</li>
       </ul>
-      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_19_regimes.png" style="max-width:880px;width:100%;border-radius:8px;border:1px solid #223" alt="3체제 분해"></div>
-      <br>
-      <strong style="color:#f87171">이 발견이 정정하는 것 2건</strong>
-      <ol style="margin:6px 0 0 18px;padding:0">
-        <li><strong style="color:#e2e8f0">64-11 전면 철회</strong> — 64-11이 "exp73 챔피언 첫
-          실기 검증"이라 부른 33.3%는 체제 A(구 모델)의 성적이다. 진짜 exp73 챔피언은 같은
-          threshold에서 71.0%이고, 이는 HELD 예측(19.2~27.3%)과 전혀 맞지 않는다. 64-11의
-          "HELD 예측과 일치" 결론은 <strong style="color:#f87171">다른 모델의 성적을
-          다른 척도의 예측에 맞춘 거짓 검증</strong>이었다(두 오류의 우연한 상쇄).</li>
-        <li><strong style="color:#e2e8f0">64-18 요인 순위 정정</strong> — 64-18은 체크포인트를
-          "④ 분리 불가"로 놓고 threshold를 주요 정량 레버로 봤으나, 실제로는 체크포인트가
-          분리 가능하며 threshold의 2.6배 크기다.</li>
-      </ol>
-      <br>
-      <strong style="color:#4ade80">유지되는 것</strong>: 64-18의 <strong
-      style="color:#e2e8f0">①(그라운딩 가용성이 성패를 가른다: gnd% 86.2 vs 45.7)</strong>는
-      독립 재현으로 확인됐고(아래), 이 정정과 무관하게 유효하다. 오히려 A→B의 대부분이
-      "그라운더를 PG448에서 OWL-v2로 바꾼 것 + hold-aware 학습"이므로
-      <strong style="color:#e2e8f0">"그라운딩 품질이 지배적"이라는 결론은 강화된다</strong> —
-      바뀐 것이 정책 헤드가 아니라 인식 경로였다.
+      100% 는 아니지만(soda 수치는 0.20 부분집합만 본 것) <strong style="color:#e2e8f0">
+      그라운딩이 유지되면 성패가 거의 결정된다는 결론은 더 넓은 표본에서 강화됐다</strong>.
+      요인 순위를 못 정해도 <strong style="color:#e2e8f0">"개선해야 할 대상은 그라운딩"</strong>
+      이라는 방향은 흔들리지 않는다 — 64-18 ①과 동일한 결론이고, 이쪽이 논문에 쓸 수 있는 주장이다.
       <br><br>
-      <strong style="color:#e2e8f0">검증 절차(재현 가능)</strong>: <code>episode_log.csv</code>에서
-      100세트를 복원할 때 101건이 나와 추적한 결과 <code>#230</code>(메모: "요상한경로임 상당히")이
-      soda의 제외 대상이었고, 이를 제외하니 <strong style="color:#4ade80">89/100 및 위치별
-      5/5가 정확히 일치</strong>. H5의 <code>grounding/bbox[:,3]</code>이 has_bbox 플래그임을
-      확인해 gnd%를 독립 재계산한 결과도 성공 85.3% / 실패 48.6%로 soda 보고(86.2/45.7)를
-      재현. 체제 B의 위치별 성적(강좌 5/10, 약좌 1/3, 중앙 4/5, 약우 2/3, 강우 10/10)은
-      이전에 사람이 기억으로 알려준 "30개 세션" 수치와 <strong style="color:#4ade80">5/5
-      완전 일치</strong>.
+      <strong style="color:#f87171">그리고 64-11은 철회한다</strong> — 이 재계산과 무관하게
+      확정된 사실: 64-11이 "exp73 챔피언 첫 실기 검증 33.3%"라 부른 세션들(#125~147)은
+      체크포인트 전달(7/23 17:24) <strong style="color:#e2e8f0">이전</strong>이라 H5·메타데이터가
+      없고, 17:24 직후부터 H5 attrs에 전달 체크포인트가 기록된다. 즉 그 성적은 exp73
+      챔피언의 것이 아니다. 따라서 64-11의 "실기가 HELD 예측(19.2~27.3%)과 일치" 결론은
+      <strong style="color:#f87171">다른 모델의 성적을 다른 척도(HELD는 프레임 단위 정확도
+      프록시)의 예측에 맞춘 거짓 검증</strong>이다.
+      <span style="color:#fbbf24">A arm의 정체(17:24 이전 로드 모델)는 soda 확인 대기 중.</span>
+      <br><br>
+      <strong style="color:#e2e8f0">교차검증된 것</strong>: <code>#230</code>(메모 "요상한경로임
+      상당히")이 soda의 100세트 제외 대상임을 역추적으로 특정 → 제외 시 89/100 및 위치별
+      5/5 일치. H5 <code>grounding/bbox[:,3]</code>가 has_bbox 플래그임을 확인해 gnd%를
+      독립 재계산 → 성공 85.3% / 실패 48.6%(soda 86.2/45.7) 재현. soda의 위치통제
+      threshold 효과(강좌 4/10·약좌 3/17 → +54.6%p, p=1.15e-05)도 그대로 재현되며,
+      그 arm이 7/30분만 담고 있어 7/23을 합치면 위 표의 9/20·4/20이 된다.
     </div>
   </div>
-
   <!-- 64-20 젯슨-로컬 gap -->
   <div class="finding-card">
     <div class="finding-title">64-20. 젯슨-로컬 gap 정량화 — 부차적 요인으로 확정, 7/4 결론 정정 (2026-07-31)</div>

@@ -37,75 +37,123 @@ def wil(k, n, z=1.96):
     return 100 * max(0, c - h), 100 * min(1, c + h)
 
 
-def regimes():
+def build():
+    """H5 runtime_config(ground truth)로 3개 arm 구성 — 날짜창 추정 대신 메타데이터 사용."""
+    import glob, json
+    import h5py
     df = pd.read_csv(RECV / "20260731" / "episode_log.csv")
     df.columns = [c.strip() for c in df.columns]
-    df["dt"] = pd.to_datetime(df["날짜"])
-    A = df[(df["#"] >= 125) & (df["#"] <= 147) & df["경로"].isin(POS)].copy()
-    B = df[(df["#"] >= 149) & (df["#"] <= 179) & df["경로"].isin(POS)].copy()
-    d = df[df["체크포인트"] == "exp73_owl_trackF_v6_mlp_holdaware_seed0.pt"].copy()
-    Cc = d[(d["dt"] >= pd.Timestamp("2026-07-30 19:25")) & ~d["#"].between(200, 209)
-           & (d["#"] != 230) & d["경로"].isin(POS)].copy()
-    for x in (A, B, Cc):
-        x["pos"] = x["경로"].map(POS); x["ok"] = x["결과"] == "성공"
-    return A, B, Cc
+    d = df[df["경로"].isin(POS)].copy()
+    d["pos"] = d["경로"].map(POS); d["ok"] = d["결과"] == "성공"
+    idx = {Path(f).stem.replace("session_", ""): f
+           for f in glob.glob(str(RECV / "2026*" / "h5" / "*.h5"))}
+    rec = []
+    for _, r in d.iterrows():
+        f = idx.get(str(r["session_id"])); dt = str(r["날짜"])[:16]
+        if f:
+            with h5py.File(f, "r") as h:
+                c = json.loads(h.attrs["runtime_config"]); bb = h["grounding/bbox"][:]
+            rec.append(dict(pos=r["pos"], ok=r["ok"], gnd=100 * bb[:, 3].mean(),
+                            ckpt=Path(c.get("checkpoint_path", "?")).name,
+                            th=c["owlv2_thresh"], date=dt))
+        else:
+            rec.append(dict(pos=r["pos"], ok=r["ok"], gnd=np.nan, ckpt="h5없음",
+                            th=np.nan, date=dt))
+    m = pd.DataFrame(rec)
+    K = "exp73_owl_trackF_v6_mlp_holdaware_seed0.pt"
+    A = m[(m.ckpt == "h5없음") & (m.date >= "2026-07-23") & (m.date < "2026-07-24")]
+    B = m[(m.ckpt == K) & (m.th == 0.25)]
+    Cc = m[(m.ckpt == K) & (m.th == 0.20)]
+    return m, A, B, Cc
 
 
-# ============ 64-19: 3체제 분해 ============
-A, B, Cc = regimes()
-fig, axes = plt.subplots(1, 2, figsize=(13.2, 4.5),
-                         gridspec_kw={"width_ratios": [1.0, 1.35]})
+NAMES = ["강좌", "약좌", "중앙", "약우", "강우"]
+m, A, B, Cc = build()
+tab = {p: [(int(x[x.pos == p].ok.sum()), len(x[x.pos == p])) for x in (A, B, Cc)]
+       for p in NAMES}
 
+
+def std(i):
+    num = den = 0
+    for p in NAMES:
+        k, n = tab[p][i]
+        if n:
+            num += k / n; den += 1
+    return 100 * num / den
+
+
+fig, axes = plt.subplots(1, 3, figsize=(15.0, 4.4),
+                         gridspec_kw={"width_ratios": [1.4, 1.0, 1.0]})
+
+# (A) 위치별 3 arm
 ax = axes[0]
-labs = ["A\n구 배포모델\nthr 0.25 · 가드X",
-        "B\nexp73 챔피언\nthr 0.25 · 가드X",
-        "C\nexp73 챔피언\nthr 0.20 · 가드O"]
-kn = [(A.ok.sum(), len(A)), (B.ok.sum(), len(B)), (Cc.ok.sum(), len(Cc))]
-ps = [100 * k / n for k, n in kn]
-err = np.array([[p - wil(k, n)[0] for p, (k, n) in zip(ps, kn)],
-                [wil(k, n)[1] - p for p, (k, n) in zip(ps, kn)]])
-cols = [C["grey"], C["orange"], C["green"]]
-ax.bar([0, 1, 2], ps, 0.56, color=cols, edgecolor="white", linewidth=0.6,
-       yerr=err, capsize=4, error_kw={"lw": 1.1, "ecolor": "#444"})
-for xi, (p, (k, n)) in zip([0, 1, 2], zip(ps, kn)):
-    ax.text(xi, p + 7.5, f"{k}/{n}\n{p:.1f}%", ha="center", fontweight="bold",
-            fontsize=10)
-ax.annotate("", xy=(0.72, 44), xytext=(0.28, 44),
-            arrowprops=dict(arrowstyle="->", color=C["verm"], lw=2.2))
-ax.text(0.5, 47, "체크포인트 교체\n+47.2%p\n(p=0.0008)", ha="center", fontsize=9,
-        color=C["verm"], fontweight="bold")
-ax.annotate("", xy=(1.72, 78), xytext=(1.28, 78),
-            arrowprops=dict(arrowstyle="->", color=C["blue"], lw=2.2))
-ax.text(1.5, 73, "thr 0.20\n+회복로직\n+18.0%p\n(p=0.025)", ha="center", va="top",
-        fontsize=9, color=C["blue"], fontweight="bold")
-ax.set_xticks([0, 1, 2]); ax.set_xticklabels(labs, fontsize=9)
-ax.set_ylabel("실기 성공률 (%)"); ax.set_ylim(0, 118)
-ax.set_title("(A) 3체제 분해 — A→B는 같은 날·같은 위치·threshold 고정\n"
-             "즉 체크포인트 순효과가 분리 측정됨", fontsize=10.5, pad=8)
-
-ax = axes[1]
 x = np.arange(5); w = 0.27
-names = ["강좌", "약좌", "중앙", "약우", "강우"]
-for i, (lab, dfx, col) in enumerate([("A 구모델 (thr.25)", A, C["grey"]),
-                                     ("B exp73 (thr.25)", B, C["orange"]),
-                                     ("C exp73 (thr.20+가드)", Cc, C["green"])]):
-    vals, txt = [], []
-    for p in names:
-        g = dfx[dfx.pos == p]; k, n = g.ok.sum(), len(g)
-        vals.append(100 * k / n if n else 0); txt.append(f"{k}/{n}" if n else "")
-    ax.bar(x + (i - 1) * w, vals, w, color=col, label=lab, edgecolor="white",
-           linewidth=0.5)
-    for xi, (v, t) in zip(x + (i - 1) * w, zip(vals, txt)):
-        if t:
-            ax.text(xi, v + 2, t, ha="center", fontsize=7.3, color="#333")
-ax.set_xticks(x); ax.set_xticklabels(names)
-ax.set_ylabel("실기 성공률 (%)"); ax.set_ylim(0, 122)
-ax.legend(fontsize=8.3, ncol=1, loc="upper left", framealpha=0.95)
-ax.set_title("(B) 위치별 — 전 위치에서 A<B<C 단조 개선\n"
-             "(약좌만 B에서 n=3으로 표본 부족)", fontsize=10.5, pad=8)
-fig.suptitle("64-19. 개선의 주동력은 threshold가 아니라 체크포인트 교체였다 "
-             "— 64-11 정정",
-             fontsize=12.5, y=1.04, fontweight="bold")
+for i, (lab, col) in enumerate([("A 구모델 @0.25", C["grey"]),
+                                ("B exp73 @0.25", C["orange"]),
+                                ("C exp73 @0.20+가드", C["green"])]):
+    vals = [100 * tab[p][i][0] / tab[p][i][1] if tab[p][i][1] else 0 for p in NAMES]
+    ax.bar(x + (i - 1) * w, vals, w, color=col, label=lab, edgecolor="white", linewidth=0.5)
+    for xi, (v, p) in zip(x + (i - 1) * w, zip(vals, NAMES)):
+        k, n = tab[p][i]
+        if n:
+            ax.text(xi, v + 2, f"{k}/{n}", ha="center", fontsize=7.2,
+                    color="#b45309" if n < 6 else "#333",
+                    fontweight="bold" if n < 6 else "normal")
+ax.set_xticks(x); ax.set_xticklabels(NAMES); ax.set_ylim(0, 124)
+ax.set_ylabel("실기 성공률 (%)")
+ax.legend(fontsize=8.2, loc="upper left", framealpha=0.95)
+ax.set_title("(A) 위치별 3 arm — 주황 라벨은 n<6(신뢰 낮음)\n"
+             "B의 중앙·약우·강우는 표본 3~10에 불과", fontsize=10.3, pad=8)
+
+# (B) 두 추정량이 순위를 뒤집는다
+ax = axes[1]
+sa, sb, sc = std(0), std(1), std(2)
+ka, na = A.ok.sum(), len(A); kb, nb = B.ok.sum(), len(B); kc, nc = Cc.ok.sum(), len(Cc)
+hard = [(sum(tab[p][i][0] for p in ["강좌", "약좌"]),
+         sum(tab[p][i][1] for p in ["강좌", "약좌"])) for i in range(3)]
+ests = {
+    "위치 동일가중\n표준화": (sb - sa, sc - sb),
+    "조참 pooled\n(전체)": (100 * kb / nb - 100 * ka / na, 100 * kc / nc - 100 * kb / nb),
+    "강좌+약좌만\n(표본 충분)": (100 * hard[1][0] / hard[1][1] - 100 * hard[0][0] / hard[0][1],
+                          100 * hard[2][0] / hard[2][1] - 100 * hard[1][0] / hard[1][1]),
+}
+xs = np.arange(3); w2 = 0.36
+ck = [v[0] for v in ests.values()]; th = [v[1] for v in ests.values()]
+ax.bar(xs - w2 / 2, ck, w2, color=C["orange"], label="체크포인트 효과(A→B)",
+       edgecolor="white", linewidth=0.6)
+ax.bar(xs + w2 / 2, th, w2, color=C["green"], label="threshold+가드(B→C)",
+       edgecolor="white", linewidth=0.6)
+for xi, v in zip(xs - w2 / 2, ck):
+    ax.text(xi, v + 1.2, f"+{v:.1f}", ha="center", fontsize=8.6, color="#b45309")
+for xi, v in zip(xs + w2 / 2, th):
+    ax.text(xi, v + 1.2, f"+{v:.1f}", ha="center", fontsize=8.6, color="#047857")
+ax.set_xticks(xs); ax.set_xticklabels(list(ests.keys()), fontsize=8.4)
+ax.set_ylabel("성공률 차이 (%p)"); ax.set_ylim(0, 62)
+ax.legend(fontsize=8, loc="upper left", framealpha=0.95)
+ax.set_title("(B) 추정 방식에 따라 순위가 뒤집힌다\n"
+             "→ 어느 쪽이 주동력인지 단정 불가", fontsize=10.3, pad=8)
+
+# (C) 유일하게 견고한 불변량
+ax = axes[2]
+mm = m[m.gnd.notna()]
+g1 = mm[mm.gnd >= 80]; g0 = mm[mm.gnd < 80]
+vals = [100 * g1.ok.mean(), 100 * g0.ok.mean()]
+ax.bar([0, 1], vals, 0.5, color=[C["green"], C["verm"]], edgecolor="white", linewidth=0.6)
+for xi, (v, g) in zip([0, 1], zip(vals, [g1, g0])):
+    ax.text(xi, v + 2.5, f"{int(g.ok.sum())}/{len(g)}\n{v:.1f}%", ha="center",
+            fontweight="bold", fontsize=10.5)
+ax.set_xticks([0, 1]); ax.set_xticklabels(["gnd% ≥ 80", "gnd% < 80"])
+ax.set_ylabel("실기 성공률 (%)"); ax.set_ylim(0, 118)
+ax.text(0.5, 26, f"실패 세션 gnd% 최대 {mm[~mm.ok].gnd.max():.1f}%\n"
+                 f"gnd%≥80 실패는 {len(mm[(~mm.ok)&(mm.gnd>=80)])}건뿐",
+        ha="center", fontsize=8.6, color="#444",
+        bbox=dict(boxstyle="round,pad=0.35", fc="#f7f7f7", ec="#ddd"))
+ax.set_title("(C) 견고한 불변량 — 그라운딩이 되면\n성패가 거의 결정된다 (n=159)",
+             fontsize=10.3, pad=8)
+
+fig.suptitle("64-19. 개선 요인 분해 — 두 효과 모두 크지만 순위는 단정 불가, "
+             "견고한 것은 '그라운딩 가용성' 하나",
+             fontsize=12.3, y=1.04, fontweight="bold")
 fig.savefig(OUT / "fig_64_19_regimes.png"); plt.close(fig)
 print("saved fig_64_19_regimes.png")
 
