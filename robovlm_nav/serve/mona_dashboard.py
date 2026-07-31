@@ -2840,7 +2840,7 @@ def sessions_load(sid: str):
             if is_prev and lat == 0:
                 warns.append("⚠️ preview latency=0ms")
             if ca == 0.0 and lat == 0 and not is_prev and not is_arrival:
-                warns.append("⚠️ live PG2 latency=0ms")
+                warns.append("⚠️ live 그라운딩 latency=0ms")  # PG2/OWL-v2 공용 문구(2026-07-31)
             if has and abs(cx - 0.5) < 0.001:
                 warns.append("⚠️ has_bbox=True지만 cx=0.5 (fallback)")
             if has and area == 0:
@@ -4898,8 +4898,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span id="vfy-gnd-cached" class="font-mono" style="font-size:10px;">—</span>
               </div>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; line-height:1.6;">
-                <div>live PG2: <span id="vfy-gnd-live-cnt" class="text-amber font-mono">—</span></div>
-                <div>캐시 재사용: <span id="vfy-gnd-cache-cnt" class="text-emerald font-mono">—</span></div>
+                <div title="실시간(live) 호출 — 이번 스텝에 그라운더(PG2/OWL-v2, 아래 표시된 현재 그라운더)를 실제로 다시 돌려서 새로 검출한 횟수. 레이턴시가 길고(수백ms~2초대) has_bbox/cx가 그 순간 실제 화면 기준으로 갱신됨.">
+                  live <span id="vfy-gnd-live-label">그라운더</span>: <span id="vfy-gnd-live-cnt" class="text-amber font-mono">—</span></div>
+                <div title="캐시 재사용 — grounding_skip_n 설정에 따라 그라운더를 다시 안 부르고 직전 live 호출의 bbox(cx/area/has_bbox)를 그대로 재사용한 횟수. 레이턴시가 거의 0ms(수십ms)로 빠르지만, 그 사이 로봇이 움직였어도 화면이 갱신 안 된 '오래된' 값일 수 있음.">
+                  캐시 재사용: <span id="vfy-gnd-cache-cnt" class="text-emerald font-mono">—</span></div>
                 <div style="grid-column: span 2;">평균 latency: <span id="vfy-gnd-avg-lat" class="text-cyan font-mono">—</span></div>
                 <div>대상: <span id="vfy-gnd-entity" class="text-cyan font-mono" style="font-weight:600;">—</span></div>
                 <div>레이블: <span id="vfy-pred-label" class="text-emerald font-mono" style="font-weight:600;">—</span></div>
@@ -10237,7 +10239,10 @@ L S R  C S L  R S L
           setSafeText("vfy-sess-record-lbl", `추론 ${state.n_infer || 0} + post ${state.n_post || 0} = ${state.n_total || 0}`);
           setSafeText("vfy-sess-id-lbl", state.session_id || "—");
 
-          // 🔍 신규 추가: 그라운딩 통계
+          // 🔍 신규 추가: 그라운딩 통계 — "live PG2" 고정 라벨이 OWL-v2 사용 중에도
+          // 그대로 떠서 헷갈렸던 것 수정, 현재 로드된 그라운더 이름을 그대로 반영(2026-07-31).
+          const _gndCurName = document.getElementById("vfy-grounder-current");
+          setSafeText("vfy-gnd-live-label", (_gndCurName && _gndCurName.textContent && _gndCurName.textContent !== "—") ? _gndCurName.textContent : "그라운더");
           setSafeText("vfy-gnd-live-cnt", state.gnd_live !== undefined ? state.gnd_live + "회" : "0회");
           setSafeText("vfy-gnd-cache-cnt", state.gnd_cache !== undefined ? state.gnd_cache + "회" : "0회");
           setSafeText("vfy-gnd-avg-lat", state.gnd_avg_lat !== undefined ? state.gnd_avg_lat + "ms" : "0ms");
