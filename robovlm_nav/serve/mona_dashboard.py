@@ -3628,6 +3628,7 @@ def grounding_scores():
     n_with = 0
     for h5p in sorted(INFER_H5_DIR.glob("session_*.h5"), reverse=True):
         sid = h5p.stem.replace("session_", "")
+        backfilled = False
         try:
             with h5py.File(h5p, "r") as f:
                 g = f.get("grounding")
@@ -3639,6 +3640,18 @@ def grounding_scores():
                     scores = [round(float(v), 4) for v in g["score"][:]]
                 else:
                     scores = [-1.0] * len(has_bbox)
+                # 2026-07-31 이전 세션은 H5에 score가 없음 → 백필 사이드카를 참조.
+                # (원본 H5를 수정하지 않는 이유는 backfill_grounding_scores.py 상단 참고)
+                if all(s < 0 for s in scores):
+                    sc_p = INFER_H5_DIR / "backfill_scores" / f"session_{sid}.json"
+                    if sc_p.exists():
+                        try:
+                            bf = json.loads(sc_p.read_text()).get("scores") or []
+                            if len(bf) == len(scores):
+                                scores = [round(float(v), 4) for v in bf]
+                                backfilled = True
+                        except Exception:
+                            pass
                 thr = None
                 if "score_thresh" in g:
                     tv = [float(v) for v in g["score_thresh"][:] if v > 0]
@@ -3652,7 +3665,8 @@ def grounding_scores():
         meta = ep_by_sid.get(sid, {})
         sessions.append({
             "sid": sid, "scores": scores, "has_bbox": has_bbox, "cached": cached,
-            "thresh_used": thr, "path_type": meta.get("path_type", ""),
+            "thresh_used": thr, "backfilled": backfilled,
+            "path_type": meta.get("path_type", ""),
             "result": meta.get("result", ""), "checkpoint": meta.get("checkpoint", ""),
         })
 
