@@ -9478,6 +9478,29 @@ L S R  C S L  R S L
       return { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}` };
     }
 
+    // sid("YYYYMMDD_HHMMSS") + window._checkpointIndex(session_id→체크포인트)로
+    // 이 세션이 어느 저장된 병합 세트(들)에 속하는지 찾음(2026-07-31, "세션
+    // 히스토리에도 세트 태그 보이게" 요청). 캐시 둘 다 비어있으면 그냥 빈 배열.
+    function _manualGroupTagsForSession(sid) {
+      const ckpt = (window._checkpointIndex || {})[sid];
+      if (!ckpt) return [];
+      const m = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})$/.exec(sid);
+      if (!m) return [];
+      const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+      const names = [];
+      Object.entries(window._manualGroupsCache || {}).forEach(([name, ranges]) => {
+        const expanded = _expandOpenEndedRanges(ranges);
+        const hit = expanded.some(t => {
+          if (t.checkpoint !== ckpt) return false;
+          const s = new Date(t.start.replace(" ", "T"));
+          const e = new Date(new Date(t.end.replace(" ", "T")).getTime() + 60000);
+          return d >= s && d <= e;
+        });
+        if (hit) names.push(name);
+      });
+      return names;
+    }
+
     async function loadSessionList() {
       const res = await api("/sessions/list");
       const listEl = document.getElementById("session-list-group");
@@ -9496,6 +9519,10 @@ L S R  C S L  R S L
         }
         const labeledCls = s.labeled_count > 0 ? "labeled" : "";
         const activeCls = s.sid === _activeSid ? "active" : "";
+        const groupTags = _manualGroupTagsForSession(s.sid);
+        const groupTagsHtml = groupTags.map(n =>
+          `<span class="sc-badge" style="background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.3);" title="병합 세트: ${n}">🔗 ${n}</span>`
+        ).join("");
         html += `
           <div class="session-card ${activeCls}" data-sid="${s.sid}" onclick="loadSessionDetail('${s.sid}')">
             <div class="sc-top">
@@ -9506,6 +9533,7 @@ L S R  C S L  R S L
             <div class="sc-bottom">
               <span class="sc-badge">Steps ${s.steps}</span>
               <span class="sc-badge ${labeledCls}">${s.labeled_count} Labeled</span>
+              ${groupTagsHtml}
             </div>
           </div>
         `;
