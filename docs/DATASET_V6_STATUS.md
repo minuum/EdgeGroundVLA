@@ -1343,6 +1343,80 @@ gap이 프레임 단위로 나옵니다. **미검출 197프레임 전량 + 대�
 
 상세: `research_story.html` CH64 **64-19**(요인 분해·64-11 철회), **64-20**(젯슨 gap).
 
+## 🟢 [2026-08-01] Kosmos-2 언어 디코더 로드 제거 — 젯슨에서 실측 테스트 부탁드립니다 (minum→soda)
+
+grounding score 백필(176세션 사이드카) 완료된 것 확인했습니다 — threshold 슬라이더
+재판정에 바로 쓸 수 있게 돼서 좋습니다. 이건 별건 요청입니다.
+
+### 무엇을 바꿨나
+
+`stage2_v2_inference_server.py`의 `Stage1Encoder`가 지금까지
+`AutoModelForVision2Seq.from_pretrained()`로 **Kosmos-2 전체 1.664B를 host RAM에 올린 뒤
+`.vision_model`(0.303B)만 떼어 쓰고** 있었습니다. 언어 디코더 1.361B(74.8%)는 우리
+파이프라인에서 **호출이 0회**라 애초에 읽을 필요가 없습니다.
+
+safetensors에서 `vision_model.*` 키만 lazy read해서 비전 타워만 구성하도록 바꿨습니다
+(`_load_kosmos2_vision_only()`, 커밋 **457038fd** on `inference-integration`).
+
+### 로컬(minum, GB10) 실측
+
+| 지표 | 기존 | 적용 후 | 변화 |
+|---|---|---|---|
+| **peak host RAM (RSS)** | 10.59GB | **3.20GB** | **−70%** |
+| GPU 메모리 | 0.607GB | 0.607GB | 변화 없음 |
+| 로드 시간 | 2.30s | 2.91s | 약간 느려짐(lazy read 오버헤드) |
+| 출력 피처 | — | **bitwise 완전 동일** | 최대차 0.000e+00 |
+
+동등성은 실제 세션 프레임(20260731 H5)으로 `encode_image()`와
+`extract_vis_feat_raw()` 양쪽 다 확인했고 missing/unexpected 키 0입니다.
+**즉 성능·정확도 변화가 0이고 RAM만 줄어드는 변경입니다.**
+
+**⚠️ 제 당초 예상이 틀렸던 부분**: GPU 메모리는 원래부터 동일했습니다. 기존 코드도
+`base`가 지역변수라 언어 디코더를 GPU로 옮기진 않았더군요. 실이득은 host RAM 쪽입니다.
+그런데 이게 오히려 논문엔 더 결정적입니다 — **RAM 4~8GB 보드에서는 기존 10.59GB로는
+아예 로드가 안 되니까요.** "파라미터 절감"이 아니라 "타겟 하드웨어 진입 조건"입니다.
+
+### 젯슨에서 확인 부탁드리는 것
+
+Orin은 RAM 사정이 로컬과 다르니 실측값이 궁금합니다.
+
+```bash
+# 1) 서버 내리기 전 baseline: 현재 방식 peak RSS
+VLA_KOSMOS_VISION_ONLY=0 /usr/bin/time -v python3 -c "
+import sys; sys.path.insert(0,'.')
+from pathlib import Path; import torch
+from robovlm_nav.serve.stage2_v2_inference_server import Stage1Encoder
+Stage1Encoder(Path('.vlms/kosmos-2-patch14-224'),
+              Path('runs/v5_nav/mlp/shared/stage1_v2_projs.pt'),
+              torch.device('cuda'))" 2>&1 | grep -E "Maximum resident"
+
+# 2) 신규 방식 (기본값이 1이라 env 불필요)
+/usr/bin/time -v python3 -c "  # 위와 동일 스크립트
+..." 2>&1 | grep -E "Maximum resident"
+```
+
+확인하고 싶은 것 3가지:
+1. **젯슨 peak RSS 감소폭** — 로컬은 10.59→3.20GB였는데 Orin에서도 비슷한지
+2. **transformers 4.45.2에서 동작하는지** — 저는 4.49.0에서 검증했습니다.
+   `Kosmos2VisionModel`과 `Kosmos2Config`가 4.45.2에도 있는지가 관건입니다.
+   없으면 자동 폴백되니 서버가 죽지는 않고, 로그에
+   `Stage1: vision-only load 실패(...) → full-model load로 폴백`이 찍힙니다.
+3. **실기 1~2회 주행으로 동작 확인** — 피처가 bitwise 동일하니 결과도 동일해야 합니다.
+   혹시 달라지면 즉시 알려주세요(제 검증에 빠진 게 있다는 뜻).
+
+### 안전장치
+
+- 어떤 이유로든 실패하면 **기존 전체 로드로 자동 폴백**합니다(서버 다운 없음)
+- `VLA_KOSMOS_VISION_ONLY=0`으로 기존 경로 강제 가능
+- 성공 시 로그: `Stage1: vision-only load OK (0.303B params, host RAM 절감)`
+
+급한 건 아니니 100개 후속이나 대시보드 작업에 밀리지 않는 선에서 봐주시면 됩니다.
+다만 **라즈베리파이 목표에 직결되는 수치**라, 젯슨 실측값이 나오면 논문 경량화 절의
+첫 근거로 쓸 수 있습니다.
+
+상세: `research_story.html` → 모델 구조 자료 2절
+(https://minuum.github.io/MoNaVLA/v5/model_architecture_brief.html)
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
