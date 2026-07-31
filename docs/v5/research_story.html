@@ -15070,16 +15070,16 @@ graph TD
 <div class="chapter" id="ch64">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#38bdf8;color:#0a0f1a">CH 64</span>
-    <h2 class="chapter-title">exp73 대감사 — 숨은 버그 2개, 통일 리더보드, 진짜 병목은 "재수집"</h2>
-    <p class="chapter-subtitle">"성능이 왜 이렇게 낮지?"에서 시작한 전면 재검증 (2026-07-22) — 그동안의 순위가 두 개의 조용한 버그로 오염돼 있었고, 정정하니 결론이 세 번 뒤집혔다. 최종적으로 헤드·그라운더·연속화 전부 막다른 길이고 병목은 데이터임을 데이터로 확정.</p>
+    <h2 class="chapter-title">exp73 전면 재검증 — 오프라인 감사에서 실기 89%까지, 그리고 병목은 "검출"이었다</h2>
+    <p class="chapter-subtitle">"성능이 왜 이렇게 낮지?"에서 시작(2026-07-22)해 실기 100회 검증으로 끝난 재검증 기록 — 숨은 버그 2개를 걷어내고, 헤드·그라운더·연속화가 모두 막다른 길임을 확인한 뒤, 실기에서 <strong style="color:#4ade80">89%</strong>에 도달했다. 최종 결론은 "병목은 액션 헤드가 아니라 객체 검출"(gnd%≥80 → 98.8% 성공). 검증 과정에서 자체 오류 2건(64-11 철회, 64-19 요인순위)을 발견해 철회·정정한 기록도 그대로 남겼다.</p>
   </div>
 
   <!-- 교수님 보고용 요약 (복사용) -->
   <div class="finding-card" style="border-color:#38bdf8;background:rgba(56,189,248,0.05)">
-    <div class="finding-title" style="color:#38bdf8">📋 교수님 보고용 요약 (2026-07-31 · 복사해서 쓰는 용)</div>
+    <div class="finding-title" style="color:#38bdf8">📋 진행 현황 요약 — 100회 실기 테스트 결과 및 다음 단계 (2026-07-31)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      아래 박스 내용만 그대로 복사하면 됩니다.
-      <div style="background:#0b1220;border:1px solid #1e2a3a;border-radius:8px;padding:14px 16px;margin-top:10px;font-size:0.83rem;line-height:2.0;color:#cbd5e1;white-space:pre-line">지시하신 100회 실기 테스트(5개 목표위치 × 20회)를 완료했습니다.
+      <div style="background:#0b1220;border:1px solid #1e2a3a;border-radius:8px;padding:14px 16px;margin-top:10px;font-size:0.83rem;line-height:2.0;color:#cbd5e1;white-space:pre-line"><strong style="color:#e2e8f0">보고일: 2026-07-31</strong> · 대상 체크포인트: exp73_owl_trackF_v6_mlp_holdaware_seed0
+· 테스트 규모: 5개 목표위치 × 20회 = 100회 (완료)
 
 <strong style="color:#e2e8f0">1. 결과: 100회 중 89회 성공 (89.0%)</strong>
 - 중앙 20/20(100%), 약우 19/20(95%), 강우 18/20(90%), 강좌 16/20(80%), 약좌 16/20(80%)

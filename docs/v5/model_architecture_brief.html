@@ -127,16 +127,32 @@ area=0.06</code>의 고정 fallback 값이 들어가고 <code>has_bbox=0</code>�
 <tr><td>MLP 액션 헤드</td><td class="c">0.866M</td><td class="c g">✅ 사용</td><td><strong class="g">유일한 학습 대상</strong></td></tr>
 <tr style="background:rgba(248,113,113,0.1)"><td>Kosmos-2 언어 디코더 외</td><td class="c r">1361.3M</td><td class="c r">❌ 미사용</td><td class="r">로드만 되고 호출 0회</td></tr>
 <tr style="border-top:2px solid var(--line)"><td><strong>실제 연산에 쓰이는 합</strong></td><td class="c g"><strong>459.3M (0.459B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 0.46B"</td></tr>
-<tr><td><strong>메모리에 로드되는 합</strong></td><td class="c o"><strong>1820.3M (1.820B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 1.8B"</td></tr>
+<tr><td><strong>로드 시 host RAM에 올라가는 합</strong></td><td class="c o"><strong>1820.3M (1.820B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 1.8B"</td></tr>
 </table>
 
 <div class="key">
-<strong class="h">💡 경량화 관점에서 가장 값싼 개선</strong> —
-로드되는 1.82B 중 <strong class="h">1.36B(74.8%)가 언어 디코더로, 단 한 번도 호출되지
-않습니다.</strong> 현재 코드는 <code>AutoModelForVision2Seq.from_pretrained()</code>로 전체를
-불러온 뒤 <code>.vision_model</code>만 떼어 쓰기 때문입니다. 비전 타워만 로드하도록 바꾸면
-<strong class="g">성능 변화 0으로 1.82B → 0.46B (−74.8%)</strong>가 됩니다.
-논문의 경량화 주장에서 가장 먼저 확보할 수 있는 구간입니다.
+<strong class="h">✅ 적용 완료 (2026-08-01) — 언어 디코더 로드 제거</strong><br>
+로드되는 1.82B 중 <strong class="h">1.36B(74.8%)가 언어 디코더인데 단 한 번도 호출되지
+않습니다.</strong> 기존 코드가 <code>AutoModelForVision2Seq.from_pretrained()</code>로 전체를
+host RAM에 올린 뒤 <code>.vision_model</code>만 떼어 썼기 때문입니다. safetensors에서
+<code>vision_model.*</code> 키만 읽어 비전 타워만 구성하도록 바꿨습니다
+(<code>_load_kosmos2_vision_only()</code>).
+<table style="margin-top:8px">
+<tr><th>지표</th><th class="c">기존</th><th class="c">적용 후</th><th class="c">변화</th></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td><strong>peak host RAM</strong></td><td class="c">10.59GB</td><td class="c g"><strong>3.20GB</strong></td><td class="c g">−70%</td></tr>
+<tr><td>GPU 메모리</td><td class="c">0.607GB</td><td class="c">0.607GB</td><td class="c">변화 없음</td></tr>
+<tr><td>출력 피처</td><td class="c" colspan="3" style="color:var(--gr)">실제 세션 프레임에서 <strong>bitwise 완전 동일</strong> (최대차 0.000e+00, missing/unexpected 키 0)</td></tr>
+</table>
+<strong class="o">⚠️ 당초 예상과 달랐던 점</strong> — GPU 메모리는 원래부터 동일했습니다.
+기존 코드도 언어 디코더를 GPU로 옮기지는 않았기 때문입니다(<code>base</code>가 지역변수라
+<code>.vision_model</code>만 <code>.to(device)</code>). <strong class="h">실제 이득은 host RAM
+쪽</strong>이고, <strong class="h">RAM이 4~8GB인 보드에서는 이게 로드 가능/불가능을 가르는
+차이</strong>입니다 — 기존 10.59GB로는 라즈베리파이에 아예 올라가지 않습니다.
+따라서 이 변경은 "파라미터 절감"이 아니라 <strong class="h">"타겟 하드웨어 진입 조건"</strong>으로
+서술하는 것이 정확합니다.
+<br><br>
+<span class="pill">안전장치</span> 어떤 이유로든 실패하면 기존 전체 로드로 자동 폴백하며,
+<code>VLA_KOSMOS_VISION_ONLY=0</code>으로 기존 경로를 강제할 수 있습니다.
 </div>
 
 <h3>레이턴시 — 병목은 검출기</h3>

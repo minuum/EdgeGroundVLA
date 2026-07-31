@@ -38,6 +38,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# .venv 단독 패턴은 .venv_lerobot 같은 접미사 붙은 venv를 못 잡는다
+.venv*/
+venv*/
 
 # ─── Jupyter ─────────────────────────────────────────────────
 .ipynb_checkpoints
@@ -140,6 +143,11 @@ JETSON_HANDOFF_INFO.txt
 
 # ─── Git Recovery ────────────────────────────────────────────
 git_recovery_backup/
+
+# ─── 디스크 정리 백업 / 대용량 내보내기 (커밋 금지) ──────────
+disk_cleanup_backup_*/
+lerobot_export/
+inference_sessions_recv/
 
 # ─── API Test Results & Reports (임시/대용량) ────────────────
 api_test_results.json
