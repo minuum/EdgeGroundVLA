@@ -4985,20 +4985,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <div id="vfy-screen-batch-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px; max-height:220px; overflow-y:auto;">—</div>
 
-              <!-- 🧺 병합 트레이 — 배치를 드래그해서 여기 놓으면 모였다가, 저장하면
-                   이름 붙은 "병합 세트"로 남음(2026-07-31, "결과 합치고 싶을 때" 요청) -->
-              <div id="vfy-merge-tray" ondragover="event.preventDefault()" ondrop="_mergeTrayDrop(event)"
-                   style="border:1px dashed var(--border-glow); border-radius:6px; padding:6px; margin-bottom:6px; font-size:9px; min-height:34px;">
-                <div style="color:var(--text-muted); margin-bottom:3px;">🧺 여기로 배치를 드래그해서 합치기</div>
-                <div id="vfy-merge-tray-items" style="display:flex; flex-direction:column; gap:2px;"></div>
-                <div id="vfy-merge-tray-actions" style="display:none; margin-top:4px; gap:6px; align-items:center;">
-                  <span id="vfy-merge-tray-total" style="font-family:var(--font-mono); color:var(--text-muted); flex:1;"></span>
-                  <button class="btn btn-cyan" style="font-size:9px; padding:3px 8px;" onclick="_mergeTraySave()">💾 저장</button>
-                  <button class="btn btn-outline" style="font-size:9px; padding:3px 8px;" onclick="_mergeTrayClear()">✕ 비우기</button>
-                </div>
+              <!-- 🔗 저장된 병합 세트 — 관리의 중심. 배치를 여기 각 세트 위로 바로
+                   드래그하면 그 세트에 즉시 추가됨(이름 다시 입력 안 해도 됨).
+                   새 세트는 맨 아래 "+ 새 세트" 드롭존에 드래그해서 만듦(2026-07-31,
+                   "저장된 거 위주로 관리" 요청 — 트레이 2단계 방식에서 단순화). -->
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:3px;">🔗 저장된 병합 세트 — 배치를 세트 위로 드래그하면 바로 추가됨</div>
+              <div id="vfy-manual-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;"></div>
+              <div id="vfy-merge-new-drop" ondragover="event.preventDefault()" ondrop="_mergeNewDrop(event)"
+                   style="border:1px dashed var(--border-glow); border-radius:6px; padding:6px; margin-bottom:6px; font-size:9px; color:var(--text-muted); text-align:center;">
+                ➕ 새 세트 만들기 — 배치를 여기로 드래그
               </div>
-
-              <div id="vfy-manual-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px;"></div>
 
               <div id="vfy-screen-body">—</div>
 
@@ -8522,7 +8518,7 @@ L S R  C S L  R S L
                 const thTag = (b.owlv2_thresh !== null && b.owlv2_thresh !== undefined) ? ` · th=${b.owlv2_thresh}` : "";
                 const rate = b.count ? Math.round(b.success / b.count * 100) : 0;
                 return `<div onclick="applyScreenBatch('${b._idx}')"
-                    draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 아래 병합 트레이에 놓으면 다른 배치랑 합칠 수 있음"
+                    draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
                     style="cursor:grab; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
                     onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
                   <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}</span>
@@ -8559,33 +8555,15 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
-    // 🧺 배치 드래그앤드랍 병합 — 여러 배치를 트레이에 모아서 이름 붙여 저장하면
-    // 스크리닝 CSV는 그대로 두고 "이 배치들을 하나로 본 합계"만 기억함(2026-07-31).
-    window._mergeTray = window._mergeTray || [];
+    // 🔗 배치 드래그앤드랍 병합 (2026-07-31 단순화) — "저장된 병합 세트" 목록이
+    // 중심. 배치를 세트 위로 바로 드래그하면 즉시 그 세트에 추가되고(이름 재입력
+    // 불필요), 없는 세트를 만들 땐 맨 아래 "+ 새 세트" 존에 드래그해서 이름만
+    // 한 번 입력. 스크리닝 CSV는 전혀 안 건드리고 "이 배치들을 하나로 본다"는
+    // 지정만 logs/manual_screening_groups.json에 저장.
+    window._openManualGroups = window._openManualGroups || new Set();
 
     function _batchDragStart(ev, idx) {
       ev.dataTransfer.setData("text/plain", String(idx));
-    }
-
-    function _mergeTrayDrop(ev) {
-      ev.preventDefault();
-      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
-      const b = (window._screenBatches || [])[idx];
-      if (!b) return;
-      if (!window._mergeTray.some(x => x.checkpoint === b.checkpoint && x.start === b.start && x.end === b.end)) {
-        window._mergeTray.push({checkpoint: b.checkpoint, start: b.start, end: b.end});
-      }
-      _renderMergeTray();
-    }
-
-    function _mergeTrayClear() {
-      window._mergeTray = [];
-      _renderMergeTray();
-    }
-
-    function _mergeTrayRemove(i) {
-      window._mergeTray.splice(i, 1);
-      _renderMergeTray();
     }
 
     function _rowsInRange(rows, ckpt, startIso, endIso) {
@@ -8598,53 +8576,46 @@ L S R  C S L  R S L
       });
     }
 
-    function _renderMergeTray() {
-      const itemsEl = document.getElementById("vfy-merge-tray-items");
-      const actionsEl = document.getElementById("vfy-merge-tray-actions");
-      if (!itemsEl) return;
-      const tray = window._mergeTray;
-      if (tray.length === 0) {
-        itemsEl.innerHTML = "";
-        if (actionsEl) actionsEl.style.display = "none";
-        return;
-      }
-      itemsEl.innerHTML = tray.map((t, i) => {
-        const s = t.start.replace("T", " ").slice(5);
-        const e = t.end.replace("T", " ").slice(11);
-        return `<div style="display:flex; justify-content:space-between; gap:6px; padding:2px 4px; background:#090d16; border-radius:4px;">
-          <span style="color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.checkpoint} · ${s}~${e}</span>
-          <span onclick="_mergeTrayRemove(${i})" style="cursor:pointer; color:var(--rose);">✕</span>
-        </div>`;
-      }).join("");
-      let n = 0, succ = 0;
-      const rows = window._lastVfyRows || [];
-      tray.forEach(t => {
-        const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
-        n += matched.length;
-        succ += matched.filter(r => r[2] === "성공").length;
-      });
-      const totalEl = document.getElementById("vfy-merge-tray-total");
-      if (totalEl) totalEl.textContent = `합계 ${n}건 ✓${succ}`;
-      if (actionsEl) actionsEl.style.display = "flex";
+    function _trackManualGroupToggle(name, isOpen) {
+      if (isOpen) window._openManualGroups.add(name);
+      else window._openManualGroups.delete(name);
     }
 
-    async function _mergeTraySave() {
-      if (window._mergeTray.length < 2) {
-        alert("2개 이상 배치를 트레이에 담아야 병합 저장이 의미가 있습니다.");
-        return;
-      }
-      const name = prompt("병합 세트 이름을 입력하세요 (예: weak_left_threshold0.20_통합)");
+    async function _mergeNewDrop(ev) {
+      ev.preventDefault();
+      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
+      const b = (window._screenBatches || [])[idx];
+      if (!b) return;
+      const name = prompt("새 병합 세트 이름을 입력하세요 (예: weak_left_threshold0.20_통합)");
       if (!name) return;
       const res = await api("/verify/manual_group/save", {
         method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({name, ranges: window._mergeTray})
+        body: JSON.stringify({name, ranges: [{checkpoint: b.checkpoint, start: b.start, end: b.end}]})
       });
       if (res.ok) {
-        _mergeTrayClear();
+        window._openManualGroups.add(name);
         refreshManualGroups();
       } else {
         alert("저장 실패: " + (res.error || "알 수 없는 오류"));
       }
+    }
+
+    async function _mergeAddToGroup(ev, name) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
+      const b = (window._screenBatches || [])[idx];
+      if (!b) return;
+      const groups = (await api("/verify/manual_groups")).groups || [];
+      const g = groups.find(x => x.name === name);
+      if (!g) return;
+      const already = g.ranges.some(t => t.checkpoint === b.checkpoint && t.start === b.start && t.end === b.end);
+      if (!already) g.ranges.push({checkpoint: b.checkpoint, start: b.start, end: b.end});
+      const res = await api("/verify/manual_group/save", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name, ranges: g.ranges})
+      });
+      if (res.ok) refreshManualGroups();
     }
 
     async function refreshManualGroups() {
@@ -8654,7 +8625,9 @@ L S R  C S L  R S L
         const res = await api("/verify/manual_groups");
         if (!res.ok) return;
         const rows = window._lastVfyRows || [];
-        el.innerHTML = (res.groups || []).map(g => {
+        el.innerHTML = (res.groups || []).length === 0
+          ? '<div style="font-size:9px; color:var(--text-muted); text-align:center; padding:6px;">저장된 병합 세트 없음</div>'
+          : res.groups.map(g => {
           let n = 0, succ = 0;
           g.ranges.forEach(t => {
             const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
@@ -8662,22 +8635,47 @@ L S R  C S L  R S L
             succ += matched.filter(r => r[2] === "성공").length;
           });
           const rate = n ? Math.round(succ / n * 100) : 0;
-          return `<details style="background:#0d1420; border:1px solid var(--violet, #8b5cf6); border-radius:6px; padding:4px 6px;">
+          const isOpen = window._openManualGroups.has(g.name);
+          return `<details ${isOpen ? "open" : ""} ontoggle="_trackManualGroupToggle('${g.name}', this.open)"
+                ondragover="event.preventDefault()" ondrop="_mergeAddToGroup(event, '${g.name}')"
+                style="background:#0d1420; border:1px solid var(--violet, #8b5cf6); border-radius:6px; padding:4px 6px;">
             <summary style="cursor:pointer; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;">
               <span style="color:#fff; font-weight:600;">🔗 ${g.name}</span>
               <span style="margin-left:auto; font-family:var(--font-mono); color:${rate>=50?'#3fb950':'var(--rose)'};">${n}건 ✓${succ} (${rate}%)</span>
-              <span onclick="event.preventDefault(); _manualGroupDelete('${g.name}')" style="cursor:pointer; color:var(--rose);" title="병합 세트 삭제(원본 기록은 안 지워짐)">✕</span>
+              <span onclick="event.preventDefault(); event.stopPropagation(); _manualGroupDelete('${g.name}')" style="cursor:pointer; color:var(--rose);" title="병합 세트 삭제(원본 기록은 안 지워짐)">✕</span>
             </summary>
             <div style="margin-top:4px; font-size:9px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px;">
-              ${g.ranges.map(t => `<div>${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")}</div>`).join("")}
+              ${g.ranges.map((t, i) => `<div style="display:flex; justify-content:space-between; gap:6px;">
+                <span>${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")}</span>
+                <span onclick="_mergeRemoveRange('${g.name}', ${i})" style="cursor:pointer; color:var(--rose);" title="이 범위만 제거">✕</span>
+              </div>`).join("")}
             </div>
           </details>`;
         }).join("");
       } catch (e) { /* 무시 */ }
     }
 
+    async function _mergeRemoveRange(name, rangeIdx) {
+      const groups = (await api("/verify/manual_groups")).groups || [];
+      const g = groups.find(x => x.name === name);
+      if (!g) return;
+      g.ranges.splice(rangeIdx, 1);
+      if (g.ranges.length === 0) {
+        await api("/verify/manual_group/delete", {
+          method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({name})
+        });
+      } else {
+        await api("/verify/manual_group/save", {
+          method: "POST", headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({name, ranges: g.ranges})
+        });
+      }
+      refreshManualGroups();
+    }
+
     async function _manualGroupDelete(name) {
       if (!confirm(`병합 세트 "${name}"를 삭제할까요? (원본 스크리닝 기록은 그대로 남습니다)`)) return;
+      window._openManualGroups.delete(name);
       await api("/verify/manual_group/delete", {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({name})
@@ -8851,7 +8849,6 @@ L S R  C S L  R S L
       if (body) body.innerHTML = rowsHtml +
         `<div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:6px; padding-top:4px; font-size:10px; color:var(--text-muted); text-align:right;">합계 ${totDone}/${totTgt} · 방향성공 ${totSucc}</div>`;
 
-      if (window._mergeTray && window._mergeTray.length) _renderMergeTray();
       refreshManualGroups();
     }
 
