@@ -15100,7 +15100,13 @@ graph TD
   특화된 소형 검출기를 직접 학습하는 것이 속도·정확도 양쪽에서 유리합니다.</strong>
   이것을 다음 단계로 제안드립니다.
 
-<strong style="color:#e2e8f0">4. 아직 단정하지 않는 부분 (정직하게 남겨둔 한계)</strong>
+<strong style="color:#e2e8f0">4. 현재 파이프라인 구성 (확인된 사실)</strong>
+- Kosmos-2 비전 인코더 + OWL-V2 그라운딩 + MLP 액션 헤드, 언어 디코더 미사용.
+- 액션 헤드 입력은 프레임당 260차원(비전 피처 256 + bbox 4)이며 6프레임 묶음, 출력 8클래스.
+- 직전 배포 모델은 같은 구조에 Transformer 헤드(window 3)였고, 현재는 MLP 헤드(window 6)입니다.
+  두 헤드 모두 자체 구현이며 RoboVLMs 코드는 파이프라인에 포함되지 않습니다.
+
+<strong style="color:#e2e8f0">5. 아직 단정하지 않는 부분 (정직하게 남겨둔 한계)</strong>
 - 개선이 "모델 교체" 때문인지 "검출 임계값 조정" 때문인지는 확정하지 못했습니다.
   두 변경이 서로 다른 위치에서 이루어져 교란되어 있어, 통계 처리 방식에 따라 순위가 뒤바뀝니다.
   → 동일 위치에서 설정만 바꾸는 A/B 재측정이 필요합니다.
@@ -15678,6 +15684,12 @@ graph TD
         <tr style="border-top:1px solid #334155;background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>전체</strong></td><td style="padding:4px;text-align:center">7/21 (33.3%)</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>89/100 (89.0%)</strong></td><td style="padding:4px;text-align:center;color:#64748b">81~94%</td><td style="padding:4px;text-align:center">—</td></tr>
       </table>
       <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_18_100test.png" style="max-width:900px;width:100%;border-radius:8px;border:1px solid #223" alt="100개 스크리닝 결과와 원인 분해"></div>
+      <div style="margin-top:16px;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px">
+        <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px"><strong style="color:#e2e8f0">📷 실제 세션 프레임 10장</strong> — 위치별 성공/실패 각 1건의 최종 프레임.
+        초록 수직선 = 그라운딩이 잡은 cx(헤드가 실제로 쓰는 조향 신호), 빨강 점선 = 미검출 시 강제되는 fallback cx=0.50.
+        <strong style="color:#e2e8f0">실패 프레임은 대부분 빨강</strong>(미검출)이고 성공 프레임은 초록이다.</div>
+        <img src="ch64_figs/gal_64_18_positions.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="위치별 실제 세션 프레임">
+      </div>
       <br>
       <strong style="color:#e2e8f0">왜 좋아졌나 — 순위별 근거</strong>
       <br><br>
@@ -15814,6 +15826,44 @@ graph TD
         <sup>*</sup> n&lt;6으로 신뢰 낮음. B의 중앙·약우 셀(n=5,3)이 아래 표준화 추정을 크게 흔든다.
       </div>
       <br>
+      <strong style="color:#4ade80">✅ A arm의 정체 확정 — 추정이 아니라 배포 이력으로</strong>: 이전엔
+      "구 배포모델(미상, soda 확인 대기)"으로 뒀으나, 수신한 전체 세션의 H5
+      <code>attrs["runtime_config"]</code>를 시간순으로 훑어 <strong style="color:#e2e8f0">배포
+      체크포인트 변경 이력을 직접 복원</strong>했다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">최초 관측</th><th style="padding:4px">head</th><th style="padding:4px">체크포인트</th><th style="padding:4px">grounder</th></tr>
+        <tr><td style="padding:4px">2026-07-06 23:11</td><td style="padding:4px;text-align:center">transformer</td><td style="padding:4px"><code>exp71_window6/action_transformer.pt</code></td><td style="padding:4px;text-align:center">OWL-v2</td></tr>
+        <tr style="background:rgba(153,153,153,0.12)"><td style="padding:4px"><strong>2026-07-10 13:09</strong></td><td style="padding:4px;text-align:center"><strong>transformer</strong></td><td style="padding:4px"><code><strong>exp71_window3_bboxscale3/action_transformer.pt</strong></code> ← <strong style="color:#e2e8f0">A arm</strong></td><td style="padding:4px;text-align:center">OWL-v2</td></tr>
+        <tr><td style="padding:4px">2026-07-23 17:18</td><td style="padding:4px;text-align:center">exp73_mlp</td><td style="padding:4px"><code>exp73_pg448_trackF_v6_mlp_holdaware_seed0.pt</code></td><td style="padding:4px;text-align:center">OWL-v2</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px">2026-07-23 18:05</td><td style="padding:4px;text-align:center">exp73_mlp</td><td style="padding:4px"><code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code> ← <strong style="color:#e2e8f0">B·C arm</strong></td><td style="padding:4px;text-align:center">OWL-v2</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">따라서 A arm = exp71 window3·bbox_scale3 + Transformer 액션 헤드</strong>
+      (7/10부터 7/23 17:18까지 배포). 즉 <strong style="color:#e2e8f0">A→B는 "Transformer 헤드 →
+      MLP 헤드" 교체이자 동시에 "window 3→6 · V6 hold-aware 재학습" 교체</strong>다(그라운더는 양쪽 다 OWL-v2로 동일).
+      <br><br>
+      <div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:10px 12px;margin:8px 0">
+        <strong style="color:#38bdf8">❗ 용어 정정 — 이건 RoboVLMs 기반 헤드가 아니다.</strong>
+        A arm의 <code>action_transformer.pt</code>는 <code>third_party/RoboVLMs</code>와 무관한
+        <strong style="color:#e2e8f0">우리 자체 구현</strong>이다
+        (<code>scripts/train_exp71_window3_bboxscale_final.py</code>의
+        <code>TransformerActionHead</code>: <code>nn.TransformerEncoder</code>, d_model=260,
+        nhead=4, num_layers=2). 서빙 경로(<code>stage2_v2_inference_server.py</code>)에도
+        RoboVLMs import은 없다 — RoboVLMs는 CLAUDE.md 규칙대로 손대지 않은 상태로 남아있고
+        현재 파이프라인에 포함되지 않는다.
+        <br><br>
+        <strong style="color:#e2e8f0">두 헤드 모두 입력 차원은 동일</strong>:
+        프레임당 <code>FRAME_DIM = 4 + 256 = 260</code>(bbox 4채널 + 비전 피처 256),
+        A는 window=3, B·C는 window=6. 출력은 8클래스.
+        교수님 노트의 "256(비전)+4(bbox) = 260"과 코드가 일치한다.
+      </div>
+      <div style="margin-top:14px;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px">
+        <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px"><strong style="color:#e2e8f0">📷 배포 세대별 실제 프레임</strong> — head=transformer(exp71) → head=exp73_mlp 전환이
+        세션 메타데이터에 그대로 찍혀 있다. <strong style="color:#fbbf24">A arm(7/23 17:18 이전)은 H5 자체가
+        전송되지 않아 이 갤러리에 없다</strong> — 그래서 원래 정체 추정이 필요했던 것.</div>
+        <img src="ch64_figs/gal_64_19_deploy_history.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="배포 세대별 프레임">
+      </div>
+      <br>
       <strong style="color:#f87171">⚠️ 세 가지 추정 방식이 순위를 뒤집는다 → 주동력 단정 불가</strong>
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
         <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">추정 방식</th><th style="padding:4px">체크포인트(A→B)</th><th style="padding:4px">threshold+가드(B→C)</th><th style="padding:4px">우세</th></tr>
@@ -15832,6 +15882,12 @@ graph TD
       주동력"이라고 논문에 쓸 수 없다</strong>는 뜻이다 — 둘 다 크고(각각 +23~48%p),
       순위는 동일 위치 A/B 재수집 없이는 확정 불가.
       <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_19_regimes.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="개선 요인 분해"></div>
+      <div style="margin-top:16px;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px">
+        <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px"><strong style="color:#e2e8f0">📷 B arm vs C arm 실제 프레임 10장</strong> — 체크포인트는 동일하고
+        threshold(0.25→0.20)와 회복가드만 다른 두 조건의 최종 프레임. B에 빨강(미검출)이 자주 보이는 것이
+        threshold 효과의 실물이다.</div>
+        <img src="ch64_figs/gal_64_19_arms.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="arm별 실제 프레임">
+      </div>
       <br>
       <strong style="color:#4ade80">✅ 유일하게 견고한 불변량 — 그라운딩 가용성 (soda 발견, 확장 검증)</strong>:
       soda가 "th=0.20에서 gnd%≥80이면 69/69=100% 성공"을 보고했고, 이를
@@ -15887,6 +15943,26 @@ graph TD
         <tr><td style="padding:4px">미검출군 로컬 score 중앙 / 검출군</td><td style="padding:4px;text-align:center">0.143 / 0.378</td></tr>
       </table>
       <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_20_jetson_gap.png" style="max-width:900px;width:100%;border-radius:8px;border:1px solid #223" alt="젯슨-로컬 gap"></div>
+      <br>
+      <strong style="color:#e2e8f0">미검출 197프레임을 로컬 score 구간으로 쪼개보면 — "타겟이 안 보인다"가 아니라 "경계에 걸린다"</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">로컬 score</th><th style="padding:4px">해석</th><th style="padding:4px">건수</th></tr>
+        <tr><td style="padding:4px">&lt; 0.01</td><td style="padding:4px">화면에 타겟 부재 추정</td><td style="padding:4px;text-align:center">5 (2.5%)</td></tr>
+        <tr><td style="padding:4px">0.01~0.10</td><td style="padding:4px">매우 낮음</td><td style="padding:4px;text-align:center">42 (21.3%)</td></tr>
+        <tr style="background:rgba(251,191,36,0.12)"><td style="padding:4px"><strong>0.10~0.20</strong></td><td style="padding:4px"><strong>보이지만 경계 바로 아래 — 지배 구간</strong></td><td style="padding:4px;text-align:center"><strong>108 (54.8%)</strong></td></tr>
+        <tr><td style="padding:4px">≥ 0.20</td><td style="padding:4px">로컬은 검출 = 확정 gap</td><td style="padding:4px;text-align:center">42 (21.3%)</td></tr>
+      </table>
+      <br>
+      즉 실패의 본질은 <strong style="color:#e2e8f0">"타겟이 화면에 없다"(2.5%뿐)도 "젯슨이 심하게 고장났다"도 아니고,
+      confidence가 0.10~0.20 밴드에 몰리는 것</strong>(54.8%)이다 — 64-17에서 진단한 knife-edge 구조가
+      실패 프레임에서 그대로 확인된다. gap 42건도 중앙값 0.258로 대부분 경계 바로 위이고,
+      "바구니가 크고 명확한데 젯슨만 놓친" 심각 사례는 <strong style="color:#e2e8f0">0.40 이상 5건 / 0.70 이상 2건</strong>에
+      불과하다 — 그래서 torch/Orin 규명의 실무 우선순위는 여전히 낮다.
+      <div style="margin-top:16px;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px">
+        <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px"><strong style="color:#e2e8f0">📷 실제 미검출 프레임 10장</strong> — 위 구간 비중대로 뽑은 대표 표본
+        (극단만 뽑으면 오해를 만들기 때문). 경계밴드 5장 · gap 3장 · 타겟부재 2장.</div>
+        <img src="ch64_figs/gal_64_20_misses.png" style="width:100%;border-radius:8px;border:1px solid #223" alt="미검출 프레임 구간별 표본">
+      </div>
       <br>
       <strong style="color:#f87171">⚠️ 7/4 결론(<code>CONCLUSION_20260704_fallback_repro_gap.md</code>)
       정정</strong>: 7/4 문서는 "서버 fallback 206프레임이 로컬에서 206/206(100%) 탐지됨 →
