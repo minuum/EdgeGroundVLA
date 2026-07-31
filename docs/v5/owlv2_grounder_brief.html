@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OWL-v2 그라운더 정리 — 무엇을 건드렸고 어떻게 반응했나</title>
+<style>
+:root{--bg:#0a0f1a;--card:#101827;--line:#1e2a3a;--tx:#cbd5e1;--dim:#94a3b8;
+      --hi:#e2e8f0;--gr:#4ade80;--or:#fbbf24;--rd:#f87171;--bl:#38bdf8;--pu:#a78bfa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+     font-family:"Noto Sans KR","Malgun Gothic",-apple-system,sans-serif;
+     line-height:1.85;font-size:15px}
+.wrap{max-width:1100px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:1.72rem;color:var(--hi);margin:0 0 6px;line-height:1.35}
+.sub{color:var(--dim);font-size:0.92rem;margin-bottom:26px}
+h2{font-size:1.18rem;color:var(--bl);margin:38px 0 12px;padding-bottom:8px;
+   border-bottom:1px solid var(--line)}
+h3{font-size:1.0rem;color:var(--hi);margin:24px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:0.86rem;margin:10px 0}
+th{text-align:left;color:var(--hi);border-bottom:1px solid var(--line);padding:7px 6px;font-weight:600}
+td{padding:7px 6px;border-bottom:1px solid rgba(30,42,58,0.5)}
+td.c,th.c{text-align:center}
+code{background:#0b1220;border:1px solid var(--line);border-radius:4px;
+     padding:1px 5px;font-size:0.86em;color:#a5d8ff}
+pre{background:#0b1220;border:1px solid var(--line);border-radius:8px;
+    padding:14px 16px;overflow-x:auto;font-size:0.84rem;line-height:1.75;color:#cbd5e1}
+.key{background:rgba(74,222,128,0.08);border-left:3px solid var(--gr);padding:12px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+.warn{background:rgba(248,113,113,0.08);border-left:3px solid var(--rd);padding:12px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+.note{background:rgba(251,191,36,0.08);border-left:3px solid var(--or);padding:12px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+.g{color:var(--gr)}.o{color:var(--or)}.r{color:var(--rd)}.h{color:var(--hi)}.p{color:var(--pu)}
+ul,ol{margin:8px 0 8px 20px;padding:0}li{margin:3px 0}
+a{color:var(--bl)}
+.pill{display:inline-block;border-radius:20px;padding:1px 9px;font-size:0.76rem;
+      border:1px solid var(--line);background:#0b1220;color:var(--dim)}
+.adopt{background:rgba(74,222,128,0.15);border-color:#2b6;color:var(--gr)}
+.drop{background:rgba(248,113,113,0.13);border-color:#844;color:var(--rd)}
+.hold{background:rgba(251,191,36,0.13);border-color:#864;color:var(--or)}
+img{max-width:100%;border-radius:8px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>OWL-v2 그라운더 — 무엇을 건드렸고 어떻게 반응했나</h1>
+<div class="sub">실험 이력 · 계수/임계값 반응 정리 · 2026-08-01 기준 · 모든 수치는 실측
+&nbsp;|&nbsp; <a href="model_architecture_brief.html">모델 구조 자료</a>
+&nbsp;|&nbsp; <a href="research_story.html#ch64">CH64 근거</a></div>
+
+<div class="key">
+<strong class="h">요약</strong> — OWL-v2는 <strong class="h">"방향을 못 맞춰서 한 번 탈락했다가,
+역할을 바꿔 재채택된"</strong> 모델입니다. 처음엔 방향 추정용으로 평가해 dir정확도 0%로 폐기했지만,
+<strong class="h">방향 판단을 MLP 헤드에 넘기고 OWL-v2를 "bbox 좌표만 뽑는 부품"으로 축소</strong>한
+뒤 현재 배포 그라운더가 됐습니다. 지금 실기 성패를 결정하는 것이 바로 이 부품의 검출률입니다
+(gnd%≥80 → 98.8% 성공).
+</div>
+
+<h2>1. 채택 이력 — 탈락 후 역할 변경으로 재채택</h2>
+<table>
+<tr><th>시점</th><th>맥락</th><th>결과</th><th class="c">판정</th></tr>
+<tr><td>2026-06-30<br><span class="pill">CH58 프롬프트 어블레이션</span></td>
+    <td>Kosmos-2 6종 + OWL-v2 5종 쿼리 × 39세션.
+        <strong>OWL-v2를 "방향까지 추정하는" 용도로 평가</strong></td>
+    <td>det율 35~100%(쿼리별), <strong class="r">dir정확도 0%</strong>, ~427ms<br>
+        "쿼리 불문 방향 추정 불가"</td>
+    <td class="c"><span class="pill drop">폐기</span></td></tr>
+<tr><td>2026-07-03<br><span class="pill">A/B 계획</span></td>
+    <td>PG2(Kosmos-2 grounding)의 구조적 결함 회피 목적 —
+        <code>;</code> 중복검출·8초 지연·full-frame hallucination이
+        <strong>단일 forward pass 구조에서는 원천 불가</strong></td>
+    <td>PG2 대체 후보로 재검토<br><code>plan_20260703_owlv2_ab_grounder.md</code></td>
+    <td class="c"><span class="pill hold">재검토</span></td></tr>
+<tr><td>2026-07-06~</td>
+    <td><strong>역할 축소 후 배포</strong> — 방향 판단은 MLP 헤드가 하고
+        OWL-v2는 cx·cy·area만 공급</td>
+    <td>배포 그라운더로 전환, 이후 계속 사용</td>
+    <td class="c"><span class="pill adopt">채택</span></td></tr>
+</table>
+<div class="note">
+<strong class="o">이 반전이 핵심 교훈입니다</strong> — 같은 모델이 "방향 추정기"로는 0%,
+"좌표 공급기"로는 배포 가능했습니다. 모델을 버릴지 판단할 때
+<strong class="h">역할을 재정의해보는 것</strong>이 유효했던 사례입니다.
+</div>
+
+<h2>2. 건드린 파라미터별 반응</h2>
+
+<h3>① confidence threshold — 가장 큰 영향</h3>
+<p>OWL-v2 출력 박스 중 <code>score ≥ threshold</code>만 채택합니다. 실기 성능에 직결된 유일한 계수입니다.</p>
+<table>
+<tr><th class="c">threshold</th><th class="c">정탐 유지</th><th class="c">오탐률</th><th class="c">실기 검출률<sup>*</sup></th><th>비고</th></tr>
+<tr><td class="c">0.10</td><td class="c">100%</td><td class="c r">74.7%</td><td class="c">—</td><td class="r">부재 판정 불가</td></tr>
+<tr><td class="c">0.15</td><td class="c">99.5%</td><td class="c r">40.5%</td><td class="c">49.3%</td><td class="r">오탐 과다로 배제</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td class="c g"><strong>0.20</strong></td><td class="c">97.7%</td><td class="c o">12.7%</td><td class="c g"><strong>33.8%</strong></td><td class="g"><strong>현재 적용</strong></td></tr>
+<tr style="background:rgba(251,191,36,0.1)"><td class="c o"><strong>0.25</strong></td><td class="c">95.3%</td><td class="c g"><strong>0.0%</strong></td><td class="c">19.7%</td><td class="o">Youden J 최대 — 원래 확정값</td></tr>
+<tr><td class="c">0.30</td><td class="c">93.5%</td><td class="c g">0.0%</td><td class="c">—</td><td>정탐 손실 증가</td></tr>
+<tr><td class="c">0.40</td><td class="c r">79.1%</td><td class="c g">0.0%</td><td class="c">—</td><td class="r">정탐 손실 과다</td></tr>
+</table>
+<div class="sub" style="margin:0"><sup>*</sup> 실패했던 약좌 세션의 실제 grounding 프레임 71장을
+threshold만 바꿔 재계산한 값(soda 실측). ROC 열은 라벨링된 296프레임 기준(객체없음 79 / 객체있음 217).</div>
+
+<div class="warn">
+<strong class="r">0.25는 "틀린 값"이 아니라 "여유가 좁은 값"이었습니다.</strong>
+Youden J 최대점(정탐 95.3% / 오탐 0%)이라 최적이 맞지만, 동시에
+<strong class="h">진짜 객체가 있는 프레임의 4.2%(9/215)가 0.20~0.30 밴드에, 11.6%(25/215)가
+0.15~0.35 밴드</strong>에 몰려 있습니다. 즉 confidence가 ±0.05만 흔들려도 다수 판정이 뒤집히는
+<strong class="h">knife-edge 연산점</strong>이었고, 젯슨에서 그 좁은 여유를 넘어선 것이
+"검출이 안 된다"의 정체였습니다.
+</div>
+
+<h3>threshold 0.25→0.20의 실기 효과</h3>
+<table>
+<tr><th>지표</th><th class="c">0.25</th><th class="c">0.20</th><th class="c">변화</th></tr>
+<tr><td>평균 grounding 성공률(gnd%)</td><td class="c">33.5%</td><td class="c g">81.1%</td><td class="c g">+47.6%p</td></tr>
+<tr><td>세션 내내 완전 미검출 비율</td><td class="c r">39.7%</td><td class="c g">3.0%</td><td class="c g">−36.7%p</td></tr>
+<tr><td>실기 주행 성공률 (강좌+약좌)</td><td class="c">13/40 = 32.5%</td><td class="c g">33/41 = 80.5%</td><td class="c g">+48.0%p</td></tr>
+</table>
+<div class="note">
+<strong class="o">해석 주의</strong> — 위 +48.0%p는 threshold 단독 효과가 아니라
+<strong class="h">threshold 하향 + 회복 제어로직 추가가 함께</strong> 적용된 결과입니다.
+같은 기간 체크포인트도 바뀌어 있어, 세 요인의 순위는 <strong class="h">아직 확정하지
+못했습니다</strong>(위치 가중 방식에 따라 순위가 뒤집힘 — CH64 64-19). 동일 위치 A/B 필요.
+</div>
+
+<h3>② fp16 양자화 — 속도는 얻고 검출률을 잃음</h3>
+<table>
+<tr><th>항목</th><th class="c">fp32</th><th class="c">fp16</th><th class="c">변화</th></tr>
+<tr><td>지연 (Jetson Orin 실측)</td><td class="c">1901.7ms</td><td class="c g">962.1ms</td><td class="c g">1.98배 빠름</td></tr>
+<tr><td>지연 (로컬 GB10 실측)</td><td class="c">343.7ms</td><td class="c g">198.3ms</td><td class="c g">1.73배 빠름</td></tr>
+<tr style="background:rgba(248,113,113,0.1)"><td>has_bbox 일치율 (fp32 기준)</td><td class="c">100%</td><td class="c r">90.0% (108/120)</td><td class="c r">−10%p</td></tr>
+<tr><td>불일치 방향</td><td class="c" colspan="3">12건 전부 "fp32 검출 / fp16 미검출" — fp16만 검출한 경우 0건</td></tr>
+<tr><td>좌표 정확도 (둘 다 검출된 108건)</td><td class="c" colspan="3" style="color:var(--gr)">cx/cy/area 평균 차이 0.0001~0.0002 — 사실상 동일, 0.05 이상 벌어진 경우 0건</td></tr>
+</table>
+<div class="warn">
+<strong class="r">fp16은 권장하지 않습니다.</strong> "잡으면 정확히 잡지만 애매한 경우를 더 자주
+놓치는" 트레이드인데, <strong class="h">검출률이 곧 실기 성공률</strong>이므로
+(gnd%≥80 → 98.8% / &lt;80 → 51.2%) 성패를 가르는 변수 하나를 팔아 속도를 사는 셈입니다.
+특히 <strong class="h">threshold 완화와 fp16 동시 적용은 금지</strong> — 두 효과가 겹치면
+실패 빈도가 배가됩니다.
+</div>
+
+<h3>③ bbox_scale = 3.0 (area 배율)</h3>
+<p>OWL-v2가 준 area를 3배로 스케일해 헤드에 넣습니다. 260차원 특징벡터 중 area 채널의
+동적 범위를 키우는 전처리 계수이고, <strong class="h">학습·서빙에 동일하게 적용</strong>됩니다
+(<code>BBOX_SCALE = 3.0</code>). 배포 규격으로 고정돼 있어 이번 세션에서는 변경 실험을 하지
+않았습니다.</p>
+
+<h3>④ grounding_skip_n = 3 (캐시 재사용 주기)</h3>
+<p>OWL-v2가 ~1.9초 걸려서 매 프레임 못 돌립니다. 3프레임마다 1회만 새로 검출하고 나머지는
+직전 bbox를 재사용합니다. 이것이 실기 판단 주기를 <strong class="h">6Hz가 아닌 약 1.3Hz</strong>로
+만드는 원인이고, <strong class="h">zero-order hold(단속 제어)</strong> 구조를 낳습니다.
+학습 쪽에서는 이를 반영한 <strong class="h">hold-aware 학습</strong>(stride 5, 구간 다수결 라벨)으로
+HELD 지표를 7.1% → 28.3%로 개선했습니다.</p>
+
+<h3>⑤ 프롬프트 — "gray basket" 고정</h3>
+<pre>query = phrase   # 코드에서 "gray" 강제 접두를 하지 않는다
+# 이유: 강제 접두는 임의 객체("red ball") 요청을 망가뜨림
+#       (plan_20260705_vla_ladder_step1_2.md)</pre>
+<table>
+<tr><th>쿼리 변형 (CH58)</th><th class="c">det율</th><th class="c">dir정확도</th></tr>
+<tr><td><code>"basket"</code> / <code>"gray laundry basket"</code> / <code>"gray container"</code> / multi</td>
+    <td class="c">35~100%</td><td class="c r">0%</td></tr>
+</table>
+<p>쿼리를 어떻게 바꿔도 방향 정확도는 0%였습니다 — 이것이 1절의 "역할 축소" 결정으로 이어졌습니다.
+현재는 <code>multi_prompt = False</code>(단일 쿼리)로 운용합니다.</p>
+
+<h3>⑥ 그라운더 교체 (PG448 ↔ OWL-v2) — 오프라인에서는 부차적</h3>
+<table>
+<tr><th>비교 조건</th><th class="c">PG448</th><th class="c">OWL-v2</th><th class="c">격차</th></tr>
+<tr><td>v6(180ep) / mlp 헤드</td><td class="c">77.9%</td><td class="c">77.7%</td><td class="c">0.2%p</td></tr>
+<tr><td>v6(225ep) / cxgeom 헤드</td><td class="c">76.2%</td><td class="c">75.8%</td><td class="c">0.4%p</td></tr>
+<tr><td>hold-aware 학습 후 HELD 평가</td><td class="c">28.3 ± 3.8%</td><td class="c">25.3 ± 3.8%</td><td class="c">3.0%p</td></tr>
+</table>
+<p>오프라인 지표상 두 그라운더 차이는 대부분 1%p 이내라 "그라운더 교체는 비용 대비 개선폭이
+작다"고 판단했습니다(CH63 63-5). <strong class="h">단 이는 오프라인 재생 기준</strong>이고,
+실기에서는 검출률 자체가 성패를 가르므로 <strong class="h">"어느 그라운더냐"보다 "그 그라운더가
+지금 프레임을 잡느냐"가 중요</strong>합니다.</p>
+
+<h2>3. 젯슨-로컬 재현성 gap — 무엇이 원인이 아니었나</h2>
+<p>실기에서 "분명히 보이는데 검출 안 됨"이 반복돼, 원인을 하나씩 배제했습니다.</p>
+<table>
+<tr><th>가설</th><th>검증 방법</th><th>결과</th></tr>
+<tr><td>타겟이 화면에 없다</td><td>미검출 프레임 로컬 재실행</td><td class="r">기각 — score&lt;0.01은 2.5%뿐</td></tr>
+<tr><td>transformers 버전 차이<br><span class="pill">4.45.2 vs 4.49.0</span></td>
+    <td>격리 venv로 같은 프레임 재실행 (soda)</td>
+    <td class="r">기각 — score가 소수점 4자리까지 동일<br>(0.1642 / 0.2327 양쪽 일치)</td></tr>
+<tr><td>젯슨 하드웨어(Orin) 차이</td>
+    <td>미검출 197프레임 전량 로컬 재실행 후 대조</td>
+    <td class="o">부분 기여 — 최대 21.3%만 설명</td></tr>
+<tr style="background:rgba(251,191,36,0.1)"><td><strong>confidence가 임계값 경계에 몰림</strong></td>
+    <td>미검출 프레임의 로컬 score 분포 분석</td>
+    <td class="o"><strong>지배 원인 — 54.8%가 0.10~0.20 밴드</strong></td></tr>
+</table>
+
+<h3>미검출 197프레임의 로컬 score 분포</h3>
+<table>
+<tr><th class="c">로컬 score</th><th>해석</th><th class="c">건수</th><th class="c">비중</th></tr>
+<tr><td class="c">&lt; 0.01</td><td>타겟이 화면에 없음</td><td class="c">5</td><td class="c">2.5%</td></tr>
+<tr><td class="c">0.01~0.10</td><td>매우 낮음</td><td class="c">42</td><td class="c">21.3%</td></tr>
+<tr style="background:rgba(251,191,36,0.12)"><td class="c o"><strong>0.10~0.20</strong></td><td><strong>보이지만 임계값 바로 아래 — 지배 구간</strong></td><td class="c o"><strong>108</strong></td><td class="c o"><strong>54.8%</strong></td></tr>
+<tr><td class="c">≥ 0.20</td><td>로컬은 검출 = 환경차 확정</td><td class="c">42</td><td class="c">21.3%</td></tr>
+</table>
+<p>젯슨×로컬 판정 일치도는 <strong class="h">86.6%</strong>(344/397)로, fp32×fp16 일치도
+90.0%와 <strong class="h">동급</strong>입니다 — 즉 환경차는 양자화 수준의 2차 효과입니다.
+"바구니가 크고 명확한데 젯슨만 놓친" 심각 사례는 score 0.40 이상 5건 / 0.70 이상 2건에
+불과해, <strong class="h">torch/Orin 원인 규명의 실무 우선순위는 낮습니다.</strong></p>
+
+<div style="margin:16px 0">
+  <div style="font-size:0.82rem;color:var(--dim);margin-bottom:6px">
+  실제 미검출 프레임 — score 구간 비중대로 뽑은 대표 표본(경계밴드 5 · 환경차 3 · 타겟부재 2).
+  빨강 점선은 미검출 시 강제되는 fallback <code>cx=0.50</code>.</div>
+  <img src="ch64_figs/gal_64_20_misses.png" alt="미검출 프레임 표본">
+</div>
+
+<div class="warn">
+<strong class="r">7/4 결론 정정</strong> — 당시
+<code>CONCLUSION_20260704_fallback_repro_gap.md</code>는 "서버 fallback 206프레임이 로컬에서
+206/206(100%) 탐지 → 환경 gap이 지배적 원인"이라 결론했습니다. 그런데 그 100%는
+<strong class="h">PG2/Kosmos-refexp/OWL 3모델 중 하나라도 박스를 내면 탐지</strong>라는 훨씬
+느슨한 기준이었습니다. 실제 운영 기준(OWL-v2 단독 · threshold 이상)으로 재실행하면
+<strong class="r">78.7%가 로컬에서도 미검출</strong>입니다.
+</div>
+
+<h2>4. 리소스 — 파라미터와 속도가 역전되어 있음</h2>
+<table>
+<tr><th>모델</th><th class="c">파라미터</th><th class="c">지연</th><th class="c">VRAM</th><th class="c">배수</th></tr>
+<tr style="background:rgba(248,113,113,0.1)"><td>OWL-v2 (fp32)</td><td class="c">0.155B</td><td class="c r">1901.7ms</td><td class="c">1.982GB</td><td class="c r">35배 느림</td></tr>
+<tr><td>OWL-v2 (fp16)</td><td class="c">0.155B</td><td class="c o">962.1ms</td><td class="c">—</td><td class="c">18배 느림</td></tr>
+<tr><td>Kosmos-2 vision 인코더</td><td class="c">0.303B</td><td class="c g">53.7ms</td><td class="c g">0.625GB</td><td class="c">기준</td></tr>
+</table>
+<div class="key">
+<strong class="h">경량화 판단 — "파라미터 줄이기"는 여기서 통하지 않습니다.</strong>
+OWL-v2는 Kosmos-2 비전 인코더의 <strong class="h">절반 크기인데 35배 느립니다.</strong>
+따라서 라즈베리파이 목표에서 파라미터 수는 지표가 되지 못하고, 검출 단계를 직접 손대야 합니다.
+그런데 fp16 양자화는 위에서 본 대로 검출률을 파는 잘못된 트레이드입니다.
+<br><br>
+<strong class="h">→ 결론: 범용 OWL-v2를 압축하는 대신, 우리 과제(회색 바구니 · 극단 배치)에
+특화된 소형 검출기를 직접 학습하는 쪽이 속도·정확도 양쪽에서 유망합니다.</strong>
+대상이 단일 객체로 고정되어 있다는 점이 이 방향의 근거입니다.
+</div>
+
+<h2>5. 현재 운용 설정 (전체)</h2>
+<pre>grounder_model         = OWL-v2 (google/owlv2-base-patch16-ensemble)
+owlv2_thresh           = 0.20      # 0.25에서 하향 — 2절 ①
+owlv2_area_scale       = 3.0       # bbox area 배율 — 2절 ③
+grounder_input_px      = 960       # 프로세서 native 입력
+grounding_skip_n       = 3         # 캐시 재사용 주기 — 2절 ④
+multi_prompt           = False     # 단일 쿼리 "gray basket" — 2절 ⑤
+dtype                  = fp32      # fp16 비권장 — 2절 ②
+force_reground_on_miss = True      # 미검출 다음 스텝 캐시 강제 스킵
+preview_enabled        = False
+preview_hint_cx        = True
+cx_jump_filter         = False</pre>
+<p>미검출 시 fallback: <code>cx=0.5, cy=0.6, area=0.06, has_bbox=0</code>.
+헤드는 <code>has_bbox=0</code> 신호를 입력으로 받지만
+<strong class="r">학습 데이터에 has_bbox=False 프레임이 0.00%(0/16,599)</strong>여서
+대응을 배운 적이 없습니다 — 그래서 회복을 서빙 제어 로직으로 처리합니다
+(회전 후 강제 재그라운딩 / 회전 0.4초 제한 / 연속회전 차단 / 콜드스타트 가드 3프레임).</p>
+
+<h2>6. 남은 과제</h2>
+<div class="key">
+<ol>
+<li><strong class="h">도메인 특화 소형 검출기 학습</strong> — 4절 결론. 경량화 논문의 본선.</li>
+<li><strong class="h">동일 위치 A/B</strong> — threshold / 제어로직 / 체크포인트 세 요인의
+  기여분이 아직 분리되지 않았습니다(교란).</li>
+<li><strong class="h">has_bbox=False 시범 데이터 수집</strong> — 현재 0.00%인 미검출 상황에
+  사람이 정답 행동(탐색 회전·정지)을 시범해 학습에 포함.</li>
+<li><strong class="h">threshold 슬라이더 오프라인 재판정</strong> — soda가 대시보드에 구현 중.
+  저장된 프레임으로 threshold-성능 곡선을 실기 재수집 없이 뽑는 것. per-frame
+  <code>grounding/score</code> H5 저장도 함께 추가됐습니다.</li>
+</ol>
+</div>
+<p class="sub" style="margin-top:26px;padding-top:14px;border-top:1px solid var(--line)">
+근거: CH58(프롬프트 어블레이션) · CH63 63-5(그라운더 교체) ·
+<a href="research_story.html#ch64">CH64</a> 64-13(리소스) / 64-16(fp16) / 64-17(threshold ROC) /
+64-18(100회 결과) / 64-19(요인 분해) / 64-20(미검출 정밀 분석) ·
+<code>scripts/eval/owlv2_threshold_roc.py</code> · <code>scripts/analyze_jetson_local_gap.py</code>
+</p>
+
+</div>
+</body>
+</html>
