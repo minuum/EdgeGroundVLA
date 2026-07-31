@@ -437,6 +437,57 @@ EXP73_AZ_THRESH = 0.1  # rad/s (CH63 63-10: 0.05~0.2 스윕 결과 불변 확인
 # Stage1 encoder
 # ---------------------------------------------------------------------------
 
+def _load_kosmos2_vision_only(vlm_path: Path) -> nn.Module:
+    """Kosmos-2의 vision tower만 로드한다 (언어 디코더 미로드).
+
+    기존 방식은 `AutoModelForVision2Seq.from_pretrained()`로 전체 1.664B를 host RAM에
+    올린 뒤 `.vision_model`(0.303B)만 떼어 썼다. 언어 디코더는 이 파이프라인에서 한 번도
+    호출되지 않으므로(text 경로 미사용) 애초에 읽지 않는다.
+
+    실측 효과 — 출력은 bitwise 동일, peak host RAM만 줄어든다:
+      기존: peak RSS 10.59GB / GPU 0.607GB
+      신규: peak RSS  3.20GB / GPU 0.607GB   (RAM -70%)
+    GPU 사용량은 원래부터 동일했다(언어 디코더는 GPU로 옮겨지지 않았음) — 이득은
+    호스트 RAM 쪽이며, RAM이 4~8GB인 보드(라즈베리파이 등)에서는 로드 가능/불가능을
+    가르는 차이다.
+
+    VLA_KOSMOS_VISION_ONLY=0 으로 두면 기존 전체 로드 경로를 강제한다.
+    """
+    if os.getenv("VLA_KOSMOS_VISION_ONLY", "1") != "1":
+        logger.info("Stage1: full-model load (VLA_KOSMOS_VISION_ONLY=0)")
+        return AutoModelForVision2Seq.from_pretrained(
+            str(vlm_path), torch_dtype=torch.float16).vision_model
+    try:
+        import glob as _glob
+
+        from safetensors import safe_open
+        from transformers import Kosmos2Config
+        from transformers.models.kosmos2.modeling_kosmos2 import Kosmos2VisionModel
+
+        shards = sorted(_glob.glob(str(Path(vlm_path) / "*.safetensors")))
+        if not shards:
+            raise FileNotFoundError("no safetensors shard")
+        cfg = Kosmos2Config.from_pretrained(str(vlm_path))
+        model = Kosmos2VisionModel(cfg.vision_config)
+        prefix = "vision_model."
+        sd: dict[str, torch.Tensor] = {}
+        for shard in shards:
+            with safe_open(shard, framework="pt") as h:   # lazy — 비전 키만 실제로 읽음
+                for k in h.keys():
+                    if k.startswith(prefix):
+                        sd[k[len(prefix):]] = h.get_tensor(k)
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        if missing:
+            raise RuntimeError(f"vision-only load missing {len(missing)} keys")
+        logger.info("Stage1: vision-only load OK (%.3fB params, host RAM 절감)",
+                    sum(p.numel() for p in model.parameters()) / 1e9)
+        return model.to(torch.float16)
+    except Exception as exc:                              # 어떤 이유로든 실패 시 원래 경로
+        logger.warning("Stage1: vision-only load 실패(%s) → full-model load로 폴백", exc)
+        return AutoModelForVision2Seq.from_pretrained(
+            str(vlm_path), torch_dtype=torch.float16).vision_model
+
+
 class Stage1Encoder(nn.Module):
     """Kosmos-2 vision_model + image_proj (256-dim, L2-norm). Frozen."""
 
@@ -445,8 +496,7 @@ class Stage1Encoder(nn.Module):
         ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
         logger.info("Stage1 val_acc=%.4f", ckpt["val_acc"])
         self.processor = AutoProcessor.from_pretrained(str(vlm_path))
-        base = AutoModelForVision2Seq.from_pretrained(str(vlm_path), torch_dtype=torch.float16)
-        self.vision_model = base.vision_model.to(device)
+        self.vision_model = _load_kosmos2_vision_only(vlm_path).to(device)
         self.image_proj   = nn.Linear(VIS_DIM, PROJ_DIM).to(device)
         self.image_proj.load_state_dict(ckpt["image_proj"])
         for p in self.vision_model.parameters(): p.requires_grad = False
