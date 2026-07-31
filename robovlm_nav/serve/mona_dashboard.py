@@ -9502,6 +9502,13 @@ L S R  C S L  R S L
     }
 
     async function loadSessionList() {
+      // 병합 세트 태그를 정확히 매칭하려면 window._checkpointIndex(session→체크포인트),
+      // window._manualGroupsCache(세트 목록), window._currentCheckpointPath(open-ended
+      // 확장 판단용) 3가지가 다 최신이어야 함 — 예전엔 Tab4를 먼저 안 열었거나
+      // 캐시가 채워진 뒤에도 새로 추가된 세션은 안 반영돼서 최근 세션 태그가
+      // 하나도 안 붙는 문제가 있었음(2026-07-31 보고). 매번 직접 새로고침해서 보장.
+      await Promise.all([refreshCheckpointOptions(), refreshManualGroups(), refreshModelList()]);
+
       const res = await api("/sessions/list");
       const listEl = document.getElementById("session-list-group");
       if (res.sessions.length === 0) {
