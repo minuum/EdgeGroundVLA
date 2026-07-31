@@ -3596,6 +3596,70 @@ def verify_manual_group_delete(req: ManualGroupDeleteReq):
     return {"ok": True, "groups": groups}
 
 
+# ── 🧭 주행 궤적 재구성 (T1-3, plan_20260731_..._dashboard_repurpose.md) ─────
+# action_history(=H5 actions)를 적분해 (x, y, heading) 경로를 복원한다. 지금까지
+# 이 데이터는 복귀 기능(역재생)에만 쓰이고 한 번도 시각화된 적이 없었다.
+#
+# ⚠️ 정확도 한계 (계획서의 "FPE 자동 계산"은 아래 이유로 축소함):
+#   - 전진 스텝당 이동거리만 실측돼 있음(W 1회 ≈ 12~13cm, 2026-06-26).
+#   - **회전 각도(az=±0.25일 때 몇 도인지)는 미측정**이라 아래 값은 추정치다.
+#     회전이 많은 세션일수록 궤적이 실제와 벌어진다.
+#   - 무엇보다 **목표 위치 ground truth가 없어서 진짜 FPE는 계산 불가**다.
+#     (episode_log의 FPE는 사람이 눈대중으로 넣는 값 — 자동화하려면 목표 지점을
+#      측정해 기록하는 절차부터 추가해야 함)
+#   따라서 이 기능은 "궤적 모양 비교(성공 vs 실패)"용이며, 절대 거리 주장에는
+#   쓰지 말 것.
+_TRAJ_FWD_M_PER_STEP = float(os.getenv("VLA_TRAJ_FWD_M", "0.125"))   # 실측 12~13cm
+_TRAJ_ROT_DEG_PER_STEP = float(os.getenv("VLA_TRAJ_ROT_DEG", "15"))  # ⚠️ 미측정 추정치
+
+
+@app.get("/sessions/trajectory")
+def sessions_trajectory(sid: str):
+    """세션 H5의 actions를 적분해 궤적 좌표를 반환. 단위: m(추정), 각도: deg."""
+    import math
+    p = INFER_H5_DIR / f"session_{sid}.h5"
+    if not p.exists():
+        return {"ok": False, "error": f"세션 없음: {sid}"}
+    try:
+        with h5py.File(p, "r") as f:
+            acts = f["actions"][:] if "actions" in f else None
+            g = f.get("grounding")
+            has_bbox = [bool(v) for v in g["bbox"][:, 3]] if g is not None and "bbox" in g else []
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if acts is None or len(acts) == 0:
+        return {"ok": False, "error": "actions 없음"}
+
+    x = y = 0.0
+    heading = 90.0  # +y(정면) 기준
+    pts = [{"x": 0.0, "y": 0.0, "heading": heading, "has_bbox": True}]
+    for i, a in enumerate(acts):
+        lx = float(a[0]); ly = float(a[1]) if len(a) > 1 else 0.0
+        az = float(a[2]) if len(a) > 2 else 0.0
+        if abs(az) > 0.1:
+            # 제자리 회전 — az 부호가 곧 회전 방향(이름 ROT_L/R과 실제 방향이
+            # 어긋나 있을 수 있다는 미해결 이슈는 DATASET_V6_STATUS 참고).
+            heading += math.copysign(_TRAJ_ROT_DEG_PER_STEP, az)
+        else:
+            # 전진/스트레이프 — 정규화된 액션(±1.15)을 스텝 이동량으로 환산
+            fwd = (lx / 1.15) * _TRAJ_FWD_M_PER_STEP
+            strafe = (ly / 1.15) * _TRAJ_FWD_M_PER_STEP
+            rad = math.radians(heading)
+            x += fwd * math.cos(rad) - strafe * math.sin(rad)
+            y += fwd * math.sin(rad) + strafe * math.cos(rad)
+        pts.append({"x": round(x, 4), "y": round(y, 4), "heading": round(heading, 1),
+                    "has_bbox": bool(has_bbox[i]) if i < len(has_bbox) else True})
+    dist = math.hypot(x, y)
+    path_len = sum(math.hypot(pts[i+1]["x"]-pts[i]["x"], pts[i+1]["y"]-pts[i]["y"])
+                   for i in range(len(pts)-1))
+    return {"ok": True, "sid": sid, "points": pts,
+            "net_displacement_m": round(dist, 3), "path_length_m": round(path_len, 3),
+            "efficiency": round(dist / path_len, 3) if path_len > 0 else 0.0,
+            "fwd_m_per_step": _TRAJ_FWD_M_PER_STEP,
+            "rot_deg_per_step": _TRAJ_ROT_DEG_PER_STEP,
+            "caveat": "회전각 미측정 추정치 · 목표 GT 없어 절대 FPE 아님"}
+
+
 # ── 🔍 그라운딩 실패 분석기 (T1-1, plan_20260731_..._dashboard_repurpose.md) ──
 # 저장된 세션 H5의 grounding/score를 모아서 프론트로 넘김. threshold 슬라이더
 # 재판정/히스토그램은 JS에서 클라이언트 계산 — 데이터가 작아서(수천 float)
