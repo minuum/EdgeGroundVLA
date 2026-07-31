@@ -780,6 +780,14 @@ class Stage2V2Model:
         # 보고 같은 회전을 반복하다가 타겟을 화면 밖으로 밀어내는 문제 확인됨
         # (weak_left 세션 다수에서 ROT_R 3연속 후 has_bbox=False로 소실).
         self._last_pred_class: Optional[int] = None
+        # 2026-07-31: 위 회전 전용 재그라운딩과 별개로, has_bbox=False(미검출)
+        # 다음 스텝도 캐시를 건너뛰고 재그라운딩할지 토글 — 실측 결과 회전이
+        # 아닌 LEFT/RIGHT/FWD+L/FWD+R 등 일반 이동 액션에서도 미검출 상태가
+        # 여러 스텝(최대 skip_n번) 캐시로 이어지며 로봇이 재확인 없이 계속
+        # 움직이는 케이스 확인됨(2026-07-31 세션 172907/174000/174557).
+        # 기본값 off — 런타임에서 A/B로 켜서 효과 확인 후 기본값 전환 예정.
+        self._force_reground_on_miss: bool = os.getenv("VLA_FORCE_REGROUND_ON_MISS", "0") == "1"
+        self._last_has_bbox: bool = True
         # P2 (minum FIX_GUIDE): cx 급변 필터 — 직전 대비 cx 점프가 크면 오탐으로 보고 캐시 유지
         self._cx_jump_filter: bool  = os.getenv("VLA_CX_JUMP_FILTER", "0") == "1"
         self._cx_jump_thresh: float = float(os.getenv("VLA_CX_JUMP_THRESH", "0.30"))
@@ -925,6 +933,7 @@ class Stage2V2Model:
         self.inference_count = 0
         self._grounding_cache = None
         self._last_pred_class = None
+        self._last_has_bbox = True
         self.stop_latched = False
         self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
         from datetime import datetime
@@ -1155,9 +1164,11 @@ class Stage2V2Model:
         # 회전은 화각을 바꾸는 게 목적인데 캐시된(회전 전) cx를 계속 보면 같은
         # 회전을 skip_n번 반복하다 타겟을 화면 밖으로 밀어낼 수 있음(2026-07-30 확인).
         just_rotated = self._last_pred_class in (6, 7)
+        just_missed = self._force_reground_on_miss and not self._last_has_bbox
         use_cache = (
             not use_hidden
             and not just_rotated
+            and not just_missed
             and self._grounding_skip_n > 1
             and self.inference_count > 0
             and self.inference_count % self._grounding_skip_n != 0
@@ -1314,6 +1325,7 @@ class Stage2V2Model:
 
         self.inference_count += 1
         self._last_pred_class = pred_class
+        self._last_has_bbox = bool(frame.get("has_bbox", False))
         total_ms = (time.time() - start) * 1000.0
         temporal_tag = f" [near {near_frames}/{GOAL_CONSEC_FRAMES}]" if STOP_MODE != "learned" else ""
         logger.info(
@@ -1431,6 +1443,7 @@ class ConfigRequest(BaseModel):
     cx_jump_filter: Optional[bool] = None    # P2: cx 급변 오탐 필터 on/off
     cx_jump_thresh: Optional[float] = None   # P2: 급변 임계값 (기본 0.30)
     multi_prompt: Optional[bool] = None      # 멀티프롬프트 fallback on/off
+    force_reground_on_miss: Optional[bool] = None  # 2026-07-31: has_bbox=False 다음 스텝 캐시 강제 스킵 on/off (A/B 테스트용, 기본 off)
     owlv2_thresh: Optional[float] = None     # OWL-v2 detection threshold (run()이 매 호출 env를 읽음)
     owlv2_area_scale: Optional[float] = None # OWL-v2 area 보정 계수 (PG2 스케일 정합용, run()이 매 호출 env를 읽음)
     # 하위 호환: 수신은 하되 무시
@@ -1473,6 +1486,7 @@ def _persist_runtime_state() -> None:
             "cx_jump_thresh": getattr(m, "_cx_jump_thresh", None) if m else None,
             "grounding_skip_n": getattr(m, "_grounding_skip_n", None) if m else None,
             "multi_prompt": getattr(m, "_multi_prompt", None) if m else None,
+            "force_reground_on_miss": getattr(m, "_force_reground_on_miss", None) if m else None,
             "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
             "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
         }
@@ -1506,6 +1520,7 @@ def _restore_runtime_state_env() -> Optional[dict]:
         "cx_jump_thresh": "VLA_CX_JUMP_THRESH",
         "grounding_skip_n": "VLA_GROUNDING_SKIP_N",
         "multi_prompt": "VLA_MULTI_PROMPT",
+        "force_reground_on_miss": "VLA_FORCE_REGROUND_ON_MISS",
         "owlv2_thresh": "VLA_OWLV2_THRESH",
         "owlv2_area_scale": "VLA_OWLV2_AREA_SCALE",
     }
@@ -1581,6 +1596,7 @@ async def health() -> dict[str, Any]:
         "cx_jump_filter": getattr(m, "_cx_jump_filter", False) if m else False,
         "cx_jump_thresh": getattr(m, "_cx_jump_thresh", 0.30) if m else 0.30,
         "multi_prompt": getattr(m, "_multi_prompt", False) if m else False,
+        "force_reground_on_miss": getattr(m, "_force_reground_on_miss", False) if m else False,
         "fallback_prompts": getattr(m, "_fallback_prompts", []) if m else [],
         "inference_count": m.inference_count if m else 0,
         # Fix3: 서버 버전 핸드셰이크 — code_mtime > process_started_at 이면
@@ -1740,6 +1756,11 @@ async def set_config(
         m = get_model()
         m._multi_prompt = bool(request.multi_prompt)
         applied["multi_prompt"] = m._multi_prompt
+
+    if request.force_reground_on_miss is not None:
+        m = get_model()
+        m._force_reground_on_miss = bool(request.force_reground_on_miss)
+        applied["force_reground_on_miss"] = m._force_reground_on_miss
 
     if request.owlv2_thresh is not None:
         # OwlV2Grounder.run()이 매 호출 os.getenv를 읽으므로 env 갱신 = 즉시 적용

@@ -1756,6 +1756,7 @@ class ConfigToggleReq(BaseModel):
     cx_jump_thresh: Optional[float] = None
     stop_area_threshold: Optional[float] = None
     multi_prompt: Optional[bool] = None
+    force_reground_on_miss: Optional[bool] = None
     owlv2_thresh: Optional[float] = None
     owlv2_area_scale: Optional[float] = None
     # STOP 모드 토글(Tab4 stopmode/stopguard 버튼) — Pydantic 모델에 필드가
@@ -2357,6 +2358,7 @@ def config_update(req: ConfigToggleReq):
     if req.cx_jump_thresh is not None: payload["cx_jump_thresh"] = req.cx_jump_thresh
     if req.stop_area_threshold is not None: payload["stop_area_threshold"] = req.stop_area_threshold
     if req.multi_prompt is not None: payload["multi_prompt"] = req.multi_prompt
+    if req.force_reground_on_miss is not None: payload["force_reground_on_miss"] = req.force_reground_on_miss
     if req.owlv2_thresh is not None: payload["owlv2_thresh"] = req.owlv2_thresh
     if req.owlv2_area_scale is not None: payload["owlv2_area_scale"] = req.owlv2_area_scale
     if req.stop_mode is not None: payload["stop_mode"] = req.stop_mode
@@ -2551,6 +2553,7 @@ def _snapshot_runtime_config() -> dict:
             "cx_jump_filter": h.get("cx_jump_filter"),
             "cx_jump_thresh": h.get("cx_jump_thresh"),
             "multi_prompt": h.get("multi_prompt"),
+            "force_reground_on_miss": h.get("force_reground_on_miss"),
             "head": h.get("head"),
             "grounder_model": g.get("model"),
             "grounder_input_px": g.get("input_px"),
@@ -5117,6 +5120,9 @@ L S R  C S L  R S L
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                   <button id="vfy-rt-stopmode" class="btn btn-outline" onclick="toggleVerifyRuntime('stopmode')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛑 proximity<br><span style="font-size:9px;color:var(--text-muted)">STOP 모드</span></button>
                   <button id="vfy-rt-stopguard" class="btn btn-outline" onclick="toggleVerifyRuntime('stopguard')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛡 가드 3프레임<br><span style="font-size:9px;color:var(--text-muted)">learned 콜드스타트</span></button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr; gap:6px;">
+                  <button id="vfy-rt-regroundmiss" class="btn btn-outline" onclick="toggleVerifyRuntime('regroundmiss')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;" title="has_bbox=False(미검출) 다음 스텝도 캐시 건너뛰고 재그라운딩 — 회전 전용 수정과 별개, 일반 이동 액션에도 적용(2026-07-31 A/B 테스트)">⚫ 미검출시 재그라운딩<br><span style="font-size:9px;color:var(--text-muted)">has_bbox=False 다음스텝 강제</span></button>
                 </div>
                 <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
                 <div id="vfy-owl-row" style="display:none; align-items:center; gap:6px; margin-top:2px;">
@@ -9089,6 +9095,7 @@ L S R  C S L  R S L
         runtimeState.cx_jump_filter = res.cx_jump_filter === true;
         runtimeState.cx_jump_thresh = res.cx_jump_thresh !== undefined ? parseFloat(res.cx_jump_thresh) : 0.30;
         runtimeState.multi_prompt = res.multi_prompt !== false;
+        runtimeState.force_reground_on_miss = res.force_reground_on_miss === true;
         runtimeState.stop_mode = res.stop_mode || "proximity";
         runtimeState.stop_learned_min_steps = res.stop_learned_min_steps !== undefined ? parseInt(res.stop_learned_min_steps) : 3;
 
@@ -9170,6 +9177,18 @@ L S R  C S L  R S L
         multiBtn.innerHTML = "⚫ 멀티프롬프트<br><span style='font-size:9px;color:var(--text-muted);'>fallback OFF</span>";
       }
 
+      // 미검출시 재그라운딩 — has_bbox=False 다음 스텝 캐시 강제 스킵(2026-07-31 A/B)
+      const regroundMissBtn = document.getElementById("vfy-rt-regroundmiss");
+      if (regroundMissBtn) {
+        if (runtimeState.force_reground_on_miss) {
+          regroundMissBtn.className = "btn btn-cyan";
+          regroundMissBtn.innerHTML = "🟢 미검출시 재그라운딩<br><span style='font-size:9px;color:#000;'>has_bbox=False 다음스텝 강제 ON</span>";
+        } else {
+          regroundMissBtn.className = "btn btn-outline";
+          regroundMissBtn.innerHTML = "⚫ 미검출시 재그라운딩<br><span style='font-size:9px;color:var(--text-muted);'>has_bbox=False 다음스텝 강제 OFF</span>";
+        }
+      }
+
       // stop mode — proximity(안전, 3프레임 연속 임계값) vs learned(모델 예측+래치)
       const stopModeBtn = document.getElementById("vfy-rt-stopmode");
       if (stopModeBtn) {
@@ -9214,6 +9233,8 @@ L S R  C S L  R S L
         runtimeState.cx_jump_thresh = thresholds[(idx + 1) % thresholds.length];
       } else if (param === 'multi') {
         runtimeState.multi_prompt = !runtimeState.multi_prompt;
+      } else if (param === 'regroundmiss') {
+        runtimeState.force_reground_on_miss = !runtimeState.force_reground_on_miss;
       } else if (param === 'stopmode') {
         runtimeState.stop_mode = runtimeState.stop_mode === "proximity" ? "learned" : "proximity";
       } else if (param === 'stopguard') {
@@ -9236,6 +9257,7 @@ L S R  C S L  R S L
             cx_jump_filter: runtimeState.cx_jump_filter,
             cx_jump_thresh: runtimeState.cx_jump_thresh,
             multi_prompt: runtimeState.multi_prompt,
+            force_reground_on_miss: runtimeState.force_reground_on_miss,
             stop_mode: runtimeState.stop_mode,
             stop_learned_min_steps: runtimeState.stop_learned_min_steps
           })
