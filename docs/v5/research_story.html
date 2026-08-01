@@ -16228,6 +16228,116 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">✅ 65-5. Step 2 go/no-go — Kosmos-2 patch 피처만으로 위치 추정이 된다 (2026-08-01)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      검출기 계획서(<code>plan_20260801_specialized_detector.md</code>) 후보 (C)의 실현가능성
+      실험. <strong style="color:#e2e8f0">이미 매 프레임 돌고 있는 Kosmos-2 vision_model의
+      patch 피처(16×16×1024) 위에 경량 헤드만 얹어</strong> cx·cy·area를 회귀했다.
+      학습 라벨은 Step 0에서 검증한 <strong style="color:#e2e8f0">LIVE &amp; detected 5,752건</strong>
+      (캐시 상속본 10,847건 제외), 분할은 V6 <code>SPLIT_SEED=42 / VAL_RATIO=0.15</code> 그대로.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">지표</th><th style="padding:4px">값</th><th style="padding:4px">비고</th></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>cx MAE (val 843프레임)</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.0020</strong></td><td style="padding:4px">중앙 0.0016 · p90 0.0041</td></tr>
+        <tr><td style="padding:4px">cy MAE / area MAE</td><td style="padding:4px;text-align:center">0.0021 / 0.0036</td><td style="padding:4px">—</td></tr>
+        <tr><td style="padding:4px">헤드 파라미터</td><td style="padding:4px;text-align:center">0.279M</td><td style="padding:4px">액션 헤드(0.866M)보다 작다</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>헤드 지연</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.12ms</strong></td><td style="padding:4px">Kosmos-2 53.7ms에 추가되는 비용</td></tr>
+        <tr><td style="padding:4px">검출 단계 총 지연</td><td style="padding:4px;text-align:center">53.8ms</td><td style="padding:4px">OWL-v2 fp32(1901.7ms) 대비 <strong style="color:#4ade80">35.3배 빠름</strong></td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">과적합·누수 검증 (수치가 너무 좋아서 먼저 확인)</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li>분할 무결성: train 192 에피소드 / val 33 에피소드, <strong style="color:#e2e8f0">겹침 0</strong></li>
+        <li>과제가 자명하지 않음: 라벨 cx 표준편차 0.140, 범위 0.036~0.908</li>
+        <li>자명한 baseline 대비: train 평균으로 예측 시 MAE 0.1034, 프레임순서별 평균 0.1028 →
+          <strong style="color:#4ade80">모델이 52배 정확</strong></li>
+        <li>16×16 그리드 양자화 한계(±0.031)를 <strong style="color:#e2e8f0">soft-argmax</strong>
+          (heatmap 가중 중심)로 돌파. area 구간별로도 0.0016~0.0025로 균일 —
+          <strong style="color:#e2e8f0">목표 구간(0.05~0.09)에서 무너지지 않는다</strong></li>
+      </ul>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_65_5_step2.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="Step 2 결과"></div>
+      <br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:10px 12px">
+        <strong style="color:#f87171">⚠️ 이 결과가 증명하지 않는 것 — 과대해석 금지</strong>
+        <ol style="margin:6px 0 0 18px;padding:0">
+          <li><strong style="color:#e2e8f0">has_bbox 판정은 전혀 다루지 못했다.</strong>
+            학습셋의 미검출 프레임이 <strong style="color:#f87171">0건</strong>이라
+            "타겟이 없다"를 학습할 방법이 없다. 이 헤드는 <strong style="color:#e2e8f0">항상
+            어딘가를 가리킨다</strong>. 64-15에서 액션 헤드에 대해 확인한 문제가
+            <strong style="color:#e2e8f0">검출기 층위에서 그대로 재현</strong>된 것이며,
+            실기 성패를 가르는 게 바로 이 has_bbox이므로 <strong style="color:#f87171">이게
+            풀리기 전에는 OWL-v2를 대체할 수 없다.</strong></li>
+          <li><strong style="color:#e2e8f0">"PG448이 성공한 프레임"만 재현한 것</strong>이다.
+            우리가 고치려는 대상(OWL이 실패하는 프레임)은 이 학습셋에 존재하지 않는다.</li>
+          <li>V6 <strong style="color:#e2e8f0">조작 데이터</strong>로만 평가했다.
+            실기 176세션 프레임 평가(계획서 단계 4)는 아직이다.</li>
+          <li>라벨의 cy 최솟값이 0.582라 <strong style="color:#e2e8f0">화면 하단 40%의 공간
+            prior가 그대로 학습</strong>됐다. 상단 배치는 원리적으로 못 잡는다.</li>
+        </ol>
+      </div>
+      <br>
+      <strong style="color:#4ade80">판정: (C) 방향 GO — 단 조건부</strong> —
+      <strong style="color:#e2e8f0">위치 추정(localization)은 추가 비용 0.12ms로 해결됐다.</strong>
+      남은 것은 <strong style="color:#e2e8f0">검출/기각(has_bbox)</strong>이고, 이는 모델 구조가
+      아니라 <strong style="color:#e2e8f0">negative 데이터 부재</strong> 문제다. 계획서 단계 3~4
+      진입 전에 negative 확보 방안(64-15의 시범 수집 파일럿, 또는 타겟 없는 프레임 합성/수집)을
+      먼저 정해야 한다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">🚧 65-6. has_bbox는 공짜로 얻을 수 없다 — negative 부재가 구조적 병목 (2026-08-02)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      65-5에서 위치 추정은 0.12ms에 해결됐지만 <strong style="color:#e2e8f0">"타겟이 없다"를
+      말하지 못한다</strong>는 한계가 남았다. 그래서 <strong style="color:#e2e8f0">negative 데이터
+      없이도 heatmap의 확신도로 has_bbox를 얻을 수 있는지</strong>를 먼저 검증했다 — 되면 로봇
+      없이 끝나기 때문이다.
+      <br><br>
+      실기 176세션에서 <strong style="color:#e2e8f0">negative 155건</strong>(젯슨·로컬 양쪽
+      미검출, 64-20 데이터) vs <strong style="color:#e2e8f0">positive 200건</strong>(젯슨 검출)에
+      학습된 헤드를 돌려 네 가지 확신도 지표를 비교했다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">확신도 지표</th><th style="padding:4px">negative 평균</th><th style="padding:4px">positive 평균</th><th style="padding:4px">AUC</th></tr>
+        <tr><td style="padding:4px">heatmap peak prob</td><td style="padding:4px;text-align:center">0.2701</td><td style="padding:4px;text-align:center">0.2468</td><td style="padding:4px;text-align:center;color:#f87171">0.466</td></tr>
+        <tr><td style="padding:4px">분포 엔트로피</td><td style="padding:4px;text-align:center">3.1696</td><td style="padding:4px;text-align:center">2.8588</td><td style="padding:4px;text-align:center;color:#f87171">0.486</td></tr>
+        <tr><td style="padding:4px">peak logit</td><td style="padding:4px;text-align:center">2.5659</td><td style="padding:4px;text-align:center">3.4926</td><td style="padding:4px;text-align:center;color:#f87171">0.553</td></tr>
+        <tr><td style="padding:4px">예측 area</td><td style="padding:4px;text-align:center">0.0439</td><td style="padding:4px;text-align:center">0.0683</td><td style="padding:4px;text-align:center;color:#fbbf24">0.583</td></tr>
+      </table>
+      <strong style="color:#f87171">어느 지표도 AUC 0.6을 넘지 못한다</strong>(0.5 = 우연).
+      heatmap peak prob은 오히려 0.466으로 우연보다 못하다.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_65_6_hasbbox.png" style="max-width:880px;width:100%;border-radius:8px;border:1px solid #223" alt="has_bbox 분리 실패"></div>
+      <br>
+      <strong style="color:#e2e8f0">구조적 필연이다 — 검증으로 확인</strong>: V6 주석의
+      <strong style="color:#e2e8f0">negative가 0건</strong>인 걸 직접 확인했다. 주석이 원본
+      프레임을 <strong style="color:#e2e8f0">하나도 버리지 않고 전부 덮고 있으며</strong>
+      (225 에피소드 표본 검사, 누락 인덱스 0), 그 전부가 <code>detected=True</code>다.
+      즉 학습 과정에서 모델에게 <strong style="color:#e2e8f0">"없다고 말하라"는 압력이 한 번도
+      가해지지 않았다.</strong> 그래서 항상 어딘가를 같은 확신도로 가리킨다.
+      <br><br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:10px 12px">
+        <strong style="color:#f87171">이것은 64-15의 재현이다</strong> — 액션 헤드가
+        <code>has_bbox=False</code>를 학습한 적 없다는 문제(0/16,599)가
+        <strong style="color:#e2e8f0">검출기 층위에서 똑같이 반복</strong>됐다. 같은 데이터
+        공백이 두 층위에서 각각 발현한 셈이다. 그리고 실기 성패를 가르는 것이 바로 이
+        has_bbox(gnd%≥80 → 98.8%)이므로, <strong style="color:#f87171">이게 풀리기 전에는
+        OWL-v2를 대체할 수 없다.</strong>
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">우리 쪽에서 더 할 수 있는 게 없음을 확인한 근거</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li>V6 주석이 버린 프레임 = <strong style="color:#e2e8f0">0건</strong> → 재활용할 negative 없음</li>
+        <li>실기 176세션의 미검출 프레임은 있으나, 64-20 분석상 <strong style="color:#e2e8f0">
+          진짜 타겟 부재는 2.5%(5건)뿐</strong>이고 나머지는 "보이는데 경계에 걸린" 경우다.
+          이걸 negative로 쓰면 <strong style="color:#f87171">"보이는 것도 없다고 말하라"고
+          가르치는 꼴</strong>이라 개선 목표와 정반대가 된다</li>
+        <li>확신도 기반 우회 = 위 표로 <strong style="color:#e2e8f0">기각</strong></li>
+      </ul>
+      → <strong style="color:#fbbf24">negative 확보는 로봇이 필요한 작업이므로 soda에 이관.</strong>
+      스펙을 <code>DATASET_V6_STATUS.md</code>로 전달했다(2026-08-02).
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#fbbf24">
     <div class="finding-title" style="color:#fbbf24">65-4. 남은 것 — 검정력 한계를 알고 시작하기</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
