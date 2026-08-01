@@ -15085,11 +15085,16 @@ graph TD
 - 중앙 20/20(100%), 약우 19/20(95%), 강우 18/20(90%), 강좌 16/20(80%), 약좌 16/20(80%)
 - 직전 baseline은 동일 위치에서 20~30% 수준이었습니다.
 
-<strong style="color:#e2e8f0">2. 핵심 발견: 성패를 가르는 것은 주행 정책이 아니라 "객체 검출"입니다</strong>
+<strong style="color:#e2e8f0">2. 핵심 발견: 객체 검출이 성패를 크게 좌우하되, 유일한 원인은 아닙니다</strong>
 - 세션 내 객체 검출 성공률(gnd%)이 80% 이상이면 → 79/80 = <strong style="color:#4ade80">98.8% 주행 성공</strong>
 - 80% 미만이면 → 41/80 = 51.2%
-- 즉 로봇이 바구니를 계속 보고만 있으면 거의 반드시 도달하고, 실패는 전부 "보지 못한" 경우입니다.
-- 총 159개 세션에서 검증했고, 검출이 잘 된 세션의 실패는 단 1건이었습니다.
+- 즉 <strong style="color:#e2e8f0">검출이 잘 되면 거의 반드시 도달합니다(충분조건)</strong>.
+  총 159개 세션에서 검증했고 검출이 잘 된 세션의 실패는 단 1건이었습니다.
+- <strong style="color:#e2e8f0">다만 그 역은 성립하지 않습니다(필요조건 아님)</strong> —
+  한 배치(우측 극단)는 검출 성공률이 49%로 최악인데도 주행 성공률이 90%였습니다.
+  경로가 짧아 직진 위주 동작만으로도 접근이 가능했기 때문입니다.
+  <strong style="color:#e2e8f0">즉 "검출 난이도"와 "주행 난이도"는 별개의 축</strong>이며,
+  개선 대상을 고를 때 이 구분이 실질적으로 중요합니다.
 
 <strong style="color:#e2e8f0">3. 따라서 경량화 방향을 다음과 같이 좁혔습니다</strong>
 - 행동 결정 모듈(MLP 헤드)은 이미 충분하고 계산량도 매우 작습니다 → 더 키울 이유가 없습니다.
@@ -16053,9 +16058,14 @@ graph TD
         <li><strong style="color:#e2e8f0">최우선 개선 대상 = 원거리 소형 객체</strong>
           (area 0.05~0.09 구간, score 중앙 0.32 — threshold 0.20에서 간신히 통과).
           이 구간을 0.5 이상으로 올리는 것이 목표.</li>
-        <li><strong style="color:#e2e8f0">학습 데이터는 강우·약좌 배치의 세션 초반 프레임에
-          가중</strong> — 이미 회수한 176세션 원본에서 바로 추출 가능하며,
-          백필 score가 있어 <strong style="color:#e2e8f0">"어려운 프레임"을 자동 선별</strong>할 수 있다.</li>
+        <li><strong style="color:#f87171">⚠️ 정정(soda 지적, 2026-08-01)</strong> — 처음엔 "강우·약좌
+          초반 프레임에 가중"이라고 썼으나, <strong style="color:#e2e8f0">이 카드가 발견한 2축
+          분해와 스스로 모순된다</strong>. confidence 단독으로 뽑으면 강우가 표본의
+          <strong style="color:#e2e8f0">50.7%</strong>를 차지하는데 강우의 실패 기여는
+          <strong style="color:#e2e8f0">18.2%</strong>뿐이다(검출 어려움/주행 쉬움).
+          실패의 <strong style="color:#e2e8f0">72.8%는 강좌+약좌</strong>인데 confidence 가중으로는
+          37.2%만 받는다. → 샘플링 기준은
+          <strong style="color:#4ade80">confidence × 위치별 실패 기여도</strong>여야 한다.</li>
         <li><strong style="color:#e2e8f0">평가 지표는 "score ≥ 0.5 비율"이 아니라 "threshold 0.20에서의
           검출률"</strong> — 실기와 직결되는 것은 후자다. 대조군은 현재 OWL-v2 fp32.</li>
         <li>대상이 회색 바구니 단일 클래스로 고정이라 범용 open-vocabulary 능력은 불필요 —
@@ -16096,6 +16106,150 @@ graph TD
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH64 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH65 ═ -->
+<div class="chapter" id="ch65">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">CH 65</span>
+    <h2 class="chapter-title">인지-정책 병목의 2축 분해 — "검출이 전부"에서 "검출 난이도 ≠ 주행 난이도"로</h2>
+    <p class="chapter-subtitle">CH64가 도달한 "병목은 검출"이라는 결론을 minum·soda가 <strong style="color:#e2e8f0">각자 독립적으로 반증</strong>했다(2026-08-01). 검출 신뢰도가 최악인 배치가 오히려 주행은 잘한다 — 즉 검출은 <strong style="color:#e2e8f0">충분조건이지 필요조건이 아니다</strong>. 이 구분이 소형 검출기의 학습 데이터 샘플링을 어디에 쏟을지를 실제로 바꾼다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟣 <strong>3줄 요약</strong><br>
+    ① <strong>충분조건은 성립</strong> — gnd%≥80이면 실기 성공 79/80(98.8%), soda 집계로는 68/68(100%).<br>
+    ② <strong>필요조건은 불성립</strong> — 강우는 검출 confidence 중앙 0.180(최악)·gnd% 49~54%인데 성공률 90%.<br>
+    ③ <strong>그래서 샘플링 기준이 바뀐다</strong> — confidence 단독으로 뽑으면 강우가 표본의 50.7%를 먹는데 실패 기여는 18.2%뿐이다.
+  </div>
+
+  <div class="finding-card" style="border-color:#a78bfa">
+    <div class="finding-title" style="color:#a78bfa">65-1. 두 축이 어긋난다 — 독립 재발견</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      minum(CH64 64-21)과 soda가 <strong style="color:#e2e8f0">서로 모르는 상태에서 같은 반례에
+      도달</strong>했다. 표본 정의가 조금 달라 수치는 미세하게 다르지만 결론은 동일하다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">위치</th><th style="padding:4px">confidence 중앙</th><th style="padding:4px">0.20 미만</th><th style="padding:4px">gnd%</th><th style="padding:4px">실기 성공률</th></tr>
+        <tr><td style="padding:4px">중앙</td><td style="padding:4px;text-align:center">0.411</td><td style="padding:4px;text-align:center">3.0%</td><td style="padding:4px;text-align:center">98.8%</td><td style="padding:4px;text-align:center;color:#4ade80">100%</td></tr>
+        <tr><td style="padding:4px">강좌</td><td style="padding:4px;text-align:center">0.333</td><td style="padding:4px;text-align:center">17.9%</td><td style="padding:4px;text-align:center">87.8%</td><td style="padding:4px;text-align:center;color:#f87171">80%</td></tr>
+        <tr><td style="padding:4px">약우</td><td style="padding:4px;text-align:center">0.297</td><td style="padding:4px;text-align:center">12.7%</td><td style="padding:4px;text-align:center">86.8%</td><td style="padding:4px;text-align:center">95%</td></tr>
+        <tr><td style="padding:4px">약좌</td><td style="padding:4px;text-align:center">0.327</td><td style="padding:4px;text-align:center">19.9%</td><td style="padding:4px;text-align:center">83.8%</td><td style="padding:4px;text-align:center;color:#f87171">80%</td></tr>
+        <tr style="background:rgba(213,94,0,0.14)"><td style="padding:4px"><strong>강우</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>0.180</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>57.7%</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>49.1%</strong></td><td style="padding:4px;text-align:center;color:#fbbf24"><strong>90%</strong></td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">두 축의 순위가 어긋난다</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li>검출 난이도: <strong style="color:#e2e8f0">강우 ≫ 약좌 &gt; 강좌 &gt; 약우 &gt; 중앙</strong></li>
+        <li>주행 난이도: <strong style="color:#e2e8f0">강좌 = 약좌 &gt; 강우 &gt; 약우 &gt; 중앙</strong></li>
+      </ul>
+      <br>
+      <strong style="color:#e2e8f0">메커니즘</strong>: 강우는 검출되는 순간의 area가 0.192로 가장 크고
+      (이미 가까워진 뒤에야 잡힌다) 평균 스텝이 10.2로 가장 짧다(나머지 14.5). 첫 프레임 검출률은
+      20%(나머지 84~100%)다. 즉 <strong style="color:#e2e8f0">초반엔 못 보지만 경로가 짧아 FORWARD
+      편중 prior(71~74%)로 접근한 뒤, 가까워져 검출이 붙으면 후반에 보정</strong>된다.
+      <strong style="color:#e2e8f0">배치 기하학이 관대하면 정책 prior가 인식 실패를 가려준다.</strong>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_21_detector_spec.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="2축 분해"></div>
+      <br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:10px 12px">
+        <strong style="color:#f87171">🚫 이로써 철회되는 표현</strong> —
+        "그라운딩이 <strong style="color:#e2e8f0">유일한</strong> 병목", "실패는 <strong
+        style="color:#e2e8f0">전부</strong> 보지 못한 경우"는 과한 서술이다. 정확히는
+        <strong style="color:#e2e8f0">"검출이 잘 되면 거의 반드시 성공한다(충분조건)"</strong>까지만
+        주장할 수 있다. CH64 64-18 ①과 교수님 보고 요약 카드를 이 표현으로 수정했다.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">65-2. 실용적 귀결 — 검출기 학습 샘플링 기준이 바뀐다 (soda 지적)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      minum이 64-21에서 2축 분해를 발견해놓고, <strong style="color:#f87171">같은 카드에서
+      "강우·약좌 초반 프레임에 가중"이라고 써서 자기 발견과 모순</strong>됐다. soda가 이를 지적했고
+      실측으로 확인했다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">위치</th><th style="padding:4px">실패 기여도</th><th style="padding:4px">저confidence 프레임</th><th style="padding:4px">confidence 단독 가중</th><th style="padding:4px">배분 오차</th></tr>
+        <tr style="background:rgba(213,94,0,0.12)"><td style="padding:4px"><strong>강우</strong></td><td style="padding:4px;text-align:center">18.2% (2/11)</td><td style="padding:4px;text-align:center">71개</td><td style="padding:4px;text-align:center;color:#f87171"><strong>50.7%</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>2.8배 과대</strong></td></tr>
+        <tr><td style="padding:4px">강좌</td><td style="padding:4px;text-align:center">36.4% (4/11)</td><td style="padding:4px;text-align:center">25개</td><td style="padding:4px;text-align:center">17.9%</td><td style="padding:4px;text-align:center;color:#fbbf24">2.0배 과소</td></tr>
+        <tr><td style="padding:4px">약좌</td><td style="padding:4px;text-align:center">36.4% (4/11)</td><td style="padding:4px;text-align:center">27개</td><td style="padding:4px;text-align:center">19.3%</td><td style="padding:4px;text-align:center;color:#fbbf24">1.9배 과소</td></tr>
+        <tr><td style="padding:4px">약우</td><td style="padding:4px;text-align:center">9.1%</td><td style="padding:4px;text-align:center">15개</td><td style="padding:4px;text-align:center">10.7%</td><td style="padding:4px;text-align:center">적정</td></tr>
+        <tr><td style="padding:4px">중앙</td><td style="padding:4px;text-align:center">0.0%</td><td style="padding:4px;text-align:center">2개</td><td style="padding:4px;text-align:center">1.4%</td><td style="padding:4px;text-align:center">—</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">강좌+약좌가 실패의 72.8%인데 confidence 가중으로는 37.2%만
+      받는다.</strong> 검출기를 강우에 맞춰 개선하면 <strong style="color:#e2e8f0">검출 지표는
+      크게 오르지만 주행 성공률은 거의 안 오를</strong> 수 있다 — 64-16의 fp16과 같은 종류의
+      잘못된 최적화다.
+      <br><br>
+      <strong style="color:#4ade80">→ 채택한 샘플링 기준: <code>confidence 낮음</code> ×
+      <code>위치별 실패 기여도</code></strong> (실무적으로 강좌·약좌 2배 가중, 강우 0.35배).
+      계획서 <code>docs/plans/plan_20260801_specialized_detector.md</code> 3절에 반영했다.
+      <br><br>
+      <strong style="color:#e2e8f0">A/B 위치를 약좌로 고르는 것도 같은 이유</strong> — 강우로
+      A/B를 하면 그라운딩이 나빠도 성공해버려서 개선 효과가 측정되지 않는다(soda 제안).
+    </div>
+  </div>
+
+  <div class="finding-card">
+    <div class="finding-title">65-3. 계측 인프라 — 이제 실기 재수집 없이 분석할 수 있는 것들 (soda 구축)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">기능</th><th>내용</th></tr>
+        <tr><td style="padding:4px"><code>grounding/score</code></td><td style="padding:4px"><strong style="color:#e2e8f0">신규 수집분부터 H5 자동 저장</strong> — 미검출 프레임도 score가 남는다</td></tr>
+        <tr><td style="padding:4px">백필 사이드카</td><td style="padding:4px">기존 176세션 1084프레임 소급 확보. 원본 H5 미수정(사료 보존)</td></tr>
+        <tr><td style="padding:4px"><code>GET /grounding/scores</code></td><td style="padding:4px">세션별 score+has_bbox+cached 일괄 조회(위치/성패 조인)</td></tr>
+        <tr><td style="padding:4px">grounding 탭</td><td style="padding:4px">threshold 슬라이더 <strong style="color:#e2e8f0">오프라인 재판정</strong> — 실기 재수집 없이 threshold-성능 곡선</td></tr>
+        <tr><td style="padding:4px"><code>GET /sessions/trajectory</code></td><td style="padding:4px">action 적분 궤적, 미검출 구간 색분리</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">백필 신뢰도 검증</strong>: 백필 score 기반 예측 검출률 vs 실측
+      has_bbox율이 위치별 <strong style="color:#e2e8f0">±11%p 내 일치</strong>(중앙 0.0%p).
+      잔차는 area/cy 필터(tiny/top/full-frame)가 score 통과분을 추가로 거르기 때문 →
+      <strong style="color:#4ade80">백필값을 실측 대용으로 사용 가능</strong>.
+      <br><br>
+      <strong style="color:#e2e8f0">threshold 스윕(100세트 실호출 575프레임, 오프라인 재판정)</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">threshold</th><th class="c" style="padding:4px">검출률</th></tr>
+        <tr><td style="padding:4px">0.10</td><td style="padding:4px;text-align:center">93.9%</td></tr>
+        <tr><td style="padding:4px">0.15</td><td style="padding:4px;text-align:center">84.3%</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>0.20 (현재)</strong></td><td style="padding:4px;text-align:center"><strong>75.3%</strong></td></tr>
+        <tr><td style="padding:4px">0.25 (구값)</td><td style="padding:4px;text-align:center">65.4%</td></tr>
+        <tr><td style="padding:4px">0.30</td><td style="padding:4px;text-align:center">48.7%</td></tr>
+      </table>
+      중앙값 0.296. <strong style="color:#e2e8f0">0.20~0.25 밴드 57프레임(9.9%)</strong>이
+      threshold 하향으로 살아난 구간이다.
+      <br><br>
+      <strong style="color:#fbbf24">궤적 효율이 성패를 구분한다</strong> — 순변위/경로길이 중앙값이
+      <strong style="color:#4ade80">성공 0.930</strong> vs <strong style="color:#f87171">실패 0.761</strong>.
+      논문 Figure 후보(성공/실패 궤적 대비).
+      <strong style="color:#f87171">단 회전각이 미측정</strong>이라 절대거리 주장에는 쓸 수 없고
+      모양/효율 비교 전용이다. 목표 위치 GT가 없어 진짜 FPE 자동계산은 원리적으로 불가하며,
+      현재 FPE는 눈대중값이다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">65-4. 남은 것 — 검정력 한계를 알고 시작하기</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">동일 위치 A/B (약좌 고정, 번갈아 20+20)</strong> — CH64 64-19가
+      "요인 순위 단정 불가"로 남긴 것을 푸는 유일한 방법. 단
+      <strong style="color:#f87171">n=20이면 25%p 이상 차이부터 유의</strong>하므로, 그보다 작은
+      효과는 이 규모로 검출되지 않는다(soda 검정력 분석).
+      <br><br>
+      <strong style="color:#e2e8f0">좌우 비대칭</strong> — 좌 32/40 vs 우 37/40,
+      <strong style="color:#f87171">Fisher p=0.193으로 유의하지 않다</strong>. 표본 추가 전까지
+      "경향성" 이상으로 서술하지 않는다(soda 정정 요청, CH64 64-18에 이미 반영됨).
+      <br><br>
+      <strong style="color:#e2e8f0">소형 검출기</strong> —
+      <code>docs/plans/plan_20260801_specialized_detector.md</code> 검토 대기.
+      핵심 프레이밍은 "새 학습"이 아니라 <strong style="color:#e2e8f0">"느리고 정확한 오프라인
+      주석 파이프라인의 증류"</strong>이며, 중단 기준(area 0.05~0.09 구간에서 OWL 미달 시 중단)과
+      평가 프로토콜을 착수 전에 고정해뒀다.
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH65 ═ -->
+
 
 <hr class="chapter-divider">
 
