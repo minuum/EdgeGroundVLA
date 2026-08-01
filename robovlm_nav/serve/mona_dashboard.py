@@ -2671,6 +2671,34 @@ def calib_rec_save(name: Optional[str] = None):
 
 
 # ─── 누적 드리프트 시뮬레이션 ──────────────────────────────────────────
+@app.get("/drive/drift/sessions")
+def drift_sessions_list():
+    """T1-2(축소): logs/drift_sessions/*.jsonl은 6/23 이후 기록만 있고
+    **읽어들이는 엔드포인트도 UI도 없어서** 과거 드리프트 세션을 다시 볼
+    방법이 전혀 없었다(차트는 in-memory 최근 30행만 표시). 목록 + 재생용 조회 추가."""
+    d = ROOT / "logs" / "drift_sessions"
+    out = []
+    if d.exists():
+        for p in sorted(d.glob("drift_*.jsonl"), reverse=True):
+            rows = []
+            try:
+                for line in p.read_text().splitlines():
+                    if line.strip():
+                        rows.append(json.loads(line))
+            except Exception:
+                continue
+            if not rows:
+                continue
+            out.append({
+                "name": p.stem,
+                "n": len(rows),
+                "mtime": datetime.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+                "history": [[r.get("step"), r.get("latency_ms"),
+                             r.get("real_cum_s"), r.get("nominal_cum_s")] for r in rows],
+            })
+    return {"ok": True, "sessions": out}
+
+
 @app.get("/drive/drift/run")
 def drive_drift_run(basis: str):
     """현재 카메라 1프레임을 추론하여 가정시간 기준 대비 드리프트 누적 측정"""
@@ -5011,7 +5039,17 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <canvas id="drift-chart"></canvas>
             </div>
             
-            <div style="display:flex; gap:12px; margin-top:20px;">
+            <!-- T1-2(축소): 과거 drift 세션은 jsonl로 저장만 되고 다시 볼 방법이
+                 없었음(차트는 in-memory 최근 30행만). 불러오기 추가. -->
+            <div style="display:flex; gap:6px; align-items:center; margin-top:12px;">
+              <span style="font-size:10px; color:var(--text-muted); white-space:nowrap;">📂 지난 세션</span>
+              <select id="drift-past" onchange="loadPastDrift(this.value)" style="flex:1; padding:3px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                <option value="">불러오기...</option>
+              </select>
+              <button class="btn btn-outline" onclick="refreshPastDrift()" style="font-size:10px; padding:3px 8px;">🔄</button>
+            </div>
+
+            <div style="display:flex; gap:12px; margin-top:12px;">
               <button class="btn btn-cyan" onclick="runDriftMeasure()">▶ 단발 측정</button>
               <button class="btn btn-outline" id="drift-auto-btn" onclick="toggleDriftAuto()">🔄 자동 (1fps)</button>
               <button class="btn btn-rose" onclick="resetDrift()">🗑 세션 초기화</button>
@@ -7073,6 +7111,7 @@ L S R  C S L  R S L
       }
       if (tab === "latency") {
         initDriftChart();
+        refreshPastDrift();
       }
       if (tab === "verify") {
         syncVerifyRuntimeParams();
@@ -8375,6 +8414,30 @@ L S R  C S L  R S L
       document.getElementById("drift-val-display").textContent = "drift: 0.00s";
       document.getElementById("drift-val-display").className = "text-emerald";
       initDriftChart();
+    }
+
+    // T1-2(축소): 과거 drift 세션 불러오기
+    async function refreshPastDrift() {
+      const sel = document.getElementById("drift-past");
+      if (!sel) return;
+      try {
+        const res = await api("/drive/drift/sessions");
+        if (!res.ok) return;
+        window._pastDrift = res.sessions || [];
+        sel.innerHTML = '<option value="">불러오기...</option>' +
+          window._pastDrift.map((s, i) =>
+            `<option value="${i}">${s.mtime} · ${s.n}행</option>`).join("");
+      } catch (e) { /* 무시 */ }
+    }
+
+    function loadPastDrift(idx) {
+      if (idx === "") return;
+      const s = (window._pastDrift || [])[parseInt(idx)];
+      if (!s) return;
+      if (!driftChartInstance) initDriftChart();
+      updateDriftChart(s.history);
+      const el = document.getElementById("drift-log-console");
+      if (el) el.textContent = `📂 ${s.name} 불러옴 (${s.n}행) — 과거 기록이라 새 측정 시 덮어씌워집니다.`;
     }
 
     function initDriftChart() {
