@@ -16286,6 +16286,58 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">🚧 65-6. has_bbox는 공짜로 얻을 수 없다 — negative 부재가 구조적 병목 (2026-08-02)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      65-5에서 위치 추정은 0.12ms에 해결됐지만 <strong style="color:#e2e8f0">"타겟이 없다"를
+      말하지 못한다</strong>는 한계가 남았다. 그래서 <strong style="color:#e2e8f0">negative 데이터
+      없이도 heatmap의 확신도로 has_bbox를 얻을 수 있는지</strong>를 먼저 검증했다 — 되면 로봇
+      없이 끝나기 때문이다.
+      <br><br>
+      실기 176세션에서 <strong style="color:#e2e8f0">negative 155건</strong>(젯슨·로컬 양쪽
+      미검출, 64-20 데이터) vs <strong style="color:#e2e8f0">positive 200건</strong>(젯슨 검출)에
+      학습된 헤드를 돌려 네 가지 확신도 지표를 비교했다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">확신도 지표</th><th style="padding:4px">negative 평균</th><th style="padding:4px">positive 평균</th><th style="padding:4px">AUC</th></tr>
+        <tr><td style="padding:4px">heatmap peak prob</td><td style="padding:4px;text-align:center">0.2701</td><td style="padding:4px;text-align:center">0.2468</td><td style="padding:4px;text-align:center;color:#f87171">0.466</td></tr>
+        <tr><td style="padding:4px">분포 엔트로피</td><td style="padding:4px;text-align:center">3.1696</td><td style="padding:4px;text-align:center">2.8588</td><td style="padding:4px;text-align:center;color:#f87171">0.486</td></tr>
+        <tr><td style="padding:4px">peak logit</td><td style="padding:4px;text-align:center">2.5659</td><td style="padding:4px;text-align:center">3.4926</td><td style="padding:4px;text-align:center;color:#f87171">0.553</td></tr>
+        <tr><td style="padding:4px">예측 area</td><td style="padding:4px;text-align:center">0.0439</td><td style="padding:4px;text-align:center">0.0683</td><td style="padding:4px;text-align:center;color:#fbbf24">0.583</td></tr>
+      </table>
+      <strong style="color:#f87171">어느 지표도 AUC 0.6을 넘지 못한다</strong>(0.5 = 우연).
+      heatmap peak prob은 오히려 0.466으로 우연보다 못하다.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_65_6_hasbbox.png" style="max-width:880px;width:100%;border-radius:8px;border:1px solid #223" alt="has_bbox 분리 실패"></div>
+      <br>
+      <strong style="color:#e2e8f0">구조적 필연이다 — 검증으로 확인</strong>: V6 주석의
+      <strong style="color:#e2e8f0">negative가 0건</strong>인 걸 직접 확인했다. 주석이 원본
+      프레임을 <strong style="color:#e2e8f0">하나도 버리지 않고 전부 덮고 있으며</strong>
+      (225 에피소드 표본 검사, 누락 인덱스 0), 그 전부가 <code>detected=True</code>다.
+      즉 학습 과정에서 모델에게 <strong style="color:#e2e8f0">"없다고 말하라"는 압력이 한 번도
+      가해지지 않았다.</strong> 그래서 항상 어딘가를 같은 확신도로 가리킨다.
+      <br><br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:10px 12px">
+        <strong style="color:#f87171">이것은 64-15의 재현이다</strong> — 액션 헤드가
+        <code>has_bbox=False</code>를 학습한 적 없다는 문제(0/16,599)가
+        <strong style="color:#e2e8f0">검출기 층위에서 똑같이 반복</strong>됐다. 같은 데이터
+        공백이 두 층위에서 각각 발현한 셈이다. 그리고 실기 성패를 가르는 것이 바로 이
+        has_bbox(gnd%≥80 → 98.8%)이므로, <strong style="color:#f87171">이게 풀리기 전에는
+        OWL-v2를 대체할 수 없다.</strong>
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">우리 쪽에서 더 할 수 있는 게 없음을 확인한 근거</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li>V6 주석이 버린 프레임 = <strong style="color:#e2e8f0">0건</strong> → 재활용할 negative 없음</li>
+        <li>실기 176세션의 미검출 프레임은 있으나, 64-20 분석상 <strong style="color:#e2e8f0">
+          진짜 타겟 부재는 2.5%(5건)뿐</strong>이고 나머지는 "보이는데 경계에 걸린" 경우다.
+          이걸 negative로 쓰면 <strong style="color:#f87171">"보이는 것도 없다고 말하라"고
+          가르치는 꼴</strong>이라 개선 목표와 정반대가 된다</li>
+        <li>확신도 기반 우회 = 위 표로 <strong style="color:#e2e8f0">기각</strong></li>
+      </ul>
+      → <strong style="color:#fbbf24">negative 확보는 로봇이 필요한 작업이므로 soda에 이관.</strong>
+      스펙을 <code>DATASET_V6_STATUS.md</code>로 전달했다(2026-08-02).
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#fbbf24">
     <div class="finding-title" style="color:#fbbf24">65-4. 남은 것 — 검정력 한계를 알고 시작하기</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
