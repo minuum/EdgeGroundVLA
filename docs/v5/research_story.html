@@ -16460,6 +16460,86 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#E69F00">
+    <div class="finding-title" style="color:#fbbf24">🔬 65-7. 그라운더 좌우 비대칭 검정 — 편향은 실재하나 실기 좌측 약세의 원인이 아니다 (2026-08-04)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      교수님 질문: <em>"학습 데이터 좌/우 에피소드 수가 불균형은 아닐 것 같고, 그렇다면
+      OWL-v2/Kosmos-2 grounding feature 자체가 이미지 좌/우에 비대칭적으로 학습되어 있을
+      가능성은 있을까? 증명하기 힘들 것 같은데…"</em>
+      <br><br>
+      <strong style="color:#4ade80">증명 가능합니다 — 좌우 반전(horizontal flip) paired test</strong>로 됩니다.
+      모델이 대칭이면 이미지를 좌우 반전했을 때 <strong style="color:#e2e8f0">검출 여부가 같고,
+      confidence가 같고, cx_flip = 1 − cx_orig</strong>여야 합니다.
+      <strong style="color:#e2e8f0">같은 물체·같은 장면에서 위치만 좌↔우로 바뀐 쌍</strong>을
+      비교하므로 내용(content) 교란이 제거됩니다 — 편차가 남으면 그것이 모델의 비대칭입니다.
+      <br><br>
+      <strong style="color:#e2e8f0">① 먼저 데이터 균형 확인 — 불균형 아님</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">V6</th><th style="padding:4px">좌 계열</th><th style="padding:4px">우 계열</th></tr>
+        <tr><td style="padding:4px">에피소드</td><td style="padding:4px;text-align:center">90 (강좌 45 + 약좌 45)</td><td style="padding:4px;text-align:center">90 (강우 45 + 약우 45)</td></tr>
+        <tr><td style="padding:4px">프레임</td><td style="padding:4px;text-align:center">6,910 (평균 76.8)</td><td style="padding:4px;text-align:center">6,870 (평균 76.3)</td></tr>
+        <tr><td style="padding:4px">라벨 cx 평균</td><td style="padding:4px;text-align:center" colspan="2"><strong style="color:#4ade80">0.4976</strong> (0.5면 완전 대칭)</td></tr>
+      </table>
+      <div style="font-size:0.8rem;color:#64748b;margin-top:4px">
+        ※ 단 <strong style="color:#94a3b8">실행된 액션 클래스 빈도</strong>에는 비대칭이 있습니다
+        (좌계열 3,384 vs 우계열 4,122, 약 22%) — 조종자가 같은 목표에서 실제로 어떤 조향을 썼는지의
+        차이이며, <strong style="color:#e2e8f0">에피소드 수 불균형과는 다른 층위</strong>입니다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">② 검정 결과 (V6 300프레임, 좌/우 150장씩, OWL-v2 fp32 · 서버 동일 조건)</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">측정</th><th style="padding:4px">결과</th><th style="padding:4px">해석</th></tr>
+        <tr><td style="padding:4px">검출 판정 불일치</td><td style="padding:4px;text-align:center">21/300 (7.0%)</td><td style="padding:4px">원본만 10 / 반전만 11 — <strong style="color:#4ade80">방향성 없음</strong></td></tr>
+        <tr><td style="padding:4px">좌측 물체 → 우측 이동</td><td style="padding:4px;text-align:center;color:#f87171">Δ −0.0104</td><td style="padding:4px">점수 하락 (p=0.074)</td></tr>
+        <tr><td style="padding:4px">우측 물체 → 좌측 이동</td><td style="padding:4px;text-align:center;color:#4ade80">Δ +0.0132</td><td style="padding:4px">점수 상승 (p=0.026)</td></tr>
+        <tr style="background:rgba(230,159,0,0.13)"><td style="padding:4px"><strong>좌측 이점 추정</strong></td><td style="padding:4px;text-align:center;color:#fbbf24"><strong>+0.0118</strong></td><td style="padding:4px">95%CI +0.0033~+0.0203, <strong style="color:#e2e8f0">p=0.0072</strong></td></tr>
+        <tr><td style="padding:4px">독립 확인(절대 score)</td><td style="padding:4px;text-align:center">좌 0.5045 / 우 0.4907</td><td style="padding:4px">차 +0.0138 — paired 추정과 일치</td></tr>
+        <tr><td style="padding:4px">위치 미러링 오차</td><td style="padding:4px;text-align:center;color:#4ade80">0.0033</td><td style="padding:4px"><strong style="color:#e2e8f0">좌표 자체는 대칭</strong> (p90 0.0051)</td></tr>
+      </table>
+      <br>
+      <strong style="color:#fbbf24">즉 비대칭은 실재합니다</strong> — OWL-v2는 좌측을 약
+      <strong style="color:#e2e8f0">0.012 더 높게</strong> 봅니다. threshold(0.20)의 5.9%,
+      64-17 knife-edge 밴드(0.10 폭)의 11.8%에 해당하는 크기로, 작지만 통계적으로 유의합니다.
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_65_7_lr_symmetry.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="좌우 대칭성 검정"></div>
+      <br>
+      <div style="background:rgba(213,94,0,0.12);border-left:3px solid #D55E00;padding:11px 14px">
+        <strong style="color:#fbbf24">🔑 결정적인 것은 부호입니다 — 방향이 반대</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+          <tr><td style="padding:4px">검출기 편향</td><td style="padding:4px">좌측 <strong style="color:#4ade80">+0.0118 유리</strong></td></tr>
+          <tr><td style="padding:4px">실기 성공률</td><td style="padding:4px">좌 80.0% vs 우 92.5% → 좌측 <strong style="color:#f87171">12.5%p 불리</strong></td></tr>
+        </table>
+        검출기는 좌측을 <strong style="color:#e2e8f0">오히려 선호</strong>하는데 실기는 좌측이 약합니다.
+        설명이 성립하려면 검출기가 좌측을 <strong style="color:#e2e8f0">불리하게</strong> 봐야 하는데
+        측정은 그 반대입니다. → <strong style="color:#f87171">그라운더 비대칭으로는 실기 좌측 약세를
+        설명할 수 없습니다.</strong>
+        <br><br>
+        같은 결론이 <a href="#ch65" style="color:#a78bfa">65-1</a>에서도 나왔습니다 — 강우는 검출이
+        최악(gnd% 49%)인데 성공률 90%. <strong style="color:#e2e8f0">검출 난이도와 주행 난이도가
+        별개 축</strong>이라는 2축 분해와 정합합니다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">남은 후보 3개</strong> — 좌측 약세의 원인은 아직 미규명이며,
+      아래 순서로 좁힐 수 있습니다(65-8 진행 중).
+      <ol style="margin:6px 0 0 18px;padding:0">
+        <li><strong style="color:#e2e8f0">비전 피처 경로</strong> — Kosmos-2 patch 피처도 같은 flip
+          테스트로 검정 가능(로봇 불필요)</li>
+        <li><strong style="color:#e2e8f0">액션 헤드 자체</strong> — 입력을 미러링하고 L/R 클래스를
+          맞바꿔 예측이 대칭인지 검정(로봇 불필요, 가장 결정적)</li>
+        <li><strong style="color:#e2e8f0">물리·기구학 비대칭</strong> — 같은 명령에 대한 실제 변위/회전량
+          좌우 비교(로봇 필요 → soda)</li>
+      </ol>
+      <br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:10px 12px">
+        <strong style="color:#fbbf24">📝 자체 정정</strong> — 초기 스크립트에 <em>"두 Δ의 합이 0이면
+        대칭"</em>이라고 적었으나 <strong style="color:#f87171">거꾸로였습니다</strong>. 대칭이면 각 Δ가
+        <strong style="color:#e2e8f0">개별적으로</strong> 0이어야 하고, 합이 0인 것은 오히려
+        <strong style="color:#e2e8f0">일관된 한쪽 선호의 신호</strong>입니다(두 Δ가 부호 반대로 나오므로).
+        판정을 "각 Δ가 0인가"로 바꾸고, 부호 정렬 후 paired t-test로 재계산했습니다.
+        스크립트: <code>scripts/test_grounder_lr_symmetry.py</code>
+      </div>
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#fbbf24">
     <div class="finding-title" style="color:#fbbf24">65-4. 남은 것 — 검정력 한계를 알고 시작하기</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
