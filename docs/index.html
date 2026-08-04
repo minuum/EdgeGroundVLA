@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="MoNaVLA: Decomposition-based VLA for mobile robot navigation. Sim 96.6% CL (Exp66 · CLIP pipeline). Real robot: PG2 grounding 51.4% valid (S6) · CL test in progress.">
+  <meta name="description" content="MoNaVLA: Open-vocabulary detection + lightweight action head for mobile robot navigation. 89% real-robot success (89/100, 5 positions x 20). Bottleneck is perception: grounding>=80% yields 98.8% success.">
   <meta name="keywords" content="MoNaVLA, Vision-Language-Action, Robotics, Navigation, CLIP, Decomposition">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MoNaVLA: Mobile Navigation VLA</title>
@@ -189,26 +189,26 @@
   <h1>MoNaVLA: <span>Mobile Navigation</span><br>Vision-Language-Action</h1>
   <!-- SYNC:hero_tagline:start -->
   <p class="hero-tagline">
-    Decomposition-based VLA for mobile robot basket navigation.<br>
-    <strong>96.6% closed-loop success</strong> (PG2 grounding · SigLIP action pipeline)<br>
-    vs E2E Kosmos-2 <strong>0%</strong> — ×9.4 pipeline gap.
+    Open-vocabulary detection + lightweight action head for mobile robot basket navigation.<br>
+    <strong>89% real-robot success</strong> (89/100 · 5 target positions × 20 trials)<br>
+    Bottleneck is perception, not policy — <strong>grounding ≥80% → 98.8% success</strong>.
   </p>
 <!-- SYNC:hero_tagline:end -->
   <div class="hero-buttons">
-    <a href="v5/research_story.html" class="btn btn-primary">
-      <i class="fas fa-book-open"></i> Research Story
+    <a href="v5/model_architecture_brief.html" class="btn btn-primary" style="background:#a78bfa;color:#0a0f1a;font-size:1.02rem;padding:12px 26px">
+      <i class="fas fa-sitemap"></i> 모델 구조 &amp; 학습 방식
     </a>
-    <a href="v5/research_story.html#ch64" class="btn btn-primary" style="background:#38bdf8;color:#0a0f1a">
+    <a href="v5/owlv2_grounder_brief.html" class="btn btn-primary" style="background:#f0abfc;color:#0a0f1a;font-size:1.02rem;padding:12px 26px">
+      <i class="fas fa-crosshairs"></i> OWL-v2 그라운더 정리
+    </a>
+    <a href="v5/research_story.html#ch64" class="btn btn-primary" style="background:#38bdf8;color:#0a0f1a;font-size:1.02rem;padding:12px 26px">
       <i class="fas fa-magnifying-glass-chart"></i> CH64 exp73 대감사
     </a>
     <a href="v5/research_story.html#ch65" class="btn btn-primary" style="background:#c4b5fd;color:#0a0f1a">
       <i class="fas fa-code-branch"></i> CH65 인지-정책 2축 분해
     </a>
-    <a href="v5/model_architecture_brief.html" class="btn btn-primary" style="background:#a78bfa;color:#0a0f1a">
-      <i class="fas fa-sitemap"></i> 모델 구조 &amp; 학습 방식
-    </a>
-    <a href="v5/owlv2_grounder_brief.html" class="btn btn-primary" style="background:#f0abfc;color:#0a0f1a">
-      <i class="fas fa-crosshairs"></i> OWL-v2 그라운더 정리
+    <a href="v5/research_story.html" class="btn btn-slate">
+      <i class="fas fa-book-open"></i> Research Story (전체)
     </a>
     <a href="v5/research_story.html#vis" class="btn btn-green">
       <i class="fas fa-images"></i> Results &amp; Evidence
@@ -245,24 +245,24 @@
 <div class="metrics-bar">
   <div class="metrics-grid">
     <div class="metric-cell">
-      <div class="metric-value" style="color:#16a34a">96.6%</div>
-      <div class="metric-label">Closed-Loop (SOTA)</div>
-      <div class="metric-note">Exp66 · PG2 grounding + SigLIP</div>
+      <div class="metric-value" style="color:#16a34a">89%</div>
+      <div class="metric-label">실기 성공률</div>
+      <div class="metric-note">89/100 · 5위치 × 20회 (2026-07-31)</div>
     </div>
     <div class="metric-cell">
-      <div class="metric-value" style="color:#dc2626">0%</div>
-      <div class="metric-label">E2E VLA Baseline</div>
-      <div class="metric-note">Exp11 · Kosmos-2 LoRA (text attn 0%)</div>
+      <div class="metric-value" style="color:#2563eb">98.8%</div>
+      <div class="metric-label">그라운딩 되면 성공</div>
+      <div class="metric-note">gnd%≥80 → 79/80 · 159세션 검증</div>
     </div>
     <div class="metric-cell">
-      <div class="metric-value" style="color:#2563eb">0.080 m</div>
-      <div class="metric-label">Best FPE (↓)</div>
-      <div class="metric-note">LSTM w=16 · MLP w=4: 0.094 m</div>
+      <div class="metric-value" style="color:#d97706">1902 ms</div>
+      <div class="metric-label">검출 지연 (병목)</div>
+      <div class="metric-note">OWL-v2 · 전체 지연의 97%</div>
     </div>
     <div class="metric-cell">
-      <div class="metric-value" style="color:#d97706">×9.4</div>
-      <div class="metric-label">Pipeline Gap</div>
-      <div class="metric-note">vs simple MLP 10.3%</div>
+      <div class="metric-value" style="color:#7c3aed">0.46B</div>
+      <div class="metric-label">실연산 파라미터</div>
+      <div class="metric-note">헤드는 0.866M · 언어 디코더 미사용</div>
     </div>
   </div>
 </div>
@@ -273,19 +273,21 @@
   <div class="section-inner">
     <h2 class="section-title">Abstract</h2>
     <p class="abstract-text">
-      MoNaVLA investigates Vision-Language-Action (VLA) models for mobile robot basket navigation.
-      End-to-end fine-tuning of Kosmos-2 with LoRA collapses to 0% closed-loop success due to a
-      structural text-attention failure in the Google-robot post-trained backbone.
-      We instead adopt a <strong>decomposition pipeline</strong>: PaliGemma2's frozen SigLIP vision encoder
-      extracts frame features (L2-normalized, 256-dim), concatenated with 8-frame bbox history (32-dim),
-      and fed to a 3-layer ActionMLP predicting 8 discrete actions.
-      PaliGemma2 also serves as the grounder: <code>detect gray basket</code> → 4-filter validated bbox → temporal N=3 goal trigger.
-      This pipeline achieves <strong>96.6% closed-loop success (FPE 0.094 m)</strong>
-      — a ×9.4 improvement over a simple MLP baseline (10.3%).
-      Ablation confirms that the L2-norm + bbox augmentation pipeline is the sole performance driver;
-      grounding source (HSV heuristic, base PG2, fine-tuned LoRA) is irrelevant once the pipeline is correct.
-      Zero-shot linear probe (96.6%) and basket masking ablation (9/9 action flip) provide causal
-      evidence that the frozen SigLIP encoder independently localizes the basket.
+      MoNaVLA는 이동로봇의 바구니 접근 주행을 다룹니다. Kosmos-2를 LoRA로 end-to-end
+      미세조정하는 방식은 <strong>text attention이 구조적으로 0%</strong>가 되어 폐루프
+      성공률 0%로 붕괴했고, 이 경로를 이탈해 <strong>분해 파이프라인</strong>으로 전환했습니다.
+      현재 구성은 <strong>OWL-v2 오픈 보캐블러리 검출기 + Kosmos-2 비전 인코더(frozen) +
+      MLP 액션 헤드</strong>이며, 프레임당 260차원(비전 256 + bbox 4)을 6프레임 묶어 8클래스
+      이산 액션을 출력합니다. 언어 디코더는 사용하지 않으므로 엄밀히는 VLA가 아니라
+      <strong>"오픈 보캐블러리 검출 + 액션 헤드"</strong>입니다.
+      실기 100회 테스트(5개 목표위치 × 20회)에서 <strong>89% 성공(89/100)</strong>을
+      달성했습니다. 핵심 발견은 <strong>병목이 정책이 아니라 인지</strong>라는 것입니다 —
+      세션 내 검출 성공률이 80% 이상이면 주행 성공률이 <strong>98.8%(79/80)</strong>인 반면
+      80% 미만이면 51.2%로 떨어집니다. 다만 그 역은 성립하지 않습니다:
+      검출률이 49%로 최악인 배치가 짧은 경로 덕에 90% 성공하기도 하므로,
+      <strong>검출 난이도와 주행 난이도는 별개의 축</strong>입니다.
+      학습되는 파라미터는 액션 헤드 0.866M뿐이고, 실연산 파라미터는 0.46B이며
+      지연의 97%(1902ms)를 검출기가 차지합니다 — 이것이 경량화의 표적입니다.
     </p>
   </div>
 </div>
@@ -298,46 +300,54 @@
       <li>
         <div class="finding-icon">✅</div>
         <div>
-          <div class="finding-title">Decomposition 96.6% CL — E2E 0% 대비 압도적 우위</div>
-          <div class="finding-sub">Exp54/66/67: PG2 grounding + SigLIP ActionMLP + L2-norm + aug → 96.6% vs Exp11 E2E 0%. 벤치마크: V5 150 ep, 30 ep val.</div>
+          <div class="finding-title">실기 100회 테스트 89% — 위치별 100/95/90/80/80%</div>
+          <div class="finding-sub">중앙 20/20 · 약우 19/20 · 강우 18/20 · 강좌 16/20 · 약좌 16/20. 직전 세대(동일 위치)는 20~30%대였다. <strong>이 100건이 이 프로젝트의 판정 기준</strong>이며 offline 지표는 사전 필터일 뿐이다. (CH64 64-18)</div>
         </div>
       </li>
       <li>
-        <div class="finding-icon">✅</div>
+        <div class="finding-icon">🔑</div>
         <div>
-          <div class="finding-title">파이프라인(L2-norm + bbox 증강)이 유일한 성능 결정 요소</div>
-          <div class="finding-sub">Simple MLP(Exp65b) 10.3% vs L2+aug(Exp66) 96.6% — 동일 cx 소스, 파이프라인만 바꿔 ×9.4배 향상. grounding 소스(cx 출처)는 무관.</div>
+          <div class="finding-title">병목은 정책이 아니라 인지 — 검출되면 98.8% 성공</div>
+          <div class="finding-sub">gnd%≥80 → 79/80(98.8%) vs &lt;80 → 41/80(51.2%), 실기 159세션. 액션 헤드(0.866M)는 이미 충분하므로 자원은 검출 단계에 투입해야 한다. (CH64 64-18)</div>
         </div>
       </li>
       <li>
-        <div class="finding-icon">✅</div>
+        <div class="finding-icon">🔀</div>
         <div>
-          <div class="finding-title">Grounding source irrelevance 확정 — LoRA 개선이 action에 기여 없음</div>
-          <div class="finding-sub">HSV(Exp54) = base PG2(Exp66) = Exp59 LoRA(Exp67) = 96.6%. grounding LoRA 연구의 action 기여 = 0 (명확한 음성 결과).</div>
+          <div class="finding-title">단 필요조건은 아니다 — 검출 난이도 ≠ 주행 난이도</div>
+          <div class="finding-sub">강우는 검출 confidence 중앙 0.180(최악)·gnd% 49%인데 성공률 90%. 경로가 짧아 직진 편중 prior가 인지 실패를 가려준다. 개선 자원은 실패의 72.8%를 차지하는 강좌·약좌에. (CH65 65-1/65-2)</div>
         </div>
       </li>
       <li>
-        <div class="finding-icon">⚠️</div>
+        <div class="finding-icon">⚡</div>
+        <div>
+          <div class="finding-title">경량화 — 언어 디코더 1.36B는 로드만 되고 호출 0회 (제거 적용 완료)</div>
+          <div class="finding-sub">비전 타워만 로드하도록 변경 → peak host RAM 10.59GB→3.20GB(−70%), 출력 bitwise 동일. RAM 4~8GB 보드의 로드 가능/불가를 가르는 차이다. (모델 구조 자료 2절)</div>
+        </div>
+      </li>
+      <li>
+        <div class="finding-icon">🎯</div>
+        <div>
+          <div class="finding-title">검출 지연이 전체의 97% — 파라미터와 속도가 역전</div>
+          <div class="finding-sub">OWL-v2는 0.155B로 Kosmos-2 비전(0.303B)의 절반인데 <strong>35배 느리다</strong>(1902ms vs 54ms). fp16은 속도 1.98배지만 검출률 10%p를 잃어 부적절 — 검출률이 곧 성공률이므로. (OWL-v2 정리)</div>
+        </div>
+      </li>
+      <li>
+        <div class="finding-icon">🚧</div>
+        <div>
+          <div class="finding-title">검출기 대체 실험 — 위치추정은 해결, has_bbox가 남았다</div>
+          <div class="finding-sub">Kosmos-2 patch 피처 위 0.279M 헤드로 cx MAE 0.0020, 추가 지연 0.12ms(검출 53.8ms, 35배↓). 그러나 학습셋 negative가 0건이라 '타겟이 없다'를 말할 수 없고, 확신도 우회도 AUC 0.47~0.58로 기각. (CH65 65-5/65-6)</div>
+        </div>
+      </li>
+      <li>
+        <div class="finding-icon">❌</div>
         <div>
           <div class="finding-title">Text attention 구조적 사망 — Google-robot backbone 기인</div>
-          <div class="finding-sub">Exp11/15 모두 text attention 0.000%. LoRA·head-only 모두 복구 불가. Pure HF Kosmos-2는 정상(22.6%). E2E 실패의 근본 원인.</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">🔬</div>
-        <div>
-          <div class="finding-title">Basket localization 이중 증명 — Zero-shot Probe 96.6% + Masking 9/9 flip</div>
-          <div class="finding-sub">Frozen SigLIP (PG2)이 학습 없이 바스켓 위치를 96.6% 분류. Basket masking → 9/9 프레임 행동 반전 (Exp66, base PG2 grounding). SigLIP 이미지 경로가 basket 픽셀을 독립적으로 인식.</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">🤖</div>
-        <div>
-          <div class="finding-title">실로봇 PG2 그라운딩 — 0% → 51.4% (S1→S6, 6세션 512프레임)</div>
-          <div class="finding-sub">카메라 decode 버그 수정 → 4종 bbox 필터 → PNG 인코딩 → temporal N=3 패치 순서로 적용. S6에서 0 노이즈 bbox, 1264ms 평균 latency. 실로봇 closed-loop CL 테스트 다음 단계.</div>
+          <div class="finding-sub">Exp17~Exp41C 전 실험에서 text attention 0.000%. head-only 학습에서도 재현되어 모델 구조 기인으로 확정. 이것이 VLA 경로를 이탈한 이유이며 경량화 논문의 동기가 된다. (CH61)</div>
         </div>
       </li>
     </ul>
+
   </div>
 </div>
 
@@ -346,55 +356,25 @@
   <div class="section-inner">
     <h2 class="section-title">Main Results</h2>
     <table class="results-table">
-      <thead>
-        <tr>
-          <th>Method</th>
-          <th>Architecture</th>
-          <th>CL ↑</th>
-          <th>FPE ↓</th>
-          <th>Note</th>
-        </tr>
-      </thead>
-      <!-- SYNC:results_table_body:start -->
-      <tbody>
-        <tr>
-          <td class="tag-model">E2E VLA (Exp11)</td>
-          <td>Kosmos-2 + LoRA</td>
-          <td class="val-bad">0.0%</td>
-          <td>1.454 m</td>
-          <td>Text attn 0%, structural failure</td>
-        </tr>
-        <tr>
-          <td class="tag-model">Decomp v1 (Exp14)</td>
-          <td>CLIP + BBox MLP</td>
-          <td class="val-mid">66.7%</td>
-          <td>0.555 m</td>
-          <td>First decomposition baseline</td>
-        </tr>
-        <tr>
-          <td class="tag-model">Simple MLP (Exp65b)</td>
-          <td>SigLIP + plain MLP</td>
-          <td class="val-bad">10.3%</td>
-          <td>—</td>
-          <td>No L2-norm, no aug → pipeline ablation</td>
-        </tr>
-        <tr class="highlight-row">
-          <td class="tag-model">Ours (Exp66) ★</td>
-          <td>PG2 grounding + SigLIP + L2-aug</td>
-          <td class="val-good">96.6%</td>
-          <td>0.094 m</td>
-          <td>SOTA · MLP w=4</td>
-        </tr>
-        <tr>
-          <td class="tag-model">Ours (Exp66 LSTM)</td>
-          <td>PG2 grounding + SigLIP + L2-aug</td>
-          <td class="val-good">96.6%</td>
-          <td>0.080 m</td>
-          <td>Best FPE · LSTM w=16</td>
-        </tr>
-      </tbody>
-<!-- SYNC:results_table_body:end -->
+      <tr><th>구분</th><th>구성</th><th>실기 성공률 ↑</th><th>검출 지연</th><th>비고</th></tr>
+      <tr><td class="tag-model">E2E VLA</td><td>Kosmos-2 + LoRA (Exp11)</td>
+          <td class="val-bad">0%</td><td>—</td><td>text attention 0% 붕괴</td></tr>
+      <tr><td class="tag-model">구 배포모델</td><td>exp71 w3 + Transformer 헤드</td>
+          <td class="val-bad">23.8% (5/21)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
+      <tr><td class="tag-model">exp73 챔피언</td><td>OWL-v2 + MLP 헤드 (hold-aware)</td>
+          <td class="val-mid">50.0% (29/58)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
+      <tr class="highlight-row"><td class="tag-model">현재 배포</td><td>동일 + threshold 0.20 + 회복가드</td>
+          <td class="val-good">89.0% (89/100)</td><td>1902 ms</td><td>5위치 × 20회 · 판정 기준</td></tr>
+      <tr><td class="tag-model">검출기 대체(실험)</td><td>Kosmos-2 patch + 0.279M 헤드</td>
+          <td>미측정</td><td class="val-good">53.8 ms (35배↓)</td>
+          <td>위치추정만 해결 · has_bbox 미해결로 대체 불가</td></tr>
     </table>
+    <p style="font-size:0.85rem;color:#64748b;margin-top:14px;line-height:1.7">
+      ⚠️ <strong>해석 주의</strong>: 구 배포모델 → exp73 챔피언 → 현재 배포는 서로 다른 위치 구성에서
+      수집돼 <strong>교란</strong>되어 있습니다. 요인 기여분(체크포인트 교체 vs threshold+회복가드)의
+      순위는 위치 가중 방식에 따라 뒤집혀 <strong>아직 확정하지 못했습니다</strong> — 동일 위치 A/B가 필요합니다.
+      좌우 성능차(좌 80% vs 우 92.5%)도 Fisher p=0.193으로 유의하지 않습니다. 상세: CH64 64-19 / CH65 65-4.
+    </p>
 
     <p style="font-size:0.8rem;color:#94a3b8;margin-top:12px">
       CL = Closed-Loop success (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). Evaluated on V5 dataset (30 ep val, 9 path types).
