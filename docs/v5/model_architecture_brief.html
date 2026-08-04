@@ -44,7 +44,23 @@ ul,ol{margin:8px 0 8px 20px;padding:0}li{margin:3px 0}
      border-radius:20px;padding:2px 10px;font-size:0.78rem;color:var(--dim);margin-right:5px}
 a{color:var(--bl)}
 @media(max-width:700px){.pipe{flex-direction:column}.arw{transform:rotate(90deg);justify-content:center}}
+.mmwrap{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:18px 14px;margin:14px 0;overflow-x:auto}
+.mermaid{display:flex;justify-content:center}
 </style>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "dark",
+    themeVariables: {
+      background: "#0b1220", primaryColor: "#111c2e", primaryTextColor: "#e2e8f0",
+      primaryBorderColor: "#334155", lineColor: "#64748b",
+      secondaryColor: "#0f2a1f", tertiaryColor: "#2a1030",
+      fontFamily: "Noto Sans KR, Malgun Gothic, sans-serif", fontSize: "13px"
+    },
+    flowchart: { curve: "basis", nodeSpacing: 34, rankSpacing: 42, useMaxWidth: true }
+  });
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -80,6 +96,78 @@ a{color:var(--bl)}
     <div class="d">260×6 → 512 → 128 → 8</div></div>
 </div>
 
+
+<h3>전체 흐름 — 다이어그램</h3>
+<p style="font-size:0.85rem;color:var(--dim);margin:0 0 4px">
+  위 블록도가 담지 못한 세 가지를 함께 표시합니다 —
+  <strong class="h">텍스트가 들어가는 위치</strong>,
+  <strong class="h">호출되지 않는 언어 디코더</strong>,
+  <strong class="h">제어 계층의 되먹임(재그라운딩)</strong>.
+</p>
+<div class="mmwrap">
+<pre class="mermaid">
+flowchart TB
+  CAM["카메라<br/>720x1280 RGB"]
+
+  subgraph PER["인지 — Perception"]
+    direction TB
+    TXT["텍스트 프롬프트<br/>'gray basket'<br/>런타임 불변 · 고정 상수"]
+    OWL["OWL-v2 검출기<br/>0.155B · 1902ms · zero-shot<br/>학습 안 함"]
+    KV["Kosmos-2 vision_model<br/>0.303B · 54ms · frozen"]
+    PRJ["image_proj<br/>Linear 1024→256 + L2norm<br/>0.262M · frozen"]
+  end
+
+  BB["bbox 4채널<br/>cx, cy, area, has_bbox"]
+  VIS["비전 피처 256채널"]
+  CAT["프레임 특징 260-dim<br/>window 6 → 1560-dim"]
+
+  subgraph POL["정책 — Policy"]
+    MLP["MLP 액션 헤드<br/>1560→512→128→8<br/>0.866M · 유일한 학습 대상"]
+  end
+
+  ACT["8클래스 액션<br/>STOP · FWD · L · R<br/>FWD+L · FWD+R · ROT_L · ROT_R"]
+
+  subgraph CTL["제어 — Serving Control"]
+    CTRL["threshold 0.20 · skip_n=3 → 판단 ~1.3Hz<br/>force_reground_on_miss<br/>회전 후 강제 재그라운딩 · 0.4s 제한<br/>stop_mode=learned + 콜드스타트 가드 3"]
+  end
+
+  LM["Kosmos-2 언어 디코더 1.361B<br/>호출 0회 · 로드도 제거함"]
+
+  CAM --> OWL
+  CAM --> KV
+  TXT --> OWL
+  OWL --> BB
+  KV --> PRJ
+  PRJ --> VIS
+  BB --> CAT
+  VIS --> CAT
+  CAT --> MLP
+  MLP --> ACT
+  ACT --> CTL
+  CTRL -. "미검출 시 강제 재그라운딩" .-> OWL
+  KV -. "미사용" .-> LM
+
+  classDef used fill:#0f2a1f,stroke:#2f7d5d,color:#dcfce7
+  classDef train fill:#123524,stroke:#4ade80,color:#dcfce7,stroke-width:2px
+  classDef slow fill:#2b1010,stroke:#b45454,color:#fee2e2
+  classDef unused fill:#1a1a1a,stroke:#4b5563,color:#9ca3af,stroke-dasharray:4 3
+  classDef text fill:#2a1030,stroke:#a78bfa,color:#ede9fe
+  classDef data fill:#111c2e,stroke:#334155,color:#cbd5e1
+  class OWL slow
+  class KV,PRJ used
+  class MLP train
+  class LM unused
+  class TXT text
+  class CAM,BB,VIS,CAT,ACT,CTRL data
+</pre>
+</div>
+<p style="font-size:0.82rem;color:var(--dim);margin-top:-4px">
+  <span class="p">보라</span> = 텍스트 입력(고정 상수) ·
+  <span class="r">빨강</span> = 지연 병목(전체의 97%) ·
+  <span class="g">초록 굵은선</span> = 유일한 학습 대상 ·
+  <span style="color:#9ca3af">회색 점선</span> = 호출되지 않는 경로.
+  텍스트 관련 상세는 <a href="#text-input">1-2절</a>.
+</p>
 <h3>프레임 특징 벡터 — 260차원</h3>
 <pre>FRAME_DIM = 4 + 256 = 260
   ├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
