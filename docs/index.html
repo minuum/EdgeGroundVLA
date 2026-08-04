@@ -111,6 +111,18 @@
     .val-bad  { color: #dc2626; font-weight: 700; }
     .val-mid  { color: #d97706; font-weight: 700; }
 
+    /* ── Pipeline diagram (light) ── */
+    .pipe { display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:4px 0 18px; }
+    .pblk { flex:1 1 148px; min-width:142px; background:#f8fafc; border:1px solid #e2e8f0;
+            border-radius:10px; padding:12px 10px; text-align:center; }
+    .pblk.train { background:#f0fdf4; border-color:#86efac; }
+    .pblk.slow  { background:#fef2f2; border-color:#fca5a5; }
+    .pblk .pt { font-weight:800; color:#0f172a; font-size:0.9rem; }
+    .pblk .pp { color:#d97706; font-size:0.78rem; margin-top:3px; font-weight:700; }
+    .pblk .pd { color:#64748b; font-size:0.74rem; margin-top:5px; line-height:1.55; }
+    .parw { display:flex; align-items:center; color:#2563eb; font-size:1.25rem; flex:0 0 auto; font-weight:800; }
+    @media (max-width:768px){ .pipe{flex-direction:column} .parw{transform:rotate(90deg);justify-content:center} }
+
     /* ── Architecture ── */
     .arch-box {
       background: #fff;
@@ -376,6 +388,15 @@
       좌우 성능차(좌 80% vs 우 92.5%)도 Fisher p=0.193으로 유의하지 않습니다. 상세: CH64 64-19 / CH65 65-4.
     </p>
 
+    <div style="margin-top:34px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
+      <strong style="color:#0f172a;font-size:0.92rem">📁 아래는 시뮬레이션(V5 offline) 이력입니다 — 위 실기 수치와 다른 척도</strong>
+      <p style="font-size:0.84rem;color:#64748b;margin:6px 0 0;line-height:1.7">
+        V5 데이터셋 재생 기반 폐루프 지표로, <strong>실기 성공률과 직접 비교할 수 없습니다</strong>.
+        이 세션에서 offline 지표가 실기를 잘못 예측한 사례가 반복 확인돼(CH64 64-11 철회, CH65 65-1),
+        현재 판정 기준은 <strong style="color:#15803d">100건 실기 테스트</strong>로 고정했습니다.
+        아래 표는 당시 구조 선택의 근거로만 남겨둡니다.
+      </p>
+    </div>
     <p style="font-size:0.8rem;color:#94a3b8;margin-top:12px">
       CL = Closed-Loop success (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). Evaluated on V5 dataset (30 ep val, 9 path types).
     </p>
@@ -400,11 +421,38 @@
   <div class="section-inner">
     <h2 class="section-title">Architecture</h2>
     <div class="arch-box">
-      <img src="v5/portfolio/architecture_diagram.svg" alt="MoNaVLA Architecture Diagram">
-      <p style="font-size:0.82rem;color:#64748b;margin-top:14px;text-align:center">
-        PaliGemma2 SigLIP (frozen) → 256-dim L2-norm → concat BBox History (32-dim) → ActionMLP → 8 discrete actions.<br>
-        Grounder: PaliGemma2 <code>detect gray basket</code> → 4-filter bbox validation → temporal N=3 goal trigger.<br>
-        Proximity STOP: area ≥ 0.25 AND |cx − 0.5| ≤ 0.35 for <strong>3 consecutive frames</strong> (GOAL_CONSEC_FRAMES=3).
+      <div class="pipe">
+        <div class="pblk"><div class="pt">카메라</div><div class="pp">720×1280 RGB</div>
+          <div class="pd">실기 저장 원본</div></div>
+        <div class="parw">→</div>
+        <div class="pblk slow"><div class="pt">OWL-v2</div><div class="pp">0.155B · 1902 ms</div>
+          <div class="pd"><code>"gray basket"</code> zero-shot<br>→ cx, cy, area, has_bbox</div></div>
+        <div class="parw">+</div>
+        <div class="pblk"><div class="pt">Kosmos-2 비전</div><div class="pp">0.303B · 54 ms</div>
+          <div class="pd"><code>vision_model</code>만 (frozen)<br>1024-dim mean pool</div></div>
+        <div class="parw">→</div>
+        <div class="pblk"><div class="pt">image_proj</div><div class="pp">0.262M · frozen</div>
+          <div class="pd">Linear 1024→256<br>+ L2 정규화</div></div>
+        <div class="parw">→</div>
+        <div class="pblk train"><div class="pt">MLP 액션 헤드</div><div class="pp">0.866M · 학습대상</div>
+          <div class="pd">1560 → 512 → 128 → 8</div></div>
+      </div>
+      <p style="font-size:0.84rem;color:#475569;margin-top:6px;line-height:1.85">
+        <strong style="color:#0f172a">프레임 특징 260-dim</strong> = bbox 4 (cx, cy, area, has_bbox; area는 bbox_scale=3.0)
+        + 비전 256 (Kosmos-2 <code>vision_model</code> 1024 → <code>image_proj</code> → L2 norm).
+        헤드 입력은 <strong style="color:#0f172a">window=6 프레임을 flatten한 1560-dim</strong>, 출력은 8클래스 로짓.<br>
+        <strong style="color:#0f172a">학습되는 것은 MLP 헤드 0.866M뿐</strong>입니다 — OWL-v2는 zero-shot,
+        Kosmos-2 비전과 <code>image_proj</code>는 frozen. 언어 디코더는 호출되지 않습니다.<br>
+        <strong style="color:#0f172a">STOP</strong>: <code>stop_mode=learned</code>(헤드의 STOP 클래스)
+        + 콜드스타트 가드 3프레임. <em>과거의 proximity 규칙(area≥0.25 &amp; |cx−0.5|≤0.35)은 현재 미사용입니다.</em><br>
+        <strong style="color:#0f172a">서빙 제어</strong>: threshold 0.20 · <code>grounding_skip_n=3</code>(→ 판단 주기 ~1.3Hz) ·
+        <code>force_reground_on_miss</code> · 회전 후 강제 재그라운딩 · 회전 0.4s 제한 · 연속회전 차단.
+        <span style="color:#b45309">학습 데이터에 <code>has_bbox=False</code>가 0건이라(0/16,599) 모델이 검출 실패 회복을
+        배운 적이 없어, 이를 제어 계층에서 대신 처리합니다.</span>
+      </p>
+      <p style="font-size:0.8rem;color:#94a3b8;margin-top:10px">
+        상세: <a href="v5/model_architecture_brief.html">모델 구조 &amp; 학습 방식</a> ·
+        <a href="v5/owlv2_grounder_brief.html">OWL-v2 그라운더 정리</a>
       </p>
     </div>
   </div>
@@ -414,6 +462,12 @@
 <div class="content-section">
   <div class="section-inner">
     <h2 class="section-title">Key Documents</h2>
+    <p style="font-size:0.86rem;color:#64748b;text-align:center;margin:-10px 0 22px;line-height:1.7">
+      최신 자료는 상단 Hero 버튼 3개(<a href="v5/model_architecture_brief.html">모델 구조</a> ·
+      <a href="v5/owlv2_grounder_brief.html">OWL-v2 정리</a> ·
+      <a href="v5/research_story.html#ch64">CH64</a>)입니다.
+      아래 카드 중 96.6% 등 시뮬레이션 수치가 적힌 것은 <strong>구 세대 자료</strong>이니 참고용으로만 보세요.
+    </p>
     <div class="link-cards">
 
       <a href="v5/research_story.html#ch33" class="link-card">
