@@ -16540,6 +16540,95 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">✅ 65-8/65-9. 좌우 비대칭의 원인 규명 — 학습 데이터 편중 → 헤드 고정 편향, 미러 증강으로 제거 확인 (2026-08-04)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      65-7에서 그라운더는 무혐의(오히려 좌측 선호로 부호 반대)로 나왔다. 다음 후보인
+      <strong style="color:#e2e8f0">액션 헤드</strong>를 같은 논리(미러 입력 대조)로 검정했고,
+      원인을 특정한 뒤 <strong style="color:#e2e8f0">제거까지 확인</strong>했다.
+      <br><br>
+      <strong style="color:#e2e8f0">65-8. 헤드에 입력과 무관한 고정 우측 선호가 있다</strong><br>
+      val 12 에피소드 876 윈도에 대해 <strong style="color:#e2e8f0">이미지를 반전해 비전 피처를
+      재추출</strong>하고 cx를 미러링, 출력에서 L/R 클래스를 맞바꿔 비교했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">입력</th><th style="padding:4px">좌계열 질량</th><th style="padding:4px">우계열 질량</th><th style="padding:4px">편향</th></tr>
+        <tr><td style="padding:4px">원본</td><td style="padding:4px;text-align:center">0.2083</td><td style="padding:4px;text-align:center">0.3102</td><td style="padding:4px;text-align:center;color:#f87171">−0.1020</td></tr>
+        <tr><td style="padding:4px">미러</td><td style="padding:4px;text-align:center">0.2737</td><td style="padding:4px;text-align:center">0.2267</td><td style="padding:4px;text-align:center;color:#fbbf24">+0.0470</td></tr>
+      </table>
+      대칭이면 미러 편향이 <strong style="color:#e2e8f0">+0.1020</strong>이어야 하는데 +0.0470에
+      그쳤다. 잔차의 절반이 <strong style="color:#f87171">입력 내용과 무관한 고정 편향
+      −0.0275(우측 선호)</strong>다.
+      <br><br>
+      클래스별로 보면 <strong style="color:#e2e8f0">대각 전진이 지배 항</strong>이다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">쌍</th><th style="padding:4px">원본 P(좌)</th><th style="padding:4px">원본 P(우)</th><th style="padding:4px">비</th></tr>
+        <tr style="background:rgba(213,94,0,0.12)"><td style="padding:4px"><strong>FWD+L / FWD+R</strong></td><td style="padding:4px;text-align:center">0.114</td><td style="padding:4px;text-align:center;color:#f87171"><strong>0.282</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>우측 2.5배</strong></td></tr>
+        <tr><td style="padding:4px">LEFT / RIGHT</td><td style="padding:4px;text-align:center">0.091</td><td style="padding:4px;text-align:center">0.016</td><td style="padding:4px;text-align:center">좌측 5.7배</td></tr>
+        <tr><td style="padding:4px">ROT_L / ROT_R</td><td style="padding:4px;text-align:center">0.003</td><td style="padding:4px;text-align:center">0.013</td><td style="padding:4px;text-align:center">우측 3.8배</td></tr>
+      </table>
+      <br>
+      <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
+        <strong style="color:#4ade80">🔑 이번엔 부호가 일치한다</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+          <tr><td style="padding:4px">그라운더(65-7)</td><td style="padding:4px">좌측 +0.0118 선호</td><td style="padding:4px;color:#f87171">❌ 실기와 반대</td></tr>
+          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>액션 헤드(65-8)</strong></td><td style="padding:4px"><strong>우측 −0.0275 선호</strong></td><td style="padding:4px;color:#4ade80"><strong>✅ 실기와 일치</strong></td></tr>
+          <tr><td style="padding:4px">실기 결과</td><td style="padding:4px" colspan="2">좌 80.0% vs 우 92.5% → 좌측 12.5%p 불리</td></tr>
+        </table>
+        헤드가 <strong style="color:#e2e8f0">좌측 행동을 덜 내니 좌측 목표에 약한 것</strong>이 설명된다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">65-9. 미러 증강으로 편향을 제거 — 원인이 데이터였음을 확정</strong><br>
+      학습 데이터가 <strong style="color:#e2e8f0">우측 21.8% 편중</strong>(좌 3,384 vs 우 4,122,
+      특히 FWD+R 3,117 vs FWD+L 2,532)이라는 것이 원인 후보였다. 전 학습 윈도에 미러 쌍을
+      추가해(이미지 반전 후 비전 피처 재추출 + cx 미러 + L/R 라벨 스왑) 분포를 완전 대칭으로 만들고
+      동일 레시피로 재학습했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">지표</th><th style="padding:4px">기존 holdaware</th><th style="padding:4px">미러 증강 (3 seed)</th></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>고정 좌/우 편향</strong></td><td style="padding:4px;text-align:center;color:#f87171">−0.0275</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+0.0068 ± 0.0014</strong></td></tr>
+        <tr><td style="padding:4px">val_acc</td><td style="padding:4px;text-align:center">75~78%</td><td style="padding:4px;text-align:center">75.12% ± 0.57% (유지)</td></tr>
+        <tr><td style="padding:4px">학습 라벨 좌/우</td><td style="padding:4px;text-align:center">3,384 / 4,122</td><td style="padding:4px;text-align:center;color:#4ade80">1,278 / 1,274 (차 4)</td></tr>
+        <tr><td style="padding:4px">미러 응답</td><td style="padding:4px;text-align:center">−0.1020 / +0.0470</td><td style="padding:4px;text-align:center;color:#4ade80">−0.0962 / +0.1137</td></tr>
+      </table>
+      <strong style="color:#4ade80">편향 75% 감소, val_acc 손실 없음.</strong> 미러 응답도 크기가 거의
+      같고 부호만 반대로 정상화됐다(대칭의 정의). 데이터 편중을 없애니 편향이 사라졌으므로
+      <strong style="color:#e2e8f0">원인은 아키텍처·최적화가 아니라 데이터였음이 확정</strong>된다.
+      체크포인트: <code>exp73_owl_trackF_v6_mlp_mirroraug_seed{0,1,2}.pt</code>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_65_8_head_bias.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="헤드 고정 편향과 미러 증강"></div>
+      <br>
+      <strong style="color:#e2e8f0">인과 사슬 (부호까지 일관)</strong>
+      <div style="background:#0b1220;border:1px solid #223;border-radius:8px;padding:12px 14px;margin-top:6px;font-size:0.82rem;line-height:1.9;color:#cbd5e1">
+        조종자 습관 → <strong style="color:#e2e8f0">학습 액션 우측 21.8% 편중</strong>
+        → <strong style="color:#e2e8f0">헤드 고정 우측 선호 −0.0275</strong>
+        → 좌측 행동을 덜 냄 → <strong style="color:#f87171">실기 좌측 약세 −12.5%p</strong>
+        <br><span style="color:#4ade80">↑ 미러 증강으로 데이터 대칭화 → 편향 +0.0068로 제거</span>
+      </div>
+      <br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">📐 이것이 기구 편향 검정의 기준선을 만든다</strong><br>
+        지금까지 "휠·카메라 마운트·무게중심 편향이 있나?"를 물어도
+        <strong style="color:#e2e8f0">소프트웨어 편향과 섞여 분리가 불가능</strong>했다. 헤드를
+        대칭으로 맞춘 체크포인트로 실기를 재측정하면 다음처럼 갈린다:
+        <ul style="margin:6px 0 0 18px;padding:0">
+          <li>좌우차 소멸 → 원인은 전부 소프트웨어. 기구 편향 없음</li>
+          <li>줄지만 남음 → <strong style="color:#e2e8f0">남은 폭이 기구 편향의 크기</strong></li>
+          <li>그대로 → 헤드 편향은 부수적이고 기구 편향이 지배</li>
+        </ul>
+        <strong style="color:#e2e8f0">단 기구 검정 자체는 주행이 필요 없다</strong> — 명령만 보내고
+        실제 움직임을 재는 open-loop 측정이라 모델·타겟·성공판정이 모두 불필요하다.
+        그래서 <strong style="color:#e2e8f0">기구 검정을 먼저 하는 것이 싸고 빠르다</strong>(soda 요청).
+        <br><br>
+        참고: soda가 2026-07-31에 <strong style="color:#e2e8f0">ROT_R 라벨인데 로봇이 실제로 왼쪽으로
+        회전</strong>하는 것을 육안 확인한 기록이 있다(관찰 1건, 미확정). 이름-물리방향 매핑 확인이
+        기구 검정 항목에 포함된다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">카메라 마운트는 이 검정으로는 무혐의</strong> — 도착 시점 타겟 cx가
+      중앙 배치 0.4701(p=0.32), 전체 0.4807(p=0.34)로 0.5와 유의하게 다르지 않다. 단 표준편차
+      0.19·n=20이라 <strong style="color:#e2e8f0">±0.03 수준 편향은 검출 못 하는 검정력</strong>이므로
+      직진 드리프트 측정으로 보완이 필요하다.
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#fbbf24">
     <div class="finding-title" style="color:#fbbf24">65-4. 남은 것 — 검정력 한계를 알고 시작하기</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
