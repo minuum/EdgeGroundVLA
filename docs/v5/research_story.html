@@ -339,7 +339,7 @@
     <div class="kpi"><div class="num" style="color:#60a5fa">98.8%</div><div class="lbl">그라운딩 되면 성공</div></div>
     <div class="kpi"><div class="num" style="color:#f87171">1902ms</div><div class="lbl">검출 지연 (병목 97%)</div></div>
     <div class="kpi"><div class="num" style="color:#fbbf24">225</div><div class="lbl">V6 에피소드</div></div>
-    <div class="kpi"><div class="num" style="color:#a78bfa">65</div><div class="lbl">챕터 수</div></div>
+    <div class="kpi"><div class="num" style="color:#a78bfa">66</div><div class="lbl">챕터 수</div></div>
   </div>
   <div style="margin-top:18px;font-size:0.8rem;color:#64748b;line-height:1.7">
     판정 기준은 <strong style="color:#cbd5e1">100건 실기 테스트(5위치 × 20회)</strong>입니다 —
@@ -355,6 +355,7 @@
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
+    <a href="#ch66" style="padding:7px 16px;background:#2b1f05;border:1px solid #fbbf24;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fcd34d;text-decoration:none">⚖️ CH66 좌우 비대칭 원인</a>
     <a href="../plans/plan_20260801_specialized_detector.md" style="padding:7px 16px;background:#052e16;border:1px solid #15803d;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">📋 검출기 계획서</a>
     <a href="../index.html#archive" style="padding:7px 16px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">📦 이전 자료 모음</a>
     <a href="../index.html" style="padding:7px 16px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">🏠 메인</a>
@@ -453,7 +454,7 @@
 <div id="checkpoint" style="max-width:1200px;margin:0 auto;padding:48px 40px 32px">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
     <span style="background:#fbbf24;color:#0a0f1a;font-weight:900;font-size:0.8rem;padding:4px 12px;border-radius:20px">MAP</span>
-    <h2 style="font-size:1.6rem;font-weight:800">결론 체크포인트 지도 — CH1→CH65</h2>
+    <h2 style="font-size:1.6rem;font-weight:800">결론 체크포인트 지도 — CH1→CH66</h2>
   </div>
   <p style="color:#64748b;font-size:0.85rem;margin-bottom:28px">각 단계에서 확정된 핵심 결론. 상세 내용은 챕터 링크로.</p>
 
@@ -631,7 +632,7 @@
   <div style="margin-top:34px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <div style="width:5px;height:20px;background:#38bdf8;border-radius:3px"></div>
-      <div style="color:#7dd3fc;font-size:0.9rem;font-weight:900">Phase E — 실기 검증 &amp; 병목 규명 (CH64~65) ★ 결론</div>
+      <div style="color:#7dd3fc;font-size:0.9rem;font-weight:900">Phase E — 실기 검증 &amp; 병목 규명 (CH64~66) ★ 결론</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
       <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
@@ -683,6 +684,13 @@
         <div style="color:#4ade80;font-size:0.7rem;font-weight:900;margin-bottom:5px">경량화 실측</div>
         <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">디코더 1.36B는 호출 0회 → 제거 적용</div>
         <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">비전 타워만 로드 → peak host RAM 10.59→3.20GB(−70%), 출력 bitwise 동일. RAM 4~8GB 보드의 로드 가능/불가 경계.</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#fbbf24;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 66 ⚖️ 원인 추적</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">좌우 비대칭 — 부호로 용의자 가리기</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">flip 대조로 4층위 검정. 에피소드 균형·그라운더는 부호 반대로 무혐의,
+          <strong style="color:#e2e8f0">헤드 고정 우측 편향(−0.0275)</strong>이 원인. 미러 증강으로 +0.0068까지 제거(val_acc 유지).
+          <strong style="color:#f87171">기구 편향은 미검증</strong>.</div>
       </div>
     </div>
   </div>
@@ -16460,8 +16468,98 @@ graph TD
     </div>
   </div>
 
+
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">65-4. 남은 것 — 검정력 한계를 알고 시작하기</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">동일 위치 A/B (약좌 고정, 번갈아 20+20)</strong> — CH64 64-19가
+      "요인 순위 단정 불가"로 남긴 것을 푸는 유일한 방법. 단
+      <strong style="color:#f87171">n=20이면 25%p 이상 차이부터 유의</strong>하므로, 그보다 작은
+      효과는 이 규모로 검출되지 않는다(soda 검정력 분석).
+      <br><br>
+      <strong style="color:#e2e8f0">좌우 비대칭</strong> — 좌 32/40 vs 우 37/40,
+      <strong style="color:#f87171">Fisher p=0.193으로 유의하지 않다</strong>. 표본 추가 전까지
+      "경향성" 이상으로 서술하지 않는다(soda 정정 요청, CH64 64-18에 이미 반영됨).
+      <br>→ <strong style="color:#fbbf24">원인 추적은 <a href="#ch66" style="color:#fbbf24">CH66</a>에서
+      별도로 다룬다</strong> — 데이터/그라운더/헤드/기구 4층위를 flip 대조로 검정했고,
+      헤드의 고정 우측 편향을 원인으로 특정해 제거까지 확인했다.
+      <br><br>
+      <strong style="color:#e2e8f0">소형 검출기</strong> —
+      <code>docs/plans/plan_20260801_specialized_detector.md</code> 검토 대기.
+      핵심 프레이밍은 "새 학습"이 아니라 <strong style="color:#e2e8f0">"느리고 정확한 오프라인
+      주석 파이프라인의 증류"</strong>이며, 중단 기준(area 0.05~0.09 구간에서 OWL 미달 시 중단)과
+      평가 프로토콜을 착수 전에 고정해뒀다.
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH65 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH66 ═ -->
+<div class="chapter" id="ch66">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#fbbf24;color:#0a0f1a">CH 66</span>
+    <h2 class="chapter-title">좌우 비대칭의 원인 추적 — 부호로 용의자를 가려내다</h2>
+    <p class="chapter-subtitle">실기 100건에서 좌측(80.0%)이 우측(92.5%)보다 약한 이유를 층위별로 검정한 기록(2026-08-04). 교수님 질문 <em>"데이터 불균형인가, 모델 비대칭인가, 기구 편향인가"</em>에서 출발해 <strong style="color:#4ade80">좌우 반전(flip) 대조</strong>로 각 층위를 하나씩 검정했다. 핵심 도구는 <strong style="color:#e2e8f0">부호</strong>다 — 편향의 방향이 실기 약세와 반대면 그 층위는 원인이 될 수 없다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟡 <strong>3줄 요약</strong><br>
+    ① <strong>데이터 에피소드는 균형</strong>(좌 90 / 우 90, 라벨 cx 0.4976) — 원인 아님.<br>
+    ② <strong>그라운더는 오히려 좌측 선호</strong>(+0.0118) — 부호가 실기와 <strong>반대</strong>라 원인 아님.<br>
+    ③ <strong>액션 헤드에 고정 우측 선호</strong>(−0.0275) — 부호 일치. 원인은 <strong>학습 액션의 우측 21.8% 편중</strong>이며, 미러 증강으로 <strong>+0.0068까지 제거</strong>(val_acc 유지).
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">66-1. 문제 정의와 검정 설계 — 왜 flip 대조인가</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">현상</strong>: 실기 100건에서 좌측 계열 32/40(80.0%) vs 우측 계열
+      37/40(92.5%). <span style="color:#fbbf24">단 n=40에서 Fisher p=0.193으로 아직 유의하지
+      않으므로 "경향"으로 다룬다</span>(CH65 65-4). 그럼에도 평균 스텝이 좌 17~19 vs 우 10~12로
+      1.6배 차이나 원인 추적의 가치가 있다.
+      <br><br>
+      <strong style="color:#e2e8f0">용의자 4층위</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">층위</th><th style="padding:4px">검정 방법</th><th style="padding:4px">로봇</th></tr>
+        <tr><td style="padding:4px">① 학습 데이터 분포</td><td style="padding:4px">에피소드/프레임/라벨 집계</td><td style="padding:4px;text-align:center">❌</td></tr>
+        <tr><td style="padding:4px">② 그라운더(OWL-v2)</td><td style="padding:4px">이미지 좌우 반전 paired test</td><td style="padding:4px;text-align:center">❌</td></tr>
+        <tr><td style="padding:4px">③ 액션 헤드</td><td style="padding:4px">완전 미러 입력 + L/R 클래스 스왑</td><td style="padding:4px;text-align:center">❌</td></tr>
+        <tr><td style="padding:4px">④ 기구·물리</td><td style="padding:4px">open-loop 명령 → 실제 변위 측정</td><td style="padding:4px;text-align:center;color:#f87171">✅ 필요</td></tr>
+      </table>
+      <br>
+      <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
+        <strong style="color:#4ade80">왜 flip 대조가 "증명"이 되는가</strong><br>
+        보통 이런 걸 재려면 "좌측 물체 사진들"과 "우측 물체 사진들"을 비교하게 되는데, 그럼 두 집합의
+        <strong style="color:#e2e8f0">내용 자체가 달라서</strong>(배경·조명·거리) 차이가 모델 탓인지
+        사진 탓인지 가릴 수 없다. 이것이 "증명하기 어렵다"고 느끼는 이유다.
+        <br><br>
+        flip 대조는 그 교란을 원천 제거한다 — <strong style="color:#e2e8f0">같은 사진 한 장</strong>을
+        좌우로 뒤집으면 배경·조명·물체·거리가 전부 동일하고 <strong style="color:#e2e8f0">위치만
+        좌↔우로 바뀐다.</strong> 모델이 대칭이면 출력이 같아야 하고, 다르면 그 차이는
+        <strong style="color:#e2e8f0">위치 말고 설명할 것이 없다.</strong> paired design이라
+        300장 규모로도 충분한 검정력이 나온다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">① 학습 데이터 — 불균형 아님</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">V6</th><th style="padding:4px">좌 계열</th><th style="padding:4px">우 계열</th></tr>
+        <tr><td style="padding:4px">에피소드</td><td style="padding:4px;text-align:center">90 (강좌 45 + 약좌 45)</td><td style="padding:4px;text-align:center">90 (강우 45 + 약우 45)</td></tr>
+        <tr><td style="padding:4px">프레임</td><td style="padding:4px;text-align:center">6,910 (평균 76.8)</td><td style="padding:4px;text-align:center">6,870 (평균 76.3)</td></tr>
+        <tr><td style="padding:4px">라벨 cx 평균</td><td style="padding:4px;text-align:center" colspan="2"><strong style="color:#4ade80">0.4976</strong> (0.5면 완전 대칭)</td></tr>
+        <tr style="background:rgba(213,94,0,0.12)"><td style="padding:4px"><strong>실행된 액션 클래스</strong></td><td style="padding:4px;text-align:center">3,384</td><td style="padding:4px;text-align:center;color:#f87171"><strong>4,122 (21.8%↑)</strong></td></tr>
+      </table>
+      <strong style="color:#e2e8f0">수집 설계는 완벽히 균형</strong>이다. 비대칭은
+      <strong style="color:#e2e8f0">실제로 실행된 액션 클래스 빈도</strong>에만 있다 — 조종자가 같은
+      목표 위치에서도 실제로 어떤 조향을 썼는지의 차이이며,
+      <strong style="color:#e2e8f0">에피소드 수 불균형과는 다른 층위</strong>다.
+      이것이 ③의 원인으로 이어진다(66-4에서 확인).
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#E69F00">
-    <div class="finding-title" style="color:#fbbf24">🔬 65-7. 그라운더 좌우 비대칭 검정 — 편향은 실재하나 실기 좌측 약세의 원인이 아니다 (2026-08-04)</div>
+    <div class="finding-title" style="color:#fbbf24">🔬 66-2. 그라운더 검정 — 그라운더 좌우 비대칭 — 편향은 실재하나 실기 좌측 약세의 원인이 아니다 (2026-08-04)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       교수님 질문: <em>"학습 데이터 좌/우 에피소드 수가 불균형은 아닐 것 같고, 그렇다면
       OWL-v2/Kosmos-2 grounding feature 자체가 이미지 좌/우에 비대칭적으로 학습되어 있을
@@ -16539,15 +16637,14 @@ graph TD
       </div>
     </div>
   </div>
-
   <div class="finding-card" style="border-color:#4ade80">
-    <div class="finding-title" style="color:#4ade80">✅ 65-8/65-9. 좌우 비대칭의 원인 규명 — 학습 데이터 편중 → 헤드 고정 편향, 미러 증강으로 제거 확인 (2026-08-04)</div>
+    <div class="finding-title" style="color:#4ade80">✅ 66-3 / 66-4. 액션 헤드 검정과 원인 제거 — 학습 데이터 편중 → 헤드 고정 편향, 미러 증강으로 제거 확인 (2026-08-04)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      65-7에서 그라운더는 무혐의(오히려 좌측 선호로 부호 반대)로 나왔다. 다음 후보인
+      66-2에서 그라운더는 무혐의(오히려 좌측 선호로 부호 반대)로 나왔다. 다음 후보인
       <strong style="color:#e2e8f0">액션 헤드</strong>를 같은 논리(미러 입력 대조)로 검정했고,
       원인을 특정한 뒤 <strong style="color:#e2e8f0">제거까지 확인</strong>했다.
       <br><br>
-      <strong style="color:#e2e8f0">65-8. 헤드에 입력과 무관한 고정 우측 선호가 있다</strong><br>
+      <strong style="color:#e2e8f0">66-3. 헤드에 입력과 무관한 고정 우측 선호가 있다</strong><br>
       val 12 에피소드 876 윈도에 대해 <strong style="color:#e2e8f0">이미지를 반전해 비전 피처를
       재추출</strong>하고 cx를 미러링, 출력에서 L/R 클래스를 맞바꿔 비교했다.
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
@@ -16570,14 +16667,14 @@ graph TD
       <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
         <strong style="color:#4ade80">🔑 이번엔 부호가 일치한다</strong>
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
-          <tr><td style="padding:4px">그라운더(65-7)</td><td style="padding:4px">좌측 +0.0118 선호</td><td style="padding:4px;color:#f87171">❌ 실기와 반대</td></tr>
-          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>액션 헤드(65-8)</strong></td><td style="padding:4px"><strong>우측 −0.0275 선호</strong></td><td style="padding:4px;color:#4ade80"><strong>✅ 실기와 일치</strong></td></tr>
+          <tr><td style="padding:4px">그라운더(66-2)</td><td style="padding:4px">좌측 +0.0118 선호</td><td style="padding:4px;color:#f87171">❌ 실기와 반대</td></tr>
+          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>액션 헤드(66-3)</strong></td><td style="padding:4px"><strong>우측 −0.0275 선호</strong></td><td style="padding:4px;color:#4ade80"><strong>✅ 실기와 일치</strong></td></tr>
           <tr><td style="padding:4px">실기 결과</td><td style="padding:4px" colspan="2">좌 80.0% vs 우 92.5% → 좌측 12.5%p 불리</td></tr>
         </table>
         헤드가 <strong style="color:#e2e8f0">좌측 행동을 덜 내니 좌측 목표에 약한 것</strong>이 설명된다.
       </div>
       <br>
-      <strong style="color:#e2e8f0">65-9. 미러 증강으로 편향을 제거 — 원인이 데이터였음을 확정</strong><br>
+      <strong style="color:#e2e8f0">66-4. 미러 증강으로 편향을 제거 — 원인이 데이터였음을 확정</strong><br>
       학습 데이터가 <strong style="color:#e2e8f0">우측 21.8% 편중</strong>(좌 3,384 vs 우 4,122,
       특히 FWD+R 3,117 vs FWD+L 2,532)이라는 것이 원인 후보였다. 전 학습 윈도에 미러 쌍을
       추가해(이미지 반전 후 비전 피처 재추출 + cx 미러 + L/R 라벨 스왑) 분포를 완전 대칭으로 만들고
@@ -16628,28 +16725,58 @@ graph TD
       직진 드리프트 측정으로 보완이 필요하다.
     </div>
   </div>
-
-  <div class="finding-card" style="border-color:#fbbf24">
-    <div class="finding-title" style="color:#fbbf24">65-4. 남은 것 — 검정력 한계를 알고 시작하기</div>
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">🚧 66-5. 무엇을 주장할 수 있고 무엇을 아직 못 하는가</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
-      <strong style="color:#e2e8f0">동일 위치 A/B (약좌 고정, 번갈아 20+20)</strong> — CH64 64-19가
-      "요인 순위 단정 불가"로 남긴 것을 푸는 유일한 방법. 단
-      <strong style="color:#f87171">n=20이면 25%p 이상 차이부터 유의</strong>하므로, 그보다 작은
-      효과는 이 규모로 검출되지 않는다(soda 검정력 분석).
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">주장</th><th style="padding:4px">상태</th></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px">모델 쪽 원인이 <strong>존재</strong>한다</td><td style="padding:4px;color:#4ade80">✅ 확인 — 헤드 고정 우측 선호 −0.0275</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px">그 원인의 <strong>부호가 맞다</strong></td><td style="padding:4px;color:#4ade80">✅ 확인 — 실기 좌측 약세와 일치</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px">그 원인이 <strong>제거 가능</strong>하다</td><td style="padding:4px;color:#4ade80">✅ 확인 — 미러 증강 +0.0068, val_acc 유지</td></tr>
+        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px">그 원인이 <strong>충분한가</strong> (12.5%p 전부를 설명)</td><td style="padding:4px;color:#f87171">❌ <strong>미확인</strong></td></tr>
+        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px">기구 편향이 <strong>없다</strong></td><td style="padding:4px;color:#f87171">❌ <strong>미검증</strong> — 측정 안 한 것 ≠ 없는 것</td></tr>
+      </table>
+      <br>
+      <strong style="color:#f87171">"충분한가"가 핵심 공백이다.</strong> 편향 −0.0275가 12.5%p 성공률
+      차이를 만들 만한 크기인지 아직 연결하지 못했다. 절반만 설명하고 나머지가 기구일 수도 있다.
       <br><br>
-      <strong style="color:#e2e8f0">좌우 비대칭</strong> — 좌 32/40 vs 우 37/40,
-      <strong style="color:#f87171">Fisher p=0.193으로 유의하지 않다</strong>. 표본 추가 전까지
-      "경향성" 이상으로 서술하지 않는다(soda 정정 요청, CH64 64-18에 이미 반영됨).
-      <br><br>
-      <strong style="color:#e2e8f0">소형 검출기</strong> —
-      <code>docs/plans/plan_20260801_specialized_detector.md</code> 검토 대기.
-      핵심 프레이밍은 "새 학습"이 아니라 <strong style="color:#e2e8f0">"느리고 정확한 오프라인
-      주석 파이프라인의 증류"</strong>이며, 중단 기준(area 0.05~0.09 구간에서 OWL 미달 시 중단)과
-      평가 프로토콜을 착수 전에 고정해뒀다.
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:11px 14px">
+        <strong style="color:#f87171">서술 규칙 — 논문·보고에 이렇게 쓴다</strong><br>
+        <span style="color:#4ade80">✅ 가능</span>: "좌우 비대칭의 <strong style="color:#e2e8f0">한 원인으로</strong>
+        학습 데이터 편중에서 비롯된 정책의 고정 편향을 확인하고 제거했다.
+        <strong style="color:#e2e8f0">기구 편향은 미검증</strong>이며 잔여 기여분은 추가 측정이 필요하다."
+        <br>
+        <span style="color:#f87171">❌ 금지</span>: "기구 편향을 배제했다" / "원인은 모델이었다"
+        — 기구 검정을 하지 않았으므로 배타적 주장은 성립하지 않는다. 두 요인은 합산될 수 있다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">남은 검정 — 기구 편향 (soda 요청 완료, 커밋 2fac8b58)</strong><br>
+      <strong style="color:#4ade80">주행이 필요 없다</strong>는 점이 중요하다. 명령만 보내고 실제 움직임을
+      재는 open-loop 측정이라 <strong style="color:#e2e8f0">모델 추론·타겟 배치·성공판정이 전부
+      불필요</strong>하다. 바닥 테이프와 줄자로 수십 분이면 된다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">방법</th><th style="padding:4px">무엇을 잡는가</th></tr>
+        <tr><td style="padding:4px">A 직진 드리프트</td><td style="padding:4px"><code>FWD</code> 20스텝 → 좌우 이탈 cm</td><td style="padding:4px">무게중심 / 좌우 휠 게인 차</td></tr>
+        <tr><td style="padding:4px">B 회전량 대칭</td><td style="padding:4px"><code>ROT_L</code> vs <code>ROT_R</code> 10스텝 각도</td><td style="padding:4px">회전 구동 비대칭</td></tr>
+        <tr style="background:rgba(251,191,36,0.1)"><td style="padding:4px"><strong>C 대각 전진 대칭</strong></td><td style="padding:4px"><code>FWD+L</code> vs <code>FWD+R</code> 변위</td><td style="padding:4px"><strong style="color:#e2e8f0">실기와 가장 직결</strong> (66-3의 지배 항)</td></tr>
+        <tr><td style="padding:4px">D 이름-방향 매핑</td><td style="padding:4px">B 측정 시 회전 방향 기록</td><td style="padding:4px">soda 7/31 미해결 항목</td></tr>
+      </table>
+      <div style="font-size:0.8rem;color:#64748b;margin-top:6px">
+        참고: soda가 2026-07-31에 <strong style="color:#94a3b8">ROT_R 라벨인데 로봇이 실제로 왼쪽으로
+        회전</strong>하는 것을 육안 확인한 기록이 있다(관찰 1건, 미확정). 수집과 추론이 같은 하드웨어
+        경로를 공유하므로 매핑이 일관됐다면 모델은 일관된 물리 대응을 배운 것이나,
+        <code>preview_align</code>·<code>CX_RULE</code>처럼 사람이 이름을 믿고 짠 규칙은 켜면
+        진짜로 반대 방향을 낼 수 있다(현재 비활성).
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">그 외 남은 것</strong>: ② 미러 체크포인트 실기 A/B(기구 검정 이후,
+      약좌 고정). <span style="color:#fbbf24">n=20이면 25%p 이상부터 유의하므로 12.5%p의 완전 소멸은
+      20회로 판정 불가 — 방향과 대략적 크기만 본다.</span>
     </div>
   </div>
 </div>
-<!-- ══════════════════════════════════════════════════════ /CH65 ═ -->
+<!-- ══════════════════════════════════════════════════════ /CH66 ═ -->
+
 
 
 <hr class="chapter-divider">
