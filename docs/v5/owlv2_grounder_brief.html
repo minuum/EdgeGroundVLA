@@ -48,11 +48,13 @@ img{max-width:100%;border-radius:8px;border:1px solid var(--line)}
 &nbsp;|&nbsp; <a href="research_story.html#ch64">CH64 근거</a></div>
 
 <div class="key">
-<strong class="h">요약</strong> — OWL-v2는 <strong class="h">"방향을 못 맞춰서 한 번 탈락했다가,
-역할을 바꿔 재채택된"</strong> 모델입니다. 처음엔 방향 추정용으로 평가해 dir정확도 0%로 폐기했지만,
-<strong class="h">방향 판단을 MLP 헤드에 넘기고 OWL-v2를 "bbox 좌표만 뽑는 부품"으로 축소</strong>한
-뒤 현재 배포 그라운더가 됐습니다. 지금 실기 성패를 결정하는 것이 바로 이 부품의 검출률입니다
-(gnd%≥80 → 98.8% 성공).
+<strong class="h">요약</strong> — OWL-v2는 <strong class="h">결함 있는 지표 때문에 하마터면
+버려질 뻔한</strong> 모델입니다. CH58에서 "방향 추정 불가(dir 0%)"로 폐기 판정을 받았으나, 그 지표의
+ground truth가 <strong class="h">cx 방향이 아닌 주관적 위치</strong>였습니다. CH59에서 사람 라벨
+185프레임으로 다시 재니 <strong class="g">L/R 방향 정확도 99.1% · 검출 184/185</strong>로
+Kr·PG448과 동급이었고, 이후 배포 그라운더가 됐습니다.
+현재 구조에서 방향 판단은 MLP 헤드가 하고 OWL-v2는 <strong class="h">cx·cy·area만 공급</strong>합니다.
+지금 실기 성패를 결정하는 것이 바로 이 검출률입니다(gnd%≥80 → 98.8% 성공).
 </div>
 
 <h2>1. 채택 이력 — 탈락 후 역할 변경으로 재채택</h2>
@@ -62,8 +64,14 @@ img{max-width:100%;border-radius:8px;border:1px solid var(--line)}
     <td>Kosmos-2 6종 + OWL-v2 5종 쿼리 × 39세션.
         <strong>OWL-v2를 "방향까지 추정하는" 용도로 평가</strong></td>
     <td>det율 35~100%(쿼리별), <strong class="r">dir정확도 0%</strong>, ~427ms<br>
-        "쿼리 불문 방향 추정 불가"</td>
-    <td class="c"><span class="pill drop">폐기</span></td></tr>
+        "쿼리 불문 방향 추정 불가"로 판단 — <strong class="r">이 지표는 이후 결함으로 확인됨</strong></td>
+    <td class="c"><span class="pill drop">폐기(오판)</span></td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td>2026-06-30<br><span class="pill">CH59 재측정</span></td>
+    <td><strong class="h">사람 라벨 185프레임</strong>으로 dir 지표를 다시 측정.
+        CH58은 ground truth가 <strong class="h">cx 방향이 아닌 주관적 위치</strong>였던 한계가 있었다</td>
+    <td class="g"><strong>L/R 정확도 99.1% · 검출 184/185</strong><br>
+        Kr(99.1%) · PG448(99.1%)과 동급 — <strong class="h">방향 추정 불가는 사실이 아니었다</strong></td>
+    <td class="c"><span class="pill adopt">정정</span></td></tr>
 <tr><td>2026-07-03<br><span class="pill">A/B 계획</span></td>
     <td>PG2(Kosmos-2 grounding)의 구조적 결함 회피 목적 —
         <code>;</code> 중복검출·8초 지연·full-frame hallucination이
@@ -77,9 +85,12 @@ img{max-width:100%;border-radius:8px;border:1px solid var(--line)}
     <td class="c"><span class="pill adopt">채택</span></td></tr>
 </table>
 <div class="note">
-<strong class="o">이 반전이 핵심 교훈입니다</strong> — 같은 모델이 "방향 추정기"로는 0%,
-"좌표 공급기"로는 배포 가능했습니다. 모델을 버릴지 판단할 때
-<strong class="h">역할을 재정의해보는 것</strong>이 유효했던 사례입니다.
+<strong class="o">이 반전이 핵심 교훈입니다</strong> — "OWL은 방향을 못 잡는다"는 결론은
+<strong class="h">모델의 한계가 아니라 지표의 한계</strong>였습니다. ground truth를 주관적 위치로
+잡은 탓에 99.1%짜리 모델이 0%로 나왔고, <strong class="r">하마터면 현재 배포 그라운더를 버릴
+뻔했습니다.</strong> 지표를 의심하지 않았다면 이 프로젝트의 경로가 달라졌을 사례이고,
+<a href="research_story.html#ch64">CH64 64-11</a>(다른 모델 성적을 예측에 맞춘 거짓 확증)과 같은
+종류의 실수입니다 — <strong class="h">수치가 이상하면 모델보다 측정을 먼저 의심할 것.</strong>
 </div>
 
 <h2>2. 건드린 파라미터별 반응</h2>
@@ -160,8 +171,21 @@ HELD 지표를 7.1% → 28.3%로 개선했습니다.</p>
 <tr><td><code>"basket"</code> / <code>"gray laundry basket"</code> / <code>"gray container"</code> / multi</td>
     <td class="c">35~100%</td><td class="c r">0%</td></tr>
 </table>
-<p>쿼리를 어떻게 바꿔도 방향 정확도는 0%였습니다 — 이것이 1절의 "역할 축소" 결정으로 이어졌습니다.
-현재는 <code>multi_prompt = False</code>(단일 쿼리)로 운용합니다.</p>
+<div class="warn">
+<strong class="r">⚠️ 위 표의 "dir정확도 0%"는 신뢰할 수 없습니다</strong> — CH58은 ground truth가
+cx 방향이 아닌 <strong class="h">주관적 위치</strong>였고, CH59가 사람 라벨 185프레임으로 다시 재면
+<strong class="g">OWL-v2 L/R 정확도 99.1%(검출 184/185)</strong>로 Kr·PG448과 동급이었습니다.
+<strong class="h">"OWL은 방향을 못 잡는다"는 서술은 철회합니다.</strong>
+</div>
+<p><strong class="h">단 쿼리에 따라 검출률은 실제로 변합니다(35~100%)</strong> — 즉 텍스트가
+"무엇을 찾을지" 지정하는 역할은 실제로 기능합니다. 현재는 <code>multi_prompt = False</code>로
+단일 쿼리 <code>"gray basket"</code>만 고정 운용합니다.</p>
+<div class="note">
+<strong class="o">아직 하지 않은 것</strong> — OWL 채택 이후 <strong class="h">"프롬프트를 런타임에
+바꿔 행동이 달라지는가"를 통제된 조건에서 실험한 적은 없습니다.</strong> 쿼리 변형 비교는
+CH58/59(채택 이전 시점)가 마지막이고, <code>multi_prompt</code>는 설정으로 존재하나 A/B로 검증하지
+않았습니다. 언어 조건화를 주장하려면 이 실험이 필요합니다.
+</div>
 
 <h3>⑥ 그라운더 교체 (PG448 ↔ OWL-v2) — 오프라인에서는 부차적</h3>
 <table>
