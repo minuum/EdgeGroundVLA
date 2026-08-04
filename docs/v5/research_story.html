@@ -371,79 +371,79 @@
   </div>
   <p style="color:#64748b;font-size:0.83rem;margin-bottom:28px;padding-left:4px">
     각 Phase는 하나의 핵심 질문을 갖는다. 질문이 해결되면 다음 Phase로.
-    <strong style="color:#94a3b8">Phase D부터는 판정을 시뮬레이션이 아니라 실기 100건으로 한다.</strong>
+    <strong style="color:#94a3b8">Phase D에서 시뮬↔실기 낙차(96.6%→20~30%대)를 만났고, Phase E에서 실기 100건을 판정 기준으로 고정했다.</strong>
   </p>
 
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative">
-    <div style="padding:0 6px">
-      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:16px 14px;height:100%">
-        <div style="color:#475569;font-size:0.66rem;font-weight:900;letter-spacing:1px">PHASE</div>
-        <div style="font-size:1.9rem;font-weight:900;color:#f87171;line-height:1">A</div>
-        <div style="color:#e2e8f0;font-weight:800;font-size:0.86rem;margin-top:4px">E2E VLA</div>
-        <div style="color:#64748b;font-size:0.68rem;margin:4px 0 10px">CH1~16 · Exp01~11</div>
-        <div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">Kosmos-2 + LoRA 미세조정</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">text attention 0.000% 측정</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">head-only에서도 재현</div>
-        <div style="margin-top:10px;font-size:0.74rem;font-weight:800;color:#f87171">❌ CL 0% — 구조적 한계</div>
+    <div style="padding:0 5px">
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:14px 12px;height:100%">
+        <div style="color:#475569;font-size:0.63rem;font-weight:900;letter-spacing:1px">PHASE</div>
+        <div style="font-size:1.75rem;font-weight:900;color:#f87171;line-height:1">A</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.8rem;margin-top:4px">E2E VLA</div>
+        <div style="color:#64748b;font-size:0.65rem;margin:4px 0 9px">CH1~16</div>
+        <div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">Kosmos-2 + LoRA 미세조정</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">text attention 0.000%</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">head-only에서도 재현</div>
+        <div style="margin-top:9px;font-size:0.71rem;font-weight:800;color:#f87171">❌ CL 0% — 구조적 한계</div>
       </div>
     </div>
-    <div style="padding:0 6px">
-      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:16px 14px;height:100%">
-        <div style="color:#475569;font-size:0.66rem;font-weight:900;letter-spacing:1px">PHASE</div>
-        <div style="font-size:1.9rem;font-weight:900;color:#4ade80;line-height:1">B</div>
-        <div style="color:#e2e8f0;font-weight:800;font-size:0.86rem;margin-top:4px">Decomposition</div>
-        <div style="color:#64748b;font-size:0.68rem;margin:4px 0 10px">CH17~36 · Exp14/54/66</div>
-        <div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">BBox + Image → MLP</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">Stage1/Stage2 분리</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">파이프라인이 성능 결정 요소</div>
-        <div style="margin-top:10px;font-size:0.74rem;font-weight:800;color:#4ade80">✅ 시뮬 CL 96.6%</div>
+    <div style="padding:0 5px">
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:14px 12px;height:100%">
+        <div style="color:#475569;font-size:0.63rem;font-weight:900;letter-spacing:1px">PHASE</div>
+        <div style="font-size:1.75rem;font-weight:900;color:#4ade80;line-height:1">B</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.8rem;margin-top:4px">Decomposition</div>
+        <div style="color:#64748b;font-size:0.65rem;margin:4px 0 9px">CH17~32</div>
+        <div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">Stage1/Stage2 분리</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">BBox + Image → MLP</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">LoRA→action 기여 없음 확정</div>
+        <div style="margin-top:9px;font-size:0.71rem;font-weight:800;color:#4ade80">✅ 구조 전환 성공</div>
       </div>
     </div>
-    <div style="padding:0 6px">
-      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:16px 14px;height:100%">
-        <div style="color:#475569;font-size:0.66rem;font-weight:900;letter-spacing:1px">PHASE</div>
-        <div style="font-size:1.9rem;font-weight:900;color:#fbbf24;line-height:1">C</div>
-        <div style="color:#e2e8f0;font-weight:800;font-size:0.86rem;margin-top:4px">실기 이관</div>
-        <div style="color:#64748b;font-size:0.68rem;margin:4px 0 10px">CH37~63 · exp71~73</div>
-        <div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">OWL-v2 그라운더 채택</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">hold-aware 학습(단속 제어)</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">offline↔실기 괴리 발견</div>
-        <div style="margin-top:10px;font-size:0.74rem;font-weight:800;color:#fbbf24">⚠️ 실기 20~30%대</div>
+    <div style="padding:0 5px">
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:14px 12px;height:100%">
+        <div style="color:#475569;font-size:0.63rem;font-weight:900;letter-spacing:1px">PHASE</div>
+        <div style="font-size:1.75rem;font-weight:900;color:#22c55e;line-height:1">C</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.8rem;margin-top:4px">시뮬 SOTA 확정</div>
+        <div style="color:#64748b;font-size:0.65rem;margin:4px 0 9px">CH33~37</div>
+        <div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">파이프라인이 성능 결정 요소</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">head/window ablation 포화</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">STOP 메커니즘 분석</div>
+        <div style="margin-top:9px;font-size:0.71rem;font-weight:800;color:#22c55e">✅ 시뮬 CL 96.6%</div>
       </div>
     </div>
-    <div style="padding:0 6px">
-      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:16px 14px;height:100%">
-        <div style="color:#475569;font-size:0.66rem;font-weight:900;letter-spacing:1px">PHASE</div>
-        <div style="font-size:1.9rem;font-weight:900;color:#38bdf8;line-height:1">D</div>
-        <div style="color:#e2e8f0;font-weight:800;font-size:0.86rem;margin-top:4px">실기 검증 · 병목 규명</div>
-        <div style="color:#64748b;font-size:0.68rem;margin:4px 0 10px">CH64~65 · 100건</div>
-        <div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">100건 실기 89% 달성</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">병목=인지(gnd%≥80→98.8%)</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">2축 분해 · 자체 철회 2건</div>
-        <div style="margin-top:10px;font-size:0.74rem;font-weight:800;color:#38bdf8">✅ 실기 89/100 — 현재</div>
+    <div style="padding:0 5px">
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:14px 12px;height:100%">
+        <div style="color:#475569;font-size:0.63rem;font-weight:900;letter-spacing:1px">PHASE</div>
+        <div style="font-size:1.75rem;font-weight:900;color:#fbbf24;line-height:1">D</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.8rem;margin-top:4px">진단 · 정밀화 · 실기 이관</div>
+        <div style="color:#64748b;font-size:0.65rem;margin:4px 0 9px">CH38~63</div>
+        <div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">그라운딩 품질이 진짜 핵심(CH41)</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">재주석·줌·프리뷰 정제(CH46~54)</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">실로봇 배포 실패 규명(CH61~62)</div>
+        <div style="margin-top:9px;font-size:0.71rem;font-weight:800;color:#fbbf24">⚠️ 실기 20~30%대 — 낙차 발견</div>
       </div>
     </div>
-    <div style="padding:0 6px">
-      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:16px 14px;height:100%">
-        <div style="color:#475569;font-size:0.66rem;font-weight:900;letter-spacing:1px">PHASE</div>
-        <div style="font-size:1.9rem;font-weight:900;color:#a78bfa;line-height:1">E</div>
-        <div style="color:#e2e8f0;font-weight:800;font-size:0.86rem;margin-top:4px">경량화 · 논문</div>
-        <div style="color:#64748b;font-size:0.68rem;margin:4px 0 10px">진행 예정</div>
-        <div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">디코더 로드 제거 적용(RAM −70%)</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">검출기 Step 0~2 완료</div><div style="color:#94a3b8;font-size:0.72rem;line-height:1.75">negative 확보 대기 → A/B</div>
-        <div style="margin-top:10px;font-size:0.74rem;font-weight:800;color:#a78bfa">🔄 진행 중</div>
+    <div style="padding:0 5px">
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:12px;padding:14px 12px;height:100%">
+        <div style="color:#475569;font-size:0.63rem;font-weight:900;letter-spacing:1px">PHASE</div>
+        <div style="font-size:1.75rem;font-weight:900;color:#38bdf8;line-height:1">E</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.8rem;margin-top:4px">실기 검증 · 병목 규명</div>
+        <div style="color:#64748b;font-size:0.65rem;margin:4px 0 9px">CH64~65 · 100건</div>
+        <div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">실기 100건 89% 달성</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">병목=인지(gnd%≥80→98.8%)</div><div style="color:#94a3b8;font-size:0.7rem;line-height:1.7">2축 분해 · 자체 철회 2건</div>
+        <div style="margin-top:9px;font-size:0.71rem;font-weight:800;color:#38bdf8">✅ 실기 89/100 — 결론</div>
       </div>
     </div>
   </div>
 
-  <div style="margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div style="background:#0a2033;border:1px solid #38bdf8;border-radius:12px;padding:18px 20px">
-      <div style="color:#38bdf8;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📍 현재 상태 — Phase D 완료 / E 진행</div>
+      <div style="color:#38bdf8;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📍 현재 결론 — Phase E</div>
       <div style="font-size:0.82rem;line-height:1.9;color:#94a3b8">
         <strong style="color:#e2e8f0">실기 89/100 (89.0%)</strong> — 중앙 100% · 약우 95% · 강우 90% · 강좌 80% · 약좌 80%<br>
-        <strong style="color:#e2e8f0">핵심</strong> — 병목은 정책이 아니라 인지. gnd%≥80이면 98.8% 성공<br>
+        <strong style="color:#e2e8f0">병목은 정책이 아니라 인지</strong> — gnd%≥80이면 98.8% 성공(충분조건)<br>
         <strong style="color:#e2e8f0">단 필요조건은 아님</strong> — 강우는 검출 최악(gnd% 49%)인데 90% 성공<br>
-        <strong style="color:#fbbf24">미확정</strong> — 89%가 체크포인트 교체 때문인지 threshold+가드 때문인지 (교란)
+        <strong style="color:#fbbf24">미확정</strong> — 89%가 체크포인트 교체 때문인지 threshold+가드 때문인지(교란)
       </div>
     </div>
     <div style="background:#1e0a2b;border:1px solid #a78bfa;border-radius:12px;padding:18px 20px">
-      <div style="color:#c4b5fd;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🎯 Phase E — 남은 것</div>
+      <div style="color:#c4b5fd;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🔬 진행 중 — 경량화 &amp; 논문 (Phase E 이후)</div>
       <div style="font-size:0.82rem;line-height:1.9;color:#94a3b8">
-        <strong style="color:#e2e8f0">동일 위치 A/B</strong>(약좌 고정) — 요인 순위 확정의 유일한 방법. n=20은 25%p 이상부터 유의<br>
-        <strong style="color:#e2e8f0">강좌·약좌 집중 개선</strong> — 실기 실패의 72.8%<br>
-        <strong style="color:#e2e8f0">특화 소형 검출기</strong> — 위치추정은 0.12ms로 해결, <span style="color:#f87171">has_bbox negative 대기</span><br>
-        <strong style="color:#e2e8f0">경량화 실증</strong> — 라즈베리파이 이식 (디코더 제거로 RAM 3.2GB 확보)
+        <strong style="color:#4ade80">적용 완료</strong> — 언어 디코더 로드 제거, peak RAM 10.59→3.20GB(−70%)<br>
+        <strong style="color:#4ade80">검증 완료</strong> — Kosmos-2 patch 헤드로 검출 53.8ms(35배↓), cx MAE 0.0020<br>
+        <strong style="color:#f87171">막힘</strong> — has_bbox negative 0건 → 로봇 수집 대기(65-6)<br>
+        <strong style="color:#e2e8f0">다음</strong> — 동일 위치 A/B(약좌) · 강좌·약좌 집중(실패의 72.8%)
       </div>
     </div>
   </div>
@@ -491,7 +491,7 @@
 
   <!-- Phase B: 실험 여정 -->
   <div style="margin-bottom:24px">
-    <div style="color:#f59e0b;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-left:4px">Phase B — 실험 여정 (CH6~32)</div>
+    <div style="color:#f59e0b;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-left:4px">Phase A·B — 실험 여정 & Decomposition 전환 (CH6~32)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">
       <a href="#ch7" style="background:#111827;border:1px solid #1e293b;border-left:3px solid #22c55e;border-radius:8px;padding:12px 14px;text-decoration:none;display:block">
         <div style="color:#22c55e;font-size:0.7rem;font-weight:700;margin-bottom:4px">CH 6~9</div>
@@ -543,7 +543,7 @@
 
   <!-- Phase C: SOTA 확정 -->
   <div>
-    <div style="color:#4ade80;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-left:4px">Phase C — SOTA 확정 + STOP 분석 (CH33~37) ★</div>
+    <div style="color:#4ade80;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-left:4px">Phase C — 시뮬 SOTA 확정 (CH33~37)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
       <a href="#ch33" style="background:#051a0a;border:2px solid #22c55e;border-radius:10px;padding:14px 16px;text-decoration:none;display:block">
         <div style="color:#4ade80;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 33 ★ 핵심 발견</div>
@@ -573,11 +573,65 @@
     </div>
   </div>
 
+  <!-- Phase D: 진단 · 정밀화 · 실기 이관 -->
+  <div style="margin-top:34px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:5px;height:20px;background:#fbbf24;border-radius:3px"></div>
+      <div style="color:#fcd34d;font-size:0.9rem;font-weight:900">Phase D — 진단 · 정밀화 · 실기 이관 (CH38~63)</div>
+    </div>
+    <p style="color:#64748b;font-size:0.8rem;margin:-4px 0 14px;line-height:1.7">
+      시뮬 96.6%를 실기로 옮기는 구간. <strong style="color:#94a3b8">여기서 낙차(→20~30%대)를 만났고</strong>,
+      원인을 좁혀가는 과정이 Phase E의 병목 규명으로 이어진다.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#fbbf24;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 38~40</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">VLA 근접 시도 → 한계</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">레퍼런스 아키텍처 비교 후 hidden state를 action head에 추가. PM은 올랐으나 closed-loop는 안 따라옴(40-1 정정).</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#4ade80;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 41 ★ 전환점</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">그라운딩 품질이 진짜 핵심</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">오류가 <strong style='color:#e2e8f0'>객체를 못 잡은 프레임에 몰려있음</strong>을 확인. 이후 모든 개선의 방향을 결정한 챕터.</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#fbbf24;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 42~43</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">언어는 흔들리지 않고, head는 factor였다(당시)</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">prompt가 거짓 방향을 우겨도 이미지 신호는 유지. head 구조가 강한 factor로 보였으나 <strong style='color:#f87171'>CH63/64에서 뒤집힘</strong>.</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#fbbf24;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 44~49</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">파이프라인 통일 · 재주석 · 정제</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">학습/추론 이미지 경로 통일, 누적 드리프트 규명, PG2 재주석으로 낡은 데이터 착시 제거, area_delta는 skip_n=3 환경에서 이득 소멸.</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#fbbf24;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 50~54</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">줌 재그라운딩 · 프리뷰 폴백</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">작은/먼 객체 2배 줌 재그라운딩은 실제 개선(CH50), 초반 한정 줌크롭은 무효(CH51). YOLO 프리뷰 폴백 설계(CH54) — <em>현재는 비활성</em>.</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#fbbf24;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 55~59</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">백본·프롬프트 어블레이션</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">Grounding consistency 종합 비교, 순수 HF Kosmos-2 E2E 완수, Frame 0 콜드스타트 100% 실패 규명, OWL-v2 프롬프트 어블레이션(<strong style='color:#e2e8f0'>방향 정확도 0%</strong> → 역할 축소).</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#f87171;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 60~62</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">실로봇 배포 실패 규명</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">PG448 재어노테이션 + 헤드 비교. OWL-v2 첫 배포 실패 원인이 <strong style='color:#e2e8f0'>vis_feat 정규화 버그</strong>였음을 규명(CH61). FWD 고착은 그라운딩 실패가 아니라 라벨 confound(CH62).</div>
+      </div>
+      <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
+        <div style="color:#fbbf24;font-size:0.7rem;font-weight:900;margin-bottom:5px">CH 63</div>
+        <div style="color:#e2e8f0;font-weight:800;font-size:0.84rem;margin-bottom:4px">exp73 — 헤드 차이가 사라졌다</div>
+        <div style="color:#94a3b8;font-size:0.75rem;line-height:1.7">V6(트랙A+F) 종합 ablation. mlp가 배포 아키텍처(transformer)를 상회하되 격차는 미미 → <strong style='color:#e2e8f0'>헤드는 더 이상 병목이 아님</strong>을 시사.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Phase D: 실기 검증 · 병목 규명 -->
   <div style="margin-top:34px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <div style="width:5px;height:20px;background:#38bdf8;border-radius:3px"></div>
-      <div style="color:#7dd3fc;font-size:0.9rem;font-weight:900">Phase D — 실기 검증 &amp; 병목 규명 (CH64~65) ★ 현재</div>
+      <div style="color:#7dd3fc;font-size:0.9rem;font-weight:900">Phase E — 실기 검증 &amp; 병목 규명 (CH64~65) ★ 결론</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
       <div style="background:#0d1526;border:1px solid #1e2a3a;border-radius:10px;padding:14px 16px">
@@ -8073,6 +8127,8 @@ gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
     <span class="chapter-num" style="background:#22c55e;color:#0a0f1a">CHAPTER 33</span>
     <h2 class="chapter-title">파이프라인이 범인이었다 — CL 성능 격차의 진짜 원인 규명 (exp65~66)</h2>
   </div>
+  <div style="background:rgba(251,191,36,0.09);border-left:3px solid #fbbf24;padding:11px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-size:0.82rem;line-height:1.8;color:#94a3b8"><strong style="color:#fbbf24">📌 현재 상태 (2026-08-02)</strong> — 여기서 확정한 <strong style="color:#e2e8f0">96.6%는 시뮬레이션(V5 offline) 지표</strong>이며, 현재 판정 기준인 <a href="#ch64" style="color:#4ade80">실기 100건(89%)</a>과는 다른 척도입니다. "파이프라인이 성능 결정 요소"라는 결론 자체는 유효하나, 실기에서는 그 파이프라인 안의 <strong style="color:#e2e8f0">그라운딩 단계</strong>가 지배적임이 밝혀졌습니다(64-18).</div>
+
 
   <!-- 결론 요약 배너 -->
   <div style="background:#052e16;border:1px solid #16632a;border-radius:12px;padding:18px 22px;margin-bottom:24px">
@@ -10708,6 +10764,8 @@ graph TD
     <h2 class="chapter-title">STOP Mechanism Ablation</h2>
     <p class="chapter-subtitle">3-Layer 체계적 분석 — override 없는 게 최선, 시작 위치 정규화 설계</p>
   </div>
+  <div style="background:rgba(251,191,36,0.09);border-left:3px solid #fbbf24;padding:11px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-size:0.82rem;line-height:1.8;color:#94a3b8"><strong style="color:#fbbf24">📌 현재 상태</strong> — 여기서 권고한 "override 없음(proximity 규칙 기반)"은 <strong style="color:#e2e8f0">현재 미사용</strong>입니다. 현 배포는 <code style="color:#a5d8ff">stop_mode=learned</code>(헤드의 STOP 클래스) + 콜드스타트 가드 3프레임을 씁니다. 과거 proximity 규칙(area≥0.25 &amp; |cx−0.5|≤0.35, N=3)은 폐기됐습니다.</div>
+
 
   <!-- 동기 -->
   <div class="finding-card" style="background:linear-gradient(135deg,#0c1a2e,#0f1e35);border-color:#334155;margin-bottom:24px">
@@ -11527,6 +11585,8 @@ graph TD
     <h2 class="chapter-title">차원축소 + LSTM head — 진짜 핵심 factor는 head 구조였다</h2>
     <p class="chapter-subtitle">17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 최고(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p), hidden state보다 head 구조가 더 강한 factor</p>
   </div>
+  <div style="background:rgba(251,191,36,0.09);border-left:3px solid #f87171;padding:11px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-size:0.82rem;line-height:1.8;color:#94a3b8"><strong style="color:#f87171">⚠️ 이 결론은 이후 뒤집혔습니다</strong> — "head 구조가 가장 강한 factor"는 <strong style="color:#e2e8f0">시뮬레이션 기준</strong>이었습니다. <a href="#ch63" style="color:#38bdf8">CH63</a>에서 mlp≈transformer로 헤드 간 차이가 사라졌고, <a href="#ch64" style="color:#4ade80">64-18</a>에서 <strong style="color:#e2e8f0">병목은 헤드가 아니라 그라운딩</strong>임이 실기로 확정됐습니다(gnd%≥80 → 98.8%). 액션 헤드는 0.866M으로 이미 충분합니다.</div>
+
 
   <p class="chapter-desc">
     CH40/41은 원시 2304차원 hidden state를 그대로 concat/대체해서 baseline(window=8, 91.54%)을 못 넘었다.
@@ -12904,6 +12964,8 @@ graph TD
     <h2 class="chapter-title">YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정</h2>
     <p class="chapter-subtitle">6/26 미팅 결정사항: "그라운딩 못 하면 YOLO로 방향 먼저 잡고 PG2 재시도" 아이디어 설계 문서</p>
   </div>
+  <div style="background:rgba(251,191,36,0.09);border-left:3px solid #fbbf24;padding:11px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-size:0.82rem;line-height:1.8;color:#94a3b8"><strong style="color:#fbbf24">📌 현재 상태</strong> — Preview 폴백은 현재 <strong style="color:#e2e8f0">비활성</strong>입니다(<code style="color:#a5d8ff">preview_enabled=False</code>, <code style="color:#a5d8ff">preview_hint_cx=True</code>만 유지). 콜드스타트는 가드 3프레임으로, 검출 실패 회복은 <code style="color:#a5d8ff">force_reground_on_miss</code> + 회전 후 강제 재그라운딩으로 처리합니다 — 상세: <a href="owlv2_grounder_brief.html" style="color:#f0abfc">OWL-v2 정리 5절</a>.</div>
+
 
   <!-- 동기 -->
   <div class="finding-card" style="background:linear-gradient(135deg,#0f0a20,#150f28);border-color:#7c3aed;margin-bottom:20px">
@@ -13139,6 +13201,8 @@ graph TD
     <h2 class="chapter-title">Frame 0 Cold-Start → Grounding 100% 실패 — CH54 Preview로 폴백 처리 ✅ 검증 완료</h2>
     <p class="chapter-subtitle">47세션 전수 조사 + 워밍업 적용 후 실검증(2026-06-30): Frame 0 그라운딩은 여전히 실패하나, CH54 Preview 모델이 폴백으로 커버. Frame 1부터 정상 동작.</p>
   </div>
+  <div style="background:rgba(251,191,36,0.09);border-left:3px solid #fbbf24;padding:11px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-size:0.82rem;line-height:1.8;color:#94a3b8"><strong style="color:#fbbf24">📌 현재 상태</strong> — "CH54 Preview로 폴백" 경로는 <strong style="color:#e2e8f0">현재 쓰지 않습니다</strong>(preview 비활성). Frame 0 콜드스타트는 <strong style="color:#e2e8f0">콜드스타트 가드 3프레임</strong>으로 대응하며, 실기 100건에서 첫 프레임 검출률은 위치별 20~100%로 편차가 큽니다(강우 20%) — <a href="#ch65" style="color:#a78bfa">65-1</a> 참조.</div>
+
 
   <div class="finding-card" style="background:linear-gradient(135deg,#0a1a12,#0c2417);border-color:#166534;margin-bottom:24px">
     <div class="finding-title" style="color:#86efac">✅ 실검증 완료 (2026-06-30, 세션 100316)</div>
