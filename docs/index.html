@@ -216,35 +216,16 @@
     <a href="v5/research_story.html#ch64" class="btn btn-primary" style="background:#38bdf8;color:#0a0f1a;font-size:1.02rem;padding:12px 26px">
       <i class="fas fa-magnifying-glass-chart"></i> CH64 exp73 대감사
     </a>
-    <a href="v5/research_story.html#ch65" class="btn btn-primary" style="background:#c4b5fd;color:#0a0f1a">
+  </div>
+  <div class="hero-buttons" style="margin-top:12px">
+    <a href="v5/research_story.html#ch65" class="btn btn-slate">
       <i class="fas fa-code-branch"></i> CH65 인지-정책 2축 분해
     </a>
     <a href="v5/research_story.html" class="btn btn-slate">
       <i class="fas fa-book-open"></i> Research Story (전체)
     </a>
-    <a href="v5/research_story.html#vis" class="btn btn-green">
-      <i class="fas fa-images"></i> Results &amp; Evidence
-    </a>
-    <a href="v5/grounding_hub.html" class="btn btn-slate">
-      <i class="fas fa-bullseye"></i> Grounding Hub
-    </a>
-    <a href="v5/hidden_state_hub.html" class="btn btn-slate">
-      <i class="fas fa-brain"></i> Hidden State Hub
-    </a>
-    <a href="v5/today_visual_summary.html" class="btn btn-slate">
-      <i class="fas fa-camera-retro"></i> 06-21 한눈에 보기
-    </a>
-    <a href="v5/masking_ablation_proof.html" class="btn btn-slate">
-      <i class="fas fa-eye-slash"></i> Masking Ablation
-    </a>
-    <a href="v5/robot_tests.html" class="btn btn-slate">
-      <i class="fas fa-robot"></i> Robot Tests
-    </a>
-    <a href="v5/closed_loop_eval/CH61_OWL_LIVE_FAILURE_AND_FIX.md" class="btn btn-slate">
-      <i class="fas fa-bug"></i> CH61 실로봇 OWL-v2 실패원인·버그 규명
-    </a>
-    <a href="https://minuum.github.io/MoNa-pi/" class="btn btn-outline">
-      <i class="fas fa-arrow-up-right-from-square"></i> MoNa-pi (자매 프로젝트)
+    <a href="#archive" class="btn btn-outline">
+      <i class="fas fa-box-archive"></i> 이전 자료 모음
     </a>
     <a href="https://github.com/minuum/MoNaVLA" class="btn btn-outline">
       <i class="fab fa-github"></i> GitHub
@@ -463,67 +444,135 @@
   <div class="section-inner">
     <h2 class="section-title">Key Documents</h2>
     <p style="font-size:0.86rem;color:#64748b;text-align:center;margin:-10px 0 22px;line-height:1.7">
-      최신 자료는 상단 Hero 버튼 3개(<a href="v5/model_architecture_brief.html">모델 구조</a> ·
-      <a href="v5/owlv2_grounder_brief.html">OWL-v2 정리</a> ·
-      <a href="v5/research_story.html#ch64">CH64</a>)입니다.
-      아래 카드 중 96.6% 등 시뮬레이션 수치가 적힌 것은 <strong>구 세대 자료</strong>이니 참고용으로만 보세요.
+      현재 기준 자료입니다. 시뮬레이터 시대 및 구 세대 자료는 아래
+      <a href="#archive">이전 자료 모음</a>에 정리해뒀습니다.
     </p>
     <div class="link-cards">
 
-      <a href="v5/research_story.html#ch33" class="link-card">
-        <span class="lc-tag" style="background:#dbeafe;color:#1d4ed8">Research Story</span>
-        <h3>Full Research Journey (CH1→CH36)</h3>
-        <p>데이터 수집부터 E2E 실패, decomposition 발견, SOTA 확정까지 전 과정. CH36이 최신 결론 (6/12 실사 테스트·논문 제출 결정).</p>
-        <span class="lc-arrow">Read story →</span>
+      <a href="v5/model_architecture_brief.html" class="link-card">
+        <span class="lc-tag" style="background:#f5f3ff;color:#6d28d9">Architecture</span>
+        <h3>모델 구조 &amp; 학습 방식</h3>
+        <p>파이프라인 · 260-dim 특징벡터 · 파라미터 실측(0.46B 연산 / 1.82B 로드) ·
+           학습 설정 · 서빙 제어 로직 · RoboVLMs와의 관계. 미팅 발표용.</p>
+        <span class="lc-arrow">Read →</span>
       </a>
 
-      <a href="v5/research_story.html#vis" class="link-card">
-        <span class="lc-tag" style="background:#dcfce7;color:#15803d">Visual Evidence</span>
-        <h3>VIS — 논문 부록 시각 자료</h3>
-        <p>아키텍처 다이어그램 · Zero-shot Probe 96.6% · Masking 9/9 flip · 5-Track 검증 요약.</p>
-        <span class="lc-arrow">View figures →</span>
+      <a href="v5/owlv2_grounder_brief.html" class="link-card">
+        <span class="lc-tag" style="background:#fdf4ff;color:#a21caf">Grounder</span>
+        <h3>OWL-v2 그라운더 정리</h3>
+        <p>채택 이력(방향 추정 0%로 폐기 → 좌표 공급기로 재채택) · threshold/fp16/skip_n
+           계수별 반응 · 젯슨 gap 원인 배제 과정.</p>
+        <span class="lc-arrow">Read →</span>
       </a>
 
-      <a href="v5/grounding_hub.html" class="link-card">
-        <span class="lc-tag" style="background:#fef9c3;color:#854d0e">Grounding Hub</span>
-        <h3>Grounding Analysis (7 Models)</h3>
-        <p>Kosmos-2 · PaliGemma2 · LoRA 계열 7모델 grounding 비교. side-angle / free / augmentation 케이스 포함.</p>
-        <span class="lc-arrow">Explore →</span>
+      <a href="v5/research_story.html#ch64" class="link-card">
+        <span class="lc-tag" style="background:#eff6ff;color:#1d4ed8">Latest</span>
+        <h3>CH64 exp73 대감사 (64-1 ~ 64-21)</h3>
+        <p>오프라인 감사에서 <strong>실기 89%</strong>까지. 100건 결과 · 요인 분해 ·
+           젯슨 gap 정량화 · 자체 철회 2건(64-11, 64-19) 기록 포함.</p>
+        <span class="lc-arrow">View →</span>
+      </a>
+
+      <a href="v5/research_story.html#ch65" class="link-card">
+        <span class="lc-tag" style="background:#f5f3ff;color:#7c3aed">Latest</span>
+        <h3>CH65 인지-정책 2축 분해</h3>
+        <p>검출 난이도 ≠ 주행 난이도. 충분조건은 성립하나 필요조건은 아님(강우 반례) ·
+           계측 인프라 · 검출기 Step 1~2 결과.</p>
+        <span class="lc-arrow">View →</span>
+      </a>
+
+      <a href="plans/plan_20260801_specialized_detector.md" class="link-card">
+        <span class="lc-tag" style="background:#f0fdf4;color:#15803d">Plan</span>
+        <h3>특화 소형 검출기 계획서</h3>
+        <p>OWL-v2 대체 계획. 오프라인 주석 파이프라인 증류 · 평가 프로토콜 사전 고정 ·
+           중단 기준. Step 0~2 완료, has_bbox negative 대기.</p>
+        <span class="lc-arrow">Read plan →</span>
       </a>
 
       <a href="v5/closed_loop_eval/index.html" class="link-card">
-        <span class="lc-tag" style="background:#fee2e2;color:#b91c1c">CL Evaluation</span>
+        <span class="lc-tag" style="background:#f1f5f9;color:#334155">History</span>
         <h3>Closed-Loop 평가 전체 이력</h3>
-        <p>Exp11(0%) → Exp14(66.7%) → Exp54(96.6%) → Exp66/67(96.6%). path_type별 성공률 포함.</p>
-        <span class="lc-arrow">View results →</span>
+        <p>Exp11(0%) → Exp14 → Exp54/66 → exp73 계열까지의 평가 기록.
+           <em>시뮬레이션 지표 위주.</em></p>
+        <span class="lc-arrow">View →</span>
       </a>
 
-      <a href="reports/viewer.html?file=v5/TABLE1_PAPER_DRAFT.md" class="link-card">
-        <span class="lc-tag" style="background:#f3e8ff;color:#7e22ce">Paper Draft</span>
-        <h3>논문 Table 초안 (6/12)</h3>
-        <p>Table 1(주요 방법 비교), Table 2(파이프라인×cx 소스 ablation). E2E 0% vs 96.6% 핵심 수치.</p>
-        <span class="lc-arrow">View draft →</span>
-      </a>
+    </div>
+</div>
 
-      <a href="v5/robot_tests.html" class="link-card" style="border:1.5px solid #4ade8055">
-        <span class="lc-tag" style="background:#dcfce7;color:#15803d">Robot Tests · Live</span>
-        <h3>실로봇 PG2 그라운딩 세션 분석</h3>
-        <p>S1~S6 512프레임 분석. 카메라 버그 → 4종 필터 → temporal N=3 패치 누적. S4 24프레임 필름스트립 · 파이프라인 플로우 비교.</p>
-        <span class="lc-arrow" style="color:#16a34a">View robot tests →</span>
+<!-- ══ Footer ═════════════════════════════════════════════════════════════ -->
+<!-- ══ Archive ═══════════════════════════════════════════════════════════ -->
+<div class="content-section alt" id="archive">
+  <div class="section-inner">
+    <h2 class="section-title">이전 자료 모음</h2>
+    <p style="font-size:0.88rem;color:#64748b;text-align:center;margin:-10px 0 24px;line-height:1.75">
+      아래는 <strong>시뮬레이터 시대(V5 offline) 및 구 세대 자료</strong>입니다.
+      당시 결론과 수치(96.6% CL 등)는 <strong style="color:#b45309">현재 판정 기준인 100건 실기와
+      다른 척도</strong>이므로 그대로 인용하지 마세요. 진행 경위 추적용으로 남겨둡니다.
+    </p>
+    <div class="link-cards">
+      <a href="v5/research_story.html#vis" class="link-card">
+        <span class="lc-tag" style="background:#eef2ff;color:#4338ca">Figures</span>
+        <h3>Results &amp; Evidence (VIS)</h3>
+        <p>논문 부록 시각 자료 — 아키텍처 다이어그램, Zero-shot Probe, Masking flip, 5-Track 검증.
+           <em>시뮬레이션 기준 수치 포함.</em></p>
+        <span class="lc-arrow">View figures →</span>
       </a>
-
-      <a href="legacy.html" class="link-card" style="border-style:dashed">
-        <span class="lc-tag" style="background:#f1f5f9;color:#475569">Archive</span>
-        <h3>Legacy Archive</h3>
-        <p>Exp01~67 전체 실험 링크, 구 보고서, 미팅 브리핑, 개발 로그 등 전체 히스토리.</p>
-        <span class="lc-arrow" style="color:#94a3b8">Browse archive →</span>
+      <a href="v5/grounding_hub.html" class="link-card">
+        <span class="lc-tag" style="background:#f0fdf4;color:#15803d">Grounding</span>
+        <h3>Grounding Hub (7 모델 비교)</h3>
+        <p>Kosmos-2 · PaliGemma2 · LoRA 계열 그라운딩 비교. <em>현재 배포 그라운더는 OWL-v2이며
+           최신 정리는 상단 "OWL-v2 그라운더 정리"입니다.</em></p>
+        <span class="lc-arrow">Explore →</span>
       </a>
-
+      <a href="v5/closed_loop_eval/CH61_OWL_LIVE_FAILURE_AND_FIX.md" class="link-card">
+        <span class="lc-tag" style="background:#fef2f2;color:#b91c1c">Debug</span>
+        <h3>CH61 실로봇 OWL-v2 실패원인 규명</h3>
+        <p>OWL-v2 첫 실기 배포 실패 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증.
+           OWL 채택 경위의 배경 문서.</p>
+        <span class="lc-arrow">Read →</span>
+      </a>
+      <a href="v5/robot_tests.html" class="link-card">
+        <span class="lc-tag" style="background:#fffbeb;color:#b45309">Robot</span>
+        <h3>Robot Tests (구 세션)</h3>
+        <p>초기 실로봇 세션 기록. <em>현재 기준 실기 결과는 CH64 64-18(100건)을 보세요.</em></p>
+        <span class="lc-arrow">View →</span>
+      </a>
+      <a href="v5/masking_ablation_proof.html" class="link-card">
+        <span class="lc-tag" style="background:#f5f3ff;color:#6d28d9">Ablation</span>
+        <h3>Masking Ablation</h3>
+        <p>바구니 마스킹 시 액션 flip — frozen 인코더가 바구니를 독립적으로 포착한다는 인과 증거.</p>
+        <span class="lc-arrow">View →</span>
+      </a>
+      <a href="v5/hidden_state_hub.html" class="link-card">
+        <span class="lc-tag" style="background:#f1f5f9;color:#334155">Analysis</span>
+        <h3>Hidden State Hub</h3>
+        <p>CH40 계열 hidden state 액션 헤드 분석. <em>PM은 올랐으나 closed-loop 미개선으로 종결.</em></p>
+        <span class="lc-arrow">View →</span>
+      </a>
+      <a href="v5/today_visual_summary.html" class="link-card">
+        <span class="lc-tag" style="background:#f1f5f9;color:#334155">Snapshot</span>
+        <h3>06-21 한눈에 보기</h3>
+        <p>2026-06-21 시점 스냅샷. 진행 경위 참고용.</p>
+        <span class="lc-arrow">View →</span>
+      </a>
+      <a href="legacy.html" class="link-card">
+        <span class="lc-tag" style="background:#f1f5f9;color:#334155">Archive</span>
+        <h3>Legacy Archive (전체)</h3>
+        <p>V4 이전 실험 및 초기 포트폴리오 페이지 모음.</p>
+        <span class="lc-arrow">Open →</span>
+      </a>
+      <a href="https://minuum.github.io/MoNa-pi/" class="link-card">
+        <span class="lc-tag" style="background:#ecfeff;color:#0e7490">Related</span>
+        <h3>MoNa-pi (자매 프로젝트)</h3>
+        <p>π0 계열 Flow Matching VLA. closed-loop 45.8%로 "헤드 구조보다 데이터"라는 결론을
+           독립 재현(CH63 63-6).</p>
+        <span class="lc-arrow">Open →</span>
+      </a>
     </div>
   </div>
 </div>
 
-<!-- ══ Footer ═════════════════════════════════════════════════════════════ -->
 <div class="site-footer">
   <p>
     MoNaVLA · Mobile Navigation Vision-Language-Action ·
