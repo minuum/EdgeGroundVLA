@@ -115,6 +115,66 @@ area=0.06</code>의 고정 fallback 값이 들어가고 <code>has_bbox=0</code>�
 </ul>
 </div>
 
+
+<h2 id="text-input">1-2. 텍스트 입력은 어디에 있는가 — 정리</h2>
+
+<div class="key">
+<strong class="h">짧은 답</strong> — <strong class="h">텍스트 입력은 있습니다. 단 한 곳,
+OWL-v2의 검출 대상을 지정하는 데만 쓰입니다.</strong> 그리고 그 값은
+<strong class="h">런타임에 바뀌지 않는 고정 상수</strong>(<code>"gray basket"</code>)라서,
+지시문으로 로봇의 행동을 바꾸는 구조는 아닙니다. Kosmos-2의 언어 디코더는 호출되지 않습니다.
+</div>
+
+<table>
+<tr><th>위치</th><th>텍스트가 들어가는가</th><th>실제로 쓰이는가</th><th>코드</th></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td><strong>OWL-v2 검출기</strong></td>
+    <td class="c g">✅ 들어감</td>
+    <td class="c g"><strong>✅ 실제 사용</strong><br>텍스트 인코더가 <code>"gray basket"</code>을 받아<br>검출 대상을 지정</td>
+    <td><code>phrase="gray basket"</code><br>(<code>OwlV2Grounder.run</code>)</td></tr>
+<tr style="background:rgba(251,191,36,0.1)"><td>Kosmos-2 비전 인코더</td>
+    <td class="c o">⚠️ processor에는 전달됨</td>
+    <td class="c r"><strong>❌ 버려짐</strong><br>모델 호출이 <code>pixel_values</code>만 받으므로<br>토큰화만 되고 폐기</td>
+    <td><code>processor(text=GROUNDING_PROMPT, images=…)</code><br>→ <code>vision_model(pixel_values=pv)</code></td></tr>
+<tr style="background:rgba(248,113,113,0.1)"><td>Kosmos-2 언어 디코더</td>
+    <td class="c r">❌ 안 들어감</td>
+    <td class="c r"><strong>❌ 호출 0회</strong><br>1.361B가 로드만 됨(현재는 로드도 제거)</td>
+    <td>—</td></tr>
+<tr><td>MLP 액션 헤드</td>
+    <td class="c r">❌ 안 들어감</td>
+    <td class="c r">입력은 260-dim 숫자 벡터<br>(비전 256 + bbox 4)뿐</td>
+    <td><code>FRAME_DIM = 4 + 256</code></td></tr>
+</table>
+
+<h3>즉 "언어가 입력이 아니라 설정값"입니다</h3>
+<p>텍스트가 파이프라인 안에 존재하기는 하지만, <strong class="h">사용자가 런타임에 지시문을 바꿔
+행동을 바꾸는 조건화(language conditioning)는 하지 않습니다.</strong>
+<code>multi_prompt=False</code>로 단일 쿼리만 쓰며, 값도 코드에 고정돼 있습니다.
+그래서 <strong class="h">엄밀히는 VLA가 아니라 "오픈 보캐블러리 객체 검출 + 액션 헤드"</strong>이고,
+이것이 <strong class="h">2026-07-23 미팅에서 모델 정의를 그렇게 바꾸기로 결정한 근거</strong>입니다.</p>
+
+<h3>왜 언어 경로를 쓰지 않게 됐는가 — 측정 결과 2건</h3>
+<table>
+<tr><th>근거</th><th>측정값</th><th>의미</th></tr>
+<tr><td><strong>text attention = 0.000%</strong><br>(Exp17~41C 전 실험, per-layer 측정)</td>
+    <td class="c r">0.000%</td>
+    <td>Google-robot post-training 단계에서 언어→비전 경로가 이미 붕괴.
+        <strong class="h">head-only 학습에서도 재현</strong>되어 우리 학습 탓이 아니라 모델 구조 기인으로 확정</td></tr>
+<tr><td><strong>프롬프트 어블레이션</strong><br>(CH58, 11가지 쿼리 × 39세션)</td>
+    <td class="c r">방향 정확도 0%</td>
+    <td><code>"basket"</code> / <code>"gray laundry basket"</code> /
+        <code>"gray container"</code> / multi 등 <strong class="h">쿼리를 어떻게 바꿔도
+        방향 추정은 불가</strong>. 그래서 OWL-v2를 "방향 추정기"에서
+        <strong class="h">"좌표 공급기"로 역할을 축소</strong>해 재채택</td></tr>
+</table>
+
+<div class="note">
+<strong class="o">그래서 이게 경량화 논문의 동기가 됩니다</strong> — 언어가 실제로 기능하지 않는다면
+범용 open-vocabulary 능력(임의 객체를 텍스트로 지정하는 능력)도 필요하지 않습니다.
+대상이 <strong class="h">"회색 바구니" 하나로 고정</strong>이므로, 1902ms를 먹는 범용 OWL-v2를
+<strong class="h">도메인 특화 소형 검출기로 대체</strong>할 여지가 생깁니다
+(<a href="research_story.html#ch65">CH65 65-5/65-6</a>: 위치 추정은 0.12ms로 해결, has_bbox는 진행 중).
+</div>
+
 <h2>2. 파라미터 — "0.46B"와 "1.8B"는 둘 다 맞습니다</h2>
 
 <p>이전 미팅에서 언급된 두 숫자가 서로 다른 것을 가리킵니다. 실측으로 정리하면:</p>
