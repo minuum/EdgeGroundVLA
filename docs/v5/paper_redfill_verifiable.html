@@ -289,15 +289,15 @@
             <td class="text-center fw-bold text-info">08<br><small class="text-muted">p5#55</small></td>
             <td>
               <div class="red-question">🔴 이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div>
-              <div class="action-plan">✅ <strong>대응책:</strong> 1) End-to-End VLA의 어텐션 붕괴(Text Attention 0.000%) 방지, 2) 225ep 소규모 데이터 효율성(0.866M MLP 헤드만 2단계 학습), 3) 엣지(Jetson 1.3Hz) zero-order hold 지연 환경에서 이산 8클래스 조향 래칭 제어 안정성 입증.</div>
-              <div class="draft-text">📄 "End-to-End VLA 방식은 fine-tuning 과정에서 언어-시각 어텐션 붕괴(Text Attention 0.000%)가 발생하여 오프라인 지표가 높아도 실시간 주행 성공률이 0%에 그쳤다. 이를 극복하기 위해 OVD 명시적 기하 좌표(4ch)와 VLM 비전 문맥(256ch)을 Concatenate하는 Heterogeneous Decomposition 구조를 도입하였으며, 백본을 Frozen시킨 채 0.866M 경량 MLP 헤드만 2단계로 학습시킴으로써 225ep 데이터 효율성과 1.3Hz 제어 안정성을 동시에 확보하여 Closed-loop 주행 성공률 66.7%(FPE 0.55m)를 달성하였다."</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 1) E2E VLA의 어텐션 붕괴(Text Attention 0.000%) 및 주행 실패 극복, 2) <strong>실기 100회 테스트 89% 성공(89/100, 5개 위치별 100/95/90/80/80%)</strong> 입증, 3) <strong>0.866M 경량 MLP 헤드</strong>의 3대 장점(Frozen 백본 기반 모듈식 고속 2단계 학습, 엣지 서빙 sub-ms 연산 속도, 1.3Hz zero-order hold 지연 환경에서 이산 8클래스 래칭 안정성) 서술.</div>
+              <div class="draft-text">📄 "End-to-End VLA 방식은 fine-tuning 과정에서 언어-시각 어텐션 붕괴(Text Attention 0.000%)가 발생하여 오프라인 지표가 높아도 실시간 주행 성공률이 0%에 그쳤다. 이를 극복하기 위해 OVD 명시적 기하 좌표(4ch)와 VLM 비전 문맥(256ch)을 Concatenate하는 Heterogeneous Decomposition 구조를 도입하였다. 무거운 백본을 Frozen시킨 채 단 0.866M 파라미터의 경량 MLP 헤드만을 2단계로 학습시키는 본 모듈식 설계는 무거운 백본 재학습 없이도 225ep 데이터 효율성과 sub-ms 추론 속도를 확보하였으며, 실제 실기 100회 평가(5개 목표 위치 × 20회)에서 89%의 실주행 성공률(89/100, FPE 0.55m)을 달성하여 그 구조적 당위성을 증명하였다."</div>
             </td>
-            <td>Exp17~41C 어텐션 붕괴 실험 및 Closed-loop 주행 실측(Exp11 vs Exp14)</td>
+            <td>Exp17~41C 어텐션 붕괴 실험 및 실기 100회 평가 실측(89/100, 89%)</td>
             <td><span class="badge bg-date">2026-06-25</span></td>
             <td>
               <div class="src-box">
+                📄 <code>docs/index.html</code> (L205, L288)<br>
                 📄 <code>docs/v5/exp54_v1_vs_v2_comparison.md</code><br>
-                📄 <code>docs/v5/exp_stop_report.md</code><br>
                 📄 <code>docs/v5/research_story.html#ch68</code>
               </div>
             </td>
