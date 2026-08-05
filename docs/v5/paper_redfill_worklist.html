@@ -49,6 +49,17 @@
   th { color:#94a3b8; font-weight:700; white-space:nowrap; }
   a { color:#7dd3fc; }
   .nav { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:22px; }
+  .vtab { font-size:0.82rem; }
+  .vtab td { vertical-align:top; }
+  .rawred { color:#fca5a5; white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+            font-size:0.8rem; display:block; }
+  .redsrc { background:#0d1117; border:1px solid #7f1d1d; border-left:4px solid #f87171;
+            border-radius:7px; padding:10px 13px; margin:8px 0 12px; }
+  .redsrc .lbl { font-size:0.7rem; color:#94a3b8; letter-spacing:0.5px; margin-bottom:5px;
+                 text-transform:uppercase; }
+  .redsrc .txt { color:#fca5a5; white-space:pre-wrap;
+                 font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.82rem; }
+  .ctx { font-size:0.78rem; color:#64748b; margin-top:7px; white-space:pre-wrap; }
   .nav a { padding:6px 14px; background:#0d1117; border:1px solid var(--line);
            border-radius:8px; font-size:0.76rem; text-decoration:none; color:#cbd5e1; }
   @media (prefers-color-scheme: light) {
@@ -76,11 +87,45 @@
     <a href="model_architecture_brief.html">🏗 모델 구조 자료</a>
     <a href="owlv2_grounder_brief.html">🎯 OWL-v2 자료</a>
     <a href="research_story.html#ch64">🔍 CH64</a>
+    <a href="#verbatim">🔴 빨간글씨 원문 25건</a>
     <a href="#plan">🚀 이후 액션플랜</a>
   </div>
 </div>
 
 <div class="wrap">
+
+<div class="verbatim">
+  <h2 id="verbatim" style="border-left-color:#fbbf24;margin-top:34px">원문 그대로 — 빨간글씨 25건 <span class="n">쪽 · 단락번호 · 절 표기, 토씨 그대로</span></h2>
+  <p class="lead">아래는 docx에서 추출한 <strong>빨간색 run 원문</strong>입니다. 줄바꿈·공백·오탈자까지 문서 그대로이며 요약·수정하지 않았습니다. 각 번호를 누르면 아래 해설로 이동합니다.</p>
+  <table class="vtab">
+    <tr><th>#</th><th>쪽</th><th>단락</th><th>절</th><th>빨간글씨 원문</th></tr>
+    <tr id="v1"><td><a href="#a1"><strong>01</strong></a></td><td>p4</td><td>#39</td><td style="font-size:0.76rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">-&gt; 이 그림을 다시 그려야 될 것 같음.</span></td></tr>
+    <tr id="v2"><td><a href="#a2"><strong>02</strong></a></td><td>p4</td><td>#40</td><td style="font-size:0.76rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">프레임 특징 벡터 — 260차원</span></td></tr>
+    <tr id="v3"><td><a href="#a3"><strong>03</strong></a></td><td>p4</td><td>#41</td><td style="font-size:0.76rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">FRAME_DIM = 4 + 256 = 260</span></td></tr>
+    <tr id="v4"><td><a href="#a4"><strong>04</strong></a></td><td>p4</td><td>#42</td><td style="font-size:0.76rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)</span></td></tr>
+    <tr id="v5"><td><a href="#a5"><strong>05</strong></a></td><td>p4</td><td>#43</td><td style="font-size:0.76rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">└ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize</span></td></tr>
+    <tr id="v6"><td><a href="#a6"><strong>06</strong></a></td><td>p4</td><td>#45</td><td style="font-size:0.76rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">헤드 입력 : window=6 프레임을 flatten → (6 × 260) = 1560차원</span></td></tr>
+    <tr id="v7"><td><a href="#a7"><strong>07</strong></a></td><td>p4</td><td>#46</td><td style="font-size:0.76rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">헤드 출력 : 8클래스 로짓</span></td></tr>
+    <tr id="v8"><td><a href="#a8"><strong>08</strong></a></td><td>p5</td><td>#55</td><td style="font-size:0.76rem;color:#94a3b8">1.1 Heterogeneous Grounding Encoder</td><td><span class="rawred">이 것이 이구조를 생각한 이유를 설명할 수 있나?)</span></td></tr>
+    <tr id="v9"><td><a href="#a9"><strong>09</strong></a></td><td>p5</td><td>#63</td><td style="font-size:0.76rem;color:#94a3b8">1.4. Serving Control</td><td><span class="rawred">threshold  설정 내용 기재</span></td></tr>
+    <tr id="v10"><td><a href="#a10"><strong>10</strong></a></td><td>p5</td><td>#64</td><td style="font-size:0.76rem;color:#94a3b8">1.4. Serving Control</td><td><span class="rawred">skip_n=3 의미</span></td></tr>
+    <tr id="v11"><td><a href="#a11"><strong>11</strong></a></td><td>p5</td><td>#65</td><td style="font-size:0.76rem;color:#94a3b8">1.4. Serving Control</td><td><span class="rawred">force_reground_on_miss -  회전 후 강제 재그라운딩</span></td></tr>
+    <tr id="v12"><td><a href="#a12"><strong>12</strong></a></td><td>p5</td><td>#66</td><td style="font-size:0.76rem;color:#94a3b8">1.4. Serving Control</td><td><span class="rawred">stop_mode=learned + 콜드스타트 가드 3</span></td></tr>
+    <tr id="v13"><td><a href="#a13"><strong>13</strong></a></td><td>p6</td><td>#78</td><td style="font-size:0.76rem;color:#94a3b8">3. Collection of data</td><td><span class="rawred">데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</span></td></tr>
+    <tr id="v14"><td><a href="#a14"><strong>14</strong></a></td><td>p8</td><td>#125</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">데이터를 이용하여 어떻게 학습을 진행 했는지 기술</span></td></tr>
+    <tr id="v15"><td><a href="#a15"><strong>15</strong></a></td><td>p8</td><td>#126</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">학습 파라미터</span></td></tr>
+    <tr id="v16"><td><a href="#a16"><strong>16</strong></a></td><td>p8</td><td>#127</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">window       = 6 프레임          bbox_scale = 3.0</span></td></tr>
+    <tr id="v17"><td><a href="#a17"><strong>17</strong></a></td><td>p8</td><td>#128</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">num_classes  = 8                 optimizer  = Adam, lr = 5e-4</span></td></tr>
+    <tr id="v18"><td><a href="#a18"><strong>18</strong></a></td><td>p8</td><td>#129</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">epochs       = 300               scheduler  = CosineAnnealingLR</span></td></tr>
+    <tr id="v19"><td><a href="#a19"><strong>19</strong></a></td><td>p8</td><td>#130</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">class weight = 1/빈도 정규화      ← FORWARD 71~74% 편중 보정</span></td></tr>
+    <tr id="v20"><td><a href="#a20"><strong>20</strong></a></td><td>p8</td><td>#131</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">seeds        = 0, 1, 2 (다중 시드로 분산 확인)</span></td></tr>
+    <tr id="v21"><td><a href="#a21"><strong>21</strong></a></td><td>p8</td><td>#133</td><td style="font-size:0.76rem;color:#94a3b8">5.2 학습 방법 설명</td><td><span class="rawred">모델을 학습하고 난 후에 ***.pth 파일이 결과로 나옴.</span></td></tr>
+    <tr id="v22"><td><a href="#a22"><strong>22</strong></a></td><td>p9</td><td>#137</td><td style="font-size:0.76rem;color:#94a3b8">6. Deploy the trained EdgeGround-VLA model on the robot</td><td><span class="rawred">학습된 EdgeGrouund-VLA 모델을 SerbotII에 탑재하는 방법 설명</span></td></tr>
+    <tr id="v23"><td><a href="#a23"><strong>23</strong></a></td><td>p9</td><td>#141</td><td style="font-size:0.76rem;color:#94a3b8">7.  Runtime 수행</td><td><span class="rawred">로봇  수행 시  카메라로 한 프레임 입력값 전처리 -&gt; 입력값 AI 모델에 입력 -&gt; AI 모델 수행-&gt;  결과값으로 후처리 과정 설명</span></td></tr>
+    <tr id="v24"><td><a href="#a24"><strong>24</strong></a></td><td>p9</td><td>#142</td><td style="font-size:0.76rem;color:#94a3b8">7.  Runtime 수행</td><td><span class="rawred">Serving control을 런타임시에 여기에서 threshold 값 설정</span></td></tr>
+    <tr id="v25"><td><a href="#a25"><strong>25</strong></a></td><td>p9</td><td>#144</td><td style="font-size:0.76rem;color:#94a3b8">7.  Runtime 수행</td><td><span class="rawred">has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고정 fallback 값이 들어가고 has_bbox=0으로 표시됩니다. 즉 헤드는 &quot;지금 타겟을 못 보고 있다&quot;는 신호를 입력으로 받습니다. 그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)여서, 모델은 이 신호에 대응하는 법을 배운 적이 없습니다(CH64 64-15). 실기에서는 이를 학습이 아니라 서빙 제어 로직으로 우회했습니다(4절).</span></td></tr>
+  </table>
+</div>
 
 <div class="err" style="margin-top:34px">
   <strong style="color:#f87171">⚠️ 먼저 볼 것 — 초안 본문에 사실과 다른 서술 2건</strong><br>
@@ -113,14 +158,14 @@
    (값 자체가 이미 정확합니다). 할 일은 본문 산문에 녹여 넣고 위의 모순을 정리하는 것입니다.</p>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>1-1 ~ 1-6. 프레임 특징 벡터 / 헤드 입출력</h3>
-  <div class="meta">p4 · 단락 #40~46</div>
-  <div class="quote">프레임 특징 벡터 — 260차원
-FRAME_DIM = 4 + 256 = 260
-  ├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
-  └ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize
-헤드 입력 : window=6 프레임을 flatten → (6 × 260) = 1560차원
-헤드 출력 : 8클래스 로짓</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 02~07 — 프레임 특징 벡터 / 헤드 입출력</h3>
+  <div class="meta">원문 02~07 · p4 · 단락 #40~46</div>
+  <span id="a2"></span><span id="a3"></span><span id="a4"></span><span id="a5"></span><span id="a6"></span><span id="a7"></span><div class="redsrc" id="a2"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">02  p4 #40   프레임 특징 벡터 — 260차원
+03  p4 #41   FRAME_DIM = 4 + 256 = 260
+04  p4 #42   ├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
+05  p4 #43   └ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize
+06  p4 #45   헤드 입력 : window=6 프레임을 flatten → (6 × 260) = 1560차원
+07  p4 #46   헤드 출력 : 8클래스 로짓</div></div>
   <div class="ans">
     <strong>값은 모두 정확합니다.</strong> 한 가지만 정정: <code>bbox_scale=3.0</code>은
     area에만 적용되는 것이 아니라 <strong>bbox 4채널 전체</strong>에 곱해집니다
@@ -133,9 +178,9 @@ FRAME_DIM = 4 + 256 = 260
 </div>
 
 <div class="item partial">
-  <h3><span class="tag t-partial">확인 필요</span>1-7. 파이프라인 그림 재작성</h3>
-  <div class="meta">p4 · 단락 #39</div>
-  <div class="quote">-> 이 그림을 다시 그려야 될 것 같음.</div>
+  <h3><span class="tag t-partial">확인 필요</span>원문 01 — 파이프라인 그림 재작성</h3>
+  <div class="meta">원문 01 · p4 · 단락 #39</div>
+  <span id="a1"></span><div class="redsrc" id="a1"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">01  p4 #39   -&gt; 이 그림을 다시 그려야 될 것 같음.</div><div class="ctx">단락 전체: &quot;모델 파이프라인 구성   -&gt; 이 그림을 다시 그려야 될 것 같음.&quot;</div></div>
   <div class="warn">
     현재 초안의 그림은 <strong>구버전 구조</strong>입니다(메인 페이지에 있던 것과 같은 계열 —
     PaliGemma2 SigLIP / 32-dim bbox history / ActionMLP). 실제 구조와 다릅니다.
@@ -148,9 +193,9 @@ FRAME_DIM = 4 + 256 = 260
 <h2>② 구조 선택의 근거 <span class="n">p5 · 1.1 Heterogeneous Grounding Encoder · 1건</span></h2>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>2-1. "이 구조를 생각한 이유를 설명할 수 있나?"</h3>
-  <div class="meta">p5 · 단락 #55</div>
-  <div class="quote">왜 Decomposition이 압도적으로 유리한가? (이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 08 — "이 구조를 생각한 이유를 설명할 수 있나?"</h3>
+  <div class="meta">원문 08 · p5 · 단락 #55</div>
+  <span id="a8"></span><div class="redsrc" id="a8"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">08  p5 #55   이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div><div class="ctx">빨간색은 괄호 안 삽입문만입니다. 단락 앞부분 &quot;왜 Decomposition이 압도적으로 유리한가? (&quot;와 그 뒤 설명 문장(End-to-end는 … 직접 활용할 수 있다.)은 검은색 본문입니다.</div></div>
   <div class="ans">
     <strong>설명할 수 있고, 실측 이력이 그대로 근거입니다.</strong> 시간 순서가 곧 논리입니다:
     <table>
@@ -180,8 +225,9 @@ FRAME_DIM = 4 + 256 = 260
    <strong>"학습으로 못 고친 것을 서빙 로직으로 우회했다"</strong>는 논문의 실용적 기여 지점입니다.</p>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>3-1. threshold 설정 내용</h3>
-  <div class="meta">p5 · 단락 #63 · <span style="color:#fca5a5">"threshold 설정 내용 기재"</span></div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 09 — threshold 설정 내용</h3>
+  <div class="meta">원문 09 · p5 · 단락 #63</div>
+  <span id="a9"></span><div class="redsrc" id="a9"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">09  p5 #63   threshold  설정 내용 기재</div></div>
   <div class="ans">
     <strong>운영값 <code>owlv2_thresh = 0.20</code></strong>. 결정 경위를 함께 써야 합니다:
     <ul style="margin:6px 0">
@@ -200,8 +246,9 @@ FRAME_DIM = 4 + 256 = 260
 </div>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>3-2. <code>skip_n=3</code>의 의미</h3>
-  <div class="meta">p5 · 단락 #64</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 10 — <code>skip_n=3</code>의 의미</h3>
+  <div class="meta">원문 10 · p5 · 단락 #64</div>
+  <span id="a10"></span><div class="redsrc" id="a10"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">10  p5 #64   skip_n=3 의미</div></div>
   <div class="ans">
     <code>grounding_skip_n=3</code> — <strong>매 프레임 그라운딩을 하지 않고 3프레임마다 한 번만
     수행</strong>하고, 사이 프레임은 마지막 bbox를 유지합니다(<strong>zero-order hold</strong>).
@@ -214,8 +261,9 @@ FRAME_DIM = 4 + 256 = 260
 </div>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>3-3. <code>force_reground_on_miss</code> — 회전 후 강제 재그라운딩</h3>
-  <div class="meta">p5 · 단락 #65</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 11 — <code>force_reground_on_miss</code> — 회전 후 강제 재그라운딩</h3>
+  <div class="meta">원문 11 · p5 · 단락 #65</div>
+  <span id="a11"></span><div class="redsrc" id="a11"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">11  p5 #65   force_reground_on_miss -  회전 후 강제 재그라운딩</div></div>
   <div class="ans">
     미검출이 발생하면 <strong>skip 주기를 무시하고 즉시 재그라운딩</strong>합니다. 여기에 회전 관련
     보호 규칙 3개가 함께 걸려 있습니다:
@@ -231,8 +279,9 @@ FRAME_DIM = 4 + 256 = 260
 </div>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>3-4. <code>stop_mode=learned</code> + 콜드스타트 가드 3</h3>
-  <div class="meta">p5 · 단락 #66</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 12 — <code>stop_mode=learned</code> + 콜드스타트 가드 3</h3>
+  <div class="meta">원문 12 · p5 · 단락 #66</div>
+  <span id="a12"></span><div class="redsrc" id="a12"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">12  p5 #66   stop_mode=learned + 콜드스타트 가드 3</div></div>
   <div class="ans">
     정지 판단을 <strong>기하 규칙이 아니라 학습된 STOP 클래스(class 0)</strong>로 합니다.
     <br><strong>콜드스타트 가드 3</strong>: 첫 <strong>3회 추론</strong>까지는 STOP을 무시합니다.
@@ -247,9 +296,9 @@ FRAME_DIM = 4 + 256 = 260
 <h2>④ 데이터 수집 <span class="n">p6 · 3. Collection of data · 1건 — 절 전체가 비어 있음</span></h2>
 
 <div class="item partial">
-  <h3><span class="tag t-partial">부분</span>4-1. 데이터 포맷과 수집 방법</h3>
-  <div class="meta">p6 · 단락 #78</div>
-  <div class="quote">데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</div>
+  <h3><span class="tag t-partial">부분</span>원문 13 — 데이터 포맷과 수집 방법</h3>
+  <div class="meta">원문 13 · p6 · 단락 #78</div>
+  <span id="a13"></span><div class="redsrc" id="a13"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">13  p6 #78   데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</div></div>
   <div class="ans">
     <strong>있는 것 — 바로 쓸 수 있습니다</strong>
     <table>
@@ -286,13 +335,14 @@ FRAME_DIM = 4 + 256 = 260
 <h2>⑤ 학습 방법 <span class="n">p8 · 5.2 학습 방법 설명 · 8건</span></h2>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>5-1 ~ 5-6. 학습 파라미터</h3>
-  <div class="meta">p8 · 단락 #126~131</div>
-  <div class="quote">window = 6 프레임          bbox_scale = 3.0
-num_classes = 8            optimizer = Adam, lr = 5e-4
-epochs = 300               scheduler = CosineAnnealingLR
-class weight = 1/빈도 정규화      ← FORWARD 71~74% 편중 보정
-seeds = 0, 1, 2 (다중 시드로 분산 확인)</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 15~20 — 학습 파라미터</h3>
+  <div class="meta">원문 15~20 · p8 · 단락 #126~131</div>
+  <span id="a15"></span><span id="a16"></span><span id="a17"></span><span id="a18"></span><span id="a19"></span><span id="a20"></span><div class="redsrc" id="a15"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">15  p8 #126   학습 파라미터
+16  p8 #127   window       = 6 프레임          bbox_scale = 3.0
+17  p8 #128   num_classes  = 8                 optimizer  = Adam, lr = 5e-4
+18  p8 #129   epochs       = 300               scheduler  = CosineAnnealingLR
+19  p8 #130   class weight = 1/빈도 정규화      ← FORWARD 71~74% 편중 보정
+20  p8 #131   seeds        = 0, 1, 2 (다중 시드로 분산 확인)</div></div>
   <div class="ans">
     <strong>전부 맞습니다.</strong> 빠져 있어서 추가해야 하는 것:
     <ul style="margin:6px 0">
@@ -314,8 +364,9 @@ seeds = 0, 1, 2 (다중 시드로 분산 확인)</div>
 </div>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>5-7. "데이터를 이용하여 어떻게 학습을 진행했는지 기술"</h3>
-  <div class="meta">p8 · 단락 #125</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 14 — "데이터를 이용하여 어떻게 학습을 진행했는지 기술"</h3>
+  <div class="meta">원문 14 · p8 · 단락 #125</div>
+  <span id="a14"></span><div class="redsrc" id="a14"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">14  p8 #125   데이터를 이용하여 어떻게 학습을 진행 했는지 기술</div></div>
   <div class="ans">
     <strong>2단계 구조로 쓰는 것이 정확합니다.</strong>
     <pre>Stage 1 (오프라인, 1회) — 피처 캐시 생성
@@ -334,8 +385,9 @@ Stage 2 (반복) — 액션 헤드만 학습
 </div>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>5-8. "학습 후 ***.pth 파일이 결과로 나옴"</h3>
-  <div class="meta">p8 · 단락 #133</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 21 — "학습 후 ***.pth 파일이 결과로 나옴"</h3>
+  <div class="meta">원문 21 · p8 · 단락 #133</div>
+  <span id="a21"></span><div class="redsrc" id="a21"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">21  p8 #133   모델을 학습하고 난 후에 ***.pth 파일이 결과로 나옴.</div></div>
   <div class="ans">
     실제 확장자는 <code>.pt</code>이고, <strong>state_dict만이 아니라 메타데이터를 함께 저장</strong>합니다:
     <pre>{"model": state_dict, "head": "exp73_mlp", "window": 6, "bbox_scale": 3.0,
@@ -352,8 +404,9 @@ Stage 2 (반복) — 액션 헤드만 학습
 <h2>⑥ 로봇 탑재 방법 <span class="n">p9 · 6. Deploy · 1건 — 절 전체가 비어 있음</span></h2>
 
 <div class="item partial">
-  <h3><span class="tag t-partial">부분 · soda 확인 필요</span>6-1. SerbotII 탑재 방법</h3>
-  <div class="meta">p9 · 단락 #137</div>
+  <h3><span class="tag t-partial">부분 · soda 확인 필요</span>원문 22 — SerbotII 탑재 방법</h3>
+  <div class="meta">원문 22 · p9 · 단락 #137</div>
+  <span id="a22"></span><div class="redsrc" id="a22"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">22  p9 #137   학습된 EdgeGrouund-VLA 모델을 SerbotII에 탑재하는 방법 설명</div></div>
   <div class="ans">
     <strong>우리 쪽에서 아는 것</strong>: 체크포인트 <code>.pt</code>(헤드) +
     <code>stage1_v2_projs.pt</code>(image_proj)를 젯슨으로 전달 →
@@ -374,8 +427,9 @@ Stage 2 (반복) — 액션 헤드만 학습
 <h2>⑦ Runtime 수행 <span class="n">p9 · 7. Runtime · 3건</span></h2>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>7-1. 전처리 → 추론 → 후처리 파이프라인</h3>
-  <div class="meta">p9 · 단락 #141</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 23 — 전처리 → 추론 → 후처리 파이프라인</h3>
+  <div class="meta">원문 23 · p9 · 단락 #141</div>
+  <span id="a23"></span><div class="redsrc" id="a23"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">23  p9 #141   로봇  수행 시  카메라로 한 프레임 입력값 전처리 -&gt; 입력값 AI 모델에 입력 -&gt; AI 모델 수행-&gt;  결과값으로 후처리 과정 설명</div></div>
   <div class="ans">
     <pre>[전처리]  1280×720 RGB 1프레임
           → OWL-v2(1901.7ms, skip_n=3에 따라 3프레임마다) → bbox 4채널
@@ -396,8 +450,9 @@ Stage 2 (반복) — 액션 헤드만 학습
 </div>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">지금 가능</span>7-2. 런타임 threshold 설정 위치</h3>
-  <div class="meta">p9 · 단락 #142</div>
+  <h3><span class="tag t-ready">지금 가능</span>원문 24 — 런타임 threshold 설정 위치</h3>
+  <div class="meta">원문 24 · p9 · 단락 #142</div>
+  <span id="a24"></span><div class="redsrc" id="a24"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">24  p9 #142   Serving control을 런타임시에 여기에서 threshold 값 설정</div></div>
   <div class="ans">
     환경변수 <code>VLA_OWLV2_THRESH</code>로 주입되며 기본값은 코드 상수입니다
     (<code>stage2_v2_inference_server.py</code>). 실제로 어떤 값이 돌았는지는
@@ -408,8 +463,9 @@ Stage 2 (반복) — 액션 헤드만 학습
 </div>
 
 <div class="item ready">
-  <h3><span class="tag t-ready">이미 작성됨</span>7-3. <code>has_bbox</code> 채널의 의미</h3>
-  <div class="meta">p9 · 단락 #144</div>
+  <h3><span class="tag t-ready">이미 작성됨</span>원문 25 — <code>has_bbox</code> 채널의 의미</h3>
+  <div class="meta">원문 25 · p9 · 단락 #144</div>
+  <span id="a25"></span><div class="redsrc" id="a25"><div class="lbl">📄 초안 빨간글씨 원문 (수정·요약 없음)</div><div class="txt">25  p9 #144   has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고정 fallback 값이 들어가고 has_bbox=0으로 표시됩니다. 즉 헤드는 &quot;지금 타겟을 못 보고 있다&quot;는 신호를 입력으로 받습니다. 그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)여서, 모델은 이 신호에 대응하는 법을 배운 적이 없습니다(CH64 64-15). 실기에서는 이를 학습이 아니라 서빙 제어 로직으로 우회했습니다(4절).</div></div>
   <div class="ans">
     이 항목은 <strong>이미 교수님이 붙여넣어 둔 상태</strong>이고 내용도 맞습니다
     (미검출 시 fallback cx=0.5/cy=0.6/area=0.06, has_bbox=0, 학습 데이터에 0.00%).
