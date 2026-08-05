@@ -484,7 +484,16 @@ hold-aware로 해소되지 않습니다</strong>. 불균형 보정은 클래스 
 <tr><td><code>owlv2_thresh = 0.20</code></td><td>검출 임계값 (0.25에서 하향 — 실측 검출률 1.71배)</td></tr>
 <tr><td><code>force_reground_on_miss</code></td><td>미검출 시 다음 스텝 캐시를 강제로 건너뛰고 재검출</td></tr>
 <tr><td>회전 후 강제 재그라운딩</td><td>시야가 크게 바뀐 직후 캐시 신뢰 금지</td></tr>
-<tr><td>회전 0.4초 제한 + 자동정지</td><td>회전 폭주 방지</td></tr>
+<tr><td>회전 0.4초 후 자동정지 <span class="o">(제어 계층)</span></td><td>회전 폭주 방지 —
+    제어 루프가 명령을 COAST 4.0s·10Hz로 반복 발행하는데 <strong class="h">회전만 예외</strong>로
+    <code>move_and_stop_ramped(move_duration=0.4)</code>. 예외가 없으면 그라운딩 ~2초 동안
+    같은 회전이 계속 재발행돼 타겟이 화면 밖으로 밀려남(2026-07-30)</td></tr>
+<tr><td>회전 직후 강제 재그라운딩 <span class="g">(추론 서버, 상시)</span></td>
+    <td><code>just_rotated</code>면 skip_n 무시하고 재검출</td></tr>
+<tr><td>연속 회전 차단 <span class="g">(추론 서버, 상시)</span></td>
+    <td>두 번째 회전은 실행하지 않고 <strong>정지 명령으로 대체</strong></td></tr>
+<tr><td><code>force_reground_on_miss</code> <span class="r">(기본 off)</span></td>
+    <td>A/B 테스트용 선택 항목 — <strong class="r">상시 규칙이 아님</strong></td></tr>
 <tr><td>연속 회전 차단</td><td>같은 방향 회전 반복 잠김 방지</td></tr>
 <tr><td><code>stop_mode = learned</code> + 콜드스타트 가드 3프레임</td><td>초기 프레임 오판으로 즉시 정지하는 것 방지</td></tr>
 <tr><td><code>grounding_skip_n = 3</code></td><td>3프레임마다 1회만 신선 그라운딩(속도 타협)</td></tr>
