@@ -1,0 +1,479 @@
+<title>논문 초안 빨간글씨 채우기 작업목록 — EdgeGround-VLA 0805</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#0a0f1a; --card:#111827; --line:#1e293b; --txt:#e2e8f0; --muted:#94a3b8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+         line-height:1.75; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 22px 80px; }
+  .hero { background:linear-gradient(135deg,#0f172a,#3f1d2e 50%,#0f172a); padding:56px 24px 44px;
+          text-align:center; border-bottom:1px solid var(--line); }
+  .hero h1 { font-size:2.1rem; font-weight:900; margin:0 0 12px;
+             background:linear-gradient(90deg,#f87171,#fbbf24,#38bdf8);
+             -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero p { color:var(--muted); max-width:760px; margin:0 auto; font-size:0.95rem; }
+  .kpis { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:24px; }
+  .kpi { background:#0d1117; border:1px solid var(--line); border-radius:10px; padding:10px 18px; }
+  .kpi b { display:block; font-size:1.5rem; }
+  .kpi span { font-size:0.72rem; color:var(--muted); }
+  h2 { margin:52px 0 6px; font-size:1.35rem; border-left:4px solid #f87171; padding-left:12px; }
+  h2 .n { color:#64748b; font-size:0.85rem; font-weight:400; margin-left:8px; }
+  .lead { color:var(--muted); font-size:0.88rem; margin:0 0 18px; }
+  .item { background:var(--card); border:1px solid var(--line); border-left:4px solid #475569;
+          border-radius:10px; padding:16px 18px; margin:14px 0; }
+  .item.ready { border-left-color:#4ade80; }
+  .item.partial { border-left-color:#fbbf24; }
+  .item.blocked { border-left-color:#f87171; }
+  .item h3 { margin:0 0 4px; font-size:1rem; }
+  .meta { font-size:0.74rem; color:#64748b; margin-bottom:10px; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:20px; font-size:0.7rem;
+         font-weight:700; margin-right:6px; }
+  .t-ready { background:#052e16; color:#86efac; }
+  .t-partial { background:#2b1f05; color:#fcd34d; }
+  .t-blocked { background:#2b0a0a; color:#fca5a5; }
+  .quote { background:#0d1117; border:1px solid #334155; border-radius:7px; padding:9px 12px;
+           font-size:0.86rem; color:#fca5a5; margin:8px 0; white-space:pre-wrap; }
+  .ans { background:rgba(74,222,128,0.07); border-left:3px solid #4ade80; padding:10px 13px;
+         margin:9px 0; font-size:0.87rem; }
+  .warn { background:rgba(251,191,36,0.08); border-left:3px solid #fbbf24; padding:10px 13px;
+          margin:9px 0; font-size:0.87rem; }
+  .err { background:rgba(248,113,113,0.08); border-left:3px solid #f87171; padding:10px 13px;
+         margin:9px 0; font-size:0.87rem; }
+  code { background:#0d1117; padding:1px 6px; border-radius:4px; font-size:0.83em; color:#7dd3fc; }
+  pre { background:#0d1117; border:1px solid #334155; border-radius:7px; padding:11px 13px;
+        overflow-x:auto; font-size:0.8rem; margin:8px 0; }
+  table { width:100%; border-collapse:collapse; font-size:0.83rem; margin:10px 0;
+          display:block; overflow-x:auto; }
+  th,td { padding:6px 8px; border-bottom:1px solid var(--line); text-align:left; }
+  th { color:#94a3b8; font-weight:700; white-space:nowrap; }
+  a { color:#7dd3fc; }
+  .nav { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:22px; }
+  .nav a { padding:6px 14px; background:#0d1117; border:1px solid var(--line);
+           border-radius:8px; font-size:0.76rem; text-decoration:none; color:#cbd5e1; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f8fafc; --card:#fff; --line:#e2e8f0; --txt:#0f172a; --muted:#475569; }
+    .hero h1 { -webkit-text-fill-color:#7f1d1d; background:none; }
+    code, pre, .quote, .kpi { background:#f1f5f9; }
+    .quote { color:#b91c1c; }
+  }
+</style>
+
+<div class="hero">
+  <h1>논문 초안 빨간글씨 채우기 작업목록</h1>
+  <p><code>EdgeGround-VLA_바퀴형로봇_목표지향주행_경량모델_초안_0805.docx</code>에서
+     교수님이 빨간색으로 표시한 <strong>25개 항목</strong>을 전부 추출해 페이지·절 단위로 분류하고,
+     각각에 대해 <strong>지금 답할 수 있는지 / 근거가 어디 있는지 / 아직 없는지</strong>를 표시했습니다.
+     초안 본문과 사실이 다른 곳 <strong>2건</strong>도 함께 찾았습니다.</p>
+  <div class="kpis">
+    <div class="kpi"><b style="color:#4ade80">22</b><span>지금 채울 수 있음</span></div>
+    <div class="kpi"><b style="color:#fbbf24">3</b><span>부분 · 확인 필요</span></div>
+    <div class="kpi"><b style="color:#f87171">2</b><span>본문 사실오류 발견</span></div>
+    <div class="kpi"><b style="color:#38bdf8">4~9</b><span>해당 페이지</span></div>
+  </div>
+  <div class="nav">
+    <a href="research_story.html">🏠 리서치 히스토리</a>
+    <a href="model_architecture_brief.html">🏗 모델 구조 자료</a>
+    <a href="owlv2_grounder_brief.html">🎯 OWL-v2 자료</a>
+    <a href="research_story.html#ch64">🔍 CH64</a>
+    <a href="#plan">🚀 이후 액션플랜</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+<div class="err" style="margin-top:34px">
+  <strong style="color:#f87171">⚠️ 먼저 볼 것 — 초안 본문에 사실과 다른 서술 2건</strong><br>
+  빨간글씨를 채우기 전에 이 두 곳을 고쳐야 합니다. 빨간글씨(1절 p4)가 이미 정확한 값을 담고 있어서,
+  <strong>본문을 그대로 두면 같은 문서 안에서 서로 모순</strong>됩니다.
+  <table>
+    <tr><th>위치</th><th>초안 서술</th><th>실제</th></tr>
+    <tr>
+      <td><strong>1.3 (p5)</strong></td>
+      <td>"융합된 <strong>256차원</strong> 특징은 <strong>4개의 hidden layer</strong>로 구성된 MLP …"</td>
+      <td>입력은 <strong>1560차원</strong>(6프레임 × 260), hidden layer는 <strong>2개</strong>
+          (512 → 128 → 8). bbox 4채널이 빠져 있고 window 6이 반영되지 않았습니다.</td>
+    </tr>
+    <tr>
+      <td><strong>1.2 (p5)</strong></td>
+      <td>"Linear projection(1024→256) … 이 융합 표현은 이후 행동 헤드의 입력으로 사용된다"</td>
+      <td>projection 출력 256차원은 <strong>비전 경로만</strong>입니다. 헤드 입력은
+          <strong>bbox 4채널 + 비전 256채널 = 260</strong>을 concat한 뒤 6프레임을 flatten한 것입니다.
+          "두 인코더 특징을 같은 공간에 매핑해 융합"이라는 설명도 실제 구조와 다릅니다 —
+          OWL-v2 출력은 projection을 통과하지 않고 <strong>스칼라 4개로 직접 concat</strong>됩니다.</td>
+    </tr>
+  </table>
+  <span style="font-size:0.82rem;color:#94a3b8">근거: <code>robovlm_nav/serve/stage2_v2_inference_server.py</code>
+  · <code>scripts/train_exp73_trackA_heads.py</code>의 <code>MLPActionHead</code> ·
+  <a href="model_architecture_brief.html">모델 구조 자료 1절</a></span>
+</div>
+
+<h2>① 모델 구조 정밀 기술 <span class="n">p4 · 1. Model Architecture · 빨간글씨 7건</span></h2>
+<p class="lead">이 7건은 <strong>질문이 아니라 "여기에 이 내용을 넣어라"는 지시</strong>로 보입니다
+   (값 자체가 이미 정확합니다). 할 일은 본문 산문에 녹여 넣고 위의 모순을 정리하는 것입니다.</p>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>1-1 ~ 1-6. 프레임 특징 벡터 / 헤드 입출력</h3>
+  <div class="meta">p4 · 단락 #40~46</div>
+  <div class="quote">프레임 특징 벡터 — 260차원
+FRAME_DIM = 4 + 256 = 260
+  ├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
+  └ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize
+헤드 입력 : window=6 프레임을 flatten → (6 × 260) = 1560차원
+헤드 출력 : 8클래스 로짓</div>
+  <div class="ans">
+    <strong>값은 모두 정확합니다.</strong> 한 가지만 정정: <code>bbox_scale=3.0</code>은
+    area에만 적용되는 것이 아니라 <strong>bbox 4채널 전체</strong>에 곱해집니다
+    (<code>[v * bbox_scale for v in bboxes[idx]]</code>, <code>exp73_held_aware_train.py</code>).
+    <br>추가로 넣으면 좋은 것: 헤드 파라미터 <strong>0.866M</strong>,
+    학습되는 유일한 구성요소이며 OWL-v2·Kosmos-2·image_proj는 전부 frozen이라는 점.
+    <br>→ <a href="model_architecture_brief.html">모델 구조 자료 1·2절</a>에 산문 + 머메이드 다이어그램으로
+    이미 정리돼 있어 그대로 옮길 수 있습니다.
+  </div>
+</div>
+
+<div class="item partial">
+  <h3><span class="tag t-partial">확인 필요</span>1-7. 파이프라인 그림 재작성</h3>
+  <div class="meta">p4 · 단락 #39</div>
+  <div class="quote">-> 이 그림을 다시 그려야 될 것 같음.</div>
+  <div class="warn">
+    현재 초안의 그림은 <strong>구버전 구조</strong>입니다(메인 페이지에 있던 것과 같은 계열 —
+    PaliGemma2 SigLIP / 32-dim bbox history / ActionMLP). 실제 구조와 다릅니다.
+    <br>→ <a href="model_architecture_brief.html">모델 구조 자료</a>에 현재 구조 머메이드 다이어그램이
+    있습니다. <strong>다만 논문 그림은 벡터(PDF/SVG) 품질이 필요</strong>하므로,
+    머메이드를 그대로 캡처할지 새로 그릴지는 결정이 필요합니다.
+  </div>
+</div>
+
+<h2>② 구조 선택의 근거 <span class="n">p5 · 1.1 Heterogeneous Grounding Encoder · 1건</span></h2>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>2-1. "이 구조를 생각한 이유를 설명할 수 있나?"</h3>
+  <div class="meta">p5 · 단락 #55</div>
+  <div class="quote">왜 Decomposition이 압도적으로 유리한가? (이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div>
+  <div class="ans">
+    <strong>설명할 수 있고, 실측 이력이 그대로 근거입니다.</strong> 시간 순서가 곧 논리입니다:
+    <table>
+      <tr><th>단계</th><th>측정</th><th>결론</th></tr>
+      <tr><td>E2E VLA (Kosmos-2 + LoRA)</td><td>text attention <strong>0.000%</strong>
+          (Exp17~41C, head-only에서도 재현)</td><td>언어 경로가 이미 붕괴 — 우리 학습 탓이 아님</td></tr>
+      <tr><td>E2E closed-loop</td><td>Exp11 PM 58.6%인데 <strong>주행 성공 0%</strong>
+          (FPE 1.45m 누적)</td><td>offline 지표가 좋아도 주행이 안 됨</td></tr>
+      <tr><td>Decomposition</td><td>Exp14 Step2 PM 75.9%, <strong>주행 66.7%</strong>
+          (FPE 0.55m)</td><td>TLD는 동일한데 방향 오류만 다름 → 명시적 좌표가 원인</td></tr>
+    </table>
+    핵심 문장은 <strong>"VLM 내부의 공간 표현을 언어 경로를 거치지 않고 직접 꺼내 쓴다"</strong>입니다.
+    초안 본문의 설명도 이 방향으로 이미 맞습니다.
+  </div>
+  <div class="warn">
+    <strong>단 한 문장은 수정이 필요합니다.</strong> 초안은
+    "spatial feature(bbox cx/cy/area)를 <strong>VLM이</strong> 인코딩한 것"처럼 읽히는데,
+    현재 파이프라인에서 <strong>bbox를 내놓는 것은 OWL-v2</strong>(별도 OVD 모델)이고
+    Kosmos-2는 <strong>비전 피처만</strong> 제공합니다. "VLM에서 꺼낸다"가 아니라
+    <strong>"OVD로 좌표를, VLM 비전 타워로 문맥을 각각 얻어 결합한다"</strong>가 정확합니다
+    — 이게 절 제목 <em>Heterogeneous</em>의 실제 의미이기도 합니다.
+  </div>
+</div>
+
+<h2>③ Serving Control <span class="n">p5 · 1.4 · 4건 — 제목만 있고 내용이 비어 있음</span></h2>
+<p class="lead">네 항목 전부 실측 근거가 있어 지금 채울 수 있습니다. 이 절은
+   <strong>"학습으로 못 고친 것을 서빙 로직으로 우회했다"</strong>는 논문의 실용적 기여 지점입니다.</p>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>3-1. threshold 설정 내용</h3>
+  <div class="meta">p5 · 단락 #63 · <span style="color:#fca5a5">"threshold 설정 내용 기재"</span></div>
+  <div class="ans">
+    <strong>운영값 <code>owlv2_thresh = 0.20</code></strong>. 결정 경위를 함께 써야 합니다:
+    <ul style="margin:6px 0">
+      <li>ROC 실측으로 <strong>0.25</strong>가 확정값이었습니다 — 정탐 95.3% 유지, 객체없음 프레임
+          오탐 0%. 0.1은 오탐 74.7%로 부재 판정이 불가능했습니다(CH60).</li>
+      <li>실기에서는 <strong>젯슨이 로컬보다 검출이 어려웠기 때문에</strong> 0.20으로 완화했습니다.
+          다만 젯슨 미검출 프레임을 로컬에서 다시 돌려보니 <strong>155/197(78.7%)이 로컬에서도
+          미검출</strong>이었습니다 — 즉 격차의 대부분은 하드웨어가 아니라
+          <strong>장면 자체의 난이도</strong>입니다(일치율 86.6%).</li>
+      <li>threshold를 낮추는 것은 <strong>검출률을 사는 대가로 부재 판정을 파는</strong> 거래라는 점을
+          명시해야 합니다 — 이는 <strong>has_bbox 문제(7절)와 같은 축</strong>입니다.</li>
+    </ul>
+    근거: <a href="owlv2_grounder_brief.html">OWL-v2 자료</a> ·
+    <code>scripts/analyze_jetson_local_gap.py</code>
+  </div>
+</div>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>3-2. <code>skip_n=3</code>의 의미</h3>
+  <div class="meta">p5 · 단락 #64</div>
+  <div class="ans">
+    <code>grounding_skip_n=3</code> — <strong>매 프레임 그라운딩을 하지 않고 3프레임마다 한 번만
+    수행</strong>하고, 사이 프레임은 마지막 bbox를 유지합니다(<strong>zero-order hold</strong>).
+    결과 그라운딩 실효 주기는 약 <strong>1.3Hz</strong>입니다.
+    <br><strong>왜 필요한가</strong>: OWL-v2 검출이 젯슨에서 <strong>1901.7ms</strong>로
+    전체 지연의 <strong>약 97%</strong>를 차지합니다. 매 프레임 호출하면 제어 주기가 성립하지 않습니다.
+    <br><strong>대가</strong>: bbox가 최대 2프레임 낡습니다. 로봇이 회전 중이면 이 지연이
+    조향 오차로 직결되므로, 3-3의 재그라운딩 규칙이 함께 필요합니다.
+  </div>
+</div>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>3-3. <code>force_reground_on_miss</code> — 회전 후 강제 재그라운딩</h3>
+  <div class="meta">p5 · 단락 #65</div>
+  <div class="ans">
+    미검출이 발생하면 <strong>skip 주기를 무시하고 즉시 재그라운딩</strong>합니다. 여기에 회전 관련
+    보호 규칙 3개가 함께 걸려 있습니다:
+    <ul style="margin:6px 0">
+      <li><strong>회전 후 재그라운딩 강제</strong> — 회전으로 시야가 바뀌었으면 낡은 bbox를 쓰지 않습니다</li>
+      <li><strong>회전 지속 0.4초 제한</strong> — 과회전으로 타겟이 시야를 벗어나는 것을 막습니다</li>
+      <li><strong>연속 회전 차단</strong> — 회전 → 재그라운딩 → 또 회전의 무한 루프를 끊습니다</li>
+    </ul>
+    <strong>이 절의 핵심 논지</strong>: 이 규칙들은 미검출을 <strong>학습으로 처리하지 못했기 때문에</strong>
+    존재합니다. 학습 데이터의 <code>has_bbox=False</code>가 <strong>0/16,599 = 0.00%</strong>라
+    모델은 "지금 못 보고 있다"에 대응하는 법을 배운 적이 없습니다(CH64 64-15).
+  </div>
+</div>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>3-4. <code>stop_mode=learned</code> + 콜드스타트 가드 3</h3>
+  <div class="meta">p5 · 단락 #66</div>
+  <div class="ans">
+    정지 판단을 <strong>기하 규칙이 아니라 학습된 STOP 클래스(class 0)</strong>로 합니다.
+    <br><strong>콜드스타트 가드 3</strong>: 첫 <strong>3회 추론</strong>까지는 STOP을 무시합니다.
+    윈도우가 6프레임인데 시작 시점에는 과거 프레임이 없어 같은 프레임으로 패딩되고,
+    그 상태에서 STOP이 나오면 <strong>출발하자마자 멈추는</strong> 실패가 발생합니다.
+    <br><span style="color:#fbbf24">서술 주의</span>: STOP 클래스는 원래 데이터에 없어
+    <strong>에피소드 끝 프레임에 합성한 라벨</strong>입니다 — 이 사실을 밝히지 않으면
+    "학습된 정지"가 실제보다 강하게 들립니다.
+  </div>
+</div>
+
+<h2>④ 데이터 수집 <span class="n">p6 · 3. Collection of data · 1건 — 절 전체가 비어 있음</span></h2>
+
+<div class="item partial">
+  <h3><span class="tag t-partial">부분</span>4-1. 데이터 포맷과 수집 방법</h3>
+  <div class="meta">p6 · 단락 #78</div>
+  <div class="quote">데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</div>
+  <div class="ans">
+    <strong>있는 것 — 바로 쓸 수 있습니다</strong>
+    <table>
+      <tr><th>항목</th><th>내용</th></tr>
+      <tr><td>수집 방식</td><td>조이스틱 <strong>사람 원격조작(teleoperation)</strong>, 로봇 온보드 기록</td></tr>
+      <tr><td>포맷</td><td><strong>HDF5(.h5)</strong> — 에피소드 1개 = 파일 1개.
+          <code>h['images']</code>(BGR, 1280×720), 액션, 그리고
+          <code>attrs['runtime_config']</code>에 체크포인트·threshold 등 실행 설정</td></tr>
+      <tr><td>규모</td><td>V6 <strong>225 에피소드 · 16,599 프레임</strong>
+          (trackA 180 + trackF 45)</td></tr>
+      <tr><td>구성</td><td>좌 90ep / 우 90ep — <strong>에피소드 수는 대칭</strong>
+          (라벨 cx 평균 0.4976)</td></tr>
+      <tr><td>액션 공간</td><td>8클래스 이산. 옴니휠 구조라 순수 횡이동·대각이동이 물리적으로 가능
+          (2절 하드웨어 서술과 연결)</td></tr>
+      <tr><td>그라운딩 라벨</td><td>OWL-v2 자동 라벨. LIVE &amp; detected는 <strong>5,752</strong>이고
+          나머지 65.3%는 <code>grounding_cached</code> 상속값이라
+          <strong>독립 표본이 아닙니다</strong> — 지표 계산 시 반드시 제외해야 합니다</td></tr>
+    </table>
+  </div>
+  <div class="warn">
+    <strong>솔직하게 써야 할 두 가지</strong>
+    <br>① <strong>Droid/LeRobot 같은 표준 포맷을 쓰지 않았습니다.</strong> 자체 HDF5 스키마입니다.
+    교수님 질문의 취지가 "표준 포맷을 따랐는지"라면 답은 <strong>아니오</strong>이고,
+    그러면 <strong>변환 스크립트를 제공할지</strong>가 논의 대상입니다
+    (<code>lerobot_export/</code> 디렉터리가 있으나 이번에 검증하지 않았습니다).
+    <br>② <strong>에피소드 수는 대칭인데 액션 클래스는 대칭이 아닙니다</strong> —
+    좌계열 3,384 vs 우계열 4,122(<strong>21.8% 차이</strong>), FWD+L 2,532 vs FWD+R 3,117.
+    같은 궤적이라도 좌회전 경로에서 프레임당 회전량이 달랐기 때문입니다. 이 불균형이
+    <strong>CH66의 좌우 비대칭 원인 사슬의 출발점</strong>이므로, 데이터 절에서 미리 밝혀야
+    결과 절의 논리가 이어집니다.
+  </div>
+</div>
+
+<h2>⑤ 학습 방법 <span class="n">p8 · 5.2 학습 방법 설명 · 8건</span></h2>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>5-1 ~ 5-6. 학습 파라미터</h3>
+  <div class="meta">p8 · 단락 #126~131</div>
+  <div class="quote">window = 6 프레임          bbox_scale = 3.0
+num_classes = 8            optimizer = Adam, lr = 5e-4
+epochs = 300               scheduler = CosineAnnealingLR
+class weight = 1/빈도 정규화      ← FORWARD 71~74% 편중 보정
+seeds = 0, 1, 2 (다중 시드로 분산 확인)</div>
+  <div class="ans">
+    <strong>전부 맞습니다.</strong> 빠져 있어서 추가해야 하는 것:
+    <ul style="margin:6px 0">
+      <li><strong>분할</strong>: 에피소드 단위 15% val, <code>SPLIT_SEED=42</code>.
+          <span style="color:#fbbf24">프레임 단위가 아니라 에피소드 단위</span>인 점이 중요합니다 —
+          같은 에피소드 프레임이 train/val에 섞이면 누출입니다</li>
+      <li><strong>hold-aware 샘플링</strong>: <code>stride=5</code>로 결정 시점마다 1샘플,
+          라벨은 <code>[t, t+5)</code> 구간 GT의 <strong>다수결</strong>.
+          서빙의 zero-order hold(3-2)와 학습을 일치시키기 위한 설계입니다</li>
+      <li><strong>학습 대상</strong>: MLP 헤드 <strong>0.866M만</strong>. 나머지 전부 frozen</li>
+    </ul>
+  </div>
+  <div class="warn">
+    <strong>주의 — 이 세팅으로 우리가 실제로 데인 적이 있습니다.</strong> 초기 DEPLOY 실험에서
+    <code>train_one(Xtr, ytr, Xtr, ytr, …)</code>로 <strong>학습 데이터를 val로 넣는 버그</strong>가 있어
+    94.5%가 나왔고, 진짜 held-out으로 고치니 <strong>74.5%</strong>였습니다.
+    논문에 정확도를 쓸 때 <strong>어느 분할에서 나온 수치인지 반드시 명시</strong>해야 합니다.
+  </div>
+</div>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>5-7. "데이터를 이용하여 어떻게 학습을 진행했는지 기술"</h3>
+  <div class="meta">p8 · 단락 #125</div>
+  <div class="ans">
+    <strong>2단계 구조로 쓰는 것이 정확합니다.</strong>
+    <pre>Stage 1 (오프라인, 1회) — 피처 캐시 생성
+  H5 프레임 → OWL-v2 "gray basket" → bbox 4채널
+           → Kosmos-2 vision_model → image_proj(1024→256) → L2 norm
+  → 에피소드 단위 캐시(exp73_v6_vis_cache.pt)로 저장. 이후 재사용
+
+Stage 2 (반복) — 액션 헤드만 학습
+  캐시 → hold-aware 윈도우(window 6, stride 5, 다수결 라벨)
+       → 1560차원 flatten → MLPActionHead(512→128→8)
+       → class-weighted CE, Adam 5e-4, 300ep, cosine, seed 0/1/2</pre>
+    <strong>이 구조가 곧 경량화의 실질</strong>입니다 — 무거운 인코더는 한 번만 돌리고,
+    반복 학습은 0.866M 헤드에만 일어나므로 실험 회전이 빠릅니다.
+    이 점을 명시하면 "왜 decomposition인가"(2-1)와도 이어집니다.
+  </div>
+</div>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>5-8. "학습 후 ***.pth 파일이 결과로 나옴"</h3>
+  <div class="meta">p8 · 단락 #133</div>
+  <div class="ans">
+    실제 확장자는 <code>.pt</code>이고, <strong>state_dict만이 아니라 메타데이터를 함께 저장</strong>합니다:
+    <pre>{"model": state_dict, "head": "exp73_mlp", "window": 6, "bbox_scale": 3.0,
+ "arm": "v6_mirroraug", "grounder": "owlv2", "stride": 5,
+ "val_acc": 0.7505, "fixed_bias": 0.0088, "exp": "exp73"}</pre>
+    <strong>이 습관 자체를 논문에 쓸 만합니다.</strong> 이번 감사에서
+    <code>episode_log.csv</code>의 체크포인트 열이 전부 NaN이라 어떤 모델이 돌았는지 알 수 없었고,
+    <strong>H5의 <code>attrs['runtime_config']</code>만이 ground truth</strong>였습니다.
+    그 결과 CH64 64-11의 결론을 <strong>철회</strong>해야 했습니다 — 성공을 신모델 덕으로 봤는데
+    실제로는 체크포인트 전달 전 세션이었습니다. 재현성 절의 실제 사례로 쓸 수 있습니다.
+  </div>
+</div>
+
+<h2>⑥ 로봇 탑재 방법 <span class="n">p9 · 6. Deploy · 1건 — 절 전체가 비어 있음</span></h2>
+
+<div class="item partial">
+  <h3><span class="tag t-partial">부분 · soda 확인 필요</span>6-1. SerbotII 탑재 방법</h3>
+  <div class="meta">p9 · 단락 #137</div>
+  <div class="ans">
+    <strong>우리 쪽에서 아는 것</strong>: 체크포인트 <code>.pt</code>(헤드) +
+    <code>stage1_v2_projs.pt</code>(image_proj)를 젯슨으로 전달 →
+    <code>stage2_v2_inference_server.py</code>가 로드 → HTTP API로 프레임을 받아 액션 반환.
+    <br>이번에 <strong>Kosmos-2 언어 디코더(1.361B) 로드를 제거</strong>해
+    peak host RAM을 <strong>10.59GB → 3.20GB(−70%)</strong>로 줄였습니다. GPU 사용량은
+    <strong>변화 없습니다(0.607GB 동일)</strong> — 이 절에서는
+    "파라미터 절감"이 아니라 <strong>"타겟 하드웨어 진입 조건"</strong>으로 서술해야 정확합니다.
+  </div>
+  <div class="warn">
+    <strong>비어 있는 것 (soda에게 확인해야 함)</strong>: 젯슨 환경 구성(JetPack/PyTorch 버전),
+    모델 파일 배치 경로, 서비스 실행·자동시작 방식, ROS 노드와의 연결.
+    <br>추가로 <strong>디코더 제거의 젯슨 실측</strong>이 아직 없습니다(로컬 측정만 있음) —
+    이건 이미 soda에게 요청해 둔 항목입니다.
+  </div>
+</div>
+
+<h2>⑦ Runtime 수행 <span class="n">p9 · 7. Runtime · 3건</span></h2>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>7-1. 전처리 → 추론 → 후처리 파이프라인</h3>
+  <div class="meta">p9 · 단락 #141</div>
+  <div class="ans">
+    <pre>[전처리]  1280×720 RGB 1프레임
+          → OWL-v2(1901.7ms, skip_n=3에 따라 3프레임마다) → bbox 4채널
+          → Kosmos-2 vision_model → image_proj → L2 norm → 256채널
+          → concat 260채널 × bbox_scale 3.0
+          → 최근 6프레임 링버퍼에 push (부족하면 현재 프레임으로 패딩)
+
+[추론]    1560차원 flatten → MLPActionHead → 8클래스 로짓 → argmax
+
+[후처리]  콜드스타트 가드(3회) · 회전 0.4초 제한 · 연속 회전 차단
+          · 미검출 시 강제 재그라운딩 · STOP 판정
+          → 로봇 속도 명령</pre>
+    <span style="color:#fbbf24">한 가지 명시할 것</span>: 로봇 펌웨어가
+    <strong>속도 크기를 무시하고 방향만 사용</strong>합니다(상수 속도 구조, soda 확인).
+    이것이 이산 8클래스로 충분한 이유이자, 연속 액션 헤드의 이점이 하드웨어 단계에서
+    잘려나가는 이유입니다.
+  </div>
+</div>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">지금 가능</span>7-2. 런타임 threshold 설정 위치</h3>
+  <div class="meta">p9 · 단락 #142</div>
+  <div class="ans">
+    환경변수 <code>VLA_OWLV2_THRESH</code>로 주입되며 기본값은 코드 상수입니다
+    (<code>stage2_v2_inference_server.py</code>). 실제로 어떤 값이 돌았는지는
+    각 세션 H5의 <code>attrs['runtime_config']</code>에 기록됩니다 — 5-8에서 말한 그 필드입니다.
+    <br>같은 방식으로 제어되는 것들: <code>VLA_MULTI_PROMPT</code>(현재 off),
+    <code>VLA_KOSMOS_VISION_ONLY</code>(디코더 제거 스위치), preview(현재 off).
+  </div>
+</div>
+
+<div class="item ready">
+  <h3><span class="tag t-ready">이미 작성됨</span>7-3. <code>has_bbox</code> 채널의 의미</h3>
+  <div class="meta">p9 · 단락 #144</div>
+  <div class="ans">
+    이 항목은 <strong>이미 교수님이 붙여넣어 둔 상태</strong>이고 내용도 맞습니다
+    (미검출 시 fallback cx=0.5/cy=0.6/area=0.06, has_bbox=0, 학습 데이터에 0.00%).
+    <br>보강할 실측 한 줄: 이번에 <strong>없는 물체를 요청했을 때도 5.0%에서 박스를 냈습니다</strong>
+    (부재 대조군 "microwave oven", score 중앙 0.267). 즉 "없다"고 답하지 못하는 경로가
+    검출기 단계에도 남아 있습니다 → <a href="research_story.html#ch68">CH68 68-7 ④</a>
+  </div>
+</div>
+
+<h2 id="plan" style="border-left-color:#38bdf8">🚀 이후 액션플랜 <span class="n">이번 세션에서 나온 것 + 위 목록에서 파생된 것</span></h2>
+<p class="lead">앞선 실험에서 나온 항목과 이 작업목록에서 새로 생긴 항목을 하나로 합쳤습니다.
+   <strong>로봇이 필요한지</strong>를 기준으로 나눴습니다.</p>
+
+<div class="item ready">
+  <h3>로봇 없이 가능 — 우리가 바로 함</h3>
+  <table>
+    <tr><th>#</th><th>항목</th><th>근거 / 상태</th></tr>
+    <tr><td>1</td><td><strong>초안 본문 사실오류 2건 정정</strong> (1.2 / 1.3절)</td>
+        <td>위 ⚠️ 블록. 빨간글씨와 본문이 모순되는 상태라 <strong>가장 먼저</strong></td></tr>
+    <tr><td>2</td><td><strong>지금 채울 수 있는 22건 초고 작성</strong></td>
+        <td>①③⑤⑦ 전체. 근거가 문서화돼 있어 옮기는 작업</td></tr>
+    <tr><td>3</td><td>파이프라인 그림 재작성 (벡터)</td>
+        <td>머메이드 원본 있음. 형식 결정 필요</td></tr>
+    <tr><td>4</td><td>Florence-2 <strong>언어부</strong> 검정</td>
+        <td>스크립트 작성 완료·미실행 (<code>l1_florence2_grounder.py</code>).
+            CH68 68-5 미해결 질문 ①</td></tr>
+    <tr><td>5</td><td>객체 전이 실험 (기존 chair 59ep 활용)</td>
+        <td>CH68 68-5 미해결 질문 ②</td></tr>
+    <tr><td>6</td><td>LeRobot 포맷 변환 검증 여부 결정</td>
+        <td>④의 열린 질문. <strong>할지 말지가 먼저</strong></td></tr>
+  </table>
+</div>
+
+<div class="item partial">
+  <h3>soda / 로봇 쪽 — 요청해야 함</h3>
+  <table>
+    <tr><th>#</th><th>항목</th><th>왜 필요한가</th></tr>
+    <tr><td>7</td><td><strong>미러증강 헤드 실기 100건 검정</strong></td>
+        <td><a href="research_story.html#ch68">68-9</a>에서 배포 헤드가
+            <strong>어떤 cx에서도 좌측을 선호하지 않음</strong>을 확인했고, 미러증강 헤드는
+            cx 응답이 복구돼 있습니다. 실기 최저 구간이 좌측(80%)인 것과 방향이 맞습니다.
+            <strong>현재 근거가 가장 두터운 다음 스텝</strong></td></tr>
+    <tr><td>8</td><td>젯슨 배포 절차 문서화</td><td>⑥이 그것 없이는 채워지지 않습니다</td></tr>
+    <tr><td>9</td><td>디코더 제거 젯슨 실측</td><td>⑥의 −70% 수치가 로컬 측정뿐</td></tr>
+    <tr><td>10</td><td>negative 프레임 300~500장</td>
+        <td>has_bbox 학습 부재(3-3·7-3)를 <strong>서빙 우회가 아니라 학습으로</strong> 풀려면 필요</td></tr>
+    <tr><td>11</td><td>기구 편향 검정 4항목 (주행 불필요)</td>
+        <td>CH66에서 미검증으로 남긴 항목 — 카메라 마운트·무게중심·휠</td></tr>
+  </table>
+</div>
+
+<div class="warn">
+  <strong>순서에 대한 의견</strong> — 1·2번을 먼저 끝내는 것이 좋습니다. 나머지 실험은
+  결과가 좋게 나와도 <strong>지금 초안의 빈칸을 채워주지 않습니다</strong>. 반대로 1·2번은
+  이미 가진 자료를 옮기는 작업이라 새 측정 없이 문서가 완성 상태에 가까워집니다.
+  <br>실험 중에서는 <strong>7번(미러증강 실기 검정)</strong>이 유일하게
+  <strong>논문의 주요 수치(89/100)를 바꿀 수 있는</strong> 항목입니다.
+</div>
+
+<div style="margin-top:40px;padding:14px 16px;background:#0d1117;border:1px solid var(--line);
+            border-radius:9px;font-size:0.82rem;color:#64748b">
+  추출 방법: <code>word/document.xml</code>에서 <code>w:color</code>가 붉은 계열(EE0000)인 run만
+  골라내고, 같은 문서를 PDF로 변환해 각 텍스트가 나타나는 쪽을 매칭했습니다.
+  총 25건 · 페이지 4~9. 원본 문서에 이미지·표가 포함돼 있어 쪽 번호는 PDF 변환 기준입니다.
+</div>
+
+</div>
