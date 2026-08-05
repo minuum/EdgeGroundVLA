@@ -1,4 +1,4 @@
-<title>논문 초안 빨간글씨 25건 — 문제상황 / 대응책</title>
+<title>논문 드래프트 보완 — 절별 문제상황 / 대응책</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root { --bg:#0a0f1a; --card:#111827; --line:#1e293b; --txt:#e2e8f0; --muted:#94a3b8; }
@@ -72,30 +72,69 @@
   }
 </style>
 <div class="hero">
-  <h1>논문 초안 빨간글씨 25건 — 문제상황 / 대응책</h1>
-  <p><code>EdgeGround-VLA_바퀴형로봇_목표지향주행_경량모델_초안_0805.docx</code>의 빨간글씨를
-     전수 추출해, 항목마다 <strong>왼쪽에 문제 상황(빨간글씨 원문 그대로)</strong>,
+  <h1>논문 드래프트 보완 — 문제상황 / 대응책</h1>
+  <p><code>EdgeGround-VLA_바퀴형로봇_목표지향주행_경량모델_초안_0805.docx</code>에서 보완이 요구된
+     <strong>25개 지점</strong>을 전수 추출해, 항목마다 <strong>왼쪽에 문제 상황(초안 표기 원문 그대로)</strong>,
      <strong>오른쪽에 대응책</strong>을 1:1로 놓았습니다. 문제 제기는 손대지 않았고,
      채울 내용과 근거만 오른쪽에 붙였습니다.</p>
   <div class="kpis">
-    <div class="kpi"><b style="color:#f87171">25</b><span>빨간글씨 항목</span></div>
+    <div class="kpi"><b style="color:#f87171">25</b><span>보완 요구 지점</span></div>
     <div class="kpi"><b style="color:#4ade80">22</b><span>지금 채울 수 있음</span></div>
     <div class="kpi"><b style="color:#fbbf24">3</b><span>부분 · 확인 필요</span></div>
     <div class="kpi"><b style="color:#38bdf8">2</b><span>본문 사실오류 발견</span></div>
   </div>
   <div class="nav">
     <a href="research_story.html">🏠 리서치 히스토리</a>
-    <a href="#raw">🔴 원문 전문(복사용)</a>
-    <a href="#verbatim">📋 원문 표 25건</a>
+    <a href="#status">📋 절별 진행 현황</a>
+    <a href="#raw">🔴 보완요구 원문 전문</a>
+    <a href="#verbatim">📑 원문 표 25건</a>
     <a href="#fix2">⚠️ 본문 사실오류 2건</a>
     <a href="#plan">🚀 이후 액션플랜</a>
-    <a href="../01.paper/redfill_draft_0805.md">📄 붙여넣기용 초고</a>
+    <a href="../01.paper/redfill_draft_0805.html">📄 붙여넣기용 초고</a>
     <a href="model_architecture_brief.html">🏗 모델 구조 자료</a>
   </div>
 </div>
 <div class="wrap">
-<h2 id="raw">원문 전문 — 복사용 <span class="n">25건 · 문서 순서 · 한 덩어리</span></h2>
-<p class="lead">docx에서 추출한 <strong>빨간색 run 원문</strong>입니다. 공백·줄바꿈·오탈자까지
+<h2 id="status" style="border-left-color:#4ade80">절별 진행 현황
+  <span class="n">지금 초안의 어디가 채워졌는가</span></h2>
+<p class="lead">붙여넣기용 산문은 <a href="../01.paper/redfill_draft_0805.html"><strong>논문 드래프트 보완
+   초고</strong></a>에 절별로 정리돼 있습니다. 아래는 그 커버리지입니다.</p>
+<table>
+  <tr><th>절</th><th>상태</th><th>내용</th></tr>
+  <tr style="background:rgba(74,222,128,0.1)"><td><strong>1. Model Architecture</strong></td>
+      <td style="color:#4ade80">✅ 완결</td>
+      <td>260차원 구성 · window 6 → 1560 · 학습 대상이 0.866M 헤드뿐임을 산문화</td></tr>
+  <tr style="background:rgba(74,222,128,0.1)"><td><strong>1.1 설계 경위</strong></td>
+      <td style="color:#4ade80">✅ 완결</td>
+      <td>text attn 0.000% → E2E 주행 0% → decomposition 66.7% 시간순 논리 + 인코더 선택 근거</td></tr>
+  <tr style="background:rgba(74,222,128,0.1)"><td><strong>1.2 / 1.3 (사실오류)</strong></td>
+      <td style="color:#4ade80">✅ 교체안 완결</td>
+      <td>256차원·4 hidden layer → <strong>1560차원·hidden 2개</strong> /
+          'projection 융합' → <strong>병치(concat)</strong></td></tr>
+  <tr style="background:rgba(74,222,128,0.1)"><td><strong>1.4 Serving Control</strong></td>
+      <td style="color:#4ade80">✅ 4개 문단 완결</td>
+      <td>임계값 0.20 · skip_n=3 · 재검출 규칙 3종 · 정지 판정 + 콜드스타트 가드</td></tr>
+  <tr style="background:rgba(74,222,128,0.1)"><td><strong>3. Collection of data</strong></td>
+      <td style="color:#4ade80">✅ 완결</td>
+      <td>조이스틱 원격조작 · HDF5 · 225ep/16,599frame · 액션 21.8% 불균형 명시</td></tr>
+  <tr style="background:rgba(74,222,128,0.1)"><td><strong>5.2 학습 방법</strong></td>
+      <td style="color:#4ade80">✅ 3문단 + 표</td>
+      <td>2단계 절차 · 파라미터 표(분할·샘플링·학습대상 추가) · 체크포인트 메타데이터</td></tr>
+  <tr style="background:rgba(251,191,36,0.12)"><td><strong>6. Deploy</strong></td>
+      <td style="color:#fbbf24">⚠️ 절반</td>
+      <td>디코더 미로드(호스트 RAM 10.59→3.20GB)는 작성. <strong>젯슨 환경·배치·자동시작·ROS
+          연결은 로봇 담당자 필요</strong></td></tr>
+  <tr style="background:rgba(74,222,128,0.1)"><td><strong>7. Runtime</strong></td>
+      <td style="color:#4ade80">✅ 완결</td>
+      <td>전처리/추론/후처리 경로 · 환경변수 주입 · has_bbox 보강 한 문단</td></tr>
+</table>
+<div class="ans" style="margin:12px 0">
+  <strong style="color:#4ade80">남은 빈칸은 6절 하나</strong>이고, 원인은 자료 부재가 아니라
+  <strong>정보 소유자가 다르다</strong>는 것입니다. 나머지 7개 절은 붙여넣기만 하면 닫힙니다.
+</div>
+
+<h2 id="raw">보완 요구 원문 전문 — 복사용 <span class="n">25건 · 문서 순서 · 한 덩어리</span></h2>
+<p class="lead">초안에서 <strong>빨간색으로 표기된 보완 요구 원문</strong>입니다. 공백·줄바꿈·오탈자까지
    문서 그대로이며 요약·수정하지 않았습니다.</p>
 <div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:11px 14px;
             margin:10px 0;font-size:0.84rem">
@@ -190,7 +229,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
 <h2 id="verbatim" style="border-left-color:#fbbf24">원문 표 — 쪽 · 단락 · 절
   <span class="n">번호를 누르면 해당 문제상황/대응책으로 이동</span></h2>
 <table class="vtab">
-    <tr><th>#</th><th>쪽</th><th>단락</th><th>절</th><th>빨간글씨 원문</th></tr>
+    <tr><th>#</th><th>쪽</th><th>단락</th><th>절</th><th>보완 요구 원문</th></tr>
     <tr><td><a href="#a1"><strong>01</strong></a></td><td>p4</td><td>#39</td><td style="font-size:0.75rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">-&gt; 이 그림을 다시 그려야 될 것 같음.</span></td></tr>
     <tr><td><a href="#a2"><strong>02</strong></a></td><td>p4</td><td>#40</td><td style="font-size:0.75rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">프레임 특징 벡터 — 260차원</span></td></tr>
     <tr><td><a href="#a3"><strong>03</strong></a></td><td>p4</td><td>#41</td><td style="font-size:0.75rem;color:#94a3b8">1. Model Architecture</td><td><span class="rawred">FRAME_DIM = 4 + 256 = 260</span></td></tr>
@@ -217,8 +256,8 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
     <tr><td><a href="#a24"><strong>24</strong></a></td><td>p9</td><td>#142</td><td style="font-size:0.75rem;color:#94a3b8">7.  Runtime 수행</td><td><span class="rawred">Serving control을 런타임시에 여기에서 threshold 값 설정</span></td></tr>
     <tr><td><a href="#a25"><strong>25</strong></a></td><td>p9</td><td>#144</td><td style="font-size:0.75rem;color:#94a3b8">7.  Runtime 수행</td><td><span class="rawred">has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고정 fallback 값이 들어가고 has_bbox=0으로 표시됩니다. 즉 헤드는 &quot;지금 타겟을 못 보고 있다&quot;는 신호를 입력으로 받습니다. 그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)여서, 모델은 이 신호에 대응하는 법을 배운 적이 없습니다(CH64 64-15). 실기에서는 이를 학습이 아니라 서빙 제어 로직으로 우회했습니다(4절).</span></td></tr>
 </table>
-<h2 id="fix2">본문 사실오류 2건 <span class="n">빨간글씨가 아니라 검은 본문 — 빨간글씨와 모순 상태</span></h2>
-<p class="lead">빨간글씨를 채우기 전에 이 두 곳을 고쳐야 합니다. 빨간글씨(원문 02~07)가 이미 정확한 값을
+<h2 id="fix2">본문 사실오류 2건 <span class="n">보완 요구가 아닌 기존 본문 — 요구 원문과 모순 상태</span></h2>
+<p class="lead">보완을 채우기 전에 이 두 곳을 고쳐야 합니다. 요구 원문(02~07)이 이미 정확한 값을
    담고 있어서, <strong>본문을 그대로 두면 같은 문서 안에서 서로 모순</strong>됩니다.</p>
 
 <div class="item partial">
@@ -228,7 +267,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안 본문(검은 글씨)</div>
       <div class="redsrc"><div class="lbl">📄 초안 본문 인용</div><div class="txt">융합된 256차원 특징은 4개의 hidden layer로 구성된 MLP 행동 헤드에 입력되어, 3자유도(3-DoF)와 이산 행동 공간에 대한 8개 클래스 중 하나로 분류된다.</div></div>
-      <p><strong>두 가지가 틀렸습니다</strong> — 입력 차원과 layer 수. 빨간글씨 06번이
+      <p><strong>두 가지가 틀렸습니다</strong> — 입력 차원과 layer 수. 요구 원문 06번이
       "1560차원"을 명시하고 있어 <strong>같은 문서 안에서 값이 충돌</strong>합니다.</p>
     </div>
     <div class="side fix">
@@ -269,7 +308,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
     </div>
   </div>
 </div>
-<h2>① 모델 구조 정밀 기술 <span class="n">p4 · 1. Model Architecture · 빨간글씨 7건</span></h2>
+<h2>① 모델 구조 정밀 기술 <span class="n">p4 · 1. Model Architecture · 보완요구 7건</span></h2>
 
 <div class="item ready">
   <h3><span class="tag t-ready">지금 채울 수 있음</span>프레임 특징 벡터 / 헤드 입출력</h3>
@@ -277,7 +316,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a2"></span><span id="a3"></span><span id="a4"></span><span id="a5"></span><span id="a6"></span><span id="a7"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">02  p4 #40   프레임 특징 벡터 — 260차원
+      <span id="a2"></span><span id="a3"></span><span id="a4"></span><span id="a5"></span><span id="a6"></span><span id="a7"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">02  p4 #40   프레임 특징 벡터 — 260차원
 03  p4 #41   FRAME_DIM = 4 + 256 = 260
 04  p4 #42   ├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
 05  p4 #43   └ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize
@@ -311,7 +350,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a1"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">01  p4 #39   -&gt; 이 그림을 다시 그려야 될 것 같음.</div><div class="ctx">단락 전체: &quot;모델 파이프라인 구성   -&gt; 이 그림을 다시 그려야 될 것 같음.&quot;</div></div>
+      <span id="a1"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">01  p4 #39   -&gt; 이 그림을 다시 그려야 될 것 같음.</div><div class="ctx">단락 전체: &quot;모델 파이프라인 구성   -&gt; 이 그림을 다시 그려야 될 것 같음.&quot;</div></div>
    <p>현재 초안 그림이 <strong>구버전 구조</strong>입니다 — 메인 페이지에 있던 것과 같은 계열로
    PaliGemma2 SigLIP / 32-dim bbox history / ActionMLP를 그리고 있어 실제와 다릅니다.</p>
     </div>
@@ -339,7 +378,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a8"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">08  p5 #55   이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div><div class="ctx">빨간색은 괄호 안 삽입문만입니다. 앞 문장 &quot;왜 Decomposition이 압도적으로 유리한가? (&quot;와 뒤 설명 3문장(End-to-end는 … 직접 활용할 수 있다.)은 검은색 본문입니다.</div></div>
+      <span id="a8"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">08  p5 #55   이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div><div class="ctx">빨간색은 괄호 안 삽입문만입니다. 앞 문장 &quot;왜 Decomposition이 압도적으로 유리한가? (&quot;와 뒤 설명 3문장(End-to-end는 … 직접 활용할 수 있다.)은 검은색 본문입니다.</div></div>
    <p>즉 <strong>결과가 좋다는 서술은 있는데, 이 구조를 택하게 된 경위가 없습니다.</strong>
    설계를 먼저 하고 결과를 얻은 것처럼 읽히면, 심사자 입장에서
    "왜 이 조합인가"에 답이 없는 상태가 됩니다.</p>
@@ -378,7 +417,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a9"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">09  p5 #63   threshold  설정 내용 기재</div></div><p>절에 <strong>제목만 있고 내용이 없습니다.</strong> 운영값이 무엇이며
+      <span id="a9"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">09  p5 #63   threshold  설정 내용 기재</div></div><p>절에 <strong>제목만 있고 내용이 없습니다.</strong> 운영값이 무엇이며
    왜 그 값인지가 비어 있어, 심사자가 "임의로 고른 값"으로 읽을 수 있습니다.</p>
     </div>
     <div class="side fix">
@@ -406,7 +445,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a10"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">10  p5 #64   skip_n=3 의미</div></div><p>파라미터 이름만 있고 <strong>무엇을 하는지, 왜 필요한지, 무엇을 잃는지</strong>가
+      <span id="a10"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">10  p5 #64   skip_n=3 의미</div></div><p>파라미터 이름만 있고 <strong>무엇을 하는지, 왜 필요한지, 무엇을 잃는지</strong>가
    없습니다. 이 값은 제어 주기를 결정하는 핵심 설정입니다.</p>
     </div>
     <div class="side fix">
@@ -429,7 +468,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a11"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">11  p5 #65   force_reground_on_miss -  회전 후 강제 재그라운딩</div></div><p>이름과 한 줄 설명만 있습니다. 실제로는 <strong>회전 관련 보호 규칙 3개가
+      <span id="a11"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">11  p5 #65   force_reground_on_miss -  회전 후 강제 재그라운딩</div></div><p>이름과 한 줄 설명만 있습니다. 실제로는 <strong>회전 관련 보호 규칙 3개가
    함께 걸린 묶음</strong>이라, 하나만 쓰면 동작을 재현할 수 없습니다.</p>
     </div>
     <div class="side fix">
@@ -456,7 +495,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a12"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">12  p5 #66   stop_mode=learned + 콜드스타트 가드 3</div></div><p>설정 이름만 있습니다. 특히 <strong>"콜드스타트 가드 3"이 왜 필요한지</strong>가
+      <span id="a12"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">12  p5 #66   stop_mode=learned + 콜드스타트 가드 3</div></div><p>설정 이름만 있습니다. 특히 <strong>"콜드스타트 가드 3"이 왜 필요한지</strong>가
    없으면 임의의 매직넘버로 보입니다.</p>
     </div>
     <div class="side fix">
@@ -480,7 +519,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a13"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">13  p6 #78   데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</div></div><p><strong>절 전체가 비어 있습니다.</strong> 질문의 취지는
+      <span id="a13"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">13  p6 #78   데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</div></div><p><strong>절 전체가 비어 있습니다.</strong> 질문의 취지는
    "Droid/LeRobot 같은 <strong>표준 포맷</strong>을 따랐는지"로 읽힙니다 —
    여기에 <strong>솔직하게 아니라고 답해야</strong> 하는 상황입니다.</p>
     </div>
@@ -537,7 +576,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a15"></span><span id="a16"></span><span id="a17"></span><span id="a18"></span><span id="a19"></span><span id="a20"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">15  p8 #126   학습 파라미터
+      <span id="a15"></span><span id="a16"></span><span id="a17"></span><span id="a18"></span><span id="a19"></span><span id="a20"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">15  p8 #126   학습 파라미터
 16  p8 #127   window       = 6 프레임          bbox_scale = 3.0
 17  p8 #128   num_classes  = 8                 optimizer  = Adam, lr = 5e-4
 18  p8 #129   epochs       = 300               scheduler  = CosineAnnealingLR
@@ -573,7 +612,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a14"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">14  p8 #125   데이터를 이용하여 어떻게 학습을 진행 했는지 기술</div></div><p>파라미터 목록(원문 15~20)은 있지만 <strong>학습 절차 자체가 없습니다.</strong>
+      <span id="a14"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">14  p8 #125   데이터를 이용하여 어떻게 학습을 진행 했는지 기술</div></div><p>파라미터 목록(원문 15~20)은 있지만 <strong>학습 절차 자체가 없습니다.</strong>
    특히 이 프로젝트의 학습은 <strong>2단계</strong>인데 그 구조가 드러나지 않습니다.</p>
     </div>
     <div class="side fix">
@@ -602,7 +641,7 @@ Stage 2 (반복) — 액션 헤드만 학습
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a21"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">21  p8 #133   모델을 학습하고 난 후에 ***.pth 파일이 결과로 나옴.</div></div><p>확장자가 <strong>실제와 다르고</strong>(<code>.pth</code> → <code>.pt</code>),
+      <span id="a21"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">21  p8 #133   모델을 학습하고 난 후에 ***.pth 파일이 결과로 나옴.</div></div><p>확장자가 <strong>실제와 다르고</strong>(<code>.pth</code> → <code>.pt</code>),
    저장물이 <strong>state_dict뿐인 것처럼</strong> 읽힙니다. 실제로는 메타데이터를 함께 저장하며,
    그 메타데이터가 이번 감사에서 결정적 역할을 했습니다.</p>
     </div>
@@ -630,7 +669,7 @@ Stage 2 (반복) — 액션 헤드만 학습
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a22"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">22  p9 #137   학습된 EdgeGrouund-VLA 모델을 SerbotII에 탑재하는 방법 설명</div></div><p><strong>절 전체가 비어 있고, 우리 쪽 자료만으로는 채워지지 않습니다.</strong>
+      <span id="a22"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">22  p9 #137   학습된 EdgeGrouund-VLA 모델을 SerbotII에 탑재하는 방법 설명</div></div><p><strong>절 전체가 비어 있고, 우리 쪽 자료만으로는 채워지지 않습니다.</strong>
    서버 코드는 우리가 쓰지만 <strong>젯슨 환경 구성·배치·실행은 로봇 쪽(soda)</strong>에
    있습니다. 이 항목은 <strong>25건 중 유일하게 외부 입력이 필수</strong>인 항목입니다.</p>
     </div>
@@ -659,7 +698,7 @@ Stage 2 (반복) — 액션 헤드만 학습
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a23"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">23  p9 #141   로봇  수행 시  카메라로 한 프레임 입력값 전처리 -&gt; 입력값 AI 모델에 입력 -&gt; AI 모델 수행-&gt;  결과값으로 후처리 과정 설명</div></div><p><strong>절 전체가 비어 있습니다.</strong> 학습 절(원문 14)과 별개로
+      <span id="a23"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">23  p9 #141   로봇  수행 시  카메라로 한 프레임 입력값 전처리 -&gt; 입력값 AI 모델에 입력 -&gt; AI 모델 수행-&gt;  결과값으로 후처리 과정 설명</div></div><p><strong>절 전체가 비어 있습니다.</strong> 학습 절(원문 14)과 별개로
    <strong>런타임 1프레임 처리 경로</strong>를 써야 합니다 — 학습은 캐시 기반이고
    런타임은 실시간이라 경로가 다릅니다.</p>
     </div>
@@ -691,7 +730,7 @@ Stage 2 (반복) — 액션 헤드만 학습
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a24"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">24  p9 #142   Serving control을 런타임시에 여기에서 threshold 값 설정</div></div><p>"여기에서 설정"이라고만 되어 있어 <strong>실제 주입 경로와 기록 위치</strong>가
+      <span id="a24"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">24  p9 #142   Serving control을 런타임시에 여기에서 threshold 값 설정</div></div><p>"여기에서 설정"이라고만 되어 있어 <strong>실제 주입 경로와 기록 위치</strong>가
    비어 있습니다. 재현성 측면에서 <strong>실행 시 어떤 값이 쓰였는지 확인하는 방법</strong>이
    더 중요합니다.</p>
     </div>
@@ -715,7 +754,7 @@ Stage 2 (반복) — 액션 헤드만 학습
   <div class="pair">
     <div class="side prob">
       <div class="sh sh-p">🔴 문제 상황 — 초안이 요구하는 것 / 비어 있는 것</div>
-      <span id="a25"></span><div class="redsrc"><div class="lbl">📄 초안 빨간글씨 원문 · 수정·요약 없음</div><div class="txt">25  p9 #144   has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고정 fallback 값이 들어가고 has_bbox=0으로 표시됩니다. 즉 헤드는 &quot;지금 타겟을 못 보고 있다&quot;는 신호를 입력으로 받습니다. 그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)여서, 모델은 이 신호에 대응하는 법을 배운 적이 없습니다(CH64 64-15). 실기에서는 이를 학습이 아니라 서빙 제어 로직으로 우회했습니다(4절).</div></div><p><strong>이 항목은 이미 작성돼 있고 내용도 정확합니다.</strong>
+      <span id="a25"></span><div class="redsrc"><div class="lbl">📄 초안 보완요구 원문 · 수정·요약 없음</div><div class="txt">25  p9 #144   has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고정 fallback 값이 들어가고 has_bbox=0으로 표시됩니다. 즉 헤드는 &quot;지금 타겟을 못 보고 있다&quot;는 신호를 입력으로 받습니다. 그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)여서, 모델은 이 신호에 대응하는 법을 배운 적이 없습니다(CH64 64-15). 실기에서는 이를 학습이 아니라 서빙 제어 로직으로 우회했습니다(4절).</div></div><p><strong>이 항목은 이미 작성돼 있고 내용도 정확합니다.</strong>
    문제는 없고, <strong>보강할 실측이 하나 생겼다</strong>는 것만 반영하면 됩니다.</p>
     </div>
     <div class="side fix">
@@ -732,7 +771,7 @@ Stage 2 (반복) — 액션 헤드만 학습
   </div>
 </div>
 <h2 id="plan" style="border-left-color:#38bdf8">이후 액션플랜
-  <span class="n">위 25건에서 파생된 것 + 실험에서 나온 것</span></h2>
+  <span class="n">위 보완 항목에서 파생된 것 + 실험에서 나온 것</span></h2>
 <p class="lead"><strong>로봇이 필요한지</strong>를 기준으로 나눴습니다.</p>
 
 <div class="item ready">
@@ -741,11 +780,11 @@ Stage 2 (반복) — 액션 헤드만 학습
     <tr><th>#</th><th>항목</th><th>근거 / 상태</th></tr>
     <tr style="background:rgba(74,222,128,0.1)"><td>1</td><td><strong>본문 사실오류 2건 정정</strong>
         <span style="color:#4ade80">✅ 교체안 작성</span></td>
-        <td><a href="../01.paper/redfill_draft_0805.md">초고 문서</a>의 1.2 · 1.3절 블록 —
+        <td><a href="../01.paper/redfill_draft_0805.html">초고 문서</a>의 1.2 · 1.3절 블록 —
             붙여넣기만 하면 됨</td></tr>
     <tr style="background:rgba(74,222,128,0.1)"><td>2</td><td><strong>22건 초고 작성</strong>
         <span style="color:#4ade80">✅ 완료</span></td>
-        <td><a href="../01.paper/redfill_draft_0805.md"><code>docs/01.paper/redfill_draft_0805.md</code></a>
+        <td><a href="../01.paper/redfill_draft_0805.html"><code>docs/01.paper/redfill_draft_0805.md</code></a>
             — 절별 붙여넣기용 산문. <strong>6절만 절반</strong>(젯슨 절차는 로봇 담당자 필요)</td></tr>
     <tr><td>3</td><td>파이프라인 그림 재작성 (벡터)</td>
         <td>머메이드 원본 있음. <strong>형식 결정 필요</strong> + 초안의 image1이 이미 현재 구조라
