@@ -17106,6 +17106,89 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">67-6. Florence-2 <span style="color:#fbbf24">언어부</span> 검정 — 부재를 판정하지 못한다 ⭐</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      67-2·67-5가 검정한 것은 Florence-2의 <strong style="color:#e2e8f0">비전 타워(90.4M)</strong>였다.
+      교수님 제안("OWL-v2 + Florence-2 조합")의 나머지 절반인
+      <strong style="color:#e2e8f0">언어부(140.2M)</strong>는 68-5 미해결 질문 ①로 남아 있었다 — 그것을 측정했다.
+      <br><br>
+      <strong style="color:#e2e8f0">설계</strong> — 68-7(OWL-v2)과 <strong style="color:#e2e8f0">완전히 같은
+      200프레임·같은 phrase 5종·같은 지표</strong>로 그라운더만 교체.
+      Florence-2는 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code> 태스크로
+      <strong style="color:#e2e8f0">언어부가 텍스트를 해석해 위치를 내놓는 경로</strong>를 쓴다.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">phrase</th><th style="padding:4px">Florence-2 검출률</th><th style="padding:4px">OWL-v2 (68-7)</th><th style="padding:4px">F2 cx 평균</th><th style="padding:4px">F2 조향부호 반전율</th><th style="padding:4px">OWL 반전율</th></tr>
+        <tr><td style="padding:4px">"gray basket" (배포값)</td><td style="padding:4px;text-align:center">100.0%</td><td style="padding:4px;text-align:center">91.0%</td><td style="padding:4px;text-align:center">0.488</td><td style="padding:4px;text-align:center">기준</td><td style="padding:4px;text-align:center">기준</td></tr>
+        <tr><td style="padding:4px">"chair"</td><td style="padding:4px;text-align:center">100.0%</td><td style="padding:4px;text-align:center">35.5%</td><td style="padding:4px;text-align:center">0.427</td><td style="padding:4px;text-align:center;color:#f87171">36.0%</td><td style="padding:4px;text-align:center;color:#4ade80">55.1%</td></tr>
+        <tr><td style="padding:4px">"person"</td><td style="padding:4px;text-align:center">100.0%</td><td style="padding:4px;text-align:center;color:#64748b">0.0%</td><td style="padding:4px;text-align:center">0.501</td><td style="padding:4px;text-align:center;color:#f87171">44.5%</td><td style="padding:4px;text-align:center;color:#64748b">평가불가</td></tr>
+        <tr><td style="padding:4px">"door"</td><td style="padding:4px;text-align:center">100.0%</td><td style="padding:4px;text-align:center">5.5%</td><td style="padding:4px;text-align:center">0.421</td><td style="padding:4px;text-align:center;color:#f87171">42.0%</td><td style="padding:4px;text-align:center">72.7%</td></tr>
+        <tr style="background:rgba(248,113,113,0.14)"><td style="padding:4px"><strong>"microwave oven"</strong> <span style="font-size:0.75rem">(부재 대조군)</span></td><td style="padding:4px;text-align:center;color:#f87171"><strong>100.0%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>5.0%</strong></td><td style="padding:4px;text-align:center">0.537</td><td style="padding:4px;text-align:center;color:#f87171">39.0%</td><td style="padding:4px;text-align:center">90.0%</td></tr>
+      </table>
+      <br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:11px 14px">
+        <strong style="color:#f87171">① 5종 전부 100% 검출 — 부재 판정 능력이 0이다</strong><br>
+        장면에 없는 <strong style="color:#e2e8f0">"microwave oven"에도 200/200 프레임에서 박스를
+        냈다</strong>. OWL-v2는 같은 조건에서 5.0%였다. Florence-2의 phrase grounding은
+        <strong style="color:#e2e8f0">"찾아라"는 요청에 항상 위치를 답하도록 학습된 경로</strong>이고,
+        임계값 같은 억제 장치가 없다(score를 아예 반환하지 않는다).
+        <br>→ 그런데 CH64 64-18에서 <strong style="color:#e2e8f0">실기 성패를 가른 변수가 그라운딩
+        가용성</strong>이었다(gnd%≥80 → 98.8% vs &lt;80 → 51.2%). 항상 검출한다는 것은
+        gnd% 100%가 아니라 <strong style="color:#f87171">gnd%가 무의미해진다</strong>는 뜻이다 —
+        틀린 위치를 자신 있게 주는 쪽이 미검출보다 위험하다.
+        <br><strong style="color:#e2e8f0">결론: 검출기 자리에 Florence-2 언어부를 놓을 수 없다.</strong>
+      </div>
+      <br>
+      <div style="background:rgba(248,113,113,0.08);border-left:3px solid #f87171;padding:11px 14px">
+        <strong style="color:#f87171">② 조향 부호 반전율도 전부 50% 미만</strong><br>
+        chair 36.0% (OWL 55.1%), door 42.0% (OWL 72.7%). 항상 무언가를 짚기 때문에
+        cx가 <strong style="color:#e2e8f0">중앙 부근으로 몰린다</strong>(cx 평균 0.421~0.537).
+        즉 지시문을 바꿔도 <strong style="color:#e2e8f0">방향이 갈리지 않는다</strong> —
+        L1 데모 용도로도 OWL-v2보다 못하다.
+      </div>
+      <br>
+      <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
+        <strong style="color:#4ade80">③ 그런데 CH59의 우편향 결함은 재현되지 않았다 — 정정</strong><br>
+        CH59에서 Florence-2 OVD의 예측 cx가 <strong style="color:#e2e8f0">0.559에서 막혀</strong>
+        화면 우측 절반을 짚지 못했고(L/R 51.8%), 그것이 탈락 근거였다.
+        이번 측정의 예측 cx 최대값은 <strong style="color:#4ade80">0.9955</strong>다.
+        67-5의 비전 피처 경로(0.8613)에서도 재현되지 않았다.
+        <br>→ 즉 <strong style="color:#e2e8f0">CH59의 0.559 상한은 Florence-2의 구조적 결함이
+        아니었을 가능성이 높다</strong>(태스크 토큰·후처리 등 당시 설정 문제로 추정).
+        <span style="color:#fbbf24">단 당시 설정을 재구성해 원인을 특정한 것은 아니므로,
+        "CH59가 틀렸다"가 아니라 "그 결함을 재현하지 못했다"까지만 기록한다.</span>
+      </div>
+      <br>
+      <strong style="color:#4ade80">④ 교수님 제안은 정확히 맞는 방향이었다 — 단 역할 분담이 중요하다</strong><br>
+      세 실험을 합치면 <strong style="color:#e2e8f0">"OWL-v2 + Florence-2"가 옳은 조합인 이유가
+      구체화</strong>된다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">역할</th><th style="padding:4px">담당</th><th style="padding:4px">근거</th></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>검출 + 부재 판정</strong></td><td style="padding:4px;text-align:center"><strong>OWL-v2</strong></td><td style="padding:4px">부재 대조군 5.0%로 억제 가능. 임계값으로 제어됨 (67-6 ①)</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>비전 피처</strong></td><td style="padding:4px;text-align:center"><strong>Florence-2 비전 타워</strong></td><td style="padding:4px">cx MAE 0.0017, Kosmos-2 대비 파라미터 3.4배↓ (67-2 · 67-5)</td></tr>
+        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px">검출 (대안 후보)</td><td style="padding:4px;text-align:center;color:#f87171">Florence-2 언어부</td><td style="padding:4px;color:#f87171">부재 판정 0% → 탈락 (67-6 ①②)</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">즉 Florence-2는 "언어부를 쓰는 모델"로서가 아니라
+      "비전 타워만 떼어 쓰는 모델"로 채택 가치가 있다.</strong> 그리고 그렇게 쓰면 언어부 140.2M은
+      <strong style="color:#e2e8f0">로드하지 않아도 되므로</strong>, 실제 적재량은 90.4M이 된다
+      — Kosmos-2 디코더 제거(호스트 RAM −70%)와 같은 종류의 이득이다.
+      <br><br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">⚠️ 한계</strong> — ⓐ Florence-2는 score를 반환하지 않아
+        <strong style="color:#e2e8f0">OWL-v2와 동일한 임계값 실험을 할 수 없었다</strong>.
+        따라서 "임계값을 붙이면 부재 판정이 가능해지는가"는 미검정이다.
+        ⓑ 최대 면적 박스를 채택했는데(score가 없으므로), 다른 선택 규칙이면 수치가 달라질 수 있다.
+        ⓒ V6는 바구니 주행용 데이터라 "person"·"microwave oven"이 실제 부재라는 판정은
+        <strong style="color:#e2e8f0">사전 가정</strong>이고 사람이 전수 확인한 것은 아니다.
+      </div>
+      <br><span style="font-size:0.8rem;color:#64748b">스크립트
+      <code>scripts/l1_florence2_grounder.py</code> · 결과
+      <code>docs/v5/detector/l1_florence2_grounder.json</code> · 표본 68-7과 동일 200프레임</span>
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">67-4. 진행 순서 — 엣지 목표에 가장 빠른 경로</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
@@ -17127,7 +17210,7 @@ graph TD
       <div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:11px 14px">
         <strong style="color:#38bdf8">이 챕터의 성격</strong> — 결론 챕터가 아니라
         <strong style="color:#e2e8f0">"무엇을 확인해야 하는지"를 고정하는 챕터</strong>다.
-        67-2·67-5는 완료됐고(결과 반영), 67-1의 나머지 항목은 미검정이다. 판정 기준을 미리 적어둔 것은
+        67-2·67-5·67-6은 완료됐고(결과 반영), 67-1의 나머지 항목은 미검정이다. 판정 기준을 미리 적어둔 것은
         이번 세션에서 사후 해석으로 두 번 틀린 이력(64-11 철회, 64-19 2회 정정) 때문이다.
       </div>
     </div>

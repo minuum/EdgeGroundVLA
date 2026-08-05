@@ -1,0 +1,72 @@
+{
+  "n_frames": 200,
+  "task": "<CAPTION_TO_PHRASE_GROUNDING>",
+  "model": "microsoft/Florence-2-base",
+  "phrases": [
+    "gray basket",
+    "chair",
+    "person",
+    "door",
+    "microwave oven"
+  ],
+  "detect_rate": {
+    "gray basket": {
+      "rate": 1.0,
+      "n": 200,
+      "cx_mean": 0.48787498835311266,
+      "cx_std": 0.12589953733931472,
+      "cx_max": 0.8574999809265137
+    },
+    "chair": {
+      "rate": 1.0,
+      "n": 200,
+      "cx_mean": 0.42683998925308697,
+      "cx_std": 0.3394210851286474,
+      "cx_max": 0.9829999923706054
+    },
+    "person": {
+      "rate": 1.0,
+      "n": 200,
+      "cx_mean": 0.5008799830549395,
+      "cx_std": 0.016531428611044025,
+      "cx_max": 0.6829999923706055
+    },
+    "door": {
+      "rate": 1.0,
+      "n": 200,
+      "cx_mean": 0.4213924868982285,
+      "cx_std": 0.17747327360094114,
+      "cx_max": 0.9954999923706055
+    },
+    "microwave oven": {
+      "rate": 1.0,
+      "n": 200,
+      "cx_mean": 0.5366224842485972,
+      "cx_std": 0.15266528056128398,
+      "cx_max": 0.9784999847412109
+    }
+  },
+  "pairs": {
+    "chair": {
+      "n": 200,
+      "dcx_mean": 0.2801199935125187,
+      "sign_flip": 0.36
+    },
+    "person": {
+      "n": 200,
+      "dcx_mean": 0.09526999728172086,
+      "sign_flip": 0.445
+    },
+    "door": {
+      "n": 200,
+      "dcx_mean": 0.14996749636135065,
+      "sign_flip": 0.42
+    },
+    "microwave oven": {
+      "n": 200,
+      "dcx_mean": 0.12607749621360562,
+      "sign_flip": 0.39
+    }
+  },
+  "pred_cx_max_all": 0.9954999923706055
+}
