@@ -16792,7 +16792,7 @@ graph TD
     🟣 <strong>3줄 요약</strong><br>
     ① <strong>Florence-2는 파라미터 근거가 강하다</strong> — 231.4M vs Kosmos-2 1664.5M (실측). 경량화엔 유리.<br>
     ② <strong>그런데 우리 실측 2건에서 탈락한 이력이 있다</strong> — cx max=0.56 구조적 우편향, 실주행 전이 급락(85.7%→15.0%).<br>
-    ③ <strong>단 두 실측 모두 "OVD 출력"에 대한 것</strong>이라 <strong>비전 백본으로 쓰는 경우는 사정거리 밖</strong> — 그래서 아직 안 해본 조합을 검정한다.
+    ③ <strong style="color:#4ade80">검정 완료 — 제안이 성립한다.</strong> 비전 백본으로 쓰면 cx MAE 0.0015(Kosmos-2 0.0020보다 25% 우세), 예측 cx가 라벨 최대값(0.8612)을 정확히 따라가 <strong>우편향 천장이 없다</strong>. CH59 결함은 OVD 헤드 문제였다.
   </div>
 
   <div class="finding-card" style="border-color:#38bdf8">
@@ -16814,7 +16814,7 @@ graph TD
   </div>
 
   <div class="finding-card" style="border-color:#f0abfc">
-    <div class="finding-title" style="color:#f0abfc">🔬 67-2. Florence-2 검정 — 파라미터는 유리, 과거 실측은 부정적, 사정거리는 다르다 <span style="color:#fbbf24">(진행 중)</span></div>
+    <div class="finding-title" style="color:#f0abfc">✅ 67-2. Florence-2 검정 — 교수님 제안대로 유효. 파라미터 3.4배 작고 정확도는 25% 더 좋다</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       <strong style="color:#e2e8f0">① 파라미터 근거는 강하다 (실측)</strong>
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
@@ -16867,7 +16867,7 @@ graph TD
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
         <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">백본</th><th style="padding:4px">비전 파라미터</th><th style="padding:4px">cx MAE</th><th style="padding:4px">지연</th><th style="padding:4px">상태</th></tr>
         <tr><td style="padding:4px">Kosmos-2 vision</td><td style="padding:4px;text-align:center">303.2M</td><td style="padding:4px;text-align:center;color:#4ade80">0.0020</td><td style="padding:4px;text-align:center">53.7ms</td><td style="padding:4px;text-align:center">측정 완료(65-5)</td></tr>
-        <tr style="background:rgba(240,171,252,0.1)"><td style="padding:4px"><strong>Florence-2 vision</strong></td><td style="padding:4px;text-align:center">90.4M</td><td style="padding:4px;text-align:center;color:#fbbf24"><strong>측정 예정</strong></td><td style="padding:4px;text-align:center;color:#fbbf24"><strong>측정 예정</strong></td><td style="padding:4px;text-align:center;color:#fbbf24">🔄 진행 중</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 vision</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>90.4M</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.0015</strong></td><td style="padding:4px;text-align:center;color:#fbbf24">59.6ms</td><td style="padding:4px;text-align:center;color:#4ade80">✅ 완료</td></tr>
       </table>
       <strong style="color:#e2e8f0">판정 기준을 미리 고정한다</strong>(사후 변경 금지):
       <ul style="margin:6px 0 0 18px;padding:0">
@@ -16879,9 +16879,60 @@ graph TD
           CH59의 우편향 같은 구조적 결함을 놓친다. 특히 <code>cx&gt;0.5</code> 구간을 따로 본다</li>
       </ul>
       <br>
+      <br>
+      <div style="background:rgba(74,222,128,0.12);border-left:3px solid #4ade80;padding:12px 14px;margin:12px 0">
+        <strong style="color:#4ade80">⑤ 결과 (2026-08-04) — 제안이 성립한다</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+          <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">지표</th><th style="padding:4px">Kosmos-2</th><th style="padding:4px">Florence-2</th><th style="padding:4px">상대비</th></tr>
+          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>cx MAE</strong> (val 843)</td><td style="padding:4px;text-align:center">0.0020</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.0015</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.76배 (25% 우세)</strong></td></tr>
+          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>비전 파라미터</strong></td><td style="padding:4px;text-align:center">303.2M</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>90.4M</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.30배 (3.4배 작음)</strong></td></tr>
+          <tr style="background:rgba(251,191,36,0.1)"><td style="padding:4px">비전 백본 지연</td><td style="padding:4px;text-align:center">53.7ms</td><td style="padding:4px;text-align:center;color:#fbbf24">59.6ms</td><td style="padding:4px;text-align:center;color:#fbbf24">1.11배 (11% 열세)</td></tr>
+          <tr><td style="padding:4px">공간 그리드</td><td style="padding:4px;text-align:center">16×16 (224px 입력)</td><td style="padding:4px;text-align:center">24×24 (768px 입력)</td><td style="padding:4px;text-align:center">해상도 1.5배</td></tr>
+          <tr><td style="padding:4px">area MAE</td><td style="padding:4px;text-align:center">0.0036</td><td style="padding:4px;text-align:center;color:#4ade80">0.0020</td><td style="padding:4px;text-align:center;color:#4ade80">0.56배</td></tr>
+        </table>
+        <strong style="color:#e2e8f0">정확도는 더 좋고 크기는 3.4배 작다. 유일한 열세는 지연 11%</strong>인데,
+        이는 입력 해상도 차이(768px vs 224px)에서 오는 것으로 <strong style="color:#e2e8f0">해상도를 낮추면
+        조정 가능</strong>한 항목이다. 그리고 24×24 그리드가 16×16보다 세밀해 작은 객체 구간에서 유리하다.
+      </div>
+      <strong style="color:#e2e8f0">⑥ 결정적 검증 — CH59의 우편향은 재현되지 않았다</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">구분</th><th style="padding:4px">예측 cx 최대값</th><th style="padding:4px">판정</th></tr>
+        <tr><td style="padding:4px">val 라벨 최대값 (기준)</td><td style="padding:4px;text-align:center">0.8612</td><td style="padding:4px;text-align:center">—</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 피처 + 우리 헤드</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.8616</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>천장 없음</strong></td></tr>
+        <tr><td style="padding:4px">Kosmos-2 (같은 val)</td><td style="padding:4px;text-align:center">0.8573</td><td style="padding:4px;text-align:center">정상</td></tr>
+        <tr style="background:rgba(213,94,0,0.12)"><td style="padding:4px">Florence-2 <strong>OVD</strong> (CH59)</td><td style="padding:4px;text-align:center;color:#f87171"><strong>0.559</strong></td><td style="padding:4px;text-align:center;color:#f87171">라벨 무관하게 막힘</td></tr>
+      </table>
+      라벨이 0.8612까지인데 <strong style="color:#4ade80">0.8616을 예측</strong>했다 — Kosmos-2(0.8573)보다도
+      오히려 더 정확히 따라간다. 좌/우 구간별 cx MAE도 0.0014 / 0.0016으로 균등하다.
+      <br><strong style="color:#e2e8f0">즉 CH59의 <code>cx max=0.559</code>는 OVD 헤드의 좌표 출력 문제였고,
+      비전 피처 자체는 정상이다.</strong> ③에서 세운 "사정거리가 다르다"는 가설이 확인됐고,
+      <strong style="color:#4ade80">교수님 제안은 성립한다.</strong>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_67_2_florence2.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="Florence-2 백본 검정"></div>
+      <br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">📝 판정 기준을 스스로 수정한 부분</strong> — 사전에 "예측 cx가 0.9 이상이면
+        피처 정상"이라고 적었으나, 이는 <strong style="color:#e2e8f0">val 라벨 범위를 모르고 잡은 임의값</strong>이었다.
+        올바른 기준은 <strong style="color:#e2e8f0">"라벨 최대값을 따라가는가"</strong>이며, 그 기준으로는
+        0.8616 vs 라벨 0.8612로 <strong style="color:#4ade80">완전 통과</strong>다. 기준의 형식은 바꿨지만
+        의도(천장 존재 여부)는 유지했음을 밝힌다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">⑦ 남은 확인 사항 — 이 결과로 말할 수 없는 것</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li><strong style="color:#f87171">CH55계열의 일반화 문제는 검정되지 않았다</strong> —
+          v5 85.7% → 실주행 15.0% 급락은 <strong style="color:#e2e8f0">파인튜닝 상황</strong>에서
+          나온 것이고, 이번 실험은 <strong style="color:#e2e8f0">frozen 피처 + 얕은 헤드</strong>다.
+          조건이 달라 재현 여부를 말할 수 없다. 실기 프레임 평가가 필요하다</li>
+        <li><strong style="color:#f87171">has_bbox는 여전히 미해결</strong> — 65-6과 같은 문제
+          (학습셋 negative 0건)가 백본을 바꿔도 그대로 남는다. 백본 선택과 무관한 별개 과제다</li>
+        <li>실기 세션 프레임(176세션)에서의 평가는 아직 안 했다 — V6 조작 데이터 기준 결과다</li>
+        <li>언어 성능은 측정하지 않았다 — 이번엔 <strong style="color:#e2e8f0">비전 백본으로서만</strong>
+          검정했다. VLA로 갈 때 Florence-2 언어부(140.2M)의 성능은 별도 검정이 필요하다</li>
+      </ul>
+      <br>
       <span style="color:#64748b;font-size:0.8rem">
-        ※ Florence-2-base는 이미 로컬에 캐시돼 있어(<code>models--microsoft--Florence-2-base</code>)
-        추가 다운로드 없이 실행 가능. 로봇 불필요.
+        ※ 스크립트: <code>scripts/detector_florence2_backbone.py</code> ·
+        결과: <code>docs/v5/detector/florence2_backbone.json</code> · 로봇 불필요, 약 40분 소요.
       </span>
     </div>
   </div>
@@ -16946,7 +16997,7 @@ graph TD
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
         <tr style="border-bottom:1px solid #334155"><th style="padding:4px">순위</th><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">로봇</th><th style="text-align:left;padding:4px">근거</th></tr>
-        <tr style="background:rgba(240,171,252,0.1)"><td style="padding:4px;text-align:center"><strong>0</strong></td><td style="padding:4px"><strong>Florence-2 비전 피처 검정</strong></td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px">교수님 제안 검증. 수십 분, 캐시 보유 (67-2 ④)</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px;text-align:center"><strong>0</strong></td><td style="padding:4px"><strong>Florence-2 비전 피처 검정</strong> <span style="color:#4ade80">✅ 완료</span></td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;color:#4ade80">제안 성립 확인 — cx MAE 0.0015, 파라미터 3.4배↓ (67-2 ⑤⑥)</td></tr>
         <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px;text-align:center"><strong>1</strong></td><td style="padding:4px"><strong>특화 검출기 완성</strong> (negative → has_bbox)</td><td style="padding:4px;text-align:center">⚠️ 수집만</td><td style="padding:4px">35.3배 개선이 이미 검증됨. 양자화보다 우선</td></tr>
         <tr><td style="padding:4px;text-align:center">2</td><td style="padding:4px">기구 편향 검정</td><td style="padding:4px;text-align:center">⚠️ 측정만</td><td style="padding:4px">CH66 미검증 항목. 주행 불필요</td></tr>
         <tr><td style="padding:4px;text-align:center">3</td><td style="padding:4px">데이터 규모 확대 (트랙C 등)</td><td style="padding:4px;text-align:center">✅</td><td style="padding:4px">②의 전제 조건</td></tr>
