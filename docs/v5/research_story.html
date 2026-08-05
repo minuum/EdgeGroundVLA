@@ -339,7 +339,7 @@
     <div class="kpi"><div class="num" style="color:#60a5fa">98.8%</div><div class="lbl">그라운딩 되면 성공</div></div>
     <div class="kpi"><div class="num" style="color:#f87171">1902ms</div><div class="lbl">검출 지연 (병목 97%)</div></div>
     <div class="kpi"><div class="num" style="color:#fbbf24">225</div><div class="lbl">V6 에피소드</div></div>
-    <div class="kpi"><div class="num" style="color:#a78bfa">66</div><div class="lbl">챕터 수</div></div>
+    <div class="kpi"><div class="num" style="color:#a78bfa">67</div><div class="lbl">챕터 수</div></div>
   </div>
   <div style="margin-top:18px;font-size:0.8rem;color:#64748b;line-height:1.7">
     판정 기준은 <strong style="color:#cbd5e1">100건 실기 테스트(5위치 × 20회)</strong>입니다 —
@@ -355,6 +355,7 @@
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
+    <a href="#ch67" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🧭 CH67 차기 구성 검정</a>
     <a href="#ch66" style="padding:7px 16px;background:#2b1f05;border:1px solid #fbbf24;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fcd34d;text-decoration:none">⚖️ CH66 좌우 비대칭 원인</a>
     <a href="../plans/plan_20260801_specialized_detector.md" style="padding:7px 16px;background:#052e16;border:1px solid #15803d;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">📋 검출기 계획서</a>
     <a href="../index.html#archive" style="padding:7px 16px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">📦 이전 자료 모음</a>
@@ -454,7 +455,7 @@
 <div id="checkpoint" style="max-width:1200px;margin:0 auto;padding:48px 40px 32px">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
     <span style="background:#fbbf24;color:#0a0f1a;font-weight:900;font-size:0.8rem;padding:4px 12px;border-radius:20px">MAP</span>
-    <h2 style="font-size:1.6rem;font-weight:800">결론 체크포인트 지도 — CH1→CH66</h2>
+    <h2 style="font-size:1.6rem;font-weight:800">결론 체크포인트 지도 — CH1→CH67</h2>
   </div>
   <p style="color:#64748b;font-size:0.85rem;margin-bottom:28px">각 단계에서 확정된 핵심 결론. 상세 내용은 챕터 링크로.</p>
 
@@ -16776,6 +16777,250 @@ graph TD
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH66 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH67 ═ -->
+<div class="chapter" id="ch67">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f0abfc;color:#0a0f1a">CH 67</span>
+    <h2 class="chapter-title">차기 경량 구성 후보 검정 — Edge-grounding-VA에서 VLA로 갈 때 무엇을 고를 것인가</h2>
+    <p class="chapter-subtitle">2026-08-04 논의에서 나온 차기 구성 후보들을 <strong style="color:#e2e8f0">기존 실측과 대조</strong>하는 챕터. 교수님이 제안하신 <strong style="color:#f0abfc">OWL-v2 + Florence-2</strong> 조합과, 로드맵의 세 항목(양자화 · 연속형 헤드 · 언어 축소)을 각각 검정한다. <strong style="color:#fbbf24">결론을 내리는 챕터가 아니라 "무엇을 확인해야 하는지"를 고정하는 챕터</strong>다 — 진행 중 항목은 그대로 표시한다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟣 <strong>3줄 요약</strong><br>
+    ① <strong>Florence-2는 파라미터 근거가 강하다</strong> — 231.4M vs Kosmos-2 1664.5M (실측). 경량화엔 유리.<br>
+    ② <strong>그런데 우리 실측 2건에서 탈락한 이력이 있다</strong> — cx max=0.56 구조적 우편향, 실주행 전이 급락(85.7%→15.0%).<br>
+    ③ <strong style="color:#4ade80">검정 완료 — 제안이 성립한다.</strong> 비전 백본으로 쓰면 cx MAE 0.0015(Kosmos-2 0.0020보다 25% 우세), 예측 cx가 라벨 최대값(0.8612)을 정확히 따라가 <strong>우편향 천장이 없다</strong>. CH59 결함은 OVD 헤드 문제였다.
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">67-1. 2026-08-04 논의 기록 — 합의된 방향</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">항목</th><th>내용</th></tr>
+        <tr><td style="padding:4px"><strong>현재</strong></td><td style="padding:4px"><strong style="color:#e2e8f0">Edge-grounding-VA</strong> — 언어 조건화 없음. OVD + 비전 + 이산 액션 헤드</td></tr>
+        <tr><td style="padding:4px"><strong>추후</strong></td><td style="padding:4px"><strong style="color:#e2e8f0">Edge-grounding-VLA</strong> — language를 넣어 하나의 VLA 모델로 통합</td></tr>
+        <tr><td style="padding:4px">목표 구성(초안)</td><td style="padding:4px">OWL-v2 + Kosmos-2 backbone + π0 계열 Flow Matching 액션 헤드<br>이산 → 연속형 전환 · 언어 파라미터 1B 수준으로 축소 · OWL-v2 지연은 양자화로</td></tr>
+        <tr style="background:rgba(240,171,252,0.1)"><td style="padding:4px"><strong>교수님 제안</strong><br><span style="font-size:0.75rem;color:#64748b">(19:30)</span></td><td style="padding:4px"><strong style="color:#f0abfc">"추후 OWL-v2 + Florence-2 모델이 경량 VLA 모델을 만들기에는 더 좋은 조합인 것 같아"</strong></td></tr>
+        <tr><td style="padding:4px">포지셔닝</td><td style="padding:4px">MobilityVLA와 정면 경쟁 아님 — <strong style="color:#e2e8f0">일반적이지 않은 경우에 적용하는 VA 시스템</strong>(엣지 제약이 핵심)</td></tr>
+        <tr><td style="padding:4px">Kosmos-2 선택 근거</td><td style="padding:4px">선행연구 <strong style="color:#e2e8f0">RoboVLMs에서 Kosmos-2가 가장 효과 좋았기 때문</strong>. 임의 선택이 아니라 실측 승계<br><span style="font-size:0.78rem;color:#fbbf24">⚠️ 단 "RoboVLMs 기반"이라 쓰면 사실과 다름 — 코드는 미포함(CH65, 모델 구조 자료 7절)</span></td></tr>
+      </table>
+      <div style="font-size:0.8rem;color:#64748b;margin-top:8px">
+        상세 로드맵: <code>docs/plans/plan_20260804_roadmap_edge_grounding_vla.md</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f0abfc">
+    <div class="finding-title" style="color:#f0abfc">✅ 67-2. Florence-2 검정 — 교수님 제안대로 유효. 파라미터 3.4배 작고 정확도는 25% 더 좋다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">① 파라미터 근거는 강하다 (실측)</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">모델</th><th style="padding:4px">전체</th><th style="padding:4px">비전</th><th style="padding:4px">언어</th></tr>
+        <tr><td style="padding:4px">Kosmos-2 (현재)</td><td style="padding:4px;text-align:center">1664.5M</td><td style="padding:4px;text-align:center">303.2M</td><td style="padding:4px;text-align:center">1361.3M</td></tr>
+        <tr style="background:rgba(240,171,252,0.1)"><td style="padding:4px"><strong>Florence-2-base</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>231.4M</strong></td><td style="padding:4px;text-align:center">90.4M</td><td style="padding:4px;text-align:center">140.2M</td></tr>
+      </table>
+      <strong style="color:#4ade80">전체 7.2배, 비전 3.4배 작다.</strong> 엣지·라즈베리파이 목표에서 교수님 제안의
+      근거는 타당하다. 특히 언어를 넣어야 하는 VLA로 가면 Kosmos-2의 1.36B 언어 디코더가
+      부담이 되는데(현재는 로드 자체를 제거한 상태), Florence-2는 140.2M로 <strong style="color:#e2e8f0">
+      "언어를 1B 이하로"라는 로드맵 목표를 자연히 만족</strong>한다.
+      <br><br>
+      <strong style="color:#f87171">② 그런데 우리 실측 2건에서 탈락한 이력이 있다</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">실험</th><th style="padding:4px">Florence-2</th><th style="padding:4px">대조군</th></tr>
+        <tr><td style="padding:4px"><strong>CH59</strong> 5-Model 셀프라벨링<br><span style="font-size:0.75rem;color:#64748b">사람 라벨 185프레임, 2026-06-30</span></td>
+            <td style="padding:4px;text-align:center;color:#f87171">L/R 정확도 <strong>51.8%</strong><br>(검출률 185/185)</td>
+            <td style="padding:4px;text-align:center">Kr · PG448 · OWL-v2<br>모두 99.1%</td></tr>
+        <tr><td style="padding:4px"><strong>CH55 계열</strong> 백본 파인튜닝<br><span style="font-size:0.75rem;color:#64748b">2026-06-29</span></td>
+            <td style="padding:4px;text-align:center">v5 <strong>85.7%</strong> → <strong style="color:#f87171">sess 15.0%</strong></td>
+            <td style="padding:4px;text-align:center">OWL-v2 LoRA<br>v5 68.6% → sess <strong style="color:#4ade80">47.2%</strong></td></tr>
+      </table>
+      <strong style="color:#f87171">CH59의 원인은 구조적이다</strong> — <code>cx max = 0.559</code>로
+      <strong style="color:#e2e8f0">화면 우측 절반을 아예 예측하지 못한다.</strong> 검출은 100% 되는데
+      좌표가 왼쪽에만 몰린다. 당시 판정이 문서에 남아 있다:
+      <em>"Florence-2 제외 — 구조적 우편향(cx max=0.56), 수정 방법 없음"</em>.
+      <br>
+      <strong style="color:#f87171">CH55 계열은 일반화 문제다</strong> — 학습셋(v5)에서는 85.7%로 가장
+      높은데 실주행(sess)에서 15.0%로 무너진다. <strong style="color:#e2e8f0">학습셋 성적이 가장 좋은
+      모델이 실기에서 가장 나빴다</strong>는 점에서, 이 프로젝트가 반복해 확인한
+      "offline≠실기" 패턴의 또 다른 사례다.
+      <br><br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">③ 단 위 두 실측은 사정거리가 다르다 — 그래서 기각하지 않는다</strong><br>
+        두 실험 모두 Florence-2를 <strong style="color:#e2e8f0">OVD(검출) 출력</strong>으로 썼다.
+        <code>cx max=0.56</code> 결함은 <strong style="color:#e2e8f0">OVD 헤드의 좌표 출력</strong> 문제다.
+        <br><br>
+        교수님 제안은 Florence-2를 <strong style="color:#e2e8f0">비전/언어 백본</strong>으로 쓰자는
+        뜻으로 읽히고, 그 경우 <strong style="color:#e2e8f0">검출은 OWL-v2가 담당</strong>하므로
+        Florence-2의 OVD 좌표 결함은 경로에서 빠진다. patch 피처 자체는 멀쩡할 수 있다.
+        <br><br>
+        <strong style="color:#4ade80">→ 즉 "OWL-v2(검출) + Florence-2(비전 피처) + 액션 헤드"는
+        아직 측정한 적이 없는 조합</strong>이고, 우리 negative 결과의 사정거리 밖이다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">④ 검정 설계 — 65-5와 완전히 같은 조건으로 백본만 교체</strong><br>
+      CH65 65-5에서 Kosmos-2 patch 피처(16×16×1024) 위에 0.279M heatmap 헤드를 올려
+      cx MAE 0.0020을 얻었다. <strong style="color:#e2e8f0">같은 라벨·같은 분할(V6 seed42)·같은 헤드로
+      Florence-2 피처만 바꿔 넣으면 apples-to-apples 비교</strong>가 된다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">백본</th><th style="padding:4px">비전 파라미터</th><th style="padding:4px">cx MAE</th><th style="padding:4px">지연</th><th style="padding:4px">상태</th></tr>
+        <tr><td style="padding:4px">Kosmos-2 vision</td><td style="padding:4px;text-align:center">303.2M</td><td style="padding:4px;text-align:center;color:#4ade80">0.0020</td><td style="padding:4px;text-align:center">53.7ms</td><td style="padding:4px;text-align:center">측정 완료(65-5)</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 vision</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>90.4M</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.0015</strong></td><td style="padding:4px;text-align:center;color:#fbbf24">59.6ms</td><td style="padding:4px;text-align:center;color:#4ade80">✅ 완료</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">판정 기준을 미리 고정한다</strong>(사후 변경 금지):
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li>cx MAE가 Kosmos-2와 <strong style="color:#e2e8f0">동등 이내</strong>면 → 비전 백본으로 유효.
+          파라미터 3.4배 절감이 그대로 이득</li>
+        <li>MAE가 유의하게 나쁘면 → CH59의 결함이 <strong style="color:#e2e8f0">OVD 헤드가 아니라
+          피처 자체</strong>에서 온다는 뜻. 그 경우 교수님 제안은 성립하지 않고, 근거를 제시할 수 있다</li>
+        <li><strong style="color:#fbbf24">area 구간별·좌우별 필수 보고</strong> — 전체 평균만 보면
+          CH59의 우편향 같은 구조적 결함을 놓친다. 특히 <code>cx&gt;0.5</code> 구간을 따로 본다</li>
+      </ul>
+      <br>
+      <br>
+      <div style="background:rgba(74,222,128,0.12);border-left:3px solid #4ade80;padding:12px 14px;margin:12px 0">
+        <strong style="color:#4ade80">⑤ 결과 (2026-08-04) — 제안이 성립한다</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+          <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">지표</th><th style="padding:4px">Kosmos-2</th><th style="padding:4px">Florence-2</th><th style="padding:4px">상대비</th></tr>
+          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>cx MAE</strong> (val 843)</td><td style="padding:4px;text-align:center">0.0020</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.0015</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.76배 (25% 우세)</strong></td></tr>
+          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>비전 파라미터</strong></td><td style="padding:4px;text-align:center">303.2M</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>90.4M</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.30배 (3.4배 작음)</strong></td></tr>
+          <tr style="background:rgba(251,191,36,0.1)"><td style="padding:4px">비전 백본 지연</td><td style="padding:4px;text-align:center">53.7ms</td><td style="padding:4px;text-align:center;color:#fbbf24">59.6ms</td><td style="padding:4px;text-align:center;color:#fbbf24">1.11배 (11% 열세)</td></tr>
+          <tr><td style="padding:4px">공간 그리드</td><td style="padding:4px;text-align:center">16×16 (224px 입력)</td><td style="padding:4px;text-align:center">24×24 (768px 입력)</td><td style="padding:4px;text-align:center">해상도 1.5배</td></tr>
+          <tr><td style="padding:4px">area MAE</td><td style="padding:4px;text-align:center">0.0036</td><td style="padding:4px;text-align:center;color:#4ade80">0.0020</td><td style="padding:4px;text-align:center;color:#4ade80">0.56배</td></tr>
+        </table>
+        <strong style="color:#e2e8f0">정확도는 더 좋고 크기는 3.4배 작다. 유일한 열세는 지연 11%</strong>인데,
+        이는 입력 해상도 차이(768px vs 224px)에서 오는 것으로 <strong style="color:#e2e8f0">해상도를 낮추면
+        조정 가능</strong>한 항목이다. 그리고 24×24 그리드가 16×16보다 세밀해 작은 객체 구간에서 유리하다.
+      </div>
+      <strong style="color:#e2e8f0">⑥ 결정적 검증 — CH59의 우편향은 재현되지 않았다</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">구분</th><th style="padding:4px">예측 cx 최대값</th><th style="padding:4px">판정</th></tr>
+        <tr><td style="padding:4px">val 라벨 최대값 (기준)</td><td style="padding:4px;text-align:center">0.8612</td><td style="padding:4px;text-align:center">—</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 피처 + 우리 헤드</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.8616</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>천장 없음</strong></td></tr>
+        <tr><td style="padding:4px">Kosmos-2 (같은 val)</td><td style="padding:4px;text-align:center">0.8573</td><td style="padding:4px;text-align:center">정상</td></tr>
+        <tr style="background:rgba(213,94,0,0.12)"><td style="padding:4px">Florence-2 <strong>OVD</strong> (CH59)</td><td style="padding:4px;text-align:center;color:#f87171"><strong>0.559</strong></td><td style="padding:4px;text-align:center;color:#f87171">라벨 무관하게 막힘</td></tr>
+      </table>
+      라벨이 0.8612까지인데 <strong style="color:#4ade80">0.8616을 예측</strong>했다 — Kosmos-2(0.8573)보다도
+      오히려 더 정확히 따라간다. 좌/우 구간별 cx MAE도 0.0014 / 0.0016으로 균등하다.
+      <br><strong style="color:#e2e8f0">즉 CH59의 <code>cx max=0.559</code>는 OVD 헤드의 좌표 출력 문제였고,
+      비전 피처 자체는 정상이다.</strong> ③에서 세운 "사정거리가 다르다"는 가설이 확인됐고,
+      <strong style="color:#4ade80">교수님 제안은 성립한다.</strong>
+      <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_67_2_florence2.png" style="max-width:950px;width:100%;border-radius:8px;border:1px solid #223" alt="Florence-2 백본 검정"></div>
+      <br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">📝 판정 기준을 스스로 수정한 부분</strong> — 사전에 "예측 cx가 0.9 이상이면
+        피처 정상"이라고 적었으나, 이는 <strong style="color:#e2e8f0">val 라벨 범위를 모르고 잡은 임의값</strong>이었다.
+        올바른 기준은 <strong style="color:#e2e8f0">"라벨 최대값을 따라가는가"</strong>이며, 그 기준으로는
+        0.8616 vs 라벨 0.8612로 <strong style="color:#4ade80">완전 통과</strong>다. 기준의 형식은 바꿨지만
+        의도(천장 존재 여부)는 유지했음을 밝힌다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">⑦ 남은 확인 사항 — 이 결과로 말할 수 없는 것</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li><strong style="color:#f87171">CH55계열의 일반화 문제는 검정되지 않았다</strong> —
+          v5 85.7% → 실주행 15.0% 급락은 <strong style="color:#e2e8f0">파인튜닝 상황</strong>에서
+          나온 것이고, 이번 실험은 <strong style="color:#e2e8f0">frozen 피처 + 얕은 헤드</strong>다.
+          조건이 달라 재현 여부를 말할 수 없다. 실기 프레임 평가가 필요하다</li>
+        <li><strong style="color:#f87171">has_bbox는 여전히 미해결</strong> — 65-6과 같은 문제
+          (학습셋 negative 0건)가 백본을 바꿔도 그대로 남는다. 백본 선택과 무관한 별개 과제다</li>
+        <li>실기 세션 프레임(176세션)에서의 평가는 아직 안 했다 — V6 조작 데이터 기준 결과다</li>
+        <li>언어 성능은 측정하지 않았다 — 이번엔 <strong style="color:#e2e8f0">비전 백본으로서만</strong>
+          검정했다. VLA로 갈 때 Florence-2 언어부(140.2M)의 성능은 별도 검정이 필요하다</li>
+      </ul>
+      <br>
+      <span style="color:#64748b;font-size:0.8rem">
+        ※ 스크립트: <code>scripts/detector_florence2_backbone.py</code> ·
+        결과: <code>docs/v5/detector/florence2_backbone.json</code> · 로봇 불필요, 약 40분 소요.
+      </span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">⚠️ 67-3. 로드맵 3개 항목 — 자체 실측과 충돌하므로 "왜 이번엔 다른가"에 답이 필요</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      폐기하자는 뜻이 아니다. 이미 측정으로 기각된 선택을 모르고 반복하지 않도록 근거를 붙여둔다.
+      <br><br>
+      <strong style="color:#e2e8f0">① OWL-v2 양자화로 지연 해결 → 검출률을 파는 트레이드</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">방식</th><th style="padding:4px">지연</th><th style="padding:4px">검출률</th></tr>
+        <tr><td style="padding:4px">fp32 (현재)</td><td style="padding:4px;text-align:center">1901.7ms</td><td style="padding:4px;text-align:center">100%(기준)</td></tr>
+        <tr><td style="padding:4px">fp16 양자화</td><td style="padding:4px;text-align:center;color:#fbbf24">962.1ms (1.98배↑)</td><td style="padding:4px;text-align:center;color:#f87171"><strong>90.0% (−10%p)</strong></td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>Kosmos-2 patch 헤드</strong><br><span style="font-size:0.75rem;color:#64748b">65-5, 이미 검증</span></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>53.8ms (35.3배↑)</strong></td><td style="padding:4px;text-align:center;color:#4ade80">손실 없음<br><span style="font-size:0.75rem">(단 has_bbox 미해결)</span></td></tr>
+      </table>
+      <strong style="color:#e2e8f0">검출률이 곧 실기 성공률</strong>이다 — gnd%≥80이면 98.8%(79/80),
+      80% 미만이면 51.2%(64-18). 양자화는 <strong style="color:#f87171">성패를 가르는 그 변수 하나를
+      팔아서 속도를 사는</strong> 구조다. 반면 특화 검출기는 <strong style="color:#4ade80">양자화보다
+      18배 큰 개선</strong>을 검출률 손실 없이 낸다.
+      <br>→ <strong style="color:#4ade80">권고</strong>: 양자화 대신 특화 검출기 경로를 우선.
+      양자화를 쓴다면 "−10%p를 어떻게 보상하는가"에 답이 있어야 한다.
+      <br><br>
+      <strong style="color:#e2e8f0">② 이산 → 연속(π0 Flow Matching) → 이 규모에서 기각됨</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">헤드</th><th style="padding:4px">best (225ep, pg448)</th></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>mlp (이산)</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>77.9%</strong> ← 현재 배포</td></tr>
+        <tr><td style="padding:4px">cxgeom (이산)</td><td style="padding:4px;text-align:center">76.6%</td></tr>
+        <tr><td style="padding:4px">contreg (연속, 단일회귀)</td><td style="padding:4px;text-align:center">74.7%</td></tr>
+        <tr><td style="padding:4px"><strong>flow (연속, π0 경량판)</strong></td><td style="padding:4px;text-align:center;color:#f87171"><strong>72.0%</strong> (owl 71.3%)</td></tr>
+      </table>
+      자매 프로젝트 MoNa-pi(π0 계열 풀 구현, AdaLN-Zero)도 closed-loop <strong style="color:#e2e8f0">
+      45.8%</strong>였다. <strong style="color:#e2e8f0">"헤드를 연속/flow로 바꾸면 저절로 좋아진다"는
+      가설이 225ep 규모에서 기각</strong>됐다(CH63 63-6).
+      <br><br>
+      추가 제약이 하나 더 있다 — <strong style="color:#f87171">로봇 펌웨어가 속도 크기를 무시하고
+      방향만 사용</strong>한다(상수속도 구조, soda 확인). 연속 출력의 이점이
+      <strong style="color:#e2e8f0">하드웨어 단계에서 잘려나간다.</strong>
+      <br>→ <strong style="color:#4ade80">권고</strong>: 연속형 전환은 <strong style="color:#e2e8f0">
+      데이터 규모 확대 + 펌웨어 속도 반영</strong>과 묶어서 계획. 둘 중 하나라도 없으면 같은 결과가 나온다.
+      <br><br>
+      <strong style="color:#e2e8f0">③ 언어 파라미터 1B로 축소 → 방향은 맞지만 전제 확인 필요</strong><br>
+      현재 Kosmos-2 언어 디코더 1.361B는 <strong style="color:#e2e8f0">호출이 0회</strong>이고,
+      이번에 <strong style="color:#e2e8f0">로드 자체를 제거</strong>해 peak host RAM을
+      10.59GB → 3.20GB(−70%)로 줄였다. 즉 지금은 "언어를 안 쓰는 대신 RAM을 확보한" 상태이고,
+      VLA로 가면 그 RAM을 다시 쓴다.
+      <br><br>
+      V5에서 <strong style="color:#e2e8f0">text attention이 0.000%</strong>였고(Exp17~41C,
+      head-only에서도 재현) 프롬프트를 어떻게 바꿔도 방향 정확도가 개선되지 않았다(CH58).
+      <br>→ <strong style="color:#4ade80">권고</strong>: <strong style="color:#e2e8f0">"언어를 넣어서
+      무엇이 좋아지는가"를 보일 과제 설계가 선행</strong>돼야 한다. 예를 들어
+      <strong style="color:#e2e8f0">다중 객체를 배치하고 지시문으로 타겟을 고르게 하는</strong> 과제라면
+      언어의 기여를 정량화할 수 있다. 현재의 단일 객체(회색 바구니) 과제에서는
+      언어를 넣어도 파라미터만 늘어난다.
+      <br><span style="font-size:0.8rem;color:#64748b">※ Florence-2를 쓰면 언어가 140.2M이라 이 목표는
+      자연히 만족된다(67-2 ①) — 즉 ③과 교수님 제안이 서로 맞물린다.</span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">67-4. 진행 순서 — 엣지 목표에 가장 빠른 경로</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:4px">순위</th><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">로봇</th><th style="text-align:left;padding:4px">근거</th></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px;text-align:center"><strong>0</strong></td><td style="padding:4px"><strong>Florence-2 비전 피처 검정</strong> <span style="color:#4ade80">✅ 완료</span></td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;color:#4ade80">제안 성립 확인 — cx MAE 0.0015, 파라미터 3.4배↓ (67-2 ⑤⑥)</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px;text-align:center"><strong>1</strong></td><td style="padding:4px"><strong>특화 검출기 완성</strong> (negative → has_bbox)</td><td style="padding:4px;text-align:center">⚠️ 수집만</td><td style="padding:4px">35.3배 개선이 이미 검증됨. 양자화보다 우선</td></tr>
+        <tr><td style="padding:4px;text-align:center">2</td><td style="padding:4px">기구 편향 검정</td><td style="padding:4px;text-align:center">⚠️ 측정만</td><td style="padding:4px">CH66 미검증 항목. 주행 불필요</td></tr>
+        <tr><td style="padding:4px;text-align:center">3</td><td style="padding:4px">데이터 규모 확대 (트랙C 등)</td><td style="padding:4px;text-align:center">✅</td><td style="padding:4px">②의 전제 조건</td></tr>
+        <tr><td style="padding:4px;text-align:center">4</td><td style="padding:4px">언어 조건화 과제 설계</td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px">③의 전제 조건 (다중 객체 지시문 선택 등)</td></tr>
+        <tr><td style="padding:4px;text-align:center">5</td><td style="padding:4px">연속형 액션 헤드</td><td style="padding:4px;text-align:center">✅</td><td style="padding:4px">3 + 펌웨어 속도 반영이 선행돼야 함</td></tr>
+      </table>
+      <br>
+      <strong style="color:#e2e8f0">검출 단계가 전체 지연의 97%</strong>(1901.7ms / 약 1956ms)를
+      차지하므로, 여기서 35배를 줄이면 나머지 최적화는 부차적이 된다. 그래서
+      <strong style="color:#4ade80">엣지 목표에 가장 빠른 경로는 0~1번</strong>이고, 둘 다
+      <strong style="color:#e2e8f0">주행이 필요 없다</strong>.
+      <br><br>
+      <div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:11px 14px">
+        <strong style="color:#38bdf8">이 챕터의 성격</strong> — 결론 챕터가 아니라
+        <strong style="color:#e2e8f0">"무엇을 확인해야 하는지"를 고정하는 챕터</strong>다.
+        67-2는 진행 중이며 결과가 나오면 채운다. 판정 기준을 미리 적어둔 것은
+        이번 세션에서 사후 해석으로 두 번 틀린 이력(64-11 철회, 64-19 2회 정정) 때문이다.
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH67 ═ -->
+
 
 
 
