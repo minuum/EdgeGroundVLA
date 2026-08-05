@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560"
+     font-family="Noto Sans CJK KR, Nanum Gothic, sans-serif">
+<rect width="900" height="560" fill="#ffffff"/>
+<style>
+  .bx{fill:#ffffff;stroke:#334155;stroke-width:1.6;rx:8}
+  .jet{fill:#ecfdf5;stroke:#16a34a;stroke-width:2.2}
+  .mcu{fill:#eff6ff;stroke:#1d4ed8;stroke-width:2.2}
+  .tb{font-size:15px;font-weight:700;fill:#0f172a}
+  .ts{font-size:12px;fill:#475569}
+  .tm{font-size:11px;font-family:monospace;fill:#1e40af}
+  .ar{stroke:#475569;stroke-width:1.8;fill:none;marker-end:url(#a)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+  <path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker></defs>
+
+<text x="20" y="30" class="tb" font-size="17">하드웨어 구성 — Jetson ↔ CAN ↔ MCU</text>
+
+<!-- 카메라 -->
+<rect class="bx" x="60" y="60" width="160" height="56"/>
+<text class="tb" x="140" y="82" text-anchor="middle" font-size="13">카메라</text>
+<text class="ts" x="140" y="100" text-anchor="middle">1280×720 RGB</text>
+<path class="ar" d="M140,116 L140,150"/>
+
+<!-- Jetson 보드 -->
+<rect class="bx jet" x="40" y="150" width="380" height="230"/>
+<text class="tb" x="230" y="176" text-anchor="middle" font-size="14">Jetson Orin NX 보드</text>
+<text class="ts" x="230" y="194" text-anchor="middle">추론 전담 · 온디바이스</text>
+
+<rect class="bx" x="60" y="206" width="340" height="46"/>
+<text class="ts" x="230" y="228" text-anchor="middle">OWL-v2 (0.155B) · 호출1에서만 실행</text>
+<text class="ts" x="230" y="244" text-anchor="middle" font-size="11">grounding_skip_n=3 주기</text>
+
+<rect class="bx" x="60" y="260" width="340" height="46"/>
+<text class="ts" x="230" y="282" text-anchor="middle">Kosmos-2 vision_model (0.303B) · 매 호출</text>
+<text class="ts" x="230" y="297" text-anchor="middle" font-size="11">image_proj → 256채널</text>
+
+<rect class="bx" x="60" y="314" width="340" height="46" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+<text class="tb" x="230" y="336" text-anchor="middle" font-size="12.5">MLP Action Head (0.866M) — 8클래스 로짓</text>
+<text class="ts" x="230" y="351" text-anchor="middle" font-size="11">유일한 학습 대상</text>
+
+<text class="ts" x="230" y="372" text-anchor="middle" font-size="11" fill="#64748b">ROS2 노드 (추론 서버 + 제어 매니저)</text>
+
+<path class="ar" d="M230,380 L230,420"/>
+<text class="tm" x="240" y="404" font-size="11">action_3d (lx, ly, az)</text>
+
+<!-- CAN 버스 -->
+<rect x="150" y="420" width="160" height="42" fill="#fef3c7" stroke="#b45309" stroke-width="2" rx="8"/>
+<text class="tb" x="230" y="440" text-anchor="middle" font-size="13" fill="#92400e">CAN 버스</text>
+<text class="tm" x="230" y="455" text-anchor="middle" font-size="10.5" fill="#92400e">can0 · 500 kbps</text>
+
+<path class="ar" d="M230,462 L230,498"/>
+
+<!-- MCU 보드 -->
+<rect class="bx mcu" x="40" y="498" width="380" height="46"/>
+<text class="tb" x="230" y="520" text-anchor="middle" font-size="13">MCU 보드 (모터 드라이버)</text>
+<text class="ts" x="230" y="536" text-anchor="middle" font-size="11">CAN 프레임 수신 → 개별 모터 제어 신호로 변환</text>
+
+<!-- 오른쪽: 바퀴 3개 -->
+<g transform="translate(500,150)">
+  <text class="tb" x="0" y="0" font-size="14">3축 옴니휠 (Kiwi drive)</text>
+  <circle cx="70" cy="90" r="46" fill="#fef9c3" stroke="#a16207" stroke-width="2"/>
+  <text class="ts" x="70" y="94" text-anchor="middle">휠 A</text>
+  <circle cx="200" cy="30" r="46" fill="#fef9c3" stroke="#a16207" stroke-width="2"/>
+  <text class="ts" x="200" y="34" text-anchor="middle">휠 B</text>
+  <circle cx="200" cy="150" r="46" fill="#fef9c3" stroke="#a16207" stroke-width="2"/>
+  <text class="ts" x="200" y="154" text-anchor="middle">휠 C</text>
+  <text class="ts" x="30" y="220" font-size="11" fill="#64748b">120° 간격 배치 — 회전 없이 횡이동·대각이동 가능</text>
+  <text class="ts" x="30" y="238" font-size="11" fill="#64748b">(8클래스 행동공간의 물리적 근거, 2절)</text>
+</g>
+<path class="ar" d="M420,521 L500,521 L500,270"/>
+<text class="ts" x="435" y="512" font-size="11" fill="#64748b">개별 모터 PWM</text>
+
+<!-- 센서 (같은 CAN) -->
+<rect x="500" y="420" width="360" height="56" fill="#f1f5f9" stroke="#94a3b8" rx="6"/>
+<text class="ts" x="516" y="440" fill="#334155">같은 can0 버스에 PSD·초음파 거리 센서도 연결</text>
+<text class="ts" x="516" y="457" fill="#334155" font-size="11">(장애물 감지용 — 본 VLA 파이프라인의 행동 입력에는 미사용)</text>
+<path class="ar" d="M500,448 L320,448 L320,441"/>
+
+<text x="20" y="558" font-size="11" fill="#94a3b8">근거: ROS_action/.../omni_controller/omni_drive_node.py — Psd/Ultrasonic(dev="can0", bitrate=500000),
+robovlm_nav/serve/vla_control_utils.py — pop.driving.Driving()</text>
+</svg>

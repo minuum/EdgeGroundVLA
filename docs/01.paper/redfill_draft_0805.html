@@ -240,6 +240,15 @@ flow-matching 방식보다 높은 성능을 보였다(5절). 즉 경량 분류�
 <p><strong>인코더 선택 근거</strong> — 다수의 시각-언어 인코더 중 Kosmos-2를 택한 것은 선행연구
 RoboVLMs의 인코더 비교에서 Kosmos-2가 가장 좋은 결과를 보였기 때문이며, 그 실측
 결과를 승계한 것이다. 다만 본 구현에 RoboVLMs의 코드는 포함되지 않는다.</p>
+<p><strong>선형 프로젝션 레이어의 사전 학습</strong> — Kosmos-2 비전 타워 출력(1024차원)을 256차원으로
+사상하는 선형 프로젝션 레이어(<code>image_proj</code>)는 행동 헤드와 별도로, 더 이른 단계에서
+학습해 고정해 둔 것이다. 목표 물체의 화면상 위치(좌/중앙/우)를 나타내는 세 개의 텍스트
+프롬프트에 대한 Kosmos-2 언어 모델의 은닉 표현을 방향 앵커로 미리 계산하고, 이 앵커와
+이미지 표현이 방향이 일치할 때 가까워지도록 대조 학습(contrastive alignment)시켰다.
+이 절차에서 사용한 언어 모델의 은닉 표현(및 그 정렬에 쓰인 보조 프로젝션)은 학습 시점에만
+관여하며, 배포되는 것은 이미지 프로젝션 레이어(0.262M)뿐이다. 즉 언어 디코더가 배포
+파이프라인에서 완전히 배제되는 것(6절)과는 별개로, 언어 모델의 표현이 학습 단계에서
+비전 특징을 방향 개념에 정렬시키는 데 한 차례 사용되었다는 점은 밝혀 둘 필요가 있다.</p>
 </blockquote>
 <hr />
 <h2 id="14-serving-control-0912">1.4. Serving Control <code>[삽입]</code> 🔴09~12</h2>
@@ -303,6 +312,87 @@ RoboVLMs의 인코더 비교에서 Kosmos-2가 가장 좋은 결과를 보였기
 <p>한편 정지 클래스는 원본 데이터에 존재하지 않아 각 에피소드의 마지막 프레임에 부여한
 합성 라벨이다. 따라서 학습된 정지 판정의 신뢰도는 데이터에서 자연히 관측된 정지 행동에
 근거한 것이 아니라는 점을 명시한다.</p>
+</blockquote>
+<h3 id="_2">하이퍼파라미터 요약 <code>[신설]</code></h3>
+<p>앞서 본문 산문 곳곳에 흩어져 있던 수치 중, <strong>모델 구조·학습 절차와 무관하게 값 자체가
+핵심인 것들</strong>을 한 표로 모은다. 학습 하이퍼파라미터와 서빙(런타임) 하이퍼파라미터를
+구분하여 표기한다 — 전자는 체크포인트에 고정되고, 후자는 배포 시 환경변수로 조정 가능하다.</p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>항목</th>
+<th>값</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>모델 구조</td>
+<td>행동 클래스 수 (<code>num_classes</code>)</td>
+<td><strong>8</strong></td>
+<td>0 STOP·1 FWD·2 LEFT·3 RIGHT·4 FWD+L·5 FWD+R·6 ROT_L·7 ROT_R</td>
+</tr>
+<tr>
+<td>모델 구조</td>
+<td>시간 윈도우 (<code>window</code>)</td>
+<td>6 (간격 5)</td>
+<td>1.1절</td>
+</tr>
+<tr>
+<td>모델 구조</td>
+<td>bbox 배율 (<code>bbox_scale</code>)</td>
+<td>3.0</td>
+<td>4채널 전체 적용</td>
+</tr>
+<tr>
+<td>학습</td>
+<td>optimizer</td>
+<td>AdamW</td>
+<td>lr 5e-4, weight_decay 1e-4</td>
+</tr>
+<tr>
+<td>학습</td>
+<td>batch size / epochs</td>
+<td>128 / 300</td>
+<td></td>
+</tr>
+<tr>
+<td>학습</td>
+<td>분할 시드</td>
+<td>42</td>
+<td>임의 고정값, 전 arm 공유</td>
+</tr>
+<tr>
+<td><strong>서빙(런타임)</strong></td>
+<td><strong>검출 신뢰도 임계값</strong> (<code>owlv2_thresh</code>)</td>
+<td><strong>코드 기본 0.25 / 운영 0.20</strong></td>
+<td>환경변수 <code>VLA_OWLV2_THRESH</code>. 검증 상태는 1.4절 참조</td>
+</tr>
+<tr>
+<td>서빙(런타임)</td>
+<td>그라운딩 호출 간격 (<code>grounding_skip_n</code>)</td>
+<td>3</td>
+<td>실효 ≈1.3Hz</td>
+</tr>
+<tr>
+<td>서빙(런타임)</td>
+<td>콜드스타트 가드</td>
+<td>3스텝</td>
+<td>window=6에서 파생</td>
+</tr>
+<tr>
+<td>서빙(런타임)</td>
+<td>회전 자동정지 시간</td>
+<td>0.4초</td>
+<td>제어 계층, 7절 참조</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>owlv2_thresh</code>와 <code>num_classes</code>는 성격이 다른 두 축에 걸쳐 있어 본문 서술에서는 각각
+1.4절(서빙 제어)과 1절(모델 구조)에 산문으로 풀어 두었다. 이 표는 그 값들을 빠르게
+조회하기 위한 요약이며, 산문 서술을 대체하지 않는다.</p>
 </blockquote>
 <hr />
 <h2 id="3-collection-of-data-13">3. Collection of data <code>[삽입]</code> 🔴13</h2>
@@ -429,7 +519,7 @@ RoboVLMs의 인코더 비교에서 Kosmos-2가 가장 좋은 결과를 보였기
 것은 5,752 프레임이며, 나머지는 그라운딩 주기(1.4절)에 따라 직전 결과를 상속한 값이다.
 따라서 그라운딩 정확도를 평가할 때는 상속된 프레임을 제외해야 한다.</p>
 </blockquote>
-<h3 id="_2">⚠️ 표준 포맷 관련 — 답변 방향</h3>
+<h3 id="_3">⚠️ 표준 포맷 관련 — 답변 방향</h3>
 <p>질문의 취지가 "Droid/LeRobot 같은 표준 포맷을 따랐는지"라면 <strong>수집 자체는 자체 HDF5
 스키마</strong>입니다. 다만 확인해 보니 <strong>LeRobot v3.0 형식으로의 변환은 이미 수행되어 있습니다</strong>
 (<code>lerobot_export/v6_mixed</code>, 2026-07-16).</p>
@@ -480,6 +570,110 @@ Navigate a right curve approach from the strong right extreme starting position 
 <p><code>left curve</code> / <code>right curve</code> 가 <strong>정답 행동을 자연어로 직접 지시</strong>합니다. 이는 CH68 68-1에서
 확인한 지시문 라벨 누출과 동일한 구조이므로, 이 문자열을 언어 조건화 실험의 입력으로 쓰면
 안 됩니다. 데이터셋을 공개할 때도 이 점을 명시해야 합니다.</p>
+<h3 id="_4">데이터셋 통계 요약 <code>[신설]</code></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>총 에피소드</td>
+<td>225 (트랙 A 180 + 트랙 F 45)</td>
+</tr>
+<tr>
+<td>총 프레임</td>
+<td>16,599</td>
+</tr>
+<tr>
+<td>시작 위치</td>
+<td>중앙·약좌·강좌·약우·강우 (5종 × 45ep)</td>
+</tr>
+<tr>
+<td>경로 유형</td>
+<td>직진·좌곡선·우곡선 (3종 × 15ep)</td>
+</tr>
+<tr>
+<td>좌/우 시작 에피소드</td>
+<td>90 / 90 (동수)</td>
+</tr>
+<tr>
+<td>좌/우 시작 프레임</td>
+<td>6,910 / 6,870 (0.6% 차)</td>
+</tr>
+<tr>
+<td>라벨 cx 평균</td>
+<td>0.4976</td>
+</tr>
+</tbody>
+</table>
+<p><strong>행동 클래스 분포</strong> (프레임 단위, 전체 16,599)</p>
+<table>
+<thead>
+<tr>
+<th>클래스</th>
+<th>비율</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STOP</td>
+<td>8.75%</td>
+<td>에피소드 끝 프레임에 합성</td>
+</tr>
+<tr>
+<td>FWD</td>
+<td>46.03%</td>
+<td>최다 클래스</td>
+</tr>
+<tr>
+<td>LEFT</td>
+<td>4.31%</td>
+<td></td>
+</tr>
+<tr>
+<td>RIGHT</td>
+<td>5.17%</td>
+<td></td>
+</tr>
+<tr>
+<td>FWD+L</td>
+<td>15.25%</td>
+<td></td>
+</tr>
+<tr>
+<td>FWD+R</td>
+<td>18.78%</td>
+<td></td>
+</tr>
+<tr>
+<td>ROT_L</td>
+<td>0.82%</td>
+<td></td>
+</tr>
+<tr>
+<td>ROT_R</td>
+<td>0.89%</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>좌계열 합</strong></td>
+<td><strong>20.39%</strong></td>
+<td>LEFT+FWD+L+ROT_L</td>
+</tr>
+<tr>
+<td><strong>우계열 합</strong></td>
+<td><strong>24.83%</strong></td>
+<td>RIGHT+FWD+R+ROT_R — 좌 대비 +21.8%</td>
+</tr>
+</tbody>
+</table>
+<p>좌/우 에피소드·프레임 수는 대칭이지만 행동 클래스는 우계열이 21.8% 많다. 이 불균형은
+트랙 A(좌우 시작)에서만 발생하고(+25.9%) 트랙 F(중앙 시작)에서는 거의 없다(+1.2%) —
+분해와 원인 해석은 CH66 66-6 참조.</p>
 <hr />
 <h2 id="52-1421">5.2 학습 방법 설명 <code>[삽입]</code> 🔴14~21</h2>
 <h3 id="1-14">(1) 학습 절차 🔴14</h3>
@@ -562,6 +756,10 @@ Navigate a right curve approach from the strong right extreme starting position 
 <p>검증 분할은 프레임 단위가 아니라 에피소드 단위로 수행하였다. 같은 에피소드의 인접 프레임은
 서로 매우 유사하므로 프레임 단위로 분할하면 사실상 동일한 관측이 학습과 검증에 함께 포함되어
 성능이 과대평가된다.</p>
+<p>분할 시드 42는 특별한 의미를 갖는 값이 아니라 재현을 위해 고정한 임의의 정수이다. 중요한 것은
+값 자체가 아니라, 모든 실험 arm(원본 데이터·미러 증강·hold-aware 등)이 <strong>동일한 시드로 생성된
+동일한 검증 집합</strong>을 공유한다는 점이다. 그래야 arm 간 정확도 비교가 검증 집합 차이가 아니라
+방법 차이에서 비롯됨을 보장할 수 있다.</p>
 </blockquote>
 <h4 id="hold-aware">hold-aware 샘플링 — 무엇을 어떻게 바꾸는가</h4>
 <p>운영 시 로봇은 매 프레임 판단하지 않는다. 그라운딩이 3프레임마다 한 번만 갱신되고(1.4절)
@@ -635,11 +833,43 @@ t−25, t−20, t−15, t−10, t−5, t를 참조하므로 윈도우가 덮는 
 편의가 아니라 결과 해석의 전제 조건이다.</p>
 </blockquote>
 <hr />
+<h2 id="53-grounding-valtest">5.3 학습 결과 <code>[신설 — 교수님 요청: grounding 성공률 그래프, val/test 그래프·혼동행렬]</code></h2>
+<h3 id="threshold">그라운딩 성공률 — threshold 곡선</h3>
+<p>검출 임계값(1.4절 ①)의 근거였던 ROC 실측(CH64/CH60, 사람이 라벨링한 296프레임: 목표
+있음 217·없음 79)을 그래프로 나타내면 다음과 같다.</p>
+<p><img alt="그라운딩 threshold 곡선" src="../v5/figures/grounding_threshold_curve.png" /></p>
+<p>threshold 0.25에서 정탐률 94.9%를 유지하며 오탐률이 0%로 떨어진다. 0.20으로 낮추면
+정탐률이 97.2%로 오르지만 오탐률도 12.7%로 발생한다 — 이는 목표가 없는 프레임에서도
+검출된 것으로 오판할 위험이 생긴다는 뜻이며, 1.4절에서 설명한 "모른다고 말하기 vs
+틀리게 확신하기"의 트레이드오프가 이 곡선에 그대로 나타난다.</p>
+<h3 id="val">행동 헤드 — val 혼동행렬</h3>
+<p>배포 헤드(hold-aware, OWL-v2 grounder, 3 seed)를 val 분할(에피소드 단위, 결정 시점
+501개)에 적용한 결과다.</p>
+<p><img alt="val 혼동행렬" src="../v5/figures/confusion_matrix.png" /></p>
+<p>val 정확도는 74.98%±0.52%p(3 seed)이다. 클래스별로 보면 STOP(92%)과 ROT_L(100%)의
+정확도가 높은 반면, <strong>LEFT는 42%로 가장 낮고 그 중 33%가 FWD+L로 오분류</strong>된다. RIGHT는
+65%로 상대적으로 높다. 이 비대칭은 우연이 아니라 좌우 비대칭 원인 분석(CH66)에서 확인한
+것과 같은 현상이다 — 학습 데이터의 좌/우 조향 총량 차이가 헤드의 좌측 방향 판단력을
+약화시켰고, 그 결과가 이 혼동행렬의 LEFT 행에 직접 나타난다.</p>
+<h3 id="closed-loop">실기(Closed-loop) 결과</h3>
+<p>100회 실기 테스트(5개 시작 위치 × 20회)의 목표 도달 성공률은 89/100(89.0%)이다. 위치별
+분해에서 중앙 100%·약우 95%·강우 90%·강좌 80%·약좌 80%로, <strong>좌측 시작에서 가장 낮다</strong> —
+위 혼동행렬의 LEFT 클래스 취약성과 방향이 일치한다(IV절).</p>
+<blockquote>
+<p>서술 시 유의: 혼동행렬(프레임 단위 판단 정확도)과 실기 성공률(에피소드 단위 도달 여부)은
+척도가 다른 지표다. 중간에 몇 프레임을 잘못 판단해도 재검출·서빙 제어로 보정되면 에피소드
+자체는 성공할 수 있으므로, 두 수치를 직접 비교하거나 하나로 환산해 쓰지 않는다.</p>
+</blockquote>
+<hr />
 <h2 id="6-deploy-the-trained-model-on-the-robot-22">6. Deploy the trained model on the robot 🔴22</h2>
 <p><code>[삽입]</code> — <strong>일부만 채웁니다. 나머지는 로봇 담당자 확인이 필요합니다.</strong></p>
 <blockquote>
-<p>학습된 행동 헤드 체크포인트와 선형 사상 가중치를 로봇에 전달하고, 로봇 내부에서 추론 서버를
-실행한다. 서버는 카메라 프레임을 입력받아 행동 클래스를 반환하는 형태로 동작한다.</p>
+<p>학습된 두 구성요소를 로봇에 전달한다 — 행동 정책을 담당하는 <strong>MLP 행동 헤드</strong>(0.866M,
+유일하게 학습되는 모듈)와, 비전 특징을 정렬하는 <strong>선형 프로젝션 레이어</strong>(<code>image_proj</code>,
+Kosmos-2 비전 출력 1024차원을 256차원으로 사상하며 별도 단계에서 사전 학습해 둔 것,
+1.1절)이다. 두 가중치를 로봇에 전달한 뒤 로봇 내부에서 <strong>추론 서버(모델 서빙 프로세스)</strong>를
+실행한다. 서버는 카메라 프레임을 입력받아 위 구성요소를 통해 행동 클래스를 반환하는
+형태로 동작한다.</p>
 <p>배포 시 언어 디코더는 로드하지 않는다. 제안 파이프라인에서 Kosmos-2의 언어 디코더는 한 번도
 호출되지 않으므로, 해당 파라미터(1.361B)를 적재 대상에서 제외하였다. 이 조치로 호스트 메모리
 최대 사용량이 10.59GB에서 3.20GB로 감소하였다. 다만 GPU 메모리 사용량은 0.607GB로 변화가
@@ -652,6 +882,19 @@ t−25, t−20, t−15, t−10, t−5, t를 참조하므로 윈도우가 덮는 
 - 추론 서버 실행 및 자동 시작 방식
 - ROS 노드와의 연결 구조
 - 위 메모리 수치의 <strong>젯슨 실측값</strong> (현재 값은 로컬 측정)</p>
+<h3 id="_5">하드웨어 연결 구조도 <code>[신설 — 교수님 요청]</code></h3>
+<p>Jetson 보드와 바퀴를 구동하는 MCU 보드가 CAN 버스로 연결된 구조는 아래와 같다.</p>
+<p><img alt="하드웨어 구성" src="../v5/figures/hardware_architecture.png" /></p>
+<p>Jetson Orin NX가 인지(OWL-v2, Kosmos-2)와 정책(MLP 행동 헤드)을 전담하고, 산출된 3자유도
+속도 명령(lx, ly, az)을 CAN 버스(<code>can0</code>, 500kbps)로 MCU 보드에 전달한다. MCU 보드는 CAN
+프레임을 3축 옴니휠 각각의 모터 제어 신호(PWM)로 변환한다. 같은 CAN 버스에 PSD·초음파
+거리 센서도 연결되어 있으나, 이는 별도의 장애물 감지 용도이며 본 VLA 파이프라인의 행동
+입력으로는 사용되지 않는다.</p>
+<blockquote>
+<p>근거: <code>ROS_action/.../omni_controller/omni_drive_node.py</code>의
+<code>Psd(dev="can0", bitrate=500000)</code> · <code>robovlm_nav/serve/vla_control_utils.py</code>의
+<code>pop.driving.Driving()</code> 호출.</p>
+</blockquote>
 <hr />
 <h2 id="7-runtime-2324">7. Runtime 수행 <code>[삽입]</code> 🔴23~24</h2>
 <h3 id="1-23">(1) 한 프레임 처리 경로 🔴23</h3>
@@ -672,6 +915,14 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 <p>속도 명령의 크기는 사용하지 않는다. 대상 로봇의 펌웨어가 방향만을 반영하는 상수 속도 구조이기
 때문이며, 이 제약이 이산 행동 공간을 채택한 근거의 하나이다(1.3절).</p>
 </blockquote>
+<h3 id="_6">런타임 순서도 <code>[신설 — 교수님 요청]</code></h3>
+<p>위 서술을 3회 호출 단위의 순서도로 표현하면 다음과 같다. <code>grounding_skip_n=3</code>이므로
+1회차만 OWL-v2와 Kosmos-2를 모두 호출하고, 2·3회차는 Kosmos-2(비전)만 호출하며 좌표는
+1회차 값을 그대로 쓴다. 세 경로 모두 결과는 클래스 번호 → 3자유도 속도(x, y, z) → CAN
+통신 → 바퀴 전달의 동일한 후반부를 거친다.</p>
+<p><img alt="런타임 파이프라인" src="../v5/figures/runtime_pipeline.png" /></p>
+<p>회전(ROT_L/ROT_R)이 선택된 경우는 이 주기의 예외다 — 제어 계층에서 0.4초 후 자동정지하며,
+동시에 다음 호출은 주기와 무관하게 강제로 1회차(전체 그라운딩)로 처리된다(1.4절).</p>
 <h3 id="2-24">(2) 실행 설정 주입 🔴24</h3>
 <blockquote>
 <p>검출 임계값을 포함한 서빙 제어 파라미터는 추론 서버 실행 시 환경변수로 주입되며, 지정하지
@@ -691,7 +942,7 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 걸쳐 있고, 이것이 서빙 제어 규칙에 의존하게 된 구조적 이유이다.</p>
 </blockquote>
 <hr />
-<h2 id="_3">⚠️ 서술 검증 상태 — 코드·데이터로 확인한 것과 못 한 것</h2>
+<h2 id="_7">⚠️ 서술 검증 상태 — 코드·데이터로 확인한 것과 못 한 것</h2>
 <p>초고를 쓰면서 각 수치를 코드와 데이터에 대조했습니다. <strong>아래 3건은 제가 처음 쓴 서술이
 사실과 달라 고쳤습니다.</strong></p>
 <table>
@@ -781,7 +1032,7 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 이력</strong> 때문입니다. 검증된 값과 보고에 근거한 값을 구분해 표기했습니다.</p>
 </blockquote>
 <hr />
-<h2 id="_4">정리 — 이 초고로 채워지는 범위</h2>
+<h2 id="_8">정리 — 이 초고로 채워지는 범위</h2>
 <table>
 <thead>
 <tr>
