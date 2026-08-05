@@ -619,6 +619,25 @@
             <td><div class="cmd-box">python scripts/analyze_has_bbox_stats.py --dataset v6</div></td>
           </tr>
 
+          <!-- [26] -->
+          <tr>
+            <td class="text-center fw-bold text-info">26<br><small class="text-muted">p9#145</small></td>
+            <td>
+              <div class="red-question">🔴 학습 시에는 (학습 단계에서의 has_bbox 및 bbox 처리 방식)</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 학습 1단계(Stage 1)에서는 16,599 프레임 100%에 유효 bbox 및 <code>has_bbox=1.0</code>이 입력되었음을 밝히고, <code>has_bbox=0.0</code> 부재(0.00%)로 인한 런타임 우회 설계의 연결성 완결.</div>
+              <div class="draft-text">📄 "학습 단계(Stage 1)에서는 전체 16,599개 훈련 프레임 100%(16,599/16,599)에 대해 타겟 객체 검출 결과 또는 전파 박스가 존재하여 has_bbox=1.0 상태의 유효한 위치 좌표(cx, cy, area)로 모델이 학습되었다. 즉, 학습 데이터 내에 has_bbox=0.0 (타겟 부재) 샘플이 0.00% 존재함에 따라, 런타임 검출 실패 상황은 학습된 모델 자체의 추론에 의존하지 않고 서빙 단계의 제어 안전 가드(강제 재그라운딩 및 회전 차단/정지 치환)를 통해 우회 처리되었다."</div>
+            </td>
+            <td>Stage 1 피처 캐시 100% `has_bbox=True` 실측 및 학습 파이프라인 코드</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/exp73_extract_features.py</code> (L110-L135)<br>
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L95-L105)
+              </div>
+            </td>
+            <td><div class="cmd-box">python -c "import torch; d=torch.load('docs/v5/closed_loop_eval/exp73_v6_vis_cache.pt'); print(sum(b[3] for ep in d['episodes'] for b in ep['bboxes']))"</div></td>
+          </tr>
+
         </tbody>
       </table>
     </div>
