@@ -2554,6 +2554,12 @@ def _snapshot_runtime_config() -> dict:
             "cx_jump_thresh": h.get("cx_jump_thresh"),
             "multi_prompt": h.get("multi_prompt"),
             "force_reground_on_miss": h.get("force_reground_on_miss"),
+            # 2026-08-05: stop_mode 계열이 이 스냅샷에 아예 빠져 있었음 —
+            # 100건 테스트 세션 H5를 사후 대조할 때 "stop_mode=learned였다"를
+            # 세션 파일만으로는 증명할 수 없었다(minum 요청서 F항목). /health엔
+            # 원래 있던 값인데 스냅샷 목록에서만 누락된 것이라 추가.
+            "stop_mode": h.get("stop_mode"),
+            "stop_learned_min_steps": h.get("stop_learned_min_steps"),
             "head": h.get("head"),
             "grounder_model": g.get("model"),
             "grounder_input_px": g.get("input_px"),
