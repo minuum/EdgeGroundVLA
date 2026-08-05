@@ -289,8 +289,8 @@
             <td class="text-center fw-bold text-info">08<br><small class="text-muted">p5#55</small></td>
             <td>
               <div class="red-question">🔴 이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div>
-              <div class="action-plan">✅ <strong>대응책:</strong> End-to-End VLA의 text attention 0% 붕괴 및 실기 주행 0% 실패 정량 데이터로 Decomposition 당위성 입증.</div>
-              <div class="draft-text">📄 "End-to-End VLA 방식은 fine-tuning 과정에서 언어-시각 어텐션 붕괴(Text Attention 0.000%)가 발생하여 오프라인 지표가 높아도 실시간 주행 성공률이 0%에 그쳤다. 이를 극복하기 위해 OVD 좌표와 VLM 비전 타워를 병치하는 Heterogeneous Decomposition 구조를 도입하여 Closed-loop 주행 성공률 66.7%를 달성하였다."</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 1) End-to-End VLA의 어텐션 붕괴(Text Attention 0.000%) 방지, 2) 225ep 소규모 데이터 효율성(0.866M MLP 헤드만 2단계 학습), 3) 엣지(Jetson 1.3Hz) zero-order hold 지연 환경에서 이산 8클래스 조향 래칭 제어 안정성 입증.</div>
+              <div class="draft-text">📄 "End-to-End VLA 방식은 fine-tuning 과정에서 언어-시각 어텐션 붕괴(Text Attention 0.000%)가 발생하여 오프라인 지표가 높아도 실시간 주행 성공률이 0%에 그쳤다. 이를 극복하기 위해 OVD 명시적 기하 좌표(4ch)와 VLM 비전 문맥(256ch)을 Concatenate하는 Heterogeneous Decomposition 구조를 도입하였으며, 백본을 Frozen시킨 채 0.866M 경량 MLP 헤드만 2단계로 학습시킴으로써 225ep 데이터 효율성과 1.3Hz 제어 안정성을 동시에 확보하여 Closed-loop 주행 성공률 66.7%(FPE 0.55m)를 달성하였다."</div>
             </td>
             <td>Exp17~41C 어텐션 붕괴 실험 및 Closed-loop 주행 실측(Exp11 vs Exp14)</td>
             <td><span class="badge bg-date">2026-06-25</span></td>
@@ -384,8 +384,8 @@
             <td class="text-center fw-bold text-info">13<br><small class="text-muted">p6#78</small></td>
             <td>
               <div class="red-question">🔴 데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</div>
-              <div class="action-plan">✅ <strong>대응책:</strong> 조이스틱 Teleop 기반 HDF5 규격 수집 및 LeRobot v3.0 포맷 내보내기 파이프라인 구축 서술.</div>
-              <div class="draft-text">📄 "데이터는 조이스틱 원격조작을 통해 에피소드당 독립된 HDF5(.h5) 파일 규격(이미지, 액션, 런타임 설정)으로 총 225개 에피소드(16,599 프레임)를 수집하였다. 수집 데이터는 5개 시작 위치와 3개 경로 유형으로 구성되며, 외부 재현성을 위해 LeRobot v3.0 포맷으로의 내보내기 파이프라인을 구축하였다."</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 로봇 중앙 출발 고정 및 타겟 물체 5개 상대 위치(정면, 약좌, 강좌, 약우, 강우 각 45ep, 총 225ep/16,599프레임) 배치 구조 명시. 우측 타겟 조향 편향(+21.8%, 4,122 vs 3,384) 보정 방안 및 LeRobot v3.0 export 파이프라인 구축 기재.</div>
+              <div class="draft-text">📄 "로봇은 항상 중앙 위치에서 출발하며, 타겟 물체(Basket)의 상대 위치를 5개 지점(정면, 약좌, 강좌, 약우, 강우)에 균등하게 배치(각 45ep, 총 225ep / 16,599프레임)하여 HDF5 파일 규격으로 데이터를 수집하였다. 수집 설계상 좌/우 타겟 에피소드(각 90ep) 및 프레임 수(6,910 vs 6,870)는 대칭이었으나, 사람이 조작할 때 우측 타겟을 향한 조향 반응(4,122 프레임)이 좌측 타겟 조향 반응(3,384 프레임)보다 +21.8% 더 길게 입력되는 편향이 존재하였다. 이를 보정하기 위해 손실 가중치(Class Weight) 및 미러 증강(Mirror Augmentation)을 적용하였으며, 외부 재현성을 위해 LeRobot v3.0 포맷 내보내기 파이프라인을 구축하였다."</div>
             </td>
             <td>V6 225ep 데이터셋 및 LeRobot v3.0 export 디렉터리</td>
             <td><span class="badge bg-date">2026-07-16</span></td>
@@ -494,8 +494,8 @@
             <td class="text-center fw-bold text-info">19<br><small class="text-muted">p8#130</small></td>
             <td>
               <div class="red-question">🔴 class weight = 1/빈도 정규화 ← FORWARD 71~74% 편중 보정</div>
-              <div class="action-plan">✅ <strong>대응책:</strong> FORWARD 클래스 편향 보정을 위한 1/빈도 계산 후 합=8 정규화 공식 기재.</div>
-              <div class="draft-text">📄 "FORWARD 행동 클래스(전체의 71~74%)로의 데이터 편향을 방지하기 위해 클래스별 발생 빈도의 역수(1/freq)를 계산하고 합이 8이 되도록 정규화한 손실 가중치(Class Weight)를 Cross-Entropy 손실함수에 적용한다."</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> FORWARD 단독 라벨 편향(72.61%, 12,053/16,599프레임) 및 조향 액션 편차 보정을 위한 1/빈도 계산 후 합=8 정규화 공식 기술.</div>
+              <div class="draft-text">📄 "FORWARD 행동 클래스(전체의 72.61%)로의 데이터 편향 및 조향 행동 비율 차이를 보정하기 위해, 클래스별 발생 빈도의 역수(1/freq)를 계산하고 합이 8이 되도록 정규화한 손실 가중치(Class Weight)를 Cross-Entropy 손실함수에 적용한다."</div>
             </td>
             <td>Class Weight 계산 및 Normalization 공식 코드</td>
             <td><span class="badge bg-date">2026-08-01</span></td>
