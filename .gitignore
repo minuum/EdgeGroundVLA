@@ -194,6 +194,8 @@ docs/contact/
 docs/**/*.jpg
 docs/**/*.jpeg
 docs/**/*.png
+# 논문용 도표는 예외 — 산출물이 아니라 결과물이라 추적 대상
+!docs/v5/figures/*.png
 
 # 로컬 전용 분석 리포트(git-lfs 없이 확인용, 재생성 스크립트로 언제든 다시 만듦)
 docs/v5/analysis_reports/
