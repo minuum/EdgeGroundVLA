@@ -1,0 +1,72 @@
+{
+  "n_frames": 200,
+  "thresh": 0.25,
+  "phrases": [
+    "gray basket",
+    "chair",
+    "person",
+    "door",
+    "microwave oven"
+  ],
+  "absent_control": "microwave oven",
+  "detect_rate": {
+    "gray basket": {
+      "rate": 0.91,
+      "n": 182,
+      "cx_mean": 0.484243137888856,
+      "cx_std": 0.12177729584109076,
+      "score_med": 0.6010144650936127
+    },
+    "chair": {
+      "rate": 0.355,
+      "n": 71,
+      "cx_mean": 0.08872144247969271,
+      "cx_std": 0.05608717833810242,
+      "score_med": 0.5356301069259644
+    },
+    "person": {
+      "rate": 0.0,
+      "n": 0,
+      "cx_mean": NaN,
+      "cx_std": NaN,
+      "score_med": NaN
+    },
+    "door": {
+      "rate": 0.055,
+      "n": 11,
+      "cx_mean": 0.13132927795364097,
+      "cx_std": 0.10528349839822465,
+      "score_med": 0.30498436093330383
+    },
+    "microwave oven": {
+      "rate": 0.05,
+      "n": 10,
+      "cx_mean": 0.8986188554763794,
+      "cx_std": 0.0693806378482684,
+      "score_med": 0.26662397384643555
+    }
+  },
+  "pairs": {
+    "chair": {
+      "n": 69,
+      "dcx_mean": 0.4070749987240719,
+      "dcx_med": 0.3998924303799868,
+      "sign_flip": 0.5507246376811594
+    },
+    "person": {
+      "n": 0
+    },
+    "door": {
+      "n": 11,
+      "dcx_mean": 0.4330058401450515,
+      "dcx_med": 0.4926414489746094,
+      "sign_flip": 0.7272727272727273
+    },
+    "microwave oven": {
+      "n": 10,
+      "dcx_mean": 0.5122304353117942,
+      "dcx_med": 0.46236628890037534,
+      "sign_flip": 0.9
+    }
+  }
+}
