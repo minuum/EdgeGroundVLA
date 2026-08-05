@@ -87,12 +87,109 @@
     <a href="model_architecture_brief.html">🏗 모델 구조 자료</a>
     <a href="owlv2_grounder_brief.html">🎯 OWL-v2 자료</a>
     <a href="research_story.html#ch64">🔍 CH64</a>
-    <a href="#verbatim">🔴 빨간글씨 원문 25건</a>
+    <a href="#raw">🔴 원문 전문(복사용)</a>
+    <a href="#verbatim">📋 원문 표 25건</a>
     <a href="#plan">🚀 이후 액션플랜</a>
   </div>
 </div>
 
 <div class="wrap">
+
+<h2 id="raw" style="border-left-color:#f87171">원문 전문 — 복사용 <span class="n">25건 · 문서 순서 · 한 덩어리</span></h2>
+<p class="lead">위 표와 같은 내용을 <strong>문서 등장 순서대로 한 블록에</strong> 담았습니다.
+   그대로 긁어서 쓰실 수 있고, 아래 감사 수치로 <strong>누락이 없음을 확인</strong>할 수 있습니다.</p>
+<div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:11px 14px;
+            margin:10px 0;font-size:0.85rem">
+  <strong style="color:#38bdf8">추출 감사 — 이것이 문서의 전부입니다</strong>
+  <table>
+    <tr><th>검사 대상</th><th>빨간 항목</th></tr>
+    <tr><td><code>word/document.xml</code> 의 <code>w:color = EE0000</code></td>
+        <td><strong>run 120개 · 단락 25개</strong> (전체 단락 242개 중)</td></tr>
+    <tr><td><code>word/footnotes.xml</code> · <code>word/endnotes.xml</code></td>
+        <td>0개</td></tr>
+    <tr><td>다른 색 지정 방식 — <code>themeColor</code> / <code>highlight</code> / <code>rStyle</code></td>
+        <td>0개 (문서에 사용되지 않음)</td></tr>
+    <tr><td>삽입 이미지 5개 (<code>word/media/image1~5.png</code>)</td>
+        <td>빨간 지시문 없음 — 파이프라인 도표·SerbotII 사진·궤적 그림</td></tr>
+  </table>
+  <span style="font-size:0.82rem;color:#94a3b8">즉 <strong>빨간글씨는 25건이 전부</strong>이고,
+  120개 run은 한 문장이 서체·굵기 때문에 여러 run으로 쪼개진 것을 이어붙인 결과입니다
+  (예: 04번 한 줄이 run 9개로 쪼개져 있었습니다).</span>
+</div>
+<pre style="max-height:none">[01] p4 단락#39  (1. Model Architecture)
+-&gt; 이 그림을 다시 그려야 될 것 같음.
+
+[02] p4 단락#40  (1. Model Architecture)
+프레임 특징 벡터 — 260차원
+
+[03] p4 단락#41  (1. Model Architecture)
+FRAME_DIM = 4 + 256 = 260
+
+[04] p4 단락#42  (1. Model Architecture)
+├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
+
+[05] p4 단락#43  (1. Model Architecture)
+└ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize
+
+[06] p4 단락#45  (1. Model Architecture)
+헤드 입력 : window=6 프레임을 flatten → (6 × 260) = 1560차원
+
+[07] p4 단락#46  (1. Model Architecture)
+헤드 출력 : 8클래스 로짓
+
+[08] p5 단락#55  (1.1 Heterogeneous Grounding Encoder)
+이 것이 이구조를 생각한 이유를 설명할 수 있나?)
+
+[09] p5 단락#63  (1.4. Serving Control)
+threshold  설정 내용 기재
+
+[10] p5 단락#64  (1.4. Serving Control)
+skip_n=3 의미
+
+[11] p5 단락#65  (1.4. Serving Control)
+force_reground_on_miss -  회전 후 강제 재그라운딩
+
+[12] p5 단락#66  (1.4. Serving Control)
+stop_mode=learned + 콜드스타트 가드 3
+
+[13] p6 단락#78  (3. Collection of data)
+데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명
+
+[14] p8 단락#125  (5.2 학습 방법 설명)
+데이터를 이용하여 어떻게 학습을 진행 했는지 기술
+
+[15] p8 단락#126  (5.2 학습 방법 설명)
+학습 파라미터
+
+[16] p8 단락#127  (5.2 학습 방법 설명)
+window       = 6 프레임          bbox_scale = 3.0
+
+[17] p8 단락#128  (5.2 학습 방법 설명)
+num_classes  = 8                 optimizer  = Adam, lr = 5e-4
+
+[18] p8 단락#129  (5.2 학습 방법 설명)
+epochs       = 300               scheduler  = CosineAnnealingLR
+
+[19] p8 단락#130  (5.2 학습 방법 설명)
+class weight = 1/빈도 정규화      ← FORWARD 71~74% 편중 보정
+
+[20] p8 단락#131  (5.2 학습 방법 설명)
+seeds        = 0, 1, 2 (다중 시드로 분산 확인)
+
+[21] p8 단락#133  (5.2 학습 방법 설명)
+모델을 학습하고 난 후에 ***.pth 파일이 결과로 나옴.
+
+[22] p9 단락#137  (6. Deploy the trained EdgeGround-VLA model on the robot)
+학습된 EdgeGrouund-VLA 모델을 SerbotII에 탑재하는 방법 설명
+
+[23] p9 단락#141  (7.  Runtime 수행)
+로봇  수행 시  카메라로 한 프레임 입력값 전처리 -&gt; 입력값 AI 모델에 입력 -&gt; AI 모델 수행-&gt;  결과값으로 후처리 과정 설명
+
+[24] p9 단락#142  (7.  Runtime 수행)
+Serving control을 런타임시에 여기에서 threshold 값 설정
+
+[25] p9 단락#144  (7.  Runtime 수행)
+has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고정 fallback 값이 들어가고 has_bbox=0으로 표시됩니다. 즉 헤드는 &quot;지금 타겟을 못 보고 있다&quot;는 신호를 입력으로 받습니다. 그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)여서, 모델은 이 신호에 대응하는 법을 배운 적이 없습니다(CH64 64-15). 실기에서는 이를 학습이 아니라 서빙 제어 로직으로 우회했습니다(4절).</pre>
 
 <div class="verbatim">
   <h2 id="verbatim" style="border-left-color:#fbbf24;margin-top:34px">원문 그대로 — 빨간글씨 25건 <span class="n">쪽 · 단락번호 · 절 표기, 토씨 그대로</span></h2>
