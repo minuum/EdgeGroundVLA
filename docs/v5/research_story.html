@@ -17476,6 +17476,125 @@ graph TD
       <code>docs/v5/detector/l1_target_selection.json</code> · 표본 V6 val 200프레임(seed42 분할)</span>
     </div>
   </div>
+
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">68-8. 액션까지 바뀌는가 — 반사실 실험에서 <span style="color:#fbbf24">기대와 반대</span>가 나왔다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      68-7 ②에서 미룬 질문을 실제로 측정했다. 미룬 이유는 "헤드 입력이 6프레임 윈도우라 단일
+      프레임 교체로는 재구성되지 않는다"였는데, exp73 학습 캐시가 에피소드 단위로 vis를 들고 있고
+      <code>swap_bboxes()</code>가 <strong style="color:#e2e8f0">vis는 그대로 두고 bbox만 교체</strong>하는
+      용도로 이미 존재했다 → 윈도우를 정상적으로 재구성할 수 있었다.
+      <br><br>
+      <strong style="color:#e2e8f0">설계</strong> — 같은 val 33에피소드 · 같은 vis(장면 외형) ·
+      같은 학습된 헤드(배포 arm, 3 seed). bbox만 교체:
+      baseline = OWL "gray basket", 반사실 = OWL "chair"(새로 추출), 미검출은 서빙과 같은 fallback.
+      주 지표는 사전에 <strong style="color:#e2e8f0">방향 일치율</strong>로 고정했다 —
+      sign(Δ좌질량)이 sign(cx<sub>basket</sub> − cx<sub>chair</sub>)와 같은 비율. chair가 더 왼쪽이면
+      좌질량이 늘어야 하고, 우연이면 50%다. bbox 셔플 대조군도 같이 돌렸다.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">arm</th><th style="padding:4px">대상 n</th><th style="padding:4px">예측 변화율</th><th style="padding:4px">Δ좌질량 평균</th><th style="padding:4px">|Δ좌질량|</th><th style="padding:4px">방향 일치율</th></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>chair (지시문 교체)</strong></td><td style="padding:4px;text-align:center">152</td><td style="padding:4px;text-align:center">21.7%</td><td style="padding:4px;text-align:center">−0.0142</td><td style="padding:4px;text-align:center">0.1042</td><td style="padding:4px;text-align:center;color:#f87171"><strong>35.1%±0.6</strong></td></tr>
+        <tr><td style="padding:4px">bbox 셔플 (대조군)</td><td style="padding:4px;text-align:center">501</td><td style="padding:4px;text-align:center">27.9%</td><td style="padding:4px;text-align:center">+0.0484</td><td style="padding:4px;text-align:center">0.1411</td><td style="padding:4px;text-align:center;color:#64748b">—</td></tr>
+      </table>
+      <span style="font-size:0.78rem;color:#64748b">결정 시점 501 · chair 검출 30.3% · 방향 판정은
+      |Δcx| &gt; 0.02인 152시점만</span>
+      <br><br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:11px 14px">
+        <strong style="color:#f87171">사전 고정 기준에서 실패했다</strong><br>
+        방향 일치율 <strong style="color:#e2e8f0">35.1%</strong>는 우연(50%)보다 <strong>낮다</strong> —
+        chair를 왼쪽에서 찾았는데 헤드의 좌질량은 오히려 <strong style="color:#e2e8f0">줄었다</strong>.
+        게다가 |Δ좌질량| 0.104가 bbox를 무의미하게 셔플한 대조군 0.141보다 <strong>작다</strong>.
+        <br>→ 즉 <strong style="color:#e2e8f0">그라운딩은 지시문을 따라갔지만(68-7), 그 좌표가
+        액션으로 올바르게 번역되지 않았다</strong>.
+      </div>
+      <br>
+      <strong style="color:#fbbf24">이 설계로는 원인을 특정할 수 없다</strong> — 두 설명이 남는다:
+      <strong style="color:#e2e8f0">(A)</strong> 헤드가 cx를 거의 쓰지 않는다,
+      <strong style="color:#e2e8f0">(B)</strong> 쓰지만 chair의 cx=0.089가 학습 분포 밖이라 무너진다.
+      chair cx가 0.089±0.056에 거의 고정돼 있어 "기대 방향"이 사실상 상수이므로
+      지표가 "좌질량이 늘었나" 하나로 축퇴한다 —
+      <strong style="color:#e2e8f0">68-7 ③에서 경고한 한계가 그대로 나타난 것</strong>이다.
+      → 68-9에서 검출기를 빼고 cx만 통제해 분리했다.
+      <br><span style="font-size:0.8rem;color:#64748b">스크립트
+      <code>scripts/l1_action_counterfactual.py</code> · 결과
+      <code>docs/v5/detector/l1_action_counterfactual.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">68-9. 원인 규명 — 배포 헤드는 <span style="color:#f87171">어떤 cx에서도 좌측을 선호하지 않는다</span> ⭐</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      68-8의 (A)/(B)를 분리하려면 검출기를 빼고 <strong style="color:#e2e8f0">cx만 통제 변수로
+      스윕</strong>하면 된다. val 결정 시점의 실제 윈도우를 그대로 쓰고
+      <strong style="color:#e2e8f0">윈도우 전체 프레임의 cx만</strong> 지정값으로 덮어쓴다
+      (cy·area·has_bbox·vis는 원본 유지, 학습과 같은 bbox_scale=3.0 적용).
+      cx 0.05→0.95를 19단계로 훑으며 좌질량을 본다.
+      <strong style="color:#e2e8f0">정상이라면 좌질량은 cx에 대해 단조 감소</strong>해야 한다.
+      <br><span style="font-size:0.8rem;color:#64748b">실제 cx 분위 p1/p50/p99 = 0.188 / 0.500 / 0.818
+      — 즉 0.05·0.95는 분포 바깥, chair의 0.089도 p1 아래다.</span>
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">cx</th><th style="padding:4px">0.05</th><th style="padding:4px">0.15</th><th style="padding:4px">0.25</th><th style="padding:4px">0.35</th><th style="padding:4px">0.45</th><th style="padding:4px">0.55</th><th style="padding:4px">0.65</th><th style="padding:4px">0.75</th><th style="padding:4px">0.85</th><th style="padding:4px">0.95</th></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>배포 (holdaware)</strong></td><td style="padding:4px;text-align:center">−0.088</td><td style="padding:4px;text-align:center">−0.075</td><td style="padding:4px;text-align:center">−0.062</td><td style="padding:4px;text-align:center">−0.050</td><td style="padding:4px;text-align:center">−0.032</td><td style="padding:4px;text-align:center">−0.012</td><td style="padding:4px;text-align:center">−0.004</td><td style="padding:4px;text-align:center">−0.017</td><td style="padding:4px;text-align:center">−0.067</td><td style="padding:4px;text-align:center">−0.145</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>미러증강 (65-9)</strong></td><td style="padding:4px;text-align:center;color:#4ade80">+0.141</td><td style="padding:4px;text-align:center;color:#4ade80">+0.086</td><td style="padding:4px;text-align:center;color:#4ade80">+0.037</td><td style="padding:4px;text-align:center">−0.016</td><td style="padding:4px;text-align:center">−0.049</td><td style="padding:4px;text-align:center">−0.041</td><td style="padding:4px;text-align:center">−0.006</td><td style="padding:4px;text-align:center">−0.005</td><td style="padding:4px;text-align:center">−0.019</td><td style="padding:4px;text-align:center">−0.029</td></tr>
+      </table>
+      <span style="font-size:0.78rem;color:#64748b">좌질량 = softmax 좌계열[2,4,6] − 우계열[3,5,7],
+      3 seed 평균. 양수 = 좌측 선호.</span>
+      <br><br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:11px 14px">
+        <strong style="color:#f87171">① 배포 헤드 — 좌질량이 전 구간에서 음수다</strong><br>
+        cx를 화면 맨 왼쪽(0.05)까지 밀어도 좌질량은 <strong style="color:#e2e8f0">−0.088</strong>,
+        즉 <strong style="color:#e2e8f0">여전히 우측을 더 선호한다</strong>. 19단계 어디에서도
+        양수가 되지 않는다. 곡선은 단조가 아니라 <strong style="color:#e2e8f0">역U자</strong>로,
+        Spearman이 <strong style="color:#f87171">+0.185</strong>(정상이면 −1 근처)이고
+        극좌·중앙 구간 기울기가 각각 <strong style="color:#f87171">+0.128 / +0.143</strong>로 역전이다.
+        <br>→ 68-8의 두 설명 중 <strong style="color:#e2e8f0">(A)에 가깝다</strong>: 분포 밖만의
+        문제가 아니라 <strong style="color:#e2e8f0">분포 안(0.3~0.7)에서도 방향이 뒤집혀 있다</strong>.
+        cx는 좌측 조향의 근거로 거의 기능하지 못한다.
+      </div>
+      <br>
+      <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
+        <strong style="color:#4ade80">② 미러 증강이 cx 응답 자체를 복구했다 — 예상하지 못한 결과</strong><br>
+        같은 데이터·같은 구조인데 미러증강 헤드는 cx 0.05에서 <strong style="color:#e2e8f0">+0.141</strong>
+        (좌측 선호)이고 cx가 커지며 음수로 넘어간다. Spearman
+        <strong style="color:#4ade80">−0.575</strong>, 극좌 구간 기울기
+        <strong style="color:#4ade80">−0.516</strong>(정상).
+        <br>→ 65-9에서 미러 증강의 효과를 <strong style="color:#e2e8f0">"고정 편향 제거"</strong>
+        (fixed bias −0.0275 → +0.0068)로만 기록했는데, 실제로는 그보다 큰 일을 했다:
+        <strong style="color:#e2e8f0">cx → 조향 방향의 대응 관계 자체를 되살렸다</strong>.
+        65-9는 이 효과를 측정하지 않았으므로, 이건 그 챕터에 대한 <strong>사후 보강</strong>이다.
+      </div>
+      <br>
+      <strong style="color:#fbbf24">③ CH64·CH66과 방향이 맞는다</strong> — 실기 100건에서 최저 구간이
+      <strong style="color:#e2e8f0">강좌 80% · 약좌 80%</strong>(중앙 100%, 약우 95%, 강우 90%)였다.
+      배포 헤드가 <strong style="color:#e2e8f0">cx로 좌측 조향을 만들어내지 못한다</strong>는 것은
+      좌측 구간이 유독 약한 것과 일관된다. CH66이 원인을 "헤드의 고정 우측 선호"로 지목했는데,
+      68-9는 그것이 <strong style="color:#e2e8f0">단순한 오프셋이 아니라 입력–출력 대응의 붕괴</strong>임을
+      보여준다.
+      <br><br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">⚠️ 한계 — 오프라인 프로브다</strong><br>
+        ⓐ cx만 덮어쓰므로 <strong style="color:#e2e8f0">vis(장면)와 cx가 모순되는 입력</strong>이 만들어진다.
+        실제 주행에서는 둘이 함께 움직이므로, 이 곡선이 실기 거동과 1:1로 대응하지는 않는다.
+        ⓑ 좌질량은 확률 질량이고 argmax가 아니다 — 실제 선택되는 액션의 변화율은 68-8의 21.7%다.
+        ⓒ <strong style="color:#e2e8f0">미러증강 헤드는 실기 100건 검정을 거치지 않았다</strong>.
+        offline 개선이 실기로 이어진다는 보장이 없다는 것은 이 프로젝트에서 여러 번 확인된
+        사실이다(64-11 철회 사례).
+        <br>→ 따라서 결론은 <strong style="color:#e2e8f0">"미러증강 헤드를 실기 100건으로 검정할
+        근거가 하나 더 생겼다"</strong>까지이고, <strong style="color:#f87171">"교체하면 좌측이
+        개선된다"는 아직 주장할 수 없다</strong>.
+      </div>
+      <br>
+      <strong style="color:#4ade80">언어 조건화 계획에 주는 함의</strong> — L1이 그라운딩 수준에서
+      동작해도(68-7) <strong style="color:#e2e8f0">액션 수준에서는 지금 헤드로 데모가 성립하지
+      않는다</strong>(68-8). 즉 68-6 우선순위에서 L1 데모의 전제 조건은 L2 데이터가 아니라
+      <strong style="color:#e2e8f0">헤드의 cx 응답 복구(미러증강 계열)</strong>가 먼저다.
+      <br><span style="font-size:0.8rem;color:#64748b">스크립트
+      <code>scripts/l1_head_cx_response.py</code> · 결과
+      <code>docs/v5/detector/l1_head_cx_response.json</code></span>
+    </div>
+  </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH68 ═ -->
 
