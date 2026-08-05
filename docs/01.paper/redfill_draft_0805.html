@@ -51,6 +51,15 @@
   </div>
 </div>
 <div class="wrap">
+<h2>재작성한 구조 도표</h2>
+<p>요구 원문 02~07의 260차원 규격을 반영한 도표입니다.
+   <a href="../v5/figures/edgeground_vla_architecture.pdf">PDF(벡터)</a> ·
+   <a href="../v5/figures/edgeground_vla_architecture.svg">SVG(편집용)</a> ·
+   <a href="../v5/figures/edgeground_vla_architecture.png">PNG(2×)</a></p>
+<p style="text-align:center"><img src="../v5/figures/edgeground_vla_architecture.svg"
+   alt="EdgeGround-VLA 파이프라인 구조도" style="max-width:100%;background:#fff;border-radius:8px;
+   border:1px solid #e2e8f0"></p>
+<hr>
 <h1 id="_1">초안 빨간글씨 채우기 — 붙여넣기용 초고</h1>
 <blockquote>
 <p>대상: <code>EdgeGround-VLA_바퀴형로봇_목표지향주행_경량모델_초안_0805.docx</code>
@@ -84,7 +93,70 @@ Kosmos-2 비전 타워(0.303B), 선형 사상(0.262M)은 모두 동결(frozen)�
 파인튜닝을 수행하지 않는다. 즉 본 연구의 학습 비용은 전체 파라미터가 아니라 0.866M에
 국한되고, 이것이 제안 구조가 온디바이스 환경에서 반복 실험을 감당할 수 있는 근거이다.</p>
 </blockquote>
-<h3 id="04">⚠️ 정정 사항 — 빨간글씨 04번 자체의 오류</h3>
+<h3 id="01">파이프라인 도표 (요구 원문 01) — 재작성 완료</h3>
+<p>요구 원문 02~07의 260차원 규격을 그대로 반영한 도표를 새로 그렸습니다. 논문용 벡터 포함
+3종을 제공합니다.</p>
+<table>
+<thead>
+<tr>
+<th>파일</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docs/v5/figures/edgeground_vla_architecture.pdf</code></td>
+<td><strong>논문 삽입용 벡터</strong> (LaTeX <code>\includegraphics</code>, Word 삽입 모두 가능)</td>
+</tr>
+<tr>
+<td><code>docs/v5/figures/edgeground_vla_architecture.svg</code></td>
+<td>편집용 원본 (텍스트 수정 가능)</td>
+</tr>
+<tr>
+<td><code>docs/v5/figures/edgeground_vla_architecture.png</code></td>
+<td>슬라이드·미리보기용 (2× 해상도, 흰 배경)</td>
+</tr>
+</tbody>
+</table>
+<p>도표에 명시한 것 — 요구 원문과 1:1로 대응합니다.</p>
+<table>
+<thead>
+<tr>
+<th>요구 원문</th>
+<th>도표에서 어떻게 표현했는가</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>02 프레임 특징 벡터 260차원</td>
+<td>중앙에 <strong>스택 바</strong>로 4 : 256 비율을 시각화</td>
+</tr>
+<tr>
+<td>03 <code>FRAME_DIM = 4 + 256 = 260</code></td>
+<td>같은 블록에 수식 그대로 표기</td>
+</tr>
+<tr>
+<td>04 bbox 4채널 (OWL-v2 출력)</td>
+<td>좌측 경로. <code>bbox_scale 3.0</code>은 <strong>4채널 전체</strong>에 적용됨을 화살표 라벨로 표기</td>
+</tr>
+<tr>
+<td>05 비전 256채널 (Kosmos-2 → image_proj → L2)</td>
+<td>우측 경로. <code>Linear 1024→256 + L2 norm</code> 블록을 분리</td>
+</tr>
+<tr>
+<td>06 window=6 flatten → 1560차원</td>
+<td>별도 "시간 윈도우" 블록</td>
+</tr>
+<tr>
+<td>07 8클래스 로짓</td>
+<td>출력 블록에 8개 클래스 이름 전부 나열</td>
+</tr>
+</tbody>
+</table>
+<p>추가로 표현한 것: <strong>학습/동결/미사용 3색 범례</strong>(초록=학습되는 0.866M 헤드만),
+<strong>언어 디코더 1.361B를 미사용으로 분리 표기</strong>(호출 0회, 로드 제거로 호스트 RAM 10.59→3.20GB),
+그리고 서빙 제어 파라미터를 하단 블록에 배치해 1.4절과 연결.</p>
+<h3 id="04">⚠️ 정정 사항 — 요구 원문 04번 자체의 오류</h3>
 <p>빨간글씨 04번은 <code>(area는 bbox_scale=3.0 배율 적용)</code>이라고 되어 있으나, 실제로는
 <strong>bbox 4채널 전체</strong>에 배율이 곱해집니다.</p>
 <pre><code class="language-python">seq.append([v * bbox_scale for v in bboxes[idx]] + vis[idx].tolist())
