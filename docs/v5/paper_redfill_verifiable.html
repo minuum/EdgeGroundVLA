@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EdgeGround-VLA 논문 25개 보완항목 코드/실험 검증 리포트</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --accent-yellow: #fbbf24;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      padding-bottom: 60px;
+    }
+    .header-box {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 32px 0;
+      margin-bottom: 32px;
+    }
+    .badge-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .bg-code { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .bg-ver { background: rgba(74, 222, 128, 0.15); color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.3); }
+    .bg-date { background: rgba(251, 191, 36, 0.15); color: var(--accent-yellow); border: 1px solid rgba(251, 191, 36, 0.3); }
+    
+    .table-custom {
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .table-custom th {
+      background-color: #1e293b;
+      color: var(--accent-blue);
+      border-bottom: 2px solid var(--border-color);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .table-custom td {
+      background-color: #0f172a;
+      vertical-align: top;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .table-custom tr:hover td {
+      background-color: #1a2436;
+    }
+    
+    .red-question {
+      color: var(--accent-red);
+      font-weight: 600;
+      background: rgba(248, 113, 113, 0.1);
+      padding: 6px 10px;
+      border-left: 3px solid var(--accent-red);
+      border-radius: 2px;
+      margin-bottom: 8px;
+    }
+    .action-plan {
+      color: var(--accent-green);
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .draft-text {
+      background: #182232;
+      border-left: 3px solid var(--accent-blue);
+      padding: 8px 12px;
+      border-radius: 4px;
+      color: #e2e8f0;
+      font-style: italic;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+    code {
+      color: #38bdf8;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.82rem;
+    }
+    .src-box {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .cmd-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: #a5f3fc;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-box">
+    <div class="container">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="badge bg-code">No-Hallucination Empirical Audit</span>
+        <span class="text-muted small">최종 업데이트: 2026-08-05</span>
+      </div>
+      <h1 class="h2 fw-bold text-white mb-2">EdgeGround-VLA 논문 25개 보완항목 실측 코드/실험 검증 리포트</h1>
+      <p class="text-muted mb-0">
+        초안 내 빨간 지시문 25건에 대한 <code>[문제(빨간질문) | 대응책 | 실답변및작성 | 근거 코드·실험 | 작성시점 | 출처(파일:라인) | 실행위치]</code> 7대 항목 정밀 대조 표
+      </p>
+    </div>
+  </div>
+
+  <div class="container-fluid px-4">
+
+    <div class="alert alert-info border-0 bg-dark text-light mb-4 shadow-sm" style="border-left: 4px solid var(--accent-blue) !important;">
+      <div class="d-flex align-items-center">
+        <div class="me-3 fs-4 text-info">📌</div>
+        <div>
+          <strong>검증 상태 및 원칙:</strong> 본 리포트는 <code>MoNaVLA</code> 리포지토리의 현행 실제 코드베이스, 훈련 스크립트, 서빙 서버 및 HDF5 실기 세션 메타데이터를 직접 대조하여 환각(Hallucination) 없이 작성되었습니다.
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-custom table-bordered align-middle">
+        <thead>
+          <tr>
+            <th style="width: 4%;">#</th>
+            <th style="width: 22%;">문제 (빨간질문) &amp; 대응책 &amp; 실답변(작성문장)</th>
+            <th style="width: 20%;">근거 코드 / 실험</th>
+            <th style="width: 12%;">작성/수정 시점</th>
+            <th style="width: 22%;">출처 (파일 경로 및 라인 수)</th>
+            <th style="width: 20%;">실행 위치 / 명령어</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- [01] -->
+          <tr>
+            <td class="text-center fw-bold text-info">01<br><small class="text-muted">p4#39</small></td>
+            <td>
+              <div class="red-question">🔴 -&gt; 이 그림을 다시 그려야 될 것 같음.</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 구버전 파이프라인(PaliGemma2/ActionMLP)을 현행 실측 파이프라인(OWL-v2 + Kosmos-2 + 260dim + window 6 + MLP 0.866M) 규격 도표로 새로 렌더링.</div>
+              <div class="draft-text">📄 "본 연구의 EdgeGround-VLA 파이프라인 구조는 [그림 1]과 같다. 입력 1프레임은 OWL-v2 Detector와 Kosmos-2 Vision Encoder로 동시 전달되며, 추출된 260차원 특징을 윈도우 6으로 링버퍼에 누적하여 1560차원으로 경량 MLP 헤드에 전달한다."</div>
+            </td>
+            <td><code>edgeground_vla_architecture</code> 벡터 재렌더링 (PDF/SVG/PNG)</td>
+            <td><span class="badge bg-date">2026-08-05</span></td>
+            <td>
+              <div class="src-box">
+                📄 <a href="figures/edgeground_vla_architecture.svg" class="text-info" target="_blank">docs/v5/figures/edgeground_vla_architecture.svg</a><br>
+                📄 <a href="figures/edgeground_vla_architecture.pdf" class="text-info" target="_blank">docs/v5/figures/edgeground_vla_architecture.pdf</a>
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/render_architecture_diagram.py --out docs/v5/figures/</div></td>
+          </tr>
+
+          <!-- [02] -->
+          <tr>
+            <td class="text-center fw-bold text-info">02<br><small class="text-muted">p4#40</small></td>
+            <td>
+              <div class="red-question">🔴 프레임 특징 벡터 — 260차원</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 단일 프레임 특징(bbox 4채널 + 비전 256채널) 산문 기술.</div>
+              <div class="draft-text">📄 "단일 프레임 특징 벡터 f_t ∈ R^260 은 4차원 위치 기하 벡터와 256차원 시각 문맥 임베딩의 결합으로 구성된다."</div>
+            </td>
+            <td><code>MLPActionHead</code> 입력 프레임 규격 정의</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L48-L65)<br>
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L985-L1000)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/train_exp73_trackA_heads.py --window 6 --bbox-scale 3.0</div></td>
+          </tr>
+
+          <!-- [03] -->
+          <tr>
+            <td class="text-center fw-bold text-info">03<br><small class="text-muted">p4#41</small></td>
+            <td>
+              <div class="red-question">🔴 FRAME_DIM = 4 + 256 = 260</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 차원 결합 수식을 산문으로 기재.</div>
+              <div class="draft-text">📄 "FRAME_DIM = D_bbox + D_vision = 4 + 256 = 260 수식을 따르며, 저차원 위치 정보와 high-level 시각 문맥을 직접 Concatenate한다."</div>
+            </td>
+            <td><code>FRAME_DIM</code> 상수 선언 및 Tensor Concat 코드</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L42)<br>
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L987)
+              </div>
+            </td>
+            <td><div class="cmd-box">pytest tests/test_inference_pipeline.py</div></td>
+          </tr>
+
+          <!-- [04] -->
+          <tr>
+            <td class="text-center fw-bold text-info">04<br><small class="text-muted">p4#42</small></td>
+            <td>
+              <div class="red-question">🔴 ├ bbox 4채널 : cx, cy, area, has_bbox ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> [오류정정] area만이 아니라 cx, cy, area, has_bbox 4채널 전체에 <code>bbox_scale=3.0</code>이 곱해짐을 명시.</div>
+              <div class="draft-text">📄 "위치 벡터는 OWL-v2의 바운딩 박스 출력 (cx, cy, area, has_bbox) 4개 채널에 배율 스케일링(bbox_scale=3.0)을 전체 적용하여 계산된다."</div>
+            </td>
+            <td><code>bbox_scale</code> 4채널 전체 곱 처리 코드</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/exp73_held_aware_train.py</code> (L98-L102)<br>
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L988, L1004)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/exp73_held_aware_train.py --bbox-scale 3.0</div></td>
+          </tr>
+
+          <!-- [05] -->
+          <tr>
+            <td class="text-center fw-bold text-info">05<br><small class="text-muted">p4#43</small></td>
+            <td>
+              <div class="red-question">🔴 └ 비전 256채널: Kosmos-2 vision_model(1024) → image_proj → L2 normalize</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> Kosmos-2 비전 타워 특징 L2 Normalization 과정 기술.</div>
+              <div class="draft-text">📄 "시각 특징 벡터는 Kosmos-2의 Frozen vision_model(1024차원)에서 추출된 후, 단층 Linear Projection(1024→256)과 L2 Normalization을 거쳐 단위 벡터로 정규화된다."</div>
+            </td>
+            <td><code>image_proj</code> + <code>F.normalize(p, p=2, dim=-1)</code></td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L545-L560)<br>
+                📄 <code>scripts/exp73_extract_features.py</code> (L112-L125)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/exp73_extract_features.py --model kosmos2</div></td>
+          </tr>
+
+          <!-- [06] -->
+          <tr>
+            <td class="text-center fw-bold text-info">06<br><small class="text-muted">p4#45</small></td>
+            <td>
+              <div class="red-question">🔴 헤드 입력 : window=6 프레임을 flatten → (6 × 260) = 1560차원</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 6프레임 시간 윈도우 Flatten 매핑 산문 표기.</div>
+              <div class="draft-text">📄 "MLP 행동 헤드의 입력은 최근 6개 프레임의 특징 벡터를 시간 순서대로 Flatten한 1,560차원 벡터 X_t ∈ R^(6×260) = R^1560 을 사용한다."</div>
+            </td>
+            <td><code>window=6</code> 슬라이딩 윈도우 Flatten 루틴</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L50, L108)<br>
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L1175)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/train_exp73_trackA_heads.py --window 6</div></td>
+          </tr>
+
+          <!-- [07] -->
+          <tr>
+            <td class="text-center fw-bold text-info">07<br><small class="text-muted">p4#46</small></td>
+            <td>
+              <div class="red-question">🔴 헤드 출력 : 8클래스 로짓</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 8클래스 이산 로짓 출력 및 865,928 파라미터 구조 명시.</div>
+              <div class="draft-text">📄 "행동 헤드는 2개의 Hidden Layer(512→128)를 거쳐 8개 이산 행동 클래스에 대한 로짓을 출력하며, 전체 학습 파라미터는 865,928개로 제한된다."</div>
+            </td>
+            <td><code>MLPActionHead</code> (865,928 params) 체크포인트 실측</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L58-L64)<br>
+                📄 <code>checkpoints/exp73_trackA_best.pt</code> (meta: head=exp73_mlp)
+              </div>
+            </td>
+            <td><div class="cmd-box">python -c "import torch; m=torch.load('checkpoints/exp73_trackA_best.pt'); print(sum(p.numel() for p in m['model'].values()))"</div></td>
+          </tr>
+
+          <!-- [08] -->
+          <tr>
+            <td class="text-center fw-bold text-info">08<br><small class="text-muted">p5#55</small></td>
+            <td>
+              <div class="red-question">🔴 이 것이 이구조를 생각한 이유를 설명할 수 있나?)</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> End-to-End VLA의 text attention 0% 붕괴 및 실기 주행 0% 실패 정량 데이터로 Decomposition 당위성 입증.</div>
+              <div class="draft-text">📄 "End-to-End VLA 방식은 fine-tuning 과정에서 언어-시각 어텐션 붕괴(Text Attention 0.000%)가 발생하여 오프라인 지표가 높아도 실시간 주행 성공률이 0%에 그쳤다. 이를 극복하기 위해 OVD 좌표와 VLM 비전 타워를 병치하는 Heterogeneous Decomposition 구조를 도입하여 Closed-loop 주행 성공률 66.7%를 달성하였다."</div>
+            </td>
+            <td>Exp17~41C 어텐션 붕괴 실험 및 Closed-loop 주행 실측(Exp11 vs Exp14)</td>
+            <td><span class="badge bg-date">2026-06-25</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>docs/v5/exp54_v1_vs_v2_comparison.md</code><br>
+                📄 <code>docs/v5/exp_stop_report.md</code><br>
+                📄 <code>docs/v5/research_story.html#ch68</code>
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/analyze_attention_collapse.py --exp exp17_41c</div></td>
+          </tr>
+
+          <!-- [09] -->
+          <tr>
+            <td class="text-center fw-bold text-info">09<br><small class="text-muted">p5#63</small></td>
+            <td>
+              <div class="red-question">🔴 threshold 설정 내용 기재</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> ROC 최적 0.25에서 젯슨 온보드 환경 완화를 위해 운영 0.20으로 결정한 경위 기재.</div>
+              <div class="draft-text">📄 "OWL-v2 검출 임계값은 ROC 실측 최적치인 0.25(오탐율 0%, 정탐율 95.3%)를 기준으로 설정하였으며, 엣지 하드웨어(Jetson Orin)의 실시간 정밀도 보정을 위해 운영 시 0.20으로 완화 적용하였다."</div>
+            </td>
+            <td>ROC Curve 분석(Exp60) 및 Jetson Gap 분석 스크립트</td>
+            <td><span class="badge bg-date">2026-07-04</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L706)<br>
+                📄 <code>scripts/analyze_jetson_local_gap.py</code> (L45-L88)<br>
+                📄 <code>docs/v5/exp60_report.md</code>
+              </div>
+            </td>
+            <td><div class="cmd-box">VLA_OWLV2_THRESH=0.20 python robovlm_nav/serve/stage2_v2_inference_server.py</div></td>
+          </tr>
+
+          <!-- [10] -->
+          <tr>
+            <td class="text-center fw-bold text-info">10<br><small class="text-muted">p5#64</small></td>
+            <td>
+              <div class="red-question">🔴 skip_n=3 의미</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> Jetson 지연(1901.7ms) 상쇄를 위한 zero-order hold 및 1.3Hz 실효 제어 주기 서술.</div>
+              <div class="draft-text">📄 "grounding_skip_n=3 설정을 적용하여 무거운 OWL-v2 검출 연산(Jetson 기준 프레임당 1,901.7ms 소모)을 3프레임마다 1회만 수행하고, 중간 프레임은 이전 바운딩 박스를 유효하게 유지(Zero-order hold)함으로써 1.3Hz의 실효 제어 주기를 확보한다."</div>
+            </td>
+            <td>`VLA_GROUNDING_SKIP_N` 지연 상쇄 실측 (CH49)</td>
+            <td><span class="badge bg-date">2026-07-23</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L765, L1111-L1115)
+              </div>
+            </td>
+            <td><div class="cmd-box">VLA_GROUNDING_SKIP_N=3 python robovlm_nav/serve/stage2_v2_inference_server.py</div></td>
+          </tr>
+
+          <!-- [11] -->
+          <tr>
+            <td class="text-center fw-bold text-info">11<br><small class="text-muted">p5#65</small></td>
+            <td>
+              <div class="red-question">🔴 force_reground_on_miss - 회전 후 강제 재그라운딩</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 회전 직후 재그라운딩, 회전 0.4초 제약(`vla_control_utils.py`), 연속 회전 정지 치환을 한 묶음으로 통합 서술.</div>
+              <div class="draft-text">📄 "회전 조향 시 타겟 객체가 카메라 시야를 벗어나는 문제를 방지하기 위해 1) 회전 완료 직후 skip_n을 무시하고 즉시 재그라운딩을 실행하며, 2) 제어 계층에서 회전 동작 지속시간을 0.4초로 엄격히 제한(move_and_stop_ramped)하고, 3) 2회 연속 회전 명령 발생 시 정지 명령([0,0])으로 대체하는 안전 제어 기법을 적용한다."</div>
+            </td>
+            <td>회전 제어 안전 가드 3종 구현 코드</td>
+            <td><span class="badge bg-date">2026-07-30</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/vla_control_utils.py</code> (L18, L21, L103)<br>
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L1115-L1130)
+              </div>
+            </td>
+            <td><div class="cmd-box">python robovlm_nav/serve/stage2_v2_inference_server.py</div></td>
+          </tr>
+
+          <!-- [12] -->
+          <tr>
+            <td class="text-center fw-bold text-info">12<br><small class="text-muted">p5#66</small></td>
+            <td>
+              <div class="red-question">🔴 stop_mode=learned + 콜드스타트 가드 3</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 학습된 STOP 클래스 활용 및 패딩 초기 조기정지 방지를 위한 Cold-start Guard 3 원리 기재.</div>
+              <div class="draft-text">📄 "정지 판정은 기하 규칙 대신 학습된 STOP 클래스(Class 0)를 사용하며, 주행 초반 과거 프레임 패딩으로 인한 오정지를 방지하기 위해 초기 3회 추론까지 STOP 판정을 무시하는 Cold-start Guard(가드 3)를 적용한다."</div>
+            </td>
+            <td><code>stop_mode=learned</code> 및 initial infer guard 코드</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L1200-L1212)
+              </div>
+            </td>
+            <td><div class="cmd-box">VLA_STOP_MODE=learned python robovlm_nav/serve/stage2_v2_inference_server.py</div></td>
+          </tr>
+
+          <!-- [13] -->
+          <tr>
+            <td class="text-center fw-bold text-info">13<br><small class="text-muted">p6#78</small></td>
+            <td>
+              <div class="red-question">🔴 데이터 포맷 ( Manipulator 같은 경우 Droid, LeRobot 같은) 으로 어떻게 데이터를 모았는지 설명</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 조이스틱 Teleop 기반 HDF5 규격 수집 및 LeRobot v3.0 포맷 내보내기 파이프라인 구축 서술.</div>
+              <div class="draft-text">📄 "데이터는 조이스틱 원격조작을 통해 에피소드당 독립된 HDF5(.h5) 파일 규격(이미지, 액션, 런타임 설정)으로 총 225개 에피소드(16,599 프레임)를 수집하였다. 수집 데이터는 5개 시작 위치와 3개 경로 유형으로 구성되며, 외부 재현성을 위해 LeRobot v3.0 포맷으로의 내보내기 파이프라인을 구축하였다."</div>
+            </td>
+            <td>V6 225ep 데이터셋 및 LeRobot v3.0 export 디렉터리</td>
+            <td><span class="badge bg-date">2026-07-16</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>lerobot_export/v6_mixed/meta/info.json</code><br>
+                📄 <code>scripts/convert_h5_to_lerobot.py</code>
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/convert_h5_to_lerobot.py --in-dir data/v6/ --out-dir lerobot_export/v6_mixed/</div></td>
+          </tr>
+
+          <!-- [14] -->
+          <tr>
+            <td class="text-center fw-bold text-info">14<br><small class="text-muted">p8#125</small></td>
+            <td>
+              <div class="red-question">🔴 데이터를 이용하여 어떻게 학습을 진행 했는지 기술</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> Stage 1(피처 1회 사전 추출 캐싱) → Stage 2(MLP 헤드 고속 학습) 2단계 학습 파이프라인 기술.</div>
+              <div class="draft-text">📄 "학습은 2단계 파이프라인으로 진행된다. Stage 1에서는 무거운 백본 인코더의 출력 특징을 1회 사전 추출하여 에피소드 캐시(.pt)로 저장하고, Stage 2에서는 사전 추출된 특징을 바탕으로 0.866M 파라미터의 MLP 행동 헤드만을 고속으로 반복 학습한다."</div>
+            </td>
+            <td>Stage 1 캐싱 스크립트 및 Stage 2 학습 루프</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/exp73_extract_features.py</code> (Stage 1)<br>
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L70-L150, Stage 2)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/train_exp73_trackA_heads.py --data-dir data/exp73_v6_vis_cache.pt</div></td>
+          </tr>
+
+          <!-- [15] -->
+          <tr>
+            <td class="text-center fw-bold text-info">15<br><small class="text-muted">p8#126</small></td>
+            <td>
+              <div class="red-question">🔴 학습 파라미터</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> Episode-level 15% Val Split (`SPLIT_SEED=42`) 및 hold-aware 5-stride 다수결 라벨링 명시.</div>
+              <div class="draft-text">📄 "에피소드 단위 15% 검증 집합 분할(SPLIT_SEED=42) 환경에서, 5-stride 이동 윈도우 내 다수결 라벨링을 적용하여 hold-aware 데이터셋을 구성하였다."</div>
+            </td>
+            <td>Held-out Split 및 Hold-aware 라벨 변환 알고리즘</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/exp73_held_aware_train.py</code> (L80-L118)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/exp73_held_aware_train.py --split-seed 42</div></td>
+          </tr>
+
+          <!-- [16] -->
+          <tr>
+            <td class="text-center fw-bold text-info">16<br><small class="text-muted">p8#127</small></td>
+            <td>
+              <div class="red-question">🔴 window = 6 프레임 bbox_scale = 3.0</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> W=6 및 bbox 4채널 전체 3.0 스케일 배율 규격 명시.</div>
+              <div class="draft-text">📄 "시간 문맥 윈도우 크기는 W=6으로 설정하며, 기하 박스 4채널 벡터에는 3.0의 스케일 배율을 적용하여 시각 임베딩과의 수치적 가중 밸런스를 맞췄다."</div>
+            </td>
+            <td>Window/Scale 파라미터 주입 부분</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L35-L40, L98-L102)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/train_exp73_trackA_heads.py --window 6 --bbox-scale 3.0</div></td>
+          </tr>
+
+          <!-- [17] -->
+          <tr>
+            <td class="text-center fw-bold text-info">17<br><small class="text-muted">p8#128</small></td>
+            <td>
+              <div class="red-question">🔴 num_classes = 8 optimizer = Adam, lr = 5e-4</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> [오류정정] 요구 원문은 Adam이나 실제 코드는 <code>AdamW(weight_decay=1e-4)</code>임을 명시하여 본문 정정.</div>
+              <div class="draft-text">📄 "행동 공간은 8개 이산 클래스로 구성되며, Optimizer는 AdamW(Learning Rate = 5e-4, Weight Decay = 1e-4)를 사용한다."</div>
+            </td>
+            <td><code>AdamW</code> 선언 코드 실측</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L140)
+              </div>
+            </td>
+            <td><div class="cmd-box">grep -n "AdamW" scripts/train_exp73_trackA_heads.py</div></td>
+          </tr>
+
+          <!-- [18] -->
+          <tr>
+            <td class="text-center fw-bold text-info">18<br><small class="text-muted">p8#129</small></td>
+            <td>
+              <div class="red-question">🔴 epochs = 300 scheduler = CosineAnnealingLR</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 300 Epoch, CosineAnnealingLR, 25 Epoch 간격 평가 중 최고 성능 저장 기준 서술.</div>
+              <div class="draft-text">📄 "총 300 Epoch 동안 CosineAnnealingLR 스케줄러를 적용하여 학습을 진행하며, 25 Epoch 간격으로 검증 집합 평가를 수행하여 최상위 성능의 체크포인트를 최종 모델로 선정한다."</div>
+            </td>
+            <td><code>CosineAnnealingLR</code> 및 25ep 간격 모델 저장 루틴</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L142-L165)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/train_exp73_trackA_heads.py --epochs 300</div></td>
+          </tr>
+
+          <!-- [19] -->
+          <tr>
+            <td class="text-center fw-bold text-info">19<br><small class="text-muted">p8#130</small></td>
+            <td>
+              <div class="red-question">🔴 class weight = 1/빈도 정규화 ← FORWARD 71~74% 편중 보정</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> FORWARD 클래스 편향 보정을 위한 1/빈도 계산 후 합=8 정규화 공식 기재.</div>
+              <div class="draft-text">📄 "FORWARD 행동 클래스(전체의 71~74%)로의 데이터 편향을 방지하기 위해 클래스별 발생 빈도의 역수(1/freq)를 계산하고 합이 8이 되도록 정규화한 손실 가중치(Class Weight)를 Cross-Entropy 손실함수에 적용한다."</div>
+            </td>
+            <td>Class Weight 계산 및 Normalization 공식 코드</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L120-L135)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/train_exp73_trackA_heads.py</div></td>
+          </tr>
+
+          <!-- [20] -->
+          <tr>
+            <td class="text-center fw-bold text-info">20<br><small class="text-muted">p8#131</small></td>
+            <td>
+              <div class="red-question">🔴 seeds = 0, 1, 2 (다중 시드로 분산 확인)</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> Seed 0, 1, 2 반복 실험을 통한 분산 및 재현성 검증 서술.</div>
+              <div class="draft-text">📄 "모델 평가의 신뢰성을 확보하기 위해 3개의 무작위 시드(Seed 0, 1, 2)에서 반복 학습을 수행하고 검증 정확도의 분산을 확인하였다."</div>
+            </td>
+            <td>Multi-seed 학습 평가 스크립트</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/exp73_multiseed_train.py</code> (L30-L85)
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/exp73_multiseed_train.py --seeds 0 1 2</div></td>
+          </tr>
+
+          <!-- [21] -->
+          <tr>
+            <td class="text-center fw-bold text-info">21<br><small class="text-muted">p8#133</small></td>
+            <td>
+              <div class="red-question">🔴 모델을 학습하고 난 후에 ***.pth 파일이 결과로 나옴.</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> [오류정정] `.pth`가 아닌 `.pt` 파일 및 state_dict + 런타임 메타데이터 통합 저장 형태 기재.</div>
+              <div class="draft-text">📄 "학습 결과물로 출력되는 단일 파일(*.pt)에는 MLP 헤드의 가중치(state_dict)뿐만 아니라 런타임 검증에 필수적인 메타데이터(window=6, bbox_scale=3.0, head=exp73_mlp 등)가 통합 저장된다."</div>
+            </td>
+            <td>체크포인트 메타데이터 Dict 저장 구문</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>scripts/train_exp73_trackA_heads.py</code> (L160-L175)<br>
+                📄 <code>checkpoints/exp73_trackA_best.pt</code>
+              </div>
+            </td>
+            <td><div class="cmd-box">python -c "import torch; print(torch.load('checkpoints/exp73_trackA_best.pt').keys())"</div></td>
+          </tr>
+
+          <!-- [22] -->
+          <tr>
+            <td class="text-center fw-bold text-info">22<br><small class="text-muted">p9#137</small></td>
+            <td>
+              <div class="red-question">🔴 학습된 EdgeGrouund-VLA 모델을 SerbotII에 탑재하는 방법 설명</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> HTTP REST API 통신 및 언어 디코더 미로드를 통한 Host RAM 70% 절감(10.59GB→3.20GB) 사실 기술.</div>
+              <div class="draft-text">📄 "학습된 헤드(*.pt) 및 프로젝션 레이어는 SerbotII 로봇의 Jetson Orin 온보드 환경에 배포되며, HTTP API 기반 추론 서버(stage2_v2_inference_server.py)로 탑재된다. 특히 불필요한 언어 디코더(1.361B) 로드를 차단함으로써 엣지 호스트 RAM 사용량을 10.59GB에서 3.20GB로 70% 절감하여 탑재 안정성을 확보하였다."</div>
+            </td>
+            <td>Jetson Host RAM 측정 및 REST API 서버 탑재 코드</td>
+            <td><span class="badge bg-date">2026-08-05</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L780-L810)<br>
+                📄 <code>docs/v5/paper_redfill_worklist.html#a22</code>
+              </div>
+            </td>
+            <td><div class="cmd-box">VLA_KOSMOS_VISION_ONLY=1 python robovlm_nav/serve/stage2_v2_inference_server.py --port 8000</div></td>
+          </tr>
+
+          <!-- [23] -->
+          <tr>
+            <td class="text-center fw-bold text-info">23<br><small class="text-muted">p9#141</small></td>
+            <td>
+              <div class="red-question">🔴 로봇 수행 시 카메라로 한 프레임 입력값 전처리 -&gt; 입력값 AI 모델에 입력 -&gt; AI 모델 수행-&gt; 결과값으로 후처리 과정 설명</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 1프레임 런타임 처리 경로 (전처리 → 6프레임 링버퍼 push → MLP 추론 → 콜드스타트/연속회전 차단 후처리) 상세 단계 기술.</div>
+              <div class="draft-text">📄 "런타임 시 1프레임 입력에 대해 1) 카메라 이미지를 입력받아 OVD 및 VLM 비전 타워 전처리를 수행하고 2) 최근 6프레임 링버퍼 구조에 특징을 Push 및 Flatten하여 3) MLP 모델 추론으로 8클래스 로짓을 산출한 뒤 4) Cold-start Guard 및 연속 회전 차단 후처리 로직을 적용하여 최종 로봇 속도 제어 명령을 발행한다."</div>
+            </td>
+            <td>추론 서버 파이프라인 메인 엔드포인트 `/predict`</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L1150-L1260)
+              </div>
+            </td>
+            <td><div class="cmd-box">curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d '{"image": "..."}'</div></td>
+          </tr>
+
+          <!-- [24] -->
+          <tr>
+            <td class="text-center fw-bold text-info">24<br><small class="text-muted">p9#142</small></td>
+            <td>
+              <div class="red-question">🔴 Serving control을 런타임시에 여기에서 threshold 값 설정</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> 환경변수 주입 방식 및 HDF5 `attrs['runtime_config']` 저장 구조 명시.</div>
+              <div class="draft-text">📄 "런타임 서빙 제어 파라미터(threshold 등)는 환경변수(VLA_OWLV2_THRESH)를 통해 동적으로 주입되며, 해당 실행 설정은 사후 검증 및 재현성을 위해 생성되는 모든 세션 HDF5 파일의 attrs['runtime_config']에 자동 기록된다."</div>
+            </td>
+            <td>HDF5 `runtime_config` 메타데이터 로깅 루틴</td>
+            <td><span class="badge bg-date">2026-07-23</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L706, L1416)<br>
+                📄 <code>scripts/session_matrix_export.py</code>
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/session_matrix_export.py --inspect-config</div></td>
+          </tr>
+
+          <!-- [25] -->
+          <tr>
+            <td class="text-center fw-bold text-info">25<br><small class="text-muted">p9#144</small></td>
+            <td>
+              <div class="red-question">🔴 has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고정 fallback 값이 들어가고 has_bbox=0으로 표시됩니다...</div>
+              <div class="action-plan">✅ <strong>대응책:</strong> fallback 값 입력 방식과 학습 데이터 미검출 0.00% 한계를 서빙 제어로 우회한 서술 유지 및 보강.</div>
+              <div class="draft-text">📄 "타겟 검출 실패 시 위치 채널에는 고정 Fallback 값(cx=0.5, cy=0.6, area=0.06)과 함께 has_bbox=0 신호가 주입된다. 학습 데이터 내 미검출 프레임의 부재(0.00%)로 인한 모델의 응답 한계를 극복하기 위해, 실기 환경에서는 이를 학습에 의존하지 않고 서빙 제어 로직(강제 재그라운딩 및 정지 치환)으로 정밀하게 우회 조치하였다."</div>
+            </td>
+            <td>`has_bbox` fallback 생성 및 미검출 통계 실측 (CH64)</td>
+            <td><span class="badge bg-date">2026-08-01</span></td>
+            <td>
+              <div class="src-box">
+                📄 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code> (L523, L657, L710)<br>
+                📄 <code>docs/v5/paper_redfill_worklist.html#a25</code>
+              </div>
+            </td>
+            <td><div class="cmd-box">python scripts/analyze_has_bbox_stats.py --dataset v6</div></td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</body>
+</html>
