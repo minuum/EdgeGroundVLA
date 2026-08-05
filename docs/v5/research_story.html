@@ -16513,7 +16513,7 @@ graph TD
     🟡 <strong>3줄 요약</strong><br>
     ① <strong>데이터 에피소드는 균형</strong>(좌 90 / 우 90, 라벨 cx 0.4976) — 원인 아님.<br>
     ② <strong>그라운더는 오히려 좌측 선호</strong>(+0.0118) — 부호가 실기와 <strong>반대</strong>라 원인 아님.<br>
-    ③ <strong>액션 헤드에 고정 우측 선호</strong>(−0.0275) — 부호 일치. 원인은 <strong>학습 액션의 우측 21.8% 편중</strong>이며, 미러 증강으로 <strong>+0.0068까지 제거</strong>(val_acc 유지).
+    ③ <strong>액션 헤드에 고정 우측 선호</strong>(−0.0275) — 부호 일치. 원인은 <strong>학습 액션의 우측 21.8% 편중</strong>(66-6: 트랙 A 전용 +25.9%, 트랙 F는 +1.2%)이며, 미러 증강으로 <strong>+0.0068까지 제거</strong>(val_acc 유지).
   </div>
 
   <div class="finding-card" style="border-color:#38bdf8">
@@ -16730,6 +16730,73 @@ graph TD
     </div>
   </div>
   <div class="finding-card" style="border-color:#f87171">
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🔎 66-6. 데이터 편중의 출처 분해 — 트랙 A 전용이고, 조향 회피가 아니라 조향 총량 차이다 (2026-08-05)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      66-3/66-4에서 원인을 <strong style="color:#e2e8f0">"학습 액션의 우측 21.8% 편중"</strong>으로
+      지목했다. 그런데 <strong style="color:#e2e8f0">그 21.8%가 어디서 생긴 것인지</strong>는
+      확인하지 않았다. 논문 데이터 절을 쓰면서 V6 구성을 다시 세어 분해했다.
+      <br><br>
+      <strong style="color:#e2e8f0">V6 실제 구성</strong> — 시작 위치 5종 × 경로 3종 = 15조합,
+      각 15 에피소드. 학습 코드가 나누는 두 묶음의 정의도 확정했다:
+      <code>--exclude-trackf</code>가 <code>path_type.startswith("center")</code>를 제외하고
+      "트랙A only"로 출력한다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">시작 위치</th><th style="padding:4px">ep</th><th style="padding:4px">프레임</th><th style="padding:4px">프레임/ep</th><th style="padding:4px">묶음</th></tr>
+        <tr><td style="padding:4px">강좌</td><td style="padding:4px;text-align:center">45</td><td style="padding:4px;text-align:center">3,611</td><td style="padding:4px;text-align:center">80.2</td><td style="padding:4px;text-align:center">트랙 A</td></tr>
+        <tr><td style="padding:4px">약좌</td><td style="padding:4px;text-align:center">45</td><td style="padding:4px;text-align:center">3,299</td><td style="padding:4px;text-align:center">73.3</td><td style="padding:4px;text-align:center">트랙 A</td></tr>
+        <tr style="background:rgba(56,189,248,0.1)"><td style="padding:4px">중앙</td><td style="padding:4px;text-align:center">45</td><td style="padding:4px;text-align:center">2,819</td><td style="padding:4px;text-align:center">62.6</td><td style="padding:4px;text-align:center"><strong>트랙 F</strong></td></tr>
+        <tr><td style="padding:4px">약우</td><td style="padding:4px;text-align:center">45</td><td style="padding:4px;text-align:center">3,268</td><td style="padding:4px;text-align:center">72.6</td><td style="padding:4px;text-align:center">트랙 A</td></tr>
+        <tr><td style="padding:4px">강우</td><td style="padding:4px;text-align:center">45</td><td style="padding:4px;text-align:center">3,602</td><td style="padding:4px;text-align:center">80.0</td><td style="padding:4px;text-align:center">트랙 A</td></tr>
+      </table>
+      <span style="font-size:0.8rem;color:#64748b">좌 시작 90ep/6,910프레임 vs 우 시작 90ep/6,870프레임 —
+      <strong style="color:#e2e8f0">프레임 차이 0.6%</strong>. 즉 수집 설계 수준에서는 대칭이다.</span>
+      <br><br>
+      <div style="background:rgba(56,189,248,0.1);border-left:3px solid #38bdf8;padding:11px 14px">
+        <strong style="color:#38bdf8">① 편중은 트랙 A 전용이다</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+          <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">묶음</th><th style="padding:4px">좌계열</th><th style="padding:4px">우계열</th><th style="padding:4px">격차</th></tr>
+          <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px">트랙 A (좌우 시작 180ep)</td><td style="padding:4px;text-align:center">2,820</td><td style="padding:4px;text-align:center">3,551</td><td style="padding:4px;text-align:center;color:#f87171"><strong>+25.9%</strong></td></tr>
+          <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px">트랙 F (중앙 시작 45ep)</td><td style="padding:4px;text-align:center">564</td><td style="padding:4px;text-align:center">571</td><td style="padding:4px;text-align:center;color:#4ade80">+1.2%</td></tr>
+        </table>
+        중앙에서 출발한 에피소드에서는 좌우가 거의 정확히 대칭이다. 편중은
+        <strong style="color:#e2e8f0">목표가 화면 중앙에서 벗어난 상태로 출발할 때만</strong> 생긴다.
+      </div>
+      <br>
+      <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
+        <strong style="color:#4ade80">② 정렬 회복 조향 자체는 좌우 대칭이다 — 미러 검정</strong><br>
+        강좌 시작 에피소드가 쓴 <strong>우계열 19.2%</strong>와
+        강우 시작 에피소드가 쓴 <strong>좌계열 19.9%</strong>는 <strong style="color:#e2e8f0">0.7%p</strong>
+        차이다(약좌·약우 쌍은 1.6%p). 즉 <strong style="color:#e2e8f0">"한쪽 방향 조향을 덜 했다"는
+        설명은 기각</strong>된다.
+      </div>
+      <br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">③ 실제로 다른 것은 직진의 비중이다</strong><br>
+        좌측 시작 에피소드는 직진이 <strong>49~51%</strong>인데 우측 시작은
+        <strong style="color:#e2e8f0">40~41%</strong>로 약 <strong>10%p 낮다</strong>.
+        그만큼 조향 행동이 더 많이 쓰였고, 그 초과분이 우계열 총량을 키웠다.
+        <br>→ 즉 이 편중은 <strong style="color:#e2e8f0">시작 위치에 따라 조작자가 사용한 조향의
+        총량이 달랐던 결과</strong>로 보인다.
+        <span style="color:#fbbf24">단 이는 관측에 대한 해석이며, 조작 로그나 궤적으로 원인을
+        검증한 것은 아니다.</span>
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">④ 대응 방법이 달라진다 — 이것이 이 분해의 실질</strong><br>
+      에피소드 수(90:90)와 프레임 수(0.6% 차)가 <strong>이미 대칭</strong>이므로
+      <strong style="color:#f87171">"좌측 데이터를 더 모으자"는 처방은 듣지 않는다</strong>.
+      실제로 효과가 있었던 것은 <strong style="color:#e2e8f0">클래스 가중치와 미러 증강</strong>이었고
+      (66-4, 65-9), 그것이 이 분해와 정합한다. 재수집으로 풀려면
+      <strong style="color:#e2e8f0">"조향 총량을 시작 위치 간에 통제한다"</strong>는 새로운 수집
+      규약이 필요하다 — 에피소드 수를 맞추는 것만으로는 부족하다.
+      <br><br>
+      <span style="font-size:0.8rem;color:#64748b">추가로 <strong>hold-aware 샘플링은 이 편중을
+      바꾸지 않는다</strong>는 것도 확인했다 — 좌우 격차가 프레임 단위 4.45%p에서 다수결 라벨
+      4.47%p로 사실상 불변이다(<code>scripts/analyze_hold_aware_labeling.py</code>).
+      즉 샘플링은 시간 구조 정렬 장치이고 불균형 보정 장치가 아니다.</span>
+    </div>
+  </div>
+
     <div class="finding-title" style="color:#f87171">🚧 66-5. 무엇을 주장할 수 있고 무엇을 아직 못 하는가</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem">

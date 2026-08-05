@@ -541,8 +541,23 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
      <tr><td>포맷</td><td><strong>HDF5(.h5)</strong>, 에피소드 1개 = 파일 1개.
          <code>h['images']</code>(BGR 1280×720), 액션,
          <code>attrs['runtime_config']</code>에 실행 설정</td></tr>
-     <tr><td>규모</td><td>V6 <strong>225 에피소드 · 16,599 프레임</strong> (trackA 180 + trackF 45)</td></tr>
-     <tr><td>구성</td><td>좌 90ep / 우 90ep — <strong>에피소드 수는 대칭</strong> (라벨 cx 평균 0.4976)</td></tr>
+     <tr><td>규모</td><td>V6 <strong>225 에피소드 · 16,599 프레임</strong></td></tr>
+     <tr><td>구성</td><td><strong>시작 위치 5종 × 경로 3종 = 15조합 × 각 15ep</strong>
+         <br>시작: 중앙 · 약좌 · 강좌 · 약우 · 강우 (실기 100건의 5개 지점과 동일)
+         <br>경로: 직진 · 좌곡선 · 우곡선</td></tr>
+     <tr><td><strong>트랙 A</strong></td><td>중앙 외 4개 시작 위치 × 3경로 = <strong>180ep</strong>
+         — 목표가 화면 중앙에서 벗어나 <strong>조향으로 정렬을 회복</strong>해야 함</td></tr>
+     <tr><td><strong>트랙 F</strong></td><td>중앙 시작 × 3경로 = <strong>45ep</strong>
+         — 목표가 처음부터 중앙. <strong>곡선 지시를 받아도 직진으로 도달 가능</strong>하므로
+         "경로 지시를 따르는가 vs 보이면 직진하는가"를 가르는 <strong>대조군</strong>
+         <br><span style="font-size:0.9em;color:#64748b">코드 근거:
+         <code>--exclude-trackf</code>가 <code>path_type.startswith("center")</code>를 제외하고
+         "트랙A only"로 출력 (<code>train_exp73_trackA_heads.py</code>).
+         배포 체크포인트 이름의 <code>trackF</code>는 <strong>트랙 F를 포함해</strong>
+         전체 225ep로 학습했다는 표기</span></td></tr>
+     <tr><td>좌우 대칭성</td><td>좌 시작 90ep / 우 시작 90ep <strong>동수</strong>,
+         프레임도 6,910 / 6,870 (<strong>0.6% 차</strong>), 라벨 cx 평균 0.4976
+         → <strong>수집 설계 수준에서는 대칭</strong></td></tr>
      <tr><td>그라운딩 라벨</td><td>OWL-v2 자동 라벨. LIVE &amp; detected는 <strong>5,752</strong>,
          나머지 65.3%는 <code>grounding_cached</code> 상속값이라 <strong>독립 표본이 아님</strong></td></tr>
    </table>
@@ -569,11 +584,30 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
    <strong style="color:#e2e8f0">"left curve"/"right curve"가 정답 행동을 자연어로 직접 지시</strong>합니다
    — <a href="research_story.html#ch68">CH68 68-1</a>의 라벨 누출과 같은 구조입니다.
    언어 조건화 실험 입력으로 쓰면 안 되고, 공개 시에도 명시해야 합니다.</div>
-   <div class="warn" style="margin:8px 0"><strong style="color:#fbbf24">② 에피소드는 대칭인데
-   액션 클래스는 비대칭입니다</strong> — 좌계열 3,384 vs 우계열 <strong>4,122 (21.8% 차이)</strong>,
-   FWD+L 2,532 vs FWD+R 3,117. 같은 궤적이라도 좌회전 경로의 프레임당 회전량이 달랐습니다.
-   <br>→ 이 불균형이 <strong>CH66 좌우 비대칭 원인 사슬의 출발점</strong>입니다. 데이터 절에서
-   미리 밝혀야 결과 절(좌측 80%)의 논리가 이어집니다.</div>
+   <div class="warn" style="margin:8px 0"><strong style="color:#fbbf24">② 에피소드·프레임은 대칭인데
+   액션 클래스는 비대칭입니다 — 그리고 원인이 좁혀졌습니다</strong>
+   <br>전체 격차는 좌계열 3,384 vs 우계열 4,122 = <strong>21.8%</strong>인데, 두 트랙으로 분해하면:
+   <table>
+     <tr><th>묶음</th><th>좌계열</th><th>우계열</th><th>격차</th></tr>
+     <tr style="background:rgba(248,113,113,0.12)"><td>트랙 A (좌우 시작 180ep)</td>
+         <td>2,820</td><td>3,551</td><td style="color:#fca5a5"><strong>+25.9%</strong></td></tr>
+     <tr style="background:rgba(74,222,128,0.1)"><td>트랙 F (중앙 시작 45ep)</td>
+         <td>564</td><td>571</td><td style="color:#86efac">+1.2%</td></tr>
+   </table>
+   <strong>트랙 A에서만 발생하고 트랙 F에서는 사실상 없습니다.</strong>
+   <br>게다가 <strong>정렬 회복에 쓰는 조향 자체는 좌우 대칭</strong>이었습니다 —
+   강좌 시작의 우계열 19.2% vs 강우 시작의 좌계열 19.9%(<strong>0.7%p 차</strong>),
+   약좌·약우 쌍도 1.6%p 차입니다.
+   <br>실제로 다른 건 <strong style="color:#e2e8f0">직진 비중</strong>입니다 —
+   좌측 시작 49~51% vs 우측 시작 <strong>40~41%</strong>(약 10%p 낮음)로,
+   우측 시작에서 조향을 더 많이 썼고 그 초과분이 우계열 총량을 키웠습니다.
+   <br>→ <strong style="color:#e2e8f0">어느 한 방향의 조향을 회피한 게 아니라, 시작 위치에 따라
+   사용한 조향의 총량이 달랐던 것</strong>으로 해석됩니다
+   <span style="color:#fbbf24">(관측에 대한 해석이며 조작 로그로 검증한 것은 아닙니다)</span>.
+   <br>→ <strong>대응 방법이 달라집니다</strong>: 에피소드·프레임이 이미 대칭이므로
+   <strong style="color:#f87171">좌측 데이터를 더 모아도 해결되지 않습니다</strong>.
+   실제 대응은 클래스 가중치 + <a href="research_story.html#ch65">미러 증강(65-9)</a>이었습니다.
+   이것이 <a href="research_story.html#ch66">CH66</a> 사슬의 출발점입니다.</div>
     </div>
   </div>
 </div>
