@@ -1,0 +1,94 @@
+{
+  "n_episodes": 225,
+  "n_frames": 16599,
+  "n_decisions": 3401,
+  "stride": 5,
+  "window": 6,
+  "window_span_frames": 25,
+  "label_differs_from_instant": 0.10555718906204058,
+  "tie_rate": 0.007056748015289621,
+  "tie_pick": {
+    "FWD": 13,
+    "FWD+L": 2,
+    "LEFT": 5,
+    "RIGHT": 4
+  },
+  "tie_top_combos": [
+    {
+      "cands": [
+        "LEFT",
+        "FWD+L"
+      ],
+      "n": 4
+    },
+    {
+      "cands": [
+        "FWD",
+        "RIGHT"
+      ],
+      "n": 4
+    },
+    {
+      "cands": [
+        "FWD",
+        "ROT_R"
+      ],
+      "n": 3
+    },
+    {
+      "cands": [
+        "RIGHT",
+        "FWD+R"
+      ],
+      "n": 3
+    },
+    {
+      "cands": [
+        "FWD",
+        "LEFT"
+      ],
+      "n": 3
+    }
+  ],
+  "tie_random_expected_share": 0.5,
+  "class_dist": {
+    "STOP": {
+      "frame": 0.0874751491053678,
+      "majority": 0.10349897089091444
+    },
+    "FWD": {
+      "frame": 0.4603289354780408,
+      "majority": 0.4489855924728021
+    },
+    "LEFT": {
+      "frame": 0.043135128622206156,
+      "majority": 0.04175242575713026
+    },
+    "RIGHT": {
+      "frame": 0.05168986083499006,
+      "majority": 0.04851514260511614
+    },
+    "FWD+L": {
+      "frame": 0.15253930959696368,
+      "majority": 0.14966186415760072
+    },
+    "FWD+R": {
+      "frame": 0.18778239652991144,
+      "majority": 0.18612172890326376
+    },
+    "ROT_L": {
+      "frame": 0.008193264654497259,
+      "majority": 0.009997059688326962
+    },
+    "ROT_R": {
+      "frame": 0.008855955178022772,
+      "majority": 0.011467215524845633
+    }
+  },
+  "lr_balance": {
+    "frame_left": 0.20386770287366712,
+    "frame_right": 0.24832821254292425,
+    "maj_left": 0.20141134960305793,
+    "maj_right": 0.24610408703322553
+  }
+}
