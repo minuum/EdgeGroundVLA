@@ -28,7 +28,7 @@ from scripts.train_exp73_trackA_heads import (
     MLPActionHead, CACHE_V6, SPLIT_SEED, VAL_RATIO, NUM_CLASSES, DEVICE, BBOX_SCALE, WINDOW,
 )
 from scripts.sim.rollout_core import build_trajectory, compute_metrics
-from scripts.exp73_window_cadence import build_windows_strided, eval_closed_loop_held
+from scripts.exp73_window_cadence import build_windows_strided, eval_closed_loop_held, swap_bboxes, OWL_ANN
 
 
 def majority(vals):

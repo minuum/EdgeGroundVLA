@@ -115,15 +115,16 @@
 <path class="ar" d="M490,936 L490,968"/>
 
 <!-- ══ 서빙 제어 ══ -->
-<rect class="grp" x="150" y="956" width="680" height="150"/>
+<rect class="grp" x="150" y="956" width="680" height="160"/>
 <text class="glab" x="166" y="976">제어 · SERVING CONTROL</text>
-<rect class="bx" x="190" y="986" width="600" height="104"/>
-<text class="tm" x="490" y="1008" text-anchor="middle">owlv2_thresh = 0.20   ·   grounding_skip_n = 3  (≈1.3 Hz, zero-order hold)</text>
-<text class="tm" x="490" y="1028" text-anchor="middle">force_reground_on_miss   ·   회전 지속 0.4 s 제한   ·   연속 회전 차단</text>
-<text class="tm" x="490" y="1048" text-anchor="middle">stop_mode = learned   +   콜드스타트 가드 3회</text>
-<text class="ts" x="490" y="1072" text-anchor="middle">속도 크기는 사용하지 않음 — 펌웨어가 방향만 반영(상수 속도)</text>
+<rect class="bx" x="190" y="986" width="600" height="116"/>
+<text class="tm" x="490" y="1008" text-anchor="middle">grounding_skip_n = 3   (zero-order hold · 실측 cached 65.1%)</text>
+<text class="tm" x="490" y="1028" text-anchor="middle">회전 직후 강제 재그라운딩(상시)   ·   연속 회전 차단 → 정지로 대체</text>
+<text class="tm" x="490" y="1048" text-anchor="middle">owlv2_thresh  코드 기본 0.25 / 운영 0.20   ·   콜드스타트 가드 3스텝</text>
+<text class="ts" x="490" y="1070" text-anchor="middle">제어 계층: 명령 COAST 4.0s · 10Hz 재발행 / 회전만 0.4s 후 자동정지</text>
+<text class="ts" x="490" y="1086" text-anchor="middle">속도 크기는 사용하지 않음 — 펌웨어가 방향만 반영(상수 속도)</text>
 
-<path class="ar" d="M490,1106 L490,1136"/>
+<path class="ar" d="M490,1116 L490,1136"/>
 <rect class="bx" x="350" y="1136" width="280" height="36"/>
 <text class="tb" x="490" y="1159" text-anchor="middle">로봇 속도 명령</text>
 

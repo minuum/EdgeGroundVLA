@@ -431,6 +431,13 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
     </div>
     <div class="side fix">
       <div class="sh sh-f">✅ 대응책 — 무엇으로 채우는가</div>
+      <div class="warn" style="margin:0 0 8px"><strong style="color:#fbbf24">검증 상태</strong> —
+      <strong>코드 기본값은 <code>0.25</code></strong>이고 운영에서 <code>0.20</code>을
+      환경변수(<code>VLA_OWLV2_THRESH</code>)로 주입합니다. 7/23 세션 27건의
+      <code>runtime_config</code>에는 <code>owlv2_thresh = 0.25</code>로 기록돼 있습니다
+      (PG2-448 그라운더 시기). <strong>0.20은 실기 담당자 보고와 CH64 64-17 기준</strong>이며,
+      <strong style="color:#f87171">100건 테스트 세션 원본 H5가 현재 로컬에 없어 직접
+      확인하지 못했습니다</strong> → 논문 기재 전 재확인 필요.</div>
       <p><strong>운영값 <code>owlv2_thresh = 0.20</code></strong>. 값보다 <strong>결정 경위</strong>를
    같이 써야 방어됩니다.</p>
    <ul>
@@ -484,10 +491,34 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
       <div class="sh sh-f">✅ 대응책 — 무엇으로 채우는가</div>
       <p>미검출 시 <strong>skip 주기를 무시하고 즉시 재그라운딩</strong>합니다. 함께 걸린 규칙:</p>
    <ul>
-     <li><strong>회전 후 재그라운딩 강제</strong> — 시야가 바뀌었으면 낡은 bbox를 쓰지 않습니다</li>
-     <li><strong>회전 지속 0.4초 제한</strong> — 과회전으로 타겟이 시야를 벗어나는 것을 막습니다</li>
-     <li><strong>연속 회전 차단</strong> — 회전 → 재그라운딩 → 또 회전의 무한 루프를 끊습니다</li>
+     <li><strong>회전 직후 강제 재그라운딩</strong> (추론 서버, 상시) —
+         <code>just_rotated = self._last_pred_class in (6, 7)</code> 이면 <code>skip_n</code>과
+         무관하게 재검출합니다</li>
+     <li><strong>회전 지속 0.4초 제한</strong> — 과회전으로 타겟이 시야를 벗어나는 것을 막습니다
+         <br><span style="color:#fbbf24">⚠️ 위치 주의: 이 규칙은 <strong>추론 서버가 아니라
+         제어 계층</strong>에 있습니다 —
+         <code>VLAControlManager(move_duration=0.4)</code>
+         (<code>robovlm_nav/serve/vla_control_utils.py</code>).
+         제어 루프는 행동을 <strong>COAST 4.0초 동안 10Hz로 반복 발행</strong>하는데
+         <strong>회전만 예외로 <code>move_and_stop_ramped()</code>로 약 0.4초 돌고
+         자동정지</strong>합니다(이동·횡이동은 반복 발행 유지).
+         <br>이유(2026-07-30 주석): 예외가 없으면 그라운딩 ~2초 동안 같은 회전이 10Hz로
+         계속 재발행되어 <strong>논스톱 회전</strong>이 되고, weak_left 세션들에서
+         <strong>타겟이 화면 밖으로 밀려나는 원인</strong>으로 확인됐습니다.
+         <br>※ 추론 서버 안의 <code>0.4</code>는 무관하게 회전 <strong>방향</strong>을 정하는
+         cx 임계값(<code>cx &lt; 0.4 → ROT_L</code>)입니다 — 같은 숫자가 두 곳에 있어
+         혼동하기 쉽습니다.</span></li>
+     <li><strong>연속 회전 차단</strong> (추론 서버, 상시) —
+         <code>blocked_second_rotation = (pred in (6,7) and last_pred in (6,7))</code> 이면
+         회전을 실행하지 않고 <strong>정지 명령([0,0])으로 대체</strong>합니다.
+         "차단"보다 <strong>정지로 치환</strong>이 정확합니다</li>
    </ul>
+   <div class="warn" style="margin:8px 0"><strong style="color:#fbbf24">
+   <code>force_reground_on_miss</code>는 상시 규칙이 아닙니다</strong> —
+   <code>VLA_FORCE_REGROUND_ON_MISS</code> 기본값이 <strong>"0"(off)</strong>이고 코드 주석에
+   "A/B 테스트용, 기본 off"로 명시돼 있습니다. 7/23 세션 27건의
+   <code>runtime_config</code>에도 이 키가 없습니다 →
+   <strong>"항상 적용된다"고 쓰면 안 됩니다.</strong></div>
    <div class="ans" style="margin:8px 0"><strong style="color:#4ade80">이 절의 핵심 논지</strong> —
    이 규칙들이 존재하는 이유는 <strong>미검출을 학습으로 처리하지 못했기 때문</strong>입니다.
    학습 데이터의 <code>has_bbox=False</code>가 <strong>0/16,599 = 0.00%</strong>라
@@ -638,7 +669,13 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
      <li><strong>hold-aware 샘플링</strong>: <code>stride=5</code>로 결정 시점마다 1샘플,
          라벨은 <code>[t, t+5)</code> GT의 <strong>다수결</strong>.
          서빙의 zero-order hold(원문 10)와 학습을 일치시키는 설계입니다</li>
-     <li><strong>학습 대상</strong>: MLP 헤드 <strong>0.866M만</strong>, 나머지 전부 frozen</li>
+     <li><strong>학습 대상</strong>: MLP 헤드 <strong>0.866M만</strong>, 나머지 전부 frozen — 체크포인트 실측 <strong>865,928</strong> 파라미터로 교차 확인</li>
+     <li><strong>batch size 128</strong>, <strong>모델 선택은 25 epoch 간격 검증 중 최고 시점</strong>
+         (300 epoch 중 13개 후보)</li>
+   <div class="err" style="margin:8px 0"><strong style="color:#f87171">⚠️ 요구 원문 17번 자체의 오류</strong> —
+   원문은 <code>optimizer = Adam</code>이지만 코드는
+   <strong><code>AdamW</code>(weight_decay=1e-4)</strong>입니다.
+   <br>요구 원문 04번(bbox_scale)에 이어 <strong>원문 자체가 틀린 두 번째 항목</strong>입니다.</div>
    </ul>
    <div class="err" style="margin:8px 0"><strong style="color:#f87171">우리가 실제로 데인 적이 있습니다</strong>
    — 초기 DEPLOY 실험에서 <code>train_one(Xtr, ytr, Xtr, ytr, …)</code>로
@@ -755,9 +792,12 @@ Stage 2 (반복) — 액션 헤드만 학습
 
 [추론]    1560차원 flatten → MLPActionHead → 8클래스 로짓 → argmax
 
-[후처리]  콜드스타트 가드(3회) · 회전 0.4초 제한 · 연속 회전 차단
-          · 미검출 시 강제 재그라운딩 · STOP 판정
+[후처리]  콜드스타트 가드(3스텝) · 회전 직후 강제 재그라운딩(상시)
+          · 연속 회전 차단 → 정지 명령으로 대체 · STOP 판정
           → 로봇 속도 명령</pre>
+   <div class="err" style="margin:8px 0"><strong style="color:#f87171">정정</strong> —
+   "회전 0.4초 제한"은 존재하지 않는 규칙이고, "미검출 시 강제 재그라운딩"은
+   기본 비활성입니다(원문 11 참조).</div>
    <div class="warn" style="margin:8px 0"><strong style="color:#fbbf24">여기서 밝힐 것</strong> —
    로봇 펌웨어가 <strong>속도 크기를 무시하고 방향만 사용</strong>합니다(상수 속도 구조, soda 확인).
    <br>→ 이것이 <strong>이산 8클래스로 충분한 이유</strong>이자, 연속 액션 헤드의 이점이
