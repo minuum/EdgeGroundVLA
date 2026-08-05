@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="760" viewBox="0 0 1180 760"
+     font-family="Noto Sans CJK KR, Nanum Gothic, sans-serif">
+<rect width="1180" height="760" fill="#ffffff"/>
+<style>
+  .bx{fill:#ffffff;stroke:#334155;stroke-width:1.5;rx:6}
+  .full{fill:#ecfdf5;stroke:#16a34a;stroke-width:2}
+  .visonly{fill:#eff6ff;stroke:#1d4ed8;stroke-width:1.8}
+  .tb{font-size:14px;font-weight:700;fill:#0f172a}
+  .ts{font-size:11.5px;fill:#475569}
+  .tm{font-size:11px;font-family:monospace;fill:#1e40af}
+  .row{font-size:12.5px;font-weight:700}
+  .ar{stroke:#475569;stroke-width:1.6;fill:none;marker-end:url(#a)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+  <path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker></defs>
+
+<text x="20" y="28" class="tb" font-size="16">런타임 호출 주기 (grounding_skip_n=3, 실효 그라운딩 ≈1.3Hz)</text>
+
+<!-- 1회차 -->
+<text x="20" y="60" class="row" fill="#16a34a">호출 1 — 전체 그라운딩</text>
+<g transform="translate(20,70)">
+  <rect class="bx" x="0" y="0" width="120" height="50"/><text class="ts" x="60" y="22" text-anchor="middle">카메라 입력</text><text class="ts" x="60" y="38" text-anchor="middle">1280×720</text>
+  <path class="ar" d="M120,25 L155,25"/>
+  <rect class="bx full" x="160" y="0" width="220" height="50"/>
+  <text class="tb" x="270" y="20" text-anchor="middle" font-size="12.5">OWL-v2 + Kosmos-2 호출</text>
+  <text class="tm" x="270" y="38" text-anchor="middle" font-size="10.5">bbox 4ch + vision 256ch</text>
+  <path class="ar" d="M380,25 L415,25"/>
+  <rect class="bx" x="420" y="0" width="110" height="50"/><text class="ts" x="475" y="22" text-anchor="middle">class no</text><text class="tm" x="475" y="38" text-anchor="middle" font-size="10">argmax 0~7</text>
+  <path class="ar" d="M530,25 L565,25"/>
+  <rect class="bx" x="570" y="0" width="110" height="50"/><text class="ts" x="625" y="20" text-anchor="middle">x, y, z</text><text class="tm" x="625" y="36" text-anchor="middle" font-size="9.5">(lx, ly, az)</text>
+  <path class="ar" d="M680,25 L715,25"/>
+  <rect class="bx" x="720" y="0" width="130" height="50" fill="#fef3c7" stroke="#b45309"/><text class="tb" x="785" y="20" text-anchor="middle" font-size="12">CAN 통신</text><text class="tm" x="785" y="36" text-anchor="middle" font-size="9.5">can0 · 500kbps</text>
+  <path class="ar" d="M850,25 L885,25"/>
+  <rect class="bx" x="890" y="0" width="110" height="50"/><text class="ts" x="945" y="22" text-anchor="middle">MCU 보드</text><text class="ts" x="945" y="38" text-anchor="middle">바퀴 전달</text>
+</g>
+
+<!-- 2회차 -->
+<text x="20" y="165" class="row" fill="#1d4ed8">호출 2 — Kosmos-2만 (bbox 상속)</text>
+<g transform="translate(20,175)">
+  <rect class="bx" x="0" y="0" width="120" height="50"/><text class="ts" x="60" y="22" text-anchor="middle">카메라 입력</text><text class="ts" x="60" y="38" text-anchor="middle">1280×720</text>
+  <path class="ar" d="M120,25 L155,25"/>
+  <rect class="bx visonly" x="160" y="0" width="220" height="50"/>
+  <text class="tb" x="270" y="20" text-anchor="middle" font-size="12.5">Kosmos-2만 호출</text>
+  <text class="tm" x="270" y="38" text-anchor="middle" font-size="10.5">vision 256ch (bbox는 호출1 값 유지)</text>
+  <path class="ar" d="M380,25 L415,25"/>
+  <rect class="bx" x="420" y="0" width="110" height="50"/><text class="ts" x="475" y="22" text-anchor="middle">class no</text><text class="tm" x="475" y="38" text-anchor="middle" font-size="10">argmax 0~7</text>
+  <path class="ar" d="M530,25 L565,25"/>
+  <rect class="bx" x="570" y="0" width="110" height="50"/><text class="ts" x="625" y="20" text-anchor="middle">x, y, z</text><text class="tm" x="625" y="36" text-anchor="middle" font-size="9.5">(lx, ly, az)</text>
+  <path class="ar" d="M680,25 L715,25"/>
+  <rect class="bx" x="720" y="0" width="130" height="50" fill="#fef3c7" stroke="#b45309"/><text class="tb" x="785" y="20" text-anchor="middle" font-size="12">CAN 통신</text><text class="tm" x="785" y="36" text-anchor="middle" font-size="9.5">can0 · 500kbps</text>
+  <path class="ar" d="M850,25 L885,25"/>
+  <rect class="bx" x="890" y="0" width="110" height="50"/><text class="ts" x="945" y="22" text-anchor="middle">MCU 보드</text><text class="ts" x="945" y="38" text-anchor="middle">바퀴 전달</text>
+</g>
+
+<!-- 3회차 -->
+<text x="20" y="270" class="row" fill="#1d4ed8">호출 3 — Kosmos-2만 (bbox 상속)</text>
+<g transform="translate(20,280)">
+  <rect class="bx" x="0" y="0" width="120" height="50"/><text class="ts" x="60" y="22" text-anchor="middle">카메라 입력</text><text class="ts" x="60" y="38" text-anchor="middle">1280×720</text>
+  <path class="ar" d="M120,25 L155,25"/>
+  <rect class="bx visonly" x="160" y="0" width="220" height="50"/>
+  <text class="tb" x="270" y="20" text-anchor="middle" font-size="12.5">Kosmos-2만 호출</text>
+  <text class="tm" x="270" y="38" text-anchor="middle" font-size="10.5">vision 256ch (bbox는 호출1 값 유지)</text>
+  <path class="ar" d="M380,25 L415,25"/>
+  <rect class="bx" x="420" y="0" width="110" height="50"/><text class="ts" x="475" y="22" text-anchor="middle">class no</text><text class="tm" x="475" y="38" text-anchor="middle" font-size="10">argmax 0~7</text>
+  <path class="ar" d="M530,25 L565,25"/>
+  <rect class="bx" x="570" y="0" width="110" height="50"/><text class="ts" x="625" y="20" text-anchor="middle">x, y, z</text><text class="tm" x="625" y="36" text-anchor="middle" font-size="9.5">(lx, ly, az)</text>
+  <path class="ar" d="M680,25 L715,25"/>
+  <rect class="bx" x="720" y="0" width="130" height="50" fill="#fef3c7" stroke="#b45309"/><text class="tb" x="785" y="20" text-anchor="middle" font-size="12">CAN 통신</text><text class="tm" x="785" y="36" text-anchor="middle" font-size="9.5">can0 · 500kbps</text>
+  <path class="ar" d="M850,25 L885,25"/>
+  <rect class="bx" x="890" y="0" width="110" height="50"/><text class="ts" x="945" y="22" text-anchor="middle">MCU 보드</text><text class="ts" x="945" y="38" text-anchor="middle">바퀴 전달</text>
+</g>
+
+<path class="ar" d="M1000,300 C 1100,340 1100,410 1000,455" fill="none"/>
+<text x="1005" y="380" class="ts" fill="#64748b" font-size="11">반복</text>
+<text x="985" y="393" class="ts" fill="#64748b" font-size="11">(호출1로)</text>
+
+<!-- 회전 예외 -->
+<rect x="20" y="475" width="1000" height="70" fill="#fff7ed" stroke="#f59e0b" stroke-dasharray="4 3" rx="6"/>
+<text x="36" y="497" class="tb" font-size="12.5" fill="#b45309">예외 — 회전(ROT_L/ROT_R) 선택 시</text>
+<text x="36" y="516" class="ts" fill="#78350f">CAN 명령이 COAST 4.0s·10Hz 반복 발행 대신 <tspan font-family="monospace">move_and_stop_ramped(0.4s)</tspan>로 짧게 실행 후 자동정지 —</text>
+<text x="36" y="533" class="ts" fill="#78350f">동시에 skip_n 무시하고 다음 호출에서 강제로 호출1(전체 그라운딩)을 수행. 직전도 회전이면 정지로 대체.</text>
+
+<!-- 지연 -->
+<rect x="20" y="565" width="1000" height="60" fill="#f1f5f9" stroke="#94a3b8" rx="6"/>
+<text x="36" y="587" class="ts" fill="#334155">호출 1 지연 ≈ 1956ms (OWL-v2 1901.7ms가 97%) · 호출 2·3 지연은 Kosmos-2 비전만이라 훨씬 짧음</text>
+<text x="36" y="605" class="ts" fill="#334155">→ 3회 평균 실효 그라운딩 주기 ≈ 1.3Hz. bbox는 최대 2회(호출) 낡은 값을 사용</text>
+
+<rect x="20" y="640" width="1000" height="66" fill="#eff6ff" stroke="#1d4ed8" rx="6"/>
+<text x="36" y="662" class="ts" fill="#1e3a8a">참고 — 학습(hold-aware)은 결정 간격 5프레임·다수결 라벨로 이 운영 주기를 반영해 설계됨(5.2절)</text>
+<text x="36" y="680" class="ts" fill="#1e3a8a">단 학습 윈도우 표집(간격 5)과 서빙 히스토리(연속 6개)의 시간 폭 일치는 프레임 타임스탬프로</text>
+<text x="36" y="695" class="ts" fill="#1e3a8a">직접 검증하지 않음 — 검증 항목으로 남김</text>
+
+<text x="20" y="735" font-size="11" fill="#94a3b8">근거: robovlm_nav/serve/stage2_v2_inference_server.py(grounding_skip_n·just_rotated) ·
+robovlm_nav/serve/vla_control_utils.py(move_duration=0.4) · ROS_action/.../omni_controller(Psd/Ultrasonic dev="can0")</text>
+</svg>

@@ -173,6 +173,29 @@ flowchart TB
   <span style="color:#9ca3af">회색 점선</span> = 호출되지 않는 경로.
   텍스트 관련 상세는 <a href="#text-input">1-2절</a>.
 </p>
+
+<h3>런타임 파이프라인 — 위 모델 파이프라인과의 차이</h3>
+<p style="font-size:0.85rem;color:var(--dim);margin:0 0 8px">
+  위 다이어그램은 <strong class="h">한 번의 완전한 forward</strong>를 보여줍니다. 실제 운영에서는
+  <code>grounding_skip_n=3</code>이라 <strong class="h">3번의 호출 중 1번만</strong> 이 전체 경로를
+  타고, 나머지 2번은 OWL-v2를 건너뛰고 Kosmos-2 비전만 다시 계산합니다(bbox는 직전 값 유지).
+  그리고 클래스 번호 이후 <strong class="h">CAN 통신으로 바퀴에 전달</strong>되는 부분은
+  모델 파이프라인에 없던 하드웨어 경로입니다.
+</p>
+<p><img src="figures/runtime_pipeline.png" alt="런타임 파이프라인" style="max-width:100%;background:#fff;border-radius:6px"></p>
+
+<h3>하드웨어 연결 구조 — Jetson ↔ CAN ↔ MCU</h3>
+<p style="font-size:0.85rem;color:var(--dim);margin:0 0 8px">
+  Jetson Orin NX가 인지·정책을 전담하고, 산출된 3자유도 속도 명령을 CAN 버스(<code>can0</code>,
+  500kbps)로 바퀴 제어 MCU 보드에 전달합니다. 같은 버스에 PSD·초음파 센서도 물려 있으나
+  본 VLA 파이프라인의 행동 입력에는 쓰이지 않습니다.
+</p>
+<p><img src="figures/hardware_architecture.png" alt="하드웨어 구성" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p style="font-size:0.78rem;color:var(--dim)">근거:
+  <code>ROS_action/.../omni_controller/omni_drive_node.py</code>의
+  <code>Psd(dev="can0", bitrate=500000)</code> ·
+  <code>robovlm_nav/serve/vla_control_utils.py</code>의 <code>pop.driving.Driving()</code></p>
+
 <h3>프레임 특징 벡터 — 260차원</h3>
 <pre>FRAME_DIM = 4 + 256 = 260
   ├ bbox 4채널  : cx, cy, area, has_bbox   ← OWL-v2 출력 (area는 bbox_scale=3.0 배율 적용)
@@ -331,6 +354,26 @@ host RAM에 올린 뒤 <code>.vision_model</code>만 떼어 썼기 때문입니�
 경량화가 되지 않고, 검출 단계를 직접 손대야 합니다.</p>
 
 <h2>3. 학습 방식</h2>
+
+<h3>하이퍼파라미터 요약 <span style="font-weight:400;color:var(--dim);font-size:0.8rem">— 모델 구조·학습·서빙(런타임)으로 분리</span></h3>
+<p style="font-size:0.85rem;color:var(--dim);margin:0 0 8px">
+  <code>owlv2_thresh</code>와 <code>num_classes</code>처럼 값 자체가 핵심인 항목을
+  본문 산문에서 분리해 한 표로 모았습니다. 서빙 항목은 배포 시 환경변수로 바뀔 수 있어
+  학습 하이퍼파라미터와 구분합니다.
+</p>
+<table>
+<tr><th>구분</th><th>항목</th><th class="c">값</th><th>비고</th></tr>
+<tr><td>모델 구조</td><td><code>num_classes</code></td><td class="c"><strong>8</strong></td><td>STOP·FWD·LEFT·RIGHT·FWD+L·FWD+R·ROT_L·ROT_R</td></tr>
+<tr><td>모델 구조</td><td><code>window</code></td><td class="c">6 (간격 5)</td><td>hold-aware, 아래 참조</td></tr>
+<tr><td>모델 구조</td><td><code>bbox_scale</code></td><td class="c">3.0</td><td>bbox 4채널 전체 적용</td></tr>
+<tr><td>학습</td><td>optimizer</td><td class="c">AdamW</td><td>lr 5e-4, weight_decay 1e-4</td></tr>
+<tr><td>학습</td><td>batch / epochs</td><td class="c">128 / 300</td><td></td></tr>
+<tr><td>학습</td><td>분할 시드</td><td class="c">42</td><td>임의 고정값 — 전 실험 arm이 동일 val 집합 공유가 목적</td></tr>
+<tr style="background:rgba(56,189,248,0.1)"><td><strong>서빙</strong></td><td><code>owlv2_thresh</code></td><td class="c"><strong>코드 기본 0.25<br>운영 0.20</strong></td><td><code>VLA_OWLV2_THRESH</code>, 검증 상태는 4절</td></tr>
+<tr style="background:rgba(56,189,248,0.1)"><td>서빙</td><td><code>grounding_skip_n</code></td><td class="c">3</td><td>실효 ≈1.3Hz</td></tr>
+<tr style="background:rgba(56,189,248,0.1)"><td>서빙</td><td>콜드스타트 가드</td><td class="c">3스텝</td><td>window=6에서 파생</td></tr>
+<tr style="background:rgba(56,189,248,0.1)"><td>서빙</td><td>회전 자동정지</td><td class="c">0.4초</td><td>제어 계층(<code>vla_control_utils.py</code>)</td></tr>
+</table>
 
 <h3>학습되는 것 / 안 되는 것</h3>
 <table>
@@ -500,6 +543,18 @@ hold-aware로 해소되지 않습니다</strong>. 불균형 보정은 클래스 
 </table>
 
 <h2>5. 실기 결과와 핵심 발견</h2>
+
+<h3>그라운딩 성공률 — threshold 곡선</h3>
+<p><img src="figures/grounding_threshold_curve.png" alt="그라운딩 threshold 곡선" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p style="font-size:0.85rem;color:var(--muted)">사람 라벨 296프레임(목표 있음 217·없음 79) 기준.
+threshold 0.25에서 오탐률 0%, 정탐률 94.9%. 0.20으로 낮추면 정탐 97.2%지만 오탐 12.7%가 발생.</p>
+
+<h3>행동 헤드 — val 혼동행렬</h3>
+<p><img src="figures/confusion_matrix.png" alt="val 혼동행렬" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p style="font-size:0.85rem;color:var(--muted)">배포 헤드(hold-aware, OWL-v2, 3 seed), val 결정 시점 501개.
+val_acc 74.98%±0.52%p. <strong class="r">LEFT가 42%로 최저</strong>(33%가 FWD+L로 오분류) —
+CH66에서 확인한 좌우 비대칭이 혼동행렬에도 그대로 드러남.</p>
+
 <table>
 <tr><th>목표 위치</th><th class="c">성공률</th><th class="c">평균 스텝</th></tr>
 <tr><td>● 중앙</td><td class="c g">20/20 (100%)</td><td class="c">10.6</td></tr>
