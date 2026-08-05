@@ -339,7 +339,7 @@
     <div class="kpi"><div class="num" style="color:#60a5fa">98.8%</div><div class="lbl">그라운딩 되면 성공</div></div>
     <div class="kpi"><div class="num" style="color:#f87171">1902ms</div><div class="lbl">검출 지연 (병목 97%)</div></div>
     <div class="kpi"><div class="num" style="color:#fbbf24">225</div><div class="lbl">V6 에피소드</div></div>
-    <div class="kpi"><div class="num" style="color:#a78bfa">67</div><div class="lbl">챕터 수</div></div>
+    <div class="kpi"><div class="num" style="color:#a78bfa">68</div><div class="lbl">챕터 수</div></div>
   </div>
   <div style="margin-top:18px;font-size:0.8rem;color:#64748b;line-height:1.7">
     판정 기준은 <strong style="color:#cbd5e1">100건 실기 테스트(5위치 × 20회)</strong>입니다 —
@@ -355,6 +355,7 @@
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
+    <a href="#ch68" style="padding:7px 16px;background:#1a1033;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🗣 CH68 언어조건화 계획</a>
     <a href="#ch67" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🧭 CH67 차기 구성 검정</a>
     <a href="#ch66" style="padding:7px 16px;background:#2b1f05;border:1px solid #fbbf24;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fcd34d;text-decoration:none">⚖️ CH66 좌우 비대칭 원인</a>
     <a href="../plans/plan_20260801_specialized_detector.md" style="padding:7px 16px;background:#052e16;border:1px solid #15803d;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">📋 검출기 계획서</a>
@@ -455,7 +456,7 @@
 <div id="checkpoint" style="max-width:1200px;margin:0 auto;padding:48px 40px 32px">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
     <span style="background:#fbbf24;color:#0a0f1a;font-weight:900;font-size:0.8rem;padding:4px 12px;border-radius:20px">MAP</span>
-    <h2 style="font-size:1.6rem;font-weight:800">결론 체크포인트 지도 — CH1→CH67</h2>
+    <h2 style="font-size:1.6rem;font-weight:800">결론 체크포인트 지도 — CH1→CH66 (+Future CH67~68)</h2>
   </div>
   <p style="color:#64748b;font-size:0.85rem;margin-bottom:28px">각 단계에서 확정된 핵심 결론. 상세 내용은 챕터 링크로.</p>
 
@@ -16780,6 +16781,22 @@ graph TD
 
 <hr class="chapter-divider">
 
+<div style="max-width:1200px;margin:56px auto 0;padding:0 40px">
+  <div style="background:linear-gradient(90deg,rgba(240,171,252,0.15),rgba(167,139,250,0.08));border:1px solid #a78bfa;border-radius:14px;padding:22px 26px">
+    <div style="color:#c4b5fd;font-size:0.8rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">▼ 여기부터 FUTURE WORK</div>
+    <div style="color:#e2e8f0;font-size:1.15rem;font-weight:800;margin-bottom:10px">CH1~CH66 = 현재 논문 범위 &nbsp;·&nbsp; CH67~ = 향후 계획</div>
+    <div style="color:#94a3b8;font-size:0.86rem;line-height:1.9">
+      <strong style="color:#e2e8f0">현재 논문(CH1~CH66)</strong>이 다루는 것: E2E VLA 붕괴 진단 → 분해 파이프라인 →
+      실기 100건 89% → 병목이 인지임을 규명 → 좌우 비대칭 원인 추적.
+      <strong style="color:#e2e8f0">모두 측정으로 뒷받침된 완료 항목</strong>이다.
+      <br>
+      <strong style="color:#c4b5fd">향후 계획(CH67~)</strong>이 다루는 것: 차기 경량 구성 후보 검정(CH67),
+      언어 조건화 VLA 전환(CH68). <strong style="color:#fbbf24">진행 중·미검증 항목이 섞여 있으므로
+      논문 본문 주장으로 인용하지 않는다</strong> — 각 카드에 상태를 표시한다.
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════ CH67 ═ -->
 <div class="chapter" id="ch67">
   <div class="chapter-header">
@@ -17020,6 +17037,272 @@ graph TD
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH67 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH68 ═ -->
+<div class="chapter" id="ch68">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#a78bfa;color:#0a0f1a">CH 68</span>
+    <h2 class="chapter-title">언어 조건화 VLA 전환 계획 — "지시문에 따라 액션이 달라지는" 모델로</h2>
+    <p class="chapter-subtitle"><span style="color:#c4b5fd;font-weight:800">FUTURE WORK</span> · 현재 시스템은 언어가 <strong style="color:#e2e8f0">고정 상수</strong>라 엄밀히 VLA가 아니다(CH65, 모델 구조 1-2절). 교수님이 말씀하신 <strong style="color:#e2e8f0">"지시문에 따라 액션이 달라지는 VLA"</strong>로 가려면 무엇이 필요한지, 그리고 <strong style="color:#f87171">과거 시도가 왜 증명이 되지 못했는지</strong>를 정리한다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟣 <strong>3줄 요약</strong><br>
+    ① <strong style="color:#f87171">과거 지시문 조건화 실험은 라벨 누출이었다</strong> — 지시문을 <code>path_type</code>에서 합성해 <em>"curve to the left"</em>가 정답 클래스를 직접 지시했다. permutation drop 14.6%p는 언어 이해가 아니다.<br>
+    ② <strong>진짜 증명에는 "언어 없이는 풀 수 없는 과제"가 필요하다</strong> — 같은 장면·같은 초기 프레임에서 지시문만 바꿔 다른 타겟으로 가야 한다.<br>
+    ③ <strong style="color:#4ade80">가장 싼 경로는 이미 열려 있다</strong> — OWL-v2가 open-vocabulary라 <strong>지시문에서 타겟 명사만 파싱해 프롬프트로 넘기면</strong> 검출 대상이 바뀌고, cx가 바뀌고, 액션이 바뀐다.
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">🚫 68-1. 과거 시도의 재해석 — 성공처럼 보였지만 라벨 누출이었다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>scripts/train_step2_instr_head.py</code>로 이미 지시문 조건화를 실험한 이력이 있고,
+      <strong style="color:#e2e8f0">방법론은 훌륭했다</strong> — shuffled 대조군, permutation 검정,
+      counterfactual 검정을 모두 갖췄다. 결과도 긍정적으로 보였다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">조건</th><th style="padding:4px">PM (5 seeds)</th></tr>
+        <tr><td style="padding:4px">none (텍스트 없음)</td><td style="padding:4px;text-align:center">78.35% ± 1.67%</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>real (실제 지시문)</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>81.77% ± 1.01%</strong></td></tr>
+        <tr><td style="padding:4px">shuffled (무작위 교환)</td><td style="padding:4px;text-align:center">77.47% ± 1.68%</td></tr>
+        <tr style="border-top:1px solid #334155"><td style="padding:4px">permutation drop</td><td style="padding:4px;text-align:center;color:#fbbf24">80.4% → 65.8% (<strong>−14.6%p</strong>)</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">real &gt; none &gt; shuffled</strong>이고 permutation drop이 14.6%p —
+      표면적으로는 "모델이 지시문을 실제로 쓴다"는 강한 증거다.
+      <br><br>
+      <div style="background:rgba(248,113,113,0.12);border-left:3px solid #f87171;padding:12px 14px">
+        <strong style="color:#f87171">그런데 지시문이 어떻게 만들어졌는지를 보면 결론이 뒤집힌다</strong>
+        <pre style="background:#0b1220;border:1px solid #223;border-radius:6px;padding:10px 12px;margin:8px 0;font-size:0.78rem;line-height:1.7;color:#cbd5e1">INSTRUCTIONS = {
+  "center_left":  "the basket is ahead, <span style="color:#f87171">curve to the left side</span> to reach it",
+  "center_right": "the basket is ahead, <span style="color:#f87171">curve to the right side</span> to reach it",
+  "left_left":    "the basket is on your left, <span style="color:#f87171">curve left</span> to reach it",
+  ...  # 9개 path_type 각각에 대응</pre>
+        지시문이 <strong style="color:#e2e8f0"><code>path_type</code>에서 합성</strong>됐고,
+        <em>"curve to the left"</em>는 <strong style="color:#f87171">정답 클래스(LEFT 계열)를 자연어로
+        직접 지시</strong>한다. 즉 모델은 <strong style="color:#e2e8f0">언어를 이해한 것이 아니라
+        정답을 텍스트로 받은 것</strong>이다.
+        <br><br>
+        permutation drop 14.6%p는 <strong style="color:#e2e8f0">라벨을 섞으면 정확도가 떨어진다</strong>는
+        자명한 결과이므로 언어 이해의 증거가 될 수 없다.
+        <strong style="color:#f87171">이 실험은 언어 조건화를 증명하지 못했다.</strong>
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">counterfactual 결과도 사실 약했다</strong> — 같은 프레임에 left/right
+      지시문을 주었을 때:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">지시문</th><th style="padding:4px">→ 좌 클래스</th><th style="padding:4px">→ 우 클래스</th><th style="padding:4px">차이</th></tr>
+        <tr><td style="padding:4px">left 지시</td><td style="padding:4px;text-align:center">23.4%</td><td style="padding:4px;text-align:center">19.6%</td><td style="padding:4px;text-align:center;color:#fbbf24">+3.8%p</td></tr>
+        <tr><td style="padding:4px">right 지시</td><td style="padding:4px;text-align:center">18.4%</td><td style="padding:4px;text-align:center">20.3%</td><td style="padding:4px;text-align:center;color:#fbbf24">+1.9%p</td></tr>
+      </table>
+      예측이 바뀌는 비율은 20.3%인데, <strong style="color:#e2e8f0">바뀌는 방향이 지시문과 일치하는
+      정도는 3.8%p / 1.9%p로 미약</strong>하다. "지시문에 반응하지만 올바른 방향으로 반응하지는 않는다."
+      <br><br>
+      <span style="color:#64748b;font-size:0.8rem">
+        ※ 별개로 Kosmos-2 backbone 내부 언어 경로는 <strong style="color:#94a3b8">text attention
+        0.000%</strong>로 붕괴돼 있다(Exp17~41C, head-only에서도 재현). 위 실험은 그 경로를 우회해
+        OWL-v2 텍스트 인코더 임베딩을 헤드에 concat한 것이므로 두 사안은 층위가 다르다.
+      </span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">68-2. 무엇이 필요한가 — "언어 없이는 풀 수 없는 과제"</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      68-1의 교훈은 명확하다. <strong style="color:#e2e8f0">지시문이 정답과 상관되면 어떤 검정도
+      증명이 되지 못한다.</strong> 따라서 과제 자체를 바꿔야 한다.
+      <br><br>
+      <strong style="color:#f87171">현재 과제의 구조적 한계</strong>: 장면에 <strong style="color:#e2e8f0">
+      회색 바구니 하나</strong>뿐이다. 목표가 유일하면 지시문이 전달할 정보가 없다 — "바구니로 가"는
+      아무것도 추가하지 않는다. <strong style="color:#e2e8f0">그래서 지금 구조에서는 언어를 넣어도
+      파라미터만 늘어난다.</strong>
+      <br><br>
+      <strong style="color:#4ade80">필요 조건: 같은 장면 · 같은 초기 프레임 · 다른 지시문 → 다른 타겟</strong>
+      <div style="background:#0b1220;border:1px solid #223;border-radius:8px;padding:12px 14px;margin-top:8px;font-size:0.83rem;line-height:1.9;color:#cbd5e1">
+        장면: 왼쪽에 <strong style="color:#e2e8f0">의자</strong>, 오른쪽에 <strong style="color:#e2e8f0">바구니</strong><br>
+        지시문 A: "go to the chair"  → 좌회전 궤적<br>
+        지시문 B: "go to the basket" → 우회전 궤적<br>
+        <strong style="color:#4ade80">→ 초기 프레임이 픽셀 단위로 동일한데 정답 액션이 반대다.</strong>
+        비전만으로는 원리적으로 풀 수 없으므로, 성능이 나오면 그것이 곧 언어 기여다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">이 설계의 결정적 장점</strong> — 지시문이 <strong style="color:#e2e8f0">
+      타겟을 지정</strong>할 뿐 <strong style="color:#e2e8f0">액션을 지시하지 않는다.</strong>
+      68-1의 <em>"curve to the left"</em>와 달리 <em>"go to the chair"</em>는 좌/우를 말하지 않으므로
+      라벨 누출이 원천적으로 불가능하다. 좌회전해야 한다는 것은 <strong style="color:#e2e8f0">
+      의자가 왼쪽에 있다는 시각 정보와 결합해서만</strong> 도출된다.
+      <br><br>
+      <strong style="color:#e2e8f0">이미 보유한 자산</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">자산</th><th style="padding:4px">규모</th><th>용도</th></tr>
+        <tr><td style="padding:4px">V6 basket 데이터</td><td style="padding:4px;text-align:center">225 ep</td><td style="padding:4px">단일 타겟 baseline</td></tr>
+        <tr><td style="padding:4px">v5_2 chair 데이터</td><td style="padding:4px;text-align:center">59 ep</td><td style="padding:4px">2번째 객체 — 다만 chair가 <strong style="color:#fbbf24">장애물</strong>로 쓰인 것이라 타겟 궤적은 별도 확인 필요</td></tr>
+        <tr><td style="padding:4px">CH30 의자 검출 검증</td><td style="padding:4px;text-align:center">11장</td><td style="padding:4px"><code>detect chair</code> 91% 검출 · 색 수식어 제거가 유리</td></tr>
+        <tr><td style="padding:4px">OWL-v2 open-vocabulary</td><td style="padding:4px;text-align:center">—</td><td style="padding:4px;color:#4ade80"><strong>프롬프트만 바꾸면 임의 객체 검출</strong></td></tr>
+        <tr><td style="padding:4px">Florence-2 언어부</td><td style="padding:4px;text-align:center">140.2M</td><td style="padding:4px">CH67 67-2에서 비전부는 검증됨. 언어부는 미검정</td></tr>
+        <tr><td style="padding:4px">instr 조건화 코드</td><td style="padding:4px;text-align:center">—</td><td style="padding:4px"><code>train_step2_instr_head.py</code> — 검정 프로토콜 재사용 가능</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">🪜 68-3. 단계적 전환 계획 — L0에서 L3까지</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      각 단계는 <strong style="color:#e2e8f0">"언어가 실제로 기여했는가"를 판정할 수 있는 최소 실험</strong>
+      단위로 끊었다. 앞 단계가 통과하지 못하면 다음으로 가지 않는다.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:4px">단계</th><th style="text-align:left;padding:4px">내용</th><th style="padding:4px">데이터</th><th style="padding:4px">로봇</th><th style="text-align:left;padding:4px">통과 기준</th></tr>
+        <tr><td style="padding:4px;text-align:center"><strong>L0</strong></td><td style="padding:4px">현재 — 언어 무시(고정 상수)</td><td style="padding:4px;text-align:center">보유</td><td style="padding:4px;text-align:center">—</td><td style="padding:4px">baseline. 실기 89%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px;text-align:center"><strong>L1</strong></td><td style="padding:4px"><strong>지시문 → 검출 대상 변경</strong><br>지시문에서 타겟 명사를 파싱해 OWL-v2 프롬프트로 전달</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>불필요</strong></td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px">같은 프레임에 "chair"/"basket"을 주면 <strong style="color:#e2e8f0">cx가 다르게 나오는가</strong></td></tr>
+        <tr><td style="padding:4px;text-align:center"><strong>L2</strong></td><td style="padding:4px"><strong>다중 객체 데이터 수집</strong><br>의자·바구니 동시 배치, 지시문별로 다른 타겟 주행</td><td style="padding:4px;text-align:center;color:#f87171">신규 필요</td><td style="padding:4px;text-align:center">✅</td><td style="padding:4px">같은 초기 프레임에 서로 다른 정답 액션 쌍이 확보되는가</td></tr>
+        <tr><td style="padding:4px;text-align:center"><strong>L3</strong></td><td style="padding:4px"><strong>언어 조건화 헤드 학습·검정</strong></td><td style="padding:4px;text-align:center">L2 산출물</td><td style="padding:4px;text-align:center">❌(학습)</td><td style="padding:4px"><strong style="color:#e2e8f0">shuffled 대조군 대비 유의한 개선</strong> + counterfactual 방향 일치율</td></tr>
+        <tr><td style="padding:4px;text-align:center"><strong>L4</strong></td><td style="padding:4px">속성·관계 표현 ("왼쪽 바구니", "의자 옆 바구니")</td><td style="padding:4px;text-align:center">추가 필요</td><td style="padding:4px;text-align:center">✅</td><td style="padding:4px">장기 과제. L3 통과 후 판단</td></tr>
+      </table>
+      <br>
+      <div style="background:rgba(74,222,128,0.12);border-left:3px solid #4ade80;padding:12px 14px">
+        <strong style="color:#4ade80">L1이 핵심이다 — 지금 구조로 거의 공짜로 된다</strong><br>
+        OWL-v2는 <strong style="color:#e2e8f0">open-vocabulary 검출기</strong>다. 현재 프롬프트
+        <code>"gray basket"</code>이 코드에 고정돼 있을 뿐, <strong style="color:#e2e8f0">지시문에서
+        타겟 명사를 뽑아 넘기면 검출 대상이 바뀐다.</strong> 그러면 cx가 바뀌고 → 액션 헤드 입력이
+        바뀌고 → <strong style="color:#e2e8f0">액션이 달라진다.</strong>
+        <br><br>
+        즉 <strong style="color:#e2e8f0">"지시문에 따라 액션이 달라지는" 데모는 학습 없이도 만들 수
+        있다.</strong> CH30에서 <code>detect chair</code>가 91% 검출됨을 이미 확인했고, 코드 변경은
+        <code>phrase</code> 인자를 고정값에서 요청 파라미터로 바꾸는 수준이다
+        (<code>OwlV2Grounder.run(phrase=...)</code>은 이미 인자를 받는다).
+        <br><br>
+        <strong style="color:#fbbf24">단 한계를 정확히 말해야 한다</strong> — 이건
+        <strong style="color:#e2e8f0">언어가 "검출 대상"을 고르는 것</strong>이고,
+        <strong style="color:#e2e8f0">액션 정책 자체가 언어에 조건화된 것은 아니다.</strong>
+        액션 헤드는 여전히 cx·비전만 본다. 논문에서 "language-conditioned policy"라고 주장하려면
+        L3이 필요하다. L1은 <strong style="color:#e2e8f0">"language-directed target selection"</strong>
+        정도로 서술하는 것이 정확하다.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">L2 수집 설계 — counterfactual 쌍이 필수</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li>같은 배치·같은 시작 자세에서 <strong style="color:#e2e8f0">타겟만 바꿔 2회 주행</strong>
+          → 초기 프레임이 거의 동일한 쌍이 만들어진다</li>
+        <li>이 쌍이 있어야 <strong style="color:#e2e8f0">"비전은 같은데 액션이 다르다"</strong>를
+          데이터로 보일 수 있다. 없으면 L3 검정이 성립하지 않는다</li>
+        <li>좌/우 배치를 <strong style="color:#e2e8f0">교차</strong>시킨다(의자 좌·바구니 우 / 의자 우·바구니 좌)
+          — 안 그러면 "의자=왼쪽"을 외워버려 언어 없이도 풀린다</li>
+        <li>규모 추정: 2객체 × 2배치(좌우 교차) × 2지시문 × 15회 = <strong style="color:#e2e8f0">60 ep</strong>가
+          최소선. CH66의 교훈대로 <strong style="color:#e2e8f0">좌우 액션 클래스 균형</strong>을 수집 단계에서 관리</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">68-4. 검정 프로토콜 — 사전 고정 (라벨 누출 재발 방지)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      68-1의 실패를 반복하지 않으려면 <strong style="color:#e2e8f0">착수 전에 다음을 고정</strong>해야 한다.
+      <br><br>
+      <strong style="color:#f87171">① 지시문 작성 규칙 — 액션 어휘 금지</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">금지</th><th style="text-align:left;padding:4px">허용</th></tr>
+        <tr><td style="padding:4px;color:#f87171">"curve to the <strong>left</strong>"<br>"go <strong>straight</strong>"<br>"<strong>turn right</strong> to reach it"</td><td style="padding:4px;color:#4ade80">"go to the <strong>chair</strong>"<br>"reach the <strong>basket</strong>"<br>"move toward the <strong>gray basket</strong>"</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">지시문에 방향·동작 어휘가 들어가면 그 순간 라벨 누출이다.</strong>
+      타겟 명사만 허용한다. 검토 절차로 <strong style="color:#e2e8f0">지시문 어휘 목록을 사전에 확정</strong>하고
+      left/right/straight/turn/curve 계열을 자동 검사로 차단한다.
+      <br><br>
+      <strong style="color:#e2e8f0">② 필수 대조군 3종</strong>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li><strong style="color:#e2e8f0">no_text</strong> — 언어 입력 없음. 하한선</li>
+        <li><strong style="color:#e2e8f0">shuffled_text</strong> — 에피소드 간 지시문 무작위 교환.
+          <strong style="color:#fbbf24">real ≈ shuffled면 언어를 무시하는 것</strong></li>
+        <li><strong style="color:#e2e8f0">wrong_text</strong> — 장면에 없는 객체를 지시("go to the table").
+          모델이 <strong style="color:#e2e8f0">혼란을 보여야</strong> 정상이다. 성능이 유지되면 언어를 안 읽는 것</li>
+      </ul>
+      <br>
+      <strong style="color:#e2e8f0">③ 주 지표 — counterfactual 방향 일치율</strong><br>
+      같은 프레임에 타겟 A/B 지시문을 각각 주고, <strong style="color:#e2e8f0">예측 액션이 해당 타겟
+      방향으로 갈라지는 비율</strong>을 재다. 68-1에서는 이 값이 3.8%p / 1.9%p로 미약했다.
+      <strong style="color:#fbbf24">이 지표를 주 지표로 삼고, 전체 정확도는 부지표로 둔다</strong> —
+      정확도는 라벨 누출로 쉽게 올라가지만 방향 일치율은 그렇지 않다.
+      <br><br>
+      <strong style="color:#e2e8f0">④ 실기 판정</strong> — 최종 판정은
+      <strong style="color:#e2e8f0">100건 실기 프로토콜</strong>을 따른다(CH64 64-18 기준).
+      offline 지표는 사전 필터로만 쓴다. 이 세션에서 offline이 실기를 반복적으로 잘못 예측했다
+      (64-11 철회, 65-1 강우 반례).
+      <br>다중 객체 과제의 실기 프로토콜은 <strong style="color:#e2e8f0">"지시문별 성공률"</strong>과
+      <strong style="color:#e2e8f0">"엉뚱한 객체로 간 비율(오타겟률)"</strong>을 분리해 보고한다 —
+      후자가 언어 실패의 직접 지표다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#a78bfa">
+    <div class="finding-title" style="color:#c4b5fd">68-5. 아키텍처 후보와 미해결 질문</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">언어를 어디로 주입하는가</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">경로</th><th style="text-align:left;padding:4px">방식</th><th style="text-align:left;padding:4px">평가</th></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>A. 검출 프롬프트</strong><br>(L1)</td><td style="padding:4px">지시문 → 타겟 명사 → OWL-v2 프롬프트</td><td style="padding:4px;color:#4ade80">가장 싸고 즉시 가능. 단 정책 조건화는 아님</td></tr>
+        <tr><td style="padding:4px"><strong>B. 헤드 concat</strong><br>(L3)</td><td style="padding:4px">텍스트 임베딩(512d)을 260-dim 특징에 붙임</td><td style="padding:4px">68-1이 쓴 방식. 코드 존재. <strong style="color:#e2e8f0">과제만 바꾸면 재사용 가능</strong></td></tr>
+        <tr><td style="padding:4px">C. cross-attention</td><td style="padding:4px">텍스트 토큰에 헤드가 attend</td><td style="padding:4px">표현력은 높지만 파라미터·데이터 요구 증가. 225ep 규모에서 위험</td></tr>
+        <tr><td style="padding:4px">D. VLM 내부 언어 경로</td><td style="padding:4px">Kosmos-2/Florence-2 언어부를 그대로 사용</td><td style="padding:4px;color:#f87171">Kosmos-2는 text attention 0%로 불가. Florence-2 언어부(140.2M)는 <strong>미검정</strong></td></tr>
+      </table>
+      <strong style="color:#4ade80">권고: A로 데모를 만들고, B로 정책 조건화를 검정한다.</strong>
+      C는 데이터 규모가 확보된 뒤(CH67 67-3 ②와 같은 조건) 검토한다.
+      <br><br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">미해결 질문 4개 — 답이 없으면 진행 순서가 흔들린다</strong>
+        <ol style="margin:6px 0 0 18px;padding:0">
+          <li><strong style="color:#e2e8f0">Florence-2 언어부가 쓸 만한가?</strong> 비전부는 CH67에서
+            검증됐지만(cx MAE 0.0015, 파라미터 3.4배↓) <strong style="color:#e2e8f0">언어부 140.2M은
+            측정하지 않았다.</strong> 텍스트 임베딩 품질을 먼저 재야 B의 백본을 정할 수 있다</li>
+          <li><strong style="color:#e2e8f0">새 객체에 액션 헤드가 전이되는가?</strong> 헤드는 비전 피처
+            256-dim에 의존하고, 그 피처는 장면 외형을 담는다. 의자로 바꾸면 재학습이 필요할 가능성이
+            높다 — <strong style="color:#e2e8f0">L2 수집 규모를 정하려면 이 답이 필요</strong></li>
+          <li><strong style="color:#e2e8f0">단일 객체 성능을 잃지 않는가?</strong> 다중 객체로 확장하면
+            현재 89%가 떨어질 수 있다. 다중 과제 학습의 간섭을 측정해야 한다</li>
+          <li><strong style="color:#e2e8f0">has_bbox 문제가 악화되는가?</strong> 지시문이 장면에 없는
+            객체를 지시하면 미검출이 정상 동작이다. 그런데 CH65 65-6에서 확인했듯 모델은
+            <strong style="color:#e2e8f0">미검출 상황을 학습한 적이 없다</strong>(negative 0건).
+            <strong style="color:#f87171">언어 조건화는 이 문제를 필연적으로 키운다</strong> —
+            "없는 것을 찾으라"는 요청이 정상 입력이 되기 때문이다</li>
+        </ol>
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">CH67과의 관계</strong> — 67-3 ③에서 "언어를 넣어서 무엇이
+      좋아지는가를 먼저 정량화해야 한다"고 적었다. <strong style="color:#e2e8f0">CH68이 그 답</strong>이며,
+      결론은 <strong style="color:#e2e8f0">"현재 과제로는 정량화 불가. 다중 객체 과제로 바꿔야
+      언어의 기여를 측정할 수 있다"</strong>이다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">68-6. 정리 — Future Work 우선순위</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="padding:4px">순위</th><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">로봇</th><th style="padding:4px">비용</th><th style="text-align:left;padding:4px">얻는 것</th></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px;text-align:center"><strong>1</strong></td><td style="padding:4px"><strong>L1 — 지시문 → 검출 프롬프트</strong></td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;text-align:center;color:#4ade80">매우 낮음</td><td style="padding:4px">"지시문에 따라 액션이 달라지는" <strong>데모</strong>. 코드 1곳 수정</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px;text-align:center"><strong>2</strong></td><td style="padding:4px">Florence-2 <strong>언어부</strong> 검정</td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;text-align:center;color:#4ade80">낮음</td><td style="padding:4px">B 경로의 백본 결정. 68-5 질문 ①</td></tr>
+        <tr><td style="padding:4px;text-align:center">3</td><td style="padding:4px">객체 전이 실험 (기존 chair 59ep 활용)</td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;text-align:center">낮음</td><td style="padding:4px">L2 수집 규모 산정. 68-5 질문 ②</td></tr>
+        <tr><td style="padding:4px;text-align:center">4</td><td style="padding:4px"><strong>L2 — 다중 객체 counterfactual 수집 (~60ep)</strong></td><td style="padding:4px;text-align:center;color:#f87171">✅</td><td style="padding:4px;text-align:center;color:#fbbf24">중간</td><td style="padding:4px">L3의 전제. 좌우 교차 배치 필수</td></tr>
+        <tr><td style="padding:4px;text-align:center">5</td><td style="padding:4px">L3 — 언어 조건화 헤드 학습·검정</td><td style="padding:4px;text-align:center">❌(학습)</td><td style="padding:4px;text-align:center">중간</td><td style="padding:4px"><strong style="color:#e2e8f0">"language-conditioned policy" 주장의 근거</strong></td></tr>
+        <tr><td style="padding:4px;text-align:center">6</td><td style="padding:4px">L3 실기 100건 검정</td><td style="padding:4px;text-align:center;color:#f87171">✅</td><td style="padding:4px;text-align:center;color:#f87171">높음</td><td style="padding:4px">최종 판정. 지시문별 성공률 + 오타겟률</td></tr>
+      </table>
+      <br>
+      <strong style="color:#4ade80">1~3번은 로봇 없이 가능하고 비용이 낮다.</strong> 특히 1번은
+      <strong style="color:#e2e8f0">코드 한 곳 수정으로 "지시문에 따라 액션이 달라지는" 실물 데모</strong>가
+      나오므로, 방향 확인용으로 가장 먼저 하는 것이 좋다. 다만 <strong style="color:#fbbf24">그것을
+      "language-conditioned policy"로 부르지 않도록</strong> 68-3의 용어 구분을 지킨다.
+      <br><br>
+      <div style="background:rgba(167,139,250,0.1);border-left:3px solid #a78bfa;padding:11px 14px">
+        <strong style="color:#c4b5fd">이 챕터의 성격</strong> — 전부 <strong style="color:#e2e8f0">
+        미실행 계획</strong>이다. 68-1의 과거 실험 재해석만 완료된 분석이며, 나머지는 설계다.
+        <strong style="color:#fbbf24">논문 본문 주장으로 인용하지 않는다.</strong>
+        검정 프로토콜(68-4)을 착수 전에 고정한 것은 68-1에서 라벨 누출로 헛된 결론을 낸 이력과,
+        이번 세션에서 사후 해석으로 두 번 정정한 이력(64-11, 64-19) 때문이다.
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH68 ═ -->
+
 
 
 
