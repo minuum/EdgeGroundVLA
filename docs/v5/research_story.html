@@ -17009,6 +17009,102 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">67-5. 비전 백본 스윕 — "얼마나 작아져도 좌표가 유지되는가"</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      67-2에서 Florence-2 비전(90.4M)이 Kosmos-2 비전(303.2M)보다 나쁘지 않았다. 그러면 다음 질문은
+      <strong style="color:#e2e8f0">"어디까지 줄일 수 있는가"</strong>다. 경량화가 논문 방향이므로
+      이 곡선 자체가 근거가 된다.
+      <br><br>
+      <strong style="color:#fbbf24">먼저 방법론 정정</strong> — 65-5(Kosmos-2)와 67-2(Florence-2)는
+      각각 <strong style="color:#e2e8f0">단일 seed</strong>였다. 0.0015 vs 0.0020 같은 작은 차이를
+      순위로 주장하려면 seed 변동을 알아야 한다. 그래서 이 스윕은
+      <strong style="color:#e2e8f0">기존 두 결과까지 포함해 6개 백본 전부를 3 seed로 다시 측정</strong>했다
+      (캐시된 피처 재사용, 헤드만 재학습).
+      <br><br>
+      <strong style="color:#e2e8f0">apples-to-apples — 백본만 바뀐다</strong>: V6 pg448 라벨(LIVE &amp;
+      detected, n=5,752 / val 843) · seed42 에피소드 단위 분할 · PatchHead 동일 구조
+      (Conv1×1→Conv3×3→heat 1ch→soft-argmax) · AdamW 1e-3 · 60 epoch · L1(cx)+L1(cy)+2·L1(area)
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">백본</th><th style="padding:4px">비전(M)</th><th style="padding:4px">grid</th><th style="padding:4px">dim</th><th style="padding:4px">입력</th><th style="padding:4px">cx MAE (3 seed)</th><th style="padding:4px">area MAE</th><th style="padding:4px">지연</th><th style="padding:4px">pred cx max</th></tr>
+        <tr style="background:rgba(74,222,128,0.14)"><td style="padding:4px"><strong>MobileNetV3-S</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.93</strong></td><td style="padding:4px;text-align:center">14</td><td style="padding:4px;text-align:center">576</td><td style="padding:4px;text-align:center">448</td><td style="padding:4px;text-align:center"><strong>0.0021±0.0000</strong></td><td style="padding:4px;text-align:center">0.0026</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>7.0ms</strong></td><td style="padding:4px;text-align:center">0.861</td></tr>
+        <tr><td style="padding:4px">EfficientNet-B0</td><td style="padding:4px;text-align:center">4.01</td><td style="padding:4px;text-align:center">14</td><td style="padding:4px;text-align:center">1280</td><td style="padding:4px;text-align:center">448</td><td style="padding:4px;text-align:center">0.0023±0.0001</td><td style="padding:4px;text-align:center">0.0028</td><td style="padding:4px;text-align:center">8.3ms</td><td style="padding:4px;text-align:center">0.865</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>Florence-2 DaViT</strong></td><td style="padding:4px;text-align:center">90.4</td><td style="padding:4px;text-align:center">24</td><td style="padding:4px;text-align:center">1024</td><td style="padding:4px;text-align:center">768</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.0017±0.0002</strong></td><td style="padding:4px;text-align:center">0.0025</td><td style="padding:4px;text-align:center">59.6ms</td><td style="padding:4px;text-align:center">0.861</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px">CLIP ViT-L/14</td><td style="padding:4px;text-align:center">303.2</td><td style="padding:4px;text-align:center">16</td><td style="padding:4px;text-align:center">1024</td><td style="padding:4px;text-align:center">224</td><td style="padding:4px;text-align:center;color:#f87171"><strong>0.0045±0.0001</strong></td><td style="padding:4px;text-align:center;color:#f87171">0.0042</td><td style="padding:4px;text-align:center">52.9ms</td><td style="padding:4px;text-align:center">0.861</td></tr>
+        <tr><td style="padding:4px">Kosmos-2 (현재 배포)</td><td style="padding:4px;text-align:center">303.2</td><td style="padding:4px;text-align:center">16</td><td style="padding:4px;text-align:center">1024</td><td style="padding:4px;text-align:center">224</td><td style="padding:4px;text-align:center">0.0019±0.0000</td><td style="padding:4px;text-align:center">0.0031</td><td style="padding:4px;text-align:center">53.7ms</td><td style="padding:4px;text-align:center">0.861</td></tr>
+        <tr><td style="padding:4px">SigLIP-so400m</td><td style="padding:4px;text-align:center">428.2</td><td style="padding:4px;text-align:center">27</td><td style="padding:4px;text-align:center">1152</td><td style="padding:4px;text-align:center">384</td><td style="padding:4px;text-align:center">0.0022±0.0001</td><td style="padding:4px;text-align:center">0.0039</td><td style="padding:4px;text-align:center">82.4ms</td><td style="padding:4px;text-align:center">0.866</td></tr>
+      </table>
+      <span style="font-size:0.78rem;color:#64748b">헤드 파라미터 0.222~0.312M (입력 dim에만 의존).
+      pred cx max는 <strong>라벨 val 최대값 0.8612</strong>를 추종해야 정상 — 6개 전부 추종했다
+      (CH59 Florence-2 OVD가 0.559에서 막혔던 실패 모드는 재현되지 않음).
+      지연은 비전 forward만, 720×1280 1장, 로컬 GPU 기준 — 젯슨 실측 아님.</span>
+      <br><br>
+      <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
+        <strong style="color:#4ade80">① 가장 큰 결과 — 0.93M로도 동등하다</strong><br>
+        <strong style="color:#e2e8f0">MobileNetV3-Small 0.93M</strong>이 cx MAE
+        <strong style="color:#e2e8f0">0.0021</strong>로 Kosmos-2 0.0019와 사실상 같다
+        (사전 고정 기준 ⑤: 최대 백본 mean+1std = 0.0024 이내 → 동등).
+        파라미터는 <strong style="color:#4ade80">326배 작고</strong> 비전 지연은
+        <strong style="color:#4ade80">53.7 → 7.0ms (7.7배↓)</strong>다.
+        <br>ImageNet 분류 사전학습만 받은 CNN인데 좌표 회귀에서 밀리지 않는다.
+      </div>
+      <br>
+      <div style="background:rgba(248,113,113,0.1);border-left:3px solid #f87171;padding:11px 14px">
+        <strong style="color:#f87171">② 파라미터가 성능을 예측하지 못한다 — CLIP-L 반례</strong><br>
+        <strong style="color:#e2e8f0">CLIP ViT-L/14는 Kosmos-2와 완전히 같은 303.2M·16×16·1024dim</strong>인데
+        cx MAE가 <strong style="color:#f87171">0.0045로 2.4배 나쁘다</strong> — 6개 중 유일한 '열등'.
+        게다가 가장 큰 SigLIP-so400m(428.2M)도 0.0022로 0.93M MobileNet과 같은 급이다.
+        <br>→ 즉 <strong style="color:#e2e8f0">"클수록 좌표가 정확하다"는 관계가 없다</strong>.
+        Kosmos-2·Florence-2가 잘하는 이유는 크기가 아니라
+        <strong style="color:#e2e8f0">그라운딩(위치 지정) 사전학습을 받았다는 점</strong>으로 설명되고,
+        CLIP은 이미지 전체를 한 벡터로 맞추는 대조학습만 받아 패치의 위치 정보가 상대적으로 약하다.
+        <span style="color:#fbbf24">단 이건 관측에 대한 해석이며, 사전학습 목적을 통제한 실험으로
+        분리한 것은 아니다.</span>
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">좌/우 · 거리 구간별</strong> — 전체 평균이 구조적 편향을 가리므로 필수 보고:
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:6px">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">백본</th><th style="padding:4px">좌 (cx&lt;.5)</th><th style="padding:4px">우 (cx≥.5)</th><th style="padding:4px">far &lt;0.05</th><th style="padding:4px">mid 0.05~0.09</th><th style="padding:4px">near ≥0.09</th></tr>
+        <tr><td style="padding:4px">MobileNetV3-S</td><td style="padding:4px;text-align:center">0.0019</td><td style="padding:4px;text-align:center">0.0023</td><td style="padding:4px;text-align:center">0.0017</td><td style="padding:4px;text-align:center">0.0018</td><td style="padding:4px;text-align:center">0.0028</td></tr>
+        <tr><td style="padding:4px">EfficientNet-B0</td><td style="padding:4px;text-align:center">0.0021</td><td style="padding:4px;text-align:center">0.0025</td><td style="padding:4px;text-align:center">0.0017</td><td style="padding:4px;text-align:center">0.0016</td><td style="padding:4px;text-align:center">0.0032</td></tr>
+        <tr><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">0.0015</td><td style="padding:4px;text-align:center">0.0018</td><td style="padding:4px;text-align:center">0.0013</td><td style="padding:4px;text-align:center">0.0013</td><td style="padding:4px;text-align:center">0.0022</td></tr>
+        <tr style="background:rgba(248,113,113,0.1)"><td style="padding:4px">CLIP ViT-L/14</td><td style="padding:4px;text-align:center">0.0041</td><td style="padding:4px;text-align:center">0.0049</td><td style="padding:4px;text-align:center">0.0042</td><td style="padding:4px;text-align:center">0.0028</td><td style="padding:4px;text-align:center">0.0057</td></tr>
+        <tr><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">0.0018</td><td style="padding:4px;text-align:center">0.0019</td><td style="padding:4px;text-align:center">0.0016</td><td style="padding:4px;text-align:center">0.0016</td><td style="padding:4px;text-align:center">0.0022</td></tr>
+        <tr><td style="padding:4px">SigLIP-so400m</td><td style="padding:4px;text-align:center">0.0022</td><td style="padding:4px;text-align:center">0.0023</td><td style="padding:4px;text-align:center">0.0020</td><td style="padding:4px;text-align:center">0.0019</td><td style="padding:4px;text-align:center">0.0027</td></tr>
+      </table>
+      <br>
+      <strong style="color:#fbbf24">③ 좌우 비대칭은 백본 문제가 아니다 — CH66과 맞물리는 부분</strong><br>
+      6개 전부 <strong style="color:#e2e8f0">우측 cx MAE가 좌측보다 근소하게 크다</strong>
+      (Kosmos-2 0.0018/0.0019 ~ EffB0 0.0021/0.0025). 차이가 작고
+      <strong style="color:#e2e8f0">백본을 바꿔도 방향이 유지</strong>되므로, 이건 백본 특성이 아니라
+      <strong style="color:#e2e8f0">라벨 분포(우측 표본이 near 구간에 더 많음)</strong> 쪽 설명이 자연스럽다.
+      CH65 65-7에서 측정한 <strong style="color:#e2e8f0">그라운더의 좌측 이점(+0.0118)</strong>과도
+      부호가 반대다 → 두 현상은 별개다.
+      <br>→ CH66의 결론(원인은 <strong style="color:#e2e8f0">액션 헤드의 고정 우측 선호</strong>)을
+      백본 교체로는 건드릴 수 없다는 뜻이고, 실제로 65-9의 미러 증강이 그 지점을 고쳤다.
+      <br><br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">⚠️ 이 실험이 말하지 않는 것 — 가장 중요</strong><br>
+        cx MAE는 <strong style="color:#e2e8f0">탐지에 성공한 프레임에서의 좌표 정확도</strong>다.
+        <strong style="color:#e2e8f0">has_bbox 판정(객체 부재/미검출 인지)은 라벨이 없어 평가하지 못했다</strong>
+        (CH65 65-6, 학습 데이터의 has_bbox=False가 0/16,599).
+        <br>그런데 CH64 64-18에서 실기 성패를 가른 변수는 좌표 정확도가 아니라
+        <strong style="color:#e2e8f0">그라운딩 가용성</strong>이었다 (gnd%≥80 → 98.8% vs &lt;80 → 51.2%).
+        <br>→ 따라서 주장할 수 있는 것은 <strong style="color:#e2e8f0">"좌표 회귀에서는 0.93M로도
+        동등하다"</strong>까지이며, <strong style="color:#f87171">"MobileNet으로 교체 가능"은 아니다</strong>.
+        negative 프레임 확보 후 has_bbox까지 평가해야 교체 판단이 가능하다.
+      </div>
+      <br>
+      <strong style="color:#4ade80">경량화 논문에 주는 함의</strong> — "큰 VLM을 줄였다"가 아니라
+      <strong style="color:#e2e8f0">"이 과제에서 좌표 회귀는 애초에 큰 백본을 요구하지 않는다"</strong>가
+      더 정확한 프레이밍이다. 그리고 남은 병목이 좌표가 아니라 <strong style="color:#e2e8f0">검출
+      가용성</strong>이라는 점이 CH64·CH65와 일관된다.
+      <br><span style="font-size:0.8rem;color:#64748b">스크립트 <code>scripts/detector_backbone_sweep.py</code>
+      · 결과 <code>docs/v5/detector/backbone_sweep.json</code></span>
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">67-4. 진행 순서 — 엣지 목표에 가장 빠른 경로</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
@@ -17030,7 +17126,7 @@ graph TD
       <div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:11px 14px">
         <strong style="color:#38bdf8">이 챕터의 성격</strong> — 결론 챕터가 아니라
         <strong style="color:#e2e8f0">"무엇을 확인해야 하는지"를 고정하는 챕터</strong>다.
-        67-2는 진행 중이며 결과가 나오면 채운다. 판정 기준을 미리 적어둔 것은
+        67-2·67-5는 완료됐고(결과 반영), 67-1의 나머지 항목은 미검정이다. 판정 기준을 미리 적어둔 것은
         이번 세션에서 사후 해석으로 두 번 틀린 이력(64-11 철회, 64-19 2회 정정) 때문이다.
       </div>
     </div>
@@ -17278,7 +17374,7 @@ graph TD
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
         <tr style="border-bottom:1px solid #334155"><th style="padding:4px">순위</th><th style="text-align:left;padding:4px">항목</th><th style="padding:4px">로봇</th><th style="padding:4px">비용</th><th style="text-align:left;padding:4px">얻는 것</th></tr>
-        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px;text-align:center"><strong>1</strong></td><td style="padding:4px"><strong>L1 — 지시문 → 검출 프롬프트</strong></td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;text-align:center;color:#4ade80">매우 낮음</td><td style="padding:4px">"지시문에 따라 액션이 달라지는" <strong>데모</strong>. 코드 1곳 수정</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px;text-align:center"><strong>1</strong></td><td style="padding:4px"><strong>L1 — 지시문 → 검출 프롬프트</strong></td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;text-align:center;color:#4ade80">매우 낮음</td><td style="padding:4px">"지시문에 따라 타겟이 달라지는" <strong>데모</strong>. <strong style="color:#4ade80">코드 수정 불필요 — 이미 구현되어 있음</strong></td></tr>
         <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px;text-align:center"><strong>2</strong></td><td style="padding:4px">Florence-2 <strong>언어부</strong> 검정</td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;text-align:center;color:#4ade80">낮음</td><td style="padding:4px">B 경로의 백본 결정. 68-5 질문 ①</td></tr>
         <tr><td style="padding:4px;text-align:center">3</td><td style="padding:4px">객체 전이 실험 (기존 chair 59ep 활용)</td><td style="padding:4px;text-align:center">❌</td><td style="padding:4px;text-align:center">낮음</td><td style="padding:4px">L2 수집 규모 산정. 68-5 질문 ②</td></tr>
         <tr><td style="padding:4px;text-align:center">4</td><td style="padding:4px"><strong>L2 — 다중 객체 counterfactual 수집 (~60ep)</strong></td><td style="padding:4px;text-align:center;color:#f87171">✅</td><td style="padding:4px;text-align:center;color:#fbbf24">중간</td><td style="padding:4px">L3의 전제. 좌우 교차 배치 필수</td></tr>
@@ -17286,18 +17382,98 @@ graph TD
         <tr><td style="padding:4px;text-align:center">6</td><td style="padding:4px">L3 실기 100건 검정</td><td style="padding:4px;text-align:center;color:#f87171">✅</td><td style="padding:4px;text-align:center;color:#f87171">높음</td><td style="padding:4px">최종 판정. 지시문별 성공률 + 오타겟률</td></tr>
       </table>
       <br>
-      <strong style="color:#4ade80">1~3번은 로봇 없이 가능하고 비용이 낮다.</strong> 특히 1번은
-      <strong style="color:#e2e8f0">코드 한 곳 수정으로 "지시문에 따라 액션이 달라지는" 실물 데모</strong>가
-      나오므로, 방향 확인용으로 가장 먼저 하는 것이 좋다. 다만 <strong style="color:#fbbf24">그것을
-      "language-conditioned policy"로 부르지 않도록</strong> 68-3의 용어 구분을 지킨다.
+      <strong style="color:#4ade80">1~3번은 로봇 없이 가능하고 비용이 낮다.</strong>
+      <br><br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">⚠️ 정정 (2026-08-05)</strong> — 처음 이 표를 쓸 때 L1을
+        "코드 한 곳 수정"이라고 적었는데, 서버 코드를 확인하니 <strong style="color:#e2e8f0">이미
+        구현되어 있다</strong>:
+        <div style="font-family:monospace;font-size:0.78rem;background:#0d1117;padding:9px 11px;
+                    border-radius:5px;margin:8px 0;color:#9fb3c8">
+          stage2_v2_inference_server.py:1033<br>
+          &nbsp;&nbsp;phrase = "gray basket" if instruction == "basket" else instruction<br>
+          → :1128&nbsp; self.grounder.run(image_rgb, phrase=phrase)
+        </div>
+        요청의 <code style="color:#7dd3fc">instruction</code> 필드가 그대로 OWL-v2 텍스트 쿼리로
+        전달된다. 즉 L1은 <strong style="color:#e2e8f0">"구현할 것"이 아니라 "측정한 적이 없는
+        것"</strong>이다 → 68-7에서 측정했다. 다만 <strong style="color:#fbbf24">이것을
+        "language-conditioned policy"로 부르지 않도록</strong> 68-3의 용어 구분을 지킨다.
+      </div>
       <br><br>
       <div style="background:rgba(167,139,250,0.1);border-left:3px solid #a78bfa;padding:11px 14px">
-        <strong style="color:#c4b5fd">이 챕터의 성격</strong> — 전부 <strong style="color:#e2e8f0">
-        미실행 계획</strong>이다. 68-1의 과거 실험 재해석만 완료된 분석이며, 나머지는 설계다.
+        <strong style="color:#c4b5fd">이 챕터의 성격</strong> — <strong style="color:#e2e8f0">68-1
+        (과거 실험 재해석)과 68-7(L1 실측)은 완료된 측정</strong>이고, 나머지(68-2~68-6)는
+        <strong style="color:#e2e8f0">미실행 계획</strong>이다.
         <strong style="color:#fbbf24">논문 본문 주장으로 인용하지 않는다.</strong>
         검정 프로토콜(68-4)을 착수 전에 고정한 것은 68-1에서 라벨 누출로 헛된 결론을 낸 이력과,
         이번 세션에서 사후 해석으로 두 번 정정한 이력(64-11, 64-19) 때문이다.
       </div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">68-7. L1 실측 — 같은 프레임, 지시문만 바꾸면 타겟이 바뀌는가 ✅</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      68-3의 L1을 <strong style="color:#e2e8f0">실제로 측정했다</strong>. 68-6 정정에서 밝힌 대로
+      L1은 이미 구현되어 있으므로, 남은 건 구현이 아니라 측정이었다.
+      <br><br>
+      <strong style="color:#e2e8f0">설계</strong> — V6 val 프레임 200장에 대해
+      <strong style="color:#e2e8f0">이미지는 완전히 동일하게 두고 OWL-v2의 텍스트 쿼리만 교체</strong>한다
+      (thresh 0.25, 서빙 필터 미적용 — 목적이 서빙 재현이 아니라 "텍스트가 타겟을 바꾸는가"이므로
+      최고점 박스를 그대로 본다). 핵심 지표는 사전에
+      <strong style="color:#e2e8f0">조향 부호 반전율</strong>(sign(cx−0.5)가 지시문에 따라 뒤집히는 비율)로
+      고정했다 — 방향이 실제로 갈리는지가 최소 조건이기 때문이다.
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">지시문(phrase)</th><th style="padding:4px">검출률</th><th style="padding:4px">cx 평균</th><th style="padding:4px">score 중앙</th><th style="padding:4px">공통n</th><th style="padding:4px">|Δcx| 평균</th><th style="padding:4px">조향부호 반전율</th></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>"gray basket"</strong> (배포값)</td><td style="padding:4px;text-align:center"><strong>91.0%</strong></td><td style="padding:4px;text-align:center">0.484</td><td style="padding:4px;text-align:center">0.601</td><td style="padding:4px;text-align:center">—</td><td style="padding:4px;text-align:center">—</td><td style="padding:4px;text-align:center">기준</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>"chair"</strong></td><td style="padding:4px;text-align:center">35.5%</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>0.089</strong></td><td style="padding:4px;text-align:center">0.536</td><td style="padding:4px;text-align:center">69</td><td style="padding:4px;text-align:center"><strong>0.407</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>55.1%</strong></td></tr>
+        <tr><td style="padding:4px">"door"</td><td style="padding:4px;text-align:center">5.5%</td><td style="padding:4px;text-align:center">0.131</td><td style="padding:4px;text-align:center">0.305</td><td style="padding:4px;text-align:center">11</td><td style="padding:4px;text-align:center">0.433</td><td style="padding:4px;text-align:center">72.7%</td></tr>
+        <tr><td style="padding:4px">"person"</td><td style="padding:4px;text-align:center;color:#64748b">0.0%</td><td style="padding:4px;text-align:center;color:#64748b">—</td><td style="padding:4px;text-align:center;color:#64748b">—</td><td style="padding:4px;text-align:center">0</td><td style="padding:4px;text-align:center;color:#64748b">—</td><td style="padding:4px;text-align:center;color:#64748b">평가불가</td></tr>
+        <tr style="background:rgba(251,191,36,0.1)"><td style="padding:4px">"microwave oven" <span style="font-size:0.75rem">(부재 대조군)</span></td><td style="padding:4px;text-align:center;color:#fbbf24">5.0%</td><td style="padding:4px;text-align:center">0.899</td><td style="padding:4px;text-align:center;color:#fbbf24">0.267</td><td style="padding:4px;text-align:center">10</td><td style="padding:4px;text-align:center">0.512</td><td style="padding:4px;text-align:center">90.0%</td></tr>
+      </table>
+      <br>
+      <div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:11px 14px">
+        <strong style="color:#4ade80">결과 — 지시문이 타겟과 조향 방향을 실제로 바꾼다</strong><br>
+        같은 이미지에서 <strong style="color:#e2e8f0">"gray basket" → cx 0.484 (중앙)</strong>,
+        <strong style="color:#e2e8f0">"chair" → cx 0.089 (화면 좌측 끝)</strong>이고,
+        둘 다 검출된 69프레임에서 <strong style="color:#e2e8f0">|Δcx| 0.407</strong>,
+        <strong style="color:#e2e8f0">조향 부호가 55.1%에서 반대로 뒤집힌다</strong>.
+        <br>→ 사전 고정한 판정 기준을 통과했다:
+        <strong style="color:#e2e8f0">language-directed target selection 성립</strong>.
+        추가 학습도 코드 수정도 없이, 요청의 instruction 필드만 바꿔서 얻은 결과다.
+      </div>
+      <br>
+      <div style="background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:11px 14px">
+        <strong style="color:#fbbf24">⚠️ 과대해석 금지 — 4가지</strong><br>
+        <strong style="color:#e2e8f0">① policy가 아니다.</strong> 액션 헤드는 여전히 cx·비전만 받고
+        텍스트를 보지 않는다. 바뀐 것은 <strong style="color:#e2e8f0">헤드에 들어가는 cx</strong>이지
+        헤드의 동작이 아니다. 68-3 용어 구분대로 <strong style="color:#f87171">
+        "language-conditioned policy"라고 쓰면 안 된다</strong>.
+        <br><strong style="color:#e2e8f0">② 액션 클래스 변화는 측정하지 않았다.</strong>
+        헤드 입력이 6프레임 윈도우라 단일 프레임 교체로 재구성되지 않는다. 여기서는
+        <strong style="color:#e2e8f0">조향 부호까지만</strong> 확인했다.
+        <br><strong style="color:#e2e8f0">③ 반전율 55.1%가 과제 난이도를 반영하지 않는다.</strong>
+        chair의 cx가 0.089±0.056으로 <strong style="color:#e2e8f0">거의 항상 좌측 끝에 고정</strong>돼
+        있다 — 연구실에 정적인 의자가 한쪽에 있다는 뜻이다. 즉 "지시문에 따라 방향이 갈린다"는
+        성립하지만, 모델이 <strong style="color:#e2e8f0">지시문과 장면을 결합해 추론했다기보다
+        서로 다른 고정 물체를 각각 찾은 것</strong>에 가깝다. L2의 좌우 교차 배치 요구(68-3)가
+        바로 이 문제를 겨냥한다.
+        <br><strong style="color:#e2e8f0">④ 부재 판정이 완전하지 않다.</strong>
+        없는 물체("microwave oven")를 5.0%에서 검출했다. 낮지만 0이 아니고, 그 cx가 0.899로
+        화면 우측 끝에 몰려 있다(score 중앙 0.267 — 임계 바로 위). 즉
+        <strong style="color:#e2e8f0">"없다"고 답하지 못하는 경로가 남아 있다</strong>. 이는
+        65-6·64-15의 has_bbox 문제와 같은 뿌리이고, 언어 조건화는
+        <strong style="color:#f87171">"없는 것을 찾으라"는 요청을 정상 입력으로 만들기 때문에
+        이 결함을 확대시킨다</strong>.
+      </div>
+      <br>
+      <strong style="color:#e2e8f0">그래서 다음 할 일이 좁혀졌다</strong> — 68-6 우선순위 1번(L1)은
+      이것으로 닫힌다. 남은 것은 <strong style="color:#e2e8f0">같은 프레임에 두 객체가 모두 있고
+      각 객체가 좌·우에 교차 배치된 데이터</strong>(L2)이며, 그것 없이는 ③을 반박할 수 없다.
+      <br><span style="font-size:0.8rem;color:#64748b">스크립트
+      <code>scripts/l1_language_target_selection.py</code> · 결과
+      <code>docs/v5/detector/l1_target_selection.json</code> · 표본 V6 val 200프레임(seed42 분할)</span>
     </div>
   </div>
 </div>
