@@ -52,19 +52,19 @@
 </div>
 <div class="wrap">
 <h2>재작성한 구조 도표</h2>
-<p>요구 원문 02~07의 260차원 규격을 반영한 도표입니다.
-   <a href="../v5/figures/edgeground_vla_architecture.pdf">PDF(벡터)</a> ·
+<p>초안 요구 원문 02~07의 <strong>260차원 규격</strong>을 반영해 새로 그렸습니다.
+   <a href="../v5/figures/edgeground_vla_architecture.pdf">PDF(논문 삽입용 벡터)</a> ·
    <a href="../v5/figures/edgeground_vla_architecture.svg">SVG(편집용)</a> ·
    <a href="../v5/figures/edgeground_vla_architecture.png">PNG(2×)</a></p>
 <p style="text-align:center"><img src="../v5/figures/edgeground_vla_architecture.svg"
    alt="EdgeGround-VLA 파이프라인 구조도" style="max-width:100%;background:#fff;border-radius:8px;
    border:1px solid #e2e8f0"></p>
 <hr>
-<h1 id="_1">초안 빨간글씨 채우기 — 붙여넣기용 초고</h1>
+<h1 id="_1">논문 드래프트 보완 — 절별 붙여넣기 초고</h1>
 <blockquote>
 <p>대상: <code>EdgeGround-VLA_바퀴형로봇_목표지향주행_경량모델_초안_0805.docx</code>
-작성 2026-08-05 · 액션플랜 1번(본문 사실오류 정정) + 2번(22건 초고)
-근거 페이지: <a href="https://minuum.github.io/MoNaVLA/v5/paper_redfill_worklist.html">빨간글씨 25건 문제/대응</a></p>
+작성 2026-08-05 · 액션플랜 1번(본문 사실오류 정정) + 2번(22건 초고) · 도표 재작성 포함
+근거 페이지: <a href="https://minuum.github.io/MoNaVLA/v5/paper_redfill_worklist.html">논문 드래프트 보완 25건 문제/대응</a></p>
 </blockquote>
 <p><strong>사용법</strong> — docx를 직접 편집하지 않고 이 파일의 문단을 절별로 복사해 넣으십시오. 교수님이 잡아둔
 서식·스타일을 건드리지 않기 위함입니다. 각 블록의 제목이 docx의 절 제목과 1:1로 대응합니다.</p>
@@ -72,10 +72,10 @@
 - <code>[교체]</code> — 기존 본문을 이 문단으로 <strong>바꿉니다</strong>(사실오류 정정)
 - <code>[삽입]</code> — 비어 있는 자리에 <strong>넣습니다</strong>
 - <code>[유지]</code> — 그대로 두고 표시된 한 줄만 보탭니다
-- 🔴 = 원래 빨간글씨였던 항목 번호</p>
+- 🔴 = 초안에서 보완이 요구된(빨간색 표기) 항목 번호</p>
 <hr />
 <h2 id="1-model-architecture-0207">1. Model Architecture 🔴02~07</h2>
-<p><code>[삽입]</code> — 빨간글씨 메모를 산문으로 풀어 쓴 것입니다. 메모 자체는 지워도 됩니다.</p>
+<p><code>[삽입]</code> — 요구 원문의 메모를 산문으로 풀어 쓴 것입니다. 메모 자체는 지워도 됩니다.</p>
 <blockquote>
 <p>제안 파이프라인의 한 프레임은 260차원 특징 벡터로 표현된다. 이 벡터는 서로 다른 두 인코더의
 출력을 병치(concatenate)한 것으로, 앞의 4채널은 오픈 보캐블러리 검출기 OWL-v2가 산출한
@@ -157,7 +157,7 @@ Kosmos-2 비전 타워(0.303B), 선형 사상(0.262M)은 모두 동결(frozen)�
 <strong>언어 디코더 1.361B를 미사용으로 분리 표기</strong>(호출 0회, 로드 제거로 호스트 RAM 10.59→3.20GB),
 그리고 서빙 제어 파라미터를 하단 블록에 배치해 1.4절과 연결.</p>
 <h3 id="04">⚠️ 정정 사항 — 요구 원문 04번 자체의 오류</h3>
-<p>빨간글씨 04번은 <code>(area는 bbox_scale=3.0 배율 적용)</code>이라고 되어 있으나, 실제로는
+<p>요구 원문 04번은 <code>(area는 bbox_scale=3.0 배율 적용)</code>이라고 되어 있으나, 실제로는
 <strong>bbox 4채널 전체</strong>에 배율이 곱해집니다.</p>
 <pre><code class="language-python">seq.append([v * bbox_scale for v in bboxes[idx]] + vis[idx].tolist())
 # scripts/exp73_held_aware_train.py — bboxes의 4개 원소 전부에 곱해짐
@@ -377,7 +377,7 @@ Navigate a right curve approach from the strong right extreme starting position 
 학습은 0.866M 파라미터에만 발생하므로, 제한된 자원에서 다수의 조건을 비교할 수 있다.</p>
 </blockquote>
 <h3 id="2-1520">(2) 학습 파라미터 🔴15~20</h3>
-<p><code>[유지]</code> 기존 빨간글씨 목록을 그대로 표로 옮기고, <strong>아래 3항목을 추가</strong>합니다.</p>
+<p><code>[유지]</code> 기존 요구 목록을 그대로 표로 옮기고, <strong>아래 3항목을 추가</strong>합니다.</p>
 <table>
 <thead>
 <tr>
@@ -498,7 +498,7 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 </blockquote>
 <hr />
 <h2 id="7-has_bbox-25">7. (계속) has_bbox 채널 🔴25 <code>[유지]</code></h2>
-<p>기존 빨간글씨 문단이 <strong>이미 정확합니다.</strong> 아래 한 문단만 보태면 서술이 완결됩니다.</p>
+<p>기존 요구 원문 문단이 <strong>이미 정확합니다.</strong> 아래 한 문단만 보태면 서술이 완결됩니다.</p>
 <blockquote>
 <p>이 한계는 학습 데이터에만 있는 것이 아니다. 검출기 자체도 장면에 존재하지 않는 물체를
 요청받았을 때 부재를 확정하지 못한다. 목표와 무관한 물체명을 질의한 대조 실험에서 200
