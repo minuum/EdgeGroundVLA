@@ -64,6 +64,18 @@
     .hero h1 { -webkit-text-fill-color:#0f172a; background:none; }
     code, .changelog { background:#f1f5f9; }
   }
+  /* ── 고정 목차 사이드바 (research_story.html과 동일 계열, 항상 표시) ── */
+  #toc { position:fixed; top:90px; right:18px; width:210px; max-height:calc(100vh - 120px);
+         overflow-y:auto; z-index:500; background:#111827; border:1px solid #1e293b;
+         border-radius:12px; padding:12px 0; box-shadow:-4px 0 24px rgba(0,0,0,0.35); }
+  #toc::-webkit-scrollbar { width:4px; } #toc::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+  #toc .toc-h { font-size:0.68rem; font-weight:800; letter-spacing:0.06em; color:#64748b;
+                padding:6px 16px 4px; text-transform:uppercase; }
+  .toc-item { display:block; padding:5px 16px; font-size:0.78rem; color:#94a3b8; text-decoration:none;
+              border-left:2px solid transparent; line-height:1.4; }
+  .toc-item:hover { background:#1e293b; color:#e2e8f0; }
+  .toc-item.active { color:#38bdf8; border-left-color:#38bdf8; background:rgba(56,189,248,0.08); }
+  @media (max-width:1180px) { #toc { display:none; } }
 </style>
 
 <div class="hero">
@@ -87,24 +99,23 @@
   </div>
 </div>
 
+<nav id="toc">
+  <div class="toc-h">🔵 0805 라운드</div>
+  <a class="toc-item" href="#r0805-figure">FIGURE 구조도 3개</a>
+  <a class="toc-item" href="#r0805-factfix">FACT-FIX 사실오류</a>
+  <a class="toc-item" href="#r0805-fillin">FILL-IN 빈칸채우기</a>
+  <a class="toc-item" href="#r0805-new">NEW-CONTENT 신규발견</a>
+  <a class="toc-item" href="#r0805-term">TERM 용어제안</a>
+  <a class="toc-item" href="#r0805-pending">PENDING 로봇확인</a>
+  <div class="toc-h">🟣 0806 라운드</div>
+  <a class="toc-item" href="#r0806-new">NEW-CONTENT 신규질문</a>
+  <a class="toc-item" href="#r0806-move">STRUCTURE-MOVE 구조변경</a>
+  <a class="toc-item" href="#r0806-ref">REFERENCE 문헌감사</a>
+  <a class="toc-item" href="#r0806-pending">PENDING 자료필요</a>
+  <div class="toc-h">🕓</div>
+  <a class="toc-item" href="#changelog">변경 이력</a>
+</nav>
 <div class="wrap">
-
-<h2 style="border:none;background:none;padding:0;margin:36px 0 8px;font-size:1.05rem;color:var(--muted)">목차</h2>
-<div style="background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:16px 20px;font-size:0.85rem;line-height:2.1">
-  <strong style="color:#7dd3fc">🔵 0805 라운드</strong><br>
-  <a href="#r0805-figure">&nbsp;&nbsp;FIGURE — 구조도 3개 (F1·F2·F3)</a><br>
-  <a href="#r0805-factfix">&nbsp;&nbsp;FACT-FIX — 사실오류 정정</a><br>
-  <a href="#r0805-fillin">&nbsp;&nbsp;FILL-IN — 빈칸 채우기</a><br>
-  <a href="#r0805-new">&nbsp;&nbsp;NEW-CONTENT — 신규 발견·추가 (F4·F5·F6 포함)</a><br>
-  <a href="#r0805-term">&nbsp;&nbsp;TERM — 용어 대체 제안</a><br>
-  <a href="#r0805-pending">&nbsp;&nbsp;PENDING — 로봇 담당자 확인 필요</a><br>
-  <strong style="color:#c4b5fd">🟣 0806 라운드</strong><br>
-  <a href="#r0806-new">&nbsp;&nbsp;NEW-CONTENT — 신규 질문 답변</a><br>
-  <a href="#r0806-move">&nbsp;&nbsp;STRUCTURE-MOVE — 구조 변경</a><br>
-  <a href="#r0806-ref">&nbsp;&nbsp;REFERENCE — 참고문헌 감사</a><br>
-  <a href="#r0806-pending">&nbsp;&nbsp;PENDING — 자료 필요</a><br>
-  <strong style="color:#fbbf24">🕓 <a href="#changelog">변경 이력</a></strong>
-</div>
 
 <h2 class="round r0805" id="r0805">🔵 0805 라운드 — 초안 최초 검토</h2>
 <p class="round-sub"><code>EdgeGround-VLA_..._초안_0805.docx</code> 전수 추출(빨간 run 120개 · 25개 단락) 기준.
@@ -279,6 +290,15 @@
   </div>
 
   <div class="clentry">
+    <div class="cldate">2026-08-06 · 고정 사이드바 목차로 전환</div>
+    리서치 히스토리처럼 오른쪽에 <strong>항상 떠 있는 목차 사이드바</strong>로 전환.
+    스크롤에 따라 현재 보고 있는 섹션이 자동 하이라이트됨(스크롤스파이).
+    이 페이지뿐 아니라 <a href="../v5/paper_redfill_worklist.html">문제/대응 페이지</a>·
+    <a href="redfill_draft_0805.html">절별 초고</a>에도 각자의 목차로 동일하게 적용.
+    1180px 이하 화면에서는 자동으로 숨김.
+  </div>
+
+  <div class="clentry">
     <div class="cldate">2026-08-06 · 목차 + 상호링크 추가</div>
     페이지 상단에 목차(목차→카테고리 앵커) 신설. 각 항목 카드에서
     <a href="redfill_draft_0805.html">초고</a>·<a href="../v5/paper_redfill_worklist.html">문제/대응</a>의
@@ -288,3 +308,24 @@
 </div>
 
 </div>
+<script>
+(function(){
+  var items = document.querySelectorAll('.toc-item');
+  var targets = Array.prototype.map.call(items, function(a){
+    return document.getElementById(a.getAttribute('href').slice(1));
+  }).filter(Boolean);
+  function onScroll(){
+    var pos = window.scrollY + 120;
+    var current = null;
+    targets.forEach(function(t){ if (t.offsetTop <= pos) current = t; });
+    items.forEach(function(a){ a.classList.remove('active'); });
+    if (current) {
+      var id = current.id;
+      var link = document.querySelector('.toc-item[href="#'+id+'"]');
+      if (link) link.classList.add('active');
+    }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
