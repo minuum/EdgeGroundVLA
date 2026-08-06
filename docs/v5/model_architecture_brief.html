@@ -181,6 +181,10 @@ flowchart TB
   타고, 나머지 2번은 OWL-v2를 건너뛰고 Kosmos-2 비전만 다시 계산합니다(bbox는 직전 값 유지).
   그리고 클래스 번호 이후 <strong class="h">CAN 통신으로 바퀴에 전달</strong>되는 부분은
   모델 파이프라인에 없던 하드웨어 경로입니다.
+  <br><strong class="o">위 모델 파이프라인 도표에 있던 "제어 · SERVING CONTROL" 블록은
+  이 도표로 옮겼습니다</strong> — 모델 구조와 런타임 동작은 별개 관심사이므로, 위 도표는
+  8클래스 로짓 출력에서 끝나고 threshold·skip_n·회전 규칙은 아래 도표 상단의
+  "서빙 제어 파라미터 요약" 패널에 있습니다.
 </p>
 <p><img src="figures/runtime_pipeline.png" alt="런타임 파이프라인" style="max-width:100%;background:#fff;border-radius:6px"></p>
 
