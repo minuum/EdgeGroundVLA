@@ -2400,6 +2400,9 @@ def infer_health():
 
 # ─── 🔀 모델 전환 (Tab4용) — /model/load 핫스왑 프록시, go.sh 재시작(95s) 불필요 ──
 EXP73_MODEL_DIR = ROOT / "runs" / "v5_nav" / "mlp" / "exp73"
+# 2026-08-07: stage1_v3_5cls와 매칭되는 헤드는 별도 디렉터리(exp73_stage1v3/)로
+# 왔음 — 기존 스캔 대상(exp73/)에만 없어서 Tab4 모델 목록에 안 뜨던 문제.
+EXP73_EXTRA_MODEL_DIRS = [ROOT / "runs" / "v5_nav" / "mlp" / "exp73_stage1v3"]
 
 _CKPT_EXP_RE = re.compile(r"exp(\d+)")
 
@@ -2460,12 +2463,25 @@ def verify_model_list():
     가벼운 torch.load(map_location='cpu')로 파싱 — 파일 몇 개뿐이라 부담 적음."""
     import torch
     out = []
-    if not EXP73_MODEL_DIR.exists():
-        return {"ok": True, "models": []}
-    for f in sorted(EXP73_MODEL_DIR.glob("*.pt"), key=lambda p: _ckpt_sort_key(p.name)):
+    all_files = []
+    if EXP73_MODEL_DIR.exists():
+        all_files.extend(EXP73_MODEL_DIR.glob("*.pt"))
+    for d in EXP73_EXTRA_MODEL_DIRS:
+        if d.exists():
+            all_files.extend(d.glob("*.pt"))
+    for f in sorted(all_files, key=lambda p: _ckpt_sort_key(p.name)):
         meta = {"filename": f.name, "path": str(f.relative_to(ROOT)),
                 "size_mb": round(f.stat().st_size / 1e6, 2),
                 "tags": _parse_ckpt_tags(f.name)}
+        # 2026-08-07: 모든 항목에 짝이 맞는 image_proj를 명시 — 안 그러면 A/B로
+        # exp73_stage1v3 헤드 → 기존 exp73 헤드로 되돌아갈 때 stage1_path가 그대로
+        # 남아서 "구헤드+신image_proj"(방금 실기서 STOP 붕괴 확인된 조합)로 조용히
+        # 되돌아가는 사고가 날 수 있음 — 전환 버튼이 항상 맞는 짝을 같이 보냄.
+        meta["requires_stage1"] = (
+            "runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt"
+            if f.parent.name == "exp73_stage1v3"
+            else "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
+        )
         try:
             ckpt = torch.load(str(f), map_location="cpu", weights_only=False)
             meta["head"] = ckpt.get("head", "?")
@@ -8728,11 +8744,16 @@ L S R  C S L  R S L
           if (m.val_acc != null) bits.push(`val_acc=${m.val_acc}`);
           if (m.held_success != null) bits.push(`held=${m.held_success}%`);
           if (m.stride) bits.push(`stride=${m.stride}`);
+          if (m.requires_stage1) {
+            const s1n = m.requires_stage1.split("/").pop();
+            bits.push(`🧬${s1n === "stage1_v3_5cls_owl_projs.pt" ? "V3-5cls" : "V2(legacy)"}`);
+          }
           bits.push(`${m.size_mb}MB`);
           const info = bits.join(" · ") + (m.error ? ` ⚠️${m.error}` : "");
           const tagsHtml = m.tags ? `<div style="margin:2px 0;">${_ckptTagsHtmlFromTags(m.tags)}</div>` : "";
+          const s1Arg = m.requires_stage1 ? `, '${m.requires_stage1}'` : "";
           return `<div style="display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:center; padding:4px 6px; border-radius:6px; background:${isCur ? "rgba(6,182,212,0.12)" : "#090d16"}; border:1px solid ${isCur ? "var(--cyan)" : "var(--border-glow)"};">
-            <button class="btn ${isCur ? "btn-cyan" : "btn-outline"}" style="font-size:10px; padding:4px 8px; white-space:nowrap;" ${isCur ? "disabled" : ""} onclick="switchModel('${m.path}', '${m.filename}')">${isCur ? "✓ 로드됨" : "전환"}</button>
+            <button class="btn ${isCur ? "btn-cyan" : "btn-outline"}" style="font-size:10px; padding:4px 8px; white-space:nowrap;" ${isCur ? "disabled" : ""} onclick="switchModel('${m.path}', '${m.filename}'${s1Arg})">${isCur ? "✓ 로드됨" : "전환"}</button>
             <div style="font-size:9px; color:var(--text-muted); line-height:1.4;">
               <span style="color:#fff; font-weight:600;">${m.filename}</span>${tagsHtml}${info}
             </div>
@@ -8782,15 +8803,17 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
-    async function switchModel(path, filename) {
+    async function switchModel(path, filename, requiredStage1) {
       const statusEl = document.getElementById("vfy-model-status");
       if (statusEl) statusEl.textContent = `🔄 ${filename}로 전환 중... (보통 25초 이내, 처음엔 더 걸릴 수 있어요)`;
       _setModelPanelBusy(true);
       try {
+        const body = { path };
+        if (requiredStage1) body.stage1_path = requiredStage1;  // 2026-08-07: 매칭 image_proj 자동 동반
         const res = await api("/verify/model_switch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path })
+          body: JSON.stringify(body)
         });
         if (res.ok) {
           if (statusEl) statusEl.textContent = `✅ 전환 완료: ${filename} (head=${res.head}, val_acc=${res.val_acc})`;
