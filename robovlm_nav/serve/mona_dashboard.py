@@ -2574,6 +2574,10 @@ def _snapshot_runtime_config() -> dict:
             "owlv2_thresh": g.get("owlv2_thresh"),
             "owlv2_area_scale": g.get("owlv2_area_scale"),
             "checkpoint_path": h.get("checkpoint_path"),
+            # 2026-08-07: stage1_path(image_proj)도 이 스냅샷에 없었음 — head(checkpoint_path)는
+            # 안 바뀌고 image_proj만 바뀌는 경우(V3-5cls 실기검증)가 생기면서 발견. 이게 없으면
+            # 같은 head로 기록된 스크리닝 배치가 "구/신 image_proj" 구분 없이 한 세트로 뭉개짐.
+            "stage1_path": h.get("stage1_path"),
             "git_commit": h.get("git_commit"),
         }
     except Exception as e:
@@ -3566,33 +3570,49 @@ def verify_screening_batches():
         # 변경이 같은 체크포인트/3시간 이내라 한 배치로 뭉쳐버려서 수동으로
         # since를 다시 맞춰야 했던 문제 재발 방지.
         owl_thresh = None
+        stage1_path = None
         if len(r) > EP_COL_RUNTIME_CFG and r[EP_COL_RUNTIME_CFG]:
             try:
-                owl_thresh = json.loads(r[EP_COL_RUNTIME_CFG]).get("owlv2_thresh")
+                _cfg = json.loads(r[EP_COL_RUNTIME_CFG])
+                owl_thresh = _cfg.get("owlv2_thresh")
+                stage1_path = _cfg.get("stage1_path")
             except Exception:
                 owl_thresh = None
-        enriched.append((dt, ckpt, owl_thresh, r[2] == "성공"))
+        enriched.append((dt, ckpt, owl_thresh, stage1_path, r[2] == "성공"))
     enriched.sort(key=lambda t: t[0])
 
     batches = []
     cur = None
     GAP = datetime.timedelta(hours=3)
-    for dt, ckpt, owl_thresh, ok in enriched:
+    for dt, ckpt, owl_thresh, stage1_path, ok in enriched:
         thresh_changed = (cur is not None and owl_thresh is not None
                            and cur.get("owl_thresh") is not None
                            and owl_thresh != cur["owl_thresh"])
-        if cur is None or ckpt != cur["checkpoint"] or dt - cur["_last"] > GAP or thresh_changed:
-            cur = {"checkpoint": ckpt, "owl_thresh": owl_thresh, "start": dt, "end": dt,
-                   "_last": dt, "count": 0, "success": 0}
+        # 2026-08-07: head(checkpoint)는 안 바뀌고 image_proj(stage1_path)만 바뀌는
+        # 경우(V3-5cls 실기검증)도 배치를 분리해야 함 — 안 그러면 구/신 image_proj
+        # 결과가 같은 체크포인트 이름 아래 한 세트로 뭉개짐(사용자가 발견한 문제).
+        # cur["stage1_path"]가 None인 건 "이 필드 도입 전(2026-08-07 이전) 기록이라
+        # 값을 모른다"는 뜻이지 "old와 같다"는 뜻이 아님 — new가 known이면 무조건 분리
+        # (both known일 때만 비교하면 구버전→신버전 전환 첫 배치를 못 잡음).
+        stage1_changed = (cur is not None and stage1_path is not None
+                           and stage1_path != cur.get("stage1_path"))
+        if (cur is None or ckpt != cur["checkpoint"] or dt - cur["_last"] > GAP
+                or thresh_changed or stage1_changed):
+            cur = {"checkpoint": ckpt, "owl_thresh": owl_thresh, "stage1_path": stage1_path,
+                   "start": dt, "end": dt, "_last": dt, "count": 0, "success": 0}
             batches.append(cur)
-        elif owl_thresh is not None:
-            cur["owl_thresh"] = owl_thresh
+        else:
+            if owl_thresh is not None:
+                cur["owl_thresh"] = owl_thresh
+            if stage1_path is not None:
+                cur["stage1_path"] = stage1_path
         cur["count"] += 1
         if ok: cur["success"] += 1
         cur["end"] = dt
         cur["_last"] = dt
 
     out = [{"checkpoint": b["checkpoint"], "owlv2_thresh": b["owl_thresh"],
+            "stage1_path": b.get("stage1_path"),
             "start": b["start"].strftime("%Y-%m-%dT%H:%M"),
             "end": b["end"].strftime("%Y-%m-%dT%H:%M"),
             "count": b["count"], "success": b["success"]} for b in batches]
@@ -5238,8 +5258,8 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
                 <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🧬 image_proj:</span>
                 <span id="vfy-stage1-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
-                <button id="vfy-stage1-v2" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/shared/stage1_v2_projs.pt')" style="font-size:9px; padding:3px 8px;">v2(구,150ep)</button>
-                <button id="vfy-stage1-v3" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt')" style="font-size:9px; padding:3px 8px;">v3-5cls(신,225ep)</button>
+                <button id="vfy-stage1-v2" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/shared/stage1_v2_projs.pt')" style="font-size:9px; padding:3px 8px;">V2(legacy)</button>
+                <button id="vfy-stage1-v3" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt')" style="font-size:9px; padding:3px 8px;">V3-5cls(new)</button>
               </div>
               <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
@@ -8912,12 +8932,16 @@ L S R  C S L  R S L
                 const s = b.start.replace("T", " ").slice(5);
                 const e = b.end.replace("T", " ").slice(11);
                 const thTag = (b.owlv2_thresh !== null && b.owlv2_thresh !== undefined) ? ` · th=${b.owlv2_thresh}` : "";
+                const s1Name = (b.stage1_path || "").split("/").pop();
+                // 2026-08-07: head는 안 바뀌고 image_proj만 바뀐 배치를 목록에서도 구분할 수 있게
+                const s1Tag = s1Name === "stage1_v3_5cls_owl_projs.pt" ? ` · 🧬V3-5cls`
+                  : s1Name === "stage1_v2_projs.pt" ? "" : (s1Name ? ` · 🧬${s1Name}` : "");
                 const rate = b.count ? Math.round(b.success / b.count * 100) : 0;
                 return `<div onclick="applyScreenBatch('${b._idx}')"
                     draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
                     style="cursor:grab; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
                     onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
-                  <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}</span>
+                  <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}${s1Tag}</span>
                   <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
                 </div>`;
               }).join("");
@@ -11106,9 +11130,13 @@ L S R  C S L  R S L
             const grBadge = grIsOwl
               ? `<span style="color:var(--emerald); font-weight:700;">🔭 ${vg.model}</span> th=${vg.owlv2_thresh ?? '—'} scale=${vg.owlv2_area_scale ?? '—'}`
               : `<span style="color:var(--amber); font-weight:700;">🔭 ${vg.model || '—'}</span>`;
+            const s1Name = (inf.stage1_path || "").split("/").pop() || "—";
+            const s1Badge = s1Name === "stage1_v2_projs.pt" ? "V2(legacy)"
+              : s1Name === "stage1_v3_5cls_owl_projs.pt" ? "V3-5cls(new)" : s1Name;
             vfySrvStatus.innerHTML =
               `<span style="color:var(--cyan); font-weight:700;">🧠 ${inf.checkpoint_path ? inf.checkpoint_path.split('/').pop() : '—'}</span> (${inf.head} W${inf.window})<br>`
               + `${grBadge} · phrase="${vg.phrase || '—'}"<br>`
+              + `<span style="color:var(--violet,#a78bfa); font-weight:700;">🧬 ${s1Badge}</span><br>`
               + `STOP: ${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'}) · git ${inf.git_commit || '—'}`;
           }
 
