@@ -1,0 +1,265 @@
+<title>논문 수정사항 브리핑 — 0805 / 0806</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#0a0f1a; --card:#111827; --line:#1e293b; --txt:#e2e8f0; --muted:#94a3b8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); line-height:1.75;
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 22px 90px; }
+  .hero { background:linear-gradient(135deg,#0f172a,#1e293b 50%,#0f172a); padding:48px 24px 36px;
+          text-align:center; border-bottom:1px solid var(--line); }
+  .hero h1 { font-size:1.9rem; font-weight:900; margin:0 0 10px;
+             background:linear-gradient(90deg,#38bdf8,#a78bfa,#4ade80);
+             -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero p { color:var(--muted); max-width:760px; margin:0 auto; font-size:0.92rem; }
+  .kpis { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:20px; }
+  .kpi { background:#0d1117; border:1px solid var(--line); border-radius:10px; padding:9px 17px; }
+  .kpi b { display:block; font-size:1.35rem; } .kpi span { font-size:0.71rem; color:var(--muted); }
+  .nav { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:18px; }
+  .nav a { padding:6px 14px; background:#0d1117; border:1px solid var(--line); border-radius:8px;
+           font-size:0.75rem; text-decoration:none; color:#cbd5e1; }
+
+  h2.round { margin:52px 0 4px; font-size:1.5rem; padding:14px 20px; border-radius:10px; }
+  h2.r0805 { background:rgba(56,189,248,0.12); border:1px solid rgba(56,189,248,0.4); color:#7dd3fc; }
+  h2.r0806 { background:rgba(167,139,250,0.12); border:1px solid rgba(167,139,250,0.4); color:#c4b5fd; }
+  .round-sub { color:var(--muted); font-size:0.85rem; margin:6px 0 20px; }
+
+  h3.cat { margin:34px 0 10px; font-size:1.05rem; display:flex; align-items:center; gap:9px; }
+  .tag { display:inline-block; padding:3px 11px; border-radius:20px; font-size:0.72rem; font-weight:800;
+         letter-spacing:0.3px; }
+  .t-figure   { background:#052e16; color:#86efac; border:1px solid #16a34a; }
+  .t-factfix  { background:#2b0a0a; color:#fca5a5; border:1px solid #f87171; }
+  .t-fillin   { background:#1e0a2b; color:#d8b4fe; border:1px solid #a855f7; }
+  .t-new      { background:#0a2033; color:#7dd3fc; border:1px solid #38bdf8; }
+  .t-move     { background:#2b1f05; color:#fcd34d; border:1px solid #fbbf24; }
+  .t-term     { background:#052e2b; color:#5eead4; border:1px solid #14b8a6; }
+  .t-ref      { background:#1a0a2e; color:#c4b5fd; border:1px solid #8b5cf6; }
+  .t-pending  { background:#1e1e1e; color:#a3a3a3; border:1px solid #525252; }
+
+  .item { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:14px 17px; margin:10px 0; }
+  .item.done { border-left:4px solid #4ade80; }
+  .item.pending { border-left:4px solid #737373; opacity:0.88; }
+  .item h4 { margin:2px 0 8px; font-size:0.98rem; }
+  .item .loc { font-size:0.74rem; color:var(--muted); margin-bottom:8px; }
+  .item .body { font-size:0.87rem; }
+  .item table { width:100%; border-collapse:collapse; font-size:0.82rem; margin:8px 0; }
+  .item th, .item td { padding:5px 7px; border-bottom:1px solid var(--line); text-align:left; }
+  .item th { color:#94a3b8; }
+  code { background:#0d1117; padding:1px 5px; border-radius:4px; font-size:0.85em; color:#7dd3fc; }
+  a { color:#7dd3fc; }
+  .figrow { display:flex; gap:10px; flex-wrap:wrap; margin:6px 0; }
+  .figchip { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:6px 12px;
+             font-size:0.8rem; }
+
+  .changelog { margin-top:60px; background:#0d1117; border:1px solid var(--line); border-radius:12px;
+               padding:20px 22px; }
+  .changelog h2 { margin:0 0 6px; font-size:1.2rem; color:#fbbf24; border:none; padding:0; background:none; }
+  .changelog p.lead { color:var(--muted); font-size:0.85rem; margin:0 0 16px; }
+  .clentry { border-left:3px solid #334155; padding:4px 0 4px 14px; margin:14px 0; font-size:0.85rem; }
+  .clentry .cldate { font-size:0.72rem; color:#64748b; font-weight:700; letter-spacing:0.3px; }
+
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f8fafc; --card:#fff; --line:#e2e8f0; --txt:#0f172a; --muted:#475569; }
+    .hero h1 { -webkit-text-fill-color:#0f172a; background:none; }
+    code, .changelog { background:#f1f5f9; }
+  }
+</style>
+
+<div class="hero">
+  <h1>논문 수정사항 브리핑</h1>
+  <p><code>EdgeGround-VLA</code> 초안이 0805 → 0806으로 재수정되면서 나온 지적사항을
+     <strong>라운드별</strong>·<strong>카테고리별</strong>로 태그를 붙여 정리했습니다.
+     실제 docx는 직접 건드리지 않으므로, 이 페이지를 보면서 수동으로 반영·대조하시면 됩니다.</p>
+  <div class="kpis">
+    <div class="kpi"><b style="color:#7dd3fc">25</b><span>0805 지적사항</span></div>
+    <div class="kpi"><b style="color:#c4b5fd">34</b><span>0806 지적사항 (9건 신규)</span></div>
+    <div class="kpi"><b style="color:#4ade80">6</b><span>완성된 Figure</span></div>
+    <div class="kpi"><b style="color:#a3a3a3">1</b><span>보류(자료 필요)</span></div>
+  </div>
+  <div class="nav">
+    <a href="redfill_draft_0805.html">📄 절별 붙여넣기 초고</a>
+    <a href="../v5/paper_redfill_worklist.html">📝 25건 문제/대응/실답변</a>
+    <a href="../v5/model_architecture_brief.html">🏗 모델 구조 자료</a>
+    <a href="#r0805">🔵 0805 라운드</a>
+    <a href="#r0806">🟣 0806 라운드</a>
+    <a href="#changelog">🕓 변경 이력</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+<h2 class="round r0805" id="r0805">🔵 0805 라운드 — 초안 최초 검토</h2>
+<p class="round-sub"><code>EdgeGround-VLA_..._초안_0805.docx</code> 전수 추출(빨간 run 120개 · 25개 단락) 기준.
+전체 8개 절 중 6.Deploy 절만 로봇 담당자 확인 필요로 남기고 나머지는 초고 완성.</p>
+
+<h3 class="cat"><span class="tag t-figure">FIGURE</span> 구조도 — 3개</h3>
+<div class="item done">
+  <h4>F1. 모델 파이프라인 구조도</h4>
+  <div class="loc">위치: 1. Model Architecture · 요구원문 01 대응</div>
+  <div class="body">260차원 규격(bbox 4ch + vision 256ch)을 반영한 논문용 벡터로 재작성.
+  학습/동결/미사용 3색 범례, 언어 디코더 1.361B 미사용 분리 표기.
+  <br><span class="figrow"><span class="figchip">PDF/SVG/PNG — <code>figures/edgeground_vla_architecture.*</code></span></span></div>
+</div>
+<div class="item done">
+  <h4>F2. 런타임 파이프라인 순서도</h4>
+  <div class="loc">위치: 7. Runtime Inference Control Logic</div>
+  <div class="body">grounding_skip_n=3 주기(호출1: OWL+Kosmos, 호출2·3: Kosmos만) → class no → x,y,z → CAN → MCU.
+  상단에 서빙 제어 파라미터 요약 패널(threshold·skip_n·콜드스타트가드·회전규칙) 통합.
+  <br><span class="figrow"><span class="figchip"><code>figures/runtime_pipeline.*</code></span></span></div>
+</div>
+<div class="item done">
+  <h4>F3. 하드웨어 연결도 — Jetson↔CAN↔MCU</h4>
+  <div class="loc">위치: 2. Hardware Platform</div>
+  <div class="body">CAN 버스(can0, 500kbps) 실존을 코드로 확인 후 반영(<code>omni_drive_node.py</code>의
+  <code>Psd(dev="can0")</code>, <code>vla_control_utils.py</code>의 <code>pop.driving.Driving()</code>).
+  <br><span class="figrow"><span class="figchip"><code>figures/hardware_architecture.*</code></span></span></div>
+</div>
+
+<h3 class="cat"><span class="tag t-factfix">FACT-FIX</span> 사실오류 정정</h3>
+<div class="item done">
+  <h4>1.2/1.3절 — 헤드 입력 차원·구조</h4>
+  <div class="loc">위치: 1.2 Feature Fusion / 1.3 Lightweight MLP Action Head</div>
+  <table><tr><th></th><th>초안</th><th>정정</th></tr>
+  <tr><td>입력 차원</td><td>256</td><td><strong>1560</strong>(6프레임×260)</td></tr>
+  <tr><td>hidden layer</td><td>4개</td><td><strong>2개</strong>(512→128→8)</td></tr>
+  <tr><td>융합 방식</td><td>"동일 임베딩 공간 매핑"</td><td>bbox는 사영 없이 <strong>병치(concat)</strong></td></tr>
+  </table>
+</div>
+<div class="item done">
+  <h4>요구원문 04 — bbox_scale 적용 범위</h4>
+  <div class="loc">위치: 1. Model Architecture</div>
+  <div class="body">"area에만 적용"이 아니라 <strong>bbox 4채널 전체</strong>에 적용됨
+  (<code>[v * bbox_scale for v in bboxes[idx]]</code>).</div>
+</div>
+
+<h3 class="cat"><span class="tag t-fillin">FILL-IN</span> 빈칸 채우기 (제목만 있던 절)</h3>
+<div class="item done">
+  <h4>1.4 Serving Control 4개 항목</h4>
+  <div class="loc">threshold · skip_n=3 · force_reground_on_miss · stop_mode+콜드스타트가드</div>
+  <div class="body">전부 산문 완성. threshold는 ROC 실측 근거(0.25 확정→0.20 완화)까지 포함.</div>
+</div>
+<div class="item done">
+  <h4>3. Collection of data / 5.2 학습 방법 / 6. Deploy(부분) / 7. Runtime</h4>
+  <div class="body">전부 초고에 완성된 산문으로 존재. 6절은 젯슨 배포 절차만 로봇 담당자 확인 대기.</div>
+</div>
+
+<h3 class="cat"><span class="tag t-new">NEW-CONTENT</span> 신규 발견·추가</h3>
+<div class="item done">
+  <h4>image_proj Stage1 사전학습 절차</h4>
+  <div class="body">Kosmos-2 언어모델 은닉표현으로 "left/center/right" 방향 앵커를 만들고
+  대조학습(contrastive)시킨 것임을 코드에서 발견해 1.1절에 추가.</div>
+</div>
+<div class="item done">
+  <h4>하이퍼파라미터 통합표</h4>
+  <div class="body">owlv2_thresh·num_classes 등을 모델구조/학습/서빙 3단으로 분리한 표 신설.</div>
+</div>
+<div class="item done">
+  <h4>CH64 64-12 hold-aware 그래프 재사용</h4>
+  <div class="body">baseline 7.1%→stride5 24.2%→hold-aware 다수결 28.3%(3seed). 새로 만들지 않고 원본 재사용.
+  <strong>단 이 오프라인 지표를 89% 실기 성공률과 인과로 엮지 않음</strong>(CH64 64-11 전례).</div>
+</div>
+<div class="item done">
+  <h4>Grounding threshold 곡선 / Val 혼동행렬 (F5, F6)</h4>
+  <div class="body">threshold 0.25=정탐94.9%/오탐0%, 0.20=97.2%/12.7%.
+  Val 혼동행렬 acc 74.98%±0.52%p, <strong>LEFT 42%로 최저</strong>(CH66 좌우비대칭과 일치).</div>
+</div>
+
+<h3 class="cat"><span class="tag t-term">TERM</span> 용어 대체 제안 (선택)</h3>
+<div class="item done">
+  <h4>"다수결 라벨" · "held-out"</h4>
+  <div class="body">
+  <strong>다수결 라벨</strong> → <em>majority-vote label</em>(권장) / plurality-vote / mode filter.<br>
+  <strong>held-out validation</strong> → <em>episode-disjoint split</em> / unseen episodes
+  (단 held-out도 표준용어라 필수 대체는 아님).</div>
+</div>
+
+<h3 class="cat"><span class="tag t-pending">PENDING</span> 로봇 담당자 확인 필요</h3>
+<div class="item pending">
+  <h4>6. Deploy — 젯슨 환경 구성·모델 배치·자동시작·ROS 연결</h4>
+  <div class="body">체크포인트 전달 경로는 정리했으나 실제 젯슨 절차는 soda 확인 대기.</div>
+</div>
+
+<hr style="border-color:#1e293b;margin:50px 0">
+
+<h2 class="round r0806" id="r0806">🟣 0806 라운드 — 교수님 재수정본</h2>
+<p class="round-sub"><code>..._초안_0806.docx</code>(13→16페이지)를 전수 추출(빨간 run 146개 · 34개 단락,
+0805 대비 <strong>9건 신규</strong>) 후 대조. 노란색 하이라이트(우리 초고를 붙여넣은 흔적) 안에서
+구조 변경 지시를 발견.</p>
+
+<h3 class="cat"><span class="tag t-new">NEW-CONTENT</span> 이번 라운드에서 새로 나온 질문에 답변</h3>
+<div class="item done">
+  <h4>8클래스 로짓 → 3자유도(3-DoF) 변환 — "(?)를 거쳐"의 (?) 규명</h4>
+  <div class="loc">위치: 1.2 Lightweight MLP Action Head</div>
+  <div class="body">별도 ROS 노드나 학습된 변환이 아니라 <strong>추론 서버 내 고정 룩업테이블</strong>
+  (<code>ACTION_3D</code>)로 즉시 조회됨.
+  <table><tr><th>클래스</th><th>행동</th><th>(lx, ly, az)</th></tr>
+  <tr><td>0</td><td>STOP</td><td>(0, 0, 0)</td></tr>
+  <tr><td>1</td><td>FORWARD</td><td>(1.15, 0, 0)</td></tr>
+  <tr><td>6/7</td><td>ROT_L/R</td><td>(0, 0, ±0.25)</td></tr></table></div>
+</div>
+<div class="item done">
+  <h4>LeRobot 내보내기 파이프라인 "별도 구축이 맞는가"</h4>
+  <div class="loc">위치: 3. Collection of data</div>
+  <div class="body">파이프라인 자체는 존재·동작하나, 내보낸 것은 <strong>420ep</strong>(레거시 240 포함,
+  trackF 45 누락)로 실제 학습에 쓴 <strong>225ep</strong>와 불일치. "구축은 맞으나 재내보내기 필요"가 정확한 답.</div>
+</div>
+<div class="item done">
+  <h4>Kosmos-2 비전 인코더 = CLIP ViT-L/14 표현 검증</h4>
+  <div class="body">HF config 확인(hidden 1024·patch14·24layer)으로 CLIP ViT-L/14 아키텍처와 일치 —
+  <strong style="color:#4ade80">오류 아님, 그대로 유지 가능</strong>.</div>
+</div>
+
+<h3 class="cat"><span class="tag t-move">STRUCTURE-MOVE</span> 구조 변경 (작성자 지시 발견)</h3>
+<div class="item done">
+  <h4>좌우 액션 불균형(21.8%) 분석 — 3절 → 8절(Future Work)로 이동</h4>
+  <div class="loc">이동 전: 3. Collection of data → 이동 후: 신설 8. Future Work</div>
+  <div class="body">docx 노란 하이라이트 안에서 발견한 지시: <em>"굳이 넣을 필요없을 것 같음 …
+  테스트하면서 발견된 결과이기 때문에 퓨쳐워크로 빼기"</em>. 트랙A/F 분해·조향총량 해석 등
+  전체 분석 내용은 그대로 유지한 채 절 위치만 이동, 3절에는 이동 사실 한 줄만 남김.</div>
+</div>
+
+<h3 class="cat"><span class="tag t-ref">REFERENCE</span> 참고문헌 감사 (웹서치)</h3>
+<div class="item done">
+  <h4>기존 REFERENCES [1][2][4][5] arXiv ID 교차검증</h4>
+  <div class="body">Mobility VLA(2407.07775)·SmolVLA(2506.01844)·OWLv2(2306.09683)·Kosmos-2(2306.14824)
+  <strong style="color:#4ade80">전부 정확</strong>.</div>
+</div>
+<div class="item done">
+  <h4 style="color:#f87171">RoboVLMs 인용 누락 발견</h4>
+  <div class="body">본문 1.1절이 "선행연구 RoboVLMs 인코더 비교 결과 승계"로 인용하는데
+  REFERENCES에 없음 → <code>arXiv:2412.14058</code> 추가 필요.</div>
+</div>
+<div class="item done">
+  <h4>"Mobility VLA에 경량 버전이 있는가" 문헌조사</h4>
+  <div class="body"><strong>없음.</strong> Mobility VLA의 "가벼움"은 모델 축소가 아니라
+  <strong>클라우드로 VLM을 오프로드</strong>했기 때문(고수준 정책 추론 10~30초) — 완전 온디바이스인
+  본 연구와의 <strong>차별점</strong>으로 서술. 대안 인용 후보: TIC-VLA(ICML 2026), AsyncShield.
+  <br><span style="font-size:0.8rem;color:var(--muted)">⚠️ 2026-08 웹검색 기준, 미공개/리뷰중 연구는 반영 못 함.</span></div>
+</div>
+
+<h3 class="cat"><span class="tag t-pending">PENDING</span> 자료 필요해서 보류</h3>
+<div class="item pending">
+  <h4>F7. 데이터 수집 과정 그림 (조이스틱 수집·액션 기록)</h4>
+  <div class="loc">위치 예정: 3. Collection of data</div>
+  <div class="body">실사진 없이는 제작 불가 — <strong>사용자 결정: 이번엔 보류</strong>. 사진 확보되면 삽입.</div>
+</div>
+<div class="item pending">
+  <h4>노란색 부분 설명 필요 (Table 2 인근)</h4>
+  <div class="body">확인 결과 셀 배경색이 아니라 <strong>우리 초고 문장을 붙여넣은 흔적</strong>(문자 하이라이트)이었음.
+  각 문장은 이미 초고에 근거와 함께 있음 — 표시만 지우면 될 가능성 높음(작성자 확인 필요).</div>
+</div>
+
+<div class="changelog" id="changelog">
+  <h2>🕓 변경 이력</h2>
+  <p class="lead">이 페이지와 초고를 수정할 때마다 아래에 이어서 기록합니다. 수동으로 docx를
+  고치실 때 이 순서대로 대조하시면 됩니다.</p>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · 최초 작성</div>
+    0805 라운드(25건) + 0806 라운드(34건, 9건 신규) 전체를 카테고리별로 정리해 이 페이지 신설.
+    F1~F6 6개 Figure 배포 완료, F7(데이터수집 사진)은 보류.
+  </div>
+</div>
+
+</div>
