@@ -256,12 +256,18 @@ CH64 64-11에서 **실행 설정을 대조하지 않은 채 결론을 내려 철
 포트 2개, 둘 다 `systemd --user` **transient unit**(`--collect`)으로 기동 중:
 
 ```bash
-systemd-run --user --unit=vla-stage2 --collect \
+systemd-run --user --unit=vla-stage2 --collect --working-directory=/home/soda/MoNaVLA \
   /usr/bin/python3 -m robovlm_nav.serve.stage2_v2_inference_server --port 8001
 
-systemd-run --user --unit=vla-mona-dash --collect \
+systemd-run --user --unit=vla-mona-dash --collect --working-directory=/home/soda/MoNaVLA \
   /bin/bash -c 'exec /usr/bin/python3 robovlm_nav/serve/mona_dashboard.py --port 7800 >> logs/mona_dashboard.log 2>&1'
 ```
+
+> **⚠️ 2026-08-07 정정**: `--working-directory` 필수입니다. 빠뜨리면 유닛 기본 작업
+> 디렉터리가 `$HOME`(`/home/soda`)이 되어 코드 안의 상대경로(`robovlm_nav/serve/...`,
+> `logs/...`)를 못 찾고 곧바로(수십 ms 내) 죽습니다 — 실제로 이 문서를 처음 쓸 때는
+> 없어도 됐는데(기존 유닛을 `restart`로만 썼어서 원래 속성이 유지됐던 것), 유닛을
+> 처음부터 새로 만들 때는 반드시 명시해야 한다는 걸 재현 중에 발견했습니다.
 
 - `vla-stage2`(8001): 추론 서버 본체. ROS 없음, 순수 FastAPI.
 - `vla-mona-dash`(7800): 대시보드 + **ROS 연결 지점**(아래 4번). `vla-stage2`를 HTTP로 호출.
