@@ -221,3 +221,84 @@ CH64 64-11에서 **실행 설정을 대조하지 않은 채 결론을 내려 철
 
 **A(실기 100건)만 시간이 걸리고 B·C·E는 각각 짧습니다.**
 논문 일정 때문에 **B를 먼저** 주시면 6절을 바로 닫을 수 있습니다.
+
+---
+
+## soda 회신 — B. 젯슨 배포 절차 문서화 (2026-08-07)
+
+현재 실제로 돌고 있는 젯슨(soda, Orin) 기준으로 확인한 값입니다. 코드/systemd 상태를
+직접 조회한 값이라 추정 아님.
+
+### 1. 환경 구성
+
+| 항목 | 값 |
+|---|---|
+| L4T / JetPack | R36.3.0 (JetPack 6.x) |
+| Python | 3.10.12 (`/usr/bin/python3`, 시스템 파이썬) |
+| PyTorch | 2.3.0 (`torch.cuda.is_available()=True`) |
+| transformers | 4.45.2 |
+| 설치 방식 | **pip --user** (`~/.local/lib/python3.10/site-packages`) — conda/docker 아님 |
+
+### 2. 모델 파일 배치
+
+- 실제 경로: `~/MoNaVLA/runs/v5_nav/mlp/<exp>/<checkpoint>.pt` (헤드), image_proj는
+  `.vlms/` 하위 또는 헤드 체크포인트에 내장(현재 배포 헤드는 `stage1_v2_projs.pt` 별도
+  전달 없이 헤드 `.pt` 안에 image_proj 가중치 포함 — exp73 계열 확인).
+- 전달 방법: **minum → soda 직접 rsync** (Tailscale, `100.85.118.58`, `.agent/skills/deploy-stage2-v2/SKILL.md`에 절차 고정돼 있음).
+  ```bash
+  rsync -avz --relative <ckpt> soda@100.85.118.58:~/MoNaVLA/runs/v5_nav/mlp/...
+  # 또는 minum 쪽 scripts/deploy/rsync_stage2_v2.sh
+  ```
+- git으로는 체크포인트 자체를 커밋하지 않음(바이너리 크기 때문) — 코드/문서만 git, 모델은 rsync.
+
+### 3. 서버 실행
+
+포트 2개, 둘 다 `systemd --user` **transient unit**(`--collect`)으로 기동 중:
+
+```bash
+systemd-run --user --unit=vla-stage2 --collect \
+  /usr/bin/python3 -m robovlm_nav.serve.stage2_v2_inference_server --port 8001
+
+systemd-run --user --unit=vla-mona-dash --collect \
+  /bin/bash -c 'exec /usr/bin/python3 robovlm_nav/serve/mona_dashboard.py --port 7800 >> logs/mona_dashboard.log 2>&1'
+```
+
+- `vla-stage2`(8001): 추론 서버 본체. ROS 없음, 순수 FastAPI.
+- `vla-mona-dash`(7800): 대시보드 + **ROS 연결 지점**(아래 4번). `vla-stage2`를 HTTP로 호출.
+- 설정 복원: checkpoint_path/threshold/stop_mode 등은 `logs/stage2_runtime_state.json`에
+  자동 저장되고 재기동 시 자동 복원됨(`_persist_runtime_state()`/`_restore_runtime_state_env()`).
+
+**⚠️ 자동시작 관련 정정 사항 — 논문에 "자동시작" 서술 넣으면 안 됩니다.**
+`loginctl`로 linger는 켜져 있지만(로그인 없이도 유저 서비스 실행 가능), 이 두 유닛은
+**transient**(`systemd-run --collect`)라서 **재부팅하면 사라지고 등록된 unit file도 없습니다**
+(`systemctl --user list-unit-files 'vla-*'` → `STATE: transient`, enable된 파일 없음).
+즉 **현재는 재부팅 시 수동으로 위 두 명령을 다시 실행해야 합니다.** 자동시작이 필요하면
+`~/.config/systemd/user/*.service` 파일로 승격하는 작업이 별도로 필요합니다(아직 안 함).
+
+### 4. ROS 연결
+
+- **`vla-stage2`(추론 서버, 8001) 자체는 ROS를 전혀 쓰지 않습니다.** ROS는 오직
+  `vla-mona-dash`(7800) 안의 `MoNaROSNode`(`robovlm_nav/serve/mona_dashboard.py`)에만 있습니다.
+- 이미지 입력: 토픽 구독이 아니라 **서비스 호출** — `camera_interfaces.srv.GetImage`,
+  서비스명 `get_image_service`. 실제 카메라 프로세스는 별도 `ros2 run camera_pub
+  usb_camera_service_server`(ROS_DOMAIN_ID=42, rmw_fastrtps_cpp)이고, 대시보드가
+  10Hz로 폴링(`time.sleep(0.05)` 루프).
+- 속도 명령 출력: `geometry_msgs/Twist`를 **`/cmd_vel`** 토픽에 퍼블리시
+  (`self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10, ...)`).
+  주행 모드는 ASYNC 10Hz 연속 발행(`ASYNC_INTERVAL=0.10`, 300ms jitter hold) 방식.
+- 호출 주기 요약: `usb_camera_service_server`(카메라) → 10Hz GetImage 서비스 응답 →
+  `vla-mona-dash`가 `http://localhost:8001/predict` HTTP 호출(`INFER_URL`) →
+  받은 action을 `/cmd_vel` Twist로 10Hz 퍼블리시. 즉 **ROS 토픽은 출력(/cmd_vel)에만
+  있고, 입력(카메라)은 ROS 서비스, 추론 자체는 순수 HTTP**입니다.
+
+### 5. 첫 실행 시 주의점
+
+- 모델 로딩 시간(젯슨 실측, C항목과 동일 측정): Kosmos-2 vision-only(`VLA_KOSMOS_VISION_ONLY=1`,
+  기본값) 기준 **7.47초**. 기존 전체 로드는 37.59초 — vision-only가 로컬(오히려 느려짐)과
+  반대로 젯슨에서는 5배 더 빠름.
+- GPU 메모리는 로딩 직후 **0.608GB로 고정**, vision-only 전환 전후 변화 없음(디코더는
+  GPU에 안 올라가 있었다는 뜻).
+- 워밍업 필요: 그라운더(현재 OWL-v2)는 **첫 호출이 콜드스타트라 지연이 큼** — 서버
+  기동 직후 곧바로 주행 시작하지 말고, 헬스체크(`curl :8001/health`) 통과 후 더미
+  프레임 1회 `/predict` 호출로 워밍업 권장(과거 PG2 시절 "첫 그라운딩 호출 시 미웜업 →
+  빈 결과 반환" 이슈가 코드 주석에 남아 있음, `stage2_v2_inference_server.py:2076` 부근).
