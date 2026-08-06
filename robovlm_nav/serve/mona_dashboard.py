@@ -5233,6 +5233,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <button id="vfy-grounder-pg2" class="btn btn-outline" onclick="switchGrounder('pg2')" style="font-size:9px; padding:3px 8px;">PG2</button>
                 <button id="vfy-grounder-owlv2" class="btn btn-outline" onclick="switchGrounder('owlv2')" style="font-size:9px; padding:3px 8px;">OWLv2</button>
               </div>
+              <!-- 2026-08-07: head(Stage2)만 보이고 image_proj(Stage1) 버전은 안 보이던 문제 —
+                   stage1_v3_5cls_owl_projs.pt 실기 검증 위해 현재 값 표시 + 전환 버튼 추가 -->
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🧬 image_proj:</span>
+                <span id="vfy-stage1-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
+                <button id="vfy-stage1-v2" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/shared/stage1_v2_projs.pt')" style="font-size:9px; padding:3px 8px;">v2(구,150ep)</button>
+                <button id="vfy-stage1-v3" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt')" style="font-size:9px; padding:3px 8px;">v3-5cls(신,225ep)</button>
+              </div>
               <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
             </details>
@@ -8668,6 +8676,16 @@ L S R  C S L  R S L
         const gEl = document.getElementById("vfy-grounder-current");
         if (gEl) gEl.textContent = (h.grounder && h.grounder.model) || "—";
 
+        // 🧬 Stage1(image_proj) 현재 값 표시 + 버튼 활성 표시 (2026-08-07)
+        const s1 = (h.stage1_path || "").split("/").pop();
+        window._currentStage1Path = h.stage1_path || "";
+        const s1El = document.getElementById("vfy-stage1-current");
+        if (s1El) s1El.textContent = s1 || "—";
+        const v2Btn = document.getElementById("vfy-stage1-v2");
+        const v3Btn = document.getElementById("vfy-stage1-v3");
+        if (v2Btn) { v2Btn.disabled = (s1 === "stage1_v2_projs.pt"); v2Btn.className = "btn " + (v2Btn.disabled ? "btn-cyan" : "btn-outline"); }
+        if (v3Btn) { v3Btn.disabled = (s1 === "stage1_v3_5cls_owl_projs.pt"); v3Btn.className = "btn " + (v3Btn.disabled ? "btn-cyan" : "btn-outline"); }
+
         // 🔁 활성 체크포인트가 실제로 바뀐 경우에만 스크리닝 필터 자동 동기화.
         // switchModel()을 거치지 않은 변경(외부 API로 /model/load 직접 호출,
         // 서버 재기동 후 복원, 대시보드 새로고침 등)도 이 주기적 폴링으로 커버됨
@@ -8711,7 +8729,7 @@ L S R  C S L  R S L
     function _setModelPanelBusy(busy) {
       const listEl = document.getElementById("vfy-model-list");
       if (listEl) listEl.querySelectorAll("button").forEach(b => b.disabled = busy);
-      ["vfy-grounder-pg2", "vfy-grounder-owlv2"].forEach(id => {
+      ["vfy-grounder-pg2", "vfy-grounder-owlv2", "vfy-stage1-v2", "vfy-stage1-v3"].forEach(id => {
         const b = document.getElementById(id);
         if (b) b.disabled = busy;
       });
@@ -8757,6 +8775,30 @@ L S R  C S L  R S L
         if (res.ok) {
           if (statusEl) statusEl.textContent = `✅ 전환 완료: ${filename} (head=${res.head}, val_acc=${res.val_acc})`;
           _syncScreeningFilterToCheckpoint(filename);
+        } else {
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "⚠️ " + _friendlyApiError(e);
+      }
+      _setModelPanelBusy(false);
+      refreshModelList();
+    }
+
+    async function switchStage1(path) {
+      const statusEl = document.getElementById("vfy-model-status");
+      const ckptPath = window._currentCheckpointPath;
+      if (!ckptPath) { if (statusEl) statusEl.textContent = "⚠️ 현재 체크포인트 경로를 아직 모름 — 🔄 눌러서 새로고침 후 재시도"; return; }
+      if (statusEl) statusEl.textContent = "🔄 image_proj 전환 중... (Stage1이 바뀌면 Kosmos-2 encoder도 재로드돼 최대 25초 걸릴 수 있어요)";
+      _setModelPanelBusy(true);
+      try {
+        const res = await api("/verify/model_switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: ckptPath, stage1_path: path })
+        });
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = "✅ image_proj 전환 완료 (head는 유지: " + res.head + ")";
         } else {
           if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
         }

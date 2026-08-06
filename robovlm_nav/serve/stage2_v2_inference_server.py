@@ -1664,6 +1664,7 @@ async def health() -> dict[str, Any]:
         "window": m.window if m else None,
         "val_acc": m.val_acc if m else None,
         "checkpoint_path": m.checkpoint_path if m else None,
+        "stage1_path": getattr(m, "_stage1_path", None) if m else None,
         "stop_mode": STOP_MODE,
         "stop_latched": m.stop_latched if m else False,
         "stop_learned_min_steps": STOP_LEARNED_MIN_STEPS,
