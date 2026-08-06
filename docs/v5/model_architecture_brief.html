@@ -427,6 +427,11 @@ seeds        = 0, 1, 2 (다중 시드로 분산 확인)</pre>
 <tr><td>stride5 입력만 적용</td><td class="c">24.2 ± 2.5%</td></tr>
 <tr style="background:rgba(74,222,128,0.1)"><td><strong>hold-aware (구간 다수결 라벨)</strong></td><td class="c g"><strong>28.3 ± 3.8%</strong></td></tr>
 </table>
+<p><img src="figures/fig_64_12_holdaware.png" alt="CH64 64-12 HELD-aware 학습 결과" style="max-width:420px;width:100%;background:#fff;border-radius:6px"></p>
+<p style="font-size:0.78rem;color:var(--dim)">원본: <a href="research_story.html#ch64">CH64 64-12</a>, 3 seed 에러바.
+그라운더를 OWL-v2로 바꿔도 HELD 25.3±3.8%로 재현되어 그라운더 종속 결과가 아님을 확인.
+단 이 28.3%도 baseline의 순수 offline 수치(39~48%대)에는 크게 못 미쳐 — hold-aware는
+근본 해결책이 아니라 <strong class="h">재수집 없이 얻는 저비용 완화책</strong>입니다.</p>
 <div class="note">
 <strong class="o">이 지표를 인용할 때 주의</strong> — HELD 수치는 <strong class="h">프레임 단위
 판단 정확도 프록시</strong>이고, 실기 89%는 <strong class="h">에피소드 도달 성공률</strong>입니다.
