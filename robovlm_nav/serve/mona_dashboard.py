@@ -2484,14 +2484,17 @@ def verify_model_list():
 
 
 class ModelSwitchReq(BaseModel):
-    path: str  # runs/v5_nav/mlp/exp73/xxx.pt (repo-relative)
+    path: str  # runs/v5_nav/mlp/exp73/xxx.pt (repo-relative) — head(Stage2) 체크포인트
     grounder: Optional[str] = None  # "pg2" | "owlv2" — 지정 시 그라운더도 같이 핫스왑
+    stage1_path: Optional[str] = None  # 2026-08-07: image_proj(Stage1) 교체용 (repo-relative).
+    # 지정 시 stage1_path도 바뀌므로 Kosmos-2 vision encoder 재사용 조건(_stage1_path 동일)이
+    # 깨져 ~25s 풀 리로드가 발생함(head만 바꿀 때의 fast-path와 다름).
 
 
 @app.post("/verify/model_switch")
 def verify_model_switch(req: ModelSwitchReq):
     """추론서버(8001)의 /model/load 핫스왑 프록시 — 프로세스 재시작(go.sh, ~95s)
-    없이 체크포인트(+옵션으로 그라운더)만 즉시 교체. Kosmos-2 vision encoder는 유지."""
+    없이 체크포인트(+옵션으로 그라운더/Stage1 image_proj)만 즉시 교체."""
     import requests as rq
     full_path = str((ROOT / req.path).resolve())
     if not os.path.exists(full_path):
@@ -2500,6 +2503,11 @@ def verify_model_switch(req: ModelSwitchReq):
         payload = {"stage2_path": full_path}
         if req.grounder:
             payload["grounder"] = req.grounder
+        if req.stage1_path:
+            full_stage1 = str((ROOT / req.stage1_path).resolve())
+            if not os.path.exists(full_stage1):
+                return {"ok": False, "error": f"stage1 파일 없음: {req.stage1_path}"}
+            payload["stage1_path"] = full_stage1
         r = rq.post(f"{INFER_URL}/model/load",
                      json=payload,
                      # 체크포인트 변경(Stage1 Kosmos-2까지 재로드)은 실측 ~25s로
