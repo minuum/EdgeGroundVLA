@@ -8994,7 +8994,17 @@ L S R  C S L  R S L
       // 딱 자르는 게 맞음(2026-07-30).
       const curFile = (window._currentCheckpointPath || "").split("/").pop();
       if (untilEl) untilEl.value = (b.checkpoint === curFile) ? "" : b.end;
-      if (ckptSel && [...ckptSel.options].some(o => o.value === b.checkpoint)) ckptSel.value = b.checkpoint;
+      // 2026-08-07: 기존엔 옵션이 이미 있을 때만 값을 바꿔서, 방금 나온 새
+      // 체크포인트(checkpoint_index 캐시가 아직 안 갱신됐거나 폴링 순서가 어긋난
+      // 경우)로는 조용히 안 바뀌고 이전 선택이 그대로 남는 문제가 있었음(사용자가
+      // 발견 — 모델은 전환됐는데 스크리닝 진행률 패널만 구모델 필터에 멈춰있었음).
+      // 없으면 만들어서라도 항상 반영.
+      if (ckptSel) {
+        if (![...ckptSel.options].some(o => o.value === b.checkpoint)) {
+          ckptSel.appendChild(new Option(_ckptLabel(b.checkpoint), b.checkpoint));
+        }
+        ckptSel.value = b.checkpoint;
+      }
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
