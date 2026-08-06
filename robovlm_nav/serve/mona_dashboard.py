@@ -1171,6 +1171,17 @@ _stop_ev   = threading.Event()
 _async_q: collections.deque = collections.deque(maxlen=2)
 _goalnav_q: collections.deque = collections.deque(maxlen=2)
 
+# 2026-08-07: 세션이 "학습된 STOP(모델이 목표도달로 판단)"으로 끝났는지 "수동정지
+# (R1)"로 끝났는지는 logger.end_session()의 status 인자에 이미 있었지만
+# episode_log.csv에는 안 남고 있었음(H5 attrs에만 있어서 사후 확인이 세션 파일을
+# 일일이 열어야만 가능) — 스크리닝 표에서 바로 보이게 여기 캐싱해뒀다가 L2 저장 시 같이 씀.
+_last_end_reason = {"session_id": None, "status": None}
+
+
+def _mark_end_reason(status: str) -> None:
+    _last_end_reason["session_id"] = _state.get("session_id")
+    _last_end_reason["status"] = status
+
 # ── 조이스틱 버튼 배치 모드(2026-07-22) — 📷 데이터수집 vs 🧪 경로검증 ──
 # 기본값 False(=collect) 유지 — 기존 동작 100% 불변. Y(3) 또는 UI 토글로 전환.
 _joystick_verify_mode: bool = False
@@ -1442,12 +1453,14 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
 
         if res.get("goal_near"):
             _ros.ctrl.robust_stop(source="goal_reached")
+            _mark_end_reason("learned")
             logger.end_session("goal_reached")
             _state["running"]    = False
             _state["status_log"] = f"🎯 목적지 도달! (Step {step})"
             return
 
     _ros.ctrl.robust_stop(source="manual_stop")
+    _mark_end_reason("manual")
     logger.end_session("manual_stop")
     _state["running"]    = False
     _state["status_log"] = "수동 정지"
@@ -1512,6 +1525,7 @@ def _async_infer(instr: str, apply_cc: bool, logger):
 
         if res.get("goal_near"):
             _ros.ctrl.robust_stop(source="async_goal")
+            _mark_end_reason("learned")
             logger.end_session("goal_reached")
             _state["running"]    = False
             _state["status_log"] = f"🎯 목적지 도달! (Step {step})"
@@ -1947,6 +1961,7 @@ def drive_stop():
         _ros.ctrl.robust_stop(source="api_stop")
     try:
         from scripts.inference_logger import get_logger
+        _mark_end_reason("manual")
         get_logger().end_session("manual_stop")
     except Exception as e:
         # 2026-07-30: 이 예외가 조용히 삼켜지고 있어서 session_*.json 리포트가
@@ -3347,9 +3362,10 @@ EPISODE_CSV = ROOT / "logs" / "episode_log.csv"
 # 별도 파일. 조이스틱 검증모드 SEL(2026-07-23, 남는 키)로 토글해서 기록 대상을
 # 여기로 돌림 — 그라운더 A/B 테스트처럼 "정식 수치로 안 셀" 시도를 위함.
 EXPERIMENTAL_EPISODE_CSV = ROOT / "logs" / "episode_log_experimental.csv"
-EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id", "체크포인트", "런타임설정"]
+EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id", "체크포인트", "런타임설정", "종료방식"]
 EP_COL_CKPT = 14  # "체크포인트" 컬럼 인덱스 — 이 컬럼 추가 전(2026-07-29 이전) 행은 없을 수 있음(len(row)<=14)
 EP_COL_RUNTIME_CFG = 15  # "런타임설정"(JSON) 컬럼 — grounding_skip_n/cx_jump_filter/multi_prompt 등
+EP_COL_END_REASON = 16  # "종료방식" — "learned"(모델 STOP/목표도달) vs "manual"(R1 수동정지). 2026-08-07 추가, 이전 행엔 없음(len(row)<=16)
 # 세부 옵션 전체를 저장 시점 그대로 통째로 남김. 체크포인트만 기록해서는 부족했던
 # 사례(2026-07-23 17:24~18:55 배치 재구성 시 grounding_skip_n/multi_prompt 등
 # 세부값을 "직전 스냅샷 기준 추정"으로만 답할 수밖에 없었음) 재발 방지(2026-07-29).
@@ -3877,6 +3893,11 @@ def episodes_log(req: EpisodeLogReq):
     stop_flag = "Y" if area >= 0.18 else "N"
     date_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     checkpoint_name, runtime_cfg_json = _current_checkpoint_and_config()
+    # 이번 세션이 방금 끝난 그 세션이면(_last_end_reason의 session_id 일치) 그
+    # 종료방식을 쓰고, 안 맞으면(순서가 어긋났거나 세션 없이 저장) 빈 값.
+    end_reason = (_last_end_reason["status"]
+                  if _last_end_reason["session_id"] == _state.get("session_id")
+                  else "")
 
     new_row = [
         len(rows) + 1,
@@ -3895,6 +3916,7 @@ def episodes_log(req: EpisodeLogReq):
         _state.get("session_id") or "",
         checkpoint_name,
         runtime_cfg_json,
+        end_reason,
     ]
     
     import csv
@@ -10710,10 +10732,17 @@ L S R  C S L  R S L
       if (cfgEl) {
         const ckpt = ep.length > 14 ? ep[14] : null;
         const cfgRaw = ep.length > 15 ? ep[15] : null;
-        if (!ckpt && !cfgRaw) {
+        // 2026-08-07: 학습된 STOP(모델 목표도달)인지 R1 수동정지인지 — 이전 행엔 없음(빈 문자열).
+        const endReason = ep.length > 16 ? ep[16] : null;
+        if (!ckpt && !cfgRaw && !endReason) {
           cfgEl.style.display = "none";
         } else {
           let cfgText = ckpt ? `체크포인트: ${ckpt}` : "";
+          if (endReason) {
+            const label = endReason === "learned" ? "학습STOP(모델 목표도달)"
+              : endReason === "manual" ? "수동정지(R1)" : endReason;
+            cfgText += (cfgText ? "\\n" : "") + `종료방식: ${label}`;
+          }
           if (cfgRaw) {
             try {
               const cfg = JSON.parse(cfgRaw);
