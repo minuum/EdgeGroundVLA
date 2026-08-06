@@ -74,6 +74,18 @@
     code, pre, .kpi, .redsrc { background:#f1f5f9; }
     .redsrc .txt, .rawred { color:#b91c1c; }
   }
+  /* ── 고정 목차 사이드바 (research_story.html과 동일 계열, 항상 표시) ── */
+  #toc { position:fixed; top:90px; right:18px; width:210px; max-height:calc(100vh - 120px);
+         overflow-y:auto; z-index:500; background:#111827; border:1px solid #1e293b;
+         border-radius:12px; padding:12px 0; box-shadow:-4px 0 24px rgba(0,0,0,0.35); }
+  #toc::-webkit-scrollbar { width:4px; } #toc::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+  #toc .toc-h { font-size:0.68rem; font-weight:800; letter-spacing:0.06em; color:#64748b;
+                padding:6px 16px 4px; text-transform:uppercase; }
+  .toc-item { display:block; padding:5px 16px; font-size:0.78rem; color:#94a3b8; text-decoration:none;
+              border-left:2px solid transparent; line-height:1.4; }
+  .toc-item:hover { background:#1e293b; color:#e2e8f0; }
+  .toc-item.active { color:#38bdf8; border-left-color:#38bdf8; background:rgba(56,189,248,0.08); }
+  @media (max-width:1180px) { #toc { display:none; } }
 </style>
 <div class="hero">
   <h1>논문 드래프트 보완 — 문제 · 대응책 · 실 답변</h1>
@@ -101,6 +113,23 @@
     <a href="model_architecture_brief.html">🏗 모델 구조 자료</a>
   </div>
 </div>
+<nav id="toc">
+  <div class="toc-h">개요</div>
+  <a class="toc-item" href="#status">절별 진행 현황</a>
+  <a class="toc-item" href="#raw">원문 전문</a>
+  <a class="toc-item" href="#verbatim">원문 표 25건</a>
+  <a class="toc-item" href="#fix2">본문 사실오류 2건</a>
+  <div class="toc-h">카테고리</div>
+  <a class="toc-item" href="#cat1">① 모델 구조</a>
+  <a class="toc-item" href="#cat2">② 구조 선택 근거</a>
+  <a class="toc-item" href="#cat3">③ Serving Control</a>
+  <a class="toc-item" href="#cat4">④ 데이터 수집</a>
+  <a class="toc-item" href="#cat5">⑤ 학습 방법</a>
+  <a class="toc-item" href="#cat6">⑥ 로봇 탑재</a>
+  <a class="toc-item" href="#cat7">⑦ Runtime</a>
+  <div class="toc-h">기타</div>
+  <a class="toc-item" href="#plan">액션플랜</a>
+</nav>
 <div class="wrap">
 
 <div class="item ready" style="border-left-color:#38bdf8">
@@ -391,7 +420,7 @@ has_bbox 채널의 의미 — 검출 실패 시 cx=0.5, cy=0.6, area=0.06의 고
 </blockquote></div>
   </div>
 </div>
-<h2>① 모델 구조 정밀 기술 <span class="n">p4 · 1. Model Architecture · 보완요구 7건</span></h2>
+<h2 id="cat1">① 모델 구조 정밀 기술 <span class="n">p4 · 1. Model Architecture · 보완요구 7건</span></h2>
 
 <div class="item ready">
   <h3><span class="tag t-ready">지금 채울 수 있음</span>프레임 특징 벡터 / 헤드 입출력</h3>
@@ -496,7 +525,7 @@ Kosmos-2 비전 타워(0.303B), 선형 사상(0.262M)은 모두 동결(frozen)�
 style="max-width:100%;background:#fff;border-radius:6px"></p></div>
   </div>
 </div>
-<h2>② 구조 선택의 근거 <span class="n">p5 · 1.1 Heterogeneous Grounding Encoder · 1건</span></h2>
+<h2 id="cat2">② 구조 선택의 근거 <span class="n">p5 · 1.1 Heterogeneous Grounding Encoder · 1건</span></h2>
 
 <div class="item ready">
   <h3><span class="tag t-ready">지금 채울 수 있음</span>"이 구조를 생각한 이유를 설명할 수 있나?"</h3>
@@ -558,7 +587,7 @@ RoboVLMs의 인코더 비교에서 Kosmos-2가 가장 좋은 결과를 보였기
 </blockquote></div>
   </div>
 </div>
-<h2>③ Serving Control <span class="n">p5 · 1.4 · 4건 — 제목만 있고 내용이 전부 비어 있음</span></h2>
+<h2 id="cat3">③ Serving Control <span class="n">p5 · 1.4 · 4건 — 제목만 있고 내용이 전부 비어 있음</span></h2>
 
 <div class="item ready">
   <h3><span class="tag t-ready">지금 채울 수 있음</span>threshold 설정 내용</h3>
@@ -747,7 +776,7 @@ RoboVLMs의 인코더 비교에서 Kosmos-2가 가장 좋은 결과를 보였기
 </blockquote></div>
   </div>
 </div>
-<h2>④ 데이터 수집 <span class="n">p6 · 3. Collection of data · 1건 — 절 전체가 비어 있음</span></h2>
+<h2 id="cat4">④ 데이터 수집 <span class="n">p6 · 3. Collection of data · 1건 — 절 전체가 비어 있음</span></h2>
 
 <div class="item partial">
   <h3><span class="tag t-partial">부분 · 확인 필요</span>데이터 포맷과 수집 방법</h3>
@@ -961,7 +990,7 @@ RoboVLMs의 인코더 비교에서 Kosmos-2가 가장 좋은 결과를 보였기
 </blockquote></div>
   </div>
 </div>
-<h2>⑤ 학습 방법 <span class="n">p8 · 5.2 학습 방법 설명 · 8건</span></h2>
+<h2 id="cat5">⑤ 학습 방법 <span class="n">p8 · 5.2 학습 방법 설명 · 8건</span></h2>
 
 <div class="item ready">
   <h3><span class="tag t-ready">지금 채울 수 있음</span>학습 파라미터</h3>
@@ -1255,7 +1284,7 @@ Stage 2 (반복) — 액션 헤드만 학습
 </blockquote></div>
   </div>
 </div>
-<h2>⑥ 로봇 탑재 방법 <span class="n">p9 · 6. Deploy · 1건 — 절 전체가 비어 있음</span></h2>
+<h2 id="cat6">⑥ 로봇 탑재 방법 <span class="n">p9 · 6. Deploy · 1건 — 절 전체가 비어 있음</span></h2>
 
 <div class="item partial">
   <h3><span class="tag t-partial">부분 · 확인 필요</span>SerbotII 탑재 방법</h3>
@@ -1300,7 +1329,7 @@ Stage 2 (반복) — 액션 헤드만 학습
 - 위 메모리 수치의 <strong>젯슨 실측값</strong> (현재 값은 로컬 측정)</p></div>
   </div>
 </div>
-<h2>⑦ Runtime 수행 <span class="n">p9 · 7. Runtime · 3건</span></h2>
+<h2 id="cat7">⑦ Runtime 수행 <span class="n">p9 · 7. Runtime · 3건</span></h2>
 
 <div class="item ready">
   <h3><span class="tag t-ready">지금 채울 수 있음</span>전처리 → 추론 → 후처리 파이프라인</h3>
@@ -1529,3 +1558,24 @@ Kosmos-2(비전)만 호출하며 좌표는 1회차 값을 그대로 쓴다. 세 
   <code>rStyle</code>/삽입 이미지까지 확인해 <strong>25건이 전부</strong>임을 검증했습니다.
 </div>
 </div>
+<script>
+(function(){
+  var items = document.querySelectorAll('.toc-item');
+  var targets = Array.prototype.map.call(items, function(a){
+    return document.getElementById(a.getAttribute('href').slice(1));
+  }).filter(Boolean);
+  function onScroll(){
+    var pos = window.scrollY + 120;
+    var current = null;
+    targets.forEach(function(t){ if (t.offsetTop <= pos) current = t; });
+    items.forEach(function(a){ a.classList.remove('active'); });
+    if (current) {
+      var id = current.id;
+      var link = document.querySelector('.toc-item[href="#'+id+'"]');
+      if (link) link.classList.add('active');
+    }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
