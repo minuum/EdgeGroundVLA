@@ -444,6 +444,13 @@ Navigate a right curve approach from the strong right extreme starting position 
 > 동일한 검증 집합**을 공유한다는 점이다. 그래야 arm 간 정확도 비교가 검증 집합 차이가 아니라
 > 방법 차이에서 비롯됨을 보장할 수 있다.
 
+> **용어 표기 (선택)** — "held-out validation" 대신 **"episode-disjoint split"**,
+> "held-out set" 대신 **"independent validation set"**으로 쓸 수 있다. 33개 에피소드가
+> 학습 시 한 번도 관측되지 않는다는 점을 강조하려면 **"unseen episodes"**라는 표현도 쓸 수
+> 있다. 다만 "held-out"도 ML/로보틱스 학회에서 표준적으로 쓰이는 용어이므로, 이는 대체가
+> 필수라기보다 선호에 따른 선택이다. (`docs/notes/training_methodology_unseen_guide.md`)
+> 실측: 33 에피소드 · 2,431 프레임 · train/val 에피소드 중복 0건(재계산으로 확인).
+
 #### hold-aware 샘플링 — 무엇을 어떻게 바꾸는가
 
 운영 시 로봇은 매 프레임 판단하지 않는다. 그라운딩이 3프레임마다 한 번만 갱신되고(1.4절)
@@ -486,6 +493,28 @@ Navigate a right curve approach from the strong right extreme starting position 
 > 아직 확인하지 않았다. 운영 시 한 항목이 한 번의 추론 호출에 대응하고 그라운딩 지연이
 > 크므로 실제 시간 폭은 학습 쪽과 유사할 가능성이 있으나, **프레임 타임스탬프로 검증한 바
 > 없으므로 논문에 "학습과 운영의 시간 폭이 일치한다"고 쓸 수 없다.** 검증 항목으로 남긴다.
+
+#### hold-aware 개선 폭 — CH64 64-12 원본 결과
+
+hold-aware 샘플링을 도입한 실제 계기는 **HELD**(운영과 동일하게 결정 시점만 판단하고 그
+사이는 직전 값을 유지한 상태에서의 프레임 판단 정확도, closed-loop 시뮬레이션 상의 오프라인
+지표)였다. 3 seed로 측정한 결과는 다음과 같다.
+
+![HELD-aware 학습 결과](../v5/figures/fig_64_12_holdaware.png)
+
+| 학습 방식 | HELD Success (3 seed) |
+|---|---|
+| baseline (연속 프레임으로 학습 → HELD 평가) | 7.1±3.8% |
+| stride=5 입력만 적용 | 24.2±2.5% |
+| **hold-aware (다수결 라벨)** | **28.3±3.8%** |
+
+> **⚠️ 이 개선을 실기 성공률과 인과관계로 서술하지 않는다.** HELD는 프레임 단위 판단
+> 정확도의 오프라인 프록시이고, 89%는 에피소드 단위 실기 도달 성공률이다. 척도가 다른
+> 두 지표를 맞춰 해석했다가 결론을 철회한 전례가 있다(CH64 64-11). 또한 HELD 28.3%
+> 자체도 baseline의 순수 offline 수치(39~48%대)에는 크게 못 미치므로, hold-aware는
+> "재수집 없이 얻을 수 있는 저비용 완화책"이라고만 서술한다 — 근본 해결책이 아니다.
+> 그라운더를 OWL-v2로 바꿔도 HELD 25.3±3.8%로 재현되어, 이 개선이 특정 그라운더에
+> 종속된 결과가 아님은 확인되었다.
 
 ### (3) 학습 산출물 🔴21
 
