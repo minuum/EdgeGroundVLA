@@ -183,7 +183,7 @@ def _log_preview_decision(session_id: str, attempt: int, max_retry: int, bbox: d
         pass  # 로깅 실패가 추론을 막아서는 안 됨
 
 # --- defaults ---
-DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
+DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "stage1_v3_5cls" / "stage1_v3_5cls_owl_projs.pt"  # 2026-08-07 배포 전환
 # 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
 # 폴백: VLA_S2V2_STAGE2 환경변수로 exp67(MLP) 또는 exp72(cx-Geom) 교체 가능
 DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp71_window6" / "action_transformer.pt"
@@ -226,6 +226,15 @@ FULLSCREEN_AREA_THRESHOLD = 0.85
 # 기록 전용 — 값이 너무 낮으면 post-process가 느려질 수 있어 0.01로 둠
 # (threshold 스윕 관심구간 0.10~0.35를 충분히 커버).
 _OWL_SCORE_FLOOR = float(os.getenv("VLA_OWL_SCORE_FLOOR", "0.01"))
+# 2026-08-07: OWL-v2 fp16 전환 — 실측(docs/DASHBOARD_WIKI.md "경량화 실측") 기준
+# fp32 1901.7ms → fp16 962.1ms(2배), GPU 메모리도 절반. 지금까지 코드에는 반영
+# 안 돼 있었음(fp32로만 로드). 정확도 손실 여부는 실기로 확인 필요해서 기본값은
+# off로 두고 토글로만 켬 — 검증 전까지 지금까지의 89/100, 95/100 결과와 뒤섞이지
+# 않게 하기 위함. VLA_OWLV2_FP16=1로 켜면 다음 서버 기동(재시작)부터 적용됨
+# (이미 로드된 모델의 dtype은 런타임 중 못 바꿔서 재기동 필요).
+# 주의: OwlV2Grounder.__init__에서 매번 os.getenv로 직접 읽어야 함(_restore_
+# runtime_state_env()가 __main__에서 get_model()보다 먼저 실행되긴 하지만,
+# 모듈 임포트 시점에 한 번만 굳는 상수로 만들면 그 복원 이전 값에 묶여버림).
 # cx-rule: 환경변수로 켜면 MLP 예측 대신 bbox cx 기반 기하학 룰로 액션 결정.
 # has_bbox=True일 때만 적용; has_bbox=False면 MLP 따름.
 # VLA_CX_RULE=1 로 활성화 (default: off)
@@ -733,14 +742,17 @@ class OwlV2Grounder:
         # 배포 체크리스트("OWL 활성인지 /health로 확인")가 오판됨
         self._model_tag = "OWL-v2"
         self._input_px = 960  # owlv2-base-patch16-ensemble 기본 입력 해상도
+        self._dtype = torch.float16 if os.getenv("VLA_OWLV2_FP16", "0") == "1" else torch.float32
 
     def _ensure_loaded(self) -> None:
         if self._model is None:
             from transformers import Owlv2Processor, Owlv2ForObjectDetection
-            logger.info("OwlV2Grounder: loading google/owlv2-base-patch16-ensemble")
+            logger.info("OwlV2Grounder: loading google/owlv2-base-patch16-ensemble (dtype=%s)",
+                        self._dtype)
             self._proc = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
             self._model = Owlv2ForObjectDetection.from_pretrained(
-                "google/owlv2-base-patch16-ensemble").to(self._device).eval()
+                "google/owlv2-base-patch16-ensemble", torch_dtype=self._dtype
+            ).to(self._device).eval()
 
     def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
             return_raw: bool = False, phrase: str = "gray basket",
@@ -753,6 +765,10 @@ class OwlV2Grounder:
         # (plan_20260705_vla_ladder_step1_2.md ①: 언어→타겟 선택)
         query = phrase
         inp = self._proc(text=[[query]], images=pil, return_tensors="pt").to(self._device)
+        # pixel_values는 processor가 float32로 내놓음 — 모델을 fp16으로 올렸으면
+        # 입력도 맞춰야 함(input_ids/attention_mask는 정수형이라 그대로 둠).
+        if self._dtype == torch.float16:
+            inp["pixel_values"] = inp["pixel_values"].to(torch.float16)
         with torch.no_grad():
             out = self._model(**inp)
         # threshold=0.25: owlv2_threshold_roc.py 실측 확정값 — 정탐 95.3% 유지하며
@@ -1567,6 +1583,7 @@ def _persist_runtime_state() -> None:
             "force_reground_on_miss": getattr(m, "_force_reground_on_miss", None) if m else None,
             "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
             "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
+            "owlv2_fp16": os.getenv("VLA_OWLV2_FP16", "0") == "1",
         }
         _RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
         _RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2, ensure_ascii=False))
@@ -1601,6 +1618,7 @@ def _restore_runtime_state_env() -> Optional[dict]:
         "force_reground_on_miss": "VLA_FORCE_REGROUND_ON_MISS",
         "owlv2_thresh": "VLA_OWLV2_THRESH",
         "owlv2_area_scale": "VLA_OWLV2_AREA_SCALE",
+        "owlv2_fp16": "VLA_OWLV2_FP16",
     }
     for key, env_name in env_map.items():
         val = state.get(key)
@@ -1656,6 +1674,7 @@ async def health() -> dict[str, Any]:
                 "phrase": getattr(g, "_phrase", "gray basket"),
                 "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
                 "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
+                "owlv2_dtype": str(getattr(g, "_dtype", "?")),
             }
     return {
         "status": "healthy",
