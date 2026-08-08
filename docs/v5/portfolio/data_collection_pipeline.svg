@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420" style="font-family:system-ui,sans-serif;background:#0f172a">
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22c55e"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="420" fill="#0f172a" rx="12"/>
+
+  <!-- Title -->
+  <text x="640" y="24" text-anchor="middle" fill="#f1f5f9" font-size="14" font-weight="700">MoNaVLA — 비동기 조이스틱 데이터 수집 파이프라인 (V6)</text>
+  <text x="640" y="40" text-anchor="middle" fill="#64748b" font-size="10">조이스틱 스레드와 카메라 스레드는 완전히 비동기 — publish_and_move() 호출이 로봇 구동과 기록을 동시에 트리거하고, on_command()가 그 순간 최신 프레임을 끌어와 짝지음</text>
+
+  <!-- ══ 1. Joystick ══ -->
+  <rect x="30" y="150" width="150" height="180" rx="8" fill="#0f2e2e" stroke="#14b8a6" stroke-width="1.5"/>
+  <text x="105" y="172" text-anchor="middle" fill="#5eead4" font-size="9">입력 장치</text>
+  <text x="105" y="190" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">조이스틱 (DragonRise)</text>
+  <text x="105" y="207" text-anchor="middle" fill="#94a3b8" font-size="9">25Hz 폴링 (pygame)</text>
+  <line x1="50" y1="218" x2="160" y2="218" stroke="#134e4a" stroke-width="1"/>
+  <text x="105" y="234" text-anchor="middle" fill="#94a3b8" font-size="8.5">좌스틱: 이동 · 스트레이프</text>
+  <text x="105" y="248" text-anchor="middle" fill="#94a3b8" font-size="8.5">L2 · R2: 좌/우 회전</text>
+  <text x="105" y="266" text-anchor="middle" fill="#5eead4" font-size="8.5" font-weight="600">L1: 녹화 시작</text>
+  <text x="105" y="280" text-anchor="middle" fill="#5eead4" font-size="8.5" font-weight="600">R1: 정지 · 저장</text>
+  <text x="105" y="300" text-anchor="middle" fill="#5eead4" font-size="8.5" font-weight="600">B: 실험용(모델이상) 표기</text>
+  <text x="105" y="314" text-anchor="middle" fill="#5eead4" font-size="8.5" font-weight="600">X: 에피소드 폐기</text>
+
+  <!-- arrow: Joystick -> 방향판정 -->
+  <line x1="180" y1="240" x2="228" y2="240" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="204" y="228" text-anchor="middle" fill="#64748b" font-size="8">raw axis</text>
+
+  <!-- ══ 2. 방향 판정 ══ -->
+  <rect x="230" y="195" width="150" height="90" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <text x="305" y="217" text-anchor="middle" fill="#cbd5e1" font-size="9">방향 판정</text>
+  <text x="305" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">WASD 매핑</text>
+  <text x="305" y="256" text-anchor="middle" fill="#94a3b8" font-size="8.5">Jitter Hold 0.3s (ASYNC)</text>
+
+  <!-- arrow: 방향판정 -> publish_and_move -->
+  <line x1="380" y1="240" x2="428" y2="240" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="404" y="228" text-anchor="middle" fill="#64748b" font-size="8">key(W/A/S/D..)</text>
+
+  <!-- ══ 3. publish_and_move ══ -->
+  <rect x="430" y="195" width="170" height="90" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="515" y="217" text-anchor="middle" fill="#93c5fd" font-size="9">구동 호출</text>
+  <text x="515" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">ctrl.publish_and_move()</text>
+  <text x="515" y="256" text-anchor="middle" fill="#60a5fa" font-size="8.5">10Hz 스로틀 · 방향유지 중 반복</text>
+
+  <!-- arrow: publish_and_move -> Robot -->
+  <line x1="515" y1="285" x2="515" y2="303" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="565" y="298" text-anchor="middle" fill="#64748b" font-size="8">vel (lx,ly,az)</text>
+
+  <!-- ══ 4. Robot actuation ══ -->
+  <rect x="430" y="305" width="170" height="90" rx="8" fill="#2d0f16" stroke="#f43f5e" stroke-width="1.5"/>
+  <text x="515" y="327" text-anchor="middle" fill="#fda4af" font-size="9">실시간 구동</text>
+  <text x="515" y="348" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">로봇 구동</text>
+  <text x="515" y="366" text-anchor="middle" fill="#fb7185" font-size="8.5">CAN bus → 모터</text>
+
+  <!-- arrow: publish_and_move -> on_command hook (fan-out, highlighted) -->
+  <line x1="600" y1="240" x2="648" y2="240" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-g)"/>
+  <text x="624" y="228" text-anchor="middle" fill="#4ade80" font-size="8">훅 트리거</text>
+
+  <!-- ══ 5. Camera (async, independent thread) ══ -->
+  <rect x="650" y="80" width="160" height="90" rx="8" fill="#1a1a3a" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="730" y="102" text-anchor="middle" fill="#a5b4fc" font-size="9">센서 입력 (독립 스레드)</text>
+  <text x="730" y="123" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">카메라 (10Hz)</text>
+  <text x="730" y="141" text-anchor="middle" fill="#818cf8" font-size="8.5">RGB 720×1280</text>
+
+  <!-- arrow: Camera -> on_command hook (highlighted) -->
+  <line x1="730" y1="170" x2="730" y2="193" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-g)"/>
+  <text x="775" y="185" text-anchor="middle" fill="#4ade80" font-size="8">latest_bgr()</text>
+
+  <!-- ══ 6. on_command hook (sync point) ══ -->
+  <rect x="650" y="195" width="160" height="90" rx="8" fill="#1a2e1a" stroke="#22c55e" stroke-width="2"/>
+  <text x="730" y="217" text-anchor="middle" fill="#86efac" font-size="9">동기화 지점</text>
+  <text x="730" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">on_command() 훅</text>
+  <text x="730" y="256" text-anchor="middle" fill="#4ade80" font-size="8.5">그 순간 최신 프레임 스냅샷</text>
+
+  <!-- arrow: on_command -> buffer -->
+  <line x1="810" y1="240" x2="858" y2="240" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="834" y="228" text-anchor="middle" fill="#64748b" font-size="8">(frame,action,t)</text>
+
+  <!-- ══ 7. Episode buffer ══ -->
+  <rect x="860" y="195" width="170" height="90" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <text x="945" y="217" text-anchor="middle" fill="#cbd5e1" font-size="9">버퍼</text>
+  <text x="945" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">episode_data[]</text>
+  <text x="945" y="256" text-anchor="middle" fill="#94a3b8" font-size="8.5">중복 STOP 프레임 억제</text>
+
+  <!-- arrow: buffer -> H5 -->
+  <line x1="1030" y1="240" x2="1078" y2="240" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="1054" y="226" text-anchor="middle" fill="#64748b" font-size="8">L1 시작</text>
+  <text x="1054" y="238" text-anchor="middle" fill="#64748b" font-size="8">R1 정지·저장</text>
+
+  <!-- ══ 8. H5 file (output) ══ -->
+  <rect x="1080" y="180" width="170" height="120" rx="8" fill="#2d2400" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="1165" y="202" text-anchor="middle" fill="#fcd34d" font-size="9">출력</text>
+  <text x="1165" y="223" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">H5 에피소드 파일</text>
+  <text x="1165" y="243" text-anchor="middle" fill="#fbbf24" font-size="8.5">STOP×5 합성 종료프레임</text>
+  <text x="1165" y="259" text-anchor="middle" fill="#fbbf24" font-size="8.5">observations/images</text>
+  <text x="1165" y="275" text-anchor="middle" fill="#fbbf24" font-size="8.5">actions (lx, ly, az)</text>
+
+</svg>
