@@ -1965,6 +1965,37 @@ val_acc 74.1%) 실기 검증 완료. 전송한 파일: `inference_sessions_recv/
 **정리**: 0.20으로 진행된 게 확실하며, "0.25로 잘못 돌아갔을 가능성"은 완전히
 배제됩니다. 논문 서술은 그대로 두시면 됩니다.
 
+---
+
+## 📦 [2026-08-07] V6 수집 입력장치 확인 회신 — 조이스틱 확정(키보드 아님)
+
+논문에서 "조이스틱을 이용해"로 써도 되는지 확인 요청 — **조이스틱 맞습니다.**
+
+### 근거
+
+`robovlm_nav/serve/mona_dashboard.py:702` `class DashboardJoystickReader` —
+**DragonRise USB 게임패드**를 `pygame.joystick`으로 직접 읽어서 로봇을 조작/수집합니다.
+키보드 리스너가 아닙니다. 버튼 매핑: L1=녹화시작, R1=정지&저장, A=STOP, 아날로그
+스틱=이동/스트레이프.
+
+이 클래스는 `scripts/gradio_data_collector.py:112` `class JoystickReader`에서
+이식된 것이고, 원본도 `pygame.init(); pygame.joystick.init();
+js = pygame.joystick.Joystick(0)`(318~333행)로 물리 게임패드를 잡습니다.
+(`WASD_TO_VEL` 딕셔너리가 코드에 있긴 한데 축→속도 변환용 매핑 테이블일 뿐,
+실제 입력 경로는 조이스틱 하나뿐입니다.)
+
+### 시기별 (git log 대조)
+
+| 기간 | 도구 | 컨트롤 |
+|---|---|---|
+| ~2026-05-17 | 조이스틱 통합 전 구스크립트 | 확인 필요(초기 소량) |
+| 2026-05-18~07-01 | `scripts/gradio_data_collector.py` (Gradio, 7865) | DragonRise 조이스틱 (05-18 "DragonRise 조이스틱 비동기 통합" 커밋) |
+| 2026-07-02~ | `robovlm_nav/serve/mona_dashboard.py` (FastAPI, 7800) | DragonRise 조이스틱(위 이식판) |
+
+**V6로 명명된 데이터(대시보드 수집분, 트랙A/C/F 극단배치)는 07-02 이후
+mona_dashboard.py로 수집돼서 100% 조이스틱입니다.** "조이스틱을 이용해" 서술
+그대로 두시면 됩니다 — 키보드(WASD)로 바꾸지 않으셔도 됩니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
