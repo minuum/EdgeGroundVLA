@@ -3072,11 +3072,18 @@ def _draw_meta_overlay(pil, lines: list[str]) -> None:
     """이미지 우하단에 반투명 박스 + 텍스트 여러 줄을 합성 — 인스펙터 화면의
     #inspect-meta-overlay/#ds-meta-overlay와 같은 내용을 다운로드 파일에도
     "구워 넣기" 위함(2026-08-09). 화면 오버레이는 CSS라 다운로드엔 안 남는 문제."""
-    from PIL import ImageDraw
+    from PIL import ImageDraw, ImageFont
     draw = ImageDraw.Draw(pil)
     W, H = pil.size
-    pad, line_h = 6, 14
-    widths = [draw.textlength(l) for l in lines]
+    # 2026-08-09: 화면 CSS 오버레이를 11px→28px(250%)로 키운 것과 맞춰 여기도
+    # 동일 비율로 확대(14→35, 6→15) — 기본 비트맵 폰트는 크기 조절이 안 돼서
+    # DejaVu Sans Mono 트루타입을 명시적으로 로드.
+    pad, line_h = 15, 35
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 28)
+    except Exception:
+        font = ImageFont.load_default(size=28)
+    widths = [draw.textlength(l, font=font) for l in lines]
     box_w = max(widths) + pad * 2 if widths else 0
     box_h = line_h * len(lines) + pad * 2
     x1, y1 = W - 8, H - 8
@@ -3084,7 +3091,7 @@ def _draw_meta_overlay(pil, lines: list[str]) -> None:
     draw.rectangle([x0, y0, x1, y1], fill=(0, 0, 0))
     for i, line in enumerate(lines):
         ty = y0 + pad + i * line_h
-        draw.text((x1 - pad - widths[i], ty), line, fill=(226, 232, 240))
+        draw.text((x1 - pad - widths[i], ty), line, fill=(226, 232, 240), font=font)
 
 
 @app.get("/sessions/export")
@@ -6103,7 +6110,7 @@ L S R  C S L  R S L
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="inspect-frame-img" class="viewport-img" src="">
                   <canvas id="inspect-canvas" class="viewport-canvas" width="640" height="360"></canvas>
-                  <div id="inspect-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:11px; padding:5px 9px; border-radius:6px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"></div>
+                  <div id="inspect-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:28px; padding:12px 22px; border-radius:8px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"</div>
                 </div>
 
                 <!-- 플레이어 컨트롤 슬라이더 -->
@@ -6899,7 +6906,7 @@ L S R  C S L  R S L
               <div>
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="ds-frame-img" class="viewport-img" src="">
-                  <div id="ds-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:11px; padding:5px 9px; border-radius:6px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"></div>
+                  <div id="ds-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:28px; padding:12px 22px; border-radius:8px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"</div>
                 </div>
                 <div style="margin-top:16px;">
                   <input type="range" id="ds-slider" min="0" max="0" value="0" oninput="showDsFrame(this.value)">
