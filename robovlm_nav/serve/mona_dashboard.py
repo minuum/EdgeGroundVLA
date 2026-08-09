@@ -1148,7 +1148,14 @@ _state: dict[str, Any] = {
     "grounding_cached": None,
     "grounding_caption": None,
     "run_history": [],          # [[step, label, total_ms, gnd_ms, mlp_ms, area, ts, has_bbox], ...] (has_bbox 2026-07-30 추가)
-    "action_history": [],       # [[lx, ly, az], ...] 주행 액션 이력
+    # [[lx, ly, az, duration_s], ...] 주행 액션 이력. duration_s: 자체정지형 이동
+    # (move_and_stop_timed/ramped, 회전 포함)은 호출 시점에 move_duration으로 바로
+    # 채워짐. ASYNC/GoalNav처럼 다음 판단이 올 때까지 계속 재발행하는 경우는 append
+    # 시 None으로 넣고, 다음 액션이 오거나 세션이 끝날 때 실제 유지시간으로
+    # 채워짐(_backfill_action_duration) — 2026-08-07, _return_loop가 고정
+    # move_duration으로만 되돌려서 그라운딩이 느렸던 만큼 원위치보다 못 가던 문제 수정.
+    "action_history": [],
+    "_action_started_at": None,
     "session_id": None,
     "is_returning": False,
 
@@ -1176,6 +1183,30 @@ _goalnav_q: collections.deque = collections.deque(maxlen=2)
 # episode_log.csv에는 안 남고 있었음(H5 attrs에만 있어서 사후 확인이 세션 파일을
 # 일일이 열어야만 가능) — 스크리닝 표에서 바로 보이게 여기 캐싱해뒀다가 L2 저장 시 같이 씀.
 _last_end_reason = {"session_id": None, "status": None}
+
+
+def _backfill_action_duration() -> None:
+    """연속재발행(ASYNC/GoalNav) 모드에서 직전 액션이 실제로 몇 초 유지됐는지를
+    지금(다음 액션 도착 또는 세션 종료) 확정해서 action_history 마지막 항목에 채움."""
+    ts = _state.get("_action_started_at")
+    if ts is None:
+        return
+    hist = _state.get("action_history") or []
+    if hist and hist[-1][3] is None:
+        hist[-1][3] = round(time.time() - ts, 3)
+    _state["_action_started_at"] = None
+
+
+def _append_action_history(lx: float, ly: float, az: float,
+                            duration: float | None = None) -> None:
+    """action_history에 한 스텝 추가.
+    duration이 주어지면(자체정지형 이동) 그대로 기록. None이면(연속재발행 모드)
+    나중에 _backfill_action_duration()이 실측 유지시간으로 채움 — _return_loop가
+    복귀 재생 시 갈 때와 동일한 실제 시간만큼 되돌리게 하기 위함."""
+    _backfill_action_duration()  # 직전 항목(있다면) 마감
+    _state["action_history"].append([lx, ly, az, duration])
+    if duration is None:
+        _state["_action_started_at"] = time.time()
 
 
 def _mark_end_reason(status: str) -> None:
@@ -1417,8 +1448,9 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
         lx, ly = float(action[0]), float(action[1])
         az = float(action[2]) if len(action) > 2 else 0.0
 
-        # 실시간 액션 히스토리에 기록
-        _state["action_history"].append([lx, ly, az])
+        # 실시간 액션 히스토리에 기록 — move_and_stop_ramped는 자체적으로
+        # move_duration만큼 움직이고 멈추므로 실제 유지시간을 바로 알 수 있음.
+        _append_action_history(lx, ly, az, duration=_ros.ctrl.move_duration)
 
         log_msg = _ros.ctrl.move_and_stop_ramped(lx, ly, az, source=f"{mode.lower()}")
         _state["status_log"]     = log_msg
@@ -1556,16 +1588,21 @@ def _async_exec():
             new_az = float(action[2]) if action.size > 2 else 0.0
             last_upd = time.time()
             _state["last_action"] = [new_lx, new_ly, new_az]
-            _state["action_history"].append([new_lx, new_ly, new_az])
 
             is_rotation = abs(new_az) > 0.1 and abs(new_lx) < 0.05 and abs(new_ly) < 0.05
             if is_rotation:
+                # move_and_stop_ramped가 자체적으로 move_duration만큼만 돌고 멈춤 —
+                # 실제 유지시간을 바로 알 수 있어 None(연속재발행 추정) 대신 확정값으로 기록.
+                _append_action_history(new_lx, new_ly, new_az, duration=_ros.ctrl.move_duration)
                 msg = _ros.ctrl.move_and_stop_ramped(new_lx, new_ly, new_az, source="async_exec_rot")
                 _state["status_log"] = msg
                 rot_busy_until = time.time() + _ros.ctrl.move_duration
                 lx = ly = az = 0.0
                 time.sleep(0.1)
                 continue
+            # 이동/스트레이프는 다음 판단이 올 때까지 계속 재발행됨 — 실제 유지시간은
+            # 다음 액션이 오거나(_append_action_history의 backfill) 세션이 끝날 때 확정.
+            _append_action_history(new_lx, new_ly, new_az, duration=None)
             lx, ly, az = new_lx, new_ly, new_az
 
         if time.time() < rot_busy_until:
@@ -1579,6 +1616,7 @@ def _async_exec():
         msg = _ros.ctrl.publish_and_move(lx, ly, az, source="async_exec")
         _state["status_log"] = msg
         time.sleep(0.1)
+    _backfill_action_duration()  # 마지막 액션의 실제 유지시간 확정(복귀 재생 정확도용)
     _ros.ctrl.robust_stop(source="async_end")
 
 
@@ -1667,12 +1705,13 @@ def _goalnav_exec():
             lx, ly, az = float(action.get("linear_x", 0.0)), float(action.get("linear_y", 0.0)), float(action.get("angular_z", 0.0))
             last_upd = time.time()
             _state["last_action"] = [lx, ly, az]
-            _state["action_history"].append([lx, ly, az])
+            _append_action_history(lx, ly, az, duration=None)  # 연속재발행 — 실제 유지시간은 나중에 확정
         if time.time() - last_upd > COAST:
             lx = ly = az = 0.0
         msg = _ros.ctrl.publish_and_move(lx, ly, az, source="goalnav_exec")
         _state["status_log"] = msg
         time.sleep(0.1)
+    _backfill_action_duration()
     _ros.ctrl.robust_stop(source="goalnav_end")
 
 
@@ -1687,19 +1726,24 @@ def _return_loop():
             _state["status_log"] = "⚠️ 복귀할 경로가 없습니다."
             return
         
-        # 반대 방향으로 역재생
-        rev = [(-lx, -ly, -az) for lx, ly, az in reversed(history)]
+        # 반대 방향으로 역재생 — 각 스텝의 실제 유지시간(entry[3])도 같이 되돌림.
+        # 2026-08-07: 예전엔 무조건 move_duration(0.4s)만 되돌려서, 갈 때 그라운딩이
+        # 느려 스텝당 몇 초씩 움직인 경우(ASYNC/GoalNav 연속재발행) 복귀가 원위치보다
+        # 훨씬 못 가서 멈추는 문제가 있었음 — 실제 유지시간 기록으로 대칭 재생.
+        default_dur = _ros.ctrl.move_duration if _ros and _ros.ctrl else 0.4
+        rev = [(-e[0], -e[1], -e[2], e[3] if len(e) > 3 and e[3] is not None else default_dur)
+               for e in reversed(history)]
         _state["status_log"] = f"🔄 복귀 시작 ({len(rev)}스텝 역재생)"
-        
-        for i, (lx, ly, az) in enumerate(rev):
+
+        for i, (lx, ly, az, dur) in enumerate(rev):
             if not _state["is_returning"]:
                 _state["status_log"] = "🛑 복귀 중단됨"
                 break
-            _state["status_log"] = f"🔄 복귀 중 ({i+1}/{len(rev)}스텝)"
+            _state["status_log"] = f"🔄 복귀 중 ({i+1}/{len(rev)}스텝, {dur:.1f}s)"
             if _ros and _ros.ctrl:
                 _ros.ctrl.publish_and_move(lx, ly, az, source="return")
-            time.sleep(_ros.ctrl.move_duration)
-            
+            time.sleep(dur)
+
         _state["status_log"] = "✅ 시작 위치 복귀 완료"
     except Exception as e:
         _state["status_log"] = f"❌ 복귀 실패: {e}"
@@ -2191,7 +2235,8 @@ def drive_manual(req: ManualDriveReq):
         _ros.ctrl.move_and_stop_timed(lx, ly, az, source=f"manual_{req.direction}")
         _state["status_log"] = f"🕹️ {req.direction} (속도: {s:.2f})"
         _state["last_action"] = [lx, ly, az]
-        _state["action_history"].append([lx, ly, az])
+        # move_and_stop_timed도 자체적으로 move_duration만큼만 움직이고 멈춤.
+        _append_action_history(lx, ly, az, duration=_ros.ctrl.move_duration)
 
     # 수동 운전 중에도 캘리브레이션 캡쳐 지원
     if _state["calib_recording"]:
@@ -3008,6 +3053,92 @@ def sessions_frame(sid: str, idx: int):
         return Response(status_code=500, content=f"Frame load error: {e}")
 
 
+def _json_safe(obj):
+    """h5py attrs(numpy 스칼라/바이트 등)를 json.dumps 가능한 순수 파이썬 값으로 변환."""
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8", errors="replace")
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return _json_safe(obj.tolist())
+    return obj
+
+
+@app.get("/sessions/export")
+def sessions_export(sid: str, with_bbox: int = 0, with_meta: int = 1):
+    """세션 하나를 ZIP으로 다운로드 — frames/*.jpg + (옵션)metadata.json + actions.csv.
+    with_bbox=1이면 인스펙터 캔버스(drawInspectBbox)와 동일한 공식으로 bbox를
+    이미지에 직접 합성해서 내려줌 — 지금까지 이 오버레이는 JS 캔버스에서만
+    그려지고 있어서(2026-08-08) 다운로드에는 반영할 서버 쪽 로직이 아예 없었음."""
+    h5p = INFER_H5_DIR / f"session_{sid}.h5"
+    if not h5p.exists():
+        return Response(status_code=404, content="H5 file not found")
+    try:
+        import zipfile
+        from PIL import ImageDraw
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            with h5py.File(h5p, "r") as f:
+                imgs = f["observations/images"]
+                n = len(imgs)
+                bbox_ds = f["grounding/bbox"][:] if "grounding/bbox" in f else None
+                actions = f["actions"][:] if "actions" in f else None
+                attrs = _json_safe(dict(f.attrs))
+
+                for i in range(n):
+                    pil = Image.fromarray(imgs[i].astype(np.uint8)).convert("RGB")
+                    if with_bbox and bbox_ds is not None:
+                        cx, cy, area, has_bbox = [float(v) for v in bbox_ds[i]]
+                        if has_bbox and area > 0:
+                            W, H = pil.size
+                            half = (area ** 0.5) * min(W, H) * 0.5
+                            cx_px, cy_px = cx * W, cy * H
+                            draw = ImageDraw.Draw(pil)
+                            draw.rectangle([cx_px - half, cy_px - half, cx_px + half, cy_px + half],
+                                           outline=(16, 185, 129), width=3)
+                            r = 5
+                            draw.ellipse([cx_px - r, cy_px - r, cx_px + r, cy_px + r], fill=(16, 185, 129))
+                    fbuf = io.BytesIO()
+                    pil.save(fbuf, format="JPEG", quality=85)
+                    zf.writestr(f"frames/frame_{i:04d}.jpg", fbuf.getvalue())
+
+                if with_meta:
+                    meta = {"session_id": sid, "with_bbox": bool(with_bbox), "n_frames": n, "attrs": attrs}
+                    report_path = INFER_REPORT_DIR / f"session_{sid}.json"
+                    if report_path.exists():
+                        try:
+                            meta["report"] = json.loads(report_path.read_text())
+                        except Exception:
+                            pass
+                    zf.writestr("metadata.json", json.dumps(meta, indent=2, ensure_ascii=False, default=str))
+
+                    if actions is not None:
+                        import csv
+                        cbuf = io.StringIO()
+                        w = csv.writer(cbuf)
+                        header = ["frame_idx", "lx", "ly", "az"]
+                        if bbox_ds is not None:
+                            header += ["cx", "cy", "area", "has_bbox"]
+                        w.writerow(header)
+                        for i in range(n):
+                            row = [i, *[float(v) for v in actions[i]]]
+                            if bbox_ds is not None:
+                                row += [float(v) for v in bbox_ds[i]]
+                            w.writerow(row)
+                        zf.writestr("actions.csv", cbuf.getvalue())
+
+        buf.seek(0)
+        fname = f"session_{sid}{'_bbox' if with_bbox else ''}.zip"
+        return Response(content=buf.getvalue(), media_type="application/zip",
+                         headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+    except Exception as e:
+        return Response(status_code=500, content=f"Export error: {e}")
+
+
 # ─── 🌀 오버슈트 가이드 — 트랙C(오버슈트→재수렴) 수집 예시 ─────────────────
 # CH62(docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md §2)의
 # 실패 반례 세션(205228)에서 "과도한 회전 → 반등 없이 계속 밀림" 실구간을 그대로
@@ -3242,6 +3373,62 @@ def dataset_frame(name: str, idx: int):
         return Response(content=buf.getvalue(), media_type="image/jpeg")
     except Exception as e:
         return Response(status_code=500, content=f"Frame load error: {e}")
+
+
+@app.get("/dataset/export")
+def dataset_export(name: str, with_meta: int = 1):
+    """수집 에피소드 하나를 ZIP으로 다운로드 — frames/*.jpg(BGR→RGB 보정 반영) +
+    (옵션)metadata.json + actions.csv. bbox/grounding 필드가 이 스키마엔 없어서
+    with_bbox 옵션은 없음(세션 탭과 달리 애초에 그릴 데이터가 없음)."""
+    h5p = _collect.data_dir / f"{name}.h5"
+    if not h5p.exists():
+        return Response(status_code=404, content="H5 file not found")
+    try:
+        import zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            with h5py.File(h5p, "r") as f:
+                is_new_schema = "images" in f
+                img_key = "images" if is_new_schema else "observations/images"
+                imgs = f[img_key]
+                n = len(imgs)
+                actions = f["actions"][:] if "actions" in f else None
+                event_types = f["action_event_types"][:] if "action_event_types" in f else None
+                attrs = _json_safe(dict(f.attrs))
+
+                for i in range(n):
+                    img_arr = imgs[i].astype(np.uint8)
+                    rgb_arr = cv2.cvtColor(img_arr, cv2.COLOR_BGR2RGB) if is_new_schema else img_arr
+                    pil = Image.fromarray(rgb_arr)
+                    fbuf = io.BytesIO()
+                    pil.save(fbuf, format="JPEG", quality=85)
+                    zf.writestr(f"frames/frame_{i:04d}.jpg", fbuf.getvalue())
+
+                if with_meta:
+                    meta = {"episode_name": name, "n_frames": n, "attrs": attrs}
+                    zf.writestr("metadata.json", json.dumps(meta, indent=2, ensure_ascii=False, default=str))
+
+                    if actions is not None:
+                        import csv
+                        cbuf = io.StringIO()
+                        w = csv.writer(cbuf)
+                        header = ["frame_idx", "lx", "ly", "az"]
+                        if event_types is not None:
+                            header.append("event_type")
+                        w.writerow(header)
+                        for i in range(n):
+                            row = [i, *[float(v) for v in actions[i]]]
+                            if event_types is not None:
+                                et = event_types[i]
+                                row.append(et.decode("utf-8", "replace") if isinstance(et, bytes) else et)
+                            w.writerow(row)
+                        zf.writestr("actions.csv", cbuf.getvalue())
+
+        buf.seek(0)
+        return Response(content=buf.getvalue(), media_type="application/zip",
+                         headers={"Content-Disposition": f'attachment; filename="{name}.zip"'})
+    except Exception as e:
+        return Response(status_code=500, content=f"Export error: {e}")
 
 
 @app.post("/dataset/delete")
@@ -6110,7 +6297,11 @@ L S R  C S L  R S L
                   <span id="inspect-attrs-lbl" style="font-family:var(--font-mono); color:var(--text-muted); word-break:break-all;">—</span>
                 </div>
 
-                <div style="margin-top:16px;">
+                <div style="margin-top:16px; display:flex; gap:8px;">
+                  <button class="btn btn-outline" style="flex:1; font-size:12px; padding:8px 10px;" onclick="downloadSession(0)">⬇ 다운로드(원본)</button>
+                  <button class="btn btn-outline" style="flex:1; font-size:12px; padding:8px 10px;" onclick="downloadSession(1)">⬇ 다운로드(bbox 포함)</button>
+                </div>
+                <div style="margin-top:8px;">
                   <button class="btn btn-rose" style="width:100%; font-size:12px; padding:8px 12px;" onclick="deleteActiveSession()">🗑️ 세션 파일 영구 삭제</button>
                 </div>
               </div>
@@ -6677,6 +6868,7 @@ L S R  C S L  R S L
                   <button class="btn btn-outline" id="btn-ds-play" onclick="toggleDsPlay()">▶ PLAY</button>
                   <button class="btn btn-outline" onclick="dsNextFrame()">다음 ▶</button>
                   <button class="btn btn-outline" onclick="if (_dsSelected.size >= 2) { renderDatasetCompare(); } else { setDatasetCompareMode(false); document.getElementById('ds-placeholder').style.display='block'; }">← 목록으로</button>
+                  <button class="btn btn-outline" onclick="downloadDatasetEpisode()">⬇ 다운로드</button>
                   <button class="btn btn-outline" style="border-color:var(--rose); color:var(--rose);" onclick="if (_dsDetail) _dsDeleteOne(_dsDetail.meta.name)">🗑️ 이 에피소드 삭제</button>
                 </div>
 
@@ -10552,6 +10744,12 @@ L S R  C S L  R S L
       }
     }
 
+    function downloadSession(withBbox) {
+      if (!inspectSession) return;
+      const url = `/sessions/export?sid=${encodeURIComponent(inspectSession.sid)}&with_bbox=${withBbox ? 1 : 0}&with_meta=1`;
+      window.open(url, "_blank");
+    }
+
     async function deleteActiveSession() {
       if (!inspectSession) return;
       if (!confirm("⚠️ 정말로 이 세션 파일(" + inspectSession.sid + ")을 영구 삭제하시겠습니까?\\n이 작업은 복구가 불가능합니다.")) {
@@ -11273,6 +11471,12 @@ L S R  C S L  R S L
       }
       chips.push(chip(DS_SCHEMA_VERSION[it.schema] || it.schema, "rgba(148,163,184,0.15)", "var(--text-muted)"));
       return chips.join("");
+    }
+
+    function downloadDatasetEpisode() {
+      if (!_dsDetail) return;
+      const url = `/dataset/export?name=${encodeURIComponent(_dsDetail.meta.name)}&with_meta=1`;
+      window.open(url, "_blank");
     }
 
     async function _dsDeleteOne(name) {
