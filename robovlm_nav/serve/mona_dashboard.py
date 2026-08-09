@@ -3068,12 +3068,33 @@ def _json_safe(obj):
     return obj
 
 
+def _draw_meta_overlay(pil, lines: list[str]) -> None:
+    """이미지 우하단에 반투명 박스 + 텍스트 여러 줄을 합성 — 인스펙터 화면의
+    #inspect-meta-overlay/#ds-meta-overlay와 같은 내용을 다운로드 파일에도
+    "구워 넣기" 위함(2026-08-09). 화면 오버레이는 CSS라 다운로드엔 안 남는 문제."""
+    from PIL import ImageDraw
+    draw = ImageDraw.Draw(pil)
+    W, H = pil.size
+    pad, line_h = 6, 14
+    widths = [draw.textlength(l) for l in lines]
+    box_w = max(widths) + pad * 2 if widths else 0
+    box_h = line_h * len(lines) + pad * 2
+    x1, y1 = W - 8, H - 8
+    x0, y0 = x1 - box_w, y1 - box_h
+    draw.rectangle([x0, y0, x1, y1], fill=(0, 0, 0))
+    for i, line in enumerate(lines):
+        ty = y0 + pad + i * line_h
+        draw.text((x1 - pad - widths[i], ty), line, fill=(226, 232, 240))
+
+
 @app.get("/sessions/export")
-def sessions_export(sid: str, with_bbox: int = 0, with_meta: int = 1):
+def sessions_export(sid: str, with_bbox: int = 0, with_meta: int = 1, with_metatext: int = 0):
     """세션 하나를 ZIP으로 다운로드 — frames/*.jpg + (옵션)metadata.json + actions.csv.
     with_bbox=1이면 인스펙터 캔버스(drawInspectBbox)와 동일한 공식으로 bbox를
     이미지에 직접 합성해서 내려줌 — 지금까지 이 오버레이는 JS 캔버스에서만
-    그려지고 있어서(2026-08-08) 다운로드에는 반영할 서버 쪽 로직이 아예 없었음."""
+    그려지고 있어서(2026-08-08) 다운로드에는 반영할 서버 쪽 로직이 아예 없었음.
+    with_metatext=1이면 우하단 메타 오버레이(#inspect-meta-overlay와 동일 내용)도
+    이미지에 합성 — bbox 옵션과 독립적으로 켤 수 있음."""
     h5p = INFER_H5_DIR / f"session_{sid}.h5"
     if not h5p.exists():
         return Response(status_code=404, content="H5 file not found")
@@ -3102,6 +3123,15 @@ def sessions_export(sid: str, with_bbox: int = 0, with_meta: int = 1):
                                            outline=(16, 185, 129), width=3)
                             r = 5
                             draw.ellipse([cx_px - r, cy_px - r, cx_px + r, cy_px + r], fill=(16, 185, 129))
+                    if with_metatext:
+                        lines = [sid, f"frame {i + 1}/{n}"]
+                        if bbox_ds is not None:
+                            cx, cy, area, _ = [float(v) for v in bbox_ds[i]]
+                            lines.append(f"cx={cx:.2f} cy={cy:.2f} area={area:.2f}")
+                        if actions is not None:
+                            lx, ly, az = [float(v) for v in actions[i]]
+                            lines.append(f"lx={lx:.2f} ly={ly:.2f} az={az:.2f}")
+                        _draw_meta_overlay(pil, lines)
                     fbuf = io.BytesIO()
                     pil.save(fbuf, format="JPEG", quality=85)
                     zf.writestr(f"frames/frame_{i:04d}.jpg", fbuf.getvalue())
@@ -3376,10 +3406,12 @@ def dataset_frame(name: str, idx: int):
 
 
 @app.get("/dataset/export")
-def dataset_export(name: str, with_meta: int = 1):
+def dataset_export(name: str, with_meta: int = 1, with_metatext: int = 0):
     """수집 에피소드 하나를 ZIP으로 다운로드 — frames/*.jpg(BGR→RGB 보정 반영) +
     (옵션)metadata.json + actions.csv. bbox/grounding 필드가 이 스키마엔 없어서
-    with_bbox 옵션은 없음(세션 탭과 달리 애초에 그릴 데이터가 없음)."""
+    with_bbox 옵션은 없음(세션 탭과 달리 애초에 그릴 데이터가 없음).
+    with_metatext=1이면 우하단 메타 오버레이(#ds-meta-overlay와 동일 내용)를
+    이미지에 합성."""
     h5p = _collect.data_dir / f"{name}.h5"
     if not h5p.exists():
         return Response(status_code=404, content="H5 file not found")
@@ -3395,11 +3427,20 @@ def dataset_export(name: str, with_meta: int = 1):
                 actions = f["actions"][:] if "actions" in f else None
                 event_types = f["action_event_types"][:] if "action_event_types" in f else None
                 attrs = _json_safe(dict(f.attrs))
+                scenario_line = str(attrs.get("scenario") or attrs.get("cx_position") or "—")
 
                 for i in range(n):
                     img_arr = imgs[i].astype(np.uint8)
                     rgb_arr = cv2.cvtColor(img_arr, cv2.COLOR_BGR2RGB) if is_new_schema else img_arr
                     pil = Image.fromarray(rgb_arr)
+                    if with_metatext:
+                        lines = [name, f"frame {i}/{n - 1}"]
+                        if actions is not None:
+                            lx, ly, az = [float(v) for v in actions[i]]
+                            cls = _collect_classify_8class({"linear_x": lx, "linear_y": ly, "angular_z": az})
+                            lines.append(f"{COLLECT_CLASS_SYMBOLS[cls]} {COLLECT_CLASS_NAMES_8[cls]}")
+                        lines.append(scenario_line)
+                        _draw_meta_overlay(pil, lines)
                     fbuf = io.BytesIO()
                     pil.save(fbuf, format="JPEG", quality=85)
                     zf.writestr(f"frames/frame_{i:04d}.jpg", fbuf.getvalue())
@@ -6062,6 +6103,7 @@ L S R  C S L  R S L
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="inspect-frame-img" class="viewport-img" src="">
                   <canvas id="inspect-canvas" class="viewport-canvas" width="640" height="360"></canvas>
+                  <div id="inspect-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:11px; padding:5px 9px; border-radius:6px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"></div>
                 </div>
 
                 <!-- 플레이어 컨트롤 슬라이더 -->
@@ -6297,9 +6339,12 @@ L S R  C S L  R S L
                   <span id="inspect-attrs-lbl" style="font-family:var(--font-mono); color:var(--text-muted); word-break:break-all;">—</span>
                 </div>
 
-                <div style="margin-top:16px; display:flex; gap:8px;">
-                  <button class="btn btn-outline" style="flex:1; font-size:12px; padding:8px 10px;" onclick="downloadSession(0)">⬇ 다운로드(원본)</button>
-                  <button class="btn btn-outline" style="flex:1; font-size:12px; padding:8px 10px;" onclick="downloadSession(1)">⬇ 다운로드(bbox 포함)</button>
+                <div style="margin-top:16px; display:flex; gap:14px; font-size:11px; color:var(--text-muted); align-items:center;">
+                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-bbox"> bbox 포함</label>
+                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-meta" checked> 메타 표시 포함</label>
+                </div>
+                <div style="margin-top:8px;">
+                  <button class="btn btn-outline" style="width:100%; font-size:12px; padding:8px 10px;" onclick="downloadSession()">⬇ 다운로드</button>
                 </div>
                 <div style="margin-top:8px;">
                   <button class="btn btn-rose" style="width:100%; font-size:12px; padding:8px 12px;" onclick="deleteActiveSession()">🗑️ 세션 파일 영구 삭제</button>
@@ -6854,6 +6899,7 @@ L S R  C S L  R S L
               <div>
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="ds-frame-img" class="viewport-img" src="">
+                  <div id="ds-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:11px; padding:5px 9px; border-radius:6px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"></div>
                 </div>
                 <div style="margin-top:16px;">
                   <input type="range" id="ds-slider" min="0" max="0" value="0" oninput="showDsFrame(this.value)">
@@ -6863,6 +6909,9 @@ L S R  C S L  R S L
                   </div>
                 </div>
                 <div id="ds-timeline" style="display:flex; gap:1px; margin-top:10px; height:20px; border-radius:4px; overflow:hidden; border:1px solid var(--border-glow);"></div>
+                <div style="display:flex; justify-content:center; margin-top:10px;">
+                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer; font-size:11px; color:var(--text-muted);"><input type="checkbox" id="dl-ds-meta" checked> 메타 표시 포함(다운로드)</label>
+                </div>
                 <div style="display:flex; gap:8px; margin-top:12px; justify-content:center;">
                   <button class="btn btn-outline" onclick="dsPrevFrame()">◀ 이전</button>
                   <button class="btn btn-outline" id="btn-ds-play" onclick="toggleDsPlay()">▶ PLAY</button>
@@ -10696,6 +10745,12 @@ L S R  C S L  R S L
 
       // 캔버스 박스 렌더
       drawInspectBbox(frame);
+
+      // 2026-08-09: 우하단에 핵심 메타데이터를 항상 텍스트로 표시(bbox 오버레이와는
+      // 별개 — 캔버스 지우기/그리기와 무관하게 항상 보임).
+      document.getElementById("inspect-meta-overlay").textContent =
+        `${inspectSession.sid}\nframe ${idx + 1}/${inspectSession.frames.length} · ${frame.action}\n`
+        + `cx=${frame.cx.toFixed(2)} cy=${frame.cy.toFixed(2)} area=${frame.area.toFixed(2)}`;
     }
 
     function drawInspectBbox(frame) {
@@ -10744,9 +10799,11 @@ L S R  C S L  R S L
       }
     }
 
-    function downloadSession(withBbox) {
+    function downloadSession() {
       if (!inspectSession) return;
-      const url = `/sessions/export?sid=${encodeURIComponent(inspectSession.sid)}&with_bbox=${withBbox ? 1 : 0}&with_meta=1`;
+      const withBbox = document.getElementById("dl-sess-bbox").checked ? 1 : 0;
+      const withMetaText = document.getElementById("dl-sess-meta").checked ? 1 : 0;
+      const url = `/sessions/export?sid=${encodeURIComponent(inspectSession.sid)}&with_bbox=${withBbox}&with_meta=1&with_metatext=${withMetaText}`;
       window.open(url, "_blank");
     }
 
@@ -11475,7 +11532,8 @@ L S R  C S L  R S L
 
     function downloadDatasetEpisode() {
       if (!_dsDetail) return;
-      const url = `/dataset/export?name=${encodeURIComponent(_dsDetail.meta.name)}&with_meta=1`;
+      const withMetaText = document.getElementById("dl-ds-meta").checked ? 1 : 0;
+      const url = `/dataset/export?name=${encodeURIComponent(_dsDetail.meta.name)}&with_meta=1&with_metatext=${withMetaText}`;
       window.open(url, "_blank");
     }
 
@@ -11800,6 +11858,12 @@ L S R  C S L  R S L
       document.getElementById("ds-frame-idx-lbl").textContent = `Frame: ${idx} / ${_dsDetail.frames.length - 1}`;
       document.getElementById("ds-frame-action-lbl").textContent = `${f.symbol} ${f.action_class}`;
       renderDsTimeline(_dsDetail.frames, idx);
+
+      // 2026-08-09: 세션 탭과 동일하게 우하단에 핵심 메타데이터 항상 표시.
+      const m = _dsDetail.meta;
+      const posLine = m.scenario || m.cx_position || "—";
+      document.getElementById("ds-meta-overlay").textContent =
+        `${m.name}\nframe ${idx}/${_dsDetail.frames.length - 1} · ${f.symbol} ${f.action_class}\n${posLine}`;
     }
 
     function dsPrevFrame() {
