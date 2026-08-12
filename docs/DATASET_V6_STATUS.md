@@ -2043,6 +2043,23 @@ minum 고유 로직 손실 없음).
 Tab4/데이터셋 인스펙터에 개별 ZIP 다운로드(+bbox/메타 오버레이 옵션) 추가됨 —
 `GET /sessions/export`, `GET /dataset/export`.
 
+---
+
+## 📦 [2026-08-13] ⚠️ 3-Mode 조이스틱 + LeRobot v3 되돌림 — 위 항목 취소
+
+바로 위 "inference-integration 반영 완료" 건, **취소되었습니다.** 병합 후 soda
+쪽에서 대시보드 탭 미표시/레이아웃 미분리 재현 보고가 들어와서, 재검증(div
+밸런스·switchTab 전체 시뮬레이션·서버 응답 직접 확인)했으나 코드 레벨 회귀는
+못 찾았음. 그래도 사용자 요청대로 **3-Mode/LeRobot 관련 코드만 선택 제거**하고,
+그 사이 쌓인 다른 개선(세션·데이터셋 ZIP 다운로드, bbox/메타 오버레이, 인스펙터
+1열 레이아웃)은 유지한 채로 `monavla-driving`·`inference-integration` 둘 다
+push했습니다 (`a1c49920`, `d8d43de1`).
+
+**pull하신 게 있다면 다시 pull 부탁드립니다** — `control_mode`/`action_space`/
+`action_classes`, `/joystick/cycle_control_mode` 등 관련 API가 전부 제거됐습니다.
+`export_lerobot_v3.py`와 핸드오프 문서도 삭제했습니다. 이 기능이 필요하시면
+별도로 다시 설계해서 진행하겠습니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
