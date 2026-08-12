@@ -18,12 +18,17 @@ class VLAControlManager:
     def __init__(self, node, default_throttle=50, move_duration=0.4):
         self.node = node  # ROS2 Node instance for logging and publishing
         self.throttle = default_throttle
+        # 회전(spin)만 별도 throttle — 직진/스트레이프(move)는 self.throttle 그대로 사용.
+        # 회전이 체감상 너무 빨라 절반으로 낮춤 (2026-07-15). set_speed()가 throttle을
+        # 바꿀 때 이 비율(0.5)을 유지하도록 같이 갱신함.
+        self.rot_throttle = default_throttle * 0.35  # 직진의 35% (2026-07-15: 절반→추가 30% 축소)
         self.move_duration = move_duration
         self.command_counter = 0
         self.movement_timer = None
         self.movement_lock = threading.Lock()
         self.current_action = {"lx": 0.0, "ly": 0.0, "az": 0.0}
         self.STOP_ACTION = {"lx": 0.0, "ly": 0.0, "az": 0.0}
+        self.on_command = None  # optional callback(lx, ly, az, source) — e.g. data-collection hook
 
         # Initialize Hardware
         if ROBOT_AVAILABLE:
@@ -64,18 +69,30 @@ class VLAControlManager:
             try:
                 if action_type == "MOVE":
                     if abs(az) > 0.1:
-                        # Rotation (Spin)
-                        self.driver.spin(int(np.sign(az) * self.throttle))
+                        # Rotation (Spin) — 회전량(|az|)에 비례하는 throttle 사용
+                        az_scale = min(1.0, abs(az) / 1.15) if abs(az) > 1.15 else min(1.0, abs(az))
+                        effective_rot_throttle = max(10, int(round(self.rot_throttle * az_scale)))
+                        self.driver.spin(int(np.sign(az) * effective_rot_throttle))
                     else:
-                        # translation move
+                        # translation move — 이동 크기(magnitude)에 비례하는 throttle(PWM) 사용
                         angle = np.degrees(np.arctan2(ly, lx))
                         if angle < 0: angle += 360
-                        self.driver.move(int(angle), self.throttle)
+                        mag = np.hypot(lx, ly)
+                        # 기준 속도 1.15 대비 정규화 스케일 (0.0 ~ 1.0)
+                        mag_scale = min(1.0, mag / 1.15) if mag > 1.15 else min(1.0, mag)
+                        effective_throttle = max(10, int(round(self.throttle * mag_scale)))
+                        self.driver.move(int(angle), effective_throttle)
                 else:
                     self.driver.stop()
             except Exception as e:
                 self.node.get_logger().error(f"❌ [VLA-Control] HW Drive Error: {e}")
-        
+
+        if self.on_command:
+            try:
+                self.on_command(lx, ly, az, source)
+            except Exception as e:
+                self.node.get_logger().error(f"❌ [VLA-Control] on_command hook error: {e}")
+
         return log_msg
 
     def robust_stop(self, source="robust_stop", count=5):

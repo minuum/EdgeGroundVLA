@@ -17,12 +17,13 @@ import io
 import json
 import logging
 import os
+import re
 import shutil
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 
 import numpy as np
 import h5py
@@ -30,7 +31,7 @@ from fastapi import FastAPI, Response, Header
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from PIL import Image
+from PIL import Image, ImageOps
 
 # ── 프로젝트 루트 추가 ────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parents[2]   # MoNaVLA/
@@ -61,6 +62,8 @@ except ImportError:
 # ── 환경 변수 ─────────────────────────────────────────────────────
 INFER_URL  = os.getenv("VLA_API_SERVER", "http://localhost:8001")
 API_KEY    = os.getenv("VLA_API_KEY",    "vla_devel_key_2026")
+# exp73 GoalNav 전용 서버(inference_server.py, VLA_GOALNAV_ONLY=1) — stage2_v2(8001)와 별개 프로세스.
+GOALNAV_URL = os.getenv("VLA_GOALNAV_SERVER", "http://localhost:8000")
 SODA_IP    = os.getenv("SODA_IP",        "100.85.118.58")
 DRIVE_PORT = int(os.getenv("DRIVE_PORT", "7800"))
 
@@ -165,6 +168,534 @@ class MoNaROSNode(Node):
 # ═══════════════════════════════════════════════════════════════════
 _ros: Optional[MoNaROSNode] = None
 
+
+# ═══════════════════════════════════════════════════════════════════
+# 데이터수집 (mobile_vla_data_collector.py 이식) — Phase 1+2
+# H5 스키마는 원본과 100% 동일 유지 (기존 resync_scenario_progress/분석
+# 스크립트 호환). 입력은 VLAControlManager.publish_and_move() 단일 진입점을
+# 통과하므로 키보드/조이스틱 어느 쪽으로 명령을 내려도 자동으로 기록됨.
+# ═══════════════════════════════════════════════════════════════════
+
+# 원본 mobile_vla_data_collector.py WASD_TO_CONTINUOUS 그대로 (line 42-54)
+COLLECT_KEY_TO_VEL = {
+    "w": (1.15, 0.0, 0.0),
+    "a": (0.0, 1.15, 0.0),
+    "s": (-1.15, 0.0, 0.0),
+    "d": (0.0, -1.15, 0.0),
+    "q": (1.15, 1.15, 0.0),
+    "e": (1.15, -1.15, 0.0),
+    "z": (-1.15, 1.15, 0.0),
+    "c": (-1.15, -1.15, 0.0),
+    "r": (0.0, 0.0, 0.25),
+    "t": (0.0, 0.0, -0.25),
+    " ": (0.0, 0.0, 0.0),
+}
+
+# 원본 mode="2" (V5 Phase-1.5) cup_scenarios 그대로 (line 89-99)
+COLLECT_SCENARIOS = {
+    "target_left_left_path":     {"target": 15, "key": "1", "label": "좌측 위치 · 좌회전 경로"},
+    "target_left_straight_path": {"target": 20, "key": "2", "label": "좌측 위치 · 직진 경로"},
+    "target_left_right_path":    {"target": 15, "key": "3", "label": "좌측 위치 · 우회전 경로"},
+    "target_center_left_path":     {"target": 15, "key": "4", "label": "중앙 위치 · 좌회전 경로"},
+    "target_center_straight_path": {"target": 20, "key": "5", "label": "중앙 위치 · 직진 경로"},
+    "target_center_right_path":    {"target": 15, "key": "6", "label": "중앙 위치 · 우회전 경로"},
+    "target_right_left_path":     {"target": 15, "key": "7", "label": "우측 위치 · 좌회전 경로"},
+    "target_right_straight_path": {"target": 20, "key": "8", "label": "우측 위치 · 직진 경로"},
+    "target_right_right_path":    {"target": 15, "key": "9", "label": "우측 위치 · 우회전 경로"},
+}
+COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (Variant)"}
+
+# 극단 배치 데이터수집 트랙A (plan_20260707_heterogeneous_instruction_extreme_cx_collection.md)
+# — 4포지션 × 접근경로 3종(좌곡선/직진/우곡선, 지시 불필요·오퍼레이터 재량) × 15회 = 180ep
+# + 트랙C(오버슈트→재수렴, CH62 근거, 2026-07-16 추가) — 같은 4포지션 재사용,
+# 위치당 목표 45(트랙A) + 16(트랙C 2방향×8) = 61
+# center는 트랙F(중앙 위치 커버리지, 2026-07-16 추가, plan §1-2) — 트랙A와 동일
+# 3경로×15회=45ep만 필요, 트랙C(오버슈트) 대상 아님(오버슈트는 극단 4위치 전용).
+# cx 밴드는 plan에 구체 수치가 없어 다른 위치들과 동일한 폭(0.05)으로 화면 정중앙
+# 대칭 배치.
+COLLECT_CX_POSITIONS = {
+    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 61},
+    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 61},
+    "center":       {"label": "중앙",     "lo": 0.475, "hi": 0.525, "target": 45},
+    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 61},
+    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 61},
+}
+# 위치당 45개가 "경로 다양하게"로 뭉뚱그려져 있으면 실제로 15/15/15가 지켜졌는지
+# 검증이 안 됨 — 위치×경로 조합별로 세분화해서 목표 15씩 따로 추적.
+# overshoot_* 2종은 트랙C(CH62 근거, docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md
+# §7, plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §1 "트랙 C") —
+# 지시 없이 자유주행이되 "일부러 과하게 꺾었다가 반대로 재보정"하는 동작을 명시적으로 수집.
+COLLECT_TRACKA_PATHS = {
+    "left_curve":  {"label": "좌곡선", "target": 15},
+    "straight":    {"label": "직진",   "target": 15},
+    "right_curve": {"label": "우곡선", "target": 15},
+    "overshoot_left_recover":  {"label": "오버슈트→우", "target": 8},
+    "overshoot_right_recover": {"label": "오버슈트→좌", "target": 8},
+}
+
+
+# Gradio 데이터수집기(scripts/gradio_data_collector.py)의 8-class 분류/기호와
+# 동일 정의 — 임계값도 robovlm_nav/datasets/nav_h5_dataset_impl.py와 일치시킴.
+COLLECT_CLASS_NAMES_8 = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
+COLLECT_CLASS_SYMBOLS = {0: "●", 1: "▲", 2: "◀", 3: "▶", 4: "↖", 5: "↗", 6: "↺", 7: "↻"}
+
+
+def _collect_classify_8class(action: dict) -> int:
+    x, y = float(action["linear_x"]), float(action["linear_y"])
+    az = float(action.get("angular_z", 0.0))
+    is_x, is_y = abs(x) > 0.3, abs(y) > 0.3
+    if not is_x and not is_y:
+        if az > 0.1:
+            return 6
+        if az < -0.1:
+            return 7
+        return 0
+    if x > 0.3:
+        if y > 0.3:
+            return 4
+        if y < -0.3:
+            return 5
+        return 1
+    if abs(x) < 0.3:
+        if y > 0.3:
+            return 2
+        if y < -0.3:
+            return 3
+    return 0
+
+
+def _collect_classify_time_period(hour: int) -> str:
+    if 5 <= hour < 8:
+        return "dawn"
+    if 8 <= hour < 18:
+        return "morning"
+    if 18 <= hour < 21:
+        return "evening"
+    return "night"
+
+
+class DataCollectSession:
+    """웹 대시보드용 데이터수집 세션 — 원본 스크립트의 상태머신/H5 스키마 이식."""
+
+    ACTION_CHUNK_SIZE = 8
+    DEFAULT_LAYOUT_TYPE = "hori"
+    STOP_INJECT_N = 5  # 저장 직전 마지막 프레임을 STOP 액션으로 N번 복제 (Gradio stop_inject_n 이식)
+
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.progress_file = self.data_dir / "scenario_progress.json"
+        self.time_period_file = self.data_dir / "time_period_stats.json"
+        self.core_pattern_file = self.data_dir / "core_patterns.json"
+
+        self._lock = threading.Lock()
+        self.active = False
+        self.episode_data: List[dict] = []
+        self.episode_name: Optional[str] = None
+        self.episode_started_at: Optional[float] = None
+        self.selected_scenario: Optional[str] = None
+        self.selected_pattern: Optional[str] = None
+        self.staged_scenario: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 시나리오
+        self.staged_cx_position: Optional[str] = None  # 조이스틱 D-pad로 녹화 전 미리 선택해둔 트랙A cx위치
+        self.selected_cx_position: Optional[str] = None  # 극단 배치 4포지션(강한좌/준극단좌/준극단우/강한우)
+        self.staged_cx_path: Optional[str] = None  # 트랙A 접근경로(좌곡선/직진/우곡선) — 위치와 별개 축
+        self.selected_cx_path: Optional[str] = None
+        # D-pad 좌/우가 어느 축을 순환시킬지: "trackA"(cx위치, 기본) | "scenario"(9종 시나리오)
+        # D-pad 상/하로 전환. 웹 UI에서 해당 카드의 행/◀▶를 쓰면 자동으로 그 축으로 전환됨.
+        self.collect_mode = "trackA"
+
+        self.scenario_stats: dict = collections.defaultdict(int)
+        self.cx_position_stats: dict = collections.defaultdict(int)
+        # 위치×경로 세분화 카운트 — 키: "{position}::{path}" (예: "strong_left::left_curve")
+        self.cx_position_path_stats: dict = collections.defaultdict(int)
+        self.time_period_stats: dict = collections.defaultdict(int)
+        self.core_patterns: dict = {}
+        self._load_progress()
+
+        # 복귀(경로 역재생) — Gradio start_auto_return() 이식용. 저장/폐기와 무관하게
+        # 직전 에피소드의 액션+타임스탬프만 남겨둠(이미지 없음, 가벼움).
+        self._last_episode_actions: List[dict] = []
+        self._returning = False
+        # 최근 저장/폐기 내역 — "녹화했는지 안했는지" 한눈에 보이도록 (최신이 [0])
+        self._recent_saves: List[dict] = []
+        # 마지막 저장 세션의 프레임/소요시간/실측Hz — Gradio session_summary_md 이식
+        self._last_session_summary: Optional[dict] = None
+        # 🧪 실험용/모델이상 표기(2026-07-29) — 조이스틱 B(BTN_UNDO)로 토글.
+        # 녹화 시작 전에 켜두면 그 세션 전체("수집 세션 들어가는 것 자체")가
+        # H5 attrs에 flagged_model_issue=True로 남아, 학습 데이터셋에서 제외/검토
+        # 대상으로 구분 가능. B가 원래 undo_last_frame이었는데, 이 토글로 대체됨
+        # (undo는 이 UI/조이스틱 어디에도 대체 진입점이 없음 — 사용자 확인 후 결정).
+        self.experimental_mode: bool = False
+
+    # ── VLAControlManager.on_command 훅 — source 무관(키보드/조이스틱) 기록 ──
+    # publish_and_move()는 robust_stop()의 5x 중복 정지펄스(0.05s 간격)처럼
+    # 의미 없는 반복 호출도 거치므로, 연속된 STOP 프레임은 1개로만 눌러 담아
+    # H5가 중복 정지 프레임으로 도배되는 것을 막는다 (원본 collector는 이런
+    # 워치독/robust_stop 반복 펄스를 애초에 collect_data=False로 기록 안 함).
+    def on_command(self, lx, ly, az, source):
+        if not self.active or _ros is None:
+            return
+        is_stop = abs(lx) < 0.01 and abs(ly) < 0.01 and abs(az) < 0.01
+        with self._lock:
+            if not self.active:
+                return
+            if is_stop and self.episode_data:
+                last = self.episode_data[-1]["action"]
+                if abs(last["linear_x"]) < 0.01 and abs(last["linear_y"]) < 0.01 and abs(last["angular_z"]) < 0.01:
+                    return  # 직전도 STOP이면 중복 기록 생략
+            frame = _ros.latest_bgr()
+            if frame is None:
+                return
+            self.episode_data.append({
+                "image": frame.copy(),
+                "action": {"linear_x": lx, "linear_y": ly, "angular_z": az},
+                "action_event_type": source,
+                "t": time.time(),
+            })
+
+    def start_episode(self, episode_name=None, scenario=None, pattern=None, cx_position=None, cx_path=None) -> str:
+        with self._lock:
+            self.episode_data = []
+            self.selected_scenario = scenario
+            self.selected_pattern = pattern
+            self.selected_cx_position = cx_position
+            self.selected_cx_path = cx_path
+            if not episode_name:
+                ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                parts = [f"episode_{ts}"]
+                if scenario:
+                    parts.append(scenario)
+                if pattern:
+                    parts.append(pattern)
+                if cx_position:
+                    parts.append(cx_position)
+                if cx_path:
+                    parts.append(cx_path)
+                episode_name = "_".join(parts)
+            self.episode_name = episode_name
+            self.episode_started_at = time.time()
+            self.active = True
+        log.info(f"📷 [DataCollect] 에피소드 시작: {episode_name}")
+        return episode_name
+
+    def stage_scenario(self, scenario: Optional[str]) -> Optional[str]:
+        """웹 UI(진행률 행 클릭)로 시나리오를 직접 지정 — D-pad cycle_scenario와 동일한 staged_scenario를 공유."""
+        with self._lock:
+            if self.active:
+                return self.staged_scenario
+            self.staged_scenario = scenario or None
+            self.collect_mode = "scenario"
+            return self.staged_scenario
+
+    def cycle_scenario(self, step: int) -> Optional[str]:
+        """조이스틱 D-pad 좌/우(상/하)로 녹화 시작 전 시나리오를 순환 선택 (Gradio D-pad와 동일 동작)."""
+        with self._lock:
+            if self.active:
+                return self.staged_scenario  # 녹화 중엔 변경 불가
+            keys = list(COLLECT_SCENARIOS.keys())
+            if not keys:
+                return None
+            i = (keys.index(self.staged_scenario) + step) % len(keys) if self.staged_scenario in keys else 0
+            self.staged_scenario = keys[i]
+            self.collect_mode = "scenario"
+            return self.staged_scenario
+
+    def stage_cx_position(self, cx_position: Optional[str]) -> Optional[str]:
+        """웹 UI(트랙A 막대 행 클릭)로 cx위치를 직접 지정 — D-pad cycle_cx_position과 동일 축 공유."""
+        with self._lock:
+            if self.active:
+                return self.staged_cx_position
+            self.staged_cx_position = cx_position or None
+            self.collect_mode = "trackA"
+            return self.staged_cx_position
+
+    def cycle_cx_position(self, step: int) -> Optional[str]:
+        """조이스틱 D-pad 좌/우로 녹화 시작 전 트랙A cx위치를 순환 선택."""
+        with self._lock:
+            if self.active:
+                return self.staged_cx_position
+            keys = list(COLLECT_CX_POSITIONS.keys())
+            if not keys:
+                return None
+            i = (keys.index(self.staged_cx_position) + step) % len(keys) if self.staged_cx_position in keys else 0
+            self.staged_cx_position = keys[i]
+            self.collect_mode = "trackA"
+            return self.staged_cx_position
+
+    def stage_cx_path(self, cx_path: Optional[str]) -> Optional[str]:
+        """웹 UI(경로 select/행 클릭)로 트랙A 접근경로(좌곡선/직진/우곡선)를 지정 — 위치와 별개 축."""
+        with self._lock:
+            if self.active:
+                return self.staged_cx_path
+            self.staged_cx_path = cx_path or None
+            self.collect_mode = "trackA"
+            return self.staged_cx_path
+
+    def cycle_cx_path(self, step: int) -> Optional[str]:
+        with self._lock:
+            if self.active:
+                return self.staged_cx_path
+            keys = list(COLLECT_TRACKA_PATHS.keys())
+            if not keys:
+                return None
+            i = (keys.index(self.staged_cx_path) + step) % len(keys) if self.staged_cx_path in keys else 0
+            self.staged_cx_path = keys[i]
+            self.collect_mode = "trackA"
+            return self.staged_cx_path
+
+    COLLECT_MODES = ["trackA", "cxpath", "scenario"]  # D-pad 상/하로 순환하는 축 3종
+
+    def cycle_current(self, step: int) -> dict:
+        """D-pad 좌/우 — 현재 활성 축(collect_mode)에 따라 트랙A cx위치/접근경로/시나리오 중 하나를 순환."""
+        if self.collect_mode == "scenario":
+            self.cycle_scenario(step)
+        elif self.collect_mode == "cxpath":
+            self.cycle_cx_path(step)
+        else:
+            self.cycle_cx_position(step)
+        return {"mode": self.collect_mode, "staged_scenario": self.staged_scenario,
+                "staged_cx_position": self.staged_cx_position, "staged_cx_path": self.staged_cx_path}
+
+    def toggle_collect_mode(self, step: int = 1) -> str:
+        """D-pad 상/하(또는 화면 ▲▼) — 트랙A(cx위치) → 접근경로 → 시나리오(9종) 3축을 순환 전환."""
+        with self._lock:
+            i = self.COLLECT_MODES.index(self.collect_mode) if self.collect_mode in self.COLLECT_MODES else 0
+            self.collect_mode = self.COLLECT_MODES[(i + step) % len(self.COLLECT_MODES)]
+            return self.collect_mode
+
+    def undo_last_frame(self) -> dict:
+        with self._lock:
+            if not self.active or not self.episode_data:
+                return {"ok": False, "steps": len(self.episode_data)}
+            self.episode_data.pop()
+            return {"ok": True, "steps": len(self.episode_data)}
+
+    def start_auto_return(self) -> dict:
+        """Gradio start_auto_return() 이식 — 직전 에피소드 경로를 역순+반전 액션으로
+        재생해 대략 시작 위치로 되돌아간다. 저장/폐기 여부와 무관하게 동작(토글 가능)."""
+        if self.active:
+            return {"ok": False, "msg": "녹화 중엔 복귀 불가"}
+        if self._returning:
+            self._returning = False
+            return {"ok": True, "msg": "복귀 중지"}
+        if not self._last_episode_actions or _ros is None or _ros.ctrl is None:
+            return {"ok": False, "msg": "되돌아갈 경로 없음"}
+
+        def run():
+            self._returning = True
+            try:
+                buf = self._last_episode_actions[:]
+                rev_acts = [(-a["action"]["linear_x"], -a["action"]["linear_y"], -a["action"]["angular_z"])
+                            for a in reversed(buf)]
+                ts = [a["t"] for a in buf]
+                dts = [max(0.05, min(ts[i + 1] - ts[i], 0.6)) for i in range(len(ts) - 1)]
+                dts.append(dts[-1] if dts else 0.1)
+                for act, dt in zip(rev_acts, dts):
+                    if not self._returning:
+                        break
+                    _ros.ctrl.publish_and_move(*act, source="joystick_return")
+                    time.sleep(dt)
+                if self._returning:
+                    _ros.ctrl.robust_stop(source="joystick_return_end")
+            finally:
+                self._returning = False
+
+        threading.Thread(target=run, daemon=True, name="collect-return").start()
+        return {"ok": True, "msg": "🔄 복귀 시작 — 다시 누르면 중지"}
+
+    def stop_episode(self, save=True) -> dict:
+        with self._lock:
+            self.active = False
+            data = self.episode_data
+            name = self.episode_name
+            duration = time.time() - self.episode_started_at if self.episode_started_at else 0.0
+            self.episode_data = []
+            if len(data) > 1:
+                # 저장/폐기 여부와 무관하게 남겨둠 — Gradio와 동일하게 "복귀"는 저장 안 해도 가능
+                self._last_episode_actions = [{"action": d["action"], "t": d["t"]} for d in data]
+        if not save:
+            self._recent_saves.insert(0, {
+                "name": name, "saved": False, "reason": "사용자가 폐기(save=False)",
+                "steps": len(data), "duration": duration, "ts": time.time(),
+            })
+            self._recent_saves = self._recent_saves[:10]
+            return {"ok": True, "saved": False, "steps": len(data)}
+        if len(data) <= 1:
+            self._recent_saves.insert(0, {
+                "name": name, "saved": False, "reason": "스텝 부족(<=1) — 저장 안 함",
+                "steps": len(data), "duration": duration, "ts": time.time(),
+            })
+            self._recent_saves = self._recent_saves[:10]
+            return {"ok": False, "saved": False, "reason": "스텝 부족(<=1) — 저장 안 함", "steps": len(data)}
+        if self.STOP_INJECT_N > 0:
+            last_image = data[-1]["image"]
+            for _ in range(self.STOP_INJECT_N):
+                data.append({
+                    "image": last_image,
+                    "action": {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0},
+                    "action_event_type": "stop_inject",
+                })
+        path = self._save_episode_data(data, name, duration)
+        if self.selected_scenario:
+            self.scenario_stats[self.selected_scenario] += 1
+        if self.selected_cx_position:
+            self.cx_position_stats[self.selected_cx_position] += 1
+            if self.selected_cx_path:
+                self.cx_position_path_stats[f"{self.selected_cx_position}::{self.selected_cx_path}"] += 1
+        self.time_period_stats[_collect_classify_time_period(datetime.datetime.now().hour)] += 1
+        self._save_progress()
+        log.info(f"✅ [DataCollect] 에피소드 저장: {path} ({len(data)} steps, {duration:.1f}s)")
+        self._recent_saves.insert(0, {
+            "name": name, "saved": True, "path": str(path),
+            "steps": len(data), "duration": duration, "ts": time.time(),
+        })
+        self._recent_saves = self._recent_saves[:10]
+        hz = (len(data) - 1) / duration if duration > 0 else 0.0
+        self._last_session_summary = {
+            "frames": len(data), "duration_s": round(duration, 2), "hz": round(hz, 2),
+        }
+        return {"ok": True, "saved": True, "path": str(path), "steps": len(data), "duration": duration}
+
+    def _save_episode_data(self, data: List[dict], name: str, duration: float) -> Path:
+        images = np.stack([d["image"] for d in data])
+        actions = np.array(
+            [[d["action"]["linear_x"], d["action"]["linear_y"], d["action"]["angular_z"]] for d in data],
+            dtype=np.float32,
+        )
+        event_types = np.array([d["action_event_type"] for d in data], dtype=h5py.string_dtype(encoding="utf-8"))
+        save_path = self.data_dir / f"{name}.h5"
+        now = datetime.datetime.now()
+        with h5py.File(save_path, "w") as f:
+            f.attrs["episode_name"] = name
+            f.attrs["scenario"] = self.selected_scenario or ""
+            f.attrs["cx_position"] = self.selected_cx_position or ""
+            f.attrs["cx_path"] = self.selected_cx_path or ""
+            f.attrs["total_duration"] = duration
+            f.attrs["num_frames"] = len(data)
+            f.attrs["stop_inject_n"] = self.STOP_INJECT_N
+            f.attrs["action_chunk_size"] = self.ACTION_CHUNK_SIZE
+            f.attrs["obstacle_layout_type"] = self.DEFAULT_LAYOUT_TYPE
+            f.attrs["time_period"] = _collect_classify_time_period(now.hour)
+            f.attrs["collection_datetime"] = now.isoformat()
+            f.attrs["collection_hour"] = now.hour
+            f.attrs["collection_minute"] = now.minute
+            f.attrs["flagged_model_issue"] = bool(self.experimental_mode)
+            # 3-Mode (discrete / continuous / dual) 메타데이터 & 데이터셋 생성
+            ctrl_mode = getattr(_joystick, "control_mode", "discrete") if _joystick is not None else "discrete"
+            f.attrs["control_mode"] = ctrl_mode
+            f.attrs["action_space"] = ctrl_mode
+            f.create_dataset("images", data=images, compression="gzip")
+            f.create_dataset("actions", data=actions, compression="gzip")
+            # 8-class 이산 라벨 동시 저장 (Dual Representation: Pi0 연속 모델 & 기존 8-class VLA 모두 학습 가능)
+            action_classes = np.array([_collect_classify_8class(d["action"]) for d in data], dtype=np.int64)
+            f.create_dataset("action_classes", data=action_classes, compression="gzip")
+            f.create_dataset("action_event_types", data=event_types, compression="gzip")
+        return save_path
+
+    def _load_progress(self):
+        try:
+            if self.progress_file.exists():
+                d = json.loads(self.progress_file.read_text(encoding="utf-8"))
+                for k, v in d.get("scenario_stats", {}).items():
+                    self.scenario_stats[k] = v
+                for k, v in d.get("cx_position_stats", {}).items():
+                    self.cx_position_stats[k] = v
+                for k, v in d.get("cx_position_path_stats", {}).items():
+                    self.cx_position_path_stats[k] = v
+        except Exception as e:
+            log.warning(f"[DataCollect] scenario_progress.json 로드 실패: {e}")
+        try:
+            if self.time_period_file.exists():
+                d = json.loads(self.time_period_file.read_text(encoding="utf-8"))
+                for k, v in d.get("time_period_stats", {}).items():
+                    self.time_period_stats[k] = v
+        except Exception as e:
+            log.warning(f"[DataCollect] time_period_stats.json 로드 실패: {e}")
+        try:
+            if self.core_pattern_file.exists():
+                self.core_patterns = json.loads(self.core_pattern_file.read_text(encoding="utf-8"))
+        except Exception as e:
+            log.warning(f"[DataCollect] core_patterns.json 로드 실패: {e}")
+
+    def _save_progress(self):
+        try:
+            self.progress_file.write_text(json.dumps({
+                "last_updated": datetime.datetime.now().isoformat(),
+                "scenario_stats": dict(self.scenario_stats),
+                "total_completed": sum(self.scenario_stats.values()),
+                "total_target": sum(s["target"] for s in COLLECT_SCENARIOS.values()),
+                "cx_position_stats": dict(self.cx_position_stats),
+                "cx_position_path_stats": dict(self.cx_position_path_stats),
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            log.warning(f"[DataCollect] scenario_progress.json 저장 실패: {e}")
+        try:
+            self.time_period_file.write_text(json.dumps({
+                "last_updated": datetime.datetime.now().isoformat(),
+                "time_period_stats": dict(self.time_period_stats),
+                "total_completed": sum(self.time_period_stats.values()),
+                "total_target": 1000,
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            log.warning(f"[DataCollect] time_period_stats.json 저장 실패: {e}")
+
+    def _episode_timeline(self) -> dict:
+        """현재 에피소드 버퍼의 최근 액션 기호열 + 실측 Hz + 8-class 분포
+        (Gradio episode_timeline_md/episode_dist_md 이식)."""
+        buf = self.episode_data
+        n = len(buf)
+        if n == 0:
+            return {"n": 0, "symbols": "", "hz": 0.0, "dist": {}}
+        symbols = "".join(COLLECT_CLASS_SYMBOLS[_collect_classify_8class(d["action"])] for d in buf[-28:])
+        ts = [d["t"] for d in buf[-12:] if "t" in d]
+        hz = 0.0
+        if len(ts) >= 2:
+            dts = [ts[i + 1] - ts[i] for i in range(len(ts) - 1)]
+            mean_dt = sum(dts) / len(dts)
+            if mean_dt > 0:
+                hz = round(1.0 / mean_dt, 1)
+        dist: Dict[str, int] = collections.defaultdict(int)
+        for d in buf:
+            cls = _collect_classify_8class(d["action"])
+            dist[COLLECT_CLASS_NAMES_8[cls]] += 1
+        return {"n": n, "symbols": symbols, "hz": hz, "dist": dict(dist)}
+
+    def state(self) -> dict:
+        cur_scenario = self.selected_scenario or self.staged_scenario
+        scenario_target = COLLECT_SCENARIOS.get(cur_scenario, {}).get("target", 0) if cur_scenario else 0
+        return {
+            "active": self.active,
+            "episode_name": self.episode_name,
+            "episode_started_at": self.episode_started_at,
+            "steps": len(self.episode_data),
+            "recent_saves": self._recent_saves[:10],
+            "last_session_summary": self._last_session_summary,
+            "episode_timeline": self._episode_timeline(),
+            "current_scenario_target": scenario_target,
+            "scenario": self.selected_scenario,
+            "pattern": self.selected_pattern,
+            "staged_scenario": self.staged_scenario,
+            "scenarios": COLLECT_SCENARIOS,
+            "patterns": COLLECT_PATTERNS,
+            "scenario_stats": dict(self.scenario_stats),
+            "total_target": sum(s["target"] for s in COLLECT_SCENARIOS.values()),
+            "total_completed": sum(self.scenario_stats.values()),
+            "cx_position": self.selected_cx_position,
+            "cx_positions": COLLECT_CX_POSITIONS,
+            "cx_position_stats": dict(self.cx_position_stats),
+            "staged_cx_position": self.staged_cx_position,
+            "cx_paths": COLLECT_TRACKA_PATHS,
+            "cx_path": self.selected_cx_path,
+            "staged_cx_path": self.staged_cx_path,
+            "cx_position_path_stats": dict(self.cx_position_path_stats),
+            "collect_mode": self.collect_mode,
+            "returning": self._returning,
+            "has_return_path": len(self._last_episode_actions) > 1,
+        }
+
+
+_collect: Optional[DataCollectSession] = None
+
 # 프로세스 시작 시각/PID — 좀비 프로세스 감지 및 UI 신선도 표시용
 # (2026-07-02: go.sh 재시작 시 SIGTERM만으론 안 죽는 프로세스가 좀비로 남아
 #  옛 MJPEG 스트림을 계속 서빙하던 사고가 있었음 — 재발 시 바로 알아채기 위함)
@@ -178,9 +709,11 @@ _PROCESS_START_TS = time.time()
 class DashboardJoystickReader:
     """DragonRise 게임패드로 대시보드 로봇을 직접 제어.
 
-    버튼 매핑:
-      A (0)     → STOP (robust_stop)
-      Start (7) → SYNC ↔ ASYNC 모드 전환
+    버튼 매핑은 연결 시 _detect_layout()이 자동 감지(dragonrise/controller) 후
+    scripts/joystick_config.json의 실측값으로 최종 덮어씀 (Gradio
+    gradio_data_collector.py JoystickReader와 동일 로직). 하드코딩된 인덱스로
+    가정하지 말 것 — 실제 패드에서 버튼이 다르게 잡히면 joystick_config.json만
+    고치면 됨.
 
     SYNC 모드: 0.45s 간격으로 move_and_stop_timed() — V5 bang-bang 호환
     ASYNC 모드: 10Hz 연속 publish_and_move() + 300ms Jitter Hold + 중립 시 robust_stop()
@@ -192,8 +725,23 @@ class DashboardJoystickReader:
     ASYNC_INTERVAL = 0.10   # ASYNC 연속 발행 간격 (s) — 10Hz
     JITTER_HOLD    = 0.30   # ASYNC 중립 후 정지 유예 시간 (s)
     DEFAULT_AXES   = {"left_x": 0, "left_y": 1, "right_x": 2}
-    BTN_STOP       = 0   # A
-    BTN_TOGGLE     = 7   # Start → SYNC/ASYNC 모드 전환
+    # 클래스 기본값(연결 전 폴백) — 실제 값은 연결 시 _detect_layout()/_apply_button_config()가
+    # 인스턴스 속성으로 덮어씀 (Gradio gradio_data_collector.py JoystickReader 이식,
+    # joystick_config.json 실측 매핑까지 동일하게 반영).
+    BTN_STOP       = 0   # A     — STOP (robust_stop)
+    BTN_UNDO       = 1   # B     — 마지막 프레임 취소
+    BTN_DISCARD    = 2   # X     — 에피소드 폐기(저장 안 함)
+    BTN_TELEOP     = 3   # Y     — 미사용 (대시보드엔 teleop 개념 없음)
+    BTN_REC_START  = 4   # L1    — 녹화 시작
+    BTN_REC_SAVE   = 5   # R1    — 정지 & 저장
+    BTN_SELECT     = 6   # Select — 녹화 토글(시작↔저장)
+    BTN_TOGGLE     = 7   # Start  — SYNC/ASYNC 모드 전환
+    BTN_L2         = -1  # DragonRise일 때 버튼(레이아웃 감지 전 폴백)
+    BTN_R2         = -1  # DragonRise일 때 버튼 — 경로 역재생 복귀
+    TRIG_L2        = 4   # Controller일 때 트리거 축
+    TRIG_R2        = 5   # Controller일 때 트리거 축 — 경로 역재생 복귀
+    layout         = "controller"
+    TRIG_THRESHOLD = 0.30
 
     WASD_TO_VEL = {
         'W': ( 1.15, 0.0,  0.0),
@@ -210,18 +758,32 @@ class DashboardJoystickReader:
         self._running  = False
         self._enabled  = True    # 시작 시 기본 활성화
         self._js_mode  = 'async'  # 'sync' | 'async' (Start 버튼으로 전환)
+        self.control_mode = "discrete"  # "discrete" | "continuous" | "dual" (3-Mode)
+        self.analog_mode = False  # continuous or dual일 때 True
         self._speed    = 1.15
         self._thread   = None
         self._btn_prev = {}
         self._last_step_time = 0.0
         self._prev_key = None
+        self._prev_analog_moving = False
         self._neutral_start_time = 0.0
         self._last_non_neutral_key = None
         self._axes = self._load_axes()
+        self._last_btn = None
+        self._hat_prev = (0, 0)  # D-pad 엣지 검출용 (시나리오 넘기기)
+        self._last_hat_dir = None  # 마지막으로 눌린 D-pad 방향 ("left"/"right"/"up"/"down")
+        self._trig_r2_prev = -1.0  # R2 트리거 엣지 검출용 (복귀)
+        self._trig_l2_prev = -1.0  # L2 트리거 엣지 검출용 (검증 세션 저장)
+        self._btn_map: dict = {}
         self.status: dict = {
             "connected": False, "name": "—",
             "key": None, "label": "—",
             "enabled": True, "mode": "ASYNC",
+            "control_mode": "discrete",
+            "analog_mode": False,
+            "buttons": [], "last_btn": None,
+            "hat": (0, 0), "last_hat_dir": None,
+            "btn_map": {},
         }
 
     def _load_axes(self):
@@ -232,6 +794,78 @@ class DashboardJoystickReader:
             except Exception:
                 pass
         return dict(self.DEFAULT_AXES)
+
+    def _detect_layout(self, js):
+        """연결 패드를 보고 버튼 매핑 자동 결정 (Gradio gradio_data_collector.py
+        JoystickReader._detect_layout 이식). 공통: STOP=0, UNDO=1, DISCARD=2,
+        REC_START=4, REC_SAVE=5. 차이: L2/R2 — DragonRise=버튼6/7,
+        Controller=트리거축4/5. SELECT/START 번호도 다름. 마지막으로
+        joystick_config.json의 실측값이 있으면 그걸로 덮어씀."""
+        name = js.get_name().lower()
+        nbtn, nax = js.get_numbuttons(), js.get_numaxes()
+        is_dragon = ("dragon" in name or "generic" in name or "usb gamepad" in name
+                     or (nbtn <= 12 and nax <= 5))
+        self.BTN_STOP, self.BTN_UNDO, self.BTN_DISCARD = 0, 1, 2
+        self.BTN_TELEOP = 3
+        self.BTN_REC_START, self.BTN_REC_SAVE = 4, 5
+        if is_dragon:
+            self.layout = "dragonrise"
+            self.BTN_L2, self.BTN_R2 = 6, 7
+            self.BTN_SELECT, self.BTN_TOGGLE = 8, 9
+            self.TRIG_L2, self.TRIG_R2 = -1, -1
+        else:
+            self.layout = "controller"
+            self.BTN_L2, self.BTN_R2 = -1, -1
+            self.BTN_SELECT, self.BTN_TOGGLE = 6, 7
+            self.TRIG_L2, self.TRIG_R2 = 4, 5
+        self._apply_button_config()
+        log.info(f"[Joystick] 레이아웃={self.layout} STOP={self.BTN_STOP} UNDO={self.BTN_UNDO} "
+                 f"DISCARD={self.BTN_DISCARD} REC_START={self.BTN_REC_START} REC_SAVE={self.BTN_REC_SAVE} "
+                 f"SELECT={self.BTN_SELECT} TOGGLE={self.BTN_TOGGLE} L2={self.BTN_L2} R2={self.BTN_R2} "
+                 f"TRIG_R2={self.TRIG_R2}")
+        # 실제 감지된 인덱스로 프런트 라벨을 만들어 status에 실어보냄 —
+        # 하드코딩 라벨(0=A,1=B...)이 실측 매핑과 어긋나 혼동을 주지 않도록.
+        btn_map = {
+            self.BTN_STOP: {"name": "STOP", "desc": "STOP (robust_stop)"},
+            self.BTN_UNDO: {"name": "B", "desc": "🧪 실험용(모델이상) 표기 토글 [수집모드 전용]"},
+            self.BTN_DISCARD: {"name": "DISCARD", "desc": "에피소드 폐기"},
+            self.BTN_TELEOP: {"name": "Y", "desc": "🔁 조이스틱 모드 전환(수집⇄검증)"},
+            self.BTN_REC_START: {"name": "L1", "desc": "녹화 시작"},
+            self.BTN_REC_SAVE: {"name": "R1", "desc": "정지 & 저장"},
+            self.BTN_SELECT: {"name": "SEL", "desc": "녹화 토글(수집)"},
+            self.BTN_TOGGLE: {"name": "START", "desc": "SYNC↔ASYNC 모드"},
+        }
+        if self.BTN_L2 >= 0:
+            btn_map[self.BTN_L2] = {"name": "L2", "desc": "💾 기록 저장(Log Episode)"}
+        if self.BTN_R2 >= 0:
+            btn_map[self.BTN_R2] = {"name": "R2", "desc": "복귀(경로 역재생)"}
+        self._btn_map = {str(k): v for k, v in btn_map.items()}
+
+    def _apply_button_config(self):
+        """joystick_config.json의 "buttons" 실측값으로 인덱스 덮어쓰기
+        (Gradio JoystickReader._apply_button_config 이식) — 코드 수정 없이
+        실측 후 교정 가능하도록."""
+        cfg_path = ROOT / "scripts" / "joystick_config.json"
+        if not cfg_path.exists():
+            return
+        try:
+            with open(cfg_path) as f:
+                cfg = json.load(f)
+        except Exception:
+            return
+        if cfg.get("force_layout"):
+            self.layout = cfg["force_layout"]
+        b = cfg.get("buttons", {})
+        keymap = {
+            "stop": "BTN_STOP", "undo": "BTN_UNDO", "discard": "BTN_DISCARD",
+            "teleop": "BTN_TELEOP", "rec_start": "BTN_REC_START", "rec_save": "BTN_REC_SAVE",
+            "select": "BTN_SELECT", "start": "BTN_TOGGLE",
+            "l2": "BTN_L2", "r2": "BTN_R2",
+            "trig_l2": "TRIG_L2", "trig_r2": "TRIG_R2",
+        }
+        for k, attr in keymap.items():
+            if k in b:
+                setattr(self, attr, int(b[k]))
 
     def start(self):
         if not PYGAME_AVAILABLE:
@@ -255,11 +889,39 @@ class DashboardJoystickReader:
         log.info(f"[Joystick] 모드 전환 → {self._js_mode.upper()}")
         return self._js_mode.upper()
 
+    CONTROL_MODES = ["discrete", "continuous", "dual"]
+
+    def cycle_control_mode(self) -> str:
+        """3-Mode (discrete -> continuous -> dual) 순환 전환"""
+        idx = self.CONTROL_MODES.index(self.control_mode) if self.control_mode in self.CONTROL_MODES else 0
+        new_mode = self.CONTROL_MODES[(idx + 1) % len(self.CONTROL_MODES)]
+        return self.set_control_mode(new_mode)
+
+    def set_control_mode(self, mode: str) -> str:
+        if mode not in self.CONTROL_MODES:
+            mode = "discrete"
+        self.control_mode = mode
+        self.analog_mode = (mode in ("continuous", "dual"))
+        self.status = {
+            **self.status,
+            "control_mode": self.control_mode,
+            "analog_mode": self.analog_mode,
+        }
+        log.info(f"🎮 [Joystick] 제어 모드 전환: {self.control_mode.upper()} (analog_mode={self.analog_mode})")
+        return self.control_mode
+
+    def toggle_analog_mode(self) -> bool:
+        new_mode = "discrete" if self.analog_mode else "continuous"
+        self.set_control_mode(new_mode)
+        return self.analog_mode
+
     def set_speed(self, spd: float):
         self._speed = float(spd)
         if _ros is not None and _ros.ctrl is not None:
             throttle = int(round(self._speed / 1.15 * 50))
-            _ros.ctrl.throttle = max(10, min(100, throttle))
+            throttle = max(10, min(100, throttle))
+            _ros.ctrl.throttle = throttle
+            _ros.ctrl.rot_throttle = throttle * 0.35  # 회전은 항상 직진의 35% 유지 (2026-07-15 추가 30% 축소)
 
     def _axis_to_key(self, lx, ly, az):
         T = self.THRESHOLD
@@ -302,6 +964,7 @@ class DashboardJoystickReader:
                     continue
                 js = pygame.joystick.Joystick(0)
                 js.init()
+                self._detect_layout(js)
                 self.status = {**self.status, "connected": True, "name": js.get_name()}
                 self._btn_prev = {i: 0 for i in range(js.get_numbuttons())}
                 log.info(f"[Joystick] 연결됨: {js.get_name()}")
@@ -348,42 +1011,177 @@ class DashboardJoystickReader:
                 now = time.time()
                 if self._enabled and _ros is not None and _ros.ctrl is not None:
                     ctrl = _ros.ctrl
-                    if key:
-                        base = self.WASD_TO_VEL.get(key)
-                        if base:
-                            spd = self._speed / 1.15
-                            if az_blend != 0.0:
-                                base = (base[0], base[1], az_blend * 0.15)
-                            vel = tuple(v * spd for v in base)
+                    if self.analog_mode:
+                        # 🎯 아날로그 연속 제어 모드 (Pi0 Flow Matching 등 연속 행동 공간 대응)
+                        is_moving = abs(lx) > self.DEADZONE or abs(ly) > self.DEADZONE or abs(az) > self.DEADZONE
+                        if is_moving:
+                            # 연속 실수 속도 벡터 계산 (기준 속도 스케일 반영)
+                            vel = (float(lx * self._speed), float(ly * self._speed), float(az * self._speed))
                             if self._js_mode == 'sync':
                                 if (now - self._last_step_time) >= self.STEP_INTERVAL:
-                                    ctrl.move_and_stop_timed(*vel, source="joystick")
+                                    ctrl.move_and_stop_timed(*vel, source="joystick_analog")
                                     self._last_step_time = now
                             else:  # async
                                 if (now - self._last_step_time) >= self.ASYNC_INTERVAL:
-                                    ctrl.publish_and_move(*vel, source="joystick")
+                                    ctrl.publish_and_move(*vel, source="joystick_analog")
                                     self._last_step_time = now
-                    elif self._prev_key:
-                        if self._js_mode == 'async':
-                            ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
+                        elif self._prev_analog_moving:
+                            if self._js_mode == 'async':
+                                ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
+                        self._prev_analog_moving = is_moving
+                    else:
+                        # 🕹️ 8방향 이산화 제어 모드 (기존 표준 VLA)
+                        if key:
+                            base = self.WASD_TO_VEL.get(key)
+                            if base:
+                                spd = self._speed / 1.15
+                                if az_blend != 0.0:
+                                    base = (base[0], base[1], az_blend * 0.15)
+                                vel = tuple(v * spd for v in base)
+                                if self._js_mode == 'sync':
+                                    if (now - self._last_step_time) >= self.STEP_INTERVAL:
+                                        ctrl.move_and_stop_timed(*vel, source="joystick")
+                                        self._last_step_time = now
+                                else:  # async
+                                    if (now - self._last_step_time) >= self.ASYNC_INTERVAL:
+                                        ctrl.publish_and_move(*vel, source="joystick")
+                                        self._last_step_time = now
+                        elif self._prev_key:
+                            if self._js_mode == 'async':
+                                ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
 
                 self._prev_key = key
+                pressed_buttons = [i for i in range(js.get_numbuttons()) if js.get_button(i)]
+                _nax = js.get_numaxes()
+                _trig_l2_val = round(js.get_axis(self.TRIG_L2), 2) if 0 <= self.TRIG_L2 < _nax else None
+                _trig_r2_val = round(js.get_axis(self.TRIG_R2), 2) if 0 <= self.TRIG_R2 < _nax else None
+                
+                prefix = "⚡ " if self.control_mode == "dual" else "∿ "
+                disp_label = f"{prefix}({lx:+.2f},{ly:+.2f},{az:+.2f})" if (self.analog_mode and self._prev_analog_moving) else (LABELS.get(key, "●") if key else "○")
                 self.status = {
                     "connected": True, "name": js.get_name(),
                     "enabled": self._enabled,
                     "mode": self._js_mode.upper(),
-                    "key": key, "label": LABELS.get(key, "●") if key else "○",
+                    "control_mode": self.control_mode,
+                    "analog_mode": self.analog_mode,
+                    "key": key, "label": disp_label,
+                    "buttons": pressed_buttons, "last_btn": self._last_btn,
+                    "hat": self._hat_prev, "last_hat_dir": self._last_hat_dir,
+                    "btn_map": self._btn_map,
+                    "num_buttons": js.get_numbuttons(), "num_axes": _nax,
+                    "trig_l2_val": _trig_l2_val, "trig_r2_val": _trig_r2_val,
+                    "verify_mode": _joystick_verify_mode,
+                    "verify_screen_pos": _verify_screen_pos,
+                    "verify_pending_result": _verify_pending_result,
+                    "verify_save_seq": _verify_save_seq,
+                    "verify_experimental": _verify_experimental,
+                    "collect_experimental": bool(_collect.experimental_mode) if _collect is not None else False,
                 }
 
                 for i in range(js.get_numbuttons()):
                     cur = js.get_button(i)
                     if cur and not self._btn_prev.get(i, 0):
-                        if i == self.BTN_STOP:
-                            if _ros is not None and _ros.ctrl is not None:
-                                _ros.ctrl.robust_stop(source="joystick_A")
-                        elif i == self.BTN_TOGGLE:
+                        self._last_btn = i
+                        if i == self.BTN_TOGGLE:
                             self.toggle_mode()
+                        elif i == self.BTN_TELEOP:
+                            # Y(3) = 조이스틱 배치모드 전환(collect⇄verify) — 주행/녹화 중엔 무시.
+                            _joystick_toggle_verify_mode()
+                        elif _joystick_verify_mode:
+                            # 🧪 경로검증 모드 배치 (2026-07-23 재설계):
+                            # L1=추론시작 · R1=추론정지 · R2=복귀 · X=성공라벨 · A=실패라벨
+                            # · L2=최종 세션 저장 · D-pad◀▶=위치 순환
+                            # X/A는 즉시기록 아님(라벨만) → L2에서 1건 저장(중복 스팸 방지).
+                            # ⚠️ 검증모드엔 별도 비상정지 없음 — R1(추론정지=robust_stop)로 대체.
+                            if i == self.BTN_REC_START:      # L1 = 추론 시작
+                                _joystick_drive_start()
+                            elif i == self.BTN_REC_SAVE:     # R1 = 추론 정지
+                                _joystick_drive_stop()
+                            elif i == self.BTN_DISCARD:      # X = 성공 라벨
+                                _verify_arm_result("성공")
+                            elif i == self.BTN_STOP:         # A = 실패 라벨
+                                _verify_arm_result("실패")
+                            elif self.BTN_L2 >= 0 and i == self.BTN_L2:
+                                # 💾 기록 저장 (Log Episode) — L2 버튼(인덱스 8)
+                                _verify_save_session()
+                            elif self.BTN_R2 >= 0 and i == self.BTN_R2:   # R2 버튼(있는 패드만) = 복귀
+                                _joystick_verify_return()
+                            elif i == self.BTN_SELECT:       # SEL = 실험용/테스트 모드 토글
+                                _joystick_toggle_verify_experimental()
+                        else:
+                            # 📷 데이터수집 모드: A = 비상정지(모드 전용 유지)
+                            if i == self.BTN_STOP:
+                                if _ros is not None and _ros.ctrl is not None:
+                                    _ros.ctrl.robust_stop(source="joystick_A")
+                            # 📷 데이터수집 모드 배치
+                            elif i == self.BTN_UNDO:
+                                # 2026-07-29부터 B는 실험용(모델이상) 표기 토글로 대체됨
+                                # (기존 undo_last_frame 기능은 제거 — 대체 진입점 없음, 확인 후 결정)
+                                _joystick_toggle_collect_experimental()
+                            elif i == self.BTN_DISCARD:
+                                if _collect is not None and _collect.active:
+                                    _collect.stop_episode(save=False)
+                            elif i == self.BTN_REC_START:
+                                if _collect is not None and not _collect.active:
+                                    _collect.start_episode(scenario=_collect.staged_scenario,
+                                                            cx_position=_collect.staged_cx_position,
+                                                            cx_path=_collect.staged_cx_path)
+                            elif i == self.BTN_REC_SAVE:
+                                if _collect is not None and _collect.active:
+                                    _collect.stop_episode(save=True)
+                            elif i == self.BTN_SELECT:
+                                if _collect is not None:
+                                    if _collect.active:
+                                        _collect.stop_episode(save=True)
+                                    else:
+                                        _collect.start_episode(scenario=_collect.staged_scenario,
+                                                            cx_position=_collect.staged_cx_position,
+                                                            cx_path=_collect.staged_cx_path)
+                            elif self.BTN_R2 >= 0 and i == self.BTN_R2:
+                                # DragonRise는 R2가 트리거 축이 아니라 버튼으로 잡힘 (joystick_config.json 실측)
+                                if _collect is not None:
+                                    _collect.start_auto_return()
                     self._btn_prev[i] = cur
+
+                # D-pad(hat) 엣지 → 좌/우: 현재 활성 축(collect_mode) 순환, 상/하: 트랙A↔시나리오 축 전환
+                if js.get_numhats() > 0:
+                    hat = js.get_hat(0)
+                    if hat != self._hat_prev:
+                        hx, hy = hat
+                        phx, phy = self._hat_prev
+                        if hx != 0 and hx != phx:
+                            self._last_hat_dir = "right" if hx > 0 else "left"
+                            if _joystick_verify_mode:
+                                # 🧪 검증모드: D-pad ◀▶ = 스크리닝 위치 순환(수집 cx 순환과 동일 메커니즘)
+                                _verify_cycle_pos(1 if hx > 0 else -1)
+                            elif _collect is not None:
+                                _collect.cycle_current(1 if hx > 0 else -1)
+                        elif hy != 0 and hy != phy:
+                            self._last_hat_dir = "up" if hy > 0 else "down"
+                            if not _joystick_verify_mode and _collect is not None:
+                                # 상/하 축 전환은 수집 모드 전용(검증엔 위치 축 하나뿐)
+                                _collect.toggle_collect_mode(1 if hy > 0 else -1)
+                        self._hat_prev = hat
+
+                # R2(트리거, 축) 엣지 → 복귀(경로 역재생), Gradio "controller" 레이아웃과 동일 (두 모드 공통)
+                nax = js.get_numaxes()
+                if 0 <= self.TRIG_R2 < nax:
+                    tv = js.get_axis(self.TRIG_R2)
+                    if tv > self.TRIG_THRESHOLD and self._trig_r2_prev <= self.TRIG_THRESHOLD:
+                        if _joystick_verify_mode:
+                            _joystick_verify_return()       # 주행 경로 역재생
+                        elif _collect is not None:
+                            _collect.start_auto_return()    # 수집 경로 역재생
+                    self._trig_r2_prev = tv
+
+                # L2(트리거, 축) 엣지 → 검증모드에서만 '최종 세션 저장'(추론세션 저장).
+                # Controller 레이아웃은 L2가 트리거축(TRIG_L2), DragonRise는 버튼(BTN_L2, 위 버튼루프서 처리).
+                if 0 <= self.TRIG_L2 < nax:
+                    tv = js.get_axis(self.TRIG_L2)
+                    if tv > self.TRIG_THRESHOLD and self._trig_l2_prev <= self.TRIG_THRESHOLD:
+                        if _joystick_verify_mode:
+                            _verify_save_session()
+                    self._trig_l2_prev = tv
 
             except Exception as e:
                 log.warning(f"[Joystick] 루프 오류: {e}")
@@ -412,8 +1210,15 @@ _state: dict[str, Any] = {
     "chunk": None,
     "grounding_cached": None,
     "grounding_caption": None,
-    "run_history": [],          # [[step, label, total_ms, gnd_ms, mlp_ms, area], ...]
-    "action_history": [],       # [[lx, ly, az], ...] 주행 액션 이력
+    "run_history": [],          # [[step, label, total_ms, gnd_ms, mlp_ms, area, ts, has_bbox], ...] (has_bbox 2026-07-30 추가)
+    # [[lx, ly, az, duration_s], ...] 주행 액션 이력. duration_s: 자체정지형 이동
+    # (move_and_stop_timed/ramped, 회전 포함)은 호출 시점에 move_duration으로 바로
+    # 채워짐. ASYNC/GoalNav처럼 다음 판단이 올 때까지 계속 재발행하는 경우는 append
+    # 시 None으로 넣고, 다음 액션이 오거나 세션이 끝날 때 실제 유지시간으로
+    # 채워짐(_backfill_action_duration) — 2026-08-07, _return_loop가 고정
+    # move_duration으로만 되돌려서 그라운딩이 느렸던 만큼 원위치보다 못 가던 문제 수정.
+    "action_history": [],
+    "_action_started_at": None,
     "session_id": None,
     "is_returning": False,
 
@@ -434,6 +1239,88 @@ _state: dict[str, Any] = {
 
 _stop_ev   = threading.Event()
 _async_q: collections.deque = collections.deque(maxlen=2)
+_goalnav_q: collections.deque = collections.deque(maxlen=2)
+
+# 2026-08-07: 세션이 "학습된 STOP(모델이 목표도달로 판단)"으로 끝났는지 "수동정지
+# (R1)"로 끝났는지는 logger.end_session()의 status 인자에 이미 있었지만
+# episode_log.csv에는 안 남고 있었음(H5 attrs에만 있어서 사후 확인이 세션 파일을
+# 일일이 열어야만 가능) — 스크리닝 표에서 바로 보이게 여기 캐싱해뒀다가 L2 저장 시 같이 씀.
+_last_end_reason = {"session_id": None, "status": None}
+
+
+def _backfill_action_duration() -> None:
+    """연속재발행(ASYNC/GoalNav) 모드에서 직전 액션이 실제로 몇 초 유지됐는지를
+    지금(다음 액션 도착 또는 세션 종료) 확정해서 action_history 마지막 항목에 채움."""
+    ts = _state.get("_action_started_at")
+    if ts is None:
+        return
+    hist = _state.get("action_history") or []
+    if hist and hist[-1][3] is None:
+        hist[-1][3] = round(time.time() - ts, 3)
+    _state["_action_started_at"] = None
+
+
+def _append_action_history(lx: float, ly: float, az: float,
+                            duration: float | None = None) -> None:
+    """action_history에 한 스텝 추가.
+    duration이 주어지면(자체정지형 이동) 그대로 기록. None이면(연속재발행 모드)
+    나중에 _backfill_action_duration()이 실측 유지시간으로 채움 — _return_loop가
+    복귀 재생 시 갈 때와 동일한 실제 시간만큼 되돌리게 하기 위함."""
+    _backfill_action_duration()  # 직전 항목(있다면) 마감
+    _state["action_history"].append([lx, ly, az, duration])
+    if duration is None:
+        _state["_action_started_at"] = time.time()
+
+
+def _mark_end_reason(status: str) -> None:
+    _last_end_reason["session_id"] = _state.get("session_id")
+    _last_end_reason["status"] = status
+
+# ── 조이스틱 버튼 배치 모드(2026-07-22) — 📷 데이터수집 vs 🧪 경로검증 ──
+# 기본값 False(=collect) 유지 — 기존 동작 100% 불변. Y(3) 또는 UI 토글로 전환.
+_joystick_verify_mode: bool = False
+# 조이스틱 X/R1(경로검증 모드에서 성공/실패 즉시기록)이 쓸 path_type —
+# Tab4 select onchange가 /verify/path_type으로 동기화해줌.
+_verify_current_path_type: str = "trackA_weak_left_left_curve"
+
+# ── 검증 스크리닝 세션 상태(2026-07-23) — D-pad로 위치 순환 + X/A로 결과 라벨,
+# L2로 최종 저장하는 방식. X/A는 즉시 기록 안 하고 라벨만 세팅(중복 스팸 방지). ──
+# 순서/키는 JS SCREEN_POSITIONS와 일치. center는 trackF_, 나머지는 trackA_로 저장.
+VERIFY_SCREEN_POSITIONS = ["strong_left", "weak_left", "center", "weak_right", "strong_right"]
+_verify_screen_pos: str = "strong_left"       # D-pad ◀▶로 순환
+_verify_pending_result: Optional[str] = None  # "성공" | "실패" | None (X/A로 세팅)
+# L2(조이스틱)로 저장할 때마다 +1 — 브라우저가 /joystick/status 폴링 중 이 값이
+# 바뀐 걸 보면 loadEpisodeHistory()를 조용히 호출(팝업 없음, 스크리닝 패널 자동 갱신).
+_verify_save_seq: int = 0
+
+# 🧪 실험용/테스트 모드(2026-07-23) — 검증모드 SEL(남는 키)로 토글. True인 동안
+# L2 저장은 episode_log.csv 대신 episode_log_experimental.csv로 기록되어
+# 그라운더 A/B 테스트 등 "정식 스크리닝 집계에 안 셀" 시도를 분리 보관.
+_verify_experimental: bool = False
+
+
+def _verify_pos_to_path_type(pos: str) -> str:
+    return "trackF_center" if pos == "center" else f"trackA_{pos}"
+
+
+def _verify_cycle_pos(step: int):
+    """D-pad ◀▶ — 검증 스크리닝 위치 순환(강좌↔약좌↔중앙↔약우↔강우)."""
+    global _verify_screen_pos
+    if _state.get("running"):
+        return  # 주행 중엔 변경 금지
+    keys = VERIFY_SCREEN_POSITIONS
+    i = (keys.index(_verify_screen_pos) + step) % len(keys) if _verify_screen_pos in keys else 0
+    _verify_screen_pos = keys[i]
+    log.info(f"[Verify] D-pad → 위치 = {_verify_screen_pos}")
+
+
+def _verify_arm_result(result: str):
+    """X=성공 / A=실패 — 즉시 기록 안 하고 결과 라벨만 세팅(L2에서 저장)."""
+    global _verify_pending_result
+    _verify_pending_result = result
+    log.info(f"[Verify] 결과 라벨 → {result} (L2로 저장 대기)")
+
+
 _drift_log_file = None
 
 
@@ -447,15 +1334,21 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 @app.on_event("startup")
 def _startup():
-    global _ros
+    global _ros, _collect
     log.info(f"🆔 프로세스 시작 PID={_PROCESS_PID}")
     _warn_if_duplicate_process()
+
+    collect_dir = Path(os.getenv("VLA_DATASET_DIR", str(ROOT / "ROS_action" / "mobile_vla_dataset_v5")))
+    _collect = DataCollectSession(collect_dir)
+    log.info(f"📷 [DataCollect] 데이터 디렉토리: {collect_dir}")
+
     if not ROS_AVAILABLE:
         log.warning("ROS 없음 — camera/control 비활성")
         return
     if not rclpy.ok():
         rclpy.init()
     _ros = MoNaROSNode()
+    _ros.ctrl.on_command = _collect.on_command
     threading.Thread(target=lambda: rclpy.spin(_ros), daemon=True, name="ros-spin").start()
     log.info("✅ ROS spin 시작")
 
@@ -478,12 +1371,32 @@ def _warn_if_duplicate_process():
 
 
 # ─── 유틸 ─────────────────────────────────────────────────────────
-def _infer_post(path: str, payload: dict, timeout=15) -> dict:
+def _infer_post(path: str, payload: dict, timeout=15, base_url: str = INFER_URL) -> dict:
     import requests as rq
-    r = rq.post(f"{INFER_URL}{path}", json=payload,
+    r = rq.post(f"{base_url}{path}", json=payload,
                 headers={"X-API-Key": API_KEY}, timeout=timeout)
     r.raise_for_status()
     return r.json()
+
+
+# ── exp73 GoalNav 전용: PG2(PaliGemma2-448) 그라운더 재사용 ──
+# stage2_v2_inference_server.py의 PG2Grounder를 그대로 import — exp73 학습
+# 라벨(gen_pg448_annotation.py)과 동일 코드 경로 보장(재구현 금지, 2026-07-22 결정).
+# 단, 라이브 PG2Grounder는 학습 annotation에 없던 x-full-width 필터가 추가돼 있어
+# (stage2_v2_inference_server.py:602) 학습 분포와 미세하게 다를 수 있음 — 실기에서
+# 이상 탐지(has_bbox=False 과다 등)가 잦으면 이 필터 비활성화를 디버깅 옵션으로 고려.
+_pg2_grounder = None
+
+
+def _get_pg2_grounder():
+    global _pg2_grounder
+    if _pg2_grounder is None:
+        import torch
+        from robovlm_nav.serve.stage2_v2_inference_server import PG2Grounder, DEFAULT_PG2
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        _pg2_grounder = PG2Grounder(DEFAULT_PG2, device)
+        log.info(f"[GoalNav] PG2Grounder 준비(lazy load): {DEFAULT_PG2}")
+    return _pg2_grounder
 
 
 def _append_history(step, result):
@@ -499,6 +1412,11 @@ def _append_history(step, result):
         round(mlp) if mlp is not None else "—",
         round(bbox.get("area", 0.0), 3) if bbox else "—",
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        bool(bbox.get("has_bbox", False)),  # [7] 2026-07-30: 실제 탐지 성공 여부.
+        # 기존 "gnd%"는 r[3]!="—"(grounding_latency_ms 유무)로 셌는데, 캐시
+        # 프레임도 grounding_latency_ms=0.0(None이 아님)을 반환해서 사실상
+        # 항상 100%로 찍히는 죽은 지표였음(탐지 실패해도 latency 자체는
+        # 항상 기록되므로) — has_bbox 기준으로 다시 계산.
     ])
     _state["run_history"] = _state["run_history"][-30:]
 
@@ -542,6 +1460,7 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
     logger.start_session("stage2_v2", instr, instruction_mode=mode)
     if gt_obj:
         logger.data["gt_object"] = gt_obj
+    logger.data["apply_cc"] = apply_cc
     logger.data["runtime_config"] = _snapshot_runtime_config()
     _state["session_id"] = logger.session_id
 
@@ -550,8 +1469,16 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
     # 이전 세션 마지막 스텝 이후(로그에는 안 남는 "정착 프레임")가 여기 남아있으면
     # 새 세션 첫 스텝이 그 이전 세션 꼬리 프레임을 그대로 읽어버림 — 반드시 초기화.
     _ros._stable = None
-    try: _infer_post("/reset", {}, timeout=5)
-    except Exception: pass
+    _reset_ok = False
+    for _attempt in range(2):
+        try:
+            _infer_post("/reset", {}, timeout=5)
+            _reset_ok = True
+            break
+        except Exception as _e:
+            print(f"⚠️ [SYNC] /reset 실패 (attempt {_attempt+1}/2): {_e}")
+    if not _reset_ok:
+        _state["status_log"] = "⚠️ /reset 실패 — 이전 세션 grounding 상태가 남아있을 수 있음"
 
     step = 0
     while not _stop_ev.is_set() and _state["running"]:
@@ -584,8 +1511,9 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
         lx, ly = float(action[0]), float(action[1])
         az = float(action[2]) if len(action) > 2 else 0.0
 
-        # 실시간 액션 히스토리에 기록
-        _state["action_history"].append([lx, ly, az])
+        # 실시간 액션 히스토리에 기록 — move_and_stop_ramped는 자체적으로
+        # move_duration만큼 움직이고 멈추므로 실제 유지시간을 바로 알 수 있음.
+        _append_action_history(lx, ly, az, duration=_ros.ctrl.move_duration)
 
         log_msg = _ros.ctrl.move_and_stop_ramped(lx, ly, az, source=f"{mode.lower()}")
         _state["status_log"]     = log_msg
@@ -620,12 +1548,14 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
 
         if res.get("goal_near"):
             _ros.ctrl.robust_stop(source="goal_reached")
+            _mark_end_reason("learned")
             logger.end_session("goal_reached")
             _state["running"]    = False
             _state["status_log"] = f"🎯 목적지 도달! (Step {step})"
             return
 
     _ros.ctrl.robust_stop(source="manual_stop")
+    _mark_end_reason("manual")
     logger.end_session("manual_stop")
     _state["running"]    = False
     _state["status_log"] = "수동 정지"
@@ -636,8 +1566,16 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
 # ═══════════════════════════════════════════════════════════════════
 def _async_infer(instr: str, apply_cc: bool, logger):
     step = 0
-    try: _infer_post("/reset", {}, timeout=5)
-    except Exception: pass
+    _reset_ok = False
+    for _attempt in range(2):
+        try:
+            _infer_post("/reset", {}, timeout=5)
+            _reset_ok = True
+            break
+        except Exception as _e:
+            print(f"⚠️ [ASYNC] /reset 실패 (attempt {_attempt+1}/2): {_e}")
+    if not _reset_ok:
+        _state["status_log"] = "⚠️ /reset 실패 — 이전 세션 grounding 상태가 남아있을 수 있음"
 
     while not _stop_ev.is_set() and _state["running"]:
         bgr = _ros.latest_bgr()
@@ -682,6 +1620,7 @@ def _async_infer(instr: str, apply_cc: bool, logger):
 
         if res.get("goal_near"):
             _ros.ctrl.robust_stop(source="async_goal")
+            _mark_end_reason("learned")
             logger.end_session("goal_reached")
             _state["running"]    = False
             _state["status_log"] = f"🎯 목적지 도달! (Step {step})"
@@ -691,23 +1630,152 @@ def _async_infer(instr: str, apply_cc: bool, logger):
 def _async_exec():
     lx = ly = az = 0.0
     last_upd = time.time()
-    COAST = 1.2
+    # 2026-07-23: grounding_decisions.jsonl 실측 PG2 latency p95=3.27s(grounding_skip_n=3의
+    # "신선 그라운딩" 스텝마다 발생) — 기존 COAST=1.2s는 이 정상 지연에도 발동해 로봇이
+    # 매 3스텝마다 강제로 velocity=0(정지)됐다가 재개하는 인위적 stop-go를 만들었음
+    # (수집 데이터는 ~6Hz 연속 조이스틱이라 이런 정지 구간이 전혀 없음 — train/inference
+    # 모션 연속성 불일치의 핵심 원인 중 하나). p95보다 여유있게 4.0s로 상향.
+    COAST = 4.0
+    # 2026-07-30: 회전(ROT_L/ROT_R)만 예외 — 위 COAST 설계 그대로 두면 실시간
+    # 그라운딩(~2s) 내내 같은 회전이 10Hz로 계속 재발행되어 "짧은 보정 한 번"이
+    # 아니라 논스톱 회전이 됨(weak_left 세션들에서 타겟이 화면 밖으로 밀려나가는
+    # 원인으로 확인). 회전일 때만 SYNC와 동일한 move_and_stop_ramped()로 짧게
+    # (move_duration≈0.4s) 돌고 자동정지 — 이동/스트레이프는 기존 연속 재발행 유지.
+    rot_busy_until = 0.0
     while not _stop_ev.is_set() and _state["running"]:
         if _async_q:
             res = _async_q.popleft()
             action = np.asarray(res.get("action_3d") or res["action"],
                                 dtype=np.float32).reshape(-1)
-            lx, ly = float(action[0]), float(action[1])
-            az = float(action[2]) if action.size > 2 else 0.0
+            new_lx, new_ly = float(action[0]), float(action[1])
+            new_az = float(action[2]) if action.size > 2 else 0.0
             last_upd = time.time()
-            _state["last_action"] = [lx, ly, az]
-            _state["action_history"].append([lx, ly, az])
+            _state["last_action"] = [new_lx, new_ly, new_az]
+
+            is_rotation = abs(new_az) > 0.1 and abs(new_lx) < 0.05 and abs(new_ly) < 0.05
+            if is_rotation:
+                # move_and_stop_ramped가 자체적으로 move_duration만큼만 돌고 멈춤 —
+                # 실제 유지시간을 바로 알 수 있어 None(연속재발행 추정) 대신 확정값으로 기록.
+                _append_action_history(new_lx, new_ly, new_az, duration=_ros.ctrl.move_duration)
+                msg = _ros.ctrl.move_and_stop_ramped(new_lx, new_ly, new_az, source="async_exec_rot")
+                _state["status_log"] = msg
+                rot_busy_until = time.time() + _ros.ctrl.move_duration
+                lx = ly = az = 0.0
+                time.sleep(0.1)
+                continue
+            # 이동/스트레이프는 다음 판단이 올 때까지 계속 재발행됨 — 실제 유지시간은
+            # 다음 액션이 오거나(_append_action_history의 backfill) 세션이 끝날 때 확정.
+            _append_action_history(new_lx, new_ly, new_az, duration=None)
+            lx, ly, az = new_lx, new_ly, new_az
+
+        if time.time() < rot_busy_until:
+            # move_and_stop_ramped 자체 타이머가 정지까지 처리하는 중 — 아래
+            # publish_and_move 재발행을 건너뛰어야 회전이 즉시 취소되지 않음.
+            time.sleep(0.1)
+            continue
+
         if time.time() - last_upd > COAST:
             lx = ly = az = 0.0
         msg = _ros.ctrl.publish_and_move(lx, ly, az, source="async_exec")
         _state["status_log"] = msg
         time.sleep(0.1)
+    _backfill_action_duration()  # 마지막 액션의 실제 유지시간 확정(복귀 재생 정확도용)
     _ros.ctrl.robust_stop(source="async_end")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# exp73 GoalNav 전용 드라이빙 루프 (PG2Grounder 재사용 + inference_server.py
+# /goalnav/predict, 8000포트 — stage2_v2/8001과는 별개 프로세스/모델)
+# ═══════════════════════════════════════════════════════════════════
+def _goalnav_infer(phrase: str, apply_cc: bool, logger):
+    step = 0
+    _reset_ok = False
+    for _attempt in range(2):
+        try:
+            _infer_post("/goalnav/reset", {}, timeout=5, base_url=GOALNAV_URL)
+            _reset_ok = True
+            break
+        except Exception as _e:
+            print(f"⚠️ [GOALNAV] /goalnav/reset 실패 (attempt {_attempt+1}/2): {_e}")
+    if not _reset_ok:
+        _state["status_log"] = "⚠️ /goalnav/reset 실패 — 이전 세션 bbox/vision 캐시가 남아있을 수 있음"
+
+    grounder = _get_pg2_grounder()
+
+    while not _stop_ev.is_set() and _state["running"]:
+        bgr = _ros.latest_bgr()
+        if bgr is None: time.sleep(0.05); continue
+
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(rgb)
+        if apply_cc: img = _correct(img); rgb = np.array(img)
+
+        try:
+            bbox = grounder.run(rgb, phrase=phrase)
+        except Exception as e:
+            log.warning(f"[GOALNAV grounding] {e}"); continue
+
+        buf = io.BytesIO(); img.save(buf, "JPEG", quality=80)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+
+        try:
+            res = _infer_post("/goalnav/predict", {
+                "image": b64,
+                "bbox_cx": bbox["cx"], "bbox_cy": bbox["cy"],
+                "bbox_area": bbox["area"], "has_bbox": bbox["has_bbox"],
+                "update_vision": True,
+            }, base_url=GOALNAV_URL)
+        except Exception as e:
+            log.warning(f"[GOALNAV infer] {e}"); continue
+
+        step += 1
+        _state["step"]          = step
+        _state["predicted_label"] = res.get("class_name")
+        _state["latency_ms"]    = res.get("latency_ms", 0)
+        _state["bbox"]          = bbox
+        _goalnav_q.append(res)
+        _append_history(step, {**res, "bbox": bbox})
+
+        if _state["calib_recording"]:
+            _record_calib_frame(img, {**res, "bbox": bbox})
+
+        action = res.get("action", {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0})
+        action_arr = [action.get("linear_x", 0.0), action.get("linear_y", 0.0), action.get("angular_z", 0.0)]
+        logger.log_step(step, np.array(action_arr), res.get("latency_ms", 0),
+                        image=img, predicted_label=res.get("class_name"),
+                        bbox=bbox)
+
+        if res.get("class_idx") == 0 and step > 1:
+            # STOP 예측 — GoalNav 자체 도착규칙(_arrival_stop)이 서버 내부에서 래치하므로
+            # 여기선 그냥 계속 진행(다음 스텝도 STOP 유지될 것). 별도 종료 처리 없음
+            # (stage2_v2의 goal_near 플래그 같은 명시적 "도달" 신호가 이 엔드포인트엔 없음).
+            pass
+
+
+def _goalnav_exec():
+    lx = ly = az = 0.0
+    last_upd = time.time()
+    # 2026-07-23: grounding_decisions.jsonl 실측 PG2 latency p95=3.27s(grounding_skip_n=3의
+    # "신선 그라운딩" 스텝마다 발생) — 기존 COAST=1.2s는 이 정상 지연에도 발동해 로봇이
+    # 매 3스텝마다 강제로 velocity=0(정지)됐다가 재개하는 인위적 stop-go를 만들었음
+    # (수집 데이터는 ~6Hz 연속 조이스틱이라 이런 정지 구간이 전혀 없음 — train/inference
+    # 모션 연속성 불일치의 핵심 원인 중 하나). p95보다 여유있게 4.0s로 상향.
+    COAST = 4.0
+    while not _stop_ev.is_set() and _state["running"]:
+        if _goalnav_q:
+            res = _goalnav_q.popleft()
+            action = res.get("action", {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0})
+            lx, ly, az = float(action.get("linear_x", 0.0)), float(action.get("linear_y", 0.0)), float(action.get("angular_z", 0.0))
+            last_upd = time.time()
+            _state["last_action"] = [lx, ly, az]
+            _append_action_history(lx, ly, az, duration=None)  # 연속재발행 — 실제 유지시간은 나중에 확정
+        if time.time() - last_upd > COAST:
+            lx = ly = az = 0.0
+        msg = _ros.ctrl.publish_and_move(lx, ly, az, source="goalnav_exec")
+        _state["status_log"] = msg
+        time.sleep(0.1)
+    _backfill_action_duration()
+    _ros.ctrl.robust_stop(source="goalnav_end")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -721,19 +1789,24 @@ def _return_loop():
             _state["status_log"] = "⚠️ 복귀할 경로가 없습니다."
             return
         
-        # 반대 방향으로 역재생
-        rev = [(-lx, -ly, -az) for lx, ly, az in reversed(history)]
+        # 반대 방향으로 역재생 — 각 스텝의 실제 유지시간(entry[3])도 같이 되돌림.
+        # 2026-08-07: 예전엔 무조건 move_duration(0.4s)만 되돌려서, 갈 때 그라운딩이
+        # 느려 스텝당 몇 초씩 움직인 경우(ASYNC/GoalNav 연속재발행) 복귀가 원위치보다
+        # 훨씬 못 가서 멈추는 문제가 있었음 — 실제 유지시간 기록으로 대칭 재생.
+        default_dur = _ros.ctrl.move_duration if _ros and _ros.ctrl else 0.4
+        rev = [(-e[0], -e[1], -e[2], e[3] if len(e) > 3 and e[3] is not None else default_dur)
+               for e in reversed(history)]
         _state["status_log"] = f"🔄 복귀 시작 ({len(rev)}스텝 역재생)"
-        
-        for i, (lx, ly, az) in enumerate(rev):
+
+        for i, (lx, ly, az, dur) in enumerate(rev):
             if not _state["is_returning"]:
                 _state["status_log"] = "🛑 복귀 중단됨"
                 break
-            _state["status_log"] = f"🔄 복귀 중 ({i+1}/{len(rev)}스텝)"
+            _state["status_log"] = f"🔄 복귀 중 ({i+1}/{len(rev)}스텝, {dur:.1f}s)"
             if _ros and _ros.ctrl:
                 _ros.ctrl.publish_and_move(lx, ly, az, source="return")
-            time.sleep(_ros.ctrl.move_duration)
-            
+            time.sleep(dur)
+
         _state["status_log"] = "✅ 시작 위치 복귀 완료"
     except Exception as e:
         _state["status_log"] = f"❌ 복귀 실패: {e}"
@@ -761,6 +1834,41 @@ class ManualDriveReq(BaseModel):
     direction: str             # W, S, A, D, Q, E, R, T, STOP
     speed: float = 1.15
 
+class CollectKeyReq(BaseModel):
+    key: str                   # w,a,s,d,q,e,z,c,r,t,' '
+    event: str = "down"        # "down" | "up"
+
+class CollectEpisodeStartReq(BaseModel):
+    episode_name: Optional[str] = None
+    scenario: Optional[str] = None
+    pattern: Optional[str] = None
+    cx_position: Optional[str] = None
+    cx_path: Optional[str] = None
+
+class CollectEpisodeStopReq(BaseModel):
+    save: bool = True
+
+class CollectScenarioStageReq(BaseModel):
+    scenario: Optional[str] = None
+
+class CollectScenarioCycleReq(BaseModel):
+    step: int = 1
+
+class CollectCxPosStageReq(BaseModel):
+    cx_position: Optional[str] = None
+
+class CollectCxPosCycleReq(BaseModel):
+    step: int = 1
+
+class CollectCxPathStageReq(BaseModel):
+    cx_path: Optional[str] = None
+
+class CollectCxPathCycleReq(BaseModel):
+    step: int = 1
+
+class CollectModeToggleReq(BaseModel):
+    step: int = 1
+
 class ConfigToggleReq(BaseModel):
     preview_enabled: Optional[bool] = None
     preview_hint_cx: Optional[bool] = None
@@ -769,6 +1877,17 @@ class ConfigToggleReq(BaseModel):
     cx_jump_thresh: Optional[float] = None
     stop_area_threshold: Optional[float] = None
     multi_prompt: Optional[bool] = None
+    force_reground_on_miss: Optional[bool] = None
+    owlv2_thresh: Optional[float] = None
+    owlv2_area_scale: Optional[float] = None
+    # STOP 모드 토글(Tab4 stopmode/stopguard 버튼) — Pydantic 모델에 필드가
+    # 없으면 FastAPI가 조용히 무시해서 버튼이 로컬 상태만 바뀌고 실제
+    # 추론서버엔 절대 안 걸리는 버그가 있었음(2026-07-23) — 필드 추가로 수정.
+    stop_mode: Optional[str] = None
+    stop_learned_min_steps: Optional[int] = None
+    stop_consec_frames: Optional[int] = None
+    stop_cx_tolerance: Optional[float] = None
+    stop_latched: Optional[bool] = None
 
 class LabelSaveReq(BaseModel):
     session_id: str
@@ -778,6 +1897,16 @@ class LabelSaveReq(BaseModel):
 class EpisodeLogReq(BaseModel):
     path_type: str
     success: str
+    fpe: float
+    note: str
+    experimental: bool = False  # True면 별도 실험용 CSV(episode_log_experimental.csv)에 기록
+
+class EpisodeUpdateReq(BaseModel):
+    row: int  # 테이블의 "#" (1-based)
+    path_type: str
+    success: str
+    steps: int
+    lat_ms: float
     fpe: float
     note: str
 
@@ -876,7 +2005,6 @@ def drive_status():
         
     return ret
 
-
 @app.post("/drive/start")
 def drive_start(req: DriveReq):
     global _ros
@@ -889,19 +2017,37 @@ def drive_start(req: DriveReq):
                   instruction=req.instruction, gt_object=req.gt_object,
                   apply_cc=req.apply_cc, goal_near=False,
                   grounding_cached=None, grounding_caption=None,
+                  bbox=None, chunk=None,
                   run_history=[], action_history=[], last_action=[0.0,0.0,0.0])
     _stop_ev.clear()
     _async_q.clear()
+    _goalnav_q.clear()
 
     if req.mode in ("SYNC", "PRE"):
         threading.Thread(target=_loop_sync,
                          args=(req.mode, req.instruction, req.gt_object, req.apply_cc),
                          daemon=True, name="drive-sync").start()
+    elif req.mode == "GOALNAV":
+        from scripts.inference_logger import get_logger
+        logger = get_logger()
+        logger.start_session("goalnav_exp73", req.instruction, instruction_mode="GOALNAV")
+        if req.gt_object: logger.data["gt_object"] = req.gt_object
+        logger.data["apply_cc"] = req.apply_cc
+        logger.data["runtime_config"] = _snapshot_runtime_config()
+        _state["session_id"] = logger.session_id
+
+        phrase = req.gt_object or "gray basket"
+        threading.Thread(target=_goalnav_infer,
+                         args=(phrase, req.apply_cc, logger),
+                         daemon=True, name="goalnav-infer").start()
+        threading.Thread(target=_goalnav_exec,
+                         daemon=True, name="goalnav-exec").start()
     else:
         from scripts.inference_logger import get_logger
         logger = get_logger()
         logger.start_session("stage2_v2", req.instruction, instruction_mode="ASYNC")
         if req.gt_object: logger.data["gt_object"] = req.gt_object
+        logger.data["apply_cc"] = req.apply_cc
         logger.data["runtime_config"] = _snapshot_runtime_config()
         _state["session_id"] = logger.session_id
 
@@ -922,10 +2068,191 @@ def drive_stop():
         _ros.ctrl.robust_stop(source="api_stop")
     try:
         from scripts.inference_logger import get_logger
+        _mark_end_reason("manual")
         get_logger().end_session("manual_stop")
-    except Exception: pass
+    except Exception as e:
+        # 2026-07-30: 이 예외가 조용히 삼켜지고 있어서 session_*.json 리포트가
+        # 2026-07-23 16:23 이후로 통째로 안 만들어지고 있었는데 아무 흔적도
+        # 안 남았음 — 원인 파악을 위해 로그로 남김.
+        log.warning(f"[drive_stop] end_session 실패: {e}")
+    # drive_start()는 bbox/grounding_cached 등을 초기화하는데 stop 쪽은 안 하고
+    # 있었음 — 그래서 R1로 정지한 뒤 다음 L1 전까지, 화면엔 방금 끝난 에피소드의
+    # 마지막 프레임 bbox가 "아직 검출 중"인 것처럼 계속 남아있었음(2026-07-23).
+    _state.update(bbox=None, grounding_cached=None, grounding_caption=None)
     _state["status_log"] = "정지 완료"
     return {"ok": True}
+
+
+class SessionDiscardReq(BaseModel):
+    session_id: Optional[str] = None
+
+
+@app.post("/session/discard")
+def session_discard(req: SessionDiscardReq):
+    """🗑️ 오탐/잘못 누른 수집 세션 폐기 — 실행 중이면 먼저 멈추고(저장 없이),
+    이미 저장된 session_*.json/h5와 episode_log.csv 매칭 행까지 함께 삭제한다."""
+    sid = req.session_id or _state.get("session_id")
+    if not sid:
+        return {"ok": False, "error": "폐기할 세션 ID가 없습니다."}
+
+    if _state.get("running"):
+        _state["running"] = False
+        _stop_ev.set()
+        if _ros and _ros.ctrl:
+            _ros.ctrl.robust_stop(source="session_discard")
+        try:
+            from scripts.inference_logger import get_logger
+            get_logger().discard_session()
+        except Exception as e:
+            log.warning(f"[session_discard] discard_session 실패: {e}")
+        _state.update(bbox=None, grounding_cached=None, grounding_caption=None)
+
+    deleted_files = []
+    for rel_dir, ext in (("docs/inference_reports", "json"), ("docs/inference_sessions", "h5")):
+        p = ROOT / rel_dir / f"session_{sid}.{ext}"
+        if p.exists():
+            p.unlink()
+            deleted_files.append(p.name)
+
+    removed_rows = 0
+    if EPISODE_CSV.exists():
+        rows, _ = _read_episode_csv()
+        kept = [r for r in rows if not (len(r) > 13 and r[13] == sid)]
+        removed_rows = len(rows) - len(kept)
+        if removed_rows:
+            for i, r in enumerate(kept):
+                r[0] = i + 1
+            import csv
+            with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)
+                w.writerow(EP_HEADERS)
+                w.writerows(kept)
+
+    if _state.get("session_id") == sid:
+        _state["session_id"] = None
+    _state["status_log"] = f"🗑️ 세션 {sid} 폐기 완료 (파일 {len(deleted_files)}개, 기록 {removed_rows}행 삭제)"
+    return {"ok": True, "session_id": sid, "deleted_files": deleted_files, "removed_csv_rows": removed_rows}
+
+
+# ── 🧪 경로검증 모드 조이스틱 버튼용 헬퍼 — HTTP 왕복 없이 직접 호출 ──
+def _joystick_drive_start():
+    if _state["running"]:
+        return
+    req = DriveReq(mode=_state.get("mode") or "SYNC",
+                   instruction=_state.get("instruction") or "gray basket",
+                   gt_object=_state.get("gt_object") or "",
+                   apply_cc=bool(_state.get("apply_cc") or False))
+    try:
+        drive_start(req)
+    except Exception as e:
+        log.warning(f"[Joystick] drive_start 실패: {e}")
+
+
+def _joystick_drive_stop():
+    if _state["running"]:
+        drive_stop()
+
+
+def _verify_save_session():
+    """L2 — 최종 세션 저장(추론세션 저장). D-pad로 고른 위치 + X/A 라벨로 1건만 기록.
+    결과 라벨(X/A)이 아직 없으면 저장 안 함(실수 방지). 저장 후 라벨 초기화."""
+    global _verify_pending_result, _verify_save_seq
+    if not _verify_pending_result:
+        _state["status_log"] = "⚠️ 결과 미지정 — X(성공)/A(실패) 먼저 누른 뒤 L2로 저장"
+        log.info("[Verify] L2 저장 취소 — 결과 라벨 없음")
+        return
+    _joystick_drive_stop()
+    # 💾 기록 저장 버튼과 동일한 path_type을 쓰도록 폼 드롭다운 값(_verify_current_path_type)을
+    # 우선 사용 — A안 미러가 D-pad 위치에 맞춰 드롭다운을 동기화해둠. 없으면 위치 매핑 폴백.
+    pt = _verify_current_path_type or _verify_pos_to_path_type(_verify_screen_pos)
+    result = _verify_pending_result
+    try:
+        note = "검증 스크리닝(L2 저장)" + ("· 🧪실험용" if _verify_experimental else "")
+        episodes_log(EpisodeLogReq(path_type=pt, success=result, fpe=0.0,
+                                   note=note, experimental=_verify_experimental))
+        tag = " [실험용]" if _verify_experimental else ""
+        log.info(f"[Verify] L2 세션 저장{tag}: {pt} = {result}")
+        _state["status_log"] = f"💾 저장{tag}: {pt} = {result}"
+        _verify_pending_result = None  # 저장 후 라벨 초기화(다음 세션 대비)
+        _verify_save_seq += 1          # 브라우저 폴링이 이 값 변화로 자동 갱신 트리거
+    except Exception as e:
+        log.warning(f"[Verify] L2 저장 실패: {e}")
+
+
+def _joystick_verify_return():
+    """R2(검증모드) — 주행 경로 역재생 복귀. drive_return()과 동일(수집 return과 별개)."""
+    try:
+        drive_return()
+    except Exception as e:
+        log.warning(f"[Verify] 복귀 실패: {e}")
+
+
+def _joystick_toggle_verify_mode():
+    """Y(3) 버튼 — collect⇄verify 토글. 주행/녹화 중엔 무시(안전가드)."""
+    global _joystick_verify_mode
+    active = bool(_state.get("running")) or bool(_collect is not None and _collect.active)
+    if active:
+        log.info("[Joystick] Y 모드전환 무시 — 주행/녹화 진행 중")
+        return
+    _joystick_verify_mode = not _joystick_verify_mode
+    log.info(f"[Joystick] Y → 배치모드 = {'verify' if _joystick_verify_mode else 'collect'}")
+
+
+def _joystick_toggle_verify_experimental():
+    """SEL 버튼(검증모드 전용) — 실험용/테스트 기록 모드 토글. 주행 중엔 무시(안전가드).
+    켜져 있는 동안 L2 저장은 episode_log_experimental.csv로 분리 기록됨."""
+    global _verify_experimental
+    if bool(_state.get("running")):
+        log.info("[Joystick] SEL 실험모드 전환 무시 — 주행 진행 중")
+        return
+    _verify_experimental = not _verify_experimental
+    _state["status_log"] = f"🧪 실험용 기록 모드: {'ON' if _verify_experimental else 'OFF'}"
+    log.info(f"[Joystick] SEL → 실험용 기록 모드 = {_verify_experimental}")
+
+
+def _joystick_toggle_collect_experimental():
+    """B(BTN_UNDO) 버튼(데이터수집 모드 전용, 2026-07-29) — 실험용/모델이상 표기 토글.
+    녹화 중(active)엔 무시(안전가드) — 세션 전체에 한 값으로 적용돼야 하므로
+    녹화 시작 전에만 바꿀 수 있음. 켜진 상태로 저장하면 H5 attrs에
+    flagged_model_issue=True로 남음. (기존 B=undo_last_frame 대체, 사용자 확인 후 결정 —
+    undo는 이 UI/조이스틱 어디에도 대체 진입점이 없음.)"""
+    if _collect is None:
+        return
+    if _collect.active:
+        log.info("[Joystick] B 실험모드 전환 무시 — 녹화 진행 중")
+        return
+    _collect.experimental_mode = not _collect.experimental_mode
+    _state["status_log"] = f"🧪 실험용(모델이상) 표기: {'ON' if _collect.experimental_mode else 'OFF'}"
+    log.info(f"[Joystick] B → 실험용(모델이상) 표기 = {_collect.experimental_mode}")
+
+
+class JoystickModeReq(BaseModel):
+    mode: str  # "collect" | "verify"
+
+
+@app.post("/joystick/mode")
+def joystick_set_mode(req: JoystickModeReq):
+    global _joystick_verify_mode
+    if req.mode not in ("collect", "verify"):
+        return {"ok": False, "error": f"알 수 없는 모드: {req.mode}"}
+    _joystick_verify_mode = (req.mode == "verify")
+    return {"ok": True, "mode": req.mode}
+
+
+@app.get("/joystick/mode")
+def joystick_get_mode():
+    return {"mode": "verify" if _joystick_verify_mode else "collect"}
+
+
+class VerifyPathTypeReq(BaseModel):
+    path_type: str
+
+
+@app.post("/verify/path_type")
+def verify_set_path_type(req: VerifyPathTypeReq):
+    global _verify_current_path_type
+    _verify_current_path_type = req.path_type
+    return {"ok": True, "path_type": _verify_current_path_type}
 
 
 @app.post("/drive/return")
@@ -971,7 +2298,8 @@ def drive_manual(req: ManualDriveReq):
         _ros.ctrl.move_and_stop_timed(lx, ly, az, source=f"manual_{req.direction}")
         _state["status_log"] = f"🕹️ {req.direction} (속도: {s:.2f})"
         _state["last_action"] = [lx, ly, az]
-        _state["action_history"].append([lx, ly, az])
+        # move_and_stop_timed도 자체적으로 move_duration만큼만 움직이고 멈춤.
+        _append_action_history(lx, ly, az, duration=_ros.ctrl.move_duration)
 
     # 수동 운전 중에도 캘리브레이션 캡쳐 지원
     if _state["calib_recording"]:
@@ -987,6 +2315,160 @@ def drive_manual(req: ManualDriveReq):
     return {"ok": True, "log": _state["status_log"]}
 
 
+@app.get("/collect/ground")
+def collect_ground():
+    """데이터수집 탭 — 바구니 배치용 실시간 cx 피드백.
+    액션예측 없이 그라운딩만 수행하는 추론서버 /ground를 프록시."""
+    if not ROS_AVAILABLE or not _ros:
+        return {"ok": False, "error": "ROS 연결 불가"}
+    frame = _ros.latest_bgr()
+    if frame is None:
+        return {"ok": False, "error": "카메라 프레임 없음"}
+    import requests as rq
+    rgb = frame[:, :, ::-1]
+    buf = io.BytesIO()
+    Image.fromarray(rgb).save(buf, "JPEG", quality=80)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    try:
+        r = rq.post(f"{INFER_URL}/ground", json={"image": b64},
+                    headers={"X-API-Key": API_KEY}, timeout=3)
+        d = r.json()
+        d["ok"] = True
+        return d
+    except rq.exceptions.ConnectionError:
+        return {"ok": False, "error": "추론서버(8001) 연결 안 됨"}
+    except rq.exceptions.Timeout:
+        return {"ok": False, "error": "추론서버 응답 지연(timeout)"}
+    except Exception as e:
+        return {"ok": False, "error": type(e).__name__}
+
+
+@app.get("/collect/snapshot")
+def collect_snapshot():
+    """데이터수집 탭 — 현재 카메라 1프레임을 캡처해 base64 JPEG로 반환 (cx 기준 가이드 이미지용)."""
+    if not ROS_AVAILABLE or not _ros:
+        return {"ok": False, "error": "ROS 연결 불가"}
+    frame = _ros.latest_bgr()
+    if frame is None:
+        return {"ok": False, "error": "카메라 프레임 없음"}
+    rgb = frame[:, :, ::-1]
+    buf = io.BytesIO()
+    Image.fromarray(rgb).save(buf, "JPEG", quality=85)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return {"ok": True, "image": b64}
+
+
+@app.post("/collect/scenario/stage")
+def collect_scenario_stage(req: CollectScenarioStageReq):
+    """진행률 행 클릭으로 시나리오 선택 — 조이스틱 D-pad와 동일한 staged_scenario를 공유(단일 소스)."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.stage_scenario(req.scenario)
+    return {"ok": True, "staged_scenario": staged}
+
+
+@app.post("/collect/scenario/cycle")
+def collect_scenario_cycle(req: CollectScenarioCycleReq):
+    """화면의 ◀/▶ 버튼으로 시나리오 순환 — 조이스틱 D-pad 없이도 동일하게 사용 가능."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.cycle_scenario(req.step)
+    return {"ok": True, "staged_scenario": staged}
+
+
+@app.post("/collect/cxpos/stage")
+def collect_cxpos_stage(req: CollectCxPosStageReq):
+    """트랙A 막대 행 클릭으로 cx위치 선택 — 조이스틱 D-pad와 동일한 staged_cx_position 공유."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.stage_cx_position(req.cx_position)
+    return {"ok": True, "staged_cx_position": staged}
+
+
+@app.post("/collect/cxpos/cycle")
+def collect_cxpos_cycle(req: CollectCxPosCycleReq):
+    """화면의 ◀/▶ 버튼으로 트랙A cx위치 순환."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.cycle_cx_position(req.step)
+    return {"ok": True, "staged_cx_position": staged}
+
+
+@app.post("/collect/cxpath/stage")
+def collect_cxpath_stage(req: CollectCxPathStageReq):
+    """트랙A 접근경로(좌곡선/직진/우곡선) 선택 — 위치와 별개 축, 위치×경로 세분화 카운트에 사용."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.stage_cx_path(req.cx_path)
+    return {"ok": True, "staged_cx_path": staged}
+
+
+@app.post("/collect/cxpath/cycle")
+def collect_cxpath_cycle(req: CollectCxPathCycleReq):
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    staged = _collect.cycle_cx_path(req.step)
+    return {"ok": True, "staged_cx_path": staged}
+
+
+@app.post("/collect/mode/toggle")
+def collect_mode_toggle(req: CollectModeToggleReq = CollectModeToggleReq()):
+    """D-pad 상/하(또는 화면 ▲▼) — 트랙A(cx위치)/접근경로/시나리오(9종) 3축을 순환 전환."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    mode = _collect.toggle_collect_mode(req.step)
+    return {"ok": True, "collect_mode": mode}
+
+
+@app.post("/collect/return")
+def collect_return():
+    """조이스틱 R2(트리거) 또는 화면 버튼으로 직전 경로를 역재생해 시작 위치로 복귀 (Gradio 이식)."""
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    return _collect.start_auto_return()
+
+
+@app.get("/collect/state")
+def collect_state():
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    return {"ok": True, **_collect.state()}
+
+
+@app.post("/collect/key")
+def collect_key(req: CollectKeyReq):
+    """데이터수집 탭 키보드 입력 — keydown마다 원본과 동일한 400ms
+    watchdog(move_and_stop_timed)을 재무장. keyup은 즉시 정지로 반응성 확보."""
+    if not ROS_AVAILABLE or not _ros:
+        return {"ok": False, "error": "ROS 연결 불가"}
+    key = req.key.lower()
+    if key not in COLLECT_KEY_TO_VEL:
+        return {"ok": False, "error": f"알 수 없는 키: {req.key}"}
+    lx, ly, az = COLLECT_KEY_TO_VEL[key]
+    if req.event == "up":
+        _ros.ctrl.robust_stop(source=f"collect_key_up_{key}")
+        return {"ok": True}
+    _ros.ctrl.move_and_stop_timed(lx, ly, az, source=f"collect_key_{key}")
+    return {"ok": True, "action": {"lx": lx, "ly": ly, "az": az}}
+
+
+@app.post("/collect/episode/start")
+def collect_episode_start(req: CollectEpisodeStartReq):
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern, req.cx_position, req.cx_path)
+    return {"ok": True, "episode_name": name}
+
+
+@app.post("/collect/episode/stop")
+def collect_episode_stop(req: CollectEpisodeStopReq):
+    if _collect is None:
+        return {"ok": False, "error": "데이터수집 세션 미초기화"}
+    if _ros:
+        _ros.ctrl.robust_stop(source="collect_episode_stop")
+    return _collect.stop_episode(save=req.save)
+
+
 # ─── 런타임 설정 프록시 ────────────────────────────────────────────
 @app.post("/config")
 def config_update(req: ConfigToggleReq):
@@ -999,6 +2481,14 @@ def config_update(req: ConfigToggleReq):
     if req.cx_jump_thresh is not None: payload["cx_jump_thresh"] = req.cx_jump_thresh
     if req.stop_area_threshold is not None: payload["stop_area_threshold"] = req.stop_area_threshold
     if req.multi_prompt is not None: payload["multi_prompt"] = req.multi_prompt
+    if req.force_reground_on_miss is not None: payload["force_reground_on_miss"] = req.force_reground_on_miss
+    if req.owlv2_thresh is not None: payload["owlv2_thresh"] = req.owlv2_thresh
+    if req.owlv2_area_scale is not None: payload["owlv2_area_scale"] = req.owlv2_area_scale
+    if req.stop_mode is not None: payload["stop_mode"] = req.stop_mode
+    if req.stop_learned_min_steps is not None: payload["stop_learned_min_steps"] = req.stop_learned_min_steps
+    if req.stop_consec_frames is not None: payload["stop_consec_frames"] = req.stop_consec_frames
+    if req.stop_cx_tolerance is not None: payload["stop_cx_tolerance"] = req.stop_cx_tolerance
+    if req.stop_latched is not None: payload["stop_latched"] = req.stop_latched
 
     try:
         res = _infer_post("/config", payload, timeout=3)
@@ -1031,13 +2521,178 @@ def infer_health():
         return {"status": "error", "detail": str(e)}
 
 
+# ─── 🔀 모델 전환 (Tab4용) — /model/load 핫스왑 프록시, go.sh 재시작(95s) 불필요 ──
+EXP73_MODEL_DIR = ROOT / "runs" / "v5_nav" / "mlp" / "exp73"
+# 2026-08-07: stage1_v3_5cls와 매칭되는 헤드는 별도 디렉터리(exp73_stage1v3/)로
+# 왔음 — 기존 스캔 대상(exp73/)에만 없어서 Tab4 모델 목록에 안 뜨던 문제.
+EXP73_EXTRA_MODEL_DIRS = [ROOT / "runs" / "v5_nav" / "mlp" / "exp73_stage1v3"]
+
+_CKPT_EXP_RE = re.compile(r"exp(\d+)")
+
+
+def _parse_ckpt_tags(name: str) -> dict:
+    """체크포인트 파일명에서 카테고리 태그를 뽑아낸다 — 그라운더/exp/데이터셋
+    버전/트랙/헤드종류/holdaware/DEPLOY/seed. 정식 메타(val_acc 등)는 torch.load로만
+    알 수 있어 비싸지만, 이 태그들은 명명 규칙(exp73_owl_trackF_v6_mlp_holdaware_
+    seed0.pt류)만으로 충분히 뽑혀서 스크리닝 진행률 요약처럼 파일 없이 이름만
+    아는 곳에서도 씀(2026-07-30, "그라운더/exp/데이터셋/헤드/스킬 표기" 요청)."""
+    # 언더스코어는 정규식 \b 기준으로 "단어문자"라 경계가 안 잡힘(exp73_owl_...에서
+    # \bowl\b가 매치 안 되던 버그) — 언더스코어/점을 구분자로 직접 토큰화해서 검사.
+    n = name or ""
+    tokens = [t.lower() for t in re.split(r"[_.]", n) if t]
+    m = _CKPT_EXP_RE.search(n)
+    grounder = "OWL-v2" if "owl" in tokens else \
+               "PG2(448)" if ("pg448" in tokens or "pg2" in tokens) else None
+    track = "trackF" if "trackf" in tokens else \
+            "trackA" if "tracka" in tokens else None
+    dsm = re.search(r"_v(\d+)(?:_|\.)", n)
+    head = "hybrid" if "hybrid" in tokens else \
+           "MLP" if "mlp" in tokens else \
+           "transformer" if "transformer" in tokens else None
+    seedm = re.search(r"seed(\d+)", n, re.I)
+    deploym = re.search(r"DEPLOY[_-]?v(\d+)", n, re.I)
+    return {
+        "exp": int(m.group(1)) if m else None,
+        "grounder": grounder,
+        "track": track,
+        "dataset": f"V{dsm.group(1)}" if dsm else None,
+        "head": head,
+        "holdaware": bool(re.search(r"holdaware", n, re.I)),
+        "deploy": f"v{deploym.group(1)}" if deploym else None,
+        "seed": int(seedm.group(1)) if seedm else None,
+    }
+
+
+def _ckpt_sort_key(name: str):
+    """체크포인트 파일명 기준 정렬 키 — exp 번호 큰(최신 실험) 것 먼저, 그 안에서
+    그라운더/헤드/데이터셋/seed 순으로 묶어서 같은 종류끼리 붙어 보이게 함
+    (2026-07-30, "카테고리를 좀더 잘 볼 수 있게" 요청). 태그가 없는 값(None)은
+    항상 맨 뒤로 밀리게 정렬 가능한 값으로 치환."""
+    t = _parse_ckpt_tags(name)
+    return (
+        -(t["exp"] if t["exp"] is not None else -1),
+        t["grounder"] or "￿",
+        t["head"] or "￿",
+        t["dataset"] or "￿",
+        t["deploy"] or "",
+        t["seed"] if t["seed"] is not None else -1,
+        name or "",
+    )
+
+
+@app.get("/verify/model_list")
+def verify_model_list():
+    """runs/v5_nav/mlp/exp73/*.pt 스캔 + 메타데이터(val_acc/head/held_success/stride)
+    가벼운 torch.load(map_location='cpu')로 파싱 — 파일 몇 개뿐이라 부담 적음."""
+    import torch
+    out = []
+    all_files = []
+    if EXP73_MODEL_DIR.exists():
+        all_files.extend(EXP73_MODEL_DIR.glob("*.pt"))
+    for d in EXP73_EXTRA_MODEL_DIRS:
+        if d.exists():
+            all_files.extend(d.glob("*.pt"))
+    for f in sorted(all_files, key=lambda p: _ckpt_sort_key(p.name)):
+        meta = {"filename": f.name, "path": str(f.relative_to(ROOT)),
+                "size_mb": round(f.stat().st_size / 1e6, 2),
+                "tags": _parse_ckpt_tags(f.name)}
+        # 2026-08-07: 모든 항목에 짝이 맞는 image_proj를 명시 — 안 그러면 A/B로
+        # exp73_stage1v3 헤드 → 기존 exp73 헤드로 되돌아갈 때 stage1_path가 그대로
+        # 남아서 "구헤드+신image_proj"(방금 실기서 STOP 붕괴 확인된 조합)로 조용히
+        # 되돌아가는 사고가 날 수 있음 — 전환 버튼이 항상 맞는 짝을 같이 보냄.
+        meta["requires_stage1"] = (
+            "runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt"
+            if f.parent.name == "exp73_stage1v3"
+            else "runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
+        )
+        try:
+            ckpt = torch.load(str(f), map_location="cpu", weights_only=False)
+            meta["head"] = ckpt.get("head", "?")
+            meta["exp"] = ckpt.get("exp", "")
+            meta["window"] = ckpt.get("window", "")
+            meta["bbox_scale"] = ckpt.get("bbox_scale", "")
+            meta["stride"] = ckpt.get("stride", "")
+            va = ckpt.get("val_acc")
+            meta["val_acc"] = round(float(va), 4) if va else None
+            hs = ckpt.get("held_success")
+            meta["held_success"] = round(float(hs), 1) if hs is not None else None
+        except Exception as e:
+            meta["error"] = str(e)
+        out.append(meta)
+    return {"ok": True, "models": out}
+
+
+class ModelSwitchReq(BaseModel):
+    path: str  # runs/v5_nav/mlp/exp73/xxx.pt (repo-relative) — head(Stage2) 체크포인트
+    grounder: Optional[str] = None  # "pg2" | "owlv2" — 지정 시 그라운더도 같이 핫스왑
+    stage1_path: Optional[str] = None  # 2026-08-07: image_proj(Stage1) 교체용 (repo-relative).
+    # 지정 시 stage1_path도 바뀌므로 Kosmos-2 vision encoder 재사용 조건(_stage1_path 동일)이
+    # 깨져 ~25s 풀 리로드가 발생함(head만 바꿀 때의 fast-path와 다름).
+
+
+@app.post("/verify/model_switch")
+def verify_model_switch(req: ModelSwitchReq):
+    """추론서버(8001)의 /model/load 핫스왑 프록시 — 프로세스 재시작(go.sh, ~95s)
+    없이 체크포인트(+옵션으로 그라운더/Stage1 image_proj)만 즉시 교체."""
+    import requests as rq
+    full_path = str((ROOT / req.path).resolve())
+    if not os.path.exists(full_path):
+        return {"ok": False, "error": f"파일 없음: {req.path}"}
+    try:
+        payload = {"stage2_path": full_path}
+        if req.grounder:
+            payload["grounder"] = req.grounder
+        if req.stage1_path:
+            full_stage1 = str((ROOT / req.stage1_path).resolve())
+            if not os.path.exists(full_stage1):
+                return {"ok": False, "error": f"stage1 파일 없음: {req.stage1_path}"}
+            payload["stage1_path"] = full_stage1
+        r = rq.post(f"{INFER_URL}/model/load",
+                     json=payload,
+                     # 체크포인트 변경(Stage1 Kosmos-2까지 재로드)은 실측 ~25s로
+                     # 기존 30s 타임아웃과 여유가 거의 없어 종종 실패했음 — 60s로 완화.
+                     # (그라운더만 바꾸는 경우는 fast-path로 <1s, 여유 충분)
+                     headers={"X-API-Key": API_KEY}, timeout=60)
+        r.raise_for_status()
+        result = r.json()
+        log.info(f"[ModelSwitch] {req.path} (grounder={req.grounder}) → {result}")
+        return {"ok": True, **result}
+    except Exception as e:
+        log.warning(f"[ModelSwitch] 실패: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+def _current_checkpoint_and_config() -> tuple[str, str]:
+    """지금 이 순간 추론서버(8001) 상태 — (체크포인트 파일명, 전체 런타임설정 JSON
+    문자열) 튜플. 기존엔 session_id → docs/inference_reports/session_*.json
+    리포트 파일과 사후 조인해서 알아냈는데(2026-07-23), 리포트 파일이 어떤
+    이유로든 안 만들어지면(2026-07-23 17:24~18:55 배치가 실제로 그랬음) 체크포인트
+    뿐 아니라 grounding_skip_n/multi_prompt 같은 세부값도 "직전 스냅샷 기준
+    추정"으로만 답할 수밖에 없었음 — 저장 "그 순간" CSV 행에 통째로 박아서
+    별도 조인/추정 없이 항상 정확하게 남도록 함(2026-07-29)."""
+    cfg = _snapshot_runtime_config()
+    ckpt_path = cfg.get("checkpoint_path") or ""
+    ckpt_name = os.path.basename(ckpt_path) if ckpt_path else "(알수없음)"
+    try:
+        cfg_json = json.dumps(cfg, ensure_ascii=False)
+    except Exception:
+        cfg_json = "{}"
+    return ckpt_name, cfg_json
+
+
 def _snapshot_runtime_config() -> dict:
     """세션 시작 시점의 런타임 설정 스냅샷 — H5 attrs에 박아서 나중에
-    로그 없이도 '이 세션 때 뭘 켜놨었는지' 확인 가능하게 함(2026-07-02)."""
+    로그 없이도 '이 세션 때 뭘 켜놨었는지' 확인 가능하게 함(2026-07-02).
+
+    2026-07-06: OWL-v2 A/B 그라운더 도입 후 이 스냅샷에 grounder 정보가
+    빠져있던 걸 발견 — 어느 그라운더로 수집한 세션인지가 오늘 분석의
+    핵심인데 누락되고 있었음. grounder/owlv2_thresh/checkpoint/git_commit 추가.
+    """
     try:
         import requests as rq
         r = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2)
         h = r.json()
+        g = h.get("grounder", {}) or {}
         return {
             "preview_enabled": h.get("preview", {}).get("enabled"),
             "preview_hint_cx": h.get("preview", {}).get("hint_cx"),
@@ -1045,7 +2700,24 @@ def _snapshot_runtime_config() -> dict:
             "cx_jump_filter": h.get("cx_jump_filter"),
             "cx_jump_thresh": h.get("cx_jump_thresh"),
             "multi_prompt": h.get("multi_prompt"),
+            "force_reground_on_miss": h.get("force_reground_on_miss"),
+            # 2026-08-05: stop_mode 계열이 이 스냅샷에 아예 빠져 있었음 —
+            # 100건 테스트 세션 H5를 사후 대조할 때 "stop_mode=learned였다"를
+            # 세션 파일만으로는 증명할 수 없었다(minum 요청서 F항목). /health엔
+            # 원래 있던 값인데 스냅샷 목록에서만 누락된 것이라 추가.
+            "stop_mode": h.get("stop_mode"),
+            "stop_learned_min_steps": h.get("stop_learned_min_steps"),
             "head": h.get("head"),
+            "grounder_model": g.get("model"),
+            "grounder_input_px": g.get("input_px"),
+            "owlv2_thresh": g.get("owlv2_thresh"),
+            "owlv2_area_scale": g.get("owlv2_area_scale"),
+            "checkpoint_path": h.get("checkpoint_path"),
+            # 2026-08-07: stage1_path(image_proj)도 이 스냅샷에 없었음 — head(checkpoint_path)는
+            # 안 바뀌고 image_proj만 바뀌는 경우(V3-5cls 실기검증)가 생기면서 발견. 이게 없으면
+            # 같은 head로 기록된 스크리닝 배치가 "구/신 image_proj" 구분 없이 한 세트로 뭉개짐.
+            "stage1_path": h.get("stage1_path"),
+            "git_commit": h.get("git_commit"),
         }
     except Exception as e:
         return {"error": str(e)}
@@ -1156,6 +2828,34 @@ def calib_rec_save(name: Optional[str] = None):
 
 
 # ─── 누적 드리프트 시뮬레이션 ──────────────────────────────────────────
+@app.get("/drive/drift/sessions")
+def drift_sessions_list():
+    """T1-2(축소): logs/drift_sessions/*.jsonl은 6/23 이후 기록만 있고
+    **읽어들이는 엔드포인트도 UI도 없어서** 과거 드리프트 세션을 다시 볼
+    방법이 전혀 없었다(차트는 in-memory 최근 30행만 표시). 목록 + 재생용 조회 추가."""
+    d = ROOT / "logs" / "drift_sessions"
+    out = []
+    if d.exists():
+        for p in sorted(d.glob("drift_*.jsonl"), reverse=True):
+            rows = []
+            try:
+                for line in p.read_text().splitlines():
+                    if line.strip():
+                        rows.append(json.loads(line))
+            except Exception:
+                continue
+            if not rows:
+                continue
+            out.append({
+                "name": p.stem,
+                "n": len(rows),
+                "mtime": datetime.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+                "history": [[r.get("step"), r.get("latency_ms"),
+                             r.get("real_cum_s"), r.get("nominal_cum_s")] for r in rows],
+            })
+    return {"ok": True, "sessions": out}
+
+
 @app.get("/drive/drift/run")
 def drive_drift_run(basis: str):
     """현재 카메라 1프레임을 추론하여 가정시간 기준 대비 드리프트 누적 측정"""
@@ -1233,6 +2933,21 @@ def drive_drift_reset():
     return {"ok": True}
 
 
+# 액션 레이블 매핑 도우미 — /sessions/load, /overshoot_guide/load 공용
+_ACTION_LABEL_MAP = {
+    (0.0,0.0,0.0):"STOP", (1.15,0.0,0.0):"FWD",
+    (0.0,1.15,0.0):"LEFT", (0.0,-1.15,0.0):"RIGHT",
+    (1.15,1.15,0.0):"FWD+L", (1.15,-1.15,0.0):"FWD+R",
+    (0.0,0.0,0.25):"ROT_L", (0.0,0.0,-0.25):"ROT_R",
+}
+def _infer_action_label(a):
+    # 구버전 세션은 az 없이 (lx, ly) 2열만 기록된 경우가 있음 — az=0으로 패딩
+    a3 = [float(a[0]), float(a[1]), float(a[2]) if len(a) > 2 else 0.0]
+    for k, v in _ACTION_LABEL_MAP.items():
+        if all(abs(a3[i]-k[i])<0.05 for i in range(3)): return v
+    return f"({a3[0]:.1f},{a3[1]:.1f})"
+
+
 # ─── 세션 히스토리 & 셀프 라벨링 ───────────────────────────────────────
 @app.get("/sessions/list")
 def sessions_list():
@@ -1244,14 +2959,12 @@ def sessions_list():
         try: labels = json.loads(LABEL_JSON_PATH.read_text())
         except Exception: pass
 
-    csv_rows, _ = _read_episode_csv()
-    csv_by_sid = {r[13]: r for r in csv_rows if len(r) >= 14}
 
     session_list = []
     for h5p in h5_files:
         sid = Path(h5p).stem.replace("session_", "")
         n_labeled = sum(1 for k in labels if k.startswith(f"session_{sid}_f"))
-
+        
         # 기본 정보
         steps = "?"
         instruction = "—"
@@ -1263,22 +2976,13 @@ def sessions_list():
                     steps = d.get("summary", {}).get("total_steps", "?")
                     instruction = d.get("instruction", "—")
             except Exception: pass
-
-        # episode_log.csv 실주행 결과 배지 (있으면)
-        result = None
-        path_type = None
-        r = csv_by_sid.get(sid)
-        if r:
-            path_type, result = r[1], r[2]
-
+            
         session_list.append({
             "sid": sid,
             "steps": steps,
             "instruction": instruction,
             "labeled_count": n_labeled,
-            "h5_size_mb": round(os.path.getsize(h5p) / (1024*1024), 2),
-            "result": result,
-            "path_type": path_type,
+            "h5_size_mb": round(os.path.getsize(h5p) / (1024*1024), 2)
         })
     return {"ok": True, "sessions": session_list}
 
@@ -1289,22 +2993,23 @@ def sessions_load(sid: str):
     if not h5p.exists():
         return JSONResponse(status_code=404, content={"ok": False, "error": f"H5 파일이 없음: {h5p}"})
 
+    # T2-2: frame_duplicate_warning은 세션 JSON 리포트에만 있고 H5엔 없다.
+    # 이 함수가 H5만 읽어서, 카메라가 멈춰 같은 프레임이 반복된 사실(실기
+    # 실패의 교란요인)이 인스펙터 이상치 목록에 전혀 안 뜨고 있었음.
+    dup_frames: set = set()
+    _rep = INFER_REPORT_DIR / f"session_{sid}.json"
+    if _rep.exists():
+        try:
+            for _h in (json.loads(_rep.read_text()).get("history") or []):
+                if _h.get("frame_duplicate_warning") and _h.get("frame_idx") is not None:
+                    dup_frames.add(int(_h["frame_idx"]))
+        except Exception:
+            pass
+
     labels = {}
     if LABEL_JSON_PATH.exists():
         try: labels = json.loads(LABEL_JSON_PATH.read_text())
         except Exception: pass
-
-    # episode_log.csv에서 이 세션의 실주행 결과/오퍼레이터 메모 join (마지막 컬럼=session_id)
-    episode_row = None
-    csv_rows, _ = _read_episode_csv()
-    for r in csv_rows:
-        if len(r) >= 14 and r[13] == sid:
-            episode_row = {
-                "path_type": r[1], "result": r[2], "steps": r[3], "lat_ms": r[4],
-                "top_action": r[5], "gnd_pct": r[6], "area": r[7], "cx": r[8],
-                "stop": r[9], "fpe": r[10], "note": r[11], "date": r[12],
-            }
-            break
 
     try:
         with h5py.File(h5p, "r") as f:
@@ -1317,20 +3022,7 @@ def sessions_load(sid: str):
         # 구버전 여부 판단 (6/30 이전)
         is_old = sid < "20260630"
         n_frames = len(acts)
-        
-        # 액션 레이블 매핑 도우미
-        _amap = {
-            (0.0,0.0,0.0):"STOP", (1.15,0.0,0.0):"FWD",
-            (0.0,1.15,0.0):"LEFT", (0.0,-1.15,0.0):"RIGHT",
-            (1.15,1.15,0.0):"FWD+L", (1.15,-1.15,0.0):"FWD+R",
-            (0.0,0.0,0.25):"ROT_L", (0.0,0.0,-0.25):"ROT_R",
-        }
-        def _lbl(a):
-            # 구버전 세션은 az 없이 (lx, ly) 2열만 기록된 경우가 있음 — az=0으로 패딩
-            a3 = [float(a[0]), float(a[1]), float(a[2]) if len(a) > 2 else 0.0]
-            for k, v in _amap.items():
-                if all(abs(a3[i]-k[i])<0.05 for i in range(3)): return v
-            return f"({a3[0]:.1f},{a3[1]:.1f})"
+        _lbl = _infer_action_label
 
         frames_meta = []
         for i in range(n_frames):
@@ -1350,13 +3042,15 @@ def sessions_load(sid: str):
             if is_prev and lat == 0:
                 warns.append("⚠️ preview latency=0ms")
             if ca == 0.0 and lat == 0 and not is_prev and not is_arrival:
-                warns.append("⚠️ live PG2 latency=0ms")
+                warns.append("⚠️ live 그라운딩 latency=0ms")  # PG2/OWL-v2 공용 문구(2026-07-31)
             if has and abs(cx - 0.5) < 0.001:
                 warns.append("⚠️ has_bbox=True지만 cx=0.5 (fallback)")
             if has and area == 0:
                 warns.append("⚠️ has_bbox=True지만 area=0")
             if not has and abs(cx - 0.5) > 0.01:
                 warns.append(f"⚠️ has_bbox=False인데 cx={cx:.3f} (모순)")
+            if i in dup_frames:
+                warns.append("⚠️ 직전 프레임과 픽셀단위 동일 — 카메라 멈춤 의심")
 
             user_label = labels.get(f"session_{sid}_f{i}", "")
 
@@ -1375,12 +3069,28 @@ def sessions_load(sid: str):
                 "user_label": user_label
             })
             
+        # 경로검증(episode_log.csv) 기록 중 이 세션과 매칭되는 행 — 있으면 동봉
+        episode = None
+        try:
+            ep_rows, _ = _read_episode_csv()
+            for r in ep_rows:
+                if len(r) > 13 and r[13] == sid:
+                    episode = {
+                        "row": r[0], "path_type": r[1], "success": r[2],
+                        "steps": r[3], "lat_ms": r[4], "top_action": r[5],
+                        "gnd_pct": r[6], "area": r[7], "cx": r[8], "stop": r[9],
+                        "fpe": r[10], "note": r[11], "date": r[12],
+                    }
+                    break
+        except Exception:
+            pass
+
         return {
             "ok": True,
             "sid": sid,
             "attrs": {k: str(v) for k, v in attrs.items()},
-            "episode": episode_row,
-            "frames": frames_meta
+            "frames": frames_meta,
+            "episode": episode,
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"ok": False, "error": f"H5 로딩 오류: {e}"})
@@ -1404,6 +3114,480 @@ def sessions_frame(sid: str, idx: int):
         return Response(content=buf.getvalue(), media_type="image/jpeg")
     except Exception as e:
         return Response(status_code=500, content=f"Frame load error: {e}")
+
+
+def _json_safe(obj):
+    """h5py attrs(numpy 스칼라/바이트 등)를 json.dumps 가능한 순수 파이썬 값으로 변환."""
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8", errors="replace")
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return _json_safe(obj.tolist())
+    return obj
+
+
+def _draw_meta_overlay(pil, lines: list[str]) -> None:
+    """이미지 우하단에 반투명 박스 + 텍스트 여러 줄을 합성 — 인스펙터 화면의
+    #inspect-meta-overlay/#ds-meta-overlay와 같은 내용을 다운로드 파일에도
+    "구워 넣기" 위함(2026-08-09). 화면 오버레이는 CSS라 다운로드엔 안 남는 문제."""
+    from PIL import ImageDraw, ImageFont
+    draw = ImageDraw.Draw(pil)
+    W, H = pil.size
+    # 2026-08-09: 화면 CSS 오버레이 11px 기준 180%(20px)로 맞춤(250%는 너무 커서
+    # 우측 다른 정보를 가려 축소) — 기본 비트맵 폰트는 크기 조절이 안 돼서
+    # DejaVu Sans Mono 트루타입을 명시적으로 로드.
+    pad, line_h = 11, 25
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 20)
+    except Exception:
+        font = ImageFont.load_default(size=20)
+    widths = [draw.textlength(l, font=font) for l in lines]
+    box_w = max(widths) + pad * 2 if widths else 0
+    box_h = line_h * len(lines) + pad * 2
+    x1, y1 = W - 8, H - 8
+    x0, y0 = x1 - box_w, y1 - box_h
+    draw.rectangle([x0, y0, x1, y1], fill=(0, 0, 0))
+    for i, line in enumerate(lines):
+        ty = y0 + pad + i * line_h
+        draw.text((x1 - pad - widths[i], ty), line, fill=(226, 232, 240), font=font)
+
+
+@app.get("/sessions/export")
+def sessions_export(sid: str, with_bbox: int = 0, with_meta: int = 1, with_metatext: int = 0):
+    """세션 하나를 ZIP으로 다운로드 — frames/*.jpg + (옵션)metadata.json + actions.csv.
+    with_bbox=1이면 인스펙터 캔버스(drawInspectBbox)와 동일한 공식으로 bbox를
+    이미지에 직접 합성해서 내려줌 — 지금까지 이 오버레이는 JS 캔버스에서만
+    그려지고 있어서(2026-08-08) 다운로드에는 반영할 서버 쪽 로직이 아예 없었음.
+    with_metatext=1이면 우하단 메타 오버레이(#inspect-meta-overlay와 동일 내용)도
+    이미지에 합성 — bbox 옵션과 독립적으로 켤 수 있음."""
+    h5p = INFER_H5_DIR / f"session_{sid}.h5"
+    if not h5p.exists():
+        return Response(status_code=404, content="H5 file not found")
+    try:
+        import zipfile
+        from PIL import ImageDraw
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            with h5py.File(h5p, "r") as f:
+                imgs = f["observations/images"]
+                n = len(imgs)
+                bbox_ds = f["grounding/bbox"][:] if "grounding/bbox" in f else None
+                actions = f["actions"][:] if "actions" in f else None
+                attrs = _json_safe(dict(f.attrs))
+
+                for i in range(n):
+                    pil = Image.fromarray(imgs[i].astype(np.uint8)).convert("RGB")
+                    if with_bbox and bbox_ds is not None:
+                        cx, cy, area, has_bbox = [float(v) for v in bbox_ds[i]]
+                        if has_bbox and area > 0:
+                            W, H = pil.size
+                            half = (area ** 0.5) * min(W, H) * 0.5
+                            cx_px, cy_px = cx * W, cy * H
+                            draw = ImageDraw.Draw(pil)
+                            draw.rectangle([cx_px - half, cy_px - half, cx_px + half, cy_px + half],
+                                           outline=(16, 185, 129), width=3)
+                            r = 5
+                            draw.ellipse([cx_px - r, cy_px - r, cx_px + r, cy_px + r], fill=(16, 185, 129))
+                    if with_metatext:
+                        lines = [sid, f"frame {i + 1}/{n}"]
+                        if bbox_ds is not None:
+                            cx, cy, area, _ = [float(v) for v in bbox_ds[i]]
+                            lines.append(f"cx={cx:.2f} cy={cy:.2f} area={area:.2f}")
+                        if actions is not None:
+                            lx, ly, az = [float(v) for v in actions[i]]
+                            lines.append(f"lx={lx:.2f} ly={ly:.2f} az={az:.2f}")
+                        _draw_meta_overlay(pil, lines)
+                    fbuf = io.BytesIO()
+                    pil.save(fbuf, format="JPEG", quality=85)
+                    zf.writestr(f"frames/frame_{i:04d}.jpg", fbuf.getvalue())
+
+                if with_meta:
+                    meta = {"session_id": sid, "with_bbox": bool(with_bbox), "n_frames": n, "attrs": attrs}
+                    report_path = INFER_REPORT_DIR / f"session_{sid}.json"
+                    if report_path.exists():
+                        try:
+                            meta["report"] = json.loads(report_path.read_text())
+                        except Exception:
+                            pass
+                    zf.writestr("metadata.json", json.dumps(meta, indent=2, ensure_ascii=False, default=str))
+
+                    if actions is not None:
+                        import csv
+                        cbuf = io.StringIO()
+                        w = csv.writer(cbuf)
+                        header = ["frame_idx", "lx", "ly", "az"]
+                        if bbox_ds is not None:
+                            header += ["cx", "cy", "area", "has_bbox"]
+                        w.writerow(header)
+                        for i in range(n):
+                            row = [i, *[float(v) for v in actions[i]]]
+                            if bbox_ds is not None:
+                                row += [float(v) for v in bbox_ds[i]]
+                            w.writerow(row)
+                        zf.writestr("actions.csv", cbuf.getvalue())
+
+        buf.seek(0)
+        fname = f"session_{sid}{'_bbox' if with_bbox else ''}.zip"
+        return Response(content=buf.getvalue(), media_type="application/zip",
+                         headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+    except Exception as e:
+        return Response(status_code=500, content=f"Export error: {e}")
+
+
+# ─── 🌀 오버슈트 가이드 — 트랙C(오버슈트→재수렴) 수집 예시 ─────────────────
+# CH62(docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md §2)의
+# 실패 반례 세션(205228)에서 "과도한 회전 → 반등 없이 계속 밀림" 실구간을 그대로
+# 보여주고, 이후 "이렇게 반대로 재보정했어야 함"을 같은 세션 프레임을
+# 좌우반전+역순재생한 합성(실제 센서 데이터 아님) 구간으로 이어붙여 시연한다.
+# 실제 재보정 데이터 자체가 없다는 게 CH62/트랙C의 문제의식이라 합성 외엔 방법이 없음.
+OVERSHOOT_DEMO_SID = "20260711_205228"
+OVERSHOOT_DEMO_REAL_FRAMES = 9  # idx 0..8 — CH62 표에서 cx가 0.73→0.19로 반등없이 하강한 구간
+
+
+def _overshoot_guide_compose(direction: str, idx: int):
+    """합성 타임라인 idx -> (원본 real_idx, phase, mirror 여부).
+
+    idx 0..8: 실제 프레임 그대로(phase=real)
+    idx 9..16: 실제 8..1 프레임을 좌우반전한 합성 재보정 예시(phase=synthetic)
+    direction=right_recover면 전체를 한 번 더 좌우반전(왼쪽 극단 사례를
+    오른쪽 극단 사례처럼 보이게) — 실제로 새 세션을 만들지 않고 기존
+    좌측 반례 하나로 양쪽 방향 예시를 다 보여주기 위한 트릭.
+    """
+    real_n = OVERSHOOT_DEMO_REAL_FRAMES
+    if idx < real_n:
+        real_idx, phase, local_mirror = idx, "real", False
+    else:
+        j = idx - real_n
+        real_idx, phase, local_mirror = (real_n - 2 - j), "synthetic", True
+    global_mirror = (direction == "right_recover")
+    return real_idx, phase, (local_mirror != global_mirror)
+
+
+def _overshoot_guide_len():
+    return OVERSHOOT_DEMO_REAL_FRAMES + (OVERSHOOT_DEMO_REAL_FRAMES - 1)
+
+
+@app.get("/overshoot_guide/load")
+def overshoot_guide_load(direction: str = "left_recover"):
+    if direction not in ("left_recover", "right_recover"):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "direction은 left_recover|right_recover만 허용"})
+    h5p = INFER_H5_DIR / f"session_{OVERSHOOT_DEMO_SID}.h5"
+    if not h5p.exists():
+        return JSONResponse(status_code=404, content={"ok": False, "error": f"예시 원본 세션 없음: {h5p}"})
+    try:
+        with h5py.File(h5p, "r") as f:
+            acts = f["actions"][()]
+            bbox = f["grounding/bbox"][()]
+
+        frames = []
+        total = _overshoot_guide_len()
+        for idx in range(total):
+            real_idx, phase, mirror = _overshoot_guide_compose(direction, idx)
+            cx = float(bbox[real_idx, 0])
+            action = _infer_action_label(acts[real_idx])
+            if mirror:
+                cx = 1.0 - cx
+            note = (
+                "실제 데이터 — 과도한 회전 이후 cx가 반등 없이 계속 밀림 (CH62 205228)"
+                if phase == "real" else
+                "합성 예시 — 같은 세션 프레임 좌우반전, 실제 센서 데이터 아님. "
+                "\"여기서부터 반대방향 재보정이 있었어야 함\"을 보여주기 위한 시각 자료"
+            )
+            frames.append({
+                "idx": idx, "source_real_idx": real_idx, "phase": phase,
+                "mirrored": mirror, "cx": cx, "action": action, "note": note,
+            })
+        return {
+            "ok": True, "direction": direction, "source_sid": OVERSHOOT_DEMO_SID,
+            "real_frame_count": OVERSHOOT_DEMO_REAL_FRAMES, "frames": frames,
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"ok": False, "error": f"로딩 오류: {e}"})
+
+
+@app.get("/overshoot_guide/frame")
+def overshoot_guide_frame(direction: str, idx: int):
+    h5p = INFER_H5_DIR / f"session_{OVERSHOOT_DEMO_SID}.h5"
+    if not h5p.exists():
+        return Response(status_code=404, content="H5 file not found")
+    try:
+        real_idx, _phase, mirror = _overshoot_guide_compose(direction, idx)
+        with h5py.File(h5p, "r") as f:
+            img_arr = f["observations/images"][real_idx]
+        pil = Image.fromarray(img_arr.astype(np.uint8))
+        if mirror:
+            pil = ImageOps.mirror(pil)
+        buf = io.BytesIO()
+        pil.save(buf, format="JPEG", quality=80)
+        return Response(content=buf.getvalue(), media_type="image/jpeg")
+    except Exception as e:
+        return Response(status_code=500, content=f"Frame load error: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 데이터셋 히스토리 — 데이터수집(collect) 탭이 저장한 원본 학습 H5 브라우징.
+# /sessions/* (추론세션, INFER_H5_DIR)와는 완전히 다른 데이터 소스.
+# 스키마 2종 혼재: 레거시(observations/images + scenario/pattern/distance/
+# end_pos attrs, 289개) vs 신규 대시보드 포맷(images + episode_name/
+# cx_position/cx_path/scenario attrs). 아래 헬퍼가 두 스키마를 흡수한다.
+# ═══════════════════════════════════════════════════════════════════
+_DS_NAME_RE = re.compile(r"^episode_\d+_\d+_(?P<rest>.+)$")
+
+
+def _dataset_h5_paths():
+    return sorted(glob.glob(str(_collect.data_dir / "*.h5")), reverse=True)
+
+
+def _dataset_parse_scenario_from_name(name: str) -> str:
+    """attrs에 scenario가 없는 파일(구버전 또는 커스텀 이름)의 폴백 —
+    자동생성 이름(episode_{ts}_{scenario}_{pattern}_{cx_pos}_{cx_path})에서
+    scenario로 보이는 토큰을 추출. 매칭 안 되면 빈 문자열."""
+    m = _DS_NAME_RE.match(name)
+    if not m:
+        return ""
+    rest = m.group("rest")
+    if rest in COLLECT_SCENARIOS:
+        return rest
+    for key in COLLECT_SCENARIOS:
+        if rest.startswith(key + "_") or rest == key:
+            return key
+    return ""
+
+
+def _dataset_scan_attrs(h5p: str) -> dict:
+    """파일을 열지 않고(attrs만) 목록용 메타데이터 추출 — 290개 스캔이
+    빨라야 하므로 이미지 데이터셋은 절대 안 읽음."""
+    name = Path(h5p).stem
+    with h5py.File(h5p, "r") as f:
+        attrs = dict(f.attrs)
+        schema = "new" if "images" in f else "legacy"
+        if schema == "new":
+            n_frames = int(attrs.get("num_frames", f["images"].shape[0] if "images" in f else 0))
+        else:
+            n_frames = int(f["observations/images"].shape[0]) if "observations/images" in f else 0
+
+    scenario = str(attrs.get("scenario", "") or "") or _dataset_parse_scenario_from_name(name)
+    cx_position = str(attrs.get("cx_position", "") or "")
+    cx_path = str(attrs.get("cx_path", "") or "")
+    pattern = str(attrs.get("pattern", "") or "")
+    duration_s = float(attrs.get("total_duration", 0.0) or 0.0)
+    collection_dt = attrs.get("collection_datetime", "")
+
+    mtime = os.path.getmtime(h5p)
+    dt = (datetime.datetime.fromisoformat(collection_dt) if collection_dt
+          else datetime.datetime.fromtimestamp(mtime))
+    ctrl_mode = str(attrs.get("control_mode", "") or "")
+    act_space = str(attrs.get("action_space", "") or ("continuous" if ctrl_mode == "continuous" else "discrete"))
+
+    return {
+        "name": name,
+        "date": dt.strftime("%Y-%m-%d"),
+        "time": dt.strftime("%H:%M:%S"),
+        "scenario": scenario,
+        "cx_position": cx_position,
+        "cx_path": cx_path,
+        "pattern": pattern,
+        "num_frames": n_frames,
+        "duration_s": round(duration_s, 1),
+        "size_mb": round(os.path.getsize(h5p) / (1024 * 1024), 2),
+        "schema": schema,
+        "control_mode": ctrl_mode,
+        "action_space": act_space,
+    }
+
+
+@app.get("/dataset/list")
+def dataset_list():
+    items = []
+    for h5p in _dataset_h5_paths():
+        try:
+            items.append(_dataset_scan_attrs(h5p))
+        except Exception as e:
+            log.warning(f"[DatasetHistory] {h5p} 스캔 실패: {e}")
+    scenarios = sorted({it["scenario"] for it in items if it["scenario"]})
+    cx_positions = sorted({it["cx_position"] for it in items if it["cx_position"]})
+    return {"ok": True, "items": items, "scenarios": scenarios, "cx_positions": cx_positions,
+            "scenario_labels": {k: v["label"] for k, v in COLLECT_SCENARIOS.items()},
+            "cx_position_labels": {k: v["label"] for k, v in COLLECT_CX_POSITIONS.items()}}
+
+
+@app.get("/dataset/load")
+def dataset_load(name: str):
+    h5p = _collect.data_dir / f"{name}.h5"
+    if not h5p.exists():
+        return JSONResponse(status_code=404, content={"ok": False, "error": f"H5 파일이 없음: {h5p}"})
+    try:
+        with h5py.File(h5p, "r") as f:
+            attrs = dict(f.attrs)
+            schema = "new" if "images" in f else "legacy"
+            acts = f["actions"][()]
+            n_frames = len(acts)
+            event_types = (list(f["action_event_types"][()]) if "action_event_types" in f
+                           else [""] * n_frames)
+
+        frames_meta = []
+        for i in range(n_frames):
+            a = acts[i]
+            action = {"linear_x": float(a[0]), "linear_y": float(a[1]),
+                      "angular_z": float(a[2]) if len(a) > 2 else 0.0}
+            cls = _collect_classify_8class(action)
+            et = event_types[i]
+            et = et.decode("utf-8") if isinstance(et, bytes) else str(et)
+            frames_meta.append({
+                "idx": i, "action_class": COLLECT_CLASS_NAMES_8[cls],
+                "symbol": COLLECT_CLASS_SYMBOLS[cls], "event_type": et,
+                "linear_x": action["linear_x"], "linear_y": action["linear_y"],
+                "angular_z": action["angular_z"],
+            })
+
+        meta = _dataset_scan_attrs(str(h5p))
+        return {"ok": True, "meta": meta, "attrs": {k: (v if not hasattr(v, "item") else v.item())
+                                                      for k, v in attrs.items()},
+                "frames": frames_meta, "schema": schema}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
+
+
+@app.get("/dataset/frame")
+def dataset_frame(name: str, idx: int):
+    h5p = _collect.data_dir / f"{name}.h5"
+    if not h5p.exists():
+        return Response(status_code=404, content="H5 file not found")
+    try:
+        with h5py.File(h5p, "r") as f:
+            is_new_schema = "images" in f
+            img_key = "images" if is_new_schema else "observations/images"
+            img_arr = f[img_key][idx]
+        # H5 raw 저장 자체는 건드리지 않음(학습 로더 쪽 결정 사안) — 여기는 사람이 보는
+        # 뷰어 표시용 보정만. 실측 결과 신규(mona_dashboard, "images" 루트) 스키마만
+        # 실제로 BGR로 저장되어 뒤집혀 보이고, 구(레거시, "observations/images") 스키마는
+        # 저장 시점부터 이미 RGB라 변환하면 오히려 깨짐 — 스키마별로 분기.
+        if is_new_schema:
+            rgb_arr = cv2.cvtColor(img_arr.astype(np.uint8), cv2.COLOR_BGR2RGB)
+        else:
+            rgb_arr = img_arr.astype(np.uint8)
+        pil = Image.fromarray(rgb_arr)
+        buf = io.BytesIO()
+        pil.save(buf, format="JPEG", quality=80)
+        return Response(content=buf.getvalue(), media_type="image/jpeg")
+    except Exception as e:
+        return Response(status_code=500, content=f"Frame load error: {e}")
+
+
+@app.get("/dataset/export")
+def dataset_export(name: str, with_meta: int = 1, with_metatext: int = 0):
+    """수집 에피소드 하나를 ZIP으로 다운로드 — frames/*.jpg(BGR→RGB 보정 반영) +
+    (옵션)metadata.json + actions.csv. bbox/grounding 필드가 이 스키마엔 없어서
+    with_bbox 옵션은 없음(세션 탭과 달리 애초에 그릴 데이터가 없음).
+    with_metatext=1이면 우하단 메타 오버레이(#ds-meta-overlay와 동일 내용)를
+    이미지에 합성."""
+    h5p = _collect.data_dir / f"{name}.h5"
+    if not h5p.exists():
+        return Response(status_code=404, content="H5 file not found")
+    try:
+        import zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            with h5py.File(h5p, "r") as f:
+                is_new_schema = "images" in f
+                img_key = "images" if is_new_schema else "observations/images"
+                imgs = f[img_key]
+                n = len(imgs)
+                actions = f["actions"][:] if "actions" in f else None
+                event_types = f["action_event_types"][:] if "action_event_types" in f else None
+                attrs = _json_safe(dict(f.attrs))
+                scenario_line = str(attrs.get("scenario") or attrs.get("cx_position") or "—")
+
+                for i in range(n):
+                    img_arr = imgs[i].astype(np.uint8)
+                    rgb_arr = cv2.cvtColor(img_arr, cv2.COLOR_BGR2RGB) if is_new_schema else img_arr
+                    pil = Image.fromarray(rgb_arr)
+                    if with_metatext:
+                        lines = [name, f"frame {i}/{n - 1}"]
+                        if actions is not None:
+                            lx, ly, az = [float(v) for v in actions[i]]
+                            cls = _collect_classify_8class({"linear_x": lx, "linear_y": ly, "angular_z": az})
+                            lines.append(f"{COLLECT_CLASS_SYMBOLS[cls]} {COLLECT_CLASS_NAMES_8[cls]}")
+                        lines.append(scenario_line)
+                        _draw_meta_overlay(pil, lines)
+                    fbuf = io.BytesIO()
+                    pil.save(fbuf, format="JPEG", quality=85)
+                    zf.writestr(f"frames/frame_{i:04d}.jpg", fbuf.getvalue())
+
+                if with_meta:
+                    meta = {"episode_name": name, "n_frames": n, "attrs": attrs}
+                    zf.writestr("metadata.json", json.dumps(meta, indent=2, ensure_ascii=False, default=str))
+
+                    if actions is not None:
+                        import csv
+                        cbuf = io.StringIO()
+                        w = csv.writer(cbuf)
+                        header = ["frame_idx", "lx", "ly", "az"]
+                        if event_types is not None:
+                            header.append("event_type")
+                        w.writerow(header)
+                        for i in range(n):
+                            row = [i, *[float(v) for v in actions[i]]]
+                            if event_types is not None:
+                                et = event_types[i]
+                                row.append(et.decode("utf-8", "replace") if isinstance(et, bytes) else et)
+                            w.writerow(row)
+                        zf.writestr("actions.csv", cbuf.getvalue())
+
+        buf.seek(0)
+        return Response(content=buf.getvalue(), media_type="application/zip",
+                         headers={"Content-Disposition": f'attachment; filename="{name}.zip"'})
+    except Exception as e:
+        return Response(status_code=500, content=f"Export error: {e}")
+
+
+@app.post("/dataset/delete")
+def dataset_delete(name: str):
+    """데이터셋 히스토리 탭에서 선택 삭제 — H5 파일 제거 + 실행 중인 서버의
+    in-memory 진행률(scenario_stats/cx_position_stats/time_period_stats)도
+    같이 감소시켜 scenario_progress.json/time_period_stats.json에 반영.
+    (재시작 없이 즉시 /collect/state에 반영되도록 _collect._save_progress() 재사용)"""
+    h5p = _collect.data_dir / f"{name}.h5"
+    if not h5p.exists():
+        return JSONResponse(status_code=404, content={"ok": False, "error": f"파일 없음: {name}.h5"})
+
+    try:
+        with h5py.File(h5p, "r") as f:
+            attrs = dict(f.attrs)
+    except Exception as e:
+        attrs = {}
+        log.warning(f"[DatasetHistory] 삭제 전 attrs 읽기 실패({name}): {e}")
+
+    try:
+        h5p.unlink()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"ok": False, "error": f"삭제 실패: {e}"})
+
+    scenario = str(attrs.get("scenario", "") or "")
+    cx_position = str(attrs.get("cx_position", "") or "")
+    cx_path = str(attrs.get("cx_path", "") or "")
+    time_period = str(attrs.get("time_period", "") or "")
+
+    def _dec(d: dict, key: str):
+        if key and key in d:
+            d[key] = max(0, d[key] - 1)
+            if d[key] == 0:
+                del d[key]
+
+    with _collect._lock:
+        _dec(_collect.scenario_stats, scenario)
+        _dec(_collect.cx_position_stats, cx_position)
+        _dec(_collect.cx_position_path_stats, f"{cx_position}::{cx_path}" if cx_position and cx_path else "")
+        _dec(_collect.time_period_stats, time_period)
+    _collect._save_progress()
+
+    log.info(f"🗑️ [DatasetHistory] 삭제: {name} (scenario={scenario or '-'}, cx={cx_position or '-'}::{cx_path or '-'})")
+    return {"ok": True, "deleted": name}
 
 
 @app.post("/sessions/label")
@@ -1438,7 +3622,7 @@ def sessions_delete(sid: str):
         if jsonp.exists():
             jsonp.unlink()
             deleted_files.append(jsonp.name)
-        
+
         # /tmp/mona_preview_labels.json에서도 해당 세션 라벨 제거
         if LABEL_JSON_PATH.exists():
             try:
@@ -1448,54 +3632,121 @@ def sessions_delete(sid: str):
                     labels.pop(k, None)
                 LABEL_JSON_PATH.write_text(json.dumps(labels, indent=2, ensure_ascii=False))
             except Exception: pass
-            
-        return {"ok": True, "message": f"성공적으로 삭제됨: {', '.join(deleted_files)}"}
+
+        # 2026-07-31: 세션 인스펙터의 "영구삭제"가 H5/JSON만 지우고 episode_log.csv
+        # 행은 그대로 남겨서, 스크리닝 집계(합계/체크포인트별 진행률)에 삭제가 바로
+        # 반영 안 되는 문제 확인됨 — 매칭되는 CSV 행도 같이 지우도록 함
+        # (/session/discard와 동일 패턴, 그쪽은 "진행 중" 세션용/이건 과거 저장분용).
+        removed_rows = 0
+        if EPISODE_CSV.exists():
+            rows, _ = _read_episode_csv()
+            kept = [r for r in rows if not (len(r) > 13 and r[13] == sid)]
+            removed_rows = len(rows) - len(kept)
+            if removed_rows:
+                for i, r in enumerate(kept):
+                    r[0] = i + 1
+                import csv
+                with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+                    w = csv.writer(f)
+                    w.writerow(EP_HEADERS)
+                    w.writerows(kept)
+
+        msg = f"성공적으로 삭제됨: {', '.join(deleted_files) or '(파일 없음)'}"
+        if removed_rows:
+            msg += f" · 스크리닝 기록 {removed_rows}행도 함께 삭제됨"
+        return {"ok": True, "message": msg, "removed_csv_rows": removed_rows}
     except Exception as e:
         return JSONResponse(status_code=500, content={"ok": False, "error": f"파일 삭제 실패: {e}"})
 
 
 EPISODE_CSV = ROOT / "logs" / "episode_log.csv"
-EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id"]
+# 🧪 실험용/테스트용 기록 — 정식 스크리닝 집계(episode_log.csv)와 완전히 분리된
+# 별도 파일. 조이스틱 검증모드 SEL(2026-07-23, 남는 키)로 토글해서 기록 대상을
+# 여기로 돌림 — 그라운더 A/B 테스트처럼 "정식 수치로 안 셀" 시도를 위함.
+EXPERIMENTAL_EPISODE_CSV = ROOT / "logs" / "episode_log_experimental.csv"
+EP_HEADERS  = ["#", "경로", "결과", "steps", "lat(ms)", "top액션", "gnd%", "area", "cx", "STOP", "FPE", "메모", "날짜", "session_id", "체크포인트", "런타임설정", "종료방식"]
+EP_COL_CKPT = 14  # "체크포인트" 컬럼 인덱스 — 이 컬럼 추가 전(2026-07-29 이전) 행은 없을 수 있음(len(row)<=14)
+EP_COL_RUNTIME_CFG = 15  # "런타임설정"(JSON) 컬럼 — grounding_skip_n/cx_jump_filter/multi_prompt 등
+EP_COL_END_REASON = 16  # "종료방식" — "learned"(모델 STOP/목표도달) vs "manual"(R1 수동정지). 2026-08-07 추가, 이전 행엔 없음(len(row)<=16)
+# 세부 옵션 전체를 저장 시점 그대로 통째로 남김. 체크포인트만 기록해서는 부족했던
+# 사례(2026-07-23 17:24~18:55 배치 재구성 시 grounding_skip_n/multi_prompt 등
+# 세부값을 "직전 스냅샷 기준 추정"으로만 답할 수밖에 없었음) 재발 방지(2026-07-29).
 PATH_TYPES = ["right_right", "right_left", "right_straight",
               "center_straight", "center_left", "center_right",
               "left_straight", "left_left", "left_right",
               "obj_left", "obj_center", "obj_right",
-              "dist_10cm", "dist_20cm", "dist_30cm"]
+              "dist_10cm", "dist_20cm", "dist_30cm",
+              # ── 트랙A 극단배치(V6, docs/DATASET_V6_STATUS.md) 주행검증 라벨 ──
+              # 기존 15종(위) 옆에 추가만 함 — 과거 검증기록/분석 스크립트가
+              # 위 15종을 참조 중일 수 있어 대체하지 않음. strong_left는
+              # 2026-07-16 기준 미수집(target=15, 0건) — UI에서 "미수집" 표시.
+              "trackA_weak_left_left_curve", "trackA_weak_left_straight", "trackA_weak_left_right_curve",
+              "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
+              "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
+              "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve",
+              # ── 트랙F 중앙위치(V6, 45ep 2026-07-16/17 수집 완료) ──
+              # "center_straight/left/right"(위 15종, 구 9-시나리오 target_center_*)와
+              # 이름이 겹쳐 보이지만 완전히 다른 taxonomy(cx_position="center")라
+              # trackF_ 접두어로 구분(2026-07-22, 실기 테스트 착수 전 정리).
+              "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"]
 PATH_TARGETS = {
     "right_right": 10, "right_left": 10, "right_straight": 10,
     "center_straight": 10, "center_left": 10, "center_right": 10,
     "left_straight": 10, "left_left": 10, "left_right": 10,
     "obj_left": 30, "obj_center": 30, "obj_right": 30,
     "dist_10cm": 10, "dist_20cm": 10, "dist_30cm": 10,
+    "trackA_weak_left_left_curve": 15, "trackA_weak_left_straight": 15, "trackA_weak_left_right_curve": 15,
+    "trackA_weak_right_left_curve": 15, "trackA_weak_right_straight": 15, "trackA_weak_right_right_curve": 15,
+    "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
+    "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
+    "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
 }
+# 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
+TRACKA_UNCOLLECTED = set()
 
 def _get_episode_summary(rows):
     done_total = {k: 0 for k in PATH_TYPES}
     done_succ  = {k: 0 for k in PATH_TYPES}
     nav_succ = 0
+    trackA_succ = 0
+    trackF_succ = 0
     for r in rows:
         if len(r) < 3: continue
         pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
         done_total[pt] = done_total.get(pt, 0) + 1
         if r[2] == "성공":
             done_succ[pt] = done_succ.get(pt, 0) + 1
-            if not pt.startswith(("obj_", "dist_")):
+            if pt.startswith("trackA_"):
+                trackA_succ += 1
+            elif pt.startswith("trackF_"):
+                trackF_succ += 1
+            elif not pt.startswith(("obj_", "dist_")):
                 nav_succ += 1
-    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS if not k.startswith(("obj_", "dist_")))
+    # 트랙A/트랙F(V6)는 기존 9종 nav 집계와 별개로 집계 — 서로 다른 목표(10 vs 15)를
+    # 섞으면 퍼센트가 왜곡되므로 완전히 분리.
+    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS if not k.startswith(("obj_", "dist_", "trackA_", "trackF_")))
     obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
     obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
     dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
     dist_succ = sum(done_succ.get(k, 0)  for k in ("dist_10cm","dist_20cm","dist_30cm"))
-    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_')))}/{nav_total} "
-            f"성공 {nav_succ}/20 (목표) | 위치별 {obj_done}/90 ({obj_succ}성공) | 거리별 {dist_done}/30 ({dist_succ}성공)")
+    trackA_keys = [k for k in PATH_TYPES if k.startswith("trackA_")]
+    trackA_total = sum(PATH_TARGETS[k] for k in trackA_keys)
+    trackA_done = sum(done_total.get(k, 0) for k in trackA_keys)
+    trackF_keys = [k for k in PATH_TYPES if k.startswith("trackF_")]
+    trackF_total = sum(PATH_TARGETS[k] for k in trackF_keys)
+    trackF_done = sum(done_total.get(k, 0) for k in trackF_keys)
+    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_','trackA_','trackF_')))}/{nav_total} "
+            f"성공 {nav_succ}/20 (목표) | 위치별 {obj_done}/90 ({obj_succ}성공) | 거리별 {dist_done}/30 ({dist_succ}성공) "
+            f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공) | 트랙F {trackF_done}/{trackF_total} ({trackF_succ}성공)")
 
-def _read_episode_csv():
-    if not EPISODE_CSV.exists():
+def _read_episode_csv(csv_path=None):
+    csv_path = csv_path or EPISODE_CSV
+    if not csv_path.exists():
         return [], "에피소드 기록 없음"
     import csv
     rows = []
     try:
-        with open(EPISODE_CSV, newline="", encoding="utf-8") as f:
+        with open(csv_path, newline="", encoding="utf-8") as f:
             reader = csv.reader(f)
             next(reader, None) # skip header
             for r in reader:
@@ -1503,15 +3754,417 @@ def _read_episode_csv():
     except Exception: pass
     return rows, _get_episode_summary(rows)
 
+_WIKI_FILES = {
+    "info": ROOT / "docs" / "DASHBOARD_WIKI.md",
+    "status": ROOT / "docs" / "DASHBOARD_LIVE_STATUS.md",
+}
+
+@app.get("/wiki/{name}")
+def wiki_content(name: str):
+    path = _WIKI_FILES.get(name)
+    if path is None:
+        return {"ok": False, "error": f"알 수 없는 위키: {name}"}
+    if not path.exists():
+        return {"ok": False, "error": f"파일 없음: {path}"}
+    content = path.read_text(encoding="utf-8")
+    mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    return {"ok": True, "content": content, "mtime": mtime}
+
+def _journal_kind(subject: str) -> str:
+    """커밋 제목에서 타임라인 색상 분류 (research_story.html .timeline-item 관례 따름)."""
+    s = subject.lower()
+    if any(k in subject for k in ("재규명", "확정", "pivot", "번복")):
+        return "pivot"
+    if s.startswith("fix") or "버그" in subject or "bug" in s:
+        return "bad"
+    if s.startswith("feat") or s.startswith("docs"):
+        return "good"
+    return "info"
+
+@app.get("/journal")
+def research_journal(limit: int = 40):
+    """연구일지 — md 파일 버전이 아니라 프로젝트 전체 커밋을 research_story.html
+    타임라인 감성으로 훑어보는 용도. 위키/최신현황 탭 공용."""
+    import subprocess as _sp_wiki
+    try:
+        out = _sp_wiki.run(
+            ["git", "log", f"-{max(1, min(limit, 100))}",
+             "--format=%H%x1f%ad%x1f%s", "--date=format:%Y-%m-%d %H:%M"],
+            cwd=str(ROOT), capture_output=True, text=True, timeout=10,
+        )
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if out.returncode != 0:
+        return {"ok": False, "error": out.stderr.strip() or "git log 실패"}
+    entries = []
+    for line in out.stdout.strip().split("\n"):
+        if not line:
+            continue
+        parts = line.split("\x1f")
+        if len(parts) == 3:
+            sha, date, subject = parts
+            entries.append({"sha": sha, "date": date, "subject": subject, "kind": _journal_kind(subject)})
+    return {"ok": True, "entries": entries}
+
+@app.get("/journal/{sha}")
+def research_journal_entry(sha: str):
+    """연구일지 엔트리 펼치기 — 커밋 전체 메시지 + 변경 파일 목록."""
+    import re as _re_wiki
+    import subprocess as _sp_wiki
+    if not _re_wiki.fullmatch(r"[0-9a-fA-F]{7,40}", sha):
+        return {"ok": False, "error": "잘못된 커밋 해시"}
+    try:
+        body_out = _sp_wiki.run(["git", "show", "-s", "--format=%B", sha],
+                                 cwd=str(ROOT), capture_output=True, text=True, timeout=10)
+        files_out = _sp_wiki.run(["git", "show", "--stat", "--format=", sha],
+                                  cwd=str(ROOT), capture_output=True, text=True, timeout=10)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if body_out.returncode != 0:
+        return {"ok": False, "error": body_out.stderr.strip() or "git show 실패"}
+    return {"ok": True, "sha": sha, "body": body_out.stdout.strip(), "files": files_out.stdout.strip()}
+
 @app.get("/episodes/list")
-def episodes_list():
-    rows, summary = _read_episode_csv()
-    return {"ok": True, "episodes": rows, "summary": summary}
+def episodes_list(source: str = "main"):
+    """source=main(기본) | experimental
+
+    T2-3: episode_log_experimental.csv에 실제로 기록이 쌓이는데(조이스틱 SEL로
+    토글) 이 엔드포인트가 항상 메인 CSV만 읽어서 **볼 화면이 아예 없었음**.
+    소스 선택을 추가해 실험용 기록도 조회 가능하게 함."""
+    target = EXPERIMENTAL_EPISODE_CSV if source == "experimental" else EPISODE_CSV
+    rows, summary = _read_episode_csv(target)
+    return {"ok": True, "episodes": rows, "summary": summary, "source": source,
+            "experimental_exists": EXPERIMENTAL_EPISODE_CSV.exists()}
+
+
+# ── session_id → checkpoint 조회 (검증 스크리닝 체크포인트/시점 필터용, 2026-07-23) ──
+_checkpoint_index_cache: dict = {"mtime": 0.0, "map": {}}
+
+
+@app.get("/verify/checkpoint_index")
+def verify_checkpoint_index():
+    """docs/inference_reports/session_*.json을 스캔해 {session_id: checkpoint_basename}
+    맵을 만든다. A/B 체크포인트 전환 중 스크리닝 패널을 체크포인트별로 필터하는 데 씀.
+    폴더 mtime 기준 캐시 — 새 세션 없으면 재스캔 안 함."""
+    try:
+        cur_mtime = INFER_REPORT_DIR.stat().st_mtime
+    except Exception:
+        cur_mtime = 0.0
+    if _checkpoint_index_cache["mtime"] != cur_mtime:
+        idx = {}
+        for f in INFER_REPORT_DIR.glob("session_2026*.json"):
+            try:
+                d = json.loads(f.read_text())
+            except Exception:
+                continue
+            sid = d.get("session_id") or f.stem.replace("session_", "")
+            ckpt = (d.get("runtime_config") or {}).get("checkpoint_path", "")
+            idx[sid] = os.path.basename(ckpt) if ckpt else "(알수없음)"
+        _checkpoint_index_cache["map"] = idx
+        _checkpoint_index_cache["mtime"] = cur_mtime
+    m = _checkpoint_index_cache["map"]
+    checkpoints = sorted(set(m.values()), key=_ckpt_sort_key)
+    tags = {c: _parse_ckpt_tags(c) for c in checkpoints}
+    return {"ok": True, "session_checkpoint": m, "checkpoints": checkpoints, "tags": tags}
+
+@app.get("/verify/screening_batches")
+def verify_screening_batches():
+    """episode_log.csv를 (체크포인트 바뀜 또는 3시간 이상 공백)으로 배치 단위로
+    묶어서 반환 — "그 날 그 체크포인트로 몇 건 스크리닝했는지"를 나중에 날짜+
+    액션헤드 기준으로 다시 불러올 수 있게(2026-07-23). "since"만으론 그 뒤에
+    다른 배치가 또 쌓이면 예전 배치만 골라볼 방법이 없었음 — until도 같이 줌."""
+    rows, _ = _read_episode_csv()
+    idx = _checkpoint_index_cache.get("map", {})
+    if not idx:
+        verify_checkpoint_index()
+        idx = _checkpoint_index_cache.get("map", {})
+
+    def _parse(dt_str):
+        try:
+            return datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+        except Exception:
+            return None
+
+    enriched = []
+    for r in rows:
+        if len(r) < 14:
+            continue
+        dt = _parse(r[12])
+        if dt is None:
+            continue
+        # 2026-07-29부터는 저장 시점에 체크포인트를 CSV에 직접 박아둠(EP_COL_CKPT) —
+        # 그 이전 행(리포트 파일 사후조인 방식)만 session_id 인덱스로 폴백.
+        if len(r) > EP_COL_CKPT and r[EP_COL_CKPT]:
+            ckpt = r[EP_COL_CKPT]
+        else:
+            sid = r[13]
+            ckpt = idx.get(sid, "(알수없음)")
+        # 체크포인트가 같아도 owlv2_thresh 등 그라운딩 설정이 바뀌면 실질적으로
+        # 다른 실험이라 배치를 분리해야 함 — 2026-07-30에 threshold 0.25→0.20
+        # 변경이 같은 체크포인트/3시간 이내라 한 배치로 뭉쳐버려서 수동으로
+        # since를 다시 맞춰야 했던 문제 재발 방지.
+        owl_thresh = None
+        stage1_path = None
+        if len(r) > EP_COL_RUNTIME_CFG and r[EP_COL_RUNTIME_CFG]:
+            try:
+                _cfg = json.loads(r[EP_COL_RUNTIME_CFG])
+                owl_thresh = _cfg.get("owlv2_thresh")
+                stage1_path = _cfg.get("stage1_path")
+            except Exception:
+                owl_thresh = None
+        enriched.append((dt, ckpt, owl_thresh, stage1_path, r[2] == "성공"))
+    enriched.sort(key=lambda t: t[0])
+
+    batches = []
+    cur = None
+    GAP = datetime.timedelta(hours=3)
+    for dt, ckpt, owl_thresh, stage1_path, ok in enriched:
+        thresh_changed = (cur is not None and owl_thresh is not None
+                           and cur.get("owl_thresh") is not None
+                           and owl_thresh != cur["owl_thresh"])
+        # 2026-08-07: head(checkpoint)는 안 바뀌고 image_proj(stage1_path)만 바뀌는
+        # 경우(V3-5cls 실기검증)도 배치를 분리해야 함 — 안 그러면 구/신 image_proj
+        # 결과가 같은 체크포인트 이름 아래 한 세트로 뭉개짐(사용자가 발견한 문제).
+        # cur["stage1_path"]가 None인 건 "이 필드 도입 전(2026-08-07 이전) 기록이라
+        # 값을 모른다"는 뜻이지 "old와 같다"는 뜻이 아님 — new가 known이면 무조건 분리
+        # (both known일 때만 비교하면 구버전→신버전 전환 첫 배치를 못 잡음).
+        stage1_changed = (cur is not None and stage1_path is not None
+                           and stage1_path != cur.get("stage1_path"))
+        if (cur is None or ckpt != cur["checkpoint"] or dt - cur["_last"] > GAP
+                or thresh_changed or stage1_changed):
+            cur = {"checkpoint": ckpt, "owl_thresh": owl_thresh, "stage1_path": stage1_path,
+                   "start": dt, "end": dt, "_last": dt, "count": 0, "success": 0}
+            batches.append(cur)
+        else:
+            if owl_thresh is not None:
+                cur["owl_thresh"] = owl_thresh
+            if stage1_path is not None:
+                cur["stage1_path"] = stage1_path
+        cur["count"] += 1
+        if ok: cur["success"] += 1
+        cur["end"] = dt
+        cur["_last"] = dt
+
+    out = [{"checkpoint": b["checkpoint"], "owlv2_thresh": b["owl_thresh"],
+            "stage1_path": b.get("stage1_path"),
+            "start": b["start"].strftime("%Y-%m-%dT%H:%M"),
+            "end": b["end"].strftime("%Y-%m-%dT%H:%M"),
+            "count": b["count"], "success": b["success"]} for b in batches]
+    out.reverse()  # 최신 배치가 먼저 오게
+    return {"ok": True, "batches": out}
+
+
+# ── 🔗 스크리닝 배치 수동 병합 (2026-07-31) ─────────────────────────────────
+# 배치는 episode_log.csv에서 매번 다시 계산되는 값이라(체크포인트/threshold/3시간
+# 공백 기준 자동 분리) 실제로 파일을 합치는 게 아니라 "이 배치들을 하나로 보고
+# 싶다"는 사용자 지정을 이름 붙여 저장만 해두는 방식 — 드래그앤드랍으로 배치를
+# 모아서 저장하면, 그 뒤로는 계산된 합계를 다시 보여줌(원본 CSV는 안 건드림).
+_MANUAL_GROUPS_PATH = ROOT / "logs" / "manual_screening_groups.json"
+
+
+def _load_manual_groups() -> list:
+    if not _MANUAL_GROUPS_PATH.exists():
+        return []
+    try:
+        return json.loads(_MANUAL_GROUPS_PATH.read_text()).get("groups", [])
+    except Exception:
+        return []
+
+
+def _save_manual_groups(groups: list) -> None:
+    _MANUAL_GROUPS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _MANUAL_GROUPS_PATH.write_text(json.dumps({"groups": groups}, indent=2, ensure_ascii=False))
+
+
+class ManualGroupRange(BaseModel):
+    checkpoint: str
+    start: str
+    end: str
+
+
+class ManualGroupSaveReq(BaseModel):
+    name: str
+    ranges: list[ManualGroupRange]
+
+
+@app.get("/verify/manual_groups")
+def verify_manual_groups_list():
+    return {"ok": True, "groups": _load_manual_groups()}
+
+
+@app.post("/verify/manual_group/save")
+def verify_manual_group_save(req: ManualGroupSaveReq):
+    if not req.name.strip():
+        return {"ok": False, "error": "이름을 입력해주세요."}
+    if not req.ranges:
+        return {"ok": False, "error": "병합할 배치가 없습니다."}
+    groups = [g for g in _load_manual_groups() if g.get("name") != req.name]
+    groups.append({"name": req.name, "ranges": [r.model_dump() for r in req.ranges]})
+    _save_manual_groups(groups)
+    return {"ok": True, "groups": groups}
+
+
+class ManualGroupDeleteReq(BaseModel):
+    name: str
+
+
+@app.post("/verify/manual_group/delete")
+def verify_manual_group_delete(req: ManualGroupDeleteReq):
+    groups = [g for g in _load_manual_groups() if g.get("name") != req.name]
+    _save_manual_groups(groups)
+    return {"ok": True, "groups": groups}
+
+
+# ── 🧭 주행 궤적 재구성 (T1-3, plan_20260731_..._dashboard_repurpose.md) ─────
+# action_history(=H5 actions)를 적분해 (x, y, heading) 경로를 복원한다. 지금까지
+# 이 데이터는 복귀 기능(역재생)에만 쓰이고 한 번도 시각화된 적이 없었다.
+#
+# ⚠️ 정확도 한계 (계획서의 "FPE 자동 계산"은 아래 이유로 축소함):
+#   - 전진 스텝당 이동거리만 실측돼 있음(W 1회 ≈ 12~13cm, 2026-06-26).
+#   - **회전 각도(az=±0.25일 때 몇 도인지)는 미측정**이라 아래 값은 추정치다.
+#     회전이 많은 세션일수록 궤적이 실제와 벌어진다.
+#   - 무엇보다 **목표 위치 ground truth가 없어서 진짜 FPE는 계산 불가**다.
+#     (episode_log의 FPE는 사람이 눈대중으로 넣는 값 — 자동화하려면 목표 지점을
+#      측정해 기록하는 절차부터 추가해야 함)
+#   따라서 이 기능은 "궤적 모양 비교(성공 vs 실패)"용이며, 절대 거리 주장에는
+#   쓰지 말 것.
+_TRAJ_FWD_M_PER_STEP = float(os.getenv("VLA_TRAJ_FWD_M", "0.125"))   # 실측 12~13cm
+_TRAJ_ROT_DEG_PER_STEP = float(os.getenv("VLA_TRAJ_ROT_DEG", "15"))  # ⚠️ 미측정 추정치
+
+
+@app.get("/sessions/trajectory")
+def sessions_trajectory(sid: str):
+    """세션 H5의 actions를 적분해 궤적 좌표를 반환. 단위: m(추정), 각도: deg."""
+    import math
+    p = INFER_H5_DIR / f"session_{sid}.h5"
+    if not p.exists():
+        return {"ok": False, "error": f"세션 없음: {sid}"}
+    try:
+        with h5py.File(p, "r") as f:
+            acts = f["actions"][:] if "actions" in f else None
+            g = f.get("grounding")
+            has_bbox = [bool(v) for v in g["bbox"][:, 3]] if g is not None and "bbox" in g else []
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if acts is None or len(acts) == 0:
+        return {"ok": False, "error": "actions 없음"}
+
+    x = y = 0.0
+    heading = 90.0  # +y(정면) 기준
+    pts = [{"x": 0.0, "y": 0.0, "heading": heading, "has_bbox": True}]
+    for i, a in enumerate(acts):
+        lx = float(a[0]); ly = float(a[1]) if len(a) > 1 else 0.0
+        az = float(a[2]) if len(a) > 2 else 0.0
+        if abs(az) > 0.1:
+            # 제자리 회전 — az 부호가 곧 회전 방향(이름 ROT_L/R과 실제 방향이
+            # 어긋나 있을 수 있다는 미해결 이슈는 DATASET_V6_STATUS 참고).
+            heading += math.copysign(_TRAJ_ROT_DEG_PER_STEP, az)
+        else:
+            # 전진/스트레이프 — 정규화된 액션(±1.15)을 스텝 이동량으로 환산
+            fwd = (lx / 1.15) * _TRAJ_FWD_M_PER_STEP
+            strafe = (ly / 1.15) * _TRAJ_FWD_M_PER_STEP
+            rad = math.radians(heading)
+            x += fwd * math.cos(rad) - strafe * math.sin(rad)
+            y += fwd * math.sin(rad) + strafe * math.cos(rad)
+        pts.append({"x": round(x, 4), "y": round(y, 4), "heading": round(heading, 1),
+                    "has_bbox": bool(has_bbox[i]) if i < len(has_bbox) else True})
+    dist = math.hypot(x, y)
+    path_len = sum(math.hypot(pts[i+1]["x"]-pts[i]["x"], pts[i+1]["y"]-pts[i]["y"])
+                   for i in range(len(pts)-1))
+    return {"ok": True, "sid": sid, "points": pts,
+            "net_displacement_m": round(dist, 3), "path_length_m": round(path_len, 3),
+            "efficiency": round(dist / path_len, 3) if path_len > 0 else 0.0,
+            "fwd_m_per_step": _TRAJ_FWD_M_PER_STEP,
+            "rot_deg_per_step": _TRAJ_ROT_DEG_PER_STEP,
+            "caveat": "회전각 미측정 추정치 · 목표 GT 없어 절대 FPE 아님"}
+
+
+# ── 🔍 그라운딩 실패 분석기 (T1-1, plan_20260731_..._dashboard_repurpose.md) ──
+# 저장된 세션 H5의 grounding/score를 모아서 프론트로 넘김. threshold 슬라이더
+# 재판정/히스토그램은 JS에서 클라이언트 계산 — 데이터가 작아서(수천 float)
+# 왕복 없이 슬라이더가 즉시 반응하게 하려는 의도.
+_gnd_score_cache: dict = {"mtime": 0.0, "data": None}
+
+
+@app.get("/grounding/scores")
+def grounding_scores():
+    """세션별 per-frame 그라운더 score + has_bbox 배열을 반환.
+
+    score=-1.0은 결측(2026-07-31 이전 세션 / PG2 그라운더) — 프론트에서 제외한다.
+    폴더 mtime 캐시라 새 세션 없으면 재스캔 안 함."""
+    try:
+        cur_mtime = INFER_H5_DIR.stat().st_mtime
+    except Exception:
+        cur_mtime = 0.0
+    if _gnd_score_cache["mtime"] == cur_mtime and _gnd_score_cache["data"] is not None:
+        return _gnd_score_cache["data"]
+
+    # episode_log의 경로/결과를 session_id로 조인 — 히스토그램을 위치별/성패별로
+    # 쪼개볼 수 있어야 "약좌에서만 score가 낮게 몰린다" 같은 주장이 검증됨.
+    ep_by_sid: dict = {}
+    for r in _read_episode_csv()[0]:
+        if len(r) > 13 and r[13]:
+            ep_by_sid[r[13]] = {"path_type": r[1], "result": r[2],
+                                "checkpoint": r[14] if len(r) > 14 else ""}
+
+    sessions = []
+    n_with = 0
+    for h5p in sorted(INFER_H5_DIR.glob("session_*.h5"), reverse=True):
+        sid = h5p.stem.replace("session_", "")
+        backfilled = False
+        try:
+            with h5py.File(h5p, "r") as f:
+                g = f.get("grounding")
+                if g is None or "bbox" not in g:
+                    continue
+                bbox = g["bbox"][:]
+                has_bbox = [bool(v) for v in bbox[:, 3]]
+                if "score" in g:
+                    scores = [round(float(v), 4) for v in g["score"][:]]
+                else:
+                    scores = [-1.0] * len(has_bbox)
+                # 2026-07-31 이전 세션은 H5에 score가 없음 → 백필 사이드카를 참조.
+                # (원본 H5를 수정하지 않는 이유는 backfill_grounding_scores.py 상단 참고)
+                if all(s < 0 for s in scores):
+                    sc_p = INFER_H5_DIR / "backfill_scores" / f"session_{sid}.json"
+                    if sc_p.exists():
+                        try:
+                            bf = json.loads(sc_p.read_text()).get("scores") or []
+                            if len(bf) == len(scores):
+                                scores = [round(float(v), 4) for v in bf]
+                                backfilled = True
+                        except Exception:
+                            pass
+                thr = None
+                if "score_thresh" in g:
+                    tv = [float(v) for v in g["score_thresh"][:] if v > 0]
+                    if tv:
+                        thr = round(sum(tv) / len(tv), 3)
+                cached = [int(v) for v in g["cached"][:]] if "cached" in g else []
+        except Exception:
+            continue
+        if any(s >= 0 for s in scores):
+            n_with += 1
+        meta = ep_by_sid.get(sid, {})
+        sessions.append({
+            "sid": sid, "scores": scores, "has_bbox": has_bbox, "cached": cached,
+            "thresh_used": thr, "backfilled": backfilled,
+            "path_type": meta.get("path_type", ""),
+            "result": meta.get("result", ""), "checkpoint": meta.get("checkpoint", ""),
+        })
+
+    out = {"ok": True, "sessions": sessions,
+           "n_total": len(sessions), "n_with_scores": n_with}
+    _gnd_score_cache["data"] = out
+    _gnd_score_cache["mtime"] = cur_mtime
+    return out
+
 
 @app.post("/episodes/log")
 def episodes_log(req: EpisodeLogReq):
-    rows, _ = _read_episode_csv()
-    
+    target_csv = EXPERIMENTAL_EPISODE_CSV if req.experimental else EPISODE_CSV
+    rows, _ = _read_episode_csv(target_csv)
+
     steps = _state["step"]
     avg_lat = 0.0
     top_action = "—"
@@ -1528,7 +4181,11 @@ def episodes_log(req: EpisodeLogReq):
             from collections import Counter
             top_action = Counter(labels).most_common(1)[0][0]
             
-        gnd_ok = sum(1 for r in _state["run_history"] if r[3] != "—")
+        # 2026-07-30: 예전엔 r[3](grounding_latency_ms) != "—"로 셌는데, 캐시
+        # 프레임도 latency=0.0(None 아님)을 반환해서 탐지 실패 여부와 무관하게
+        # 항상 100%에 가깝게 찍히던 죽은 지표였음 — has_bbox(r[7], 옛 행은
+        # 필드 없어 기본 False) 기준 실제 탐지 성공률로 교체.
+        gnd_ok = sum(1 for r in _state["run_history"] if len(r) > 7 and r[7])
         gnd_pct = round(gnd_ok / len(_state["run_history"]) * 100, 1) if _state["run_history"] else 0.0
         
     if _state["bbox"]:
@@ -1537,7 +4194,13 @@ def episodes_log(req: EpisodeLogReq):
         
     stop_flag = "Y" if area >= 0.18 else "N"
     date_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    
+    checkpoint_name, runtime_cfg_json = _current_checkpoint_and_config()
+    # 이번 세션이 방금 끝난 그 세션이면(_last_end_reason의 session_id 일치) 그
+    # 종료방식을 쓰고, 안 맞으면(순서가 어긋났거나 세션 없이 저장) 빈 값.
+    end_reason = (_last_end_reason["status"]
+                  if _last_end_reason["session_id"] == _state.get("session_id")
+                  else "")
+
     new_row = [
         len(rows) + 1,
         req.path_type,
@@ -1553,18 +4216,21 @@ def episodes_log(req: EpisodeLogReq):
         req.note,
         date_str,
         _state.get("session_id") or "",
+        checkpoint_name,
+        runtime_cfg_json,
+        end_reason,
     ]
     
     import csv
-    EPISODE_CSV.parent.mkdir(parents=True, exist_ok=True)
-    write_header = not EPISODE_CSV.exists()
-    with open(EPISODE_CSV, "a", newline="", encoding="utf-8") as f:
+    target_csv.parent.mkdir(parents=True, exist_ok=True)
+    write_header = not target_csv.exists()
+    with open(target_csv, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         if write_header:
             w.writerow(EP_HEADERS)
         w.writerow(new_row)
-        
-    _, summary = _read_episode_csv()
+
+    _, summary = _read_episode_csv(target_csv)
     return {"ok": True, "summary": summary}
 
 @app.post("/episodes/undo")
@@ -1584,11 +4250,75 @@ def episodes_undo():
     _, summary = _read_episode_csv()
     return {"ok": True, "episodes": new_rows, "summary": summary}
 
+class EpisodesClearReq(BaseModel):
+    # 2026-08-01 (Tier 3 위생정리): 이 엔드포인트는 episode_log.csv를 통째로
+    # 지우는데 UI 어디에도 노출돼 있지 않았음 — 실수로 호출되면 100개 스크리닝
+    # 기록이 한 번에 날아가는 "잠자는 지뢰"였다. 확인 문구를 필수로 만들고
+    # 백업을 남기도록 바꿈(삭제 자체를 없애면 복구 수단이 사라지므로 유지).
+    confirm: str = ""
+
+
 @app.post("/episodes/clear")
-def episodes_clear():
+def episodes_clear(req: EpisodesClearReq):
+    if req.confirm != "DELETE-ALL-EPISODES":
+        return {"ok": False,
+                "error": "확인 문구 필요: {\"confirm\": \"DELETE-ALL-EPISODES\"} "
+                         "— 이 작업은 스크리닝 기록 전체를 삭제합니다."}
     if EPISODE_CSV.exists():
+        bak = EPISODE_CSV.with_name(
+            f"episode_log.backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        shutil.copy2(EPISODE_CSV, bak)
         EPISODE_CSV.unlink()
+        log.warning(f"[episodes_clear] 전체 삭제 — 백업: {bak.name}")
+        return {"ok": True, "episodes": [], "backup": bak.name,
+                "summary": f"삭제됨 (백업: {bak.name})"}
     return {"ok": True, "episodes": [], "summary": "에피소드 기록 없음"}
+
+
+class EpisodeDeleteReq(BaseModel):
+    row: int
+
+
+@app.post("/episodes/delete")
+def episodes_delete(req: EpisodeDeleteReq):
+    """수정 패널에서 특정 # 행 하나만 삭제 — undo(마지막 행만)와 달리 임의 행 삭제 가능."""
+    rows, _ = _read_episode_csv()
+    idx = next((i for i, r in enumerate(rows) if str(r[0]) == str(req.row)), None)
+    if idx is None:
+        return {"ok": False, "error": f"#{req.row} 행을 찾을 수 없습니다."}
+    new_rows = rows[:idx] + rows[idx + 1:]
+    for i, r in enumerate(new_rows):
+        r[0] = i + 1
+    import csv
+    with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(EP_HEADERS)
+        w.writerows(new_rows)
+    _, summary = _read_episode_csv()
+    return {"ok": True, "episodes": new_rows, "summary": summary}
+
+
+@app.post("/episodes/update")
+def episodes_update(req: EpisodeUpdateReq):
+    """테이블 행 클릭 → 수정 패널에서 값 편집 후 저장 — 해당 # 행만 in-place 수정."""
+    rows, _ = _read_episode_csv()
+    idx = next((i for i, r in enumerate(rows) if str(r[0]) == str(req.row)), None)
+    if idx is None:
+        return {"ok": False, "error": f"#{req.row} 행을 찾을 수 없습니다."}
+    r = rows[idx]
+    r[1] = req.path_type
+    r[2] = req.success
+    r[3] = req.steps
+    r[4] = req.lat_ms
+    r[10] = req.fpe
+    r[11] = req.note
+    import csv
+    with open(EPISODE_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(EP_HEADERS)
+        w.writerows(rows)
+    _, summary = _read_episode_csv()
+    return {"ok": True, "episodes": rows, "summary": summary}
 
 
 # ─── 대시보드 메인 ────────────────────────────────────────────────
@@ -1600,6 +4330,11 @@ def index():
 # ─── 정적 파일 마운트 (존재 시) ──────────────────────────────────
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# 위키/최신현황 탭에서 docs/v5 아래 실험 그래프 이미지를 상대경로로 쓰기 위한 마운트
+_DOCS_V5_DIR = ROOT / "docs" / "v5"
+if _DOCS_V5_DIR.exists():
+    app.mount("/docs-static/v5", StaticFiles(directory=str(_DOCS_V5_DIR)), name="docs-v5-static")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1613,6 +4348,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 <title>MoNaVLA Command Center</title>
 <!-- Google Fonts & Chart.js -->
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root {
@@ -1761,6 +4497,125 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     box-shadow: 0 0 8px var(--rose);
   }
 
+  /* ── 세션 히스토리 카드 리스트 ── */
+  .session-date-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-dark);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 4px 4px;
+  }
+  .session-card {
+    background: #151f32;
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  }
+  .session-card:hover {
+    border-color: rgba(6,182,212,0.5);
+    background: #1a2540;
+  }
+  .session-card.active {
+    border-color: var(--cyan);
+    background: rgba(6,182,212,0.08);
+    box-shadow: 0 0 0 1px rgba(6,182,212,0.25);
+  }
+  .session-card .sc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .session-card .sc-sid {
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--cyan);
+    font-family: var(--font-mono);
+  }
+  .session-card .sc-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .session-card .sc-entity {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .session-card .sc-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+  }
+  .session-card .sc-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: rgba(148,163,184,0.12);
+    color: var(--text-muted);
+  }
+  .session-card .sc-badge.labeled {
+    background: rgba(16,185,129,0.15);
+    color: var(--emerald);
+  }
+
+  /* ── 프레임 인스펙터 — 요약/경로검증 기록용 미니 타일 ── */
+  .mini-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 6px;
+  }
+  .mini-tile {
+    background: #101726;
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 7px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .mini-tile .mt-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mini-tile .mt-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mini-tile .mt-sub {
+    font-size: 9px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .mini-tile.mt-good .mt-value { color: var(--emerald); }
+  .mini-tile.mt-bad .mt-value { color: var(--rose); }
+  .mini-tile.mt-warn .mt-value { color: var(--amber); }
+  .mini-tile.mt-accent .mt-value { color: var(--cyan); }
+
   /* ── 탭 레이아웃 ── */
   .tab-content {
     display: none;
@@ -1774,6 +4629,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     flex: 1;
     overflow-y: auto;
     padding: 32px;
+  }
+  #tab-collect .scroll-container {
+    zoom: 1.5; /* 데이터수집 탭 전체 글씨/버튼 50% 확대 (사용자 요청) */
   }
 
   /* ── 카드 및 레이아웃 ── */
@@ -1965,6 +4823,38 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     50%      { box-shadow: 0 0 26px var(--cyan-glow); }
   }
 
+  /* ── 데이터수집 상태카드 — Gradio gradio_data_collector.py .status-card 이식 ── */
+  .collect-status-card {
+    text-align:center; font-family:var(--font-mono); font-size:1.15rem; font-weight:700;
+    background:#161b22; border-radius:10px; padding:14px 16px; margin-bottom:16px;
+    border-left:5px solid var(--cyan); color:var(--text-primary);
+  }
+  .collect-status-card.rec { border-left-color:var(--rose); color:var(--rose); }
+  .collect-status-card.done { border-left-color:var(--emerald); color:var(--emerald); }
+  .collect-status-card.idle { border-left-color:var(--text-muted); color:var(--text-muted); }
+
+  /* ── 조이스틱 요약 칩 — 카메라 아래 소형 박스, 섹션(이동/녹화/버튼/D-pad)별 색 구분 ── */
+  .js-chip {
+    display:inline-flex; align-items:center; gap:4px; font-size:10px; font-family:var(--font-mono);
+    padding:4px 9px; border-radius:14px; white-space:nowrap; border:1px solid transparent;
+  }
+  .js-chip-move  { background:rgba(56,189,248,0.12); color:var(--cyan); border-color:rgba(56,189,248,0.3); }
+  .js-chip-rec   { background:rgba(244,63,94,0.12); color:var(--rose); border-color:rgba(244,63,94,0.3); }
+  .js-chip-amber { background:rgba(245,158,11,0.12); color:var(--amber); border-color:rgba(245,158,11,0.3); }
+  .js-chip-muted { background:rgba(100,116,139,0.12); color:var(--text-muted); border-color:rgba(100,116,139,0.3); }
+  .js-chip-cyan  { background:rgba(163,113,247,0.12); color:#a371f7; border-color:rgba(163,113,247,0.3); }
+
+  /* ── 데이터수집 REC 표시 — 녹화 중임을 놓치지 않도록 점 깜빡임 ── */
+  .collect-rec-dot {
+    display:inline-block; width:9px; height:9px; border-radius:50%;
+    background:var(--rose); margin-right:7px; vertical-align:middle;
+    animation: collectRecPulse 1.1s ease-in-out infinite;
+  }
+  @keyframes collectRecPulse {
+    0%, 100% { opacity:1; box-shadow:0 0 6px var(--rose); }
+    50%      { opacity:0.25; box-shadow:0 0 0 var(--rose); }
+  }
+
   /* ── 조이스틱 패널 ── */
   .joystick-grid {
     display: grid;
@@ -1993,6 +4883,41 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   .joy-btn.stop {
     background-color: var(--rose);
   }
+
+  /* ── 조이스틱 버튼 라이트(숫자 블록) ── */
+  .btn-light {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: #131b2d;
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    font-size: 13px; font-weight: 700; font-family: var(--font-mono);
+    color: var(--text-muted);
+    transition: all 0.1s;
+  }
+  .btn-light.active {
+    background-color: var(--emerald);
+    color: #000;
+    box-shadow: 0 0 12px rgba(16,185,129,0.6);
+    transform: scale(1.08);
+  }
+  .btn-light.last {
+    border-color: var(--cyan);
+  }
+  .btn-light-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .btn-light-name {
+    font-size: 9px; color: var(--text-muted); font-family: var(--font-mono);
+  }
+  .btn-light-name.active {
+    color: var(--emerald); font-weight: 700;
+  }
+  @keyframes flashHighlight {
+    0%   { background: rgba(56,189,248,0.45); box-shadow: 0 0 0 2px var(--cyan); }
+    100% { background: transparent; box-shadow: none; }
+  }
+  .flash-highlight { animation: flashHighlight 1s ease-out; border-radius: 8px; }
 
   /* ── 테이블 ── */
   .table-wrapper {
@@ -2094,6 +5019,93 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     grid-template-columns: 1.5fr 1fr;
     gap: 20px;
   }
+
+  /* ── 위키/최신현황 탭 — docs/v5/research_story.html 스타일 이식 ──
+     탭 스코프 한정: 다른 탭들의 Outfit/JetBrains Mono는 그대로 유지 */
+  #tab-wikiinfo, #tab-wikistatus {
+    --wiki-bg: #0a0f1a; --wiki-surface: #111827; --wiki-surface2: #1e293b;
+    --wiki-border: #1e293b; --wiki-text: #f1f5f9; --wiki-muted: #94a3b8;
+    --wiki-accent: #38bdf8; --wiki-green: #22c55e; --wiki-red: #ef4444;
+    --wiki-yellow: #fbbf24; --wiki-purple: #a78bfa;
+    font-family: 'Noto Sans KR', var(--font-sans);
+  }
+  #tab-wikiinfo .wiki-render, #tab-wikistatus .wiki-render {
+    color: var(--wiki-text); line-height: 1.7;
+  }
+  .wiki-render h1, .wiki-render h2 {
+    display:flex; align-items:center; gap:14px; margin:32px 0 18px;
+    font-size:1.95rem; font-weight:800; color:var(--wiki-text);
+  }
+  .wiki-render h1:first-child, .wiki-render h2:first-child { margin-top:0; }
+  .wiki-render h3 { font-size:1.43rem; font-weight:700; margin:22px 0 10px; color:var(--wiki-text); }
+  .wiki-render p { margin-bottom:12px; color:var(--wiki-muted); font-size:1.22rem; }
+  .wiki-render strong { color:var(--wiki-text); }
+  .wiki-render ul { margin:0 0 14px 22px; color:var(--wiki-muted); font-size:1.22rem; }
+  .wiki-render ul li { margin-bottom:4px; }
+  .wiki-render code { font-family:var(--font-mono); background:var(--wiki-surface2);
+    padding:1px 6px; border-radius:4px; font-size:0.85em; color:#7dd3fc; }
+  .wiki-render pre { background:#0b1220; border:1px solid var(--wiki-border);
+    border-radius:8px; padding:12px 14px; overflow:auto; margin-bottom:14px; }
+  .wiki-render pre code { background:none; padding:0; color:var(--wiki-muted); }
+  .wiki-chapter-num { background:var(--wiki-accent); color:#0a0f1a; font-weight:900;
+    font-size:1.01rem; padding:3px 11px; border-radius:20px; white-space:nowrap; }
+  .wiki-render table.cl-table { width:100%; border-collapse:collapse; background:var(--wiki-surface);
+    border-radius:12px; overflow:hidden; margin-bottom:20px; font-size:1.14rem; }
+  .wiki-render table.cl-table th { background:#0b1220; padding:10px 16px; text-align:left;
+    color:var(--wiki-muted); font-size:1.01rem; text-transform:uppercase; letter-spacing:0.5px; }
+  .wiki-render table.cl-table td { padding:10px 16px; border-bottom:1px solid var(--wiki-border); }
+  .wiki-render table.cl-table tr:last-child td { border-bottom:none; }
+  .wiki-render .callout { border-radius:10px; padding:14px 18px; margin-bottom:16px;
+    line-height:1.7; font-size:1.17rem; }
+  .wiki-render .callout.info { background:#0c2340; border-left:4px solid var(--wiki-accent); color:#bae6fd; }
+  .wiki-render .callout.warn { background:#2d1b00; border-left:4px solid var(--wiki-yellow); color:#fde68a; }
+  .wiki-render .callout.critical { background:#2d0000; border-left:4px solid var(--wiki-red); color:#fca5a5; }
+  .wiki-render .callout.success { background:#052e16; border-left:4px solid var(--wiki-green); color:#bbf7d0; }
+  .wiki-render .finding-card { background:var(--wiki-surface); border-radius:12px; padding:18px;
+    border-left:4px solid var(--wiki-accent); margin-bottom:14px; }
+  .wiki-render .img-grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  .wiki-render .img-grid-3 img, .wiki-render .fig-card img { width:100%; display:block; border-radius:8px; }
+  .wiki-render .fig-card { background:var(--wiki-surface); border-radius:12px; overflow:hidden; margin-bottom:14px; }
+  .wiki-render .fig-caption { padding:10px 14px; font-size:1.07rem; color:var(--wiki-muted); }
+  @media(max-width:760px){ .wiki-render .img-grid-3 { grid-template-columns:1fr; } }
+
+  /* ── 연구일지(research journal) 타임라인 — research_story.html .timeline 이식 ── */
+  /* ── 연구일지 — Tab6 세션 히스토리와 동일한 list+detail 스플릿 UX ── */
+  .wj-grid { display:grid; grid-template-columns:260px 1fr; gap:14px; align-items:start; }
+  @media(max-width:760px){ .wj-grid { grid-template-columns:1fr; } }
+  .wj-list { display:flex; flex-direction:column; gap:6px; max-height:420px; overflow-y:auto; padding-right:4px; }
+  .wj-card {
+    background:#151f32; border:1px solid var(--border-glow); border-radius:8px;
+    padding:9px 11px; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease;
+    border-left:3px solid var(--wiki-accent);
+  }
+  .wj-card.bad { border-left-color:var(--wiki-red); }
+  .wj-card.good { border-left-color:var(--wiki-green); }
+  .wj-card.pivot { border-left-color:var(--wiki-purple); }
+  .wj-card:hover { border-color:rgba(6,182,212,0.5); background:#1a2540; }
+  .wj-card.active { border-color:var(--cyan); background:rgba(6,182,212,0.08);
+    box-shadow:0 0 0 1px rgba(6,182,212,0.25); }
+  .wj-card .wj-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .wj-card .wj-date { font-weight:700; font-size:12px; color:var(--wiki-accent); font-family:var(--font-mono); }
+  .wj-card.bad .wj-date { color:var(--wiki-red); }
+  .wj-card.good .wj-date { color:var(--wiki-green); }
+  .wj-card.pivot .wj-date { color:var(--wiki-purple); }
+  .wj-card .wj-rel { font-size:9.5px; color:var(--text-muted); white-space:nowrap; }
+  .wj-card .wj-title { font-size:11px; color:var(--text-muted); margin-top:3px; overflow:hidden;
+    text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .wj-card .wj-sha { font-size:9.5px; color:var(--text-muted); font-family:var(--font-mono); margin-top:3px; }
+  .wj-detail {
+    background:#090d16; border:1px solid var(--border-glow); border-radius:8px;
+    padding:16px 18px; min-height:200px; max-height:420px; overflow-y:auto;
+  }
+  .wj-detail .wjd-placeholder { color:var(--wiki-muted); font-size:12px; text-align:center; padding:60px 0; }
+  .wj-detail .wjd-head { display:flex; align-items:baseline; gap:10px; margin-bottom:10px;
+    padding-bottom:10px; border-bottom:1px solid var(--wiki-border); }
+  .wj-detail .wjd-sha { font-family:var(--font-mono); color:var(--cyan); font-weight:700; font-size:13px; }
+  .wj-detail .wjd-date { color:var(--wiki-muted); font-size:12px; }
+  .wj-detail .wjd-body { color:var(--wiki-text); font-size:0.88rem; line-height:1.7; white-space:pre-wrap; margin-bottom:12px; }
+  .wj-detail .wjd-files { color:#7dd3fc; font-size:0.78rem; font-family:var(--font-mono); white-space:pre-wrap;
+    background:var(--wiki-surface); border-radius:6px; padding:10px 12px; }
 </style>
 </head>
 <body>
@@ -2106,13 +5118,19 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
     
     <nav>
-      <div class="nav-item active" onclick="switchTab(this, 'drive')">🤖 Drive Control</div>
-      <div class="nav-item" onclick="switchTab(this, 'grounding')">🔍 Grounding 검증</div>
-      <div class="nav-item" onclick="switchTab(this, 'latency')">📊 Latency & Drift</div>
-      <div class="nav-item" onclick="switchTab(this, 'verify')">🧪 경로 검증 (Path Test)</div>
-      <div class="nav-item" onclick="switchTab(this, 'calib')">🔧 STOP & Calibration</div>
-      <div class="nav-item" onclick="switchTab(this, 'history')">📚 Session History</div>
-      <div class="nav-item" onclick="switchTab(this, 'system')">🖥️ System Manage</div>
+      <div class="nav-item active" onclick="switchTab(this, 'drive')">🤖 주행 제어</div>
+      <div class="nav-item" onclick="switchTab(this, 'grounding')">🔍 그라운딩 검증</div>
+      <div class="nav-item" onclick="switchTab(this, 'latency')">📊 지연 · 드리프트</div>
+      <div class="nav-item" onclick="switchTab(this, 'verify')">🧪 경로 검증</div>
+      <div class="nav-item" onclick="switchTab(this, 'calib')">🔧 캘리브레이션</div>
+      <div class="nav-item" onclick="switchTab(this, 'history')">📚 세션 히스토리</div>
+      <div class="nav-item" onclick="switchTab(this, 'overshoot')">🌀 오버슈트 가이드</div>
+      <div class="nav-item" onclick="switchTab(this, 'system')">🖥️ 시스템</div>
+      <div class="nav-item" onclick="switchTab(this, 'srvcfg')">⚙️ 서버 설정</div>
+      <div class="nav-item" onclick="switchTab(this, 'collect')">📷 데이터수집</div>
+      <div class="nav-item" onclick="switchTab(this, 'dataset')">🗂 데이터셋 히스토리</div>
+      <div class="nav-item" onclick="switchTab(this, 'wikiinfo')">📖 위키</div>
+      <div class="nav-item" onclick="switchTab(this, 'wikistatus')">📡 최신현황</div>
     </nav>
     
     <div class="sidebar-footer">
@@ -2126,7 +5144,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   <main>
     <header>
       <div style="display:flex;align-items:center;gap:12px;">
-        <h2 id="page-title" style="font-size:18px;font-weight:700;">🤖 Drive Control</h2>
+        <h2 id="page-title" style="font-size:18px;font-weight:700;">🤖 주행 제어</h2>
       </div>
       <div class="srv-status-group">
         <div class="srv-pill online" id="proc-pill" title="현재 서빙 중인 대시보드 프로세스 PID/가동시간 — 재시작 후 오래된 값이면 좀비 프로세스 의심">
@@ -2145,7 +5163,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- 왼쪽: 라이브 카메라 스트림 -->
           <div class="card" style="padding:16px;">
-            <div class="card-title">📷 Real-Time Video Stream
+            <div class="card-title">📷 실시간 카메라
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
@@ -2176,7 +5194,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           <!-- 오른쪽: 폼 및 조작 -->
           <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
             <div>
-              <div class="card-title">⚙️ Autopilot Configuration</div>
+              <div class="card-title">⚙️ 자율주행 설정</div>
               
               <div class="form-group">
                 <label>Instruction</label>
@@ -2194,9 +5212,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                   <option value="ASYNC">ASYNC (연속 비차단)</option>
                   <option value="SYNC" selected>SYNC (안정화 대기 1.92s)</option>
                   <option value="PRE">PRE (격리회전 탐색 루프)</option>
+                  <option value="GOALNAV">🎯 GOALNAV (exp73, 포트 8000)</option>
                 </select>
               </div>
-              
+
               <div class="chk-row" style="display:flex;align-items:center;gap:10px;margin:20px 0;">
                 <input type="checkbox" id="drive-cc" style="width:18px;height:18px;accent-color:var(--cyan);">
                 <label for="drive-cc" style="margin:0;font-size:14px;cursor:pointer;">화이트 밸런스 컬러 보정 적용</label>
@@ -2210,14 +5229,24 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <button class="btn btn-outline" id="drive-return-btn" style="width:100%;" onclick="returnToStart()">🔄 START 위치로 복귀</button>
             </div>
-            
+
+            <!-- 저장된 세션 스택 — STOP(또는 목표 도달로 자동 정지)될 때 갱신되어
+                 지금까지 쌓인 세션이 몇 개/어떻게 저장됐는지 바로 보이게 함 -->
+            <div id="session-stack-panel" style="margin-top:14px; display:none; background:#101726; border:1px solid var(--border-glow); border-radius:10px; padding:10px 12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11px; color:var(--emerald); font-weight:700;">💾 세션 저장됨 — 최근 스택</span>
+                <button class="btn btn-outline" onclick="document.getElementById('session-stack-panel').style.display='none'" style="font-size:10px; padding:2px 8px;">✕</button>
+              </div>
+              <div id="session-stack-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);"></div>
+            </div>
+
           </div>
-          
+
         </div>
-        
+
         <!-- 하단: 간이 히스토리 -->
         <div class="card" style="margin-top:24px;">
-          <div class="card-title">📋 Recent Runs Timeline</div>
+          <div class="card-title">📋 최근 주행 타임라인</div>
           <!-- 수집 세션 요약 (Gradio 수집 모니터 이식) -->
           <div id="collect-summary" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; font-size:11px;">
             <div style="background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:6px 10px;">
@@ -2239,11 +5268,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                   <th>Gnd Latency</th>
                   <th>MLP Latency</th>
                   <th>Bbox Area</th>
+                  <th>탐지</th>
                   <th>수집 시각</th>
                 </tr>
               </thead>
               <tbody id="drive-history-table">
-                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
+                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
               </tbody>
             </table>
           </div>
@@ -2260,7 +5290,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         <div class="grid-main">
           <!-- 왼쪽: 그라운딩 모니터 -->
           <div class="card">
-            <div class="card-title">🔍 Grounding Live Monitor</div>
+            <div class="card-title">🔍 그라운딩 라이브 모니터</div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
               <span id="cam-proc-status-gnd" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
@@ -2273,7 +5303,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <canvas id="gnd-canvas" class="viewport-canvas" width="640" height="360"></canvas>
             </div>
             
-            <div class="grid-2" style="margin-top:20px;">
+            <div class="grid-2" style="margin-top:14px;">
               <div class="form-group">
                 <label>BBOX Coordinates</label>
                 <input type="text" id="gnd-coords" readonly value="—">
@@ -2283,13 +5313,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <input type="text" id="gnd-cached" readonly value="—">
               </div>
             </div>
-          </div>
-          
-          <!-- 오른쪽: 예측값과 속성 정보 -->
-          <div class="card" style="display:flex;flex-direction:column;gap:20px;">
-            <div class="card-title">📊 Detection Metadata</div>
-            
-            <div class="kv-grid">
+            <div class="grid-2">
               <div class="form-group">
                 <label>Target entity</label>
                 <input type="text" id="gnd-entity" readonly value="—">
@@ -2307,8 +5331,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <input type="text" id="gnd-cx" readonly value="—">
               </div>
             </div>
-            
-            <div class="form-group" style="margin-top:auto;">
+            <!-- 2026-07-31: grounding_caption은 서버가 계속 보내주는데 지금껏
+                 화면 어디에도 렌더링되지 않던 데이터 — 실패 시 그라운더가 뭘
+                 봤는지 알 수 있는 유일한 단서라 여기 노출. -->
+            <div class="form-group">
+              <label>Grounder Raw Output (caption)</label>
+              <input type="text" id="gnd-caption" readonly value="—" style="font-family:var(--font-mono); font-size:10px;">
+            </div>
+            <div class="form-group">
               <label>임계값 게이지 (STOP 트리거 조건)</label>
               <div class="gauge-container" style="margin-top:8px;">
                 <div class="gauge-fill" id="gnd-gauge-fill"></div>
@@ -2321,6 +5351,53 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
             </div>
           </div>
+
+          <!-- 오른쪽: 🔬 그라운딩 실패 분석기 (T1-1) -->
+          <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="card-title">🔬 그라운딩 실패 분석기</div>
+            <div style="font-size:10px; color:var(--text-muted); line-height:1.5;">
+              저장된 세션의 per-frame OWL score를 모아 <b>threshold를 바꿔가며 오프라인 재판정</b>합니다.
+              실기 재수집 없이 threshold-검출률 곡선을 뽑는 것이 목적입니다.
+            </div>
+            <div id="gnd-an-status" style="font-size:10px; padding:6px 8px; border-radius:6px; background:#101726; border:1px solid var(--border-glow); color:var(--text-muted);">불러오는 중...</div>
+
+            <!-- 필터 -->
+            <div style="display:flex; gap:6px; align-items:center; font-size:10px;">
+              <span style="color:var(--text-muted); white-space:nowrap;">위치</span>
+              <select id="gnd-an-pos" onchange="renderGroundingAnalyzer()" style="flex:1; padding:3px 5px; background:#090d16; border:1px solid var(--border-glow); border-radius:5px; color:#fff; font-size:10px;">
+                <option value="">전체</option>
+              </select>
+              <label style="display:flex; align-items:center; gap:3px; white-space:nowrap; cursor:pointer;">
+                <input type="checkbox" id="gnd-an-realonly" checked onchange="renderGroundingAnalyzer()" style="accent-color:var(--cyan);">
+                실호출만
+              </label>
+              <button class="btn btn-outline" onclick="loadGroundingScores(true)" style="font-size:10px; padding:3px 7px;">🔄</button>
+            </div>
+
+            <!-- threshold 슬라이더 -->
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:3px;">
+                <span style="color:var(--text-muted);">재판정 threshold</span>
+                <span id="gnd-an-thr-lbl" class="font-mono" style="color:var(--cyan); font-weight:700;">0.20</span>
+              </div>
+              <input type="range" id="gnd-an-thr" min="0.01" max="0.50" step="0.01" value="0.20"
+                     oninput="renderGroundingAnalyzer()" style="width:100%; accent-color:var(--cyan);">
+            </div>
+
+            <!-- confidence 히스토그램 (CDN 의존 없이 canvas 직접 렌더) -->
+            <div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:3px;">confidence 분포 (빨간선=현재 threshold, 회색선=0.25 구값)</div>
+              <canvas id="gnd-an-hist" width="420" height="150" style="width:100%; background:#090d16; border:1px solid var(--border-glow); border-radius:6px;"></canvas>
+            </div>
+
+            <div id="gnd-an-summary" style="font-size:11px; line-height:1.7;"></div>
+
+            <!-- threshold 스윕 표 -->
+            <div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:3px;">threshold 스윕 — 검출률 예측</div>
+              <div id="gnd-an-sweep" style="font-size:10px; font-family:var(--font-mono);"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2331,12 +5408,22 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         <div class="grid-main">
           <!-- 왼쪽: 차트 시각화 -->
           <div class="card">
-            <div class="card-title">📈 Cumulative Time Drift Simulator</div>
+            <div class="card-title">📈 누적 시간 드리프트 시뮬레이터</div>
             <div style="position:relative; height:320px; width:100%">
               <canvas id="drift-chart"></canvas>
             </div>
             
-            <div style="display:flex; gap:12px; margin-top:20px;">
+            <!-- T1-2(축소): 과거 drift 세션은 jsonl로 저장만 되고 다시 볼 방법이
+                 없었음(차트는 in-memory 최근 30행만). 불러오기 추가. -->
+            <div style="display:flex; gap:6px; align-items:center; margin-top:12px;">
+              <span style="font-size:10px; color:var(--text-muted); white-space:nowrap;">📂 지난 세션</span>
+              <select id="drift-past" onchange="loadPastDrift(this.value)" style="flex:1; padding:3px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                <option value="">불러오기...</option>
+              </select>
+              <button class="btn btn-outline" onclick="refreshPastDrift()" style="font-size:10px; padding:3px 8px;">🔄</button>
+            </div>
+
+            <div style="display:flex; gap:12px; margin-top:12px;">
               <button class="btn btn-cyan" onclick="runDriftMeasure()">▶ 단발 측정</button>
               <button class="btn btn-outline" id="drift-auto-btn" onclick="toggleDriftAuto()">🔄 자동 (1fps)</button>
               <button class="btn btn-rose" onclick="resetDrift()">🗑 세션 초기화</button>
@@ -2346,7 +5433,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           <!-- 오른쪽: 상세 수치 -->
           <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
             <div>
-              <div class="card-title">🩺 Drift Diagnosis</div>
+              <div class="card-title">🩺 드리프트 진단</div>
               
               <div class="form-group">
                 <label>가정시간 기준</label>
@@ -2386,10 +5473,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- Column 1: Live Camera & Telemetry -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
-            <div class="card-title">📷 Live Verification Stream
+            <div class="card-title">📷 실시간 검증 화면
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-grid-vfy" checked onchange="drawOverlay()" style="accent-color:var(--cyan)"> Grid 표시
               </label>
+              <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
+                <input type="checkbox" id="toggle-cxguide-vfy" onchange="drawOverlay()" style="accent-color:var(--amber)"> 배치가이드 표시
+              </label>
+              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=세션저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
@@ -2438,7 +5529,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <div style="font-size:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:6px; display:flex; flex-direction:column; gap:2px;">
                 <div>기록: <span id="vfy-sess-record-lbl">—</span></div>
-                <div>세션 ID: <span id="vfy-sess-id-lbl" class="font-mono text-cyan" style="font-size:10px;">—</span></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                  <span>세션 ID: <span id="vfy-sess-id-lbl" class="font-mono text-cyan" style="font-size:10px;">—</span></span>
+                  <button onclick="discardCurrentSession()" title="오탐/잘못 누른 세션 정지+삭제"
+                    style="font-size:10px; padding:3px 8px; border-radius:6px; border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.08); color:#f87171; cursor:pointer; white-space:nowrap;">
+                    🗑️ 세션 버리기
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2449,8 +5546,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span id="vfy-gnd-cached" class="font-mono" style="font-size:10px;">—</span>
               </div>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; line-height:1.6;">
-                <div>live PG2: <span id="vfy-gnd-live-cnt" class="text-amber font-mono">—</span></div>
-                <div>캐시 재사용: <span id="vfy-gnd-cache-cnt" class="text-emerald font-mono">—</span></div>
+                <div title="실시간(live) 호출 — 이번 스텝에 그라운더(PG2/OWL-v2, 아래 표시된 현재 그라운더)를 실제로 다시 돌려서 새로 검출한 횟수. 레이턴시가 길고(수백ms~2초대) has_bbox/cx가 그 순간 실제 화면 기준으로 갱신됨.">
+                  live <span id="vfy-gnd-live-label">그라운더</span>: <span id="vfy-gnd-live-cnt" class="text-amber font-mono">—</span></div>
+                <div title="캐시 재사용 — grounding_skip_n 설정에 따라 그라운더를 다시 안 부르고 직전 live 호출의 bbox(cx/area/has_bbox)를 그대로 재사용한 횟수. 레이턴시가 거의 0ms(수십ms)로 빠르지만, 그 사이 로봇이 움직였어도 화면이 갱신 안 된 '오래된' 값일 수 있음.">
+                  캐시 재사용: <span id="vfy-gnd-cache-cnt" class="text-emerald font-mono">—</span></div>
                 <div style="grid-column: span 2;">평균 latency: <span id="vfy-gnd-avg-lat" class="text-cyan font-mono">—</span></div>
                 <div>대상: <span id="vfy-gnd-entity" class="text-cyan font-mono" style="font-weight:600;">—</span></div>
                 <div>레이블: <span id="vfy-pred-label" class="text-emerald font-mono" style="font-weight:600;">—</span></div>
@@ -2481,7 +5580,100 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               경로검증 계산 중...
             </div>
 
-            <div class="table-wrapper" style="max-height:380px; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
+            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23) -->
+            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--cyan); border-radius:8px; flex-shrink:0;" open>
+              <summary style="font-size:12px; font-weight:700; color:var(--cyan); outline:none; cursor:pointer;">🔀 모델 전환
+                <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
+                <button class="btn btn-outline" onclick="event.preventDefault(); refreshModelList();" style="font-size:9px; padding:2px 6px; float:right;">🔄</button>
+              </summary>
+              <div style="font-size:9px; color:var(--text-muted); margin:6px 0;">체크포인트 클릭 = 즉시 핫스왑(재시작 없음, Kosmos-2 vision encoder는 유지). 전환 직후 첫 추론에 약간 지연 있을 수 있음.</div>
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 그라운더:</span>
+                <span id="vfy-grounder-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
+                <button id="vfy-grounder-pg2" class="btn btn-outline" onclick="switchGrounder('pg2')" style="font-size:9px; padding:3px 8px;">PG2</button>
+                <button id="vfy-grounder-owlv2" class="btn btn-outline" onclick="switchGrounder('owlv2')" style="font-size:9px; padding:3px 8px;">OWLv2</button>
+              </div>
+              <!-- 2026-08-07: head(Stage2)만 보이고 image_proj(Stage1) 버전은 안 보이던 문제 —
+                   stage1_v3_5cls_owl_projs.pt 실기 검증 위해 현재 값 표시 + 전환 버튼 추가 -->
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🧬 image_proj:</span>
+                <span id="vfy-stage1-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
+                <button id="vfy-stage1-v2" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/shared/stage1_v2_projs.pt')" style="font-size:9px; padding:3px 8px;">V2(legacy)</button>
+                <button id="vfy-stage1-v3" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt')" style="font-size:9px; padding:3px 8px;">V3-5cls(new)</button>
+              </div>
+              <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
+              <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
+            </details>
+
+            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개) -->
+            <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
+                <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
+              </div>
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
+              <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
+              <div id="vfy-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:6px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용 기록 모드 ON — episode_log_experimental.csv로 저장 (정식 집계 제외)</div>
+
+              <!-- A/B 필터 — 어느 체크포인트/언제부터 기록을 셀지 (2026-07-23) -->
+              <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <select id="vfy-screen-ckpt" onchange="renderScreenPanel(window._lastVfyRows)" style="flex:1; padding:4px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                  <option value="">전체(누적)</option>
+                </select>
+                <button class="btn btn-outline" onclick="refreshCheckpointOptions()" style="font-size:10px; padding:4px 8px;" title="체크포인트 목록 새로고침(새 세션 반영)">🔄</button>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">시작:</span>
+                <input type="datetime-local" id="vfy-screen-since" onchange="renderScreenPanel(window._lastVfyRows)" style="flex:1; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">~ 끝:</span>
+                <input type="datetime-local" id="vfy-screen-until" onchange="renderScreenPanel(window._lastVfyRows)" style="flex:1; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:10px;">
+                <button class="btn btn-outline" onclick="setScreenSinceNow()" style="font-size:10px; padding:3px 8px; white-space:nowrap;">🔖 지금부터</button>
+                <button class="btn btn-outline" onclick="clearScreenSince()" style="font-size:10px; padding:3px 8px;">✕</button>
+              </div>
+              <!-- 지난 스크리닝 배치 불러오기 — 체크포인트(=카테고리) 기준으로 묶어서
+                   보여줌. 같은 체크포인트라도 threshold 등이 바뀌면 하위 항목으로
+                   나열(2026-07-30, "카테고리별로 분류 · 드롭다운 말고 다른 형태" 요청).
+                   평평한 <select> 대신 카테고리별 접이식 그룹 — 현재 활성 체크포인트
+                   그룹은 기본으로 펼쳐져 있음. -->
+              <div style="display:flex; gap:6px; align-items:center; margin-bottom:4px;">
+                <span style="font-size:9px; color:var(--text-muted); flex:1;">📂 지난 스크리닝 (모델별 그룹)</span>
+                <button class="btn btn-outline" onclick="applyScreenBatch('0')" style="font-size:10px; padding:3px 8px; white-space:nowrap;" title="가장 최근 배치를 바로 적용 — 예전 배치 보다가 지금으로 한 번에 복귀">📍 최신</button>
+              </div>
+              <div id="vfy-screen-batch-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px; max-height:220px; overflow-y:auto;">—</div>
+
+              <!-- 🔗 저장된 병합 세트 — 관리의 중심. 배치를 여기 각 세트 위로 바로
+                   드래그하면 그 세트에 즉시 추가됨(이름 다시 입력 안 해도 됨).
+                   새 세트는 맨 아래 "+ 새 세트" 드롭존에 드래그해서 만듦(2026-07-31,
+                   "저장된 거 위주로 관리" 요청 — 트레이 2단계 방식에서 단순화). -->
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:3px;">🔗 저장된 병합 세트 — 배치를 세트 위로 드래그하면 바로 추가됨</div>
+              <div id="vfy-manual-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;"></div>
+              <div id="vfy-merge-new-drop" ondragover="event.preventDefault()" ondrop="_mergeNewDrop(event)"
+                   style="border:1px dashed var(--border-glow); border-radius:6px; padding:6px; margin-bottom:6px; font-size:9px; color:var(--text-muted); text-align:center;">
+                ➕ 새 세트 만들기 — 배치를 여기로 드래그
+              </div>
+
+              <div id="vfy-active-group-banner" ondragover="event.preventDefault()" ondrop="_groupDropOnTarget(event)"
+                   style="display:none; align-items:center; gap:6px; font-size:9px; padding:4px 6px; margin-bottom:4px; background:rgba(139,92,246,0.12); border:1px solid var(--violet, #8b5cf6); border-radius:6px;">
+                <span style="color:var(--text-muted);">🔗 적용중:</span>
+                <span id="vfy-active-group-name" style="color:#fff; font-weight:600;"></span>
+                <span onclick="clearActiveManualGroup()" style="margin-left:auto; cursor:pointer; color:var(--rose);" title="적용 해제(체크포인트/기간 필터로 복귀)">✕ 해제</span>
+              </div>
+              <div id="vfy-group-target-drop" ondragover="event.preventDefault()" ondrop="_groupDropOnTarget(event)"
+                   style="border:1px dashed var(--violet, #8b5cf6); border-radius:6px; padding:4px 6px; margin-bottom:4px; font-size:9px; color:var(--text-muted); text-align:center;">
+                ⬇ 저장된 세트를 여기로 드래그해도 아래 목표 진행률에 반영됨
+              </div>
+              <div id="vfy-screen-body">—</div>
+
+              <!-- 체크포인트별 목표(100개) 진행률 — 필터 안 걸어도 항상 보임.
+                   "기존 모델 몇 개 남았고 새 모델(DEPLOY_v3 등)은 몇 개 했는지"를
+                   한눈에(2026-07-29). -->
+              <div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:8px; padding-top:6px;">
+                <div style="font-size:9px; color:var(--text-muted); margin-bottom:3px;">📊 체크포인트별 진행 (목표 100개)</div>
+                <div id="vfy-screen-ckpt-progress" style="font-size:9px;">—</div>
+              </div>
+            </div>
+
+            <div class="table-wrapper" style="min-height:380px; max-height:380px; flex-shrink:0; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
                   <tr style="background:#151f32; border-bottom:1px solid var(--border-glow); text-align:left;">
@@ -2515,8 +5707,35 @@ L S R  C S L  R S L
                 </div>
               </div>
             </details>
+
+            <!-- 🕹️ 조이스틱 가이드 (검증모드 기준, 컴팩트) — 데이터수집 패널과 독립 -->
+            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--amber); border-radius:8px; margin-top:4px;">
+              <summary style="font-size:12px; font-weight:700; color:var(--amber); outline:none;">🕹️ 조이스틱 가이드 (검증모드)
+                <span id="vfy-js-badge" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); margin-left:6px;">🔌 —</span>
+              </summary>
+              <div style="margin-top:8px; cursor:default;">
+                <div id="vfy-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+                <div id="vfy-js-caption" style="font-size:15px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-bottom:10px; padding:10px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 크게 표시</div>
+                <table style="width:100%; border-collapse:collapse; font-size:10px; line-height:1.5;">
+                  <tr><td style="padding:1px 4px;"><b>D-pad◀▶</b></td><td colspan="3" style="color:var(--cyan);">📍 검증 위치 순환(강좌↔약좌↔중앙↔약우↔강우)</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td style="color:#3fb950;">▶ 추론 시작</td>
+                      <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>⏹ 추론 정지</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td style="color:#3fb950;">✅ 성공 라벨</td>
+                      <td style="padding:1px 4px;"><b>A</b>(0)</td><td style="color:#f43f5e;">❌ 실패 라벨</td></tr>
+                  <tr><td style="padding:1px 4px; color:var(--amber);"><b>L2</b></td><td style="color:var(--amber);">💾 기록 저장</td>
+                      <td style="padding:1px 4px; color:var(--amber);"><b>R2</b></td><td style="color:var(--amber);">↩ 복귀</td></tr>
+                  <tr><td style="padding:1px 4px;"><b>START</b>(7)</td><td>⚙ SYNC↔ASYNC</td>
+                      <td style="padding:1px 4px; color:var(--amber);"><b>Y</b>(3)</td><td style="color:var(--amber);">🔁 모드 전환</td></tr>
+                </table>
+                <div style="font-size:9px; color:var(--text-muted); margin-top:6px; line-height:1.5; border-top:1px solid var(--border-glow); padding-top:6px;">
+                  순서: <b>D-pad로 위치 선택 → L1 시작 → (주행) → R1 정지 → X/A로 성공·실패 라벨 → L2로 💾 기록 저장</b><br>
+                  X/A는 <b>라벨만</b> 바꿈(즉시 기록 X) · L2 눌러야 1건 저장 → 💾 기록 저장 버튼과 100% 동일 기록, 중복 방지<br>
+                  ⚠️ 별도 비상정지 없음 — <b>R1</b>이 robust_stop. <b>Y</b>=모드전환.
+                </div>
+              </div>
+            </details>
           </div>
-          
+
           <!-- Column 3: Control & Episode Editor -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; max-height:calc(100vh - 120px);">
             <div class="card-title">📝 주행 제어 및 기록</div>
@@ -2551,7 +5770,19 @@ L S R  C S L  R S L
                   <button id="vfy-rt-thr" class="btn btn-outline" onclick="toggleVerifyRuntime('thr')" disabled style="font-size:11px; padding:6px; line-height:1.2; text-align:center; opacity:0.5;">🎚 민감도<br><span style="font-size:9px;color:var(--text-muted)">(P2 꺼짐)</span></button>
                   <button id="vfy-rt-multi" class="btn btn-outline" onclick="toggleVerifyRuntime('multi')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🟢 멀티프롬프트<br><span style="font-size:9px;color:var(--text-muted)">fallback</span></button>
                 </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                  <button id="vfy-rt-stopmode" class="btn btn-outline" onclick="toggleVerifyRuntime('stopmode')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛑 proximity<br><span style="font-size:9px;color:var(--text-muted)">STOP 모드</span></button>
+                  <button id="vfy-rt-stopguard" class="btn btn-outline" onclick="toggleVerifyRuntime('stopguard')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛡 가드 3프레임<br><span style="font-size:9px;color:var(--text-muted)">learned 콜드스타트</span></button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr; gap:6px;">
+                  <button id="vfy-rt-regroundmiss" class="btn btn-outline" onclick="toggleVerifyRuntime('regroundmiss')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;" title="has_bbox=False(미검출) 다음 스텝도 캐시 건너뛰고 재그라운딩 — 회전 전용 수정과 별개, 일반 이동 액션에도 적용(2026-07-31 A/B 테스트)">⚫ 미검출시 재그라운딩<br><span style="font-size:9px;color:var(--text-muted)">has_bbox=False 다음스텝 강제</span></button>
+                </div>
                 <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
+                <div id="vfy-owl-row" style="display:none; align-items:center; gap:6px; margin-top:2px;">
+                  <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 OWL 보정계수</span>
+                  <input type="number" id="vfy-owl-area-scale" min="0.5" max="10" step="0.1" value="3.0" style="width:52px; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
+                  <button class="btn btn-outline" onclick="applyVerifyOwlAreaScale()" style="font-size:10px; padding:3px 8px; flex:1;">적용</button>
+                </div>
               </div>
 
               <!-- 우: Autopilot Configuration (START/STOP은 위 Quick Autopilot 버튼 사용) -->
@@ -2571,6 +5802,7 @@ L S R  C S L  R S L
                     <option value="ASYNC">ASYNC (연속 비차단)</option>
                     <option value="SYNC" selected>SYNC (안정화 대기 1.92s)</option>
                     <option value="PRE">PRE (격리회전 탐색 루프)</option>
+                    <option value="GOALNAV">🎯 GOALNAV (exp73, 포트 8000)</option>
                   </select>
                 </div>
                 <div class="chk-row" style="display:flex;align-items:center;gap:8px;">
@@ -2584,7 +5816,7 @@ L S R  C S L  R S L
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
               <div class="form-group" style="margin-bottom:0;">
                 <label>경로 구분 (path_type)</label>
-                <select id="ep-path-type" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+                <select id="ep-path-type" onchange="syncVerifyPathType(this.value); drawOverlay();" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
                   <option value="right_right">R→R (right_right)</option>
                   <option value="right_left">R→L★ (right_left)</option>
                   <option value="right_straight">R→S (right_straight)</option>
@@ -2600,6 +5832,13 @@ L S R  C S L  R S L
                   <option value="dist_10cm">거리:10cm (dist_10cm)</option>
                   <option value="dist_20cm">거리:20cm (dist_20cm)</option>
                   <option value="dist_30cm">거리:30cm (dist_30cm)</option>
+                  <optgroup label="🎯 V6 극단/중앙 배치 (위치 기준)">
+                    <option value="trackA_strong_left">V6 강극단좌 (strong_left)</option>
+                    <option value="trackA_weak_left">V6 약극단좌 (weak_left)</option>
+                    <option value="trackF_center" selected>V6 중앙 (center)</option>
+                    <option value="trackA_weak_right">V6 약극단우 (weak_right)</option>
+                    <option value="trackA_strong_right">V6 강극단우 (strong_right)</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -2669,20 +5908,32 @@ L S R  C S L  R S L
                   <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
                 </div>
               </div>
+
+              <!-- 트랙A 극단배치(V6) — 기존 15종과 별개 섹션. docs/DATASET_V6_STATUS.md 명명 규정 -->
+              <div style="font-size:11px; color:var(--amber); font-weight:600; text-transform:uppercase; margin-top:6px;">🎯 트랙A 극단배치 (V6)</div>
+              <div id="verify-tracka-grid" style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);"></div>
             </div>
 
             <!-- 에피소드 로그 테이블 -->
             <div style="display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">📋 에피소드 누적 기록</span>
-                <select id="vfy-filter" onchange="loadEpisodeHistory()" style="background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:10px; padding:2px 4px;">
-                  <option value="all">전체</option>
-                  <option value="success">성공만</option>
-                  <option value="fail">🚨 실패만</option>
-                </select>
+                <div style="display:flex; gap:4px;">
+                  <!-- T2-3: 실험용 CSV(episode_log_experimental.csv)는 기록만 쌓이고
+                       조회할 화면이 없었음 — 소스 전환 추가 -->
+                  <select id="vfy-source" onchange="loadEpisodeHistory()" title="정식 집계 / 실험용(SEL 토글로 기록) 전환" style="background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:10px; padding:2px 4px;">
+                    <option value="main">정식 집계</option>
+                    <option value="experimental">🧪 실험용</option>
+                  </select>
+                  <select id="vfy-filter" onchange="loadEpisodeHistory()" style="background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:10px; padding:2px 4px;">
+                    <option value="all">전체</option>
+                    <option value="success">성공만</option>
+                    <option value="fail">🚨 실패만</option>
+                  </select>
+                </div>
               </div>
-              <div class="table-wrapper" style="max-height:240px; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
-                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+              <div class="table-wrapper" style="max-height:520px; overflow-y:auto; overflow-x:auto; border:1px solid var(--border-glow); border-radius:8px;">
+                <table style="width:100%; min-width:820px; border-collapse:collapse; font-size:11px;">
                   <thead style="background:#151f32; border-bottom:1px solid var(--border-glow); text-align:left; position:sticky; top:0;">
                     <tr>
                       <th style="padding:6px 8px;">#</th>
@@ -2690,15 +5941,67 @@ L S R  C S L  R S L
                       <th style="padding:6px 8px;">결과</th>
                       <th style="padding:6px 8px;">steps</th>
                       <th style="padding:6px 8px;">lat</th>
+                      <th style="padding:6px 8px;">top액션</th>
+                      <th style="padding:6px 8px;">gnd%</th>
+                      <th style="padding:6px 8px;">area</th>
+                      <th style="padding:6px 8px;">cx</th>
+                      <th style="padding:6px 8px;">STOP</th>
                       <th style="padding:6px 8px;">FPE</th>
                       <th style="padding:6px 8px;">메모</th>
                       <th style="padding:6px 8px;">날짜</th>
+                      <th style="padding:6px 8px;">session_id</th>
                     </tr>
                   </thead>
                   <tbody id="episodes-table-body">
-                    <tr><td colspan="8" style="text-align:center; padding:12px; color:var(--text-muted);">기록이 없습니다.</td></tr>
+                    <tr><td colspan="14" style="text-align:center; padding:12px; color:var(--text-muted);">기록이 없습니다.</td></tr>
                   </tbody>
                 </table>
+              </div>
+
+              <!-- 행 클릭 시 이 패널이 해당 세션으로 바뀜 — 항상 떠 있음 -->
+              <div class="card" style="padding:12px; background:#101726;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">✏️ 에피소드 수정</span>
+                  <span id="ep-edit-target" style="font-size:11px; color:var(--cyan); font-family:var(--font-mono);">— 행을 클릭하세요 —</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">경로</label>
+                    <select id="ep-edit-path" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;"></select>
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">결과</label>
+                    <select id="ep-edit-success" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                      <option value="성공">성공</option>
+                      <option value="실패">실패</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">steps</label>
+                    <input id="ep-edit-steps" type="number" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">lat (ms)</label>
+                    <input id="ep-edit-lat" type="number" step="0.1" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">FPE</label>
+                    <input id="ep-edit-fpe" type="number" step="0.1" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                  <div>
+                    <label style="font-size:10px; color:var(--text-muted);">메모</label>
+                    <input id="ep-edit-note" type="text" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-cyan" style="flex:1;" onclick="_epEditSave()">💾 저장</button>
+                  <button class="btn btn-rose" style="flex:1;" onclick="_epEditDelete()">🗑️ 삭제</button>
+                  <button class="btn btn-outline" style="flex:1;" onclick="_epEditClear()">닫기</button>
+                </div>
+                <div id="ep-edit-status" style="font-size:10px; color:var(--text-muted); margin-top:6px;">—</div>
+                <!-- 저장 시점의 체크포인트/그라운딩/STOP 세부설정 전체(2026-07-29) —
+                     "그때 정확히 뭘로 돌렸는지"를 나중에 추정 없이 바로 확인 가능 -->
+                <div id="ep-edit-runtime-cfg" style="font-size:9px; color:var(--text-muted); margin-top:6px; padding:6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; white-space:pre-wrap; word-break:break-all; display:none;"></div>
               </div>
             </div>
 
@@ -2708,7 +6011,7 @@ L S R  C S L  R S L
 
         <!-- 하단: 간이 히스토리 (Drive Control 탭과 동일 데이터, Path Test 탭에도 노출) -->
         <div class="card" style="margin-top:24px;">
-          <div class="card-title">📋 Recent Runs Timeline</div>
+          <div class="card-title">📋 최근 주행 타임라인</div>
           <div id="collect-summary-vfy" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; font-size:11px;">
             <div style="background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:6px 10px;">
               <div style="color:var(--cyan); font-weight:700; margin-bottom:3px;">📋 수집 세션</div>
@@ -2729,10 +6032,12 @@ L S R  C S L  R S L
                   <th>Gnd Latency</th>
                   <th>MLP Latency</th>
                   <th>Bbox Area</th>
+                  <th>탐지</th>
+                  <th>수집 시각</th>
                 </tr>
               </thead>
               <tbody id="drive-history-table-vfy">
-                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
+                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);">주행을 시작하면 실시간 분석 데이터가 생성됩니다.</td></tr>
               </tbody>
             </table>
           </div>
@@ -2746,7 +6051,7 @@ L S R  C S L  R S L
         <div class="grid-main">
           <!-- 왼쪽: 뷰어 및 수동 조작 -->
           <div class="card">
-            <div class="card-title">📷 Live Calibration Camera</div>
+            <div class="card-title">📷 캘리브레이션 카메라</div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
               <span id="cam-proc-status-calib" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
@@ -2850,8 +6155,24 @@ L S R  C S L  R S L
           
           <!-- H5 세션 리스트 -->
           <div class="card" style="padding:16px; overflow-y:auto; max-height:calc(100vh - 150px);">
-            <div class="card-title">📂 Saved Sessions</div>
-            <button class="btn btn-outline" style="width:100%; margin-bottom:12px; font-size:12px;" onclick="loadSessionList()">🔄 리스트 새로고침</button>
+            <div class="card-title">📂 저장된 세션
+              <span id="session-count-badge" style="font-size:10px; font-weight:400; color:var(--text-muted); float:right;">0개</span>
+            </div>
+            <button class="btn btn-outline" style="width:100%; margin-bottom:8px; font-size:12px;" onclick="loadSessionList()">🔄 리스트 새로고침</button>
+            <input type="text" id="session-search" placeholder="인스트럭션/SID 검색..." oninput="renderSessionList()"
+                   style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+              <span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">정렬:</span>
+              <select id="session-sort-select" onchange="renderSessionList()"
+                      style="flex:1; padding:5px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                <option value="time_desc">🕒 최신순 (기본)</option>
+                <option value="time_asc">🕒 오래된순</option>
+                <option value="steps_desc">📏 스텝 많은순</option>
+                <option value="steps_asc">📏 스텝 적은순</option>
+                <option value="labeled_desc">🏷️ 라벨링 많은순</option>
+                <option value="instr_asc">🎯 인스트럭션 A-Z</option>
+              </select>
+            </div>
             <div id="session-list-group" style="display:flex; flex-direction:column; gap:8px;">
               <!-- 동적 로드 -->
             </div>
@@ -2859,20 +6180,22 @@ L S R  C S L  R S L
           
           <!-- H5 프레임 인스펙터 -->
           <div class="card">
-            <div class="card-title">📚 Frame-by-Frame Inspector <span id="inspect-sid-lbl" class="text-cyan" style="font-size:13px; text-transform:none;"></span></div>
+            <div class="card-title">📚 프레임 인스펙터 <span id="inspect-sid-lbl" class="text-cyan" style="font-size:13px; text-transform:none;"></span></div>
             
             <div id="inspector-placeholder" style="text-align:center; padding:80px 0; color:var(--text-muted);">
               왼쪽 목록에서 세션을 선택하면 상세 프레임 분석 패널이 활성화됩니다.
             </div>
             
             <div id="inspector-body" class="frame-inspector" style="display:none;">
+
               <!-- 프레임 비디오/이미지 뷰어 -->
               <div>
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="inspect-frame-img" class="viewport-img" src="">
                   <canvas id="inspect-canvas" class="viewport-canvas" width="640" height="360"></canvas>
+                  <div id="inspect-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:20px; padding:9px 16px; border-radius:7px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"</div>
                 </div>
-                
+
                 <!-- 플레이어 컨트롤 슬라이더 -->
                 <div style="margin-top:16px;">
                   <input type="range" id="inspect-slider" min="0" max="0" value="0" oninput="showInspectFrame(this.value)">
@@ -2881,37 +6204,207 @@ L S R  C S L  R S L
                     <span id="inspect-frame-type-lbl">📡 live</span>
                   </div>
                 </div>
-                
+
+                <!-- 프레임 타임라인 스트립 — 이상치/타입을 색으로, 클릭하면 바로 점프 -->
+                <div id="inspect-timeline" style="display:flex; gap:1px; margin-top:10px; height:20px; border-radius:4px; overflow:hidden; border:1px solid var(--border-glow);"></div>
+                <div style="display:flex; gap:12px; font-size:9px; color:var(--text-muted); margin-top:4px;">
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:2px;margin-right:3px;"></span>정상</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#f43f5e;border-radius:2px;margin-right:3px;"></span>이상치</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:2px;margin-right:3px;"></span>ARRIVAL</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#8b5cf6;border-radius:2px;margin-right:3px;"></span>PREVIEW</span>
+                  <span><span style="display:inline-block;width:8px;height:8px;background:#06b6d4;border-radius:2px;margin-right:3px;"></span>현재</span>
+                </div>
+
                 <div style="display:flex; gap:8px; margin-top:12px; justify-content:center;">
                   <button class="btn btn-outline" onclick="prevInspectFrame()">◀ 이전</button>
                   <button class="btn btn-outline" id="btn-inspect-play" onclick="toggleInspectPlay()">▶ PLAY</button>
                   <button class="btn btn-outline" onclick="nextInspectFrame()">다음 ▶</button>
+                  <button class="btn btn-outline" onclick="jumpToNextAnomaly()">⚠️ 다음 이상치로</button>
+                </div>
+
+              <!-- 세션 요약 + 경로검증 기록 — 1:1 두 컬럼으로 나란히, 딱 2행만 차지 -->
+              <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+              <!-- 세션 요약 — 스크럽하기 전에 한눈에 보는 통계, 타일 블록 형태 -->
+              <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px;">
+                <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:8px;">📊 세션 요약</div>
+                <div class="mini-tile-grid">
+                  <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value" id="inspect-sum-frames">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">평균 지연</span><span class="mt-value" id="inspect-sum-lat">—</span><span class="mt-sub" id="inspect-sum-lat-sub">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">총 소요</span><span class="mt-value" id="inspect-sum-total">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">Live / Cache</span><span class="mt-value" id="inspect-sum-cache">—</span></div>
+                  <div class="mini-tile"><span class="mt-label">라벨링</span><span class="mt-value" id="inspect-sum-labeled">—</span></div>
+                  <div class="mini-tile" id="inspect-sum-warns-tile"><span class="mt-label">이상치</span><span class="mt-value" id="inspect-sum-warns">—</span></div>
+                </div>
+                <div style="margin-top:10px;">
+                  <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">액션 분포</div>
+                  <div id="inspect-sum-actions" class="mini-tile-grid"></div>
+                </div>
+                <!-- T1-3: 주행 궤적 — action 적분으로 복원. 지금까지 복귀 역재생에만
+                     쓰이고 시각화된 적 없던 데이터. ⚠️ 회전각 미측정 추정치라
+                     절대거리 주장엔 사용 금지(모양/효율 비교용). -->
+                <div style="margin-top:10px;">
+                  <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">
+                    주행 궤적 <span id="inspect-traj-stat" style="text-transform:none; font-weight:400; color:var(--cyan);"></span>
+                  </div>
+                  <canvas id="inspect-traj" width="300" height="200" style="width:100%; background:#090d16; border:1px solid var(--border-glow); border-radius:6px;"></canvas>
+                  <div style="font-size:8px; color:var(--text-muted); margin-top:3px;">🟢시작 🔴끝 · 빨간구간=미검출(has_bbox=False) · 회전각 추정치라 모양 비교용</div>
                 </div>
               </div>
-              
+
+              <!-- 경로검증(Tab 4 episode_log) 매칭 기록 — 도착 위치(cx/area/STOP) 등 실제 검증 결과 + 수정 -->
+              <div id="inspect-episode-box" style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">🧪 경로검증 기록 (episode_log)</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="inspect-ep-status" style="font-size:10px; color:var(--text-muted);">—</span>
+                    <button class="btn btn-outline" style="font-size:10px; padding:3px 8px;" onclick="toggleInspectEpEdit()">✏️ 수정</button>
+                  </div>
+                </div>
+                <div id="inspect-ep-view" style="display:none;">
+                  <div class="mini-tile-grid">
+                    <div class="mini-tile"><span class="mt-label">경로</span><span class="mt-value" id="iep-path">—</span></div>
+                    <div class="mini-tile" id="iep-success-tile"><span class="mt-label">결과</span><span class="mt-value" id="iep-success">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">steps</span><span class="mt-value" id="iep-steps">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">평균 지연</span><span class="mt-value" id="iep-lat">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">top액션</span><span class="mt-value" id="iep-topaction">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">grounding</span><span class="mt-value" id="iep-gnd">—</span></div>
+                    <div class="mini-tile" title="도착 시점 bbox 면적 — 클수록 근접"><span class="mt-label">도착 area</span><span class="mt-value" id="iep-area">—</span></div>
+                    <div class="mini-tile" title="도착 시점 bbox 중심 x좌표 — 0.5가 중앙"><span class="mt-label">도착 cx</span><span class="mt-value" id="iep-cx">—</span></div>
+                    <div class="mini-tile" id="iep-stop-tile"><span class="mt-label">STOP</span><span class="mt-value" id="iep-stop">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">FPE</span><span class="mt-value" id="iep-fpe">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">날짜</span><span class="mt-value" id="iep-date" style="font-size:11px;">—</span></div>
+                  </div>
+                  <div class="mini-tile" style="margin-top:6px;">
+                    <span class="mt-label">메모</span>
+                    <span id="iep-note" style="font-size:12px; font-weight:400; color:#fff; font-family:var(--font-sans, inherit); white-space:pre-wrap; word-break:break-word;">—</span>
+                  </div>
+                </div>
+                <div id="inspect-ep-empty" style="font-size:11px; color:var(--text-muted); display:none;">
+                  이 세션에 매칭되는 경로검증 기록이 없습니다 — Tab 4(🧪 경로 검증)에서 기록을 저장하면 session_id로 자동 연결됩니다.
+                </div>
+                <div id="inspect-ep-edit" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--border-glow);">
+
+                  <!-- 경로 — Tab 4 빠른 레이블 선택과 동일한 버튼 그리드 -->
+                  <div style="margin-bottom:10px;">
+                    <label style="font-size:10px; color:var(--text-muted);">경로 (path_type)</label>
+                    <div style="display:flex; flex-direction:column; gap:4px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow); margin-top:4px;">
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="obj_left" onclick="selectInspectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="obj_center" onclick="selectInspectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="obj_right" onclick="selectInspectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="left_left" onclick="selectInspectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="left_straight" onclick="selectInspectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="left_right" onclick="selectInspectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="center_left" onclick="selectInspectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="center_straight" onclick="selectInspectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="center_right" onclick="selectInspectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="right_left" onclick="selectInspectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="right_straight" onclick="selectInspectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="right_right" onclick="selectInspectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="dist_10cm" onclick="selectInspectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="dist_20cm" onclick="selectInspectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
+                        <button type="button" class="btn btn-outline iep-path-btn" data-path="dist_30cm" onclick="selectInspectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
+                      </div>
+
+                      <!-- 트랙A 극단배치(V6) — Tab 4와 동일 섹션 -->
+                      <div style="font-size:10px; color:var(--amber); font-weight:600; text-transform:uppercase; margin-top:6px;">🎯 트랙A 극단배치 (V6)</div>
+                      <div id="inspect-tracka-grid" style="display:flex; flex-direction:column; gap:4px; margin-top:4px;"></div>
+                    </div>
+                  </div>
+
+                  <!-- 결과 — Tab 4 성공/실패 큰 버튼과 동일 -->
+                  <div style="margin-bottom:10px;">
+                    <label style="font-size:10px; color:var(--text-muted);">주행 결과</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+                      <button type="button" id="iep-edit-succ-btn" class="btn btn-outline" style="font-weight:bold; font-size:11px;" onclick="setInspectEpResult('성공')">✅ 성공</button>
+                      <button type="button" id="iep-edit-fail-btn" class="btn btn-outline" style="font-weight:bold; font-size:11px;" onclick="setInspectEpResult('실패')">❌ 실패</button>
+                    </div>
+                  </div>
+
+                  <!-- FPE — Tab 4와 동일한 슬라이더 + 프리셋 버튼 -->
+                  <div style="margin-bottom:10px;">
+                    <label id="iep-edit-fpe-lbl" style="font-size:10px; color:var(--text-muted);">FPE: 0.00</label>
+                    <input type="range" id="iep-edit-fpe" min="0.0" max="0.5" step="0.01" value="0.0" style="width:100%; accent-color:var(--cyan);" oninput="document.getElementById('iep-edit-fpe-lbl').textContent = 'FPE: ' + this.value">
+                    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.0)" style="font-size:9px; padding:2px 4px;">0.0</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.01)" style="font-size:9px; padding:2px 4px;">0.01</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.02)" style="font-size:9px; padding:2px 4px;">0.02</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.03)" style="font-size:9px; padding:2px 4px;">0.03</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.05)" style="font-size:9px; padding:2px 4px;">0.05</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.08)" style="font-size:9px; padding:2px 4px;">0.08</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.1)" style="font-size:9px; padding:2px 4px;">0.1</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.15)" style="font-size:9px; padding:2px 4px;">0.15</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.2)" style="font-size:9px; padding:2px 4px;">0.2</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.3)" style="font-size:9px; padding:2px 4px;">0.3</button>
+                      <button type="button" class="btn btn-outline" onclick="setInspectFpeValue(0.5)" style="font-size:9px; padding:2px 4px;">0.5</button>
+                    </div>
+                  </div>
+
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                      <label style="font-size:10px; color:var(--text-muted);">steps</label>
+                      <input id="iep-edit-steps" type="number" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                    </div>
+                    <div>
+                      <label style="font-size:10px; color:var(--text-muted);">lat (ms)</label>
+                      <input id="iep-edit-lat" type="number" step="0.1" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                    </div>
+                  </div>
+                  <div style="margin-bottom:8px;">
+                    <label style="font-size:10px; color:var(--text-muted);">메모</label>
+                    <input id="iep-edit-note" type="text" style="width:100%; padding:5px 6px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                  </div>
+
+                  <div style="display:flex; gap:8px;">
+                    <button class="btn btn-cyan" style="flex:1;" onclick="saveInspectEpisode()">💾 저장</button>
+                    <button class="btn btn-outline" style="flex:1;" onclick="toggleInspectEpEdit()">닫기</button>
+                  </div>
+                </div>
+              </div>
+
+              </div><!-- /세션 요약 + 경로검증 기록 1:1 컬럼 -->
+              </div>
+
               <!-- 프레임 메타데이터 & 셀프 라벨링 -->
               <div style="display:flex; flex-direction:column; justify-content:space-between;">
                 <div>
-                  <div class="form-group" id="inspect-episode-group" style="display:none;">
-                    <label>실주행 에피소드 결과 (episode_log.csv)</label>
-                    <div id="inspect-episode-box" style="padding:10px; border-radius:8px; background:#101726; border:1px solid var(--border-glow); font-size:12px; line-height:1.6;">—</div>
-                  </div>
-
                   <div class="form-group">
                     <label>Action & Latency</label>
                     <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px;">
                       <div class="srv-pill" style="padding:4px 8px;">액션: <strong id="inspect-action-lbl">—</strong></div>
-                      <div class="srv-pill" style="padding:4px 8px;">지연: <strong id="inspect-lat-lbl">—ms</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px; flex-direction:column; align-items:flex-start; gap:1px;">
+                        <span>지연: <strong id="inspect-lat-lbl">—ms</strong></span>
+                        <span id="inspect-lat-sec-lbl" style="font-size:10px; font-weight:400; color:var(--text-muted);">—</span>
+                      </div>
                     </div>
                   </div>
-                  
+
+                  <div class="form-group" style="margin-top:14px;">
+                    <label>Grounding (bbox)</label>
+                    <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+                      <div class="srv-pill" style="padding:4px 8px;">cx: <strong id="inspect-cx-lbl">—</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px;">cy: <strong id="inspect-cy-lbl">—</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px;">area: <strong id="inspect-area-lbl">—</strong></div>
+                      <div class="srv-pill" style="padding:4px 8px;">has_bbox: <strong id="inspect-hasbbox-lbl">—</strong></div>
+                    </div>
+                  </div>
+
                   <div class="form-group" style="margin-top:16px;">
                     <label>이상치 감지 알림 (Anomaly warnings)</label>
                     <div id="inspect-anomaly-box" style="padding:10px; border-radius:8px; background:#1e1b1b; border:1px solid #3d2323; font-size:12px; min-height:60px;">
                       ✅ 감지된 이상치 경고 없음
                     </div>
                   </div>
-                  
+
                   <div class="form-group" style="margin-top:20px;">
                     <label>셀프 라벨링 (Self-Labeling)</label>
                     <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:6px;">
@@ -2925,18 +6418,108 @@ L S R  C S L  R S L
                     </div>
                   </div>
                 </div>
-                
-                <div class="srv-pill" style="font-size:11px; margin-top:20px; display:block;">
+
+                <div class="form-group" id="inspect-runtime-cfg-box" style="margin-top:20px; display:none;">
+                  <label>⚙️ 당시 런타임 설정 (경로검증 Config + 서버 스냅샷)</label>
+                  <div id="inspect-runtime-cfg-grid" class="mini-tile-grid" style="margin-top:6px;"></div>
+                </div>
+
+                <div class="srv-pill" style="font-size:11px; margin-top:16px; display:block;">
                   H5 파일 속성:<br>
                   <span id="inspect-attrs-lbl" style="font-family:var(--font-mono); color:var(--text-muted); word-break:break-all;">—</span>
                 </div>
-                
-                <div style="margin-top:16px;">
+
+                <div style="margin-top:16px; display:flex; gap:14px; font-size:11px; color:var(--text-muted); align-items:center;">
+                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-bbox"> bbox 포함</label>
+                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-meta" checked> 메타 표시 포함</label>
+                </div>
+                <div style="margin-top:8px;">
+                  <button class="btn btn-outline" style="width:100%; font-size:12px; padding:8px 10px;" onclick="downloadSession()">⬇ 다운로드</button>
+                </div>
+                <div style="margin-top:8px;">
                   <button class="btn btn-rose" style="width:100%; font-size:12px; padding:8px 12px;" onclick="deleteActiveSession()">🗑️ 세션 파일 영구 삭제</button>
                 </div>
               </div>
             </div>
-            
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 6.5: 🌀 오버슈트 가이드 (트랙C 수집 예시) -->
+    <div id="tab-overshoot" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div class="card" style="padding:16px; margin-bottom:16px; background:rgba(245,158,11,0.08); border:1px solid var(--amber);">
+          <div class="card-title" style="color:var(--amber);">⚠️ 이 탭은 실제 학습 데이터가 아닙니다</div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+            트랙C(오버슈트→재수렴, CH62 근거)가 필요한 이유는 <b>"과하게 꺾은 뒤 반대로
+            재보정하는" 궤적 자체가 기존 데이터에 없기 때문</b>입니다. 아래는 실패
+            반례 세션(<code>session_20260711_205228</code>)의 <b>실제 프레임</b>으로
+            "과도한 회전 → 반등 없이 계속 밀림" 구간을 보여주고, 이어서 같은 프레임을
+            <b>좌우반전+역순재생한 합성 구간</b>으로 "여기서부터 반대방향 재보정이
+            있었어야 함"을 시각적으로 예시할 뿐입니다. 실제 물리 수집은
+            📷 데이터수집 탭에서 <code>오버슈트→우</code> / <code>오버슈트→좌</code>
+            라벨로 직접 진행해야 합니다.
+          </div>
+        </div>
+
+        <div class="grid-main">
+          <div class="card" style="padding:16px;">
+            <div class="card-title">🎬 예시 재생
+              <div style="display:flex; gap:6px; margin-left:auto;">
+                <button class="btn btn-outline" id="osg-btn-left" onclick="osgSetDirection('left_recover')">오버슈트→우 재보정</button>
+                <button class="btn btn-outline" id="osg-btn-right" onclick="osgSetDirection('right_recover')">오버슈트→좌 재보정</button>
+              </div>
+            </div>
+            <div class="viewport-wrapper" style="position:relative; border-radius:12px; overflow:hidden; background:#000; aspect-ratio:16/9; border:1px solid var(--border-glow);">
+              <img id="osg-frame-img" style="width:100%; height:100%; object-fit:contain;">
+              <div class="overlay-info">
+                <div class="overlay-badge" id="osg-phase-badge">—</div>
+                <div class="overlay-badge" id="osg-idx-badge">Frame: 0/0</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+              <button class="btn btn-outline" onclick="osgStep(-1)">◀ 이전</button>
+              <button class="btn btn-cyan" id="osg-play-btn" onclick="osgTogglePlay()">▶ 재생</button>
+              <button class="btn btn-outline" onclick="osgStep(1)">다음 ▶</button>
+              <input type="range" id="osg-scrub" min="0" max="0" value="0" style="flex:1;" oninput="osgSeek(this.value)">
+            </div>
+            <div id="osg-timeline" style="display:flex; gap:2px; margin-top:10px; height:14px;"></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
+              <span>◀ 실제 프레임(과도한 회전)</span>
+              <span>합성 예시(재보정 시연) ▶</span>
+            </div>
+          </div>
+
+          <div class="card" style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card-title">📊 현재 프레임 정보</div>
+            <div class="kv-grid">
+              <div class="form-group">
+                <label>구간</label>
+                <input type="text" id="osg-info-phase" readonly value="—">
+              </div>
+              <div class="form-group">
+                <label>원본 프레임 idx</label>
+                <input type="text" id="osg-info-realidx" readonly value="—">
+              </div>
+              <div class="form-group">
+                <label>cx (표시용, 합성 구간은 1-cx)</label>
+                <input type="text" id="osg-info-cx" readonly value="—">
+              </div>
+              <div class="form-group">
+                <label>원본 액션 라벨</label>
+                <input type="text" id="osg-info-action" readonly value="—">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>설명</label>
+              <div id="osg-info-note" class="status-console" style="min-height:70px; font-size:12px;">—</div>
+            </div>
+            <div class="srv-pill" style="font-size:11px;">
+              원본 세션: <code id="osg-source-sid">—</code> · CH62 참고:
+              <code>docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md</code>
+            </div>
           </div>
         </div>
       </div>
@@ -2948,7 +6531,7 @@ L S R  C S L  R S L
         <div class="grid-main">
           <!-- 왼쪽: 스위치 제어 -->
           <div class="card" style="display:flex; flex-direction:column; gap:20px;">
-            <div class="card-title">⚙️ Server Runtime Parameters</div>
+            <div class="card-title">⚙️ 서버 런타임 파라미터</div>
             
             <div style="display:flex; flex-direction:column; gap:16px;">
               <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -3007,18 +6590,535 @@ L S R  C S L  R S L
           <!-- 오른쪽: 추론서버 정보 & 리셋 -->
           <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
             <div>
-              <div class="card-title">🖥️ Inference Server Status</div>
+              <div class="card-title">🖥️ 추론 서버 상태</div>
               <div class="kv-grid" id="sys-info-panel">
                 <!-- 동적 채움 -->
               </div>
             </div>
             
             <div>
+              <div id="sys-apply-status" style="font-size:11px; text-align:center; margin-bottom:8px; color:var(--text-muted); font-family:var(--font-mono);">—</div>
               <button class="btn btn-rose" style="width:100%; margin-bottom:12px;" onclick="resetServerModel()">🧹 CLEAR / RESET SERVER CACHE</button>
               <div style="font-size:11px; color:var(--text-muted); text-align:center;">
                 추론 서버가 예기치 않게 멈추거나 메모리 정리가 필요할 때 캐시를 초기화합니다.
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 8: ⚙️ 서버 설정 (모델/그라운더/체크포인트 관리) -->
+    <div id="tab-srvcfg" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:20px; align-items:start;">
+
+          <!-- Column 1: 서버 상태 + 체크포인트 목록 -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🖥️ 추론 서버(8001) 상태
+                <button class="btn btn-outline" onclick="loadSrvCfg()" style="font-size:11px; padding:4px 10px;">↻ 새로고침</button>
+              </div>
+              <div id="srvcfg-handshake" style="display:none; margin-bottom:10px; padding:8px 12px; border-radius:8px; background:rgba(244,63,94,0.12); border:1px solid var(--rose); color:var(--rose); font-size:12px; font-weight:600;"></div>
+              <div class="table-wrapper">
+                <table style="width:100%; font-size:12px;">
+                  <tbody id="srvcfg-status-body">
+                    <tr><td colspan="2" style="text-align:center; color:var(--text-muted); padding:12px;">로딩 중...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📦 체크포인트 목록 (runs/*.pt)</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+                행 클릭 → 선택. 전환은 우측 "서버 재시작" 필요 (~120s).
+              </div>
+              <div class="table-wrapper" style="max-height:340px; overflow-y:auto;">
+                <table style="width:100%; font-size:11px;">
+                  <thead><tr style="text-align:left; background:#151f32;">
+                    <th style="padding:6px 8px;">경로</th><th style="padding:6px 8px; width:70px;">크기</th><th style="padding:6px 8px; width:110px;">수정</th>
+                  </tr></thead>
+                  <tbody id="srvcfg-ckpt-body">
+                    <tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:12px;">로딩 중...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: 그라운더/설정 변경 + 재시작 + 로그 -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🔭 그라운더 (A/B)</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                <button id="srvcfg-gr-pg2"   class="btn btn-outline" onclick="selGrounder('pg2')">PG2-448<br><span style="font-size:9px;color:var(--text-muted)">3B · 가변 latency</span></button>
+                <button id="srvcfg-gr-owlv2" class="btn btn-outline" onclick="selGrounder('owlv2')">OWL-v2<br><span style="font-size:9px;color:var(--text-muted)">경량 · ~2s 고정</span></button>
+              </div>
+              <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:11px;">OWL-v2 threshold (기본 0.25 — 실측 확정값)</label>
+                <input type="number" id="srvcfg-owl-thr" min="0.05" max="0.9" step="0.05" value="0.25" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+              </div>
+              <button class="btn btn-cyan" style="width:100%; font-size:12px;" onclick="applyOwlThresh()">threshold 즉시 적용 (재시작 불필요)</button>
+              <div class="form-group" style="margin:10px 0 8px;">
+                <label style="font-size:11px;">OWL-v2 bbox 보정계수 (기본 3.0 — PG2 대비 area 축소 보정)</label>
+                <input type="number" id="srvcfg-owl-area-scale" min="0.5" max="10" step="0.1" value="3.0" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+              </div>
+              <button class="btn btn-cyan" style="width:100%; font-size:12px;" onclick="applyOwlAreaScale()">보정계수 즉시 적용 (재시작 불필요)</button>
+              <div style="font-size:10px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                그라운더 전환(PG2↔OWL)은 모델 로딩이 필요해 아래 재시작으로만 적용됨.
+                threshold는 런타임 즉시 반영.
+              </div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🔁 서버 재시작 (선택 설정 적용)</div>
+              <div id="srvcfg-restart-preview" style="font-size:11px; font-family:var(--font-mono); color:var(--amber); background:#101726; border:1px solid var(--border-glow); border-radius:6px; padding:8px 10px; margin-bottom:10px;">변경 없음 — 현재 설정으로 재시작</div>
+              <button id="srvcfg-restart-btn" class="btn btn-rose" style="width:100%; font-weight:bold;" onclick="restartInferServer()">🔁 추론 서버 재시작</button>
+              <div id="srvcfg-restart-status" style="font-size:11px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:8px;">—</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📜 서버 로그 (tail)
+                <button class="btn btn-outline" onclick="loadSrvLog()" style="font-size:11px; padding:4px 10px;">↻</button>
+              </div>
+              <pre id="srvcfg-log" style="font-size:10px; font-family:var(--font-mono); background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:10px; max-height:260px; overflow:auto; white-space:pre-wrap; color:var(--text-muted);">—</pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 9: 📷 데이터수집 (mobile_vla_data_collector.py 웹 이식) -->
+    <div id="tab-collect" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+
+        <!-- Row1 (3:2) — 카메라 | 실시간 상태(녹화현황+입력현황+cx+가이드) -->
+        <div style="display:grid; grid-template-columns:3fr 2fr; gap:20px; align-items:start; margin-bottom:20px;">
+
+          <!-- 좌 (3fr): 카메라 + 조이스틱 요약 -->
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span>📹 실시간 카메라</span>
+                  <button id="btn-collect-ctrlmode" class="btn btn-outline" onclick="cycleJoystickControlMode()" style="font-size:11px; padding:3px 10px; font-weight:700;" title="클릭하여 3대 모드 [🕹️ 이산(8방향)] ➔ [∿ 아날로그(연속)] ➔ [⚡ 듀얼(연속+이산)] 순환 전환">🕹️ 모드: 이산(8방향)</button>
+                  <button id="btn-collect-sync-async" class="btn btn-outline" onclick="toggleJoystickSyncAsync()" style="font-size:11px; padding:3px 10px; font-weight:700;" title="클릭하여 SYNC vs ASYNC 주행 모드 전환">🌊 ASYNC</button>
+                  <button class="btn btn-outline" onclick="exportLeRobotV3()" style="font-size:11px; padding:3px 10px; font-weight:700; border-color:var(--purple); color:var(--purple);" title="현재 수집된 H5 데이터셋을 LeRobot v3.0 (Parquet + MP4) 포맷으로 변환">🚀 LeRobot v3 Export</button>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <label style="font-size:11px; font-weight:400; color:var(--text-muted); cursor:pointer;">
+                    <input type="checkbox" id="toggle-grid-collect" checked onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--cyan);"> Grid
+                  </label>
+                  <label style="font-size:11px; font-weight:400; color:var(--text-muted); cursor:pointer;">
+                    <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드
+                  </label>
+                  <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=기록저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
+                </div>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
+              <div id="collect-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:8px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용(모델이상) 표기 ON — 저장 시 H5에 flagged_model_issue=True로 기록 (B로 끄기)</div>
+              <div style="display:flex; align-items:center; gap:8px; font-size:11px; margin-bottom:10px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
+                <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
+                <span id="cam-proc-status-collect" class="cam-proc-status" style="color:var(--cyan); font-family:var(--font-mono); flex:1;">—</span>
+                <button class="btn btn-outline" onclick="camProcStart()" style="font-size:10px; padding:2px 8px;">▶ 시작</button>
+                <button class="btn btn-outline" onclick="camProcStop()" style="font-size:10px; padding:2px 8px;">■ 정지</button>
+                <button class="btn btn-outline" onclick="camProcRefresh()" style="font-size:10px; padding:2px 8px;">↻</button>
+              </div>
+              <div class="viewport-wrapper">
+                <img id="collect-stream-img" src="/camera/stream" class="viewport-img"
+                     onerror="this.src='https://placehold.co/1280x720/0f1524/94a3b8?text=Camera+Streaming+Offline'">
+                <canvas id="collect-cx-canvas" class="viewport-canvas" width="1280" height="720"></canvas>
+              </div>
+            </div>
+
+            <!-- 조이스틱 조작 요약 (전체 설명서는 Row2 조이스틱 카드에 있음) — 아이콘 칩 그리드로 섹션 구분 -->
+            <div class="card" style="padding:12px 14px;">
+              <div class="card-title" style="font-size:12px; margin-bottom:8px;">🕹️ 조이스틱 요약</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                <span class="js-chip js-chip-move">🕹️ 왼쪽 스틱 → 이동</span>
+                <span class="js-chip js-chip-move">🔄 오른쪽 스틱X → 회전</span>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                <span class="js-chip js-chip-rec"><b>L1</b> 녹화시작</span>
+                <span class="js-chip js-chip-rec"><b>R1</b> 정지&저장</span>
+                <span class="js-chip js-chip-rec"><b>SEL</b> 녹화토글</span>
+                <span class="js-chip js-chip-amber"><b>R2</b> 🔄복귀주행</span>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                <span class="js-chip js-chip-muted"><b>A</b> STOP</span>
+                <span class="js-chip js-chip-muted"><b>B</b> 마지막프레임취소</span>
+                <span class="js-chip js-chip-muted"><b>X</b> 에피소드폐기</span>
+                <span class="js-chip js-chip-muted"><b>START</b> SYNC↔ASYNC</span>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                <span class="js-chip js-chip-cyan">◀▶ D-pad 좌우 → 값 순환</span>
+                <span class="js-chip js-chip-cyan">▲▼ D-pad 상하 → 축 전환(트랙A/경로/시나리오)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 우 (2fr): 실시간 상태 — Gradio status-card 이식(선택현황 통합) + 입력현황(키보드/조이스틱 공용) + cx + 가이드 -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div id="collect-status-card" class="collect-status-card">
+              <div id="collect-status-main">⏸ IDLE</div>
+              <div style="margin-top:8px;">
+                <span id="collect-mode-badge-rt" style="font-size:0.55em; padding:3px 10px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan); font-weight:700;">🎮 D-pad 대상: 트랙A(위치)</span>
+              </div>
+              <div id="collect-status-sub" style="font-size:0.7em; font-weight:600; opacity:0.85; margin-top:6px;">시나리오: 미지정 · 트랙A: 미지정 + 미지정</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🎮 입력 현황 (키보드 · 조이스틱 공용)</div>
+              <div id="collect-last-action" style="font-size:20px; font-family:var(--font-mono); color:var(--emerald); font-weight:700; text-align:center; padding:6px;">STOP</div>
+              <div style="display:flex; gap:8px; margin-top:6px; align-items:center; justify-content:center;">
+                <span id="collect-active-badge" style="font-size:13px; font-weight:700; padding:5px 14px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted);">⏸ 대기중</span>
+                <span id="collect-steps-badge" style="font-size:12px; padding:4px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted); font-family:var(--font-mono);">0 steps</span>
+                <span id="collect-timer-badge" style="font-size:12px; padding:4px 10px; border-radius:20px; background:rgba(100,116,139,0.2); color:var(--text-muted); font-family:var(--font-mono);"></span>
+              </div>
+              <div id="collect-js-btn-caption" style="font-size:14px; font-weight:700; font-family:var(--font-mono); text-align:center; margin-top:10px; padding:8px; border-radius:8px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted); transition:background 0.15s, border-color 0.15s, color 0.15s;">대기 중 — 버튼/D-pad를 누르면 여기 표시</div>
+              <div id="collect-episode-status" style="font-size:12px; font-weight:600; color:var(--text-muted); margin-top:10px; padding:8px 10px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); min-height:16px;">—</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🎯 실시간 cx (바구니 배치용)
+                <span id="collect-cx-toggle-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted); cursor:pointer;" onclick="collectToggleCxFeed()">⏸ 꺼짐 — 클릭해서 시작</span>
+              </div>
+              <div id="collect-cx-value" style="font-size:32px; font-family:var(--font-mono); font-weight:700; text-align:center; padding:8px; min-height:44px; max-height:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</div>
+              <div id="collect-cx-band" style="font-size:11px; text-align:center; color:var(--text-muted);">극단 배치 기준: 0.10~0.15 강한좌 · 0.20~0.25 준극단좌 · 0.75~0.80 준극단우 · 0.85~0.90 강한우</div>
+              <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:4px;">📍 배치가이드(밴드+라벨)는 왼쪽 카메라 박스에서 "배치가이드 표시" 체크박스로 확인</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row2 (1:1) — 트랙A 진행률 | 조이스틱 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)
+              <span id="collect-mode-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🎮 D-pad 대상: 트랙A</span>
+            </div>
+            <div id="collect-cxpos-current" style="font-size:12px; font-weight:700; color:var(--emerald); margin-bottom:8px;">현재 선택: 미지정 + 미지정</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+              위치×경로(좌곡선/직진/우곡선) 조합별로 각 15개씩 — 위치당 3×15=45개, 총 180개.
+              <b>경로도 아래서 직접 선택</b>해야 실제로 15/15/15가 채워졌는지 추적됨 (안 고르면 "미지정"으로만 카운트).<br>
+              D-pad ◀▶(또는 아래 ◀▶)= 현재 축 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 트랙A위치↔접근경로↔시나리오 전환
+            </div>
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(-1)" title="이전 cx위치 (D-pad 좌와 동일)">◀</button>
+              <select id="collect-cxpos-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncCxPosHighlight()">
+                <option value="">— cx 위치 미지정 —</option>
+              </select>
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(1)" title="다음 cx위치 (D-pad 우와 동일)">▶</button>
+              <button class="btn btn-outline" style="padding:6px 8px; font-size:13px;" onclick="_collectToggleMode(1)" title="다음 축 (D-pad 상과 동일)">▲</button>
+              <button class="btn btn-outline" style="padding:6px 8px; font-size:13px;" onclick="_collectToggleMode(-1)" title="이전 축 (D-pad 하와 동일)">▼</button>
+            </div>
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPath(-1)" title="이전 접근경로">◀</button>
+              <select id="collect-cxpath-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncCxPathHighlight()">
+                <option value="">— 접근경로 미지정 —</option>
+              </select>
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPath(1)" title="다음 접근경로">▶</button>
+            </div>
+            <div id="collect-cxpos-chart" style="display:flex; flex-direction:column; gap:10px; font-family:var(--font-mono); font-size:11px;">로딩 중...</div>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">🕹️ 조이스틱 (DragonRise) — 자동 기록됨
+              <span id="collect-js-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(100,116,139,0.2); color:var(--text-muted);">🔌 —</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">버튼 라이트 (번호 + 물리 버튼 이름, DragonRise 기준)</div>
+            <div id="collect-js-btn-lights" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
+            <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">D-pad (시나리오 순환 전용)</div>
+            <div style="display:flex; justify-content:center; gap:8px; margin-bottom:12px;">
+              <div id="collect-dpad-left" class="btn-light">◀</div>
+              <div id="collect-dpad-up" class="btn-light">▲</div>
+              <div id="collect-dpad-down" class="btn-light">▼</div>
+              <div id="collect-dpad-right" class="btn-light">▶</div>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
+              <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
+              왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
+              <b>D-pad 좌/우</b> → 현재 활성 축(트랙A cx위치 / 접근경로 / 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 3축 순환 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
+              <table style="width:100%; border-collapse:collapse; margin-top:6px;">
+                <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
+                    <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
+                <tr><td style="padding:1px 4px;"><b>X</b>(2)</td><td>에피소드 폐기</td>
+                    <td style="padding:1px 4px;"><b>Y</b>(3)</td><td style="color:var(--amber);">🔁 모드 전환(수집⇄검증)</td></tr>
+                <tr><td style="padding:1px 4px;"><b>L1</b>(4)</td><td>녹화 시작</td>
+                    <td style="padding:1px 4px;"><b>R1</b>(5)</td><td>정지 & 저장</td></tr>
+                <tr><td style="padding:1px 4px;"><b>SEL</b>(6)</td><td>녹화 토글</td>
+                    <td style="padding:1px 4px;"><b>START</b>(7)</td><td>SYNC↔ASYNC 모드</td></tr>
+                <tr><td style="padding:1px 4px; color:var(--amber);"><b>R2</b>(트리거)</td><td colspan="3" style="color:var(--amber);">🔄 복귀 — 직전 경로 역주행 (Gradio 이식, 다시 당기면 중지)</td></tr>
+              </table>
+              ⚠️ 대각선 후진(Z/C)은 조이스틱 축으로는 안 나옴 — 버튼패드/키보드로만 가능
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row3 (1:1:1) — 키보드 조작 | 시나리오 & 진행률 | 데이터수집(에피소드제어+타임라인+세션요약+최근저장) -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; align-items:start;">
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">🕹️ 조작 (탭 클릭 후 키보드 W A S D Q E Z C R T Space)</div>
+            <div id="collect-key-surface" tabindex="0"
+                 style="outline:none; border:2px dashed var(--border-glow); border-radius:10px; padding:24px; text-align:center; background:#090d16; cursor:pointer;">
+              <div style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">여기 클릭해서 포커스 → 키보드로 조작 (조이스틱은 그대로 사용 가능, 자동 기록됨)</div>
+            </div>
+            <div style="margin-top:16px; display:flex; justify-content:center;">
+              <div class="joystick-grid">
+                <button id="collect-pad-q" class="joy-btn" onpointerdown="_collectPadDown('q')" onpointerup="_collectPadUp('q')" onpointerleave="_collectPadUp('q')">↖Q</button>
+                <button id="collect-pad-w" class="joy-btn" onpointerdown="_collectPadDown('w')" onpointerup="_collectPadUp('w')" onpointerleave="_collectPadUp('w')">▲W</button>
+                <button id="collect-pad-e" class="joy-btn" onpointerdown="_collectPadDown('e')" onpointerup="_collectPadUp('e')" onpointerleave="_collectPadUp('e')">↗E</button>
+                <button id="collect-pad-a" class="joy-btn" onpointerdown="_collectPadDown('a')" onpointerup="_collectPadUp('a')" onpointerleave="_collectPadUp('a')">◀A</button>
+                <button class="joy-btn stop" onclick="_collectPadStop()">⏹</button>
+                <button id="collect-pad-d" class="joy-btn" onpointerdown="_collectPadDown('d')" onpointerup="_collectPadUp('d')" onpointerleave="_collectPadUp('d')">▶D</button>
+                <button id="collect-pad-z" class="joy-btn" onpointerdown="_collectPadDown('z')" onpointerup="_collectPadUp('z')" onpointerleave="_collectPadUp('z')">↙Z</button>
+                <button id="collect-pad-s" class="joy-btn" onpointerdown="_collectPadDown('s')" onpointerup="_collectPadUp('s')" onpointerleave="_collectPadUp('s')">▼S</button>
+                <button id="collect-pad-c" class="joy-btn" onpointerdown="_collectPadDown('c')" onpointerup="_collectPadUp('c')" onpointerleave="_collectPadUp('c')">↘C</button>
+                <button id="collect-pad-r" class="joy-btn" onpointerdown="_collectPadDown('r')" onpointerup="_collectPadUp('r')" onpointerleave="_collectPadUp('r')">↺R</button>
+                <div></div>
+                <button id="collect-pad-t" class="joy-btn" onpointerdown="_collectPadDown('t')" onpointerup="_collectPadUp('t')" onpointerleave="_collectPadUp('t')">↻T</button>
+              </div>
+            </div>
+            <div id="collect-pad-caption" style="font-size:13px; font-family:var(--font-mono); text-align:center; margin-top:10px; padding:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">대기 중 — 버튼/키보드를 누르면 여기 표시</div>
+            <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;">버튼을 누르고 있으면 계속 이동, 떼면 정지 (키보드와 동일하게 기록됨)</div>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
+              <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
+            </div>
+            <div id="collect-scenario-row" style="display:flex; gap:6px; margin-bottom:8px; padding:4px;">
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(-1)" title="이전 시나리오 (D-pad 좌와 동일)">◀</button>
+              <select id="collect-scenario-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;" onchange="_collectSyncScenarioHighlight()">
+                <option value="">— 미지정 (episode_name 수동) —</option>
+              </select>
+              <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleScenario(1)" title="다음 시나리오 (D-pad 우와 동일)">▶</button>
+            </div>
+            <select id="collect-pattern-select" style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
+              <option value="">— 패턴 미지정 —</option>
+              <option value="core">핵심 패턴 (Core)</option>
+              <option value="variant">변형 패턴 (Variant)</option>
+            </select>
+            <div id="collect-progress-list" style="display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono);">로딩 중...</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📼 에피소드 제어</div>
+              <input type="text" id="collect-episode-name" placeholder="episode_name (비우면 자동 생성)"
+                     style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-cyan" style="flex:1;" onclick="collectStartEpisode()">▶ 시작</button>
+                <button class="btn btn-outline" style="flex:1; border-color:var(--rose); color:var(--rose);" onclick="collectStopEpisode()">⏹ 정지 & 저장</button>
+              </div>
+              <button id="collect-return-btn" class="btn btn-outline" style="width:100%; margin-top:8px; border-color:var(--amber); color:var(--amber);" onclick="collectAutoReturn()">🔄 복귀 (직전 경로 역주행)</button>
+              <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:8px;">진행 상태는 상단 "🎮 입력 현황"에 표시됩니다</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">📊 현재 에피소드 타임라인 (Gradio 이식 — 기호 시퀀스 + 실측 Hz)</div>
+              <div id="collect-timeline-box" style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">대기 중 — 시나리오 선택 후 녹화 시작</div>
+              <div id="collect-dist-box" style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); margin-top:8px; white-space:pre;"></div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">⏱️ 마지막 세션 (Hz 설계용)</div>
+              <div id="collect-session-summary" style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:pre;">도착 시 정지 → 저장하면 소요 초·Hz가 여기 표시됩니다</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div class="card-title">🗂️ 최근 저장 내역 (녹화 성공/폐기 이력)</div>
+              <div id="collect-recent-saves" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;">
+                <div style="font-size:11px; color:var(--text-muted); padding:6px 0;">아직 없음</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭: 🗂 데이터셋 히스토리 — 데이터수집 탭이 저장한 원본 학습 H5 브라우징
+         (세션 히스토리 tab-history와 같은 목록+프레임인스펙터 UX, 다른 데이터 소스) -->
+    <div id="tab-dataset" class="tab-content">
+      <div class="scroll-container">
+        <div class="grid-main" style="grid-template-columns: 300px 1fr;">
+
+          <!-- 목록 + 필터 -->
+          <div class="card" style="padding:16px; overflow-y:auto; max-height:calc(100vh - 150px);">
+            <div class="card-title">🗂 저장된 에피소드
+              <span id="ds-count-badge" style="font-size:10px; font-weight:400; color:var(--text-muted); float:right;">0개</span>
+            </div>
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+              <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="loadDatasetList()">🔄 새로고침</button>
+              <button class="btn btn-outline" style="flex:1.2; font-size:12px; border-color:var(--purple); color:var(--purple);" onclick="exportLeRobotV3()" title="저장된 H5 에피소드 전체를 LeRobot v3.0 (Parquet+MP4) 포맷으로 변환">🚀 LeRobot v3 변환</button>
+            </div>
+
+            <input type="text" id="ds-search" placeholder="이름 검색..." oninput="renderDatasetList()"
+                   style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;">
+
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+              <span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">정렬:</span>
+              <select id="ds-sort-select" onchange="renderDatasetList()"
+                      style="flex:1; padding:5px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:11px;">
+                <option value="date_desc">🕒 최신순 (기본)</option>
+                <option value="date_asc">🕒 오래된순</option>
+                <option value="frames_desc">📏 프레임 많은순</option>
+                <option value="frames_asc">📏 프레임 적은순</option>
+                <option value="mode_dual">⚡ 듀얼/아날로그 우선</option>
+                <option value="scenario_asc">🎯 시나리오 A-Z</option>
+              </select>
+            </div>
+
+            <!-- 스키마 구분(레거시 vs 신규) — 버튼클릭 필터 -->
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">스키마</div>
+            <div id="ds-filter-schema" style="display:flex; gap:4px; margin-bottom:10px;">
+              <button type="button" class="btn btn-outline ds-schema-btn active" data-schema="" onclick="_dsSetSchemaFilter('')" style="flex:1; font-size:14px; font-weight:700; padding:6px 0;">전체</button>
+              <button type="button" class="btn btn-outline ds-schema-btn" data-schema="legacy" onclick="_dsSetSchemaFilter('legacy')" style="flex:1; font-size:14px; font-weight:700; padding:6px 0;">V5</button>
+              <button type="button" class="btn btn-outline ds-schema-btn" data-schema="new" onclick="_dsSetSchemaFilter('new')" style="flex:1; font-size:14px; font-weight:700; padding:6px 0;">V6</button>
+            </div>
+
+            <!-- 시나리오 — 버튼클릭 필터 -->
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">시나리오</div>
+            <div id="ds-filter-scenario" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;"></div>
+
+            <!-- 트랙A cx위치 — 버튼클릭 필터 -->
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">트랙A 위치</div>
+            <div id="ds-filter-cxpos" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;"></div>
+
+            <button type="button" id="ds-compare-toggle-btn" class="btn btn-outline" style="width:100%; margin-bottom:10px; font-size:12px;" onclick="_dsToggleCompareMode()">☑️ 다중 선택(비교 모드) 켜기 — 최대 6개</button>
+
+            <div id="ds-list-group" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <!-- 상세 — 단일 프레임인스펙터 또는 다중 비교 -->
+          <div class="card">
+            <div class="card-title">🗂 데이터셋 상세 <span id="ds-detail-lbl" class="text-cyan" style="font-size:13px; text-transform:none;"></span></div>
+
+            <div id="ds-placeholder" style="text-align:center; padding:80px 0; color:var(--text-muted);">
+              왼쪽 목록에서 에피소드를 선택하면 상세 정보가 표시됩니다. 다중 선택(비교 모드)을
+              켜고 2개 이상 체크하면 요약 비교 카드로 전환됩니다.
+            </div>
+
+            <!-- 비교 모드: 선택된 항목들의 요약 카드 나열 -->
+            <div id="ds-compare-body" style="display:none; padding:16px; flex-direction:column; gap:10px;"></div>
+
+            <!-- 단일 상세: 프레임 인스펙터 -->
+            <div id="ds-inspector-body" class="frame-inspector" style="display:none;">
+              <div>
+                <div class="viewport-wrapper" style="background:#000;">
+                  <img id="ds-frame-img" class="viewport-img" src="">
+                  <div id="ds-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:20px; padding:9px 16px; border-radius:7px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"</div>
+                </div>
+                <div style="margin-top:16px;">
+                  <input type="range" id="ds-slider" min="0" max="0" value="0" oninput="showDsFrame(this.value)">
+                  <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-top:4px;">
+                    <span id="ds-frame-idx-lbl">Frame: 0 / 0</span>
+                    <span id="ds-frame-action-lbl">—</span>
+                  </div>
+                </div>
+                <div id="ds-timeline" style="display:flex; gap:1px; margin-top:10px; height:20px; border-radius:4px; overflow:hidden; border:1px solid var(--border-glow);"></div>
+                <div style="display:flex; justify-content:center; margin-top:10px;">
+                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer; font-size:11px; color:var(--text-muted);"><input type="checkbox" id="dl-ds-meta" checked> 메타 표시 포함(다운로드)</label>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:12px; justify-content:center;">
+                  <button class="btn btn-outline" onclick="dsPrevFrame()">◀ 이전</button>
+                  <button class="btn btn-outline" id="btn-ds-play" onclick="toggleDsPlay()">▶ PLAY</button>
+                  <button class="btn btn-outline" onclick="dsNextFrame()">다음 ▶</button>
+                  <button class="btn btn-outline" onclick="if (_dsSelected.size >= 2) { renderDatasetCompare(); } else { setDatasetCompareMode(false); document.getElementById('ds-placeholder').style.display='block'; }">← 목록으로</button>
+                  <button class="btn btn-outline" onclick="downloadDatasetEpisode()">⬇ 다운로드</button>
+                  <button class="btn btn-outline" style="border-color:var(--rose); color:var(--rose);" onclick="if (_dsDetail) _dsDeleteOne(_dsDetail.meta.name)">🗑️ 이 에피소드 삭제</button>
+                </div>
+
+                <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; margin-top:16px;">
+                  <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:8px;">📊 에피소드 요약</div>
+                  <div class="mini-tile-grid">
+                    <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value" id="ds-sum-frames">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">소요시간</span><span class="mt-value" id="ds-sum-duration">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">시나리오</span><span class="mt-value" id="ds-sum-scenario" style="font-size:15px;">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">트랙A</span><span class="mt-value" id="ds-sum-cxpos" style="font-size:13px;">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">스키마</span><span class="mt-value" id="ds-sum-schema" style="font-size:15px; font-weight:700;">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">날짜</span><span class="mt-value" id="ds-sum-date" style="font-size:11px;">—</span></div>
+                    <!-- T2-1: 수집 시 B버튼으로 찍는 "실험용(모델이상)" 표기.
+                         H5 attrs에는 저장되는데 사후에 볼 화면이 없어서
+                         "학습에서 빼야 할 에피소드"가 사실상 안 보이던 문제 수정. -->
+                    <div class="mini-tile"><span class="mt-label">실험용 표기</span><span class="mt-value" id="ds-sum-flagged" style="font-size:13px;">—</span></div>
+                  </div>
+
+                  <!-- 수집 관련 상세 정보 — 데이터수집 탭 attrs 그대로 노출 -->
+                  <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin:12px 0 5px;">🎛️ 수집 설정</div>
+                  <div class="mini-tile-grid">
+                    <div class="mini-tile"><span class="mt-label">패턴</span><span class="mt-value" id="ds-sum-pattern" style="font-size:11px;">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">장애물배치</span><span class="mt-value" id="ds-sum-obstacle" style="font-size:11px;">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">시간대</span><span class="mt-value" id="ds-sum-timeperiod" style="font-size:11px;">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">STOP 주입</span><span class="mt-value" id="ds-sum-stopinject">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">액션청크</span><span class="mt-value" id="ds-sum-chunk">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">파일크기</span><span class="mt-value" id="ds-sum-size">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">행동 공간</span><span class="mt-value" id="ds-sum-actionspace" style="font-size:11px; color:var(--cyan);">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">제어 모드</span><span class="mt-value" id="ds-sum-controlmode" style="font-size:11px;">—</span></div>
+                  </div>
+
+                  <div style="margin-top:10px;">
+                    <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">🕹️ 입력 소스</div>
+                    <div id="ds-sum-sources" class="mini-tile-grid"></div>
+                  </div>
+
+                  <div style="margin-top:10px;">
+                    <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">액션 분포</div>
+                    <div id="ds-sum-actions" class="mini-tile-grid"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 10: 📖 위키 (정적 참조 정보) -->
+    <div id="tab-wikiinfo" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div class="card" style="padding:16px;">
+          <div class="card-title">📖 프로젝트 위키 (핵심 요약)</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+            docs/DASHBOARD_WIKI.md — 거의 안 바뀌는 참조 정보. CLAUDE.md 바뀔 때 수동 갱신.
+          </div>
+          <div id="wiki-info-content" class="wiki-render" style="background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:20px 24px;">로딩 중...</div>
+        </div>
+        <div class="card" style="padding:16px; margin-top:16px;">
+          <div class="card-title">🗓️ 연구일지 (git 커밋 기준 — 클릭해서 상세보기)</div>
+          <div class="wj-grid">
+            <div id="wiki-info-journal-list" class="wj-list">로딩 중...</div>
+            <div id="wiki-info-journal-detail" class="wj-detail"><div class="wjd-placeholder">← 항목을 클릭하면 커밋 상세가 여기 표시됩니다</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 11: 📡 최신현황 (스킬로 갱신) -->
+    <div id="tab-wikistatus" class="tab-content">
+      <div class="scroll-container" style="padding:20px;">
+        <div class="card" style="padding:16px;">
+          <div class="card-title">📡 최신현황
+            <button class="btn btn-outline" onclick="loadWikiContent('status')" style="font-size:11px; padding:4px 10px;">↻ 새로고침</button>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+            docs/DASHBOARD_LIVE_STATUS.md — <span id="wiki-status-mtime" style="color:var(--amber); font-weight:700; font-family:var(--font-mono);">-</span>.
+            실시간 자동 갱신 아님 — "대시보드 최신현황 갱신해줘" 요청 시 스킬이 이 파일을 다시 씀.
+          </div>
+          <div id="wiki-status-content" class="wiki-render" style="background:#090d16; border:1px solid var(--border-glow); border-radius:8px; padding:20px 24px;">로딩 중...</div>
+        </div>
+        <div class="card" style="padding:16px; margin-top:16px;">
+          <div class="card-title">🗓️ 연구일지 (git 커밋 기준 — 클릭해서 상세보기)</div>
+          <div class="wj-grid">
+            <div id="wiki-status-journal-list" class="wj-list">로딩 중...</div>
+            <div id="wiki-status-journal-detail" class="wj-detail"><div class="wjd-placeholder">← 항목을 클릭하면 커밋 상세가 여기 표시됩니다</div></div>
           </div>
         </div>
       </div>
@@ -3031,6 +7131,7 @@ L S R  C S L  R S L
     const API = "";
     let activeTab = "drive";
     let state = {};
+    let _prevRunning = false;
     let driftChartInstance = null;
     let trajChartInstance = null;
 
@@ -3052,9 +7153,38 @@ L S R  C S L  R S L
     };
 
     window.addEventListener("keydown", (e) => {
+      // 입력 폼에 포커스가 가있으면 단축키 동작 방지
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
+
+      // 세션 히스토리(history) 탭일 때 프레임 인스펙터 재생 단축키 바인딩
+      if (activeTab === "history") {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          prevInspectFrame();
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          nextInspectFrame();
+        } else if (e.key === " ") {
+          e.preventDefault();
+          toggleInspectPlay();
+        }
+      }
+
+      // 데이터셋 히스토리(dataset) 탭 — 세션 히스토리와 동일한 좌우/스페이스 단축키
+      if (activeTab === "dataset" && _dsDetail) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          dsPrevFrame();
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          dsNextFrame();
+        } else if (e.key === " ") {
+          e.preventDefault();
+          toggleDsPlay();
+        }
+      }
+
       if (activeTab === "calib" && joyKeys[e.key]) {
-        // 입력 폼에 포커스 가있으면 조이스틱 조작 방지
-        if (document.activeElement.tagName === "INPUT") return;
         e.preventDefault();
         const dir = joyKeys[e.key];
         const btn = document.getElementById("joy-" + dir);
@@ -3118,30 +7248,322 @@ L S R  C S L  R S L
     }
 
     // ── 🕹️ 게임패드(DragonRise) 제어 — Gradio 대시보드에서 이식 ──
+    const _collectPadIds = ["q","w","e","a","d","z","s","c","r","t"];
     async function joystickRefresh() {
+      const s = await api("/joystick/status");
+
       const el = document.getElementById("js-status");
       const btn = document.getElementById("js-toggle-btn");
-      if (!el || !btn) return;
-      const s = await api("/joystick/status");
-      if (!s.pygame_available) {
-        el.textContent = "⚠️ pygame 미설치 — 게임패드 사용 불가";
-        return;
+      if (el && btn) {
+        if (!s.pygame_available) {
+          el.textContent = "⚠️ pygame 미설치 — 게임패드 사용 불가";
+        } else if (!s.connected) {
+          el.textContent = "🔌 미연결 (DragonRise 꽂으면 자동 인식)";
+        } else {
+          const en = s.enabled ? "🟢 ON" : "⚫ OFF";
+          const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
+          const keyStr = s.key ? `[ ${s.label} ]` : "○ 중립";
+          el.textContent = `${en}  |  ${badge}  |  ${s.name}\n▶ ${keyStr}`;
+        }
+        btn.textContent = s.enabled ? "비활성화" : "활성화";
+        btn.className = s.enabled ? "btn btn-cyan" : "btn btn-outline";
       }
-      if (!s.connected) {
-        el.textContent = "🔌 미연결 (DragonRise 꽂으면 자동 인식)";
-      } else {
-        const en = s.enabled ? "🟢 ON" : "⚫ OFF";
-        const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
-        const keyStr = s.key ? `[ ${s.label} ]` : "○ 중립";
-        el.textContent = `${en}  |  ${badge}  |  ${s.name}\n▶ ${keyStr}`;
+
+      const cjBadge = document.getElementById("collect-js-badge");
+      if (cjBadge) {
+        if (!s.pygame_available) {
+          cjBadge.textContent = "⚠️ pygame 없음";
+        } else if (!s.connected) {
+          cjBadge.textContent = "🔌 미연결";
+        } else {
+          const badge = s.mode === "SYNC" ? "📸 SYNC" : "🌊 ASYNC";
+          cjBadge.textContent = `🟢 ${s.name} · ${badge}`;
+          cjBadge.style.background = "rgba(16,185,129,0.15)";
+          cjBadge.style.color = "var(--emerald)";
+        }
       }
-      btn.textContent = s.enabled ? "비활성화" : "활성화";
-      btn.className = s.enabled ? "btn btn-cyan" : "btn btn-outline";
+
+      // 데이터수집 탭 헤더 컨트롤 버튼 동기화 (3-Mode)
+      const btnCtrlMode = document.getElementById("btn-collect-ctrlmode") || document.getElementById("btn-collect-analog");
+      if (btnCtrlMode) {
+        const mode = s.control_mode || (s.analog_mode ? "continuous" : "discrete");
+        if (mode === "dual") {
+          btnCtrlMode.textContent = "⚡ 모드: 듀얼(연속+이산)";
+          btnCtrlMode.style.background = "rgba(168,85,247,0.2)";
+          btnCtrlMode.style.borderColor = "var(--purple)";
+          btnCtrlMode.style.color = "var(--purple)";
+        } else if (mode === "continuous") {
+          btnCtrlMode.textContent = "∿ 모드: 아날로그(연속)";
+          btnCtrlMode.style.background = "rgba(56,189,248,0.2)";
+          btnCtrlMode.style.borderColor = "var(--cyan)";
+          btnCtrlMode.style.color = "var(--cyan)";
+        } else {
+          btnCtrlMode.textContent = "🕹️ 모드: 이산(8방향)";
+          btnCtrlMode.style.background = "";
+          btnCtrlMode.style.borderColor = "";
+          btnCtrlMode.style.color = "";
+        }
+      }
+      const btnSyncAsync = document.getElementById("btn-collect-sync-async");
+      if (btnSyncAsync) {
+        const isSync = s.mode === "SYNC";
+        btnSyncAsync.textContent = isSync ? "📸 SYNC" : "🌊 ASYNC";
+        btnSyncAsync.style.borderColor = isSync ? "var(--amber)" : "var(--emerald)";
+        btnSyncAsync.style.color = isSync ? "var(--amber)" : "var(--emerald)";
+      }
+      // Y 버튼(조이스틱)으로 서버측 모드가 바뀌면 UI 토글 버튼도 동기화
+      if (s.verify_mode !== undefined && s.verify_mode !== joystickVerifyMode) {
+        joystickVerifyMode = s.verify_mode;
+        document.querySelectorAll(".joystick-mode-btn").forEach(btn => {
+          btn.textContent = joystickVerifyMode ? "🕹️ 조이스틱: 🧪 검증" : "🕹️ 조이스틱: 📷 수집";
+          btn.style.borderColor = joystickVerifyMode ? "var(--amber)" : "";
+          btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
+        });
+      }
+
+      // 검증 스크리닝 현재 선택 위치 + 대기 라벨 표시
+      const vfyCur = document.getElementById("vfy-screen-current");
+      if (vfyCur) {
+        const POS_LABEL = {strong_left:"강좌◀◀", weak_left:"약좌◀", center:"중앙●", weak_right:"약우▶", strong_right:"강우▶▶"};
+        const pos = POS_LABEL[s.verify_screen_pos] || (s.verify_screen_pos || "—");
+        const res = s.verify_pending_result;
+        const resHtml = res
+          ? `<span style="color:${res === '성공' ? 'var(--emerald)' : 'var(--rose)'}">${res}</span> (L2로 저장)`
+          : `<span style="color:var(--text-muted)">— (X성공/A실패)</span>`;
+        vfyCur.innerHTML = `현재 위치: <span style="color:var(--amber)">${pos}</span> · 대기 라벨: ${resHtml}`;
+        vfyCur.style.borderColor = res ? "var(--amber)" : "var(--border-glow)";
+        const expBadge = document.getElementById("vfy-experimental-badge");
+        if (expBadge) expBadge.style.display = s.verify_experimental ? "block" : "none";
+        // A안 — 검증모드면 수동 폼(드롭다운/성공·실패 버튼)이 조이스틱 상태를 미러링
+        const collectExpBadge = document.getElementById("collect-experimental-badge");
+        if (collectExpBadge) collectExpBadge.style.display = s.collect_experimental ? "block" : "none";
+        if (s.verify_mode) {
+          // D-pad 위치 → 드롭다운 동기화(같은 위치의 첫 옵션 선택) + 오버레이 강조 갱신
+          if (s.verify_screen_pos && s.verify_screen_pos !== window._verifyScreenPos) {
+            window._verifyScreenPos = s.verify_screen_pos;
+            const sel = document.getElementById("ep-path-type");
+            if (sel) {
+              const targetVal = (s.verify_screen_pos === "center") ? "trackF_center" : ("trackA_" + s.verify_screen_pos);
+              sel.value = targetVal;
+              syncVerifyPathType(sel.value);
+            }
+            if (typeof drawOverlay === "function") drawOverlay();
+          }
+          // X/A 라벨 → ✅/❌ 버튼 하이라이트 미러
+          if (s.verify_pending_result && s.verify_pending_result !== window._verifyPendingShown) {
+            window._verifyPendingShown = s.verify_pending_result;
+            if (typeof setEpResult === "function") setEpResult(s.verify_pending_result);
+          } else if (!s.verify_pending_result) {
+            window._verifyPendingShown = null;
+          }
+        }
+      }
+
+      // L2(조이스틱)로 저장될 때마다 서버 verify_save_seq가 +1 됨 — 값이 바뀌면
+      // 팝업/알림 없이 조용히 loadEpisodeHistory() 호출해 스크리닝 패널 즉시 갱신.
+      if (s.verify_save_seq !== undefined) {
+        if (window._verifySaveSeq === undefined) window._verifySaveSeq = s.verify_save_seq;
+        else if (s.verify_save_seq !== window._verifySaveSeq) {
+          window._verifySaveSeq = s.verify_save_seq;
+          if (typeof loadEpisodeHistory === "function") loadEpisodeHistory();
+        }
+      }
+
+      // 🕹️ 검증 탭 조이스틱 가이드(컴팩트) — 같은 /joystick/status 재사용, 수집 패널과 독립(ID 다름)
+      const vfyBadge = document.getElementById("vfy-js-badge");
+      if (vfyBadge) {
+        if (!s.pygame_available) vfyBadge.textContent = "⚠️ pygame 없음";
+        else if (!s.connected) vfyBadge.textContent = "🔌 미연결";
+        else {
+          const md = s.verify_mode ? "🧪검증" : "📷수집";
+          vfyBadge.textContent = `🟢 ${s.name} · ${md}`;
+          vfyBadge.style.background = "rgba(16,185,129,0.15)";
+          vfyBadge.style.color = "var(--emerald)";
+        }
+      }
+      const vfyLights = document.getElementById("vfy-js-btn-lights");
+      if (vfyLights) {
+        const btnInfo2 = (i) => (s.btn_map && s.btn_map[i]) || JOYSTICK_BTN_INFO[i] || {name: "#" + i};
+        const pressed2 = new Set(s.buttons || []);
+        const n2 = Math.max(10, ...(s.buttons || []).map(i => i + 1));
+        if (vfyLights.children.length !== n2) {
+          vfyLights.innerHTML = "";
+          for (let i = 0; i < n2; i++) {
+            const wrap = document.createElement("div"); wrap.className = "btn-light-wrap";
+            const d = document.createElement("div"); d.className = "btn-light"; d.id = "vfy-js-light-" + i; d.textContent = i;
+            const nm = document.createElement("div"); nm.className = "btn-light-name"; nm.id = "vfy-js-name-" + i; nm.textContent = btnInfo2(i).name;
+            wrap.appendChild(d); wrap.appendChild(nm); vfyLights.appendChild(wrap);
+          }
+        }
+        let vfyActive = null;
+        for (let i = 0; i < n2; i++) {
+          const d = document.getElementById("vfy-js-light-" + i);
+          const nm = document.getElementById("vfy-js-name-" + i);
+          if (!d) continue;
+          const isP = pressed2.has(i);
+          d.classList.toggle("active", isP);
+          d.classList.toggle("last", s.last_btn === i);
+          if (nm) { nm.classList.toggle("active", isP); nm.textContent = btnInfo2(i).name; }
+          if (isP) vfyActive = btnInfo2(i);
+        }
+        // 지금 눌린 버튼을 크게 표시 — 현재 모드(검증/수집)에 맞는 의미로
+        const vfyCap = document.getElementById("vfy-js-caption");
+        if (vfyCap) {
+          if (vfyActive) {
+            const meaning = s.verify_mode
+              ? (VERIFY_BTN_MEANING[vfyActive.name] || vfyActive.desc || "—")
+              : (vfyActive.desc || "—");
+            vfyCap.textContent = `${vfyActive.name} — ${meaning}`;
+            vfyCap.style.color = "var(--emerald)";
+            vfyCap.style.borderColor = "var(--emerald)";
+          } else {
+            vfyCap.textContent = "대기 중 — 버튼/D-pad를 누르면 여기 크게 표시";
+            vfyCap.style.color = "var(--text-muted)";
+            vfyCap.style.borderColor = "var(--border-glow)";
+          }
+        }
+      }
+
+      const lights = document.getElementById("collect-js-btn-lights");
+      if (lights) {
+        // 실제 감지된 매핑(btn_map)이 있으면 우선 사용 — 하드코딩 라벨은 연결 전 폴백일 뿐,
+        // 실측 매핑과 어긋나면 (예: 물리 R1이 START로 표시) 혼동을 주므로 우선순위를 둠.
+        const btnInfo = (i) => (s.btn_map && s.btn_map[i]) || JOYSTICK_BTN_INFO[i] || {name: "#" + i, desc: "미사용"};
+        const pressed = new Set(s.buttons || []);
+        const n = Math.max(10, ...(s.buttons || []).map(i => i + 1));
+        if (lights.children.length !== n) {
+          lights.innerHTML = "";
+          for (let i = 0; i < n; i++) {
+            const wrap = document.createElement("div");
+            wrap.className = "btn-light-wrap";
+            const d = document.createElement("div");
+            d.className = "btn-light";
+            d.id = "collect-js-light-" + i;
+            d.textContent = i;
+            const nameEl = document.createElement("div");
+            nameEl.className = "btn-light-name";
+            nameEl.id = "collect-js-name-" + i;
+            nameEl.textContent = btnInfo(i).name;
+            wrap.appendChild(d);
+            wrap.appendChild(nameEl);
+            lights.appendChild(wrap);
+          }
+        }
+        const cap = document.getElementById("collect-js-btn-caption");
+        let activeInfo = null;
+        for (let i = 0; i < n; i++) {
+          const d = document.getElementById("collect-js-light-" + i);
+          const nameEl = document.getElementById("collect-js-name-" + i);
+          if (!d) continue;
+          const isPressed = pressed.has(i);
+          d.classList.toggle("active", isPressed);
+          d.classList.toggle("last", s.last_btn === i);
+          if (nameEl) {
+            nameEl.classList.toggle("active", isPressed);
+            nameEl.textContent = btnInfo(i).name;  // 매핑이 나중에 도착해도 라벨 갱신
+          }
+          if (isPressed) activeInfo = btnInfo(i);
+        }
+
+        // D-pad 방향 라이트 + 캡션 — 버튼과 동일한 자리에 크게 표시
+        const hat = s.hat || [0, 0];
+        const dpadState = {
+          left:  hat[0] < 0, right: hat[0] > 0,
+          up:    hat[1] > 0, down:  hat[1] < 0,
+        };
+        const DPAD_LABEL = {left: "◀ D-pad LEFT", right: "▶ D-pad RIGHT", up: "▲ D-pad UP", down: "▼ D-pad DOWN"};
+        let dpadInfo = null;
+        for (const dir of ["left", "up", "down", "right"]) {
+          const el = document.getElementById("collect-dpad-" + dir);
+          if (!el) continue;
+          const isHeld = dpadState[dir];
+          el.classList.toggle("active", isHeld);
+          el.classList.toggle("last", s.last_hat_dir === dir && !isHeld);
+          if (isHeld) dpadInfo = { name: DPAD_LABEL[dir], desc: "시나리오 순환 선택 중" };
+        }
+        // 방금 뗀 D-pad 방향도 짧게 표시(순간 탭이라 held로 못 잡을 때 대비)
+        if (!dpadInfo && !activeInfo && s.last_hat_dir && s.last_hat_dir !== _collectLastHatDirShown) {
+          dpadInfo = { name: DPAD_LABEL[s.last_hat_dir], desc: "시나리오 순환 선택됨" };
+        }
+        if (s.last_hat_dir !== _collectLastHatDirShown) _collectLastHatDirShown = s.last_hat_dir;
+
+        const shown = activeInfo || dpadInfo;
+        if (cap) {
+          if (shown) {
+            cap.textContent = `${shown.name} — ${shown.desc}`;
+            cap.style.color = "var(--emerald)";
+            cap.style.borderColor = "var(--emerald)";
+          } else {
+            cap.textContent = "대기 중 — 버튼/D-pad를 누르면 여기 크게 표시";
+            cap.style.color = "var(--text-muted)";
+            cap.style.borderColor = "var(--border-glow)";
+          }
+        }
+      }
+
+      // 조이스틱으로 실제 이동 중인 방향키를 버튼패드에도 라이트업 (수동/키보드 입력 중이 아닐 때만)
+      const activeKey = (s.connected && s.key) ? s.key.toLowerCase() : null;
+      if (!_collectPressedKey) {
+        for (const k of _collectPadIds) {
+          const padBtn = document.getElementById("collect-pad-" + k);
+          if (padBtn) padBtn.classList.toggle("active", k === activeKey);
+        }
+        const cap = document.getElementById("collect-pad-caption");
+        if (cap) {
+          if (activeKey) {
+            cap.textContent = "🕹️ " + (COLLECT_DESC[activeKey] || activeKey);
+            cap.style.color = "var(--emerald)";
+            cap.style.borderColor = "var(--emerald)";
+          } else {
+            cap.textContent = "대기 중 — 버튼/키보드를 누르면 여기 표시";
+            cap.style.color = "var(--text-muted)";
+            cap.style.borderColor = "var(--border-glow)";
+          }
+        }
+      }
     }
 
     async function joystickToggle() {
       await api("/joystick/toggle", { method: "POST" });
       joystickRefresh();
+    }
+
+    async function cycleJoystickControlMode() {
+      await api("/joystick/cycle_control_mode", { method: "POST" });
+      joystickRefresh();
+    }
+
+    async function toggleJoystickAnalogMode() {
+      await api("/joystick/cycle_control_mode", { method: "POST" });
+      joystickRefresh();
+    }
+
+    async function toggleJoystickSyncAsync() {
+      await api("/joystick/toggle_sync_async", { method: "POST" });
+      joystickRefresh();
+    }
+
+    async function exportLeRobotV3() {
+      if (!confirm("현재 수집된 H5 데이터셋 전체를 LeRobot v3.0 (Parquet + MP4 Shards) 포맷으로 변환하시겠습니까?")) return;
+      const btn = (typeof event !== "undefined" && event && event.target) ? event.target : null;
+      const origText = btn ? btn.textContent : "";
+      if (btn) { btn.textContent = "⏳ 변환 중..."; btn.disabled = true; }
+      try {
+        const res = await api("/dataset/export_lerobot_v3", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        if (res && res.ok) {
+          alert(`✅ LeRobot v3.0 변환 완료!\n\n- 총 에피소드: ${res.total_episodes}개\n- 총 프레임: ${res.total_frames}개\n- 태스크 수: ${res.total_tasks}개\n- 저장 경로: ${res.output_dir}`);
+        } else {
+          alert(`❌ 변환 실패: ${res?.error || "알 수 없는 오류"}`);
+        }
+      } catch (e) {
+        alert(`❌ 변환 처리 중 오류: ${e}`);
+      } finally {
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
+      }
     }
 
     async function joystickMode() {
@@ -3169,26 +7591,1111 @@ L S R  C S L  R S L
       }
       
       const titleMap = {
-        drive: "🤖 Drive Control",
-        grounding: "🔍 Grounding 검증",
-        latency: "📊 Latency & Drift",
-        verify: "🧪 경로 검증 (Path Test)",
-        calib: "🔧 STOP & Calibration",
-        history: "📚 Session History",
-        system: "🖥️ System Manage"
+        drive: "🤖 주행 제어",
+        grounding: "🔍 그라운딩 검증",
+        latency: "📊 지연 · 드리프트",
+        verify: "🧪 경로 검증",
+        calib: "🔧 캘리브레이션 (STOP·수동조작)",
+        history: "📚 세션 히스토리",
+        system: "🖥️ 시스템",
+        srvcfg: "⚙️ 서버 설정 (모델·그라운더)",
+        collect: "📷 데이터수집",
+        dataset: "🗂 데이터셋 히스토리",
+        wikiinfo: "📖 위키",
+        wikistatus: "📡 최신현황",
+        overshoot: "🌀 오버슈트 가이드"
       };
       document.getElementById("page-title").textContent = titleMap[tab] || (tab.toUpperCase() + " Panel");
-      
+
       if (tab === "history") {
         loadSessionList();
       }
+      if (tab === "grounding") {
+        loadGroundingScores(false);   // 캐시 있으면 재사용(최초 스캔만 느림)
+      }
       if (tab === "latency") {
         initDriftChart();
+        refreshPastDrift();
       }
       if (tab === "verify") {
         syncVerifyRuntimeParams();
         loadEpisodeHistory();
       }
+      if (tab === "srvcfg") {
+        loadSrvCfg();
+        loadSrvLog();
+      }
+      if (tab === "wikiinfo") {
+        loadWikiContent("info");
+      }
+      if (tab === "wikistatus") {
+        loadWikiContent("status");
+      }
+      if (tab === "overshoot" && !osgState.frames.length) {
+        osgSetDirection(osgState.direction);
+      }
+      if (tab === "collect") {
+        collectRefreshState();
+        collectStartKeyPolling();
+        document.getElementById("collect-key-surface")?.focus();
+      } else {
+        collectStopKeyPolling();
+      }
+      if (tab === "dataset") {
+        loadDatasetList();
+      }
+    }
+
+    // ── 📷 데이터수집 탭 ─────────────────────────────────────────
+    const COLLECT_KEYS = new Set(["w","a","s","d","q","e","z","c","r","t"," "]);
+    const COLLECT_LABELS = {w:"FORWARD", s:"BACKWARD", a:"LEFT", d:"RIGHT", q:"FWD+LEFT", e:"FWD+RIGHT",
+                             z:"BACK+LEFT", c:"BACK+RIGHT", r:"ROT_L", t:"ROT_R", " ":"STOP"};
+    const COLLECT_DESC = {
+      q: "↖ Q — 전진+좌 (FWD+LEFT)", w: "▲ W — 전진 (FORWARD)", e: "↗ E — 전진+우 (FWD+RIGHT)",
+      a: "◀ A — 좌 (LEFT)", d: "▶ D — 우 (RIGHT)",
+      z: "↙ Z — 후진+좌 (BACK+LEFT)", s: "▼ S — 후진 (BACKWARD)", c: "↘ C — 후진+우 (BACK+RIGHT)",
+      r: "↺ R — 좌회전 (ROT_L)", t: "↻ T — 우회전 (ROT_R)", " ": "⏹ SPACE — 정지 (STOP)",
+    };
+    const JOYSTICK_BTN_INFO = {
+      0: {name:"A",     desc:"STOP"},
+      1: {name:"B",     desc:"마지막 프레임 취소"},
+      2: {name:"X",     desc:"에피소드 폐기"},
+      3: {name:"Y",     desc:"미사용"},
+      4: {name:"L1",    desc:"녹화 시작"},
+      5: {name:"R1",    desc:"정지 & 저장"},
+      6: {name:"SEL",   desc:"녹화 토글"},
+      7: {name:"START", desc:"SYNC↔ASYNC 모드"},
+    };
+    let _collectPressedKey = null;
+    let _collectRepeatTimer = null;
+    let _collectPollTimer = null;
+    let _collectScenariosLoaded = false;
+    let _collectCxPosLoaded = false;
+    let _collectCxPathsLoaded = false;
+    let _collectPrevStagedScenario = undefined;
+    let _collectLastHatDirShown = null;
+    let _collectEpisodeStartedAt = null;  // 서버 episode_started_at(epoch초) — REC 타이머용
+    let _collectTimerTick = null;
+
+    function _collectSendKey(key, event) {
+      api("/collect/key", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ key, event }) });
+    }
+
+    function _collectPadLight(key, on) {
+      const padBtn = document.getElementById("collect-pad-" + key);
+      if (padBtn) padBtn.classList.toggle("active", on);
+      const cap = document.getElementById("collect-pad-caption");
+      if (cap) {
+        if (on) {
+          cap.textContent = COLLECT_DESC[key] || key;
+          cap.style.color = "var(--emerald)";
+          cap.style.borderColor = "var(--emerald)";
+        } else {
+          cap.textContent = "대기 중 — 버튼/키보드를 누르면 여기 표시";
+          cap.style.color = "var(--text-muted)";
+          cap.style.borderColor = "var(--border-glow)";
+        }
+      }
+    }
+
+    function collectKeyDown(e) {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : (e.key === " " ? " " : null);
+      if (key === null || !COLLECT_KEYS.has(key)) return;
+      e.preventDefault();
+      if (_collectPressedKey === key) return;  // 이미 눌려있음(브라우저 autorepeat) — 무시
+      _collectPressedKey = key;
+      document.getElementById("collect-last-action").textContent = COLLECT_LABELS[key] || key;
+      _collectPadLight(key, true);
+      _collectSendKey(key, "down");
+      if (_collectRepeatTimer) clearInterval(_collectRepeatTimer);
+      _collectRepeatTimer = setInterval(() => _collectSendKey(key, "down"), 150);
+    }
+
+    function collectKeyUp(e) {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : (e.key === " " ? " " : null);
+      if (key === null || key !== _collectPressedKey) return;
+      _collectPressedKey = null;
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      document.getElementById("collect-last-action").textContent = "STOP";
+      _collectPadLight(key, false);
+      _collectSendKey(key, "up");
+    }
+
+    // 버튼 패드 — 키보드와 동일한 press/repeat 상태(_collectPressedKey) 공유
+    function _collectPadDown(key) {
+      if (_collectPressedKey === key) return;
+      _collectPressedKey = key;
+      document.getElementById("collect-last-action").textContent = COLLECT_LABELS[key] || key;
+      _collectPadLight(key, true);
+      _collectSendKey(key, "down");
+      if (_collectRepeatTimer) clearInterval(_collectRepeatTimer);
+      _collectRepeatTimer = setInterval(() => _collectSendKey(key, "down"), 150);
+    }
+
+    function _collectPadUp(key) {
+      if (_collectPressedKey !== key) return;
+      _collectPressedKey = null;
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      document.getElementById("collect-last-action").textContent = "STOP";
+      _collectPadLight(key, false);
+      _collectSendKey(key, "up");
+    }
+
+    function _collectPadStop() {
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      _collectPressedKey = null;
+      document.getElementById("collect-last-action").textContent = "STOP";
+      const cap = document.getElementById("collect-pad-caption");
+      if (cap) { cap.textContent = COLLECT_DESC[" "]; cap.style.color = "var(--rose)"; cap.style.borderColor = "var(--rose)"; }
+      _collectSendKey(" ", "down");
+    }
+
+    let _collectCxTimer = null;
+
+    function _collectCxBand(cx) {
+      if (cx >= 0.10 && cx <= 0.15) return {label: "강한좌", color: "var(--rose)"};
+      if (cx >= 0.20 && cx <= 0.25) return {label: "준극단좌", color: "var(--amber)"};
+      if (cx >= 0.75 && cx <= 0.80) return {label: "준극단우", color: "var(--amber)"};
+      if (cx >= 0.85 && cx <= 0.90) return {label: "강한우", color: "var(--rose)"};
+      return {label: "목표 구간 밖", color: "var(--text-muted)"};
+    }
+
+    let _collectLastCx = null;
+    let _collectLastColor = null;
+
+    function _collectCxDrawOverlay(cx, color) {
+      _collectLastCx = cx;
+      _collectLastColor = color;
+      const cv = document.getElementById("collect-cx-canvas");
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const guideChk = document.getElementById("toggle-cxguide-collect");
+      if (guideChk && guideChk.checked) {
+        _collectDrawCxGuideBands(ctx, cv.width, cv.height);
+      }
+      const gridChk = document.getElementById("toggle-grid-collect");
+      if (!gridChk || gridChk.checked) {
+        drawGridLines(ctx, cv.width, cv.height);
+      }
+      if (cx == null) return;
+      const x = cx * cv.width;
+      // 목표 밴드 배경(참고용, 반투명)
+      ctx.fillStyle = "rgba(244,63,94,0.08)";
+      ctx.fillRect(0.10 * cv.width, 0, 0.05 * cv.width, cv.height);
+      ctx.fillRect(0.85 * cv.width, 0, 0.05 * cv.width, cv.height);
+      ctx.fillStyle = "rgba(245,158,11,0.08)";
+      ctx.fillRect(0.20 * cv.width, 0, 0.05 * cv.width, cv.height);
+      ctx.fillRect(0.75 * cv.width, 0, 0.05 * cv.width, cv.height);
+      // 현재 cx 세로선
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, cv.height);
+      ctx.stroke();
+    }
+
+    async function _collectCxPoll() {
+      const res = await api("/collect/ground");
+      const valEl = document.getElementById("collect-cx-value");
+      const bandEl = document.getElementById("collect-cx-band");
+      if (!res.ok) { valEl.textContent = "⚠️ " + (res.error || "실패"); _collectCxDrawOverlay(null); return; }
+      if (!res.has_bbox) { valEl.textContent = "검출 안 됨"; valEl.style.color = "var(--text-muted)"; _collectCxDrawOverlay(null); return; }
+      const band = _collectCxBand(res.cx);
+      valEl.textContent = "cx = " + res.cx.toFixed(3);
+      valEl.style.color = band.color;
+      bandEl.innerHTML = `<span style="color:${band.color}; font-weight:700;">${band.label}</span> · area=${res.area.toFixed(3)} · ${res.latency_ms}ms`;
+      _collectCxDrawOverlay(res.cx, band.color);
+    }
+
+    function _collectDrawCxGuideBands(ctx, W, H) {
+      const bands = [
+        {lo: 0.10, hi: 0.15, label: "강한좌", color: "rgba(244,63,94,0.95)", fill: "rgba(244,63,94,0.22)"},
+        {lo: 0.20, hi: 0.25, label: "준극단좌", color: "rgba(245,158,11,0.95)", fill: "rgba(245,158,11,0.22)"},
+        {lo: 0.75, hi: 0.80, label: "준극단우", color: "rgba(245,158,11,0.95)", fill: "rgba(245,158,11,0.22)"},
+        {lo: 0.85, hi: 0.90, label: "강한우", color: "rgba(244,63,94,0.95)", fill: "rgba(244,63,94,0.22)"},
+      ];
+      bands.forEach(b => {
+        const x0 = b.lo * W, x1 = b.hi * W;
+        ctx.fillStyle = b.fill;
+        ctx.fillRect(x0, 0, x1 - x0, H);
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0, H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, 0); ctx.lineTo(x1, H); ctx.stroke();
+        ctx.fillStyle = b.color;
+        ctx.textAlign = "center";
+        ctx.font = "bold 22px monospace";
+        const midX = (x0 + x1) / 2;
+        ctx.fillText(b.label, midX, 30);
+        ctx.font = "16px monospace";
+        ctx.fillText(b.lo.toFixed(2) + "~" + b.hi.toFixed(2), midX, 54);
+      });
+      ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = "rgba(148,163,184,0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(148,163,184,0.95)";
+      ctx.textAlign = "center";
+      ctx.font = "16px monospace";
+      ctx.fillText("center 0.50", W / 2, H - 12);
+    }
+
+    function collectToggleCxFeed() {
+      const badge = document.getElementById("collect-cx-toggle-badge");
+      if (_collectCxTimer) {
+        clearInterval(_collectCxTimer);
+        _collectCxTimer = null;
+        badge.textContent = "⏸ 꺼짐 — 클릭해서 시작";
+        badge.style.background = "rgba(100,116,139,0.2)";
+        badge.style.color = "var(--text-muted)";
+        _collectCxDrawOverlay(null);
+      } else {
+        _collectCxPoll();
+        _collectCxTimer = setInterval(_collectCxPoll, 600);
+        badge.textContent = "🔴 실시간 중 — 클릭해서 정지";
+        badge.style.background = "rgba(244,63,94,0.15)";
+        badge.style.color = "var(--rose)";
+      }
+    }
+
+    function _collectUpdateTimerBadge() {
+      const timerBadge = document.getElementById("collect-timer-badge");
+      if (!timerBadge || !_collectEpisodeStartedAt) return;
+      const elapsed = Math.max(0, Date.now() / 1000 - _collectEpisodeStartedAt);
+      const m = Math.floor(elapsed / 60);
+      const s = Math.floor(elapsed % 60);
+      timerBadge.textContent = `⏱ ${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function _collectRenderRecentSaves(saves) {
+      const el = document.getElementById("collect-recent-saves");
+      if (!el) return;
+      if (!saves.length) {
+        el.innerHTML = `<div style="font-size:11px; color:var(--text-muted); padding:6px 0;">아직 없음</div>`;
+        return;
+      }
+      el.innerHTML = saves.map(s => {
+        const t = new Date(s.ts * 1000);
+        const timeStr = t.toLocaleTimeString("ko-KR", { hour12: false });
+        const ok = s.saved;
+        const color = ok ? "var(--emerald)" : "var(--amber)";
+        const icon = ok ? "✅" : "⚠️";
+        const detail = ok
+          ? `${s.steps} steps · ${s.duration.toFixed(1)}s`
+          : (s.reason || "저장 안 됨");
+        return `
+          <div style="border-left:3px solid ${color}; background:#090d16; border-radius:4px; padding:6px 10px;">
+            <div style="display:flex; justify-content:space-between; gap:8px;">
+              <span style="font-size:11px; color:${color}; font-weight:700;">${icon} ${_wikiEscapeHtml(s.name || "")}</span>
+              <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap;">${timeStr}</span>
+            </div>
+            <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">${_wikiEscapeHtml(detail)}</div>
+          </div>`;
+      }).join("");
+    }
+
+    // Gradio update_ui_state() 이식 — IDLE/REC/TARGET MET/RETURNING 큰 상태카드
+    // + 선택현황(시나리오/트랙A cx위치+경로) 통합, 값 바뀌면 flash로 눈에 띄게 표시
+    let _collectPrevStatusSub = null;
+    function _collectRenderStatusCard(res) {
+      const el = document.getElementById("collect-status-card");
+      const mainEl = document.getElementById("collect-status-main");
+      const subEl = document.getElementById("collect-status-sub");
+      if (!el || !mainEl) return;
+      const scenarioKey = res.scenario || res.staged_scenario;
+      const scenarioLabel = (res.scenarios && scenarioKey && res.scenarios[scenarioKey])
+        ? res.scenarios[scenarioKey].label : "";
+      let text, cls;
+      if (res.returning) {
+        text = "🔄 RETURNING..."; cls = "rec";
+      } else if (res.active) {
+        const n = res.steps;
+        const target = res.current_scenario_target || 0;
+        if (target > 0) {
+          const pct = Math.min(100, Math.floor(n / target * 100));
+          const bar = "█".repeat(Math.floor(pct / 10)) + "░".repeat(10 - Math.floor(pct / 10));
+          if (n >= target) { text = `✅ TARGET MET [${n}/${target}] ${bar} 100% — ${scenarioLabel}`; cls = "done"; }
+          else { text = `● REC [${n}/${target}] ${bar} ${pct}% — ${scenarioLabel}`; cls = "rec"; }
+        } else {
+          text = `● REC [${n}] — ${scenarioLabel}`; cls = "rec";
+        }
+      } else if (scenarioKey) {
+        text = `⏸ IDLE — 선택: [${scenarioKey}] ${scenarioLabel}  ▶ 아래 시작 버튼으로 녹화 시작`; cls = "idle";
+      } else {
+        text = "⏸ IDLE — 시나리오 선택 필요 (D-pad 좌/우 또는 화면 드롭다운)"; cls = "idle";
+      }
+      mainEl.textContent = text;
+      el.className = "collect-status-card " + cls;
+
+      if (subEl) {
+        const posLabel = (res.cx_positions && res.staged_cx_position)
+          ? res.cx_positions[res.staged_cx_position].label : "미지정";
+        const pathLabel = (res.cx_paths && res.staged_cx_path)
+          ? res.cx_paths[res.staged_cx_path].label : "미지정";
+        const subText = `시나리오: ${scenarioLabel || "미지정"} · 트랙A: ${posLabel} + ${pathLabel}`;
+        subEl.textContent = subText;
+        if (_collectPrevStatusSub !== null && subText !== _collectPrevStatusSub) {
+          subEl.classList.remove("flash-highlight");
+          void subEl.offsetWidth;
+          subEl.classList.add("flash-highlight");
+        }
+        _collectPrevStatusSub = subText;
+      }
+    }
+
+    // Gradio episode_timeline_md/episode_dist_md 이식 — 최근 액션 기호열 + Hz + 8-class 분포
+    function _collectRenderTimeline(t) {
+      const box = document.getElementById("collect-timeline-box");
+      const distBox = document.getElementById("collect-dist-box");
+      if (!box) return;
+      if (!t.n) {
+        box.textContent = "대기 중 — 시나리오 선택 후 녹화 시작";
+        if (distBox) distBox.textContent = "";
+        return;
+      }
+      const hzStr = t.hz ? ` · ${t.hz}Hz` : "";
+      box.textContent = `${t.n} frames${hzStr}\\n최근→  ${t.symbols}`;
+      if (distBox && t.dist) {
+        const entries = Object.entries(t.dist);
+        const mx = Math.max(...entries.map(([, c]) => c), 1);
+        distBox.textContent = entries.map(([name, c]) =>
+          `${name.padEnd(8)} ${"█".repeat(Math.round(c / mx * 12)).padEnd(12)} ${c}`
+        ).join("\\n");
+      }
+    }
+
+    // Gradio session_summary_md 이식 — 마지막 저장 세션의 프레임/소요시간/실측Hz
+    function _collectRenderSessionSummary(s) {
+      const el = document.getElementById("collect-session-summary");
+      if (!el) return;
+      if (!s) {
+        el.textContent = "도착 시 정지 → 저장하면 소요 초·Hz가 여기 표시됩니다";
+        return;
+      }
+      el.textContent = `프레임    : ${s.frames}\\n소요 시간 : ${s.duration_s} s\\n실측 Hz   : ${s.hz} Hz`;
+    }
+
+    async function collectRefreshState() {
+      const res = await api("/collect/state");
+      if (!res.ok) return;
+      const activeBadge = document.getElementById("collect-active-badge");
+      const stepsBadge = document.getElementById("collect-steps-badge");
+      if (activeBadge) {
+        activeBadge.innerHTML = res.active
+          ? `<span class="collect-rec-dot"></span>REC: ${res.episode_name || ""}`
+          : "⏸ 대기중 (녹화 안 됨)";
+        activeBadge.style.background = res.active ? "rgba(244,63,94,0.15)" : "rgba(100,116,139,0.2)";
+        activeBadge.style.color = res.active ? "var(--rose)" : "var(--text-muted)";
+      }
+      if (stepsBadge) stepsBadge.textContent = res.steps + " steps";
+
+      const timerBadge = document.getElementById("collect-timer-badge");
+      if (res.active && res.episode_started_at) {
+        _collectEpisodeStartedAt = res.episode_started_at;
+        if (!_collectTimerTick) {
+          _collectTimerTick = setInterval(_collectUpdateTimerBadge, 500);
+          _collectUpdateTimerBadge();
+        }
+      } else {
+        _collectEpisodeStartedAt = null;
+        if (_collectTimerTick) { clearInterval(_collectTimerTick); _collectTimerTick = null; }
+        if (timerBadge) timerBadge.textContent = "";
+      }
+
+      _collectRenderRecentSaves(res.recent_saves || []);
+      _collectRenderStatusCard(res);
+      _collectRenderTimeline(res.episode_timeline || {});
+      _collectRenderSessionSummary(res.last_session_summary);
+
+      const returnBtn = document.getElementById("collect-return-btn");
+      if (returnBtn) {
+        returnBtn.disabled = res.active || !res.has_return_path;
+        returnBtn.style.opacity = returnBtn.disabled ? "0.4" : "1";
+        if (res.returning) {
+          returnBtn.textContent = "🛑 복귀 중지";
+          returnBtn.style.background = "rgba(245,158,11,0.15)";
+        } else {
+          returnBtn.textContent = "🔄 복귀 (직전 경로 역주행)";
+          returnBtn.style.background = "";
+        }
+      }
+
+      if (!_collectScenariosLoaded && res.scenarios) {
+        const sel = document.getElementById("collect-scenario-select");
+        Object.entries(res.scenarios).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = `${info.label} (목표 ${info.target})`;
+          sel.appendChild(opt);
+        });
+        _collectScenariosLoaded = true;
+      }
+
+      const selEl = document.getElementById("collect-scenario-select");
+      if (selEl && !res.active && selEl.value !== (res.staged_scenario || "")) {
+        selEl.value = res.staged_scenario || "";
+      }
+      const dpadBadge = document.getElementById("collect-scenario-dpad-badge");
+      if (dpadBadge) dpadBadge.style.display = res.staged_scenario ? "inline" : "none";
+
+      // 시나리오가 바뀔 때마다(D-pad/◀▶/클릭 무관) 눈에 잘 띄게 카드 행을 잠깐 강조
+      if (res.staged_scenario !== _collectPrevStagedScenario) {
+        _collectPrevStagedScenario = res.staged_scenario;
+        const row = document.getElementById("collect-scenario-row");
+        if (row) {
+          row.classList.remove("flash-highlight");
+          void row.offsetWidth; // 리플로우 강제 — 연속 변경 시에도 애니메이션 재시작
+          row.classList.add("flash-highlight");
+        }
+      }
+
+      const cxSelEl = document.getElementById("collect-cxpos-select");
+      if (cxSelEl && !res.active && cxSelEl.value !== (res.staged_cx_position || "")) {
+        cxSelEl.value = res.staged_cx_position || "";
+      }
+      {
+        const MODE_LABELS = {trackA: "트랙A(위치)", cxpath: "접근경로", scenario: "시나리오"};
+        const MODE_COLORS = {trackA: ["rgba(56,189,248,0.15)", "var(--cyan)"],
+                              cxpath: ["rgba(245,158,11,0.15)", "var(--amber)"],
+                              scenario: ["rgba(163,113,247,0.15)", "#a371f7"]};
+        const m = res.collect_mode || "trackA";
+        const [bg, fg] = MODE_COLORS[m] || MODE_COLORS.trackA;
+        const modeText = "🎮 D-pad 대상: " + (MODE_LABELS[m] || m);
+        ["collect-mode-badge", "collect-mode-badge-rt"].forEach(id => {
+          const badge = document.getElementById(id);
+          if (!badge) return;
+          if (badge.textContent !== modeText && badge.dataset.inited === "1") {
+            badge.classList.remove("flash-highlight");
+            void badge.offsetWidth;
+            badge.classList.add("flash-highlight");
+          }
+          badge.dataset.inited = "1";
+          badge.textContent = modeText;
+          badge.style.background = bg;
+          badge.style.color = fg;
+        });
+      }
+      const selBadge = document.getElementById("collect-cxpos-current");
+      const posLabel = (res.cx_positions && res.staged_cx_position)
+        ? res.cx_positions[res.staged_cx_position].label : "미지정";
+      const pathLabel = (res.cx_paths && res.staged_cx_path)
+        ? res.cx_paths[res.staged_cx_path].label : "미지정";
+      if (selBadge) selBadge.textContent = `현재 선택: ${posLabel} + ${pathLabel}`;
+
+      const progList = document.getElementById("collect-progress-list");
+      const curSel = document.getElementById("collect-scenario-select")?.value || "";
+      if (progList && res.scenarios) {
+        progList.innerHTML = Object.entries(res.scenarios).map(([id, info]) => {
+          const done = (res.scenario_stats || {})[id] || 0;
+          const pct = Math.min(100, Math.round(done / info.target * 100));
+          const isSel = id === curSel;
+          return `<div onclick="_collectClickScenario('${id}')"
+                       style="display:flex; justify-content:space-between; gap:8px; padding:4px 6px; cursor:pointer; border-radius:4px;
+                              background:${isSel ? "rgba(56,189,248,0.15)" : "transparent"};
+                              border:1px solid ${isSel ? "var(--cyan)" : "transparent"};">
+                    <span style="color:${isSel ? "var(--cyan)" : "var(--text-muted)"}; font-weight:${isSel ? "700" : "400"};">${isSel ? "▶ " : ""}${info.label}</span>
+                    <span>${done}/${info.target} (${pct}%)</span>
+                  </div>`;
+        }).join("") + `<div style="margin-top:6px; padding-top:6px; border-top:1px solid var(--border-glow); display:flex; justify-content:space-between;">
+                    <span style="color:var(--emerald); font-weight:700;">전체</span>
+                    <span style="color:var(--emerald); font-weight:700;">${res.total_completed}/${res.total_target}</span>
+                  </div>`;
+      }
+
+      if (!_collectCxPosLoaded && res.cx_positions) {
+        const cxSel = document.getElementById("collect-cxpos-select");
+        Object.entries(res.cx_positions).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = `${info.label} (${info.lo.toFixed(2)}~${info.hi.toFixed(2)}, 목표 ${info.target})`;
+          cxSel.appendChild(opt);
+        });
+        _collectCxPosLoaded = true;
+      }
+      if (!_collectCxPathsLoaded && res.cx_paths) {
+        const pathSel = document.getElementById("collect-cxpath-select");
+        Object.entries(res.cx_paths).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = `${info.label} (목표 ${info.target})`;
+          pathSel.appendChild(opt);
+        });
+        _collectCxPathsLoaded = true;
+      }
+      const cxPathSelEl = document.getElementById("collect-cxpath-select");
+      if (cxPathSelEl && !res.active && cxPathSelEl.value !== (res.staged_cx_path || "")) {
+        cxPathSelEl.value = res.staged_cx_path || "";
+      }
+      _collectRenderCxPosChart(res);
+
+      const nameInput = document.getElementById("collect-episode-name");
+      if (nameInput && res.active && res.episode_name) nameInput.value = res.episode_name;
+    }
+
+    // 극단 배치 4포지션을 cx축(0~1) 위에 사각형 막대로 표시 — 각 막대 채움 = 수집 진행률
+    function _collectRenderCxPosChart(res) {
+      const chart = document.getElementById("collect-cxpos-chart");
+      if (!chart || !res.cx_positions) return;
+      const curCx = document.getElementById("collect-cxpos-select")?.value || "";
+      const curPath = document.getElementById("collect-cxpath-select")?.value || "";
+      const order = ["strong_left", "weak_left", "center", "weak_right", "strong_right"];
+      const pathOrder = ["left_curve", "straight", "right_curve", "overshoot_left_recover", "overshoot_right_recover"];
+      const posStats = res.cx_position_stats || {};
+      const pathStats = res.cx_position_path_stats || {};
+      const paths = res.cx_paths || {};
+      let totalDone = 0, totalTarget = 0;
+      const blocks = order.filter(id => res.cx_positions[id]).map((id, i) => {
+        const info = res.cx_positions[id];
+        const done = posStats[id] || 0;
+        totalDone += done; totalTarget += info.target;
+        const pct = Math.min(100, Math.round(done / info.target * 100));
+        const isSel = id === curCx;
+
+        // center(트랙F)는 오버슈트(트랙C, 극단 4위치 전용) 대상이 아니라 해당 경로는 숨김
+        const pathRows = pathOrder.filter(p => paths[p] && !(id === "center" && p.startsWith("overshoot"))).map(p => {
+          const pinfo = paths[p];
+          const pdone = pathStats[`${id}::${p}`] || 0;
+          const ppct = Math.min(100, Math.round(pdone / pinfo.target * 100));
+          const isPathSel = isSel && p === curPath;
+          return `
+            <div onclick="_collectClickCxPath('${id}','${p}')"
+                 style="display:flex; align-items:center; gap:6px; padding-left:14px; cursor:pointer; ${isPathSel ? "outline:1px solid var(--amber); border-radius:4px;" : ""}">
+              <span style="width:60px; font-size:10px; color:${isPathSel ? "var(--amber)" : "var(--text-muted)"};">${pinfo.label}</span>
+              <div style="flex:1; height:10px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
+                <div style="width:${ppct}%; height:100%; background:${ppct >= 100 ? "var(--emerald)" : "var(--amber)"};"></div>
+              </div>
+              <span style="width:34px; text-align:right; font-size:10px;">${pdone}/${pinfo.target}</span>
+            </div>`;
+        }).join("");
+
+        return `
+          <div>
+            <div onclick="_collectClickCxPos('${id}')"
+                 style="display:flex; align-items:center; gap:8px; cursor:pointer; ${isSel ? "outline:1px solid var(--cyan); border-radius:6px; padding:2px 4px;" : ""}">
+              <span style="width:52px; color:${isSel ? "var(--cyan)" : "var(--text-muted)"}; font-weight:${isSel ? "700" : "400"};">${info.label}</span>
+              <div style="flex:1; height:16px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
+                <div style="width:${pct}%; height:100%; background:${pct >= 100 ? "var(--emerald)" : "var(--cyan)"};"></div>
+              </div>
+              <span style="width:52px; text-align:right;">${done}/${info.target}</span>
+              <span style="width:78px; text-align:right; color:var(--text-muted);">${info.lo.toFixed(2)}~${info.hi.toFixed(2)}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px; margin-top:3px;">${pathRows}</div>
+          </div>`;
+      }).join("");
+      chart.innerHTML = blocks + `<div style="margin-top:4px; padding-top:6px; border-top:1px solid var(--border-glow); display:flex; justify-content:space-between;">
+                  <span style="color:var(--emerald); font-weight:700;">전체</span>
+                  <span style="color:var(--emerald); font-weight:700;">${totalDone}/${totalTarget}</span>
+                </div>`;
+    }
+
+    // 진행률 목록의 행을 클릭해서 시나리오 선택 — 서버 staged_scenario에 반영(조이스틱 D-pad와 동일 소스 공유)
+    async function _collectClickScenario(id) {
+      await api("/collect/scenario/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ scenario: id }) });
+      collectRefreshState();
+    }
+    // 화면 ◀/▶ 버튼으로 시나리오 순환 — 조이스틱 D-pad와 동일한 서버 로직(cycle_scenario) 재사용
+    async function _collectCycleScenario(step) {
+      await api("/collect/scenario/cycle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step }) });
+      collectRefreshState();
+    }
+    async function _collectSyncScenarioHighlight() {
+      const sel = document.getElementById("collect-scenario-select");
+      await api("/collect/scenario/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ scenario: sel?.value || null }) });
+      collectRefreshState();
+    }
+
+    // 트랙A 막대 행 클릭 → 서버 staged_cx_position에 반영(조이스틱 D-pad와 동일 소스 공유), 모드도 트랙A로 전환
+    async function _collectClickCxPos(id) {
+      await api("/collect/cxpos/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_position: id }) });
+      collectRefreshState();
+    }
+    async function _collectSyncCxPosHighlight() {
+      const sel = document.getElementById("collect-cxpos-select");
+      await api("/collect/cxpos/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_position: sel?.value || null }) });
+      collectRefreshState();
+    }
+    async function _collectCycleCxPos(step) {
+      await api("/collect/cxpos/cycle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step }) });
+      collectRefreshState();
+    }
+    async function _collectToggleMode(step) {
+      await api("/collect/mode/toggle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step: step || 1 }) });
+      collectRefreshState();
+    }
+    async function _collectCycleCxPath(step) {
+      await api("/collect/cxpath/cycle", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ step }) });
+      collectRefreshState();
+    }
+    async function _collectSyncCxPathHighlight() {
+      const sel = document.getElementById("collect-cxpath-select");
+      await api("/collect/cxpath/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_path: sel?.value || null }) });
+      collectRefreshState();
+    }
+    async function _collectClickCxPath(posId, pathId) {
+      await api("/collect/cxpos/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_position: posId }) });
+      await api("/collect/cxpath/stage", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ cx_path: pathId }) });
+      collectRefreshState();
+    }
+
+    function collectStartKeyPolling() {
+      if (_collectPollTimer) return;
+      _collectPollTimer = setInterval(collectRefreshState, 2000);
+    }
+
+    function collectStopKeyPolling() {
+      if (_collectRepeatTimer) { clearInterval(_collectRepeatTimer); _collectRepeatTimer = null; }
+      if (_collectPollTimer) { clearInterval(_collectPollTimer); _collectPollTimer = null; }
+      if (_collectPressedKey) { _collectSendKey(_collectPressedKey, "up"); _collectPressedKey = null; }
+      if (_collectCxTimer) {
+        clearInterval(_collectCxTimer);
+        _collectCxTimer = null;
+        const badge = document.getElementById("collect-cx-toggle-badge");
+        if (badge) { badge.textContent = "⏸ 꺼짐 — 클릭해서 시작"; badge.style.background = "rgba(100,116,139,0.2)"; badge.style.color = "var(--text-muted)"; }
+      }
+    }
+
+    async function collectStartEpisode() {
+      const episode_name = document.getElementById("collect-episode-name").value.trim() || null;
+      const scenario = document.getElementById("collect-scenario-select").value || null;
+      const pattern = document.getElementById("collect-pattern-select").value || null;
+      const cx_position = document.getElementById("collect-cxpos-select").value || null;
+      const cx_path = document.getElementById("collect-cxpath-select").value || null;
+      const res = await api("/collect/episode/start", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ episode_name, scenario, pattern, cx_position, cx_path }) });
+      const statusEl = document.getElementById("collect-episode-status");
+      statusEl.textContent = res.ok ? "▶ 시작됨: " + res.episode_name : "⚠️ " + res.error;
+      statusEl.style.color = res.ok ? "var(--rose)" : "var(--amber)";
+      collectRefreshState();
+    }
+
+    async function collectStopEpisode() {
+      const res = await api("/collect/episode/stop", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ save: true }) });
+      const statusEl = document.getElementById("collect-episode-status");
+      statusEl.textContent = res.ok
+        ? (res.saved ? `✅ 저장됨: ${res.path} (${res.steps} steps, ${res.duration.toFixed(1)}s, STOP프레임 +5 포함)` : "⚠️ 저장 안 함: " + (res.reason || ""))
+        : "⚠️ " + res.error;
+      statusEl.style.color = (res.ok && res.saved) ? "var(--emerald)" : "var(--amber)";
+      document.getElementById("collect-episode-name").value = "";
+      collectRefreshState();
+    }
+
+    // 직전 경로를 역재생해 시작 위치로 복귀 — 조이스틱 R2 트리거와 동일 기능(화면 버튼)
+    async function collectAutoReturn() {
+      const res = await api("/collect/return", { method: "POST" });
+      const statusEl = document.getElementById("collect-episode-status");
+      if (statusEl) statusEl.textContent = res.ok ? res.msg : "⚠️ " + (res.error || res.msg);
+      collectRefreshState();
+    }
+
+    (function collectInit() {
+      const surface = document.getElementById("collect-key-surface");
+      if (!surface) return;
+      surface.addEventListener("keydown", collectKeyDown);
+      surface.addEventListener("keyup", collectKeyUp);
+      surface.addEventListener("blur", () => { if (_collectPressedKey) collectKeyUp({key: _collectPressedKey}); });
+      collectStartKeyPolling();
+      _collectCxDrawOverlay(null, null);
+    })();
+
+    async function loadWikiContent(name) {
+      const contentEl = document.getElementById(name === "info" ? "wiki-info-content" : "wiki-status-content");
+      if (!contentEl) return;
+      try {
+        const res = await api("/wiki/" + name);
+        if (res.ok) {
+          contentEl.innerHTML = renderWikiMarkdown(res.content);
+          if (name === "status") {
+            const mtimeEl = document.getElementById("wiki-status-mtime");
+            if (mtimeEl) mtimeEl.textContent = `최근 갱신: ${res.mtime} (${_wikiRelTime(res.mtime)})`;
+          }
+        } else {
+          contentEl.textContent = "⚠️ 로드 실패: " + res.error;
+        }
+      } catch (e) {
+        contentEl.textContent = "⚠️ 서버 오류: " + e;
+      }
+      loadResearchJournal(name);
+    }
+
+    // ── 🗓️ 연구일지 — Tab6 세션 히스토리(list + Frame Inspector)와 동일한
+    // list+detail 스플릿 UX로 git 커밋을 훑어보기. 같은 md 파일의 과거 버전을
+    // 보여주는 게 아니라, 프로젝트 전체 진행 기록을 날짜순으로 브라우징하는 용도.
+    let _wjActiveSha = { info: null, status: null };
+
+    async function loadResearchJournal(name) {
+      const listEl = document.getElementById(`wiki-${name}-journal-list`);
+      if (!listEl) return;
+      try {
+        const res = await api("/journal");
+        if (!res.ok || !res.entries || res.entries.length === 0) {
+          listEl.innerHTML = `<div style="font-size:11px; color:var(--wiki-muted); padding:6px 0;">연구일지 없음</div>`;
+          return;
+        }
+        listEl.innerHTML = res.entries.map(e => `
+          <div class="wj-card ${e.kind}" data-sha="${e.sha}" onclick="selectJournalEntry('${name}', '${e.sha}', '${e.date}')">
+            <div class="wj-top">
+              <span class="wj-date">${e.date}</span>
+              <span class="wj-rel">${_wikiRelTime(e.date)}</span>
+            </div>
+            <div class="wj-title" title="${_wikiEscapeHtml(e.subject)}">${_wikiEscapeHtml(e.subject)}</div>
+            <div class="wj-sha">${e.sha.slice(0, 7)}</div>
+          </div>
+        `).join("");
+      } catch (e) {
+        listEl.innerHTML = `<div style="font-size:11px; color:var(--wiki-red);">연구일지 로드 실패</div>`;
+      }
+    }
+
+    async function selectJournalEntry(name, sha, dateStr) {
+      _wjActiveSha[name] = sha;
+      document.querySelectorAll(`#wiki-${name}-journal-list .wj-card`).forEach(el => {
+        el.classList.toggle("active", el.dataset.sha === sha);
+      });
+      const detailEl = document.getElementById(`wiki-${name}-journal-detail`);
+      if (!detailEl) return;
+      detailEl.innerHTML = `<div class="wjd-placeholder">로딩 중...</div>`;
+      try {
+        const res = await api(`/journal/${sha}`);
+        if (res.ok) {
+          detailEl.innerHTML = `
+            <div class="wjd-head">
+              <span class="wjd-sha">${res.sha.slice(0, 7)}</span>
+              <span class="wjd-date">${dateStr} (${_wikiRelTime(dateStr)})</span>
+            </div>
+            <div class="wjd-body">${_wikiEscapeHtml(res.body)}</div>
+            ${res.files ? `<div class="wjd-files">${_wikiEscapeHtml(res.files)}</div>` : ""}
+          `;
+        } else {
+          detailEl.innerHTML = `<div class="wjd-placeholder">⚠️ 로드 실패: ${_wikiEscapeHtml(res.error || "")}</div>`;
+        }
+      } catch (e) {
+        detailEl.innerHTML = `<div class="wjd-placeholder">⚠️ 서버 오류: ${e}</div>`;
+      }
+    }
+
+    // ── 위키/최신현황 탭 전용 경량 markdown → HTML 렌더러 ──────────────
+    // docs/v5/research_story.html 양식(챕터/콜아웃/표/이미지그리드)에 맞춘
+    // 최소 문법만 지원 (헤더 #~###, 표, **굵게**, `코드`, ``` 블록,
+    // > [!info|warn|critical|success] 콜아웃, ![](경로) 이미지)
+    function _wikiRelTime(dateStr) {
+      // "YYYY-MM-DD HH:MM" (KST, 로컬 표시와 동일 타임존 가정) → "N분/시간/일 전"
+      const t = new Date(dateStr.replace(" ", "T"));
+      if (isNaN(t.getTime())) return "";
+      const diffMin = Math.round((Date.now() - t.getTime()) / 60000);
+      if (diffMin < 1) return "방금 전";
+      if (diffMin < 60) return `${diffMin}분 전`;
+      const diffHr = Math.round(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}시간 전`;
+      const diffDay = Math.round(diffHr / 24);
+      return `${diffDay}일 전`;
+    }
+    function _wikiEscapeHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function _wikiInline(text) {
+      let t = _wikiEscapeHtml(text);
+      t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+      t = t.replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>");
+      return t;
+    }
+    function _wikiSplitRow(line) {
+      return line.trim().replace(/^\\||\\|$/g, "").split("|").map(s => s.trim());
+    }
+    function _wikiResolveImgSrc(path) {
+      if (/^https?:\\/\\//.test(path) || path.startsWith("/")) return path;
+      return "/docs-static/v5/" + path.replace(/^docs\\/v5\\//, "").replace(/^\\.\\//, "");
+    }
+    function renderWikiMarkdown(md) {
+      const lines = (md || "").split(/\\r?\\n/);
+      let html = "";
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+
+        // 코드 블록
+        if (line.trim().startsWith("```")) {
+          const buf = [];
+          i++;
+          while (i < lines.length && !lines[i].trim().startsWith("```")) { buf.push(lines[i]); i++; }
+          i++;
+          html += `<pre><code>${_wikiEscapeHtml(buf.join("\\n"))}</code></pre>`;
+          continue;
+        }
+
+        // 콜아웃: > [!info|warn|critical|success] ...
+        const calloutMatch = line.match(/^>\\s*\\[!(info|warn|critical|success)\\]\\s*(.*)$/);
+        if (calloutMatch) {
+          const type = calloutMatch[1];
+          const buf = [calloutMatch[2]];
+          i++;
+          while (i < lines.length && lines[i].startsWith(">")) {
+            buf.push(lines[i].replace(/^>\\s?/, ""));
+            i++;
+          }
+          html += `<div class="callout ${type}">${buf.map(_wikiInline).join("<br>")}</div>`;
+          continue;
+        }
+
+        // 표
+        if (line.includes("|") && lines[i + 1] && /^\\s*\\|?\\s*[-:]+\\s*(\\|\\s*[-:]+\\s*)+\\|?\\s*$/.test(lines[i + 1])) {
+          const headerCells = _wikiSplitRow(line);
+          i += 2;
+          const rows = [];
+          while (i < lines.length && lines[i].includes("|")) { rows.push(_wikiSplitRow(lines[i])); i++; }
+          html += '<table class="cl-table"><thead><tr>' +
+            headerCells.map(c => `<th>${_wikiInline(c)}</th>`).join("") +
+            "</tr></thead><tbody>" +
+            rows.map(r => "<tr>" + r.map(c => `<td>${_wikiInline(c)}</td>`).join("") + "</tr>").join("") +
+            "</tbody></table>";
+          continue;
+        }
+
+        // 이미지 (연속되면 3열 그리드, 단독이면 카드)
+        const imgMatch = line.match(/^!\\[(.*?)\\]\\((.*?)\\)\\s*$/);
+        if (imgMatch) {
+          const imgs = [];
+          while (i < lines.length) {
+            const m = lines[i].match(/^!\\[(.*?)\\]\\((.*?)\\)\\s*$/);
+            if (!m) break;
+            imgs.push(m);
+            i++;
+          }
+          const fig = m => `<img src="${_wikiResolveImgSrc(m[2])}" alt="${_wikiEscapeHtml(m[1])}">` +
+            (m[1] ? `<div class="fig-caption">${_wikiEscapeHtml(m[1])}</div>` : "");
+          if (imgs.length >= 2) {
+            html += '<div class="img-grid-3">' + imgs.map(m => `<div class="fig-card">${fig(m)}</div>`).join("") + "</div>";
+          } else {
+            html += `<div class="fig-card">${fig(imgs[0])}</div>`;
+          }
+          continue;
+        }
+
+        // 헤더
+        const h = line.match(/^(#{1,3})\\s+(.*)$/);
+        if (h) {
+          const level = h[1].length;
+          const text = h[2];
+          const numMatch = text.match(/^(\\d+[.)])\\s*(.*)$/);
+          const inner = (level <= 2 && numMatch)
+            ? `<span class="wiki-chapter-num">${_wikiEscapeHtml(numMatch[1])}</span> ${_wikiInline(numMatch[2])}`
+            : _wikiInline(text);
+          const tag = level === 1 ? "h1" : level === 2 ? "h2" : "h3";
+          html += `<${tag}>${inner}</${tag}>`;
+          i++;
+          continue;
+        }
+
+        // 빈 줄
+        if (line.trim() === "") { i++; continue; }
+
+        // 불릿 리스트
+        if (/^\\s*[-*]\\s+/.test(line)) {
+          const items = [];
+          while (i < lines.length && /^\\s*[-*]\\s+/.test(lines[i])) {
+            items.push(lines[i].replace(/^\\s*[-*]\\s+/, ""));
+            i++;
+          }
+          html += "<ul>" + items.map(it => `<li>${_wikiInline(it)}</li>`).join("") + "</ul>";
+          continue;
+        }
+
+        // 문단 (다음 특수 블록/빈 줄까지 누적)
+        const buf = [line];
+        i++;
+        while (i < lines.length && lines[i].trim() !== "" &&
+               !/^(#{1,3}\\s|```|>\\s*\\[!|!\\[|\\s*[-*]\\s)/.test(lines[i]) && !lines[i].includes("|")) {
+          buf.push(lines[i]);
+          i++;
+        }
+        html += `<p>${_wikiInline(buf.join(" "))}</p>`;
+      }
+      return html;
+    }
+
+    // ── ⚙️ 서버 설정 탭 ─────────────────────────────────────────────
+    let srvcfgSel = { grounder: null, ckpt: null, activeGrounder: null, activeCkpt: null };
+
+    function _srvcfgUpdatePreview() {
+      const parts = [];
+      if (srvcfgSel.grounder && srvcfgSel.grounder !== srvcfgSel.activeGrounder)
+        parts.push(`VLA_GROUNDER=${srvcfgSel.grounder}`);
+      if (srvcfgSel.ckpt && srvcfgSel.ckpt !== srvcfgSel.activeCkpt)
+        parts.push(`VLA_S2V2_STAGE2=${srvcfgSel.ckpt}`);
+      document.getElementById("srvcfg-restart-preview").textContent =
+        parts.length ? parts.join("\\n") : "변경 없음 — 현재 설정으로 재시작";
+    }
+
+    function selGrounder(g) {
+      srvcfgSel.grounder = g;
+      document.getElementById("srvcfg-gr-pg2").className   = g === "pg2"   ? "btn btn-cyan" : "btn btn-outline";
+      document.getElementById("srvcfg-gr-owlv2").className = g === "owlv2" ? "btn btn-cyan" : "btn btn-outline";
+      _srvcfgUpdatePreview();
+    }
+
+    async function loadSrvCfg() {
+      const h = await api("/infer/health");
+      const body = document.getElementById("srvcfg-status-body");
+      if (h.status === "error") {
+        body.innerHTML = `<tr><td colspan="2" style="color:var(--rose); padding:12px;">서버 응답 없음: ${h.detail}</td></tr>`;
+        return;
+      }
+      const g = h.grounder || {};
+      const rows = [
+        ["상태", h.status],
+        ["git_commit", h.git_commit],
+        ["프로세스 시작", h.process_started_at ? new Date(h.process_started_at*1000).toLocaleString() : "—"],
+        ["그라운더", `${g.model} (${g.input_px}px, phrase="${g.phrase}")`],
+        ["OWL threshold", g.owlv2_thresh !== undefined ? g.owlv2_thresh : "—"],
+        ["헤드", `${h.head} (window=${h.window}, val_acc=${h.val_acc ? (h.val_acc*100).toFixed(1)+'%' : '—'})`],
+        ["체크포인트", h.checkpoint_path],
+        ["STOP 모드", `${h.stop_mode} (latched=${h.stop_latched})`],
+        ["GPU", h.gpu ? `${h.gpu.device_name} · ${h.gpu.allocated_gb}GB 할당` : "—"],
+        ["skip_n / multi_prompt", `${h.grounding_skip_n} / ${h.multi_prompt}`],
+      ];
+      body.innerHTML = rows.map(([k,v]) => `
+        <tr style="border-bottom:1px solid rgba(29,43,69,0.5);">
+          <td style="padding:6px 10px; color:var(--text-muted); width:140px;">${k}</td>
+          <td style="padding:6px 10px; font-family:var(--font-mono); word-break:break-all;">${v ?? "—"}</td>
+        </tr>`).join("");
+
+      // Fix3 핸드셰이크 경고: 코드가 프로세스 기동 이후 수정됐으면 표시
+      const hs = document.getElementById("srvcfg-handshake");
+      if (h.code_mtime && h.process_started_at && h.code_mtime > h.process_started_at) {
+        hs.style.display = "block";
+        hs.textContent = "⚠️ 코드 파일이 프로세스 기동 이후 수정됨 — 서버가 구버전 코드로 실행 중일 수 있음. 재시작 권장.";
+      } else {
+        hs.style.display = "none";
+      }
+
+      // 활성 상태 반영
+      srvcfgSel.activeGrounder = (g.model || "").toLowerCase().includes("owl") ? "owlv2" : "pg2";
+      srvcfgSel.activeCkpt = h.checkpoint_path || null;
+      if (!srvcfgSel.grounder) selGrounder(srvcfgSel.activeGrounder);
+      if (g.owlv2_thresh !== undefined)
+        document.getElementById("srvcfg-owl-thr").value = g.owlv2_thresh;
+      if (g.owlv2_area_scale !== undefined)
+        document.getElementById("srvcfg-owl-area-scale").value = g.owlv2_area_scale;
+
+      // 체크포인트 목록 — kind별 섹션 그룹핑, 액션 헤드만 선택 가능
+      const c = await api("/server_proc/checkpoints");
+      const cb = document.getElementById("srvcfg-ckpt-body");
+      if (c.ok) {
+        const order = ["action", "stop", "stage1", "other"];
+        const kindIcons = { action: "🎯", stop: "🛑", stage1: "🧠", other: "📎" };
+        let html = "";
+        for (const kind of order) {
+          const group = c.checkpoints.filter(it => it.kind === kind);
+          if (!group.length) continue;
+          const note = kind === "action" ? "행 클릭으로 선택 → 재시작 시 적용"
+                                          : "Stage2 교체 대상 아님 — 참고용";
+          html += `<tr style="background:#1c2638;"><td colspan="3" style="padding:5px 8px; font-size:10px; font-weight:700; color:var(--text-muted);">${kindIcons[kind]} ${group[0].kind_label} (${group.length}) — ${note}</td></tr>`;
+          html += group.map(it => {
+            const isActive = c.active && it.path === c.active;
+            const isSel = srvcfgSel.ckpt === it.path;
+            const sel = it.selectable;
+            return `<tr ${sel ? `onclick="selCkpt('${it.path}')"` : ""} title="${it.path}"
+              style="${sel ? 'cursor:pointer;' : 'opacity:0.45; cursor:not-allowed;'} border-bottom:1px solid rgba(29,43,69,0.5); ${isActive ? 'background:rgba(16,185,129,0.10);' : isSel ? 'background:rgba(6,182,212,0.10);' : ''}">
+              <td style="padding:5px 8px;">
+                <div style="font-weight:600; font-size:11px;">${isActive ? '🟢 ' : isSel ? '🔵 ' : ''}${it.label}</div>
+                <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted); word-break:break-all;">${it.path}</div>
+              </td>
+              <td style="padding:5px 8px;">${it.size_mb}MB</td>
+              <td style="padding:5px 8px; color:var(--text-muted);">${it.mtime}</td>
+            </tr>`;
+          }).join("");
+        }
+        cb.innerHTML = html;
+      }
+      _srvcfgUpdatePreview();
+    }
+
+    function selCkpt(p) {
+      srvcfgSel.ckpt = (srvcfgSel.ckpt === p) ? null : p;  // 재클릭 시 해제
+      loadSrvCfg();
+    }
+
+    async function applyOwlThresh() {
+      const v = parseFloat(document.getElementById("srvcfg-owl-thr").value);
+      const res = await api("/config", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ owlv2_thresh: v })
+      });
+      const inner = (res.applied && res.applied.applied) || {};
+      document.getElementById("srvcfg-restart-status").textContent =
+        inner.owlv2_thresh !== undefined ? `✅ threshold=${inner.owlv2_thresh} 즉시 적용됨` : "⚠️ 적용 실패 — 서버 로그 확인";
+      setTimeout(loadSrvCfg, 500);
+    }
+
+    async function applyOwlAreaScale() {
+      const v = parseFloat(document.getElementById("srvcfg-owl-area-scale").value);
+      const res = await api("/config", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ owlv2_area_scale: v })
+      });
+      const inner = (res.applied && res.applied.applied) || {};
+      document.getElementById("srvcfg-restart-status").textContent =
+        inner.owlv2_area_scale !== undefined ? `✅ 보정계수=${inner.owlv2_area_scale} 즉시 적용됨` : "⚠️ 적용 실패 — 서버 로그 확인";
+      setTimeout(loadSrvCfg, 500);
+    }
+
+    async function restartInferServer() {
+      const body = {};
+      if (srvcfgSel.grounder && srvcfgSel.grounder !== srvcfgSel.activeGrounder) body.grounder = srvcfgSel.grounder;
+      if (srvcfgSel.ckpt && srvcfgSel.ckpt !== srvcfgSel.activeCkpt) body.ckpt = srvcfgSel.ckpt;
+      const thr = parseFloat(document.getElementById("srvcfg-owl-thr").value);
+      if (!isNaN(thr)) body.owlv2_thresh = thr;
+      const areaScale = parseFloat(document.getElementById("srvcfg-owl-area-scale").value);
+      if (!isNaN(areaScale)) body.owlv2_area_scale = areaScale;
+      const desc = Object.keys(body).length ? JSON.stringify(body) : "현재 설정 유지";
+      if (!confirm(`추론 서버(8001)를 재시작합니다 (~120s, 주행 불가).\\n적용: ${desc}\\n계속할까요?`)) return;
+
+      const btn = document.getElementById("srvcfg-restart-btn");
+      const st  = document.getElementById("srvcfg-restart-status");
+      btn.disabled = true;
+      const res = await api("/server_proc/restart", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) { st.textContent = "⚠️ " + res.error; btn.disabled = false; return; }
+
+      let sec = 0;
+      const iv = setInterval(async () => {
+        sec += 5;
+        st.textContent = `⏳ 재시작 중... ${sec}s (PG2 포함 최대 ~120s)`;
+        try {
+          const h = await api("/infer/health");
+          if (h.status === "healthy" && h.process_started_at &&
+              (Date.now()/1000 - h.process_started_at) < sec + 30) {
+            clearInterval(iv);
+            st.textContent = "✅ 재시작 완료";
+            btn.disabled = false;
+            srvcfgSel.grounder = null; srvcfgSel.ckpt = null;
+            loadSrvCfg(); loadSrvLog();
+          }
+        } catch(e) {}
+        if (sec >= 180) { clearInterval(iv); st.textContent = "⚠️ 타임아웃 — 서버 로그 확인 필요"; btn.disabled = false; }
+      }, 5000);
+    }
+
+    async function loadSrvLog() {
+      const res = await api("/server_proc/log?n=40");
+      document.getElementById("srvcfg-log").textContent = (res.lines || []).join("\\n");
     }
 
     // ── Autopilot 시작 / 정지 / 복귀 ─────────────────────────────────
@@ -3244,11 +8751,57 @@ L S R  C S L  R S L
       });
       await api("/drive/stop", { method: "POST" });
       pollStatus();
+      showSessionStack();
     }
 
     async function returnToStart() {
       const res = await api("/drive/return", { method: "POST" });
       alert(res.message);
+    }
+
+    // 🗑️ 오탐/잘못 누른 세션 정지+삭제 — Tab 4 수집 세션 모니터링 카드 버튼
+    async function discardCurrentSession() {
+      const sid = document.getElementById("vfy-sess-id-lbl")?.textContent?.trim();
+      if (!sid || sid === "—") {
+        alert("버릴 세션이 없습니다.");
+        return;
+      }
+      if (!confirm(`세션 "${sid}"를 정지하고 완전히 삭제할까요?\n(H5/JSON 파일 + 스크리닝 기록 행이 삭제되며 되돌릴 수 없습니다)`)) {
+        return;
+      }
+      const res = await api("/session/discard", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ session_id: sid }) });
+      if (res.ok) {
+        alert(`폐기 완료: 파일 ${res.deleted_files.length}개, 기록 ${res.removed_csv_rows}행 삭제됨`);
+      } else {
+        alert("폐기 실패: " + (res.error || "알 수 없는 오류"));
+      }
+      pollStatus();
+      if (typeof loadEpisodeHistory === "function") loadEpisodeHistory();
+    }
+
+    // STOP(수동) 또는 목표 도달로 인한 자동 정지 직후 호출 — 지금까지
+    // 저장된 세션들을 최근순으로 스택처럼 보여줘서 몇 개가 쌓였는지,
+    // 방금 세션이 제대로 저장됐는지 바로 확인 가능하게 함.
+    async function showSessionStack(n = 5) {
+      try {
+        const res = await api("/sessions/list");
+        if (!res.ok || !res.sessions || !res.sessions.length) return;
+        const panel = document.getElementById("session-stack-panel");
+        const list  = document.getElementById("session-stack-list");
+        if (!panel || !list) return;
+        const top = res.sessions.slice(0, n);
+        list.innerHTML = top.map((s, i) => {
+          const isNewest = i === 0;
+          return `<div style="display:flex; justify-content:space-between; gap:8px; padding:4px 6px; border-radius:4px;
+                       background:${isNewest ? 'rgba(16,185,129,0.12)' : 'transparent'};
+                       border-left:2px solid ${isNewest ? 'var(--emerald)' : 'var(--border-glow)'};">
+                    <span style="color:${isNewest ? 'var(--emerald)' : 'var(--text-muted)'};">${isNewest ? '🆕 ' : ''}${s.sid}</span>
+                    <span style="color:var(--text-muted);">${s.steps}steps · ${s.h5_size_mb}MB</span>
+                  </div>`;
+        }).join("");
+        panel.style.display = "block";
+      } catch(e) { /* 조용히 무시 — 상태 확인용 부가 UI */ }
     }
 
     // ── 수동 제어 / 캘리브레이션 ─────────────────────────────────────
@@ -3367,6 +8920,30 @@ L S R  C S L  R S L
       initDriftChart();
     }
 
+    // T1-2(축소): 과거 drift 세션 불러오기
+    async function refreshPastDrift() {
+      const sel = document.getElementById("drift-past");
+      if (!sel) return;
+      try {
+        const res = await api("/drive/drift/sessions");
+        if (!res.ok) return;
+        window._pastDrift = res.sessions || [];
+        sel.innerHTML = '<option value="">불러오기...</option>' +
+          window._pastDrift.map((s, i) =>
+            `<option value="${i}">${s.mtime} · ${s.n}행</option>`).join("");
+      } catch (e) { /* 무시 */ }
+    }
+
+    function loadPastDrift(idx) {
+      if (idx === "") return;
+      const s = (window._pastDrift || [])[parseInt(idx)];
+      if (!s) return;
+      if (!driftChartInstance) initDriftChart();
+      updateDriftChart(s.history);
+      const el = document.getElementById("drift-log-console");
+      if (el) el.textContent = `📂 ${s.name} 불러옴 (${s.n}행) — 과거 기록이라 새 측정 시 덮어씌워집니다.`;
+    }
+
     function initDriftChart() {
       const ctx = document.getElementById("drift-chart").getContext("2d");
       if (driftChartInstance) driftChartInstance.destroy();
@@ -3411,7 +8988,12 @@ L S R  C S L  R S L
       "center_straight", "center_left", "center_right",
       "left_straight", "left_left", "left_right",
       "obj_left", "obj_center", "obj_right",
-      "dist_10cm", "dist_20cm", "dist_30cm"
+      "dist_10cm", "dist_20cm", "dist_30cm",
+      "trackA_weak_left_left_curve", "trackA_weak_left_straight", "trackA_weak_left_right_curve",
+      "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
+      "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
+      "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve",
+      "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
     ];
 
     const PATH_TARGETS = {
@@ -3420,12 +9002,29 @@ L S R  C S L  R S L
       "left_straight": 10, "left_left": 10, "left_right": 10,
       "obj_left": 30, "obj_center": 30, "obj_right": 30,
       "dist_10cm": 10, "dist_20cm": 10, "dist_30cm": 10,
+      "trackA_weak_left_left_curve": 15, "trackA_weak_left_straight": 15, "trackA_weak_left_right_curve": 15,
+      "trackA_weak_right_left_curve": 15, "trackA_weak_right_straight": 15, "trackA_weak_right_right_curve": 15,
+      "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
+      "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
+      "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
     };
+
+    // 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
+    const TRACKA_UNCOLLECTED = new Set([]);
 
     const PATH_GROUPS = [
       ["── 오브젝트 위치별 ──────────", ["obj_left","obj_center","obj_right"]],
       ["── 경로 검증 ──────────────", ["right_right","right_left","right_straight","center_straight","center_left","center_right","left_straight","left_left","left_right"]],
-      ["── 박스 거리별 ──────────────", ["dist_10cm","dist_20cm","dist_30cm"]]
+      ["── 박스 거리별 ──────────────", ["dist_10cm","dist_20cm","dist_30cm"]],
+      ["── 🎯 트랙A 극단배치(V6) ──────", [
+        "trackA_weak_left_left_curve", "trackA_weak_left_straight", "trackA_weak_left_right_curve",
+        "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
+        "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
+        "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve"
+      ]],
+      ["── 🎯 트랙F 중앙(V6) ──────", [
+        "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
+      ]]
     ];
 
     let runtimeState = {
@@ -3434,7 +9033,9 @@ L S R  C S L  R S L
       grounding_skip_n: 3,
       cx_jump_filter: false,
       cx_jump_thresh: 0.30,
-      multi_prompt: true
+      multi_prompt: true,
+      stop_mode: "proximity",
+      stop_learned_min_steps: 3
     };
 
     function selectPathType(type) {
@@ -3442,6 +9043,1129 @@ L S R  C S L  R S L
       if (select) {
         select.value = type;
       }
+      syncVerifyPathType(type);
+      if (typeof drawOverlay === "function") drawOverlay();
+    }
+
+    // 조이스틱 경로검증 모드(X/R1 즉시기록)가 쓸 path_type을 서버에 동기화.
+    // select onchange + selectPathType(퀵라벨 버튼) 양쪽에서 호출됨.
+    async function syncVerifyPathType(type) {
+      try {
+        await api("/verify/path_type", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path_type: type })
+        });
+      } catch(e) { /* 조용히 무시 — 다음 선택 때 재시도됨 */ }
+    }
+
+    // 🕹️ 조이스틱 버튼 배치 모드 전환 — 📷 데이터수집 ⇄ 🧪 경로검증
+    let joystickVerifyMode = false;
+    async function toggleJoystickMode() {
+      joystickVerifyMode = !joystickVerifyMode;
+      const mode = joystickVerifyMode ? "verify" : "collect";
+      try {
+        await api("/joystick/mode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode })
+        });
+      } catch(e) { /* 무시 — 버튼 텍스트는 로컬 상태로도 갱신됨 */ }
+      document.querySelectorAll(".joystick-mode-btn").forEach(btn => {
+        btn.textContent = joystickVerifyMode ? "🕹️ 조이스틱: 🧪 검증" : "🕹️ 조이스틱: 📷 수집";
+        btn.style.borderColor = joystickVerifyMode ? "var(--amber)" : "";
+        btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
+      });
+    }
+
+    // 검증모드 버튼 의미(2026-07-23 재설계) — 서버 btn_map name 기준
+    const VERIFY_BTN_MEANING = {
+      "L1": "▶ 추론 시작", "R1": "⏹ 추론 정지", "DISCARD": "✅ 성공 라벨",
+      "STOP": "❌ 실패 라벨", "L2": "💾 기록 저장", "R2": "↩ 복귀",
+      "START": "⚙ SYNC↔ASYNC", "Y": "🔁 모드 전환(수집⇄검증)",
+    };
+
+    // ── 🎯 추론 검증 스크리닝 패널 (데이터셋 목표와 별개) ──
+    // 바구니 위치별 목표: 1차(빠른확인) vs 확정(논문용). episode_log의 trackA_/trackF_
+    // path_type을 "위치"로 버킷팅해서 집계 — 경로(곡선방향)는 무시하고 cx 위치만.
+    const SCREEN_POSITIONS = [
+      {pos: "strong_left",  label: "강좌", icon: "◀◀", fg: "var(--cyan)"},
+      {pos: "weak_left",    label: "약좌", icon: "◀",   fg: "var(--cyan)"},
+      {pos: "center",       label: "중앙", icon: "●",   fg: "#3fb950"},
+      {pos: "weak_right",   label: "약우", icon: "▶",   fg: "var(--amber)"},
+      {pos: "strong_right", label: "강우", icon: "▶▶", fg: "var(--amber)"},
+    ];
+    const SCREEN_TARGETS = {
+      "1차":  {strong_left:5, weak_left:3, center:3, weak_right:3, strong_right:5},
+      "확정": {strong_left:15, weak_left:10, center:5, weak_right:10, strong_right:15},
+      // 2026-07-23 대면미팅 결정: 5가짓수×20개=100개 (논문용 최종 표본 크기)
+      "100":  {strong_left:20, weak_left:20, center:20, weak_right:20, strong_right:20},
+    };
+    const SCREEN_TARGET_LABELS = {"1차": "1차(빠른확인)", "확정": "확정(논문용)", "100": "100개(미팅확정)"};
+    const SCREEN_TARGET_ORDER = ["1차", "확정", "100"];
+    let screenTargetMode = "100";
+
+    function verifyPosOf(pt) {
+      // "trackA_strong_left_left_curve" → "strong_left", "trackF_center_straight" → "center"
+      if (!pt) return null;
+      let s = String(pt);
+      if (!s.startsWith("trackA_") && !s.startsWith("trackF_")) return null;
+      s = s.replace(/^track[AF]_/, "").replace(/_(left_curve|straight|right_curve)$/, "");
+      return s;
+    }
+
+    function toggleScreenTarget() {
+      const idx = SCREEN_TARGET_ORDER.indexOf(screenTargetMode);
+      screenTargetMode = SCREEN_TARGET_ORDER[(idx + 1) % SCREEN_TARGET_ORDER.length];
+      const btn = document.getElementById("vfy-screen-toggle");
+      if (btn) btn.textContent = SCREEN_TARGET_LABELS[screenTargetMode];
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // ── 🔀 모델 전환 패널 — /verify/model_list + /verify/model_switch (2026-07-23) ──
+    // 🔀 모델 전환 패널 에러 메시지를 사람이 읽을 만하게 다듬음(2026-07-29) —
+    // 원래는 requests 예외의 raw 문자열("HTTPConnectionPool(...)ConnectionRefused...")을
+    // 그대로 노출해서 뭐가 문제인지 알기 어려웠음. 자주 나오는 패턴만 우선 매칭하고
+    // 나머진 원문을 그대로 보여줌(정보 손실 방지).
+    function _friendlyApiError(raw) {
+      const s = String(raw || "");
+      if (/Connection refused|Failed to establish a new connection|ECONNREFUSED/.test(s)) {
+        return "🔌 추론서버(8001)가 응답하지 않습니다 — 서버가 꺼져있거나 재시작 중일 수 있어요. 잠시 후 🔄로 다시 확인해주세요.";
+      }
+      if (/Read timed out|timeout/i.test(s)) {
+        return "⏱️ 응답이 너무 오래 걸립니다 — 체크포인트 전환은 보통 25초 안에 끝나는데 그보다 오래 걸리고 있어요. 서버가 무거운 작업 중일 수 있습니다.";
+      }
+      if (/Max retries exceeded/.test(s)) {
+        return "🔌 추론서버와 연결이 안 됩니다 — 서버 상태를 먼저 확인해주세요.";
+      }
+      return s;
+    }
+
+    async function refreshModelList() {
+      const listEl = document.getElementById("vfy-model-list");
+      const statusEl = document.getElementById("vfy-model-status");
+      // 최초 로드일 때만 "불러오는 중..." 표시 — 5초 주기 폴링(2026-07-30 추가)마다
+      // 목록을 통째로 비웠다 다시 그려서 버튼 전체가 매번 깜빡이던 문제 수정.
+      // 이후 갱신은 기존 목록을 그대로 두고 있다가 새 데이터로 조용히 교체.
+      if (listEl && !listEl.dataset.loaded) listEl.innerHTML = "불러오는 중...";
+      let current = "";
+      try {
+        const h = await api("/infer/health");
+        current = (h.checkpoint_path || "").split("/").pop();
+        window._currentCheckpointPath = h.checkpoint_path || "";
+        const curEl = document.getElementById("vfy-model-current");
+        if (curEl) curEl.textContent = "현재: " + (current || "—");
+        const gEl = document.getElementById("vfy-grounder-current");
+        if (gEl) gEl.textContent = (h.grounder && h.grounder.model) || "—";
+
+        // 🧬 Stage1(image_proj) 현재 값 표시 + 버튼 활성 표시 (2026-08-07)
+        const s1 = (h.stage1_path || "").split("/").pop();
+        window._currentStage1Path = h.stage1_path || "";
+        const s1El = document.getElementById("vfy-stage1-current");
+        if (s1El) s1El.textContent = s1 || "—";
+        const v2Btn = document.getElementById("vfy-stage1-v2");
+        const v3Btn = document.getElementById("vfy-stage1-v3");
+        if (v2Btn) { v2Btn.disabled = (s1 === "stage1_v2_projs.pt"); v2Btn.className = "btn " + (v2Btn.disabled ? "btn-cyan" : "btn-outline"); }
+        if (v3Btn) { v3Btn.disabled = (s1 === "stage1_v3_5cls_owl_projs.pt"); v3Btn.className = "btn " + (v3Btn.disabled ? "btn-cyan" : "btn-outline"); }
+
+        // 🔁 활성 체크포인트가 실제로 바뀐 경우에만 스크리닝 필터 자동 동기화.
+        // switchModel()을 거치지 않은 변경(외부 API로 /model/load 직접 호출,
+        // 서버 재기동 후 복원, 대시보드 새로고침 등)도 이 주기적 폴링으로 커버됨
+        // (2026-07-30, "현재 모델에 대해서 자동으로" 요청).
+        if (current && current !== window._lastAutoSyncedCkpt) {
+          window._lastAutoSyncedCkpt = current;
+          _syncScreeningFilterToCheckpoint(current);
+        }
+      } catch (e) { /* 무시 */ }
+
+      try {
+        const res = await api("/verify/model_list");
+        if (!res.ok || !listEl) return;
+        listEl.innerHTML = (res.models || []).map(m => {
+          const isCur = m.filename === current;
+          const bits = [];
+          if (m.head) bits.push(`head=${m.head}`);
+          if (m.window) bits.push(`w=${m.window}`);
+          if (m.bbox_scale) bits.push(`scale=${m.bbox_scale}`);
+          if (m.val_acc != null) bits.push(`val_acc=${m.val_acc}`);
+          if (m.held_success != null) bits.push(`held=${m.held_success}%`);
+          if (m.stride) bits.push(`stride=${m.stride}`);
+          if (m.requires_stage1) {
+            const s1n = m.requires_stage1.split("/").pop();
+            bits.push(`🧬${s1n === "stage1_v3_5cls_owl_projs.pt" ? "V3-5cls" : "V2(legacy)"}`);
+          }
+          bits.push(`${m.size_mb}MB`);
+          const info = bits.join(" · ") + (m.error ? ` ⚠️${m.error}` : "");
+          const tagsHtml = m.tags ? `<div style="margin:2px 0;">${_ckptTagsHtmlFromTags(m.tags)}</div>` : "";
+          const s1Arg = m.requires_stage1 ? `, '${m.requires_stage1}'` : "";
+          return `<div style="display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:center; padding:4px 6px; border-radius:6px; background:${isCur ? "rgba(6,182,212,0.12)" : "#090d16"}; border:1px solid ${isCur ? "var(--cyan)" : "var(--border-glow)"};">
+            <button class="btn ${isCur ? "btn-cyan" : "btn-outline"}" style="font-size:10px; padding:4px 8px; white-space:nowrap;" ${isCur ? "disabled" : ""} onclick="switchModel('${m.path}', '${m.filename}'${s1Arg})">${isCur ? "✓ 로드됨" : "전환"}</button>
+            <div style="font-size:9px; color:var(--text-muted); line-height:1.4;">
+              <span style="color:#fff; font-weight:600;">${m.filename}</span>${tagsHtml}${info}
+            </div>
+          </div>`;
+        }).join("");
+        if (listEl) listEl.dataset.loaded = "1";
+      } catch (e) {
+        if (listEl && !listEl.dataset.loaded) listEl.innerHTML = "⚠️ 목록 조회 실패: " + _friendlyApiError(e);
+      }
+    }
+
+    // 전환 버튼 전부를 잠깐 비활성화 — 응답 오는 동안 연타로 중복 전환 요청이
+    // 쌓이는 걸 방지(특히 서버가 느려진 상태에서 여러 번 누르면 더 꼬임).
+    function _setModelPanelBusy(busy) {
+      const listEl = document.getElementById("vfy-model-list");
+      if (listEl) listEl.querySelectorAll("button").forEach(b => b.disabled = busy);
+      ["vfy-grounder-pg2", "vfy-grounder-owlv2", "vfy-stage1-v2", "vfy-stage1-v3"].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = busy;
+      });
+    }
+
+    // 모델 전환 성공 시 스크리닝 패널의 체크포인트 필터를 새 체크포인트로
+    // 자동 맞춰줌(2026-07-30) — 예전엔 전환해도 필터가 이전 값(또는 "전체")에
+    // 그대로 머물러서 방금 바꾼 모델의 진행률을 보려면 수동으로 다시 골라야 했음.
+    // 배치 목록도 같이 새로고침해서 최신 배치(맨 위 항목)를 자동 적용 —
+    // 체크포인트는 안 바뀌어도 threshold만 바뀐 경우(2026-07-30) since를 안
+    // 맞추면 신구 threshold 데이터가 그냥 섞여서 집계됨. "지난 스크리닝
+    // 불러오기" 드롭다운을 매번 열어서 고를 필요 없게 자동화.
+    async function _syncScreeningFilterToCheckpoint(filename) {
+      const ckptSel = document.getElementById("vfy-screen-ckpt");
+      if (ckptSel) {
+        if (![...ckptSel.options].some(o => o.value === filename)) {
+          ckptSel.appendChild(new Option(filename, filename));
+        }
+        ckptSel.value = filename;
+      }
+      await refreshScreenBatches();
+      if ((window._screenBatches || []).length > 0) {
+        applyScreenBatch("0");  // 배치 목록은 최신이 맨 위(0번) — 자동 적용
+        return;
+      }
+      const sinceEl = document.getElementById("vfy-screen-since");
+      const untilEl = document.getElementById("vfy-screen-until");
+      if (sinceEl) sinceEl.value = "";
+      if (untilEl) untilEl.value = "";
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    async function switchModel(path, filename, requiredStage1) {
+      const statusEl = document.getElementById("vfy-model-status");
+      if (statusEl) statusEl.textContent = `🔄 ${filename}로 전환 중... (보통 25초 이내, 처음엔 더 걸릴 수 있어요)`;
+      _setModelPanelBusy(true);
+      try {
+        const body = { path };
+        if (requiredStage1) body.stage1_path = requiredStage1;  // 2026-08-07: 매칭 image_proj 자동 동반
+        const res = await api("/verify/model_switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `✅ 전환 완료: ${filename} (head=${res.head}, val_acc=${res.val_acc})`;
+          _syncScreeningFilterToCheckpoint(filename);
+        } else {
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "⚠️ " + _friendlyApiError(e);
+      }
+      _setModelPanelBusy(false);
+      refreshModelList();
+    }
+
+    async function switchStage1(path) {
+      const statusEl = document.getElementById("vfy-model-status");
+      const ckptPath = window._currentCheckpointPath;
+      if (!ckptPath) { if (statusEl) statusEl.textContent = "⚠️ 현재 체크포인트 경로를 아직 모름 — 🔄 눌러서 새로고침 후 재시도"; return; }
+      if (statusEl) statusEl.textContent = "🔄 image_proj 전환 중... (Stage1이 바뀌면 Kosmos-2 encoder도 재로드돼 최대 25초 걸릴 수 있어요)";
+      _setModelPanelBusy(true);
+      try {
+        const res = await api("/verify/model_switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: ckptPath, stage1_path: path })
+        });
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = "✅ image_proj 전환 완료 (head는 유지: " + res.head + ")";
+        } else {
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "⚠️ " + _friendlyApiError(e);
+      }
+      _setModelPanelBusy(false);
+      refreshModelList();
+    }
+
+    async function switchGrounder(kind) {
+      const statusEl = document.getElementById("vfy-model-status");
+      const path = window._currentCheckpointPath;
+      if (!path) { if (statusEl) statusEl.textContent = "⚠️ 현재 체크포인트 경로를 아직 모름 — 🔄 눌러서 새로고침 후 재시도"; return; }
+      if (statusEl) statusEl.textContent = `🔄 그라운더 → ${kind} 전환 중... (보통 1초 이내, 체크포인트가 같이 바뀌는 경우만 더 걸릴 수 있어요)`;
+      _setModelPanelBusy(true);
+      try {
+        const res = await api("/verify/model_switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path, grounder: kind })
+        });
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `✅ 그라운더 전환 완료: ${res.grounder}`;
+        } else {
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "⚠️ " + _friendlyApiError(e);
+      }
+      _setModelPanelBusy(false);
+      refreshModelList();
+    }
+
+    // A/B 필터 — 체크포인트별/시점별로 스크리닝 집계를 나눠보기 위함(2026-07-23).
+    // session_id → checkpoint 매핑을 서버에서 받아와 episode_log 행(마지막 컬럼이
+    // session_id)과 조인해서 필터링.
+    window._checkpointIndex = window._checkpointIndex || {};
+
+    async function refreshCheckpointOptions() {
+      try {
+        const res = await api("/verify/checkpoint_index");
+        if (!res.ok) return;
+        window._checkpointIndex = res.session_checkpoint || {};
+        window._checkpointTags = res.tags || {};
+        const sel = document.getElementById("vfy-screen-ckpt");
+        if (!sel) return;
+        const prevVal = sel.value;
+        sel.innerHTML = '<option value="">전체(누적)</option>' +
+          (res.checkpoints || []).map(c => `<option value="${c}">${_ckptLabel(c)}</option>`).join("");
+        if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
+      } catch (e) { /* 무시 */ }
+      refreshScreenBatches();
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    function _toDatetimeLocalValue(d) {
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function setScreenSinceNow() {
+      window._activeManualGroup = null;  // 수동 기간 필터 조작 시 병합 세트 적용은 해제
+      const el = document.getElementById("vfy-screen-since");
+      if (el) el.value = _toDatetimeLocalValue(new Date());
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    function clearScreenSince() {
+      window._activeManualGroup = null;
+      const el = document.getElementById("vfy-screen-since");
+      const untilEl = document.getElementById("vfy-screen-until");
+      if (el) el.value = "";
+      if (untilEl) untilEl.value = "";
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // 지난 스크리닝 배치 목록 — 체크포인트가 바뀌거나 3시간 이상 공백이면
+    // 새 배치로 잡음(/verify/screening_batches). "그날 그 체크포인트로 몇 건
+    // 했는지"를 다시 골라볼 수 있게(2026-07-23).
+    async function refreshScreenBatches() {
+      const container = document.getElementById("vfy-screen-batch-groups");
+      if (!container) return;
+      try {
+        const res = await api("/verify/screening_batches");
+        if (!res.ok) return;
+        window._screenBatches = res.batches || [];
+
+        // 체크포인트(=카테고리 조합: 그라운더/헤드/데이터셋/seed) 기준 그룹핑 —
+        // 같은 체크포인트에서 threshold만 바뀐 경우(2026-07-30 사례)는 한 그룹
+        // 안의 하위 항목으로만 나뉨. 평평한 드롭다운 대신 접이식 그룹으로 표시.
+        const groups = {};
+        window._screenBatches.forEach((b, i) => {
+          (groups[b.checkpoint] = groups[b.checkpoint] || []).push({...b, _idx: i});
+        });
+        const curFile = (window._currentCheckpointPath || "").split("/").pop();
+        const ckpts = Object.keys(groups).sort((a, b) => {
+          const ka = _ckptSortKey(a), kb = _ckptSortKey(b);
+          for (let i = 0; i < ka.length; i++) { if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1; }
+          return 0;
+        });
+
+        container.innerHTML = ckpts.length === 0
+          ? '<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:8px;">스크리닝 기록 없음</div>'
+          : ckpts.map(ckpt => {
+              const items = groups[ckpt];
+              const totCount = items.reduce((s, b) => s + b.count, 0);
+              const totSucc = items.reduce((s, b) => s + b.success, 0);
+              const isCurrent = ckpt === curFile;
+              const rows = items.map(b => {
+                const s = b.start.replace("T", " ").slice(5);
+                const e = b.end.replace("T", " ").slice(11);
+                const thTag = (b.owlv2_thresh !== null && b.owlv2_thresh !== undefined) ? ` · th=${b.owlv2_thresh}` : "";
+                const s1Name = (b.stage1_path || "").split("/").pop();
+                // 2026-08-07: head는 안 바뀌고 image_proj만 바뀐 배치를 목록에서도 구분할 수 있게
+                const s1Tag = s1Name === "stage1_v3_5cls_owl_projs.pt" ? ` · 🧬V3-5cls`
+                  : s1Name === "stage1_v2_projs.pt" ? "" : (s1Name ? ` · 🧬${s1Name}` : "");
+                const rate = b.count ? Math.round(b.success / b.count * 100) : 0;
+                return `<div onclick="applyScreenBatch('${b._idx}')"
+                    draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
+                    style="cursor:grab; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+                  <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}${s1Tag}</span>
+                  <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
+                </div>`;
+              }).join("");
+              return `<details ${isCurrent ? "open" : ""} style="background:#090d16; border:1px solid ${isCurrent ? "var(--cyan)" : "var(--border-glow)"}; border-radius:6px; padding:4px 6px;">
+                <summary style="cursor:pointer; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;">
+                  <span style="color:#fff; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="${ckpt}">${ckpt}</span>
+                  ${_ckptTagsHtml(ckpt)}
+                  <span style="margin-left:auto; font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap;">${totCount}건 ✓${totSucc}</span>
+                </summary>
+                <div style="margin-top:4px; display:flex; flex-direction:column; gap:1px; border-top:1px solid rgba(255,255,255,0.05); padding-top:3px;">${rows}</div>
+              </details>`;
+            }).join("");
+      } catch (e) { /* 무시 */ }
+    }
+
+    function applyScreenBatch(idxStr) {
+      if (idxStr === "") return;
+      const b = (window._screenBatches || [])[parseInt(idxStr)];
+      if (!b) return;
+      const sinceEl = document.getElementById("vfy-screen-since");
+      const untilEl = document.getElementById("vfy-screen-until");
+      const ckptSel = document.getElementById("vfy-screen-ckpt");
+      if (sinceEl) sinceEl.value = b.start;
+      // 지금 실제로 물려있는 체크포인트와 같은 배치를 불러오는 거면(=아직 진행
+      // 중인 배치) until을 비워서 이후 계속 저장되는 에피소드도 자동으로
+      // 누적 반영되게 함 — 다른(과거) 체크포인트 배치를 볼 때만 그 시점에서
+      // 딱 자르는 게 맞음(2026-07-30).
+      const curFile = (window._currentCheckpointPath || "").split("/").pop();
+      if (untilEl) untilEl.value = (b.checkpoint === curFile) ? "" : b.end;
+      // 2026-08-07: 기존엔 옵션이 이미 있을 때만 값을 바꿔서, 방금 나온 새
+      // 체크포인트(checkpoint_index 캐시가 아직 안 갱신됐거나 폴링 순서가 어긋난
+      // 경우)로는 조용히 안 바뀌고 이전 선택이 그대로 남는 문제가 있었음(사용자가
+      // 발견 — 모델은 전환됐는데 스크리닝 진행률 패널만 구모델 필터에 멈춰있었음).
+      // 없으면 만들어서라도 항상 반영.
+      if (ckptSel) {
+        if (![...ckptSel.options].some(o => o.value === b.checkpoint)) {
+          ckptSel.appendChild(new Option(_ckptLabel(b.checkpoint), b.checkpoint));
+        }
+        ckptSel.value = b.checkpoint;
+      }
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // ── 🧭 주행 궤적 렌더링 (T1-3) ──────────────────────────────────────
+    async function loadInspectTrajectory(sid) {
+      const cv = document.getElementById("inspect-traj");
+      const statEl = document.getElementById("inspect-traj-stat");
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (statEl) statEl.textContent = "";
+      try {
+        const d = await api("/sessions/trajectory?sid=" + encodeURIComponent(sid));
+        if (!d.ok || !d.points || d.points.length < 2) {
+          ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("궤적 없음", cv.width / 2, cv.height / 2);
+          return;
+        }
+        const P = d.points, PAD = 16;
+        const xs = P.map(p => p.x), ys = P.map(p => p.y);
+        let minX = Math.min(...xs), maxX = Math.max(...xs);
+        let minY = Math.min(...ys), maxY = Math.max(...ys);
+        // 종횡비 유지 — 한쪽으로 눌린 궤적은 모양 비교가 무의미해짐
+        const spanX = Math.max(maxX - minX, 0.1), spanY = Math.max(maxY - minY, 0.1);
+        const span = Math.max(spanX, spanY);
+        const cxm = (minX + maxX) / 2, cym = (minY + maxY) / 2;
+        minX = cxm - span / 2; maxX = cxm + span / 2;
+        minY = cym - span / 2; maxY = cym + span / 2;
+        const sx = v => PAD + (v - minX) / (maxX - minX) * (cv.width - PAD * 2);
+        // y는 위가 +가 되도록 뒤집음(로봇 정면이 화면 위)
+        const sy = v => cv.height - PAD - (v - minY) / (maxY - minY) * (cv.height - PAD * 2);
+
+        ctx.lineWidth = 2;
+        for (let i = 1; i < P.length; i++) {
+          // 미검출 구간을 빨강으로 — "어디서 타겟을 놓쳤나"가 궤적 위에 바로 보임
+          ctx.strokeStyle = P[i].has_bbox ? "#3fb950" : "#f43f5e";
+          ctx.beginPath();
+          ctx.moveTo(sx(P[i - 1].x), sy(P[i - 1].y));
+          ctx.lineTo(sx(P[i].x), sy(P[i].y));
+          ctx.stroke();
+        }
+        const dot = (p, c) => { ctx.fillStyle = c; ctx.beginPath();
+          ctx.arc(sx(p.x), sy(p.y), 4, 0, Math.PI * 2); ctx.fill(); };
+        dot(P[0], "#3fb950");
+        dot(P[P.length - 1], "#ef4444");
+        if (statEl) {
+          statEl.textContent = `이동 ${d.net_displacement_m}m · 경로 ${d.path_length_m}m · 효율 ${d.efficiency}`;
+        }
+      } catch (e) {
+        ctx.fillStyle = "#6b7280"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("궤적 로드 실패", cv.width / 2, cv.height / 2);
+      }
+    }
+
+    // ── 🖥️ 시스템 탭 핸들러 (Tier 3 위생정리, 2026-08-01) ───────────────
+    // applySysParams / resetServerModel은 HTML에서 6곳이 참조하는데 정의가
+    // 아예 없어서, 이 탭의 모든 토글이 ReferenceError로 조용히 죽고 다음 health
+    // 폴링에 원래대로 되돌아가고 있었음(사용자는 "적용됐다"고 오해). verify 탭이
+    // 같은 기능을 제대로 구현해 대체한 뒤 방치된 것으로 보임.
+    // 탭을 지우는 대신, verify와 동일한 /config 경로로 실제 동작하게 배선한다.
+    async function applySysParams() {
+      const g = id => document.getElementById(id);
+      const body = {
+        preview_enabled: g("sys-preview")?.checked,
+        preview_hint_cx: g("sys-hint")?.checked,
+        cx_jump_filter:  g("sys-jump")?.checked,
+        grounding_skip_n: g("sys-skip")?.checked ? 1 : 3,
+        cx_jump_thresh:  parseFloat(g("sys-jump-thresh")?.value || "0.30"),
+      };
+      const st = g("sys-apply-status");
+      try {
+        const res = await api("/config", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(body)
+        });
+        const inner = (res.applied && res.applied.applied) || {};
+        const parts = Object.entries(inner).map(([k, v]) => `${k}=${v}`);
+        if (st) {
+          st.textContent = parts.length ? "✅ 적용: " + parts.join(", ")
+                                        : "⚠️ 서버가 아무것도 적용 안 함";
+          st.style.color = parts.length ? "var(--emerald)" : "var(--amber)";
+        }
+        // verify 탭과 상태가 갈리지 않게 동기화
+        if (typeof syncVerifyRuntimeParams === "function") syncVerifyRuntimeParams();
+      } catch (e) {
+        if (st) { st.textContent = "⚠️ " + _friendlyApiError(e); st.style.color = "var(--rose)"; }
+      }
+    }
+
+    async function resetServerModel() {
+      if (!confirm("추론 서버 세션/캐시를 초기화할까요?\\n(주행이 진행 중이면 정지됩니다)")) return;
+      const st = document.getElementById("sys-apply-status");
+      try {
+        const res = await api("/system/reset", { method: "POST" });
+        if (st) {
+          st.textContent = res.ok === false ? ("⚠️ " + (res.error || "실패")) : "✅ 서버 캐시 초기화 완료";
+          st.style.color = res.ok === false ? "var(--rose)" : "var(--emerald)";
+        }
+        pollStatus();
+      } catch (e) {
+        if (st) { st.textContent = "⚠️ " + _friendlyApiError(e); st.style.color = "var(--rose)"; }
+      }
+    }
+
+    // ── 🔬 그라운딩 실패 분석기 (T1-1) ──────────────────────────────────
+    // 저장된 세션의 per-frame OWL score로 threshold를 오프라인 재판정.
+    // Chart.js(CDN 의존, 오프라인에서 로드 실패) 대신 canvas 2D로 직접 그림.
+    window._gndScores = null;
+
+    async function loadGroundingScores(force) {
+      const st = document.getElementById("gnd-an-status");
+      if (!st) return;
+      if (window._gndScores && !force) { renderGroundingAnalyzer(); return; }
+      st.textContent = "세션 스캔 중... (최초 1회는 수십 초 걸릴 수 있음)";
+      try {
+        const res = await api("/grounding/scores");
+        if (!res.ok) { st.textContent = "⚠️ 로드 실패"; return; }
+        window._gndScores = res;
+        // 위치 필터 옵션 채우기
+        const sel = document.getElementById("gnd-an-pos");
+        if (sel) {
+          const cur = sel.value;
+          const positions = [...new Set(res.sessions.map(s => s.path_type).filter(Boolean))].sort();
+          sel.innerHTML = '<option value="">전체</option>' +
+            positions.map(p => `<option value="${p}">${p}</option>`).join("");
+          if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+        }
+        renderGroundingAnalyzer();
+      } catch (e) {
+        st.textContent = "⚠️ 오류: " + _friendlyApiError(e);
+      }
+    }
+
+    function renderGroundingAnalyzer() {
+      const res = window._gndScores;
+      const st = document.getElementById("gnd-an-status");
+      if (!res || !st) return;
+      const thr = parseFloat(document.getElementById("gnd-an-thr").value);
+      document.getElementById("gnd-an-thr-lbl").textContent = thr.toFixed(2);
+      const wantPos = document.getElementById("gnd-an-pos").value;
+      const realOnly = document.getElementById("gnd-an-realonly").checked;
+
+      // score가 있는 세션만 대상 (구버전은 -1)
+      let sess = res.sessions.filter(s => s.scores.some(v => v >= 0));
+      if (wantPos) sess = sess.filter(s => s.path_type === wantPos);
+
+      const vals = [];
+      sess.forEach(s => s.scores.forEach((v, i) => {
+        if (v < 0) return;
+        // 실호출만: cached==0 인 프레임(캐시 재사용분은 같은 score 중복이라 분포 왜곡)
+        if (realOnly && s.cached && s.cached.length > i && s.cached[i] !== 0) return;
+        vals.push(v);
+      }));
+
+      if (res.n_with_scores === 0) {
+        st.innerHTML = `⚠️ score가 기록된 세션이 <b>0개</b>입니다 — per-frame score 저장은 2026-07-31에 추가돼서, 그 이후 수집분부터 쌓입니다.<br>`
+          + `전체 ${res.n_total}개 세션은 score 결측(-1). 기존 세션을 분석하려면 백필(저장된 프레임 OWL 재실행)이 필요합니다.`;
+        st.style.color = "var(--amber)";
+      } else if (vals.length === 0) {
+        st.textContent = `필터 조건에 맞는 프레임 없음 (score 보유 세션 ${res.n_with_scores}개)`;
+        st.style.color = "var(--text-muted)";
+      } else {
+        st.textContent = `score 보유 세션 ${res.n_with_scores}/${res.n_total}개 · 분석 대상 프레임 ${vals.length}개`;
+        st.style.color = "var(--text-muted)";
+      }
+
+      _drawGndHistogram(vals, thr);
+
+      // 요약 + 스윕
+      const sumEl = document.getElementById("gnd-an-summary");
+      const swEl = document.getElementById("gnd-an-sweep");
+      if (vals.length === 0) { sumEl.innerHTML = ""; swEl.innerHTML = ""; return; }
+      const pass = vals.filter(v => v >= thr).length;
+      const sorted = [...vals].sort((a, b) => a - b);
+      const med = sorted[Math.floor(sorted.length / 2)];
+      sumEl.innerHTML =
+        `현재 threshold <b class="text-cyan">${thr.toFixed(2)}</b> → 검출 <b>${pass}/${vals.length}</b> `
+        + `(<b class="${pass/vals.length>=0.8?'text-emerald':'text-rose'}">${(pass/vals.length*100).toFixed(1)}%</b>)<br>`
+        + `<span style="color:var(--text-muted);">중앙값 ${med.toFixed(3)} · 최소 ${sorted[0].toFixed(3)} · 최대 ${sorted[sorted.length-1].toFixed(3)}</span>`;
+
+      const THRS = [0.10, 0.15, 0.20, 0.25, 0.30, 0.35];
+      swEl.innerHTML = THRS.map(t => {
+        const p = vals.filter(v => v >= t).length;
+        const pct = p / vals.length * 100;
+        const cur = Math.abs(t - thr) < 0.005;
+        return `<div style="display:grid; grid-template-columns:44px 1fr 74px; gap:6px; align-items:center; padding:1px 0; ${cur?'background:rgba(6,182,212,0.12);':''}">
+          <span style="color:${cur?'var(--cyan)':'var(--text-muted)'};">${t.toFixed(2)}</span>
+          <div style="background:#21262d; height:6px; border-radius:3px; overflow:hidden;">
+            <div style="width:${pct.toFixed(0)}%; height:100%; background:${pct>=80?'#3fb950':pct>=50?'var(--amber)':'var(--rose)'};"></div>
+          </div>
+          <span style="text-align:right; color:${cur?'var(--cyan)':'var(--text-muted)'};">${p}/${vals.length} ${pct.toFixed(0)}%</span>
+        </div>`;
+      }).join("");
+    }
+
+    function _drawGndHistogram(vals, thr) {
+      const cv = document.getElementById("gnd-an-hist");
+      if (!cv) return;
+      const ctx = cv.getContext("2d");
+      const W = cv.width, H = cv.height, PAD = 18;
+      ctx.clearRect(0, 0, W, H);
+      if (!vals.length) {
+        ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("데이터 없음", W / 2, H / 2);
+        return;
+      }
+      const NB = 50, MAXV = 0.5;
+      const bins = new Array(NB).fill(0);
+      vals.forEach(v => { bins[Math.min(NB - 1, Math.floor(v / MAXV * NB))]++; });
+      const peak = Math.max(...bins) || 1;
+      const bw = (W - PAD * 2) / NB;
+      for (let i = 0; i < NB; i++) {
+        const c = (i + 0.5) / NB * MAXV;
+        const h = bins[i] / peak * (H - PAD * 2);
+        ctx.fillStyle = c >= thr ? "#3fb950" : "#f43f5e";
+        ctx.fillRect(PAD + i * bw, H - PAD - h, Math.max(1, bw - 1), h);
+      }
+      const xOf = v => PAD + (v / MAXV) * (W - PAD * 2);
+      // 0.25 (구 운영값) 기준선
+      ctx.strokeStyle = "#6b7280"; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xOf(0.25), PAD - 6); ctx.lineTo(xOf(0.25), H - PAD); ctx.stroke();
+      // 현재 threshold
+      ctx.setLineDash([]); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(xOf(thr), PAD - 6); ctx.lineTo(xOf(thr), H - PAD); ctx.stroke();
+      // 축
+      ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PAD, H - PAD); ctx.lineTo(W - PAD, H - PAD); ctx.stroke();
+      ctx.fillStyle = "#6b7280"; ctx.font = "9px monospace"; ctx.textAlign = "center";
+      [0, 0.1, 0.2, 0.3, 0.4, 0.5].forEach(v => ctx.fillText(v.toFixed(1), xOf(v), H - 5));
+    }
+
+    // 🔗 배치 드래그앤드랍 병합 (2026-07-31 단순화) — "저장된 병합 세트" 목록이
+    // 중심. 배치를 세트 위로 바로 드래그하면 즉시 그 세트에 추가되고(이름 재입력
+    // 불필요), 없는 세트를 만들 땐 맨 아래 "+ 새 세트" 존에 드래그해서 이름만
+    // 한 번 입력. 스크리닝 CSV는 전혀 안 건드리고 "이 배치들을 하나로 본다"는
+    // 지정만 logs/manual_screening_groups.json에 저장.
+    window._openManualGroups = window._openManualGroups || new Set();
+
+    function _batchDragStart(ev, idx) {
+      ev.dataTransfer.setData("text/plain", String(idx));
+    }
+
+    function _rowsInRange(rows, ckpt, startIso, endIso) {
+      const s = new Date(startIso.replace(" ", "T"));
+      const e = new Date(new Date(endIso.replace(" ", "T")).getTime() + 60000);
+      return (rows || []).filter(r => {
+        if (_epCheckpointOf(r) !== ckpt) return false;
+        const d = new Date(String(r[12]).replace(" ", "T"));
+        return !isNaN(d) && d >= s && d <= e;
+      });
+    }
+
+    // 2026-07-31: 저장된 병합 세트의 범위 끝(end)이 고정값이라, 저장한 뒤 같은
+    // 체크포인트로 계속 스크리닝해서 새 에피소드가 쌓여도 세트 합계에 안 잡히던
+    // 문제 확인("저장 후 바로 반영 안 됨") — applyScreenBatch()의 기존 open-ended
+    // 처리(활성 체크포인트면 until 비움)와 동일한 개념을 세트에도 적용. 단, 세트
+    // 안에 같은 체크포인트 범위가 여러 개일 수 있어서(예: 260741 세트) 전부
+    // 열어두면 새 에피소드가 여러 범위에 중복으로 잡혀 합계가 부풀 수 있음 —
+    // 체크포인트별로 가장 최근(end가 가장 늦은) 범위 "하나만" 지금까지로 확장.
+    function _expandOpenEndedRanges(ranges) {
+      const curFile = (window._currentCheckpointPath || "").split("/").pop();
+      const latestIdxByCkpt = {};
+      (ranges || []).forEach((t, i) => {
+        if (!curFile || t.checkpoint !== curFile) return;
+        if (!(t.checkpoint in latestIdxByCkpt)
+            || new Date(t.end) > new Date(ranges[latestIdxByCkpt[t.checkpoint]].end)) {
+          latestIdxByCkpt[t.checkpoint] = i;
+        }
+      });
+      const openEndedIdx = new Set(Object.values(latestIdxByCkpt));
+      // ⚠️ toISOString()은 UTC라서 KST(+9h)에선 "지금"이 실제보다 9시간 전으로
+      // 계산되어 확장된 end가 start보다 앞서버리는(범위가 뒤집히는) 버그가 있었음
+      // — 새로 추가한 범위의 세션들이 통째로 안 잡히던 원인(2026-07-31). 로컬
+      // 시간 그대로 쓰는 _toDatetimeLocalValue로 교체.
+      const nowIso = _toDatetimeLocalValue(new Date(Date.now() + 60000));
+      return (ranges || []).map((t, i) => openEndedIdx.has(i) ? {...t, end: nowIso} : t);
+    }
+
+    function _trackManualGroupToggle(name, isOpen) {
+      if (isOpen) window._openManualGroups.add(name);
+      else window._openManualGroups.delete(name);
+    }
+
+    // 세트 이름 클릭 → 스크리닝 목표(위치별 진행률) 패널에 바로 반영(2026-07-31,
+    // "누르면 바로 아래에 스크리닝 목표 반영되게" 요청). 체크포인트/기간 필터
+    // 대신 이 세트의 범위들(여러 개, OR 매칭)로 필터링. ranges는 매번 새로
+    // fetch하지 않고 refreshManualGroups()가 채워두는 캐시에서 조회.
+    window._manualGroupsCache = window._manualGroupsCache || {};
+
+    function applyManualGroup(ev, name) {
+      if (ev) ev.stopPropagation();  // <summary> 기본 펼침/접힘 토글은 그대로 유지
+      const ranges = window._manualGroupsCache[name];
+      if (!ranges) return;
+      window._activeManualGroup = {name, ranges};
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    function clearActiveManualGroup() {
+      window._activeManualGroup = null;
+      if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // 세트를 목표 진행률 쪽으로 드래그해서 반영 — 클릭과 동일한 효과를 드래그로도
+    // 낼 수 있게(2026-07-31, "세트도 드래그하게 해줘도 좋음"). 배치 드래그
+    // ("text/plain"에 배치 인덱스)와 겹치지 않게 별도 MIME 타입 키 사용.
+    function _groupDragStart(ev, name) {
+      ev.dataTransfer.setData("application/x-manual-group", name);
+    }
+
+    function _groupDropOnTarget(ev) {
+      ev.preventDefault();
+      const name = ev.dataTransfer.getData("application/x-manual-group");
+      if (!name) return;
+      applyManualGroup(null, name);
+    }
+
+    async function _mergeNewDrop(ev) {
+      ev.preventDefault();
+      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
+      const b = (window._screenBatches || [])[idx];
+      if (!b) return;
+      const name = prompt("새 병합 세트 이름을 입력하세요 (예: weak_left_threshold0.20_통합)");
+      if (!name) return;
+      const res = await api("/verify/manual_group/save", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name, ranges: [{checkpoint: b.checkpoint, start: b.start, end: b.end}]})
+      });
+      if (res.ok) {
+        window._openManualGroups.add(name);
+        refreshManualGroups();
+      } else {
+        alert("저장 실패: " + (res.error || "알 수 없는 오류"));
+      }
+    }
+
+    async function _mergeAddToGroup(ev, name) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
+      const b = (window._screenBatches || [])[idx];
+      if (!b) return;
+      const groups = (await api("/verify/manual_groups")).groups || [];
+      const g = groups.find(x => x.name === name);
+      if (!g) return;
+      const already = g.ranges.some(t => t.checkpoint === b.checkpoint && t.start === b.start && t.end === b.end);
+      if (!already) g.ranges.push({checkpoint: b.checkpoint, start: b.start, end: b.end});
+      const res = await api("/verify/manual_group/save", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name, ranges: g.ranges})
+      });
+      if (res.ok) refreshManualGroups();
+    }
+
+    async function refreshManualGroups() {
+      const el = document.getElementById("vfy-manual-groups");
+      if (!el) return;
+      try {
+        const res = await api("/verify/manual_groups");
+        if (!res.ok) return;
+        const rows = window._lastVfyRows || [];
+        window._manualGroupsCache = {};
+        el.innerHTML = (res.groups || []).length === 0
+          ? '<div style="font-size:9px; color:var(--text-muted); text-align:center; padding:6px;">저장된 병합 세트 없음</div>'
+          : res.groups.map(g => {
+          window._manualGroupsCache[g.name] = g.ranges;
+          let n = 0, succ = 0;
+          _expandOpenEndedRanges(g.ranges).forEach(t => {
+            const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
+            n += matched.length;
+            succ += matched.filter(r => r[2] === "성공").length;
+          });
+          const rate = n ? Math.round(succ / n * 100) : 0;
+          const isOpen = window._openManualGroups.has(g.name);
+          const isActive = window._activeManualGroup && window._activeManualGroup.name === g.name;
+          return `<details ${isOpen ? "open" : ""} ontoggle="_trackManualGroupToggle('${g.name}', this.open)"
+                ondragover="event.preventDefault()" ondrop="_mergeAddToGroup(event, '${g.name}')"
+                style="background:#0d1420; border:1px solid ${isActive ? '#3fb950' : 'var(--violet, #8b5cf6)'}; border-radius:6px; padding:4px 6px;">
+            <summary onclick="applyManualGroup(event, '${g.name}')" draggable="true" ondragstart="_groupDragStart(event, '${g.name}')" style="cursor:grab; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;" title="누르면(또는 드래그해서 아래 목표 진행률에 놓으면) 이 세트가 바로 반영됩니다">
+              <span style="color:#fff; font-weight:600;">${isActive ? "✅" : "🔗"} ${g.name}</span>
+              <span style="margin-left:auto; font-family:var(--font-mono); color:${rate>=50?'#3fb950':'var(--rose)'};">${n}건 ✓${succ} (${rate}%)</span>
+              <span onclick="event.preventDefault(); event.stopPropagation(); _manualGroupDelete('${g.name}')" style="cursor:pointer; color:var(--rose);" title="병합 세트 삭제(원본 기록은 안 지워짐)">✕</span>
+            </summary>
+            <div style="margin-top:4px; font-size:9px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px;">
+              ${g.ranges.map((t, i) => `<div style="display:flex; justify-content:space-between; gap:6px;">
+                <span>${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")}</span>
+                <span onclick="_mergeRemoveRange('${g.name}', ${i})" style="cursor:pointer; color:var(--rose);" title="이 범위만 제거">✕</span>
+              </div>`).join("")}
+            </div>
+          </details>`;
+        }).join("");
+      } catch (e) { /* 무시 */ }
+    }
+
+    async function _mergeRemoveRange(name, rangeIdx) {
+      const groups = (await api("/verify/manual_groups")).groups || [];
+      const g = groups.find(x => x.name === name);
+      if (!g) return;
+      g.ranges.splice(rangeIdx, 1);
+      if (g.ranges.length === 0) {
+        await api("/verify/manual_group/delete", {
+          method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({name})
+        });
+      } else {
+        await api("/verify/manual_group/save", {
+          method: "POST", headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({name, ranges: g.ranges})
+        });
+      }
+      refreshManualGroups();
+    }
+
+    async function _manualGroupDelete(name) {
+      if (!confirm(`병합 세트 "${name}"를 삭제할까요? (원본 스크리닝 기록은 그대로 남습니다)`)) return;
+      window._openManualGroups.delete(name);
+      await api("/verify/manual_group/delete", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({name})
+      });
+      refreshManualGroups();
+    }
+
+    // 행의 체크포인트 판별 — 2026-07-29부터는 CSV 15번째 컬럼(r[14])에 저장
+    // 시점 그대로 직접 박아둠(가장 신뢰 가능). 그 이전 행(컬럼 없음)만
+    // session_id(r[13]) → /verify/checkpoint_index 조인으로 폴백.
+    function _epCheckpointOf(r) {
+      if (r.length > 14 && r[14]) return r[14];
+      const idx = window._checkpointIndex || {};
+      return idx[r[13]] || "(알수없음)";
+    }
+
+    // 체크포인트 파일명 → 카테고리 태그 — 서버(/verify/checkpoint_index의 tags,
+    // /verify/model_list의 m.tags)에 이미 있으면 그걸 쓰고, 없으면(예: "(알수없음)")
+    // 여기서 파이썬 _parse_ckpt_tags와 동일 규칙으로 직접 뽑음(2026-07-30,
+    // "그라운더/exp/데이터셋/헤드 표기" 요청).
+    function _ckptTagsOf(name) {
+      const known = (window._checkpointTags || {})[name];
+      if (known) return known;
+      // 언더스코어는 JS \b 기준으로도 "단어문자"라 경계가 안 잡힘 — 토큰화해서 검사
+      // (파이썬 _parse_ckpt_tags와 동일 버그 수정, 2026-07-30).
+      const n = name || "";
+      const tokens = n.split(/[_.]/).map(t => t.toLowerCase()).filter(Boolean);
+      const em = /exp(\d+)/.exec(n);
+      const dsm = /_v(\d+)(?:_|\.)/.exec(n);
+      const sm = /seed(\d+)/i.exec(n);
+      const dm = /DEPLOY[_-]?v(\d+)/i.exec(n);
+      return {
+        exp: em ? parseInt(em[1], 10) : null,
+        grounder: tokens.includes("owl") ? "OWL-v2" : ((tokens.includes("pg448") || tokens.includes("pg2")) ? "PG2(448)" : null),
+        track: tokens.includes("trackf") ? "trackF" : (tokens.includes("tracka") ? "trackA" : null),
+        dataset: dsm ? `V${dsm[1]}` : null,
+        head: tokens.includes("hybrid") ? "hybrid" : (tokens.includes("mlp") ? "MLP" : (tokens.includes("transformer") ? "transformer" : null)),
+        holdaware: tokens.includes("holdaware"),
+        deploy: dm ? `v${dm[1]}` : null,
+        seed: sm ? parseInt(sm[1], 10) : null,
+      };
+    }
+
+    // 카테고리 기준 정렬 키 — mona_dashboard.py의 _ckpt_sort_key와 동일 기준
+    // (exp 번호 큰 것=최신 실험 먼저, 그 안에서 그라운더/헤드/데이터셋/seed 순으로
+    // 묶어서 같은 종류끼리 붙어 보이게 함).
+    function _ckptSortKey(name) {
+      const t = _ckptTagsOf(name);
+      return [
+        -(t.exp !== null && t.exp !== undefined ? t.exp : -1),
+        t.grounder || "￿",
+        t.head || "￿",
+        t.dataset || "￿",
+        t.deploy || "",
+        (t.seed !== null && t.seed !== undefined) ? t.seed : -1,
+        name || "",
+      ];
+    }
+
+    // 필터 드롭다운 등 <option> 텍스트용 — 원본 파일명 대신 카테고리 요약을
+    // 앞에 붙여서 스캔하기 쉽게(<option>은 색 배지를 못 넣으니 텍스트로만).
+    function _ckptLabel(name) {
+      const t = _ckptTagsOf(name);
+      const bits = [t.grounder, t.head, t.dataset, t.holdaware ? "holdaware" : null,
+                    t.deploy ? `DEPLOY${t.deploy}` : null,
+                    (t.seed !== null && t.seed !== undefined) ? `seed${t.seed}` : null].filter(Boolean);
+      return bits.length ? `${bits.join(" · ")} — ${name}` : name;
+    }
+
+    // 카테고리 배지 HTML — 진행률 요약/모델 목록에서 공용으로 씀.
+    function _ckptTagsHtmlFromTags(t) {
+      if (!t) return "";
+      const chip = (txt, color) => txt ? `<span style="font-size:8px; padding:1px 5px; border-radius:8px; background:${color}22; color:${color}; margin-right:3px; white-space:nowrap;">${txt}</span>` : "";
+      return chip(t.grounder, "#06b6d4") + chip(t.head, "#8b5cf6") + chip(t.dataset, "#f59e0b")
+           + chip(t.holdaware ? "holdaware" : null, "#3fb950") + chip(t.deploy ? `DEPLOY${t.deploy}` : null, "#f43f5e")
+           + chip((t.seed !== null && t.seed !== undefined) ? `seed${t.seed}` : null, "#94a3b8");
+    }
+    function _ckptTagsHtml(name) {
+      return _ckptTagsHtmlFromTags(_ckptTagsOf(name));
+    }
+
+    function renderScreenPanel(rows) {
+      window._lastVfyRows = rows;
+      const tgt = SCREEN_TARGETS[screenTargetMode];
+
+      // A/B 필터 적용: 체크포인트 선택 + 검증 시작 시점 — 단, 병합 세트가
+      // 적용돼 있으면(window._activeManualGroup) 그 세트의 범위들(여러 개일 수
+      // 있음, OR 매칭)로 대신 필터링(2026-07-31, "세트 누르면 스크리닝 목표에
+      // 바로 반영" 요청).
+      const activeGroup = window._activeManualGroup;
+      const ckptSel = document.getElementById("vfy-screen-ckpt");
+      const wantCkpt = ckptSel ? ckptSel.value : "";
+      const sinceEl = document.getElementById("vfy-screen-since");
+      const sinceDate = (sinceEl && sinceEl.value) ? new Date(sinceEl.value) : null;
+      const untilEl = document.getElementById("vfy-screen-until");
+      // until은 분 단위 경계값이 포함되도록 +1분 여유를 둠(그 배치의 마지막
+      // 에피소드가 딱 그 분에 찍혀도 빠지지 않게).
+      const untilDate = (untilEl && untilEl.value) ? new Date(new Date(untilEl.value).getTime() + 60000) : null;
+      const activeGroupRanges = activeGroup ? _expandOpenEndedRanges(activeGroup.ranges) : null;
+      const filtered = (rows || []).filter(r => {
+        if (r.length < 3) return false;
+        if (activeGroup) {
+          return activeGroupRanges.some(t => _rowsInRange([r], t.checkpoint, t.start, t.end).length > 0);
+        }
+        if (wantCkpt && _epCheckpointOf(r) !== wantCkpt) return false;
+        if (sinceDate || untilDate) {
+          const dateStr = r[12]; // "YYYY-MM-DD HH:MM"
+          const rowDate = dateStr ? new Date(String(dateStr).replace(" ", "T")) : null;
+          if (!rowDate || isNaN(rowDate)) return false;
+          if (sinceDate && rowDate < sinceDate) return false;
+          if (untilDate && rowDate > untilDate) return false;
+        }
+        return true;
+      });
+
+      const activeBanner = document.getElementById("vfy-active-group-banner");
+      if (activeBanner) {
+        activeBanner.style.display = activeGroup ? "flex" : "none";
+        if (activeGroup) {
+          const nameEl = document.getElementById("vfy-active-group-name");
+          if (nameEl) nameEl.textContent = activeGroup.name;
+        }
+      }
+
+      // 체크포인트별 목표(100개) 진행률 — 드롭다운으로 하나씩 골라야만 보이던 걸
+      // 항상 한눈에 보이게. "기존 모델 몇 개 남았고, 새 모델은 몇 개 했는지"를
+      // 매번 필터 토글 없이 바로 파악하기 위함(2026-07-29).
+      const ckptProgress = {};
+      (rows || []).forEach(r => {
+        if (r.length < 3) return;
+        const c = _epCheckpointOf(r);
+        if (!ckptProgress[c]) ckptProgress[c] = {done: 0, succ: 0};
+        ckptProgress[c].done += 1;
+        if (r[2] === "성공") ckptProgress[c].succ += 1;
+      });
+      const goalPerCkpt = Object.values(SCREEN_TARGETS["100"]).reduce((a, b) => a + b, 0); // 100
+      const progEl = document.getElementById("vfy-screen-ckpt-progress");
+      if (progEl) {
+        // 모델(exp 번호) 기준 정렬 — 파이썬 _ckpt_sort_key와 동일 기준(최신 exp 먼저,
+        // 같은 exp는 이름순). 진행량(done) 기준 정렬 대신 이걸로 통일해서
+        // 드롭다운/모델목록/진행률 요약 3곳이 항상 같은 순서로 보이게 함(2026-07-30).
+        const entries = Object.entries(ckptProgress).sort((a, b) => {
+          const ka = _ckptSortKey(a[0]), kb = _ckptSortKey(b[0]);
+          for (let i = 0; i < ka.length; i++) {
+            if (ka[i] === kb[i]) continue;
+            return ka[i] < kb[i] ? -1 : 1;
+          }
+          return 0;
+        });
+        progEl.innerHTML = entries.length === 0 ? "" : entries.map(([ckpt, v]) => {
+          const pct = Math.min(100, (v.done / goalPerCkpt) * 100);
+          const doneColor = v.done >= goalPerCkpt ? "#3fb950" : "var(--text-muted)";
+          const short = ckpt.length > 34 ? ckpt.slice(0, 16) + "…" + ckpt.slice(-14) : ckpt;
+          return `<div style="padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.03);" title="${ckpt}">
+            <div style="display:grid; grid-template-columns:1fr 82px; align-items:center; gap:6px; font-size:9px;">
+              <span style="color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${short}</span>
+              <span style="text-align:right; font-family:var(--font-mono); color:${doneColor};">${v.done}/${goalPerCkpt} <span style="color:#3fb950">✓${v.succ}</span></span>
+            </div>
+            <div style="margin-top:1px;">${_ckptTagsHtml(ckpt)}</div>
+          </div>`;
+        }).join("");
+      }
+
+      const done = {}, succ = {};
+      SCREEN_POSITIONS.forEach(p => { done[p.pos] = 0; succ[p.pos] = 0; });
+      filtered.forEach(r => {
+        const pos = verifyPosOf(String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim());
+        if (pos && done[pos] !== undefined) {
+          done[pos] += 1;
+          if (r[2] === "성공") succ[pos] += 1;
+        }
+      });
+      let totDone = 0, totTgt = 0, totSucc = 0;
+      const rowsHtml = SCREEN_POSITIONS.map(p => {
+        const d = done[p.pos], s = succ[p.pos], t = tgt[p.pos];
+        totDone += d; totTgt += t; totSucc += s;
+        const pct = Math.min(100, (d / t) * 100);
+        const doneColor = d >= t ? "#3fb950" : "var(--text-muted)";
+        return `<div style="display:grid; grid-template-columns:52px 1fr 62px; align-items:center; gap:6px; font-size:11px; padding:2px 0;">
+          <span><span style="color:${p.fg}">${p.icon}</span> ${p.label}</span>
+          <div style="background:#21262d; height:6px; border-radius:3px; overflow:hidden;">
+            <div style="width:${pct.toFixed(0)}%; height:100%; background:${p.fg}; border-radius:3px;"></div>
+          </div>
+          <span style="text-align:right; font-family:var(--font-mono); color:${doneColor}">${d}/${t} <span style="color:#3fb950">✓${s}</span></span>
+        </div>`;
+      }).join("");
+      const body = document.getElementById("vfy-screen-body");
+      if (body) body.innerHTML = rowsHtml +
+        `<div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:6px; padding-top:4px; font-size:10px; color:var(--text-muted); text-align:right;">합계 ${totDone}/${totTgt} · 방향성공 ${totSucc}</div>`;
+
+      refreshManualGroups();
+    }
+
+    // ── 트랙A/트랙F 극단배치+중앙(V6) 퀵라벨 버튼 — Tab4/Tab6 공용 렌더러.
+    // 데이터셋 히스토리 탭의 아이콘/색상 규칙(◀/▶/▶▶, ↰/↑/↱, ●) 재사용.
+    // prefix로 trackA(극단 4위치)/trackF(중앙, 2026-07-22 추가) 구분 — 서로
+    // 다른 target(15는 동일하나 별도 집계)이라 값 문자열이 겹치면 안 됨.
+    const TRACKA_POS_ROWS = [
+      {pos: "weak_left",    icon: "◀",  fg: "var(--cyan)",  prefix: "trackA"},
+      {pos: "weak_right",   icon: "▶",  fg: "var(--amber)", prefix: "trackA"},
+      {pos: "strong_right", icon: "▶▶", fg: "var(--amber)", prefix: "trackA"},
+      {pos: "strong_left",  icon: "◀◀", fg: "var(--cyan)",  prefix: "trackA"},
+      {pos: "center",       icon: "●",  fg: "var(--emerald, #3fb950)", prefix: "trackF"},
+    ];
+    const TRACKA_PATH_COLS = [
+      {path: "left_curve", icon: "↰"},
+      {path: "straight",   icon: "↑"},
+      {path: "right_curve", icon: "↱"},
+    ];
+
+    function _renderTrackAPathButtons(containerId, btnClass, onclickFn) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = TRACKA_POS_ROWS.map(row => {
+        const btns = TRACKA_PATH_COLS.map(col => {
+          const pt = `${row.prefix}_${row.pos}_${col.path}`;
+          const uncollected = TRACKA_UNCOLLECTED.has(pt);
+          const disabledAttr = uncollected ? "disabled" : "";
+          const title = uncollected ? "미수집 — 아직 이 조합의 데이터가 없음" : "";
+          return `<button type="button" class="${btnClass}" data-path="${pt}" ${disabledAttr} title="${title}"
+                    onclick="${onclickFn}('${pt}')"
+                    style="font-size:10px; padding:4px 2px; opacity:${uncollected ? 0.4 : 1};">
+                    <span style="color:${row.fg};">${row.icon}</span> ${col.icon}${uncollected ? " 🚫" : ""}
+                  </button>`;
+        }).join("");
+        return `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">${btns}</div>`;
+      }).join("");
+    }
+
+    // ── 🌀 오버슈트 가이드 (트랙C 수집 예시) ──────────────────────────────
+    let osgState = { direction: "left_recover", frames: [], idx: 0, playing: false, playTimer: null };
+
+    async function osgSetDirection(direction) {
+      osgState.direction = direction;
+      const leftBtn = document.getElementById("osg-btn-left");
+      const rightBtn = document.getElementById("osg-btn-right");
+      if (leftBtn) leftBtn.className = direction === "left_recover" ? "btn btn-cyan" : "btn btn-outline";
+      if (rightBtn) rightBtn.className = direction === "right_recover" ? "btn btn-cyan" : "btn btn-outline";
+      const res = await api(`/overshoot_guide/load?direction=${direction}`);
+      if (!res.ok) {
+        document.getElementById("osg-info-note").textContent = "로딩 실패: " + (res.error || "");
+        return;
+      }
+      osgState.frames = res.frames;
+      osgState.idx = 0;
+      document.getElementById("osg-source-sid").textContent = res.source_sid;
+      const scrub = document.getElementById("osg-scrub");
+      scrub.max = res.frames.length - 1;
+      osgRenderFrame();
+    }
+
+    function osgRenderTimeline() {
+      const el = document.getElementById("osg-timeline");
+      if (!el) return;
+      el.innerHTML = osgState.frames.map((f, i) => {
+        const bg = f.phase === "real" ? "var(--cyan)" : "var(--amber)";
+        const outline = i === osgState.idx ? "outline:2px solid #fff;" : "";
+        return `<div onclick="osgSeek(${i})" style="flex:1; background:${bg}; opacity:${i === osgState.idx ? 1 : 0.5}; cursor:pointer; border-radius:2px; ${outline}"></div>`;
+      }).join("");
+    }
+
+    function osgRenderFrame() {
+      const f = osgState.frames[osgState.idx];
+      if (!f) return;
+      document.getElementById("osg-frame-img").src = `/overshoot_guide/frame?direction=${osgState.direction}&idx=${f.idx}`;
+      document.getElementById("osg-phase-badge").textContent = f.phase === "real" ? "🟦 실제" : "🟧 합성(좌우반전)";
+      document.getElementById("osg-idx-badge").textContent = `Frame: ${osgState.idx + 1}/${osgState.frames.length}`;
+      document.getElementById("osg-info-phase").value = f.phase === "real" ? "실제 데이터" : "합성 예시(실제 아님)";
+      document.getElementById("osg-info-realidx").value = f.source_real_idx;
+      document.getElementById("osg-info-cx").value = f.cx.toFixed(3);
+      document.getElementById("osg-info-action").value = f.action;
+      document.getElementById("osg-info-note").textContent = f.note;
+      document.getElementById("osg-scrub").value = osgState.idx;
+      osgRenderTimeline();
+    }
+
+    function osgStep(delta) {
+      if (!osgState.frames.length) return;
+      osgState.idx = Math.max(0, Math.min(osgState.frames.length - 1, osgState.idx + delta));
+      osgRenderFrame();
+    }
+
+    function osgSeek(v) {
+      osgState.idx = parseInt(v);
+      osgRenderFrame();
+    }
+
+    function osgTogglePlay() {
+      const btn = document.getElementById("osg-play-btn");
+      if (osgState.playing) {
+        clearInterval(osgState.playTimer);
+        osgState.playing = false;
+        btn.textContent = "▶ 재생";
+        return;
+      }
+      osgState.playing = true;
+      btn.textContent = "⏸ 정지";
+      osgState.playTimer = setInterval(() => {
+        if (osgState.idx >= osgState.frames.length - 1) { osgTogglePlay(); return; }
+        osgStep(1);
+      }, 400);
     }
 
     function setFpeValue(val) {
@@ -3484,6 +10208,18 @@ L S R  C S L  R S L
         runtimeState.cx_jump_filter = res.cx_jump_filter === true;
         runtimeState.cx_jump_thresh = res.cx_jump_thresh !== undefined ? parseFloat(res.cx_jump_thresh) : 0.30;
         runtimeState.multi_prompt = res.multi_prompt !== false;
+        runtimeState.force_reground_on_miss = res.force_reground_on_miss === true;
+        runtimeState.stop_mode = res.stop_mode || "proximity";
+        runtimeState.stop_learned_min_steps = res.stop_learned_min_steps !== undefined ? parseInt(res.stop_learned_min_steps) : 3;
+
+        const g = res.grounder || {};
+        const owlRow = document.getElementById("vfy-owl-row");
+        if ((g.model || "").toLowerCase().includes("owl")) {
+          owlRow.style.display = "flex";
+          document.getElementById("vfy-owl-area-scale").value = g.owlv2_area_scale ?? 3.0;
+        } else {
+          owlRow.style.display = "none";
+        }
 
         updateVerifyRuntimeUI();
         statusEl.textContent = "✅ 동기화 완료";
@@ -3553,6 +10289,44 @@ L S R  C S L  R S L
         multiBtn.className = "btn btn-outline";
         multiBtn.innerHTML = "⚫ 멀티프롬프트<br><span style='font-size:9px;color:var(--text-muted);'>fallback OFF</span>";
       }
+
+      // 미검출시 재그라운딩 — has_bbox=False 다음 스텝 캐시 강제 스킵(2026-07-31 A/B)
+      const regroundMissBtn = document.getElementById("vfy-rt-regroundmiss");
+      if (regroundMissBtn) {
+        if (runtimeState.force_reground_on_miss) {
+          regroundMissBtn.className = "btn btn-cyan";
+          regroundMissBtn.innerHTML = "🟢 미검출시 재그라운딩<br><span style='font-size:9px;color:#000;'>has_bbox=False 다음스텝 강제 ON</span>";
+        } else {
+          regroundMissBtn.className = "btn btn-outline";
+          regroundMissBtn.innerHTML = "⚫ 미검출시 재그라운딩<br><span style='font-size:9px;color:var(--text-muted);'>has_bbox=False 다음스텝 강제 OFF</span>";
+        }
+      }
+
+      // stop mode — proximity(안전, 3프레임 연속 임계값) vs learned(모델 예측+래치)
+      const stopModeBtn = document.getElementById("vfy-rt-stopmode");
+      if (stopModeBtn) {
+        if (runtimeState.stop_mode === "learned") {
+          stopModeBtn.className = "btn btn-outline";
+          stopModeBtn.style.borderColor = "var(--amber)";
+          stopModeBtn.style.color = "var(--amber)";
+          stopModeBtn.innerHTML = "🛑 learned<br><span style='font-size:9px;color:var(--amber);'>STOP 모드 (래치, 주의)</span>";
+        } else {
+          stopModeBtn.style.borderColor = "";
+          stopModeBtn.style.color = "";
+          stopModeBtn.className = "btn btn-cyan";
+          stopModeBtn.innerHTML = "🛑 proximity<br><span style='font-size:9px;color:#000;'>STOP 모드 (안전)</span>";
+        }
+      }
+
+      // stop guard — learned 모드 콜드스타트 최소 프레임(0=가드 없음, 예전 동작과 동일)
+      const stopGuardBtn = document.getElementById("vfy-rt-stopguard");
+      if (stopGuardBtn) {
+        const n = runtimeState.stop_learned_min_steps;
+        stopGuardBtn.className = n > 0 ? "btn btn-outline" : "btn btn-outline";
+        stopGuardBtn.innerHTML = n > 0
+          ? `🛡 가드 ${n}프레임<br><span style='font-size:9px;color:var(--text-muted)'>learned 콜드스타트</span>`
+          : `🚫 가드 없음<br><span style='font-size:9px;color:var(--text-muted)'>learned 콜드스타트</span>`;
+      }
     }
 
     async function toggleVerifyRuntime(param) {
@@ -3572,6 +10346,15 @@ L S R  C S L  R S L
         runtimeState.cx_jump_thresh = thresholds[(idx + 1) % thresholds.length];
       } else if (param === 'multi') {
         runtimeState.multi_prompt = !runtimeState.multi_prompt;
+      } else if (param === 'regroundmiss') {
+        runtimeState.force_reground_on_miss = !runtimeState.force_reground_on_miss;
+      } else if (param === 'stopmode') {
+        runtimeState.stop_mode = runtimeState.stop_mode === "proximity" ? "learned" : "proximity";
+      } else if (param === 'stopguard') {
+        const steps = [0, 1, 3, 5, 10];
+        let idx = steps.indexOf(runtimeState.stop_learned_min_steps);
+        if (idx === -1) idx = 2;
+        runtimeState.stop_learned_min_steps = steps[(idx + 1) % steps.length];
       }
 
       updateVerifyRuntimeUI();
@@ -3586,7 +10369,10 @@ L S R  C S L  R S L
             grounding_skip_n: runtimeState.grounding_skip_n,
             cx_jump_filter: runtimeState.cx_jump_filter,
             cx_jump_thresh: runtimeState.cx_jump_thresh,
-            multi_prompt: runtimeState.multi_prompt
+            multi_prompt: runtimeState.multi_prompt,
+            force_reground_on_miss: runtimeState.force_reground_on_miss,
+            stop_mode: runtimeState.stop_mode,
+            stop_learned_min_steps: runtimeState.stop_learned_min_steps
           })
         });
         if (res.ok) {
@@ -3610,6 +10396,31 @@ L S R  C S L  R S L
       }
     }
 
+    async function applyVerifyOwlAreaScale() {
+      const statusEl = document.getElementById("vfy-rt-status");
+      const v = parseFloat(document.getElementById("vfy-owl-area-scale").value);
+      if (isNaN(v) || v <= 0) { statusEl.textContent = "⚠️ 보정계수 값이 올바르지 않음"; return; }
+      statusEl.textContent = "OWL 보정계수 적용 중...";
+      try {
+        const res = await api("/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ owlv2_area_scale: v })
+        });
+        if (res.ok) {
+          const inner = (res.applied && res.applied.applied) || {};
+          const parts = Object.entries(inner).map(([k, v2]) => `${k}=${v2}`);
+          statusEl.textContent = parts.length > 0
+            ? "✅ 서버 적용: " + parts.join(", ")
+            : "⚠️ 서버가 아무것도 적용 안 함 (applied 비어있음)";
+        } else {
+          statusEl.textContent = "⚠️ 적용 실패: " + res.error;
+        }
+      } catch(e) {
+        statusEl.textContent = "⚠️ 서버 오류: " + e;
+      }
+    }
+
     function updatePathSummary(rows) {
       const done_total = {};
       const done_succ = {};
@@ -3620,7 +10431,7 @@ L S R  C S L  R S L
       
       let nav_done = 0;
       let nav_succ = 0;
-      
+
       rows.forEach(r => {
         if (r.length < 3) return;
         const pt = String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim();
@@ -3631,28 +10442,39 @@ L S R  C S L  R S L
           if (done_succ[pt] !== undefined) {
             done_succ[pt] += 1;
           }
-          if (!pt.startsWith("obj_") && !pt.startsWith("dist_")) {
+          if (!pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
             nav_succ += 1;
           }
         }
-        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_")) {
+        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
           nav_done += 1;
         }
       });
-      
+
       const nav_total = 90; // 9 routes * 10 targets = 90
       const obj_done = (done_total["obj_left"] || 0) + (done_total["obj_center"] || 0) + (done_total["obj_right"] || 0);
       const obj_succ = (done_succ["obj_left"] || 0) + (done_succ["obj_center"] || 0) + (done_succ["obj_right"] || 0);
       const dist_done = (done_total["dist_10cm"] || 0) + (done_total["dist_20cm"] || 0) + (done_total["dist_30cm"] || 0);
       const dist_succ = (done_succ["dist_10cm"] || 0) + (done_succ["dist_20cm"] || 0) + (done_succ["dist_30cm"] || 0);
-      
+      // 트랙A/트랙F(V6)는 기존 집계와 목표수(15 vs 10)가 달라 완전히 분리 집계
+      const trackAKeys = PATH_TYPES.filter(k => k.startsWith("trackA_"));
+      const trackA_total = trackAKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
+      const trackA_done = trackAKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
+      const trackA_succ = trackAKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
+      const trackFKeys = PATH_TYPES.filter(k => k.startsWith("trackF_"));
+      const trackF_total = trackFKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
+      const trackF_done = trackFKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
+      const trackF_succ = trackFKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
+
       const total_done = rows.length;
-      const total_target = 210; // 90 nav + 90 obj + 30 dist = 210
-      
+      const total_target = 210; // 90 nav + 90 obj + 30 dist = 210 (트랙A/F 별개 집계, 미포함)
+
       const pct_total = Math.min(100.0, Math.max(0.0, (total_done / total_target) * 100));
       const pct_nav   = Math.min(100.0, Math.max(0.0, (nav_done / nav_total) * 100));
       const pct_obj   = Math.min(100.0, Math.max(0.0, (obj_done / 90) * 100));
       const pct_dist  = Math.min(100.0, Math.max(0.0, (dist_done / 30) * 100));
+      const pct_trackA = Math.min(100.0, Math.max(0.0, (trackA_done / trackA_total) * 100));
+      const pct_trackF = Math.min(100.0, Math.max(0.0, (trackF_done / trackF_total) * 100));
       
       const progressHtml = `
       <div style="width: 100%; box-sizing: border-box; padding: 2px 0;">
@@ -3666,7 +10488,7 @@ L S R  C S L  R S L
           </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
             <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
               <span style="color: #58a6ff; font-weight: 600;">🛣️ 경로 검증</span>
@@ -3676,7 +10498,7 @@ L S R  C S L  R S L
               <div style="width: ${pct_nav.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
-          
+
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
             <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
               <span style="color: #3fb950; font-weight: 600;">🎯 위치별</span>
@@ -3686,7 +10508,7 @@ L S R  C S L  R S L
               <div style="width: ${pct_obj.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
-          
+
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
             <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
               <span style="color: #a371f7; font-weight: 600;">📦 거리별</span>
@@ -3696,16 +10518,39 @@ L S R  C S L  R S L
               <div style="width: ${pct_dist.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #8957e5 0%, #a371f7 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
+
+          <div style="background: #161b22; border: 1px solid var(--amber); border-radius: 6px; padding: 6px;">
+            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+              <span style="color: var(--amber); font-weight: 600;">🎯 트랙A(V6)</span>
+              <span style="color: #8b949e;">${trackA_done}/${trackA_total} (${trackA_succ}✓)</span>
+            </div>
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${pct_trackA.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #b45309 0%, #f59e0b 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <div style="background: #161b22; border: 1px solid #3fb950; border-radius: 6px; padding: 6px;">
+            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+              <span style="color: #3fb950; font-weight: 600;">● 트랙F(V6)</span>
+              <span style="color: #8b949e;">${trackF_done}/${trackF_total} (${trackF_succ}✓)</span>
+            </div>
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${pct_trackF.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
         </div>
       </div>
       `;
       document.getElementById("vfy-progress-wrapper").innerHTML = progressHtml;
-      
+
       document.getElementById("vfy-progress-txt").innerHTML = `
         경로검증 ${nav_done}/${nav_total} ep 성공 ${nav_succ}/20 (목표)<br>
-        위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공)
+        위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공) |
+        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공)
       `;
-      
+
+      renderScreenPanel(rows);
+
       let tblHtml = "";
       PATH_GROUPS.forEach(group => {
         const header = group[0];
@@ -3737,36 +10582,125 @@ L S R  C S L  R S L
     }
 
     // ── H5 세션 리스트 & 인스펙터 ─────────────────────────────────────
+    let _activeSid = null;
+
+    function _sidToDateLabel(sid) {
+      // sid: YYYYMMDD_HHMMSS
+      const m = sid.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})$/);
+      if (!m) return { date: sid, time: "" };
+      return { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}` };
+    }
+
+    // sid("YYYYMMDD_HHMMSS") + window._checkpointIndex(session_id→체크포인트)로
+    // 이 세션이 어느 저장된 병합 세트(들)에 속하는지 찾음(2026-07-31, "세션
+    // 히스토리에도 세트 태그 보이게" 요청). 캐시 둘 다 비어있으면 그냥 빈 배열.
+    function _manualGroupTagsForSession(sid) {
+      const ckpt = (window._checkpointIndex || {})[sid];
+      if (!ckpt) return [];
+      const m = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})$/.exec(sid);
+      if (!m) return [];
+      const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+      const names = [];
+      Object.entries(window._manualGroupsCache || {}).forEach(([name, ranges]) => {
+        const expanded = _expandOpenEndedRanges(ranges);
+        const hit = expanded.some(t => {
+          if (t.checkpoint !== ckpt) return false;
+          const s = new Date(t.start.replace(" ", "T"));
+          const e = new Date(new Date(t.end.replace(" ", "T")).getTime() + 60000);
+          return d >= s && d <= e;
+        });
+        if (hit) names.push(name);
+      });
+      return names;
+    }
+
+    let _sessionRawList = [];
+
     async function loadSessionList() {
+      // 병합 세트 태그를 정확히 매칭하려면 window._checkpointIndex(session→체크포인트),
+      // window._manualGroupsCache(세트 목록), window._currentCheckpointPath(open-ended
+      // 확장 판단용) 3가지가 다 최신이어야 함. 매번 직접 새로고침해서 보장.
+      await Promise.all([refreshCheckpointOptions(), refreshManualGroups(), refreshModelList()]);
+
       const res = await api("/sessions/list");
+      _sessionRawList = (res && res.sessions) ? res.sessions : [];
+      renderSessionList();
+    }
+
+    function renderSessionList() {
       const listEl = document.getElementById("session-list-group");
-      if (res.sessions.length === 0) {
-        listEl.innerHTML = "<div style='text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;'>H5 세션 파일 없음</div>";
+      if (!listEl) return;
+      const search = (document.getElementById("session-search")?.value || "").toLowerCase();
+      const sortMode = document.getElementById("session-sort-select")?.value || "time_desc";
+
+      let sessions = _sessionRawList.filter(s => {
+        if (search) {
+          const matchSid = s.sid.toLowerCase().includes(search);
+          const matchInstr = (s.instruction || "").toLowerCase().includes(search);
+          if (!matchSid && !matchInstr) return false;
+        }
+        return true;
+      });
+
+      // 3대 항목 정렬 (시간순 / 스텝순 / 라벨·인스트럭션순)
+      sessions.sort((a, b) => {
+        if (sortMode === "time_asc") return a.sid.localeCompare(b.sid);
+        if (sortMode === "steps_desc") return (b.steps || 0) - (a.steps || 0);
+        if (sortMode === "steps_asc") return (a.steps || 0) - (b.steps || 0);
+        if (sortMode === "labeled_desc") return (b.labeled_count || 0) - (a.labeled_count || 0);
+        if (sortMode === "instr_asc") return (a.instruction || "").localeCompare(b.instruction || "");
+        return b.sid.localeCompare(a.sid); // time_desc 기본
+      });
+
+      const badge = document.getElementById("session-count-badge");
+      if (badge) badge.textContent = `${sessions.length}/${_sessionRawList.length}개`;
+
+      if (sessions.length === 0) {
+        listEl.innerHTML = "<div style='text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;'>조건에 맞는 H5 세션 없음</div>";
         return;
       }
-      
-      listEl.innerHTML = res.sessions.map(s => {
-        const badge = s.result
-          ? `<span class="${s.result === '성공' ? 'text-emerald' : 'text-rose'}" style="font-weight:700;">${s.result === '성공' ? '✅' : '❌'} ${s.path_type}</span>`
-          : `<span style="color:var(--text-muted);">(에피소드 기록 없음)</span>`;
-        return `
-        <div class="srv-pill" style="cursor:pointer; display:flex; flex-direction:column; align-items:flex-start; padding:12px; gap:4px; hover:border-color:var(--cyan);" onclick="loadSessionDetail('${s.sid}')">
-          <div style="font-weight:700; font-size:13px; color:var(--cyan);">${s.sid}</div>
-          <div style="font-size:11px;">${badge}</div>
-          <div style="font-size:11px; color:var(--text-muted); word-break:break-all;">Entity: ${s.instruction}</div>
-          <div style="display:flex; justify-content:space-between; width:100%; font-size:11px; margin-top:2px;">
-            <span>Steps: ${s.steps}</span>
-            <span class="text-emerald">[${s.labeled_count} Labeled]</span>
+
+      let html = "";
+      let lastDate = null;
+      sessions.forEach(s => {
+        const { date, time } = _sidToDateLabel(s.sid);
+        if (sortMode.startsWith("time") && date !== lastDate) {
+          html += `<div class="session-date-header">${date}</div>`;
+          lastDate = date;
+        }
+        const labeledCls = s.labeled_count > 0 ? "labeled" : "";
+        const activeCls = s.sid === _activeSid ? "active" : "";
+        const groupTags = _manualGroupTagsForSession(s.sid);
+        const groupTagsHtml = groupTags.map(n =>
+          `<span class="sc-badge" style="background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.3);" title="병합 세트: ${n}">🔗 ${n}</span>`
+        ).join("");
+        html += `
+          <div class="session-card ${activeCls}" data-sid="${s.sid}" onclick="loadSessionDetail('${s.sid}')">
+            <div class="sc-top">
+              <span class="sc-sid">${s.sid}</span>
+              <span class="sc-time">${time}</span>
+            </div>
+            <div class="sc-entity" title="${s.instruction}">${s.instruction}</div>
+            <div class="sc-bottom">
+              <span class="sc-badge">Steps ${s.steps}</span>
+              <span class="sc-badge ${labeledCls}">${s.labeled_count} Labeled</span>
+              ${groupTagsHtml}
+            </div>
           </div>
-        </div>
-      `;
-      }).join("");
+        `;
+      });
+      listEl.innerHTML = html;
     }
 
     async function loadSessionDetail(sid) {
+      _activeSid = sid;
+      document.querySelectorAll("#session-list-group .session-card").forEach(el => {
+        el.classList.toggle("active", el.dataset.sid === sid);
+      });
       document.getElementById("inspect-sid-lbl").textContent = "[" + sid + "]";
       document.getElementById("inspector-placeholder").style.display = "none";
       document.getElementById("inspector-body").style.display = "grid";
+      loadInspectTrajectory(sid);   // T1-3 — 비동기, 실패해도 인스펙터 나머지엔 영향 없음
       
       const res = await api("/sessions/load?sid=" + sid);
       if (!res.ok) {
@@ -3775,12 +10709,12 @@ L S R  C S L  R S L
       }
       
       inspectSession = res;
-      
+
       // 슬라이더 초기화
       const slider = document.getElementById("inspect-slider");
       slider.max = res.frames.length - 1;
       slider.value = 0;
-      
+
       // 속성 노출
       let attrText = "";
       for (const k in res.attrs) {
@@ -3788,25 +10722,205 @@ L S R  C S L  R S L
       }
       document.getElementById("inspect-attrs-lbl").textContent = attrText || "속성 없음";
 
-      // 실주행 에피소드 결과(episode_log.csv join) 노출
-      const epGroup = document.getElementById("inspect-episode-group");
-      const epBox = document.getElementById("inspect-episode-box");
-      if (res.episode) {
-        const e = res.episode;
-        const resultColor = e.result === "성공" ? "text-emerald" : "text-rose";
-        epGroup.style.display = "block";
-        epBox.innerHTML = `
-          <span class="${resultColor}" style="font-weight:700;">${e.result}</span>
-          &nbsp;| 경로: ${e.path_type} | steps: ${e.steps} | 레이턴시: ${e.lat_ms}ms<br>
-          top액션: ${e.top_action} | 그라운딩: ${e.gnd_pct}% | area: ${e.area} | cx: ${e.cx} | STOP: ${e.stop} | FPE: ${e.fpe}m<br>
-          ${e.note ? `📝 ${e.note}<br>` : ""}
-          <span style="color:var(--text-muted); font-size:11px;">${e.date}</span>
-        `;
+      renderInspectRuntimeConfig(res.attrs);
+      renderInspectSummary(res.frames);
+      renderInspectEpisode(res.episode);
+      renderInspectTimeline(res.frames, 0);
+      showInspectFrame(0);
+    }
+
+    // ── 경로검증(episode_log) 기록 표시/수정 — session_id로 Tab 4 기록과 연결 ──
+    let _inspEpisode = null;
+
+    function renderInspectEpisode(episode) {
+      _inspEpisode = episode;
+      document.getElementById("inspect-episode-box").style.display = "block";
+      document.getElementById("inspect-ep-edit").style.display = "none";
+      document.getElementById("inspect-ep-status").textContent = "—";
+      const view = document.getElementById("inspect-ep-view");
+      const empty = document.getElementById("inspect-ep-empty");
+      if (!episode) {
+        view.style.display = "none";
+        empty.style.display = "block";
+        return;
+      }
+      view.style.display = "block";
+      empty.style.display = "none";
+      document.getElementById("iep-path").textContent = episode.path_type;
+      document.getElementById("iep-success").textContent = episode.success;
+      document.getElementById("iep-steps").textContent = episode.steps;
+      document.getElementById("iep-lat").textContent = episode.lat_ms + "ms";
+      document.getElementById("iep-topaction").textContent = episode.top_action;
+      document.getElementById("iep-gnd").textContent = episode.gnd_pct + "%";
+      document.getElementById("iep-area").textContent = episode.area;
+      document.getElementById("iep-cx").textContent = episode.cx;
+      document.getElementById("iep-stop").textContent = episode.stop;
+      document.getElementById("iep-fpe").textContent = episode.fpe;
+      document.getElementById("iep-date").textContent = episode.date;
+      document.getElementById("iep-note").textContent = episode.note || "—";
+
+      document.getElementById("iep-success-tile").className = "mini-tile " + (episode.success === "성공" ? "mt-good" : "mt-bad");
+      document.getElementById("iep-stop-tile").className = "mini-tile " + (episode.stop === "Y" ? "mt-accent" : "");
+    }
+
+    let _inspEditPath = null;
+    let _inspEditSuccess = null;
+
+    function selectInspectPathType(pt) {
+      _inspEditPath = pt;
+      document.querySelectorAll(".iep-path-btn").forEach(btn => {
+        btn.className = btn.dataset.path === pt ? "btn btn-cyan iep-path-btn" : "btn btn-outline iep-path-btn";
+      });
+    }
+
+    function setInspectEpResult(val) {
+      _inspEditSuccess = val;
+      document.getElementById("iep-edit-succ-btn").className = val === "성공" ? "btn btn-cyan" : "btn btn-outline";
+      document.getElementById("iep-edit-fail-btn").className = val === "실패" ? "btn btn-rose" : "btn btn-outline";
+    }
+
+    function setInspectFpeValue(val) {
+      document.getElementById("iep-edit-fpe").value = val;
+      document.getElementById("iep-edit-fpe-lbl").textContent = "FPE: " + val;
+    }
+
+    function toggleInspectEpEdit() {
+      if (!_inspEpisode) return;
+      const editBox = document.getElementById("inspect-ep-edit");
+      if (editBox.style.display !== "none") { editBox.style.display = "none"; return; }
+      selectInspectPathType(_inspEpisode.path_type);
+      setInspectEpResult(_inspEpisode.success);
+      setInspectFpeValue(_inspEpisode.fpe);
+      document.getElementById("iep-edit-steps").value = _inspEpisode.steps;
+      document.getElementById("iep-edit-lat").value = _inspEpisode.lat_ms;
+      document.getElementById("iep-edit-note").value = _inspEpisode.note || "";
+      editBox.style.display = "block";
+    }
+
+    async function saveInspectEpisode() {
+      if (!_inspEpisode) return;
+      const body = {
+        row: parseInt(_inspEpisode.row),
+        path_type: _inspEditPath || _inspEpisode.path_type,
+        success: _inspEditSuccess || _inspEpisode.success,
+        steps: parseInt(document.getElementById("iep-edit-steps").value) || 0,
+        lat_ms: parseFloat(document.getElementById("iep-edit-lat").value) || 0,
+        fpe: parseFloat(document.getElementById("iep-edit-fpe").value) || 0,
+        note: document.getElementById("iep-edit-note").value,
+      };
+      const res = await api("/episodes/update", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body) });
+      const statusEl = document.getElementById("inspect-ep-status");
+      if (res.ok) {
+        Object.assign(_inspEpisode, body);
+        renderInspectEpisode(_inspEpisode);
+        document.getElementById("inspect-ep-status").textContent = `✅ 저장됨 (${new Date().toLocaleTimeString()})`;
       } else {
-        epGroup.style.display = "none";
+        statusEl.textContent = "⚠️ " + (res.error || "저장 실패");
+      }
+    }
+
+    function renderInspectRuntimeConfig(attrs) {
+      const box = document.getElementById("inspect-runtime-cfg-box");
+      const grid = document.getElementById("inspect-runtime-cfg-grid");
+      let cfg = {};
+      const raw = attrs && attrs.runtime_config;
+      if (raw) {
+        try { cfg = JSON.parse(raw); } catch (e) { cfg = {}; }
       }
 
-      showInspectFrame(0);
+      // 경로검증(Tab 4) 당시 Config 패널 값 — H5 attrs에 직접 기록됨(instruction_mode/gt_object/apply_cc).
+      // 서버 스냅샷(cfg)과 달리 이건 그 세션에서 "실제로 눌렀던" 값.
+      const VFY_KEYS = [
+        ["instruction", "instruction"], ["instruction_mode", "이동 모드"],
+        ["gt_object", "GT object"], ["apply_cc", "색보정(CC)"],
+      ];
+      const CFG_KEYS = [
+        ["checkpoint_path", "checkpoint"], ["head", "head"], ["git_commit", "git"],
+        ["grounder_model", "grounder"], ["grounder_input_px", "grounder px"],
+        ["owlv2_thresh", "owlv2_thresh"], ["owlv2_area_scale", "area_scale"],
+        ["grounding_skip_n", "skip_n"], ["preview_enabled", "preview"],
+        ["preview_hint_cx", "hint_cx"], ["multi_prompt", "multi_prompt"],
+        ["cx_jump_filter", "cx_jump_filter"], ["cx_jump_thresh", "cx_jump_thresh"],
+      ];
+
+      const vfyTiles = VFY_KEYS.filter(([k]) => attrs && attrs[k] !== undefined && attrs[k] !== "")
+        .map(([k, label]) => `<div class="mini-tile mt-accent"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${attrs[k]}</span></div>`);
+      const cfgTiles = CFG_KEYS.filter(([k]) => cfg[k] !== undefined)
+        .map(([k, label]) => `<div class="mini-tile"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${cfg[k]}</span></div>`);
+
+      if (vfyTiles.length === 0 && cfgTiles.length === 0) {
+        box.style.display = "none";
+        return;
+      }
+      grid.innerHTML = vfyTiles.concat(cfgTiles).join("");
+      box.style.display = "block";
+    }
+
+    function renderInspectSummary(frames) {
+      const n = frames.length;
+      const avgLat = n ? (frames.reduce((s, f) => s + (f.latency_ms || 0), 0) / n) : 0;
+      const liveN = frames.filter(f => f.cached === 0.0).length;
+      const cacheN = frames.filter(f => f.cached === 1.0).length;
+      const labeledN = frames.filter(f => f.user_label).length;
+      const warnN = frames.filter(f => f.warns && f.warns.length > 0).length;
+      const counts = {};
+      frames.forEach(f => { counts[f.action] = (counts[f.action] || 0) + 1; });
+      const sortedActions = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+      const maxCount = sortedActions.length ? sortedActions[0][1] : 1;
+
+      const totalLatSec = frames.reduce((s, f) => s + (f.latency_ms || 0), 0) / 1000;
+
+      document.getElementById("inspect-sum-frames").textContent = n;
+      document.getElementById("inspect-sum-lat").textContent = `${avgLat.toFixed(0)}ms`;
+      document.getElementById("inspect-sum-lat-sub").textContent = `약 ${(avgLat/1000).toFixed(1)}초`;
+      document.getElementById("inspect-sum-total").textContent = `${totalLatSec.toFixed(1)}초`;
+      document.getElementById("inspect-sum-cache").textContent = `${liveN} / ${cacheN}`;
+      document.getElementById("inspect-sum-labeled").textContent = `${labeledN}/${n}`;
+      document.getElementById("inspect-sum-warns").textContent = warnN;
+      document.getElementById("inspect-sum-warns-tile").className = "mini-tile " + (warnN > 0 ? "mt-bad" : "mt-good");
+
+      document.getElementById("inspect-sum-actions").innerHTML = sortedActions.map(([k, v]) => `
+        <div class="mini-tile">
+          <span class="mt-label">${k}</span>
+          <span class="mt-value">${v}</span>
+          <div style="height:4px; background:#1d2b45; border-radius:2px; margin-top:2px; overflow:hidden;">
+            <div style="height:100%; width:${(v / maxCount * 100).toFixed(0)}%; background:var(--cyan);"></div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function _timelineColor(f) {
+      if (f.type === "★ARRIVAL") return "#f59e0b";
+      if (f.type === "🔄PREVIEW") return "#8b5cf6";
+      if (f.warns && f.warns.length > 0) return "#f43f5e";
+      return "#10b981";
+    }
+
+    function renderInspectTimeline(frames, activeIdx) {
+      const el = document.getElementById("inspect-timeline");
+      el.innerHTML = frames.map((f, i) => `
+        <div title="Frame ${i+1}: ${f.action}${f.warns.length ? ' — ' + f.warns.length + '건 경고' : ''}"
+             onclick="document.getElementById('inspect-slider').value=${i}; showInspectFrame(${i});"
+             style="flex:1; min-width:2px; cursor:pointer; background:${_timelineColor(f)};
+                    ${i === activeIdx ? 'outline:2px solid #06b6d4; outline-offset:-2px;' : 'opacity:0.75;'}">
+        </div>
+      `).join("");
+    }
+
+    function jumpToNextAnomaly() {
+      if (!inspectSession) return;
+      const cur = parseInt(document.getElementById("inspect-slider").value);
+      const frames = inspectSession.frames;
+      for (let i = cur + 1; i < frames.length; i++) {
+        if (frames[i].warns && frames[i].warns.length > 0) {
+          document.getElementById("inspect-slider").value = i;
+          showInspectFrame(i);
+          return;
+        }
+      }
+      alert("이후 프레임에 이상치가 없습니다.");
     }
 
     function showInspectFrame(idx) {
@@ -3818,10 +10932,16 @@ L S R  C S L  R S L
       document.getElementById("inspect-frame-type-lbl").textContent = frame.type;
       document.getElementById("inspect-action-lbl").textContent = frame.action;
       document.getElementById("inspect-lat-lbl").textContent = frame.latency_ms.toFixed(0) + "ms";
-      
+      document.getElementById("inspect-lat-sec-lbl").textContent = `약 ${(frame.latency_ms/1000).toFixed(1)}초`;
+      document.getElementById("inspect-cx-lbl").textContent = frame.cx.toFixed(3);
+      document.getElementById("inspect-cy-lbl").textContent = frame.cy.toFixed(3);
+      document.getElementById("inspect-area-lbl").textContent = frame.area.toFixed(3);
+      document.getElementById("inspect-hasbbox-lbl").textContent = frame.has_bbox ? "true" : "false";
+
       // 이미지 소스 설정
       document.getElementById("inspect-frame-img").src = `/sessions/frame?sid=${inspectSession.sid}&idx=${idx}`;
-      
+      renderInspectTimeline(inspectSession.frames, idx);
+
       // 아노말리 출력
       const abox = document.getElementById("inspect-anomaly-box");
       if (frame.warns.length > 0) {
@@ -3839,6 +10959,12 @@ L S R  C S L  R S L
 
       // 캔버스 박스 렌더
       drawInspectBbox(frame);
+
+      // 2026-08-09: 우하단에 핵심 메타데이터를 항상 텍스트로 표시(bbox 오버레이와는
+      // 별개 — 캔버스 지우기/그리기와 무관하게 항상 보임).
+      document.getElementById("inspect-meta-overlay").textContent =
+        `${inspectSession.sid}\nframe ${idx + 1}/${inspectSession.frames.length} · ${frame.action}\n`
+        + `cx=${frame.cx.toFixed(2)} cy=${frame.cy.toFixed(2)} area=${frame.area.toFixed(2)}`;
     }
 
     function drawInspectBbox(frame) {
@@ -3887,6 +11013,14 @@ L S R  C S L  R S L
       }
     }
 
+    function downloadSession() {
+      if (!inspectSession) return;
+      const withBbox = document.getElementById("dl-sess-bbox").checked ? 1 : 0;
+      const withMetaText = document.getElementById("dl-sess-meta").checked ? 1 : 0;
+      const url = `/sessions/export?sid=${encodeURIComponent(inspectSession.sid)}&with_bbox=${withBbox}&with_meta=1&with_metatext=${withMetaText}`;
+      window.open(url, "_blank");
+    }
+
     async function deleteActiveSession() {
       if (!inspectSession) return;
       if (!confirm("⚠️ 정말로 이 세션 파일(" + inspectSession.sid + ")을 영구 삭제하시겠습니까?\\n이 작업은 복구가 불가능합니다.")) {
@@ -3906,164 +11040,16 @@ L S R  C S L  R S L
         document.getElementById("inspector-placeholder").style.display = "block";
         document.getElementById("inspector-body").style.display = "none";
         loadSessionList();
-      } else {
-        alert("삭제 실패: " + res.error);
-      }
-    }
-
-    function nextInspectFrame() {
-      const slider = document.getElementById("inspect-slider");
-      let val = parseInt(slider.value) + 1;
-      if (val <= parseInt(slider.max)) {
-        slider.value = val;
-        showInspectFrame(val);
-      }
-    }
-
-    function prevInspectFrame() {
-      const slider = document.getElementById("inspect-slider");
-      let val = parseInt(slider.value) - 1;
-      if (val >= 0) {
-        slider.value = val;
-        showInspectFrame(val);
-      }
-    }
-
-    function toggleInspectPlay() {
-      const btn = document.getElementById("btn-inspect-play");
-      if (inspectPlayTimer) {
-        clearInterval(inspectPlayTimer);
-        inspectPlayTimer = null;
-        btn.textContent = "▶ PLAY";
-      } else {
-        btn.textContent = "⏸ PAUSE";
-        inspectPlayTimer = setInterval(() => {
-          const slider = document.getElementById("inspect-slider");
-          let val = parseInt(slider.value) + 1;
-          if (val > parseInt(slider.max)) val = 0;
-          slider.value = val;
-          showInspectFrame(val);
-        }, 300);
-      }
-    }
-
-    // ── 시스템 제어 ──────────────────────────────────────────────────
-    async function applySysParams() {
-      const preview = document.getElementById("sys-preview").checked;
-      const hint = document.getElementById("sys-hint").checked;
-      const skip = document.getElementById("sys-skip").checked ? 3 : 1;
-      const jump = document.getElementById("sys-jump").checked;
-      const thresh = parseFloat(document.getElementById("sys-jump-thresh").value);
-      
-      const res = await api("/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          preview_enabled: preview,
-          preview_hint_cx: hint,
-          grounding_skip_n: skip,
-          cx_jump_filter: jump,
-          cx_jump_thresh: thresh
-        })
-      });
-      if (res.ok) {
-        console.log("시스템 파라미터 동기화 성공", res);
-      }
-    }
-
-    async function resetServerModel() {
-      if (!confirm("정말 추론 서버와 ROS 노드를 초기화하고 주행 캐시를 리셋하시겠습니까?")) return;
-      try {
-        const res = await api("/system/reset", { method: "POST" });
-        await api("/config", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ stop_latched: false })
-        });
-        alert(res.message || "성공적으로 시스템 상태가 초기화되었습니다.");
-      } catch(e) {
-        alert("초기화 실패: " + e);
-      }
-    }
-
-    async function loadEpisodeHistory() {
-      try {
-        const res = await api("/episodes/list");
-        if (res.ok) {
-          // 경로 집계 패널(진행바/요약표) 갱신 — 이 호출이 없으면 "집계 중..."에서 멈춤
-          updatePathSummary(res.episodes || []);
-          const tbody = document.getElementById("episodes-table-body");
-          if (!res.episodes || res.episodes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">기록이 없습니다.</td></tr>`;
-            return;
-          }
-          tbody.innerHTML = res.episodes.map(ep => {
-            const pathAbbr = {
-              right_right: "R→R", right_left: "R→L★", right_straight: "R→S",
-              center_straight: "C→S", center_left: "C→L", center_right: "C→R",
-              left_straight: "L→S", left_left: "L→L", left_right: "L→R",
-              obj_left: "위치:좌", obj_center: "위치:중", obj_right: "위치:우",
-              dist_10cm: "10cm", dist_20cm: "20cm", dist_30cm: "30cm",
-            }[ep[1]] || ep[1];
-            
-            const resColor = ep[2] === "성공" ? "text-emerald" : "text-rose";
-            const fpeVal = ep[10] ? parseFloat(ep[10]).toFixed(2) : "0.00";
-            const stepsVal = ep[3] || "0";
-            const latVal = ep[4] ? parseFloat(ep[4]).toFixed(0) : "0";
-            
-            return `<tr>
-              <td>${ep[0]}</td>
-              <td class="text-cyan font-mono" title="${ep[1]}">${pathAbbr}</td>
-              <td class="${resColor}">${ep[2]}</td>
-              <td>${stepsVal}</td>
-              <td>${latVal}ms</td>
-              <td>${fpeVal}</td>
-              <td title="${ep[11]}">${ep[11] || "—"}</td>
-              <td style="font-size:11px; color:var(--text-muted);">${ep[12]}</td>
-            </tr>`;
-          }).reverse().join("");
+        // 스크리닝 집계(합계/체크포인트별 진행률/배치 그룹)에도 즉시 반영 —
+        // 예전엔 episode_log.csv 행이 삭제 안 돼서 스크리닝 쪽에 그대로 남아있었음(2026-07-31).
+        if (res.removed_csv_rows) {
+          loadEpisodeHistory();
+          refreshCheckpointOptions();
         }
-      } catch(e) {
-        console.error("Episode history load error:", e);
-      }
-    }
-
-    async function commitEpisode() {
-      const pathType = document.getElementById("ep-path-type").value;
-      const success = document.getElementById("ep-success").value;
-      const fpe = parseFloat(document.getElementById("ep-fpe").value);
-      const note = document.getElementById("ep-note").value;
-      
-      const res = await api("/episodes/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path_type: pathType,
-          success: success,
-          fpe: fpe,
-          note: note
-        })
-      });
-      if (res.ok) {
-        document.getElementById("ep-note").value = "";
-        alert("에피소드 기록이 정상적으로 추가되었습니다.");
-        loadEpisodeHistory();
-      } else {
-        alert("기록 실패: " + res.error);
-      }
-    }
-
-    async function undoEpisode() {
-      if (!confirm("⚠️ 정말로 마지막 에피소드 기록 1건을 삭제하시겠습니까?")) return;
-      const res = await api("/episodes/undo", { method: "POST" });
-      if (res.ok) {
-        alert("마지막 기록이 삭제되었습니다.");
-        loadEpisodeHistory();
       } else {
         alert("삭제 실패: " + res.error);
       }
     }
-
 
 
     // ── Canvas Overlay 드로잉 ─────────────────────────────────────────
@@ -4103,6 +11089,12 @@ L S R  C S L  R S L
       if (cvVfy) {
         const ctxVfy = cvVfy.getContext("2d");
         ctxVfy.clearRect(0, 0, cvVfy.width, cvVfy.height);
+        const guideVfy = document.getElementById("toggle-cxguide-vfy");
+        if (guideVfy && guideVfy.checked) {
+          // 데이터수집과 동일한 cx 배치가이드 밴드 재사용 + 현재 선택 위치 강조
+          _collectDrawCxGuideBands(ctxVfy, cvVfy.width, cvVfy.height);
+          _drawVerifyTargetHighlight(ctxVfy, cvVfy.width, cvVfy.height);
+        }
         const showGridVfy = document.getElementById("toggle-grid-vfy").checked;
         if (showGridVfy) {
           drawGridLines(ctxVfy, cvVfy.width, cvVfy.height);
@@ -4111,6 +11103,41 @@ L S R  C S L  R S L
           drawBbox(ctxVfy, state.bbox, cvVfy.width, cvVfy.height);
         }
       }
+    }
+
+    // 현재 Tab4에서 선택된 path_type의 위치를 카메라 위에 강하게 강조 —
+    // "지금 이 검증에서 바구니를 여기 놓아라"를 시각적으로 표시.
+    const VERIFY_TARGET_BANDS = {
+      strong_left:  {lo: 0.10, hi: 0.15, label: "강한좌 여기", color: "#f43f5e"},
+      weak_left:    {lo: 0.20, hi: 0.25, label: "준극단좌 여기", color: "#f59e0b"},
+      center:       {lo: 0.475, hi: 0.525, label: "중앙 여기", color: "#3fb950"},
+      weak_right:   {lo: 0.75, hi: 0.80, label: "준극단우 여기", color: "#f59e0b"},
+      strong_right: {lo: 0.85, hi: 0.90, label: "강한우 여기", color: "#f43f5e"},
+    };
+    function _drawVerifyTargetHighlight(ctx, W, H) {
+      // 검증모드면 조이스틱 D-pad로 고른 위치(window._verifyScreenPos)를 우선,
+      // 아니면 Tab4 select의 path_type에서 위치 추출.
+      let pos = (joystickVerifyMode && window._verifyScreenPos) ? window._verifyScreenPos : null;
+      if (!pos) {
+        const sel = document.getElementById("ep-path-type");
+        if (!sel) return;
+        pos = verifyPosOf(sel.value);
+      }
+      const b = pos && VERIFY_TARGET_BANDS[pos];
+      if (!b) return;
+      const x0 = b.lo * W, x1 = b.hi * W;
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(x0, 0, x1 - x0, H);
+      ctx.restore();
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x0, 0, x1 - x0, H);
+      ctx.fillStyle = b.color;
+      ctx.textAlign = "center";
+      ctx.font = "bold 20px monospace";
+      ctx.fillText("🎯 " + b.label, (x0 + x1) / 2, H / 2);
     }
 
     function drawGridLines(ctx, W, H) {
@@ -4147,6 +11174,243 @@ L S R  C S L  R S L
       ctx.fill();
     }
 
+    // ── 에피소드 저장 / 실행 취소 / 누적 기록 로드 ──────────────────────────
+    let _epEditingRow = null;
+    let _epByRow = {};
+
+    function _epEditLoadByRow(rowKey) {
+      const ep = _epByRow[rowKey];
+      if (ep) _epEditLoad(ep);
+    }
+
+    function _epEditLoad(ep) {
+      _epEditingRow = ep[0];
+      const pathSel = document.getElementById("ep-edit-path");
+      if (pathSel && pathSel.options.length === 0) {
+        pathSel.innerHTML = document.getElementById("ep-path-type").innerHTML;
+      }
+      document.getElementById("ep-edit-target").textContent = `#${ep[0]} 수정 중`;
+      pathSel.value = ep[1];
+      document.getElementById("ep-edit-success").value = ep[2];
+      document.getElementById("ep-edit-steps").value = ep[3];
+      document.getElementById("ep-edit-lat").value = ep[4];
+      document.getElementById("ep-edit-fpe").value = ep[10];
+      document.getElementById("ep-edit-note").value = ep[11] || "";
+      document.getElementById("ep-edit-status").textContent = "—";
+      const cfgEl = document.getElementById("ep-edit-runtime-cfg");
+      if (cfgEl) {
+        const ckpt = ep.length > 14 ? ep[14] : null;
+        const cfgRaw = ep.length > 15 ? ep[15] : null;
+        // 2026-08-07: 학습된 STOP(모델 목표도달)인지 R1 수동정지인지 — 이전 행엔 없음(빈 문자열).
+        const endReason = ep.length > 16 ? ep[16] : null;
+        if (!ckpt && !cfgRaw && !endReason) {
+          cfgEl.style.display = "none";
+        } else {
+          let cfgText = ckpt ? `체크포인트: ${ckpt}` : "";
+          if (endReason) {
+            const label = endReason === "learned" ? "학습STOP(모델 목표도달)"
+              : endReason === "manual" ? "수동정지(R1)" : endReason;
+            cfgText += (cfgText ? "\\n" : "") + `종료방식: ${label}`;
+          }
+          if (cfgRaw) {
+            try {
+              const cfg = JSON.parse(cfgRaw);
+              cfgText += (cfgText ? "\\n" : "") + Object.entries(cfg).map(([k, v]) => `${k}: ${v}`).join("\\n");
+            } catch (e) { cfgText += (cfgText ? "\\n" : "") + cfgRaw; }
+          }
+          cfgEl.textContent = cfgText;
+          cfgEl.style.display = "block";
+        }
+      }
+      loadEpisodeHistory(); // 클릭한 행 하이라이트 갱신
+    }
+
+    function _epEditClear() {
+      _epEditingRow = null;
+      document.getElementById("ep-edit-target").textContent = "— 행을 클릭하세요 —";
+      document.getElementById("ep-edit-status").textContent = "—";
+      const cfgEl = document.getElementById("ep-edit-runtime-cfg");
+      if (cfgEl) cfgEl.style.display = "none";
+      loadEpisodeHistory();
+    }
+
+    async function _epEditSave() {
+      if (_epEditingRow == null) {
+        document.getElementById("ep-edit-status").textContent = "⚠️ 먼저 행을 클릭하세요";
+        return;
+      }
+      const body = {
+        row: parseInt(_epEditingRow),
+        path_type: document.getElementById("ep-edit-path").value,
+        success: document.getElementById("ep-edit-success").value,
+        steps: parseInt(document.getElementById("ep-edit-steps").value) || 0,
+        lat_ms: parseFloat(document.getElementById("ep-edit-lat").value) || 0,
+        fpe: parseFloat(document.getElementById("ep-edit-fpe").value) || 0,
+        note: document.getElementById("ep-edit-note").value,
+      };
+      const res = await api("/episodes/update", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body) });
+      const statusEl = document.getElementById("ep-edit-status");
+      statusEl.textContent = res.ok ? `✅ #${body.row} 저장됨` : "⚠️ " + (res.error || "저장 실패");
+      if (res.ok) loadEpisodeHistory();
+    }
+
+    async function _epEditDelete() {
+      const statusEl = document.getElementById("ep-edit-status");
+      if (_epEditingRow == null) {
+        statusEl.textContent = "⚠️ 먼저 행을 클릭하세요";
+        return;
+      }
+      if (!confirm(`#${_epEditingRow} 에피소드를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      const res = await api("/episodes/delete", { method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ row: parseInt(_epEditingRow) }) });
+      statusEl.textContent = res.ok ? `🗑️ #${_epEditingRow} 삭제됨` : "⚠️ " + (res.error || "삭제 실패");
+      if (res.ok) { _epEditClear(); }
+    }
+
+    async function loadEpisodeHistory() {
+      try {
+        // T2-3: 정식/실험용 CSV 전환. 실험용일 땐 스크리닝 집계(renderScreenPanel)를
+        // 오염시키면 안 되므로 updatePathSummary 호출을 건너뛴다.
+        const _src = document.getElementById("vfy-source")?.value || "main";
+        const res = await api("/episodes/list?source=" + encodeURIComponent(_src));
+        if (res.ok) {
+          // 경로 집계 패널(진행바 및 요약 표)을 갱신합니다.
+          if (_src !== "experimental") updatePathSummary(res.episodes || []);
+          const tbody = document.getElementById("episodes-table-body");
+          if (!tbody) return;
+          
+          let episodes = res.episodes || [];
+          
+          // 필터 선택 값에 따라 에피소드 성공/실패 여부를 걸러냅니다.
+          const filterVal = document.getElementById("vfy-filter") ? document.getElementById("vfy-filter").value : "all";
+          if (filterVal === "success") {
+            episodes = episodes.filter(ep => ep[2] === "성공");
+          } else if (filterVal === "fail") {
+            episodes = episodes.filter(ep => ep[2] === "실패");
+          }
+
+          if (episodes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; color:var(--text-muted);">기록이 없습니다.</td></tr>`;
+            return;
+          }
+          _epByRow = {};
+          episodes.forEach(ep => { _epByRow[ep[0]] = ep; });
+          tbody.innerHTML = episodes.map(ep => {
+            const pathAbbr = {
+              right_right: "R→R", right_left: "R→L★", right_straight: "R→S",
+              center_straight: "C→S", center_left: "C→L", center_right: "C→R",
+              left_straight: "L→S", left_left: "L→L", left_right: "L→R",
+              obj_left: "위치:좌", obj_center: "위치:중", obj_right: "위치:우",
+              dist_10cm: "10cm", dist_20cm: "20cm", dist_30cm: "30cm",
+            }[ep[1]] || ep[1];
+
+            const resColor = ep[2] === "성공" ? "text-emerald" : "text-rose";
+            const isEditing = String(ep[0]) === String(_epEditingRow);
+            const stopColor = ep[9] === "Y" ? "text-emerald" : "text-muted";
+            return `
+              <tr onclick='_epEditLoadByRow("${String(ep[0]).replace(/"/g, "&quot;")}")' style="cursor:pointer; ${isEditing ? "background:rgba(56,189,248,0.12);" : ""}">
+                <td>${ep[0]}</td>
+                <td><strong class="text-cyan">${pathAbbr}</strong></td>
+                <td><strong class="${resColor}">${ep[2]}</strong></td>
+                <td>${ep[3]}</td>
+                <td>${ep[4]} ms</td>
+                <td style="font-size:10px; color:var(--text-muted);">${ep[5] || "—"}</td>
+                <td class="font-mono" style="font-size:10px;">${ep[6] ?? "—"}</td>
+                <td class="font-mono" style="font-size:10px;">${ep[7] ?? "—"}</td>
+                <td class="font-mono" style="font-size:10px;">${ep[8] ?? "—"}</td>
+                <td class="${stopColor}" style="font-size:10px;">${ep[9] || "—"}</td>
+                <td class="font-mono text-cyan" style="font-size:10px;">${ep[10] || "—"}</td>
+                <td style="font-size:11px; color:var(--text-muted);">${ep[11] || "—"}</td>
+                <td style="font-family:var(--font-sans); color:var(--text-muted); font-size:10px; white-space:nowrap;">${ep[12] || "—"}</td>
+                <td class="font-mono" style="font-size:9px; color:var(--text-muted); white-space:nowrap;">${ep[13] || "—"}</td>
+              </tr>
+            `;
+          }).reverse().join("");
+        }
+      } catch (e) {
+        console.error("loadEpisodeHistory error:", e);
+      }
+    }
+
+    async function commitEpisode() {
+      const pathType = document.getElementById("ep-path-type").value;
+      const success = document.getElementById("ep-success").value;
+      const fpe = parseFloat(document.getElementById("ep-fpe").value);
+      const note = document.getElementById("ep-note").value;
+      
+      const res = await api("/episodes/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path_type: pathType,
+          success: success,
+          fpe: fpe,
+          note: note
+        })
+      });
+      const sl = document.getElementById("vfy-status-log");
+      if (res.ok) {
+        document.getElementById("ep-note").value = "";
+        if (sl) sl.textContent = `💾 저장됨: ${pathType} = ${success}`;
+        loadEpisodeHistory();
+      } else {
+        if (sl) sl.textContent = "⚠️ 기록 실패: " + res.error;
+      }
+    }
+
+    async function undoEpisode() {
+      if (!confirm("⚠️ 정말로 마지막 에피소드 기록 1건을 삭제하시겠습니까?")) return;
+      const res = await api("/episodes/undo", { method: "POST" });
+      if (res.ok) {
+        alert("마지막 기록이 삭제되었습니다.");
+        loadEpisodeHistory();
+      } else {
+        alert("삭제 실패: " + res.error);
+      }
+    }
+
+    // ── Frame-by-Frame Inspector 프레임 재생 및 탐색 제어 ───────────────────
+    function nextInspectFrame() {
+      const slider = document.getElementById("inspect-slider");
+      if (!slider) return;
+      let val = parseInt(slider.value) + 1;
+      if (val <= parseInt(slider.max)) {
+        slider.value = val;
+        showInspectFrame(val);
+      }
+    }
+
+    function prevInspectFrame() {
+      const slider = document.getElementById("inspect-slider");
+      if (!slider) return;
+      let val = parseInt(slider.value) - 1;
+      if (val >= 0) {
+        slider.value = val;
+        showInspectFrame(val);
+      }
+    }
+
+    function toggleInspectPlay() {
+      const btn = document.getElementById("btn-inspect-play");
+      if (!btn) return;
+      if (inspectPlayTimer) {
+        clearInterval(inspectPlayTimer);
+        inspectPlayTimer = null;
+        btn.textContent = "▶ PLAY";
+      } else {
+        btn.textContent = "⏸ PAUSE";
+        inspectPlayTimer = setInterval(() => {
+          const slider = document.getElementById("inspect-slider");
+          if (!slider) return;
+          let val = parseInt(slider.value) + 1;
+          if (val > parseInt(slider.max)) val = 0;
+          slider.value = val;
+          showInspectFrame(val);
+        }, 300);
+      }
+    }
+
     // ── 주기적 폴링 루프 (500ms) ──────────────────────────────────────
     async function pollStatus() {
       try {
@@ -4164,7 +11428,12 @@ L S R  C S L  R S L
         // 2. 버튼 활성화 동기화
         _syncStartStopBtn("drive-start-btn", "drive-stop-btn", "▶ START DRIVE", state.running);
         _syncStartStopBtn("quick-start-btn", "quick-stop-btn", "▶️ START", state.running);
-        
+
+        // running: true→false 전환 감지 — 목표 도달로 인한 자동 정지처럼
+        // STOP 버튼을 안 눌러도 세션이 끝난 경우까지 세션 스택을 갱신
+        if (_prevRunning && !state.running) showSessionStack();
+        _prevRunning = state.running;
+
         const returnBtn = document.getElementById("drive-return-btn");
         if (returnBtn) {
           returnBtn.textContent = state.is_returning ? "⏹️ 복귀 중단" : "🔄 START 위치로 복귀";
@@ -4203,6 +11472,12 @@ L S R  C S L  R S L
         
         setSafeValue("gnd-entity", state.instruction || "—");
         setSafeValue("gnd-pred-label", state.predicted_label || "—");
+        // 2026-07-31: 그동안 서버가 보내주기만 하고 렌더링은 0회였던 두 값 —
+        // 캐시 히트 여부(gnd-cached는 HTML만 있고 쓰는 JS가 없었음)와 raw caption.
+        setSafeValue("gnd-cached",
+          state.grounding_cached === true ? "Yes (cached)" :
+          state.grounding_cached === false ? "No (live)" : "—");
+        setSafeValue("gnd-caption", state.grounding_caption || "—");
         
         // 4-0. 수집 세션 요약
         {
@@ -4233,6 +11508,7 @@ L S R  C S L  R S L
               <td>${r[3]} ms</td>
               <td>${r[4]} ms</td>
               <td><strong class="text-emerald">${r[5]}</strong></td>
+              <td>${r[7] ? '<span class="text-emerald">✅</span>' : '<span class="text-rose">❌</span>'}</td>
               <td style="font-size:11px; color:var(--text-muted); white-space:nowrap;">${r[6] || "—"}</td>
             </tr>
           `).join("");
@@ -4279,7 +11555,10 @@ L S R  C S L  R S L
           setSafeText("vfy-sess-record-lbl", `추론 ${state.n_infer || 0} + post ${state.n_post || 0} = ${state.n_total || 0}`);
           setSafeText("vfy-sess-id-lbl", state.session_id || "—");
 
-          // 🔍 신규 추가: 그라운딩 통계
+          // 🔍 신규 추가: 그라운딩 통계 — "live PG2" 고정 라벨이 OWL-v2 사용 중에도
+          // 그대로 떠서 헷갈렸던 것 수정, 현재 로드된 그라운더 이름을 그대로 반영(2026-07-31).
+          const _gndCurName = document.getElementById("vfy-grounder-current");
+          setSafeText("vfy-gnd-live-label", (_gndCurName && _gndCurName.textContent && _gndCurName.textContent !== "—") ? _gndCurName.textContent : "그라운더");
           setSafeText("vfy-gnd-live-cnt", state.gnd_live !== undefined ? state.gnd_live + "회" : "0회");
           setSafeText("vfy-gnd-cache-cnt", state.gnd_cache !== undefined ? state.gnd_cache + "회" : "0회");
           setSafeText("vfy-gnd-avg-lat", state.gnd_avg_lat !== undefined ? state.gnd_avg_lat + "ms" : "0ms");
@@ -4364,13 +11643,32 @@ L S R  C S L  R S L
             <div class="form-group"><label>Loaded Checkpoint</label><input type="text" readonly value="${inf.checkpoint_path}"></div>
             <div class="form-group"><label>Precision</label><input type="text" readonly value="${inf.precision}"></div>
             <div class="form-group"><label>Model Head</label><input type="text" readonly value="${inf.head}"></div>
-            <div class="form-group"><label>Stop Mode</label><input type="text" readonly value="${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'})"></div>
+            <div class="form-group">
+              <label>Stop Mode</label>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" readonly value="${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'}) · guard=${inf.stop_learned_min_steps ?? 3}f" style="flex:1;">
+                <button class="btn btn-outline" onclick="toggleVerifyRuntime('stopmode')" style="font-size:11px; padding:6px 10px; white-space:nowrap;">🔁 전환</button>
+                <button class="btn btn-outline" onclick="toggleVerifyRuntime('stopguard')" style="font-size:11px; padding:6px 10px; white-space:nowrap;">🛡 가드</button>
+              </div>
+            </div>
           `;
           
-          // verify 탭 서버 상태 갱신
+          // verify 탭 서버 상태 갱신 — 메인 모델 + 그라운딩 모델을 서버 변경 즉시 반영
           const vfySrvStatus = document.getElementById("vfy-srv-status");
           if (vfySrvStatus) {
-            vfySrvStatus.innerHTML = `Model: ${inf.checkpoint_path ? inf.checkpoint_path.split('/').pop() : '—'}<br>StopMode: ${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'})`;
+            const vg = inf.grounder || {};
+            const grIsOwl = (vg.model || "").toLowerCase().includes("owl");
+            const grBadge = grIsOwl
+              ? `<span style="color:var(--emerald); font-weight:700;">🔭 ${vg.model}</span> th=${vg.owlv2_thresh ?? '—'} scale=${vg.owlv2_area_scale ?? '—'}`
+              : `<span style="color:var(--amber); font-weight:700;">🔭 ${vg.model || '—'}</span>`;
+            const s1Name = (inf.stage1_path || "").split("/").pop() || "—";
+            const s1Badge = s1Name === "stage1_v2_projs.pt" ? "V2(legacy)"
+              : s1Name === "stage1_v3_5cls_owl_projs.pt" ? "V3-5cls(new)" : s1Name;
+            vfySrvStatus.innerHTML =
+              `<span style="color:var(--cyan); font-weight:700;">🧠 ${inf.checkpoint_path ? inf.checkpoint_path.split('/').pop() : '—'}</span> (${inf.head} W${inf.window})<br>`
+              + `${grBadge} · phrase="${vg.phrase || '—'}"<br>`
+              + `<span style="color:var(--violet,#a78bfa); font-weight:700;">🧬 ${s1Badge}</span><br>`
+              + `STOP: ${inf.stop_mode} (${inf.stop_latched ? 'Latched' : 'Unlatched'}) · git ${inf.git_commit || '—'}`;
           }
 
           // 시스템 토글 스위치 동기화
@@ -4401,16 +11699,462 @@ L S R  C S L  R S L
       }
     }
 
+    // ── 🗂 데이터셋 히스토리 탭 — 데이터수집이 저장한 원본 H5 브라우징 ──
+    let _dsItems = [];
+    let _dsScenarioLabels = {};
+    let _dsCxPosLabels = {};
+    let _dsSelected = new Set();     // 비교 모드에서 체크된 name들
+    let _dsCxPosFilter = new Set();  // 클릭형 칩 필터 (다중 선택, OR)
+    let _dsSchemaFilter = "";        // "" | "legacy" | "new" — 버튼 단일선택
+    let _dsScenarioFilter = "";      // "" 또는 scenario 키 — 버튼 단일선택
+    let _dsCompareMode = false;
+    let _dsDetail = null;            // 현재 단일 상세로 열린 dataset_load() 응답
+    let _dsPlayTimer = null;
+    const DS_MAX_COMPARE = 6;
+    const DS_SCHEMA_VERSION = {legacy: "V5", new: "V6"};  // docs/DATASET_V6_STATUS.md 명명 규정
+
+    // cx_position/cx_path/scenario/schema를 아이콘+색깔 칩으로 파싱 — 리스트 카드에서
+    // 파일명 전체를 안 보여줘도(제목=날짜시간, 파일명은 title 툴팁) 한눈에 구분되도록.
+    const DS_CXPOS_STYLE = {
+      strong_left:  {icon: "◀◀", bg: "rgba(56,189,248,0.15)", fg: "var(--cyan)"},
+      weak_left:    {icon: "◀",  bg: "rgba(56,189,248,0.15)", fg: "var(--cyan)"},
+      center:       {icon: "●",  bg: "rgba(148,163,184,0.15)", fg: "var(--text-muted)"},
+      weak_right:   {icon: "▶",  bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
+      strong_right: {icon: "▶▶", bg: "rgba(245,158,11,0.15)", fg: "var(--amber)"},
+    };
+    const DS_CXPATH_ICON = {left_curve: "↰", straight: "↑", right_curve: "↱",
+      overshoot_left_recover: "⟲", overshoot_right_recover: "⟳"};
+
+    function _dsInfoChips(it) {
+      const chip = (text, bg, fg) =>
+        `<span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:${bg}; color:${fg};">${text}</span>`;
+      const chips = [];
+      // 3-Mode 제어 모드 칩 (Dual, Continuous, Discrete)
+      if (it.control_mode === "dual") {
+        chips.push(chip("⚡ 듀얼", "rgba(168,85,247,0.2)", "var(--purple)"));
+      } else if (it.control_mode === "continuous" || it.action_space === "continuous") {
+        chips.push(chip("∿ 아날로그", "rgba(56,189,248,0.2)", "var(--cyan)"));
+      } else if (it.control_mode === "discrete") {
+        chips.push(chip("🕹️ 이산", "rgba(148,163,184,0.15)", "var(--text-muted)"));
+      }
+      if (it.cx_position) {
+        const st = DS_CXPOS_STYLE[it.cx_position] || {icon: "●", bg: "rgba(148,163,184,0.15)", fg: "var(--text-muted)"};
+        const label = _dsCxPosLabels[it.cx_position] || it.cx_position;
+        chips.push(chip(`${st.icon} ${label}`, st.bg, st.fg));
+      }
+      if (it.cx_path) {
+        chips.push(chip(`${DS_CXPATH_ICON[it.cx_path] || "•"} ${it.cx_path}`, "rgba(163,113,247,0.15)", "#a371f7"));
+      }
+      if (it.scenario) {
+        chips.push(chip(`🎯 ${_dsScenarioLabels[it.scenario] || it.scenario}`, "rgba(16,185,129,0.15)", "var(--emerald)"));
+      }
+      chips.push(chip(DS_SCHEMA_VERSION[it.schema] || it.schema, "rgba(148,163,184,0.15)", "var(--text-muted)"));
+      return chips.join("");
+    }
+
+    function downloadDatasetEpisode() {
+      if (!_dsDetail) return;
+      const withMetaText = document.getElementById("dl-ds-meta").checked ? 1 : 0;
+      const url = `/dataset/export?name=${encodeURIComponent(_dsDetail.meta.name)}&with_meta=1&with_metatext=${withMetaText}`;
+      window.open(url, "_blank");
+    }
+
+    async function _dsDeleteOne(name) {
+      if (!confirm(`삭제하시겠습니까?\\n${name}`)) return;
+      const res = await api("/dataset/delete?name=" + encodeURIComponent(name), { method: "POST" });
+      if (!res.ok) { alert("삭제 실패: " + res.error); return; }
+      _dsSelected.delete(name);
+      if (_dsDetail && _dsDetail.meta.name === name) {
+        _dsDetail = null;
+        setDatasetCompareMode(false);
+        document.getElementById("ds-placeholder").style.display = "block";
+      }
+      await loadDatasetList();
+    }
+
+    async function _dsDeleteSelected() {
+      if (_dsSelected.size === 0) return;
+      const names = [..._dsSelected];
+      if (!confirm(`선택한 ${names.length}개를 삭제하시겠습니까?\\n\\n${names.join("\\n")}`)) return;
+      for (const name of names) {
+        const res = await api("/dataset/delete?name=" + encodeURIComponent(name), { method: "POST" });
+        if (!res.ok) console.error("삭제 실패:", name, res.error);
+      }
+      _dsSelected.clear();
+      setDatasetCompareMode(false);
+      document.getElementById("ds-placeholder").style.display = "block";
+      await loadDatasetList();
+    }
+
+    async function loadDatasetList() {
+      const res = await api("/dataset/list");
+      if (!res.ok) return;
+      _dsItems = res.items;
+      _dsScenarioLabels = res.scenario_labels || {};
+      _dsCxPosLabels = res.cx_position_labels || {};
+
+      const scWrap = document.getElementById("ds-filter-scenario");
+      const scOptions = [["", "전체"]].concat(res.scenarios.map(s => [s, _dsScenarioLabels[s] || s]));
+      scWrap.innerHTML = scOptions.map(([sc, label]) =>
+        `<button type="button" class="btn btn-outline ds-scenario-btn" data-sc="${sc}" onclick="_dsSetScenarioFilter(this.dataset.sc)" style="font-size:13px; font-weight:600; padding:4px 10px;">${label}</button>`
+      ).join("");
+      _dsSyncScenarioButtons();
+
+      const cxWrap = document.getElementById("ds-filter-cxpos");
+      cxWrap.innerHTML = res.cx_positions.map(cx =>
+        `<button type="button" class="btn btn-outline ds-cxpos-btn" data-cx="${cx}" onclick="_dsToggleCxFilter('${cx}')" style="font-size:10px; padding:3px 8px;">${_dsCxPosLabels[cx] || cx}</button>`
+      ).join("");
+      _dsSyncCxposButtons();
+
+      renderDatasetList();
+    }
+
+    function _dsSyncScenarioButtons() {
+      document.querySelectorAll(".ds-scenario-btn").forEach(b => {
+        const active = b.dataset.sc === _dsScenarioFilter;
+        b.classList.toggle("active", active);
+        b.style.background = active ? "rgba(56,189,248,0.2)" : "";
+        b.style.borderColor = active ? "var(--cyan)" : "";
+        b.style.color = active ? "var(--cyan)" : "";
+      });
+    }
+    function _dsSetScenarioFilter(sc) {
+      _dsScenarioFilter = sc;
+      _dsSyncScenarioButtons();
+      renderDatasetList();
+    }
+
+    function _dsSyncCxposButtons() {
+      document.querySelectorAll(".ds-cxpos-btn").forEach(b => {
+        const active = _dsCxPosFilter.has(b.dataset.cx);
+        b.classList.toggle("active", active);
+        b.style.background = active ? "rgba(56,189,248,0.2)" : "";
+        b.style.borderColor = active ? "var(--cyan)" : "";
+        b.style.color = active ? "var(--cyan)" : "";
+      });
+    }
+    function _dsToggleCxFilter(cx) {
+      if (_dsCxPosFilter.has(cx)) _dsCxPosFilter.delete(cx); else _dsCxPosFilter.add(cx);
+      _dsSyncCxposButtons();
+      renderDatasetList();
+    }
+
+    function _dsSetSchemaFilter(schema) {
+      _dsSchemaFilter = schema;
+      document.querySelectorAll(".ds-schema-btn").forEach(b => {
+        const active = b.dataset.schema === schema;
+        b.classList.toggle("active", active);
+        b.style.background = active ? "rgba(56,189,248,0.2)" : "";
+        b.style.borderColor = active ? "var(--cyan)" : "";
+        b.style.color = active ? "var(--cyan)" : "";
+      });
+      renderDatasetList();
+    }
+
+    function _dsToggleCompareMode() {
+      _dsCompareMode = !_dsCompareMode;
+      const btn = document.getElementById("ds-compare-toggle-btn");
+      btn.textContent = _dsCompareMode ? "✅ 다중 선택(비교 모드) 끄기" : "☑️ 다중 선택(비교 모드) 켜기 — 최대 6개";
+      btn.classList.toggle("btn-cyan", _dsCompareMode);
+      if (!_dsCompareMode) {
+        _dsSelected.clear();
+        setDatasetCompareMode(false);
+        document.getElementById("ds-placeholder").style.display = "block";
+      }
+      renderDatasetList();
+    }
+
+    function renderDatasetList() {
+      const compareMode = _dsCompareMode;
+      const search = (document.getElementById("ds-search").value || "").toLowerCase();
+      const scenarioFilter = _dsScenarioFilter;
+      const sortMode = document.getElementById("ds-sort-select")?.value || "date_desc";
+
+      let items = _dsItems.filter(it => {
+        if (search && !it.name.toLowerCase().includes(search)) return false;
+        if (scenarioFilter && it.scenario !== scenarioFilter) return false;
+        if (_dsCxPosFilter.size > 0 && !_dsCxPosFilter.has(it.cx_position)) return false;
+        if (_dsSchemaFilter && it.schema !== _dsSchemaFilter) return false;
+        return true;
+      });
+
+      // 3대 항목 정렬 (시간순 / 프레임순 / 듀얼·아날로그 모드·시나리오순)
+      items.sort((a, b) => {
+        if (sortMode === "date_asc") return a.name.localeCompare(b.name);
+        if (sortMode === "frames_desc") return (b.num_frames || 0) - (a.num_frames || 0);
+        if (sortMode === "frames_asc") return (a.num_frames || 0) - (b.num_frames || 0);
+        if (sortMode === "mode_dual") {
+          const rank = it => (it.control_mode === "dual" ? 3 : (it.control_mode === "continuous" || it.action_space === "continuous" ? 2 : (it.control_mode === "discrete" ? 1 : 0)));
+          const diff = rank(b) - rank(a);
+          return diff !== 0 ? diff : b.name.localeCompare(a.name);
+        }
+        if (sortMode === "scenario_asc") return (a.scenario || "").localeCompare(b.scenario || "");
+        return b.name.localeCompare(a.name); // date_desc 기본
+      });
+
+      document.getElementById("ds-count-badge").textContent = `${items.length}/${_dsItems.length}개`;
+
+      if (items.length === 0) {
+        document.getElementById("ds-list-group").innerHTML =
+          "<div style='text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;'>조건에 맞는 에피소드 없음</div>";
+        return;
+      }
+
+      let html = "";
+      let lastDate = null;
+      items.forEach(it => {
+        if (sortMode.startsWith("date") && it.date !== lastDate) {
+          html += `<div class="session-date-header">${it.date}</div>`;
+          lastDate = it.date;
+        }
+        const checked = _dsSelected.has(it.name) ? "checked" : "";
+        const checkbox = compareMode
+          ? `<input type="checkbox" ${checked} onclick="event.stopPropagation(); _dsToggleSelect('${it.name}')" style="accent-color:var(--cyan); margin-right:6px;">`
+          : "";
+        html += `
+          <div class="session-card" data-name="${it.name}" title="${it.name}" onclick="_dsCardClick('${it.name}')">
+            <div class="sc-top">
+              ${checkbox}<span style="font-weight:700; font-size:13px; color:var(--cyan); font-family:var(--font-mono);">${it.date} ${it.time}</span>
+              <button class="btn btn-outline" style="font-size:10px; padding:2px 7px; margin-left:auto; border-color:var(--rose); color:var(--rose);" onclick="event.stopPropagation(); _dsDeleteOne('${it.name}')">🗑️</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;">${_dsInfoChips(it)}</div>
+            <div class="sc-bottom">
+              <span class="sc-badge">${it.num_frames}f</span>
+              <span class="sc-badge">${it.duration_s}s</span>
+            </div>
+          </div>
+        `;
+      });
+      document.getElementById("ds-list-group").innerHTML = html;
+
+      document.querySelectorAll("#ds-list-group .session-card").forEach(el => {
+        el.classList.toggle("active", _dsDetail && el.dataset.name === _dsDetail.meta.name);
+      });
+    }
+
+    function _dsToggleSelect(name) {
+      if (_dsSelected.has(name)) {
+        _dsSelected.delete(name);
+      } else {
+        if (_dsSelected.size >= DS_MAX_COMPARE) {
+          alert(`비교는 최대 ${DS_MAX_COMPARE}개까지 가능합니다.`);
+          return;
+        }
+        _dsSelected.add(name);
+      }
+      if (_dsSelected.size >= 2) {
+        renderDatasetCompare();
+      } else if (_dsSelected.size === 1) {
+        loadDatasetDetail([..._dsSelected][0]);
+      } else {
+        setDatasetCompareMode(false);
+        document.getElementById("ds-placeholder").style.display = "block";
+      }
+      renderDatasetList();
+    }
+
+    function _dsCardClick(name) {
+      if (_dsCompareMode) {
+        _dsToggleSelect(name);
+      } else {
+        _dsSelected = new Set([name]);
+        loadDatasetDetail(name);
+        renderDatasetList();
+      }
+    }
+
+    function setDatasetCompareMode(on) {
+      document.getElementById("ds-placeholder").style.display = on ? "none" : "block";
+      document.getElementById("ds-compare-body").style.display = on ? "flex" : "none";
+      document.getElementById("ds-inspector-body").style.display = "none";
+      if (_dsPlayTimer) { clearInterval(_dsPlayTimer); _dsPlayTimer = null; }
+    }
+
+    function renderDatasetCompare() {
+      setDatasetCompareMode(true);
+      document.getElementById("ds-detail-lbl").textContent = `[비교 ${_dsSelected.size}개]`;
+      const items = _dsItems.filter(it => _dsSelected.has(it.name));
+      const header = `
+        <div style="display:flex; justify-content:flex-end;">
+          <button class="btn btn-outline" style="font-size:12px; padding:5px 12px; border-color:var(--rose); color:var(--rose);" onclick="_dsDeleteSelected()">🗑️ 선택 ${items.length}개 전부 삭제</button>
+        </div>`;
+      const cards = items.map(it => {
+        const scLabel = it.scenario ? (_dsScenarioLabels[it.scenario] || it.scenario) : "미지정";
+        const cxLabel = it.cx_position ? (_dsCxPosLabels[it.cx_position] || it.cx_position) : "미지정";
+        return `
+          <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; display:flex; align-items:center; gap:14px;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${it.name}">${it.date} ${it.time}</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${scLabel} · ${cxLabel}${it.cx_path ? " + " + (it.cx_path) : ""}</div>
+            </div>
+            <div class="mini-tile-grid" style="flex:0 0 auto; grid-template-columns:repeat(3,1fr); gap:6px;">
+              <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value">${it.num_frames}</span></div>
+              <div class="mini-tile"><span class="mt-label">시간</span><span class="mt-value">${it.duration_s}s</span></div>
+              <div class="mini-tile"><span class="mt-label">크기</span><span class="mt-value">${it.size_mb}MB</span></div>
+            </div>
+            <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; flex:0 0 auto;" onclick="_dsOpenDetailFromCompare('${it.name}')">🔍 자세히</button>
+            <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; flex:0 0 auto; border-color:var(--rose); color:var(--rose);" onclick="_dsDeleteOne('${it.name}')">🗑️</button>
+          </div>
+        `;
+      }).join("");
+      document.getElementById("ds-compare-body").innerHTML = header + cards;
+    }
+
+    function _dsOpenDetailFromCompare(name) {
+      loadDatasetDetail(name);
+    }
+
+    async function loadDatasetDetail(name) {
+      document.getElementById("ds-detail-lbl").textContent = "[" + name + "]";
+      document.getElementById("ds-placeholder").style.display = "none";
+      document.getElementById("ds-compare-body").style.display = "none";
+      document.getElementById("ds-inspector-body").style.display = "grid";
+      if (_dsPlayTimer) { clearInterval(_dsPlayTimer); _dsPlayTimer = null; }
+
+      const res = await api("/dataset/load?name=" + encodeURIComponent(name));
+      if (!res.ok) {
+        alert("에피소드 로드 실패: " + res.error);
+        return;
+      }
+      _dsDetail = res;
+
+      const slider = document.getElementById("ds-slider");
+      slider.max = res.frames.length - 1;
+      slider.value = 0;
+
+      renderDsSummary(res);
+      renderDsTimeline(res.frames, 0);
+      showDsFrame(0);
+      renderDatasetList();
+    }
+
+    function renderDsSummary(res) {
+      const m = res.meta;
+      const a = res.attrs || {};
+      document.getElementById("ds-sum-frames").textContent = m.num_frames;
+      document.getElementById("ds-sum-duration").textContent = m.duration_s + "s";
+      document.getElementById("ds-sum-scenario").textContent = m.scenario ? (_dsScenarioLabels[m.scenario] || m.scenario) : "미지정";
+      document.getElementById("ds-sum-cxpos").textContent = m.cx_position
+        ? `${_dsCxPosLabels[m.cx_position] || m.cx_position}${m.cx_path ? " + " + m.cx_path : ""}` : "미지정";
+      document.getElementById("ds-sum-schema").textContent = DS_SCHEMA_VERSION[m.schema] || m.schema;
+      document.getElementById("ds-sum-date").textContent = m.date + " " + m.time;
+      // T2-1: flagged_model_issue — 수집 때 찍은 "학습 제외 후보" 표기를 사후 노출
+      const _flg = document.getElementById("ds-sum-flagged");
+      const _isFlagged = (a.flagged_model_issue === true || a.flagged_model_issue === 1
+                          || a.flagged_model_issue === "True");
+      if (_flg) {
+        _flg.textContent = _isFlagged ? "🧪 실험용" : "정상";
+        _flg.style.color = _isFlagged ? "#ff8080" : "var(--text-muted)";
+        _flg.style.fontWeight = _isFlagged ? "700" : "400";
+      }
+
+      // 수집 설정 — 레거시/신규 스키마에 따라 존재하는 attrs가 다름
+      document.getElementById("ds-sum-pattern").textContent = a.pattern || "—";
+      document.getElementById("ds-sum-obstacle").textContent = a.obstacle_layout_type || a.end_pos || "—";
+      document.getElementById("ds-sum-timeperiod").textContent = a.time_period || "—";
+      document.getElementById("ds-sum-stopinject").textContent = (a.stop_inject_n !== undefined ? a.stop_inject_n : "—");
+      document.getElementById("ds-sum-chunk").textContent = (a.action_chunk_size !== undefined ? a.action_chunk_size : "—");
+      document.getElementById("ds-sum-size").textContent = m.size_mb + "MB";
+      const elActSpace = document.getElementById("ds-sum-actionspace");
+      if (elActSpace) elActSpace.textContent = a.action_space || (a.control_mode ? "continuous" : "discrete");
+      const elCtrlMode = document.getElementById("ds-sum-controlmode");
+      if (elCtrlMode) elCtrlMode.textContent = a.control_mode || "—";
+
+      // 입력 소스 분포 — action_event_types(keyboard/joystick/stop_inject 등)
+      const srcDist = {};
+      res.frames.forEach(f => {
+        const src = f.event_type || "(레거시-미기록)";
+        srcDist[src] = (srcDist[src] || 0) + 1;
+      });
+      document.getElementById("ds-sum-sources").innerHTML = Object.entries(srcDist).map(([k, v]) =>
+        `<div class="mini-tile"><span class="mt-label">${k}</span><span class="mt-value">${v}</span></div>`
+      ).join("");
+
+      const dist = {};
+      res.frames.forEach(f => { dist[f.action_class] = (dist[f.action_class] || 0) + 1; });
+      const total = res.frames.length || 1;
+      document.getElementById("ds-sum-actions").innerHTML = Object.entries(dist).map(([k, v]) =>
+        `<div class="mini-tile"><span class="mt-label">${k}</span><span class="mt-value">${v} (${Math.round(v/total*100)}%)</span></div>`
+      ).join("");
+    }
+
+    const DS_CLASS_COLORS = {
+      STOP: "#64748b", FORWARD: "#10b981", LEFT: "#38bdf8", RIGHT: "#38bdf8",
+      "FWD+L": "#a371f7", "FWD+R": "#a371f7", ROT_L: "#f59e0b", ROT_R: "#f59e0b",
+    };
+
+    function renderDsTimeline(frames, curIdx) {
+      const el = document.getElementById("ds-timeline");
+      el.innerHTML = frames.map((f, i) => {
+        const color = i === curIdx ? "#06b6d4" : (DS_CLASS_COLORS[f.action_class] || "#64748b");
+        return `<div title="${i}: ${f.action_class}" onclick="document.getElementById('ds-slider').value=${i}; showDsFrame(${i});" style="flex:1; background:${color}; cursor:pointer;"></div>`;
+      }).join("");
+    }
+
+    function showDsFrame(idx) {
+      idx = parseInt(idx);
+      if (!_dsDetail || !_dsDetail.frames[idx]) return;
+      const f = _dsDetail.frames[idx];
+      document.getElementById("ds-frame-img").src = `/dataset/frame?name=${encodeURIComponent(_dsDetail.meta.name)}&idx=${idx}`;
+      document.getElementById("ds-frame-idx-lbl").textContent = `Frame: ${idx} / ${_dsDetail.frames.length - 1}`;
+      document.getElementById("ds-frame-action-lbl").textContent = `${f.symbol} ${f.action_class}`;
+      renderDsTimeline(_dsDetail.frames, idx);
+
+      // 2026-08-09: 세션 탭과 동일하게 우하단에 핵심 메타데이터 항상 표시.
+      const m = _dsDetail.meta;
+      const posLine = m.scenario || m.cx_position || "—";
+      document.getElementById("ds-meta-overlay").textContent =
+        `${m.name}\nframe ${idx}/${_dsDetail.frames.length - 1} · ${f.symbol} ${f.action_class}\n${posLine}`;
+    }
+
+    function dsPrevFrame() {
+      const slider = document.getElementById("ds-slider");
+      const v = Math.max(0, parseInt(slider.value) - 1);
+      slider.value = v; showDsFrame(v);
+    }
+    function dsNextFrame() {
+      const slider = document.getElementById("ds-slider");
+      const v = Math.min(parseInt(slider.max), parseInt(slider.value) + 1);
+      slider.value = v; showDsFrame(v);
+    }
+    function toggleDsPlay() {
+      const btn = document.getElementById("btn-ds-play");
+      if (_dsPlayTimer) {
+        clearInterval(_dsPlayTimer); _dsPlayTimer = null;
+        btn.textContent = "▶ PLAY";
+        return;
+      }
+      btn.textContent = "⏸ PAUSE";
+      _dsPlayTimer = setInterval(() => {
+        const slider = document.getElementById("ds-slider");
+        const v = parseInt(slider.value);
+        if (v >= parseInt(slider.max)) { toggleDsPlay(); return; }
+        slider.value = v + 1; showDsFrame(v + 1);
+      }, 120);
+    }
+
     // 초기 스타트
     setInterval(pollStatus, 500);
     setInterval(pollHealth, 3000);
     setInterval(camProcRefresh, 10000);
     setInterval(joystickRefresh, 500);
+    // D-pad(하드웨어)로 바뀐 collect_mode/staged_scenario/staged_cx_position 등은
+    // 키 입력 없이도 즉시 반영되어야 하므로 별도로 상시 폴링 — 이전엔 키보드를
+    // 누르고 있을 때(2000ms)만 갱신돼 D-pad 단독 조작 시 반응이 느려 보였음.
+    setInterval(collectRefreshState, 500);
+    setInterval(refreshModelList, 5000);
     pollStatus();
     pollHealth();
     loadEpisodeHistory();
     camProcRefresh();
     joystickRefresh();
+    collectRefreshState();
+    _renderTrackAPathButtons("verify-tracka-grid", "btn btn-outline", "selectPathType");
+    _renderTrackAPathButtons("inspect-tracka-grid", "btn btn-outline iep-path-btn", "selectInspectPathType");
+    refreshCheckpointOptions();
+    refreshScreenBatches();
+    refreshModelList();
+    refreshManualGroups();
 
   </script>
 </body>
@@ -4474,6 +12218,152 @@ def camera_proc_stop():
     return {"ok": True, "text": (f"🟢 실행 중 pid={','.join(pids)}" if pids else "🔴 정지됨")}
 
 
+# ═══════════════════════════════════════════════════════════════════
+# 추론 서버(8001) 프로세스 관리 — ⚙️ 서버 설정 탭용
+# ═══════════════════════════════════════════════════════════════════
+class ServerRestartReq(BaseModel):
+    grounder: Optional[str] = None       # "pg2" | "owlv2"
+    owlv2_thresh: Optional[float] = None
+    owlv2_area_scale: Optional[float] = None
+    ckpt: Optional[str] = None           # runs/ 상대경로 (VLA_S2V2_STAGE2)
+
+
+def _classify_ckpt(rel_path: str) -> dict:
+    """체크포인트 경로를 종류/실험/헤드로 파싱해 사람이 읽을 라벨 생성.
+
+    kind 분류가 중요한 이유: VLA_S2V2_STAGE2로 교체 가능한 건 Stage2 액션
+    헤드뿐 — stop_*(STOP 헤드)나 stage1_*(인코더 projection)을 넣으면 서버가
+    로드 단계에서 깨진다. UI에서 액션 헤드만 선택 가능하게 막는 근거.
+    """
+    import re as _re
+    p = Path(rel_path)
+    name = p.stem            # e.g. action_transformer, stop_N1, mlp_w16
+    parent = p.parent.name   # e.g. exp71_window6, stop_lastN, ablation_window
+    full = f"{parent}/{name}".lower()
+
+    # kind
+    if "stop" in full:
+        kind, kind_label = "stop", "STOP 헤드"
+    elif "stage1" in full or "projs" in full:
+        kind, kind_label = "stage1", "Stage1 인코더"
+    elif "clip" in full or "lora" in full:
+        kind, kind_label = "other", "기타 (CLIP/LoRA)"
+    else:
+        kind, kind_label = "action", "액션 헤드"
+
+    # head 아키텍처
+    head = next((h for h in ("transformer", "lstm", "cx_geom", "linear", "mlp", "fc")
+                 if h in full), None)
+
+    # 실험 그룹
+    m = _re.search(r"(exp\d+)", full)
+    if m:
+        group = m.group(1)
+    elif "ablation" in full:
+        group = "ablation"
+    elif "data_exp" in full:
+        group = "data_exp"
+    elif parent in ("mlp", "runs"):
+        group = "루트"
+    else:
+        group = parent
+
+    # window 크기
+    w = _re.search(r"w(?:indow)?[_]?(\d+)", full)
+    label_parts = [group]
+    if head: label_parts.append(head.upper() if head in ("mlp", "fc", "lstm") else head.capitalize())
+    if w: label_parts.append(f"W{w.group(1)}")
+    extra = _re.sub(r"^(action|mlp|lstm|fc|linear|stop|stage1)[_]?", "", name)
+    extra = _re.sub(r"w(?:indow)?\d+|transformer|lstm|cx_geom|linear|mlp|fc", "", extra).strip("_")
+    if extra and extra not in group: label_parts.append(extra)
+
+    return {"kind": kind, "kind_label": kind_label,
+            "label": " · ".join(label_parts), "selectable": kind == "action"}
+
+
+@app.get("/server_proc/checkpoints")
+def server_proc_checkpoints():
+    """runs/ 아래 .pt 체크포인트 목록 — 종류별 분류 + 라벨 포함."""
+    items = []
+    for p in sorted((ROOT / "runs").rglob("*.pt"), key=lambda x: -x.stat().st_mtime)[:80]:
+        st = p.stat()
+        rel = str(p.relative_to(ROOT))
+        items.append({
+            "path": rel,
+            "size_mb": round(st.st_size / 1e6, 1),
+            "mtime": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
+            **_classify_ckpt(rel),
+        })
+    active = None
+    try:
+        import requests as rq
+        h = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2).json()
+        active = h.get("checkpoint_path")
+    except Exception:
+        pass
+    return {"ok": True, "checkpoints": items, "active": active}
+
+
+@app.post("/server_proc/restart")
+def server_proc_restart(req: ServerRestartReq):
+    """추론 서버(8001)를 지정 설정으로 재시작 — go.sh --server를 백그라운드 실행.
+
+    go.sh가 pkill→로그 보관→기동→헬스대기까지 처리하므로 여기선 env만 조립해
+    던진다. PG2 로딩 포함 최대 ~120s — UI가 /infer/health를 폴링해 완료 감지.
+
+    req의 필드가 비어있으면(=UI에서 명시적으로 안 건드림) go.sh 자체의 하드코딩된
+    기본값(VLA_GROUNDER=pg2 등)으로 조용히 되돌아가버리는 문제가 있었음 — "변경
+    없음 — 현재 설정 유지" 버튼을 눌러도 실제로는 유지가 안 되고 grounder/ckpt가
+    리셋됐음(2026-07-07 실측). 재시작 전 현재 /health를 조회해서 명시 안 된 필드는
+    "지금 떠 있는 값"으로 채워 넣어 진짜로 유지되게 함.
+    """
+    current = {}
+    try:
+        import requests as rq
+        h = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2).json()
+        g = h.get("grounder", {}) or {}
+        current = {
+            "grounder": "owlv2" if "owl" in (g.get("model") or "").lower() else "pg2",
+            "owlv2_thresh": g.get("owlv2_thresh"),
+            "owlv2_area_scale": g.get("owlv2_area_scale"),
+            "ckpt": h.get("checkpoint_path"),
+        }
+    except Exception:
+        pass  # 서버가 이미 내려가 있으면 go.sh 기본값으로 진행
+
+    grounder = req.grounder if req.grounder in ("pg2", "owlv2") else current.get("grounder")
+    owlv2_thresh = req.owlv2_thresh if req.owlv2_thresh is not None else current.get("owlv2_thresh")
+    owlv2_area_scale = req.owlv2_area_scale if req.owlv2_area_scale is not None else current.get("owlv2_area_scale")
+    ckpt = req.ckpt if req.ckpt else current.get("ckpt")
+
+    env_parts = []
+    if grounder in ("pg2", "owlv2"):
+        env_parts.append(f"VLA_GROUNDER={grounder}")
+    if owlv2_thresh is not None:
+        env_parts.append(f"VLA_OWLV2_THRESH={float(owlv2_thresh)}")
+    if owlv2_area_scale is not None:
+        env_parts.append(f"VLA_OWLV2_AREA_SCALE={float(owlv2_area_scale)}")
+    if ckpt:
+        ckpt_path = (ROOT / ckpt).resolve()
+        if not str(ckpt_path).startswith(str(ROOT)) or not ckpt_path.exists():
+            return {"ok": False, "error": f"체크포인트 없음/경로 이탈: {ckpt}"}
+        env_parts.append(f"VLA_S2V2_STAGE2={ckpt}")
+    cmd = f"cd {ROOT} && {' '.join(env_parts)} nohup bash scripts/run/go.sh --server > logs/server_restart_from_dash.log 2>&1 &"
+    _subprocess.Popen(["bash", "-c", cmd])
+    log.warning(f"🔁 [ServerRestart] 대시보드에서 추론서버 재시작 요청: {env_parts or '(현재 설정 유지)'}")
+    return {"ok": True, "message": "재시작 시작 — PG2 포함 시 최대 ~120s. 아래 상태가 갱신될 때까지 대기.",
+            "env": env_parts}
+
+
+@app.get("/server_proc/log")
+def server_proc_log(n: int = 40):
+    p = ROOT / "logs" / "s2v2_server.log"
+    if not p.exists():
+        return {"ok": False, "lines": ["(로그 없음)"]}
+    lines = p.read_text(errors="replace").splitlines()[-max(5, min(n, 200)):]
+    return {"ok": True, "lines": lines}
+
+
 # ── 카메라 워치독 (B3) ───────────────────────────────────────────────
 # usb_camera_service_server가 살아있는 척하며 같은 프레임만 반복 전달하는
 # 행(hang)이 2026-07-02 하루 3회 발생 — frame 정체가 지속되면 자동 재시작.
@@ -4481,6 +12371,7 @@ CAM_WATCHDOG_STALE_S    = 10.0   # 이 시간 이상 새 프레임 없으면 행
 CAM_WATCHDOG_COOLDOWN_S = 120.0  # 자동 재시작 간 최소 간격 (재시작 루프 방지)
 _cam_user_stopped = False        # 사용자가 ■정지 누른 상태면 워치독 개입 금지
 _cam_auto_restart_ts = 0.0
+_dash_start_ts = time.time()    # mona_dashboard 자체가 언제 떴는지 — 아래 콜드부트 케이스용
 
 
 def _camera_watchdog_loop():
@@ -4490,7 +12381,22 @@ def _camera_watchdog_loop():
         try:
             if _ros is None or _cam_user_stopped:
                 continue
-            if not _ros.last_ts:          # 아직 첫 프레임 전 (기동 직후)
+            if not _ros.last_ts:
+                # 콜드부트(이 프로세스 수명 동안 프레임을 한 번도 못 받음) — 대시보드
+                # 재시작 시 카메라 자식 프로세스가 같은 cgroup에 물려있어서 같이
+                # 죽는 경우가 있는데(2026-07-29 실측), 기존엔 "프레임을 한 번이라도
+                # 받은 뒤 끊긴" 경우만 감지해서 이 콜드부트 케이스는 영원히 방치됐음.
+                # 대시보드 기동 후 STALE_S 넘도록 첫 프레임도 못 받았고 카메라
+                # 프로세스 자체가 없으면 여기서도 새로 띄움.
+                if time.time() - _dash_start_ts < CAM_WATCHDOG_STALE_S:
+                    continue
+                if _cam_pids():
+                    continue  # 프로세스는 있는데 아직 첫 프레임 못 받은 것뿐 — 조금 더 기다림
+                if time.time() - _cam_auto_restart_ts < CAM_WATCHDOG_COOLDOWN_S:
+                    continue
+                _cam_auto_restart_ts = time.time()
+                log.warning("🐶 [CamWatchdog] 콜드부트 후 카메라 프로세스 없음 — 신규 시작")
+                _subprocess.Popen(["bash", "-c", _CAM_START_CMD])
                 continue
             age = time.time() - _ros.last_ts
             if age < CAM_WATCHDOG_STALE_S:
@@ -4524,10 +12430,41 @@ def joystick_toggle():
     return {"ok": True, "enabled": enabled}
 
 
-@app.post("/joystick/mode")
-def joystick_mode():
+@app.post("/joystick/toggle_analog")
+def joystick_toggle_analog():
+    """아날로그 연속 제어 모드 (Continuous PWM/Velocity, Pi0 Flow Matching 대응) 토글"""
+    analog_mode = _joystick.toggle_analog_mode()
+    return {"ok": True, "analog_mode": analog_mode, "control_mode": _joystick.control_mode}
+
+
+@app.post("/joystick/cycle_control_mode")
+def joystick_cycle_control_mode():
+    """3-Mode (discrete -> continuous -> dual) 순환 전환"""
+    mode = _joystick.cycle_control_mode()
+    return {"ok": True, "control_mode": mode, "analog_mode": _joystick.analog_mode}
+
+
+class SetControlModeReq(BaseModel):
+    mode: str  # "discrete" | "continuous" | "dual"
+
+
+@app.post("/joystick/set_control_mode")
+def joystick_set_control_mode(req: SetControlModeReq):
+    mode = _joystick.set_control_mode(req.mode)
+    return {"ok": True, "control_mode": mode, "analog_mode": _joystick.analog_mode}
+
+
+@app.post("/joystick/toggle_sync_async")
+def joystick_toggle_sync_async():
+    """조이스틱 SYNC vs ASYNC 주행 모드 토글"""
     mode = _joystick.toggle_mode()
     return {"ok": True, "mode": mode}
+
+
+# 2026-08-01 (Tier 3): 여기 있던 두 번째 @app.post("/joystick/mode") 정의를 제거함.
+# 같은 경로가 위쪽(2111행, collect/verify 모드 전환용)에 이미 등록돼 있어서
+# FastAPI가 항상 먼저 등록된 쪽으로 dispatch — 이 함수는 도달 불가능한 죽은
+# 코드였고, 하는 일도 달라서(_joystick.toggle_mode) 읽는 사람을 헷갈리게 했음.
 
 
 class JoystickSpeedReq(BaseModel):
@@ -4557,6 +12494,36 @@ def system_reset():
                   grounding_cached=None, grounding_caption=None,
                   run_history=[], action_history=[], last_action=[0.0,0.0,0.0])
     return {"ok": True, "message": "성공적으로 시스템 상태 및 추론 캐시가 리셋되었습니다."}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# LeRobot v3.0 (Parquet + MP4) 데이터셋 변환 엔드포인트 (Pi0 Flow Matching 연동)
+# ═══════════════════════════════════════════════════════════════════
+class ExportLeRobotReq(BaseModel):
+    input_dir: Optional[str] = None
+    output_dir: Optional[str] = None
+    fps: int = 25
+    pattern: str = "*.h5"
+
+
+@app.post("/dataset/export_lerobot_v3")
+def export_lerobot_v3_api(req: ExportLeRobotReq):
+    """수집된 H5 에피소드들을 LeRobot v3.0 (Parquet + MP4 Shards) 표준 포맷으로 변환"""
+    from robovlm_nav.datasets.export_lerobot_v3 import export_h5_directory_to_lerobot_v3
+
+    in_dir = Path(req.input_dir) if req.input_dir else (ROOT / "ROS_action" / "mobile_vla_dataset_v5")
+    out_dir = Path(req.output_dir) if req.output_dir else (ROOT / "datasets" / "lerobot_v3_dataset")
+
+    try:
+        res = export_h5_directory_to_lerobot_v3(
+            input_dir=in_dir,
+            output_dir=out_dir,
+            fps=req.fps,
+            pattern=req.pattern,
+        )
+        return res
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 # ═══════════════════════════════════════════════════════════════════
