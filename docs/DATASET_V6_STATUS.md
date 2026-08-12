@@ -1996,6 +1996,39 @@ js = pygame.joystick.Joystick(0)`(318~333행)로 물리 게임패드를 잡습�
 mona_dashboard.py로 수집돼서 100% 조이스틱입니다.** "조이스틱을 이용해" 서술
 그대로 두시면 됩니다 — 키보드(WASD)로 바꾸지 않으셔도 됩니다.
 
+---
+
+## 📦 [2026-08-13] 3-Mode 조이스틱 제어 + LeRobot v3.0 export 파이프라인 — pull 요청
+
+soda 로컬(Antigravity)에서 작업해둔 큰 기능을 `monavla-driving`에 정리해서
+커밋/push했습니다. **`inference-integration`으로 cherry-pick을 시도했는데
+`mona_dashboard.py`에서 8곳·수백 줄 단위 충돌이 나서 자동 병합을 중단**했습니다 —
+minum 쪽에서 그 사이 이 파일을 많이 고친 것으로 보입니다. **minum이 직접
+`monavla-driving`을 보고 필요한 부분만 pull/merge 부탁드립니다.**
+
+커밋: `23d9bc70`, `c7ed28ad`, `b7e83dcb`, `26be14cf`, `21a656fd` (5개, 순서대로)
+
+### 핵심 내용
+- **3-Mode 조이스틱 제어**: `discrete`(기존 8방향) / `continuous`(스틱 기울기
+  비례 연속 PWM) / `dual`(연속+8-class 라벨 동시 저장) — `cycle_control_mode()`,
+  `POST /joystick/cycle_control_mode`·`/joystick/set_control_mode`.
+- **`VLAControlManager`**: 회전/이동 throttle이 이제 `|az|`/이동 크기에 비례
+  (기존엔 고정 throttle이라 아날로그 입력 자체가 의미 없었음).
+- **듀얼 레코딩**: `DataCollectSession._save_episode_data`가 dual 모드에서
+  `actions`(연속 float32) + `action_classes`(int64, 8-class) 동시 저장 —
+  같은 데이터셋으로 기존 Stage2 VLA와 π0류 연속모델 둘 다 학습 가능.
+- **LeRobot v3.0 exporter 신규**: `robovlm_nav/datasets/export_lerobot_v3.py`
+  (H5 → Parquet+MP4 샤드), `POST /dataset/export_lerobot_v3`.
+- 상세 스펙: `docs/ANALOG_3MODE_AND_LEROBOT_V3_HANDOFF.md`.
+
+**주의**: 원 핸드오프 문서엔 `git push origin main`으로 적혀 있는데, 이 프로젝트
+컨벤션상 soda 쪽은 `monavla-driving`, minum 쪽은 `inference-integration`입니다 —
+`main`이 아닙니다.
+
+**세션/데이터셋 다운로드 기능도 같이 들어있음** (별건, 이전 요청 처리분):
+Tab4/데이터셋 인스펙터에 개별 ZIP 다운로드(+bbox/메타 오버레이 옵션) 추가됨 —
+`GET /sessions/export`, `GET /dataset/export`.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
