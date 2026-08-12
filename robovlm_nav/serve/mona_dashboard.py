@@ -5016,7 +5016,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   /* 프레임 인스펙터 레이아웃 */
   .frame-inspector {
     display: grid;
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: 1fr;
     gap: 20px;
   }
 
