@@ -580,15 +580,8 @@ class DataCollectSession:
             f.attrs["collection_hour"] = now.hour
             f.attrs["collection_minute"] = now.minute
             f.attrs["flagged_model_issue"] = bool(self.experimental_mode)
-            # 3-Mode (discrete / continuous / dual) 메타데이터 & 데이터셋 생성
-            ctrl_mode = getattr(_joystick, "control_mode", "discrete") if _joystick is not None else "discrete"
-            f.attrs["control_mode"] = ctrl_mode
-            f.attrs["action_space"] = ctrl_mode
             f.create_dataset("images", data=images, compression="gzip")
             f.create_dataset("actions", data=actions, compression="gzip")
-            # 8-class 이산 라벨 동시 저장 (Dual Representation: Pi0 연속 모델 & 기존 8-class VLA 모두 학습 가능)
-            action_classes = np.array([_collect_classify_8class(d["action"]) for d in data], dtype=np.int64)
-            f.create_dataset("action_classes", data=action_classes, compression="gzip")
             f.create_dataset("action_event_types", data=event_types, compression="gzip")
         return save_path
 
@@ -758,14 +751,11 @@ class DashboardJoystickReader:
         self._running  = False
         self._enabled  = True    # 시작 시 기본 활성화
         self._js_mode  = 'async'  # 'sync' | 'async' (Start 버튼으로 전환)
-        self.control_mode = "discrete"  # "discrete" | "continuous" | "dual" (3-Mode)
-        self.analog_mode = False  # continuous or dual일 때 True
         self._speed    = 1.15
         self._thread   = None
         self._btn_prev = {}
         self._last_step_time = 0.0
         self._prev_key = None
-        self._prev_analog_moving = False
         self._neutral_start_time = 0.0
         self._last_non_neutral_key = None
         self._axes = self._load_axes()
@@ -779,8 +769,6 @@ class DashboardJoystickReader:
             "connected": False, "name": "—",
             "key": None, "label": "—",
             "enabled": True, "mode": "ASYNC",
-            "control_mode": "discrete",
-            "analog_mode": False,
             "buttons": [], "last_btn": None,
             "hat": (0, 0), "last_hat_dir": None,
             "btn_map": {},
@@ -889,31 +877,6 @@ class DashboardJoystickReader:
         log.info(f"[Joystick] 모드 전환 → {self._js_mode.upper()}")
         return self._js_mode.upper()
 
-    CONTROL_MODES = ["discrete", "continuous", "dual"]
-
-    def cycle_control_mode(self) -> str:
-        """3-Mode (discrete -> continuous -> dual) 순환 전환"""
-        idx = self.CONTROL_MODES.index(self.control_mode) if self.control_mode in self.CONTROL_MODES else 0
-        new_mode = self.CONTROL_MODES[(idx + 1) % len(self.CONTROL_MODES)]
-        return self.set_control_mode(new_mode)
-
-    def set_control_mode(self, mode: str) -> str:
-        if mode not in self.CONTROL_MODES:
-            mode = "discrete"
-        self.control_mode = mode
-        self.analog_mode = (mode in ("continuous", "dual"))
-        self.status = {
-            **self.status,
-            "control_mode": self.control_mode,
-            "analog_mode": self.analog_mode,
-        }
-        log.info(f"🎮 [Joystick] 제어 모드 전환: {self.control_mode.upper()} (analog_mode={self.analog_mode})")
-        return self.control_mode
-
-    def toggle_analog_mode(self) -> bool:
-        new_mode = "discrete" if self.analog_mode else "continuous"
-        self.set_control_mode(new_mode)
-        return self.analog_mode
 
     def set_speed(self, spd: float):
         self._speed = float(spd)
@@ -1011,60 +974,36 @@ class DashboardJoystickReader:
                 now = time.time()
                 if self._enabled and _ros is not None and _ros.ctrl is not None:
                     ctrl = _ros.ctrl
-                    if self.analog_mode:
-                        # 🎯 아날로그 연속 제어 모드 (Pi0 Flow Matching 등 연속 행동 공간 대응)
-                        is_moving = abs(lx) > self.DEADZONE or abs(ly) > self.DEADZONE or abs(az) > self.DEADZONE
-                        if is_moving:
-                            # 연속 실수 속도 벡터 계산 (기준 속도 스케일 반영)
-                            vel = (float(lx * self._speed), float(ly * self._speed), float(az * self._speed))
+                    if key:
+                        base = self.WASD_TO_VEL.get(key)
+                        if base:
+                            spd = self._speed / 1.15
+                            if az_blend != 0.0:
+                                base = (base[0], base[1], az_blend * 0.15)
+                            vel = tuple(v * spd for v in base)
                             if self._js_mode == 'sync':
                                 if (now - self._last_step_time) >= self.STEP_INTERVAL:
-                                    ctrl.move_and_stop_timed(*vel, source="joystick_analog")
+                                    ctrl.move_and_stop_timed(*vel, source="joystick")
                                     self._last_step_time = now
                             else:  # async
                                 if (now - self._last_step_time) >= self.ASYNC_INTERVAL:
-                                    ctrl.publish_and_move(*vel, source="joystick_analog")
+                                    ctrl.publish_and_move(*vel, source="joystick")
                                     self._last_step_time = now
-                        elif self._prev_analog_moving:
-                            if self._js_mode == 'async':
-                                ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
-                        self._prev_analog_moving = is_moving
-                    else:
-                        # 🕹️ 8방향 이산화 제어 모드 (기존 표준 VLA)
-                        if key:
-                            base = self.WASD_TO_VEL.get(key)
-                            if base:
-                                spd = self._speed / 1.15
-                                if az_blend != 0.0:
-                                    base = (base[0], base[1], az_blend * 0.15)
-                                vel = tuple(v * spd for v in base)
-                                if self._js_mode == 'sync':
-                                    if (now - self._last_step_time) >= self.STEP_INTERVAL:
-                                        ctrl.move_and_stop_timed(*vel, source="joystick")
-                                        self._last_step_time = now
-                                else:  # async
-                                    if (now - self._last_step_time) >= self.ASYNC_INTERVAL:
-                                        ctrl.publish_and_move(*vel, source="joystick")
-                                        self._last_step_time = now
-                        elif self._prev_key:
-                            if self._js_mode == 'async':
-                                ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
+                    elif self._prev_key:
+                        if self._js_mode == 'async':
+                            ctrl.publish_and_move(0.0, 0.0, 0.0, source="joystick_neutral")
 
                 self._prev_key = key
                 pressed_buttons = [i for i in range(js.get_numbuttons()) if js.get_button(i)]
                 _nax = js.get_numaxes()
                 _trig_l2_val = round(js.get_axis(self.TRIG_L2), 2) if 0 <= self.TRIG_L2 < _nax else None
                 _trig_r2_val = round(js.get_axis(self.TRIG_R2), 2) if 0 <= self.TRIG_R2 < _nax else None
-                
-                prefix = "⚡ " if self.control_mode == "dual" else "∿ "
-                disp_label = f"{prefix}({lx:+.2f},{ly:+.2f},{az:+.2f})" if (self.analog_mode and self._prev_analog_moving) else (LABELS.get(key, "●") if key else "○")
+
                 self.status = {
                     "connected": True, "name": js.get_name(),
                     "enabled": self._enabled,
                     "mode": self._js_mode.upper(),
-                    "control_mode": self.control_mode,
-                    "analog_mode": self.analog_mode,
-                    "key": key, "label": disp_label,
+                    "key": key, "label": LABELS.get(key, "●") if key else "○",
                     "buttons": pressed_buttons, "last_btn": self._last_btn,
                     "hat": self._hat_prev, "last_hat_dir": self._last_hat_dir,
                     "btn_map": self._btn_map,
@@ -3381,8 +3320,6 @@ def _dataset_scan_attrs(h5p: str) -> dict:
     mtime = os.path.getmtime(h5p)
     dt = (datetime.datetime.fromisoformat(collection_dt) if collection_dt
           else datetime.datetime.fromtimestamp(mtime))
-    ctrl_mode = str(attrs.get("control_mode", "") or "")
-    act_space = str(attrs.get("action_space", "") or ("continuous" if ctrl_mode == "continuous" else "discrete"))
 
     return {
         "name": name,
@@ -3396,8 +3333,6 @@ def _dataset_scan_attrs(h5p: str) -> dict:
         "duration_s": round(duration_s, 1),
         "size_mb": round(os.path.getsize(h5p) / (1024 * 1024), 2),
         "schema": schema,
-        "control_mode": ctrl_mode,
-        "action_space": act_space,
     }
 
 
@@ -6707,9 +6642,7 @@ L S R  C S L  R S L
               <div class="card-title" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span>📹 실시간 카메라</span>
-                  <button id="btn-collect-ctrlmode" class="btn btn-outline" onclick="cycleJoystickControlMode()" style="font-size:11px; padding:3px 10px; font-weight:700;" title="클릭하여 3대 모드 [🕹️ 이산(8방향)] ➔ [∿ 아날로그(연속)] ➔ [⚡ 듀얼(연속+이산)] 순환 전환">🕹️ 모드: 이산(8방향)</button>
                   <button id="btn-collect-sync-async" class="btn btn-outline" onclick="toggleJoystickSyncAsync()" style="font-size:11px; padding:3px 10px; font-weight:700;" title="클릭하여 SYNC vs ASYNC 주행 모드 전환">🌊 ASYNC</button>
-                  <button class="btn btn-outline" onclick="exportLeRobotV3()" style="font-size:11px; padding:3px 10px; font-weight:700; border-color:var(--purple); color:var(--purple);" title="현재 수집된 H5 데이터셋을 LeRobot v3.0 (Parquet + MP4) 포맷으로 변환">🚀 LeRobot v3 Export</button>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <label style="font-size:11px; font-weight:400; color:var(--text-muted); cursor:pointer;">
@@ -6960,7 +6893,6 @@ L S R  C S L  R S L
             </div>
             <div style="display:flex; gap:6px; margin-bottom:10px;">
               <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="loadDatasetList()">🔄 새로고침</button>
-              <button class="btn btn-outline" style="flex:1.2; font-size:12px; border-color:var(--purple); color:var(--purple);" onclick="exportLeRobotV3()" title="저장된 H5 에피소드 전체를 LeRobot v3.0 (Parquet+MP4) 포맷으로 변환">🚀 LeRobot v3 변환</button>
             </div>
 
             <input type="text" id="ds-search" placeholder="이름 검색..." oninput="renderDatasetList()"
@@ -6974,7 +6906,6 @@ L S R  C S L  R S L
                 <option value="date_asc">🕒 오래된순</option>
                 <option value="frames_desc">📏 프레임 많은순</option>
                 <option value="frames_asc">📏 프레임 적은순</option>
-                <option value="mode_dual">⚡ 듀얼/아날로그 우선</option>
                 <option value="scenario_asc">🎯 시나리오 A-Z</option>
               </select>
             </div>
@@ -7063,8 +6994,6 @@ L S R  C S L  R S L
                     <div class="mini-tile"><span class="mt-label">STOP 주입</span><span class="mt-value" id="ds-sum-stopinject">—</span></div>
                     <div class="mini-tile"><span class="mt-label">액션청크</span><span class="mt-value" id="ds-sum-chunk">—</span></div>
                     <div class="mini-tile"><span class="mt-label">파일크기</span><span class="mt-value" id="ds-sum-size">—</span></div>
-                    <div class="mini-tile"><span class="mt-label">행동 공간</span><span class="mt-value" id="ds-sum-actionspace" style="font-size:11px; color:var(--cyan);">—</span></div>
-                    <div class="mini-tile"><span class="mt-label">제어 모드</span><span class="mt-value" id="ds-sum-controlmode" style="font-size:11px;">—</span></div>
                   </div>
 
                   <div style="margin-top:10px;">
@@ -7287,27 +7216,6 @@ L S R  C S L  R S L
         }
       }
 
-      // 데이터수집 탭 헤더 컨트롤 버튼 동기화 (3-Mode)
-      const btnCtrlMode = document.getElementById("btn-collect-ctrlmode") || document.getElementById("btn-collect-analog");
-      if (btnCtrlMode) {
-        const mode = s.control_mode || (s.analog_mode ? "continuous" : "discrete");
-        if (mode === "dual") {
-          btnCtrlMode.textContent = "⚡ 모드: 듀얼(연속+이산)";
-          btnCtrlMode.style.background = "rgba(168,85,247,0.2)";
-          btnCtrlMode.style.borderColor = "var(--purple)";
-          btnCtrlMode.style.color = "var(--purple)";
-        } else if (mode === "continuous") {
-          btnCtrlMode.textContent = "∿ 모드: 아날로그(연속)";
-          btnCtrlMode.style.background = "rgba(56,189,248,0.2)";
-          btnCtrlMode.style.borderColor = "var(--cyan)";
-          btnCtrlMode.style.color = "var(--cyan)";
-        } else {
-          btnCtrlMode.textContent = "🕹️ 모드: 이산(8방향)";
-          btnCtrlMode.style.background = "";
-          btnCtrlMode.style.borderColor = "";
-          btnCtrlMode.style.color = "";
-        }
-      }
       const btnSyncAsync = document.getElementById("btn-collect-sync-async");
       if (btnSyncAsync) {
         const isSync = s.mode === "SYNC";
@@ -7532,42 +7440,9 @@ L S R  C S L  R S L
       joystickRefresh();
     }
 
-    async function cycleJoystickControlMode() {
-      await api("/joystick/cycle_control_mode", { method: "POST" });
-      joystickRefresh();
-    }
-
-    async function toggleJoystickAnalogMode() {
-      await api("/joystick/cycle_control_mode", { method: "POST" });
-      joystickRefresh();
-    }
-
     async function toggleJoystickSyncAsync() {
       await api("/joystick/toggle_sync_async", { method: "POST" });
       joystickRefresh();
-    }
-
-    async function exportLeRobotV3() {
-      if (!confirm("현재 수집된 H5 데이터셋 전체를 LeRobot v3.0 (Parquet + MP4 Shards) 포맷으로 변환하시겠습니까?")) return;
-      const btn = (typeof event !== "undefined" && event && event.target) ? event.target : null;
-      const origText = btn ? btn.textContent : "";
-      if (btn) { btn.textContent = "⏳ 변환 중..."; btn.disabled = true; }
-      try {
-        const res = await api("/dataset/export_lerobot_v3", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({})
-        });
-        if (res && res.ok) {
-          alert(`✅ LeRobot v3.0 변환 완료!\n\n- 총 에피소드: ${res.total_episodes}개\n- 총 프레임: ${res.total_frames}개\n- 태스크 수: ${res.total_tasks}개\n- 저장 경로: ${res.output_dir}`);
-        } else {
-          alert(`❌ 변환 실패: ${res?.error || "알 수 없는 오류"}`);
-        }
-      } catch (e) {
-        alert(`❌ 변환 처리 중 오류: ${e}`);
-      } finally {
-        if (btn) { btn.textContent = origText; btn.disabled = false; }
-      }
     }
 
     async function joystickMode() {
@@ -11733,14 +11608,6 @@ L S R  C S L  R S L
       const chip = (text, bg, fg) =>
         `<span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:${bg}; color:${fg};">${text}</span>`;
       const chips = [];
-      // 3-Mode 제어 모드 칩 (Dual, Continuous, Discrete)
-      if (it.control_mode === "dual") {
-        chips.push(chip("⚡ 듀얼", "rgba(168,85,247,0.2)", "var(--purple)"));
-      } else if (it.control_mode === "continuous" || it.action_space === "continuous") {
-        chips.push(chip("∿ 아날로그", "rgba(56,189,248,0.2)", "var(--cyan)"));
-      } else if (it.control_mode === "discrete") {
-        chips.push(chip("🕹️ 이산", "rgba(148,163,184,0.15)", "var(--text-muted)"));
-      }
       if (it.cx_position) {
         const st = DS_CXPOS_STYLE[it.cx_position] || {icon: "●", bg: "rgba(148,163,184,0.15)", fg: "var(--text-muted)"};
         const label = _dsCxPosLabels[it.cx_position] || it.cx_position;
@@ -11882,16 +11749,11 @@ L S R  C S L  R S L
         return true;
       });
 
-      // 3대 항목 정렬 (시간순 / 프레임순 / 듀얼·아날로그 모드·시나리오순)
+      // 항목 정렬 (시간순 / 프레임순 / 시나리오순)
       items.sort((a, b) => {
         if (sortMode === "date_asc") return a.name.localeCompare(b.name);
         if (sortMode === "frames_desc") return (b.num_frames || 0) - (a.num_frames || 0);
         if (sortMode === "frames_asc") return (a.num_frames || 0) - (b.num_frames || 0);
-        if (sortMode === "mode_dual") {
-          const rank = it => (it.control_mode === "dual" ? 3 : (it.control_mode === "continuous" || it.action_space === "continuous" ? 2 : (it.control_mode === "discrete" ? 1 : 0)));
-          const diff = rank(b) - rank(a);
-          return diff !== 0 ? diff : b.name.localeCompare(a.name);
-        }
         if (sortMode === "scenario_asc") return (a.scenario || "").localeCompare(b.scenario || "");
         return b.name.localeCompare(a.name); // date_desc 기본
       });
@@ -12059,10 +11921,6 @@ L S R  C S L  R S L
       document.getElementById("ds-sum-stopinject").textContent = (a.stop_inject_n !== undefined ? a.stop_inject_n : "—");
       document.getElementById("ds-sum-chunk").textContent = (a.action_chunk_size !== undefined ? a.action_chunk_size : "—");
       document.getElementById("ds-sum-size").textContent = m.size_mb + "MB";
-      const elActSpace = document.getElementById("ds-sum-actionspace");
-      if (elActSpace) elActSpace.textContent = a.action_space || (a.control_mode ? "continuous" : "discrete");
-      const elCtrlMode = document.getElementById("ds-sum-controlmode");
-      if (elCtrlMode) elCtrlMode.textContent = a.control_mode || "—";
 
       // 입력 소스 분포 — action_event_types(keyboard/joystick/stop_inject 등)
       const srcDist = {};
@@ -12434,30 +12292,6 @@ def joystick_toggle():
     return {"ok": True, "enabled": enabled}
 
 
-@app.post("/joystick/toggle_analog")
-def joystick_toggle_analog():
-    """아날로그 연속 제어 모드 (Continuous PWM/Velocity, Pi0 Flow Matching 대응) 토글"""
-    analog_mode = _joystick.toggle_analog_mode()
-    return {"ok": True, "analog_mode": analog_mode, "control_mode": _joystick.control_mode}
-
-
-@app.post("/joystick/cycle_control_mode")
-def joystick_cycle_control_mode():
-    """3-Mode (discrete -> continuous -> dual) 순환 전환"""
-    mode = _joystick.cycle_control_mode()
-    return {"ok": True, "control_mode": mode, "analog_mode": _joystick.analog_mode}
-
-
-class SetControlModeReq(BaseModel):
-    mode: str  # "discrete" | "continuous" | "dual"
-
-
-@app.post("/joystick/set_control_mode")
-def joystick_set_control_mode(req: SetControlModeReq):
-    mode = _joystick.set_control_mode(req.mode)
-    return {"ok": True, "control_mode": mode, "analog_mode": _joystick.analog_mode}
-
-
 @app.post("/joystick/toggle_sync_async")
 def joystick_toggle_sync_async():
     """조이스틱 SYNC vs ASYNC 주행 모드 토글"""
@@ -12498,36 +12332,6 @@ def system_reset():
                   grounding_cached=None, grounding_caption=None,
                   run_history=[], action_history=[], last_action=[0.0,0.0,0.0])
     return {"ok": True, "message": "성공적으로 시스템 상태 및 추론 캐시가 리셋되었습니다."}
-
-
-# ═══════════════════════════════════════════════════════════════════
-# LeRobot v3.0 (Parquet + MP4) 데이터셋 변환 엔드포인트 (Pi0 Flow Matching 연동)
-# ═══════════════════════════════════════════════════════════════════
-class ExportLeRobotReq(BaseModel):
-    input_dir: Optional[str] = None
-    output_dir: Optional[str] = None
-    fps: int = 25
-    pattern: str = "*.h5"
-
-
-@app.post("/dataset/export_lerobot_v3")
-def export_lerobot_v3_api(req: ExportLeRobotReq):
-    """수집된 H5 에피소드들을 LeRobot v3.0 (Parquet + MP4 Shards) 표준 포맷으로 변환"""
-    from robovlm_nav.datasets.export_lerobot_v3 import export_h5_directory_to_lerobot_v3
-
-    in_dir = Path(req.input_dir) if req.input_dir else (ROOT / "ROS_action" / "mobile_vla_dataset_v5")
-    out_dir = Path(req.output_dir) if req.output_dir else (ROOT / "datasets" / "lerobot_v3_dataset")
-
-    try:
-        res = export_h5_directory_to_lerobot_v3(
-            input_dir=in_dir,
-            output_dir=out_dir,
-            fps=req.fps,
-            pattern=req.pattern,
-        )
-        return res
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
 
 
 # ═══════════════════════════════════════════════════════════════════
