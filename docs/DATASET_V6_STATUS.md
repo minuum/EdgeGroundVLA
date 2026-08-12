@@ -1998,15 +1998,29 @@ mona_dashboard.py로 수집돼서 100% 조이스틱입니다.** "조이스틱을
 
 ---
 
-## 📦 [2026-08-13] 3-Mode 조이스틱 제어 + LeRobot v3.0 export 파이프라인 — pull 요청
+## 📦 [2026-08-13] 3-Mode 조이스틱 제어 + LeRobot v3.0 export 파이프라인 — inference-integration 반영 완료
 
 soda 로컬(Antigravity)에서 작업해둔 큰 기능을 `monavla-driving`에 정리해서
-커밋/push했습니다. **`inference-integration`으로 cherry-pick을 시도했는데
-`mona_dashboard.py`에서 8곳·수백 줄 단위 충돌이 나서 자동 병합을 중단**했습니다 —
-minum 쪽에서 그 사이 이 파일을 많이 고친 것으로 보입니다. **minum이 직접
-`monavla-driving`을 보고 필요한 부분만 pull/merge 부탁드립니다.**
+커밋/push했고, **`inference-integration`에도 이미 반영·push 완료했습니다**
+(커밋 `52967c57`) — pull만 받으시면 됩니다.
 
-커밋: `23d9bc70`, `c7ed28ad`, `b7e83dcb`, `26be14cf`, `21a656fd` (5개, 순서대로)
+**처음엔 cherry-pick하다 `mona_dashboard.py`에서 대량 충돌**이 났었는데,
+원인을 파고보니 진짜 로직 충돌이 아니라 **07-03 스냅샷 이후 soda 쪽 파일이
+4579→12546줄로 커진 라인 오프셋 문제**였습니다. minum이 그 사이 추가한 패치
+3개(`_ros._stable` 리셋/세션뷰어 episode_log join/트랙A cx 시나리오)를 하나씩
+대조해보니 **soda 버전에 이미 포함돼 있거나 더 발전된 형태로 존재**했고,
+`vla_control_utils.py`도 minum 버전(`move_and_stop_ramped` 등)을 한 줄도
+안 지운 순수 상위집합이었습니다. 그래서 **cherry-pick 대신 두 파일을 soda
+버전으로 통째 교체**하는 방식으로 병합했습니다(별도 diff 대조로 확인 후 진행,
+minum 고유 로직 손실 없음).
+
+**주의**: 이 병합은 `mona_dashboard.py`/`vla_control_utils.py` 2개 파일만
+대상입니다. `stage2_v2_inference_server.py`는 두 브랜치가 1727줄 vs 2110줄로
+따로 갈라져 있는데 이번엔 손 안 댔습니다 — 필요하시면 별도로 요청해 주세요.
+
+원래(soda→monavla-driving) 커밋: `23d9bc70`, `c7ed28ad`, `b7e83dcb`,
+`26be14cf`, `21a656fd`. inference-integration 반영 커밋: `52967c57`(4개 파일
+통째 반영, +9161/-735).
 
 ### 핵심 내용
 - **3-Mode 조이스틱 제어**: `discrete`(기존 8방향) / `continuous`(스틱 기울기
