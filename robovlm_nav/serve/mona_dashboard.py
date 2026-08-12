@@ -4618,12 +4618,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 
   /* ── 탭 레이아웃 ── */
   .tab-content {
-    display: none;
+    display: none !important;
     flex: 1;
     overflow: hidden;
   }
   .tab-content.active {
-    display: flex;
+    display: flex !important;
   }
   .scroll-container {
     flex: 1;
@@ -5015,9 +5015,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 
   /* 프레임 인스펙터 레이아웃 */
   .frame-inspector {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-flow: row !important;
     gap: 20px;
+  }
+  .frame-inspector > * {
+    grid-column: 1 !important;
   }
 
   /* ── 위키/최신현황 탭 — docs/v5/research_story.html 스타일 이식 ──
@@ -6186,7 +6190,7 @@ L S R  C S L  R S L
               왼쪽 목록에서 세션을 선택하면 상세 프레임 분석 패널이 활성화됩니다.
             </div>
             
-            <div id="inspector-body" class="frame-inspector" style="display:none;">
+            <div id="inspector-body" class="frame-inspector" style="display:none; grid-template-columns:1fr;">
 
               <!-- 프레임 비디오/이미지 뷰어 -->
               <div>
@@ -7009,7 +7013,7 @@ L S R  C S L  R S L
             <div id="ds-compare-body" style="display:none; padding:16px; flex-direction:column; gap:10px;"></div>
 
             <!-- 단일 상세: 프레임 인스펙터 -->
-            <div id="ds-inspector-body" class="frame-inspector" style="display:none;">
+            <div id="ds-inspector-body" class="frame-inspector" style="display:none; grid-template-columns:1fr;">
               <div>
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="ds-frame-img" class="viewport-img" src="">
@@ -10699,7 +10703,7 @@ L S R  C S L  R S L
       });
       document.getElementById("inspect-sid-lbl").textContent = "[" + sid + "]";
       document.getElementById("inspector-placeholder").style.display = "none";
-      document.getElementById("inspector-body").style.display = "grid";
+      { const ib = document.getElementById("inspector-body"); ib.style.display = "grid"; ib.style.gridTemplateColumns = "1fr"; }
       loadInspectTrajectory(sid);   // T1-3 — 비동기, 실패해도 인스펙터 나머지엔 영향 없음
       
       const res = await api("/sessions/load?sid=" + sid);
@@ -12008,7 +12012,7 @@ L S R  C S L  R S L
       document.getElementById("ds-detail-lbl").textContent = "[" + name + "]";
       document.getElementById("ds-placeholder").style.display = "none";
       document.getElementById("ds-compare-body").style.display = "none";
-      document.getElementById("ds-inspector-body").style.display = "grid";
+      { const db = document.getElementById("ds-inspector-body"); db.style.display = "grid"; db.style.gridTemplateColumns = "1fr"; }
       if (_dsPlayTimer) { clearInterval(_dsPlayTimer); _dsPlayTimer = null; }
 
       const res = await api("/dataset/load?name=" + encodeURIComponent(name));
