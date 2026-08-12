@@ -6421,7 +6421,7 @@ L S R  C S L  R S L
 
                 <div class="form-group" id="inspect-runtime-cfg-box" style="margin-top:20px; display:none;">
                   <label>⚙️ 당시 런타임 설정 (경로검증 Config + 서버 스냅샷)</label>
-                  <div id="inspect-runtime-cfg-grid" class="mini-tile-grid" style="margin-top:6px;"></div>
+                  <div id="inspect-runtime-cfg-grid" class="mini-tile-grid" style="margin-top:6px; grid-template-columns:1fr;"></div>
                 </div>
 
                 <div class="srv-pill" style="font-size:11px; margin-top:16px; display:block;">
@@ -7052,7 +7052,7 @@ L S R  C S L  R S L
 
                   <!-- 수집 관련 상세 정보 — 데이터수집 탭 attrs 그대로 노출 -->
                   <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin:12px 0 5px;">🎛️ 수집 설정</div>
-                  <div class="mini-tile-grid">
+                  <div class="mini-tile-grid" style="grid-template-columns:1fr;">
                     <div class="mini-tile"><span class="mt-label">패턴</span><span class="mt-value" id="ds-sum-pattern" style="font-size:11px;">—</span></div>
                     <div class="mini-tile"><span class="mt-label">장애물배치</span><span class="mt-value" id="ds-sum-obstacle" style="font-size:11px;">—</span></div>
                     <div class="mini-tile"><span class="mt-label">시간대</span><span class="mt-value" id="ds-sum-timeperiod" style="font-size:11px;">—</span></div>
