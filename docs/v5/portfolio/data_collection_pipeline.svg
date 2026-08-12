@@ -21,8 +21,8 @@
   <text x="105" y="190" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">조이스틱 (DragonRise)</text>
   <text x="105" y="207" text-anchor="middle" fill="#94a3b8" font-size="9">25Hz 폴링 (pygame)</text>
   <line x1="50" y1="218" x2="160" y2="218" stroke="#134e4a" stroke-width="1"/>
-  <text x="105" y="234" text-anchor="middle" fill="#94a3b8" font-size="8.5">좌스틱: 이동 · 스트레이프</text>
-  <text x="105" y="248" text-anchor="middle" fill="#94a3b8" font-size="8.5">L2 · R2: 좌/우 회전</text>
+  <text x="105" y="234" text-anchor="middle" fill="#94a3b8" font-size="8.5">좌스틱: 전진/후진 · 스트레이프</text>
+  <text x="105" y="248" text-anchor="middle" fill="#94a3b8" font-size="8.5">우스틱 X축: 좌/우 회전</text>
   <text x="105" y="266" text-anchor="middle" fill="#5eead4" font-size="8.5" font-weight="600">L1: 녹화 시작</text>
   <text x="105" y="280" text-anchor="middle" fill="#5eead4" font-size="8.5" font-weight="600">R1: 정지 · 저장</text>
   <text x="105" y="300" text-anchor="middle" fill="#5eead4" font-size="8.5" font-weight="600">B: 실험용(모델이상) 표기</text>
@@ -32,20 +32,20 @@
   <line x1="180" y1="240" x2="228" y2="240" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
   <text x="204" y="228" text-anchor="middle" fill="#64748b" font-size="8">raw axis</text>
 
-  <!-- ══ 2. 방향 판정 ══ -->
+  <!-- ══ 2. 이산 액션 분류 ══ -->
   <rect x="230" y="195" width="150" height="90" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
-  <text x="305" y="217" text-anchor="middle" fill="#cbd5e1" font-size="9">방향 판정</text>
-  <text x="305" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">WASD 매핑</text>
-  <text x="305" y="256" text-anchor="middle" fill="#94a3b8" font-size="8.5">Jitter Hold 0.3s (ASYNC)</text>
+  <text x="305" y="217" text-anchor="middle" fill="#cbd5e1" font-size="9">이산 액션 분류</text>
+  <text x="305" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">액션 클래스 매핑</text>
+  <text x="305" y="256" text-anchor="middle" fill="#94a3b8" font-size="8.5">8종 방향(고정 속도) · Jitter 0.3s</text>
 
-  <!-- arrow: 방향판정 -> publish_and_move -->
+  <!-- arrow: 이산 액션 분류 -> publish_and_move -->
   <line x1="380" y1="240" x2="428" y2="240" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
-  <text x="404" y="228" text-anchor="middle" fill="#64748b" font-size="8">key(W/A/S/D..)</text>
+  <text x="404" y="228" text-anchor="middle" fill="#64748b" font-size="8">action class</text>
 
   <!-- ══ 3. publish_and_move ══ -->
   <rect x="430" y="195" width="170" height="90" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="515" y="217" text-anchor="middle" fill="#93c5fd" font-size="9">구동 호출</text>
-  <text x="515" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">ctrl.publish_and_move()</text>
+  <text x="515" y="238" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">구동 명령 발행</text>
   <text x="515" y="256" text-anchor="middle" fill="#60a5fa" font-size="8.5">10Hz 스로틀 · 방향유지 중 반복</text>
 
   <!-- arrow: publish_and_move -> Robot -->
@@ -80,7 +80,7 @@
 
   <!-- arrow: on_command -> buffer -->
   <line x1="810" y1="240" x2="858" y2="240" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
-  <text x="834" y="228" text-anchor="middle" fill="#64748b" font-size="8">(frame,action,t)</text>
+  <text x="834" y="228" text-anchor="middle" fill="#64748b" font-size="8">(image, action, t)</text>
 
   <!-- ══ 7. Episode buffer ══ -->
   <rect x="860" y="195" width="170" height="90" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
@@ -97,8 +97,8 @@
   <rect x="1080" y="180" width="170" height="120" rx="8" fill="#2d2400" stroke="#f59e0b" stroke-width="1.5"/>
   <text x="1165" y="202" text-anchor="middle" fill="#fcd34d" font-size="9">출력</text>
   <text x="1165" y="223" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">H5 에피소드 파일</text>
-  <text x="1165" y="243" text-anchor="middle" fill="#fbbf24" font-size="8.5">STOP×5 합성 종료프레임</text>
-  <text x="1165" y="259" text-anchor="middle" fill="#fbbf24" font-size="8.5">observations/images</text>
-  <text x="1165" y="275" text-anchor="middle" fill="#fbbf24" font-size="8.5">actions (lx, ly, az)</text>
+  <text x="1165" y="243" text-anchor="middle" fill="#fbbf24" font-size="8.5">images (N,720,1280,3)</text>
+  <text x="1165" y="259" text-anchor="middle" fill="#fbbf24" font-size="8.5">actions (lx, ly, az)</text>
+  <text x="1165" y="275" text-anchor="middle" fill="#fbbf24" font-size="8.5">STOP×5 합성 종료프레임</text>
 
 </svg>

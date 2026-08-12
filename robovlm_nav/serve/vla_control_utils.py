@@ -69,13 +69,19 @@ class VLAControlManager:
             try:
                 if action_type == "MOVE":
                     if abs(az) > 0.1:
-                        # Rotation (Spin) — 직진(move)과 분리된 throttle 사용
-                        self.driver.spin(int(np.sign(az) * self.rot_throttle))
+                        # Rotation (Spin) — 회전량(|az|)에 비례하는 throttle 사용
+                        az_scale = min(1.0, abs(az) / 1.15) if abs(az) > 1.15 else min(1.0, abs(az))
+                        effective_rot_throttle = max(10, int(round(self.rot_throttle * az_scale)))
+                        self.driver.spin(int(np.sign(az) * effective_rot_throttle))
                     else:
-                        # translation move
+                        # translation move — 이동 크기(magnitude)에 비례하는 throttle(PWM) 사용
                         angle = np.degrees(np.arctan2(ly, lx))
                         if angle < 0: angle += 360
-                        self.driver.move(int(angle), self.throttle)
+                        mag = np.hypot(lx, ly)
+                        # 기준 속도 1.15 대비 정규화 스케일 (0.0 ~ 1.0)
+                        mag_scale = min(1.0, mag / 1.15) if mag > 1.15 else min(1.0, mag)
+                        effective_throttle = max(10, int(round(self.throttle * mag_scale)))
+                        self.driver.move(int(angle), effective_throttle)
                 else:
                     self.driver.stop()
             except Exception as e:
