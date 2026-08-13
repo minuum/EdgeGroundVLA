@@ -3129,8 +3129,8 @@ def sessions_export(sid: str, with_bbox: int = 0, with_meta: int = 1, with_metat
                             cx_px, cy_px = cx * W, cy * H
                             draw = ImageDraw.Draw(pil)
                             draw.rectangle([cx_px - half, cy_px - half, cx_px + half, cy_px + half],
-                                           outline=(16, 185, 129), width=3)
-                            r = 5
+                                           outline=(16, 185, 129), width=6)  # 2026-08-13: 두께 3→6 (200%)
+                            r = 10  # 2026-08-13: 조준점 반지름 5→10 (200%)
                             draw.ellipse([cx_px - r, cy_px - r, cx_px + r, cy_px + r], fill=(16, 185, 129))
                     if with_metatext:
                         lines = [sid, f"frame {i + 1}/{n}"]
