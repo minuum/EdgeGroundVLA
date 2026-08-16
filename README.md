@@ -4,7 +4,7 @@
 > **CL 96.6%** (CLIP + L2-norm + aug pipeline) vs E2E Kosmos-2 **0%**.
 
 **마지막 업데이트**: <!-- SYNC:updated -->2026-06-16<!-- /SYNC:updated -->
-**GitHub Pages**: https://minuum.github.io/MoNaVLA/
+**GitHub Pages**: https://minuum.github.io/EdgeGroundVLA/
 
 ---
 
@@ -90,10 +90,10 @@ Grounding source (HSV / base PG2 / LoRA cx) irrelevant once pipeline is correct.
 
 ## 문서
 
-- **전체 연구 여정 (CH1→CH36)**: [research_story.html](https://minuum.github.io/MoNaVLA/v5/research_story.html)
-- **시각 증거 (VIS)**: [research_story.html#vis](https://minuum.github.io/MoNaVLA/v5/research_story.html#vis)
-- **Grounding Hub**: [grounding_hub.html](https://minuum.github.io/MoNaVLA/v5/grounding_hub.html)
-- **구 실험 아카이브**: [legacy.html](https://minuum.github.io/MoNaVLA/legacy.html)
+- **전체 연구 여정 (CH1→CH36)**: [research_story.html](https://minuum.github.io/EdgeGroundVLA/v5/research_story.html)
+- **시각 증거 (VIS)**: [research_story.html#vis](https://minuum.github.io/EdgeGroundVLA/v5/research_story.html#vis)
+- **Grounding Hub**: [grounding_hub.html](https://minuum.github.io/EdgeGroundVLA/v5/grounding_hub.html)
+- **구 실험 아카이브**: [legacy.html](https://minuum.github.io/EdgeGroundVLA/legacy.html)
 - **에이전트 진입점**: `docs/AGENT_ENTRYPOINT.md`
 
 ---

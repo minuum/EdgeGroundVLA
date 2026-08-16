@@ -48,4 +48,4 @@ kill $(lsof -ti:8765) 2>/dev/null && echo "중지됨"
 
 이미지가 포함된 분석 결과 공유 시 항상 두 주소 같이 제공:
 - **로컬 (이미지 포함):** `http://localhost:8765/v5/...`
-- **GitHub Pages (이미지 제외):** `https://minuum.github.io/MoNaVLA/v5/...`
+- **GitHub Pages (이미지 제외):** `https://minuum.github.io/EdgeGroundVLA/v5/...`

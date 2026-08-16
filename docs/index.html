@@ -239,7 +239,7 @@
     <a href="#archive" class="btn btn-outline">
       <i class="fas fa-box-archive"></i> 이전 자료 모음
     </a>
-    <a href="https://github.com/minuum/MoNaVLA" class="btn btn-outline">
+    <a href="https://github.com/minuum/EdgeGroundVLA" class="btn btn-outline">
       <i class="fab fa-github"></i> GitHub
     </a>
   </div>
@@ -366,7 +366,7 @@
           <td class="val-bad">0%</td><td>—</td><td>text attention 0% 붕괴</td></tr>
       <tr><td class="tag-model">구 배포모델</td><td>exp71 w3 + Transformer 헤드</td>
           <td class="val-bad">23.8% (5/21)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
-      <tr><td class="tag-model">exp73 챔피언</td><td>OWL-v2 + MLP 헤드 (hold-aware)</td>
+      <tr><td class="tag-model">exp73 챔피언</td><td>OWL-v2 + MLP 헤드 (cadence-aligned)</td>
           <td class="val-mid">50.0% (29/58)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
       <tr class="highlight-row"><td class="tag-model">현재 배포</td><td>동일 + threshold 0.20 + 회복가드</td>
           <td class="val-good">89.0% (89/100)</td><td>1902 ms</td><td>5위치 × 20회 · 판정 기준</td></tr>
@@ -438,8 +438,8 @@
         Kosmos-2 비전과 <code>image_proj</code>는 frozen. 언어 디코더는 호출되지 않습니다.<br>
         <strong style="color:#0f172a">STOP</strong>: <code>stop_mode=learned</code>(헤드의 STOP 클래스)
         + 콜드스타트 가드 3프레임. <em>과거의 proximity 규칙(area≥0.25 &amp; |cx−0.5|≤0.35)은 현재 미사용입니다.</em><br>
-        <strong style="color:#0f172a">서빙 제어</strong>: threshold 0.20 · <code>grounding_skip_n=3</code>(→ 판단 주기 ~1.3Hz) ·
-        <code>force_reground_on_miss</code> · 회전 후 강제 재그라운딩 · 회전 0.4s 제한 · 연속회전 차단.
+        <strong style="color:#0f172a">추론 제어</strong>: threshold 0.20 · <code>grounding_skip_n=3</code>(→ 판단 주기 ~1.3Hz) ·
+        <code>force_reground_on_miss</code> · 회전 후 강제 재검출 · 회전 0.4s 제한 · 연속회전 차단.
         <span style="color:#b45309">학습 데이터에 <code>has_bbox=False</code>가 0건이라(0/16,599) 모델이 검출 실패 회복을
         배운 적이 없어, 이를 제어 계층에서 대신 처리합니다.</span>
       </p>
@@ -465,7 +465,7 @@
         <span class="lc-tag" style="background:#f5f3ff;color:#6d28d9">Architecture</span>
         <h3>모델 구조 &amp; 학습 방식</h3>
         <p>파이프라인 · 260-dim 특징벡터 · 파라미터 실측(0.46B 연산 / 1.82B 로드) ·
-           학습 설정 · 서빙 제어 로직 · RoboVLMs와의 관계. 미팅 발표용.</p>
+           학습 설정 · 추론 제어 로직 · RoboVLMs와의 관계. 미팅 발표용.</p>
         <span class="lc-arrow">Read →</span>
       </a>
 
@@ -614,7 +614,7 @@
 <div class="site-footer">
   <p>
     MoNaVLA · Mobile Navigation Vision-Language-Action ·
-    <a href="https://github.com/minuum/MoNaVLA">GitHub</a> ·
+    <a href="https://github.com/minuum/EdgeGroundVLA">GitHub</a> ·
     <a href="legacy.html">Archive</a>
   </p>
   <p style="margin-top:6px;color:#475569">

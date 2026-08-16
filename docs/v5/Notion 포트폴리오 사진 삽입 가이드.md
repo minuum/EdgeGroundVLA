@@ -23,7 +23,7 @@
 
 ### 아키텍처 다이어그램 (SVG)
 - **경로:** `docs/v5/portfolio/architecture_diagram.svg`
-- **GitHub Pages URL:** `https://minuum.github.io/MoNaVLA/v5/portfolio/architecture_diagram.svg`
+- **GitHub Pages URL:** `https://minuum.github.io/EdgeGroundVLA/v5/portfolio/architecture_diagram.svg`
 - 다크모드 배경, 전체 파이프라인 시각화
   - Kosmos-2 Vision Encoder (frozen) → 256-dim L2-norm
   - BBox History ×8 → Concatenate 288-dim

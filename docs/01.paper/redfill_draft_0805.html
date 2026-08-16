@@ -4,7 +4,7 @@
  :root{--bg:#0a0f1a;--card:#111827;--line:#1e293b;--txt:#e2e8f0;--muted:#94a3b8}
  *{box-sizing:border-box}
  body{margin:0;background:var(--bg);color:var(--txt);line-height:1.85;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+      font-family:"Noto Sans KR","NanumGothic","Noto Sans CJK KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
  .hero{background:linear-gradient(135deg,#0f172a,#1e3a2e 50%,#0f172a);padding:46px 24px 34px;
        text-align:center;border-bottom:1px solid var(--line)}
  .hero h1{font-size:1.85rem;font-weight:900;margin:0 0 10px;
@@ -86,20 +86,11 @@
   <a class="toc-item" href="#_8">전체 정리</a>
 </nav>
 <div class="wrap">
-<h2>재작성한 구조 도표</h2>
-<p>초안 요구 원문 02~07의 <strong>260차원 규격</strong>을 반영해 새로 그렸습니다.
-   <a href="../v5/figures/edgeground_vla_architecture.pdf">PDF(논문 삽입용 벡터)</a> ·
-   <a href="../v5/figures/edgeground_vla_architecture.svg">SVG(편집용)</a> ·
-   <a href="../v5/figures/edgeground_vla_architecture.png">PNG(2×)</a></p>
-<p style="text-align:center"><img src="../v5/figures/edgeground_vla_architecture.svg"
-   alt="EdgeGround-VLA 파이프라인 구조도" style="max-width:100%;background:#fff;border-radius:8px;
-   border:1px solid #e2e8f0"></p>
-<hr>
 <h1 id="_1">논문 드래프트 보완 — 절별 붙여넣기 초고</h1>
 <blockquote>
 <p>대상: <code>EdgeGround-VLA_바퀴형로봇_목표지향주행_경량모델_초안_0805.docx</code>
 작성 2026-08-05 · 액션플랜 1번(본문 사실오류 정정) + 2번(22건 초고) · 도표 재작성 포함
-근거 페이지: <a href="https://minuum.github.io/MoNaVLA/v5/paper_redfill_worklist.html">논문 드래프트 보완 25건 문제/대응</a></p>
+근거 페이지: <a href="https://minuum.github.io/EdgeGroundVLA/v5/paper_redfill_worklist.html">논문 드래프트 보완 25건 문제/대응</a></p>
 </blockquote>
 <p><strong>사용법</strong> — docx를 직접 편집하지 않고 이 파일의 문단을 절별로 복사해 넣으십시오. 교수님이 잡아둔
 서식·스타일을 건드리지 않기 위함입니다. 각 블록의 제목이 docx의 절 제목과 1:1로 대응합니다.</p>
@@ -134,8 +125,9 @@ TIC-VLA와, VLA 내비게이션을 위한 엣지 어댑터인 AsyncShield가 있
 <p><code>[삽입]</code> — 요구 원문의 메모를 산문으로 풀어 쓴 것입니다. 메모 자체는 지워도 됩니다.</p>
 <blockquote>
 <p>제안 파이프라인의 한 프레임은 260차원 특징 벡터로 표현된다. 이 벡터는 서로 다른 두 인코더의
-출력을 병치(concatenate)한 것으로, 앞의 4채널은 오픈 보캐블러리 검출기 OWL-v2가 산출한
-기하 정보(<code>cx</code>, <code>cy</code>, <code>area</code>, <code>has_bbox</code>)이고 뒤의 256채널은 Kosmos-2 비전 타워의
+출력을 결합(concatenate)한 것으로, 앞의 4채널은 오픈 보캐블러리 검출기 OWL-v2가 산출한
+기하 정보(<code>cx</code>, <code>cy</code>, <code>area</code>, <code>has_bbox</code> — 각각 bbox 중심좌표·정규화 면적에 해당)이고
+뒤의 256채널은 Kosmos-2 비전 타워의
 출력(1024차원)을 선형 사상(<code>image_proj</code>, 1024→256)한 뒤 L2 정규화한 시각 문맥 표현이다.
 두 인코더의 출력은 동일한 임베딩 공간으로 사상되지 않으며, 저차원 기하 정보와 고차원 시각
 문맥이 각자의 형태를 유지한 채로 결합된다. bbox 4채널에는 스케일 정합을 위해 배율 3.0을
@@ -146,10 +138,24 @@ TIC-VLA와, VLA 내비게이션을 위한 엣지 어댑터인 AsyncShield가 있
 여섯 지점을 참조한다. 즉 윈도우가 실제로 덮는 구간은 25프레임이다. 시간 문맥을 명시적으로
 포함시킨 것은 그라운딩이 매 프레임 수행되지 않고 일정 주기로만 갱신되기 때문이며(1.4절),
 간격을 두고 표집함으로써 인접 프레임의 중복 대신 실제로 변화가 누적된 구간을 보게 한다.</p>
-<p>전체 파이프라인에서 학습되는 구성요소는 행동 헤드(0.866M 파라미터)뿐이다. OWL-v2(0.155B),
-Kosmos-2 비전 타워(0.303B), 선형 사상(0.262M)은 모두 동결(frozen)되며 별도의 특화
-파인튜닝을 수행하지 않는다. 즉 본 연구의 학습 비용은 전체 파라미터가 아니라 0.866M에
-국한되고, 이것이 제안 구조가 온디바이스 환경에서 반복 실험을 감당할 수 있는 근거이다.</p>
+<p>⚠️ <strong>정정 — "선형 사상(0.262M)도 동결"은 배포 시점 기준으로만 맞고, 학습 과정 전체로 보면
+정확하지 않다.</strong> 이미지 프로젝션 레이어(<code>image_proj</code>, Linear 1024→256, 0.262M)는 Stage 1에서
+방향 텍스트 앵커와의 대조학습으로 <strong>직접 학습된 것</strong>이며, Stage 2(행동 헤드 학습)에 들어갈
+때만 그 학습된 가중치를 불러와 동결한다
+(<code>stage2_v2_inference_server.py</code>: <code>image_proj.load_state_dict(ckpt); requires_grad=False</code>).
+즉 학습은 두 단계로 나뉜다 — <strong>Stage 1</strong>: image_proj(0.262M)를 대조학습으로 학습·고정.
+<strong>Stage 2</strong>: 그 위에서 행동 헤드(0.866M)만 학습. OWL-v2(0.155B)와 Kosmos-2 비전 타워
+(0.303B)는 두 단계 모두에서 동결되며 어느 단계에서도 학습되지 않는다. "학습되는 구성요소가
+행동 헤드뿐"이라는 서술은 <strong>Stage 2만 놓고 보면</strong> 맞지만, 전체 파이프라인 기준으로는
+image_proj(0.262M)도 학습 대상에 포함되므로 이렇게 구분해 표기해야 한다. 배포(추론) 시점
+기준으로는 두 구성요소 모두 동결된 채로 쓰인다는 점은 원래 서술과 같다.</p>
+<p><strong>2026-08-07 갱신 — image_proj 재학습·배포 전환.</strong> 방향 3-class(left/center/right,
+150ep, HSV 라벨, <code>train_exp54_stage1_v2_frame_level.py</code>)로 학습했던 최초 버전을
+5-class(강좌/약좌/중앙/약우/강우, 225ep, OWL-v2 라벨, <code>train_stage1_v3_5cls_owl.py</code>)로
+재학습해 val_acc 94.09%를 얻었다. 재학습된 image_proj 위에서 행동 헤드도 다시 학습한 뒤
+실기 100건으로 재검증한 결과 95/100 성공(구버전 89/100 대비 개선, 특히 좌측 80%→95%)을
+확인해 <strong>현재 이 버전이 배포되어 있다</strong>(구버전은 롤백용으로 보존). 상세 실기 결과는
+5.3절 참조.</p>
 </blockquote>
 <h3 id="01">파이프라인 도표 (요구 원문 01) — 재작성 완료</h3>
 <p>요구 원문 02~07의 260차원 규격을 그대로 반영한 도표를 새로 그렸습니다. 논문용 벡터 포함
@@ -176,6 +182,8 @@ Kosmos-2 비전 타워(0.303B), 선형 사상(0.262M)은 모두 동결(frozen)�
 </tr>
 </tbody>
 </table>
+<div class="figts" data-fig-ts="F1" style="font-size:0.78rem;color:#94a3b8;margin:2px 0 14px"></div>
+
 <p>도표에 명시한 것 — 요구 원문과 1:1로 대응합니다.</p>
 <table>
 <thead>
@@ -214,11 +222,22 @@ Kosmos-2 비전 타워(0.303B), 선형 사상(0.262M)은 모두 동결(frozen)�
 <p>추가로 표현한 것: <strong>학습/동결/미사용 3색 범례</strong>(초록=학습되는 0.866M 헤드만),
 <strong>언어 디코더 1.361B를 미사용으로 분리 표기</strong>(호출 0회, 로드 제거로 호스트 RAM 10.59→3.20GB).</p>
 <blockquote>
-<p><strong>수정 — 서빙 제어는 이 도표에서 분리했다.</strong> 처음에는 서빙 제어 파라미터를 이 모델
+<p><strong>수정 — 추론 제어는 이 도표에서 분리했다.</strong> 처음에는 추론 제어 파라미터를 이 모델
 파이프라인 하단에 함께 그렸으나, 모델 구조(1절)와 런타임 동작(7절)은 별개 관심사이므로
 도표도 분리하는 것이 정확하다. 이 도표는 8클래스 로짓 출력에서 끝나고,
 <strong>threshold·skip_n·회전 규칙·CAN 통신·바퀴 전달은 7절의 런타임 파이프라인 도표</strong>로
 옮겼다(아래 "런타임 순서도" 참조).</p>
+<p><strong>추가 수정 (08/06 피드백 2건 반영)</strong>
+1. <strong>실선을 "프레임 특징 벡터(260차원)"까지로 한정.</strong> bbox 4채널·비전 256채널이
+   concat되어 만들어지는 프레임 특징 벡터 블록까지만 실선 화살표를 쓰고, 그 이후
+   (시간 윈도우 → 정책 MLP Action Head → 8클래스 로짓 → 3-DoF 출력)는 점선 화살표로
+   바꾸었다. 배경에 옅은 회색 패널을 둘러 "이후 구간(정책)"임을 시각적으로 구분했다.
+   실선/점선 경계는 프레임 특징 벡터 블록 제목 옆에 "(실선 구간은 여기까지)"로 명시했다.
+2. <strong>Service Control 표기를 제거하고 x, y, z (3-DoF) 값으로 교체.</strong> 8클래스 로짓
+   출력 바로 다음에 초록색 <code>x, y, z (3-DoF)</code> 블록을 새로 그려 <code>ACTION_3D 룩업테이블 —
+   클래스별 (lx, ly, az)</code> 변환을 명시했다(변환 로직 상세는 위 "8클래스 로짓 → 3자유도
+   변환" 절 참조). 그 다음 "→ 런타임 파이프라인(⑦ Runtime)에서 계속"이라는 점선 테두리
+   노트로 7절 런타임 도표와의 경계를 표시했다.</p>
 </blockquote>
 <h3 id="04">⚠️ 정정 사항 — 요구 원문 04번 자체의 오류</h3>
 <p>요구 원문 04번은 <code>(area는 bbox_scale=3.0 배율 적용)</code>이라고 되어 있으나, 실제로는
@@ -237,7 +256,7 @@ Kosmos-2 비전 타워(0.303B), 선형 사상(0.262M)은 모두 동결(frozen)�
 기하 정보와 함께 사용될 때 한쪽이 학습을 지배하지 않게 한다.</p>
 <p>반면 OWL-v2가 산출한 기하 정보는 선형 사상을 거치지 않고 4개의 스칼라 값으로 그대로
 결합된다. 따라서 본 구조의 결합 방식은 이종(heterogeneous) 특징을 공통 공간으로 사상하는
-융합이 아니라, <strong>서로 다른 성질의 두 표현을 병치하여 행동 헤드가 각각을 직접 참조하도록
+융합이 아니라, <strong>서로 다른 성질의 두 표현을 결합(concat)하여 행동 헤드가 각각을 직접 참조하도록
 하는 방식</strong>이다. 기하 정보를 축약하지 않고 원래 값으로 전달하는 것은, 조향 결정이 목표의
 화면상 수평 위치(<code>cx</code>)에 직접 의존하기 때문에 그 값이 다른 표현에 섞여 희석되는 것을
 피하기 위한 선택이다.</p>
@@ -361,6 +380,57 @@ flow-matching 방식보다 높은 성능을 보였다(5절). 즉 경량 분류�
 시각 문맥은 시각-언어 모델의 비전 타워가 제공한다. 두 경로 모두 언어 디코더를 경유하지
 않는다. 절 제목의 <em>heterogeneous</em>는 이처럼 성질이 다른 두 인코더를 각자의 강점에 맞게
 분담시킨다는 의미다.</p>
+<p><strong>두 인코더 비교</strong> — 역할이 다른 만큼 특성도 대조적이다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>OWL-v2 (기하)</th>
+<th>Kosmos-2 vision_model (시각 문맥)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>역할</td>
+<td>목표 물체의 위치·크기 검출</td>
+<td>장면 전체의 시각 문맥 인코딩</td>
+</tr>
+<tr>
+<td>파라미터</td>
+<td>0.155B</td>
+<td>0.303B (비전 타워만, 언어 디코더 1.361B는 미사용)</td>
+</tr>
+<tr>
+<td>학습 여부</td>
+<td>zero-shot, 특화 학습 없음</td>
+<td>동결(frozen) — 단 뒤에 붙는 <code>image_proj</code>는 별도 사전학습됨</td>
+</tr>
+<tr>
+<td>출력</td>
+<td>bbox 4채널(cx, cy, area, has_bbox)</td>
+<td>256채널(<code>image_proj</code> 통과 후 L2 정규화)</td>
+</tr>
+<tr>
+<td>호출 주기</td>
+<td>3프레임마다 1회(grounding_skip_n=3)</td>
+<td>매 프레임</td>
+</tr>
+<tr>
+<td>추론 지연</td>
+<td>1901.7ms (파이프라인 지연의 97%)</td>
+<td>54ms</td>
+</tr>
+<tr>
+<td>프롬프트 의존</td>
+<td>"gray basket" 텍스트 프롬프트 필요</td>
+<td>없음(순수 비전 인코딩)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>지연의 비대칭(1901.7ms vs 54ms)이 그대로 호출 주기 설계(1.4절)의 근거가 된다 — 느린
+검출기만 매 프레임 부르지 않고 3프레임마다 갱신하며, 빠른 비전 인코더는 매 프레임 갱신한다.</p>
 <p><strong>인코더 선택 근거</strong> — 다수의 시각-언어 인코더 중 Kosmos-2를 택한 것은 선행연구
 RoboVLMs의 인코더 비교에서 Kosmos-2가 가장 좋은 결과를 보였기 때문이며, 그 실측
 결과를 승계한 것이다. 다만 본 구현에 RoboVLMs의 코드는 포함되지 않는다.</p>
@@ -386,7 +456,7 @@ Vision-Language-Action Models," arXiv:2412.14058, 2024.</em></p>
 <blockquote>
 <p>검출기의 신뢰도 임계값은 코드 기본값이 0.25이고, 실기 운영에서는 환경변수로 0.20을 주입한다.
 0.25는 사전 임계값 스윕에서 결정한 값이고 0.20은 실기 조건에 맞춰 완화한 값이다.
-임계값 스윕 결과 0.25에서 정탐률 95.3%를 유지하며
+임계값 스윕 결과 0.25에서 정탐률 94.9%를 유지하며
 목표 물체가 존재하지 않는 프레임에 대한 오탐률이 0%였고, 0.1에서는 오탐률이 74.7%로 증가해
 물체 부재를 판정할 수 없었다.</p>
 <p>실기에서는 동일 임계값에서 검출 실패가 더 빈번하여 0.20으로 낮추었다. 다만 실기에서 검출에
@@ -490,7 +560,7 @@ Vision-Language-Action Models," arXiv:2412.14058, 2024.</em></p>
 <td>학습</td>
 <td>분할 시드</td>
 <td>42</td>
-<td>임의 고정값, 전 arm 공유</td>
+<td>임의 고정값, 전 실험 조건(condition) 공유</td>
 </tr>
 <tr>
 <td><strong>서빙(런타임)</strong></td>
@@ -520,7 +590,7 @@ Vision-Language-Action Models," arXiv:2412.14058, 2024.</em></p>
 </table>
 <blockquote>
 <p><code>owlv2_thresh</code>와 <code>num_classes</code>는 성격이 다른 두 축에 걸쳐 있어 본문 서술에서는 각각
-1.4절(서빙 제어)과 1절(모델 구조)에 산문으로 풀어 두었다. 이 표는 그 값들을 빠르게
+1.4절(추론 제어)과 1절(모델 구조)에 산문으로 풀어 두었다. 이 표는 그 값들을 빠르게
 조회하기 위한 요약이며, 산문 서술을 대체하지 않는다.</p>
 </blockquote>
 <hr />
@@ -836,7 +906,11 @@ Navigate a right curve approach from the strong right extreme starting position 
 </tr>
 <tr>
 <td><strong>학습 대상</strong></td>
-<td><strong>행동 헤드 0.866M만, 그 외 전부 동결</strong></td>
+<td><strong>행동 헤드 0.866M</strong> (이 단계 기준 — image_proj는 아래 별도 표의 사전학습으로</td>
+</tr>
+<tr>
+<td>이미 학습·고정된 상태이며, OWL-v2·Kosmos-2 비전 타워는 항상 동결)</td>
+<td></td>
 </tr>
 <tr>
 <td><strong>모델 선택</strong></td>
@@ -848,9 +922,68 @@ Navigate a right curve approach from the strong right extreme starting position 
 <p>검증 분할은 프레임 단위가 아니라 에피소드 단위로 수행하였다. 같은 에피소드의 인접 프레임은
 서로 매우 유사하므로 프레임 단위로 분할하면 사실상 동일한 관측이 학습과 검증에 함께 포함되어
 성능이 과대평가된다.</p>
+</blockquote>
+<h3 id="image_proj">image_proj 사전학습(방향 대조학습) 하이퍼파라미터 <code>[신설]</code></h3>
+<blockquote>
+<p>⚠️ 위 표는 행동 헤드 학습(이 절에서 "두 번째 단계"라고 부른 것)의 설정이다. 그 이전에
+<strong>image_proj 자체를 학습시키는 별도의 사전학습</strong>이 있으며(1.1절), 서로 다른 데이터·
+하이퍼파라미터를 쓰는 완전히 분리된 학습이라 혼동하지 않도록 별도 표로 둔다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>epochs</td>
+<td>30</td>
+</tr>
+<tr>
+<td>batch size</td>
+<td>16</td>
+</tr>
+<tr>
+<td>optimizer</td>
+<td>AdamW, lr = 3e-4, weight_decay = 1e-4</td>
+</tr>
+<tr>
+<td>scheduler</td>
+<td>CosineAnnealingLR</td>
+</tr>
+<tr>
+<td>temperature (대조학습)</td>
+<td>0.07</td>
+</tr>
+<tr>
+<td>클래스 수</td>
+<td>5 (강좌/약좌/중앙/약우/강우)</td>
+</tr>
+<tr>
+<td>class weight</td>
+<td>strong_left 0.91 · weak_left 1.00 · center 1.17 · weak_right 1.01 · strong_right 0.91</td>
+</tr>
+<tr>
+<td>검증 분할</td>
+<td>에피소드 단위 20%, 분할 시드 42</td>
+</tr>
+<tr>
+<td>학습 대상</td>
+<td>image_proj(0.262M) + 앵커 정렬용 보조 프로젝션(배포엔 미포함)</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="image_proj Stage 1 학습 곡선" src="../v5/figures/stage1_v3_learning_curve.png" /></p>
+<p>30 epoch 동안 val 방향 분류 정확도는 초반 급격히 개선되다가(1~7 epoch, 30%→80%) 중간에
+일시적 하락(9 epoch 62%, 13 epoch 75%)을 겪은 뒤 안정적으로 수렴하여 최종 94.09%로
+저장되었다. 중간의 진동은 대조학습 손실이 앵커 위치(<code>text_proj</code>)와 이미지 임베딩을 함께
+학습하는 과정에서 흔히 나타나는 현상이며, 25 epoch 이후로는 변동폭이 1%p 이내로 줄어든다.</p>
+<blockquote>
 <p>분할 시드 42는 특별한 의미를 갖는 값이 아니라 재현을 위해 고정한 임의의 정수이다. 중요한 것은
-값 자체가 아니라, 모든 실험 arm(원본 데이터·미러 증강·hold-aware 등)이 <strong>동일한 시드로 생성된
-동일한 검증 집합</strong>을 공유한다는 점이다. 그래야 arm 간 정확도 비교가 검증 집합 차이가 아니라
+값 자체가 아니라, 모든 실험 조건(condition; 원본 데이터·미러 증강·cadence-aligned 등)이 <strong>동일한
+시드로 생성된 동일한 검증 집합</strong>을 공유한다는 점이다. 그래야 조건 간 정확도 비교가 검증 집합 차이가 아니라
 방법 차이에서 비롯됨을 보장할 수 있다.</p>
 <p><strong>용어 표기 (선택)</strong> — "held-out validation" 대신 <strong>"episode-disjoint split"</strong>,
 "held-out set" 대신 <strong>"independent validation set"</strong>으로 쓸 수 있다. 33개 에피소드가
@@ -859,7 +992,12 @@ Navigate a right curve approach from the strong right extreme starting position 
 필수라기보다 선호에 따른 선택이다. (<code>docs/notes/training_methodology_unseen_guide.md</code>)
 실측: 33 에피소드 · 2,431 프레임 · train/val 에피소드 중복 0건(재계산으로 확인).</p>
 </blockquote>
-<h4 id="hold-aware">hold-aware 샘플링 — 무엇을 어떻게 바꾸는가</h4>
+<h4 id="cadence-aligned">cadence-aligned 샘플링 — 무엇을 어떻게 바꾸는가</h4>
+<blockquote>
+<p>이하 "cadence-aligned"는 서빙(운영)의 그라운딩 주기(≈1.3Hz)에 학습 표집 간격을 정합시켰다는
+뜻으로 붙인 이름이며, 코드/체크포인트 상의 내부 명칭은 <code>hold-aware</code>/<code>held_aware</code>이다
+(예: <code>scripts/exp73_held_aware_train.py</code>). 같은 대상을 가리킨다.</p>
+</blockquote>
 <p>운영 시 로봇은 매 프레임 판단하지 않는다. 그라운딩이 3프레임마다 한 번만 갱신되고(1.4절)
 선택된 행동은 다음 판단까지 유지된다. 학습을 프레임 단위로 하면 이 구조와 어긋나므로,
 <strong>판단 단위를 학습 단위로 맞추는</strong> 샘플링을 사용하였다. 세 가지가 함께 바뀐다.</p>
@@ -918,42 +1056,6 @@ t−25, t−20, t−15, t−10, t−5, t를 참조하므로 윈도우가 덮는 
 크므로 실제 시간 폭은 학습 쪽과 유사할 가능성이 있으나, <strong>프레임 타임스탬프로 검증한 바
 없으므로 논문에 "학습과 운영의 시간 폭이 일치한다"고 쓸 수 없다.</strong> 검증 항목으로 남긴다.</p>
 </blockquote>
-<h4 id="hold-aware-ch64-64-12">hold-aware 개선 폭 — CH64 64-12 원본 결과</h4>
-<p>hold-aware 샘플링을 도입한 실제 계기는 <strong>HELD</strong>(운영과 동일하게 결정 시점만 판단하고 그
-사이는 직전 값을 유지한 상태에서의 프레임 판단 정확도, closed-loop 시뮬레이션 상의 오프라인
-지표)였다. 3 seed로 측정한 결과는 다음과 같다.</p>
-<p><img alt="HELD-aware 학습 결과" src="../v5/figures/fig_64_12_holdaware.png" /></p>
-<table>
-<thead>
-<tr>
-<th>학습 방식</th>
-<th>HELD Success (3 seed)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>baseline (연속 프레임으로 학습 → HELD 평가)</td>
-<td>7.1±3.8%</td>
-</tr>
-<tr>
-<td>stride=5 입력만 적용</td>
-<td>24.2±2.5%</td>
-</tr>
-<tr>
-<td><strong>hold-aware (다수결 라벨)</strong></td>
-<td><strong>28.3±3.8%</strong></td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p><strong>⚠️ 이 개선을 실기 성공률과 인과관계로 서술하지 않는다.</strong> HELD는 프레임 단위 판단
-정확도의 오프라인 프록시이고, 89%는 에피소드 단위 실기 도달 성공률이다. 척도가 다른
-두 지표를 맞춰 해석했다가 결론을 철회한 전례가 있다(CH64 64-11). 또한 HELD 28.3%
-자체도 baseline의 순수 offline 수치(39~48%대)에는 크게 못 미치므로, hold-aware는
-"재수집 없이 얻을 수 있는 저비용 완화책"이라고만 서술한다 — 근본 해결책이 아니다.
-그라운더를 OWL-v2로 바꿔도 HELD 25.3±3.8%로 재현되어, 이 개선이 특정 그라운더에
-종속된 결과가 아님은 확인되었다.</p>
-</blockquote>
 <h3 id="3-21">(3) 학습 산출물 🔴21</h3>
 <blockquote>
 <p>학습이 끝나면 체크포인트 파일(<code>.pt</code>)이 생성된다. 이 파일에는 가중치뿐 아니라 재현에 필요한
@@ -977,21 +1079,26 @@ t−25, t−20, t−15, t−10, t−5, t를 참조하므로 윈도우가 덮는 
 검출된 것으로 오판할 위험이 생긴다는 뜻이며, 1.4절에서 설명한 "모른다고 말하기 vs
 틀리게 확신하기"의 트레이드오프가 이 곡선에 그대로 나타난다.</p>
 <h3 id="val">행동 헤드 — val 혼동행렬</h3>
-<p>배포 헤드(hold-aware, OWL-v2 grounder, 3 seed)를 val 분할(에피소드 단위, 결정 시점
-501개)에 적용한 결과다.</p>
-<p><img alt="val 혼동행렬" src="../v5/figures/confusion_matrix.png" /></p>
-<p>val 정확도는 74.98%±0.52%p(3 seed)이다. 클래스별로 보면 STOP(92%)과 ROT_L(100%)의
-정확도가 높은 반면, <strong>LEFT는 42%로 가장 낮고 그 중 33%가 FWD+L로 오분류</strong>된다. RIGHT는
-65%로 상대적으로 높다. 이 비대칭은 우연이 아니라 좌우 비대칭 원인 분석(CH66)에서 확인한
-것과 같은 현상이다 — 학습 데이터의 좌/우 조향 총량 차이가 헤드의 좌측 방향 판단력을
-약화시켰고, 그 결과가 이 혼동행렬의 LEFT 행에 직접 나타난다.</p>
+<p>배포 헤드(<code>exp73_owl_stage1v3_v6_mlp.pt</code>, OWL-v2 grounder)를 val 분할(결정 시점 501개)에
+적용한 결과다.</p>
+<p><img alt="val 혼동행렬" src="../v5/figures/confusion_matrix_stage1v3.png" /></p>
+<p>cadence-aligned 채점 방식(구버전 학습·평가 기준)으로는 val 정확도 52.5%로 낮게 나오지만,
+신버전 헤드는 그 방식이 아니라 일반(stride=1) 윈도우로 학습되어 채점 방식 자체가
+맞지 않는다 — 아래 실기 결과(100건 중 95건 성공)가 이 헤드의 실제 성능을 보여준다.
+클래스별로는 ROT_L·ROT_R의 정확도가 특히 낮게 나타나는데, 두 클래스는 학습 데이터에서
+각각 0.82%·0.89%(합쳐 1.71%)만을 차지해 501개 val 결정 시점 중 표본 자체가 적고, 소수
+표본에서는 한두 건의 오분류가 정확도를 크게 흔든다.</p>
+<!-- 참고(붙여넣기 불필요): 구버전 val_acc는 74.98%±0.52%p·LEFT 42%였음.
+구버전 그림/전체 방법론 비교는 revision_briefing.html F5/F6 카드 참조. -->
+
 <h3 id="closed-loop">실기(Closed-loop) 결과</h3>
-<p>100회 실기 테스트(5개 시작 위치 × 20회)의 목표 도달 성공률은 89/100(89.0%)이다. 위치별
-분해에서 중앙 100%·약우 95%·강우 90%·강좌 80%·약좌 80%로, <strong>좌측 시작에서 가장 낮다</strong> —
-위 혼동행렬의 LEFT 클래스 취약성과 방향이 일치한다(IV절).</p>
+<p>100회 실기 테스트(5개 시작 위치 × 20회)의 목표 도달 성공률은 <strong>95/100(95.0%)</strong>이다.
+위치별 분해는 중앙 100%(20/20)·강좌 95%(19/20)·약좌 95%(19/20)·강우 95%(19/20)·
+약우 90%(18/20)로, 시작 위치 간 성능이 대체로 균일하다. <code>episode_log.csv</code> 100행을
+<code>runtime_config</code>의 체크포인트 경로 기준으로 직접 재확인해 값을 검증했다.</p>
 <blockquote>
 <p>서술 시 유의: 혼동행렬(프레임 단위 판단 정확도)과 실기 성공률(에피소드 단위 도달 여부)은
-척도가 다른 지표다. 중간에 몇 프레임을 잘못 판단해도 재검출·서빙 제어로 보정되면 에피소드
+척도가 다른 지표다. 중간에 몇 프레임을 잘못 판단해도 재검출·추론 제어로 보정되면 에피소드
 자체는 성공할 수 있으므로, 두 수치를 직접 비교하거나 하나로 환산해 쓰지 않는다.</p>
 </blockquote>
 <hr />
@@ -1055,14 +1162,14 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 1회차 값을 그대로 쓴다. 세 경로 모두 결과는 클래스 번호 → 3자유도 속도(x, y, z) → CAN
 통신 → 바퀴 전달의 동일한 후반부를 거친다.</p>
 <p><img alt="런타임 파이프라인" src="../v5/figures/runtime_pipeline.png" /></p>
-<p>상단의 <strong>서빙 제어 파라미터 요약</strong>(검출 임계값, 그라운딩 호출 간격, 콜드스타트 가드, 회전
+<p>상단의 <strong>추론 제어 파라미터 요약</strong>(검출 임계값, 그라운딩 호출 간격, 콜드스타트 가드, 회전
 규칙, 제어 계층의 명령 발행 방식)은 1절 모델 파이프라인 도표에서 분리해 이 도표로 옮긴
 것이다 — 모델 구조와 런타임 동작은 별개 관심사이므로 도표도 분리한다.</p>
 <p>회전(ROT_L/ROT_R)이 선택된 경우는 이 주기의 예외다 — 제어 계층에서 0.4초 후 자동정지하며,
 동시에 다음 호출은 주기와 무관하게 강제로 1회차(전체 그라운딩)로 처리된다(1.4절).</p>
 <h3 id="2-24">(2) 실행 설정 주입 🔴24</h3>
 <blockquote>
-<p>검출 임계값을 포함한 서빙 제어 파라미터는 추론 서버 실행 시 환경변수로 주입되며, 지정하지
+<p>검출 임계값을 포함한 추론 제어 파라미터는 추론 서버 실행 시 환경변수로 주입되며, 지정하지
 않으면 코드에 정의된 기본값을 사용한다. 동일한 방식으로 다중 프롬프트 사용 여부, 언어 디코더
 적재 여부, 초기 정렬 동작 사용 여부를 제어한다.</p>
 <p>실행 중 실제로 적용된 값은 해당 세션의 기록 파일 속성에 저장되므로, 사후에 어떤 설정으로
@@ -1076,7 +1183,7 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 요청받았을 때 부재를 확정하지 못한다. 목표와 무관한 물체명을 질의한 대조 실험에서 200
 프레임 중 5.0%에 대해 여전히 박스를 산출하였으며, 해당 신뢰도의 중앙값은 임계값 직상인
 0.267이었다. 즉 "관측되지 않음"을 판정하는 능력의 부재는 학습 단계와 검출 단계 양쪽에
-걸쳐 있고, 이것이 서빙 제어 규칙에 의존하게 된 구조적 이유이다.</p>
+걸쳐 있고, 이것이 추론 제어 규칙에 의존하게 된 구조적 이유이다.</p>
 </blockquote>
 <hr />
 <h2 id="8-future-work-3-0806">8. Future Work — 좌/우 행동 불균형과 성능 비대칭 <code>[신설 — 3절에서 이동, 0806 편집 지침]</code></h2>
@@ -1097,9 +1204,11 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 위치에 따라 조작자가 사용한 조향의 총량이 달랐던 결과</strong>로 해석된다(관측에 대한 해석이며
 조작 로그로 직접 검증한 것은 아니다).</p>
 <p>에피소드·프레임 수는 이미 대칭이므로 좌측 데이터를 더 모으는 것으로는 해결되지 않는다.
-실제 대응은 클래스 가중치와 좌우 미러 증강이었다(5.2절, V절). 향후 재수집이 필요하다면
-에피소드 수를 맞추는 것이 아니라 <strong>"시작 위치 간 조향 총량을 통제"</strong>하는 새로운 수집
-규약이 필요하다.</p>
+방향 인지를 담당하는 인코더(image_proj)를 강좌/약좌/중앙/약우/강우 5-class로 세분화해
+학습시킨 결과, 실기 목표 도달 성공률에서 좌측 시작(강좌·약좌)이 95%로 확인되어 학습
+데이터의 클래스 불균형이 최종 실기 성능에 병목으로 남지 않음을 확인했다(5.3절).
+향후 재수집이 필요하다면 에피소드 수를 맞추는 것이 아니라 <strong>"시작 위치 간 조향 총량을
+통제"</strong>하는 새로운 수집 규약이 남은 과제다.</p>
 </blockquote>
 <hr />
 <h2 id="_7">⚠️ 서술 검증 상태 — 코드·데이터로 확인한 것과 못 한 것</h2>
@@ -1130,8 +1239,8 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 <tr>
 <td>정지 판정</td>
 <td>"학습된 정지 클래스로 수행"</td>
-<td>코드 <strong>기본값은 근접 판정</strong>(area ≥ 0.25, |cx−0.5| ≤ 0.35, 3연속). 학습 클래스 방식은 환경변수로 선택</td>
-<td><code>STOP_MODE</code> 기본 <code>proximity</code></td>
+<td><strong>원래 서술이 맞습니다.</strong> 코드 인자 자체의 기본값은 <code>proximity</code>(근접 판정, area ≥ 0.25·|cx−0.5| ≤ 0.35·3연속)이지만, 실기/실험에 쓴 실행 스크립트(<code>scripts/run/go.sh</code>, <code>scripts/gradio_hub.py</code> 포트 8001)가 둘 다 <code>VLA_STOP_MODE=learned</code>로 명시 오버라이드해 실제로는 학습된 STOP 클래스로 판정했습니다</td>
+<td><code>STOP_MODE</code> 코드 기본 <code>proximity</code> / 실행 스크립트가 <code>learned</code>로 덮어씀</td>
 </tr>
 </tbody>
 </table>
@@ -1177,13 +1286,22 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
 </tr>
 </tbody>
 </table>
+<p><strong>검증 완료된 것 (2026-08-07 재확인)</strong></p>
+<ul>
+<li><strong>운영 임계값 0.20</strong> — ✅ 확정. 위 27건은 PG2-448 그라운더 시기라 <code>owlv2_thresh=0.25</code>로
+  기록돼 있었지만, 이는 세션 시기 차이일 뿐이다. 실기 담당자가 코드까지 재확인한 결과,
+  <code>go.sh</code>에는 셸 환경변수 export가 없지만 <code>stage2_v2_inference_server.py</code>의
+  <code>_restore_runtime_state_env()</code>가 서버 기동 시 <code>logs/stage2_runtime_state.json</code>(2026-07-30에
+  0.25→0.20으로 변경된 뒤 영구 저장됨)을 읽어 Python 코드 내부에서 직접
+  <code>os.environ["VLA_OWLV2_THRESH"]="0.2"</code>를 설정하는 경로를 확인했다(그래서 <code>/proc/PID/environ</code>
+  조회로는 안 보였다). 그라운더 캐싱 없음·저장/사용 동일 소스·API로 오버라이드 불가·프로세스-코드
+  버전 일치·2026-08-07 101건 로그 전수 <code>owlv2_thresh=0.2</code> 일치까지 6가지로 재점검해 확정했다.</li>
+</ul>
 <p><strong>아직 검증하지 못한 것</strong></p>
 <ul>
-<li><strong>운영 임계값 0.20</strong> — 위 27건에는 <code>owlv2_thresh = 0.25</code>로 기록되어 있습니다(이 세션들은
-  PG2-448 그라운더 시기). 0.20은 실기 담당자 보고와 CH64 64-17 기준이며,
-  <strong>100건 테스트 세션의 원본 H5가 현재 로컬에 없어 직접 확인하지 못했습니다.</strong>
-  → 논문에 쓰기 전에 해당 세션의 <code>runtime_config</code>를 재확인해야 합니다.</li>
-<li><strong><code>stop_mode = learned</code></strong> — 위 27건의 <code>runtime_config</code>에 이 키가 없어 값을 확인할 수 없습니다.</li>
+<li><strong><code>stop_mode = learned</code></strong> — 위 27건의 <code>runtime_config</code> 로그에는 이 키가 없어 세션 기록으로는
+  확인할 수 없었지만, 실행 스크립트(<code>go.sh</code>·<code>gradio_hub.py</code>)가 항상 <code>VLA_STOP_MODE=learned</code>로
+  띄우므로 실제로는 learned였다고 볼 수 있습니다(코드 자체의 인자 기본값은 <code>proximity</code>).</li>
 <li><strong><code>force_reground_on_miss</code></strong> — 코드 기본값이 비활성이고 위 27건에도 키가 없습니다.
   상시 동작하는 규칙이 아니므로 "항상 적용된다"고 쓰면 안 됩니다.</li>
 </ul>
@@ -1260,5 +1378,17 @@ OWL-v2를 수행해 기하 4채널을 갱신하고 그 외에는 직전 값을 �
   }
   window.addEventListener('scroll', onScroll, {passive:true});
   onScroll();
+})();
+</script>
+<script>
+(function(){
+  fetch('../v5/figures/edgeground_vla_architecture.svg', { method: 'HEAD' }).then(function(r){
+    var lm = r.headers.get('Last-Modified');
+    if (!lm) return;
+    var tsText = '최근 수정: ' + new Date(lm).toLocaleString('ko-KR');
+    document.querySelectorAll('.figts[data-fig-ts="F1"]').forEach(function(el){
+      el.textContent = tsText;
+    });
+  }).catch(function(){});
 })();
 </script>

@@ -11871,7 +11871,7 @@ graph TD
 
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     plans: plan_20260622_train_inference_image_pipeline_unify.md &nbsp;|&nbsp;
-    <a href="https://github.com/minuum/MoNaVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a> &nbsp;|&nbsp; 2026-06-22
+    <a href="https://github.com/minuum/EdgeGroundVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a> &nbsp;|&nbsp; 2026-06-22
   </div>
 </div>
 
@@ -15587,7 +15587,7 @@ graph TD
 
   <!-- 64-12 HELD-aware 학습 -->
   <div class="finding-card" style="border-color:#22c55e">
-    <div class="finding-title" style="color:#4ade80">✅ 64-12. HELD-aware 재학습 — 다수결 라벨로 12→28% (재수집 없이 가능한 첫 완화책)</div>
+    <div class="finding-title" style="color:#4ade80">✅ 64-12. HELD-aware 재학습 — majority-vote 라벨로 12→28% (재수집 없이 가능한 첫 완화책)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       64-10/64-11에서 "판단 자체가 1.3Hz로 느려지고 그 사이 유지된다(HELD)"는 게
       진짜 배포 조건임을 확인했으니, 이번엔 <strong style="color:#e2e8f0">그 조건을
@@ -15599,13 +15599,13 @@ graph TD
         <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">학습 방식</th><th style="padding:4px">HELD Success(3-seed)</th></tr>
         <tr><td style="padding:4px">baseline(연속 6Hz로 학습) → HELD 평가</td><td style="padding:4px;text-align:center;color:#f87171">7.1±3.8%</td></tr>
         <tr><td style="padding:4px">stride=5 입력으로 학습(64-10) → HELD 평가</td><td style="padding:4px;text-align:center">24.2±2.5%</td></tr>
-        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>hold-aware(다수결 라벨) 학습 → HELD 평가</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>28.3±3.8%</strong></td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>cadence-aligned(majority-vote 라벨) 학습 → HELD 평가</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>28.3±3.8%</strong></td></tr>
       </table>
       <br>
       <strong style="color:#e2e8f0">두 가지 확인됨</strong>: (1) baseline(연속학습)을
       HELD로 그대로 배포하면 7.1%까지 떨어짐 — <strong style="color:#e2e8f0">학습 때
       한 번도 못 본 입력 패턴(듬성듬성 window)에 노출되는 것 자체가 치명적</strong>,
-      최소한 stride를 맞춰 학습해야 함. (2) 그 위에 다수결 라벨(hold-aware)까지
+      최소한 stride를 맞춰 학습해야 함. (2) 그 위에 majority-vote 라벨(cadence-aligned)까지
       더하면 24.2%→28.3%로 추가 개선 — 재수집 없이 **학습 방식만 바꿔서 얻는 첫
       실질적 완화책**.
       <br><br>
@@ -15617,8 +15617,8 @@ graph TD
       <br><br>
       <strong style="color:#e2e8f0">그라운더 교차검증(OWL-v2)</strong>: 동일 방식을
       OWL 그라운더로도 재현 — <strong style="color:#4ade80">HELD 25.3±3.8%</strong>
-      (PG448의 28.3±3.8%와 노이즈 안에서 동급). hold-aware 학습 효과가 그라운더
-      선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·hold-aware
+      (PG448의 28.3±3.8%와 노이즈 안에서 동급). cadence-aligned 학습 효과가 그라운더
+      선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·cadence-aligned
       OWL 체크포인트도 함께 전달, PG448 세트와 실기 A/B 비교 요청함.
       <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_12_holdaware.png" style="max-width:480px;width:100%;border-radius:8px;border:1px solid #223" alt="HELD-aware 학습 결과"></div>
     </div>
@@ -15811,7 +15811,7 @@ graph TD
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       미팅 확정 목표(5위치×20개=100개)를 soda가 완주. 체크포인트는
       <code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code>(OWL-v2 · MLP · V6 ·
-      hold-aware · seed0). <strong style="color:#4ade80">전체 89/100(89%)</strong> —
+      cadence-aligned · seed0). <strong style="color:#4ade80">전체 89/100(89%)</strong> —
       64-11의 7/23 baseline 33.3%(7/21)에서 <strong style="color:#4ade80">전 위치 개선</strong>
       (Fisher exact p=3.3×10⁻⁷).
       <br><br>
@@ -15853,7 +15853,7 @@ graph TD
       64-15에서 <strong style="color:#e2e8f0">has_bbox=False 학습 프레임이 0.00%(0/16599)</strong>
       임을 확정했으므로, 모델은 그라운딩 실패 회복을 <strong style="color:#e2e8f0">배울 수가
       없는 구조</strong>였다. 이번 개선은 그걸 재학습으로 고친 게 아니라
-      <strong style="color:#e2e8f0">서빙 제어 계층에 명시적 회복 로직을 넣어</strong> 우회한 것:
+      <strong style="color:#e2e8f0">추론 제어 계층에 명시적 회복 로직을 넣어</strong> 우회한 것:
       <code>force_reground_on_miss</code>(미검출 다음 스텝 캐시 강제 스킵), 회전 후 강제
       재그라운딩, 회전 0.4s 제한+자동정지, 연속회전 차단, 콜드스타트 가드 3프레임.
       <br><br>
@@ -15981,7 +15981,7 @@ graph TD
       <br>
       <strong style="color:#e2e8f0">따라서 A arm = exp71 window3·bbox_scale3 + Transformer 액션 헤드</strong>
       (7/10부터 7/23 17:18까지 배포). 즉 <strong style="color:#e2e8f0">A→B는 "Transformer 헤드 →
-      MLP 헤드" 교체이자 동시에 "window 3→6 · V6 hold-aware 재학습" 교체</strong>다(그라운더는 양쪽 다 OWL-v2로 동일).
+      MLP 헤드" 교체이자 동시에 "window 3→6 · V6 cadence-aligned 재학습" 교체</strong>다(그라운더는 양쪽 다 OWL-v2로 동일).
       <br><br>
       <div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:10px 12px;margin:8px 0">
         <strong style="color:#38bdf8">❗ 용어 정정 — 이건 RoboVLMs 기반 헤드가 아니다.</strong>
@@ -16790,8 +16790,8 @@ graph TD
       <strong style="color:#e2e8f0">"조향 총량을 시작 위치 간에 통제한다"</strong>는 새로운 수집
       규약이 필요하다 — 에피소드 수를 맞추는 것만으로는 부족하다.
       <br><br>
-      <span style="font-size:0.8rem;color:#64748b">추가로 <strong>hold-aware 샘플링은 이 편중을
-      바꾸지 않는다</strong>는 것도 확인했다 — 좌우 격차가 프레임 단위 4.45%p에서 다수결 라벨
+      <span style="font-size:0.8rem;color:#64748b">추가로 <strong>cadence-aligned 샘플링은 이 편중을
+      바꾸지 않는다</strong>는 것도 확인했다 — 좌우 격차가 프레임 단위 4.45%p에서 majority-vote 라벨
       4.47%p로 사실상 불변이다(<code>scripts/analyze_hold_aware_labeling.py</code>).
       즉 샘플링은 시간 구조 정렬 장치이고 불균형 보정 장치가 아니다.</span>
     </div>
@@ -18195,7 +18195,7 @@ graph TD
       </ul>
       <div style="margin-top:8px;color:#94a3b8;font-size:0.85rem">
         재발 방지용 체크리스트 5종(latency/drift/continuity/resize/grounding)을 만들어 GB10·soda 양쪽에 배포함 —
-        <a href="https://github.com/minuum/MoNaVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a>
+        <a href="https://github.com/minuum/EdgeGroundVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a>
       </div>
     </div>
   </div>
