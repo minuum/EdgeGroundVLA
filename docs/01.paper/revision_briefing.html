@@ -1425,7 +1425,7 @@ inference-integration·monavla-driving 양쪽 push 완료). 위 사진 기반 �
 <div class="loc">위치: §3 Collection of data</div>
 <img src="../v5/figures/figure3_final.jpg" alt="데이터 수집 및 액션 기록 과정 (Figma 최종본)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
 <p style="font-size:0.85rem;color:#cbd5e1">minum이 Figma로 완성한 최종본(<code>docs/01.paper/figure/figure 3_Collection of data.jpg</code>). (a) Experimental Setup(실사진, 라벨링) + (b) Data Collection Pipeline(플로우차트)을 세로로 병합, 아래에서 정리한 화살표 보완·STOP-frame injection 정정·역할기반 커넥터 라벨(①Actuation②Sensing) 전부 반영됨.</p>
-<p style="font-size:0.82rem;color:#fbbf24">남은 사소한 오타(Figma 원본에 아직 남아있음): "Joystic Connector"→"Joystick"(k 누락), "fixedspeed"→"fixed speed"(띄어쓰기), "action(lx,ly,az)"→"actions"(복수형) — 다음 라운드에 정정 필요.</p>
+<p style="font-size:0.82rem;color:#4ade80">✅ 지적한 오타 3건(Joystic→Joystick · fixedspeed→fixed speed · action→actions) <strong>2026-08-16 수정 확인</strong>. 추가로 "Training Datasets" 라벨이 붙어 Stage 1 입력이 더 명확해짐.</p><p style="font-size:0.82rem;color:#fbbf24">남은 사소한 것: Hz 대소문자 혼용 — <code>Camera(10hz)</code>·<code>(Control Command, 25 hz)</code>는 소문자인데 <code>(10Hz throttle)</code>·<code>(DragonRise, 25Hz)</code>는 대문자. 제출 전 <code>Hz</code>로 통일 권장.</p>
 <details style="margin-top:8px">
 <summary style="cursor:pointer;font-size:0.8rem;color:#64748b">구 초안 이미지 (참고용, 접힘)</summary>
 <img src="../v5/figures/data_collection_combined.png" alt="데이터 수집 및 액션 기록 과정 구 초안" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:8px;opacity:0.85">
@@ -1542,7 +1542,7 @@ inference-integration·monavla-driving 양쪽 push 완료). 위 사진 기반 �
 <div class="loc">위치: §5.2 학습 방법 설명</div>
 <img src="../v5/figures/figure4_final.jpg" alt="Stage 1/Stage 2 파이프라인 구조도 (Figma 최종본)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
 <p style="font-size:0.85rem;color:#cbd5e1">minum이 Figma로 완성한 최종본(<code>docs/01.paper/figure/figure 4_Stage 1,Stage 2 Training.jpg</code>). G+V/V/V 스킵 패턴 삭제, Stage1 프레임단위/Stage2 윈도우 구분, image_proj+text_proj 병렬 브랜치, GT Index→CE Loss 직결, Cosine/Softmax/CE Loss 3박스, Sliding Window(stride=1)/Feature Concatenation/Flatten/MLP Classifier/8 Class Logit/Softmax/Class-weighted CE Loss까지 이 브리핑에서 정리한 내용 전부 반영 확인.</p>
-<p style="font-size:0.82rem;color:#fbbf24">남은 사소한 오타(Figma 원본에 아직 남아있음): "Slliding Window"→"Sliding Window"(L 중복).</p>
+<p style="font-size:0.82rem;color:#4ade80">✅ 지적한 오타 1건("Slliding"→"Sliding Window") <strong>2026-08-16 수정 확인</strong>.</p><p style="font-size:0.82rem;color:#fbbf24">남은 사소한 것: <code>Sliding Window(stride =1)</code>의 <code>=</code> 앞 공백 — <code>stride=1</code>로 붙이는 게 자연스러움.</p>
 <details style="margin-top:8px"><summary style="cursor:pointer;font-size:0.82rem;color:#64748b">→ 설계 논의 이력 — 위 최종본 이미지에 전부 반영됨 (참고용, 접힘)</summary>
 <p style="font-size:0.82rem;color:#f87171;margin-top:8px">(08.11) "방향 대조 학습이라는 것을 다른 사람이 보고 이해 할수 있도록 쉽게 풀어써줘야 함." / "그래프가 이해가 가지 않음." / 사용자 메모: "Stage1, Stage2로 들어가는 거 4개만 넣긴 / 0번째 루프하고 1번째 그라운딩으로 들어가는거 / G+V V V G+V / 위에 6개만 남기고 일자로 남기는거 6개"</p>
 <p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항 (1차): "방향 텍스트 앵커 대조학습" 문구를 비전공자도 이해할 수 있게 쉬운 말로 풀어 쓴다(예: "카메라가 본 위치가 5단계 방향 중 어디에 가장 가까운지 맞히는 학습"). Stage1/Stage2 박스는 4단계로 유지.</p>
