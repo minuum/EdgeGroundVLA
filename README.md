@@ -1,9 +1,9 @@
-# MoNaVLA — Mobile Navigation Vision-Language-Action
+# EdgeGround-VLA — Heterogeneous Grounding for On-Device Goal-Directed Navigation
 
-> Decomposition-based VLA for mobile robot basket navigation.
-> **CL 96.6%** (CLIP + L2-norm + aug pipeline) vs E2E Kosmos-2 **0%**.
+> Open-vocabulary detection + lightweight action head for mobile robot basket navigation.
+> **실기 95/100 (95.0%)** — OWL-v2 + Kosmos-2 vision + image_proj + MLP, 학습 파라미터 1.128M.
 
-**마지막 업데이트**: <!-- SYNC:updated -->2026-06-16<!-- /SYNC:updated -->
+**마지막 업데이트**: <!-- SYNC:updated -->2026-08-16<!-- /SYNC:updated -->
 **GitHub Pages**: https://minuum.github.io/EdgeGroundVLA/
 
 ---
@@ -11,13 +11,13 @@
 ## 핵심 결과
 
 <!-- SYNC:results_table:start -->
-| Method | Architecture | CL ↑ | FPE ↓ | Note |
+| Method | Architecture | 실기 성공률 ↑ | val_acc | Note |
 |---|---|---|---|---|
-| E2E VLA (Exp11) | Kosmos-2 + LoRA | 0.0% | 1.454 m | Text attn 0%, structural failure |
-| Decomp v1 (Exp14) | CLIP + BBox MLP | 66.7% | 0.555 m | First decomposition baseline |
-| Simple MLP (Exp65b) | CLIP + plain MLP | 10.3% | — | No L2-norm, no aug → pipeline ablation |
-| **Ours (Exp66) ★** | **CLIP + L2-norm + aug** | **96.6%** | **0.094 m** | SOTA · MLP w=4 |
-| Ours (Exp66 LSTM) | CLIP + L2-norm + aug | 96.6% | 0.080 m | Best FPE · LSTM w=16 |
+| E2E VLA (Exp11) | Kosmos-2 + LoRA | 0.0% (CL) | 58.6% PM | Text attn 0%, structural failure |
+| Decomp v1 (Exp14) | CLIP + BBox MLP | 66.7% (CL) | 75.9% PM | First decomposition baseline |
+| Simple MLP (Exp65b) | CLIP + plain MLP | 10.3% (CL) | — | No L2-norm, no aug → pipeline ablation |
+| Ours (Exp66, legacy) | CLIP + L2-norm + aug | 96.6% (CL, 시뮬) | 93.5% | 구 SOTA · 시뮬 closed-loop 기준 |
+| **Ours (exp73) ★** | **OWL-v2 + Kosmos-2 vision + image_proj + MLP** | **95.0% (실기 95/100)** | **74.1%** | 현재 배포 구성 |
 <!-- SYNC:results_table:end -->
 
 **Pipeline ablation**: Simple MLP 10.3% → L2+aug 96.6% (×9.4 gap).
@@ -79,11 +79,13 @@ Grounding source (HSV / base PG2 / LoRA cx) irrelevant once pipeline is correct.
 ## 체크포인트
 
 <!-- SYNC:checkpoints:start -->
-| 모델 | 경로 | 크기 |
+| 모델 | 경로 | 비고 |
 |---|---|---|
-| Stage 1 v2 (encoder) | `runs/v5_nav/mlp/shared/stage1_v2_projs.pt` | 3.1 MB |
-| Stage 2 MLP w=4 ★ (Exp66) | `runs/v5_nav/mlp/exp66/action_mlp.pt` | 456 KB |
-| Stage 2 LSTM w=16 (Exp66) | `runs/v5_nav/mlp/exp66/action_mlp_lstm.pt` | — |
+| Stage 1 (image_proj, 5-class) ★ | `runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt` | val_acc 94.09% · 225ep · OWL-v2 라벨 |
+| Stage 2 (MLP action head) ★ | `runs/v5_nav/mlp/exp73_stage1v3/exp73_owl_stage1v3_v6_mlp.pt` | val_acc 74.13% · window=6 · bbox_scale=3.0 |
+| 비전 특징 캐시 | `docs/v5/closed_loop_eval/exp73_v6_vis_cache_stage1v3.pt` | 225ep 재인코딩 (Stage1 완료 후 생성) |
+| Stage 1 v2 (legacy, CLIP) | `runs/v5_nav/mlp/shared/stage1_v2_projs.pt` | Exp66 계열 |
+| Stage 2 MLP w=4 (legacy, Exp66) | `runs/v5_nav/mlp/exp66/action_mlp.pt` | Exp66 계열 |
 <!-- SYNC:checkpoints:end -->
 
 ---

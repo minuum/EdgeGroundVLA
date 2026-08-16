@@ -161,15 +161,26 @@ def make_html_results_tbody(data: dict) -> str:
 
 
 def make_html_hero_tagline(data: dict) -> str:
-    cl = data.get("sota_cl", "96.6%")
-    arch = data.get("sota_arch", "CLIP + L2-norm + aug")
-    e2e = data.get("e2e_cl", "0%")
-    return (
-        f'  <p class="hero-tagline">\n'
-        f'    Decomposition-based VLA for mobile robot basket navigation.<br>\n'
-        f'    <strong>{cl} closed-loop success</strong> ({arch} pipeline) vs E2E Kosmos-2 {e2e}.\n'
-        f'  </p>'
-    )
+    """Hero tagline 생성.
+
+    ⚠️ 2026-08-16: 이전 버전은 sota_cl을 무조건 "closed-loop success"로 표기했는데,
+    exp73부터 SOTA 지표가 시뮬 closed-loop가 아니라 실로봇 성공률로 바뀌어
+    측정 축을 잘못 붙이는 문제가 있었다(89/100 배치와 95/100 배치 혼동과 같은 종류).
+    이제 sota_metric_label로 축 이름을 명시하고, 부연 문구도 사실 그대로 쓴다.
+    """
+    cl = data.get("sota_cl", "—")
+    note = data.get("sota_note", "")
+    metric_label = data.get("sota_metric_label", "real-robot success")
+    sub = data.get("hero_tagline_sub", "")
+    lines = [
+        '  <p class="hero-tagline">',
+        '    Open-vocabulary detection + lightweight action head for mobile robot basket navigation.<br>',
+        f'    <strong>{cl} {metric_label}</strong>' + (f' ({note})' if note else '') + '<br>',
+    ]
+    if sub:
+        lines.append(f'    {sub}')
+    lines.append('  </p>')
+    return "\n".join(lines)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -405,7 +416,7 @@ def main():
     parser.add_argument("--status",           action="store_true", help="현재 SOTA 요약 출력")
     args = parser.parse_args()
 
-    print(f"\n{BOLD}MoNaVLA Research Sync{RESET}  ←  {STATUS_FILE.relative_to(ROOT)}")
+    print(f"\n{BOLD}EdgeGround-VLA Research Sync{RESET}  ←  {STATUS_FILE.relative_to(ROOT)}")
 
     if not STATUS_FILE.exists():
         print(f"{RED}✗ RESEARCH_STATUS.md 없음: {STATUS_FILE}{RESET}")
