@@ -22,7 +22,6 @@ sota_ckpt_s1: "runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt"
 sota_ckpt_s2: "runs/v5_nav/mlp/exp73_stage1v3/exp73_owl_stage1v3_v6_mlp.pt"
 sota_note: "95/100 · 5 target positions × 20 trials · 2026-08-07"
 sota_metric_label: "real-robot success"
-hero_tagline_sub: "Bottleneck is perception, not policy — <strong>grounding ≥80% → 98.8% success</strong> (2026-07-31 배치, 79/80)."
 
 # ── 보조 결과 ─────────────────────────────────────────────────────────────
 best_fpe: "—"
@@ -52,9 +51,9 @@ hero_metric1_label: "실기 성공률"
 hero_metric1_note: "95/100 · 5위치 × 20회 (2026-08-07 재검증)"
 hero_metric1_color: "#16a34a"
 
-hero_metric2_value: "98.8%"
-hero_metric2_label: "그라운딩 되면 성공"
-hero_metric2_note: "gnd%≥80 → 79/80 · 159세션 (2026-07-31 배치)"
+hero_metric2_value: "90.5%"
+hero_metric2_label: "그라운딩 성공률"
+hero_metric2_note: "985/1088 프레임 · 같은 100세션 실측"
 hero_metric2_color: "#2563eb"
 
 hero_metric3_value: "1902 ms"

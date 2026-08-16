@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="EdgeGround-VLA: Open-vocabulary detection + lightweight action head for mobile robot navigation. 95% real-robot success (95/100, 5 positions x 20). Bottleneck is perception: grounding>=80% yields 98.8% success.">
+  <meta name="description" content="EdgeGround-VLA: Open-vocabulary detection + lightweight action head for mobile robot navigation. 95% real-robot success (95/100, 5 positions x 20). Bottleneck is perception, not policy: OWL-v2 detection accounts for 97% of inference latency.">
   <meta name="keywords" content="EdgeGround-VLA, Vision-Language-Action, Robotics, Navigation, Open-Vocabulary Detection, On-Device AI">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EdgeGround-VLA: On-Device Goal-Directed Navigation</title>
@@ -203,7 +203,6 @@
   <p class="hero-tagline">
     Open-vocabulary detection + lightweight action head for mobile robot basket navigation.<br>
     <strong>95.0% real-robot success</strong> (95/100 · 5 target positions × 20 trials · 2026-08-07)<br>
-    Bottleneck is perception, not policy — <strong>grounding ≥80% → 98.8% success</strong> (2026-07-31 배치, 79/80).
   </p>
 <!-- SYNC:hero_tagline:end -->
   <div class="hero-buttons">
@@ -232,9 +231,9 @@
       <div class="metric-note">95/100 · 5위치 × 20회 (2026-08-07 재검증)</div>
     </div>
     <div class="metric-cell">
-      <div class="metric-value" style="color:#2563eb">98.8%</div>
-      <div class="metric-label">그라운딩 되면 성공</div>
-      <div class="metric-note">gnd%≥80 → 79/80 · 159세션 (2026-07-31 배치)</div>
+      <div class="metric-value" style="color:#2563eb">90.5%</div>
+      <div class="metric-label">그라운딩 성공률</div>
+      <div class="metric-note">985/1088 프레임 · 같은 100세션 실측</div>
     </div>
     <div class="metric-cell">
       <div class="metric-value" style="color:#d97706">1902 ms</div>
@@ -264,10 +263,9 @@
       <strong>"오픈 보캐블러리 검출 + 액션 헤드"</strong>입니다.
       실기 100회 테스트(5개 목표위치 × 20회)에서 <strong>95% 성공(95/100)</strong>을
       달성했습니다(2026-08-07 재검증). 핵심 발견은 <strong>병목이 정책이 아니라 인지</strong>라는 것입니다 —
-      세션 내 검출 성공률이 80% 이상이면 주행 성공률이 <strong>98.8%(79/80)</strong>인 반면
-      80% 미만이면 51.2%로 떨어집니다. 다만 그 역은 성립하지 않습니다:
-      검출률이 49%로 최악인 배치가 짧은 경로 덕에 90% 성공하기도 하므로,
-      <strong>검출 난이도와 주행 난이도는 별개의 축</strong>입니다.
+      검출이 되면 주행은 대체로 성공하지만 그 역은 성립하지 않아,
+      <strong>검출 난이도와 주행 난이도는 별개의 축</strong>입니다
+      (배치별 정량 근거는 <a href="v5/research_story.html#ch64" style="color:#2563eb">CH64</a>·<a href="v5/research_story.html#ch65" style="color:#2563eb">CH65</a> 참조).
       학습되는 파라미터는 액션 헤드 0.866M뿐이고, 실연산 파라미터는 0.46B이며
       지연의 97%(1902ms)를 검출기가 차지합니다 — 이것이 경량화의 표적입니다.
     </p>
@@ -289,8 +287,8 @@
       <li>
         <div class="finding-icon">🔑</div>
         <div>
-          <div class="finding-title">병목은 정책이 아니라 인지 — 검출되면 98.8% 성공</div>
-          <div class="finding-sub">gnd%≥80 → 79/80(98.8%) vs &lt;80 → 41/80(51.2%), 실기 159세션. 액션 헤드(0.866M)는 이미 충분하므로 자원은 검출 단계에 투입해야 한다. (CH64 64-18)</div>
+          <div class="finding-title">병목은 정책이 아니라 인지</div>
+          <div class="finding-sub">세션 내 검출 성공률이 높을수록 주행 성공률이 뚜렷하게 갈린다. 액션 헤드(0.866M)는 이미 충분하므로 자원은 검출 단계에 투입해야 한다. 배치별 수치와 검정 과정은 <a href="v5/research_story.html#ch64" style="color:#2563eb">CH64 64-18</a> 참조.</div>
         </div>
       </li>
       <li>
@@ -528,6 +526,55 @@
       </a>
 
     </div>
+</div>
+
+<!-- ══ Future Work — 검증 대기 항목 ═══════════════════════════════════════ -->
+<div class="content-section alt">
+  <div class="section-inner">
+    <h2 class="section-title">Future Work — 미검증 항목</h2>
+    <p style="font-size:0.88rem;color:#64748b;text-align:center;margin:-10px 0 24px;line-height:1.75">
+      현재 논문(KCI 초안)에는 포함하지 않되, <strong>근거가 아직 없어 검증이 필요한 항목</strong>입니다.
+      논문 Future Work 절의 3항목(양자화·증류 경량화 / Raspberry Pi·Edge 가속기 이식 /
+      언어 모달리티 zero-shot 확장)과는 별개인, <strong>런타임·검증 축</strong>의 남은 과제입니다.
+    </p>
+    <ul class="finding-list">
+      <li>
+        <span class="finding-icon">⏱️</span>
+        <div>
+          <div class="finding-title"><code>grounding_skip_n</code> 민감도 — "왜 하필 3인가"</div>
+          <div class="finding-sub">
+            실기 100세션에서 캐시 재사용률 <strong>50.8%(553/1088)</strong>는 실측했으나,
+            skip_n = 1 / 3 / 5별 <strong>성공률 × 지연 트레이드오프 곡선이 없습니다</strong>.
+            현재 값 3은 CH49에서 "SR/FPE 변화 없음"으로 확인한 수준이라,
+            선택 근거를 곡선으로 제시하려면 별도 A/B가 필요합니다.
+          </div>
+        </div>
+      </li>
+      <li>
+        <span class="finding-icon">🎚️</span>
+        <div>
+          <div class="finding-title">OWL-v2 threshold 0.20 vs 0.25 — 실기 A/B 부재</div>
+          <div class="finding-sub">
+            운영값 0.20의 근거는 <strong>ROC 오프라인 분석(오탐 0% · 정탐 94.9%)</strong>뿐이고,
+            0.25(코드 기본값)와의 <strong>실로봇 성공률 직접 비교는 수행되지 않았습니다</strong>.
+            100세션 전량이 <code>0.2</code>로 기록되어 있어 현 데이터로는 대조군을 만들 수 없습니다.
+          </div>
+        </div>
+      </li>
+      <li>
+        <span class="finding-icon">🔍</span>
+        <div>
+          <div class="finding-title">실패 5건 원인 분해 (95/100의 나머지)</div>
+          <div class="finding-sub">
+            실패가 <strong>그라운딩 미검출</strong>에서 왔는지 <strong>과회전·정지 판정</strong>에서 왔는지
+            아직 분해하지 않았습니다. 세션 원본에 프레임별 <code>bbox·score·latency</code>가 모두 남아 있어
+            추가 실기 없이 계산 가능하나, 해당 배치 H5에 <strong>세션별 성공/실패 라벨이 없어</strong>
+            (<code>status</code>가 전량 <code>manual_stop</code>) 라벨 대조가 선행되어야 합니다.
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
 </div>
 
 <!-- ══ Footer ═════════════════════════════════════════════════════════════ -->
