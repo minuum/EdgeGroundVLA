@@ -30,8 +30,8 @@ SERVER_PORT=8001
 DRIVE_PORT=7800      # FastAPI 대시보드 (mona_dashboard.py)
 DASH_PORT=7865       # Gradio 대시보드 (구버전)
 HUB_PORT=7860
-S1_PT="runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
-S2_PT="runs/v5_nav/mlp/stop_lastN/stop_N1.pt"
+S1_PT="runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt"  # 2026-08-07 배포 전환 - 실기 95/100
+S2_PT="runs/v5_nav/mlp/exp73_stage1v3/exp73_owl_stage1v3_v6_mlp.pt"  # 매칭 헤드 seed0
 # VLA_S2V2_STAGE2 env로 오버라이드 가능 (대시보드 ⚙️ 서버 설정 탭의 체크포인트 전환)
 ACTION_PT="${VLA_S2V2_STAGE2:-runs/v5_nav/mlp/exp71_window6/action_transformer.pt}"
 
