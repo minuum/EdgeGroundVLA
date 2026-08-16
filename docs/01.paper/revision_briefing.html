@@ -4,7 +4,7 @@
   :root { --bg:#0a0f1a; --card:#111827; --line:#1e293b; --txt:#e2e8f0; --muted:#94a3b8; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--txt); line-height:1.75;
-         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; }
+         font-family:"Noto Sans KR","NanumGothic","Noto Sans CJK KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
   .wrap { max-width:1180px; margin:0 auto; padding:0 22px 90px; }
   .hero { background:linear-gradient(135deg,#0f172a,#1e293b 50%,#0f172a); padding:48px 24px 36px;
           text-align:center; border-bottom:1px solid var(--line); }
@@ -76,7 +76,200 @@
   .toc-item:hover { background:#1e293b; color:#e2e8f0; }
   .toc-item.active { color:#38bdf8; border-left-color:#38bdf8; background:rgba(56,189,248,0.08); }
   @media (max-width:1180px) { #toc { display:none; } }
+  #tk-panel { position:fixed; top:90px; left:18px; width:230px; max-height:calc(100vh - 120px);
+    overflow-y:auto; background:#0f172a; border:1px solid rgba(248,113,113,0.35); border-radius:10px;
+    padding:12px 0 14px; z-index:40; }
+  #tk-panel::-webkit-scrollbar { width:4px; } #tk-panel::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+  .tk-panel-h { font-size:0.78rem; font-weight:800; color:#f87171; padding:0 14px 4px; }
+  .tk-panel-legend { font-size:0.64rem; color:#64748b; padding:0 14px 8px; border-bottom:1px solid #1e293b; margin-bottom:4px; }
+  @media (max-width:1450px) { #tk-panel { display:none; } }
+  .tk-row { display:flex; align-items:center; gap:4px; padding:3px 10px; }
+  .tk-label { font-size:0.7rem; color:#94a3b8; flex:1; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; cursor:pointer; text-decoration:none; }
+  .tk-label:hover { color:#e2e8f0; }
+  .tk-dots { display:flex; gap:3px; flex-shrink:0; }
+  .tk-dot { width:12px; height:12px; border-radius:50%; border:1.5px solid #334155; cursor:pointer;
+    background:#0f172a; padding:0; opacity:0.45; transition:opacity .12s, transform .12s; }
+  .tk-dot:hover { opacity:0.85; transform:scale(1.15); }
+  .tk-dot.active { opacity:1; border-color:#e2e8f0; transform:scale(1.15); }
+  .tk-dot[data-s="needed"] { background:#f87171; }
+  .tk-dot[data-s="confirm"] { background:#fbbf24; }
+  .tk-dot[data-s="final"] { background:#4ade80; }
+  .tk-upload-btn { flex-shrink:0; width:16px; height:16px; border:none; background:none; cursor:pointer;
+    font-size:11px; opacity:0.5; padding:0; line-height:1; }
+  .tk-upload-btn:hover { opacity:1; }
+  .tk-thumb-wrap { padding:2px 10px 6px; }
+  .tk-thumb-wrap img { max-width:100%; border-radius:4px; border:1px solid #334155; display:block; }
+  .tk-thumb-note { font-size:0.6rem; color:#64748b; margin-top:2px; }
+  .tk-thumb-clear { font-size:0.6rem; color:#f87171; cursor:pointer; text-decoration:underline; margin-left:6px; }
+  .cf-group { margin:16px 0; padding:14px 16px; background:#0d1117; border-radius:8px; border-left:3px solid #a78bfa; }
+  .cf-group h4 { margin:0 0 8px; color:#c4b5fd; font-size:0.95rem; }
+  .cf-note { font-size:0.78rem; color:#64748b; margin:0 0 8px; }
+  .cf-item { display:flex; align-items:flex-start; gap:8px; padding:4px 0; font-size:0.85rem; color:#cbd5e1; }
+  .cf-item input { margin-top:3px; flex-shrink:0; cursor:pointer; }
+  .cf-item.done label { color:#4b5563; text-decoration:line-through; }
 </style>
+
+<div id="todo-0811" style="background:rgba(167,139,250,0.08);border:2px solid rgba(167,139,250,0.5);
+     border-radius:12px;padding:20px 22px;margin-bottom:28px">
+<h2 style="margin:0 0 6px;color:#c4b5fd;font-size:1.15rem">☐ 8/11 미팅 준비 체크리스트 (다이어그램은 minum이 직접 제작)</h2>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 14px">
+0811.docx 빨간 글씨 + 메모 기준. <strong style="color:#c4b5fd">Figure 1·3·4·5·6은 minum이 직접 다이어그램 제작</strong> —
+여기엔 "뭘 바꿔야 하는지" 체크리스트만 두고, <strong>현재 이미지는 교체 전까지 그대로 유지(fallback)</strong>합니다.
+표/텍스트 항목(5~7번)은 제가 바로 반영 가능합니다. 체크는 브라우저에 저장됩니다.</p>
+
+<div class="cf-group">
+<h4>Figure 1 — 모델 아키텍처</h4>
+<p class="cf-note">현재 파일 유지: edgeground_vla_architecture.png (교체 예정)</p>
+<div class="cf-item"><input type="checkbox" id="cf-1-1"><label for="cf-1-1">런타임 파이프라인 연결부 삭제 — x,y,z(3-DoF) 출력까지만 표시</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-1-2"><label for="cf-1-2">"Kosmos-2 언어 디코더 미사용" 콜아웃 박스 삭제</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-1-3"><label for="cf-1-3">frozen/학습/미사용 상태 라벨을 각 블록 안에 인라인으로 표시 (런타임 쪽 X)</label></div>
+</div>
+
+<div class="cf-group">
+<h4>Figure 3 — 데이터 수집 및 액션 기록</h4>
+<p class="cf-note">현재 파일 유지: data_collection_combined.png (교체 예정)</p>
+<div class="cf-item"><input type="checkbox" id="cf-3-1"><label for="cf-3-1">전체를 세로 방향으로 재배치 (KCI 논문 컬럼폭 대응, "가로로 변경" 피드백=세로 진행 의미)</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-3-2"><label for="cf-3-2">(a) 실사진 패널 포함 여부 결정 — 뺄 가능성 있음</label></div>
+</div>
+
+<div class="cf-group">
+<h4>Figure 4 — Stage 1/Stage 2 파이프라인 구조도</h4>
+<p class="cf-note">현재 파일 유지: stage1_stage2_pipeline.png (교체 예정)</p>
+<div class="cf-item"><input type="checkbox" id="cf-4-1"><label for="cf-4-1">"방향 대조학습" 개념을 비전문가도 이해할 수 있게 쉬운 설명 추가</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-4-2"><label for="cf-4-2">6-프레임 타임라인을 한 줄로 (G+V·V·V·G+V·V·V 패턴, 총 6개)</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-4-3"><label for="cf-4-3">Stage 1/Stage 2 핵심 박스를 4개로 정리</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-4-4"><label for="cf-4-4">그래프(학습 곡선 등) 보완 + 설명 내용 추가</label></div>
+</div>
+
+<div class="cf-group">
+<h4>Figure 5 — 배포(Deploy) 구조도</h4>
+<p class="cf-note">현재 파일 유지: deploy_pipeline.png (교체 예정)</p>
+<div class="cf-item"><input type="checkbox" id="cf-5-1"><label for="cf-5-1">"전달" 텍스트/박스 제거</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-5-2"><label for="cf-5-2">입력 → 전처리 → AI 모델 → 후처리 → 출력 4단계 구조로 재설계</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-5-3"><label for="cf-5-3">체크포인트가 대시보드에서 로드되는 부분만 작게 한쪽에 표시</label></div>
+</div>
+
+<div class="cf-group">
+<h4>Figure 6 — 추론 파이프라인 순서도</h4>
+<p class="cf-note">현재 파일 유지: runtime_pipeline.png (교체 예정)</p>
+<div class="cf-item"><input type="checkbox" id="cf-6-1"><label for="cf-6-1">전체 크기 축소, 글씨 크기 키워서 가독성 확보</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-6-2"><label for="cf-6-2">논문 제출용: feature extraction 예시 사진 1개만 유지</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-6-3"><label for="cf-6-3">Step 1/Step 2에 항목 4개 정도로 정리</label></div>
+</div>
+
+<div class="cf-group" style="border-left-color:#4ade80">
+<h4 style="color:#4ade80">텍스트/표 항목 — 내용 확정, 0811.docx에 직접 반영만 하면 됨</h4>
+<div class="cf-item"><input type="checkbox" id="cf-7-1" checked disabled><label for="cf-7-1">Table 5에 threshold(0.25 기본/0.20 운영) 행 추가, 하단 중복 설명 문단(§5.2 첫 줄) 정리 — 문구 확정됨</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-2" checked disabled><label for="cf-7-2">bbox_scale(3.0) 설명 — 원문 이미 충분, 변경 불필요로 확인</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-3" checked disabled><label for="cf-7-3">class weight — <s style="color:#f87171">FORWARD 72.61%</s>는 0805 초안의 "약우 프레임/ep=72.6"이 잘못 섞여든 오류. 실측 <strong style="color:#4ade80">46.03%</strong>(7,641/16,599)로 정정</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-4" checked disabled><label for="cf-7-4">§4 Dataset에 8-class 액션 분포 표 추가 — 실측치 확정(STOP 8.75%·FORWARD 46.03%·LEFT 4.31%·RIGHT 5.17%·FWD+L 15.25%·FWD+R 18.78%·ROT_L 0.82%·ROT_R 0.89%)</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-5" checked disabled><label for="cf-7-5">Table 6(5경로 텍스트 대조학습 문장, 현재 docx 원문 라벨은 "Table 8") — 0811.docx에 이미 정확히 채워져 있음 확인(프레임합 16,599 검산 일치), 추가 작업 불필요</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-6" checked disabled><label for="cf-7-6">Figure 6(val 혼동행렬, 현재 docx 원문 라벨은 "Fig 9") 방어 문장 3단 확정 + <strong style="color:#4ade80">실제 95/100 세션 원본(rsync 수신분)에서 ROT_L/ROT_R 실기 등장 73회(6.71%) 직접 계산·반영</strong></label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-9"><label for="cf-7-9">Table 1(경량모델비교) 삭제 확정 — 트래커에서 제거. 표/그림 번호 전체 재정렬(아래 "그림/표 외 남은 정리 항목" 참고) — 0811.docx 본문에도 반영 필요</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-7" checked disabled><label for="cf-7-7">GNM 레퍼런스 — [8]로 이미 존재 확인됨</label></div>
+<div class="cf-item"><input type="checkbox" id="cf-7-8" checked disabled><label for="cf-7-8">RoboVLMs 레퍼런스 검토 메모 — 본문에 "RoboVLMs" 단어 자체가 이제 없어서 무의미해진 옛 메모, 삭제 대상으로 확인</label></div>
+</div>
+</div>
+
+<div id="todo-0811fig" style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.5);
+     border-radius:12px;padding:20px 22px;margin-bottom:28px">
+<h2 style="margin:0 0 10px;color:#f87171;font-size:1.15rem">☐ 0811 docx — Figure/Table 트래커</h2>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 14px">
+<code>..._초안_0811.docx</code> + 8/11 미팅 메모 기준으로 갱신. 상태는 <strong style="color:#f87171">제작필요</strong>(다이어그램 전면 재작업 중, minum 직접 제작) ·
+<strong style="color:#fbbf24">컨펌전</strong>(수정 내용은 확정됐지만 0811.docx에 아직 반영 전) · <strong style="color:#4ade80">최종본</strong>(반영·검수 끝)
+3단계.</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#f87171;border-bottom:1px solid rgba(248,113,113,0.3)">
+  <th style="text-align:left;padding:6px 8px">상태</th><th style="text-align:left;padding:6px 8px">항목</th>
+  <th style="text-align:left;padding:6px 8px">위치</th><th style="text-align:left;padding:6px 8px">파일/내용 현황</th>
+</tr>
+<tr id="tkrow-2" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-19-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Figure 1. 모델 아키텍처</td>
+  <td style="padding:6px 8px">§1.1 Heterogeneous Grounding Encoder</td><td style="padding:6px 8px">Figma 최종본 반영 완료(figure1_final.png) — 런타임 로직 삭제, x,y,z까지만 표시, frozen/trained 범례 포함</td>
+</tr>
+<tr id="tkrow-3" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-14-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Table 1. 8-class→3DoF LUT 매핑</td>
+  <td style="padding:6px 8px">§1.2 Lightweight MLP Action Head</td><td style="padding:6px 8px">ACTION_3D 코드값 그대로 확인 완료 — 수정 없음</td>
+</tr>
+<tr id="tkrow-4" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-2-status" data-default="confirm">컨펌전</span></td><td style="padding:6px 8px">Figure 2. Serbot II 하드웨어 구성 (실물사진+보드 구성도 통합)</td>
+  <td style="padding:6px 8px">§2 Hardware Platform</td><td style="padding:6px 8px">minum 제작본 있음(hardware_serbot_combined.png) — 캡처 2장 추가 편집 예정, 0811.docx 반영 확인 전</td>
+</tr>
+<tr id="tkrow-6" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-3-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Figure 3. 데이터 수집 및 액션 기록 과정</td>
+  <td style="padding:6px 8px">§3 Collection of data</td><td style="padding:6px 8px">Figma 최종본 반영 완료(figure3_final.jpg) — (a)Experimental Setup+(b)Data Collection Pipeline 세로 병합, 화살표/STOP-injection 정정 완료. 오타 3곳(Joystic/fixedspeed/action 단수) 잔존</td>
+</tr>
+<tr id="tkrow-8" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-5-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Table 2. Dataset composition</td>
+  <td style="padding:6px 8px">§4 Dataset</td><td style="padding:6px 8px">복원 확인 완료(항목/값 5행, bbox 주석 = bbox_dataset_v6_owl.json) — 수정 없음</td>
+</tr>
+<tr id="tkrow-8b" style="border-bottom:1px solid #1e293b;background:rgba(251,191,36,0.06)">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-20-status" data-default="confirm">컨펌전</span></td><td style="padding:6px 8px">Table 3. Action class distribution (신규, 8/11 요청)</td>
+  <td style="padding:6px 8px">§4 Dataset</td><td style="padding:6px 8px">내용 확정(FORWARD 46.03%, 8행), <strong style="color:#fbbf24">0811.docx에 아직 삽입 안 됨</strong></td>
+</tr>
+<tr id="tkrow-9" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-6-status" data-default="confirm">컨펌전</span></td><td style="padding:6px 8px">Table 4. Training status of pipeline components</td>
+  <td style="padding:6px 8px">§5.1 모듈 별 학습</td><td style="padding:6px 8px">text_proj 행 신규 추가(코드 확인: image_proj와 함께 학습, 배포엔 미사용) — <strong style="color:#fbbf24">0811.docx에 아직 반영 안 됨</strong></td>
+</tr>
+<tr id="tkrow-10" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-7-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Figure 4. Stage 1/Stage 2 파이프라인 구조도</td>
+  <td style="padding:6px 8px">§5.2 학습 방법 설명</td><td style="padding:6px 8px">Figma 최종본 반영 완료(figure4_final.jpg) — G+V/V/V 삭제, Stage1/2 구분, image_proj+text_proj 병렬, Cosine/Softmax/CE Loss 3박스 전부 반영. "Slliding"→"Sliding" 오타만 잔존</td>
+</tr>
+<tr id="tkrow-11" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-8-status" data-default="confirm">컨펌전</span></td><td style="padding:6px 8px">Table 5. Stage 2 행동 헤드 학습 파라미터</td>
+  <td style="padding:6px 8px">§5.3 Hyperparameters</td><td style="padding:6px 8px">threshold 행 추가·class weight 46.03% 정정·bbox_scale 재검증(1.0/2.0/3.0 무차이, 삭제 고민 중) 확정, <strong style="color:#fbbf24">0811.docx에 아직 삽입 안 됨</strong></td>
+</tr>
+<tr id="tkrow-11b" style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-21-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Table 6. 5경로 텍스트 대조학습 텍스트 문장 (신규 확인)</td>
+  <td style="padding:6px 8px">§5.4 image_proj training</td><td style="padding:6px 8px">0811.docx에 이미 정확히 삽입되어 있음 확인(5행, 프레임합 16,599 검산 일치) — 트래커에 새로 추가, 추가 작업 불필요</td>
+</tr>
+<tr id="tkrow-17b" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-16-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Figure 5. image_proj 학습 곡선</td>
+  <td style="padding:6px 8px">§5.4 image_proj training (구 VII 부록에서 본문으로 이동)</td><td style="padding:6px 8px">삽입 완료(1350×780px, "재학습"→"학습" 정정판) — 수정 없음. 위치가 §5.2/5.3 직후로 당겨짐(부록 삭제)</td>
+</tr>
+<tr id="tkrow-22" style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-22-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Figure 6. Action Head(MLP) 학습 곡선 (신규)</td>
+  <td style="padding:6px 8px">§5.4 직후 (image_proj 곡선과 대구)</td><td style="padding:6px 8px">Figure 5(image_proj)엔 학습곡선이 있는데 Action Head(MLP)엔 없다는 지적으로 신규 제작 — 실측 재학습(seed=0, 300ep, bbox_scale=3.0)으로 best_val_acc 74.04% 재현 확인, 과적합(epoch~25 이후 val loss 상승) 및 best checkpoint(epoch 225) 마킹 포함</td>
+</tr>
+<tr id="tkrow-18b" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-17-status" data-default="confirm">컨펌전</span></td><td style="padding:6px 8px">Figure 7. 배포 헤드 val 혼동행렬</td>
+  <td style="padding:6px 8px">§5.5 val 혼동행렬 (구 VII 부록에서 본문으로 이동)</td><td style="padding:6px 8px">3단 방어 문단 + 실기 95/100 세션 실측(ROT_L/R 73회) 확정, <strong style="color:#fbbf24">0811.docx에 아직 삽입 안 됨</strong>. Figure 6(신규) 바로 다음으로 위치 이동</td>
+</tr>
+<tr id="tkrow-12" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-9-status" data-default="final">최종본</span></td><td style="padding:6px 8px">§6 Deploy the trained model + Figure 8. 탑재 절차 구조도</td>
+  <td style="padding:6px 8px">§6</td><td style="padding:6px 8px">Figma 최종본 반영 완료(figure7_final.jpg) — EdgeGround-VLA→Edge Device(Orin NX+Dashboard 병렬)→Runtime Process→Robot Actuation, Client(Browser)↔Tailscale까지 전부 포함. 실물사진 2곳 모두 포함됨</td>
+</tr>
+<tr id="tkrow-13" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-10-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Figure 9. 추론 파이프라인 순서도</td>
+  <td style="padding:6px 8px">§7 Runtime Inference Control Logic</td><td style="padding:6px 8px">Figma 최종본 반영 완료(figure8_final.jpg) — Vision Input(6프레임)→Step1(Grounding)/Step2(Vision only)→Sliding Window→Action Head→3DOF→CAN→MCU→Wheel</td>
+</tr>
+<tr id="tkrow-14" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-11-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Figure 10. 실험 환경 – Closed-Loop 트랙 (3-패널)</td>
+  <td style="padding:6px 8px">IV.1 Goal-Reaching Success Rate</td><td style="padding:6px 8px">고화질 3-패널로 교체 완료(test_track_photo_3panel.png) — 수정 없음</td>
+</tr>
+<tr id="tkrow-15" style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-12-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Table 7. Goal-reaching success rate</td>
+  <td style="padding:6px 8px">IV.1 Goal-Reaching Success Rate</td><td style="padding:6px 8px">95/100 실측치·평균 스텝(가중평균 11.64 검산 일치) 확정 — 수정 없음</td>
+</tr>
+<tr id="tkrow-16">
+  <td style="padding:6px 8px"><span class="tk-status" id="tk-13-status" data-default="final">최종본</span></td><td style="padding:6px 8px">Table 8. Component-wise latency decomposition</td>
+  <td style="padding:6px 8px">IV.2 Component-wise Latency</td><td style="padding:6px 8px">fp32/fp16 합계 검산 일치(1.96s/1.02s) 확정 — 수정 없음</td>
+</tr>
+</table>
+
+<h4 style="margin:18px 0 8px;color:#f87171;font-size:0.95rem">그림/표 외 — 남은 정리 항목 (제작 아님, 정정만 필요)</h4>
+<ul style="font-size:0.82rem;color:#cbd5e1;margin:0;padding-left:20px;line-height:1.7">
+  <li>로마숫자 "IV" 중복 — 뒤쪽 "IV. Post-Deployment Update (0807)"을 "VII."로 정정</li>
+  <li>Future Work 다섯째 항목의 존재하지 않는 "Table 5의 attention ablation 결과" 구절 삭제(번호 재정렬 후엔 아예 무의미해짐)</li>
+  <li>"3-DoF" / "3DoF" 표기 통일</li>
+  <li>§6 소제목 앞 stray "." 오타(".6. Deploy...") 제거</li>
+  <li>§3에 남은 placeholder 안내문("→ 여기에 그림1·그림2와 같은 위치에...") 삭제 — 그림은 이미 삽입됨</li>
+  <li style="color:#fbbf24"><strong>표/그림 번호 전체 재정렬 필요 (0811.docx 본문에 아직 미반영)</strong> — Table 1(경량모델비교) 삭제, Table(액션분포)·Table(5경로 문장) 신규 반영에 따라:
+    Table 2→1(LUT), Table 3→2(Dataset), 신규 액션분포=Table 3, Table 4(그대로, Training status), Table 5(그대로, 하이퍼파라미터), 5경로 문장 표=Table 6(현재 docx엔 "Table 8"로 잘못 표기됨),
+    Table 6(성공률)→7, Table 7(지연시간)→8 / Figure는 현재 docx의 "Figure 8"(image_proj 곡선)·"Fig 9"(혼동행렬)을 Figure 5·6으로, 기존 Figure 5(탑재절차)→7, Figure 6(추론파이프라인)→8, Figure 7(실험환경)→9로 재번호. 위 요약표는 이미 새 번호 기준으로 정리됨.</li>
+</ul>
+</div>
 
 <div class="hero">
   <h1>논문 수정사항 브리핑</h1>
@@ -86,22 +279,35 @@
   <div class="kpis">
     <div class="kpi"><b style="color:#7dd3fc">25</b><span>0805 지적사항</span></div>
     <div class="kpi"><b style="color:#c4b5fd">34</b><span>0806 지적사항 (9건 신규)</span></div>
-    <div class="kpi"><b style="color:#4ade80">6</b><span>완성된 Figure</span></div>
-    <div class="kpi"><b style="color:#a3a3a3">1</b><span>보류(자료 필요)</span></div>
+    <div class="kpi"><b style="color:#4ade80">7</b><span>완성된 Figure (F4 제외, F9 신규)</span></div>
+    <div class="kpi"><b style="color:#a3a3a3">0</b><span>보류(자료 필요)</span></div>
   </div>
   <div class="nav">
     <a href="redfill_draft_0805.html">📄 절별 붙여넣기 초고</a>
     <a href="../v5/paper_redfill_worklist.html">📝 25건 문제/대응/실답변</a>
     <a href="../v5/model_architecture_brief.html">🏗 모델 구조 자료</a>
+    <a href="terminology_glossary.html">📖 용어집</a>
+    <a href="redfill_draft_0807.html" style="color:#4ade80">🆕 0807 라운드 초고</a>
     <a href="#r0805">🔵 0805 라운드</a>
     <a href="#r0806">🟣 0806 라운드</a>
     <a href="#changelog">🕓 변경 이력</a>
   </div>
 </div>
 
+<aside id="tk-panel">
+  <div class="tk-panel-h">🗂 0811 Fig/Table 체크</div>
+  <div class="tk-panel-legend">🔴제작필요 &nbsp;🟡컨펌전 &nbsp;🟢최종본</div>
+  <div id="tk-sidebar"></div>
+</aside>
+
 <nav id="toc">
   <div class="toc-h">🔵 0805 라운드</div>
+  <a class="toc-item" href="#docx-yellow-memo" style="color:#c4b5fd">📋 docx 노란부분 최신화</a>
+  <a class="toc-item" href="#fig-table-todo" style="color:#38bdf8">☐ 그림/표 전환 TODO (0807_A)</a>
+  <a class="toc-item" href="#retrain-memo" style="color:#fbbf24">⚠️ 학습 후 교체 필요</a>
   <a class="toc-item" href="#r0805-figure">FIGURE 구조도 3개</a>
+  <a class="toc-item" href="#svg-editor">🛠 F1/F2/F3 원본 SVG 편집</a>
+  <a class="toc-item" href="#live-editor">✏️ 머메이드 스케치 에디터</a>
   <a class="toc-item" href="#r0805-factfix">FACT-FIX 사실오류</a>
   <a class="toc-item" href="#r0805-fillin">FILL-IN 빈칸채우기</a>
   <a class="toc-item" href="#r0805-new">NEW-CONTENT 신규발견</a>
@@ -117,6 +323,358 @@
 </nav>
 <div class="wrap">
 
+<div id="retrain-memo" style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.4);
+     border-radius:12px;padding:18px 20px;margin-bottom:34px">
+<h3 style="margin:0 0 8px;color:#4ade80;font-size:1.05rem">✅ 배포 전환 완료 — 아래 "높음" 항목 지금부터 갱신 대상</h3>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 12px">
+image_proj 5-class 학습 <strong style="color:#4ade80">완료</strong>(val_acc 94.09%) →
+Stage 2 A/B 검증(오프라인은 -4%p로 안 좋아 보였으나 <strong style="color:#4ade80">실기
+100건 재검증 95/100으로 확인, 좌측 80%→95% 개선</strong>) → <code>go.sh</code>/
+<code>DEFAULT_STAGE1</code> 배포 전환까지 완료. 상세: <a href="#r-inprogress">F8</a>.
+<strong>2026-08-07 갱신 — F6·89/100은 실제 데이터로 갱신 완료. F4는 논문에서 완전히 제외하기로
+결정</strong>(내부 실험 근거일 뿐 최종 배포 모델과 직결되지 않음 — 아래 F4 카드 참조).</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.83rem">
+<tr><th style="text-align:left;padding:5px;color:#94a3b8">항목</th><th style="text-align:left;padding:5px;color:#94a3b8">왜 바뀌는가</th><th style="text-align:left;padding:5px;color:#94a3b8">상태</th></tr>
+<tr style="border-top:1px solid rgba(251,191,36,0.25)">
+  <td style="padding:5px"><a href="#r0805-new">F6 Val 혼동행렬</a></td>
+  <td style="padding:5px">image_proj가 바뀌어 헤드 입력 임베딩이 달라짐 — cadence-aligned 채점 기준 val_acc 52.5%
+  (n=501, <code>confusion_matrix_stage1v3.png</code>), 채점 방식-학습 방식 불일치 각주 포함.
+  ROT_L/R은 표본 0.82%·0.89%로 소수 표본 노이즈 가능성 명시</td>
+  <td style="padding:5px;color:#4ade80"><strong>✅ 완료</strong> — 텍스트+PNG 둘 다 신버전
+  (<code>logs/eval_confusion_matrix_stage1v3.log</code> 근거), 초고·model_architecture_brief 반영</td>
+</tr>
+<tr>
+  <td style="padding:5px"><a href="#r0805-new">F4 CH64 64-12</a> (baseline 7.1%→stride5 24.2%→cadence-aligned 28.3%)</td>
+  <td style="padding:5px">신버전으로 재측정하려면 옛 학습방식(<code>exp73_held_aware_train.py</code>)
+  자체를 다시 돌려야 해서 배보다 배꼽이 큼 — 최종 배포 모델과 직결되지 않는 내부 실험 근거</td>
+  <td style="padding:5px;color:#4ade80"><strong>✅ 논문에서 제외 결정</strong> — 초고·워크리스트
+  양쪽에서 삭제, 이 카드만 경위 기록용으로 유지</td>
+</tr>
+<tr>
+  <td style="padding:5px">89/100(89.0%) 실기 성공률</td>
+  <td style="padding:5px">soda 100건 전체 재검증(계획보다 확대 — 좌측만이 아니라 전체 재검증)</td>
+  <td style="padding:5px;color:#4ade80"><strong>✅ 95/100(95.0%)으로 갱신 완료</strong> —
+  초고·워크리스트·model_architecture_brief 전부 반영</td>
+</tr>
+<tr>
+  <td style="padding:5px">F1 다이어그램의 <code>image_proj 0.262M</code> 박스 캡션</td>
+  <td style="padding:5px">체크포인트가 <code>stage1_v3_5cls_owl_projs.pt</code>로 바뀌어 "5-class·08/07"로 캡션 갱신</td>
+  <td style="padding:5px;color:#4ade80">✅ 완료</td>
+</tr>
+<tr>
+  <td style="padding:5px"><code>model_architecture_brief.html</code> 배포 이력 표(체크포인트 경로/시각 목록)</td>
+  <td style="padding:5px">새 체크포인트 배포 시점·경로 행 추가</td>
+  <td style="padding:5px;color:#4ade80">✅ 완료</td>
+</tr>
+<tr style="border-top:1px solid rgba(251,191,36,0.15)">
+  <td style="padding:5px;color:#4ade80">F5 그라운딩 threshold 곡선</td>
+  <td style="padding:5px;color:#4ade80">OWL-v2 검출 임계값 문제라 image_proj와 무관 — <strong>교체 불필요</strong></td>
+  <td style="padding:5px;color:#4ade80">해당없음</td>
+</tr>
+<tr>
+  <td style="padding:5px;color:#4ade80">F2/F3 런타임·하드웨어 도표, F7 V6 프레임 그림</td>
+  <td style="padding:5px;color:#4ade80">모델 값과 무관한 정적 구조/데이터 그림 — <strong>교체 불필요</strong></td>
+  <td style="padding:5px;color:#4ade80">해당없음</td>
+</tr>
+</table>
+</div>
+
+<div id="docx-yellow-memo" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.4);
+     border-radius:12px;padding:18px 20px;margin-bottom:34px">
+<h3 style="margin:0 0 8px;color:#c4b5fd;font-size:1.05rem">📋 docx 노란 하이라이트 — 최신화 필요 문단 4곳</h3>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 12px">
+<code>..._초안_0806.docx</code>의 노란 하이라이트(제가 드린 답변을 직접 붙여넣으신 부분) 25개
+문단을 전부 다시 뽑아 최신 상태와 대조했습니다. 아래 4곳은 이후 정정 사항(용어 교체·사실
+정정)이 반영되지 않은 채로 남아 있습니다. docx는 저희가 직접 건드리지 않으니, 아래 "교체
+문장"을 그대로 복사해서 해당 노란 부분에 덮어써 주세요.</p>
+
+<div style="margin:14px 0;padding:12px 14px;background:#0d1117;border-radius:8px;border-left:3px solid #f87171">
+<div style="font-weight:700;color:#f87171;margin-bottom:6px">① threshold 정탐률 오타 (95.3% → 94.9%) — <span style="color:#94a3b8;font-weight:400">사실은 초고 자체 오타였음, 초고도 같이 고침</span></div>
+<div style="font-size:0.82rem;color:#94a3b8;margin-bottom:4px">기존(노란 부분):</div>
+<div style="font-size:0.85rem;background:#1a1a1a;padding:8px;border-radius:6px;margin-bottom:6px">임계값 스윕 결과 0.25에서 정탐률 <s style="color:#f87171">95.3%</s>를 유지하며 목표 물체가 존재하지 않는 프레임에 대한 오탐률이 0%였고, 0.1에서는 오탐률이 74.7%로 증가해 물체 부재를 판정할 수 없었다.</div>
+<div style="font-size:0.82rem;color:#4ade80;margin-bottom:4px">교체 문장:</div>
+<div style="font-size:0.85rem;background:#0f2a1f;padding:8px;border-radius:6px">임계값 스윕 결과 0.25에서 정탐률 <strong style="color:#4ade80">94.9%</strong>를 유지하며 목표 물체가 존재하지 않는 프레임에 대한 오탐률이 0%였고, 0.1에서는 오탐률이 74.7%로 증가해 물체 부재를 판정할 수 없었다.</div>
+<div style="font-size:0.78rem;color:#64748b;margin-top:6px">근거: <code>scripts/plot_grounding_success_curve.py</code> 재실행 결과 threshold 0.25 → 정탐 94.9%·오탐 0.0% (296프레임, 목표있음 217·없음 79)</div>
+</div>
+
+<div style="margin:14px 0;padding:12px 14px;background:#0d1117;border-radius:8px;border-left:3px solid #fbbf24">
+<div style="font-weight:700;color:#fbbf24;margin-bottom:6px">② hold-aware → cadence-aligned (2곳)</div>
+<div style="font-size:0.82rem;color:#94a3b8;margin-bottom:4px">기존(노란 부분, 2문단):</div>
+<div style="font-size:0.85rem;background:#1a1a1a;padding:8px;border-radius:6px;margin-bottom:6px">
+<s style="color:#f87171">hold-aware</s> 샘플링: stride=5로 결정 시점마다 1샘플, 라벨은 [t, t+5) GT의 다수결. 서빙의 zero-order hold(원문 10)와 학습을 일치시키는 설계입니다<br><br>
+캐시 → <s style="color:#f87171">hold-aware</s> 윈도우(window 6, stride 5, majority-vote 라벨) → 1560차원 flatten → MLPActionHead(512→128→8) → class-weighted CE, <s style="color:#f87171">Adam</s> 5e-4, 300ep, cosine, seed 0/1/2</div>
+<div style="font-size:0.82rem;color:#4ade80;margin-bottom:4px">교체 문장:</div>
+<div style="font-size:0.85rem;background:#0f2a1f;padding:8px;border-radius:6px">
+<strong style="color:#4ade80">cadence-aligned</strong> 샘플링: stride=5로 결정 시점마다 1샘플, 라벨은 [t, t+5) GT의 다수결. 서빙의 zero-order hold(원문 10)와 학습을 일치시키는 설계입니다<br><br>
+캐시 → <strong style="color:#4ade80">cadence-aligned</strong> 윈도우(window 6, stride 5, majority-vote 라벨) → 1560차원 flatten → MLPActionHead(512→128→8) → class-weighted CE, <strong style="color:#4ade80">AdamW</strong> 5e-4, 300ep, cosine, seed 0/1/2</div>
+<div style="font-size:0.78rem;color:#64748b;margin-top:6px">"hold-aware"가 "정지/보류"로 오독되기 쉽다는 이유로 논문 노출 표현 전체를
+"cadence-aligned"로 교체 결정(<a href="terminology_glossary.html#new">용어집</a>). 덤으로 두번째 문단의
+<code>Adam</code>도 실제 코드(<code>train_one()</code>)는 <code>AdamW</code>라 함께 정정.</div>
+</div>
+
+<div style="margin:14px 0;padding:12px 14px;background:#0d1117;border-radius:8px;border-left:3px solid #f87171">
+<div style="font-weight:700;color:#f87171;margin-bottom:6px">③ "학습 대상: MLP 헤드 0.866M만" — image_proj도 Stage 1에서 학습됨</div>
+<div style="font-size:0.82rem;color:#94a3b8;margin-bottom:4px">기존(노란 부분):</div>
+<div style="font-size:0.85rem;background:#1a1a1a;padding:8px;border-radius:6px;margin-bottom:6px">학습 대상: <s style="color:#f87171">MLP 헤드 0.866M만, 나머지 전부 frozen</s></div>
+<div style="font-size:0.82rem;color:#4ade80;margin-bottom:4px">교체 문장:</div>
+<div style="font-size:0.85rem;background:#0f2a1f;padding:8px;border-radius:6px">학습 대상: <strong style="color:#4ade80">Stage 1에서 image_proj(0.262M)를 방향 대조학습으로 학습·고정하고, Stage 2에서 그 위에 MLP 헤드(0.866M)만 학습 — 전체 학습 파라미터는 1.128M</strong>. OWL-v2·Kosmos-2 비전 타워는 두 단계 모두 frozen</div>
+<div style="font-size:0.78rem;color:#64748b;margin-top:6px">근거: <code>train_exp54_stage1_v2_frame_level.py</code>가 image_proj를 AdamW로 직접
+학습시킴을 코드로 확인(<a href="#r0806-new">아래 정정 항목</a> 참조). "유일한 학습 대상"이라는
+서술은 Stage 2 기준으로만 맞고 전체 파이프라인 기준으로는 부정확.</div>
+</div>
+
+<div style="margin:14px 0;padding:12px 14px;background:#0d1117;border-radius:8px;border-left:3px solid #94a3b8">
+<div style="font-weight:700;color:#94a3b8;margin-bottom:6px">④ (참고, 아직 급하지 않음) "Stage 1/Stage 2" 용어 충돌 + 체크포인트명 변경 예정</div>
+<div style="font-size:0.85rem;color:#cbd5e1">
+docx의 "Stage 1(오프라인, 1회) — 피처 캐쉬 생성 / Stage 2(반복) — 액션 헤드만 학습"은
+<strong>exp73 액션 헤드 학습 파이프라인 내부의 2단계</strong>를 가리키는데, 이 세션에서 저희가
+"Stage 1=image_proj 학습, Stage 2=행동 헤드 학습"이라는 <strong>다른 의미</strong>로 같은 용어를
+써왔습니다. Stage 1 하이퍼파라미터 표까지 추가된 지금은 <strong style="color:#fbbf24">이름을
+바꾸는 걸 더 권장</strong>합니다 — docx 쪽 "Stage 1(오프라인, 피처 캐싱) / Stage 2(반복,
+헤드 학습)"을 <strong>"특징 캐싱 단계 / 헤드 학습 단계"</strong>로 바꾸면 충돌이 사라집니다
+(결정만 해주시면 반영).
+</div>
+</div>
+
+<div style="margin:14px 0;padding:12px 14px;background:#0d1117;border-radius:8px;border-left:3px solid #4ade80">
+<div style="font-weight:700;color:#4ade80;margin-bottom:6px">✅ 체크포인트명 교체 완료</div>
+<div style="font-size:0.85rem;color:#cbd5e1">
+"<code>stage1_v2_projs.pt</code>"가 나오던 2곳(1.1절 표, 6절 배포 문단) 전부
+<code>stage1_v3_5cls_owl_projs.pt</code>로 교체 완료(docx 직접 수정, LibreOffice 변환으로
+파일 무결성 확인).
+</div>
+</div>
+
+<div style="margin:14px 0;padding:12px 14px;background:#0d1117;border-radius:8px;border-left:3px solid #a78bfa">
+<div style="font-weight:700;color:#a78bfa;margin-bottom:6px">⑤ 신규 콘텐츠 — docx에 아직 없음 (복붙용)</div>
+<div style="font-size:0.85rem;color:#94a3b8;margin-bottom:8px">교정이 아니라 <strong>새로
+추가된 내용</strong>이라, 어디에 넣을지는 문맥을 보고 직접 배치해주세요.</div>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:10px 0 4px">1) 실기 재검증 결과 (5.3절 "실기 결과" 자리) —</div>
+<div style="font-size:0.85rem;background:#0f2a1f;padding:8px;border-radius:6px">100회 실기
+테스트(5개 시작 위치 × 20회)의 목표 도달 성공률은 95/100(95.0%)이다. 위치별 분해는 중앙
+100%(20/20)·강좌 95%(19/20)·약좌 95%(19/20)·강우 95%(19/20)·약우 90%(18/20)로, 시작
+위치 간 성능이 대체로 균일하다. episode_log.csv 100행을 runtime_config의 체크포인트
+경로 기준으로 직접 재확인해 값을 검증했다.</div>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:14px 0 4px">2) image_proj(Stage 1) 하이퍼파라미터 표 (1.2절 학습 파라미터 표 옆) —</div>
+<div style="font-size:0.85rem;background:#0f2a1f;padding:8px;border-radius:6px">
+epochs=30 · batch size=16 · optimizer=AdamW(lr=3e-4, weight_decay=1e-4) ·
+scheduler=CosineAnnealingLR · temperature(대조학습)=0.07 · 클래스 수=5(강좌/약좌/중앙/약우/강우) ·
+class weight = strong_left 0.91 · weak_left 1.00 · center 1.17 · weak_right 1.01 ·
+strong_right 0.91 · 검증 분할=에피소드 단위 20%, 분할 시드 42</div>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:14px 0 4px">4) image_proj Stage 1 학습 곡선(그림, 이미 배치 완료) —</div>
+<p style="margin:6px 0 0"><img src="../v5/figures/stage1_v3_learning_curve.png" alt="Stage 1 학습 곡선"
+style="max-width:420px;width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
+<p style="font-size:0.82rem;color:#64748b;margin:4px 0 0">30 epoch 로그 그대로 플롯 —
+새 학습 없이 <code>logs/train_stage1_v3_5cls_owl.log</code>에서 뽑음. 이미 초고 1.2절에
+반영 완료, docx에는 아직 없음.</p>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:14px 0 4px">3) OWL-v2 vs Kosmos-2 인코더 비교표 (1.1절 이종 인코더 설명 옆) —</div>
+<div style="font-size:0.85rem;background:#0f2a1f;padding:8px;border-radius:6px">
+OWL-v2(기하 담당): 0.155B, zero-shot(학습 없음), 출력 bbox 4채널, 3프레임마다 1회 호출,
+지연 1901.7ms(파이프라인 지연의 97%), "gray basket" 텍스트 프롬프트 필요.<br>
+Kosmos-2 vision_model(시각 문맥 담당): 0.303B(비전 타워만), 동결(다만 뒤의 image_proj는
+별도 사전학습됨), 출력 256채널(L2 정규화), 매 프레임 호출, 지연 54ms, 프롬프트 불필요.<br>
+지연의 비대칭(1901.7ms vs 54ms)이 호출 주기 설계(1.4절)의 근거 — 느린 검출기만 3프레임마다
+갱신하고 빠른 비전 인코더는 매 프레임 갱신한다.</div>
+</div>
+</div>
+
+<div id="fig-table-todo" style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.4);
+     border-radius:12px;padding:18px 20px;margin-bottom:34px">
+<h3 style="margin:0 0 8px;color:#38bdf8;font-size:1.05rem">☐ 그림/표로 전환 필요 — 0807_A 빨간 질문 답변 반영분</h3>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 12px">
+<code>..._초안_0807_A.docx</code>에 빨간 교수님 질문 34곳 바로 아래에 파란 답변을 텍스트로
+채웠습니다. 그중 아래 항목들은 텍스트보다 그림/표로 보여주는 게 더 명확합니다. 위치·개수 기준
+체크리스트입니다.</p>
+
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#38bdf8;border-bottom:1px solid rgba(56,189,248,0.3)">
+  <th style="text-align:left;padding:6px 8px">☐</th>
+  <th style="text-align:left;padding:6px 8px">내용</th>
+  <th style="text-align:left;padding:6px 8px">전환</th>
+  <th style="text-align:left;padding:6px 8px">위치 (docx 문단 기준)</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px">✅</td>
+  <td style="padding:6px 8px">8-class 로짓 → 3DoF(x,y,z) 룩업(LUT) 매핑<br>(FORWARD/LEFT/RIGHT/FWD+L/FWD+R/ROT_L/ROT_R/STOP → x,y,z)</td>
+  <td style="padding:6px 8px">표 1개</td>
+  <td style="padding:6px 8px">§58 "8클래스→3자유도 변환" 답변 자리 — <code>stage2_v2_inference_server.py</code>의
+  실제 <code>ACTION_3D</code> 딕셔너리 값 그대로 표로 삽입 완료(0807_A docx)</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px">✅</td>
+  <td style="padding:6px 8px">Stage 2 학습 파라미터 (window/bbox_scale/num_classes/optimizer=AdamW/epochs/scheduler/class weight)</td>
+  <td style="padding:6px 8px">표 1개</td>
+  <td style="padding:6px 8px">§129-134 "학습 파라미터" 나열 문단 바로 다음 — 표 삽입 완료(0807_A docx), 중복 서술 문단 삭제</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px">✅</td>
+  <td style="padding:6px 8px">조이스틱 데이터 수집 + 액션 기록 과정</td>
+  <td style="padding:6px 8px">그림 2개 (신규 제작 + soda 제공)</td>
+  <td style="padding:6px 8px">§83-85 데이터 수집 파이프라인 자리 — ① 실제 H5 프레임(strong_right_right_curve ep.)+WASD 매핑,
+  ② soda 제공 비동기 파이프라인 구조도(<code>publish_and_move()</code>/<code>on_command()</code> 훅, 2026-08-08).
+  둘 다 0807_B docx 삽입 완료</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px">✅</td>
+  <td style="padding:6px 8px">Mobility VLA 계열 경량 모델 비교 (NoMaD·ViNT·GNM 등)</td>
+  <td style="padding:6px 8px">표 1개</td>
+  <td style="padding:6px 8px">§31 "SmolVLA는 Manipulator" 답변 자리 — WebSearch로 GNM 8.7M·ViNT 31M 확인,
+  NoMaD는 공식 수치 미공개로 노란 밑줄 표기. REFERENCES에 [8][9][10] 추가, 0807_A docx 반영 완료</td>
+</tr>
+<tr>
+  <td style="padding:6px 8px">✅</td>
+  <td style="padding:6px 8px">추론 파이프라인 순서도 (F2), 하드웨어 CAN 구성도 (F3)</td>
+  <td style="padding:6px 8px">그림 2개</td>
+  <td style="padding:6px 8px">§74-75, §146-147 — 기존 F2/F3 그대로 삽입 완료(추가 작업 불필요)</td>
+</tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b;margin-top:10px">
+진행 현황: 표 3개(학습 파라미터·8클래스→3DoF LUT·Mobility VLA 경량모델 비교)·그림 1개(데이터 수집)
+전부 완료. 레퍼런스 목록 점검(§229-230)은 그림/표 대상 아님 — 별도 트래킹.</p>
+
+<h4 style="margin:20px 0 8px;color:#38bdf8;font-size:0.95rem">실제 0807_A docx 반영 내용 (최신)</h4>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:10px 0 4px">1) 데이터 수집 및 액션 기록 과정 (그림) —</div>
+<p style="margin:6px 0 0"><img src="../v5/figures/data_collection_process.png" alt="데이터 수집 및 액션 기록 과정 — 실제 H5 프레임 + WASD 매핑"
+style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
+<p style="font-size:0.78rem;color:#64748b;margin:4px 0 12px">실제 H5 에피소드(strong_right_right_curve) 27/82 프레임 + 그 프레임의 실측 액션 +
+<code>mobile_vla_data_collector.py</code>의 실제 WASD→(lx,ly,az) 매핑. §83-85 자리.</p>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:14px 0 4px">1-1) 비동기 조이스틱 수집 파이프라인 구조도 (soda 제공, 2026-08-08) —</div>
+<p style="margin:6px 0 0"><img src="../v5/figures/data_collection_pipeline.png" alt="비동기 조이스틱 데이터 수집 파이프라인 (soda 제공)"
+style="max-width:100%;background:#0f172a;border-radius:6px;border:1px solid #1e293b"></p>
+<p style="font-size:0.78rem;color:#64748b;margin:4px 0 12px">조이스틱(DragonRise, 25Hz pygame 폴링)과 카메라(10Hz, 독립 스레드)가 완전히 비동기로 동작 —
+<code>ctrl.publish_and_move()</code> 호출이 CAN bus 구동과 <code>on_command()</code> 기록 훅을 동시에 트리거하고,
+그 순간 카메라의 최신 프레임을 끌어와 짝지어 H5에 저장함(STOP 프레임 중복 억제, 종료 시 STOP×5 합성).
+soda가 <code>mona_dashboard.py</code>/<code>gradio_data_collector.py</code> 실제 구현을 근거로 제작(commit 1574635d,
+inference-integration·monavla-driving 양쪽 push 완료). 위 사진 기반 그림과 함께 §83-85 자리에 배치.</p>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:14px 0 4px">2) 8-class 로짓 → 3DoF(x,y,z) 룩업(LUT) 매핑 (표, stage2_v2_inference_server.py ACTION_3D 그대로) —</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:6px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+  <th style="text-align:left;padding:4px 8px">class idx</th><th style="text-align:left;padding:4px 8px">class name</th>
+  <th style="text-align:left;padding:4px 8px">x</th><th style="text-align:left;padding:4px 8px">y</th><th style="text-align:left;padding:4px 8px">z</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">0</td><td style="padding:4px 8px">STOP</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">1</td><td style="padding:4px 8px">FORWARD</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">2</td><td style="padding:4px 8px">LEFT</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">3</td><td style="padding:4px 8px">RIGHT</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">-1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">4</td><td style="padding:4px 8px">FWD+L</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">5</td><td style="padding:4px 8px">FWD+R</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">-1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">6</td><td style="padding:4px 8px">ROT_L</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.25</td></tr>
+<tr><td style="padding:4px 8px">7</td><td style="padding:4px 8px">ROT_R</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">-0.25</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b;margin:4px 0 12px">§58 자리. argmax(8-class 로짓) → 위 표 → CAN 통신으로 MCU 전달.</p>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:14px 0 4px">3) Stage 2 행동 헤드 학습 파라미터 (표) —</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:6px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+  <th style="text-align:left;padding:4px 8px">파라미터</th><th style="text-align:left;padding:4px 8px">값</th><th style="text-align:left;padding:4px 8px">의미</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">window</td><td style="padding:4px 8px">6 프레임</td><td style="padding:4px 8px">입력으로 사용하는 연속 프레임 수</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">bbox_scale</td><td style="padding:4px 8px">3.0</td><td style="padding:4px 8px">bbox 좌표 정규화 스케일</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">num_classes</td><td style="padding:4px 8px">8</td><td style="padding:4px 8px">8-class 방향 로짓</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">optimizer</td><td style="padding:4px 8px">AdamW, lr=5e-4</td><td style="padding:4px 8px">가중치 감쇠 포함 Adam 변형</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">epochs</td><td style="padding:4px 8px">300</td><td style="padding:4px 8px">학습 반복 수</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">scheduler</td><td style="padding:4px 8px">CosineAnnealingLR</td><td style="padding:4px 8px">코사인 스케줄로 lr 감쇠</td></tr>
+<tr><td style="padding:4px 8px">class weight</td><td style="padding:4px 8px">1/빈도 정규화</td><td style="padding:4px 8px">FORWARD 71~74% 편중 보정</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b;margin:4px 0 12px">§129-134 자리, 기존 줄바꿈 텍스트 삭제 후 표로 교체.</p>
+
+<div style="font-size:0.82rem;color:#4ade80;margin:14px 0 4px">4) Mobility VLA 계열 경량 모델 비교 (표) —</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:6px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+  <th style="text-align:left;padding:4px 8px">모델</th><th style="text-align:left;padding:4px 8px">파라미터</th>
+  <th style="text-align:left;padding:4px 8px">구조</th><th style="text-align:left;padding:4px 8px">비고</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">GNM (2022)</td><td style="padding:4px 8px">8.7M</td><td style="padding:4px 8px">경량 CNN 정책, cross-embodiment</td><td style="padding:4px 8px">가장 작음, 언어 지시 미지원</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">ViNT (2023)</td><td style="padding:4px 8px">31M</td><td style="padding:4px 8px">Transformer 인코더 + 서브골 플래닝</td><td style="padding:4px 8px">GNM보다 크지만 여전히 경량, 이미지 목표 기반</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">NoMaD (2024)</td><td style="padding:4px 8px"><span style="color:#fbbf24;text-decoration:underline">미공개(ViNT 대비 15배 이상 적음)</span></td><td style="padding:4px 8px">ViNT 인코더 재사용 + diffusion policy 헤드</td><td style="padding:4px 8px">공식 파라미터 수 미명시</td></tr>
+<tr><td style="padding:4px 8px">본 연구 (EdgeGround-VLA)</td><td style="padding:4px 8px">학습 파라미터 1.128M</td><td style="padding:4px 8px">frozen OWL-v2·Kosmos-2 + 경량 projection + MLP 헤드</td><td style="padding:4px 8px">GNM보다도 학습 파라미터가 작음(frozen 인코더는 별도)</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b;margin:4px 0 0">§31 자리, REFERENCES에 [8]GNM·[9]ViNT·[10]NoMaD 추가.
+노란 밑줄 = NoMaD 파라미터 수치 미확인(공식 미공개) 표시.</p>
+</div>
+
+<h2 class="round" id="r-inprogress" style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.4);color:#4ade80">✅ 완료 — image_proj Stage 1 학습 + 배포 전환 (2026-08-07)</h2>
+<p class="round-sub">배포 중이던 image_proj(<code>stage1_v2_projs.pt</code>, 2026-05-21·150ep·HSV 라벨)가
+액션 헤드(225ep)와 세대가 다르다는 걸 발견해 학습·검증·배포 전환까지 완료. 계획:
+<a href="../plans/plan_20260806_stage1_image_proj_5cls_retrain.md">plan_20260806</a>.
+<strong style="color:#4ade80">최종 결론(2026-08-07) — 배포 전환 완료.</strong> 오프라인 지표만으로는
+옵션A(실기 실패)·옵션B(val_acc -4%p)가 모두 나빠 보였으나, <strong>실제 100건 실기 재검증에서
+95/100 성공</strong>(구버전 89/100 대비 개선, 특히 좌측 80%→95%)으로 확인 — <code>go.sh</code>·
+<code>DEFAULT_STAGE1</code>을 신버전으로 전환함. 오프라인 지표만으로 배포 여부를 단정하면 안
+된다는 CH64의 교훈이 다시 확인된 사례.</p>
+
+<div class="item done">
+  <h4>F8. image_proj Stage 1 학습 — 5-class(강좌/약좌/중앙/약우/강우), 225ep, OWL-v2 라벨 → 배포 완료</h4>
+  <div class="loc">위치: 1.1 Heterogeneous Grounding Encoder (image_proj Stage 1 사전학습)</div>
+  <div class="body">
+  image_proj를 5-class(강좌/약좌/중앙/약우/강우) 구조로, 225ep(OWL-v2 라벨) 데이터셋으로 새로 학습 완료.
+  <table>
+    <tr><th></th><th>train_acc</th><th>val_acc</th><th>비고</th></tr>
+    <tr><td>배포 중인 학습본(5-class, 225ep, OWL-v2)</td><td id="v3-train-acc">96.10%</td><td>94.09%</td><td>2026-08-07 학습, gap +2.01%p(정상)</td></tr>
+  </table>
+  <p style="margin:10px 0 0"><strong>Step 3(오프라인) → Step 5(실기) 순서로 검증:</strong></p>
+  <table>
+    <tr><th>단계</th><th>결과</th></tr>
+    <tr><td>Step 3-A — 기존 헤드 그대로 + 새 image_proj (오프라인/실기 둘 다 확인)</td>
+        <td class="bad" style="color:#f87171">soda 실기에서 실패 — 신구 image_proj 임베딩
+        코사인 유사도 <strong>0.058</strong>(거의 직교). 같은 프레임(weak_left, cx=0.222)에
+        구버전=LEFT(정답에 가까움) vs 신버전=STOP 예측 — 분포 밖(OOD) 붕괴.
+        <strong>이 조합은 실제로 못 씀 — 헤드도 반드시 같이 학습해야 함</strong></td></tr>
+    <tr><td>Step 3-B — 새 image_proj 위에서 헤드 학습(3-seed, 오프라인 val_acc)</td>
+        <td class="warn" style="color:#fbbf24">val_acc mean <strong>73.8%</strong>(best 74.1%) —
+        구버전 기준(<code>owl/v6/mlp</code>, 3-seed) mean 77.74%(best 78.0%) 대비 약 4%p 낮음.
+        <strong>오프라인만 보면 배포 근거 부족해 보였음</strong></td></tr>
+    <tr><td>Step 5 — Step 3-B 체크포인트로 soda 100건 실기 재검증</td>
+        <td class="ok" style="color:#4ade80"><strong>95/100 성공</strong> — 강좌 19/20(95%)·
+        약좌 19/20(95%)·강우 19/20(95%)·약우 18/20(90%)·중앙 20/20(100%). 구버전 89/100 대비
+        전체 개선, 특히 <strong>좌측이 80%→95%로 확실히 개선</strong>. minum이
+        <code>episode_log.csv</code> 100행을 <code>runtime_config</code> 기준으로 직접
+        재검증(soda 보고와 일치)</td></tr>
+  </table>
+  <p style="font-size:0.82rem;color:#94a3b8;margin:6px 0 0"><strong style="color:#4ade80">최종 결론:</strong>
+  오프라인 val_acc 하락(-4%p)이 실기 성능 하락을 의미하지 않았음 — 오히려 실기에서는 개선.
+  <strong>배포 전환 완료</strong>(<code>go.sh</code>의 <code>S1_PT</code>/<code>S2_PT</code>,
+  <code>stage2_v2_inference_server.py</code>의 <code>DEFAULT_STAGE1</code>). 구버전은
+  <code>runs/v5_nav/mlp/shared/stage1_v2_projs.pt</code>에 그대로 보존(롤백용).</p>
+  <strong>좌우 비대칭 발견</strong> — Stage 1 오프라인 혼동행렬에서는 weak_left가 약함(88.0%,
+  strong_left로 32개 오분류)·strong_right가 약함(90.3%)으로 나왔지만, 실기에서는 오히려
+  좌측 전체(강좌·약좌)가 개선됨 — 오프라인 방향별 혼동과 실기 좌우 성능이 직결되지 않음을
+  보여주는 또 다른 사례.
+  <p style="margin:9px 0 0"><img src="../v5/figures/stage1_v3_confusion.png" alt="F8 image_proj Stage1 v3 5-class 혼동행렬"
+  style="max-width:480px;width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
+  <p style="margin:12px 0 0"><strong style="color:#4ade80">🆕 신규 그래프 (0807 초고 반영)</strong></p>
+  <p style="margin:9px 0 0"><img src="../v5/figures/stage1_v3_training_curve.png" alt="image_proj Stage1 v3 학습 곡선"
+  style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
+  <p style="font-size:0.78rem;color:#64748b;margin:6px 0 0">30 epoch 수렴 곡선(94.09%) —
+  <code>train_stage1_v3_5cls_owl.log</code>에서 그대로 뽑은 것, 새 학습/테스트 없음.
+  <strong style="color:#fbbf24">2026-08-07 결정 — old/new 비교 막대그래프(위치별·클래스별)는
+  "학습 전" 프레이밍 자체가 불필요하다는 판단으로 전부 제거</strong>하고 현재 배포 상태
+  단독 서술로 통일(파일은 <code>docs/v5/figures/</code>에 보존, 참조만 안 함).
+  <strong style="color:#fbbf24">단, 0807 초고(paper 본문)에는 구버전이 HSV 휴리스틱 라벨
+  기반이라는 사실이 드러나 불필요한 의문을 살 수 있어 이 두 비교 그림은 넣지 않고, 이 페이지
+  (내부 추적용)에만 유지함.</strong></p>
+  </div>
+  <span class="figrow"><span class="figchip"><a href="../plans/plan_20260806_stage1_image_proj_5cls_retrain.md">📋 계획</a> · <a href="redfill_draft_0807.html">📄 0807 초고</a></span></span>
+</div>
+<div class="item done">
+  <h4>F9. Ablation — 비전 백본 파라미터 효율성 <span style="color:#4ade80;font-size:0.72rem;font-weight:400">(신규 발굴, CH67 기존 데이터)</span></h4>
+  <div class="loc">위치: 0807 초고 신설 절 (Ablation/Experiments 후보)</div>
+  <div class="body">MobileNetV3-S(0.93M)가 Kosmos-2(303.2M)보다 <strong>327배 작으면서 cx 회귀
+  오차는 0.03%p밖에 차이 안 남</strong>(0.214% vs 0.186%, 동일 헤드·동일 split, 6개 백본 비교).
+  이번 학습과 무관하게 CH67에서 이미 측정돼 있었으나 논문에 반영 안 돼 있던 것을 발굴 —
+  "경량화" 논문 서사에 직접 부합하는 정식 ablation(애드혹 비교 아님).
+  <p style="margin:9px 0 0"><img src="../v5/figures/backbone_param_efficiency.png" alt="F9 비전 백본 파라미터 효율성"
+  style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
+  </div><span class="figrow"><span class="figchip"><a href="redfill_draft_0807.html#ablation-backbone">📄 0807 초고</a></span></span>
+</div>
+
 <h2 class="round r0805" id="r0805">🔵 0805 라운드 — 초안 최초 검토</h2>
 <p class="round-sub"><code>EdgeGround-VLA_..._초안_0805.docx</code> 전수 추출(빨간 run 120개 · 25개 단락) 기준.
 전체 8개 절 중 6.Deploy 절만 로봇 담당자 확인 필요로 남기고 나머지는 초고 완성.</p>
@@ -127,21 +685,135 @@
   <div class="loc">위치: 1. Model Architecture · 요구원문 01 대응</div>
   <div class="body">260차원 규격(bbox 4ch + vision 256ch)을 반영한 논문용 벡터로 재작성.
   학습/동결/미사용 3색 범례, 언어 디코더 1.361B 미사용 분리 표기.
-  <br><span class="figrow"><span class="figchip">PDF/SVG/PNG — <code>figures/edgeground_vla_architecture.*</code></span></span></div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#01">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a1">📝 문제/대응</a></span></span>
+  <br><strong style="color:#a78bfa">08/06 추가 수정</strong> — 실선을 프레임 특징 벡터(260차원)
+  까지로 한정하고 이후 구간(슬라이딩 윈도우→정책→8클래스 로짓)은 점선+배경 패널로 구분,
+  Service Control 표기를 제거하고 초록색 <code>x, y, z (3-DoF)</code> / ACTION_3D
+  룩업(LUT) 블록으로 교체.
+  <br><span class="figrow"><span class="figchip"><a href="../v5/figures/edgeground_vla_architecture.png" target="_blank">🖼 PNG 보기</a> ·
+  <a href="../v5/figures/edgeground_vla_architecture.pdf" target="_blank">PDF</a> ·
+  <a href="../v5/figures/edgeground_vla_architecture.svg" target="_blank">SVG</a></span></span>
+  <p style="margin:9px 0 0"><a href="../v5/figures/edgeground_vla_architecture.png" target="_blank">
+  <img class="figimg" data-fig="F1" src="../v5/figures/edgeground_vla_architecture.png" alt="F1 모델 파이프라인 구조도"
+  style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></a></p>
+  <div class="figts" data-fig-ts="F1" style="font-size:0.72rem;color:#64748b;margin-top:4px"></div>
+  </div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#01">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a1">📝 문제/대응</a></span></span>
 </div>
 <div class="item done">
   <h4>F2. 런타임 파이프라인 순서도</h4>
   <div class="loc">위치: 7. Runtime Inference Control Logic</div>
   <div class="body">grounding_skip_n=3 주기(호출1: OWL+Kosmos, 호출2·3: Kosmos만) → class no → x,y,z → CAN → MCU.
-  상단에 서빙 제어 파라미터 요약 패널(threshold·skip_n·콜드스타트가드·회전규칙) 통합.
-  <br><span class="figrow"><span class="figchip"><code>figures/runtime_pipeline.*</code></span></span></div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#_6">📄 초고</a></span></span>
+  상단에 추론 제어 파라미터 요약 패널(threshold·skip_n·콜드스타트가드·회전규칙) 통합.
+  <strong style="color:#4ade80">08/06 재확인</strong> — 원문 "순서도로 표현" 요구(카메라 입력→AI 모델→
+  8클래스 로짓→3-DoF 변환→CAN→MCU→바퀴 구동 전체 검토)를 이 도표가 이미 1:1로 충족함.
+  <br><strong style="color:#fbbf24">추가 수정</strong> — 추론 제어 파라미터 요약 패널에
+  <code>stop_mode</code> 관련 사실을 정확히 구분해 명시: <strong style="color:#4ade80">실제
+  실행/실험은 learned</strong>(실행 스크립트 <code>go.sh</code>·<code>gradio_hub.py</code>가
+  <code>VLA_STOP_MODE=learned</code>로 명시 오버라이드), 코드 인자 자체의 기본값만
+  <code>proximity</code>. <code>model_architecture_brief.html</code> 4절 표에 있던
+  중복·상충 행(force_reground_on_miss·연속회전차단 중복)도 함께 정리.
+  <span style="color:#94a3b8">(1차 수정에서 "기본값 proximity가 실제 설정"이라고 잘못
+  적었다가 재수정함)</span>
+  <br><span class="figrow"><span class="figchip"><a href="../v5/figures/runtime_pipeline.png" target="_blank">🖼 PNG 보기</a> ·
+  <a href="../v5/figures/runtime_pipeline.pdf" target="_blank">PDF</a> ·
+  <a href="../v5/figures/runtime_pipeline.svg" target="_blank">SVG</a></span></span>
+  <p style="margin:9px 0 0"><a href="../v5/figures/runtime_pipeline.png" target="_blank">
+  <img class="figimg" data-fig="F2" src="../v5/figures/runtime_pipeline.png" alt="F2 런타임 파이프라인 순서도"
+  style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></a></p>
+  <div class="figts" data-fig-ts="F2" style="font-size:0.72rem;color:#64748b;margin-top:4px"></div>
+  </div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#_6">📄 초고</a></span></span>
 </div>
 <div class="item done">
   <h4>F3. 하드웨어 연결도 — Jetson↔CAN↔MCU</h4>
   <div class="loc">위치: 2. Hardware Platform</div>
   <div class="body">CAN 버스(can0, 500kbps) 실존을 코드로 확인 후 반영(<code>omni_drive_node.py</code>의
   <code>Psd(dev="can0")</code>, <code>vla_control_utils.py</code>의 <code>pop.driving.Driving()</code>).
-  <br><span class="figrow"><span class="figchip"><code>figures/hardware_architecture.*</code></span></span></div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#_5">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a9">📝 문제/대응</a></span></span>
+  <strong style="color:#4ade80">08/06 재확인</strong> — 0806 red 항목 중 "Serbot II 로봇 보드 구성 —
+  Jetson과 바퀴 제어 보드가 CAN으로 연결된 그림"은 0805에서 이미 반영된 F3와 동일 요구라
+  추가 수정 불필요.
+  <br><span class="figrow"><span class="figchip"><a href="../v5/figures/hardware_architecture.png" target="_blank">🖼 PNG 보기</a> ·
+  <a href="../v5/figures/hardware_architecture.pdf" target="_blank">PDF</a> ·
+  <a href="../v5/figures/hardware_architecture.svg" target="_blank">SVG</a></span></span>
+  <p style="margin:9px 0 0"><a href="../v5/figures/hardware_architecture.png" target="_blank">
+  <img class="figimg" data-fig="F3" src="../v5/figures/hardware_architecture.png" alt="F3 하드웨어 연결도"
+  style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></a></p>
+  <div class="figts" data-fig-ts="F3" style="font-size:0.72rem;color:#64748b;margin-top:4px"></div>
+  </div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#_5">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a9">📝 문제/대응</a></span></span>
+</div>
+
+<h3 class="cat" id="svg-editor">🛠 F1/F2/F3 원본 SVG 템플릿 직접 편집</h3>
+<div class="item done">
+  <div class="body" style="margin-bottom:10px">
+  실제 <code>figures/*.svg</code> 원본 텍스트를 그대로 불러와 편집합니다 — F1의 박스/화살표/
+  범례 좌표를 직접 손으로 잡은 그 파일입니다. 왼쪽에서 텍스트나 좌표(<code>x=".."</code>,
+  <code>y=".."</code>)를 고치면 오른쪽 미리보기가 즉시 갱신됩니다.
+  <strong style="color:#4ade80">"✅ 반영"</strong>을 누르면 실제
+  <code>docs/v5/figures/*.svg</code> 파일에 즉시 저장되고 PNG/PDF도 자동 재생성되어,
+  이 페이지·워크리스트·초고에 박혀 있는 이미지가 <strong>실시간으로 바뀝니다</strong>
+  (아래 각 F 카드와 초고·워크리스트의 해당 위치에 "최근 수정" 시각이 함께 표시됩니다).
+  "⬇ SVG 다운로드"는 파일로만 저장하고 싶을 때 씁니다.
+  <br><strong style="color:#4ade80">새로고침해도 편집 중이던 내용이 유지됩니다</strong> —
+  "반영"을 누르기 전이라도 입력이 브라우저에 임시 저장되고, 마지막으로 열어둔 탭도 기억합니다.
+  <code>?fig=F2</code>처럼 주소 끝에 붙이면 그 탭으로 바로 열립니다.
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:10px" id="svgTabs">
+    <button class="svgTab active" data-f="F1">F1 모델 파이프라인</button>
+    <button class="svgTab" data-f="F2">F2 런타임 순서도</button>
+    <button class="svgTab" data-f="F3">F3 하드웨어 연결도</button>
+  </div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px">
+      <div id="svgDraftNote" style="display:none;font-size:0.76rem;color:#fbbf24;background:rgba(251,191,36,0.1);
+        border:1px solid rgba(251,191,36,0.35);border-radius:6px;padding:6px 10px;margin-bottom:6px"></div>
+      <textarea id="svgSrc" spellcheck="false" style="width:100%;min-height:460px;background:#0d1117;
+        color:#e2e8f0;border:1px solid #1e293b;border-radius:8px;padding:10px;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.72rem;line-height:1.45"></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="svgReload" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;
+          border-radius:6px;padding:6px 12px;font-size:0.8rem;cursor:pointer">↺ 원본 다시 불러오기</button>
+        <button id="svgDownload" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;
+          border-radius:6px;padding:6px 12px;font-size:0.8rem;cursor:pointer">⬇ SVG 다운로드</button>
+        <button id="svgApply" style="background:#123524;color:#dcfce7;border:1px solid #2f7d5d;
+          border-radius:6px;padding:6px 12px;font-size:0.85rem;font-weight:700;cursor:pointer">✅ 반영 (파일 저장 + PNG/PDF 재생성)</button>
+        <span id="svgApplyStatus" style="font-size:0.78rem;color:#64748b"></span>
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px">
+      <div id="svgPreviewWrap" style="background:#fff;border:1px solid #1e293b;border-radius:8px;
+        padding:14px;overflow:auto;min-height:460px">
+        <div id="svgPreview"></div>
+      </div>
+      <div id="svgErr" style="color:#f87171;font-size:0.78rem;white-space:pre-wrap;margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<h3 class="cat" id="live-editor">✏️ 머메이드 스케치 에디터 (레이아웃 아이디어용)</h3>
+<div class="item done">
+  <div class="body" style="margin-bottom:10px">
+  왼쪽 텍스트를 고치면 오른쪽이 자동으로 다시 그려집니다. 렌더링된 박스는
+  <strong>마우스로 드래그해서 위치를 옮길 수 있습니다</strong>(스케치용 — 화살표는 자동으로
+  따라오지 않으니 레이아웃 확인용으로만 쓰세요). 텍스트 자체를 고치는 게 실제 반영 방법입니다.
+  <code>model_architecture_brief.html</code>의 다이어그램과 동일한 소스로 시작합니다.
+  </div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px">
+      <textarea id="mmSrc" spellcheck="false" style="width:100%;min-height:420px;background:#0d1117;
+        color:#e2e8f0;border:1px solid #1e293b;border-radius:8px;padding:10px;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.78rem;line-height:1.5"></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button id="mmReset" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;
+          border-radius:6px;padding:6px 12px;font-size:0.8rem;cursor:pointer">↺ 원본으로 리셋</button>
+        <span style="font-size:0.75rem;color:#64748b;align-self:center">입력 후 0.5초 뒤 자동 재렌더</span>
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px">
+      <div id="mmPreviewWrap" style="background:#0b1220;border:1px solid #1e293b;border-radius:8px;
+        padding:14px;overflow:auto;min-height:420px">
+        <div id="mmPreview"></div>
+        <div id="mmErr" style="color:#f87171;font-size:0.78rem;white-space:pre-wrap"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <h3 class="cat" id="r0805-factfix"><span class="tag t-factfix">FACT-FIX</span> 사실오류 정정</h3>
@@ -151,7 +823,7 @@
   <table><tr><th></th><th>초안</th><th>정정</th></tr>
   <tr><td>입력 차원</td><td>256</td><td><strong>1560</strong>(6프레임×260)</td></tr>
   <tr><td>hidden layer</td><td>4개</td><td><strong>2개</strong>(512→128→8)</td></tr>
-  <tr><td>융합 방식</td><td>"동일 임베딩 공간 매핑"</td><td>bbox는 사영 없이 <strong>병치(concat)</strong></td></tr>
+  <tr><td>융합 방식</td><td>"동일 임베딩 공간 매핑"</td><td>bbox는 사영 없이 <strong>결합(concat)</strong></td></tr>
   </table><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#12-feature-fusion-via-linear-projection">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#fix2">📝 문제/대응</a></span></span>
 </div>
 <div class="item done">
@@ -182,22 +854,60 @@
   <h4>하이퍼파라미터 통합표</h4>
   <div class="body">owlv2_thresh·num_classes 등을 모델구조/학습/서빙 3단으로 분리한 표 신설.</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#_2">📄 초고</a></span></span>
 </div>
-<div class="item done">
-  <h4>CH64 64-12 hold-aware 그래프 재사용</h4>
-  <div class="body">baseline 7.1%→stride5 24.2%→hold-aware 다수결 28.3%(3seed). 새로 만들지 않고 원본 재사용.
-  <strong>단 이 오프라인 지표를 89% 실기 성공률과 인과로 엮지 않음</strong>(CH64 64-11 전례).</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#2-1520">📄 초고</a></span></span>
+<div class="item pending" style="opacity:0.65">
+  <h4>F4. CH64 64-12 cadence-aligned 그래프 <span style="color:#a3a3a3;font-size:0.72rem;font-weight:400">— 2026-08-07 논문에서 제외 결정</span></h4>
+  <div class="body">baseline 7.1%→stride5 24.2%→cadence-aligned 다수결 28.3%(3seed). 배포 전환 전에는
+  원본 그림을 그대로 재사용해 초고에 넣어뒀으나,
+  <strong style="color:#a3a3a3">image_proj 학습·배포 전환 이후 이 3단 비교는 구버전 학습방식
+  (`exp73_held_aware_train.py`) 기준이라 최종 배포 모델과 직결되지 않는 내부 실험 근거로 판단해
+  초고·워크리스트에서 삭제</strong>. 재측정하려면 옛 학습방식을 신버전 image_proj 위에서 다시
+  돌려야 해서 들이는 비용 대비 논문 기여가 낮음.
+  <p style="margin:9px 0 0"><a href="../v5/figures/fig_64_12_holdaware.png" target="_blank">
+  <img src="../v5/figures/fig_64_12_holdaware.png" alt="F4 CH64 64-12 cadence-aligned 결과(제외됨)"
+  style="max-width:420px;width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b;filter:grayscale(0.6)"></a></p>
+  </div><span class="figrow"><span class="figchip"><a href="../v5/paper_redfill_worklist.html">📝 워크리스트 생략 안내</a></span></span>
 </div>
 <div class="item done">
-  <h4>Grounding threshold 곡선 / Val 혼동행렬 (F5, F6)</h4>
+  <h4>F5/F6. Grounding threshold 곡선 / Val 혼동행렬</h4>
   <div class="body">threshold 0.25=정탐94.9%/오탐0%, 0.20=97.2%/12.7%.
-  Val 혼동행렬 acc 74.98%±0.52%p, <strong>LEFT 42%로 최저</strong>(CH66 좌우비대칭과 일치).</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#53-grounding-valtest">📄 초고</a></span></span>
+  <p style="margin:9px 0 0"><a href="../v5/figures/grounding_threshold_curve.png" target="_blank">
+  <img src="../v5/figures/grounding_threshold_curve.png" alt="F5 그라운딩 threshold 곡선"
+  style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></a></p>
+  <p style="margin:12px 0 0">현재 배포 헤드 기준 Val 혼동행렬
+  <strong style="color:#f87171">acc 52.5%</strong>(n=501, 단일 체크포인트 seed0).
+  <strong style="color:#fbbf24">⚠️ 방법론 각주:</strong> 이 평가는 cadence-aligned(stride=5
+  다수결) 방식으로 라벨을 만드는데, 배포된 헤드는 그 방식이 아니라 <strong>일반(stride=1)
+  윈도우로 학습</strong>됐다(`train_exp73_stage1v3_heads.py`) — 채점 방식 자체가 안 맞는다.
+  <strong>실기 검증은 95/100 성공</strong>(F8 참조)으로, 오프라인 cadence-aligned 평가와
+  실기 성능이 여기서도 직결되지 않음을 보여주는 사례.</p>
+  <p style="margin:9px 0 0"><a href="../v5/figures/confusion_matrix_stage1v3.png" target="_blank">
+  <img src="../v5/figures/confusion_matrix_stage1v3.png" alt="F6 val 혼동행렬(cadence-aligned 평가)"
+  style="max-width:480px;width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></a></p>
+  </div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#53-grounding-valtest">📄 0805 초고</a> · <a href="redfill_draft_0807.html#3-val-53">📄 0807 초고(최신)</a></span></span>
+</div>
+<div class="item done">
+  <h4>F7. 데이터 수집 과정 그림 — V6(225ep) 방향별 실촬영 프레임</h4>
+  <div class="loc">위치: 3. Collection of data</div>
+  <div class="body">실제 학습에 쓴 V6 데이터셋(<code>bbox_dataset_v6_owl.json</code>, 225ep)의 원본
+  H5에서 방향별(강좌·약좌·중앙·약우·강우) 대표 프레임을 직접 추출 — 별도 촬영이 아니라
+  <strong>실제 학습 데이터 그 자체</strong>. 어안렌즈 왜곡·바닥 그리드·바구니 위치 변화가
+  그대로 보임.
+  <br><strong style="color:#fbbf24">색상 채널 버그 발견·수정</strong> — V6 raw H5는 BGR로
+  저장되어 있어(<code>gen_v6_owl_annotation.py</code>·<code>train_exp73_trackA_heads.py</code>
+  "colorfixed 규격"에서 확인) 최초 추출본은 반전 없이 뽑아 실제 학습 조건과 다른 색이었음.
+  <code>[:, :, ::-1]</code> BGR→RGB 반전을 적용해 재생성 —
+  <a href="../v6/figures/color_check.html">버그판/수정판 나란히 비교</a>.
+  <p style="margin:9px 0 0"><a href="../v6/figures/v6_collection_grid.png" target="_blank">
+  <img src="../v6/figures/v6_collection_grid.png" alt="F7 V6 방향별 대표 프레임 (색상 수정판)"
+  style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></a></p>
+  </div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#3-collection-of-data-13">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a13">📝 문제/대응</a> · <a href="../v6/figures/color_check.html">🎨 색상 비교</a></span></span>
 </div>
 
 <h3 class="cat" id="r0805-term"><span class="tag t-term">TERM</span> 용어 대체 제안 (선택)</h3>
 <div class="item done">
-  <h4>"다수결 라벨" · "held-out"</h4>
+  <h4>"다수결 라벨" → "majority-vote 라벨" · "held-out"</h4>
   <div class="body">
-  <strong>다수결 라벨</strong> → <em>majority-vote label</em>(권장) / plurality-vote / mode filter.<br>
+  <strong>다수결 라벨</strong> → <em style="color:#4ade80">majority-vote 라벨</em>(교체 완료) / plurality-vote / mode filter도 가능.<br>
   <strong>held-out validation</strong> → <em>episode-disjoint split</em> / unseen episodes
   (단 held-out도 표준용어라 필수 대체는 아님).</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#2-1520">📄 초고</a></span></span>
 </div>
@@ -219,18 +929,24 @@
 <div class="item done">
   <h4>8클래스 로짓 → 3자유도(3-DoF) 변환 — "(?)를 거쳐"의 (?) 규명</h4>
   <div class="loc">위치: 1.2 Lightweight MLP Action Head</div>
-  <div class="body">별도 ROS 노드나 학습된 변환이 아니라 <strong>추론 서버 내 고정 룩업테이블</strong>
+  <div class="body">별도 ROS 노드나 학습된 변환이 아니라 <strong>추론 서버 내 룩업테이블(LUT)</strong>
   (<code>ACTION_3D</code>)로 즉시 조회됨.
   <table><tr><th>클래스</th><th>행동</th><th>(lx, ly, az)</th></tr>
   <tr><td>0</td><td>STOP</td><td>(0, 0, 0)</td></tr>
   <tr><td>1</td><td>FORWARD</td><td>(1.15, 0, 0)</td></tr>
-  <tr><td>6/7</td><td>ROT_L/R</td><td>(0, 0, ±0.25)</td></tr></table></div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#8-33-dof-0806-3">📄 초고</a></span></span>
+  <tr><td>2</td><td>LEFT</td><td>(0, 1.15, 0)</td></tr>
+  <tr><td>3</td><td>RIGHT</td><td>(0, −1.15, 0)</td></tr>
+  <tr><td>4</td><td>FWD+LEFT</td><td>(1.15, 1.15, 0)</td></tr>
+  <tr><td>5</td><td>FWD+RIGHT</td><td>(1.15, −1.15, 0)</td></tr>
+  <tr><td>6</td><td>ROT_L</td><td>(0, 0, 0.25)</td></tr>
+  <tr><td>7</td><td>ROT_R</td><td>(0, 0, −0.25)</td></tr></table></div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#8-33-dof-0806-3">📄 초고</a></span></span>
 </div>
-<div class="item done">
-  <h4>LeRobot 내보내기 파이프라인 "별도 구축이 맞는가"</h4>
+<div class="item pending" style="opacity:0.65">
+  <h4>LeRobot 내보내기 파이프라인 "별도 구축이 맞는가" <span style="color:#a3a3a3;font-size:0.72rem;font-weight:400">— 필수 아님, 이번엔 제외</span></h4>
   <div class="loc">위치: 3. Collection of data</div>
   <div class="body">파이프라인 자체는 존재·동작하나, 내보낸 것은 <strong>420ep</strong>(레거시 240 포함,
-  trackF 45 누락)로 실제 학습에 쓴 <strong>225ep</strong>와 불일치. "구축은 맞으나 재내보내기 필요"가 정확한 답.</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#3-collection-of-data-13">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a13">📝 문제/대응</a></span></span>
+  trackF 45 누락)로 실제 학습에 쓴 <strong>225ep</strong>와 불일치. "구축은 맞으나 재내보내기 필요"가 정확한 답.
+  <br><strong style="color:#a3a3a3">사용자 결정(2026-08-06)</strong> — 논문 제출에 필수는 아니라 이번 라운드에서는 제외.</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#3-collection-of-data-13">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a13">📝 문제/대응</a></span></span>
 </div>
 <div class="item done">
   <h4>Kosmos-2 비전 인코더 = CLIP ViT-L/14 표현 검증</h4>
@@ -268,11 +984,6 @@
 
 <h3 class="cat" id="r0806-pending"><span class="tag t-pending">PENDING</span> 자료 필요해서 보류</h3>
 <div class="item pending">
-  <h4>F7. 데이터 수집 과정 그림 (조이스틱 수집·액션 기록)</h4>
-  <div class="loc">위치 예정: 3. Collection of data</div>
-  <div class="body">실사진 없이는 제작 불가 — <strong>사용자 결정: 이번엔 보류</strong>. 사진 확보되면 삽입.</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#3-collection-of-data-13">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a13">📝 문제/대응</a></span></span>
-</div>
-<div class="item pending">
   <h4>노란색 부분 설명 필요 (Table 2 인근)</h4>
   <div class="body">확인 결과 셀 배경색이 아니라 <strong>우리 초고 문장을 붙여넣은 흔적</strong>(문자 하이라이트)이었음.
   각 문장은 이미 초고에 근거와 함께 있음 — 표시만 지우면 될 가능성 높음(작성자 확인 필요).</div><span class="figrow"><span class="figchip"><a href="redfill_draft_0805.html#2-1520">📄 초고</a> · <a href="../v5/paper_redfill_worklist.html#a26">📝 문제/대응</a></span></span>
@@ -299,17 +1010,1081 @@
   </div>
 
   <div class="clentry">
+    <div class="cldate">2026-08-06 · SVG 편집기 — 새로고침해도 편집내용/탭 유지되도록 수정</div>
+    이전엔 새로고침하면 항상 F1 탭·원본 내용으로 초기화되던 문제 수정.
+    localStorage로 <strong>탭별 임시 편집 내용</strong>과 <strong>마지막 탭</strong>을 기억,
+    "반영" 성공 시에만 임시본을 지움. <code>?fig=F2</code> 쿼리 파라미터로 특정 탭 바로 열기 지원.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · docx 노란 하이라이트 25개 재대조 — 4곳 최신화 필요 문단 정리</div>
+    <a href="#docx-yellow-memo">📋 docx 노란부분 최신화</a> 배너 신설. 0806 docx의 노란 하이라이트
+    (사용자가 직접 붙여넣은 답변) 25개 문단을 전부 재추출해 대조 — ① threshold 95.3%→94.9%
+    (원인 추적 결과 <strong>우리 초고 자체의 오타</strong>였음, <code>redfill_draft_0805.md</code>·
+    <code>paper_redfill_worklist.html</code> 3곳도 함께 정정) ② hold-aware→cadence-aligned +
+    Adam→AdamW(2문단) ③ "MLP 헤드 0.866M만"→Stage1+Stage2(1.128M) 정정 ④ Stage1/Stage2 용어
+    충돌 참고사항. 복사해서 바로 붙여넣을 수 있는 교체 문장 전부 포함.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · "학습 전/후" 비교 프레이밍 전면 제거 (사용자 지시)</div>
+    "학습 전 아이디어가 안 좋다"는 지적으로 old-vs-new 비교 서술·그래프를 전부 제거하고
+    <strong>현재 배포 상태 단독 서술</strong>로 통일. 0807 초고(.md/.html 둘 다): "구버전
+    77.7%/89/100 대비" 등 비교 문구 전부 삭제, 배포 체크포인트 표에서 구버전 행 제거,
+    "생략 결정" 항목에서 old confusion matrix 언급 삭제. 워크리스트: 액션플랜 7번 주석에서
+    "89/100→95/100" 화살표 표기를 "현재 95/100"으로 단순화. 브리핑 F5/F6 카드: 구버전
+    혼동행렬(74.98%/LEFT42%) 이미지·수치 전부 삭제하고 현재(52.5%) 단독 서술. F8 카드:
+    old/new 비교 막대그래프 2종(위치별·클래스별) 제거, 학습 곡선만 유지(파일 자체는
+    <code>docs/v5/figures/</code>에 보존, 참조만 뺌). model_architecture_brief.html은
+    이전 패스에서 이미 정리돼 있어 추가 수정 없음.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · VLA_OWLV2_THRESH=0.20 확정 — soda 회신 반영</div>
+    <code>go.sh</code>에 셸 export가 없어 실제 운영값이 0.20인지 불확실했던 항목을
+    soda(실기 담당자)에 확인 요청 → <strong style="color:#4ade80">0.20 확정, 재검토
+    불필요</strong>로 회신 받음. 메커니즘: <code>stage2_v2_inference_server.py</code>의
+    <code>_restore_runtime_state_env()</code>가 기동 시 <code>logs/stage2_runtime_state.json</code>
+    (2026-07-30 0.25→0.20 변경 후 영구 저장)을 읽어 Python 내부에서 직접
+    <code>os.environ["VLA_OWLV2_THRESH"]="0.2"</code> 설정 — 셸 export가 아니라
+    <code>/proc/PID/environ</code>으로는 안 보였던 것. 그라운더 캐싱 없음·저장/사용 동일
+    소스·API 오버라이드 불가·프로세스-코드 버전 일치·2026-08-07 101건 로그 전수 0.2 일치까지
+    6단계로 재점검. 초고(<code>redfill_draft_0805.md</code> "검증 완료된 것" 신설)·워크리스트
+    검증상태 박스 초록색으로 갱신. 원본 회신:
+    <a href="../DATASET_V6_STATUS.md">DATASET_V6_STATUS.md</a> 2026-08-07 항목.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · F5/F6 재확인 — 전부 정확, 0807 초고 링크 누락만 수정</div>
+    F5(threshold 94.9%/0%, 97.2%/12.7%)·F6(신버전 52.5%, ROT_L 0.82%·ROT_R 0.89%) 전부
+    원본 데이터(<code>plot_grounding_success_curve.py</code> 재실행,
+    <code>bbox_dataset_v6_owl.json</code> 클래스 분포 직접 집계)와 대조해 정확함을 재확인 —
+    수정할 값 없음. 카드에 <a href="redfill_draft_0807.html#3-val-53">0807 초고</a> 링크만
+    누락돼 있어 추가(0805 링크와 함께 병기).
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · F3 재점검 — image_proj 배포 정보 추가(그 외 이상 없음)</div>
+    F3(<code>hardware_architecture.svg</code>)를 현재 기준으로 줄 단위 재검토 —
+    OWL-v2/Kosmos-2 파라미터·grounding_skip_n·CAN 사양·Stage1/Stage2 학습 구분 등
+    나머지는 전부 정확해 변경 없음. <code>image_proj → 256채널</code> 줄에만
+    <code>(5-class·08/07 배포)</code>를 추가해 F1과 표기를 맞춤. 재렌더·시각 확인 완료.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · F1/F2 SVG 잔여 오류 수정 (병치·서빙제어 잔존, F2 깨진 문구)</div>
+    F1/F2/F3 SVG 원본을 현재 기준으로 재점검 — F1에 <strong>"병치"·"서빙 제어"가 용어
+    교체 스윕에서 누락</strong>돼 있던 것 발견(결합/추론 제어로 수정), F2 요약 패널에
+    <code>"owlv2_thresh old = 0.20(optimal)"</code>라는 <strong style="color:#f87171">깨진
+    문구</strong> 발견(과거 직접 편집 중 손상된 것으로 추정) — "코드 기본 0.25 / 운영 0.20"
+    으로 복원. F1의 image_proj 박스에 <code>(5-class·08/07)</code> 배포 정보 추가.
+    F3는 이상 없음 확인. 전부 재렌더 후 시각 검증 완료.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · HSV 비교 제거 + F9 백본 효율성 ablation 신설</div>
+    사용자 지적 — 구버전 image_proj가 HSV 색상 휴리스틱 라벨로 학습됐다는 사실을 0807
+    초고 본문에 노출하면 "왜 그런 방식을 썼냐"는 불필요한 의문을 살 수 있음. <strong>0807
+    초고에서 HSV 언급·구버전 대비 막대그래프 2종(위치별·클래스별) 전부 제거</strong>하고
+    신버전 단독 결과로 재작성(비교 그림은 이 페이지 F8 카드에만 내부 추적용으로 유지).
+    대신 <strong>F9 — 비전 백본 파라미터 효율성 ablation</strong>을 신설: CH67에서 이미
+    측정됐던 6개 백본(MobileNetV3-S~SigLIP-400M) cx 회귀 비교를 발굴, MobileNetV3-S가
+    Kosmos-2보다 327배 작으면서 오차 0.03%p 차이라는 "경량화" 논문에 직결되는 정식
+    ablation을 0807 초고에 추가. KPI 6→7.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · 학습쪽 신규 그래프 3종 추가</div>
+    기존 로그만으로(새 학습/테스트 없이) 3개 그래프 신설 — ①
+    <code>realrobot_position_comparison.png</code>(실기 위치별 89/100→95/100 비교) ②
+    <code>stage1_v3_training_curve.png</code>(image_proj 30epoch 수렴 곡선, 94.09%) ③
+    <code>perclass_acc_comparison.png</code>(클래스별 정확도 old/new, LEFT +24.4%p 개선·
+    ROT_L/R 하락 정직하게 병기). F8 카드와 0807 초고에 반영.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · 0807 라운드 초고 신설 — 주행 테스트 이후 내용 분리</div>
+    <a href="redfill_draft_0807.html">📄 0807 초고</a>를 별도 파일로 신설 — 0805/0806(교수님
+    docx 대응)과 구분해 <strong>실기 100건 재검증 이후 확정된 내용만</strong> 담음:
+    image_proj 학습 경위, 실기 95/100 결과, val 혼동행렬 방법론 주의, 배포 체크포인트
+    이력, F4 제외 결정. 0805 초고와 동일한 사이드바·스크롤스파이 형식.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · F4 논문에서 제외 결정 + F5/F6 신버전(52.5%) 반영, 브리핑 동기화</div>
+    F4(CH64 64-12 3단 비교)는 신버전 image_proj 위에서 재측정하려면 옛 학습방식
+    (<code>exp73_held_aware_train.py</code>)을 통째로 다시 돌려야 해서 비용 대비 기여가
+    낮다고 판단, <strong>초고·워크리스트에서 완전히 삭제</strong>(이 페이지의 F4 카드는
+    경위 기록용으로만 남기고 PENDING 처리, KPI 7→6). F5/F6은 구버전(74.98%±0.52%p, LEFT 42%)
+    옆에 <strong>신버전(52.5%, `confusion_matrix_stage1v3.png`, 근거:
+    <code>logs/eval_confusion_matrix_stage1v3.log</code>)</strong>을 나란히 배치 —
+    낮아 보이는 수치는 신버전 헤드가 cadence-aligned가 아니라 일반 윈도우로 학습됐기 때문이라는
+    방법론 각주 포함(실기는 95/100으로 정상). 배너·changelog 동기화.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · image_proj Stage 1 학습 곡선 그림 추가</div>
+    "학습/추론 관련 그림이 더 필요한가" 점검 결과, Stage 1(image_proj) 학습 과정 자체를
+    보여주는 그림이 없었음을 발견 — <code>logs/train_stage1_v3_5cls_owl.log</code>의
+    30 epoch val_acc를 그대로 플롯(<strong>새 학습 없이 기존 로그만 사용</strong>).
+    62%까지 일시 하락 후 94.09%로 수렴하는 곡선 확인. 초고 1.2절(Stage 1 하이퍼파라미터
+    표 바로 아래)에 배치, revision_briefing 복붙 목록에도 추가.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · OWL-v2/Kosmos-2 인코더 비교표 + docx 체크포인트명 직접 수정</div>
+    1.1절에 OWL-v2 vs Kosmos-2 비교표 신설(파라미터·지연·호출주기·프롬프트 의존성 —
+    지연 비대칭 1901.7ms vs 54ms이 1.4절 호출주기 설계의 근거임을 명시). docx의
+    <code>stage1_v2_projs.pt</code> 2곳(1.1절 표·6절 배포 문단)을
+    <code>stage1_v3_5cls_owl_projs.pt</code>로 직접 수정(LibreOffice 변환으로 무결성
+    확인). 아직 docx에 없는 신규 콘텐츠 3개(95/100 실기결과·Stage1 하이퍼파라미터·인코더
+    비교표)는 <a href="#r-inprogress">F8 카드 하단</a>에 복붙용 블록으로 정리.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · Stage 1 하이퍼파라미터 표 신설 + 잔여 배너 항목 정리</div>
+    "학습되는 건 헤드뿐"이라던 옛 표현이 하이퍼파라미터 표 안에도 남아있던 걸 발견해 정정,
+    <strong>image_proj(Stage 1) 자체의 학습 하이퍼파라미터가 초고 어디에도 없었음</strong>을
+    확인해 신설(epochs 30·batch 16·lr 3e-4·AdamW·5-class weight — 로그 그대로, 새 실험 없음).
+    초고 1.2절·model_architecture_brief.html 양쪽에 "Stage 1(사전학습)/Stage 2(행동헤드)"로
+    표를 분리 배치. 겸사겸사 배너의 "PNG는 구버전" 항목이 이미 해결된 걸 확인해 F6·F1캡션·
+    배포이력표 상태를 전부 ✅ 완료로 갱신 — 이제 배너에 남은 미완료는 F4(제외 결정) 하나뿐.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · F6·89/100 실측 데이터로 갱신 (F4는 미착수 유지)</div>
+    image_proj 학습·soda 100건 재검증(95/100) 완료를 반영해 초고·워크리스트·
+    model_architecture_brief 3곳 갱신. <strong>F6</strong>: val_acc 74.98%→73.85%,
+    LEFT 42%→66.7%(개선), ROT_L/R 하락(표본 적어 주의) — <code>exp73_stage1v3_trackA_heads.json</code>
+    근거, PNG 이미지는 아직 미재생성. <strong>89/100→95/100</strong>: 위치별
+    중앙100%·강좌95%·약좌95%·강우95%·약우90% — <code>episode_log.csv</code> 100행 독립검증
+    완료. 워크리스트의 "미러증강이 89/100을 바꿀 유일한 후보"였던 옛 액션플랜도 "다른 경로
+    (image_proj)로 목표 달성"으로 주석 추가. <strong style="color:#f87171">F4(CH64 64-12
+    3단 비교)는 재측정 데이터가 없어 여전히 미착수</strong>.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · 학습 후 교체 필요 항목 메모 추가</div>
+    <a href="#retrain-memo">⚠️ 학습 진행 중 — 완료되면 교체 필요</a> 배너 신설(페이지 최상단).
+    image_proj 5-class 학습이 끝나면 F6 혼동행렬·F4 CH64 64-12 표·89/100 실기 수치·F1 캡션·
+    model_architecture_brief 배포이력 표 5개를 다시 뽑아야 함을 우선도별로 정리.
+    F5/F2/F3/F7은 image_proj와 무관해 교체 불필요임도 명시.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · LeRobot 재내보내기 항목 제외 (필수 아님)</div>
+    "LeRobot 내보내기 파이프라인 재구축 필요" 항목은 논문 제출에 필수가 아니라는 사용자
+    판단으로 이번 라운드에서 제외(PENDING 표시로 유지, 완전 삭제는 아님).
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · F7 색상 채널 버그 발견·수정 (BGR→RGB)</div>
+    F7 최초 추출본이 V6 raw H5의 BGR 저장을 반영하지 않아 실제 학습 색과 다르게 뽑혔음을
+    발견 — <code>gen_v6_owl_annotation.py</code>·<code>train_exp73_trackA_heads.py</code>
+    ("colorfixed 규격")가 전부 <code>[:, :, ::-1]</code> 반전을 쓴다는 근거로 확인.
+    F7 이미지 재생성 + <a href="../v6/figures/color_check.html">버그판/수정판 비교 페이지</a>
+    신설. <strong style="color:#f87171">같은 버그가 진행 중이던 image_proj 5-class 학습
+    스크립트(<code>train_stage1_v3_5cls_owl.py</code>)에도 있어 중단 후 수정, 재시작함</strong>
+    — 발견이 늦었으면 실제 배포 조건과 다른 색으로 학습될 뻔함.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · F7 완료 — V6 실제 학습 데이터에서 방향별 프레임 추출</div>
+    보류였던 F7을 실제 학습에 쓴 <code>bbox_dataset_v6_owl.json</code>(225ep) H5에서 방향별
+    (강좌/약좌/중앙/약우/강우) 대표 프레임을 직접 뽑아 완료. 별도 촬영이 아니라 실제 학습
+    데이터 그 자체. 신규 파일은 <code>docs/v5/figures/</code>가 아니라
+    <strong><code>docs/v6/figures/</code></strong>에 분리 배치(V6 전용 자료라 명확히 구분).
+    PENDING에서 FIGURE로 이동, KPI 6→7·보류 1→0 갱신.
+    <br>⚠️ 원본 데이터 폴더(<code>ROS_action/mobile_vla_dataset_v5/</code>)는 V5·V6 에피소드가
+    섞여 있고 188개 파일이 절대경로로 참조하고 있어 <strong>이름은 그대로 유지</strong>
+    (리네임 시 전부 깨짐 확인) — 새로 만드는 자료만 <code>docs/v6/</code>로 분리.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · 용어집 권장 5건 일괄 교체 (Kiwi drive 제외)</div>
+    용어집 🌐 VLA논문대비 섹션 권장대로 진행: <strong>병치→결합</strong>,
+    <strong>고정 룩업(테이블)→룩업(LUT)</strong>, <strong>다수결 라벨→majority-vote 라벨</strong>,
+    <strong>서빙 제어→추론 제어</strong>(F2 SVG 패널 제목 포함, "1.4 Serving Control" 영문
+    절 제목은 원문 유지), <strong>재그라운딩→재검출</strong>로 통일(단 research_story.html의
+    "줌 재그라운딩"은 CH50 계열 별도 기법명이라 그대로 둠). 초고·워크리스트·브리핑·
+    model_architecture_brief·research_story·owlv2_grounder_brief·paper_redfill_verifiable·
+    index.html 8개 파일 전체 반영, div 균형 검증 완료. "Kiwi drive"는 사용자 지시로 유지,
+    <code>cx, cy, area</code>는 표준 영문(bbox centroid·normalized area)을 초고 첫 등장부에
+    병기.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · 용어 교체 — arm → 실험 조건(condition)</div>
+    split_seed=42 설명에 쓰인 "실험 arm"이 RoboVLMs류 코드베이스에서 온 표현으로 보이고,
+    실제 체크포인트 메타데이터 필드명(<code>"arm": "v6_mirroraug"</code>)과 같은 문자열이라
+    <strong style="color:#4ade80">논문 서술에서만</strong> "실험 조건(condition)"으로 교체
+    (초고 3곳·워크리스트 2곳). <strong>코드/체크포인트의 실제 필드명은 통신 프로토콜에 영향
+    있어 그대로 유지</strong> — worklist의 JSON 예시 인용 부분은 실제 값이라 손대지 않음.
+    <a href="terminology_glossary.html#swap">용어집</a>에 항목 추가.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · 용어 교체 — hold-aware → cadence-aligned</div>
+    "hold-aware"가 "정지/보류"로 오독되기 쉽다는 지적으로 논문 노출 문서(초고·워크리스트·
+    model_architecture_brief·F2·F4·용어집) 전체에서 <strong>cadence-aligned</strong>로 교체.
+    코드/체크포인트 내부 명칭(<code>hold_aware</code>/<code>held_aware</code>)은 그대로 두고
+    첫 등장 시 각주로 대응 관계만 명시.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · 정정 — image_proj도 학습 대상이었음 ("유일한 학습 대상=행동헤드" 오류)</div>
+    사용자 질문("이것도 학습에 포함된거 아니야?")으로 코드 재확인 —
+    <strong style="color:#f87171">"학습되는 구성요소는 행동 헤드뿐"이라는 서술이 부정확했음을
+    확인</strong>. <code>scripts/train_exp54_stage1_v2_frame_level.py</code>가 image_proj
+    (0.262M)를 방향 텍스트 앵커 대조학습으로 실제 학습시키고(AdamW·30epoch), Stage 2
+    진입 시에만 그 가중치를 불러와 동결함(<code>stage2_v2_inference_server.py</code>).
+    즉 학습은 <strong>Stage 1(image_proj 0.262M) + Stage 2(행동헤드 0.866M) = 총 1.128M</strong>이고
+    "Stage 2 학습 대상"이라는 표현으로 전부 정정. 영향 범위 6곳: 초고, 워크리스트(×2),
+    model_architecture_brief.html(mermaid·표·범례 ×4, 기존에도 서로 다른 절끼리 상충된 서술이
+    있었음), revision_briefing 머메이드 사본, F1·F3 SVG 도표.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · 용어집 신설</div>
+    <a href="terminology_glossary.html">📖 용어집</a> 페이지 신설. 초고·워크리스트 전체에서
+    실제 사용 빈도를 뽑아 4갈래로 분류: 🔴 대체 권장(병치→결합, 다수결 라벨→majority-vote 등)
+    · 🟡 표기 통일 필요(재그라운딩/재검출, 서빙제어/제어계층/추론제어 혼용) ·
+    🟣 신조어(cadence-aligned 등, 첫 등장 시 정의 필요) · 🟢 유지(zero-shot·frozen·grounding 등
+    이미 표준). 최종 채택 여부는 확인 후 반영 예정.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · 배포 전환 완료 — 실기 95/100(좌측 80%→95%), 이전 판단 철회</div>
+    바로 아래 항목("배포 보류 결정")은 <strong style="color:#f87171">오프라인 지표만으로 내린
+    성급한 결론이었음</strong> — CH64에서 이미 확인된 원칙을 어겼음. soda가 Step3-B
+    체크포인트로 <strong>100건 실기 재검증</strong>을 실제로 수행: 강좌 19/20·약좌 19/20·
+    강우 19/20·약우 18/20·중앙 20/20 = <strong style="color:#4ade80">95/100</strong>
+    (구버전 89/100 대비 개선, 좌측 80%→95%). minum이 <code>episode_log.csv</code> 100행을
+    <code>runtime_config.stage1_path</code>/<code>checkpoint_path</code> 기준으로 독립
+    재검증(soda 보고와 일치). <strong style="color:#4ade80">go.sh의 S1_PT/S2_PT,
+    stage2_v2_inference_server.py의 DEFAULT_STAGE1을 신버전으로 전환 완료</strong>
+    (soda 원격 편집 — 전체 파일 덮어쓰기 실수로 soda 커스터마이징 124줄을 날릴 뻔했다가
+    git checkout으로 즉시 복구 후 필요한 3줄만 정확히 재수정). 구버전은
+    <code>runs/v5_nav/mlp/shared/stage1_v2_projs.pt</code>에 보존(롤백 가능).
+    F4·F6·89/100은 이제 실제로 갱신이 필요한 상태 — 다음 작업으로 진행 예정.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · Step 3 결과 — 신규 image_proj 배포 보류 결정</div>
+    Stage 2 A/B 검증 완료. <strong style="color:#f87171">옵션A(기존 헤드+새 image_proj)</strong>는
+    soda 실기에서 신구 image_proj 코사인 유사도 0.058(거의 직교)로 임베딩 공간 불일치 확인 —
+    같은 weak_left 프레임에서 구버전=LEFT(정답) vs 신버전=STOP으로 붕괴.
+    <strong style="color:#f87171">옵션B(새 image_proj 위 헤드 학습, 3-seed)</strong>도
+    val_acc mean 73.8%(구버전 <code>owl/v6/mlp</code> 77.74% 대비 약 4%p 하락).
+    <strong>결론: 신버전 배포 근거 부족 — 배포 경로는 구버전 유지, Step 4/5 보류.</strong>
+    F4·F6·89/100은 계속 구버전 기준값이 최종값.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · image_proj Stage 1 학습 완료 — F8 신설, soda 전송, 배포 후보 등록</div>
+    5-class(강좌/약좌/중앙/약우/강우)·225ep·OWL-v2 라벨로 image_proj 학습 완료(val_acc 94.09%,
+    좌우 비대칭 혼동 발견 — weak_left 88.0% vs strong_right 90.3%). soda(<code>~/vla/runs/v5_nav/mlp/stage1_v3_5cls/</code>)로
+    체크포인트·스크립트·plan.md 전송 완료. <a href="#r-inprogress">F8 카드</a> 신설,
+    <code>model_architecture_brief.html</code>에 "배포 후보" 표 별도 추가(실제 배포 이력과 분리).
+    <strong style="color:#fbbf24">F4·F6·89/100(높음 우선순위)은 Stage 2 학습·soda 좌측
+    실기 재검증 전까지 아직 옛 값 그대로임 — plan Step 3/5 완료 후 갱신 예정.</strong>
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · stop_mode 재정정 — 실제 실행은 learned가 맞았음</div>
+    직전 수정에서 "코드 기본값 proximity가 실제 설정"이라고 적었는데
+    <strong style="color:#f87171">틀렸습니다</strong> — <code>scripts/run/go.sh</code>·
+    <code>scripts/gradio_hub.py</code>(포트 8001) 둘 다 실행 시
+    <code>VLA_STOP_MODE=learned</code>로 명시 오버라이드하고 있어, 실기/실험에 쓴 실제 설정은
+    <strong style="color:#4ade80">learned</strong>입니다. <code>proximity</code>는 코드
+    인자 자체의 기본값일 뿐 실행에 쓰인 적이 없습니다. F2 SVG·초고(`redfill_draft_0805.md`
+    회전제어 표)·model_architecture_brief.html 4절 표 3곳 모두 재수정.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · F2 런타임 순서도 — 추론 제어 최신화 (1차, 이후 재정정됨)</div>
+    <code>figures/runtime_pipeline.svg</code> 요약 패널에 stop_mode 관련 내용 추가.
+    force_reground_on_miss·연속회전차단 중복/상충 행 정리. 도표 높이
+    880→900, 패널 확장에 따라 하위 요소 전부 20px 시프트.
+    (stop_mode 값 자체는 아래 항목에서 재정정됨)
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · "✅ 반영" 버튼 추가 — 실시간 파일 저장 + 재생성</div>
+    로컬 서버(<code>utf8_server.py</code>)에 <code>POST /__save_svg</code> 엔드포인트를 추가해
+    에디터에서 "✅ 반영"을 누르면 실제 <code>docs/v5/figures/*.svg</code>가 즉시 저장되고
+    <code>cairosvg</code>로 PNG/PDF도 자동 재생성됨. 이 페이지·워크리스트(a1)·초고(01절)의
+    이미지가 캐시버스팅으로 즉시 갱신되고, 각 위치에 "최근 수정" 시각이 함께 표시됨
+    (Last-Modified 헤더 기반). ⚠️ 이 저장은 <strong>로컬 파일 시스템에만</strong> 반영되며
+    git 커밋은 별도로 필요.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · F1/F2/F3 원본 SVG 직접 편집 에디터 추가</div>
+    <a href="#svg-editor">🛠 원본 SVG 편집</a> 섹션 신설 — 손으로 좌표 잡은 실제
+    <code>figures/*.svg</code> 파일을 fetch로 불러와 텍스트 편집 + 실시간 미리보기.
+    F1/F2/F3 탭 전환, "⬇ SVG 다운로드"로 수정본 저장 가능(브라우저는 로컬 파일을 직접
+    덮어쓸 수 없어 다운로드 후 전달받아 반영하는 방식). 이전 머메이드 에디터는 레이아웃
+    스케치용으로 유지.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · 머메이드 라이브 에디터 추가</div>
+    <a href="#live-editor">✏️ 구조도 직접 편집</a> 섹션 신설. 왼쪽 텍스트를 고치면 0.5초 후
+    자동 재렌더, 렌더링된 박스는 드래그로 위치 조정 가능(스케치용 — 화살표는 자동 재배치
+    안 됨). <code>model_architecture_brief.html</code>과 동일한 소스로 시작.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · F1~F6 전부 썸네일+원본 링크 추가, F2/F3 0806 재확인</div>
+    F1~F6 각 카드에 <code>docs/v5/figures/</code> 이미지를 직접 클릭 가능한 썸네일로 삽입
+    (PNG/PDF/SVG 링크 동반). F2(런타임 순서도)·F3(하드웨어 CAN 연결도)는 0806 red 항목과
+    대조해 <strong style="color:#4ade80">추가 수정 불필요</strong> 확인(기존 도표가 이미 요구를
+    충족). F7(데이터수집 사진)은 보류 유지.
+  </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-06 · F1 구조도 실제 반영 — 실선/점선 경계 + x,y,z 출력</div>
+    0806 피드백 2건을 <code>figures/edgeground_vla_architecture.svg</code>에 실제로 반영:
+    ① 실선을 프레임 특징 벡터(260차원) 블록까지로 한정, 이후(슬라이딩 윈도우→정책→8클래스
+    로짓)는 점선+회색 배경 패널로 구분. ② Service Control 표기 제거, 초록색
+    <code>x, y, z (3-DoF)</code> / ACTION_3D 룩업(LUT) 블록 신설.
+    <a href="#r0805-figure">이 페이지 F1</a>·<a href="../v5/paper_redfill_worklist.html#a1">worklist a1</a>·
+    <a href="redfill_draft_0805.html#01">초고 01절</a> 3곳 동시 반영, div 균형 검증 완료.
+  </div>
+
+  <div class="clentry">
     <div class="cldate">2026-08-06 · 목차 + 상호링크 추가</div>
     페이지 상단에 목차(목차→카테고리 앵커) 신설. 각 항목 카드에서
     <a href="redfill_draft_0805.html">초고</a>·<a href="../v5/paper_redfill_worklist.html">문제/대응</a>의
     정확한 해당 위치로 바로 이동하는 링크 칩을 22개 항목에 추가. worklist에 원문 26번용
     <code>id="a26"</code> 앵커 신설(기존엔 없었음).
   </div>
+
+  <div class="clentry">
+    <div class="cldate">2026-08-07 · 그래프 이미지 내 "재학습" 표기 정정</div>
+    "🆕 신규 그래프(0807 초고 반영)" 섹션의 <code>stage1_v3_training_curve.png</code>와
+    F8 혼동행렬 <code>stage1_v3_confusion.png</code> 두 이미지의 matplotlib 제목에
+    "재학습"이 그대로 박혀 있던 것을 발견 — 이전 텍스트 스윕(재학습→학습)이 HTML만
+    대상으로 해서 이미지 픽셀 안의 글자는 놓쳤던 부분. 로그(<code>train_stage1_v3_5cls_owl.log</code>)
+    재플롯 및 <code>scripts/plot_stage1_v3_confusion.py</code> 제목 문자열 수정 후 재실행으로
+    두 PNG 모두 재생성, 0807_A docx에 임베드된 이미지 바이트도 직접 교체. F1/F2/F3/학습곡선(구)/threshold
+    곡선은 확인 결과 이미 깨끗함.
+  </div>
+</div>
+
+<div id="tk-figures-section" style="margin-top:40px;border-top:2px solid rgba(248,113,113,0.4);padding-top:24px">
+<h2 style="color:#f87171">🗂 0811 Figure/Table 전체 본문 (체크리스트 클릭 시 여기로 이동)</h2>
+<p style="font-size:0.85rem;color:#94a3b8">왼쪽 체크리스트의 각 항목을 누르면 이 섹션의 해당 블록으로 이동합니다. 실제 이미지·표·설명을 그대로 볼 수 있습니다.</p>
+
+<div id="tk-15" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b;display:none" data-removed="0811 확정 — 경량모델 비교 표는 삭제하기로 함">
+<p style="font-size:0.82rem;color:#64748b">(삭제됨) Table 1. 네비게이션 특화 경량 모델 비교 — 0811 미팅에서 표 자체를 빼기로 확정(사용자 의도적 삭제, 트래커에서도 제거).</p>
+</div>
+
+<div id="tk-19" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 1. 모델 아키텍처 <span style="font-size:0.75rem;color:#4ade80">(최종본 — Figma 완성본 반영)</span></h4>
+<div class="loc">위치: §1.1 Heterogeneous Grounding Encoder</div>
+<img src="../v5/figures/figure1_final.png" alt="모델 아키텍처 (Figma 최종본)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 Figma로 완성한 최종본(<code>docs/01.paper/figure/figure 1_model_architecture.png</code>). 런타임 로직 제거, x,y,z 출력까지만 표시, 모듈별 frozen/trained 색상 구분(범례 포함) 반영 완료.</p>
+<p style="font-size:0.82rem;color:#f87171">(08.11) "런타임 빼고 x,y,z까지만, 그리고 랭귀지 모델제거 부분 빼기 / 학습동결미사용 런타임 쪽에 보이게"</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항 반영 확인: 런타임 로직 블록 제거됨, x,y,z 출력까지만 표시됨, "언어 모델" 콜아웃 삭제됨, frozen/trained/시간/결과 4색 범례로 모듈별 상태 표시됨 — 요청사항 전부 반영 확인.</p>
+<details style="margin-top:8px">
+<summary style="cursor:pointer;font-size:0.8rem;color:#64748b">구 초안 구조도 (참고용, 접힘)</summary>
+<img src="../v5/figures/edgeground_vla_architecture.png" alt="모델 아키텍처 구 초안" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:8px;opacity:0.85">
+</details>
+</div>
+
+<div id="tk-14" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 1. 8-class 로짓 → 3DoF(x,y,z) 룩업(LUT) 매핑 <span style="font-size:0.75rem;color:#fbbf24">(컨펌전)</span></h4>
+<div class="loc">위치: §1.2 Lightweight MLP Action Head</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">class idx</th><th style="text-align:left;padding:4px 8px">class name</th><th style="text-align:left;padding:4px 8px">x</th><th style="text-align:left;padding:4px 8px">y</th><th style="text-align:left;padding:4px 8px">z</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">0</td><td style="padding:4px 8px">STOP</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">1</td><td style="padding:4px 8px">FORWARD</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">2</td><td style="padding:4px 8px">LEFT</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">3</td><td style="padding:4px 8px">RIGHT</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">-1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">4</td><td style="padding:4px 8px">FWD+L</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">5</td><td style="padding:4px 8px">FWD+R</td><td style="padding:4px 8px">+1.15</td><td style="padding:4px 8px">-1.15</td><td style="padding:4px 8px">+0.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">6</td><td style="padding:4px 8px">ROT_L</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.25</td></tr>
+<tr><td style="padding:4px 8px">7</td><td style="padding:4px 8px">ROT_R</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">+0.00</td><td style="padding:4px 8px">-0.25</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b">stage2_v2_inference_server.py의 ACTION_3D 딕셔너리 값 그대로.</p>
+</div>
+
+<div id="tk-2" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 2. Serbot II 하드웨어 구성 (실물사진 + 보드 구성도, 통합) <span style="font-size:0.75rem;color:#4ade80">(최종본)</span></h4>
+<div class="loc">위치: §2 Hardware Platform</div>
+<img src="../v5/figures/hardware_serbot_combined.png" alt="Serbot II 하드웨어 구성 (실물사진+보드 구성도)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 직접 제작한 통합 구성도. Top Board: 실물사진에 LiDAR(옵션)·카메라·7인치 터치 LCD·바스켓·3WD 옴니휠 블록·9축 센서·메인 프로세서 라벨 표시. Motor Board: Power Block(배터리 충전 컨트롤러·전원 분배)과 Motor Controller(ARM Cortex-M4, CAN FD 통신, 초음파/PSD 센서 제어)·Motor Driver 3ea 블록도. 기존 실물사진(구 그림1)과 하드웨어 구성도(구 F3)를 하나로 통합.</p>
+<p style="font-size:0.82rem;color:#f87171">(08.11) "그름 변경 예정" / 사용자 메모: "건드릴거 없음 그림 2개 캡쳐해서 편집하시는걸로"</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항: 다이어그램 자체는 변경 없음 — 기존 실물사진 2장을 캡쳐해 편집하는 방식으로만 마무리. (별도 재작업 불필요)</p>
+</div>
+
+<div id="tk-3" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 3. 데이터 수집 및 액션 기록 과정 (실사진 + 파이프라인 통합) <span style="font-size:0.75rem;color:#4ade80">(최종본 — Figma 완성본 반영)</span></h4>
+<div class="loc">위치: §3 Collection of data</div>
+<img src="../v5/figures/figure3_final.jpg" alt="데이터 수집 및 액션 기록 과정 (Figma 최종본)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 Figma로 완성한 최종본(<code>docs/01.paper/figure/figure 3_Collection of data.jpg</code>). (a) Experimental Setup(실사진, 라벨링) + (b) Data Collection Pipeline(플로우차트)을 세로로 병합, 아래에서 정리한 화살표 보완·STOP-frame injection 정정·역할기반 커넥터 라벨(①Actuation②Sensing) 전부 반영됨.</p>
+<p style="font-size:0.82rem;color:#fbbf24">남은 사소한 오타(Figma 원본에 아직 남아있음): "Joystic Connector"→"Joystick"(k 누락), "fixedspeed"→"fixed speed"(띄어쓰기), "action(lx,ly,az)"→"actions"(복수형) — 다음 라운드에 정정 필요.</p>
+<details style="margin-top:8px">
+<summary style="cursor:pointer;font-size:0.8rem;color:#64748b">구 초안 이미지 (참고용, 접힘)</summary>
+<img src="../v5/figures/data_collection_combined.png" alt="데이터 수집 및 액션 기록 과정 구 초안" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:8px;opacity:0.85">
+</details>
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 직접 제작한 통합 구성. (a) 로봇 온보드 카메라로 촬영한 실제 데이터 수집 장면 (b) 조이스틱(DragonRise, 25Hz)과 카메라(10Hz)가 완전히 비동기로 동작하는 파이프라인 — 구동 명령 발행이 CAN 구동과 명령 후킹을 동시에 트리거하고, 그 순간 최신 프레임을 끌어와 짝지어 H5로 저장. 기존 실사진(구 Figure 3)과 파이프라인 구조도(구 Figure 4)를 하나로 통합.</p>
+<p style="font-size:0.82rem;color:#f87171">(08.11) "(8/11) 그림을 가로로 변경" (=세로로 진행하라는 의미, 확인 완료) / 사용자 메모: "데이터수집 장면 a는 뺄것 같음, 세로로 만들기 KCI논문 규격문제"</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 1차 수정사항(폐기됨): 처음엔 (a) 실사진 패널을 제거하고 (b) 파이프라인 구조도만 남기기로 했었으나, 실물사진에 요소별 라벨(조이스틱/로봇/타겟)을 붙인 초안(draft2)이 나오면서 <strong style="color:#4ade80">방침이 뒤집혀 (a)(b) 둘 다 세로로 합치는 것으로 최종 확정됨</strong>(아래 참고). 배치 방향은 세로로 확정(KCI 논문 컬럼폭 대응) 유지.</p>
+<details style="margin-top:8px"><summary style="cursor:pointer;font-size:0.82rem;color:#4ade80;font-weight:700">→ 설계 논의 이력 — 위 최종본 이미지에 전부 반영됨 (참고용, 접힘)</summary>
+<div style="font-size:0.82rem;color:#cbd5e1;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:10px 14px;margin:8px 0;font-family:monospace;white-space:pre-wrap;line-height:1.6">
+┌─────────────────────────────────────────────┐
+│      (a) Experimental Setup — 실물 사진 라벨링    │
+│                                                 │
+│   Target: Gray Basket      Input: JoyStick     │
+│                             (DragonRise, 25Hz)  │
+│         Robot: SerbotII                        │
+│      Execute + Record (10Hz Camera)            │
+│   (점선 화살표: Robot→Target, 라벨 "Camera FOV")   │
+└──────┬───────────────────────────┬──────────────┘
+       │(Robot Connector: ①Actuation②Sensing)│(Joystick 커넥터)
+       ▼                             ▼
+┌─────────────────────────────────────────────┐
+│      (b) Data Collection Pipeline — 플로우차트     │
+│                                                 │
+│  Input Device: Joystick (DragonRise, 25Hz)      │← Joystick 커넥터 도착
+│         │ raw axis                              │
+│         │ (e.g., left_y=-0.820, left_x=+0.050,  │
+│         │  right_x=+0.000; range: -1.0~+1.0)     │
+│         ▼ (누락됐던 화살표 — 반드시 연결)          │
+│  Action Classification: Class Mapping           │
+│  8 directions (fixed speed) × 0.3s              │
+│         │ action class                          │
+│         ▼                                       │
+│  Drive Call: Command Publish ──▶ Real-time      │← ① Robot Connector (Actuation)
+│  10Hz throttle, repeat while    Actuation:       │
+│  holding direction              CAN bus→Motor    │
+│         ┊ axis trigger          vel(lx,ly,az)    │
+│         ▼                                       │
+│ Sensor Input:◀┄┄ Sync Point:                    │← ② Robot Connector (Sensing)
+│ Camera(10Hz)     Command Hooking                │  (로봇이 카메라도 탑재)
+│ RGB 1280×720     latest frame snapshot           │
+│    │             │ (image, action, t)            │
+│    └──────┬──────┘ (Camera+Sync Point 합류 —     │
+│           ▼         누락됐던 merge 화살표)         │
+│    Buffer: Episode Data                          │
+│    STOP-frame injection (append final frame ×N)  │
+│           │ (누락됐던 화살표 — 반드시 연결)         │
+│           ▼                                     │
+│    Save: H5 Episode File                         │
+│    images(N,1280,720,3), actions(lx,ly,az)        │
+└─────────────────────────────────────────────┘
+</div>
+<p style="font-size:0.85rem;color:#fbbf24"><strong>정정(Buffer 단계): "duplicate STOP-frame suppression"(중복 제거)는 틀린 개념이었음</strong> — 실제로는 정반대인 <strong>"STOP-frame injection"(합성 주입)</strong>. 근거(<code>scripts/gradio_data_collector.py</code> <code>stop_rec()</code>): 에피소드 종료 시 마지막 프레임을 <code>stop_inject_n</code>번 복제해 action=[0,0,0](STOP)과 함께 buffer에 추가로 append함(중복 제거가 아니라 반복 추가).</p>
+<p style="font-size:0.85rem;color:#cbd5e1"><strong>납득 가능한 이유(짧은 절 표현):</strong> "조이스틱 조작만으로는 STOP 액션이 자연 발생하지 않아, 도착 시 정지를 학습시키기 위해 합성 주입" — CLAUDE.md에도 이미 기록된 사실("STOP: 데이터 없음 — 에피소드 끝 프레임에 합성")과 일치.</p>
+<p style="font-size:0.85rem;color:#cbd5e1"><strong>기타 보완:</strong> ①<code>latest_bgr()</code> 함수명 삭제(구현 디테일, 불필요) ②Joystick Connector·Robot Connector 오타("Joystic"→"Joystick") ③"dulicate"→(위 정정으로 문구 자체가 대체됨) ④"fixedspeed"→"fixed speed"(띄어쓰기) ⑤"action(lx,ly,az)"→"actions(lx,ly,az)"(복수형, H5 필드명과 일치) ⑥"10hz"/"10Hz" 대소문자 통일("Hz") ⑦Robot Connector 분기 라벨 확정 — "도착①/②"(사실만 서술) 대신 <strong style="color:#4ade80">"① (Actuation) → Drive Call", "② (Sensing) → Sensor Input: Camera"</strong>로 역할 기반 라벨 사용(로봇이 구동+카메라탑재 이중 역할임을 라벨만으로 설명). "Target"은 이미 바스켓에 쓰고 있어 화살표 라벨에 재사용하지 않음.</p>
+<p style="font-size:0.85rem;color:#cbd5e1"><strong>캡션(영어, 확정):</strong> "Figure 3. (a) Experimental Setup — joystick teleoperation, robot, and target object. (b) Data Collection Pipeline." — "Physical Setup"보다 "Experimental Setup"이 로봇 텔레오퍼레이션 논문에서 더 일반적으로 쓰이는 표현임을 WebSearch로 확인 후 채택.</p>
+<p style="font-size:0.85rem;color:#fbbf24"><strong>정정(타겟 커넥터 삭제):</strong> Target(사진)→"Sensor Input: Camera"(플로우차트) 화살표는 논리적으로 성립하지 않음 — 플로우차트에 "타겟(목표물)"을 처리하는 노드 자체가 없고, "Sensor Input: Camera"는 카메라라는 장치를 가리키는 것이지 카메라가 보는 대상을 가리키는 게 아님. Target의 역할은 사진(a) 안의 "Robot┄Camera FOV┄▶Target" 점선 화살표로 이미 다 설명되므로, 플로우차트로 내려가는 별도 커넥터 불필요. 대신 Robot 커넥터가 "구동(Drive Call)"과 "카메라 탑재(Sensor Input: Camera)" 2곳으로 갈라지는 것으로 정정 — 로봇 하나가 구동과 카메라 탑재를 모두 담당하기 때문. 최종 커넥터는 2개(Joystick→Input Device, Robot→Drive Call+Sensor Input)만 사용.</p>
+<p style="font-size:0.85rem;color:#cbd5e1"><strong>raw axis 실측 근거:</strong> <code>scripts/gradio_data_collector.py</code> — <code>pygame.joystick.get_axis()</code> 반환값(-1.0~+1.0 float)을 <code>lx=-left_y, ly=-left_x, az=right_x</code>로 부호 반전 매핑 후 <code>_axis_to_key()</code>로 8방향 이산 클래스 판정.</p>
+<p style="font-size:0.85rem;color:#cbd5e1"><strong>연결 커넥터 3개 의미</strong>: ①사진의 Robot 박스 → 플로우차트의 "Drive Call/Real-time Actuation"(로봇이 실제로 구동 단계를 수행) ②사진의 JoyStick 박스 → "Input Device: Joystick"(파이프라인 시작점) ③사진의 Target+Camera FOV(점선) → "Sensor Input: Camera"(카메라가 보는 대상 = 센서 입력 브랜치). 사진은 중간이 아니라 <strong>위(a)에, 플로우차트는 아래(b)에</strong> — 중간에 넣으면 플로우차트의 연속된 화살표 체인이 시각적으로 끊김.</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항: (다이어그램은 minum 직접 재작업, 위 구조·영어 라벨·캡션 그대로 사용 — Figma 최종본에 반영 완료)</p>
+</details>
+</div>
+
+<div id="tk-5" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 2. Dataset composition <span style="font-size:0.75rem;color:#4ade80">(최종본)</span></h4>
+<div class="loc">위치: §4 Dataset</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">항목</th><th style="text-align:left;padding:4px 8px">값</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">에피소드</td><td style="padding:4px 8px">225개 (트랙A 180 + 트랙F 45)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">총 프레임</td><td style="padding:4px 8px">16,599</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">train / val</td><td style="padding:4px 8px">192 / 33 (VAL_RATIO=0.15, SPLIT_SEED=42 고정)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">비전 캐시</td><td style="padding:4px 8px">exp73_v6_vis_cache.pt (L2 정규화 규격)</td></tr>
+<tr><td style="padding:4px 8px">bbox 주석</td><td style="padding:4px 8px">bbox_dataset_v6_owl.json (OWL-v2 기반, 배포 체크포인트 학습에 사용)</td></tr>
+</table>
+</div>
+
+<div id="tk-20" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 3. Action class distribution <span style="font-size:0.75rem;color:#fbbf24">(컨펌전 — 0811.docx 삽입 대기)</span></h4>
+<div class="loc">위치: §4 Dataset (8/11 신규 요청)</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">class</th><th style="text-align:left;padding:4px 8px">이름</th><th style="text-align:left;padding:4px 8px">프레임</th><th style="text-align:left;padding:4px 8px">비율</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">0</td><td style="padding:4px 8px">STOP</td><td style="padding:4px 8px">1,452</td><td style="padding:4px 8px">8.75%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">1</td><td style="padding:4px 8px">FORWARD</td><td style="padding:4px 8px">7,641</td><td style="padding:4px 8px">46.03%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">2</td><td style="padding:4px 8px">LEFT</td><td style="padding:4px 8px">716</td><td style="padding:4px 8px">4.31%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">3</td><td style="padding:4px 8px">RIGHT</td><td style="padding:4px 8px">858</td><td style="padding:4px 8px">5.17%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">4</td><td style="padding:4px 8px">FWD+L</td><td style="padding:4px 8px">2,532</td><td style="padding:4px 8px">15.25%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">5</td><td style="padding:4px 8px">FWD+R</td><td style="padding:4px 8px">3,117</td><td style="padding:4px 8px">18.78%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">6</td><td style="padding:4px 8px">ROT_L</td><td style="padding:4px 8px">136</td><td style="padding:4px 8px">0.82%</td></tr>
+<tr><td style="padding:4px 8px">7</td><td style="padding:4px 8px">ROT_R</td><td style="padding:4px 8px">147</td><td style="padding:4px 8px">0.89%</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b">bbox_dataset_v6_owl.json 16,599프레임 전체 gt_class 실측 집계. 기존 §5.2 class weight 문단의 "FORWARD 72.61%"는
+0805 초안 표(약우 방향의 프레임/에피소드=72.6)가 잘못 섞여든 오류였음 — 46.03%로 정정.</p>
+<p style="font-size:0.82rem;color:#f87171">(08.11) "액션 프레임수를 넣을 예정"</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항: §4 Dataset에 클래스별 프레임 수·비율 표(위)를 신규 삽입 — bbox_dataset_v6_owl.json 실측값 그대로.</p>
+</div>
+
+<div id="tk-6" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 4. Training status of pipeline components <span style="font-size:0.75rem;color:#fbbf24">(컨펌전)</span></h4>
+<div class="loc">위치: §5.1 모듈 별 학습</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">모듈</th><th style="text-align:left;padding:4px 8px">상태</th><th style="text-align:left;padding:4px 8px">이유</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">OWL-v2</td><td style="padding:4px 8px">frozen</td><td style="padding:4px 8px">텍스트 프롬프트로만 사용</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">Kosmos-2 vision_model</td><td style="padding:4px 8px">frozen</td><td style="padding:4px 8px">피처 추출기로만 사용</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">image_proj</td><td style="padding:4px 8px">Stage 1 학습 후 동결</td><td style="padding:4px 8px">Stage 1에서 방향 텍스트 앵커 대조학습으로 직접 학습(stage1_v3_5cls_owl_projs.pt), Stage 2 진입 시 그 가중치를 불러와 동결</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">text_proj</td><td style="padding:4px 8px">Stage 1에서만 학습, 배포엔 미사용</td><td style="padding:4px 8px">5개 방향 문장을 256차원으로 투영하는 레이어로 image_proj와 같은 optimizer로 함께 학습됨(train_stage1_v3_5cls_owl.py). 단 Stage 2/배포 시 로드하는 FrozenCLIPV2는 체크포인트에서 <code>image_proj</code> 키만 불러오므로 실사용은 image_proj뿐</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">MLP 액션 헤드</td><td style="padding:4px 8px">학습</td><td style="padding:4px 8px">전체 파이프라인에서 유일하게 학습되는 0.866M</td></tr>
+<tr><td style="padding:4px 8px">언어 디코더(text_model)</td><td style="padding:4px 8px">배포 시 미사용 / <strong style="color:#fbbf24">Stage 1 학습 시 호출됨</strong></td><td style="padding:4px 8px">런타임(추론) 서버 코드엔 <code>text_model</code> 호출이 전혀 없어 배포 시 호출 0회는 맞음. 다만 Stage 1 학습 중엔 5개 앵커 문장을 <code>text_model.forward(output_hidden_states=True)</code>로 인코딩해 anchor 임베딩을 만드는 데 사용됨(<strong>generate() 아님, 자기회귀 디코딩 없음</strong>) — 학습 끝나면 이 임베딩이 고정값으로 저장되고 배포 시엔 다시 호출되지 않음</td></tr>
+</table>
+<p style="font-size:0.82rem;color:#fbbf24">(08.11 재점검) "학습 대상: MLP 헤드 0.866M만"이라는 초기 서술처럼, image_proj뿐 아니라 text_proj까지 Stage 1에서 같이 학습된다는 사실이 지금까지 트래커/캡션에 빠져 있었음 — 사용자 확인 요청으로 코드(train_stage1_v3_5cls_owl.py line 218-219, 233, 276-287, 346-347) 직접 대조 후 이번에 표에 반영.</p>
+<p style="font-size:0.82rem;color:#fbbf24">(08.11 추가 재점검) "언어 디코더 미사용, 호출 0회"는 배포 시점 기준으로만 정확함 — Stage 1 학습 중 Kosmos-2 text_model이 앵커 문장 인코딩에 실제로 호출되므로, 표/본문에 "배포 시 미사용(런타임 호출 0회) — 단 Stage 1 학습 시 앵커 임베딩 생성에 forward 인코딩으로 1회성 사용, generate() 아님"이라고 조건을 명시해야 함. 서빙 코드(stage2_v2_inference_server.py 등)엔 text_model 참조 자체가 없어 배포 시 미사용은 코드로 확인됨.</p>
+</div>
+
+<div id="tk-7" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 4. Stage 1/Stage 2 파이프라인 구조도 <span style="font-size:0.75rem;color:#4ade80">(최종본 — Figma 완성본 반영)</span></h4>
+<div class="loc">위치: §5.2 학습 방법 설명</div>
+<img src="../v5/figures/figure4_final.jpg" alt="Stage 1/Stage 2 파이프라인 구조도 (Figma 최종본)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 Figma로 완성한 최종본(<code>docs/01.paper/figure/figure 4_Stage 1,Stage 2 Training.jpg</code>). G+V/V/V 스킵 패턴 삭제, Stage1 프레임단위/Stage2 윈도우 구분, image_proj+text_proj 병렬 브랜치, GT Index→CE Loss 직결, Cosine/Softmax/CE Loss 3박스, Sliding Window(stride=1)/Feature Concatenation/Flatten/MLP Classifier/8 Class Logit/Softmax/Class-weighted CE Loss까지 이 브리핑에서 정리한 내용 전부 반영 확인.</p>
+<p style="font-size:0.82rem;color:#fbbf24">남은 사소한 오타(Figma 원본에 아직 남아있음): "Slliding Window"→"Sliding Window"(L 중복).</p>
+<details style="margin-top:8px"><summary style="cursor:pointer;font-size:0.82rem;color:#64748b">→ 설계 논의 이력 — 위 최종본 이미지에 전부 반영됨 (참고용, 접힘)</summary>
+<p style="font-size:0.82rem;color:#f87171;margin-top:8px">(08.11) "방향 대조 학습이라는 것을 다른 사람이 보고 이해 할수 있도록 쉽게 풀어써줘야 함." / "그래프가 이해가 가지 않음." / 사용자 메모: "Stage1, Stage2로 들어가는 거 4개만 넣긴 / 0번째 루프하고 1번째 그라운딩으로 들어가는거 / G+V V V G+V / 위에 6개만 남기고 일자로 남기는거 6개"</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항 (1차): "방향 텍스트 앵커 대조학습" 문구를 비전공자도 이해할 수 있게 쉬운 말로 풀어 쓴다(예: "카메라가 본 위치가 5단계 방향 중 어디에 가장 가까운지 맞히는 학습"). Stage1/Stage2 박스는 4단계로 유지.</p>
+<p style="font-size:0.85rem;color:#fbbf24;font-weight:700">→ 수정사항 (2차, 초안 이미지 검토 후 추가 — 중요):</p>
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 만든 재구성 초안(Figure-4-Restructured-selection.png)을 검토한 결과 아래 2가지를 바로잡아야 함:</p>
+<ol style="font-size:0.85rem;color:#cbd5e1;margin:4px 0;padding-left:22px;line-height:1.6">
+<li><strong style="color:#f87171">"G+V / V / V / G+V / V / V" 그라운딩 스킵 패턴은 학습에 없음</strong> — grounding_skip_n=3은 Jetson 실기 서빙(런타임) 전용 캐싱 최적화(<code>stage2_v2_inference_server.py</code> 등 서빙 코드에만 존재)이고, 학습에 쓰는 bbox_dataset_v6_owl.json은 모든 프레임에 대해 OWL-v2로 bbox를 미리 계산해둔 dense annotation이라 학습 6프레임은 전부 "G+V"임. 이 스킵 패턴은 Figure 8(추론 파이프라인)로 옮겨야 함.</li>
+<li><strong style="color:#f87171">6-프레임 윈도우는 Stage2 전용, Stage1은 프레임 1장씩 독립 입력</strong> — <code>train_stage1_v3_5cls_owl.py</code>에 윈도우 코드가 전혀 없고 프레임을 하나씩 순회하며 학습함(어느 인덱스든 무관). 6-프레임 윈도우는 <code>train_exp73_stage1v3_heads.py</code>의 <code>build_windows(window=6)</code>에만 있음. 타임라인을 Stage2 컬럼 위로만 옮기고, Stage1 컬럼 위에는 "이미지 1장 →" 아이콘만 작게 배치.</li>
+</ol>
+<p style="font-size:0.85rem;color:#cbd5e1">추가로 ③파라미터 수 라벨(image_proj 0.262M, MLP 헤드 0.866M) 복원 ④image_proj 박스의 5장 사진을 대표 1~2장+Table 6 참조로 축소 ⑤박스 사이 화살표에 차원 변화(1024→256, 4+256=260, 260×6=1560) 라벨 추가 ⑥<strong style="color:#4ade80">image_proj 학습 박스에 text_proj co-training 표기 추가</strong> — 실제로 5개 방향 문장을 256차원으로 투영하는 text_proj도 같은 optimizer로 image_proj와 함께 학습됨(코드 확인: <code>train_stage1_v3_5cls_owl.py</code> line 218-219/233/276-287/346-347). 배포 시엔 image_proj+고정 anchor 임베딩만 쓰이므로(<code>FrozenCLIPV2</code>가 체크포인트의 <code>image_proj</code> 키만 로드) 다이어그램을 복잡하게 만들 필요는 없고, 박스 제목을 "image_proj + text_proj 학습"으로, 설명에 "(5문장 임베딩 투영도 함께 학습, 배포시엔 image_proj만 사용)" 한 줄 추가로 충분. (다이어그램은 minum 직접 재작업, 편집 프롬프트는 브리핑 대화 로그 참고)</p>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700">층(layer) 단위 정확한 데이터 흐름 (다이어그램 제작 시 그대로 사용):</p>
+<p style="font-size:0.82rem;color:#f87171">주의: "bbox 4ch + 1024차원 비전 특징"이 합쳐지는 지점은 없음. Stage1은 순수 1024→256(vision만, bbox 없음), Stage2는 4(bbox)+256(image_proj 통과 후 값)=260을 합침.</p>
+<div style="font-size:0.82rem;color:#cbd5e1;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:10px 14px;margin:8px 0;font-family:monospace;white-space:pre-wrap;line-height:1.6">
+<strong style="color:#4ade80">[데이터 소스] bbox_dataset_v6_owl.json 프레임 필드</strong>
+label: 5-class 방향 문자열(Stage1 GT) · gt_class: 8-class 액션 인덱스(Stage2 GT)
+cx_det,cy_det,area_det,has_bbox: OWL-v2 bbox 4채널(전 프레임 dense)
+에피소드 direction: Stage1 train/val stratify 기준용, 모델 입력 아님
+
+<strong style="color:#4ade80">[Stage 1 — 프레임 1장, 독립]</strong>
+1층  프레임 1장 로드(h5 raw, BGR→RGB)
+2층  Kosmos-2 vision_model(frozen) → 1024차원(patch 평균 pooling)
+3층  [2-브랜치 병렬 — 학습 대상 2개가 동시에 여기 있음]
+  3층-A 이미지 브랜치(이 프레임 1개 전용)
+    입력: 2층에서 나온 이 프레임의 vision feature 1024d
+    → image_proj(Linear 1024→256, 학습) → L2정규화
+    → img_feat (256d, 이 프레임 1장만의 벡터)
+  3층-B 텍스트 브랜치(5문장 동시 병렬 — 프레임과 무관하게 항상 고정 5개)
+    입력: 앵커 5문장 전체(강좌/약좌/중앙/약우/강우), 예)
+      strong_left = "The gray basket is strongly on the left side of the image"
+    각 문장 → Kosmos-2 text_model(frozen, forward만·generate() 아님) → 2048d
+    → text_proj(Linear 2048→256, 학습) → L2정규화
+    → anchor_proj (5,256) = 5문장 임베딩을 쌓은 행렬(이 프레임과 무관, 매 배치 재계산)
+  정답 인덱스(GT index): 이 프레임의 label 필드(예:"strong_left")는 3층에서 아무 것도 계산하지 않음.
+    3층-B가 만든 5개 앵커 중 "몇 번째가 이 프레임의 정답인가"를 가리키는 인덱스로만
+    4층에서 쓰임 — 즉 GT는 새로 인코딩되는 게 아니라 이미 3층-B에 있는 5개 중 하나를 가리킴
+    (다이어그램에서 "GT Text"라고 쓰면 안 됨 — 텍스트 브랜치엔 아무것도 입력으로 안 들어감,
+    5개 문장은 프레임과 무관하게 항상 고정으로 처리됨. "정답 인덱스/GT index/GT label"로 표기)
+  주의: 이 label(프레임 단위 정답)과 에피소드 단위 direction 필드는 다름 — direction은
+    train/val stratify 기준으로만 쓰이고(위 데이터 소스 참고), loss의 정답은 항상 label 필드.
+    "episode direction: Strong Left" 식으로 다이어그램에 쓰면 혼동을 줄 수 있어
+    "frame N / label(GT class): strong_left"로 표기 권장
+4층  [비교 단계 — 구조도엔 3박스로 축약, 본문은 CLIP(Radford et al., 2021) 기반·τ 고정 명시]
+  박스1 "Cosine 유사도": s_j = f^⊤e_j, j=1..5 (둘 다 L2정규화 → 내적=코사인유사도) — 식(1)
+  박스2 "Temperature-scaled Softmax (τ=0.07)": p_j = softmax(s_j/τ) = exp(z_j)/Σₖexp(z_k)
+    → z_j=s_j/τ(식 2)와 softmax(식 3)를 한 박스로 합침, argmax(p_j)=모델 예측
+  박스3 "CE Loss": L = -w_y·log(p_y), y=정답 인덱스(GT index), w_y=class weight — 식(4)
+    → image_proj·text_proj만 backprop (vision_model·text_model frozen이라 gradient 안 흐름)
+
+<strong style="color:#4ade80">[Stage 1 → Stage 2 Bridge: Vision Feature Caching (offline, per-episode)]</strong>
+  근거: train_exp73_stage1v3_heads.py의 FrozenCLIPV2 클래스 + build_v6_cache() 함수
+  일반 명칭: Stage1/Stage2와 같은 스타일로 4단계 — Frozen Module Reload → Batched Re-encoding
+  → Annotation Reuse (no recompute) → Vision Feature Cache 저장
+
+  1. Frozen Module Reload — Kosmos-2 vision_model을 VLM_PATH에서 새로 로드(frozen)
+     + nn.Linear(1024,256)을 새로 생성한 뒤 Stage1 체크포인트(stage1_v3_5cls_owl_projs.pt)의
+     "image_proj" state_dict만 불러와 덮어씀 (학습된 가중치는 재사용하되, 살아있던 학습
+     객체가 아니라 새 인스턴스에 가중치만 복제 — text_proj는 여기서도 로드 안 됨)
+  2. Batched Re-encoding (에피소드 단위 루프, 전체 225개 에피소드) —
+     h5 프레임 로드(BGR→RGB) → 32장씩 배치로 vision_model(frozen) 통과
+     → last_hidden_state.mean(1)(patch 평균 pooling, 1024d) → image_proj(동결) → 256d
+     → F.normalize(dim=-1) L2정규화 → vis (에피소드 내 프레임 수 × 256d)
+  3. Annotation Reuse (no recompute) — bbox 4ch(cx_det,cy_det,area_det,has_bbox)과
+     gts(8-class 액션 라벨)는 재계산하지 않고 원본 주석 파일(bbox_dataset_v6_owl.json)에서
+     그대로 읽어와 보관(vis만 새로 계산, bbox/gts는 재사용) — 부가로 h5의 raw 액션(lx,ly,az)도
+     acts로 함께 저장되나, 별도 실험용 연속회귀 헤드(contreg/flow)용이고 배포된 8-class
+     MLP 헤드는 쓰지 않음
+  4. Vision Feature Cache 저장 — 에피소드마다 {stem, path_type, bboxes, vis, gts, acts}
+     딕셔너리로 묶어 리스트에 추가 → 전체 에피소드 순회 끝나면 한 번에 저장:
+     exp73_v6_vis_cache_stage1v3.pt
+     (이름은 "Vision Feature"를 대표로 붙였지만 bbox/gts/acts도 함께 번들됨 — 새로
+     계산되는 건 vis뿐, 나머지는 재사용이라는 점은 캡션에 명시 필요)
+
+<strong style="color:#4ade80">[Stage 2 — Sliding Window Classification (일반 용어로 재정리)]</strong>
+1층  Cache Loading — 캐시 로드 (에피소드별 bboxes/vis/gts/acts)
+2층  Sliding Windowing (stride=1) — 시점 t 기준 과거~현재 6개 인덱스 선택
+     idx = max(0, t-(window-1-k)), k=0..5  (경계는 첫 프레임 반복)
+3층  Feature Concatenation — 각 프레임: bbox[idx]×bbox_scale(3.0) ⊕ vis[idx] = 260d
+     6개 프레임 Flatten → X_t (1560d)
+4층  MLP Classifier: 1560→512→128→8 (ReLU+Dropout) → 8-class Logits
+     (logits는 정규화 안 된 8개 실수 — (x,y,z) 아님. 클래스 정의는 Table 1 LUT 참고,
+     x,y,z 변환은 학습 단계가 아니라 배포/추론 시점에 수행)
+5층  Softmax: p_j = exp(z_j)/Σexp(z_k), j=1..8 — logits를 8-class 확률분포로 변환
+     (Stage1의 Temperature-scaled Softmax와 동일 패턴, 단 온도 스케일링 없음)
+6층  Class-weighted CE Loss: L = -w_{y_t} log p_{y_t}, y_t = gts[t]
+     → MLP 헤드만 backprop(나머지 전부 frozen)
+     ※ 학습 루프에서 실제 거치는 건 여기까지 — argmax·LUT·(x,y,z) 변환은 학습에 없음
+       (F.cross_entropy(logits,y,weight) 한 호출이 5층+6층을 내부적으로 융합 처리하지만,
+       수학적으로는 이 두 단계로 분해됨 — Stage1의 CrossEntropyLoss와 동일한 구조)
+
+  ▸ 한 윈도우 샘플을 간단히 쓰면: { X_t, y_t }
+    X_t = 1560d (=6프레임의 bbox×3.0⊕vis를 이어붙임),  y_t = gts[t]
+
+  ▸ 실제 캐시 값으로 t=5 예시(exp73_v6_vis_cache_stage1v3.pt, 1번째 에피소드):
+    idx = [0,1,2,3,4,5]  (경계 반복 없는 깨끗한 예)
+    frame0 bbox=(0.7199,0.6075,0.0274,1.0) → ×3.0 = (2.1598,1.8226,0.0822,3.0)
+      (has_bbox도 다른 3채널과 동일하게 ×3.0 적용됨 → 1.0이 3.0으로 바뀜, area만 아니라 4채널 전체)
+    frame3 bbox=(0.6476,0.6090,0.0279,1.0) → ×3.0 = (1.9428,1.8270,0.0836,3.0)
+    vis[0][:4] = [0.0826, 0.0270, -0.0017, -0.0624, ...] (256d, L2norm=1.0)
+    X_5 = [프레임0(260d), 프레임1(260d), ..., 프레임5(260d)] = 1560d
+    y_5 = gts[5] = 3 (=RIGHT)
+</div>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700">위 층 구조를 머메이드 다이어그램으로:</p>
+<div id="mm-tk7-layers" style="background:#ffffff;border:1px solid #1e293b;border-radius:6px;padding:14px;overflow-x:auto"></div>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+const SRC_TK7 = `flowchart TB
+  FR["frame 0\\nlabel(GT class): strong_left\\n(프레임 단위 필드 — 에피소드 단위 direction과는 다름)"]
+
+  subgraph S1["Stage 1 — 프레임 1장, 독립 (bbox 미사용)"]
+    direction TB
+    KV1["Kosmos-2 vision_model\\n(frozen) → 1024d"]
+    subgraph L3["3층 — 2-브랜치 병렬"]
+      direction LR
+      subgraph L3A["3층-A 이미지 브랜치"]
+        IP["image_proj\\nLinear 1024→256, 학습"]
+        IMGF["img_feat 256d\\n(이 프레임 1장)"]
+        IP --> IMGF
+      end
+      subgraph L3B["3층-B 텍스트 브랜치 (5문장 고정)"]
+        SENT["앵커 5문장(고정)\\nstrong_left = The gray basket is\\nstrongly on the left side of the image\\n(나머지 4문장도 동일 패턴)"]
+        TM["Kosmos-2 text_model\\n(frozen, forward만) → 2048d"]
+        TP["text_proj\\nLinear 2048→256, 학습"]
+        ANC["anchor_proj (5,256)"]
+        SENT --> TM --> TP --> ANC
+      end
+    end
+    IDX["GT index\\n(label 필드)"]
+    subgraph L4["4층 — 비교 단계 (3박스로 축약)"]
+      direction TB
+      SIMA["Cosine 유사도\\ns_j = f⊤e_j (j=1..5)"]
+      SIMC["Temperature-scaled Softmax (τ=0.07)\\np_j = softmax(s_j/τ)"]
+      SIMD["CE Loss\\nL = -w_y·log(p_y)"]
+      SIMA --> SIMC --> SIMD
+    end
+    BP["image_proj·text_proj만 backprop\\n(vision_model·text_model frozen)"]
+    IMGF --> SIMA
+    ANC --> SIMA
+    FR -.label.-> IDX
+    IDX -.정답 인덱스 y 지정.-> SIMD
+    SIMD --> BP
+  end
+
+  subgraph CACHE["Stage 1 → Stage 2 Bridge: Vision Feature Caching (offline)"]
+    direction TB
+    FCV["Frozen Module Reload\\nvision_model 재로드(frozen) + image_proj 가중치만 복제"]
+    IPfz["Batched Re-encoding\\nvision(1024d)→image_proj→L2norm → vis[t] 256d"]
+    BBOX["Annotation Reuse (no recompute)\\nbbox 4ch·gts는 bbox_dataset_v6_owl.json에서 그대로 읽음"]
+    CACHEOUT["Vision Feature Cache 저장\\n{stem,path_type,bboxes,vis,gts,acts}\\nexp73_v6_vis_cache_stage1v3.pt"]
+    FCV --> IPfz --> CACHEOUT
+    BBOX --> CACHEOUT
+  end
+
+  subgraph S2["Stage 2 — Sliding Window Classification"]
+    direction TB
+    SW["Sliding Windowing (stride=1)\\nidx = max(0, t-(window-1-k)), k=0..5"]
+    CAT2["Feature Concatenation + Flatten\\nbbox[idx]×3.0 ⊕ vis[idx] = 260d ×6 → X_t 1560d"]
+    MLP2["MLP Classifier\\n1560→512→128→8"]
+    LOGIT8["8-class Logits\\n(클래스 정의: Table 1 LUT 참고)"]
+    SM2["Softmax\\np_j = exp(z_j)/Σexp(z_k), j=1..8"]
+    CE2["Class-weighted CE Loss\\ny_t = gts[t] → MLP만 backprop"]
+    SW --> CAT2 --> MLP2 --> LOGIT8 --> SM2 --> CE2
+  end
+
+  FR --> KV1 --> L3
+  CACHEOUT --> SW
+
+  classDef train fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:2.5px
+  classDef frozen fill:#e5e7eb,stroke:#6b7280,color:#1f2937
+  classDef data fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef bbox fill:#fecaca,stroke:#dc2626,color:#7f1d1d,stroke-width:2.5px
+  classDef gt fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+  class IP,TP,MLP2 train
+  class KV1,TM,IPfz,FCV frozen
+  class FR,SENT,IMGF,ANC,SIMA,SIMC,SIMD,BP,SW,CAT2,LOGIT8,SM2,CACHEOUT data
+  class BBOX bbox
+  class IDX gt
+`;
+mermaid.initialize({ startOnLoad: false, theme: "base",
+  themeVariables: { background: "#ffffff", primaryColor: "#dbeafe", primaryTextColor: "#0f172a",
+    primaryBorderColor: "#2563eb", lineColor: "#334155", secondaryColor: "#f1f5f9", tertiaryColor: "#ffffff",
+    fontFamily: "Noto Sans KR, Malgun Gothic, sans-serif", fontSize: "17px" },
+  flowchart: { curve: "basis", nodeSpacing: 30, rankSpacing: 42, useMaxWidth: true }
+});
+mermaid.render('mm-tk7-svg', SRC_TK7).then(({svg}) => {
+  document.getElementById('mm-tk7-layers').innerHTML = svg;
+}).catch(e => {
+  document.getElementById('mm-tk7-layers').innerHTML =
+    '<p style="color:#f87171;font-size:0.8rem">머메이드 렌더링 오류: ' + (e && e.message ? e.message : e) + '</p>';
+});
+</script>
+<p style="font-size:0.78rem;color:#64748b">※ 위 다이어그램의 "GT index" 박스 — 텍스트 브랜치 입력이 아니라 loss 계산 시 정답 위치만 가리키는 값(label 필드). "GT Text"라고 부르면 안 됨(텍스트 브랜치엔 아무것도 새로 입력되지 않음, 5문장은 항상 고정으로 처리됨).</p>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700">4층(비교 단계) — 논문용 수식 표현:</p>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<div id="katex-tk7" style="background:#ffffff;color:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:16px 18px;overflow-x:auto;font-size:1.05rem"></div>
+<script>
+(function(){
+  var eqs = [
+    ['s_j = \\mathbf{f}^\\top \\mathbf{e}_j, \\qquad j = 1, \\dots, 5', '코사인 유사도 (둘 다 L2정규화 → 내적=코사인유사도)'],
+    ['z_j = s_j / \\tau, \\qquad \\tau = 0.07', '온도 스케일링'],
+    ['p_j = \\dfrac{\\exp(z_j)}{\\displaystyle\\sum_{k=1}^{5}\\exp(z_k)}', '5-class softmax'],
+    ['\\mathcal{L} = -\\,w_y \\log p_y', 'class-weighted cross-entropy (y = 정답 인덱스/GT index, w_y = class weight)']
+  ];
+  var html = '<div style="font-size:0.82rem;color:#475569;margin-bottom:6px">' +
+    '𝐟 ∈ ℝ<sup>256</sup> = img_feat (이 프레임, L2정규화) &nbsp;·&nbsp; 𝐞<sub>j</sub> ∈ ℝ<sup>256</sup> = anchor_proj의 j번째 행(L2정규화)</div>' +
+    '<div style="font-size:0.78rem;color:#64748b;margin-bottom:12px">⊤ = 전치(transpose). f는 256차원 열벡터, f<sup>⊤</sup>는 이를 행벡터로 바꾼 것 — f<sup>⊤</sup>e<sub>j</sub>는 행벡터×열벡터=두 벡터의 내적(inner product). 둘 다 L2정규화되어 있어 내적=코사인 유사도.</div>';
+  eqs.forEach(function(pair, idx){
+    html += '<div style="margin:14px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">' +
+      '<span>' + katex.renderToString(pair[0], { throwOnError: false, displayMode: false }) + '</span>' +
+      '<span style="font-size:0.78rem;color:#64748b;flex:1;min-width:180px">— ' + pair[1] + '</span>' +
+      '<span style="font-size:0.85rem;color:#94a3b8">(' + (idx+1) + ')</span></div>';
+  });
+  document.getElementById('katex-tk7').innerHTML = html;
+  var note = document.createElement('p');
+  note.style.cssText = 'font-size:0.82rem;color:#cbd5e1;margin-top:10px';
+  note.innerHTML = '<strong style="color:#4ade80">논문용 블록 형태(KCI 관례):</strong> 각 식을 가운데 정렬하고 번호를 오른쪽 끝에 (1)~(4)로 배치, 본문에서 "식 (1)"처럼 참조. ' +
+    '도입 문장("두 벡터의 내적은 코사인 유사도와 같다") → 식(1) → "온도 파라미터로 스케일링한 뒤" → 식(2) → "5-class softmax를 적용하여" → 식(3) → "class-weighted cross-entropy로 학습한다" → 식(4) → "y는 정답 인덱스(GT index), w_y는 class weight" 순으로 문장과 수식을 교대로 배치하는 형태 권장.';
+  document.getElementById('katex-tk7').parentNode.insertBefore(note, document.getElementById('katex-tk7').nextSibling);
+})();
+</script>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700">CLIP 인용 + 논문 본문 문장 (권장):</p>
+<p style="font-size:0.85rem;color:#cbd5e1">"CLIP(Radford et al., 2021)의 zero-shot 분류 방식과 동일하게, 이미지 임베딩과 각 클래스의 텍스트(앵커) 임베딩 간 코사인 유사도를 고정된 온도 파라미터(τ=0.07)로 스케일링한 뒤 softmax로 정규화하여 분류한다. 단, CLIP과 달리 본 연구에서는 τ를 학습하지 않고 고정값으로 사용한다." — CLIP은 τ를 <code>logit_scale=log(1/τ)</code> 형태의 학습 가능한 파라미터로 두지만, 본 연구는 학습 시작 전에 고정한 하이퍼파라미터라는 차이를 반드시 명시.</p>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700">구조도(Figure 4) 축약 방식 — 4박스를 3박스로 축약, "CLIP-style" 수식어는 그림 라벨에서 제외:</p>
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 손으로 그리는 정식 Figure 4의 4층은 3개 박스로 그리면 충분:</p>
+<ol style="font-size:0.85rem;color:#cbd5e1;margin:4px 0;padding-left:22px;line-height:1.6">
+<li><strong>"Cosine 유사도"</strong> 박스 — 안에 식 그대로: s_j = f⊤e_j (j=1..5)</li>
+<li><strong>"Temperature-scaled Softmax (τ=0.07)"</strong> 박스 — 온도 스케일링+softmax를 한 박스로 합쳐서: p_j = softmax(s_j/τ)</li>
+<li><strong>"CE Loss"</strong> 박스 — L = -w_y·log(p_y)</li>
+</ol>
+<p style="font-size:0.85rem;color:#cbd5e1">"CLIP-style"이라는 수식어는 그림 라벨에는 넣지 않는다 — CLIP 논문을 있는 그대로 인용한 게 아니라(τ 고정 vs 학습 차이) 유사 메커니즘만 차용한 것이라, 그림에 박아두면 과잉 주장이 될 수 있음. "CLIP(Radford et al., 2021) 기반, 단 τ 고정"이라는 문구는 본문 캡션/문장에만 남기고, 그림 라벨은 기능 이름(Cosine/Softmax/CE Loss)만 쓰는 역할 분담 권장. (위 머메이드 다이어그램의 L4 서브그래프가 이 3박스 축약의 예시)</p>
+</details>
+</div>
+
+<div id="tk-8" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 5. Stage 2 행동 헤드 학습 파라미터 <span style="font-size:0.75rem;color:#fbbf24">(컨펌전 — 0811.docx 삽입 대기)</span></h4>
+<div class="loc">위치: §5.3 Hyperparameters</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">파라미터</th><th style="text-align:left;padding:4px 8px">값</th><th style="text-align:left;padding:4px 8px">의미</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">threshold</td><td style="padding:4px 8px">0.25(기본) / 0.20(운영)</td><td style="padding:4px 8px">OWL-v2 그라운딩 검출 신뢰도 임계값</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">window</td><td style="padding:4px 8px">6 프레임</td><td style="padding:4px 8px">입력으로 사용하는 연속 프레임 수</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">bbox_scale</td><td style="padding:4px 8px">3.0</td><td style="padding:4px 8px">bbox 좌표 정규화 스케일</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">num_classes</td><td style="padding:4px 8px">8</td><td style="padding:4px 8px">8-class 방향 로짓</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">optimizer</td><td style="padding:4px 8px">AdamW, lr=5e-4</td><td style="padding:4px 8px">가중치 감쇠 포함 Adam 변형</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">epochs</td><td style="padding:4px 8px">300</td><td style="padding:4px 8px">학습 반복 수</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">scheduler</td><td style="padding:4px 8px">CosineAnnealingLR</td><td style="padding:4px 8px">코사인 스케줄로 lr 감쇠</td></tr>
+<tr><td style="padding:4px 8px">class weight</td><td style="padding:4px 8px">1/빈도 정규화</td><td style="padding:4px 8px">FORWARD 46.03% 편중 보정</td></tr>
+</table>
+<p style="font-size:0.82rem;color:#f87171">(08.11) "Threshold 값이 테이블에 들어가야 되고, 밑의 threshold 설명에 대한 정리" / "Bbox_scale 에 대한 설명을 여기서 함." / "Class weight 에 대한 설명" / 사용자 메모: "4.dataset에 액션 테이블 설명 추가하기 / class weight 보완(Forward~했다) / bbox_scale 설명 / 하이퍼파라미터 표로 만들어놨으니까 빼도 좋을듯"</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항: threshold(0.25 기본/0.20 운영) 행을 표에 추가하고 본문 서술 문장은 이 표로 대체(중복 서술 제거). bbox_scale=3.0의 의미(bbox 좌표 정규화 스케일)를 표 옆 설명으로 명시. class weight 행은 "FORWARD 46.03% 편중 보정"으로 정정 완료(위 표 반영됨).</p>
+
+<div style="background:#0d1117;border-radius:8px;padding:12px 14px;margin:12px 0;border-left:3px solid #4ade80">
+<p style="font-size:0.82rem;color:#4ade80;font-weight:700;margin:0 0 8px">📋 복붙용 — threshold 문단 (§5.2 본문 교체)</p>
+<p style="font-size:0.8rem;color:#94a3b8;margin:0 0 4px">전 (중복 2문단):</p>
+<p style="font-size:0.83rem;color:#cbd5e1;background:#1a1a1a;padding:6px 8px;border-radius:4px;margin:0 0 8px">OWL threshold=0.2는 그라운딩 인코더의 고정 하이퍼파라미터로 설정하였다.<br>
+로봇 상에서 런타임으로 추론시에 threshold는 OWLv2에서 텍스트를 넣었을 때에 검출해 내는 문턱값으로 텍스트에 대한 이미지의 오탐율과 정탐율을 말하는 것이다. OWL-v2 검출 임계값(threshold)은 ROC 실측 최적치인 0.25(오탐율 0%, 정탐율 94.9%)를 기준으로 설정하였다. 그리고 엣지 하드웨어(Jetson Orin) 운영 환경에서는 실시간 정밀도 보정을 위해 0.20으로 완화 적용하였다. 이 값은 서버 재시작 후에도 유지되도록 런타임 상태 파일에 저장되며, 실기 주행을 통해 최종 확정되었다.</p>
+<p style="font-size:0.8rem;color:#94a3b8;margin:0 0 4px">후 (한 문단으로 통합, 표 참조로 축약):</p>
+<p style="font-size:0.85rem;color:#4ade80;background:#0f2a1f;padding:6px 8px;border-radius:4px">OWL-v2 검출 <strong>문턱값(threshold)</strong>은 텍스트 쿼리에 대한 이미지의 검출 신뢰도 기준이다. <strong>ROC 실측 최적치인 0.25(오탐율 0%, 정탐율 94.9%)</strong>를 기준값으로 하며, 엣지 하드웨어(Jetson Orin) 운영 환경에서는 실시간 정밀도 보정을 위해 0.20으로 완화 적용한다(Table 5). 이 값은 서버 재시작 후에도 유지되도록 런타임 상태 파일에 저장되며, 실기 주행을 통해 최종 확정되었다.</p>
+</div>
+
+<div style="background:#0d1117;border-radius:8px;padding:12px 14px;margin:12px 0;border-left:3px solid #4ade80">
+<p style="font-size:0.82rem;color:#4ade80;font-weight:700;margin:0 0 8px">📋 복붙용 — class weight 문단 (§5.2 본문 교체, FORWARD 수치 정정 포함)</p>
+<p style="font-size:0.8rem;color:#94a3b8;margin:0 0 4px">전:</p>
+<p style="font-size:0.83rem;color:#cbd5e1;background:#1a1a1a;padding:6px 8px;border-radius:4px;margin:0 0 8px">FORWARD 행동 클래스(전체의 <s style="color:#f87171">72.61%</s>)로의 데이터 편향 및 조향 행동 비율 차이를 보정하기 위해, 클래스별 발생 빈도의 역수(1/freq)를 계산하고 합이 8이 되도록 정규화한 손실 가중치(Class Weight)를 Cross-Entropy 손실함수에 적용한다.</p>
+<p style="font-size:0.8rem;color:#94a3b8;margin:0 0 4px">후 (72.61%는 0805 초안의 "약우 프레임/에피소드 평균(72.6)"에서 잘못 섞여온 값 — 실측 재계산으로 정정 + 쉬운 설명 추가 + 실제 가중치 값 명시):</p>
+<p style="font-size:0.85rem;color:#4ade80;background:#0f2a1f;padding:8px 10px;border-radius:4px">학습 데이터에서 FORWARD 행동이 전체의 <strong>46.03%</strong>를 차지할 만큼 다른 클래스보다 훨씬 많이 등장한다. 이 상태로 그냥 학습하면, 모델이 애매한 상황마다 "일단 FORWARD"라고만 찍어도 정확도가 쉽게 46% 근처까지 올라가 버려서, 드물게 등장하는 회전 동작(ROT_L·ROT_R 등)을 제대로 배우지 않고도 학습이 끝나버릴 위험이 있다. 이를 막기 위해 클래스별 발생 빈도의 역수(1/freq)를 계산하고 전체 가중치의 합이 클래스 수(8)가 되도록 정규화한 <strong>손실 가중치(Class Weight)</strong>를 Cross-Entropy 손실함수에 적용한다 — 즉 자주 나오는 클래스(FORWARD)를 틀리면 페널티를 작게, 드물게 나오는 클래스(ROT_L·ROT_R)를 틀리면 페널티를 크게 주어 학습이 소수 클래스를 무시하지 못하게 한다.</p>
+<p style="font-size:0.8rem;color:#94a3b8;margin:8px 0 4px">실제 계산된 가중치 값 (bbox_dataset_v6_owl.json 16,599프레임 실측 기준):</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-bottom:4px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:3px 6px">클래스</th><th style="text-align:left;padding:3px 6px">프레임 비율</th><th style="text-align:left;padding:3px 6px">Class Weight</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">STOP</td><td style="padding:3px 6px">8.75%</td><td style="padding:3px 6px">0.302</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">FORWARD</td><td style="padding:3px 6px">46.03%</td><td style="padding:3px 6px">0.057 (가장 작음)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">LEFT</td><td style="padding:3px 6px">4.31%</td><td style="padding:3px 6px">0.612</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">RIGHT</td><td style="padding:3px 6px">5.17%</td><td style="padding:3px 6px">0.511</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">FWD+L</td><td style="padding:3px 6px">15.25%</td><td style="padding:3px 6px">0.173</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">FWD+R</td><td style="padding:3px 6px">18.78%</td><td style="padding:3px 6px">0.141</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">ROT_L</td><td style="padding:3px 6px">0.82%</td><td style="padding:3px 6px">3.223 (가장 큼)</td></tr>
+<tr><td style="padding:3px 6px">ROT_R</td><td style="padding:3px 6px">0.89%</td><td style="padding:3px 6px">2.981</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b">ROT_L의 가중치(3.223)가 FORWARD(0.057)의 약 57배 — 가장 드문 클래스를 틀렸을 때 그만큼 더 강하게 페널티를 준다는 뜻. 8개 가중치의 합은 정확히 8.0(클래스 수)이 되도록 정규화됨.</p>
+</div>
+<p style="font-size:0.85rem;color:#fbbf24;font-weight:700">bbox_scale 보충 설명 (쉬운 설명 + 실측 수치 + 오해 방지 — 보완판):</p>
+<p style="font-size:0.85rem;color:#4ade80;background:#0f2a1f;padding:8px 10px;border-radius:4px">로봇이 목표에 가까워질수록 카메라에 보이는 목표 물체의 면적(area)이 커지는데, 이 값은 원래 0~1 사이로 정규화돼 있어서 실측으로 봐도 <strong>가장 멀 때 약 0.02, 가장 가까울 때 약 0.56</strong>(약 28.7배 차이) 수준으로 절대 크기 자체가 매우 작다. 반면 함께 입력되는 image_proj의 256차원 비전 특징은 L2 정규화가 되어 있어 크기(스케일)가 항상 일정하다. 이 상태로 그냥 합치면 area 값이 너무 작아서 모델이 "지금 목표에 가까운지 먼지"를 나타내는 이 신호를 거의 무시해버릴 위험이 있다. 그래서 area 값에 <strong>3.0을 곱해(bbox_scale=3.0)</strong> 존재감을 키워, 비전 특징과 비슷한 스케일에서 함께 학습되도록 만든다.</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin-top:8px"><strong>오해 방지</strong>: bbox_scale은 카메라 화면에 그려지는 실제 검출 박스의 픽셀 크기와는 무관하다. OWL-v2가 내놓는 bbox 4채널(cx, cy, area, has_bbox) 숫자 값 자체에만 배수를 곱하는 <strong>입력 특징 스케일링</strong>이며, 카메라가 보는 이미지나 화면상 박스 표시는 전혀 바뀌지 않는다.</p>
+<img src="../v5/figures/bboxscale_ablation.png" alt="bbox_scale ablation — 실제 배포 파이프라인(exp73 OWL·MLP)에서의 val accuracy 및 대각 클래스 recall 비교" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.78rem;color:#64748b">근거: 실제 배포 파이프라인(exp73, OWL-v2 그라운더, MLP 헤드, stride=1)과 동일한 캐시·분할(exp73_v6_vis_cache_stage1v3.pt, bbox_dataset_v6_owl.json, split seed=42)로 bbox_scale=1.0/2.0/3.0을 3-seed 재검증. val acc 73.8%±0.2%p / 74.2%±0.2%p / 73.8%±0.2%p로 <strong>오차범위 내 사실상 동일</strong> — 옛 exp71(PG2 그라운더+Transformer 헤드, 72%→85% 상승 보고)에서 관찰된 큰 효과는 현재 OWL-v2 기반 파이프라인에서는 재현되지 않음. 3.0에서의 값이 배포 체크포인트 저장값(74.13%)과 가장 가까워 그대로 사용 중이나, <strong style="color:#fbbf24">성능 차이가 미미해 §5.3에서 bbox_scale 행 자체를 뺄지 계속 고민 중</strong>.</p>
+</div>
+
+<div id="tk-21" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 6. 5경로 텍스트 대조학습 텍스트 문장 <span style="font-size:0.75rem;color:#4ade80">(최종본 — 이미 삽입됨, 신규 확인)</span></h4>
+<div class="loc">위치: §5.4 image_proj training (0811.docx 원문엔 "Table 8"로 표기 — 재번호 필요)</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">경로</th><th style="text-align:left;padding:4px 8px">프레임</th><th style="text-align:left;padding:4px 8px">학습용 문장</th><th style="text-align:left;padding:4px 8px">Class Weight(학습시)</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">강좌(strong_left)</td><td style="padding:4px 8px">3611</td><td style="padding:4px 8px">"The gray basket is strongly on the left side of the image"</td><td style="padding:4px 8px">0.91</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">약좌(weak_left)</td><td style="padding:4px 8px">3299</td><td style="padding:4px 8px">"The gray basket is slightly on the left side of the image"</td><td style="padding:4px 8px">1.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">중앙(center)</td><td style="padding:4px 8px">2819</td><td style="padding:4px 8px">"The gray basket is in the center of the image"</td><td style="padding:4px 8px">1.17</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">약우(weak_right)</td><td style="padding:4px 8px">3268</td><td style="padding:4px 8px">"The gray basket is slightly on the right side of the image"</td><td style="padding:4px 8px">1.01</td></tr>
+<tr><td style="padding:4px 8px">강우(strong_right)</td><td style="padding:4px 8px">3602</td><td style="padding:4px 8px">"The gray basket is strongly on the right side of the image"</td><td style="padding:4px 8px">0.91</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b">검산: 프레임 합계 3611+3299+2819+3268+3602=16,599 — Table 2 총 프레임 수와 일치 확인. 이번 점검에서 처음 트래커에 반영된 항목(내용 자체는 이미 0811.docx에 정확히 채워져 있음, 추가 작업 불필요, 번호만 8→6으로 정정 필요).</p>
+</div>
+
+<div id="tk-16" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 5. image_proj 학습 곡선 <span style="font-size:0.75rem;color:#4ade80">(최종본)</span></h4>
+<div class="loc">위치: §5.4 image_proj training (구 VII 부록 삭제 → 본문으로 이동)</div>
+<img src="../v5/figures/stage1_v3_training_curve.png" alt="image_proj 학습 곡선" style="max-width:520px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">5-class(강좌/약좌/중앙/약우/강우), 225ep, 30 epoch 수렴 곡선. 최종 val_acc 94.09%. "재학습"→"학습" 표기 정정 완료된 최신판. 부록(VII) 섹션이 삭제되면서 §5.2/§5.3 직후 본문 안으로 위치가 당겨짐 — 번호도 8→5로 정정 필요.</p>
+</div>
+
+<div id="tk-22" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 6. Action Head(MLP) 학습 곡선 <span style="font-size:0.75rem;color:#4ade80">(최종본, 신규)</span></h4>
+<div class="loc">위치: §5.4 직후 (Figure 5 image_proj 곡선과 대구를 이루는 위치)</div>
+<img src="../v5/figures/action_head_mlp_training_curve.png" alt="Action Head(MLP) 학습 곡선 — Accuracy/Loss, Training vs Validation" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.82rem;color:#f87171">"Figure 5(image_proj)엔 training/validation 곡선이 있는데 Action Head(MLP) 쪽엔 없다" — 대화 중 지적으로 발견된 누락 항목.</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 반영: 배포 체크포인트와 동일 조건(exp73_v6_vis_cache_stage1v3.pt, seed=0, window=6, bbox_scale=3.0, AdamW 5e-4, 300 epoch, class-weighted CE)으로 재학습하며 5 epoch마다 train/val accuracy·loss를 기록. best_val_acc 74.04%로 배포 체크포인트(74.1%)와 거의 일치 — 재현 확인됨.</p>
+<p style="font-size:0.85rem;color:#cbd5e1"><strong style="color:#fbbf24">정직하게 밝혀야 할 점(과적합)</strong>: Train accuracy는 300 epoch 내내 계속 올라 92%까지 가지만, Validation accuracy는 epoch ~25 근처부터 71~74% 구간에서 더 못 오르고 정체된다. Validation loss는 epoch ~20 이후로는 계속 상승(전형적 과적합 곡선). 다만 학습 코드가 25 epoch마다 val_acc를 측정해 <strong>가장 좋았던 시점의 가중치(best_state)만 저장</strong>하므로, 실제 배포된 체크포인트는 300 epoch 끝까지 과적합된 가중치가 아니라 best 지점(이번 재현에서는 epoch 225, val_acc 74.0%)의 가중치다. Val acc가 epoch~25 이후 노이즈 수준(71~74%)에서 오르내리다 우연히 225에서 최고점을 찍은 것이라, "225 epoch까지 의미있게 개선됐다"기보다는 "초반 정체 이후 노이즈 범위 안에서 최고점을 저장했다"는 게 정확한 해석.</p>
+<p style="font-size:0.78rem;color:#64748b">근거: 재학습 스크립트로 exp73_v6_vis_cache_stage1v3.pt 기반 실측(bbox_dataset_v6_owl.json 주석 재적용, split seed=42 동일) — 배포 체크포인트와 별개의 재현 실행이므로 그래프의 정확한 수치는 seed 재현성 범위 내에서 약간 다를 수 있음(74.04% vs 74.1%).</p>
+</div>
+
+<div id="tk-17" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 7. 배포 헤드 val 혼동행렬 <span style="font-size:0.75rem;color:#fbbf24">(컨펌전 — 0811.docx 삽입 대기)</span></h4>
+<div class="loc">위치: §5.5 val 혼동행렬 (구 VII 부록 삭제 → 본문으로 이동, Figure 5 바로 다음)</div>
+<img src="../v5/figures/confusion_matrix_stage1v3_correct.png" alt="배포 헤드 val 혼동행렬 (stride=1, 올바른 채점)" style="max-width:480px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.82rem;color:#f87171">(08.11) "왜 결과값이 낮은지 설명이 필요함. 공격 받을 수 있음."</p>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700">8/11 확정 문단 (그대로 본문에 반영) — 위 지적사항에 대한 방어 문단:</p>
+<p style="font-size:0.85rem;color:#cbd5e1">배포 헤드를 학습 때와 동일한 stride=1 채점 방식으로 평가한 결과 val 정확도는 74.1%(n=2431)로, 체크포인트에 저장된 값(74.13%)과 일치한다. 이는 8-class 중 최다 빈도 클래스(FORWARD, 46.03%)만 예측해도 얻을 수 있는 정확도보다 유의미하게 높은 수준이다. <strong style="color:#4ade80">표본이 충분한 6개 클래스(STOP·FORWARD·LEFT·RIGHT·FWD+L·FWD+R, 2,403개, 전체의 98.8%)는 66.7~84.5%로 고르게 분포</strong>하며, 특정 클래스가 붕괴된 것이 아니라 전반적으로 균형 잡힌 분류 성능을 보인다. 클래스별로는 ROT_L·ROT_R의 정확도만 특히 낮게 나타나는데, 두 클래스는 2,431개 val 결정 시점 중 각각 6개(0.25%)·22개(0.90%)(합쳐 28개, 1.15%)만을 차지해 표본 자체가 적고, 소수 표본에서는 한두 건의 오분류가 정확도를 크게 흔든다. 다만 이러한 소수 클래스의 낮은 val 정확도는 실기 성능과 직결되지 않는다 — 실기 100건 재검증에서 목표 도달 성공률은 95/100(95.0%)으로 확인되었으며, 이는 val 지표만으로 실제 주행 성능을 판단할 수 없다는 점을 시사한다. 실제로 100건 실기 재검증에서 ROT_L·ROT_R 액션은 전체 1,088개 결정 중 73회(6.71%)로 val 표본 비율(1.15%)보다 훨씬 빈번하게 사용되었음에도, 목표 도달 성공률은 95/100(95.0%)을 유지하였다.</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">클래스</th><th style="text-align:left;padding:4px 8px">표본수</th><th style="text-align:left;padding:4px 8px">recall</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">STOP</td><td style="padding:4px 8px">207</td><td style="padding:4px 8px">84.5%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">FORWARD</td><td style="padding:4px 8px">1017</td><td style="padding:4px 8px">75.6%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">LEFT</td><td style="padding:4px 8px">123</td><td style="padding:4px 8px">66.7%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">RIGHT</td><td style="padding:4px 8px">130</td><td style="padding:4px 8px">70.8%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">FWD+L</td><td style="padding:4px 8px">338</td><td style="padding:4px 8px">72.8%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">FWD+R</td><td style="padding:4px 8px">588</td><td style="padding:4px 8px">72.8%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">ROT_L</td><td style="padding:4px 8px">6</td><td style="padding:4px 8px">50.0%</td></tr>
+<tr><td style="padding:4px 8px">ROT_R</td><td style="padding:4px 8px">22</td><td style="padding:4px 8px">31.8%</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b">근거: <code>docs/v5/detector/confusion_matrix_stage1v3_correct.json</code>(클래스별 recall, n=2,431). 세션 실측 근거: <code>/home/minum/MoNaVLA/inference_sessions_recv/20260807/h5/</code> 100개 세션 원본(soda rsync 수신분, checkpoint_path=exp73_owl_stage1v3_v6_mlp.pt 일치 확인)에서
+actions(x,y,z)를 ACTION_3D 룩업으로 역매핑해 직접 집계 — STOP 85(7.81%)·FORWARD 893(82.08%)·LEFT 0·RIGHT 12(1.10%)·FWD+L 15(1.38%)·FWD+R 10(0.92%)·ROT_L 35(3.22%)·ROT_R 38(3.49%), 총 1,088개 결정.</p>
+<p style="font-size:0.85rem;color:#fbbf24;font-weight:700">이 그림, 빼지 말고 남기는 게 유리합니다:</p>
+<p style="font-size:0.85rem;color:#cbd5e1">8-class 분류기 논문에서 val 혼동행렬은 리뷰어가 기대하는 표준 아티팩트라 빼면 오히려 "숨기는 것 아닌가" 하는 의심을 살 수 있다. 이미 방어 문단(majority-baseline 비교, 표본 크기 설명, 실기 95/100 성공률, 실기 ROT_L/R 실사용 빈도)이 갖춰져 있고, §7 회전 안전 규칙과도 자연스럽게 연결되는 서사(val에서 약한 소수 클래스를 서빙 레이어가 보완)라 그대로 유지 권장.</p>
+<p style="font-size:0.85rem;color:#cbd5e1" data-old="1">기존에 cadence-aligned(stride=5) 채점으로 52.5%가 나왔던 것은
+단순히 채점 방식이 학습 방식과 달랐기 때문 — <code>scripts/eval_confusion_matrix_stage1v3_correct.py</code>로
+올바른 채점 재실행. "채점 방식 불일치" 캐비엇 문장은 더 이상 필요 없음, 논문엔 74.1%만 쓰면 됨.</p>
+<p style="font-size:0.85rem;color:#cbd5e1">부록(VII) 섹션이 삭제되면서 §5.4 image_proj training 직후 본문 안으로 위치가 당겨짐 — 번호도 9→6으로 정정 필요.</p>
+</div>
+
+<div id="tk-9" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>§6 Deploy the trained model + Figure 7 <span style="font-size:0.75rem;color:#4ade80">(최종본 — Figma 완성본 반영)</span></h4>
+<div class="loc">위치: §6</div>
+<p style="font-size:0.85rem;color:#cbd5e1">학습이 완료된 EdgeGround-VLA(Frozen Backbone + Trainable Modules)를 Jetson Orin NX에 최초 배포한 뒤, 엣지그라운드 대시보드로 체크포인트 상태를 모니터링·교체한다.</p>
+<img src="../v5/figures/figure7_final.jpg" alt="학습된 모델을 SerbotII에 탑재하는 절차 (Figma 최종본)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 Figma로 완성한 최종본(<code>docs/01.paper/figure/figure 5_Deploy the Model to Jetson.jpg</code>). EdgeGround-VLA(Frozen Backbone+Trainable Modules) → Edge Device(Jetson Orin NX 실물 사진 + EdgeGround Dashboard) → Runtime Process(5블록) → Robot Actuation, Client(Browser)↔Tailscale VPN까지 이 브리핑에서 정리한 구조 전부 반영 확인. Jetson 실물 사진·대시보드 화면 캡처도 포함됨.</p>
+<details style="margin-top:8px"><summary style="cursor:pointer;font-size:0.82rem;color:#64748b">→ 설계 논의 이력 — 위 최종본 이미지에 전부 반영됨 (참고용, 접힘)</summary>
+<p style="font-size:0.82rem;color:#f87171;margin-top:8px">(08.11) "위의 그림을 에서 전달을 빼고 한쪽 면에 들어가도록 작게 해야함. 과정이 잘 이해가 되지 않음." / 사용자 메모: "전처리과정 AI모델 과정 후처리 과정 — 런타임 코드 안에서 입력→전처리→AI 모델→후처리 아웃풋 / 체크포인트가 엣지그라운드 대쉬보드에서 로드되는걸 해주면 됨, 디플로이 적으면됨 / 금요일에는 컨버트 해서 보내야됨, 적어도 토요일까지는"</p>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700">→ 수정사항 (대화로 확정된 최종 구조, 직렬→병렬로 재구성):</p>
+<div style="font-size:0.82rem;color:#cbd5e1;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:10px 14px;margin:8px 0;font-family:monospace;white-space:pre-wrap;line-height:1.6">
+┌─────────────────────────────────────────────────┐
+│                 EdgeGround-VLA                     │
+│  ┌───────────────────┐  ┌───────────────────────┐│
+│  │  Frozen Backbone    │  │   Trainable Modules    ││
+│  │  OWL-v2              │  │  image_proj            ││
+│  │  Kosmos-2 vision_model│  │  Action Head           ││
+│  └───────────────────┘  └───────────────────────┘│
+└──────────────────────────┬──────────────────────────┘
+                           ▼ (최초 1회 배포, 대시보드 거치지 않음)
+┌─────────────────────────────────────────────────┐
+│         NVIDIA Jetson Orin NX                       │  ★실물사진 필요
+│                                                       │
+│  ┌────────────────────────┐  ┌────────────────────┐│
+│  │  런타임 추론 루프           │◀─┤ 엣지그라운드           ││
+│  │  (매 프레임 반복)           │  │ 대시보드              ││
+│  │                            │  │ (체크포인트 상태 표시, ││ ★실제 화면 스크린샷 필요
+│  │  입력→전처리→AI 모델        │  │  reload 제어)         ││
+│  │   →후처리→출력(x,y,z)      │  │                      ││
+│  └────────────────────────┘  └────────────────────┘│
+│         (AI 모델 내부 연산 구조는 Figure 1 참고)          │
+└─────────────────────────────────────────────────┘
+</div>
+<p style="font-size:0.85rem;color:#cbd5e1">"전달" 박스 삭제. "AI 모델" 대신 <strong>EdgeGround-VLA(Frozen Backbone 2개 + Trainable Modules 2개)</strong>를 하나의 시작 블록으로 명시 — 최초 배포 시에는 OWL-v2·Kosmos-2도 아직 Jetson에 없다고 전제. "Trainable Head" 대신 <strong>Trainable Modules</strong>로 명명해 개별 구성요소인 Action Head와 이름 충돌 방지.</p>
+<p style="font-size:0.85rem;color:#cbd5e1"><strong style="color:#fbbf24">직렬→병렬 재구성:</strong> 대시보드는 배포 절차의 다음 단계가 아니라, Jetson 위에서 런타임 추론 루프와 <strong>동시에(병렬로)</strong> 떠 있는 별도 프로세스다(근거: <code>stage2_v2_inference_server.py</code>의 <code>POST /model/load</code>는 이미 실행 중인 서버의 체크포인트를 그 자리에서 hot-reload — 최초 배포 수단이 아니라 실행 중 제어 수단). 그래서 대시보드→Jetson 순서가 아니라, Jetson 내부에서 "런타임 추론 루프"와 "대시보드"를 나란히 병렬로 그리고 대시보드에서 추론 루프로 제어 화살표(reload)를 넣는 구조로 재구성.</p>
+<p style="font-size:0.85rem;color:#cbd5e1">실물 요소가 필요한 지점은 <strong style="color:#fbbf24">①Jetson Orin NX 실물 사진, ②엣지그라운드 대시보드 화면 스크린샷</strong> 2곳. (다이어그램은 minum 직접 재작업 — 위 최종본에 둘 다 포함됨)</p>
+</details>
+</div>
+
+<div id="tk-10" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 9. 추론 파이프라인 순서도 <span style="font-size:0.75rem;color:#4ade80">(최종본 — Figma 완성본 반영)</span></h4>
+<div class="loc">위치: §7 Runtime Inference Control Logic</div>
+<img src="../v5/figures/figure8_final.jpg" alt="추론 파이프라인 순서도 (Figma 최종본)" style="max-width:640px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">minum이 Figma로 완성한 최종본(<code>docs/01.paper/figure/figure 6_inference pipeline.jpg</code>). Vision Input(6프레임) → Step1(Grounding inference, bbox+vision) / Step2(Vision inference만, 캐시 재사용) → Sliding Window → Action Head → 3DOF(lx,ly,az) → CAN bus → MCU Board → Wheel 1/2/3 Control. 크기 축소·글자 확대·Step1/2 각 4프레임 예시로 정리 완료.</p>
+<details style="margin-top:8px"><summary style="cursor:pointer;font-size:0.82rem;color:#64748b">→ 설계 논의 이력 — 위 최종본 이미지에 전부 반영됨 (참고용, 접힘)</summary>
+<p style="font-size:0.82rem;color:#f87171;margin-top:8px">(08.11) "그림을 수정을 해야 함 - 스캐치 해서 보내줌" / 사용자 메모: "그림이 너무 큼 / 글씨 잘 보이게 해야함 / 사진을 논문 제출할때는 feature extraction 1개만 넣자 / 스탭1,2에 4개정도 넣어보기"</p>
+<p style="font-size:0.85rem;color:#cbd5e1">→ 수정사항: 전체 크기를 줄이고 글자 크기를 키워 가독성을 확보. feature extraction 단계는 제출본 지면상 1개 예시만 남기고, grounding_skip_n에 따른 Step1(grounding 수행)/Step2(스킵, 캐시 재사용) 구간을 각 4개 프레임 예시로 보여준다. (다이어그램은 minum 직접 재작업, 스케치 별도 전달)</p>
+</details>
+</div>
+
+<div id="tk-11" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Figure 10. 실험 환경 – Closed-Loop 주행 트랙 (3-패널) <span style="font-size:0.75rem;color:#fbbf24">(컨펌전)</span></h4>
+<div class="loc">위치: IV.1 Goal-Reaching Success Rate</div>
+<img src="../v5/figures/test_track_photo_3panel.png" alt="실험 환경 - Closed-Loop 주행 트랙 (a)전체 조감도 (b)목표 접근 (c)목표 포착" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#cbd5e1">(a) 테이프로 표시한 폐루프 주행 트랙 전체 조감도 (b) 로봇이 목표(바스켓)에 접근하는 측면 장면 (c) 로봇이 목표를 정면으로 포착한 근접 장면. 기존 단일 사진에 (b)(c) 두 장을 추가해 3-패널로 구성.</p>
+</div>
+
+<div id="tk-12" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 7. Goal-reaching success rate by target location <span style="font-size:0.75rem;color:#4ade80">(최종본)</span></h4>
+<div class="loc">위치: IV.1 Goal-Reaching Success Rate</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">목표 위치</th><th style="text-align:left;padding:4px 8px">성공률</th><th style="text-align:left;padding:4px 8px">성공(회)</th><th style="text-align:left;padding:4px 8px">평균 스텝</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">중앙</td><td style="padding:4px 8px">100%</td><td style="padding:4px 8px">20/20</td><td style="padding:4px 8px">10.00</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">강좌</td><td style="padding:4px 8px">95%</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">13.35</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">약좌</td><td style="padding:4px 8px">95%</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">11.55</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">강우</td><td style="padding:4px 8px">95%</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">12.75</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">약우</td><td style="padding:4px 8px">90%</td><td style="padding:4px 8px">18/20</td><td style="padding:4px 8px">10.55</td></tr>
+<tr><td style="padding:4px 8px">전체</td><td style="padding:4px 8px">95.0%</td><td style="padding:4px 8px">95/100</td><td style="padding:4px 8px">11.64</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b">검산: 성공 횟수 가중평균 (20·10.00+19·13.35+19·11.55+19·12.75+18·10.55)/95 = 11.634 ≈ 11.64 일치 확인.</p>
+</div>
+
+<div id="tk-13" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
+<h4>Table 8. Component-wise latency decomposition <span style="font-size:0.75rem;color:#4ade80">(최종본)</span></h4>
+<div class="loc">위치: IV.2 Component-wise Latency Bottleneck Analysis</div>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">단계</th><th style="text-align:left;padding:4px 8px">파라미터</th><th style="text-align:left;padding:4px 8px">지연시간</th><th style="text-align:left;padding:4px 8px">비율</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">OWLv2 그라운딩 (fp32)</td><td style="padding:4px 8px">0.155B</td><td style="padding:4px 8px">1901.7 ms</td><td style="padding:4px 8px">~97%</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">OWLv2 그라운딩 (fp16)</td><td style="padding:4px 8px">0.155B</td><td style="padding:4px 8px">962.1 ms</td><td style="padding:4px 8px">—</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">Kosmos-2 비전 인코딩</td><td style="padding:4px 8px">0.303B</td><td style="padding:4px 8px">53.7 ms</td><td style="padding:4px 8px">~3%</td></tr>
+<tr><td style="padding:4px 8px">MLP 행동 헤드</td><td style="padding:4px 8px">0.866M</td><td style="padding:4px 8px">&lt;1 ms</td><td style="padding:4px 8px">~0%</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b">검산: fp32 합계 ≈1956ms(1.96s), fp16 합계 ≈1017ms(1.02s) — 본문 서술과 일치.</p>
+</div>
+
 </div>
 
 </div>
 <script>
 (function(){
+  var STATES = {
+    needed:  { label: '제작필요', color: '#f87171' },
+    confirm: { label: '컨펌전',   color: '#fbbf24' },
+    final:   { label: '최종본',   color: '#4ade80' }
+  };
+  var ITEMS = [
+    [19, 'Figure 1. 모델 아키텍처'],
+    [14, 'Table 1. 8-class LUT 매핑'],
+    [2,  'Figure 2. Serbot II 하드웨어 구성 (통합)'],
+    [3,  'Figure 3. 데이터 수집·파이프라인 (통합)'],
+    [5,  'Table 2. Dataset composition'],
+    [20, 'Table 3. Action class distribution'],
+    [6,  'Table 4. Training status'],
+    [7,  'Figure 4. Stage1/2 구조도'],
+    [8,  'Table 5. 학습 파라미터'],
+    [21, 'Table 6. 5경로 텍스트 대조학습 문장'],
+    [16, 'Figure 5. image_proj 학습곡선'],
+    [22, 'Figure 6. Action Head(MLP) 학습곡선'],
+    [17, 'Figure 7. val 혼동행렬'],
+    [9,  '§6 Deploy + Figure 8. 탑재 절차'],
+    [10, 'Figure 9. 추론 파이프라인 순서도'],
+    [11, 'Figure 10. 실험 환경 트랙'],
+    [12, 'Table 7. 목표 성공률'],
+    [13, 'Table 8. 지연시간 분해']
+  ];
+  var KEY = 'tk0811state';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
+
+  function getDefault(id){
+    var span = document.getElementById('tk-'+id+'-status');
+    return (span && span.getAttribute('data-default')) || 'confirm';
+  }
+  function getState(id){
+    return saved[id] || getDefault(id);
+  }
+  function applyState(id, state){
+    saved[id] = state;
+    localStorage.setItem(KEY, JSON.stringify(saved));
+    var span = document.getElementById('tk-'+id+'-status');
+    if (span) { span.textContent = STATES[state].label; span.style.color = STATES[state].color; span.style.fontWeight = '700'; }
+    var dots = document.querySelectorAll('.tk-dot[data-id="'+id+'"]');
+    dots.forEach(function(d){ d.classList.toggle('active', d.getAttribute('data-s') === state); });
+  }
+
+  var IMG_KEY = 'tk0811img';
+  var savedImgs = {};
+  try { savedImgs = JSON.parse(localStorage.getItem(IMG_KEY) || '{}'); } catch(e) {}
+
+  function renderThumb(id, wrap){
+    wrap.innerHTML = '';
+    var data = savedImgs[id];
+    if (!data) return;
+    var img = document.createElement('img');
+    img.src = data;
+    var note = document.createElement('div');
+    note.className = 'tk-thumb-note';
+    note.textContent = '미리보기(브라우저 저장) — 실제 파일은 docs/v5/figures/에 직접 교체 필요';
+    var clear = document.createElement('span');
+    clear.className = 'tk-thumb-clear'; clear.textContent = '삭제';
+    clear.onclick = function(){ delete savedImgs[id]; localStorage.setItem(IMG_KEY, JSON.stringify(savedImgs)); renderThumb(id, wrap); };
+    note.appendChild(clear);
+    wrap.appendChild(img); wrap.appendChild(note);
+  }
+
+  var sidebar = document.getElementById('tk-sidebar');
+  if (sidebar) {
+    ITEMS.forEach(function(item){
+      var id = item[0], label = item[1];
+      var row = document.createElement('div');
+      row.className = 'tk-row';
+      var lab = document.createElement('a');
+      lab.className = 'tk-label'; lab.href = '#tk-'+id; lab.title = label; lab.textContent = label;
+      var dotsWrap = document.createElement('div');
+      dotsWrap.className = 'tk-dots';
+      ['needed','confirm','final'].forEach(function(s){
+        var b = document.createElement('button');
+        b.className = 'tk-dot'; b.setAttribute('data-s', s); b.setAttribute('data-id', id);
+        b.title = STATES[s].label;
+        b.onclick = function(){ applyState(id, s); };
+        dotsWrap.appendChild(b);
+      });
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+      fileInput.onchange = function(){
+        var f = fileInput.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function(e){
+          savedImgs[id] = e.target.result;
+          localStorage.setItem(IMG_KEY, JSON.stringify(savedImgs));
+          renderThumb(id, thumbWrap);
+        };
+        reader.readAsDataURL(f);
+      };
+      var uploadBtn = document.createElement('button');
+      uploadBtn.className = 'tk-upload-btn'; uploadBtn.textContent = '📎'; uploadBtn.title = '이미지 업로드(미리보기)';
+      uploadBtn.onclick = function(){ fileInput.click(); };
+      row.appendChild(lab); row.appendChild(dotsWrap); row.appendChild(uploadBtn); row.appendChild(fileInput);
+      sidebar.appendChild(row);
+      var thumbWrap = document.createElement('div');
+      thumbWrap.className = 'tk-thumb-wrap';
+      sidebar.appendChild(thumbWrap);
+      renderThumb(id, thumbWrap);
+    });
+    ITEMS.forEach(function(item){ applyState(item[0], getState(item[0])); });
+  }
+
   var items = document.querySelectorAll('.toc-item');
   var targets = Array.prototype.map.call(items, function(a){
     return document.getElementById(a.getAttribute('href').slice(1));
@@ -329,3 +2104,315 @@
   onScroll();
 })();
 </script>
+
+<script>
+(function(){
+  var KEY = 'cf0811state';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
+  var boxes = document.querySelectorAll('.cf-item input[type="checkbox"]:not([disabled])');
+  boxes.forEach(function(b){
+    if (saved[b.id]) { b.checked = true; b.parentElement.classList.add('done'); }
+    b.addEventListener('change', function(){
+      saved[b.id] = b.checked;
+      localStorage.setItem(KEY, JSON.stringify(saved));
+      b.parentElement.classList.toggle('done', b.checked);
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  var FILES = {
+    F1: { url: '../v5/figures/edgeground_vla_architecture.svg', name: 'edgeground_vla_architecture.svg' },
+    F2: { url: '../v5/figures/runtime_pipeline.svg', name: 'runtime_pipeline.svg' },
+    F3: { url: '../v5/figures/hardware_architecture.svg', name: 'hardware_architecture.svg' }
+  };
+  var ta = document.getElementById('svgSrc');
+  var preview = document.getElementById('svgPreview');
+  var errBox = document.getElementById('svgErr');
+  var tabs = document.querySelectorAll('.svgTab');
+  var current = 'F1';
+
+  function renderSvg() {
+    try {
+      preview.innerHTML = ta.value;
+      var svgEl = preview.querySelector('svg');
+      if (svgEl) { svgEl.style.maxWidth = '100%'; svgEl.style.height = 'auto'; }
+      errBox.textContent = '';
+    } catch (e) {
+      errBox.textContent = '렌더 오류: ' + (e && e.message ? e.message : e);
+    }
+  }
+
+  var draftBox = document.getElementById('svgDraftNote');
+
+  function draftKey(key) { return 'svgDraft_' + key; }
+
+  function showDraftNote(key) {
+    if (!draftBox) return;
+    var raw = localStorage.getItem(draftKey(key));
+    if (raw) {
+      var saved = JSON.parse(raw);
+      draftBox.textContent = '📝 임시 저장된 편집 내용을 복원했습니다 (' +
+        new Date(saved.t).toLocaleString('ko-KR') + ', 아직 파일에 반영 안 됨) — ' +
+        '"↺ 원본 다시 불러오기"로 취소 가능';
+      draftBox.style.display = 'block';
+    } else {
+      draftBox.style.display = 'none';
+    }
+  }
+
+  function load(key, opts) {
+    current = key;
+    localStorage.setItem('svgEditorLastTab', key);
+    tabs.forEach(function(b){ b.classList.toggle('active', b.dataset.f === key); });
+    var forceOriginal = opts && opts.forceOriginal;
+    if (forceOriginal) localStorage.removeItem(draftKey(key));
+    var draftRaw = !forceOriginal && localStorage.getItem(draftKey(key));
+    if (draftRaw) {
+      ta.value = JSON.parse(draftRaw).content;
+      renderSvg();
+      showDraftNote(key);
+      return;
+    }
+    fetch(FILES[key].url).then(function(r){ return r.text(); }).then(function(txt){
+      ta.value = txt;
+      renderSvg();
+      showDraftNote(key);
+    }).catch(function(e){
+      errBox.textContent = '불러오기 실패: ' + e;
+    });
+  }
+
+  tabs.forEach(function(b){
+    b.addEventListener('click', function(){ load(b.dataset.f); });
+  });
+
+  var debounce;
+  ta.addEventListener('input', function(){
+    clearTimeout(debounce);
+    debounce = setTimeout(function(){
+      renderSvg();
+      localStorage.setItem(draftKey(current), JSON.stringify({ content: ta.value, t: Date.now() }));
+      showDraftNote(current);
+    }, 400);
+  });
+
+  document.getElementById('svgReload').addEventListener('click', function(){ load(current, { forceOriginal: true }); });
+
+  document.getElementById('svgDownload').addEventListener('click', function(){
+    var blob = new Blob([ta.value], { type: 'image/svg+xml' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = FILES[current].name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  var applyBtn = document.getElementById('svgApply');
+  var applyStatus = document.getElementById('svgApplyStatus');
+  applyBtn.addEventListener('click', function(){
+    applyStatus.textContent = '저장 중...';
+    applyBtn.disabled = true;
+    fetch('/__save_svg', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: current, content: ta.value })
+    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+      .then(function(res){
+        applyBtn.disabled = false;
+        if (!res.ok || !res.j.ok) {
+          applyStatus.textContent = '저장 실패: ' + (res.j.error || '');
+          applyStatus.style.color = '#f87171';
+          return;
+        }
+        var d = new Date(res.j.mtime * 1000);
+        var t = d.toLocaleString('ko-KR');
+        applyStatus.textContent = '✅ 저장됨 (' + t + ') — PNG/PDF 재생성 완료';
+        applyStatus.style.color = '#4ade80';
+        localStorage.removeItem(draftKey(current));
+        if (draftBox) draftBox.style.display = 'none';
+        bustFigure(current, res.j.mtime);
+      }).catch(function(e){
+        applyBtn.disabled = false;
+        applyStatus.textContent = '저장 실패: ' + e;
+        applyStatus.style.color = '#f87171';
+      });
+  });
+
+  function bustFigure(key, mtime) {
+    var t = mtime ? Math.round(mtime * 1000) : Date.now();
+    document.querySelectorAll('.figimg[data-fig="' + key + '"]').forEach(function(img){
+      var base = img.src.split('?')[0];
+      img.src = base + '?t=' + t;
+    });
+    var tsText = '최근 수정: ' + new Date(t).toLocaleString('ko-KR');
+    document.querySelectorAll('.figts[data-fig-ts="' + key + '"]').forEach(function(el){
+      el.textContent = tsText;
+    });
+  }
+  window.__bustFigure = bustFigure;
+
+  // 최초 로드시 각 F 이미지의 현재 mtime을 HEAD로 조회해 타임스탬프 표시
+  Object.keys(FILES).forEach(function(key){
+    var pngUrl = FILES[key].url.replace(/\.svg$/, '.png');
+    fetch(pngUrl, { method: 'HEAD' }).then(function(r){
+      var lm = r.headers.get('Last-Modified');
+      if (!lm) return;
+      var tsText = '최근 수정: ' + new Date(lm).toLocaleString('ko-KR');
+      document.querySelectorAll('.figts[data-fig-ts="' + key + '"]').forEach(function(el){
+        el.textContent = tsText;
+      });
+    }).catch(function(){});
+  });
+
+  var initialTab = new URLSearchParams(location.search).get('fig');
+  if (!initialTab || !FILES[initialTab]) initialTab = localStorage.getItem('svgEditorLastTab');
+  if (!initialTab || !FILES[initialTab]) initialTab = 'F1';
+  load(initialTab);
+
+  var style = document.createElement('style');
+  style.textContent = '.svgTab{background:#1e293b;color:#94a3b8;border:1px solid #334155;' +
+    'border-radius:6px;padding:6px 12px;font-size:0.8rem;cursor:pointer}' +
+    '.svgTab.active{background:#123524;color:#dcfce7;border-color:#2f7d5d}';
+  document.head.appendChild(style);
+})();
+</script>
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "dark",
+  themeVariables: {
+    background: "#0b1220", primaryColor: "#111c2e", primaryTextColor: "#e2e8f0",
+    primaryBorderColor: "#334155", lineColor: "#64748b",
+    secondaryColor: "#0f2a1f", tertiaryColor: "#2a1030",
+    fontFamily: "Noto Sans KR, Malgun Gothic, sans-serif", fontSize: "13px"
+  },
+  flowchart: { curve: "basis", nodeSpacing: 34, rankSpacing: 42, useMaxWidth: true }
+});
+
+const DEFAULT_SRC = `flowchart TB
+  CAM["카메라\\n720x1280 RGB"]
+
+  subgraph PER["인지 — Perception"]
+    direction TB
+    TXT["텍스트 프롬프트\\n'gray basket'\\n런타임 불변 · 고정 상수"]
+    OWL["OWL-v2 검출기\\n0.155B · 1902ms · zero-shot\\n학습 안 함"]
+    KV["Kosmos-2 vision_model\\n0.303B · 54ms · frozen"]
+    PRJ["image_proj\\nLinear 1024→256 + L2norm\\n0.262M · Stage 1 학습 후 동결"]
+  end
+
+  BB["bbox 4채널\\ncx, cy, area, has_bbox"]
+  VIS["비전 피처 256채널"]
+  CAT["프레임 특징 260-dim\\nwindow 6 → 1560-dim"]
+
+  subgraph POL["정책 — Policy"]
+    MLP["MLP 액션 헤드\\n1560→512→128→8\\n0.866M · Stage 2 학습 대상"]
+  end
+
+  ACT["8클래스 로짓\\nSTOP · FWD · L · R\\nFWD+L · FWD+R · ROT_L · ROT_R"]
+
+  XYZ["x, y, z (3-DoF)\\nACTION_3D 룩업(LUT) — 클래스별 (lx, ly, az)"]
+
+  RT["→ 런타임 파이프라인(⑦ Runtime)에서 계속\\n추론 제어(threshold·skip_n·회전규칙)·CAN·바퀴 전달은 별도 도표"]
+
+  LM["Kosmos-2 언어 디코더 1.361B\\n호출 0회 · 로드도 제거함"]
+
+  CAM --> OWL
+  CAM --> KV
+  TXT --> OWL
+  OWL --> BB
+  KV --> PRJ
+  PRJ --> VIS
+  BB --> CAT
+  VIS --> CAT
+  CAT -.-> MLP
+  MLP -.-> ACT
+  ACT -.-> XYZ
+  XYZ -.-> RT
+  KV -. "미사용" .-> LM
+
+  classDef used fill:#0f2a1f,stroke:#2f7d5d,color:#dcfce7
+  classDef train fill:#123524,stroke:#4ade80,color:#dcfce7,stroke-width:2px
+  classDef slow fill:#2b1010,stroke:#b45454,color:#fee2e2
+  classDef unused fill:#1a1a1a,stroke:#4b5563,color:#9ca3af,stroke-dasharray:4 3
+  classDef text fill:#2a1030,stroke:#a78bfa,color:#ede9fe
+  classDef data fill:#111c2e,stroke:#334155,color:#cbd5e1
+  classDef out fill:#123524,stroke:#4ade80,color:#dcfce7,stroke-width:2px
+  classDef note fill:#0d1117,stroke:#334155,color:#94a3b8,stroke-dasharray:4 3
+  class OWL slow
+  class KV,PRJ used
+  class MLP train
+  class LM unused
+  class TXT text
+  class CAM,BB,VIS,CAT,ACT data
+  class XYZ out
+  class RT note
+`;
+
+const ta = document.getElementById('mmSrc');
+const preview = document.getElementById('mmPreview');
+const errBox = document.getElementById('mmErr');
+ta.value = DEFAULT_SRC;
+
+let renderSeq = 0;
+async function render() {
+  const src = ta.value;
+  const id = 'mmLive' + (renderSeq++);
+  try {
+    const { svg } = await mermaid.render(id, src);
+    preview.innerHTML = svg;
+    errBox.textContent = '';
+    makeDraggable(preview.querySelector('svg'));
+  } catch (e) {
+    errBox.textContent = '문법 오류: ' + (e && e.message ? e.message : e);
+  }
+}
+
+function makeDraggable(svgEl) {
+  if (!svgEl) return;
+  svgEl.querySelectorAll('.node').forEach(function (node) {
+    node.style.cursor = 'grab';
+    let start = null, orig = null;
+    node.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      node.setPointerCapture(e.pointerId);
+      start = { x: e.clientX, y: e.clientY };
+      const m = node.transform.baseVal.consolidate();
+      orig = m ? m.matrix : svgEl.createSVGMatrix();
+      node.style.cursor = 'grabbing';
+    });
+    node.addEventListener('pointermove', function (e) {
+      if (!start) return;
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      const t = svgEl.createSVGTransform();
+      t.setMatrix(orig.translate(dx, dy));
+      node.transform.baseVal.clear();
+      node.transform.baseVal.appendItem(t);
+    });
+    node.addEventListener('pointerup', function () {
+      start = null;
+      node.style.cursor = 'grab';
+    });
+  });
+}
+
+let debounce;
+ta.addEventListener('input', function () {
+  clearTimeout(debounce);
+  debounce = setTimeout(render, 500);
+});
+document.getElementById('mmReset').addEventListener('click', function () {
+  ta.value = DEFAULT_SRC;
+  render();
+});
+render();
+</script>
+

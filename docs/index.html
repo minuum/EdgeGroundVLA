@@ -2,10 +2,10 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="MoNaVLA: Open-vocabulary detection + lightweight action head for mobile robot navigation. 89% real-robot success (89/100, 5 positions x 20). Bottleneck is perception: grounding>=80% yields 98.8% success.">
-  <meta name="keywords" content="MoNaVLA, Vision-Language-Action, Robotics, Navigation, CLIP, Decomposition">
+  <meta name="description" content="EdgeGround-VLA: Open-vocabulary detection + lightweight action head for mobile robot navigation. 95% real-robot success (95/100, 5 positions x 20). Bottleneck is perception: grounding>=80% yields 98.8% success.">
+  <meta name="keywords" content="EdgeGround-VLA, Vision-Language-Action, Robotics, Navigation, Open-Vocabulary Detection, On-Device AI">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MoNaVLA: Mobile Navigation VLA</title>
+  <title>EdgeGround-VLA: On-Device Goal-Directed Navigation</title>
 
   <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
@@ -198,11 +198,11 @@
 
 <!-- ══ Hero ══════════════════════════════════════════════════════════════ -->
 <div class="hero-section">
-  <h1>MoNaVLA: <span>Mobile Navigation</span><br>Vision-Language-Action</h1>
+  <h1>EdgeGround-VLA: <span>Heterogeneous Grounding</span><br>for On-Device Goal-Directed Navigation</h1>
   <!-- SYNC:hero_tagline:start -->
   <p class="hero-tagline">
     Open-vocabulary detection + lightweight action head for mobile robot basket navigation.<br>
-    <strong>89% real-robot success</strong> (89/100 · 5 target positions × 20 trials)<br>
+    <strong>95% real-robot success</strong> (95/100 · 5 target positions × 20 trials)<br>
     Bottleneck is perception, not policy — <strong>grounding ≥80% → 98.8% success</strong>.
   </p>
 <!-- SYNC:hero_tagline:end -->
@@ -227,6 +227,9 @@
     <a href="v5/research_story.html#ch67" class="btn btn-slate">
       <i class="fas fa-compass"></i> CH67 차기 구성 검정
     </a>
+    <a href="01.paper/revision_briefing.html" class="btn btn-slate" style="border-color:#f87171;color:#fca5a5">
+      <i class="fas fa-list-check"></i> 논문 수정사항 브리핑 (Figure/Table 트래커)
+    </a>
     <a href="v5/paper_redfill_worklist.html" class="btn btn-slate" style="border-color:#4ade80;color:#86efac">
       <i class="fas fa-pen"></i> 논문 드래프트 보완
     </a>
@@ -250,9 +253,9 @@
 <div class="metrics-bar">
   <div class="metrics-grid">
     <div class="metric-cell">
-      <div class="metric-value" style="color:#16a34a">89%</div>
+      <div class="metric-value" style="color:#16a34a">95%</div>
       <div class="metric-label">실기 성공률</div>
-      <div class="metric-note">89/100 · 5위치 × 20회 (2026-07-31)</div>
+      <div class="metric-note">95/100 · 5위치 × 20회 (2026-08-07 재검증)</div>
     </div>
     <div class="metric-cell">
       <div class="metric-value" style="color:#2563eb">98.8%</div>
@@ -278,15 +281,15 @@
   <div class="section-inner">
     <h2 class="section-title">Abstract</h2>
     <p class="abstract-text">
-      MoNaVLA는 이동로봇의 바구니 접근 주행을 다룹니다. Kosmos-2를 LoRA로 end-to-end
+      EdgeGround-VLA는 이동로봇의 바구니 접근 주행을 다룹니다. Kosmos-2를 LoRA로 end-to-end
       미세조정하는 방식은 <strong>text attention이 구조적으로 0%</strong>가 되어 폐루프
       성공률 0%로 붕괴했고, 이 경로를 이탈해 <strong>분해 파이프라인</strong>으로 전환했습니다.
       현재 구성은 <strong>OWL-v2 오픈 보캐블러리 검출기 + Kosmos-2 비전 인코더(frozen) +
       MLP 액션 헤드</strong>이며, 프레임당 260차원(비전 256 + bbox 4)을 6프레임 묶어 8클래스
       이산 액션을 출력합니다. 언어 디코더는 사용하지 않으므로 엄밀히는 VLA가 아니라
       <strong>"오픈 보캐블러리 검출 + 액션 헤드"</strong>입니다.
-      실기 100회 테스트(5개 목표위치 × 20회)에서 <strong>89% 성공(89/100)</strong>을
-      달성했습니다. 핵심 발견은 <strong>병목이 정책이 아니라 인지</strong>라는 것입니다 —
+      실기 100회 테스트(5개 목표위치 × 20회)에서 <strong>95% 성공(95/100)</strong>을
+      달성했습니다(2026-08-07 재검증). 핵심 발견은 <strong>병목이 정책이 아니라 인지</strong>라는 것입니다 —
       세션 내 검출 성공률이 80% 이상이면 주행 성공률이 <strong>98.8%(79/80)</strong>인 반면
       80% 미만이면 51.2%로 떨어집니다. 다만 그 역은 성립하지 않습니다:
       검출률이 49%로 최악인 배치가 짧은 경로 덕에 90% 성공하기도 하므로,
@@ -613,7 +616,7 @@
 
 <div class="site-footer">
   <p>
-    MoNaVLA · Mobile Navigation Vision-Language-Action ·
+    EdgeGround-VLA · Heterogeneous Grounding for On-Device Navigation ·
     <a href="https://github.com/minuum/EdgeGroundVLA">GitHub</a> ·
     <a href="legacy.html">Archive</a>
   </p>
