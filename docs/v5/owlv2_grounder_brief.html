@@ -51,7 +51,7 @@ img{max-width:100%;border-radius:8px;border:1px solid var(--line)}
 <div class="wrap">
 
 <h1>OWL-v2 그라운더 — 무엇을 건드렸고 어떻게 반응했나</h1>
-<div class="sub">실험 이력 · 계수/임계값 반응 정리 · 2026-08-01 기준 · 모든 수치는 실측
+<div class="sub">실험 이력 · 계수/임계값 반응 정리 · <strong style="color:#4ade80">최종 수정 2026-08-16</strong> (직전 2026-08-01) · 모든 수치는 실측
 &nbsp;|&nbsp; <a href="model_architecture_brief.html">모델 구조 자료</a>
 &nbsp;|&nbsp; <a href="research_story.html#ch64">CH64 근거</a></div>
 
@@ -62,7 +62,7 @@ ground truth가 <strong class="h">cx 방향이 아닌 주관적 위치</strong>�
 185프레임으로 다시 재니 <strong class="g">L/R 방향 정확도 99.1% · 검출 184/185</strong>로
 Kr·PG448과 동급이었고, 이후 배포 그라운더가 됐습니다.
 현재 구조에서 방향 판단은 MLP 헤드가 하고 OWL-v2는 <strong class="h">cx·cy·area만 공급</strong>합니다.
-지금 실기 성패를 결정하는 것이 바로 이 검출률입니다(gnd%≥80 → 98.8% 성공).
+지금 실기 성패를 결정하는 것이 바로 이 검출률입니다(검출률이 높은 세션일수록 성공률이 뚜렷하게 갈림 — 2절·3절).
 </div>
 
 <h2>1. 채택 이력 — 탈락 후 역할 변경으로 재채택</h2>
@@ -144,14 +144,14 @@ Kr·PG448과 동급이었고, 이후 배포 그라운더가 됐습니다.
         <td><code>has_bbox=1</code>, <strong class="r">틀린 cx</strong></td></tr>
     <tr><td>모델 반응</td><td>학습된 적 없음<br>(<code>has_bbox=False</code>가 0/16,599)</td>
         <td>정상 입력으로 취급 → <strong class="r">확신을 갖고 틀린 방향</strong></td></tr>
-    <tr><td>복구 여부</td><td class="g">서빙 제어가 발동<br>(강제 재검출·회전)</td>
+    <tr><td>복구 여부</td><td class="g">추론 제어가 발동<br>(강제 재검출·회전)</td>
         <td class="r"><strong>발동하지 않음</strong><br>(has_bbox=1이므로 정상으로 보임)</td></tr>
     <tr><td>비용</td><td>시간 손실</td><td class="r"><strong>주행 실패</strong></td></tr>
   </table>
   <p style="margin-top:9px">즉 threshold는 <strong class="h">"모른다고 말하기"와 "틀리게 확신하기"
   사이의 선택</strong>입니다. 그리고 <strong>미검출은 복구 경로가 있고 오검출은 없습니다</strong>
   — 이것이 임계값을 무한정 낮출 수 없는 진짜 이유입니다.</p>
-  <p>실기 근거: 그라운딩 가용성이 <strong class="g">80% 이상이면 주행 성공 98.8%(79/80)</strong>,
+  <p>실기 근거<span style="color:#fbbf24">(2026-07-31 159세션 배치)</span>: 그라운딩 가용성이 <strong class="g">80% 이상이면 주행 성공 98.8%(79/80)</strong>,
   <strong class="r">80% 미만이면 51.2%</strong>였습니다
   (<a href="research_story.html#ch64">CH64 64-18</a>, 159 세션).
   threshold는 이 가용성을 직접 움직이는 <strong>유일한 무비용 계수</strong>입니다.</p>
@@ -265,23 +265,45 @@ Youden J 최대점(정탐 95.3% / 오탐 0%)이라 최적이 맞지만, 동시�
 <div class="warn">
 <strong class="r">fp16은 권장하지 않습니다.</strong> "잡으면 정확히 잡지만 애매한 경우를 더 자주
 놓치는" 트레이드인데, <strong class="h">검출률이 곧 실기 성공률</strong>이므로
-(gnd%≥80 → 98.8% / &lt;80 → 51.2%) 성패를 가르는 변수 하나를 팔아 속도를 사는 셈입니다.
+(2026-07-31 배치에서 gnd%≥80 → 98.8% / &lt;80 → 51.2%) 성패를 가르는 변수 하나를 팔아 속도를 사는 셈입니다.
 특히 <strong class="h">threshold 완화와 fp16 동시 적용은 금지</strong> — 두 효과가 겹치면
 실패 빈도가 배가됩니다.
 </div>
 
-<h3>③ bbox_scale = 3.0 (area 배율)</h3>
-<p>OWL-v2가 준 area를 3배로 스케일해 헤드에 넣습니다. 260차원 특징벡터 중 area 채널의
-동적 범위를 키우는 전처리 계수이고, <strong class="h">학습·서빙에 동일하게 적용</strong>됩니다
-(<code>BBOX_SCALE = 3.0</code>). 배포 규격으로 고정돼 있어 이번 세션에서는 변경 실험을 하지
-않았습니다.</p>
+<h3>③ bbox_scale = 3.0 <span style="font-weight:400;color:var(--dim);font-size:0.85rem">— 2026-08-16 정정·재검증</span></h3>
+<div class="warn" style="font-size:0.86rem">
+<strong class="r">이전 판의 오류 2건을 정정합니다.</strong><br>
+① <s>"area 배율"</s> → 실제로는 <strong class="h">bbox 4채널 전체(cx, cy, area, has_bbox)에 적용</strong>됩니다
+(<code>[v * bbox_scale for v in bboxes[idx]]</code>). area만 곱하는 게 아니라 <code>has_bbox=1.0</code>도 3.0이 됩니다.<br>
+② <s>"변경 실험을 하지 않았습니다"</s> → 배포와 동일 조건에서 재검증 완료(아래).
+</div>
+<p>0~1로 정규화된 bbox 값이 L2 정규화된 256차원 비전 특징에 비해 작아, 두 신호의 스케일을 맞추려는
+<strong class="h">입력 특징 스케일링</strong>입니다. 화면에 그려지는 검출 박스의 픽셀 크기와는 무관하며,
+<strong class="h">학습·서빙에 동일 값이 적용</strong>되어야 해서 체크포인트 메타데이터에서 직접 읽습니다.</p>
+<table>
+<tr><th>bbox_scale</th><th class="c">val acc (3-seed)</th><th class="c">FWD+L / FWD+R recall</th></tr>
+<tr><td>1.0</td><td class="c">73.8% ± 0.2%p</td><td class="c">72.3% / 71.5%</td></tr>
+<tr><td>2.0</td><td class="c">74.2% ± 0.2%p</td><td class="c">72.6% / 73.8%</td></tr>
+<tr style="background:rgba(74,222,128,0.08)"><td><strong>3.0 (배포값)</strong></td><td class="c">73.8% ± 0.2%p</td><td class="c">72.5% / 72.2%</td></tr>
+</table>
+<p style="font-size:0.85rem;color:var(--muted)">현 파이프라인(exp73 · OWL-v2 · MLP · stride=1)에서는
+<strong class="o">세 값이 오차범위 안에서 동일</strong>합니다. 옛 exp71(PG2 + Transformer)에서 보고된
+72%→85% 효과는 그라운더와 헤드가 모두 다른 구성이라 현재는 재현되지 않습니다.
+<strong class="h">3.0을 유지하는 이유는 성능 이득이 아니라 배포 체크포인트가 그 값으로 학습됐기 때문</strong>입니다.</p>
 
 <h3>④ grounding_skip_n = 3 (캐시 재사용 주기)</h3>
 <p>OWL-v2가 ~1.9초 걸려서 매 프레임 못 돌립니다. 3프레임마다 1회만 새로 검출하고 나머지는
 직전 bbox를 재사용합니다. 이것이 실기 판단 주기를 <strong class="h">6Hz가 아닌 약 1.3Hz</strong>로
 만드는 원인이고, <strong class="h">zero-order hold(단속 제어)</strong> 구조를 낳습니다.
-학습 쪽에서는 이를 반영한 <strong class="h">hold-aware 학습</strong>(stride 5, 구간 다수결 라벨)으로
-HELD 지표를 7.1% → 28.3%로 개선했습니다.</p>
+<strong class="h">2026-08-07 실기 100세션 실측: 전체 1,088개 결정 중 553개(50.8%)가 캐시 재사용</strong>으로,
+skip_n=3 설정과 일치합니다.</p>
+<div class="note" style="font-size:0.85rem">
+<strong class="o">배포 헤드와의 관계 — 혼동 주의</strong><br>
+이 zero-order hold를 학습에 반영하려는 시도가 <strong>cadence-aligned 학습</strong>(stride 5, 구간 majority-vote 라벨)이었고,
+HELD 지표를 7.1% → 28.3%로 개선했습니다. 다만 <strong class="h">실제 배포된 헤드
+(<code>exp73_owl_stage1v3_v6_mlp.pt</code>)는 cadence-aligned가 아니라 stride=1(프레임 단위)로 학습</strong>되었습니다
+(<code>train_exp73_stage1v3_heads.py</code>의 <code>build_windows()</code>). cadence-aligned는 별도 실험 계열입니다.
+</div>
 
 <h3>⑤ 프롬프트 — "gray basket" 고정</h3>
 <pre>query = phrase   # 코드에서 "gray" 강제 접두를 하지 않는다
@@ -313,7 +335,7 @@ CH58/59(채택 이전 시점)가 마지막이고, <code>multi_prompt</code>는 �
 <tr><th>비교 조건</th><th class="c">PG448</th><th class="c">OWL-v2</th><th class="c">격차</th></tr>
 <tr><td>v6(180ep) / mlp 헤드</td><td class="c">77.9%</td><td class="c">77.7%</td><td class="c">0.2%p</td></tr>
 <tr><td>v6(225ep) / cxgeom 헤드</td><td class="c">76.2%</td><td class="c">75.8%</td><td class="c">0.4%p</td></tr>
-<tr><td>hold-aware 학습 후 HELD 평가</td><td class="c">28.3 ± 3.8%</td><td class="c">25.3 ± 3.8%</td><td class="c">3.0%p</td></tr>
+<tr><td>cadence-aligned 학습 후 HELD 평가</td><td class="c">28.3 ± 3.8%</td><td class="c">25.3 ± 3.8%</td><td class="c">3.0%p</td></tr>
 </table>
 <p>오프라인 지표상 두 그라운더 차이는 대부분 1%p 이내라 "그라운더 교체는 비용 대비 개선폭이
 작다"고 판단했습니다(CH63 63-5). <strong class="h">단 이는 오프라인 재생 기준</strong>이고,
@@ -383,10 +405,28 @@ OWL-v2는 Kosmos-2 비전 인코더의 <strong class="h">절반 크기인데 35�
 대상이 단일 객체로 고정되어 있다는 점이 이 방향의 근거입니다.
 </div>
 
+<h2>5-2. 실기 100세션 그라운딩 실측 (2026-08-07 배치)</h2>
+<p>실기 성공률 95/100을 낸 그 배치의 원본 H5에서 그라운딩 관련 값을 직접 집계했습니다
+(<code>inference_sessions_recv/20260807/h5/</code>, 100세션 · 총 1,088개 결정).</p>
+<table>
+<tr><th>항목</th><th class="c">실측값</th><th>비고</th></tr>
+<tr><td>그라운딩 성공 프레임</td><td class="c g"><strong>985 / 1,088 = 90.5%</strong></td><td><code>bbox[:,3]</code>(has_bbox) 집계</td></tr>
+<tr><td>세션별 검출률 평균</td><td class="c">88.7%</td><td>중앙값은 100.0%</td></tr>
+<tr><td>gnd% ≥ 80%인 세션</td><td class="c">82 / 100</td><td>검출률 100%인 세션은 59개</td></tr>
+<tr><td>캐시 재사용 프레임</td><td class="c">553 / 1,088 = 50.8%</td><td><code>grounding_skip_n=3</code>과 정합</td></tr>
+<tr style="background:rgba(56,189,248,0.1)"><td><code>score_thresh</code></td><td class="c"><strong>100 / 100 세션 모두 0.20</strong></td><td>운영값이 실제로 적용됐음을 세션 단위로 확인</td></tr>
+</table>
+<div class="note">
+<strong class="o">이 배치로는 "gnd% → 성공률" 상관을 재계산할 수 없습니다</strong> —
+H5의 <code>status</code>가 전량 <code>manual_stop</code>이라 <strong class="h">세션별 성공/실패 라벨이 없습니다</strong>.
+2절·3절에 인용한 98.8%(79/80)는 <strong>2026-07-31 159세션 배치</strong>의 값이며,
+당시 성공률은 89/100이었습니다. 두 배치를 같은 근거로 섞어 인용하지 않도록 주의하십시오.
+</div>
+
 <h2>6. 현재 운용 설정 (전체)</h2>
 <pre>grounder_model         = OWL-v2 (google/owlv2-base-patch16-ensemble)
 owlv2_thresh           = 0.20      # 0.25에서 하향 — 3절 ①
-owlv2_area_scale       = 3.0       # bbox area 배율 — 3절 ③
+bbox_scale             = 3.0       # bbox 4채널 전체 배율(area 전용 아님) — 3절 ③
 grounder_input_px      = 960       # 프로세서 native 입력
 grounding_skip_n       = 3         # 캐시 재사용 주기 — 3절 ④
 multi_prompt           = False     # 단일 쿼리 "gray basket" — 3절 ⑤
@@ -398,8 +438,8 @@ cx_jump_filter         = False</pre>
 <p>미검출 시 fallback: <code>cx=0.5, cy=0.6, area=0.06, has_bbox=0</code>.
 헤드는 <code>has_bbox=0</code> 신호를 입력으로 받지만
 <strong class="r">학습 데이터에 has_bbox=False 프레임이 0.00%(0/16,599)</strong>여서
-대응을 배운 적이 없습니다 — 그래서 회복을 서빙 제어 로직으로 처리합니다
-(회전 후 강제 재그라운딩 / 회전 0.4초 후 자동정지<em>(제어 계층)</em> / 연속회전 차단 / 콜드스타트 가드 3프레임).</p>
+대응을 배운 적이 없습니다 — 그래서 회복을 추론 제어 로직으로 처리합니다
+(회전 후 강제 재검출 / 회전 0.4초 후 자동정지<em>(제어 계층)</em> / 연속회전 차단 / 콜드스타트 가드 3프레임).</p>
 
 <h2>7. 남은 과제</h2>
 <div class="key">
@@ -409,9 +449,14 @@ cx_jump_filter         = False</pre>
   기여분이 아직 분리되지 않았습니다(교란).</li>
 <li><strong class="h">has_bbox=False 시범 데이터 수집</strong> — 현재 0.00%인 미검출 상황에
   사람이 정답 행동(탐색 회전·정지)을 시범해 학습에 포함.</li>
-<li><strong class="h">threshold 슬라이더 오프라인 재판정</strong> — soda가 대시보드에 구현 중.
-  저장된 프레임으로 threshold-성능 곡선을 실기 재수집 없이 뽑는 것. per-frame
-  <code>grounding/score</code> H5 저장도 함께 추가됐습니다.</li>
+<li><strong class="h">threshold 슬라이더 오프라인 재판정</strong> —
+  <strong class="g">per-frame H5 저장은 완료 확인</strong>(2026-08-07 배치 100/100 세션에
+  <code>grounding/{bbox, score, score_thresh, latency_ms, cached}</code> 전부 존재,
+  <code>score_thresh</code>는 100/100 모두 <code>0.2</code>). 이제 저장된 score로
+  threshold-검출률 곡선을 실기 재수집 없이 뽑을 수 있습니다.
+  <strong class="o">단 남은 문제</strong> — 그 배치 H5에는 세션별 성공/실패 라벨이 없어
+  (<code>status</code>가 전량 <code>manual_stop</code>) <em>검출률</em> 곡선은 뽑히지만
+  <em>주행 성공률</em>과의 대조는 별도 라벨 없이는 불가능합니다.</li>
 </ol>
 </div>
 <p class="sub" style="margin-top:26px;padding-top:14px;border-top:1px solid var(--line)">
