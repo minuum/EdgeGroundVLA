@@ -1,0 +1,24 @@
+{
+  "measured_at": "2026-08-17",
+  "script": "scripts/eval_stage1_train_acc.py --version v3",
+  "checkpoint": "runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt",
+  "split": {
+    "seed": 42,
+    "unit": "episode",
+    "ratio": "80/20",
+    "train_ep": 180,
+    "val_ep": 45
+  },
+  "train": {
+    "acc": 0.961,
+    "n_frames": 13114,
+    "elapsed_s": 996
+  },
+  "val": {
+    "acc": 0.9409,
+    "n_frames": 3485,
+    "elapsed_s": 270
+  },
+  "gap_pp": 2.01,
+  "note": "학습 스크립트가 train_acc를 기록하지 않아 저장 체크포인트로 재평가. val 0.9409는 체크포인트 저장값과 일치."
+}
