@@ -1,0 +1,50 @@
+{
+  "n_frames": 80,
+  "model": "microsoft/Florence-2-base",
+  "hit_tol_cx": 0.05,
+  "primary_label": "waste container",
+  "configs": {
+    "OD_b3": {
+      "task": "<OD>",
+      "num_beams": 3,
+      "recall_primary_label": 0.375,
+      "recall_any_label": 0.4125,
+      "mean_boxes_per_frame": 1.9625,
+      "rescue_labels": {
+        "power plugs and sockets": 1,
+        "table": 1,
+        "window": 1
+      }
+    },
+    "OD_b5": {
+      "task": "<OD>",
+      "num_beams": 5,
+      "recall_primary_label": 0.4125,
+      "recall_any_label": 0.45,
+      "mean_boxes_per_frame": 2.0625,
+      "rescue_labels": {
+        "power plugs and sockets": 2,
+        "window": 1
+      }
+    },
+    "DENSE_b3": {
+      "task": "<DENSE_REGION_CAPTION>",
+      "num_beams": 3,
+      "recall_primary_label": 0.0,
+      "recall_any_label": 0.5875,
+      "mean_boxes_per_frame": 1.9,
+      "rescue_labels": {
+        "gray plastic laundry hamper with perforated design": 25,
+        "white plastic laundry hamper with perforated design": 10,
+        "empty classroom with gray trash can and red chair": 3,
+        "a gray trash can with a perforated design on the front.": 2,
+        "gray plastic laundry hamper with perforated lid": 1,
+        "white plastic laundry basket with perforated design": 1,
+        "wooden desk with drawer and chair in room with white walls": 1,
+        "metal trash can with horizontal slats": 1,
+        "gray plastic laundry hamper with grille": 1,
+        "metal trash can with perforated design": 1
+      }
+    }
+  }
+}

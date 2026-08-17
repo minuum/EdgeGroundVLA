@@ -1,0 +1,54 @@
+{
+  "n_frames": 80,
+  "model": "microsoft/Florence-2-base",
+  "hit_tol_cx": 0.05,
+  "keywords": [
+    "hamper",
+    "basket",
+    "trash can",
+    "trash bin",
+    "waste container",
+    "waste bin",
+    "wastebasket",
+    "bin",
+    "container"
+  ],
+  "owl_baseline_detect_rate": 0.905,
+  "per_task": {
+    "OD": {
+      "recall": 0.35,
+      "precision": 0.6363636363636364,
+      "selected_rate": 0.55,
+      "cx_mae_when_selected": 0.14171316223312977
+    },
+    "DENSE": {
+      "recall": 0.525,
+      "precision": 0.8571428571428571,
+      "selected_rate": 0.6125,
+      "cx_mae_when_selected": 0.026794240629565008
+    }
+  },
+  "matched_labels": {
+    "waste container": 28,
+    "gray plastic laundry hamper with perforated design": 22,
+    "cabinetry": 16,
+    "white plastic laundry hamper with perforated design": 10,
+    "empty classroom with gray trash can and red chair": 3,
+    "a gray trash can with a perforated design on the front.": 2,
+    "gray plastic laundry hamper with perforated lid": 1,
+    "empty classroom with whiteboard and gray trash can": 1,
+    "abandoned room with white wall and gray trash can": 1,
+    "white plastic laundry basket with perforated design": 1,
+    "a white trash can sitting on the floor in a room with peeling paint.": 1,
+    "metal trash can with horizontal slats": 1,
+    "empty office space with beige filing cabinets and trash can": 1,
+    "empty room with beige filing cabinet and metal chair": 1,
+    "beige filing cabinet with metal chair in room": 1
+  },
+  "union_OD_then_DENSE": {
+    "recall": 0.475,
+    "precision": 0.6666666666666666,
+    "selected_rate": 0.7125,
+    "cx_mae_when_selected": 0.11685557279331034
+  }
+}
