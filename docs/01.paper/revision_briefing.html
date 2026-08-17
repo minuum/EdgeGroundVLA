@@ -226,6 +226,74 @@ image_proj는 카메라가 본 한 장의 이미지가 <strong>5단계 방향(�
 </div>
 </div>
 
+<div class="cf-group" style="border-left-color:#a78bfa">
+<h4 style="color:#a78bfa">📚 "방향 대조 학습" 용어 재검토 — 문헌 근거 (원문 직접 확인)</h4>
+<p style="font-size:0.82rem;color:#94a3b8;margin:0 0 8px">
+<strong style="color:#f87171">"방향 대조 학습"은 표준 용어가 아니라 우리가 만든 조합어</strong>입니다.
+또한 엄밀히는 배치 내 negative 샘플링이 없는 <strong>고정 5-클래스 분류</strong>이므로 대조 학습(contrastive learning)의
+정의에도 정확히 부합하지 않습니다. 아래는 실제 논문 PDF를 받아 <code>pdftotext</code>로 추출해 확인한 근거입니다.
+</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+<tr style="color:#a78bfa;border-bottom:1px solid rgba(167,139,250,0.35)">
+<th style="text-align:left;padding:5px 7px">표현</th>
+<th style="text-align:left;padding:5px 7px">의미</th>
+<th style="text-align:left;padding:5px 7px">적합도</th>
+<th style="text-align:left;padding:5px 7px">근거 — 출처·위치·원문</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px"><code>text-derived classifier</code><br>(텍스트 유도 분류기)</td>
+<td style="padding:5px 7px">텍스트 임베딩이 선형 분류기의 가중치가 됨</td>
+<td style="padding:5px 7px">⭐ 가장 정확</td>
+<td style="padding:5px 7px"><strong>CLIP</strong>(Radford et al., 2021, arXiv:2103.00020) <strong>§3.1.2</strong>:
+<em>"the text encoder is a hypernetwork which generates the weights of a linear classifier based on the text specifying
+the visual concepts that the classes represent"</em><br>
+<span style="color:#64748b">+ Figure 1 캡션: "the learned text encoder synthesizes a zero-shot linear classifier by embedding
+the names or descriptions of the target dataset's classes"</span></td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px"><code>class prototype</code><br>(클래스 프로토타입)</td>
+<td style="padding:5px 7px">각 클래스의 텍스트 임베딩이 그 클래스의 대표 벡터</td>
+<td style="padding:5px 7px">⭐ 정확</td>
+<td style="padding:5px 7px"><strong style="color:#fbbf24">CLIP 논문에는 이 단어가 없음</strong>(전수 검색 0건).
+후속 연구 용어임 — <strong>CLIP-S⁴</strong>(arXiv:2305.01040) Figure 2: <em>"Class Prototypes derived from CLIP
+C={c₀,…,c_{L-1}}"</em>, 본문: <em>"For known classes, the prototypes are pre-computed and fixed during training.
+For unknown classes, the prototypes are learned during training"</em></td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px"><code>cosine similarity classification</code><br>+ temperature scaling</td>
+<td style="padding:5px 7px">코사인 유사도 → τ로 스케일 → softmax</td>
+<td style="padding:5px 7px">⭐ 메커니즘 그대로</td>
+<td style="padding:5px 7px"><strong>CLIP §3.1.2</strong>: <em>"The cosine similarity of these embeddings is then calculated,
+scaled by a temperature parameter τ, and normalized into a probability distribution via a softmax. Note that this
+prediction layer is a multinomial logistic regression classifier with L2-normalized inputs, L2-normalized weights,
+no bias, and temperature scaling."</em><br>
+<span style="color:#4ade80">→ 우리 코드와 1:1 대응: <code>F.normalize</code>(L2) → <code>x @ ap.T</code>(코사인) →
+<code>/ TEMPERATURE</code>(τ=0.07) → <code>CrossEntropyLoss</code>(softmax+NLL)</span></td>
+</tr>
+</table>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:12px 0 4px">→ 추천 표현</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0">
+<strong>"텍스트 앵커를 클래스 프로토타입으로 사용하는 방향 분류 학습(text-derived class prototypes)"</strong>
+</p>
+<p style="font-size:0.82rem;color:#fbbf24;margin:8px 0 0">
+⚠️ 정밀한 단서 2가지 — ① CLIP은 <em>"fixed"</em> 분류기(추론 시 텍스트 인코더 고정)인데
+<strong>우리는 <code>text_proj</code>도 함께 학습해 프로토타입이 움직입니다</strong>. 따라서 "fixed"는 빼고
+"text-derived class prototypes"로만 쓰는 게 정확합니다(CLIP-S⁴의 "learned during training" 쪽에 가까움).
+② CLIP은 이 구조를 <em>추론(zero-shot) 단계</em>에 쓰지만 우리는 <em>학습 단계의 감독 신호</em>로 씁니다.
+</p>
+<p style="font-size:0.82rem;color:#cbd5e1;margin:8px 0 0">
+<strong>VLA 계열에는 대응 용어가 없습니다</strong> — VLA는 언어를 LLM에 넣어 런타임에 조건화하는 구조인데
+우리는 런타임에 언어를 전혀 쓰지 않고 학습 시 시각 특징 공간을 구조화하는 데만 씁니다. 즉 VLA의
+language conditioning이 아니라 <strong>CLIP 계열 프로토타입 분류</strong>입니다 —
+이는 "언어 디코더 미사용"이라는 우리 설계와 일관되며, 오히려 차별점으로 서술할 수 있습니다.
+</p>
+<p style="font-size:0.78rem;color:#64748b;margin:8px 0 0">
+확인 방법: 두 논문 PDF를 받아 <code>pdftotext</code>로 전문 추출 후 문자열 검색.
+CLIP은 <code>grep -i "synthesi\|cosine similarit\|prototype"</code>로 §3.1.2·Figure 1 위치 확정,
+"prototype"은 CLIP 본문에 0건임을 확인 후 CLIP-S⁴에서 출처 재확인.
+</p>
+</div>
+
 <div class="cf-group" style="border-left-color:#4ade80">
 <h4 style="color:#4ade80">📄 Q1+Q2 통합 수정안 — §5.3 해당 문단 (HWP p231) 전/후</h4>
 <p style="font-size:0.82rem;color:#94a3b8;margin:0 0 8px">
