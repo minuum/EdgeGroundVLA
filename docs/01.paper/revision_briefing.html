@@ -172,6 +172,106 @@
 </div>
 </div>
 
+<div id="qa-0816" style="background:rgba(56,189,248,0.08);border:2px solid rgba(56,189,248,0.55);
+     border-radius:12px;padding:20px 22px;margin-bottom:28px">
+<h2 style="margin:0 0 8px;color:#38bdf8;font-size:1.15rem">💬 논문 마무리용 질문 — 교수님 첨삭 (08.16)</h2>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 14px">
+교수님이 초안에 <strong>밑줄</strong>로 표시하거나 <strong>"~는?"</strong>으로 물으신 항목과 그 답변입니다.
+각 항목의 체크박스로 <strong style="color:#fbbf24">컨펌전</strong> → <strong style="color:#4ade80">컨펌완료</strong>를 관리합니다
+(체크 상태는 브라우저에 저장됩니다).
+</p>
+
+<div class="cf-group" style="border-left-color:#38bdf8">
+<h4 style="color:#38bdf8">§5.3 Explanation of Training Methods — 밑줄 2곳</h4>
+
+<div class="cf-item"><input type="checkbox" id="qa-1"><label for="qa-1">
+<strong>Q1. "방향 대조 학습으로 학습하고 고정한다"</strong> (밑줄) — 무슨 학습인지 풀어써야 함
+</label></div>
+<div style="margin:4px 0 14px 26px;padding:10px 14px;background:#0f172a;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 6px">→ 답변 (본문에 이렇게 풀어 쓰기)</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0">
+image_proj는 카메라가 본 한 장의 이미지가 <strong>5단계 방향(강좌·약좌·중앙·약우·강우) 중 어디에 가장 가까운지
+맞히도록</strong> 학습된다. 구체적으로는 이미지에서 뽑은 특징과, "회색 바구니가 이미지의 왼쪽에 많이 치우쳐 있다"처럼
+방향을 서술하는 5개 문장에서 뽑은 특징 사이의 <strong>코사인 유사도</strong>를 비교해, 정답 방향 문장과는 유사도를
+높이고 나머지 4개와는 낮추는 방식으로 학습한다(CLIP의 zero-shot 분류와 같은 구조, 단 온도 파라미터 τ=0.07은
+학습하지 않고 고정). 학습이 끝나면 image_proj 가중치를 <strong>동결</strong>하여 Stage 2에서는 갱신하지 않고
+특징 추출기로만 사용한다.
+</p>
+</div>
+
+<div class="cf-item"><input type="checkbox" id="qa-2"><label for="qa-2">
+<strong>Q2. "1.128M"</strong> (밑줄) — 내역을 밝혀야 함
+</label></div>
+<div style="margin:4px 0 14px 26px;padding:10px 14px;background:#0f172a;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 6px">→ 답변</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.83rem;margin-bottom:8px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">구성요소</th><th style="text-align:left;padding:4px 8px">파라미터</th><th style="text-align:left;padding:4px 8px">학습 단계</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">image_proj (Linear 1024→256)</td><td style="padding:4px 8px">0.262M</td><td style="padding:4px 8px">Stage 1</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">MLP 행동 헤드 (1560→512→128→8)</td><td style="padding:4px 8px">0.866M</td><td style="padding:4px 8px">Stage 2</td></tr>
+<tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>합계 (학습 파라미터)</strong></td><td style="padding:4px 8px"><strong>1.128M</strong></td><td style="padding:4px 8px">—</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">OWL-v2</td><td style="padding:4px 8px">0.155B</td><td style="padding:4px 8px">frozen</td></tr>
+<tr><td style="padding:4px 8px">Kosmos-2 vision_model</td><td style="padding:4px 8px">0.303B</td><td style="padding:4px 8px">frozen</td></tr>
+</table>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0">
+1.128M은 <strong>역전파로 갱신되는 파라미터의 총합</strong>이며, 추론에 실제로 관여하는 파라미터(0.46B)와는 다른
+개념이다. 전체 연산 파라미터 대비 학습 파라미터 비율은 약 <strong>0.25%</strong>다.
+</p>
+<p style="font-size:0.82rem;color:#fbbf24;margin:8px 0 0">
+⚠️ 각주 권장 — 엄밀히는 Stage 1에서 <code>text_proj</code>(2048→256, 0.525M)도 함께 학습되지만,
+배포 시 추론 서버가 체크포인트에서 <code>image_proj</code> 키만 읽으므로 <strong>배포 모델의 학습 파라미터로는
+1.128M이 맞다</strong>. 교수님이 추가로 물으실 수 있어 각주로 밝혀두는 게 안전함.
+</p>
+</div>
+</div>
+
+<div class="cf-group" style="border-left-color:#38bdf8">
+<h4 style="color:#38bdf8">Figure — "Training과 validation의 정확도/loss는?" 3건</h4>
+
+<div class="cf-item"><input type="checkbox" id="qa-3"><label for="qa-3">
+<strong>Q3. image_proj 학습 곡선</strong> — train/val 정확도 <span style="color:#fbbf24">(측정 진행 중)</span>
+</label></div>
+<div style="margin:4px 0 14px 26px;padding:10px 14px;background:#0f172a;border-left:3px solid #fbbf24;border-radius:4px">
+<p style="font-size:0.85rem;color:#fbbf24;font-weight:700;margin:0 0 6px">→ 측정 중</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0">
+val 정확도는 <strong>94.09%</strong>(로그 확인)이나, <strong class="h" style="color:#f87171">train 정확도는 학습 스크립트가
+기록하지 않았습니다</strong>(<code>train_stage1_v3_5cls_owl.py</code>는 매 epoch val만 평가). 그래서
+<code>scripts/eval_stage1_train_acc.py --version v3</code>로 저장된 체크포인트에 대해 train split을 직접 재평가 중입니다
+(16,599프레임 Kosmos-2 재인코딩, 20~40분 예상). 결과 나오면 이 칸을 채웁니다.
+</p>
+</div>
+
+<div class="cf-item"><input type="checkbox" id="qa-4"><label for="qa-4">
+<strong>Q4. Action Head — Accuracy</strong> train/val 정확도 <span style="color:#4ade80">(실측 완료)</span>
+</label></div>
+<div class="cf-item"><input type="checkbox" id="qa-5"><label for="qa-5">
+<strong>Q5. Action Head — Loss</strong> train/val loss <span style="color:#4ade80">(실측 완료)</span>
+</label></div>
+<div style="margin:4px 0 14px 26px;padding:10px 14px;background:#0f172a;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 6px">→ 답변 (Q4·Q5 공통 — 같은 학습 실행에서 나온 값)</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.83rem;margin-bottom:8px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">시점</th><th style="text-align:left;padding:4px 8px">train acc</th><th style="text-align:left;padding:4px 8px">val acc</th><th style="text-align:left;padding:4px 8px">train loss</th><th style="text-align:left;padding:4px 8px">val loss</th></tr>
+<tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>배포 체크포인트 (epoch 225)</strong></td><td style="padding:4px 8px"><strong>91.44%</strong></td><td style="padding:4px 8px"><strong>74.04%</strong></td><td style="padding:4px 8px"><strong>0.169</strong></td><td style="padding:4px 8px">1.953</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">val_loss 최저 (epoch 20)</td><td style="padding:4px 8px">72.29%</td><td style="padding:4px 8px">67.13%</td><td style="padding:4px 8px">0.668</td><td style="padding:4px 8px"><strong>0.926</strong></td></tr>
+<tr><td style="padding:4px 8px">최종 (epoch 299)</td><td style="padding:4px 8px">92.24%</td><td style="padding:4px 8px">73.51%</td><td style="padding:4px 8px">0.146</td><td style="padding:4px 8px">2.040</td></tr>
+</table>
+<img src="../v5/figures/action_head_mlp_training_curve.png" alt="Action Head 학습 곡선 (train/val accuracy & loss)" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.85rem;color:#f87171;font-weight:700;margin:10px 0 4px">⚠️ 이 수치를 낼 때 반드시 함께 설명해야 할 것 — 과적합</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0">
+train 91.4% vs val 74.0%로 <strong>17%p 격차</strong>가 있고, val loss는 epoch 20 이후 계속 <strong>상승</strong>합니다
+(0.926 → 1.953). 즉 과적합이 명확합니다. 감추면 오히려 공격받으니 먼저 인정하고 아래를 근거로 방어하는 편이 낫습니다:
+</p>
+<ol style="font-size:0.85rem;color:#cbd5e1;margin:6px 0 0;padding-left:22px;line-height:1.7">
+<li>체크포인트는 val <strong>accuracy</strong> 최고점(epoch 225)으로 선택 — val loss 최저점(epoch 20)이 아니라는 <strong>선택 기준을 명시</strong></li>
+<li>데이터가 225 에피소드(16,599프레임)로 작아 과적합이 구조적으로 불가피</li>
+<li>그럼에도 <strong>실기 95/100</strong> — val 지표와 실기 성능이 직결되지 않음을 보여주는 증거(Figure 7 방어 문단과 연결)</li>
+</ol>
+<p style="font-size:0.78rem;color:#64748b;margin:8px 0 0">
+근거: seed=0 · 300 epoch · bbox_scale=3.0으로 배포 설정을 재현 학습해 best_val_acc 74.04%(저장값 74.13%와 일치) 확인.
+</p>
+</div>
+</div>
+</div>
+
 <div id="todo-0811fig" style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.5);
      border-radius:12px;padding:20px 22px;margin-bottom:28px">
 <h2 style="margin:0 0 10px;color:#f87171;font-size:1.15rem">☐ 0811 docx — Figure/Table 트래커</h2>
