@@ -1,0 +1,85 @@
+{
+  "n_frames": 6,
+  "model": "microsoft/Florence-2-base",
+  "tasks": {
+    "<CAPTION_TO_PHRASE_GROUNDING>": {
+      "gray basket": {
+        "detect_rate": 1.0,
+        "n": 6,
+        "cx_mean": 0.5146666566530863,
+        "cx_std": 0.040737639862421925,
+        "cx_min": 0.43649998903274534,
+        "cx_max": 0.5674999833106995,
+        "area_mean": 0.08809200563310678
+      },
+      "person": {
+        "detect_rate": 1.0,
+        "n": 6,
+        "cx_mean": 0.4994999828282744,
+        "cx_std": 5.551115123125783e-17,
+        "cx_min": 0.49949998282827435,
+        "cx_max": 0.49949998282827435,
+        "area_mean": 0.996004026640798
+      },
+      "microwave oven": {
+        "detect_rate": 1.0,
+        "n": 6,
+        "cx_mean": 0.5662499777429427,
+        "cx_std": 0.1492575261269636,
+        "cx_min": 0.49949998282827435,
+        "cx_max": 0.8999999523162842,
+        "area_mean": 0.8370296899304148
+      },
+      "_discrimination": 0.0
+    },
+    "<OPEN_VOCABULARY_DETECTION>": {
+      "gray basket": {
+        "detect_rate": 1.0,
+        "n": 6,
+        "cx_mean": 0.5152499854564666,
+        "cx_std": 0.040807214632756,
+        "cx_min": 0.4369999885559082,
+        "cx_max": 0.5679999709129333,
+        "area_mean": 0.08922666701007748
+      },
+      "person": {
+        "detect_rate": 1.0,
+        "n": 6,
+        "cx_mean": 0.4994999828282744,
+        "cx_std": 5.551115123125783e-17,
+        "cx_min": 0.49949998282827435,
+        "cx_max": 0.49949998282827435,
+        "area_mean": 0.996004026640798
+      },
+      "microwave oven": {
+        "detect_rate": 1.0,
+        "n": 6,
+        "cx_mean": 0.5111666501344493,
+        "cx_std": 0.35493221999701985,
+        "cx_min": 0.044999999040737745,
+        "cx_max": 0.9839999675750732,
+        "area_mean": 0.03534599737705525
+      },
+      "_discrimination": 0.0
+    },
+    "<OD>": {
+      "gray basket": {
+        "detect_rate": 0.16666666666666666,
+        "n": 6,
+        "cx_mean": 0.09649999761022628,
+        "cx_std": 0.0,
+        "cx_min": 0.09649999761022628,
+        "cx_max": 0.09649999761022628,
+        "area_mean": 0.12307199824890615
+      }
+    }
+  },
+  "od_labels_seen": {
+    "furniture": 3,
+    "waste container": 3,
+    "power plugs and sockets": 2,
+    "window": 2,
+    "table": 1,
+    "cabinetry": 1
+  }
+}
