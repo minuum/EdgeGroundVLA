@@ -277,8 +277,8 @@
       <li>
         <div class="finding-icon">✅</div>
         <div>
-          <div class="finding-title">실기 100회 테스트 89% — 위치별 100/95/90/80/80%</div>
-          <div class="finding-sub">중앙 20/20 · 약우 19/20 · 강우 18/20 · 강좌 16/20 · 약좌 16/20. 직전 세대(동일 위치)는 20~30%대였다. <strong>이 100건이 이 프로젝트의 판정 기준</strong>이며 offline 지표는 사전 필터일 뿐이다. (CH64 64-18)</div>
+          <div class="finding-title">실기 100회 테스트 95% — 위치별 100/95/95/95/90%</div>
+          <div class="finding-sub">중앙 20/20 · 강좌 19/20 · 약좌 19/20 · 강우 19/20 · 약우 18/20 (2026-08-07 재검증, 평균 11.64스텝). 직전 배치(2026-07-31)는 동일 판정 기준에서 89/100이었고, 그 이전 세대는 20~30%대였다. <strong>이 100건이 이 프로젝트의 판정 기준</strong>이며 offline 지표는 사전 필터일 뿐이다. (CH64 64-18)</div>
         </div>
       </li>
       <li>
@@ -340,8 +340,10 @@
           <td class="val-bad">23.8% (5/21)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
       <tr><td class="tag-model">exp73 챔피언</td><td>OWL-v2 + MLP 헤드 (cadence-aligned)</td>
           <td class="val-mid">50.0% (29/58)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
-      <tr class="highlight-row"><td class="tag-model">현재 배포</td><td>동일 + threshold 0.20 + 회복가드</td>
-          <td class="val-good">89.0% (89/100)</td><td>1902 ms</td><td>5위치 × 20회 · 판정 기준</td></tr>
+      <tr><td class="tag-model">threshold+가드 적용</td><td>동일 + threshold 0.20 + 회복가드</td>
+          <td class="val-good">89.0% (89/100)</td><td>1902 ms</td><td>2026-07-31 배치 · 5위치 × 20회</td></tr>
+      <tr class="highlight-row"><td class="tag-model">현재 배포</td><td>동일 (exp73_owl_stage1v3_v6_mlp.pt)</td>
+          <td class="val-good">95.0% (95/100)</td><td>1902 ms</td><td>2026-08-07 재검증 · 5위치 × 20회 · <strong>판정 기준</strong></td></tr>
       <tr><td class="tag-model">검출기 대체(실험)</td><td>Kosmos-2 patch + 0.279M 헤드</td>
           <td>미측정</td><td class="val-good">53.8 ms (35배↓)</td>
           <td>위치추정만 해결 · has_bbox 미해결로 대체 불가</td></tr>
