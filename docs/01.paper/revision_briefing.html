@@ -456,6 +456,15 @@ val 정확도는 <strong>매 장면(프레임)마다 사람이 조작한 단 하
 <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>같은 방향 성향 내 혼동</strong> (대체 가능한 행동)</td><td style="padding:4px 8px">512</td><td style="padding:4px 8px">21.06%</td><td style="padding:4px 8px"><strong>81.4%</strong></td></tr>
 <tr><td style="padding:4px 8px">STOP 판정 시점 차이</td><td style="padding:4px 8px">69</td><td style="padding:4px 8px">2.84%</td><td style="padding:4px 8px">11.0%</td></tr>
 </table>
+<img src="../v5/figures/action_head_error_severity.png" alt="행동 헤드 val 오류 심각도 분해" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:6px 0">
+<p style="font-size:0.78rem;color:#64748b;margin:0 0 10px">
+좌: 8×8 혼동행렬을 셀 성격별로 색칠 — <span style="color:#86efac">초록=정답</span> ·
+<span style="color:#fde047">노랑=같은 방향 성향 내 혼동(대체 가능)</span> ·
+<span style="color:#fca5a5">빨강=좌우 반전(치명적)</span> · 회색=STOP 판정 시점 차이.
+빨간 칸이 드물고 노란 칸이 지배적인 것이 핵심.
+우: 좌·우·중립 3방향으로 축약하면 74.13% → <strong style="color:#4ade80">81.65%</strong>(+7.52%p).
+생성: <code>scripts/plot_action_head_error_severity.py</code>
+</p>
 <p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 8px">
 즉 <strong style="color:#4ade80">오류의 81.4%가 "틀렸다기보다 다른 유효한 선택"</strong>이고,
 주행을 실제로 망치는 좌우 반전은 <strong>전체 판단의 1.97%</strong>뿐입니다.
