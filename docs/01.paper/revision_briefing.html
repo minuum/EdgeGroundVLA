@@ -226,6 +226,30 @@ image_proj는 카메라가 본 한 장의 이미지가 <strong>5단계 방향(�
 </div>
 </div>
 
+<div class="cf-group" style="border-left-color:#f87171">
+<h4 style="color:#f87171">⚠️ 첨삭본에서 발견한 번호 충돌 — Figure 8이 3개</h4>
+<div class="cf-item"><input type="checkbox" id="qa-0"><label for="qa-0">
+붙여주신 §5.4~5.5 원문에 <strong>"Figure 8"이 서로 다른 3개 그림에 동시에</strong> 붙어 있음 —
+① Figure 8. image_proj 학습 곡선 ② Figure 8. Action Head - Accuracy ③ Figure 8. Action Head - Loss.
+<strong style="color:#fbbf24">번호 재부여 필요</strong>
+</label></div>
+<div style="margin:4px 0 14px 26px;padding:10px 14px;background:#0f172a;border-left:3px solid #fbbf24;border-radius:4px">
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 6px">→ 권장 재부여 (§5.4·§5.5 순서 기준)</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.83rem">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">현재</th><th style="text-align:left;padding:4px 8px">→ 권장</th><th style="text-align:left;padding:4px 8px">내용</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">Figure 8</td><td style="padding:4px 8px"><strong>Figure 5</strong></td><td style="padding:4px 8px">image_proj 학습 곡선 (§5.4)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">Figure 8</td><td style="padding:4px 8px"><strong>Figure 6</strong></td><td style="padding:4px 8px">Action Head — Accuracy (§5.5)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">Figure 8</td><td style="padding:4px 8px"><strong>Figure 7</strong></td><td style="padding:4px 8px">Action Head — Loss (§5.5)</td></tr>
+<tr><td style="padding:4px 8px">Fig 9</td><td style="padding:4px 8px"><strong>Figure 8</strong></td><td style="padding:4px 8px">val 혼동행렬 (기존 §5.5 → 뒤로 밀림)</td></tr>
+</table>
+<p style="font-size:0.82rem;color:#fbbf24;margin:8px 0 0">
+※ §5.5가 "Action Head Training"으로 신설되면서 기존 val 혼동행렬이 뒤로 밀린 구조입니다.
+Action Head 곡선을 <strong>Accuracy/Loss 2개 그림으로 분리</strong>하실 거면 위 표대로,
+<strong>1개 그림(2-패널)으로 합치실 거면</strong> Figure 6 하나로 두고 이후 번호를 한 칸씩 당기면 됩니다.
+</p>
+</div>
+</div>
+
 <div class="cf-group" style="border-left-color:#38bdf8">
 <h4 style="color:#38bdf8">Figure — "Training과 validation의 정확도/loss는?" 3건</h4>
 
@@ -297,6 +321,31 @@ train 91.4% vs val 74.0%로 <strong>17%p 격차</strong>가 있고, val loss는 
 근거: seed=0 · 300 epoch · bbox_scale=3.0으로 배포 설정을 재현 학습해 best_val_acc 74.04%(저장값 74.13%와 일치) 확인.
 </p>
 </div>
+</div>
+
+<div class="cf-group" style="border-left-color:#4ade80">
+<h4 style="color:#4ade80">📄 본문 추가 문단 — Stage 1 vs Stage 2 일반화 격차 (§5.5 말미에 삽입)</h4>
+<div class="cf-item"><input type="checkbox" id="qa-6"><label for="qa-6">
+2.01%p vs 17.40%p 대비를 본문에 서술 — <strong>과적합이 Stage 2에 국한됨</strong>을 논거로 사용
+</label></div>
+<div style="margin:4px 0 6px 26px;padding:12px 16px;background:#0f2a1f;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 8px">→ 그대로 복사해 붙이기</p>
+<p style="font-size:0.88rem;color:#e2e8f0;margin:0;line-height:1.85">
+Stage 1과 Stage 2의 일반화 양상은 뚜렷하게 다르다. image_proj(Stage 1)는 학습 정확도 96.10%(13,114 프레임)
+대 검증 정확도 94.09%(3,485 프레임)로 그 격차가 2.01%p에 불과하나, 행동 헤드(Stage 2)는 학습 정확도 91.44%
+대 검증 정확도 74.04%로 격차가 17.40%p에 이른다. 즉 과적합은 파이프라인 전반의 문제가 아니라
+Stage 2에 국한된 현상이다. 이는 목표물의 방향을 5단계로 판별하는 과제(Stage 1)는 현재의 데이터 규모에서
+충분히 일반화되는 반면, 그 표현 위에서 8개 행동 클래스를 판별하는 과제(Stage 2)는 동일한 데이터 규모에
+비해 난이도가 높다는 것을 시사한다. 행동 헤드의 검증 손실이 학습 후반에 상승하는 것 역시 같은 원인으로
+해석된다. 다만 이러한 격차가 실제 주행 성능을 제한하지는 않았으며, 실로봇 100회 시험에서 95%의 목표
+도달 성공률을 확인하였다(IV장).
+</p>
+</div>
+<p style="font-size:0.82rem;color:#94a3b8;margin:6px 0 0 26px">
+격차 배수로 표현하면 <strong>8.7배</strong>(17.40 ÷ 2.01)입니다. 문장에 넣고 싶으시면
+"격차가 약 8.7배 크다"로 쓸 수 있으나, 두 과제의 클래스 수(5 vs 8)와 난이도가 달라
+<strong style="color:#fbbf24">배수 비교는 과잉 해석으로 보일 수 있어 %p 병기만 권장</strong>합니다.
+</p>
 </div>
 </div>
 
