@@ -438,6 +438,48 @@ train 91.4% vs val 74.0%로 <strong>17%p 격차</strong>가 있고, val loss는 
 <strong style="color:#fbbf24">즉 위 표의 epoch 20은 실제 학습에서 애초에 후보가 아니었습니다</strong>(제 재현 학습은 5 epoch 간격 기록이라 그 지점이 보인 것).</li>
 <li><code>acc &gt;= best_acc</code>(이상)이라 <strong>동점이면 나중 epoch이 채택</strong>되는 편향이 있습니다.</li>
 </ol>
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:14px 0 4px">🛡 격차 방어 논거 — 프레임 단위 정확도 ≠ 에피소드 단위 성공률</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 8px">
+과적합이 있다는 사실은 인정하되, <strong>17.40%p라는 숫자를 그대로 성능 저하로 읽는 것은 부적절</strong>합니다.
+두 지표가 <strong style="color:#fbbf24">측정 단위 자체가 다르기</strong> 때문입니다 —
+val 정확도는 <strong>매 장면(프레임)마다 사람이 조작한 단 하나의 행동과 일치하는지</strong>를 묻고,
+실기 성공률은 <strong>에피소드 단위로 목표에 도달했는지</strong>를 묻습니다.
+같은 시점에서 목표에 접근하는 행동은 보통 하나가 아니므로(목표가 약간 왼쪽이면 FORWARD와 FWD+LEFT 모두 유효)
+앞의 지표가 훨씬 엄격합니다.
+</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 6px">
+<strong>이 주장은 혼동행렬로 검증됩니다</strong> — 오류 629건을 심각도로 분해한 결과:
+</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.83rem;margin-bottom:8px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">오류 성격</th><th style="text-align:left;padding:4px 8px">건수</th><th style="text-align:left;padding:4px 8px">전체 대비</th><th style="text-align:left;padding:4px 8px">오류 대비</th></tr>
+<tr style="border-bottom:1px solid #1e293b;background:rgba(248,113,113,0.08)"><td style="padding:4px 8px"><strong>좌우 반전</strong> (치명적 — 폐루프도 회복 어려움)</td><td style="padding:4px 8px">48</td><td style="padding:4px 8px"><strong>1.97%</strong></td><td style="padding:4px 8px">7.6%</td></tr>
+<tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>같은 방향 성향 내 혼동</strong> (대체 가능한 행동)</td><td style="padding:4px 8px">512</td><td style="padding:4px 8px">21.06%</td><td style="padding:4px 8px"><strong>81.4%</strong></td></tr>
+<tr><td style="padding:4px 8px">STOP 판정 시점 차이</td><td style="padding:4px 8px">69</td><td style="padding:4px 8px">2.84%</td><td style="padding:4px 8px">11.0%</td></tr>
+</table>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 8px">
+즉 <strong style="color:#4ade80">오류의 81.4%가 "틀렸다기보다 다른 유효한 선택"</strong>이고,
+주행을 실제로 망치는 좌우 반전은 <strong>전체 판단의 1.97%</strong>뿐입니다.
+특히 FORWARD ↔ FWD+LEFT/FWD+RIGHT 상호 혼동만 오류의 <strong>52.5%</strong>(330건)를 차지하며,
+이 네 칸을 정답으로 간주하면 정확도는 <strong>87.70%</strong>, 행동을 좌·우·중립 3방향으로 축약하면
+<strong>81.65%</strong>로 올라갑니다.
+</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 8px">
+<strong style="color:#fbbf24">왜 에피소드 단위가 더 관대한가 — 폐루프 재정정</strong>:
+로봇은 매 판단 시점에 <strong>갱신된 관측으로 다시 판단</strong>합니다. 한 시점에서 대체 행동을 골라도
+다음 시점에서 목표 위치가 다시 측정되어 <strong>스스로 보정</strong>됩니다. 에피소드당 평균
+<strong>11.64회</strong>의 판단이 이루어지는 구조라 개별 판단의 불일치가 누적되지 않고 흡수됩니다.
+반면 프레임 단위 채점은 이 보정 기회를 전혀 반영하지 못하고 매 프레임을 독립적으로 감점합니다.
+</p>
+<p style="font-size:0.85rem;color:#4ade80;margin:0 0 10px">
+→ <strong>결론: val 정확도는 실기 성능의 하한(lower bound)에 가깝게 해석해야 한다.</strong>
+이것이 val 74.1%와 실기 95%가 모순이 아닌 이유입니다.
+</p>
+<p style="font-size:0.78rem;color:#64748b;margin:0 0 10px">
+근거: <code>scripts/analyze_action_head_error_severity.py</code> →
+<code>docs/v5/detector/action_head_error_severity.json</code>.
+좌 계열={LEFT, FWD+L, ROT_L} · 우 계열={RIGHT, FWD+R, ROT_R} · 중립={STOP, FORWARD}으로 나눠
+좌↔우 교차를 반전으로, 같은 성향 내 혼동을 경미로 분류.
+</p>
 <p style="font-size:0.85rem;color:#f87171;margin:8px 0 0">
 <strong>솔직히 약한 부분 — 먼저 밝히는 편이 안전</strong>: ① loss 기준 조기종료(예: epoch 20 지점) 모델이 실기에서 더 좋은지
 <strong>테스트한 적이 없습니다</strong>. loss는 3배 낮지만 val 정확도는 7%p 낮은 모델이라 어느 쪽이 유리한지 데이터가 없습니다.

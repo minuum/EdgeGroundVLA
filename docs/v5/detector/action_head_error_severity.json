@@ -1,0 +1,29 @@
+{
+  "source": "docs/v5/detector/confusion_matrix_stage1v3_correct.json",
+  "n_val_decisions": 2431,
+  "val_acc": 0.7412587412587412,
+  "errors": 629,
+  "severity": {
+    "direction_flip": {
+      "n": 48,
+      "of_total": 0.01974496092143151,
+      "of_errors": 0.07631160572337042
+    },
+    "benign_same_side": {
+      "n": 512,
+      "of_total": 0.21061291649526945,
+      "of_errors": 0.8139904610492846
+    },
+    "stop_related": {
+      "n": 69,
+      "of_total": 0.028383381324557796,
+      "of_errors": 0.10969793322734499
+    }
+  },
+  "fwd_vs_diagonal_only": {
+    "n": 330,
+    "of_errors": 0.5246422893481717,
+    "acc_if_treated_correct": 0.8770053475935828
+  },
+  "acc_collapsed_to_left_right_neutral": 0.8165364047716989
+}
