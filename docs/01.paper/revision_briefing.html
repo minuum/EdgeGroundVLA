@@ -226,6 +226,64 @@ image_proj는 카메라가 본 한 장의 이미지가 <strong>5단계 방향(�
 </div>
 </div>
 
+<div class="cf-group" style="border-left-color:#4ade80">
+<h4 style="color:#4ade80">📄 Q1+Q2 통합 수정안 — §5.3 해당 문단 (HWP p231) 전/후</h4>
+<p style="font-size:0.82rem;color:#94a3b8;margin:0 0 8px">
+두 밑줄(<code>방향 대조 학습으로 학습하고 고정한다</code>, <code>1.128M</code>)이 <strong>같은 문단</strong>에 있어
+한 번의 수정으로 둘 다 해소합니다. HWP 원본 파싱으로 확인한 실제 문단 내용 기준.
+</p>
+
+<div class="cf-item"><input type="checkbox" id="qa-7"><label for="qa-7">
+§5.3 문단(p231)을 아래 "수정 후"로 교체 — 두 밑줄 동시 해소
+</label></div>
+
+<div style="margin:4px 0 10px 26px;padding:12px 16px;background:#1a1010;border-left:3px solid #f87171;border-radius:4px">
+<p style="font-size:0.85rem;color:#f87171;font-weight:700;margin:0 0 6px">수정 전 (현재 원문)</p>
+<p style="font-size:0.86rem;color:#cbd5e1;margin:0;line-height:1.8">
+학습 분할은 에피소드 단위로 15%를 validation으로 떼어냈으며(SPLIT_SEED=42), 프레임 단위가 아니라 에피소드
+단위로 분할하였다. 학습 대상은 Stage 1에서 image_proj(0.262M)를 <u style="color:#f87171">방향 대조 학습으로
+학습하고 고정한다</u>. 그리고 Stage 2에서 그 위에 MLP 헤드(0.866M)만 학습하는 구조이다. 전체 학습
+파라미터는 <u style="color:#f87171">1.128M</u>이다. OWL-v2와 Kosmos-2 비전 타워는 두 단계 모두 frozen
+상태로 유지된다.
+</p>
+</div>
+
+<div style="margin:4px 0 10px 26px;padding:12px 16px;background:#0f2a1f;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 6px">수정 후 (그대로 복사)</p>
+<p style="font-size:0.86rem;color:#e2e8f0;margin:0;line-height:1.85">
+학습 분할은 에피소드 단위로 15%를 validation으로 떼어냈으며(SPLIT_SEED=42), 프레임 단위가 아니라 에피소드
+단위로 분할하였다. 학습은 두 단계로 나뉜다. Stage 1에서는 image_proj(0.262M)를 <strong>방향 대조 학습</strong>,
+즉 이미지에서 추출한 특징을 방향을 서술하는 5개 문장의 텍스트 특징과 대조하여 정렬시키는 학습(5.4절에서 상술)으로
+사전 학습한 뒤 그 가중치를 고정한다. Stage 2에서는 고정된 image_proj 위에서 MLP 행동 헤드(0.866M)만 학습한다.
+따라서 역전파로 갱신되는 파라미터는 두 단계를 합쳐 <strong>1.128M(= 0.262M + 0.866M)</strong>이며, 이는 추론에
+참여하는 전체 파라미터 0.46B의 약 <strong>0.25%</strong>에 해당한다. OWL-v2(0.155B)와 Kosmos-2 비전
+타워(0.303B)는 두 단계 모두 frozen 상태로 유지되어 학습되지 않는다.
+</p>
+</div>
+
+<p style="font-size:0.85rem;color:#cbd5e1;margin:6px 0 4px 26px"><strong>무엇이 바뀌었나</strong></p>
+<ol style="font-size:0.84rem;color:#cbd5e1;margin:0 0 8px 26px;padding-left:22px;line-height:1.7">
+<li><strong>"방향 대조 학습"에 그 자리에서 한 줄 정의를 붙이고</strong> "(5.4절에서 상술)"로 안내 —
+<strong style="color:#fbbf24">원문에도 바로 다음 문단(p232)에 이미 쉬운 설명이 있는데</strong>, 밑줄 지점에서
+그 설명이 곧 나온다는 신호가 없어 교수님이 표시하신 것으로 보임. 문단을 옮기지 않고 예고만 넣어 해소.</li>
+<li><strong>1.128M의 산식을 괄호로 명시</strong>(= 0.262M + 0.866M) — 원문도 0.262M·0.866M을 각각 적고 있어
+계산은 가능하나 합산 근거가 문장으로 연결되지 않았음.</li>
+<li><strong>"전체 파라미터의 약 0.25%"</strong>를 추가 — 1.128M이 무엇에 대비해 작은지 기준이 없어
+숫자만으로는 경량성이 전달되지 않음. 경량화가 논문 주제이므로 이 비율이 핵심.</li>
+<li>frozen 백본의 파라미터 수(0.155B·0.303B)를 병기해 위 비율의 분모를 검증 가능하게 함.</li>
+</ol>
+<p style="font-size:0.82rem;color:#fbbf24;margin:0 0 4px 26px">
+⚠️ 각주 권장 — 엄밀히는 Stage 1에서 <code>text_proj</code>(2048→256, 0.525M)도 함께 갱신되지만,
+배포 시 추론 서버가 체크포인트에서 <code>image_proj</code> 키만 읽으므로 <strong>배포 모델의 학습 파라미터로는
+1.128M이 맞다</strong>. 교수님이 "그럼 텍스트 쪽은?"이라고 물으실 수 있어 각주로 밝혀두는 편이 안전함.
+</p>
+<p style="font-size:0.8rem;color:#64748b;margin:0 0 0 26px">
+근거: <code>docs/01.paper/figure/…_초안_0815.hwp</code> OLE 직접 파싱(CharShape 70개 전수) — 빨간 글씨는 문서 전체에서
+4건(p231·p268·p272·p274)으로 확인. 단 <strong>밑줄·형광펜 속성은 CharShape에서 0건</strong>으로,
+<code>1.128M</code>의 밑줄은 파일에서 확인되지 않아 사용자 확인에 따라 밑줄로 간주하고 작성함.
+</p>
+</div>
+
 <div class="cf-group" style="border-left-color:#f87171">
 <h4 style="color:#f87171">⚠️ 첨삭본에서 발견한 번호 충돌 — Figure 8이 3개</h4>
 <div class="cf-item"><input type="checkbox" id="qa-0"><label for="qa-0">
