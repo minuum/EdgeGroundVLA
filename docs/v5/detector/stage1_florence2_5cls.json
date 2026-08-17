@@ -1,0 +1,70 @@
+{
+  "backbone": "microsoft/Florence-2-base",
+  "baseline_backbone": "kosmos-2-patch14-224",
+  "val_acc": 0.9492108821868896,
+  "baseline_val_acc": 0.9408895265423243,
+  "delta": 0.008321355644565376,
+  "n_episodes": 225,
+  "n_frames": 16599,
+  "n_train_ep": 180,
+  "n_val_ep": 45,
+  "n_train_frames": 13114,
+  "n_val_frames": 3485,
+  "confusion_matrix": [
+    [
+      776,
+      23,
+      0,
+      0,
+      6
+    ],
+    [
+      24,
+      682,
+      15,
+      1,
+      0
+    ],
+    [
+      8,
+      14,
+      536,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      4,
+      643,
+      41
+    ],
+    [
+      0,
+      3,
+      0,
+      37,
+      671
+    ]
+  ],
+  "class_order": [
+    "strong_left",
+    "weak_left",
+    "center",
+    "weak_right",
+    "strong_right"
+  ],
+  "per_class_acc": [
+    0.9639751552795031,
+    0.9445983379501385,
+    0.9588550983899821,
+    0.934593023255814,
+    0.9437412095639943
+  ],
+  "epochs": 30,
+  "batch_size": 16,
+  "lr": 0.0003,
+  "temperature": 0.07,
+  "checkpoint": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/stage1_florence2_5cls/stage1_florence2_5cls_projs.pt",
+  "elapsed_min": 37.74105046192805
+}
