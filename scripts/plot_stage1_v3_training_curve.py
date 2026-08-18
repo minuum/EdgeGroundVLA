@@ -21,16 +21,16 @@ final = best[-1]
 
 plt.rcParams["font.family"] = "NanumGothic"
 plt.rcParams["axes.unicode_minus"] = False
-plt.rcParams.update({"font.size": 15})
-fig, ax = plt.subplots(figsize=(11, 6.5))
+plt.rcParams.update({"font.size": 20})
+fig, ax = plt.subplots(figsize=(13, 7.5))
 ax.plot(epochs, val_acc, "o-", color="#38bdf8", label="epoch별 val_acc", linewidth=2, markersize=6)
 ax.plot(epochs, best, "-", color="#22c55e", label="best (누적 최고)", linewidth=3)
 ax.axhline(final, color="#f87171", linestyle="--", linewidth=1.5, label=f"최종 {final:.2f}%")
-ax.set_xlabel("epoch", fontsize=18, fontweight="bold")
-ax.set_ylabel("val 정확도 (%)", fontsize=18, fontweight="bold")
-ax.set_title("image_proj Stage 1 학습 곡선 (5-class, 225ep 체크포인트, 30 epoch 로그)", fontsize=15)
-ax.tick_params(axis="both", labelsize=14)
-ax.legend(fontsize=14, loc="lower right")
+ax.set_xlabel("epoch", fontsize=24, fontweight="bold")
+ax.set_ylabel("val 정확도 (%)", fontsize=24, fontweight="bold")
+ax.set_title("image_proj Stage 1 학습 곡선 (5-class, 225ep 체크포인트, 30 epoch 로그)", fontsize=19)
+ax.tick_params(axis="both", labelsize=18)
+ax.legend(fontsize=17, loc="lower right")
 ax.grid(True, alpha=0.3)
 fig.tight_layout()
 fig.savefig(OUT, dpi=150)

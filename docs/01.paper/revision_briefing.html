@@ -349,6 +349,7 @@ val 정확도는 프레임마다 사람의 단일 행동과 일치하는지를 �
 <tr><td style="padding:4px 8px">STOP 판정 시점 차이</td><td style="padding:4px 8px">69</td><td style="padding:4px 8px">11.0%</td></tr>
 </table>
 <img src="../v5/figures/action_head_error_severity.png" alt="행동 헤드 val 오류 심각도 분해" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:6px 0">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity.png)</a></p>
 <p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 8px">
 오류의 81.4%가 "다른 유효한 선택"이고 좌우 반전은 1.97%뿐. 좌·우·중립 3방향 축약 시 74.13%→<strong style="color:#4ade80">81.65%</strong>.
 로봇은 에피소드당 평균 11.64회 재판단하므로 개별 판단 불일치가 폐루프에서 자가 보정됨.
@@ -410,6 +411,7 @@ image_proj Stage 1 loss 곡선 생성 — 완료 (비전 특징 캐싱으로 병
 <div style="margin:4px 0 0 26px;padding:12px 16px;background:#0f2a1f;border-left:3px solid #4ade80;border-radius:4px">
 <p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 8px">→ Loss 곡선 (신규)</p>
 <img src="../v5/figures/stage1_v3_loss_curve.png" alt="image_proj Stage 1 train/val loss 곡선" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_loss_curve.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_loss_curve.png)</a></p>
 <p style="font-size:0.82rem;color:#cbd5e1;margin:8px 0 0">
 train loss와 val loss가 함께 감소하며 수렴 — <strong style="color:#4ade80">Action Head(Stage 2)와 달리 val loss가 학습 후반에 상승하지 않음</strong>.
 Stage 1은 과적합 징후가 없다는 기존 결론(train-val 격차 2.01%p)을 loss 관점에서도 뒷받침합니다.
@@ -1139,6 +1141,7 @@ inference-integration·monavla-driving 양쪽 push 완료). 위 사진 기반 �
   style="max-width:480px;width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
   <p style="margin:12px 0 0"><strong style="color:#4ade80">🆕 신규 그래프 (0807 초고 반영)</strong></p>
   <p style="margin:9px 0 0"><img src="../v5/figures/stage1_v3_training_curve.png" alt="image_proj Stage1 v3 학습 곡선"
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_training_curve.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_training_curve.png)</a></p>
   style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
   <p style="font-size:0.78rem;color:#64748b;margin:6px 0 0">30 epoch 수렴 곡선(94.09%) —
   <code>train_stage1_v3_5cls_owl.log</code>에서 그대로 뽑은 것, 새 학습/테스트 없음.
@@ -2335,6 +2338,7 @@ mermaid.render('mm-tk7-svg', SRC_TK7).then(({svg}) => {
 <h4>Figure 5. image_proj 학습 곡선 <span style="font-size:0.75rem;color:#4ade80">(최종본)</span></h4>
 <div class="loc">위치: §5.4 image_proj training (구 VII 부록 삭제 → 본문으로 이동)</div>
 <img src="../v5/figures/stage1_v3_training_curve.png" alt="image_proj 학습 곡선" style="max-width:520px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_training_curve.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_training_curve.png)</a></p>
 <p style="font-size:0.85rem;color:#cbd5e1">5-class(강좌/약좌/중앙/약우/강우), 225ep, 30 epoch 수렴 곡선. 최종 val_acc 94.09%. "재학습"→"학습" 표기 정정 완료된 최신판. 부록(VII) 섹션이 삭제되면서 §5.2/§5.3 직후 본문 안으로 위치가 당겨짐 — 번호도 8→5로 정정 필요.</p>
 </div>
 
