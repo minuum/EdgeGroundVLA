@@ -192,7 +192,6 @@ def main():
     print(f"[DEVICE] {device}")
 
     all_eps = load_frame_level_data()
-    preload_all_episodes(all_eps)
     ep_dirs = [ep["direction"] for ep in all_eps]
 
     from collections import Counter
@@ -205,20 +204,33 @@ def main():
     val_eps = [all_eps[i] for i in te_idx]
     print(f"       train={len(tr_eps)} ep / val={len(val_eps)} ep")
 
-    print("[MODEL] 로드 중...")
-    processor, base_model = load_base_model(device)
-    vision_model = base_model.vision_model.to(device)
-    for p in vision_model.parameters():
-        p.requires_grad = False
-    vision_model.eval()
+    if FEAT_CACHE_PATH.exists():
+        print(f"[FEAT-CACHE] 기존 캐시 재사용 — 이미지 프리로드/비전 인코더 로드 생략: {FEAT_CACHE_PATH}")
+        raw_feat_cache = torch.load(FEAT_CACHE_PATH, map_location=device)
+        anchor_raw = None  # 아래에서 텍스트 앵커만 다시 계산
+        print("[MODEL] 텍스트 앵커만 계산 중...")
+        processor, base_model = load_base_model(device)
+        anchor_raw = compute_text_anchors(base_model, processor, device)
+        del base_model
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        print(f"[MODEL] text anchor 계산 완료 ({N_CLASSES}-class)")
+    else:
+        preload_all_episodes(all_eps)
+        print("[MODEL] 로드 중...")
+        processor, base_model = load_base_model(device)
+        vision_model = base_model.vision_model.to(device)
+        for p in vision_model.parameters():
+            p.requires_grad = False
+        vision_model.eval()
 
-    anchor_raw = compute_text_anchors(base_model, processor, device)
-    print(f"[MODEL] text anchor 계산 완료 ({N_CLASSES}-class)")
+        anchor_raw = compute_text_anchors(base_model, processor, device)
+        print(f"[MODEL] text anchor 계산 완료 ({N_CLASSES}-class)")
 
-    raw_feat_cache = build_raw_feat_cache(vision_model, processor, all_eps, device)
-    del vision_model, base_model
-    if device.type == "cuda":
-        torch.cuda.empty_cache()
+        raw_feat_cache = build_raw_feat_cache(vision_model, processor, all_eps, device)
+        del vision_model, base_model
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
 
     image_proj = nn.Linear(VIS_DIM, PROJ_DIM).to(device)
     text_proj  = nn.Linear(LM_DIM,  PROJ_DIM).to(device)
@@ -238,8 +250,8 @@ def main():
     best_acc, best_state = 0.0, None
     history = []
 
-    print(f"\n{'epoch':>6} {'train_loss':>11} {'val_loss':>9} {'val_acc':>9} {'best':>9}")
-    print("-" * 50)
+    print(f"\n{'epoch':>6} {'train_loss':>11} {'val_loss':>9} {'train_acc':>9} {'val_acc':>9} {'best':>9}")
+    print("-" * 60)
 
     for epoch in range(1, EPOCHS + 1):
         image_proj.train(); text_proj.train()
@@ -247,8 +259,10 @@ def main():
 
         batch_feats, batch_labels = [], []
         train_losses = []
+        train_correct = train_total = 0
 
         def step(feats, labels):
+            nonlocal train_correct, train_total
             x = torch.stack(feats, dim=0)
             y = torch.tensor(labels, dtype=torch.long, device=device)
             proj_x = F.normalize(image_proj(x), dim=-1)
@@ -258,6 +272,10 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            with torch.no_grad():
+                pred = logits.argmax(dim=1)
+                train_correct += int((pred == y).sum().item())
+                train_total += y.numel()
             return loss.item()
 
         for ep in tr_eps:
@@ -272,6 +290,7 @@ def main():
                     batch_feats, batch_labels = [], []
         if batch_feats:
             train_losses.append(step(batch_feats, batch_labels))
+        train_acc = train_correct / train_total if train_total > 0 else 0.0
 
         scheduler.step()
         with torch.no_grad():
@@ -288,8 +307,8 @@ def main():
                 "val_acc": best_acc, "dir_idx": DIR_IDX,
             }
 
-        history.append({"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss, "val_acc": acc, "best_val_acc": best_acc})
-        print(f"{epoch:>6}  {train_loss:>11.4f}  {val_loss:>9.4f}  {acc:>8.4f}  {best_acc:>8.4f}")
+        history.append({"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss, "train_acc": train_acc, "val_acc": acc, "best_val_acc": best_acc})
+        print(f"{epoch:>6}  {train_loss:>11.4f}  {val_loss:>9.4f}  {train_acc:>9.4f}  {acc:>8.4f}  {best_acc:>8.4f}")
 
     print(f"\n{'='*50}\n  Stage 1 v3 재학습(fastloss) 완료 — val_acc: {best_acc:.4f}\n{'='*50}")
 
