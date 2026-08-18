@@ -322,10 +322,10 @@ Stage 2에서 그 위에 MLP 헤드(0.866M)만 학습하는 구조이다. 전체
 <tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">시점</th><th style="text-align:left;padding:4px 8px">train acc</th><th style="text-align:left;padding:4px 8px">val acc</th><th style="text-align:left;padding:4px 8px">val loss</th></tr>
 <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>배포(epoch 225)</strong></td><td style="padding:4px 8px"><strong>91.44%</strong></td><td style="padding:4px 8px"><strong>74.04%</strong></td><td style="padding:4px 8px">1.953</td></tr>
 </table>
-<img src="../v5/figures/action_head_acc_only.png" alt="Action Head Training/Validation Accuracy" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_acc_only.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_acc_only.png)</a></p>
-<img src="../v5/figures/action_head_loss_only.png" alt="Action Head Training/Validation Loss" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:10px">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_loss_only.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_loss_only.png)</a></p>
+<img src="../v5/figures/action_head_acc_only.png?v=1787056124" alt="Action Head Training/Validation Accuracy" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_acc_only.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_acc_only.png)</a></p>
+<img src="../v5/figures/action_head_loss_only.png?v=1787056124" alt="Action Head Training/Validation Loss" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:10px">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_loss_only.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_loss_only.png)</a></p>
 <p style="font-size:0.85rem;color:#f87171;font-weight:700;margin:10px 0 4px">⚠️ 함께 설명해야 할 것 — 과적합</p>
 <p style="font-size:0.85rem;color:#cbd5e1;margin:0">
 17%p 격차 + val loss 상승(0.926→1.953) — 과적합은 명확. 방어 논거:
@@ -351,10 +351,27 @@ val 정확도는 프레임마다 사람의 단일 행동과 일치하는지를 �
 <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>같은 방향 성향 내 혼동</strong>(대체가능)</td><td style="padding:4px 8px">512</td><td style="padding:4px 8px"><strong>81.4%</strong></td></tr>
 <tr><td style="padding:4px 8px">STOP 판정 시점 차이</td><td style="padding:4px 8px">69</td><td style="padding:4px 8px">11.0%</td></tr>
 </table>
-<img src="../v5/figures/action_head_error_severity_8x8.png" alt="행동 헤드 val 오류 심각도 분해 — 8x8 혼동행렬" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:6px 0">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity_8x8.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity_8x8.png)</a></p>
-<img src="../v5/figures/action_head_error_severity_3x3.png" alt="행동 헤드 val 오류 심각도 분해 — 좌우중립 3x3 축약" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:10px 0 6px">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity_3x3.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity_3x3.png)</a></p>
+<div style="margin:0 0 12px;padding:12px 14px;background:#0f172a;border-left:3px solid #94a3b8;border-radius:4px">
+<p style="font-size:0.82rem;color:#e2e8f0;font-weight:700;margin:0 0 6px">📐 %가 어떻게 나왔는지 (분모별 정리)</p>
+<p style="font-size:0.82rem;color:#cbd5e1;margin:0 0 6px">
+전체 검증 데이터 2,431건 중 정답 1,802건, 오류 629건. "좌우 반전"은 왼쪽 계열(LEFT·FWD+L·ROT_L)인데
+오른쪽 계열로 잘못 예측(25건) + 오른쪽 계열인데 왼쪽 계열로 잘못 예측(23건) = <strong>48건</strong>.
+</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+<tr style="color:#94a3b8;border-bottom:1px solid #334155"><th style="text-align:left;padding:3px 6px">기준(분모)</th><th style="text-align:left;padding:3px 6px">계산</th><th style="text-align:left;padding:3px 6px">값</th><th style="text-align:left;padding:3px 6px">어디 쓰였나</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">전체 2,431건</td><td style="padding:3px 6px">48 ÷ 2431</td><td style="padding:3px 6px"><strong>1.97%</strong></td><td style="padding:3px 6px">본문 서술("전체 판단의 1.97%")</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:3px 6px">오류 629건</td><td style="padding:3px 6px">48 ÷ 629</td><td style="padding:3px 6px"><strong>7.6%</strong></td><td style="padding:3px 6px">위 표 "오류 대비"열</td></tr>
+<tr><td style="padding:3px 6px">좌/우 계열 각각 (467건/740건)</td><td style="padding:3px 6px">25÷467, 23÷740</td><td style="padding:3px 6px"><strong>5.4%, 3.1%</strong></td><td style="padding:3px 6px">아래 3x3 혼동행렬 그림</td></tr>
+</table>
+<p style="font-size:0.78rem;color:#64748b;margin:6px 0 0">
+같은 48건을 "전체에서 보면 얼마나 드문가"(1.97%) / "틀린 것들 중에선 얼마나 되나"(7.6%) /
+"그 방향 데이터 안에서는 얼마나 되나"(5.4%·3.1%) 세 가지 관점으로 나눈 것 — 서로 다른 숫자가 아니라 분모만 다름.
+</p>
+</div>
+<img src="../v5/figures/action_head_error_severity_8x8.png?v=1787056124" alt="행동 헤드 val 오류 심각도 분해 — 8x8 혼동행렬" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:6px 0">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity_8x8.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity_8x8.png)</a></p>
+<img src="../v5/figures/action_head_error_severity_3x3.png?v=1787056124" alt="행동 헤드 val 오류 심각도 분해 — 좌우중립 3x3 축약" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:10px 0 6px">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity_3x3.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity_3x3.png)</a></p>
 <p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 8px">
 오류의 81.4%가 "다른 유효한 선택"이고 좌우 반전은 1.97%뿐. 좌·우·중립 3방향 축약 시 74.13%→<strong style="color:#4ade80">81.65%</strong>.
 로봇은 에피소드당 평균 11.64회 재판단하므로 개별 판단 불일치가 폐루프에서 자가 보정됨.
@@ -415,10 +432,10 @@ image_proj Stage 1 loss 곡선 생성 — 완료 (비전 특징 캐싱으로 병
 </label></div>
 <div style="margin:4px 0 0 26px;padding:12px 16px;background:#0f2a1f;border-left:3px solid #4ade80;border-radius:4px">
 <p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 8px">→ Loss 곡선 (신규)</p>
-<img src="../v5/figures/stage1_v3_loss_only.png" alt="image_proj Stage 1 train/val loss 곡선" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_loss_only.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_loss_only.png)</a></p>
-<img src="../v5/figures/stage1_v3_valacc_only.png" alt="image_proj Stage 1 validation accuracy 곡선" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:10px">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_valacc_only.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_valacc_only.png)</a></p>
+<img src="../v5/figures/stage1_v3_loss_only.png?v=1787056124" alt="image_proj Stage 1 train/val loss 곡선" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_loss_only.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_loss_only.png)</a></p>
+<img src="../v5/figures/stage1_v3_valacc_only.png?v=1787056124" alt="image_proj Stage 1 validation accuracy 곡선" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:10px">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_valacc_only.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_valacc_only.png)</a></p>
 <p style="font-size:0.82rem;color:#cbd5e1;margin:8px 0 0">
 train loss와 val loss가 함께 감소하며 수렴 — <strong style="color:#4ade80">Action Head(Stage 2)와 달리 val loss가 학습 후반에 상승하지 않음</strong>.
 Stage 1은 과적합 징후가 없다는 기존 결론(train-val 격차 2.01%p)을 loss 관점에서도 뒷받침합니다.
@@ -1183,8 +1200,8 @@ inference-integration·monavla-driving 양쪽 push 완료). 위 사진 기반 �
   <p style="margin:9px 0 0"><img src="../v5/figures/stage1_v3_confusion.png" alt="F8 image_proj Stage1 v3 5-class 혼동행렬"
   style="max-width:480px;width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
   <p style="margin:12px 0 0"><strong style="color:#4ade80">🆕 신규 그래프 (0807 초고 반영)</strong></p>
-  <p style="margin:9px 0 0"><img src="../v5/figures/stage1_v3_training_curve.png" alt="image_proj Stage1 v3 학습 곡선"
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_training_curve.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_training_curve.png)</a></p>
+  <p style="margin:9px 0 0"><img src="../v5/figures/stage1_v3_training_curve.png?v=1787056124" alt="image_proj Stage1 v3 학습 곡선"
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_training_curve.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_training_curve.png)</a></p>
   style="max-width:100%;background:#fff;border-radius:6px;border:1px solid #1e293b"></p>
   <p style="font-size:0.78rem;color:#64748b;margin:6px 0 0">30 epoch 수렴 곡선(94.09%) —
   <code>train_stage1_v3_5cls_owl.log</code>에서 그대로 뽑은 것, 새 학습/테스트 없음.
@@ -2380,16 +2397,16 @@ mermaid.render('mm-tk7-svg', SRC_TK7).then(({svg}) => {
 <div id="tk-16" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
 <h4>Figure 5. image_proj 학습 곡선 <span style="font-size:0.75rem;color:#4ade80">(최종본)</span></h4>
 <div class="loc">위치: §5.4 image_proj training (구 VII 부록 삭제 → 본문으로 이동)</div>
-<img src="../v5/figures/stage1_v3_training_curve.png" alt="image_proj 학습 곡선" style="max-width:520px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_training_curve.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_training_curve.png)</a></p>
+<img src="../v5/figures/stage1_v3_training_curve.png?v=1787056124" alt="image_proj 학습 곡선" style="max-width:520px;width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/stage1_v3_training_curve.png?v=1787056124" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/stage1_v3_training_curve.png)</a></p>
 <p style="font-size:0.85rem;color:#cbd5e1">5-class(강좌/약좌/중앙/약우/강우), 225ep, 30 epoch 수렴 곡선. 최종 val_acc 94.09%. "재학습"→"학습" 표기 정정 완료된 최신판. 부록(VII) 섹션이 삭제되면서 §5.2/§5.3 직후 본문 안으로 위치가 당겨짐 — 번호도 8→5로 정정 필요.</p>
 </div>
 
 <div id="tk-22" style="margin:22px 0;padding-top:10px;border-top:1px solid #1e293b">
 <h4>Figure 6. Action Head(MLP) 학습 곡선 <span style="font-size:0.75rem;color:#4ade80">(최종본, 신규)</span></h4>
 <div class="loc">위치: §5.4 직후 (Figure 5 image_proj 곡선과 대구를 이루는 위치)</div>
-<img src="../v5/figures/action_head_acc_only.png" alt="Action Head(MLP) Training/Validation Accuracy" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
-<img src="../v5/figures/action_head_loss_only.png" alt="Action Head(MLP) Training/Validation Loss" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:10px">
+<img src="../v5/figures/action_head_acc_only.png?v=1787056124" alt="Action Head(MLP) Training/Validation Accuracy" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<img src="../v5/figures/action_head_loss_only.png?v=1787056124" alt="Action Head(MLP) Training/Validation Loss" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin-top:10px">
 <p style="font-size:0.82rem;color:#f87171">"Figure 5(image_proj)엔 training/validation 곡선이 있는데 Action Head(MLP) 쪽엔 없다" — 대화 중 지적으로 발견된 누락 항목.</p>
 <p style="font-size:0.85rem;color:#cbd5e1">→ 반영: 배포 체크포인트와 동일 조건(exp73_v6_vis_cache_stage1v3.pt, seed=0, window=6, bbox_scale=3.0, AdamW 5e-4, 300 epoch, class-weighted CE)으로 재학습하며 5 epoch마다 train/val accuracy·loss를 기록. best_val_acc 74.04%로 배포 체크포인트(74.1%)와 거의 일치 — 재현 확인됨.</p>
 <p style="font-size:0.85rem;color:#cbd5e1"><strong style="color:#fbbf24">정직하게 밝혀야 할 점(과적합)</strong>: Train accuracy는 300 epoch 내내 계속 올라 92%까지 가지만, Validation accuracy는 epoch ~25 근처부터 71~74% 구간에서 더 못 오르고 정체된다. Validation loss는 epoch ~20 이후로는 계속 상승(전형적 과적합 곡선). 다만 학습 코드가 25 epoch마다 val_acc를 측정해 <strong>가장 좋았던 시점의 가중치(best_state)만 저장</strong>하므로, 실제 배포된 체크포인트는 300 epoch 끝까지 과적합된 가중치가 아니라 best 지점(이번 재현에서는 epoch 225, val_acc 74.0%)의 가중치다. Val acc가 epoch~25 이후 노이즈 수준(71~74%)에서 오르내리다 우연히 225에서 최고점을 찍은 것이라, "225 epoch까지 의미있게 개선됐다"기보다는 "초반 정체 이후 노이즈 범위 안에서 최고점을 저장했다"는 게 정확한 해석.</p>
