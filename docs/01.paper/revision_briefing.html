@@ -429,6 +429,38 @@ Stage 1은 과적합 징후가 없다는 기존 결론(train-val 격차 2.01%p)�
 </div>
 </div>
 
+<div class="cf-group" style="border-left-color:#38bdf8">
+<h4 style="color:#38bdf8">💬 교수님 질문 (08.18) — loss 값 / accuracy 그래프 라벨</h4>
+<div class="cf-item"><input type="checkbox" id="qa-15" checked><label for="qa-15">
+Q. "loss 값은 training과 validation 값이 각각 어떻게 돼?"
+</label></div>
+<div style="margin:4px 0 14px 26px;padding:10px 14px;background:#0f172a;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 6px">→ 답변</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.83rem;margin-bottom:8px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">시점</th><th style="text-align:left;padding:4px 8px">train loss</th><th style="text-align:left;padding:4px 8px">val loss</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">epoch 1 (시작)</td><td style="padding:4px 8px">1.6120</td><td style="padding:4px 8px">1.6085</td></tr>
+<tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>epoch 30 (최종)</strong></td><td style="padding:4px 8px"><strong>0.1072</strong></td><td style="padding:4px 8px"><strong>0.1728</strong></td></tr>
+</table>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0">
+둘 다 1.6대에서 시작해 꾸준히 감소하며 0.11~0.17 수준으로 수렴합니다. train과 val 사이 격차가 작고
+(0.1072 vs 0.1728), val loss가 학습 후반에 다시 올라가는 현상도 없어 image_proj Stage 1은 과적합 징후가 없습니다
+(전체 궤적은 위 그래프 참조).
+</p>
+</div>
+
+<div class="cf-item"><input type="checkbox" id="qa-16" checked><label for="qa-16">
+Q. "image_proj의 accuracy 그래프의 라벨이 여전히 작은데. 글씨를 키우고 굵은체로 해줘. y축 라벨로 'Accuracy'로 해줘."
+</label></div>
+<div style="margin:4px 0 0 26px;padding:10px 14px;background:#0f172a;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 6px">→ 반영 완료</p>
+<p style="font-size:0.85rem;color:#cbd5e1;margin:0">
+축 라벨을 24pt→30pt로 재확대하고 축 눈금·라벨 전체를 굵은체(bold)로 변경했습니다. y축 라벨은
+<strong>"Accuracy (%)"</strong>(영문)로 교체했습니다. 위 "→ Loss 곡선" 이미지가 갱신된 그래프입니다
+(<code>stage1_v3_valacc_only.png</code>, <code>stage1_v3_training_curve.png</code> 둘 다 동일하게 적용).
+</p>
+</div>
+</div>
+
 <div class="cf-group" style="border-left-color:#a78bfa">
 <h4 style="color:#a78bfa">레퍼런스 현황 — 기존 10편 + 신규 후보 10편 = 총 20편</h4>
 <div style="overflow-x:auto">
