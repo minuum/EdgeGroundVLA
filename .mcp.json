@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "arxiv": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "arxiv-mcp-server@latest",
+        "--storage-path",
+        "/home/minum/26CS/MoNaVLA/.arxiv_papers"
+      ],
+      "env": {}
+    }
+  }
+}
