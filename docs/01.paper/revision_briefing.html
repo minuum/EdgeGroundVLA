@@ -398,15 +398,29 @@ CharShape 73개 전수 대조로 문서 전체에서 빨간 글씨(RGB 255,0,0) 
 </tr>
 <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">§5.5 첫 문단</td><td style="padding:6px 8px">[레퍼런스 필요]</td><td style="padding:6px 8px;color:#4ade80">✅ 해소됨 — A/B/C 3편 확정(위 레퍼런스 표 참조)</td></tr>
 <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">image_proj accuracy 그림 직전</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — <code>stage1_v3_training_curve.png</code> 축 라벨 폰트 확대(18pt) 재생성</td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 8px">image_proj accuracy 그림 직후</td><td style="padding:6px 8px">"Loss 그래프가 있으면 추가 필요함"</td><td style="padding:6px 8px;color:#f87171">❌ 미반영 — Stage 1 학습에 <strong>loss 로깅 자체가 없음</strong>(로그·JSON에 val_acc만 기록). loss 곡선을 그리려면 재학습하며 epoch별 loss를 새로 저장해야 함</td></tr>
+<tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">image_proj accuracy 그림 직후</td><td style="padding:6px 8px">"Loss 그래프가 있으면 추가 필요함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — 비전 특징 캐싱으로 재학습 속도 개선(277분→21.8분) 후 loss 로깅, <code>stage1_v3_loss_curve.png</code> 생성. val_acc 94.15%로 원본 94.09%와 일치 확인</td></tr>
 <tr style="background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">오류 심각도 표 직후</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — <code>action_head_error_severity.png</code> 축 라벨 폰트 확대(16pt) 재생성</td></tr>
 </table>
 <div class="cf-item" style="margin-top:10px"><input type="checkbox" id="qa-13" checked><label for="qa-13">
 두 그림(stage1_v3_training_curve.png, action_head_error_severity.png) 축 라벨 폰트 확대 재생성 — 완료
 </label></div>
-<div class="cf-item"><input type="checkbox" id="qa-14"><label for="qa-14">
-image_proj Stage 1 재학습 시 epoch별 train/val loss 로깅 추가 → loss 곡선 생성 (현재 스크립트엔 loss 기록 코드 없음, <code>scripts/train_stage1_v3_5cls_owl.py</code> 수정 필요)
+<div class="cf-item"><input type="checkbox" id="qa-14" checked><label for="qa-14">
+image_proj Stage 1 loss 곡선 생성 — 완료 (비전 특징 캐싱으로 병목 해소, 재학습 21.8분)
 </label></div>
+<div style="margin:4px 0 0 26px;padding:12px 16px;background:#0f2a1f;border-left:3px solid #4ade80;border-radius:4px">
+<p style="font-size:0.85rem;color:#4ade80;font-weight:700;margin:0 0 8px">→ Loss 곡선 (신규)</p>
+<img src="../v5/figures/stage1_v3_loss_curve.png" alt="image_proj Stage 1 train/val loss 곡선" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff">
+<p style="font-size:0.82rem;color:#cbd5e1;margin:8px 0 0">
+train loss와 val loss가 함께 감소하며 수렴 — <strong style="color:#4ade80">Action Head(Stage 2)와 달리 val loss가 학습 후반에 상승하지 않음</strong>.
+Stage 1은 과적합 징후가 없다는 기존 결론(train-val 격차 2.01%p)을 loss 관점에서도 뒷받침합니다.
+</p>
+<p style="font-size:0.78rem;color:#64748b;margin:6px 0 0">
+근거: <code>scripts/train_stage1_v3_5cls_owl_fastloss.py</code> — frozen Kosmos-2 비전 인코더의 raw 특징(1024차원)을
+최초 1회만 캐싱(374초)해 매 epoch 재계산을 없앰. 동일 시드(42)·동일 split·동일 하이퍼파라미터로 원본 스크립트와
+같은 학습 경로를 재현했으며 최종 val_acc 94.15%(원본 94.09%와 사실상 동일, 배치 셔플 순서 차이 수준)로 캐싱이
+결과를 왜곡하지 않음을 확인.
+</p>
+</div>
 </div>
 
 <div class="cf-group" style="border-left-color:#a78bfa">
