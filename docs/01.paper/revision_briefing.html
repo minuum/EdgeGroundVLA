@@ -397,12 +397,12 @@ CharShape 73개 전수 대조로 문서 전체에서 빨간 글씨(RGB 255,0,0) 
 <th style="padding:6px 8px">위치</th><th style="padding:6px 8px">메모 내용</th><th style="padding:6px 8px">상태</th>
 </tr>
 <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">§5.5 첫 문단</td><td style="padding:6px 8px">[레퍼런스 필요]</td><td style="padding:6px 8px;color:#4ade80">✅ 해소됨 — A/B/C 3편 확정(위 레퍼런스 표 참조)</td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 8px">image_proj accuracy 그림 직전</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#f87171">❌ 미반영 — <code>stage1_v3_training_curve.png</code> 라벨 폰트 확대 필요</td></tr>
+<tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">image_proj accuracy 그림 직전</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — <code>stage1_v3_training_curve.png</code> 축 라벨 폰트 확대(18pt) 재생성</td></tr>
 <tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 8px">image_proj accuracy 그림 직후</td><td style="padding:6px 8px">"Loss 그래프가 있으면 추가 필요함"</td><td style="padding:6px 8px;color:#f87171">❌ 미반영 — Stage 1 학습에 <strong>loss 로깅 자체가 없음</strong>(로그·JSON에 val_acc만 기록). loss 곡선을 그리려면 재학습하며 epoch별 loss를 새로 저장해야 함</td></tr>
-<tr><td style="padding:6px 8px">오류 심각도 표 직후</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#f87171">❌ 미반영 — <code>action_head_error_severity.png</code> 라벨 폰트 확대 필요</td></tr>
+<tr style="background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">오류 심각도 표 직후</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — <code>action_head_error_severity.png</code> 축 라벨 폰트 확대(16pt) 재생성</td></tr>
 </table>
-<div class="cf-item" style="margin-top:10px"><input type="checkbox" id="qa-13"><label for="qa-13">
-두 그림(stage1_v3_training_curve.png, action_head_error_severity.png) 축 라벨 폰트 확대 재생성
+<div class="cf-item" style="margin-top:10px"><input type="checkbox" id="qa-13" checked><label for="qa-13">
+두 그림(stage1_v3_training_curve.png, action_head_error_severity.png) 축 라벨 폰트 확대 재생성 — 완료
 </label></div>
 <div class="cf-item"><input type="checkbox" id="qa-14"><label for="qa-14">
 image_proj Stage 1 재학습 시 epoch별 train/val loss 로깅 추가 → loss 곡선 생성 (현재 스크립트엔 loss 기록 코드 없음, <code>scripts/train_stage1_v3_5cls_owl.py</code> 수정 필요)

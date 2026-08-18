@@ -69,16 +69,16 @@ def main():
             if v > 0:
                 bold = (i == j) or (k == "flip")
                 ax.text(j + .5, n - 1 - i + .5, str(v), ha="center", va="center",
-                        fontsize=10 if bold else 9,
+                        fontsize=13 if bold else 12,
                         fontweight="bold" if bold else "normal",
                         color="#0f172a")
     ax.set_xlim(0, n); ax.set_ylim(0, n)
-    ax.set_xticks(np.arange(n) + .5); ax.set_xticklabels(names, rotation=40, ha="right", fontsize=9)
-    ax.set_yticks(np.arange(n) + .5); ax.set_yticklabels(names[::-1], fontsize=9)
-    ax.set_xlabel("예측 (Predicted)", fontsize=10)
-    ax.set_ylabel("정답 (Ground Truth)", fontsize=10)
+    ax.set_xticks(np.arange(n) + .5); ax.set_xticklabels(names, rotation=40, ha="right", fontsize=13)
+    ax.set_yticks(np.arange(n) + .5); ax.set_yticklabels(names[::-1], fontsize=13)
+    ax.set_xlabel("예측 (Predicted)", fontsize=16, fontweight="bold")
+    ax.set_ylabel("정답 (Ground Truth)", fontsize=16, fontweight="bold")
     ax.set_title(f"val 혼동행렬 — 오류를 심각도로 구분\n정확도 {correct}/{total} = {correct/total*100:.2f}%",
-                 fontsize=11.5, pad=10)
+                 fontsize=15, pad=10)
     ax.set_aspect("equal")
     for s in ax.spines.values():
         s.set_visible(False)
@@ -91,7 +91,7 @@ def main():
               label=f"좌우 반전 (치명적)  {agg_n['flip']}건 · 전체의 {agg_n['flip']/total*100:.2f}%"),
         Patch(facecolor=C_STOP, edgecolor="#94a3b8",
               label=f"STOP 판정 시점 차이  {agg_n['stop']}건 · 오류의 {agg_n['stop']/err*100:.1f}%"),
-    ], loc="upper center", bbox_to_anchor=(0.5, -0.22), fontsize=8.5, frameon=False)
+    ], loc="upper center", bbox_to_anchor=(0.5, -0.22), fontsize=11.5, frameon=False)
 
     # ── 우: 3x3 축약 ──
     ax2 = fig.add_subplot(gs[1])
@@ -107,13 +107,13 @@ def main():
     for i in range(3):
         for j in range(3):
             ax2.text(j, i, f"{a[i][j]}\n{rown[i][j]*100:.1f}%", ha="center", va="center",
-                     fontsize=10, fontweight="bold" if i == j else "normal",
+                     fontsize=13, fontweight="bold" if i == j else "normal",
                      color="white" if rown[i][j] > .55 else "#0f172a")
-    ax2.set_xticks(range(3)); ax2.set_xticklabels(lab3, fontsize=8)
-    ax2.set_yticks(range(3)); ax2.set_yticklabels(lab3, fontsize=8)
-    ax2.set_xlabel("예측", fontsize=10); ax2.set_ylabel("정답", fontsize=10)
+    ax2.set_xticks(range(3)); ax2.set_xticklabels(lab3, fontsize=10.5, rotation=15, ha="right")
+    ax2.set_yticks(range(3)); ax2.set_yticklabels(lab3, fontsize=11)
+    ax2.set_xlabel("예측", fontsize=16, fontweight="bold"); ax2.set_ylabel("정답", fontsize=16, fontweight="bold")
     ax2.set_title(f"좌·우·중립 3방향으로 축약\n정확도 {acc3*100:.2f}%  (8-class 74.13% → +{acc3*100-74.13:.2f}%p)",
-                  fontsize=11.5, pad=10)
+                  fontsize=15, pad=10)
     fig.colorbar(im, ax=ax2, fraction=0.046, label="행 정규화 비율")
 
     fig.suptitle("행동 헤드 val 오류의 대부분은 '대체 가능한 행동' 혼동 — 주행을 실패시키는 좌우 반전은 전체의 2% 미만",
