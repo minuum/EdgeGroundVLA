@@ -115,9 +115,17 @@ def main():
     ax2.set_xlabel("예측", fontsize=25, fontweight="bold"); ax2.set_ylabel("정답", fontsize=25, fontweight="bold")
     ax2.set_title(f"좌·우·중립 3방향으로 축약\n정확도 {acc3*100:.2f}%  (8-class 74.13% → +{acc3*100-74.13:.2f}%p)",
                   fontsize=23, pad=14)
-    cbar = fig2.colorbar(im, ax=ax2, fraction=0.046, label="행 정규화 비율")
+    cbar = fig2.colorbar(im, ax=ax2, fraction=0.046, label="행(정답) 기준 비율")
     cbar.ax.tick_params(labelsize=15)
-    cbar.set_label("행 정규화 비율", fontsize=17)
+    cbar.set_label("행(정답) 기준 비율", fontsize=17)
+
+    flip_lr = int(a[0][1]); flip_rl = int(a[1][0])
+    fig2.text(0.5, -0.05,
+        f"※ 칸 안의 %는 각 행(정답) 기준 비율입니다 — 전체 기준 비율과 분모가 다릅니다.\n"
+        f"좌→우 반전 {flip_lr}건 + 우→좌 반전 {flip_rl}건 = {flip_lr+flip_rl}건은 전체 {total}건의 "
+        f"{(flip_lr+flip_rl)/total*100:.2f}% (오류표의 '좌우반전' 행과 동일)",
+        ha="center", fontsize=14, color="#475569")
+
     fig2.tight_layout()
     fig2.savefig(OUT_3X3, dpi=170, facecolor="white", bbox_inches="tight")
     print(f"저장: {OUT_3X3.relative_to(ROOT)}")
