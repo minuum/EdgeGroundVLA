@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""배포 행동 헤드 val 혼동행렬을 '오류 심각도' 관점으로 시각화.
+"""배포 행동 헤드 val 혼동행렬을 '오류 심각도' 관점으로 시각화 — 2개 별도 이미지.
 
-좌: 8x8 혼동행렬을 셀 성격별로 색칠 — 정답(초록) / 같은 방향 성향 내 혼동(노랑,
-    대체 가능) / 좌우 반전(빨강, 치명적) / STOP 관련(회색)
-우: 좌·우·중립 3방향으로 축약한 혼동행렬 — 방향 성향만 보면 정확도가 얼마나 오르는지
-
-출력: docs/v5/figures/action_head_error_severity.png
+① action_head_error_severity_8x8.png — 8x8 혼동행렬을 셀 성격별로 색칠
+   (정답=초록 / 같은 방향 성향 내 혼동=노랑, 대체 가능 / 좌우 반전=빨강, 치명적 / STOP 관련=회색)
+② action_head_error_severity_3x3.png — 좌·우·중립 3방향으로 축약한 혼동행렬
 """
 import json
 from pathlib import Path
@@ -20,7 +18,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "docs/v5/detector/confusion_matrix_stage1v3_correct.json"
-OUT = ROOT / "docs/v5/figures/action_head_error_severity.png"
+OUT_8X8 = ROOT / "docs/v5/figures/action_head_error_severity_8x8.png"
+OUT_3X3 = ROOT / "docs/v5/figures/action_head_error_severity_3x3.png"
 
 LEFTISH, RIGHTISH = {2, 4, 6}, {3, 5, 7}
 C_OK, C_BENIGN, C_FLIP, C_STOP = "#bbf7d0", "#fef08a", "#fca5a5", "#e5e7eb"
@@ -53,11 +52,8 @@ def main():
             if i != j:
                 agg_n[kind(i, j)] += int(cm[i][j])
 
-    fig = plt.figure(figsize=(18, 7.6))
-    gs = fig.add_gridspec(1, 2, width_ratios=[1.45, 1], wspace=0.28)
-
-    # ── 좌: 8x8 심각도 색칠 ──
-    ax = fig.add_subplot(gs[0])
+    # ── ① 8x8 심각도 색칠 ──
+    fig, ax = plt.subplots(figsize=(13, 12))
     colors = {"ok": C_OK, "benign": C_BENIGN, "flip": C_FLIP, "stop": C_STOP}
     for i in range(n):
         for j in range(n):
@@ -65,20 +61,20 @@ def main():
             k = kind(i, j)
             face = colors[k] if v > 0 else "#ffffff"
             ax.add_patch(Rectangle((j, n - 1 - i), 1, 1, facecolor=face,
-                                    edgecolor="#94a3b8", linewidth=0.6))
+                                    edgecolor="#94a3b8", linewidth=0.8))
             if v > 0:
                 bold = (i == j) or (k == "flip")
                 ax.text(j + .5, n - 1 - i + .5, str(v), ha="center", va="center",
-                        fontsize=16 if bold else 15,
+                        fontsize=22 if bold else 20,
                         fontweight="bold" if bold else "normal",
                         color="#0f172a")
     ax.set_xlim(0, n); ax.set_ylim(0, n)
-    ax.set_xticks(np.arange(n) + .5); ax.set_xticklabels(names, rotation=40, ha="right", fontsize=16)
-    ax.set_yticks(np.arange(n) + .5); ax.set_yticklabels(names[::-1], fontsize=16)
-    ax.set_xlabel("예측 (Predicted)", fontsize=19, fontweight="bold")
-    ax.set_ylabel("정답 (Ground Truth)", fontsize=19, fontweight="bold")
+    ax.set_xticks(np.arange(n) + .5); ax.set_xticklabels(names, rotation=40, ha="right", fontsize=20)
+    ax.set_yticks(np.arange(n) + .5); ax.set_yticklabels(names[::-1], fontsize=20)
+    ax.set_xlabel("예측 (Predicted)", fontsize=25, fontweight="bold")
+    ax.set_ylabel("정답 (Ground Truth)", fontsize=25, fontweight="bold")
     ax.set_title(f"val 혼동행렬 — 오류를 심각도로 구분\n정확도 {correct}/{total} = {correct/total*100:.2f}%",
-                 fontsize=18, pad=10)
+                 fontsize=23, pad=14)
     ax.set_aspect("equal")
     for s in ax.spines.values():
         s.set_visible(False)
@@ -91,10 +87,13 @@ def main():
               label=f"좌우 반전 (치명적)  {agg_n['flip']}건 · 전체의 {agg_n['flip']/total*100:.2f}%"),
         Patch(facecolor=C_STOP, edgecolor="#94a3b8",
               label=f"STOP 판정 시점 차이  {agg_n['stop']}건 · 오류의 {agg_n['stop']/err*100:.1f}%"),
-    ], loc="upper center", bbox_to_anchor=(0.5, -0.22), fontsize=14.5, frameon=False)
+    ], loc="upper center", bbox_to_anchor=(0.5, -0.20), fontsize=18, frameon=False)
+    fig.tight_layout()
+    OUT_8X8.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(OUT_8X8, dpi=170, facecolor="white", bbox_inches="tight")
+    print(f"저장: {OUT_8X8.relative_to(ROOT)}")
 
-    # ── 우: 3x3 축약 ──
-    ax2 = fig.add_subplot(gs[1])
+    # ── ② 3x3 축약 ──
     lab3 = ["좌 계열\nLEFT·FWD+L·ROT_L", "우 계열\nRIGHT·FWD+R·ROT_R", "중립\nSTOP·FORWARD"]
     idx = {"L": 0, "R": 1, "N": 2}
     a = np.zeros((3, 3), dtype=int)
@@ -103,25 +102,26 @@ def main():
             a[idx[side(i)]][idx[side(j)]] += cm[i][j]
     acc3 = np.trace(a) / total
     rown = a / np.maximum(a.sum(1, keepdims=True), 1)
+
+    fig2, ax2 = plt.subplots(figsize=(11, 10))
     im = ax2.imshow(rown, cmap="Greens", vmin=0, vmax=1)
     for i in range(3):
         for j in range(3):
             ax2.text(j, i, f"{a[i][j]}\n{rown[i][j]*100:.1f}%", ha="center", va="center",
-                     fontsize=16, fontweight="bold" if i == j else "normal",
+                     fontsize=21, fontweight="bold" if i == j else "normal",
                      color="white" if rown[i][j] > .55 else "#0f172a")
-    ax2.set_xticks(range(3)); ax2.set_xticklabels(lab3, fontsize=13.5, rotation=15, ha="right")
-    ax2.set_yticks(range(3)); ax2.set_yticklabels(lab3, fontsize=14)
-    ax2.set_xlabel("예측", fontsize=19, fontweight="bold"); ax2.set_ylabel("정답", fontsize=19, fontweight="bold")
+    ax2.set_xticks(range(3)); ax2.set_xticklabels(lab3, fontsize=16, rotation=15, ha="right")
+    ax2.set_yticks(range(3)); ax2.set_yticklabels(lab3, fontsize=16)
+    ax2.set_xlabel("예측", fontsize=25, fontweight="bold"); ax2.set_ylabel("정답", fontsize=25, fontweight="bold")
     ax2.set_title(f"좌·우·중립 3방향으로 축약\n정확도 {acc3*100:.2f}%  (8-class 74.13% → +{acc3*100-74.13:.2f}%p)",
-                  fontsize=18, pad=10)
-    fig.colorbar(im, ax=ax2, fraction=0.046, label="행 정규화 비율")
+                  fontsize=23, pad=14)
+    cbar = fig2.colorbar(im, ax=ax2, fraction=0.046, label="행 정규화 비율")
+    cbar.ax.tick_params(labelsize=15)
+    cbar.set_label("행 정규화 비율", fontsize=17)
+    fig2.tight_layout()
+    fig2.savefig(OUT_3X3, dpi=170, facecolor="white", bbox_inches="tight")
+    print(f"저장: {OUT_3X3.relative_to(ROOT)}")
 
-    fig.suptitle("행동 헤드 val 오류의 대부분은 '대체 가능한 행동' 혼동 — 주행을 실패시키는 좌우 반전은 전체의 2% 미만",
-                 fontsize=15.5, y=1.0)
-    fig.tight_layout()
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT, dpi=170, facecolor="white", bbox_inches="tight")
-    print(f"저장: {OUT.relative_to(ROOT)}")
     print(f"  정답 {correct} / 경미 {agg_n['benign']} / 좌우반전 {agg_n['flip']} / STOP {agg_n['stop']}")
     print(f"  3-way 축약 정확도 {acc3*100:.2f}%")
 

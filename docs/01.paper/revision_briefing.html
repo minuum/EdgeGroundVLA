@@ -348,8 +348,10 @@ val 정확도는 프레임마다 사람의 단일 행동과 일치하는지를 �
 <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px 8px"><strong>같은 방향 성향 내 혼동</strong>(대체가능)</td><td style="padding:4px 8px">512</td><td style="padding:4px 8px"><strong>81.4%</strong></td></tr>
 <tr><td style="padding:4px 8px">STOP 판정 시점 차이</td><td style="padding:4px 8px">69</td><td style="padding:4px 8px">11.0%</td></tr>
 </table>
-<img src="../v5/figures/action_head_error_severity.png" alt="행동 헤드 val 오류 심각도 분해" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:6px 0">
-<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity.png)</a></p>
+<img src="../v5/figures/action_head_error_severity_8x8.png" alt="행동 헤드 val 오류 심각도 분해 — 8x8 혼동행렬" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:6px 0">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity_8x8.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity_8x8.png)</a></p>
+<img src="../v5/figures/action_head_error_severity_3x3.png" alt="행동 헤드 val 오류 심각도 분해 — 좌우중립 3x3 축약" style="max-width:100%;border-radius:6px;border:1px solid #1e293b;background:#fff;margin:10px 0 6px">
+<p style="font-size:0.72rem;margin:4px 0 0"><a href="../v5/figures/action_head_error_severity_3x3.png" target="_blank" style="color:#38bdf8">🔗 이미지 원본 열기 (../v5/figures/action_head_error_severity_3x3.png)</a></p>
 <p style="font-size:0.85rem;color:#cbd5e1;margin:0 0 8px">
 오류의 81.4%가 "다른 유효한 선택"이고 좌우 반전은 1.97%뿐. 좌·우·중립 3방향 축약 시 74.13%→<strong style="color:#4ade80">81.65%</strong>.
 로봇은 에피소드당 평균 11.64회 재판단하므로 개별 판단 불일치가 폐루프에서 자가 보정됨.
@@ -400,10 +402,10 @@ CharShape 73개 전수 대조로 문서 전체에서 빨간 글씨(RGB 255,0,0) 
 <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">§5.5 첫 문단</td><td style="padding:6px 8px">[레퍼런스 필요]</td><td style="padding:6px 8px;color:#4ade80">✅ 해소됨 — A/B/C 3편 확정(위 레퍼런스 표 참조)</td></tr>
 <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">image_proj accuracy 그림 직전</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — <code>stage1_v3_training_curve.png</code> 축 라벨 폰트 확대(18pt) 재생성</td></tr>
 <tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">image_proj accuracy 그림 직후</td><td style="padding:6px 8px">"Loss 그래프가 있으면 추가 필요함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — 비전 특징 캐싱으로 재학습 속도 개선(277분→21.8분) 후 loss 로깅, <code>stage1_v3_loss_curve.png</code> 생성. val_acc 94.15%로 원본 94.09%와 일치 확인</td></tr>
-<tr style="background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">오류 심각도 표 직후</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — <code>action_head_error_severity.png</code> 축 라벨 폰트 확대(16pt) 재생성</td></tr>
+<tr style="background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">오류 심각도 표 직후</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#4ade80">✅ 반영됨 — 8x8/3x3 두 그림으로 분리, 축 라벨 폰트 대폭 확대(25pt) 재생성</td></tr>
 </table>
 <div class="cf-item" style="margin-top:10px"><input type="checkbox" id="qa-13" checked><label for="qa-13">
-두 그림(stage1_v3_training_curve.png, action_head_error_severity.png) 축 라벨 폰트 확대 재생성 — 완료
+그림들(stage1_v3_training_curve.png, action_head_error_severity_8x8/3x3.png) 축 라벨 폰트 확대·분리 재생성 — 완료
 </label></div>
 <div class="cf-item"><input type="checkbox" id="qa-14" checked><label for="qa-14">
 image_proj Stage 1 loss 곡선 생성 — 완료 (비전 특징 캐싱으로 병목 해소, 재학습 21.8분)
