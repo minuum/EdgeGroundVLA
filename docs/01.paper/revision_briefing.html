@@ -386,6 +386,29 @@ Stage 1과 Stage 2의 일반화 양상은 뚜렷하게 다르다. image_proj(Sta
 대상: <code>..._초안_0817.hwp</code> 378문단 전문 추출·대조 + arXiv MCP 검색.
 </p>
 
+<div class="cf-group" style="border-left-color:#ef4444">
+<h4 style="color:#ef4444">빨간 글씨 전수 스캔 결과 — 4건 (전부 작성자 본인 TODO 메모, 교수님 첨삭 아님)</h4>
+<p style="font-size:0.85rem;color:#e2e8f0;margin:0 0 8px">
+CharShape 73개 전수 대조로 문서 전체에서 빨간 글씨(RGB 255,0,0) 4건을 확정했습니다. 4건 모두 괄호 안에 쓰인
+작성자 자신의 메모이며, 교수님이 남긴 지적이 아닙니다.
+</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+<tr style="border-bottom:1px solid #334155;color:#fca5a5;text-align:left">
+<th style="padding:6px 8px">위치</th><th style="padding:6px 8px">메모 내용</th><th style="padding:6px 8px">상태</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b;background:rgba(74,222,128,0.06)"><td style="padding:6px 8px">§5.5 첫 문단</td><td style="padding:6px 8px">[레퍼런스 필요]</td><td style="padding:6px 8px;color:#4ade80">✅ 해소됨 — A/B/C 3편 확정(위 레퍼런스 표 참조)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 8px">image_proj accuracy 그림 직전</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#f87171">❌ 미반영 — <code>stage1_v3_training_curve.png</code> 라벨 폰트 확대 필요</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:6px 8px">image_proj accuracy 그림 직후</td><td style="padding:6px 8px">"Loss 그래프가 있으면 추가 필요함"</td><td style="padding:6px 8px;color:#f87171">❌ 미반영 — Stage 1 학습에 <strong>loss 로깅 자체가 없음</strong>(로그·JSON에 val_acc만 기록). loss 곡선을 그리려면 재학습하며 epoch별 loss를 새로 저장해야 함</td></tr>
+<tr><td style="padding:6px 8px">오류 심각도 표 직후</td><td style="padding:6px 8px">"그래프에서 x, y축 라벨이 크게 보이도록 해야 함"</td><td style="padding:6px 8px;color:#f87171">❌ 미반영 — <code>action_head_error_severity.png</code> 라벨 폰트 확대 필요</td></tr>
+</table>
+<div class="cf-item" style="margin-top:10px"><input type="checkbox" id="qa-13"><label for="qa-13">
+두 그림(stage1_v3_training_curve.png, action_head_error_severity.png) 축 라벨 폰트 확대 재생성
+</label></div>
+<div class="cf-item"><input type="checkbox" id="qa-14"><label for="qa-14">
+image_proj Stage 1 재학습 시 epoch별 train/val loss 로깅 추가 → loss 곡선 생성 (현재 스크립트엔 loss 기록 코드 없음, <code>scripts/train_stage1_v3_5cls_owl.py</code> 수정 필요)
+</label></div>
+</div>
+
 <div class="cf-group" style="border-left-color:#a78bfa">
 <h4 style="color:#a78bfa">레퍼런스 현황 — 기존 10편 + 신규 후보 10편 = 총 20편</h4>
 <div style="overflow-x:auto">
