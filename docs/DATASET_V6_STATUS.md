@@ -265,6 +265,153 @@ minum이 `monavla-driving`에 남긴 3개 질문(수집 cmd_vel 매핑 / 서빙 
 vs 4.6s per window)는 속도가 상수이므로 **그대로 "윈도우당 이동거리 불일치"로
 직결**됩니다 — 별개 요인이 아니라 같은 문제의 다른 표현입니다.
 
+---
+
+## 📦 [2026-08-07] VLA_OWLV2_THRESH 확인 요청 회신 — 0.20 확정, 재검토 불필요
+
+**결론: 0.20이 실제 추론에 쓰인 값으로 확정입니다.** `go.sh`에 export가 없는 건
+맞지만, 다른 경로로 정확히 0.20이 들어가고 있고, 재점검 결과 우회/누락 가능성도
+전부 배제했습니다.
+
+### 실제 경로
+
+`go.sh`(셸 export)가 아니라 **Python 런타임 자체가 기동 시 값을 심습니다**:
+`stage2_v2_inference_server.py:1577` `_restore_runtime_state_env()`가 서버
+시작 최우선으로 `logs/stage2_runtime_state.json`을 읽어 `os.environ["VLA_OWLV2_THRESH"] = "0.2"`를
+**Python 코드 안에서 직접** 설정합니다(셸 export가 아니라서 `/proc/PID/environ`엔
+안 보였어서 그래서 처음에 "빈 것처럼" 보였을 것). 이 상태 파일은 2026-07-30에
+대시보드 `/config`로 0.25→0.20 변경했을 때부터 영구 저장되어, 그 뒤 모든 재기동에서
+계속 0.20으로 복원되고 있습니다(`mona_dashboard.py:3646` 주석에 그 날짜가 남아있음).
+
+### 재점검 6가지 (요청하신 대로 한 번 더 깊게 확인)
+
+1. **그라운더 코드에 캐싱 없음** — `OwlV2Grounder.run()`(760행)이 매 호출마다
+   `os.getenv("VLA_OWLV2_THRESH", "0.25")`를 그 자리에서 읽음. `__init__`엔 threshold를
+   저장하는 필드가 아예 없어서, 오늘 여러 번 모델/그라운더를 핫스왑해도(재생성돼도)
+   항상 같은 env를 다시 읽으므로 영향 없음.
+2. **저장(persist)과 사용(run)이 동일한 소스**(`os.getenv`) — 저장값과 실제
+   사용값이 어긋날 구조적 여지 없음.
+3. **`/predict` 요청 바디로 threshold를 못 바꿈** — `InferenceRequest`에 그 필드
+   자체가 없음. 바꿀 수 있는 유일한 경로는 `/config`.
+4. **대시보드 UI 입력창 기본값은 정적 HTML상 "0.25"**지만, 페이지 로드 시
+   헬스폴링이 곧바로 실제값(0.2)으로 덮어씀. "적용" 버튼도 클릭해야만 전송되고
+   자동발동은 없음 — 실수로 0.25가 재입력될 경로 자체가 없음.
+5. **프로세스 신원 확인** — 현재 PID(`ActiveEnterTimestamp` 01:29:08)부터
+   재시작 없이 계속 같은 프로세스이고, `git log`로 `stage2_v2_inference_server.py`가
+   그 이후 한 번도 안 바뀐 것을 확인 — 코드와 실행 중 프로세스가 어긋나 있을
+   가능성 없음.
+6. **오늘 수집분 전체 재검증** — 2026-08-07 로그 101건(전부) `owlv2_thresh: 0.2`,
+   예외 0건. 이전에 공유한 100건(89/100, 95/100) H5 attrs도 100/100 `0.2` 확인됨.
+
+**정리**: 0.20으로 진행된 게 확실하며, "0.25로 잘못 돌아갔을 가능성"은 완전히
+배제됩니다. 논문 서술은 그대로 두시면 됩니다.
+
+## 📦 [2026-08-07] V6 수집 입력장치 확인 회신 — 조이스틱 확정(키보드 아님)
+
+논문에서 "조이스틱을 이용해"로 써도 되는지 확인 요청 — **조이스틱 맞습니다.**
+
+### 근거
+
+`robovlm_nav/serve/mona_dashboard.py:702` `class DashboardJoystickReader` —
+**DragonRise USB 게임패드**를 `pygame.joystick`으로 직접 읽어서 로봇을 조작/수집합니다.
+키보드 리스너가 아닙니다. 버튼 매핑: L1=녹화시작, R1=정지&저장, A=STOP, 아날로그
+스틱=이동/스트레이프.
+
+이 클래스는 `scripts/gradio_data_collector.py:112` `class JoystickReader`에서
+이식된 것이고, 원본도 `pygame.init(); pygame.joystick.init();
+js = pygame.joystick.Joystick(0)`(318~333행)로 물리 게임패드를 잡습니다.
+(`WASD_TO_VEL` 딕셔너리가 코드에 있긴 한데 축→속도 변환용 매핑 테이블일 뿐,
+실제 입력 경로는 조이스틱 하나뿐입니다.)
+
+### 시기별 (git log 대조)
+
+| 기간 | 도구 | 컨트롤 |
+|---|---|---|
+| ~2026-05-17 | 조이스틱 통합 전 구스크립트 | 확인 필요(초기 소량) |
+| 2026-05-18~07-01 | `scripts/gradio_data_collector.py` (Gradio, 7865) | DragonRise 조이스틱 (05-18 "DragonRise 조이스틱 비동기 통합" 커밋) |
+| 2026-07-02~ | `robovlm_nav/serve/mona_dashboard.py` (FastAPI, 7800) | DragonRise 조이스틱(위 이식판) |
+
+**V6로 명명된 데이터(대시보드 수집분, 트랙A/C/F 극단배치)는 07-02 이후
+mona_dashboard.py로 수집돼서 100% 조이스틱입니다.** "조이스틱을 이용해" 서술
+그대로 두시면 됩니다 — 키보드(WASD)로 바꾸지 않으셔도 됩니다.
+
+## 🙏 [2026-08-19] Jetson 지연 측정 요청 (minum → soda) — Florence-2 비전 백본
+
+### 배경
+
+Kosmos-2 vision_model을 Florence-2-base 비전 백본으로 교체하는 오프라인 검증
+3단계가 모두 통과했습니다.
+
+| 단계 | 지표 | Kosmos-2(기존) | Florence-2(신규) |
+|---|---|---|---|
+| 그라운딩 cx MAE | (GB10, `docs/v5/detector/florence2_backbone.json`) | 0.0020 | 0.00152 (-24%) |
+| Stage1 5-class val_acc | (`docs/v5/detector/stage1_florence2_5cls.json`) | 94.09% | 94.92% (+0.83p) |
+| Stage2 exp73/74 val_acc (3-seed) | (`docs/v5/closed_loop_eval/exp74_florence2_stage2.json`) | 73.87%±0.20p | 75.15%±0.09p (+1.29p) |
+
+단, RIGHT 클래스는 -8.5p 회귀(70.8%→62.3%, 최악 클래스로 전환)했고,
+val_acc 개선이 실기 성공률을 보장하지 않는다는 건 저희가 이미 확인한
+사실(Finding 6: val 74.1% 헤드가 실기 95/100)이라 이 수치만으로는 교체를
+결정할 수 없습니다.
+
+### 요청 — Jetson Orin NX에서 Florence-2 비전 백본 지연 측정
+
+**측정 대상**: `microsoft/Florence-2-base`의 `vision_tower.forward_features_unpool(pixel_values)`
+1회 추론 지연 (배치=1, 224×224 입력 1장 기준).
+
+**왜 필요한가**: 로컬 GB10에서는 Florence-2가 파라미터 3.35배 작음에도
+(90.4M vs 303.2M) 오히려 11% 더 느렸습니다(59.6ms vs Kosmos-2 vision_model
+53.7ms) — Florence-2가 비전 토큰을 더 많이 씀(24×24=576 vs Kosmos-2
+16×16=256). Jetson처럼 메모리 대역폭이 더 제한적인 환경에서는 이 격차가
+더 벌어질 수도, 반대로 파라미터 이점이 더 크게 작용할 수도 있어서 실측이
+필요합니다. 논문 Table 8/지연 분해표의 Kosmos-2 vision_model 53.7ms
+항목과 apples-to-apples로 비교할 수 있게 동일 방식(같은 배치 크기,
+fp16/fp32 둘 다)으로 재봐주시면 좋겠습니다.
+
+**측정 방법 제안** (참고용, 편한 방식으로 진행하셔도 됩니다):
+```python
+from transformers import AutoModelForCausalLM, AutoProcessor
+import torch, time
+
+model = AutoModelForCausalLM.from_pretrained(
+    "microsoft/Florence-2-base", trust_remote_code=True
+).to("cuda").eval()
+processor = AutoProcessor.from_pretrained(
+    "microsoft/Florence-2-base", trust_remote_code=True
+)
+
+pixel_values = torch.randn(1, 3, 768, 768, device="cuda")  # Florence-2 기본 입력 크기 확인 필요
+# fp32
+with torch.no_grad():
+    for _ in range(5): model.vision_tower.forward_features_unpool(pixel_values)  # warmup
+    torch.cuda.synchronize(); t0 = time.time()
+    for _ in range(50): model.vision_tower.forward_features_unpool(pixel_values)
+    torch.cuda.synchronize(); print("fp32:", (time.time() - t0) / 50 * 1000, "ms")
+
+# fp16
+model_fp16 = model.half()
+pixel_values_fp16 = pixel_values.half()
+with torch.no_grad():
+    for _ in range(5): model_fp16.vision_tower.forward_features_unpool(pixel_values_fp16)
+    torch.cuda.synchronize(); t0 = time.time()
+    for _ in range(50): model_fp16.vision_tower.forward_features_unpool(pixel_values_fp16)
+    torch.cuda.synchronize(); print("fp16:", (time.time() - t0) / 50 * 1000, "ms")
+```
+(입력 해상도는 Florence-2 processor 기본값에 맞춰주세요 — 저희 GB10
+측정은 `docs/v5/detector/florence2_backbone.json`에 스크립트/설정이
+남아있으니 참고하시면 됩니다: `scripts/detector_florence2_backbone.py`)
+
+**결과 회신 형식**: fp32/fp16 각각 평균 ms, 가능하면 GPU 메모리 사용량도
+함께 알려주시면 좋겠습니다.
+
+### 이후 절차
+
+이 지연 측정 결과를 보고, Florence-2가 Jetson에서 Kosmos-2 대비
+감당 가능한 지연이면 (1) 서버 쪽 백본 선택 코드 추가 → (2) 체크포인트
+전달 → (3) 실기 100건 검증 순으로 진행 요청드릴 예정입니다. 아직
+실기 100건 요청 단계는 아닙니다 — 이번엔 지연 수치만 먼저 부탁드립니다.
+
+관련 계획 문서: `docs/plans/plan_20260816_stt_florence2_flow.md` (§6 step 2''-b)
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
