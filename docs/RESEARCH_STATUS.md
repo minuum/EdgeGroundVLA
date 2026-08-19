@@ -139,6 +139,7 @@ hero_metric4_color: "#7c3aed"
 | Exp67 | 2026-06-11 | Stage2 v2 MLP w=4 (HSV cx) | CL 96.6% | — | grounding source irrelevant 확정 |
 | exp71 | 2026-07-07 | window6 + bbox_scale 3.0 (PG2, Transformer) | — | 84.6%±2.9%p | bbox_scale 효과 최초 보고(현 구성에선 재현 안 됨) |
 | **exp73** | **2026-08-07** | **OWL-v2 + Kosmos-2 vision + image_proj + MLP** | **실기 95/100 (95.0%)** | **74.13%** | **현재 배포 구성** |
+| exp74 | 2026-08-19 | OWL-v2 + Florence-2 vision(대체) + image_proj + MLP | 실기 미검증 (보류) | 75.24% (3-seed 75.15%±0.09%p) | val은 exp73 대비 +1.29%p 우수하나 **Jetson 지연(fp16 167.2ms)이 10Hz 예산 초과**로 실기 검증 없이 기각. 백본 교체 보류 — 상세: 아래 §Florence-2 백본 검정 |
 <!-- END:experiment_history -->
 
 ---
@@ -167,6 +168,29 @@ hero_metric4_color: "#7c3aed"
 > (`status`가 전량 `manual_stop`), "gnd%≥80 → 98.8%" 상관관계는 **이 배치로 재계산 불가**.
 > 해당 지표는 별도의 **2026-07-31 159세션 배치(79/80)** 기준이며, 성공률 89/100도 그 배치 것이다.
 > 두 배치를 같은 근거로 섞어 인용하지 말 것.
+
+---
+
+## Florence-2 백본 검정 (2026-08-16 ~ 2026-08-19, 보류로 종결)
+
+교수님 제안(Florence-2)에 따라 Kosmos-2 vision_model → Florence-2-base로 백본만 교체하는
+검정을 진행했으나, **Jetson 실측 지연 때문에 채택하지 않기로 함**.
+
+| 단계 | 지표 | Kosmos-2(기존) | Florence-2(신규) | 판정 |
+|---|---|---|---|---|
+| 그라운딩 cx MAE (GB10) | `docs/v5/detector/florence2_backbone.json` | 0.0020 | 0.00152 (-24%) | ✅ 통과 |
+| Stage1 5-class val_acc | `docs/v5/detector/stage1_florence2_5cls.json` | 94.09% | 94.92% (+0.83%p) | ✅ 통과 |
+| Stage2 exp74 val_acc (3-seed) | `docs/v5/closed_loop_eval/exp74_florence2_stage2.json` | 73.87%±0.20%p | 75.15%±0.09%p (+1.29%p) | ✅ 통과 (단 RIGHT 클래스 -8.5%p 회귀) |
+| **Jetson Orin NX 지연 (fp16)** | `docs/v5/detector/florence2_backbone_jetson_latency.json` | 53.7ms | **167.2ms (+113ms/frame)** | ❌ **탈락 — 10Hz(100ms) 예산 초과** |
+
+- Florence-2가 파라미터는 3.35배 작음(90.4M vs 303.2M)에도 vision token이 2.25배 많아서
+  (24×24=576 vs 16×16=256) Jetson처럼 메모리 대역폭이 제한적인 환경에서는 파라미터 이점이
+  전혀 상쇄 효과를 못 내고 오히려 역전됨. 로컬 GB10에서 관측된 "11% 느림"과는 질적으로 다른 결과.
+- 실기 100건 검증은 지연 단계에서 조기 기각되어 **시도하지 않음** (val 지표 우위와 무관).
+- 검출기(`<OD>` task) 재현율도 별도로 측정했으나 52.5%(최선)로 OWL-v2(90.5%)에 크게 못 미쳐
+  검출기 교체 역시 기각 — 현 구성(OWL-v2 + Kosmos-2 vision) 유지 확정.
+- fp16+TensorRT 변환 등 추가 경량화가 선행되면 재검토 가능하나 별건(`plan_20260801_specialized_detector.md`).
+- 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목).
 
 ---
 
