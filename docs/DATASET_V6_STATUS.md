@@ -412,6 +412,57 @@ with torch.no_grad():
 
 관련 계획 문서: `docs/plans/plan_20260816_stt_florence2_flow.md` (§6 step 2''-b)
 
+## ✅ [2026-08-19] Jetson 지연 측정 회신 — 격차가 GB10보다 훨씬 큼(11%p → 최대 10.2배), 실기 진행 보류 권고
+
+측정 완료했습니다. **결론부터: GB10에서 본 "11% 느림" 수준이 아니라 Jetson에서는
+Florence-2가 Kosmos-2 대비 압도적으로 느립니다.** 지금 상태로 서버에 태우면
+10Hz(100ms/프레임) 예산을 fp16으로도 못 맞춥니다.
+
+### 측정 결과 (Jetson Orin NX, `scripts/measure_florence2_backbone_latency.py`)
+
+`vision_tower.forward_features_unpool(pixel_values)`, 배치=1, warmup 10회 +
+50회 평균. minum 원 스크립트(`scripts/detector_florence2_backbone.py`)와
+동일 방식으로 실제 웹캠 프레임(720×1280) + `text="<OD>"`를 processor에 넣어
+리사이즈는 그쪽 기본값(768×768)을 그대로 따랐습니다 — 224×224로 강제 축소하지
+않았습니다(Florence-2 processor가 자체적으로 768로 리사이즈하는 게 GB10
+측정과 동일한 조건이라 판단, 아래 "측정 조건 참고" 참조).
+
+| 구성요소 | 파라미터(vision) | GPU 지연(fp32) | GPU 지연(fp16) | peak GPU mem |
+|---|---|---|---|---|
+| Kosmos-2 vision_model (기존, 224×224) | 0.303B | **53.7ms** | — | — |
+| Florence-2-base vision_tower (신규, 768×768) | 0.090B | **546.2ms** | **167.2ms** | fp32 1211MB / fp16 618MB |
+
+- **fp32: Kosmos-2 대비 10.2배 느림** (53.7ms → 546.2ms)
+- **fp16: Kosmos-2(fp32) 대비 3.1배 느림** (53.7ms → 167.2ms) — fp16 전환으로
+  fp32 대비 3.27배 개선(546.2→167.2ms)은 있지만, 여전히 10Hz 예산(100ms)을
+  67ms 초과
+- GB10의 "11% 느림"과는 정도가 완전히 다름 — 파라미터 이점(3.35배 작음)이
+  Jetson에서는 전혀 상쇄 효과를 못 내고, 오히려 메모리 대역폭 제약 때문에
+  격차가 훨씬 크게 벌어진 것으로 보입니다.
+
+### 측정 조건 참고 (apples-to-apples 확인)
+
+- 입력 해상도: Florence-2 processor가 이미지+`<OD>` 프롬프트를 받아 자체
+  기본값(768×768)으로 리사이즈함 — Kosmos-2 측정(224×224, `resize_for_vlm()`)과
+  입력 크기 자체가 다름. 이건 아키텍처 고유의 차이(Florence-2가 24×24=576
+  vision token, Kosmos-2가 16×16=256 token)이지 저희가 임의로 다르게 설정한
+  게 아닙니다 — GB10 쪽 59.6ms 측정도 같은 방식(자체 기본 리사이즈)으로
+  했을 것으로 짐작되어 이대로 비교했습니다. 다른 조건으로 맞춰서 재측정이
+  필요하면 말씀해주세요(예: 224×224로 강제 축소한 Florence-2도 별도 측정 가능).
+- 측정 시 대시보드/추론 서버 모두 내려간 상태(GPU 유휴)에서 진행 — 다른
+  프로세스와의 경합 없음.
+- 원본 결과 JSON: `docs/v5/detector/florence2_backbone_jetson_latency.json`,
+  스크립트: `scripts/measure_florence2_backbone_latency.py`.
+
+### 의견
+
+Kosmos-2 vision_model이 이미 매 프레임 도는 코드 경로라(53.7ms), Florence-2로
+교체 시 fp16을 써도 프레임당 +113ms(167.2-53.7)가 추가돼 10Hz 유지가 구조적으로
+불가능해 보입니다. offline 지표(cx MAE/val_acc)가 좋아졌어도, 이 지연 격차라면
+실기 100건 진행 전에 **fp16+TensorRT 변환 같은 별도 최적화가 선행되지 않는 한
+채택이 어렵다**고 판단됩니다. 다음 단계(백본 선택 코드/체크포인트 전달) 진행
+여부는 이 지연 결과를 보고 판단 부탁드립니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
