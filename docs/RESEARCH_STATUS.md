@@ -139,7 +139,7 @@ hero_metric4_color: "#7c3aed"
 | Exp67 | 2026-06-11 | Stage2 v2 MLP w=4 (HSV cx) | CL 96.6% | — | grounding source irrelevant 확정 |
 | exp71 | 2026-07-07 | window6 + bbox_scale 3.0 (PG2, Transformer) | — | 84.6%±2.9%p | bbox_scale 효과 최초 보고(현 구성에선 재현 안 됨) |
 | **exp73** | **2026-08-07** | **OWL-v2 + Kosmos-2 vision + image_proj + MLP** | **실기 95/100 (95.0%)** | **74.13%** | **현재 배포 구성** |
-| exp74 | 2026-08-19 | OWL-v2 + Florence-2 vision(대체) + image_proj + MLP | 실기 미검증 (보류) | 75.24% (3-seed 75.15%±0.09%p) | val은 exp73 대비 +1.29%p 우수하나 **Jetson 지연(fp16 167.2ms)이 10Hz 예산 초과**로 실기 검증 없이 기각. 백본 교체 보류 — 상세: 아래 §Florence-2 백본 검정 |
+| exp74 | 2026-08-19 | OWL-v2 + Florence-2 vision(대체) + image_proj + MLP | 실기 미검증 (판정 재검토 중) | 75.24% (3-seed 75.15%±0.09%p) | val은 exp73 대비 +1.29%p 우수. Jetson 지연 fp16 167.2ms(+113ms/frame)는 확인됐으나, 실제 배포 cadence(~1.3Hz, 그라운딩이 97% 지배) 대비로 재계산하면 저하폭은 15~20% 수준 — 상세: 아래 §Florence-2 백본 검정 |
 <!-- END:experiment_history -->
 
 ---
@@ -171,25 +171,31 @@ hero_metric4_color: "#7c3aed"
 
 ---
 
-## Florence-2 백본 검정 (2026-08-16 ~ 2026-08-19, 보류로 종결)
+## Florence-2 백본 검정 (2026-08-16 ~ 2026-08-19, 진행 중 — 지연 판정 정정됨)
 
 교수님 제안(Florence-2)에 따라 Kosmos-2 vision_model → Florence-2-base로 백본만 교체하는
-검정을 진행했으나, **Jetson 실측 지연 때문에 채택하지 않기로 함**.
+검정을 진행 중.
 
 | 단계 | 지표 | Kosmos-2(기존) | Florence-2(신규) | 판정 |
 |---|---|---|---|---|
 | 그라운딩 cx MAE (GB10) | `docs/v5/detector/florence2_backbone.json` | 0.0020 | 0.00152 (-24%) | ✅ 통과 |
 | Stage1 5-class val_acc | `docs/v5/detector/stage1_florence2_5cls.json` | 94.09% | 94.92% (+0.83%p) | ✅ 통과 |
 | Stage2 exp74 val_acc (3-seed) | `docs/v5/closed_loop_eval/exp74_florence2_stage2.json` | 73.87%±0.20%p | 75.15%±0.09%p (+1.29%p) | ✅ 통과 (단 RIGHT 클래스 -8.5%p 회귀) |
-| **Jetson Orin NX 지연 (fp16)** | `docs/v5/detector/florence2_backbone_jetson_latency.json` | 53.7ms | **167.2ms (+113ms/frame)** | ❌ **탈락 — 10Hz(100ms) 예산 초과** |
+| Jetson Orin NX 절대 지연 (fp16) | `docs/v5/detector/florence2_backbone_jetson_latency.json` | 53.7ms | 167.2ms (+113ms/frame) | 사실 확인됨 (더 느림) |
+| **실 배포 cadence 영향 (재계산)** | 평균 프레임당 지연(그라운딩 캐시 재사용률 50.8% 반영) | ~528ms (~1.3Hz 실측과 근사) | ~641ms 추정 (~1.1Hz) | ⚠️ **저하 15~20%, "10Hz 예산 초과"는 오판정 — 재검토 중** |
 
-- Florence-2가 파라미터는 3.35배 작음(90.4M vs 303.2M)에도 vision token이 2.25배 많아서
-  (24×24=576 vs 16×16=256) Jetson처럼 메모리 대역폭이 제한적인 환경에서는 파라미터 이점이
-  전혀 상쇄 효과를 못 내고 오히려 역전됨. 로컬 GB10에서 관측된 "11% 느림"과는 질적으로 다른 결과.
-- 실기 100건 검증은 지연 단계에서 조기 기각되어 **시도하지 않음** (val 지표 우위와 무관).
-- 검출기(`<OD>` task) 재현율도 별도로 측정했으나 52.5%(최선)로 OWL-v2(90.5%)에 크게 못 미쳐
-  검출기 교체 역시 기각 — 현 구성(OWL-v2 + Kosmos-2 vision) 유지 확정.
-- fp16+TensorRT 변환 등 추가 경량화가 선행되면 재검토 가능하나 별건(`plan_20260801_specialized_detector.md`).
+- **정정 이력**: 처음엔 "fp16 167.2ms가 10Hz(100ms) 예산을 초과해 구조적으로 불가능"으로
+  판정했으나, 이는 실제 배포 시스템의 진짜 cadence를 확인하지 않은 오류였다. 이 문서
+  §핵심 발견 3번에 이미 있듯 **지연의 97%는 OWL-v2 그라운딩**(fp16 962.1ms)이고 비전
+  백본은 3%뿐이라, 실제 cadence는 애초에 10Hz가 아니라 **~1.3Hz**(그라운딩 캐시
+  50.8% 재사용 포함 평균)다. 이 기준으로 재계산하면 Florence-2 교체 시 cadence는
+  ~1.3Hz→~1.1Hz로 15~20% 저하되는 정도이지, "10배 이상 예산 초과"는 아니다.
+- 이 cadence 저하가 실기 성공률에 실제로 영향을 주는지는 val 지표로 판정 불가(핵심
+  발견 6번과 동일 원칙) — **소규모 실기 A/B 검증이 필요**하며, 아직 채택/기각 어느
+  쪽도 확정되지 않았다. soda에게 이 재계산 크로스체크 요청함.
+- 검출기(`<OD>` task) 재현율은 52.5%(최선)로 OWL-v2(90.5%)에 크게 못 미쳐 그라운더
+  교체는 기각 유지 — **백본 단독 교체만** 재검토 대상.
+- fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목).
 
 ---

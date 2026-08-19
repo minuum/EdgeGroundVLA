@@ -476,12 +476,13 @@
       </a>
 
       <a href="v5/research_story.html#ch67" class="link-card">
-        <span class="lc-tag" style="background:#fdf4ff;color:#a21caf">Closed</span>
+        <span class="lc-tag" style="background:#fdf4ff;color:#a21caf">Next</span>
         <h3>CH67 차기 경량 구성 후보 검정</h3>
         <p>교수님 제안 Florence-2 백본 교체 검정. 오프라인은 전부 통과(cx MAE -24%, Stage1
-           val_acc +0.83%p, Stage2 val_acc +1.29%p)했으나 <strong>Jetson Orin NX 실측에서
-           fp16 167.2ms로 10Hz 예산 초과</strong>(Kosmos-2 53.7ms 대비 +113ms/frame) —
-           실기 검증 이전에 지연으로 기각, 현 백본(OWL-v2+Kosmos-2) 유지 확정.</p>
+           val_acc +0.83%p, Stage2 val_acc +1.29%p). Jetson 실측(fp16 167.2ms vs Kosmos-2
+           53.7ms)은 확인됐으나, <strong>실 배포 cadence(~1.3Hz, 그라운딩이 지연의 97%
+           지배)로 재계산하면 저하폭은 15~20%</strong> — 지연만으로는 기각 근거가 약해
+           소규모 실기 A/B로 재판정 예정.</p>
         <span class="lc-arrow">View →</span>
       </a>
 
