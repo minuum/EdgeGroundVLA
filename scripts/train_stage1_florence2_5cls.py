@@ -92,7 +92,10 @@ def extract_features(eps):
         z = np.load(FEAT_CACHE, allow_pickle=True)
         if len(z["keys"]) == len(flat):
             print(f"[CACHE] 재사용 {FEAT_CACHE.name} ({len(flat)} 프레임)")
-            return {tuple(k): z["feats"][i] for i, k in enumerate(z["keys"])}
+            # npz lazy 접근 주의 — 배열을 1회만 실체화해야 한다(반복 접근 시 OOM).
+            arr = np.asarray(z["feats"])
+            keys = z["keys"]
+            return {(str(keys[i][0]), int(keys[i][1])): arr[i] for i in range(len(keys))}
         print("[CACHE] 프레임 수 불일치 — 재추출")
 
     from transformers import AutoModelForCausalLM, AutoProcessor
@@ -129,7 +132,7 @@ def extract_features(eps):
     keys = np.array(flat, dtype=object)
     np.savez(FEAT_CACHE, feats=feats, keys=keys)
     print(f"[EXTRACT] 완료 {time.time()-t0:.0f}s → {FEAT_CACHE}")
-    return {tuple(k): feats[i] for i, k in enumerate(flat)}
+    return {(str(k[0]), int(k[1])): feats[i] for i, k in enumerate(flat)}
 
 
 @torch.no_grad()
@@ -181,7 +184,7 @@ def main():
         X, y = [], []
         for ep in ep_list:
             for f in ep["frames"]:
-                k = (ep["episode"], f["frame_idx"])
+                k = (str(ep["episode"]), int(f["frame_idx"]))
                 if k in feat_map:
                     X.append(feat_map[k]); y.append(DIR_IDX[f["label"]])
         return (torch.tensor(np.array(X), dtype=torch.float32, device=DEV),

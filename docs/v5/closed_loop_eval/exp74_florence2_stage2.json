@@ -1,0 +1,38 @@
+{
+  "exp": "exp74",
+  "backbone": "microsoft/Florence-2-base",
+  "baseline_exp": "exp73 (owl_stage1v3/v6/mlp)",
+  "baseline_backbone": "kosmos-2-patch14-224",
+  "val_acc_mean": 0.7515425880750021,
+  "val_acc_std": 0.0008886331125737425,
+  "val_acc_best": 0.7523652911186218,
+  "seeds": [
+    0.7523652911186218,
+    0.7503085136413574,
+    0.7519539594650269
+  ],
+  "baseline_val_acc_mean": 0.7386535207430521,
+  "baseline_val_acc_std": 0.002024509914618209,
+  "baseline_val_acc_best": 0.7412587404251099,
+  "delta_mean": 0.012889067331949944,
+  "delta_best": 0.011106550693511963,
+  "per_class_best": {
+    "STOP": 0.8792270531400966,
+    "F": 0.7659783677482792,
+    "L": 0.7723577235772358,
+    "R": 0.6230769230769231,
+    "FL": 0.727810650887574,
+    "FR": 0.7193877551020408,
+    "ROT_L": 0.6666666666666666,
+    "ROT_R": 0.8636363636363636
+  },
+  "n_train_windows": 14168,
+  "n_val_windows": 2431,
+  "window": 6,
+  "bbox_scale": 3.0,
+  "epochs": 300,
+  "checkpoint": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/exp74_florence2/exp74_florence2_v6_mlp.pt",
+  "cache": "/home/minum/26CS/MoNaVLA/docs/v5/closed_loop_eval/exp74_florence2_vis_cache.pt",
+  "elapsed_min": 2.2947951316833497,
+  "caveat": "실기 검증 별건. 확정 발견 6번 — val 지표와 실기 성능은 직결되지 않음(val 74.1% 헤드가 실기 95/100) — 이므로 이 수치로 실기 우세를 단정하지 않는다."
+}
