@@ -1,0 +1,29 @@
+{
+  "device": "Jetson Orin NX",
+  "model": "microsoft/Florence-2-base",
+  "method": "vision_tower.forward_features_unpool(pixel_values)",
+  "batch_size": 1,
+  "n_warmup": 10,
+  "n_iters": 50,
+  "torch_version": "2.3.0",
+  "fp32": {
+    "ms": 546.1807775497437,
+    "peak_mem_mb": 1210.61083984375,
+    "pixel_values_shape": [
+      1,
+      3,
+      768,
+      768
+    ]
+  },
+  "fp16": {
+    "ms": 167.24558353424072,
+    "peak_mem_mb": 617.80126953125,
+    "pixel_values_shape": [
+      1,
+      3,
+      768,
+      768
+    ]
+  }
+}
