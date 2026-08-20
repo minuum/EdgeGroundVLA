@@ -44,7 +44,7 @@ DEV = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_ID = "microsoft/Florence-2-base"
 TASK = "<CAPTION_TO_PHRASE_GROUNDING>"
 PHRASE = "gray basket"
-N_PER_CELL = 10
+N_PER_CELL = 20
 
 app = Flask(__name__)
 _model = {"model": None, "proc": None}
@@ -107,6 +107,14 @@ def load_index():
 
 FRAMES = load_index()
 print(f"V6 프레임 {len(FRAMES)}개 인덱싱 완료 (기대값 16599)", flush=True)
+
+# 층(bin × owl_ok)별 모집단 크기 — 표본이 균등(칸당 N_PER_CELL)이라 모집단 비율로
+# 가중해야 전체 정확도 추정치가 왜곡되지 않는다(예: OWL 실패 프레임은 전체의 일부인데
+# 표본에선 절반).
+CELL_POP = {}
+for fr in FRAMES:
+    key = (fr["bin"], "succ" if fr["owl_ok"] else "fail")
+    CELL_POP[key] = CELL_POP.get(key, 0) + 1
 
 
 def build_sample():
@@ -284,13 +292,15 @@ async function loadAll(){
   render();
 }
 function render(){
+  // 최초 1회만 그리드 DOM을 만든다 — 이후 setLabel은 해당 카드만 patch한다
+  // (전체 innerHTML 재생성을 하면 <img>가 새로 생성돼 썸네일을 매번 다시 불러오는
+  // 문제가 있었음. 클릭 반응성 문제의 원인이었음).
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
-  let labeled = 0;
   cards.forEach((c, i) => {
-    if (c.label) labeled++;
     const div = document.createElement('div');
-    div.className = 'card' + (c.label ? ' labeled' : '');
+    div.id = `card-${i}`;
+    div.className = 'card';
     div.style.borderLeftColor = c.direction_color;
     div.innerHTML = `
       <img id="img-${i}" src="" loading="lazy">
@@ -299,19 +309,34 @@ function render(){
         <span class="tag" style="background:${c.approach_color}">${c.approach_label}</span>
       </div>
       <div class="label-block">
-        <div class="btn-group">
-          <button class="lbl-btn ok ${c.label==='ok'?'active':''}" onclick="setLabel(${i},'ok')">정확</button>
-          <button class="lbl-btn ng ${c.label==='ng'?'active':''}" onclick="setLabel(${i},'ng')">오탐(위치틀림)</button>
-          <button class="lbl-btn nt ${c.label==='nt'?'active':''}" onclick="setLabel(${i},'nt')">타겟없음</button>
+        <div class="btn-group" id="btns-${i}">
+          <button class="lbl-btn ok" onclick="setLabel(${i},'ok')">정확</button>
+          <button class="lbl-btn ng" onclick="setLabel(${i},'ng')">오탐(위치틀림)</button>
+          <button class="lbl-btn nt" onclick="setLabel(${i},'nt')">타겟없음</button>
         </div>
       </div>`;
     grid.appendChild(div);
+    patchCard(i);  // 초기 라벨 상태 반영(새로고침 시 기존 라벨 표시)
   });
-  document.getElementById('prog').innerText = `${labeled}/${cards.length}`;
+  updateProg();
   loadThumbs();
   updateStats();
 }
+function patchCard(i){
+  const c = cards[i];
+  document.getElementById(`card-${i}`).classList.toggle('labeled', !!c.label);
+  const btns = document.getElementById(`btns-${i}`).children;
+  const map = {ok:0, ng:1, nt:2};
+  for (const [k, idx] of Object.entries(map)){
+    btns[idx].classList.toggle('active', c.label === k);
+  }
+}
+function updateProg(){
+  const labeled = cards.filter(c => c.label).length;
+  document.getElementById('prog').innerText = `${labeled}/${cards.length}`;
+}
 async function loadThumbs(){
+  // 순차 로딩 유지(모델이 순차 추론이라 동시 요청해도 이득 없음), 이미 로드된 건 건너뜀
   for (let i = 0; i < cards.length; i++){
     const im = document.getElementById(`img-${i}`);
     if (!im || im.src.startsWith('data:')) continue;
@@ -322,8 +347,10 @@ async function loadThumbs(){
 }
 async function setLabel(i, lbl){
   cards[i].label = lbl;
+  patchCard(i);       // 이 카드만 즉시 갱신 — 전체 재로딩 없음
+  updateProg();
   await fetch(`/api/label?i=${i}&lbl=${lbl}`);
-  render();
+  updateStats();       // 통계만 갱신, 그리드/썸네일은 안 건드림
 }
 function groupTable(title, obj, colorMap, labelKey){
   let rows = Object.entries(obj).map(([k,v]) => {
@@ -420,10 +447,42 @@ def api_stats():
         return {g: f"{c['ok']}/{c['ok']+c['ng']}" + (f" ({c['ok']/(c['ok']+c['ng'])*100:.0f}%)" if c['ok']+c['ng'] else "")
                 for g, c in out.items() if c["ok"] + c["ng"] > 0}
 
+    # 층화 가중 추정 — 표본은 칸(bin×owl_ok)당 균등(20개)이지만 모집단 비율은 다르다.
+    # 각 칸의 표본 정확도를 그 칸의 모집단 비중으로 가중해 전체 추정치를 왜곡 없이 낸다.
+    cell_stat = {}
+    for v in labels.values():
+        key = (v.get("bin"), v.get("owl_ok"))
+        cell_stat.setdefault(key, {"ok": 0, "ng": 0, "nt": 0})
+        if v["label"] in ("ok", "ng", "nt"):
+            cell_stat[key][v["label"]] += 1
+
+    total_pop = sum(CELL_POP.values())
+    weighted_target_present_rate = 0.0  # 타겟이 실제 존재하는 비율(가중)
+    weighted_precision_num, weighted_precision_den = 0.0, 0.0
+    cells_ready = []
+    for key, pop in CELL_POP.items():
+        w = pop / total_pop
+        cs = cell_stat.get(key, {"ok": 0, "ng": 0, "nt": 0})
+        n_cell = cs["ok"] + cs["ng"] + cs["nt"]
+        if n_cell == 0:
+            continue
+        present_rate = (cs["ok"] + cs["ng"]) / n_cell
+        weighted_target_present_rate += w * present_rate
+        weighted_precision_num += w * cs["ok"]
+        weighted_precision_den += w * (cs["ok"] + cs["ng"])
+        cells_ready.append(key)
+
+    weighted_precision = (weighted_precision_num / weighted_precision_den
+                           if weighted_precision_den else None)
+    coverage_note = f"{len(cells_ready)}/{len(CELL_POP)}칸 라벨 있음"
+
     return jsonify(ok=ok, ng=ng, nt=nt, n_judged=n_judged,
                    precision=f"{ok/n_judged*100:.1f}%" if n_judged else "N/A",
                    by_direction={DIRECTION_LABEL.get(k, k): v for k, v in group_precision("direction").items()},
-                   by_approach={APPROACH_LABEL.get(k, k): v for k, v in group_precision("approach").items()})
+                   by_approach={APPROACH_LABEL.get(k, k): v for k, v in group_precision("approach").items()},
+                   weighted_precision=(f"{weighted_precision*100:.1f}%" if weighted_precision is not None else "N/A"),
+                   weighted_target_present_rate=f"{weighted_target_present_rate*100:.1f}%",
+                   weighted_coverage=coverage_note)
 
 
 if __name__ == "__main__":
