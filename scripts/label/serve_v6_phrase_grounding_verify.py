@@ -61,12 +61,36 @@ def get_model():
     return _model["model"], _model["proc"]
 
 
+# 목표 5개(direction) × 경로 접근방식 3개(path_type 접미사) — V6 설계 그대로
+DIRECTION_COLOR = {
+    "center": "#94a3b8", "weak_left": "#60a5fa", "weak_right": "#fbbf24",
+    "strong_left": "#a78bfa", "strong_right": "#fb923c",
+}
+DIRECTION_LABEL = {
+    "center": "중앙", "weak_left": "약좌", "weak_right": "약우",
+    "strong_left": "강좌", "strong_right": "강우",
+}
+APPROACH_COLOR = {"straight": "#4ade80", "left_curve": "#38bdf8", "right_curve": "#f472b6"}
+APPROACH_LABEL = {"straight": "직진", "left_curve": "좌커브", "right_curve": "우커브"}
+
+
+def parse_approach(path_type, direction):
+    suffix = path_type[len(direction) + 1:] if path_type.startswith(direction + "_") else path_type
+    if suffix.endswith("left_curve"):
+        return "left_curve"
+    if suffix.endswith("right_curve"):
+        return "right_curve"
+    return "straight"
+
+
 def load_index():
-    """(h5_path, frame_idx, gt_cx, owl_has_bbox, bin, episode_stem) 리스트."""
+    """(h5_path, frame_idx, gt_cx, owl_has_bbox, bin, episode_stem, direction, approach) 리스트."""
     ann = json.loads(ANN_OWL.read_text())
     frames = []
     for ep in ann:
         h5_path = ep["episode"]
+        direction = ep.get("direction", "center")
+        approach = parse_approach(ep.get("path_type", ""), direction)
         fs = [fr for fr in ep["frames"] if fr.get("gt_class") is not None]
         n = len(fs)
         if n == 0:
@@ -76,6 +100,7 @@ def load_index():
             frames.append(dict(
                 path=h5_path, frame_idx=fr["frame_idx"], gt_cx=fr.get("cx_det", 0.5),
                 owl_ok=bool(fr.get("has_bbox", False)), bin=bin_, stem=Path(h5_path).stem,
+                direction=direction, approach=approach,
             ))
     return frames
 
@@ -85,6 +110,8 @@ print(f"V6 프레임 {len(FRAMES)}개 인덱싱 완료 (기대값 16599)", flush
 
 
 def build_sample():
+    """6칸(bin × owl_ok)에 N_PER_CELL개씩. 칸 안에서는 (목표 5 × 접근 3) 15조합을
+    라운드로빈으로 순회해 최대한 골고루 뽑는다 — 한 목표/접근에 쏠리지 않게."""
     rng = np.random.default_rng(42)
     cells = {}
     for i, fr in enumerate(FRAMES):
@@ -93,17 +120,31 @@ def build_sample():
 
     sample = []
     for key, idxs in cells.items():
-        by_ep = {}
+        by_combo = {}
         for i in idxs:
-            by_ep.setdefault(FRAMES[i]["stem"], []).append(i)
-        eps = list(by_ep.keys())
-        rng.shuffle(eps)
+            fr = FRAMES[i]
+            combo = (fr["direction"], fr["approach"], fr["stem"])
+            by_combo.setdefault(combo, []).append(i)
+        combos = list(by_combo.keys())
+        rng.shuffle(combos)
+        # (direction, approach) 조합 단위로 라운드로빈 — 같은 조합 반복 전에 다른 조합부터 채움
+        by_da = {}
+        for combo in combos:
+            da = (combo[0], combo[1])
+            by_da.setdefault(da, []).append(combo)
+        da_order = list(by_da.keys())
+        rng.shuffle(da_order)
+
         picked = []
-        for ep in eps:
-            cand = by_ep[ep]
-            picked.append(cand[rng.integers(0, len(cand))])
-            if len(picked) >= N_PER_CELL:
-                break
+        while len(picked) < N_PER_CELL and any(by_da.values()):
+            for da in list(da_order):
+                if not by_da[da]:
+                    continue
+                combo = by_da[da].pop()
+                cand = by_combo[combo]
+                picked.append(cand[rng.integers(0, len(cand))])
+                if len(picked) >= N_PER_CELL:
+                    break
         sample.extend([(i, key[0], key[1]) for i in picked])
     rng.shuffle(sample)
     return sample
@@ -169,7 +210,8 @@ def render_card(sample_i):
     pred_cx = run_phrase_grounding(img)
     overlay = draw_overlay(img.resize((320, 180)), fr["gt_cx"], pred_cx)
     data = dict(image=img_to_b64(overlay), bin=bin_, owl_ok=owl_ok,
-                stem=fr["stem"], frame_idx=fr["frame_idx"], gt_cx=fr["gt_cx"], pred_cx=pred_cx)
+                stem=fr["stem"], frame_idx=fr["frame_idx"], gt_cx=fr["gt_cx"], pred_cx=pred_cx,
+                direction=fr["direction"], approach=fr["approach"])
     _render_cache[sample_i] = data
     return data
 
@@ -193,34 +235,50 @@ PAGE = """
 body{background:#0a0f1a;color:#e2e8f0;font-family:'Segoe UI',sans-serif;padding:20px}
 h1{font-size:1.15rem}
 #progress{position:sticky;top:0;background:#0a0f1acc;backdrop-filter:blur(4px);padding:10px 0;
-  z-index:10;font-size:0.85rem;color:#38bdf8;margin-bottom:12px}
+  z-index:10;font-size:0.85rem;color:#38bdf8;margin-bottom:10px}
 #progress .stat{color:#94a3b8;margin-left:14px}
+#groupstats{display:flex;gap:24px;flex-wrap:wrap;font-size:0.75rem;color:#94a3b8;margin-bottom:12px}
+#groupstats table{border-collapse:collapse}
+#groupstats td{padding:1px 8px 1px 0}
+#legend{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px;font-size:0.78rem;color:#94a3b8}
+#legend .lg-group{display:flex;gap:8px;align-items:center}
+.swatch{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
-.card{background:#0d1117;border:1px solid #1e293b;border-radius:8px;overflow:hidden}
-.card.labeled{border-color:#22c55e}
+.card{background:#0d1117;border:1px solid #1e293b;border-left-width:5px;border-radius:8px;overflow:hidden}
+.card.labeled{outline:2px solid #22c55e}
 .card img{width:100%;display:block}
-.card-header{padding:4px 8px;font-size:0.65rem;color:#94a3b8;background:#111827;line-height:1.4}
+.card-header{padding:4px 8px;font-size:0.65rem;color:#94a3b8;background:#111827;line-height:1.5}
+.tag{display:inline-block;padding:0 6px;border-radius:4px;font-size:0.68rem;font-weight:bold;color:#0a0f1a;margin-right:4px}
 .label-block{padding:6px 8px;display:flex;flex-direction:column;gap:5px}
-.row{display:flex;align-items:center;gap:6px;font-size:0.72rem}
-.row .name{flex:1}
 .btn-group{display:flex;gap:3px}
 .lbl-btn{font-size:0.72rem;padding:3px 9px;border-radius:4px;border:1px solid #334155;
   background:#1e293b;color:#94a3b8;cursor:pointer;font-weight:bold}
 .lbl-btn.ok.active{background:#22c55e;color:#fff;border-color:#22c55e}
 .lbl-btn.ng.active{background:#ef4444;color:#fff;border-color:#ef4444}
 .lbl-btn.nt.active{background:#f97316;color:#fff;border-color:#f97316}
-.legend span{margin-right:14px;font-size:0.82rem;color:#94a3b8}
-.legend b{color:#e2e8f0}
 </style></head><body>
 <h1>V6 학습셋(16599프레임) — Florence-2 phrase-grounding("gray basket") 사람 검증</h1>
-<div class="legend">초록선=OWL bbox(참고, 정답 아님) · 빨강선=Florence-2 예측 · 카드당 판정: 정확/오탐(위치틀림)/타겟없음</div>
+<div id="legend">
+  <span>초록선=OWL bbox(참고) · 빨강선=Florence-2 예측</span>
+</div>
 <div id="progress">진행 <span id="prog">0/0</span>
   <span class="stat" id="stats"></span>
 </div>
+<div id="groupstats"></div>
 <div class="grid" id="grid"></div>
 <script>
 let cards = [];
+let LEGEND = {directions:[], approaches:[]};
 async function loadAll(){
+  const lg = await (await fetch('/api/legend')).json();
+  LEGEND = lg;
+  const legendDiv = document.getElementById('legend');
+  let html = '<span>초록선=OWL bbox(참고) · 빨강선=Florence-2 예측</span>';
+  html += '<span class="lg-group"><b>목표:</b>' + lg.directions.map(d =>
+    `<span class="swatch" style="background:${d.color}"></span>${d.label}`).join(' ') + '</span>';
+  html += '<span class="lg-group"><b>접근:</b>' + lg.approaches.map(a =>
+    `<span class="swatch" style="background:${a.color}"></span>${a.label}`).join(' ') + '</span>';
+  legendDiv.innerHTML = html;
   const res = await fetch('/api/frames');
   cards = await res.json();
   render();
@@ -233,9 +291,13 @@ function render(){
     if (c.label) labeled++;
     const div = document.createElement('div');
     div.className = 'card' + (c.label ? ' labeled' : '');
+    div.style.borderLeftColor = c.direction_color;
     div.innerHTML = `
       <img id="img-${i}" src="" loading="lazy">
-      <div class="card-header">#${i} ${c.stem} f${c.frame_idx} · bin=${c.bin} · owl=${c.owl_ok}</div>
+      <div class="card-header">#${i} ${c.stem} f${c.frame_idx} · bin=${c.bin} · owl=${c.owl_ok}<br>
+        <span class="tag" style="background:${c.direction_color}">${c.direction_label}</span>
+        <span class="tag" style="background:${c.approach_color}">${c.approach_label}</span>
+      </div>
       <div class="label-block">
         <div class="btn-group">
           <button class="lbl-btn ok ${c.label==='ok'?'active':''}" onclick="setLabel(${i},'ok')">정확</button>
@@ -251,10 +313,10 @@ function render(){
 }
 async function loadThumbs(){
   for (let i = 0; i < cards.length; i++){
-    if (document.getElementById(`img-${i}`).src.startsWith('data:')) continue;
+    const im = document.getElementById(`img-${i}`);
+    if (!im || im.src.startsWith('data:')) continue;
     const res = await fetch(`/api/card?i=${i}`);
     const d = await res.json();
-    const im = document.getElementById(`img-${i}`);
     if (im) im.src = d.image;
   }
 }
@@ -263,12 +325,23 @@ async function setLabel(i, lbl){
   await fetch(`/api/label?i=${i}&lbl=${lbl}`);
   render();
 }
+function groupTable(title, obj, colorMap, labelKey){
+  let rows = Object.entries(obj).map(([k,v]) => {
+    const item = (colorMap||[]).find(x => x.label === k);
+    const sw = item ? `<span class="swatch" style="background:${item.color}"></span>` : '';
+    return `<tr><td>${sw}${k}</td><td>${v}</td></tr>`;
+  }).join('');
+  return `<div><b>${title}</b><table>${rows || '<tr><td>-</td></tr>'}</table></div>`;
+}
 async function updateStats(){
   const res = await fetch('/api/stats');
   const s = await res.json();
   document.getElementById('stats').innerText =
     `정확 ${s.ok} · 오탐(위치틀림) ${s.ng} · 타겟없음 ${s.nt} · ` +
     (s.n_judged ? `정밀도(타겟있음 기준) ${s.precision}` : '');
+  document.getElementById('groupstats').innerHTML =
+    groupTable('목표별 정확도(정확/판정)', s.by_direction, LEGEND.directions) +
+    groupTable('접근방식별 정확도', s.by_approach, LEGEND.approaches);
 }
 loadAll();
 </script>
@@ -289,8 +362,21 @@ def api_frames():
         fr = FRAMES[fidx]
         key = f"{fr['stem']}|{fr['frame_idx']}"
         out.append(dict(stem=fr["stem"], frame_idx=fr["frame_idx"], bin=bin_, owl_ok=owl_ok,
+                        direction=fr["direction"], approach=fr["approach"],
+                        direction_label=DIRECTION_LABEL[fr["direction"]],
+                        direction_color=DIRECTION_COLOR[fr["direction"]],
+                        approach_label=APPROACH_LABEL[fr["approach"]],
+                        approach_color=APPROACH_COLOR[fr["approach"]],
                         label=labels.get(key, {}).get("label")))
     return jsonify(out)
+
+
+@app.route("/api/legend")
+def api_legend():
+    return jsonify(
+        directions=[dict(key=k, label=DIRECTION_LABEL[k], color=v) for k, v in DIRECTION_COLOR.items()],
+        approaches=[dict(key=k, label=APPROACH_LABEL[k], color=v) for k, v in APPROACH_COLOR.items()],
+    )
 
 
 @app.route("/api/card")
@@ -309,7 +395,8 @@ def api_label():
     fr = FRAMES[fidx]
     data = render_card(i)
     key = f"{fr['stem']}|{fr['frame_idx']}"
-    save_label(key, dict(label=lbl, bin=bin_, owl_ok=owl_ok, gt_cx=fr["gt_cx"], pred_cx=data["pred_cx"]))
+    save_label(key, dict(label=lbl, bin=bin_, owl_ok=owl_ok, gt_cx=fr["gt_cx"], pred_cx=data["pred_cx"],
+                         direction=fr["direction"], approach=fr["approach"]))
     return jsonify(ok=True)
 
 
@@ -320,8 +407,23 @@ def api_stats():
     ng = sum(1 for v in labels.values() if v["label"] == "ng")
     nt = sum(1 for v in labels.values() if v["label"] == "nt")
     n_judged = ok + ng
+
+    def group_precision(key):
+        out = {}
+        for v in labels.values():
+            g = v.get(key, "?")
+            out.setdefault(g, {"ok": 0, "ng": 0})
+            if v["label"] == "ok":
+                out[g]["ok"] += 1
+            elif v["label"] == "ng":
+                out[g]["ng"] += 1
+        return {g: f"{c['ok']}/{c['ok']+c['ng']}" + (f" ({c['ok']/(c['ok']+c['ng'])*100:.0f}%)" if c['ok']+c['ng'] else "")
+                for g, c in out.items() if c["ok"] + c["ng"] > 0}
+
     return jsonify(ok=ok, ng=ng, nt=nt, n_judged=n_judged,
-                   precision=f"{ok/n_judged*100:.1f}%" if n_judged else "N/A")
+                   precision=f"{ok/n_judged*100:.1f}%" if n_judged else "N/A",
+                   by_direction={DIRECTION_LABEL.get(k, k): v for k, v in group_precision("direction").items()},
+                   by_approach={APPROACH_LABEL.get(k, k): v for k, v in group_precision("approach").items()})
 
 
 if __name__ == "__main__":
