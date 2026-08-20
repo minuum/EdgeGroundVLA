@@ -927,8 +927,26 @@ Table 4 전체 검토 완료 — 특히 ⚠️ 언어 디코더 Status 단순화
 <td style="padding:5px 7px;color:#94a3b8">Table 3에서 이미 "비율"→"Ratio"로 번역해 씀 — 동일 단어 재사용</td>
 </tr>
 </table>
+
+<p style="font-size:0.85rem;color:#e2e8f0;margin:16px 0 8px">
+<strong style="color:#f87171">표 제목(캡션)도 하나 더 있습니다</strong> — Table 6만 유일하게 캡션 자체가 한글입니다(나머지 8개는 이미 영문):
+</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:8px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+<th style="text-align:left;padding:5px 7px">현재(한글)</th><th style="text-align:left;padding:5px 7px">제안(영문)</th><th style="text-align:left;padding:5px 7px">근거</th>
+</tr>
+<tr>
+<td style="padding:5px 7px">Table 6. 5경로 텍스트 대조학습 텍스트 문장</td>
+<td style="padding:5px 7px;color:#4ade80">Table 6. Anchor Sentences for 5-Direction Classification</td>
+<td style="padding:5px 7px;color:#94a3b8">"Anchor Sentence"는 위 헤더 제안과 동일 근거(코드 변수 <code>ANCHOR_TEXTS</code>). "5-Direction"은 §5.4 본문의
+"5단계 방향"·"5-class" 그대로. <strong style="color:#fbbf24">"대조학습(contrastive)"은 의도적으로 뺐습니다</strong> —
+08.16 Q1 답변에서 이미 "대조 학습"이 엄밀히는 부정확한 표현일 수 있다고 짚었고(negative 샘플링 없는 고정
+5-class 분류라 정의상 안 맞음), 대신 §5.4가 실제로 쓰는 "classification"(5-class로 학습)으로 맞췄습니다.</td>
+</tr>
+</table>
+
 <div class="cf-item"><input type="checkbox" id="qa-20"><label for="qa-20">
-Table 6·7·8·9 헤더를 위 제안대로 영문화 (전체 9개 표 헤더 영문화 통일)
+Table 6·7·8·9 헤더 + Table 6 캡션을 위 제안대로 영문화 (전체 9개 표 캡션·헤더 영문화 통일)
 </label></div>
 </div>
 
