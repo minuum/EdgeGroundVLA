@@ -947,8 +947,75 @@ Table 4 전체 검토 완료 — 특히 ⚠️ 언어 디코더 Status 단순화
 </tr>
 </table>
 
+<p style="font-size:0.85rem;color:#e2e8f0;margin:18px 0 8px">
+<strong style="color:#f87171">헤더뿐 아니라 표 안 셀 내용(1열 라벨)도 한글로 남아있는 곳</strong>이 있어 같이 정리했습니다.
+전부 <strong>이 논문 자신이 이미 다른 곳에 써놓은 영문 표현</strong>이나 <strong>학습 스크립트의 실제 변수/카테고리명</strong>에서만
+가져왔고, 새로 지어낸 단어는 없습니다. 숫자·기호(20/20, 95.0%, 0.155B 등)는 번역 대상이 아니라 그대로 둡니다.
+</p>
+
+<table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-bottom:8px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+<th style="text-align:left;padding:5px 7px">표</th><th style="text-align:left;padding:5px 7px">현재(한글)</th><th style="text-align:left;padding:5px 7px">제안(영문)</th><th style="text-align:left;padding:5px 7px">근거</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px" rowspan="5">Table 6<br><span style="color:#64748b;font-size:0.72rem">(경로 열)</span></td>
+<td style="padding:5px 7px">강좌(strong_left)</td><td style="padding:5px 7px;color:#4ade80">Strong Left</td>
+<td style="padding:5px 7px;color:#94a3b8" rowspan="5">원문 자체가 이미 "강좌(strong_left)"처럼 괄호 안에 영문 코드명을 병기해둠 —
+그 병기된 영문(=학습 스크립트의 <code>DIR_IDX</code>/<code>ANCHOR_ORDER</code> 키값 <code>strong_left</code> 등)을
+Title Case로만 바꿔 그대로 채택. 새 단어 없음.</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">약좌(weak_left)</td><td style="padding:5px 7px;color:#4ade80">Weak Left</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">중앙(center)</td><td style="padding:5px 7px;color:#4ade80">Center</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">약우(weak_right)</td><td style="padding:5px 7px;color:#4ade80">Weak Right</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">강우(strong_right)</td><td style="padding:5px 7px;color:#4ade80">Strong Right</td></tr>
+
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px" rowspan="3">Table 7<br><span style="color:#64748b;font-size:0.72rem">(오류 성격 열)</span></td>
+<td style="padding:5px 7px">좌우반전(치명적)</td><td style="padding:5px 7px;color:#4ade80">Left-Right Flip (Critical)</td>
+<td style="padding:5px 7px;color:#94a3b8">이 심각도 분류 자체가 <code>scripts/plot_action_head_error_severity.py</code>의 <code>kind()</code> 함수가 반환하는
+카테고리(<code>"flip"</code>)를 표로 옮긴 것 — 그 변수명 그대로 사용</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">같은 방향 성향 내 혼동<br>(대체 가능한 행동)</td><td style="padding:5px 7px;color:#4ade80">Same-Direction Confusion<br>(Substitutable Action)</td>
+<td style="padding:5px 7px;color:#94a3b8">동일 스크립트의 카테고리 <code>"benign"</code>에 대응. "Substitutable"은 08.16 Q4/Q5 답변에서 이미
+"대체 가능한 행동"의 의미로 쓴 논지(다른 유효한 선택지) 그대로</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">STOP 판정 시점 차이</td><td style="padding:5px 7px;color:#4ade80">STOP Timing Difference</td>
+<td style="padding:5px 7px;color:#94a3b8">스크립트 카테고리 <code>"stop"</code> + 본문 "STOP 판정 시점" 표현 그대로 결합</td>
+</tr>
+
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px" rowspan="6">Table 8<br><span style="color:#64748b;font-size:0.72rem">(목표 위치 열)</span></td>
+<td style="padding:5px 7px">중앙</td><td style="padding:5px 7px;color:#4ade80">Center</td>
+<td style="padding:5px 7px;color:#94a3b8" rowspan="5">Table 6에서 이미 제안한 강좌/약좌/중앙/약우/강우 → Strong/Weak Left/Right, Center 번역과
+동일한 5방향이므로 <strong>같은 번역을 재사용</strong>(용어 통일)</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">강좌</td><td style="padding:5px 7px;color:#4ade80">Strong Left</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">약좌</td><td style="padding:5px 7px;color:#4ade80">Weak Left</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">강우</td><td style="padding:5px 7px;color:#4ade80">Strong Right</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">약우</td><td style="padding:5px 7px;color:#4ade80">Weak Right</td></tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">전체</td><td style="padding:5px 7px;color:#4ade80">Overall</td>
+<td style="padding:5px 7px;color:#94a3b8">논문 Abstract 자신이 "average goal-reaching success rate"라고 이미 표현 — 그 "평균/전체" 개념의
+표준 영문 표 라벨인 Overall 채택(Total은 Table 7 열 이름과 겹쳐 혼동 방지차 회피)</td>
+</tr>
+
+<tr>
+<td style="padding:5px 7px" rowspan="4">Table 9<br><span style="color:#64748b;font-size:0.72rem">(단계 열)</span></td>
+<td style="padding:5px 7px">OWLv2 그라운딩(fp32)</td><td style="padding:5px 7px;color:#4ade80">OWLv2 Grounding (fp32)</td>
+<td style="padding:5px 7px;color:#94a3b8" rowspan="4">"그라운딩"→"Grounding", "비전 인코딩"→"Vision Encoding"은 본문(§1.1 등)이 이미 영문으로
+반복 사용 중인 단어 그대로. "MLP 행동 헤드"→"MLP Action Head"는 Table 4에서 이미 확정한 번역 재사용</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">OWLv2 그라운딩(fp16)</td><td style="padding:5px 7px;color:#4ade80">OWLv2 Grounding (fp16)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:5px 7px">Kosmos-2 비전 인코딩</td><td style="padding:5px 7px;color:#4ade80">Kosmos-2 Vision Encoding</td></tr>
+<tr><td style="padding:5px 7px">MLP 행동 헤드</td><td style="padding:5px 7px;color:#4ade80">MLP Action Head</td></tr>
+</table>
+
+
+
 <div class="cf-item"><input type="checkbox" id="qa-20"><label for="qa-20">
-Table 6·7·8·9 헤더 + Table 6 캡션을 위 제안대로 영문화 (전체 9개 표 캡션·헤더 영문화 통일)
+Table 6·7·8·9 헤더 + Table 6 캡션 + 셀 내용(위 표) 전부 위 제안대로 영문화 (전체 9개 표 완전 영문화)
 </label></div>
 </div>
 
