@@ -1041,22 +1041,22 @@ Table 1(Lookup Mapping)·Table 3(Action Class Distribution)는 <strong style="co
 
 <tr style="border-bottom:1px solid #1e293b">
 <td style="padding:5px 7px" rowspan="5">Table 4<br><span style="color:#64748b;font-size:0.72rem">(Usage 열)</span></td>
-<td style="padding:5px 7px">텍스트 프롬프트로만 사용</td><td style="padding:5px 7px;color:#4ade80">Used as text prompt only</td>
+<td style="padding:5px 7px">텍스트 프롬프트로만 사용</td><td style="padding:5px 7px;color:#4ade80">Text prompt only</td>
 <td style="padding:5px 7px;color:#94a3b8">§1.1 본문 "OWLv2는 ... 텍스트 프롬프트..."의 직역, 새 개념 없음</td>
 </tr>
 <tr style="border-bottom:1px solid #1e293b">
-<td style="padding:5px 7px">피처 추출기로 사용</td><td style="padding:5px 7px;color:#4ade80">Used as feature extractor</td>
+<td style="padding:5px 7px">피처 추출기로 사용</td><td style="padding:5px 7px;color:#4ade80">Feature extractor</td>
 <td style="padding:5px 7px;color:#94a3b8">"feature extractor"는 이 분야 표준 용어, 본문 의미 그대로 직역</td>
 </tr>
 <tr style="border-bottom:1px solid #1e293b">
-<td style="padding:5px 7px">방향 텍스트 앵커 대조<br>(학습 시에만 사용)</td><td style="padding:5px 7px;color:#4ade80">Direction anchor-sentence matching<br>(training only)</td>
+<td style="padding:5px 7px">방향 텍스트 앵커 대조<br>(학습 시에만 사용)</td><td style="padding:5px 7px;color:#4ade80">Anchor matching (train only)</td>
 <td style="padding:5px 7px;color:#94a3b8">"Anchor Sentence"는 Table 6에서 이미 채택한 번역(근거: 코드 <code>ANCHOR_TEXTS</code>) 재사용.
 "대조"는 "대조학습(contrastive)"이 아니라 직역 "matching"으로 — 08.16 Q1 답변에서 "contrastive"라는
 프레이밍 자체가 정확하지 않을 수 있다고 이미 짚었기 때문에 그 판단과 일관되게 처리</td>
 </tr>
 <tr style="border-bottom:1px solid #1e293b">
 <td style="padding:5px 7px">Stage 1에서 방향 텍스트 앵커 대조 학습,<br>Stage 2 진입 시 그 가중치를 불러와 사용</td>
-<td style="padding:5px 7px;color:#4ade80">Trained via direction anchor-sentence<br>matching in Stage 1; weights reused<br>when entering Stage 2</td>
+<td style="padding:5px 7px;color:#4ade80">Stage 1: anchor matching &rarr; reused in Stage 2</td>
 <td style="padding:5px 7px;color:#94a3b8">위와 동일 원칙(anchor-sentence matching) + 문장 구조만 그대로 옮김</td>
 </tr>
 <tr style="border-bottom:1px solid #1e293b">
