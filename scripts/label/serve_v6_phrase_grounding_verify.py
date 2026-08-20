@@ -254,6 +254,10 @@ h1{font-size:1.15rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
 .card{background:#0d1117;border:1px solid #1e293b;border-left-width:5px;border-radius:8px;overflow:hidden}
 .card.labeled{outline:2px solid #22c55e}
+.card.selected{outline:3px solid #fff !important;outline-offset:2px;box-shadow:0 0 24px 4px #38bdf8aa;
+  transform:scale(1.02);z-index:5;position:relative;transition:transform 0.1s}
+.kbd-help{font-size:0.72rem;color:#64748b;margin:6px 0 12px}
+.kbd-help b{color:#94a3b8;border:1px solid #334155;border-radius:3px;padding:0 4px;font-size:0.68rem}
 .imgwrap{position:relative;width:100%;line-height:0}
 .card img{width:100%;display:block}
 .vline{position:absolute;top:0;bottom:0;width:2px;pointer-events:none}
@@ -273,6 +277,10 @@ h1{font-size:1.15rem}
 <h1>V6 학습셋(16599프레임) — Florence-2 phrase-grounding("gray basket") 사람 검증</h1>
 <div id="legend">
   <span>초록선=OWL bbox(참고) · 빨강선=Florence-2 예측</span>
+</div>
+<div class="kbd-help">
+  <b>←→↑↓</b> 카드 이동 · <b>1</b> 정확 · <b>2</b> 오탐(위치틀림) · <b>3</b> 타겟없음
+  (누르면 자동으로 다음 카드로 이동) · 클릭으로도 카드 선택 가능
 </div>
 <div id="progress">진행 <span id="prog">0/0</span>
   <span class="stat" id="stats"></span>
@@ -326,12 +334,18 @@ function render(){
           <button class="lbl-btn nt" onclick="setLabel(${i},'nt')">타겟없음</button>
         </div>
       </div>`;
+    div.addEventListener('click', (e) => {
+      if (e.target.classList.contains('lbl-btn')) return;
+      selectCard(i);
+    });
     grid.appendChild(div);
     patchCard(i);  // 초기 라벨 상태 반영(새로고침 시 기존 라벨 표시)
   });
   updateProg();
   loadThumbs();
   updateStats();
+  const firstUnlabeled = cards.findIndex(c => !c.label);
+  selectCard(firstUnlabeled >= 0 ? firstUnlabeled : 0);
 }
 function patchCard(i){
   const c = cards[i];
@@ -384,7 +398,55 @@ async function updateStats(){
   document.getElementById('groupstats').innerHTML =
     groupTable('목표별 정확도(정확/판정)', s.by_direction, LEGEND.directions) +
     groupTable('접근방식별 정확도', s.by_approach, LEGEND.approaches);
+  updateProg();
 }
+
+// ── 키보드 라벨링 (serve_hsv_owlv2_labeler.py 알고리즘 이식) ──────────────
+// ←→↑↓: 카드 이동(격자 열수 자동 계산) / 1~3: 정확·오탐·타겟없음 즉시 라벨 후
+// 자동으로 다음 카드로 이동. 카드 클릭으로도 커서 이동 가능.
+let selIdx = -1;
+const LABEL_KEYS = {'1': 'ok', '2': 'ng', '3': 'nt'};
+
+function clearCursor(){
+  const grid = document.getElementById('grid');
+  grid.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+}
+function paintCursor(){
+  if (selIdx < 0 || selIdx >= cards.length) return;
+  const card = document.getElementById(`card-${selIdx}`);
+  if (!card) return;
+  card.classList.add('selected');
+  card.scrollIntoView({block: 'center'});
+}
+function selectCard(i){
+  clearCursor();
+  selIdx = Math.max(0, Math.min(cards.length - 1, i));
+  paintCursor();
+}
+function colsInGrid(){
+  const grid = document.getElementById('grid');
+  if (!grid || !cards.length) return 1;
+  const style = getComputedStyle(grid);
+  return style.gridTemplateColumns.split(' ').length || 1;
+}
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (!cards.length) return;
+  const cols = colsInGrid();
+  if (LABEL_KEYS[e.key]) {
+    e.preventDefault();
+    if (selIdx < 0) { selectCard(0); return; }
+    setLabel(selIdx, LABEL_KEYS[e.key]);
+    if (selIdx < cards.length - 1) selectCard(selIdx + 1);
+    return;
+  }
+  switch (e.key) {
+    case 'ArrowRight': e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx + 1); break;
+    case 'ArrowLeft':  e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx - 1); break;
+    case 'ArrowDown':  e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx + cols); break;
+    case 'ArrowUp':    e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx - cols); break;
+  }
+});
 loadAll();
 </script>
 </body></html>
