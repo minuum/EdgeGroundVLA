@@ -211,7 +211,7 @@ image_proj는 카메라가 본 한 장의 이미지가 <strong>5단계 방향(�
 <tr><td style="padding:4px 8px">Kosmos-2 vision_model</td><td style="padding:4px 8px">0.303B</td><td style="padding:4px 8px">frozen</td></tr>
 </table>
 <p style="font-size:0.85rem;color:#cbd5e1;margin:0">
-1.128M은 역전파로 갱신되는 파라미터 총합이며, 추론 참여 파라미터(0.46B) 대비 약 <strong>0.25%</strong>다.
+1.128M은 역전파로 갱신되는 파라미터 총합이며, 추론 참여 파라미터(<strong>459,274,896 ≈ 0.459B</strong> — OWLv2 154,966,792 + Kosmos-2 vision_model 303,179,776 + image_proj 262,400 + MLP 헤드 865,928, 실제 모델 로드해 직접 카운트) 대비 약 <strong>0.25%</strong>다.
 </p>
 <p style="font-size:0.82rem;color:#fbbf24;margin:8px 0 0">
 ⚠️ 각주 권장 — <code>text_proj</code>(0.525M)도 Stage 1에서 함께 학습되나 배포 서버는 <code>image_proj</code> 키만
@@ -272,7 +272,7 @@ Stage 2에서 그 위에 MLP 헤드(0.866M)만 학습하는 구조이다. 전체
 학습은 두 단계로 나뉜다. Stage 1에서는 image_proj(0.262M)를 <strong>방향 대조 학습</strong>, 즉 이미지 특징을 방향을
 서술하는 5개 문장의 텍스트 특징과 대조 정렬시키는 학습(5.4절에서 상술)으로 사전 학습한 뒤 고정한다. Stage 2에서는
 고정된 image_proj 위에서 MLP 행동 헤드(0.866M)만 학습한다. 역전파로 갱신되는 파라미터는 두 단계 합쳐
-<strong>1.128M(= 0.262M + 0.866M)</strong>이며, 추론 참여 전체 파라미터 0.46B의 약 <strong>0.25%</strong>다.
+<strong>1.128M(= 0.262M + 0.866M)</strong>이며, 추론 참여 전체 파라미터 <strong>459,274,896(≈0.459B)</strong>의 약 <strong>0.25%</strong>다.
 </p>
 </div>
 <p style="font-size:0.8rem;color:#64748b;margin:0 0 0 26px">
