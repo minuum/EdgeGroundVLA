@@ -17257,6 +17257,59 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#ef4444">
+    <div class="finding-title" style="color:#ef4444">67-7. 그라운더 재현율 실측·상한 확인, 그라운더/비전인코더 개별·통합 Stage2 비교 (2026-08-19)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      OWL-v2와 <strong style="color:#e2e8f0">완전히 같은 2026-08-07 100세션 1087프레임</strong>에서
+      Florence-2 `&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;` 재현율을 직접 측정하고,
+      beam5·합집합·키워드 확장까지 다 시도해 상한을 확인했다.
+      <br><br>
+      <strong style="color:#e2e8f0">재현율 실측 (OWL-v2 90.5% 대비)</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">방식</td><td style="padding:4px;text-align:center">재현율</td></tr>
+        <tr><td style="padding:4px">OD(beam3)</td><td style="padding:4px;text-align:center">19.4%</td></tr>
+        <tr><td style="padding:4px">DENSE_REGION_CAPTION(beam3)</td><td style="padding:4px;text-align:center">28.4%</td></tr>
+        <tr><td style="padding:4px">OD(beam5)</td><td style="padding:4px;text-align:center">20.7%</td></tr>
+        <tr><td style="padding:4px">DENSE(beam5)</td><td style="padding:4px;text-align:center">31.9%</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>OD∪DENSE(beam5) — 최선</strong></td><td style="padding:4px;text-align:center"><strong>34.7%</strong></td></tr>
+        <tr><td style="padding:4px">키워드 어휘 확장(laundry/garbage/bucket 등)</td><td style="padding:4px;text-align:center">효과 0.0%p</td></tr>
+      </table>
+      키워드 확장이 전혀 효과가 없었다는 건 병목이 매칭 규칙이 아니라
+      <strong style="color:#e2e8f0">Florence-2가 해당 프레임에서 물체 자체를 인식/서술하지 못한다</strong>는
+      뜻이다. beam·합집합을 최대로 밀어붙여도 34.7%가 상한이며 OWL-v2와 55%p 이상 격차 — 검출기
+      교체 기각 확정.
+      <br><br>
+      <img src="ch64_figs/fig_florence2_case_gallery.png" style="width:100%;border-radius:8px;margin:8px 0">
+      <span style="font-size:0.78rem;color:#64748b">MISS 카테고리를 보면 바구니가 화면에 명백히
+      보이는데도 Florence-2가 "empty room with cabinet" 등 무관한 라벨만 뱉어 놓친 경우가
+      대부분 — 매칭 실패가 아니라 인식 실패.</span>
+      <br><br>
+      <strong style="color:#e2e8f0">Stage2 재학습 — 그라운더·비전인코더 개별 교체 vs 완전 통합</strong>
+      (exp73과 동일 조건, window=6·bbox_scale=3.0·3-seed. 요인 교란 방지를 위해 한 번에 하나씩
+      바꿔서 검증한 뒤, 마지막에 exp75로 합쳤다.)
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">실험</td><td style="padding:4px">그라운더</td><td style="padding:4px">비전인코더</td><td style="padding:4px;text-align:center">val_acc mean</td><td style="padding:4px">비고</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>exp73(베이스라인)</strong></td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center"><strong>73.87%±0.20%p</strong></td><td style="padding:4px">현재 배포</td></tr>
+        <tr><td style="padding:4px">exp74(비전만)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">75.15%±0.09%p (+1.29p)</td><td style="padding:4px">RIGHT -8.5p 회귀</td></tr>
+        <tr><td style="padding:4px">그라운더 스왑(bbox만)</td><td style="padding:4px">Florence-2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.26%±0.29%p (-0.61p)</td><td style="padding:4px">L -13.8p, ROT_L -16.7p 회귀</td></tr>
+        <tr><td style="padding:4px">exp75(완전 통합)</td><td style="padding:4px">Florence-2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">73.52%±0.25%p (-0.35p)</td><td style="padding:4px">L 53.7%(여전히 낮음), ROT_L/ROT_R은 67~68%로 회복(비전 교체 효과)</td></tr>
+      </table>
+      exp75은 그라운더 스왑 단독(73.26%)보다 소폭 낫고 exp74 비전 단독(75.15%)보다는 낮다 —
+      <strong style="color:#e2e8f0">비전 교체의 회전 클래스 개선(ROT_L/ROT_R)은 그라운더를 같이
+      바꿔도 유지</strong>되지만, <strong style="color:#e2e8f0">그라운더 교체로 인한 LEFT 클래스
+      손상은 비전을 같이 바꿔도 회복되지 않는다</strong> — 두 손실이 서로 다른 메커니즘(그라운더는
+      L 방향 bbox 자체가 부정확, 비전은 회전 관련 특징 표현력)임을 시사.
+      텍스트 프로젝션/인코더는 어떤 실험에서도 안 건드렸다(Kosmos-2 text_model 그대로,
+      배포 시 호출 안 되는 컴포넌트).
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/florence2_grounding_0807_fullbatch.py</code> ·
+      <code>scripts/florence2_grounding_0807_variants.py</code> ·
+      <code>scripts/train_exp75_florence2_full_stage2.py</code> ·
+      결과 <code>docs/v5/detector/florence2_grounding_0807_variants.json</code>,
+      <code>docs/v5/closed_loop_eval/exp75_florence2_full_stage2.json</code></span>
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">67-4. 진행 순서 — 엣지 목표에 가장 빠른 경로</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">

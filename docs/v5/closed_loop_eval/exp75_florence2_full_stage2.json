@@ -1,0 +1,41 @@
+{
+  "exp": "exp75",
+  "backbone": "microsoft/Florence-2-base",
+  "grounder": "florence2 (DENSE_REGION_CAPTION 우선 + OD 폴백)",
+  "note": "그라운더+비전인코더+프로젝션 셋 다 Florence-2 계열로 교체한 완전 통합 버전",
+  "val_acc_mean": 0.7352255781491598,
+  "val_acc_std": 0.002520892706581965,
+  "val_acc_best": 0.7383792996406555,
+  "seeds": [
+    0.7383792996406555,
+    0.7350884675979614,
+    0.7322089672088623
+  ],
+  "baseline_exp73_val_acc_mean": 0.7386535207430521,
+  "baseline_exp73_val_acc_best": 0.7412587404251099,
+  "exp74_vis_only_val_acc_mean": 0.7515,
+  "exp74_vis_only_val_acc_best": 0.7524,
+  "grounder_swap_only_val_acc_mean": 0.7326203385988871,
+  "grounder_swap_only_val_acc_best": 0.7359111905097961,
+  "delta_vs_exp73_mean": -0.0034279425938923413,
+  "delta_vs_exp73_best": -0.0028794407844543457,
+  "per_class_best": {
+    "STOP": 0.8647342995169082,
+    "F": 0.7630285152409046,
+    "L": 0.5365853658536586,
+    "R": 0.6615384615384615,
+    "FL": 0.7307692307692307,
+    "FR": 0.717687074829932,
+    "ROT_L": 0.6666666666666666,
+    "ROT_R": 0.6818181818181818
+  },
+  "n_train_windows": 14168,
+  "n_val_windows": 2431,
+  "window": 6,
+  "bbox_scale": 3.0,
+  "epochs": 300,
+  "checkpoint": "/home/minum/26CS/MoNaVLA/runs/v5_nav/mlp/exp75_florence2_full/exp75_florence2_full_v6_mlp.pt",
+  "cache": "/home/minum/26CS/MoNaVLA/docs/v5/closed_loop_eval/exp75_florence2_full_vis_cache.pt",
+  "elapsed_min": 2.0928866585095722,
+  "caveat": "실기 검증 별건. 확정 발견 6번 — val 지표와 실기 성능은 직결되지 않음. 또한 그라운더 스왑 단독 실험에서 L/ROT_L 클래스 회귀가 확인됐으므로 완전 통합 버전에서도 클래스별 분해가 필요."
+}

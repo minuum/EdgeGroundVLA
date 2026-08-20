@@ -246,6 +246,26 @@ hero_metric4_color: "#7c3aed"
   체크포인트: `runs/v5_nav/mlp/exp73_stage1v3/exp73_florence2_grounder_v6_mlp.pt`,
   주석: `docs/v5/bbox_nav_florence2/bbox_dataset_v6_florence2.json`.
 
+- **exp75 — 완전 통합(그라운더+비전인코더+프로젝션 전부 Florence-2, 2026-08-19)**.
+  `docs/v5/closed_loop_eval/exp75_florence2_full_stage2.json` — 지금까지 각각 따로 검증한
+  두 변경(exp74 비전 단독, 그라운더 스왑 단독)을 합친 버전:
+
+  | 실험 | 그라운더 | 비전인코더 | val_acc mean | val_acc best |
+  |---|---|---|---|---|
+  | exp73(베이스라인) | OWL-v2 | Kosmos-2 | 73.87%±0.20%p | 74.13% |
+  | exp74(비전만) | OWL-v2 | Florence-2 | 75.15%±0.09%p | 75.24% |
+  | 그라운더 스왑(bbox만) | Florence-2 | Kosmos-2 | 73.26%±0.29%p | 73.59% |
+  | **exp75(완전 통합)** | Florence-2 | Florence-2 | **73.52%±0.25%p** | **73.84%** |
+
+  베이스라인 대비 -0.35%p로 거의 동일. 클래스별로 보면 **ROT_L 33.3%→66.7%,
+  ROT_R 36.4%→68.2%로 회복**(비전 교체의 회전 클래스 개선 효과가 그라운더를
+  같이 바꿔도 유지됨)했지만, **L은 52.8%→53.7%로 거의 회복 안 됨**(그라운더 교체로
+  인한 손상은 비전 교체로 상쇄되지 않음) — 두 변경이 서로 다른 메커니즘으로
+  클래스별 성능에 영향을 준다는 뜻. 텍스트 프로젝션/인코더는 세 실험 모두 Kosmos-2
+  그대로(배포 시 미사용 컴포넌트, 요인 통제 목적으로 안 건드림).
+  실제 이미지 성공/실패 케이스 갤러리: `docs/v5/ch64_figs/fig_florence2_case_gallery.png`
+  (`docs/v5/research_story.html#ch67` 67-7 카드).
+
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목).
 
