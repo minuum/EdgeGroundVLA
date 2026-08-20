@@ -17991,6 +17991,46 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">⚠️ 69-6. 실기 전 오프라인 3종 보강 검증 — leave-one-direction-out에서 낙관 편향 발견</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      실기(soda) 요청 전에 val 지표만으로는 못 보는 것들을 3가지 더 확인했다.
+      <br><br>
+      <strong style="color:#f87171">① Leave-one-direction-out — 가장 중요한 발견.</strong>
+      무작위 15% split(exp77 val_acc 75.65%)은 목표5×접근3(15조합)이 train/val에
+      섞여 있어 낙관적일 수 있다. 목표(direction) 하나를 통째로 빼고(180ep로 학습,
+      나머지 45ep로 검증) 재학습해보면:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 목표</td><td style="padding:4px;text-align:center">held-out acc</td><td style="padding:4px;text-align:center">R클래스</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">66.1%</td><td style="padding:4px;text-align:center">33.0%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">68.5%</td><td style="padding:4px;text-align:center">50.0%</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>weak_right</strong></td><td style="padding:4px;text-align:center"><strong>41.7%</strong></td><td style="padding:4px;text-align:center">41.4%</td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">60.5%</td><td style="padding:4px;text-align:center">— (표본 0)</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center"><strong>33.3%</strong></td><td style="padding:4px;text-align:center">20.4%</td></tr>
+        <tr style="border-top:1px solid #334155"><td style="padding:4px"><strong>5개 평균</strong></td><td style="padding:4px;text-align:center"><strong>54.0%</strong></td><td style="padding:4px;text-align:center">—</td></tr>
+      </table>
+      무작위 split(75.65%) 대비 <strong style="color:#f87171">평균 -21.65%p</strong> — 그리고
+      좌/우가 대칭이 아니다: <strong style="color:#e2e8f0">약좌 68.5%·강좌 60.5%인데
+      약우 41.7%·강우 33.3%</strong>로 오른쪽 방향을 처음 보면 성능이 반토막 난다.
+      CH66에서 이미 확인된 좌우 비대칭이 <strong style="color:#f87171">이전에 생각했던 것보다
+      훨씬 심각</strong>할 수 있음을 시사 — 실기 요청 전에 반드시 함께 보고해야 할 리스크.
+      <br><br>
+      <strong style="color:#e2e8f0">② 궤적 재생 근사(폐루프 아님, exp71/72와 동일 방법론)</strong> —
+      `rollout_core.py`의 build_trajectory/compute_metrics로 exp73 vs exp77 비교:
+      exp73 success 24.2%(FPE 1.335m) → exp77 30.3%(FPE 1.120m). 절대값은 실기(95/100)와
+      거리가 멀지만(예상대로 — 확정 발견 6번) 방향은 val_acc와 일치.
+      <br><br>
+      <strong style="color:#e2e8f0">③ bbox_scale 재검증(phrase 그라운더 기준)</strong> —
+      1.0=75.62%±0.24%p · 2.0=75.55%±0.46%p(best 76.18%) · 3.0=75.58%±0.07%p.
+      그라운더가 훨씬 정확해졌어도(34.7%→100%) bbox_scale 무영향이라는 기존 결론
+      (2026-08-17, OWL 기준)이 그대로 재확인됨.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_leave_one_direction_out.py</code> ·
+      <code>scripts/eval_exp77_closed_loop_sim.py</code> ·
+      <code>scripts/eval_bbox_scale_phrase_grounder.py</code></span>
+    </div>
+  </div>
+
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH69 ═ -->
 

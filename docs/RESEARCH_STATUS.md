@@ -313,6 +313,18 @@ hero_metric4_color: "#7c3aed"
   체크포인트: `runs/v5_nav/mlp/exp77_florence2_phrase_full/exp77_florence2_phrase_full_v6_mlp.pt`.
   상세: `docs/v5/research_story.html#ch69` 69-5 카드.
 
+- **⚠️ 실기 전 오프라인 보강 검증 3종 (2026-08-21) — leave-one-direction-out에서 낙관 편향 발견**.
+  가장 중요한 결과: 목표(direction) 하나를 통째로 학습에서 빼고 재학습하면
+  (`scripts/eval_leave_one_direction_out.py`) 무작위 split val_acc(75.65%)가
+  **평균 54.0%로 -21.65%p 낙관 편향**돼 있었음이 드러남. 좌/우 비대칭도 뚜렷:
+  약좌 68.5%·강좌 60.5% vs **약우 41.7%·강우 33.3%** — 오른쪽 방향을 처음 보면
+  성능이 반토막. CH66 좌우 비대칭이 이전 생각보다 훨씬 심각할 수 있음을 시사.
+  나머지 2종은 방향 확인용: 궤적 재생 근사(exp71/72와 동일 방법론, `eval_exp77_closed_loop_sim.py`)
+  — exp73 success 24.2%→exp77 30.3%(방향 일치, 절대값은 실기와 거리 있음);
+  bbox_scale 재검증(phrase 그라운더 기준, `eval_bbox_scale_phrase_grounder.py`)
+  — 1.0=75.62%/2.0=75.55%/3.0=75.58%, 여전히 무영향 재확인.
+  상세: `docs/v5/research_story.html#ch69` 69-6 카드.
+
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목), `docs/v5/research_story.html#ch69`(2026-08-21 phrase 그라운딩 대발견).
 
