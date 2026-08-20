@@ -91,9 +91,12 @@ def categorize(row):
 
 
 def get_image(path, fi):
+    # 주의(2026-08-20): inference_sessions_recv(0807 실기 세션)는 V6 학습셋과 달리
+    # 이미 RGB로 저장되어 있다 — 여기서 BGR→RGB 반전을 걸면 색이 뒤집힌다(육안 확인 완료).
+    # 재현율 측정 스크립트(florence2_grounding_0807_*.py)는 애초에 반전 안 걸어서 정상.
     with h5py.File(path, "r") as hf:
         im = hf["observations/images"][fi]
-    return Image.fromarray(im[:, :, ::-1].astype(np.uint8)).convert("RGB")
+    return Image.fromarray(im.astype(np.uint8)).convert("RGB")
 
 
 def draw_overlay(img, gt_cx, picks):

@@ -105,7 +105,8 @@ def main():
             if path not in h5_cache:
                 h5_cache[path] = h5py.File(path, "r")
             im = h5_cache[path]["observations/images"][fi]
-            img_rgb = im[:, :, ::-1]
+            # 주의(2026-08-20): 0807 실기 세션은 이미 RGB 저장 — 반전하면 색이 뒤집힘(육안 확인).
+            img_rgb = im
             H, W = img_rgb.shape[:2]
             ax.imshow(img_rgb)
             gt_cx_px = row["gt_cx"] * W
