@@ -34,7 +34,7 @@ import h5py
 import numpy as np
 import torch
 from flask import Flask, jsonify, request
-from PIL import Image, ImageDraw
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 ANN_OWL = ROOT / "docs/v5/bbox_nav_owl/bbox_dataset_v6_owl.json"
@@ -198,26 +198,6 @@ def run_phrase_grounding(img):
     return (boxes[0][0] + boxes[0][2]) / 2 / W if boxes else None
 
 
-def draw_overlay(img, gt_cx, pred_cx):
-    img = img.copy()
-    draw = ImageDraw.Draw(img)
-    W, H = img.size
-
-    def vline_labeled(cx, color, text, text_y):
-        x = cx * W
-        draw.line([(x, 0), (x, H)], fill=color, width=3)
-        tx = min(max(x + 3, 0), W - 30)  # 화면 밖으로 안 나가게
-        # 가독성용 검은 외곽선(그림자) 후 본문
-        for dx, dy in [(-1, -1), (1, -1), (-1, 1), (1, 1)]:
-            draw.text((tx + dx, text_y + dy), text, fill=(0, 0, 0))
-        draw.text((tx, text_y), text, fill=color)
-
-    vline_labeled(gt_cx, (34, 197, 94), "OWLv2", 4)
-    if pred_cx is not None:
-        vline_labeled(pred_cx, (239, 68, 68), "Flo2", 18)
-    return img
-
-
 def img_to_b64(img, quality=78):
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=quality)
@@ -234,8 +214,10 @@ def render_card(sample_i):
     fr = FRAMES[fidx]
     img = get_image(fr["path"], fr["frame_idx"])
     pred_cx = run_phrase_grounding(img)
-    overlay = draw_overlay(img.resize((320, 180)), fr["gt_cx"], pred_cx)
-    data = dict(image=img_to_b64(overlay), bin=bin_, owl_ok=owl_ok,
+    # 화질 손실 방지: 선/글씨를 이미지에 굽지 않는다. 원본 해상도(1280×720)를
+    # 그대로 고품질(quality=92)로 인코딩하고, cx는 값만 넘겨 프론트엔드에서
+    # CSS 오버레이(위치 %)로 그린다 — 카드가 어떤 크기로 표시되든 선명하게 유지.
+    data = dict(image=img_to_b64(img, quality=92), bin=bin_, owl_ok=owl_ok,
                 stem=fr["stem"], frame_idx=fr["frame_idx"], gt_cx=fr["gt_cx"], pred_cx=pred_cx,
                 direction=fr["direction"], approach=fr["approach"])
     _render_cache[sample_i] = data
@@ -272,7 +254,12 @@ h1{font-size:1.15rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
 .card{background:#0d1117;border:1px solid #1e293b;border-left-width:5px;border-radius:8px;overflow:hidden}
 .card.labeled{outline:2px solid #22c55e}
+.imgwrap{position:relative;width:100%;line-height:0}
 .card img{width:100%;display:block}
+.vline{position:absolute;top:0;bottom:0;width:2px;pointer-events:none}
+.vline .tag-label{position:absolute;top:2px;left:4px;font-size:0.68rem;font-weight:bold;
+  white-space:nowrap;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000}
+.vline.pred .tag-label{top:16px}
 .card-header{padding:4px 8px;font-size:0.65rem;color:#94a3b8;background:#111827;line-height:1.5}
 .tag{display:inline-block;padding:0 6px;border-radius:4px;font-size:0.68rem;font-weight:bold;color:#0a0f1a;margin-right:4px}
 .label-block{padding:6px 8px;display:flex;flex-direction:column;gap:5px}
@@ -321,7 +308,13 @@ function render(){
     div.className = 'card';
     div.style.borderLeftColor = c.direction_color;
     div.innerHTML = `
-      <img id="img-${i}" src="" loading="lazy">
+      <div class="imgwrap">
+        <img id="img-${i}" src="" loading="lazy">
+        <div class="vline gt" id="gtline-${i}" style="display:none;border-left:2px solid #22c55e">
+          <span class="tag-label" style="color:#22c55e">OWLv2</span></div>
+        <div class="vline pred" id="predline-${i}" style="display:none;border-left:2px solid #ef4444">
+          <span class="tag-label" style="color:#ef4444">Flo2</span></div>
+      </div>
       <div class="card-header">#${i} ${c.stem} f${c.frame_idx} · bin=${c.bin} · owl=${c.owl_ok}<br>
         <span class="tag" style="background:${c.direction_color}">${c.direction_label}</span>
         <span class="tag" style="background:${c.approach_color}">${c.approach_label}</span>
@@ -361,6 +354,10 @@ async function loadThumbs(){
     const res = await fetch(`/api/card?i=${i}`);
     const d = await res.json();
     if (im) im.src = d.image;
+    const gt = document.getElementById(`gtline-${i}`);
+    const pr = document.getElementById(`predline-${i}`);
+    if (gt){ gt.style.left = `${d.gt_cx*100}%`; gt.style.display = 'block'; }
+    if (pr && d.pred_cx !== null){ pr.style.left = `${d.pred_cx*100}%`; pr.style.display = 'block'; }
   }
 }
 async function setLabel(i, lbl){
@@ -429,7 +426,7 @@ def api_card():
     i = int(request.args.get("i", 0))
     i = max(0, min(i, len(SAMPLE) - 1))
     data = render_card(i)
-    return jsonify(image=data["image"])
+    return jsonify(image=data["image"], gt_cx=data["gt_cx"], pred_cx=data["pred_cx"])
 
 
 @app.route("/api/label")
