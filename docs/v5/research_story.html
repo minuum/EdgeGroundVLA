@@ -17310,6 +17310,39 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🔄 67-8. 판정 뒤집힘 — 명시적 phrase 지정으로 재현율 34.7%→84.96% (2026-08-20)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      67-7까지 전부 <strong style="color:#e2e8f0">"열린 질문"</strong>(`&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;` —
+      "이 방에 뭐가 있는지 다 말해봐" 후 우리가 키워드로 골라내는 방식)으로만 테스트했다.
+      OWL-v2처럼 <strong style="color:#e2e8f0">타겟 문구를 직접 지정</strong>하는
+      `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;` + phrase="gray basket"은 한 번도 시도하지 않았었다 —
+      해봤더니 완전히 다른 결과가 나왔다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">방식</td><td style="padding:4px;text-align:center">재현율</td></tr>
+        <tr><td style="padding:4px">OD∪DENSE(beam5, 열린 질문 최선, 67-7)</td><td style="padding:4px;text-align:center">34.7%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>CAPTION_TO_PHRASE_GROUNDING + "gray basket"</strong></td><td style="padding:4px;text-align:center"><strong>84.96%</strong></td></tr>
+        <tr><td style="padding:4px">OWL-v2(기준)</td><td style="padding:4px;text-align:center">90.5%</td></tr>
+      </table>
+      cx MAE 0.0228, <strong style="color:#e2e8f0">median AE는 0.0021</strong>로 맞을 때는 거의
+      완벽하게 맞는다(평균은 소수 큰 오차 사례에 끌려 올라간 것). 같은 100세션 1087프레임,
+      같은 OWL 정답 기준.
+      <br><br>
+      <strong style="color:#fbbf24">단, 아직 결론 못 내리는 이유</strong> — 이 태스크는
+      <strong style="color:#e2e8f0">거부 모드가 없다</strong>(coverage 100%, owl_success=0인
+      103프레임에도 무조건 뭔가 짚음). 타겟이 화면에 없을 때 "없다"고 말 못 하고 계속
+      어딘가를 가리키는 게 실전에서 얼마나 문제가 될지(오탐률/정밀도)는 <strong style="color:#e2e8f0">
+      아직 측정 못 했다</strong> — "OWL이 실패한 프레임이 진짜 타겟 부재인지, OWL도 놓친 건지"를
+      구분할 독립적 정답이 없어서다. 이 부분이 해소되기 전까지 검출기 교체 기각 판정을
+      최종 확정하지 않는다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/florence2_phrase_grounding_test.py</code> · 결과
+      <code>docs/v5/detector/florence2_phrase_grounding_0807.json</code> · 인터랙티브 확인:
+      <code>scripts/label/serve_florence2_owl_compare.py</code> (localhost:7795 `/live`,
+      `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;` 옵션)</span>
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#4ade80">
     <div class="finding-title" style="color:#4ade80">67-4. 진행 순서 — 엣지 목표에 가장 빠른 경로</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">

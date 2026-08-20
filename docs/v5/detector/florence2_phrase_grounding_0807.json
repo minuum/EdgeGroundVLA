@@ -1,0 +1,13 @@
+{
+  "n_frames": 1087,
+  "task": "<CAPTION_TO_PHRASE_GROUNDING>",
+  "phrase": "gray basket",
+  "owl_success_frames": 984,
+  "coverage": 1.0,
+  "n_both": 984,
+  "recall_vs_owl": 0.8495934959349594,
+  "cx_mae_vs_owl": 0.022843246227622453,
+  "cx_median_ae_vs_owl": 0.002084115147590604,
+  "elapsed_min": 3.712170406182607,
+  "note": "명시적 phrase 지정 CAPTION_TO_PHRASE_GROUNDING 첫 전체 실측. 거부 모드가 없어 coverage는 항상 높지만, cx 정확도(재현율)가 핵심 지표."
+}

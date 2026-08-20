@@ -225,9 +225,33 @@ hero_metric4_color: "#7c3aed"
   | 키워드 목록 확장(laundry/garbage/bucket 등 추가) | **효과 없음(모든 조합 0.0%p)** |
 
   키워드 확장이 전혀 효과가 없었다는 건 병목이 "매칭 규칙"이 아니라 **Florence-2
-  자체가 해당 프레임에서 물체를 아예 인식/서술하지 못한다**는 뜻. beam/합집합을
-  최대로 밀어붙여도 34.7%가 상한선이며 OWL-v2(90.5%)와 55%p 이상 격차.
-  **검출기 교체 기각을 재확인** — 백본 단독 교체만 재검토 대상.
+  자체가 해당 프레임에서 물체를 아예 인식/서술하지 못한다**는 뜻 — 단, 이건
+  **"열린 질문"(뭐가 있는지 다 말해봐) 방식으로 물었을 때만 그렇다는 게 바로
+  아래에서 뒤집힌다.**
+
+- **🔄 판정 뒤집힘 — 명시적 phrase 지정 `<CAPTION_TO_PHRASE_GROUNDING>` 재현율 84.96%
+  (2026-08-20)**. `docs/v5/detector/florence2_phrase_grounding_0807.json`, 같은
+  100세션 1087프레임. 지금까지 전부 "열린 질문"(`<OD>`/`<DENSE_REGION_CAPTION>` —
+  "이 방에 뭐가 있는지 다 말해봐")으로만 테스트했는데, **OWL-v2처럼 타겟 문구를
+  직접 지정**(`<CAPTION_TO_PHRASE_GROUNDING>` + phrase="gray basket")하는 방식은
+  한 번도 안 해봤었다:
+
+  | 지표 | 값 |
+  |---|---|
+  | 재현율(OWL 정답 대비) | **84.96%** (OWL 90.5% 대비 -5.5%p) |
+  | cx MAE | 0.0228 |
+  | cx median AE | **0.0021** (대부분 거의 완벽히 일치, 평균은 소수 큰 오차에 끌림) |
+  | coverage | 100% (거부 모드 없음) |
+
+  이전 시도들(19.4~34.7%)과는 격이 다른 수치 — **OWL-v2와 5.5%p 차이까지 좁혀짐**.
+  다만 **coverage 100%가 owl_success=0인 103프레임까지 포함한 값**이라는 점이
+  핵심 제약: 타겟이 화면에 없어도 Florence-2는 "없다"고 답 못 하고 무조건 어딘가를
+  짚는다(OWL-v2는 threshold 기반으로 거부 가능). 즉 **정밀도(오탐률)를 아직
+  측정 안 했고, 실전 배치 시 이게 얼마나 문제될지는 별도 검증 필요** — 지금까지의
+  "검출기 교체 기각" 판정을 최종 확정 짓기 전에 이 경로를 더 파봐야 한다.
+  스크립트: `scripts/florence2_phrase_grounding_test.py`. 인터랙티브 비교 도구
+  (`scripts/label/serve_florence2_owl_compare.py`, localhost:7795 `/live`)의
+  `<CAPTION_TO_PHRASE_GROUNDING>` 옵션에서 직접 테스트 가능.
 
 - **그라운더 스왑 Stage2 재학습(2026-08-19)** — exp73과 완전히 동일한 조건
   (Kosmos-2 vision, MLP 헤드, window=6, bbox_scale=3.0, 3-seed)에서 **bbox 주석만
