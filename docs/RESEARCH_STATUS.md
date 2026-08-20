@@ -290,8 +290,31 @@ hero_metric4_color: "#7c3aed"
   실제 이미지 성공/실패 케이스 갤러리: `docs/v5/ch64_figs/fig_florence2_case_gallery.png`
   (`docs/v5/research_story.html#ch67` 67-7 카드).
 
+- **🏆 exp76/exp77 — phrase 그라운딩 방식(CH69)으로 재학습, 역대 최고 성적 (2026-08-21)**.
+  CH69에서 발견한 명시적 phrase 그라운딩(`<CAPTION_TO_PHRASE_GROUNDING>`+"gray basket",
+  0807 재현율 84.96%·V6 사람검증 100%)으로 V6 전체를 재주석(`gen_v6_florence2_phrase_annotation.py`,
+  라이브 샘플 5752/5752=100% 검출)하고 그라운더 스왑·완전 통합을 다시 학습:
+
+  | 실험 | 그라운더 | 비전인코더 | val_acc mean | best |
+  |---|---|---|---|---|
+  | exp73(베이스라인) | OWL-v2 | Kosmos-2 | 73.87%±0.20%p | 74.13% |
+  | exp74(비전만) | OWL-v2 | Florence-2 | 75.15%±0.09%p | 75.24% |
+  | 그라운더 스왑(구, 열린질문) | Florence-2(열린질문) | Kosmos-2 | 73.26%±0.29%p | 73.59% |
+  | exp75(구 완전통합, 열린질문) | Florence-2(열린질문) | Florence-2 | 73.52%±0.25%p | 73.84% |
+  | exp76(신 그라운더 스왑, phrase) | Florence-2(phrase) | Kosmos-2 | 73.76%±0.25%p | 74.04% |
+  | **exp77(신 완전통합, phrase) ★역대 최고** | Florence-2(phrase) | Florence-2 | **75.58%±0.07%p** | **75.65%** |
+
+  exp77 클래스별(vs exp73): STOP +3.4p, F +0.4p, **L +8.9p**(66.7%→75.6%, 구방식의
+  -13.8p 회귀 완전 해소), R -4.6p(유일한 하락), FL +0.9p, FR +0.8p, ROT_L +16.7p,
+  **ROT_R +54.6p**(31.8%→86.4%). exp76(그라운더만 교체)도 베이스라인과 거의 동일
+  (73.76% vs 73.87%)해서, 구 그라운더 스왑의 손상(73.26%)이 순수히 그라운딩 품질
+  문제였음이 재확인됨. 분산도 exp75(±0.25%p)보다 안정적(±0.07%p).
+  ⚠️ 확정 발견 6번 그대로 유효 — 전부 오프라인 val 지표이며 실기 검증은 미실시.
+  체크포인트: `runs/v5_nav/mlp/exp77_florence2_phrase_full/exp77_florence2_phrase_full_v6_mlp.pt`.
+  상세: `docs/v5/research_story.html#ch69` 69-5 카드.
+
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
-- 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목).
+- 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목), `docs/v5/research_story.html#ch69`(2026-08-21 phrase 그라운딩 대발견).
 
 ---
 

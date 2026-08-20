@@ -17949,25 +17949,45 @@ graph TD
     </div>
   </div>
 
-  <div class="finding-card" style="border-color:#a78bfa">
-    <div class="finding-title" style="color:#a78bfa">🔁 69-5. V6 재주석 + Stage2 재학습(exp76/exp77) — phrase 그라운딩 방식으로 전면 교체</div>
-    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8" id="ch69-retrain-status">
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 69-5. exp77 — phrase 그라운딩으로 재학습, 역대 최고 성적 + L/ROT_L 회귀 완전 해소</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       69-4의 결과를 반영해 V6 전체(225ep, 16599프레임)를 phrase 그라운딩으로 재주석하고
-      (<code>gen_v6_florence2_phrase_annotation.py</code>), 기존 열린-질문 방식 실험(그라운더 스왑,
-      exp75)을 새 방법으로 다시 만드는 중이다:
+      (<code>gen_v6_florence2_phrase_annotation.py</code>, 라이브 샘플 5752/5752 = 100% 검출),
+      구 방식(열린 질문) 실험들을 새 방법으로 다시 만들었다:
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
-        <tr style="color:#e2e8f0"><td style="padding:4px">실험</td><td style="padding:4px">그라운더</td><td style="padding:4px">비전인코더</td><td style="padding:4px;text-align:center">val_acc mean</td></tr>
-        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>exp73(베이스라인)</strong></td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center"><strong>73.87%±0.20%p</strong></td></tr>
-        <tr><td style="padding:4px">exp74(비전만)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">75.15%±0.09%p</td></tr>
-        <tr><td style="padding:4px">그라운더 스왑(구, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.26%±0.29%p</td></tr>
-        <tr><td style="padding:4px">exp75(구 완전통합, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">73.52%±0.25%p</td></tr>
-        <tr><td style="padding:4px"><strong>exp76(신 그라운더 스왑, phrase)</strong></td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">⏳ 진행 중</td></tr>
-        <tr><td style="padding:4px"><strong>exp77(신 완전통합, phrase)</strong></td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">⏳ 진행 중</td></tr>
+        <tr style="color:#e2e8f0"><td style="padding:4px">실험</td><td style="padding:4px">그라운더</td><td style="padding:4px">비전인코더</td><td style="padding:4px;text-align:center">val_acc mean</td><td style="padding:4px;text-align:center">best</td></tr>
+        <tr><td style="padding:4px">exp73(베이스라인)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.87%±0.20%p</td><td style="padding:4px;text-align:center">74.13%</td></tr>
+        <tr><td style="padding:4px">exp74(비전만)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">75.15%±0.09%p</td><td style="padding:4px;text-align:center">75.24%</td></tr>
+        <tr><td style="padding:4px">그라운더 스왑(구, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.26%±0.29%p</td><td style="padding:4px;text-align:center">73.59%</td></tr>
+        <tr><td style="padding:4px">exp75(구 완전통합, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">73.52%±0.25%p</td><td style="padding:4px;text-align:center">73.84%</td></tr>
+        <tr><td style="padding:4px">exp76(신 그라운더 스왑, phrase)</td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.76%±0.25%p</td><td style="padding:4px;text-align:center">74.04%</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>exp77(신 완전통합, phrase) ★역대 최고</strong></td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center"><strong>75.58%±0.07%p</strong></td><td style="padding:4px;text-align:center"><strong>75.65%</strong></td></tr>
       </table>
-      그라운딩 정확도가 훨씬 높아진 만큼(34.7%→100%), 구 방식에서 관찰된 L/ROT_L 클래스 손상이
-      회복되는지가 핵심 관전 포인트. 결과 나오는 대로 갱신.
-      <br><span style="font-size:0.78rem;color:#64748b">스크립트 <code>scripts/gen_v6_florence2_phrase_annotation.py</code> ·
-      <code>scripts/train_exp77_florence2_phrase_full_stage2.py</code></span>
+      <strong style="color:#e2e8f0">exp77의 클래스별 정확도(vs exp73 베이스라인)</strong>:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">클래스</td><td style="padding:4px;text-align:center">exp73</td><td style="padding:4px;text-align:center">exp77</td><td style="padding:4px;text-align:center">변화</td></tr>
+        <tr><td style="padding:4px">STOP</td><td style="padding:4px;text-align:center">84.5%</td><td style="padding:4px;text-align:center">87.9%</td><td style="padding:4px;text-align:center;color:#4ade80">+3.4p</td></tr>
+        <tr><td style="padding:4px">F</td><td style="padding:4px;text-align:center">75.6%</td><td style="padding:4px;text-align:center">76.0%</td><td style="padding:4px;text-align:center;color:#4ade80">+0.4p</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>L</strong></td><td style="padding:4px;text-align:center">66.7%</td><td style="padding:4px;text-align:center"><strong>75.6%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+8.9p</strong></td></tr>
+        <tr><td style="padding:4px">R</td><td style="padding:4px;text-align:center">70.8%</td><td style="padding:4px;text-align:center">66.2%</td><td style="padding:4px;text-align:center;color:#f87171">-4.6p</td></tr>
+        <tr><td style="padding:4px">FL</td><td style="padding:4px;text-align:center">72.8%</td><td style="padding:4px;text-align:center">73.7%</td><td style="padding:4px;text-align:center;color:#4ade80">+0.9p</td></tr>
+        <tr><td style="padding:4px">FR</td><td style="padding:4px;text-align:center">72.8%</td><td style="padding:4px;text-align:center">73.6%</td><td style="padding:4px;text-align:center;color:#4ade80">+0.8p</td></tr>
+        <tr><td style="padding:4px">ROT_L</td><td style="padding:4px;text-align:center">50.0%</td><td style="padding:4px;text-align:center">66.7%</td><td style="padding:4px;text-align:center;color:#4ade80">+16.7p</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>ROT_R</strong></td><td style="padding:4px;text-align:center">31.8%</td><td style="padding:4px;text-align:center"><strong>86.4%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+54.6p</strong></td></tr>
+      </table>
+      <strong style="color:#e2e8f0">핵심</strong> — 구 방식(열린 질문 그라운더)에서 관찰됐던
+      L(-13.8p)·ROT_L(-16.7p) 회귀가 <strong style="color:#4ade80">새 방식(phrase 그라운딩)에서는
+      완전히 해소</strong>되고 오히려 L이 +8.9p 개선됐다. R만 소폭(-4.6p) 하락 — 유일한 흠.
+      분산도 exp75(±0.25%p)보다 훨씬 안정적(±0.07%p). exp76(그라운더만 교체)도 베이스라인과
+      거의 동일(73.76% vs 73.87%)해서, 구 그라운더 스왑(73.26%)의 손상이 순수히 그라운딩
+      품질 문제였음이 재확인된다.
+      <br><br>
+      <strong style="color:#fbbf24">주의</strong> — 확정 발견 6번(val 지표와 실기 성능은 직결되지 않음)은
+      여전히 유효하다. 이 표는 전부 오프라인 val 지표이며, 실기 검증은 아직 하지 않았다.
+      <br><span style="font-size:0.78rem;color:#64748b">체크포인트
+      <code>runs/v5_nav/mlp/exp77_florence2_phrase_full/exp77_florence2_phrase_full_v6_mlp.pt</code> ·
+      결과 <code>docs/v5/closed_loop_eval/exp77_florence2_phrase_full_stage2.json</code></span>
     </div>
   </div>
 
