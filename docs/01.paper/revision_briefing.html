@@ -722,6 +722,129 @@ Table 4 분리, "Table 5"→실제 번호 정정, Figure/Table 전체 순번 재
 </div>
 </div>
 
+<div id="qa-0820" style="background:rgba(56,189,248,0.08);border:2px solid rgba(56,189,248,0.55);
+     border-radius:12px;padding:20px 22px;margin-bottom:28px">
+<h2 style="margin:0 0 6px;color:#38bdf8;font-size:1.15rem">📄 0820 초안 점검 — Table 4 영문화·변경사항 대조</h2>
+<p style="font-size:0.78rem;color:#64748b;margin:0 0 14px">08.20 — "Training status of pipeline components" 표 전/후 대조</p>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 16px">
+대상: <code>..._0820.hwp</code> Table 4 (§5.1). 컬럼 헤더와 셀 일부가 영문으로 바뀌었는데 전부는 아니라서,
+행 단위로 무엇이 바뀌었고 무엇이 그대로인지 대조했습니다. 3열(전 / 변경사항 / 후) 블록으로 정리합니다.
+</p>
+
+<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;margin-bottom:14px;font-size:0.68rem;color:#64748b;text-align:center">
+<div>← 전 (기존 브리핑 반영본)</div><div style="width:90px"></div><div>후 (0820.hwp) →</div>
+</div>
+
+<!-- Row: Header -->
+<div class="cf-group" style="border-left-color:#94a3b8">
+<h4 style="color:#94a3b8;font-size:0.85rem">헤더</h4>
+<div style="display:grid;grid-template-columns:1fr 90px 1fr;gap:8px;align-items:center">
+<div style="padding:8px 10px;background:#1a1010;border-radius:4px;font-size:0.8rem;color:#cbd5e1">Module / Status / 이유</div>
+<div style="text-align:center;color:#38bdf8;font-size:1.1rem">→</div>
+<div style="padding:8px 10px;background:#0f2a1f;border-radius:4px;font-size:0.8rem;color:#e2e8f0">Module / Status / <strong style="color:#4ade80">Usage</strong></div>
+</div>
+<p style="font-size:0.78rem;color:#94a3b8;margin:6px 0 0">3번째 열 이름만 "이유"(한글) → "Usage"(영문)로 바뀜.</p>
+</div>
+
+<!-- Row: OWLv2 -->
+<div class="cf-group" style="border-left-color:#4ade80">
+<h4 style="color:#4ade80;font-size:0.85rem">행 1 — OWLv2</h4>
+<div style="display:grid;grid-template-columns:1fr 90px 1fr;gap:8px;align-items:center">
+<div style="padding:8px 10px;background:#1a1010;border-radius:4px;font-size:0.8rem;color:#cbd5e1">
+<strong>OWL-v2</strong> / frozen / 텍스트 프롬프트로만 사용</div>
+<div style="text-align:center;color:#38bdf8;font-size:1.1rem">→</div>
+<div style="padding:8px 10px;background:#0f2a1f;border-radius:4px;font-size:0.8rem;color:#e2e8f0">
+<strong style="color:#4ade80">OWLv2</strong>(하이픈 제거) / frozen / 텍스트 프롬프트로만 사용</div>
+</div>
+<p style="font-size:0.78rem;color:#94a3b8;margin:6px 0 0">표기만 "OWL-v2"→"OWLv2"로 통일(본문 다른 곳도 이미 OWLv2로 통일됨). 내용 변화 없음.</p>
+</div>
+
+<!-- Row: Kosmos-2 Vision -->
+<div class="cf-group" style="border-left-color:#4ade80">
+<h4 style="color:#4ade80;font-size:0.85rem">행 2 — Kosmos-2 비전 인코더</h4>
+<div style="display:grid;grid-template-columns:1fr 90px 1fr;gap:8px;align-items:center">
+<div style="padding:8px 10px;background:#1a1010;border-radius:4px;font-size:0.8rem;color:#cbd5e1">
+<strong>Kosmos-2 vision_model</strong> / frozen / 피처 추출기로<strong>만</strong> 사용</div>
+<div style="text-align:center;color:#38bdf8;font-size:1.1rem">→</div>
+<div style="padding:8px 10px;background:#0f2a1f;border-radius:4px;font-size:0.8rem;color:#e2e8f0">
+<strong style="color:#4ade80">Kosmos-2 Vision Encoder</strong>(영문화) / frozen / 피처 추출기로 사용</div>
+</div>
+<p style="font-size:0.78rem;color:#94a3b8;margin:6px 0 0">모듈명 코드 변수명(vision_model)→영문 표현(Vision Encoder)으로 정리. usage에서 "~로만"의 "만" 삭제(의미 차이는 미미).</p>
+</div>
+
+<!-- Row: Language Decoder — flagged -->
+<div class="cf-group" style="border-left-color:#f87171">
+<h4 style="color:#f87171;font-size:0.85rem">행 3 — 언어 디코더 <span style="color:#fbbf24">⚠️ 확인 필요</span></h4>
+<div style="display:grid;grid-template-columns:1fr 90px 1fr;gap:8px;align-items:center">
+<div style="padding:8px 10px;background:#1a1010;border-radius:4px;font-size:0.8rem;color:#cbd5e1">
+<strong>언어 디코더(text_model)</strong> / <strong style="color:#fbbf24">배포 시 미사용 / Stage 1 학습 시 호출됨</strong> / (긴 설명 — forward 인코딩 1회성 사용, generate() 아님, 서빙 코드엔 참조 없음)</div>
+<div style="text-align:center;color:#38bdf8;font-size:1.1rem">→</div>
+<div style="padding:8px 10px;background:#0f2a1f;border-radius:4px;font-size:0.8rem;color:#e2e8f0">
+<strong style="color:#4ade80">Kosmos-2 Language Decoder</strong>(영문화) / <strong style="color:#f87171">frozen</strong>(단순화) / 방향 텍스트 앵커 대조 (학습 시에만 사용)</div>
+</div>
+<p style="font-size:0.78rem;color:#fbbf24;margin:6px 0 0">
+⚠️ Status 값이 "배포 시 미사용 / Stage 1 학습 시 호출됨"이라는 <strong>조건부 설명</strong>에서 그냥
+"frozen" 한 단어로 단순화됐습니다. OWLv2·비전 인코더의 "frozen"과 같은 값이 되면서, "이 모듈은 배포 시
+전혀 호출되지 않지만 학습 시엔 호출된다"는 중요한 구분이 Status 칸에서는 사라지고 Usage 칸의
+"(학습 시에만 사용)"에만 남았습니다. 표만 보면 세 "frozen" 행이 똑같이 읽혀 언어 디코더가 배포 때도
+쓰이는 것으로 오해될 수 있어, Status를 <code>frozen (배포 미사용)</code>처럼 보강하는 걸 권장합니다.</p>
+</div>
+
+<!-- Row: image_proj -->
+<div class="cf-group" style="border-left-color:#4ade80">
+<h4 style="color:#4ade80;font-size:0.85rem">행 4 — image_proj</h4>
+<div style="display:grid;grid-template-columns:1fr 90px 1fr;gap:8px;align-items:center">
+<div style="padding:8px 10px;background:#1a1010;border-radius:4px;font-size:0.8rem;color:#cbd5e1">
+image_proj / <strong>Stage 1 학습 후 동결</strong> / Stage 1에서 방향 텍스트 앵커 대조학습으로 직접 학습
+(stage1_v3_5cls_owl_projs.pt), Stage 2 진입 시 그 가중치를 불러와 <strong>동결</strong></div>
+<div style="text-align:center;color:#38bdf8;font-size:1.1rem">→</div>
+<div style="padding:8px 10px;background:#0f2a1f;border-radius:4px;font-size:0.8rem;color:#e2e8f0">
+image_proj / <strong style="color:#4ade80">Training (stage1)</strong> / Stage 1에서 방향 텍스트 앵커 대조 학습,
+Stage 2 진입 시 그 가중치를 불러와 사용</div>
+</div>
+<p style="font-size:0.78rem;color:#94a3b8;margin:6px 0 0">Status가 "학습 후 동결"(결과 상태)에서 "Training (stage1)"(학습 단계 표기)로 바뀜 — 다른 행들의
+"Training"/"frozen" 이분법과 통일하려는 의도로 보임. 체크포인트 파일명·"동결"이라는 단어는 usage에서 빠짐(치명적이진 않음).</p>
+</div>
+
+<!-- Row: text_proj — REMOVED -->
+<div class="cf-group" style="border-left-color:#f87171">
+<h4 style="color:#f87171;font-size:0.85rem">행 5 — text_proj <span style="color:#f87171">❌ 행 자체가 삭제됨</span></h4>
+<div style="display:grid;grid-template-columns:1fr 90px 1fr;gap:8px;align-items:center">
+<div style="padding:8px 10px;background:#1a1010;border-radius:4px;font-size:0.8rem;color:#cbd5e1">
+text_proj / Stage 1에서만 학습, 배포엔 미사용 / 5개 방향 문장을 256차원으로 투영하는 레이어로 image_proj와
+같은 optimizer로 함께 학습됨(0.525M)</div>
+<div style="text-align:center;color:#f87171;font-size:1.3rem">✕</div>
+<div style="padding:8px 10px;background:#2a1010;border-radius:4px;font-size:0.8rem;color:#94a3b8;font-style:italic">
+(행 없음)</div>
+</div>
+<p style="font-size:0.78rem;color:#fbbf24;margin:6px 0 0">
+⚠️ 0820.hwp의 Table 4에는 text_proj 행이 아예 없습니다. §5.1 본문도 "실제로 학습되는 구성 요소는
+0.866M 파라미터 규모의 MLP 행동 헤드뿐이다"라고만 서술 — text_proj(0.525M)가 Stage 1에서 함께
+학습된다는 사실이 표와 본문 양쪽에서 빠졌습니다. 08.16 교수님 Q2 답변에서 이미 각주로 명시하기로 했던
+내용이라(§5.3 근처), <strong>의도적으로 뺀 것인지 누락인지 확인이 필요</strong>합니다 — 간단하지만
+정확도를 따지면 다시 넣는 걸 권장합니다.</p>
+</div>
+
+<!-- Row: MLP Action Head -->
+<div class="cf-group" style="border-left-color:#4ade80">
+<h4 style="color:#4ade80;font-size:0.85rem">행 6 — MLP 행동 헤드</h4>
+<div style="display:grid;grid-template-columns:1fr 90px 1fr;gap:8px;align-items:center">
+<div style="padding:8px 10px;background:#1a1010;border-radius:4px;font-size:0.8rem;color:#cbd5e1">
+<strong>MLP 액션 헤드</strong> / <strong>학습</strong> / 전체 파이프라인에서 유일하게 학습되는 0.866M</div>
+<div style="text-align:center;color:#38bdf8;font-size:1.1rem">→</div>
+<div style="padding:8px 10px;background:#0f2a1f;border-radius:4px;font-size:0.8rem;color:#e2e8f0">
+<strong style="color:#4ade80">MLP Action Head</strong>(영문화) / <strong style="color:#4ade80">Training</strong>(영문화) /
+<strong style="color:#fbbf24">이산 행동 분류</strong>(내용 교체)</div>
+</div>
+<p style="font-size:0.78rem;color:#94a3b8;margin:6px 0 0">모듈명·Status 영문화. Usage 내용이 "파라미터 규모(0.866M) 강조"에서 "기능 설명(이산 행동 분류)"으로
+바뀜 — 파라미터 수치는 표에서 빠지고 본문 문장(§5.1)에만 남음.</p>
+</div>
+
+<div class="cf-item" style="margin-top:6px"><input type="checkbox" id="qa-19"><label for="qa-19">
+Table 4 전체 검토 완료 — 특히 ⚠️ 언어 디코더 Status 단순화, ❌ text_proj 행 삭제 2건은 사용자 확인 필요
+</label></div>
+</div>
+
 <div id="todo-0811fig" style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.5);
      border-radius:12px;padding:20px 22px;margin-bottom:28px">
 <h2 style="margin:0 0 10px;color:#f87171;font-size:1.15rem">☐ 0811 docx — Figure/Table 트래커</h2>
