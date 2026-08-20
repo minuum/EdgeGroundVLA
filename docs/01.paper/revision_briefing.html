@@ -1019,6 +1019,95 @@ Table 6·7·8·9 헤더 + Table 6 캡션 + 셀 내용(위 표) 전부 위 제안
 </label></div>
 </div>
 
+<div class="cf-group" style="border-left-color:#38bdf8;margin-top:18px">
+<h4 style="color:#38bdf8">Table 1~5 셀 내용 검토</h4>
+<p style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px">
+Table 1(Lookup Mapping)·Table 3(Action Class Distribution)는 <strong style="color:#4ade80">헤더·내용 모두 이미 영문</strong>이라
+손댈 곳이 없습니다. Table 2·4·5는 헤더는 영문인데 <strong style="color:#f87171">셀 내용(특히 Meaning/Usage 열)이 한글로 남아있어</strong>
+아래처럼 정리했습니다. Table 6~9와 동일한 원칙 — 본문·다른 표·코드에 이미 있는 표현만 사용.
+</p>
+
+<table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-bottom:8px">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+<th style="text-align:left;padding:5px 7px">표</th><th style="text-align:left;padding:5px 7px">현재(한글)</th><th style="text-align:left;padding:5px 7px">제안(영문)</th><th style="text-align:left;padding:5px 7px">근거</th>
+</tr>
+
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">Table 2</td>
+<td style="padding:5px 7px">(VAL_RATIO=0.15, SPLIT_SEED=42 <strong style="color:#f87171">고정</strong>)</td>
+<td style="padding:5px 7px;color:#4ade80">(VAL_RATIO=0.15, SPLIT_SEED=42 <strong>fixed</strong>)</td>
+<td style="padding:5px 7px;color:#94a3b8">단어 하나만 교체, 값·구조 그대로</td>
+</tr>
+
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px" rowspan="5">Table 4<br><span style="color:#64748b;font-size:0.72rem">(Usage 열)</span></td>
+<td style="padding:5px 7px">텍스트 프롬프트로만 사용</td><td style="padding:5px 7px;color:#4ade80">Used as text prompt only</td>
+<td style="padding:5px 7px;color:#94a3b8">§1.1 본문 "OWLv2는 ... 텍스트 프롬프트..."의 직역, 새 개념 없음</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">피처 추출기로 사용</td><td style="padding:5px 7px;color:#4ade80">Used as feature extractor</td>
+<td style="padding:5px 7px;color:#94a3b8">"feature extractor"는 이 분야 표준 용어, 본문 의미 그대로 직역</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">방향 텍스트 앵커 대조<br>(학습 시에만 사용)</td><td style="padding:5px 7px;color:#4ade80">Direction anchor-sentence matching<br>(training only)</td>
+<td style="padding:5px 7px;color:#94a3b8">"Anchor Sentence"는 Table 6에서 이미 채택한 번역(근거: 코드 <code>ANCHOR_TEXTS</code>) 재사용.
+"대조"는 "대조학습(contrastive)"이 아니라 직역 "matching"으로 — 08.16 Q1 답변에서 "contrastive"라는
+프레이밍 자체가 정확하지 않을 수 있다고 이미 짚었기 때문에 그 판단과 일관되게 처리</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">Stage 1에서 방향 텍스트 앵커 대조 학습,<br>Stage 2 진입 시 그 가중치를 불러와 사용</td>
+<td style="padding:5px 7px;color:#4ade80">Trained via direction anchor-sentence<br>matching in Stage 1; weights reused<br>when entering Stage 2</td>
+<td style="padding:5px 7px;color:#94a3b8">위와 동일 원칙(anchor-sentence matching) + 문장 구조만 그대로 옮김</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">이산 행동 분류</td><td style="padding:5px 7px;color:#4ade80">Discrete action classification</td>
+<td style="padding:5px 7px;color:#94a3b8">논문 Abstract 자신이 "8 discrete movement actions"라고 이미 영문으로 씀 — 그 단어 그대로 조합</td>
+</tr>
+
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px" rowspan="7">Table 5<br><span style="color:#64748b;font-size:0.72rem">(Value/Meaning 열)</span></td>
+<td style="padding:5px 7px">0.25(기본) / 0.20(운영)</td><td style="padding:5px 7px;color:#4ade80">0.25 (default) / 0.20 (deployment)</td>
+<td style="padding:5px 7px;color:#94a3b8">"운영"은 실제 배포 환경을 뜻함 — 본문에서 반복되는 "배포(deploy)" 개념과 통일해 deployment로</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">OWL-v2 그라운딩 검출 신뢰도 임계값</td><td style="padding:5px 7px;color:#4ade80">OWLv2 grounding detection confidence threshold</td>
+<td style="padding:5px 7px;color:#94a3b8">본문 §5.2 설명 문단의 단어("검출 신뢰도", "임계값")를 그대로 나열식 직역</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">입력시 사용하는 연속 프레임 수</td><td style="padding:5px 7px;color:#4ade80">Number of consecutive input frames</td>
+<td style="padding:5px 7px;color:#94a3b8">직역, 새 개념 없음</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">bbox 좌표 정규화 스케일</td><td style="padding:5px 7px;color:#4ade80">bbox coordinate normalization scale</td>
+<td style="padding:5px 7px;color:#94a3b8">직역, "bbox"는 본문 전체에서 이미 영문 그대로 사용 중</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">8-class 방향 로짓</td><td style="padding:5px 7px;color:#4ade80">8-class action logit <span style="color:#fbbf24">⚠️</span></td>
+<td style="padding:5px 7px;color:#94a3b8">직역하면 "8-class direction logit"이지만, num_classes=8은 <strong>행동(action) 클래스</strong> 수이지
+방향(5-class, image_proj 쪽) 클래스 수가 아닙니다 — 원문 "방향"이라는 단어 자체가 오기(誤記)로 보입니다.
+번역만 하면 오류가 그대로 옮겨지므로, <strong style="color:#fbbf24">"방향"→"행동(action)"으로 고쳐서 번역할지
+원문 그대로 둘지 확인 필요</strong>합니다(환각 방지를 위해 임의로 고치지 않고 표시만 해둠).</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">가중치 감쇠 Adam 변형</td><td style="padding:5px 7px;color:#4ade80">Weight-decay variant of Adam</td>
+<td style="padding:5px 7px;color:#94a3b8">AdamW의 표준 정의 그대로 직역(가중치 감쇠=weight decay)</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+<td style="padding:5px 7px">학습 반복 수</td><td style="padding:5px 7px;color:#4ade80">Number of training iterations</td>
+<td style="padding:5px 7px;color:#94a3b8">직역, 새 개념 없음</td>
+</tr>
+<tr>
+<td style="padding:5px 7px">1/빈도 정규화 · FORWARD 46% 편중 보정</td>
+<td style="padding:5px 7px;color:#4ade80">1/frequency normalization · Corrects FORWARD's 46% class imbalance</td>
+<td style="padding:5px 7px;color:#94a3b8">본문 §5.2 class weight 설명 문단의 "FORWARD가 46.03%로 편중" 그대로 직역</td>
+</tr>
+</table>
+<div class="cf-item"><input type="checkbox" id="qa-21"><label for="qa-21">
+Table 2·4·5 셀 내용 영문화 — 단, Table 5 "8-class 방향 로짓"의 방향/행동 혼용은 원문 확인 후 결정
+</label></div>
+</div>
+
+
 
 </div>
 
