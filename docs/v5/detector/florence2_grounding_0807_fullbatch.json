@@ -1,0 +1,43 @@
+{
+  "n_frames": 1087,
+  "n_sessions": 100,
+  "owl_baseline_coverage": 0.905,
+  "owl_success_frames": 984,
+  "hit_tol": 0.05,
+  "elapsed_min": 12.608448855082194,
+  "by_task": {
+    "OD": {
+      "coverage": 0.23275068997240111,
+      "n_selected": 253,
+      "n_owl_success": 984,
+      "n_both": 253,
+      "agreement_rate": 0.7549407114624506,
+      "cx_mae_vs_owl": 0.032344132447026296
+    },
+    "DENSE": {
+      "coverage": 0.37534498620055196,
+      "n_selected": 408,
+      "n_owl_success": 984,
+      "n_both": 408,
+      "agreement_rate": 0.6838235294117647,
+      "cx_mae_vs_owl": 0.03900677581299462
+    }
+  },
+  "top_labels": {
+    "OD": {
+      "waste container": 253
+    },
+    "DENSE": {
+      "gray plastic laundry hamper with perforated design": 280,
+      "white plastic laundry hamper with perforated design": 32,
+      "gray metal trash can with perforated design": 26,
+      "metal trash can with perforated design": 14,
+      "empty room with cardboard boxes and trash can": 13,
+      "a gray trash can with a perforated design on the front.": 12,
+      "empty room with whiteboard and gray trash can": 6,
+      "empty room with beige filing cabinet and gray trash can": 5,
+      "a gray trash can with a perforated design on the side.": 3,
+      "gray plastic trash can with perforated design": 3
+    }
+  }
+}
