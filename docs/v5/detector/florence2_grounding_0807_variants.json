@@ -1,0 +1,70 @@
+{
+  "n_frames": 1087,
+  "owl_baseline": 0.905,
+  "baseline_ref": "florence2_grounding_0807_fullbatch.json (OD_b3=19.4%, DENSE_b3=28.4%)",
+  "variants": {
+    "OD_b3_kwOrig": {
+      "coverage": 0.23275068997240111,
+      "n_selected": 253,
+      "agreement_rate": 0.7549407114624506,
+      "recall_vs_owl": 0.19410569105691056,
+      "cx_mae_vs_owl": 0.032344132447026296
+    },
+    "DENSE_b3_kwOrig": {
+      "coverage": 0.37534498620055196,
+      "n_selected": 408,
+      "agreement_rate": 0.6838235294117647,
+      "recall_vs_owl": 0.28353658536585363,
+      "cx_mae_vs_owl": 0.03900677581299462
+    },
+    "OD_b5_kwOrig": {
+      "coverage": 0.24747010119595217,
+      "n_selected": 269,
+      "agreement_rate": 0.758364312267658,
+      "recall_vs_owl": 0.2073170731707317,
+      "cx_mae_vs_owl": 0.030067413355843564
+    },
+    "DENSE_b5_kwOrig": {
+      "coverage": 0.41306347746090155,
+      "n_selected": 449,
+      "agreement_rate": 0.6993318485523385,
+      "recall_vs_owl": 0.31910569105691056,
+      "cx_mae_vs_owl": 0.035316892277308325
+    },
+    "union_b3_DENSEfirst_kwOrig": {
+      "coverage": 0.39282428702851885,
+      "n_selected": 427,
+      "agreement_rate": 0.6955503512880562,
+      "recall_vs_owl": 0.3018292682926829,
+      "cx_mae_vs_owl": 0.037709261205993966
+    },
+    "union_b5_DENSEfirst_kwOrig": {
+      "coverage": 0.43882244710211593,
+      "n_selected": 477,
+      "agreement_rate": 0.7148846960167715,
+      "recall_vs_owl": 0.3465447154471545,
+      "cx_mae_vs_owl": 0.033933802664307275
+    },
+    "DENSE_b3_kwExpanded": {
+      "coverage": 0.37902483900643974,
+      "n_selected": 412,
+      "agreement_rate": 0.6771844660194175,
+      "recall_vs_owl": 0.28353658536585363,
+      "cx_mae_vs_owl": 0.04125599757524081
+    },
+    "DENSE_b5_kwExpanded": {
+      "coverage": 0.41582336706531736,
+      "n_selected": 452,
+      "agreement_rate": 0.6946902654867256,
+      "recall_vs_owl": 0.31910569105691056,
+      "cx_mae_vs_owl": 0.03810434413288794
+    },
+    "union_b5_DENSEfirst_kwExpanded": {
+      "coverage": 0.44158233670653174,
+      "n_selected": 480,
+      "agreement_rate": 0.7104166666666667,
+      "recall_vs_owl": 0.3465447154471545,
+      "cx_mae_vs_owl": 0.036567297471726004
+    }
+  }
+}

@@ -209,8 +209,43 @@ hero_metric4_color: "#7c3aed"
 
   이전에 학습용 val 주석(n=80, 큐레이션된 에피소드)에서 잰 52.5%는 **실제 배포
   환경(다양한 각도·거리·조명의 실기 세션)보다 낙관적인 추정치**였음이 확인됨 —
-  실제로는 19.4~28.4%로 OWL-v2(90.5%) 대비 격차가 60%p 이상. **검출기 교체 기각을
-  더 강하게 재확인** — 백본 단독 교체만 재검토 대상.
+  실제로는 19.4~28.4%로 OWL-v2(90.5%) 대비 격차가 60%p 이상.
+
+- **재현율 개선 시도(beam5 + 키워드 확장 + 합집합, 2026-08-19)** —
+  `docs/v5/detector/florence2_grounding_0807_variants.json`, 같은 1087프레임:
+
+  | 방식 | 재현율 |
+  |---|---|
+  | OD(beam3) | 19.4% |
+  | DENSE(beam3) | 28.4% |
+  | OD(beam5) | 20.7% (+1.3p) |
+  | DENSE(beam5) | 31.9% (+3.5p) |
+  | OD∪DENSE(beam3) | 30.2% |
+  | **OD∪DENSE(beam5) — 최선** | **34.7%** |
+  | 키워드 목록 확장(laundry/garbage/bucket 등 추가) | **효과 없음(모든 조합 0.0%p)** |
+
+  키워드 확장이 전혀 효과가 없었다는 건 병목이 "매칭 규칙"이 아니라 **Florence-2
+  자체가 해당 프레임에서 물체를 아예 인식/서술하지 못한다**는 뜻. beam/합집합을
+  최대로 밀어붙여도 34.7%가 상한선이며 OWL-v2(90.5%)와 55%p 이상 격차.
+  **검출기 교체 기각을 재확인** — 백본 단독 교체만 재검토 대상.
+
+- **그라운더 스왑 Stage2 재학습(2026-08-19)** — exp73과 완전히 동일한 조건
+  (Kosmos-2 vision, MLP 헤드, window=6, bbox_scale=3.0, 3-seed)에서 **bbox 주석만
+  OWL-v2→Florence-2(DENSE 우선+OD 폴백, V6 전체 225ep 재주석)로 교체**:
+
+  | | OWL bbox(exp73) | Florence-2 bbox | 차이 |
+  |---|---|---|---|
+  | val_acc mean | 73.87%±0.20%p | 73.26%±0.29%p | -0.61%p |
+  | val_acc best | 74.13% | 73.59% | -0.54%p |
+
+  전체 평균은 소폭 하락에 그쳤지만 클래스별로는 방향성 회귀가 뚜렷함:
+  **L 66.7%→52.8%(-13.8%p), ROT_L 50.0%→33.3%(-16.7%p)** — 나머지 클래스는
+  ±5%p 이내(FL/ROT_R은 오히려 소폭 상승). Florence-2의 낮은 재현율이 특정 방향
+  프레임에 편중되어 나타난 것으로 보이며, 실기에서 이미 취약한 좌측 방향
+  (CH66 좌우 비대칭)과 겹쳐 주의가 필요.
+  체크포인트: `runs/v5_nav/mlp/exp73_stage1v3/exp73_florence2_grounder_v6_mlp.pt`,
+  주석: `docs/v5/bbox_nav_florence2/bbox_dataset_v6_florence2.json`.
+
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목).
 
