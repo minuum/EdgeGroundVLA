@@ -230,10 +230,14 @@ def load_labels():
     return {}
 
 
-def save_label(key, data):
+def save_label(key, patch, base_meta):
     labels = load_labels()
-    labels[key] = data
+    cur = labels.get(key, dict(owlv2=None, florence2=None, no_target=False))
+    cur.update(patch)
+    cur.update(base_meta)
+    labels[key] = cur
     LABELS_PATH.write_text(json.dumps(labels, indent=2, ensure_ascii=False))
+    return cur
 
 
 PAGE = """
@@ -267,6 +271,8 @@ h1{font-size:1.15rem}
 .card-header{padding:4px 8px;font-size:0.65rem;color:#94a3b8;background:#111827;line-height:1.5}
 .tag{display:inline-block;padding:0 6px;border-radius:4px;font-size:0.68rem;font-weight:bold;color:#0a0f1a;margin-right:4px}
 .label-block{padding:6px 8px;display:flex;flex-direction:column;gap:5px}
+.row{display:flex;align-items:center;gap:8px;font-size:0.72rem}
+.row .mname{flex:1;color:#94a3b8}
 .btn-group{display:flex;gap:3px}
 .lbl-btn{font-size:0.72rem;padding:3px 9px;border-radius:4px;border:1px solid #334155;
   background:#1e293b;color:#94a3b8;cursor:pointer;font-weight:bold}
@@ -274,13 +280,14 @@ h1{font-size:1.15rem}
 .lbl-btn.ng.active{background:#ef4444;color:#fff;border-color:#ef4444}
 .lbl-btn.nt.active{background:#f97316;color:#fff;border-color:#f97316}
 </style></head><body>
-<h1>V6 학습셋(16599프레임) — Florence-2 phrase-grounding("gray basket") 사람 검증</h1>
+<h1>V6 학습셋(16599프레임) — OWLv2 vs Florence-2 그라운딩 사람 검증</h1>
 <div id="legend">
-  <span>초록선=OWL bbox(참고) · 빨강선=Florence-2 예측</span>
+  <span>초록선=OWLv2 · 빨강선=Florence-2("gray basket")</span>
 </div>
 <div class="kbd-help">
-  <b>←→↑↓</b> 카드 이동 · <b>1</b> 정확 · <b>2</b> 오탐(위치틀림) · <b>3</b> 타겟없음
-  (누르면 자동으로 다음 카드로 이동) · 클릭으로도 카드 선택 가능
+  <b>←→↑↓</b> 카드 이동 · <b>1</b> OWLv2 정오 순환(미판정→O→X→O…) · <b>2</b> Florence-2 정오 순환 ·
+  <b>0</b> 타겟없음(토글, 이 프레임 완료 처리) · OWL 실패 칸은 OWLv2가 자동 X 처리되어 있어 2번만 누르면 됨 ·
+  1(succ 칸)/2 모두 정해지거나 0을 누르면 자동으로 다음 카드로 이동 · 클릭으로도 카드 선택 가능
 </div>
 <div id="progress">진행 <span id="prog">0/0</span>
   <span class="stat" id="stats"></span>
@@ -328,10 +335,18 @@ function render(){
         <span class="tag" style="background:${c.approach_color}">${c.approach_label}</span>
       </div>
       <div class="label-block">
-        <div class="btn-group" id="btns-${i}">
-          <button class="lbl-btn ok" onclick="setLabel(${i},'ok')">정확</button>
-          <button class="lbl-btn ng" onclick="setLabel(${i},'ng')">오탐(위치틀림)</button>
-          <button class="lbl-btn nt" onclick="setLabel(${i},'nt')">타겟없음</button>
+        <div class="row"><span class="mname">1:OWLv2</span>
+          <div class="btn-group" id="owlv2-${i}">
+            <button class="lbl-btn ok" onclick="cycleModel(${i},'owlv2')">O</button>
+            <button class="lbl-btn ng" onclick="cycleModel(${i},'owlv2')">X</button>
+          </div></div>
+        <div class="row"><span class="mname">2:Flo2</span>
+          <div class="btn-group" id="florence2-${i}">
+            <button class="lbl-btn ok" onclick="cycleModel(${i},'florence2')">O</button>
+            <button class="lbl-btn ng" onclick="cycleModel(${i},'florence2')">X</button>
+          </div></div>
+        <div class="row"><span class="mname">0:타겟없음</span>
+          <button class="lbl-btn nt" id="nt-${i}" onclick="toggleNoTarget(${i})">토글</button>
         </div>
       </div>`;
     div.addEventListener('click', (e) => {
@@ -344,20 +359,25 @@ function render(){
   updateProg();
   loadThumbs();
   updateStats();
-  const firstUnlabeled = cards.findIndex(c => !c.label);
+  const firstUnlabeled = cards.findIndex(c => !isComplete(c));
   selectCard(firstUnlabeled >= 0 ? firstUnlabeled : 0);
+}
+function isComplete(c){
+  return c.no_target || (!!c.owlv2 && !!c.florence2);
 }
 function patchCard(i){
   const c = cards[i];
-  document.getElementById(`card-${i}`).classList.toggle('labeled', !!c.label);
-  const btns = document.getElementById(`btns-${i}`).children;
-  const map = {ok:0, ng:1, nt:2};
-  for (const [k, idx] of Object.entries(map)){
-    btns[idx].classList.toggle('active', c.label === k);
-  }
+  document.getElementById(`card-${i}`).classList.toggle('labeled', isComplete(c));
+  const owlBtns = document.getElementById(`owlv2-${i}`).children;
+  owlBtns[0].classList.toggle('active', c.owlv2 === 'ok');
+  owlBtns[1].classList.toggle('active', c.owlv2 === 'ng');
+  const floBtns = document.getElementById(`florence2-${i}`).children;
+  floBtns[0].classList.toggle('active', c.florence2 === 'ok');
+  floBtns[1].classList.toggle('active', c.florence2 === 'ng');
+  document.getElementById(`nt-${i}`).classList.toggle('active', !!c.no_target);
 }
 function updateProg(){
-  const labeled = cards.filter(c => c.label).length;
+  const labeled = cards.filter(isComplete).length;
   document.getElementById('prog').innerText = `${labeled}/${cards.length}`;
 }
 async function loadThumbs(){
@@ -374,12 +394,27 @@ async function loadThumbs(){
     if (pr && d.pred_cx !== null){ pr.style.left = `${d.pred_cx*100}%`; pr.style.display = 'block'; }
   }
 }
-async function setLabel(i, lbl){
-  cards[i].label = lbl;
-  patchCard(i);       // 이 카드만 즉시 갱신 — 전체 재로딩 없음
+function cycleValue(cur){
+  // 미판정 → O → X → O → ... (원본 라벨러와 동일한 순환)
+  return cur === 'ok' ? 'ng' : 'ok';
+}
+async function cycleModel(i, field){
+  const c = cards[i];
+  c[field] = cycleValue(c[field]);
+  patchCard(i);
   updateProg();
-  await fetch(`/api/label?i=${i}&lbl=${lbl}`);
-  updateStats();       // 통계만 갱신, 그리드/썸네일은 안 건드림
+  await fetch(`/api/label?i=${i}&field=${field}&val=${c[field]}`);
+  updateStats();
+  if (isComplete(c) && selIdx === i && i < cards.length - 1) selectCard(i + 1);
+}
+async function toggleNoTarget(i){
+  const c = cards[i];
+  c.no_target = !c.no_target;
+  patchCard(i);
+  updateProg();
+  await fetch(`/api/label?i=${i}&field=no_target&val=${c.no_target}`);
+  updateStats();
+  if (c.no_target && selIdx === i && i < cards.length - 1) selectCard(i + 1);
 }
 function groupTable(title, obj, colorMap, labelKey){
   let rows = Object.entries(obj).map(([k,v]) => {
@@ -393,19 +428,19 @@ async function updateStats(){
   const res = await fetch('/api/stats');
   const s = await res.json();
   document.getElementById('stats').innerText =
-    `정확 ${s.ok} · 오탐(위치틀림) ${s.ng} · 타겟없음 ${s.nt} · ` +
-    (s.n_judged ? `정밀도(타겟있음 기준) ${s.precision}` : '');
+    `OWLv2 정확도 ${s.owlv2_precision}(${s.owlv2_n}건) · Florence-2 정확도 ${s.florence2_precision}(${s.florence2_n}건) · ` +
+    `타겟없음 확인 ${s.no_target}건 · 가중추정(전체 V6 기준) OWLv2 ${s.weighted_owlv2} / Florence-2 ${s.weighted_florence2}`;
   document.getElementById('groupstats').innerHTML =
-    groupTable('목표별 정확도(정확/판정)', s.by_direction, LEGEND.directions) +
-    groupTable('접근방식별 정확도', s.by_approach, LEGEND.approaches);
+    groupTable('목표별 Florence-2 정확도', s.by_direction, LEGEND.directions) +
+    groupTable('접근방식별 Florence-2 정확도', s.by_approach, LEGEND.approaches);
   updateProg();
 }
 
 // ── 키보드 라벨링 (serve_hsv_owlv2_labeler.py 알고리즘 이식) ──────────────
-// ←→↑↓: 카드 이동(격자 열수 자동 계산) / 1~3: 정확·오탐·타겟없음 즉시 라벨 후
-// 자동으로 다음 카드로 이동. 카드 클릭으로도 커서 이동 가능.
+// ←→↑↓: 카드 이동(격자 열수 자동 계산) / 1: OWLv2 순환(O↔X) / 2: Florence-2 순환 /
+// 0: 타겟없음 토글. 두 모델 다 판정되거나 0을 누르면 자동으로 다음 카드.
+// 카드 클릭으로도 커서 이동 가능.
 let selIdx = -1;
-const LABEL_KEYS = {'1': 'ok', '2': 'ng', '3': 'nt'};
 
 function clearCursor(){
   const grid = document.getElementById('grid');
@@ -433,11 +468,16 @@ document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   if (!cards.length) return;
   const cols = colsInGrid();
-  if (LABEL_KEYS[e.key]) {
+  if (e.key === '1' || e.key === '2') {
     e.preventDefault();
     if (selIdx < 0) { selectCard(0); return; }
-    setLabel(selIdx, LABEL_KEYS[e.key]);
-    if (selIdx < cards.length - 1) selectCard(selIdx + 1);
+    cycleModel(selIdx, e.key === '1' ? 'owlv2' : 'florence2');
+    return;
+  }
+  if (e.key === '0') {
+    e.preventDefault();
+    if (selIdx < 0) { selectCard(0); return; }
+    toggleNoTarget(selIdx);
     return;
   }
   switch (e.key) {
@@ -465,13 +505,19 @@ def api_frames():
     for i, (fidx, bin_, owl_ok) in enumerate(SAMPLE):
         fr = FRAMES[fidx]
         key = f"{fr['stem']}|{fr['frame_idx']}"
+        saved = labels.get(key, {})
+        # OWL이 이미 실패한 걸로 알려진 칸은 재판정할 필요 없이 자동 X — 사용자가
+        # 명시적으로 다시 판정하면(저장값 존재) 그 값을 우선한다.
+        default_owlv2 = "ng" if owl_ok == "fail" else None
         out.append(dict(stem=fr["stem"], frame_idx=fr["frame_idx"], bin=bin_, owl_ok=owl_ok,
                         direction=fr["direction"], approach=fr["approach"],
                         direction_label=DIRECTION_LABEL[fr["direction"]],
                         direction_color=DIRECTION_COLOR[fr["direction"]],
                         approach_label=APPROACH_LABEL[fr["approach"]],
                         approach_color=APPROACH_COLOR[fr["approach"]],
-                        label=labels.get(key, {}).get("label")))
+                        owlv2=saved.get("owlv2", default_owlv2),
+                        florence2=saved.get("florence2"),
+                        no_target=saved.get("no_target", False)))
     return jsonify(out)
 
 
@@ -494,72 +540,95 @@ def api_card():
 @app.route("/api/label")
 def api_label():
     i = int(request.args.get("i", 0))
-    lbl = request.args.get("lbl")
+    field = request.args.get("field")  # owlv2 | florence2 | no_target
+    val = request.args.get("val")
+    if field == "no_target":
+        val = val == "true"
     fidx, bin_, owl_ok = SAMPLE[i]
     fr = FRAMES[fidx]
     data = render_card(i)
     key = f"{fr['stem']}|{fr['frame_idx']}"
-    save_label(key, dict(label=lbl, bin=bin_, owl_ok=owl_ok, gt_cx=fr["gt_cx"], pred_cx=data["pred_cx"],
-                         direction=fr["direction"], approach=fr["approach"]))
+    save_label(key, {field: val},
+               dict(bin=bin_, owl_ok=owl_ok, gt_cx=fr["gt_cx"], pred_cx=data["pred_cx"],
+                    direction=fr["direction"], approach=fr["approach"]))
     return jsonify(ok=True)
+
+
+def _effective_owlv2(v):
+    """fail 칸은 명시적으로 다시 판정 안 했으면 자동 X로 간주(디폴트)."""
+    ov = v.get("owlv2")
+    if ov is None and v.get("owl_ok") == "fail":
+        return "ng"
+    return ov
+
+
+def _fmt_frac(ok, n):
+    return f"{ok}/{n}" + (f" ({ok/n*100:.0f}%)" if n else "")
 
 
 @app.route("/api/stats")
 def api_stats():
     labels = load_labels()
-    ok = sum(1 for v in labels.values() if v["label"] == "ok")
-    ng = sum(1 for v in labels.values() if v["label"] == "ng")
-    nt = sum(1 for v in labels.values() if v["label"] == "nt")
-    n_judged = ok + ng
+    no_target = sum(1 for v in labels.values() if v.get("no_target"))
+
+    judged = [v for v in labels.values() if not v.get("no_target")]
+    owlv2_vals = [_effective_owlv2(v) for v in judged]
+    owlv2_ok = sum(1 for x in owlv2_vals if x == "ok")
+    owlv2_n = sum(1 for x in owlv2_vals if x in ("ok", "ng"))
+    florence2_ok = sum(1 for v in judged if v.get("florence2") == "ok")
+    florence2_n = sum(1 for v in judged if v.get("florence2") in ("ok", "ng"))
 
     def group_precision(key):
         out = {}
-        for v in labels.values():
+        for v in judged:
+            if v.get("florence2") not in ("ok", "ng"):
+                continue
             g = v.get(key, "?")
-            out.setdefault(g, {"ok": 0, "ng": 0})
-            if v["label"] == "ok":
+            out.setdefault(g, {"ok": 0, "n": 0})
+            out[g]["n"] += 1
+            if v["florence2"] == "ok":
                 out[g]["ok"] += 1
-            elif v["label"] == "ng":
-                out[g]["ng"] += 1
-        return {g: f"{c['ok']}/{c['ok']+c['ng']}" + (f" ({c['ok']/(c['ok']+c['ng'])*100:.0f}%)" if c['ok']+c['ng'] else "")
-                for g, c in out.items() if c["ok"] + c["ng"] > 0}
+        return {g: _fmt_frac(c["ok"], c["n"]) for g, c in out.items() if c["n"] > 0}
 
-    # 층화 가중 추정 — 표본은 칸(bin×owl_ok)당 균등(20개)이지만 모집단 비율은 다르다.
-    # 각 칸의 표본 정확도를 그 칸의 모집단 비중으로 가중해 전체 추정치를 왜곡 없이 낸다.
+    # 층화 가중 추정 — 표본이 칸(bin×owl_ok)마다 크기가 다르다(succ는 소량 스팟체크,
+    # fail은 전수). 각 칸의 표본 정확도를 그 칸의 실제 V6 모집단 비중으로 가중해야
+    # 전체 추정치가 succ/fail 어느 한쪽으로 쏠리지 않는다.
     cell_stat = {}
-    for v in labels.values():
+    for v in judged:
         key = (v.get("bin"), v.get("owl_ok"))
-        cell_stat.setdefault(key, {"ok": 0, "ng": 0, "nt": 0})
-        if v["label"] in ("ok", "ng", "nt"):
-            cell_stat[key][v["label"]] += 1
+        cell_stat.setdefault(key, {"owlv2_ok": 0, "owlv2_n": 0, "flo_ok": 0, "flo_n": 0})
+        ov = _effective_owlv2(v)
+        if ov in ("ok", "ng"):
+            cell_stat[key]["owlv2_n"] += 1
+            if ov == "ok":
+                cell_stat[key]["owlv2_ok"] += 1
+        if v.get("florence2") in ("ok", "ng"):
+            cell_stat[key]["flo_n"] += 1
+            if v["florence2"] == "ok":
+                cell_stat[key]["flo_ok"] += 1
 
     total_pop = sum(CELL_POP.values())
-    weighted_target_present_rate = 0.0  # 타겟이 실제 존재하는 비율(가중)
-    weighted_precision_num, weighted_precision_den = 0.0, 0.0
-    cells_ready = []
+    w_owl_num = w_owl_den = w_flo_num = w_flo_den = 0.0
     for key, pop in CELL_POP.items():
         w = pop / total_pop
-        cs = cell_stat.get(key, {"ok": 0, "ng": 0, "nt": 0})
-        n_cell = cs["ok"] + cs["ng"] + cs["nt"]
-        if n_cell == 0:
+        cs = cell_stat.get(key)
+        if not cs:
             continue
-        present_rate = (cs["ok"] + cs["ng"]) / n_cell
-        weighted_target_present_rate += w * present_rate
-        weighted_precision_num += w * cs["ok"]
-        weighted_precision_den += w * (cs["ok"] + cs["ng"])
-        cells_ready.append(key)
+        w_owl_num += w * cs["owlv2_ok"]; w_owl_den += w * cs["owlv2_n"]
+        w_flo_num += w * cs["flo_ok"]; w_flo_den += w * cs["flo_n"]
 
-    weighted_precision = (weighted_precision_num / weighted_precision_den
-                           if weighted_precision_den else None)
-    coverage_note = f"{len(cells_ready)}/{len(CELL_POP)}칸 라벨 있음"
+    weighted_owlv2 = f"{w_owl_num/w_owl_den*100:.1f}%" if w_owl_den else "N/A"
+    weighted_florence2 = f"{w_flo_num/w_flo_den*100:.1f}%" if w_flo_den else "N/A"
 
-    return jsonify(ok=ok, ng=ng, nt=nt, n_judged=n_judged,
-                   precision=f"{ok/n_judged*100:.1f}%" if n_judged else "N/A",
-                   by_direction={DIRECTION_LABEL.get(k, k): v for k, v in group_precision("direction").items()},
-                   by_approach={APPROACH_LABEL.get(k, k): v for k, v in group_precision("approach").items()},
-                   weighted_precision=(f"{weighted_precision*100:.1f}%" if weighted_precision is not None else "N/A"),
-                   weighted_target_present_rate=f"{weighted_target_present_rate*100:.1f}%",
-                   weighted_coverage=coverage_note)
+    return jsonify(
+        no_target=no_target,
+        owlv2_precision=_fmt_frac(owlv2_ok, owlv2_n), owlv2_n=owlv2_n,
+        florence2_precision=_fmt_frac(florence2_ok, florence2_n), florence2_n=florence2_n,
+        by_direction={DIRECTION_LABEL.get(k, k): v for k, v in group_precision("direction").items()},
+        by_approach={APPROACH_LABEL.get(k, k): v for k, v in group_precision("approach").items()},
+        weighted_owlv2=weighted_owlv2,
+        weighted_florence2=weighted_florence2,
+    )
 
 
 if __name__ == "__main__":
