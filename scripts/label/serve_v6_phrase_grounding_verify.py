@@ -44,7 +44,6 @@ DEV = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_ID = "microsoft/Florence-2-base"
 TASK = "<CAPTION_TO_PHRASE_GROUNDING>"
 PHRASE = "gray basket"
-N_PER_CELL = 20
 
 app = Flask(__name__)
 _model = {"model": None, "proc": None}
@@ -108,7 +107,7 @@ def load_index():
 FRAMES = load_index()
 print(f"V6 프레임 {len(FRAMES)}개 인덱싱 완료 (기대값 16599)", flush=True)
 
-# 층(bin × owl_ok)별 모집단 크기 — 표본이 균등(칸당 N_PER_CELL)이라 모집단 비율로
+# 층(bin × owl_ok)별 모집단 크기 — 표본이 균등하지 않으니(succ는 소량, fail은 전수) 모집단 비율로
 # 가중해야 전체 정확도 추정치가 왜곡되지 않는다(예: OWL 실패 프레임은 전체의 일부인데
 # 표본에선 절반).
 CELL_POP = {}
@@ -117,9 +116,16 @@ for fr in FRAMES:
     CELL_POP[key] = CELL_POP.get(key, 0) + 1
 
 
+# succ은 OWL 자체가 이미 어느 정도 신뢰도가 있다고 알려진 영역(과거 ROC 분석
+# 정탐 94.9%)이라 소량 샌티티체크만, fail은 완전 미검증 영역이라 있는 대로 전부
+# — 사용자 요청(2026-08-20)에 따른 재배분.
+N_PER_CELL_SUCC = 10
+FAIL_TAKE_ALL = True
+
+
 def build_sample():
-    """6칸(bin × owl_ok)에 N_PER_CELL개씩. 칸 안에서는 (목표 5 × 접근 3) 15조합을
-    라운드로빈으로 순회해 최대한 골고루 뽑는다 — 한 목표/접근에 쏠리지 않게."""
+    """6칸(bin × owl_ok) — succ은 칸당 N_PER_CELL_SUCC개 스팟체크, fail은 가능한 전부.
+    칸 안에서는 (목표 5 × 접근 3) 15조합을 라운드로빈으로 순회해 최대한 골고루 뽑는다."""
     rng = np.random.default_rng(42)
     cells = {}
     for i, fr in enumerate(FRAMES):
@@ -135,7 +141,6 @@ def build_sample():
             by_combo.setdefault(combo, []).append(i)
         combos = list(by_combo.keys())
         rng.shuffle(combos)
-        # (direction, approach) 조합 단위로 라운드로빈 — 같은 조합 반복 전에 다른 조합부터 채움
         by_da = {}
         for combo in combos:
             da = (combo[0], combo[1])
@@ -143,15 +148,16 @@ def build_sample():
         da_order = list(by_da.keys())
         rng.shuffle(da_order)
 
+        target_n = len(combos) if (key[1] == "fail" and FAIL_TAKE_ALL) else N_PER_CELL_SUCC
         picked = []
-        while len(picked) < N_PER_CELL and any(by_da.values()):
+        while len(picked) < target_n and any(by_da.values()):
             for da in list(da_order):
                 if not by_da[da]:
                     continue
                 combo = by_da[da].pop()
                 cand = by_combo[combo]
                 picked.append(cand[rng.integers(0, len(cand))])
-                if len(picked) >= N_PER_CELL:
+                if len(picked) >= target_n:
                     break
         sample.extend([(i, key[0], key[1]) for i in picked])
     rng.shuffle(sample)
@@ -159,7 +165,9 @@ def build_sample():
 
 
 SAMPLE = build_sample()
-print(f"검증 표본 {len(SAMPLE)}개 구성 완료 (6칸 × {N_PER_CELL})", flush=True)
+_n_succ = sum(1 for _, _, ok in SAMPLE if ok == "succ")
+_n_fail = sum(1 for _, _, ok in SAMPLE if ok == "fail")
+print(f"검증 표본 {len(SAMPLE)}개 구성 완료 (succ {_n_succ}개 스팟체크 + fail {_n_fail}개 전수)", flush=True)
 
 _h5_cache = {}
 
@@ -194,9 +202,19 @@ def draw_overlay(img, gt_cx, pred_cx):
     img = img.copy()
     draw = ImageDraw.Draw(img)
     W, H = img.size
-    draw.line([(gt_cx * W, 0), (gt_cx * W, H)], fill=(34, 197, 94), width=3)
+
+    def vline_labeled(cx, color, text, text_y):
+        x = cx * W
+        draw.line([(x, 0), (x, H)], fill=color, width=3)
+        tx = min(max(x + 3, 0), W - 30)  # 화면 밖으로 안 나가게
+        # 가독성용 검은 외곽선(그림자) 후 본문
+        for dx, dy in [(-1, -1), (1, -1), (-1, 1), (1, 1)]:
+            draw.text((tx + dx, text_y + dy), text, fill=(0, 0, 0))
+        draw.text((tx, text_y), text, fill=color)
+
+    vline_labeled(gt_cx, (34, 197, 94), "OWLv2", 4)
     if pred_cx is not None:
-        draw.line([(pred_cx * W, 0), (pred_cx * W, H)], fill=(239, 68, 68), width=3)
+        vline_labeled(pred_cx, (239, 68, 68), "Flo2", 18)
     return img
 
 
