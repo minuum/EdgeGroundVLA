@@ -355,6 +355,7 @@
     <a href="../01.paper/redfill_draft_0805.html" style="padding:7px 16px;background:#052e16;border:1px solid #22c55e;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">📄 절별 초고</a>
     <a href="model_architecture_brief.html" style="padding:7px 16px;background:#1e0a2b;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🏗 모델 구조 &amp; 학습 방식</a>
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
+    <a href="#ch69" style="padding:7px 16px;background:#052e16;border:1px solid #4ade80;border-radius:8px;font-size:0.78rem;font-weight:800;color:#86efac;text-decoration:none">🎯 CH69 phrase 그라운딩 대발견</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
     <a href="#ch68" style="padding:7px 16px;background:#1a1033;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🗣 CH68 언어조건화 계획</a>
@@ -17836,6 +17837,142 @@ graph TD
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH68 ═ -->
 
+<hr class="chapter-divider">
+
+<div class="chapter" id="ch69">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#4ade80;color:#0a0f1a">CH 69</span>
+    <h2 class="chapter-title">phrase 그라운딩 대발견 — Florence-2 검출기 판정이 두 번 뒤집혔다</h2>
+    <p class="chapter-subtitle"><span style="color:#86efac;font-weight:800">2026-08-20~21</span> ·
+    CH67에서 "검출기 교체 기각 확정"까지 갔던 Florence-2가, OWL-v2처럼 <strong style="color:#e2e8f0">타겟 문구를 직접 지정</strong>하는
+    방식(`&lt;CAPTION_TO_PHRASE_GROUNDING&gt;`)을 처음 시도하자 재현율이 34.7%→84.96%(실기)→100%(V6 사람검증)로 뛰었다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟢 <strong>3줄 요약</strong><br>
+    ① 지금까지 전부 <strong>"열린 질문"</strong>(`&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;` — "뭐가 있는지 다 말해봐" 후 키워드로 골라냄)만
+    시도했다 — 이건 태생적으로 재현율 상한이 낮다(beam5+합집합+키워드확장 다 해도 34.7%).<br>
+    ② <strong style="color:#86efac">OWL-v2처럼 타겟을 직접 지정</strong>하는 `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;`+"gray basket"으로
+    바꾸니 0807 실기 배치 재현율 84.96%, V6 학습셋 사람 검증(n=97)에서는 <strong style="color:#4ade80">100%</strong>.<br>
+    ③ 이 과정에서 두 개의 자체 버그(BGR/RGB 채널 반전, 순환논리 우려)를 스스로 발견·수정했고,
+    로컬 인터랙티브 검증 도구 3종을 새로 만들어 사람이 직접 그라운드 트루스를 판정할 수 있게 했다.
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">✅ 69-1. 태스크를 바꾸자 재현율이 34.7%→84.96%로 뛰었다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      67-7까지의 모든 Florence-2 그라운딩 실험은 `&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;`(열린 질문)에
+      우리가 키워드 매칭으로 후처리하는 방식이었다. 이 태스크들은 <strong style="color:#e2e8f0">"이미지에 뭐가
+      있는지 서술하라"</strong>는 지시라, 타겟을 직접 지정하는 개념 자체가 없다.
+      <br><br>
+      2026-08-20 인터랙티브 도구(`/live`)에서 우연히 `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;` +
+      phrase="gray basket"(OWL-v2와 동일하게 타겟을 직접 지정하는 방식)을 시도했더니 5개 중 4개가
+      정답에 근접 — 즉시 0807 100세션 1087프레임 전체로 정식 재현율을 측정했다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">방식</td><td style="padding:4px;text-align:center">재현율(0807 실기)</td></tr>
+        <tr><td style="padding:4px">OD∪DENSE(beam5, 열린 질문 최선, CH67 67-7)</td><td style="padding:4px;text-align:center">34.7%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>CAPTION_TO_PHRASE_GROUNDING + "gray basket"</strong></td><td style="padding:4px;text-align:center"><strong>84.96%</strong></td></tr>
+        <tr><td style="padding:4px">OWL-v2(기준)</td><td style="padding:4px;text-align:center">90.5%</td></tr>
+      </table>
+      cx MAE 0.0228, <strong style="color:#e2e8f0">median AE 0.0021</strong>(맞을 때는 거의 완벽).
+      <br><br>
+      <strong style="color:#e2e8f0">왜 이렇게 다른가</strong> — Florence-2 프로세서 내부(`_construct_prompts`)가
+      태스크 토큰을 실제 자연어 문장 템플릿으로 자동 치환한다:
+      <pre style="background:#0b1220;border:1px solid #223;border-radius:6px;padding:10px 12px;margin:8px 0;font-size:0.78rem;line-height:1.7;color:#cbd5e1">'&lt;CAPTION_TO_PHRASE_GROUNDING&gt;': "Locate the phrases in the caption: {input}"
+# 실제 모델 입력 = "Locate the phrases in the caption: gray basket"</pre>
+      즉 태그는 템플릿 선택 스위치일 뿐이고, 모델이 실제로 보는 건 완전한 자연어 지시문이다 —
+      OWL-v2식 open-vocabulary 검출과 개념적으로 가장 가까운 태스크였는데 지금까지 안 써봤던 것.
+      Florence-2 공식 태스크는 총 15개(입력없음 8개 + 입력있음 7개)이고 이 중 입력을 받는
+      태스크들은 전부 비슷한 자연어 템플릿 방식이다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트 <code>scripts/florence2_phrase_grounding_test.py</code> ·
+      결과 <code>docs/v5/detector/florence2_phrase_grounding_0807.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">⚠️ 69-2. 자체 발견한 버그 2건 — 색상 채널 반전, 그리고 성급한 결론</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">① BGR/RGB 채널 버그</strong> — 실제 재현율 계산 스크립트들은 문제없었지만,
+      화면에 보여주는 시각화 도구 2개(케이스 갤러리, 초기 라벨링 도구)가 0807 세션 이미지를 잘못
+      반전시켜 파란 색조로 보여주고 있었다. 육안 확인으로 발견: <strong style="color:#e2e8f0">V6 학습셋은
+      BGR 저장(반전 필요)</strong>, <strong style="color:#e2e8f0">0807 실기 세션은 이미 RGB(반전하면 안 됨)</strong> —
+      두 파이프라인이 반대 규칙을 쓴다는 걸 놓쳤던 것. 계산 결과는 무사했고 시각화만 고쳤다.
+      <br><br>
+      <strong style="color:#e2e8f0">② "OWL을 정답으로 쓰면 순환논리 아니냐" 우려</strong> — 타당한 지적이었으나
+      HSV 색상 기반 독립검증으로 확인하려던 시도는 실패(OWL vs HSV 일치율 2.95%, 연속 프레임에서
+      HSV 값이 요동쳐 그 자체로 신뢰 불가로 판정, 즉시 폐기). 대신 <strong style="color:#e2e8f0">사람이
+      직접 이미지를 보고 판정</strong>하는 라벨링 도구로 우회 — OWL 선은 참고 보조선일 뿐 최종 판정
+      기준이 아니게 설계해서 순환논리 자체를 해소했다(69-3 참조).
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🖱 69-3. 인터랙티브 검증 도구 3종 — 사람이 직접 그라운드 트루스를 만든다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      명시적 phrase 그라운딩의 유일한 약점은 <strong style="color:#e2e8f0">거부 모드가 없다는 것</strong>
+      (coverage 100% — 타겟이 없는 프레임에서도 무조건 어딘가를 짚는다). OWL이 실패한 프레임이
+      "진짜 없어서"인지 "OWL도 놓쳐서"인지 OWL 자신으로는 구분할 수 없어서, 로컬 서버 3개를 만들어
+      사람이 직접 판정하게 했다:
+      <ul style="margin:8px 0 0 20px">
+        <li><code>serve_florence2_owl_compare.py</code>(:7795) — 0807 배치 브라우저 + 실시간 임의 태스크/phrase 테스트</li>
+        <li><code>serve_v6_phrase_grounding_verify.py</code>(:7796) — <strong style="color:#e2e8f0">V6 학습셋(16599프레임)</strong> 대상,
+          목표 5개×접근 3개 색상 태그, 방향키+숫자키(1=OWLv2, 2=Florence-2, 0=타겟없음) 키보드 라벨링
+          (<code>serve_hsv_owlv2_labeler.py</code> 알고리즘 이식), OWLv2·Florence-2 독립 판정</li>
+      </ul>
+      표본 설계: succ(OWL 성공) 칸은 소량 스팟체크(과거 ROC 정탐 94.9% 참고), fail(OWL 실패) 칸은
+      <strong style="color:#e2e8f0">가능한 전부</strong>(67개 에피소드 전수, V6 자체가 후반부일수록
+      실패가 희귀해서 — 접근할수록 타겟이 커 보여서 — late×fail 칸이 11개뿐이라는 걸 이 과정에서
+      알게 됨). 총 97개 라벨링.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 69-4. V6 사람 검증 결과 — Florence-2 97/97(100%), OWLv2(가중) 92.8%</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      97개 전부 라벨링 완료(2026-08-21). 표본은 succ/fail 비율이 불균등(succ 30·fail 67)해서
+      단순 평균이 아니라 <strong style="color:#e2e8f0">V6 실제 모집단(bin×owl_success 6층) 비중으로
+      가중</strong>해 추정치를 냈다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">지표</td><td style="padding:4px;text-align:center">원표본</td><td style="padding:4px;text-align:center">가중 추정(전체 V6)</td></tr>
+        <tr><td style="padding:4px">OWLv2 정확도</td><td style="padding:4px;text-align:center">43/97 (44%)</td><td style="padding:4px;text-align:center">92.8%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 정확도</strong></td><td style="padding:4px;text-align:center"><strong>97/97 (100%)</strong></td><td style="padding:4px;text-align:center"><strong>100.0%</strong></td></tr>
+      </table>
+      OWLv2 원표본이 낮아 보이는 건 fail 칸(자동 X 처리 67개)이 표본 대부분을 차지해서다 — 가중
+      추정치(92.8%)가 실제 신뢰도에 가깝고, 이전 ROC 분석(정탐 94.9%)과도 order가 맞는다.
+      <br><br>
+      <strong style="color:#fbbf24">주목할 점</strong> — Florence-2가 <strong style="color:#e2e8f0">OWL이 실패한
+      67개 프레임 전부에서도 correct</strong>로 판정됐다. 즉 이 표본 기준으로는 OWL이 놓친 걸
+      Florence-2가 전부 대신 잡아낸 셈. 다만 0807 실기 배치에서는 84.96%였던 것과 비교하면
+      **V6이 0807보다 15%p 가까이 유리한 조건**(통제된 수집 vs 실제 로봇의 다양한 각도/거리)이라는
+      뜻이기도 하다 — n=97의 표본 크기도 감안해야 한다(실기 재검증 필요, 성급한 결론 금지 원칙 유지).
+      <br><span style="font-size:0.78rem;color:#64748b">라벨: <code>docs/v5/detector/v6_phrase_grounding_human_labels.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#a78bfa">
+    <div class="finding-title" style="color:#a78bfa">🔁 69-5. V6 재주석 + Stage2 재학습(exp76/exp77) — phrase 그라운딩 방식으로 전면 교체</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8" id="ch69-retrain-status">
+      69-4의 결과를 반영해 V6 전체(225ep, 16599프레임)를 phrase 그라운딩으로 재주석하고
+      (<code>gen_v6_florence2_phrase_annotation.py</code>), 기존 열린-질문 방식 실험(그라운더 스왑,
+      exp75)을 새 방법으로 다시 만드는 중이다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">실험</td><td style="padding:4px">그라운더</td><td style="padding:4px">비전인코더</td><td style="padding:4px;text-align:center">val_acc mean</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>exp73(베이스라인)</strong></td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center"><strong>73.87%±0.20%p</strong></td></tr>
+        <tr><td style="padding:4px">exp74(비전만)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">75.15%±0.09%p</td></tr>
+        <tr><td style="padding:4px">그라운더 스왑(구, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.26%±0.29%p</td></tr>
+        <tr><td style="padding:4px">exp75(구 완전통합, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">73.52%±0.25%p</td></tr>
+        <tr><td style="padding:4px"><strong>exp76(신 그라운더 스왑, phrase)</strong></td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">⏳ 진행 중</td></tr>
+        <tr><td style="padding:4px"><strong>exp77(신 완전통합, phrase)</strong></td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">⏳ 진행 중</td></tr>
+      </table>
+      그라운딩 정확도가 훨씬 높아진 만큼(34.7%→100%), 구 방식에서 관찰된 L/ROT_L 클래스 손상이
+      회복되는지가 핵심 관전 포인트. 결과 나오는 대로 갱신.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트 <code>scripts/gen_v6_florence2_phrase_annotation.py</code> ·
+      <code>scripts/train_exp77_florence2_phrase_full_stage2.py</code></span>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH69 ═ -->
 
 
 
