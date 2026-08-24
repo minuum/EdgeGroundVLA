@@ -599,6 +599,81 @@ cadence 우려가 줄어들어 재검토 여지가 생깁니다. 나쁘면(젯�
 관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md`, `docs/RESEARCH_STATUS.md`
 (§Florence-2 백본 검정), `docs/v5/research_story.html#ch69`(69-7, exp77 판정 보류 배경)
 
+## ✅ [2026-08-24] 크로스체크 + 순차 vs 병렬 실측 회신 — 병렬화 효과 큼, Florence-2 재검토 근거 강화
+
+두 요청(08-19 재계산 크로스체크, 08-21 순차/병렬 실측) 한 번에 회신드립니다.
+
+### 1. 크로스체크 — 비전 인코더는 grounding_skip_n과 무관하게 매 프레임 실행 (가정 맞음)
+
+`stage2_v2_inference_server.py`의 `predict()` 구조를 재확인했습니다.
+
+```python
+if use_cache:                              # grounding_skip_n에 의해 스킵되는 경우
+    bbox = self._grounding_cache           # ← OWL-v2 호출만 생략
+else:
+    bbox = self.grounder.run(...)          # ← 캐시 미스일 때만 OWL-v2 실행
+...
+vis_feat = self.enc.encode_image(pil)      # ← if/else 밖, 캐시 여부와 무관하게 매 프레임 실행
+```
+
+**확인: 가정하신 대로(후자) 비전 인코더(Kosmos-2)는 grounding 캐시와 완전히
+무관하게 매 프레임 실행됩니다.** `grounding_skip_n=3`은 OWL-v2 bbox 호출만
+스킵하고, image_proj용 비전 특징 추출은 스킵 대상이 아닙니다. 재계산(캐시
+재사용률 반영, ~528ms/~641ms)의 이 부분 전제는 맞습니다.
+
+### 2. 순차 vs 병렬 실측 — 코드 리뷰 지적하신 대로 완전 순차, 병렬화 시 최대 –14.5%
+
+지적하신 코드 구조도 그대로 확인됩니다(`grounder.run()` 완료 후에야
+`enc.encode_image()` 시작, 두 호출 사이에 스레드/스트림 분리 없음).
+
+**측정 방법**: 실제 서버 클래스(`OwlV2Grounder`, `Stage1Encoder`)를 그대로
+import해서 프로덕션 설정(그라운더=owlv2, fp16, thresh=0.2)으로 100회 반복.
+처음 측정에서 비전 콜 뒤에 `torch.cuda.synchronize()`가 빠져서 두 번째
+반복의 그라운딩 시간에 이전 반복의 비전 커널이 새어 들어가는 버그가 있었고
+(결과가 서로 안 맞아서 발견 — 원본 단독 측정과 대조해 재현/수정했습니다),
+아래는 동기화를 수정한 뒤 값입니다.
+
+| | 그라운딩(OWL-v2 fp16) | 비전 인코딩 | 순차 합계(A+B) | 병렬(ThreadPoolExecutor) | 겹침 효율 |
+|---|---|---|---|---|---|
+| Kosmos-2(현재) | 942.3ms | 51.2ms | **993.5ms** | **949.6ms** (–4.4%) | 85.7% (`max(A,B)`=942.3ms 대비) |
+| Florence-2(교체 후보) | 944.2ms | 169.0ms | **1113.2ms** | **952.2ms** (–14.5%) | 95.3% |
+
+- **병렬화는 Jetson에서도 확실히 먹힙니다** — 이론적 `max(A,B)`에 거의 근접
+  (85~95% 겹침 효율). "SM이 부족해서 시분할만 될 것"이라는 우려와 달리, OWL-v2와
+  비전 인코더(둘 다 conv 위주 CNN)가 실제로 상당 부분 동시 실행되는 것으로
+  보입니다.
+- **핵심 결과**: Florence-2를 병렬로 돌리면(952.2ms) 오히려 **현재 프로덕션(Kosmos-2,
+  순차, 993.5ms)보다 4.2% 더 빠릅니다.** Kosmos-2를 병렬화한 경우(949.6ms)와도
+  거의 동일(+0.3%, 오차범위 내) — 즉 **병렬화를 도입하면 Florence-2로 백본을
+  바꿔도 cadence 저하가 거의 없어집니다(오히려 현재보다 나아질 수도).**
+- 08-19에 재계산한 "cadence 15~20% 저하" 추정은 **순차 실행을 전제**로 한
+  것이었고, 병렬화를 반영하면 이 우려는 대부분 해소되는 것으로 보입니다.
+
+### 결과 회신 형식대로 정리
+
+- 순차/병렬 비율(병렬/순차): Kosmos-2 0.9558, Florence-2 0.8553
+  (`max(A,B)/(A+B)` 이상값: Kosmos-2 0.9484, Florence-2 0.8482 — 둘 다 이상값에
+  근접해서 실측이 이론과 크게 다르지 않음)
+- 원본 JSON: `docs/v5/detector/sequential_vs_threaded_grounding_vision_jetson.json`(Kosmos-2),
+  `docs/v5/detector/sequential_vs_threaded_grounding_florence2_jetson.json`(Florence-2)
+- 스크립트: `scripts/measure_sequential_vs_threaded_grounding_vision.py`,
+  `scripts/measure_sequential_vs_threaded_grounding_florence2.py`
+
+### 의견 (08-19 "채택 어렵다" 판정 추가 정정)
+
+08-19에 "10Hz 예산 초과라 실기 진행 전 최적화 선행 필요"라고 판정했던 근거가
+이번 결과로 한 번 더 약해집니다. **`predict()`의 그라운딩→비전 인코딩을
+`ThreadPoolExecutor`로 병렬화하는 건 백본 선택과 무관하게 그 자체로 이득**이고
+(Kosmos-2 기준 –4.4%), 이 병렬화를 전제로 하면 Florence-2 전환의 지연 페널티는
+실질적으로 사라집니다. 다음 단계로 넘어가도 괜찮다고 판단되는데, 순서는:
+1. `predict()`에 병렬화 적용(백본 무관, 즉시 이득) — 별도 PR로 분리 가능
+2. Florence-2 백본 선택 코드 추가 + 체크포인트 전달
+3. 소규모 실기 A/B(10~20건)로 성공률 영향 확인 — 지연은 해소돼도 val_acc의
+   RIGHT 클래스 -8.5p 회귀는 여전히 남아있는 문제라 지연과 별개로 봐야 함
+
+관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md`, `docs/RESEARCH_STATUS.md`
+(§Florence-2 백본 검정)
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
