@@ -17884,7 +17884,15 @@ graph TD
       OWL-v2식 open-vocabulary 검출과 개념적으로 가장 가까운 태스크였는데 지금까지 안 써봤던 것.
       Florence-2 공식 태스크는 총 15개(입력없음 8개 + 입력있음 7개)이고 이 중 입력을 받는
       태스크들은 전부 비슷한 자연어 템플릿 방식이다.
+      <br><br>
+      <strong style="color:#e2e8f0">같은 8개 프레임에서 실제 비교</strong> — 초록 실선=OWL-v2 정답,
+      빨강 점선=Florence-2 예측:
+      <img src="ch64_figs/fig_florence2_prompt_comparison.png" style="width:100%;border-radius:8px;margin:8px 0">
+      <span style="font-size:0.78rem;color:#64748b">OD·DENSE(위 두 줄)는 8개 중 6~7개가 "(미검출)"인데,
+      phrase 그라운딩(맨 아래 줄)은 6/8이 초록선과 거의 겹친다 — 재현율 격차가 숫자만이 아니라
+      눈으로도 확인됨.</span>
       <br><span style="font-size:0.78rem;color:#64748b">스크립트 <code>scripts/florence2_phrase_grounding_test.py</code> ·
+      <code>scripts/gen_florence2_prompt_comparison_gallery.py</code> ·
       결과 <code>docs/v5/detector/florence2_phrase_grounding_0807.json</code></span>
     </div>
   </div>
@@ -18014,6 +18022,23 @@ graph TD
       약우 41.7%·강우 33.3%</strong>로 오른쪽 방향을 처음 보면 성능이 반토막 난다.
       CH66에서 이미 확인된 좌우 비대칭이 <strong style="color:#f87171">이전에 생각했던 것보다
       훨씬 심각</strong>할 수 있음을 시사 — 실기 요청 전에 반드시 함께 보고해야 할 리스크.
+      <br><br>
+      <strong style="color:#e2e8f0">①-b 원인 분해(confusion matrix 재분석)</strong> — "폐루프라서
+      어렵다"도 "좌우 액션 정의가 달라서"도 아니다. 실제로는: 오른쪽 방향 에피소드를 통째로
+      빼면 <strong style="color:#e2e8f0">진짜 F(전진) 프레임이 FR(전진+우회전)로 오판되는 비율이
+      폭증</strong>한다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 목표</td><td style="padding:4px;text-align:center">F→FR 오판율</td></tr>
+        <tr><td style="padding:4px">center(대조군)</td><td style="padding:4px;text-align:center">164/1412 = 11.6%</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px">weak_right</td><td style="padding:4px;text-align:center"><strong>692/1298 = 53.3%</strong></td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px">strong_right</td><td style="padding:4px;text-align:center"><strong>1176/1473 = 79.9%</strong></td></tr>
+      </table>
+      R/FR/F를 구분하려면 "타겟이 오른쪽에 보이지만 아직 멀어서 전진해야 하는 상황"과
+      "이제 꺾어야 하는 상황"을 구별해야 하는데, 오른쪽 방향 에피소드를 통째로 빼면
+      전자의 예시 자체가 학습 데이터에서 사라진다 — 그래서 오른쪽에 뭐가 보이면 무조건
+      FR로 밀어붙인다. 순수한 <strong style="color:#e2e8f0">방향별 학습 커버리지 부족</strong>이지
+      폐루프나 좌우 라벨 정의의 문제가 아니다. 좌측보다 우측이 유독 심한 이유는 미확정 —
+      사진에서 보이는 어안렌즈의 우측 압축 왜곡이 원인일 가능성은 있으나 검증된 가설은 아니다.
       <br><br>
       <strong style="color:#e2e8f0">② 궤적 재생 근사(폐루프 아님, exp71/72와 동일 방법론)</strong> —
       `rollout_core.py`의 build_trajectory/compute_metrics로 exp73 vs exp77 비교:
