@@ -674,6 +674,46 @@ import해서 프로덕션 설정(그라운더=owlv2, fp16, thresh=0.2)으로 100
 관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md`, `docs/RESEARCH_STATUS.md`
 (§Florence-2 백본 검정)
 
+## ✅ [2026-08-24] 순차 vs 병렬 출력값 동일성 검증 — bit-exact 일치, 프로덕션 적용 안전 확인
+
+지적 감사합니다, 맞는 말씀입니다 — 앞선 실측은 속도만 쟀고 두 실행 방식의
+출력값(bbox, vis_feat)이 같은지는 확인 안 했습니다. 바로 검증했습니다.
+
+### 검증 방법
+
+30개 랜덤 프레임(고정 시드)에 대해 순차 실행 결과와 병렬(ThreadPoolExecutor)
+실행 결과를 프레임별로 직접 비교:
+- **bbox**: `grounder.run()` 반환 dict의 모든 key(cx, cy, area, has_bbox,
+  score 등)를 완전 동일성(`==`)으로 비교
+- **vis_feat**: `enc.encode_image()` 반환 256차원 텐서를 `torch.equal()`로
+  bit-exact 비교(부동소수 비트 단위까지 완전 일치 요구, 근사 비교 아님)
+
+```python
+seq_bbox, seq_vis = [순차 실행으로 30프레임 계산]
+par_bbox, par_vis = [ThreadPoolExecutor로 30프레임 병렬 계산]
+# 프레임별 bbox dict 전체 key 비교 + vis_feat torch.equal() 비교
+```
+
+### 결과
+
+```
+검증 프레임 수: 30
+bbox 불일치: 0/30
+vis_feat bit-exact 불일치: 0/30 (max_abs_diff=0.000e+00)
+✅ PASS — 순차/병렬 출력값 완전 동일 (bit-exact)
+```
+
+**30개 프레임 전부 bbox·vis_feat이 순차/병렬 간 완전히 동일합니다.** 지적하신
+"공유 텐서 버퍼 재사용" 같은 숨은 버그도 없는 것으로 확인됐습니다 — 두 함수가
+각자 새 텐서를 만들어 반환하고(`grounder.run()`은 매번 새 dict, `encode_image()`는
+매번 새 forward 결과), 서로의 중간 버퍼를 공유하지 않기 때문입니다. 이론(둘 다
+읽기 전용 forward pass, 공유 가변 상태 없음)과 실측이 일치합니다.
+
+**정리: 병렬화는 지연만 줄이고 출력값에는 영향이 없다는 것이 확인됐습니다.**
+프로덕션에 `ThreadPoolExecutor` 도입해도 안전합니다.
+
+스크립트: `scripts/verify_sequential_vs_threaded_output_equality.py`
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
