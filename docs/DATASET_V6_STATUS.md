@@ -517,6 +517,88 @@ P(fresh_grounding) = 1 - 0.508 = 0.492
 관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md` (§6 2''-b2), `docs/RESEARCH_STATUS.md`
 (§Florence-2 백본 검정)
 
+## 🙏 [2026-08-21] Jetson 순차 vs 병렬 실행 지연 재측정 요청 (minum → soda)
+
+### 배경
+
+`stage2_v2_inference_server.py`를 다시 읽어보니 `predict()` 안에서 그라운딩과
+비전 인코딩이 **완전히 순차 실행**되고 있었습니다(1145~1146행 근처):
+
+```python
+bbox = self.grounder.run(image_rgb, phrase=phrase)   # ① 끝날 때까지 대기
+...
+vis_feat = self.enc.encode_image(pil)                 # ② 그 다음에야 시작
+```
+
+두 작업은 같은 프레임 이미지를 쓸 뿐 서로 결과가 필요 없는 **독립 연산**이라
+병렬화가 가능한 구조입니다. 지금까지 저희가 계산해온 지연 수치(예: Florence-2
+백본 전환 시 cadence 15~20% 저하)는 전부 **이 순차 실행을 전제로** 한 계산이었는데,
+병렬화하면 상당 부분 해소될 수 있어서 실측을 부탁드립니다.
+
+### 왜 중요한가 (기대 효과)
+
+두 작업이 완전히 겹친다면 총 지연은 `A+B`가 아니라 `max(A,B)`에 가까워집니다.
+그라운딩(OWL-v2, fp16 962.1ms)이 비전 인코딩(Kosmos-2 53.7ms / Florence-2
+167.2ms)보다 압도적으로 크기 때문에:
+
+| 구성 | 순차(현재) | 완전 병렬(이상적) | 절감 |
+|---|---|---|---|
+| Kosmos-2 비전 | 1015.8ms | 962.1ms | ~5% |
+| Florence-2 비전 | 1129.3ms | 962.1ms | **~15%** |
+
+**Florence-2 백본 전환 시 우려했던 "+113ms/frame 추가 지연"이 그라운딩 뒤에
+숨을 수 있어서, 지연 문제 자체가 상당 부분 완화될 가능성이 있습니다.**
+
+### 다만 젯슨에서는 이론과 다를 수 있음
+
+이건 GPU가 여러 개가 아니라 **작은 GPU 하나를 스레드/스트림으로 나눠 쓰는 것**이라,
+진짜 동시 실행 이득을 보려면 GPU 안에 남는 연산 유닛(SM)이 있어야 합니다. GB10
+같은 큰 GPU와 달리 **Jetson Orin NX는 SM이 적어서, 그라운딩(OWL-v2) 하나만으로도
+이미 GPU를 거의 다 채울 가능성**이 있습니다 — 그러면 "동시 실행"해도 실제로는
+GPU 안에서 순서를 기다리며 시분할될 뿐, 이론적인 `max(A,B)`만큼 안 줄고 오히려
+스레드/스트림 관리 오버헤드만 더할 수도 있습니다. 계산으로는 답이 안 나오고
+실측이 필요합니다.
+
+### 요청 — 순차 vs 병렬 두 가지로 재측정
+
+**측정 대상**: `grounder.run()`(OWL-v2)과 `enc.encode_image()`(비전 인코더,
+Kosmos-2 기준 먼저, 가능하면 Florence-2도) 두 호출을 아래 두 방식으로 각각
+100회 반복 측정:
+
+1. **순차(현재 코드 그대로)**: 지금처럼 한 줄로 실행 — 이미 갖고 계신 지연
+   수치와 비교 기준용
+2. **병렬(Python 스레드 2개)**: `concurrent.futures.ThreadPoolExecutor`로
+   두 함수를 동시에 `submit()`하고 `as_completed()`로 총 소요시간 측정
+   (PyTorch는 CUDA 블로킹 콜 중 GIL을 놓는 경우가 많아 스레드로도 어느 정도
+   겹칠 수 있습니다 — 참고용 스니펫):
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+import time
+
+with ThreadPoolExecutor(max_workers=2) as ex:
+    t0 = time.time()
+    fut_ground = ex.submit(grounder.run, image_rgb, phrase=phrase)
+    fut_vis = ex.submit(enc.encode_image, pil)
+    bbox = fut_ground.result()
+    vis_feat = fut_vis.result()
+    elapsed = (time.time() - t0) * 1000
+    print(f"병렬 총 소요: {elapsed:.1f}ms (참고: 순차라면 {grounding_ms+vis_ms:.1f}ms)")
+```
+
+**결과 회신 형식**: 순차/병렬 각각 평균 ms, 그리고 `병렬/순차` 비율(1.0에
+가까우면 병렬화 효과 없음, `max(A,B)/(A+B)`에 가까우면 이상적 병렬화).
+
+### 이후 절차
+
+이 결과가 좋으면(병렬화가 실제로 먹히면) exp74/exp77 Florence-2 백본 전환의
+cadence 우려가 줄어들어 재검토 여지가 생깁니다. 나쁘면(젯슨에서 병렬화 효과
+없으면) 기존 순차 기준 판단을 그대로 유지합니다. 아직 실기 100건 요청 단계는
+아니고, 이 지연 재측정만 먼저 부탁드립니다.
+
+관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md`, `docs/RESEARCH_STATUS.md`
+(§Florence-2 백본 검정), `docs/v5/research_story.html#ch69`(69-7, exp77 판정 보류 배경)
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
