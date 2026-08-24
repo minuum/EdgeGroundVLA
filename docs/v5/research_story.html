@@ -18094,6 +18094,110 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">✅ 69-8. soda 회신 — 순차→병렬화만으로 Jetson 지연 문제 해소, 정확도 영향 없음 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      코드 리뷰에서 발견한 사실 — `predict()`가 그라운딩(OWL-v2)과 비전 인코딩을
+      완전히 순차 실행하고 있었다(서로 독립 연산인데도). soda에게 실제 Jetson
+      Orin NX에서 순차 vs `ThreadPoolExecutor` 병렬 실행을 재보고 출력값 동일성까지
+      검증해달라고 요청했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px"></td><td style="padding:4px;text-align:center">순차(A+B)</td><td style="padding:4px;text-align:center">병렬</td><td style="padding:4px;text-align:center">겹침 효율</td></tr>
+        <tr><td style="padding:4px">Kosmos-2(현재)</td><td style="padding:4px;text-align:center">993.5ms</td><td style="padding:4px;text-align:center">949.6ms(-4.4%)</td><td style="padding:4px;text-align:center">85.7%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2(교체후보)</strong></td><td style="padding:4px;text-align:center">1113.2ms</td><td style="padding:4px;text-align:center"><strong>952.2ms(-14.5%)</strong></td><td style="padding:4px;text-align:center">95.3%</td></tr>
+      </table>
+      <strong style="color:#4ade80">핵심: Florence-2를 병렬로 돌리면(952.2ms) 현재 프로덕션(Kosmos-2, 순차,
+      993.5ms)보다 오히려 4.2% 더 빠르다.</strong> "SM이 부족해 젯슨에서는 병렬화 효과가
+      제한적일 것"이라는 우려와 달리 이론적 `max(A,B)`에 85~95%까지 근접했다.
+      08-19에 순차 실행 전제로 냈던 "Florence-2 백본 전환 시 cadence 15~20% 저하"
+      우려는 병렬화를 도입하면 대부분 해소된다.
+      <br><br>
+      <strong style="color:#e2e8f0">정확도(출력값) 영향도 확인</strong> — 병렬화가 스케줄링만
+      바꾸고 계산 결과 자체는 안 바뀌어야 한다는 이론(둘 다 읽기 전용 forward pass,
+      공유 가변 상태 없음)을 soda가 직접 검증: <strong style="color:#4ade80">30개 프레임
+      전부 bbox·vis_feat이 순차 대비 bit-exact 동일(불일치 0/30)</strong>. 병렬화는
+      지연만 줄이고 정확도에는 전혀 영향 없음이 실측으로 확인됨.
+      <br><br>
+      <strong style="color:#fbbf24">의미</strong> — 병렬화 코드 적용은 백본 선택과 무관하게
+      그 자체로 즉시 이득(리스크 없음)이라 먼저 적용할 만하다. 다만 69-7에서 확인된
+      exp77의 방향별 일반화 결함(특히 우측)은 지연 문제와 별개라 병렬화로 해결되지
+      않는다 — 순서는 ① 병렬화 적용 → ② exp77 우측 취약점 보완 → ③ 소규모 실기 A/B.
+      <br><span style="font-size:0.78rem;color:#64748b">회신: <code>docs/DATASET_V6_STATUS.md</code>
+      (2026-08-24 두 항목) · 스크립트
+      <code>scripts/measure_sequential_vs_threaded_grounding_vision.py</code> ·
+      <code>scripts/measure_sequential_vs_threaded_grounding_florence2.py</code> ·
+      <code>scripts/verify_sequential_vs_threaded_output_equality.py</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">🔍 69-9. 69-7 우측 취약점의 원인 — bbox 출처가 기존 비대칭을 증폭시킨다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-6에서 확인한 F→FR 오판이 exp77(Florence-2 bbox)만의 문제인지, exp73(OWL
+      bbox)도 원래 갖고 있던 문제인지 exp73으로도 같은 confusion matrix를 뽑아 비교했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 방향</td><td style="padding:4px;text-align:center">exp73(OWL) F→FR</td><td style="padding:4px;text-align:center">exp77(Florence-2) F→FR</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">14.2%</td><td style="padding:4px;text-align:center">11.6%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">0.1%</td><td style="padding:4px;text-align:center">7.7%</td></tr>
+        <tr style="background:rgba(251,191,36,0.15)"><td style="padding:4px"><strong>weak_right</strong></td><td style="padding:4px;text-align:center">7.6%</td><td style="padding:4px;text-align:center"><strong>53.3%</strong></td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">0.4%</td><td style="padding:4px;text-align:center">2.5%</td></tr>
+        <tr style="background:rgba(251,191,36,0.15)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center">36.8%</td><td style="padding:4px;text-align:center"><strong>79.8%</strong></td></tr>
+      </table>
+      <strong style="color:#e2e8f0">답: 둘 다다.</strong> 좌우 비대칭 자체(우측이 좌측보다 F→FR
+      오판이 훨씬 잦은 현상)는 <strong style="color:#e2e8f0">exp73(OWL bbox)에도 이미 존재</strong>했다
+      — 그라운더와 무관한, 더 근본적인 데이터/기구 문제(CH66)라는 뜻. 다만
+      <strong style="color:#fbbf24">Florence-2 bbox로 바꾸면 이 기존 비대칭이 몇 배로
+      증폭</strong>된다(우측 기준 7.6%→53.3%, 36.8%→79.8%). Florence-2 bbox의 cx/area
+      추정치가 OWL 대비 우측 프레임에서 "아직 멀다/이제 가깝다" 구분에 덜 유용한
+      신호를 주는 것으로 추정되나, 정확한 메커니즘(예: 우측 프레임에서의 area 분산
+      차이)은 추가 확인이 필요 — 여기서는 "증폭됨"까지만 확인, "왜 증폭되는지"는
+      미해결.
+      <br><span style="font-size:0.78rem;color:#64748b">결과
+      <code>docs/v5/closed_loop_eval/exp73_leave_one_direction_out_confusion.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8;background:linear-gradient(135deg,#0a1420,#0c1826)">
+    <div class="finding-title" style="color:#38bdf8">📋 69-10. CH69 종합 결론</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">항목</td><td style="padding:4px;text-align:center">결과</td><td style="padding:4px;text-align:center">판정</td></tr>
+        <tr><td style="padding:4px">그라운딩 재현율(0807, phrase 방식)</td><td style="padding:4px;text-align:center">84.96%</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr><td style="padding:4px">V6 사람검증(97개, phrase 방식)</td><td style="padding:4px;text-align:center">100%</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr><td style="padding:4px">Stage2 exp77 무작위 split val_acc</td><td style="padding:4px;text-align:center">75.58%(역대 최고)</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>exp77 leave-one-direction-out(일반화)</strong></td><td style="padding:4px;text-align:center">54.0% vs exp73 60.85%</td><td style="padding:4px;text-align:center;color:#f87171">🔴</td></tr>
+        <tr><td style="padding:4px">Jetson 지연(순차 실행 기준)</td><td style="padding:4px;text-align:center">+12%(1113 vs 994ms)</td><td style="padding:4px;text-align:center;color:#fbbf24">⚠️</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Jetson 지연(병렬화 적용 시)</strong></td><td style="padding:4px;text-align:center">-4.2%(952 vs 994ms)</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr><td style="padding:4px">병렬화의 출력 정확도 영향</td><td style="padding:4px;text-align:center">bit-exact 동일(0/30 불일치)</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">최종 판단</strong>:
+      <ol style="margin:8px 0 0 20px">
+        <li><strong style="color:#4ade80">병렬화(그라운딩+비전 동시 실행) 도입은 백본 선택과 무관하게 즉시 적용 가능</strong> —
+          리스크 없음(정확도 영향 0), 지연 이득 확인됨. 다음 작업으로 바로 진행 가능.</li>
+        <li><strong style="color:#f87171">exp77을 exp73 대신 그대로 배포하는 건 아직 이르다</strong> —
+          무작위 split 최고치(75.58%)에 가려져 있던 우측 방향 일반화 결함이 실측으로
+          드러났고, 원인도 특정됨(F↔FR 경계, Florence-2 bbox가 기존 좌우 비대칭을 증폭).</li>
+        <li><strong style="color:#e2e8f0">폐기할 이유도 없다</strong> — R클래스 자체의 일반화는
+          exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 데이터
+          증강이나 앙상블로 개선 여지가 보인다.</li>
+        <li><strong style="color:#e2e8f0">실행 순서</strong>: ① 병렬화 코드 적용(즉시) →
+          ② exp77 우측 방향 데이터 보강 또는 exp73/exp77 앙상블 → ③ 소규모 실기 A/B →
+          ④ (이후) 실기 100건 전체 재검증. <strong style="color:#f87171">지금 바로
+          실기 100건을 soda에게 요청하는 건 시기상조.</strong></li>
+      </ol>
+      <br>
+      <strong style="color:#e2e8f0">부수 결론 — flow matching(FM) 데이터 재수집 가이드</strong>
+      (블로커 A, §2·§4-3): 수집 주기는 기존 실측값 ~6Hz(목표 10Hz, 오버헤드 반영)를
+      그대로 유지하면 되고, 별도 변경 불필요. 수량은 <strong style="color:#fbbf24">현재
+      (조합당 15ep)로는 부족할 가능성이 높다</strong> — 8-class 분류조차 train-val
+      격차 13~17%p, leave-one-direction-out 54~61%(무작위 split 대비 -14~22%p)로
+      과소적합/과적합 신호가 뚜렷한데, 연속 회귀(FM)는 보통 이산 분류보다 더 많은
+      표본이 필요하다. 최소 현재의 2~3배(조합당 30~45ep) 권장, 특히 이번에 밝혀진
+      우측 방향(weak_right·strong_right)은 비례 이상으로 보강 권장. 재수집 규모
+      (전량 vs 증분)는 soda 발주 전 결정 필요.
+    </div>
+  </div>
+
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH69 ═ -->
 
