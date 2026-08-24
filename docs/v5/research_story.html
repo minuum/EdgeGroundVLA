@@ -17958,7 +17958,7 @@ graph TD
   </div>
 
   <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
-    <div class="finding-title" style="color:#4ade80">🏆 69-5. exp77 — phrase 그라운딩으로 재학습, 역대 최고 성적 + L/ROT_L 회귀 완전 해소</div>
+    <div class="finding-title" style="color:#4ade80">🏆 69-5. exp77 — phrase 그라운딩으로 재학습, 무작위 split 역대 최고 성적 + L/ROT_L 회귀 완전 해소 <span style="color:#f87171;font-weight:normal;font-size:0.8rem">(⚠️ 69-7에서 일반화 취약점 발견 — 아래 참고)</span></div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       69-4의 결과를 반영해 V6 전체(225ep, 16599프레임)를 phrase 그라운딩으로 재주석하고
       (<code>gen_v6_florence2_phrase_annotation.py</code>, 라이브 샘플 5752/5752 = 100% 검출),
@@ -18053,6 +18053,44 @@ graph TD
       <code>scripts/eval_leave_one_direction_out.py</code> ·
       <code>scripts/eval_exp77_closed_loop_sim.py</code> ·
       <code>scripts/eval_bbox_scale_phrase_grounder.py</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171;background:linear-gradient(135deg,#1f0a0a,#240c0c)">
+    <div class="finding-title" style="color:#f87171">🔴 69-7. exp73(배포중) apples-to-apples 비교 — exp77이 일반화에서는 오히려 진다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-6①의 leave-one-direction-out을 <strong style="color:#e2e8f0">exp73(현재 배포중, OWL bbox+Kosmos-2
+      vision)에도 똑같이</strong> 돌려 직접 비교했다 — exp77의 방향별 결함이 새로 생긴 건지
+      원래 있던 건지 확인하기 위함.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 목표</td><td style="padding:4px;text-align:center">exp73</td><td style="padding:4px;text-align:center">exp77</td><td style="padding:4px;text-align:center">exp73 R</td><td style="padding:4px;text-align:center">exp77 R</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">61.5%</td><td style="padding:4px;text-align:center">66.1%</td><td style="padding:4px;text-align:center">2.0%</td><td style="padding:4px;text-align:center">33.0%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">64.6%</td><td style="padding:4px;text-align:center">68.5%</td><td style="padding:4px;text-align:center">12.5%</td><td style="padding:4px;text-align:center">50.0%</td></tr>
+        <tr style="background:rgba(248,113,113,0.15)"><td style="padding:4px"><strong>weak_right</strong></td><td style="padding:4px;text-align:center"><strong>62.4%</strong></td><td style="padding:4px;text-align:center">41.7%</td><td style="padding:4px;text-align:center">46.3%</td><td style="padding:4px;text-align:center">41.4%</td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">58.7%</td><td style="padding:4px;text-align:center">60.5%</td><td style="padding:4px;text-align:center">4.3%</td><td style="padding:4px;text-align:center">— (표본 0)</td></tr>
+        <tr style="background:rgba(248,113,113,0.15)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center"><strong>57.1%</strong></td><td style="padding:4px;text-align:center">33.3%</td><td style="padding:4px;text-align:center">15.9%</td><td style="padding:4px;text-align:center">20.4%</td></tr>
+        <tr style="border-top:1px solid #334155"><td style="padding:4px"><strong>5개 평균</strong></td><td style="padding:4px;text-align:center"><strong>60.85%</strong></td><td style="padding:4px;text-align:center">54.00%</td><td style="padding:4px;text-align:center">~16.2%</td><td style="padding:4px;text-align:center">~36.2%</td></tr>
+      </table>
+      <strong style="color:#f87171">무작위 split에서는 exp77(75.65%)이 exp73(74.13%)을 이겼는데,
+      "완전히 처음 보는 방향" 조건에서는 거꾸로 exp73(60.85%)이 exp77(54.00%)보다 낫다</strong> —
+      특히 오른쪽 방향(weak_right·strong_right)에서 exp77이 크게 뒤집힌다.
+      <br><br>
+      단, <strong style="color:#4ade80">R클래스만 보면 정반대</strong>다 — exp77의 R 일반화(평균
+      ~36%)가 exp73(평균 ~16%)보다 뚜렷이 낫다. 즉 exp77은 "R이라는 개념"은 더 견고하게
+      배웠지만, <strong style="color:#e2e8f0">F↔FR 경계에서 새로운(오른쪽) 방향에 유독
+      취약</strong>해서(69-6①-b의 F→FR 79.9% 오판) 전체 점수가 깎이는 구조다.
+      <br><br>
+      <strong style="color:#fbbf24">판단</strong> — 무작위 split 숫자(75.58%, 역대 최고)만 보고
+      "실기 교체 추천"으로 가면 안 된다. 지금 증거로는 <strong style="color:#f87171">exp77을
+      exp73 대신 그대로 배포하자고 권하기 어렵다</strong> — 오른쪽 방향에서 배포 중인
+      모델보다 약할 위험이 실측으로 확인됐다. 그렇다고 폐기할 이유도 없다 — R 일반화
+      개선은 실재하고, 문제가 국소적(F↔FR, 특히 우측)이라 원인이 이미 밝혀져 있다.
+      다음 후보: 오른쪽 방향 데이터 증강, 또는 exp73/exp77 앙상블. soda에게 실기를
+      요청한다면 "역대 최고치"가 아니라 이 반전 결과와 함께 "당장 교체 추천 아님,
+      우측 취약점 추가 개선 필요"로 전달해야 한다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_leave_one_direction_out_exp73.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/exp73_leave_one_direction_out.json</code></span>
     </div>
   </div>
 

@@ -323,7 +323,33 @@ hero_metric4_color: "#7c3aed"
   — exp73 success 24.2%→exp77 30.3%(방향 일치, 절대값은 실기와 거리 있음);
   bbox_scale 재검증(phrase 그라운더 기준, `eval_bbox_scale_phrase_grounder.py`)
   — 1.0=75.62%/2.0=75.55%/3.0=75.58%, 여전히 무영향 재확인.
+  confusion matrix 재분석 결과 원인도 특정됨 — 오른쪽 방향 제외 시 진짜 F(전진)
+  프레임이 FR(전진+우회전)로 오판되는 비율이 폭증(center 11.6% vs weak_right 53.3%
+  vs strong_right 79.9%) — 폐루프나 좌우 라벨 정의 문제가 아니라 해당 방향의
+  "아직 전진할 때 vs 이제 꺾을 때" 학습 커버리지 부족.
   상세: `docs/v5/research_story.html#ch69` 69-6 카드.
+
+- **🔴 exp73(배포중) apples-to-apples 비교 — exp77이 일반화에서는 오히려 진다 (2026-08-21)**.
+  위 leave-one-direction-out을 exp73에도 동일하게 실행(`eval_leave_one_direction_out_exp73.py`):
+
+  | held-out | exp73 | exp77 | exp73 R | exp77 R |
+  |---|---|---|---|---|
+  | center | 61.5% | 66.1% | 2.0% | 33.0% |
+  | weak_left | 64.6% | 68.5% | 12.5% | 50.0% |
+  | weak_right | **62.4%** | 41.7% | 46.3% | 41.4% |
+  | strong_left | 58.7% | 60.5% | 4.3% | — |
+  | strong_right | **57.1%** | 33.3% | 15.9% | 20.4% |
+  | **평균** | **60.85%** | **54.00%** | ~16.2% | ~36.2% |
+
+  무작위 split에서는 exp77(75.65%)이 exp73(74.13%)을 이겼지만, **완전히 처음 보는
+  방향 조건에서는 exp73(60.85%)이 exp77(54.00%)보다 낫다** — 특히 오른쪽 방향에서
+  exp77이 크게 뒤집힘. 단 R클래스만 보면 정반대(exp77 일반화가 exp73보다 뚜렷이
+  나음) — exp77은 R 개념 자체는 더 견고히 배웠지만 F↔FR 경계에서 새 방향에 유독
+  취약해 전체 점수가 깎이는 구조.
+  **판단: 현재 증거로는 exp77을 exp73 대신 그대로 배포하자고 권하기 어렵다.**
+  폐기할 이유도 없음 — R 일반화 개선은 실재하고 문제가 국소적(F↔FR, 우측)이라
+  원인이 이미 밝혀져 있음. 다음 후보: 우측 방향 데이터 증강, 또는 exp73/exp77
+  앙상블. 상세: `docs/v5/research_story.html#ch69` 69-7 카드.
 
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목), `docs/v5/research_story.html#ch69`(2026-08-21 phrase 그라운딩 대발견).
