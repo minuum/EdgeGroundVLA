@@ -1,0 +1,38 @@
+{
+  "device_str": "Jetson Orin NX",
+  "n_warmup": 10,
+  "n_iters": 100,
+  "grounder": "owlv2 (fp16, thresh=0.2)",
+  "vision_encoder": "Florence-2-base vision_tower.forward_features_unpool (fp16)",
+  "sequential_ms": {
+    "mean": 1113.2142782211304,
+    "median": 1111.2159490585327,
+    "p95": 1127.2468209266663,
+    "min": 1107.381820678711,
+    "max": 1131.3726902008057
+  },
+  "sequential_grounding_component_ms": {
+    "mean": 944.1874051094055,
+    "median": 942.8106546401978,
+    "p95": 951.1076807975769,
+    "min": 939.6016597747803,
+    "max": 958.7721824645996
+  },
+  "sequential_vision_component_ms": {
+    "mean": 169.02687311172485,
+    "median": 168.05684566497803,
+    "p95": 177.1531581878662,
+    "min": 166.39351844787598,
+    "max": 183.54535102844238
+  },
+  "threaded_ms": {
+    "mean": 952.1730899810791,
+    "median": 953.4696340560913,
+    "p95": 965.3911113739014,
+    "min": 939.9707317352295,
+    "max": 972.994327545166
+  },
+  "ideal_max_ab_ms": 944.1874051094055,
+  "ratio_threaded_over_sequential": 0.8553367564622075,
+  "ratio_idealmax_over_sequential": 0.8481632185118729
+}
