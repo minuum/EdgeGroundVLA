@@ -186,6 +186,16 @@ _n_succ = sum(1 for _, _, ok in SAMPLE if ok == "succ")
 _n_fail = sum(1 for _, _, ok in SAMPLE if ok == "fail")
 print(f"검증 표본 {len(SAMPLE)}개 구성 완료 (succ {_n_succ}개 스팟체크 + fail {_n_fail}개 전수)", flush=True)
 
+# build_v6_verification_dataset.py가 미리 계산해둔 합의추정/불일치 분류 — "불일치만
+# 보기" 필터에 쓴다. 없으면(스크립트 실행 전) 전부 needs_human=True로 취급(필터 무의미해짐).
+VERIF_STATUS = {}
+_VERIF_PATH = ROOT / "docs/v5/detector/v6_verification_dataset.json"
+if _VERIF_PATH.exists():
+    for row in json.loads(_VERIF_PATH.read_text()):
+        VERIF_STATUS[row["key"]] = row["status"]
+    print(f"검증셋 상태 {len(VERIF_STATUS)}개 로드 완료 "
+          f"(needs_human={sum(1 for v in VERIF_STATUS.values() if v=='needs_human')}개)", flush=True)
+
 _h5_cache = {}
 
 
@@ -309,6 +319,11 @@ h1{font-size:1.15rem}
   1(succ 칸)/2 모두 정해지거나 0을 누르면 자동으로 다음 카드로 이동 ·
   <b style="color:#38bdf8">사진에서 바구니 위치를 직접 클릭</b>하면 파란선(진짜 정답)이 찍힘 — O/X 버튼과 무관한 독립 검증 기준
 </div>
+<div style="margin-bottom:10px">
+  <button id="filter-btn" class="lbl-btn" style="font-size:0.8rem;padding:6px 14px" onclick="toggleFilter()">불일치만 보기 OFF</button>
+  <span style="font-size:0.75rem;color:#64748b;margin-left:8px">OWL·Florence가 서로 근접(합의추정)한 카드는 자동으로 숨겨서, 진짜 판단이 필요한
+    카드만 빠르게 훑을 수 있습니다 (build_v6_verification_dataset.py 결과 기반)</span>
+</div>
 <div id="progress">진행 <span id="prog">0/0</span>
   <span class="stat" id="stats"></span>
 </div>
@@ -355,6 +370,8 @@ function render(){
       <div class="card-header">#${i} ${c.stem} f${c.frame_idx} · bin=${c.bin} · owl=${c.owl_ok}<br>
         <span class="tag" style="background:${c.direction_color}">${c.direction_label}</span>
         <span class="tag" style="background:${c.approach_color}">${c.approach_label}</span>
+        <span class="tag" style="background:${c.verif_status==='needs_human'?'#f87171':'#4ade80'}">
+          ${c.verif_status==='needs_human'?'판단필요':'합의추정'}</span>
       </div>
       <div class="label-block">
         <div class="row"><span class="mname">1:OWLv2</span>
@@ -387,11 +404,12 @@ function render(){
     grid.appendChild(div);
     patchCard(i);  // 초기 라벨 상태 반영(새로고침 시 기존 라벨 표시)
   });
+  computeVisible();
   updateProg();
   loadThumbs();
   updateStats();
   const firstUnlabeled = cards.findIndex(c => !isComplete(c));
-  selectCard(firstUnlabeled >= 0 ? firstUnlabeled : 0);
+  selectCard(firstUnlabeled >= 0 ? firstUnlabeled : (visibleIdx[0] ?? 0));
 }
 function isComplete(c){
   return c.no_target || (!!c.owlv2 && !!c.florence2);
@@ -421,8 +439,10 @@ async function markTruth(i, x){
   await fetch(`/api/label?i=${i}&field=true_cx&val=${x}`);
 }
 function updateProg(){
-  const labeled = cards.filter(isComplete).length;
-  document.getElementById('prog').innerText = `${labeled}/${cards.length}`;
+  const scope = filterOnlyDisagree ? visibleIdx.map(i => cards[i]) : cards;
+  const labeled = scope.filter(isComplete).length;
+  document.getElementById('prog').innerText =
+    `${labeled}/${scope.length}` + (filterOnlyDisagree ? ` (불일치만, 전체 ${cards.length})` : '');
 }
 async function loadThumbs(){
   // 순차 로딩 유지(모델이 순차 추론이라 동시 요청해도 이득 없음), 이미 로드된 건 건너뜀
@@ -485,8 +505,33 @@ async function updateStats(){
 // ←→↑↓: 카드 이동(격자 열수 자동 계산) / 1: OWLv2 순환(O↔X) / 2: Florence-2 순환 /
 // 0: 타겟없음 토글. 두 모델 다 판정되거나 0을 누르면 자동으로 다음 카드.
 // 카드 클릭으로도 커서 이동 가능.
-let selIdx = -1;
+let selIdx = -1;          // 실제 카드 인덱스(cycleModel 등에 그대로 씀)
+let filterOnlyDisagree = false;
+let visibleIdx = [];      // 현재 필터 통과한 카드 인덱스 목록(순서대로) — 방향키는 이 안에서만 이동
 
+function computeVisible(){
+  visibleIdx = cards.map((c, i) => i).filter(i =>
+    !filterOnlyDisagree || cards[i].verif_status === 'needs_human');
+}
+function applyFilter(){
+  computeVisible();
+  cards.forEach((c, i) => {
+    const el = document.getElementById(`card-${i}`);
+    if (el) el.style.display = visibleIdx.includes(i) ? '' : 'none';
+  });
+  const btn = document.getElementById('filter-btn');
+  if (btn){
+    btn.textContent = filterOnlyDisagree
+      ? `불일치만 보기 ON (${visibleIdx.length}개)` : `불일치만 보기 OFF (전체 ${cards.length}개)`;
+    btn.classList.toggle('active', filterOnlyDisagree);
+  }
+  if (!visibleIdx.includes(selIdx)) selectCard(visibleIdx[0] ?? 0);
+  updateProg();
+}
+function toggleFilter(){
+  filterOnlyDisagree = !filterOnlyDisagree;
+  applyFilter();
+}
 function clearCursor(){
   const grid = document.getElementById('grid');
   grid.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
@@ -500,8 +545,19 @@ function paintCursor(){
 }
 function selectCard(i){
   clearCursor();
-  selIdx = Math.max(0, Math.min(cards.length - 1, i));
+  if (!visibleIdx.length) { selIdx = -1; return; }
+  // i가 visibleIdx 안에 없으면 가장 가까운 걸로 스냅
+  if (!visibleIdx.includes(i)){
+    i = visibleIdx.reduce((a, b) => Math.abs(b - i) < Math.abs(a - i) ? b : a);
+  }
+  selIdx = i;
   paintCursor();
+}
+function moveByPos(delta){
+  if (!visibleIdx.length) return;
+  const pos = visibleIdx.indexOf(selIdx);
+  const nextPos = Math.max(0, Math.min(visibleIdx.length - 1, (pos < 0 ? 0 : pos) + delta));
+  selectCard(visibleIdx[nextPos]);
 }
 function colsInGrid(){
   const grid = document.getElementById('grid');
@@ -515,21 +571,21 @@ document.addEventListener('keydown', (e) => {
   const cols = colsInGrid();
   if (e.key === '1' || e.key === '2') {
     e.preventDefault();
-    if (selIdx < 0) { selectCard(0); return; }
+    if (selIdx < 0) { selectCard(visibleIdx[0] ?? 0); return; }
     cycleModel(selIdx, e.key === '1' ? 'owlv2' : 'florence2');
     return;
   }
   if (e.key === '0') {
     e.preventDefault();
-    if (selIdx < 0) { selectCard(0); return; }
+    if (selIdx < 0) { selectCard(visibleIdx[0] ?? 0); return; }
     toggleNoTarget(selIdx);
     return;
   }
   switch (e.key) {
-    case 'ArrowRight': e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx + 1); break;
-    case 'ArrowLeft':  e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx - 1); break;
-    case 'ArrowDown':  e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx + cols); break;
-    case 'ArrowUp':    e.preventDefault(); selectCard(selIdx < 0 ? 0 : selIdx - cols); break;
+    case 'ArrowRight': e.preventDefault(); moveByPos(1); break;
+    case 'ArrowLeft':  e.preventDefault(); moveByPos(-1); break;
+    case 'ArrowDown':  e.preventDefault(); moveByPos(cols); break;
+    case 'ArrowUp':    e.preventDefault(); moveByPos(-cols); break;
   }
 });
 loadAll();
@@ -563,7 +619,8 @@ def api_frames():
                         owlv2=saved.get("owlv2", default_owlv2),
                         florence2=saved.get("florence2"),
                         no_target=saved.get("no_target", False),
-                        true_cx=saved.get("true_cx")))
+                        true_cx=saved.get("true_cx"),
+                        verif_status=VERIF_STATUS.get(key, "needs_human")))
     return jsonify(out)
 
 
