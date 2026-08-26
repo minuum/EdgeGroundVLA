@@ -283,6 +283,7 @@ h1{font-size:1.15rem}
 #legend .lg-group{display:flex;gap:8px;align-items:center}
 .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.filter-btn.active{background:#38bdf8;color:#0a0f1a;border-color:#38bdf8}
 .card{background:#0d1117;border:1px solid #1e293b;border-left-width:5px;border-radius:8px;overflow:hidden}
 .card.labeled{outline:2px solid #22c55e}
 .card.selected{outline:3px solid #fff !important;outline-offset:2px;box-shadow:0 0 24px 4px #38bdf8aa;
@@ -320,9 +321,13 @@ h1{font-size:1.15rem}
   <b style="color:#38bdf8">사진에서 바구니 위치를 직접 클릭</b>하면 파란선(진짜 정답)이 찍힘 — O/X 버튼과 무관한 독립 검증 기준
 </div>
 <div style="margin-bottom:10px">
-  <button id="filter-btn" class="lbl-btn" style="font-size:0.8rem;padding:6px 14px" onclick="toggleFilter()">불일치만 보기 OFF</button>
-  <span style="font-size:0.75rem;color:#64748b;margin-left:8px">OWL·Florence가 서로 근접(합의추정)한 카드는 자동으로 숨겨서, 진짜 판단이 필요한
-    카드만 빠르게 훑을 수 있습니다 (build_v6_verification_dataset.py 결과 기반)</span>
+  <button class="lbl-btn filter-btn" data-mode="all" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('all')">전체</button>
+  <button class="lbl-btn filter-btn" data-mode="disagree" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('disagree')">불일치만</button>
+  <button class="lbl-btn filter-btn" data-mode="incomplete" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('incomplete')">미판정만</button>
+  <button class="lbl-btn filter-btn" data-mode="both_ok" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('both_ok')">둘다 O 재검토</button>
+  <span id="filter-count" style="font-size:0.78rem;color:#94a3b8;margin-left:10px;font-weight:bold"></span>
+  <br><span style="font-size:0.72rem;color:#64748b">미판정 카드는 어떤 필터에서도 항상 맨 앞으로 정렬됩니다 · "둘다 O 재검토"는
+    OWLv2/Florence-2 모두 정확(O)으로 표시한 카드만 모아서 가장자리 포함을 일치로 잘못 체크한 게 없는지 다시 볼 때 씁니다</span>
 </div>
 <div id="progress">진행 <span id="prog">0/0</span>
   <span class="stat" id="stats"></span>
@@ -404,7 +409,7 @@ function render(){
     grid.appendChild(div);
     patchCard(i);  // 초기 라벨 상태 반영(새로고침 시 기존 라벨 표시)
   });
-  computeVisible();
+  applyFilter();  // 정렬(미판정 우선) + 필터 버튼 상태 초기화
   updateProg();
   loadThumbs();
   updateStats();
@@ -439,10 +444,10 @@ async function markTruth(i, x){
   await fetch(`/api/label?i=${i}&field=true_cx&val=${x}`);
 }
 function updateProg(){
-  const scope = filterOnlyDisagree ? visibleIdx.map(i => cards[i]) : cards;
+  const scope = filterMode === 'all' ? cards : visibleIdx.map(i => cards[i]);
   const labeled = scope.filter(isComplete).length;
   document.getElementById('prog').innerText =
-    `${labeled}/${scope.length}` + (filterOnlyDisagree ? ` (불일치만, 전체 ${cards.length})` : '');
+    `${labeled}/${scope.length}` + (filterMode === 'all' ? '' : ` (필터 적용, 전체 ${cards.length})`);
 }
 async function loadThumbs(){
   // 순차 로딩 유지(모델이 순차 추론이라 동시 요청해도 이득 없음), 이미 로드된 건 건너뜀
@@ -506,30 +511,38 @@ async function updateStats(){
 // 0: 타겟없음 토글. 두 모델 다 판정되거나 0을 누르면 자동으로 다음 카드.
 // 카드 클릭으로도 커서 이동 가능.
 let selIdx = -1;          // 실제 카드 인덱스(cycleModel 등에 그대로 씀)
-let filterOnlyDisagree = false;
-let visibleIdx = [];      // 현재 필터 통과한 카드 인덱스 목록(순서대로) — 방향키는 이 안에서만 이동
+let filterMode = 'all';   // all | disagree | incomplete | both_ok
+let visibleIdx = [];      // 현재 필터+정렬 통과한 카드 인덱스 목록 — 방향키는 이 안에서만 이동
+
+function isIncomplete(c){ return !isComplete(c); }
+function isBothOk(c){ return c.owlv2 === 'ok' && c.florence2 === 'ok'; }
 
 function computeVisible(){
-  visibleIdx = cards.map((c, i) => i).filter(i =>
-    !filterOnlyDisagree || cards[i].verif_status === 'needs_human');
+  let idx = cards.map((c, i) => i);
+  if (filterMode === 'disagree') idx = idx.filter(i => cards[i].verif_status === 'needs_human');
+  else if (filterMode === 'incomplete') idx = idx.filter(i => isIncomplete(cards[i]));
+  else if (filterMode === 'both_ok') idx = idx.filter(i => isBothOk(cards[i]));
+  // 미판정 카드는 필터와 무관하게 항상 앞으로 정렬 — 놓친 것부터 바로 보이게
+  idx.sort((a, b) => (isIncomplete(cards[a]) === isIncomplete(cards[b])) ? a - b
+                      : (isIncomplete(cards[a]) ? -1 : 1));
+  visibleIdx = idx;
 }
 function applyFilter(){
   computeVisible();
+  const visibleSet = new Set(visibleIdx);
   cards.forEach((c, i) => {
     const el = document.getElementById(`card-${i}`);
-    if (el) el.style.display = visibleIdx.includes(i) ? '' : 'none';
+    if (el) el.style.display = visibleSet.has(i) ? '' : 'none';
+    if (el) el.style.order = visibleIdx.indexOf(i);  // 미판정-우선 정렬을 grid에 반영
   });
-  const btn = document.getElementById('filter-btn');
-  if (btn){
-    btn.textContent = filterOnlyDisagree
-      ? `불일치만 보기 ON (${visibleIdx.length}개)` : `불일치만 보기 OFF (전체 ${cards.length}개)`;
-    btn.classList.toggle('active', filterOnlyDisagree);
-  }
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === filterMode));
+  const label = {all:'전체', disagree:'불일치만', incomplete:'미판정만', both_ok:'둘다 O 재검토'}[filterMode];
+  document.getElementById('filter-count').textContent = `${label}: ${visibleIdx.length}개`;
   if (!visibleIdx.includes(selIdx)) selectCard(visibleIdx[0] ?? 0);
   updateProg();
 }
-function toggleFilter(){
-  filterOnlyDisagree = !filterOnlyDisagree;
+function setFilter(mode){
+  filterMode = mode;
   applyFilter();
 }
 function clearCursor(){
