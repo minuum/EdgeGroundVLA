@@ -117,15 +117,19 @@ for fr in FRAMES:
 
 
 # succ은 OWL 자체가 이미 어느 정도 신뢰도가 있다고 알려진 영역(과거 ROC 분석
-# 정탐 94.9%)이라 소량 샌티티체크만, fail은 완전 미검증 영역이라 있는 대로 전부
-# — 사용자 요청(2026-08-20)에 따른 재배분.
-N_PER_CELL_SUCC = 10
+# 정탐 94.9%)이라 소량 샌티티체크, fail은 완전 미검증 영역이라 있는 대로 최대한
+# — 사용자 요청(2026-08-20 재배분, 2026-08-24 표본 확대)에 따름.
+# fail 쪽은 이전엔 에피소드당 1프레임만 뽑았는데(67개 = 에피소드 수만큼),
+# 같은 에피소드 안에서도 여러 프레임을 더 뽑아 표본을 키운다(최대 FRAMES_PER_EP_FAIL개/에피소드).
+N_PER_CELL_SUCC = 30
+FRAMES_PER_EP_FAIL = 3
 FAIL_TAKE_ALL = True
 
 
 def build_sample():
-    """6칸(bin × owl_ok) — succ은 칸당 N_PER_CELL_SUCC개 스팟체크, fail은 가능한 전부.
-    칸 안에서는 (목표 5 × 접근 3) 15조합을 라운드로빈으로 순회해 최대한 골고루 뽑는다."""
+    """6칸(bin × owl_ok) — succ은 칸당 N_PER_CELL_SUCC개 스팟체크, fail은 에피소드당
+    최대 FRAMES_PER_EP_FAIL개까지. 칸 안에서는 (목표 5 × 접근 3) 15조합을 라운드로빈으로
+    순회해 최대한 골고루 뽑는다(같은 조합/에피소드에 몰리지 않게)."""
     rng = np.random.default_rng(42)
     cells = {}
     for i, fr in enumerate(FRAMES):
@@ -141,6 +145,8 @@ def build_sample():
             by_combo.setdefault(combo, []).append(i)
         combos = list(by_combo.keys())
         rng.shuffle(combos)
+        for combo in combos:
+            rng.shuffle(by_combo[combo])  # 각 에피소드 안에서도 무작위 순서로 소비
         by_da = {}
         for combo in combos:
             da = (combo[0], combo[1])
@@ -148,17 +154,28 @@ def build_sample():
         da_order = list(by_da.keys())
         rng.shuffle(da_order)
 
-        target_n = len(combos) if (key[1] == "fail" and FAIL_TAKE_ALL) else N_PER_CELL_SUCC
+        per_combo_cap = FRAMES_PER_EP_FAIL if key[1] == "fail" else 1
+        per_combo_used = {c: 0 for c in combos}
+        total_available = sum(min(len(by_combo[c]), per_combo_cap) for c in combos)
+        target_n = total_available if (key[1] == "fail" and FAIL_TAKE_ALL) else min(N_PER_CELL_SUCC, total_available)
+
         picked = []
-        while len(picked) < target_n and any(by_da.values()):
-            for da in list(da_order):
-                if not by_da[da]:
-                    continue
-                combo = by_da[da].pop()
-                cand = by_combo[combo]
-                picked.append(cand[rng.integers(0, len(cand))])
+        while len(picked) < target_n:
+            progressed = False
+            for da in da_order:
                 if len(picked) >= target_n:
                     break
+                for combo in by_da[da]:
+                    cand = by_combo[combo]
+                    used = per_combo_used[combo]
+                    if used >= per_combo_cap or used >= len(cand):
+                        continue
+                    picked.append(cand[used])
+                    per_combo_used[combo] += 1
+                    progressed = True
+                    break
+            if not progressed:
+                break
         sample.extend([(i, key[0], key[1]) for i in picked])
     rng.shuffle(sample)
     return sample
@@ -262,12 +279,14 @@ h1{font-size:1.15rem}
   transform:scale(1.02);z-index:5;position:relative;transition:transform 0.1s}
 .kbd-help{font-size:0.72rem;color:#64748b;margin:6px 0 12px}
 .kbd-help b{color:#94a3b8;border:1px solid #334155;border-radius:3px;padding:0 4px;font-size:0.68rem}
-.imgwrap{position:relative;width:100%;line-height:0}
+.imgwrap{position:relative;width:100%;line-height:0;cursor:crosshair}
 .card img{width:100%;display:block}
 .vline{position:absolute;top:0;bottom:0;width:2px;pointer-events:none}
 .vline .tag-label{position:absolute;top:2px;left:4px;font-size:0.68rem;font-weight:bold;
   white-space:nowrap;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000}
 .vline.pred .tag-label{top:16px}
+.vline.truth{border-left:3px solid #38bdf8 !important}
+.vline.truth .tag-label{top:30px}
 .card-header{padding:4px 8px;font-size:0.65rem;color:#94a3b8;background:#111827;line-height:1.5}
 .tag{display:inline-block;padding:0 6px;border-radius:4px;font-size:0.68rem;font-weight:bold;color:#0a0f1a;margin-right:4px}
 .label-block{padding:6px 8px;display:flex;flex-direction:column;gap:5px}
@@ -287,7 +306,8 @@ h1{font-size:1.15rem}
 <div class="kbd-help">
   <b>←→↑↓</b> 카드 이동 · <b>1</b> OWLv2 정오 순환(미판정→O→X→O…) · <b>2</b> Florence-2 정오 순환 ·
   <b>0</b> 타겟없음(토글, 이 프레임 완료 처리) · OWL 실패 칸은 OWLv2가 자동 X 처리되어 있어 2번만 누르면 됨 ·
-  1(succ 칸)/2 모두 정해지거나 0을 누르면 자동으로 다음 카드로 이동 · 클릭으로도 카드 선택 가능
+  1(succ 칸)/2 모두 정해지거나 0을 누르면 자동으로 다음 카드로 이동 ·
+  <b style="color:#38bdf8">사진에서 바구니 위치를 직접 클릭</b>하면 파란선(진짜 정답)이 찍힘 — O/X 버튼과 무관한 독립 검증 기준
 </div>
 <div id="progress">진행 <span id="prog">0/0</span>
   <span class="stat" id="stats"></span>
@@ -323,12 +343,14 @@ function render(){
     div.className = 'card';
     div.style.borderLeftColor = c.direction_color;
     div.innerHTML = `
-      <div class="imgwrap">
+      <div class="imgwrap" id="imgwrap-${i}">
         <img id="img-${i}" src="" loading="lazy">
         <div class="vline gt" id="gtline-${i}" style="display:none;border-left:2px solid #22c55e">
           <span class="tag-label" style="color:#22c55e">OWLv2</span></div>
         <div class="vline pred" id="predline-${i}" style="display:none;border-left:2px solid #ef4444">
           <span class="tag-label" style="color:#ef4444">Flo2</span></div>
+        <div class="vline truth" id="truthline-${i}" style="display:none">
+          <span class="tag-label" style="color:#38bdf8">정답(클릭)</span></div>
       </div>
       <div class="card-header">#${i} ${c.stem} f${c.frame_idx} · bin=${c.bin} · owl=${c.owl_ok}<br>
         <span class="tag" style="background:${c.direction_color}">${c.direction_label}</span>
@@ -348,10 +370,19 @@ function render(){
         <div class="row"><span class="mname">0:타겟없음</span>
           <button class="lbl-btn nt" id="nt-${i}" onclick="toggleNoTarget(${i})">토글</button>
         </div>
+        <div class="row"><span class="mname" style="color:#38bdf8">사진 클릭=진짜 위치 찍기</span></div>
       </div>`;
     div.addEventListener('click', (e) => {
       if (e.target.classList.contains('lbl-btn')) return;
       selectCard(i);
+    });
+    const imgwrap = div.querySelector(`#imgwrap-${i}`);
+    imgwrap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectCard(i);
+      const rect = imgwrap.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      markTruth(i, Math.max(0, Math.min(1, x)));
     });
     grid.appendChild(div);
     patchCard(i);  // 초기 라벨 상태 반영(새로고침 시 기존 라벨 표시)
@@ -375,6 +406,19 @@ function patchCard(i){
   floBtns[0].classList.toggle('active', c.florence2 === 'ok');
   floBtns[1].classList.toggle('active', c.florence2 === 'ng');
   document.getElementById(`nt-${i}`).classList.toggle('active', !!c.no_target);
+  const tl = document.getElementById(`truthline-${i}`);
+  if (tl){
+    if (c.true_cx !== null && c.true_cx !== undefined){
+      tl.style.left = `${c.true_cx*100}%`; tl.style.display = 'block';
+    } else {
+      tl.style.display = 'none';
+    }
+  }
+}
+async function markTruth(i, x){
+  cards[i].true_cx = x;
+  patchCard(i);
+  await fetch(`/api/label?i=${i}&field=true_cx&val=${x}`);
 }
 function updateProg(){
   const labeled = cards.filter(isComplete).length;
@@ -429,7 +473,8 @@ async function updateStats(){
   const s = await res.json();
   document.getElementById('stats').innerText =
     `OWLv2 정확도 ${s.owlv2_precision}(${s.owlv2_n}건) · Florence-2 정확도 ${s.florence2_precision}(${s.florence2_n}건) · ` +
-    `타겟없음 확인 ${s.no_target}건 · 가중추정(전체 V6 기준) OWLv2 ${s.weighted_owlv2} / Florence-2 ${s.weighted_florence2}`;
+    `타겟없음 확인 ${s.no_target}건 · 가중추정(전체 V6 기준) OWLv2 ${s.weighted_owlv2} / Florence-2 ${s.weighted_florence2} · ` +
+    `[독립검증: 사진 클릭한 ${s.n_truthed}건 기준] OWLv2 ${s.owl_vs_truth} / Florence-2 ${s.florence2_vs_truth}`;
   document.getElementById('groupstats').innerHTML =
     groupTable('목표별 Florence-2 정확도', s.by_direction, LEGEND.directions) +
     groupTable('접근방식별 Florence-2 정확도', s.by_approach, LEGEND.approaches);
@@ -517,7 +562,8 @@ def api_frames():
                         approach_color=APPROACH_COLOR[fr["approach"]],
                         owlv2=saved.get("owlv2", default_owlv2),
                         florence2=saved.get("florence2"),
-                        no_target=saved.get("no_target", False)))
+                        no_target=saved.get("no_target", False),
+                        true_cx=saved.get("true_cx")))
     return jsonify(out)
 
 
@@ -540,10 +586,12 @@ def api_card():
 @app.route("/api/label")
 def api_label():
     i = int(request.args.get("i", 0))
-    field = request.args.get("field")  # owlv2 | florence2 | no_target
+    field = request.args.get("field")  # owlv2 | florence2 | no_target | true_cx
     val = request.args.get("val")
     if field == "no_target":
         val = val == "true"
+    elif field == "true_cx":
+        val = float(val)
     fidx, bin_, owl_ok = SAMPLE[i]
     fr = FRAMES[fidx]
     data = render_card(i)
@@ -620,6 +668,15 @@ def api_stats():
     weighted_owlv2 = f"{w_owl_num/w_owl_den*100:.1f}%" if w_owl_den else "N/A"
     weighted_florence2 = f"{w_flo_num/w_flo_den*100:.1f}%" if w_flo_den else "N/A"
 
+    # 독립 검증 기준 — 사람이 클릭으로 직접 찍은 true_cx를 기준으로, OWL의 gt_cx와
+    # Florence의 pred_cx가 맞는지 "O/X 버튼 판정과 무관하게" 재계산한다. gt_cx/pred_cx
+    # 자체를 기준으로 삼는 순환논리 우려를 완전히 해소하는 유일한 지표.
+    HIT_TOL = 0.05
+    truthed = [v for v in labels.values() if v.get("true_cx") is not None]
+    owl_vs_truth_ok = sum(1 for v in truthed if abs(v["gt_cx"] - v["true_cx"]) <= HIT_TOL)
+    flo_vs_truth_ok = sum(1 for v in truthed
+                          if v.get("pred_cx") is not None and abs(v["pred_cx"] - v["true_cx"]) <= HIT_TOL)
+
     return jsonify(
         no_target=no_target,
         owlv2_precision=_fmt_frac(owlv2_ok, owlv2_n), owlv2_n=owlv2_n,
@@ -628,6 +685,9 @@ def api_stats():
         by_approach={APPROACH_LABEL.get(k, k): v for k, v in group_precision("approach").items()},
         weighted_owlv2=weighted_owlv2,
         weighted_florence2=weighted_florence2,
+        n_truthed=len(truthed),
+        owl_vs_truth=_fmt_frac(owl_vs_truth_ok, len(truthed)),
+        florence2_vs_truth=_fmt_frac(flo_vs_truth_ok, len(truthed)),
     )
 
 
