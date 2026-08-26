@@ -472,8 +472,13 @@ function updateProg(){
     `${labeled}/${scope.length}` + (filterMode === 'all' ? '' : ` (필터 적용, 전체 ${cards.length})`);
 }
 async function loadThumbs(){
-  // 순차 로딩 유지(모델이 순차 추론이라 동시 요청해도 이득 없음), 이미 로드된 건 건너뜀
-  for (let i = 0; i < cards.length; i++){
+  // 순차 로딩(모델이 순차 추론이라 동시 요청해도 이득 없음), 이미 로드된 건 건너뜀.
+  // 현재 필터로 보이는 카드(visibleIdx)를 먼저 로딩 — 필터를 빨리 눌러도 화면에
+  // 보이는 것부터 채워진다(과거 표본 잔재처럼 뒤쪽 인덱스라 안 보이던 문제 수정).
+  // 필터를 바꿔서 재호출돼도 이미 로드된 카드는 위 skip 조건에 걸려 재요청 안 함.
+  const rest = cards.map((c, i) => i).filter(i => !visibleIdx.includes(i));
+  const order = [...visibleIdx, ...rest];
+  for (const i of order){
     const im = document.getElementById(`img-${i}`);
     if (!im || im.src.startsWith('data:')) continue;
     const res = await fetch(`/api/card?i=${i}`);
@@ -563,6 +568,7 @@ function applyFilter(){
   document.getElementById('filter-count').textContent = `${label}: ${visibleIdx.length}개`;
   if (!visibleIdx.includes(selIdx)) selectCard(visibleIdx[0] ?? 0);
   updateProg();
+  loadThumbs();  // 필터 전환 시 새로 보이는 카드부터 우선 로딩(아직 안 불러온 게 있으면)
 }
 function setFilter(mode){
   filterMode = mode;
