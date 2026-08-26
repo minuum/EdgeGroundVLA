@@ -351,6 +351,25 @@ hero_metric4_color: "#7c3aed"
   원인이 이미 밝혀져 있음. 다음 후보: 우측 방향 데이터 증강, 또는 exp73/exp77
   앙상블. 상세: `docs/v5/research_story.html#ch69` 69-7 카드.
 
+- **🏆 V6 사람 검증 최종 재검증(329개, 클릭 기반 독립 GT) — Florence-2 100%, OWLv2(가중) 88.5% (2026-08-26)**.
+  초기 97개 표본(2026-08-21)을 succ 스팟체크 확대 + fail 칸 다중 프레임으로 288개로
+  늘리고, OWLv2/Florence-2 어느 좌표도 참고 안 하는 클릭 기반 독립 GT(`true_cx`)를
+  추가해 순환논리를 차단했다. 이전 SAMPLE 재구성 과정에서 화면에 안 보이던 41개
+  기라벨 프레임(과거 표본 잔재)까지 표본 끝에 편입해 최종 329개 전수를 "가운데
+  정렬, 가장자리 포함만으로는 불일치"라는 더 엄격한 기준으로 재검토:
+  **Florence-2 329/329(100%, 가중 100.0%) vs OWLv2 126/329(38.3%, 가중 88.5%)**.
+  69-4의 초기 가중치(92.8%)보다 소폭 낮아진 건 표본 확대(288→329)와 엄격 기준
+  적용 때문 — Florence-2 압도 우위 결론은 그대로 유지.
+  **cx 정확도와 액션헤드 성능은 별개 축**: 그라운딩 좌표 정확도(34.7%→100%)는
+  검출기 자체의 문제이고, Stage2 val_acc 개선폭이 작은 이유는 feature ablation에서
+  이미 확인된 대로 MLP 헤드가 vis(이미지 임베딩)를 주 신호로, bbox(cx)를 보조
+  신호로만 쓰기 때문(bbox_only 67.4%±9.8% / image_only 75.6%±0.8% /
+  bbox+image 76.7%±1.3%) — 그라운딩 개선은 폐루프 실기·백본 교체 근거로는
+  유효하지만 val_acc 상승분 자체를 크게 설명하지는 못한다.
+  도구: `scripts/label/serve_v6_phrase_grounding_verify.py`(:7796). 라벨:
+  `docs/v5/detector/v6_phrase_grounding_human_labels.json`(329개). 상세:
+  `docs/v5/research_story.html#ch69` 69-11 카드.
+
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목), `docs/v5/research_story.html#ch69`(2026-08-21 phrase 그라운딩 대발견).
 

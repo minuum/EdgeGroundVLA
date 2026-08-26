@@ -17853,7 +17853,7 @@ graph TD
     ① 지금까지 전부 <strong>"열린 질문"</strong>(`&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;` — "뭐가 있는지 다 말해봐" 후 키워드로 골라냄)만
     시도했다 — 이건 태생적으로 재현율 상한이 낮다(beam5+합집합+키워드확장 다 해도 34.7%).<br>
     ② <strong style="color:#86efac">OWL-v2처럼 타겟을 직접 지정</strong>하는 `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;`+"gray basket"으로
-    바꾸니 0807 실기 배치 재현율 84.96%, V6 학습셋 사람 검증(n=97)에서는 <strong style="color:#4ade80">100%</strong>.<br>
+    바꾸니 0807 실기 배치 재현율 84.96%, V6 학습셋 사람 검증(최종 n=329, 클릭 기반 독립 GT)에서는 <strong style="color:#4ade80">100%</strong>.<br>
     ③ 이 과정에서 두 개의 자체 버그(BGR/RGB 채널 반전, 순환논리 우려)를 스스로 발견·수정했고,
     로컬 인터랙티브 검증 도구 3종을 새로 만들어 사람이 직접 그라운드 트루스를 판정할 수 있게 했다.
   </div>
@@ -17935,7 +17935,7 @@ graph TD
   </div>
 
   <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
-    <div class="finding-title" style="color:#4ade80">🏆 69-4. V6 사람 검증 결과 — Florence-2 97/97(100%), OWLv2(가중) 92.8%</div>
+    <div class="finding-title" style="color:#4ade80">🏆 69-4. V6 사람 검증 결과(초기 표본, n=97) — Florence-2 97/97(100%), OWLv2(가중) 92.8% <span style="color:#f87171;font-weight:normal;font-size:0.8rem">(⚠️ 69-11에서 329개·클릭 기반 독립 GT로 최종 재검증 — 아래 참고)</span></div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       97개 전부 라벨링 완료(2026-08-21). 표본은 succ/fail 비율이 불균등(succ 30·fail 67)해서
       단순 평균이 아니라 <strong style="color:#e2e8f0">V6 실제 모집단(bin×owl_success 6층) 비중으로
@@ -18157,13 +18157,55 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 69-11. 최종 재검증(329개, 클릭 기반 독립 GT) — Florence-2 329/329(100%), OWLv2(가중) 88.5%</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-4의 초기 97개 표본을 <strong style="color:#e2e8f0">가장자리 포함도 일치로 잘못 셌을 가능성</strong>을
+      우려해 전면 재검토했다. 두 가지를 추가했다: ① 표본을 succ 칸 스팟체크 확대(10→30개/셀)
+      + fail 칸 에피소드당 최대 3프레임까지 늘려 97→288개로 확장, ② OWLv2/Florence-2
+      어느 쪽 좌표도 참고하지 않고 <strong style="color:#e2e8f0">사람이 이미지를 직접 클릭해
+      중심(true_cx)을 독립적으로 표시</strong>하는 기능을 추가해 순환논리를 원천 차단했다.
+      이 과정에서 이전 세션(97→288 확장) 때 SAMPLE 재구성으로 화면에서 빠졌던 41개
+      기라벨 프레임(과거 표본 잔재)을 표본 끝에 편입해 최종 <strong style="color:#e2e8f0">329개
+      전수</strong>를 "가운데 정렬이어야 함, 가장자리 포함만으로는 불일치"라는
+      <strong style="color:#e2e8f0">더 엄격한 기준</strong>으로 처음부터 재검토했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">지표</td><td style="padding:4px;text-align:center">원표본(329개)</td><td style="padding:4px;text-align:center">가중 추정(전체 V6)</td></tr>
+        <tr><td style="padding:4px">OWLv2 정확도</td><td style="padding:4px;text-align:center">126/329 (38.3%)</td><td style="padding:4px;text-align:center">88.5%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 정확도</strong></td><td style="padding:4px;text-align:center"><strong>329/329 (100%)</strong></td><td style="padding:4px;text-align:center"><strong>100.0%</strong></td></tr>
+      </table>
+      69-4(가중 92.8%) 대비 OWLv2 가중치가 88.5%로 소폭 낮아진 건 표본이 288→329개로
+      늘고(fail 칸 다중 프레임 반영) 재검토 기준이 더 엄격해진(가장자리 포함 재검토) 영향이다
+      — <strong style="color:#e2e8f0">방향은 동일, Florence-2가 압도적으로 우수하다는 결론은
+      바뀌지 않는다</strong>. 클릭 기반 독립 GT까지 확보한 상태에서도 Florence-2는
+      329개 전부에서 사람 판정과 일치했다.
+      <br><br>
+      <strong style="color:#fbbf24">부가 확인 — cx가 액션헤드 판단에 미치는 영향은 별개 축이다</strong>.
+      "Florence-2 그라운딩이 99.7~100% 정확한데 Stage2 val_acc 개선은 왜 미미한가"는
+      역설이 아니다 — 69-4/69-11은 <strong style="color:#e2e8f0">"그라운딩 좌표 자체가
+      맞는가"</strong>를 검증한 것이고, 액션헤드 성능은 68챕터의 feature ablation
+      (bbox_only 67.4%±9.8% / image_only 75.6%±0.8% / bbox+image 76.7%±1.3%)에서
+      이미 확인했듯 <strong style="color:#e2e8f0">MLP 헤드가 vis(256d 이미지 임베딩)를
+      주 신호로, bbox(cx·area)를 보조 신호로만 쓴다</strong> — bbox 정확도가 34.7%→100%로
+      개선돼도 헤드 입력에서 차지하는 비중 자체가 작아 val_acc 개선폭이 크지 않은 것이다.
+      즉 그라운딩 품질과 액션헤드 성능은 <strong style="color:#e2e8f0">서로 다른 병목</strong>이고,
+      전자의 개선(69-1~69-11)은 폐루프 실기(69-6②)나 백본 교체 근거로는 유효하지만
+      Stage2 val_acc 상승분 자체를 크게 설명하지는 못한다.
+      <br><span style="font-size:0.78rem;color:#64748b">도구
+      <code>scripts/label/serve_v6_phrase_grounding_verify.py</code>(:7796) · 라벨
+      <code>docs/v5/detector/v6_phrase_grounding_human_labels.json</code>(329개) · 자동/사람
+      분리 <code>scripts/build_v6_verification_dataset.py</code> ·
+      <code>docs/v5/detector/v6_verification_dataset.json</code></span>
+    </div>
+  </div>
+
   <div class="finding-card" style="border-color:#38bdf8;background:linear-gradient(135deg,#0a1420,#0c1826)">
     <div class="finding-title" style="color:#38bdf8">📋 69-10. CH69 종합 결론</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
         <tr style="color:#e2e8f0"><td style="padding:4px">항목</td><td style="padding:4px;text-align:center">결과</td><td style="padding:4px;text-align:center">판정</td></tr>
         <tr><td style="padding:4px">그라운딩 재현율(0807, phrase 방식)</td><td style="padding:4px;text-align:center">84.96%</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
-        <tr><td style="padding:4px">V6 사람검증(97개, phrase 방식)</td><td style="padding:4px;text-align:center">100%</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr><td style="padding:4px">V6 사람검증(최종 329개, 클릭 기반 독립 GT)</td><td style="padding:4px;text-align:center">Florence-2 100% · OWLv2(가중) 88.5%</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
         <tr><td style="padding:4px">Stage2 exp77 무작위 split val_acc</td><td style="padding:4px;text-align:center">75.58%(역대 최고)</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
         <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>exp77 leave-one-direction-out(일반화)</strong></td><td style="padding:4px;text-align:center">54.0% vs exp73 60.85%</td><td style="padding:4px;text-align:center;color:#f87171">🔴</td></tr>
         <tr><td style="padding:4px">Jetson 지연(순차 실행 기준)</td><td style="padding:4px;text-align:center">+12%(1113 vs 994ms)</td><td style="padding:4px;text-align:center;color:#fbbf24">⚠️</td></tr>
