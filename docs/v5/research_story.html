@@ -356,6 +356,7 @@
     <a href="model_architecture_brief.html" style="padding:7px 16px;background:#1e0a2b;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🏗 모델 구조 &amp; 학습 방식</a>
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
     <a href="#ch69" style="padding:7px 16px;background:#052e16;border:1px solid #4ade80;border-radius:8px;font-size:0.78rem;font-weight:800;color:#86efac;text-decoration:none">🎯 CH69 phrase 그라운딩 대발견</a>
+    <a href="#ch70" style="padding:7px 16px;background:#2a1608;border:1px solid #fb923c;border-radius:8px;font-size:0.78rem;font-weight:800;color:#fdba74;text-decoration:none">🧪 CH70 cx 강조 헤드 실험</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
     <a href="#ch68" style="padding:7px 16px;background:#1a1033;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🗣 CH68 언어조건화 계획</a>
@@ -18242,6 +18243,86 @@ graph TD
 
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH69 ═ -->
+
+<hr class="chapter-divider">
+
+<div class="chapter" id="ch70">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#fb923c;color:#0a0f1a">CH 70</span>
+    <h2 class="chapter-title">cx 강조 헤드 3종 신규 실험 — val_acc는 올랐지만 R클래스는 오히려 나빠졌다</h2>
+    <p class="chapter-subtitle"><span style="color:#fdba74;font-weight:800">2026-08-26</span> ·
+    CH69에서 밝혀진 "cx를 강조해도 val_acc가 잘 안 오른다"(cxgeom, hybrid, bbox_scale 전부 시도됨)에 이어,
+    concat이 아닌 <strong style="color:#e2e8f0">곱셈적 결합(FiLM) · 시간 변화율(Δcx) · 보조손실(cxaux)</strong>
+    3가지 새 구조를 시도했다. 결과: 무작위 split val_acc는 소폭 개선(최고 +0.7%p)됐지만,
+    <strong style="color:#fb923c">CH69에서 문제였던 R클래스 정확도가 대부분 헤드에서 5~15%p 하락</strong>했다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟠 <strong>3줄 요약</strong><br>
+    ① concat 방식(cxgeom·hybrid·bbox_scale, CH69)은 이미 다 해봤고 효과가 미미했다는 리서치
+    결과에 따라, 곱셈적 결합(FiLM)·Δcx·cx 보조손실 3종을 새로 구현·학습했다
+    (`docs/plans/plan_20260826_cx_emphasis_head.md`).<br>
+    ② exp77(Florence-2 phrase + Florence-2 vision) 캐시로 mlp 베이스라인부터 재현(75.58%±0.07%p,
+    원본과 정확히 일치)한 뒤 5개 헤드를 apples-to-apples 비교 — <strong style="color:#fdba74">deltacx가
+    76.25%±0.14%p(best 76.39%)로 최고</strong>, mlp 대비 +0.67%p.<br>
+    ③ 하지만 <strong style="color:#f87171">deltacx·film·cxaux 전부 R클래스가 mlp(66.2%) 대비
+    4.7~15.4%p 하락</strong>했다 — 전체 정확도 개선이 R→FR 오분류를 늘려서 나온 결과일 가능성이 크다.
+    무작위 split 숫자만 보고 "개선"이라 결론 내리면 안 된다는 게 69-7의 교훈이었는데, 여기서도
+    같은 패턴이 재현됐다.
+  </div>
+
+  <div class="finding-card" style="border-color:#fb923c">
+    <div class="finding-title" style="color:#fb923c">📊 70-1. 헤드 5종 비교 (exp77 캐시 공통, seed 0/1/2, epoch 300)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">구조</td><td style="padding:4px;text-align:center">val_acc mean</td><td style="padding:4px;text-align:center">best</td><td style="padding:4px;text-align:center">R클래스</td><td style="padding:4px;text-align:center">FR클래스</td></tr>
+        <tr><td style="padding:4px">mlp(기존)</td><td style="padding:4px">concat+FC</td><td style="padding:4px;text-align:center">75.58%±0.07%p</td><td style="padding:4px;text-align:center">75.65%</td><td style="padding:4px;text-align:center">66.2%</td><td style="padding:4px;text-align:center">73.6%</td></tr>
+        <tr><td style="padding:4px">cxgeom(CH69 재검증)</td><td style="padding:4px">별도 브랜치+concat</td><td style="padding:4px;text-align:center">74.06%±0.22%p</td><td style="padding:4px;text-align:center">74.25%</td><td style="padding:4px;text-align:center">69.2%</td><td style="padding:4px;text-align:center">72.6%</td></tr>
+        <tr style="background:rgba(251,146,60,0.12)"><td style="padding:4px"><strong>film(신규)</strong></td><td style="padding:4px">cx→vis FiLM 변조</td><td style="padding:4px;text-align:center">75.87%±0.26%p</td><td style="padding:4px;text-align:center">76.14%</td><td style="padding:4px;text-align:center;color:#f87171"><strong>50.8%</strong></td><td style="padding:4px;text-align:center">72.8%</td></tr>
+        <tr style="background:rgba(251,146,60,0.18)"><td style="padding:4px"><strong>deltacx(신규) ★최고</strong></td><td style="padding:4px">Δcx 채널 추가</td><td style="padding:4px;text-align:center"><strong>76.25%±0.14%p</strong></td><td style="padding:4px;text-align:center"><strong>76.39%</strong></td><td style="padding:4px;text-align:center;color:#fbbf24">60.8%</td><td style="padding:4px;text-align:center">76.7%</td></tr>
+        <tr style="background:rgba(251,146,60,0.12)"><td style="padding:4px"><strong>cxaux(신규)</strong></td><td style="padding:4px">cx 회귀 보조손실</td><td style="padding:4px;text-align:center">75.52%±0.49%p</td><td style="padding:4px;text-align:center">76.06%</td><td style="padding:4px;text-align:center;color:#fbbf24">61.5%</td><td style="padding:4px;text-align:center">76.5%</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">deltacx가 val_acc·FR클래스 둘 다 최고</strong>(mlp 대비 val_acc +0.67%p,
+      FR +3.1%p) — F↔FR 경계 판단에 Δcx(타겟이 커지는 중/줄어드는 중)가 실제로 도움이 됐다는
+      신호. 하지만 <strong style="color:#f87171">R클래스가 66.2%→60.8%로 5.4%p 하락</strong>했다.
+      <br><br>
+      <strong style="color:#f87171">film은 R클래스가 50.8%로 가장 크게 무너졌다</strong> —
+      FiLM이 vis를 cx로 통째로 재스케일하는 방식이라, cx가 조금만 어긋나도(그라운딩 미세오차)
+      vis 표현 자체가 왜곡되는 부작용일 가능성. cxgeom만 유일하게 R클래스가 오히려 오른
+      경우(69.2%, +3.0%p)인데 val_acc 자체가 mlp보다 낮아(74.06%) 전체적으로는 손해.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/train_exp78_cx_emphasis_heads.py</code> · 헤드 클래스
+      <code>scripts/train_exp73_stage1v3_heads.py</code>(FiLMHead·DeltaCxHead·CxAuxHead·train_cxaux) ·
+      결과 <code>docs/v5/closed_loop_eval/exp78_cx_emphasis_heads.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171;background:linear-gradient(135deg,#1f0a0a,#240c0c)">
+    <div class="finding-title" style="color:#f87171">⚠️ 70-2. 판단 — "R↔FR 사이에서 잃고 F↔FR 사이에서 얻는" 트레이드오프일 가능성</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-6①-b에서 확인된 원래 문제는 <strong style="color:#e2e8f0">"F가 FR로 오판되는 것"</strong>이었다
+      (오른쪽 방향 제외 시 F→FR 오판율 폭증). deltacx/cxaux가 FR클래스 정확도를 올린 건
+      이 문제를 완화한 신호로 보이지만, 동시에 R클래스가 떨어진 건 <strong style="color:#e2e8f0">R이
+      FR로 밀리는 반대 방향의 오분류가 늘었을 가능성</strong>을 시사한다 — Δcx/보조손실이
+      "타겟이 오른쪽으로 계속 이동 중"이라는 신호를 F/FR 경계보다 R/FR 경계에서 더 강하게
+      해석하게 만들었을 수 있다(확인 안 됨, confusion matrix 재분석 필요).
+      <br><br>
+      <strong style="color:#fbbf24">중요한 함정 — 무작위 split만으로 결론 내리면 안 된다</strong>
+      (69-7의 교훈 반복). deltacx의 val_acc 개선(+0.67%p)이 실제 일반화 개선인지,
+      아니면 69-7에서 확인된 것처럼 <strong style="color:#e2e8f0">"무작위 split에서는 좋아 보이지만
+      leave-one-direction-out(방향 하나를 통째로 빼고 검증)에서는 오히려 나쁠 수 있다"</strong>는
+      패턴의 재현인지 아직 모른다. R클래스 하락은 이 우려를 뒷받침하는 방향이다.
+      <br><br>
+      <strong style="color:#e2e8f0">다음 단계(미실행)</strong>: deltacx를
+      `scripts/eval_leave_one_direction_out.py` 방식으로 재검증해서 방향별 일반화가
+      실제로 개선됐는지, 아니면 exp77처럼 무작위 split에서만 좋아 보이는 착시인지 확인
+      해야 최종 판단 가능. 지금 증거로는 <strong style="color:#f87171">"val_acc가 올랐으니
+      배포하자"고 결론 내릴 수 없다</strong>.
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH70 ═ -->
 
 
 

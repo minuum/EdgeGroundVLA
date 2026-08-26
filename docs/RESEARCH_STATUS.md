@@ -370,6 +370,24 @@ hero_metric4_color: "#7c3aed"
   `docs/v5/detector/v6_phrase_grounding_human_labels.json`(329개). 상세:
   `docs/v5/research_story.html#ch69` 69-11 카드.
 
+- **🟠 cx 강조 헤드 3종 신규 실험(CH70) — val_acc는 올랐지만 R클래스는 나빠졌다 (2026-08-26)**.
+  CH69에서 concat 방식(cxgeom·hybrid·bbox_scale)은 이미 다 해봤고 효과가 미미했음을
+  확인 후, 곱셈적 결합(FiLM)·시간변화율(Δcx)·보조손실(cxaux) 3종을 새로 구현해
+  exp77 캐시로 mlp 베이스라인부터 apples-to-apples 비교:
+
+  | 헤드 | val_acc mean | best | R클래스 | FR클래스 |
+  |---|---|---|---|---|
+  | mlp(기존) | 75.58%±0.07%p | 75.65% | 66.2% | 73.6% |
+  | film | 75.87%±0.26%p | 76.14% | **50.8%**(-15.4p) | 72.8% |
+  | **deltacx ★최고** | **76.25%±0.14%p** | **76.39%** | 60.8%(-5.4p) | 76.7%(+3.1p) |
+  | cxaux | 75.52%±0.49%p | 76.06% | 61.5%(-4.7p) | 76.5%(+2.9p) |
+
+  deltacx가 val_acc·FR클래스 둘 다 최고지만 **R클래스가 5.4%p 하락** — F→FR 오분류는
+  줄었지만 R→FR 오분류가 늘었을 가능성. 69-7의 교훈(무작위 split 개선이 leave-one-
+  direction-out 일반화 개선을 보장하지 않음)이 재현될 위험이 있어 **"val_acc가 올랐으니
+  배포"라고 결론 내릴 수 없음** — deltacx의 leave-one-direction-out 재검증이 다음 단계.
+  상세: `docs/v5/research_story.html#ch70`. 계획: `docs/plans/plan_20260826_cx_emphasis_head.md`.
+
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목), `docs/v5/research_story.html#ch69`(2026-08-21 phrase 그라운딩 대발견).
 
