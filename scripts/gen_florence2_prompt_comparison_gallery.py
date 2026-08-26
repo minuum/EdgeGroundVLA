@@ -106,10 +106,11 @@ def main():
 
     ncols = len(samples)
     nrows = 3  # OD, DENSE, PHRASE
-    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2.4, nrows * 2.7))
-    row_labels = [("<OD> (beam3, 열린질문)", "#f59e0b"),
-                  ("<DENSE_REGION_CAPTION> (beam3, 열린질문)", "#38bdf8"),
-                  ('<CAPTION_TO_PHRASE_GROUNDING>+"gray basket"', "#4ade80")]
+    # 가독성 우선: 셀 크게, 폰트 크게, 고해상도로 저장 (2026-08-24 요청 반영)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 3.6, nrows * 4.0))
+    row_labels = [("<OD>\n(beam3, 열린질문)", "#fbbf24"),
+                  ("<DENSE_REGION_CAPTION>\n(beam3, 열린질문)", "#60a5fa"),
+                  ('<CAPTION_TO_PHRASE_\nGROUNDING>+"gray basket"', "#4ade80")]
 
     for r, (title, color) in enumerate(row_labels):
         key = ["od", "dense", "phrase"][r]
@@ -118,30 +119,30 @@ def main():
             ax.axis("off")
             H, W = s["im"].shape[:2]
             ax.imshow(s["im"])
-            ax.axvline(s["gt_cx"] * W, color="#22c55e", linewidth=2, alpha=0.9)
+            ax.axvline(s["gt_cx"] * W, color="#22c55e", linewidth=4.5, alpha=0.95)
             pred = s[key]
             if pred is not None:
-                ax.axvline(pred["cx"] * W, color="#ef4444", linewidth=2, linestyle="--", alpha=0.9)
+                ax.axvline(pred["cx"] * W, color="#ef4444", linewidth=4.5, linestyle="--", alpha=0.95)
                 err = abs(pred["cx"] - s["gt_cx"])
                 hit = "O" if err <= 0.05 else "X"
                 lbl = pred["label"][:16]
-                ax.set_title(f"{hit} {lbl}\nΔ={err:.3f}", fontsize=7,
-                             color="#4ade80" if err <= 0.05 else "#ef4444")
+                ax.set_title(f"{hit}  {lbl}\nΔ={err:.3f}", fontsize=15, fontweight="bold",
+                             color="#16a34a" if err <= 0.05 else "#dc2626", pad=8)
             else:
-                ax.set_title("(미검출)", fontsize=7, color="#999999")
-        axes[r][0].set_ylabel(title, fontsize=9, color=color, rotation=0,
-                              ha="right", va="center", labelpad=70)
+                ax.set_title("(미검출)", fontsize=15, fontweight="bold", color="#6b7280", pad=8)
+        axes[r][0].set_ylabel(title, fontsize=17, fontweight="bold", color=color, rotation=0,
+                              ha="right", va="center", labelpad=110, linespacing=1.5)
         axes[r][0].axis("on")
         axes[r][0].set_xticks([]); axes[r][0].set_yticks([])
         for spine in axes[r][0].spines.values():
             spine.set_visible(False)
 
     fig.suptitle("Florence-2 프롬프트 종류별 실제 예측 비교 — 같은 8개 프레임 (2026-08-07 배치)\n"
-                  "초록 실선=OWL-v2 정답 · 빨강 점선=Florence-2 예측 · Δ=중심좌표 오차(0.05 이하면 적중)",
-                  fontsize=11)
-    fig.tight_layout(rect=[0.10, 0, 1, 0.93])
+                  "초록 실선 = OWL-v2 정답    ·    빨강 점선 = Florence-2 예측    ·    Δ = 중심좌표 오차 (0.05 이하면 적중)",
+                  fontsize=20, fontweight="bold", y=0.995)
+    fig.tight_layout(rect=[0.14, 0, 1, 0.91])
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT, dpi=130, facecolor="white")
+    fig.savefig(OUT, dpi=200, facecolor="white")
     print(f"\n저장 → {OUT}")
 
 
