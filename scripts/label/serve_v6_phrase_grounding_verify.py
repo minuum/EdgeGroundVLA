@@ -182,9 +182,30 @@ def build_sample():
 
 
 SAMPLE = build_sample()
+_ORIGINAL_SAMPLE_LEN = len(SAMPLE)
 _n_succ = sum(1 for _, _, ok in SAMPLE if ok == "succ")
 _n_fail = sum(1 for _, _, ok in SAMPLE if ok == "fail")
 print(f"검증 표본 {len(SAMPLE)}개 구성 완료 (succ {_n_succ}개 스팟체크 + fail {_n_fail}개 전수)", flush=True)
+
+# build_sample()을 여러 번 고치는 동안(97→288 확장 등) 이전 라운드에서 라벨했던
+# 프레임 중 지금 SAMPLE엔 없는 것들이 라벨 파일에 "잔재"로 남는다 — 화면엔 안 보이는데
+# /api/stats 합산에는 들어가서 혼란을 준다("내가 체크한 건 288갠데 왜 329개?").
+# 버리지 않고 SAMPLE 끝에 이어붙여서 도구에서 직접 확인/재검토할 수 있게 한다.
+_FRAMES_BY_KEY = {f"{fr['stem']}|{fr['frame_idx']}": i for i, fr in enumerate(FRAMES)}
+_LABELS_PATH_TMP = ROOT / "docs/v5/detector/v6_phrase_grounding_human_labels.json"
+if _LABELS_PATH_TMP.exists():
+    _existing_keys = {f"{FRAMES[fidx]['stem']}|{FRAMES[fidx]['frame_idx']}" for fidx, _, _ in SAMPLE}
+    _saved = json.loads(_LABELS_PATH_TMP.read_text())
+    _orphans = []
+    for key in _saved:
+        if key in _existing_keys or key not in _FRAMES_BY_KEY:
+            continue
+        fidx = _FRAMES_BY_KEY[key]
+        fr = FRAMES[fidx]
+        _orphans.append((fidx, fr["bin"], "succ" if fr["owl_ok"] else "fail"))
+    if _orphans:
+        SAMPLE = SAMPLE + _orphans
+        print(f"과거 표본 잔재 {len(_orphans)}개를 표본 끝에 편입 — 총 {len(SAMPLE)}개", flush=True)
 
 # build_v6_verification_dataset.py가 미리 계산해둔 합의추정/불일치 분류 — "불일치만
 # 보기" 필터에 쓴다. 없으면(스크립트 실행 전) 전부 needs_human=True로 취급(필터 무의미해짐).
@@ -325,6 +346,7 @@ h1{font-size:1.15rem}
   <button class="lbl-btn filter-btn" data-mode="disagree" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('disagree')">불일치만</button>
   <button class="lbl-btn filter-btn" data-mode="incomplete" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('incomplete')">미판정만</button>
   <button class="lbl-btn filter-btn" data-mode="both_ok" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('both_ok')">둘다 O 재검토</button>
+  <button class="lbl-btn filter-btn" data-mode="orphan" style="font-size:0.8rem;padding:6px 14px" onclick="setFilter('orphan')">과거 표본 잔재</button>
   <span id="filter-count" style="font-size:0.78rem;color:#94a3b8;margin-left:10px;font-weight:bold"></span>
   <br><span style="font-size:0.72rem;color:#64748b">미판정 카드는 어떤 필터에서도 항상 맨 앞으로 정렬됩니다 · "둘다 O 재검토"는
     OWLv2/Florence-2 모두 정확(O)으로 표시한 카드만 모아서 가장자리 포함을 일치로 잘못 체크한 게 없는지 다시 볼 때 씁니다</span>
@@ -522,6 +544,7 @@ function computeVisible(){
   if (filterMode === 'disagree') idx = idx.filter(i => cards[i].verif_status === 'needs_human');
   else if (filterMode === 'incomplete') idx = idx.filter(i => isIncomplete(cards[i]));
   else if (filterMode === 'both_ok') idx = idx.filter(i => isBothOk(cards[i]));
+  else if (filterMode === 'orphan') idx = idx.filter(i => cards[i].is_orphan);
   // 미판정 카드는 필터와 무관하게 항상 앞으로 정렬 — 놓친 것부터 바로 보이게
   idx.sort((a, b) => (isIncomplete(cards[a]) === isIncomplete(cards[b])) ? a - b
                       : (isIncomplete(cards[a]) ? -1 : 1));
@@ -536,7 +559,7 @@ function applyFilter(){
     if (el) el.style.order = visibleIdx.indexOf(i);  // 미판정-우선 정렬을 grid에 반영
   });
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === filterMode));
-  const label = {all:'전체', disagree:'불일치만', incomplete:'미판정만', both_ok:'둘다 O 재검토'}[filterMode];
+  const label = {all:'전체', disagree:'불일치만', incomplete:'미판정만', both_ok:'둘다 O 재검토', orphan:'과거 표본 잔재'}[filterMode];
   document.getElementById('filter-count').textContent = `${label}: ${visibleIdx.length}개`;
   if (!visibleIdx.includes(selIdx)) selectCard(visibleIdx[0] ?? 0);
   updateProg();
@@ -633,7 +656,8 @@ def api_frames():
                         florence2=saved.get("florence2"),
                         no_target=saved.get("no_target", False),
                         true_cx=saved.get("true_cx"),
-                        verif_status=VERIF_STATUS.get(key, "needs_human")))
+                        verif_status=VERIF_STATUS.get(key, "needs_human"),
+                        is_orphan=(i >= _ORIGINAL_SAMPLE_LEN)))
     return jsonify(out)
 
 
