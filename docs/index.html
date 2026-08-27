@@ -9,7 +9,7 @@
 <meta property="og:description" content="95.0% real-robot success, 1.128M trained parameters, fully on-device on Jetson Orin NX.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#f6f8fb; --bg-alt:#eaf0f7; --ink:#0f1c2e; --ink-soft:#51617a;
@@ -23,7 +23,7 @@
     font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
     line-height:1.6; -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3,.serif{font-family:'Space Grotesk',sans-serif}
+  h1,h2,h3,.serif{font-family:'Inter',sans-serif; font-weight:800; letter-spacing:-0.02em}
   a{color:inherit}
   .wrap{max-width:1080px; margin:0 auto; padding:0 28px}
   .wrap-narrow{max-width:740px; margin:0 auto; padding:0 28px}
@@ -32,7 +32,7 @@
   nav{position:sticky; top:0; z-index:50; background:rgba(246,248,251,0.92); backdrop-filter:blur(10px);
       border-bottom:1px solid var(--line)}
   nav .wrap{display:flex; align-items:center; justify-content:space-between; height:60px; padding-top:0; padding-bottom:0}
-  .nav-logo{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:1.05rem; text-decoration:none; letter-spacing:-0.01em}
+  .nav-logo{font-family:'Inter',sans-serif; font-weight:800; font-size:1.05rem; text-decoration:none; letter-spacing:-0.02em}
   .nav-links{display:flex; gap:28px; list-style:none; margin:0; padding:0}
   .nav-links a{text-decoration:none; font-size:0.86rem; font-weight:500; color:var(--ink-soft); transition:color .15s}
   .nav-links a:hover{color:var(--accent)}
@@ -63,7 +63,7 @@
   .statband{background:var(--ink); color:var(--bg); padding:44px 0}
   .statband .wrap{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
   .stat{text-align:center; padding:0 10px}
-  .stat .num{font-family:'Space Grotesk',sans-serif; font-size:clamp(1.8rem,3.4vw,2.6rem); font-weight:600; color:#fff}
+  .stat .num{font-family:'Inter',sans-serif; font-size:clamp(1.8rem,3.4vw,2.6rem); font-weight:800; letter-spacing:-0.02em; color:#fff}
   .stat .lbl{font-size:0.76rem; color:#9fb0c7; margin-top:6px; letter-spacing:0.02em; line-height:1.5}
   @media(max-width:760px){.statband .wrap{grid-template-columns:1fr 1fr; row-gap:28px}}
 
@@ -86,6 +86,15 @@
   @media(max-width:760px){.fig-grid{grid-template-columns:1fr}}
   .fig-grid figure{margin:0}
 
+  /* ── side-by-side figure: text left, image right ── */
+  .side-fig{display:grid; grid-template-columns:0.85fr 1.15fr; gap:40px; align-items:center; margin:40px 0}
+  .side-fig-text b{color:var(--ink); font-weight:700}
+  .side-fig-text{font-size:0.95rem; color:var(--ink-soft); line-height:1.75}
+  .side-fig-img{margin:0}
+  .side-fig-img img{width:100%; max-height:520px; object-fit:contain; border-radius:12px;
+                     border:1px solid var(--line); background:#fff; display:block; margin:0 auto}
+  @media(max-width:860px){.side-fig{grid-template-columns:1fr; gap:18px}}
+
   /* ── pipeline strip ── */
   .flow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:32px 0}
   .fnode{flex:1 1 150px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 14px}
@@ -99,7 +108,7 @@
 
   /* ── pull quote ── */
   .pullquote{border-left:3px solid var(--accent); padding:6px 0 6px 26px; margin:44px 0}
-  .pullquote p{font-family:'Space Grotesk',sans-serif; font-size:1.5rem; line-height:1.4; font-weight:500; color:var(--ink); margin:0}
+  .pullquote p{font-family:'Inter',sans-serif; font-size:1.5rem; line-height:1.4; font-weight:700; letter-spacing:-0.01em; color:var(--ink); margin:0}
   .pullquote cite{font-size:0.82rem; color:var(--ink-soft); font-style:normal; display:block; margin-top:10px}
 
   /* ── results table ── */
@@ -112,7 +121,7 @@
   .position-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:28px 0}
   .poscard{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 10px; text-align:center}
   .poscard .pn{font-size:0.72rem; color:var(--ink-soft); font-weight:600}
-  .poscard .pv{font-family:'Space Grotesk',sans-serif; font-size:1.7rem; font-weight:600; margin:6px 0 2px}
+  .poscard .pv{font-family:'Inter',sans-serif; font-size:1.7rem; font-weight:800; letter-spacing:-0.02em; margin:6px 0 2px}
   .poscard .pc{font-size:0.72rem; color:var(--ink-soft); font-family:var(--mono)}
   .poscard.overall{background:var(--ink); border-color:var(--ink)}
   .poscard.overall .pn,.poscard.overall .pv,.poscard.overall .pc{color:#fff}
@@ -239,14 +248,18 @@
       260-dimensional frame feature.
     </p>
 
-    <figure class="tall">
-      <img src="v5/figures/figure1_v2_model_architecture_web.png" alt="EdgeGround-VLA model architecture diagram">
-      <figcaption><b>Fig. 1 — Model Architecture.</b> OWLv2 contributes a 4-channel bbox feature
+    <div class="side-fig">
+      <div class="side-fig-text">
+        <b>Fig. 1 — Model Architecture.</b> OWLv2 contributes a 4-channel bbox feature
         (cx, cy, area, has_bbox); Kosmos-2's vision encoder contributes a 1024-dim feature that is
         linearly projected to 256-dim and L2-normalized. The two are concatenated into a 260-dim frame
         feature, six frames are flattened into a 1560-dim input, and a 2-hidden-layer MLP (512 → 128)
-        outputs one of 8 discrete action classes.</figcaption>
-    </figure>
+        outputs one of 8 discrete action classes.
+      </div>
+      <div class="side-fig-img">
+        <img src="v5/figures/figure1_v2_model_architecture_web.png" alt="EdgeGround-VLA model architecture diagram">
+      </div>
+    </div>
 
     <div class="flow">
       <div class="fnode frozen"><div class="ft">OWLv2</div><div class="fp">0.155B · frozen</div>
@@ -270,12 +283,16 @@
       demonstration data than this project's 225-episode dataset provides.
     </p>
 
-    <figure class="tall">
-      <img src="v5/figures/figure2_v2_hardware_web.png" alt="Serbot II hardware block diagram — top board and motor board">
-      <figcaption><b>Fig. 2 — Hardware Platform.</b> Top board carries the Jetson Orin NX, camera, and
+    <div class="side-fig">
+      <div class="side-fig-text">
+        <b>Fig. 2 — Hardware Platform.</b> Top board carries the Jetson Orin NX, camera, and
         3-axis omni-wheel drive; the motor board's Cortex-M4 handles CAN-bus motor control, current
-        limiting, and sensor fusion independently of the inference pipeline.</figcaption>
-    </figure>
+        limiting, and sensor fusion independently of the inference pipeline.
+      </div>
+      <div class="side-fig-img">
+        <img src="v5/figures/figure2_v2_hardware_web.png" alt="Serbot II hardware block diagram — top board and motor board">
+      </div>
+    </div>
 
     <div class="fig-grid">
       <figure>
