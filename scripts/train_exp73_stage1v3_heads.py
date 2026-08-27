@@ -587,8 +587,122 @@ def train_cxaux(X_tr, y_tr, X_va, y_va, seed, epochs=300, lr=5e-4, aux_weight=0.
     return best_acc, best_state, per_class
 
 
+class ActionQueryHead(nn.Module):
+    """Perceiver 스타일 — 학습 쿼리 토큰 1개가 window의 [bbox;vis] 6개 토큰에
+    cross-attention만 한다(토큰 간 self-attention 없음, 배포 TransformerActionHead
+    대비 파라미터 훨씬 적음). 배포 transformer가 mlp보다 계속 성능이 낮은 게
+    self-attention의 과적합 때문이라는 가설을 검증 — "grounding이 action을
+    찾아간다"는 문헌의 cross-attention 아이디어를 최소 형태로 흉내낸다."""
+    def __init__(self, frame_dim=FRAME_DIM, window=WINDOW, nhead=4):
+        super().__init__()
+        self.query = nn.Parameter(torch.randn(1, 1, frame_dim))
+        self.pos_emb = nn.Embedding(window, frame_dim)
+        self.attn = nn.MultiheadAttention(frame_dim, nhead, batch_first=True, dropout=0.1)
+        self.norm = nn.LayerNorm(frame_dim)
+        self.head = nn.Sequential(nn.Linear(frame_dim, 128), nn.ReLU(),
+                                   nn.Dropout(0.1), nn.Linear(128, NUM_CLASSES))
+
+    def forward(self, x):
+        B = x.size(0)
+        pos = torch.arange(x.size(1), device=x.device)
+        kv = x + self.pos_emb(pos)                          # (B, window, frame_dim)
+        q = self.query.expand(B, -1, -1)                    # (B, 1, frame_dim)
+        out, _ = self.attn(q, kv, kv)
+        return self.head(self.norm(out.squeeze(1)))
+
+
 HEADS = {"transformer": TransformerActionHead, "mlp": MLPActionHead, "cxgeom": CxGeomHead,
-         "film": FiLMHead, "deltacx": DeltaCxHead}
+         "film": FiLMHead, "deltacx": DeltaCxHead, "actionquery": ActionQueryHead}
+
+
+def soft_class_targets(A, thresh_lat=0.3, thresh_az=0.1, temp=0.05):
+    """cont_to_class_t()의 하드 threshold(±0.3, ±0.1)를 sigmoid로 완화한 소프트
+    8-class 분포. 경계 근처 프레임(원래 R/FR/F 등으로 임의로 갈렸던 프레임)은
+    인접 클래스에 확률질량을 나눠 갖는다 — mona_dashboard.py THRESHOLD=0.50
+    하드컷이 만든 라벨링 아티팩트(69-6①-b)를 손실함수 단에서 완화."""
+    x, y, az = A[:, 0], A[:, 1], A[:, 2]
+    def sig(v, t): return 1.0 / (1.0 + np.exp(-(v - t) / temp))
+    p_is_x = sig(np.abs(x), thresh_lat)
+    p_is_y = sig(np.abs(y), thresh_lat)
+    p_fwd_dir = sig(x, 0.0)
+    p_y_pos = sig(y, 0.0)
+    p_rot_l = sig(az, thresh_az)
+    p_rot_r = sig(-az, thresh_az)
+
+    n = len(A)
+    P = np.zeros((n, NUM_CLASSES), dtype=np.float32)
+    p_neither = (1 - p_is_x) * (1 - p_is_y)
+    p_rot_either = np.clip(p_rot_l + p_rot_r, 0, 1)
+    P[:, 0] = p_neither * (1 - p_rot_either)                 # STOP
+    P[:, 6] = p_neither * p_rot_l                             # ROT_L
+    P[:, 7] = p_neither * p_rot_r                             # ROT_R
+    p_fwd = p_is_x * p_fwd_dir
+    p_lat = (1 - p_is_x) * p_is_y
+    P[:, 4] = p_fwd * p_is_y * p_y_pos                        # FL
+    P[:, 5] = p_fwd * p_is_y * (1 - p_y_pos)                  # FR
+    P[:, 1] = p_fwd * (1 - p_is_y)                            # F
+    P[:, 2] = p_lat * p_y_pos                                 # L
+    P[:, 3] = p_lat * (1 - p_y_pos)                           # R
+    P = P / np.clip(P.sum(1, keepdims=True), 1e-6, None)
+    return P.astype(np.float32)
+
+
+def train_one_soft(head_cls, X_tr, y_tr, A_tr, X_va, y_va, seed, epochs=200, lr=5e-4,
+                    inner_val_frac=0.15, patience=4):
+    """soft_class_targets()로 만든 소프트 타겟 + soft cross-entropy로 학습.
+    체크포인트 선택은 honest(inner-val) 방식, epoch 300→200으로 축소하고
+    val-plateau patience(연속 개선 없으면 조기종료)까지 적용 — 과적합 곡선
+    분석(head_overfitting_curves.json)에서 확인된 "150~220이면 수렴, 뒤는
+    낭비" 결과를 반영."""
+    rng = np.random.default_rng(seed)
+    n = len(X_tr)
+    idx = rng.permutation(n)
+    n_inner = max(1, int(n * inner_val_frac))
+    inner_va_idx, inner_tr_idx = idx[:n_inner], idx[n_inner:]
+    X_itr, y_itr, A_itr = X_tr[inner_tr_idx], y_tr[inner_tr_idx], A_tr[inner_tr_idx]
+    X_iva, y_iva = X_tr[inner_va_idx], y_tr[inner_va_idx]
+
+    soft_itr = soft_class_targets(A_itr)
+
+    torch.manual_seed(seed)
+    X_itr_t = torch.tensor(X_itr, device=DEVICE)
+    soft_itr_t = torch.tensor(soft_itr, device=DEVICE)
+    X_iva_t = torch.tensor(X_iva, device=DEVICE); y_iva_t = torch.tensor(y_iva, device=DEVICE)
+    X_va_t = torch.tensor(X_va, device=DEVICE); y_va_t = torch.tensor(y_va, device=DEVICE)
+
+    model = head_cls().to(DEVICE)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
+    best_inner_acc, best_state, no_improve = 0.0, None, 0
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(X_itr_t), device=DEVICE)
+        for i in range(0, len(perm), 128):
+            b = perm[i:i + 128]
+            loss = F.cross_entropy(model(X_itr_t[b]), soft_itr_t[b])   # soft target CE
+            opt.zero_grad(); loss.backward(); opt.step()
+        sched.step()
+        if ep % 10 == 0 or ep == epochs - 1:
+            model.eval()
+            with torch.no_grad():
+                inner_acc = (model(X_iva_t).argmax(1) == y_iva_t).float().mean().item()
+            if inner_acc > best_inner_acc:
+                best_inner_acc, best_state, no_improve = inner_acc, {k: v.clone() for k, v in model.state_dict().items()}, 0
+            else:
+                no_improve += 1
+                if no_improve >= patience:
+                    break
+    model.load_state_dict(best_state)
+    model.eval()
+    with torch.no_grad():
+        pred = model(X_va_t).argmax(1).cpu().numpy()
+        acc = float((pred == y_va).mean())
+    per_class = {}
+    for c in range(NUM_CLASSES):
+        m = (y_va == c)
+        if m.sum() > 0:
+            per_class[c] = float((pred[m] == c).mean())
+    return acc, best_state, per_class
 
 
 # ── 데이터 빌드 (exp71 build_windows 동일) ──────────────────────────────
@@ -653,6 +767,64 @@ def train_contreg(X_tr, A_tr, X_va, y_va, A_va, seed, epochs=300, lr=5e-4):
         if m.sum() > 0:
             per_class[c] = float((pred[m] == c).mean())
     return best_acc, best_state, per_class, best_mse
+
+
+def train_one_honest(X_tr, y_tr, X_va, y_va, seed, epochs=300, lr=5e-4,
+                      inner_val_frac=0.15, head_cls=None):
+    """체크포인트 선택을 진짜 val(X_va)이 아니라 train에서 추가로 뗀
+    inner-val로 한다 — X_va는 최종 1회 평가에만 사용(선택 유출 없음).
+    train_one()의 "25epoch마다 val_acc 재서 최고 채택"이 val 표본이 작을
+    때(leave-one-direction-out 등) 낙관 편향을 만들 수 있다는 우려 검증용."""
+    head_cls = head_cls or MLPActionHead
+    rng = np.random.default_rng(seed)
+    n = len(X_tr)
+    idx = rng.permutation(n)
+    n_inner = max(1, int(n * inner_val_frac))
+    inner_va_idx, inner_tr_idx = idx[:n_inner], idx[n_inner:]
+    X_itr, y_itr = X_tr[inner_tr_idx], y_tr[inner_tr_idx]
+    X_iva, y_iva = X_tr[inner_va_idx], y_tr[inner_va_idx]
+
+    torch.manual_seed(seed)
+    cls_counts = np.bincount(y_itr, minlength=NUM_CLASSES).astype(np.float32)
+    cls_counts = np.where(cls_counts == 0, 1.0, cls_counts)
+    weights = 1.0 / cls_counts
+    weights = weights / weights.sum() * NUM_CLASSES
+    weights_t = torch.tensor(weights, dtype=torch.float32, device=DEVICE)
+
+    X_itr_t = torch.tensor(X_itr, device=DEVICE); y_itr_t = torch.tensor(y_itr, device=DEVICE)
+    X_iva_t = torch.tensor(X_iva, device=DEVICE); y_iva_t = torch.tensor(y_iva, device=DEVICE)
+    X_va_t = torch.tensor(X_va, device=DEVICE); y_va_t = torch.tensor(y_va, device=DEVICE)
+
+    model = head_cls().to(DEVICE)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
+    best_inner_acc, best_state = 0.0, None
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(X_itr_t), device=DEVICE)
+        for i in range(0, len(perm), 128):
+            b = perm[i:i + 128]
+            loss = F.cross_entropy(model(X_itr_t[b]), y_itr_t[b], weight=weights_t)
+            opt.zero_grad(); loss.backward(); opt.step()
+        sched.step()
+        if ep % 25 == 0 or ep == epochs - 1:
+            model.eval()
+            with torch.no_grad():
+                inner_acc = (model(X_iva_t).argmax(1) == y_iva_t).float().mean().item()
+            if inner_acc >= best_inner_acc:      # ← 선택 기준: inner-val (X_va 미사용)
+                best_inner_acc = inner_acc
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+    model.load_state_dict(best_state)
+    model.eval()
+    with torch.no_grad():                          # ← 진짜 val은 여기서 딱 1번만 평가
+        pred = model(X_va_t).argmax(1).cpu().numpy()
+        acc = float((pred == y_va).mean())
+    per_class = {}
+    for c in range(NUM_CLASSES):
+        m = (y_va == c)
+        if m.sum() > 0:
+            per_class[c] = float((pred[m] == c).mean())
+    return acc, best_state, per_class, best_inner_acc
 
 
 def train_one(head_cls, X_tr, y_tr, X_va, y_va, seed, epochs=300, lr=5e-4):

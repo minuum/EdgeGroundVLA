@@ -111,5 +111,10 @@ class CxAuxHead(nn.Module):
       것을 그대로 사용해 재인코딩 생략 — apples-to-apples 비교 목적에는 동일)
 - [x] mlp/cxgeom 대비 비교표 작성 → `docs/v5/research_story.html#ch70` 신규 챕터 기록
       (결과: deltacx가 val_acc 최고 +0.67%p지만 R클래스 -5.4%p 하락 — 개선 단정 보류)
-- [ ] leave-one-direction-out으로 deltacx 방향별 일반화 재검증 (70-2에서 제안, 미실행)
-- [ ] v6v5, trackF 조건까지 확장 실행 (deltacx 일반화 검증 이후 판단)
+- [x] leave-one-direction-out으로 deltacx 방향별 일반화 재검증 — 개선 소멸 확인
+      (LOO 평균 mlp 54.00% vs deltacx 53.83%, 70-3)
+- [x] honest checkpoint selection(C), 학습곡선(과적합 진단), actionquery(경량
+      cross-attn), ordinal soft label(D) 추가 실행 — D가 유일하게 LOO 평균 개선
+      (+3.71~3.99%p, 70-4~70-7)
+- [ ] v6v5, trackF 조건까지 확장 실행 — D+actionquery 결합 검증 이후 판단
+- [ ] 궤적 재생 근사(rollout_core.py)로 D 후보 재평가, 이후 소규모 실기 A/B

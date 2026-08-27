@@ -383,10 +383,32 @@ hero_metric4_color: "#7c3aed"
   | cxaux | 75.52%±0.49%p | 76.06% | 61.5%(-4.7p) | 76.5%(+2.9p) |
 
   deltacx가 val_acc·FR클래스 둘 다 최고지만 **R클래스가 5.4%p 하락** — F→FR 오분류는
-  줄었지만 R→FR 오분류가 늘었을 가능성. 69-7의 교훈(무작위 split 개선이 leave-one-
-  direction-out 일반화 개선을 보장하지 않음)이 재현될 위험이 있어 **"val_acc가 올랐으니
-  배포"라고 결론 내릴 수 없음** — deltacx의 leave-one-direction-out 재검증이 다음 단계.
-  상세: `docs/v5/research_story.html#ch70`. 계획: `docs/plans/plan_20260826_cx_emphasis_head.md`.
+  줄었지만 R→FR 오분류가 늘었을 가능성.
+
+  **후속 검증(2026-08-26~27) — deltacx leave-one-direction-out 재검증했더니 무작위
+  split 개선(+0.67%p)이 완전히 소멸**(LOO 평균 mlp 54.00% vs deltacx 53.83%,
+  69-7 패턴 재현). 이어서 actionquery(경량 cross-attention, self-attn 없음)까지
+  포함해 6개 헤드 구조를 전부 시도했지만 **LOO 일반화를 실제로 개선시킨 구조는
+  하나도 없었다** — 헤드 구조 축 자체가 한계에 도달했다는 결론.
+
+  대신 **손실함수를 손댄 ordinal soft label(D)이 CH70에서 유일하게 성과를 냄**:
+  `mona_dashboard.py`의 THRESHOLD=0.50 하드컷을 sigmoid로 완화한 소프트 8-class
+  타겟 + soft CE로 학습(`soft_class_targets()`), epoch도 300→200+조기종료로 축소
+  (학습곡선 분석에서 150~220이면 val 수렴, 뒤는 과적합만 심화됨을 확인).
+
+  | 헤드 | LOO 평균 hard | soft(D) | Δ |
+  |---|---|---|---|
+  | mlp | 50.63% | **54.62%** | **+3.99%p** |
+  | deltacx | 50.99% | **54.71%** | **+3.71%p** |
+
+  특히 최악 방향 strong_right는 **+14.52%p**(32.68%→47.20%), R클래스도 23.9%→35.1%로
+  동시 개선 — 지금까지 반복된 "전체 개선 vs R클래스 희생" 트레이드오프가 이 방향에서는
+  안 나타남. 부수적으로 **honest checkpoint selection 검증에서 val 표본이 작은
+  leave-one-direction-out 조건은 체크포인트 선택 자체가 최대 +6.64%p 낙관편향을
+  만든다는 것도 확인**(이후 모든 실험에 소급 적용 필요). 아직 실기 검증 전 —
+  다음은 D+actionquery 결합, 궤적 재생 근사 재평가, 소규모 실기 A/B 순서.
+  상세: `docs/v5/research_story.html#ch70`(70-3~70-7 카드). 계획:
+  `docs/plans/plan_20260826_cx_emphasis_head.md`.
 
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).
 - 상세: `docs/plans/plan_20260816_stt_florence2_flow.md` (§2, §6 2''단계), `docs/DATASET_V6_STATUS.md` (2026-08-19 항목), `docs/v5/research_story.html#ch69`(2026-08-21 phrase 그라운딩 대발견).

@@ -356,7 +356,7 @@
     <a href="model_architecture_brief.html" style="padding:7px 16px;background:#1e0a2b;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🏗 모델 구조 &amp; 학습 방식</a>
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
     <a href="#ch69" style="padding:7px 16px;background:#052e16;border:1px solid #4ade80;border-radius:8px;font-size:0.78rem;font-weight:800;color:#86efac;text-decoration:none">🎯 CH69 phrase 그라운딩 대발견</a>
-    <a href="#ch70" style="padding:7px 16px;background:#2a1608;border:1px solid #fb923c;border-radius:8px;font-size:0.78rem;font-weight:800;color:#fdba74;text-decoration:none">🧪 CH70 cx 강조 헤드 실험</a>
+    <a href="#ch70" style="padding:7px 16px;background:#2a1608;border:1px solid #fb923c;border-radius:8px;font-size:0.78rem;font-weight:800;color:#fdba74;text-decoration:none">🧪 CH70 헤드 6종 vs soft label</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
     <a href="#ch68" style="padding:7px 16px;background:#1a1033;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🗣 CH68 언어조건화 계획</a>
@@ -18249,12 +18249,12 @@ graph TD
 <div class="chapter" id="ch70">
   <div class="chapter-header">
     <span class="chapter-num" style="background:#fb923c;color:#0a0f1a">CH 70</span>
-    <h2 class="chapter-title">cx 강조 헤드 3종 신규 실험 — val_acc는 올랐지만 R클래스는 오히려 나빠졌다</h2>
-    <p class="chapter-subtitle"><span style="color:#fdba74;font-weight:800">2026-08-26</span> ·
-    CH69에서 밝혀진 "cx를 강조해도 val_acc가 잘 안 오른다"(cxgeom, hybrid, bbox_scale 전부 시도됨)에 이어,
-    concat이 아닌 <strong style="color:#e2e8f0">곱셈적 결합(FiLM) · 시간 변화율(Δcx) · 보조손실(cxaux)</strong>
-    3가지 새 구조를 시도했다. 결과: 무작위 split val_acc는 소폭 개선(최고 +0.7%p)됐지만,
-    <strong style="color:#fb923c">CH69에서 문제였던 R클래스 정확도가 대부분 헤드에서 5~15%p 하락</strong>했다.</p>
+    <h2 class="chapter-title">헤드 구조 6종 vs 손실함수 실험 — 구조는 한계, ordinal soft label만 LOO를 실제로 개선시켰다</h2>
+    <p class="chapter-subtitle"><span style="color:#fdba74;font-weight:800">2026-08-26~27</span> ·
+    cx를 강조하는 헤드 구조(FiLM·Δcx·cxaux·actionquery)를 6가지나 시도했지만 leave-one-direction-out
+    일반화는 개선하지 못했다(70-1~70-5) — 무작위 split에서 좋아 보인 게 대부분 방향 일반화에서는 소멸.
+    대신 <strong style="color:#4ade80">손실함수를 손대서(ordinal soft label, 70-6) LOO 평균이
+    +3.71~3.99%p, 최악 방향(strong_right)은 +14.52%p 개선</strong>됐다 — CH70 전체에서 유일한 성과.</p>
   </div>
 
   <div class="callout critical">
@@ -18313,11 +18313,172 @@ graph TD
       leave-one-direction-out(방향 하나를 통째로 빼고 검증)에서는 오히려 나쁠 수 있다"</strong>는
       패턴의 재현인지 아직 모른다. R클래스 하락은 이 우려를 뒷받침하는 방향이다.
       <br><br>
-      <strong style="color:#e2e8f0">다음 단계(미실행)</strong>: deltacx를
+      <strong style="color:#e2e8f0">다음 단계</strong>: deltacx를
       `scripts/eval_leave_one_direction_out.py` 방식으로 재검증해서 방향별 일반화가
       실제로 개선됐는지, 아니면 exp77처럼 무작위 split에서만 좋아 보이는 착시인지 확인
-      해야 최종 판단 가능. 지금 증거로는 <strong style="color:#f87171">"val_acc가 올랐으니
-      배포하자"고 결론 내릴 수 없다</strong>.
+      해야 최종 판단 가능(→ 70-3에서 실행).
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171;background:linear-gradient(135deg,#1f0a0a,#240c0c)">
+    <div class="finding-title" style="color:#f87171">🔴 70-3. deltacx leave-one-direction-out — 무작위 split 개선이 소멸됨</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      70-2의 우려대로였다. deltacx를 `eval_leave_one_direction_out_deltacx.py`로
+      mlp와 동일 프로토콜(방향 하나 통째로 val, 나머지 180ep 학습, seed 0/1/2)로 비교:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">LOO 5방향 평균 best acc</td><td style="padding:4px;text-align:center">R클래스 평균</td></tr>
+        <tr><td style="padding:4px">mlp</td><td style="padding:4px;text-align:center">54.00%</td><td style="padding:4px;text-align:center">29.0%</td></tr>
+        <tr><td style="padding:4px">deltacx</td><td style="padding:4px;text-align:center">53.83%</td><td style="padding:4px;text-align:center">29.1%</td></tr>
+      </table>
+      무작위 split에서 봤던 <strong style="color:#e2e8f0">+0.67%p 개선(76.25% vs 75.58%)이
+      leave-one-direction-out에서는 완전히 사라졌다</strong>(-0.17%p, 사실상 동일). 69-7의
+      "무작위 split 개선이 방향 일반화 개선을 보장하지 않는다"는 패턴이 새 헤드에서도
+      그대로 재현됨 — <strong style="color:#f87171">deltacx는 실질적으로 mlp와 다르지
+      않다</strong>는 게 최종 결론.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_leave_one_direction_out_deltacx.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/deltacx_leave_one_direction_out.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fb923c">
+    <div class="finding-title" style="color:#fb923c">🔍 70-4. val 유출 검증(C) + 학습곡선 — 체크포인트 선택 낙관편향과 epoch 300 과다 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">① honest checkpoint selection</strong> — 기존 방식(25epoch마다
+      val_acc 재서 최고 채택)이 val 표본이 작을수록(leave-one-direction-out) 낙관편향을
+      만드는지, train에서 따로 뗀 inner-val로 체크포인트를 고르고 진짜 val은 최종 1회
+      평가에만 쓰는 `train_one_honest()`와 비교:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">조건</td><td style="padding:4px;text-align:center">val선택 best</td><td style="padding:4px;text-align:center">honest best</td><td style="padding:4px;text-align:center">낙관갭</td></tr>
+        <tr><td style="padding:4px">random_split/mlp</td><td style="padding:4px;text-align:center">75.65%</td><td style="padding:4px;text-align:center">74.78%</td><td style="padding:4px;text-align:center">+0.86%p</td></tr>
+        <tr style="background:rgba(251,146,60,0.15)"><td style="padding:4px"><strong>loo_weak_right/mlp</strong></td><td style="padding:4px;text-align:center">41.65%</td><td style="padding:4px;text-align:center">35.01%</td><td style="padding:4px;text-align:center"><strong>+6.64%p</strong></td></tr>
+        <tr><td style="padding:4px">loo_strong_right/mlp</td><td style="padding:4px;text-align:center">33.29%</td><td style="padding:4px;text-align:center">32.68%</td><td style="padding:4px;text-align:center">+0.61%p</td></tr>
+      </table>
+      가설 확인됨 — <strong style="color:#e2e8f0">val 표본이 작은 leave-one-direction-out
+      조건에서 최대 +6.64%p 낙관편향</strong>이 나왔다. 지금까지 CH69/70에 쓴 leave-one-
+      direction-out 수치들은 이 편향을 어느 정도 안고 있는 값들 — 방향성(exp77이 exp73보다
+      약함, R/FR 트레이드오프 존재)은 유효하지만 절대치는 다소 부풀려져 있었다고 봐야 한다.
+      <br><br>
+      <strong style="color:#e2e8f0">② 학습곡선(train_acc vs val_acc, epoch별)</strong> —
+      5개 헤드를 25→10epoch 간격으로 촘촘히 재서 과적합을 직접 시각화:
+      <img src="figures/head_overfitting_curves.png" style="width:100%;border-radius:8px;margin:8px 0">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">최종 train_acc</td><td style="padding:4px;text-align:center">최종 val_acc</td><td style="padding:4px;text-align:center">gap</td><td style="padding:4px;text-align:center">val 수렴 시점(peak-1%p)</td></tr>
+        <tr><td style="padding:4px">mlp</td><td style="padding:4px;text-align:center">88.65%</td><td style="padding:4px;text-align:center">75.36%</td><td style="padding:4px;text-align:center">13.3%p</td><td style="padding:4px;text-align:center">epoch 170</td></tr>
+        <tr><td style="padding:4px">cxgeom</td><td style="padding:4px;text-align:center">86.65%</td><td style="padding:4px;text-align:center">74.08%</td><td style="padding:4px;text-align:center">12.6%p</td><td style="padding:4px;text-align:center">epoch 150</td></tr>
+        <tr style="background:rgba(248,113,113,0.15)"><td style="padding:4px"><strong>film</strong></td><td style="padding:4px;text-align:center"><strong>95.14%</strong></td><td style="padding:4px;text-align:center">75.94%</td><td style="padding:4px;text-align:center"><strong>19.2%p</strong></td><td style="padding:4px;text-align:center">epoch 170</td></tr>
+        <tr><td style="padding:4px">deltacx</td><td style="padding:4px;text-align:center">88.99%</td><td style="padding:4px;text-align:center">76.22%</td><td style="padding:4px;text-align:center">12.8%p</td><td style="padding:4px;text-align:center">epoch 220</td></tr>
+        <tr><td style="padding:4px">cxaux</td><td style="padding:4px;text-align:center">88.40%</td><td style="padding:4px;text-align:center">74.87%</td><td style="padding:4px;text-align:center">13.5%p</td><td style="padding:4px;text-align:center">epoch 60</td></tr>
+      </table>
+      두 가지 확인됨: <strong style="color:#e2e8f0">(a) film만 유독 심하게 과적합</strong>(train
+      95.1%, gap 19.2%p) — 70-1의 R클래스 붕괴(50.8%)와 일치하는 설명. <strong style="color:#e2e8f0">
+      (b) epoch=300은 exp73 원본에서 그대로 물려받은 값</strong>인데, 대부분 val_acc는
+      epoch 150~220 사이에 사실상 수렴하고 <strong style="color:#f87171">뒤쪽 80~150epoch는
+      val이 거의 안 움직이는데 train_acc만 계속 오르는 순수 과적합 심화 구간</strong>이었다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_honest_checkpoint_selection.py</code> ·
+      <code>scripts/plot_head_overfitting_curves.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/honest_checkpoint_selection.json</code> ·
+      <code>docs/v5/closed_loop_eval/head_overfitting_curves.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🧭 70-5. actionquery(경량 cross-attention) — 평균은 비슷하지만 최악의 방향에서 크게 이긴다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      배포 중인 TransformerActionHead(window 전체 self-attention)가 mlp보다 계속 낮은 게
+      (71~75% vs 76~78%, CH69 69-5 표 참고) self-attention 자체의 과적합 때문인지 확인하려고,
+      <strong style="color:#e2e8f0">학습 쿼리 1개가 [bbox;vis] 6토큰에 cross-attention만
+      하는(self-attention 없음, 파라미터 훨씬 적음) actionquery 헤드</strong>를 만들어
+      mlp/deltacx와 함께 random_split+LOO(honest selection) 전부 비교:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">조건</td><td style="padding:4px;text-align:center">mlp</td><td style="padding:4px;text-align:center">deltacx</td><td style="padding:4px;text-align:center">actionquery</td></tr>
+        <tr><td style="padding:4px">random_split(honest)</td><td style="padding:4px;text-align:center">74.78%</td><td style="padding:4px;text-align:center">75.11%</td><td style="padding:4px;text-align:center">71.86%</td></tr>
+        <tr><td style="padding:4px">LOO 5방향 평균(honest)</td><td style="padding:4px;text-align:center">50.63%</td><td style="padding:4px;text-align:center">50.99%</td><td style="padding:4px;text-align:center">49.95%</td></tr>
+        <tr style="background:rgba(56,189,248,0.15)"><td style="padding:4px"><strong>loo_strong_right</strong></td><td style="padding:4px;text-align:center">32.68%</td><td style="padding:4px;text-align:center">33.01%</td><td style="padding:4px;text-align:center"><strong>46.39%</strong></td></tr>
+        <tr><td style="padding:4px">loo_strong_right R클래스</td><td style="padding:4px;text-align:center">23.9%</td><td style="padding:4px;text-align:center">35.6%</td><td style="padding:4px;text-align:center"><strong>62.2%</strong></td></tr>
+      </table>
+      평균은 셋 다 비슷하지만(49.95~50.99%) 분포가 완전히 다르다 — actionquery는
+      <strong style="color:#e2e8f0">가장 어려운 strong_right에서 mlp 대비 +13.7%p로 압도적</strong>이고
+      R클래스 일반화가 LOO 전반에서 구조적으로 강하다(대신 쉬운 center에서는 39.59%로
+      가장 나쁨). self-attention을 빼고 cross-attention만 남긴 게 "본 적 없는 방향"에
+      덜 휘둘리게 만든 것으로 보임 — 폐기하지 말고 보류, 이후 앙상블/보완 후보로 고려.
+      <br><span style="font-size:0.78rem;color:#64748b">헤드 클래스
+      <code>ActionQueryHead</code>(train_exp73_stage1v3_heads.py) · 스크립트
+      <code>scripts/eval_actionquery_head.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/actionquery_head_eval.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 70-6. ordinal soft label(D) — CH70에서 유일하게 LOO 일반화 자체를 개선시킨 방법</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      70-1~70-5는 전부 <strong style="color:#e2e8f0">헤드 구조(concat/곱셈/보조손실/cross-attn)</strong>
+      축이었다. 이번엔 손실함수 축을 시도했다 — 원래 문제가 연속 조이스틱(lx,ly,az)을
+      `mona_dashboard.py`의 `THRESHOLD=0.50` 하드 컷으로 이산화한 것(69-6①-b의 R/FR
+      경계 아티팩트)이라는 점에 착안해, `cont_to_class_t()`의 하드 threshold를 sigmoid로
+      완화한 <strong style="color:#e2e8f0">소프트 8-class 타겟(ordinal label smoothing)</strong>
+      + soft cross-entropy로 학습(`soft_class_targets()`). 동시에 70-4②에서 확인된 epoch
+      과다 문제도 고쳐서 epoch 300→200 + patience=4 조기종료를 적용했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">LOO 5방향 평균 hard</td><td style="padding:4px;text-align:center">soft(D)</td><td style="padding:4px;text-align:center">Δ</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>mlp</strong></td><td style="padding:4px;text-align:center">50.63%</td><td style="padding:4px;text-align:center"><strong>54.62%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+3.99%p</strong></td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>deltacx</strong></td><td style="padding:4px;text-align:center">50.99%</td><td style="padding:4px;text-align:center"><strong>54.71%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+3.71%p</strong></td></tr>
+      </table>
+      방향별(mlp 기준):
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">held-out 방향</td><td style="padding:4px;text-align:center">hard</td><td style="padding:4px;text-align:center">soft</td><td style="padding:4px;text-align:center">Δ</td><td style="padding:4px;text-align:center">R클래스(hard→soft)</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">62.68%</td><td style="padding:4px;text-align:center">57.57%</td><td style="padding:4px;text-align:center;color:#f87171">-5.11%p</td><td style="padding:4px;text-align:center">22.0%→20.0%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">67.78%</td><td style="padding:4px;text-align:center">72.99%</td><td style="padding:4px;text-align:center;color:#4ade80">+5.21%p</td><td style="padding:4px;text-align:center">45.8%→37.5%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px">weak_right</td><td style="padding:4px;text-align:center">35.01%</td><td style="padding:4px;text-align:center">38.53%</td><td style="padding:4px;text-align:center;color:#4ade80">+3.52%p</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>30.7%→35.6%(둘다↑)</strong></td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">55.00%</td><td style="padding:4px;text-align:center">56.83%</td><td style="padding:4px;text-align:center;color:#4ade80">+1.83%p</td><td style="padding:4px;text-align:center">0.0%→0.0%</td></tr>
+        <tr style="background:rgba(74,222,128,0.18)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center">32.68%</td><td style="padding:4px;text-align:center"><strong>47.20%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+14.52%p</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>23.9%→35.1%(둘다↑)</strong></td></tr>
+      </table>
+      <strong style="color:#4ade80">CH70에서 시도한 6가지(cxgeom·film·deltacx·cxaux·actionquery·soft label) 중
+      유일하게 LOO 평균을 실제로 개선시켰다</strong> — 나머지는 전부 무작위 split에서만
+      좋아 보이다 LOO에서 소멸(70-3)하거나 트레이드오프만 반복했는데, D는 LOO에서
+      오히려 더 크게(+3.99%p) 개선됐다. 특히 CH69에서 가장 취약했던 weak_right·strong_right
+      에서는 <strong style="color:#e2e8f0">overall과 R클래스가 동시에 개선</strong>돼 —
+      지금까지 반복된 "전체 개선 vs R클래스 희생" 트레이드오프가 이 두 방향에서는
+      나타나지 않았다. 69-6①-b에서 지목한 F↔FR/R↔FR 하드 경계 아티팩트를 손실함수
+      단에서 완화한다는 가설과 정확히 맞아떨어지는 결과.
+      <br><br>
+      <strong style="color:#fbbf24">한계</strong> — center 방향만 유일하게 나빠졌다(-5.11%p).
+      center는 원래 방향 모호성이 적은 조건이라 소프트화가 불필요한 노이즈를 준 것으로
+      추정되나 확인 안 됨. random_split에서도 이득이 크지만(+2.63~2.67%p) R클래스는
+      하락(mlp 67.7%→48.5%) — random_split 조건에서는 여전히 트레이드오프가 있다.
+      실기 검증 전이라 확정 발견 6번(val 지표≠실기 성능)은 여전히 유효.
+      <br><span style="font-size:0.78rem;color:#64748b">헤드 클래스/함수
+      <code>soft_class_targets()</code>·<code>train_one_soft()</code>(train_exp73_stage1v3_heads.py) ·
+      스크립트 <code>scripts/eval_soft_label_head.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/soft_label_head_eval.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fb923c;background:linear-gradient(135deg,#1f1408,#241708)">
+    <div class="finding-title" style="color:#fb923c">📋 70-7. CH70 종합 판단</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <ol style="margin:8px 0 0 20px">
+        <li><strong style="color:#e2e8f0">헤드 구조 축(concat/곱셈/보조손실/cross-attn)은
+          한계에 도달</strong> — 6개 중 5개(cxgeom·film·deltacx·cxaux·actionquery 평균)가
+          전부 ±1~2%p 안에서 놀거나, 무작위 split 개선이 LOO에서 소멸했다. 구조를 바꿔도
+          못 만드는 정보(안 본 방향의 학습 예시)는 안 만들어진다는 방증 — 69-6①에서 이미
+          지목된 데이터 커버리지 문제가 근본 병목이라는 가설이 강화됨.</li>
+        <li><strong style="color:#4ade80">손실함수 축(ordinal soft label, D)이 유일한 성과</strong> —
+          LOO 평균 +3.71~3.99%p, 특히 최악 방향(strong_right)에서 +14.52%p. 다음 후보로
+          우선순위가 가장 높다.</li>
+        <li><strong style="color:#e2e8f0">actionquery는 보류 후보</strong> — 평균은 비슷하지만
+          strong_right에서 유일하게 크게 이기고 R클래스가 구조적으로 강건함. D와 결합
+          (soft label + actionquery)하면 더 나을 가능성 — 미검증.</li>
+        <li><strong style="color:#e2e8f0">방법론 교훈 2가지, 이후 모든 실험에 소급 적용해야 함</strong>:
+          (a) leave-one-direction-out처럼 val 표본이 작은 조건에서는 반드시 honest(inner-val)
+          체크포인트 선택을 써야 한다(최대 +6.64%p 낙관편향 확인). (b) epoch=300은 근거
+          없는 관성값이었다 — 150~220이면 수렴, 조기종료 적용이 맞다.</li>
+        <li><strong style="color:#f87171">아직 실기 검증 전</strong> — 확정 발견 6번(val
+          지표는 실기 성능을 보장하지 않음) 그대로 유효. D가 아무리 유망해도 배포 전
+          단계는 (i) D+actionquery 결합 시도 → (ii) 궤적 재생 근사(rollout_core.py 기반,
+          프레임 정확도가 아니라 실제 도착 여부로 재평가) → (iii) 소규모 실기 A/B 순서.</li>
+      </ol>
     </div>
   </div>
 
