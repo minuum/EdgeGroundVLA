@@ -240,7 +240,7 @@
     </p>
 
     <figure class="tall">
-      <img src="v5/figures/figure1_final.png" alt="EdgeGround-VLA model architecture diagram">
+      <img src="v5/figures/figure1_v2_model_architecture_web.png" alt="EdgeGround-VLA model architecture diagram">
       <figcaption><b>Fig. 1 — Model Architecture.</b> OWLv2 contributes a 4-channel bbox feature
         (cx, cy, area, has_bbox); Kosmos-2's vision encoder contributes a 1024-dim feature that is
         linearly projected to 256-dim and L2-normalized. The two are concatenated into a 260-dim frame
@@ -270,15 +270,22 @@
       demonstration data than this project's 225-episode dataset provides.
     </p>
 
+    <figure class="tall">
+      <img src="v5/figures/figure2_v2_hardware_web.png" alt="Serbot II hardware block diagram — top board and motor board">
+      <figcaption><b>Fig. 2 — Hardware Platform.</b> Top board carries the Jetson Orin NX, camera, and
+        3-axis omni-wheel drive; the motor board's Cortex-M4 handles CAN-bus motor control, current
+        limiting, and sensor fusion independently of the inference pipeline.</figcaption>
+    </figure>
+
     <div class="fig-grid">
       <figure>
-        <img src="v5/figures/figure3_final.jpg" alt="Data collection pipeline diagram">
+        <img src="v5/figures/figure3_v2_data_collection_web.jpg" alt="Data collection pipeline diagram">
         <figcaption><b>Fig. 3 — Data Collection.</b> 225 teleoperated episodes (16,599 frames) across
           5 target directions, collected via joystick with cx-label mean 0.4954 — confirming no left/right
           spatial bias in the raw dataset.</figcaption>
       </figure>
       <figure>
-        <img src="v5/figures/figure4_final.jpg" alt="Stage 1 / Stage 2 training pipeline diagram">
+        <img src="v5/figures/figure4_v2_stage_training_web.jpg" alt="Stage 1 / Stage 2 training pipeline diagram">
         <figcaption><b>Fig. 4 — Two-Stage Training.</b> Stage 1 trains <code>image_proj</code> via
           direction anchor-sentence matching (5-class), then freezes it. Stage 2 trains only the MLP
           action head on top of the frozen representation — 1.128M parameters end to end.</figcaption>
@@ -422,12 +429,12 @@
 
     <div class="fig-grid">
       <figure>
-        <img src="v5/figures/figure7_final.jpg" alt="Deployment and runtime process diagram">
+        <img src="v5/figures/figure5_v2_deploy_web.jpg" alt="Deployment and runtime process diagram">
         <figcaption><b>Fig. 10 — Deploy &amp; Runtime.</b> The trained checkpoints ship to the Jetson
           Orin NX; a FastAPI dashboard exposes robot control, status, and camera stream over Tailscale VPN.</figcaption>
       </figure>
       <figure>
-        <img src="v5/figures/figure8_final.jpg" alt="Runtime inference control logic diagram">
+        <img src="v5/figures/figure6_v2_inference_pipeline_web.jpg" alt="Runtime inference control logic diagram">
         <figcaption><b>Fig. 11 — Runtime Control Logic.</b> A sliding 6-frame window feeds the action
           head; the resulting 3-DoF command is sent over CAN → MCU → wheels.</figcaption>
       </figure>
