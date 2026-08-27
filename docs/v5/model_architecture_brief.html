@@ -71,7 +71,7 @@ a{color:var(--bl)}
 <div class="wrap">
 
 <h1>EdgeGround-VLA 모델 구조 &amp; 학습 방식 정리</h1>
-<div class="sub">미팅 발표용 · <strong style="color:#4ade80">최종 수정 2026-08-16</strong> (직전 2026-08-01) · 모든 수치는 코드/체크포인트에서 직접 측정한 실측값
+<div class="sub">미팅 발표용 · <strong style="color:#4ade80">최종 수정 2026-08-19</strong> (직전 2026-08-16) · 모든 수치는 코드/체크포인트에서 직접 측정한 실측값
 &nbsp;|&nbsp; <a href="research_story.html#ch64">근거 상세 → CH64</a>&nbsp;|&nbsp; <a href="owlv2_grounder_brief.html" style="color:#f0abfc">OWL-v2 그라운더 정리 →</a></div>
 
 <div class="key">
@@ -319,12 +319,12 @@ OWL-v2 채택 이후 <strong class="h">"프롬프트를 런타임에 바꾸면 �
 
 <table>
 <tr><th>구성요소</th><th class="c">파라미터</th><th class="c">추론에 사용</th><th>비고</th></tr>
-<tr><td>Kosmos-2 <code>vision_model</code></td><td class="c">303.2M</td><td class="c g">✅ 사용</td><td>frozen, 이미지 피처 추출</td></tr>
-<tr><td><code>image_proj</code> (1024→256)</td><td class="c">0.262M</td><td class="c g">✅ 사용</td><td>frozen (Stage1에서 학습됨)</td></tr>
-<tr><td>OWL-v2 전체</td><td class="c">155.0M</td><td class="c g">✅ 사용</td><td>zero-shot, 학습 안 함</td></tr>
-<tr><td>MLP 액션 헤드</td><td class="c">0.866M</td><td class="c g">✅ 사용</td><td><strong class="g">Stage 2 학습 대상</strong>(image_proj와 합쳐 학습되는 전체는 1.128M)</td></tr>
-<tr style="background:rgba(248,113,113,0.1)"><td>Kosmos-2 언어 디코더 외</td><td class="c r">1361.3M</td><td class="c r">❌ 미사용</td><td class="r">로드만 되고 호출 0회</td></tr>
-<tr style="border-top:2px solid var(--line)"><td><strong>실제 연산에 쓰이는 합</strong></td><td class="c g"><strong>459.3M (0.459B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 0.46B"</td></tr>
+<tr><td>Kosmos-2 <code>vision_model</code></td><td class="c">303,179,776</td><td class="c g">✅ 사용</td><td>frozen, 이미지 피처 추출</td></tr>
+<tr><td><code>image_proj</code> (1024→256)</td><td class="c">262,400</td><td class="c g">✅ 사용</td><td>frozen (Stage1에서 학습됨)</td></tr>
+<tr><td>OWL-v2 전체</td><td class="c">154,966,792</td><td class="c g">✅ 사용</td><td>zero-shot, 학습 안 함</td></tr>
+<tr><td>MLP 액션 헤드</td><td class="c">865,928</td><td class="c g">✅ 사용</td><td><strong class="g">Stage 2 학습 대상</strong>(image_proj와 합쳐 학습되는 전체는 1,128,328 ≈ 1.128M)</td></tr>
+<tr style="background:rgba(248,113,113,0.1)"><td>Kosmos-2 언어 디코더 외</td><td class="c r">~1361.3M</td><td class="c r">❌ 미사용</td><td class="r">로드만 되고 호출 0회</td></tr>
+<tr style="border-top:2px solid var(--line)"><td><strong>실제 연산에 쓰이는 합</strong></td><td class="c g"><strong>459,274,896 (≈0.459B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 0.46B" — <code>sum(p.numel() for p in model.parameters())</code>로 실측(2026-08-19)</td></tr>
 <tr><td><strong>로드 시 host RAM에 올라가는 합</strong></td><td class="c o"><strong>1820.3M (1.820B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 1.8B"</td></tr>
 </table>
 
@@ -587,13 +587,13 @@ KCI 초안에 싣는 확정 도판입니다. 이 페이지의 설명과 동일�
 <div class="grid2">
   <div class="card">
     <div class="ct">Figure 1 — 모델 아키텍처</div>
-    <p><img src="figures/figure1_final.png" alt="Figure 1 모델 아키텍처" style="max-width:100%;background:#fff;border-radius:6px"></p>
+    <p><img src="figures/figure1_v2_model_architecture_web.png" alt="Figure 1 모델 아키텍처 (2026-08-27 재출력본)" style="max-width:100%;background:#fff;border-radius:6px"></p>
     <p style="font-size:0.8rem;color:var(--dim)">인지(OWL-v2 · Kosmos-2 vision · image_proj) → 260차원 프레임 특징
     → 슬라이딩 윈도우 1560차원 → MLP 헤드 → 8-class → LUT로 (x,y,z).</p>
   </div>
   <div class="card">
     <div class="ct">Figure 4 — Stage 1 / Stage 2 학습</div>
-    <p><img src="figures/figure4_final.jpg" alt="Figure 4 Stage1/Stage2 학습" style="max-width:100%;background:#fff;border-radius:6px"></p>
+    <p><img src="figures/figure4_v2_stage_training_web.jpg" alt="Figure 4 Stage1/Stage2 학습 (2026-08-27 재출력본)" style="max-width:100%;background:#fff;border-radius:6px"></p>
     <p style="font-size:0.8rem;color:var(--dim)">Stage 1은 프레임 1장 단위 대조학습(image_proj + text_proj),
     Stage 2는 6-프레임 슬라이딩 윈도우로 MLP 헤드 학습. 사이에 Vision Feature Cache가 있습니다.</p>
   </div>
@@ -643,6 +643,23 @@ threshold 0.25에서 오탐률 0%, 정탐률 94.9%. 0.20으로 낮추면 정탐 
 <s>52.5%(n=501)</s>를 싣고 "채점 방식이 안 맞는다"고 캐비엇을 달았으나, 애초에 채점을 학습과 맞추면
 되는 문제였다. <code>scripts/eval_confusion_matrix_stage1v3_correct.py</code>로 재채점해 74.1%로 교체.
 </div>
+
+<h3>오류를 심각도로 분해 (2026-08-19 추가)</h3>
+<p><img src="figures/action_head_error_severity_8x8.png" alt="val 오류 심각도 8x8 분해" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p><img src="figures/action_head_error_severity_3x3.png" alt="좌우중립 3방향 축약 혼동행렬" style="max-width:100%;background:#fff;border-radius:6px;margin-top:10px"></p>
+<p style="font-size:0.85rem;color:var(--muted)">오류 629건을 성격별로 나누면 <strong class="g">81.4%가 "같은 방향 성향 내 혼동"(대체 가능한 행동)</strong>이고,
+실제로 주행을 실패시키는 <strong class="r">좌우 반전은 전체의 1.97%(48건)</strong>뿐이다. 좌·우·중립 3방향으로
+축약하면 정확도는 74.13%→<strong class="g">81.65%</strong>(+7.52%p)로 오른다. val 프레임 단위 정확도가
+실기 성공률(95%)보다 낮게 보이는 이유를 뒷받침하는 근거 — 프레임 단위 채점은 폐루프 재정정 기회를
+반영하지 못한다(<code>scripts/plot_action_head_error_severity.py</code>).</p>
+
+<h3>image_proj(Stage 1) 학습 곡선</h3>
+<p><img src="figures/stage1_v3_valacc_only.png" alt="image_proj train/val accuracy" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p><img src="figures/stage1_v3_loss_only.png" alt="image_proj train/val loss" style="max-width:100%;background:#fff;border-radius:6px;margin-top:10px"></p>
+<p style="font-size:0.85rem;color:var(--muted)">train 96.10% / val 94.09%(격차 2.01%p), train loss 0.107 / val loss 0.173 — 둘 다 함께
+수렴해 과적합 징후가 없다. Stage 2(행동 헤드)의 17.40%p 격차와 대조되는 지점으로, 과적합이
+파이프라인 전체가 아니라 Stage 2에 국한된 현상임을 보여준다(<code>scripts/train_stage1_v3_5cls_owl_fastloss.py</code>,
+비전 특징 캐싱으로 재학습 277분→21.8분 단축).</p>
 
 <table>
 <tr><th>목표 위치</th><th class="c">성공률</th></tr>
