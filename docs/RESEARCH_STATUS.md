@@ -405,9 +405,26 @@ hero_metric4_color: "#7c3aed"
   동시 개선 — 지금까지 반복된 "전체 개선 vs R클래스 희생" 트레이드오프가 이 방향에서는
   안 나타남. 부수적으로 **honest checkpoint selection 검증에서 val 표본이 작은
   leave-one-direction-out 조건은 체크포인트 선택 자체가 최대 +6.64%p 낙관편향을
-  만든다는 것도 확인**(이후 모든 실험에 소급 적용 필요). 아직 실기 검증 전 —
-  다음은 D+actionquery 결합, 궤적 재생 근사 재평가, 소규모 실기 A/B 순서.
-  상세: `docs/v5/research_story.html#ch70`(70-3~70-7 카드). 계획:
+  만든다는 것도 확인**(이후 모든 실험에 소급 적용 필요).
+
+  **최종 검증(2026-08-28) — D+actionquery 결합 + 궤적 재생(FPE·성공률) 재평가**.
+  "프레임 정확도로 틀려도 실제 도착은 맞을 수 있다"는 지적에 따라 `rollout_core.py`
+  기반 궤적 재생(69-6②와 동일 방법론)으로 재확인:
+
+  | 헤드 | success | mean_fpe |
+  |---|---|---|
+  | mlp(hard, 배포 방식) | 24.2% | 1.192m |
+  | **mlp+soft(D)** | **33.3%(+9.1%p)** | 1.097m |
+  | deltacx+soft(D) | 33.3%(+9.1%p) | **1.003m**(최소) |
+  | actionquery+soft | 21.2%(+6.0%p) | 1.234m |
+
+  D는 프레임 정확도뿐 아니라 궤적 재생(실제 도착 여부)에서도 확실히 개선됨을 확인
+  (success +9.1%p) — 진짜 개선으로 판단. actionquery는 결합해도 가장 낮은 success에
+  머물고(21.2%), LOO(strong_right)에서도 이미 hard 상태가 mlp+soft급이라 결합 시너지가
+  없음(+1.08%p) — **actionquery 폐기, mlp+soft(D)를 다음 단계 후보로 확정**.
+  아직 실기 검증 전(확정 발견 6번 유효) — 다음은 소규모 실기 A/B(mlp+soft vs
+  배포중 exp73).
+  상세: `docs/v5/research_story.html#ch70`(70-3~70-8 카드). 계획:
   `docs/plans/plan_20260826_cx_emphasis_head.md`.
 
 - fp16+TensorRT 변환 등 추가 경량화는 별건(`plan_20260801_specialized_detector.md`).

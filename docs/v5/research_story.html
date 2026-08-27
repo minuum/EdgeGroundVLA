@@ -18467,18 +18467,63 @@ graph TD
         <li><strong style="color:#4ade80">손실함수 축(ordinal soft label, D)이 유일한 성과</strong> —
           LOO 평균 +3.71~3.99%p, 특히 최악 방향(strong_right)에서 +14.52%p. 다음 후보로
           우선순위가 가장 높다.</li>
-        <li><strong style="color:#e2e8f0">actionquery는 보류 후보</strong> — 평균은 비슷하지만
-          strong_right에서 유일하게 크게 이기고 R클래스가 구조적으로 강건함. D와 결합
-          (soft label + actionquery)하면 더 나을 가능성 — 미검증.</li>
+        <li><strong style="color:#e2e8f0">actionquery는 보류 후보(→ 70-8에서 결합 검증 완료)</strong> —
+          평균은 비슷하지만 strong_right에서 유일하게 크게 이기고 R클래스가 구조적으로 강건함.</li>
         <li><strong style="color:#e2e8f0">방법론 교훈 2가지, 이후 모든 실험에 소급 적용해야 함</strong>:
           (a) leave-one-direction-out처럼 val 표본이 작은 조건에서는 반드시 honest(inner-val)
           체크포인트 선택을 써야 한다(최대 +6.64%p 낙관편향 확인). (b) epoch=300은 근거
           없는 관성값이었다 — 150~220이면 수렴, 조기종료 적용이 맞다.</li>
         <li><strong style="color:#f87171">아직 실기 검증 전</strong> — 확정 발견 6번(val
-          지표는 실기 성능을 보장하지 않음) 그대로 유효. D가 아무리 유망해도 배포 전
-          단계는 (i) D+actionquery 결합 시도 → (ii) 궤적 재생 근사(rollout_core.py 기반,
-          프레임 정확도가 아니라 실제 도착 여부로 재평가) → (iii) 소규모 실기 A/B 순서.</li>
+          지표는 실기 성능을 보장하지 않음) 그대로 유효. 다음 단계는 (i) D+actionquery
+          결합 시도 → (ii) 궤적 재생 근사(rollout_core.py 기반, 프레임 정확도가 아니라
+          실제 도착 여부로 재평가) → (iii) 소규모 실기 A/B 순서(→ 70-8에서 (i)(ii) 실행).</li>
       </ol>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 70-8. D+actionquery 결합 + 궤적 재생 재평가 — mlp+soft가 최종 후보로 확정</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      70-7에서 제기한 두 가지를 이어서 실행했다: ① soft label(D)을 actionquery에도
+      적용해 결합 효과 확인, ② "R을 FR로 틀려도 실제 도착은 맞을 수 있다"는 지적에
+      따라 <strong style="color:#e2e8f0">프레임 정확도가 아니라 궤적 재생(FPE·성공률,
+      `rollout_core.py`, 69-6②와 동일 방법론)</strong>으로 최종 판단.
+      <br><br>
+      <strong style="color:#e2e8f0">궤적 재생(random_split val, 프레임 정확도가 아니라 최종 도착 기준)</strong>:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">success</td><td style="padding:4px;text-align:center">mean_fpe</td></tr>
+        <tr><td style="padding:4px">mlp(hard, 배포 방식)</td><td style="padding:4px;text-align:center">24.2%</td><td style="padding:4px;text-align:center">1.192m</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>mlp+soft(D)</strong></td><td style="padding:4px;text-align:center"><strong>33.3%(+9.1%p)</strong></td><td style="padding:4px;text-align:center">1.097m</td></tr>
+        <tr><td style="padding:4px">deltacx(hard)</td><td style="padding:4px;text-align:center">24.2%</td><td style="padding:4px;text-align:center">1.166m</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>deltacx+soft(D)</strong></td><td style="padding:4px;text-align:center"><strong>33.3%(+9.1%p)</strong></td><td style="padding:4px;text-align:center"><strong>1.003m(최소)</strong></td></tr>
+        <tr><td style="padding:4px">actionquery(hard)</td><td style="padding:4px;text-align:center">15.2%</td><td style="padding:4px;text-align:center">1.396m</td></tr>
+        <tr><td style="padding:4px">actionquery+soft</td><td style="padding:4px;text-align:center">21.2%(+6.0%p)</td><td style="padding:4px;text-align:center">1.234m</td></tr>
+      </table>
+      <strong style="color:#4ade80">D는 프레임 정확도뿐 아니라 궤적 재생에서도 확실히 개선된다</strong>
+      (mlp/deltacx 둘 다 success +9.1%p) — "오분류가 늘어난 대신 실제 도착은 맞을 것"이라는
+      우려와 반대로, 오분류 자체가 줄면서 궤적도 함께 좋아졌다. actionquery는 결합해도
+      가장 낮은 success(21.2%)에 머물러 — <strong style="color:#f87171">기대했던 D+actionquery
+      시너지는 확인되지 않았다</strong>.
+      <br><br>
+      <strong style="color:#e2e8f0">LOO(weak_right·strong_right) — actionquery 결합 효과</strong>:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">조건</td><td style="padding:4px;text-align:center">mlp hard→soft</td><td style="padding:4px;text-align:center">deltacx hard→soft</td><td style="padding:4px;text-align:center">actionquery hard→soft</td></tr>
+        <tr><td style="padding:4px">weak_right</td><td style="padding:4px;text-align:center">35.01→38.53%(+3.52)</td><td style="padding:4px;text-align:center">40.85→44.03%(+3.18)</td><td style="padding:4px;text-align:center">37.82→37.88%(+0.06)</td></tr>
+        <tr><td style="padding:4px">strong_right</td><td style="padding:4px;text-align:center">32.68→47.20%(+14.52)</td><td style="padding:4px;text-align:center">33.01→42.75%(+9.74)</td><td style="padding:4px;text-align:center"><strong>46.39</strong>→47.47%(+1.08)</td></tr>
+      </table>
+      actionquery는 <strong style="color:#e2e8f0">이미 hard 상태에서 strong_right(46.39%)가
+      mlp+soft(47.20%)급</strong>이라 soft를 얹어도 거의 안 오른다(+1.08%p) — "애초에
+      결합이 필요 없던 후보"였다는 뜻. weak_right에서도 시너지가 거의 없다(+0.06%p).
+      <br><br>
+      <strong style="color:#4ade80">최종 판단 — mlp+soft(D)가 다음 단계 후보로 확정</strong>.
+      deltacx+soft가 FPE는 근소 우위(1.003m)지만 success는 mlp+soft와 동일(33.3%)하고
+      구조가 더 단순한 mlp 쪽이 실용적. actionquery는 구조 변경 없이 D만 적용해도
+      충분히 좋아지는 걸 확인했으니 <strong style="color:#e2e8f0">폐기</strong>. 다음 단계는
+      <strong style="color:#e2e8f0">소규모 실기 A/B(mlp+soft vs 배포중 exp73)</strong> — 확정
+      발견 6번은 여전히 유효하므로 실기 검증 전에는 "배포 추천"이라 단정하지 않는다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_soft_actionquery_combo.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/soft_actionquery_combo.json</code></span>
     </div>
   </div>
 
