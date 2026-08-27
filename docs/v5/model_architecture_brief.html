@@ -194,7 +194,6 @@ flowchart TB
   8클래스 로짓 출력에서 끝나고 threshold·skip_n·회전 규칙은 아래 도표 상단의
   "추론 제어 파라미터 요약" 패널에 있습니다.
 </p>
-<p><img src="figures/runtime_pipeline.png" alt="런타임 파이프라인" style="max-width:100%;background:#fff;border-radius:6px"></p>
 
 <h3>하드웨어 연결 구조 — Jetson ↔ CAN ↔ MCU</h3>
 <p style="font-size:0.85rem;color:var(--dim);margin:0 0 8px">
@@ -202,7 +201,6 @@ flowchart TB
   500kbps)로 바퀴 제어 MCU 보드에 전달합니다. 같은 버스에 PSD·초음파 센서도 물려 있으나
   본 VLA 파이프라인의 행동 입력에는 쓰이지 않습니다.
 </p>
-<p><img src="figures/figure2_v2_hardware_web.png" alt="하드웨어 구성 (2026-08-27 재출력본)" style="max-width:100%;background:#fff;border-radius:6px"></p>
 <p style="font-size:0.78rem;color:var(--dim)">근거:
   <code>ROS_action/.../omni_controller/omni_drive_node.py</code>의
   <code>Psd(dev="can0", bitrate=500000)</code> ·
