@@ -17,7 +17,7 @@
 - **[데이터셋 & 수집 프로토콜 (V3~V6)](dataset-collection.md)** (8개 챕터) — 에피소드 경로 설계, 동기/비동기 수집, STOP 라벨링 규칙, 이미지 파이프라인 통일, 프레임 크롭/줌 등 데이터 자체를 다루는 실험들.
 - **[실로봇 테스트 & Closed-Loop 검증](real-robot-closed-loop.md)** (13개 챕터) — val_acc가 실기 성능을 예측하지 못한다는 반복 확인, closed-loop/궤적재생 근사, 100건 실기 테스트, 좌우 비대칭 원인 추적.
 - **[VLM 백본 비교 (PaliGemma/Kosmos-2/CLIP/Florence-2/Google-robot)](backbone-model.md)** (6개 챕터) — 어떤 VLM을 백본으로 쓸지, LoRA가 실제로 무엇을 개선/손상시키는지, RoboVLMs 프레임워크 해부.
-- **[미팅 기록 & 연구 방향 결정](meetings-and-direction.md)** (18개 챕터) — 교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.
+- **[미팅 기록 & 연구 방향 결정](meetings-and-direction.md)** (19개 챕터) — 교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.
 
 ## 부록
 

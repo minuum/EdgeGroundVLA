@@ -45,6 +45,6 @@
     "summary": "교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.",
     "chapter_ids": ["ch10", "ch11", "ch12", "ch15", "ch16", "ch18", "ch19", "ch21", "ch25", "ch26",
                     "meeting-guide", "todo-ch44", "meeting-0630", "meeting-0626", "weekly-meeting",
-                    "summary", "ch36", "pres"]
+                    "summary", "ch36", "pres", "vis"]
   }
 }

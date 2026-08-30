@@ -30,7 +30,7 @@ th{color:#e2e8f0;background:#111827}
 <p>교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.</p>
 </blockquote>
 <h2>압축 요약</h2>
-<p>5/22 미팅에서 교수님이 "객체를 인식해야 목표물이 될 수 있는데, 인식했다는 증거가 없다"는 3가지 반박(val set 부적절·LoRA 기여 불분명·객체 인식 직접 테스트 없음)을 던진 것이 이후 전 방향을 결정했다. 이에 대한 답으로 zero-shot linear probe(96.6%), basket masking ablation(9/9 예측 반전), 다른 객체 입력 테스트(gray basket 100%/red ball 0%/person 3%) 등 독립 증거를 쌓아 "모델이 basket을 실제로 본다"는 것을 구조적으로 증명했다(Exp54, Exp57, Exp59). 아키텍처는 <strong>Decomposed VLA</strong>로 확정됐다: VLM(PaliGemma2)이 텍스트 쿼리를 bbox(cx,cy,area)로 변환하는 Stage 1과, 그 bbox+visual feature로 액션을 결정하는 MLP/LSTM Stage 2를 분리한 구조이며, E2E(Kosmos-2 LoRA 전체 파인튜닝)는 text attention이 구조적으로 0%가 되어(Google-robot post-training이 원인, RoboVLMs의 lora_B=0 초기화 버그도 발견) closed-loop 0%로 완전히 실패했다. 여러 ablation이 일관되게 같은 결론을 가리켰다: <strong>파이프라인 설계(L2-norm+bbox augmentation)가 유일한 결정 변수</strong>이고, grounding 품질(HSV vs base PG2 vs LoRA grounding)이나 head 구조(LSTM vs MLP, 96.6%로 동일)나 LoRA 레이어 깊이는 성능에 거의 영향이 없는 "평평한 손잡이"였다 — 단순 MLP 파이프라인 10.3%에서 L2+aug 적용만으로 96.6%(×9.4배)로 뛴 것이 핵심 발견(CH33/CH26). 이 구조(Exp66, CL 96.6%, FPE 0.10m)가 현재 연구의 최선 모델로 굳어졌고, 6/12 미팅에서 논문 제출 방향(레이어 frozen + MLP 액션 헤드만 학습, 5개 VLM 베이스라인 비교, 로봇팔+모빌리티 모듈화 구조를 공헌으로 정리)이 확정됐다. 6/30 미팅에서는 그라운딩 프리뷰 모델로 PaliGemma2-448px가 채택됐다(Kosmos-2·Florence-2·OWL-v2·PG224·YOLO 대비 검출률 최고). 실로봇 테스트에서는 skip_n=3(그라운딩 3프레임당 1회) 배포로 레이턴시 66% 절감을 확인했고, 직선 경로 80%·좌우 오프셋 70%·각도 조정 후 90% 성공률을 실측했다. 아직 미해결로 명시된 것: STOP 거리(40~50cm) 현장 캘리브레이션은 계산기·핸드오프 문서만 완비된 채 실측 미착수이며, "시작 위치가 너무 멀 때(area가 작을 때) 그라운딩·오류율이 나빠지는 문제"는 줌 재그라운딩 등 시도한 해법이 전부 효과 없어 근본 해결책이 없는 상태다.</p>
+<p>5/22 미팅에서 교수님이 "객체를 인식해야 목표물이 될 수 있는데, 인식했다는 증거가 없다"는 3가지 반박(val set 부적절·LoRA 기여 불분명·객체 인식 직접 테스트 없음)을 던진 것이 이후 전 방향을 결정했다. 이에 대한 답으로 zero-shot linear probe(96.6%), basket masking ablation(9/9 예측 반전), 다른 객체 입력 테스트(gray basket 100%/red ball 0%/person 3%) 등 독립 증거를 쌓아 "모델이 basket을 실제로 본다"는 것을 구조적으로 증명했다(Exp54, Exp57, Exp59). 아키텍처는 <strong>Decomposed VLA</strong>로 확정됐다: VLM(PaliGemma2)이 텍스트 쿼리를 bbox(cx,cy,area)로 변환하는 Stage 1과, 그 bbox+visual feature로 액션을 결정하는 MLP/LSTM Stage 2를 분리한 구조이며, E2E(Kosmos-2 LoRA 전체 파인튜닝)는 text attention이 구조적으로 0%가 되어(Google-robot post-training이 원인, RoboVLMs의 lora_B=0 초기화 버그도 발견) closed-loop 0%로 완전히 실패했다. 여러 ablation이 일관되게 같은 결론을 가리켰다: <strong>파이프라인 설계(L2-norm+bbox augmentation)가 유일한 결정 변수</strong>이고, grounding 품질(HSV vs base PG2 vs LoRA grounding)이나 head 구조(LSTM vs MLP, 96.6%로 동일)나 LoRA 레이어 깊이는 성능에 거의 영향이 없는 "평평한 손잡이"였다 — 단순 MLP 파이프라인 10.3%에서 L2+aug 적용만으로 96.6%(×9.4배)로 뛴 것이 핵심 발견(CH33/CH26). 이 구조(Exp66, CL 96.6%, FPE 0.10m)가 현재 연구의 최선 모델로 굳어졌고, 6/12 미팅에서 논문 제출 방향(레이어 frozen + MLP 액션 헤드만 학습, 5개 VLM 베이스라인 비교, 로봇팔+모빌리티 모듈화 구조를 공헌으로 정리)이 확정됐다. 6/30 미팅에서는 그라운딩 프리뷰 모델로 PaliGemma2-448px가 채택됐다(Kosmos-2·Florence-2·OWL-v2·PG224·YOLO 대비 검출률 최고). 실로봇 테스트에서는 skip_n=3(그라운딩 3프레임당 1회) 배포로 레이턴시 66% 절감을 확인했고, 직선 경로 80%·좌우 오프셋 70%·각도 조정 후 90% 성공률을 실측했다. 아직 미해결로 명시된 것: STOP 거리(40~50cm) 현장 캘리브레이션은 계산기·핸드오프 문서만 완비된 채 실측 미착수이며, "시작 위치가 너무 멀 때(area가 작을 때) 그라운딩·오류율이 나빠지는 문제"는 줌 재그라운딩 등 시도한 해법이 전부 효과 없어 근본 해결책이 없는 상태다. (참고자료: <code>vis</code> 챕터는 로봇/실험환경·시스템 아키텍처·E2E vs Decomposition 비교·파이프라인/헤드 ablation 결과를 모은 이미지 위주 시각 자료 모음으로, 별도 서술 없이 그림/표 참고용이다.)</p>
 <hr />
 <h2>챕터별 원문 발췌 (시간순)</h2>
 <h3>CHAPTER 10 — 5/15 미팅 — 교수님 질문과 Exp54 설계</h3>
@@ -1419,6 +1419,137 @@ Zero-shot linear probe 96.6%(frozen CLIP 위). Basket masking → 9/9 프레임 
 범례: ✅ 완료/검증됨 · 🔄 부분 해결 · ❓ 확인 불가 · ☐ 미착수</li>
 </ul>
 <p><a href="../v5/research_story.html#todo-ch44">→ 원문 전체 보기(research_story.html#todo-ch44)</a></p>
+<hr />
+<h3>VIS — 시각 자료 모음</h3>
+<p><em>로봇 · 아키텍처 · 결과 테이블 · 실험 증거</em></p>
+<p>4-dim
+[image_proj → 256-dim, L2-normalize] ← Stage 1 (val acc 98.1%)
+↓
+[Concatenate 288-dim] ← BBox History ×8 (cx,cy,area,has_bbox) = 32-dim
+↓
+[ActionMLP: 256→128→64→8] ← Stage 2 (val acc 93.5%)
+↓
+[8 Actions: STOP / FORWARD / LEFT / RIGHT / FWD+L / FWD+R / ROT_L / ROT_R]
+Fig B-1. Stage2 v2 파이프라인. Kosmos-2 vision encoder frozen, image_proj + ActionMLP만 학습. BBox cx는 PaliGemma2 zero-shot grounding에서 추출.
+C. Full Comparison — E2E VLA 전수 vs Decomposition
+카테고리
+Exp
+Architecture
+CL ↑
+FPE ↓
+n
+E2E VLA
+전부 실패
+Exp11
+Kosmos-2 (Google-robot) + LoRA
+0%
+1.454
+9
+Exp17
+Kosmos-2 + balanced 33/33/34
+11.1%
+1.045
+9
+Exp18
+Kosmos-2 + text embedding fusion
+11.1%
+1.045
+9
+Exp63 ★best
+Kosmos-2 (HF pure) + LoRA adapter
+18.8%
+1.953
+32
+v5_ablation ×6
+PaliGemma + vision LoRA (top2/4/6/8)
+미측정
+—
+—
+Decomposition
+2-stage
+Exp14 (v1)
+CLIP + BBox MLP
+66.7%
+0.555
+9
+Exp66 ★
+Kosmos-2 frozen + L2-norm + bbox aug
+96.6%
+0.102
+29
+Table C-1. CL = Closed-Loop 성공률 (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). 동일 V5 150 ep 데이터셋. n은 테스트 에피소드 수.
+E2E best(Exp63) 18.8% vs Ours 96.6% — +77.8%p 차이. v5_ablation×6: val_loss 0.43~0.45 (학습 수렴했으나 CL 미측정, 패턴상 Exp63 수준 예상).
+D. Pipeline Ablation (cx 소스 고정, 파이프라인 변경)
+Exp
+Pipeline
+cx Source
+CL ↑
+FPE ↓
+Exp65b
+단순 MLP (no L2, no aug)
+base PG2
+10.3%
+0.941
+Exp67
+L2-norm + bbox aug
+HSV
+96.6%
+0.110
+Exp66 ★
+L2-norm + bbox aug
+base PG2
+96.6%
+0.102
+Table D-1. cx 소스 3종(HSV · base PG2 · Exp59 LoRA) 모두 CL 96.6% → grounding 품질은 action에 무관. 파이프라인(L2+aug)이 결정 변수.
+E. Head &amp; Window Ablation
+Table E-1. Action Head 비교 (파이프라인 고정)
+Head
+CL
+FPE
+Linear
+69.0%
+0.377
+FCHead
+93.1%
+0.109
+LSTMHead
+96.6%
+0.112
+ActionMLP ★
+96.6%
+0.110
+LSTM = MLP → 경량 flat MLP 채택
+Table E-2. Window Size (MLP / LSTM)
+Head
+w
+CL
+FPE
+MLP
+2
+93.1%
+0.145
+MLP ★
+4
+96.6%
+0.094
+MLP
+16
+96.6%
+0.102
+LSTM
+4
+96.6%
+0.123
+LSTM
+16
+96.6%
+0.080
+CL: w≥4 포화. FPE: LSTM w=16 전체 최저.
+F. 시각적 증거
+Fig F-1. Zero-shot Linear Probe. Frozen CLIP이 학습 없이 96.6% 위치 분류 → Stage 1이 basket을 이미 "본다"는 증거.
+Fig F-2. Basket Masking Ablation (Exp66 Stage2 v2, SOTA). bbox history=zeros 조건에서 basket 마스킹 → 9/9 (100%) 행동 반전. 이미지 경로가 basket 위치를 독립적으로 인식함을 증명.
+Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 9/9 flip (Exp66, PG2)) → "basket을 본다" 이중 증명.</p>
+<p><a href="../v5/research_story.html#vis">→ 원문 전체 보기(research_story.html#vis)</a></p>
 <hr />
 <h3>MEETING — 이번주 미팅 준비 (2026-06-22 기준 분석)</h3>
 <p><em>오늘 CH39~43 분석 결과 요약 — 보여줄 장면 / 정직하게 언급할 것 / 다음 우선순위 / 별도 진행 중인 디버깅 예고</em></p>
