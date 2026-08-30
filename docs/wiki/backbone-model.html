@@ -131,6 +131,38 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <div class="chapter-block accent-a">
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 2</span> 첫 번째 접근: End-to-End Policy</div>
 <div class="card">
+<p>입력 1
+카메라 이미지
+1280×720 → 224×224 resize
+입력 2
+언어 지시
+"Navigate to the gray basket"
+모델
+Kosmos-2 + LoRA
+Frozen VLM backbone
++ trainable LoRA adapters
+출력
+8-class Action
+FORWARD / LEFT / RIGHT
+/ FWD+L / FWD+R / ROT_L / ROT_R / STOP
+Exp04
+Google-robot backbone 첫 도입
+val_loss는 0.776으로 좋아 보였다. 하지만 실제 PM을 측정하면 0%. 모델이 항상 FORWARD만 예측하는 collapse.
+val_loss 0.776 → PM 0%
+Exp09
+8-class 이산 액션 첫 도입
+6-class에서 ROT_L/ROT_R을 추가한 8-class로 전환. FORWARD bias가 여전히 잔존.
+bias 지속
+Exp11
+현재 end-to-end baseline
+8-class + Google-robot backbone으로 PM 58.6% 달성. 그러나 closed-loop에서는 0% 성공. 방향 오류가 누적되어 궤적이 발산.
+PM 58.6% | CL 0% | FPE 1.45m
+Exp17~Exp41 (Phase A)
+텍스트 경로 회복 시도 — 전부 실패
+LoRA rank 증가, counterfactual, cross-attention 등 다양한 시도. text attention은 모든 실험에서 0% 유지.
+Phase A FAIL — text attn 0% 고정</p>
+</div>
+<div class="card">
 <p>🔴 핵심 발견: Google-robot backbone이 텍스트 경로를 구조적으로 파괴했다
 Google robot post-training 단계에서 이미 Kosmos-2의 text attention이 붕괴되었다.
 우리의 LoRA fine-tuning과 무관하다. Exp15에서 LoRA 없이 head만 학습해도 text=0% 재확인.
@@ -165,6 +197,38 @@ end-to-end 재투자보다 grounding 절충안이 낫다는 기존 판단을 뒤
 </div>
 <div class="chapter-block accent-b">
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 4</span> 돌파구 — Decomposition 접근법</div>
+<div class="card">
+<p>End-to-End vs Decomposition 구조 비교
+❌ End-to-End (Exp11) — text collapse로 언어 무시
+이미지
+1280×720
++
+언어 지시
+(무시됨 ❌)
+→
+Kosmos-2
++ LoRA
+→
+8-class action
+(collapse 빈번)
+✅ Decomposition (Exp14 Step2) — 명시적 중간 표현
+이미지
+→
+Kosmos-2
+BBox 추출
+→
+bbox (cx,cy,area)
+history 3프레임
++
+16×16
+gray feature
+→
+작은 MLP
+head
+→
+8-class
+action ✅</p>
+</div>
 <div class="card">
 <p><strong>Step 1: bbox history MLP</strong></p>
 <p>bbox center x/y + area history (3프레임)만 MLP에 넣음.

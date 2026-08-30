@@ -190,6 +190,12 @@ document.getElementById('toc-panel').classList.remove('open');
 
 <div class="card" markdown="1">
 
+📌 현재 상태 — 여기서 권고한 "override 없음(proximity 규칙 기반)"은 현재 미사용입니다. 현 배포는 stop_mode=learned(헤드의 STOP 클래스) + 콜드스타트 가드 3프레임을 씁니다. 과거 proximity 규칙(area≥0.25 & |cx−0.5|≤0.35, N=3)은 폐기됐습니다.
+
+</div>
+
+<div class="card" markdown="1">
+
 **왜 STOP을 분석하는가**
 
 실제 추론 서버(stage2_v2_inference_server.py)에는 Proximity Override가 활성화되어 있다 (area≥0.25 AND |cx-0.5|≤0.35, 2프레임 연속). 그러나 96.6% CL은 이 override 없이 달성된 수치다(eval_exp54_stage2_v2_closedloop.py에 override 없음). 실제 로봇과 시뮬레이션 메트릭 사이에 괴리가 있다는 의미 — 어떤 STOP 전략이 진짜로 나은가를 체계적으로 검증한다.
@@ -377,6 +383,13 @@ scripts: ablate_stop_proximity.py · ablate_stop_clip_sim.py · ablate_stop_weig
 
 <div class="card" markdown="1">
 
+CH38의 "VLA-ness" 등급(T0~T3)을 다시 가져와, 이번엔 T0(이미 구현됨) → T1 확정과
+T2 사전검증까지 진행했다. T3(완전 통합 재학습)은 여전히 다루지 않음 — 다음 plan으로 분리.
+
+</div>
+
+<div class="card" markdown="1">
+
 **39-1. Step A — 바스켓 전용 그라운딩 필터 버그 수정 (T1 확정)**
 
 soda 실측 중 사과(apple) grounding이 종종 실패하는 걸 발견 — 원인은 PG2가 아니라
@@ -468,6 +481,14 @@ plans: plan_20260622_fundamental_vla.md  |  2026-06-22
 <div class="chapter-block-head"><span class="chapter-badge">CH 40</span> T2 본 구현 — action head에 PG2 hidden state 추가 (40-1 정정됨, 40-1b 참고)</div>
 
 <p class="chapter-subtitle-line">CH39 Step B(probe 90%)의 다음 단계: bbox 좌표 대신/추가로 hidden state를 넣어 head만 재학습 — 새 데이터 수집 없음. 단, 최초 PM 비교에 측정 오류가 있었음(40-1b에서 정정)</p>
+
+<div class="card" markdown="1">
+
+CH39에서 "PG2 hidden state에 방향 신호가 있다"는 걸 frozen probe로만 확인했다. 이번엔 실제로 action head 입력에
+hidden state를 추가/대체해서 head만 재학습(VLM 전부 frozen, 새 데이터 수집 없음, 기존 150개 에피소드의
+동일 train/val split 재사용)하고, PM과 closed-loop 양쪽으로 baseline(Exp54 Step2)과 비교했다.
+
+</div>
 
 <div class="card" markdown="1">
 
@@ -582,6 +603,16 @@ plans: plan_20260622_hidden_state_action_head.md  |  2026-06-22
 <div class="chapter-block-head"><span class="chapter-badge">CH 43</span> 차원축소 + LSTM head — 진짜 핵심 factor는 head 구조였다</div>
 
 <p class="chapter-subtitle-line">17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 최고(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p), hidden state보다 head 구조가 더 강한 factor</p>
+
+<div class="card" markdown="1">
+
+⚠️ 이 결론은 이후 뒤집혔습니다 — "head 구조가 가장 강한 factor"는 시뮬레이션 기준이었습니다. CH63에서 mlp≈transformer로 헤드 간 차이가 사라졌고, 64-18에서 병목은 헤드가 아니라 그라운딩임이 실기로 확정됐습니다(gnd%≥80 → 98.8%). 액션 헤드는 0.866M으로 이미 충분합니다.
+CH40/41은 원시 2304차원 hidden state를 그대로 concat/대체해서 baseline(window=8, 91.54%)을 못 넘었다.
+이번엔 hidden state 앞에 학습 가능한 linear projection(2304→proj_dim)을 둬서 "어떤 정보를 얼마나 쓸지"를
+역전파로 배우게 했다 — 명시적 가중치 스칼라보다 표현력이 높고 구현은 단순하다. 거기에 head 구조(linear/mlp/fc)까지
+같이 바꿔가며 14개 조합을 비교했다.
+
+</div>
 
 <div class="card" markdown="1">
 

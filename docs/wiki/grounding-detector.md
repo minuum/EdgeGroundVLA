@@ -26,6 +26,13 @@
 
 <div class="card" markdown="1">
 
+🧪 마스킹 인과성 & STOP 게이트 검증 리포트
+🎨 기존 마스킹 시각 대시보드
+
+</div>
+
+<div class="card" markdown="1">
+
 **BBox IoU (Exp10)**
 
 0.87
@@ -75,6 +82,13 @@ Pure HF Kosmos-2 (정상) → Google-robot (붕괴) → 우리 fine-tuned (부�
 <div class="chapter-block accent-b" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 13</span> 객체 검증 — 모델이 진짜 객체를 인식하는가?</div>
+
+<div class="card" markdown="1">
+
+SECTION 1
+val_acc 92.6%의 진짜 의미
+
+</div>
 
 <div class="card" markdown="1">
 
@@ -671,6 +685,14 @@ area 평균 0.639 = 의자가 화면 대부분을 차지하는 스튜디오 근�
 
 <div class="card" markdown="1">
 
+CH40 정정 이후 "head를 바꾸는 것만으론 한계가 있다"는 게 분명해졌다. 그래서 두 가지를 봤다 —
+① 오예측이 그라운딩이 약한 프레임에 몰리는지(인식 품질 진단), ② head-level에서 더 손볼 게 남았는지(윈도우 크기 ablation).
+둘 다 새 데이터 수집 없이 기존 150개 에피소드 재사용, 새 학습은 head만(VLM 전부 frozen).
+
+</div>
+
+<div class="card" markdown="1">
+
 **41-1. 그라운딩 품질 vs 오예측 — has_bbox=False 프레임 오류율이 3~5배 높다**
 
 val 29~30개 에피소드 전체(508 프레임)를 baseline/add/replace 3모드로 순차 추론하면서 프레임별로
@@ -1221,6 +1243,12 @@ plans: plan_20260624_zoom_regrounding_small_objects.md  |  2026-06-24 (50-1/50
 
 <div class="card" markdown="1">
 
+📌 현재 상태 — Preview 폴백은 현재 비활성입니다(preview_enabled=False, preview_hint_cx=True만 유지). 콜드스타트는 가드 3프레임으로, 검출 실패 회복은 force_reground_on_miss + 회전 후 강제 재그라운딩으로 처리합니다 — 상세: OWL-v2 정리 5절.
+
+</div>
+
+<div class="card" markdown="1">
+
 **동기 — 왜 필요한가**
 
 오늘(6/26) 실주행에서 시작 위치가 좌우로 치우칠 경우 PG2 그라운딩 실패(area 너무 작거나 has_bbox=False)가 확인됐다.
@@ -1375,6 +1403,12 @@ sess 26.7% / 0.125m
 <div class="chapter-block-head"><span class="chapter-badge">CH 57</span> Frame 0 Cold-Start → Grounding 100% 실패 — CH54 Preview로 폴백 처리 ✅ 검증 완료</div>
 
 <p class="chapter-subtitle-line">47세션 전수 조사 + 워밍업 적용 후 실검증(2026-06-30): Frame 0 그라운딩은 여전히 실패하나, CH54 Preview 모델이 폴백으로 커버. Frame 1부터 정상 동작.</p>
+
+<div class="card" markdown="1">
+
+📌 현재 상태 — "CH54 Preview로 폴백" 경로는 현재 쓰지 않습니다(preview 비활성). Frame 0 콜드스타트는 콜드스타트 가드 3프레임으로 대응하며, 실기 100건에서 첫 프레임 검출률은 위치별 20~100%로 편차가 큽니다(강우 20%) — 65-1 참조.
+
+</div>
 
 <div class="card" markdown="1">
 

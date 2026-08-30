@@ -120,10 +120,21 @@ def strip_tags(fragment):
 def extract_cards(chapter_text, header_end):
     """chapter_text 안에서 finding-card/callout 시작 위치를 전부 찾고, 각 카드는
     "자기 시작 ~ 다음 카드 시작(또는 챕터 끝)"까지로 정의해 텍스트 추출.
-    header_end 이전(챕터 헤더 영역)은 카드 탐색에서 제외."""
+    header_end 이전(챕터 헤더 영역)은 카드 탐색에서 제외.
+
+    버그 수정(2026-08-30): header_end~첫 카드 시작 사이("전문" 없이 색상 인라인
+    div로만 구성된 프리앰블 — 예: next-step 챕터는 이 구간이 31만자, 이미지 20개
+    포함)가 통째로 버려지고 있었다. 카드가 하나도 없을 때만 프로즈 폴백을 쓰던
+    기존 로직은 "카드가 있지만 그 앞에도 내용이 있는" 경우를 놓침 — 이제 그 구간도
+    별도 프로즈 카드로 만들어 앞에 붙인다."""
     starts = [(m.start(), m.group(1)) for m in CARD_START_RE.finditer(chapter_text)
               if m.start() >= header_end]
     cards = []
+    if starts:
+        preamble = chapter_text[header_end:starts[0][0]]
+        preamble_body = strip_tags(preamble)
+        if preamble_body:
+            cards.append(dict(kind="prose", title=None, text=preamble_body))
     for i, (start, kind) in enumerate(starts):
         end = starts[i + 1][0] if i + 1 < len(starts) else len(chapter_text)
         block = chapter_text[start:end]

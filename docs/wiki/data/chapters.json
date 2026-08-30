@@ -4,8 +4,13 @@
     "num": "CHAPTER 1",
     "title": "데이터셋 — 9가지 경로",
     "subtitle": null,
-    "n_cards": 2,
+    "n_cards": 3,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "🗺️ 실험 설계 플로우 맵\n🛠️ V5 개발 로그 히스토리"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -23,8 +28,13 @@
     "num": "CHAPTER 2",
     "title": "첫 번째 접근: End-to-End Policy",
     "subtitle": null,
-    "n_cards": 2,
+    "n_cards": 3,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "입력 1\n카메라 이미지\n1280×720 → 224×224 resize\n입력 2\n언어 지시\n\"Navigate to the gray basket\"\n모델\nKosmos-2 + LoRA\nFrozen VLM backbone\n+ trainable LoRA adapters\n출력\n8-class Action\nFORWARD / LEFT / RIGHT\n/ FWD+L / FWD+R / ROT_L / ROT_R / STOP\nExp04\nGoogle-robot backbone 첫 도입\nval_loss는 0.776으로 좋아 보였다. 하지만 실제 PM을 측정하면 0%. 모델이 항상 FORWARD만 예측하는 collapse.\nval_loss 0.776 → PM 0%\nExp09\n8-class 이산 액션 첫 도입\n6-class에서 ROT_L/ROT_R을 추가한 8-class로 전환. FORWARD bias가 여전히 잔존.\nbias 지속\nExp11\n현재 end-to-end baseline\n8-class + Google-robot backbone으로 PM 58.6% 달성. 그러나 closed-loop에서는 0% 성공. 방향 오류가 누적되어 궤적이 발산.\nPM 58.6% | CL 0% | FPE 1.45m\nExp17~Exp41 (Phase A)\n텍스트 경로 회복 시도 — 전부 실패\nLoRA rank 증가, counterfactual, cross-attention 등 다양한 시도. text attention은 모든 실험에서 0% 유지.\nPhase A FAIL — text attn 0% 고정"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -42,8 +52,13 @@
     "num": "CHAPTER 3",
     "title": "Grounding — 목표물 위치 인식",
     "subtitle": null,
-    "n_cards": 3,
+    "n_cards": 4,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "🧪 마스킹 인과성 & STOP 게이트 검증 리포트\n🎨 기존 마스킹 시각 대시보드"
+      },
       {
         "kind": "finding-card",
         "title": "BBox IoU (Exp10)",
@@ -66,8 +81,13 @@
     "num": "CHAPTER 4",
     "title": "돌파구 — Decomposition 접근법",
     "subtitle": null,
-    "n_cards": 4,
+    "n_cards": 5,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "End-to-End vs Decomposition 구조 비교\n❌ End-to-End (Exp11) — text collapse로 언어 무시\n이미지\n1280×720\n+\n언어 지시\n(무시됨 ❌)\n→\nKosmos-2\n+ LoRA\n→\n8-class action\n(collapse 빈번)\n✅ Decomposition (Exp14 Step2) — 명시적 중간 표현\n이미지\n→\nKosmos-2\nBBox 추출\n→\nbbox (cx,cy,area)\nhistory 3프레임\n+\n16×16\ngray feature\n→\n작은 MLP\nhead\n→\n8-class\naction ✅"
+      },
       {
         "kind": "finding-card",
         "title": "Step 1: bbox history MLP",
@@ -95,8 +115,13 @@
     "num": "CHAPTER 5",
     "title": "Closed-Loop 검증 — 실제 항법 성능",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "📊 Closed-Loop 상세 통계 대시보드\n🛑 도착 STOP Gate 검증 리포트\n모델\n성공률\nmean FPE (↓ 낮을수록 좋음)\nmean TLD\nExp11\nend-to-end VLA\n0.0%\n1.454 m\n1.026 m\nStep 2\nBBox+Image MLP\n66.7%\n0.555 m\n1.034 m\nStep 3\nBBox+Image MLP (multi-seed)\n60.0%\n0.482 m\n0.967 m"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -109,8 +134,13 @@
     "num": "CL DEEP DIVE",
     "title": "Closed-Loop — 왜 PM과 다른가",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "📋 Teacher-Forced (오프라인 PM)\nGT\nFrame 1\nGT\nFrame 2\nGT\nFrame 3\n모델 예측\n맞음? PM\n매 프레임마다 Ground Truth 이미지를 입력으로 줌\n모델에 항상 실제 GT 이미지를 주고 각 프레임에서 예측이 맞는지 확인.\n오류가 다음 프레임에 영향을 주지 않는다.\n🔄 Closed-Loop (실제 항법)\n실제\nFrame 1\nModel\n→ action\nKinematics\nSimulator\n새 pose\nFrame t+1\n오류 누적 → 다음 입력에 영향\n모델 예측 action을 시뮬레이터에 적용 → 새 pose 생성 → 다시 모델 입력.\n한 번 틀리면 그 오류가 다음 입력에 영향을 주어 누적된다.\n시뮬레이터 수식 (Kinematic Model)\nxt+1 = xt + lx·cos(θ) - ly·sin(θ)\nyt+1 = yt + lx·sin(θ) + ly·cos(θ)\nθt+1 = θt + az·dt\nlx = 전진 속도 (FORWARD: 1.0)\nly = 측면 속도 (LEFT: 1.0, RIGHT: -1.0)\naz = 회전 속도 (ROT_L: 1.0, ROT_R: -1.0)\ndt = 프레임 간격 (≈0.4초)\n성공 기준: FPE < 0.5m AND TLD ∈ [0.7, 1.5m]\n실험별 mean FPE 개선 추이 (↓ 낮을수록 목표에 가까이 도달)\nExp11\n1.454m\nStep2 (Exp14)\n0.555m\nStep3 (Exp14)\n0.482m\nExp46\n0.084m\nExp49\n0.081m\n성공 기준: FPE < 0.5m\n모델별 Closed-Loop 성능 전체 비교\n모델\n성공률\nmean FPE ↓\nmean TLD\nExp11\nEnd-to-End VLA\n0%\n1.454m\n1.026m\nStep2\nBBox+Image MLP (45ep)\n67%\n0.555m\n1.034m\nStep3\nBBox+Image MLP (multi-seed)\n60%\n0.482m\n0.967m\nExp46\nFull 150ep, 1024-dim vis\n100%\n0.084m\n1.008m\nExp49\n+ Goal Proximity Signal\n100%\n0.081m\n1.006m"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -123,8 +153,13 @@
     "num": "CL DEEP DIVE",
     "title": "Closed-Loop — 왜 PM과 다른가",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "📋 Teacher-Forced (오프라인 PM)\nGT\nFrame 1\n→\nGT\nFrame 2\n→\nGT\nFrame 3\n→\n예측\nPM?\n매 프레임마다 항상 실제 GT 이미지를 주고 예측이 맞는지 확인.\n오류가 다음 프레임에 전혀 영향을 주지 않는다.\n🔄 Closed-Loop (실제 항법)\n실제\nFrame 1\n→\nModel\n→action\n→\nSim\n→새 pose\n↺\n⚠️ 오류 누적: 잘못된 action → 잘못된 pose → 잘못된 다음 입력\n모델 예측 action을 시뮬레이터에 적용 → 새 pose 생성 → 다시 모델 입력.\n한 번 틀리면 그 오류가 누적된다.\n시뮬레이터 — Kinematic Model\nx' = x + lx·cos(θ) - ly·sin(θ)\ny' = y + lx·sin(θ) + ly·cos(θ)\nθ' = θ + az·dt\nlx = 전진 속도 (FORWARD: 1.0)\nly = 측면 속도 (LEFT: +1.0, RIGHT: −1.0)\naz = 회전 속도 (ROT_L: +1.0, ROT_R: −1.0)\ndt ≈ 0.4초/프레임\n성공 기준: FPE < 0.5m AND TLD ∈ [0.7, 1.5m]\n실험별 mean FPE 개선 추이 (목표까지 최종 거리)\nExp11\n1.454m\nStep2\n0.555m\nStep3\n0.482m\nExp46\n0.084m\nExp49\n0.081m\n성공 기준: FPE < 0.5m (세로선)\n모델별 Closed-Loop 전체 비교\n모델\n성공률\nmean FPE ↓\nmean TLD\nExp11\nEnd-to-End VLA\n0%\n1.454m\n1.026m\nStep2\nBBox+Image MLP (45ep)\n67%\n0.555m\n1.034m\nStep3\nBBox+Image MLP (multi-seed)\n60%\n0.482m\n0.967m\nExp46\nFull 150ep, 1024-dim vis\n100%\n0.084m\n1.008m\nExp49\n+ Goal Proximity Signal\n100%\n0.081m\n1.006m"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -165,8 +200,13 @@
     "num": "CHAPTER 8",
     "title": "Augmentation 실험 — Exp49가 여전히 최선",
     "subtitle": null,
-    "n_cards": 4,
+    "n_cards": 5,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "실험\n변경 사항\nval acc\nCL 성공률\nFPE (mean)\n판정\nExp49 🏆\nbaseline — bbox+vision+goal_pos\n96.4%\n96.7% (29/30)\n0.081m\nBEST\nExp50\n수평 flip aug (+2,626 frames)\n92.0%\n83.3% (25/30)\n0.242m\n↓ 퇴보\nExp51\ncrop aug (+7,878 frames)\n93.4%\n96.7% (29/30)\n0.163m\n= 동일, FPE↑\nExp52\nlang+vis 2048-dim joint\n93.9%\n93.3% (28/30)\n0.126m\n↓ 퇴보"
+      },
       {
         "kind": "finding-card",
         "title": "❌ Flip Aug (Exp50)",
@@ -208,8 +248,13 @@
     "num": "CHAPTER 10",
     "title": "5/15 미팅 — 교수님 질문과 Exp54 설계",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "교수님 핵심 질문 (5/15 미팅)\n\"왜 3개 트라젝토리만으로 됐나?\"\nleft 9개 / center 9개 / right 9개 = 27개 에피소드로 val_acc 100%.\n→ 데이터가 너무 적어서 패턴 암기(overfitting) 가능성 제기.\n\"LEFT를 외운 건가, 박스를 본 건가?\"\nExp49 goal_pos(cx0) signal이 실제로 basket을 grounding하는 건지,\n아니면 복도 배경 패턴으로 action을 분류하는 건지 구분이 필요하다.\n후속 지시: 조이스틱으로 30 트라젝토리 신규 수집\n좌/중/우 각 10개, 비동기 수집 방식.\n→ 기존 150ep는 자동 수집 bias 가능성 있음.\nExp53 진단 — \"94.7% val_acc의 진짜 의미\"\nKosmos-2 live grounding\n0%\nbasket 탐지 성공률\ngrounding 자체가 동작 안 함\nbbox_dataset 실제 매칭률\n17%\ngenuine entity match\n나머지 83%는 쓰레기통/에어컨 bbox 대리 사용\nExp53 학습 신호\naction 8-class\nbasket 위치 정보 없음\n복도 패턴으로 action 분류\nval_acc 94.7% 실제 의미\n\"복도 암기\"\nbasket 인식 아님\n방향 없는 텍스트도 동일 결과\nExp54 설계 근거 — 왜 2-Stage인가\nStage 1\nCLIP LoRA — 텍스트-이미지 정렬\n\"The gray basket is on the left\" ↔ left 이미지\n\"The gray basket is in the center\" ↔ center 이미지\n\"The gray basket is on the right\" ↔ right 이미지\n→ 모델이 basket의 방향을 시각적으로 구별해야 loss가 낮아진다.\nStage 2\nAction Head — Stage 1 LoRA frozen\nbasket 인식이 완료된 CLIP 피처 위에 MLP action head 학습.\nd_in = 1056 (bbox_history 32 + vis_feat 1024, goal 벡터 제거)\n→ Stage 1에서 basket을 봤다면, Stage 2 action 정확도가 오른다.\n2-Stage의 증명 논리\nIF\nStage 1 retrieval acc ≥ 80% → 모델이 방향 텍스트로 이미지를 구별함 = basket을 \"본\" 것\nAND\nStage 2 action acc > Exp49 96.4% → 그 basket 인식이 실제 navigation에도 도움이 됨\nTHEN\n교수님 질문에 구조적으로 답 가능 — \"박스를 본 것이다\"\nExp54 v2 검증 결과 (2026-05-22 기준)\n✅\nStage 1 v2 완료 — frame-level 레이블 재학습\n레이블 소스: path_type(에피소드) → cx_det(프레임별 실제 basket 위치)\ncenter 클래스: 68 → 775 프레임 (Kosmos-2 bbox cx 활용)\nleft 97.3% · center 96.7% · right 100.0%\n98.1%\nval_acc (frame-level)\n\"basket을 보는가\" — 5가지 검증 증거\nA\n실험 A — early→late 격차\nleft +8%p · center +5%p — basket 가까울수록 정확도 상승\nB\n실험 B — center 어텐션 집중도\nearly 0.118 → late 0.711 (랜덤 대비 4.4×)\nT2\nZero-shot Linear Probe\nfrozen CLIP + logistic regression → 96.6% (학습 전부터 이미 인코딩)\n96.6%\nT3\nMasking Ablation\ncenter 대형 basket 마스킹 → 9/9 예측 반전 (인과 증거)\nT1\nKosmos-2 caption\n\"trash can\"(24) / \"air conditioner\"(26) — basket 객체 인식, vocabulary 불일치로 grounding 0% 원인 설명\n5-Track 증거 강도 요약\n![5-Track Summary](../v5/exp54_viz/track_summary.png)\nTrack 2 — Zero-shot Linear Probe: 학습 전 frozen CLIP 96.6%\n![Linear Probe Results](../v5/exp54_viz/linear_probe_results.png)\nTrack 3 — Masking Ablation: basket 가리면 예측 바뀌는가? (Exp66 Stage2 v2)\n![Masking Comparison](../v5/exp54_viz/masking_comparison.png)\n✅ Exp66 Stage2 v2 (SOTA, val_acc 93.5%) 재생성 결과:\nbbox history = zeros (이미지 경로만 격리) 조건에서, basket 영역(×1.6 bbox)을 gray로 마스킹.\nCenter 9/9 (100%) FLIP (curated, PaliGemma2 grounding) — basket이 사라지면 FWD → FWD+L 반전.\nLeft: 2/8 FLIP (basket이 작아 효과 약함). Right: basket area < 0.02 (너무 멀어서 마스킹 무의미).\n🔬 Before / After 실제 프레임 갤러리 (도착 직전) →\n📊 초기+중기 프레임 재테스트 결과 (5/28) →\n⚠️ 초기+중기 프레임 재테스트: 전체 flip 4.4% (2/45) — 도착 직전 프레임 100% flip과 상이. 상세 결과 →\nExp B — Attention Map: basket 접근할수록 어텐션 집중\n![Attention Map Grid](../v5/exp54_attention_v2/grid_summary.png)\n결론\nFrozen Kosmos-2 CLIP만으로 96.6%. 학습 전부터 basket 위치를 인코딩하고 있었다.\nStage 1 v2는 이 정보를 텍스트와 정렬 (+1.5%p). 복도 패턴 암기가 아니다.\n5/22 완료 현황\n✅\nStage 2 v2 재학습 완료 — 92.6% val_acc (5.8분)\n✅\n신규 21개 자유 트라젝토리 수집 + Exp55 학습 완료 — 81.2% (3× oversample, LEFT/RIGHT collapse 해소)\n→\n다음: SODA closed-loop 평가 → 실로봇 주행 → Step 3 진입 판단"
+      },
       {
         "kind": "finding-card",
         "title": "📋 5/15 미팅 투두 — 이후 어디서 풀렸는지",
@@ -236,8 +281,13 @@
     "num": "CHAPTER 12",
     "title": "교수님 Q&A 정리 — 5/15 질문에 대한 5/22 답변",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "Q1\n\"왜 3개 트라젝토리만으로 됐나? 패턴을 외운 것 아닌가?\"\n5/15 미팅 — end-to-end 모델이 경로 암기를 하고 있다는 의심\nA1 — Frame-Level 레이블로 경로 종속 없음\n기존 접근 (경로 암기 위험)\n경로 타입(left/center/right) 레이블 → 같은 경로 보면 같은 행동 → \"LEFT 경로니까 LEFT\" 암기 가능\nStage 1 v2 접근 (basket 위치 학습)\nframe-level cx_det 레이블 → 해당 프레임에서 basket이 왼쪽/오른쪽 어디 있는가? → 경로 구분 없이 \"basket 위치 → 행동\" 학습\n98.1%\nStage 1 v2 retrieval acc\n(basket 위치 기반 이미지 검색)\n+3.5%p\nearly→late 향상\n(경로 처음→끝 basket 변화 추적)\n96.6%\nFrozen CLIP zero-shot probe\n(학습 전부터 이미 인코딩됨)\n결론: 경로 패턴이 아닌 basket의 실제 픽셀 위치(cx_det)를 학습 레이블로 사용. Frozen CLIP이 이미 basket을 인식(96.6%)하고 있으며, Stage 1 v2는 이것을 더 정밀하게 정렬(98.1%)한다.\nQ2\n\"LEFT를 외운 건가, 박스를 본 건가?\"\n5/15 미팅 — 모델이 실제로 basket 위치를 보고 결정하는지 구조적 증명 요구\nA2 — 5-Track 증거: \"박스를 본다\"\nTrack\n방법\n결과\n의미\nTrack 1\nAttention\nVision transformer attention 분석\n4.4×\nbasket 영역에 배경 대비 4.4배 높은 attention\nTrack 2\nFrozen Probe\nFrozen CLIP 위에 linear probe 학습\n96.6%\n학습 전 CLIP이 이미 basket 위치 인코딩\nTrack 3\nMasking\nbasket 영역을 gray mask로 제거\n9/9 flip\nbasket 가리면 6에피소드 전부 방향 반전. basket이 원인.\nTrack 4\nCaption\nPure Kosmos-2로 이미지 캡션\n✅ 인식\n\"trash can\", \"air conditioner\" — 같은 회색 basket 정확히 지칭\nTrack 5\nContrastive\nStage 1 v2 contrastive alignment\n+1.5%p\ncx_det 레이블 정렬로 96.6% → 98.1%. basket 위치 인식 강화.\n결론: 5개 독립 실험이 모두 같은 방향을 가리킨다. 모델은 경로 패턴이 아니라 basket의 픽셀 위치를 보고 방향을 결정한다. Masking에서 9/9 flip (Exp66, base PG2 grounding)이 가장 강력한 증거.\nQ3\n\"조이스틱으로 다양한 위치에서 30개 수집해라\"\n5/15 미팅 지시 — 고정 경로 타입(9종) 외 자유 위치에서의 일반화 테스트\nA3 — 21개 수집 완료 · Exp55 3× oversample 81.2%\nFC (Free Center)\n7\nbasket_left/right_ext, robot_close/far\ndiagonal_left, diagonal_right ×2\nFL (Free Left)\n7\nbasket_left/right_ext, robot_close/far\ndiagonal_left/right, lighting_diff\nFR (Free Right)\n7\nbasket_left/right_ext, robot_close/far\ndiagonal_left/right, lighting_diff\nExp55 학습 결과 — 기존 150ep + 신규 21ep\n1× (오버샘플 없음)\n70.7%\nLEFT 34.8%, RIGHT 26.9%\n→\n3× oversample\n81.2%\nLEFT 97.5%, RIGHT 97.6%\nfree 에피소드 FORWARD 비율 35% (기존 74%).\n3× oversample로 LEFT/RIGHT collapse 해소.\nFORWARD 71% — 추가 수집 필요.\n현황: 21개 수집 완료 (FC7 + FL7 + FR7, 총 1.1GB). 3× oversample Exp55 = 81.2%. 나머지 9개 추가 수집 후 재학습 시 FORWARD 개선 예상. 교수님 지시 30개 목표 대비 21/30 완료.\n5/22 미팅 — 교수님 질문 답변 현황\n✅\nQ1 패턴 암기 여부 — 답변 완료\nframe-level cx_det 레이블 + Stage 1 v2 98.1% retrieval. 경로 종속 없음.\n98.1%\n✅\nQ2 basket을 보는가 — 5-Track 증명 완료\nAttention 4.4×, Frozen probe 96.6%, Masking 9/9 flip (Exp66, PG2), Caption ✓, Contrastive +1.5%p.\n5-Track\n🔄\nQ3 조이스틱 30개 수집 — 21/30 완료\n21개 수집·학습 완료 (3×OS → 81.2%). 나머지 9개 추가 수집 예정.\n21/30"
+      },
       {
         "kind": "finding-card",
         "title": "📋 5/22 미팅 투두 — 이후 어디서 풀렸는지",
@@ -250,8 +300,13 @@
     "num": "CHAPTER 13",
     "title": "객체 검증 — 모델이 진짜 객체를 인식하는가?",
     "subtitle": null,
-    "n_cards": 7,
+    "n_cards": 8,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "SECTION 1\nval_acc 92.6%의 진짜 의미"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -294,8 +349,13 @@
     "num": "CHAPTER 14",
     "title": "Closed-Loop 평가 — 왜 val_acc보다 학술적으로 더 강한 증거인가",
     "subtitle": null,
-    "n_cards": 3,
+    "n_cards": 4,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "함정\nval_acc 92.6%가 의미하는 것\nval_acc → 예상 CL 성공률 (오류가 독립·랜덤일 때)\n0.92620\n에피소드 20 프레임 기준\n=\n≈ 20%\n이론적 예상 CL 성공률\nvs\n96.7%\n실제 측정 CL 성공률\n실제 CL 96.7%가 이론적 예상치 20%를 4.8배 초과한다는 것은,\n모델의 오류가 \"랜덤하고 독립적\"이지 않고 작고 회복 가능한 오류임을 의미한다.\nopen-loop val_acc의 한계\n각 프레임을 독립적으로 평가\n→ 오류가 다음 프레임에 영향 없음\n→ 복도 초반 오류가 나중 성공에 영향 없음\n→ 실제 로봇은 오류가 누적되어 경로 이탈\n92.6% val_acc = 실제 주행 성공을 보장하지 않음\nclosed-loop가 측정하는 것\n로봇이 자신의 출력으로 움직인 뒤 다음 프레임을 관찰\n→ 오류가 실제로 누적됨\n→ 분포 이탈(out-of-distribution) 상황 자동 테스트\n→ 모델이 스스로의 실수를 회복하는지 측정\n96.7% CL = 로봇이 실제로 basket에 도달"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -318,8 +378,13 @@
     "num": "CHAPTER 15",
     "title": "5/27 현재 — 교수님 반박 3라운드 대응 현황 + CL 전체 비교",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "반박 현황\n교수님 3라운드 — 질문 vs 현재 답변\n✅\nR1 완료 (5/22)\n\"basket을 본다는 증거가 없다\"\nTrack 1\n어텐션 4.4×\nbasket 집중\nTrack 2\nFrozen CLIP\nprobe 96.6%\nTrack 3\nMasking\n100% flip\nTrack 4\nKosmos-2\ncaption 확인\nTrack 5\nStage1 v2\n98.1% acc\n⚠️\nR2 부분 해결\n\"val_acc 불충분, 진짜 객체 인식 보여라\"\n서브 반박\n상태\n핵심 수치\nR2-1: val set → test set 일반화\n✅ 완료\nCL 96.67% — 독립 test 환경\nR2-2: LoRA 기여도 불명확\n✅ 해결\nLEFT 91.1%→97.3%(+6.2%p) — 균등화 달성. 세 방향 모두 97%+\nR2-3: 다른 물체 → 다른 행동?\n✅ Exp57 해결\nPaliGemma LoRA: basket 100% / red ball 0% / person 3% → 차이 98.3%p\nR2-4: 텍스트로 목표 변경?\n❌ 구조 한계\n93.3% 프롬프트 무관 — text 경로 사망\nR2-5: pretrain 객체 유지?\n⚠️ 역효과\nStage2 LoRA 92.6% → 80.0% 하락\nR2-3 해결 (5/28): Exp57 PaliGemma LoRA — 동일 이미지 30장, phrase만 교체 → \"gray basket\" 100% bbox 출력, \"red ball\" 0%, \"person\" 3%. 차이 98.3%p. 텍스트 phrase가 시각 인식을 선택적으로 제어함을 직접 증명.\nR2-4 근본 원인: Navigation action 레벨에서 텍스트 경로 사망 문제는 별개 — Grounding 레이어에서는 텍스트 구분 가능, Action 레이어에서는 구조적으로 불가.\n🔬\nExp57 PaliGemma LoRA — 5/28 완료\nR2-3 직접 증거: 텍스트 phrase가 detection을 선택적으로 구분\n조건\nZero-shot\nExp57 LoRA 후\n의미\n\"detect gray basket\"\n13/20 = 65%\n30/30 = 100%\nLoRA로 basket 탐지 강화\n\"detect red ball\"\n0/20 = 0%\n0/30 = 0%\n다른 물체 → 완전 묵음 유지\n\"detect person\"\n0/20 = 0%\n1/30 = 3%\n노이즈 수준 (1건, 바닥 모서리)\ncx_err = 0.075 (basket 중심 위치 오차, 이미지 너비 대비 7.5%) — 좌/중/우 구분 충분. 같은 이미지에서 텍스트만 바꾸면 출력이 98.3%p 달라짐.\n❌\nR3 미해결 (솔직 인정)\n\"basket 단일 데이터로는 일반화 불가\"\n현재 150 에피소드 = 100% basket. 다른 물체(공/의자 등)를 입력해도 basket 방향으로 이동.\n해결 방향: 트랙 B — basket+ball+chair 각 30개씩 수집 → Goal-Conditioned 학습으로 4~8주 내 해결 계획.\nCL 전체 비교\nExp11 → Exp55 — Closed-Loop 진화 전체"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -562,8 +627,13 @@
     "num": "CHAPTER 31",
     "title": "exp64 실측 평가 — val 지표가 숨긴 full-frame collapse",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "🔬 평가 설계 — 3개 세트로 \"작동 vs 암기\" 판정\n① In-dist basket\nV5 basket 49프레임(시점 버킷별). hit / cx_MAE / cx_std / full-frame율 측정 — 좌표 정밀도.\n② OOD 미학습 객체\n의자 11장에 detect gray basket → 오탐(FP)? 3-negative 지름길(\"NOT{pot,ball,person}→basket\") 과적합 검증.\n③ 시각 그리드\n파랑=base / 초록=exp64 박스 나란히 오버레이.\n스크립트: scripts/eval_exp64_grounding.py · base PG2(LoRA 없음)와 동일 샘플 대조.\n📊 base vs exp64 (basket 49프레임 + 의자 11장)\n지표\nbase PG2\nexp64\n해석\nbasket hit\n98%\n94%\n약간 하락\ncx_MAE (중심 오차)\n0.126\n0.150\nexp64가 더 나쁨\ncx_std\n0.112\n0.049\n좋아 보이지만 full-frame 부작용\narea_mean (박스 크기)\n0.142\n0.967\n박스가 화면 97% 덮음\nfull-frame율 (area>0.9)\n0%\n92%\n박스 붕괴 — localization 무력화\nOOD 의자 오탐(FP)\n9% (1/11)\n9% (1/11)\n개선 없음 (동일)\n🖼 basket 49프레임 중 8장 — 파랑=base(타이트) vs 초록=exp64(full-frame)\n![basket 비교 그리드](../v5/exp64_eval/basket_compare_grid.png)\n파랑(base) 박스는 실제 바구니를 정확히 감싼다. 초록(exp64) 박스는 거의 모든 프레임에서 화면 테두리 전체 — \"바구니가 어디 있는지\"를 전혀 말해주지 못한다.\n🪑 OOD — 의자 11장에 \"detect gray basket\" (오탐 검증)\n![OOD 의자 그리드](../v5/exp64_eval/ood_chair_grid.png)\n의자엔 basket이 없으므로 박스가 안 나와야 정상. base·exp64 모두 11장 중 1장만 오탐(9%) — exp64가 오탐을 줄이지 못함.\n⚠️ 결론 — val 지표가 숨긴 실패\n1. val TP/FP는 \"박스가 나오나\"만 본다. 박스 품질(어디인지)은 안 본다. exp64는 \"basket 있으면 화면 전체에 박스\"를 학습해 TP=99%를 통과했지만, 실제 localization은 붕괴.\n2. cx_std 0.049는 정밀도가 아니다. full-frame 박스는 중심이 항상 ≈0.5라 std가 낮게 찍힐 뿐. 실제 중심 오차(cx_MAE)는 오히려 0.126→0.150 악화.\n3. grounding은 base PG2(LoRA 없음)가 더 정확하다. 타이트한 박스 + full-frame 0%. decomposition의 BBox grounding은 LoRA 없이 base PG2를 그대로 써야 한다.\n🧩 왜 full-frame으로 붕괴했나 (가설)\n학습 목표는 \"basket → loc 토큰 출력, negative → <eos>\"였고, hard-negative가 pos의 5배(7500 vs 1500). generate 기반 학습은 \"loc 토큰을 내보내느냐\"는 보상하지만 박스 크기는 거의 제약하지 않는다. 그 결과 모델은 \"바구니를 확실히 포함하는 가장 큰 박스 = 화면 전체\"라는 지름길로 수렴 — recall은 최대화되지만 정밀도는 0. 박스 크기/IoU에 직접 페널티를 주는 손실 없이는 SigLIP LoRA만으로 정밀 grounding을 얻기 어렵다는 실증."
+      },
       {
         "kind": "finding-card",
         "title": "📋 6/4 미팅 투두 — 이후 어디서 풀렸는지",
@@ -688,8 +758,13 @@
     "num": "NEXT STEP",
     "title": "6/12 현재 — 미팅 3줄 결론 & 로드맵",
     "subtitle": null,
-    "n_cards": 1,
+    "n_cards": 2,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "4px\">RoboVLMs Action Head 비교 완료 — LSTM = ActionMLP (window-baked 등가, 우리가 더 경량)\nLinear 69.0% → FCHead 93.1% → LSTMHead(RoboVLMs) 96.6% = ActionMLP(ours) 96.6%.\nRoboVLMs LSTM-based decoder와 동등 성능을 window-flat MLP로 달성 →\n더 경량·추론 빠름. lora_B=0 버그(RoboVLMs)도 발견.\nCH34 · Table 2-C\n3\nWindow ablation 완료 — CL은 w≥4에서 포화, FPE는 window에 민감\nMLP w=2에서만 CL 93.1%로 하락, w≥4면 전부 96.6% 포화 →\n최소 4프레임 히스토리 필요. LSTM w=16이 FPE 0.080m (전체 최저) →\ntrajectory 정밀도는 긴 맥락 활용 가능.\nCH35 · Table 2-D\n📊 타 VLA 논문(RT-2 · OpenVLA · NaVILA · RoboFlamingo)과의 정성·정량 비교 →\nCH19 (타 VLA 논문 비교)\n|  논문 Table 초안 →\nTABLE1_PAPER_DRAFT.md\n🔜 다음 액션 (6/12 기준)\n✅ 파이프라인 ablation (CH33) · Head ablation (CH34) · Window ablation (CH35) 완료\n✅ Grounding Hub §G 연동 — 전체 실험 통합 시각화\n✅ Stage2 v2 추론 서버 soda 배포 (stage2_v2_inference_server.py)\n⏳ 의자 좌/우 에피소드 수집 (현재 ~1ep → 목표 15+15ep)\n🔲 의자 Stage2 학습 + CL eval → 다물체 Goal-Conditioned 검증\n🔲 논문 본문 서술 (Table 1/2A/2B/2C/2D 수치 확정 완료, body 필요)\n🎯\nGrounding Evaluation Hub →\n교수님 \"오예측·이상한 에피소드\" 해부 — exp56~64 grounding 7모델 + base PG2/pure Kosmos 비교, 측면 4경로 에피소드 갤러리. 결론: 오예측은 grounding이 아닌 action 문제 (base PG2 측면 92%·full-frame 0%).\n교수님 미팅 피드백 대응 및 로드맵 투두 (6/7 업데이트)\n🎯\n1. 시각적 타겟 인지 및 Grounding 신뢰성 확보 (R1, R2-3, R2-4, R6 대응)\n\"basket 인지 증거 부재\", \"유사 장애물 오탐(R2-3)\", \"텍스트 가변성(R2-4)\", \"LoRA 미세조정 시 지터링 상승(R6)\" 등의 피드백에 대해 VLM의 공간 제약 기여도 및 데이터셋 무결성을 입증 완료했습니다.\n🟢 완료된 성과 (Completed)\n- [R1 완료] zero-shot probe(96.6%) 및 이미지 마스킹/플립 테스트를 통해 바스켓 의미 인지 학술적 규명 완료.\n- [R2-3 완료] Hard Negative 데이터 추가(Exp59)로 brown pot 등 장애물 오탐율 0% 달성.\n- [R2-4 완료] PaliGemma2 BBox 좌표를 제어 MLP와 바인딩하여 텍스트 쿼리에 따라 행동이 가변하는 Goal-Conditioned VLA 완성.\n- [R6 완료] HSV 지도 신호 추종에 따른 지터링(0.134)과 VLM 맥락 평탄화 작용 간의 상호작용(Trade-off) 현상 규명.\n- [6/7 결정 완료] LoRA 재학습 실패 대비 PaliGemma 사전학습 강도가 높은 1순위 대체 타겟 \"흰색 스툴(Chair)\" 선정 및 탐지 가이드라인(Confidence ≥ 0.85, 폭 ≥ 25px) 수립 완료.\n🟡 향후 액션 아이템 (TODO)\n- [ ] 목표물 Chair 교체 배치에 따른 다각도(60%), 조명 차이(20%), 장애물 우회(20%) 비동기 주행 시나리오 수립.\n- [ ] Chair 타겟 기반 MLP 제어 정책(Stage 2)의 Closed-Loop 시뮬레이션 및 실로봇 검증 완료.\n🕹️\n2. 비동기 10Hz 조향 연속 제어 및 시간 정합성 확보 (R3, R4 대응)\n실물 로봇 주행 시 발생한 조향 오실레이션 및 오버슈팅 병목(Blocker)을 극복하고, 도착 지점 정지(STOP) 성능을 보장하기 위한 연속 제어 최적화 및 시간 정합성 역보정을 완료했습니다.\n🟢 완료된 성과 (Completed)\n- [R4 완료] BBox 화면 하단 밀착 기하학 조건인 Y-Center Gate (cy_avg > 0.50)를 이식하여 정지 오발 차단 및 Closed-Loop 성공률 2배 향상(34.4%➔68.8%) 입증 완료.\n- [6/7 최적화 완료] 10Hz 연속 비동기 제어 수집기로 수집 루프 개편 완료.\n- [6/7 최적화 완료] 조이스틱 입력의 미세 튐에 대해 300ms 동안 직전 액션을 홀딩하는 Jitter Hold 필터를 이식하여 유령 정지(mid-stop)를 차단함.\n- [6/7 최적화 완료] 인간 반응 속도를 고려한 100ms Action Lag 역보정(액션 1프레임 시프팅 매핑) 및 에피소드 종료 시점 5프레임 Plateau STOP 저장 적용 완료.\n🟡 향후 액션 아이템 (TODO)\n- [ ] 10Hz 연속 비동기 조향 제어를 활용한 신규 주행 데이터(350~500ep 목표) 대규모 수집 개시.\n- [ ] 수집된 비동기 H5 데이터셋의 패킷 누락 및 포맷 정합성 정밀 무결성 스캔.\n🧠\n3. VLM 표현력 강화 및 소규모 데이터 과적합 제어 (R2-2, R5 대응)\n\"LoRA 기여도가 불분명하다(R2-2)\", \"VLA 트랜스포머의 언어 무시 현상(R5)\" 에 대응해 비전 인코더 LoRA를 적용하고 데이터 표현 공간의 일반화 및 학습 과적합 억제 튜닝을 구비했습니다.\n🟢 완료된 성과 (Completed)\n- [R2-2 완료] 취약했던 left 방향 정확도를 +6.2%p(91.1%➔97.3%) 집중 보정하여 LoRA의 조향 대칭 균등화 기여 실증.\n- [R5 완료] BBox 디컴포지션 기하학 공간 규제(Stage 1)를 통해 E2E 트랜스포머 VLA의 고질적인 Attention Collapse를 학술적으로 원천 방지함.\n- [6/4 완료] SigLIP 상위 레이어 LoRA 튜닝 및 LLM Frozen 아키텍처 학습 수행 (exp64).\n- [6/6 완료] NVIDIA GB10 기반 8개 주요 Config에 대한 Ablation sequential 학습 완료.\n🟡 향후 액션 아이템 (TODO)\n- [ ] 6/6 완료된 8개 Ablation 모델 가중치의 오프라인 PM(Perfect Match) 정량 분석 및 최적 가중치 선정.\n- [ ] 선정된 최선 비전 LoRA 가중치를 온디바이스 서버로 배포 및 실물 주행 벤치마크 테스트 진행.\n📊 Closed-Loop Ablation Study 시각화 및 분석\n각 ID별 성공/실패 궤적 및 실제 추론 이미지 매칭\nAblation Study ID(A1~A3, B1~B3, C1)에 따른 Closed-Loop 주행 성능의 차이를 실제 궤적 이미지와 PaliGemma2 Grounding 추론 이미지(BBox)를 매칭하여 가시적으로 분석합니다.\n📍 Closed-Loop 주행 궤적 플롯 (FPE & TLD 비교)\n전체 (9-Panel)\nCenter 시작 (3-Panel)\nLeft 시작 (3-Panel)\nRight 시작 (3-Panel)\n![Closed-loop Trajectories](../v5/visual_proof/traj_9panel_v2.png)\n* 각 궤적은 20Hz Closed-Loop 시뮬레이션 환경에서 에이전트의 Action 출력을 누적 적분하여 도출한 실제 경로입니다. (실선: 에이전트 경로 / 점선: Expert 경로)\nfunction changeTrajImg(type) {\nconst img = document.getElementById('traj-display-img');\nconst buttons = {\nall: document.getElementById('btn-traj-all'),\ncenter: document.getElementById('btn-traj-center'),\nleft: document.getElementById('btn-traj-left'),\nright: document.getElementById('btn-traj-right')\n};\nlet src = 'visual_proof/traj_9panel_v2.png';\nif (type === 'center') src = 'visual_proof/traj_3panel_center_v2.png';\nelse if (type === 'left') src = 'visual_proof/traj_3panel_left_v2.png';\nelse if (type === 'right') src = 'visual_proof/traj_3panel_right_v2.png';\nimg.style.opacity = 0;\nsetTimeout(() => {\nimg.src = src;\nimg.style.opacity = 1;\n}, 150);\nObject.keys(buttons).forEach(key => {\nif (key === type) {\nbuttons[key].style.background = '#1e293b';\nbuttons[key].style.borderColor = '#334155';\nbuttons[key].style.color = '#e2e8f0';\nbuttons[key].style.fontWeight = '700';\n} else {\nbuttons[key].style.background = '#0f172a';\nbuttons[key].style.borderColor = '#1e293b';\nbuttons[key].style.color = '#94a3b8';\nbuttons[key].style.fontWeight = 'normal';\n}\n});\n}\nGroup A · HSV GT Baseline\n150 episodes\nA1 (No-Flip Baseline)\nCL 96.7%\nval_acc: 92.6% · FPE: 0.11m · TLD: 1.01\nA2 (Re-train Baseline)\nCL 52.4%\nval_acc: 95.5% · FPE: 0.55m · TLD: 1.03\nA3 (Horizontal Flip)\nCL 47.6%\nval_acc: 94.3% · FPE: 0.62m · TLD: 1.05\n💡 해석: 노이즈가 전혀 없는 완벽한 HSV BBox GT 하에 학습되었으나, 동일 데이터(150ep) 내에서 Flip 증강을 적용할 시 조향 편향이 희석되어 오히려 Closed-Loop 성능이 절반 이하로 하락하는 과적합(Overfitting) 취약성을 보입니다.\nGroup B · PG2 VLM Grounding\n243 episodes\nB1 (No-Flip Scale-Up)\nCL 70.0%\nval_acc: 95.7% · FPE: 0.13m · TLD: 0.99\nB2 (Horizontal Flip)\nCL 65.0%\nval_acc: 95.2% · FPE: 0.18m · TLD: 1.01\nB3 (Flip + Center × 3)\nCL 70.0%\nval_acc: 95.5% · FPE: 0.11m · TLD: 1.00\n💡 해석: PaliGemma2 기반 라이브 Grounding 특유의 지터와 오프셋 오차가 있음에도, 데이터량을 243ep로 증강(Scale-Up)함에 따라 CL 성공률이 70%까지 비약적으로 상승하며 데이터 스케일의 중요성을 입증합니다.\nGroup C · End-to-End VLA\n243 episodes\nC1 (E2E Kosmos-2)\nCL 18.8%\nval_acc: 78.6% · FPE: 1.95m · TLD: 0.93\n⚠️ center_straight(4/4 성공) 외의 회전 경로 전원 실패 (조향 진동 발산)\n💡 해석: 단일 거대 모델이 인식과 제어를 한 번에 풀어야 하므로 학습 난이도가 높습니다. Decomposed 방식(B1~B3)이 소규모 주행 데이터(243ep) 환경에서 데이터 효율성 및 제어 강건성 면에서 현격한 우위에 있음을 실증합니다.\n👁️ Grounding 성공 케이스 vs 제어 OOD 극복 추론 결과 시각화\nFrame [1] - 출발 시점 Grounding 검증 (\"gray basket\")\n![Frame 1 Grounding](../v5/visual_proof/exp57_frame1_comparison.jpg)\n설명: 출발 프레임에서 PaliGemma2 LoRA 그라운더가 \"gray basket\"의 정확한 위치를 바운딩 박스(빨간색)로 포착. 오탐지(False Positive)율 0%로 타겟 객체만 명확하게 검출하는 상태입니다.\nFrame [7] - 주행 중 Grounding 검증 (정렬 확인)\n![Frame 7 Grounding](../v5/visual_proof/exp57_frame7_comparison.jpg)\n설명: 주행을 진행하며 바스켓에 가까워질수록 bbox가 중앙에 정확히 매칭됩니다. VLM의 bbox 오차 통계를 활용한 BBox Noise Augmentation 학습이 적용된 Stage2 MLP는 이 편향된 오차를 OOD로 간주하지 않고 복원 조향(Left/Right Action)을 안정적으로 생성합니다.\n결론 요약 (Professor Meeting Core Claim):\n1. 객체 인식 증거: 동일 이미지에서 쿼리만 교체 시(\"gray basket\" 100% vs \"red ball\" 0%) 그라운딩이 동작하는 것으로 \"목표 인식 → 위치 탐지\"의 순차 메커니즘을 명백히 보여줍니다.\n2. 제어 연동 안정성: VLM bbox 특유의 오프셋(std 0.22)에 무너지던 Closed-Loop를 BBox Noise Augmentation (scale=2.0) 및 Flip 증강(B3)을 결합해 최종 CL 70%까지 회복하여 \"텍스트 목표 → Grounding → 실조향\"의 전체 연결고리를 완성했습니다.\n🔍 신규 분석 — 데이터셋 실제 구성 확인 + 교차 테스트 결과\nExp59 cross-object 테스트 후 실제 이미지 확인 → 핵심 발견\nV5 환경 — gray basket만 존재 (clean)\n![](assets/1358148ed5234b7b.jpg)\ncenter_straight | gray basket만 | 배경: 흰 벽\nV5 환경 — 장애물 태스크 (가구 + gray basket)\n![](assets/7573deba3b44147f.jpg)\nleft_straight | gray basket + 캐비닛·칠판 (장애물 태스크)\n⚠️ V4 환경 — gray basket + brown pot 동시 존재!\n![](assets/c72c4b8377afc0af.jpg)\nV4 에피소드 | 화분(앞) + gray basket(뒤) 모두 존재\n⚠️ V4 환경 — 매 프레임에서 동일 구성\n![](assets/cdbbbc84e6d5fed1.jpg)\n다른 V4 에피소드에서도 동일 패턴 — 항상 두 객체 공존\n🔑 핵심 발견: V4 데이터셋은 \"brown pot 전용\"이 아님\nV4의 모든 프레임에 gray basket(뒤)과 brown pot(앞)이 함께 존재.\nV5는 장애물 태스크여서 일부 프레임에 가구류가 있으나, brown pot은 없음.\n→ \"V4 → detect gray basket = 100% 오탐\"이 실제로는 오탐이 아님 — gray basket이 거기 있기 때문.\n교차 테스트 결과 (Exp58 epoch5 · 각 환경 15장)\n![](assets/d4753119bd850882.jpg)\n진짜 오탐 (실제 FP)\nV5 이미지(gray basket만) → \"detect brown pot\" → 67% 히트\nV5에 brown pot이 없는데 박스 반환 → 진짜 오탐\n모델이 gray basket을 brown pot으로 착각\nTP는 정상 (오탐 아님)\nV4 이미지 → \"detect gray basket\" → 100% 히트\ngray basket이 V4에 실제로 있기 때문 — 정상\n이건 FP가 아니라 진짜 정답\n근본 원인: 부정 샘플(hard negative) 없는 학습\n현재 학습:\nV5 이미지 + \"detect gray basket\" → bbox ← 배움\nV4 이미지 + \"detect brown pot\" → bbox ← 배움\n없는 것:\nV5 이미지 + \"detect brown pot\" → <eos> ← 이 학습이 없어서 67% 오탐\nV4 이미지 + \"detect gray basket\" → gray basket bbox만 (화분 제외) ← 이것도 없음\n해결 방향 — Hard Negative 추가 학습\n① V5 이미지 → \"detect brown pot\" → <eos> 샘플 추가 (easy negative: 없는 물체 쿼리)\n② V4에서 gray basket과 brown pot bbox를 분리해서 각 쿼리에 정확한 GT 제공\n③ Exp58 epoch25 완료 후 재평가 → 개선 없으면 hard negative 포함 Exp59 설계\n→ 완전 분리 시 \"텍스트로 목표 변경 = Goal-Conditioned Navigation\" 증명 가능\n교수님 예상 추가 반문 — 준비된 대응 논리\nQ. \"brown pot에서도 gray basket이 83%면 진짜 구분 아니잖아요?\"\nA. within-class 오분류 vs 비컨테이너 오분류는 다름. red ball/person은 0~3% — 실제 내비 시나리오에서 대체물체는 공이나 사람이지, 똑같이 생긴 바구니가 아님. 완전 구분은 두 물체 포함 학습 데이터 필요(R3 계획).\nQ. \"LoRA가 basket을 인식하는 게 아니라 bbox 형식만 배운 거 아닌가요?\"\nA. 포맷만 배웠다면 모든 phrase에 bbox 나와야 함. 실제로 red ball → <eos> 즉시, gray basket → <loc####> 출력. phrase에 따라 출력 분기됨. cx_err=0.075 — basket 실제 위치에 bbox 생성.\nQ. \"grounding 된다고 navigation이 되는 건 아니잖아요?\"\nA. 현재 파이프라인은 HSV 색상 tracker → cx/cy → Stage2 MLP → action. 이미 CL 96.7% 동작 중. Exp57은 색상 tracker를 VLM grounding으로 교체하는 upgrade 경로 — 다른 조명/각도에서도 robust한 물체 추적 가능.\nGoal-Conditioned Grounding 트랙 — Exp57 → 58 → 59\n5/27~5/29 · 환각 없이 실측치만 기록 · 마지막 업데이트 5/28 21:30\n✅ 완료\nExp57 — PaliGemma-3b-pt LoRA (단일 클래스)\n5/27 완료\n100%\n\"gray basket\" (30/30)\n0%\n\"red ball\" (0/30)\n3%\n\"person\" (1/30)\n✓ 달성: R2-3 반박 — 비컨테이너(공·사람) 98.3%p 분리. Train 1,280 / Val 220.\n⚠ 한계: within-class 분리 불가 — beige basket 100%, laundry basket 100%, brown pot 96.7%.\n→ \"용기 클래스\" 학습. gray basket만 특정하지 못함. Exp58 설계 동기.\n⛔ epoch15.5에서 중단\nExp58 — PaliGemma2-3b-mix 2-class LoRA\n5/28 08:04 시작 · epoch15.5/25에서 중단 (5/28 21:40) — hard negative 없어 FP 불해결, Exp59 즉시 시작이 8.2h 빠름\n진행: epoch ~15.5 / 25Train 3,906 / Val 704\n경과 13.4h / 예상 총 21.7h · GPU 27GB 사용 중\nEpoch 5 체크포인트 실측 (5/28 12:54 저장)\n100%\n\"gray basket\" val (22/22)\n100%\n\"brown pot\" val (38/38)\n교차 테스트 실측 (5/28 20:45 · epoch5 · 각 15장)\n100%\nV5→basket TP\n66.7%\nV5→pot FP ❌\n100%\nV4→basket *\n100%\nV4→pot TP\n* V4→\"gray basket\" 100%는 오탐 아님: V4 프레임에 gray basket이 실제로 존재(두 객체 공존)\n✓ 달성: 두 클래스 동시 100% (val). V4 데이터셋 구조 파악 (gray basket+brown pot 공존).\n✗ 미달: V5→\"brown pot\" 66.7% FP — 분리 실패. 원인: hard negative 없는 학습.\n→ Exp59 설계 동기.\n✅ 완료\nExp59 — Hard Negative 포함 목표 분리 LoRA\n5/29 완료 · 고수준 레이어(18~26) + hard negative\n교차 객체 그라운딩 결과 (R2-3)\n\"detect gray basket\" → Basket (Target): 95.0% TP\n\"detect gray basket\" → Pot (Negative): 0.0% FP\n\"detect gray basket\" → Ball (Negative): 0.0% FP\n\"detect gray basket\" → Person (Negative): 0.0% FP\nClosed-Loop 시뮬레이션 붕괴\n성공률: 4.5% (1/22)\n평균 FPE: 4.098m\n원인: BBox OOD 문제 발견.\nVLM 그라운더의 미세 편향(Δcx=-0.084)을 MLP가 입력 분포 이탈(OOD)로 인지하여 오동작.\n달성: 텍스트 조건부 객체 인식(R2-3 오탐) 완벽 해결. gap=95%p 달성.\n한계: BBox 편향이 누적 드리프트(Drift)를 유발하여 주행 붕괴. MLP의 분포 노이즈 학습 필요성 대두.\n✅ 완료\nExp60 — BBox Noise Augmentation Stage2 MLP\n5/31 완료 · VLM bbox 오차 캘리브레이션 주입 학습\nVLM vs GT BBox 오차 실측 (Δ)\nΔcx: mean -0.084, std 0.222 (좌측 편향 + 큰 산포)\nΔcy: mean -0.012, std 0.137\nArea ratio: mean 0.979 (스케일 가변성)\nMiss rate: 4.1% (VLM 미검출 비율)\nNoise Scale Sweep 결과 (CL)\nbaseline (0.0): 4.5% 성공 | FPE 4.07m\nnoise_scale 1.0: 13.6% 성공 | FPE 1.34m\nnoise_scale 2.0 (최적): 36.4% 성공 | FPE 0.575m\nnoise_scale 3.0: 22.7% 성공 | FPE 1.33m\nClean PM 성능: 91.4% (일반화 성능 유지)\n달성: BBox 노이즈 증강(Augmentation) 주입을 통해 VLM-bbox OOD 장벽 극복. CL 성공률 8배 상승 (4.5% → 36.4%), 평균 FPE 7.1배 감소 (4.075m → 0.575m).\n한계: 절반의 경로(center 계열 등)는 1.15m FPE 영역에서 주저앉아, 추가적인 궤적 데이터 증강 필요.\n✅ 완료\nExp61 — MoNa-Pi 데이터 통합 + Flip/Center 증강\n6/1 완료 · 150ep → 243ep 학습 데이터 확대\nMoNa-Pi 데이터 통합 학습 설정\n총 에피소드: 150ep → 243ep 확장 (+93ep)\nFlip Augmentation: 좌우 반전 데이터 보강\nCenter Over-sampling: center 경로 3x 오버샘플\n제어망 PT: VLM-bbox 노이즈 + Flip+Center 적용\n최종 Closed-Loop 시뮬레이션 결과\n성공률: 70.0% (15/22)\nleft / right 계열 경로: 100% 성공 (14/14)\ncenter 계열 경로: 0% 성공 (0/8)\n새 병목 발견: cx jitter & bias\n정중앙 straight 구간에서 VLM의 cx가 0.456로 좌측 편향 및 미세한 프레임 간 지터(std 0.11)로 시뮬 상에서 지그재그 거동하며 드리프트(Drift).\n달성: MoNa-Pi 통합 학습으로 Closed-Loop 성공률 70% 돌파. 난해한 코너 선회 경로(right/left)의 100% 성공 달성으로 grounding-action 파이프라인의 완성도를 높임.\n남은 과제: center_straight 구간의 물리/제어 구조적 편향 극복.\nExp57 → 58 → 59 흐름 요약\nExp57: 비컨테이너 분리 ✅ → 용기 클래스 한계 발견\nExp58: 2-class 동시 학습 ✅ → V4 데이터 공존 구조 발견, hard negative 필요\nExp59: hard negative 추가 → 진짜 객체별 분리 → Goal-Conditioned VLA 증명\n이 세 단계는 순차적 발견과 개선 — 실패가 아닌 연구 진행 과정\nExp57 / 58 / 59 — 구조 비교\n실측치 기반 · 5/28~5/29\n항목\nExp57 ✅\nExp58 ⛔\nExp59 🔄\n백본\nPaliGemma\n3b-pt-224\nPaliGemma2\n3b-mix-224\nPaliGemma2\n3b-mix-224\nVision 구조\nSigLIP 27층\nSigLIP 27층\nSigLIP 27층\nLM 구조\nGemma\n18층 / 2048d\nGemma2\n26층 / 2304d\nGemma2\n26층 / 2304d\nLoRA 레이어\n전체 45층\nVision0~26 + LM0~17\n전체 53층\nVision0~26 + LM0~25\n고수준 17층\nVision18~26 + LM18~25\nLoRA modules\nq, v\nq, v\nq, k, v\nk_proj 추가\nr / alpha\nr=8 / α=16\nr=8 / α=16\nr=16 / α=32\n학습 파라미터\n~2.17M\n2.59M\n실측\n2.40M\n실측\n학습 클래스\n1-class\ngray basket만\n2-class\nbasket + pot\n2-class + negative\nbasket/pot + <eos>\nHard Negative\n없음\n없음\n있음 (neg_ratio=0.3)\n1,832개 <eos> 샘플\nTrain 샘플\n1,280\n3,906\n5,480\nepoch당 시간\n~30분\n~52분\n~60분\n완료 epoch / 시각\n25ep ✅\n5/27 완료\n15.5ep ⛔\n5/28 21:40 중단\n0ep 시작 🔄\n5/29 18:08 예상\n결과 비교 (실측)\nExp57 — 단일 클래스\n\"gray basket\" val: 100%\n\"gray basket\" V5: 100% (30/30)\n\"red ball\": 0%\n\"person\": 3%\n\"brown pot\": 96.7% FP ❌\n\"beige basket\": 100% FP ❌\n한계: 용기 클래스 전체 검출\nExp58 — 2-class, epoch5\n\"gray basket\" val: 100% (22/22)\n\"brown pot\" val: 100% (38/38)\n교차 V5→\"pot\": 66.7% FP ❌\n교차 V4→\"basket\": 100%\n(V4에 basket 실제 존재)\nsep. gap: 0~33%\n한계: hard negative 없어 FP 미해결\nExp59 — Hard Negative (학습중)\n결과 미확인 (학습 중)\n목표:\n\"gray basket\" TP: >95%\nV5→\"pot\" FP: <10%\nsep. gap: >80%p\nepoch5 결과: 5/29 03:09 예정\n구조적으로 뭐가 달라졌나\nExp57→58: 백본 업그레이드\npt → mix (detection pre-training 포함)\nGemma → Gemma2 (GQA, 더 깊은 LM)\n단일→2-class 동시 학습\nbut 전체 레이어 LoRA 그대로\nExp58→59: 학습 전략 혁신\n전체→고수준 레이어(18~26)만\nq+v → q+k+v (어텐션 완전 제어)\nr=8→16 (표현력 상향)\n+ Hard negative: <eos> 분리 학습\nBBox vs 객체 인식 — 연구 흐름과 논리적 연결\n교수님 핵심 질문 \"basket을 보는가?\" 와 우리 답변의 구조\n❌ BBox ≠ 객체 인식 (위험한 등치)\nHSV bbox:\n\"회색이고 밝기 70~230인 픽셀 덩어리\"\n→ 색상 임계값. 객체 개념 없음.\n흰 벽 / 회색 문도 잡힘\n단순 bbox 출력:\n위치(cx,cy,area)만 알고 뭔지는 모름.\n\"basket이 왼쪽에 있다\"가 아니라\n\"회색 덩어리가 왼쪽에 있다\"만 앎.\n→ 교수님 지적의 핵심\n✅ 신경망 Grounding bbox = 객체 인식\nPaliGemma grounding:\n\"detect gray basket\" → 텍스트가 조건\n→ 모델이 gray basket이 뭔지 알아야 bbox 위치 결정 가능\nExp59 hard negative가 핵심 증거:\n같은 이미지 + \"detect red ball\" → <eos>\n= \"basket은 공이 아님을 안다\"\n= 객체 개념을 텍스트로 구별\n→ 이것이 진짜 객체 인식\nMoNaVLA 연구 흐름 — 3단계 진화\nStage 1 — End-to-End VLA (Exp1~25, 실패)\n카메라 → [VLM backbone + LoRA] → action token\n결과: text attention 0% (Google-robot post-training이 text path 붕괴)\nForward만 보고 액션 예측 = 복도 패턴 암기\nStage 2 — 분해 접근 (Exp26~56, 현재 동작 중 ✅)\n카메라 → HSV 색상 필터 → cx,cy ← 지금 여기\n카메라 → CLIP LoRA → visual feature\n[cx,cy + visual feature] → MLP → action\n결과: CL 96.67%, PM 92.6% ✅\n문제: HSV는 색상 필터 = 객체 인식 아님\nStage 3 — Neural Grounding 파이프라인 (Exp57~59, 진행 중 🔄)\n카메라 → PaliGemma2 LoRA → cx,cy ← Exp59 목표\n\"detect gray basket\" → bbox (객체 특정)\n\"detect red ball\" → <eos> (없음 인식)\n카메라 → CLIP LoRA → visual feature\n[cx,cy + visual feature] → MLP → action\n= HSV 완전 제거 → 텍스트 조건부 객체 인식\n최종 목표 (VLA):\n\"find the gray basket\" → grounding → navigation\n\"find the brown pot\" → grounding → navigation (같은 시스템, 텍스트만 변경)\n= Goal-Conditioned Navigation = 진짜 VLA"
+      },
       {
         "kind": "callout",
         "title": null,
@@ -702,8 +777,13 @@
     "num": "CH 37",
     "title": "STOP Mechanism Ablation",
     "subtitle": "3-Layer 체계적 분석 — override 없는 게 최선, 시작 위치 정규화 설계",
-    "n_cards": 5,
+    "n_cards": 6,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "📌 현재 상태 — 여기서 권고한 \"override 없음(proximity 규칙 기반)\"은 현재 미사용입니다. 현 배포는 stop_mode=learned(헤드의 STOP 클래스) + 콜드스타트 가드 3프레임을 씁니다. 과거 proximity 규칙(area≥0.25 & |cx−0.5|≤0.35, N=3)은 폐기됐습니다."
+      },
       {
         "kind": "finding-card",
         "title": "왜 STOP을 분석하는가",
@@ -736,8 +816,13 @@
     "num": "CH 38",
     "title": "VLA에 가장 가깝게 — 레퍼런스 아키텍처 비교와 절충안",
     "subtitle": "π0 · TinyVLA · SmolVLA · RoboVLMs 대비 위치 확인, instruction-grounding 연동, 다음 단계로서의 멀티 객체 데이터",
-    "n_cards": 5,
+    "n_cards": 6,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "CH2(Google-robot backbone 실패)·CH29-32(text attention 0% 구조적 원인)의 결론은 \"end-to-end VLA는 지금 백본으로 불가능\"이었다.\n그렇다면 \"VLA에 가장 가깝게\" 가려면 어디까지 손대야 하는지를, 실제 프로덕션 VLA 4종과 구조 비교로 판단했다."
+      },
       {
         "kind": "finding-card",
         "title": "38-1. 레퍼런스 아키텍처 비교",
@@ -770,8 +855,13 @@
     "num": "CH 39",
     "title": "근본적인 VLA로 — 객체별 그라운딩 필터 보정 + hidden state 방향 신호 확인",
     "subtitle": "T1(임의 객체 신뢰성) 확정 + T2(언어가 경로에 영향) 사전검증, 새 데이터 수집 없이 기존 V5 220개 에피소드 재사용",
-    "n_cards": 2,
+    "n_cards": 3,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "CH38의 \"VLA-ness\" 등급(T0~T3)을 다시 가져와, 이번엔 T0(이미 구현됨) → T1 확정과\nT2 사전검증까지 진행했다. T3(완전 통합 재학습)은 여전히 다루지 않음 — 다음 plan으로 분리."
+      },
       {
         "kind": "finding-card",
         "title": "39-1. Step A — 바스켓 전용 그라운딩 필터 버그 수정 (T1 확정)",
@@ -789,8 +879,13 @@
     "num": "CH 40",
     "title": "T2 본 구현 — action head에 PG2 hidden state 추가 (40-1 정정됨, 40-1b 참고)",
     "subtitle": "CH39 Step B(probe 90%)의 다음 단계: bbox 좌표 대신/추가로 hidden state를 넣어 head만 재학습 — 새 데이터 수집 없음. 단, 최초 PM 비교에 측정 오류가 있었음(40-1b에서 정정)",
-    "n_cards": 4,
+    "n_cards": 5,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "CH39에서 \"PG2 hidden state에 방향 신호가 있다\"는 걸 frozen probe로만 확인했다. 이번엔 실제로 action head 입력에\nhidden state를 추가/대체해서 head만 재학습(VLM 전부 frozen, 새 데이터 수집 없음, 기존 150개 에피소드의\n동일 train/val split 재사용)하고, PM과 closed-loop 양쪽으로 baseline(Exp54 Step2)과 비교했다."
+      },
       {
         "kind": "finding-card",
         "title": "40-1. PM(프레임 정확도) — 두 변형 모두 baseline 대비 크게 상승 (⚠ 아래 40-1b에서 정정됨 — baseline 75.9%는 실측값이 아니었음)",
@@ -818,8 +913,13 @@
     "num": "CH 41",
     "title": "그라운딩 품질이 진짜 핵심이었다 — 오류는 객체를 못 잡은 프레임에 몰려있다",
     "subtitle": "head 구조(윈도우 크기, hidden state 유무)보다 그라운딩 신뢰도가 오예측과 훨씬 강하게 연관됨",
-    "n_cards": 3,
+    "n_cards": 4,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "CH40 정정 이후 \"head를 바꾸는 것만으론 한계가 있다\"는 게 분명해졌다. 그래서 두 가지를 봤다 —\n① 오예측이 그라운딩이 약한 프레임에 몰리는지(인식 품질 진단), ② head-level에서 더 손볼 게 남았는지(윈도우 크기 ablation).\n둘 다 새 데이터 수집 없이 기존 150개 에피소드 재사용, 새 학습은 head만(VLM 전부 frozen)."
+      },
       {
         "kind": "finding-card",
         "title": "41-1. 그라운딩 품질 vs 오예측 — has_bbox=False 프레임 오류율이 3~5배 높다",
@@ -842,8 +942,13 @@
     "num": "CH 42",
     "title": "prompt가 거짓 방향을 우겨도 이미지의 진짜 방향 신호는 안 흔들린다",
     "subtitle": "CH38-5(생성 출력 레벨)와 CH39 Step B(이미지 신호)를 hidden-state 레벨에서 하나로 통합 — 같은 220장에 prompt만 바꿔서 비교",
-    "n_cards": 2,
+    "n_cards": 3,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "CH38-5는 \"방향 텍스트를 줘도 생성 출력이 안 바뀐다\"를 4장 사진으로 보였고, CH39 Step B는 \"텍스트는 고정인데 이미지가 다르면\nhidden state가 90%로 갈린다\"를 220장으로 보였다. 이번엔 같은 220장에 **prompt를 거짓 방향으로 고정**해서 두 결과를\n한 표로 합쳤다 — \"이미지가 말하는 방향\"과 \"prompt가 우기는 방향\" 중 어느 쪽이 hidden state를 더 강하게 결정하는가."
+      },
       {
         "kind": "finding-card",
         "title": "42-1. 이미지 신호가 거짓 prompt에도 안 흔들린다 — prompt 자체는 99%로 구분되지만 \"이해\"는 아니다",
@@ -861,8 +966,13 @@
     "num": "CH 43",
     "title": "차원축소 + LSTM head — 진짜 핵심 factor는 head 구조였다",
     "subtitle": "17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 최고(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p), hidden state보다 head 구조가 더 강한 factor",
-    "n_cards": 6,
+    "n_cards": 7,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "⚠️ 이 결론은 이후 뒤집혔습니다 — \"head 구조가 가장 강한 factor\"는 시뮬레이션 기준이었습니다. CH63에서 mlp≈transformer로 헤드 간 차이가 사라졌고, 64-18에서 병목은 헤드가 아니라 그라운딩임이 실기로 확정됐습니다(gnd%≥80 → 98.8%). 액션 헤드는 0.866M으로 이미 충분합니다.\nCH40/41은 원시 2304차원 hidden state를 그대로 concat/대체해서 baseline(window=8, 91.54%)을 못 넘었다.\n이번엔 hidden state 앞에 학습 가능한 linear projection(2304→proj_dim)을 둬서 \"어떤 정보를 얼마나 쓸지\"를\n역전파로 배우게 했다 — 명시적 가중치 스칼라보다 표현력이 높고 구현은 단순하다. 거기에 head 구조(linear/mlp/fc)까지\n같이 바꿔가며 14개 조합을 비교했다."
+      },
       {
         "kind": "finding-card",
         "title": "43-1. Projection 차원 ablation — 작을수록 좋다, 32에서 baseline을 처음으로 넘었다",
@@ -914,8 +1024,13 @@
     "num": "CH 44",
     "title": "학습/추론 이미지 파이프라인 통일 + \"4초\"의 진짜 원인 — 누적 드리프트",
     "subtitle": "교수님께 보고드렸던 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅 — 가설 5개를 코드/실측으로 검증",
-    "n_cards": 4,
+    "n_cards": 5,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "사용자가 제시한 5가지 가설(① 학습 224×224 통일 ② 추론 224×224 통일 ③ latency 4초→1초 ④ STOP 40~50cm\n⑤ hidden state-해상도 alignment 의심)을 하나씩 코드로 검증하고, soda(실제 로봇)에서 직접 실측했다."
+      },
       {
         "kind": "finding-card",
         "title": "44-1. 가설 ①②⑤ — 리사이즈는 이미 같았다, 명시적으로 통일",
@@ -1194,8 +1309,13 @@
     "num": "CH 54",
     "title": "YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정",
     "subtitle": "6/26 미팅 결정사항: \"그라운딩 못 하면 YOLO로 방향 먼저 잡고 PG2 재시도\" 아이디어 설계 문서",
-    "n_cards": 5,
+    "n_cards": 6,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "📌 현재 상태 — Preview 폴백은 현재 비활성입니다(preview_enabled=False, preview_hint_cx=True만 유지). 콜드스타트는 가드 3프레임으로, 검출 실패 회복은 force_reground_on_miss + 회전 후 강제 재그라운딩으로 처리합니다 — 상세: OWL-v2 정리 5절."
+      },
       {
         "kind": "finding-card",
         "title": "동기 — 왜 필요한가",
@@ -1261,8 +1381,13 @@
     "num": "CH 57",
     "title": "Frame 0 Cold-Start → Grounding 100% 실패 — CH54 Preview로 폴백 처리 ✅ 검증 완료",
     "subtitle": "47세션 전수 조사 + 워밍업 적용 후 실검증(2026-06-30): Frame 0 그라운딩은 여전히 실패하나, CH54 Preview 모델이 폴백으로 커버. Frame 1부터 정상 동작.",
-    "n_cards": 5,
+    "n_cards": 6,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "📌 현재 상태 — \"CH54 Preview로 폴백\" 경로는 현재 쓰지 않습니다(preview 비활성). Frame 0 콜드스타트는 콜드스타트 가드 3프레임으로 대응하며, 실기 100건에서 첫 프레임 검출률은 위치별 20~100%로 편차가 큽니다(강우 20%) — 65-1 참조."
+      },
       {
         "kind": "finding-card",
         "title": "✅ 실검증 완료 (2026-06-30, 세션 100316)",
@@ -2248,8 +2373,13 @@
     "num": "SUMMARY",
     "title": "전체 흐름 요약",
     "subtitle": null,
-    "n_cards": 3,
+    "n_cards": 4,
     "cards": [
+      {
+        "kind": "prose",
+        "title": null,
+        "text": "div class=\"finding-title\">✅ Grounding 소스 무관 확정\nHSV(Exp54) = base PG2(Exp66) = Exp59 LoRA(Exp67) — 모두 CL 96.6%. grounding LoRA 개선 7개(Exp56~64)의 action 기여 = 0. 명확한 음성 결과. → CH33"
+      },
       {
         "kind": "finding-card",
         "title": "✅ Head Ablation — LSTM = ActionMLP",

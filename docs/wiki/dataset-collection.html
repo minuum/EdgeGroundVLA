@@ -131,6 +131,10 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <div class="chapter-block accent-a">
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 1</span> 데이터셋 — 9가지 경로</div>
 <div class="card">
+<p>🗺️ 실험 설계 플로우 맵
+🛠️ V5 개발 로그 히스토리</p>
+</div>
+<div class="card">
 <p>💡 왜 9가지 경로인가?
 단순히 "직진"만 학습하면 모델이 모든 상황에서 직진을 선택하는 FORWARD bias에 빠진다.
 좌/우 곡선 경로를 절반 이상 포함시켜 방향 판단을 학습시키는 것이 핵심 설계 원칙이다.
@@ -270,6 +274,38 @@ FORWARD</p>
 </div>
 <div class="chapter-block accent-b">
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 8</span> Augmentation 실험 — Exp49가 여전히 최선</div>
+<div class="card">
+<p>실험
+변경 사항
+val acc
+CL 성공률
+FPE (mean)
+판정
+Exp49 🏆
+baseline — bbox+vision+goal_pos
+96.4%
+96.7% (29/30)
+0.081m
+BEST
+Exp50
+수평 flip aug (+2,626 frames)
+92.0%
+83.3% (25/30)
+0.242m
+↓ 퇴보
+Exp51
+crop aug (+7,878 frames)
+93.4%
+96.7% (29/30)
+0.163m
+= 동일, FPE↑
+Exp52
+lang+vis 2048-dim joint
+93.9%
+93.3% (28/30)
+0.126m
+↓ 퇴보</p>
+</div>
 <div class="card">
 <p><strong>❌ Flip Aug (Exp50)</strong></p>
 <p>거울 반전 이미지가 cx0 신호를 혼란시킴. right_right 3/3 전패. CL 83.3%로 13%p 퇴보.</p>
@@ -556,6 +592,10 @@ STOP은 본래 도착=마지막 프레임 신호이며, 그래서 area 기반 �
 <div class="chapter-block accent-e">
 <div class="chapter-block-head"><span class="chapter-badge">CH 44</span> 학습/추론 이미지 파이프라인 통일 + "4초"의 진짜 원인 — 누적 드리프트</div>
 <p class="chapter-subtitle-line">교수님께 보고드렸던 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅 — 가설 5개를 코드/실측으로 검증</p>
+<div class="card">
+<p>사용자가 제시한 5가지 가설(① 학습 224×224 통일 ② 추론 224×224 통일 ③ latency 4초→1초 ④ STOP 40~50cm
+⑤ hidden state-해상도 alignment 의심)을 하나씩 코드로 검증하고, soda(실제 로봇)에서 직접 실측했다.</p>
+</div>
 <div class="card">
 <p><strong>44-1. 가설 ①②⑤ — 리사이즈는 이미 같았다, 명시적으로 통일</strong></p>
 <p>코드 검증 결과: 학습(train_hidden_state_*.py)과 추론(stage2_v2_inference_server.py)

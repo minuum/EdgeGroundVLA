@@ -25,14 +25,19 @@ CHAPTERS = json.loads((WIKI_DIR / "data/chapters.json").read_text())
 TOPICS = json.loads((WIKI_DIR / "data/topic_index.json").read_text())
 
 CHAPTER_BY_ID = {c["id"]: c for c in CHAPTERS}
+CHAPTER_DOC_ORDER = {c["id"]: i for i, c in enumerate(CHAPTERS)}
 
 
 def chapter_order_key(cid):
-    """ch1, ch2, ... 순서로 정렬하되 숫자 없는 특수 챕터(meeting-* 등)는 뒤로."""
-    m = re.match(r"ch(\d+)$", cid)
-    if m:
-        return (0, int(m.group(1)))
-    return (1, cid)
+    """research_story.html에 실제로 등장하는 순서(=시간순) 그대로 정렬한다.
+
+    버그 수정(2026-08-30): 예전엔 "chN 패턴이면 번호순, 아니면(meeting-*,
+    next-step 등) 전부 맨 뒤에 알파벳순"으로 정렬해서, next-step(6/12 내용)이
+    CH64~71(7~8월, 훨씬 최신)보다 뒤에 오는 바람에 위키에서 오래된 내용이
+    "가장 최신"처럼 보이는 문제가 있었다. chapters.json은 파싱 시점에 이미
+    문서 등장 순서(=시간순)대로 쌓이므로, 그 인덱스를 그대로 정렬키로 쓰면
+    모든 챕터(숫자든 아니든)가 실제 시간순으로 나온다."""
+    return CHAPTER_DOC_ORDER.get(cid, len(CHAPTERS))
 
 
 def format_card(card):

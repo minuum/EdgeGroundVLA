@@ -397,6 +397,13 @@ grounding 경로 vision LoRA 최초 작동 확인
 
 <div class="card" markdown="1">
 
+CH2(Google-robot backbone 실패)·CH29-32(text attention 0% 구조적 원인)의 결론은 "end-to-end VLA는 지금 백본으로 불가능"이었다.
+그렇다면 "VLA에 가장 가깝게" 가려면 어디까지 손대야 하는지를, 실제 프로덕션 VLA 4종과 구조 비교로 판단했다.
+
+</div>
+
+<div class="card" markdown="1">
+
 **38-1. 레퍼런스 아키텍처 비교**
 
 모델VLM 백본액션 헤드언어→액션 연결학습 비용
@@ -551,6 +558,14 @@ plans: plan_20260621_groundingdino_vs_pg2.md · plan_20260621_instruction_ground
 <div class="chapter-block-head"><span class="chapter-badge">CH 42</span> prompt가 거짓 방향을 우겨도 이미지의 진짜 방향 신호는 안 흔들린다</div>
 
 <p class="chapter-subtitle-line">CH38-5(생성 출력 레벨)와 CH39 Step B(이미지 신호)를 hidden-state 레벨에서 하나로 통합 — 같은 220장에 prompt만 바꿔서 비교</p>
+
+<div class="card" markdown="1">
+
+CH38-5는 "방향 텍스트를 줘도 생성 출력이 안 바뀐다"를 4장 사진으로 보였고, CH39 Step B는 "텍스트는 고정인데 이미지가 다르면
+hidden state가 90%로 갈린다"를 220장으로 보였다. 이번엔 같은 220장에 **prompt를 거짓 방향으로 고정**해서 두 결과를
+한 표로 합쳤다 — "이미지가 말하는 방향"과 "prompt가 우기는 방향" 중 어느 쪽이 hidden state를 더 강하게 결정하는가.
+
+</div>
 
 <div class="card" markdown="1">
 

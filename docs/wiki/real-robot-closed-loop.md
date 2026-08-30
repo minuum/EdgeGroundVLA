@@ -18,6 +18,32 @@
 
 <div class="card" markdown="1">
 
+📊 Closed-Loop 상세 통계 대시보드
+🛑 도착 STOP Gate 검증 리포트
+모델
+성공률
+mean FPE (↓ 낮을수록 좋음)
+mean TLD
+Exp11
+end-to-end VLA
+0.0%
+1.454 m
+1.026 m
+Step 2
+BBox+Image MLP
+66.7%
+0.555 m
+1.034 m
+Step 3
+BBox+Image MLP (multi-seed)
+60.0%
+0.482 m
+0.967 m
+
+</div>
+
+<div class="card" markdown="1">
+
 🔴 Exp11 0% vs Step2 66.7%
 두 모델 모두 TLD ≈ 1.03m로 비슷한 거리를 이동했다. 하지만 Exp11은 방향 오류가 누적되어
 최종 위치가 목표에서 평균 1.45m 떨어진 반면, Step2는 0.55m에 도달했다.
@@ -30,6 +56,312 @@
 </div>
 
 <div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CL DEEP DIVE</span> Closed-Loop — 왜 PM과 다른가</div>
+
+<div class="card" markdown="1">
+
+📋 Teacher-Forced (오프라인 PM)
+GT
+Frame 1
+GT
+Frame 2
+GT
+Frame 3
+모델 예측
+맞음? PM
+매 프레임마다 Ground Truth 이미지를 입력으로 줌
+모델에 항상 실제 GT 이미지를 주고 각 프레임에서 예측이 맞는지 확인.
+오류가 다음 프레임에 영향을 주지 않는다.
+🔄 Closed-Loop (실제 항법)
+실제
+Frame 1
+Model
+→ action
+Kinematics
+Simulator
+새 pose
+Frame t+1
+오류 누적 → 다음 입력에 영향
+모델 예측 action을 시뮬레이터에 적용 → 새 pose 생성 → 다시 모델 입력.
+한 번 틀리면 그 오류가 다음 입력에 영향을 주어 누적된다.
+시뮬레이터 수식 (Kinematic Model)
+xt+1 = xt + lx·cos(θ) - ly·sin(θ)
+yt+1 = yt + lx·sin(θ) + ly·cos(θ)
+θt+1 = θt + az·dt
+lx = 전진 속도 (FORWARD: 1.0)
+ly = 측면 속도 (LEFT: 1.0, RIGHT: -1.0)
+az = 회전 속도 (ROT_L: 1.0, ROT_R: -1.0)
+dt = 프레임 간격 (≈0.4초)
+성공 기준: FPE < 0.5m AND TLD ∈ [0.7, 1.5m]
+실험별 mean FPE 개선 추이 (↓ 낮을수록 목표에 가까이 도달)
+Exp11
+1.454m
+Step2 (Exp14)
+0.555m
+Step3 (Exp14)
+0.482m
+Exp46
+0.084m
+Exp49
+0.081m
+성공 기준: FPE < 0.5m
+모델별 Closed-Loop 성능 전체 비교
+모델
+성공률
+mean FPE ↓
+mean TLD
+Exp11
+End-to-End VLA
+0%
+1.454m
+1.026m
+Step2
+BBox+Image MLP (45ep)
+67%
+0.555m
+1.034m
+Step3
+BBox+Image MLP (multi-seed)
+60%
+0.482m
+0.967m
+Exp46
+Full 150ep, 1024-dim vis
+100%
+0.084m
+1.008m
+Exp49
++ Goal Proximity Signal
+100%
+0.081m
+1.006m
+
+</div>
+
+<div class="card" markdown="1">
+
+💡 TLD가 비슷해도 FPE가 다른 이유:
+Exp11과 Step2 모두 TLD ≈ 1.03m로 거의 같은 거리를 이동했지만,
+Exp11은 방향 오류로 인해 FPE가 2.6배 더 높다.
+Exp49는 FPE 0.081m — 로봇이 목표 8cm 이내에 도달했다.
+경로 타입별 예측 궤적 시각화
+— — Expert (ideal)
+—— Exp11 (실패)
+—— Step2
+—— Exp49 (100%)
+중앙 직진
+Goal
+Start
+Exp11 ✗ 1.72m
+Step2 ✗ 0.95m
+Exp49 ✓ 0.10m
+중앙→좌
+Goal
+Start
+Exp11 ✗ 1.85m
+Step2 ✓ 0.36m
+Exp49 ✓ 0.08m
+중앙→우
+Goal
+Start
+Exp11 ✗ 1.14m
+Step2 ✓ 0.23m
+Exp49 ✓ 0.04m
+좌 직진
+Goal
+Start
+Exp11 ✗ 1.19m
+Step2 ✓ 0.23m
+Exp49 ✓ 0.00m
+좌→좌
+Goal
+Start
+Exp11 ✗ 1.80m
+Step2 ✓ 0.21m
+Exp49 ✓ 0.11m
+좌→우
+Goal
+Start
+Exp11 ✗ 1.18m
+Step2 ✓ 0.38m
+Exp49 ✓ 0.12m
+우 직진
+Goal
+Start
+Exp11 ✗ 1.26m
+Step2 ✓ 0.34m
+Exp49 ✓ 0.00m
+우→좌
+Goal
+Start
+Exp11 ✗ 1.91m
+Step2 ✗ 0.52m
+Exp49 ✓ 0.00m
+우→우
+Goal
+Start
+Exp11 ✗ 1.03m
+Step2 ✗ 1.77m
+Exp49 ✓ 0.32m
+※ 궤적은 FPE, lateral_dev, path_type 기반 근사 재구성. 실제 좌표와 방향은 다를 수 있음.
+실패 패턴 분류 (Exp11 기준)
+forward_collapse
+항상 FORWARD만 예측
+trajectory_divergence
+누적 오차로 경로 이탈
+late_turn
+회전 타이밍 지연
+left_right_confusion
+좌우 방향 혼동
+oscillation
+LEFT↔RIGHT 반복
+rotation_missing
+ROT_L/R 미예측
+
+</div>
+
+<a class="src-link" href="../v5/research_story.html#cl-overview">→ 원문 전체 보기 (research_story.html#cl-overview)</a>
+
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CL DEEP DIVE</span> Closed-Loop — 왜 PM과 다른가</div>
+
+<div class="card" markdown="1">
+
+📋 Teacher-Forced (오프라인 PM)
+GT
+Frame 1
+→
+GT
+Frame 2
+→
+GT
+Frame 3
+→
+예측
+PM?
+매 프레임마다 항상 실제 GT 이미지를 주고 예측이 맞는지 확인.
+오류가 다음 프레임에 전혀 영향을 주지 않는다.
+🔄 Closed-Loop (실제 항법)
+실제
+Frame 1
+→
+Model
+→action
+→
+Sim
+→새 pose
+↺
+⚠️ 오류 누적: 잘못된 action → 잘못된 pose → 잘못된 다음 입력
+모델 예측 action을 시뮬레이터에 적용 → 새 pose 생성 → 다시 모델 입력.
+한 번 틀리면 그 오류가 누적된다.
+시뮬레이터 — Kinematic Model
+x' = x + lx·cos(θ) - ly·sin(θ)
+y' = y + lx·sin(θ) + ly·cos(θ)
+θ' = θ + az·dt
+lx = 전진 속도 (FORWARD: 1.0)
+ly = 측면 속도 (LEFT: +1.0, RIGHT: −1.0)
+az = 회전 속도 (ROT_L: +1.0, ROT_R: −1.0)
+dt ≈ 0.4초/프레임
+성공 기준: FPE < 0.5m AND TLD ∈ [0.7, 1.5m]
+실험별 mean FPE 개선 추이 (목표까지 최종 거리)
+Exp11
+1.454m
+Step2
+0.555m
+Step3
+0.482m
+Exp46
+0.084m
+Exp49
+0.081m
+성공 기준: FPE < 0.5m (세로선)
+모델별 Closed-Loop 전체 비교
+모델
+성공률
+mean FPE ↓
+mean TLD
+Exp11
+End-to-End VLA
+0%
+1.454m
+1.026m
+Step2
+BBox+Image MLP (45ep)
+67%
+0.555m
+1.034m
+Step3
+BBox+Image MLP (multi-seed)
+60%
+0.482m
+0.967m
+Exp46
+Full 150ep, 1024-dim vis
+100%
+0.084m
+1.008m
+Exp49
++ Goal Proximity Signal
+100%
+0.081m
+1.006m
+
+</div>
+
+<div class="card" markdown="1">
+
+💡 같은 TLD, 다른 FPE:
+Exp11과 Step2 모두 TLD ≈ 1.03m. 하지만 Exp11은 방향 오류로 FPE 1.45m (2.6배 더 멀리 이탈).
+Exp49는 FPE 0.081m — 로봇이 목표 8cm 이내에 도달.
+경로 타입별 궤적 시각화
+· · · Expert (ideal)
+—— Exp11 (CL 0%)
+—— Step2 (CL 66.7%)
+—— Exp49 (CL 100%)
+중앙 직진
+GoalExp11 ✗ 1.72mStep2 ✗ 0.95mExp49 ✓ 0.10m
+중앙→좌
+GoalExp11 ✗ 1.85mStep2 ✓ 0.36mExp49 ✓ 0.08m
+중앙→우
+GoalExp11 ✗ 1.14mStep2 ✓ 0.23mExp49 ✓ 0.04m
+좌 직진
+GoalExp11 ✗ 1.19mStep2 ✓ 0.23mExp49 ✓ 0.00m
+좌→좌
+GoalExp11 ✗ 1.80mStep2 ✓ 0.21mExp49 ✓ 0.11m
+좌→우
+GoalExp11 ✗ 1.18mStep2 ✓ 0.38mExp49 ✓ 0.12m
+우 직진
+GoalExp11 ✗ 1.26mStep2 ✓ 0.34mExp49 ✓ 0.00m
+우→좌
+GoalExp11 ✗ 1.91mStep2 ✗ 0.52mExp49 ✓ 0.00m
+우→우
+GoalExp11 ✗ 1.03mStep2 ✗ 1.77mExp49 ✓ 0.32m
+※ 궤적은 FPE·lateral_dev·path_type 기반 근사 재구성 — 시작/끝 오차 방향은 실제와 다를 수 있음
+실패 분류 taxonomy (Exp11 기준)
+forward_collapse
+항상 FORWARD만 예측
+trajectory_divergence
+누적 오차로 경로 이탈
+late_turn
+회전 타이밍 지연
+left_right_confusion
+좌우 방향 혼동
+oscillation
+LEFT↔RIGHT 반복
+rotation_missing
+ROT_L/R 미예측
+
+</div>
+
+<a class="src-link" href="../v5/research_story.html#cl-dive">→ 원문 전체 보기 (research_story.html#cl-dive)</a>
+
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 6</span> 최신 실험 — Exp51 분석 결과</div>
 
@@ -60,7 +392,7 @@ Overfitting 위험 분석
 
 </div>
 
-<div class="chapter-block accent-c" markdown="1">
+<div class="chapter-block accent-e" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 7</span> 최신 돌파구 — Exp46~52: 100% 성공</div>
 
@@ -277,7 +609,7 @@ n_train 4배 증가 효과 분석
 
 </div>
 
-<div class="chapter-block accent-d" markdown="1">
+<div class="chapter-block accent-a" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 9</span> 실로봇 평가 — Exp49 실제 환경 검증</div>
 
@@ -370,9 +702,39 @@ Robot Tests — 실제 추론 세션 전체 프레임 분석
 
 </div>
 
-<div class="chapter-block accent-e" markdown="1">
+<div class="chapter-block accent-b" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 14</span> Closed-Loop 평가 — 왜 val_acc보다 학술적으로 더 강한 증거인가</div>
+
+<div class="card" markdown="1">
+
+함정
+val_acc 92.6%가 의미하는 것
+val_acc → 예상 CL 성공률 (오류가 독립·랜덤일 때)
+0.92620
+에피소드 20 프레임 기준
+=
+≈ 20%
+이론적 예상 CL 성공률
+vs
+96.7%
+실제 측정 CL 성공률
+실제 CL 96.7%가 이론적 예상치 20%를 4.8배 초과한다는 것은,
+모델의 오류가 "랜덤하고 독립적"이지 않고 작고 회복 가능한 오류임을 의미한다.
+open-loop val_acc의 한계
+각 프레임을 독립적으로 평가
+→ 오류가 다음 프레임에 영향 없음
+→ 복도 초반 오류가 나중 성공에 영향 없음
+→ 실제 로봇은 오류가 누적되어 경로 이탈
+92.6% val_acc = 실제 주행 성공을 보장하지 않음
+closed-loop가 측정하는 것
+로봇이 자신의 출력으로 움직인 뒤 다음 프레임을 관찰
+→ 오류가 실제로 누적됨
+→ 분포 이탈(out-of-distribution) 상황 자동 테스트
+→ 모델이 스스로의 실수를 회복하는지 측정
+96.7% CL = 로봇이 실제로 basket에 도달
+
+</div>
 
 <div class="card" markdown="1">
 
@@ -549,9 +911,63 @@ CL 96.7%로 답하는 것
 
 </div>
 
-<div class="chapter-block accent-a" markdown="1">
+<div class="chapter-block accent-c" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 31</span> exp64 실측 평가 — val 지표가 숨긴 full-frame collapse</div>
+
+<div class="card" markdown="1">
+
+🔬 평가 설계 — 3개 세트로 "작동 vs 암기" 판정
+① In-dist basket
+V5 basket 49프레임(시점 버킷별). hit / cx_MAE / cx_std / full-frame율 측정 — 좌표 정밀도.
+② OOD 미학습 객체
+의자 11장에 detect gray basket → 오탐(FP)? 3-negative 지름길("NOT{pot,ball,person}→basket") 과적합 검증.
+③ 시각 그리드
+파랑=base / 초록=exp64 박스 나란히 오버레이.
+스크립트: scripts/eval_exp64_grounding.py · base PG2(LoRA 없음)와 동일 샘플 대조.
+📊 base vs exp64 (basket 49프레임 + 의자 11장)
+지표
+base PG2
+exp64
+해석
+basket hit
+98%
+94%
+약간 하락
+cx_MAE (중심 오차)
+0.126
+0.150
+exp64가 더 나쁨
+cx_std
+0.112
+0.049
+좋아 보이지만 full-frame 부작용
+area_mean (박스 크기)
+0.142
+0.967
+박스가 화면 97% 덮음
+full-frame율 (area>0.9)
+0%
+92%
+박스 붕괴 — localization 무력화
+OOD 의자 오탐(FP)
+9% (1/11)
+9% (1/11)
+개선 없음 (동일)
+🖼 basket 49프레임 중 8장 — 파랑=base(타이트) vs 초록=exp64(full-frame)
+![basket 비교 그리드](../v5/exp64_eval/basket_compare_grid.png)
+파랑(base) 박스는 실제 바구니를 정확히 감싼다. 초록(exp64) 박스는 거의 모든 프레임에서 화면 테두리 전체 — "바구니가 어디 있는지"를 전혀 말해주지 못한다.
+🪑 OOD — 의자 11장에 "detect gray basket" (오탐 검증)
+![OOD 의자 그리드](../v5/exp64_eval/ood_chair_grid.png)
+의자엔 basket이 없으므로 박스가 안 나와야 정상. base·exp64 모두 11장 중 1장만 오탐(9%) — exp64가 오탐을 줄이지 못함.
+⚠️ 결론 — val 지표가 숨긴 실패
+1. val TP/FP는 "박스가 나오나"만 본다. 박스 품질(어디인지)은 안 본다. exp64는 "basket 있으면 화면 전체에 박스"를 학습해 TP=99%를 통과했지만, 실제 localization은 붕괴.
+2. cx_std 0.049는 정밀도가 아니다. full-frame 박스는 중심이 항상 ≈0.5라 std가 낮게 찍힐 뿐. 실제 중심 오차(cx_MAE)는 오히려 0.126→0.150 악화.
+3. grounding은 base PG2(LoRA 없음)가 더 정확하다. 타이트한 박스 + full-frame 0%. decomposition의 BBox grounding은 LoRA 없이 base PG2를 그대로 써야 한다.
+🧩 왜 full-frame으로 붕괴했나 (가설)
+학습 목표는 "basket → loc 토큰 출력, negative → <eos>"였고, hard-negative가 pos의 5배(7500 vs 1500). generate 기반 학습은 "loc 토큰을 내보내느냐"는 보상하지만 박스 크기는 거의 제약하지 않는다. 그 결과 모델은 "바구니를 확실히 포함하는 가장 큰 박스 = 화면 전체"라는 지름길로 수렴 — recall은 최대화되지만 정밀도는 0. 박스 크기/IoU에 직접 페널티를 주는 손실 없이는 SigLIP LoRA만으로 정밀 grounding을 얻기 어렵다는 실증.
+
+</div>
 
 <div class="card" markdown="1">
 
@@ -567,7 +983,7 @@ base PG2(LoRA 없음)가 더 정확하다는 결론으로 확정.
 
 </div>
 
-<div class="chapter-block accent-b" markdown="1">
+<div class="chapter-block accent-d" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CHAPTER 33</span> 파이프라인이 범인이었다 — CL 성능 격차의 진짜 원인 규명 (exp65~66)</div>
 
@@ -666,7 +1082,634 @@ CH32의 이 명제는 반만 맞았다. 원인은 두 가지: (a) 파이프라�
 
 </div>
 
-<div class="chapter-block accent-c" markdown="1">
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">NEXT STEP</span> 6/12 현재 — 미팅 3줄 결론 & 로드맵</div>
+
+<div class="card" markdown="1">
+
+4px">RoboVLMs Action Head 비교 완료 — LSTM = ActionMLP (window-baked 등가, 우리가 더 경량)
+Linear 69.0% → FCHead 93.1% → LSTMHead(RoboVLMs) 96.6% = ActionMLP(ours) 96.6%.
+RoboVLMs LSTM-based decoder와 동등 성능을 window-flat MLP로 달성 →
+더 경량·추론 빠름. lora_B=0 버그(RoboVLMs)도 발견.
+CH34 · Table 2-C
+3
+Window ablation 완료 — CL은 w≥4에서 포화, FPE는 window에 민감
+MLP w=2에서만 CL 93.1%로 하락, w≥4면 전부 96.6% 포화 →
+최소 4프레임 히스토리 필요. LSTM w=16이 FPE 0.080m (전체 최저) →
+trajectory 정밀도는 긴 맥락 활용 가능.
+CH35 · Table 2-D
+📊 타 VLA 논문(RT-2 · OpenVLA · NaVILA · RoboFlamingo)과의 정성·정량 비교 →
+CH19 (타 VLA 논문 비교)
+|  논문 Table 초안 →
+TABLE1_PAPER_DRAFT.md
+🔜 다음 액션 (6/12 기준)
+✅ 파이프라인 ablation (CH33) · Head ablation (CH34) · Window ablation (CH35) 완료
+✅ Grounding Hub §G 연동 — 전체 실험 통합 시각화
+✅ Stage2 v2 추론 서버 soda 배포 (stage2_v2_inference_server.py)
+⏳ 의자 좌/우 에피소드 수집 (현재 ~1ep → 목표 15+15ep)
+🔲 의자 Stage2 학습 + CL eval → 다물체 Goal-Conditioned 검증
+🔲 논문 본문 서술 (Table 1/2A/2B/2C/2D 수치 확정 완료, body 필요)
+🎯
+Grounding Evaluation Hub →
+교수님 "오예측·이상한 에피소드" 해부 — exp56~64 grounding 7모델 + base PG2/pure Kosmos 비교, 측면 4경로 에피소드 갤러리. 결론: 오예측은 grounding이 아닌 action 문제 (base PG2 측면 92%·full-frame 0%).
+교수님 미팅 피드백 대응 및 로드맵 투두 (6/7 업데이트)
+🎯
+1. 시각적 타겟 인지 및 Grounding 신뢰성 확보 (R1, R2-3, R2-4, R6 대응)
+"basket 인지 증거 부재", "유사 장애물 오탐(R2-3)", "텍스트 가변성(R2-4)", "LoRA 미세조정 시 지터링 상승(R6)" 등의 피드백에 대해 VLM의 공간 제약 기여도 및 데이터셋 무결성을 입증 완료했습니다.
+🟢 완료된 성과 (Completed)
+- [R1 완료] zero-shot probe(96.6%) 및 이미지 마스킹/플립 테스트를 통해 바스켓 의미 인지 학술적 규명 완료.
+- [R2-3 완료] Hard Negative 데이터 추가(Exp59)로 brown pot 등 장애물 오탐율 0% 달성.
+- [R2-4 완료] PaliGemma2 BBox 좌표를 제어 MLP와 바인딩하여 텍스트 쿼리에 따라 행동이 가변하는 Goal-Conditioned VLA 완성.
+- [R6 완료] HSV 지도 신호 추종에 따른 지터링(0.134)과 VLM 맥락 평탄화 작용 간의 상호작용(Trade-off) 현상 규명.
+- [6/7 결정 완료] LoRA 재학습 실패 대비 PaliGemma 사전학습 강도가 높은 1순위 대체 타겟 "흰색 스툴(Chair)" 선정 및 탐지 가이드라인(Confidence ≥ 0.85, 폭 ≥ 25px) 수립 완료.
+🟡 향후 액션 아이템 (TODO)
+- [ ] 목표물 Chair 교체 배치에 따른 다각도(60%), 조명 차이(20%), 장애물 우회(20%) 비동기 주행 시나리오 수립.
+- [ ] Chair 타겟 기반 MLP 제어 정책(Stage 2)의 Closed-Loop 시뮬레이션 및 실로봇 검증 완료.
+🕹️
+2. 비동기 10Hz 조향 연속 제어 및 시간 정합성 확보 (R3, R4 대응)
+실물 로봇 주행 시 발생한 조향 오실레이션 및 오버슈팅 병목(Blocker)을 극복하고, 도착 지점 정지(STOP) 성능을 보장하기 위한 연속 제어 최적화 및 시간 정합성 역보정을 완료했습니다.
+🟢 완료된 성과 (Completed)
+- [R4 완료] BBox 화면 하단 밀착 기하학 조건인 Y-Center Gate (cy_avg > 0.50)를 이식하여 정지 오발 차단 및 Closed-Loop 성공률 2배 향상(34.4%➔68.8%) 입증 완료.
+- [6/7 최적화 완료] 10Hz 연속 비동기 제어 수집기로 수집 루프 개편 완료.
+- [6/7 최적화 완료] 조이스틱 입력의 미세 튐에 대해 300ms 동안 직전 액션을 홀딩하는 Jitter Hold 필터를 이식하여 유령 정지(mid-stop)를 차단함.
+- [6/7 최적화 완료] 인간 반응 속도를 고려한 100ms Action Lag 역보정(액션 1프레임 시프팅 매핑) 및 에피소드 종료 시점 5프레임 Plateau STOP 저장 적용 완료.
+🟡 향후 액션 아이템 (TODO)
+- [ ] 10Hz 연속 비동기 조향 제어를 활용한 신규 주행 데이터(350~500ep 목표) 대규모 수집 개시.
+- [ ] 수집된 비동기 H5 데이터셋의 패킷 누락 및 포맷 정합성 정밀 무결성 스캔.
+🧠
+3. VLM 표현력 강화 및 소규모 데이터 과적합 제어 (R2-2, R5 대응)
+"LoRA 기여도가 불분명하다(R2-2)", "VLA 트랜스포머의 언어 무시 현상(R5)" 에 대응해 비전 인코더 LoRA를 적용하고 데이터 표현 공간의 일반화 및 학습 과적합 억제 튜닝을 구비했습니다.
+🟢 완료된 성과 (Completed)
+- [R2-2 완료] 취약했던 left 방향 정확도를 +6.2%p(91.1%➔97.3%) 집중 보정하여 LoRA의 조향 대칭 균등화 기여 실증.
+- [R5 완료] BBox 디컴포지션 기하학 공간 규제(Stage 1)를 통해 E2E 트랜스포머 VLA의 고질적인 Attention Collapse를 학술적으로 원천 방지함.
+- [6/4 완료] SigLIP 상위 레이어 LoRA 튜닝 및 LLM Frozen 아키텍처 학습 수행 (exp64).
+- [6/6 완료] NVIDIA GB10 기반 8개 주요 Config에 대한 Ablation sequential 학습 완료.
+🟡 향후 액션 아이템 (TODO)
+- [ ] 6/6 완료된 8개 Ablation 모델 가중치의 오프라인 PM(Perfect Match) 정량 분석 및 최적 가중치 선정.
+- [ ] 선정된 최선 비전 LoRA 가중치를 온디바이스 서버로 배포 및 실물 주행 벤치마크 테스트 진행.
+📊 Closed-Loop Ablation Study 시각화 및 분석
+각 ID별 성공/실패 궤적 및 실제 추론 이미지 매칭
+Ablation Study ID(A1~A3, B1~B3, C1)에 따른 Closed-Loop 주행 성능의 차이를 실제 궤적 이미지와 PaliGemma2 Grounding 추론 이미지(BBox)를 매칭하여 가시적으로 분석합니다.
+📍 Closed-Loop 주행 궤적 플롯 (FPE & TLD 비교)
+전체 (9-Panel)
+Center 시작 (3-Panel)
+Left 시작 (3-Panel)
+Right 시작 (3-Panel)
+![Closed-loop Trajectories](../v5/visual_proof/traj_9panel_v2.png)
+* 각 궤적은 20Hz Closed-Loop 시뮬레이션 환경에서 에이전트의 Action 출력을 누적 적분하여 도출한 실제 경로입니다. (실선: 에이전트 경로 / 점선: Expert 경로)
+function changeTrajImg(type) {
+const img = document.getElementById('traj-display-img');
+const buttons = {
+all: document.getElementById('btn-traj-all'),
+center: document.getElementById('btn-traj-center'),
+left: document.getElementById('btn-traj-left'),
+right: document.getElementById('btn-traj-right')
+};
+let src = 'visual_proof/traj_9panel_v2.png';
+if (type === 'center') src = 'visual_proof/traj_3panel_center_v2.png';
+else if (type === 'left') src = 'visual_proof/traj_3panel_left_v2.png';
+else if (type === 'right') src = 'visual_proof/traj_3panel_right_v2.png';
+img.style.opacity = 0;
+setTimeout(() => {
+img.src = src;
+img.style.opacity = 1;
+}, 150);
+Object.keys(buttons).forEach(key => {
+if (key === type) {
+buttons[key].style.background = '#1e293b';
+buttons[key].style.borderColor = '#334155';
+buttons[key].style.color = '#e2e8f0';
+buttons[key].style.fontWeight = '700';
+} else {
+buttons[key].style.background = '#0f172a';
+buttons[key].style.borderColor = '#1e293b';
+buttons[key].style.color = '#94a3b8';
+buttons[key].style.fontWeight = 'normal';
+}
+});
+}
+Group A · HSV GT Baseline
+150 episodes
+A1 (No-Flip Baseline)
+CL 96.7%
+val_acc: 92.6% · FPE: 0.11m · TLD: 1.01
+A2 (Re-train Baseline)
+CL 52.4%
+val_acc: 95.5% · FPE: 0.55m · TLD: 1.03
+A3 (Horizontal Flip)
+CL 47.6%
+val_acc: 94.3% · FPE: 0.62m · TLD: 1.05
+💡 해석: 노이즈가 전혀 없는 완벽한 HSV BBox GT 하에 학습되었으나, 동일 데이터(150ep) 내에서 Flip 증강을 적용할 시 조향 편향이 희석되어 오히려 Closed-Loop 성능이 절반 이하로 하락하는 과적합(Overfitting) 취약성을 보입니다.
+Group B · PG2 VLM Grounding
+243 episodes
+B1 (No-Flip Scale-Up)
+CL 70.0%
+val_acc: 95.7% · FPE: 0.13m · TLD: 0.99
+B2 (Horizontal Flip)
+CL 65.0%
+val_acc: 95.2% · FPE: 0.18m · TLD: 1.01
+B3 (Flip + Center × 3)
+CL 70.0%
+val_acc: 95.5% · FPE: 0.11m · TLD: 1.00
+💡 해석: PaliGemma2 기반 라이브 Grounding 특유의 지터와 오프셋 오차가 있음에도, 데이터량을 243ep로 증강(Scale-Up)함에 따라 CL 성공률이 70%까지 비약적으로 상승하며 데이터 스케일의 중요성을 입증합니다.
+Group C · End-to-End VLA
+243 episodes
+C1 (E2E Kosmos-2)
+CL 18.8%
+val_acc: 78.6% · FPE: 1.95m · TLD: 0.93
+⚠️ center_straight(4/4 성공) 외의 회전 경로 전원 실패 (조향 진동 발산)
+💡 해석: 단일 거대 모델이 인식과 제어를 한 번에 풀어야 하므로 학습 난이도가 높습니다. Decomposed 방식(B1~B3)이 소규모 주행 데이터(243ep) 환경에서 데이터 효율성 및 제어 강건성 면에서 현격한 우위에 있음을 실증합니다.
+👁️ Grounding 성공 케이스 vs 제어 OOD 극복 추론 결과 시각화
+Frame [1] - 출발 시점 Grounding 검증 ("gray basket")
+![Frame 1 Grounding](../v5/visual_proof/exp57_frame1_comparison.jpg)
+설명: 출발 프레임에서 PaliGemma2 LoRA 그라운더가 "gray basket"의 정확한 위치를 바운딩 박스(빨간색)로 포착. 오탐지(False Positive)율 0%로 타겟 객체만 명확하게 검출하는 상태입니다.
+Frame [7] - 주행 중 Grounding 검증 (정렬 확인)
+![Frame 7 Grounding](../v5/visual_proof/exp57_frame7_comparison.jpg)
+설명: 주행을 진행하며 바스켓에 가까워질수록 bbox가 중앙에 정확히 매칭됩니다. VLM의 bbox 오차 통계를 활용한 BBox Noise Augmentation 학습이 적용된 Stage2 MLP는 이 편향된 오차를 OOD로 간주하지 않고 복원 조향(Left/Right Action)을 안정적으로 생성합니다.
+결론 요약 (Professor Meeting Core Claim):
+1. 객체 인식 증거: 동일 이미지에서 쿼리만 교체 시("gray basket" 100% vs "red ball" 0%) 그라운딩이 동작하는 것으로 "목표 인식 → 위치 탐지"의 순차 메커니즘을 명백히 보여줍니다.
+2. 제어 연동 안정성: VLM bbox 특유의 오프셋(std 0.22)에 무너지던 Closed-Loop를 BBox Noise Augmentation (scale=2.0) 및 Flip 증강(B3)을 결합해 최종 CL 70%까지 회복하여 "텍스트 목표 → Grounding → 실조향"의 전체 연결고리를 완성했습니다.
+🔍 신규 분석 — 데이터셋 실제 구성 확인 + 교차 테스트 결과
+Exp59 cross-object 테스트 후 실제 이미지 확인 → 핵심 발견
+V5 환경 — gray basket만 존재 (clean)
+![](assets/1358148ed5234b7b.jpg)
+center_straight | gray basket만 | 배경: 흰 벽
+V5 환경 — 장애물 태스크 (가구 + gray basket)
+![](assets/7573deba3b44147f.jpg)
+left_straight | gray basket + 캐비닛·칠판 (장애물 태스크)
+⚠️ V4 환경 — gray basket + brown pot 동시 존재!
+![](assets/c72c4b8377afc0af.jpg)
+V4 에피소드 | 화분(앞) + gray basket(뒤) 모두 존재
+⚠️ V4 환경 — 매 프레임에서 동일 구성
+![](assets/cdbbbc84e6d5fed1.jpg)
+다른 V4 에피소드에서도 동일 패턴 — 항상 두 객체 공존
+🔑 핵심 발견: V4 데이터셋은 "brown pot 전용"이 아님
+V4의 모든 프레임에 gray basket(뒤)과 brown pot(앞)이 함께 존재.
+V5는 장애물 태스크여서 일부 프레임에 가구류가 있으나, brown pot은 없음.
+→ "V4 → detect gray basket = 100% 오탐"이 실제로는 오탐이 아님 — gray basket이 거기 있기 때문.
+교차 테스트 결과 (Exp58 epoch5 · 각 환경 15장)
+![](assets/d4753119bd850882.jpg)
+진짜 오탐 (실제 FP)
+V5 이미지(gray basket만) → "detect brown pot" → 67% 히트
+V5에 brown pot이 없는데 박스 반환 → 진짜 오탐
+모델이 gray basket을 brown pot으로 착각
+TP는 정상 (오탐 아님)
+V4 이미지 → "detect gray basket" → 100% 히트
+gray basket이 V4에 실제로 있기 때문 — 정상
+이건 FP가 아니라 진짜 정답
+근본 원인: 부정 샘플(hard negative) 없는 학습
+현재 학습:
+V5 이미지 + "detect gray basket" → bbox ← 배움
+V4 이미지 + "detect brown pot" → bbox ← 배움
+없는 것:
+V5 이미지 + "detect brown pot" → <eos> ← 이 학습이 없어서 67% 오탐
+V4 이미지 + "detect gray basket" → gray basket bbox만 (화분 제외) ← 이것도 없음
+해결 방향 — Hard Negative 추가 학습
+① V5 이미지 → "detect brown pot" → <eos> 샘플 추가 (easy negative: 없는 물체 쿼리)
+② V4에서 gray basket과 brown pot bbox를 분리해서 각 쿼리에 정확한 GT 제공
+③ Exp58 epoch25 완료 후 재평가 → 개선 없으면 hard negative 포함 Exp59 설계
+→ 완전 분리 시 "텍스트로 목표 변경 = Goal-Conditioned Navigation" 증명 가능
+교수님 예상 추가 반문 — 준비된 대응 논리
+Q. "brown pot에서도 gray basket이 83%면 진짜 구분 아니잖아요?"
+A. within-class 오분류 vs 비컨테이너 오분류는 다름. red ball/person은 0~3% — 실제 내비 시나리오에서 대체물체는 공이나 사람이지, 똑같이 생긴 바구니가 아님. 완전 구분은 두 물체 포함 학습 데이터 필요(R3 계획).
+Q. "LoRA가 basket을 인식하는 게 아니라 bbox 형식만 배운 거 아닌가요?"
+A. 포맷만 배웠다면 모든 phrase에 bbox 나와야 함. 실제로 red ball → <eos> 즉시, gray basket → <loc####> 출력. phrase에 따라 출력 분기됨. cx_err=0.075 — basket 실제 위치에 bbox 생성.
+Q. "grounding 된다고 navigation이 되는 건 아니잖아요?"
+A. 현재 파이프라인은 HSV 색상 tracker → cx/cy → Stage2 MLP → action. 이미 CL 96.7% 동작 중. Exp57은 색상 tracker를 VLM grounding으로 교체하는 upgrade 경로 — 다른 조명/각도에서도 robust한 물체 추적 가능.
+Goal-Conditioned Grounding 트랙 — Exp57 → 58 → 59
+5/27~5/29 · 환각 없이 실측치만 기록 · 마지막 업데이트 5/28 21:30
+✅ 완료
+Exp57 — PaliGemma-3b-pt LoRA (단일 클래스)
+5/27 완료
+100%
+"gray basket" (30/30)
+0%
+"red ball" (0/30)
+3%
+"person" (1/30)
+✓ 달성: R2-3 반박 — 비컨테이너(공·사람) 98.3%p 분리. Train 1,280 / Val 220.
+⚠ 한계: within-class 분리 불가 — beige basket 100%, laundry basket 100%, brown pot 96.7%.
+→ "용기 클래스" 학습. gray basket만 특정하지 못함. Exp58 설계 동기.
+⛔ epoch15.5에서 중단
+Exp58 — PaliGemma2-3b-mix 2-class LoRA
+5/28 08:04 시작 · epoch15.5/25에서 중단 (5/28 21:40) — hard negative 없어 FP 불해결, Exp59 즉시 시작이 8.2h 빠름
+진행: epoch ~15.5 / 25Train 3,906 / Val 704
+경과 13.4h / 예상 총 21.7h · GPU 27GB 사용 중
+Epoch 5 체크포인트 실측 (5/28 12:54 저장)
+100%
+"gray basket" val (22/22)
+100%
+"brown pot" val (38/38)
+교차 테스트 실측 (5/28 20:45 · epoch5 · 각 15장)
+100%
+V5→basket TP
+66.7%
+V5→pot FP ❌
+100%
+V4→basket *
+100%
+V4→pot TP
+* V4→"gray basket" 100%는 오탐 아님: V4 프레임에 gray basket이 실제로 존재(두 객체 공존)
+✓ 달성: 두 클래스 동시 100% (val). V4 데이터셋 구조 파악 (gray basket+brown pot 공존).
+✗ 미달: V5→"brown pot" 66.7% FP — 분리 실패. 원인: hard negative 없는 학습.
+→ Exp59 설계 동기.
+✅ 완료
+Exp59 — Hard Negative 포함 목표 분리 LoRA
+5/29 완료 · 고수준 레이어(18~26) + hard negative
+교차 객체 그라운딩 결과 (R2-3)
+"detect gray basket" → Basket (Target): 95.0% TP
+"detect gray basket" → Pot (Negative): 0.0% FP
+"detect gray basket" → Ball (Negative): 0.0% FP
+"detect gray basket" → Person (Negative): 0.0% FP
+Closed-Loop 시뮬레이션 붕괴
+성공률: 4.5% (1/22)
+평균 FPE: 4.098m
+원인: BBox OOD 문제 발견.
+VLM 그라운더의 미세 편향(Δcx=-0.084)을 MLP가 입력 분포 이탈(OOD)로 인지하여 오동작.
+달성: 텍스트 조건부 객체 인식(R2-3 오탐) 완벽 해결. gap=95%p 달성.
+한계: BBox 편향이 누적 드리프트(Drift)를 유발하여 주행 붕괴. MLP의 분포 노이즈 학습 필요성 대두.
+✅ 완료
+Exp60 — BBox Noise Augmentation Stage2 MLP
+5/31 완료 · VLM bbox 오차 캘리브레이션 주입 학습
+VLM vs GT BBox 오차 실측 (Δ)
+Δcx: mean -0.084, std 0.222 (좌측 편향 + 큰 산포)
+Δcy: mean -0.012, std 0.137
+Area ratio: mean 0.979 (스케일 가변성)
+Miss rate: 4.1% (VLM 미검출 비율)
+Noise Scale Sweep 결과 (CL)
+baseline (0.0): 4.5% 성공 | FPE 4.07m
+noise_scale 1.0: 13.6% 성공 | FPE 1.34m
+noise_scale 2.0 (최적): 36.4% 성공 | FPE 0.575m
+noise_scale 3.0: 22.7% 성공 | FPE 1.33m
+Clean PM 성능: 91.4% (일반화 성능 유지)
+달성: BBox 노이즈 증강(Augmentation) 주입을 통해 VLM-bbox OOD 장벽 극복. CL 성공률 8배 상승 (4.5% → 36.4%), 평균 FPE 7.1배 감소 (4.075m → 0.575m).
+한계: 절반의 경로(center 계열 등)는 1.15m FPE 영역에서 주저앉아, 추가적인 궤적 데이터 증강 필요.
+✅ 완료
+Exp61 — MoNa-Pi 데이터 통합 + Flip/Center 증강
+6/1 완료 · 150ep → 243ep 학습 데이터 확대
+MoNa-Pi 데이터 통합 학습 설정
+총 에피소드: 150ep → 243ep 확장 (+93ep)
+Flip Augmentation: 좌우 반전 데이터 보강
+Center Over-sampling: center 경로 3x 오버샘플
+제어망 PT: VLM-bbox 노이즈 + Flip+Center 적용
+최종 Closed-Loop 시뮬레이션 결과
+성공률: 70.0% (15/22)
+left / right 계열 경로: 100% 성공 (14/14)
+center 계열 경로: 0% 성공 (0/8)
+새 병목 발견: cx jitter & bias
+정중앙 straight 구간에서 VLM의 cx가 0.456로 좌측 편향 및 미세한 프레임 간 지터(std 0.11)로 시뮬 상에서 지그재그 거동하며 드리프트(Drift).
+달성: MoNa-Pi 통합 학습으로 Closed-Loop 성공률 70% 돌파. 난해한 코너 선회 경로(right/left)의 100% 성공 달성으로 grounding-action 파이프라인의 완성도를 높임.
+남은 과제: center_straight 구간의 물리/제어 구조적 편향 극복.
+Exp57 → 58 → 59 흐름 요약
+Exp57: 비컨테이너 분리 ✅ → 용기 클래스 한계 발견
+Exp58: 2-class 동시 학습 ✅ → V4 데이터 공존 구조 발견, hard negative 필요
+Exp59: hard negative 추가 → 진짜 객체별 분리 → Goal-Conditioned VLA 증명
+이 세 단계는 순차적 발견과 개선 — 실패가 아닌 연구 진행 과정
+Exp57 / 58 / 59 — 구조 비교
+실측치 기반 · 5/28~5/29
+항목
+Exp57 ✅
+Exp58 ⛔
+Exp59 🔄
+백본
+PaliGemma
+3b-pt-224
+PaliGemma2
+3b-mix-224
+PaliGemma2
+3b-mix-224
+Vision 구조
+SigLIP 27층
+SigLIP 27층
+SigLIP 27층
+LM 구조
+Gemma
+18층 / 2048d
+Gemma2
+26층 / 2304d
+Gemma2
+26층 / 2304d
+LoRA 레이어
+전체 45층
+Vision0~26 + LM0~17
+전체 53층
+Vision0~26 + LM0~25
+고수준 17층
+Vision18~26 + LM18~25
+LoRA modules
+q, v
+q, v
+q, k, v
+k_proj 추가
+r / alpha
+r=8 / α=16
+r=8 / α=16
+r=16 / α=32
+학습 파라미터
+~2.17M
+2.59M
+실측
+2.40M
+실측
+학습 클래스
+1-class
+gray basket만
+2-class
+basket + pot
+2-class + negative
+basket/pot + <eos>
+Hard Negative
+없음
+없음
+있음 (neg_ratio=0.3)
+1,832개 <eos> 샘플
+Train 샘플
+1,280
+3,906
+5,480
+epoch당 시간
+~30분
+~52분
+~60분
+완료 epoch / 시각
+25ep ✅
+5/27 완료
+15.5ep ⛔
+5/28 21:40 중단
+0ep 시작 🔄
+5/29 18:08 예상
+결과 비교 (실측)
+Exp57 — 단일 클래스
+"gray basket" val: 100%
+"gray basket" V5: 100% (30/30)
+"red ball": 0%
+"person": 3%
+"brown pot": 96.7% FP ❌
+"beige basket": 100% FP ❌
+한계: 용기 클래스 전체 검출
+Exp58 — 2-class, epoch5
+"gray basket" val: 100% (22/22)
+"brown pot" val: 100% (38/38)
+교차 V5→"pot": 66.7% FP ❌
+교차 V4→"basket": 100%
+(V4에 basket 실제 존재)
+sep. gap: 0~33%
+한계: hard negative 없어 FP 미해결
+Exp59 — Hard Negative (학습중)
+결과 미확인 (학습 중)
+목표:
+"gray basket" TP: >95%
+V5→"pot" FP: <10%
+sep. gap: >80%p
+epoch5 결과: 5/29 03:09 예정
+구조적으로 뭐가 달라졌나
+Exp57→58: 백본 업그레이드
+pt → mix (detection pre-training 포함)
+Gemma → Gemma2 (GQA, 더 깊은 LM)
+단일→2-class 동시 학습
+but 전체 레이어 LoRA 그대로
+Exp58→59: 학습 전략 혁신
+전체→고수준 레이어(18~26)만
+q+v → q+k+v (어텐션 완전 제어)
+r=8→16 (표현력 상향)
++ Hard negative: <eos> 분리 학습
+BBox vs 객체 인식 — 연구 흐름과 논리적 연결
+교수님 핵심 질문 "basket을 보는가?" 와 우리 답변의 구조
+❌ BBox ≠ 객체 인식 (위험한 등치)
+HSV bbox:
+"회색이고 밝기 70~230인 픽셀 덩어리"
+→ 색상 임계값. 객체 개념 없음.
+흰 벽 / 회색 문도 잡힘
+단순 bbox 출력:
+위치(cx,cy,area)만 알고 뭔지는 모름.
+"basket이 왼쪽에 있다"가 아니라
+"회색 덩어리가 왼쪽에 있다"만 앎.
+→ 교수님 지적의 핵심
+✅ 신경망 Grounding bbox = 객체 인식
+PaliGemma grounding:
+"detect gray basket" → 텍스트가 조건
+→ 모델이 gray basket이 뭔지 알아야 bbox 위치 결정 가능
+Exp59 hard negative가 핵심 증거:
+같은 이미지 + "detect red ball" → <eos>
+= "basket은 공이 아님을 안다"
+= 객체 개념을 텍스트로 구별
+→ 이것이 진짜 객체 인식
+MoNaVLA 연구 흐름 — 3단계 진화
+Stage 1 — End-to-End VLA (Exp1~25, 실패)
+카메라 → [VLM backbone + LoRA] → action token
+결과: text attention 0% (Google-robot post-training이 text path 붕괴)
+Forward만 보고 액션 예측 = 복도 패턴 암기
+Stage 2 — 분해 접근 (Exp26~56, 현재 동작 중 ✅)
+카메라 → HSV 색상 필터 → cx,cy ← 지금 여기
+카메라 → CLIP LoRA → visual feature
+[cx,cy + visual feature] → MLP → action
+결과: CL 96.67%, PM 92.6% ✅
+문제: HSV는 색상 필터 = 객체 인식 아님
+Stage 3 — Neural Grounding 파이프라인 (Exp57~59, 진행 중 🔄)
+카메라 → PaliGemma2 LoRA → cx,cy ← Exp59 목표
+"detect gray basket" → bbox (객체 특정)
+"detect red ball" → <eos> (없음 인식)
+카메라 → CLIP LoRA → visual feature
+[cx,cy + visual feature] → MLP → action
+= HSV 완전 제거 → 텍스트 조건부 객체 인식
+최종 목표 (VLA):
+"find the gray basket" → grounding → navigation
+"find the brown pot" → grounding → navigation (같은 시스템, 텍스트만 변경)
+= Goal-Conditioned Navigation = 진짜 VLA
+
+</div>
+
+<div class="card" markdown="1">
+
+🟢 2026-06-21 구현 — 위 "최종 목표"의 grounding 부분을 실제로 연결함
+(plan_20260621_instruction_grounding.md)
+항목이전(Stage 3, exp59까지)지금(2026-06-21)
+grounding 프롬프트
+"detect gray basket" 하드코딩
+API의 instruction → 프롬프트로 그대로 전달
+다룰 수 있는 객체
+바스켓 1종
+검증된 5종(사과·머그컵·콜라캔·의자·콘) + 텍스트로 확장 가능
+STOP 임계값(GOAL_AREA)
+전역 고정값 0.25(바스켓 기준)
+객체별 매핑(configs/goal_area_map.json), 없는 객체는 0.25로 폴백
+action head가 언어를 보는가
+아니오(0%)
+여전히 아니오 — 언어는 grounding에서만 작동, action은 그대로 기하학적
+배경/장면이 달라져도 되는가? §3 검증 5장은 실제로 서로 다른 복도/조명에서 찍힌 사진이다(사과=유리문 복도, 머그컵=창문 있는 회색 타일 복도, 콘=유리벽 복도 등) —
+같은 배경에서 객체만 바꾼 게 아니라 배경도 객체도 둘 다 다른 5장 전부에서 hit 100%였다. 이건 PG2 zero-shot의 사전학습 지식이 우리 학습 분포(복도+바스켓)를 넘어 일반화한다는
+증거(§C4 증강 강건성 결론과 같은 맥락)다. 단, "같은 배경에서 카메라 거리만 달라질 때" area가 얼마나 안정적인지는 아직 검증 안 됨 —
+이게 바로 GOAL_AREA 캘리브레이션이 필요한 이유(아래).
+GOAL_AREA 캘리브레이션 방법(scripts/calibrate_goal_area.py):
+바스켓의 0.25도 사진 한 장의 수학적 환산이 아니라 실주행 세션(S6~S8)에서 경험적으로 나온 값이었다 — 다른 객체도 같은 방식으로 해야 한다.
+절차: ① 캘리브레이션할 객체를 "로봇이 멈춰야 하는 바로 그 거리"에 실제로 놓음 → ② 그 자리에서 카메라로 n회(기본 3회) 캡처해 /ground로 area 측정 →
+③ median area를 그 객체의 GOAL_AREA로 goal_area_map.json에 저장 → ④ 서버 재시작(현재 구현은 모듈 로드 시 1회만 읆음 — 핫리로드 없음).
+soda에서 물리적으로 객체를 들고 거리를 맞춰야 하는 단계라 아직 실행 전.
+교수님 질문 → 우리 답변 연결
+Q.
+"basket을 본다는 증거가 없다"
+→
+PaliGemma "detect gray basket" 100% / "red ball" 0% → 텍스트 조건부 인식 증명 (Exp57)
+Q.
+"다른 물체 넣으면 다른 행동해야"
+→
+같은 이미지 + 다른 쿼리 → 다른 bbox/. Exp59로 완전 분리 학습 중
+Q.
+"bbox는 위치 정보일 뿐, 객체 인식 아님"
+→
+PaliGemma의 bbox는 텍스트 쿼리가 조건. "recognize → locate" 순서. HSV와 근본적 차이.
+Q.
+"텍스트로 목표 바꾸면 행동도 바뀌어야"
+→
+Exp59 성공 시: "gray basket" / "brown pot" 텍스트만 바꾸면 다른 grounding → 다른 cx → 다른 action. Goal-Conditioned VLA 완성.
+E 안 — 6/7 결정
+사전학습 객체(Chair/Stool) 교체 및 10Hz 비동기 주행 수집 개편
+1. 객체 교체: LoRA 재학습 실패 대비 PaliGemma 사전학습 인지 강도(98%)가 높은 흰색 스툴을 1순위 대체 타겟으로 선정.
+2. 10Hz 비동기 주행 수집: 6/4 Blocker(조향 오실레이션) 해결을 위해 10Hz 비동기 수집 루프로 전환. Action Lag 100ms 시간축 시프팅 보정, 300ms Jitter Hold 필터(유령 정지 mid-stop 차단), H5 내 timestamps 데이터셋 추가 및 Plateau STOP(종료 시점 5프레임 STOP 강제 오버라이딩)을 적용해 데이터셋 무결성을 확보함.
+D 안 — 6/4 결정
+LoRA 아키텍처 재설계 & 제어 튜닝
+SigLIP 상위 레이어에 LoRA를 적용하고 LLM 레이어는 제외하여 일반화 성능 극대화. OOD 데이터 증강 및 액션 청크 길이 최적화를 통해 실물 주행 오버슈팅 차단.
+A 안 — 추천
+GoalNav Step 3 확장
+Exp49를 기반으로 start_pos(left/center/right) × goal_pos를 함께 학습.
+또는 매 프레임 grounding 결과를 goal_pos로 갱신하는 방식으로 완전 일반화.
+현재 인프라(Kosmos-2 grounding + MLP)를 그대로 활용.
+B 안
+새 Backbone 재도전
+TICVLA / MobilityVLA 등 text attention이 살아있는 backbone으로 교체.
+Google-robot backbone의 text=0% 구조 문제를 근본 해결.
+학습 시간/비용 재투자 필요. Exp11 실패 원인이 backbone임을 다시 확인.
+C 안
+실로봇 결과 후 결정
+실로봇 성공률이 ≥80% → A안 진행.
+실로봇 sim-to-real gap >20%p → grounding 신뢰도 문제 분석 후 결정.
+오늘 테스트 결과를 기다려 방향 확정.
+📊 평가 지표 및 학습/추론 부스팅 관계 맵
+96.6%로 나왔던 기존의 검증 정확도(val_acc)는 오프라인 PM의 부분집합이며, CL(Closed-Loop) 완주 성공을 보장하지 않습니다.
+아래 맵은 오프라인 성능(PM)을 실제 주행 성능(CL)으로 연결시키기 위해 적용된 학습/추론 단의 부스팅 관계를 정의합니다.
+graph TD
+%% 평가지표 그룹
+subgraph Evaluation_Metrics["평가 지표 (Evaluation Metrics)"]
+PM["Offline PM (Perfect Match) <br> - 정적 데이터셋 분류 정확도 <br> - val_acc 96.6% 포함"]
+CL["Closed-Loop (CL) Success <br> - 실시간 피드백 루프 성공률 <br> - 최종 실로봇 성능"]
+end
+%% 학습 부스팅 그룹
+subgraph Train_Boosting["학습 단계 부스팅 (Training-time Boosting)"]
+Contrastive["Stage 1 Contrastive Alignment <br> - 이미지 특징과 실제 Basket 위치 동기화 <br> - frame-level cx_det 레이블"]
+LossWeight["Action Loss Weighting <br> - 회전/정지 클래스 가중치 5x 부여"]
+Augmentation["Offset/Noise Augmentation <br> - 미세 조향 이탈 복귀 학습"]
+end
+%% 추론 부스팅 그룹
+subgraph Inference_Boosting["추론 단계 부스팅 (Inference-time Boosting)"]
+Chunking["Action Chunking <br> - 5-step 제어 궤적 동시 예측"]
+Windowing["Temporal Windowing <br> - 8-frame 히스토리 퓨전"]
+BBoxHybrid["HSV-VLM Hybrid BBox Tracking <br> - 실시간 중심 좌표 보정 피드백"]
+end
+%% 관계선 정의
+PM -->|필요조건: 오프라인에서 패턴을 익혀야| CL
+Contrastive -->|Stage 1에서 특징 추출 능력 향상| PM
+LossWeight -->|소수 클래스 정확도 보정| PM
+Augmentation -->|이탈 상황 복귀 데이터 주입| CL
+Chunking -->|실시간 주행 속도/방향 스무딩| CL
+Windowing -->|시간 축 노이즈 필터링| CL
+BBoxHybrid -->|실시간 오차 피드백 좌표 공급| CL
+%% 스타일링
+style PM fill:#8b5cf6,stroke:#a78bfa,stroke-width:2px,color:#fff
+style CL fill:#10b981,stroke:#34d399,stroke-width:3px,color:#fff
+style Contrastive fill:#1e293b,stroke:#475569,color:#fff
+style LossWeight fill:#1e293b,stroke:#475569,color:#fff
+style Augmentation fill:#1e293b,stroke:#475569,color:#fff
+style Chunking fill:#1e293b,stroke:#475569,color:#fff
+style Windowing fill:#1e293b,stroke:#475569,color:#fff
+style BBoxHybrid fill:#1e293b,stroke:#475569,color:#fff
+mermaid.initialize({startOnLoad:true, theme:'dark'});
+교수님 프로토콜 진행 현황
+✅
+Step 1 완료
+곡선만 학습 → 직선도 처리 (Exp11, PM 58.6%)
+🔄
+Step 2 — GoalNav 우회 해결
+50/50 직접 학습 대신 goal_pos signal로 해결 → Exp49 CL 96.7%
+⬜
+Step 3 미착수
+33/33/33 완전 자율 내비 — 방향 결정 대기 중
+🖼️ Portfolio Gallery
+연구 증거 이미지 모음
+Notion 포트폴리오에 삽입할 핵심 시각 증거물. 각 이미지를 클릭하면 원본 크기로 열림.
+① 로봇 하드웨어 & 시스템 개요
+![Robot Closeup](../v5/portfolio/robot_closeup.png)
+실물 로봇 — 타겟 바구니 탑재
+3WD Omni-Wheel · Camera · 회색 바구니(navigation target)
+![Robot Track Environment](../v5/portfolio/robot_track.png)
+실험 환경 — Closed-Loop 주행 트랙
+바닥 테이프 경로 · 로봇 출발 위치 · 실내 실험실
+![AIoT Serbot II Spec](../v5/portfolio/serbot_spec.jpg)
+AIoT Serbot II — 하드웨어 스펙
+LiDAR · Camera · 9-Axis IMU · Main Processor · Omni Wheel
+![Stop Gate Concept](../v5/portfolio/stop_gate_concept.png)
+STOP Gate 개념도
+Y-Center Gate · cy_avg > 0.50 기하 조건
+![Factor Contribution](../v5/portfolio/factor_contribution.png)
+요인 기여도 분석
+Image > BBox · VLM 공간 제약 정량화
+② Zero-shot Probe & 내부 해석 가능성
+![Masking Comparison](../v5/portfolio/masking_comparison.png)
+이미지 마스킹 검증
+바스켓 마스킹 → 100% action flip 확인
+![Linear Probe Results](../v5/portfolio/linear_probe_results.png)
+Zero-shot Linear Probe
+Frozen CLIP feature 96.6% → 의미 표현 규명
+![Attention Grid](../v5/portfolio/attention_grid.png)
+Attention Grid 히트맵
+Vision layer별 바스켓 attention 시각화
+![Track Summary](../v5/portfolio/track_summary.png)
+Tracking 분류 요약
+Stable / FLIP 유형별 분류 시각화
+③ BBox Grounding 주행 화면 (실제 로봇 시점)
+![Center Grounding](../v5/portfolio/grounding_center.jpg)
+Center → Straight 주행
+PaliGemma2 BBox 실시간 추종
+![Left Grounding](../v5/portfolio/grounding_left.jpg)
+Center → Left 주행
+좌측 바스켓 탐지 & 조향
+![Right Grounding](../v5/portfolio/grounding_right.jpg)
+Center → Right 주행
+우측 바스켓 탐지 & 조향
+![Grounding Collapse LoRA](../v5/portfolio/grounding_collapse_lora.png)
+Grounding 붕괴 (LoRA FT)
+벽/의자 오트래킹 — 기준선 역전 현상
+![Grounding Base](../v5/portfolio/grounding_collapse_base.png)
+Grounding 안정 (Base PG2)
+cx_std 0.070 — 미세조정 없이 최선
+④ 성능 추이 & 정량 분석
+![Experiment Progression](../v5/portfolio/exp_progression.png)
+실험 진행 성능 곡선
+Exp01→Exp59 PM % 상향 추이
+![Robustness Heatmap](../v5/portfolio/robustness_heatmap.png)
+강인성 히트맵
+조명 × 각도 × 거리 조건별 PM
+![Detection Chart](../v5/portfolio/detection_chart.png)
+Grounding 탐지 비교
+Base vs Exp57 vs Exp59 정량 비교
+![9-Panel Trajectory](../v5/portfolio/traj_9panel.png)
+9-Panel 궤적 비교
+3방향 × 3시나리오 Closed-Loop 경로
+⑤ Grounding 오트래킹 비교 (Base vs Best LoRA)
+![Mistrack Base](../v5/portfolio/mistrack_base.png)
+Base PG2 — 안정 추종
+cx_std 0.070 · full-frame 0%
+![Mistrack Exp59](../v5/portfolio/mistrack_exp59.png)
+Exp59 LoRA — 오트래킹
+벽/의자로 bbox 이탈 — exp64로 개선 예정
+
+</div>
+
+<a class="src-link" href="../v5/research_story.html#next-step">→ 원문 전체 보기 (research_story.html#next-step)</a>
+
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CH 64</span> exp73 전면 재검증 — 오프라인 감사에서 실기 89%까지, 그리고 병목은 "검출"이었다</div>
 
@@ -1752,7 +2795,7 @@ owl_trackF/mlp (best 48.5%, 평균 39.4%) — 가장 단순하고 상위권 동�
 
 </div>
 
-<div class="chapter-block accent-d" markdown="1">
+<div class="chapter-block accent-b" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CH 65</span> 인지-정책 병목의 2축 분해 — "검출이 전부"에서 "검출 난이도 ≠ 주행 난이도"로</div>
 
@@ -2040,7 +3083,7 @@ docs/plans/plan_20260801_specialized_detector.md 검토 대기.
 
 </div>
 
-<div class="chapter-block accent-e" markdown="1">
+<div class="chapter-block accent-c" markdown="1">
 
 <div class="chapter-block-head"><span class="chapter-badge">CH 66</span> 좌우 비대칭의 원인 추적 — 부호로 용의자를 가려내다</div>
 
@@ -2417,341 +3460,5 @@ CH1~CH66 = 현재 논문 범위  ·  CH67~ = 향후 계획
 </div>
 
 <a class="src-link" href="../v5/research_story.html#ch66">→ 원문 전체 보기 (research_story.html#ch66)</a>
-
-</div>
-
-<div class="chapter-block accent-a" markdown="1">
-
-<div class="chapter-block-head"><span class="chapter-badge">CL DEEP DIVE</span> Closed-Loop — 왜 PM과 다른가</div>
-
-<div class="card" markdown="1">
-
-💡 같은 TLD, 다른 FPE:
-Exp11과 Step2 모두 TLD ≈ 1.03m. 하지만 Exp11은 방향 오류로 FPE 1.45m (2.6배 더 멀리 이탈).
-Exp49는 FPE 0.081m — 로봇이 목표 8cm 이내에 도달.
-경로 타입별 궤적 시각화
-· · · Expert (ideal)
-—— Exp11 (CL 0%)
-—— Step2 (CL 66.7%)
-—— Exp49 (CL 100%)
-중앙 직진
-GoalExp11 ✗ 1.72mStep2 ✗ 0.95mExp49 ✓ 0.10m
-중앙→좌
-GoalExp11 ✗ 1.85mStep2 ✓ 0.36mExp49 ✓ 0.08m
-중앙→우
-GoalExp11 ✗ 1.14mStep2 ✓ 0.23mExp49 ✓ 0.04m
-좌 직진
-GoalExp11 ✗ 1.19mStep2 ✓ 0.23mExp49 ✓ 0.00m
-좌→좌
-GoalExp11 ✗ 1.80mStep2 ✓ 0.21mExp49 ✓ 0.11m
-좌→우
-GoalExp11 ✗ 1.18mStep2 ✓ 0.38mExp49 ✓ 0.12m
-우 직진
-GoalExp11 ✗ 1.26mStep2 ✓ 0.34mExp49 ✓ 0.00m
-우→좌
-GoalExp11 ✗ 1.91mStep2 ✗ 0.52mExp49 ✓ 0.00m
-우→우
-GoalExp11 ✗ 1.03mStep2 ✗ 1.77mExp49 ✓ 0.32m
-※ 궤적은 FPE·lateral_dev·path_type 기반 근사 재구성 — 시작/끝 오차 방향은 실제와 다를 수 있음
-실패 분류 taxonomy (Exp11 기준)
-forward_collapse
-항상 FORWARD만 예측
-trajectory_divergence
-누적 오차로 경로 이탈
-late_turn
-회전 타이밍 지연
-left_right_confusion
-좌우 방향 혼동
-oscillation
-LEFT↔RIGHT 반복
-rotation_missing
-ROT_L/R 미예측
-
-</div>
-
-<a class="src-link" href="../v5/research_story.html#cl-dive">→ 원문 전체 보기 (research_story.html#cl-dive)</a>
-
-</div>
-
-<div class="chapter-block accent-b" markdown="1">
-
-<div class="chapter-block-head"><span class="chapter-badge">CL DEEP DIVE</span> Closed-Loop — 왜 PM과 다른가</div>
-
-<div class="card" markdown="1">
-
-💡 TLD가 비슷해도 FPE가 다른 이유:
-Exp11과 Step2 모두 TLD ≈ 1.03m로 거의 같은 거리를 이동했지만,
-Exp11은 방향 오류로 인해 FPE가 2.6배 더 높다.
-Exp49는 FPE 0.081m — 로봇이 목표 8cm 이내에 도달했다.
-경로 타입별 예측 궤적 시각화
-— — Expert (ideal)
-—— Exp11 (실패)
-—— Step2
-—— Exp49 (100%)
-중앙 직진
-Goal
-Start
-Exp11 ✗ 1.72m
-Step2 ✗ 0.95m
-Exp49 ✓ 0.10m
-중앙→좌
-Goal
-Start
-Exp11 ✗ 1.85m
-Step2 ✓ 0.36m
-Exp49 ✓ 0.08m
-중앙→우
-Goal
-Start
-Exp11 ✗ 1.14m
-Step2 ✓ 0.23m
-Exp49 ✓ 0.04m
-좌 직진
-Goal
-Start
-Exp11 ✗ 1.19m
-Step2 ✓ 0.23m
-Exp49 ✓ 0.00m
-좌→좌
-Goal
-Start
-Exp11 ✗ 1.80m
-Step2 ✓ 0.21m
-Exp49 ✓ 0.11m
-좌→우
-Goal
-Start
-Exp11 ✗ 1.18m
-Step2 ✓ 0.38m
-Exp49 ✓ 0.12m
-우 직진
-Goal
-Start
-Exp11 ✗ 1.26m
-Step2 ✓ 0.34m
-Exp49 ✓ 0.00m
-우→좌
-Goal
-Start
-Exp11 ✗ 1.91m
-Step2 ✗ 0.52m
-Exp49 ✓ 0.00m
-우→우
-Goal
-Start
-Exp11 ✗ 1.03m
-Step2 ✗ 1.77m
-Exp49 ✓ 0.32m
-※ 궤적은 FPE, lateral_dev, path_type 기반 근사 재구성. 실제 좌표와 방향은 다를 수 있음.
-실패 패턴 분류 (Exp11 기준)
-forward_collapse
-항상 FORWARD만 예측
-trajectory_divergence
-누적 오차로 경로 이탈
-late_turn
-회전 타이밍 지연
-left_right_confusion
-좌우 방향 혼동
-oscillation
-LEFT↔RIGHT 반복
-rotation_missing
-ROT_L/R 미예측
-
-</div>
-
-<a class="src-link" href="../v5/research_story.html#cl-overview">→ 원문 전체 보기 (research_story.html#cl-overview)</a>
-
-</div>
-
-<div class="chapter-block accent-c" markdown="1">
-
-<div class="chapter-block-head"><span class="chapter-badge">NEXT STEP</span> 6/12 현재 — 미팅 3줄 결론 & 로드맵</div>
-
-<div class="card" markdown="1">
-
-🟢 2026-06-21 구현 — 위 "최종 목표"의 grounding 부분을 실제로 연결함
-(plan_20260621_instruction_grounding.md)
-항목이전(Stage 3, exp59까지)지금(2026-06-21)
-grounding 프롬프트
-"detect gray basket" 하드코딩
-API의 instruction → 프롬프트로 그대로 전달
-다룰 수 있는 객체
-바스켓 1종
-검증된 5종(사과·머그컵·콜라캔·의자·콘) + 텍스트로 확장 가능
-STOP 임계값(GOAL_AREA)
-전역 고정값 0.25(바스켓 기준)
-객체별 매핑(configs/goal_area_map.json), 없는 객체는 0.25로 폴백
-action head가 언어를 보는가
-아니오(0%)
-여전히 아니오 — 언어는 grounding에서만 작동, action은 그대로 기하학적
-배경/장면이 달라져도 되는가? §3 검증 5장은 실제로 서로 다른 복도/조명에서 찍힌 사진이다(사과=유리문 복도, 머그컵=창문 있는 회색 타일 복도, 콘=유리벽 복도 등) —
-같은 배경에서 객체만 바꾼 게 아니라 배경도 객체도 둘 다 다른 5장 전부에서 hit 100%였다. 이건 PG2 zero-shot의 사전학습 지식이 우리 학습 분포(복도+바스켓)를 넘어 일반화한다는
-증거(§C4 증강 강건성 결론과 같은 맥락)다. 단, "같은 배경에서 카메라 거리만 달라질 때" area가 얼마나 안정적인지는 아직 검증 안 됨 —
-이게 바로 GOAL_AREA 캘리브레이션이 필요한 이유(아래).
-GOAL_AREA 캘리브레이션 방법(scripts/calibrate_goal_area.py):
-바스켓의 0.25도 사진 한 장의 수학적 환산이 아니라 실주행 세션(S6~S8)에서 경험적으로 나온 값이었다 — 다른 객체도 같은 방식으로 해야 한다.
-절차: ① 캘리브레이션할 객체를 "로봇이 멈춰야 하는 바로 그 거리"에 실제로 놓음 → ② 그 자리에서 카메라로 n회(기본 3회) 캡처해 /ground로 area 측정 →
-③ median area를 그 객체의 GOAL_AREA로 goal_area_map.json에 저장 → ④ 서버 재시작(현재 구현은 모듈 로드 시 1회만 읆음 — 핫리로드 없음).
-soda에서 물리적으로 객체를 들고 거리를 맞춰야 하는 단계라 아직 실행 전.
-교수님 질문 → 우리 답변 연결
-Q.
-"basket을 본다는 증거가 없다"
-→
-PaliGemma "detect gray basket" 100% / "red ball" 0% → 텍스트 조건부 인식 증명 (Exp57)
-Q.
-"다른 물체 넣으면 다른 행동해야"
-→
-같은 이미지 + 다른 쿼리 → 다른 bbox/. Exp59로 완전 분리 학습 중
-Q.
-"bbox는 위치 정보일 뿐, 객체 인식 아님"
-→
-PaliGemma의 bbox는 텍스트 쿼리가 조건. "recognize → locate" 순서. HSV와 근본적 차이.
-Q.
-"텍스트로 목표 바꾸면 행동도 바뀌어야"
-→
-Exp59 성공 시: "gray basket" / "brown pot" 텍스트만 바꾸면 다른 grounding → 다른 cx → 다른 action. Goal-Conditioned VLA 완성.
-E 안 — 6/7 결정
-사전학습 객체(Chair/Stool) 교체 및 10Hz 비동기 주행 수집 개편
-1. 객체 교체: LoRA 재학습 실패 대비 PaliGemma 사전학습 인지 강도(98%)가 높은 흰색 스툴을 1순위 대체 타겟으로 선정.
-2. 10Hz 비동기 주행 수집: 6/4 Blocker(조향 오실레이션) 해결을 위해 10Hz 비동기 수집 루프로 전환. Action Lag 100ms 시간축 시프팅 보정, 300ms Jitter Hold 필터(유령 정지 mid-stop 차단), H5 내 timestamps 데이터셋 추가 및 Plateau STOP(종료 시점 5프레임 STOP 강제 오버라이딩)을 적용해 데이터셋 무결성을 확보함.
-D 안 — 6/4 결정
-LoRA 아키텍처 재설계 & 제어 튜닝
-SigLIP 상위 레이어에 LoRA를 적용하고 LLM 레이어는 제외하여 일반화 성능 극대화. OOD 데이터 증강 및 액션 청크 길이 최적화를 통해 실물 주행 오버슈팅 차단.
-A 안 — 추천
-GoalNav Step 3 확장
-Exp49를 기반으로 start_pos(left/center/right) × goal_pos를 함께 학습.
-또는 매 프레임 grounding 결과를 goal_pos로 갱신하는 방식으로 완전 일반화.
-현재 인프라(Kosmos-2 grounding + MLP)를 그대로 활용.
-B 안
-새 Backbone 재도전
-TICVLA / MobilityVLA 등 text attention이 살아있는 backbone으로 교체.
-Google-robot backbone의 text=0% 구조 문제를 근본 해결.
-학습 시간/비용 재투자 필요. Exp11 실패 원인이 backbone임을 다시 확인.
-C 안
-실로봇 결과 후 결정
-실로봇 성공률이 ≥80% → A안 진행.
-실로봇 sim-to-real gap >20%p → grounding 신뢰도 문제 분석 후 결정.
-오늘 테스트 결과를 기다려 방향 확정.
-📊 평가 지표 및 학습/추론 부스팅 관계 맵
-96.6%로 나왔던 기존의 검증 정확도(val_acc)는 오프라인 PM의 부분집합이며, CL(Closed-Loop) 완주 성공을 보장하지 않습니다.
-아래 맵은 오프라인 성능(PM)을 실제 주행 성능(CL)으로 연결시키기 위해 적용된 학습/추론 단의 부스팅 관계를 정의합니다.
-graph TD
-%% 평가지표 그룹
-subgraph Evaluation_Metrics["평가 지표 (Evaluation Metrics)"]
-PM["Offline PM (Perfect Match) <br> - 정적 데이터셋 분류 정확도 <br> - val_acc 96.6% 포함"]
-CL["Closed-Loop (CL) Success <br> - 실시간 피드백 루프 성공률 <br> - 최종 실로봇 성능"]
-end
-%% 학습 부스팅 그룹
-subgraph Train_Boosting["학습 단계 부스팅 (Training-time Boosting)"]
-Contrastive["Stage 1 Contrastive Alignment <br> - 이미지 특징과 실제 Basket 위치 동기화 <br> - frame-level cx_det 레이블"]
-LossWeight["Action Loss Weighting <br> - 회전/정지 클래스 가중치 5x 부여"]
-Augmentation["Offset/Noise Augmentation <br> - 미세 조향 이탈 복귀 학습"]
-end
-%% 추론 부스팅 그룹
-subgraph Inference_Boosting["추론 단계 부스팅 (Inference-time Boosting)"]
-Chunking["Action Chunking <br> - 5-step 제어 궤적 동시 예측"]
-Windowing["Temporal Windowing <br> - 8-frame 히스토리 퓨전"]
-BBoxHybrid["HSV-VLM Hybrid BBox Tracking <br> - 실시간 중심 좌표 보정 피드백"]
-end
-%% 관계선 정의
-PM -->|필요조건: 오프라인에서 패턴을 익혀야| CL
-Contrastive -->|Stage 1에서 특징 추출 능력 향상| PM
-LossWeight -->|소수 클래스 정확도 보정| PM
-Augmentation -->|이탈 상황 복귀 데이터 주입| CL
-Chunking -->|실시간 주행 속도/방향 스무딩| CL
-Windowing -->|시간 축 노이즈 필터링| CL
-BBoxHybrid -->|실시간 오차 피드백 좌표 공급| CL
-%% 스타일링
-style PM fill:#8b5cf6,stroke:#a78bfa,stroke-width:2px,color:#fff
-style CL fill:#10b981,stroke:#34d399,stroke-width:3px,color:#fff
-style Contrastive fill:#1e293b,stroke:#475569,color:#fff
-style LossWeight fill:#1e293b,stroke:#475569,color:#fff
-style Augmentation fill:#1e293b,stroke:#475569,color:#fff
-style Chunking fill:#1e293b,stroke:#475569,color:#fff
-style Windowing fill:#1e293b,stroke:#475569,color:#fff
-style BBoxHybrid fill:#1e293b,stroke:#475569,color:#fff
-mermaid.initialize({startOnLoad:true, theme:'dark'});
-교수님 프로토콜 진행 현황
-✅
-Step 1 완료
-곡선만 학습 → 직선도 처리 (Exp11, PM 58.6%)
-🔄
-Step 2 — GoalNav 우회 해결
-50/50 직접 학습 대신 goal_pos signal로 해결 → Exp49 CL 96.7%
-⬜
-Step 3 미착수
-33/33/33 완전 자율 내비 — 방향 결정 대기 중
-🖼️ Portfolio Gallery
-연구 증거 이미지 모음
-Notion 포트폴리오에 삽입할 핵심 시각 증거물. 각 이미지를 클릭하면 원본 크기로 열림.
-① 로봇 하드웨어 & 시스템 개요
-![Robot Closeup](../v5/portfolio/robot_closeup.png)
-실물 로봇 — 타겟 바구니 탑재
-3WD Omni-Wheel · Camera · 회색 바구니(navigation target)
-![Robot Track Environment](../v5/portfolio/robot_track.png)
-실험 환경 — Closed-Loop 주행 트랙
-바닥 테이프 경로 · 로봇 출발 위치 · 실내 실험실
-![AIoT Serbot II Spec](../v5/portfolio/serbot_spec.jpg)
-AIoT Serbot II — 하드웨어 스펙
-LiDAR · Camera · 9-Axis IMU · Main Processor · Omni Wheel
-![Stop Gate Concept](../v5/portfolio/stop_gate_concept.png)
-STOP Gate 개념도
-Y-Center Gate · cy_avg > 0.50 기하 조건
-![Factor Contribution](../v5/portfolio/factor_contribution.png)
-요인 기여도 분석
-Image > BBox · VLM 공간 제약 정량화
-② Zero-shot Probe & 내부 해석 가능성
-![Masking Comparison](../v5/portfolio/masking_comparison.png)
-이미지 마스킹 검증
-바스켓 마스킹 → 100% action flip 확인
-![Linear Probe Results](../v5/portfolio/linear_probe_results.png)
-Zero-shot Linear Probe
-Frozen CLIP feature 96.6% → 의미 표현 규명
-![Attention Grid](../v5/portfolio/attention_grid.png)
-Attention Grid 히트맵
-Vision layer별 바스켓 attention 시각화
-![Track Summary](../v5/portfolio/track_summary.png)
-Tracking 분류 요약
-Stable / FLIP 유형별 분류 시각화
-③ BBox Grounding 주행 화면 (실제 로봇 시점)
-![Center Grounding](../v5/portfolio/grounding_center.jpg)
-Center → Straight 주행
-PaliGemma2 BBox 실시간 추종
-![Left Grounding](../v5/portfolio/grounding_left.jpg)
-Center → Left 주행
-좌측 바스켓 탐지 & 조향
-![Right Grounding](../v5/portfolio/grounding_right.jpg)
-Center → Right 주행
-우측 바스켓 탐지 & 조향
-![Grounding Collapse LoRA](../v5/portfolio/grounding_collapse_lora.png)
-Grounding 붕괴 (LoRA FT)
-벽/의자 오트래킹 — 기준선 역전 현상
-![Grounding Base](../v5/portfolio/grounding_collapse_base.png)
-Grounding 안정 (Base PG2)
-cx_std 0.070 — 미세조정 없이 최선
-④ 성능 추이 & 정량 분석
-![Experiment Progression](../v5/portfolio/exp_progression.png)
-실험 진행 성능 곡선
-Exp01→Exp59 PM % 상향 추이
-![Robustness Heatmap](../v5/portfolio/robustness_heatmap.png)
-강인성 히트맵
-조명 × 각도 × 거리 조건별 PM
-![Detection Chart](../v5/portfolio/detection_chart.png)
-Grounding 탐지 비교
-Base vs Exp57 vs Exp59 정량 비교
-![9-Panel Trajectory](../v5/portfolio/traj_9panel.png)
-9-Panel 궤적 비교
-3방향 × 3시나리오 Closed-Loop 경로
-⑤ Grounding 오트래킹 비교 (Base vs Best LoRA)
-![Mistrack Base](../v5/portfolio/mistrack_base.png)
-Base PG2 — 안정 추종
-cx_std 0.070 · full-frame 0%
-![Mistrack Exp59](../v5/portfolio/mistrack_exp59.png)
-Exp59 LoRA — 오트래킹
-벽/의자로 bbox 이탈 — exp64로 개선 예정
-
-</div>
-
-<a class="src-link" href="../v5/research_story.html#next-step">→ 원문 전체 보기 (research_story.html#next-step)</a>
 
 </div>
