@@ -357,6 +357,7 @@
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
     <a href="#ch69" style="padding:7px 16px;background:#052e16;border:1px solid #4ade80;border-radius:8px;font-size:0.78rem;font-weight:800;color:#86efac;text-decoration:none">🎯 CH69 phrase 그라운딩 대발견</a>
     <a href="#ch70" style="padding:7px 16px;background:#2a1608;border:1px solid #fb923c;border-radius:8px;font-size:0.78rem;font-weight:800;color:#fdba74;text-decoration:none">🧪 CH70 헤드 6종 vs soft label</a>
+    <a href="#ch71" style="padding:7px 16px;background:#1a2408;border:1px solid #a3e635;border-radius:8px;font-size:0.78rem;font-weight:800;color:#bef264;text-decoration:none">📚 CH71 LLM Wiki 구축</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
     <a href="#ch68" style="padding:7px 16px;background:#1a1033;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🗣 CH68 언어조건화 계획</a>
@@ -18529,6 +18530,113 @@ graph TD
 
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH70 ═ -->
+
+<hr class="chapter-divider">
+
+<div class="chapter" id="ch71">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#a3e635;color:#0a0f1a">CH 71</span>
+    <h2 class="chapter-title">LLM Wiki 구축 — 81챕터를 주제별로 재구성한 Karpathy 방식 위키</h2>
+    <p class="chapter-subtitle"><span style="color:#bef264;font-weight:800">2026-08-28~29</span> ·
+    research_story.html(시간순 연구일지)을 주제별로 조회 가능하게 재구성한 <code>docs/wiki/</code>
+    구축. 2026-04 공개된 Karpathy LLM-wiki 방식(raw/wiki/index, 벡터DB 없음)을 채택하고,
+    새 챕터 추가 시 안전하게 재동기화하는 <code>wiki-sync</code> 스킬까지 만들었다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟢 <strong>3줄 요약</strong><br>
+    ① 이 세션에서 CH69/70을 찾으려고 grep을 반복했던 비효율을 계기로, research_story.html
+    81챕터를 8개 주제(그라운딩/액션헤드/언어조건화/flow-matching/데이터셋/실기테스트/백본/미팅)로
+    재구성한 markdown 위키를 만들었다.<br>
+    ② 형식은 2026-04 공개된 Karpathy의 "LLM wiki"(raw/wiki/index.md 3계층, 벡터DB 없음)를
+    채택 — 우리 규모(81챕터, 컨텍스트에 들어감)에 RAG보다 적합하다고 판단.<br>
+    ③ 각 주제 페이지 상단에 병렬 서브에이전트 8개가 전체 정독 후 쓴 압축 요약을 채웠고,
+    새 챕터가 추가돼도 기존 요약을 안 지우고 안전하게 재동기화하는 <code>wiki-sync</code>
+    스킬까지 구축·검증했다.
+  </div>
+
+  <div class="finding-card" style="border-color:#a3e635">
+    <div class="finding-title" style="color:#a3e635">📐 71-1. 파싱 — div 트리 추적 2번 실패 후 "마커 간 텍스트 구간" 방식으로 해결</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      81개 `chapter` div와 그 안의 finding-card/callout을 뽑아내려고 두 가지를 시도했다가
+      둘 다 실패했다: ① 정규식 기반 div 중첩 깊이 추적, ② 표준 `html.parser.HTMLParser`
+      트리 추적. 둘 다 <strong style="color:#f87171">CH7이 CH66까지 통째로 삼켜버리는
+      버그</strong>가 재현됐다 — 원인은 파일 자체(19,123줄, 여러 세션에 걸친 수작업 편집
+      히스토리)에 실제 `<div>`/`</div>` 짝이 안 맞는 부분이 있어서였다(파일 전체 합계는
+      우연히 맞아떨어짐, `open div == close div` 체크로는 안 잡힘).
+      <br><br>
+      해결: 정확한 HTML 트리가 필요 없다는 데 착안해 <strong style="color:#e2e8f0">"챕터/카드는
+      다음 같은 종류 마커가 나오기 전까지의 텍스트 구간"</strong>으로 재정의(`scripts/wiki/parse_research_story.py`).
+      div 짝이 깨져 있어도 마커 자체(챕터 시작 태그, finding-card/callout 시작 태그)의
+      선형 순서만 있으면 안전하게 파싱된다 — 81개 챕터, 301개 finding-card/callout 전부
+      정확히 추출됨.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#a3e635">
+    <div class="finding-title" style="color:#a3e635">🗂 71-2. 주제 태깅 + 압축 요약 — 8개 주제, 서브에이전트 병렬 정독</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      81개 챕터를 실제 제목을 다 확인한 뒤 8개 주제로 분류(`docs/wiki/data/topic_index.json`,
+      79/81챕터 커버 — `vis`는 이미지 전용이라 의도적 제외). 각 주제 markdown 페이지는
+      챕터별 원문을 시간순으로 재배열한 뒤, <strong style="color:#e2e8f0">일반 목적(general-purpose)
+      서브에이전트 8개를 병렬로 launch</strong>해서 각자 자기 주제 파일을 전체 정독하고
+      "지금 이 주제에 대해 확정적으로 아는 것"을 5~12문장으로 압축하게 했다(Karpathy 방식
+      핵심 — 시간순 서사가 아니라 최종 결론 위주).
+      <br><br>
+      예: grounding-detector 요약은 "실주행 성패는 액션헤드가 아니라 그라운딩 가용성이
+      가른다(gnd%≥80 → 98.8% 성공)"로 시작하고, action-head-architecture 요약은
+      "헤드 구조 축은 한계, ordinal soft label(손실함수)만 실질 개선"(CH70)으로 시작한다 —
+      두 문장만 읽어도 그 챕터 번호를 몰라도 핵심을 파악할 수 있다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#a3e635">
+    <div class="finding-title" style="color:#a3e635">📦 71-3. 아카이브 색인 — docs/*.md 357개 스냅샷은 압축 없이 카탈로그만</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      `docs/*.md` 최상위 357개 파일도 편입을 검토했으나, 조사 결과 이들은
+      research_story.html이 다루는 시기(2026-05~)보다 훨씬 이전(2024-08~2026-04)의
+      <strong style="color:#e2e8f0">별개 프로젝트 단계</strong>(양자화/서빙 인프라, manipulation
+      vs navigation 액션 공간 비교, "환각 제거" 반복 수정 이력 등) 기록으로 확인됐다 —
+      지금 EdgeGround-VLA 네비게이션 연구와 직접 연관이 약함. 사용자 판단으로
+      "대부분 죽은 기록 — 아카이브로만 충분"이라 결정, 원문을 읽어 압축하는 대신
+      제목/날짜/한줄요약만 뽑은 카탈로그(`docs/wiki/archive-index.md`, 357행)만 생성했다.
+      원본 파일은 이동·삭제 없이 그대로 둠.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🔁 71-4. wiki-sync 스킬 — 새 챕터 추가 시 압축 요약을 절대 안 지우는 안전한 재동기화</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      새 챕터(CH71 같은)가 추가될 때마다 위키를 손으로 다시 만들 순 없으므로,
+      <code>.claude/skills/wiki-sync/SKILL.md</code> + <code>scripts/wiki/sync_wiki.py</code>로
+      절차를 스킬화했다. 핵심 안전장치: `build_wiki_pages.py`가 몇 번을 다시 돌아도
+      기존 "## 압축 요약" 섹션은 파일에서 읽어와 그대로 보존하고, "챕터별 원문 발췌"
+      섹션만 최신 `chapters.json` 기준으로 재생성한다. 새 챕터가 어떤 주제에 추가되면
+      그 요약 위에 "⚠️ 새 챕터 추가됨 — 재압축 필요" 배지를 자동으로 붙여 낡았음을 표시하고,
+      배지 자체는 다음 실행 때 요약 텍스트에서 다시 벗겨내(영구히 눌어붙지 않게) 매번
+      새로 판단한다.
+      <br><br>
+      기계적 재구성(파싱/재배열/백링크, 스크립트가 결정론적으로 처리)과
+      "무엇을 아는가"의 압축(반드시 LLM이 원문을 읽고 판단, 스크립트가 임의로 안 함)의
+      경계를 명확히 나눈 게 이 스킬의 설계 원칙 — `sync_wiki.py`는 "무엇을 해야 하는지"만
+      알려주고 실제 판단은 항상 스킬을 실행하는 세션이 한다.
+      <br><br>
+      검증: 가짜 챕터를 임시로 한 주제에 추가했다가 제거하는 실험으로 stale 배지
+      생성/제거가 정확히 작동함을 확인했고, 그 과정에서 배지 텍스트가 요약에 영구히
+      눌어붙는 실제 버그 하나를 잡아 수정했다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/wiki/parse_research_story.py</code> ·
+      <code>scripts/wiki/build_wiki_pages.py</code> ·
+      <code>scripts/wiki/build_archive_index.py</code> ·
+      <code>scripts/wiki/render_wiki_html.py</code> ·
+      <code>scripts/wiki/sync_wiki.py</code> · 결과
+      <code>docs/wiki/index.html</code> · 계획
+      <code>docs/plans/plan_20260828_llm_wiki.md</code></span>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH71 ═ -->
 
 
 

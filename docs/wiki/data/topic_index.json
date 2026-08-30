@@ -1,4 +1,9 @@
 {
+  "wiki-infrastructure": {
+    "title": "연구 위키 & 문서 인프라",
+    "summary": "research_story.html을 주제별로 재구성한 LLM wiki 구축(Karpathy 방식), 새 챕터 추가 시 안전 재동기화(wiki-sync 스킬), 아카이브 색인 등 문서화 도구 자체에 대한 기록.",
+    "chapter_ids": ["ch71"]
+  },
   "grounding-detector": {
     "title": "그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)",
     "summary": "타겟 물체를 이미지에서 찾아내는 검출기 계열 전체 이력 — PaliGemma2 → Kosmos-2/OWL-v2 → Florence-2로 이어지는 그라운딩 방식 전환과 재현율 개선.",

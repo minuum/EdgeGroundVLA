@@ -9,6 +9,7 @@
 
 ## 주제 목록
 
+- **[연구 위키 & 문서 인프라](wiki-infrastructure.md)** (1개 챕터) — research_story.html을 주제별로 재구성한 LLM wiki 구축(Karpathy 방식), 새 챕터 추가 시 안전 재동기화(wiki-sync 스킬), 아카이브 색인 등 문서화 도구 자체에 대한 기록.
 - **[그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)](grounding-detector.md)** (19개 챕터) — 타겟 물체를 이미지에서 찾아내는 검출기 계열 전체 이력 — PaliGemma2 → Kosmos-2/OWL-v2 → Florence-2로 이어지는 그라운딩 방식 전환과 재현율 개선.
 - **[액션헤드 아키텍처 & 손실함수 실험](action-head-architecture.md)** (12개 챕터) — bbox/vis 특징을 받아 액션을 뽑는 헤드 구조(MLP/LSTM/Transformer/FiLM/cross-attention)와 손실함수(hard CE vs ordinal soft label) 실험 전체.
 - **[언어 조건화 & 텍스트 어텐션 구조적 사망](language-conditioning.md)** (6개 챕터) — 지시문(텍스트)이 액션에 영향을 미치는 진짜 언어조건화 VLA로 가려는 시도들 — 그리고 반복적으로 발견된 'text attention = 0%' 구조적 문제.
@@ -26,8 +27,8 @@
 
 ## 메타
 
-- 원본 챕터 수: 81개 (`docs/v5/research_story.html`)
-- 위키 주제 수: 8개
+- 원본 챕터 수: 82개 (`docs/v5/research_story.html`)
+- 위키 주제 수: 9개
 - 생성 스크립트: `scripts/wiki/parse_research_story.py`, `scripts/wiki/build_wiki_pages.py`,
   `scripts/wiki/build_archive_index.py`, `scripts/wiki/render_wiki_html.py`
 - **새 챕터 추가 시 자동 갱신**: `wiki-sync` 스킬(`.claude/skills/wiki-sync/SKILL.md`)
