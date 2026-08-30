@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>데이터셋 &amp; 수집 프로토콜 (V3~V6)</title>
+<style>
+body{background:#0a0f1a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     max-width:900px;margin:0 auto;padding:32px 20px 80px;line-height:1.8}
+h1{font-size:1.7rem;color:#4ade80;border-bottom:2px solid #1e293b;padding-bottom:12px}
+h2{font-size:1.25rem;color:#38bdf8;margin-top:36px}
+h3{font-size:1.05rem;color:#fbbf24;margin-top:28px;border-left:3px solid #fbbf24;padding-left:10px}
+p{color:#94a3b8;font-size:0.92rem}
+a{color:#7dd3fc}
+blockquote{border-left:3px solid #4ade80;padding:8px 16px;margin:12px 0;background:rgba(74,222,128,0.06);
+           color:#86efac;font-size:0.9rem}
+hr{border:none;border-top:1px solid #1e293b;margin:24px 0}
+code{background:#111827;padding:2px 6px;border-radius:4px;font-size:0.85rem;color:#fbbf24}
+ul{color:#94a3b8}
+strong{color:#e2e8f0}
+em{color:#64748b}
+.nav-bar{margin-bottom:24px;font-size:0.82rem}
+.nav-bar a{color:#64748b;text-decoration:none;margin-right:12px}
+.nav-bar a:hover{color:#7dd3fc}
+</style>
+</head><body>
+<div class="nav-bar"><a href="index.html">← 위키 색인</a><a href="../v5/research_story.html">연구일지 원본(research_story.html)</a></div>
+<h1>데이터셋 &amp; 수집 프로토콜 (V3~V6)</h1>
+<blockquote>
+<p>에피소드 경로 설계, 동기/비동기 수집, STOP 라벨링 규칙, 이미지 파이프라인 통일, 프레임 크롭/줌 등 데이터 자체를 다루는 실험들.</p>
+</blockquote>
+<h2>압축 요약 (TODO — 다음 반복에서 채울 것)</h2>
+<p><em>이 섹션은 아직 자동 생성되지 않았다. 아래 원문 발췌를 실제로 읽고,</em>
+<em>Karpathy LLM-wiki 방식대로 "지금 이 주제에 대해 확정적으로 아는 것"을</em>
+<em>3~10문장으로 압축해서 채워야 한다. 지금은 챕터별 원문을 시간순으로</em>
+<em>재배열한 것까지만 되어 있다.</em></p>
+<hr />
+<h2>챕터별 원문 발췌 (시간순)</h2>
+<h3>CHAPTER 1 — 데이터셋 — 9가지 경로</h3>
+<p>💡 왜 9가지 경로인가?
+단순히 "직진"만 학습하면 모델이 모든 상황에서 직진을 선택하는 FORWARD bias에 빠진다.
+좌/우 곡선 경로를 절반 이상 포함시켜 방향 판단을 학습시키는 것이 핵심 설계 원칙이다.
+Action Class 분포 (전체 2,626 프레임)
+FORWARD1955개
+74.4%
+FWD+R270개
+10.3%
+FWD+L255개
+9.7%
+LEFT60개
+2.3%
+RIGHT46개
+1.8%
+ROT_L20개
+0.8%
+ROT_R20개
+0.8%
+STOP0개
+0.0%</p>
+<p>⚠️ FORWARD 74.4%의 함정:
+모델이 아무것도 배우지 못하고 "항상 FORWARD"를 예측해도 PM ≈ 74%가 나온다.
+이 때문에 PM 수치만으로 모델 품질을 판단하면 안 된다. per-path PM과 closed-loop 성공률을 함께 봐야 한다.
+경로 타입별 실제 프레임 — 시작 / 중반 / 끝
+중앙 직진
+바구니가 정면 중앙에 있을 때
+center_straight
+시작 (f0)
+FORWARD
+중반 (f7)
+FORWARD
+끝 (f13)
+FORWARD
+중앙→좌회전
+중앙에서 왼쪽으로 접근
+center_left
+시작 (f0)
+LEFT
+중반 (f9)
+FORWARD
+끝 (f17)
+FORWARD
+중앙→우회전
+중앙에서 오른쪽으로 접근
+center_right
+시작 (f0)
+RIGHT
+중반 (f9)
+FORWARD
+끝 (f17)
+FORWARD
+좌측 직진
+왼쪽에서 직진
+left_straight
+시작 (f0)
+STOP
+중반 (f9)
+FORWARD
+끝 (f17)
+FORWARD
+좌→좌
+왼쪽에서 더 왼쪽으로
+left_left
+시작 (f0)
+FWD+L
+중반 (f9)
+FORWARD
+끝 (f18)
+FORWARD
+좌→우
+왼쪽에서 오른쪽으로
+left_right
+시작 (f0)
+FWD+R
+중반 (f9)
+FORWARD
+끝 (f18)
+FORWARD
+우측 직진
+오른쪽에서 직진
+right_straight
+시작 (f0)
+STOP
+중반 (f9)
+FORWARD
+끝 (f17)
+FORWARD
+우→좌
+오른쪽에서 왼쪽으로
+right_left
+시작 (f0)
+FWD+L
+중반 (f9)
+FORWARD
+끝 (f17)
+FORWARD
+우→우
+오른쪽에서 더 오른쪽으로
+right_right
+시작 (f0)
+RIGHT
+중반 (f8)
+FORWARD
+끝 (f16)
+FORWARD</p>
+<p><a href="../v5/research_story.html#ch1">→ 원문 전체 보기(research_story.html#ch1)</a></p>
+<hr />
+<h3>CHAPTER 8 — Augmentation 실험 — Exp49가 여전히 최선</h3>
+<p><strong>❌ Flip Aug (Exp50)</strong></p>
+<p>거울 반전 이미지가 cx0 신호를 혼란시킴. right_right 3/3 전패. CL 83.3%로 13%p 퇴보.</p>
+<p><strong>⚠️ Crop Aug (Exp51)</strong></p>
+<p>CL 성공률은 같지만 FPE 0.163m (+101%). crop_center90% 취약. 데이터 3배 늘려도 이득 없음.</p>
+<p><strong>❌ Lang+Vis (Exp52)</strong></p>
+<p>cosine_sim(left_instr, right_instr) = 1.0 — 언어 임베딩이 좌/우를 구분 못 함. Exp49보다 3.4%p 하락.</p>
+<p><strong>✅ 결론</strong></p>
+<p>Exp49 원본 데이터 2,626 frames가 이미 충분히 강건하다. augmentation 방향보다 실로봇 검증이 다음 우선순위.</p>
+<p><a href="../v5/research_story.html#ch8">→ 원문 전체 보기(research_story.html#ch8)</a></p>
+<hr />
+<h3>CH 20 — Free 에피소드 분석 — 다변화 시나리오 21개</h3>
+<p>왜 이 데이터가 필요한가
+기존 V5 한계
+9종 경로 × 고정 위치
+basket 항상 중앙~측면
+극단 위치·근접 미포함
+조명 변화 없음
+free 에피소드 추가
+극단 좌/우 basket 위치
+근접(stop 판단) 포함
+원거리(small area) 포함
+조명 변화 2개 시나리오
+기대 효과
+center 경로 CL 0% → 개선
+area 신호로 정지 학습
+cx 극단값 대응력 향상
+다양한 조명 robust
+구성 (21 에피소드)
+극좌 3개 (L/R/C)
+극우 3개 (L/R/C)
+근접 3개 (L/R/C)
+원거리 3개 (L/R/C)
+대각좌 3개 (L/R/C)
+대각우 4개 (L/R/C×2)
+조명변화 2개 (L/R)
+시나리오별 실제 로봇 이미지 (중간 프레임)
+바구니 극좌
+basket이 화면 맨 왼쪽 끝
+예상 액션: ROT_L 또는 LEFT 필요
+중앙 출발
+좌 출발
+우 출발
+바구니 극우
+basket이 화면 맨 오른쪽 끝
+예상 액션: ROT_R 또는 RIGHT 필요
+중앙 출발
+좌 출발
+우 출발
+대각 접근 좌
+좌측 대각선에서 접근
+예상 액션: FWD+LEFT
+중앙 출발
+좌 출발
+우 출발
+대각 접근 우
+우측 대각선에서 접근
+예상 액션: FWD+RIGHT
+중앙 출발
+좌 출발
+우 출발
+조명 변화
+다른 조명 환경
+예상 액션: 일반화 테스트
+좌 출발
+우 출발
+근접 상황
+basket이 매우 가까움 (area 큼)
+예상 액션: STOP 판단 필요
+중앙 출발
+좌 출발
+우 출발
+원거리 상황
+basket이 멀리 있음 (area 작음)
+예상 액션: FORWARD 지속
+중앙 출발
+좌 출발
+우 출발
+🛑 마지막 프레임 분석 — 도달 시 STOP 학습
+현재 문제: 에피소드가 basket에 닿기 직전에 끊김 → 마지막 프레임 gt_class = 전부 FORWARD
+MLP가 "가까워지면 STOP해야 한다"는 걸 한 번도 배운 적 없음 → 실로봇에서 basket에 충돌
+해결: area_pg2 &gt; 0.74 (이미지의 74% 이상 채움) → 합성 STOP 레이블 추가
+해당 프레임: 2,626개 중 153개 (6.9%)
+area &gt; 0.74 → STOP 레이블 (합성)
+basket이 이미지를 크게 채움 = 도달
+area basket이 멀리 있음 = 계속 전진
+구현 방법:
+학습 데이터 생성 시 if area_det &gt; 0.740: gt_class = 0 (STOP) 오버라이드
+MLP 입력 bbox_hist의 area가 크면 → STOP 예측
+실로봇에서: basket이 화면을 채울 때 자동 정지
+Exp60 CL 실험 누적 결과 (6/1 기준) — HSV → PG2 그라운딩 파이프라인
+접근
+CL 성공률
+center_straight
+비고
+Exp54 HSV (기준)
+96.67%
+높음
+HSV 색상 필터 사용
+Exp60 기본 필터 MLP
+50%
+0%
+오탐 필터(cy&lt;0.35, area&lt;0.01) 적용
++ flip augmentation
+55%
+0%
+데이터 2× / right·left 계열 100%
++ center 3× 오버샘플
+60%
+0%
+center 에피소드 3배 가중치
+cx offset +0.084
+55%
+0%
+체계적 편향 보정 — 효과 없음
+cx noise aug (σ=0.05)
+60%
+0%
+FPE 1.572→1.267m 소폭 개선
+EMA 스무딩 (α=0.3/0.5)
+60%
+0%
+jitter 감소했으나 구조적 한계
+center_straight 0% 근본 원인:
+PG2 grounding cx jitter(std=0.11) → 매 프레임 좌/우 진동 → CL drift 누적.
+소프트웨어 접근(증강/오버샘플/EMA/오프셋) 6가지 모두 center_straight는 개선 안 됨.
+→ 추가 center_straight 데이터 수집 or 실로봇 테스트가 근본 해결책
+✅ 현재 최선: 60% CL (HSV 96.67% 대비 gap 36.67%p)
+✅ right_straight / left_straight / right_right: 80~100% 달성
+🎯 다음: 실로봇 테스트 + center_straight 추가 데이터 수집
+🔬 CL 실패 원인 분석 — center 경로 vs 성공 경로 비교
+❌ 실패 경로 (center 3종)
+에피소드: 51개 / 프레임: 834개
+cx mean=0.461 std=0.147
+액션: FWD 64% + FWD+L 16% + FWD+R 16%
+center_straight: cx=0.456, FWD 100%
+→ cx≈0.45로 중앙보다 왼쪽 편향
+→ jitter로 FWD+LEFT 예측 → drift
+center_left/right: FWD+FWD+L+FWD+R 혼합
+→ 복잡한 궤적, CL에서 오차 누적
+✅ 성공 경로 (right/left 계열)
+에피소드: 171개 / 프레임: 3,065개
+cx mean=0.444 std=0.205
+액션: FWD 78% + FWD+L 8% + FWD+R 8%
+right_straight: cx=0.47, FWD 위주
+→ 방향성 명확, 안정적
+left_right: cx=0.23, 명확한 방향 신호
+→ CL에서 방향 오차 작음
+핵심 원인 3가지
+① PG2 cx 편향
+center_straight: cx=0.456
+(0.5보다 0.044 왼쪽)
+→ FWD인데 FWD+L 예측
+② cx jitter (std=0.11)
+매 프레임 cx가 흔들림
+→ 방향 진동 → CL drift
+left/right는 cx 편차 커서 신호 명확
+③ center 액션 복잡성
+center_left: FWD+FWD+L+FWD+R 혼합
+→ 경계 학습이 어려움
+CL에서 작은 오차도 증폭
+현재 시도한 해결책 (모두 실패)
+center 3× 오버샘플 → 60%
+center 5× 오버샘플 → 진행 중
+cx noise σ=0.05 → 60%
+EMA 스무딩 α=0.3 → 60%
+cx offset +0.084 → 55%
+근본 해결책
+center_straight 추가 수집 필요
+현재 21개 → 목표 40개+
+다양한 시작 위치, PG2 cx≈0.5 되는 조건
+또는 실로봇 테스트로 직접 확인
+(시뮬 drift ≠ 실제 물리 drift)</p>
+<p><a href="../v5/research_story.html#ch20">→ 원문 전체 보기(research_story.html#ch20)</a></p>
+<hr />
+<h3>CH 22 — 동기 vs 비동기 수집 — STOP은 왜 마지막 프레임에만 있어야 하는가</h3>
+<p>① 증상 — 중간에 박힌 유령 STOP
+STOP 규칙 캘리브레이션 중, bbox_dataset_pg2_cx.json(243ep)을 분석하니:
+21 / 243
+STOP 라벨이 있는 ep
+(나머지 222ep엔 없음)
+84
+제거된 중간 STOP 프레임
+(free 21ep 내)
+phase 0.73~1.0
+STOP 프레임 위치
+(끝이 아닌 곳에도 등장)
+기대: STOP은 "navigation 완료" 신호 → 에피소드 마지막 1프레임에만.
+실제: 일부 ep는 중간(이동 도중)에 속도 0(x=0,y=0,z=0) 프레임이 STOP으로 기록됨.
+② 원인 — 동기식 → 비동기식 수집 전환
+동기식 (기존 V5 150ep · POST_SYNC)
+액션 키 입력 →
+그 직후 카메라 1프레임 캡처 →
+(s_t, a_t) 쌍을 한 스텝씩 저장
+= 멈춤은 운영자가 "정지키"를 눌렀을 때만
+비동기식 (DragonRise 조이스틱 · PRE_CACHE)
+카메라 루프 10Hz (독립)
+조이스틱 폴링 25Hz (독립 스레드)
+teleop 발사 0.45s마다 (스틱 홀딩 시)
+= 세 타이머가 따로 돎 → 빈틈에 속도0 프레임
+왜 중간 STOP이 생기나:
+비동기 수집에선 카메라(10Hz)·조이스틱(25Hz)·teleop(0.45s)이 서로 lock-step이 아님.
+운영자가 스틱을 잠깐 놓거나(데드존 0.15) 방향을 바꾸려 멈칫하는 사이에도 카메라는 계속 프레임을 찍는다.
+그 순간의 명령은 (0,0,0) → 의도치 않은 STOP 프레임으로 기록.
+"도착해서 멈춘 것"이 아니라 "이동 중 잠깐 비어서" 생긴 가짜 정지.
+③ 세 타이머가 따로 도는 구조 (V5 수집 시스템)
+gradio_data_collector.py 내부 스레드 (threading.Lock 공유)
+├─ _camera_loop() 10 Hz (100ms) ── latest_ui_frame / episode_buffer 채움
+├─ JoystickReader._loop() 25 Hz ( 40ms) ── pygame polling, bang-bang 8-class snap
+└─ teleop_step() 0.45s 간격 ── Left Stick 홀딩 시 반복 발사
+운영자 동작: ███ 전진 ███ (멈칫) ███ 좌회전 ███ ... ◤도착◢
+카메라 캡처 : F F F F F F F F F F F F F F
+기록된 액션 : ↑ ↑ ↑ ↑ · · ← ← ← ← ← ↑ ↑ ⏹
+└─유령 STOP─┘ └진짜 STOP(마지막)
+A버튼 → 명시적 STOP 1프레임 수집(의도된 정지)도 있으나, 문제는 스틱 빈틈에서 생기는 비의도 STOP.
+④ 해결 — V5_add_free 빌더로 중간 STOP 제거
+scripts/build_dataset_v5_add_free.py (seed=42)가 free 21ep에서
+중간 STOP 프레임 84개를 제거하고
+마지막 프레임 STOP만 유지(= navigation 완료 신호). 결과 221ep (structured 200 + free 21).
+즉 정제 후 데이터에서 STOP은 항상 에피소드 끝 1프레임뿐.
+이것이 STOP의 진짜 의미 — "이동 중 잠깐 멈춤"이 아니라 "목표 도달 → 종료".
+⑤ STOP 알고리즘(도착 규칙)에 주는 함의
+① STOP은 종결(terminal) 신호다 — 중간 정지는 없다.
+따라서 STOP을 8-class에 학습시키기보다 마지막 레이어의 도착 판정 규칙으로 다루는 게 맞다.
+② 도착 신호는 basket이 화면을 크게 채울 때(area_det median 0.89 vs 비도착 0.05).
+area 기반 종결 규칙(area_avg&gt;0.5 + cx 중앙 → STOP 래치)이
+데이터 실측과 일치 → 도착 90% 탐지, 조기오발 0%.
+③ 학습에 섞인 중간 STOP은 아티팩트 → 제거가 옳다(혼란 라벨 제거 = MLP 정합 향상).
+④ 근본 해결은 동기식 재수집 — (s_t, a_t) lock-step 보장(PRE_CACHE)으로
+빈틈 STOP 자체를 없앤다. center_straight 재수집도 같은 방식이 바람직.
+⑥ 근거 — monavla-driving 수집 커밋
+커밋
+내용
+d7004ade
+DragonRise 조이스틱 비동기 통합 — 25Hz 백그라운드 스레드, 스틱 홀딩 시 0.45s마다 teleop
+6dbbf1e5
+카메라 루프 10Hz 통합 + PRE_CACHE / POST_SYNC 이중 캡처 모드
+a9a1cf23
+V5_add_free 빌더 — free 21ep 중간 STOP 84개 제거, 마지막 STOP 유지 → 221ep
+한 줄 요약:
+"중간 STOP"은 모델 결함이 아니라 비동기 수집의 타이밍 빈틈이 만든 라벨 아티팩트다.
+STOP은 본래 도착=마지막 프레임 신호이며, 그래서 area 기반 도착 종결 규칙과 동기식 재수집이 정답이다.</p>
+<p><a href="../v5/research_story.html#ch22">→ 원문 전체 보기(research_story.html#ch22)</a></p>
+<hr />
+<h3>CH 44 — 학습/추론 이미지 파이프라인 통일 + "4초"의 진짜 원인 — 누적 드리프트</h3>
+<p><em>교수님께 보고드렸던 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅 — 가설 5개를 코드/실측으로 검증</em></p>
+<p><strong>44-1. 가설 ①②⑤ — 리사이즈는 이미 같았다, 명시적으로 통일</strong></p>
+<p>코드 검증 결과: 학습(train_hidden_state_*.py)과 추론(stage2_v2_inference_server.py)
+둘 다 1280×720 원본을 그대로 들고 다니다가 HuggingFace AutoProcessor 호출 시점에 내부적으로
+224×224로 리사이즈되는 동일한 경로를 쓰고 있었다 — "해상도가 다르다"가 아니라 "암묵적으로 같다"가
+정확한 진단이었다.
+실제 데이터 흐름(둘 다 동일):
+[1280×720 원본] → PIL Image → AutoProcessor(내부 224×224 리사이즈) → vision_model → feature
+조치: "암묵적으로 같음"을 "코드로 강제 같음"으로 바꿈 —
+robovlm_nav/image_preprocess.py의 resize_for_vlm() 공유 함수를 학습/추론
+양쪽 호출 지점에 명시적으로 적용. soda 운영서버에 안전 배포(stop→pull→검증→재시작) 완료,
+latency 회귀 없음 확인(1.32~1.36초로 배포 전후 동일).</p>
+<p><strong>44-2. 가설 ③ — "4초 차이"는 단발 latency가 아니라 누적 드리프트였다</strong></p>
+<p>사용자가 과거 S6 CL 파이프라인 시뮬레이션 세션(docs/v5/s6_cl_sim.json, 105프레임, 영상에서
+1fps로 추출 → /reset → /predict×105 순차 호출)을 재생하면서 화면 좌하단
+타임스탬프가 "3~4초씩 차이난다"고 본 게 출발점이었다. 분석 결과:
+항목실측값
+단발 호출 latency(105프레임 전체)
+평균 1,356ms, 최대 1,852ms — 2.5초 넘은 적 0회
+프레임 누락
+0개(105/105 연속)
+동시 수집/추론 가능성
+기각(코드 자체가 순차 호출, 구조적으로 동시성 없음)
+frame 10번 시점 누적 드리프트
++4.0초 ← 사용자가 본 수치와 정확히 일치
+frame 105번(끝) 누적 드리프트
++37.4초
+원인: 영상은 1fps(프레임당 1초)로 추출됐는데, 실제 처리는 프레임당 평균 1.36초 걸린다
+(soda/Jetson 하드웨어 한계) — 가정한 속도(1fps)보다 실제가 느려서, 두 시간축의 차이가 프레임이
+갈수록 계속 쌓인다. 단일 호출이 4초 걸린 게 아니라, "10번째 프레임까지 누적된 시간 차이"가
+마침 4초였던 것.
+soda 실측 단발 latency: 1.31~1.36초(GB10 560~650ms 대비 약 2배,
+Jetson Orin vs GB10 하드웨어 차이로 설명됨) — "1초 이내" 목표에는 아직 못 미침(가설 ③ 부분 미해결).</p>
+<p><strong>44-3. 가설 ④ — STOP 40~50cm는 거리 캘리브레이션이 먼저 필요(미해결)</strong></p>
+<p>현재 STOP 임계값은 GOAL_AREA_THRESHOLD=0.25(정규화 면적, cm 단위 아님). "40~50cm"로
+바꾸려면 로봇이 실제로 40cm/50cm 떨어진 지점에서 area가 얼마로 찍히는지 실측 캘리브레이션이 먼저
+필요하다 — 이번 plan 범위 밖, 별도 진행.</p>
+<p><strong>44-4. 재발 방지 — 파이프라인 건강진단 체크리스트 배포</strong></p>
+<p>scripts/eval/diagnose_pipeline_health.py — A.latency B.drift C.continuity D.resize
+E.grounding 5개 체크를 자동화. 특히 B(drift) 체크는 "N초 차이"를 봤을 때 단발 latency 문제인지
+누적 드리프트인지 자동으로 구분해준다(이번 사례를 그대로 재현 검증함). GB10·soda 양쪽에 배포 완료,
+문서는 docs/plans/CHECKLIST_pipeline_health.md.
+plans: plan_20260622_train_inference_image_pipeline_unify.md  |
+CHECKLIST_pipeline_health.md  |  2026-06-22</p>
+<p><a href="../v5/research_story.html#ch44">→ 원문 전체 보기(research_story.html#ch44)</a></p>
+<hr />
+<h3>CH 49 — grounding_skip_n=3 환경 재검증 — CH47의 area_delta 이득이 사라짐</h3>
+<p><em>다른 세션에서 발견한 대시보드 grounding_skip_n=3 기본값 이슈 — CH47의 area_delta가 실제 운영 캐시 조건에서도 유효한지 시뮬레이션으로 확인</em></p>
+<p><strong>49-1. 문제 제기 — 운영 대시보드는 skip_n=3, CH47은 매프레임(skip_n=1) 가정</strong></p>
+<p>scripts/gradio_inference_dashboard.py의 모든 실험 프리셋(Exp66/67/49)이
+grounding_skip_n: 3을 하드코딩 — stage2_v2_inference_server.py:557-572의 캐시 로직상
+3프레임 중 2프레임은 직전 grounding 결과를 그대로 재사용(cx/cy/area 완전 동일).
+CH47의 area_delta = area[t]-area[t-1]는 정확히 이 "변화"를 신호로 쓰므로, skip_n=3 환경에서는
+2/3 프레임의 delta가 항상 0이 되어 이득이 줄어들 수 있다는 의심 — 실측으로 확인.
+실제 캐시 동작(연속 3프레임, t/t+1/t+2 — 노란 박스 area가 완전히 고정됨, 4개 에피소드):
+4개 에피소드 모두 3프레임 내내 동일 bbox(area 소수점까지 일치) — 가운데/오른쪽 프레임은 실제로는
+새로 그라운딩하지 않고 맨 왼쪽 프레임의 결과를 그대로 재사용한 것. area_delta는 이 구간에서 항상 0.</p>
+<p><strong>49-2. 결과 — 우려가 맞았다, 오히려 역전됨</strong></p>
+<p>scripts/eval/simulate_skip_n.py로 운영 캐시 로직(에피소드 시작 fresh, 이후 3프레임마다 1번만
+갱신)을 bbox_dataset_full_pg2.json에 그대로 재현 → 같은 코드로 재학습 + closed-loop 재평가.
+구성매프레임(CH46/47)skip_n=3(운영값)
+LSTM-none(area_delta 없음)
+93.1% / 0.145m
+96.6% / 0.119m
+LSTM-replace+area_delta(CH47 best)
+96.6% / 0.098m
+96.6% / 0.123m
+두 가지가 동시에 드러났다: ① skip_n=3 캐싱 자체가 baseline(area_delta 없음)
+성능을 끌어올린다(93.1%→96.6%, FPE 0.145→0.119m) — 캐시 재사용이 프레임간 bbox 잡음을 줄이는
+저역통과 필터처럼 작동한 것으로 추정. ② 반면 area_delta는 skip_n=3에서
+역전된다(0.098m→0.123m, no-delta baseline의 0.119m보다도 나쁨) — 2/3 프레임의 delta=0이
+유효 신호 대신 잡음으로 작용한 것으로 보인다.
+정직한 재해석: CH47의 "전체 최저 FPE 0.098m"는
+skip_n=1(매프레임 그라운딩) 조건에서만 유효했다. 현재 운영 대시보드 설정(skip_n=3)
+그대로 배포하면 area_delta의 이득은 사라지고 오히려 약간 손해다 — CH47을 지우지 않고 이 카드로 정정.</p>
+<p><strong>49-3. 결론 — 두 가지 배포 옵션, 선택 필요</strong></p>
+<p>옵션장점단점
+A. skip_n=3 유지, area_delta 미배포
+현재 latency 유지, FPE 0.119m로 이미 충분히 좋음
+CH47의 0.098m는 못 씀
+B. skip_n=1로 낮추고 area_delta 배포
+FPE 0.098m(전체 최저)
+PG2 grounding이 ~1s/frame(실측) — latency 3배 증가, 실시간성 문제(CH44-2 "4초" 이슈 재발 가능)
+권장(잠정): 옵션 A. latency 예산이 더 중요한 제약이고, skip_n=3
+baseline(0.119m)도 매프레임 best(0.098m)와 큰 차이가 아니다. area_delta는 skip_n=1로 운영할
+여유가 있을 때만 재검토.</p>
+<p><strong>49-4. 실제 세션 데이터로 옵션 A 확정 — 추가 ablation 불필요</strong></p>
+<p>49-3까지는 오프라인 시뮬레이션 기반 권장이었다. 그라운딩 검증용 정적 이미지가 아니라 실제
+서버로 순차 /predict 호출한 실주행 세션(docs/v5/s6_cl_sim.json,
+s7_cl_sim.json — 2026-06-18 녹화)을 직접 분석해 옵션 A를 뒷받침하는 실측 근거를 확인했다.
+확인 항목S6S7
+실제 활성 skip_n(area 연속동일률로 역추정)
+has_bbox=True 프레임 중 연속동일 거의 0(S6 4/53·S7 0/23) → skip_n=1로 녹화됨
+그 skip_n=1 상태의 실측 grounding_latency_ms
+평균 1263.6ms
+평균 1407.9ms
+결론: skip_n=3는 추측이 아니라 이 실측 레이턴시 문제(CH44-2 "4초" 누적
+드리프트와 동일 원인)에 대한 직접 대응이었다. skip_n=1 실주행은 1.3~1.4초/프레임으로
+실시간 주행 자체가 불가능함이 실측으로 재확인됐고, 그 조건에서만 나온 CH47의 0.098m는 실제로
+도달 불가능한 옵션이다. 시뮬레이션(49-2/49-3)과 실제 세션 실측(이 카드)이 같은 결론으로
+수렴하므로 추가 ablation 없이 옵션 A(skip_n=3 유지, area_delta
+미배포)로 메인 디폴트를 확정한다.</p>
+<p><strong>49-5. add 모드까지 마무리 — 3개 모드 전부 skip_n=3에서 area_delta 무이득 확정</strong></p>
+<p>49-2/49-4는 none·replace만 skip_n=3로 재검증했었다(add는 미검증으로 남아 있었음). 같은 절차로
+train_hidden_state_lstm_areadelta.py --use_hidden_state add를 skip3 데이터로 재학습 후
+closed-loop 재평가.
+구성(skip_n=3)SRFPEval_acc(PM)
+none(area_delta 없음, baseline)
+96.6%
+0.119m
+95.28%
+replace+area_delta
+96.6%
+0.123m
+95.67%
+add+area_delta(이번)
+93.1%
+0.093m
+96.46%
+add 모드는 PM(val_acc)이 가장 높고 FPE도 가장 낮지만, closed-loop SR은
+93.1%로 셋 중 가장 낮다 — PM/FPE 개선이 그대로 SR로 이어지지 않는 또 다른 사례(이산 지표와
+궤적-누적 지표의 불일치, CH43 계열에서 반복 관찰된 패턴).
+결론은 바뀌지 않는다: none/replace/add 3개 모드 전부 skip_n=3에서
+area_delta를 추가할 이유가 없다 — 49-4의 "옵션 A(skip_n=3 유지, area_delta 미배포)"가
+모드 전체에 대해 확정.
+주의: 이 실행 중 stage2_lstm_add.pt(원본, skip_n=1 조건의 CH47 add 체크포인트)가
+스크립트 기본 출력 경로 충돌로 덮어써졌다 — 해당 수치(CH47 표)는 이미 문서화되어 있어 분석 결과
+손실은 없으나, 원본 가중치 파일은 재학습해야 복구 가능.
+2026-06-24  |  관련: scripts/eval/simulate_skip_n.py, scripts/gradio_inference_dashboard.py, docs/v5/s6_cl_sim.json, scripts/eval/closed_loop_eval_skip3_add.py</p>
+<p><a href="../v5/research_story.html#ch49">→ 원문 전체 보기(research_story.html#ch49)</a></p>
+<hr />
+<h3>CH 51 — 에피소드 초반 N프레임 한정 줌크롭 — 실세션+학습데이터 ablation (n=737, 도움 안 됨 확정)</h3>
+<p><em>조이스틱 체감 테스트 중 "맨 처음이 너무 멀어서 안 될 때도 있다"는 보고 — CH50과 스코프가 다른 재검토(런타임 조건부, 학습 미개입). 표본을 세션 4개(n=2)에서 737건으로 확장</em></p>
+<p><strong>51-0. 줌크롭 구체적 구현 (regroun_zoom_small.py:zoom_crop())</strong></p>
+<p>def zoom_crop(img, cx, cy, zoom=2.0):
+H, W = img.shape[:2]
+cw, ch = W / zoom, H / zoom # 크롭 크기 = 원본의 50%
+x0 = clip(cx<em>W - cw/2, 0, W-cw) # anchor 기준 중앙 정렬, 경계 클리핑
+y0 = clip(cy</em>H - ch/2, 0, H-ch)
+crop = img[y0:y0+ch, x0:x0+cw] # 실제 크롭
+return crop, x0, y0, cw, ch, W, H # 역변환용 좌표 반환
+동작 순서:
+- anchor 결정 — 이전 프레임 cx,cy (첫 프레임이면 0.5, 0.5 중앙)
+- anchor 중심으로 원본 이미지의 50% 영역(zoom=2.0)을 크롭
+- 크롭 이미지로 PG2 재실행 → bbox 검출
+- bbox 좌표를 원본 해상도 기준으로 역변환 (remap_zoom_bbox())
+- 역변환 결과로 area/cx/cy 교체
+직관: "anchor 근처 50% 영역만 잘라서 2배 확대된 시야로 PG2에게 다시 보여주면 더 크고 정확한 bbox를 그릴 것"</p>
+<p><strong>51-1. CH50과의 차이 — 학습 데이터 전체가 아니라 런타임 첫 5프레임 한정</strong></p>
+<p>CH50(50-3에서 노이즈로 정정됨)은 학습 데이터셋 전체(area&lt;0.05, 36.2%)를 영구
+재주석하는 큰 스코프였다. 이번은 운영 추론 서버에서 에피소드 시작 후 첫 5프레임에서만,
+그것도 area가 작거나(&lt;0.05) has_bbox=False인 경우에만 조건부로 줌 재시도하는 좁은 스코프 —
+재학습이 전혀 필요 없고 PG2 <code>generate(do_sample=False)</code>가 deterministic이라 5-seed 같은 학습 노이즈
+문제 자체가 없다. latency도 에피소드당 최대 5회 추가 호출로 제한되어 CH49의
+skip_n=3 예산과 충돌하지 않는다(상세: plan_20260624_first_frame_zoom_crop_ablation.md §0-4).</p>
+<p><strong>51-2. 1차 결과(n=2) — 표본 부족으로 결론 보류</strong></p>
+<p>scripts/eval/ablate_first_frame_zoom.py로 오늘(6/24) 조이스틱 체감 테스트 세션 4개
+(docs/inference_sessions/session_20260624_*.h5)만 먼저 오프라인 리플레이했을 때는
+후보가 2건뿐이었다(하나는 area 2배 개선, 하나는 72% 악화) — 방향조차 판단 불가능한
+표본. 아래 51-3에서 표본을 737건으로 확장해 재검증.</p>
+<p><strong>51-3. 표본 확장(n=737) — 줌크롭이 오히려 약간 악화시킴, 도움 안 됨 확정</strong></p>
+<p>사용자 지시(2026-06-25, "표본세션들말고 그동안 그라운딩이나 다른 테스트했던 여러것들에 대해서
+진행")에 따라 표본을 3개 소스로 확장:
+- A) 저장된 grounding 있는 세션(오늘 4개) — n=2 (51-2와 동일)
+- B) grounding 필드 없는 구버전 로컬 세션(12개 중 8개 h5, 나머지는
+n_frames&lt;1) — raw 이미지로 PG2Grounder를 처음부터 다시 실행해 첫 5프레임 baseline 생성 — n=16
+- C) CH46/50에서 이미 PG2로 재주석한 V5 학습 에피소드 150개의 "에피소드 시작
+첫 5프레임"만 추출(사람이 로봇을 막 세팅한 순간과 동일한 상황) — n=719
+소스narea_delta 평균개선/악화
+A(저장된 세션)
+2
++0.0029
+1 / 1
+B(재그라운딩 세션)
+16
+-0.0020
+1 / 15
+C(V5 학습 에피소드)
+719
+-0.0025
+79 / 640
+전체
+737
+-0.0025
+81 / 656(11% / 89%)
+3개 소스 모두 같은 방향 — 줌 재시도가 도움이 안 된다.
+89%(656/737)의 프레임에서 줌 후 area가 오히려 작아졌다. 다만 크기는 작음(median Δarea=-0.0015,
+평균 cx/cy 이동 0.0069 — CH50-1에서 본 "bbox 좌표값 자체는 거의 안 변함"과 일치하는 수준).
+has_bbox가 False→True로 바뀐 사례는 0/737 — "완전 실패를 살려주는"
+효과는 이 표본에서 한 번도 관측되지 않았다. cx/cy 거의 그대로인 채 area만 살짝 줄어드는 패턴은,
+2배 확대된 크롭 안에서 PG2가 객체 경계를 오히려 더 보수적으로(타이트하게) 잡는 경향으로 추정 —
+"더 가까이서 보면 더 정확하게 큰 박스를 그릴 것"이라는 직관과는 반대 결과.
+CH50과 같은 결론으로 수렴. CH50은 학습된 모델의 closed-loop
+지표(5-seed)로 "노이즈, 효과 없음"을 확인했고, 이번은 그라운딩 자체의 1차 지표(area)에서
+n=737로 "효과 없음, 오히려 약간 손해"를 직접 확인했다 — 서로 다른 레벨(다운스트림 task
+지표 vs 그라운딩 raw 출력)에서 같은 결론에 도달한 교차검증.</p>
+<p><strong>51-4. 결정 — Anchor 방식 운영 코드 반영 안 함. Center 크롭은 유효 (2026-06-30 추가)</strong></p>
+<p>n=737 ablation 결론은 "이전 프레임 bbox를 anchor로 삼는 줌크롭"이 도움 안 됨으로 확정.
+단, 2026-06-30 추가 실험에서 anchor를 항상 이미지 정중앙(0.5, 0.5)으로 고정하면 결과가 완전히 반전됨을 발견:
+방식
+표본
+개선율
+has_bbox 살린 건수
+평균 Δarea
+이전 anchor (prev_cx,cy)
+737
+11%
+0건
+-0.0025
+Center 크롭 (고정 중앙)
+54
+59.3%
+20건
++0.0093
+원인 해석: anchor 방식은 이전 프레임 bbox가 틀렸을 때 오염된 위치를 증폭시킴.
+center 크롭은 바스켓이 항상 화면 중앙 근처에 있다는 실주행 조건과 일치해 안정적.
+특히 frame 0 (has_bbox=False) 살린 건수 20건 — anchor 방식 0건 대비 결정적 차이.
+→ Center 크롭 방식 자체는 유효. 단, CH54 Stage 0 워밍업 배포 이후 frame 0 cold-start 문제가 다른 경로로 해결됨 → 배포 우선순위 낮아짐. 필요 시 재검토.
+plans: plan_20260624_first_frame_zoom_crop_ablation.md  |  2026-06-24</p>
+<p><a href="../v5/research_story.html#ch51">→ 원문 전체 보기(research_story.html#ch51)</a></p>
+<hr />
+<h3>CH 53 — 6/24·6/26 실세션 분석 — skip_n=3 실측 확인</h3>
+<p><em>rsync로 수신된 7개 실세션(6/24 4개·6/26 3개) 분석 — 캐시 패턴 실측 및 콜드스타트 레이턴시 확인</em></p>
+<p><strong>핵심 발견</strong></p>
+<p>skip_n=3 배포 실측 확인
+6/26 104455·104644 세션에서 캐시 패턴(실호출→캐시→캐시) 실측. 정상 레이턴시 1,348~1,469ms. 22.4s 이상치 1건은 콜드스타트 추정.</p>
+<p><strong>6/24 실세션 4개 — skip_n=1(구버전), 짧은 세션 패턴</strong></p>
+<p>세션
+프레임
+skip_n
+has_bbox
+area 범위
+주요 액션
+레이턴시
+104411
+3
+1 (구)
+2/3
+0.000~0.052
+FWD+R, LEFT
+1,404ms
+105123
+2
+1 (구)
+1/2
+0.000~0.066
+FWD
+1,362ms
+150541
+8
+1 (구)
+7/8
+0.000~0.096
+FWD×6
+4,400ms avg ⚠️
+151056
+1
+–
+0/1
+0.000
+STOP
+–
+150541: 22,285ms 최대 레이턴시 → 콜드스타트 패턴(6/26 104455의 22.4s와 동일). 이후 frames은 정상.
+151056: has_bbox=False·area=0 → 로봇이 바구니를 전혀 못 찾은 상태로 1프레임 후 중단.
+104411~105123: 전형적인 "너무 멀어서" 시나리오(area 0.05 내외).
+104411 t=0 area=0.000
+104411 t=1 area=0.052
+150541 t=0 (22.3s cold)
+151056 t=0 has_bbox=MISS</p>
+<p><strong>콜드스타트 22s 레이턴시 — 6/24·6/26 공통 패턴</strong></p>
+<p>6/24 150541(22,285ms)과 6/26 104455(22,444ms)에서 동일한 22초대 레이턴시가 1번씩 발생.
+두 경우 모두 해당 세션의 첫 실그라운딩 호출에서만 발생, 이후 호출은 정상(1,300~1,500ms).
+PaliGemma2 모델이 처음 로드되는 콜드스타트(GPU 모델 메모리 로딩) 지연으로 추정.
+→ 서버가 이미 웜업된 상태라면 발생하지 않음. 실운용 시 더미 이미지로 워밍업 필요 여부 검토 대상.
+✅ CH54 Stage 0 워밍업으로 해결됨 — 서버 시작 시 더미 이미지로 PG2 첫 호출 사전 소진. f1 레이턴시 22,000ms → 3,102ms 개선.
+분석 스크립트: scripts/analyze_sessions_ch53.py  |
+이미지: docs/v5/ch46_50_viz/v5_2_<em>.jpg · session_20260624_</em>.jpg  |  2026-06-26</p>
+<p><a href="../v5/research_story.html#ch53">→ 원문 전체 보기(research_story.html#ch53)</a></p>
+<hr />
+</body></html>

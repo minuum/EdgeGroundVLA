@@ -1,0 +1,45 @@
+{
+  "grounding-detector": {
+    "title": "그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)",
+    "summary": "타겟 물체를 이미지에서 찾아내는 검출기 계열 전체 이력 — PaliGemma2 → Kosmos-2/OWL-v2 → Florence-2로 이어지는 그라운딩 방식 전환과 재현율 개선.",
+    "chapter_ids": ["ch3", "ch13", "ch23", "ch27", "ch30", "ch41", "ch45", "ch46", "ch48",
+                    "ch50", "ch54", "ch55", "ch57", "ch58", "ch59", "ch61", "ch64", "ch67", "ch69"]
+  },
+  "action-head-architecture": {
+    "title": "액션헤드 아키텍처 & 손실함수 실험",
+    "summary": "bbox/vis 특징을 받아 액션을 뽑는 헤드 구조(MLP/LSTM/Transformer/FiLM/cross-attention)와 손실함수(hard CE vs ordinal soft label) 실험 전체.",
+    "chapter_ids": ["ch34", "ch35", "ch37", "ch39", "ch40", "ch43", "ch47", "ch52", "ch60", "ch62", "ch63", "ch70"]
+  },
+  "language-conditioning": {
+    "title": "언어 조건화 & 텍스트 어텐션 구조적 사망",
+    "summary": "지시문(텍스트)이 액션에 영향을 미치는 진짜 언어조건화 VLA로 가려는 시도들 — 그리고 반복적으로 발견된 'text attention = 0%' 구조적 문제.",
+    "chapter_ids": ["ch17", "ch28", "ch38", "ch42", "ch61", "ch68"]
+  },
+  "flow-matching-vla": {
+    "title": "Flow Matching / π0 스타일 연속 액션",
+    "summary": "이산 8-class 분류가 아니라 연속 action chunk를 flow matching으로 예측하는 MoNa-Pi 설계 사상과 실측(부진).",
+    "chapter_ids": ["ch24"]
+  },
+  "dataset-collection": {
+    "title": "데이터셋 & 수집 프로토콜 (V3~V6)",
+    "summary": "에피소드 경로 설계, 동기/비동기 수집, STOP 라벨링 규칙, 이미지 파이프라인 통일, 프레임 크롭/줌 등 데이터 자체를 다루는 실험들.",
+    "chapter_ids": ["ch1", "ch8", "ch20", "ch22", "ch44", "ch49", "ch51", "ch53"]
+  },
+  "real-robot-closed-loop": {
+    "title": "실로봇 테스트 & Closed-Loop 검증",
+    "summary": "val_acc가 실기 성능을 예측하지 못한다는 반복 확인, closed-loop/궤적재생 근사, 100건 실기 테스트, 좌우 비대칭 원인 추적.",
+    "chapter_ids": ["ch5", "cl-overview", "cl-dive", "ch6", "ch7", "ch9", "ch14", "ch31", "ch33", "ch64", "ch65", "ch66", "next-step"]
+  },
+  "backbone-model": {
+    "title": "VLM 백본 비교 (PaliGemma/Kosmos-2/CLIP/Florence-2/Google-robot)",
+    "summary": "어떤 VLM을 백본으로 쓸지, LoRA가 실제로 무엇을 개선/손상시키는지, RoboVLMs 프레임워크 해부.",
+    "chapter_ids": ["ch2", "ch4", "ch28", "ch29", "ch32", "ch56"]
+  },
+  "meetings-and-direction": {
+    "title": "미팅 기록 & 연구 방향 결정",
+    "summary": "교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.",
+    "chapter_ids": ["ch10", "ch11", "ch12", "ch15", "ch16", "ch18", "ch19", "ch21", "ch25", "ch26",
+                    "meeting-guide", "todo-ch44", "meeting-0630", "meeting-0626", "weekly-meeting",
+                    "summary", "ch36", "pres"]
+  }
+}

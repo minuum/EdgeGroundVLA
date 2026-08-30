@@ -1,0 +1,1574 @@
+# 미팅 기록 & 연구 방향 결정
+
+> 교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.
+
+## 압축 요약 (TODO — 다음 반복에서 채울 것)
+
+*이 섹션은 아직 자동 생성되지 않았다. 아래 원문 발췌를 실제로 읽고,*
+*Karpathy LLM-wiki 방식대로 "지금 이 주제에 대해 확정적으로 아는 것"을*
+*3~10문장으로 압축해서 채워야 한다. 지금은 챕터별 원문을 시간순으로*
+*재배열한 것까지만 되어 있다.*
+
+---
+
+## 챕터별 원문 발췌 (시간순)
+
+### CHAPTER 10 — 5/15 미팅 — 교수님 질문과 Exp54 설계
+
+**📋 5/15 미팅 투두 — 이후 어디서 풀렸는지**
+
+- ✅ 조이스틱 30개 신규 수집(좌/중/우 10개씩) — Exp53/Exp54 V5 데이터 수집으로 완료
+- ✅ "LEFT를 외운 건가, 박스를 본 건가" 구분 — Zero-shot probe(96.6%) + masking ablation(9/9 flip)로 답변, CH33 "5-Track 이중 증명"에서 확정. 이번 세션 CH41에서 그라운딩 신뢰도-오예측 상관으로 재확인.
+
+[→ 원문 전체 보기(research_story.html#ch10)](../v5/research_story.html#ch10)
+
+---
+
+### CHAPTER 11 — 5/22 미팅 — 교수님 피드백 · 다음 실험 방향
+
+교수님 반박 (5/22 미팅, 3:34PM · 24분)
+반박 1
+Val set 96.6%는 최종 평가 지표가 아니다
+Val set은 하이퍼파라미터 튜닝용. 최종 성능 평가에 사용하는 것은 부적절.
+→ 별도 Test set으로 재측정 필요.
+반박 2
+LoRA 전후 비교군이 없다 — LoRA 기여 불분명
+Frozen CLIP만으로도 96.6%가 나왔다면, LoRA 파인튜닝이 실제로 basket 인식에 기여하는지 알 수 없음.
+LoRA 적용 전(Frozen CLIP) vs 후(Stage 1 LoRA) 직접 비교가 없어서 LoRA의 효과를 판단 불가.
+→ Frozen CLIP baseline과 Stage 1 LoRA를 동일 조건에서 비교해야 함.
+반박 3
+객체 인식 직접 테스트가 없다
+96.6%가 basket을 "보고" 나온 건지, 이미지 패턴 암기인지 아직 불분명.
+필요한 테스트:
+- basket 대신 전혀 다른 객체 입력 → 이상한 행동을 하면 basket 인식 증거
+- basket 마스킹 → 결과 달라지면 인과 증거 (Track 3에서 일부 확인)
+- "tracking basket" — 방향 정보 없이 목표만 → 올바르게 움직이면 인식 증거
+→ 테스트 케이스를 직접 설계해서 각각 확인해야 함.
+LoRA 레이어 선택
+18~23번 레이어 (고급 비전)
+하이레벨 레이어만 LoRA 적용 시 사전학습된 기존 객체 인식이 유지돼야 함.
+새 객체(basket)도 인식되고, 기존 객체도 인식되어야 올바른 학습.
+사전학습 객체 목록
+RoboVLM pretrain 객체 파악 필요
+사전학습 시 사용된 객체 목록을 파악하고,
+해당 객체로 인식 테스트 수행.
+LoRA 후 기존 객체 인식 성능이 저하되면 안 됨.
+에피소드 수집
+~30개 에피소드 추가 수집
+기존 Exp55 21개에 이어 추가 수집.
+학습/테스트 데이터 분리 명확히.
+5/22 미팅 후 확정된 다음 실험
+1
+Test set 별도 구성 + Zero-shot probe 재측정
+Val set과 독립된 held-out test set으로 96.6% 주장 재검증
+2
+Frozen CLIP vs Stage 1 LoRA 직접 비교
+동일 조건에서 LoRA 기여도 측정 — LoRA가 실제로 +α 하는지 확인
+3
+객체 인식 직접 테스트 3종 설계
+① 다른 객체 입력 ② basket 마스킹 ③ "tracking basket" (방향 없이)
+4
+RoboVLM 사전학습 객체 목록 파악 + 기존 객체 인식 테스트
+LoRA 후 기존 인식 성능 저하 여부 확인
+이번 주 핵심 발견 — 교수님 보고
+"Exp53은 복도를 암기했고, Exp54는 basket을 보고 있다는 것을
+3가지 독립 증거로 증명했습니다."
+증거 1
+Zero-shot Linear Probe — 96.6%
+학습 없이 frozen CLIP feature만으로 logistic regression → basket이 left/center/right 어디 있는지 96.6% 정확도.
+→ "Stage 1 학습이 새 능력을 만드는 게 아닙니다. CLIP이 이미 basket 위치를 알고 있었습니다."
+96.6%
+증거 2
+Masking Ablation — 100% 예측 반전
+basket 영역을 gray로 가리면 9/9 (100%) 프레임의 예측이 전부 반전됨 (Exp66 · base PG2 grounding).
+→ "모델이 복도 패턴이 아니라 basket 픽셀을 실제로 보고 있다는 인과 증거입니다."
+9/9
+증거 3
+Stage 2 v2 완료 — 92.6%
+Stage 1에서 basket 위치를 정렬(98.1%)한 feature를 frozen 후 action head 학습 → 92.6%.
+→ "basket을 보는 능력이 navigation 행동으로 연결됩니다."
+92.6%
+보너스
+Exp55 자유 트라젝토리 — 81.2% (3× oversample)
+교수님 지시대로 자유 위치 21개 추가. 1×는 70.7%(LEFT/RIGHT collapse) → 3× oversample로 81.2%, LEFT 97.5%, RIGHT 97.6%.
+→ 1× collapse가 basket 위치 의존성의 추가 증거. 3× 적용으로 해소.
+81.2%
+Exp49~55 실험 특징 · 현황 일람
+실험
+핵심 특징
+교수님 피드백 반영
+PM
+오프라인 CL
+학습 상태
+로봇 주행 테스트
+Exp49
+GoalNav MLP
+bbox(32) + vis(1024) + goal_pos(cx0)
+D_IN=1059, WINDOW=8
+Step 2 우회 해결
+goal_pos signal로 50/50 없이
+basket-to-action 매핑 달성
+96.4%
+96.7%
+29/30
+✅ 완료
+실로봇 대기 중
+SODA 서버 배포 완료
+주행 테스트 미시행
+Exp50
+GoalNav 변형
+Exp49 hyperparameter 탐색
+Exp49 계열 탐색
+미평가
+미평가
+✅ 완료
+미시행
+SODA 전송 완료
+Exp51
+GoalNav 변형
+Exp49 계열 구조 탐색
+Exp49 계열 탐색
+미평가
+미평가
+✅ 완료
+미시행
+SODA 전송 완료
+Exp52
+lang_vis_feat MLP
+bbox(32) + lang_vis(2048), D_IN=2080
+언어-비전 통합 feature 실험
+텍스트-이미지 융합 시도
+(text=0% 발견 이전)
+미평가
+미평가
+✅ 완료
+미시행
+SODA 전송 완료
+Exp53
+CLIP LoRA End-to-End
+LoRA layers 16-24, 8-class action
+basket grounding 없이 복도 암기
+교수님 질문 발화점
+"박스를 본 건가?" 질문 이전
+end-to-end 마지막 시도
+94.7%
+미평가
+✅ 완료
+미시행
+SODA 전송 완료
+Exp54
+Stage1 v2
+Contrastive Alignment
+frozen CLIP + image_proj(1024→256)
+frame-level cx_det 레이블 사용
+"박스를 본다" 구조적 증명
+5/15 교수님 질문 직접 답하는
+2-Stage 설계 Stage 1
+98.1%
+retrieval acc
+N/A
+(alignment 평가)
+✅ 완료
+N/A
+(Stage 1은 action 없음)
+Exp54
+Stage2 v2
+Action Head (Stage1 v2 frozen)
+bbox(32) + proj_feat(256), D_IN=288
+basket 인식 기반 nav 학습
+"박스를 본다" 증명 완성
+Stage 1 확인된 basket feature 위에
+action head 학습
+92.6%
+val_acc
+평가 예정
+SODA 전송 후
+✅ 완료 (5/22)
+5.8분 소요
+실로봇 대기 중
+CL 평가 후 배포 결정
+Exp55
+자유 트라젝토리 포함 재학습
+기존 150ep + 신규 21ep (free 위치)
+총 4,978 프레임 (3× oversample), D_IN=288
+교수님 지시 직접 반영
+"조이스틱으로 30개 수집" 지시
+→ 21개 먼저 수집 후 재학습
+81.2%
+val_acc (3×OS)
+평가 예정
+✅ 완료 (5/22)
+12.5분 소요
+실로봇 대기 중
+val_acc 낮아 분석 필요
+실로봇 주행 테스트 현황 (2026-05-22 기준)
+5/14 Gradio 세션 점검
+21 에피소드
+Exp49 배포 상태 점검
+grounding 100%, OK 17/21
+grounding 100%
+right 계열 4건 이슈
+실환경 주행 테스트
+0 회
+Exp49~55 실제 로봇 주행 미시행
+CL 평가 후 배포 교체 예정
+현재 Exp17/18 배포 중
+배포 교체 기준
+≥33%
+CL success (현재 Exp17 11.1%)
+CL 평가 후 기준 충족 시 교체
+목표: Exp49 수준 유지
+Exp54 Stage 2 v2 — 완료 결과 (5/22)
+92.6%
+val_acc — 학습 5.8분 소요
+D_IN=288 (bbox32 + proj_feat256) · 300 epochs · feature pre-cache 적용
+참고: Exp49 96.4% / Exp53 94.7%
+FORWARD
+93.9%
+367/391
+LEFT
+91.7%
+11/12
+RIGHT
+70.0%
+7/10
+FWD+L/R
+89.5%
+94/105
+⚠ RIGHT 70% —
+Exp49의 88.9% 대비 낮음. stage1 v2가 right 방향 basket 이미지 정렬에 약점 있음. CL 평가 필요.
+Exp55 — 자유 트라젝토리 포함 결과 (5/22, 3× Oversample)
+81.2%
+val_acc — 3× oversample 적용 (0.6분 학습)
+기존 150ep + 신규 21ep(free) × 3 = 총 4,978 프레임
+170 train ep / 43 val ep
+1×(오버샘플 없음) 70.7% → 3× oversample 81.2% (+10.5%p)
+STOP
+100%
+FORWARD
+71.0%
+LEFT
+97.5%
+RIGHT
+97.6%
+FWD+L
+94.4%
+FWD+R
+87.2%
+ROT_L
+93.3%
+ROT_R
+92.9%
+⚠ FORWARD 71% — 추가 수집 필요
+3× oversample로 LEFT/RIGHT collapse 해소 (34.8% → 97.5%, 26.9% → 97.6%).
+하지만 FORWARD가 71%로 낮아짐 — free 21개의 액션 분포가 FORWARD 35%로 기존(74%)보다 낮기 때문.
+→ 추가 수집(9개 이상) 후 재학습 예정. 목표: FORWARD ≥85%, 전체 ≥90%.
+교수님 피드백 반영 이력 (Exp49~55)
+✅
+Step 2 우회 해결 → Exp49
+"50/50 학습이 안 되면 goal signal로 해결" 접근. CL 96.7% 달성.
+✅
+"박스를 본 건가?" → Exp54 2-Stage
+5/15 미팅 질문 직접 답변. Stage 1 v2 98.1% + 5-Track 증거 (zero-shot 96.6%, masking 100% flip (Exp66 9/9, PG2)).
+🔄
+"조이스틱 30개 수집" → Exp55 (21개 먼저)
+5/15 미팅 지시. 21개 수집 후 학습 완료. 3× oversample → 81.2%. FORWARD 71% 개선 위해 추가 수집 예정.
+⬜
+Step 3: 33/33/33 완전 자율 내비
+실로봇 ≥80% 확인 후 진입. 현재 미착수.
+
+[→ 원문 전체 보기(research_story.html#ch11)](../v5/research_story.html#ch11)
+
+---
+
+### CHAPTER 12 — 교수님 Q&A 정리 — 5/15 질문에 대한 5/22 답변
+
+**📋 5/22 미팅 투두 — 이후 어디서 풀렸는지**
+
+- ✅ Test set 별도 구성 + zero-shot probe 재측정 — 이후 Exp 평가 전반에서 val/test 분리 관행 정착
+- ✅ Frozen CLIP vs LoRA 직접 비교 — CH33 "파이프라인이 범인" — grounding LoRA 7개(Exp56~64)의 action 기여 = 0, HSV/base PG2/LoRA 전부 동일 CL 96.6%로 확정
+- ✅ 객체 인식 직접 테스트 3종(다른 객체/마스킹/방향없는 tracking) — 마스킹(9/9 flip, CH33) + 다른 객체(5/5 generalization, CH39) + 방향-텍스트 무관성(CH38-5, CH42) 세 갈래로 전부 답변됨
+- ❓ RoboVLM 사전학습 객체 목록 파악 + 기존 인식 성능 저하 확인 — 문서 내 직접 확인 못함, 별도 확인 필요
+
+[→ 원문 전체 보기(research_story.html#ch12)](../v5/research_story.html#ch12)
+
+---
+
+### CHAPTER 15 — 5/27 현재 — 교수님 반박 3라운드 대응 현황 + CL 전체 비교
+
+핵심: CL 96.7%를 exp49 / exp51 / exp54_s2v2 / exp55 — 4개 독립 모델이 재현.
+단일 모델의 운이 아니라 GoalNav + bbox 파이프라인의 구조적 우월성임을 의미한다.
+모델
+CL 성공률
+FPE (↓ 좋음)
+특이사항
+Exp11 (Google E2E)
+0%
+1.454
+text attention 0%, 방향 누적 오류
+Exp17 / Exp18 (SODA 현재)
+11.1%
+1.045
+현재 로봇서버 배포 모델
+Exp19
+55.6%
+0.506
+Step2 (Decomposition)
+66.7%
+0.555
+이전 최선 (9 에피소드)
+Exp50
+83.3%
+0.242
+n=30
+Exp52
+93.3%
+0.126
+lang+vis 특징, n=30
+Exp49 ⭐ 최선 FPE
+96.7%
+0.081
+가장 단순한 구조, 최소 오차
+Exp51
+96.7%
+0.163
+n=30
+Exp54 stage2 v2 ⭐ 이론 최강
+96.7%
+0.106
+5-Track 증거 + Stage1 v2 (98.1%)
+Exp55
+96.7%
+0.120
+free 에피소드 21개 추가 포함
+11.1%
+현재 SODA (Exp17)
+→
+96.7%
+신규 모델 (GoalNav)
+8.7×
+성능 향상
+이관 완료
+SODA 로봇서버 이관 — 5/27 완료
+완료 ✅
+- exp54/stage1_v2/stage1_v2_projs.pt — 경로 정리
+- exp54/stage2_v2/stage2_v2_mlp.pt — 경로 정리
+- runs/v5_nav/grounding/exp56/ (9.7MB, LoRA adapter)
+- scripts/eval_exp54_stage2_v2_closedloop.py
+- .vlms/kosmos-2-patch14-224 (기존 존재)
+다음 단계
+- inference_server.py에 GoalNavMLP 클래스 추가
+- exp49 배포 (D_IN=1056, FPE 최소 0.081)
+- 또는 exp54_s2v2 배포 (이론 최강, 5-Track 증거)
+- Grounding 데모: run_grounding_realtime.py
+- 실로봇 테스트 → sim-to-real gap 확인
+
+[→ 원문 전체 보기(research_story.html#ch15)](../v5/research_story.html#ch15)
+
+---
+
+### CH 16 — 5/22~5/29 실험 상세 — 실제 입력·출력·발견
+
+🗺️ 처음 보는 사람을 위한 배경 설명
+MoNaVLA 로봇은 카메라 이미지를 보고 "basket(바구니)을 향해 이동"하는 것이 목표입니다.
+현재 두 단계 파이프라인으로 동작합니다:
+현재 동작 파이프라인
+카메라 이미지
+↓
+HSV 색상 필터 → cx, cy, area
++ CLIP LoRA → 시각 특징 256차원
+↓
+MLP → LEFT / RIGHT / FORWARD …
+HSV = "회색+밝기 조건인 픽셀 덩어리" 규칙 기반
+목표 파이프라인 (Exp57~59)
+카메라 이미지 + "detect gray basket"
+↓
+PaliGemma2 LoRA → cx, cy, area
++ CLIP LoRA → 시각 특징 256차원
+↓
+MLP → LEFT / RIGHT / FORWARD …
+텍스트 바뀌면 다른 물체 찾음 = Goal-Conditioned
+PaliGemma 출력 형식 이해:
+<loc0462><loc0354><loc0862><loc0597> gray basket<eos>
+→ 4개 숫자(y1,x1,y2,x2 / 0~1023 정규화) + 레이블 + 종료토큰
+→ cx = (x1+x2)/2 = (354+597)/2/1023 = 0.464 (이미지 폭 46.4% 위치 = 거의 중앙)
+물체 없으면: <eos> 만 출력 → bbox 없음, 내비게이션 중단
+✅ Exp57 완료 (5/27)
+PaliGemma-3b-pt LoRA — "gray basket" 단일 클래스
+왜 했나: 교수님 R2-3 "다른 물체 넣으면 다른 행동해야" 반박 대응.
+뭘 학습했나: V5 복도 에피소드 150개에서 5프레임씩 추출 + flip augment = Train 1,280 / Val 220
+각 샘플: [이미지] + "detect gray basket" → <loc####>×4 + "gray basket" + <eos>
+실제 입력 → 출력 예시 3가지
+① 원본 이미지 (V5 center_straight)
+1280×720 → 224×224 리사이즈 후 입력
+회색 바구니가 정면 중앙
+② "detect gray basket" → HIT ✅
+출력: <loc0462><loc0354><loc0862><loc0597> gray basket<eos>
+cx=0.464, cy=0.667 → 중앙 약간 아래. 30/30 = 100%
+③ "detect brown pot" → MISS ✅
+출력: <eos> (bbox 없음)
+같은 이미지, 쿼리만 다름 → 다른 결과 ✅
+100%
+"gray basket"
+30/30
+0%
+"red ball"
+0/30
+3%
+"person"
+1/30
+97%
+"beige basket"
+FP
+87%
+"blue trash can"
+FP
+⚠️ 한계: within-class 문제
+red ball·person은 완벽히 구별했지만 beige basket·laundry basket·blue trash can 같은 용기류는 gray basket과 혼동.
+이유: LoRA가 "gray basket 특정 물체"가 아니라 "복도의 컨테이너 클래스"를 학습한 것.
+→ Exp58 동기: gray basket + brown pot 동시 학습으로 구별력 올리기 시도.
+🔍 5/28 발견
+V4 데이터셋 분석 — gray basket + brown pot 항상 공존
+Exp58을 설계하면서 V4 데이터를 처음으로 직접 이미지로 확인했습니다.
+524개 에피소드 모든 프레임에 gray basket(뒤)과 brown pot(앞)이 동시에 존재.
+이것이 이후 교차 테스트 결과를 제대로 해석하는 핵심 단서가 됩니다.
+V5: basket만
+V4: 두 물체 공존!
+V4 + "brown pot" → TP
+V4 + "gray basket" → 실제로 있음
+V4 pseudo-label 실제 출력값 (PaliGemma2 zero-shot):
+<loc0678><loc0398><loc0997><loc0548> brown pot<eos>
+→ cx=(398+548)/2/1023 = 0.462, cy=(678+997)/2/1023 = 0.819 (화면 하단 중앙 → 화분 위치)
+524 에피소드 모두 100% hit. 이 결과를 V4 학습 레이블로 사용.
+⛔ Exp58 epoch15.5 중단
+PaliGemma2-3b-mix 2-class LoRA — positive만 학습
+왜 했나: Exp57 within-class 한계를 2-class 동시 학습으로 극복 시도.
+뭘 학습했나: V5→"gray basket"→bbox 1,500개 + V4→"brown pot"→bbox 3,110개 = Train 3,906
+변경: PaliGemma → PaliGemma2-mix, 전체 53층 LoRA, r=8
+Epoch 5 val 결과 (12:54 체크포인트)
+100%
+"gray basket"
+22/22
+100%
+"brown pot"
+38/38
+val set에서 둘 다 완벽. 좋아보임.
+교차 테스트 결과 (같은 이미지, 다른 쿼리)
+100%
+V5→"basket" TP
+66.7%
+V5→"pot" FP ❌
+100%
+V4→"basket" *있음
+100%
+V4→"pot" TP
+⚠️ 실패 원인
+V5→"brown pot" 66.7% FP: V5에 brown pot이 없는데도 bbox 반환. gray basket을 brown pot으로 착각.
+원인: 학습 데이터에 "V5 이미지 + brown pot → 없음" 샘플이 전혀 없었음.
+모델 전략: "컨테이너 보이면 어떤 텍스트든 bbox 출력"이 loss를 낮추는 최적 전략이 됨.
+→ Hard Negative(없는 물체를 물어보는 샘플) 부재가 근본 원인.
+✅ Exp59 완료 (5/29)
+Gray Basket 단일 타겟 + Hard Negative 3종 — FP 완전 차단
+설계 핵심: "gray basket만 탐지, 다른 물체는 <eos>로 거부"
+V5만 사용 + Hard Negative 3종(brown pot / red ball / person) 학습
+LoRA: 고수준 17층(18~26) / q+k+v proj / r=16 / alpha=32 → PaliGemma2-3B
+📊 Cross-Object Grounding 평가 결과 — 교수님 Q2·Q4 핵심 증거
+Text Query
+이미지 종류
+Hits
+성공률
+판정
+"detect gray basket"
+Gray Basket (타겟)
+19/20
+95.0%
+✅ True Positive
+"detect gray basket"
+Brown Pot (비타겟)
+0/20
+0.0%
+✅ FP 없음
+"detect gray basket"
+Red Ball (비타겟)
+0/20
+0.0%
+✅ FP 없음
+"detect gray basket"
+Person (비타겟)
+0/20
+0.0%
+✅ FP 없음
+TP 95.0% / FP 0.0% — Hard Negative 학습으로 R2-3 문제 완전 해결. 다른 물체 입력 시 <eos>만 출력 → cx=None → action 결정 중단.
+⚠️ Closed-Loop 시뮬레이션 결과 (22 에피소드, EMA α=0.5)
+4.5%
+CL 성공률 (1/22)
+베이스라인: 96.7%
+98.0%
+Grounding 성공률
+basket을 놓치지 않음
+CL 하락 원인: Grounding 자체(98%)는 성공. 그러나 VLM bbox cx/cy 값이 HSV GT 분포와 미세하게 달라(OOD) Stage2 MLP가 오동작 → 누적 drift. 해결: VLM bbox 분포로 MLP 재학습(Joint training) 또는 EMA 강화.
+📄 교수님 Q&A 실험 증거 전체 정리 (5/29)
+Q1 "basket을 본다는 증거?" → Exp57: gray basket 100% / red ball 0% (98.3%p 차이)
+Q2 "다른 물체 → 다른 행동?" → Exp59: FP=0.0%, 비타겟 쿼리 시 <eos> → cx=None → action 중단
+Q3 "bbox는 위치 정보일 뿐?" → 텍스트 교차주의 결과물, phrase 없으면 출력 안 됨
+Q4 "텍스트로 목표 변경?" → grounding 98% 성공, CL 노이즈는 MLP 재학습으로 해결 가능
+상세 증거: docs/v5/PROF_QA_EVIDENCE_20260529.md
+
+[→ 원문 전체 보기(research_story.html#ch16)](../v5/research_story.html#ch16)
+
+---
+
+### CH 18 — 객체 인식 → 위치 → 액션 매칭 — 파이프라인 전체 흐름
+
+① 전체 파이프라인: 인식 → 위치 → 행동
+카메라 이미지 (1280×720)
+↓
+PaliGemma2 Exp59 LoRA ← "detect gray basket" 텍스트 쿼리
+↓
+<loc0462><loc0354><loc0862><loc0597> gray basket<eos> ← bbox 토큰 출력
+↓ 파싱: y1=0.451, x1=0.346, y2=0.584, x2=0.583
+cx = (x1+x2)/2 = 0.464, cy = 0.518, area = 0.071
+↓ + CLIP visual feature (256dim)
+Stage2 MLP (Exp60 재학습) ← [cx,cy,area × 8프레임 히스토리] + visual
+↓
+→ FORWARD (basket이 중앙에 있으므로 직진)
+② cx 위치 → 액션 매핑 (MLP가 학습한 규칙)
+cx = 0 (왼쪽 끝) ←————————————————————→ cx = 1 (오른쪽 끝)
+ROT_L/LEFT
+FWD+LEFT
+FORWARD
+FWD+RIGHT
+ROT_R/RIGHT
+0.00.250.400.500.600.751.0
+cx < 0.25
+basket 거의 안 보임
+→ 제자리 회전
+0.25~0.40
+basket 좌측
+→ FWD+LEFT
+0.40~0.60
+basket 중앙
+→ FORWARD
+0.60~0.75
+basket 우측
+→ FWD+RIGHT
+cx > 0.75
+basket 거의 안 보임
+→ 제자리 회전
+실제로는 cx 단일값이 아닌 8프레임 히스토리 × (cx, cy, area, has_bbox) = 32차원 + visual feature 256차원 = 288차원 입력.
+MLP가 시간적 흐름(basket이 어떤 방향으로 이동 중인지)도 반영해서 판단.
+③ PaliGemma2 실제 출력 → cx 파싱 예시
+PG2 raw 출력
+추출된 cx
+area
+예상 액션
+gray bas...
+cx=0.454
+area=0.050
+FWD+LEFT
+gray bas...
+cx=0.800
+area=0.083
+FWD+RIGHT
+gray bas...
+cx=0.502
+area=0.100
+FORWARD
+없음
+—
+없음 → 정지
+<eos>만 출력 = basket 미검출 → has_bbox=0 → 이전 위치 유지 후 탐색
+④ 실제 로봇 이미지 — 객체 인식 → cx → 액션 (Exp60 기준)
+초록 박스 = PG2 grounding bbox · 노란 십자 = cx,cy 중심점 · 하단 화살표 = cx 위치
+PG2 cx
+0.500
+화면 중앙
+Action
+LEFT
+좌
+center_left
+PG2 cx
+0.123
+화면 좌측 끝
+Action
+FWD+LEFT
+전진+좌
+center_left
+PG2 cx
+0.945
+화면 우측 끝
+Action
+FORWARD
+전진
+center_left
+PG2 cx
+0.109
+화면 좌측 끝
+Action
+FWD+RIGHT
+전진+우
+center_left
+PG2 cx
+0.239
+화면 좌측 끝
+Action
+ROT_R
+제자리우
+left_straight
+PG2 cx
+0.500
+화면 중앙
+Action
+RIGHT
+우
+center_right
+⑤ Exp60 결과 — HSV 제거 후 성능 변화
+Exp54 (HSV cx 기반)
+val_acc: 92.6%
+CL 성공률: 96.67%
+HSV 색상 필터 의존 ← 교수님 지적 대상
+Exp60 (PG2 cx 기반)
+val_acc: 97.0% (+4.4%p)
+CL 성공률: 평가 중 🔄
+HSV 완전 제거 ✅ 순수 신경망
+핵심: 같은 이미지, 같은 MLP 구조이지만 입력 cx의 출처가 HSV → PG2로 바뀜.
+PG2 cx로 재학습한 MLP가 오히려 더 높은 정확도 달성.
+CL 결과가 96%+ 이상이면 교수님 반박에 대한 완전한 답변 — basket을 신경망이 인식해서 행동함.
+
+[→ 원문 전체 보기(research_story.html#ch18)](../v5/research_story.html#ch18)
+
+---
+
+### CH 19 — 다른 VLA 논문들과의 비교 — 정직한 정량·정성 분석
+
+⚠️ 직접 수치 비교의 한계 — 먼저 짚고 가야 할 것
+태스크 범위
+NaVILA: 25가지 다양한 명령 × 여러 건물
+OpenVLA: 29가지 조작 태스크
+MoNaVLA: 단일 복도 × 단일 물체
+일반화 요구
+VLN (R2R): 미지 환경 + 미지 경로
+ObjectNav: 미지 물체 카테고리
+MoNaVLA: 훈련 환경 내 평가
+지표 정의
+일반: "도착했는가" binary
+SPL: 경로 효율도 포함
+MoNaVLA: FPE<0.5m AND TLD∈[0.7,1.5]
+(더 엄격한 조건)
+결론: MoNaVLA 96.67%와 NaVILA 88%를 단순 비교하면 "우리가 더 좋다"처럼 보이지만,
+태스크 난이도가 다릅니다. 아래에서 공정한 비교 기준을 별도로 제시합니다.
+② 공정한 비교 프레임
+✅ 비교 가능한 것
+1. 데이터 효율
+같은 성공률 달성에 필요한 데이터 양 비교
+→ MoNaVLA 150 ep vs NaVILA 수천 ep
+2. 모델 구조
+end-to-end vs decomposed vs hybrid
+→ 방법론 비교는 태스크 무관
+3. 실로봇 배포 여부
+시뮬레이터 only vs 실제 로봇 검증
+4. 언어 조건부 수준
+고정 명령 vs 자유 언어 지시
+❌ 직접 비교 불가한 것
+성공률 수치 자체
+태스크 난이도가 다르면 무의미
+96.67% vs 88%는 우열을 가릴 수 없음
+일반화 성능
+MoNaVLA는 훈련 환경에서만 검증됨
+새 환경 성능은 미측정
+태스크 다양성
+단일 물체 vs 29가지 조작 vs 25가지 내비게이션
+복잡도 차이가 너무 큼
+③ 내비게이션 태스크 난이도 스펙트럼 (쉬움 → 어려움)
+가장 쉬움 →
+PointNav (단순 좌표 이동)
+72~79%
+↓
+MoNaVLA
+— 단일 복도, 단일 물체, 9 경로 (FPE기준 엄격)
+96.67%
+↓
+ObjectNav (물체 카테고리 탐색, 한 환경)
+50~60%
+↓
+NaVILA (25가지 명령 × 다양한 실내 환경, 실로봇)
+88%
+↓
+VLN / REVERIE (미지 환경 × 복잡한 언어 지시)
+35~57%
+← 가장 어려움
+OpenVLA 29가지 조작 / RoboFlamingo 멀티스텝 체인
+67~84%
+읽는 법:
+MoNaVLA 96.67%는 "단일 환경 단일 물체 정밀 내비게이션" 범주에서의 수치입니다.
+NaVILA 88%보다 높지만, NaVILA는 훨씬 다양한 환경과 명령을 다룹니다.
+단순히 96.67% > 88%이므로 우리가 더 좋다고 말할 수 없습니다.
+④ 공정하게 비교 가능한 지표들
+비교 항목
+RT-2
+OpenVLA
+NaVILA
+MoNaVLA
+학습 데이터 규모
+~130K demos
+970K demos
+수천 episodes
+150 episodes ✅
+모델 파라미터
+55B
+7B
+7B+
+3B+256K ✅
+실로봇 배포
+✅
+✅
+✅
+✅
+전방향 바퀴 로봇
+❌
+❌
+❌ (다리)
+✅ 유일
+텍스트 목표 변경
+✅ 강함
+✅ 강함
+✅ 강함
+△ (Exp59 달성 중)
+행동 설명 가능성
+❌ 블랙박스
+❌ 블랙박스
+△ 부분
+✅ cx로 설명
+오픈소스
+❌
+✅
+△
+✅
+⑤ 솔직한 결론 — 우리 시스템의 위치
+진짜 강점 (타 논문 대비 객관적 우위)
+✅ 데이터 효율: 150 ep → 실로봇 동작
+(타 논문 100~10000배 더 많은 데이터)
+✅ 새로운 영역: 전방향 바퀴 로봇 VLA
+(2024-2025 논문 중 해당 유형 없음)
+✅ 해석 가능: cx 중간 표현으로 근거 제시
+현실적 한계 (솔직하게)
+⚠️ 태스크 단순: 단일 복도, 단일 물체
+(일반화 성능은 미검증)
+⚠️ 언어 조건: 아직 방향 텍스트 의존
+(Exp59/60으로 개선 중)
+⚠️ 수치 비교 불가: 96.67% ≠ NaVILA 88% 대비 우위
+학술적 포지셔닝:
+"극소 데이터 + 전방향 바퀴 로봇 + VLM grounding 기반 내비게이션"이라는 조합은 새로운 영역입니다.
+성능 수치를 타 논문과 직접 비교하기보다는
+방법론의 새로움과 데이터 효율이 진짜 기여입니다.
+실제 성능 비교는 동일 태스크·동일 지표에서 ablation study로 보여주는 것이 맞습니다.
+참고 문헌 (수치 출처)
+RT-2 (2307.15818)
+OpenVLA (2406.09246)
+RoboFlamingo (2311.01378)
+NaVILA (2412.04453)
+π0 (2410.24164)
+RING PointNav (2412.14401)
+SPL 지표 (1807.06757)
+
+[→ 원문 전체 보기(research_story.html#ch19)](../v5/research_story.html#ch19)
+
+---
+
+### CH 21 — 연구 정리 — 무엇을 했고, 무엇을 배웠고, 어디로 가는가
+
+🎓 교수님 Q&A 대응 학술적 증거 리포트
+① 출발점 — 교수님이 던진 질문
+"객체를 인식해야 얘가 목표물이 될 수 있는 거고, 목표물이 없는데 맞췄다 안 맞췄다 이게 무슨 의미가 있는 거야?"
+— 5/22 미팅, 교수님
+이 질문이 모든 것을 바꿨습니다. val_acc 92.6% / CL 96.67%라는 숫자가 있어도,
+"모델이 basket을 보고 움직이는가, 아니면 복도 패턴을 암기한 것인가?"
+에 답하지 못하면 의미 없다는 것.
+② 접근 방향 — "신경망이 텍스트로 물체를 특정한다"
+기존 방식 (HSV)
+카메라 → HSV 색상 필터
+→ "회색이고 밝기 70~230인 픽셀"
+→ cx, cy (물체 위치)
+≠ 객체 인식. 색상 규칙.
+새 방식 (PaliGemma)
+카메라 + "detect gray basket"
+→ PaliGemma2 신경망
+→ cx, cy (텍스트 조건부 위치)
+= 객체 인식. 텍스트 변경 가능.
+핵심 가설: PaliGemma의 bbox는 텍스트 쿼리가 조건.
+같은 이미지에서 "gray basket" → bbox, "red ball" → <eos> 이면
+모델이 basket을 개념적으로 이해한다는 증거.
+③ 실험에서 배운 것 — 예상대로 vs 예상 밖
+✅ 예상대로 됐던 것
+Exp57: 비컨테이너 완전 분리
+gray basket 100% / red ball 0% / person 3%
+비컨테이너 물체는 바로 구별됨 ✅
+Exp59: Hard Negative 2 epoch에 수렴
+TP=95%, FP=0%, gap=+95%p
+"텍스트 바꾸면 결과 바뀐다" 증명 ✅
+MoNa-Pi 통합 +73ep → CL +10%p
+150ep(60%) → 243ep(70%)
+데이터가 많아질수록 성능 향상 ✅
+❌ 예상 밖이었던 것
+V4 데이터셋 구조 발견
+V4는 "brown pot 전용"이 아니었음
+모든 프레임에 gray basket + brown pot 공존
+→ Exp58 교차 테스트 무효, 설계 변경 필요
+PG2 cx → MLP 직결 실패 (CL 0%)
+HSV MLP에 PG2 cx 그대로 넣으니 0%
+HSV cx와 PG2 cx의 분포가 달라서
+→ MLP 재학습 필수 발견
+center_straight 구조적 한계
+6가지 소프트웨어 접근 모두 실패
+cx jitter가 CL drift 유발
+→ 데이터 추가 or 실로봇 테스트만이 해결
+④ 숫자로 본 진행 — 5/22 → 6/1
+마일스톤
+핵심 수치
+날짜
+의미
+Exp57 PaliGemma LoRA
+100% / 0% / 3%
+5/27
+basket/ball/person 텍스트 분리
+Exp59 Hard Negative
+TP=95% FP=0%
+5/29
+텍스트→그라운딩 완전 분리 달성
+Exp60 PG2 cx MLP
+CL 50%
+5/31
+HSV→PG2 전환 첫 CL 결과
++flip aug, center×3
+CL 60%
+5/31
+데이터 증강 효과
+Exp61 MoNa-Pi 통합
+CL 70%
+6/1
+150→243ep, right/left 100%
+HSV 기준(96.67%) 대비 gap = 26.67%p. 전부 center 경로(0%) 때문.
+⑤ 지금 확실히 아는 것
+✅ PaliGemma2는 basket을 텍스트로 특정할 수 있다
+✅ "gray basket" ≠ "red ball" — 텍스트로 구별
+✅ right/left 경로는 PG2 파이프라인으로 100% 도달
+✅ 데이터 더 많을수록 성능 오름 (150→243ep: +10%p)
+✅ MoNa-Pi 데이터가 minum과 호환되고 효과 있음
+❌ center 경로는 cx jitter로 CL 실패 구조적
+❌ 소프트웨어(오버샘플/EMA/노이즈) 6가지 효과 없음
+❌ STOP 학습은 마지막 프레임에만 적용해야
+❌ free 에피소드를 structured와 혼합하면 성능 하락
+❌ val_acc 높다고 CL 높지 않음 (Exp60: 97% → 50%)
+⑥ 다음 방향 — 우선순위별
+P1 즉시
+실로봇 테스트 (SODA) — 시뮬레이터 CL 70%가 실로봇에서도 70%인가?
+center_straight는 실로봇에서 drift가 다를 수 있음 (물리 피드백 있음)
+→ git pull + python3 scripts/run_grounding_realtime.py --adapter exp59
+P2 단기
+center_straight 추가 수집 (20개 이상)
+현재 21개 → 목표 40개+. PG2 cx≈0.5가 나오도록 basket 정중앙 조건에서 수집
+→ center 경로 CL 0% 구조적 해결 가능
+P3 중기
+Goal-Conditioned 일반화 — brown pot / chair 등 다른 물체 데이터 수집
+"navigate to X" 텍스트만 바꿔서 다른 목표 추적
+→ 진정한 Goal-Conditioned Navigation = VLA 핵심 기여
+P4 장기
+End-to-End VLA — PG2 full fine-tuning, cx 중간 단계 제거
+π0 방향. 훨씬 많은 데이터 필요 (수천 ep).
+→ 지금 접근(cx 중간 표현)의 장점 유지하면서 언어 조건 강화
+한 줄 요약:
+"신경망이 텍스트로 basket을 인식하고, 그 위치로 움직이는 것"은 증명됐습니다 (70% CL, right/left 100%).
+남은 과제는 center 경로 + 실로봇 배포 + 목표 다양화입니다.
+
+[→ 원문 전체 보기(research_story.html#ch21)](../v5/research_story.html#ch21)
+
+---
+
+### CH 25 — 학술 논문 기여점 & 핵심 피쳐 5선
+
+**1. Decomposed VLA Pipeline (물리 공간 분해 제어)**
+
+메커니즘: Dense한 시각 피처가 Sparse한 텍스트 피처를 잠식하는 Language Attention Collapse를 원천 차단하기 위해, VLM(PaliGemma2)을 통해 목표 텍스트를 기하학적 BBox로 변환(Stage 1)하고 이를 제어 MLP(Stage 2)와 매핑하는 물리적 공간 분해 기법을 수립함.
+➔ 실증 근거:
+CH 13 (텍스트 경로 사망 분석)에서 텍스트 무시 현상의 근본 원인을 규명하고,
+CH 18 (객체인식➔위치➔액션 매칭) 및
+CH 20 (Free 에피소드 분석)을 통해 1:1 기하학 공간 바인딩의 일반화 제어 성공을 예시로 입증함.
+
+**2. Y-Center 기하학 필터 게이트 (도착 STOP 강건화)**
+
+메커니즘: 단순히 BBox 면적(Area) 조건만으로 정지(STOP)를 유도할 때 발생하는 주행 중간의 정지 명령 오발화(False Trigger) 문제를 해결하기 위해, 타겟 BBox 하단이 화면 바닥에 내려앉는 화각 경계선 특이점(cy_avg > 0.50)을 필터 게이트로 활용함.
+➔ 실증 근거:
+CH 14 (왜 학술 지표인가)에서 Closed-Loop의 실질 완주 도달률의 중요성을 설명하고,
+CH 15 (5/27 반박 현황 · CL 전체 비교) 내 32ep Ablation 테스트 결과를 통해 오발 정지 억제로 도달 성공률이 34.4%에서 68.8%로 2배 수직 상승함을 예시로 실증함.
+
+**3. Action Lag Compensation (시간축 역보정)**
+
+메커니즘: 10Hz 주기의 연속 비동기 제어 수집 방식을 도입하여 동기식 제어의 고질적 병목인 조향 오버슈팅과 오실레이션을 억제함. 이때 조종자의 약 100ms 반응 지연 시간(Action Lag)을 상쇄하기 위해 수집 데이터 내에서 액션 배열을 1프레임 앞(a_{t+1})으로 시프트 매핑하는 시간축 역보정을 적용함.
+➔ 실증 근거:
+CH 22 (동기 vs 비동기 수집 · STOP 진실)에서 비동기 수집 루프의 스무스한 조향 제어 우위성과 시간 정합성 보정이 실물 주행 오실레이션을 감쇄시키는 메커니즘을 상세 예시로 제공함.
+
+**4. Jitter Hold Filter & Plateau STOP (제어 노이즈 제어)**
+
+메커니즘: 수집 도중 조이스틱 장치의 물리적 신호 튐으로 인해 불필요한 0(STOP) 속도가 찍히는 유령 정지(mid-stop) 라벨 오염을 막기 위해 300ms 이내의 Jitter는 직전 제어 액션을 홀딩(Hold)하고, 최종 정지 단계에만 5프레임의 Plateau STOP을 강제 인젝션함.
+➔ 실증 근거:
+CH 22 (동기 vs 비동기 수집)의 Plateau STOP 및 데이터셋 무결성 검증, 그리고
+CH 9 (실로봇 평가)의 도착 지점 정지 궤적 데이터를 통해 최종 속도 감속 및 정지 제어가 안정화됨을 예시로 실증함.
+
+**5. Vision-centric LoRA & LLM-frozen Tuning**
+
+메커니즘: 소규모 온디바이스 fine-tuning 환경에서 일반화 성능(OOD 노이즈) 강건성을 극대화하기 위해 PaliGemma2의 비전 인코더(SigLIP 상위 레이어)의 표현 공간을 미세조정하되, 과적합을 차단하기 위해 LLM 레이어는 튜닝에서 제외(Frozen)하는 아키텍처를 수립함.
+➔ 실증 근거:
+CH 11 (교수님 반박 3가지)의 CLIP-SigLIP 가중치 분석 및
+CH 17 (PaliGemma 전환 히스토리)를 통해, 적은 수의 로보틱스 데이터셋(220ep)만으로도 강건한 비전-텍스트 공간 정렬 표현을 성공적으로 학습시켰음을 입증함.
+
+[→ 원문 전체 보기(research_story.html#ch25)](../v5/research_story.html#ch25)
+
+---
+
+### CH 26 — 통합 Ablation 분석 — 세 실험이 가리키는 한 방향
+
+① Exp60 — 제어 데이터/증강 ablation
+HSV→PG2 bbox 분포 불일치(OOD)로 CL 96.7%→4.5% 붕괴. 회복 레버:
+데이터량(150→243ep, +10%p)이 결정적, bbox-noise 증강(aug2.0, +32%p)이 OOD 정합.
+반면 flip 증강 단독은 무효~소폭 하락(70→65%).
+E2E(C1)는 18.8%로 분해형(B1 70%)에 크게 못 미침.
+② Grounding ablation — base vs LoRA
+베이스 PG2 zero-shot이 fine-tune LoRA보다 안정(cx_std 0.070 vs exp59 0.134).
+exp58(2-class)은 full-frame 53% 폭발. base/exp57/exp59 × b1 = 모두 100% CL.
+→ 소규모 도메인 fine-tuning이 grounding을 오히려 악화(과적합·hard-neg 패널티·이산 bin 지터).
+③ LoRA-depth ablation — E2E PaliGemma (신규, 6/5~6/8)
+vision tower 상위 N 레이어 LoRA(top2~8) × mm_projector frozen/tuned, action val_loss 비교:
+LoRA 깊이
+proj frozen
+proj tuned
+top2 (25-26)
+0.435
+0.435
+top4 (23-26)
+0.433
+0.433
+top6 (21-26)
+0.433
+0.433
+top8 (19-26)
+0.435
+진행중
+→ 전체 스프레드 0.002. 레이어 깊이도 projector tuning도 val_loss에 차이 없음.
+E2E는 LoRA 깊이가 병목이 아님 = ②와 동일한 "fine-tuning 평탄성".
+🎯 통합 결론 — 평평한 손잡이 vs 진짜 레버
+❌ 효과 미미/역효과 (평탄)
+· LoRA 레이어 깊이 2→8 (Δ0.002)
+· mm_projector frozen↔tuned
+· flip 증강 단독 (70→65%)
+· grounding hard-neg fine-tune (base보다 불안정)
+✅ 진짜 성능 레버
+· 분해형 채택 (70~100% vs E2E 18.8%)
+· 데이터 규모 (+93ep → +10%p)
+· grounding 안정성 (base 채택)
+· bbox-noise 증강 (OOD 정합, +32%p)
+· STOP 윈도우 규칙 (도착 종결)
+한 줄 요약:
+세 ablation이 독립적으로 같은 말을 한다 — "모델을 더 튜닝하는 것"은 plateau, "구조를 분해하고 데이터를 늘리고 grounding을 안정화"하는 것이 레버.
+그래서 다음 단계는 LoRA 재튜닝이 아니라 base grounding + 분해 파이프라인 + 데이터 확장(center 경로·다물체)이다.
+
+[→ 원문 전체 보기(research_story.html#ch26)](../v5/research_story.html#ch26)
+
+---
+
+### CH 36 — 6/12 미팅 — 실사 테스트 & 논문 제출 결정
+*2026-06-12 · 이민우 + 교수님*
+
+-top:8px;background:#1a0d0d;border-radius:6px;padding:8px 10px;font-size:0.79rem;color:#fca5a5">
+⚠️ 블로커: 가까워졌을 때 grounding 인식 여부 미확인 — STOP 처리 방안 검토 중
+③ FPE 비교
+기준: FPE < 0.3m → 정답 판정
+맞춘 케이스 평균 FPE: 0.110m
+MLP 헤드 < 기존 헤드 오차
+④ 논문 제출 준비
+GitHub 실험 일지 누적 기록 중
+Pi Zero(Flow Matching) 포함 예정
+허지욱 교수님 지원 요청 · 단독 제출 검토
+여름방학까지 DJX Spark 사용 허가 확보
+교수님 — 방향 결정
+PaliGemma(Florence) frozen → detection 잘 됨 확인
+RoboVLMs 헤드 → MLP 헤드 교체 방향 결정
+다음 주 실제 시행 테스트 후 논문 제출 일정 확인
+결정 사항
+✅ E2E 대신 레이어 frozen + MLP 액션 헤드만 학습시키는 방식으로 확정
+✅ RoboVLMs 헤드 → MLP 헤드 교체 + CL/FPE 비교 실험
+✅ 다음 주: 실제 시행 성공률 테스트 → 과적합 여부 테스트 순서로 진행
+✅ 데이터 수집: 태스크 2개 · 오브젝트 2개 과적합 방지 실험 추가
+✅ 논문: 다음 주 결과 후 빠른 제출
+액션 아이템
+이민우
+✅ 모델·학습MLP 헤드 교체 후 CL·FPE 비교 실험 — CH33~35(96.6%) 및 CH43(LSTM 추가 비교)에서 완료
+🔄 추론현재 모델 실제 시행 성공률 테스트 — robot_tests.html 실사 세션 존재, 문서 내 최종 성공률 수치는 별도 확인 필요
+🔄 데이터·학습의자 포함 오브젝트 2개·태스크 2개 추가 수집·학습 — V5-2 chair 데이터셋(gen_chair_pg2_annotation.py) 수집 확인, "태스크 2개" 학습 완료 여부는 미확인
+🔄 추론가까워졌을 때 STOP 처리 방안 확인 — 알고리즘적으로는 CH37에서 깊게 분석됨(override 없는 게 최선). 단 실거리(cm) 캘리브레이션은 CH44-3에서 여전히 미해결로 명시됨
+❓ GitHub 일지 정리 + 논문 제출 준비 — devlog.html 존재, 완료 여부는 문서로 확인 불가
+❓ 허지욱 교수님 논문 지원·Flow Matching 포함 제출 요청 — 외부 요청, 문서로 확인 불가
+교수님
+✅ 다음 주 미팅 일정 확인 — 이번 주(2026-06-22 미팅)로 이어짐
+❓ 논문 헤드 교체·수정 후 제출 일정 조율 — 문서로 확인 불가
+범례: ✅ 완료(근거 있음) · 🔄 부분/진행 중 · ❓ 문서로 확인 불가 · ☐ 미착수. 이후 새 CH가 채워질 때마다 이 표를 갱신.
+
+[→ 원문 전체 보기(research_story.html#ch36)](../v5/research_story.html#ch36)
+
+---
+
+### MTG — 6/26 미팅 — 6/22 질문 해결 논리 전개 전체 정리
+*6/22 미팅에서 열린 질문 4개의 연구 흐름 · 검증 과정 · 최종 결론 + 오늘(6/26) 추론 세션 결과*
+
+**✅ 실제 미팅 결과 — 2026-06-26 · 이민우, Speaker 2, Speaker 3**
+
+실로봇 테스트 성공률 (오늘 확인)
+80%
+직선 경로
+10회 중 8회 성공
+70%
+좌우 오프셋
+10회 중 7회 성공
+90%
+각도 조정 후
+방향 먼저 틀고 재시도
+그라운딩 센터 성공률: 85.7% · STOP은 전부 수동 처리
+레이턴시 실측 (skip_n=3 적용 후)
+450~600ms
+/ frame (실주행 평균)
+수식 확인: 실그라운딩 1,400ms ÷ 3프레임 ≈ 467ms/frame — 미팅 실측값과 일치 ✅
+기존 skip_n=1 대비 약 3배 빠름
+결정 사항
+- skip_n=3 (추론 3회당 그라운딩 1회) → 레이턴시 감소 확정 적용 (이미 배포 완료)
+- 출발 위치 고정 + 프리뷰 모델로 객체 인식 가능 각도 먼저 회전 → 표준 워크플로우로 채택
+- 박스 위치 테스트: 중앙 기준 10cm / 20cm / 30cm에서 각 10회씩 성공률 산출
+- 각도 조정 방식으로 총 30~40회 테스트 수량 확대
+- 다음 미팅: 월요일 오전 9시, 바쁘면 카카오톡으로 결과 공유
+리스크 & 블로커
+🟠 그라운딩 인식률 저하
+좌우 오프셋에서 인식 불안정. 각도 조정(프리뷰 모델)으로 우회.
+🟠 STOP 수동 처리
+자동 정지 미구현. 이번 테스트 단계는 수동 유지, 추후 과제.
+🟡 프리뷰 모델 미완성
+Speaker 2 담당. 일정 다음 주까지 연장 가능성.
+🟡 시작 위치 의존성
+학습 데이터 미포함 위치 → 액션헤드 출력 변동. 출발 위치 고정으로 완화.
+Action Items
+- ☐ 이민우: 결과 GitHub 업로드 및 팀 공유 (이 페이지가 해당)
+- ☐ Speaker 2: 기존 수집 세션 확인 → 그라운딩 성능 최선 모델 선정 + 프리뷰 기능 활성화
+- ☐ Speaker 2: 프리뷰 모델 완성 → 좌/중/우 각 30회 테스트, 성공률 산출
+- ☐ Speaker 2: 박스 10/20/30cm 거리 × 10회씩 테스트, 성공률(%) 산출
+- ☐ Speaker 2: 월요일 9시 미팅 브리핑 (또는 카카오톡 공유)
+
+**헤드라인 한 줄**
+
+"6/22 질문 4개 중 3개는 음성 결과로 종결됐고 1개(STOP 실측)는 미착수입니다.
+운영 모델(Exp66)은 현재 연구 범위에서 이미 최선에 가까운 상태이며,
+확인된 유일한 개선은 레이턴시 66% 절감(grounding_skip_n=3)으로 오늘 오전 배포·실측 확인 완료했습니다."
+
+**Q1 (6/22). "그라운딩/인식 품질 개선 — has_bbox=False 오류율 3~5배, 실제 개선 미착수"**
+
+CH41에서 has_bbox=False 구간의 오류율이 정상 구간 대비 3~5배 높다는 것을 확인, 개선 방법 찾기가 목표였다.
+Step 1 — 현상 재확인 (CH45~46)
+CH45: BGR/RGB 정상, 오른쪽 경로 초반에서 has_bbox=False 집중을 진단.
+CH46: PG2로 bbox 재주석 후 재확인 → has_bbox=False 0건으로 줄어듦.
+"문제는 has_bbox=False가 아니라 area(거리)와 오류율의 연속적 상관"으로 결론 정정.
+Step 2 — 학습 데이터 품질 개선 시도 (CH47~50)
+CH47: area_delta feature 추가 → 단일런 FPE 개선 주장.
+CH48: Grounding Hub 모델 일치성 검증 ✅
+CH49: skip_n=3 환경에서 area_delta 이득 사라짐 → area_delta 폐기 확정.
+CH50-1: 작은 객체(area<0.05) 줌 재그라운딩으로 학습 데이터 정제 → 단일런 SR 96.6% 보고.
+CH50-3: 5-seed 검증 → 평균 89.7%±3.8%, baseline 93.1%보다 낮음. 단일런 노이즈 정정.
+Step 3 — 런타임 조건부 재시도 시도 (CH51)
+CH50과 스코프가 다름(런타임 첫 5프레임, 재학습 없음). n=737(세션 8개 + V5 학습 에피소드 150개)으로 확장.
+결과: 89%(656/737) 프레임에서 area 오히려 감소, False→True 전환 0건. 도움 안 됨 확정.
+추론: PG2가 2× 줌 크롭 시 씬 컨텍스트 소실 → grounding 오히려 혼란. 해상도 문제가 아닌 컨텍스트 문제.
+Q1 결론 (음성)
+시도한 두 방향(학습 데이터 정제 CH50, 런타임 재시도 CH51) 모두 효과 없음 확정.
+"area와 오류율 상관"은 실재하지만, 줌 크롭으로는 해결 불가.
+근본 해결책은 별도 트랙(최소 거리 운영 프로토콜 또는 초기 접근 매뉴버)이 필요하며 현재 미결.
+
+**Q2 (6/22). "LSTM+hidden state — val 29개로는 SR 변별 안 됨, 더 큰 표본 필요"**
+
+CH43에서 LSTM add mode 96.85%를 보고했으나 CH43-2d에서 이미 5-seed 정정(95.39%±0.20%p).
+path_type별 분리 평가가 6/22 시점 미착수로 남아있었다.
+Step 1 — path_type 분리 평가 (CH52, 오늘)
+val 30개 에피소드 × 9 path_type을 none/add/replace 모드별로 완전 분리 측정.
+SR: 세 모드 완전 동일 (96.6%) — 어떤 path_type에서도 hidden state 모드 간 차이 없음.
+FPE: replace 모드가 전환 경로에서 0.176m → 0.106m (40% 개선).
+right_right만 67% (모든 모드 동일) → 특정 에피소드가 어려운 것, hidden state 문제 아님.
+Q2 결론 (완료)
+SR 기준으로는 hidden state가 어떤 path_type에서도 도움 안 됨. val 세트가 이미 SR 포화(천장) 상태.
+FPE 정밀도에서 replace mode가 전환 경로에서 일관되게 우세 — 실운용 가치가 있다면 replace 채택 근거.
+
+**Q3 (파생). "skip_n=3이 안전하다면 배포" → 오늘 완료**
+
+CH49에서 skip_n=3이 SR/FPE 변화 없이 레이턴시를 66% 절감한다는 것을 확인(all 3 modes 검증).
+오늘 stage2_v2_inference_server.py의 기본값을 1→3으로 변경·푸시·배포.
+오늘 6/26 세션 두 개(104455, 104644)에서 skip_n=3 동작 실측 확인
+— `1 call + 2 cached` / `2 calls + 4 cached` 패턴 정확히 일치.
+정상 레이턴시: 1,348~1,469ms/call (104455의 22.4s는 콜드스타트 단발 이상치로 추정).
+
+**Q4 (6/22). "STOP 거리 40~50cm 캘리브레이션 — 현장 실측만 남음" → 미착수**
+
+계산기(calibrate_stop_distance.py)와 핸드오프 문서(docs/STOP_DISTANCE_CALIBRATION_HANDOFF.md)는 완성.
+soda 로봇 앞에서 30/40/45/50cm에서 area 기록하는 실측만 남았으나, 로봇 직접 접근 기회가 없어 미착수.
+실측 방법: 로봇-바구니 거리 4곳(30/40/45/50cm)에서 PG2 grounding area 각 5회씩 기록 →
+calibrate_stop_distance.py에 입력 → area=k/d² 핀홀 모델로 최적 STOP 임계값 도출.
+현재 하드코딩 area≥0.25는 미검증 추정값.
+
+**오늘(6/26) 추론 세션 3개 — skip_n=3 첫 실주행 확인**
+
+세션
+프레임
+skip_n
+그라운딩
+area 범위
+모델 행동
+비고
+100316
+5
+1 (구)
+4/4 실호출
+0.028~0.074
+FWD/FWD+L/FWD+R
+배포 전 세션
+104455
+4
+3 ✅
+1실+2캐시
+0.053
+FWD+R/FWD
+레이턴시 22.4s ⚠️
+104644
+7
+3 ✅
+2실+4캐시
+0.017~0.050
+FWD/FWD+L
+정상 1.35s
+area 전체 0.017~0.074 — "처음이 너무 멀어서" 시나리오 그대로 실측. 그라운딩 자체는 됨(has_bbox=True).
+모델은 세 세션 모두 FWD 계열로 정상 항법 시도. 104455의 22.4s 이상치는 단발 콜드스타트 추정.
+
+**현재 운영 모델(Exp66) 상태 — 6/26 기준**
+
+CL 성공률 (시뮬)
+96.6%
+6/22 이후 변동 없음
+FPE (시뮬)
+0.094m
+변동 없음
+grounding 레이턴시
+↓ 66% (skip_n=3)
+오늘 배포·실측 확인 ✅
+area_delta feature
+미적용 (효과 없음 확정)
+CH49
+줌 재그라운딩
+미적용 (학습·런타임 모두 효과 없음)
+CH50-3, CH51
+STOP 거리 캘리브레이션
+현장 실측 대기 중
+계산기 완비, 로봇 실측만 남음
+
+**Q & A**
+
+Q1. "6/22 이후 뭐가 달라졌어요?"
+grounding_skip_n=3 배포(레이턴시 ↓66%)만 실질 개선. 나머지 5개 실험(area_delta, 줌재그라운딩 학습, 줌재그라운딩 런타임, LSTM-add, LSTM-replace)은 모두 음성 결과.
+skip_n=1 (배포 전) · area=0.053
+skip_n=3 적용 후 · 정상 그라운딩
+skip_n=3 · area=0.017 (멀리서 출발)
+Q2. "그라운딩 품질 개선은 왜 안 됐어요?"
+2× 줌 크롭 시 바구니 주변 씬 컨텍스트(바닥·벽·주변 환경)가 잘린다. PG2는 "gray basket"을 맥락 전체로 인식하는데 그 맥락이 소실되어 오히려 혼란. n=737 실측에서 89% 프레임에서 area가 감소, False→True 전환 0건.
+CH50: 원본(빨강) vs 줌재그라운딩(초록) — 박스 거의 안 변함
+CH50: 줌 후 area 오히려 감소한 사례
+Q3. "처음이 너무 멀어서 안 되는 문제는?"
+오늘 세션 3개 모두 area 0.017~0.074로 출발 — "너무 멀어서" 시나리오 그대로. 줌크롭으로 해결 안 됨 확인(CH51). 대안: (a) 최소 시작 거리 운영 프로토콜, (b) 초기 접근 매뉴버. 방향은 교수님 결정 필요.
+area=0.053 — 멀리서 FWD+L
+area=0.017 — 가장 작은 케이스
+area=0.029 — FWD+R로 전환
+Q4. "LSTM hidden state는 의미 있어요?"
+SR 기준으로는 none/add/replace 전 모드 동일(96.6%). replace mode가 전환 경로(left_left, center_left 등) FPE 40% 개선(0.176m→0.106m). 정밀도를 우선하면 replace 채택 근거 있음.
+skip_n=3 캐시 시퀀스 — 3프레임 bbox 고정
+오늘 실세션 104644 — 초록=실호출 노랑=캐시
+Q5. "다음에 뭘 해야 해요?"
+① STOP 거리 현장 실측(30/40/45/50cm, 로봇 필요 — 계산기·핸드오프 완비) ② 그라운딩 실패 대응 방향 결정(교수님 판단). 시뮬 기준 96.6%에서 더 올릴 방법은 현재 식별되지 않음.
+CH44~CH52 전체 근거  |  6/26 세션: docs/inference_sessions/session_20260626_*.h5  |  2026-06-26
+
+[→ 원문 전체 보기(research_story.html#meeting-0626)](../v5/research_story.html#meeting-0626)
+
+---
+
+### MTG — 6/30 미팅 — 실제 결과
+*참석: 이민우, 교수님 · PG448 채택 확정 · 논문 공헌 방향 결정 · 목요일 OT 후 미팅 예정*
+
+**✅ 실제 미팅 결과 — 2026-06-30 · 이민우, 교수님**
+
+PG448
+프리뷰 모델 채택
+YOLO 불채택
+5종
+베이스라인 비교
+논문 공헌 포함
+목요일
+다음 미팅
+OT 이후
+
+**진행 상황 (이민우)**
+
+1
+그라운딩 모델 비교 및 프리뷰 모델 설계
+0번째 프레임 위치 조정 시 그라운딩 결과가 달라지는 문제 발견.
+Kosmos-2, Florence-2, OWL-v2, PaliGemma-224, PaliGemma-448 5개 모델을 대상으로
+185프레임 셀프 라벨링 검출률 비교 실험 수행.
+YOLO V8N/V8S도 테스트하였으나 검출률 낮아 불채택.
+PG448이 가장 높은 검출률 — 224px 대비 448px 리사이즈 시 성능 향상 확인.
+Kosmos-2에 프롬프트 리팩토링(gray laundry basket 방식) 적용 시에도 검출률 향상 확인.
+⚠️ 블로커: 128GB 서버(minum)와 실제 로봇 서버(soda, 16GB) 간 추론 결과 차이 존재.
+soda에서 PG448 정상 동작 여부 미확인. 3B 모델 2개 동시 로드 시 16GB 초과 가능성.
+2
+MLP 액션 헤드 연동 및 데이터 수집 설계
+프리뷰 모델에서 그라운딩 완료 전까지 MLP 헤드로 넘어가지 않도록 파이프라인 설계 완료.
+448px 기준 가운데·왼쪽·오른쪽 각 20개씩 수집 → 이후 10cm/20cm/40cm 거리별 확장 계획.
+MLP 모델이 이전 8프레임을 참고하는 특성상, 0번째 프레임의 쓰레기 프레임 문제를 명시적으로 처리 필요 확인.
+3
+연구 논문 정리 및 공헌 도출
+여러 버전의 실험이 혼재 → 정리 필요.
+공헌 후보: ① 전체 파이프라인 구성 ② 베이스라인 5개 비교 ③ 모듈화 프레임워크
+(액션 헤드와 객체 정보만 교체하면 로봇팔·모빌리티 모두 적용 가능한 구조).
+목요일 미팅 전까지 실험 내용 정리 후 교수님께 공유 예정.
+
+**5-Model 검출률 비교 (minum 서버, 185프레임)**
+
+⚠️ minum(GB10 128GB) 기준 — soda 실측값 아님. 방향 정확도는 하드웨어 무관 유효.
+모델
+방향 정확도
+검출률
+판정
+PaliGemma2 448px
+99.1%
+183/185
+✅ 채택 — 프리뷰 모델
+Kosmos-2 (refexp, Kr)
+99.1%
+185/185
+✅ 프롬프트 리팩토링 효과 확인
+PaliGemma2 224px
+98.7%
+136/185 (73.5%)
+△ 검출률 낮음, 448로 교체
+Kosmos-2 (completion, Kc)
+55.0%
+138/185 (47% fallback)
+❌ 하드코딩 fallback 문제
+Florence-2
+51.8%
+185/185
+❌ 구조적 좌편향
+YOLO V8N / V8S
+—
+낮음
+❌ 검출률 낮아 불채택
+
+**결정 사항**
+
+- PaliGemma2 448px를 프리뷰 모델로 채택 — 별도 경량 모델(YOLO 등) 미사용
+- 프리뷰 모델에서 그라운딩 성공 전까지 MLP 액션 헤드로 넘어가지 않도록 파이프라인 구성
+- 베이스라인 5개(Kosmos-2, Florence-2, OWL-v2, PG224, PG448) 비교 결과를 논문 공헌으로 포함
+- 로봇팔과 모빌리티를 하나의 VLM 백본으로 모듈화하는 구조를 핵심 공헌으로 정리
+- 다음 미팅: 목요일 OT 이후 — 448px 테스트 결과 및 실험 정리 보고
+
+**교수님 코멘트**
+
+- 베이스라인 선택 과정, 전체 파이프라인 설계, 로봇팔+모빌리티를 하나의 VLM으로 처리하는 모듈화 구조를 공헌으로 정리할 것 제안
+- 향후 하나의 VLA 모델로 모빌리티+로봇팔 동작을 동시에 수행하는 방향으로 발전 가능성 언급
+- 이번 실험이 월드 모델로 나아가기 위한 중간 단계로서의 의미가 있다고 평가
+
+**액션 아이템 — 이민우**
+
+- 실험실 올라가서 PG448 soda에서 정상 동작 확인
+- 가운데·왼쪽·오른쪽 각 20개씩 데이터 수집 → 10/20/40cm 확장
+- 그라운딩 완료 전 MLP 비통과 로직 적용·테스트
+- 실험 버전 정리 문서 목요일 전까지 공유
+- 파이프라인·베이스라인·모듈화 공헌 문서화
+
+**액션 아이템 — 교수님**
+
+- 목요일 OT 이후 미팅 — 448px 결과 및 실험 정리 확인
+- 이민우 공유 문서 검토 → 논문 공헌 포인트 도출
+
+[→ 원문 전체 보기(research_story.html#meeting-0630)](../v5/research_story.html#meeting-0630)
+
+---
+
+### MEETING — 미팅 준비 — 추천 읽기 순서 & 자료 링크
+
+48b;margin-top:2px">10.3% → 96.6%
+⚡ 교수님 미팅 동선 (2026-06-12 기준)
+-
+CH33 — 파이프라인이 범인 (exp65~67)
+— cx 소스 무관, L2+aug가 유일 결정 요소. 10.3% → 96.6% (×9.4)
+-
+CH34 — RoboVLMs Head Ablation (exp68~70)
+— LSTM = ActionMLP 96.6%. RoboVLMs 기여 클레임 4항목
+-
+CH35 — Window Size Ablation
+— MLP w≥4 포화. LSTM w=16 FPE 0.080m 최저. 성공률은 window-insensitive
+-
+CH29 — RoboVLMs 해부 (lora_B=0 버그 · text attn=0%)
+— E2E 0% 원인. Google-robot post-training이 언어 경로 파괴
+-
+CH25 — 학술 기여점 & 핵심 피처 5선
+— 논문 서술 포인트 정리
+-
+CH30 — 의자 객체 전환 (chair 파이프라인)
+— 의자 grounding 100% hit. 좌/우 수집 후 재학습 예정
+📄 6/12 생성 문서
+▶ 교수님 업데이트 6/12 — 파이프라인 원인 확정 요약
+▶ 논문 Table 초안 — Table 1/2A/2B/2C/3 전체
+▶ Grounding Hub Section F — Pipeline ablation 시각화
+▶ Grounding Hub Section G — Head & Window Ablation 전체 결과
+🔑 핵심 결론 (논문 서술용)
+파이프라인(L2+aug) = 유일 결정 변수
+cx 소스(grounding 품질) = 무관
+LSTM ≡ ActionMLP (window-baked 등가)
+Decomposition: E2E 0% → 96.6%
+lora_B=0 구조적 버그 (RoboVLMs 발견)
+배경 이해 필요 시:
+CH10 5/15 미팅·Exp54 설계 →
+CH11 5/22 교수님 반박 3가지 →
+CH21 전체 연구 흐름 요약 →
+CH32 LoRA 해부 →
+NEXT 다음 방향
+현재 상태 / 남은 TODO
+✅ 파이프라인 원인 확정 (exp65~67) — CH33
+✅ RoboVLMs head ablation (exp68~70) — CH34, LSTM=MLP 확인
+✅ 의자 grounding 파이프라인 구축 (100% hit, 스크립트 완료)
+⏳ 의자 좌/우 에피소드 수집 (현재 0ep/1ep → 목표 15+15ep)
+🔲 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)
+🔲 논문 최종 작성 (Table 1/2A/2B/2C/2D 확정 완료, 본문 서술 필요)
+
+[→ 원문 전체 보기(research_story.html#meeting-guide)](../v5/research_story.html#meeting-guide)
+
+---
+
+### PRES — 15분 발표 — 우리 모델 SOTA 정리
+*2026-06-12 · 핵심 수치만, 밑줄 강조*
+
+8px;padding:10px">
+13~15분
+결론 & 다음
+① Main Results — E2E vs Decomposition vs Ours
+Method
+Architecture
+CL ↑
+FPE ↓
+E2E VLA (Exp11)
+Kosmos-2 + LoRA
+0%
+1.454m
+Decomposition v1 (Exp14)
+CLIP + BBox MLP
+66.7%
+0.555m
+Ours — Stage2 v2 (Exp66)
+★ BEST
+CLIP + L2-norm + aug
+96.6%
+0.102m
+CL = Closed-Loop 성공률(FPE<0.5m AND TLD∈[0.7,1.5]) · 150 ep · stratified split
+② 파이프라인 Ablation — 핵심 발견 1
+cx 소스(grounding 품질) 고정, 파이프라인만 변경
+Pipeline
+CL ↑
+FPE ↓
+단순 MLP (Exp65b)
+10.3%
+0.941m
+L2-norm + bbox aug (Exp66)
+96.6%
+0.102m
+파이프라인만 바꿨을 때 10.3% → 96.6% (×9.4배).
+cx 소스 3종(HSV · base PG2 · exp59 LoRA) 비교해도 CL 전부 96.6% →
+grounding 품질은 action 성능에 기여하지 않음.
+③ Action Head Ablation — RoboVLMs 비교
+파이프라인·cx 고정, head만 변경
+Head
+원형
+CL ↑
+FPE ↓
+Linear
+1-layer FC
+69.0%
+0.377m
+FCHead
+RoboVLMs FCDecoder
+93.1%
+0.109m
+LSTMHead
+RoboVLMs MobileVLA
+96.6%
+0.112m
+ActionMLP (ours)
+window-flat
+96.6%
+0.110m
+LSTM(RoboVLMs) = ActionMLP(ours) → 96.6% 동일.
+window-baked flat MLP가 explicit LSTM temporal modeling과 등가 —
+더 경량·추론 빠름. 추가: RoboVLMs lora_B=0 초기화 버그 발견.
+④ Window Size Ablation — 핵심만
+head별 window 크기 변화 (파이프라인·cx 고정)
+MLP (w=2~16)
+w=2 → CL 93.1% (불충분)
+w≥4 → CL 96.6% 포화
+w=4 → FPE 0.094m (MLP 최저)
+CL은 window-insensitive
+LSTM (w=4~16)
+w=4,8 → CL 96.6% 유지
+w=16 → FPE 0.080m (전체 최저)
+긴 시퀀스 활용 가능
+FPE는 window-sensitive
+CL은 window에 둔감, FPE는 window에 민감.
+배포 기준: MLP w=4 (경량·FPE 최저) 또는 LSTM w=16 (궤적 정밀도 최선).
+⑤ 결론 (15분 마무리)
+🏆 우리 SOTA: CL 96.6%, FPE 0.102m (Exp66) — 소규모 150 ep로 달성
+🔑 파이프라인(L2-norm + aug)이 결정적. grounding 개선(7종 LoRA)은 무효
+⚖️ RoboVLMs 공식 head = 우리 MLP — 96.6% 동일, 우리가 더 가볍
+📐 Window w=4 충분 (CL 포화). FPE 개선은 LSTM w=16 (0.080m)
+다음: 의자 데이터 수집 → Stage2 재학습 → 다물체 Goal-Conditioned 검증
+
+[→ 원문 전체 보기(research_story.html#pres)](../v5/research_story.html#pres)
+
+---
+
+### SUMMARY — 전체 흐름 요약
+
+**✅ Head Ablation — LSTM = ActionMLP**
+
+96.6%
+✅ Head Ablation — LSTM = ActionMLP
+Linear 69.0% → FCHead 93.1% → LSTMHead(RoboVLMs) 96.6% = ActionMLP(ours) 96.6%. window-flat MLP가 LSTM과 등가·더 경량. → CH34
+
+**✅ Window Ablation — MLP w≥4 포화**
+
+w≥4
+✅ Window Ablation — MLP w≥4 포화
+MLP w=2만 CL 93.1% 하락. w≥4 전부 96.6% 포화. LSTM w=16이 FPE 0.080m 전체 최저 → 정밀도는 긴 맥락 활용 가능. → CH35
+
+**✅ Basket 이중 증명 완료**
+
+9/9
+✅ Basket 이중 증명 완료
+Zero-shot linear probe 96.6%(frozen CLIP 위). Basket masking → 9/9 프레임 행동 반전(curated PG2, Exp66). 이미지 경로가 basket 픽셀을 독립적으로 인식. → 상세
+현재 핵심 결론 (6/4 업데이트)
+"PaliGemma-3B 기반 ... RISE 사업 은상 ... SigLIP LoRA ..."
+[E2E 한계 / PM 한계 / 박스를 본다 / 다음 관문 / R2-2 해결 / R2-3 해결 / within-class 한계]
+→ 6/4 기준 카드 7개. 상세 내용은 각 챕터(CH13~CH32)에 유지됨.
+-->
+상세 문서 및 데이터
+📊 전체 실험 결과 총집합 (Exp01~55)
+🧪 마스킹 & STOP 게이트 검증 리포트
+🎓 교수님 질의 대응 검증
+🛠 V5 개발 로그
+🗺 실험 플로우 맵
+🎨 기존 마스킹 시각 대시보드
+📖 용어 사전
+📊 Closed-Loop 상세
+🖼 이미지 파이프라인 뷰어
+🏠 메인으로
+🤖 Robot Tests — 실제 추론 세션 전체 프레임 분석
+2026-05-29 · 2026-06-04 세션 · FWD+LEFT bias 원인 분석 · timing mismatch 발견
+
+[→ 원문 전체 보기(research_story.html#summary)](../v5/research_story.html#summary)
+
+---
+
+### TODO — 사용자 지시 5개 — 학습/추론 이미지 파이프라인 가설 (→ CH44에서 검증)
+*2026-06-22, CH44 작업 착수 직전 사용자가 제시한 5가지 가설/요청 원문 그대로. 각 항목의 검증 결과는 CH44 본문 참고.*
+
+- ✅ 학습 시 1280×720 → 224×224로 변경해 학습 — 검증 결과 이미 그렇게 동작 중이었음(HF processor가 암묵적으로 224×224 리사이즈). image_preprocess.py로 명시적 통일 완료 → CH44-1
+- ✅ 추론 시 카메라 1280×720 → 224×224 리사이징해서 입력 — 동일하게 이미 그렇게 동작 중, 명시적 통일 완료 → CH44-1
+- 🔄 latency 1초 이내(현재 4초) — "4초"는 단발 latency가 아니라 1fps 가정 대비 처리속도 누적 드리프트로 확인됨(진짜 단발 latency는 soda 1.3초). 1초 목표는 아직 미달성 → CH44-2
+- 🔄 40~50cm 이전에 정지하도록 — 현재 STOP 임계값은 정규화 면적(area>0.25) 기준이라 cm 단위가 아님.
+핀홀 카메라 모델(area ∝ 1/distance²) 기반 캘리브레이션 계산기는 작성 완료(scripts/eval/calibrate_stop_distance.py) —
+실측 데이터(거리별 area 2곳 이상)만 입력하면 즉시 threshold 역산 가능.
+2026-06-24 soda 현장 작업용 핸드오프 문서 작성·push 완료(docs/STOP_DISTANCE_CALIBRATION_HANDOFF.md —
+측정 거리 4곳, 기존 도구 calibrate_goal_area.py 재사용, 명령어까지 정리) — 실측 자체는 soda 현장 작업 필요해 ☐ 미착수 → CH44-3
+- ✅ VLM 의미벡터(HS)와 입력 해상도의 alignment 의심 — 코드 검증 결과 해상도 자체는 이미 정렬되어 있어 원인이 아닌 것으로 확인(가설 기각). 남은 의심 지점이었던 "카메라 vs h5 색공간 차이"도 CH45-1에서 실측으로 추가 기각됨 → CH44-1
+범례: ✅ 완료/검증됨 · 🔄 부분 해결 · ❓ 확인 불가 · ☐ 미착수
+
+[→ 원문 전체 보기(research_story.html#todo-ch44)](../v5/research_story.html#todo-ch44)
+
+---
+
+### MEETING — 이번주 미팅 준비 (2026-06-22 기준 분석)
+*오늘 CH39~43 분석 결과 요약 — 보여줄 장면 / 정직하게 언급할 것 / 다음 우선순위 / 별도 진행 중인 디버깅 예고*
+
+**1. 한 줄 헤드라인**
+
+"실주행이 안 되는 원인을 head(행동 결정 구조)보다 그라운딩/인식 단계로 좁혔고, head 구조 자체도
+LSTM이 MLP보다 훨씬 강하다는 걸 정량으로 확인했습니다."
+
+**2. 보여줄 장면 — CH41의 실제 프레임 9장**
+
+CH41의 9개 path_type 프레임(그라운딩=청록 박스, 액션예측=빨강/노랑 테두리로 분리 표기)을
+나란히 보여주면서: "그라운딩이 실패하거나 박스가 작게 잡힌 프레임에서 오류율이 3~5배 높습니다(7%→40%)." —
+가장 직관적이고 다음 단계(그라운딩 개선)의 근거가 됨.
+
+**3. 정직하게 보여줄 것 — 자기 검증 과정 (CH40)**
+
+"처음엔 PG2 hidden state를 추가하면 PM이 13%p 오른다고 봤는데, 같은 코드로 baseline을 다시 측정해보니
+측정 오류였고 실제로는 효과가 없었습니다. 발견 즉시 정정했습니다." — 숨기지 않고 짧게 언급하면 검증 과정이
+제대로 작동했다는 신뢰도로 이어짐. (CH40 참고)
+
+**4. 다음 우선순위 한 줄**
+
+"head 구조(LSTM)가 가장 강한 factor라는 걸 확인했으니, 다음은 ① 그라운딩/인식 품질 자체를 올리는 작업과
+② LSTM+hidden state 조합을 더 큰 데이터로 검증하는 작업을 병행합니다." (CH43 참고)
+
+**5. 별도 진행 중 — 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅**
+
+이번 CH39~43 분석과는 별도로, 실제 로봇이 서버에서 학습할 때와 로봇에서 추론할 때 이미지 데이터
+프로세싱 과정의 차이를 디버깅 중입니다. 토요일까지 진행해보고, 주말에 온라인으로 보여드리기는
+어려우니 페이지나 이미지로 정리해서 따로 연락드릴 예정입니다.
+
+**6. 5번 디버깅 진행 상황 — "4초"의 진짜 원인 확인, 학습/추론 리사이즈 통일 배포 완료**
+
+5번 디버깅 중 두 가지를 확정했습니다:
+- 학습/추론 이미지 리사이즈는 이미 같았다 — 둘 다 1280×720 원본을 HuggingFace
+processor에 넘기고 내부적으로 224×224로 줄어드는 동일 경로. 다만 "암묵적으로 같음"이었던 걸
+robovlm_nav/image_preprocess.py 공유 함수로 명시적으로 강제 — soda 운영서버에 안전하게
+배포·검증 완료(latency 1.32~1.36초로 회귀 없음).
+- "4초 차이"의 진짜 원인 = 단발 latency가 아니라 누적 드리프트. S6 세션(105프레임,
+1fps 가정) 분석 결과 단일 호출 latency는 한 번도 2.5초를 넘은 적이 없었고, 실제로는
+"1fps 가정 vs 평균 1.36초/프레임 실제 처리속도"의 차이가 프레임이 갈수록 누적되어 frame 10번
+근처에서 정확히 4.0초 차이가 나는 것이었습니다(scripts/eval/diagnose_pipeline_health.py B.drift 체크로 재현 검증).
+재발 방지용 체크리스트 5종(latency/drift/continuity/resize/grounding)을 만들어 GB10·soda 양쪽에 배포함 —
+CHECKLIST_pipeline_health.md
+
+**📋 6/22 미팅 투두 — 이번 주 새로 열린 항목(다음 CH로 갱신될 것)**
+
+완료
+- ✅ "4초" 원인 규명 — 누적 드리프트로 확정(CH44-2)
+- ✅ 학습/추론 리사이즈 명시적 통일 — soda 배포·검증 완료(CH44-1)
+🧠 모델 — 그라운딩/인식
+- 🔄 그라운딩/인식 품질 개선 — CH41이 가장 강한 factor로 지목(has_bbox=False 오류율 3~5배).
+CH45-2의 "오른쪽 경로 초반 has_bbox=False" 진단은 CH46-4에서
+재현 안 됨 확인(현재 PG2 모델로는 0건) — 대신 "area(거리)와 오류율의 연속적 상관"으로 결론 정정.
+실제 개선(작은/먼 객체 보강)은 아직 ☐ 미착수.
+🏋️ 학습/평가
+- ✅ LSTM+hidden state 조합 closed-loop 확대 검증 — 5-seed(CH43-2d) + path_type 분리(CH52) 완료.
+SR은 전 path_type 포화, replace mode가 전환 경로 FPE 40% 개선(0.176→0.106m). right_right 실패는 에피소드-레벨 문제.
+🤖 추론 — 로봇 동작
+- 🔄 STOP 거리 40~50cm 캘리브레이션 — 계산기(calibrate_stop_distance.py) 작성 완료, soda 현장 실측(거리 2곳 이상 area 기록)만 남음 ☐(CH44-3, Grounding Hub §I의 STOP 로직 ablation과는 다른 문제라는 점 CH48-4에서 명시)
+📷 데이터 — 캡처 파이프라인
+- ✅ 카메라 실시간 캡처 vs h5 저장 이미지 픽셀 비교 — 해상도(224×224)는 이미 같다고 확인됨(CH44-1).
+색공간(BGR/RGB) 의심도 실측으로 추가 검증 완료 — 채널 통계·시각 확인 모두 정상, 스왑 없음(CH45-1)
+범례: ✅ 완료 · 🔄 부분/진행 중 · ❓ 확인 불가 · ☐ 미착수. 이후 CH45+가 채워지면 이 표를 다시 업데이트.
+근거: CH39 · CH40 ·
+CH41 · CH42 ·
+CH43  |
+🧠 Hidden State Hub(한 페이지 요약)  |  2026-06-22
+
+[→ 원문 전체 보기(research_story.html#weekly-meeting)](../v5/research_story.html#weekly-meeting)
+
+---
