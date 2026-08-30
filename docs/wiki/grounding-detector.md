@@ -1,8 +1,10 @@
 # 그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)
 
-> 타겟 물체를 이미지에서 찾아내는 검출기 계열 전체 이력 — PaliGemma2 → Kosmos-2/OWL-v2 → Florence-2로 이어지는 그라운딩 방식 전환과 재현율 개선.
+<p class="tagline">타겟 물체를 이미지에서 찾아내는 검출기 계열 전체 이력 — PaliGemma2 → Kosmos-2/OWL-v2 → Florence-2로 이어지는 그라운딩 방식 전환과 재현율 개선.</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 현재까지 확정된 결론은 **"실주행 성패를 가르는 건 액션 헤드가 아니라 그라운딩(검출) 가용성"** 이다 — 세션 내 객체 검출 성공률(gnd%)이 80% 이상이면 98.8%(79/80) 성공, 미만이면 51.2%(41/80)로, 100회 실기 테스트(2026-07-31, 89% 성공)에서 확인됐다. 반면 헤드 구조(MLP/Transformer/LSTM/연속회귀/π0 Flow 등)는 통제된 apples-to-apples 비교에서 거의 무차별했고, 그라운더(PG2 vs OWL-v2)도 대부분 무차별했다 — CH64에서 이 리더보드를 두 번(val-split 버그, 캐시 덮어쓰기 버그) 오염시켰다가 재검증해 확정한 결론이다.
 
@@ -14,11 +16,15 @@
 
 미해결/논쟁 중: exp73 89% 성공에서 체크포인트 교체와 threshold+회복가드 중 어느 쪽이 주된 개선 요인인지는 통계적으로 확정 불가(둘 다 +23~48%p 규모로 크고 순위가 추정 방식에 따라 뒤집힘) — 동일 위치 A/B 재수집이 필요하다.
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CHAPTER 3 — Grounding — 목표물 위치 인식
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 3</span> Grounding — 목표물 위치 인식</div>
+
+<div class="card" markdown="1">
 
 **BBox IoU (Exp10)**
 
@@ -26,11 +32,19 @@
 BBox IoU (Exp10)
 Pure Kosmos-2로 gray basket을 학습 데이터에서 찾았을 때의 IoU. VLM 내부에 spatial information이 충분히 있다는 증거.
 
+</div>
+
+<div class="card" markdown="1">
+
 **Free-gen Transfer (Exp10)**
 
 34.4%
 Free-gen Transfer (Exp10)
 Grounding 결과를 free-form text generation으로 꺼내 rule로 action에 연결하면 34.4%로 떨어진다. 정보는 있지만 꺼내는 방식이 불안정.
+
+</div>
+
+<div class="card" markdown="1">
 
 **Grounding 계층**
 
@@ -46,11 +60,17 @@ Pure HF Kosmos-2 (정상) → Google-robot (붕괴) → 우리 fine-tuned (부�
 중앙→우회전 · frame 0000
 중앙→우회전 · frame 0002
 
-[→ 원문 전체 보기(research_story.html#ch3)](../v5/research_story.html#ch3)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch3">→ 원문 전체 보기 (research_story.html#ch3)</a>
 
-### CHAPTER 13 — 객체 검증 — 모델이 진짜 객체를 인식하는가?
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 13</span> 객체 검증 — 모델이 진짜 객체를 인식하는가?</div>
+
+<div class="card" markdown="1">
 
 핵심 문제: Stage 2 v2의 92.6%는 모델이 basket을 인식한 것이 아니다.
 외부 HSV 색상 임계값(basket의 회색 농도)이 cx/cy/area를 추출해서 입력으로 넣어주는 구조.
@@ -98,6 +118,10 @@ L0: VLM Grounding — 어떤 구문이 basket을 잡는가?
 Pure Kosmos-2가 실제로 basket을 grounding하는지, 어떤 텍스트 구문을 쓸 때 가장 잘 잡는지 18개 구문을 ablation했다.
 Kosmos-2 native grounding 방식 <grounding><phrase>...</phrase>을 사용.
 
+</div>
+
+<div class="card" markdown="1">
+
 측정 방법: has_bbox=True 프레임에서 grounding bbox와 실제 basket bbox의 IoU를 계산.
 IoU ≥ 0.3 기준 hit rate. 총 150개 에피소드 중 랜덤 샘플 프레임 사용.
 상위 구문 (IoU≥0.3 기준)
@@ -131,6 +155,10 @@ center_straight path
 center_left path
 right_left path
 Kosmos-2 native grounding — <grounding><phrase>gray basket</phrase> 프롬프트 사용. 성공 시 bbox가 표시됨.
+
+</div>
+
+<div class="card" markdown="1">
 
 해석: Kosmos-2는 복도 이미지에서 basket을 최대 42.2%만 grounding한다 (IoU≥0.3 기준).
 "gray target"이 가장 잘 잡히는 이유는 Kosmos-2 pretraining 데이터에서 추상적 목표물로 학습된 패턴.
@@ -171,6 +199,10 @@ Option C LoRA
 Kosmos-2 내부
 살아있으나 미활용
 텍스트 경로 구조는 살아있지만 학습 데이터가 단일 객체(basket) → 텍스트 학습 동기 없음.
+
+</div>
+
+<div class="card" markdown="1">
 
 결론: Mode B가 A보다 -10.1%p 낮은 이유는 grounding 42% 성공률 때문.
 Stage2 MLP 자체는 bbox 소스와 무관하게 동작하나, 잘못된 bbox 좌표가 입력되면 연쇄 오류 발생.
@@ -226,11 +258,19 @@ LEFT 정확도
 FWD+R 정확도
 (54개 전부 오분류)
 
+</div>
+
+<div class="card" markdown="1">
+
 특이 패턴: FWD+R(54개) → 전부 'F'(FORWARD)로 예측, LEFT(12개) → 전부 오분류.
 FORWARD에 편향된 collapse. 단일 객체 학습 데이터 특성상 FORWARD 비율이 압도적으로 높고,
 방향 관련 토큰(LEFT/FWD+R)은 학습 신호가 부족해 collapse.
 SECTION 5
 근본 원인 분석 — 데이터 단일화 문제
+
+</div>
+
+<div class="card" markdown="1">
 
 핵심 원인: 학습 데이터 150개 에피소드에서 목표 물체가 100% 회색 basket이다.
 시각 정보(복도 장면)만으로 행동을 예측하는 것이 텍스트를 사용하는 것보다 더 쉽고 정확하다.
@@ -269,6 +309,10 @@ Stage 2 LoRA 결과
 → 특화된 특징이 일반 장면 패턴을 덮어버림
 ✗ stage 2 MLP가 사용하던 특징 공간이 변질
 
+</div>
+
+<div class="card" markdown="1">
+
 핵심 발견: Stage 2 MLP는 basket-specific 특징이 아닌 일반 복도 장면(좌곡선/우곡선/직진)을 보고 행동을 결정한다.
 Stage 1 LoRA로 basket 특화 특징을 만들면 오히려 Stage 2가 쓰던 장면 패턴 정보가 손실된다.
 이는 두 stage가 실제로 다른 정보를 사용하고 있음을 역설적으로 증명한다.
@@ -282,11 +326,17 @@ Chapter 13 종합 결론
 텍스트를 사용할 이유를 스스로 학습하지 못했다.
 해결 방향: 다양한 목표 물체 데이터 수집 → Goal-Conditioned 학습
 
-[→ 원문 전체 보기(research_story.html#ch13)](../v5/research_story.html#ch13)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch13">→ 원문 전체 보기 (research_story.html#ch13)</a>
 
-### CH 23 — Grounding 붕괴 — 왜 엉뚱한 곳에 bbox를 그렸나
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 23</span> Grounding 붕괴 — 왜 엉뚱한 곳에 bbox를 그렸나</div>
+
+<div class="card" markdown="1">
 
 ① 증상 — basket은 중앙에 있는데 bbox는 빈 벽에
 center_left 에피소드 fr10: basket은 화면 중앙(cx≈0.35)에 크게 있으나, PG2가 반환한 박스(빨강)는
@@ -375,11 +425,17 @@ container / bottle / red ball
 "엉뚱한 bbox"는 basket 미인식도, 사전학습 부재도 아니다 — 우리가 fine-tune한 LoRA가 grounding을 망가뜨렸다.
 베이스 PG2는 basket을 정확·안정적으로 잡으며(12/12, cx_std 0.047), 없는 객체는 거부한다. 근본 해법은 grounding 안정화(베이스 복귀 or LoRA 재설계)다.
 
-[→ 원문 전체 보기(research_story.html#ch23)](../v5/research_story.html#ch23)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch23">→ 원문 전체 보기 (research_story.html#ch23)</a>
 
-### CH 27 — Ablation 조합별 오트래킹 점검 — 벽·의자를 basket으로 보는가
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 27</span> Ablation 조합별 오트래킹 점검 — 벽·의자를 basket으로 보는가</div>
+
+<div class="card" markdown="1">
 
 ① 모델별 오트래킹 정량 (557 frame)
 모델
@@ -510,11 +566,17 @@ epoch0 후 lora_B=0.000000 — 여전히 미학습. 원인은 RoboVLMs forward_c
 vision을 인코딩 후 multimodal_embeds.requires_grad_(True)로 새 leaf화 → vision_tower가 loss 그래프에서 분리.
 config/패치로는 불가(forward 수술 필요·RoboVLMs 수정 금지). → 이 ablation은 "frozen-vision E2E"로 정직하게 reframe.
 
-[→ 원문 전체 보기(research_story.html#ch27)](../v5/research_story.html#ch27)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch27">→ 원문 전체 보기 (research_story.html#ch27)</a>
 
-### CHAPTER 30 — 의자(Chair) 객체 전환 — 인식 검증과 프롬프트 확정
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 30</span> 의자(Chair) 객체 전환 — 인식 검증과 프롬프트 확정</div>
+
+<div class="card" markdown="1">
 
 🪑 왜 "흰 의자"가 아니라 "그냥 의자"인가
 6/4 미팅에서 텍스트 변형 함정("grey basket" vs "grey container" 한 단어 차이로 grounding 붕괴)이 지적됐다.
@@ -561,12 +623,19 @@ area 평균 0.639 = 의자가 화면 대부분을 차지하는 스튜디오 근�
 이 검증은 "PG2가 chair 개념을 안다 + 프롬프트는 chair"를 확정하는 필요조건이지 충분조건이 아니다.
 최종 검증은 로봇 카메라로 찍은 의자 프레임으로 별도 수행한다 — 이것이 다음 단계 데이터 수집의 첫 항목.
 
-[→ 원문 전체 보기(research_story.html#ch30)](../v5/research_story.html#ch30)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch30">→ 원문 전체 보기 (research_story.html#ch30)</a>
 
-### CH 41 — 그라운딩 품질이 진짜 핵심이었다 — 오류는 객체를 못 잡은 프레임에 몰려있다
-*head 구조(윈도우 크기, hidden state 유무)보다 그라운딩 신뢰도가 오예측과 훨씬 강하게 연관됨*
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 41</span> 그라운딩 품질이 진짜 핵심이었다 — 오류는 객체를 못 잡은 프레임에 몰려있다</div>
+
+<p class="chapter-subtitle-line">head 구조(윈도우 크기, hidden state 유무)보다 그라운딩 신뢰도가 오예측과 훨씬 강하게 연관됨</p>
+
+<div class="card" markdown="1">
 
 **41-1. 그라운딩 품질 vs 오예측 — has_bbox=False 프레임 오류율이 3~5배 높다**
 
@@ -611,6 +680,10 @@ right_right — has_bbox=False(그라운딩 실패) → 오예측
 방향 판단도 같이 틀린다). head 구조를 바꿔도 이 패턴 자체는 안 바뀐다 — 병목이 head가 아니라 그라운딩
 단계에 있다는 직접적인 증거.
 
+</div>
+
+<div class="card" markdown="1">
+
 **41-2. 윈도우 크기 ablation — 작을수록 baseline은 좋아지고, hidden state는 끝까지 못 따라잡음**
 
 train_hidden_state_action.py --window {2,4,8,16} × baseline/add/replace = 12조합, 매번
@@ -637,6 +710,10 @@ windowbaselineaddreplace
 12조합 전체에서 baseline을 한 번도 못 넘었다 — head 구조(윈도우 크기 포함)를 어떻게 바꿔도
 지금 방식의 hidden state 활용으론 안 된다는 걸 다시 확인.
 
+</div>
+
+<div class="card" markdown="1">
+
 **41-3. 종합 — 다음 우선순위는 head가 아니라 그라운딩**
 
 41-1과 41-2를 같이 보면 결론이 명확해진다: head를 어떻게 바꿔도(bbox만/hidden state 추가/대체, 윈도우 2~16)
@@ -647,12 +724,19 @@ baseline 수준에서 크게 못 벗어났고, 오류는 그라운딩이 약한 
 오검출 보정 등)을 다음 plan으로 검토.
 plans: plan_20260622_grounding_quality_and_window_ablation.md  |  2026-06-22
 
-[→ 원문 전체 보기(research_story.html#ch41)](../v5/research_story.html#ch41)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch41">→ 원문 전체 보기 (research_story.html#ch41)</a>
 
-### CH 45 — 데이터 비교(BGR/RGB 검증) + 그라운딩 실패 패턴 진단
-*미해결 TODO 2개("카메라 vs h5 픽셀 비교", "그라운딩 품질 개선") 착수 — 하나는 해소, 하나는 구체적 패턴 발견*
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 45</span> 데이터 비교(BGR/RGB 검증) + 그라운딩 실패 패턴 진단</div>
+
+<p class="chapter-subtitle-line">미해결 TODO 2개("카메라 vs h5 픽셀 비교", "그라운딩 품질 개선") 착수 — 하나는 해소, 하나는 구체적 패턴 발견</p>
+
+<div class="card" markdown="1">
 
 **45-1. 📷 데이터 — BGR/RGB 채널 스왑 의심, 코드 리딩과 실측이 충돌해서 직접 검증**
 
@@ -681,6 +765,10 @@ cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)를 명시적으로 호출한다 — �
 색공간은 일치한다 — 가설 기각. (정확히 어느 단계에서 보정되는지까지는 다 추적 못 했지만, 결과 데이터
 자체가 일치한다는 게 실질적으로 중요한 부분.)
 
+</div>
+
+<div class="card" markdown="1">
+
 **45-2. 🧠 모델 — 그라운딩 실패가 "오른쪽 경로 초반 프레임"에 몰린다**
 
 CH41 데이터(grounding_quality_vs_error.json)를 프레임 위치(t)·path_type별로 다시 쪼개봤다.
@@ -705,6 +793,10 @@ GOAL_AREA_THRESHOLD=0.25가 정확히 이 두 그룹 사이 빈 공간에 있어
 근처. 다음 개선 작업의 구체 타겟이 명확해졌다 — "그라운딩을 전반적으로 개선" 대신 "오른쪽
 시작/회전 경로의 초반 프레임에서 작은/먼 객체 검출을 보강"으로 좁힐 수 있다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **45-2b. ⚠️ 정정 — 위 진단은 2026-05 Kosmos-2 시절 데이터 기준, 현재 PG2 모델로 재현 안 됨**
 
 CH46(다음 챕터) 작업 중 45-2의 has_bbox=False 5건을 현재 운영 중인 PG2Grounder로 직접 재실행했더니
@@ -716,12 +808,19 @@ bbox_dataset_full.json은 2026-05-08(커밋 77683562)에 Kosmos-2 기반 Tier1/T
 나중에 알게 된 것일 뿐.)
 plans: plan_20260622_train_inference_image_pipeline_unify.md  |  2026-06-23
 
-[→ 원문 전체 보기(research_story.html#ch45)](../v5/research_story.html#ch45)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch45">→ 원문 전체 보기 (research_story.html#ch45)</a>
 
-### CH 46 — bbox 주석 재생성(PG2) + CH43 재학습 — 낡은 데이터가 만든 착시
-*5월 Kosmos-2 시절 그라운딩 라벨을 현재 PG2 모델로 재생성 → MLP/LSTM 6구성 재학습 + closed-loop 재평가*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 46</span> bbox 주석 재생성(PG2) + CH43 재학습 — 낡은 데이터가 만든 착시</div>
+
+<p class="chapter-subtitle-line">5월 Kosmos-2 시절 그라운딩 라벨을 현재 PG2 모델로 재생성 → MLP/LSTM 6구성 재학습 + closed-loop 재평가</p>
+
+<div class="card" markdown="1">
 
 **46-0. 작업 타임라인 (2026-06-23)**
 
@@ -747,6 +846,10 @@ plans: plan_20260622_train_inference_image_pipeline_unify.md  |  2026-06-23
 새 파일은 기존 bbox_dataset_full.json을 덮어쓰지 않고
 bbox_dataset_full_pg2.json로 별도 저장(스크립트: scripts/eval/reannotate_bbox_pg2.py).
 
+</div>
+
+<div class="card" markdown="1">
+
 **46-1. 재주석 자체의 변화 — has_bbox율은 거의 그대로, area 분포가 확 달라짐**
 
 지표기존(5월 Kosmos-2)신규(현재 PG2)
@@ -760,6 +863,10 @@ has_bbox율은 둘 다 99%대로 큰 차이가 없다(애초에 "전혀 탐지 �
 area p75 — 기존 데이터엔 area≈0.6~0.8짜리 "비정상적으로 큰" 박스가
 다수 있었는데(45-2가 본 bimodal 분포의 "가까운 그룹"), 신규 PG2 데이터에는 그런 거대 박스가 거의 없다.
 Kosmos-2 시절 그라운딩이 종종 과대 박스(혹은 거의 전체 화면)를 잡았던 것으로 추정.
+
+</div>
+
+<div class="card" markdown="1">
 
 **46-2. 재학습 결과 — MLP가 LSTM 격차를 거의 따라잡음**
 
@@ -794,6 +901,10 @@ LSTM replace
 낡은 데이터가 만든 인공물이었을 가능성이 크다 — bbox 라벨이 나쁠 때는 LSTM의 시간적 맥락이
 그 노이즈를 보정해 더 큰 이득을 봤지만, bbox 라벨이 깨끗해지자 MLP도 거의 같은 수준에 도달했다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **46-3. closed-loop 재평가 — PM은 비슷한데 FPE는 전부 악화**
 
 val 29 에피소드, override 없이 argmax trajectory로 비교 (closed_loop_eval_lstm_pg2.py).
@@ -813,6 +924,10 @@ LSTM-none은 SR도 96.6%→93.1%로 떨어졌다. 가능한 해석: 신규 area 
 기존에 의존하던 "거대 박스=매우 가까움" 신호가 사라져, 정지/근접 판단의 강한 신호 하나를 잃었을 수 있다 —
 검증 안 된 가설. 이 챕터의 결론은 "데이터를 새로 하면 다 좋아진다"가 아니라
 "낡은 데이터가 만든 착시(head 구조 효과 과대평가)는 확인됐지만, 신규 데이터가 모든 지표에서 우월한 건 아니다."
+
+</div>
+
+<div class="card" markdown="1">
 
 **46-4. CH45-2 재진단 — has_bbox=False가 0건으로 사라짐, 그러나 area-오류 상관은 여전**
 
@@ -843,6 +958,10 @@ replace
 "정상" 사례 — 모든 프레임이 다 틀렸던 건 아니라는 균형 잡힌 그림도 함께 제시. 이런 풀프레임
 오탐 프레임들이
 CH43 전체 ablation 결과를 왜곡시킨 원인.
+
+</div>
+
+<div class="card" markdown="1">
 
 **46-5. 46-3의 "FPE 악화" 원인 검증 — 회전 클래스의 area 분산이 거의 사라짐**
 
@@ -877,12 +996,19 @@ ROT_L(n=20)
 유지하면서 잃어버린 근접 신호를 복원할 수 있을 것 — 다음 실험 후보로 남김(이번 plan 범위 밖, 별도 plan 필요).
 plans: plan_20260623_bbox_pg2_reannotation.md  |  2026-06-23
 
-[→ 원문 전체 보기(research_story.html#ch46)](../v5/research_story.html#ch46)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch46">→ 원문 전체 보기 (research_story.html#ch46)</a>
 
-### CH 48 — CH46/47 재주석 모델 ↔ Grounding Hub "base PG2" 일치성 검증
-*사용자 요청 — 오늘 그라운딩에 쓴 모델이 grounding_hub.html의 base PG2와 같은 모델인지, 언제 만든 결과인지 코드/git으로 직접 확인*
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 48</span> CH46/47 재주석 모델 ↔ Grounding Hub "base PG2" 일치성 검증</div>
+
+<p class="chapter-subtitle-line">사용자 요청 — 오늘 그라운딩에 쓴 모델이 grounding_hub.html의 base PG2와 같은 모델인지, 언제 만든 결과인지 코드/git으로 직접 확인</p>
+
+<div class="card" markdown="1">
 
 **48-1. 같은 모델 체크포인트인지 확인 — 코드 경로 직접 대조**
 
@@ -897,6 +1023,10 @@ eval_grounding_hub.py, dryrun_stop_logic.py, eval_exp59_stop_closedloop.py 등
 Grounding Hub 생성에 쓰인 스크립트 전부가 이 경로를 하드코딩으로 동일하게 참조 — exp59/exp64처럼 LoRA가 추가된
 변형이 아니라 오늘 재주석에 쓴 것과 정확히 같은 base PG2.
 
+</div>
+
+<div class="card" markdown="1">
+
 **48-2. 언제 만든 결과인가 — git 히스토리로 확인**
 
 자료날짜
@@ -907,6 +1037,10 @@ CH46 재주석(bbox_dataset_full_pg2.json)
 시점은 다르지만(11일~12일 차이) 모델 가중치 자체는 그 사이 한 번도 재학습되지 않은 고정 base
 PaliGemma2이므로 "같은 모델을 다른 날 다른 데이터로 테스트한 것"이며 모델 드리프트는 없음.
 
+</div>
+
+<div class="card" markdown="1">
+
 **48-3. 두 독립적 측정이 서로 맞는지 교차검증**
 
 Grounding Hub §B: base PG2 full-frame(area>0.9) 비율 0% — "거대 박스를 만들지 않는다"는
@@ -914,6 +1048,10 @@ Grounding Hub §B: base PG2 full-frame(area>0.9) 비율 0% — "거대 박스를
 신규 PG2 데이터 0.172, 거대 박스 다수 소멸)와 같은 방향으로 일치 —
 서로 다른 날, 다른 샘플(Grounding Hub=표준 49프레임+의자 11장 / CH46=V5 150ep 전체)로 독립 측정했는데
 같은 결론에 도달했다는 점에서 신뢰도가 높아짐. 환각·불일치 없음.
+
+</div>
+
+<div class="card" markdown="1">
 
 **48-4. STOP 거리(40~50cm) 캘리브레이션 — 아직 별개로 미착수, 혼동 주의**
 
@@ -925,12 +1063,19 @@ TODO 4번)과는 다른 문제다 — 혼동하지 않도록 명시.
 오늘 작업으로도 진전 없음 — 별도로 착수 필요.
 2026-06-23  |  관련: Grounding Hub
 
-[→ 원문 전체 보기(research_story.html#ch48)](../v5/research_story.html#ch48)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch48">→ 원문 전체 보기 (research_story.html#ch48)</a>
 
-### CH 50 — 작은/먼 객체(area<0.05) 2배 줌 재그라운딩 — 학습 데이터 정제로 실제 개선
-*CH46-4 타겟("작은 객체일수록 오류 확률 높음")의 첫 실제 개선 시도 — "그라운딩 실제 개선"*
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 50</span> 작은/먼 객체(area<0.05) 2배 줌 재그라운딩 — 학습 데이터 정제로 실제 개선</div>
+
+<p class="chapter-subtitle-line">CH46-4 타겟("작은 객체일수록 오류 확률 높음")의 첫 실제 개선 시도 — "그라운딩 실제 개선"</p>
+
+<div class="card" markdown="1">
 
 **50-1. 결과 — val_acc/SR/FPE 모두 개선**
 
@@ -957,6 +1102,10 @@ val_acc/SR/FPE는 전부 개선됐다 — bbox 좌표값보다는 "같은 작은
 본문에서 언급한 대로 박스 위치/크기 차이는 시각적으로도 거의 안 보임 — 50-3에서 이 미미한 차이가
 실제 성능 개선과 무관(노이즈)했음이 5-seed로 확인됨.
 
+</div>
+
+<div class="card" markdown="1">
+
 **50-2. 운영 배포 시 주의 — CH49의 latency 결론과 충돌 가능**
 
 이번 개선은 오프라인 학습 데이터(annotation)를 한 번 정제한 것이라 지금 모델
@@ -967,6 +1116,10 @@ CH44급 리사이즈 불일치와 같은 클래스의 문제 재발). 그런데 
 어렵게 확정한 skip_n=3 latency 예산과 정면으로 부딫힐 수 있다.
 이번 챕터는 "데이터 정제가 효과 있다"까지만 확인 — 실제 운영 적용 여부(줌
 재시도를 라이브에도 넣을지)는 latency 재측정 후 별도 결정 필요, 보류.
+
+</div>
+
+<div class="card" markdown="1">
 
 **50-3. 5-seed 검증 결과 — 50-1의 "개선"은 단일 run 노이즈였다**
 
@@ -999,12 +1152,19 @@ CH43-2d와 동일한 패턴(단일 실행 고점을 개선으로 착각). 50-1/5
 불확실하므로 추가 조치 불필요.
 plans: plan_20260624_zoom_regrounding_small_objects.md  |  2026-06-24 (50-1/50-2) · 2026-06-24 (50-3 정정)
 
-[→ 원문 전체 보기(research_story.html#ch50)](../v5/research_story.html#ch50)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch50">→ 원문 전체 보기 (research_story.html#ch50)</a>
 
-### CH 54 — YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정
-*6/26 미팅 결정사항: "그라운딩 못 하면 YOLO로 방향 먼저 잡고 PG2 재시도" 아이디어 설계 문서*
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 54</span> YOLO 프리뷰 모델 — 첫 그라운딩 실패 시 각도 자동 조정</div>
+
+<p class="chapter-subtitle-line">6/26 미팅 결정사항: "그라운딩 못 하면 YOLO로 방향 먼저 잡고 PG2 재시도" 아이디어 설계 문서</p>
+
+<div class="card" markdown="1">
 
 **동기 — 왜 필요한가**
 
@@ -1013,6 +1173,10 @@ plans: plan_20260624_zoom_regrounding_small_objects.md  |  2026-06-24 (50-1/50
 해결 아이디어: 첫 프레임 그라운딩이 실패하면 YOLO(경량 객체탐지)로 타겟 방향을 추정하고,
 로봇을 조금씩 회전시켜 PG2가 그라운딩에 성공할 수 있는 각도를 먼저 잡는다.
 성공 후 정상 항법(Exp66 ActionMLP)으로 넘어간다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **실행 플로우 (3단계)**
 
@@ -1029,6 +1193,10 @@ plans: plan_20260624_zoom_regrounding_small_objects.md  |  2026-06-24 (50-1/50
 └─ 탐지 실패 → ROT_R 기본 방향으로 소량 회전 후 재시도
 ↓ (최대 MAX_RETRY=5회)
 성공 → 정상 항법 / 실패 → STOP + 알림
+
+</div>
+
+<div class="card" markdown="1">
 
 **설계 상세**
 
@@ -1047,6 +1215,10 @@ robovlm_nav/serve/stage2_v2_inference_server.py — _preview_align() 메서드 �
 활성화 방법
 환경변수 VLA_PREVIEW_MODEL=yolov8n (미설정 시 프리뷰 비활성, 기존 동작 유지)
 
+</div>
+
+<div class="card" markdown="1">
+
 **트레이드오프**
 
 장점
@@ -1063,6 +1235,10 @@ robovlm_nav/serve/stage2_v2_inference_server.py — _preview_align() 메서드 �
 완화책: confidence 임계값(≥0.5)으로 오탐지 필터링. basket은 COCO에 없으므로 초기엔 chair 시나리오(v5_2)로 먼저 검증.
 YOLO 탐지 실패 시에도 기본 ROT_R 전략으로 fallback (탐지 없이 조금씩 돌며 PG2 재시도).
 
+</div>
+
+<div class="card" markdown="1">
+
 **미팅 연결 — 6/26 결정사항과의 매핑**
 
 Speaker 2의 "프리뷰 모델로 객체 인식 가능 각도로 회전" 계획과 동일 방향.
@@ -1073,12 +1249,19 @@ Speaker 2 쪽은 별도 프리뷰 모델(학습 기반 가능성)이고,
 구현 미착수 (Speaker 2 트랙과 병행 여부 확인 후 착수 예정)
 → docs/plans/plan_ch54_yolo_preview.md
 
-[→ 원문 전체 보기(research_story.html#ch54)](../v5/research_story.html#ch54)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch54">→ 원문 전체 보기 (research_story.html#ch54)</a>
 
-### CH 55 — Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션
-*그라운딩 통일성(Consistency)이 깨졌을 때 Closed-Loop 성공률이 급락(A2 52.4%, A3 47.6%)하는 현상을 기반으로, 비전 백본별 파인튜닝 기법의 정량 효과를 입증*
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 55</span> Vision Backbone & 파인튜닝 기법별 Grounding Consistency 종합 어블레이션</div>
+
+<p class="chapter-subtitle-line">그라운딩 통일성(Consistency)이 깨졌을 때 Closed-Loop 성공률이 급락(A2 52.4%, A3 47.6%)하는 현상을 기반으로, 비전 백본별 파인튜닝 기법의 정량 효과를 입증</p>
+
+<div class="card" markdown="1">
 
 **55-1. 핵심 발견 — Grounding Consistency의 파괴와 주행 실패 인과성**
 
@@ -1086,6 +1269,10 @@ Speaker 2 쪽은 별도 프리뷰 모델(학습 기반 가능성)이고,
 - A2 (HSV 150ep, no-flip): Closed-Loop 성공률 52.4% (FPE 0.28m)
 - A3 (HSV 150ep, flip-aug): Closed-Loop 성공률 47.6% (FPE 0.31m)
 이는 비전 모델의 grounding 일관성이 주행 제어 정밀도에 미치는 파괴적인 영향력을 실증한 최초의 사례입니다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **55-2. 비전 모델 & 어댑터 튜닝 기법별 정량 어블레이션 ✅ 완료**
 
@@ -1122,12 +1309,19 @@ sess 26.7% / 0.125m
 지표 포맷: 방향 정확도(%) / BBox CX MAE — v5=V5 train 140개 / sess=6/26 실주행 36세션. sess가 실전 지표. OWL-v2 LoRA가 sess 47.2%로 최고. Florence-2는 v5→sess 전이 급락(일반화 취약).
 2026-06-29  |  관련: scripts/ablate_preview_ft_v2.py, docs/v5/ablate_preview_ft_v2.json
 
-[→ 원문 전체 보기(research_story.html#ch55)](../v5/research_story.html#ch55)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch55">→ 원문 전체 보기 (research_story.html#ch55)</a>
 
-### CH 57 — Frame 0 Cold-Start → Grounding 100% 실패 — CH54 Preview로 폴백 처리 ✅ 검증 완료
-*47세션 전수 조사 + 워밍업 적용 후 실검증(2026-06-30): Frame 0 그라운딩은 여전히 실패하나, CH54 Preview 모델이 폴백으로 커버. Frame 1부터 정상 동작.*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 57</span> Frame 0 Cold-Start → Grounding 100% 실패 — CH54 Preview로 폴백 처리 ✅ 검증 완료</div>
+
+<p class="chapter-subtitle-line">47세션 전수 조사 + 워밍업 적용 후 실검증(2026-06-30): Frame 0 그라운딩은 여전히 실패하나, CH54 Preview 모델이 폴백으로 커버. Frame 1부터 정상 동작.</p>
+
+<div class="card" markdown="1">
 
 **✅ 실검증 완료 (2026-06-30, 세션 100316)**
 
@@ -1163,6 +1357,10 @@ True (cached)
 - Frame 2+: 캐시 사용, 69~71ms — 정상 운용
 결론: Stage 0 워밍업 + CH54 Preview의 2-layer 방어로 Frame 0 문제 실질적 해결. 실로봇 세션 준비 완료.
 ※ 최신 기준(CH55 ablation 완료): Preview model 추가 탐색 결과 PG2 대체 모델 불필요 확인 — Stage 0 워밍업 단독으로 충분. 현재 Exp66 CL 96.6% 달성 상태에서 2-layer 방어 유지 중. VLA_PREVIEW_ENABLED=1 기본 비활성.
+
+</div>
+
+<div class="card" markdown="1">
 
 **57-1. 관측 사실 (데이터 확인)**
 
@@ -1211,6 +1409,10 @@ STOP
 1,428ms
 LEFT
 
+</div>
+
+<div class="card" markdown="1">
+
 **57-2. 제안 메커니즘 (가설) — Window 패딩 오염**
 
 _build_flat_feature 코드에서 history가 window(=8)보다 짧으면 가장 오래된 프레임으로 패딩:
@@ -1251,11 +1453,19 @@ has=T
 7/8 슬롯이 has_bbox=False, cx=0.5로 채워짐 → 모델이 "바스켓 미발견" 상태로 인식 → LEFT 출력 추정
 ⚠️ 미검증: 이 패딩이 실제로 LEFT를 유발하는지, 아니면 다른 원인(모델 자체 편향, 학습 분포 편향 등)이 있는지는 추가 실험 필요. 예: frame 0 그라운딩을 강제로 성공시킨 후 frame 1 액션 비교.
 
+</div>
+
+<div class="card" markdown="1">
+
 **57-3. Stage 0 워밍업과의 관계**
 
 CH54 Stage 0 워밍업 (서버 시작 시 더미 PG2 호출)은 frame 0 콜드스타트를 소진하여 frame 0부터 has_bbox=True 가 되도록 설계됨.
 만약 가설이 맞다면: Stage 0 워밍업 → frame 0 그라운딩 성공 → window 패딩이 올바른 cx로 채워짐 → frame 1 LEFT 오예측 방지.
 검증 방법 제안: Stage 0 워밍업 적용 전/후 세션에서 frame 1 LEFT 발생률 비교.
+
+</div>
+
+<div class="card" markdown="1">
 
 **57-4. 새 관찰 — frame1 불안정은 모든 세션의 공통 현상**
 
@@ -1267,12 +1477,19 @@ CH54 Stage 0 워밍업 (서버 시작 시 더미 PG2 호출)은 frame 0 콜드�
 - Stage 0 워밍업은 PG2 latency를 해결하지만 frame1 예측 불안정과는 무관할 수 있음
 2026-06-29 작성  |  2026-06-30 기각 확정  |  검증: 실험자 직접 확인
 
-[→ 원문 전체 보기(research_story.html#ch57)](../v5/research_story.html#ch57)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch57">→ 원문 전체 보기 (research_story.html#ch57)</a>
 
-### CH 58 — Kosmos-2 + OWL-v2 Grounding 프롬프트 어블레이션
-*현재 박스 검출 품질 46.2% → 프롬프트/쿼리 변형만으로 얼마나 개선되는가? 6가지 Kosmos-2 + 5가지 OWL-v2 변형 × 39세션 실험 (2026-06-30)*
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 58</span> Kosmos-2 + OWL-v2 Grounding 프롬프트 어블레이션</div>
+
+<p class="chapter-subtitle-line">현재 박스 검출 품질 46.2% → 프롬프트/쿼리 변형만으로 얼마나 개선되는가? 6가지 Kosmos-2 + 5가지 OWL-v2 변형 × 39세션 실험 (2026-06-30)</p>
+
+<div class="card" markdown="1">
 
 **58-1. 배경 — 왜 프롬프트가 문제인가**
 
@@ -1285,6 +1502,10 @@ Kosmos-2 공식 refexp 형식
 processor가 <object><patch_index> 파싱에 최적화.
 명시적 reference expression → 더 정확한 bbox 기대.
 수동 레이블 기준선 (39세션): FULL 20.5% / PART_IN 25.6% / PART_OUT 17.9% / WRONG 35.9% → 점이 바스켓 안 46.2%
+
+</div>
+
+<div class="card" markdown="1">
 
 **58-2. 어블레이션 설계 — 11가지 변형**
 
@@ -1324,6 +1545,10 @@ O_container
 O_multi
 basket + laundry + gray container
 ★ = 현재 production 기준선
+
+</div>
+
+<div class="card" markdown="1">
 
 **58-3. 실험 결과 ✅ 완료 (2026-06-30)**
 
@@ -1370,6 +1595,10 @@ OWL-v2 전체
 ~427ms
 쿼리 불문 방향 추정 불가
 
+</div>
+
+<div class="card" markdown="1">
+
 **58-4. 결론**
 
 - PG2가 여전히 최선 (dir 58.3%, cx_std 0.045) — 교체 불필요
@@ -1377,12 +1606,19 @@ OWL-v2 전체
 - OWL-v2는 방향 추정 불가 — 프리뷰 모델 대안으로 부적합 확인
 - 진행 중: 새 프리뷰 모델 테스트 스크립트 작성 중 (PG2 외 경량 대안 탐색)
 
-[→ 원문 전체 보기(research_story.html#ch58)](../v5/research_story.html#ch58)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch58">→ 원문 전체 보기 (research_story.html#ch58)</a>
 
-### CH 59 — 5-Model 셀프라벨링 평가 & soda PG2 버전 격차 분석
-*V5 + 세션 185프레임 × 5모델 수동 ground truth 비교 — Kr/PG448 99.1% 달성, soda PG224 검출률 73% 확인 (2026-06-30)*
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 59</span> 5-Model 셀프라벨링 평가 & soda PG2 버전 격차 분석</div>
+
+<p class="chapter-subtitle-line">V5 + 세션 185프레임 × 5모델 수동 ground truth 비교 — Kr/PG448 99.1% 달성, soda PG224 검출률 73% 확인 (2026-06-30)</p>
+
+<div class="card" markdown="1">
 
 **59-1. 실험 설계 — 왜 셀프라벨링인가**
 
@@ -1405,6 +1641,10 @@ PaliGemma2
 F2 (주황)
 Florence-2
 OVD basket
+
+</div>
+
+<div class="card" markdown="1">
 
 **59-2. 방향 정확도 결과 (L/R 110프레임 기준)**
 
@@ -1436,6 +1676,10 @@ cx max=0.559 — 우측 절반 전혀 못 잡음(구조적 결함)
 cx 값이 0.5/0.15/0.85 세 값에 집중됨 (138회 중 92회=0.5, 31회=0.15, 14회=0.85).
 → 현재 서버가 바스켓을 실제로 보고 있지 않다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **59-3. soda 추론 서버 분석 — PG224 vs PG448 격차**
 
 soda (Jetson Orin NX)의 stage2_v2_inference_server.py가
@@ -1454,6 +1698,10 @@ cx 분포: 정상 (방향 편향 없음)
 해석: 정확도 자체는 동급 (98.7% vs 99.1%), 차이는 검출률 25.4%p.
 224px 해상도에서 바스켓이 작거나 멀리 있을 때 loc token 예측 실패율이 높아짐.
 soda에서 바스켓을 못 찾는 케이스 중 상당수가 해상도 문제일 가능성.
+
+</div>
+
+<div class="card" markdown="1">
 
 **59-4. soda vs minum 추론 환경 비교**
 
@@ -1479,6 +1727,10 @@ Grounding 모델
 Kosmos-2 + PG224 혼용
 5개 모델 비교
 
+</div>
+
+<div class="card" markdown="1">
+
 **59-5. 결론 및 로봇 서버 구현 권고**
 
 즉시 적용 가능
@@ -1491,13 +1743,20 @@ Kosmos-2 + PG224 혼용
 - PG448 INT8 양자화 테스트 (메모리 부족 시 대안)
 - Kr이 MLP 학습 분포(PG2)와 다르므로 grounding 교체 시 MLP 재학습 필요 여부 확인
 
-[→ 원문 전체 보기(research_story.html#ch59)](../v5/research_story.html#ch59)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch59">→ 원문 전체 보기 (research_story.html#ch59)</a>
 
-### CH 61 — 실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증
-*7/6 OWL-v2(th=0.25) 실로봇 첫 배포에서 obj_left/right 반복 실패 → 원인 추적 도중
-연구 재현 파이프라인의 치명적 버그 발견, 여러 결론이 정정됨 (2026-07-06~07)*
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 61</span> 실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증</div>
+
+<p class="chapter-subtitle-line">7/6 OWL-v2(th=0.25) 실로봇 첫 배포에서 obj_left/right 반복 실패 → 원인 추적 도중
+연구 재현 파이프라인의 치명적 버그 발견, 여러 결론이 정정됨 (2026-07-06~07)</p>
+
+<div class="card" markdown="1">
 
 **61-1. 실로봇 실패 관측**
 
@@ -1505,6 +1764,10 @@ obj_right(타겟 우측) 16개 에피소드 전부 실패(SR 0%), obj_left도
 top액션이 오히려 반대방향(우측계열) 편향. 7/6 세션 h5 직접 분석 결과, cx가 0.75→0.94로
 실제 우측 드리프트가 있었는데도 14프레임 전부 FORWARD 고정인
 사례 확인 — 그라운딩 신호는 정상인데 헤드가 무시하는 패턴.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-2. 그라운더 vs 헤드 — clean bbox 검증으로 헤드 무죄 확인**
 
@@ -1521,6 +1784,10 @@ window3
 98.6%
 헤드는 clean bbox에 대해 진짜로 일반화한다 — 문제는 헤드
 구조/학습능력이 아니라 실전 입력 분포(flicker) 쪽으로 좁혀짐.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-3. 진짜 병목 — 학습/실전 flicker 분포 불일치**
 
@@ -1545,6 +1812,10 @@ window6이 사실상 동률(SR 97.7% 동일) — "진동율" 대리지표
 기준 window3 우위 결론은 철회. 리플레이 자체가 카메라 피드백이 없는 근본적 한계라
 더 이상 오프라인으로는 판별 불가.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-4. 치명적 버그 — vis_feat L2-정규화 누락**
 
 운영 서버(Stage1Encoder.encode_image)는 이미지 feature를 F.normalize()로
@@ -1559,6 +1830,10 @@ L2 정규화하는데, 연구 재현 스크립트(train_exp71_stage2_transformer
 88.9%
 이 세션에서 "진짜 exp71 레시피"라 진행했던 실험 다수가 이 버그
 상태로 이뤄짐 — 발견 후 정규화 수정하여 재검증.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-5. VLA 사다리 ② 언어조건화 재검증 — 버그 수정 후 결론이 더 강하게 부정적으로**
 
@@ -1575,6 +1850,10 @@ Counterfactual 변화율: 43ep 실험 20.3% → 150ep 실제 레시피 정확히
 수정 후 오히려 더 명확해짐. 조이스틱 이질 지시 데이터 없이는
 해결 불가로 재확인.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-6. Vision encoder 비교 (PG2/SigLIP vs Kosmos-2) + 합성 이질지시 테스트**
 
 PG2(PaliGemma2-448) SigLIP vision tower(1152d)로 exp71 vision 소스를 교체해도
@@ -1585,6 +1864,10 @@ Kosmos-2와 대등(96.2% vs 97.0~98.4%, 1차 시도 73.4%는
 counterfactual이 살아나는지 사전 테스트 — 변화율 0.3%→0.8%로
 거의 안 살아남. 합성 라벨(이미지와 무관하게 고정)이 잡음처럼 취급된 것으로
 추정, 실물 수집만이 확실한 다음 단계로 재확인.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-7. obj_left/right/center 테스트는 학습 분포 밖(OOD) 스트레스 테스트였다**
 
@@ -1617,6 +1900,10 @@ ROT_R(강한우)
 데이터가 거의 커버 못 하는 지대 — "cx 0.9에서도 FORWARD 고정"의 근본 원인과 정합.
 재학습보다 먼저 이 구간 데이터 자체를 확보해야 함.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-9. 좌/우 비대칭 발견 + bbox_scale 대응 + soda 배포 (2026-07-07~08)**
 
 FWD+L recall 88.5%인데 FWD+R recall 67.6%(21.6%가 FORWARD로
@@ -1646,6 +1933,10 @@ exp71_window6_bboxscale3(5-seed 84.6%±2.9%, 최고 88.5%, 가장 유력 후보)
 두 체크포인트 모두 soda 서버로 rsync 전송 완료 — 실로봇 3자 A/B(기존 window6 / window3+bboxscale3 /
 window6+bboxscale3) 대기 중.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-11. soda 제기 BGR/RGB 의심 건 — 실물 대조로 기각 (2026-07-08)**
 
 soda가 mobile_vla_data_collector.py의 cv_bridge.compressed_imgmsg_to_cv2(...,"bgr8")로
@@ -1659,6 +1950,10 @@ soda가 mobile_vla_data_collector.py의 cv_bridge.compressed_imgmsg_to_cv2(...,"
 카메라 원본 인코딩이 이미 bgr8이라 반전이 사실상 무변환(no-op)이었을 가능성.
 결론: 재학습 불필요, 어제 배포한 window6+bbox_scale3(원본) 그대로 유지.
 색 반전판 체크포인트(exp71_window6_bboxscale3_colorfixed)는 참고용으로만 보존.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-12. 조이스틱 재수집 설계 정정 — "지시-경로 디커플링" (2026-07-09)**
 
@@ -1679,6 +1974,10 @@ soda가 mobile_vla_data_collector.py의 cv_bridge.compressed_imgmsg_to_cv2(...,"
 적용한 실제 물리적 수집.
 상세: plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §1-1
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-13. obj_right에서 왜 하필 FWD+L이 반복됐나 — 세 번째 confound (2026-07-09)**
 
 실로봇 obj_right 실패에서 그라운딩(OWL-v2)은 정상 동작했는데 액션이 반복적으로
@@ -1696,6 +1995,10 @@ FORWARD:259, FWD+L:67, RIGHT:29, ROT_L:20, FWD+R:19, ROT_R:3 — FWD+L(67개) �
 cx만으로는 목표 방향을 안정적으로 추론할 수 없는 구조. 61-12의 지시-경로 디커플링 수집으로
 함께 해소될 것으로 기대.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-14. 수집/학습 Hz 정합 + action chunking 검토 (2026-07-09)**
 
 현재 수집: on_command() 이벤트 트리거(명령 변경 시에만 프레임 기록), 실질
@@ -1711,6 +2014,10 @@ cx만으로는 목표 방향을 안정적으로 추론할 수 없는 구조. 61-
 시간폭을 정합 — 현재 액션헤드 구조를 유지한 채 적용 가능한 값싼 절충. 근본적으로는
 action chunking 구조 도입을 별도 트랙으로 검토 (우선순위: 리샘플링 먼저 검증 →
 부족 시 chunking 검토). 플랜 문서 §4에 두 항목 모두 추가.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-15. 수집 플랜 트랙 분리 — 도달성능(A) vs 언어조건화(B) (2026-07-09)**
 
@@ -1731,6 +2038,10 @@ action chunking 구조 도입을 별도 트랙으로 검토 (우선순위: 리�
 soda 쪽에서도 이미 같은 방향(4-position 극단 배치 수집 UI)을 대시보드에 구현 중
 (`930a6180` cx-axis 진행률 차트, `984b0ae4` 조이스틱 D-pad 시나리오 전환).
 상세: plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §0,§1
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-16. 재수집 전 마지막 완화책 3종 실측 — 전부 무효 확인 (2026-07-10)**
 
@@ -1765,6 +2076,10 @@ C는 명백 악화 — 은 결론을 뒷받침하기 충분함)
 재확인됨. 배포된 window6+bbox_scale3(baseline) 그대로 유지 — 어떤 학습레벨 트릭도
 도움 안 됨.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-17. window3+bbox_scale3 배포 후 obj_right 실측 — 병목이 confound에서 그라운딩으로 이동 (2026-07-10/11)**
 
 soda 로봇에서 window3+bbox_scale3(val_acc 84.4%) 체크포인트로 obj_right 30회
@@ -1792,6 +2107,10 @@ OWL-v2 그라운딩 성공(실제 bbox 검출)
 바로 볼 수 있도록 episode_log.csv 조인(실주행 결과/메모/FPE 배지)을
 추가함 — 기존엔 H5 attrs 원본 텍스트만 노출되어 오퍼레이터가 남긴 성공/실패 메모가
 묻혀 있었음.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-18. 전체 108개 세션 시계열 종합분석 — 그라운더 교체는 무효, 체크포인트 교체가 유일한 변곡점 (2026-07-11)**
 
@@ -1849,6 +2168,10 @@ window3+bboxscale3로 교체
 내내 체크포인트 교체와 lockstep으로 같이 바뀌어서 개별 효과를 이 데이터로는 분리
 불가 — 향후 같은 체크포인트 고정 상태로 토글만 바꾸는 A/B 필요.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-10. 종합 결론 및 다음 단계**
 
 1) 그라운더(OWL-v2)는 무죄에 가까움 — clean bbox 검증에서 헤드 일반화力 확인
@@ -1862,12 +2185,19 @@ window3+bboxscale3로 교체
 |  프리뷰 재설계 플랜: plan_20260706_preview_redesign.md
 |  조이스틱 수집 플랜: plan_20260707_heterogeneous_instruction_extreme_cx_collection.md
 
-[→ 원문 전체 보기(research_story.html#ch61)](../v5/research_story.html#ch61)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch61">→ 원문 전체 보기 (research_story.html#ch61)</a>
 
-### CH 64 — exp73 전면 재검증 — 오프라인 감사에서 실기 89%까지, 그리고 병목은 "검출"이었다
-*"성능이 왜 이렇게 낮지?"에서 시작(2026-07-22)해 실기 100회 검증으로 끝난 재검증 기록 — 숨은 버그 2개를 걷어내고, 헤드·그라운더·연속화가 모두 막다른 길임을 확인한 뒤, 실기에서 89%에 도달했다. 최종 결론은 "병목은 액션 헤드가 아니라 객체 검출"(gnd%≥80 → 98.8% 성공). 검증 과정에서 자체 오류 2건(64-11 철회, 64-19 요인순위)을 발견해 철회·정정한 기록도 그대로 남겼다.*
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 64</span> exp73 전면 재검증 — 오프라인 감사에서 실기 89%까지, 그리고 병목은 "검출"이었다</div>
+
+<p class="chapter-subtitle-line">"성능이 왜 이렇게 낮지?"에서 시작(2026-07-22)해 실기 100회 검증으로 끝난 재검증 기록 — 숨은 버그 2개를 걷어내고, 헤드·그라운더·연속화가 모두 막다른 길임을 확인한 뒤, 실기에서 89%에 도달했다. 최종 결론은 "병목은 액션 헤드가 아니라 객체 검출"(gnd%≥80 → 98.8% 성공). 검증 과정에서 자체 오류 2건(64-11 철회, 64-19 요인순위)을 발견해 철회·정정한 기록도 그대로 남겼다.</p>
+
+<div class="card" markdown="1">
 
 **📋 진행 현황 요약 — 100회 실기 테스트 결과 및 다음 단계 (2026-07-31)**
 
@@ -1911,10 +2241,18 @@ window3+bboxscale3로 교체
 이 요약은 자체 검증에서 이전 카드 2건(64-11, 64-18 요인순위)을
 철회·정정한 뒤의 최신 상태입니다.
 
+</div>
+
+<div class="card" markdown="1">
+
 🔴 3줄 요약
 ① exp73 closed-loop 순위는 두 개의 숨은 버그(val_split RandomState↔default_rng 불일치 + 공유 캐시 CACHE_V6 덮어쓰기)로 통째로 오염돼 있었다. "hybrid 84.8% 최종 1위" → "mlp 60.6%" → 정정 후 전부 무효.
 ② 동일 조건(225ep 학습·225ep val)으로 통일 재평가하니 상위 헤드(mlp·chunk·hybrid)는 seed 노이즈(±6.5%p) 안에서 구분 불가, transformer만 확실한 최하위. 그라운더(PG448 vs OWL)는 무차별.
 ③ 학습 레벨 개선책(회전 부스트·오버샘플·V5 데이터 혼합) 전부 무효 → 병목은 알고리즘이 아니라 "곡선/오버슈트 액션 데이터의 부재" → 트랙C 재수집이 유일한 해법.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-1. 숨은 버그 2개 — 그동안의 리더보드가 왜 못 믿을 값이었나**
 
@@ -1941,6 +2279,10 @@ mlp, pg448/v6(트랙F 없음)
 mlp, pg448+트랙F (225ep 정합)
 48.5%(best)/39.4%(평균)
 apples-to-apples 확정
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-2. 통일 리더보드 (apples-to-apples: 전 조합 225ep 학습·225ep val)**
 
@@ -1972,6 +2314,10 @@ champion seed 분산: pg448/mlp 3-seed = 33.3/36.4/48.5%
 ② 상위 헤드 mlp·chunk·hybrid는 노이즈 안에서 구분 불가 — "최고 헤드"를 33ep val로는
 못 가림, ③ transformer(현 배포)만 확실한 최하위 → 교체 근거.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-3. 어디서·언제 실패하나 — 프레임 단위 실패 시점 분석**
 
 경로 유형별로 보면 직진 75~100% vs 곡선 0~67% —
@@ -1984,6 +2330,10 @@ FORWARD로 뭉갬. 데이터 71%가 FORWARD라 "애매하면 직진" 편향.
 ③ 후반 직진 복귀 — 대체로 회복(82~100%).
 한 프레임 방향 오판 → dead-reckoning 적분에서 헤딩 오차 누적 → FPE가 4.6m까지 터짐.
 즉 "한 번 어긋나면 되돌리지 못하는" 것이 본질(CH62 "중간 재보정 불능"과 동일).
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-4. 연속형 액션으로 바꾸면? → 4가지 독립 증거로 "오히려 나쁨"**
 
@@ -2006,6 +2356,10 @@ contreg 75%/flow 72%
 드리프트 누적. 이산 분류는 "3개 중 하나로 딱" 찍어 이 애매함을 원천 차단(정규화 효과).
 연속이 의미 있으려면 수집 단계부터 아날로그 보존이 선행돼야 함(soda 문의 진행 중).
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-5. 그라운더는 병목이 아니다 — V6 극단 cx 100% 검출**
 
 "오버슈트 중에도 바구니 cx가 잡혀야 한다"는 우려를 V6 데이터로 검증:
@@ -2020,6 +2374,10 @@ PG448 vs OWL 검출률
 극단(cx<0.15 or >0.85)은 90프레임(0.6%)뿐. 즉 인식은
 되는데, 극단 상황 자체가 데이터에 희소. 그라운더(PG448/OWL) 교체로는 안 풀리고
 (CH61-18 "그라운더 교체 무효"와 일치), 극단·오버슈트 프레임을 의도적으로 늘리는 재수집이 필요.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-6. 학습 레벨 개선책 전부 무효 — "알고리즘으로는 못 고친다"**
 
@@ -2045,6 +2403,10 @@ V5(쉬운셋) 데이터 혼합
 "지나쳤다 되돌리는" 궤적 자체가 데이터에 없으면 학습할 신호가 없다는 CH61 결론의 재확인.
 (V5+V6 혼합의 초기 57.6%는 best-of-3 운빨이었고 3-seed 평균은 39.4%로 무효 처리.)
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-8. 일반화 매트릭스 — "V5만 학습 → V6 = 2%" (쉬운 데이터는 전이 안 됨)**
 
 "V5로 마무리해도 되나"를 정면으로 검증. bbox confound 제거(V5도 PG448 주석 사용),
@@ -2066,6 +2428,10 @@ V6에서 2.0% — 쉬운 벤치마크로 학습한 모델은 어려운 케이스
 V5+V6 혼합은 V5-test를 크게 올리지만(84.8%) V6-test는 못 올림(34.3%≈V6단독) —
 그냥 데이터를 더하는 것으론 어려운 케이스가 안 풀리고,
 어려운 케이스를 겨냥한(트랙C) 데이터가 필요함을 재확인.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-9. 실주행 세션 시점 분해 — 집계 성공률의 함정 (soda 254세션 실측)**
 
@@ -2095,6 +2461,10 @@ old action_transformer.pt이고, exp73(CH64 챔피언)은 실기 거의 미검�
 (07-22 obj_center 3건뿐, 그것도 폐기된 v6-only 180ep). offline에선 mlp>transformer인데 실기 챔피언은
 transformer라 이 역전이 미해명 → exp73_pg448_trackF_v6_mlp를 obj_left/center/right로
 반복 실기(6207947 버그수정 후)해야 판가름(soda에 요청 완료).
+
+</div>
+
+<div class="card" markdown="1">
 
 **🚨 64-10. 학습/서빙 "제어 주기" 불일치 — HELD(진짜 실서빙 재현) 24.2%, 구조적 병목 신규 발견**
 
@@ -2136,6 +2506,10 @@ CH64 64-3과의 연결: "한 번 어긋나면 되돌리지
 재보정할 기회 자체가 5배 적게 주어지는 제어 구조
 때문일 수 있음이 새로 확인됨. 트랙C(데이터)와 제어 주기(그라운딩 속도)는
 서로 다른 레버 — 하나를 고쳐도 다른 하나는 그대로 남음.
+
+</div>
+
+<div class="card" markdown="1">
 
 **❌ 64-11. exp73 챔피언 첫 실기 검증 — HELD 예측과 정확히 일치 — 철회됨(2026-07-31, 64-19 참조)**
 
@@ -2185,6 +2559,10 @@ strong_right(60%) 간 뚜렷한 좌우 비대칭 — 카메라/그라운더 좌�
 요인(바퀴 드리프트 등) 가능성, n=4~5라 단정은 이름. 트랙C 재수집 시 좌우 균형
 확인 필요.
 
+</div>
+
+<div class="card" markdown="1">
+
 **✅ 64-12. HELD-aware 재학습 — majority-vote 라벨로 12→28% (재수집 없이 가능한 첫 완화책)**
 
 64-10/64-11에서 "판단 자체가 1.3Hz로 느려지고 그 사이 유지된다(HELD)"는 게
@@ -2215,6 +2593,10 @@ OWL 그라운더로도 재현 — HELD 25.3±3.8%
 (PG448의 28.3±3.8%와 노이즈 안에서 동급). cadence-aligned 학습 효과가 그라운더
 선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·cadence-aligned
 OWL 체크포인트도 함께 전달, PG448 세트와 실기 A/B 비교 요청함.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🔀 64-13. 논문 방향 전환 — 경량화(Raspberry Pi) + 좌우 데이터 불균형 발견 (2026-07-23 대면미팅)**
 
@@ -2252,6 +2634,10 @@ RIGHT+FWD+R+ROT_R=4122, 22% 불균형)는 실제로 존재 — 수집 설계가 
 실제 주행 중 발생한 액션 자체의 비대칭. 실기 좌측 약세(64-11)의 직접적 원인
 후보로, 트랙C 재수집 시 액션 클래스 비율까지 맞춰야 함.
 
+</div>
+
+<div class="card" markdown="1">
+
 **✅ 64-14. 셀프검증 라벨러 — path 라벨·success 자동판정 33/33(100%) 사람이 확인**
 
 챔피언(mlp) val 33ep 전체를 실제 카메라 프레임(초/중/종
@@ -2267,6 +2653,10 @@ RIGHT+FWD+R+ROT_R=4122, 22% 불균형)는 실제로 존재 — 수집 설계가 
 지금까지 CH64에서 인용한 모든 success 수치(39.4%,
 48.5%, 60.6% 등)가 "수식 버그"가 아니라 실제 궤적 일치도를 정확히 반영함이
 확인됨 — apples-to-apples 리더보드(64-2)의 신뢰도를 한 번 더 뒷받침.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🚨 64-15. has_bbox=False 학습 프레임 0.00%(0/16599) — 그라운딩 실패 상황 완전 미학습 확정 (soda 발견, 2026-07-30)**
 
@@ -2295,6 +2685,10 @@ FWD+R→ROT_L로 전환 — 회복이 전혀 없었음. `_build_flat_feature()`�
 학습해도 실기 100% 검출은 보장 안 되므로(64-9 obj_left 사례) 그라운더 무관하게
 존재하는 공백으로 판단.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-16. OWL-v2 fp16 — 속도 1.98배↑, 검출률 10%p↓, 좌표정확도는 불변 (2026-07-30)**
 
 64-13(파라미터 수만으론 경량화 판단 불가)의 후속 — OWL-v2를 fp16으로 돌리면
@@ -2321,6 +2715,10 @@ cx/cy/area 평균 차이 0.0001~0.0002 — 사실상 완전 동일, 0.05 이상 
 소폭 희생"의 실질적 트레이드오프 — 경량화 방향에서 검토할 가치 있으나, Kosmos-2
 (53.7ms)와 비교하면 fp16 OWL(962.1ms)도 여전히 약 18배 느려 "완전 해결"은 아님.
 threshold를 살짝 낮추는 보완과 함께 검토 권장.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-17. OWL-v2 threshold=0.25 재검증 — Jetson 재실측 없이도 "knife-edge" 구조 확인 (2026-07-30)**
 
@@ -2367,6 +2765,10 @@ Jetson 환경에서 ROC를 다시 돌리지 못하는 이유:
 결론: threshold=0.25는 "잘못된 값"이 아니라
 "원래부터 여유가 좁은 값" — Jetson gap이 그 좁은 여유를 넘어선 것이 이번 현상의
 본질. 근본 해법은 재캘리브레이션보다 버전 정합이 우선.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🎉 64-18. 100개 스크리닝 89% — 병목은 헤드가 아니라 그라운딩 가용성이었음 (soda, 2026-07-31, 100회)**
 
@@ -2516,6 +2918,10 @@ e355b506
 (3) 실패 11건 세션 원본을 우리 서버로 회수해 gnd%=0 3건의 프레임 직접 분석,
 (4) 64-15 해법으로 제안된 "그라운딩 실패 시 사람 시범(탐색회전/STOP)" 파일럿 수집.
 
+</div>
+
+<div class="card" markdown="1">
+
 **🔧 64-19. 개선 요인 분해 — 두 효과 모두 크지만 순위는 단정 불가, 견고한 것은 "그라운딩 가용성" 하나 (2026-07-31)**
 
 📝 이 카드는 같은 날 2회 자체 수정됐다.
@@ -2649,6 +3055,10 @@ A arm의 정체(17:24 이전 로드 모델)는 soda 확인 대기 중.
 threshold 효과(강좌 4/10·약좌 3/17 → +54.6%p, p=1.15e-05)도 그대로 재현되며,
 그 arm이 7/30분만 담고 있어 7/23을 합치면 위 표의 9/20·4/20이 된다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-20. 젯슨-로컬 gap 정량화 — 부차적 요인으로 확정, 7/4 결론 정정 (2026-07-31)**
 
 64-17에서 "젯슨 하드웨어가 없어 젯슨 ROC 재측정은 불가"라고 답했으나, 세션 원본을
@@ -2719,6 +3129,10 @@ threshold 튜닝도 환경 정합도 아니라 더 나은/재학습된
 한 단계 구체화한다 — 우리 도메인(회색 바구니, 극단 배치)에
 특화된 소형 검출기를 직접 학습하는 것이, 범용 OWL-v2(1901.7ms)를 양자화로
 깎는 것보다 경량화·정확도 양쪽에서 유망하다. 64-15가 제안한 파일럿 수집과 방향이 일치.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🎯 64-21. 특화 검출기 스펙을 데이터로 정하기 — 그리고 "검출되면 성공"의 조건 정정 (2026-08-01)**
 
@@ -2801,6 +3215,10 @@ scripts/backfill_grounding_scores.py --real-only 결과(1084프레임 / 37분, �
 soda 자체 검증에서 백필 score 기반 예측 검출률과 실측 has_bbox율이 위치별 ±11%p 내
 일치(중앙 0.0%p)했고, 잔차는 area/cy 필터가 score 통과분을 추가로 거르기 때문으로 설명됨.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-7. 종합 결론 & 다음 단계**
 
 막다른 길로 확인된 것: 헤드 교체(mlp≈chunk≈hybrid),
@@ -2819,17 +3237,28 @@ end-to-end 언어조건화(CH61 text 경로 사망 + PG2도 방향 spread 1.4%p�
 owl_trackF/mlp (best 48.5%, 평균 39.4%) — 가장 단순하고 상위권 동률.
 단 실기는 노이즈 ±6.5%p 때문에 반드시 반복 측정.
 
-[→ 원문 전체 보기(research_story.html#ch64)](../v5/research_story.html#ch64)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch64">→ 원문 전체 보기 (research_story.html#ch64)</a>
 
-### CH 67 — 차기 경량 구성 후보 검정 — Edge-grounding-VA에서 VLA로 갈 때 무엇을 고를 것인가
-*2026-08-04 논의에서 나온 차기 구성 후보들을 기존 실측과 대조하는 챕터. 교수님이 제안하신 OWL-v2 + Florence-2 조합과, 로드맵의 세 항목(양자화 · 연속형 헤드 · 언어 축소)을 각각 검정한다. 결론을 내리는 챕터가 아니라 "무엇을 확인해야 하는지"를 고정하는 챕터다 — 진행 중 항목은 그대로 표시한다.*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 67</span> 차기 경량 구성 후보 검정 — Edge-grounding-VA에서 VLA로 갈 때 무엇을 고를 것인가</div>
+
+<p class="chapter-subtitle-line">2026-08-04 논의에서 나온 차기 구성 후보들을 기존 실측과 대조하는 챕터. 교수님이 제안하신 OWL-v2 + Florence-2 조합과, 로드맵의 세 항목(양자화 · 연속형 헤드 · 언어 축소)을 각각 검정한다. 결론을 내리는 챕터가 아니라 "무엇을 확인해야 하는지"를 고정하는 챕터다 — 진행 중 항목은 그대로 표시한다.</p>
+
+<div class="card" markdown="1">
 
 🟣 3줄 요약
 ① Florence-2는 파라미터 근거가 강하다 — 231.4M vs Kosmos-2 1664.5M (실측). 경량화엔 유리.
 ② 그런데 우리 실측 2건에서 탈락한 이력이 있다 — cx max=0.56 구조적 우편향, 실주행 전이 급락(85.7%→15.0%).
 ③ 검정 완료 — 제안이 성립한다. 비전 백본으로 쓰면 cx MAE 0.0015(Kosmos-2 0.0020보다 25% 우세), 예측 cx가 라벨 최대값(0.8612)을 정확히 따라가 우편향 천장이 없다. CH59 결함은 OVD 헤드 문제였다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **67-1. 2026-08-04 논의 기록 — 합의된 방향**
 
@@ -2850,6 +3279,10 @@ Kosmos-2 선택 근거
 선행연구 RoboVLMs에서 Kosmos-2가 가장 효과 좋았기 때문. 임의 선택이 아니라 실측 승계
 ⚠️ 단 "RoboVLMs 기반"이라 쓰면 사실과 다름 — 코드는 미포함(CH65, 모델 구조 자료 7절)
 상세 로드맵: docs/plans/plan_20260804_roadmap_edge_grounding_vla.md
+
+</div>
+
+<div class="card" markdown="1">
 
 **✅ 67-2. Florence-2 검정 — 교수님 제안대로 유효. 파라미터 3.4배 작고 정확도는 25% 더 좋다**
 
@@ -2980,6 +3413,10 @@ v5 85.7% → 실주행 15.0% 급락은 파인튜닝 상황에서
 ※ 스크립트: scripts/detector_florence2_backbone.py ·
 결과: docs/v5/detector/florence2_backbone.json · 로봇 불필요, 약 40분 소요.
 
+</div>
+
+<div class="card" markdown="1">
+
 **⚠️ 67-3. 로드맵 3개 항목 — 자체 실측과 충돌하므로 "왜 이번엔 다른가"에 답이 필요**
 
 폐기하자는 뜻이 아니다. 이미 측정으로 기각된 선택을 모르고 반복하지 않도록 근거를 붙여둔다.
@@ -3034,6 +3471,10 @@ head-only에서도 재현) 프롬프트를 어떻게 바꿔도 방향 정확도�
 언어를 넣어도 파라미터만 늘어난다.
 ※ Florence-2를 쓰면 언어가 140.2M이라 이 목표는
 자연히 만족된다(67-2 ①) — 즉 ③과 교수님 제안이 서로 맞물린다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **67-5. 비전 백본 스윕 — "얼마나 작아져도 좌표가 유지되는가"**
 
@@ -3187,6 +3628,10 @@ negative 프레임 확보 후 has_bbox까지 평가해야 교체 판단이 가�
 스크립트 scripts/detector_backbone_sweep.py
 · 결과 docs/v5/detector/backbone_sweep.json
 
+</div>
+
+<div class="card" markdown="1">
+
 **67-6. Florence-2 언어부 검정 — 부재를 판정하지 못한다 ⭐**
 
 67-2·67-5가 검정한 것은 Florence-2의 비전 타워(90.4M)였다.
@@ -3278,6 +3723,10 @@ OWL-v2와 동일한 임계값 실험을 할 수 없었다.
 scripts/l1_florence2_grounder.py · 결과
 docs/v5/detector/l1_florence2_grounder.json · 표본 68-7과 동일 200프레임
 
+</div>
+
+<div class="card" markdown="1">
+
 **67-7. 그라운더 재현율 실측·상한 확인, 그라운더/비전인코더 개별·통합 Stage2 비교 (2026-08-19)**
 
 OWL-v2와 완전히 같은 2026-08-07 100세션 1087프레임에서
@@ -3347,6 +3796,10 @@ scripts/train_exp75_florence2_full_stage2.py ·
 결과 docs/v5/detector/florence2_grounding_0807_variants.json,
 docs/v5/closed_loop_eval/exp75_florence2_full_stage2.json
 
+</div>
+
+<div class="card" markdown="1">
+
 **🔄 67-8. 판정 뒤집힘 — 명시적 phrase 지정으로 재현율 34.7%→84.96% (2026-08-20)**
 
 67-7까지 전부 "열린 질문"(`<OD>`/`<DENSE_REGION_CAPTION>` —
@@ -3377,6 +3830,10 @@ scripts/florence2_phrase_grounding_test.py · 결과
 docs/v5/detector/florence2_phrase_grounding_0807.json · 인터랙티브 확인:
 scripts/label/serve_florence2_owl_compare.py (localhost:7795 `/live`,
 `<CAPTION_TO_PHRASE_GROUNDING>` 옵션)
+
+</div>
+
+<div class="card" markdown="1">
 
 **67-4. 진행 순서 — 엣지 목표에 가장 빠른 경로**
 
@@ -3414,14 +3871,21 @@ CH66 미검증 항목. 주행 불필요
 67-2·67-5·67-6은 완료됐고(결과 반영), 67-1의 나머지 항목은 미검정이다. 판정 기준을 미리 적어둔 것은
 이번 세션에서 사후 해석으로 두 번 틀린 이력(64-11 철회, 64-19 2회 정정) 때문이다.
 
-[→ 원문 전체 보기(research_story.html#ch67)](../v5/research_story.html#ch67)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch67">→ 원문 전체 보기 (research_story.html#ch67)</a>
 
-### CH 69 — phrase 그라운딩 대발견 — Florence-2 검출기 판정이 두 번 뒤집혔다
-*2026-08-20~21 ·
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 69</span> phrase 그라운딩 대발견 — Florence-2 검출기 판정이 두 번 뒤집혔다</div>
+
+<p class="chapter-subtitle-line">2026-08-20~21 ·
 CH67에서 "검출기 교체 기각 확정"까지 갔던 Florence-2가, OWL-v2처럼 타겟 문구를 직접 지정하는
-방식(`<CAPTION_TO_PHRASE_GROUNDING>`)을 처음 시도하자 재현율이 34.7%→84.96%(실기)→100%(V6 사람검증)로 뛰었다.*
+방식(`<CAPTION_TO_PHRASE_GROUNDING>`)을 처음 시도하자 재현율이 34.7%→84.96%(실기)→100%(V6 사람검증)로 뛰었다.</p>
+
+<div class="card" markdown="1">
 
 🟢 3줄 요약
 ① 지금까지 전부 "열린 질문"(`<OD>`/`<DENSE_REGION_CAPTION>` — "뭐가 있는지 다 말해봐" 후 키워드로 골라냄)만
@@ -3430,6 +3894,10 @@ CH67에서 "검출기 교체 기각 확정"까지 갔던 Florence-2가, OWL-v2�
 바꾸니 0807 실기 배치 재현율 84.96%, V6 학습셋 사람 검증(최종 n=329, 클릭 기반 독립 GT)에서는 100%.
 ③ 이 과정에서 두 개의 자체 버그(BGR/RGB 채널 반전, 순환논리 우려)를 스스로 발견·수정했고,
 로컬 인터랙티브 검증 도구 3종을 새로 만들어 사람이 직접 그라운드 트루스를 판정할 수 있게 했다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **✅ 69-1. 태스크를 바꾸자 재현율이 34.7%→84.96%로 뛰었다**
 
@@ -3465,6 +3933,10 @@ phrase 그라운딩(맨 아래 줄)은 6/8이 초록선과 거의 겹친다 — 
 scripts/gen_florence2_prompt_comparison_gallery.py ·
 결과 docs/v5/detector/florence2_phrase_grounding_0807.json
 
+</div>
+
+<div class="card" markdown="1">
+
 **⚠️ 69-2. 자체 발견한 버그 2건 — 색상 채널 반전, 그리고 성급한 결론**
 
 ① BGR/RGB 채널 버그 — 실제 재현율 계산 스크립트들은 문제없었지만,
@@ -3477,6 +3949,10 @@ HSV 색상 기반 독립검증으로 확인하려던 시도는 실패(OWL vs HSV
 HSV 값이 요동쳐 그 자체로 신뢰 불가로 판정, 즉시 폐기). 대신 사람이
 직접 이미지를 보고 판정하는 라벨링 도구로 우회 — OWL 선은 참고 보조선일 뿐 최종 판정
 기준이 아니게 설계해서 순환논리 자체를 해소했다(69-3 참조).
+
+</div>
+
+<div class="card" markdown="1">
 
 **🖱 69-3. 인터랙티브 검증 도구 3종 — 사람이 직접 그라운드 트루스를 만든다**
 
@@ -3492,6 +3968,10 @@ HSV 값이 요동쳐 그 자체로 신뢰 불가로 판정, 즉시 폐기). 대�
 가능한 전부(67개 에피소드 전수, V6 자체가 후반부일수록
 실패가 희귀해서 — 접근할수록 타겟이 커 보여서 — late×fail 칸이 11개뿐이라는 걸 이 과정에서
 알게 됨). 총 97개 라벨링.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🏆 69-4. V6 사람 검증 결과(초기 표본, n=97) — Florence-2 97/97(100%), OWLv2(가중) 92.8% (⚠️ 69-11에서 329개·클릭 기반 독립 GT로 최종 재검증 — 아래 참고)**
 
@@ -3515,6 +3995,10 @@ Florence-2가 전부 대신 잡아낸 셈. 다만 0807 실기 배치에서는 84
 **V6이 0807보다 15%p 가까이 유리한 조건**(통제된 수집 vs 실제 로봇의 다양한 각도/거리)이라는
 뜻이기도 하다 — n=97의 표본 크기도 감안해야 한다(실기 재검증 필요, 성급한 결론 금지 원칙 유지).
 라벨: docs/v5/detector/v6_phrase_grounding_human_labels.json
+
+</div>
+
+<div class="card" markdown="1">
 
 **🏆 69-5. exp77 — phrase 그라운딩으로 재학습, 무작위 split 역대 최고 성적 + L/ROT_L 회귀 완전 해소 (⚠️ 69-7에서 일반화 취약점 발견 — 아래 참고)**
 
@@ -3605,6 +4089,10 @@ L(-13.8p)·ROT_L(-16.7p) 회귀가 새 방식(phrase 그라운딩)에서는
 runs/v5_nav/mlp/exp77_florence2_phrase_full/exp77_florence2_phrase_full_v6_mlp.pt ·
 결과 docs/v5/closed_loop_eval/exp77_florence2_phrase_full_stage2.json
 
+</div>
+
+<div class="card" markdown="1">
+
 **⚠️ 69-6. 실기 전 오프라인 3종 보강 검증 — leave-one-direction-out에서 낙관 편향 발견**
 
 실기(soda) 요청 전에 val 지표만으로는 못 보는 것들을 3가지 더 확인했다.
@@ -3669,6 +4157,10 @@ scripts/eval_leave_one_direction_out.py ·
 scripts/eval_exp77_closed_loop_sim.py ·
 scripts/eval_bbox_scale_phrase_grounder.py
 
+</div>
+
+<div class="card" markdown="1">
+
 **🔴 69-7. exp73(배포중) apples-to-apples 비교 — exp77이 일반화에서는 오히려 진다**
 
 69-6①의 leave-one-direction-out을 exp73(현재 배포중, OWL bbox+Kosmos-2
@@ -3728,6 +4220,10 @@ exp73 대신 그대로 배포하자고 권하기 어렵다 — 오른쪽 방향�
 scripts/eval_leave_one_direction_out_exp73.py · 결과
 docs/v5/closed_loop_eval/exp73_leave_one_direction_out.json
 
+</div>
+
+<div class="card" markdown="1">
+
 **✅ 69-8. soda 회신 — 순차→병렬화만으로 Jetson 지연 문제 해소, 정확도 영향 없음 확인**
 
 코드 리뷰에서 발견한 사실 — `predict()`가 그라운딩(OWL-v2)과 비전 인코딩을
@@ -3765,6 +4261,10 @@ scripts/measure_sequential_vs_threaded_grounding_vision.py ·
 scripts/measure_sequential_vs_threaded_grounding_florence2.py ·
 scripts/verify_sequential_vs_threaded_output_equality.py
 
+</div>
+
+<div class="card" markdown="1">
+
 **🔍 69-9. 69-7 우측 취약점의 원인 — bbox 출처가 기존 비대칭을 증폭시킨다**
 
 69-6에서 확인한 F→FR 오판이 exp77(Florence-2 bbox)만의 문제인지, exp73(OWL
@@ -3798,6 +4298,10 @@ Florence-2 bbox로 바꾸면 이 기존 비대칭이 몇 배로
 미해결.
 결과
 docs/v5/closed_loop_eval/exp73_leave_one_direction_out_confusion.json
+
+</div>
+
+<div class="card" markdown="1">
 
 **🏆 69-11. 최종 재검증(329개, 클릭 기반 독립 GT) — Florence-2 329/329(100%), OWLv2(가중) 88.5%**
 
@@ -3840,6 +4344,10 @@ scripts/label/serve_v6_phrase_grounding_verify.py(:7796) · 라벨
 docs/v5/detector/v6_phrase_grounding_human_labels.json(329개) · 자동/사람
 분리 scripts/build_v6_verification_dataset.py ·
 docs/v5/detector/v6_verification_dataset.json
+
+</div>
+
+<div class="card" markdown="1">
 
 **📋 69-10. CH69 종합 결론**
 
@@ -3890,6 +4398,8 @@ exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 �
 우측 방향(weak_right·strong_right)은 비례 이상으로 보강 권장. 재수집 규모
 (전량 vs 증분)는 soda 발주 전 결정 필요.
 
-[→ 원문 전체 보기(research_story.html#ch69)](../v5/research_story.html#ch69)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch69">→ 원문 전체 보기 (research_story.html#ch69)</a>
+
+</div>

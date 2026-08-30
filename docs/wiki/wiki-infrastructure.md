@@ -1,8 +1,10 @@
 # 연구 위키 & 문서 인프라
 
-> research_story.html을 주제별로 재구성한 LLM wiki 구축(Karpathy 방식), 새 챕터 추가 시 안전 재동기화(wiki-sync 스킬), 아카이브 색인 등 문서화 도구 자체에 대한 기록.
+<p class="tagline">research_story.html을 주제별로 재구성한 LLM wiki 구축(Karpathy 방식), 새 챕터 추가 시 안전 재동기화(wiki-sync 스킬), 아카이브 색인 등 문서화 도구 자체에 대한 기록.</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 `docs/v5/research_story.html`(81+챕터, 시간순 연구일지)은 특정 주제를 찾으려면
 전체를 grep해야 하는 비효율이 있어, **주제별로 재구성한 markdown 위키**
@@ -29,15 +31,20 @@ flow-matching/데이터셋/실기테스트/백본/미팅)로 확정했고, 각 �
 재구성/LLM 판단의 경계를 명확히 분리). CH71(이 챕터 자체)을 실제로 추가해
 전체 파이프라인(파싱→배정→재압축→렌더링)을 end-to-end로 검증했다.
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CH 71 — LLM Wiki 구축 — 81챕터를 주제별로 재구성한 Karpathy 방식 위키
-*2026-08-28~29 ·
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 71</span> LLM Wiki 구축 — 81챕터를 주제별로 재구성한 Karpathy 방식 위키</div>
+
+<p class="chapter-subtitle-line">2026-08-28~29 ·
 research_story.html(시간순 연구일지)을 주제별로 조회 가능하게 재구성한 docs/wiki/
 구축. 2026-04 공개된 Karpathy LLM-wiki 방식(raw/wiki/index, 벡터DB 없음)을 채택하고,
-새 챕터 추가 시 안전하게 재동기화하는 wiki-sync 스킬까지 만들었다.*
+새 챕터 추가 시 안전하게 재동기화하는 wiki-sync 스킬까지 만들었다.</p>
+
+<div class="card" markdown="1">
 
 🟢 3줄 요약
 ① 이 세션에서 CH69/70을 찾으려고 grep을 반복했던 비효율을 계기로, research_story.html
@@ -48,6 +55,10 @@ research_story.html(시간순 연구일지)을 주제별로 조회 가능하게 
 ③ 각 주제 페이지 상단에 병렬 서브에이전트 8개가 전체 정독 후 쓴 압축 요약을 채웠고,
 새 챕터가 추가돼도 기존 요약을 안 지우고 안전하게 재동기화하는 wiki-sync
 스킬까지 구축·검증했다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **📐 71-1. 파싱 — div 트리 추적 2번 실패 후 "마커 간 텍스트 구간" 방식으로 해결**
 
@@ -64,6 +75,10 @@ div 짝이 깨져 있어도 마커 자체(챕터 시작 태그, finding-card/cal
 선형 순서만 있으면 안전하게 파싱된다 — 81개 챕터, 301개 finding-card/callout 전부
 정확히 추출됨.
 
+</div>
+
+<div class="card" markdown="1">
+
 **🗂 71-2. 주제 태깅 + 압축 요약 — 8개 주제, 서브에이전트 병렬 정독**
 
 81개 챕터를 실제 제목을 다 확인한 뒤 8개 주제로 분류(`docs/wiki/data/topic_index.json`,
@@ -77,6 +92,10 @@ div 짝이 깨져 있어도 마커 자체(챕터 시작 태그, finding-card/cal
 "헤드 구조 축은 한계, ordinal soft label(손실함수)만 실질 개선"(CH70)으로 시작한다 —
 두 문장만 읽어도 그 챕터 번호를 몰라도 핵심을 파악할 수 있다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **📦 71-3. 아카이브 색인 — docs/*.md 357개 스냅샷은 압축 없이 카탈로그만**
 
 `docs/*.md` 최상위 357개 파일도 편입을 검토했으나, 조사 결과 이들은
@@ -87,6 +106,10 @@ vs navigation 액션 공간 비교, "환각 제거" 반복 수정 이력 등) �
 "대부분 죽은 기록 — 아카이브로만 충분"이라 결정, 원문을 읽어 압축하는 대신
 제목/날짜/한줄요약만 뽑은 카탈로그(`docs/wiki/archive-index.md`, 357행)만 생성했다.
 원본 파일은 이동·삭제 없이 그대로 둠.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🔁 71-4. wiki-sync 스킬 — 새 챕터 추가 시 압축 요약을 절대 안 지우는 안전한 재동기화**
 
@@ -114,6 +137,8 @@ scripts/wiki/sync_wiki.py · 결과
 docs/wiki/index.html · 계획
 docs/plans/plan_20260828_llm_wiki.md
 
-[→ 원문 전체 보기(research_story.html#ch71)](../v5/research_story.html#ch71)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch71">→ 원문 전체 보기 (research_story.html#ch71)</a>
+
+</div>

@@ -1,27 +1,39 @@
 # 실로봇 테스트 & Closed-Loop 검증
 
-> val_acc가 실기 성능을 예측하지 못한다는 반복 확인, closed-loop/궤적재생 근사, 100건 실기 테스트, 좌우 비대칭 원인 추적.
+<p class="tagline">val_acc가 실기 성능을 예측하지 못한다는 반복 확인, closed-loop/궤적재생 근사, 100건 실기 테스트, 좌우 비대칭 원인 추적.</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 **val 지표는 실기 성능을 예측하지 못한다**는 것이 반복 확정된 사실이다: Exp11은 TLD 1.03m로 Step2와 같은 거리를 이동했지만 방향 오류 누적으로 FPE 1.45m·CL 0%인 반면 Step2는 FPE 0.55m·CL 66.7%였고, goal proximity signal을 추가한 Exp49는 val_acc 92.6%에서 기대되는 CL이 20%대였는데 실제로는 96.7%(FPE 0.081m)가 나왔다(오류가 작고 방향성 있어 복도 구조 안에서 자기교정되기 때문). CH64에서는 반대로 offline 39~48%였던 exp73이 실기 100건 스크리닝에서 89%를 기록했는데, 이는 두 개의 숨은 버그(val_split RandomState↔default_rng 불일치, 공유 캐시 CACHE_V6 덮어쓰기)로 리더보드 자체가 오염돼 있었고, 추론 제어 계층에 추가된 명시적 회복 로직(force_reground_on_miss·회전 가드 등)이 학습되지 않은 상황을 우회했기 때문임이 밝혀졌다. **좌우 비대칭**(좌 80.0% vs 우 92.5%, n=40이라 Fisher p=0.193으로 아직 유의하지 않음)은 flip 대조 실험으로 층위별 원인이 규명됐다: 학습 데이터 에피소드 수는 균형(90:90)이었고, 그라운더(OWL-v2)는 오히려 좌측을 +0.0118 더 선호해 부호가 실기와 반대이므로 원인이 아니며, 액션 헤드에 고정 우측 선호(−0.0275)가 있었고 이는 학습 액션 클래스가 우측으로 21.8% 편중된 데서 비롯됐음이 확정됐다(원인은 트랙A 전용이며, 좌측 시작 에피소드가 직진 비중이 더 높아 조향 총량 자체가 달랐던 결과). 미러 증강으로 이 편향을 +0.0068까지 제거했고 val_acc 손실은 없었지만, 12.5%p 격차 전부를 설명하는지와 기구(물리) 편향의 존재 여부는 아직 미검증으로 남아 있다. 병목 원인 추적(CH64~65)에서는 "그라운딩 가용성이 성패를 가른다"(gnd%≥80 → 98.8% 성공)가 충분조건으로는 강하게 확정됐지만, 강우 배치는 검출 confidence가 최악(중앙값 0.180)인데도 실기 성공률 90%를 기록해 검출 난이도와 주행 난이도가 별개 축임이 밝혀졌다(경로가 짧아 FORWARD 편중 prior만으로 접근이 가능했기 때문). 아직 미해결인 부분: 좌우 비대칭 12.5%p 중 헤드 편향이 설명하는 비중과 기구적 편향의 존재 여부는 동일 위치 A/B 재검증 및 open-loop 기구 측정으로만 확정 가능하다.
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CHAPTER 5 — Closed-Loop 검증 — 실제 항법 성능
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 5</span> Closed-Loop 검증 — 실제 항법 성능</div>
+
+<div class="card" markdown="1">
 
 🔴 Exp11 0% vs Step2 66.7%
 두 모델 모두 TLD ≈ 1.03m로 비슷한 거리를 이동했다. 하지만 Exp11은 방향 오류가 누적되어
 최종 위치가 목표에서 평균 1.45m 떨어진 반면, Step2는 0.55m에 도달했다.
 같은 거리를 이동하고도 FPE가 2.6배 차이 나는 것이 end-to-end vs decomposition의 핵심 차이다.
 
-[→ 원문 전체 보기(research_story.html#ch5)](../v5/research_story.html#ch5)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch5">→ 원문 전체 보기 (research_story.html#ch5)</a>
 
-### CHAPTER 6 — 최신 실험 — Exp51 분석 결과
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 6</span> 최신 실험 — Exp51 분석 결과</div>
+
+<div class="card" markdown="1">
 
 실험 진행 흐름
 Exp01→Exp52까지 PM, CL 성공률 추이
@@ -36,11 +48,17 @@ end-to-end vs Step2 최종 비교
 Overfitting 위험 분석
 학습 epoch별 train/val loss
 
-[→ 원문 전체 보기(research_story.html#ch6)](../v5/research_story.html#ch6)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch6">→ 원문 전체 보기 (research_story.html#ch6)</a>
 
-### CHAPTER 7 — 최신 돌파구 — Exp46~52: 100% 성공
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 7</span> 최신 돌파구 — Exp46~52: 100% 성공</div>
+
+<div class="card" markdown="1">
 
 실험 진행 흐름
 Exp14 Step2
@@ -241,11 +259,17 @@ Exp11·Step2·Exp49 CL 상세
 Overfitting 위험 분석
 n_train 4배 증가 효과 분석
 
-[→ 원문 전체 보기(research_story.html#ch7)](../v5/research_story.html#ch7)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch7">→ 원문 전체 보기 (research_story.html#ch7)</a>
 
-### CHAPTER 9 — 실로봇 평가 — Exp49 실제 환경 검증
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 9</span> 실로봇 평가 — Exp49 실제 환경 검증</div>
+
+<div class="card" markdown="1">
 
 오프라인 CL 기준선 (Exp49, 30 에피소드)
 LEFT
@@ -328,11 +352,17 @@ Robot Tests — 실제 추론 세션 전체 프레임 분석
 2026-05-29 3개 세션 + 2026-06-04 4개 세션. 프레임별 filmstrip, 액션 히스토그램, FWD+LEFT bias 원인 분석, timing mismatch 발견 포함.
 상세 분석 →
 
-[→ 원문 전체 보기(research_story.html#ch9)](../v5/research_story.html#ch9)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch9">→ 원문 전체 보기 (research_story.html#ch9)</a>
 
-### CHAPTER 14 — Closed-Loop 평가 — 왜 val_acc보다 학술적으로 더 강한 증거인가
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 14</span> Closed-Loop 평가 — 왜 val_acc보다 학술적으로 더 강한 증거인가</div>
+
+<div class="card" markdown="1">
 
 결론: val_acc 92.6%에서 예상 CL이 20%인데 실제 96.7%가 나온 것은 "운이 아니다."
 이것은 모델의 오류가 작고 방향성 있으며 복도 구조 내에서 자기교정 가능하다는 증거다.
@@ -362,6 +392,10 @@ MoNaVLA (우리)
 CL 96.67%
 Sim + 실로봇
 basket 도달 완료율 (FPE 기반)
+
+</div>
+
+<div class="card" markdown="1">
 
 포인트: 교수님이 "val_acc는 불충분하다"고 하셨는데, 맞다.
 그래서 우리는 학술 표준인 Closed-Loop success rate로 평가했다.
@@ -477,6 +511,10 @@ basket이 없으면
 한계
 CL 96.7%로도 답하지 못하는 것 (솔직한 인정)
 
+</div>
+
+<div class="card" markdown="1">
+
 CL이 증명하는 것: basket GoalNav 태스크 수행 능력.
 CL이 증명하지 못하는 것: 다른 물체를 목표로 줬을 때도 같은 성능이 나오는가.
 CL 96.7%로 답하는 것
@@ -489,11 +527,17 @@ CL 96.7%로 답하는 것
 - 텍스트로 목표 변경 가능? (구조 문제) ⚠️
 - 처음 보는 복도 일반화? (미검증) ⚠️
 
-[→ 원문 전체 보기(research_story.html#ch14)](../v5/research_story.html#ch14)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch14">→ 원문 전체 보기 (research_story.html#ch14)</a>
 
-### CHAPTER 31 — exp64 실측 평가 — val 지표가 숨긴 full-frame collapse
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 31</span> exp64 실측 평가 — val 지표가 숨긴 full-frame collapse</div>
+
+<div class="card" markdown="1">
 
 **📋 6/4 미팅 투두 — 이후 어디서 풀렸는지**
 
@@ -501,11 +545,17 @@ CL 96.7%로 답하는 것
 exp64 Vision Grounding LoRA는 full-frame 92%로 붕괴(위 "왜 붕괴했나" 참고) — 답: 개선하지 않는다, 오히려 악화시킨다.
 base PG2(LoRA 없음)가 더 정확하다는 결론으로 확정.
 
-[→ 원문 전체 보기(research_story.html#ch31)](../v5/research_story.html#ch31)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch31">→ 원문 전체 보기 (research_story.html#ch31)</a>
 
-### CHAPTER 33 — 파이프라인이 범인이었다 — CL 성능 격차의 진짜 원인 규명 (exp65~66)
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 33</span> 파이프라인이 범인이었다 — CL 성능 격차의 진짜 원인 규명 (exp65~66)</div>
+
+<div class="card" markdown="1">
 
 stage2_v2_action.py)는 exp60/65b와 다른 스크립트
 파이프라인 차이 해부
@@ -594,12 +644,19 @@ CH32의 이 명제는 반만 맞았다. 원인은 두 가지: (a) 파이프라�
 🔲 의자 데이터로 Stage2 재학습 + CL 평가
 🔲 논문 Table 1 확정 (exp65b/exp66/exp67 ablation 3행)
 
-[→ 원문 전체 보기(research_story.html#ch33)](../v5/research_story.html#ch33)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch33">→ 원문 전체 보기 (research_story.html#ch33)</a>
 
-### CH 64 — exp73 전면 재검증 — 오프라인 감사에서 실기 89%까지, 그리고 병목은 "검출"이었다
-*"성능이 왜 이렇게 낮지?"에서 시작(2026-07-22)해 실기 100회 검증으로 끝난 재검증 기록 — 숨은 버그 2개를 걷어내고, 헤드·그라운더·연속화가 모두 막다른 길임을 확인한 뒤, 실기에서 89%에 도달했다. 최종 결론은 "병목은 액션 헤드가 아니라 객체 검출"(gnd%≥80 → 98.8% 성공). 검증 과정에서 자체 오류 2건(64-11 철회, 64-19 요인순위)을 발견해 철회·정정한 기록도 그대로 남겼다.*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 64</span> exp73 전면 재검증 — 오프라인 감사에서 실기 89%까지, 그리고 병목은 "검출"이었다</div>
+
+<p class="chapter-subtitle-line">"성능이 왜 이렇게 낮지?"에서 시작(2026-07-22)해 실기 100회 검증으로 끝난 재검증 기록 — 숨은 버그 2개를 걷어내고, 헤드·그라운더·연속화가 모두 막다른 길임을 확인한 뒤, 실기에서 89%에 도달했다. 최종 결론은 "병목은 액션 헤드가 아니라 객체 검출"(gnd%≥80 → 98.8% 성공). 검증 과정에서 자체 오류 2건(64-11 철회, 64-19 요인순위)을 발견해 철회·정정한 기록도 그대로 남겼다.</p>
+
+<div class="card" markdown="1">
 
 **📋 진행 현황 요약 — 100회 실기 테스트 결과 및 다음 단계 (2026-07-31)**
 
@@ -643,10 +700,18 @@ CH32의 이 명제는 반만 맞았다. 원인은 두 가지: (a) 파이프라�
 이 요약은 자체 검증에서 이전 카드 2건(64-11, 64-18 요인순위)을
 철회·정정한 뒤의 최신 상태입니다.
 
+</div>
+
+<div class="card" markdown="1">
+
 🔴 3줄 요약
 ① exp73 closed-loop 순위는 두 개의 숨은 버그(val_split RandomState↔default_rng 불일치 + 공유 캐시 CACHE_V6 덮어쓰기)로 통째로 오염돼 있었다. "hybrid 84.8% 최종 1위" → "mlp 60.6%" → 정정 후 전부 무효.
 ② 동일 조건(225ep 학습·225ep val)으로 통일 재평가하니 상위 헤드(mlp·chunk·hybrid)는 seed 노이즈(±6.5%p) 안에서 구분 불가, transformer만 확실한 최하위. 그라운더(PG448 vs OWL)는 무차별.
 ③ 학습 레벨 개선책(회전 부스트·오버샘플·V5 데이터 혼합) 전부 무효 → 병목은 알고리즘이 아니라 "곡선/오버슈트 액션 데이터의 부재" → 트랙C 재수집이 유일한 해법.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-1. 숨은 버그 2개 — 그동안의 리더보드가 왜 못 믿을 값이었나**
 
@@ -673,6 +738,10 @@ mlp, pg448/v6(트랙F 없음)
 mlp, pg448+트랙F (225ep 정합)
 48.5%(best)/39.4%(평균)
 apples-to-apples 확정
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-2. 통일 리더보드 (apples-to-apples: 전 조합 225ep 학습·225ep val)**
 
@@ -704,6 +773,10 @@ champion seed 분산: pg448/mlp 3-seed = 33.3/36.4/48.5%
 ② 상위 헤드 mlp·chunk·hybrid는 노이즈 안에서 구분 불가 — "최고 헤드"를 33ep val로는
 못 가림, ③ transformer(현 배포)만 확실한 최하위 → 교체 근거.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-3. 어디서·언제 실패하나 — 프레임 단위 실패 시점 분석**
 
 경로 유형별로 보면 직진 75~100% vs 곡선 0~67% —
@@ -716,6 +789,10 @@ FORWARD로 뭉갬. 데이터 71%가 FORWARD라 "애매하면 직진" 편향.
 ③ 후반 직진 복귀 — 대체로 회복(82~100%).
 한 프레임 방향 오판 → dead-reckoning 적분에서 헤딩 오차 누적 → FPE가 4.6m까지 터짐.
 즉 "한 번 어긋나면 되돌리지 못하는" 것이 본질(CH62 "중간 재보정 불능"과 동일).
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-4. 연속형 액션으로 바꾸면? → 4가지 독립 증거로 "오히려 나쁨"**
 
@@ -738,6 +815,10 @@ contreg 75%/flow 72%
 드리프트 누적. 이산 분류는 "3개 중 하나로 딱" 찍어 이 애매함을 원천 차단(정규화 효과).
 연속이 의미 있으려면 수집 단계부터 아날로그 보존이 선행돼야 함(soda 문의 진행 중).
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-5. 그라운더는 병목이 아니다 — V6 극단 cx 100% 검출**
 
 "오버슈트 중에도 바구니 cx가 잡혀야 한다"는 우려를 V6 데이터로 검증:
@@ -752,6 +833,10 @@ PG448 vs OWL 검출률
 극단(cx<0.15 or >0.85)은 90프레임(0.6%)뿐. 즉 인식은
 되는데, 극단 상황 자체가 데이터에 희소. 그라운더(PG448/OWL) 교체로는 안 풀리고
 (CH61-18 "그라운더 교체 무효"와 일치), 극단·오버슈트 프레임을 의도적으로 늘리는 재수집이 필요.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-6. 학습 레벨 개선책 전부 무효 — "알고리즘으로는 못 고친다"**
 
@@ -777,6 +862,10 @@ V5(쉬운셋) 데이터 혼합
 "지나쳤다 되돌리는" 궤적 자체가 데이터에 없으면 학습할 신호가 없다는 CH61 결론의 재확인.
 (V5+V6 혼합의 초기 57.6%는 best-of-3 운빨이었고 3-seed 평균은 39.4%로 무효 처리.)
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-8. 일반화 매트릭스 — "V5만 학습 → V6 = 2%" (쉬운 데이터는 전이 안 됨)**
 
 "V5로 마무리해도 되나"를 정면으로 검증. bbox confound 제거(V5도 PG448 주석 사용),
@@ -798,6 +887,10 @@ V6에서 2.0% — 쉬운 벤치마크로 학습한 모델은 어려운 케이스
 V5+V6 혼합은 V5-test를 크게 올리지만(84.8%) V6-test는 못 올림(34.3%≈V6단독) —
 그냥 데이터를 더하는 것으론 어려운 케이스가 안 풀리고,
 어려운 케이스를 겨냥한(트랙C) 데이터가 필요함을 재확인.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-9. 실주행 세션 시점 분해 — 집계 성공률의 함정 (soda 254세션 실측)**
 
@@ -827,6 +920,10 @@ old action_transformer.pt이고, exp73(CH64 챔피언)은 실기 거의 미검�
 (07-22 obj_center 3건뿐, 그것도 폐기된 v6-only 180ep). offline에선 mlp>transformer인데 실기 챔피언은
 transformer라 이 역전이 미해명 → exp73_pg448_trackF_v6_mlp를 obj_left/center/right로
 반복 실기(6207947 버그수정 후)해야 판가름(soda에 요청 완료).
+
+</div>
+
+<div class="card" markdown="1">
 
 **🚨 64-10. 학습/서빙 "제어 주기" 불일치 — HELD(진짜 실서빙 재현) 24.2%, 구조적 병목 신규 발견**
 
@@ -868,6 +965,10 @@ CH64 64-3과의 연결: "한 번 어긋나면 되돌리지
 재보정할 기회 자체가 5배 적게 주어지는 제어 구조
 때문일 수 있음이 새로 확인됨. 트랙C(데이터)와 제어 주기(그라운딩 속도)는
 서로 다른 레버 — 하나를 고쳐도 다른 하나는 그대로 남음.
+
+</div>
+
+<div class="card" markdown="1">
 
 **❌ 64-11. exp73 챔피언 첫 실기 검증 — HELD 예측과 정확히 일치 — 철회됨(2026-07-31, 64-19 참조)**
 
@@ -917,6 +1018,10 @@ strong_right(60%) 간 뚜렷한 좌우 비대칭 — 카메라/그라운더 좌�
 요인(바퀴 드리프트 등) 가능성, n=4~5라 단정은 이름. 트랙C 재수집 시 좌우 균형
 확인 필요.
 
+</div>
+
+<div class="card" markdown="1">
+
 **✅ 64-12. HELD-aware 재학습 — majority-vote 라벨로 12→28% (재수집 없이 가능한 첫 완화책)**
 
 64-10/64-11에서 "판단 자체가 1.3Hz로 느려지고 그 사이 유지된다(HELD)"는 게
@@ -947,6 +1052,10 @@ OWL 그라운더로도 재현 — HELD 25.3±3.8%
 (PG448의 28.3±3.8%와 노이즈 안에서 동급). cadence-aligned 학습 효과가 그라운더
 선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·cadence-aligned
 OWL 체크포인트도 함께 전달, PG448 세트와 실기 A/B 비교 요청함.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🔀 64-13. 논문 방향 전환 — 경량화(Raspberry Pi) + 좌우 데이터 불균형 발견 (2026-07-23 대면미팅)**
 
@@ -984,6 +1093,10 @@ RIGHT+FWD+R+ROT_R=4122, 22% 불균형)는 실제로 존재 — 수집 설계가 
 실제 주행 중 발생한 액션 자체의 비대칭. 실기 좌측 약세(64-11)의 직접적 원인
 후보로, 트랙C 재수집 시 액션 클래스 비율까지 맞춰야 함.
 
+</div>
+
+<div class="card" markdown="1">
+
 **✅ 64-14. 셀프검증 라벨러 — path 라벨·success 자동판정 33/33(100%) 사람이 확인**
 
 챔피언(mlp) val 33ep 전체를 실제 카메라 프레임(초/중/종
@@ -999,6 +1112,10 @@ RIGHT+FWD+R+ROT_R=4122, 22% 불균형)는 실제로 존재 — 수집 설계가 
 지금까지 CH64에서 인용한 모든 success 수치(39.4%,
 48.5%, 60.6% 등)가 "수식 버그"가 아니라 실제 궤적 일치도를 정확히 반영함이
 확인됨 — apples-to-apples 리더보드(64-2)의 신뢰도를 한 번 더 뒷받침.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🚨 64-15. has_bbox=False 학습 프레임 0.00%(0/16599) — 그라운딩 실패 상황 완전 미학습 확정 (soda 발견, 2026-07-30)**
 
@@ -1027,6 +1144,10 @@ FWD+R→ROT_L로 전환 — 회복이 전혀 없었음. `_build_flat_feature()`�
 학습해도 실기 100% 검출은 보장 안 되므로(64-9 obj_left 사례) 그라운더 무관하게
 존재하는 공백으로 판단.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-16. OWL-v2 fp16 — 속도 1.98배↑, 검출률 10%p↓, 좌표정확도는 불변 (2026-07-30)**
 
 64-13(파라미터 수만으론 경량화 판단 불가)의 후속 — OWL-v2를 fp16으로 돌리면
@@ -1053,6 +1174,10 @@ cx/cy/area 평균 차이 0.0001~0.0002 — 사실상 완전 동일, 0.05 이상 
 소폭 희생"의 실질적 트레이드오프 — 경량화 방향에서 검토할 가치 있으나, Kosmos-2
 (53.7ms)와 비교하면 fp16 OWL(962.1ms)도 여전히 약 18배 느려 "완전 해결"은 아님.
 threshold를 살짝 낮추는 보완과 함께 검토 권장.
+
+</div>
+
+<div class="card" markdown="1">
 
 **64-17. OWL-v2 threshold=0.25 재검증 — Jetson 재실측 없이도 "knife-edge" 구조 확인 (2026-07-30)**
 
@@ -1099,6 +1224,10 @@ Jetson 환경에서 ROC를 다시 돌리지 못하는 이유:
 결론: threshold=0.25는 "잘못된 값"이 아니라
 "원래부터 여유가 좁은 값" — Jetson gap이 그 좁은 여유를 넘어선 것이 이번 현상의
 본질. 근본 해법은 재캘리브레이션보다 버전 정합이 우선.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🎉 64-18. 100개 스크리닝 89% — 병목은 헤드가 아니라 그라운딩 가용성이었음 (soda, 2026-07-31, 100회)**
 
@@ -1248,6 +1377,10 @@ e355b506
 (3) 실패 11건 세션 원본을 우리 서버로 회수해 gnd%=0 3건의 프레임 직접 분석,
 (4) 64-15 해법으로 제안된 "그라운딩 실패 시 사람 시범(탐색회전/STOP)" 파일럿 수집.
 
+</div>
+
+<div class="card" markdown="1">
+
 **🔧 64-19. 개선 요인 분해 — 두 효과 모두 크지만 순위는 단정 불가, 견고한 것은 "그라운딩 가용성" 하나 (2026-07-31)**
 
 📝 이 카드는 같은 날 2회 자체 수정됐다.
@@ -1381,6 +1514,10 @@ A arm의 정체(17:24 이전 로드 모델)는 soda 확인 대기 중.
 threshold 효과(강좌 4/10·약좌 3/17 → +54.6%p, p=1.15e-05)도 그대로 재현되며,
 그 arm이 7/30분만 담고 있어 7/23을 합치면 위 표의 9/20·4/20이 된다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-20. 젯슨-로컬 gap 정량화 — 부차적 요인으로 확정, 7/4 결론 정정 (2026-07-31)**
 
 64-17에서 "젯슨 하드웨어가 없어 젯슨 ROC 재측정은 불가"라고 답했으나, 세션 원본을
@@ -1451,6 +1588,10 @@ threshold 튜닝도 환경 정합도 아니라 더 나은/재학습된
 한 단계 구체화한다 — 우리 도메인(회색 바구니, 극단 배치)에
 특화된 소형 검출기를 직접 학습하는 것이, 범용 OWL-v2(1901.7ms)를 양자화로
 깎는 것보다 경량화·정확도 양쪽에서 유망하다. 64-15가 제안한 파일럿 수집과 방향이 일치.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🎯 64-21. 특화 검출기 스펙을 데이터로 정하기 — 그리고 "검출되면 성공"의 조건 정정 (2026-08-01)**
 
@@ -1533,6 +1674,10 @@ scripts/backfill_grounding_scores.py --real-only 결과(1084프레임 / 37분, �
 soda 자체 검증에서 백필 score 기반 예측 검출률과 실측 has_bbox율이 위치별 ±11%p 내
 일치(중앙 0.0%p)했고, 잔차는 area/cy 필터가 score 통과분을 추가로 거르기 때문으로 설명됨.
 
+</div>
+
+<div class="card" markdown="1">
+
 **64-7. 종합 결론 & 다음 단계**
 
 막다른 길로 확인된 것: 헤드 교체(mlp≈chunk≈hybrid),
@@ -1551,17 +1696,28 @@ end-to-end 언어조건화(CH61 text 경로 사망 + PG2도 방향 spread 1.4%p�
 owl_trackF/mlp (best 48.5%, 평균 39.4%) — 가장 단순하고 상위권 동률.
 단 실기는 노이즈 ±6.5%p 때문에 반드시 반복 측정.
 
-[→ 원문 전체 보기(research_story.html#ch64)](../v5/research_story.html#ch64)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch64">→ 원문 전체 보기 (research_story.html#ch64)</a>
 
-### CH 65 — 인지-정책 병목의 2축 분해 — "검출이 전부"에서 "검출 난이도 ≠ 주행 난이도"로
-*CH64가 도달한 "병목은 검출"이라는 결론을 minum·soda가 각자 독립적으로 반증했다(2026-08-01). 검출 신뢰도가 최악인 배치가 오히려 주행은 잘한다 — 즉 검출은 충분조건이지 필요조건이 아니다. 이 구분이 소형 검출기의 학습 데이터 샘플링을 어디에 쏟을지를 실제로 바꾼다.*
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 65</span> 인지-정책 병목의 2축 분해 — "검출이 전부"에서 "검출 난이도 ≠ 주행 난이도"로</div>
+
+<p class="chapter-subtitle-line">CH64가 도달한 "병목은 검출"이라는 결론을 minum·soda가 각자 독립적으로 반증했다(2026-08-01). 검출 신뢰도가 최악인 배치가 오히려 주행은 잘한다 — 즉 검출은 충분조건이지 필요조건이 아니다. 이 구분이 소형 검출기의 학습 데이터 샘플링을 어디에 쏟을지를 실제로 바꾼다.</p>
+
+<div class="card" markdown="1">
 
 🟣 3줄 요약
 ① 충분조건은 성립 — gnd%≥80이면 실기 성공 79/80(98.8%), soda 집계로는 68/68(100%).
 ② 필요조건은 불성립 — 강우는 검출 confidence 중앙 0.180(최악)·gnd% 49~54%인데 성공률 90%.
 ③ 그래서 샘플링 기준이 바뀐다 — confidence 단독으로 뽑으면 강우가 표본의 50.7%를 먹는데 실패 기여는 18.2%뿐이다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **65-1. 두 축이 어긋난다 — 독립 재발견**
 
@@ -1606,6 +1762,10 @@ minum(CH64 64-21)과 soda가 서로 모르는 상태에서 같은 반례에
 "검출이 잘 되면 거의 반드시 성공한다(충분조건)"까지만
 주장할 수 있다. CH64 64-18 ①과 교수님 보고 요약 카드를 이 표현으로 수정했다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **65-2. 실용적 귀결 — 검출기 학습 샘플링 기준이 바뀐다 (soda 지적)**
 
 minum이 64-21에서 2축 분해를 발견해놓고, 같은 카드에서
@@ -1647,6 +1807,10 @@ minum이 64-21에서 2축 분해를 발견해놓고, 같은 카드에서
 A/B 위치를 약좌로 고르는 것도 같은 이유 — 강우로
 A/B를 하면 그라운딩이 나빠도 성공해버려서 개선 효과가 측정되지 않는다(soda 제안).
 
+</div>
+
+<div class="card" markdown="1">
+
 **65-3. 계측 인프라 — 이제 실기 재수집 없이 분석할 수 있는 것들 (soda 구축)**
 
 기능내용
@@ -1684,6 +1848,10 @@ threshold 하향으로 살아난 구간이다.
 단 회전각이 미측정이라 절대거리 주장에는 쓸 수 없고
 모양/효율 비교 전용이다. 목표 위치 GT가 없어 진짜 FPE 자동계산은 원리적으로 불가하며,
 현재 FPE는 눈대중값이다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **✅ 65-5. Step 2 go/no-go — Kosmos-2 patch 피처만으로 위치 추정이 된다 (2026-08-01)**
 
@@ -1737,6 +1905,10 @@ prior가 그대로 학습됐다. 상단 배치는 원리적으로 못 잡는다.
 진입 전에 negative 확보 방안(64-15의 시범 수집 파일럿, 또는 타겟 없는 프레임 합성/수집)을
 먼저 정해야 한다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **🚧 65-6. has_bbox는 공짜로 얻을 수 없다 — negative 부재가 구조적 병목 (2026-08-02)**
 
 65-5에서 위치 추정은 0.12ms에 해결됐지만 "타겟이 없다"를
@@ -1787,6 +1959,10 @@ OWL-v2를 대체할 수 없다.
 → negative 확보는 로봇이 필요한 작업이므로 soda에 이관.
 스펙을 DATASET_V6_STATUS.md로 전달했다(2026-08-02).
 
+</div>
+
+<div class="card" markdown="1">
+
 **65-4. 남은 것 — 검정력 한계를 알고 시작하기**
 
 동일 위치 A/B (약좌 고정, 번갈아 20+20) — CH64 64-19가
@@ -1805,17 +1981,28 @@ docs/plans/plan_20260801_specialized_detector.md 검토 대기.
 주석 파이프라인의 증류"이며, 중단 기준(area 0.05~0.09 구간에서 OWL 미달 시 중단)과
 평가 프로토콜을 착수 전에 고정해뒀다.
 
-[→ 원문 전체 보기(research_story.html#ch65)](../v5/research_story.html#ch65)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch65">→ 원문 전체 보기 (research_story.html#ch65)</a>
 
-### CH 66 — 좌우 비대칭의 원인 추적 — 부호로 용의자를 가려내다
-*실기 100건에서 좌측(80.0%)이 우측(92.5%)보다 약한 이유를 층위별로 검정한 기록(2026-08-04). 교수님 질문 "데이터 불균형인가, 모델 비대칭인가, 기구 편향인가"에서 출발해 좌우 반전(flip) 대조로 각 층위를 하나씩 검정했다. 핵심 도구는 부호다 — 편향의 방향이 실기 약세와 반대면 그 층위는 원인이 될 수 없다.*
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 66</span> 좌우 비대칭의 원인 추적 — 부호로 용의자를 가려내다</div>
+
+<p class="chapter-subtitle-line">실기 100건에서 좌측(80.0%)이 우측(92.5%)보다 약한 이유를 층위별로 검정한 기록(2026-08-04). 교수님 질문 "데이터 불균형인가, 모델 비대칭인가, 기구 편향인가"에서 출발해 좌우 반전(flip) 대조로 각 층위를 하나씩 검정했다. 핵심 도구는 부호다 — 편향의 방향이 실기 약세와 반대면 그 층위는 원인이 될 수 없다.</p>
+
+<div class="card" markdown="1">
 
 🟡 3줄 요약
 ① 데이터 에피소드는 균형(좌 90 / 우 90, 라벨 cx 0.4976) — 원인 아님.
 ② 그라운더는 오히려 좌측 선호(+0.0118) — 부호가 실기와 반대라 원인 아님.
 ③ 액션 헤드에 고정 우측 선호(−0.0275) — 부호 일치. 원인은 학습 액션의 우측 21.8% 편중(66-6: 트랙 A 전용 +25.9%, 트랙 F는 +1.2%)이며, 미러 증강으로 +0.0068까지 제거(val_acc 유지).
+
+</div>
+
+<div class="card" markdown="1">
 
 **66-1. 문제 정의와 검정 설계 — 왜 flip 대조인가**
 
@@ -1864,6 +2051,10 @@ V6좌 계열우 계열
 목표 위치에서도 실제로 어떤 조향을 썼는지의 차이이며,
 에피소드 수 불균형과는 다른 층위다.
 이것이 ③의 원인으로 이어진다(66-4에서 확인).
+
+</div>
+
+<div class="card" markdown="1">
 
 **🔬 66-2. 그라운더 검정 — 그라운더 좌우 비대칭 — 편향은 실재하나 실기 좌측 약세의 원인이 아니다 (2026-08-04)**
 
@@ -1937,6 +2128,10 @@ V6좌 계열우 계열
 일관된 한쪽 선호의 신호입니다(두 Δ가 부호 반대로 나오므로).
 판정을 "각 Δ가 0인가"로 바꾸고, 부호 정렬 후 paired t-test로 재계산했습니다.
 스크립트: scripts/test_grounder_lr_symmetry.py
+
+</div>
+
+<div class="card" markdown="1">
 
 **✅ 66-3 / 66-4. 액션 헤드 검정과 원인 제거 — 학습 데이터 편중 → 헤드 고정 편향, 미러 증강으로 제거 확인 (2026-08-04)**
 
@@ -2027,7 +2222,15 @@ val_acc
 0.19·n=20이라 ±0.03 수준 편향은 검출 못 하는 검정력이므로
 직진 드리프트 측정으로 보완이 필요하다.
 
+</div>
 
+<div class="card" markdown="1">
+
+
+
+</div>
+
+<div class="card" markdown="1">
 
 **🔎 66-6. 데이터 편중의 출처 분해 — 트랙 A 전용이고, 조향 회피가 아니라 조향 총량 차이다 (2026-08-05)**
 
@@ -2156,11 +2359,17 @@ CH1~CH66 = 현재 논문 범위  ·  CH67~ = 향후 계획
 언어 조건화 VLA 전환(CH68). 진행 중·미검증 항목이 섞여 있으므로
 논문 본문 주장으로 인용하지 않는다 — 각 카드에 상태를 표시한다.
 
-[→ 원문 전체 보기(research_story.html#ch66)](../v5/research_story.html#ch66)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch66">→ 원문 전체 보기 (research_story.html#ch66)</a>
 
-### CL DEEP DIVE — Closed-Loop — 왜 PM과 다른가
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CL DEEP DIVE</span> Closed-Loop — 왜 PM과 다른가</div>
+
+<div class="card" markdown="1">
 
 💡 같은 TLD, 다른 FPE:
 Exp11과 Step2 모두 TLD ≈ 1.03m. 하지만 Exp11은 방향 오류로 FPE 1.45m (2.6배 더 멀리 이탈).
@@ -2203,11 +2412,17 @@ LEFT↔RIGHT 반복
 rotation_missing
 ROT_L/R 미예측
 
-[→ 원문 전체 보기(research_story.html#cl-dive)](../v5/research_story.html#cl-dive)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#cl-dive">→ 원문 전체 보기 (research_story.html#cl-dive)</a>
 
-### CL DEEP DIVE — Closed-Loop — 왜 PM과 다른가
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CL DEEP DIVE</span> Closed-Loop — 왜 PM과 다른가</div>
+
+<div class="card" markdown="1">
 
 💡 TLD가 비슷해도 FPE가 다른 이유:
 Exp11과 Step2 모두 TLD ≈ 1.03m로 거의 같은 거리를 이동했지만,
@@ -2287,11 +2502,17 @@ LEFT↔RIGHT 반복
 rotation_missing
 ROT_L/R 미예측
 
-[→ 원문 전체 보기(research_story.html#cl-overview)](../v5/research_story.html#cl-overview)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#cl-overview">→ 원문 전체 보기 (research_story.html#cl-overview)</a>
 
-### NEXT STEP — 6/12 현재 — 미팅 3줄 결론 & 로드맵
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">NEXT STEP</span> 6/12 현재 — 미팅 3줄 결론 & 로드맵</div>
+
+<div class="card" markdown="1">
 
 🟢 2026-06-21 구현 — 위 "최종 목표"의 grounding 부분을 실제로 연결함
 (plan_20260621_instruction_grounding.md)
@@ -2454,6 +2675,8 @@ cx_std 0.070 · full-frame 0%
 Exp59 LoRA — 오트래킹
 벽/의자로 bbox 이탈 — exp64로 개선 예정
 
-[→ 원문 전체 보기(research_story.html#next-step)](../v5/research_story.html#next-step)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#next-step">→ 원문 전체 보기 (research_story.html#next-step)</a>
+
+</div>

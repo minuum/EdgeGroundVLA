@@ -1,43 +1,138 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>액션헤드 아키텍처 &amp; 손실함수 실험</title>
 <style>
-body{background:#0a0f1a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-     max-width:900px;margin:0 auto;padding:32px 20px 80px;line-height:1.8}
-h1{font-size:1.7rem;color:#4ade80;border-bottom:2px solid #1e293b;padding-bottom:12px}
-h2{font-size:1.25rem;color:#38bdf8;margin-top:36px}
-h3{font-size:1.05rem;color:#fbbf24;margin-top:28px;border-left:3px solid #fbbf24;padding-left:10px}
-p{color:#94a3b8;font-size:0.92rem}
+:root{
+  --bg:#0a0f1a; --bg-raised:#0d1420; --line:#1e293b; --line-soft:#16202f;
+  --ink:#e2e8f0; --ink-soft:#94a3b8; --ink-dim:#64748b;
+  --accent-a:#4ade80; --accent-b:#38bdf8; --accent-c:#fbbf24; --accent-d:#f472b6; --accent-e:#a78bfa;
+  --accent-archive:#94a3b8;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);
+     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     margin:0;line-height:1.75;font-size:15px}
+.layout{display:flex;max-width:1180px;margin:0 auto;align-items:flex-start}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;flex:0 0 240px;
+         padding:28px 16px;border-right:1px solid var(--line);font-size:0.82rem}
+.sidebar-brand{font-weight:800;color:var(--ink);font-size:0.95rem;margin-bottom:4px}
+.sidebar-brand a{color:inherit;text-decoration:none}
+.sidebar-sub{color:var(--ink-dim);font-size:0.72rem;margin-bottom:18px}
+.sidebar-section{color:var(--ink-dim);font-size:0.68rem;font-weight:700;text-transform:uppercase;
+                  letter-spacing:0.06em;margin:18px 0 8px}
+.sidebar a.side-link{display:block;color:var(--ink-soft);text-decoration:none;padding:6px 8px;
+                      border-radius:6px;margin:1px 0}
+.sidebar a.side-link:hover{background:var(--bg-raised);color:var(--ink)}
+.sidebar a.side-link.current{background:var(--bg-raised);color:var(--ink);font-weight:700;
+                              box-shadow:inset 3px 0 0 var(--accent-b)}
+.sidebar a.side-link .n{color:var(--ink-dim);font-size:0.7rem;float:right}
+.main{flex:1 1 auto;min-width:0;padding:36px 40px 100px;max-width:900px}
+h1{font-size:1.6rem;color:var(--ink);margin:0 0 8px;letter-spacing:-0.01em}
+h2{font-size:1.05rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;
+   letter-spacing:0.04em;margin-top:40px;margin-bottom:16px}
+p.tagline{color:var(--ink-soft);font-size:0.95rem;margin:0 0 28px;max-width:70ch}
 a{color:#7dd3fc}
-blockquote{border-left:3px solid #4ade80;padding:8px 16px;margin:12px 0;background:rgba(74,222,128,0.06);
-           color:#86efac;font-size:0.9rem}
-hr{border:none;border-top:1px solid #1e293b;margin:24px 0}
-code{background:#111827;padding:2px 6px;border-radius:4px;font-size:0.85rem;color:#fbbf24}
-ul{color:#94a3b8}
-strong{color:#e2e8f0}
-em{color:#64748b}
-table{border-collapse:collapse;width:100%;font-size:0.8rem;margin:16px 0;display:block;overflow-x:auto}
-th,td{border:1px solid #1e293b;padding:6px 10px;text-align:left;color:#94a3b8}
-th{color:#e2e8f0;background:#111827}
-.nav-bar{margin-bottom:24px;font-size:0.82rem}
-.nav-bar a{color:#64748b;text-decoration:none;margin-right:12px}
-.nav-bar a:hover{color:#7dd3fc}
+code{background:#111827;padding:2px 6px;border-radius:4px;font-size:0.85rem;color:var(--accent-c)}
+strong{color:var(--ink)}
+em{color:var(--ink-dim)}
+ul{color:var(--ink-soft)}
+
+/* 요약/메타 강조 박스 */
+.summary-box{background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--accent-a);
+             border-radius:10px;padding:18px 22px;margin:0 0 32px}
+.summary-box>p:first-child strong:first-child{color:var(--accent-a);font-size:0.8rem;
+             text-transform:uppercase;letter-spacing:0.05em}
+.summary-box p{color:var(--ink-soft);font-size:0.9rem;margin:10px 0}
+
+/* 챕터 블록(카드) */
+.chapter-block{background:var(--bg-raised);border:1px solid var(--line);border-radius:12px;
+                padding:20px 24px;margin-bottom:20px}
+.chapter-block-head{font-size:1.0rem;font-weight:700;color:var(--ink);margin-bottom:4px}
+.chapter-badge{display:inline-block;background:var(--line-soft);color:var(--ink-soft);
+                font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:5px;margin-right:8px}
+p.chapter-subtitle-line{color:var(--ink-dim);font-size:0.8rem;font-style:italic;margin:0 0 14px}
+.accent-a{border-left:3px solid var(--accent-a)} .accent-a .chapter-badge{background:rgba(74,222,128,0.15);color:var(--accent-a)}
+.accent-b{border-left:3px solid var(--accent-b)} .accent-b .chapter-badge{background:rgba(56,189,248,0.15);color:var(--accent-b)}
+.accent-c{border-left:3px solid var(--accent-c)} .accent-c .chapter-badge{background:rgba(251,191,36,0.15);color:var(--accent-c)}
+.accent-d{border-left:3px solid var(--accent-d)} .accent-d .chapter-badge{background:rgba(244,114,182,0.15);color:var(--accent-d)}
+.accent-e{border-left:3px solid var(--accent-e)} .accent-e .chapter-badge{background:rgba(167,139,250,0.15);color:var(--accent-e)}
+
+/* 카드 안의 finding-card */
+.card{background:var(--bg);border:1px solid var(--line-soft);border-radius:8px;
+      padding:12px 16px;margin:10px 0;font-size:0.86rem}
+.card p{margin:6px 0;color:var(--ink-soft)}
+.card>p:first-child strong:only-child{color:var(--ink)}
+a.src-link{display:inline-block;margin-top:8px;font-size:0.8rem;color:var(--ink-dim);text-decoration:none}
+a.src-link:hover{color:#7dd3fc}
+
+table{border-collapse:collapse;width:100%;font-size:0.8rem;margin:12px 0;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;color:var(--ink-soft)}
+th{color:var(--ink);background:var(--bg-raised);position:sticky;top:0}
+
+/* 홈 주제 카드 그리드 */
+.topic-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0 32px}
+@media(max-width:700px){.topic-grid{grid-template-columns:1fr}}
+a.topic-card{display:flex;flex-direction:column;gap:6px;background:var(--bg-raised);
+             border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+             text-decoration:none;transition:transform .12s,border-color .12s}
+a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
+.topic-card-count{font-size:0.68rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.05em}
+.topic-card-title{font-size:1.0rem;font-weight:700;color:var(--ink)}
+.topic-card-summary{font-size:0.8rem;color:var(--ink-soft);line-height:1.5}
+.topic-card.accent-a{border-top:3px solid var(--accent-a)}
+.topic-card.accent-b{border-top:3px solid var(--accent-b)}
+.topic-card.accent-c{border-top:3px solid var(--accent-c)}
+.topic-card.accent-d{border-top:3px solid var(--accent-d)}
+.topic-card.accent-e{border-top:3px solid var(--accent-e)}
+.topic-card.accent-archive{border-top:3px solid var(--accent-archive)}
+
+/* 아카이브 색인 검색창 */
+.archive-search{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--line);
+                 background:var(--bg-raised);color:var(--ink);font-size:0.9rem;margin-bottom:14px}
+.archive-search:focus{outline:2px solid var(--accent-b);outline-offset:1px}
+.archive-count{color:var(--ink-dim);font-size:0.78rem;margin-bottom:10px}
+
+@media(max-width:820px){
+  .layout{display:block}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+  .main{padding:24px 20px 80px;max-width:100%}
+}
 </style>
 </head><body>
-<div class="nav-bar"><a href="index.html">← 위키 색인</a><a href="../v5/research_story.html">연구일지 원본(research_story.html)</a></div>
+<div class="layout">
+<nav class="sidebar"><div class="sidebar-brand"><a href="index.html">MoNaVLA 연구 위키</a></div>
+<div class="sidebar-sub">주제별 재구성 · research_story.html 기반</div>
+<div class="sidebar-section">주제</div>
+<a class="side-link" href="wiki-infrastructure.html">연구 위키 & 문서 인프라<span class="n">1</span></a>
+<a class="side-link" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">19</span></a>
+<a class="side-link current" href="action-head-architecture.html">액션헤드 아키텍처 & 손실함수 실험<span class="n">12</span></a>
+<a class="side-link" href="language-conditioning.html">언어 조건화 & 텍스트 어텐션 구조적 사망<span class="n">6</span></a>
+<a class="side-link" href="flow-matching-vla.html">Flow Matching / π0 스타일 연속 액션<span class="n">1</span></a>
+<a class="side-link" href="dataset-collection.html">데이터셋 & 수집 프로토콜 (V3~V6)<span class="n">8</span></a>
+<a class="side-link" href="real-robot-closed-loop.html">실로봇 테스트 & Closed-Loop 검증<span class="n">13</span></a>
+<a class="side-link" href="backbone-model.html">VLM 백본 비교 (PaliGemma/Kosmos-2/CLIP/Florence-2/Google-robot)<span class="n">6</span></a>
+<a class="side-link" href="meetings-and-direction.html">미팅 기록 & 연구 방향 결정<span class="n">19</span></a>
+<div class="sidebar-section">부록</div>
+<a class="side-link" href="archive-index.html">아카이브 색인<span class="n">357</span></a>
+<div class="sidebar-section">원본</div>
+<a class="side-link" href="../v5/research_story.html">research_story.html ↗</a></nav>
+<main class="main">
 <h1>액션헤드 아키텍처 &amp; 손실함수 실험</h1>
-<blockquote>
-<p>bbox/vis 특징을 받아 액션을 뽑는 헤드 구조(MLP/LSTM/Transformer/FiLM/cross-attention)와 손실함수(hard CE vs ordinal soft label) 실험 전체.</p>
-</blockquote>
-<h2>압축 요약</h2>
+<p class="tagline">bbox/vis 특징을 받아 액션을 뽑는 헤드 구조(MLP/LSTM/Transformer/FiLM/cross-attention)와 손실함수(hard CE vs ordinal soft label) 실험 전체.</p>
+
+<div class="summary-box">
+<p><strong>압축 요약</strong></p>
 <p><strong>헤드 구조 자체는 이미 한계에 도달했다.</strong> MLP(concat+FC)가 window≥4 조건에서 LSTM·Transformer·cx-Geom·FiLM·Δcx·cx보조손실·actionquery·hybrid·ActionChunk·연속회귀(contreg)·flow(π0 경량판) 등 거의 모든 대안 구조와 견줘도 밀리지 않거나 오히려 더 강건했다(CH34/60/63/70). LSTM은 offline PM은 종종 더 높지만(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p) closed-loop success는 MLP와 통계적으로 구분 안 됨. Transformer는 CH63/70에서 반복적으로 최하위권(closed-loop 18~30%대)이었고, 연속/flow 헤드는 이 데이터 규모(225ep)에서 이산 분류를 못 이겼다(72%대 vs mlp 78%대) — "구조를 바꾸면 좋아진다"는 가설은 여러 축(concat/곱셈적 결합 FiLM/보조손실/cross-attention/청크 앙상블/causal smoothing)에서 반복적으로 기각됐다.</p>
 <p><strong>offline val_acc(PM)와 실제 closed-loop 성공률은 자주 괴리된다</strong> — 이것이 이 주제 전체를 관통하는 가장 중요한 방법론적 교훈이다(CH40, CH52, CH63). PM이 크게 올라도(75.9%→89%) closed-loop SR은 그대로거나 떨어질 수 있고(CH40), offline 1위 헤드(cxgeom 78.2%)가 closed-loop에서는 최하위(48.5%)로 뒤집히기도 했다(CH63-8). val 33ep처럼 표본이 작으면 GPU 비결정성·데이터 오염(CACHE_V6 재빌드로 트랙F가 몰래 섞이는 등)만으로도 success%가 25.9%~60.6%까지 요동친다는 게 CH63-11~63-16의 3차 정정 끝에 확정됐다 — <strong>반드시 3-seed 이상 평균/분산으로 보고해야 하며, apples-to-apples(동일 데이터·동일 split 로직) 비교가 아니면 순위 자체가 의미 없다.</strong></p>
 <p><strong>손실함수 축이 유일하게 실질적 개선을 낸 축이다(CH70).</strong> 조이스틱 연속값(lx,ly,az)을 하드 threshold로 8-class 이산화하면서 생기는 R/FR·F/FR 경계 아티팩트를, hard label 대신 ordinal soft label(sigmoid 완화 + soft CE)로 학습하자 leave-one-direction-out(LOO) 일반화가 평균 +3.71~3.99%p, 최악 방향(strong_right)은 +14.52%p 개선됐다 — 이는 궤적 재생(rollout) 평가에서도 success +9.1%p로 재확인된 유일한 방법이다(CH70-8). 반면 헤드 구조 6종(cxgeom/film/deltacx/cxaux/actionquery)은 무작위 split에서만 좋아 보이다가 LOO에서 개선이 소멸하거나(deltacx: +0.67%p→-0.17%p) R클래스 정확도를 희생하는 트레이드오프만 반복했다.</p>
 <p><strong>부수 발견들:</strong> (1) 액션 원 신호 중 lx,ly는 실제로 3값({-1.15,0,+1.15})뿐인 이산 신호이고 az만 진짜 연속 신호였다(CH63-9) — 이 진단에 따라 만든 hybrid(6-way+연속az) 헤드는 처음엔 최고로 보였으나 val split 버그 정정 후 mlp보다 낮은 것으로 뒤집혔다. (2) window size는 MLP 기준 w≥4에서 포화, w=4가 FPE 최저(0.094m)인 반면 LSTM은 w=16에서 최저 FPE 0.080m로 긴 히스토리를 더 잘 활용한다(CH35). (3) area_delta(변화율) feature를 추가하면 PG2 그라운더 정밀화로 잃었던 근접 신호가 복원되고 LSTM-replace 조합이 전체 최저 FPE(0.098m)를 달성했다(CH47). (4) STOP override는 오프라인 CL에서 항상 해로웠다(V0 no-override 98.7% vs 서버 기본 override 23.5%, CH37) — 시작 프레임 area 분산이 절대 threshold를 무력화하기 때문. (5) FORWARD 고착의 진짜 원인은 그라운딩 실패가 아니라 액션-그라운딩 라벨 자체의 confound(cx-액션 방향 일치율 VSC 35.5%, 우연 50%보다 낮음)였다(CH62) — 헤드 구조를 아무리 바꿔도 라벨/데이터 커버리지 문제는 해결되지 않는다는 것이 CH70의 결론과도 맞물린다.</p>
 <p><strong>아직 미해결:</strong> ordinal soft label(D)과 mlp의 조합(mlp+soft)이 다음 배포 후보로 확정됐으나, 실기(real robot) 검증은 아직 수행되지 않았다 — offline/궤적재생 지표가 실주행 성능을 보장하지 않는다는 원칙(확정 발견 6번)이 여전히 유효하다.</p>
-<hr />
+</div>
 <h2>챕터별 원문 발췌 (시간순)</h2>
-<h3>CH 34 — RoboVLMs Action Head Ablation — LSTM vs MLP (exp68~70)</h3>
+<div class="chapter-block accent-a">
+<div class="chapter-block-head"><span class="chapter-badge">CH 34</span> RoboVLMs Action Head Ablation — LSTM vs MLP (exp68~70)</div>
+<div class="card">
 <p>FCHead
 RoboVLMs FCDecoder (deep MLP)
 95.3%
@@ -76,10 +171,13 @@ RoboVLMs 기여 클레임 정리
 ✅ exp70 LSTMHead — 96.6% CL (RoboVLMs LSTM과 비교 완료)
 ⏳ 의자(chair) 데이터 수집 (좌/우 에피소드 추가 필요)
 🔲 논문 Table 2-C 확정 후 제출 준비</p>
-<p><a href="../v5/research_story.html#ch34">→ 원문 전체 보기(research_story.html#ch34)</a></p>
-<hr />
-<h3>CH 35 — Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</h3>
-<p><em>파이프라인 고정(L2+aug), head별 window 크기 변화 실험</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch34">→ 원문 전체 보기 (research_story.html#ch34)</a></p>
+</div>
+<div class="chapter-block accent-b">
+<div class="chapter-block-head"><span class="chapter-badge">CH 35</span> Window Size Ablation — MLP w≥4 포화, LSTM w=16 최저 FPE</div>
+<p class="chapter-subtitle-line">파이프라인 고정(L2+aug), head별 window 크기 변화 실험</p>
+<div class="card">
 <p>style="border-bottom:1px solid #1e3050"&gt;
 Head
 Window
@@ -176,10 +274,13 @@ document.getElementById('toc-panel').classList.remove('open');
 });
 });
 })();</p>
-<p><a href="../v5/research_story.html#ch35">→ 원문 전체 보기(research_story.html#ch35)</a></p>
-<hr />
-<h3>CH 37 — STOP Mechanism Ablation</h3>
-<p><em>3-Layer 체계적 분석 — override 없는 게 최선, 시작 위치 정규화 설계</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch35">→ 원문 전체 보기 (research_story.html#ch35)</a></p>
+</div>
+<div class="chapter-block accent-c">
+<div class="chapter-block-head"><span class="chapter-badge">CH 37</span> STOP Mechanism Ablation</div>
+<p class="chapter-subtitle-line">3-Layer 체계적 분석 — override 없는 게 최선, 시작 위치 정규화 설계</p>
+<div class="card">
 <p><strong>왜 STOP을 분석하는가</strong></p>
 <p>실제 추론 서버(stage2_v2_inference_server.py)에는 Proximity Override가 활성화되어 있다 (area≥0.25 AND |cx-0.5|≤0.35, 2프레임 연속). 그러나 96.6% CL은 이 override 없이 달성된 수치다(eval_exp54_stage2_v2_closedloop.py에 override 없음). 실제 로봇과 시뮬레이션 메트릭 사이에 괴리가 있다는 의미 — 어떤 STOP 전략이 진짜로 나은가를 체계적으로 검증한다.
 모델별 테스트 범위
@@ -252,6 +353,8 @@ V0(no_override) vs V1(서버 기본값) 궤적 비교 — 위 표의 98.7% vs 23
 center_straight — V1이 1.15m 지점에서 일찍 멈춤(빨간점), expert/V0는 1.6m까지 계속
 left_left — 이 에피소드는 V0/V1 거의 동일(둘 다 성공 케이스)
 right_right — V0/V1은 일치하지만 둘 다 expert와 반대 방향(별개의 모델 예측 오류, STOP override와 무관)</p>
+</div>
+<div class="card">
 <p><strong>핵심 진단: 시작 프레임 area 분산이 threshold를 무력화</strong></p>
 <p>area[frame=0]: min=0.027 / max=0.636 / mean=0.258 / std=0.271
 val 에피소드의 40%가 시작 프레임부터 area ≥ 0.25 → V1이 frame 0에서 즉시 발동.
@@ -290,6 +393,8 @@ V8 rel_area ≥2.5×
 ~52%
 ~3%
 PG2 area 분포가 HSV와 달라 2.5× 기준이 즉시 발동 → 거의 즉시 STOP</p>
+</div>
+<div class="card">
 <p><strong>L4 추가 발견: PG2 grounding으로 구동 시 V0도 ~80%로 하락</strong></p>
 <p>Stage2 MLP는 HSV bbox(cx/cy/area)로 학습됨. PG2 detector의 area_det 분포가 다름 → feature distribution shift → action 예측 저하. grounding 소스가 학습/평가에서 동일해야 한다는 것이 재확인됨. V8(rel_area)은 PG2에서 ~3%로 폭락 — PG2의 초기 area_det가 HSV보다 크거나 배율 기준 자체가 소스에 민감함.
 ⏳ PG2 seed 3~5 실행 중. 완료 후 최종 수치 업데이트 예정.
@@ -314,8 +419,12 @@ sw10x
 ×10.0
 0.7913
 예정</p>
+</div>
+<div class="card">
 <p><strong>L3 해석: 합성 STOP 주입이 전체 정확도를 희생</strong></p>
 <p>원래 val_acc 0.9259 → 합성 STOP 118개 추가 후 0.797~0.809로 하락. STOP 학습을 강제하면 FORWARD/LEFT/RIGHT 등 기존 action 분류가 저하됨. weight_mult ×1~×10 구간 모두 비슷 → STOP 합성 프레임 수(118개)가 부족한 것이 아니라 합성 방식(마지막 프레임 복제)의 한계. CL eval 결과는 별도 실행 후 업데이트.</p>
+</div>
+<div class="card">
 <p><strong>CH37 결론: 오프라인 CL에서 STOP override는 항상 해롭다 — 실제 로봇 테스트가 필요</strong></p>
 <ol>
 <li>V0 no_override = 98.7% — STOP 없이도 전문가 궤적 모방으로 충분.</li>
@@ -326,10 +435,13 @@ sw10x
 ※ 오프라인 CL의 성공 기준(FPE·TLD)은 STOP 타이밍에 매우 민감. 실제 로봇 테스트로만 진짜 STOP 전략을 검증 가능.
 scripts: ablate_stop_proximity.py · ablate_stop_clip_sim.py · ablate_stop_weighted_train.py · ablate_stop_normalized.py  |  2026-06-18</li>
 </ol>
-<p><a href="../v5/research_story.html#ch37">→ 원문 전체 보기(research_story.html#ch37)</a></p>
-<hr />
-<h3>CH 39 — 근본적인 VLA로 — 객체별 그라운딩 필터 보정 + hidden state 방향 신호 확인</h3>
-<p><em>T1(임의 객체 신뢰성) 확정 + T2(언어가 경로에 영향) 사전검증, 새 데이터 수집 없이 기존 V5 220개 에피소드 재사용</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch37">→ 원문 전체 보기 (research_story.html#ch37)</a></p>
+</div>
+<div class="chapter-block accent-d">
+<div class="chapter-block-head"><span class="chapter-badge">CH 39</span> 근본적인 VLA로 — 객체별 그라운딩 필터 보정 + hidden state 방향 신호 확인</div>
+<p class="chapter-subtitle-line">T1(임의 객체 신뢰성) 확정 + T2(언어가 경로에 영향) 사전검증, 새 데이터 수집 없이 기존 V5 220개 에피소드 재사용</p>
+<div class="card">
 <p><strong>39-1. Step A — 바스켓 전용 그라운딩 필터 버그 수정 (T1 확정)</strong></p>
 <p>soda 실측 중 사과(apple) grounding이 종종 실패하는 걸 발견 — 원인은 PG2가 아니라
 PG2Grounder.run()에 박혀있던 4개 후처리 필터 중 cy_val&lt;0.35("바구니는 화면 상단에 없다"는
@@ -349,6 +461,8 @@ soda(Jetson)에서 5회 반복 모두 동일한 full-frame 환각 — GB10에서
 area&gt;0.9(전체화면 환각 차단)·x-full-width 필터는 객체 무관 보편 규칙으로 유지,
 min_cy/min_area만 phrase별로 오버라이드 가능하게 분리(configs/ground_filter_map.json) —
 미등록 phrase는 기존 바스켓 기준 그대로 하위호환.</p>
+</div>
+<div class="card">
 <p><strong>39-2. Step B — 기존 V5 데이터로 "방향 신호가 hidden state에 있는가" 저비용 검증</strong></p>
 <p>CH38-5는 "PG2에 방향을 텍스트로 직접 명령했을 때 생성 출력이 안 바뀐다"를 보였다.
 이번엔 다른 질문: 텍스트는 고정("detect gray basket")인데 이미지(실제 주행 장면)만 다를 때
@@ -388,10 +502,13 @@ hidden state에 강하게 인코딩되어 있다는, 별개로 긍정적인 발�
 PG2 hidden state로 바꾸고, 기존 V5 220개 에피소드 라벨로 head만 재학습 —
 새 데이터 수집 없이 T2(언어/장면이 경로에 영향)로 가는 가장 저비용 경로.
 plans: plan_20260622_fundamental_vla.md  |  2026-06-22</p>
-<p><a href="../v5/research_story.html#ch39">→ 원문 전체 보기(research_story.html#ch39)</a></p>
-<hr />
-<h3>CH 40 — T2 본 구현 — action head에 PG2 hidden state 추가 (40-1 정정됨, 40-1b 참고)</h3>
-<p><em>CH39 Step B(probe 90%)의 다음 단계: bbox 좌표 대신/추가로 hidden state를 넣어 head만 재학습 — 새 데이터 수집 없음. 단, 최초 PM 비교에 측정 오류가 있었음(40-1b에서 정정)</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch39">→ 원문 전체 보기 (research_story.html#ch39)</a></p>
+</div>
+<div class="chapter-block accent-e">
+<div class="chapter-block-head"><span class="chapter-badge">CH 40</span> T2 본 구현 — action head에 PG2 hidden state 추가 (40-1 정정됨, 40-1b 참고)</div>
+<p class="chapter-subtitle-line">CH39 Step B(probe 90%)의 다음 단계: bbox 좌표 대신/추가로 hidden state를 넣어 head만 재학습 — 새 데이터 수집 없음. 단, 최초 PM 비교에 측정 오류가 있었음(40-1b에서 정정)</p>
+<div class="card">
 <p><strong>40-1. PM(프레임 정확도) — 두 변형 모두 baseline 대비 크게 상승 (⚠ 아래 40-1b에서 정정됨 — baseline 75.9%는 실측값이 아니었음)</strong></p>
 <p>add: 기존 288차원(bbox 32 + image 256)에 hidden state 2304차원을 추가(2592차원).
 replace: bbox 32차원을 제거하고 image 256 + hidden 2304(2560차원)로 대체.
@@ -412,6 +529,8 @@ replace(image+hidden)
 +11.9%p
 bbox 좌표를 완전히 빼도(replace) baseline보다 훨씬 높다 — hidden state 혼자서도 bbox+image 조합보다 나은 표현력.
 다만 bbox를 같이 쓰는 add가 근소하게 더 높아, 두 정보가 완전히 중복되진 않는다.</p>
+</div>
+<div class="card">
 <p><strong>40-1b. 정정 — baseline "75.9%"는 같은 파이프라인으로 측정한 값이 아니었다</strong></p>
 <p>train_hidden_state_action.py 출력에 박혀있던 "참고: Exp54 Step2(bbox+image) baseline PM=0.759"는
 CLAUDE.md에 적힌 과거 공식 수치(다른 평가 스크립트·다른 메트릭 기준)를 그대로 인용한 하드코딩된 문자열이었다 —
@@ -439,6 +558,8 @@ replace(image+hidden)
 증거는 이번 실험에서 안 나왔다 — 가능한 이유: (1) 단일 seed 학습이라 노이즈가 차이(1~2%p)를 압도, (2) 2304차원
 hidden state가 작은 MLP에는 너무 고차원이라 오히려 과적합/최적화가 어려움, (3) bbox+image 조합이 이미 충분히 정보를
 담고 있어 hidden state가 redundant.</p>
+</div>
+<div class="card">
 <p><strong>40-2. Closed-loop SR — PM 상승이 그대로 옮겨지지 않음 (이 절의 SR 수치 자체는 정정 영향 없음 — baseline에 기존 운영 ckpt를 그대로 썼기 때문)</strong></p>
 <p>CH37 결론(STOP override 없는 게 최선)에 맞춰 override 없이 모델 argmax 그대로 trajectory를 만들어
 비교했다(scripts/eval/closed_loop_eval_hidden_state.py, val 29개 에피소드, 동일 seed=42 split).
@@ -460,6 +581,8 @@ replace(image+hidden)
 천장에 가깝다(val 29개 에피소드라 표본도 작음) — 늘어난 프레임 정확도가 FORWARD-dominant 구간의
 미세한 차이라서 에피소드 단위 성공/실패(이진 판정)에는 거의 영향을 못 준 것으로 보인다.
 과장하지 않고 그대로 적는다: "PM은 확실히 좋아졌지만, 이 작은 val set·이 success 기준에서는 SR로 이어지지 않았다."</p>
+</div>
+<div class="card">
 <p><strong>40-3. 종합(정정) — "표현 레벨"엔 신호가 있는데, "head 재학습"으로는 아직 못 꺼냈다</strong></p>
 <p>40-1b 정정 이후 다시 보면: CH39 Step B(frozen probe, 90%)는 여전히 유효하다 — PG2 hidden state에는
 방향과 상관된 신호가 분명히 있다. 하지만 CH40이 시도한 방식(2304차원 원시 hidden state를 그대로 작은 MLP에
@@ -472,10 +595,13 @@ concat/대체)으로는 그 신호를 bbox+image보다 더 잘 활용하지 못�
 새로 나온 그라운딩 품질 진단(CH41 예정)에 따라 — head 구조보다 그라운딩/인식 품질 자체를 개선하는 쪽이
 더 근본적인 우선순위일 가능성(has_bbox=False 프레임의 오류율이 has_bbox=True보다 3~5배 높음).
 plans: plan_20260622_hidden_state_action_head.md  |  2026-06-22</p>
-<p><a href="../v5/research_story.html#ch40">→ 원문 전체 보기(research_story.html#ch40)</a></p>
-<hr />
-<h3>CH 43 — 차원축소 + LSTM head — 진짜 핵심 factor는 head 구조였다</h3>
-<p><em>17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 최고(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p), hidden state보다 head 구조가 더 강한 factor</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch40">→ 원문 전체 보기 (research_story.html#ch40)</a></p>
+</div>
+<div class="chapter-block accent-a">
+<div class="chapter-block-head"><span class="chapter-badge">CH 43</span> 차원축소 + LSTM head — 진짜 핵심 factor는 head 구조였다</div>
+<p class="chapter-subtitle-line">17개 조합(MLP계열 14 + LSTM 3) 비교 — LSTM+hidden state(add)가 최고(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p), hidden state보다 head 구조가 더 강한 factor</p>
+<div class="card">
 <p><strong>43-1. Projection 차원 ablation — 작을수록 좋다, 32에서 baseline을 처음으로 넘었다</strong></p>
 <p>scripts/train_hidden_state_projected.py --proj_dim {32,64,128,256}, head=mlp(기본) 고정, window=8.
 proj_dimaddreplace
@@ -494,6 +620,8 @@ proj_dimaddreplace
 결론: proj_dim이 작을수록 일관되게 좋다(32 &gt; 64 &gt; 128 &gt; 256) — CH40/41의 가설(2304차원이
 너무 고차원이라 작은 MLP가 못 배운다)이 맞았다. proj_dim=32에서 처음으로 baseline(91.54%)을 넘었다(add 94.29%,
 +2.75%p / replace 93.31%, +1.77%p).</p>
+</div>
+<div class="card">
 <p><strong>43-2. Head 구조 ablation(proj_dim=32 고정) — FC head+replace가 MLP계열 중 최고 (43-2b에서 LSTM이 이걸 다시 넘음)</strong></p>
 <p>--head_type {linear,mlp,fc}, proj_dim=32 고정(43-1 최선값).
 headaddreplace
@@ -509,6 +637,8 @@ fc(deep MLP, RoboVLMs 스타일)
 참고: mlp/add/proj32는 43-1에서 94.29%였는데 같은 설정을 43-2에서 다시 돌리니 93.70%로
 0.6%p 차이가 났다 — 학습 셔플 순서가 고정 시드가 아니라서 생기는 런 간 노이즈 폭(±0.5~1%p)으로 해석해야 한다.
 그래도 14개 조합 중 다수가 baseline(91.54%)을 일관되게 넘는다는 큰 그림은 노이즈로 설명되지 않는다.</p>
+</div>
+<div class="card">
 <p><strong>43-2b. RoboVLMs LSTM head 추가(사용자 요청) — 전체 최고, hidden state 없이도 압도</strong></p>
 <p>scripts/train_hidden_state_lstm.py — 원래 운영 서버의 LSTMHead(RoboVLMs 스타일)를 윈도우 8프레임
 시퀀스로 그대로 가져와서, 매 윈도우 스텝마다 그 프레임의 hidden state(proj_dim=32)를 같이 넣는 구조로 확장.
@@ -529,6 +659,8 @@ head 구조(LSTM)"가 차원축소나 hidden state 추가보다 더 강한 단�
 96.85%로 LSTM-none보다도 +0.98%p 더 높아, hidden state가 LSTM 구조 위에서는 추가적인 보탬이 된다는 것도 확인됐다 —
 43-1/43-2의 "MLP에선 hidden state가 큰 효과"라는 결론은 "LSTM이면 hidden state 없이도 이미 강하고, 있으면 더 좋다"로
 업데이트해야 한다.</p>
+</div>
+<div class="card">
 <p><strong>43-2c. PM 96.85%가 실주행(closed-loop)으로 이어지는가? — SR은 동일, FPE는 개선</strong></p>
 <p>CH40에서 본 "PM은 오르는데 SR은 안 따라온다"는 패턴이 LSTM에서도 재현되는지 직접 확인했다(사용자 요청,
 scripts/eval/closed_loop_eval_lstm.py, override 없이 argmax 그대로, val 29개 에피소드).
@@ -553,6 +685,8 @@ CH40의 "PM↑인데 SR은 안 따라온다"는 패턴이 LSTM에서도 재현�
 성공이라 이진 판정으로는 차이가 안 보임, 천장효과). 다만 연속값 지표인 FPE는 add가
 확실히 가장 낮다(0.086m, none 대비 약 15% 개선) — PM 96.85%가 의미 없는 숫자는 아니고,
 성공 판정 임계값 안에서의 경로 정밀도 개선으로 실제 나타난다는 게 정확한 해석이다.</p>
+</div>
+<div class="card">
 <p><strong>43-2d. 추가 검증 — proj_dim 8/16 확장 + 5-seed 노이즈 점검 (96.85%는 노이즈 상단이었다)</strong></p>
 <p>"자동으로 진행해도 돼" 지시에 따라 두 가지를 추가로 돌렸다: ① proj_dim을 32 아래(8, 16)까지 더 줄여서
 한계 확인, ② LSTM+add+proj32(원래 96.85%)를 시드만 바꿔 5회 반복해서 그 숫자가 노이즈인지 확인.
@@ -577,6 +711,8 @@ run 1~5
 여전히 확실히 높고(+3.85%p), proj_dim 8/16/32가 LSTM에서는 서로 비슷한 수준(96.46~96.85%, 단일 run 기준)이라
 "32가 정확히 최적"이라는 43-1의 결론도 8~32 구간에서는 노이즈 수준 차이로 봐야 한다. 핵심 결론(head 구조가
 가장 강한 factor)은 그대로 유지되지만, 정확한 숫자를 인용할 땐 5-seed 평균(95.39%)을 써야 한다.</p>
+</div>
+<div class="card">
 <p><strong>43-3. 종합(업데이트) — factor 순위 재정리: head 구조(LSTM) &gt; 차원 &gt; 그라운딩 &gt; hidden state 유무</strong></p>
 <p>43-2b 이후 factor 순위를 다시 정리하면: ① head 구조(LSTM vs MLP) — 가장 강력, hidden state 없이도 baseline을
 +4.3%p 상회(91.54%→95.87%) ② hidden state 차원(32가 최선, CH43-1) ③ 그라운딩 품질(CH41, has_bbox 유무로 오류율 3~5배)
@@ -587,10 +723,13 @@ MLP는 윈도우 8프레임의 bbox 히스토리만 flat하게 펴서 넣고 시
 CH40에서 본 "PM은 올라도 SR은 안 오른다" 문제가 이 조합에서도 재현되는지 확인, 그리고 CH41의 그라운딩 품질 개선과 병행.
 🧠 Hidden State Hub — CH39~43 한 페이지 요약  |
 plans: plan_20260622_hidden_state_projection_weighting.md  |  2026-06-22</p>
-<p><a href="../v5/research_story.html#ch43">→ 원문 전체 보기(research_story.html#ch43)</a></p>
-<hr />
-<h3>CH 47 — area_delta(변화율) feature 추가 — 잃은 근접 신호 복원</h3>
-<p><em>CH46-5 가설 검증 — 회전 직전 area 분산 소실로 FPE 악화됐던 문제를 윈도우 내 변화율 feature로 복원 시도</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch43">→ 원문 전체 보기 (research_story.html#ch43)</a></p>
+</div>
+<div class="chapter-block accent-b">
+<div class="chapter-block-head"><span class="chapter-badge">CH 47</span> area_delta(변화율) feature 추가 — 잃은 근접 신호 복원</div>
+<p class="chapter-subtitle-line">CH46-5 가설 검증 — 회전 직전 area 분산 소실로 FPE 악화됐던 문제를 윈도우 내 변화율 feature로 복원 시도</p>
+<div class="card">
 <p><strong>47-1. 결과 — SR/FPE 모두 복원됨</strong></p>
 <p>윈도우 8프레임 × [cx,cy,area,has_bbox]에 area_delta = area[t]-area[t-1]를 5번째 채널로 추가
 (32→40차원). --use_hidden_state none만 1차 검증(MLP+LSTM).
@@ -609,6 +748,8 @@ LSTM-none 94.88%→95.08%(+0.20%p).
 결론: CH46-5의 가설이 맞았다. SR이 기존(Kosmos-2 시절) 수준으로
 완전히 복원됐고, FPE도 PG2 단독(0.145m) 대비 개선(0.121m) — none 모드 단독으로는 기존(0.101m)에 아직
 못 미치지만, add/replace까지 확장한 결과는 47-2 참고.</p>
+</div>
+<div class="card">
 <p><strong>47-2. add/replace까지 확장 — LSTM-replace+area_delta가 전체 최저 FPE 달성</strong></p>
 <p>같은 area_delta feature로 MLP/LSTM × add/replace까지 전부 재학습 + closed-loop 재평가.
 구성PG2만(CH46) val_acc+area_delta val_acc+area_delta SR/FPE
@@ -644,10 +785,13 @@ CH47 최종 결론: CH46-5에서 발견한 "PG2가 정밀해지며 잃은 근접
 ⚠️ 단, 이 수치는 매프레임 그라운딩(skip_n=1) 가정 — 운영 기본값
 skip_n=3에서는 이득이 사라짐, CH49 참고.
 plans: plan_20260623_area_delta_proximity_feature.md  |  2026-06-23</p>
-<p><a href="../v5/research_story.html#ch47">→ 원문 전체 보기(research_story.html#ch47)</a></p>
-<hr />
-<h3>CH 52 — LSTM hidden state — path_type별 분리 평가</h3>
-<p><em>6/22 미팅 TODO "val 29개로는 SR 변별 안 됨, 어려운 path_type 분리 평가 필요"에 대응. SR은 전 모드 포화, replace mode가 전환 경로 FPE 40% 개선</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch47">→ 원문 전체 보기 (research_story.html#ch47)</a></p>
+</div>
+<div class="chapter-block accent-c">
+<div class="chapter-block-head"><span class="chapter-badge">CH 52</span> LSTM hidden state — path_type별 분리 평가</div>
+<p class="chapter-subtitle-line">6/22 미팅 TODO "val 29개로는 SR 변별 안 됨, 어려운 path_type 분리 평가 필요"에 대응. SR은 전 모드 포화, replace mode가 전환 경로 FPE 40% 개선</p>
+<div class="card">
 <p><strong>52-1. 배경 — 6/22 미팅 TODO 대응</strong></p>
 <p>CH43-2c에서 "val 29개 에피소드로는 none/add/replace 간 SR 차이를 식별하기 어렵다
 (천장 근처에서 전부 포화)"는 한계를 언급했고, 6/22 미팅 TODO로 "어려운 path_type만 분리 평가"가 남았었다.
@@ -656,6 +800,8 @@ CH43-2d에서 5-seed 확대는 수행했지만(95.39%±0.20%p), path_type별 분
 path_type별로 완전히 분리해 측정했다.
 체크포인트: none → 이번에 새로 학습(val_acc 94.49%, bbox_dataset_full.json) /
 add/replace → CH43 원본(add 96.85%, replace 95.47%). 셋 모두 Kosmos2 주석 데이터로 학습·평가.</p>
+</div>
+<div class="card">
 <p><strong>52-2. 결과 — SR은 모드 무관, FPE에서 replace가 우세</strong></p>
 <p>path_type
 n
@@ -724,6 +870,8 @@ right_right ⚠️
 96.6% / 0.142m
 96.6% / 0.131m
 96.6% / 0.102m</p>
+</div>
+<div class="card">
 <p><strong>52-3. 해석</strong></p>
 <ul>
 <li>SR: 세 모드 완전 동일 (96.6%) — path_type을 분리해도 none/add/replace 사이에 SR 차이가 없다.
@@ -748,14 +896,19 @@ right_right 실패는 에피소드-레벨 문제(모델 무관). 6/22 TODO #4 (p
 스크립트: scripts/eval/closed_loop_eval_pathtype_breakdown.py  |
 데이터: docs/v5/closed_loop_eval/lstm_pathtype_breakdown.json  |  2026-06-26</li>
 </ul>
-<p><a href="../v5/research_story.html#ch52">→ 원문 전체 보기(research_story.html#ch52)</a></p>
-<hr />
-<h3>CH 60 — Action Head Ablation — PG448 재어노테이션 + Transformer / cx-Geom 헤드 비교</h3>
-<p><em>exp67(MLP) · exp71(Transformer) · exp72(cx-Geom) 3종 헤드를 PG448 어노테이션 기반으로 학습·CL 평가 (2026-07-01)</em></p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch52">→ 원문 전체 보기 (research_story.html#ch52)</a></p>
+</div>
+<div class="chapter-block accent-d">
+<div class="chapter-block-head"><span class="chapter-badge">CH 60</span> Action Head Ablation — PG448 재어노테이션 + Transformer / cx-Geom 헤드 비교</div>
+<p class="chapter-subtitle-line">exp67(MLP) · exp71(Transformer) · exp72(cx-Geom) 3종 헤드를 PG448 어노테이션 기반으로 학습·CL 평가 (2026-07-01)</p>
+<div class="card">
 <p><strong>60-1. 배경 — 왜 헤드 ablation인가</strong></p>
 <p>CH59에서 PG448 검출률이 99.8%(vs PG224 95.9%)임을 확인했다. 그러나 기존 Stage2 MLP(exp65/66)는 PG224 어노테이션으로 학습된 상태였다 — 학습/추론 분포 불일치가 잠재적 병목.
 동시에, 이산 액션 공간에서 히스토리를 flat-concat하는 MLP가 최선인지도 불명확했다.
 시간적 순서(Transformer)나 현재 기하 정보의 명시적 분리(cx-Geom)가 더 유리할 수 있다는 가설을 검증한다.</p>
+</div>
+<div class="card">
 <p><strong>60-2. 실험 설계</strong></p>
 <p>공통 조건: FrozenCLIPV2 (Kosmos-2 vision encoder, 256-dim), WINDOW=8, PG448 어노테이션(bbox_dataset_pg448_cx.json, 2567/2572=99.8% 검출).
 실험
@@ -770,12 +923,16 @@ TransformerEncoder (d=260, nhead=4, 2층) + CLS token
 exp72
 2-branch: temporal(288→128) + geom(4→32) → merge(160→64→8)
 현재 프레임 cx/cy를 별도 기하 경로로 명시적 주입</p>
+</div>
+<div class="card">
 <p><strong>60-3. cx-rule 기하학 오버라이드 — 효과 없음</strong></p>
 <p>이산 액션 경계에서 방향 전환이 늦는 경우를 개선하기 위해 cx-rule을 도입했다: bbox 중심 cx 값으로 모델 출력을 강제 오버라이드하는 룰.
 cx &lt; 0.25 → ROT_L · &lt;0.40 → FWD+L · ≤0.60 → FORWARD · ≤0.75 → FWD+R · &gt;0.75 → ROT_R
 결과: exp67(PG448 MLP) + cx-rule → CL SR 100% → 50%, FPE 0.02m → 0.41m 악화.
 MLP가 이미 cx를 히스토리 내부에서 잘 처리하고 있는 상태에서 룰이 오버라이드하면 오히려 방해가 된다.
 VLA_CX_RULE 기본값 off 유지.</p>
+</div>
+<div class="card">
 <p><strong>60-4. Action Head Ablation 결과</strong></p>
 <p>실험
 어노테이션
@@ -813,6 +970,8 @@ PG448
 50% ↓↓
 0.41m ↑↑
 룰 오버라이드 역효과</p>
+</div>
+<div class="card">
 <p><strong>60-5. 핵심 발견 요약</strong></p>
 <p>① 어노테이션 품질이 헤드 구조보다 결정적이다.
 PG224(95.9%) → PG448(99.8%)으로 교체만으로 CL SR 0% → 100%로 회복. 헤드 설계 전에 데이터 품질 병목 해소가 선행되어야 함.
@@ -822,6 +981,8 @@ PG224(95.9%) → PG448(99.8%)으로 교체만으로 CL SR 0% → 100%로 회복.
 TransformerEncoder 없이도 현재 프레임 cx를 명시적 경로로 주입하면 MLP 대비 동등한 CL 정확도를 달성.
 ④ cx-rule 룰 오버라이드는 역효과.
 학습된 MLP가 이미 cx를 내재화한 상황에서 외부 룰이 간섭 → SR 반토막. 제거하고 VLA_CX_RULE=0 유지.</p>
+</div>
+<div class="card">
 <p><strong>60-6. 다음 단계</strong></p>
 <ol>
 <li>soda 실주행 CL — exp71(Transformer) 또는 exp72(cx-Geom) 체크포인트를 soda에 배포해 실환경 SR 측정.</li>
@@ -832,6 +993,8 @@ exp71: runs/v5_nav/mlp/exp71/action_transformer.pt  |
 exp72: runs/v5_nav/mlp/exp72/action_cxgeom.pt  |
 어노테이션: docs/v5/bbox_frame_level/bbox_dataset_pg448_cx.json  |  2026-07-01</li>
 </ol>
+</div>
+<div class="card">
 <p><strong>60-7. 추론 시각화 — 대표 프레임별 3모델 비교</strong></p>
 <p>오버레이 범례:
 ■ PG448 bbox
@@ -852,9 +1015,12 @@ GT: RIGHT — cx≈0.50, 에피소드 초반
 ↗ 원본
 생성 스크립트: scripts/visualize_inference_exp67_71_72.py  |
 Raw 이미지: GitHub Raw</p>
-<p><a href="../v5/research_story.html#ch60">→ 원문 전체 보기(research_story.html#ch60)</a></p>
-<hr />
-<h3>CHAPTER 62 — FWD 고착의 진짜 원인 — 그라운딩 실패가 아니라 액션-그라운딩 라벨 confound</h3>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch60">→ 원문 전체 보기 (research_story.html#ch60)</a></p>
+</div>
+<div class="chapter-block accent-e">
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 62</span> FWD 고착의 진짜 원인 — 그라운딩 실패가 아니라 액션-그라운딩 라벨 confound</div>
+<div class="card">
 <p><strong>62-1. 결정적 반례: grounding 성공 ≠ 액션 반응</strong></p>
 <p>2026-07-11 obj_right 11세션(유효)을 H5 raw 배열로 직접 대조.
 세션결과첫 탐지 프레임회전 액션 낸 프레임
@@ -907,6 +1073,8 @@ Raw 이미지: GitHub Raw</p>
 213650·220142는 grounding이 나중에(frame 6) 정확히 잡혔는데도(cx 0.73~0.76 연속) 회전
 액션이 단 한 프레임도 없었다 — grounding 문제가 아니라 액션
 헤드가 초반 window 이후 grounding 업데이트를 무시한다는 직접 증거.</p>
+</div>
+<div class="card">
 <p><strong>62-2. 첫 탐지 성공했는데도 실패한 반례(205228) — 오버슈트 후 미회복</strong></p>
 <p>205228(실패)205354(성공)205621(성공)205726(성공)
 frame0 cx
@@ -937,6 +1105,8 @@ f4 미세보정 1회
 성공 케이스는 초기 회전 후 cx가 반등하며 중앙으로 재수렴한다. 205228은 초기 회전량이
 과도해(vyaw=-1.15 3프레임 유지) cx가 반등 없이 계속 밀리고, 뒤늦은 재보정(f9)도 방향/타이밍이
 어긋나 화면 가장자리로 빗나간 채 종료(오퍼레이터 메모: "살짝 엇나감").</p>
+</div>
+<div class="card">
 <p><strong>62-3. 정량 검증: cx-액션 방향 일치율(VSC)이 우연 이하 — 라벨 자체의 confound</strong></p>
 <p>bbox_dataset_owl_150ep.json(147ep, 2559프레임)에서 방향성 액션(LEFT/RIGHT류)만
 골라 sign(cx-0.5)(시각적 기대 방향)과 실제 라벨 방향의 일치율(VSC) 계산:
@@ -968,11 +1138,15 @@ cx 구간일치/전체VSC
 반응하지 않는 게 이상한 게 아니라 — 애초에 학습 라벨 자체가 "라이브 cx에 반응하는
 제어기"가 아니라 "초반에 본 장면으로 경로 하나를 고르고 그 경로를 재생하는 함수"에
 가깝게 구성돼 있다.</p>
+</div>
+<div class="card">
 <p><strong>62-4. 오프라인 지표: 오버슈트 회복률 14.3%</strong></p>
 <p>cx가 방향 반전(|Δ|&gt;0.03)하는 지점에서 이후 5프레임 이내 회전 액션이 나오는지 확인
 (2026-07-11 obj_right 11세션): 오버슈트 이벤트 7건 중
 회복시도 1건 = 14.3%. 성공 케이스의 반전은 근접 접근 중 측정 노이즈일 가능성이
 있어 62-3(VSC)보다 노이즈에 민감한 보조지표로 취급.</p>
+</div>
+<div class="card">
 <p><strong>62-5. 향후 시도 평가지표 (재수집/재학습 전후 비교용)</strong></p>
 <h1>지표현재값목표</h1>
 <p>1
@@ -1007,6 +1181,8 @@ docs/plans/plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §1
 "트랙 C" 참고.
 전체 상세: CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md
 |  이미지 비교(bbox/cx 오버레이): 로컬 리포트 docs/v5/analysis_reports/ch61_forward_lock_20260712.html</p>
+</div>
+<div class="card">
 <p><strong>62-6. 거리축(area) confound — 근접해도 STOP 없음, 방향축과 별개 문제</strong></p>
 <p>2026-07-12 신규 세션 215344 raw 대조(94스텝): area가 0.06→1.0(완전 근접)→0.06으로
 3~4차례 왕복하는 동안 grounding은 이 왕복을 잘 추적하는데도
@@ -1031,6 +1207,8 @@ area≥임계치일 때 강제 STOP (안전장치, 코드만 변경)
 재학습)의 범위·필요성은 그대로 유지 — 방향축(VSC/오버슈트회복률)과 거리축(STOP/근접)은
 독립된 별개 confound이며, 이번 캠페인은 방향축만 타겟한다. 트랙D/AVSC는 범위 확정 전
 백로그로 별도 기록.</p>
+</div>
+<div class="card">
 <p><strong>62-7. ROT_L/R(제자리 회전 재센터링) — 희소 클래스, 백로그 (2026-07-15 결정)</strong></p>
 <p>2026-07-15 Track A <code>weak_right::left_curve</code> 15ep(1194프레임) 품질 체크 중 확인: 근접
 상황에서 바구니 중심을 맞추려 제자리 회전(ROT_L/R)하는 장면이 실제 존재하나, 8-class
@@ -1045,9 +1223,12 @@ area≥임계치일 때 강제 STOP (안전장치, 코드만 변경)
 쪽이 현실적 대안.
 결정: Track A(180ep)/Track C(64ep) 물리 수집을
 우선 완료 후 재검토. Track E는 트랙D/AVSC와 함께 범위 확정 전 백로그로 기록.</p>
-<p><a href="../v5/research_story.html#ch62">→ 원문 전체 보기(research_story.html#ch62)</a></p>
-<hr />
-<h3>CHAPTER 63 — exp73 — V6(트랙A+F) 액션헤드 종합 ablation, mlp가 배포 아키텍처(transformer)를 상회</h3>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch62">→ 원문 전체 보기 (research_story.html#ch62)</a></p>
+</div>
+<div class="chapter-block accent-a">
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 63</span> exp73 — V6(트랙A+F) 액션헤드 종합 ablation, mlp가 배포 아키텍처(transformer)를 상회</div>
+<div class="card">
 <p><strong>63-1. 전체 순위 — mlp가 1위권, 배포 아키텍처(transformer)가 최하위권</strong></p>
 <p>조합meanstdbest
 owl/v6(180ep)/cxgeom
@@ -1134,6 +1315,8 @@ owl/v6(225ep)/flow(MoNa-pi 경량판)
 71.1%
 0.3
 71.3% (전체 최하위)</p>
+</div>
+<div class="card">
 <p><strong>63-2. V5 혼합(v6v5)은 전 헤드에서 손해 — 시간축 이질성 확정</strong></p>
 <p>V5(키프레임 ~17프레임/ep, STOP 라벨 없음)를 V6(6.2Hz 연속, STOP 8.4%)에 섞은
 v6v5 arm은 transformer -1.6%p, mlp -0.9%p,
@@ -1141,6 +1324,8 @@ cxgeom -0.7%p — 예외 없이 v6 단독보다 하락. window=8이 V5에선 에
 절반(~7초) 히스토리, V6에선 1.3초 히스토리를 의미하는 시간축 불일치가 실측으로
 확정됨(§0 사전 예측과 일치). V6를 메인으로 갈 경우
 V5 혼합은 배제.</p>
+</div>
+<div class="card">
 <p><strong>63-3. 트랙F(center 45ep) 추가 — val 난이도 상승, mlp만 안정적으로 버팀</strong></p>
 <p>트랙A(180ep, 4극단위치만)에 트랙F(center, 45ep)를 더해 V6를 225ep로 완결한 뒤
 재학습 — val_acc가 전 헤드에서 하락했으나 이는 성능 저하가 아니라
@@ -1165,6 +1350,8 @@ transformer(배포)
 -2.9%p (가장 크게 흔들림)
 mlp가 압도적으로 강건 — center 데이터 추가에도
 거의 흔들리지 않음. 반면 배포 중인 transformer가 가장 취약한 조합일 가능성.</p>
+</div>
+<div class="card">
 <p><strong>63-4. V6 위치별 8-class 분포 — 좌우 대칭 확인, center는 회전 거의 0%</strong></p>
 <p>트랙A+F(225ep, 16,599프레임) 전체를 위치별로 집계.
 위치NSTOPFLRFLFRROT_LROT_R
@@ -1222,11 +1409,15 @@ right 위치는 R/FR 우세, left 위치는 L/FL 우세로 좌우 대칭 확인(
 center는 L/R이 둘 다 낮고(2.7%/3.5%) FL/FR이 균형(17.3%/16.6%) — 중앙 시작이라
 큰 방향 보정 없이 대각선 접근이 주를 이룸. ROT_L/R은 center에서 사실상 0%
 ([[62-7 근접-재센터링 백로그]]와 별개로, center 위치 자체는 회전 필요성이 낮음을 시사).</p>
+</div>
+<div class="card">
 <p><strong>63-5. 그라운더(PG448 vs OWL-v2)는 헤드·arm 대비 부차적 변수</strong></p>
 <p>같은 헤드·arm 내에서 그라운더 교체 시 격차가 대부분 1%p 이내(예: v6(180ep)/mlp
 pg448 77.9% vs owl 77.7%, v6(225ep)/cxgeom pg448 76.2% vs owl 75.8%) — CH60/61에서
 확인된 "그라운더보다 확인해야 할 다른 축이 더 크다"는 패턴이 헤드 선택 축에서도
 재확인됨. 그라운더 교체는 비용 대비 개선폭이 작아 우선순위가 낮음.</p>
+</div>
+<div class="card">
 <p><strong>63-6. MoNa-pi(π0 계열) 비교 — 연속/flow 헤드가 이 규모에서 이산 헤드를 못 이김</strong></p>
 <p>자매 프로젝트 MoNa-pi(Flow Matching + AdaLN-Zero, 별도 π0 계열 VLA)의 실측 결과:
 closed-loop Success@0.5m 45.8%(FPE 0.823), 약점은 center_left 0%,
@@ -1252,6 +1443,8 @@ MoNa-pi 원본은 별도 데이터(92ep train)·풀 AdaLN-Zero로 45.8% closed-l
 냈으므로 직접 비교는 아니지만, "헤드를 연속/flow로
 바꾸면 저절로 좋아진다"는 가설은 이번 규모에서 기각 — CH62 결론(데이터
 confound가 우선)이 헤드 선택 축에서도 다시 확인됨.</p>
+</div>
+<div class="card">
 <p><strong>⚠️ 63-11. [정정] 63-8~63-10 closed-loop 수치 전부 오염됨 — val split 버그, 실제 순위 뒤바뀜 (2026-07-19)</strong></p>
 <p>버그: evaluate_closed_loop_exp73.py의
 val_split()이 np.random.RandomState(42)(레거시 API)를
@@ -1318,6 +1511,8 @@ variant 추가)은 잘못된 승자 기준으로 선택된 것 — 코드 인프
 자체는 재사용 가능하나, 실제 배포 후보는 hybrid가 아니라
 pg448/v6/mlp(트랙F 없음)로 재검토 필요.
 soda에 전달했던 "hybrid 최종 1위" 메시지도 정정 필요(§DoD/soda 동기화 참고).</p>
+</div>
+<div class="card">
 <p><strong>63-8. closed-loop(FPE/TLD/Success) 사전검증 — mlp가 offline·closed-loop 양쪽 모두 1위</strong></p>
 <p>⚠️ 아래 수치는 val split 버그로 오염됨 — 정정된 결과는 위 63-11 참고.
 63-7의 "val_acc만으로 결론 내지 말라"는 원칙에 따라, exp73_v6_vis_cache(이미 인코딩된
@@ -1358,6 +1553,8 @@ offline 지표만으론 확정 불가하며 cxgeom의 "geometric branch가 최�
 구조가 오차 누적에 더 취약할 가능성. 트랙F(center) 추가가 mlp 구성의 closed-loop도
 개선(FPE 0.569→0.345, Success 63.6%→72.7%) — 63-3의 offline 강건성(-0.1%p)이
 closed-loop에서도 재현됨.</p>
+</div>
+<div class="card">
 <p><strong>63-9. lx/ly는 이미 이산, az만 진짜 연속 — hybrid(6-way lat/fwd + 연속 az) 헤드 신규 구현</strong></p>
 <p>⚠️ "최종 1위"였던 closed-loop 84.8%는 val split 버그로
 오염된 수치 — 정정 결과(진짜 39.4%, 순위 하락)는 위 63-11 참고. lx/ly 이산·az
@@ -1394,6 +1591,8 @@ closed-loop에서는 FPE 0.345→0.274m, Success 72.7%→84.8%로 격차가 크�
 분류보다 오차 누적에 훨씬 강건함을 시사. lx/ly를 무리하게 연속으로 취급한 이전
 contreg/flow 헤드(63-6, 71~75%)가 부진했던 이유도 이걸로 설명됨 — 애초에 없는
 연속 신호를 만들려다 학습만 어려워진 것.</p>
+</div>
+<div class="card">
 <p><strong>63-10. 연속 az를 궤적에 그대로 적분 → 오히려 악화 (부정 결과, az_thresh 스윕은 안정)</strong></p>
 <p>⚠️ 최초 측정치(discrete 84.8%/continuous 48.5%)는 63-11
 val split 버그 영향권. 수정된 split으로 재검증한 결과
@@ -1431,6 +1630,8 @@ az≈0을 명시적으로 학습(예: 보조 손실)해야 할 것 — 향후 �
 (offline val_acc는 77.0/78.1/78.0%로 seed 간 안정 확인됨), closed-loop 상의 seed
 분산은 3-seed 전체를 별도 저장해 재평가해야 확인 가능 — 배포 결정을 바꿀 정도는
 아니라 판단해 이번 라운드에서는 보류.</p>
+</div>
+<div class="card">
 <p><strong>63-12. Action-chunk 헤드(ACT식 temporal ensembling) — 앙상블 자체는 +3pp 유효, 그러나 mlp보다 낮음</strong></p>
 <p>63-11 정정 후 재확인한 실패 패턴(청크 최빈값 acc≈프레임 acc — 오류가 국소적이지
 않고 구간 전체에 걸쳐 일관되게 틀림, 즉 "구간형 방향 오판")에 착안해 ActionChunkHead를 신규 구현: window=6 컨텍스트로
@@ -1457,6 +1658,8 @@ offline val_acc부터 mlp보다 8.7%p 낮음(77.1% vs 85.3%) — 같은 크기 t
 추정. 시사점: temporal ensembling 아이디어는
 "새 헤드 구조"가 아니라 기존 챔피언(mlp)의 추론
 단계에 후처리로 적용하는 쪽이 더 유망 — 63-13에서 검증.</p>
+</div>
+<div class="card">
 <p><strong>63-13. mlp에 인과적(과거만) temporal smoothing 후처리 — 단조 악화, 63-12와 반대 결론</strong></p>
 <p>63-12의 시사점("앙상블을 mlp 후처리로 적용")을 실제로 검증. mlp(트랙F 없음,
 현 champion)의 프레임별 softmax를 인과적(미래 프레임
@@ -1496,6 +1699,8 @@ smooth_windowval_accFPE(m)Success@0.5m
 실전 시사점: mlp는 후처리 스무딩 없이 그대로 배포가
 맞다 — 방향 전환 반응 속도가 이미 이 태스크에서 핵심 강점인데, 스무딩이 그걸
 깎아먹는 트레이드오프.</p>
+</div>
+<div class="card">
 <p><strong>⚠️ 63-14. mlp(현 champion) closed-loop 3-seed 분산 — 재현성 낮음, 60.6%는 낙관적 표본일 가능성</strong></p>
 <p>63-11 정정 후 "진짜 1위"로 확정한 pg448/v6/mlp(트랙F 없음)의 3-seed 전체를 별도 저장해 개별 closed-loop 검증
 (63-11 DoD에서 미뤄뒀던 항목). 동일 코드·동일 seed(0,1,2)로 재학습:
@@ -1534,6 +1739,8 @@ seed=2 (재학습)
 평균/분산으로 보고해야 함(트랙C 289ep 재학습 시 §D 런북에 반영 필요).
 val 33ep 자체도 작아서(전체 225ep의 15%) 트랙C 추가로 289ep가 되면 표본이 늘어
 분산이 다소 줄어들 것으로 기대.</p>
+</div>
+<div class="card">
 <p><strong>🚨 63-15. [재정정] 63-14 분산의 진짜 원인 발견 — CACHE_V6 재빌드로 "v6" arm이 트랙F를 몰래 포함, 60.6%는 OOD 오염 착시였음 (2026-07-22)</strong></p>
 <p>63-14에서 "60.6%는 낙관적 표본"이라 정리했지만, 실제 원인은 GPU 비결정성이 아니라
 데이터 조건 자체가 달랐던 것으로 확인됨.
@@ -1580,6 +1787,8 @@ GPU 비결정성 기여는 크지 않음) — 60.6%는 순전히 OOD 오염 착�
 재현성이 통째로 깨진다 — 데이터 버전을 코드가 아니라 사람이 암묵적으로 관리하고
 있었던 게 근본 원인. 향후 캐시 파일은 버전 접미사(예: _180ep,
 _225ep)를 붙여 불변으로 관리 권장.</p>
+</div>
+<div class="card">
 <p><strong>📊 63-16. 통일 비교표 (apples-to-apples) — 전 조합 225ep 학습·225ep val 재평가 + seed 분산 (2026-07-22)</strong></p>
 <p>63-15에서 드러난 조건 혼입을 청산하기 위해, 모든 헤드를
 동일 데이터(225ep=트랙A+F)로 학습하고 동일 225ep val로 재평가한 통일표.
@@ -1638,6 +1847,8 @@ mlp에서 48.5%로 동률, 다른 헤드도 ±6%p 내. 실기에서 어느 그�
 또는 owl_trackF/mlp — 둘 다 48.5%(best), 평균 39.4%. mlp가 가장 단순하고
 상위권과 동률이라 실기 우선 후보로 유지. 단 실기 테스트는
 반드시 여러 회 반복(seed·비결정성 노이즈가 ±6%p이므로 1회 결과 신뢰 금물).</p>
+</div>
+<div class="card">
 <p><strong>63-7. 결론 및 다음 단계 [2026-07-22 재정정 — 3회차]</strong></p>
 <p>⚠️ 이 카드는 두 번 정정됐다. 63-11(val split 버그) →
 63-14(60.6%가 낙관적 표본이라 오판) → 63-15(진짜 원인은 CACHE_V6 재빌드로
@@ -1661,14 +1872,17 @@ np.random.default_rng로 통일(63-11), (2) 공유 캐시 파일(CACHE_V6)
 az가 진짜 연속 신호임이 확인됐으므로, 향후 수집에서도 lx/ly는 현재 방식(고정
 8방향)을 유지하되 az만큼은 연속 값 보존이 유지되도록 soda 쪽에 확인 요청함
 (§DoD 참고) — 이 부분은 정정과 무관하게 유효.</p>
-<p><a href="../v5/research_story.html#ch63">→ 원문 전체 보기(research_story.html#ch63)</a></p>
-<hr />
-<h3>CH 70 — 헤드 구조 6종 vs 손실함수 실험 — 구조는 한계, ordinal soft label만 LOO를 실제로 개선시켰다</h3>
-<p><em>2026-08-26~27 ·
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch63">→ 원문 전체 보기 (research_story.html#ch63)</a></p>
+</div>
+<div class="chapter-block accent-b">
+<div class="chapter-block-head"><span class="chapter-badge">CH 70</span> 헤드 구조 6종 vs 손실함수 실험 — 구조는 한계, ordinal soft label만 LOO를 실제로 개선시켰다</div>
+<p class="chapter-subtitle-line">2026-08-26~27 ·
 cx를 강조하는 헤드 구조(FiLM·Δcx·cxaux·actionquery)를 6가지나 시도했지만 leave-one-direction-out
 일반화는 개선하지 못했다(70-1~70-5) — 무작위 split에서 좋아 보인 게 대부분 방향 일반화에서는 소멸.
 대신 손실함수를 손대서(ordinal soft label, 70-6) LOO 평균이
-+3.71~3.99%p, 최악 방향(strong_right)은 +14.52%p 개선됐다 — CH70 전체에서 유일한 성과.</em></p>
++3.71~3.99%p, 최악 방향(strong_right)은 +14.52%p 개선됐다 — CH70 전체에서 유일한 성과.</p>
+<div class="card">
 <p>🟠 3줄 요약
 ① concat 방식(cxgeom·hybrid·bbox_scale, CH69)은 이미 다 해봤고 효과가 미미했다는 리서치
 결과에 따라, 곱셈적 결합(FiLM)·Δcx·cx 보조손실 3종을 새로 구현·학습했다
@@ -1680,6 +1894,8 @@ cx를 강조하는 헤드 구조(FiLM·Δcx·cxaux·actionquery)를 6가지나 �
 4.7~15.4%p 하락했다 — 전체 정확도 개선이 R→FR 오분류를 늘려서 나온 결과일 가능성이 크다.
 무작위 split 숫자만 보고 "개선"이라 결론 내리면 안 된다는 게 69-7의 교훈이었는데, 여기서도
 같은 패턴이 재현됐다.</p>
+</div>
+<div class="card">
 <p><strong>📊 70-1. 헤드 5종 비교 (exp77 캐시 공통, seed 0/1/2, epoch 300)</strong></p>
 <p>헤드
 구조
@@ -1728,6 +1944,8 @@ vis 표현 자체가 왜곡되는 부작용일 가능성. cxgeom만 유일하게
 scripts/train_exp78_cx_emphasis_heads.py · 헤드 클래스
 scripts/train_exp73_stage1v3_heads.py(FiLMHead·DeltaCxHead·CxAuxHead·train_cxaux) ·
 결과 docs/v5/closed_loop_eval/exp78_cx_emphasis_heads.json</p>
+</div>
+<div class="card">
 <p><strong>⚠️ 70-2. 판단 — "R↔FR 사이에서 잃고 F↔FR 사이에서 얻는" 트레이드오프일 가능성</strong></p>
 <p>69-6①-b에서 확인된 원래 문제는 "F가 FR로 오판되는 것"이었다
 (오른쪽 방향 제외 시 F→FR 오판율 폭증). deltacx/cxaux가 FR클래스 정확도를 올린 건
@@ -1744,6 +1962,8 @@ leave-one-direction-out(방향 하나를 통째로 빼고 검증)에서는 오�
 <code>scripts/eval_leave_one_direction_out.py</code> 방식으로 재검증해서 방향별 일반화가
 실제로 개선됐는지, 아니면 exp77처럼 무작위 split에서만 좋아 보이는 착시인지 확인
 해야 최종 판단 가능(→ 70-3에서 실행).</p>
+</div>
+<div class="card">
 <p><strong>🔴 70-3. deltacx leave-one-direction-out — 무작위 split 개선이 소멸됨</strong></p>
 <p>70-2의 우려대로였다. deltacx를 <code>eval_leave_one_direction_out_deltacx.py</code>로
 mlp와 동일 프로토콜(방향 하나 통째로 val, 나머지 180ep 학습, seed 0/1/2)로 비교:
@@ -1764,6 +1984,8 @@ leave-one-direction-out에서는 완전히 사라졌다(-0.17%p, 사실상 동�
 스크립트
 scripts/eval_leave_one_direction_out_deltacx.py · 결과
 docs/v5/closed_loop_eval/deltacx_leave_one_direction_out.json</p>
+</div>
+<div class="card">
 <p><strong>🔍 70-4. val 유출 검증(C) + 학습곡선 — 체크포인트 선택 낙관편향과 epoch 300 과다 확인</strong></p>
 <p>① honest checkpoint selection — 기존 방식(25epoch마다
 val_acc 재서 최고 채택)이 val 표본이 작을수록(leave-one-direction-out) 낙관편향을
@@ -1831,6 +2053,8 @@ scripts/eval_honest_checkpoint_selection.py ·
 scripts/plot_head_overfitting_curves.py · 결과
 docs/v5/closed_loop_eval/honest_checkpoint_selection.json ·
 docs/v5/closed_loop_eval/head_overfitting_curves.json</p>
+</div>
+<div class="card">
 <p><strong>🧭 70-5. actionquery(경량 cross-attention) — 평균은 비슷하지만 최악의 방향에서 크게 이긴다</strong></p>
 <p>배포 중인 TransformerActionHead(window 전체 self-attention)가 mlp보다 계속 낮은 게
 (71~75% vs 76~78%, CH69 69-5 표 참고) self-attention 자체의 과적합 때문인지 확인하려고,
@@ -1866,6 +2090,8 @@ R클래스 일반화가 LOO 전반에서 구조적으로 강하다(대신 쉬운
 ActionQueryHead(train_exp73_stage1v3_heads.py) · 스크립트
 scripts/eval_actionquery_head.py · 결과
 docs/v5/closed_loop_eval/actionquery_head_eval.json</p>
+</div>
+<div class="card">
 <p><strong>🏆 70-6. ordinal soft label(D) — CH70에서 유일하게 LOO 일반화 자체를 개선시킨 방법</strong></p>
 <p>70-1~70-5는 전부 헤드 구조(concat/곱셈/보조손실/cross-attn)
 축이었다. 이번엔 손실함수 축을 시도했다 — 원래 문제가 연속 조이스틱(lx,ly,az)을
@@ -1934,6 +2160,8 @@ center는 원래 방향 모호성이 적은 조건이라 소프트화가 불필�
 soft_class_targets()·train_one_soft()(train_exp73_stage1v3_heads.py) ·
 스크립트 scripts/eval_soft_label_head.py · 결과
 docs/v5/closed_loop_eval/soft_label_head_eval.json</p>
+</div>
+<div class="card">
 <p><strong>📋 70-7. CH70 종합 판단</strong></p>
 <ul>
 <li>헤드 구조 축(concat/곱셈/보조손실/cross-attn)은
@@ -1955,6 +2183,8 @@ LOO 평균 +3.71~3.99%p, 특히 최악 방향(strong_right)에서 +14.52%p. 다�
 결합 시도 → (ii) 궤적 재생 근사(rollout_core.py 기반, 프레임 정확도가 아니라
 실제 도착 여부로 재평가) → (iii) 소규모 실기 A/B 순서(→ 70-8에서 (i)(ii) 실행).</li>
 </ul>
+</div>
+<div class="card">
 <p><strong>🏆 70-8. D+actionquery 결합 + 궤적 재생 재평가 — mlp+soft가 최종 후보로 확정</strong></p>
 <p>70-7에서 제기한 두 가지를 이어서 실행했다: ① soft label(D)을 actionquery에도
 적용해 결합 효과 확인, ② "R을 FR로 틀려도 실제 도착은 맞을 수 있다"는 지적에
@@ -2012,6 +2242,10 @@ deltacx+soft가 FPE는 근소 우위(1.003m)지만 success는 mlp+soft와 동일
 스크립트
 scripts/eval_soft_actionquery_combo.py · 결과
 docs/v5/closed_loop_eval/soft_actionquery_combo.json</p>
-<p><a href="../v5/research_story.html#ch70">→ 원문 전체 보기(research_story.html#ch70)</a></p>
-<hr />
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch70">→ 원문 전체 보기 (research_story.html#ch70)</a></p>
+</div>
+</main>
+</div>
+
 </body></html>

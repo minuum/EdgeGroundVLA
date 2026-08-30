@@ -56,7 +56,10 @@ def extract_existing_summary_and_chapters(slug):
     if not path.exists():
         return None, set()
     text = path.read_text()
-    m = re.search(r"## 압축 요약[^\n]*\n\n(.*?)\n\n---\n", text, re.DOTALL)
+    m = re.search(r"\*\*압축 요약\*\*\n\n(.*?)\n\n</div>", text, re.DOTALL)
+    if not m:
+        # 구버전 포맷 하위호환(디자인 개편 전: "## 압축 요약" 헤딩 + "---" 구분선)
+        m = re.search(r"## 압축 요약[^\n]*\n\n(.*?)\n\n---\n", text, re.DOTALL)
     summary = m.group(1).strip() if m else None
     if summary:
         # 이전 실행이 붙인 "새 챕터 추가됨" 배지는 스크립트가 매번 새로 판단해서
@@ -65,8 +68,11 @@ def extract_existing_summary_and_chapters(slug):
         summary = re.sub(r"^⚠️ \*\*새 챕터 추가됨.*?\*\*\n\n", "", summary, flags=re.DOTALL)
     if summary and summary.startswith("*이 섹션은 아직 자동 생성되지"):
         summary = None  # 플레이스홀더 그대로였던 경우는 "아직 안 채워짐"과 동일 취급
-    existing_ids = set(re.findall(r"research_story\.html#([a-z0-9_-]+)\)", text))
+    existing_ids = set(re.findall(r'research_story\.html#([a-z0-9_-]+)["\')]', text))
     return summary, existing_ids
+
+
+ACCENTS = ["accent-a", "accent-b", "accent-c", "accent-d", "accent-e"]
 
 
 def build_topic_page(slug, topic):
@@ -78,9 +84,11 @@ def build_topic_page(slug, topic):
     lines = []
     lines.append(f"# {topic['title']}")
     lines.append("")
-    lines.append(f"> {topic['summary']}")
+    lines.append(f"<p class=\"tagline\">{topic['summary']}</p>")
     lines.append("")
-    lines.append("## 압축 요약")
+    lines.append('<div class="summary-box" markdown="1">')
+    lines.append("")
+    lines.append("**압축 요약**")
     lines.append("")
     if stale:
         lines.append(f"⚠️ **새 챕터 추가됨({', '.join(new_ids)}) — 아래 요약이 이 챕터들을 "
@@ -88,7 +96,7 @@ def build_topic_page(slug, topic):
         lines.append("")
     lines.append(prev_summary if prev_summary else PLACEHOLDER_SUMMARY)
     lines.append("")
-    lines.append("---")
+    lines.append("</div>")
     lines.append("")
     lines.append("## 챕터별 원문 발췌 (시간순)")
     lines.append("")
@@ -97,22 +105,35 @@ def build_topic_page(slug, topic):
     if missing:
         print(f"  ⚠️ [{slug}] 존재하지 않는 챕터 id: {missing}")
 
-    for cid in ordered_ids:
+    for i, cid in enumerate(ordered_ids):
         ch = CHAPTER_BY_ID.get(cid)
         if not ch:
             continue
         num = ch["num"] or cid.upper()
         title = ch["title"] or "(제목없음)"
-        lines.append(f"### {num} — {title}")
-        if ch["subtitle"]:
-            lines.append(f"*{ch['subtitle']}*")
+        accent = ACCENTS[i % len(ACCENTS)]
+
+        lines.append(f'<div class="chapter-block {accent}" markdown="1">')
         lines.append("")
+        lines.append(f'<div class="chapter-block-head">'
+                      f'<span class="chapter-badge">{num}</span> {title}</div>')
+        lines.append("")
+        if ch["subtitle"]:
+            lines.append(f'<p class="chapter-subtitle-line">{ch["subtitle"]}</p>')
+            lines.append("")
+
         for card in ch["cards"]:
+            lines.append('<div class="card" markdown="1">')
+            lines.append("")
             lines.append(format_card(card))
             lines.append("")
-        lines.append(f"[→ 원문 전체 보기(research_story.html#{cid})](../v5/research_story.html#{cid})")
+            lines.append("</div>")
+            lines.append("")
+
+        lines.append(f'<a class="src-link" href="../v5/research_story.html#{cid}">'
+                      f'→ 원문 전체 보기 (research_story.html#{cid})</a>')
         lines.append("")
-        lines.append("---")
+        lines.append("</div>")
         lines.append("")
 
     return "\n".join(lines)
@@ -120,40 +141,58 @@ def build_topic_page(slug, topic):
 
 def build_index():
     lines = []
-    lines.append("# MoNaVLA 연구 위키 — 주제별 색인")
+    lines.append("# MoNaVLA 연구 위키")
     lines.append("")
-    lines.append("`docs/v5/research_story.html`(시간순 연구일지, 70+챕터)을 주제별로")
-    lines.append("재구성한 위키다. Karpathy LLM-wiki 방식(raw/wiki/index 3계층, 벡터DB 없음) —")
-    lines.append("미래 세션은 이 index.md만 먼저 읽고, 필요한 주제 파일만 열어보면 된다.")
+    lines.append('<p class="tagline">`docs/v5/research_story.html`(시간순 연구일지, 80+챕터)을 '
+                 "주제별로 재구성한 위키. Karpathy LLM-wiki 방식(raw/wiki/index 3계층, 벡터DB 없음) — "
+                 "이 페이지만 먼저 읽고 필요한 주제 카드만 열어보면 된다. 원본은 이 위키가 대체하지 "
+                 "않는다 — 각 항목은 원문 챕터로 백링크되어 있다.</p>")
     lines.append("")
-    lines.append("원본(research_story.html)은 이 위키가 절대 대체하지 않는다 — 각 항목은")
-    lines.append("원문 챕터로 백링크되어 있으니, 세부 근거·수치·이미지가 필요하면 원문을 본다.")
+    lines.append("## 주제")
     lines.append("")
-    lines.append("## 주제 목록")
+    lines.append('<div class="topic-grid" markdown="1">')
     lines.append("")
-    for slug, topic in TOPICS.items():
+    for i, (slug, topic) in enumerate(TOPICS.items()):
         n = len(topic["chapter_ids"])
-        lines.append(f"- **[{topic['title']}]({slug}.md)** ({n}개 챕터) — {topic['summary']}")
+        accent = ACCENTS[i % len(ACCENTS)]
+        lines.append(f'<a class="topic-card {accent}" href="{slug}.html">')
+        lines.append(f'<span class="topic-card-count">{n}개 챕터</span>')
+        lines.append(f'<span class="topic-card-title">{topic["title"]}</span>')
+        lines.append(f'<span class="topic-card-summary">{topic["summary"]}</span>')
+        lines.append("</a>")
+        lines.append("")
+    lines.append("</div>")
     lines.append("")
     lines.append("## 부록")
     lines.append("")
-    lines.append("- **[아카이브 색인(archive-index.md)](archive-index.md)** — `docs/*.md` 357개 스냅샷 파일")
-    lines.append("  (2025-12~2026-04, research_story.html 이전 시기의 별개 프로젝트 단계, 대부분 폐기된")
-    lines.append("  방향의 죽은 기록). 압축 없이 제목/날짜/한줄요약만 모은 찾아가기용 색인.")
+    lines.append('<div class="topic-grid" markdown="1">')
     lines.append("")
-    lines.append("## 메타")
+    lines.append('<a class="topic-card accent-archive" href="archive-index.html">')
+    lines.append('<span class="topic-card-count">357개 파일</span>')
+    lines.append('<span class="topic-card-title">아카이브 색인</span>')
+    lines.append('<span class="topic-card-summary">docs/*.md 스냅샷(2024-08~2026-04, 별개 프로젝트 '
+                 "단계) — 압축 없이 제목/날짜/한줄요약만 모은 찾아가기용 색인.</span>")
+    lines.append("</a>")
+    lines.append("")
+    lines.append("</div>")
+    lines.append("")
+    lines.append('<div class="summary-box" markdown="1">')
+    lines.append("")
+    lines.append("**메타**")
     lines.append("")
     lines.append(f"- 원본 챕터 수: {len(CHAPTERS)}개 (`docs/v5/research_story.html`)")
     lines.append(f"- 위키 주제 수: {len(TOPICS)}개")
-    lines.append("- 생성 스크립트: `scripts/wiki/parse_research_story.py`, `scripts/wiki/build_wiki_pages.py`,")
-    lines.append("  `scripts/wiki/build_archive_index.py`, `scripts/wiki/render_wiki_html.py`")
-    lines.append("- **새 챕터 추가 시 자동 갱신**: `wiki-sync` 스킬(`.claude/skills/wiki-sync/SKILL.md`)")
-    lines.append("  또는 `scripts/wiki/sync_wiki.py` 직접 실행 — 기존 압축 요약은 보존되고, 새로")
-    lines.append("  추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨")
+    lines.append("- 생성 스크립트: `scripts/wiki/parse_research_story.py`, `scripts/wiki/build_wiki_pages.py`, "
+                 "`scripts/wiki/build_archive_index.py`, `scripts/wiki/render_wiki_html.py`")
+    lines.append("- **새 챕터 추가 시 자동 갱신**: `wiki-sync` 스킬(`.claude/skills/wiki-sync/SKILL.md`) "
+                 "또는 `scripts/wiki/sync_wiki.py` 직접 실행 — 기존 압축 요약은 보존되고, 새로 "
+                 "추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨")
     lines.append("- 위키 재생성 의존성: HTML 렌더링(`render_wiki_html.py`)만 "
                  "`pip install -r scripts/wiki/requirements.txt` 필요(Markdown 패키지) — "
                  "나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음")
     lines.append("- 최신 상태 요약(시간순, 별도 문서): `docs/RESEARCH_STATUS.md`")
+    lines.append("")
+    lines.append("</div>")
     return "\n".join(lines)
 
 

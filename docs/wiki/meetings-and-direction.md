@@ -1,27 +1,39 @@
 # 미팅 기록 & 연구 방향 결정
 
-> 교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.
+<p class="tagline">교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 5/22 미팅에서 교수님이 "객체를 인식해야 목표물이 될 수 있는데, 인식했다는 증거가 없다"는 3가지 반박(val set 부적절·LoRA 기여 불분명·객체 인식 직접 테스트 없음)을 던진 것이 이후 전 방향을 결정했다. 이에 대한 답으로 zero-shot linear probe(96.6%), basket masking ablation(9/9 예측 반전), 다른 객체 입력 테스트(gray basket 100%/red ball 0%/person 3%) 등 독립 증거를 쌓아 "모델이 basket을 실제로 본다"는 것을 구조적으로 증명했다(Exp54, Exp57, Exp59). 아키텍처는 **Decomposed VLA**로 확정됐다: VLM(PaliGemma2)이 텍스트 쿼리를 bbox(cx,cy,area)로 변환하는 Stage 1과, 그 bbox+visual feature로 액션을 결정하는 MLP/LSTM Stage 2를 분리한 구조이며, E2E(Kosmos-2 LoRA 전체 파인튜닝)는 text attention이 구조적으로 0%가 되어(Google-robot post-training이 원인, RoboVLMs의 lora_B=0 초기화 버그도 발견) closed-loop 0%로 완전히 실패했다. 여러 ablation이 일관되게 같은 결론을 가리켰다: **파이프라인 설계(L2-norm+bbox augmentation)가 유일한 결정 변수**이고, grounding 품질(HSV vs base PG2 vs LoRA grounding)이나 head 구조(LSTM vs MLP, 96.6%로 동일)나 LoRA 레이어 깊이는 성능에 거의 영향이 없는 "평평한 손잡이"였다 — 단순 MLP 파이프라인 10.3%에서 L2+aug 적용만으로 96.6%(×9.4배)로 뛴 것이 핵심 발견(CH33/CH26). 이 구조(Exp66, CL 96.6%, FPE 0.10m)가 현재 연구의 최선 모델로 굳어졌고, 6/12 미팅에서 논문 제출 방향(레이어 frozen + MLP 액션 헤드만 학습, 5개 VLM 베이스라인 비교, 로봇팔+모빌리티 모듈화 구조를 공헌으로 정리)이 확정됐다. 6/30 미팅에서는 그라운딩 프리뷰 모델로 PaliGemma2-448px가 채택됐다(Kosmos-2·Florence-2·OWL-v2·PG224·YOLO 대비 검출률 최고). 실로봇 테스트에서는 skip_n=3(그라운딩 3프레임당 1회) 배포로 레이턴시 66% 절감을 확인했고, 직선 경로 80%·좌우 오프셋 70%·각도 조정 후 90% 성공률을 실측했다. 아직 미해결로 명시된 것: STOP 거리(40~50cm) 현장 캘리브레이션은 계산기·핸드오프 문서만 완비된 채 실측 미착수이며, "시작 위치가 너무 멀 때(area가 작을 때) 그라운딩·오류율이 나빠지는 문제"는 줌 재그라운딩 등 시도한 해법이 전부 효과 없어 근본 해결책이 없는 상태다. (참고자료: `vis` 챕터는 로봇/실험환경·시스템 아키텍처·E2E vs Decomposition 비교·파이프라인/헤드 ablation 결과를 모은 이미지 위주 시각 자료 모음으로, 별도 서술 없이 그림/표 참고용이다.)
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CHAPTER 10 — 5/15 미팅 — 교수님 질문과 Exp54 설계
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 10</span> 5/15 미팅 — 교수님 질문과 Exp54 설계</div>
+
+<div class="card" markdown="1">
 
 **📋 5/15 미팅 투두 — 이후 어디서 풀렸는지**
 
 - ✅ 조이스틱 30개 신규 수집(좌/중/우 10개씩) — Exp53/Exp54 V5 데이터 수집으로 완료
 - ✅ "LEFT를 외운 건가, 박스를 본 건가" 구분 — Zero-shot probe(96.6%) + masking ablation(9/9 flip)로 답변, CH33 "5-Track 이중 증명"에서 확정. 이번 세션 CH41에서 그라운딩 신뢰도-오예측 상관으로 재확인.
 
-[→ 원문 전체 보기(research_story.html#ch10)](../v5/research_story.html#ch10)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch10">→ 원문 전체 보기 (research_story.html#ch10)</a>
 
-### CHAPTER 11 — 5/22 미팅 — 교수님 피드백 · 다음 실험 방향
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 11</span> 5/22 미팅 — 교수님 피드백 · 다음 실험 방향</div>
+
+<div class="card" markdown="1">
 
 교수님 반박 (5/22 미팅, 3:34PM · 24분)
 반박 1
@@ -274,11 +286,17 @@ Step 2 우회 해결 → Exp49
 Step 3: 33/33/33 완전 자율 내비
 실로봇 ≥80% 확인 후 진입. 현재 미착수.
 
-[→ 원문 전체 보기(research_story.html#ch11)](../v5/research_story.html#ch11)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch11">→ 원문 전체 보기 (research_story.html#ch11)</a>
 
-### CHAPTER 12 — 교수님 Q&A 정리 — 5/15 질문에 대한 5/22 답변
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 12</span> 교수님 Q&A 정리 — 5/15 질문에 대한 5/22 답변</div>
+
+<div class="card" markdown="1">
 
 **📋 5/22 미팅 투두 — 이후 어디서 풀렸는지**
 
@@ -287,11 +305,17 @@ Step 3: 33/33/33 완전 자율 내비
 - ✅ 객체 인식 직접 테스트 3종(다른 객체/마스킹/방향없는 tracking) — 마스킹(9/9 flip, CH33) + 다른 객체(5/5 generalization, CH39) + 방향-텍스트 무관성(CH38-5, CH42) 세 갈래로 전부 답변됨
 - ❓ RoboVLM 사전학습 객체 목록 파악 + 기존 인식 성능 저하 확인 — 문서 내 직접 확인 못함, 별도 확인 필요
 
-[→ 원문 전체 보기(research_story.html#ch12)](../v5/research_story.html#ch12)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch12">→ 원문 전체 보기 (research_story.html#ch12)</a>
 
-### CHAPTER 15 — 5/27 현재 — 교수님 반박 3라운드 대응 현황 + CL 전체 비교
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 15</span> 5/27 현재 — 교수님 반박 3라운드 대응 현황 + CL 전체 비교</div>
+
+<div class="card" markdown="1">
 
 핵심: CL 96.7%를 exp49 / exp51 / exp54_s2v2 / exp55 — 4개 독립 모델이 재현.
 단일 모델의 운이 아니라 GoalNav + bbox 파이프라인의 구조적 우월성임을 의미한다.
@@ -360,11 +384,17 @@ SODA 로봇서버 이관 — 5/27 완료
 - Grounding 데모: run_grounding_realtime.py
 - 실로봇 테스트 → sim-to-real gap 확인
 
-[→ 원문 전체 보기(research_story.html#ch15)](../v5/research_story.html#ch15)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch15">→ 원문 전체 보기 (research_story.html#ch15)</a>
 
-### CH 16 — 5/22~5/29 실험 상세 — 실제 입력·출력·발견
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 16</span> 5/22~5/29 실험 상세 — 실제 입력·출력·발견</div>
+
+<div class="card" markdown="1">
 
 🗺️ 처음 보는 사람을 위한 배경 설명
 MoNaVLA 로봇은 카메라 이미지를 보고 "basket(바구니)을 향해 이동"하는 것이 목표입니다.
@@ -511,11 +541,17 @@ Q3 "bbox는 위치 정보일 뿐?" → 텍스트 교차주의 결과물, phrase 
 Q4 "텍스트로 목표 변경?" → grounding 98% 성공, CL 노이즈는 MLP 재학습으로 해결 가능
 상세 증거: docs/v5/PROF_QA_EVIDENCE_20260529.md
 
-[→ 원문 전체 보기(research_story.html#ch16)](../v5/research_story.html#ch16)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch16">→ 원문 전체 보기 (research_story.html#ch16)</a>
 
-### CH 18 — 객체 인식 → 위치 → 액션 매칭 — 파이프라인 전체 흐름
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 18</span> 객체 인식 → 위치 → 액션 매칭 — 파이프라인 전체 흐름</div>
+
+<div class="card" markdown="1">
 
 ① 전체 파이프라인: 인식 → 위치 → 행동
 카메라 이미지 (1280×720)
@@ -632,11 +668,17 @@ HSV 완전 제거 ✅ 순수 신경망
 PG2 cx로 재학습한 MLP가 오히려 더 높은 정확도 달성.
 CL 결과가 96%+ 이상이면 교수님 반박에 대한 완전한 답변 — basket을 신경망이 인식해서 행동함.
 
-[→ 원문 전체 보기(research_story.html#ch18)](../v5/research_story.html#ch18)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch18">→ 원문 전체 보기 (research_story.html#ch18)</a>
 
-### CH 19 — 다른 VLA 논문들과의 비교 — 정직한 정량·정성 분석
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 19</span> 다른 VLA 논문들과의 비교 — 정직한 정량·정성 분석</div>
+
+<div class="card" markdown="1">
 
 ⚠️ 직접 수치 비교의 한계 — 먼저 짚고 가야 할 것
 태스크 범위
@@ -768,11 +810,17 @@ NaVILA (2412.04453)
 RING PointNav (2412.14401)
 SPL 지표 (1807.06757)
 
-[→ 원문 전체 보기(research_story.html#ch19)](../v5/research_story.html#ch19)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch19">→ 원문 전체 보기 (research_story.html#ch19)</a>
 
-### CH 21 — 연구 정리 — 무엇을 했고, 무엇을 배웠고, 어디로 가는가
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 21</span> 연구 정리 — 무엇을 했고, 무엇을 배웠고, 어디로 가는가</div>
+
+<div class="card" markdown="1">
 
 🎓 교수님 Q&A 대응 학술적 증거 리포트
 ① 출발점 — 교수님이 던진 질문
@@ -877,11 +925,17 @@ End-to-End VLA — PG2 full fine-tuning, cx 중간 단계 제거
 "신경망이 텍스트로 basket을 인식하고, 그 위치로 움직이는 것"은 증명됐습니다 (70% CL, right/left 100%).
 남은 과제는 center 경로 + 실로봇 배포 + 목표 다양화입니다.
 
-[→ 원문 전체 보기(research_story.html#ch21)](../v5/research_story.html#ch21)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch21">→ 원문 전체 보기 (research_story.html#ch21)</a>
 
-### CH 25 — 학술 논문 기여점 & 핵심 피쳐 5선
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 25</span> 학술 논문 기여점 & 핵심 피쳐 5선</div>
+
+<div class="card" markdown="1">
 
 **1. Decomposed VLA Pipeline (물리 공간 분해 제어)**
 
@@ -891,6 +945,10 @@ CH 13 (텍스트 경로 사망 분석)에서 텍스트 무시 현상의 근본 �
 CH 18 (객체인식➔위치➔액션 매칭) 및
 CH 20 (Free 에피소드 분석)을 통해 1:1 기하학 공간 바인딩의 일반화 제어 성공을 예시로 입증함.
 
+</div>
+
+<div class="card" markdown="1">
+
 **2. Y-Center 기하학 필터 게이트 (도착 STOP 강건화)**
 
 메커니즘: 단순히 BBox 면적(Area) 조건만으로 정지(STOP)를 유도할 때 발생하는 주행 중간의 정지 명령 오발화(False Trigger) 문제를 해결하기 위해, 타겟 BBox 하단이 화면 바닥에 내려앉는 화각 경계선 특이점(cy_avg > 0.50)을 필터 게이트로 활용함.
@@ -898,11 +956,19 @@ CH 20 (Free 에피소드 분석)을 통해 1:1 기하학 공간 바인딩의 일
 CH 14 (왜 학술 지표인가)에서 Closed-Loop의 실질 완주 도달률의 중요성을 설명하고,
 CH 15 (5/27 반박 현황 · CL 전체 비교) 내 32ep Ablation 테스트 결과를 통해 오발 정지 억제로 도달 성공률이 34.4%에서 68.8%로 2배 수직 상승함을 예시로 실증함.
 
+</div>
+
+<div class="card" markdown="1">
+
 **3. Action Lag Compensation (시간축 역보정)**
 
 메커니즘: 10Hz 주기의 연속 비동기 제어 수집 방식을 도입하여 동기식 제어의 고질적 병목인 조향 오버슈팅과 오실레이션을 억제함. 이때 조종자의 약 100ms 반응 지연 시간(Action Lag)을 상쇄하기 위해 수집 데이터 내에서 액션 배열을 1프레임 앞(a_{t+1})으로 시프트 매핑하는 시간축 역보정을 적용함.
 ➔ 실증 근거:
 CH 22 (동기 vs 비동기 수집 · STOP 진실)에서 비동기 수집 루프의 스무스한 조향 제어 우위성과 시간 정합성 보정이 실물 주행 오실레이션을 감쇄시키는 메커니즘을 상세 예시로 제공함.
+
+</div>
+
+<div class="card" markdown="1">
 
 **4. Jitter Hold Filter & Plateau STOP (제어 노이즈 제어)**
 
@@ -911,6 +977,10 @@ CH 22 (동기 vs 비동기 수집 · STOP 진실)에서 비동기 수집 루프�
 CH 22 (동기 vs 비동기 수집)의 Plateau STOP 및 데이터셋 무결성 검증, 그리고
 CH 9 (실로봇 평가)의 도착 지점 정지 궤적 데이터를 통해 최종 속도 감속 및 정지 제어가 안정화됨을 예시로 실증함.
 
+</div>
+
+<div class="card" markdown="1">
+
 **5. Vision-centric LoRA & LLM-frozen Tuning**
 
 메커니즘: 소규모 온디바이스 fine-tuning 환경에서 일반화 성능(OOD 노이즈) 강건성을 극대화하기 위해 PaliGemma2의 비전 인코더(SigLIP 상위 레이어)의 표현 공간을 미세조정하되, 과적합을 차단하기 위해 LLM 레이어는 튜닝에서 제외(Frozen)하는 아키텍처를 수립함.
@@ -918,11 +988,17 @@ CH 9 (실로봇 평가)의 도착 지점 정지 궤적 데이터를 통해 최�
 CH 11 (교수님 반박 3가지)의 CLIP-SigLIP 가중치 분석 및
 CH 17 (PaliGemma 전환 히스토리)를 통해, 적은 수의 로보틱스 데이터셋(220ep)만으로도 강건한 비전-텍스트 공간 정렬 표현을 성공적으로 학습시켰음을 입증함.
 
-[→ 원문 전체 보기(research_story.html#ch25)](../v5/research_story.html#ch25)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch25">→ 원문 전체 보기 (research_story.html#ch25)</a>
 
-### CH 26 — 통합 Ablation 분석 — 세 실험이 가리키는 한 방향
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 26</span> 통합 Ablation 분석 — 세 실험이 가리키는 한 방향</div>
+
+<div class="card" markdown="1">
 
 ① Exp60 — 제어 데이터/증강 ablation
 HSV→PG2 bbox 분포 불일치(OOD)로 CL 96.7%→4.5% 붕괴. 회복 레버:
@@ -968,12 +1044,19 @@ E2E는 LoRA 깊이가 병목이 아님 = ②와 동일한 "fine-tuning 평탄성
 세 ablation이 독립적으로 같은 말을 한다 — "모델을 더 튜닝하는 것"은 plateau, "구조를 분해하고 데이터를 늘리고 grounding을 안정화"하는 것이 레버.
 그래서 다음 단계는 LoRA 재튜닝이 아니라 base grounding + 분해 파이프라인 + 데이터 확장(center 경로·다물체)이다.
 
-[→ 원문 전체 보기(research_story.html#ch26)](../v5/research_story.html#ch26)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch26">→ 원문 전체 보기 (research_story.html#ch26)</a>
 
-### CH 36 — 6/12 미팅 — 실사 테스트 & 논문 제출 결정
-*2026-06-12 · 이민우 + 교수님*
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 36</span> 6/12 미팅 — 실사 테스트 & 논문 제출 결정</div>
+
+<p class="chapter-subtitle-line">2026-06-12 · 이민우 + 교수님</p>
+
+<div class="card" markdown="1">
 
 -top:8px;background:#1a0d0d;border-radius:6px;padding:8px 10px;font-size:0.79rem;color:#fca5a5">
 ⚠️ 블로커: 가까워졌을 때 grounding 인식 여부 미확인 — STOP 처리 방안 검토 중
@@ -1009,12 +1092,19 @@ RoboVLMs 헤드 → MLP 헤드 교체 방향 결정
 ❓ 논문 헤드 교체·수정 후 제출 일정 조율 — 문서로 확인 불가
 범례: ✅ 완료(근거 있음) · 🔄 부분/진행 중 · ❓ 문서로 확인 불가 · ☐ 미착수. 이후 새 CH가 채워질 때마다 이 표를 갱신.
 
-[→ 원문 전체 보기(research_story.html#ch36)](../v5/research_story.html#ch36)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch36">→ 원문 전체 보기 (research_story.html#ch36)</a>
 
-### MTG — 6/26 미팅 — 6/22 질문 해결 논리 전개 전체 정리
-*6/22 미팅에서 열린 질문 4개의 연구 흐름 · 검증 과정 · 최종 결론 + 오늘(6/26) 추론 세션 결과*
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">MTG</span> 6/26 미팅 — 6/22 질문 해결 논리 전개 전체 정리</div>
+
+<p class="chapter-subtitle-line">6/22 미팅에서 열린 질문 4개의 연구 흐름 · 검증 과정 · 최종 결론 + 오늘(6/26) 추론 세션 결과</p>
+
+<div class="card" markdown="1">
 
 **✅ 실제 미팅 결과 — 2026-06-26 · 이민우, Speaker 2, Speaker 3**
 
@@ -1056,11 +1146,19 @@ Action Items
 - ☐ Speaker 2: 박스 10/20/30cm 거리 × 10회씩 테스트, 성공률(%) 산출
 - ☐ Speaker 2: 월요일 9시 미팅 브리핑 (또는 카카오톡 공유)
 
+</div>
+
+<div class="card" markdown="1">
+
 **헤드라인 한 줄**
 
 "6/22 질문 4개 중 3개는 음성 결과로 종결됐고 1개(STOP 실측)는 미착수입니다.
 운영 모델(Exp66)은 현재 연구 범위에서 이미 최선에 가까운 상태이며,
 확인된 유일한 개선은 레이턴시 66% 절감(grounding_skip_n=3)으로 오늘 오전 배포·실측 확인 완료했습니다."
+
+</div>
+
+<div class="card" markdown="1">
 
 **Q1 (6/22). "그라운딩/인식 품질 개선 — has_bbox=False 오류율 3~5배, 실제 개선 미착수"**
 
@@ -1084,6 +1182,10 @@ Q1 결론 (음성)
 "area와 오류율 상관"은 실재하지만, 줌 크롭으로는 해결 불가.
 근본 해결책은 별도 트랙(최소 거리 운영 프로토콜 또는 초기 접근 매뉴버)이 필요하며 현재 미결.
 
+</div>
+
+<div class="card" markdown="1">
+
 **Q2 (6/22). "LSTM+hidden state — val 29개로는 SR 변별 안 됨, 더 큰 표본 필요"**
 
 CH43에서 LSTM add mode 96.85%를 보고했으나 CH43-2d에서 이미 5-seed 정정(95.39%±0.20%p).
@@ -1097,6 +1199,10 @@ Q2 결론 (완료)
 SR 기준으로는 hidden state가 어떤 path_type에서도 도움 안 됨. val 세트가 이미 SR 포화(천장) 상태.
 FPE 정밀도에서 replace mode가 전환 경로에서 일관되게 우세 — 실운용 가치가 있다면 replace 채택 근거.
 
+</div>
+
+<div class="card" markdown="1">
+
 **Q3 (파생). "skip_n=3이 안전하다면 배포" → 오늘 완료**
 
 CH49에서 skip_n=3이 SR/FPE 변화 없이 레이턴시를 66% 절감한다는 것을 확인(all 3 modes 검증).
@@ -1105,6 +1211,10 @@ CH49에서 skip_n=3이 SR/FPE 변화 없이 레이턴시를 66% 절감한다는 
 — `1 call + 2 cached` / `2 calls + 4 cached` 패턴 정확히 일치.
 정상 레이턴시: 1,348~1,469ms/call (104455의 22.4s는 콜드스타트 단발 이상치로 추정).
 
+</div>
+
+<div class="card" markdown="1">
+
 **Q4 (6/22). "STOP 거리 40~50cm 캘리브레이션 — 현장 실측만 남음" → 미착수**
 
 계산기(calibrate_stop_distance.py)와 핸드오프 문서(docs/STOP_DISTANCE_CALIBRATION_HANDOFF.md)는 완성.
@@ -1112,6 +1222,10 @@ soda 로봇 앞에서 30/40/45/50cm에서 area 기록하는 실측만 남았으�
 실측 방법: 로봇-바구니 거리 4곳(30/40/45/50cm)에서 PG2 grounding area 각 5회씩 기록 →
 calibrate_stop_distance.py에 입력 → area=k/d² 핀홀 모델로 최적 STOP 임계값 도출.
 현재 하드코딩 area≥0.25는 미검증 추정값.
+
+</div>
+
+<div class="card" markdown="1">
 
 **오늘(6/26) 추론 세션 3개 — skip_n=3 첫 실주행 확인**
 
@@ -1146,6 +1260,10 @@ FWD/FWD+L
 area 전체 0.017~0.074 — "처음이 너무 멀어서" 시나리오 그대로 실측. 그라운딩 자체는 됨(has_bbox=True).
 모델은 세 세션 모두 FWD 계열로 정상 항법 시도. 104455의 22.4s 이상치는 단발 콜드스타트 추정.
 
+</div>
+
+<div class="card" markdown="1">
+
 **현재 운영 모델(Exp66) 상태 — 6/26 기준**
 
 CL 성공률 (시뮬)
@@ -1166,6 +1284,10 @@ CH50-3, CH51
 STOP 거리 캘리브레이션
 현장 실측 대기 중
 계산기 완비, 로봇 실측만 남음
+
+</div>
+
+<div class="card" markdown="1">
 
 **Q & A**
 
@@ -1191,12 +1313,19 @@ Q5. "다음에 뭘 해야 해요?"
 ① STOP 거리 현장 실측(30/40/45/50cm, 로봇 필요 — 계산기·핸드오프 완비) ② 그라운딩 실패 대응 방향 결정(교수님 판단). 시뮬 기준 96.6%에서 더 올릴 방법은 현재 식별되지 않음.
 CH44~CH52 전체 근거  |  6/26 세션: docs/inference_sessions/session_20260626_*.h5  |  2026-06-26
 
-[→ 원문 전체 보기(research_story.html#meeting-0626)](../v5/research_story.html#meeting-0626)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#meeting-0626">→ 원문 전체 보기 (research_story.html#meeting-0626)</a>
 
-### MTG — 6/30 미팅 — 실제 결과
-*참석: 이민우, 교수님 · PG448 채택 확정 · 논문 공헌 방향 결정 · 목요일 OT 후 미팅 예정*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">MTG</span> 6/30 미팅 — 실제 결과</div>
+
+<p class="chapter-subtitle-line">참석: 이민우, 교수님 · PG448 채택 확정 · 논문 공헌 방향 결정 · 목요일 OT 후 미팅 예정</p>
+
+<div class="card" markdown="1">
 
 **✅ 실제 미팅 결과 — 2026-06-30 · 이민우, 교수님**
 
@@ -1209,6 +1338,10 @@ YOLO 불채택
 목요일
 다음 미팅
 OT 이후
+
+</div>
+
+<div class="card" markdown="1">
 
 **진행 상황 (이민우)**
 
@@ -1233,6 +1366,10 @@ MLP 모델이 이전 8프레임을 참고하는 특성상, 0번째 프레임의 
 공헌 후보: ① 전체 파이프라인 구성 ② 베이스라인 5개 비교 ③ 모듈화 프레임워크
 (액션 헤드와 객체 정보만 교체하면 로봇팔·모빌리티 모두 적용 가능한 구조).
 목요일 미팅 전까지 실험 내용 정리 후 교수님께 공유 예정.
+
+</div>
+
+<div class="card" markdown="1">
 
 **5-Model 검출률 비교 (minum 서버, 185프레임)**
 
@@ -1266,6 +1403,10 @@ YOLO V8N / V8S
 낮음
 ❌ 검출률 낮아 불채택
 
+</div>
+
+<div class="card" markdown="1">
+
 **결정 사항**
 
 - PaliGemma2 448px를 프리뷰 모델로 채택 — 별도 경량 모델(YOLO 등) 미사용
@@ -1274,11 +1415,19 @@ YOLO V8N / V8S
 - 로봇팔과 모빌리티를 하나의 VLM 백본으로 모듈화하는 구조를 핵심 공헌으로 정리
 - 다음 미팅: 목요일 OT 이후 — 448px 테스트 결과 및 실험 정리 보고
 
+</div>
+
+<div class="card" markdown="1">
+
 **교수님 코멘트**
 
 - 베이스라인 선택 과정, 전체 파이프라인 설계, 로봇팔+모빌리티를 하나의 VLM으로 처리하는 모듈화 구조를 공헌으로 정리할 것 제안
 - 향후 하나의 VLA 모델로 모빌리티+로봇팔 동작을 동시에 수행하는 방향으로 발전 가능성 언급
 - 이번 실험이 월드 모델로 나아가기 위한 중간 단계로서의 의미가 있다고 평가
+
+</div>
+
+<div class="card" markdown="1">
 
 **액션 아이템 — 이민우**
 
@@ -1288,16 +1437,26 @@ YOLO V8N / V8S
 - 실험 버전 정리 문서 목요일 전까지 공유
 - 파이프라인·베이스라인·모듈화 공헌 문서화
 
+</div>
+
+<div class="card" markdown="1">
+
 **액션 아이템 — 교수님**
 
 - 목요일 OT 이후 미팅 — 448px 결과 및 실험 정리 확인
 - 이민우 공유 문서 검토 → 논문 공헌 포인트 도출
 
-[→ 원문 전체 보기(research_story.html#meeting-0630)](../v5/research_story.html#meeting-0630)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#meeting-0630">→ 원문 전체 보기 (research_story.html#meeting-0630)</a>
 
-### MEETING — 미팅 준비 — 추천 읽기 순서 & 자료 링크
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">MEETING</span> 미팅 준비 — 추천 읽기 순서 & 자료 링크</div>
+
+<div class="card" markdown="1">
 
 48b;margin-top:2px">10.3% → 96.6%
 ⚡ 교수님 미팅 동선 (2026-06-12 기준)
@@ -1344,12 +1503,19 @@ NEXT 다음 방향
 🔲 의자 Stage2 학습 + CL eval (수집 완료 후 즉시 실행 가능)
 🔲 논문 최종 작성 (Table 1/2A/2B/2C/2D 확정 완료, 본문 서술 필요)
 
-[→ 원문 전체 보기(research_story.html#meeting-guide)](../v5/research_story.html#meeting-guide)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#meeting-guide">→ 원문 전체 보기 (research_story.html#meeting-guide)</a>
 
-### PRES — 15분 발표 — 우리 모델 SOTA 정리
-*2026-06-12 · 핵심 수치만, 밑줄 강조*
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">PRES</span> 15분 발표 — 우리 모델 SOTA 정리</div>
+
+<p class="chapter-subtitle-line">2026-06-12 · 핵심 수치만, 밑줄 강조</p>
+
+<div class="card" markdown="1">
 
 8px;padding:10px">
 13~15분
@@ -1433,11 +1599,17 @@ CL은 window에 둔감, FPE는 window에 민감.
 📐 Window w=4 충분 (CL 포화). FPE 개선은 LSTM w=16 (0.080m)
 다음: 의자 데이터 수집 → Stage2 재학습 → 다물체 Goal-Conditioned 검증
 
-[→ 원문 전체 보기(research_story.html#pres)](../v5/research_story.html#pres)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#pres">→ 원문 전체 보기 (research_story.html#pres)</a>
 
-### SUMMARY — 전체 흐름 요약
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">SUMMARY</span> 전체 흐름 요약</div>
+
+<div class="card" markdown="1">
 
 **✅ Head Ablation — LSTM = ActionMLP**
 
@@ -1445,11 +1617,19 @@ CL은 window에 둔감, FPE는 window에 민감.
 ✅ Head Ablation — LSTM = ActionMLP
 Linear 69.0% → FCHead 93.1% → LSTMHead(RoboVLMs) 96.6% = ActionMLP(ours) 96.6%. window-flat MLP가 LSTM과 등가·더 경량. → CH34
 
+</div>
+
+<div class="card" markdown="1">
+
 **✅ Window Ablation — MLP w≥4 포화**
 
 w≥4
 ✅ Window Ablation — MLP w≥4 포화
 MLP w=2만 CL 93.1% 하락. w≥4 전부 96.6% 포화. LSTM w=16이 FPE 0.080m 전체 최저 → 정밀도는 긴 맥락 활용 가능. → CH35
+
+</div>
+
+<div class="card" markdown="1">
 
 **✅ Basket 이중 증명 완료**
 
@@ -1475,12 +1655,19 @@ Zero-shot linear probe 96.6%(frozen CLIP 위). Basket masking → 9/9 프레임 
 🤖 Robot Tests — 실제 추론 세션 전체 프레임 분석
 2026-05-29 · 2026-06-04 세션 · FWD+LEFT bias 원인 분석 · timing mismatch 발견
 
-[→ 원문 전체 보기(research_story.html#summary)](../v5/research_story.html#summary)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#summary">→ 원문 전체 보기 (research_story.html#summary)</a>
 
-### TODO — 사용자 지시 5개 — 학습/추론 이미지 파이프라인 가설 (→ CH44에서 검증)
-*2026-06-22, CH44 작업 착수 직전 사용자가 제시한 5가지 가설/요청 원문 그대로. 각 항목의 검증 결과는 CH44 본문 참고.*
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">TODO</span> 사용자 지시 5개 — 학습/추론 이미지 파이프라인 가설 (→ CH44에서 검증)</div>
+
+<p class="chapter-subtitle-line">2026-06-22, CH44 작업 착수 직전 사용자가 제시한 5가지 가설/요청 원문 그대로. 각 항목의 검증 결과는 CH44 본문 참고.</p>
+
+<div class="card" markdown="1">
 
 - ✅ 학습 시 1280×720 → 224×224로 변경해 학습 — 검증 결과 이미 그렇게 동작 중이었음(HF processor가 암묵적으로 224×224 리사이즈). image_preprocess.py로 명시적 통일 완료 → CH44-1
 - ✅ 추론 시 카메라 1280×720 → 224×224 리사이징해서 입력 — 동일하게 이미 그렇게 동작 중, 명시적 통일 완료 → CH44-1
@@ -1493,12 +1680,19 @@ Zero-shot linear probe 96.6%(frozen CLIP 위). Basket masking → 9/9 프레임 
 - ✅ VLM 의미벡터(HS)와 입력 해상도의 alignment 의심 — 코드 검증 결과 해상도 자체는 이미 정렬되어 있어 원인이 아닌 것으로 확인(가설 기각). 남은 의심 지점이었던 "카메라 vs h5 색공간 차이"도 CH45-1에서 실측으로 추가 기각됨 → CH44-1
 범례: ✅ 완료/검증됨 · 🔄 부분 해결 · ❓ 확인 불가 · ☐ 미착수
 
-[→ 원문 전체 보기(research_story.html#todo-ch44)](../v5/research_story.html#todo-ch44)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#todo-ch44">→ 원문 전체 보기 (research_story.html#todo-ch44)</a>
 
-### VIS — 시각 자료 모음
-*로봇 · 아키텍처 · 결과 테이블 · 실험 증거*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">VIS</span> 시각 자료 모음</div>
+
+<p class="chapter-subtitle-line">로봇 · 아키텍처 · 결과 테이블 · 실험 증거</p>
+
+<div class="card" markdown="1">
 
 4-dim
 [image_proj → 256-dim, L2-normalize] ← Stage 1 (val acc 98.1%)
@@ -1628,17 +1822,28 @@ Fig F-1. Zero-shot Linear Probe. Frozen CLIP이 학습 없이 96.6% 위치 분�
 Fig F-2. Basket Masking Ablation (Exp66 Stage2 v2, SOTA). bbox history=zeros 조건에서 basket 마스킹 → 9/9 (100%) 행동 반전. 이미지 경로가 basket 위치를 독립적으로 인식함을 증명.
 Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 9/9 flip (Exp66, PG2)) → "basket을 본다" 이중 증명.
 
-[→ 원문 전체 보기(research_story.html#vis)](../v5/research_story.html#vis)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#vis">→ 원문 전체 보기 (research_story.html#vis)</a>
 
-### MEETING — 이번주 미팅 준비 (2026-06-22 기준 분석)
-*오늘 CH39~43 분석 결과 요약 — 보여줄 장면 / 정직하게 언급할 것 / 다음 우선순위 / 별도 진행 중인 디버깅 예고*
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">MEETING</span> 이번주 미팅 준비 (2026-06-22 기준 분석)</div>
+
+<p class="chapter-subtitle-line">오늘 CH39~43 분석 결과 요약 — 보여줄 장면 / 정직하게 언급할 것 / 다음 우선순위 / 별도 진행 중인 디버깅 예고</p>
+
+<div class="card" markdown="1">
 
 **1. 한 줄 헤드라인**
 
 "실주행이 안 되는 원인을 head(행동 결정 구조)보다 그라운딩/인식 단계로 좁혔고, head 구조 자체도
 LSTM이 MLP보다 훨씬 강하다는 걸 정량으로 확인했습니다."
+
+</div>
+
+<div class="card" markdown="1">
 
 **2. 보여줄 장면 — CH41의 실제 프레임 9장**
 
@@ -1646,22 +1851,38 @@ CH41의 9개 path_type 프레임(그라운딩=청록 박스, 액션예측=빨강
 나란히 보여주면서: "그라운딩이 실패하거나 박스가 작게 잡힌 프레임에서 오류율이 3~5배 높습니다(7%→40%)." —
 가장 직관적이고 다음 단계(그라운딩 개선)의 근거가 됨.
 
+</div>
+
+<div class="card" markdown="1">
+
 **3. 정직하게 보여줄 것 — 자기 검증 과정 (CH40)**
 
 "처음엔 PG2 hidden state를 추가하면 PM이 13%p 오른다고 봤는데, 같은 코드로 baseline을 다시 측정해보니
 측정 오류였고 실제로는 효과가 없었습니다. 발견 즉시 정정했습니다." — 숨기지 않고 짧게 언급하면 검증 과정이
 제대로 작동했다는 신뢰도로 이어짐. (CH40 참고)
 
+</div>
+
+<div class="card" markdown="1">
+
 **4. 다음 우선순위 한 줄**
 
 "head 구조(LSTM)가 가장 강한 factor라는 걸 확인했으니, 다음은 ① 그라운딩/인식 품질 자체를 올리는 작업과
 ② LSTM+hidden state 조합을 더 큰 데이터로 검증하는 작업을 병행합니다." (CH43 참고)
+
+</div>
+
+<div class="card" markdown="1">
 
 **5. 별도 진행 중 — 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅**
 
 이번 CH39~43 분석과는 별도로, 실제 로봇이 서버에서 학습할 때와 로봇에서 추론할 때 이미지 데이터
 프로세싱 과정의 차이를 디버깅 중입니다. 토요일까지 진행해보고, 주말에 온라인으로 보여드리기는
 어려우니 페이지나 이미지로 정리해서 따로 연락드릴 예정입니다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **6. 5번 디버깅 진행 상황 — "4초"의 진짜 원인 확인, 학습/추론 리사이즈 통일 배포 완료**
 
@@ -1676,6 +1897,10 @@ robovlm_nav/image_preprocess.py 공유 함수로 명시적으로 강제 — soda
 근처에서 정확히 4.0초 차이가 나는 것이었습니다(scripts/eval/diagnose_pipeline_health.py B.drift 체크로 재현 검증).
 재발 방지용 체크리스트 5종(latency/drift/continuity/resize/grounding)을 만들어 GB10·soda 양쪽에 배포함 —
 CHECKLIST_pipeline_health.md
+
+</div>
+
+<div class="card" markdown="1">
 
 **📋 6/22 미팅 투두 — 이번 주 새로 열린 항목(다음 CH로 갱신될 것)**
 
@@ -1701,6 +1926,8 @@ CH41 · CH42 ·
 CH43  |
 🧠 Hidden State Hub(한 페이지 요약)  |  2026-06-22
 
-[→ 원문 전체 보기(research_story.html#weekly-meeting)](../v5/research_story.html#weekly-meeting)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#weekly-meeting">→ 원문 전체 보기 (research_story.html#weekly-meeting)</a>
+
+</div>

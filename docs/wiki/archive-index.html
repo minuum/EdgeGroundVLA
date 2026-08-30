@@ -1,30 +1,123 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>아카이브 색인 — docs/*.md 스냅샷 357개 (압축 없음, 원문 그대로)</title>
 <style>
-body{background:#0a0f1a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-     max-width:900px;margin:0 auto;padding:32px 20px 80px;line-height:1.8}
-h1{font-size:1.7rem;color:#4ade80;border-bottom:2px solid #1e293b;padding-bottom:12px}
-h2{font-size:1.25rem;color:#38bdf8;margin-top:36px}
-h3{font-size:1.05rem;color:#fbbf24;margin-top:28px;border-left:3px solid #fbbf24;padding-left:10px}
-p{color:#94a3b8;font-size:0.92rem}
+:root{
+  --bg:#0a0f1a; --bg-raised:#0d1420; --line:#1e293b; --line-soft:#16202f;
+  --ink:#e2e8f0; --ink-soft:#94a3b8; --ink-dim:#64748b;
+  --accent-a:#4ade80; --accent-b:#38bdf8; --accent-c:#fbbf24; --accent-d:#f472b6; --accent-e:#a78bfa;
+  --accent-archive:#94a3b8;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);
+     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     margin:0;line-height:1.75;font-size:15px}
+.layout{display:flex;max-width:1180px;margin:0 auto;align-items:flex-start}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;flex:0 0 240px;
+         padding:28px 16px;border-right:1px solid var(--line);font-size:0.82rem}
+.sidebar-brand{font-weight:800;color:var(--ink);font-size:0.95rem;margin-bottom:4px}
+.sidebar-brand a{color:inherit;text-decoration:none}
+.sidebar-sub{color:var(--ink-dim);font-size:0.72rem;margin-bottom:18px}
+.sidebar-section{color:var(--ink-dim);font-size:0.68rem;font-weight:700;text-transform:uppercase;
+                  letter-spacing:0.06em;margin:18px 0 8px}
+.sidebar a.side-link{display:block;color:var(--ink-soft);text-decoration:none;padding:6px 8px;
+                      border-radius:6px;margin:1px 0}
+.sidebar a.side-link:hover{background:var(--bg-raised);color:var(--ink)}
+.sidebar a.side-link.current{background:var(--bg-raised);color:var(--ink);font-weight:700;
+                              box-shadow:inset 3px 0 0 var(--accent-b)}
+.sidebar a.side-link .n{color:var(--ink-dim);font-size:0.7rem;float:right}
+.main{flex:1 1 auto;min-width:0;padding:36px 40px 100px;max-width:900px}
+h1{font-size:1.6rem;color:var(--ink);margin:0 0 8px;letter-spacing:-0.01em}
+h2{font-size:1.05rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;
+   letter-spacing:0.04em;margin-top:40px;margin-bottom:16px}
+p.tagline{color:var(--ink-soft);font-size:0.95rem;margin:0 0 28px;max-width:70ch}
 a{color:#7dd3fc}
-blockquote{border-left:3px solid #4ade80;padding:8px 16px;margin:12px 0;background:rgba(74,222,128,0.06);
-           color:#86efac;font-size:0.9rem}
-hr{border:none;border-top:1px solid #1e293b;margin:24px 0}
-code{background:#111827;padding:2px 6px;border-radius:4px;font-size:0.85rem;color:#fbbf24}
-ul{color:#94a3b8}
-strong{color:#e2e8f0}
-em{color:#64748b}
-table{border-collapse:collapse;width:100%;font-size:0.8rem;margin:16px 0;display:block;overflow-x:auto}
-th,td{border:1px solid #1e293b;padding:6px 10px;text-align:left;color:#94a3b8}
-th{color:#e2e8f0;background:#111827}
-.nav-bar{margin-bottom:24px;font-size:0.82rem}
-.nav-bar a{color:#64748b;text-decoration:none;margin-right:12px}
-.nav-bar a:hover{color:#7dd3fc}
+code{background:#111827;padding:2px 6px;border-radius:4px;font-size:0.85rem;color:var(--accent-c)}
+strong{color:var(--ink)}
+em{color:var(--ink-dim)}
+ul{color:var(--ink-soft)}
+
+/* 요약/메타 강조 박스 */
+.summary-box{background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--accent-a);
+             border-radius:10px;padding:18px 22px;margin:0 0 32px}
+.summary-box>p:first-child strong:first-child{color:var(--accent-a);font-size:0.8rem;
+             text-transform:uppercase;letter-spacing:0.05em}
+.summary-box p{color:var(--ink-soft);font-size:0.9rem;margin:10px 0}
+
+/* 챕터 블록(카드) */
+.chapter-block{background:var(--bg-raised);border:1px solid var(--line);border-radius:12px;
+                padding:20px 24px;margin-bottom:20px}
+.chapter-block-head{font-size:1.0rem;font-weight:700;color:var(--ink);margin-bottom:4px}
+.chapter-badge{display:inline-block;background:var(--line-soft);color:var(--ink-soft);
+                font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:5px;margin-right:8px}
+p.chapter-subtitle-line{color:var(--ink-dim);font-size:0.8rem;font-style:italic;margin:0 0 14px}
+.accent-a{border-left:3px solid var(--accent-a)} .accent-a .chapter-badge{background:rgba(74,222,128,0.15);color:var(--accent-a)}
+.accent-b{border-left:3px solid var(--accent-b)} .accent-b .chapter-badge{background:rgba(56,189,248,0.15);color:var(--accent-b)}
+.accent-c{border-left:3px solid var(--accent-c)} .accent-c .chapter-badge{background:rgba(251,191,36,0.15);color:var(--accent-c)}
+.accent-d{border-left:3px solid var(--accent-d)} .accent-d .chapter-badge{background:rgba(244,114,182,0.15);color:var(--accent-d)}
+.accent-e{border-left:3px solid var(--accent-e)} .accent-e .chapter-badge{background:rgba(167,139,250,0.15);color:var(--accent-e)}
+
+/* 카드 안의 finding-card */
+.card{background:var(--bg);border:1px solid var(--line-soft);border-radius:8px;
+      padding:12px 16px;margin:10px 0;font-size:0.86rem}
+.card p{margin:6px 0;color:var(--ink-soft)}
+.card>p:first-child strong:only-child{color:var(--ink)}
+a.src-link{display:inline-block;margin-top:8px;font-size:0.8rem;color:var(--ink-dim);text-decoration:none}
+a.src-link:hover{color:#7dd3fc}
+
+table{border-collapse:collapse;width:100%;font-size:0.8rem;margin:12px 0;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;color:var(--ink-soft)}
+th{color:var(--ink);background:var(--bg-raised);position:sticky;top:0}
+
+/* 홈 주제 카드 그리드 */
+.topic-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0 32px}
+@media(max-width:700px){.topic-grid{grid-template-columns:1fr}}
+a.topic-card{display:flex;flex-direction:column;gap:6px;background:var(--bg-raised);
+             border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+             text-decoration:none;transition:transform .12s,border-color .12s}
+a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
+.topic-card-count{font-size:0.68rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.05em}
+.topic-card-title{font-size:1.0rem;font-weight:700;color:var(--ink)}
+.topic-card-summary{font-size:0.8rem;color:var(--ink-soft);line-height:1.5}
+.topic-card.accent-a{border-top:3px solid var(--accent-a)}
+.topic-card.accent-b{border-top:3px solid var(--accent-b)}
+.topic-card.accent-c{border-top:3px solid var(--accent-c)}
+.topic-card.accent-d{border-top:3px solid var(--accent-d)}
+.topic-card.accent-e{border-top:3px solid var(--accent-e)}
+.topic-card.accent-archive{border-top:3px solid var(--accent-archive)}
+
+/* 아카이브 색인 검색창 */
+.archive-search{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--line);
+                 background:var(--bg-raised);color:var(--ink);font-size:0.9rem;margin-bottom:14px}
+.archive-search:focus{outline:2px solid var(--accent-b);outline-offset:1px}
+.archive-count{color:var(--ink-dim);font-size:0.78rem;margin-bottom:10px}
+
+@media(max-width:820px){
+  .layout{display:block}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+  .main{padding:24px 20px 80px;max-width:100%}
+}
 </style>
 </head><body>
-<div class="nav-bar"><a href="index.html">← 위키 색인</a><a href="../v5/research_story.html">연구일지 원본(research_story.html)</a></div>
+<div class="layout">
+<nav class="sidebar"><div class="sidebar-brand"><a href="index.html">MoNaVLA 연구 위키</a></div>
+<div class="sidebar-sub">주제별 재구성 · research_story.html 기반</div>
+<div class="sidebar-section">주제</div>
+<a class="side-link" href="wiki-infrastructure.html">연구 위키 & 문서 인프라<span class="n">1</span></a>
+<a class="side-link" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">19</span></a>
+<a class="side-link" href="action-head-architecture.html">액션헤드 아키텍처 & 손실함수 실험<span class="n">12</span></a>
+<a class="side-link" href="language-conditioning.html">언어 조건화 & 텍스트 어텐션 구조적 사망<span class="n">6</span></a>
+<a class="side-link" href="flow-matching-vla.html">Flow Matching / π0 스타일 연속 액션<span class="n">1</span></a>
+<a class="side-link" href="dataset-collection.html">데이터셋 & 수집 프로토콜 (V3~V6)<span class="n">8</span></a>
+<a class="side-link" href="real-robot-closed-loop.html">실로봇 테스트 & Closed-Loop 검증<span class="n">13</span></a>
+<a class="side-link" href="backbone-model.html">VLM 백본 비교 (PaliGemma/Kosmos-2/CLIP/Florence-2/Google-robot)<span class="n">6</span></a>
+<a class="side-link" href="meetings-and-direction.html">미팅 기록 & 연구 방향 결정<span class="n">19</span></a>
+<div class="sidebar-section">부록</div>
+<a class="side-link current" href="archive-index.html">아카이브 색인<span class="n">357</span></a>
+<div class="sidebar-section">원본</div>
+<a class="side-link" href="../v5/research_story.html">research_story.html ↗</a></nav>
+<main class="main">
 <h1>아카이브 색인 — docs/*.md 스냅샷 357개 (압축 없음, 원문 그대로)</h1>
 <blockquote>
 <p>2025-12~2026-04 시기(research_story.html이 다루는 2026-05~ 이전)의 별개
@@ -34,7 +127,7 @@ th{color:#e2e8f0;background:#111827}
 있으면 <code>docs/&lt;파일명&gt;</code>으로 직접 열어서 확인한다 — 이 색인은 찾아가기용.</p>
 </blockquote>
 <p>총 357개 파일.</p>
-<table>
+<input id="archive-filter" class="archive-search" type="text" placeholder="파일명/제목/요약 검색…"><div id="archive-count" class="archive-count"></div><table>
 <thead>
 <tr>
 <th>파일</th>
@@ -2188,4 +2281,29 @@ th{color:#e2e8f0;background:#111827}
 </tr>
 </tbody>
 </table>
+</main>
+</div>
+
+<script>
+(function(){
+  var input = document.getElementById('archive-filter');
+  var table = document.querySelector('.main table');
+  if(!input || !table) return;
+  var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+  var countEl = document.getElementById('archive-count');
+  function apply(){
+    var q = input.value.trim().toLowerCase();
+    var shown = 0;
+    rows.forEach(function(r){
+      var match = !q || r.textContent.toLowerCase().indexOf(q) !== -1;
+      r.style.display = match ? '' : 'none';
+      if(match) shown++;
+    });
+    if(countEl) countEl.textContent = shown + ' / ' + rows.length + '개 표시 중';
+  }
+  input.addEventListener('input', apply);
+  apply();
+})();
+</script>
+
 </body></html>

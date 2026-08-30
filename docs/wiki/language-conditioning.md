@@ -1,8 +1,10 @@
 # 언어 조건화 & 텍스트 어텐션 구조적 사망
 
-> 지시문(텍스트)이 액션에 영향을 미치는 진짜 언어조건화 VLA로 가려는 시도들 — 그리고 반복적으로 발견된 'text attention = 0%' 구조적 문제.
+<p class="tagline">지시문(텍스트)이 액션에 영향을 미치는 진짜 언어조건화 VLA로 가려는 시도들 — 그리고 반복적으로 발견된 'text attention = 0%' 구조적 문제.</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 **Text attention = 0%는 여러 백본에서 독립적으로 재확인된 구조적 현상이다.** Kosmos-2 기반 End-to-End VLA(Exp1~41C, head-only인 Exp15 포함)는 전 층에서 text attention이 0.000%로 붕괴돼 있으며, 이는 우리 LoRA 학습 탓이 아니라 Google-robot post-training 등 백본 자체가 이미 텍스트 경로를 죽여놓은 결과로 보인다. 원인은 **지름길 학습(shortcut)**이다 — 이미지와 텍스트를 동시에 넣고 액션을 직접 엔드투엔드로 학습시키면, 신경망은 텍스트 조건보다 훨씬 학습하기 쉬운 이미지의 주행 궤적 통계(FORWARD bias)를 먼저 학습해버려 텍스트를 무시하는 지름길에 안주한다(CH17).
 
@@ -18,11 +20,15 @@
 
 미해결/논쟁 중: 미러증강 헤드가 실기(closed-loop) 좌측 조향 취약(CH64/66 최저 80%)을 실제로 개선하는지는 아직 100건 실기 검정을 거치지 않아 확정되지 않았다.
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CH 17 — PaliGemma 전환 이후 — 히스토리·구조 변화·모델 의미
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 17</span> PaliGemma 전환 이후 — 히스토리·구조 변화·모델 의미</div>
+
+<div class="card" markdown="1">
 
 ① 왜 PaliGemma로 전환했나 (Exp57 이전)
 Exp1~56: Kosmos-2 기반 접근
@@ -295,11 +301,17 @@ style Steering fill:#047857,stroke:#10b981,color:#fff
 이를 극복하기 위해 당사가 도입한 분해형 파이프라인(Decomposed Pipeline)은 신경망의 중간 레이어에 물리적인 기하 제약을 강제(Imposed Geometric Constraint)합니다.
 목표물 텍스트를 BBox 좌표(cx, cy, area)로 일차 변환하는 Stage 1 단계를 독립시킴으로써 텍스트에 대한 어텐션 인과 관계를 보장하고(Stage 1 테스트에서 분리도 gap +95%p 실증), Stage 2 제어 MLP가 물리적 오프셋($cx - 0.5$)과 거리 요인($area$)을 조향 행동에 강제 매핑하게 함으로써 VLA의 궤적 왜곡과 편향 붕괴를 제어공학적으로 영구히 방지합니다.
 
-[→ 원문 전체 보기(research_story.html#ch17)](../v5/research_story.html#ch17)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch17">→ 원문 전체 보기 (research_story.html#ch17)</a>
 
-### CHAPTER 28 — LoRA가 Vision을 개선하는가 — E2E는 학습 불가, Grounding은 학습되나 품질 붕괴
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 28</span> LoRA가 Vision을 개선하는가 — E2E는 학습 불가, Grounding은 학습되나 품질 붕괴</div>
+
+<div class="card" markdown="1">
 
 🔬 실험 목적 구조
 E2E 8조합 Ablation (완료)
@@ -371,12 +383,19 @@ grounding 경로 vision LoRA 최초 작동 확인
 판정 결과 (CH31 완료): exp64 full-frame 92% vs base PG2 0% — 미개선(붕괴).
 → base PG2를 최종 grounding 모델로 확정. "vision LoRA는 grounding 경로에서 gradient는 도달하나 박스 품질을 붕괴시킨다"가 결론. (전 모델 비교: Grounding Hub)
 
-[→ 원문 전체 보기(research_story.html#ch28)](../v5/research_story.html#ch28)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch28">→ 원문 전체 보기 (research_story.html#ch28)</a>
 
-### CH 38 — VLA에 가장 가깝게 — 레퍼런스 아키텍처 비교와 절충안
-*π0 · TinyVLA · SmolVLA · RoboVLMs 대비 위치 확인, instruction-grounding 연동, 다음 단계로서의 멀티 객체 데이터*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 38</span> VLA에 가장 가깝게 — 레퍼런스 아키텍처 비교와 절충안</div>
+
+<p class="chapter-subtitle-line">π0 · TinyVLA · SmolVLA · RoboVLMs 대비 위치 확인, instruction-grounding 연동, 다음 단계로서의 멀티 객체 데이터</p>
+
+<div class="card" markdown="1">
 
 **38-1. 레퍼런스 아키텍처 비교**
 
@@ -409,6 +428,10 @@ grounding까지만, action엔 미도달
 공통점: π0·TinyVLA·SmolVLA·RoboVLMs 넷 다 언어가 액션을 만드는 부분까지 직접 들어간다(cross-attention 또는 임베딩 직접입력).
 우리는 grounding에서 멈춘다 — 이게 가장 본질적인 구조적 차이.
 
+</div>
+
+<div class="card" markdown="1">
+
 **38-2. 판단 — 지금은 "grounding까지만" 연동이 맞는 목표치**
 
 목표 수준내용우리 상황에서 타당한가
@@ -425,6 +448,10 @@ TinyVLA의 핵심 패턴(frozen VLM + 거의 안 쓰는 LoRA + 소형 헤드)은
 차이는 헤드 입력이 "bbox 좌표"냐 "PG2의 실제 hidden state(언어 포함)"냐 하나뿐 — 그래서 B로 가는 길은 멀지 않다.
 다만 그 한 걸음을 떼려면 멀티 객체 주행 데이터가 선행돼야 한다(38-3).
 
+</div>
+
+<div class="card" markdown="1">
+
 **38-3. 멀티 객체 주행 데이터 — 지금 할 것 vs 나중에 할 것**
 
 구분목적규모학습에 쓰이는가
@@ -440,6 +467,10 @@ V5 바스켓 수준(객체당 15~20ep × 경로유형) — 주 단위 작업
 조이스틱 수집기(plan_20260518_joystick_data_collector.md)는 이미 있어 인프라 추가 비용은 없음.
 나중 일(B 수준 추진 시): V5 바스켓 수집(60~150 에피소드, 9 path types) 규모를 객체별로 반복해야 함 —
 수주 단위 투자. 지금 단계에서 착수할 근거(실제 멀티태스크 요구, 충분한 인력)가 갖춰질 때 별도 plan으로 분리.
+
+</div>
+
+<div class="card" markdown="1">
 
 **38-4. "B 수준으로 가면 다를까" — 학습 없이 바로 측정 (hidden state 거리)**
 
@@ -473,6 +504,10 @@ left/right/forward(방향만 다름)
 Exp12/13처럼 학습이 잘 안 붙을 위험이 여전히 있다 — attention spread(1.4%p, CH2 박스)와 일관된 결론.
 즉 B 수준을 "타겟 객체 전환"으로 한정하면 유망하고, "주행 스타일/방향 제어"까지 노리면 여전히 위험하다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **38-5. 정정 — 코사인거리만으론 안 와닿아서 실제 생성 출력으로 재확인**
 
 38-4의 cos_dist 수치는 추상적이라, PG2가 실제로 무엇을 생성하는지를 4개의 서로 다른 실제 바스켓 세션 사진
@@ -498,12 +533,19 @@ navigation 스타일 프롬프트는 PG2가 애초에 detection task로 파싱�
 📷 오늘 한눈에 보기(사진) ·
 plans: plan_20260621_groundingdino_vs_pg2.md · plan_20260621_instruction_grounding.md  |  2026-06-21
 
-[→ 원문 전체 보기(research_story.html#ch38)](../v5/research_story.html#ch38)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch38">→ 원문 전체 보기 (research_story.html#ch38)</a>
 
-### CH 42 — prompt가 거짓 방향을 우겨도 이미지의 진짜 방향 신호는 안 흔들린다
-*CH38-5(생성 출력 레벨)와 CH39 Step B(이미지 신호)를 hidden-state 레벨에서 하나로 통합 — 같은 220장에 prompt만 바꿔서 비교*
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 42</span> prompt가 거짓 방향을 우겨도 이미지의 진짜 방향 신호는 안 흔들린다</div>
+
+<p class="chapter-subtitle-line">CH38-5(생성 출력 레벨)와 CH39 Step B(이미지 신호)를 hidden-state 레벨에서 하나로 통합 — 같은 220장에 prompt만 바꿔서 비교</p>
+
+<div class="card" markdown="1">
 
 **42-1. 이미지 신호가 거짓 prompt에도 안 흔들린다 — prompt 자체는 99%로 구분되지만 "이해"는 아니다**
 
@@ -534,6 +576,10 @@ prompt 종류(P0/P1/P2) 자체
 CH38-5(출력 레벨, 4장)와 CH39 Step B(이미지 레벨, 220장)를 하나로 합치면: "무엇을 보는가"는 이미지가 결정하고,
 "어느 쪽으로 가라는 지시"는 hidden state 차원에서도 사실상 도달하지 않는다는 게 더 큰 표본으로 재확인됐다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **42-2. 토큰 길이를 통제해도 같은 결론 — "gray"를 "left/right"로 1단어만 치환**
 
 42-1의 P1/P2는 P0보다 단어 수가 2배 길어서("on the left" 추가) "prompt 종류 99.2% 구분"이 방향 이해가 아니라
@@ -555,13 +601,20 @@ hidden state는 쉽게 구분하지만, 그 단어가 방향 단어("left"/"righ
 걸 더 깨끗하게 확인 — 42-1의 결론이 길이 차이로 인한 착시가 아님이 재확인됐다.
 plans: plan_20260622_text_prompt_hidden_state_direction.md  |  2026-06-22
 
-[→ 원문 전체 보기(research_story.html#ch42)](../v5/research_story.html#ch42)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch42">→ 원문 전체 보기 (research_story.html#ch42)</a>
 
-### CH 61 — 실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증
-*7/6 OWL-v2(th=0.25) 실로봇 첫 배포에서 obj_left/right 반복 실패 → 원인 추적 도중
-연구 재현 파이프라인의 치명적 버그 발견, 여러 결론이 정정됨 (2026-07-06~07)*
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 61</span> 실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증</div>
+
+<p class="chapter-subtitle-line">7/6 OWL-v2(th=0.25) 실로봇 첫 배포에서 obj_left/right 반복 실패 → 원인 추적 도중
+연구 재현 파이프라인의 치명적 버그 발견, 여러 결론이 정정됨 (2026-07-06~07)</p>
+
+<div class="card" markdown="1">
 
 **61-1. 실로봇 실패 관측**
 
@@ -569,6 +622,10 @@ obj_right(타겟 우측) 16개 에피소드 전부 실패(SR 0%), obj_left도
 top액션이 오히려 반대방향(우측계열) 편향. 7/6 세션 h5 직접 분석 결과, cx가 0.75→0.94로
 실제 우측 드리프트가 있었는데도 14프레임 전부 FORWARD 고정인
 사례 확인 — 그라운딩 신호는 정상인데 헤드가 무시하는 패턴.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-2. 그라운더 vs 헤드 — clean bbox 검증으로 헤드 무죄 확인**
 
@@ -585,6 +642,10 @@ window3
 98.6%
 헤드는 clean bbox에 대해 진짜로 일반화한다 — 문제는 헤드
 구조/학습능력이 아니라 실전 입력 분포(flicker) 쪽으로 좁혀짐.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-3. 진짜 병목 — 학습/실전 flicker 분포 불일치**
 
@@ -609,6 +670,10 @@ window6이 사실상 동률(SR 97.7% 동일) — "진동율" 대리지표
 기준 window3 우위 결론은 철회. 리플레이 자체가 카메라 피드백이 없는 근본적 한계라
 더 이상 오프라인으로는 판별 불가.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-4. 치명적 버그 — vis_feat L2-정규화 누락**
 
 운영 서버(Stage1Encoder.encode_image)는 이미지 feature를 F.normalize()로
@@ -623,6 +688,10 @@ L2 정규화하는데, 연구 재현 스크립트(train_exp71_stage2_transformer
 88.9%
 이 세션에서 "진짜 exp71 레시피"라 진행했던 실험 다수가 이 버그
 상태로 이뤄짐 — 발견 후 정규화 수정하여 재검증.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-5. VLA 사다리 ② 언어조건화 재검증 — 버그 수정 후 결론이 더 강하게 부정적으로**
 
@@ -639,6 +708,10 @@ Counterfactual 변화율: 43ep 실험 20.3% → 150ep 실제 레시피 정확히
 수정 후 오히려 더 명확해짐. 조이스틱 이질 지시 데이터 없이는
 해결 불가로 재확인.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-6. Vision encoder 비교 (PG2/SigLIP vs Kosmos-2) + 합성 이질지시 테스트**
 
 PG2(PaliGemma2-448) SigLIP vision tower(1152d)로 exp71 vision 소스를 교체해도
@@ -649,6 +722,10 @@ Kosmos-2와 대등(96.2% vs 97.0~98.4%, 1차 시도 73.4%는
 counterfactual이 살아나는지 사전 테스트 — 변화율 0.3%→0.8%로
 거의 안 살아남. 합성 라벨(이미지와 무관하게 고정)이 잡음처럼 취급된 것으로
 추정, 실물 수집만이 확실한 다음 단계로 재확인.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-7. obj_left/right/center 테스트는 학습 분포 밖(OOD) 스트레스 테스트였다**
 
@@ -681,6 +758,10 @@ ROT_R(강한우)
 데이터가 거의 커버 못 하는 지대 — "cx 0.9에서도 FORWARD 고정"의 근본 원인과 정합.
 재학습보다 먼저 이 구간 데이터 자체를 확보해야 함.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-9. 좌/우 비대칭 발견 + bbox_scale 대응 + soda 배포 (2026-07-07~08)**
 
 FWD+L recall 88.5%인데 FWD+R recall 67.6%(21.6%가 FORWARD로
@@ -710,6 +791,10 @@ exp71_window6_bboxscale3(5-seed 84.6%±2.9%, 최고 88.5%, 가장 유력 후보)
 두 체크포인트 모두 soda 서버로 rsync 전송 완료 — 실로봇 3자 A/B(기존 window6 / window3+bboxscale3 /
 window6+bboxscale3) 대기 중.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-11. soda 제기 BGR/RGB 의심 건 — 실물 대조로 기각 (2026-07-08)**
 
 soda가 mobile_vla_data_collector.py의 cv_bridge.compressed_imgmsg_to_cv2(...,"bgr8")로
@@ -723,6 +808,10 @@ soda가 mobile_vla_data_collector.py의 cv_bridge.compressed_imgmsg_to_cv2(...,"
 카메라 원본 인코딩이 이미 bgr8이라 반전이 사실상 무변환(no-op)이었을 가능성.
 결론: 재학습 불필요, 어제 배포한 window6+bbox_scale3(원본) 그대로 유지.
 색 반전판 체크포인트(exp71_window6_bboxscale3_colorfixed)는 참고용으로만 보존.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-12. 조이스틱 재수집 설계 정정 — "지시-경로 디커플링" (2026-07-09)**
 
@@ -743,6 +832,10 @@ soda가 mobile_vla_data_collector.py의 cv_bridge.compressed_imgmsg_to_cv2(...,"
 적용한 실제 물리적 수집.
 상세: plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §1-1
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-13. obj_right에서 왜 하필 FWD+L이 반복됐나 — 세 번째 confound (2026-07-09)**
 
 실로봇 obj_right 실패에서 그라운딩(OWL-v2)은 정상 동작했는데 액션이 반복적으로
@@ -760,6 +853,10 @@ FORWARD:259, FWD+L:67, RIGHT:29, ROT_L:20, FWD+R:19, ROT_R:3 — FWD+L(67개) �
 cx만으로는 목표 방향을 안정적으로 추론할 수 없는 구조. 61-12의 지시-경로 디커플링 수집으로
 함께 해소될 것으로 기대.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-14. 수집/학습 Hz 정합 + action chunking 검토 (2026-07-09)**
 
 현재 수집: on_command() 이벤트 트리거(명령 변경 시에만 프레임 기록), 실질
@@ -775,6 +872,10 @@ cx만으로는 목표 방향을 안정적으로 추론할 수 없는 구조. 61-
 시간폭을 정합 — 현재 액션헤드 구조를 유지한 채 적용 가능한 값싼 절충. 근본적으로는
 action chunking 구조 도입을 별도 트랙으로 검토 (우선순위: 리샘플링 먼저 검증 →
 부족 시 chunking 검토). 플랜 문서 §4에 두 항목 모두 추가.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-15. 수집 플랜 트랙 분리 — 도달성능(A) vs 언어조건화(B) (2026-07-09)**
 
@@ -795,6 +896,10 @@ action chunking 구조 도입을 별도 트랙으로 검토 (우선순위: 리�
 soda 쪽에서도 이미 같은 방향(4-position 극단 배치 수집 UI)을 대시보드에 구현 중
 (`930a6180` cx-axis 진행률 차트, `984b0ae4` 조이스틱 D-pad 시나리오 전환).
 상세: plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §0,§1
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-16. 재수집 전 마지막 완화책 3종 실측 — 전부 무효 확인 (2026-07-10)**
 
@@ -829,6 +934,10 @@ C는 명백 악화 — 은 결론을 뒷받침하기 충분함)
 재확인됨. 배포된 window6+bbox_scale3(baseline) 그대로 유지 — 어떤 학습레벨 트릭도
 도움 안 됨.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-17. window3+bbox_scale3 배포 후 obj_right 실측 — 병목이 confound에서 그라운딩으로 이동 (2026-07-10/11)**
 
 soda 로봇에서 window3+bbox_scale3(val_acc 84.4%) 체크포인트로 obj_right 30회
@@ -856,6 +965,10 @@ OWL-v2 그라운딩 성공(실제 bbox 검출)
 바로 볼 수 있도록 episode_log.csv 조인(실주행 결과/메모/FPE 배지)을
 추가함 — 기존엔 H5 attrs 원본 텍스트만 노출되어 오퍼레이터가 남긴 성공/실패 메모가
 묻혀 있었음.
+
+</div>
+
+<div class="card" markdown="1">
 
 **61-18. 전체 108개 세션 시계열 종합분석 — 그라운더 교체는 무효, 체크포인트 교체가 유일한 변곡점 (2026-07-11)**
 
@@ -913,6 +1026,10 @@ window3+bboxscale3로 교체
 내내 체크포인트 교체와 lockstep으로 같이 바뀌어서 개별 효과를 이 데이터로는 분리
 불가 — 향후 같은 체크포인트 고정 상태로 토글만 바꾸는 A/B 필요.
 
+</div>
+
+<div class="card" markdown="1">
+
 **61-10. 종합 결론 및 다음 단계**
 
 1) 그라운더(OWL-v2)는 무죄에 가까움 — clean bbox 검증에서 헤드 일반화力 확인
@@ -926,17 +1043,28 @@ window3+bboxscale3로 교체
 |  프리뷰 재설계 플랜: plan_20260706_preview_redesign.md
 |  조이스틱 수집 플랜: plan_20260707_heterogeneous_instruction_extreme_cx_collection.md
 
-[→ 원문 전체 보기(research_story.html#ch61)](../v5/research_story.html#ch61)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch61">→ 원문 전체 보기 (research_story.html#ch61)</a>
 
-### CH 68 — 언어 조건화 VLA 전환 계획 — "지시문에 따라 액션이 달라지는" 모델로
-*FUTURE WORK · 현재 시스템은 언어가 고정 상수라 엄밀히 VLA가 아니다(CH65, 모델 구조 1-2절). 교수님이 말씀하신 "지시문에 따라 액션이 달라지는 VLA"로 가려면 무엇이 필요한지, 그리고 과거 시도가 왜 증명이 되지 못했는지를 정리한다.*
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 68</span> 언어 조건화 VLA 전환 계획 — "지시문에 따라 액션이 달라지는" 모델로</div>
+
+<p class="chapter-subtitle-line">FUTURE WORK · 현재 시스템은 언어가 고정 상수라 엄밀히 VLA가 아니다(CH65, 모델 구조 1-2절). 교수님이 말씀하신 "지시문에 따라 액션이 달라지는 VLA"로 가려면 무엇이 필요한지, 그리고 과거 시도가 왜 증명이 되지 못했는지를 정리한다.</p>
+
+<div class="card" markdown="1">
 
 🟣 3줄 요약
 ① 과거 지시문 조건화 실험은 라벨 누출이었다 — 지시문을 path_type에서 합성해 "curve to the left"가 정답 클래스를 직접 지시했다. permutation drop 14.6%p는 언어 이해가 아니다.
 ② 진짜 증명에는 "언어 없이는 풀 수 없는 과제"가 필요하다 — 같은 장면·같은 초기 프레임에서 지시문만 바꿔 다른 타겟으로 가야 한다.
 ③ 가장 싼 경로는 이미 열려 있다 — OWL-v2가 open-vocabulary라 지시문에서 타겟 명사만 파싱해 프롬프트로 넘기면 검출 대상이 바뀌고, cx가 바뀌고, 액션이 바뀐다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **🚫 68-1. 과거 시도의 재해석 — 성공처럼 보였지만 라벨 누출이었다**
 
@@ -984,6 +1112,10 @@ right 지시
 0.000%로 붕괴돼 있다(Exp17~41C, head-only에서도 재현). 위 실험은 그 경로를 우회해
 OWL-v2 텍스트 인코더 임베딩을 헤드에 concat한 것이므로 두 사안은 층위가 다르다.
 
+</div>
+
+<div class="card" markdown="1">
+
 **68-2. 무엇이 필요한가 — "언어 없이는 풀 수 없는 과제"**
 
 68-1의 교훈은 명확하다. 지시문이 정답과 상관되면 어떤 검정도
@@ -1023,6 +1155,10 @@ CH67 67-2에서 비전부는 검증됨. 언어부는 미검정
 instr 조건화 코드
 —
 train_step2_instr_head.py — 검정 프로토콜 재사용 가능
+
+</div>
+
+<div class="card" markdown="1">
 
 **🪜 68-3. 단계적 전환 계획 — L0에서 L3까지**
 
@@ -1081,6 +1217,10 @@ L2 수집 설계 — counterfactual 쌍이 필수
 - 규모 추정: 2객체 × 2배치(좌우 교차) × 2지시문 × 15회 = 60 ep가
 최소선. CH66의 교훈대로 좌우 액션 클래스 균형을 수집 단계에서 관리
 
+</div>
+
+<div class="card" markdown="1">
+
 **68-4. 검정 프로토콜 — 사전 고정 (라벨 누출 재발 방지)**
 
 68-1의 실패를 반복하지 않으려면 착수 전에 다음을 고정해야 한다.
@@ -1113,6 +1253,10 @@ offline 지표는 사전 필터로만 쓴다. 이 세션에서 offline이 실기
 다중 객체 과제의 실기 프로토콜은 "지시문별 성공률"과
 "엉뚱한 객체로 간 비율(오타겟률)"을 분리해 보고한다 —
 후자가 언어 실패의 직접 지표다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **68-5. 아키텍처 후보와 미해결 질문**
 
@@ -1152,6 +1296,10 @@ CH67과의 관계 — 67-3 ③에서 "언어를 넣어서 무엇이
 좋아지는가를 먼저 정량화해야 한다"고 적었다. CH68이 그 답이며,
 결론은 "현재 과제로는 정량화 불가. 다중 객체 과제로 바꿔야
 언어의 기여를 측정할 수 있다"이다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **68-6. 정리 — Future Work 우선순위**
 
@@ -1203,6 +1351,10 @@ phrase = "gray basket" if instruction == "basket" else instruction
 논문 본문 주장으로 인용하지 않는다.
 검정 프로토콜(68-4)을 착수 전에 고정한 것은 68-1에서 라벨 누출로 헛된 결론을 낸 이력과,
 이번 세션에서 사후 해석으로 두 번 정정한 이력(64-11, 64-19) 때문이다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **68-7. L1 실측 — 같은 프레임, 지시문만 바꾸면 타겟이 바뀌는가 ✅**
 
@@ -1286,6 +1438,10 @@ chair의 cx가 0.089±0.056으로 거의 항상 좌측 끝에 고정돼
 scripts/l1_language_target_selection.py · 결과
 docs/v5/detector/l1_target_selection.json · 표본 V6 val 200프레임(seed42 분할)
 
+</div>
+
+<div class="card" markdown="1">
+
 **68-8. 액션까지 바뀌는가 — 반사실 실험에서 기대와 반대가 나왔다**
 
 68-7 ②에서 미룬 질문을 실제로 측정했다. 미룬 이유는 "헤드 입력이 6프레임 윈도우라 단일
@@ -1329,6 +1485,10 @@ chair cx가 0.089±0.056에 거의 고정돼 있어 "기대 방향"이 사실상
 스크립트
 scripts/l1_action_counterfactual.py · 결과
 docs/v5/detector/l1_action_counterfactual.json
+
+</div>
+
+<div class="card" markdown="1">
 
 **68-9. 원인 규명 — 배포 헤드는 어떤 cx에서도 좌측을 선호하지 않는다 ⭐**
 
@@ -1407,6 +1567,8 @@ offline 개선이 실기로 이어진다는 보장이 없다는 것은 이 프�
 scripts/l1_head_cx_response.py · 결과
 docs/v5/detector/l1_head_cx_response.json
 
-[→ 원문 전체 보기(research_story.html#ch68)](../v5/research_story.html#ch68)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch68">→ 원문 전체 보기 (research_story.html#ch68)</a>
+
+</div>

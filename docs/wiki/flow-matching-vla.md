@@ -1,16 +1,22 @@
 # Flow Matching / π0 스타일 연속 액션
 
-> 이산 8-class 분류가 아니라 연속 action chunk를 flow matching으로 예측하는 MoNa-Pi 설계 사상과 실측(부진).
+<p class="tagline">이산 8-class 분류가 아니라 연속 action chunk를 flow matching으로 예측하는 MoNa-Pi 설계 사상과 실측(부진).</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 RT-2류 모델의 이산 조향 토큰 분류가 거동을 끊기게 만든다는 문제의식에서, Physical Intelligence의 **π0**를 모티브로 삼아 연속 액션 공간(`[linear_x, linear_y, angular_z]`)을 **Flow Matching**으로 직접 생성하는 **MoNa-Pi** 프레임워크를 설계했다. 핵심 아키텍처는 π0/DiT와 동일한 **AdaLN-Zero** 시간 컨디셔닝(timestep을 MLP로 scale/shift 파라미터로 매핑해 각 LayerNorm 블록에 동적 주입, γ zero-init으로 학습 초기 항등 매핑 유도)이며, 여기에 Action Chunking(16~50 step 동시 예측, 이론상 50Hz 이상 제어 주기)을 결합했다. MoNa-Pi의 차별점은 "Decomposed VLM + Flow Matching Head" 구조로, BBox 임프린팅을 통한 물리적 분해를 추가한 것이다. 그러나 π0/Octo가 수십만~수백만 에피소드 규모의 데이터로 학습되는 반면, 본 연구는 **243 ep**의 소규모 온디바이스 데이터만 사용했다는 근본적 데이터 규모 격차가 있다. 위키 서두에 명시된 대로 실측 결과는 **부진**했으며, 이는 8-class 이산 분류 대비 연속 액션 생성이 요구하는 데이터량을 충족하지 못한 데서 기인하는 것으로 정리된다. 결론적으로 flow matching 자체의 설계(AdaLN-Zero, chunking)는 π0 문헌을 충실히 따랐으나, 소규모 데이터 환경에서는 현재 프로젝트의 주력 방향(8-class 분류 + decomposition, BBox+Image MLP)이 여전히 더 실효적인 선택으로 남아 있다.
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CH 24 — MoNa-Pi: π0 (Pi-zero) 기반 Flow Matching VLA 프레임워크 설계 사상
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 24</span> MoNa-Pi: π0 (Pi-zero) 기반 Flow Matching VLA 프레임워크 설계 사상</div>
+
+<div class="card" markdown="1">
 
 ① Motivation: π0 모델의 핵심 가치와 연속 액션 제어
 기존 VLA 모델들(예: RT-1, RT-2, Kosmos-2)은 조향과 속도 명령을 유한한 이산 토큰(Discrete Tokens)으로 분류하여 출력하므로 거동이 끊기고 부드럽지 못한 조향 제어를 보였습니다.
@@ -57,6 +63,8 @@ AdaLN-Zero + BBox 임프린팅 (물리적 분해)
 243 ep (소규모 온디바이스)
 본 연구, Section 3.1 & 3.2
 
-[→ 원문 전체 보기(research_story.html#ch24)](../v5/research_story.html#ch24)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch24">→ 원문 전체 보기 (research_story.html#ch24)</a>
+
+</div>

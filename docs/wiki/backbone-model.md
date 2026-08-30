@@ -1,21 +1,31 @@
 # VLM 백본 비교 (PaliGemma/Kosmos-2/CLIP/Florence-2/Google-robot)
 
-> 어떤 VLM을 백본으로 쓸지, LoRA가 실제로 무엇을 개선/손상시키는지, RoboVLMs 프레임워크 해부.
+<p class="tagline">어떤 VLM을 백본으로 쓸지, LoRA가 실제로 무엇을 개선/손상시키는지, RoboVLMs 프레임워크 해부.</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 **Kosmos-2(Google-robot post-train)는 text attention이 전 24레이어에서 0.0000%로 고정** — 이는 우리 LoRA 학습 탓이 아니라 Google-robot post-training 단계에서 이미 텍스트 경로가 구조적으로 붕괴된 것이며(Exp15 head-only 재확인), 언어 지시로 행동을 제어하는 E2E 경로가 이 backbone에서는 근본적으로 불가능함을 뜻한다. 반면 **base PaliGemma2(PG2, zero-shot, LoRA 없음)는 text attention이 레이어별 40~98%로 살아있고**, 방향(L/R/F) 간 spread는 1.4~1.84%p(V6 15개 path_type 평균)로 미약하지만 객체유무 대비(~6%p)보다는 작아 "방향 구분력"은 약하다는 결론이다. **RoboVLMs 프레임워크는 forward_continuous에서 `multimodal_embeds.requires_grad_(True)`가 중간 텐서를 leaf로 재등록시켜 vision_tower와의 계산 그래프를 끊는 구조적 버그**를 갖고 있어, E2E 8조합(top2/4/6/8 × frozen/tuned) ablation 전부 `lora_B=0.000000`으로 vision LoRA gradient가 전혀 도달하지 않았다(실질적으로는 frozen-vision E2E 8회 반복이었음). 우회책으로 grounding용 `generate()` 경로(exp64)를 쓰면 vision LoRA gradient가 정상 도달하지만(48 tensors 확인), **실측 결과 grounding 품질은 개선이 아니라 붕괴**했다 — full-frame 오탐이 전 시점 83~100%로 치솟고, base가 잘하던 중앙/근거리 정밀도(cx MAE)까지 악화시켰으며, 미학습 객체(Eames 의자) 오탐은 base와 동일해 일반화에도 기여하지 못했다. 결과적으로 **grounding은 base PG2(LoRA 없음)를 최종 채택**하고, action 예측은 decomposition 접근(bbox+16×16 이미지 MLP, PM 75.9%, closed-loop 66.7%)으로 우회하는 것이 현재 최선이며, RoboVLMs는 "E2E가 왜 안 되는지 증명한 baseline 인프라"로만 남기고 이후 모든 실험은 이를 우회한다. 한편 CH56(Exp63)에서는 **순수 HF Kosmos-2(Google-robot 아님) + PEFT LoRA에 image projection embeds 수동 추출 우회 패치**를 적용해 20 epoch E2E 학습 시 Val Acc 78.6%를 달성, 순수 backbone 기반이면 text-action 통합 경로 복구가 가능함을 시사했다. **미해결**: PG2를 실제 action backbone으로 재학습했을 때 방향 지시 구분력이 실사용에 충분한지, 그리고 Exp63 경로가 exp64/E2E 8조합의 구조적 문제를 실제로 회피했는지는 추가 검증이 필요하다.
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CHAPTER 2 — 첫 번째 접근: End-to-End Policy
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 2</span> 첫 번째 접근: End-to-End Policy</div>
+
+<div class="card" markdown="1">
 
 🔴 핵심 발견: Google-robot backbone이 텍스트 경로를 구조적으로 파괴했다
 Google robot post-training 단계에서 이미 Kosmos-2의 text attention이 붕괴되었다.
 우리의 LoRA fine-tuning과 무관하다. Exp15에서 LoRA 없이 head만 학습해도 text=0% 재확인.
 이는 언어 지시로 행동을 제어하는 end-to-end 경로가 현재 backbone에서 불가능함을 의미한다.
+
+</div>
+
+<div class="card" markdown="1">
 
 🟢 2026-06-21 추가 검증 — "다른 백본이면 다를까?" PG2(PaliGemma2)로 동일 측정 재현
 Exp15와 똑같은 방법(VLM 완전 frozen, output_attentions로 마지막 토큰의 image vs text 영역 attention 비율 측정)을
@@ -41,17 +51,27 @@ text-conditioned 행동(100% vs 0% 검출)이 attention 레벨에서도 뒷받�
 지시에 약하지만 실제로 반응한다"는 결론이 V6 전반에서 일관됨을 확인 — 다만 전체
 end-to-end 재투자보다 grounding 절충안이 낫다는 기존 판단을 뒤집을 만큼 크지는 않음.
 
-[→ 원문 전체 보기(research_story.html#ch2)](../v5/research_story.html#ch2)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch2">→ 원문 전체 보기 (research_story.html#ch2)</a>
 
-### CHAPTER 4 — 돌파구 — Decomposition 접근법
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 4</span> 돌파구 — Decomposition 접근법</div>
+
+<div class="card" markdown="1">
 
 **Step 1: bbox history MLP**
 
 bbox center x/y + area history (3프레임)만 MLP에 넣음.
 결과: PM 68.4%. 기존 end-to-end Exp11(58.6%)을 이미 넘어섬.
 PM 68.4%
+
+</div>
+
+<div class="card" markdown="1">
 
 **Step 2: bbox + 16×16 이미지**
 
@@ -60,6 +80,10 @@ center_left/right 같은 경계 케이스 개선.
 결과: PM 75.9% (5 seed 평균).
 PM 75.9% | CL 66.7% ✅
 
+</div>
+
+<div class="card" markdown="1">
+
 **Feature Ablation 결과**
 
 bbox만: 67.4% ±9.8%
@@ -67,15 +91,25 @@ bbox만: 67.4% ±9.8%
 bbox+이미지: 76.7% ±1.3%
 → 이미지가 핵심, bbox는 보조
 
+</div>
+
+<div class="card" markdown="1">
+
 ✅ 결론: 거대한 VLM 전체를 end-to-end로 다시 학습시키는 것보다,
 VLM이 이미 잘 인코딩하고 있는 spatial information(bbox)을 명시적으로 꺼내서
 작은 MLP head에 연결하는 것이 훨씬 효과적이다.
 
-[→ 원문 전체 보기(research_story.html#ch4)](../v5/research_story.html#ch4)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch4">→ 원문 전체 보기 (research_story.html#ch4)</a>
 
-### CHAPTER 28 — LoRA가 Vision을 개선하는가 — E2E는 학습 불가, Grounding은 학습되나 품질 붕괴
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 28</span> LoRA가 Vision을 개선하는가 — E2E는 학습 불가, Grounding은 학습되나 품질 붕괴</div>
+
+<div class="card" markdown="1">
 
 🔬 실험 목적 구조
 E2E 8조합 Ablation (완료)
@@ -147,11 +181,17 @@ grounding 경로 vision LoRA 최초 작동 확인
 판정 결과 (CH31 완료): exp64 full-frame 92% vs base PG2 0% — 미개선(붕괴).
 → base PG2를 최종 grounding 모델로 확정. "vision LoRA는 grounding 경로에서 gradient는 도달하나 박스 품질을 붕괴시킨다"가 결론. (전 모델 비교: Grounding Hub)
 
-[→ 원문 전체 보기(research_story.html#ch28)](../v5/research_story.html#ch28)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch28">→ 원문 전체 보기 (research_story.html#ch28)</a>
 
-### CHAPTER 29 — RoboVLMs 해부 — 의도한 실험과 실제 기여의 괴리
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 29</span> RoboVLMs 해부 — 의도한 실험과 실제 기여의 괴리</div>
+
+<div class="card" markdown="1">
 
 📄 RoboVLMs — 공식 저장소 팩트
 논문
@@ -245,11 +285,17 @@ forward_continuous vision LoRA gradient 차단
 수정 금지 (third_party)
 결론: RoboVLMs는 E2E baseline 실험 인프라로서 역할을 마쳤다. 앞으로 새 실험(grounding LoRA, 의자 데이터 수집, MLP 재학습)은 모두 RoboVLMs를 우회하는 경로를 사용한다. 유지하되, 신뢰하지 않는다.
 
-[→ 원문 전체 보기(research_story.html#ch29)](../v5/research_story.html#ch29)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch29">→ 원문 전체 보기 (research_story.html#ch29)</a>
 
-### CHAPTER 32 — LoRA가 얻은 것과 실패한 데이터 — 시점별 해부
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 32</span> LoRA가 얻은 것과 실패한 데이터 — 시점별 해부</div>
+
+<div class="card" markdown="1">
 
 ✅ LoRA로 실제 얻은 것 (정직하게)
 ① 방법론적 입증: vision LoRA가 generate() 경로로 실제 학습된다는 것 확인 (E2E의 lora_B=0과 대조). 이것이 exp64의 원래 목적이었고, 성공.
@@ -353,12 +399,19 @@ exp64(vision LoRA)는 전면 붕괴라 배포되지 않았지만, 실주행에 �
 그 순간 action head는 "바구니=화면 전체" 신호를 받아 조향이 무너진다 → 교수님이 관찰하신 오예측의 실제 메커니즘.
 base PG2는 같은 조건 full-frame 0~2% — grounding을 base PG2로 교체하면 이 간헐 붕괴가 사라진다.
 
-[→ 원문 전체 보기(research_story.html#ch32)](../v5/research_story.html#ch32)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch32">→ 원문 전체 보기 (research_story.html#ch32)</a>
 
-### CH 56 — Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수
-*Google-robot post-trained 백본의 구조적 Text Attention 붕괴(0%)를 회피하여, 순수 백본 기반 튜닝으로 E2E VLA 복구 유효성 검증*
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 56</span> Exp63 — 순수 HF Kosmos-2 E2E VLA 학습 완수</div>
+
+<p class="chapter-subtitle-line">Google-robot post-trained 백본의 구조적 Text Attention 붕괴(0%)를 회피하여, 순수 백본 기반 튜닝으로 E2E VLA 복구 유효성 검증</p>
+
+<div class="card" markdown="1">
 
 **56-1. 학습 사양 및 정량 성과**
 
@@ -369,6 +422,8 @@ base PG2는 같은 조건 full-frame 0~2% — grounding을 base PG2로 교체하
 순수 VLM 백본 기반 파인튜닝이 텍스트-액션 통합 경로(Text Pathway)의 구조적 복구에 실제로 기여할 수 있음을 실증했습니다.
 2026-06-28  |  관련: scripts/train_exp63_e2e_kosmos.py, runs/v5_nav/e2e/exp63
 
-[→ 원문 전체 보기(research_story.html#ch56)](../v5/research_story.html#ch56)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch56">→ 원문 전체 보기 (research_story.html#ch56)</a>
+
+</div>

@@ -1,16 +1,22 @@
 # 데이터셋 & 수집 프로토콜 (V3~V6)
 
-> 에피소드 경로 설계, 동기/비동기 수집, STOP 라벨링 규칙, 이미지 파이프라인 통일, 프레임 크롭/줌 등 데이터 자체를 다루는 실험들.
+<p class="tagline">에피소드 경로 설계, 동기/비동기 수집, STOP 라벨링 규칙, 이미지 파이프라인 통일, 프레임 크롭/줌 등 데이터 자체를 다루는 실험들.</p>
 
-## 압축 요약
+<div class="summary-box" markdown="1">
+
+**압축 요약**
 
 V5 데이터셋은 9가지 경로(center/left/right × straight/left/right 접근)로 구성되며, FORWARD가 전체 2,626 프레임의 74.4%를 차지해 "항상 FORWARD"만 찍어도 PM≈74%가 나오는 함정이 있으므로 PM만이 아니라 per-path PM과 closed-loop 성공률을 함께 봐야 한다. STOP 라벨은 두 가지 경로로 확정됐다: ① 에피소드가 basket 도달 직전에 끊겨 자연 STOP이 없던 문제는 area_det>0.740(이미지의 74% 이상 채움) 프레임에 합성 STOP 레이블을 부여해 해결(2,626개 중 153개, 6.9%). ② 반대로 "중간에 낀 유령 STOP"은 데이터 수집 방식 전환(동기식 POST_SYNC → 비동기식 PRE_CACHE, 카메라 10Hz·조이스틱 25Hz·teleop 0.45s가 서로 다른 타이머로 도는 구조)의 타이밍 빈틈에서 생긴 라벨 아티팩트임이 밝혀져, V5_add_free 빌더(seed=42)가 free 21ep에서 중간 STOP 84개를 제거하고 마지막 프레임 STOP만 남겨 221ep(structured 200+free 21)로 정제했다. 결론적으로 STOP은 "이동 중 잠깐 멈춤"이 아니라 "목표 도달=종결(terminal) 신호"이며, area 기반 도착 종결 규칙(도착 시 area_det median 0.89 vs 비도착 0.05)과 동기식 재수집이 근본 해결책으로 채택됐다. 학습/추론 이미지 파이프라인은 둘 다 1280×720 원본을 HuggingFace AutoProcessor가 내부적으로 224×224로 리사이즈하는 동일 경로를 이미 쓰고 있었음을 코드 검증으로 확인했고, 이를 resize_for_vlm() 공유 함수로 명시적으로 강제 통일했다(latency 회귀 없음, 1.32~1.36초). grounding_skip_n=3(운영 캐시, 3프레임 중 2프레임 재사용) 조건에서는 area_delta 신호가 무이득(오히려 손해)임이 시뮬레이션과 실세션 실측 양쪽에서 확인되어, skip_n=1로 낮춰 area_delta를 배포하는 옵션은 PG2 grounding이 ~1.3초/프레임이라 실시간성이 깨져 기각됐고 "skip_n=3 유지, area_delta 미배포"가 확정 디폴트다. 에피소드 초반 프레임의 zoom-crop 재그라운딩은 이전 프레임 bbox를 anchor로 쓰는 방식이 n=737 ablation에서 오히려 약간 악화(89%가 area 감소)시켜 도움 안 됨으로 확정됐지만, anchor를 이미지 정중앙(0.5,0.5) 고정으로 바꾼 center 크롭은 개선율 59.3%·has_bbox 회복 20건으로 유효함이 확인됐다(다만 이후 Stage 0 워밍업이 cold-start 문제를 다른 경로로 해결해 배포 우선순위는 낮아짐). center_straight 경로는 PG2 grounding의 cx 편향(mean 0.456, 0.5보다 왼쪽)과 jitter(std 0.11)로 인해 closed-loop 성공률이 구조적으로 낮고, 오버샘플링·noise augmentation·EMA 스무딩·cx offset 보정 등 소프트웨어적 접근 6가지가 모두 실패해 추가 데이터 수집 또는 실로봇 검증이 근본 해결책으로 남아 있다. 미해결: center_straight closed-loop 저성능의 근본 해결(추가 수집 vs 실로봇 검증)과 STOP 거리 캘리브레이션(area 임계값의 실제 cm 환산)은 아직 확정되지 않았다.
 
----
+</div>
 
 ## 챕터별 원문 발췌 (시간순)
 
-### CHAPTER 1 — 데이터셋 — 9가지 경로
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 1</span> 데이터셋 — 9가지 경로</div>
+
+<div class="card" markdown="1">
 
 💡 왜 9가지 경로인가?
 단순히 "직진"만 학습하면 모델이 모든 상황에서 직진을 선택하는 FORWARD bias에 빠진다.
@@ -32,6 +38,10 @@ ROT_R20개
 0.8%
 STOP0개
 0.0%
+
+</div>
+
+<div class="card" markdown="1">
 
 ⚠️ FORWARD 74.4%의 함정:
 모델이 아무것도 배우지 못하고 "항상 FORWARD"를 예측해도 PM ≈ 74%가 나온다.
@@ -119,33 +129,57 @@ FORWARD
 끝 (f16)
 FORWARD
 
-[→ 원문 전체 보기(research_story.html#ch1)](../v5/research_story.html#ch1)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch1">→ 원문 전체 보기 (research_story.html#ch1)</a>
 
-### CHAPTER 8 — Augmentation 실험 — Exp49가 여전히 최선
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CHAPTER 8</span> Augmentation 실험 — Exp49가 여전히 최선</div>
+
+<div class="card" markdown="1">
 
 **❌ Flip Aug (Exp50)**
 
 거울 반전 이미지가 cx0 신호를 혼란시킴. right_right 3/3 전패. CL 83.3%로 13%p 퇴보.
 
+</div>
+
+<div class="card" markdown="1">
+
 **⚠️ Crop Aug (Exp51)**
 
 CL 성공률은 같지만 FPE 0.163m (+101%). crop_center90% 취약. 데이터 3배 늘려도 이득 없음.
+
+</div>
+
+<div class="card" markdown="1">
 
 **❌ Lang+Vis (Exp52)**
 
 cosine_sim(left_instr, right_instr) = 1.0 — 언어 임베딩이 좌/우를 구분 못 함. Exp49보다 3.4%p 하락.
 
+</div>
+
+<div class="card" markdown="1">
+
 **✅ 결론**
 
 Exp49 원본 데이터 2,626 frames가 이미 충분히 강건하다. augmentation 방향보다 실로봇 검증이 다음 우선순위.
 
-[→ 원문 전체 보기(research_story.html#ch8)](../v5/research_story.html#ch8)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch8">→ 원문 전체 보기 (research_story.html#ch8)</a>
 
-### CH 20 — Free 에피소드 분석 — 다변화 시나리오 21개
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 20</span> Free 에피소드 분석 — 다변화 시나리오 21개</div>
+
+<div class="card" markdown="1">
 
 왜 이 데이터가 필요한가
 기존 V5 한계
@@ -309,11 +343,17 @@ center_straight 추가 수집 필요
 또는 실로봇 테스트로 직접 확인
 (시뮬 drift ≠ 실제 물리 drift)
 
-[→ 원문 전체 보기(research_story.html#ch20)](../v5/research_story.html#ch20)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch20">→ 원문 전체 보기 (research_story.html#ch20)</a>
 
-### CH 22 — 동기 vs 비동기 수집 — STOP은 왜 마지막 프레임에만 있어야 하는가
+</div>
+
+<div class="chapter-block accent-d" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 22</span> 동기 vs 비동기 수집 — STOP은 왜 마지막 프레임에만 있어야 하는가</div>
+
+<div class="card" markdown="1">
 
 ① 증상 — 중간에 박힌 유령 STOP
 STOP 규칙 캘리브레이션 중, bbox_dataset_pg2_cx.json(243ep)을 분석하니:
@@ -382,12 +422,19 @@ V5_add_free 빌더 — free 21ep 중간 STOP 84개 제거, 마지막 STOP 유지
 "중간 STOP"은 모델 결함이 아니라 비동기 수집의 타이밍 빈틈이 만든 라벨 아티팩트다.
 STOP은 본래 도착=마지막 프레임 신호이며, 그래서 area 기반 도착 종결 규칙과 동기식 재수집이 정답이다.
 
-[→ 원문 전체 보기(research_story.html#ch22)](../v5/research_story.html#ch22)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch22">→ 원문 전체 보기 (research_story.html#ch22)</a>
 
-### CH 44 — 학습/추론 이미지 파이프라인 통일 + "4초"의 진짜 원인 — 누적 드리프트
-*교수님께 보고드렸던 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅 — 가설 5개를 코드/실측으로 검증*
+</div>
+
+<div class="chapter-block accent-e" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 44</span> 학습/추론 이미지 파이프라인 통일 + "4초"의 진짜 원인 — 누적 드리프트</div>
+
+<p class="chapter-subtitle-line">교수님께 보고드렸던 학습(서버)/추론(로봇) 이미지 프로세싱 차이 디버깅 — 가설 5개를 코드/실측으로 검증</p>
+
+<div class="card" markdown="1">
 
 **44-1. 가설 ①②⑤ — 리사이즈는 이미 같았다, 명시적으로 통일**
 
@@ -401,6 +448,10 @@ STOP은 본래 도착=마지막 프레임 신호이며, 그래서 area 기반 �
 robovlm_nav/image_preprocess.py의 resize_for_vlm() 공유 함수를 학습/추론
 양쪽 호출 지점에 명시적으로 적용. soda 운영서버에 안전 배포(stop→pull→검증→재시작) 완료,
 latency 회귀 없음 확인(1.32~1.36초로 배포 전후 동일).
+
+</div>
+
+<div class="card" markdown="1">
 
 **44-2. 가설 ③ — "4초 차이"는 단발 latency가 아니라 누적 드리프트였다**
 
@@ -425,11 +476,19 @@ frame 105번(끝) 누적 드리프트
 soda 실측 단발 latency: 1.31~1.36초(GB10 560~650ms 대비 약 2배,
 Jetson Orin vs GB10 하드웨어 차이로 설명됨) — "1초 이내" 목표에는 아직 못 미침(가설 ③ 부분 미해결).
 
+</div>
+
+<div class="card" markdown="1">
+
 **44-3. 가설 ④ — STOP 40~50cm는 거리 캘리브레이션이 먼저 필요(미해결)**
 
 현재 STOP 임계값은 GOAL_AREA_THRESHOLD=0.25(정규화 면적, cm 단위 아님). "40~50cm"로
 바꾸려면 로봇이 실제로 40cm/50cm 떨어진 지점에서 area가 얼마로 찍히는지 실측 캘리브레이션이 먼저
 필요하다 — 이번 plan 범위 밖, 별도 진행.
+
+</div>
+
+<div class="card" markdown="1">
 
 **44-4. 재발 방지 — 파이프라인 건강진단 체크리스트 배포**
 
@@ -440,12 +499,19 @@ E.grounding 5개 체크를 자동화. 특히 B(drift) 체크는 "N초 차이"를
 plans: plan_20260622_train_inference_image_pipeline_unify.md  |
 CHECKLIST_pipeline_health.md  |  2026-06-22
 
-[→ 원문 전체 보기(research_story.html#ch44)](../v5/research_story.html#ch44)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch44">→ 원문 전체 보기 (research_story.html#ch44)</a>
 
-### CH 49 — grounding_skip_n=3 환경 재검증 — CH47의 area_delta 이득이 사라짐
-*다른 세션에서 발견한 대시보드 grounding_skip_n=3 기본값 이슈 — CH47의 area_delta가 실제 운영 캐시 조건에서도 유효한지 시뮬레이션으로 확인*
+</div>
+
+<div class="chapter-block accent-a" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 49</span> grounding_skip_n=3 환경 재검증 — CH47의 area_delta 이득이 사라짐</div>
+
+<p class="chapter-subtitle-line">다른 세션에서 발견한 대시보드 grounding_skip_n=3 기본값 이슈 — CH47의 area_delta가 실제 운영 캐시 조건에서도 유효한지 시뮬레이션으로 확인</p>
+
+<div class="card" markdown="1">
 
 **49-1. 문제 제기 — 운영 대시보드는 skip_n=3, CH47은 매프레임(skip_n=1) 가정**
 
@@ -457,6 +523,10 @@ CH47의 area_delta = area[t]-area[t-1]는 정확히 이 "변화"를 신호로 �
 실제 캐시 동작(연속 3프레임, t/t+1/t+2 — 노란 박스 area가 완전히 고정됨, 4개 에피소드):
 4개 에피소드 모두 3프레임 내내 동일 bbox(area 소수점까지 일치) — 가운데/오른쪽 프레임은 실제로는
 새로 그라운딩하지 않고 맨 왼쪽 프레임의 결과를 그대로 재사용한 것. area_delta는 이 구간에서 항상 0.
+
+</div>
+
+<div class="card" markdown="1">
 
 **49-2. 결과 — 우려가 맞았다, 오히려 역전됨**
 
@@ -478,6 +548,10 @@ LSTM-replace+area_delta(CH47 best)
 skip_n=1(매프레임 그라운딩) 조건에서만 유효했다. 현재 운영 대시보드 설정(skip_n=3)
 그대로 배포하면 area_delta의 이득은 사라지고 오히려 약간 손해다 — CH47을 지우지 않고 이 카드로 정정.
 
+</div>
+
+<div class="card" markdown="1">
+
 **49-3. 결론 — 두 가지 배포 옵션, 선택 필요**
 
 옵션장점단점
@@ -490,6 +564,10 @@ PG2 grounding이 ~1s/frame(실측) — latency 3배 증가, 실시간성 문제(
 권장(잠정): 옵션 A. latency 예산이 더 중요한 제약이고, skip_n=3
 baseline(0.119m)도 매프레임 best(0.098m)와 큰 차이가 아니다. area_delta는 skip_n=1로 운영할
 여유가 있을 때만 재검토.
+
+</div>
+
+<div class="card" markdown="1">
 
 **49-4. 실제 세션 데이터로 옵션 A 확정 — 추가 ablation 불필요**
 
@@ -508,6 +586,10 @@ has_bbox=True 프레임 중 연속동일 거의 0(S6 4/53·S7 0/23) → skip_n=1
 도달 불가능한 옵션이다. 시뮬레이션(49-2/49-3)과 실제 세션 실측(이 카드)이 같은 결론으로
 수렴하므로 추가 ablation 없이 옵션 A(skip_n=3 유지, area_delta
 미배포)로 메인 디폴트를 확정한다.
+
+</div>
+
+<div class="card" markdown="1">
 
 **49-5. add 모드까지 마무리 — 3개 모드 전부 skip_n=3에서 area_delta 무이득 확정**
 
@@ -538,12 +620,19 @@ area_delta를 추가할 이유가 없다 — 49-4의 "옵션 A(skip_n=3 유지, 
 손실은 없으나, 원본 가중치 파일은 재학습해야 복구 가능.
 2026-06-24  |  관련: scripts/eval/simulate_skip_n.py, scripts/gradio_inference_dashboard.py, docs/v5/s6_cl_sim.json, scripts/eval/closed_loop_eval_skip3_add.py
 
-[→ 원문 전체 보기(research_story.html#ch49)](../v5/research_story.html#ch49)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch49">→ 원문 전체 보기 (research_story.html#ch49)</a>
 
-### CH 51 — 에피소드 초반 N프레임 한정 줌크롭 — 실세션+학습데이터 ablation (n=737, 도움 안 됨 확정)
-*조이스틱 체감 테스트 중 "맨 처음이 너무 멀어서 안 될 때도 있다"는 보고 — CH50과 스코프가 다른 재검토(런타임 조건부, 학습 미개입). 표본을 세션 4개(n=2)에서 737건으로 확장*
+</div>
+
+<div class="chapter-block accent-b" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 51</span> 에피소드 초반 N프레임 한정 줌크롭 — 실세션+학습데이터 ablation (n=737, 도움 안 됨 확정)</div>
+
+<p class="chapter-subtitle-line">조이스틱 체감 테스트 중 "맨 처음이 너무 멀어서 안 될 때도 있다"는 보고 — CH50과 스코프가 다른 재검토(런타임 조건부, 학습 미개입). 표본을 세션 4개(n=2)에서 737건으로 확장</p>
+
+<div class="card" markdown="1">
 
 **51-0. 줌크롭 구체적 구현 (regroun_zoom_small.py:zoom_crop())**
 
@@ -562,6 +651,10 @@ return crop, x0, y0, cw, ch, W, H # 역변환용 좌표 반환
 - 역변환 결과로 area/cx/cy 교체
 직관: "anchor 근처 50% 영역만 잘라서 2배 확대된 시야로 PG2에게 다시 보여주면 더 크고 정확한 bbox를 그릴 것"
 
+</div>
+
+<div class="card" markdown="1">
+
 **51-1. CH50과의 차이 — 학습 데이터 전체가 아니라 런타임 첫 5프레임 한정**
 
 CH50(50-3에서 노이즈로 정정됨)은 학습 데이터셋 전체(area<0.05, 36.2%)를 영구
@@ -571,12 +664,20 @@ CH50(50-3에서 노이즈로 정정됨)은 학습 데이터셋 전체(area<0.05,
 문제 자체가 없다. latency도 에피소드당 최대 5회 추가 호출로 제한되어 CH49의
 skip_n=3 예산과 충돌하지 않는다(상세: plan_20260624_first_frame_zoom_crop_ablation.md §0-4).
 
+</div>
+
+<div class="card" markdown="1">
+
 **51-2. 1차 결과(n=2) — 표본 부족으로 결론 보류**
 
 scripts/eval/ablate_first_frame_zoom.py로 오늘(6/24) 조이스틱 체감 테스트 세션 4개
 (docs/inference_sessions/session_20260624_*.h5)만 먼저 오프라인 리플레이했을 때는
 후보가 2건뿐이었다(하나는 area 2배 개선, 하나는 72% 악화) — 방향조차 판단 불가능한
 표본. 아래 51-3에서 표본을 737건으로 확장해 재검증.
+
+</div>
+
+<div class="card" markdown="1">
 
 **51-3. 표본 확장(n=737) — 줌크롭이 오히려 약간 악화시킴, 도움 안 됨 확정**
 
@@ -616,6 +717,10 @@ CH50과 같은 결론으로 수렴. CH50은 학습된 모델의 closed-loop
 n=737로 "효과 없음, 오히려 약간 손해"를 직접 확인했다 — 서로 다른 레벨(다운스트림 task
 지표 vs 그라운딩 raw 출력)에서 같은 결론에 도달한 교차검증.
 
+</div>
+
+<div class="card" markdown="1">
+
 **51-4. 결정 — Anchor 방식 운영 코드 반영 안 함. Center 크롭은 유효 (2026-06-30 추가)**
 
 n=737 ablation 결론은 "이전 프레임 bbox를 anchor로 삼는 줌크롭"이 도움 안 됨으로 확정.
@@ -641,17 +746,28 @@ center 크롭은 바스켓이 항상 화면 중앙 근처에 있다는 실주행
 → Center 크롭 방식 자체는 유효. 단, CH54 Stage 0 워밍업 배포 이후 frame 0 cold-start 문제가 다른 경로로 해결됨 → 배포 우선순위 낮아짐. 필요 시 재검토.
 plans: plan_20260624_first_frame_zoom_crop_ablation.md  |  2026-06-24
 
-[→ 원문 전체 보기(research_story.html#ch51)](../v5/research_story.html#ch51)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch51">→ 원문 전체 보기 (research_story.html#ch51)</a>
 
-### CH 53 — 6/24·6/26 실세션 분석 — skip_n=3 실측 확인
-*rsync로 수신된 7개 실세션(6/24 4개·6/26 3개) 분석 — 캐시 패턴 실측 및 콜드스타트 레이턴시 확인*
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 53</span> 6/24·6/26 실세션 분석 — skip_n=3 실측 확인</div>
+
+<p class="chapter-subtitle-line">rsync로 수신된 7개 실세션(6/24 4개·6/26 3개) 분석 — 캐시 패턴 실측 및 콜드스타트 레이턴시 확인</p>
+
+<div class="card" markdown="1">
 
 **핵심 발견**
 
 skip_n=3 배포 실측 확인
 6/26 104455·104644 세션에서 캐시 패턴(실호출→캐시→캐시) 실측. 정상 레이턴시 1,348~1,469ms. 22.4s 이상치 1건은 콜드스타트 추정.
+
+</div>
+
+<div class="card" markdown="1">
 
 **6/24 실세션 4개 — skip_n=1(구버전), 짧은 세션 패턴**
 
@@ -698,6 +814,10 @@ STOP
 150541 t=0 (22.3s cold)
 151056 t=0 has_bbox=MISS
 
+</div>
+
+<div class="card" markdown="1">
+
 **콜드스타트 22s 레이턴시 — 6/24·6/26 공통 패턴**
 
 6/24 150541(22,285ms)과 6/26 104455(22,444ms)에서 동일한 22초대 레이턴시가 1번씩 발생.
@@ -708,6 +828,8 @@ PaliGemma2 모델이 처음 로드되는 콜드스타트(GPU 모델 메모리 �
 분석 스크립트: scripts/analyze_sessions_ch53.py  |
 이미지: docs/v5/ch46_50_viz/v5_2_*.jpg · session_20260624_*.jpg  |  2026-06-26
 
-[→ 원문 전체 보기(research_story.html#ch53)](../v5/research_story.html#ch53)
+</div>
 
----
+<a class="src-link" href="../v5/research_story.html#ch53">→ 원문 전체 보기 (research_story.html#ch53)</a>
+
+</div>
