@@ -65,6 +65,8 @@ p.chapter-subtitle-line{color:var(--ink-dim);font-size:0.8rem;font-style:italic;
 .card>p:first-child strong:only-child{color:var(--ink)}
 a.src-link{display:inline-block;margin-top:8px;font-size:0.8rem;color:var(--ink-dim);text-decoration:none}
 a.src-link:hover{color:#7dd3fc}
+.card img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);
+          display:block;margin:10px 0}
 
 table{border-collapse:collapse;width:100%;font-size:0.8rem;margin:12px 0;display:block;overflow-x:auto}
 th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;color:var(--ink-soft)}
@@ -350,8 +352,11 @@ area≥0.35 &amp; c=2
 1.227m
 threshold 올려도 area 분포 자체가 초반부터 고값
 V0(no_override) vs V1(서버 기본값) 궤적 비교 — 위 표의 98.7% vs 23.5% 차이가 실제로 어떻게 생긴 경로 차이인지, val 에피소드 3개를 다시 돌려 그려봤다(새 학습 없음, 기존 ckpt 재사용):
+<img alt="center_straight trajectory" src="../v5/closed_loop_eval/trajectory_examples/center_straight.png" />
 center_straight — V1이 1.15m 지점에서 일찍 멈춤(빨간점), expert/V0는 1.6m까지 계속
+<img alt="left_left trajectory" src="../v5/closed_loop_eval/trajectory_examples/left_left.png" />
 left_left — 이 에피소드는 V0/V1 거의 동일(둘 다 성공 케이스)
+<img alt="right_right trajectory" src="../v5/closed_loop_eval/trajectory_examples/right_right.png" />
 right_right — V0/V1은 일치하지만 둘 다 expert와 반대 방향(별개의 모델 예측 오류, STOP override와 무관)</p>
 </div>
 <div class="card">
@@ -446,10 +451,15 @@ scripts: ablate_stop_proximity.py · ablate_stop_clip_sim.py · ablate_stop_weig
 <p>soda 실측 중 사과(apple) grounding이 종종 실패하는 걸 발견 — 원인은 PG2가 아니라
 PG2Grounder.run()에 박혀있던 4개 후처리 필터 중 cy_val&lt;0.35("바구니는 화면 상단에 없다"는
 가정)였다. 사과의 정상 bbox는 cy=0.344로 이 임계값에 걸려 false negative 처리됐다.
+<img alt="coke can bbox" src="../v5/attention_analysis/ground_filter_examples/coke_can_bbox.png" />
 콜라캔 — area=0.063, 정상
+<img alt="chair bbox" src="../v5/attention_analysis/ground_filter_examples/chair_bbox.png" />
 의자 — area=0.125, 정상
+<img alt="cone bbox" src="../v5/attention_analysis/ground_filter_examples/cone_bbox.png" />
 콘 — area=0.056, 정상
+<img alt="apple bbox" src="../v5/attention_analysis/ground_filter_examples/apple_bbox.png" />
 사과 — GB10에선 area=0.010 정상검출(필터 버그 수정 효과). soda(Jetson)에서만 5/5 풀프레임 환각
+<img alt="mug bbox" src="../v5/attention_analysis/ground_filter_examples/mug_bbox.png" />
 머그컵 — GB10에선 area=0.035 정상검출. soda에서만 5/5 풀프레임 환각
 객체soda 검증(수정 후)비고
 콜라캔 / 의자 / 콘
@@ -469,14 +479,23 @@ min_cy/min_area만 phrase별로 오버라이드 가능하게 분리(configs/grou
 hidden state가 경로방향과 상관되게 갈리는가 — 새 데이터 수집 없이 V5 220개 에피소드
 (파일명에 이미 target_{시작위치}_{방향}_path 라벨 존재)의 중간 프레임으로 frozen 선형 probe(Exp54와 동일 방법론) 측정.
 probe가 90%로 구분한 게 실제로 어떻게 다르게 생긴 화면인지 — 9개 (시작위치×방향) 조합의 실제 예시 프레임:
+<img alt="center-left" src="../v5/attention_analysis/direction_probe_examples/center_left.png" />
 중앙 출발 · 좌회전 경로
+<img alt="center-straight" src="../v5/attention_analysis/direction_probe_examples/center_straight.png" />
 중앙 출발 · 직진 경로
+<img alt="center-right" src="../v5/attention_analysis/direction_probe_examples/center_right.png" />
 중앙 출발 · 우회전 경로
+<img alt="left-left" src="../v5/attention_analysis/direction_probe_examples/left_left.png" />
 좌측 출발 · 좌회전 경로
+<img alt="left-straight" src="../v5/attention_analysis/direction_probe_examples/left_straight.png" />
 좌측 출발 · 직진 경로
+<img alt="left-right" src="../v5/attention_analysis/direction_probe_examples/left_right.png" />
 좌측 출발 · 우회전 경로
+<img alt="right-left" src="../v5/attention_analysis/direction_probe_examples/right_left.png" />
 우측 출발 · 좌회전 경로
+<img alt="right-straight" src="../v5/attention_analysis/direction_probe_examples/right_straight.png" />
 우측 출발 · 직진 경로
+<img alt="right-right" src="../v5/attention_analysis/direction_probe_examples/right_right.png" />
 우측 출발 · 우회전 경로
 proben_classchance5-fold CV accchance 대비
 방향(좌/직진/우)
@@ -2013,6 +2032,7 @@ direction-out 수치들은 이 편향을 어느 정도 안고 있는 값들 — 
 약함, R/FR 트레이드오프 존재)은 유효하지만 절대치는 다소 부풀려져 있었다고 봐야 한다.
 ② 학습곡선(train_acc vs val_acc, epoch별) —
 5개 헤드를 25→10epoch 간격으로 촘촘히 재서 과적합을 직접 시각화:
+<img alt="" src="../v5/figures/head_overfitting_curves.png" />
 헤드
 최종 train_acc
 최종 val_acc

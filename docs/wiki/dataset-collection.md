@@ -50,82 +50,109 @@ STOP0개
 중앙 직진
 바구니가 정면 중앙에 있을 때
 center_straight
+![center_straight 시작](assets/2bb4ec1736c5555f.jpg)
 시작 (f0)
 FORWARD
+![center_straight 중반](assets/df13d031549ab81f.jpg)
 중반 (f7)
 FORWARD
+![center_straight 끝](assets/b247ba624b255049.jpg)
 끝 (f13)
 FORWARD
 중앙→좌회전
 중앙에서 왼쪽으로 접근
 center_left
+![center_left 시작](assets/8fdb7a89b6b8088a.jpg)
 시작 (f0)
 LEFT
+![center_left 중반](assets/3d5bced3b213aa9b.jpg)
 중반 (f9)
 FORWARD
+![center_left 끝](assets/d236cbf867ba1b52.jpg)
 끝 (f17)
 FORWARD
 중앙→우회전
 중앙에서 오른쪽으로 접근
 center_right
+![center_right 시작](assets/4e3d8c6b1f3bea05.jpg)
 시작 (f0)
 RIGHT
+![center_right 중반](assets/1f3cbfb5525330b8.jpg)
 중반 (f9)
 FORWARD
+![center_right 끝](assets/bae06217402086fc.jpg)
 끝 (f17)
 FORWARD
 좌측 직진
 왼쪽에서 직진
 left_straight
+![left_straight 시작](assets/13886941f896898f.jpg)
 시작 (f0)
 STOP
+![left_straight 중반](assets/eb4b2ccd661e22a3.jpg)
 중반 (f9)
 FORWARD
+![left_straight 끝](assets/a99ad27a5099aa12.jpg)
 끝 (f17)
 FORWARD
 좌→좌
 왼쪽에서 더 왼쪽으로
 left_left
+![left_left 시작](assets/4d5acb0bdff66f27.jpg)
 시작 (f0)
 FWD+L
+![left_left 중반](assets/c1a04d71d9c78274.jpg)
 중반 (f9)
 FORWARD
+![left_left 끝](assets/4233b14a77295ba9.jpg)
 끝 (f18)
 FORWARD
 좌→우
 왼쪽에서 오른쪽으로
 left_right
+![left_right 시작](assets/fccdac6597ea7585.jpg)
 시작 (f0)
 FWD+R
+![left_right 중반](assets/aa5d4b74a1de0e38.jpg)
 중반 (f9)
 FORWARD
+![left_right 끝](assets/8c2a208cd1df81e9.jpg)
 끝 (f18)
 FORWARD
 우측 직진
 오른쪽에서 직진
 right_straight
+![right_straight 시작](assets/eb106421b9c65681.jpg)
 시작 (f0)
 STOP
+![right_straight 중반](assets/7c7eaa15cc9c7d50.jpg)
 중반 (f9)
 FORWARD
+![right_straight 끝](assets/e87d538821e93318.jpg)
 끝 (f17)
 FORWARD
 우→좌
 오른쪽에서 왼쪽으로
 right_left
+![right_left 시작](assets/238cb56c7a108b33.jpg)
 시작 (f0)
 FWD+L
+![right_left 중반](assets/13053bebaea37889.jpg)
 중반 (f9)
 FORWARD
+![right_left 끝](assets/7b6ca99012424fe3.jpg)
 끝 (f17)
 FORWARD
 우→우
 오른쪽에서 더 오른쪽으로
 right_right
+![right_right 시작](assets/a7e5acf1c618c88a.jpg)
 시작 (f0)
 RIGHT
+![right_right 중반](assets/bd0a2d5f79906fa1.jpg)
 중반 (f8)
 FORWARD
+![right_right 끝](assets/5509d88bcb0897d8.jpg)
 끝 (f16)
 FORWARD
 
@@ -210,43 +237,63 @@ cx 극단값 대응력 향상
 basket이 화면 맨 왼쪽 끝
 예상 액션: ROT_L 또는 LEFT 필요
 중앙 출발
+![](assets/489bdef59b4e6795.jpg)
 좌 출발
+![](assets/75de9d831b6db3a0.jpg)
 우 출발
+![](assets/943731ab3ebd4771.jpg)
 바구니 극우
 basket이 화면 맨 오른쪽 끝
 예상 액션: ROT_R 또는 RIGHT 필요
 중앙 출발
+![](assets/46e6b38ee052ddaa.jpg)
 좌 출발
+![](assets/b6586a8636bc3072.jpg)
 우 출발
+![](assets/998977801dd81c46.jpg)
 대각 접근 좌
 좌측 대각선에서 접근
 예상 액션: FWD+LEFT
 중앙 출발
+![](assets/9bbd0e182524ae6b.jpg)
 좌 출발
+![](assets/5e4718ba1060c49b.jpg)
 우 출발
+![](assets/26bb18288066a35e.jpg)
 대각 접근 우
 우측 대각선에서 접근
 예상 액션: FWD+RIGHT
 중앙 출발
+![](assets/ec7340efbf4c7f19.jpg)
 좌 출발
+![](assets/30d1e8f94d6047fc.jpg)
 우 출발
+![](assets/a2036656fe3cfc66.jpg)
 조명 변화
 다른 조명 환경
 예상 액션: 일반화 테스트
 좌 출발
+![](assets/0a8315d4e54a9b6c.jpg)
 우 출발
+![](assets/295e5512713b353a.jpg)
 근접 상황
 basket이 매우 가까움 (area 큼)
 예상 액션: STOP 판단 필요
 중앙 출발
+![](assets/d686f21b12dfc749.jpg)
 좌 출발
+![](assets/f18e065d6811fd82.jpg)
 우 출발
+![](assets/a22352df86655fbb.jpg)
 원거리 상황
 basket이 멀리 있음 (area 작음)
 예상 액션: FORWARD 지속
 중앙 출발
+![](assets/c255f5e17d2dd272.jpg)
 좌 출발
+![](assets/005019abb1227b46.jpg)
 우 출발
+![](assets/c72be1c0349d5d5a.jpg)
 🛑 마지막 프레임 분석 — 도달 시 STOP 학습
 현재 문제: 에피소드가 basket에 닿기 직전에 끊김 → 마지막 프레임 gt_class = 전부 FORWARD
 MLP가 "가까워지면 STOP해야 한다"는 걸 한 번도 배운 적 없음 → 실로봇에서 basket에 충돌
@@ -254,7 +301,13 @@ MLP가 "가까워지면 STOP해야 한다"는 걸 한 번도 배운 적 없음 �
 해당 프레임: 2,626개 중 153개 (6.9%)
 area > 0.74 → STOP 레이블 (합성)
 basket이 이미지를 크게 채움 = 도달
+![](assets/15c4f14a50d89d09.jpg)
+![](assets/d49a8ab60b1460ba.jpg)
+![](assets/a85772856d14929c.jpg)
 area basket이 멀리 있음 = 계속 전진
+![](assets/9ce5ed05b5fe198c.jpg)
+![](assets/2d1c54488d97fa48.jpg)
+![](assets/71ad3381b4cbe7a2.jpg)
 구현 방법:
 학습 데이터 생성 시 if area_det > 0.740: gt_class = 0 (STOP) 오버라이드
 MLP 입력 bbox_hist의 area가 크면 → STOP 예측
@@ -521,6 +574,10 @@ grounding_skip_n: 3을 하드코딩 — stage2_v2_inference_server.py:557-572의
 CH47의 area_delta = area[t]-area[t-1]는 정확히 이 "변화"를 신호로 쓰므로, skip_n=3 환경에서는
 2/3 프레임의 delta가 항상 0이 되어 이득이 줄어들 수 있다는 의심 — 실측으로 확인.
 실제 캐시 동작(연속 3프레임, t/t+1/t+2 — 노란 박스 area가 완전히 고정됨, 4개 에피소드):
+![](../v5/ch46_50_viz/ch49_skip3_cache_seq_1.jpg)
+![](../v5/ch46_50_viz/ch49_skip3_cache_seq_2.jpg)
+![](../v5/ch46_50_viz/ch49_skip3_cache_seq_4.jpg)
+![](../v5/ch46_50_viz/ch49_skip3_cache_seq_6.jpg)
 4개 에피소드 모두 3프레임 내내 동일 bbox(area 소수점까지 일치) — 가운데/오른쪽 프레임은 실제로는
 새로 그라운딩하지 않고 맨 왼쪽 프레임의 결과를 그대로 재사용한 것. area_delta는 이 구간에서 항상 0.
 
@@ -809,9 +866,13 @@ STOP
 150541: 22,285ms 최대 레이턴시 → 콜드스타트 패턴(6/26 104455의 22.4s와 동일). 이후 frames은 정상.
 151056: has_bbox=False·area=0 → 로봇이 바구니를 전혀 못 찾은 상태로 1프레임 후 중단.
 104411~105123: 전형적인 "너무 멀어서" 시나리오(area 0.05 내외).
+![](../v5/ch46_50_viz/session_20260624_104411_0.jpg)
 104411 t=0 area=0.000
+![](../v5/ch46_50_viz/session_20260624_104411_1.jpg)
 104411 t=1 area=0.052
+![](../v5/ch46_50_viz/session_20260624_150541_0.jpg)
 150541 t=0 (22.3s cold)
+![](../v5/ch46_50_viz/session_20260624_151056_0.jpg)
 151056 t=0 has_bbox=MISS
 
 </div>

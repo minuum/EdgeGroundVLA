@@ -427,12 +427,15 @@ PaliGemma-3b-pt LoRA — "gray basket" 단일 클래스
 각 샘플: [이미지] + "detect gray basket" → <loc####>×4 + "gray basket" + <eos>
 실제 입력 → 출력 예시 3가지
 ① 원본 이미지 (V5 center_straight)
+![](assets/296d4fc3eb423acf.jpg)
 1280×720 → 224×224 리사이즈 후 입력
 회색 바구니가 정면 중앙
 ② "detect gray basket" → HIT ✅
+![](assets/470890f39b1a0db5.jpg)
 출력: <loc0462><loc0354><loc0862><loc0597> gray basket<eos>
 cx=0.464, cy=0.667 → 중앙 약간 아래. 30/30 = 100%
 ③ "detect brown pot" → MISS ✅
+![](assets/296d4fc3eb423acf.jpg)
 출력: <eos> (bbox 없음)
 같은 이미지, 쿼리만 다름 → 다른 결과 ✅
 100%
@@ -460,9 +463,13 @@ Exp58을 설계하면서 V4 데이터를 처음으로 직접 이미지로 확인
 524개 에피소드 모든 프레임에 gray basket(뒤)과 brown pot(앞)이 동시에 존재.
 이것이 이후 교차 테스트 결과를 제대로 해석하는 핵심 단서가 됩니다.
 V5: basket만
+![](assets/296d4fc3eb423acf.jpg)
 V4: 두 물체 공존!
+![](assets/efe6aef0ade4d84d.jpg)
 V4 + "brown pot" → TP
+![](assets/8a86e6c8f2a611cc.jpg)
 V4 + "gray basket" → 실제로 있음
+![](assets/3c22752a6632435c.jpg)
 V4 pseudo-label 실제 출력값 (PaliGemma2 zero-shot):
 <loc0678><loc0398><loc0997><loc0548> brown pot<eos>
 → cx=(398+548)/2/1023 = 0.462, cy=(678+997)/2/1023 = 0.819 (화면 하단 중앙 → 화분 위치)
@@ -613,6 +620,7 @@ FORWARD
 <eos>만 출력 = basket 미검출 → has_bbox=0 → 이전 위치 유지 후 탐색
 ④ 실제 로봇 이미지 — 객체 인식 → cx → 액션 (Exp60 기준)
 초록 박스 = PG2 grounding bbox · 노란 십자 = cx,cy 중심점 · 하단 화살표 = cx 위치
+![](assets/b5359229c6fe4a96.jpg)
 PG2 cx
 0.500
 화면 중앙
@@ -620,6 +628,7 @@ Action
 LEFT
 좌
 center_left
+![](assets/2b34641eb0e6c172.jpg)
 PG2 cx
 0.123
 화면 좌측 끝
@@ -627,6 +636,7 @@ Action
 FWD+LEFT
 전진+좌
 center_left
+![](assets/e2af192ac1c393cf.jpg)
 PG2 cx
 0.945
 화면 우측 끝
@@ -634,6 +644,7 @@ Action
 FORWARD
 전진
 center_left
+![](assets/edd31da5910f803b.jpg)
 PG2 cx
 0.109
 화면 좌측 끝
@@ -641,6 +652,7 @@ Action
 FWD+RIGHT
 전진+우
 center_left
+![](assets/76e08759e0485f01.jpg)
 PG2 cx
 0.239
 화면 좌측 끝
@@ -648,6 +660,7 @@ Action
 ROT_R
 제자리우
 left_straight
+![](assets/c2aa6699fc8b01d1.jpg)
 PG2 cx
 0.500
 화면 중앙
@@ -1293,21 +1306,31 @@ STOP 거리 캘리브레이션
 
 Q1. "6/22 이후 뭐가 달라졌어요?"
 grounding_skip_n=3 배포(레이턴시 ↓66%)만 실질 개선. 나머지 5개 실험(area_delta, 줌재그라운딩 학습, 줌재그라운딩 런타임, LSTM-add, LSTM-replace)은 모두 음성 결과.
+![](../v5/ch46_50_viz/session_20260626_100316_1.jpg)
 skip_n=1 (배포 전) · area=0.053
+![](../v5/ch46_50_viz/session_20260626_104455_1.jpg)
 skip_n=3 적용 후 · 정상 그라운딩
+![](../v5/ch46_50_viz/session_20260626_104644_1.jpg)
 skip_n=3 · area=0.017 (멀리서 출발)
 Q2. "그라운딩 품질 개선은 왜 안 됐어요?"
 2× 줌 크롭 시 바구니 주변 씬 컨텍스트(바닥·벽·주변 환경)가 잘린다. PG2는 "gray basket"을 맥락 전체로 인식하는데 그 맥락이 소실되어 오히려 혼란. n=737 실측에서 89% 프레임에서 area가 감소, False→True 전환 0건.
+![](../v5/ch46_50_viz/ch50_zoom_before_after_1.jpg)
 CH50: 원본(빨강) vs 줌재그라운딩(초록) — 박스 거의 안 변함
+![](../v5/ch46_50_viz/ch50_zoom_before_after_3.jpg)
 CH50: 줌 후 area 오히려 감소한 사례
 Q3. "처음이 너무 멀어서 안 되는 문제는?"
 오늘 세션 3개 모두 area 0.017~0.074로 출발 — "너무 멀어서" 시나리오 그대로. 줌크롭으로 해결 안 됨 확인(CH51). 대안: (a) 최소 시작 거리 운영 프로토콜, (b) 초기 접근 매뉴버. 방향은 교수님 결정 필요.
+![](../v5/ch46_50_viz/session_20260626_100316_1.jpg)
 area=0.053 — 멀리서 FWD+L
+![](../v5/ch46_50_viz/session_20260626_104644_1.jpg)
 area=0.017 — 가장 작은 케이스
+![](../v5/ch46_50_viz/session_20260626_100316_3.jpg)
 area=0.029 — FWD+R로 전환
 Q4. "LSTM hidden state는 의미 있어요?"
 SR 기준으로는 none/add/replace 전 모드 동일(96.6%). replace mode가 전환 경로(left_left, center_left 등) FPE 40% 개선(0.176m→0.106m). 정밀도를 우선하면 replace 채택 근거 있음.
+![](../v5/ch46_50_viz/ch49_skip3_cache_seq_1.jpg)
 skip_n=3 캐시 시퀀스 — 3프레임 bbox 고정
+![](../v5/ch46_50_viz/session_20260626_104644_skip3_strip.jpg)
 오늘 실세션 104644 — 초록=실호출 노랑=캐시
 Q5. "다음에 뭘 해야 해요?"
 ① STOP 거리 현장 실측(30/40/45/50cm, 로봇 필요 — 계산기·핸드오프 완비) ② 그라운딩 실패 대응 방향 결정(교수님 판단). 시뮬 기준 96.6%에서 더 올릴 방법은 현재 식별되지 않음.
@@ -1818,8 +1841,11 @@ LSTM
 0.080
 CL: w≥4 포화. FPE: LSTM w=16 전체 최저.
 F. 시각적 증거
+![Zero-shot Linear Probe](../v5/portfolio/linear_probe_results.png)
 Fig F-1. Zero-shot Linear Probe. Frozen CLIP이 학습 없이 96.6% 위치 분류 → Stage 1이 basket을 이미 "본다"는 증거.
+![Basket Masking Ablation](../v5/portfolio/masking_comparison.png)
 Fig F-2. Basket Masking Ablation (Exp66 Stage2 v2, SOTA). bbox history=zeros 조건에서 basket 마스킹 → 9/9 (100%) 행동 반전. 이미지 경로가 basket 위치를 독립적으로 인식함을 증명.
+![5-Track Validation](../v5/portfolio/track_summary.png)
 Fig F-3. 5-Track 검증 요약. Track 2(Zero-shot Probe 96.6%) + Track 3(Masking 9/9 flip (Exp66, PG2)) → "basket을 본다" 이중 증명.
 
 </div>

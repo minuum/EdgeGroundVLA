@@ -65,6 +65,8 @@ p.chapter-subtitle-line{color:var(--ink-dim);font-size:0.8rem;font-style:italic;
 .card>p:first-child strong:only-child{color:var(--ink)}
 a.src-link{display:inline-block;margin-top:8px;font-size:0.8rem;color:var(--ink-dim);text-decoration:none}
 a.src-link:hover{color:#7dd3fc}
+.card img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);
+          display:block;margin:10px 0}
 
 table{border-collapse:collapse;width:100%;font-size:0.8rem;margin:12px 0;display:block;overflow-x:auto}
 th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;color:var(--ink-soft)}
@@ -554,9 +556,13 @@ V5 바스켓 수준(객체당 15~20ep × 경로유형) — 주 단위 작업
 <p>38-2의 질문("헤드 입력을 bbox 대신 PG2 hidden state로 바꾸면 다를까")을 재학습 없이 바로 확인했다.
 scripts/measure_hidden_state_pg2.py — attention 가중치가 아니라
 action head가 실제로 받을 표현(벡터) 자체가 instruction에 따라 얼마나 갈리는지, 코사인거리로 측정.
+<img alt="S6 baseline f1" src="../v5/grounding_frames/s6/frame_0001.jpg" />
 S6 baseline (f1)
+<img alt="S6 dead-zone f70" src="../v5/grounding_frames/s6/frame_0070.jpg" />
 S6 dead-zone (f70)
+<img alt="S7 정상검출" src="../v5/grounding_frames/s7/frame_0054.jpg" />
 S7 정상검출 (f54)
+<img alt="S8 production" src="../v5/grounding_frames/s8/frame_0020.jpg" />
 S8 production/mix-448 (f20)
 비교cos_dist(이미지1)cos_dist(이미지2)의미
 동일 prompt 반복(노이즈 바닥선)
@@ -586,8 +592,11 @@ Exp12/13처럼 학습이 잘 안 붙을 위험이 여전히 있다 — attention
 <p>38-4의 cos_dist 수치는 추상적이라, PG2가 실제로 무엇을 생성하는지를 4개의 서로 다른 실제 바스켓 세션 사진
 (S6 baseline·S6 dead-zone·S7 정상검출·S8 production/mix-448)에서 직접 확인했다 — 사진과 raw 출력은
 today_visual_summary.html 6막에 전부 첨부.
+<img alt="basket S6 boxed" src="../v5/grounding_frames/ch38_5_boxed/s6_f1_boxed.png" />
 "detect gray basket" — S6, 박스=실제 출력 좌표
+<img alt="basket S7 boxed" src="../v5/grounding_frames/ch38_5_boxed/s7_f84_boxed.png" />
 "detect gray basket" — S7, 타이트하게 정상 검출
+<img alt="apple control boxed" src="../v5/grounding_frames/ch38_5_boxed/apple_control_boxed.png" />
 대조군: "detect green apple" — 박스가 사과를 정확히 잡음, 객체가 바뀌면 출력도 확실히 바뀜
 프롬프트4개 세션 결과
 "detect gray basket"

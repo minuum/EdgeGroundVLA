@@ -53,11 +53,17 @@ Grounding 계층
 Pure HF Kosmos-2 (정상) → Google-robot (붕괴) → 우리 fine-tuned (부분 복구). 계층별 grounding 능력이 다르다.
 실제 grounding 결과 — 바구니 위치 예측 overlay
 초록 박스 = 모델 예측 bbox, 빨간 박스 = ground truth bbox
+![중앙 직진](assets/b9ef2c4d2506fc57.png)
 중앙 직진 · frame 0000
+![중앙 직진](assets/31ac282ead61514b.png)
 중앙 직진 · frame 0002
+![중앙→좌회전](assets/ff955d2874ddcef2.png)
 중앙→좌회전 · frame 0000
+![중앙→좌회전](assets/08b741c02cc02766.png)
 중앙→좌회전 · frame 0002
+![중앙→우회전](assets/e258639f48939d01.png)
 중앙→우회전 · frame 0000
+![중앙→우회전](assets/59fd101550ae479f.png)
 중앙→우회전 · frame 0002
 
 </div>
@@ -90,10 +96,13 @@ Pure HF Kosmos-2 (정상) → Google-robot (붕괴) → 우리 fine-tuned (부�
 → 텍스트 명령으로 목표 변경 가능
 ✓ 진정한 목표물 추적 (Goal-Conditioned)
 실제 로봇 카메라 프레임 — basket 위치가 다른 세 장면
+![basket left](../v5/bbox_nav_step0/images/center_left__260408__f004.jpg)
 basket 왼쪽 → FWD+L
 HSV가 cx≈0.30 감지 → MLP 입력
+![basket center](../v5/bbox_nav_step0/images/center_straight__260408__f006.jpg)
 basket 중앙 → FORWARD
 HSV가 cx≈0.50 감지 → MLP 입력
+![basket right](../v5/bbox_nav_step0/images/center_right__260408__f004.jpg)
 basket 오른쪽 → FWD+R
 HSV가 cx≈0.70 감지 → MLP 입력
 ⚠ 핵심: 모델이 이 이미지에서 basket을 직접 "인식"하는 게 아니다.
@@ -151,8 +160,11 @@ hit rate
 "nothing"
 1.2%
 Kosmos-2 Grounding 결과 — 빨간 박스가 모델이 찾은 basket 위치
+![center straight grounding](../v5/grounding_initial18_debug/overlays/episode_260408_123008_target_center_straight_path__core__fixed_center_f0000.png)
 center_straight path
+![center left grounding](../v5/grounding_initial18_debug/overlays/episode_260408_174654_target_center_left_path__core__fixed_center_f0000.png)
 center_left path
+![right left grounding](../v5/grounding_initial18_debug/overlays/episode_260409_131126_target_right_left_path__core__fixed_center_f0000.png)
 right_left path
 Kosmos-2 native grounding — <grounding><phrase>gray basket</phrase> 프롬프트 사용. 성공 시 bbox가 표시됨.
 
@@ -239,8 +251,11 @@ GT=FORWARD P1=FORWARD P2=FORWARD Pmt=FWD+L ≠
 텍스트 경로가 구조적으로는 살아있지만, 학습 과정에서 텍스트를 사용할 이유를 못 찾고 있다.
 Masking Ablation — basket 가리면 행동이 반전되는가? (R1 Track 3 증거)
 각 이미지: 왼쪽=basket 보임 (정상 행동), 오른쪽=basket 가림 (행동 반전)
+![masking flip 1](../v5/exp54_viz/beforeafter/center_FLIP_01.png)
 center ep.1 — FLIP ✓
+![masking flip 2](../v5/exp54_viz/beforeafter/center_FLIP_02.png)
 center ep.2 — FLIP ✓
+![masking flip 3](../v5/exp54_viz/beforeafter/center_FLIP_03.png)
 center ep.3 — FLIP ✓
 center_straight 6개 에피소드 전부 basket을 회색으로 가리면 FWD+L 또는 FWD+R로 방향이 반전됨.
 이것이 R1의 핵심 인과 증거 — basket이 행동의 직접 원인임을 입증.
@@ -317,8 +332,10 @@ Stage 2 LoRA 결과
 Stage 1 LoRA로 basket 특화 특징을 만들면 오히려 Stage 2가 쓰던 장면 패턴 정보가 손실된다.
 이는 두 stage가 실제로 다른 정보를 사용하고 있음을 역설적으로 증명한다.
 5-Track 증거 요약도
+![5-track summary](../v5/exp54_viz/track_summary.png)
 R1 완료: 5가지 독립 증거가 동일 방향을 가리킨다
 Attention Map — basket 집중도
+![attention grid](../v5/exp54_attention_v2/grid_summary.png)
 early→late: basket에 가까워질수록 attention 집중도 상승 (+3.5%p)
 Chapter 13 종합 결론
 현재 모델은 basket을 "텍스트로 인식"하지 않는다.
@@ -341,6 +358,7 @@ Chapter 13 종합 결론
 ① 증상 — basket은 중앙에 있는데 bbox는 빈 벽에
 center_left 에피소드 fr10: basket은 화면 중앙(cx≈0.35)에 크게 있으나, PG2가 반환한 박스(빨강)는
 왼쪽 끝 빈 벽(cx=0.11, area=0.05). cx가 액션으로 직결되므로 → 잘못된 조향.
+![](../v5/grounding_collapse/fr10.png)
 ② 추적 — 같은 에피소드를 프레임별로 PG2에 재투입
 프레임
 PG2 raw <loc> 출력
@@ -372,6 +390,9 @@ fr16 (도착)
 0.50
 1.00
 화면 전체
+![](../v5/grounding_collapse/fr05.png)
+![](../v5/grounding_collapse/fr12.png)
+![](../v5/grounding_collapse/fr16.png)
 ③ 진단 — LoRA 박스 붕괴(mode collapse)
 y좌표가 여러 프레임에서 0.397~0.611로 동일하고 area가 ~0.05로 고정 →
 LoRA가 거의 고정 크기 박스를 좌우로만 슬라이딩하다가, 가까우면 화면 전체로 터집니다.
@@ -413,7 +434,15 @@ container / bottle / red ball
 —
 없는 객체 정확히 거부
 같은 프레임 — 베이스 PG2(초록)는 basket을 정확히:
+![](../v5/grounding_collapse/base_fr05.png)
+![](../v5/grounding_collapse/base_fr10.png)
+![](../v5/grounding_collapse/base_fr12.png)
+![](../v5/grounding_collapse/base_fr16.png)
 같은 프레임 — Exp59 LoRA(빨강)는 엉뚱한 곳에 (박스 붕괴):
+![](../v5/grounding_collapse/fr05.png)
+![](../v5/grounding_collapse/fr10.png)
+![](../v5/grounding_collapse/fr12.png)
+![](../v5/grounding_collapse/fr16.png)
 반전: 베이스 PG2는 fr10에서도 basket을 정확히(cx=0.38) 잡고, 가까워질수록 박스가 자연스럽게 커진다(fr16도 full-frame 아님).
 우리 Exp59 LoRA fine-tuning이 오히려 grounding을 붕괴시켰다.
 ⑥ 해결 방향 (재정립)
@@ -466,9 +495,13 @@ exp59 (PG2 hardneg, 현재)
 * cx오차는 HSV(자체 노이즈 있음) 기준이라 전 모델 30%대로 높음 — 진짜 "벽/의자" 신호는 full-frame·canned-edge.
 ② 동일 프레임 비교 — left_left fr0 (basket은 좌중앙, 노랑십자=HSV 기준)
 박스: 각 모델 grounding(cx·area→정사각 근사). 박스가 basket을 벗어나 벽/전체면 = 오트래킹.
+![](../v5/grounding_ablation/mistrack/base_fr00.png)
 base ✅ 근처
+![](../v5/grounding_ablation/mistrack/exp57_fr00.png)
 exp57 ✅ 근처
+![](../v5/grounding_ablation/mistrack/exp58_fr00.png)
 exp58 ❌ 화면전체
+![](../v5/grounding_ablation/mistrack/exp59_fr00.png)
 exp59 ❌ 좌측 벽
 ③ Raw 예측 출력 (left_left, cx / cy / area / hit)
 [fr0] basket 좌중앙(HSV cx=0.50)
@@ -610,6 +643,7 @@ detect stool
 0.161
 ⚠️ 단어 자체 인식 약함
 🖼 detect chair — BBox 오버레이 (초록=검출)
+![의자 인식 그리드](../v5/chair_probe/chair_recognition_grid.png)
 사무용 의자·바스툴·목재 의자·암체어 — 종류/색/각도가 달라도 chair로 일관 검출. 출처: Openverse/Wikimedia Commons.
 ✅ 데이터로 확정된 결정
 ① 객체 = 의자 (색 무관)
@@ -665,14 +699,23 @@ replace
 정답(gt)과 맞았는지. 이건 이 한 장의 박스만 보고 정해지는 게 아니라 8프레임 윈도우 전체를 써서 나온
 결과라, "박스가 멀쩡해 보이는데 왜 틀렸지?"라는 질문이 생길 수 있다 — 답은 "이 프레임 박스 하나가 아니라 과거 7프레임까지
 합쳐서 판단했기 때문"이다.
+![center_straight](../v5/closed_loop_eval/grounding_quality_examples_v2/center_straight.png)
 center_straight — area=0.027(작음) → 오예측
+![center_left](../v5/closed_loop_eval/grounding_quality_examples_v2/center_left.png)
 center_left — area=0.094 → 오예측
+![center_right](../v5/closed_loop_eval/grounding_quality_examples_v2/center_right.png)
 center_right — area=0.602(큼)인데도 오예측
+![left_straight](../v5/closed_loop_eval/grounding_quality_examples_v2/left_straight.png)
 left_straight — area=0.027(작음) → 오예측
+![left_left](../v5/closed_loop_eval/grounding_quality_examples_v2/left_left.png)
 left_left — area=0.034(작음) → 오예측
+![left_right](../v5/closed_loop_eval/grounding_quality_examples_v2/left_right.png)
 left_right — area=0.050(작음) → 오예측
+![right_straight](../v5/closed_loop_eval/grounding_quality_examples_v2/right_straight.png)
 right_straight — area=0.050(작음) → 오예측
+![right_left](../v5/closed_loop_eval/grounding_quality_examples_v2/right_left.png)
 right_left — area=0.605(큼) → 정답(유일한 정답 사례)
+![right_right](../v5/closed_loop_eval/grounding_quality_examples_v2/right_right.png)
 right_right — has_bbox=False(그라운딩 실패) → 오예측
 9장 중 8장이 오예측인 건 의도적 선별이 아니라 각 path_type에서 오예측 사례를 우선 추출했기 때문(전체 오류율은 7.4%로 훨씬 낮음, 위 표 참고) — center_right처럼 area가 커도(0.602) 틀리는 예외 사례도 있어, "면적만으로 전부 설명되진 않는다"는 것도 같이 보여준다.
 결론: 3개 모드 전부 같은 패턴 — 그라운딩이 실패한 프레임(has_bbox=False)에서 오류율이
@@ -952,6 +995,12 @@ replace
 더 정확한 버전의 결론이다. 45-2의 방향(작은/먼 객체가 약점)은 유지되지만, "그라운딩이 아예 안 된다"는
 표현은 더 이상 맞지 않음 — "탐지는 되지만 작게 잡히면 액션 예측이 불안정해진다"로 정정.
 실제 프레임 비교(같은 이미지, 왼쪽=Kosmos2 구 주석/빨강, 오른쪽=PG2 신규 재주석/초록 — 서로 다른 6개 에피소드):
+![](../v5/ch46_50_viz/ch46_kosmos_vs_pg2_3.jpg)
+![](../v5/ch46_50_viz/ch46_kosmos_vs_pg2_11.jpg)
+![](../v5/ch46_50_viz/ch46_kosmos_vs_pg2_12.jpg)
+![](../v5/ch46_50_viz/ch46_kosmos_vs_pg2_6.jpg)
+![](../v5/ch46_50_viz/ch46_kosmos_vs_pg2_1.jpg)
+![](../v5/ch46_50_viz/ch46_kosmos_vs_pg2_7.jpg)
 위쪽 3장(3·11·12번)이 가장 극단적인 사례 — Kosmos2는 벽·바닥까지 포함한 거의 풀프레임 박스
 (area≈0.6+)를 그렸는데 PG2는 바스켓만 정확히 잡았다(area 차이 -0.57 내외, 3건 모두 비슷한
 규모로 재현됨 — 단발성 오류가 아니라 패턴). 아래쪽 3장(6·1·7번)은 차이가 작거나 거의 없는
@@ -1099,6 +1148,12 @@ val_acc/SR/FPE는 전부 개선됐다 — bbox 좌표값보다는 "같은 작은
 (CH43-2d 사례처럼 5-seed 검증은 안 함 — 1차 결과로만 보고. → 실제로
 노이즈였음, 50-3 참고).
 실제 프레임 비교(작은 객체, 왼쪽=줌 전 원본 bbox/빨강, 오른쪽=2배 줌 재그라운딩/초록 — 6개 에피소드):
+![](../v5/ch46_50_viz/ch50_zoom_before_after_1.jpg)
+![](../v5/ch46_50_viz/ch50_zoom_before_after_2.jpg)
+![](../v5/ch46_50_viz/ch50_zoom_before_after_3.jpg)
+![](../v5/ch46_50_viz/ch50_zoom_before_after_5.jpg)
+![](../v5/ch46_50_viz/ch50_zoom_before_after_8.jpg)
+![](../v5/ch46_50_viz/ch50_zoom_before_after_10.jpg)
 본문에서 언급한 대로 박스 위치/크기 차이는 시각적으로도 거의 안 보임 — 50-3에서 이 미미한 차이가
 실제 성능 개선과 무관(노이즈)했음이 5-seed로 확인됨.
 
@@ -2279,6 +2334,7 @@ mlp, pg448/v6(트랙F 없음)
 mlp, pg448+트랙F (225ep 정합)
 48.5%(best)/39.4%(평균)
 apples-to-apples 확정
+![정정 워터폴](../v5/ch64_figs/fig_64_1_waterfall.png)
 
 </div>
 
@@ -2313,6 +2369,10 @@ champion seed 분산: pg448/mlp 3-seed = 33.3/36.4/48.5%
 결론: ① 그라운더 무차별(mlp 양쪽 48.5% 동률),
 ② 상위 헤드 mlp·chunk·hybrid는 노이즈 안에서 구분 불가 — "최고 헤드"를 33ep val로는
 못 가림, ③ transformer(현 배포)만 확실한 최하위 → 교체 근거.
+![통일 리더보드](../v5/ch64_figs/fig_64_2_leaderboard.png)
+![offline vs closed-loop](../v5/ch64_figs/fig_64_2_offline_vs_cl.png)
+![그라운더 비교](../v5/ch64_figs/fig_64_2_grounder.png)
+![seed 분산](../v5/ch64_figs/fig_64_2_seed_variance.png)
 
 </div>
 
@@ -2330,6 +2390,13 @@ FORWARD로 뭉갬. 데이터 71%가 FORWARD라 "애매하면 직진" 편향.
 ③ 후반 직진 복귀 — 대체로 회복(82~100%).
 한 프레임 방향 오판 → dead-reckoning 적분에서 헤딩 오차 누적 → FPE가 4.6m까지 터짐.
 즉 "한 번 어긋나면 되돌리지 못하는" 것이 본질(CH62 "중간 재보정 불능"과 동일).
+![경로별 성공률](../v5/ch64_figs/fig_64_3_pathtype.png)
+![구간별 정확도](../v5/ch64_figs/fig_64_3_thirds.png)
+![혼동행렬](../v5/ch64_figs/fig_64_3_confusion.png)
+![곡선 실패 궤적](../v5/ch64_figs/fig_64_3_traj_fail.png)
+![직진 성공 궤적](../v5/ch64_figs/fig_64_3_traj_success.png)
+![cx 시계열](../v5/ch64_figs/fig_64_3_cx_time.png)
+![궤적 그리드](../v5/ch64_figs/fig_64_3_traj_grid.png)
 
 </div>
 
@@ -2355,6 +2422,7 @@ contreg 75%/flow 72%
 이유: lx/ly가 계단형 이산이라 회귀 헤드는 애매한 중간값을 뱉고, 그게 매 프레임 적분돼
 드리프트 누적. 이산 분류는 "3개 중 하나로 딱" 찍어 이 애매함을 원천 차단(정규화 효과).
 연속이 의미 있으려면 수집 단계부터 아날로그 보존이 선행돼야 함(soda 문의 진행 중).
+![연속 vs 이산](../v5/ch64_figs/fig_64_4_cont_vs_disc.png)
 
 </div>
 
@@ -2374,6 +2442,8 @@ PG448 vs OWL 검출률
 극단(cx<0.15 or >0.85)은 90프레임(0.6%)뿐. 즉 인식은
 되는데, 극단 상황 자체가 데이터에 희소. 그라운더(PG448/OWL) 교체로는 안 풀리고
 (CH61-18 "그라운더 교체 무효"와 일치), 극단·오버슈트 프레임을 의도적으로 늘리는 재수집이 필요.
+![cx 분포](../v5/ch64_figs/fig_64_5_cx_dist.png)
+![검출률](../v5/ch64_figs/fig_64_5_detection.png)
 
 </div>
 
@@ -2402,6 +2472,7 @@ V5(쉬운셋) 데이터 혼합
 즉 지금 데이터 안에서 가중치·샘플링을 아무리 바꿔도 안 됨 —
 "지나쳤다 되돌리는" 궤적 자체가 데이터에 없으면 학습할 신호가 없다는 CH61 결론의 재확인.
 (V5+V6 혼합의 초기 57.6%는 best-of-3 운빨이었고 3-seed 평균은 39.4%로 무효 처리.)
+![학습 트릭 비교](../v5/ch64_figs/fig_64_6_tricks.png)
 
 </div>
 
@@ -2428,6 +2499,7 @@ V6에서 2.0% — 쉬운 벤치마크로 학습한 모델은 어려운 케이스
 V5+V6 혼합은 V5-test를 크게 올리지만(84.8%) V6-test는 못 올림(34.3%≈V6단독) —
 그냥 데이터를 더하는 것으론 어려운 케이스가 안 풀리고,
 어려운 케이스를 겨냥한(트랙C) 데이터가 필요함을 재확인.
+![일반화 매트릭스 히트맵](../v5/ch64_figs/fig_64_8_genmatrix.png)
 
 </div>
 
@@ -2461,6 +2533,7 @@ old action_transformer.pt이고, exp73(CH64 챔피언)은 실기 거의 미검�
 (07-22 obj_center 3건뿐, 그것도 폐기된 v6-only 180ep). offline에선 mlp>transformer인데 실기 챔피언은
 transformer라 이 역전이 미해명 → exp73_pg448_trackF_v6_mlp를 obj_left/center/right로
 반복 실기(6207947 버그수정 후)해야 판가름(soda에 요청 완료).
+![obj_right 시점 분해](../v5/ch64_figs/fig_64_9_obj_right_timeline.png)
 
 </div>
 
@@ -2506,6 +2579,8 @@ CH64 64-3과의 연결: "한 번 어긋나면 되돌리지
 재보정할 기회 자체가 5배 적게 주어지는 제어 구조
 때문일 수 있음이 새로 확인됨. 트랙C(데이터)와 제어 주기(그라운딩 속도)는
 서로 다른 레버 — 하나를 고쳐도 다른 하나는 그대로 남음.
+![제어루프 구조 비교](../v5/ch64_figs/fig_64_10_control_loop_diagram.png)
+![HELD 영향](../v5/ch64_figs/fig_64_10_held_impact.png)
 
 </div>
 
@@ -2558,6 +2633,7 @@ trackF_center_straight
 strong_right(60%) 간 뚜렷한 좌우 비대칭 — 카메라/그라운더 좌우 편향 또는 물리적
 요인(바퀴 드리프트 등) 가능성, n=4~5라 단정은 이름. 트랙C 재수집 시 좌우 균형
 확인 필요.
+![실기 스크리닝 결과](../v5/ch64_figs/fig_64_11_real_screening.png)
 
 </div>
 
@@ -2593,6 +2669,7 @@ OWL 그라운더로도 재현 — HELD 25.3±3.8%
 (PG448의 28.3±3.8%와 노이즈 안에서 동급). cadence-aligned 학습 효과가 그라운더
 선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·cadence-aligned
 OWL 체크포인트도 함께 전달, PG448 세트와 실기 A/B 비교 요청함.
+![HELD-aware 학습 결과](../v5/ch64_figs/fig_64_12_holdaware.png)
 
 </div>
 
@@ -2627,6 +2704,7 @@ OWL-v2가 압도적으로 큼 — 라즈베리파이(GPU 없음, CPU 전용)로 
 재측정한 값(53.7ms)으로 교체. 리사이즈 자체는 프로젝트 문서(`image_preprocess.py`)에
 "동작 안 바뀜(둘 다 224 귀결)"이 명시돼 있어 원래도 무관했음, dtype 재현 후에도
 결론(OWL이 압도적으로 느림)은 그대로 유지.
+![파라미터 vs 레이턴시](../v5/ch64_figs/fig_lw_1_param_vs_latency.png)
 좌우 데이터 불균형 재확인 결과: 목표
 위치(에피소드 수 90:90)와 평균 길이(76.8:76.3프레임)는 완벽히 균형이나,
 액션 클래스 프레임 수(LEFT+FWD+L+ROT_L=3384 vs
@@ -2715,6 +2793,7 @@ cx/cy/area 평균 차이 0.0001~0.0002 — 사실상 완전 동일, 0.05 이상 
 소폭 희생"의 실질적 트레이드오프 — 경량화 방향에서 검토할 가치 있으나, Kosmos-2
 (53.7ms)와 비교하면 fp16 OWL(962.1ms)도 여전히 약 18배 느려 "완전 해결"은 아님.
 threshold를 살짝 낮추는 보완과 함께 검토 권장.
+![OWL fp16 트레이드오프](../v5/ch64_figs/fig_lw_2_owl_fp16_tradeoff.png)
 
 </div>
 
@@ -2808,9 +2887,11 @@ cadence-aligned · seed0). 전체 89/100(89%) —
 89/100 (89.0%)
 81~94%
 —
+![100개 스크리닝 결과와 원인 분해](../v5/ch64_figs/fig_64_18_100test.png)
 📷 실제 세션 프레임 10장 — 위치별 성공/실패 각 1건의 최종 프레임.
 초록 수직선 = 그라운딩이 잡은 cx(헤드가 실제로 쓰는 조향 신호), 빨강 점선 = 미검출 시 강제되는 fallback cx=0.50.
 실패 프레임은 대부분 빨강(미검출)이고 성공 프레임은 초록이다.
+![위치별 실제 세션 프레임](../v5/ch64_figs/gal_64_18_positions.png)
 왜 좋아졌나 — 순위별 근거
 ① (확정) 그라운딩 가용성이 성패를 가른다 —
 성공 89건의 세션 평균 grounding 성공률(gnd%)은 86.2%,
@@ -2867,6 +2948,7 @@ Wilson CI가 겹치고 Fisher exact p=0.193으로
 스텝이 좌 17~19 vs 우 10~12로 1.6배 —
 "성공하긴 하는데 더 헤맨다"는 경향은 남아있고, 이는 좌측 배치에서 OWL confidence가
 threshold 경계에 몰리는 현상(64-17)과 방향이 일치.
+![좌우 비대칭 유의성](../v5/ch64_figs/fig_64_18_leftright.png)
 ⚠️ 집계 시 필수 주의 — 설정구간×위치 교란(soda 명시):
 100개는 단일 설정 일괄 수집이 아니라 개선을 진행하며 쌓였고,
 각 commit 구간이 서로 다른 위치만 커버했다.
@@ -3001,6 +3083,7 @@ A는 window=3, B·C는 window=6. 출력은 8클래스.
 📷 배포 세대별 실제 프레임 — head=transformer(exp71) → head=exp73_mlp 전환이
 세션 메타데이터에 그대로 찍혀 있다. A arm(7/23 17:18 이전)은 H5 자체가
 전송되지 않아 이 갤러리에 없다 — 그래서 원래 정체 추정이 필요했던 것.
+![배포 세대별 프레임](../v5/ch64_figs/gal_64_19_deploy_history.png)
 ⚠️ 세 가지 추정 방식이 순위를 뒤집는다 → 주동력 단정 불가
 추정 방식체크포인트(A→B)threshold+가드(B→C)우세
 위치 동일가중 표준화
@@ -3024,9 +3107,11 @@ soda의 판단이 내 최초 주장보다 정확했다.
 다만 표준화가 뒤집힌다는 사실 자체가 "어느 쪽이
 주동력"이라고 논문에 쓸 수 없다는 뜻이다 — 둘 다 크고(각각 +23~48%p),
 순위는 동일 위치 A/B 재수집 없이는 확정 불가.
+![개선 요인 분해](../v5/ch64_figs/fig_64_19_regimes.png)
 📷 B arm vs C arm 실제 프레임 10장 — 체크포인트는 동일하고
 threshold(0.25→0.20)와 회복가드만 다른 두 조건의 최종 프레임. B에 빨강(미검출)이 자주 보이는 것이
 threshold 효과의 실물이다.
+![arm별 실제 프레임](../v5/ch64_figs/gal_64_19_arms.png)
 ✅ 유일하게 견고한 불변량 — 그라운딩 가용성 (soda 발견, 확장 검증):
 soda가 "th=0.20에서 gnd%≥80이면 69/69=100% 성공"을 보고했고, 이를
 threshold·체크포인트 무관 전체 159세션으로 확장해
@@ -3079,6 +3164,7 @@ score를 뽑으면 프레임 단위로 gap을 직접 정량화할 수 있다. 10
 344/397 = 86.6%
 미검출군 로컬 score 중앙 / 검출군
 0.143 / 0.378
+![젯슨-로컬 gap](../v5/ch64_figs/fig_64_20_jetson_gap.png)
 미검출 197프레임을 로컬 score 구간으로 쪼개보면 — "타겟이 안 보인다"가 아니라 "경계에 걸린다"
 로컬 score해석건수
 < 0.01
@@ -3100,6 +3186,7 @@ confidence가 0.10~0.20 밴드에 몰리는 것(54.8%)이다 — 64-17에서 진
 불과하다 — 그래서 torch/Orin 규명의 실무 우선순위는 여전히 낮다.
 📷 실제 미검출 프레임 10장 — 위 구간 비중대로 뽑은 대표 표본
 (극단만 뽑으면 오해를 만들기 때문). 경계밴드 5장 · gap 3장 · 타겟부재 2장.
+![미검출 프레임 구간별 표본](../v5/ch64_figs/gal_64_20_misses.png)
 ⚠️ 7/4 결론(CONCLUSION_20260704_fallback_repro_gap.md)
 정정: 7/4 문서는 "서버 fallback 206프레임이 로컬에서 206/206(100%) 탐지됨 →
 타겟 안 보임 가설 기각, Jetson-vs-local 환경 gap이 지배적 원인"이라고 결론했다. 그런데
@@ -3140,6 +3227,7 @@ soda가 백필한 per-frame OWL-v2 confidence(docs/inference_sessions/backfill_s
 176세션 · 실제 검출 실행 1084프레임)로 "어떤 프레임이 검출기에게
 어려운가"를 분석했다. 64-20의 결론(개선 경로는 캘리브레이션이 아니라 검출기 자체)을
 실행 가능한 스펙으로 옮기기 위한 단계다.
+![특화 검출기 스펙](../v5/ch64_figs/fig_64_21_detector_spec.png)
 ① 어려움의 1차 축은 거리(=bbox 크기)다 —
 검출 성공 프레임에서 area와 confidence의 상관이 r=+0.551
 (n=418). 4분위로 나누면 score 중앙값이 0.320 → 0.330 → 0.444 → 0.519로 단조 증가한다.
@@ -3236,6 +3324,7 @@ end-to-end 언어조건화(CH61 text 경로 사망 + PG2도 방향 spread 1.4%p�
 배포 후보(현재): pg448_trackF/mlp 또는
 owl_trackF/mlp (best 48.5%, 평균 39.4%) — 가장 단순하고 상위권 동률.
 단 실기는 노이즈 ±6.5%p 때문에 반드시 반복 측정.
+![남은 로드맵](../v5/ch64_figs/fig_64_7_roadmap.png)
 
 </div>
 
@@ -3395,6 +3484,7 @@ Florence-2 OVD (CH59)
 즉 CH59의 cx max=0.559는 OVD 헤드의 좌표 출력 문제였고,
 비전 피처 자체는 정상이다. ③에서 세운 "사정거리가 다르다"는 가설이 확인됐고,
 교수님 제안은 성립한다.
+![Florence-2 백본 검정](../v5/ch64_figs/fig_67_2_florence2.png)
 📝 판정 기준을 스스로 수정한 부분 — 사전에 "예측 cx가 0.9 이상이면
 피처 정상"이라고 적었으나, 이는 val 라벨 범위를 모르고 잡은 임의값이었다.
 올바른 기준은 "라벨 최대값을 따라가는가"이며, 그 기준으로는
@@ -3751,6 +3841,7 @@ OD∪DENSE(beam5) — 최선
 Florence-2가 해당 프레임에서 물체 자체를 인식/서술하지 못한다는
 뜻이다. beam·합집합을 최대로 밀어붙여도 34.7%가 상한이며 OWL-v2와 55%p 이상 격차 — 검출기
 교체 기각 확정.
+![](../v5/ch64_figs/fig_florence2_case_gallery.png)
 MISS 카테고리를 보면 바구니가 화면에 명백히
 보이는데도 Florence-2가 "empty room with cabinet" 등 무관한 라벨만 뱉어 놓친 경우가
 대부분 — 매칭 실패가 아니라 인식 실패.
@@ -3926,6 +4017,7 @@ Florence-2 공식 태스크는 총 15개(입력없음 8개 + 입력있음 7개)�
 태스크들은 전부 비슷한 자연어 템플릿 방식이다.
 같은 8개 프레임에서 실제 비교 — 초록 실선=OWL-v2 정답,
 빨강 점선=Florence-2 예측:
+![](../v5/ch64_figs/fig_florence2_prompt_comparison.png)
 OD·DENSE(위 두 줄)는 8개 중 6~7개가 "(미검출)"인데,
 phrase 그라운딩(맨 아래 줄)은 6/8이 초록선과 거의 겹친다 — 재현율 격차가 숫자만이 아니라
 눈으로도 확인됨.

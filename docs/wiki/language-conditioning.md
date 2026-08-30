@@ -477,9 +477,13 @@ V5 바스켓 수준(객체당 15~20ep × 경로유형) — 주 단위 작업
 38-2의 질문("헤드 입력을 bbox 대신 PG2 hidden state로 바꾸면 다를까")을 재학습 없이 바로 확인했다.
 scripts/measure_hidden_state_pg2.py — attention 가중치가 아니라
 action head가 실제로 받을 표현(벡터) 자체가 instruction에 따라 얼마나 갈리는지, 코사인거리로 측정.
+![S6 baseline f1](../v5/grounding_frames/s6/frame_0001.jpg)
 S6 baseline (f1)
+![S6 dead-zone f70](../v5/grounding_frames/s6/frame_0070.jpg)
 S6 dead-zone (f70)
+![S7 정상검출](../v5/grounding_frames/s7/frame_0054.jpg)
 S7 정상검출 (f54)
+![S8 production](../v5/grounding_frames/s8/frame_0020.jpg)
 S8 production/mix-448 (f20)
 비교cos_dist(이미지1)cos_dist(이미지2)의미
 동일 prompt 반복(노이즈 바닥선)
@@ -513,8 +517,11 @@ Exp12/13처럼 학습이 잘 안 붙을 위험이 여전히 있다 — attention
 38-4의 cos_dist 수치는 추상적이라, PG2가 실제로 무엇을 생성하는지를 4개의 서로 다른 실제 바스켓 세션 사진
 (S6 baseline·S6 dead-zone·S7 정상검출·S8 production/mix-448)에서 직접 확인했다 — 사진과 raw 출력은
 today_visual_summary.html 6막에 전부 첨부.
+![basket S6 boxed](../v5/grounding_frames/ch38_5_boxed/s6_f1_boxed.png)
 "detect gray basket" — S6, 박스=실제 출력 좌표
+![basket S7 boxed](../v5/grounding_frames/ch38_5_boxed/s7_f84_boxed.png)
 "detect gray basket" — S7, 타이트하게 정상 검출
+![apple control boxed](../v5/grounding_frames/ch38_5_boxed/apple_control_boxed.png)
 대조군: "detect green apple" — 박스가 사과를 정확히 잡음, 객체가 바뀌면 출력도 확실히 바뀜
 프롬프트4개 세션 결과
 "detect gray basket"

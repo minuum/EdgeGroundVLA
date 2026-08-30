@@ -14,14 +14,20 @@ CH7이 CH66까지 통째로 삼켜버리는 오류가 반복 재현됨. **정확
 
 출력: docs/wiki/data/chapters.json
 """
+import base64
+import hashlib
 import html as html_module
 import json
+import os
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SRC = ROOT / "docs/v5/research_story.html"
 OUT = ROOT / "docs/wiki/data/chapters.json"
+BASE_DIR = SRC.parent               # docs/v5 — <img> 상대경로는 이 폴더 기준
+WIKI_DIR = ROOT / "docs/wiki"
+ASSETS_DIR = WIKI_DIR / "assets"    # base64 임베드 이미지를 파일로 추출해 저장
 
 CHAPTER_START_RE = re.compile(r'<div class="chapter" id="([a-z0-9_-]+)"[^>]*>')
 CARD_START_RE = re.compile(r'<div class="(finding-card|callout)\b[^"]*"[^>]*>')
@@ -31,7 +37,10 @@ HEADER_TITLE_RE = re.compile(r'class="chapter-title"[^>]*>(.*?)</(h2|div)>', re.
 HEADER_SUB_RE = re.compile(r'class="chapter-subtitle"[^>]*>(.*?)</(p|div)>', re.DOTALL)
 HEADER_END_RE = re.compile(r'class="chapter-header"[^>]*>.{0,3000}?</p>', re.DOTALL)
 
-IMG_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+IMG_TAG_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+SRC_ATTR_RE = re.compile(r'src="([^"]*)"')
+ALT_ATTR_RE = re.compile(r'alt="([^"]*)"')
+BASE64_SRC_RE = re.compile(r"^data:image/([a-zA-Z0-9.+-]+);base64,(.+)$", re.DOTALL)
 BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
 BLOCK_CLOSE_RE = re.compile(r"</(p|div|li|tr|td|h[1-6])>", re.IGNORECASE)
 LI_OPEN_RE = re.compile(r"<li\b[^>]*>", re.IGNORECASE)
@@ -39,9 +48,65 @@ TAG_RE = re.compile(r"<[^>]+>")
 WS_RE = re.compile(r"[ \t]+")
 NL_RE = re.compile(r"\n{3,}")
 
+_IMG_SRC_CACHE = {}  # 원본 src -> docs/wiki/ 기준 상대경로(또는 None=미해결)
+
+
+def resolve_image_src(src):
+    """<img src="...">를 docs/wiki/*.md에서 쓸 상대경로로 변환.
+    - base64 임베드: 디코드해서 docs/wiki/assets/<sha1>.<ext>로 저장, 그 상대경로 반환.
+    - 상대경로: research_story.html 기준(docs/v5/)으로 실제 존재하는 파일을 찾아
+      docs/wiki/ 기준 상대경로로 재계산. 원본 HTML 자체에 깨진 경로가 있으면
+      (예: "../inference_viz/..."가 실제로는 docs/v5/inference_viz/에 있는 경우)
+      파일이 없으므로 None(스킵) — 위키에서 깨진 이미지 아이콘을 보여주지 않기 위함."""
+    if src in _IMG_SRC_CACHE:
+        return _IMG_SRC_CACHE[src]
+
+    result = None
+    m = BASE64_SRC_RE.match(src)
+    if m:
+        ext = m.group(1).lower()
+        ext = {"jpeg": "jpg"}.get(ext, ext)
+        try:
+            raw = base64.b64decode(m.group(2))
+        except Exception:
+            raw = None
+        if raw:
+            h = hashlib.sha1(raw).hexdigest()[:16]
+            fname = f"{h}.{ext}"
+            ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+            outpath = ASSETS_DIR / fname
+            if not outpath.exists():
+                outpath.write_bytes(raw)
+            result = f"assets/{fname}"
+    else:
+        target = (BASE_DIR / src).resolve()
+        if target.exists():
+            result = os.path.relpath(target, WIKI_DIR)
+
+    _IMG_SRC_CACHE[src] = result
+    return result
+
+
+def convert_images(fragment):
+    """<img> 태그를 markdown 이미지 문법으로 치환(다른 태그 스트리핑 전에 실행돼야
+    함 — TAG_RE가 나중에 일반 태그를 지울 때 markdown ![]() 문법은 안 건드림)."""
+    def repl(m):
+        tag = m.group(0)
+        src_m = SRC_ATTR_RE.search(tag)
+        if not src_m:
+            return ""
+        relpath = resolve_image_src(src_m.group(1))
+        if not relpath:
+            return ""
+        alt_m = ALT_ATTR_RE.search(tag)
+        alt = alt_m.group(1) if alt_m else ""
+        alt = alt.replace("[", "(").replace("]", ")")
+        return f"\n\n![{alt}]({relpath})\n\n"
+    return IMG_TAG_RE.sub(repl, fragment)
+
 
 def strip_tags(fragment):
-    frag = IMG_RE.sub("", fragment)
+    frag = convert_images(fragment)
     frag = BR_RE.sub("\n", frag)
     frag = BLOCK_CLOSE_RE.sub("\n", frag)
     frag = LI_OPEN_RE.sub("\n- ", frag)
