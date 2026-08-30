@@ -52,7 +52,10 @@ th{color:#e2e8f0;background:#111827}
 <ul>
 <li>원본 챕터 수: 81개 (<code>docs/v5/research_story.html</code>)</li>
 <li>위키 주제 수: 8개</li>
-<li>생성 스크립트: <code>scripts/wiki/parse_research_story.py</code>, <code>scripts/wiki/build_wiki_pages.py</code></li>
+<li>생성 스크립트: <code>scripts/wiki/parse_research_story.py</code>, <code>scripts/wiki/build_wiki_pages.py</code>,
+  <code>scripts/wiki/build_archive_index.py</code>, <code>scripts/wiki/render_wiki_html.py</code></li>
+<li>위키 재생성 의존성: HTML 렌더링(<code>render_wiki_html.py</code>)만 <code>pip install -r scripts/wiki/requirements.txt</code>
+  필요(Markdown 패키지) — 나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음</li>
 <li>최신 상태 요약(시간순, 별도 문서): <code>docs/RESEARCH_STATUS.md</code></li>
 </ul>
 </body></html>

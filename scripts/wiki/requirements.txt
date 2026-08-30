@@ -1,0 +1,4 @@
+# scripts/wiki/render_wiki_html.py 전용 의존성 (markdown → 정적 HTML 렌더링).
+# 다른 스크립트(parse_research_story.py, build_wiki_pages.py, build_archive_index.py)는
+# 표준 라이브러리만 사용 — 이 파일 없이도 동작.
+Markdown==3.10.2
