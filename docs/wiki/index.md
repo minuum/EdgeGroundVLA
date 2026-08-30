@@ -18,6 +18,12 @@
 - **[VLM 백본 비교 (PaliGemma/Kosmos-2/CLIP/Florence-2/Google-robot)](backbone-model.md)** (6개 챕터) — 어떤 VLM을 백본으로 쓸지, LoRA가 실제로 무엇을 개선/손상시키는지, RoboVLMs 프레임워크 해부.
 - **[미팅 기록 & 연구 방향 결정](meetings-and-direction.md)** (18개 챕터) — 교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.
 
+## 부록
+
+- **[아카이브 색인(archive-index.md)](archive-index.md)** — `docs/*.md` 357개 스냅샷 파일
+  (2025-12~2026-04, research_story.html 이전 시기의 별개 프로젝트 단계, 대부분 폐기된
+  방향의 죽은 기록). 압축 없이 제목/날짜/한줄요약만 모은 찾아가기용 색인.
+
 ## 메타
 
 - 원본 챕터 수: 81개 (`docs/v5/research_story.html`)
