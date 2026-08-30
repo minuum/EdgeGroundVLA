@@ -54,8 +54,10 @@ th{color:#e2e8f0;background:#111827}
 <li>위키 주제 수: 8개</li>
 <li>생성 스크립트: <code>scripts/wiki/parse_research_story.py</code>, <code>scripts/wiki/build_wiki_pages.py</code>,
   <code>scripts/wiki/build_archive_index.py</code>, <code>scripts/wiki/render_wiki_html.py</code></li>
-<li>위키 재생성 의존성: HTML 렌더링(<code>render_wiki_html.py</code>)만 <code>pip install -r scripts/wiki/requirements.txt</code>
-  필요(Markdown 패키지) — 나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음</li>
+<li><strong>새 챕터 추가 시 자동 갱신</strong>: <code>wiki-sync</code> 스킬(<code>.claude/skills/wiki-sync/SKILL.md</code>)
+  또는 <code>scripts/wiki/sync_wiki.py</code> 직접 실행 — 기존 압축 요약은 보존되고, 새로
+  추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨</li>
+<li>위키 재생성 의존성: HTML 렌더링(<code>render_wiki_html.py</code>)만 <code>pip install -r scripts/wiki/requirements.txt</code> 필요(Markdown 패키지) — 나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음</li>
 <li>최신 상태 요약(시간순, 별도 문서): <code>docs/RESEARCH_STATUS.md</code></li>
 </ul>
 </body></html>

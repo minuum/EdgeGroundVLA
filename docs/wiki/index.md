@@ -30,6 +30,8 @@
 - 위키 주제 수: 8개
 - 생성 스크립트: `scripts/wiki/parse_research_story.py`, `scripts/wiki/build_wiki_pages.py`,
   `scripts/wiki/build_archive_index.py`, `scripts/wiki/render_wiki_html.py`
-- 위키 재생성 의존성: HTML 렌더링(`render_wiki_html.py`)만 `pip install -r scripts/wiki/requirements.txt`
-  필요(Markdown 패키지) — 나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음
+- **새 챕터 추가 시 자동 갱신**: `wiki-sync` 스킬(`.claude/skills/wiki-sync/SKILL.md`)
+  또는 `scripts/wiki/sync_wiki.py` 직접 실행 — 기존 압축 요약은 보존되고, 새로
+  추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨
+- 위키 재생성 의존성: HTML 렌더링(`render_wiki_html.py`)만 `pip install -r scripts/wiki/requirements.txt` 필요(Markdown 패키지) — 나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음
 - 최신 상태 요약(시간순, 별도 문서): `docs/RESEARCH_STATUS.md`
