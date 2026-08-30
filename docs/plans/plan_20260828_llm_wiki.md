@@ -113,7 +113,10 @@ WebSearch로 2026-08 기준 트렌드 확인 — Karpathy가 2026-04-03 공개�
 - [x] markdown 위키 페이지 생성(`scripts/wiki/build_wiki_pages.py`) + 정적 HTML
       렌더링(`scripts/wiki/render_wiki_html.py`), 로컬 확인(http.server, 전부 200)
 - [x] `docs/index.html` docs-grid에 위키 링크 추가
-- [ ] **다음 반복(미완료)** — 각 주제 페이지 맨 위 "압축 요약(TODO)" 섹션을
-      실제로 채우기: 지금은 챕터별 원문을 시간순 재배열한 것까지만 됨(Karpathy
-      방식의 "LLM이 압축한 요약"은 아직 없음). 이게 채워져야 "CH69/70을 몰라도
-      R/FR 문제 전체를 이해할 수 있는가"가 검증됨.
+- [x] 각 주제 페이지 맨 위 "압축 요약" 섹션 채움 — 8개 주제 병렬 서브에이전트가
+      각 주제 파일을 전체 정독하고 Karpathy 방식대로 "지금 확정적으로 아는 것"을
+      5~12문장으로 압축(예: grounding-detector — "실주행 성패는 액션헤드가 아니라
+      그라운딩 가용성"이 핵심 결론; action-head-architecture — "헤드 구조 축은
+      한계, 손실함수(ordinal soft label)만 실질 개선"). 이제 특정 주제를 CH 번호
+      몰라도 위키 페이지 하나만 읽으면 파악 가능 — 이번 세션에서 겪은 grep 반복
+      비효율이 실제로 해소됨.

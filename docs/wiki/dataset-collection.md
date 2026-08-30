@@ -2,12 +2,9 @@
 
 > 에피소드 경로 설계, 동기/비동기 수집, STOP 라벨링 규칙, 이미지 파이프라인 통일, 프레임 크롭/줌 등 데이터 자체를 다루는 실험들.
 
-## 압축 요약 (TODO — 다음 반복에서 채울 것)
+## 압축 요약
 
-*이 섹션은 아직 자동 생성되지 않았다. 아래 원문 발췌를 실제로 읽고,*
-*Karpathy LLM-wiki 방식대로 "지금 이 주제에 대해 확정적으로 아는 것"을*
-*3~10문장으로 압축해서 채워야 한다. 지금은 챕터별 원문을 시간순으로*
-*재배열한 것까지만 되어 있다.*
+V5 데이터셋은 9가지 경로(center/left/right × straight/left/right 접근)로 구성되며, FORWARD가 전체 2,626 프레임의 74.4%를 차지해 "항상 FORWARD"만 찍어도 PM≈74%가 나오는 함정이 있으므로 PM만이 아니라 per-path PM과 closed-loop 성공률을 함께 봐야 한다. STOP 라벨은 두 가지 경로로 확정됐다: ① 에피소드가 basket 도달 직전에 끊겨 자연 STOP이 없던 문제는 area_det>0.740(이미지의 74% 이상 채움) 프레임에 합성 STOP 레이블을 부여해 해결(2,626개 중 153개, 6.9%). ② 반대로 "중간에 낀 유령 STOP"은 데이터 수집 방식 전환(동기식 POST_SYNC → 비동기식 PRE_CACHE, 카메라 10Hz·조이스틱 25Hz·teleop 0.45s가 서로 다른 타이머로 도는 구조)의 타이밍 빈틈에서 생긴 라벨 아티팩트임이 밝혀져, V5_add_free 빌더(seed=42)가 free 21ep에서 중간 STOP 84개를 제거하고 마지막 프레임 STOP만 남겨 221ep(structured 200+free 21)로 정제했다. 결론적으로 STOP은 "이동 중 잠깐 멈춤"이 아니라 "목표 도달=종결(terminal) 신호"이며, area 기반 도착 종결 규칙(도착 시 area_det median 0.89 vs 비도착 0.05)과 동기식 재수집이 근본 해결책으로 채택됐다. 학습/추론 이미지 파이프라인은 둘 다 1280×720 원본을 HuggingFace AutoProcessor가 내부적으로 224×224로 리사이즈하는 동일 경로를 이미 쓰고 있었음을 코드 검증으로 확인했고, 이를 resize_for_vlm() 공유 함수로 명시적으로 강제 통일했다(latency 회귀 없음, 1.32~1.36초). grounding_skip_n=3(운영 캐시, 3프레임 중 2프레임 재사용) 조건에서는 area_delta 신호가 무이득(오히려 손해)임이 시뮬레이션과 실세션 실측 양쪽에서 확인되어, skip_n=1로 낮춰 area_delta를 배포하는 옵션은 PG2 grounding이 ~1.3초/프레임이라 실시간성이 깨져 기각됐고 "skip_n=3 유지, area_delta 미배포"가 확정 디폴트다. 에피소드 초반 프레임의 zoom-crop 재그라운딩은 이전 프레임 bbox를 anchor로 쓰는 방식이 n=737 ablation에서 오히려 약간 악화(89%가 area 감소)시켜 도움 안 됨으로 확정됐지만, anchor를 이미지 정중앙(0.5,0.5) 고정으로 바꾼 center 크롭은 개선율 59.3%·has_bbox 회복 20건으로 유효함이 확인됐다(다만 이후 Stage 0 워밍업이 cold-start 문제를 다른 경로로 해결해 배포 우선순위는 낮아짐). center_straight 경로는 PG2 grounding의 cx 편향(mean 0.456, 0.5보다 왼쪽)과 jitter(std 0.11)로 인해 closed-loop 성공률이 구조적으로 낮고, 오버샘플링·noise augmentation·EMA 스무딩·cx offset 보정 등 소프트웨어적 접근 6가지가 모두 실패해 추가 데이터 수집 또는 실로봇 검증이 근본 해결책으로 남아 있다. 미해결: center_straight closed-loop 저성능의 근본 해결(추가 수집 vs 실로봇 검증)과 STOP 거리 캘리브레이션(area 임계값의 실제 cm 환산)은 아직 확정되지 않았다.
 
 ---
 

@@ -2,12 +2,17 @@
 
 > bbox/vis 특징을 받아 액션을 뽑는 헤드 구조(MLP/LSTM/Transformer/FiLM/cross-attention)와 손실함수(hard CE vs ordinal soft label) 실험 전체.
 
-## 압축 요약 (TODO — 다음 반복에서 채울 것)
+## 압축 요약
 
-*이 섹션은 아직 자동 생성되지 않았다. 아래 원문 발췌를 실제로 읽고,*
-*Karpathy LLM-wiki 방식대로 "지금 이 주제에 대해 확정적으로 아는 것"을*
-*3~10문장으로 압축해서 채워야 한다. 지금은 챕터별 원문을 시간순으로*
-*재배열한 것까지만 되어 있다.*
+**헤드 구조 자체는 이미 한계에 도달했다.** MLP(concat+FC)가 window≥4 조건에서 LSTM·Transformer·cx-Geom·FiLM·Δcx·cx보조손실·actionquery·hybrid·ActionChunk·연속회귀(contreg)·flow(π0 경량판) 등 거의 모든 대안 구조와 견줘도 밀리지 않거나 오히려 더 강건했다(CH34/60/63/70). LSTM은 offline PM은 종종 더 높지만(단일 run 96.85%, 5-seed 평균 95.39%±0.20%p) closed-loop success는 MLP와 통계적으로 구분 안 됨. Transformer는 CH63/70에서 반복적으로 최하위권(closed-loop 18~30%대)이었고, 연속/flow 헤드는 이 데이터 규모(225ep)에서 이산 분류를 못 이겼다(72%대 vs mlp 78%대) — "구조를 바꾸면 좋아진다"는 가설은 여러 축(concat/곱셈적 결합 FiLM/보조손실/cross-attention/청크 앙상블/causal smoothing)에서 반복적으로 기각됐다.
+
+**offline val_acc(PM)와 실제 closed-loop 성공률은 자주 괴리된다** — 이것이 이 주제 전체를 관통하는 가장 중요한 방법론적 교훈이다(CH40, CH52, CH63). PM이 크게 올라도(75.9%→89%) closed-loop SR은 그대로거나 떨어질 수 있고(CH40), offline 1위 헤드(cxgeom 78.2%)가 closed-loop에서는 최하위(48.5%)로 뒤집히기도 했다(CH63-8). val 33ep처럼 표본이 작으면 GPU 비결정성·데이터 오염(CACHE_V6 재빌드로 트랙F가 몰래 섞이는 등)만으로도 success%가 25.9%~60.6%까지 요동친다는 게 CH63-11~63-16의 3차 정정 끝에 확정됐다 — **반드시 3-seed 이상 평균/분산으로 보고해야 하며, apples-to-apples(동일 데이터·동일 split 로직) 비교가 아니면 순위 자체가 의미 없다.**
+
+**손실함수 축이 유일하게 실질적 개선을 낸 축이다(CH70).** 조이스틱 연속값(lx,ly,az)을 하드 threshold로 8-class 이산화하면서 생기는 R/FR·F/FR 경계 아티팩트를, hard label 대신 ordinal soft label(sigmoid 완화 + soft CE)로 학습하자 leave-one-direction-out(LOO) 일반화가 평균 +3.71~3.99%p, 최악 방향(strong_right)은 +14.52%p 개선됐다 — 이는 궤적 재생(rollout) 평가에서도 success +9.1%p로 재확인된 유일한 방법이다(CH70-8). 반면 헤드 구조 6종(cxgeom/film/deltacx/cxaux/actionquery)은 무작위 split에서만 좋아 보이다가 LOO에서 개선이 소멸하거나(deltacx: +0.67%p→-0.17%p) R클래스 정확도를 희생하는 트레이드오프만 반복했다.
+
+**부수 발견들:** (1) 액션 원 신호 중 lx,ly는 실제로 3값({-1.15,0,+1.15})뿐인 이산 신호이고 az만 진짜 연속 신호였다(CH63-9) — 이 진단에 따라 만든 hybrid(6-way+연속az) 헤드는 처음엔 최고로 보였으나 val split 버그 정정 후 mlp보다 낮은 것으로 뒤집혔다. (2) window size는 MLP 기준 w≥4에서 포화, w=4가 FPE 최저(0.094m)인 반면 LSTM은 w=16에서 최저 FPE 0.080m로 긴 히스토리를 더 잘 활용한다(CH35). (3) area_delta(변화율) feature를 추가하면 PG2 그라운더 정밀화로 잃었던 근접 신호가 복원되고 LSTM-replace 조합이 전체 최저 FPE(0.098m)를 달성했다(CH47). (4) STOP override는 오프라인 CL에서 항상 해로웠다(V0 no-override 98.7% vs 서버 기본 override 23.5%, CH37) — 시작 프레임 area 분산이 절대 threshold를 무력화하기 때문. (5) FORWARD 고착의 진짜 원인은 그라운딩 실패가 아니라 액션-그라운딩 라벨 자체의 confound(cx-액션 방향 일치율 VSC 35.5%, 우연 50%보다 낮음)였다(CH62) — 헤드 구조를 아무리 바꿔도 라벨/데이터 커버리지 문제는 해결되지 않는다는 것이 CH70의 결론과도 맞물린다.
+
+**아직 미해결:** ordinal soft label(D)과 mlp의 조합(mlp+soft)이 다음 배포 후보로 확정됐으나, 실기(real robot) 검증은 아직 수행되지 않았다 — offline/궤적재생 지표가 실주행 성능을 보장하지 않는다는 원칙(확정 발견 6번)이 여전히 유효하다.
 
 ---
 
