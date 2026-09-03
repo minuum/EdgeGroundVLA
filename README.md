@@ -88,6 +88,17 @@ Kosmos-2 언어 디코더는 로드조차 하지 않고(2026-08-01 제거, host 
 - 추론 사용 파라미터 **459.3M** / 학습 파라미터 **1.128M**(0.262M image_proj + 0.866M MLP)
 - 상세: [model_architecture_brief.html](https://minuum.github.io/EdgeGroundVLA/v5/model_architecture_brief.html)
 
+<table>
+<tr>
+<td width="50%"><img src="docs/v5/figures/figure3_v2_data_collection_web.jpg" alt="Data collection pipeline"><br><sub><b>Fig. 3</b> — Data collection: 225 teleoperated episodes (16,599 frames), 5 target directions.</sub></td>
+<td width="50%"><img src="docs/v5/figures/figure4_v2_stage_training_web.jpg" alt="Stage 1 / Stage 2 training pipeline"><br><sub><b>Fig. 4</b> — Two-stage training: Stage 1 trains image_proj, Stage 2 trains the MLP action head on top of it (frozen).</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/v5/figures/figure5_v2_deploy_web.jpg" alt="Deploy and runtime process"><br><sub><b>Fig. 8</b> — Deploy &amp; runtime: checkpoints ship to the Jetson Orin NX; a FastAPI dashboard exposes control/status/camera over Tailscale.</sub></td>
+<td width="50%"><img src="docs/v5/figures/figure6_v2_inference_pipeline_web.jpg" alt="Runtime inference control logic"><br><sub><b>Fig. 9</b> — Runtime control logic: a sliding 6-frame window feeds the action head; the 3-DoF command goes out over CAN → MCU → wheels.</sub></td>
+</tr>
+</table>
+
 ---
 
 ## 주요 발견
@@ -96,12 +107,21 @@ Kosmos-2 언어 디코더는 로드조차 하지 않고(2026-08-01 제거, host 
 2. **성패를 가르는 건 검출 가용성** — gnd% ≥80%면 성공률 98.8%, <80%면 51.2%. 병목은 액션 헤드가 아니라 OWL-v2 검출.
 3. **레이턴시 병목도 검출기** — OWL-v2(0.155B)가 전체 지연의 ~97%(1901.7ms), Kosmos-2 비전(0.303B)은 ~3%(53.7ms), MLP 헤드는 <1ms. 파라미터 수와 속도가 역전돼 있어 "파라미터 줄이기"가 아니라 도메인 특화 소형 검출기가 다음 단계.
 
+<table>
+<tr>
+<td width="25%"><img src="docs/v5/figures/stage1_v3_valacc_only.png" alt="image_proj Stage 1 accuracy curve"><br><sub><b>Fig. 5</b> — image_proj acc: train 96.10% / val 94.09%.</sub></td>
+<td width="25%"><img src="docs/v5/figures/stage1_v3_loss_only.png" alt="image_proj Stage 1 loss curve"><br><sub><b>Fig. 5</b> — image_proj loss: train 0.107 / val 0.173.</sub></td>
+<td width="25%"><img src="docs/v5/figures/action_head_acc_only.png" alt="Action head accuracy curve"><br><sub><b>Fig. 6</b> — Action head acc: train 91.44% / val 74.04% (epoch 225).</sub></td>
+<td width="25%"><img src="docs/v5/figures/action_head_loss_only.png" alt="Action head loss curve"><br><sub><b>Fig. 6</b> — Action head loss: val loss rises after ep.20 while val acc keeps improving.</sub></td>
+</tr>
+</table>
+
 <p align="center">
   <img src="docs/v5/figures/confusion_matrix_stage1v3_correct.png" alt="Deployed action head validation confusion matrix" width="48%">
   <img src="docs/v5/figures/action_head_error_severity_8x8.png" alt="Validation errors by severity" width="48%">
 </p>
 
-<p align="center"><i>왼쪽: 배포 헤드 val 혼동행렬(74.1%, stride=1 채점). 오른쪽: 같은 오류를 심각도로 재색칠 — 81.4%는 방향성이 같은 대체 가능한 혼동이고, 실제 성공/실패를 가르는 좌우 반전은 1.97%뿐.</i></p>
+<p align="center"><i>Fig. 7 (왼쪽): 배포 헤드 val 혼동행렬(74.1%, stride=1 채점). Fig. 8 재색칠(오른쪽): 같은 오류를 심각도로 재색칠 — 81.4%는 방향성이 같은 대체 가능한 혼동이고, 실제 성공/실패를 가르는 좌우 반전은 1.97%뿐.</i></p>
 
 ---
 
@@ -125,7 +145,7 @@ Kosmos-2 언어 디코더는 로드조차 하지 않고(2026-08-01 제거, host 
 | `scripts/eval_confusion_matrix_stage1v3_correct.py` | 배포 헤드 정확 채점(stride=1) |
 | `scripts/sim/evaluate_closed_loop_v5.py` | Closed-loop 평가 |
 | `scripts/measure_attention.py` | Text attention 측정 |
-| `docs/v5/bbox_nav_step1/bbox_dataset_v6_owl.json` | Stage2 bbox 레이블 (OWL-v2, 배포 학습에 사용) |
+| `docs/v5/bbox_nav_owl/bbox_dataset_v6_owl.json` | Stage2 bbox 레이블 (OWL-v2, 배포 학습에 사용) |
 
 ## 체크포인트
 
