@@ -280,8 +280,22 @@
       diagonal strafe (×2), and in-place rotation (×2) — well matched to the robot's 3-axis omni-wheel
       (Kiwi-drive) chassis, which can move laterally without rotating. Continuous regression or
       diffusion/flow-matching action experts were considered and rejected: they typically need far more
-      demonstration data than this project's 225-episode dataset provides.
+      demonstration data than this project's 225-episode dataset provides. The 8-class logit is mapped to a
+      3-DoF (x, y, z) command via a fixed lookup table:
     </p>
+
+    <table class="rt">
+      <tr><th class="mono">class</th><th>action</th><th class="mono">x</th><th class="mono">y</th><th class="mono">z</th></tr>
+      <tr><td class="mono">0</td><td>STOP</td><td class="mono">+0.00</td><td class="mono">+0.00</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">1</td><td>FORWARD</td><td class="mono">+1.15</td><td class="mono">+0.00</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">2</td><td>LEFT</td><td class="mono">+0.00</td><td class="mono">+1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">3</td><td>RIGHT</td><td class="mono">+0.00</td><td class="mono">-1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">4</td><td>FWD+LEFT</td><td class="mono">+1.15</td><td class="mono">+1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">5</td><td>FWD+RIGHT</td><td class="mono">+1.15</td><td class="mono">-1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">6</td><td>ROT_L</td><td class="mono">+0.00</td><td class="mono">+0.00</td><td class="mono">+0.25</td></tr>
+      <tr><td class="mono">7</td><td>ROT_R</td><td class="mono">+0.00</td><td class="mono">+0.00</td><td class="mono">-0.25</td></tr>
+    </table>
+    <p class="prose" style="font-size:0.85rem;color:var(--ink-soft);margin-top:-16px"><b>Table 1 —</b> 8-class → 3-DoF lookup table (fixed constants; the robot's firmware ignores speed magnitude, so only the direction bits matter).</p>
 
     <div class="side-fig">
       <div class="side-fig-text">
@@ -308,6 +322,34 @@
           action head on top of the frozen representation — 1.128M parameters end to end.</figcaption>
       </figure>
     </div>
+
+    <div class="fig-grid" style="margin-top:36px">
+      <div>
+        <table class="rt">
+          <tr><th>Item</th><th>Value</th></tr>
+          <tr><td>Episodes</td><td>225 (track A 180 + track F 45)</td></tr>
+          <tr><td>Total frames</td><td>16,599</td></tr>
+          <tr><td>Train / val split</td><td>192 / 33 (seed 42, episode-level)</td></tr>
+          <tr><td>BBox annotation</td><td class="mono">bbox_dataset_v6_owl.json</td></tr>
+          <tr class="hl"><td>Deployed head</td><td class="mono">exp73_owl_stage1v3_v6_mlp.pt</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 2 —</b> Dataset composition.</p>
+      </div>
+      <div>
+        <table class="rt">
+          <tr><th>Class</th><th>Frames</th><th>Share</th></tr>
+          <tr><td>STOP</td><td class="mono">1,452</td><td class="mono">8.75%</td></tr>
+          <tr class="hl"><td>FORWARD</td><td class="mono">7,641</td><td class="mono">46.03%</td></tr>
+          <tr><td>LEFT</td><td class="mono">716</td><td class="mono">4.31%</td></tr>
+          <tr><td>RIGHT</td><td class="mono">858</td><td class="mono">5.17%</td></tr>
+          <tr><td>FWD+LEFT</td><td class="mono">2,532</td><td class="mono">15.25%</td></tr>
+          <tr><td>FWD+RIGHT</td><td class="mono">3,117</td><td class="mono">18.78%</td></tr>
+          <tr><td>ROT_L</td><td class="mono">136</td><td class="mono">0.82%</td></tr>
+          <tr><td>ROT_R</td><td class="mono">147</td><td class="mono">0.89%</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 3 —</b> Action class distribution. FORWARD dominance (46.03%) motivates the inverse-frequency class weighting used in Stage 2.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -321,6 +363,16 @@
       shows a much larger train–validation gap — a well-documented pattern in teleoperation-based imitation
       learning, and one that episode-level closed-loop control is structurally able to correct for.
     </p>
+
+    <table class="rt">
+      <tr><th>Direction</th><th>Frames</th><th>Anchor sentence (Stage 1 contrastive target)</th><th>Class weight</th></tr>
+      <tr><td>strong_left</td><td class="mono">3,611</td><td class="mono" style="font-size:0.8rem">"...strongly on the left side of the image"</td><td class="mono">0.91</td></tr>
+      <tr><td>weak_left</td><td class="mono">3,299</td><td class="mono" style="font-size:0.8rem">"...slightly on the left side of the image"</td><td class="mono">1.00</td></tr>
+      <tr><td>center</td><td class="mono">2,819</td><td class="mono" style="font-size:0.8rem">"...in the center of the image"</td><td class="mono">1.17</td></tr>
+      <tr><td>weak_right</td><td class="mono">3,268</td><td class="mono" style="font-size:0.8rem">"...slightly on the right side of the image"</td><td class="mono">1.01</td></tr>
+      <tr><td>strong_right</td><td class="mono">3,602</td><td class="mono" style="font-size:0.8rem">"...strongly on the right side of the image"</td><td class="mono">0.91</td></tr>
+    </table>
+    <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 6 —</b> The 5 direction anchor sentences ("The gray basket is &lt;degree&gt; on the &lt;side&gt; of the image") that Stage 1 contrastively matches each frame's vision feature against. Frame counts sum to exactly 16,599, matching Table 2.</p>
 
     <div class="fig-grid">
       <figure>
@@ -359,12 +411,49 @@
       errors by severity confirms this directly:
     </p>
 
-    <figure>
-      <img src="v5/figures/action_head_error_severity_8x8.png" alt="Validation confusion matrix colored by error severity">
-      <figcaption><b>Fig. 8 — Validation Confusion Matrix, by Error Severity.</b> 81.4% of errors are
-        confusions between actions with the <em>same</em> directional tendency (substitutable) — only
-        1.97% of all predictions are a critical left/right flip that a closed loop cannot self-correct.</figcaption>
-    </figure>
+    <div class="fig-grid">
+      <figure>
+        <img src="v5/figures/confusion_matrix_stage1v3_correct.png" alt="Deployed action head validation confusion matrix, stride=1 scoring">
+        <figcaption><b>Fig. 7 — Validation Confusion Matrix.</b> Deployed head
+          (<code>exp73_owl_stage1v3_v6_mlp.pt</code>) scored with the same stride=1 protocol used in
+          training — 74.1% overall (n=2,431). The 6 well-sampled classes score 66.7–84.5% fairly evenly;
+          only ROT_L/ROT_R look low, and they are 1.15% of validation (28/2,431), so one or two
+          misclassifications swing their per-class number sharply.</figcaption>
+      </figure>
+      <figure>
+        <img src="v5/figures/action_head_error_severity_8x8.png" alt="Validation confusion matrix colored by error severity">
+        <figcaption><b>Fig. 8 — Same Confusion Matrix, by Error Severity.</b> 81.4% of errors are
+          confusions between actions with the <em>same</em> directional tendency (substitutable) — only
+          1.97% of all predictions are a critical left/right flip that a closed loop cannot self-correct.</figcaption>
+      </figure>
+    </div>
+
+    <div class="fig-grid" style="margin-top:36px">
+      <div>
+        <table class="rt">
+          <tr><th>Module</th><th>Status</th></tr>
+          <tr><td>OWLv2</td><td>frozen (zero-shot)</td></tr>
+          <tr><td>Kosmos-2 <code>vision_model</code></td><td>frozen</td></tr>
+          <tr><td><code>image_proj</code></td><td>Stage 1 trained → frozen for deploy</td></tr>
+          <tr><td><code>text_proj</code></td><td>Stage 1 trained, deploy-unused</td></tr>
+          <tr class="hl"><td>MLP action head</td><td>Stage 2 trained (0.866M)</td></tr>
+          <tr><td>Language decoder</td><td>never called at deploy time</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 4 —</b> Training status of every pipeline component.</p>
+      </div>
+      <div>
+        <table class="rt">
+          <tr><th>Param</th><th>Value</th></tr>
+          <tr><td class="mono">threshold</td><td>0.25 default / 0.20 deployed</td></tr>
+          <tr><td class="mono">window</td><td>6 frames</td></tr>
+          <tr><td class="mono">bbox_scale</td><td>3.0</td></tr>
+          <tr><td class="mono">optimizer</td><td>AdamW, lr=5e-4</td></tr>
+          <tr><td class="mono">epochs</td><td>300, CosineAnnealingLR</td></tr>
+          <tr><td class="mono">class weight</td><td>inverse-frequency, normalized</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 5 —</b> Stage 2 action-head hyperparameters.</p>
+      </div>
+    </div>
   </div>
 </section>
 
