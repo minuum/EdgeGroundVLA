@@ -1,626 +1,622 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="description" content="MoNaVLA: Open-vocabulary detection + lightweight action head for mobile robot navigation. 89% real-robot success (89/100, 5 positions x 20). Bottleneck is perception: grounding>=80% yields 98.8% success.">
-  <meta name="keywords" content="MoNaVLA, Vision-Language-Action, Robotics, Navigation, CLIP, Decomposition">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MoNaVLA: Mobile Navigation VLA</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EdgeGround-VLA</title>
+<meta name="description" content="EdgeGround-VLA: a lightweight on-device VLA that fuses two frozen grounding encoders (OWLv2 + Kosmos-2) with a 0.866M-parameter action head. 95.0% real-robot goal-reaching success with only 1.128M trained parameters.">
+<meta property="og:title" content="EdgeGround-VLA — On-Device Goal-Directed Navigation">
+<meta property="og:description" content="95.0% real-robot success, 1.128M trained parameters, fully on-device on Jetson Orin NX.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f8fb; --bg-alt:#eaf0f7; --ink:#0f1c2e; --ink-soft:#51617a;
+    --line:#d9e2ee; --accent:#2563eb; --accent-soft:#e0eaff; --accent2:#0891b2;
+    --card:#ffffff; --mono: 'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{font-family:'Inter',sans-serif; font-weight:800; letter-spacing:-0.02em}
+  a{color:inherit}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px}
+  .wrap-narrow{max-width:740px; margin:0 auto; padding:0 28px}
 
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  /* ── nav ── */
+  nav{position:sticky; top:0; z-index:50; background:rgba(246,248,251,0.92); backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; height:60px; padding-top:0; padding-bottom:0}
+  .nav-logo{font-family:'Inter',sans-serif; font-weight:800; font-size:1.05rem; text-decoration:none; letter-spacing:-0.02em}
+  .nav-links{display:flex; gap:28px; list-style:none; margin:0; padding:0}
+  .nav-links a{text-decoration:none; font-size:0.86rem; font-weight:500; color:var(--ink-soft); transition:color .15s}
+  .nav-links a:hover{color:var(--accent)}
+  .nav-cta{display:flex; gap:10px; align-items:center}
+  .btn{display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:100px;
+       font-size:0.85rem; font-weight:600; text-decoration:none; border:1px solid transparent; transition:all .15s}
+  .btn-dark{background:var(--ink); color:var(--bg)}
+  .btn-dark:hover{background:#000}
+  .btn-outline{border-color:var(--ink); color:var(--ink)}
+  .btn-outline:hover{background:var(--ink); color:var(--bg)}
+  @media(max-width:760px){.nav-links{display:none}}
 
-  <style>
-    body { font-family: 'Noto Sans', sans-serif; }
+  /* ── hero ── */
+  .hero{padding:76px 0 0}
+  .hero-kicker{font-size:0.78rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+               color:var(--accent); margin-bottom:18px}
+  .hero h1{font-size:clamp(1.8rem,3.6vw,2.7rem); line-height:1.18; font-weight:700; letter-spacing:-0.015em; margin:0 0 22px; max-width:900px}
+  .hero h1 em{font-style:italic; color:var(--accent)}
+  .hero-sub{font-size:1.15rem; color:var(--ink-soft); max-width:640px; line-height:1.65; margin:0 0 32px}
+  .hero-authors{font-size:0.92rem; color:var(--ink-soft); margin-bottom:36px}
+  .hero-authors .aff{display:block; font-size:0.8rem; color:#7c8aa0; margin-top:4px}
+  .hero-actions{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:56px}
+  .hero-media{width:100%; border-radius:18px; overflow:hidden; border:1px solid var(--line);
+              box-shadow:0 30px 60px -30px rgba(15,28,46,0.18); max-height:520px}
+  .hero-media img{width:100%; display:block; object-fit:cover; object-position:center 25%; max-height:520px}
 
-    /* ── Hero ── */
-    .hero-section {
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
-      padding: 72px 24px 60px;
-      text-align: center;
-    }
-    .hero-section h1 {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 3rem;
-      font-weight: 800;
-      color: #f1f5f9;
-      letter-spacing: -1px;
-      margin-bottom: 16px;
-    }
-    .hero-section h1 span { color: #38bdf8; }
-    .hero-tagline {
-      font-size: 1.1rem;
-      color: #94a3b8;
-      max-width: 640px;
-      margin: 0 auto 32px;
-      line-height: 1.7;
-    }
-    .hero-tagline strong { color: #4ade80; }
-    .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .hero-buttons .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 10px 22px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 0.95rem;
-      text-decoration: none;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .hero-buttons .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
-    .btn-primary   { background: #2563eb; color: #fff; }
-    .btn-green     { background: #16a34a; color: #fff; }
-    .btn-slate     { background: #334155; color: #e2e8f0; }
-    .btn-outline   { background: transparent; color: #38bdf8; border: 1.5px solid #38bdf8; }
+  /* ── stat band ── */
+  .statband{background:var(--ink); color:var(--bg); padding:44px 0}
+  .statband .wrap{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .stat{text-align:center; padding:0 10px}
+  .stat .num{font-family:'Inter',sans-serif; font-size:clamp(1.8rem,3.4vw,2.6rem); font-weight:800; letter-spacing:-0.02em; color:#fff}
+  .stat .lbl{font-size:0.76rem; color:#9fb0c7; margin-top:6px; letter-spacing:0.02em; line-height:1.5}
+  @media(max-width:760px){.statband .wrap{grid-template-columns:1fr 1fr; row-gap:28px}}
 
-    /* ── Metrics bar ── */
-    .metrics-bar {
-      background: #fff;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 28px 24px;
-    }
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    .metric-cell {
-      text-align: center;
-      padding: 8px 16px;
-      border-right: 1px solid #e2e8f0;
-    }
-    .metric-cell:last-child { border-right: none; }
-    .metric-value { font-size: 2rem; font-weight: 900; font-family: 'Google Sans', sans-serif; }
-    .metric-label { font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
-    .metric-note  { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
+  /* ── sections ── */
+  section{padding:88px 0}
+  section.alt{background:var(--bg-alt)}
+  .eyebrow{font-size:0.78rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:14px}
+  .sec-title{font-size:clamp(1.7rem,3vw,2.3rem); font-weight:600; letter-spacing:-0.01em; margin:0 0 20px; max-width:680px}
+  .lede{font-size:1.08rem; color:var(--ink-soft); max-width:680px; line-height:1.75; margin-bottom:8px}
+  .prose{font-size:1rem; color:#2c384a; line-height:1.85; max-width:720px}
+  .prose strong{color:var(--ink)}
+  .prose code{background:var(--accent-soft); color:#1e40af; padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:0.87em}
 
-    /* ── Sections ── */
-    .content-section { padding: 56px 24px; }
-    .content-section.alt { background: #f8fafc; }
-    .section-inner { max-width: 860px; margin: 0 auto; }
-    .section-title {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 1.6rem;
-      font-weight: 800;
-      color: #0f172a;
-      margin-bottom: 24px;
-      text-align: center;
-    }
+  figure{margin:36px 0}
+  figure img{width:100%; max-height:600px; object-fit:contain; border-radius:12px; border:1px solid var(--line); background:#fff; display:block; margin:0 auto}
+  figure.tall img{max-width:420px}
+  figcaption{font-size:0.85rem; color:var(--ink-soft); margin-top:12px; line-height:1.6}
+  figcaption b{color:var(--ink)}
+  .fig-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+  @media(max-width:760px){.fig-grid{grid-template-columns:1fr}}
+  .fig-grid figure{margin:0}
 
-    /* ── Abstract ── */
-    .abstract-text {
-      font-size: 1.05rem;
-      line-height: 1.8;
-      color: #334155;
-      text-align: justify;
-    }
+  /* ── side-by-side figure: text left, image right ── */
+  .side-fig{display:grid; grid-template-columns:0.85fr 1.15fr; gap:40px; align-items:center; margin:40px 0}
+  .side-fig-text b{color:var(--ink); font-weight:700}
+  .side-fig-text{font-size:0.95rem; color:var(--ink-soft); line-height:1.75}
+  .side-fig-img{margin:0}
+  .side-fig-img img{width:100%; max-height:520px; object-fit:contain; border-radius:12px;
+                     border:1px solid var(--line); background:#fff; display:block; margin:0 auto}
+  @media(max-width:860px){.side-fig{grid-template-columns:1fr; gap:18px}}
 
-    /* ── Results table ── */
-    .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95rem; }
-    .results-table th {
-      background: #f1f5f9; color: #334155; font-weight: 700;
-      padding: 10px 14px; text-align: left; border-bottom: 2px solid #e2e8f0;
-    }
-    .results-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #475569; }
-    .results-table tr:last-child td { border-bottom: none; }
-    .results-table tr.highlight-row td { background: #f0fdf4; font-weight: 700; color: #15803d; }
-    .results-table .tag-model { font-weight: 700; color: #0f172a; }
-    .val-good { color: #16a34a; font-weight: 900; }
-    .val-bad  { color: #dc2626; font-weight: 700; }
-    .val-mid  { color: #d97706; font-weight: 700; }
+  /* ── pipeline strip ── */
+  .flow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:32px 0}
+  .fnode{flex:1 1 150px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 14px}
+  .fnode.frozen{background:#e8eef5}
+  .fnode.train{background:#eaf2fb; border-color:#a9c7ec}
+  .fnode .ft{font-weight:700; font-size:0.92rem}
+  .fnode .fp{font-family:var(--mono); font-size:0.72rem; color:var(--accent); margin-top:3px; font-weight:600}
+  .fnode .fd{font-size:0.76rem; color:var(--ink-soft); margin-top:6px; line-height:1.5}
+  .farrow{color:var(--ink-soft); font-size:1.2rem; flex:0 0 auto; padding:0 2px}
+  @media(max-width:760px){.flow{flex-direction:column; align-items:stretch}.farrow{transform:rotate(90deg); align-self:center}}
 
-    /* ── Pipeline diagram (light) ── */
-    .pipe { display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:4px 0 18px; }
-    .pblk { flex:1 1 148px; min-width:142px; background:#f8fafc; border:1px solid #e2e8f0;
-            border-radius:10px; padding:12px 10px; text-align:center; }
-    .pblk.train { background:#f0fdf4; border-color:#86efac; }
-    .pblk.slow  { background:#fef2f2; border-color:#fca5a5; }
-    .pblk .pt { font-weight:800; color:#0f172a; font-size:0.9rem; }
-    .pblk .pp { color:#d97706; font-size:0.78rem; margin-top:3px; font-weight:700; }
-    .pblk .pd { color:#64748b; font-size:0.74rem; margin-top:5px; line-height:1.55; }
-    .parw { display:flex; align-items:center; color:#2563eb; font-size:1.25rem; flex:0 0 auto; font-weight:800; }
-    @media (max-width:768px){ .pipe{flex-direction:column} .parw{transform:rotate(90deg);justify-content:center} }
+  /* ── pull quote ── */
+  .pullquote{border-left:3px solid var(--accent); padding:6px 0 6px 26px; margin:44px 0}
+  .pullquote p{font-family:'Inter',sans-serif; font-size:1.5rem; line-height:1.4; font-weight:700; letter-spacing:-0.01em; color:var(--ink); margin:0}
+  .pullquote cite{font-size:0.82rem; color:var(--ink-soft); font-style:normal; display:block; margin-top:10px}
 
-    /* ── Architecture ── */
-    .arch-box {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 28px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-    }
-    .arch-box img { width: 100%; border-radius: 8px; }
+  /* ── results table ── */
+  table.rt{width:100%; border-collapse:collapse; font-size:0.92rem; margin:28px 0}
+  table.rt th{text-align:left; font-weight:700; color:var(--ink); padding:10px 12px; border-bottom:2px solid var(--ink)}
+  table.rt td{padding:10px 12px; border-bottom:1px solid var(--line); color:#2c384a}
+  table.rt tr.hl td{font-weight:700; color:var(--accent2); background:#e3f2f6}
+  table.rt td.mono, table.rt th.mono{font-family:var(--mono); font-size:0.85rem}
 
-    /* ── Quick links ── */
-    .link-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
-    .link-card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 22px 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.15s, box-shadow 0.15s;
-      display: block;
-    }
-    .link-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-    .link-card .lc-tag {
-      display: inline-block;
-      font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
-      padding: 3px 10px; border-radius: 999px; margin-bottom: 12px;
-    }
-    .link-card h3 { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
-    .link-card p  { font-size: 0.85rem; color: #64748b; line-height: 1.6; margin-bottom: 14px; }
-    .link-card .lc-arrow { font-size: 0.82rem; color: #2563eb; font-weight: 700; }
+  .position-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:28px 0}
+  .poscard{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 10px; text-align:center}
+  .poscard .pn{font-size:0.72rem; color:var(--ink-soft); font-weight:600}
+  .poscard .pv{font-family:'Inter',sans-serif; font-size:1.7rem; font-weight:800; letter-spacing:-0.02em; margin:6px 0 2px}
+  .poscard .pc{font-size:0.72rem; color:var(--ink-soft); font-family:var(--mono)}
+  .poscard.overall{background:var(--ink); border-color:var(--ink)}
+  .poscard.overall .pn,.poscard.overall .pv,.poscard.overall .pc{color:#fff}
+  @media(max-width:760px){.position-grid{grid-template-columns:repeat(3,1fr)}}
 
-    /* ── Key findings ── */
-    .finding-list { list-style: none; padding: 0; margin: 0; }
-    .finding-list li {
-      display: flex; gap: 14px; align-items: flex-start;
-      padding: 16px 0; border-bottom: 1px solid #f1f5f9;
-    }
-    .finding-list li:last-child { border-bottom: none; }
-    .finding-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
-    .finding-title { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
-    .finding-sub { font-size: 0.88rem; color: #64748b; line-height: 1.6; }
+  .latbar-row{display:flex; align-items:center; gap:14px; margin:10px 0; font-size:0.86rem}
+  .latbar-label{width:180px; flex:0 0 auto; font-weight:600}
+  .latbar-track{flex:1; background:var(--line); border-radius:6px; height:26px; overflow:hidden; position:relative}
+  .latbar-fill{height:100%; background:var(--accent); border-radius:6px}
+  .latbar-fill.light{background:#9db8dc}
+  .latbar-fill.tiny{background:var(--accent2)}
+  .latbar-val{width:110px; flex:0 0 auto; font-family:var(--mono); font-size:0.78rem; color:var(--ink-soft); text-align:right}
 
-    /* ── Legacy banner ── */
-    .legacy-banner {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-top: 40px;
-    }
-    .legacy-banner p { color: #64748b; font-size: 0.9rem; margin: 0; }
-    .legacy-banner a { white-space: nowrap; }
+  /* ── citation ── */
+  .cite-box{background:var(--ink); color:#e2e9f5; border-radius:14px; padding:28px 30px; font-family:var(--mono);
+            font-size:0.8rem; line-height:1.8; overflow-x:auto; white-space:pre}
+  .copy-hint{font-size:0.8rem; color:var(--ink-soft); margin-top:10px}
 
-    /* ── Footer ── */
-    .site-footer { background: #0f172a; color: #94a3b8; padding: 32px 24px; text-align: center; font-size: 0.88rem; }
-    .site-footer a { color: #38bdf8; text-decoration: none; }
+  /* ── links grid ── */
+  .doc-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px}
+  @media(max-width:760px){.doc-grid{grid-template-columns:1fr}}
+  .doc-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; text-decoration:none;
+            display:block; transition:transform .15s, box-shadow .15s}
+  .doc-card:hover{transform:translateY(-3px); box-shadow:0 14px 30px -18px rgba(15,28,46,0.22)}
+  .doc-card .dc-tag{font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--accent)}
+  .doc-card h4{font-size:0.98rem; font-weight:700; margin:8px 0 6px}
+  .doc-card p{font-size:0.82rem; color:var(--ink-soft); line-height:1.55; margin:0}
 
-    @media (max-width: 768px) {
-      .metrics-grid { grid-template-columns: 1fr 1fr; }
-      .metric-cell { border-right: none; border-bottom: 1px solid #e2e8f0; }
-      .link-cards { grid-template-columns: 1fr; }
-      .hero-section h1 { font-size: 2.2rem; }
-    }
-  </style>
+  footer{background:var(--ink); color:#93a3ba; padding:44px 0; text-align:center; font-size:0.85rem}
+  footer a{color:#e2e9f5; text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  footer .fmeta{margin-top:8px; color:#6b7c96; font-size:0.78rem}
+</style>
 </head>
 <body>
 
-<!-- ══ Hero ══════════════════════════════════════════════════════════════ -->
-<div class="hero-section">
-  <h1>MoNaVLA: <span>Mobile Navigation</span><br>Vision-Language-Action</h1>
-  <!-- SYNC:hero_tagline:start -->
-  <p class="hero-tagline">
-    Open-vocabulary detection + lightweight action head for mobile robot basket navigation.<br>
-    <strong>89% real-robot success</strong> (89/100 · 5 target positions × 20 trials)<br>
-    Bottleneck is perception, not policy — <strong>grounding ≥80% → 98.8% success</strong>.
-  </p>
-<!-- SYNC:hero_tagline:end -->
-  <div class="hero-buttons">
-    <a href="v5/model_architecture_brief.html" class="btn btn-primary" style="background:#a78bfa;color:#0a0f1a;font-size:1.02rem;padding:12px 26px">
-      <i class="fas fa-sitemap"></i> 모델 구조 &amp; 학습 방식
-    </a>
-    <a href="v5/owlv2_grounder_brief.html" class="btn btn-primary" style="background:#f0abfc;color:#0a0f1a;font-size:1.02rem;padding:12px 26px">
-      <i class="fas fa-crosshairs"></i> OWL-v2 그라운더 정리
-    </a>
-    <a href="v5/research_story.html#ch64" class="btn btn-primary" style="background:#38bdf8;color:#0a0f1a;font-size:1.02rem;padding:12px 26px">
-      <i class="fas fa-magnifying-glass-chart"></i> CH64 exp73 대감사
-    </a>
-  </div>
-  <div class="hero-buttons" style="margin-top:12px">
-    <a href="v5/research_story.html#ch65" class="btn btn-slate">
-      <i class="fas fa-code-branch"></i> CH65 인지-정책 2축 분해
-    </a>
-    <a href="v5/research_story.html#ch66" class="btn btn-slate">
-      <i class="fas fa-scale-balanced"></i> CH66 좌우 비대칭 원인
-    </a>
-    <a href="v5/research_story.html#ch67" class="btn btn-slate">
-      <i class="fas fa-compass"></i> CH67 차기 구성 검정
-    </a>
-    <a href="v5/paper_redfill_worklist.html" class="btn btn-slate" style="border-color:#4ade80;color:#86efac">
-      <i class="fas fa-pen"></i> 논문 드래프트 보완
-    </a>
-    <a href="v5/research_story.html#ch68" class="btn btn-outline">
-      <i class="fas fa-comments"></i> CH68 언어조건화 계획
-    </a>
-    <a href="v5/research_story.html" class="btn btn-slate">
-      <i class="fas fa-book-open"></i> Research Story (전체)
-    </a>
-    <a href="#archive" class="btn btn-outline">
-      <i class="fas fa-box-archive"></i> 이전 자료 모음
-    </a>
-    <a href="https://github.com/minuum/MoNaVLA" class="btn btn-outline">
-      <i class="fab fa-github"></i> GitHub
-    </a>
-  </div>
-</div>
-
-<!-- ══ Metrics Bar ════════════════════════════════════════════════════════ -->
-<!-- SYNC:metrics_bar:start -->
-<div class="metrics-bar">
-  <div class="metrics-grid">
-    <div class="metric-cell">
-      <div class="metric-value" style="color:#16a34a">89%</div>
-      <div class="metric-label">실기 성공률</div>
-      <div class="metric-note">89/100 · 5위치 × 20회 (2026-07-31)</div>
-    </div>
-    <div class="metric-cell">
-      <div class="metric-value" style="color:#2563eb">98.8%</div>
-      <div class="metric-label">그라운딩 되면 성공</div>
-      <div class="metric-note">gnd%≥80 → 79/80 · 159세션 검증</div>
-    </div>
-    <div class="metric-cell">
-      <div class="metric-value" style="color:#d97706">1902 ms</div>
-      <div class="metric-label">검출 지연 (병목)</div>
-      <div class="metric-note">OWL-v2 · 전체 지연의 97%</div>
-    </div>
-    <div class="metric-cell">
-      <div class="metric-value" style="color:#7c3aed">0.46B</div>
-      <div class="metric-label">실연산 파라미터</div>
-      <div class="metric-note">헤드는 0.866M · 언어 디코더 미사용</div>
-    </div>
-  </div>
-</div>
-<!-- SYNC:metrics_bar:end -->
-
-<!-- ══ Abstract ══════════════════════════════════════════════════════════ -->
-<div class="content-section">
-  <div class="section-inner">
-    <h2 class="section-title">Abstract</h2>
-    <p class="abstract-text">
-      MoNaVLA는 이동로봇의 바구니 접근 주행을 다룹니다. Kosmos-2를 LoRA로 end-to-end
-      미세조정하는 방식은 <strong>text attention이 구조적으로 0%</strong>가 되어 폐루프
-      성공률 0%로 붕괴했고, 이 경로를 이탈해 <strong>분해 파이프라인</strong>으로 전환했습니다.
-      현재 구성은 <strong>OWL-v2 오픈 보캐블러리 검출기 + Kosmos-2 비전 인코더(frozen) +
-      MLP 액션 헤드</strong>이며, 프레임당 260차원(비전 256 + bbox 4)을 6프레임 묶어 8클래스
-      이산 액션을 출력합니다. 언어 디코더는 사용하지 않으므로 엄밀히는 VLA가 아니라
-      <strong>"오픈 보캐블러리 검출 + 액션 헤드"</strong>입니다.
-      실기 100회 테스트(5개 목표위치 × 20회)에서 <strong>89% 성공(89/100)</strong>을
-      달성했습니다. 핵심 발견은 <strong>병목이 정책이 아니라 인지</strong>라는 것입니다 —
-      세션 내 검출 성공률이 80% 이상이면 주행 성공률이 <strong>98.8%(79/80)</strong>인 반면
-      80% 미만이면 51.2%로 떨어집니다. 다만 그 역은 성립하지 않습니다:
-      검출률이 49%로 최악인 배치가 짧은 경로 덕에 90% 성공하기도 하므로,
-      <strong>검출 난이도와 주행 난이도는 별개의 축</strong>입니다.
-      학습되는 파라미터는 액션 헤드 0.866M뿐이고, 실연산 파라미터는 0.46B이며
-      지연의 97%(1902ms)를 검출기가 차지합니다 — 이것이 경량화의 표적입니다.
-    </p>
-  </div>
-</div>
-
-<!-- ══ Key Findings ══════════════════════════════════════════════════════ -->
-<div class="content-section alt">
-  <div class="section-inner">
-    <h2 class="section-title">Key Findings</h2>
-    <ul class="finding-list">
-      <li>
-        <div class="finding-icon">✅</div>
-        <div>
-          <div class="finding-title">실기 100회 테스트 89% — 위치별 100/95/90/80/80%</div>
-          <div class="finding-sub">중앙 20/20 · 약우 19/20 · 강우 18/20 · 강좌 16/20 · 약좌 16/20. 직전 세대(동일 위치)는 20~30%대였다. <strong>이 100건이 이 프로젝트의 판정 기준</strong>이며 offline 지표는 사전 필터일 뿐이다. (CH64 64-18)</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">🔑</div>
-        <div>
-          <div class="finding-title">병목은 정책이 아니라 인지 — 검출되면 98.8% 성공</div>
-          <div class="finding-sub">gnd%≥80 → 79/80(98.8%) vs &lt;80 → 41/80(51.2%), 실기 159세션. 액션 헤드(0.866M)는 이미 충분하므로 자원은 검출 단계에 투입해야 한다. (CH64 64-18)</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">🔀</div>
-        <div>
-          <div class="finding-title">단 필요조건은 아니다 — 검출 난이도 ≠ 주행 난이도</div>
-          <div class="finding-sub">강우는 검출 confidence 중앙 0.180(최악)·gnd% 49%인데 성공률 90%. 경로가 짧아 직진 편중 prior가 인지 실패를 가려준다. 개선 자원은 실패의 72.8%를 차지하는 강좌·약좌에. (CH65 65-1/65-2)</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">⚡</div>
-        <div>
-          <div class="finding-title">경량화 — 언어 디코더 1.36B는 로드만 되고 호출 0회 (제거 적용 완료)</div>
-          <div class="finding-sub">비전 타워만 로드하도록 변경 → peak host RAM 10.59GB→3.20GB(−70%), 출력 bitwise 동일. RAM 4~8GB 보드의 로드 가능/불가를 가르는 차이다. (모델 구조 자료 2절)</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">🎯</div>
-        <div>
-          <div class="finding-title">검출 지연이 전체의 97% — 파라미터와 속도가 역전</div>
-          <div class="finding-sub">OWL-v2는 0.155B로 Kosmos-2 비전(0.303B)의 절반인데 <strong>35배 느리다</strong>(1902ms vs 54ms). fp16은 속도 1.98배지만 검출률 10%p를 잃어 부적절 — 검출률이 곧 성공률이므로. (OWL-v2 정리)</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">🚧</div>
-        <div>
-          <div class="finding-title">검출기 대체 실험 — 위치추정은 해결, has_bbox가 남았다</div>
-          <div class="finding-sub">Kosmos-2 patch 피처 위 0.279M 헤드로 cx MAE 0.0020, 추가 지연 0.12ms(검출 53.8ms, 35배↓). 그러나 학습셋 negative가 0건이라 '타겟이 없다'를 말할 수 없고, 확신도 우회도 AUC 0.47~0.58로 기각. (CH65 65-5/65-6)</div>
-        </div>
-      </li>
-      <li>
-        <div class="finding-icon">❌</div>
-        <div>
-          <div class="finding-title">Text attention 구조적 사망 — Google-robot backbone 기인</div>
-          <div class="finding-sub">Exp17~Exp41C 전 실험에서 text attention 0.000%. head-only 학습에서도 재현되어 모델 구조 기인으로 확정. 이것이 VLA 경로를 이탈한 이유이며 경량화 논문의 동기가 된다. (CH61)</div>
-        </div>
-      </li>
+<nav>
+  <div class="wrap">
+    <a href="#" class="nav-logo">EdgeGround-VLA</a>
+    <ul class="nav-links">
+      <li><a href="#abstract">Abstract</a></li>
+      <li><a href="#method">Method</a></li>
+      <li><a href="#training">Training</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#deploy">Deployment</a></li>
+      <li><a href="#docs">Docs</a></li>
     </ul>
-
-  </div>
-</div>
-
-<!-- ══ Results Table ══════════════════════════════════════════════════════ -->
-<div class="content-section">
-  <div class="section-inner">
-    <h2 class="section-title">Main Results</h2>
-    <table class="results-table">
-      <tr><th>구분</th><th>구성</th><th>실기 성공률 ↑</th><th>검출 지연</th><th>비고</th></tr>
-      <tr><td class="tag-model">E2E VLA</td><td>Kosmos-2 + LoRA (Exp11)</td>
-          <td class="val-bad">0%</td><td>—</td><td>text attention 0% 붕괴</td></tr>
-      <tr><td class="tag-model">구 배포모델</td><td>exp71 w3 + Transformer 헤드</td>
-          <td class="val-bad">23.8% (5/21)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
-      <tr><td class="tag-model">exp73 챔피언</td><td>OWL-v2 + MLP 헤드 (hold-aware)</td>
-          <td class="val-mid">50.0% (29/58)</td><td>1902 ms</td><td>threshold 0.25 · 회복가드 없음</td></tr>
-      <tr class="highlight-row"><td class="tag-model">현재 배포</td><td>동일 + threshold 0.20 + 회복가드</td>
-          <td class="val-good">89.0% (89/100)</td><td>1902 ms</td><td>5위치 × 20회 · 판정 기준</td></tr>
-      <tr><td class="tag-model">검출기 대체(실험)</td><td>Kosmos-2 patch + 0.279M 헤드</td>
-          <td>미측정</td><td class="val-good">53.8 ms (35배↓)</td>
-          <td>위치추정만 해결 · has_bbox 미해결로 대체 불가</td></tr>
-    </table>
-    <p style="font-size:0.85rem;color:#64748b;margin-top:14px;line-height:1.7">
-      ⚠️ <strong>해석 주의</strong>: 구 배포모델 → exp73 챔피언 → 현재 배포는 서로 다른 위치 구성에서
-      수집돼 <strong>교란</strong>되어 있습니다. 요인 기여분(체크포인트 교체 vs threshold+회복가드)의
-      순위는 위치 가중 방식에 따라 뒤집혀 <strong>아직 확정하지 못했습니다</strong> — 동일 위치 A/B가 필요합니다.
-      좌우 성능차(좌 80% vs 우 92.5%)도 Fisher p=0.193으로 유의하지 않습니다. 상세: CH64 64-19 / CH65 65-4.
-    </p>
-
-    <div style="margin-top:34px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
-      <strong style="color:#0f172a;font-size:0.92rem">📁 아래는 시뮬레이션(V5 offline) 이력입니다 — 위 실기 수치와 다른 척도</strong>
-      <p style="font-size:0.84rem;color:#64748b;margin:6px 0 0;line-height:1.7">
-        V5 데이터셋 재생 기반 폐루프 지표로, <strong>실기 성공률과 직접 비교할 수 없습니다</strong>.
-        이 세션에서 offline 지표가 실기를 잘못 예측한 사례가 반복 확인돼(CH64 64-11 철회, CH65 65-1),
-        현재 판정 기준은 <strong style="color:#15803d">100건 실기 테스트</strong>로 고정했습니다.
-        아래 표는 당시 구조 선택의 근거로만 남겨둡니다.
-      </p>
+    <div class="nav-cta">
+      <a href="https://github.com/minuum/EdgeGroundVLA" class="btn btn-outline">GitHub</a>
     </div>
-    <p style="font-size:0.8rem;color:#94a3b8;margin-top:12px">
-      CL = Closed-Loop success (FPE &lt; 0.5m AND TLD ∈ [0.7, 1.5]). Evaluated on V5 dataset (30 ep val, 9 path types).
-    </p>
+  </div>
+</nav>
 
-    <h3 style="font-size:1.05rem;font-weight:700;color:#0f172a;margin-top:32px;margin-bottom:12px">Pipeline Ablation (Exp66 계열)</h3>
-    <table class="results-table">
-      <thead>
-        <tr><th>Head</th><th>Window</th><th>CL ↑</th><th>FPE ↓</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Linear</td><td>4</td><td class="val-mid">69.0%</td><td>—</td></tr>
-        <tr><td>FCHead</td><td>4</td><td class="val-good">93.1%</td><td>—</td></tr>
-        <tr class="highlight-row"><td>MLP ★</td><td>4</td><td class="val-good">96.6%</td><td>0.094 m</td></tr>
-        <tr class="highlight-row"><td>LSTM</td><td>16</td><td class="val-good">96.6%</td><td>0.080 m</td></tr>
-      </tbody>
-    </table>
+<!-- ══ HERO ══ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-kicker">Kangnam University · On-Device Vision-Language-Action</div>
+    <h1>EdgeGround-VLA: <em>A Lightweight Model Fusing Heterogeneous Grounding Encoders</em> for Goal-Directed Navigation in Wheeled Robots</h1>
+    <p class="hero-sub">
+      EdgeGround-VLA fuses OWLv2 (open-vocabulary detection) and Kosmos-2 (phrase grounding) — both frozen —
+      behind a 0.866M-parameter MLP action head. Only <b>1.128M of 459M parameters are trained</b>, and the
+      whole pipeline runs entirely on an NVIDIA Jetson Orin NX with no cloud connectivity and no pre-built map.
+    </p>
+    <p class="hero-authors">
+      Min-Woo Lee<sup>*</sup>, In-Yeop Choi<sup>†</sup>
+      <span class="aff">*Dept. of Artificial Intelligence · †Dept. of Computer Science, Kangnam University</span>
+    </p>
+    <div class="hero-actions">
+      <a href="01.paper/EdgeGround-VLA.hwp" class="btn btn-dark">📄 Paper (HWP)</a>
+      <a href="https://github.com/minuum/EdgeGroundVLA" class="btn btn-outline">💻 Code</a>
+      <a href="v5/model_architecture_brief.html" class="btn btn-outline">🧩 Architecture Notes</a>
+    </div>
+  </div>
+</header>
+
+<!-- ══ STAT BAND ══ -->
+<div class="statband">
+  <div class="wrap">
+    <div class="stat"><div class="num">95.0%</div><div class="lbl">Real-robot goal-reaching success<br>(95/100 · 5 positions × 20 trials)</div></div>
+    <div class="stat"><div class="num">1.128M</div><div class="lbl">Trained parameters<br>out of 459M total</div></div>
+    <div class="stat"><div class="num">97%</div><div class="lbl">Of inference latency is<br>the perception (grounding) stage</div></div>
+    <div class="stat"><div class="num">0</div><div class="lbl">Cloud calls, pre-built maps,<br>or demo-tour videos required</div></div>
   </div>
 </div>
 
-<!-- ══ Architecture ══════════════════════════════════════════════════════ -->
-<div class="content-section alt">
-  <div class="section-inner">
-    <h2 class="section-title">Architecture</h2>
-    <div class="arch-box">
-      <div class="pipe">
-        <div class="pblk"><div class="pt">카메라</div><div class="pp">720×1280 RGB</div>
-          <div class="pd">실기 저장 원본</div></div>
-        <div class="parw">→</div>
-        <div class="pblk slow"><div class="pt">OWL-v2</div><div class="pp">0.155B · 1902 ms</div>
-          <div class="pd"><code>"gray basket"</code> zero-shot<br>→ cx, cy, area, has_bbox</div></div>
-        <div class="parw">+</div>
-        <div class="pblk"><div class="pt">Kosmos-2 비전</div><div class="pp">0.303B · 54 ms</div>
-          <div class="pd"><code>vision_model</code>만 (frozen)<br>1024-dim mean pool</div></div>
-        <div class="parw">→</div>
-        <div class="pblk"><div class="pt">image_proj</div><div class="pp">0.262M · frozen</div>
-          <div class="pd">Linear 1024→256<br>+ L2 정규화</div></div>
-        <div class="parw">→</div>
-        <div class="pblk train"><div class="pt">MLP 액션 헤드</div><div class="pp">0.866M · 학습대상</div>
-          <div class="pd">1560 → 512 → 128 → 8</div></div>
+<!-- ══ ABSTRACT ══ -->
+<section id="abstract">
+  <div class="wrap-narrow">
+    <div class="eyebrow">Abstract</div>
+    <h2 class="sec-title">Grounding, not language modeling, is the bottleneck</h2>
+    <p class="prose">
+      Recent mobile-robot navigation research has pushed toward language-instructed navigation with large
+      Vision-Language Models, exemplified by <b>Mobility VLA</b>. But VLM-based inference is computationally
+      heavy and depends on pre-built infrastructure — demo-tour videos and offline topological graphs — which
+      limits deployment on resource-constrained platforms.
+    </p>
+    <p class="prose">
+      EdgeGround-VLA takes a different path. It fuses the representations of <b>two vision encoders with
+      distinct grounding characteristics</b> — OWLv2 for real-time open-vocabulary object localization, and
+      Kosmos-2's vision encoder for phrase-grounded visual features — and combines them with a lightweight
+      MLP action head that outputs one of 8 discrete movement classes, mapped to a 3-DoF command via a fixed
+      lookup table. Both backbones stay frozen; only the 0.866M-parameter action head (plus a 0.262M projection
+      layer) is trained. Deployed on a Jetson Orin NX with no cloud connectivity, the system reaches a
+      <b>95.0% goal-reaching success rate</b> across 100 real-world trials — above the 86–90% end-to-end
+      success Mobility VLA reports in comparable settings. Decomposing the pipeline by component further shows
+      that <b>OWLv2 grounding alone accounts for ~97% of inference latency</b>, identifying exactly where
+      future compression effort (quantization, distillation) should go when porting to platforms as constrained
+      as a Raspberry Pi.
+    </p>
+  </div>
+</section>
+
+<!-- ══ METHOD ══ -->
+<section class="alt" id="method">
+  <div class="wrap">
+    <div class="eyebrow">Method</div>
+    <h2 class="sec-title">Heterogeneous grounding, fused behind a frozen backbone</h2>
+    <p class="lede">
+      A 1280×720 RGB frame is processed in parallel by two independently pre-trained, frozen encoders — one
+      built for detection, one built for phrase grounding — and their outputs are concatenated into a single
+      260-dimensional frame feature.
+    </p>
+
+    <div class="side-fig">
+      <div class="side-fig-text">
+        <b>Fig. 1 — Model Architecture.</b> OWLv2 contributes a 4-channel bbox feature
+        (cx, cy, area, has_bbox); Kosmos-2's vision encoder contributes a 1024-dim feature that is
+        linearly projected to 256-dim and L2-normalized. The two are concatenated into a 260-dim frame
+        feature, six frames are flattened into a 1560-dim input, and a 2-hidden-layer MLP (512 → 128)
+        outputs one of 8 discrete action classes.
       </div>
-      <p style="font-size:0.84rem;color:#475569;margin-top:6px;line-height:1.85">
-        <strong style="color:#0f172a">프레임 특징 260-dim</strong> = bbox 4 (cx, cy, area, has_bbox; area는 bbox_scale=3.0)
-        + 비전 256 (Kosmos-2 <code>vision_model</code> 1024 → <code>image_proj</code> → L2 norm).
-        헤드 입력은 <strong style="color:#0f172a">window=6 프레임을 flatten한 1560-dim</strong>, 출력은 8클래스 로짓.<br>
-        <strong style="color:#0f172a">학습되는 것은 MLP 헤드 0.866M뿐</strong>입니다 — OWL-v2는 zero-shot,
-        Kosmos-2 비전과 <code>image_proj</code>는 frozen. 언어 디코더는 호출되지 않습니다.<br>
-        <strong style="color:#0f172a">STOP</strong>: <code>stop_mode=learned</code>(헤드의 STOP 클래스)
-        + 콜드스타트 가드 3프레임. <em>과거의 proximity 규칙(area≥0.25 &amp; |cx−0.5|≤0.35)은 현재 미사용입니다.</em><br>
-        <strong style="color:#0f172a">서빙 제어</strong>: threshold 0.20 · <code>grounding_skip_n=3</code>(→ 판단 주기 ~1.3Hz) ·
-        <code>force_reground_on_miss</code> · 회전 후 강제 재그라운딩 · 회전 0.4s 제한 · 연속회전 차단.
-        <span style="color:#b45309">학습 데이터에 <code>has_bbox=False</code>가 0건이라(0/16,599) 모델이 검출 실패 회복을
-        배운 적이 없어, 이를 제어 계층에서 대신 처리합니다.</span>
-      </p>
-      <p style="font-size:0.8rem;color:#94a3b8;margin-top:10px">
-        상세: <a href="v5/model_architecture_brief.html">모델 구조 &amp; 학습 방식</a> ·
-        <a href="v5/owlv2_grounder_brief.html">OWL-v2 그라운더 정리</a>
-      </p>
+      <div class="side-fig-img">
+        <img src="v5/figures/figure1_v2_model_architecture_web.png" alt="EdgeGround-VLA model architecture diagram">
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="fnode frozen"><div class="ft">OWLv2</div><div class="fp">0.155B · frozen</div>
+        <div class="fd">Open-vocabulary detection → bbox (cx, cy, area, has_bbox)</div></div>
+      <div class="farrow">+</div>
+      <div class="fnode frozen"><div class="ft">Kosmos-2 vision encoder</div><div class="fp">0.303B · frozen</div>
+        <div class="fd">Phrase-grounded 1024-dim feature</div></div>
+      <div class="farrow">→</div>
+      <div class="fnode frozen"><div class="ft">image_proj</div><div class="fp">0.262M · Stage 1</div>
+        <div class="fd">Linear 1024→256 + L2 norm</div></div>
+      <div class="farrow">→</div>
+      <div class="fnode train"><div class="ft">MLP action head</div><div class="fp">0.866M · trained</div>
+        <div class="fd">1560 → 512 → 128 → 8-class logit</div></div>
+    </div>
+
+    <p class="prose">
+      The action space is deliberately <b>discrete</b>: 8 classes covering stop, forward, lateral strafe (×2),
+      diagonal strafe (×2), and in-place rotation (×2) — well matched to the robot's 3-axis omni-wheel
+      (Kiwi-drive) chassis, which can move laterally without rotating. Continuous regression or
+      diffusion/flow-matching action experts were considered and rejected: they typically need far more
+      demonstration data than this project's 225-episode dataset provides. The 8-class logit is mapped to a
+      3-DoF (x, y, z) command via a fixed lookup table:
+    </p>
+
+    <table class="rt">
+      <tr><th class="mono">class</th><th>action</th><th class="mono">x</th><th class="mono">y</th><th class="mono">z</th></tr>
+      <tr><td class="mono">0</td><td>STOP</td><td class="mono">+0.00</td><td class="mono">+0.00</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">1</td><td>FORWARD</td><td class="mono">+1.15</td><td class="mono">+0.00</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">2</td><td>LEFT</td><td class="mono">+0.00</td><td class="mono">+1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">3</td><td>RIGHT</td><td class="mono">+0.00</td><td class="mono">-1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">4</td><td>FWD+LEFT</td><td class="mono">+1.15</td><td class="mono">+1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">5</td><td>FWD+RIGHT</td><td class="mono">+1.15</td><td class="mono">-1.15</td><td class="mono">+0.00</td></tr>
+      <tr><td class="mono">6</td><td>ROT_L</td><td class="mono">+0.00</td><td class="mono">+0.00</td><td class="mono">+0.25</td></tr>
+      <tr><td class="mono">7</td><td>ROT_R</td><td class="mono">+0.00</td><td class="mono">+0.00</td><td class="mono">-0.25</td></tr>
+    </table>
+    <p class="prose" style="font-size:0.85rem;color:var(--ink-soft);margin-top:-16px"><b>Table 1 —</b> 8-class → 3-DoF lookup table (fixed constants; the robot's firmware ignores speed magnitude, so only the direction bits matter).</p>
+
+    <div class="side-fig">
+      <div class="side-fig-text">
+        <b>Fig. 2 — Hardware Platform.</b> Top board carries the Jetson Orin NX, camera, and
+        3-axis omni-wheel drive; the motor board's Cortex-M4 handles CAN-bus motor control, current
+        limiting, and sensor fusion independently of the inference pipeline.
+      </div>
+      <div class="side-fig-img">
+        <img src="v5/figures/figure2_v2_hardware_web.png" alt="Serbot II hardware block diagram — top board and motor board">
+      </div>
+    </div>
+
+    <div class="fig-grid">
+      <figure>
+        <img src="v5/figures/figure3_v2_data_collection_web.jpg" alt="Data collection pipeline diagram">
+        <figcaption><b>Fig. 3 — Data Collection.</b> 225 teleoperated episodes (16,599 frames) across
+          5 target directions, collected via joystick with cx-label mean 0.4954 — confirming no left/right
+          spatial bias in the raw dataset.</figcaption>
+      </figure>
+      <figure>
+        <img src="v5/figures/figure4_v2_stage_training_web.jpg" alt="Stage 1 / Stage 2 training pipeline diagram">
+        <figcaption><b>Fig. 4 — Two-Stage Training.</b> Stage 1 trains <code>image_proj</code> via
+          direction anchor-sentence matching (5-class), then freezes it. Stage 2 trains only the MLP
+          action head on top of the frozen representation — 1.128M parameters end to end.</figcaption>
+      </figure>
+    </div>
+
+    <div class="fig-grid" style="margin-top:36px">
+      <div>
+        <table class="rt">
+          <tr><th>Item</th><th>Value</th></tr>
+          <tr><td>Episodes</td><td>225 (track A 180 + track F 45)</td></tr>
+          <tr><td>Total frames</td><td>16,599</td></tr>
+          <tr><td>Train / val split</td><td>192 / 33 (seed 42, episode-level)</td></tr>
+          <tr><td>BBox annotation</td><td class="mono">bbox_dataset_v6_owl.json</td></tr>
+          <tr class="hl"><td>Deployed head</td><td class="mono">exp73_owl_stage1v3_v6_mlp.pt</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 2 —</b> Dataset composition.</p>
+      </div>
+      <div>
+        <table class="rt">
+          <tr><th>Class</th><th>Frames</th><th>Share</th></tr>
+          <tr><td>STOP</td><td class="mono">1,452</td><td class="mono">8.75%</td></tr>
+          <tr class="hl"><td>FORWARD</td><td class="mono">7,641</td><td class="mono">46.03%</td></tr>
+          <tr><td>LEFT</td><td class="mono">716</td><td class="mono">4.31%</td></tr>
+          <tr><td>RIGHT</td><td class="mono">858</td><td class="mono">5.17%</td></tr>
+          <tr><td>FWD+LEFT</td><td class="mono">2,532</td><td class="mono">15.25%</td></tr>
+          <tr><td>FWD+RIGHT</td><td class="mono">3,117</td><td class="mono">18.78%</td></tr>
+          <tr><td>ROT_L</td><td class="mono">136</td><td class="mono">0.82%</td></tr>
+          <tr><td>ROT_R</td><td class="mono">147</td><td class="mono">0.89%</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 3 —</b> Action class distribution. FORWARD dominance (46.03%) motivates the inverse-frequency class weighting used in Stage 2.</p>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<!-- ══ Quick Links ════════════════════════════════════════════════════════ -->
-<div class="content-section">
-  <div class="section-inner">
-    <h2 class="section-title">Key Documents</h2>
-    <p style="font-size:0.86rem;color:#64748b;text-align:center;margin:-10px 0 22px;line-height:1.7">
-      현재 기준 자료입니다. 시뮬레이터 시대 및 구 세대 자료는 아래
-      <a href="#archive">이전 자료 모음</a>에 정리해뒀습니다.
+<!-- ══ TRAINING ══ -->
+<section id="training">
+  <div class="wrap">
+    <div class="eyebrow">Training</div>
+    <h2 class="sec-title">Stage 1 generalizes cleanly; Stage 2 shows the expected imitation-learning gap</h2>
+    <p class="lede">
+      image_proj (Stage 1) trains to near-identical train/validation accuracy. The action head (Stage 2)
+      shows a much larger train–validation gap — a well-documented pattern in teleoperation-based imitation
+      learning, and one that episode-level closed-loop control is structurally able to correct for.
     </p>
-    <div class="link-cards">
 
-      <a href="v5/model_architecture_brief.html" class="link-card">
-        <span class="lc-tag" style="background:#f5f3ff;color:#6d28d9">Architecture</span>
-        <h3>모델 구조 &amp; 학습 방식</h3>
-        <p>파이프라인 · 260-dim 특징벡터 · 파라미터 실측(0.46B 연산 / 1.82B 로드) ·
-           학습 설정 · 서빙 제어 로직 · RoboVLMs와의 관계. 미팅 발표용.</p>
-        <span class="lc-arrow">Read →</span>
-      </a>
+    <table class="rt">
+      <tr><th>Direction</th><th>Frames</th><th>Anchor sentence (Stage 1 contrastive target)</th><th>Class weight</th></tr>
+      <tr><td>strong_left</td><td class="mono">3,611</td><td class="mono" style="font-size:0.8rem">"...strongly on the left side of the image"</td><td class="mono">0.91</td></tr>
+      <tr><td>weak_left</td><td class="mono">3,299</td><td class="mono" style="font-size:0.8rem">"...slightly on the left side of the image"</td><td class="mono">1.00</td></tr>
+      <tr><td>center</td><td class="mono">2,819</td><td class="mono" style="font-size:0.8rem">"...in the center of the image"</td><td class="mono">1.17</td></tr>
+      <tr><td>weak_right</td><td class="mono">3,268</td><td class="mono" style="font-size:0.8rem">"...slightly on the right side of the image"</td><td class="mono">1.01</td></tr>
+      <tr><td>strong_right</td><td class="mono">3,602</td><td class="mono" style="font-size:0.8rem">"...strongly on the right side of the image"</td><td class="mono">0.91</td></tr>
+    </table>
+    <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 6 —</b> The 5 direction anchor sentences ("The gray basket is &lt;degree&gt; on the &lt;side&gt; of the image") that Stage 1 contrastively matches each frame's vision feature against. Frame counts sum to exactly 16,599, matching Table 2.</p>
 
-      <a href="v5/owlv2_grounder_brief.html" class="link-card">
-        <span class="lc-tag" style="background:#fdf4ff;color:#a21caf">Grounder</span>
-        <h3>OWL-v2 그라운더 정리</h3>
-        <p>채택 이력(방향 추정 0%로 폐기 → 좌표 공급기로 재채택) · threshold/fp16/skip_n
-           계수별 반응 · 젯슨 gap 원인 배제 과정.</p>
-        <span class="lc-arrow">Read →</span>
-      </a>
-
-      <a href="v5/research_story.html#ch64" class="link-card">
-        <span class="lc-tag" style="background:#eff6ff;color:#1d4ed8">Latest</span>
-        <h3>CH64 exp73 대감사 (64-1 ~ 64-21)</h3>
-        <p>오프라인 감사에서 <strong>실기 89%</strong>까지. 100건 결과 · 요인 분해 ·
-           젯슨 gap 정량화 · 자체 철회 2건(64-11, 64-19) 기록 포함.</p>
-        <span class="lc-arrow">View →</span>
-      </a>
-
-      <a href="v5/research_story.html#ch68" class="link-card">
-        <span class="lc-tag" style="background:#f5f3ff;color:#6d28d9">Future</span>
-        <h3>CH68 언어 조건화 VLA 전환 계획</h3>
-        <p>"지시문에 따라 액션이 달라지는" VLA로 가는 단계 계획(L1~L4). <strong>과거 지시문 실험이
-           라벨 누출이었음을 재해석</strong>하고, 라벨 누출을 원천 차단하는 과제 설계와 검정 프로토콜을
-           착수 전에 고정.</p>
-        <span class="lc-arrow">View →</span>
-      </a>
-
-      <a href="v5/research_story.html#ch67" class="link-card">
-        <span class="lc-tag" style="background:#fdf4ff;color:#a21caf">Next</span>
-        <h3>CH67 차기 경량 구성 후보 검정</h3>
-        <p>Edge-grounding-VA → VLA 전환 시 무엇을 고를 것인가. 교수님 제안(OWL-v2+Florence-2)과
-           로드맵 3항목(양자화·연속헤드·언어축소)을 기존 실측과 대조. <strong>판정 기준을 미리 고정한
-           진행형 챕터.</strong></p>
-        <span class="lc-arrow">View →</span>
-      </a>
-
-      <a href="v5/research_story.html#ch66" class="link-card">
-        <span class="lc-tag" style="background:#fffbeb;color:#b45309">Latest</span>
-        <h3>CH66 좌우 비대칭의 원인 추적</h3>
-        <p>flip 대조로 4층위(데이터·그라운더·헤드·기구) 검정. <strong>부호</strong>로 용의자를 가려
-           헤드 고정 편향을 원인으로 특정하고 미러 증강으로 제거. 기구 편향은 미검증.</p>
-        <span class="lc-arrow">View →</span>
-      </a>
-
-      <a href="v5/research_story.html#ch65" class="link-card">
-        <span class="lc-tag" style="background:#f5f3ff;color:#7c3aed">Latest</span>
-        <h3>CH65 인지-정책 2축 분해</h3>
-        <p>검출 난이도 ≠ 주행 난이도. 충분조건은 성립하나 필요조건은 아님(강우 반례) ·
-           계측 인프라 · 검출기 Step 1~2 결과.</p>
-        <span class="lc-arrow">View →</span>
-      </a>
-
-      <a href="plans/plan_20260801_specialized_detector.md" class="link-card">
-        <span class="lc-tag" style="background:#f0fdf4;color:#15803d">Plan</span>
-        <h3>특화 소형 검출기 계획서</h3>
-        <p>OWL-v2 대체 계획. 오프라인 주석 파이프라인 증류 · 평가 프로토콜 사전 고정 ·
-           중단 기준. Step 0~2 완료, has_bbox negative 대기.</p>
-        <span class="lc-arrow">Read plan →</span>
-      </a>
-
-      <a href="v5/closed_loop_eval/index.html" class="link-card">
-        <span class="lc-tag" style="background:#f1f5f9;color:#334155">History</span>
-        <h3>Closed-Loop 평가 전체 이력</h3>
-        <p>Exp11(0%) → Exp14 → Exp54/66 → exp73 계열까지의 평가 기록.
-           <em>시뮬레이션 지표 위주.</em></p>
-        <span class="lc-arrow">View →</span>
-      </a>
-
+    <div class="fig-grid">
+      <figure>
+        <img src="v5/figures/stage1_v3_valacc_only.png" alt="image_proj Stage 1 training/validation accuracy curve">
+        <figcaption><b>Fig. 5 — image_proj Accuracy.</b> Train 96.10% / val 94.09% — a 2.01pp gap.</figcaption>
+      </figure>
+      <figure>
+        <img src="v5/figures/stage1_v3_loss_only.png" alt="image_proj Stage 1 training/validation loss curve">
+        <figcaption><b>Fig. 6 — image_proj Loss.</b> Train 0.107 / val 0.173, both converging smoothly.</figcaption>
+      </figure>
+      <figure>
+        <img src="v5/figures/action_head_acc_only.png" alt="Action head training/validation accuracy curve">
+        <figcaption><b>Fig. 7 — Action Head Accuracy.</b> Train 91.44% / val 74.04% at the deployed
+          checkpoint (epoch 225) — a 17.4pp gap, selected by validation accuracy, not loss.</figcaption>
+      </figure>
+      <figure>
+        <img src="v5/figures/action_head_loss_only.png" alt="Action head training/validation loss curve">
+        <figcaption><b>Fig. 9 — Action Head Loss.</b> Validation loss climbs from 0.926 to 1.953 after
+          epoch 20 even as validation accuracy keeps improving — a known pattern when a model grows
+          more confident without its top-1 prediction changing.</figcaption>
+      </figure>
     </div>
-</div>
 
-<!-- ══ Footer ═════════════════════════════════════════════════════════════ -->
-<!-- ══ Archive ═══════════════════════════════════════════════════════════ -->
-<div class="content-section alt" id="archive">
-  <div class="section-inner">
-    <h2 class="section-title">이전 자료 모음</h2>
-    <p style="font-size:0.88rem;color:#64748b;text-align:center;margin:-10px 0 24px;line-height:1.75">
-      아래는 <strong>시뮬레이터 시대(V5 offline) 및 구 세대 자료</strong>입니다.
-      당시 결론과 수치(96.6% CL 등)는 <strong style="color:#b45309">현재 판정 기준인 100건 실기와
-      다른 척도</strong>이므로 그대로 인용하지 마세요. 진행 경위 추적용으로 남겨둡니다.
+    <div class="pullquote">
+      <p>Validation accuracy is a lower bound on real-world competence, not a ceiling on it.</p>
+      <cite>Frame-level scoring can't credit re-decision; closed-loop control can.</cite>
+    </div>
+
+    <p class="prose">
+      Why does a 17.4-point gap not translate into a 17.4-point drop in real-world success? Two reasons.
+      First, <b>frame-level validation accuracy asks whether the model matches the single action the human
+      happened to choose</b>; at any given moment, several actions can be equally valid (e.g. FORWARD and
+      FWD+LEFT both make progress when the target is slightly left). Second, the robot re-observes and
+      re-decides at every timestep — an average of <b>11.64 decisions per successful episode</b> — so a
+      substitutable frame-level "error" gets corrected on the very next frame. Breaking down the 629 validation
+      errors by severity confirms this directly:
     </p>
-    <div class="link-cards">
-      <a href="v5/research_story.html#vis" class="link-card">
-        <span class="lc-tag" style="background:#eef2ff;color:#4338ca">Figures</span>
-        <h3>Results &amp; Evidence (VIS)</h3>
-        <p>논문 부록 시각 자료 — 아키텍처 다이어그램, Zero-shot Probe, Masking flip, 5-Track 검증.
-           <em>시뮬레이션 기준 수치 포함.</em></p>
-        <span class="lc-arrow">View figures →</span>
+
+    <div class="fig-grid">
+      <figure>
+        <img src="v5/figures/confusion_matrix_stage1v3_correct.png" alt="Deployed action head validation confusion matrix, stride=1 scoring">
+        <figcaption><b>Fig. 7 — Validation Confusion Matrix.</b> Deployed head
+          (<code>exp73_owl_stage1v3_v6_mlp.pt</code>) scored with the same stride=1 protocol used in
+          training — 74.1% overall (n=2,431). The 6 well-sampled classes score 66.7–84.5% fairly evenly;
+          only ROT_L/ROT_R look low, and they are 1.15% of validation (28/2,431), so one or two
+          misclassifications swing their per-class number sharply.</figcaption>
+      </figure>
+      <figure>
+        <img src="v5/figures/action_head_error_severity_8x8.png" alt="Validation confusion matrix colored by error severity">
+        <figcaption><b>Fig. 8 — Same Confusion Matrix, by Error Severity.</b> 81.4% of errors are
+          confusions between actions with the <em>same</em> directional tendency (substitutable) — only
+          1.97% of all predictions are a critical left/right flip that a closed loop cannot self-correct.</figcaption>
+      </figure>
+    </div>
+
+    <div class="fig-grid" style="margin-top:36px">
+      <div>
+        <table class="rt">
+          <tr><th>Module</th><th>Status</th></tr>
+          <tr><td>OWLv2</td><td>frozen (zero-shot)</td></tr>
+          <tr><td>Kosmos-2 <code>vision_model</code></td><td>frozen</td></tr>
+          <tr><td><code>image_proj</code></td><td>Stage 1 trained → frozen for deploy</td></tr>
+          <tr><td><code>text_proj</code></td><td>Stage 1 trained, deploy-unused</td></tr>
+          <tr class="hl"><td>MLP action head</td><td>Stage 2 trained (0.866M)</td></tr>
+          <tr><td>Language decoder</td><td>never called at deploy time</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 4 —</b> Training status of every pipeline component.</p>
+      </div>
+      <div>
+        <table class="rt">
+          <tr><th>Param</th><th>Value</th></tr>
+          <tr><td class="mono">threshold</td><td>0.25 default / 0.20 deployed</td></tr>
+          <tr><td class="mono">window</td><td>6 frames</td></tr>
+          <tr><td class="mono">bbox_scale</td><td>3.0</td></tr>
+          <tr><td class="mono">optimizer</td><td>AdamW, lr=5e-4</td></tr>
+          <tr><td class="mono">epochs</td><td>300, CosineAnnealingLR</td></tr>
+          <tr><td class="mono">class weight</td><td>inverse-frequency, normalized</td></tr>
+        </table>
+        <p class="prose" style="font-size:0.85rem;color:var(--ink-soft)"><b>Table 5 —</b> Stage 2 action-head hyperparameters.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ RESULTS ══ -->
+<section class="alt" id="results">
+  <div class="wrap">
+    <div class="eyebrow">Real-World Results</div>
+    <h2 class="sec-title">95/100 goal-reaching trials, evenly spread across 5 target directions</h2>
+    <p class="lede">
+      100 real-robot episodes — 20 per target position — run entirely on-device on the Jetson Orin NX,
+      with no cloud connectivity and no pre-built map.
+    </p>
+
+    <div class="position-grid">
+      <div class="poscard"><div class="pn">CENTER</div><div class="pv">100%</div><div class="pc">20/20 · 10.00 steps</div></div>
+      <div class="poscard"><div class="pn">STRONG LEFT</div><div class="pv">95%</div><div class="pc">19/20 · 13.35 steps</div></div>
+      <div class="poscard"><div class="pn">WEAK LEFT</div><div class="pv">95%</div><div class="pc">19/20 · 11.55 steps</div></div>
+      <div class="poscard"><div class="pn">STRONG RIGHT</div><div class="pv">95%</div><div class="pc">19/20 · 12.75 steps</div></div>
+      <div class="poscard"><div class="pn">WEAK RIGHT</div><div class="pv">90%</div><div class="pc">18/20 · 10.55 steps</div></div>
+    </div>
+    <div class="position-grid" style="grid-template-columns:1fr">
+      <div class="poscard overall"><div class="pn">OVERALL</div><div class="pv">95.0%</div><div class="pc">95/100 · avg. 11.64 steps</div></div>
+    </div>
+
+    <figure>
+      <img src="v5/figures/test_track_photo_3panel.png" alt="Real-world test track — overview, target approach, and target capture">
+      <figcaption><b>Fig. 12–13 — Practical Test.</b> (a) full track overview, (b) target approach,
+        (c) target capture, run on the indoor test course used for all 100 trials.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══ DEPLOYMENT / LATENCY ══ -->
+<section id="deploy">
+  <div class="wrap">
+    <div class="eyebrow">Deployment</div>
+    <h2 class="sec-title">The bottleneck is grounding — not the model doing the reasoning</h2>
+    <p class="lede">
+      Decomposing end-to-end latency by pipeline stage reveals a counter-intuitive result: the
+      <b>smaller</b> model is the <b>slower</b> one.
+    </p>
+
+    <div class="latbar-row">
+      <div class="latbar-label">OWLv2 grounding (fp32)</div>
+      <div class="latbar-track"><div class="latbar-fill" style="width:100%"></div></div>
+      <div class="latbar-val">1901.7 ms · ~97%</div>
+    </div>
+    <div class="latbar-row">
+      <div class="latbar-label">OWLv2 grounding (fp16)</div>
+      <div class="latbar-track"><div class="latbar-fill light" style="width:51%"></div></div>
+      <div class="latbar-val">962.1 ms</div>
+    </div>
+    <div class="latbar-row">
+      <div class="latbar-label">Kosmos-2 vision encoding</div>
+      <div class="latbar-track"><div class="latbar-fill tiny" style="width:3%"></div></div>
+      <div class="latbar-val">53.7 ms · ~3%</div>
+    </div>
+    <div class="latbar-row">
+      <div class="latbar-label">MLP action head</div>
+      <div class="latbar-track"><div class="latbar-fill tiny" style="width:1%"></div></div>
+      <div class="latbar-val">&lt;1 ms · ~0%</div>
+    </div>
+
+    <p class="prose" style="margin-top:28px">
+      OWLv2 (0.155B params) is responsible for ~97% of end-to-end latency, while Kosmos-2's vision encoder —
+      nearly <b>twice as many parameters</b> (0.303B) — accounts for only ~3%. Parameter count alone does not
+      predict inference latency; OWLv2's cost comes from cross-attention text-query matching and multi-scale
+      anchor processing, not raw FLOPs. Switching OWLv2 to fp16 cuts its latency by ~49% (1901.7ms → 962.1ms),
+      confirming that <b>compressing the grounding stage — not the policy — is where future work should focus</b>
+      when porting to platforms as constrained as a Raspberry Pi.
+    </p>
+    <p class="prose">
+      End-to-end pipeline latency is ~1.96s (fp32) or ~1.02s (fp16) — far from the tens-of-milliseconds a
+      continuous controller would need. But EdgeGround-VLA doesn't need continuous control: it updates a
+      discrete action periodically, re-issuing the last decided command at 10Hz between grounding updates
+      so the robot never actually stops waiting. The 95% real-world success rate is the direct evidence that
+      this control scheme is practical for goal-reaching.
+    </p>
+
+    <div class="fig-grid">
+      <figure>
+        <img src="v5/figures/figure5_v2_deploy_web.jpg" alt="Deployment and runtime process diagram">
+        <figcaption><b>Fig. 10 — Deploy &amp; Runtime.</b> The trained checkpoints ship to the Jetson
+          Orin NX; a FastAPI dashboard exposes robot control, status, and camera stream over Tailscale VPN.</figcaption>
+      </figure>
+      <figure>
+        <img src="v5/figures/figure6_v2_inference_pipeline_web.jpg" alt="Runtime inference control logic diagram">
+        <figcaption><b>Fig. 11 — Runtime Control Logic.</b> A sliding 6-frame window feeds the action
+          head; the resulting 3-DoF command is sent over CAN → MCU → wheels.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CITATION ══ -->
+<section class="alt">
+  <div class="wrap-narrow">
+    <div class="eyebrow">Citation</div>
+    <h2 class="sec-title">BibTeX</h2>
+    <div class="cite-box">@article{lee2026edgeground,
+  title   = {EdgeGround-VLA: A Lightweight Model Fusing Heterogeneous
+             Grounding Encoders for Goal-Directed Navigation in
+             Wheeled Robots},
+  author  = {Lee, Min-Woo and Choi, In-Yeop},
+  journal = {Journal of The Korea Society of Computer and Information (JKSCI)},
+  volume  = {29},
+  number  = {11},
+  year    = {2026},
+  publisher = {Korea Society of Computer and Information}
+}</div>
+    <p class="copy-hint">Kangnam University, Dept. of Artificial Intelligence / Dept. of Computer Science.</p>
+  </div>
+</section>
+
+<!-- ══ DOCS ══ -->
+<section id="docs">
+  <div class="wrap">
+    <div class="eyebrow">More</div>
+    <h2 class="sec-title">Project documentation</h2>
+    <div class="doc-grid">
+      <a href="v5/model_architecture_brief.html" class="doc-card">
+        <span class="dc-tag">Architecture</span>
+        <h4>Model Structure &amp; Training Notes</h4>
+        <p>Full parameter breakdown, hyperparameters, and inference control logic, kept in sync with the deployed checkpoint.</p>
       </a>
-      <a href="v5/grounding_hub.html" class="link-card">
-        <span class="lc-tag" style="background:#f0fdf4;color:#15803d">Grounding</span>
-        <h3>Grounding Hub (7 모델 비교)</h3>
-        <p>Kosmos-2 · PaliGemma2 · LoRA 계열 그라운딩 비교. <em>현재 배포 그라운더는 OWL-v2이며
-           최신 정리는 상단 "OWL-v2 그라운더 정리"입니다.</em></p>
-        <span class="lc-arrow">Explore →</span>
+      <a href="v5/owlv2_grounder_brief.html" class="doc-card">
+        <span class="dc-tag">Grounder</span>
+        <h4>OWLv2 Grounder Notes</h4>
+        <p>Why OWLv2 was adopted, threshold/fp16/skip_n behavior, and the real-world grounding-availability data behind it.</p>
       </a>
-      <a href="v5/closed_loop_eval/CH61_OWL_LIVE_FAILURE_AND_FIX.md" class="link-card">
-        <span class="lc-tag" style="background:#fef2f2;color:#b91c1c">Debug</span>
-        <h3>CH61 실로봇 OWL-v2 실패원인 규명</h3>
-        <p>OWL-v2 첫 실기 배포 실패 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증.
-           OWL 채택 경위의 배경 문서.</p>
-        <span class="lc-arrow">Read →</span>
+      <a href="01.paper/revision_briefing.html" class="doc-card">
+        <span class="dc-tag">Paper</span>
+        <h4>Revision Briefing</h4>
+        <p>Line-by-line advisor Q&amp;A, reference audit, and before/after diffs tracked through the KCI submission process.</p>
       </a>
-      <a href="v5/robot_tests.html" class="link-card">
-        <span class="lc-tag" style="background:#fffbeb;color:#b45309">Robot</span>
-        <h3>Robot Tests (구 세션)</h3>
-        <p>초기 실로봇 세션 기록. <em>현재 기준 실기 결과는 CH64 64-18(100건)을 보세요.</em></p>
-        <span class="lc-arrow">View →</span>
+      <a href="research_dashboard.html" class="doc-card">
+        <span class="dc-tag">Research Log</span>
+        <h4>Research Dashboard &amp; Status Log</h4>
+        <p>The full experiment history — offline ablations, chapter-by-chapter findings, and archived legacy results.</p>
       </a>
-      <a href="v5/masking_ablation_proof.html" class="link-card">
-        <span class="lc-tag" style="background:#f5f3ff;color:#6d28d9">Ablation</span>
-        <h3>Masking Ablation</h3>
-        <p>바구니 마스킹 시 액션 flip — frozen 인코더가 바구니를 독립적으로 포착한다는 인과 증거.</p>
-        <span class="lc-arrow">View →</span>
+      <a href="wiki/index.html" class="doc-card">
+        <span class="dc-tag">Wiki</span>
+        <h4>Research Wiki (Topic Index)</h4>
+        <p>The 70+ research-log chapters reorganized by topic (grounding, action heads, backbone, real-robot testing, ...) instead of chronologically.</p>
       </a>
-      <a href="v5/hidden_state_hub.html" class="link-card">
-        <span class="lc-tag" style="background:#f1f5f9;color:#334155">Analysis</span>
-        <h3>Hidden State Hub</h3>
-        <p>CH40 계열 hidden state 액션 헤드 분석. <em>PM은 올랐으나 closed-loop 미개선으로 종결.</em></p>
-        <span class="lc-arrow">View →</span>
+      <a href="https://github.com/minuum/EdgeGroundVLA" class="doc-card">
+        <span class="dc-tag">Code</span>
+        <h4>GitHub Repository</h4>
+        <p>Training scripts, inference server, and figure-generation code referenced throughout this page.</p>
       </a>
-      <a href="v5/today_visual_summary.html" class="link-card">
-        <span class="lc-tag" style="background:#f1f5f9;color:#334155">Snapshot</span>
-        <h3>06-21 한눈에 보기</h3>
-        <p>2026-06-21 시점 스냅샷. 진행 경위 참고용.</p>
-        <span class="lc-arrow">View →</span>
-      </a>
-      <a href="legacy.html" class="link-card">
-        <span class="lc-tag" style="background:#f1f5f9;color:#334155">Archive</span>
-        <h3>Legacy Archive (전체)</h3>
-        <p>V4 이전 실험 및 초기 포트폴리오 페이지 모음.</p>
-        <span class="lc-arrow">Open →</span>
-      </a>
-      <a href="https://minuum.github.io/MoNa-pi/" class="link-card">
-        <span class="lc-tag" style="background:#ecfeff;color:#0e7490">Related</span>
-        <h3>MoNa-pi (자매 프로젝트)</h3>
-        <p>π0 계열 Flow Matching VLA. closed-loop 45.8%로 "헤드 구조보다 데이터"라는 결론을
-           독립 재현(CH63 63-6).</p>
-        <span class="lc-arrow">Open →</span>
+      <a href="https://minuum.github.io/MoNa-pi/" class="doc-card">
+        <span class="dc-tag">Related</span>
+        <h4>MoNa-pi (Sister Project)</h4>
+        <p>A π0-style flow-matching VLA baseline explored on the same platform, for comparison.</p>
       </a>
     </div>
   </div>
-</div>
+</section>
 
-<div class="site-footer">
-  <p>
-    MoNaVLA · Mobile Navigation Vision-Language-Action ·
-    <a href="https://github.com/minuum/MoNaVLA">GitHub</a> ·
-    <a href="legacy.html">Archive</a>
-  </p>
-  <p style="margin-top:6px;color:#475569">
-    Project page inspired by <a href="https://openvla.github.io/">OpenVLA</a> and <a href="https://dusty-nv.github.io/NanoLLM/">NanoLLM</a>. &copy; 2026 Advanced Agentic Robotics.
-  </p>
-</div>
+<footer>
+  <div class="wrap">
+    <div>EdgeGround-VLA — Heterogeneous Grounding for On-Device Goal-Directed Navigation</div>
+    <div><a href="https://github.com/minuum/EdgeGroundVLA">GitHub</a> · <a href="research_dashboard.html">Research Log</a> · <a href="01.paper/revision_briefing.html">Paper Docs</a></div>
+    <div class="fmeta">Kangnam University · Dept. of Artificial Intelligence / Dept. of Computer Science · © 2026</div>
+  </div>
+</footer>
 
 </body>
 </html>
