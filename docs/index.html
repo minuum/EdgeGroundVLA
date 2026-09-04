@@ -151,14 +151,25 @@
   .copy-hint{font-size:0.8rem; color:var(--ink-soft); margin-top:10px}
 
   /* ── links grid ── */
-  .doc-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px}
-  @media(max-width:760px){.doc-grid{grid-template-columns:1fr}}
-  .doc-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; text-decoration:none;
-            display:block; transition:transform .15s, box-shadow .15s}
-  .doc-card:hover{transform:translateY(-3px); box-shadow:0 14px 30px -18px rgba(15,28,46,0.22)}
+  .doc-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-top:28px}
+  @media(max-width:900px){.doc-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.doc-grid{grid-template-columns:1fr}}
+  .doc-card{--dc-hue:var(--accent); background:var(--card); border:1px solid var(--line); border-top:3px solid var(--dc-hue);
+            border-radius:10px; padding:22px 20px 20px; text-decoration:none; position:relative;
+            display:block; transition:transform .15s, box-shadow .15s, border-color .15s}
+  .doc-card:hover{transform:translateY(-4px); box-shadow:0 16px 32px -16px rgba(15,28,46,0.25)}
   .doc-card:active{transform:translateY(-1px)}
-  .doc-card .dc-tag{font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--accent)}
-  .doc-card h4{font-size:0.98rem; font-weight:700; margin:8px 0 6px}
+  .doc-card:nth-child(1){grid-column:span 2}
+  .doc-card:nth-child(2){grid-column:span 2; --dc-hue:var(--accent2)}
+  .doc-card:nth-child(3){grid-column:span 2; --dc-hue:#d97706}
+  .doc-card:nth-child(4){grid-column:span 3; --dc-hue:#64748b}
+  .doc-card:nth-child(5){grid-column:span 3; --dc-hue:#7c3aed}
+  .doc-card:nth-child(6){grid-column:span 3; --dc-hue:#0f1c2e}
+  .doc-card:nth-child(7){grid-column:span 3; --dc-hue:#db2777}
+  @media(max-width:900px){.doc-card:nth-child(n){grid-column:span 1}}
+  .doc-card .dc-idx{position:absolute; top:16px; right:18px; font-family:var(--mono); font-size:0.72rem; color:var(--line); font-weight:600}
+  .doc-card .dc-tag{font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--dc-hue)}
+  .doc-card h4{font-size:0.98rem; font-weight:700; margin:8px 0 6px; font-family:'Outfit',sans-serif}
   .doc-card p{font-size:0.82rem; color:var(--ink-soft); line-height:1.55; margin:0}
 
   footer{background:var(--ink); color:#93a3ba; padding:44px 0; text-align:center; font-size:0.85rem}
@@ -583,36 +594,43 @@
     <h2 class="sec-title">Project documentation</h2>
     <div class="doc-grid">
       <a href="v5/model_architecture_brief.html" class="doc-card">
+        <span class="dc-idx">01</span>
         <span class="dc-tag">Architecture</span>
         <h4>Model Structure &amp; Training Notes</h4>
         <p>Full parameter breakdown, hyperparameters, and inference control logic, kept in sync with the deployed checkpoint.</p>
       </a>
       <a href="v5/owlv2_grounder_brief.html" class="doc-card">
+        <span class="dc-idx">02</span>
         <span class="dc-tag">Grounder</span>
         <h4>OWLv2 Grounder Notes</h4>
         <p>Why OWLv2 was adopted, threshold/fp16/skip_n behavior, and the real-world grounding-availability data behind it.</p>
       </a>
       <a href="01.paper/revision_briefing.html" class="doc-card">
+        <span class="dc-idx">03</span>
         <span class="dc-tag">Paper</span>
         <h4>Revision Briefing</h4>
         <p>Line-by-line advisor Q&amp;A, reference audit, and before/after diffs tracked through the KCI submission process.</p>
       </a>
       <a href="research_dashboard.html" class="doc-card">
+        <span class="dc-idx">04</span>
         <span class="dc-tag">Research Log</span>
         <h4>Research Dashboard &amp; Status Log</h4>
         <p>The full experiment history — offline ablations, chapter-by-chapter findings, and archived legacy results.</p>
       </a>
       <a href="wiki/index.html" class="doc-card">
+        <span class="dc-idx">05</span>
         <span class="dc-tag">Wiki</span>
         <h4>Research Wiki (Topic Index)</h4>
         <p>The 70+ research-log chapters reorganized by topic (grounding, action heads, backbone, real-robot testing, ...) instead of chronologically.</p>
       </a>
       <a href="https://github.com/minuum/EdgeGroundVLA" class="doc-card">
+        <span class="dc-idx">06</span>
         <span class="dc-tag">Code</span>
         <h4>GitHub Repository</h4>
         <p>Training scripts, inference server, and figure-generation code referenced throughout this page.</p>
       </a>
       <a href="https://minuum.github.io/MoNa-pi/" class="doc-card">
+        <span class="dc-idx">07</span>
         <span class="dc-tag">Related</span>
         <h4>MoNa-pi (Sister Project)</h4>
         <p>A π0-style flow-matching VLA baseline explored on the same platform, for comparison.</p>
