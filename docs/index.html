@@ -38,12 +38,16 @@
   .nav-links a:hover{color:var(--accent)}
   .nav-cta{display:flex; gap:10px; align-items:center}
   .btn{display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:100px;
-       font-size:0.85rem; font-weight:600; text-decoration:none; border:1px solid transparent; transition:all .15s}
+       font-size:0.85rem; font-weight:600; text-decoration:none; border:1px solid transparent; transition:transform .15s, background-color .15s, color .15s, box-shadow .15s}
   .btn-dark{background:var(--ink); color:var(--bg)}
   .btn-dark:hover{background:#000}
+  .btn-dark:active{transform:scale(0.97)}
   .btn-outline{border-color:var(--ink); color:var(--ink)}
   .btn-outline:hover{background:var(--ink); color:var(--bg)}
+  .btn-outline:active{transform:scale(0.97)}
+  .btn:focus-visible, .nav-links a:focus-visible, .doc-card:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
   @media(max-width:760px){.nav-links{display:none}}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms !important; transition-duration:0.01ms !important}}
 
   /* ── hero ── */
   .hero{padding:76px 0 0}
@@ -63,7 +67,7 @@
   .statband{background:var(--ink); color:var(--bg); padding:44px 0}
   .statband .wrap{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
   .stat{text-align:center; padding:0 10px}
-  .stat .num{font-family:'Inter',sans-serif; font-size:clamp(1.8rem,3.4vw,2.6rem); font-weight:800; letter-spacing:-0.02em; color:#fff}
+  .stat .num{font-family:'Inter',sans-serif; font-size:clamp(1.8rem,3.4vw,2.6rem); font-weight:800; letter-spacing:-0.02em; color:#fff; font-variant-numeric:tabular-nums}
   .stat .lbl{font-size:0.76rem; color:#9fb0c7; margin-top:6px; letter-spacing:0.02em; line-height:1.5}
   @media(max-width:760px){.statband .wrap{grid-template-columns:1fr 1fr; row-gap:28px}}
 
@@ -121,7 +125,7 @@
   .position-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:28px 0}
   .poscard{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 10px; text-align:center}
   .poscard .pn{font-size:0.72rem; color:var(--ink-soft); font-weight:600}
-  .poscard .pv{font-family:'Inter',sans-serif; font-size:1.7rem; font-weight:800; letter-spacing:-0.02em; margin:6px 0 2px}
+  .poscard .pv{font-family:'Inter',sans-serif; font-size:1.7rem; font-weight:800; letter-spacing:-0.02em; margin:6px 0 2px; font-variant-numeric:tabular-nums}
   .poscard .pc{font-size:0.72rem; color:var(--ink-soft); font-family:var(--mono)}
   .poscard.overall{background:var(--ink); border-color:var(--ink)}
   .poscard.overall .pn,.poscard.overall .pv,.poscard.overall .pc{color:#fff}
@@ -146,6 +150,7 @@
   .doc-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; text-decoration:none;
             display:block; transition:transform .15s, box-shadow .15s}
   .doc-card:hover{transform:translateY(-3px); box-shadow:0 14px 30px -18px rgba(15,28,46,0.22)}
+  .doc-card:active{transform:translateY(-1px)}
   .doc-card .dc-tag{font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--accent)}
   .doc-card h4{font-size:0.98rem; font-weight:700; margin:8px 0 6px}
   .doc-card p{font-size:0.82rem; color:var(--ink-soft); line-height:1.55; margin:0}

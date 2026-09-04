@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MoNaVLA 모델 구조 & 학습 방식 정리 — 미팅 발표자료</title>
+<title>EdgeGround-VLA 모델 구조 & 학습 방식 정리 — 미팅 발표자료</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
 :root{--bg:#0a0f1a;--card:#101827;--line:#1e2a3a;--tx:#cbd5e1;--dim:#94a3b8;
       --hi:#e2e8f0;--gr:#4ade80;--or:#fbbf24;--rd:#f87171;--bl:#38bdf8}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);
-     font-family:"Noto Sans KR","Malgun Gothic",-apple-system,sans-serif;
+     font-family:"Noto Sans KR","NanumGothic","Noto Sans CJK KR","Malgun Gothic",-apple-system,sans-serif;
      line-height:1.85;font-size:15px}
 .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
 h1{font-size:1.75rem;color:var(--hi);margin:0 0 6px;line-height:1.35}
@@ -42,7 +42,12 @@ pre{background:#0b1220;border:1px solid var(--line);border-radius:8px;
 ul,ol{margin:8px 0 8px 20px;padding:0}li{margin:3px 0}
 .tag{display:inline-block;background:#0b1220;border:1px solid var(--line);
      border-radius:20px;padding:2px 10px;font-size:0.78rem;color:var(--dim);margin-right:5px}
-a{color:var(--bl)}
+a{color:var(--bl); transition:color .15s}
+a:hover{color:#7dd3fc}
+a:focus-visible{outline:2px solid var(--bl); outline-offset:2px}
+html{scroll-behavior:smooth}
+td.c,th.c{font-variant-numeric:tabular-nums}
+@media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms !important; transition-duration:0.01ms !important}}
 @media(max-width:700px){.pipe{flex-direction:column}.arw{transform:rotate(90deg);justify-content:center}}
 .mmwrap{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:18px 14px;margin:14px 0;overflow-x:auto}
 .mermaid{display:flex;justify-content:center}
@@ -70,15 +75,15 @@ a{color:var(--bl)}
 <body>
 <div class="wrap">
 
-<h1>MoNaVLA 모델 구조 &amp; 학습 방식 정리</h1>
-<div class="sub">미팅 발표용 · 2026-08-01 기준 · 모든 수치는 코드/체크포인트에서 직접 측정한 실측값
+<h1>EdgeGround-VLA 모델 구조 &amp; 학습 방식 정리</h1>
+<div class="sub">미팅 발표용 · <strong style="color:#4ade80">최종 수정 2026-08-27</strong> (전면 리빌드 — 레거시 서술 정리, 직전 2026-08-19) · 모든 수치는 코드/체크포인트에서 직접 측정한 실측값
 &nbsp;|&nbsp; <a href="research_story.html#ch64">근거 상세 → CH64</a>&nbsp;|&nbsp; <a href="owlv2_grounder_brief.html" style="color:#f0abfc">OWL-v2 그라운더 정리 →</a></div>
 
 <div class="key">
 <strong class="h">한 줄 요약</strong> — 이 시스템은 <strong class="h">VLA가 아니라
 "오픈 보캐블러리 객체 검출 + 액션 헤드"</strong>입니다. 언어 디코더는 로드만 되고 한 번도
 호출되지 않으며(실측), 실기 성패는 액션 헤드가 아니라 <strong class="h">객체 검출 성공률이
-결정</strong>합니다(gnd%≥80 → 98.8% 성공).
+결정</strong>합니다(검출률이 높은 세션일수록 성공률이 뚜렷하게 갈림 — 배치별 수치는 5절).
 </div>
 
 <h2>1. 추론 파이프라인</h2>
@@ -93,11 +98,11 @@ a{color:var(--bl)}
   <div class="blk"><div class="t">Kosmos-2 비전</div><div class="p">0.303B · 54ms</div>
     <div class="d">vision_model만 사용(frozen)<br>1024차원 → mean pool</div></div>
   <div class="arw">→</div>
-  <div class="blk"><div class="t">image_proj</div><div class="p">0.262M</div>
-    <div class="d">Linear 1024→256<br>+ L2 정규화</div></div>
+  <div class="blk" style="border-color:var(--gr)"><div class="t g">image_proj</div><div class="p">0.262M · Stage 1 학습</div>
+    <div class="d">Linear 1024→256<br>+ L2 정규화 (Stage 2·배포 시엔 동결)</div></div>
   <div class="arw">→</div>
   <div class="blk" style="border-color:var(--gr)"><div class="t g">MLP 액션 헤드</div>
-    <div class="p">0.866M · 학습대상</div>
+    <div class="p">0.866M · Stage 2 학습</div>
     <div class="d">260×6 → 512 → 128 → 8</div></div>
 </div>
 
@@ -107,7 +112,7 @@ a{color:var(--bl)}
   위 블록도가 담지 못한 세 가지를 함께 표시합니다 —
   <strong class="h">텍스트가 들어가는 위치</strong>,
   <strong class="h">호출되지 않는 언어 디코더</strong>,
-  <strong class="h">제어 계층의 되먹임(재그라운딩)</strong>.
+  <strong class="h">제어 계층의 되먹임(재검출)</strong>.
 </p>
 <div class="mmwrap">
 <pre class="mermaid">
@@ -119,7 +124,7 @@ flowchart TB
     TXT["텍스트 프롬프트<br/>'gray basket'<br/>런타임 불변 · 고정 상수"]
     OWL["OWL-v2 검출기<br/>0.155B · 1902ms · zero-shot<br/>학습 안 함"]
     KV["Kosmos-2 vision_model<br/>0.303B · 54ms · frozen"]
-    PRJ["image_proj<br/>Linear 1024→256 + L2norm<br/>0.262M · frozen"]
+    PRJ["image_proj<br/>Linear 1024→256 + L2norm<br/>0.262M · Stage 1 학습 후 동결"]
   end
 
   BB["bbox 4채널<br/>cx, cy, area, has_bbox"]
@@ -127,14 +132,14 @@ flowchart TB
   CAT["프레임 특징 260-dim<br/>window 6 → 1560-dim"]
 
   subgraph POL["정책 — Policy"]
-    MLP["MLP 액션 헤드<br/>1560→512→128→8<br/>0.866M · 유일한 학습 대상"]
+    MLP["MLP 액션 헤드<br/>1560→512→128→8<br/>0.866M · Stage 2 학습 대상"]
   end
 
-  ACT["8클래스 액션<br/>STOP · FWD · L · R<br/>FWD+L · FWD+R · ROT_L · ROT_R"]
+  ACT["8클래스 로짓<br/>STOP · FWD · L · R<br/>FWD+L · FWD+R · ROT_L · ROT_R"]
 
-  subgraph CTL["제어 — Serving Control"]
-    CTRL["threshold 0.20 · skip_n=3 → 판단 ~1.3Hz<br/>force_reground_on_miss<br/>회전 후 강제 재그라운딩 · 0.4s 제한<br/>stop_mode=learned + 콜드스타트 가드 3"]
-  end
+  XYZ["x, y, z (3-DoF)<br/>ACTION_3D 룩업(LUT) — 클래스별 (lx, ly, az)"]
+
+  RT["→ 런타임 파이프라인(⑦ Runtime)에서 계속<br/>추론 제어(threshold·skip_n·회전규칙)·CAN·바퀴 전달은 별도 도표"]
 
   LM["Kosmos-2 언어 디코더 1.361B<br/>호출 0회 · 로드도 제거함"]
 
@@ -146,10 +151,10 @@ flowchart TB
   PRJ --> VIS
   BB --> CAT
   VIS --> CAT
-  CAT --> MLP
-  MLP --> ACT
-  ACT --> CTL
-  CTRL -. "미검출 시 강제 재그라운딩" .-> OWL
+  CAT -.-> MLP
+  MLP -.-> ACT
+  ACT -.-> XYZ
+  XYZ -.-> RT
   KV -. "미사용" .-> LM
 
   classDef used fill:#0f2a1f,stroke:#2f7d5d,color:#dcfce7
@@ -158,18 +163,26 @@ flowchart TB
   classDef unused fill:#1a1a1a,stroke:#4b5563,color:#9ca3af,stroke-dasharray:4 3
   classDef text fill:#2a1030,stroke:#a78bfa,color:#ede9fe
   classDef data fill:#111c2e,stroke:#334155,color:#cbd5e1
+  classDef out fill:#123524,stroke:#4ade80,color:#dcfce7,stroke-width:2px
+  classDef note fill:#0d1117,stroke:#334155,color:#94a3b8,stroke-dasharray:4 3
+  classDef pretrained fill:#0f2a1f,stroke:#4ade80,color:#dcfce7,stroke-dasharray:2 2
   class OWL slow
-  class KV,PRJ used
+  class KV used
+  class PRJ pretrained
   class MLP train
   class LM unused
   class TXT text
-  class CAM,BB,VIS,CAT,ACT,CTRL data
+  class CAM,BB,VIS,CAT,ACT data
+  class XYZ out
+  class RT note
 </pre>
 </div>
 <p style="font-size:0.82rem;color:var(--dim);margin-top:-4px">
   <span class="p">보라</span> = 텍스트 입력(고정 상수) ·
   <span class="r">빨강</span> = 지연 병목(전체의 97%) ·
-  <span class="g">초록 굵은선</span> = 유일한 학습 대상 ·
+  <span class="g">초록 굵은선</span> = Stage 2 학습 대상(행동 헤드) ·
+  <span class="g" style="border-bottom:2px dashed #4ade80">초록 점선 테두리</span> =
+  Stage 1에서 학습 후 동결(image_proj) ·
   <span style="color:#9ca3af">회색 점선</span> = 호출되지 않는 경로.
   텍스트 관련 상세는 <a href="#text-input">1-2절</a>.
 </p>
@@ -184,9 +197,8 @@ flowchart TB
   <br><strong class="o">위 모델 파이프라인 도표에 있던 "제어 · SERVING CONTROL" 블록은
   이 도표로 옮겼습니다</strong> — 모델 구조와 런타임 동작은 별개 관심사이므로, 위 도표는
   8클래스 로짓 출력에서 끝나고 threshold·skip_n·회전 규칙은 아래 도표 상단의
-  "서빙 제어 파라미터 요약" 패널에 있습니다.
+  "추론 제어 파라미터 요약" 패널에 있습니다.
 </p>
-<p><img src="figures/runtime_pipeline.png" alt="런타임 파이프라인" style="max-width:100%;background:#fff;border-radius:6px"></p>
 
 <h3>하드웨어 연결 구조 — Jetson ↔ CAN ↔ MCU</h3>
 <p style="font-size:0.85rem;color:var(--dim);margin:0 0 8px">
@@ -194,7 +206,6 @@ flowchart TB
   500kbps)로 바퀴 제어 MCU 보드에 전달합니다. 같은 버스에 PSD·초음파 센서도 물려 있으나
   본 VLA 파이프라인의 행동 입력에는 쓰이지 않습니다.
 </p>
-<p><img src="figures/hardware_architecture.png" alt="하드웨어 구성" style="max-width:100%;background:#fff;border-radius:6px"></p>
 <p style="font-size:0.78rem;color:var(--dim)">근거:
   <code>ROS_action/.../omni_controller/omni_drive_node.py</code>의
   <code>Psd(dev="can0", bitrate=500000)</code> ·
@@ -214,7 +225,7 @@ area=0.06</code>의 고정 fallback 값이 들어가고 <code>has_bbox=0</code>�
 즉 헤드는 "지금 타겟을 못 보고 있다"는 신호를 입력으로 받습니다.
 <strong class="r">그런데 학습 데이터에는 has_bbox=False 프레임이 0.00%(0/16,599)</strong>여서,
 모델은 이 신호에 대응하는 법을 <strong class="h">배운 적이 없습니다</strong>(CH64 64-15).
-실기에서는 이를 학습이 아니라 <strong class="h">서빙 제어 로직</strong>으로 우회했습니다(4절).
+실기에서는 이를 학습이 아니라 <strong class="h">추론 제어 로직</strong>으로 우회했습니다(4절).
 </div>
 
 <h3>액션 공간 — 3DOF 8클래스</h3>
@@ -311,12 +322,12 @@ OWL-v2 채택 이후 <strong class="h">"프롬프트를 런타임에 바꾸면 �
 
 <table>
 <tr><th>구성요소</th><th class="c">파라미터</th><th class="c">추론에 사용</th><th>비고</th></tr>
-<tr><td>Kosmos-2 <code>vision_model</code></td><td class="c">303.2M</td><td class="c g">✅ 사용</td><td>frozen, 이미지 피처 추출</td></tr>
-<tr><td><code>image_proj</code> (1024→256)</td><td class="c">0.262M</td><td class="c g">✅ 사용</td><td>frozen (Stage1에서 학습됨)</td></tr>
-<tr><td>OWL-v2 전체</td><td class="c">155.0M</td><td class="c g">✅ 사용</td><td>zero-shot, 학습 안 함</td></tr>
-<tr><td>MLP 액션 헤드</td><td class="c">0.866M</td><td class="c g">✅ 사용</td><td><strong class="g">유일한 학습 대상</strong></td></tr>
-<tr style="background:rgba(248,113,113,0.1)"><td>Kosmos-2 언어 디코더 외</td><td class="c r">1361.3M</td><td class="c r">❌ 미사용</td><td class="r">로드만 되고 호출 0회</td></tr>
-<tr style="border-top:2px solid var(--line)"><td><strong>실제 연산에 쓰이는 합</strong></td><td class="c g"><strong>459.3M (0.459B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 0.46B"</td></tr>
+<tr><td>Kosmos-2 <code>vision_model</code></td><td class="c">303,179,776</td><td class="c g">✅ 사용</td><td>frozen, 이미지 피처 추출</td></tr>
+<tr><td><code>image_proj</code> (1024→256)</td><td class="c">262,400</td><td class="c g">✅ 사용</td><td>frozen (Stage1에서 학습됨)</td></tr>
+<tr><td>OWL-v2 전체</td><td class="c">154,966,792</td><td class="c g">✅ 사용</td><td>zero-shot, 학습 안 함</td></tr>
+<tr><td>MLP 액션 헤드</td><td class="c">865,928</td><td class="c g">✅ 사용</td><td><strong class="g">Stage 2 학습 대상</strong>(image_proj와 합쳐 학습되는 전체는 1,128,328 ≈ 1.128M)</td></tr>
+<tr style="background:rgba(248,113,113,0.1)"><td>Kosmos-2 언어 디코더 외</td><td class="c r">~1361.3M</td><td class="c r">❌ 미사용</td><td class="r">로드만 되고 호출 0회</td></tr>
+<tr style="border-top:2px solid var(--line)"><td><strong>실제 연산에 쓰이는 합</strong></td><td class="c g"><strong>459,274,896 (≈0.459B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 0.46B" — <code>sum(p.numel() for p in model.parameters())</code>로 실측(2026-08-19)</td></tr>
 <tr><td><strong>로드 시 host RAM에 올라가는 합</strong></td><td class="c o"><strong>1820.3M (1.820B)</strong></td><td class="c">—</td><td>= 미팅에서 말한 "약 1.8B"</td></tr>
 </table>
 
@@ -368,11 +379,12 @@ host RAM에 올린 뒤 <code>.vision_model</code>만 떼어 썼기 때문입니�
 <table>
 <tr><th>구분</th><th>항목</th><th class="c">값</th><th>비고</th></tr>
 <tr><td>모델 구조</td><td><code>num_classes</code></td><td class="c"><strong>8</strong></td><td>STOP·FWD·LEFT·RIGHT·FWD+L·FWD+R·ROT_L·ROT_R</td></tr>
-<tr><td>모델 구조</td><td><code>window</code></td><td class="c">6 (간격 5)</td><td>hold-aware, 아래 참조</td></tr>
-<tr><td>모델 구조</td><td><code>bbox_scale</code></td><td class="c">3.0</td><td>bbox 4채널 전체 적용</td></tr>
+<tr><td>모델 구조</td><td><code>window</code></td><td class="c"><strong>6 (stride=1)</strong></td><td><strong class="h">배포 헤드는 프레임 단위(stride=1) 학습</strong> — cadence-aligned(간격 5)는 별도 실험이며 배포본이 아님</td></tr>
+<tr><td>모델 구조</td><td><code>bbox_scale</code></td><td class="c">3.0</td>
+<td>bbox 4채널 전체에 적용(area만 아님). <strong class="o">2026-08-16 재검증: 현 파이프라인에선 성능 영향 거의 없음</strong> — 아래 참조</td></tr>
 <tr><td>학습</td><td>optimizer</td><td class="c">AdamW</td><td>lr 5e-4, weight_decay 1e-4</td></tr>
 <tr><td>학습</td><td>batch / epochs</td><td class="c">128 / 300</td><td></td></tr>
-<tr><td>학습</td><td>분할 시드</td><td class="c">42</td><td>임의 고정값 — 전 실험 arm이 동일 val 집합 공유가 목적</td></tr>
+<tr><td>학습</td><td>분할 시드</td><td class="c">42</td><td>임의 고정값 — 전 실험 조건(condition)이 동일 val 집합 공유가 목적</td></tr>
 <tr style="background:rgba(56,189,248,0.1)"><td><strong>서빙</strong></td><td><code>owlv2_thresh</code></td><td class="c"><strong>코드 기본 0.25<br>운영 0.20</strong></td><td><code>VLA_OWLV2_THRESH</code>, 검증 상태는 4절</td></tr>
 <tr style="background:rgba(56,189,248,0.1)"><td>서빙</td><td><code>grounding_skip_n</code></td><td class="c">3</td><td>실효 ≈1.3Hz</td></tr>
 <tr style="background:rgba(56,189,248,0.1)"><td>서빙</td><td>콜드스타트 가드</td><td class="c">3스텝</td><td>window=6에서 파생</td></tr>
@@ -384,9 +396,17 @@ host RAM에 올린 뒤 <code>.vision_model</code>만 떼어 썼기 때문입니�
 <tr><th>모듈</th><th class="c">상태</th><th>이유</th></tr>
 <tr><td>OWL-v2</td><td class="c">frozen (zero-shot)</td><td>텍스트 프롬프트 <code>"gray basket"</code>로만 사용</td></tr>
 <tr><td>Kosmos-2 vision_model</td><td class="c">frozen</td><td>피처 추출기로만 사용</td></tr>
-<tr><td><code>image_proj</code></td><td class="c">frozen</td><td>Stage 1에서 사전 학습(<code>stage1_v2_projs.pt</code>)</td></tr>
-<tr style="background:rgba(74,222,128,0.1)"><td><strong>MLP 액션 헤드</strong></td><td class="c g"><strong>학습</strong></td><td class="g">전체 파이프라인에서 유일하게 학습되는 0.866M</td></tr>
-<tr><td>언어 디코더</td><td class="c r">미사용</td><td class="r">호출 0회 (V5 실험에서 text attention = 0.000% 확정)</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td><code>image_proj</code></td><td class="c g"><strong>Stage 1 학습</strong> → 배포 시 frozen</td><td class="g">대조학습으로 직접 학습(0.262M), Stage 2·추론 시엔 동결 로드</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td><strong>MLP 액션 헤드</strong></td><td class="c g"><strong>Stage 2 학습</strong></td><td class="g">image_proj와 합쳐 전체 학습 파라미터는 1.128M(0.262M+0.866M), Stage 2만 보면 0.866M</td></tr>
+<tr style="background:rgba(74,222,128,0.06)"><td><code>text_proj</code></td><td class="c">Stage 1 학습 → <strong>배포 미사용</strong></td>
+<td>5개 방향 문장을 256차원으로 투영하는 레이어. <strong class="h">image_proj와 같은 optimizer로 함께 학습됩니다</strong>
+(<code>train_stage1_v3_5cls_owl.py</code>). 다만 Stage 2·배포에서 로드하는 <code>FrozenCLIPV2</code>는
+체크포인트에서 <code>image_proj</code> 키만 꺼내 쓰므로 실사용은 image_proj뿐입니다.</td></tr>
+<tr><td>언어 디코더<br>(<code>text_model</code>)</td><td class="c r">배포 시 미사용</td>
+<td class="r">런타임 서버 코드에 <code>text_model</code> 호출이 아예 없어 배포 호출 0회.
+<strong class="o">단 Stage 1 학습 중에는 호출됩니다</strong> — 5개 앵커 문장을
+<code>forward(output_hidden_states=True)</code>로 인코딩해 anchor 임베딩을 만드는 데 씁니다
+(<code>generate()</code> 아님). 학습이 끝나면 이 임베딩이 고정값으로 저장되어 배포 시엔 다시 호출되지 않습니다.</td></tr>
 </table>
 
 <h3>데이터셋 (V6)</h3>
@@ -395,8 +415,9 @@ host RAM에 올린 뒤 <code>.vision_model</code>만 떼어 썼기 때문입니�
 <tr><td>에피소드</td><td><strong class="h">225개</strong> (트랙A 180 + 트랙F 45)</td></tr>
 <tr><td>총 프레임</td><td>16,599</td></tr>
 <tr><td>train / val</td><td>192 / 33 (<code>VAL_RATIO=0.15</code>, <code>SPLIT_SEED=42</code> 고정)</td></tr>
-<tr><td>비전 캐시</td><td><code>exp73_v6_vis_cache.pt</code> (BGR→RGB 반전 + L2 정규화 규격)</td></tr>
-<tr><td>bbox 주석</td><td><code>bbox_dataset_v6_pg448_cx.json</code> (OWL 버전 별도 존재)</td></tr>
+<tr><td>비전 캐시</td><td><code>exp73_v6_vis_cache_stage1v3.pt</code> (BGR→RGB 반전 + L2 정규화, 새 image_proj로 재인코딩)</td></tr>
+<tr><td>bbox 주석</td><td><strong class="h"><code>bbox_dataset_v6_owl.json</code></strong> (OWL-v2 기반 — 배포 체크포인트 학습에 실제 사용)</td></tr>
+<tr><td>액션 분포</td><td>STOP 8.75% · FORWARD 46.03% · LEFT 4.31% · RIGHT 5.17% · FWD+L 15.25% · FWD+R 18.78% · ROT_L 0.82% · ROT_R 0.89%</td></tr>
 </table>
 
 <div class="warn">
@@ -409,146 +430,83 @@ host RAM에 올린 뒤 <code>.vision_model</code>만 떼어 썼기 때문입니�
 별도 홀드아웃을 분리해 74.5%로 재학습해 교체했습니다.
 </div>
 
-<h3>학습 하이퍼파라미터</h3>
+<h3>학습 하이퍼파라미터 — Stage 2(행동 헤드)</h3>
 <pre>window       = 6 프레임          bbox_scale = 3.0
-num_classes  = 8                 optimizer  = Adam, lr = 5e-4
+num_classes  = 8                 optimizer  = AdamW, lr = 5e-4
 epochs       = 300               scheduler  = CosineAnnealingLR
-class weight = 1/빈도 정규화      ← FORWARD 71~74% 편중 보정
+class weight = 1/빈도 정규화      ← FORWARD 46.03%(7,641/16,599) 편중 보정
 seeds        = 0, 1, 2 (다중 시드로 분산 확인)</pre>
 
-<h3>hold-aware 학습 — 실서빙 주기를 학습에 반영</h3>
-<p>그라운딩이 ~2초 걸려서 실기 판단 주기는 6Hz가 아니라 <strong class="h">약 1.3Hz</strong>이고,
-그 사이 로봇은 직전 명령을 그대로 유지합니다(zero-order hold). 매 프레임 재판단을 가정한
-학습과 이 조건은 어긋납니다. 그래서 <strong class="h">stride=5마다 한 번만 판단하고, 라벨은
-그 5프레임 구간의 다수결</strong>로 주는 방식으로 학습했습니다.</p>
-<table>
-<tr><th>학습 방식</th><th class="c">HELD 조건 평가</th></tr>
-<tr><td>연속(매 프레임) 학습</td><td class="c r">7.1 ± 3.8%</td></tr>
-<tr><td>stride5 입력만 적용</td><td class="c">24.2 ± 2.5%</td></tr>
-<tr style="background:rgba(74,222,128,0.1)"><td><strong>hold-aware (구간 다수결 라벨)</strong></td><td class="c g"><strong>28.3 ± 3.8%</strong></td></tr>
-</table>
-<p><img src="figures/fig_64_12_holdaware.png" alt="CH64 64-12 HELD-aware 학습 결과" style="max-width:420px;width:100%;background:#fff;border-radius:6px"></p>
-<p style="font-size:0.78rem;color:var(--dim)">원본: <a href="research_story.html#ch64">CH64 64-12</a>, 3 seed 에러바.
-그라운더를 OWL-v2로 바꿔도 HELD 25.3±3.8%로 재현되어 그라운더 종속 결과가 아님을 확인.
-단 이 28.3%도 baseline의 순수 offline 수치(39~48%대)에는 크게 못 미쳐 — hold-aware는
-근본 해결책이 아니라 <strong class="h">재수집 없이 얻는 저비용 완화책</strong>입니다.</p>
-<div class="note">
-<strong class="o">이 지표를 인용할 때 주의</strong> — HELD 수치는 <strong class="h">프레임 단위
-판단 정확도 프록시</strong>이고, 실기 89%는 <strong class="h">에피소드 도달 성공률</strong>입니다.
-서로 다른 척도라 직접 비교할 수 없습니다(중간에 몇 스텝 틀려도 재검출로 보정되면 성공).
-과거에 이 둘을 맞춰 해석했다가 잘못된 결론을 낸 사례가 있어 CH64 64-11을 철회했습니다.
-</div>
+<h3>학습 하이퍼파라미터 — Stage 1(image_proj 사전학습)</h3>
+<p style="font-size:0.82rem;color:var(--dim);margin:0 0 8px">Stage 2와 완전히 분리된 별도
+학습(1.1절) — 데이터·클래스·하이퍼파라미터 전부 다름.</p>
+<pre>epochs       = 30                batch size = 16
+optimizer    = AdamW, lr = 3e-4   scheduler  = CosineAnnealingLR
+temperature  = 0.07 (대조학습)    num_classes = 5 (강좌/약좌/중앙/약우/강우)
+class weight = strong_L 0.91 · weak_L 1.00 · center 1.17 · weak_R 1.01 · strong_R 0.91
+검증 분할     = 에피소드 단위 20%, seed 42</pre>
 
-<h3>hold-aware가 정확히 무엇을 바꾸는가 — 세 가지가 함께 바뀝니다</h3>
-<p>위 ablation에서 <strong class="h">입력만 stride5로 바꾸면 24.2%</strong>인데
-<strong class="g">라벨까지 구간 다수결로 바꾸면 28.3%</strong>가 됩니다. 즉 이 방식은
-하나의 트릭이 아니라 <strong>표집 간격 · 윈도우 구성 · 라벨 정의</strong> 세 가지가
-동시에 바뀌는 것이고, 각각이 다른 문제를 겨냥합니다.</p>
+<h3>cadence-aligned 학습 — 결론만</h3>
+<p>그라운딩이 ~2초 걸려 실기 판단 주기는 6Hz가 아니라 약 1.3Hz이고, 그 사이 로봇은 직전 명령을
+유지합니다(zero-order hold). 이 조건을 학습에 반영해 <strong class="h">stride=5 간격 표집 +
+구간 다수결 라벨</strong>로 학습한 실험은 연속 학습 7.1%→28.3%(HELD 프록시 지표)로 개선을 보였지만,
+<strong class="h">배포 헤드는 이 방식을 쓰지 않고 stride=1(매 프레임) 학습</strong>입니다 — 그래도
+95/100 실기 성공률이 나왔기 때문에, cadence-aligned는 <strong class="h">근본 해결책이 아닌 보조
+완화책으로 결론 나 채택을 보류</strong>했습니다. HELD는 프레임 단위 판단 정확도 프록시일 뿐
+에피소드 성공률과 다른 척도라 직접 비교할 수 없다는 점도 확인됐습니다. 상세 ablation은
+<a href="research_story.html#ch64">CH64 64-12</a> 참조.</p>
 
+<h3>bbox_scale 재검증 (2026-08-16) — 결론만</h3>
+<p>배포 구성(exp73·OWL-v2·MLP·stride=1)에서 <code>bbox_scale</code> 1.0/2.0/3.0을 3-seed로
+재검증한 결과 <strong class="h">차이는 오차범위 안</strong>이었습니다. 현재 3.0을 쓰는 이유는
+성능 이득이 아니라 <strong class="h">배포 체크포인트가 그 값으로 학습됐기 때문</strong>이며,
+학습·추론 값이 어긋나면 안 되므로 체크포인트 메타데이터에서 직접 읽어 씁니다. 과거 exp71(PG2+Transformer
+헤드)에서 관측된 72%→85% 개선은 그라운더·헤드가 모두 다른 구성이었기 때문으로, 현재 구성엔 적용되지
+않습니다.</p>
+
+<h3>논문 도판 — 최종본</h3>
+<p style="font-size:0.85rem;color:var(--dim);margin:0 0 10px">
+KCI 초안에 싣는 확정 도판입니다. 이 페이지의 설명과 동일한 구조를 논문 형식으로 정리한 것으로,
+<a href="../01.paper/revision_briefing.html">수정사항 브리핑</a>에서 Figure별 이력을 추적합니다.
+</p>
 <div class="grid2">
-<div class="card">
-  <div class="ct">① 표집 간격 — 같은 장면 반복 학습을 막습니다</div>
-  <p>결정 시점 <code>t = 0, 5, 10, …</code> 에서만 샘플을 만듭니다.
-  <strong class="h">16,599 프레임 → 3,401 샘플 (4.88배 감소)</strong>.</p>
-  <p>인접 프레임은 거의 동일한 관측이라, 프레임 단위 학습은 표본을 늘리는 대신
-  <strong>같은 장면을 5번씩 반복</strong>하게 됩니다. 특히 변화가 거의 없는 긴 직진 구간이
-  과대 대표되어, 직진 편중(46%)을 더 키웁니다.</p>
-</div>
-<div class="card">
-  <div class="ct">② 윈도우 구성 — "최근 6프레임"이 아닙니다</div>
-  <p>윈도우의 6개 시점도 <strong>같은 간격으로</strong> 취합니다.</p>
-  <pre style="font-size:0.8rem;margin:6px 0">idx = t − (window−1−k) × stride
-→ t−25, t−20, t−15, t−10, t−5, t</pre>
-  <p>즉 6개 입력이 <strong class="h">25프레임 구간에 걸쳐</strong> 있습니다. 연속 6프레임을
-  쓰면 프레임 간 변화가 작아 시간 정보가 사실상 중복되는데, 간격을 두면 같은 6개 입력으로
-  훨씬 긴 구간의 변화를 담을 수 있습니다.</p>
-  <p>에피소드 앞부분에서 음수 인덱스는 0으로 클램프되어 <strong>첫 프레임이 반복 입력</strong>됩니다
-  → 이 구간의 오작동을 막는 장치가 <strong class="h">콜드스타트 가드 3회</strong>입니다(4절).
-  즉 그 값은 임의 상수가 아니라 이 구조에서 파생된 것입니다.</p>
-</div>
+  <div class="card">
+    <div class="ct">Figure 1 — 모델 아키텍처</div>
+    <p><img src="figures/figure1_v2_model_architecture_web.png" alt="Figure 1 모델 아키텍처 (2026-08-27 재출력본)" style="max-width:100%;background:#fff;border-radius:6px"></p>
+    <p style="font-size:0.8rem;color:var(--dim)">인지(OWL-v2 · Kosmos-2 vision · image_proj) → 260차원 프레임 특징
+    → 슬라이딩 윈도우 1560차원 → MLP 헤드 → 8-class → LUT로 (x,y,z).</p>
+  </div>
+  <div class="card">
+    <div class="ct">Figure 4 — Stage 1 / Stage 2 학습</div>
+    <p><img src="figures/figure4_v2_stage_training_web.jpg" alt="Figure 4 Stage1/Stage2 학습 (2026-08-27 재출력본)" style="max-width:100%;background:#fff;border-radius:6px"></p>
+    <p style="font-size:0.8rem;color:var(--dim)">Stage 1은 프레임 1장 단위 대조학습(image_proj + text_proj),
+    Stage 2는 6-프레임 슬라이딩 윈도우로 MLP 헤드 학습. 사이에 Vision Feature Cache가 있습니다.</p>
+  </div>
 </div>
 
-<h3>③ 라벨 정의 — "지금"이 아니라 "다음 판단까지"</h3>
-<p>결정 시점 <code>t</code>의 라벨은 그 순간의 행동이 아니라
-<strong class="h">구간 [t, t+5)에서 조작자가 취한 행동의 다수결</strong>입니다.
-학습 목표가 <em>"지금 무엇을 하고 있나"</em>에서
-<strong>"다음 판단까지 무엇을 유지할 것인가"</strong>로 바뀝니다 — 행동이 일정 시간 유지되는
-운영 구조와 정합합니다. ablation의 +4.1%p가 이 변경의 몫입니다.</p>
-
-<p><strong>그래서 라벨이 실제로 얼마나 바뀌는가</strong> — 데이터에서 직접 세었습니다.</p>
-<table>
-<tr><th>항목</th><th class="c">값</th><th>해석</th></tr>
-<tr style="background:rgba(74,222,128,0.1)"><td><strong>다수결 ≠ 순간 라벨</strong></td>
-    <td class="c g"><strong>10.56%</strong><br><span style="font-size:0.8em">359 / 3,401</span></td>
-    <td>결정 시점 10개 중 1개가 순간 행동과 <strong>다른</strong> 라벨을 받습니다.
-        이 10.56%가 곧 "구간을 보고 라벨을 정한다"의 실질적 크기입니다</td></tr>
-<tr><td>동표 발생</td><td class="c">0.71%<br><span style="font-size:0.8em">24 / 3,401</span></td>
-    <td>구현이 <code>bincount().argmax()</code>여서 <strong>동표 시 최소 클래스 인덱스</strong>가
-        이깁니다. 클래스 0이 STOP이라 정지 편향을 의심했으나, 빈도가 0.71%로 낮아 영향은
-        무시할 수준입니다</td></tr>
-<tr><td>동표 시 선택된 클래스</td><td class="c">FWD 13 · LEFT 5<br>RIGHT 4 · FWD+L 2</td>
-    <td><strong class="g">STOP이 선택된 경우는 0건</strong> — 정지 쪽 편향 우려는
-        관측되지 않았습니다</td></tr>
-</table>
-
-<p><strong>클래스 분포 변화</strong> — 편중이 미세하게 완화되지만 좌우 불균형은 그대로입니다.</p>
-<table>
-<tr><th>클래스</th><th class="c">프레임 단위</th><th class="c">다수결</th><th class="c">변화</th></tr>
-<tr><td>STOP</td><td class="c">8.75%</td><td class="c">10.35%</td><td class="c">+1.60%p</td></tr>
-<tr><td>FORWARD</td><td class="c">46.03%</td><td class="c">44.90%</td><td class="c g">−1.13%p</td></tr>
-<tr><td>ROT_L / ROT_R</td><td class="c">0.82 / 0.89%</td><td class="c">1.00 / 1.15%</td><td class="c">+0.18 / +0.26%p</td></tr>
-<tr style="background:rgba(251,191,36,0.1)"><td><strong>좌계열 / 우계열</strong></td>
-    <td class="c">20.39% / 24.83%</td><td class="c">20.14% / 24.61%</td>
-    <td class="c o"><strong>격차 4.45 → 4.47%p</strong></td></tr>
-</table>
-<div class="note">
-<strong class="o">중요한 해석</strong> — 이 샘플링은 <strong class="h">시간 구조를 정렬하는
-장치이지 클래스 불균형 보정 장치가 아닙니다</strong>. 좌우 격차가 4.45%p에서 4.47%p로
-사실상 그대로이므로, <strong>CH66에서 좌우 비대칭의 출발점으로 지목한 21.8% 액션 불균형은
-hold-aware로 해소되지 않습니다</strong>. 불균형 보정은 클래스 가중치가, 좌우 대칭화는
-미러 증강이 담당합니다(65-9).
-</div>
-<div class="warn">
-<strong class="r">⚠️ 미검증 항목 — 학습과 서빙의 윈도우 시간 폭</strong><br>
-학습 윈도우는 <strong>5프레임 간격</strong>으로 표집되는데, 추론 서버는 히스토리 버퍼의
-<strong>연속된 6개 항목</strong>을 사용합니다(<code>_build_seq_feature_trans</code>).
-운영에서는 한 항목이 한 번의 추론 호출에 대응하고 그라운딩 지연이 커서 실제 시간 폭이
-학습 쪽과 비슷할 가능성이 있습니다 — 실제로 세션 76건에서
-<strong>cached 비율 65.1%</strong>가 측정되어 <code>skip_n=3</code>의 기대치 66.7%와
-일치하므로 zero-order hold는 확인됩니다.
-<br>그러나 <strong class="h">프레임 타임스탬프로 시간 폭을 직접 비교한 바는 없습니다.</strong>
-따라서 "학습과 운영의 시간 폭이 일치한다"고 단정할 수 없고, 검증 항목으로 남깁니다.
-이는 2026-07-07의 <code>vis_feat</code> 정규화 불일치, <code>bbox_scale</code> 불일치와
-<strong>같은 종류의 위험</strong>입니다.
-</div>
-<div class="note" style="font-size:0.85rem">
-스크립트 <code>scripts/analyze_hold_aware_labeling.py</code> ·
-결과 <code>docs/v5/detector/hold_aware_labeling.json</code> ·
-구현 <code>scripts/exp73_held_aware_train.py</code>의
-<code>build_windows_hold_aware()</code> / <code>majority()</code>
-</div>
-
-<h2>4. 서빙 제어 로직 — 학습으로 못 고친 걸 여기서 막습니다</h2>
+<h2>4. 추론 제어 로직 — 학습으로 못 고친 걸 여기서 막습니다</h2>
 <p>2절에서 말한 "has_bbox=False를 학습한 적이 없다"는 구조적 결함을, 재학습이 아니라
 제어 계층에서 우회했습니다. 현재 적용 중인 설정:</p>
 <table>
 <tr><th>설정</th><th>역할</th></tr>
 <tr><td><code>owlv2_thresh = 0.20</code></td><td>검출 임계값 (0.25에서 하향 — 실측 검출률 1.71배)</td></tr>
-<tr><td><code>force_reground_on_miss</code></td><td>미검출 시 다음 스텝 캐시를 강제로 건너뛰고 재검출</td></tr>
-<tr><td>회전 후 강제 재그라운딩</td><td>시야가 크게 바뀐 직후 캐시 신뢰 금지</td></tr>
+<tr><td><code>grounding_skip_n = 3</code></td><td>3프레임마다 1회만 신선 그라운딩(속도 타협, 실효 ≈1.3Hz)</td></tr>
 <tr><td>회전 0.4초 후 자동정지 <span class="o">(제어 계층)</span></td><td>회전 폭주 방지 —
     제어 루프가 명령을 COAST 4.0s·10Hz로 반복 발행하는데 <strong class="h">회전만 예외</strong>로
     <code>move_and_stop_ramped(move_duration=0.4)</code>. 예외가 없으면 그라운딩 ~2초 동안
     같은 회전이 계속 재발행돼 타겟이 화면 밖으로 밀려남(2026-07-30)</td></tr>
-<tr><td>회전 직후 강제 재그라운딩 <span class="g">(추론 서버, 상시)</span></td>
+<tr><td>회전 직후 강제 재검출 <span class="g">(추론 서버, 상시)</span></td>
     <td><code>just_rotated</code>면 skip_n 무시하고 재검출</td></tr>
 <tr><td>연속 회전 차단 <span class="g">(추론 서버, 상시)</span></td>
     <td>두 번째 회전은 실행하지 않고 <strong>정지 명령으로 대체</strong></td></tr>
 <tr><td><code>force_reground_on_miss</code> <span class="r">(기본 off)</span></td>
     <td>A/B 테스트용 선택 항목 — <strong class="r">상시 규칙이 아님</strong></td></tr>
-<tr><td>연속 회전 차단</td><td>같은 방향 회전 반복 잠김 방지</td></tr>
-<tr><td><code>stop_mode = learned</code> + 콜드스타트 가드 3프레임</td><td>초기 프레임 오판으로 즉시 정지하는 것 방지</td></tr>
-<tr><td><code>grounding_skip_n = 3</code></td><td>3프레임마다 1회만 신선 그라운딩(속도 타협)</td></tr>
+<tr><td><code>stop_mode = learned</code> <span class="g">(실제 실행 설정)</span></td>
+    <td>실기/실험에 쓴 실행 스크립트(<code>scripts/run/go.sh</code>)가
+    <code>VLA_STOP_MODE=learned</code>로 <strong>명시 오버라이드</strong> — 행동 헤드가 STOP
+    클래스를 직접 예측. <span class="o">코드 자체의 인자 기본값은 <code>proximity</code>
+    (area≥0.25·|cx−0.5|≤0.35·3프레임 근접)</span>이지만 배포 시 항상 learned로 덮어써서 사용함.
+    콜드스타트 가드 3프레임과 함께 초기 오판 방지</td></tr>
 </table>
 
 <h2>5. 실기 결과와 핵심 발견</h2>
@@ -559,19 +517,43 @@ hold-aware로 해소되지 않습니다</strong>. 불균형 보정은 클래스 
 threshold 0.25에서 오탐률 0%, 정탐률 94.9%. 0.20으로 낮추면 정탐 97.2%지만 오탐 12.7%가 발생.</p>
 
 <h3>행동 헤드 — val 혼동행렬</h3>
-<p><img src="figures/confusion_matrix.png" alt="val 혼동행렬" style="max-width:100%;background:#fff;border-radius:6px"></p>
-<p style="font-size:0.85rem;color:var(--muted)">배포 헤드(hold-aware, OWL-v2, 3 seed), val 결정 시점 501개.
-val_acc 74.98%±0.52%p. <strong class="r">LEFT가 42%로 최저</strong>(33%가 FWD+L로 오분류) —
-CH66에서 확인한 좌우 비대칭이 혼동행렬에도 그대로 드러남.</p>
+<p><img src="figures/confusion_matrix_stage1v3_correct.png" alt="val 혼동행렬 (stride=1 정확 채점)" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p style="font-size:0.85rem;color:var(--muted)">배포 헤드(<code>exp73_owl_stage1v3_v6_mlp.pt</code>, OWL-v2)를
+<strong class="h">학습과 동일한 stride=1 방식으로 채점</strong>한 결과 val 정확도 <strong class="g">74.1%(n=2,431)</strong>로,
+체크포인트에 저장된 값(74.13%)과 일치한다. 표본이 충분한 6개 클래스는 66.7~84.5%로 고르게 분포하며
+특정 클래스가 붕괴한 것이 아니다. ROT_L·ROT_R만 낮게 나오는데, 두 클래스는 val 2,431개 중
+28개(1.15%)뿐이라 오분류 한두 건이 정확도를 크게 흔든다.</p>
+<div class="note" style="font-size:0.82rem">
+<strong class="o">이전 판(2026-08-01)의 정정</strong> — 예전에는 cadence-aligned(stride=5) 채점으로
+<s>52.5%(n=501)</s>를 싣고 "채점 방식이 안 맞는다"고 캐비엇을 달았으나, 애초에 채점을 학습과 맞추면
+되는 문제였다. <code>scripts/eval_confusion_matrix_stage1v3_correct.py</code>로 재채점해 74.1%로 교체.
+</div>
+
+<h3>오류를 심각도로 분해 (2026-08-19 추가)</h3>
+<p><img src="figures/action_head_error_severity_8x8.png" alt="val 오류 심각도 8x8 분해" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p><img src="figures/action_head_error_severity_3x3.png" alt="좌우중립 3방향 축약 혼동행렬" style="max-width:100%;background:#fff;border-radius:6px;margin-top:10px"></p>
+<p style="font-size:0.85rem;color:var(--muted)">오류 629건을 성격별로 나누면 <strong class="g">81.4%가 "같은 방향 성향 내 혼동"(대체 가능한 행동)</strong>이고,
+실제로 주행을 실패시키는 <strong class="r">좌우 반전은 전체의 1.97%(48건)</strong>뿐이다. 좌·우·중립 3방향으로
+축약하면 정확도는 74.13%→<strong class="g">81.65%</strong>(+7.52%p)로 오른다. val 프레임 단위 정확도가
+실기 성공률(95%)보다 낮게 보이는 이유를 뒷받침하는 근거 — 프레임 단위 채점은 폐루프 재정정 기회를
+반영하지 못한다(<code>scripts/plot_action_head_error_severity.py</code>).</p>
+
+<h3>image_proj(Stage 1) 학습 곡선</h3>
+<p><img src="figures/stage1_v3_valacc_only.png" alt="image_proj train/val accuracy" style="max-width:100%;background:#fff;border-radius:6px"></p>
+<p><img src="figures/stage1_v3_loss_only.png" alt="image_proj train/val loss" style="max-width:100%;background:#fff;border-radius:6px;margin-top:10px"></p>
+<p style="font-size:0.85rem;color:var(--muted)">train 96.10% / val 94.09%(격차 2.01%p), train loss 0.107 / val loss 0.173 — 둘 다 함께
+수렴해 과적합 징후가 없다. Stage 2(행동 헤드)의 17.40%p 격차와 대조되는 지점으로, 과적합이
+파이프라인 전체가 아니라 Stage 2에 국한된 현상임을 보여준다(<code>scripts/train_stage1_v3_5cls_owl_fastloss.py</code>,
+비전 특징 캐싱으로 재학습 277분→21.8분 단축).</p>
 
 <table>
-<tr><th>목표 위치</th><th class="c">성공률</th><th class="c">평균 스텝</th></tr>
-<tr><td>● 중앙</td><td class="c g">20/20 (100%)</td><td class="c">10.6</td></tr>
-<tr><td>▶ 약우</td><td class="c">19/20 (95%)</td><td class="c">11.8</td></tr>
-<tr><td>▶▶ 강우</td><td class="c">18/20 (90%)</td><td class="c">10.2</td></tr>
-<tr><td>◀◀ 강좌</td><td class="c">16/20 (80%)</td><td class="c o">17.2</td></tr>
-<tr><td>◀ 약좌</td><td class="c">16/20 (80%)</td><td class="c o">18.6</td></tr>
-<tr style="border-top:2px solid var(--line);background:rgba(74,222,128,0.1)"><td><strong>전체</strong></td><td class="c g"><strong>89/100 (89.0%)</strong></td><td class="c">—</td></tr>
+<tr><th>목표 위치</th><th class="c">성공률</th></tr>
+<tr><td>● 중앙</td><td class="c g">20/20 (100%)</td></tr>
+<tr><td>▶▶ 강우</td><td class="c g">19/20 (95%)</td></tr>
+<tr><td>◀◀ 강좌</td><td class="c g">19/20 (95%)</td></tr>
+<tr><td>◀ 약좌</td><td class="c g">19/20 (95%)</td></tr>
+<tr><td>▶ 약우</td><td class="c">18/20 (90%)</td></tr>
+<tr style="border-top:2px solid var(--line);background:rgba(74,222,128,0.1)"><td><strong>전체</strong></td><td class="c g"><strong>95/100 (95.0%)</strong></td></tr>
 </table>
 
 <div class="key">
@@ -581,7 +563,12 @@ CH66에서 확인한 좌우 비대칭이 혼동행렬에도 그대로 드러남.
 <tr><td>세션 내 검출 성공률(gnd%) ≥ 80%</td><td class="c g"><strong>79/80 = 98.8%</strong></td></tr>
 <tr><td>gnd% &lt; 80%</td><td class="c r">41/80 = 51.2%</td></tr>
 </table>
-실기 159세션 기준. <strong class="h">타겟을 계속 보고만 있으면 거의 반드시 도달</strong>하고,
+<strong class="o">2026-07-31 159세션 배치 기준</strong>(당시 성공률 89/100).
+현재 헤드라인인 95/100은 <strong>2026-08-07 별도 배치</strong>라 두 수치를 같은 근거로 섞어 인용하면 안 된다 —
+08-07 배치 H5에는 세션별 성공/실패 라벨이 없어(<code>status</code> 전량 <code>manual_stop</code>)
+이 상관관계를 그 배치로 재계산할 수 없다. 다만 08-07 배치의 그라운딩 가용률 자체는 실측되며
+<strong class="h">985/1088 프레임 = 90.5%</strong>다.
+<strong class="h">타겟을 계속 보고만 있으면 거의 반드시 도달</strong>하고,
 실패는 전부 "보지 못한" 경우입니다. 따라서 0.866M짜리 MLP 헤드는 이미 충분하며,
 자원을 투입할 곳은 검출 단계입니다.
 </div>
@@ -602,8 +589,7 @@ CH66에서 확인한 좌우 비대칭이 혼동행렬에도 그대로 드러남.
 <h2>6. 다음 단계 제안</h2>
 <div class="key">
 <ol>
-<li><strong class="h">언어 디코더 로드 제거</strong> — 성능 변화 없이 1.82B → 0.46B (−74.8%).
-  가장 값싼 개선이고 즉시 가능.</li>
+<li><s>언어 디코더 로드 제거</s> — <strong class="g">2026-08-01 적용 완료</strong>(1.82B → 0.46B, −74.8%). 2절 참조.</li>
 <li><strong class="h">도메인 특화 소형 검출기 직접 학습</strong> — 범용 OWL-v2(1902ms)를 양자화로
   깎는 방식은 부적절합니다. fp16은 1.98배 빨라지지만 <strong class="r">검출률이 10%p 떨어지고</strong>,
   위 발견대로 검출률이 곧 성공률이므로 성패를 가르는 변수를 팔아 속도를 사는 셈입니다.
@@ -612,14 +598,17 @@ CH66에서 확인한 좌우 비대칭이 혼동행렬에도 그대로 드러남.
 <li><strong class="h">has_bbox=False 상황 시범 데이터 수집</strong> — 현재 0.00%인 미검출 상황에
   사람이 정답 행동(탐색 회전/정지)을 시범해 학습에 포함. 지금은 제어 로직으로 우회 중인 부분을
   모델이 직접 처리하게 함.</li>
-<li><strong class="h">동일 위치 A/B 재측정</strong> — 89% 개선이 체크포인트 교체 때문인지
+<li><strong class="h">동일 위치 A/B 재측정</strong> — 89% → 95% 개선이 체크포인트 교체 때문인지
   임계값+제어로직 때문인지 아직 확정하지 못했습니다(두 변경이 서로 다른 위치에서 이뤄져 교란).</li>
+<li><strong class="h">미검증 3항목</strong> — <code>grounding_skip_n</code> 민감도 곡선(왜 3인가),
+  threshold 0.20 vs 0.25 실기 A/B, 실패 5건 원인 분해. 셋 다 아직 근거가 없어
+  <a href="../index.html">메인 페이지 Future Work</a>에 미검증으로 명시해뒀습니다.</li>
 </ol>
 </div>
 
 <h2>7. RoboVLMs와의 관계 — "참고했으나 코드는 쓰지 않음"</h2>
 <p>자주 나오는 질문이라 코드 레벨로 확인한 결과를 정리합니다.
-<strong class="h">현재 89% 모델의 실행 경로에는 RoboVLMs 코드가 한 줄도 없습니다.</strong></p>
+<strong class="h">현재 95% 모델의 실행 경로에는 RoboVLMs 코드가 한 줄도 없습니다.</strong></p>
 
 <h3>RoboVLMs를 실제로 import하는 파일 — 구(舊) 파이프라인 2개뿐</h3>
 <table>
@@ -669,7 +658,20 @@ CH66에서 확인한 좌우 비대칭이 혼동행렬에도 그대로 드러남.
 <tr><td>2026-07-06</td><td class="c">Transformer</td><td><code>exp71_window6/action_transformer.pt</code></td><td class="c">OWL-v2</td></tr>
 <tr><td>2026-07-10</td><td class="c">Transformer</td><td><code>exp71_window3_bboxscale3/action_transformer.pt</code></td><td class="c">OWL-v2</td></tr>
 <tr><td>2026-07-23 17:18</td><td class="c">MLP</td><td><code>exp73_pg448_trackF_v6_mlp_holdaware_seed0.pt</code></td><td class="c">OWL-v2</td></tr>
-<tr style="background:rgba(74,222,128,0.1)"><td>2026-07-23 18:05 ~ 현재</td><td class="c g">MLP</td><td><code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code></td><td class="c">OWL-v2</td></tr>
+<tr><td>2026-07-23 18:05 ~ 2026-08-07</td><td class="c">MLP</td><td><code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code></td><td class="c">OWL-v2</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td>2026-08-07 ~ 현재</td><td class="c g">MLP + image_proj(5-class)</td><td><code>exp73_owl_stage1v3_v6_mlp.pt</code> + <code>stage1_v3_5cls_owl_projs.pt</code></td><td class="c">OWL-v2</td></tr>
+</table>
+<p style="font-size:0.82rem;color:var(--dim);margin-top:6px">
+image_proj·행동 헤드를 함께 재학습해 2026-08-07 배포 전환. 실기 100건 재검증
+95/100 — <code>episode_log.csv</code>의
+<code>runtime_config.stage1_path</code>/<code>checkpoint_path</code>로 확인.
+이전 체크포인트는 <code>runs/v5_nav/mlp/shared/stage1_v2_projs.pt</code>에 롤백용으로 보존.</p>
+<table style="border:1px dashed var(--line);display:none">
+<tr><th>학습일</th><th class="c">대상</th><th>체크포인트</th><th>상태</th></tr>
+<tr><td>2026-08-07</td><td class="c">image_proj (Stage 1)</td>
+    <td><code>stage1_v3_5cls_owl_projs.pt</code></td>
+    <td class="o">후보 — soda 전송 완료, 좌측 실기 재검증 대기 (5-class, 225ep, OWL-v2 라벨,
+    val_acc 94.09%)</td></tr>
 </table>
 <div class="note">
 <strong class="o">용어 확인</strong> — 이전 Transformer 헤드는
