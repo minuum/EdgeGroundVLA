@@ -60,6 +60,12 @@
 <span class="topic-card-summary">교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.</span>
 </a>
 
+<a class="topic-card accent-e" href="paper-peer-review.html">
+<span class="topic-card-count">1개 챕터</span>
+<span class="topic-card-title">KCI 논문 심사 대응 (1차/2차/3차 재심)</span>
+<span class="topic-card-summary">논문 제출 후 받은 심사위원 리뷰를 서술 보강 vs 실제 실험 필요로 분류해 대응한 기록 — 각 라운드의 지적사항, 그에 대한 ablation/재분석 결과, 재심 진행 상황.</span>
+</a>
+
 </div>
 
 ## 부록
@@ -78,8 +84,8 @@
 
 **메타**
 
-- 원본 챕터 수: 82개 (`docs/v5/research_story.html`)
-- 위키 주제 수: 9개
+- 원본 챕터 수: 83개 (`docs/v5/research_story.html`)
+- 위키 주제 수: 10개
 - 생성 스크립트: `scripts/wiki/parse_research_story.py`, `scripts/wiki/build_wiki_pages.py`, `scripts/wiki/build_archive_index.py`, `scripts/wiki/render_wiki_html.py`
 - **새 챕터 추가 시 자동 갱신**: `wiki-sync` 스킬(`.claude/skills/wiki-sync/SKILL.md`) 또는 `scripts/wiki/sync_wiki.py` 직접 실행 — 기존 압축 요약은 보존되고, 새로 추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨
 - 위키 재생성 의존성: HTML 렌더링(`render_wiki_html.py`)만 `pip install -r scripts/wiki/requirements.txt` 필요(Markdown 패키지) — 나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음

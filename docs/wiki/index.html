@@ -115,6 +115,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <a class="side-link" href="real-robot-closed-loop.html">실로봇 테스트 & Closed-Loop 검증<span class="n">13</span></a>
 <a class="side-link" href="backbone-model.html">VLM 백본 비교 (PaliGemma/Kosmos-2/CLIP/Florence-2/Google-robot)<span class="n">6</span></a>
 <a class="side-link" href="meetings-and-direction.html">미팅 기록 & 연구 방향 결정<span class="n">19</span></a>
+<a class="side-link" href="paper-peer-review.html">KCI 논문 심사 대응 (1차/2차/3차 재심)<span class="n">1</span></a>
 <div class="sidebar-section">부록</div>
 <a class="side-link" href="archive-index.html">아카이브 색인<span class="n">357</span></a>
 <div class="sidebar-section">원본</div>
@@ -170,6 +171,11 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <span class="topic-card-title">미팅 기록 &amp; 연구 방향 결정</span>
 <span class="topic-card-summary">교수님 미팅별 질문·피드백·결정사항, 논문 기여점, 연구 전체 요약과 로드맵.</span>
 </a></p>
+<p><a class="topic-card accent-e" href="paper-peer-review.html">
+<span class="topic-card-count">1개 챕터</span>
+<span class="topic-card-title">KCI 논문 심사 대응 (1차/2차/3차 재심)</span>
+<span class="topic-card-summary">논문 제출 후 받은 심사위원 리뷰를 서술 보강 vs 실제 실험 필요로 분류해 대응한 기록 — 각 라운드의 지적사항, 그에 대한 ablation/재분석 결과, 재심 진행 상황.</span>
+</a></p>
 </div>
 <h2>부록</h2>
 <div class="topic-grid">
@@ -182,8 +188,8 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <div class="summary-box">
 <p><strong>메타</strong></p>
 <ul>
-<li>원본 챕터 수: 82개 (<code>docs/v5/research_story.html</code>)</li>
-<li>위키 주제 수: 9개</li>
+<li>원본 챕터 수: 83개 (<code>docs/v5/research_story.html</code>)</li>
+<li>위키 주제 수: 10개</li>
 <li>생성 스크립트: <code>scripts/wiki/parse_research_story.py</code>, <code>scripts/wiki/build_wiki_pages.py</code>, <code>scripts/wiki/build_archive_index.py</code>, <code>scripts/wiki/render_wiki_html.py</code></li>
 <li><strong>새 챕터 추가 시 자동 갱신</strong>: <code>wiki-sync</code> 스킬(<code>.claude/skills/wiki-sync/SKILL.md</code>) 또는 <code>scripts/wiki/sync_wiki.py</code> 직접 실행 — 기존 압축 요약은 보존되고, 새로 추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨</li>
 <li>위키 재생성 의존성: HTML 렌더링(<code>render_wiki_html.py</code>)만 <code>pip install -r scripts/wiki/requirements.txt</code> 필요(Markdown 패키지) — 나머지 스크립트와 위키 페이지 열람 자체는 의존성 없음</li>
