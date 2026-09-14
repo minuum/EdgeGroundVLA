@@ -2079,40 +2079,43 @@ apples-to-apples 비교 불가).</p>
 사람의 감독 하에서만 사용을 전제함. 향후 과제로 명시.</div>
 </div>
 
-<h3 class="cat"><span class="tag t-pending">논의 필요 — 재검토 결과 새 실기가 실제로 필요함</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
-<div class="item pending">
-<h4>재검토(2026-09-14) — 기존 100건은 "5개 방향"일 뿐, 물리적 조건은 전부 동일했음</h4>
+<h3 class="cat"><span class="tag t-pending">확정 — 이번 주(2026-09-14~09-20) 내 실행</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
+<div class="item done" style="border-left-color:#38bdf8">
+<h4>재심 기한 확인됨 — 2026-09-14(월) 기준 이번 주 내</h4>
 <div class="body">
-<p>다시 확인해보니 "5개 시작 위치"는 실제로는 <strong>타겟 방향(각도) 5가지</strong>였고,
-로봇의 물리적 출발 지점·카메라 배치·트랙은 100건 전부 <strong class="r">동일</strong>했습니다.
-즉 위원1-②/3-①이 요구한 "출발 위치·카메라 위치·시간(조도) 변화에 따른 일반화"는
-<strong class="r">기존 데이터로 답할 수 없고, 서술로 넘길 수 있는 항목이 아닙니다</strong> —
-실제로 새 실기가 필요합니다.</p>
+<p>실기에 필요한 최대 시간(60회 기준 총 60~120분)이 남은 기한(5~6일)에 비해 여유가 충분해,
+<strong class="h">기존 프로토콜과 동일 규격인 n=20(조건당)으로 진행</strong>하기로 확정합니다
+(n=15 최소안 대신 n=20 — Wilson CI 하한 76.4%로 Table 7의 다른 위치들과 직접 비교 가능).</p>
 </div>
-<h4 style="margin-top:14px">최소 실험 규모 계산</h4>
+<h4 style="margin-top:14px">제안 일정</h4>
 <div class="body">
-<p>완전 재수집(5방향×3조건×20회=300회)은 비현실적이므로, <strong>타겟 방향은 "중앙" 1개로
-고정</strong>하고(기존 100/100 중 유일한 100% 방향이라 조건 변화로 인한 하락을 가장 민감하게
-감지 가능) 3가지 새 조건만 바꿔 각각 측정하는 안을 제안합니다.</p>
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
-<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">n(조건당)</th><th style="text-align:left;padding:4px 8px">95% 성공 가정 시 Wilson 95% CI 하한</th><th style="text-align:left;padding:4px 8px">해석</th></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">10</td><td style="padding:4px 8px">72.2%</td><td style="padding:4px 8px">방향성만 확인, CI 매우 넓음</td></tr>
-<tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>15</strong></td><td style="padding:4px 8px"><strong>70.2%</strong></td><td style="padding:4px 8px"><strong>최소 권장선</strong> — "붕괴하지 않았다"는 근거로 충분</td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">20</td><td style="padding:4px 8px">76.4%</td><td style="padding:4px 8px">기존 위치별 프로토콜(n=20)과 동일 규격, 직접 비교 가능</td></tr>
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">일자</th><th style="text-align:left;padding:4px 8px">작업</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-15(화)~09-16(수)</td><td style="padding:4px 8px">실기 실행 — 조건 A(새 출발위치) 20회, 조건 B(새 카메라 배치) 20회, 조건 C(조도 변화) 20회. 총 60~120분이라 하루에 다 몰아서 해도 되고 이틀에 나눠도 됨</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-17(목)</td><td style="padding:4px 8px">episode_log.csv 기록 + 결과 정리(성공률·Wilson CI), Table 7 옆에 신규 표로 추가, model_architecture_brief.html·revision_briefing.html 반영</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-18(금)</td><td style="padding:4px 8px">논문 본문(§4 Discussion 또는 Limitation) 반영, 서술 보강 6건 최종 확인</td></tr>
+<tr><td style="padding:4px 8px">09-19(토)~09-20(일)</td><td style="padding:4px 8px">여유일 — 재실기 필요시 백업, 최종 검토</td></tr>
 </table>
-<p><strong class="h">제안: 3조건 × 15회 = 45회</strong> (여유 있으면 3조건 × 20회 = 60회로
-기존 프로토콜과 동일 규격 맞추기).</p>
+<p style="font-size:0.82rem;color:#94a3b8">실기는 <strong class="h">최대한 빨리(가능하면 09-15~16 중)</strong> 끝내는 게 좋습니다 —
+결과에 따라 서술 방향(성능 유지 vs 저하 관찰 시 원인 분석)이 달라질 수 있어 뒤 작업이 이 결과에 의존합니다.</p>
+</div>
+</div>
+
+<div class="item done">
+<h4>확정된 실험 설계 — 3조건 × n=20 = 총 60회</h4>
+<div class="body">
+<p>타겟 방향은 <strong>"중앙" 1개로 고정</strong>(기존 100/100 중 유일한 100% 방향이라 조건 변화로
+인한 하락을 가장 민감하게 감지 가능)하고, 3가지 새 조건만 바꿔 각각 <strong class="h">n=20회</strong>
+측정합니다(Wilson 95% CI 하한 76.4% — 기존 위치별 프로토콜과 동일 규격이라 Table 7과 직접 비교 가능).
+완전 재수집(5방향×3조건×20회=300회) 대비 훨씬 현실적입니다.</p>
 <ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px">
-<li><b>조건 A — 새 출발 위치</b>: 기존 트랙 내 다른 지점에서 출발(로봇↔타겟 상대 거리/각도는 유지)</li>
-<li><b>조건 B — 새 카메라 배치</b>: 카메라 높이 또는 tilt 각도를 기존 대비 변경</li>
-<li><b>조건 C — 조도 변화</b>: 야간/조명 축소 또는 커튼으로 자연광 변화</li>
+<li><b>조건 A — 새 출발 위치</b>: 기존 트랙 내 다른 지점에서 출발(로봇↔타겟 상대 거리/각도는 유지), 20회</li>
+<li><b>조건 B — 새 카메라 배치</b>: 카메라 높이 또는 tilt 각도를 기존 대비 변경, 20회</li>
+<li><b>조건 C — 조도 변화</b>: 야간/조명 축소 또는 커튼으로 자연광 변화, 20회</li>
 </ul>
 <p style="font-size:0.82rem;color:#94a3b8">에피소드당 평균 11.64스텝(95/100 기준) ×
-~1.2초/스텝(실측 지연 평균) ≈ <strong>약 20~30초/회</strong> + 리셋/재배치 오버헤드(약 30~60초/회)
-→ 45회 기준 <strong>총 45~90분</strong>, 60회 기준 <strong>총 60~120분</strong> 예상(재배치 방식에
-따라 변동). 실기 1회 세션으로 충분히 끝낼 수 있는 규모입니다.</p>
-<p style="font-size:0.82rem;color:#fbbf24">재심 기한을 알려주시면 이 규모가 기한 내 가능한지
-바로 확인하고, 필요시 n을 조정하겠습니다.</p>
+~1.2초/스텝(실측 지연 평균) ≈ 약 20~30초/회 + 리셋/재배치 오버헤드(약 30~60초/회)
+→ 60회 기준 <strong class="h">총 60~120분</strong> 예상(재배치 방식에 따라 변동).</p>
 </div>
 </div>
 </div>
