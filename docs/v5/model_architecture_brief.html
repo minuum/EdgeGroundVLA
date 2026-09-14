@@ -76,7 +76,7 @@ td.c,th.c{font-variant-numeric:tabular-nums}
 <div class="wrap">
 
 <h1>EdgeGround-VLA 모델 구조 &amp; 학습 방식 정리</h1>
-<div class="sub">미팅 발표용 · <strong style="color:#4ade80">최종 수정 2026-08-27</strong> (전면 리빌드 — 레거시 서술 정리, 직전 2026-08-19) · 모든 수치는 코드/체크포인트에서 직접 측정한 실측값
+<div class="sub">미팅 발표용 · <strong style="color:#4ade80">최종 수정 2026-09-14</strong> (심사 대응 — OWL-v2/Kosmos-2 기여도 ablation 추가, 직전 2026-08-27) · 모든 수치는 코드/체크포인트에서 직접 측정한 실측값
 &nbsp;|&nbsp; <a href="research_story.html#ch64">근거 상세 → CH64</a>&nbsp;|&nbsp; <a href="owlv2_grounder_brief.html" style="color:#f0abfc">OWL-v2 그라운더 정리 →</a></div>
 
 <div class="key">
@@ -367,6 +367,28 @@ host RAM에 올린 뒤 <code>.vision_model</code>만 떼어 썼기 때문입니�
 <p><strong class="h">파라미터 수와 속도가 역전</strong>되어 있습니다 — OWL-v2는 Kosmos-2 비전의
 절반 크기인데 <strong class="h">35배 느립니다</strong>. 따라서 "파라미터 수 줄이기"로는
 경량화가 되지 않고, 검출 단계를 직접 손대야 합니다.</p>
+
+<h3>OWL-v2 단독 / Kosmos-2 단독 / 융합 — 그라운딩 인코더 기여도 ablation (2026-09-14 추가)</h3>
+<p>배포와 동일 조건(exp73 split·MLP·window=6·bbox_scale=3.0, val=33ep/2,431프레임, 3-seed)에서
+입력 특징만 3갈래로 나눠 학습해 각 인코더의 기여도를 분리했습니다
+(<code>scripts/ablate_owlv2_kosmos2_fusion.py</code>).</p>
+<table>
+<tr><th>조건</th><th class="c">입력 차원</th><th class="c">val acc (3-seed)</th></tr>
+<tr><td>OWL-v2 bbox 단독</td><td class="c">24 (4×window6)</td><td class="c">64.09% ± 0.34%p</td></tr>
+<tr><td>Kosmos-2 vision 단독</td><td class="c">1536 (256×window6)</td><td class="c">73.71% ± 0.10%p</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td><strong>융합(배포 구성)</strong></td><td class="c">1560 (260×window6)</td><td class="c g"><strong>73.87% ± 0.20%p</strong></td></tr>
+</table>
+<div class="key">
+<strong class="h">핵심 발견</strong> — Kosmos-2 비전 특징이 성능의 대부분(73.71%)을 이미 담당하고,
+OWL-v2 bbox 4채널 단독으로도 무작위(8-class chance=12.5%)를 크게 상회하는 64.09%를 냅니다.
+그러나 <strong class="h">융합은 비전 단독 대비 +0.16%p</strong>로 이득이 작습니다 — 두 인코더는
+상호보완적이지만, <strong class="h">시각 표현(Kosmos-2)이 결정에 더 크게 기여하고 위치 신호(OWL-v2)는
+보조적</strong>입니다. best seed(74.13%)는 배포 체크포인트의 저장값(74.13%)과 정확히 일치해
+ablation 파이프라인이 배포 조건과 동일함을 확인했습니다.
+</div>
+<p style="font-size:0.82rem;color:var(--dim)">다른 그라운더 조합(PG2 기반, Exp14)에서도 같은 방향의
+결과(bbox_only 67.4% / image_only 75.6% / 융합 76.7%)가 이미 관측된 바 있어, "이미지가 핵심·bbox는
+보조"라는 결론이 그라운더를 OWL-v2로 바꿔도 재현됩니다.</p>
 
 <h2>3. 학습 방식</h2>
 
