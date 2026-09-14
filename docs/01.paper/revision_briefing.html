@@ -1953,6 +1953,45 @@ inference-integration·monavla-driving 양쪽 push 완료). 위 사진 기반 �
 <p style="font-size:0.85rem;color:#94a3b8">심사위원1(수정 후 재심) · 심사위원2(수정 후 게재) · 심사위원3(수정 후 재심).
 아래는 서술 보강만으로 해결 가능한 항목과, 실제 데이터/실험이 필요했던 항목을 구분해 정리한 기록입니다.</p>
 
+<h3 class="cat" style="border-color:rgba(96,165,250,0.5)"><span class="tag t-pending" style="background:#1e3a5f;color:#93c5fd;border-color:#3b82f6">원문 그대로</span> 심사위원 리뷰 원문 (토시 하나 수정 없이 그대로 인용)</h3>
+<div style="background:#0d1117;border:1px solid #1e293b;border-radius:8px;padding:16px 18px;margin:8px 0 20px">
+<p style="font-size:0.8rem;color:#64748b;margin:0 0 10px">아래는 심사위원 리뷰 원문을 그대로 붙여넣은 것입니다 — 표현·오타·띄어쓰기 포함 일체 수정하지 않았습니다. 답변은 각 문단 아래 별도 박스로 구분해 넣습니다.</p>
+
+<div style="background:#111827;border-left:3px solid #64748b;border-radius:0 6px 6px 0;padding:10px 14px;margin:10px 0">
+<pre style="white-space:pre-wrap;font-family:inherit;font-size:0.85rem;color:#cbd5e1;margin:0;line-height:1.8">심사총평 – 수정 후 재심
+
+심사위원 1(수정 후 재심), 심사위원 2(수정 후 게제), 심사위원 3(수정 후 재심)</pre>
+</div>
+
+<p style="font-size:0.82rem;color:#f87171;font-weight:700;margin:16px 0 4px">심사위원1 (수정 후 재심)</p>
+<div style="background:#111827;border-left:3px solid #f87171;border-radius:0 6px 6px 0;padding:10px 14px;margin:6px 0">
+<pre style="white-space:pre-wrap;font-family:inherit;font-size:0.85rem;color:#cbd5e1;margin:0;line-height:1.8">본 논문은 클라우드 기반 대규모 VLM이나 사전 구축된 토폴로지 맵에 의존하지 않고, 로봇 내부에서 목표 지향 주행을 수행하는 EdgeGround-VLA를 제안했습니다. OWLv2의 객체 위치 정보와 Kosmos-2 비전 인코더의 시각 표현을 결합하고, 소형 MLP action head를 통해 8개 이산 행동을 3-DoF 명령으로 변환 및 학습 후 성능을 잘 나타내었습니다. 아래의 사항들을 고려하면 좋을것으로 보입니다.
+1. 연구에서 사용한 서로 다른 grounding encoder 에 대한 융합 효과를 보여줄 수 있는 ablation study가 필요할 것으로 보입니다.
+2. 실제 주행 실험이 학습 환경과 얼마나 독립적인지 불명확한 것으로 보여집니다. 학습/테스트 목표의 동일성, 출발 위치, 카메라 위치, 시간 변화 등 다양한 환경에 대한 조건들을 함께 제시하고 그 변화에 따른 성능을 함께 보여주어야, 해당 연구에 대한 일반화 성능을 확인할 수 있을 것으로 보입니다.
+3. 연구에서 사용한 Lightweight 단어 사용에 있어 명확히 할 필요가 있어 보입니다. 해당 연구에서의 모델에 대한 파라미터 수가 상대적으로 적은것을 기반으로 해당 단어를 사용했지만, 실제 추론 시, 해당 모델 외에도 vision encoder 및 OWLv2 모두가 함께 들어가야 하기 때문에, 실제 모델의 경량화라고 보기 어려우며, 이에 따라, 해당 부분의 단어 정의 또는 사용에 있어서 검토가 필요할 것으로 보입니다.</pre>
+</div>
+
+<p style="font-size:0.82rem;color:#4ade80;font-weight:700;margin:16px 0 4px">심사위원2 (수정 후 게재)</p>
+<div style="background:#111827;border-left:3px solid #4ade80;border-radius:0 6px 6px 0;padding:10px 14px;margin:6px 0">
+<pre style="white-space:pre-wrap;font-family:inherit;font-size:0.85rem;color:#cbd5e1;margin:0;line-height:1.8">본 논문은 대규모 VLM의 높은 연산량과 사전 인프라 의존성 문제를 해결하기 위해, 이종 그라운딩 인코더를 융합한 경량 온디바이스 내비게이션 모델인 EdgeGround-VLA를 제안하였습니다. 전체 파라미터 중 단 1.128M개만 학습하는 효율적인 구조로, Jetson Orin NX 환경에서 평균 95.0%의 높은 실기 성공률을 달성한 점은 매우 실용적이고 우수한 성과입니다.특히 추론 파이프라인의 구성 요소별 지연시간을 정밀하게 측정하여 OWLv2 그라운딩 단계가 연산의 주요 병목(약 97%)임을 밝히고, 향후 초저자원 플랫폼 확장 시 우선 최적화 방향을 명확히 제시한 분석이 돋보입니다.
+다만 연구 범위가 사전에 정의된 제한된 어휘(Constrained Vocabulary) 및 고정 목표 지점으로 한정되어 있으므로, 미학습 표현에 대한 제로샷 일반화 한계성을 본문 내에서 조금 더 명확히 강조해 준다면 조금더 논문의 기여도가 명확해질것입니다.</pre>
+</div>
+
+<p style="font-size:0.82rem;color:#fbbf24;font-weight:700;margin:16px 0 4px">심사위원3 (수정 후 재심)</p>
+<div style="background:#111827;border-left:3px solid #fbbf24;border-radius:0 6px 6px 0;padding:10px 14px;margin:6px 0">
+<pre style="white-space:pre-wrap;font-family:inherit;font-size:0.85rem;color:#cbd5e1;margin:0;line-height:1.8">온디바이스 정상 작동과 3-DoF 이동 명령 생성을 실제 플랫폼에서 검증한 점은 학술적 의의가 있다고 판단됩니다.
+1. 다만, 평가가 5개 고정 목표 지점, 총 100회 에피소드에 한정되어 있어 일반화에 대한 강화 주장으로 보기에는 범위가 좁습니다.
+2. 저자도 언급한 바와 같이 "Map-free / tour-free 내비게이션"을 향후 과제로 남겨 두었으므로, 본 논문의 현재 범위를 과장하지 않는 서술이 필요합니다.
+3. 목표 성공률 비교에서 Mobility VLA(86~90%)와 직접 동일 조건 비교가 아니라면 의미가 있을지 의문입니다. 오히려 논문의 신뢰성에 문제가 되지 않을지.
+4. 'OWLv2와 Kosmos-2 비전 인코더는 모두 고정된 상태로 사용되어 사전 학습된 그라운딩 지식을 그대로 재사용'하였다고 기술하였는데, 두 인코더 표현을 어떻게 결합하고 어떤 경우에 어느 인코더가 결정에 더 기여하는지 서술이 더 있으면 어떨지? 고정된 상태라 함은 별도의 변경없이 사용됨을 의미하는지?
+5. 서빙 제어 로직에서 언급한 네 가지외에 조건 분기 논리나 특히, 실패 케이스가 더 구체적으로 추가되면 재현성과 신뢰성에 기여되지 않을까 판단됩니다.
+6. 가능하면 표와 이미지 등은 논문에 인덱스을 언급하여 설명이 기술되어야 합니다.
+7. 실험 등에서 평가환경이나 목표 지점 선정 기준, 실패 원인 분류에 대한 분석 등이 기술되면 보다 설득력을 발휘하지 않을까 합니다.
+8. 충돌 방지와 같이 안전 관련 요소가 로직에서 어떻게 처리되는지? 실제 운용에서 어떤 위험성이 존재하는지에 대한 논의가 필요합니다.
+9. 학습에 사용한 데이터, 조건, 하이퍼파라미터 등이 요약 수준 이상으로 충분히 기술되어야 합니다.</pre>
+</div>
+</div>
+
 <h3 class="cat" id="ablation-owl-kosmos"><span class="tag t-pending">완료</span> OWL-v2/Kosmos-2 기여도 ablation (심사위원1-①, 심사위원3-④)</h3>
 <div class="item done">
 <h4>배포 조건 동일 3-way ablation — 2026-09-14 실행</h4>
