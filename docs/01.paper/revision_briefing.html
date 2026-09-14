@@ -1974,9 +1974,30 @@ model's accuracy (73.71% vs. 73.87%, 3-seed mean), while the bbox-only condition
 chance (64.09% vs. 12.5% for 8 classes), trails both. This indicates the two encoders are
 complementary but not equally load-bearing: Kosmos-2's visual representation drives most of the
 decision, while OWLv2's positional signal contributes a smaller, consistent gain.</p>
+
+<p style="font-size:0.82rem;color:#60a5fa;font-weight:700;margin:16px 0 8px">클래스별 분해 — "어느 경우에" 더 구체적으로 (2026-09-14 추가)</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">클래스</th><th style="text-align:left;padding:4px 8px">bbox_only</th><th style="text-align:left;padding:4px 8px">image_only</th><th style="text-align:left;padding:4px 8px">fused</th><th style="text-align:left;padding:4px 8px">해석</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">STOP</td><td style="padding:4px 8px"><strong>91.8%</strong></td><td style="padding:4px 8px">87.0%</td><td style="padding:4px 8px">84.5%</td><td style="padding:4px 8px">위치/면적 신호가 핵심</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">평행이동 5종(F/L/R/FL/FR)</td><td style="padding:4px 8px">53~65%</td><td style="padding:4px 8px"><strong>65~76%</strong></td><td style="padding:4px 8px">66~76%</td><td style="padding:4px 8px">시각 특징이 유리</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">ROT_L</td><td style="padding:4px 8px"><strong>100.0%</strong></td><td style="padding:4px 8px">33.3%</td><td style="padding:4px 8px">50.0%</td><td style="padding:4px 8px">위치 신호가 압도적</td></tr>
+<tr><td style="padding:4px 8px">ROT_R</td><td style="padding:4px 8px"><strong>86.4%</strong></td><td style="padding:4px 8px">45.5%</td><td style="padding:4px 8px">31.8%</td><td style="padding:4px 8px">동일, fused가 가장 낮음</td></tr>
+</table>
+<p style="font-size:0.82rem;color:#fbbf24">⚠️ ROT_L/ROT_R은 val 33ep 중 약 1.15%(28프레임)뿐이라 표본이 작음 — "융합이 희귀 클래스에서
+다수 클래스(평행이동)의 시각 신호에 가려질 수 있다"는 관찰이지 확정된 통계적 결론은 아님. 논문에 넣을 때
+이 caveat을 반드시 함께 명시.</p>
+<p style="font-size:0.82rem;color:#4ade80;font-weight:700;margin:12px 0 8px">📋 복붙용 — 클래스별 분해 문단</p>
+<p style="font-size:0.85rem;color:#4ade80;background:#0f2a1f;padding:8px 10px;border-radius:4px">
+Breaking the ablation down by class reveals a division of labor: STOP and in-place rotation
+(ROT_L/ROT_R) are predicted far more accurately from bbox features alone (91.8%, 100.0%, 86.4%)
+than from vision features alone (87.0%, 33.3%, 45.5%), while the five translational classes favor
+vision. This is consistent with STOP and rotation depending primarily on the target's screen
+position and proximity rather than its visual appearance. Note that ROT_L/ROT_R make up only
+~1.15% of the validation set (28 of 2,431 frames), so this per-class breakdown should be read as
+an observation warranting further study rather than a statistically confirmed effect.</p>
 </div>
 
-<h3 class="cat"><span class="tag t-pending">완료</span> 서술 보강만으로 해결 (심사위원1-③, 2, 3-②③④⑥⑨)</h3>
+<h3 class="cat"><span class="tag t-pending">완료</span> 서술 보강만으로 해결 (심사위원1-③, 2, 3-②③④⑥⑦⑨)</h3>
 <div class="item done">
 <h4>Lightweight 용어 재정의 (심사위원1 의견3)</h4>
 <div class="body">"Lightweight"는 <strong>추론 시 전체 모델 경량화</strong>가 아니라 <strong>학습되는
@@ -2019,8 +2040,21 @@ Limitation 절에 명시. Map-free/tour-free 내비게이션은 <strong>Future W
 <div class="body">Table 5(학습 하이퍼파라미터)의 요약 수준을 넘어, threshold/bbox_scale/class weight
 각 항목이 "왜 그 값인지"를 본문 서술로 확장(위 "복붙용" 문단들 참조 — 이미 이 페이지에 준비돼 있음).</div>
 </div>
+<div class="item done">
+<h4>목표 지점 선정 기준 (심사위원3 의견7 일부, 2026-09-14 추가)</h4>
+<div class="body">실기 5개 목표 방향(중앙·강좌·약좌·강우·약우)은 임의 선정이 아니라
+<strong>Stage 1의 5-class 방향 대조학습 카테고리(강좌/약좌/중앙/약우/강우)와 정확히 대응</strong>함을
+명시 — 모델이 학습 단계에서 구분하도록 훈련된 방향 스펙트럼 전체를 실기 평가가 그대로 커버하도록
+설계됐다는 근거. (의견7의 나머지 절반, "실패 원인 분류"는 아래 데이터 한계 항목 참조.)</div>
+<p style="font-size:0.82rem;color:#4ade80;font-weight:700;margin:12px 0 8px">📋 복붙용</p>
+<p style="font-size:0.85rem;color:#4ade80;background:#0f2a1f;padding:8px 10px;border-radius:4px">
+The five target directions used in real-robot evaluation (center, strong/weak-left,
+strong/weak-right) were not chosen arbitrarily: they correspond exactly to the 5-class direction
+taxonomy used in Stage 1's contrastive anchor training. The evaluation therefore spans the full
+directional spectrum the model was trained to discriminate, rather than an ad hoc subset.</p>
+</div>
 
-<h3 class="cat"><span class="tag t-pending">데이터 한계로 서술 대체</span> 실패 케이스 분류 (심사위원3 의견5, 7)</h3>
+<h3 class="cat"><span class="tag t-pending">데이터 한계로 서술 대체</span> 실패 케이스 원인 분류 (심사위원3 의견5, 7 나머지)</h3>
 <div class="item pending">
 <h4>95/100 헤드라인 배치의 개별 실패 원인은 재구성 불가 — 정직하게 명시</h4>
 <div class="body">
@@ -2045,11 +2079,41 @@ apples-to-apples 비교 불가).</p>
 사람의 감독 하에서만 사용을 전제함. 향후 과제로 명시.</div>
 </div>
 
-<h3 class="cat"><span class="tag t-pending">논의 필요 — 미결정</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
+<h3 class="cat"><span class="tag t-pending">논의 필요 — 재검토 결과 새 실기가 실제로 필요함</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
 <div class="item pending">
-<h4>새 출발위치/카메라/조도 조건 추가 실기 — 재심 기한 확인 후 결정</h4>
-<div class="body">유일하게 로봇 재출동이 필요한 항목. 재심 기한이 정해지면 기한 내 가능한 조건 수 ×
-회당 시행 횟수를 역산해 별도로 계획할 것.</div>
+<h4>재검토(2026-09-14) — 기존 100건은 "5개 방향"일 뿐, 물리적 조건은 전부 동일했음</h4>
+<div class="body">
+<p>다시 확인해보니 "5개 시작 위치"는 실제로는 <strong>타겟 방향(각도) 5가지</strong>였고,
+로봇의 물리적 출발 지점·카메라 배치·트랙은 100건 전부 <strong class="r">동일</strong>했습니다.
+즉 위원1-②/3-①이 요구한 "출발 위치·카메라 위치·시간(조도) 변화에 따른 일반화"는
+<strong class="r">기존 데이터로 답할 수 없고, 서술로 넘길 수 있는 항목이 아닙니다</strong> —
+실제로 새 실기가 필요합니다.</p>
+</div>
+<h4 style="margin-top:14px">최소 실험 규모 계산</h4>
+<div class="body">
+<p>완전 재수집(5방향×3조건×20회=300회)은 비현실적이므로, <strong>타겟 방향은 "중앙" 1개로
+고정</strong>하고(기존 100/100 중 유일한 100% 방향이라 조건 변화로 인한 하락을 가장 민감하게
+감지 가능) 3가지 새 조건만 바꿔 각각 측정하는 안을 제안합니다.</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">n(조건당)</th><th style="text-align:left;padding:4px 8px">95% 성공 가정 시 Wilson 95% CI 하한</th><th style="text-align:left;padding:4px 8px">해석</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">10</td><td style="padding:4px 8px">72.2%</td><td style="padding:4px 8px">방향성만 확인, CI 매우 넓음</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>15</strong></td><td style="padding:4px 8px"><strong>70.2%</strong></td><td style="padding:4px 8px"><strong>최소 권장선</strong> — "붕괴하지 않았다"는 근거로 충분</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">20</td><td style="padding:4px 8px">76.4%</td><td style="padding:4px 8px">기존 위치별 프로토콜(n=20)과 동일 규격, 직접 비교 가능</td></tr>
+</table>
+<p><strong class="h">제안: 3조건 × 15회 = 45회</strong> (여유 있으면 3조건 × 20회 = 60회로
+기존 프로토콜과 동일 규격 맞추기).</p>
+<ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px">
+<li><b>조건 A — 새 출발 위치</b>: 기존 트랙 내 다른 지점에서 출발(로봇↔타겟 상대 거리/각도는 유지)</li>
+<li><b>조건 B — 새 카메라 배치</b>: 카메라 높이 또는 tilt 각도를 기존 대비 변경</li>
+<li><b>조건 C — 조도 변화</b>: 야간/조명 축소 또는 커튼으로 자연광 변화</li>
+</ul>
+<p style="font-size:0.82rem;color:#94a3b8">에피소드당 평균 11.64스텝(95/100 기준) ×
+~1.2초/스텝(실측 지연 평균) ≈ <strong>약 20~30초/회</strong> + 리셋/재배치 오버헤드(약 30~60초/회)
+→ 45회 기준 <strong>총 45~90분</strong>, 60회 기준 <strong>총 60~120분</strong> 예상(재배치 방식에
+따라 변동). 실기 1회 세션으로 충분히 끝낼 수 있는 규모입니다.</p>
+<p style="font-size:0.82rem;color:#fbbf24">재심 기한을 알려주시면 이 규모가 기한 내 가능한지
+바로 확인하고, 필요시 n을 조정하겠습니다.</p>
+</div>
 </div>
 </div>
 
