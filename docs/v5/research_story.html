@@ -355,13 +355,16 @@
     <a href="../01.paper/redfill_draft_0805.html" style="padding:7px 16px;background:#052e16;border:1px solid #22c55e;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">📄 절별 초고</a>
     <a href="model_architecture_brief.html" style="padding:7px 16px;background:#1e0a2b;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🏗 모델 구조 &amp; 학습 방식</a>
     <a href="owlv2_grounder_brief.html" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🎯 OWL-v2 그라운더 정리</a>
+    <a href="#ch69" style="padding:7px 16px;background:#052e16;border:1px solid #4ade80;border-radius:8px;font-size:0.78rem;font-weight:800;color:#86efac;text-decoration:none">🎯 CH69 phrase 그라운딩 대발견</a>
+    <a href="#ch70" style="padding:7px 16px;background:#2a1608;border:1px solid #fb923c;border-radius:8px;font-size:0.78rem;font-weight:800;color:#fdba74;text-decoration:none">🧪 CH70 헤드 6종 vs soft label</a>
+    <a href="#ch71" style="padding:7px 16px;background:#1a2408;border:1px solid #a3e635;border-radius:8px;font-size:0.78rem;font-weight:800;color:#bef264;text-decoration:none">📚 CH71 LLM Wiki 구축</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
     <a href="#ch68" style="padding:7px 16px;background:#1a1033;border:1px solid #a78bfa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🗣 CH68 언어조건화 계획</a>
     <a href="#ch67" style="padding:7px 16px;background:#2b0a26;border:1px solid #f0abfc;border-radius:8px;font-size:0.78rem;font-weight:700;color:#f5d0fe;text-decoration:none">🧭 CH67 차기 구성 검정</a>
     <a href="#ch66" style="padding:7px 16px;background:#2b1f05;border:1px solid #fbbf24;border-radius:8px;font-size:0.78rem;font-weight:700;color:#fcd34d;text-decoration:none">⚖️ CH66 좌우 비대칭 원인</a>
     <a href="../plans/plan_20260801_specialized_detector.md" style="padding:7px 16px;background:#052e16;border:1px solid #15803d;border-radius:8px;font-size:0.78rem;font-weight:700;color:#86efac;text-decoration:none">📋 검출기 계획서</a>
-    <a href="../index.html#archive" style="padding:7px 16px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">📦 이전 자료 모음</a>
+    <a href="../research_dashboard.html#archive" style="padding:7px 16px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">📦 이전 자료 모음</a>
     <a href="../index.html" style="padding:7px 16px;background:#0a1628;border:1px solid #334155;border-radius:8px;font-size:0.78rem;color:#94a3b8;text-decoration:none">🏠 메인</a>
   </div>
 </div>
@@ -11871,7 +11874,7 @@ graph TD
 
   <div style="text-align:right;color:#334155;font-size:0.75rem;margin-top:12px">
     plans: plan_20260622_train_inference_image_pipeline_unify.md &nbsp;|&nbsp;
-    <a href="https://github.com/minuum/MoNaVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a> &nbsp;|&nbsp; 2026-06-22
+    <a href="https://github.com/minuum/EdgeGroundVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a> &nbsp;|&nbsp; 2026-06-22
   </div>
 </div>
 
@@ -15587,7 +15590,7 @@ graph TD
 
   <!-- 64-12 HELD-aware 학습 -->
   <div class="finding-card" style="border-color:#22c55e">
-    <div class="finding-title" style="color:#4ade80">✅ 64-12. HELD-aware 재학습 — 다수결 라벨로 12→28% (재수집 없이 가능한 첫 완화책)</div>
+    <div class="finding-title" style="color:#4ade80">✅ 64-12. HELD-aware 재학습 — majority-vote 라벨로 12→28% (재수집 없이 가능한 첫 완화책)</div>
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       64-10/64-11에서 "판단 자체가 1.3Hz로 느려지고 그 사이 유지된다(HELD)"는 게
       진짜 배포 조건임을 확인했으니, 이번엔 <strong style="color:#e2e8f0">그 조건을
@@ -15599,13 +15602,13 @@ graph TD
         <tr style="border-bottom:1px solid #334155"><th style="text-align:left;padding:4px">학습 방식</th><th style="padding:4px">HELD Success(3-seed)</th></tr>
         <tr><td style="padding:4px">baseline(연속 6Hz로 학습) → HELD 평가</td><td style="padding:4px;text-align:center;color:#f87171">7.1±3.8%</td></tr>
         <tr><td style="padding:4px">stride=5 입력으로 학습(64-10) → HELD 평가</td><td style="padding:4px;text-align:center">24.2±2.5%</td></tr>
-        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>hold-aware(다수결 라벨) 학습 → HELD 평가</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>28.3±3.8%</strong></td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>cadence-aligned(majority-vote 라벨) 학습 → HELD 평가</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>28.3±3.8%</strong></td></tr>
       </table>
       <br>
       <strong style="color:#e2e8f0">두 가지 확인됨</strong>: (1) baseline(연속학습)을
       HELD로 그대로 배포하면 7.1%까지 떨어짐 — <strong style="color:#e2e8f0">학습 때
       한 번도 못 본 입력 패턴(듬성듬성 window)에 노출되는 것 자체가 치명적</strong>,
-      최소한 stride를 맞춰 학습해야 함. (2) 그 위에 다수결 라벨(hold-aware)까지
+      최소한 stride를 맞춰 학습해야 함. (2) 그 위에 majority-vote 라벨(cadence-aligned)까지
       더하면 24.2%→28.3%로 추가 개선 — 재수집 없이 **학습 방식만 바꿔서 얻는 첫
       실질적 완화책**.
       <br><br>
@@ -15617,8 +15620,8 @@ graph TD
       <br><br>
       <strong style="color:#e2e8f0">그라운더 교차검증(OWL-v2)</strong>: 동일 방식을
       OWL 그라운더로도 재현 — <strong style="color:#4ade80">HELD 25.3±3.8%</strong>
-      (PG448의 28.3±3.8%와 노이즈 안에서 동급). hold-aware 학습 효과가 그라운더
-      선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·hold-aware
+      (PG448의 28.3±3.8%와 노이즈 안에서 동급). cadence-aligned 학습 효과가 그라운더
+      선택과 무관함이 다시 확인됨(64-2/64-10과 일관). soda에 baseline·cadence-aligned
       OWL 체크포인트도 함께 전달, PG448 세트와 실기 A/B 비교 요청함.
       <div style="text-align:center;margin-top:14px"><img src="ch64_figs/fig_64_12_holdaware.png" style="max-width:480px;width:100%;border-radius:8px;border:1px solid #223" alt="HELD-aware 학습 결과"></div>
     </div>
@@ -15811,7 +15814,7 @@ graph TD
     <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
       미팅 확정 목표(5위치×20개=100개)를 soda가 완주. 체크포인트는
       <code>exp73_owl_trackF_v6_mlp_holdaware_seed0.pt</code>(OWL-v2 · MLP · V6 ·
-      hold-aware · seed0). <strong style="color:#4ade80">전체 89/100(89%)</strong> —
+      cadence-aligned · seed0). <strong style="color:#4ade80">전체 89/100(89%)</strong> —
       64-11의 7/23 baseline 33.3%(7/21)에서 <strong style="color:#4ade80">전 위치 개선</strong>
       (Fisher exact p=3.3×10⁻⁷).
       <br><br>
@@ -15853,7 +15856,7 @@ graph TD
       64-15에서 <strong style="color:#e2e8f0">has_bbox=False 학습 프레임이 0.00%(0/16599)</strong>
       임을 확정했으므로, 모델은 그라운딩 실패 회복을 <strong style="color:#e2e8f0">배울 수가
       없는 구조</strong>였다. 이번 개선은 그걸 재학습으로 고친 게 아니라
-      <strong style="color:#e2e8f0">서빙 제어 계층에 명시적 회복 로직을 넣어</strong> 우회한 것:
+      <strong style="color:#e2e8f0">추론 제어 계층에 명시적 회복 로직을 넣어</strong> 우회한 것:
       <code>force_reground_on_miss</code>(미검출 다음 스텝 캐시 강제 스킵), 회전 후 강제
       재그라운딩, 회전 0.4s 제한+자동정지, 연속회전 차단, 콜드스타트 가드 3프레임.
       <br><br>
@@ -15981,7 +15984,7 @@ graph TD
       <br>
       <strong style="color:#e2e8f0">따라서 A arm = exp71 window3·bbox_scale3 + Transformer 액션 헤드</strong>
       (7/10부터 7/23 17:18까지 배포). 즉 <strong style="color:#e2e8f0">A→B는 "Transformer 헤드 →
-      MLP 헤드" 교체이자 동시에 "window 3→6 · V6 hold-aware 재학습" 교체</strong>다(그라운더는 양쪽 다 OWL-v2로 동일).
+      MLP 헤드" 교체이자 동시에 "window 3→6 · V6 cadence-aligned 재학습" 교체</strong>다(그라운더는 양쪽 다 OWL-v2로 동일).
       <br><br>
       <div style="background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;padding:10px 12px;margin:8px 0">
         <strong style="color:#38bdf8">❗ 용어 정정 — 이건 RoboVLMs 기반 헤드가 아니다.</strong>
@@ -16790,8 +16793,8 @@ graph TD
       <strong style="color:#e2e8f0">"조향 총량을 시작 위치 간에 통제한다"</strong>는 새로운 수집
       규약이 필요하다 — 에피소드 수를 맞추는 것만으로는 부족하다.
       <br><br>
-      <span style="font-size:0.8rem;color:#64748b">추가로 <strong>hold-aware 샘플링은 이 편중을
-      바꾸지 않는다</strong>는 것도 확인했다 — 좌우 격차가 프레임 단위 4.45%p에서 다수결 라벨
+      <span style="font-size:0.8rem;color:#64748b">추가로 <strong>cadence-aligned 샘플링은 이 편중을
+      바꾸지 않는다</strong>는 것도 확인했다 — 좌우 격차가 프레임 단위 4.45%p에서 majority-vote 라벨
       4.47%p로 사실상 불변이다(<code>scripts/analyze_hold_aware_labeling.py</code>).
       즉 샘플링은 시간 구조 정렬 장치이고 불균형 보정 장치가 아니다.</span>
     </div>
@@ -17254,6 +17257,92 @@ graph TD
       <br><span style="font-size:0.8rem;color:#64748b">스크립트
       <code>scripts/l1_florence2_grounder.py</code> · 결과
       <code>docs/v5/detector/l1_florence2_grounder.json</code> · 표본 68-7과 동일 200프레임</span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#ef4444">
+    <div class="finding-title" style="color:#ef4444">67-7. 그라운더 재현율 실측·상한 확인, 그라운더/비전인코더 개별·통합 Stage2 비교 (2026-08-19)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      OWL-v2와 <strong style="color:#e2e8f0">완전히 같은 2026-08-07 100세션 1087프레임</strong>에서
+      Florence-2 `&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;` 재현율을 직접 측정하고,
+      beam5·합집합·키워드 확장까지 다 시도해 상한을 확인했다.
+      <br><br>
+      <strong style="color:#e2e8f0">재현율 실측 (OWL-v2 90.5% 대비)</strong>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">방식</td><td style="padding:4px;text-align:center">재현율</td></tr>
+        <tr><td style="padding:4px">OD(beam3)</td><td style="padding:4px;text-align:center">19.4%</td></tr>
+        <tr><td style="padding:4px">DENSE_REGION_CAPTION(beam3)</td><td style="padding:4px;text-align:center">28.4%</td></tr>
+        <tr><td style="padding:4px">OD(beam5)</td><td style="padding:4px;text-align:center">20.7%</td></tr>
+        <tr><td style="padding:4px">DENSE(beam5)</td><td style="padding:4px;text-align:center">31.9%</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>OD∪DENSE(beam5) — 최선</strong></td><td style="padding:4px;text-align:center"><strong>34.7%</strong></td></tr>
+        <tr><td style="padding:4px">키워드 어휘 확장(laundry/garbage/bucket 등)</td><td style="padding:4px;text-align:center">효과 0.0%p</td></tr>
+      </table>
+      키워드 확장이 전혀 효과가 없었다는 건 병목이 매칭 규칙이 아니라
+      <strong style="color:#e2e8f0">Florence-2가 해당 프레임에서 물체 자체를 인식/서술하지 못한다</strong>는
+      뜻이다. beam·합집합을 최대로 밀어붙여도 34.7%가 상한이며 OWL-v2와 55%p 이상 격차 — 검출기
+      교체 기각 확정.
+      <br><br>
+      <img src="ch64_figs/fig_florence2_case_gallery.png" style="width:100%;border-radius:8px;margin:8px 0">
+      <span style="font-size:0.78rem;color:#64748b">MISS 카테고리를 보면 바구니가 화면에 명백히
+      보이는데도 Florence-2가 "empty room with cabinet" 등 무관한 라벨만 뱉어 놓친 경우가
+      대부분 — 매칭 실패가 아니라 인식 실패.</span>
+      <br><br>
+      <strong style="color:#e2e8f0">Stage2 재학습 — 그라운더·비전인코더 개별 교체 vs 완전 통합</strong>
+      (exp73과 동일 조건, window=6·bbox_scale=3.0·3-seed. 요인 교란 방지를 위해 한 번에 하나씩
+      바꿔서 검증한 뒤, 마지막에 exp75로 합쳤다.)
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">실험</td><td style="padding:4px">그라운더</td><td style="padding:4px">비전인코더</td><td style="padding:4px;text-align:center">val_acc mean</td><td style="padding:4px">비고</td></tr>
+        <tr style="background:rgba(74,222,128,0.08)"><td style="padding:4px"><strong>exp73(베이스라인)</strong></td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center"><strong>73.87%±0.20%p</strong></td><td style="padding:4px">현재 배포</td></tr>
+        <tr><td style="padding:4px">exp74(비전만)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">75.15%±0.09%p (+1.29p)</td><td style="padding:4px">RIGHT -8.5p 회귀</td></tr>
+        <tr><td style="padding:4px">그라운더 스왑(bbox만)</td><td style="padding:4px">Florence-2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.26%±0.29%p (-0.61p)</td><td style="padding:4px">L -13.8p, ROT_L -16.7p 회귀</td></tr>
+        <tr><td style="padding:4px">exp75(완전 통합)</td><td style="padding:4px">Florence-2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">73.52%±0.25%p (-0.35p)</td><td style="padding:4px">L 53.7%(여전히 낮음), ROT_L/ROT_R은 67~68%로 회복(비전 교체 효과)</td></tr>
+      </table>
+      exp75은 그라운더 스왑 단독(73.26%)보다 소폭 낫고 exp74 비전 단독(75.15%)보다는 낮다 —
+      <strong style="color:#e2e8f0">비전 교체의 회전 클래스 개선(ROT_L/ROT_R)은 그라운더를 같이
+      바꿔도 유지</strong>되지만, <strong style="color:#e2e8f0">그라운더 교체로 인한 LEFT 클래스
+      손상은 비전을 같이 바꿔도 회복되지 않는다</strong> — 두 손실이 서로 다른 메커니즘(그라운더는
+      L 방향 bbox 자체가 부정확, 비전은 회전 관련 특징 표현력)임을 시사.
+      텍스트 프로젝션/인코더는 어떤 실험에서도 안 건드렸다(Kosmos-2 text_model 그대로,
+      배포 시 호출 안 되는 컴포넌트).
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/florence2_grounding_0807_fullbatch.py</code> ·
+      <code>scripts/florence2_grounding_0807_variants.py</code> ·
+      <code>scripts/train_exp75_florence2_full_stage2.py</code> ·
+      결과 <code>docs/v5/detector/florence2_grounding_0807_variants.json</code>,
+      <code>docs/v5/closed_loop_eval/exp75_florence2_full_stage2.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🔄 67-8. 판정 뒤집힘 — 명시적 phrase 지정으로 재현율 34.7%→84.96% (2026-08-20)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      67-7까지 전부 <strong style="color:#e2e8f0">"열린 질문"</strong>(`&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;` —
+      "이 방에 뭐가 있는지 다 말해봐" 후 우리가 키워드로 골라내는 방식)으로만 테스트했다.
+      OWL-v2처럼 <strong style="color:#e2e8f0">타겟 문구를 직접 지정</strong>하는
+      `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;` + phrase="gray basket"은 한 번도 시도하지 않았었다 —
+      해봤더니 완전히 다른 결과가 나왔다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">방식</td><td style="padding:4px;text-align:center">재현율</td></tr>
+        <tr><td style="padding:4px">OD∪DENSE(beam5, 열린 질문 최선, 67-7)</td><td style="padding:4px;text-align:center">34.7%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>CAPTION_TO_PHRASE_GROUNDING + "gray basket"</strong></td><td style="padding:4px;text-align:center"><strong>84.96%</strong></td></tr>
+        <tr><td style="padding:4px">OWL-v2(기준)</td><td style="padding:4px;text-align:center">90.5%</td></tr>
+      </table>
+      cx MAE 0.0228, <strong style="color:#e2e8f0">median AE는 0.0021</strong>로 맞을 때는 거의
+      완벽하게 맞는다(평균은 소수 큰 오차 사례에 끌려 올라간 것). 같은 100세션 1087프레임,
+      같은 OWL 정답 기준.
+      <br><br>
+      <strong style="color:#fbbf24">단, 아직 결론 못 내리는 이유</strong> — 이 태스크는
+      <strong style="color:#e2e8f0">거부 모드가 없다</strong>(coverage 100%, owl_success=0인
+      103프레임에도 무조건 뭔가 짚음). 타겟이 화면에 없을 때 "없다"고 말 못 하고 계속
+      어딘가를 가리키는 게 실전에서 얼마나 문제가 될지(오탐률/정밀도)는 <strong style="color:#e2e8f0">
+      아직 측정 못 했다</strong> — "OWL이 실패한 프레임이 진짜 타겟 부재인지, OWL도 놓친 건지"를
+      구분할 독립적 정답이 없어서다. 이 부분이 해소되기 전까지 검출기 교체 기각 판정을
+      최종 확정하지 않는다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/florence2_phrase_grounding_test.py</code> · 결과
+      <code>docs/v5/detector/florence2_phrase_grounding_0807.json</code> · 인터랙티브 확인:
+      <code>scripts/label/serve_florence2_owl_compare.py</code> (localhost:7795 `/live`,
+      `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;` 옵션)</span>
     </div>
   </div>
 
@@ -17750,9 +17839,905 @@ graph TD
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH68 ═ -->
 
+<hr class="chapter-divider">
 
+<div class="chapter" id="ch69">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#4ade80;color:#0a0f1a">CH 69</span>
+    <h2 class="chapter-title">phrase 그라운딩 대발견 — Florence-2 검출기 판정이 두 번 뒤집혔다</h2>
+    <p class="chapter-subtitle"><span style="color:#86efac;font-weight:800">2026-08-20~21</span> ·
+    CH67에서 "검출기 교체 기각 확정"까지 갔던 Florence-2가, OWL-v2처럼 <strong style="color:#e2e8f0">타겟 문구를 직접 지정</strong>하는
+    방식(`&lt;CAPTION_TO_PHRASE_GROUNDING&gt;`)을 처음 시도하자 재현율이 34.7%→84.96%(실기)→100%(V6 사람검증)로 뛰었다.</p>
+  </div>
 
+  <div class="callout critical">
+    🟢 <strong>3줄 요약</strong><br>
+    ① 지금까지 전부 <strong>"열린 질문"</strong>(`&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;` — "뭐가 있는지 다 말해봐" 후 키워드로 골라냄)만
+    시도했다 — 이건 태생적으로 재현율 상한이 낮다(beam5+합집합+키워드확장 다 해도 34.7%).<br>
+    ② <strong style="color:#86efac">OWL-v2처럼 타겟을 직접 지정</strong>하는 `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;`+"gray basket"으로
+    바꾸니 0807 실기 배치 재현율 84.96%, V6 학습셋 사람 검증(최종 n=329, 클릭 기반 독립 GT)에서는 <strong style="color:#4ade80">100%</strong>.<br>
+    ③ 이 과정에서 두 개의 자체 버그(BGR/RGB 채널 반전, 순환논리 우려)를 스스로 발견·수정했고,
+    로컬 인터랙티브 검증 도구 3종을 새로 만들어 사람이 직접 그라운드 트루스를 판정할 수 있게 했다.
+  </div>
 
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">✅ 69-1. 태스크를 바꾸자 재현율이 34.7%→84.96%로 뛰었다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      67-7까지의 모든 Florence-2 그라운딩 실험은 `&lt;OD&gt;`/`&lt;DENSE_REGION_CAPTION&gt;`(열린 질문)에
+      우리가 키워드 매칭으로 후처리하는 방식이었다. 이 태스크들은 <strong style="color:#e2e8f0">"이미지에 뭐가
+      있는지 서술하라"</strong>는 지시라, 타겟을 직접 지정하는 개념 자체가 없다.
+      <br><br>
+      2026-08-20 인터랙티브 도구(`/live`)에서 우연히 `&lt;CAPTION_TO_PHRASE_GROUNDING&gt;` +
+      phrase="gray basket"(OWL-v2와 동일하게 타겟을 직접 지정하는 방식)을 시도했더니 5개 중 4개가
+      정답에 근접 — 즉시 0807 100세션 1087프레임 전체로 정식 재현율을 측정했다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">방식</td><td style="padding:4px;text-align:center">재현율(0807 실기)</td></tr>
+        <tr><td style="padding:4px">OD∪DENSE(beam5, 열린 질문 최선, CH67 67-7)</td><td style="padding:4px;text-align:center">34.7%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>CAPTION_TO_PHRASE_GROUNDING + "gray basket"</strong></td><td style="padding:4px;text-align:center"><strong>84.96%</strong></td></tr>
+        <tr><td style="padding:4px">OWL-v2(기준)</td><td style="padding:4px;text-align:center">90.5%</td></tr>
+      </table>
+      cx MAE 0.0228, <strong style="color:#e2e8f0">median AE 0.0021</strong>(맞을 때는 거의 완벽).
+      <br><br>
+      <strong style="color:#e2e8f0">왜 이렇게 다른가</strong> — Florence-2 프로세서 내부(`_construct_prompts`)가
+      태스크 토큰을 실제 자연어 문장 템플릿으로 자동 치환한다:
+      <pre style="background:#0b1220;border:1px solid #223;border-radius:6px;padding:10px 12px;margin:8px 0;font-size:0.78rem;line-height:1.7;color:#cbd5e1">'&lt;CAPTION_TO_PHRASE_GROUNDING&gt;': "Locate the phrases in the caption: {input}"
+# 실제 모델 입력 = "Locate the phrases in the caption: gray basket"</pre>
+      즉 태그는 템플릿 선택 스위치일 뿐이고, 모델이 실제로 보는 건 완전한 자연어 지시문이다 —
+      OWL-v2식 open-vocabulary 검출과 개념적으로 가장 가까운 태스크였는데 지금까지 안 써봤던 것.
+      Florence-2 공식 태스크는 총 15개(입력없음 8개 + 입력있음 7개)이고 이 중 입력을 받는
+      태스크들은 전부 비슷한 자연어 템플릿 방식이다.
+      <br><br>
+      <strong style="color:#e2e8f0">같은 8개 프레임에서 실제 비교</strong> — 초록 실선=OWL-v2 정답,
+      빨강 점선=Florence-2 예측:
+      <img src="ch64_figs/fig_florence2_prompt_comparison.png" style="width:100%;border-radius:8px;margin:8px 0">
+      <span style="font-size:0.78rem;color:#64748b">OD·DENSE(위 두 줄)는 8개 중 6~7개가 "(미검출)"인데,
+      phrase 그라운딩(맨 아래 줄)은 6/8이 초록선과 거의 겹친다 — 재현율 격차가 숫자만이 아니라
+      눈으로도 확인됨.</span>
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트 <code>scripts/florence2_phrase_grounding_test.py</code> ·
+      <code>scripts/gen_florence2_prompt_comparison_gallery.py</code> ·
+      결과 <code>docs/v5/detector/florence2_phrase_grounding_0807.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">⚠️ 69-2. 자체 발견한 버그 2건 — 색상 채널 반전, 그리고 성급한 결론</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">① BGR/RGB 채널 버그</strong> — 실제 재현율 계산 스크립트들은 문제없었지만,
+      화면에 보여주는 시각화 도구 2개(케이스 갤러리, 초기 라벨링 도구)가 0807 세션 이미지를 잘못
+      반전시켜 파란 색조로 보여주고 있었다. 육안 확인으로 발견: <strong style="color:#e2e8f0">V6 학습셋은
+      BGR 저장(반전 필요)</strong>, <strong style="color:#e2e8f0">0807 실기 세션은 이미 RGB(반전하면 안 됨)</strong> —
+      두 파이프라인이 반대 규칙을 쓴다는 걸 놓쳤던 것. 계산 결과는 무사했고 시각화만 고쳤다.
+      <br><br>
+      <strong style="color:#e2e8f0">② "OWL을 정답으로 쓰면 순환논리 아니냐" 우려</strong> — 타당한 지적이었으나
+      HSV 색상 기반 독립검증으로 확인하려던 시도는 실패(OWL vs HSV 일치율 2.95%, 연속 프레임에서
+      HSV 값이 요동쳐 그 자체로 신뢰 불가로 판정, 즉시 폐기). 대신 <strong style="color:#e2e8f0">사람이
+      직접 이미지를 보고 판정</strong>하는 라벨링 도구로 우회 — OWL 선은 참고 보조선일 뿐 최종 판정
+      기준이 아니게 설계해서 순환논리 자체를 해소했다(69-3 참조).
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🖱 69-3. 인터랙티브 검증 도구 3종 — 사람이 직접 그라운드 트루스를 만든다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      명시적 phrase 그라운딩의 유일한 약점은 <strong style="color:#e2e8f0">거부 모드가 없다는 것</strong>
+      (coverage 100% — 타겟이 없는 프레임에서도 무조건 어딘가를 짚는다). OWL이 실패한 프레임이
+      "진짜 없어서"인지 "OWL도 놓쳐서"인지 OWL 자신으로는 구분할 수 없어서, 로컬 서버 3개를 만들어
+      사람이 직접 판정하게 했다:
+      <ul style="margin:8px 0 0 20px">
+        <li><code>serve_florence2_owl_compare.py</code>(:7795) — 0807 배치 브라우저 + 실시간 임의 태스크/phrase 테스트</li>
+        <li><code>serve_v6_phrase_grounding_verify.py</code>(:7796) — <strong style="color:#e2e8f0">V6 학습셋(16599프레임)</strong> 대상,
+          목표 5개×접근 3개 색상 태그, 방향키+숫자키(1=OWLv2, 2=Florence-2, 0=타겟없음) 키보드 라벨링
+          (<code>serve_hsv_owlv2_labeler.py</code> 알고리즘 이식), OWLv2·Florence-2 독립 판정</li>
+      </ul>
+      표본 설계: succ(OWL 성공) 칸은 소량 스팟체크(과거 ROC 정탐 94.9% 참고), fail(OWL 실패) 칸은
+      <strong style="color:#e2e8f0">가능한 전부</strong>(67개 에피소드 전수, V6 자체가 후반부일수록
+      실패가 희귀해서 — 접근할수록 타겟이 커 보여서 — late×fail 칸이 11개뿐이라는 걸 이 과정에서
+      알게 됨). 총 97개 라벨링.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 69-4. V6 사람 검증 결과(초기 표본, n=97) — Florence-2 97/97(100%), OWLv2(가중) 92.8% <span style="color:#f87171;font-weight:normal;font-size:0.8rem">(⚠️ 69-11에서 329개·클릭 기반 독립 GT로 최종 재검증 — 아래 참고)</span></div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      97개 전부 라벨링 완료(2026-08-21). 표본은 succ/fail 비율이 불균등(succ 30·fail 67)해서
+      단순 평균이 아니라 <strong style="color:#e2e8f0">V6 실제 모집단(bin×owl_success 6층) 비중으로
+      가중</strong>해 추정치를 냈다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">지표</td><td style="padding:4px;text-align:center">원표본</td><td style="padding:4px;text-align:center">가중 추정(전체 V6)</td></tr>
+        <tr><td style="padding:4px">OWLv2 정확도</td><td style="padding:4px;text-align:center">43/97 (44%)</td><td style="padding:4px;text-align:center">92.8%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 정확도</strong></td><td style="padding:4px;text-align:center"><strong>97/97 (100%)</strong></td><td style="padding:4px;text-align:center"><strong>100.0%</strong></td></tr>
+      </table>
+      OWLv2 원표본이 낮아 보이는 건 fail 칸(자동 X 처리 67개)이 표본 대부분을 차지해서다 — 가중
+      추정치(92.8%)가 실제 신뢰도에 가깝고, 이전 ROC 분석(정탐 94.9%)과도 order가 맞는다.
+      <br><br>
+      <strong style="color:#fbbf24">주목할 점</strong> — Florence-2가 <strong style="color:#e2e8f0">OWL이 실패한
+      67개 프레임 전부에서도 correct</strong>로 판정됐다. 즉 이 표본 기준으로는 OWL이 놓친 걸
+      Florence-2가 전부 대신 잡아낸 셈. 다만 0807 실기 배치에서는 84.96%였던 것과 비교하면
+      **V6이 0807보다 15%p 가까이 유리한 조건**(통제된 수집 vs 실제 로봇의 다양한 각도/거리)이라는
+      뜻이기도 하다 — n=97의 표본 크기도 감안해야 한다(실기 재검증 필요, 성급한 결론 금지 원칙 유지).
+      <br><span style="font-size:0.78rem;color:#64748b">라벨: <code>docs/v5/detector/v6_phrase_grounding_human_labels.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 69-5. exp77 — phrase 그라운딩으로 재학습, 무작위 split 역대 최고 성적 + L/ROT_L 회귀 완전 해소 <span style="color:#f87171;font-weight:normal;font-size:0.8rem">(⚠️ 69-7에서 일반화 취약점 발견 — 아래 참고)</span></div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-4의 결과를 반영해 V6 전체(225ep, 16599프레임)를 phrase 그라운딩으로 재주석하고
+      (<code>gen_v6_florence2_phrase_annotation.py</code>, 라이브 샘플 5752/5752 = 100% 검출),
+      구 방식(열린 질문) 실험들을 새 방법으로 다시 만들었다:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">실험</td><td style="padding:4px">그라운더</td><td style="padding:4px">비전인코더</td><td style="padding:4px;text-align:center">val_acc mean</td><td style="padding:4px;text-align:center">best</td></tr>
+        <tr><td style="padding:4px">exp73(베이스라인)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.87%±0.20%p</td><td style="padding:4px;text-align:center">74.13%</td></tr>
+        <tr><td style="padding:4px">exp74(비전만)</td><td style="padding:4px">OWL-v2</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">75.15%±0.09%p</td><td style="padding:4px;text-align:center">75.24%</td></tr>
+        <tr><td style="padding:4px">그라운더 스왑(구, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.26%±0.29%p</td><td style="padding:4px;text-align:center">73.59%</td></tr>
+        <tr><td style="padding:4px">exp75(구 완전통합, 열린질문)</td><td style="padding:4px">Florence-2(열린질문)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center">73.52%±0.25%p</td><td style="padding:4px;text-align:center">73.84%</td></tr>
+        <tr><td style="padding:4px">exp76(신 그라운더 스왑, phrase)</td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Kosmos-2</td><td style="padding:4px;text-align:center">73.76%±0.25%p</td><td style="padding:4px;text-align:center">74.04%</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>exp77(신 완전통합, phrase) ★역대 최고</strong></td><td style="padding:4px">Florence-2(phrase)</td><td style="padding:4px">Florence-2</td><td style="padding:4px;text-align:center"><strong>75.58%±0.07%p</strong></td><td style="padding:4px;text-align:center"><strong>75.65%</strong></td></tr>
+      </table>
+      <strong style="color:#e2e8f0">exp77의 클래스별 정확도(vs exp73 베이스라인)</strong>:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">클래스</td><td style="padding:4px;text-align:center">exp73</td><td style="padding:4px;text-align:center">exp77</td><td style="padding:4px;text-align:center">변화</td></tr>
+        <tr><td style="padding:4px">STOP</td><td style="padding:4px;text-align:center">84.5%</td><td style="padding:4px;text-align:center">87.9%</td><td style="padding:4px;text-align:center;color:#4ade80">+3.4p</td></tr>
+        <tr><td style="padding:4px">F</td><td style="padding:4px;text-align:center">75.6%</td><td style="padding:4px;text-align:center">76.0%</td><td style="padding:4px;text-align:center;color:#4ade80">+0.4p</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>L</strong></td><td style="padding:4px;text-align:center">66.7%</td><td style="padding:4px;text-align:center"><strong>75.6%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+8.9p</strong></td></tr>
+        <tr><td style="padding:4px">R</td><td style="padding:4px;text-align:center">70.8%</td><td style="padding:4px;text-align:center">66.2%</td><td style="padding:4px;text-align:center;color:#f87171">-4.6p</td></tr>
+        <tr><td style="padding:4px">FL</td><td style="padding:4px;text-align:center">72.8%</td><td style="padding:4px;text-align:center">73.7%</td><td style="padding:4px;text-align:center;color:#4ade80">+0.9p</td></tr>
+        <tr><td style="padding:4px">FR</td><td style="padding:4px;text-align:center">72.8%</td><td style="padding:4px;text-align:center">73.6%</td><td style="padding:4px;text-align:center;color:#4ade80">+0.8p</td></tr>
+        <tr><td style="padding:4px">ROT_L</td><td style="padding:4px;text-align:center">50.0%</td><td style="padding:4px;text-align:center">66.7%</td><td style="padding:4px;text-align:center;color:#4ade80">+16.7p</td></tr>
+        <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px"><strong>ROT_R</strong></td><td style="padding:4px;text-align:center">31.8%</td><td style="padding:4px;text-align:center"><strong>86.4%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+54.6p</strong></td></tr>
+      </table>
+      <strong style="color:#e2e8f0">핵심</strong> — 구 방식(열린 질문 그라운더)에서 관찰됐던
+      L(-13.8p)·ROT_L(-16.7p) 회귀가 <strong style="color:#4ade80">새 방식(phrase 그라운딩)에서는
+      완전히 해소</strong>되고 오히려 L이 +8.9p 개선됐다. R만 소폭(-4.6p) 하락 — 유일한 흠.
+      분산도 exp75(±0.25%p)보다 훨씬 안정적(±0.07%p). exp76(그라운더만 교체)도 베이스라인과
+      거의 동일(73.76% vs 73.87%)해서, 구 그라운더 스왑(73.26%)의 손상이 순수히 그라운딩
+      품질 문제였음이 재확인된다.
+      <br><br>
+      <strong style="color:#fbbf24">주의</strong> — 확정 발견 6번(val 지표와 실기 성능은 직결되지 않음)은
+      여전히 유효하다. 이 표는 전부 오프라인 val 지표이며, 실기 검증은 아직 하지 않았다.
+      <br><span style="font-size:0.78rem;color:#64748b">체크포인트
+      <code>runs/v5_nav/mlp/exp77_florence2_phrase_full/exp77_florence2_phrase_full_v6_mlp.pt</code> ·
+      결과 <code>docs/v5/closed_loop_eval/exp77_florence2_phrase_full_stage2.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">⚠️ 69-6. 실기 전 오프라인 3종 보강 검증 — leave-one-direction-out에서 낙관 편향 발견</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      실기(soda) 요청 전에 val 지표만으로는 못 보는 것들을 3가지 더 확인했다.
+      <br><br>
+      <strong style="color:#f87171">① Leave-one-direction-out — 가장 중요한 발견.</strong>
+      무작위 15% split(exp77 val_acc 75.65%)은 목표5×접근3(15조합)이 train/val에
+      섞여 있어 낙관적일 수 있다. 목표(direction) 하나를 통째로 빼고(180ep로 학습,
+      나머지 45ep로 검증) 재학습해보면:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 목표</td><td style="padding:4px;text-align:center">held-out acc</td><td style="padding:4px;text-align:center">R클래스</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">66.1%</td><td style="padding:4px;text-align:center">33.0%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">68.5%</td><td style="padding:4px;text-align:center">50.0%</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>weak_right</strong></td><td style="padding:4px;text-align:center"><strong>41.7%</strong></td><td style="padding:4px;text-align:center">41.4%</td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">60.5%</td><td style="padding:4px;text-align:center">— (표본 0)</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center"><strong>33.3%</strong></td><td style="padding:4px;text-align:center">20.4%</td></tr>
+        <tr style="border-top:1px solid #334155"><td style="padding:4px"><strong>5개 평균</strong></td><td style="padding:4px;text-align:center"><strong>54.0%</strong></td><td style="padding:4px;text-align:center">—</td></tr>
+      </table>
+      무작위 split(75.65%) 대비 <strong style="color:#f87171">평균 -21.65%p</strong> — 그리고
+      좌/우가 대칭이 아니다: <strong style="color:#e2e8f0">약좌 68.5%·강좌 60.5%인데
+      약우 41.7%·강우 33.3%</strong>로 오른쪽 방향을 처음 보면 성능이 반토막 난다.
+      CH66에서 이미 확인된 좌우 비대칭이 <strong style="color:#f87171">이전에 생각했던 것보다
+      훨씬 심각</strong>할 수 있음을 시사 — 실기 요청 전에 반드시 함께 보고해야 할 리스크.
+      <br><br>
+      <strong style="color:#e2e8f0">①-b 원인 분해(confusion matrix 재분석)</strong> — "폐루프라서
+      어렵다"도 "좌우 액션 정의가 달라서"도 아니다. 실제로는: 오른쪽 방향 에피소드를 통째로
+      빼면 <strong style="color:#e2e8f0">진짜 F(전진) 프레임이 FR(전진+우회전)로 오판되는 비율이
+      폭증</strong>한다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 목표</td><td style="padding:4px;text-align:center">F→FR 오판율</td></tr>
+        <tr><td style="padding:4px">center(대조군)</td><td style="padding:4px;text-align:center">164/1412 = 11.6%</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px">weak_right</td><td style="padding:4px;text-align:center"><strong>692/1298 = 53.3%</strong></td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px">strong_right</td><td style="padding:4px;text-align:center"><strong>1176/1473 = 79.9%</strong></td></tr>
+      </table>
+      R/FR/F를 구분하려면 "타겟이 오른쪽에 보이지만 아직 멀어서 전진해야 하는 상황"과
+      "이제 꺾어야 하는 상황"을 구별해야 하는데, 오른쪽 방향 에피소드를 통째로 빼면
+      전자의 예시 자체가 학습 데이터에서 사라진다 — 그래서 오른쪽에 뭐가 보이면 무조건
+      FR로 밀어붙인다. 순수한 <strong style="color:#e2e8f0">방향별 학습 커버리지 부족</strong>이지
+      폐루프나 좌우 라벨 정의의 문제가 아니다. 좌측보다 우측이 유독 심한 이유는 미확정 —
+      사진에서 보이는 어안렌즈의 우측 압축 왜곡이 원인일 가능성은 있으나 검증된 가설은 아니다.
+      <br><br>
+      <strong style="color:#e2e8f0">② 궤적 재생 근사(폐루프 아님, exp71/72와 동일 방법론)</strong> —
+      `rollout_core.py`의 build_trajectory/compute_metrics로 exp73 vs exp77 비교:
+      exp73 success 24.2%(FPE 1.335m) → exp77 30.3%(FPE 1.120m). 절대값은 실기(95/100)와
+      거리가 멀지만(예상대로 — 확정 발견 6번) 방향은 val_acc와 일치.
+      <br><br>
+      <strong style="color:#e2e8f0">③ bbox_scale 재검증(phrase 그라운더 기준)</strong> —
+      1.0=75.62%±0.24%p · 2.0=75.55%±0.46%p(best 76.18%) · 3.0=75.58%±0.07%p.
+      그라운더가 훨씬 정확해졌어도(34.7%→100%) bbox_scale 무영향이라는 기존 결론
+      (2026-08-17, OWL 기준)이 그대로 재확인됨.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_leave_one_direction_out.py</code> ·
+      <code>scripts/eval_exp77_closed_loop_sim.py</code> ·
+      <code>scripts/eval_bbox_scale_phrase_grounder.py</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171;background:linear-gradient(135deg,#1f0a0a,#240c0c)">
+    <div class="finding-title" style="color:#f87171">🔴 69-7. exp73(배포중) apples-to-apples 비교 — exp77이 일반화에서는 오히려 진다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-6①의 leave-one-direction-out을 <strong style="color:#e2e8f0">exp73(현재 배포중, OWL bbox+Kosmos-2
+      vision)에도 똑같이</strong> 돌려 직접 비교했다 — exp77의 방향별 결함이 새로 생긴 건지
+      원래 있던 건지 확인하기 위함.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 목표</td><td style="padding:4px;text-align:center">exp73</td><td style="padding:4px;text-align:center">exp77</td><td style="padding:4px;text-align:center">exp73 R</td><td style="padding:4px;text-align:center">exp77 R</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">61.5%</td><td style="padding:4px;text-align:center">66.1%</td><td style="padding:4px;text-align:center">2.0%</td><td style="padding:4px;text-align:center">33.0%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">64.6%</td><td style="padding:4px;text-align:center">68.5%</td><td style="padding:4px;text-align:center">12.5%</td><td style="padding:4px;text-align:center">50.0%</td></tr>
+        <tr style="background:rgba(248,113,113,0.15)"><td style="padding:4px"><strong>weak_right</strong></td><td style="padding:4px;text-align:center"><strong>62.4%</strong></td><td style="padding:4px;text-align:center">41.7%</td><td style="padding:4px;text-align:center">46.3%</td><td style="padding:4px;text-align:center">41.4%</td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">58.7%</td><td style="padding:4px;text-align:center">60.5%</td><td style="padding:4px;text-align:center">4.3%</td><td style="padding:4px;text-align:center">— (표본 0)</td></tr>
+        <tr style="background:rgba(248,113,113,0.15)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center"><strong>57.1%</strong></td><td style="padding:4px;text-align:center">33.3%</td><td style="padding:4px;text-align:center">15.9%</td><td style="padding:4px;text-align:center">20.4%</td></tr>
+        <tr style="border-top:1px solid #334155"><td style="padding:4px"><strong>5개 평균</strong></td><td style="padding:4px;text-align:center"><strong>60.85%</strong></td><td style="padding:4px;text-align:center">54.00%</td><td style="padding:4px;text-align:center">~16.2%</td><td style="padding:4px;text-align:center">~36.2%</td></tr>
+      </table>
+      <strong style="color:#f87171">무작위 split에서는 exp77(75.65%)이 exp73(74.13%)을 이겼는데,
+      "완전히 처음 보는 방향" 조건에서는 거꾸로 exp73(60.85%)이 exp77(54.00%)보다 낫다</strong> —
+      특히 오른쪽 방향(weak_right·strong_right)에서 exp77이 크게 뒤집힌다.
+      <br><br>
+      단, <strong style="color:#4ade80">R클래스만 보면 정반대</strong>다 — exp77의 R 일반화(평균
+      ~36%)가 exp73(평균 ~16%)보다 뚜렷이 낫다. 즉 exp77은 "R이라는 개념"은 더 견고하게
+      배웠지만, <strong style="color:#e2e8f0">F↔FR 경계에서 새로운(오른쪽) 방향에 유독
+      취약</strong>해서(69-6①-b의 F→FR 79.9% 오판) 전체 점수가 깎이는 구조다.
+      <br><br>
+      <strong style="color:#fbbf24">판단</strong> — 무작위 split 숫자(75.58%, 역대 최고)만 보고
+      "실기 교체 추천"으로 가면 안 된다. 지금 증거로는 <strong style="color:#f87171">exp77을
+      exp73 대신 그대로 배포하자고 권하기 어렵다</strong> — 오른쪽 방향에서 배포 중인
+      모델보다 약할 위험이 실측으로 확인됐다. 그렇다고 폐기할 이유도 없다 — R 일반화
+      개선은 실재하고, 문제가 국소적(F↔FR, 특히 우측)이라 원인이 이미 밝혀져 있다.
+      다음 후보: 오른쪽 방향 데이터 증강, 또는 exp73/exp77 앙상블. soda에게 실기를
+      요청한다면 "역대 최고치"가 아니라 이 반전 결과와 함께 "당장 교체 추천 아님,
+      우측 취약점 추가 개선 필요"로 전달해야 한다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_leave_one_direction_out_exp73.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/exp73_leave_one_direction_out.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">✅ 69-8. soda 회신 — 순차→병렬화만으로 Jetson 지연 문제 해소, 정확도 영향 없음 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      코드 리뷰에서 발견한 사실 — `predict()`가 그라운딩(OWL-v2)과 비전 인코딩을
+      완전히 순차 실행하고 있었다(서로 독립 연산인데도). soda에게 실제 Jetson
+      Orin NX에서 순차 vs `ThreadPoolExecutor` 병렬 실행을 재보고 출력값 동일성까지
+      검증해달라고 요청했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px"></td><td style="padding:4px;text-align:center">순차(A+B)</td><td style="padding:4px;text-align:center">병렬</td><td style="padding:4px;text-align:center">겹침 효율</td></tr>
+        <tr><td style="padding:4px">Kosmos-2(현재)</td><td style="padding:4px;text-align:center">993.5ms</td><td style="padding:4px;text-align:center">949.6ms(-4.4%)</td><td style="padding:4px;text-align:center">85.7%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2(교체후보)</strong></td><td style="padding:4px;text-align:center">1113.2ms</td><td style="padding:4px;text-align:center"><strong>952.2ms(-14.5%)</strong></td><td style="padding:4px;text-align:center">95.3%</td></tr>
+      </table>
+      <strong style="color:#4ade80">핵심: Florence-2를 병렬로 돌리면(952.2ms) 현재 프로덕션(Kosmos-2, 순차,
+      993.5ms)보다 오히려 4.2% 더 빠르다.</strong> "SM이 부족해 젯슨에서는 병렬화 효과가
+      제한적일 것"이라는 우려와 달리 이론적 `max(A,B)`에 85~95%까지 근접했다.
+      08-19에 순차 실행 전제로 냈던 "Florence-2 백본 전환 시 cadence 15~20% 저하"
+      우려는 병렬화를 도입하면 대부분 해소된다.
+      <br><br>
+      <strong style="color:#e2e8f0">정확도(출력값) 영향도 확인</strong> — 병렬화가 스케줄링만
+      바꾸고 계산 결과 자체는 안 바뀌어야 한다는 이론(둘 다 읽기 전용 forward pass,
+      공유 가변 상태 없음)을 soda가 직접 검증: <strong style="color:#4ade80">30개 프레임
+      전부 bbox·vis_feat이 순차 대비 bit-exact 동일(불일치 0/30)</strong>. 병렬화는
+      지연만 줄이고 정확도에는 전혀 영향 없음이 실측으로 확인됨.
+      <br><br>
+      <strong style="color:#fbbf24">의미</strong> — 병렬화 코드 적용은 백본 선택과 무관하게
+      그 자체로 즉시 이득(리스크 없음)이라 먼저 적용할 만하다. 다만 69-7에서 확인된
+      exp77의 방향별 일반화 결함(특히 우측)은 지연 문제와 별개라 병렬화로 해결되지
+      않는다 — 순서는 ① 병렬화 적용 → ② exp77 우측 취약점 보완 → ③ 소규모 실기 A/B.
+      <br><span style="font-size:0.78rem;color:#64748b">회신: <code>docs/DATASET_V6_STATUS.md</code>
+      (2026-08-24 두 항목) · 스크립트
+      <code>scripts/measure_sequential_vs_threaded_grounding_vision.py</code> ·
+      <code>scripts/measure_sequential_vs_threaded_grounding_florence2.py</code> ·
+      <code>scripts/verify_sequential_vs_threaded_output_equality.py</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">🔍 69-9. 69-7 우측 취약점의 원인 — bbox 출처가 기존 비대칭을 증폭시킨다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-6에서 확인한 F→FR 오판이 exp77(Florence-2 bbox)만의 문제인지, exp73(OWL
+      bbox)도 원래 갖고 있던 문제인지 exp73으로도 같은 confusion matrix를 뽑아 비교했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">제외한 방향</td><td style="padding:4px;text-align:center">exp73(OWL) F→FR</td><td style="padding:4px;text-align:center">exp77(Florence-2) F→FR</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">14.2%</td><td style="padding:4px;text-align:center">11.6%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">0.1%</td><td style="padding:4px;text-align:center">7.7%</td></tr>
+        <tr style="background:rgba(251,191,36,0.15)"><td style="padding:4px"><strong>weak_right</strong></td><td style="padding:4px;text-align:center">7.6%</td><td style="padding:4px;text-align:center"><strong>53.3%</strong></td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">0.4%</td><td style="padding:4px;text-align:center">2.5%</td></tr>
+        <tr style="background:rgba(251,191,36,0.15)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center">36.8%</td><td style="padding:4px;text-align:center"><strong>79.8%</strong></td></tr>
+      </table>
+      <strong style="color:#e2e8f0">답: 둘 다다.</strong> 좌우 비대칭 자체(우측이 좌측보다 F→FR
+      오판이 훨씬 잦은 현상)는 <strong style="color:#e2e8f0">exp73(OWL bbox)에도 이미 존재</strong>했다
+      — 그라운더와 무관한, 더 근본적인 데이터/기구 문제(CH66)라는 뜻. 다만
+      <strong style="color:#fbbf24">Florence-2 bbox로 바꾸면 이 기존 비대칭이 몇 배로
+      증폭</strong>된다(우측 기준 7.6%→53.3%, 36.8%→79.8%). Florence-2 bbox의 cx/area
+      추정치가 OWL 대비 우측 프레임에서 "아직 멀다/이제 가깝다" 구분에 덜 유용한
+      신호를 주는 것으로 추정되나, 정확한 메커니즘(예: 우측 프레임에서의 area 분산
+      차이)은 추가 확인이 필요 — 여기서는 "증폭됨"까지만 확인, "왜 증폭되는지"는
+      미해결.
+      <br><span style="font-size:0.78rem;color:#64748b">결과
+      <code>docs/v5/closed_loop_eval/exp73_leave_one_direction_out_confusion.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 69-11. 최종 재검증(329개, 클릭 기반 독립 GT) — Florence-2 329/329(100%), OWLv2(가중) 88.5%</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-4의 초기 97개 표본을 <strong style="color:#e2e8f0">가장자리 포함도 일치로 잘못 셌을 가능성</strong>을
+      우려해 전면 재검토했다. 두 가지를 추가했다: ① 표본을 succ 칸 스팟체크 확대(10→30개/셀)
+      + fail 칸 에피소드당 최대 3프레임까지 늘려 97→288개로 확장, ② OWLv2/Florence-2
+      어느 쪽 좌표도 참고하지 않고 <strong style="color:#e2e8f0">사람이 이미지를 직접 클릭해
+      중심(true_cx)을 독립적으로 표시</strong>하는 기능을 추가해 순환논리를 원천 차단했다.
+      이 과정에서 이전 세션(97→288 확장) 때 SAMPLE 재구성으로 화면에서 빠졌던 41개
+      기라벨 프레임(과거 표본 잔재)을 표본 끝에 편입해 최종 <strong style="color:#e2e8f0">329개
+      전수</strong>를 "가운데 정렬이어야 함, 가장자리 포함만으로는 불일치"라는
+      <strong style="color:#e2e8f0">더 엄격한 기준</strong>으로 처음부터 재검토했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">지표</td><td style="padding:4px;text-align:center">원표본(329개)</td><td style="padding:4px;text-align:center">가중 추정(전체 V6)</td></tr>
+        <tr><td style="padding:4px">OWLv2 정확도</td><td style="padding:4px;text-align:center">126/329 (38.3%)</td><td style="padding:4px;text-align:center">88.5%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Florence-2 정확도</strong></td><td style="padding:4px;text-align:center"><strong>329/329 (100%)</strong></td><td style="padding:4px;text-align:center"><strong>100.0%</strong></td></tr>
+      </table>
+      69-4(가중 92.8%) 대비 OWLv2 가중치가 88.5%로 소폭 낮아진 건 표본이 288→329개로
+      늘고(fail 칸 다중 프레임 반영) 재검토 기준이 더 엄격해진(가장자리 포함 재검토) 영향이다
+      — <strong style="color:#e2e8f0">방향은 동일, Florence-2가 압도적으로 우수하다는 결론은
+      바뀌지 않는다</strong>. 클릭 기반 독립 GT까지 확보한 상태에서도 Florence-2는
+      329개 전부에서 사람 판정과 일치했다.
+      <br><br>
+      <strong style="color:#fbbf24">부가 확인 — cx가 액션헤드 판단에 미치는 영향은 별개 축이다</strong>.
+      "Florence-2 그라운딩이 99.7~100% 정확한데 Stage2 val_acc 개선은 왜 미미한가"는
+      역설이 아니다 — 69-4/69-11은 <strong style="color:#e2e8f0">"그라운딩 좌표 자체가
+      맞는가"</strong>를 검증한 것이고, 액션헤드 성능은 68챕터의 feature ablation
+      (bbox_only 67.4%±9.8% / image_only 75.6%±0.8% / bbox+image 76.7%±1.3%)에서
+      이미 확인했듯 <strong style="color:#e2e8f0">MLP 헤드가 vis(256d 이미지 임베딩)를
+      주 신호로, bbox(cx·area)를 보조 신호로만 쓴다</strong> — bbox 정확도가 34.7%→100%로
+      개선돼도 헤드 입력에서 차지하는 비중 자체가 작아 val_acc 개선폭이 크지 않은 것이다.
+      즉 그라운딩 품질과 액션헤드 성능은 <strong style="color:#e2e8f0">서로 다른 병목</strong>이고,
+      전자의 개선(69-1~69-11)은 폐루프 실기(69-6②)나 백본 교체 근거로는 유효하지만
+      Stage2 val_acc 상승분 자체를 크게 설명하지는 못한다.
+      <br><span style="font-size:0.78rem;color:#64748b">도구
+      <code>scripts/label/serve_v6_phrase_grounding_verify.py</code>(:7796) · 라벨
+      <code>docs/v5/detector/v6_phrase_grounding_human_labels.json</code>(329개) · 자동/사람
+      분리 <code>scripts/build_v6_verification_dataset.py</code> ·
+      <code>docs/v5/detector/v6_verification_dataset.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8;background:linear-gradient(135deg,#0a1420,#0c1826)">
+    <div class="finding-title" style="color:#38bdf8">📋 69-10. CH69 종합 결론</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">항목</td><td style="padding:4px;text-align:center">결과</td><td style="padding:4px;text-align:center">판정</td></tr>
+        <tr><td style="padding:4px">그라운딩 재현율(0807, phrase 방식)</td><td style="padding:4px;text-align:center">84.96%</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr><td style="padding:4px">V6 사람검증(최종 329개, 클릭 기반 독립 GT)</td><td style="padding:4px;text-align:center">Florence-2 100% · OWLv2(가중) 88.5%</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr><td style="padding:4px">Stage2 exp77 무작위 split val_acc</td><td style="padding:4px;text-align:center">75.58%(역대 최고)</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr style="background:rgba(248,113,113,0.12)"><td style="padding:4px"><strong>exp77 leave-one-direction-out(일반화)</strong></td><td style="padding:4px;text-align:center">54.0% vs exp73 60.85%</td><td style="padding:4px;text-align:center;color:#f87171">🔴</td></tr>
+        <tr><td style="padding:4px">Jetson 지연(순차 실행 기준)</td><td style="padding:4px;text-align:center">+12%(1113 vs 994ms)</td><td style="padding:4px;text-align:center;color:#fbbf24">⚠️</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px"><strong>Jetson 지연(병렬화 적용 시)</strong></td><td style="padding:4px;text-align:center">-4.2%(952 vs 994ms)</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+        <tr><td style="padding:4px">병렬화의 출력 정확도 영향</td><td style="padding:4px;text-align:center">bit-exact 동일(0/30 불일치)</td><td style="padding:4px;text-align:center;color:#4ade80">✅</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">최종 판단</strong>:
+      <ol style="margin:8px 0 0 20px">
+        <li><strong style="color:#4ade80">병렬화(그라운딩+비전 동시 실행) 도입은 백본 선택과 무관하게 즉시 적용 가능</strong> —
+          리스크 없음(정확도 영향 0), 지연 이득 확인됨. 다음 작업으로 바로 진행 가능.</li>
+        <li><strong style="color:#f87171">exp77을 exp73 대신 그대로 배포하는 건 아직 이르다</strong> —
+          무작위 split 최고치(75.58%)에 가려져 있던 우측 방향 일반화 결함이 실측으로
+          드러났고, 원인도 특정됨(F↔FR 경계, Florence-2 bbox가 기존 좌우 비대칭을 증폭).</li>
+        <li><strong style="color:#e2e8f0">폐기할 이유도 없다</strong> — R클래스 자체의 일반화는
+          exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 데이터
+          증강이나 앙상블로 개선 여지가 보인다.</li>
+        <li><strong style="color:#e2e8f0">실행 순서</strong>: ① 병렬화 코드 적용(즉시) →
+          ② exp77 우측 방향 데이터 보강 또는 exp73/exp77 앙상블 → ③ 소규모 실기 A/B →
+          ④ (이후) 실기 100건 전체 재검증. <strong style="color:#f87171">지금 바로
+          실기 100건을 soda에게 요청하는 건 시기상조.</strong></li>
+      </ol>
+      <br>
+      <strong style="color:#e2e8f0">부수 결론 — flow matching(FM) 데이터 재수집 가이드</strong>
+      (블로커 A, §2·§4-3): 수집 주기는 기존 실측값 ~6Hz(목표 10Hz, 오버헤드 반영)를
+      그대로 유지하면 되고, 별도 변경 불필요. 수량은 <strong style="color:#fbbf24">현재
+      (조합당 15ep)로는 부족할 가능성이 높다</strong> — 8-class 분류조차 train-val
+      격차 13~17%p, leave-one-direction-out 54~61%(무작위 split 대비 -14~22%p)로
+      과소적합/과적합 신호가 뚜렷한데, 연속 회귀(FM)는 보통 이산 분류보다 더 많은
+      표본이 필요하다. 최소 현재의 2~3배(조합당 30~45ep) 권장, 특히 이번에 밝혀진
+      우측 방향(weak_right·strong_right)은 비례 이상으로 보강 권장. 재수집 규모
+      (전량 vs 증분)는 soda 발주 전 결정 필요.
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH69 ═ -->
+
+<hr class="chapter-divider">
+
+<div class="chapter" id="ch70">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#fb923c;color:#0a0f1a">CH 70</span>
+    <h2 class="chapter-title">헤드 구조 6종 vs 손실함수 실험 — 구조는 한계, ordinal soft label만 LOO를 실제로 개선시켰다</h2>
+    <p class="chapter-subtitle"><span style="color:#fdba74;font-weight:800">2026-08-26~27</span> ·
+    cx를 강조하는 헤드 구조(FiLM·Δcx·cxaux·actionquery)를 6가지나 시도했지만 leave-one-direction-out
+    일반화는 개선하지 못했다(70-1~70-5) — 무작위 split에서 좋아 보인 게 대부분 방향 일반화에서는 소멸.
+    대신 <strong style="color:#4ade80">손실함수를 손대서(ordinal soft label, 70-6) LOO 평균이
+    +3.71~3.99%p, 최악 방향(strong_right)은 +14.52%p 개선</strong>됐다 — CH70 전체에서 유일한 성과.</p>
+  </div>
+
+  <div class="callout critical">
+    🟠 <strong>3줄 요약</strong><br>
+    ① concat 방식(cxgeom·hybrid·bbox_scale, CH69)은 이미 다 해봤고 효과가 미미했다는 리서치
+    결과에 따라, 곱셈적 결합(FiLM)·Δcx·cx 보조손실 3종을 새로 구현·학습했다
+    (`docs/plans/plan_20260826_cx_emphasis_head.md`).<br>
+    ② exp77(Florence-2 phrase + Florence-2 vision) 캐시로 mlp 베이스라인부터 재현(75.58%±0.07%p,
+    원본과 정확히 일치)한 뒤 5개 헤드를 apples-to-apples 비교 — <strong style="color:#fdba74">deltacx가
+    76.25%±0.14%p(best 76.39%)로 최고</strong>, mlp 대비 +0.67%p.<br>
+    ③ 하지만 <strong style="color:#f87171">deltacx·film·cxaux 전부 R클래스가 mlp(66.2%) 대비
+    4.7~15.4%p 하락</strong>했다 — 전체 정확도 개선이 R→FR 오분류를 늘려서 나온 결과일 가능성이 크다.
+    무작위 split 숫자만 보고 "개선"이라 결론 내리면 안 된다는 게 69-7의 교훈이었는데, 여기서도
+    같은 패턴이 재현됐다.
+  </div>
+
+  <div class="finding-card" style="border-color:#fb923c">
+    <div class="finding-title" style="color:#fb923c">📊 70-1. 헤드 5종 비교 (exp77 캐시 공통, seed 0/1/2, epoch 300)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">구조</td><td style="padding:4px;text-align:center">val_acc mean</td><td style="padding:4px;text-align:center">best</td><td style="padding:4px;text-align:center">R클래스</td><td style="padding:4px;text-align:center">FR클래스</td></tr>
+        <tr><td style="padding:4px">mlp(기존)</td><td style="padding:4px">concat+FC</td><td style="padding:4px;text-align:center">75.58%±0.07%p</td><td style="padding:4px;text-align:center">75.65%</td><td style="padding:4px;text-align:center">66.2%</td><td style="padding:4px;text-align:center">73.6%</td></tr>
+        <tr><td style="padding:4px">cxgeom(CH69 재검증)</td><td style="padding:4px">별도 브랜치+concat</td><td style="padding:4px;text-align:center">74.06%±0.22%p</td><td style="padding:4px;text-align:center">74.25%</td><td style="padding:4px;text-align:center">69.2%</td><td style="padding:4px;text-align:center">72.6%</td></tr>
+        <tr style="background:rgba(251,146,60,0.12)"><td style="padding:4px"><strong>film(신규)</strong></td><td style="padding:4px">cx→vis FiLM 변조</td><td style="padding:4px;text-align:center">75.87%±0.26%p</td><td style="padding:4px;text-align:center">76.14%</td><td style="padding:4px;text-align:center;color:#f87171"><strong>50.8%</strong></td><td style="padding:4px;text-align:center">72.8%</td></tr>
+        <tr style="background:rgba(251,146,60,0.18)"><td style="padding:4px"><strong>deltacx(신규) ★최고</strong></td><td style="padding:4px">Δcx 채널 추가</td><td style="padding:4px;text-align:center"><strong>76.25%±0.14%p</strong></td><td style="padding:4px;text-align:center"><strong>76.39%</strong></td><td style="padding:4px;text-align:center;color:#fbbf24">60.8%</td><td style="padding:4px;text-align:center">76.7%</td></tr>
+        <tr style="background:rgba(251,146,60,0.12)"><td style="padding:4px"><strong>cxaux(신규)</strong></td><td style="padding:4px">cx 회귀 보조손실</td><td style="padding:4px;text-align:center">75.52%±0.49%p</td><td style="padding:4px;text-align:center">76.06%</td><td style="padding:4px;text-align:center;color:#fbbf24">61.5%</td><td style="padding:4px;text-align:center">76.5%</td></tr>
+      </table>
+      <strong style="color:#e2e8f0">deltacx가 val_acc·FR클래스 둘 다 최고</strong>(mlp 대비 val_acc +0.67%p,
+      FR +3.1%p) — F↔FR 경계 판단에 Δcx(타겟이 커지는 중/줄어드는 중)가 실제로 도움이 됐다는
+      신호. 하지만 <strong style="color:#f87171">R클래스가 66.2%→60.8%로 5.4%p 하락</strong>했다.
+      <br><br>
+      <strong style="color:#f87171">film은 R클래스가 50.8%로 가장 크게 무너졌다</strong> —
+      FiLM이 vis를 cx로 통째로 재스케일하는 방식이라, cx가 조금만 어긋나도(그라운딩 미세오차)
+      vis 표현 자체가 왜곡되는 부작용일 가능성. cxgeom만 유일하게 R클래스가 오히려 오른
+      경우(69.2%, +3.0%p)인데 val_acc 자체가 mlp보다 낮아(74.06%) 전체적으로는 손해.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/train_exp78_cx_emphasis_heads.py</code> · 헤드 클래스
+      <code>scripts/train_exp73_stage1v3_heads.py</code>(FiLMHead·DeltaCxHead·CxAuxHead·train_cxaux) ·
+      결과 <code>docs/v5/closed_loop_eval/exp78_cx_emphasis_heads.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171;background:linear-gradient(135deg,#1f0a0a,#240c0c)">
+    <div class="finding-title" style="color:#f87171">⚠️ 70-2. 판단 — "R↔FR 사이에서 잃고 F↔FR 사이에서 얻는" 트레이드오프일 가능성</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      69-6①-b에서 확인된 원래 문제는 <strong style="color:#e2e8f0">"F가 FR로 오판되는 것"</strong>이었다
+      (오른쪽 방향 제외 시 F→FR 오판율 폭증). deltacx/cxaux가 FR클래스 정확도를 올린 건
+      이 문제를 완화한 신호로 보이지만, 동시에 R클래스가 떨어진 건 <strong style="color:#e2e8f0">R이
+      FR로 밀리는 반대 방향의 오분류가 늘었을 가능성</strong>을 시사한다 — Δcx/보조손실이
+      "타겟이 오른쪽으로 계속 이동 중"이라는 신호를 F/FR 경계보다 R/FR 경계에서 더 강하게
+      해석하게 만들었을 수 있다(확인 안 됨, confusion matrix 재분석 필요).
+      <br><br>
+      <strong style="color:#fbbf24">중요한 함정 — 무작위 split만으로 결론 내리면 안 된다</strong>
+      (69-7의 교훈 반복). deltacx의 val_acc 개선(+0.67%p)이 실제 일반화 개선인지,
+      아니면 69-7에서 확인된 것처럼 <strong style="color:#e2e8f0">"무작위 split에서는 좋아 보이지만
+      leave-one-direction-out(방향 하나를 통째로 빼고 검증)에서는 오히려 나쁠 수 있다"</strong>는
+      패턴의 재현인지 아직 모른다. R클래스 하락은 이 우려를 뒷받침하는 방향이다.
+      <br><br>
+      <strong style="color:#e2e8f0">다음 단계</strong>: deltacx를
+      `scripts/eval_leave_one_direction_out.py` 방식으로 재검증해서 방향별 일반화가
+      실제로 개선됐는지, 아니면 exp77처럼 무작위 split에서만 좋아 보이는 착시인지 확인
+      해야 최종 판단 가능(→ 70-3에서 실행).
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171;background:linear-gradient(135deg,#1f0a0a,#240c0c)">
+    <div class="finding-title" style="color:#f87171">🔴 70-3. deltacx leave-one-direction-out — 무작위 split 개선이 소멸됨</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      70-2의 우려대로였다. deltacx를 `eval_leave_one_direction_out_deltacx.py`로
+      mlp와 동일 프로토콜(방향 하나 통째로 val, 나머지 180ep 학습, seed 0/1/2)로 비교:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">LOO 5방향 평균 best acc</td><td style="padding:4px;text-align:center">R클래스 평균</td></tr>
+        <tr><td style="padding:4px">mlp</td><td style="padding:4px;text-align:center">54.00%</td><td style="padding:4px;text-align:center">29.0%</td></tr>
+        <tr><td style="padding:4px">deltacx</td><td style="padding:4px;text-align:center">53.83%</td><td style="padding:4px;text-align:center">29.1%</td></tr>
+      </table>
+      무작위 split에서 봤던 <strong style="color:#e2e8f0">+0.67%p 개선(76.25% vs 75.58%)이
+      leave-one-direction-out에서는 완전히 사라졌다</strong>(-0.17%p, 사실상 동일). 69-7의
+      "무작위 split 개선이 방향 일반화 개선을 보장하지 않는다"는 패턴이 새 헤드에서도
+      그대로 재현됨 — <strong style="color:#f87171">deltacx는 실질적으로 mlp와 다르지
+      않다</strong>는 게 최종 결론.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_leave_one_direction_out_deltacx.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/deltacx_leave_one_direction_out.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fb923c">
+    <div class="finding-title" style="color:#fb923c">🔍 70-4. val 유출 검증(C) + 학습곡선 — 체크포인트 선택 낙관편향과 epoch 300 과다 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">① honest checkpoint selection</strong> — 기존 방식(25epoch마다
+      val_acc 재서 최고 채택)이 val 표본이 작을수록(leave-one-direction-out) 낙관편향을
+      만드는지, train에서 따로 뗀 inner-val로 체크포인트를 고르고 진짜 val은 최종 1회
+      평가에만 쓰는 `train_one_honest()`와 비교:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">조건</td><td style="padding:4px;text-align:center">val선택 best</td><td style="padding:4px;text-align:center">honest best</td><td style="padding:4px;text-align:center">낙관갭</td></tr>
+        <tr><td style="padding:4px">random_split/mlp</td><td style="padding:4px;text-align:center">75.65%</td><td style="padding:4px;text-align:center">74.78%</td><td style="padding:4px;text-align:center">+0.86%p</td></tr>
+        <tr style="background:rgba(251,146,60,0.15)"><td style="padding:4px"><strong>loo_weak_right/mlp</strong></td><td style="padding:4px;text-align:center">41.65%</td><td style="padding:4px;text-align:center">35.01%</td><td style="padding:4px;text-align:center"><strong>+6.64%p</strong></td></tr>
+        <tr><td style="padding:4px">loo_strong_right/mlp</td><td style="padding:4px;text-align:center">33.29%</td><td style="padding:4px;text-align:center">32.68%</td><td style="padding:4px;text-align:center">+0.61%p</td></tr>
+      </table>
+      가설 확인됨 — <strong style="color:#e2e8f0">val 표본이 작은 leave-one-direction-out
+      조건에서 최대 +6.64%p 낙관편향</strong>이 나왔다. 지금까지 CH69/70에 쓴 leave-one-
+      direction-out 수치들은 이 편향을 어느 정도 안고 있는 값들 — 방향성(exp77이 exp73보다
+      약함, R/FR 트레이드오프 존재)은 유효하지만 절대치는 다소 부풀려져 있었다고 봐야 한다.
+      <br><br>
+      <strong style="color:#e2e8f0">② 학습곡선(train_acc vs val_acc, epoch별)</strong> —
+      5개 헤드를 25→10epoch 간격으로 촘촘히 재서 과적합을 직접 시각화:
+      <img src="figures/head_overfitting_curves.png" style="width:100%;border-radius:8px;margin:8px 0">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">최종 train_acc</td><td style="padding:4px;text-align:center">최종 val_acc</td><td style="padding:4px;text-align:center">gap</td><td style="padding:4px;text-align:center">val 수렴 시점(peak-1%p)</td></tr>
+        <tr><td style="padding:4px">mlp</td><td style="padding:4px;text-align:center">88.65%</td><td style="padding:4px;text-align:center">75.36%</td><td style="padding:4px;text-align:center">13.3%p</td><td style="padding:4px;text-align:center">epoch 170</td></tr>
+        <tr><td style="padding:4px">cxgeom</td><td style="padding:4px;text-align:center">86.65%</td><td style="padding:4px;text-align:center">74.08%</td><td style="padding:4px;text-align:center">12.6%p</td><td style="padding:4px;text-align:center">epoch 150</td></tr>
+        <tr style="background:rgba(248,113,113,0.15)"><td style="padding:4px"><strong>film</strong></td><td style="padding:4px;text-align:center"><strong>95.14%</strong></td><td style="padding:4px;text-align:center">75.94%</td><td style="padding:4px;text-align:center"><strong>19.2%p</strong></td><td style="padding:4px;text-align:center">epoch 170</td></tr>
+        <tr><td style="padding:4px">deltacx</td><td style="padding:4px;text-align:center">88.99%</td><td style="padding:4px;text-align:center">76.22%</td><td style="padding:4px;text-align:center">12.8%p</td><td style="padding:4px;text-align:center">epoch 220</td></tr>
+        <tr><td style="padding:4px">cxaux</td><td style="padding:4px;text-align:center">88.40%</td><td style="padding:4px;text-align:center">74.87%</td><td style="padding:4px;text-align:center">13.5%p</td><td style="padding:4px;text-align:center">epoch 60</td></tr>
+      </table>
+      두 가지 확인됨: <strong style="color:#e2e8f0">(a) film만 유독 심하게 과적합</strong>(train
+      95.1%, gap 19.2%p) — 70-1의 R클래스 붕괴(50.8%)와 일치하는 설명. <strong style="color:#e2e8f0">
+      (b) epoch=300은 exp73 원본에서 그대로 물려받은 값</strong>인데, 대부분 val_acc는
+      epoch 150~220 사이에 사실상 수렴하고 <strong style="color:#f87171">뒤쪽 80~150epoch는
+      val이 거의 안 움직이는데 train_acc만 계속 오르는 순수 과적합 심화 구간</strong>이었다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_honest_checkpoint_selection.py</code> ·
+      <code>scripts/plot_head_overfitting_curves.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/honest_checkpoint_selection.json</code> ·
+      <code>docs/v5/closed_loop_eval/head_overfitting_curves.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🧭 70-5. actionquery(경량 cross-attention) — 평균은 비슷하지만 최악의 방향에서 크게 이긴다</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      배포 중인 TransformerActionHead(window 전체 self-attention)가 mlp보다 계속 낮은 게
+      (71~75% vs 76~78%, CH69 69-5 표 참고) self-attention 자체의 과적합 때문인지 확인하려고,
+      <strong style="color:#e2e8f0">학습 쿼리 1개가 [bbox;vis] 6토큰에 cross-attention만
+      하는(self-attention 없음, 파라미터 훨씬 적음) actionquery 헤드</strong>를 만들어
+      mlp/deltacx와 함께 random_split+LOO(honest selection) 전부 비교:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">조건</td><td style="padding:4px;text-align:center">mlp</td><td style="padding:4px;text-align:center">deltacx</td><td style="padding:4px;text-align:center">actionquery</td></tr>
+        <tr><td style="padding:4px">random_split(honest)</td><td style="padding:4px;text-align:center">74.78%</td><td style="padding:4px;text-align:center">75.11%</td><td style="padding:4px;text-align:center">71.86%</td></tr>
+        <tr><td style="padding:4px">LOO 5방향 평균(honest)</td><td style="padding:4px;text-align:center">50.63%</td><td style="padding:4px;text-align:center">50.99%</td><td style="padding:4px;text-align:center">49.95%</td></tr>
+        <tr style="background:rgba(56,189,248,0.15)"><td style="padding:4px"><strong>loo_strong_right</strong></td><td style="padding:4px;text-align:center">32.68%</td><td style="padding:4px;text-align:center">33.01%</td><td style="padding:4px;text-align:center"><strong>46.39%</strong></td></tr>
+        <tr><td style="padding:4px">loo_strong_right R클래스</td><td style="padding:4px;text-align:center">23.9%</td><td style="padding:4px;text-align:center">35.6%</td><td style="padding:4px;text-align:center"><strong>62.2%</strong></td></tr>
+      </table>
+      평균은 셋 다 비슷하지만(49.95~50.99%) 분포가 완전히 다르다 — actionquery는
+      <strong style="color:#e2e8f0">가장 어려운 strong_right에서 mlp 대비 +13.7%p로 압도적</strong>이고
+      R클래스 일반화가 LOO 전반에서 구조적으로 강하다(대신 쉬운 center에서는 39.59%로
+      가장 나쁨). self-attention을 빼고 cross-attention만 남긴 게 "본 적 없는 방향"에
+      덜 휘둘리게 만든 것으로 보임 — 폐기하지 말고 보류, 이후 앙상블/보완 후보로 고려.
+      <br><span style="font-size:0.78rem;color:#64748b">헤드 클래스
+      <code>ActionQueryHead</code>(train_exp73_stage1v3_heads.py) · 스크립트
+      <code>scripts/eval_actionquery_head.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/actionquery_head_eval.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 70-6. ordinal soft label(D) — CH70에서 유일하게 LOO 일반화 자체를 개선시킨 방법</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      70-1~70-5는 전부 <strong style="color:#e2e8f0">헤드 구조(concat/곱셈/보조손실/cross-attn)</strong>
+      축이었다. 이번엔 손실함수 축을 시도했다 — 원래 문제가 연속 조이스틱(lx,ly,az)을
+      `mona_dashboard.py`의 `THRESHOLD=0.50` 하드 컷으로 이산화한 것(69-6①-b의 R/FR
+      경계 아티팩트)이라는 점에 착안해, `cont_to_class_t()`의 하드 threshold를 sigmoid로
+      완화한 <strong style="color:#e2e8f0">소프트 8-class 타겟(ordinal label smoothing)</strong>
+      + soft cross-entropy로 학습(`soft_class_targets()`). 동시에 70-4②에서 확인된 epoch
+      과다 문제도 고쳐서 epoch 300→200 + patience=4 조기종료를 적용했다.
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">LOO 5방향 평균 hard</td><td style="padding:4px;text-align:center">soft(D)</td><td style="padding:4px;text-align:center">Δ</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>mlp</strong></td><td style="padding:4px;text-align:center">50.63%</td><td style="padding:4px;text-align:center"><strong>54.62%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+3.99%p</strong></td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>deltacx</strong></td><td style="padding:4px;text-align:center">50.99%</td><td style="padding:4px;text-align:center"><strong>54.71%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+3.71%p</strong></td></tr>
+      </table>
+      방향별(mlp 기준):
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">held-out 방향</td><td style="padding:4px;text-align:center">hard</td><td style="padding:4px;text-align:center">soft</td><td style="padding:4px;text-align:center">Δ</td><td style="padding:4px;text-align:center">R클래스(hard→soft)</td></tr>
+        <tr><td style="padding:4px">center</td><td style="padding:4px;text-align:center">62.68%</td><td style="padding:4px;text-align:center">57.57%</td><td style="padding:4px;text-align:center;color:#f87171">-5.11%p</td><td style="padding:4px;text-align:center">22.0%→20.0%</td></tr>
+        <tr><td style="padding:4px">weak_left</td><td style="padding:4px;text-align:center">67.78%</td><td style="padding:4px;text-align:center">72.99%</td><td style="padding:4px;text-align:center;color:#4ade80">+5.21%p</td><td style="padding:4px;text-align:center">45.8%→37.5%</td></tr>
+        <tr style="background:rgba(74,222,128,0.12)"><td style="padding:4px">weak_right</td><td style="padding:4px;text-align:center">35.01%</td><td style="padding:4px;text-align:center">38.53%</td><td style="padding:4px;text-align:center;color:#4ade80">+3.52%p</td><td style="padding:4px;text-align:center;color:#4ade80"><strong>30.7%→35.6%(둘다↑)</strong></td></tr>
+        <tr><td style="padding:4px">strong_left</td><td style="padding:4px;text-align:center">55.00%</td><td style="padding:4px;text-align:center">56.83%</td><td style="padding:4px;text-align:center;color:#4ade80">+1.83%p</td><td style="padding:4px;text-align:center">0.0%→0.0%</td></tr>
+        <tr style="background:rgba(74,222,128,0.18)"><td style="padding:4px"><strong>strong_right</strong></td><td style="padding:4px;text-align:center">32.68%</td><td style="padding:4px;text-align:center"><strong>47.20%</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>+14.52%p</strong></td><td style="padding:4px;text-align:center;color:#4ade80"><strong>23.9%→35.1%(둘다↑)</strong></td></tr>
+      </table>
+      <strong style="color:#4ade80">CH70에서 시도한 6가지(cxgeom·film·deltacx·cxaux·actionquery·soft label) 중
+      유일하게 LOO 평균을 실제로 개선시켰다</strong> — 나머지는 전부 무작위 split에서만
+      좋아 보이다 LOO에서 소멸(70-3)하거나 트레이드오프만 반복했는데, D는 LOO에서
+      오히려 더 크게(+3.99%p) 개선됐다. 특히 CH69에서 가장 취약했던 weak_right·strong_right
+      에서는 <strong style="color:#e2e8f0">overall과 R클래스가 동시에 개선</strong>돼 —
+      지금까지 반복된 "전체 개선 vs R클래스 희생" 트레이드오프가 이 두 방향에서는
+      나타나지 않았다. 69-6①-b에서 지목한 F↔FR/R↔FR 하드 경계 아티팩트를 손실함수
+      단에서 완화한다는 가설과 정확히 맞아떨어지는 결과.
+      <br><br>
+      <strong style="color:#fbbf24">한계</strong> — center 방향만 유일하게 나빠졌다(-5.11%p).
+      center는 원래 방향 모호성이 적은 조건이라 소프트화가 불필요한 노이즈를 준 것으로
+      추정되나 확인 안 됨. random_split에서도 이득이 크지만(+2.63~2.67%p) R클래스는
+      하락(mlp 67.7%→48.5%) — random_split 조건에서는 여전히 트레이드오프가 있다.
+      실기 검증 전이라 확정 발견 6번(val 지표≠실기 성능)은 여전히 유효.
+      <br><span style="font-size:0.78rem;color:#64748b">헤드 클래스/함수
+      <code>soft_class_targets()</code>·<code>train_one_soft()</code>(train_exp73_stage1v3_heads.py) ·
+      스크립트 <code>scripts/eval_soft_label_head.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/soft_label_head_eval.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fb923c;background:linear-gradient(135deg,#1f1408,#241708)">
+    <div class="finding-title" style="color:#fb923c">📋 70-7. CH70 종합 판단</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <ol style="margin:8px 0 0 20px">
+        <li><strong style="color:#e2e8f0">헤드 구조 축(concat/곱셈/보조손실/cross-attn)은
+          한계에 도달</strong> — 6개 중 5개(cxgeom·film·deltacx·cxaux·actionquery 평균)가
+          전부 ±1~2%p 안에서 놀거나, 무작위 split 개선이 LOO에서 소멸했다. 구조를 바꿔도
+          못 만드는 정보(안 본 방향의 학습 예시)는 안 만들어진다는 방증 — 69-6①에서 이미
+          지목된 데이터 커버리지 문제가 근본 병목이라는 가설이 강화됨.</li>
+        <li><strong style="color:#4ade80">손실함수 축(ordinal soft label, D)이 유일한 성과</strong> —
+          LOO 평균 +3.71~3.99%p, 특히 최악 방향(strong_right)에서 +14.52%p. 다음 후보로
+          우선순위가 가장 높다.</li>
+        <li><strong style="color:#e2e8f0">actionquery는 보류 후보(→ 70-8에서 결합 검증 완료)</strong> —
+          평균은 비슷하지만 strong_right에서 유일하게 크게 이기고 R클래스가 구조적으로 강건함.</li>
+        <li><strong style="color:#e2e8f0">방법론 교훈 2가지, 이후 모든 실험에 소급 적용해야 함</strong>:
+          (a) leave-one-direction-out처럼 val 표본이 작은 조건에서는 반드시 honest(inner-val)
+          체크포인트 선택을 써야 한다(최대 +6.64%p 낙관편향 확인). (b) epoch=300은 근거
+          없는 관성값이었다 — 150~220이면 수렴, 조기종료 적용이 맞다.</li>
+        <li><strong style="color:#f87171">아직 실기 검증 전</strong> — 확정 발견 6번(val
+          지표는 실기 성능을 보장하지 않음) 그대로 유효. 다음 단계는 (i) D+actionquery
+          결합 시도 → (ii) 궤적 재생 근사(rollout_core.py 기반, 프레임 정확도가 아니라
+          실제 도착 여부로 재평가) → (iii) 소규모 실기 A/B 순서(→ 70-8에서 (i)(ii) 실행).</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🏆 70-8. D+actionquery 결합 + 궤적 재생 재평가 — mlp+soft가 최종 후보로 확정</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      70-7에서 제기한 두 가지를 이어서 실행했다: ① soft label(D)을 actionquery에도
+      적용해 결합 효과 확인, ② "R을 FR로 틀려도 실제 도착은 맞을 수 있다"는 지적에
+      따라 <strong style="color:#e2e8f0">프레임 정확도가 아니라 궤적 재생(FPE·성공률,
+      `rollout_core.py`, 69-6②와 동일 방법론)</strong>으로 최종 판단.
+      <br><br>
+      <strong style="color:#e2e8f0">궤적 재생(random_split val, 프레임 정확도가 아니라 최종 도착 기준)</strong>:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">헤드</td><td style="padding:4px;text-align:center">success</td><td style="padding:4px;text-align:center">mean_fpe</td></tr>
+        <tr><td style="padding:4px">mlp(hard, 배포 방식)</td><td style="padding:4px;text-align:center">24.2%</td><td style="padding:4px;text-align:center">1.192m</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>mlp+soft(D)</strong></td><td style="padding:4px;text-align:center"><strong>33.3%(+9.1%p)</strong></td><td style="padding:4px;text-align:center">1.097m</td></tr>
+        <tr><td style="padding:4px">deltacx(hard)</td><td style="padding:4px;text-align:center">24.2%</td><td style="padding:4px;text-align:center">1.166m</td></tr>
+        <tr style="background:rgba(74,222,128,0.15)"><td style="padding:4px"><strong>deltacx+soft(D)</strong></td><td style="padding:4px;text-align:center"><strong>33.3%(+9.1%p)</strong></td><td style="padding:4px;text-align:center"><strong>1.003m(최소)</strong></td></tr>
+        <tr><td style="padding:4px">actionquery(hard)</td><td style="padding:4px;text-align:center">15.2%</td><td style="padding:4px;text-align:center">1.396m</td></tr>
+        <tr><td style="padding:4px">actionquery+soft</td><td style="padding:4px;text-align:center">21.2%(+6.0%p)</td><td style="padding:4px;text-align:center">1.234m</td></tr>
+      </table>
+      <strong style="color:#4ade80">D는 프레임 정확도뿐 아니라 궤적 재생에서도 확실히 개선된다</strong>
+      (mlp/deltacx 둘 다 success +9.1%p) — "오분류가 늘어난 대신 실제 도착은 맞을 것"이라는
+      우려와 반대로, 오분류 자체가 줄면서 궤적도 함께 좋아졌다. actionquery는 결합해도
+      가장 낮은 success(21.2%)에 머물러 — <strong style="color:#f87171">기대했던 D+actionquery
+      시너지는 확인되지 않았다</strong>.
+      <br><br>
+      <strong style="color:#e2e8f0">LOO(weak_right·strong_right) — actionquery 결합 효과</strong>:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0">
+        <tr style="color:#e2e8f0"><td style="padding:4px">조건</td><td style="padding:4px;text-align:center">mlp hard→soft</td><td style="padding:4px;text-align:center">deltacx hard→soft</td><td style="padding:4px;text-align:center">actionquery hard→soft</td></tr>
+        <tr><td style="padding:4px">weak_right</td><td style="padding:4px;text-align:center">35.01→38.53%(+3.52)</td><td style="padding:4px;text-align:center">40.85→44.03%(+3.18)</td><td style="padding:4px;text-align:center">37.82→37.88%(+0.06)</td></tr>
+        <tr><td style="padding:4px">strong_right</td><td style="padding:4px;text-align:center">32.68→47.20%(+14.52)</td><td style="padding:4px;text-align:center">33.01→42.75%(+9.74)</td><td style="padding:4px;text-align:center"><strong>46.39</strong>→47.47%(+1.08)</td></tr>
+      </table>
+      actionquery는 <strong style="color:#e2e8f0">이미 hard 상태에서 strong_right(46.39%)가
+      mlp+soft(47.20%)급</strong>이라 soft를 얹어도 거의 안 오른다(+1.08%p) — "애초에
+      결합이 필요 없던 후보"였다는 뜻. weak_right에서도 시너지가 거의 없다(+0.06%p).
+      <br><br>
+      <strong style="color:#4ade80">최종 판단 — mlp+soft(D)가 다음 단계 후보로 확정</strong>.
+      deltacx+soft가 FPE는 근소 우위(1.003m)지만 success는 mlp+soft와 동일(33.3%)하고
+      구조가 더 단순한 mlp 쪽이 실용적. actionquery는 구조 변경 없이 D만 적용해도
+      충분히 좋아지는 걸 확인했으니 <strong style="color:#e2e8f0">폐기</strong>. 다음 단계는
+      <strong style="color:#e2e8f0">소규모 실기 A/B(mlp+soft vs 배포중 exp73)</strong> — 확정
+      발견 6번은 여전히 유효하므로 실기 검증 전에는 "배포 추천"이라 단정하지 않는다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/eval_soft_actionquery_combo.py</code> · 결과
+      <code>docs/v5/closed_loop_eval/soft_actionquery_combo.json</code></span>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH70 ═ -->
+
+<hr class="chapter-divider">
+
+<div class="chapter" id="ch71">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#a3e635;color:#0a0f1a">CH 71</span>
+    <h2 class="chapter-title">LLM Wiki 구축 — 81챕터를 주제별로 재구성한 Karpathy 방식 위키</h2>
+    <p class="chapter-subtitle"><span style="color:#bef264;font-weight:800">2026-08-28~29</span> ·
+    research_story.html(시간순 연구일지)을 주제별로 조회 가능하게 재구성한 <code>docs/wiki/</code>
+    구축. 2026-04 공개된 Karpathy LLM-wiki 방식(raw/wiki/index, 벡터DB 없음)을 채택하고,
+    새 챕터 추가 시 안전하게 재동기화하는 <code>wiki-sync</code> 스킬까지 만들었다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟢 <strong>3줄 요약</strong><br>
+    ① 이 세션에서 CH69/70을 찾으려고 grep을 반복했던 비효율을 계기로, research_story.html
+    81챕터를 8개 주제(그라운딩/액션헤드/언어조건화/flow-matching/데이터셋/실기테스트/백본/미팅)로
+    재구성한 markdown 위키를 만들었다.<br>
+    ② 형식은 2026-04 공개된 Karpathy의 "LLM wiki"(raw/wiki/index.md 3계층, 벡터DB 없음)를
+    채택 — 우리 규모(81챕터, 컨텍스트에 들어감)에 RAG보다 적합하다고 판단.<br>
+    ③ 각 주제 페이지 상단에 병렬 서브에이전트 8개가 전체 정독 후 쓴 압축 요약을 채웠고,
+    새 챕터가 추가돼도 기존 요약을 안 지우고 안전하게 재동기화하는 <code>wiki-sync</code>
+    스킬까지 구축·검증했다.
+  </div>
+
+  <div class="finding-card" style="border-color:#a3e635">
+    <div class="finding-title" style="color:#a3e635">📐 71-1. 파싱 — div 트리 추적 2번 실패 후 "마커 간 텍스트 구간" 방식으로 해결</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      81개 `chapter` div와 그 안의 finding-card/callout을 뽑아내려고 두 가지를 시도했다가
+      둘 다 실패했다: ① 정규식 기반 div 중첩 깊이 추적, ② 표준 `html.parser.HTMLParser`
+      트리 추적. 둘 다 <strong style="color:#f87171">CH7이 CH66까지 통째로 삼켜버리는
+      버그</strong>가 재현됐다 — 원인은 파일 자체(19,123줄, 여러 세션에 걸친 수작업 편집
+      히스토리)에 실제 `<div>`/`</div>` 짝이 안 맞는 부분이 있어서였다(파일 전체 합계는
+      우연히 맞아떨어짐, `open div == close div` 체크로는 안 잡힘).
+      <br><br>
+      해결: 정확한 HTML 트리가 필요 없다는 데 착안해 <strong style="color:#e2e8f0">"챕터/카드는
+      다음 같은 종류 마커가 나오기 전까지의 텍스트 구간"</strong>으로 재정의(`scripts/wiki/parse_research_story.py`).
+      div 짝이 깨져 있어도 마커 자체(챕터 시작 태그, finding-card/callout 시작 태그)의
+      선형 순서만 있으면 안전하게 파싱된다 — 81개 챕터, 301개 finding-card/callout 전부
+      정확히 추출됨.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#a3e635">
+    <div class="finding-title" style="color:#a3e635">🗂 71-2. 주제 태깅 + 압축 요약 — 8개 주제, 서브에이전트 병렬 정독</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      81개 챕터를 실제 제목을 다 확인한 뒤 8개 주제로 분류(`docs/wiki/data/topic_index.json`,
+      79/81챕터 커버 — `vis`는 이미지 전용이라 의도적 제외). 각 주제 markdown 페이지는
+      챕터별 원문을 시간순으로 재배열한 뒤, <strong style="color:#e2e8f0">일반 목적(general-purpose)
+      서브에이전트 8개를 병렬로 launch</strong>해서 각자 자기 주제 파일을 전체 정독하고
+      "지금 이 주제에 대해 확정적으로 아는 것"을 5~12문장으로 압축하게 했다(Karpathy 방식
+      핵심 — 시간순 서사가 아니라 최종 결론 위주).
+      <br><br>
+      예: grounding-detector 요약은 "실주행 성패는 액션헤드가 아니라 그라운딩 가용성이
+      가른다(gnd%≥80 → 98.8% 성공)"로 시작하고, action-head-architecture 요약은
+      "헤드 구조 축은 한계, ordinal soft label(손실함수)만 실질 개선"(CH70)으로 시작한다 —
+      두 문장만 읽어도 그 챕터 번호를 몰라도 핵심을 파악할 수 있다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#a3e635">
+    <div class="finding-title" style="color:#a3e635">📦 71-3. 아카이브 색인 — docs/*.md 357개 스냅샷은 압축 없이 카탈로그만</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      `docs/*.md` 최상위 357개 파일도 편입을 검토했으나, 조사 결과 이들은
+      research_story.html이 다루는 시기(2026-05~)보다 훨씬 이전(2024-08~2026-04)의
+      <strong style="color:#e2e8f0">별개 프로젝트 단계</strong>(양자화/서빙 인프라, manipulation
+      vs navigation 액션 공간 비교, "환각 제거" 반복 수정 이력 등) 기록으로 확인됐다 —
+      지금 EdgeGround-VLA 네비게이션 연구와 직접 연관이 약함. 사용자 판단으로
+      "대부분 죽은 기록 — 아카이브로만 충분"이라 결정, 원문을 읽어 압축하는 대신
+      제목/날짜/한줄요약만 뽑은 카탈로그(`docs/wiki/archive-index.md`, 357행)만 생성했다.
+      원본 파일은 이동·삭제 없이 그대로 둠.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80;background:linear-gradient(135deg,#0a1f14,#0c2417)">
+    <div class="finding-title" style="color:#4ade80">🔁 71-4. wiki-sync 스킬 — 새 챕터 추가 시 압축 요약을 절대 안 지우는 안전한 재동기화</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      새 챕터(CH71 같은)가 추가될 때마다 위키를 손으로 다시 만들 순 없으므로,
+      <code>.claude/skills/wiki-sync/SKILL.md</code> + <code>scripts/wiki/sync_wiki.py</code>로
+      절차를 스킬화했다. 핵심 안전장치: `build_wiki_pages.py`가 몇 번을 다시 돌아도
+      기존 "## 압축 요약" 섹션은 파일에서 읽어와 그대로 보존하고, "챕터별 원문 발췌"
+      섹션만 최신 `chapters.json` 기준으로 재생성한다. 새 챕터가 어떤 주제에 추가되면
+      그 요약 위에 "⚠️ 새 챕터 추가됨 — 재압축 필요" 배지를 자동으로 붙여 낡았음을 표시하고,
+      배지 자체는 다음 실행 때 요약 텍스트에서 다시 벗겨내(영구히 눌어붙지 않게) 매번
+      새로 판단한다.
+      <br><br>
+      기계적 재구성(파싱/재배열/백링크, 스크립트가 결정론적으로 처리)과
+      "무엇을 아는가"의 압축(반드시 LLM이 원문을 읽고 판단, 스크립트가 임의로 안 함)의
+      경계를 명확히 나눈 게 이 스킬의 설계 원칙 — `sync_wiki.py`는 "무엇을 해야 하는지"만
+      알려주고 실제 판단은 항상 스킬을 실행하는 세션이 한다.
+      <br><br>
+      검증: 가짜 챕터를 임시로 한 주제에 추가했다가 제거하는 실험으로 stale 배지
+      생성/제거가 정확히 작동함을 확인했고, 그 과정에서 배지 텍스트가 요약에 영구히
+      눌어붙는 실제 버그 하나를 잡아 수정했다.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/wiki/parse_research_story.py</code> ·
+      <code>scripts/wiki/build_wiki_pages.py</code> ·
+      <code>scripts/wiki/build_archive_index.py</code> ·
+      <code>scripts/wiki/render_wiki_html.py</code> ·
+      <code>scripts/wiki/sync_wiki.py</code> · 결과
+      <code>docs/wiki/index.html</code> · 계획
+      <code>docs/plans/plan_20260828_llm_wiki.md</code></span>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH71 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH72 ═ -->
+<div class="chapter" id="ch72">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#38bdf8;color:#0a0f1a">CH 72</span>
+    <h2 class="chapter-title">1차 심사(수정 후 재심) 대응 — OWLv2/Kosmos-2 기여도 ablation, 실패분류 데이터 한계 확인</h2>
+    <p class="chapter-subtitle"><span style="color:#7dd3fc;font-weight:800">2026-09-14</span> ·
+    KCI 논문 1차 심사 결과(위원1·3 수정 후 재심, 위원2 수정 후 게재)를 받고, 지적 9건을
+    "서술로 해결 가능"과 "실제 데이터/실험 필요"로 분류해 대응했다. 그 중 위원1-①·위원3-④가
+    요구한 그라운딩 인코더 기여도 ablation을 실제로 돌렸고, 위원3-⑤·⑦이 요구한 실패 케이스
+    분류는 <strong style="color:#fbbf24">데이터가 없어서 할 수 없다는 것을 확인</strong>했다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟢 <strong>3줄 요약</strong><br>
+    ① 배포 조건과 동일한 exp73 split(192/33ep, seed=42)에서 OWLv2 bbox 단독(64.09%)·Kosmos-2
+    vision 단독(73.71%)·융합(73.87%, best seed 74.13%=배포 체크포인트와 정확히 일치)을 3-seed로
+    비교 — Kosmos-2 비전이 성능 대부분을 담당하고 OWLv2는 보조적이라는, PG2 기반 이전 실험(Exp14)과
+    같은 방향의 결론을 OWLv2 그라운더에서도 재확인.<br>
+    ② <code>logs/episode_log.csv</code>의 "실패" 74건을 전수 조사한 결과, 이건 95/100 헤드라인
+    배치(08-07)가 아니라 <strong style="color:#f87171">그 이전 개발 단계(06-26~07-23) 디버깅
+    세션</strong>이었고, 95/100 배치 자체는 H5에 세션별 성공/실패 라벨이 없어(status 전량
+    manual_stop) 실패 5건의 원인을 재구성할 방법이 없다는 걸 확인 — 환각 없이 "데이터 한계"로
+    명시하는 쪽을 택함.<br>
+    ③ 서술 보강만으로 해결 가능한 6개 항목(lightweight 용어 정의, 스코프 강조, Mobility VLA
+    비교 재검토, frozen 인코더 결합 서술, Fig/Table 인덱스, 하이퍼파라미터 서술)은 복붙용 영문
+    문단까지 <code>revision_briefing.html</code>에 준비해뒀고, 새 조건(출발위치/카메라/조도)
+    실기 실험은 재심 기한 확인 후 결정하기로 미결정 상태로 남김.
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🔬 72-1. OWLv2 단독 / Kosmos-2 단독 / 융합 ablation — 배포 조건 그대로 재현</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>scripts/ablate_owlv2_kosmos2_fusion.py</code>로 exp73_v6_vis_cache_stage1v3.pt
+      (Kosmos-2 vision, 그라운더 무관)의 vis 특징은 그대로 두고 bbox만
+      bbox_dataset_v6_owl.json(OWLv2)으로 교체 — 배포 체크포인트가 학습된 것과 동일한 절차다.
+      결과:
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+      <tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">조건</th><th style="text-align:left;padding:4px 8px">입력 차원</th><th style="text-align:left;padding:4px 8px">val acc (3-seed)</th></tr>
+      <tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">OWLv2 bbox 단독</td><td style="padding:4px 8px">24 (4×window6)</td><td style="padding:4px 8px">64.09% ± 0.34%p</td></tr>
+      <tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">Kosmos-2 vision 단독</td><td style="padding:4px 8px">1536 (256×window6)</td><td style="padding:4px 8px">73.71% ± 0.10%p</td></tr>
+      <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>융합(배포)</strong></td><td style="padding:4px 8px">1560 (260×window6)</td><td style="padding:4px 8px"><strong>73.87% ± 0.20%p</strong></td></tr>
+      </table>
+      best seed(74.13%)가 배포 체크포인트 저장값(74.13%)과 정확히 일치해 ablation 파이프라인이
+      배포 조건과 동일함을 검증했다. Kosmos-2 비전 단독으로 이미 융합 성능의 대부분(73.71/73.87)을
+      회복하고, OWLv2 bbox 단독도 8-class chance(12.5%)를 크게 상회(64.09%)하지만 둘보다는 못하다 —
+      <strong style="color:#e2e8f0">두 인코더가 상호보완적이되 시각 표현이 더 결정적</strong>이라는
+      결론. PG2 기반 이전 실험(Exp14: bbox_only 67.4%/image_only 75.6%/융합 76.7%)과 방향이 같아
+      그라운더를 바꿔도 재현되는 구조적 결론임을 확인.
+      <br><span style="font-size:0.78rem;color:#64748b">스크립트
+      <code>scripts/ablate_owlv2_kosmos2_fusion.py</code> · 결과
+      <code>docs/v5/bbox_nav_owl/ablation_owlv2_kosmos2_fusion.json</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">🚧 72-2. 실패 케이스 원인 분류(위원3-⑤·⑦) — 요청받은 데이터가 존재하지 않음을 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>logs/episode_log.csv</code>(145행)를 전수 조사했다. "실패" 74건의 메모를 읽어보니
+      "검증 스크리닝(L2 저장)", "프리뷰 모델 오류", "async모드 테스트" 등 <strong
+      style="color:#f87171">전부 06-26~07-23 개발 단계 디버깅 세션</strong>이었다 — 논문에 실린
+      95/100 헤드라인 배치(08-07)와는 체크포인트/파이프라인 조건이 다른 별개의 로그다.
+      <br><br>
+      정작 95/100 배치 자체는 CH64/model_architecture_brief.html에 이미 기록된 대로 H5에
+      세션별 성공/실패 라벨이 없다(<code>status</code> 전량 <code>manual_stop</code>) — 실패 5건
+      각각이 어떤 프레임에서 왜 틀렸는지 재구성할 방법이 데이터상 없다.
+      <br><br>
+      대안으로 삼은 것: 원인 분해가 실제로 가능한 유일한 데이터는 89/100 배치(07-31)의 미검출
+      프레임 197장 confidence 분포(0.10~0.20 구간이 54.8%로 지배적 — 이미 model_architecture_brief.html
+      §5에 있음)뿐이다. 논문에는 이 배치 출처를 명시하고 "다른 배치의 진단 데이터에 근거해
+      일반화한 것"이라고 정직하게 쓰기로 했다 — 없는 데이터를 만들어내지 않는다는 원칙을
+      여기서도 지켰다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">📝 72-3. 서술 보강 6건 + 미결정 1건 — 위원별 지적 전체 분류</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#4ade80">서술로 해결(완료, 영문 복붙 문단까지 준비)</strong>:
+      lightweight 용어 재정의(위원1-③, 학습파라미터 1.128M vs 추론참여 459.3M 구분),
+      스코프 한계 명시(위원2, 위원3-②, constrained vocabulary+고정 5목표지점),
+      Mobility VLA 비교 재검토(위원3-③, 동일조건 아님을 명시), frozen 인코더 결합 서술
+      보강(위원3-④, ablation 결과로 답변), Fig/Table 인덱스 표기(위원3-⑥, revision_briefing.html에서
+      이미 재정렬 완료), 하이퍼파라미터 서술 확장(위원3-⑨).
+      <br><br>
+      <strong style="color:#f87171">서술로 처리(실험 대상 아님)</strong>: 충돌회피 안전 논의(위원3-⑧)
+      — 현재 파이프라인에 없는 기능이므로 Limitation 절에 명시.
+      <br><br>
+      <strong style="color:#fbbf24">미결정 — 사람 판단 대기</strong>: 새 출발위치/카메라/조도
+      조건 추가 실기(위원1-②, 위원3-①) — 유일하게 로봇 재출동이 필요한 항목이라 재심 기한을
+      확인한 뒤 조건 수·회당 시행 횟수를 역산하기로 함.
+      <br><span style="font-size:0.78rem;color:#64748b">전체 트리아지 표
+      <code>docs/01.paper/revision_briefing.html#round1-review</code></span>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH72 ═ -->
 
 <hr class="chapter-divider">
 
@@ -18195,7 +19180,7 @@ graph TD
       </ul>
       <div style="margin-top:8px;color:#94a3b8;font-size:0.85rem">
         재발 방지용 체크리스트 5종(latency/drift/continuity/resize/grounding)을 만들어 GB10·soda 양쪽에 배포함 —
-        <a href="https://github.com/minuum/MoNaVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a>
+        <a href="https://github.com/minuum/EdgeGroundVLA/blob/inference-integration/docs/plans/CHECKLIST_pipeline_health.md" style="color:#7dd3fc">CHECKLIST_pipeline_health.md</a>
       </div>
     </div>
   </div>
