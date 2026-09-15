@@ -2126,6 +2126,100 @@ apples-to-apples 비교 불가).</p>
 
 <h3 class="cat" id="realrobot-newcond"><span class="tag t-pending">확정 — 이번 주(2026-09-14~09-20) 내 실행</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
 
+<div class="item done" style="border-left-color:#4ade80;background:rgba(74,222,128,0.04)">
+<h4>📋 TODO — 한눈에 보는 준비 상태</h4>
+<div class="body">
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+  <th style="text-align:left;padding:6px 8px;width:34px">✓</th>
+  <th style="text-align:left;padding:6px 8px">항목</th>
+  <th style="text-align:left;padding:6px 8px">상태</th>
+  <th style="text-align:left;padding:6px 8px">담당</th>
+  <th style="text-align:left;padding:6px 8px">비고</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
+  <td style="padding:6px 8px">실험 설계 확정</td>
+  <td style="padding:6px 8px">완료</td>
+  <td style="padding:6px 8px">교수님+저자</td>
+  <td style="padding:6px 8px">1×5→3×5 그리드 + 조도 ablation, 2026-09-14</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
+  <td style="padding:6px 8px">실기 규모·일정 계산</td>
+  <td style="padding:6px 8px">완료</td>
+  <td style="padding:6px 8px">Claude</td>
+  <td style="padding:6px 8px">100회(위치2·3 각 25 + 조도 50), Wilson CI, 09-15~20 일정표</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
+  <td style="padding:6px 8px">로깅 인프라 점검</td>
+  <td style="padding:6px 8px">완료 — 수정 불필요</td>
+  <td style="padding:6px 8px">Claude</td>
+  <td style="padding:6px 8px">mona_dashboard.py가 체크포인트/런타임설정 자동 스냅샷(2026-07-29 수정됨)</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
+  <td style="padding:6px 8px">조건 네이밍 컨벤션 확정</td>
+  <td style="padding:6px 8px">완료</td>
+  <td style="padding:6px 8px">Claude</td>
+  <td style="padding:6px 8px"><code>pos2_&lt;방향&gt;</code> / <code>pos3_&lt;방향&gt;</code> / <code>light_&lt;방향&gt;</code></td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
+  <td style="padding:6px 8px">집계 스크립트 작성</td>
+  <td style="padding:6px 8px">완료 — 테스트됨</td>
+  <td style="padding:6px 8px">Claude</td>
+  <td style="padding:6px 8px"><code>scripts/analyze_newcond_experiment.py</code>, 빈 상태 실행 확인</td>
+</tr>
+<tr style="background:rgba(251,191,36,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c o">⬜</td>
+  <td style="padding:6px 8px">Jetson 서버 상태 확인</td>
+  <td style="padding:6px 8px" class="o">대기 — 사람 필요</td>
+  <td style="padding:6px 8px">실기 담당자</td>
+  <td style="padding:6px 8px">/health로 checkpoint_path·threshold=0.20·skip_n=3 확인 (개발 머신에서 접근 불가)</td>
+</tr>
+<tr style="background:rgba(251,191,36,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c o">⬜</td>
+  <td style="padding:6px 8px">출발위치2·3 물리적 설정</td>
+  <td style="padding:6px 8px" class="o">대기 — 사람 필요</td>
+  <td style="padding:6px 8px">실기 담당자</td>
+  <td style="padding:6px 8px">트랙 내 2개 지점 확정(로봇↔타겟 거리·각도 등 기록해두면 재현성↑)</td>
+</tr>
+<tr style="background:rgba(251,191,36,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c o">⬜</td>
+  <td style="padding:6px 8px">조도 조건 설정</td>
+  <td style="padding:6px 8px" class="o">대기 — 사람 필요</td>
+  <td style="padding:6px 8px">실기 담당자</td>
+  <td style="padding:6px 8px">조명 축소/커튼 등으로 기존 대비 확실히 구분되는 조도 확보</td>
+</tr>
+<tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c">⬜</td>
+  <td style="padding:6px 8px"><b>실기 실행 (100회)</b></td>
+  <td style="padding:6px 8px">미실행</td>
+  <td style="padding:6px 8px">실기 담당자</td>
+  <td style="padding:6px 8px">09-15(화)~16(수) 목표, <code>pos2_/pos3_/light_</code> 컨벤션으로 기록</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c">⬜</td>
+  <td style="padding:6px 8px">결과 집계 + 문서 반영</td>
+  <td style="padding:6px 8px">미실행</td>
+  <td style="padding:6px 8px">Claude</td>
+  <td style="padding:6px 8px">09-17(목) 목표 — 스크립트 실행 → Table 7 옆 신규 표 추가</td>
+</tr>
+<tr>
+  <td style="padding:6px 8px" class="c">⬜</td>
+  <td style="padding:6px 8px">논문 본문 반영</td>
+  <td style="padding:6px 8px">미실행</td>
+  <td style="padding:6px 8px">저자</td>
+  <td style="padding:6px 8px">09-18(금) 목표 — §4 Discussion/Limitation, 서술보강 6건 최종 확인 포함</td>
+</tr>
+</table>
+<p style="font-size:0.82rem;color:#94a3b8">✅ = 제가(Claude) 오프라인으로 준비 완료한 것. ⬜(노랑) = 물리적 실기 담당자가 해야 하는 것(제가 대신 못 함).
+⬜(파랑) = 실기 이후 제가 이어받는 작업.</p>
+</div>
+</div>
+
 <div class="item done" style="border-left-color:#38bdf8">
 <h4>2026-09-14 교수님과 1차보완 논의 결과 (공식 기록) — 학습 1×5 → 추론 3×5 그리드로 확장</h4>
 <div class="body">
