@@ -38,8 +38,7 @@ body{background:var(--bg);color:var(--ink);
 .sidebar-brand{font-weight:800;color:var(--ink);font-size:0.95rem;margin-bottom:4px}
 .sidebar-brand a{color:inherit;text-decoration:none}
 .sidebar-sub{color:var(--ink-dim);font-size:0.72rem;margin-bottom:18px}
-.sidebar-section{color:var(--ink-dim);font-size:0.68rem;font-weight:700;text-transform:uppercase;
-                  letter-spacing:0.06em;margin:18px 0 8px}
+.sidebar-section{color:var(--ink-dim);font-size:0.74rem;font-weight:700;margin:18px 0 8px}
 .sidebar a.side-link{display:block;color:var(--ink-soft);text-decoration:none;padding:6px 8px;
                       border-radius:6px;margin:1px 0}
 .sidebar a.side-link:hover{background:var(--bg-raised);color:var(--ink)}
@@ -48,8 +47,7 @@ body{background:var(--bg);color:var(--ink);
 .sidebar a.side-link .n{color:var(--ink-dim);font-size:0.7rem;float:right}
 .main{flex:1 1 auto;min-width:0;padding:36px 40px 100px;max-width:900px}
 h1{font-size:1.6rem;color:var(--ink);margin:0 0 8px;letter-spacing:-0.01em}
-h2{font-size:1.05rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;
-   letter-spacing:0.04em;margin-top:40px;margin-bottom:16px}
+h2{font-size:1.15rem;color:var(--ink-soft);font-weight:700;margin-top:40px;margin-bottom:16px}
 p.tagline{color:var(--ink-soft);font-size:0.95rem;margin:0 0 28px;max-width:70ch}
 a{color:#7dd3fc}
 code{background:#111827;padding:2px 6px;border-radius:4px;font-size:0.85rem;color:var(--accent-c)}
@@ -60,8 +58,7 @@ ul{color:var(--ink-soft)}
 /* 요약/메타 강조 박스 */
 .summary-box{background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--accent-a);
              border-radius:10px;padding:18px 22px;margin:0 0 32px}
-.summary-box>p:first-child strong:first-child{color:var(--accent-a);font-size:0.8rem;
-             text-transform:uppercase;letter-spacing:0.05em}
+.summary-box>p:first-child strong:first-child{color:var(--accent-a);font-size:0.85rem}
 .summary-box p{color:var(--ink-soft);font-size:0.9rem;margin:10px 0}
 
 /* 챕터 블록(카드) */
@@ -98,7 +95,7 @@ a.topic-card{display:flex;flex-direction:column;gap:6px;background:var(--bg-rais
              border:1px solid var(--line);border-radius:12px;padding:16px 18px;
              text-decoration:none;transition:transform .12s,border-color .12s}
 a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
-.topic-card-count{font-size:0.68rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.05em}
+.topic-card-count{font-size:0.72rem;color:var(--ink-dim)}
 .topic-card-title{font-size:1.0rem;font-weight:700;color:var(--ink)}
 .topic-card-summary{font-size:0.8rem;color:var(--ink-soft);line-height:1.5}
 .topic-card.accent-a{border-top:3px solid var(--accent-a)}
