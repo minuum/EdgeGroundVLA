@@ -2125,42 +2125,65 @@ apples-to-apples 비교 불가).</p>
 </div>
 
 <h3 class="cat" id="realrobot-newcond"><span class="tag t-pending">확정 — 이번 주(2026-09-14~09-20) 내 실행</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
+
 <div class="item done" style="border-left-color:#38bdf8">
-<h4>재심 기한 확인됨 — 2026-09-14(월) 기준 이번 주 내</h4>
+<h4>2026-09-15 재설계 — 사용자 지시 반영: 학습 1×5 → 추론 3×5 그리드로 확장</h4>
 <div class="body">
-<p>실기에 필요한 최대 시간(60회 기준 총 60~120분)이 남은 기한(5~6일)에 비해 여유가 충분해,
-<strong class="h">기존 프로토콜과 동일 규격인 n=20(조건당)으로 진행</strong>하기로 확정합니다
-(n=15 최소안 대신 n=20 — Wilson CI 하한 76.4%로 Table 7의 다른 위치들과 직접 비교 가능).</p>
+<p>이전 안(타겟 "중앙" 고정 + 3조건 각 n=20)을 <strong class="h">사용자가 직접 재설계</strong>했습니다.
+학습 시 목표 방향 구성은 <strong>출발 위치 1개 × 목표 방향 5개(1×5)</strong>였는데, 추론(실기 평가)에서는
+<strong class="h">출발 위치를 3개로 늘려 3×5 그리드</strong>로 검증하기로 확정했습니다 — 위원1-②/3-①이
+요구한 "학습-테스트 목표 동일성"과 "출발 위치 독립성"을 동시에 정면으로 다루는 설계입니다.</p>
 </div>
-<h4 style="margin-top:14px">제안 일정</h4>
+<h4 style="margin-top:14px">최종 확정 설계 — 4가지 결정</h4>
+<div class="body">
+<ol style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
+<li><b>출발 위치 독립성 (위원1-②, 위원3-①)</b> — 기존 출발 위치 1개(=Table 7의 100건)에 신규 출발 위치
+2개를 추가해 <strong class="h">3개 출발 위치 × 5개 목표 방향</strong> 그리드로 확장. 위치1은 기존 100건을
+그대로 재사용(재실기 불필요), <strong class="h">위치2·3만 신규 실기</strong>.</li>
+<li><b>조도 ablation (위원3-①의 "카메라 위치·시간 변화" 중 조도 부분)</b> — 기존 출발 위치에서 조도만
+바꿔 별도 ablation으로 진행(그리드에 섞지 않고 독립 변수로 분리 — 원인 귀속을 명확히 하기 위함).</li>
+<li><b>시간 변화 (위원1-②) — 새 실기 불필요, 기존 데이터로 이미 커버됨</b> — 학습 데이터(V5, 686개 H5
+원본 풀) 파일명 타임스탬프를 직접 세어보니 <strong class="h">심야(00-04시) 90개(26%) · 아침(05-10시)
+32개(9%) · 점심(11-14시) 13개(4%) · 저녁(19-23시) 90개(26%)</strong>에 걸쳐 수집됐습니다(오후 15-18시대는
+없음). "아침·점심·저녁 데이터 수집"이라는 서술은 <strong class="o">대체로 맞지만 정확히는 심야·오전·정오·
+저녁 4개 시간대이고 오후 구간은 비어 있습니다</strong> — 논문에는 이 실측 분포 그대로(반올림 없이) 쓰는 게
+안전합니다.</li>
+<li><b>학습-테스트 목표 동일성 (위원1-②)</b> — 별도 실험 없이 위 1번(출발 위치 변경 실기)으로 해결.</li>
+</ol>
+<p style="font-size:0.82rem;color:#fbbf24">⚠️ <b>카메라 배치 조건은 이번 재설계에서 명시적으로 언급되지
+않았습니다</b> — 이전 안(3조건: 출발위치/카메라/조도)에 있던 "새 카메라 배치"가 이번 지시에서 빠졌는데,
+의도적으로 뺀 것인지 확인이 필요합니다. 일단 아래 규모 계산에는 포함하지 않았습니다.</p>
+</div>
+<h4 style="margin-top:14px">규모 계산 — 신규 실기는 100회(그리드 50 + 조도 50)</h4>
 <div class="body">
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
-<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">일자</th><th style="text-align:left;padding:4px 8px">작업</th></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-15(화)~09-16(수)</td><td style="padding:4px 8px">실기 실행 — 조건 A(새 출발위치) 20회, 조건 B(새 카메라 배치) 20회, 조건 C(조도 변화) 20회. 총 60~120분이라 하루에 다 몰아서 해도 되고 이틀에 나눠도 됨</td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-17(목)</td><td style="padding:4px 8px">episode_log.csv 기록 + 결과 정리(성공률·Wilson CI), Table 7 옆에 신규 표로 추가, model_architecture_brief.html·revision_briefing.html 반영</td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-18(금)</td><td style="padding:4px 8px">논문 본문(§4 Discussion 또는 Limitation) 반영, 서술 보강 6건 최종 확인</td></tr>
-<tr><td style="padding:4px 8px">09-19(토)~09-20(일)</td><td style="padding:4px 8px">여유일 — 재실기 필요시 백업, 최종 검토</td></tr>
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">항목</th><th style="text-align:left;padding:4px 8px">구성</th><th style="text-align:left;padding:4px 8px">신규 실기 횟수</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">출발위치1 (기존)</td><td style="padding:4px 8px">5방향 × 20회</td><td style="padding:4px 8px" class="c">0회 — 기존 100건 재사용</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">출발위치2 (신규)</td><td style="padding:4px 8px">5방향 × n=5</td><td style="padding:4px 8px"><strong>25회</strong></td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">출발위치3 (신규)</td><td style="padding:4px 8px">5방향 × n=5</td><td style="padding:4px 8px"><strong>25회</strong></td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">조도 ablation (신규)</td><td style="padding:4px 8px">출발위치1 · 5방향 × n=10</td><td style="padding:4px 8px"><strong>50회</strong></td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>합계</strong></td><td style="padding:4px 8px">3×5 그리드(위치2·3만 신규) + 조도</td><td style="padding:4px 8px"><strong class="g">100회</strong></td></tr>
 </table>
-<p style="font-size:0.82rem;color:#94a3b8">실기는 <strong class="h">최대한 빨리(가능하면 09-15~16 중)</strong> 끝내는 게 좋습니다 —
-결과에 따라 서술 방향(성능 유지 vs 저하 관찰 시 원인 분석)이 달라질 수 있어 뒤 작업이 이 결과에 의존합니다.</p>
+<p style="font-size:0.82rem;color:#94a3b8">그리드 셀당 n=5는 표본이 작아(Wilson CI 폭 넓음) "완전 붕괴 여부"만 판별
+가능한 수준입니다. 위치별 합산(5방향×n=5=25회/위치)하면 Wilson CI 하한 ≈56.6%(95% 성공 가정). 더 타이트한
+근거가 필요하면 위치2·3을 n=10(각 50회, 합계 150회)으로 올리는 안도 가능 — 이번 주 시간 여유(5~6일)로는
+150회도 충분히 가능(약 2.5~3시간). 조도 ablation은 기존 위치·5방향 전체를 n=10으로 재확인해 Table 7과
+같은 해상도로 비교 가능하게 했습니다.</p>
+<p style="font-size:0.82rem;color:#94a3b8">에피소드당 평균 11.64스텝 × ~1.2초/스텝 ≈ 20~30초/회 +
+리셋/재배치 오버헤드 30~60초/회 → 100회 기준 <strong class="h">총 100~150분</strong>(150회안이면 150~225분).</p>
 </div>
 </div>
 
+<h4 style="margin-top:20px;color:#cbd5e1;font-size:0.9rem">일정 (변경 없음)</h4>
 <div class="item done">
-<h4>확정된 실험 설계 — 3조건 × n=20 = 총 60회</h4>
 <div class="body">
-<p>타겟 방향은 <strong>"중앙" 1개로 고정</strong>(기존 100/100 중 유일한 100% 방향이라 조건 변화로
-인한 하락을 가장 민감하게 감지 가능)하고, 3가지 새 조건만 바꿔 각각 <strong class="h">n=20회</strong>
-측정합니다(Wilson 95% CI 하한 76.4% — 기존 위치별 프로토콜과 동일 규격이라 Table 7과 직접 비교 가능).
-완전 재수집(5방향×3조건×20회=300회) 대비 훨씬 현실적입니다.</p>
-<ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px">
-<li><b>조건 A — 새 출발 위치</b>: 기존 트랙 내 다른 지점에서 출발(로봇↔타겟 상대 거리/각도는 유지), 20회</li>
-<li><b>조건 B — 새 카메라 배치</b>: 카메라 높이 또는 tilt 각도를 기존 대비 변경, 20회</li>
-<li><b>조건 C — 조도 변화</b>: 야간/조명 축소 또는 커튼으로 자연광 변화, 20회</li>
-</ul>
-<p style="font-size:0.82rem;color:#94a3b8">에피소드당 평균 11.64스텝(95/100 기준) ×
-~1.2초/스텝(실측 지연 평균) ≈ 약 20~30초/회 + 리셋/재배치 오버헤드(약 30~60초/회)
-→ 60회 기준 <strong class="h">총 60~120분</strong> 예상(재배치 방식에 따라 변동).</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">일자</th><th style="text-align:left;padding:4px 8px">작업</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-15(화)~09-16(수)</td><td style="padding:4px 8px">실기 실행 — 출발위치2·3(그리드) + 조도 ablation, 총 100회(150회안이면 이틀로 분산)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-17(목)</td><td style="padding:4px 8px">episode_log.csv 기록 + 결과 정리(성공률·Wilson CI), Table 7 옆에 신규 표로 추가</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-18(금)</td><td style="padding:4px 8px">논문 본문(§4 Discussion 또는 Limitation) 반영, 서술 보강 6건 최종 확인</td></tr>
+<tr><td style="padding:4px 8px">09-19(토)~09-20(일)</td><td style="padding:4px 8px">여유일 — 재실기 필요시 백업, 최종 검토</td></tr>
+</table>
 </div>
 </div>
 </div>
