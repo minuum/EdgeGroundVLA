@@ -2176,6 +2176,38 @@ apples-to-apples 비교 불가).</p>
 </div>
 </div>
 
+<div class="item done" style="border-left-color:#a78bfa">
+<h4>사전 점검 — 코드/학습은 불필요, 로깅·환경 확인만 필요 (2026-09-15 검토)</h4>
+<div class="body">
+<p><strong class="h">모델 재학습·코드 수정은 필요 없습니다</strong> — OWLv2(zero-shot)와 Kosmos-2
+vision 둘 다 절대 위치를 학습 입력으로 받지 않고 프레임 단위 bbox·시각 특징만 사용하므로, 새 출발위치·
+조도에서 <strong class="h">배포 체크포인트(exp73_owl_stage1v3_v6_mlp.pt +
+stage1_v3_5cls_owl_projs.pt) 그대로</strong> 테스트하면 됩니다. 재학습하면 오히려 "일반화 검증"이 아니라
+"적응"이 되어 실험 취지에 반합니다.</p>
+<p>다만 실기 전 확인·준비할 4가지:</p>
+<ol style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
+<li><b>로깅 스키마는 이미 고쳐져 있음</b> — 95/100 배치(08-07) 때 겪은 "사후 실패분석 불가" 문제
+(<code>episode_log.csv</code> 145행 전부 13~14열, 체크포인트·런타임설정 없음)는
+<code>robovlm_nav/serve/mona_dashboard.py</code>의 <code>_current_checkpoint_and_config()</code>가
+<strong class="g">2026-07-29에 이미 수정</strong>돼 있어 재발하지 않습니다 — 저장 순간 체크포인트/
+threshold/skip_n 스냅샷이 CSV 행(17열)에 통째로 박힙니다. 대시보드로 기록하면 자동으로 확보됨.</li>
+<li><b>물리적 조건(위치2·3, 조도)을 구분할 필드가 없어 네이밍 컨벤션으로 해결</b> — "경로"(path_type)
+필드에 전용 값이 없어, 기존 컨벤션(<code>trackA_strong_right</code> 등)과 같은 방식으로
+<strong class="h"><code>pos2_&lt;direction&gt;</code> / <code>pos3_&lt;direction&gt;</code> /
+<code>light_&lt;direction&gt;</code></strong>(direction ∈ center/strong_left/weak_left/strong_right/
+weak_right)로 기록하기로 확정. 코드 수정 없이 실기 시 대시보드 입력값만 이 컨벤션으로 넣으면 됨.</li>
+<li><b>Jetson 추론 서버 상태는 이 개발 머신에서 확인 불가</b> — billy/minum 머신 분리로 실기 서버는
+Jetson에서만 도므로, <strong class="o">실기 시작 전 Jetson에서 직접 <code>/health</code> 확인해
+checkpoint_path가 두 체크포인트와 일치하는지, threshold=0.20·skip_n=3인지</strong> 확인 필요(사람이
+직접 해야 함).</li>
+<li><b>집계 스크립트는 미리 준비해둠</b> — <code>scripts/analyze_newcond_experiment.py</code>가
+위 네이밍 컨벤션으로 기록된 행을 자동으로 찾아 위치별/조도별 Wilson 95% CI 표를 뽑습니다. 실기 끝나는
+즉시 <code>.venv/bin/python3 scripts/analyze_newcond_experiment.py</code> 실행하면 바로 결과 확인 가능
+(현재는 데이터가 없어 "아직 기록된 데이터 없음"만 출력 — 정상).</li>
+</ol>
+</div>
+</div>
+
 <h4 style="margin-top:20px;color:#cbd5e1;font-size:0.9rem">일정 (변경 없음)</h4>
 <div class="item done">
 <div class="body">
