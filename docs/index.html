@@ -58,10 +58,9 @@
                background-image:radial-gradient(rgba(15,28,46,0.05) 1px, transparent 1px); background-size:22px 22px;
                mask-image:linear-gradient(to bottom, black, transparent 75%)}
   .hero .wrap{position:relative; z-index:1}
-  .hero-kicker{font-size:0.78rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
-               color:var(--accent); margin-bottom:18px}
+  .hero-kicker{font-size:0.9rem; font-weight:600; color:var(--accent); margin-bottom:18px}
   .hero h1{font-size:clamp(1.9rem,3.8vw,2.9rem); line-height:1.15; font-weight:700; letter-spacing:-0.02em; margin:0 0 22px; max-width:900px; text-wrap:balance}
-  .hero h1 em{font-style:normal; color:var(--accent)}
+  .hero h1 em{font-style:normal}
   .hero-sub{font-size:1.15rem; color:var(--ink-soft); max-width:620px; line-height:1.65; margin:0 0 32px}
   .hero-authors{font-size:0.92rem; color:var(--ink-soft); margin-bottom:36px; padding-left:14px; border-left:2px solid var(--line)}
   .hero-authors .aff{display:block; font-size:0.8rem; color:#7c8aa0; margin-top:4px}
@@ -80,7 +79,7 @@
   /* ── sections ── */
   section{padding:88px 0}
   section.alt{background:var(--bg-alt)}
-  .eyebrow{font-size:0.78rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:14px}
+  .eyebrow{font-size:0.82rem; font-weight:600; color:var(--accent); margin-bottom:10px}
   .sec-title{font-size:clamp(1.7rem,3vw,2.3rem); font-weight:600; letter-spacing:-0.01em; margin:0 0 20px; max-width:680px}
   .lede{font-size:1.08rem; color:var(--ink-soft); max-width:680px; line-height:1.75; margin-bottom:8px}
   .prose{font-size:1rem; color:#2c384a; line-height:1.85; max-width:720px}
@@ -167,8 +166,7 @@
   .doc-card:nth-child(6){grid-column:span 3; --dc-hue:#0f1c2e}
   .doc-card:nth-child(7){grid-column:span 3; --dc-hue:#db2777}
   @media(max-width:900px){.doc-card:nth-child(n){grid-column:span 1}}
-  .doc-card .dc-idx{position:absolute; top:16px; right:18px; font-family:var(--mono); font-size:0.72rem; color:var(--line); font-weight:600}
-  .doc-card .dc-tag{font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--dc-hue)}
+  .doc-card .dc-tag{font-size:0.74rem; font-weight:600; color:var(--dc-hue)}
   .doc-card h4{font-size:0.98rem; font-weight:700; margin:8px 0 6px; font-family:'Outfit',sans-serif}
   .doc-card p{font-size:0.82rem; color:var(--ink-soft); line-height:1.55; margin:0}
 
@@ -200,7 +198,7 @@
 <!-- ══ HERO ══ -->
 <header class="hero">
   <div class="wrap">
-    <div class="hero-kicker">Kangnam University · On-Device Vision-Language-Action</div>
+    <div class="hero-kicker">On-device navigation, built at Kangnam University</div>
     <h1>EdgeGround-VLA: <em>A Lightweight Model Fusing Heterogeneous Grounding Encoders</em> for Goal-Directed Navigation in Wheeled Robots</h1>
     <p class="hero-sub">
       EdgeGround-VLA fuses OWLv2 (open-vocabulary detection) and Kosmos-2 (phrase grounding) — both frozen —
@@ -594,43 +592,36 @@
     <h2 class="sec-title">Project documentation</h2>
     <div class="doc-grid">
       <a href="v5/model_architecture_brief.html" class="doc-card">
-        <span class="dc-idx">01</span>
         <span class="dc-tag">Architecture</span>
         <h4>Model Structure &amp; Training Notes</h4>
         <p>Full parameter breakdown, hyperparameters, and inference control logic, kept in sync with the deployed checkpoint.</p>
       </a>
       <a href="v5/owlv2_grounder_brief.html" class="doc-card">
-        <span class="dc-idx">02</span>
         <span class="dc-tag">Grounder</span>
         <h4>OWLv2 Grounder Notes</h4>
         <p>Why OWLv2 was adopted, threshold/fp16/skip_n behavior, and the real-world grounding-availability data behind it.</p>
       </a>
       <a href="01.paper/revision_briefing.html" class="doc-card">
-        <span class="dc-idx">03</span>
         <span class="dc-tag">Paper</span>
         <h4>Revision Briefing</h4>
         <p>Line-by-line advisor Q&amp;A, reference audit, and before/after diffs tracked through the KCI submission process.</p>
       </a>
       <a href="research_dashboard.html" class="doc-card">
-        <span class="dc-idx">04</span>
         <span class="dc-tag">Research Log</span>
         <h4>Research Dashboard &amp; Status Log</h4>
         <p>The full experiment history — offline ablations, chapter-by-chapter findings, and archived legacy results.</p>
       </a>
       <a href="wiki/index.html" class="doc-card">
-        <span class="dc-idx">05</span>
         <span class="dc-tag">Wiki</span>
         <h4>Research Wiki (Topic Index)</h4>
         <p>The 70+ research-log chapters reorganized by topic (grounding, action heads, backbone, real-robot testing, ...) instead of chronologically.</p>
       </a>
       <a href="https://github.com/minuum/EdgeGroundVLA" class="doc-card">
-        <span class="dc-idx">06</span>
         <span class="dc-tag">Code</span>
         <h4>GitHub Repository</h4>
         <p>Training scripts, inference server, and figure-generation code referenced throughout this page.</p>
       </a>
       <a href="https://minuum.github.io/MoNa-pi/" class="doc-card">
-        <span class="dc-idx">07</span>
         <span class="dc-tag">Related</span>
         <h4>MoNa-pi (Sister Project)</h4>
         <p>A π0-style flow-matching VLA baseline explored on the same platform, for comparison.</p>
