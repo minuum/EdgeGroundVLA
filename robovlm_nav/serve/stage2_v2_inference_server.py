@@ -1154,7 +1154,19 @@ class Stage2V2Model:
         return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
 
     def _build_seq_feature_trans(self) -> torch.Tensor:
-        """Transformer: (window, 4+PROJ_DIM=260) — [bbox(4), vis(256)] per frame."""
+        """Transformer/MLP 공용: (window, 4+PROJ_DIM=260) — [bbox(4), vis(256)] per frame.
+
+        2026-09-16 (심사위원1-①/3-④ 실기 그라운딩 인코더 ablation): VLA_ABLATION_MODE로
+        배포 모델(exp73, 가중치 그대로) 입력에서 한쪽 모달리티를 0-벡터로 마스킹.
+        오프라인 ablation(scripts/ablate_owlv2_kosmos2_fusion.py)은 각 조건마다 별도
+        학습된 소형 헤드로 "모달리티 단독일 때 최대 얼마나 배울 수 있는가"를 쟀지만,
+        이건 "배포된 융합 모델이 한쪽 입력을 잃었을 때 실기에서 어떻게 무너지는가"를
+        재는 것이라 방법론이 다름 — 둘 다 문서에 구분해서 서술할 것.
+          fused(기본)   — 정상 동작, 마스킹 없음
+          bbox_only     — vis(256)를 0으로(OWLv2 위치 신호만 사용)
+          vision_only   — bbox(4)를 0으로(Kosmos-2 시각 신호만 사용)
+        """
+        ablation_mode = os.getenv("VLA_ABLATION_MODE", "fused")
         seq = []
         for k in range(self.window):
             idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
@@ -1167,6 +1179,10 @@ class Stage2V2Model:
                 [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
                 dtype=torch.float32, device=self.device,
             ) * self._bbox_scale
+            if ablation_mode == "bbox_only":
+                vf = torch.zeros_like(vf)
+            elif ablation_mode == "vision_only":
+                bbox_t = torch.zeros_like(bbox_t)
             seq.append(torch.cat([bbox_t, vf]))  # bbox 먼저 — train과 동일 순서
         return torch.stack(seq, dim=0)  # (window, 260)
 
@@ -1538,6 +1554,7 @@ class ConfigRequest(BaseModel):
     cx_jump_thresh: Optional[float] = None   # P2: 급변 임계값 (기본 0.30)
     multi_prompt: Optional[bool] = None      # 멀티프롬프트 fallback on/off
     force_reground_on_miss: Optional[bool] = None  # 2026-07-31: has_bbox=False 다음 스텝 캐시 강제 스킵 on/off (A/B 테스트용, 기본 off)
+    ablation_mode: Optional[str] = None       # "fused" | "bbox_only" | "vision_only" — 그라운딩 인코더 실기 ablation (2026-09-16)
     owlv2_thresh: Optional[float] = None     # OWL-v2 detection threshold (run()이 매 호출 env를 읽음)
     owlv2_area_scale: Optional[float] = None # OWL-v2 area 보정 계수 (PG2 스케일 정합용, run()이 매 호출 env를 읽음)
     # 하위 호환: 수신은 하되 무시
@@ -1695,6 +1712,7 @@ async def health() -> dict[str, Any]:
         "cx_jump_thresh": getattr(m, "_cx_jump_thresh", 0.30) if m else 0.30,
         "multi_prompt": getattr(m, "_multi_prompt", False) if m else False,
         "force_reground_on_miss": getattr(m, "_force_reground_on_miss", False) if m else False,
+        "ablation_mode": os.getenv("VLA_ABLATION_MODE", "fused"),  # 2026-09-16, 재기동 시 자동 fused로 초기화(의도적 — 미복원)
         "fallback_prompts": getattr(m, "_fallback_prompts", []) if m else [],
         "inference_count": m.inference_count if m else 0,
         # Fix3: 서버 버전 핸드셰이크 — code_mtime > process_started_at 이면
@@ -1868,6 +1886,13 @@ async def set_config(
     if request.owlv2_area_scale is not None:
         os.environ["VLA_OWLV2_AREA_SCALE"] = str(float(request.owlv2_area_scale))
         applied["owlv2_area_scale"] = float(request.owlv2_area_scale)
+
+    if request.ablation_mode is not None:
+        if request.ablation_mode in ("fused", "bbox_only", "vision_only"):
+            os.environ["VLA_ABLATION_MODE"] = request.ablation_mode
+            applied["ablation_mode"] = request.ablation_mode
+        else:
+            ignored.append(f"ablation_mode={request.ablation_mode} (unknown)")
 
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
