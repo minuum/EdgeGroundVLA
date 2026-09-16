@@ -5429,7 +5429,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     <!-- 탭 4: 🧪 경로 검증 (Path Test) -->
     <div id="tab-verify" class="tab-content">
       <div class="scroll-container" style="padding: 20px;">
-        <div class="grid-3-verify" style="display: grid; grid-template-columns: 2fr 1.6fr 1.6fr; gap: 20px; align-items: start;">
+        <div class="grid-3-verify" style="display: grid; grid-template-columns: 1.1fr 1.95fr 1.95fr; gap: 20px; align-items: start;">
           
           <!-- Column 1: Live Camera & Telemetry -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
@@ -5776,7 +5776,7 @@ L S R  C S L  R S L
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
               <div class="form-group" style="margin-bottom:0;">
                 <label>경로 구분 (path_type)</label>
-                <select id="ep-path-type" onchange="syncVerifyPathType(this.value); drawOverlay();" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+                <select id="ep-path-type" onchange="syncVerifyPathType(this.value); drawOverlay(); updateSelectedPathCounter();" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
                   <option value="right_right">R→R (right_right)</option>
                   <option value="right_left">R→L★ (right_left)</option>
                   <option value="right_straight">R→S (right_straight)</option>
@@ -5817,6 +5817,7 @@ L S R  C S L  R S L
                   </optgroup>
                 </select>
               </div>
+              <div id="ep-path-counter" style="font-size:11px; color:var(--cyan); font-weight:600; padding:2px 4px;"></div>
 
               <div class="form-group" style="margin-bottom:0;">
                 <label>주행 결과</label>
@@ -5856,36 +5857,41 @@ L S R  C S L  R S L
 
             <!-- 빠른 경로선택 버튼들 -->
             <div style="display:flex; flex-direction:column; gap:6px;">
-              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">🎯 빠른 레이블 선택</div>
-              <div style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);">
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
-                  <button class="btn btn-outline" onclick="selectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
+              <!-- 2026-09-16: 이번 주 실기가 신규조건 위주라 기존 경로15/트랙A12는
+                   기본 접힘으로 바꿔 화면을 덜 차지하게 함(사용자 요청). -->
+              <details style="background:#101726; border-radius:8px; border:1px solid var(--border-glow);">
+                <summary style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; padding:8px; cursor:pointer;">🎯 빠른 레이블 선택 (경로15종)</summary>
+                <div style="display:flex; flex-direction:column; gap:6px; padding:0 8px 8px;">
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
+                    <button class="btn btn-outline" onclick="selectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
+                    <button class="btn btn-outline" onclick="selectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
+                    <button class="btn btn-outline" onclick="selectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
+                    <button class="btn btn-outline" onclick="selectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
+                    <button class="btn btn-outline" onclick="selectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
+                    <button class="btn btn-outline" onclick="selectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
+                    <button class="btn btn-outline" onclick="selectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
+                    <button class="btn btn-outline" onclick="selectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
+                    <button class="btn btn-outline" onclick="selectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
+                    <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
+                  </div>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
-                  <button class="btn btn-outline" onclick="selectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
-                  <button class="btn btn-outline" onclick="selectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
-                  <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
-                </div>
-              </div>
+              </details>
 
-              <!-- 신규조건(2026-09-16, minum 요청) — pos2/pos3 출발위치 + OWLv2/Kosmos-2 단독 ablation -->
+              <!-- 신규조건(2026-09-16, minum 요청) — pos2/pos3 출발위치 + OWLv2/Kosmos-2 단독 ablation
+                   이번 주 실기 대상이라 기본 펼침 유지. -->
               <div style="font-size:11px; color:#f472b6; font-weight:600; text-transform:uppercase; margin-top:6px;">🆕 신규조건 (pos2/pos3+ablation)</div>
               <div style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);">
                 <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;">
@@ -5912,9 +5918,12 @@ L S R  C S L  R S L
                 </div>
               </div>
 
-              <!-- 트랙A 극단배치(V6) — 기존 15종과 별개 섹션. docs/DATASET_V6_STATUS.md 명명 규정 -->
-              <div style="font-size:11px; color:var(--amber); font-weight:600; text-transform:uppercase; margin-top:6px;">🎯 트랙A 극단배치 (V6)</div>
-              <div id="verify-tracka-grid" style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);"></div>
+              <!-- 트랙A 극단배치(V6) — 기존 15종과 별개 섹션. docs/DATASET_V6_STATUS.md 명명 규정.
+                   2026-09-16: 기본 접힘으로 변경(사용자 요청, 이번 주 실기와 무관). -->
+              <details style="background:#101726; border-radius:8px; border:1px solid var(--border-glow);">
+                <summary style="font-size:11px; color:var(--amber); font-weight:600; text-transform:uppercase; padding:8px; cursor:pointer;">🎯 트랙A 극단배치 (V6, 12종)</summary>
+                <div id="verify-tracka-grid" style="display:flex; flex-direction:column; gap:6px; padding:0 8px 8px;"></div>
+              </details>
             </div>
 
             <!-- 에피소드 로그 테이블 -->
@@ -9003,6 +9012,7 @@ L S R  C S L  R S L
       }
       syncVerifyPathType(type);
       if (typeof drawOverlay === "function") drawOverlay();
+      updateSelectedPathCounter();
     }
 
     // 조이스틱 경로검증 모드(X/R1 즉시기록)가 쓸 path_type을 서버에 동기화.
@@ -11157,6 +11167,21 @@ L S R  C S L  R S L
     // ── 에피소드 저장 / 실행 취소 / 누적 기록 로드 ──────────────────────────
     let _epEditingRow = null;
     let _epByRow = {};
+    let _lastEpisodesRows = [];  // 2026-09-16: 선택값 유지+연속저장 카운터용 캐시
+
+    // 2026-09-16: 현재 선택된 path_type이 지금까지 몇 건 저장됐는지(목표 대비) 표시.
+    function updateSelectedPathCounter() {
+      const el = document.getElementById("ep-path-counter");
+      if (!el) return;
+      const pt = document.getElementById("ep-path-type")?.value;
+      if (!pt) { el.textContent = ""; return; }
+      const clean = s => String(s).replace(/ ★/g, "").replace(/★/g, "").trim();
+      const done = _lastEpisodesRows.filter(r => r.length >= 2 && clean(r[1]) === pt).length;
+      const target = PATH_TARGETS[pt];
+      el.textContent = target !== undefined
+        ? `📍 현재 선택: ${pt} · ${done}/${target} 저장됨`
+        : `📍 현재 선택: ${pt} · ${done}건 저장됨`;
+    }
 
     function _epEditLoadByRow(rowKey) {
       const ep = _epByRow[rowKey];
@@ -11257,9 +11282,11 @@ L S R  C S L  R S L
         if (res.ok) {
           // 경로 집계 패널(진행바 및 요약 표)을 갱신합니다.
           if (_src !== "experimental") updatePathSummary(res.episodes || []);
+          _lastEpisodesRows = res.episodes || [];
+          updateSelectedPathCounter();
           const tbody = document.getElementById("episodes-table-body");
           if (!tbody) return;
-          
+
           let episodes = res.episodes || [];
           
           // 필터 선택 값에 따라 에피소드 성공/실패 여부를 걸러냅니다.
