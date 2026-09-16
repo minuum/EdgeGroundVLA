@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import base64
 import io
+import gc
 import json
 import logging
 import os
@@ -139,6 +140,8 @@ def _log_pg2_decision(phrase: str, raw: str, locs: list, result: dict,
             "cx": result.get("cx"),
             "cy": result.get("cy"),
             "area": result.get("area"),
+            "area_raw": result.get("area_raw"),         # OWL-v2 보정 전 원시 area (있으면)
+            "area_scale": result.get("area_scale"),     # 적용된 보정 계수 (있으면)
             "latency_ms": round(latency_ms, 1),        # 호출 1회당 (멀티프롬프트 합산 아님)
         }
         with open(_PG2_DECISION_LOG, "a") as f:
@@ -180,7 +183,7 @@ def _log_preview_decision(session_id: str, attempt: int, max_retry: int, bbox: d
         pass  # 로깅 실패가 추론을 막아서는 안 됨
 
 # --- defaults ---
-DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "shared" / "stage1_v2_projs.pt"
+DEFAULT_STAGE1 = ROOT / "runs" / "v5_nav" / "mlp" / "stage1_v3_5cls" / "stage1_v3_5cls_owl_projs.pt"  # 2026-08-07 배포 전환
 # 1순위: exp71 Transformer WINDOW=6 (val_acc 99.2%, CL FPE 0.000m) — CH60
 # 폴백: VLA_S2V2_STAGE2 환경변수로 exp67(MLP) 또는 exp72(cx-Geom) 교체 가능
 DEFAULT_STAGE2 = ROOT / "runs" / "v5_nav" / "mlp" / "exp71_window6" / "action_transformer.pt"
@@ -218,6 +221,20 @@ ACTION_3D = {
 }
 
 FULLSCREEN_AREA_THRESHOLD = 0.85
+# 2026-07-31: OWL-v2 raw max score 기록용 floor. 운영 threshold(0.20)보다 훨씬 낮게
+# 잡아서 "미검출 프레임이 실제 몇 점이었는지"까지 남긴다. 판정에는 안 쓰이고
+# 기록 전용 — 값이 너무 낮으면 post-process가 느려질 수 있어 0.01로 둠
+# (threshold 스윕 관심구간 0.10~0.35를 충분히 커버).
+_OWL_SCORE_FLOOR = float(os.getenv("VLA_OWL_SCORE_FLOOR", "0.01"))
+# 2026-08-07: OWL-v2 fp16 전환 — 실측(docs/DASHBOARD_WIKI.md "경량화 실측") 기준
+# fp32 1901.7ms → fp16 962.1ms(2배), GPU 메모리도 절반. 지금까지 코드에는 반영
+# 안 돼 있었음(fp32로만 로드). 정확도 손실 여부는 실기로 확인 필요해서 기본값은
+# off로 두고 토글로만 켬 — 검증 전까지 지금까지의 89/100, 95/100 결과와 뒤섞이지
+# 않게 하기 위함. VLA_OWLV2_FP16=1로 켜면 다음 서버 기동(재시작)부터 적용됨
+# (이미 로드된 모델의 dtype은 런타임 중 못 바꿔서 재기동 필요).
+# 주의: OwlV2Grounder.__init__에서 매번 os.getenv로 직접 읽어야 함(_restore_
+# runtime_state_env()가 __main__에서 get_model()보다 먼저 실행되긴 하지만,
+# 모듈 임포트 시점에 한 번만 굳는 상수로 만들면 그 복원 이전 값에 묶여버림).
 # cx-rule: 환경변수로 켜면 MLP 예측 대신 bbox cx 기반 기하학 룰로 액션 결정.
 # has_bbox=True일 때만 적용; has_bbox=False면 MLP 따름.
 # VLA_CX_RULE=1 로 활성화 (default: off)
@@ -241,6 +258,13 @@ GOAL_CX_TOLERANCE   = float(os.getenv("VLA_STOP_CX_TOL", "0.35"))
 GOAL_CONSEC_FRAMES  = int(os.getenv("VLA_STOP_CONSEC", "3"))
 # STOP mode: "proximity" (threshold-based override) | "learned" (model prediction + latch)
 STOP_MODE = os.getenv("VLA_STOP_MODE", "proximity")
+# learned 모드 전용 최소 스텝 가드 — 에피소드 시작 직후(콜드스타트 윈도우 패딩 =
+# 첫 프레임 6회 반복이라 실제 온도 없는 입력)의 스퓨리어스 STOP이 그대로 영구
+# 래치되는 사고를 막기 위함(2026-07-22, exp73_mlp 실기 테스트 중 area=0.077
+# 같은 명백히 미도착 상황에서 첫 프레임 STOP → 전체 세션 고착 확인).
+# inference_count(0-base) < 이 값이면 학습형 STOP을 무시(래치 자체를 안 검) —
+# proximity의 GOAL_CONSEC_FRAMES와 같은 취지.
+STOP_LEARNED_MIN_STEPS = int(os.getenv("VLA_STOP_LEARNED_MIN_STEPS", "3"))
 
 # 객체별 GOAL_AREA 매핑 — instruction(grounding phrase) → 정지 area 임계값.
 # GOAL_AREA_THRESHOLD(0.25)는 바스켓 실주행으로 캘리브레이션된 값이라 다른(특히 작은) 객체에
@@ -377,10 +401,45 @@ class CxGeomMLP(nn.Module):
         return self.merge(torch.cat([self.branch_a(hist), self.branch_b(geom)], dim=-1))
 
 
+class Exp73MLPHead(nn.Module):
+    """exp73 plain mlp(head="mlp", exp="exp73"): window*(bbox+vis)=window*260 flat
+    → 3-layer → 8-class. 체크포인트 키(net.0/3/6)와 정확히 일치하도록 self.net 유지.
+    기존 "mlp"(ActionMLP, exp67, d_in=window*4+256=280)와 이름이 같아도 구조가
+    달라(d_in=window*260) exp="exp73" 메타로 별도 등록(2026-07-22)."""
+    def __init__(self, frame_dim: int = PROJ_DIM + 4, window: int = WINDOW_DEFAULT):
+        super().__init__()
+        d_in = frame_dim * window
+        self.net = nn.Sequential(
+            nn.Linear(d_in, 512), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(512, 128),  nn.ReLU(), nn.Dropout(0.2),
+            nn.Linear(128, NUM_CLASSES),
+        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x.flatten(1))
+
+
+class Exp73HybridHead(nn.Module):
+    """exp73 hybrid: 공유 trunk + 6-way(lx/ly) 분류 브랜치 + az 연속 회귀 브랜치.
+    inference_server.py._build_hybrid_head/GoalNavMLPInference와 동일 구조(가중치 키 호환)."""
+    def __init__(self, frame_dim: int = PROJ_DIM + 4, window: int = WINDOW_DEFAULT):
+        super().__init__()
+        self.trunk = nn.Sequential(
+            nn.Linear(frame_dim * window, 512), nn.ReLU(), nn.Dropout(0.25),
+            nn.Linear(512, 128), nn.ReLU())
+        self.disc_head = nn.Linear(128, 6)
+        self.az_head = nn.Sequential(
+            nn.Linear(128, 32), nn.ReLU(), nn.Linear(32, 1), nn.Tanh())
+    def forward(self, x: torch.Tensor):
+        h = self.trunk(x.flatten(1))
+        return self.disc_head(h), self.az_head(h).squeeze(-1)
+
+
 HEAD_REGISTRY: dict[str, type] = {
     "mlp": ActionMLP, "linear": LinearHead, "fc": FCHead, "lstm": LSTMHead,
     "transformer": TransformerActionHead, "cx_geom": CxGeomMLP,
+    "exp73_mlp": Exp73MLPHead, "exp73_hybrid": Exp73HybridHead,
 }
+EXP73_AZ_THRESH = 0.1  # rad/s (CH63 63-10: 0.05~0.2 스윕 결과 불변 확인, inference_server.py와 동일 고정값)
 
 
 # ---------------------------------------------------------------------------
@@ -679,14 +738,21 @@ class OwlV2Grounder:
         self._device = device
         self._proc: Optional[Any] = None
         self._model: Optional[Any] = None
+        # /health의 grounder 표시용 — 없으면 getattr 기본값 "PG2-448"이 나와서
+        # 배포 체크리스트("OWL 활성인지 /health로 확인")가 오판됨
+        self._model_tag = "OWL-v2"
+        self._input_px = 960  # owlv2-base-patch16-ensemble 기본 입력 해상도
+        self._dtype = torch.float16 if os.getenv("VLA_OWLV2_FP16", "0") == "1" else torch.float32
 
     def _ensure_loaded(self) -> None:
         if self._model is None:
             from transformers import Owlv2Processor, Owlv2ForObjectDetection
-            logger.info("OwlV2Grounder: loading google/owlv2-base-patch16-ensemble")
+            logger.info("OwlV2Grounder: loading google/owlv2-base-patch16-ensemble (dtype=%s)",
+                        self._dtype)
             self._proc = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
             self._model = Owlv2ForObjectDetection.from_pretrained(
-                "google/owlv2-base-patch16-ensemble").to(self._device).eval()
+                "google/owlv2-base-patch16-ensemble", torch_dtype=self._dtype
+            ).to(self._device).eval()
 
     def run(self, image_rgb: np.ndarray, _unused_path: Optional[Path] = None,
             return_raw: bool = False, phrase: str = "gray basket",
@@ -699,6 +765,10 @@ class OwlV2Grounder:
         # (plan_20260705_vla_ladder_step1_2.md ①: 언어→타겟 선택)
         query = phrase
         inp = self._proc(text=[[query]], images=pil, return_tensors="pt").to(self._device)
+        # pixel_values는 processor가 float32로 내놓음 — 모델을 fp16으로 올렸으면
+        # 입력도 맞춰야 함(input_ids/attention_mask는 정수형이라 그대로 둠).
+        if self._dtype == torch.float16:
+            inp["pixel_values"] = inp["pixel_values"].to(torch.float16)
         with torch.no_grad():
             out = self._model(**inp)
         # threshold=0.25: owlv2_threshold_roc.py 실측 확정값 — 정탐 95.3% 유지하며
@@ -707,6 +777,24 @@ class OwlV2Grounder:
         res = self._proc.post_process_object_detection(
             out, threshold=owl_thresh, target_sizes=[(H, W)])[0]
         boxes = res["boxes"]
+
+        # 2026-07-31: 분석용 raw max score 기록 (minum 64-18 요청 + soda grounding 탭 개편).
+        # 위 post_process는 owl_thresh 미달 박스를 버리기 때문에, 정작 가장 알고 싶은
+        # "미검출 프레임이 실제로 몇 점이었나"가 남지 않음 — 낮은 floor로 한 번 더
+        # 뽑아서 max score만 따로 기록한다. forward(out)는 재사용이라 GPU 비용은 없고
+        # post-process만 한 번 더 도는 수준. 판정 경로(res/boxes)는 위 그대로 두므로
+        # 검출 동작에는 영향 없음.
+        # 용도: (1) threshold 오프라인 재판정 → 실기 재수집 없이 threshold-성능 곡선
+        #       (2) 젯슨 미검출 프레임을 로컬 재실행해 score 대조 → Jetson-vs-local gap 정량화
+        try:
+            _res_all = self._proc.post_process_object_detection(
+                out, threshold=_OWL_SCORE_FLOOR, target_sizes=[(H, W)])[0]
+            _sc = _res_all["scores"]
+            score_max = float(_sc.max().item()) if len(_sc) > 0 else 0.0
+        except Exception as _e:
+            logger.debug("[owlv2] score_max 추출 실패(무시): %s", _e)
+            score_max = None
+
         _fallback = {"cx": 0.5, "cy": 0.6, "area": 0.06, "has_bbox": False,
                      "x1": None, "y1": None, "x2": None, "y2": None}
         if len(boxes) == 0:
@@ -719,6 +807,14 @@ class OwlV2Grounder:
             area = (x2 - x1) * (y2 - y1)
             cx_val, cy_val = (x1 + x2) / 2, (y1 + y2) / 2
             filters = get_ground_filters(phrase)
+            # 2026-07-06: 실주행 실측(obj_right 3세션)으로 확인 — OWL-v2 박스가 PG2보다
+            # 훨씬 타이트해서 area가 근접 시에도 0.07 수준(PG2는 근접 시 0.7~0.8까지 나옴).
+            # STOP 임계값(GOAL_AREA_THRESHOLD=0.25)과 Stage2 헤드 둘 다 PG2 스케일로
+            # 학습/캘리브레이션돼 있어서, 스케일 보정 없이는 "가까워져도 멀다고 인식"해
+            # 직진 전환/STOP 타이밍을 놓치고 학습 밖 조합에서 엉뚱한 방향으로 튐.
+            # 필터(tiny/full-frame/top)는 박스 형태 자체의 sanity check라 raw area 유지,
+            # 모델 입력/STOP 판단에 쓰이는 area만 보정.
+            owl_area_scale = float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0"))
             if area > 0.9:
                 result = {**_fallback, "filter_reason": "full-frame"}
             elif area < filters["min_area"]:
@@ -726,9 +822,16 @@ class OwlV2Grounder:
             elif cy_val < filters["min_cy"]:
                 result = {**_fallback, "hint_cx": cx_val, "filter_reason": "top"}
             else:
-                result = {"cx": cx_val, "cy": cy_val, "area": area, "has_bbox": True,
-                          "x1": x1, "y1": y1, "x2": x2, "y2": y2}
-        raw_str = f"owlv2 n_boxes={len(boxes)}"
+                area_calibrated = min(area * owl_area_scale, 1.0)
+                result = {"cx": cx_val, "cy": cy_val, "area": area_calibrated, "has_bbox": True,
+                          "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                          "area_raw": area, "area_scale": owl_area_scale}
+        # score는 판정 결과(has_bbox)와 무관하게 항상 실어보냄 — 미검출 프레임의
+        # score야말로 threshold 재판정/ROC gap 분석의 핵심 데이터.
+        result["score"] = score_max
+        result["score_thresh"] = owl_thresh
+
+        raw_str = f"owlv2 n_boxes={len(boxes)} score_max={score_max if score_max is None else round(score_max, 4)}"
         if return_raw:
             result["raw_output"] = raw_str
         if return_hidden:
@@ -757,13 +860,28 @@ class Stage2V2Model:
         head_override: Optional[str],
         device: torch.device,
         pg2_path: Optional[Path] = None,
+        existing_enc: Optional["Stage1Encoder"] = None,
     ):
         self.device = device
         self.vlm_path = vlm_path
         self.checkpoint_path = str(stage2_path)
+        self._stage1_path = str(stage1_path)
         self.inference_count = 0
         self._grounding_skip_n: int = int(os.getenv("VLA_GROUNDING_SKIP_N", "3"))  # CH49: skip_n=3 SR/FPE 변화 없음 확정
         self._grounding_cache: Optional[dict] = None
+        # 2026-07-30: ROT_L/ROT_R 다음 스텝은 skip_n 캐시를 강제로 건너뛰고 항상
+        # 재그라운딩 — 회전 스텝이 caching 때문에 3스텝 동안 똑같은(오래된) cx를
+        # 보고 같은 회전을 반복하다가 타겟을 화면 밖으로 밀어내는 문제 확인됨
+        # (weak_left 세션 다수에서 ROT_R 3연속 후 has_bbox=False로 소실).
+        self._last_pred_class: Optional[int] = None
+        # 2026-07-31: 위 회전 전용 재그라운딩과 별개로, has_bbox=False(미검출)
+        # 다음 스텝도 캐시를 건너뛰고 재그라운딩할지 토글 — 실측 결과 회전이
+        # 아닌 LEFT/RIGHT/FWD+L/FWD+R 등 일반 이동 액션에서도 미검출 상태가
+        # 여러 스텝(최대 skip_n번) 캐시로 이어지며 로봇이 재확인 없이 계속
+        # 움직이는 케이스 확인됨(2026-07-31 세션 172907/174000/174557).
+        # 기본값 off — 런타임에서 A/B로 켜서 효과 확인 후 기본값 전환 예정.
+        self._force_reground_on_miss: bool = os.getenv("VLA_FORCE_REGROUND_ON_MISS", "0") == "1"
+        self._last_has_bbox: bool = True
         # P2 (minum FIX_GUIDE): cx 급변 필터 — 직전 대비 cx 점프가 크면 오탐으로 보고 캐시 유지
         self._cx_jump_filter: bool  = os.getenv("VLA_CX_JUMP_FILTER", "0") == "1"
         self._cx_jump_thresh: float = float(os.getenv("VLA_CX_JUMP_THRESH", "0.30"))
@@ -776,8 +894,16 @@ class Stage2V2Model:
             ).split(",") if p.strip()
         ]
 
-        # Stage1 (Kosmos-2 vision encoder — image features only)
-        self.enc = Stage1Encoder(vlm_path, stage1_path, device)
+        # Stage1 (Kosmos-2 vision encoder — image features only). 체크포인트가
+        # 바뀌어도 vlm_path/stage1_path는 거의 항상 동일(같은 Kosmos-2 백본 공유) —
+        # 그런데도 매번 재로드하면 6GB대 모델을 디스크에서 다시 읽어와서 전체
+        # 전환이 ~25s씩 걸림(2026-07-23, PG2↔OWL 체크포인트 전환 타임아웃 조사 중
+        # 확인). 그라운더/head만 바뀌는 흔한 케이스에선 그대로 재사용.
+        if existing_enc is not None:
+            self.enc = existing_enc
+            logger.info("Stage1(Kosmos-2) 재사용 — vlm_path/stage1_path 동일, 재로드 생략")
+        else:
+            self.enc = Stage1Encoder(vlm_path, stage1_path, device)
         self.enc.eval()
 
         # Grounder: PG2 if available (matches training), Kosmos-2 fallback
@@ -796,36 +922,56 @@ class Stage2V2Model:
 
         # Stage2 head
         ckpt = torch.load(str(stage2_path), map_location=device, weights_only=False)
-        self.window: int = int(ckpt.get("window", WINDOW_DEFAULT))
+        head_name: str = head_override or ckpt.get("head", "mlp")
+        # exp73(train_exp73_trackA_heads.py) 체크포인트는 head="mlp"/"hybrid"로 저장돼
+        # 기존 exp67 "mlp"(ActionMLP, d_in=280)와 이름이 충돌함 — d_in이 다른 별도
+        # 구조(Exp73MLPHead, d_in=window*260)라 구분 필요. 원래 exp="exp73" 메타로
+        # 구분했는데(2026-07-22), hold-aware 재학습 체크포인트(2026-07-23, stride
+        # 다수결 라벨)엔 이 필드(exp/window/bbox_scale 전부)가 없어 놓쳤음 — 대신
+        # "model" 키 유무로 판별(레거시 mlp/hybrid는 항상 "mlp" 키에 저장, exp73
+        # 계열만 "model" 키 사용, transformer/cx_geom과 동일 관례). exp 메타
+        # 있으면 그것도 계속 존중.
+        _is_exp73_ckpt = ckpt.get("exp") == "exp73" or ("model" in ckpt and head_name in ("mlp", "hybrid"))
+        if _is_exp73_ckpt:
+            if head_name == "mlp":
+                head_name = "exp73_mlp"
+            elif head_name == "hybrid":
+                head_name = "exp73_hybrid"
+        # exp73 계열은 window/bbox_scale 메타가 없어도 배포 규격(window=6, scale=3.0)
+        # 고정값으로 폴백 — hold-aware 체크포인트가 이 케이스(2026-07-23 확인).
+        self.window: int = int(ckpt.get("window", 6 if _is_exp73_ckpt else WINDOW_DEFAULT))
         # 2026-07-07: bbox(4dim)가 vis_feat(256dim, L2정규화)에 비해 신호가 너무 작아
         # 학습이 대각클래스(FWD+L/R)를 잘 못 배우는 문제 확인(ablate_diagweight_bboxscale
         # _multiseed.json) → bbox_scale 배수로 키워서 학습한 체크포인트 대응.
         # 기본값 1.0(하위호환, 기존 체크포인트는 영향 없음) — 학습 시 사용한 값과
         # 반드시 동일해야 함(2026-07-07 vis_feat 정규화 버그와 같은 종류의 학습/추론
         # 불일치를 피하기 위해 체크포인트 메타데이터에서 직접 읽음).
-        self._bbox_scale: float = float(ckpt.get("bbox_scale", 1.0))
-        head_name: str = head_override or ckpt.get("head", "mlp")
-        is_lstm        = (head_name == "lstm")
-        is_transformer = (head_name == "transformer")
-        is_cx_geom     = (head_name == "cx_geom")
+        self._bbox_scale: float = float(ckpt.get("bbox_scale", 3.0 if _is_exp73_ckpt else 1.0))
+        is_lstm         = (head_name == "lstm")
+        is_transformer  = (head_name == "transformer")
+        is_cx_geom      = (head_name == "cx_geom")
+        is_exp73_mlp    = (head_name == "exp73_mlp")
+        is_exp73_hybrid = (head_name == "exp73_hybrid")
         d_in = self.window * 4 + PROJ_DIM  # flat MLP/linear/fc용
         HeadCls = HEAD_REGISTRY[head_name]
         if is_lstm:
             self.head: nn.Module = HeadCls().to(device)
-        elif is_transformer:
+        elif is_transformer or is_exp73_mlp or is_exp73_hybrid:
             self.head = HeadCls(frame_dim=PROJ_DIM + 4, window=self.window).to(device)
         elif is_cx_geom:
             hist_dim = ckpt.get("hist_dim", d_in)
             self.head = HeadCls(hist_dim=hist_dim).to(device)
         else:
             self.head = HeadCls(d_in=d_in).to(device)
-        # ckpt key: transformer/cx_geom → "model", others → "mlp"
-        sd_key = "model" if (is_transformer or is_cx_geom) else "mlp"
+        # ckpt key: transformer/cx_geom/exp73 계열 → "model", others → "mlp"
+        sd_key = "model" if (is_transformer or is_cx_geom or is_exp73_mlp or is_exp73_hybrid) else "mlp"
         self.head.load_state_dict(ckpt[sd_key])
         self.head.eval()
-        self.is_lstm        = is_lstm
-        self.is_transformer = is_transformer
-        self.is_cx_geom     = is_cx_geom
+        self.is_lstm         = is_lstm
+        self.is_transformer  = is_transformer
+        self.is_cx_geom      = is_cx_geom
+        self.is_exp73_mlp    = is_exp73_mlp
+        self.is_exp73_hybrid = is_exp73_hybrid
         self.head_name = head_name
         self.val_acc: float = float(ckpt.get("val_acc", 0.0))
 
@@ -880,6 +1026,8 @@ class Stage2V2Model:
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
+        self._last_pred_class = None
+        self._last_has_bbox = True
         self.stop_latched = False
         self._preview_attempt = 0  # CH54: 세션당 프리뷰 재시도 횟수
         from datetime import datetime
@@ -1006,7 +1154,19 @@ class Stage2V2Model:
         return torch.stack(seq, dim=0)  # (window, SEQ_DIM)
 
     def _build_seq_feature_trans(self) -> torch.Tensor:
-        """Transformer: (window, 4+PROJ_DIM=260) — [bbox(4), vis(256)] per frame."""
+        """Transformer/MLP 공용: (window, 4+PROJ_DIM=260) — [bbox(4), vis(256)] per frame.
+
+        2026-09-16 (심사위원1-①/3-④ 실기 그라운딩 인코더 ablation): VLA_ABLATION_MODE로
+        배포 모델(exp73, 가중치 그대로) 입력에서 한쪽 모달리티를 0-벡터로 마스킹.
+        오프라인 ablation(scripts/ablate_owlv2_kosmos2_fusion.py)은 각 조건마다 별도
+        학습된 소형 헤드로 "모달리티 단독일 때 최대 얼마나 배울 수 있는가"를 쟀지만,
+        이건 "배포된 융합 모델이 한쪽 입력을 잃었을 때 실기에서 어떻게 무너지는가"를
+        재는 것이라 방법론이 다름 — 둘 다 문서에 구분해서 서술할 것.
+          fused(기본)   — 정상 동작, 마스킹 없음
+          bbox_only     — vis(256)를 0으로(OWLv2 위치 신호만 사용)
+          vision_only   — bbox(4)를 0으로(Kosmos-2 시각 신호만 사용)
+        """
+        ablation_mode = os.getenv("VLA_ABLATION_MODE", "fused")
         seq = []
         for k in range(self.window):
             idx = max(0, len(self.history) - 1 - (self.window - 1 - k))
@@ -1019,6 +1179,10 @@ class Stage2V2Model:
                 [item["cx"], item["cy"], item["area"], float(item["has_bbox"])],
                 dtype=torch.float32, device=self.device,
             ) * self._bbox_scale
+            if ablation_mode == "bbox_only":
+                vf = torch.zeros_like(vf)
+            elif ablation_mode == "vision_only":
+                bbox_t = torch.zeros_like(bbox_t)
             seq.append(torch.cat([bbox_t, vf]))  # bbox 먼저 — train과 동일 순서
         return torch.stack(seq, dim=0)  # (window, 260)
 
@@ -1106,8 +1270,15 @@ class Stage2V2Model:
 
         # Grounding (with optional caching) — hidden state 모드는 항상 새로 계산(캐시에 hidden_state가
         # 없을 수 있어 단순화를 위해 skip-cache 비적용, 데모/테스트 용도라 비용 영향 적음).
+        # 회전(ROT_L=6/ROT_R=7) 직후 스텝은 skip_n과 무관하게 강제 재그라운딩.
+        # 회전은 화각을 바꾸는 게 목적인데 캐시된(회전 전) cx를 계속 보면 같은
+        # 회전을 skip_n번 반복하다 타겟을 화면 밖으로 밀어낼 수 있음(2026-07-30 확인).
+        just_rotated = self._last_pred_class in (6, 7)
+        just_missed = self._force_reground_on_miss and not self._last_has_bbox
         use_cache = (
             not use_hidden
+            and not just_rotated
+            and not just_missed
             and self._grounding_skip_n > 1
             and self.inference_count > 0
             and self.inference_count % self._grounding_skip_n != 0
@@ -1166,9 +1337,19 @@ class Stage2V2Model:
                 else:  # replace
                     x = torch.cat([vis_feat, h_t]).unsqueeze(0)
                 logits = self.hidden_heads[effective_head_mode](x)
-            elif self.is_transformer:
+            elif self.is_transformer or self.is_exp73_mlp:
                 x = self._build_seq_feature_trans().unsqueeze(0)  # (1, window, 260)
                 logits = self.head(x)
+            elif self.is_exp73_hybrid:
+                x = self._build_seq_feature_trans().unsqueeze(0)  # (1, window, 260)
+                disc_logit, az_pred = self.head(x)
+                lat_fwd_pred = disc_logit.argmax(dim=-1)
+                is_stop = lat_fwd_pred == 0
+                cls_t = lat_fwd_pred.clone()
+                cls_t[is_stop & (az_pred > EXP73_AZ_THRESH / 1.15)] = 6
+                cls_t[is_stop & (az_pred < -EXP73_AZ_THRESH / 1.15)] = 7
+                logits = None  # 아래 pred_class 직접 세팅 경로로 우회
+                pred_class = int(cls_t.item())
             elif self.is_cx_geom:
                 xh = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, hist_dim)
                 xg = torch.tensor(
@@ -1181,7 +1362,8 @@ class Stage2V2Model:
             else:
                 x = self._build_flat_feature(vis_feat).unsqueeze(0)  # (1, d_in)
                 logits = self.head(x)
-            pred_class = int(logits.argmax(dim=-1).item())
+            if logits is not None:  # exp73_hybrid는 위에서 pred_class를 직접 세팅함
+                pred_class = int(logits.argmax(dim=-1).item())
 
         # ── cx-rule override (VLA_CX_RULE=1일 때) ───────────────────────────
         # bbox가 있을 때만 기하학 룰로 덮어씀. has_bbox=False면 MLP 예측 유지.
@@ -1194,6 +1376,15 @@ class Stage2V2Model:
             elif cx <= thr["rot_r"]: pred_class = 5  # FWD+R
             else:                    pred_class = 7  # ROT_R
 
+        # ── 연속 회전 차단 (2026-07-31) ──────────────────────────────────────
+        # 직전 스텝도 회전(ROT_L/ROT_R)이었는데 이번에도 또 회전이면 실행하지 않고
+        # 제자리에서 정지 — "1스텝 회전하고 반드시 재평가"를 강제. STOP(class 0)으로
+        # 바꾸면 STOP_MODE=learned 래치가 걸려 세션이 영구 정지되므로, predicted_label/
+        # class는 그대로 두고(로그에서 모델이 뭘 원했는지 보이게) 실행 액션 벡터만
+        # 0으로 덮어씀. 재그라운딩은 이미 매 회전 다음 스텝마다 강제되므로(위 use_cache
+        # 로직), 이 정지 스텝에서도 다음 스텝엔 새 화각으로 재평가됨.
+        blocked_second_rotation = (pred_class in (6, 7) and self._last_pred_class in (6, 7))
+
         # ── STOP 결정 (STOP_MODE에 따라 분기) ──────────────────────────────
         proximity_override = False
         learned_stop       = False
@@ -1202,10 +1393,14 @@ class Stage2V2Model:
         if STOP_MODE == "learned":
             # 모델이 STOP(0) 예측 → latch. 한 번 멈추면 reset() 전까지 유지.
             # has_bbox=False(미검출 fallback)일 때는 래치 금지 — 진짜 도착 신호가 아님.
+            # inference_count < STOP_LEARNED_MIN_STEPS(기본 3)인 동안은 래치 자체를
+            # 걸지 않음 — 콜드스타트 첫 프레임(윈도우가 첫 프레임 반복 패딩이라
+            # 실제 시간 변화가 없는 입력)의 스퓨리어스 STOP이 영구 고착되는 걸 방지.
             if self.stop_latched:
                 pred_class  = 0
                 learned_stop = True
-            elif pred_class == 0 and frame.get("has_bbox", False):
+            elif (pred_class == 0 and frame.get("has_bbox", False)
+                    and self.inference_count >= STOP_LEARNED_MIN_STEPS):
                 self.stop_latched = True
                 learned_stop = True
         else:
@@ -1236,19 +1431,26 @@ class Stage2V2Model:
             stop_tag = " [LEARNED STOP — LATCHED]"
         elif learned_stop:
             stop_tag = " [LEARNED STOP]"
+        rot_block_tag = " [연속회전 차단 — 정지]" if blocked_second_rotation else ""
 
         self.inference_count += 1
+        self._last_pred_class = pred_class
+        self._last_has_bbox = bool(frame.get("has_bbox", False))
         total_ms = (time.time() - start) * 1000.0
         temporal_tag = f" [near {near_frames}/{GOAL_CONSEC_FRAMES}]" if STOP_MODE != "learned" else ""
         logger.info(
-            "[#%d] %s%s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
+            "[#%d] %s%s%s%s%s | cx=%.3f area=%.3f has=%s | latency=%.0fms",
             self.inference_count, CLASS_NAMES[pred_class], stop_tag, temporal_tag, cx_rule_tag,
-            frame["cx"], frame["area"], frame["has_bbox"], total_ms,
+            rot_block_tag, frame["cx"], frame["area"], frame["has_bbox"], total_ms,
         )
 
+        _exec_action_2d = [0.0, 0.0] if blocked_second_rotation else ACTION_2D[pred_class]
+        _exec_action_3d = [0.0, 0.0, 0.0] if blocked_second_rotation else ACTION_3D[pred_class]
+
         return {
-            "action": ACTION_2D[pred_class],
-            "action_3d": ACTION_3D[pred_class],
+            "action": _exec_action_2d,
+            "action_3d": _exec_action_3d,
+            "blocked_second_rotation": blocked_second_rotation,
             "predicted_class": pred_class,
             "predicted_label": CLASS_NAMES[pred_class],
             "bbox": bbox,
@@ -1284,7 +1486,7 @@ def _resolve_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def get_model(reload: bool = False) -> Stage2V2Model:
+def get_model(reload: bool = False, existing_enc: Optional["Stage1Encoder"] = None) -> Stage2V2Model:
     global _model
     if _model is None or reload:
         stage1_path = Path(os.getenv("VLA_S2V2_STAGE1", str(DEFAULT_STAGE1)))
@@ -1294,7 +1496,8 @@ def get_model(reload: bool = False) -> Stage2V2Model:
         device = _resolve_device()
         logger.info("Loading Stage2V2 model on %s ...", device)
         pg2_path = Path(os.getenv("VLA_PG2_PATH", str(DEFAULT_PG2)))
-        _model = Stage2V2Model(stage1_path, stage2_path, vlm_path, head_override, device, pg2_path=pg2_path)
+        _model = Stage2V2Model(stage1_path, stage2_path, vlm_path, head_override, device,
+                                pg2_path=pg2_path, existing_enc=existing_enc)
     return _model
 
 
@@ -1333,6 +1536,7 @@ class LoadRequest(BaseModel):
     stage2_path: str
     stage1_path: Optional[str] = None
     head: Optional[str] = None
+    grounder: Optional[str] = None  # "pg2" | "owlv2" — VLA_GROUNDER 핫스왑(2026-07-23)
 
 
 class ConfigRequest(BaseModel):
@@ -1342,12 +1546,17 @@ class ConfigRequest(BaseModel):
     stop_consec_frames: Optional[int] = None
     stop_mode: Optional[str] = None          # "proximity" | "learned"
     stop_latched: Optional[bool] = None      # None=그대로, False=latch 해제
+    stop_learned_min_steps: Optional[int] = None  # learned 모드 콜드스타트 가드(기본 3)
     # 런타임 모드 토글 (서버 재시작 불필요) — 재현 주행용
     preview_enabled: Optional[bool] = None   # preview 격리 회전 on/off
     preview_hint_cx: Optional[bool] = None   # FILTER cx 힌트 회전 on/off
     cx_jump_filter: Optional[bool] = None    # P2: cx 급변 오탐 필터 on/off
     cx_jump_thresh: Optional[float] = None   # P2: 급변 임계값 (기본 0.30)
     multi_prompt: Optional[bool] = None      # 멀티프롬프트 fallback on/off
+    force_reground_on_miss: Optional[bool] = None  # 2026-07-31: has_bbox=False 다음 스텝 캐시 강제 스킵 on/off (A/B 테스트용, 기본 off)
+    ablation_mode: Optional[str] = None       # "fused" | "bbox_only" | "vision_only" — 그라운딩 인코더 실기 ablation (2026-09-16)
+    owlv2_thresh: Optional[float] = None     # OWL-v2 detection threshold (run()이 매 호출 env를 읽음)
+    owlv2_area_scale: Optional[float] = None # OWL-v2 area 보정 계수 (PG2 스케일 정합용, run()이 매 호출 env를 읽음)
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
@@ -1358,6 +1567,86 @@ def _check_api_key(x_api_key: Optional[str]) -> None:
     expected = os.getenv("VLA_API_KEY", "")
     if expected and x_api_key != expected:
         raise HTTPException(status_code=403, detail="Invalid API Key")
+
+
+# ── 런타임 설정 영속화 (2026-07-30) ────────────────────────────────────────
+# /config, /model/load로 바꾼 값들은 전부 os.environ/모듈 전역/model 속성에만
+# 남아서, systemd-run으로 서버를 재기동하면(새 프로세스 = 새 환경) 조용히
+# 기본값으로 리셋됨 — 실제로 오늘 이걸로 stop_mode/multi_prompt/preview_hint_cx가
+# 말없이 바뀌어서 스크리닝 10건이 다른 설정으로 돌아간 사고가 있었음. 매 변경 시
+# 파일에 스냅샷을 남기고 기동 시 복원해서 재발 방지.
+_RUNTIME_STATE_PATH = ROOT / "logs" / "stage2_runtime_state.json"
+
+
+def _persist_runtime_state() -> None:
+    try:
+        m = _model
+        state = {
+            "checkpoint_path": (m.checkpoint_path if m else os.getenv("VLA_S2V2_STAGE2", str(DEFAULT_STAGE2))),
+            "stage1_path": os.getenv("VLA_S2V2_STAGE1", str(DEFAULT_STAGE1)),
+            "head": os.getenv("VLA_S2V2_HEAD") or (m.head_name if m else None),
+            "grounder": os.getenv("VLA_GROUNDER", "pg2"),
+            "stop_mode": STOP_MODE,
+            "stop_area_threshold": GOAL_AREA_THRESHOLD,
+            "stop_cx_tolerance": GOAL_CX_TOLERANCE,
+            "stop_consec_frames": GOAL_CONSEC_FRAMES,
+            "stop_learned_min_steps": STOP_LEARNED_MIN_STEPS,
+            "preview_enabled": getattr(m, "_preview_enabled", None) if m else None,
+            "preview_hint_cx": getattr(m, "_preview_use_hint_cx", None) if m else None,
+            "cx_jump_filter": getattr(m, "_cx_jump_filter", None) if m else None,
+            "cx_jump_thresh": getattr(m, "_cx_jump_thresh", None) if m else None,
+            "grounding_skip_n": getattr(m, "_grounding_skip_n", None) if m else None,
+            "multi_prompt": getattr(m, "_multi_prompt", None) if m else None,
+            "force_reground_on_miss": getattr(m, "_force_reground_on_miss", None) if m else None,
+            "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
+            "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
+            "owlv2_fp16": os.getenv("VLA_OWLV2_FP16", "0") == "1",
+        }
+        _RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+    except Exception as e:
+        logger.warning("[_persist_runtime_state] 저장 실패(무시): %s", e)
+
+
+def _restore_runtime_state_env() -> Optional[dict]:
+    """기동 시 최우선 호출 — env로 복원 가능한 값은 여기서 os.environ에 심어서
+    get_model()/Stage2V2Model.__init__이 그 값을 읽게 만든다. STOP_MODE 등
+    모듈 전역 5개는 이미 import 시점에 굳어버려서 여기선 복원 안 되고,
+    __main__에서 get_model() 이후 직접 재대입으로 처리."""
+    if not _RUNTIME_STATE_PATH.exists():
+        return None
+    try:
+        state = json.loads(_RUNTIME_STATE_PATH.read_text())
+    except Exception as e:
+        logger.warning("[_restore_runtime_state_env] 읽기 실패(무시): %s", e)
+        return None
+
+    env_map = {
+        "stage1_path": "VLA_S2V2_STAGE1",
+        "checkpoint_path": "VLA_S2V2_STAGE2",
+        "head": "VLA_S2V2_HEAD",
+        "grounder": "VLA_GROUNDER",
+        "preview_enabled": "VLA_PREVIEW_ENABLED",
+        "preview_hint_cx": "VLA_PREVIEW_HINT_CX",
+        "cx_jump_filter": "VLA_CX_JUMP_FILTER",
+        "cx_jump_thresh": "VLA_CX_JUMP_THRESH",
+        "grounding_skip_n": "VLA_GROUNDING_SKIP_N",
+        "multi_prompt": "VLA_MULTI_PROMPT",
+        "force_reground_on_miss": "VLA_FORCE_REGROUND_ON_MISS",
+        "owlv2_thresh": "VLA_OWLV2_THRESH",
+        "owlv2_area_scale": "VLA_OWLV2_AREA_SCALE",
+        "owlv2_fp16": "VLA_OWLV2_FP16",
+    }
+    for key, env_name in env_map.items():
+        val = state.get(key)
+        if val is None:
+            continue
+        if isinstance(val, bool):
+            os.environ[env_name] = "1" if val else "0"
+        else:
+            os.environ[env_name] = str(val)
+    logger.info("[_restore_runtime_state_env] 이전 런타임 설정 복원: %s", _RUNTIME_STATE_PATH)
+    return state
 
 
 @app.get("/")
@@ -1400,6 +1689,9 @@ async def health() -> dict[str, Any]:
                 "model": getattr(g, "_model_tag", "PG2-448"),
                 "input_px": getattr(g, "_input_px", 448),
                 "phrase": getattr(g, "_phrase", "gray basket"),
+                "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
+                "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
+                "owlv2_dtype": str(getattr(g, "_dtype", "?")),
             }
     return {
         "status": "healthy",
@@ -1408,8 +1700,10 @@ async def health() -> dict[str, Any]:
         "window": m.window if m else None,
         "val_acc": m.val_acc if m else None,
         "checkpoint_path": m.checkpoint_path if m else None,
+        "stage1_path": getattr(m, "_stage1_path", None) if m else None,
         "stop_mode": STOP_MODE,
         "stop_latched": m.stop_latched if m else False,
+        "stop_learned_min_steps": STOP_LEARNED_MIN_STEPS,
         "gpu": gpu,
         "preview": prev,
         "grounder": grnd,
@@ -1417,6 +1711,8 @@ async def health() -> dict[str, Any]:
         "cx_jump_filter": getattr(m, "_cx_jump_filter", False) if m else False,
         "cx_jump_thresh": getattr(m, "_cx_jump_thresh", 0.30) if m else 0.30,
         "multi_prompt": getattr(m, "_multi_prompt", False) if m else False,
+        "force_reground_on_miss": getattr(m, "_force_reground_on_miss", False) if m else False,
+        "ablation_mode": os.getenv("VLA_ABLATION_MODE", "fused"),  # 2026-09-16, 재기동 시 자동 fused로 초기화(의도적 — 미복원)
         "fallback_prompts": getattr(m, "_fallback_prompts", []) if m else [],
         "inference_count": m.inference_count if m else 0,
         # Fix3: 서버 버전 핸드셰이크 — code_mtime > process_started_at 이면
@@ -1545,6 +1841,11 @@ async def set_config(
         m.stop_latched = bool(request.stop_latched)
         applied["stop_latched"] = m.stop_latched
 
+    if request.stop_learned_min_steps is not None:
+        global STOP_LEARNED_MIN_STEPS
+        STOP_LEARNED_MIN_STEPS = max(0, int(request.stop_learned_min_steps))
+        applied["stop_learned_min_steps"] = STOP_LEARNED_MIN_STEPS
+
     if request.preview_enabled is not None:
         m = get_model()
         m._preview_enabled = bool(request.preview_enabled)
@@ -1572,10 +1873,33 @@ async def set_config(
         m._multi_prompt = bool(request.multi_prompt)
         applied["multi_prompt"] = m._multi_prompt
 
+    if request.force_reground_on_miss is not None:
+        m = get_model()
+        m._force_reground_on_miss = bool(request.force_reground_on_miss)
+        applied["force_reground_on_miss"] = m._force_reground_on_miss
+
+    if request.owlv2_thresh is not None:
+        # OwlV2Grounder.run()이 매 호출 os.getenv를 읽으므로 env 갱신 = 즉시 적용
+        os.environ["VLA_OWLV2_THRESH"] = str(float(request.owlv2_thresh))
+        applied["owlv2_thresh"] = float(request.owlv2_thresh)
+
+    if request.owlv2_area_scale is not None:
+        os.environ["VLA_OWLV2_AREA_SCALE"] = str(float(request.owlv2_area_scale))
+        applied["owlv2_area_scale"] = float(request.owlv2_area_scale)
+
+    if request.ablation_mode is not None:
+        if request.ablation_mode in ("fused", "bbox_only", "vision_only"):
+            os.environ["VLA_ABLATION_MODE"] = request.ablation_mode
+            applied["ablation_mode"] = request.ablation_mode
+        else:
+            ignored.append(f"ablation_mode={request.ablation_mode} (unknown)")
+
     for field in ("model", "speed_scaling", "smooth_enabled"):
         if getattr(request, field, None) is not None:
             ignored.append(field)
 
+    if applied:
+        _persist_runtime_state()
     return {"status": "ok", "applied": applied, "ignored": ignored}
 
 
@@ -1609,6 +1933,12 @@ async def ground(
         "raw_output": bbox.get("raw_output", ""),
         "latency_ms": round(latency_ms, 1),
         "prompt": request.prompt,
+        # 2026-07-31: 이 엔드포인트는 필드를 골라 반환하는 구조라 score가 누락되고
+        # 있었음. grounding 탭의 threshold 오프라인 재판정이 이 경로를 쓰므로 추가.
+        "score": bbox.get("score"),
+        "score_thresh": bbox.get("score_thresh"),
+        "filter_reason": bbox.get("filter_reason"),
+        "hint_cx": bbox.get("hint_cx"),
     }
 
 
@@ -1651,6 +1981,27 @@ async def ground_debug(
             "results": results}
 
 
+def _free_cuda_memory() -> None:
+    """참조가 끊긴 객체를 확실히 회수 — torch nn.Module은 참조 사이클이 흔해
+    CPython의 즉시 refcount 해제에 안 걸리는 경우가 있음. 그 상태에서 다음
+    모델을 바로 올리면 이전 그라운더/인코더 메모리가 안 빠진 채로 새 걸
+    같이 얹는 꼴이 돼 렉/메모리 스파이크가 남 — gc로 강제 수거 후 캐시 반환."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+
+
+def _build_grounder(kind: str, device: torch.device, pg2_path: Optional[Path] = None) -> Any:
+    kind = kind.lower()
+    if kind == "owlv2":
+        return OwlV2Grounder(device)
+    _pg2 = pg2_path or DEFAULT_PG2
+    if _pg2.exists():
+        return PG2Grounder(_pg2, device)
+    return Grounder(get_model().enc)
+
+
 @app.post("/model/load")
 async def load_model(
     request: LoadRequest,
@@ -1658,14 +2009,55 @@ async def load_model(
 ) -> dict[str, Any]:
     _check_api_key(x_api_key)
     global _model
+
+    # ── 그라운더만 바꾸는 경우: Stage1(Kosmos-2)/head는 그대로 두고
+    # 그라운더 하나만 "먼저 끄고 → 메모리 회수 확인 → 새로 로드" 순서로 교체.
+    # (동시에 두 그라운더가 메모리에 걸쳐있는 구간을 없애 전환 중 렉 방지)
+    same_ckpt = (_model is not None
+                 and str(request.stage2_path) == _model.checkpoint_path
+                 and (not request.head or request.head == os.getenv("VLA_S2V2_HEAD")))
+    if request.grounder and same_ckpt and not request.stage1_path:
+        old_grounder = _model.grounder
+        del _model.grounder
+        del old_grounder
+        _free_cuda_memory()
+        os.environ["VLA_GROUNDER"] = request.grounder
+        _model.grounder = _build_grounder(request.grounder, _model.device)
+        logger.info("[/model/load] 그라운더만 교체 완료 → %s (Stage1/head 유지)", request.grounder)
+        grounder_kind = "owlv2" if isinstance(_model.grounder, OwlV2Grounder) else "pg2"
+        _persist_runtime_state()
+        return {"status": "success", "head": _model.head_name, "window": _model.window,
+                "val_acc": _model.val_acc, "grounder": grounder_kind}
+
+    # ── 그 외(체크포인트/head 변경 등): 기존 모델을 완전히 내리고 메모리
+    # 회수를 확인한 뒤에 새 모델을 구성 — 신구 모델이 겹치는 구간을 없앰.
     if request.stage1_path:
         os.environ["VLA_S2V2_STAGE1"] = request.stage1_path
     os.environ["VLA_S2V2_STAGE2"] = request.stage2_path
     if request.head:
         os.environ["VLA_S2V2_HEAD"] = request.head
+    if request.grounder:
+        os.environ["VLA_GROUNDER"] = request.grounder
+
+    # Stage1(Kosmos-2)은 체크포인트가 바뀌어도 vlm_path/stage1_path가 거의 항상
+    # 동일한 백본 공유 — 그런데도 매번 재로드하면 전체 전환이 ~25s(디스크에서
+    # 6GB대 재로드)까지 걸림(2026-07-23, PG2↔OWL 체크포인트 전환 실측). 경로가
+    # 같으면 기존 Stage1Encoder를 그대로 물려받아 재로드 생략.
+    new_stage1_path = str(Path(os.getenv("VLA_S2V2_STAGE1", str(DEFAULT_STAGE1))))
+    reusable_enc = (_model.enc if (_model is not None and _model._stage1_path == new_stage1_path)
+                    else None)
+
+    old_model = _model
     _model = None
-    m = get_model(reload=True)
-    return {"status": "success", "head": m.head_name, "window": m.window, "val_acc": m.val_acc}
+    if reusable_enc is not None and old_model is not None:
+        old_model.enc = None  # _free_cuda_memory()가 이 모델을 지울 때 재사용할 enc까지 같이 안 날아가게
+    del old_model
+    _free_cuda_memory()
+    m = get_model(reload=True, existing_enc=reusable_enc)
+    grounder_kind = "owlv2" if isinstance(m.grounder, OwlV2Grounder) else "pg2"
+    _persist_runtime_state()
+    return {"status": "success", "head": m.head_name, "window": m.window,
+            "val_acc": m.val_acc, "grounder": grounder_kind}
 
 
 class PreviewAlignRequest(BaseModel):
@@ -1703,10 +2095,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=int(os.getenv("VLA_PORT", "8001")))
     parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--no-restore", action="store_true",
+                         help="이전 재기동 시점 런타임 설정(logs/stage2_runtime_state.json) 복원 생략 — 코드 기본값으로 시작")
     args_cli = parser.parse_args()
+
+    _restored_state = None if args_cli.no_restore else _restore_runtime_state_env()
 
     logger.info("Pre-loading Stage2V2 model ...")
     m = get_model()
+
+    if _restored_state:
+        # STOP_MODE 등 5개는 모듈 최상단에서 import 시점에 이미 굳어서 env 복원이
+        # 안 먹힘(_restore_runtime_state_env 참고) — 여기서 직접 재대입.
+        STOP_MODE = _restored_state.get("stop_mode", STOP_MODE)
+        GOAL_AREA_THRESHOLD = _restored_state.get("stop_area_threshold", GOAL_AREA_THRESHOLD)
+        GOAL_CX_TOLERANCE = _restored_state.get("stop_cx_tolerance", GOAL_CX_TOLERANCE)
+        GOAL_CONSEC_FRAMES = _restored_state.get("stop_consec_frames", GOAL_CONSEC_FRAMES)
+        STOP_LEARNED_MIN_STEPS = _restored_state.get("stop_learned_min_steps", STOP_LEARNED_MIN_STEPS)
+        logger.info("[복원 완료] stop_mode=%s multi_prompt=%s preview_hint_cx=%s owlv2_thresh=%s checkpoint=%s",
+                    STOP_MODE, os.getenv("VLA_MULTI_PROMPT"), os.getenv("VLA_PREVIEW_HINT_CX"),
+                    os.getenv("VLA_OWLV2_THRESH"), m.checkpoint_path)
 
     # Stage 0 워밍업: PG2 콜드스타트를 서버 시작 시점에 소진 (CH54 ablation)
     # 분석: 6/26 세션 39개 전부 frame 0 has_bbox=0% → frame 1+ 100% 성공
