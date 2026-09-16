@@ -5429,7 +5429,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     <!-- 탭 4: 🧪 경로 검증 (Path Test) -->
     <div id="tab-verify" class="tab-content">
       <div class="scroll-container" style="padding: 20px;">
-        <div class="grid-3-verify" style="display: grid; grid-template-columns: 1.1fr 1.95fr 1.95fr; gap: 20px; align-items: start;">
+        <div class="grid-3-verify" style="display: grid; grid-template-columns: 1.0fr 2.3fr 1.7fr; gap: 20px; align-items: start;">
           
           <!-- Column 1: Live Camera & Telemetry -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
@@ -5540,8 +5540,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               경로검증 계산 중...
             </div>
 
-            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23) -->
-            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--cyan); border-radius:8px; flex-shrink:0;" open>
+            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23).
+                 2026-09-16: 기본 접힘으로 변경(사용자 요청, 체크포인트 목록이 길어 가시성 저해) -->
+            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--cyan); border-radius:8px; flex-shrink:0;">
               <summary style="font-size:12px; font-weight:700; color:var(--cyan); outline:none; cursor:pointer;">🔀 모델 전환
                 <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
                 <button class="btn btn-outline" onclick="event.preventDefault(); refreshModelList();" style="font-size:9px; padding:2px 6px; float:right;">🔄</button>
@@ -5565,12 +5566,15 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
             </details>
 
-            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개) -->
-            <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개)
+                 2026-09-16: 기본 접힘으로 변경(사용자 요청) — 이번 주 신규조건 실기와
+                 무관한 별개 시스템(체크포인트별 100건 집계). -->
+            <details style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
+              <summary style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; list-style:none;">
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
-                <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
-              </div>
+                <button id="vfy-screen-toggle" onclick="event.preventDefault(); event.stopPropagation(); toggleScreenTarget();" class="btn btn-outline" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
+              </summary>
+              <div style="margin-top:8px;">
               <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
               <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
               <div id="vfy-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:6px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용 기록 모드 ON — episode_log_experimental.csv로 저장 (정식 집계 제외)</div>
@@ -5631,7 +5635,8 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <div style="font-size:9px; color:var(--text-muted); margin-bottom:3px;">📊 체크포인트별 진행 (목표 100개)</div>
                 <div id="vfy-screen-ckpt-progress" style="font-size:9px;">—</div>
               </div>
-            </div>
+              </div>
+            </details>
 
             <div class="table-wrapper" style="min-height:380px; max-height:380px; flex-shrink:0; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
