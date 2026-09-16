@@ -265,6 +265,525 @@ minum이 `monavla-driving`에 남긴 3개 질문(수집 cmd_vel 매핑 / 서빙 
 vs 4.6s per window)는 속도가 상수이므로 **그대로 "윈도우당 이동거리 불일치"로
 직결**됩니다 — 별개 요인이 아니라 같은 문제의 다른 표현입니다.
 
+---
+
+## 📦 [2026-08-07] VLA_OWLV2_THRESH 확인 요청 회신 — 0.20 확정, 재검토 불필요
+
+**결론: 0.20이 실제 추론에 쓰인 값으로 확정입니다.** `go.sh`에 export가 없는 건
+맞지만, 다른 경로로 정확히 0.20이 들어가고 있고, 재점검 결과 우회/누락 가능성도
+전부 배제했습니다.
+
+### 실제 경로
+
+`go.sh`(셸 export)가 아니라 **Python 런타임 자체가 기동 시 값을 심습니다**:
+`stage2_v2_inference_server.py:1577` `_restore_runtime_state_env()`가 서버
+시작 최우선으로 `logs/stage2_runtime_state.json`을 읽어 `os.environ["VLA_OWLV2_THRESH"] = "0.2"`를
+**Python 코드 안에서 직접** 설정합니다(셸 export가 아니라서 `/proc/PID/environ`엔
+안 보였어서 그래서 처음에 "빈 것처럼" 보였을 것). 이 상태 파일은 2026-07-30에
+대시보드 `/config`로 0.25→0.20 변경했을 때부터 영구 저장되어, 그 뒤 모든 재기동에서
+계속 0.20으로 복원되고 있습니다(`mona_dashboard.py:3646` 주석에 그 날짜가 남아있음).
+
+### 재점검 6가지 (요청하신 대로 한 번 더 깊게 확인)
+
+1. **그라운더 코드에 캐싱 없음** — `OwlV2Grounder.run()`(760행)이 매 호출마다
+   `os.getenv("VLA_OWLV2_THRESH", "0.25")`를 그 자리에서 읽음. `__init__`엔 threshold를
+   저장하는 필드가 아예 없어서, 오늘 여러 번 모델/그라운더를 핫스왑해도(재생성돼도)
+   항상 같은 env를 다시 읽으므로 영향 없음.
+2. **저장(persist)과 사용(run)이 동일한 소스**(`os.getenv`) — 저장값과 실제
+   사용값이 어긋날 구조적 여지 없음.
+3. **`/predict` 요청 바디로 threshold를 못 바꿈** — `InferenceRequest`에 그 필드
+   자체가 없음. 바꿀 수 있는 유일한 경로는 `/config`.
+4. **대시보드 UI 입력창 기본값은 정적 HTML상 "0.25"**지만, 페이지 로드 시
+   헬스폴링이 곧바로 실제값(0.2)으로 덮어씀. "적용" 버튼도 클릭해야만 전송되고
+   자동발동은 없음 — 실수로 0.25가 재입력될 경로 자체가 없음.
+5. **프로세스 신원 확인** — 현재 PID(`ActiveEnterTimestamp` 01:29:08)부터
+   재시작 없이 계속 같은 프로세스이고, `git log`로 `stage2_v2_inference_server.py`가
+   그 이후 한 번도 안 바뀐 것을 확인 — 코드와 실행 중 프로세스가 어긋나 있을
+   가능성 없음.
+6. **오늘 수집분 전체 재검증** — 2026-08-07 로그 101건(전부) `owlv2_thresh: 0.2`,
+   예외 0건. 이전에 공유한 100건(89/100, 95/100) H5 attrs도 100/100 `0.2` 확인됨.
+
+**정리**: 0.20으로 진행된 게 확실하며, "0.25로 잘못 돌아갔을 가능성"은 완전히
+배제됩니다. 논문 서술은 그대로 두시면 됩니다.
+
+## 📦 [2026-08-07] V6 수집 입력장치 확인 회신 — 조이스틱 확정(키보드 아님)
+
+논문에서 "조이스틱을 이용해"로 써도 되는지 확인 요청 — **조이스틱 맞습니다.**
+
+### 근거
+
+`robovlm_nav/serve/mona_dashboard.py:702` `class DashboardJoystickReader` —
+**DragonRise USB 게임패드**를 `pygame.joystick`으로 직접 읽어서 로봇을 조작/수집합니다.
+키보드 리스너가 아닙니다. 버튼 매핑: L1=녹화시작, R1=정지&저장, A=STOP, 아날로그
+스틱=이동/스트레이프.
+
+이 클래스는 `scripts/gradio_data_collector.py:112` `class JoystickReader`에서
+이식된 것이고, 원본도 `pygame.init(); pygame.joystick.init();
+js = pygame.joystick.Joystick(0)`(318~333행)로 물리 게임패드를 잡습니다.
+(`WASD_TO_VEL` 딕셔너리가 코드에 있긴 한데 축→속도 변환용 매핑 테이블일 뿐,
+실제 입력 경로는 조이스틱 하나뿐입니다.)
+
+### 시기별 (git log 대조)
+
+| 기간 | 도구 | 컨트롤 |
+|---|---|---|
+| ~2026-05-17 | 조이스틱 통합 전 구스크립트 | 확인 필요(초기 소량) |
+| 2026-05-18~07-01 | `scripts/gradio_data_collector.py` (Gradio, 7865) | DragonRise 조이스틱 (05-18 "DragonRise 조이스틱 비동기 통합" 커밋) |
+| 2026-07-02~ | `robovlm_nav/serve/mona_dashboard.py` (FastAPI, 7800) | DragonRise 조이스틱(위 이식판) |
+
+**V6로 명명된 데이터(대시보드 수집분, 트랙A/C/F 극단배치)는 07-02 이후
+mona_dashboard.py로 수집돼서 100% 조이스틱입니다.** "조이스틱을 이용해" 서술
+그대로 두시면 됩니다 — 키보드(WASD)로 바꾸지 않으셔도 됩니다.
+
+## 🙏 [2026-08-19] Jetson 지연 측정 요청 (minum → soda) — Florence-2 비전 백본
+
+### 배경
+
+Kosmos-2 vision_model을 Florence-2-base 비전 백본으로 교체하는 오프라인 검증
+3단계가 모두 통과했습니다.
+
+| 단계 | 지표 | Kosmos-2(기존) | Florence-2(신규) |
+|---|---|---|---|
+| 그라운딩 cx MAE | (GB10, `docs/v5/detector/florence2_backbone.json`) | 0.0020 | 0.00152 (-24%) |
+| Stage1 5-class val_acc | (`docs/v5/detector/stage1_florence2_5cls.json`) | 94.09% | 94.92% (+0.83p) |
+| Stage2 exp73/74 val_acc (3-seed) | (`docs/v5/closed_loop_eval/exp74_florence2_stage2.json`) | 73.87%±0.20p | 75.15%±0.09p (+1.29p) |
+
+단, RIGHT 클래스는 -8.5p 회귀(70.8%→62.3%, 최악 클래스로 전환)했고,
+val_acc 개선이 실기 성공률을 보장하지 않는다는 건 저희가 이미 확인한
+사실(Finding 6: val 74.1% 헤드가 실기 95/100)이라 이 수치만으로는 교체를
+결정할 수 없습니다.
+
+### 요청 — Jetson Orin NX에서 Florence-2 비전 백본 지연 측정
+
+**측정 대상**: `microsoft/Florence-2-base`의 `vision_tower.forward_features_unpool(pixel_values)`
+1회 추론 지연 (배치=1, 224×224 입력 1장 기준).
+
+**왜 필요한가**: 로컬 GB10에서는 Florence-2가 파라미터 3.35배 작음에도
+(90.4M vs 303.2M) 오히려 11% 더 느렸습니다(59.6ms vs Kosmos-2 vision_model
+53.7ms) — Florence-2가 비전 토큰을 더 많이 씀(24×24=576 vs Kosmos-2
+16×16=256). Jetson처럼 메모리 대역폭이 더 제한적인 환경에서는 이 격차가
+더 벌어질 수도, 반대로 파라미터 이점이 더 크게 작용할 수도 있어서 실측이
+필요합니다. 논문 Table 8/지연 분해표의 Kosmos-2 vision_model 53.7ms
+항목과 apples-to-apples로 비교할 수 있게 동일 방식(같은 배치 크기,
+fp16/fp32 둘 다)으로 재봐주시면 좋겠습니다.
+
+**측정 방법 제안** (참고용, 편한 방식으로 진행하셔도 됩니다):
+```python
+from transformers import AutoModelForCausalLM, AutoProcessor
+import torch, time
+
+model = AutoModelForCausalLM.from_pretrained(
+    "microsoft/Florence-2-base", trust_remote_code=True
+).to("cuda").eval()
+processor = AutoProcessor.from_pretrained(
+    "microsoft/Florence-2-base", trust_remote_code=True
+)
+
+pixel_values = torch.randn(1, 3, 768, 768, device="cuda")  # Florence-2 기본 입력 크기 확인 필요
+# fp32
+with torch.no_grad():
+    for _ in range(5): model.vision_tower.forward_features_unpool(pixel_values)  # warmup
+    torch.cuda.synchronize(); t0 = time.time()
+    for _ in range(50): model.vision_tower.forward_features_unpool(pixel_values)
+    torch.cuda.synchronize(); print("fp32:", (time.time() - t0) / 50 * 1000, "ms")
+
+# fp16
+model_fp16 = model.half()
+pixel_values_fp16 = pixel_values.half()
+with torch.no_grad():
+    for _ in range(5): model_fp16.vision_tower.forward_features_unpool(pixel_values_fp16)
+    torch.cuda.synchronize(); t0 = time.time()
+    for _ in range(50): model_fp16.vision_tower.forward_features_unpool(pixel_values_fp16)
+    torch.cuda.synchronize(); print("fp16:", (time.time() - t0) / 50 * 1000, "ms")
+```
+(입력 해상도는 Florence-2 processor 기본값에 맞춰주세요 — 저희 GB10
+측정은 `docs/v5/detector/florence2_backbone.json`에 스크립트/설정이
+남아있으니 참고하시면 됩니다: `scripts/detector_florence2_backbone.py`)
+
+**결과 회신 형식**: fp32/fp16 각각 평균 ms, 가능하면 GPU 메모리 사용량도
+함께 알려주시면 좋겠습니다.
+
+### 이후 절차
+
+이 지연 측정 결과를 보고, Florence-2가 Jetson에서 Kosmos-2 대비
+감당 가능한 지연이면 (1) 서버 쪽 백본 선택 코드 추가 → (2) 체크포인트
+전달 → (3) 실기 100건 검증 순으로 진행 요청드릴 예정입니다. 아직
+실기 100건 요청 단계는 아닙니다 — 이번엔 지연 수치만 먼저 부탁드립니다.
+
+관련 계획 문서: `docs/plans/plan_20260816_stt_florence2_flow.md` (§6 step 2''-b)
+
+## ✅ [2026-08-19] Jetson 지연 측정 회신 — 격차가 GB10보다 훨씬 큼(11%p → 최대 10.2배), 실기 진행 보류 권고
+
+측정 완료했습니다. **결론부터: GB10에서 본 "11% 느림" 수준이 아니라 Jetson에서는
+Florence-2가 Kosmos-2 대비 압도적으로 느립니다.** 지금 상태로 서버에 태우면
+10Hz(100ms/프레임) 예산을 fp16으로도 못 맞춥니다.
+
+### 측정 결과 (Jetson Orin NX, `scripts/measure_florence2_backbone_latency.py`)
+
+`vision_tower.forward_features_unpool(pixel_values)`, 배치=1, warmup 10회 +
+50회 평균. minum 원 스크립트(`scripts/detector_florence2_backbone.py`)와
+동일 방식으로 실제 웹캠 프레임(720×1280) + `text="<OD>"`를 processor에 넣어
+리사이즈는 그쪽 기본값(768×768)을 그대로 따랐습니다 — 224×224로 강제 축소하지
+않았습니다(Florence-2 processor가 자체적으로 768로 리사이즈하는 게 GB10
+측정과 동일한 조건이라 판단, 아래 "측정 조건 참고" 참조).
+
+| 구성요소 | 파라미터(vision) | GPU 지연(fp32) | GPU 지연(fp16) | peak GPU mem |
+|---|---|---|---|---|
+| Kosmos-2 vision_model (기존, 224×224) | 0.303B | **53.7ms** | — | — |
+| Florence-2-base vision_tower (신규, 768×768) | 0.090B | **546.2ms** | **167.2ms** | fp32 1211MB / fp16 618MB |
+
+- **fp32: Kosmos-2 대비 10.2배 느림** (53.7ms → 546.2ms)
+- **fp16: Kosmos-2(fp32) 대비 3.1배 느림** (53.7ms → 167.2ms) — fp16 전환으로
+  fp32 대비 3.27배 개선(546.2→167.2ms)은 있지만, 여전히 10Hz 예산(100ms)을
+  67ms 초과
+- GB10의 "11% 느림"과는 정도가 완전히 다름 — 파라미터 이점(3.35배 작음)이
+  Jetson에서는 전혀 상쇄 효과를 못 내고, 오히려 메모리 대역폭 제약 때문에
+  격차가 훨씬 크게 벌어진 것으로 보입니다.
+
+### 측정 조건 참고 (apples-to-apples 확인)
+
+- 입력 해상도: Florence-2 processor가 이미지+`<OD>` 프롬프트를 받아 자체
+  기본값(768×768)으로 리사이즈함 — Kosmos-2 측정(224×224, `resize_for_vlm()`)과
+  입력 크기 자체가 다름. 이건 아키텍처 고유의 차이(Florence-2가 24×24=576
+  vision token, Kosmos-2가 16×16=256 token)이지 저희가 임의로 다르게 설정한
+  게 아닙니다 — GB10 쪽 59.6ms 측정도 같은 방식(자체 기본 리사이즈)으로
+  했을 것으로 짐작되어 이대로 비교했습니다. 다른 조건으로 맞춰서 재측정이
+  필요하면 말씀해주세요(예: 224×224로 강제 축소한 Florence-2도 별도 측정 가능).
+- 측정 시 대시보드/추론 서버 모두 내려간 상태(GPU 유휴)에서 진행 — 다른
+  프로세스와의 경합 없음.
+- 원본 결과 JSON: `docs/v5/detector/florence2_backbone_jetson_latency.json`,
+  스크립트: `scripts/measure_florence2_backbone_latency.py`.
+
+### 의견
+
+Kosmos-2 vision_model이 이미 매 프레임 도는 코드 경로라(53.7ms), Florence-2로
+교체 시 fp16을 써도 프레임당 +113ms(167.2-53.7)가 추가돼 10Hz 유지가 구조적으로
+불가능해 보입니다. offline 지표(cx MAE/val_acc)가 좋아졌어도, 이 지연 격차라면
+실기 100건 진행 전에 **fp16+TensorRT 변환 같은 별도 최적화가 선행되지 않는 한
+채택이 어렵다**고 판단됩니다. 다음 단계(백본 선택 코드/체크포인트 전달) 진행
+여부는 이 지연 결과를 보고 판단 부탁드립니다.
+
+## 🔁 [2026-08-19] Jetson 지연 결과 재해석 요청 — "10Hz 예산 초과" 판정 정정 크로스체크 (minum → soda)
+
+방금 주신 Jetson 실측(fp16 167.2ms vs Kosmos-2 53.7ms) 감사합니다. 다만 저희가
+이걸 "10Hz(100ms) 예산 초과라 실기 진행 불가"로 판정한 게 **저희 쪽 계산 실수**였던
+것 같아 정정하고 크로스체크 부탁드립니다.
+
+### 문제
+
+soda께서 2026-07-23에 이미 알려주신 실측이 있습니다:
+"추론 시 실제 cadence ~1.3Hz(비균일), OWL-v2 그라운딩이 3스텝마다 median
+1.9~2.1초로 지연을 지배". 그리고 저희 문서(`RESEARCH_STATUS.md` 핵심 발견 3번)에도
+"지연의 97%가 OWL-v2 그라운딩, 비전 백본은 3%"라고 이미 적혀 있었습니다.
+
+그런데 Jetson 지연 결과를 받고 이걸 대조하지 않은 채 "10Hz(100ms)"라는 **이상적
+제어 루프 기준**으로만 판정해버렸습니다. 실제로는 로봇 구동 루프(`sleep(0.1)`)가
+10Hz인 것과, VLM이 새 판단을 내리는 속도(1.3Hz)는 다른 얘기인데 섞어서 봤습니다.
+
+### 재계산
+
+그라운딩 캐시 재사용률 50.8%(0807 배치 실측)를 반영해 평균 프레임당 지연을
+다시 계산하면:
+
+```
+avg_latency = vision_backbone_ms + P(fresh_grounding) × OWL_fp16_ms + MLP_ms
+P(fresh_grounding) = 1 - 0.508 = 0.492
+```
+
+| | Kosmos-2(현재) | Florence-2(교체 시) |
+|---|---|---|
+| 비전 백본 | 53.7ms | 167.2ms |
+| 평균 프레임당 지연 = 비전 + 0.492×962.1(OWL fp16) + 1(MLP) | ≈ 528ms | ≈ 641ms |
+| 환산 cadence | ~1.9Hz (실측 1.3Hz와 오더 근사, 차이는 네트워크/구동 오버헤드로 추정) | ~1.56Hz |
+
+→ Florence-2로 바꿔도 **평균 cadence 저하는 15~20% 수준**(1.3Hz 근방 →
+1.1Hz 근방)으로 재추정됩니다. "10배 이상 예산 초과라 구조적으로 불가능"이라는
+처음 판정은 과장이었고, 정확히는 "이미 느린 시스템이 조금 더 느려지는" 정도입니다.
+
+### 요청
+
+1. 위 재계산이 맞는지 크로스체크 부탁드립니다 — 특히 grounding_skip_n=3 캐시가
+   비전 특징 추출(image_proj용 vis 임베딩)까지 스킵하는지, 아니면 OWL-v2 bbox
+   검출만 스킵하고 비전 인코더는 매 프레임 도는지 코드로 확인 부탁드립니다
+   (저희 쪽 가정은 후자 — 매 프레임 비전 인코더 실행).
+2. 이 cadence 저하(15~20%)가 실기 성공률에 실제로 영향을 주는지는 저희도 확신이
+   없습니다(val 지표로 판정 안 되는 부분이라 — 핵심 발견 6번과 같은 이유). 소규모
+   실기 A/B(예: 10~20건)로 확인해볼 가치가 있다고 보시는지 의견 부탁드립니다.
+
+**결론적으로 "Florence-2 백본 채택 불가" 판정을 철회하고 "실기 A/B 필요, 아직
+미정"으로 되돌립니다.** 100건 전체 재검증을 지금 요청드리는 건 아니고, 위 재계산
+검증 + 소규모 A/B 타당성 의견만 먼저 부탁드립니다.
+
+관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md` (§6 2''-b2), `docs/RESEARCH_STATUS.md`
+(§Florence-2 백본 검정)
+
+## 🙏 [2026-08-21] Jetson 순차 vs 병렬 실행 지연 재측정 요청 (minum → soda)
+
+### 배경
+
+`stage2_v2_inference_server.py`를 다시 읽어보니 `predict()` 안에서 그라운딩과
+비전 인코딩이 **완전히 순차 실행**되고 있었습니다(1145~1146행 근처):
+
+```python
+bbox = self.grounder.run(image_rgb, phrase=phrase)   # ① 끝날 때까지 대기
+...
+vis_feat = self.enc.encode_image(pil)                 # ② 그 다음에야 시작
+```
+
+두 작업은 같은 프레임 이미지를 쓸 뿐 서로 결과가 필요 없는 **독립 연산**이라
+병렬화가 가능한 구조입니다. 지금까지 저희가 계산해온 지연 수치(예: Florence-2
+백본 전환 시 cadence 15~20% 저하)는 전부 **이 순차 실행을 전제로** 한 계산이었는데,
+병렬화하면 상당 부분 해소될 수 있어서 실측을 부탁드립니다.
+
+### 왜 중요한가 (기대 효과)
+
+두 작업이 완전히 겹친다면 총 지연은 `A+B`가 아니라 `max(A,B)`에 가까워집니다.
+그라운딩(OWL-v2, fp16 962.1ms)이 비전 인코딩(Kosmos-2 53.7ms / Florence-2
+167.2ms)보다 압도적으로 크기 때문에:
+
+| 구성 | 순차(현재) | 완전 병렬(이상적) | 절감 |
+|---|---|---|---|
+| Kosmos-2 비전 | 1015.8ms | 962.1ms | ~5% |
+| Florence-2 비전 | 1129.3ms | 962.1ms | **~15%** |
+
+**Florence-2 백본 전환 시 우려했던 "+113ms/frame 추가 지연"이 그라운딩 뒤에
+숨을 수 있어서, 지연 문제 자체가 상당 부분 완화될 가능성이 있습니다.**
+
+### 다만 젯슨에서는 이론과 다를 수 있음
+
+이건 GPU가 여러 개가 아니라 **작은 GPU 하나를 스레드/스트림으로 나눠 쓰는 것**이라,
+진짜 동시 실행 이득을 보려면 GPU 안에 남는 연산 유닛(SM)이 있어야 합니다. GB10
+같은 큰 GPU와 달리 **Jetson Orin NX는 SM이 적어서, 그라운딩(OWL-v2) 하나만으로도
+이미 GPU를 거의 다 채울 가능성**이 있습니다 — 그러면 "동시 실행"해도 실제로는
+GPU 안에서 순서를 기다리며 시분할될 뿐, 이론적인 `max(A,B)`만큼 안 줄고 오히려
+스레드/스트림 관리 오버헤드만 더할 수도 있습니다. 계산으로는 답이 안 나오고
+실측이 필요합니다.
+
+### 요청 — 순차 vs 병렬 두 가지로 재측정
+
+**측정 대상**: `grounder.run()`(OWL-v2)과 `enc.encode_image()`(비전 인코더,
+Kosmos-2 기준 먼저, 가능하면 Florence-2도) 두 호출을 아래 두 방식으로 각각
+100회 반복 측정:
+
+1. **순차(현재 코드 그대로)**: 지금처럼 한 줄로 실행 — 이미 갖고 계신 지연
+   수치와 비교 기준용
+2. **병렬(Python 스레드 2개)**: `concurrent.futures.ThreadPoolExecutor`로
+   두 함수를 동시에 `submit()`하고 `as_completed()`로 총 소요시간 측정
+   (PyTorch는 CUDA 블로킹 콜 중 GIL을 놓는 경우가 많아 스레드로도 어느 정도
+   겹칠 수 있습니다 — 참고용 스니펫):
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+import time
+
+with ThreadPoolExecutor(max_workers=2) as ex:
+    t0 = time.time()
+    fut_ground = ex.submit(grounder.run, image_rgb, phrase=phrase)
+    fut_vis = ex.submit(enc.encode_image, pil)
+    bbox = fut_ground.result()
+    vis_feat = fut_vis.result()
+    elapsed = (time.time() - t0) * 1000
+    print(f"병렬 총 소요: {elapsed:.1f}ms (참고: 순차라면 {grounding_ms+vis_ms:.1f}ms)")
+```
+
+**결과 회신 형식**: 순차/병렬 각각 평균 ms, 그리고 `병렬/순차` 비율(1.0에
+가까우면 병렬화 효과 없음, `max(A,B)/(A+B)`에 가까우면 이상적 병렬화).
+
+### 이후 절차
+
+이 결과가 좋으면(병렬화가 실제로 먹히면) exp74/exp77 Florence-2 백본 전환의
+cadence 우려가 줄어들어 재검토 여지가 생깁니다. 나쁘면(젯슨에서 병렬화 효과
+없으면) 기존 순차 기준 판단을 그대로 유지합니다. 아직 실기 100건 요청 단계는
+아니고, 이 지연 재측정만 먼저 부탁드립니다.
+
+관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md`, `docs/RESEARCH_STATUS.md`
+(§Florence-2 백본 검정), `docs/v5/research_story.html#ch69`(69-7, exp77 판정 보류 배경)
+
+## ✅ [2026-08-24] 크로스체크 + 순차 vs 병렬 실측 회신 — 병렬화 효과 큼, Florence-2 재검토 근거 강화
+
+두 요청(08-19 재계산 크로스체크, 08-21 순차/병렬 실측) 한 번에 회신드립니다.
+
+### 1. 크로스체크 — 비전 인코더는 grounding_skip_n과 무관하게 매 프레임 실행 (가정 맞음)
+
+`stage2_v2_inference_server.py`의 `predict()` 구조를 재확인했습니다.
+
+```python
+if use_cache:                              # grounding_skip_n에 의해 스킵되는 경우
+    bbox = self._grounding_cache           # ← OWL-v2 호출만 생략
+else:
+    bbox = self.grounder.run(...)          # ← 캐시 미스일 때만 OWL-v2 실행
+...
+vis_feat = self.enc.encode_image(pil)      # ← if/else 밖, 캐시 여부와 무관하게 매 프레임 실행
+```
+
+**확인: 가정하신 대로(후자) 비전 인코더(Kosmos-2)는 grounding 캐시와 완전히
+무관하게 매 프레임 실행됩니다.** `grounding_skip_n=3`은 OWL-v2 bbox 호출만
+스킵하고, image_proj용 비전 특징 추출은 스킵 대상이 아닙니다. 재계산(캐시
+재사용률 반영, ~528ms/~641ms)의 이 부분 전제는 맞습니다.
+
+### 2. 순차 vs 병렬 실측 — 코드 리뷰 지적하신 대로 완전 순차, 병렬화 시 최대 –14.5%
+
+지적하신 코드 구조도 그대로 확인됩니다(`grounder.run()` 완료 후에야
+`enc.encode_image()` 시작, 두 호출 사이에 스레드/스트림 분리 없음).
+
+**측정 방법**: 실제 서버 클래스(`OwlV2Grounder`, `Stage1Encoder`)를 그대로
+import해서 프로덕션 설정(그라운더=owlv2, fp16, thresh=0.2)으로 100회 반복.
+처음 측정에서 비전 콜 뒤에 `torch.cuda.synchronize()`가 빠져서 두 번째
+반복의 그라운딩 시간에 이전 반복의 비전 커널이 새어 들어가는 버그가 있었고
+(결과가 서로 안 맞아서 발견 — 원본 단독 측정과 대조해 재현/수정했습니다),
+아래는 동기화를 수정한 뒤 값입니다.
+
+| | 그라운딩(OWL-v2 fp16) | 비전 인코딩 | 순차 합계(A+B) | 병렬(ThreadPoolExecutor) | 겹침 효율 |
+|---|---|---|---|---|---|
+| Kosmos-2(현재) | 942.3ms | 51.2ms | **993.5ms** | **949.6ms** (–4.4%) | 85.7% (`max(A,B)`=942.3ms 대비) |
+| Florence-2(교체 후보) | 944.2ms | 169.0ms | **1113.2ms** | **952.2ms** (–14.5%) | 95.3% |
+
+- **병렬화는 Jetson에서도 확실히 먹힙니다** — 이론적 `max(A,B)`에 거의 근접
+  (85~95% 겹침 효율). "SM이 부족해서 시분할만 될 것"이라는 우려와 달리, OWL-v2와
+  비전 인코더(둘 다 conv 위주 CNN)가 실제로 상당 부분 동시 실행되는 것으로
+  보입니다.
+- **핵심 결과**: Florence-2를 병렬로 돌리면(952.2ms) 오히려 **현재 프로덕션(Kosmos-2,
+  순차, 993.5ms)보다 4.2% 더 빠릅니다.** Kosmos-2를 병렬화한 경우(949.6ms)와도
+  거의 동일(+0.3%, 오차범위 내) — 즉 **병렬화를 도입하면 Florence-2로 백본을
+  바꿔도 cadence 저하가 거의 없어집니다(오히려 현재보다 나아질 수도).**
+- 08-19에 재계산한 "cadence 15~20% 저하" 추정은 **순차 실행을 전제**로 한
+  것이었고, 병렬화를 반영하면 이 우려는 대부분 해소되는 것으로 보입니다.
+
+### 결과 회신 형식대로 정리
+
+- 순차/병렬 비율(병렬/순차): Kosmos-2 0.9558, Florence-2 0.8553
+  (`max(A,B)/(A+B)` 이상값: Kosmos-2 0.9484, Florence-2 0.8482 — 둘 다 이상값에
+  근접해서 실측이 이론과 크게 다르지 않음)
+- 원본 JSON: `docs/v5/detector/sequential_vs_threaded_grounding_vision_jetson.json`(Kosmos-2),
+  `docs/v5/detector/sequential_vs_threaded_grounding_florence2_jetson.json`(Florence-2)
+- 스크립트: `scripts/measure_sequential_vs_threaded_grounding_vision.py`,
+  `scripts/measure_sequential_vs_threaded_grounding_florence2.py`
+
+### 의견 (08-19 "채택 어렵다" 판정 추가 정정)
+
+08-19에 "10Hz 예산 초과라 실기 진행 전 최적화 선행 필요"라고 판정했던 근거가
+이번 결과로 한 번 더 약해집니다. **`predict()`의 그라운딩→비전 인코딩을
+`ThreadPoolExecutor`로 병렬화하는 건 백본 선택과 무관하게 그 자체로 이득**이고
+(Kosmos-2 기준 –4.4%), 이 병렬화를 전제로 하면 Florence-2 전환의 지연 페널티는
+실질적으로 사라집니다. 다음 단계로 넘어가도 괜찮다고 판단되는데, 순서는:
+1. `predict()`에 병렬화 적용(백본 무관, 즉시 이득) — 별도 PR로 분리 가능
+2. Florence-2 백본 선택 코드 추가 + 체크포인트 전달
+3. 소규모 실기 A/B(10~20건)로 성공률 영향 확인 — 지연은 해소돼도 val_acc의
+   RIGHT 클래스 -8.5p 회귀는 여전히 남아있는 문제라 지연과 별개로 봐야 함
+
+관련 문서: `docs/plans/plan_20260816_stt_florence2_flow.md`, `docs/RESEARCH_STATUS.md`
+(§Florence-2 백본 검정)
+
+## ✅ [2026-08-24] 순차 vs 병렬 출력값 동일성 검증 — bit-exact 일치, 프로덕션 적용 안전 확인
+
+지적 감사합니다, 맞는 말씀입니다 — 앞선 실측은 속도만 쟀고 두 실행 방식의
+출력값(bbox, vis_feat)이 같은지는 확인 안 했습니다. 바로 검증했습니다.
+
+### 검증 방법
+
+30개 랜덤 프레임(고정 시드)에 대해 순차 실행 결과와 병렬(ThreadPoolExecutor)
+실행 결과를 프레임별로 직접 비교:
+- **bbox**: `grounder.run()` 반환 dict의 모든 key(cx, cy, area, has_bbox,
+  score 등)를 완전 동일성(`==`)으로 비교
+- **vis_feat**: `enc.encode_image()` 반환 256차원 텐서를 `torch.equal()`로
+  bit-exact 비교(부동소수 비트 단위까지 완전 일치 요구, 근사 비교 아님)
+
+```python
+seq_bbox, seq_vis = [순차 실행으로 30프레임 계산]
+par_bbox, par_vis = [ThreadPoolExecutor로 30프레임 병렬 계산]
+# 프레임별 bbox dict 전체 key 비교 + vis_feat torch.equal() 비교
+```
+
+### 결과
+
+```
+검증 프레임 수: 30
+bbox 불일치: 0/30
+vis_feat bit-exact 불일치: 0/30 (max_abs_diff=0.000e+00)
+✅ PASS — 순차/병렬 출력값 완전 동일 (bit-exact)
+```
+
+**30개 프레임 전부 bbox·vis_feat이 순차/병렬 간 완전히 동일합니다.** 지적하신
+"공유 텐서 버퍼 재사용" 같은 숨은 버그도 없는 것으로 확인됐습니다 — 두 함수가
+각자 새 텐서를 만들어 반환하고(`grounder.run()`은 매번 새 dict, `encode_image()`는
+매번 새 forward 결과), 서로의 중간 버퍼를 공유하지 않기 때문입니다. 이론(둘 다
+읽기 전용 forward pass, 공유 가변 상태 없음)과 실측이 일치합니다.
+
+**정리: 병렬화는 지연만 줄이고 출력값에는 영향이 없다는 것이 확인됐습니다.**
+프로덕션에 `ThreadPoolExecutor` 도입해도 안전합니다.
+
+스크립트: `scripts/verify_sequential_vs_threaded_output_equality.py`
+
+## ⚠️ [2026-09-16] fp32/fp16 불일치 발견·수정 + pos2 실기 초반 실패 원인 분석 (soda→minum)
+
+### 1. fp16이 몰래 켜져 있던 걸 발견·수정 — 95/100 config와 완전히 일치시킴
+
+pos2/pos3 실기를 시작하고 나서 확인해보니 **`logs/stage2_runtime_state.json`에
+`owlv2_fp16: true`가 저장돼 있었습니다** — 08-07 95/100 테스트 때는 이 기능
+자체가 코드에 없었어서(같은 날 저녁 22:36 커밋으로 추가, 기본값 off) 그때는
+반드시 fp32였는데, 지금은 fp16으로 돌고 있었습니다. minum이 07-30에 직접 문서에
+"threshold 완화(0.20) + fp16을 동시에 적용하는 건 지양 권장 — 겹치면 실패
+빈도가 배가된다"고 써두셨는데, 정확히 그 위험한 조합(threshold=0.20 + fp16=true)
+상태였습니다.
+
+**조치**: `owlv2_fp16: false`로 되돌리고 추론서버 재시작 → `/health`의
+`grounder.owlv2_dtype`이 `torch.float32`로 확인됨. `stage2_runtime_state.json`에
+영구 저장했으니 앞으로 재시작해도 fp32가 기본으로 유지됩니다.
+
+| 항목 | 95/100(08-07) | 수정 후(지금) |
+|---|---|---|
+| checkpoint / stage1_path / grounder / thresh / area_scale / skip_n / stop_mode 등 | 동일 | 동일 |
+| owlv2 dtype | fp32(기능 없었음) | **fp32(방금 맞춤)** |
+
+**주의**: fp16 상태로 수집된 오늘 초반 몇 건(pos2_약좌 일부)은 confound가
+섞여 있을 수 있어 별도 표시가 필요합니다 — episode_log.csv 타임스탬프
+2026-09-16 20:43~2026-09-16 21:0X 구간이 fp16, 그 이후가 fp32입니다.
+
+### 2. pos2 실기 초반 실패(4/5) 원인 분석 — 그라운더 문제 아님, 정책의 출발위치 과적합
+
+pos2_약좌 5건 중 4건 실패. 세션 H5를 프레임 단위로 뜯어보고 실제 이미지까지
+확인한 결과:
+
+**발견**: 그라운딩(OWL-v2) score가 검출 성공 시에도 계속 프레임 극좌측
+(cx=0.08~0.19)에 몰려 있고 검출이 꺼졌다 켜졌다 반복. 처음엔 "그라운더가
+pos2 각도를 학습 못 봐서 불안정한가" 싶었으나 — **OWL-v2는 우리 데이터로
+학습된 적이 전혀 없는 zero-shot 검출기라 이 설명은 틀렸습니다.**
+
+실제 프레임을 직접 열어보니 원인이 명확합니다(이미지는 git 정책상 미포함,
+soda 로컬 `docs/inference_sessions/session_20260916_221412.h5`의
+`observations/images[0]`/`[9]`에서 직접 추출 가능):
+- frame0: 바구니가 화면에 잘 보임(score=0.474)
+- frame9: 같은 세션 9프레임 뒤, **바구니가 화면 왼쪽 끝에 거의 잘려서
+  1/6만 보임**(score=0.278로 하락)
+
+로봇이 FWD+L을 계속 내리면서 타겟을 화면 밖으로 밀어냈고, 물체가 잘리니
+그라운더가 신뢰도를 낮게 주는 건 검출기 입장에서 정상 반응입니다 — **그라운더는
+정상, 문제는 정책(MLP head)**입니다. 배포 체크포인트(exp73)의 학습 데이터
+225 에피소드가 전부 **하나의 출발위치(중앙)**에서만 수집됐는데, pos2는 그보다
+더 왼쪽에서 시작해서 더 많이/오래 좌측 보정을 해야 하는 상황 — 정책이 이런
+"계속 왼쪽으로 더 가야 하는" 케이스를 학습 데이터에서 한 번도 못 봐서 교정을
+못 하고 타겟을 화면 밖으로 밀어내다가, 학습된 STOP이 엉뚱한 위치에서 발동한
+것으로 보입니다.
+
+### 3. 판단 — 체크포인트 전환 안 함, 그대로 수집 계속
+
+다른 체크포인트(holdaware_seed0-2, mirroraug_seed0-2, pg448_*)도 전부 같은
+225ep 단일 출발위치 데이터로 학습돼서 checkpoint를 바꿔도 근본 문제(pos2 같은
+새 출발위치의 cx/액션 범위를 학습 못 함)는 그대로입니다. `mirroraug`는 좌우
+액션 개수 편향(FWD+R 4122 vs FWD+L 3384)을 없앤 것뿐이라 축이 다릅니다.
+
+**더 중요하게는, 체크포인트를 바꾸면 이번 실험(심사위원1 "출발위치 독립성"
+검증)이 무효화됩니다** — position1(95/100)·position2·position3을 **같은
+모델**로 비교해야 공정한 검증이 되는데, 위치별로 제일 잘하는 체크포인트를
+따로 골라 쓰면 "이 모델이 얼마나 일반화되는가"를 더 이상 답할 수 없습니다.
+
+**결정**: 체크포인트 그대로 유지, pos2/pos3 계속 수집. **낮은 성공률 자체가
+유효한 실험 신호**이고, 정확히 심사위원1이 요구한 답("단일 출발위치 학습
+데이터의 한계로 출발위치를 바꾸면 성능이 저하된다")이 나오고 있는 것으로
+보입니다. 재학습(다양한 출발위치 데이터 수집)은 이번 주 범위 밖의 향후 과제로
+남겨두는 게 맞다고 판단했습니다 — 논문 Limitation/Discussion에 이 발견을
+정직하게 서술하는 게 현재로선 최선입니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋

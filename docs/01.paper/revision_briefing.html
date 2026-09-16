@@ -2430,6 +2430,16 @@ soda에 배포 후 fused→bbox_only→vision_only→잘못된 값(정상 거부
 조건마다 새로 학습한 소형 헤드로 "모달리티 단독일 때 최대 얼마나 배울 수 있는가"를 쟀고, 이번 실기 ablation은
 "배포된 융합 모델이 한쪽 입력을 잃었을 때 실기에서 어떻게 무너지는가"를 잽니다 — 논문엔 이 구분을 명시할 것.</p>
 </div>
+<div class="key" style="margin-top:10px">
+<strong class="g">✅ 2026-09-16 후속 조치 — soda go.sh 콜드스타트 기본값 실제로 수정 완료</strong>
+<p style="margin:6px 0 0">위에서 발견한 "코드 기본값(exp71+PG2+proximity)과 실제 운영 상태(exp73+OWLv2+learned)가
+다르다"는 함정을 <strong class="h">문서화만 하는 대신 soda 쪽에서 직접 고쳤습니다</strong> — <code>scripts/run/go.sh</code>의
+<code>VLA_GROUNDER</code> fallback을 <code>pg2→owlv2</code>, <code>VLA_STOP_MODE</code>를 <code>proximity→learned</code>,
+<code>VLA_OWLV2_THRESH</code>를 <code>0.25→0.20</code>으로 변경해 코드 기본값 자체를 현재 프로덕션 설정과
+일치시켰습니다(<code>monavla-driving</code> 커밋 <code>62fd0eca</code>). <code>stage2_runtime_state.json</code>
+영속화 복원 로직은 그대로 두되, 그 파일이 없는 완전 콜드스타트 상황에서도 옛 exp71 구성으로 조용히 뜨는
+위험을 원천 제거했습니다.</p>
+</div>
 </div>
 </div>
 

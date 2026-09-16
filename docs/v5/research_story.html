@@ -18849,6 +18849,14 @@ graph TD
       서버는 정상(fused) 상태로 복귀. git 3곳(soda가 pull하는 <code>monavla-driving</code>, <code>main</code>,
       <code>inference-integration</code>) 전부 반영 — 이 과정에서 soda의 라이브 코드가 로컬 저장소보다
       527줄 앞서 있던 걸 발견해 같이 동기화함.
+      <br><br>
+      <strong style="color:#4ade80">✅ 후속 조치(2026-09-16, 같은 날)</strong> — 위 "코드 기본값과 실제 운영
+      상태가 다르다"는 함정을 문서화만 하고 넘기지 않고 soda 쪽에서 직접 고쳤다. <code>scripts/run/go.sh</code>의
+      <code>VLA_GROUNDER</code> fallback <code>pg2→owlv2</code>, <code>VLA_STOP_MODE</code>
+      <code>proximity→learned</code>, <code>VLA_OWLV2_THRESH</code> <code>0.25→0.20</code>으로 변경해 코드
+      기본값 자체를 프로덕션 설정과 일치시킴(<code>monavla-driving</code> 커밋 <code>62fd0eca</code>) —
+      <code>stage2_runtime_state.json</code>이 없는 완전 콜드스타트에서도 옛 exp71 구성으로 뜰 위험을
+      제거했다.
     </div>
   </div>
 
