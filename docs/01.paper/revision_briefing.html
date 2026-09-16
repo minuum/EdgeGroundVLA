@@ -2204,9 +2204,9 @@ apples-to-apples 비교 불가).</p>
 <tr style="border-bottom:1px solid #1e293b">
   <td style="padding:6px 8px" class="c g">✅</td>
   <td style="padding:6px 8px">실기 규모·일정 계산</td>
-  <td style="padding:6px 8px">완료</td>
+  <td style="padding:6px 8px">완료 (2026-09-16 최종 확정)</td>
   <td style="padding:6px 8px">Claude</td>
-  <td style="padding:6px 8px">100회(위치2·3 각 25 + 조도 50), Wilson CI, 09-15~20 일정표</td>
+  <td style="padding:6px 8px">주 계획 280회(메인 200+인코더ablation 80) + 플랜B 조도 50회, Wilson CI, 09-16~20 일정표</td>
 </tr>
 <tr style="border-bottom:1px solid #1e293b">
   <td style="padding:6px 8px" class="c g">✅</td>
@@ -2229,12 +2229,14 @@ apples-to-apples 비교 불가).</p>
   <td style="padding:6px 8px">Claude</td>
   <td style="padding:6px 8px"><code>scripts/analyze_newcond_experiment.py</code>, 빈 상태 실행 확인</td>
 </tr>
-<tr style="background:rgba(251,191,36,0.08);border-bottom:1px solid #1e293b">
-  <td style="padding:6px 8px" class="c o">⬜</td>
-  <td style="padding:6px 8px">Jetson 서버 상태 확인</td>
-  <td style="padding:6px 8px" class="o">대기 — 사람 필요</td>
-  <td style="padding:6px 8px">실기 담당자</td>
-  <td style="padding:6px 8px">/health로 checkpoint_path·threshold=0.20·skip_n=3 확인 (개발 머신에서 접근 불가)</td>
+<tr style="background:rgba(74,222,128,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
+  <td style="padding:6px 8px">Jetson(soda) 서버 상태 확인</td>
+  <td style="padding:6px 8px" class="g">완료 — 2026-09-16, ssh 직접 접속해서 확인</td>
+  <td style="padding:6px 8px">Claude</td>
+  <td style="padding:6px 8px">"개발 머신에서 접근 불가"는 정정 — soda ssh 가능함을 확인. checkpoint_path=exp73,
+  threshold=0.20, skip_n=3, grounder=owlv2, stop_mode=learned 전부 <code>/proc/&lt;pid&gt;/environ</code>·
+  <code>/health</code>로 라이브 확인 완료</td>
 </tr>
 <tr style="background:rgba(251,191,36,0.08);border-bottom:1px solid #1e293b">
   <td style="padding:6px 8px" class="c o">⬜</td>
@@ -2279,7 +2281,7 @@ apples-to-apples 비교 불가).</p>
   <td style="padding:6px 8px">결과 집계 + 문서 반영</td>
   <td style="padding:6px 8px">미실행</td>
   <td style="padding:6px 8px">Claude</td>
-  <td style="padding:6px 8px">09-17(목) 목표 — 스크립트 실행 → Table 7 옆 신규 표 추가</td>
+  <td style="padding:6px 8px">09-19(금) 목표 — 스크립트 실행 → Table 7 옆 신규 표 추가</td>
 </tr>
 <tr>
   <td style="padding:6px 8px" class="c">⬜</td>
@@ -2404,7 +2406,7 @@ checkpoint_path가 두 체크포인트와 일치하는지, threshold=0.20·skip_
 <h3 class="cat" id="realrobot-ablation-todo"><span class="tag t-pending">코드 완료 — 실기만 남음</span> 실기 단일 인코더 검증(OWLv2 단독/Kosmos-2 단독) + Figure/표 보강 (2026-09-16)</h3>
 
 <div class="item pending" style="border-left-color:#fbbf24">
-<h4>1. 실기 인코더 단독(OWLv2/Kosmos-2) ablation — 규모 확정됨(2026-09-16), 런타임 코드만 남음</h4>
+<h4>1. 실기 인코더 단독(OWLv2/Kosmos-2) ablation — 규모 확정 + 런타임 코드 완료(2026-09-16), 실기만 남음</h4>
 <div class="body">
 <p>사용자 확인으로 애매했던 두 지점이 해결됐습니다:</p>
 <ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
