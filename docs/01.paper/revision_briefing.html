@@ -2186,19 +2186,33 @@ apples-to-apples 비교 불가).</p>
   <td style="padding:6px 8px">실기 담당자</td>
   <td style="padding:6px 8px">트랙 내 2개 지점 확정(로봇↔타겟 거리·각도 등 기록해두면 재현성↑)</td>
 </tr>
-<tr style="background:rgba(251,191,36,0.08);border-bottom:1px solid #1e293b">
-  <td style="padding:6px 8px" class="c o">⬜</td>
-  <td style="padding:6px 8px">조도 조건 설정</td>
-  <td style="padding:6px 8px" class="o">대기 — 사람 필요</td>
+<tr style="background:rgba(148,163,184,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c" style="color:#94a3b8">⬜</td>
+  <td style="padding:6px 8px">조도 조건 설정 <span style="font-size:0.72rem;color:#94a3b8">(플랜B)</span></td>
+  <td style="padding:6px 8px" style="color:#94a3b8">보류 — 주 계획 끝난 뒤 시간 남으면</td>
   <td style="padding:6px 8px">실기 담당자</td>
-  <td style="padding:6px 8px">조명 축소/커튼 등으로 기존 대비 확실히 구분되는 조도 확보</td>
+  <td style="padding:6px 8px">2026-09-16 플랜B로 격하 — 조명 축소/커튼 등, 우선순위 최하</td>
 </tr>
 <tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b">
   <td style="padding:6px 8px" class="c">⬜</td>
-  <td style="padding:6px 8px"><b>실기 실행 (100회)</b></td>
+  <td style="padding:6px 8px"><b>실기 실행 — 메인 200회</b></td>
   <td style="padding:6px 8px">미실행</td>
   <td style="padding:6px 8px">실기 담당자</td>
-  <td style="padding:6px 8px">09-15(화)~16(수) 목표, <code>pos2_/pos3_/light_</code> 컨벤션으로 기록</td>
+  <td style="padding:6px 8px">코드 변경 없이 바로 가능, <code>pos2_/pos3_</code> 컨벤션으로 기록</td>
+</tr>
+<tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c" style="color:#f87171">⬜</td>
+  <td style="padding:6px 8px"><b>인코더 ablation 런타임 플래그 구현</b></td>
+  <td style="padding:6px 8px" style="color:#f87171">미착수 — 블로커</td>
+  <td style="padding:6px 8px">Claude</td>
+  <td style="padding:6px 8px"><code>VLA_ABLATION_MODE=bbox_only|vision_only|fused</code>, 메인 200회 진행과 병렬로 작업 가능</td>
+</tr>
+<tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c">⬜</td>
+  <td style="padding:6px 8px"><b>실기 실행 — 인코더 ablation 80회</b></td>
+  <td style="padding:6px 8px">미실행 (플래그 대기)</td>
+  <td style="padding:6px 8px">실기 담당자</td>
+  <td style="padding:6px 8px">위 플래그 완료 후 진행, <code>owl_only_/kosmos_only_</code> 컨벤션 신규 필요</td>
 </tr>
 <tr style="border-bottom:1px solid #1e293b">
   <td style="padding:6px 8px" class="c">⬜</td>
@@ -2262,16 +2276,21 @@ apples-to-apples 비교 불가).</p>
 <tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">출발위치3 (신규, 우측)</td><td style="padding:4px 8px">5방향 × n=20</td><td style="padding:4px 8px"><strong>100회</strong></td></tr>
 <tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b"><td style="padding:4px 8px" colspan="2"><strong>→ 메인 EG-VLA(융합) 위치2·3 소계</strong></td><td style="padding:4px 8px"><strong class="h">200회</strong></td></tr>
 <tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">그라운딩 인코더 ablation<br><span style="font-size:0.78rem;color:#94a3b8">(위원1-①/3-④ 실기 재검증 — OWLv2 단독, Kosmos-2 단독)</span></td><td style="padding:4px 8px">2인코더 × 좌/우 2방향 × n=20<br><span style="font-size:0.78rem;color:#94a3b8">(5방향 전부 아님 — 기존 실기에서 좌우 경향이 이미 확인돼 축소)</span></td><td style="padding:4px 8px"><strong>80회</strong></td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">조도 ablation</td><td style="padding:4px 8px">출발위치1 · 5방향 × n=10</td><td style="padding:4px 8px"><strong>50회</strong></td></tr>
-<tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>합계</strong></td><td style="padding:4px 8px">메인 200 + 인코더ablation 80 + 조도 50</td><td style="padding:4px 8px"><strong class="g">330회</strong></td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>합계(주 계획)</strong></td><td style="padding:4px 8px">메인 200 + 인코더ablation 80</td><td style="padding:4px 8px"><strong class="g">280회</strong></td></tr>
+<tr style="background:rgba(148,163,184,0.08);border-top:2px dashed #475569"><td style="padding:4px 8px"><strong class="o">플랜B</strong> — 조도 ablation</td><td style="padding:4px 8px">출발위치1 · 5방향 × n=10</td><td style="padding:4px 8px"><strong class="o">+50회 (시간 남으면)</strong></td></tr>
 </table>
+<div class="note" style="font-size:0.85rem">
+<strong class="o">2026-09-16 — 조도 ablation은 플랜B로 격하</strong>: 주 계획(메인 200 + 인코더ablation 80 = 280회)을
+먼저 끝내고, <strong class="h">시간이 남을 때만</strong> 조도 50회를 추가로 진행합니다. 재심 기한 내
+못 끝내도 논문에는 "조도 변화는 향후 과제로 남김"으로 서술하면 되는 항목이라 우선순위가 가장 낮습니다.
+</div>
 <p style="font-size:0.82rem;color:#94a3b8">위치2·3은 <strong class="h">n=20으로 기존 위치1(Table 7)과 동일 규격</strong>이라 Wilson CI 하한
 76.4%로 세 위치를 나란히 직접 비교할 수 있습니다. 그라운딩 인코더 ablation(80회)은 좌우 2방향만으로
-축소했는데, n=20/방향이면 Wilson CI 하한은 여전히 76.4%로 메인 결과와 동일 신뢰도를 유지합니다.
-조도 ablation(50회)은 기존과 동일하게 5방향 × n=10.</p>
+축소했는데, n=20/방향이면 Wilson CI 하한은 여전히 76.4%로 메인 결과와 동일 신뢰도를 유지합니다.</p>
 <p style="font-size:0.82rem;color:#94a3b8">에피소드당 평균 11.64스텝 × ~1.2초/스텝 ≈ 20~30초/회 +
-리셋/재배치 오버헤드 30~60초/회 → <strong class="h">330회 기준 총 330~500분(약 5.5~8.5시간)</strong>.
-5~6일 기한 안에서 이틀 정도로 나눠 진행 가능한 규모입니다(예: 1일차 메인 200회, 2일차 인코더ablation 80+조도 50).</p>
+리셋/재배치 오버헤드 30~60초/회 → <strong class="h">주 계획 280회 기준 총 280~420분(약 4.7~7시간)</strong>,
+플랜B(조도 50회)까지 하면 +50~75분 추가. 5~6일 기한 안에서 이틀 정도로 나눠 진행 가능한 규모입니다
+(예: 1일차 메인 200회, 2일차 인코더ablation 80회 + 여유되면 조도 50회).</p>
 </div>
 </div>
 
@@ -2307,15 +2326,16 @@ checkpoint_path가 두 체크포인트와 일치하는지, threshold=0.20·skip_
 </div>
 </div>
 
-<h4 style="margin-top:20px;color:#cbd5e1;font-size:0.9rem">일정 (변경 없음)</h4>
+<h4 style="margin-top:20px;color:#cbd5e1;font-size:0.9rem">일정 (2026-09-16 갱신 — 조도는 플랜B로 밀려남)</h4>
 <div class="item done">
 <div class="body">
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
 <tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">일자</th><th style="text-align:left;padding:4px 8px">작업</th></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-15(화)~09-16(수)</td><td style="padding:4px 8px">실기 실행 — 출발위치2·3(그리드) + 조도 ablation, 총 100회(150회안이면 이틀로 분산)</td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-17(목)</td><td style="padding:4px 8px">episode_log.csv 기록 + 결과 정리(성공률·Wilson CI), Table 7 옆에 신규 표로 추가</td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-18(금)</td><td style="padding:4px 8px">논문 본문(§4 Discussion 또는 Limitation) 반영, 서술 보강 6건 최종 확인</td></tr>
-<tr><td style="padding:4px 8px">09-19(토)~09-20(일)</td><td style="padding:4px 8px">여유일 — 재실기 필요시 백업, 최종 검토</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-16(화)~09-17(수)</td><td style="padding:4px 8px">실기 실행 — 메인 EG-VLA 출발위치2·3, 5방향×n=20, <strong>200회</strong>(코드 변경 불필요, 바로 시작 가능)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">(병렬)</td><td style="padding:4px 8px">Claude: <code>VLA_ABLATION_MODE</code> 런타임 플래그 구현 — 메인 실기와 동시 진행</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-18(목)</td><td style="padding:4px 8px">인코더 ablation 실기 80회(플래그 준비되면), 여유 있으면 플랜B 조도 50회</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">09-19(금)</td><td style="padding:4px 8px">전체 결과 정리(Wilson CI), Table 7 옆 신규 표 추가, 논문 본문 반영</td></tr>
+<tr><td style="padding:4px 8px">09-20(토)</td><td style="padding:4px 8px">여유일 — 재실기 필요시 백업, 최종 검토</td></tr>
 </table>
 </div>
 </div>
