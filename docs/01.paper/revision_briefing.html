@@ -2073,6 +2073,24 @@ Limitation 절에 명시. Map-free/tour-free 내비게이션은 <strong>Future W
 <div class="body">"고정(frozen)"=가중치 미변경(zero-shot/추론 시 업데이트 없음)임을 명시. 두 인코더의
 결합은 <strong>단순 concat</strong>(OWLv2 bbox 4채널 + Kosmos-2 image_proj 256채널 = 260차원)이며,
 "어느 경우에 어느 인코더가 더 결정적인가"는 위 ablation 결과로 답변(Kosmos-2 비전이 주도, OWLv2는 보조).</div>
+<div class="warn" style="margin-top:10px">
+<strong class="r">⚠️ 2026-09-16 정정 — 용어 주의: Kosmos-2는 우리 시스템에서 "그라운더"가 아님</strong>
+<p style="margin:6px 0 0">Kosmos-2는 원래 자체 phrase-grounding(텍스트로 지정한 대상의 bbox를 직접
+출력하는) 능력을 가진 모델이지만, <strong class="h">우리 파이프라인은 이 기능을 한 번도 쓴 적이 없습니다</strong> —
+frozen <code>vision_model</code>로 이미지→1024차원 특징만 뽑고(<code>encode_image()</code>, 텍스트 인자 자체가
+없음), 실제 위치 검출(그라운딩)은 전적으로 OWLv2가 담당합니다. 따라서 "OWLv2/Kosmos-2 그라운딩 인코더
+ablation"이라는 표현은 부정확 — 정확히는 <strong class="h">"OWLv2(텍스트 조건화 위치 검출) vs Kosmos-2
+(순수 시각 표현)"</strong> 두 갈래의 기여도 비교입니다.</p>
+<p style="margin:8px 0 0">더 중요한 차이는 <strong class="h">텍스트가 관여하는 시점</strong>입니다:</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px"></th><th style="text-align:left;padding:4px 8px">텍스트 관여 시점</th><th style="text-align:left;padding:4px 8px">추론 시 텍스트 입력</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">OWLv2</td><td style="padding:4px 8px">매 프레임 추론마다</td><td style="padding:4px 8px" class="c g">✅ "gray basket" 쿼리 실제 사용</td></tr>
+<tr><td style="padding:4px 8px">Kosmos-2(image_proj)</td><td style="padding:4px 8px">Stage 1 학습 때만(text_proj와 대조학습으로 가중치 결정)</td><td style="padding:4px 8px" class="c r">❌ 추론 시 텍스트 인자 없음, 이미지만 통과</td></tr>
+</table>
+<p style="margin:4px 0 0">즉 이 ablation은 <strong class="r">"vision vs text" 비교가 아닙니다</strong>. "OWLv2 단독"은
+텍스트로 조건화된 명시적 위치 검출이고, "Kosmos-2 단독"은 학습 시점에만 언어로 형성된 순수 시각적 표현입니다 —
+논문에 "vision encoder vs text encoder 비교"라고 쓰면 사실과 다릅니다.</p>
+</div>
 </div>
 <div class="item done">
 <h4>Fig/Table 인덱스 표기 (심사위원3 의견6)</h4>
@@ -2271,14 +2289,14 @@ apples-to-apples 비교 불가).</p>
 <div class="body">
 <p style="font-size:0.82rem;color:#fbbf24">⚠️ 아래로 이전 "100회(그리드 50+조도 50)" 안을 대체합니다 — 사용자가
 "출발위치2·3은 기존 중앙에서 좌·우로 새로 추가, 각각 5방향 전체(20회)로 진행"하라고 명확화했고,
-여기에 그라운딩 인코더(OWLv2/Kosmos-2) 단독 검증을 실기로도 추가하기로 확정했습니다.</p>
+여기에 OWLv2(위치검출)/Kosmos-2(시각표현) 단독 검증을 실기로도 추가하기로 확정했습니다.</p>
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
 <tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">항목</th><th style="text-align:left;padding:4px 8px">구성</th><th style="text-align:left;padding:4px 8px">신규 실기 횟수</th></tr>
 <tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">출발위치1 (기존, 중앙)</td><td style="padding:4px 8px">5방향 × 20회</td><td style="padding:4px 8px" class="c">0회 — 기존 100건(Table 7) 재사용</td></tr>
 <tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">출발위치2 (신규, 좌측)</td><td style="padding:4px 8px">5방향 × n=20</td><td style="padding:4px 8px"><strong>100회</strong></td></tr>
 <tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">출발위치3 (신규, 우측)</td><td style="padding:4px 8px">5방향 × n=20</td><td style="padding:4px 8px"><strong>100회</strong></td></tr>
 <tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b"><td style="padding:4px 8px" colspan="2"><strong>→ 메인 EG-VLA(융합) 위치2·3 소계</strong></td><td style="padding:4px 8px"><strong class="h">200회</strong></td></tr>
-<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">그라운딩 인코더 ablation<br><span style="font-size:0.78rem;color:#94a3b8">(위원1-①/3-④ 실기 재검증 — OWLv2 단독, Kosmos-2 단독)</span></td><td style="padding:4px 8px">2인코더 × 좌/우 2방향 × n=20<br><span style="font-size:0.78rem;color:#94a3b8">(5방향 전부 아님 — 기존 실기에서 좌우 경향이 이미 확인돼 축소)</span></td><td style="padding:4px 8px"><strong>80회</strong></td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">인코더 단독 ablation<br><span style="font-size:0.78rem;color:#94a3b8">(위원1-①/3-④ 실기 재검증 — OWLv2 단독, Kosmos-2 단독)</span></td><td style="padding:4px 8px">2인코더 × 좌/우 2방향 × n=20<br><span style="font-size:0.78rem;color:#94a3b8">(5방향 전부 아님 — 기존 실기에서 좌우 경향이 이미 확인돼 축소)</span></td><td style="padding:4px 8px"><strong>80회</strong></td></tr>
 <tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>합계(주 계획)</strong></td><td style="padding:4px 8px">메인 200 + 인코더ablation 80</td><td style="padding:4px 8px"><strong class="g">280회</strong></td></tr>
 <tr style="background:rgba(148,163,184,0.08);border-top:2px dashed #475569"><td style="padding:4px 8px"><strong class="o">플랜B</strong> — 조도 ablation</td><td style="padding:4px 8px">출발위치1 · 5방향 × n=10</td><td style="padding:4px 8px"><strong class="o">+50회 (시간 남으면)</strong></td></tr>
 </table>
@@ -2288,7 +2306,7 @@ apples-to-apples 비교 불가).</p>
 못 끝내도 논문에는 "조도 변화는 향후 과제로 남김"으로 서술하면 되는 항목이라 우선순위가 가장 낮습니다.
 </div>
 <p style="font-size:0.82rem;color:#94a3b8">위치2·3은 <strong class="h">n=20으로 기존 위치1(Table 7)과 동일 규격</strong>이라 Wilson CI 하한
-76.4%로 세 위치를 나란히 직접 비교할 수 있습니다. 그라운딩 인코더 ablation(80회)은 좌우 2방향만으로
+76.4%로 세 위치를 나란히 직접 비교할 수 있습니다. 인코더 단독 ablation(80회)은 좌우 2방향만으로
 축소했는데, n=20/방향이면 Wilson CI 하한은 여전히 76.4%로 메인 결과와 동일 신뢰도를 유지합니다.</p>
 <p style="font-size:0.82rem;color:#94a3b8">에피소드당 평균 11.64스텝 × ~1.2초/스텝 ≈ 20~30초/회 +
 리셋/재배치 오버헤드 30~60초/회 → <strong class="h">주 계획 280회 기준 총 280~420분(약 4.7~7시간)</strong>,
@@ -2347,14 +2365,14 @@ checkpoint_path가 두 체크포인트와 일치하는지, threshold=0.20·skip_
 <h3 class="cat" id="realrobot-ablation-todo"><span class="tag t-pending">코드 완료 — 실기만 남음</span> 실기 단일 인코더 검증(OWLv2 단독/Kosmos-2 단독) + Figure/표 보강 (2026-09-16)</h3>
 
 <div class="item pending" style="border-left-color:#fbbf24">
-<h4>1. 실기 그라운딩 인코더 ablation — 규모 확정됨(2026-09-16), 런타임 코드만 남음</h4>
+<h4>1. 실기 인코더 단독(OWLv2/Kosmos-2) ablation — 규모 확정됨(2026-09-16), 런타임 코드만 남음</h4>
 <div class="body">
 <p>사용자 확인으로 애매했던 두 지점이 해결됐습니다:</p>
 <ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
 <li><b>3×5 그리드의 정확한 의미</b> — 위치2·3은 임의의 새 지점이 아니라 <strong class="h">기존 중앙 위치에서
 좌·우로 이동한 위치</strong>이고, 각각 5방향 전체를 n=20으로(위치1과 동일 규격) 진행 — 이게 위 규모표의
 "메인 EG-VLA 200회"(위치2 100 + 위치3 100).</li>
-<li><b>"2개×2개조합=80회"의 의미</b> — <strong class="h">그라운딩 인코더별 ablation을 실기로도 재검증</strong>하는
+<li><b>"2개×2개조합=80회"의 의미</b> — <strong class="h">OWLv2/Kosmos-2 인코더별 ablation을 실기로도 재검증</strong>하는
 것으로 확인(OWLv2 단독 vs Kosmos-2 단독, 2인코더 × 좌/우 2방향 × n=20 = 80회). 5방향 전부가 아니라 좌우만
 쓰는 이유는 기존 실기에서 좌우 경향이 이미 충분히 드러났기 때문.</li>
 </ul>
