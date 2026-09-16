@@ -137,15 +137,15 @@ if [[ "$MODE" == "--all" || "$MODE" == "--server" ]]; then
     # 재시작마다 로그를 덮어써서 이전 세션 분석에 필요한 로그가 통째로 사라지는
     # 문제가 있었음(2026-07-02) — 덮어쓰기 전에 타임스탬프 붙여 보관
     [[ -f logs/s2v2_server.log ]] && mv logs/s2v2_server.log "logs/s2v2_server.$(date +%Y%m%d_%H%M%S).log"
-    nohup env VLA_S2V2_STAGE2="$ACTION_PT" VLA_STOP_MODE="${VLA_STOP_MODE:-proximity}" \
+    nohup env VLA_S2V2_STAGE2="$ACTION_PT" VLA_STOP_MODE="${VLA_STOP_MODE:-learned}" \
         VLA_PREVIEW_ENABLED="${VLA_PREVIEW_ENABLED:-0}" \
         VLA_PREVIEW_MAX_RETRY="${VLA_PREVIEW_MAX_RETRY:-5}" \
         VLA_PREVIEW_ROT_DIR="${VLA_PREVIEW_ROT_DIR:-R}" \
         VLA_PREVIEW_HINT_CX="${VLA_PREVIEW_HINT_CX:-1}" \
         VLA_MULTI_PROMPT="${VLA_MULTI_PROMPT:-0}" \
         VLA_API_KEY="${VLA_API_KEY:-vla_devel_key_2026}" \
-        VLA_GROUNDER="${VLA_GROUNDER:-pg2}" \
-        VLA_OWLV2_THRESH="${VLA_OWLV2_THRESH:-0.25}" \
+        VLA_GROUNDER="${VLA_GROUNDER:-owlv2}" \
+        VLA_OWLV2_THRESH="${VLA_OWLV2_THRESH:-0.20}" \
         VLA_OWLV2_AREA_SCALE="${VLA_OWLV2_AREA_SCALE:-3.0}" \
         VLA_PREVIEW_GROUNDER="${VLA_PREVIEW_GROUNDER:-pg2}" \
         "$PY" robovlm_nav/serve/stage2_v2_inference_server.py \
