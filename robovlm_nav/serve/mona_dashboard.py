@@ -3623,7 +3623,15 @@ PATH_TYPES = ["right_right", "right_left", "right_straight",
               # "center_straight/left/right"(위 15종, 구 9-시나리오 target_center_*)와
               # 이름이 겹쳐 보이지만 완전히 다른 taxonomy(cx_position="center")라
               # trackF_ 접두어로 구분(2026-07-22, 실기 테스트 착수 전 정리).
-              "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"]
+              "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve",
+              # ── 신규조건 실기(2026-09-16, minum 요청) — 로봇 물리 출발위치
+              # pos2(중앙 옆 좌)/pos3(중앙 옆 우) 신규 + OWLv2/Kosmos-2 단독 ablation.
+              # 기존 trackA_/trackF_(화면상 타겟 위치)와는 다른 축(로봇 출발위치)이라
+              # 별도 접두어로 구분.
+              "pos2_강좌", "pos2_약좌", "pos2_중앙", "pos2_약우", "pos2_강우",
+              "pos3_강좌", "pos3_약좌", "pos3_중앙", "pos3_약우", "pos3_강우",
+              "owl_only_강좌", "owl_only_강우",
+              "kosmos_only_강좌", "kosmos_only_강우"]
 PATH_TARGETS = {
     "right_right": 10, "right_left": 10, "right_straight": 10,
     "center_straight": 10, "center_left": 10, "center_right": 10,
@@ -3635,6 +3643,10 @@ PATH_TARGETS = {
     "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
     "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
     "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
+    "pos2_강좌": 20, "pos2_약좌": 20, "pos2_중앙": 20, "pos2_약우": 20, "pos2_강우": 20,
+    "pos3_강좌": 20, "pos3_약좌": 20, "pos3_중앙": 20, "pos3_약우": 20, "pos3_강우": 20,
+    "owl_only_강좌": 20, "owl_only_강우": 20,
+    "kosmos_only_강좌": 20, "kosmos_only_강우": 20,
 }
 # 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
 TRACKA_UNCOLLECTED = set()
@@ -3645,6 +3657,8 @@ def _get_episode_summary(rows):
     nav_succ = 0
     trackA_succ = 0
     trackF_succ = 0
+    newcond_succ = 0
+    _NEWCOND_PREFIXES = ("pos2_", "pos3_", "owl_only_", "kosmos_only_")
     for r in rows:
         if len(r) < 3: continue
         pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
@@ -3655,11 +3669,14 @@ def _get_episode_summary(rows):
                 trackA_succ += 1
             elif pt.startswith("trackF_"):
                 trackF_succ += 1
+            elif pt.startswith(_NEWCOND_PREFIXES):
+                newcond_succ += 1
             elif not pt.startswith(("obj_", "dist_")):
                 nav_succ += 1
-    # 트랙A/트랙F(V6)는 기존 9종 nav 집계와 별개로 집계 — 서로 다른 목표(10 vs 15)를
-    # 섞으면 퍼센트가 왜곡되므로 완전히 분리.
-    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS if not k.startswith(("obj_", "dist_", "trackA_", "trackF_")))
+    # 트랙A/트랙F(V6)/신규조건(2026-09-16)는 기존 9종 nav 집계와 별개로 집계 —
+    # 서로 다른 목표(10 vs 15 vs 20)를 섞으면 퍼센트가 왜곡되므로 완전히 분리.
+    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS
+                    if not k.startswith(("obj_", "dist_", "trackA_", "trackF_") + _NEWCOND_PREFIXES))
     obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
     obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
     dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
@@ -3670,9 +3687,13 @@ def _get_episode_summary(rows):
     trackF_keys = [k for k in PATH_TYPES if k.startswith("trackF_")]
     trackF_total = sum(PATH_TARGETS[k] for k in trackF_keys)
     trackF_done = sum(done_total.get(k, 0) for k in trackF_keys)
-    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_','trackA_','trackF_')))}/{nav_total} "
+    newcond_keys = [k for k in PATH_TYPES if k.startswith(_NEWCOND_PREFIXES)]
+    newcond_total = sum(PATH_TARGETS[k] for k in newcond_keys)
+    newcond_done = sum(done_total.get(k, 0) for k in newcond_keys)
+    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_','trackA_','trackF_') + _NEWCOND_PREFIXES))}/{nav_total} "
             f"성공 {nav_succ}/20 (목표) | 위치별 {obj_done}/90 ({obj_succ}성공) | 거리별 {dist_done}/30 ({dist_succ}성공) "
-            f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공) | 트랙F {trackF_done}/{trackF_total} ({trackF_succ}성공)")
+            f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공) | 트랙F {trackF_done}/{trackF_total} ({trackF_succ}성공) "
+            f"| 신규조건 {newcond_done}/{newcond_total} ({newcond_succ}성공)")
 
 def _read_episode_csv(csv_path=None):
     csv_path = csv_path or EPISODE_CSV
@@ -5778,6 +5799,22 @@ L S R  C S L  R S L
                     <option value="trackA_weak_right">V6 약극단우 (weak_right)</option>
                     <option value="trackA_strong_right">V6 강극단우 (strong_right)</option>
                   </optgroup>
+                  <optgroup label="🆕 신규조건(pos2/pos3+ablation)">
+                    <option value="pos2_강좌">pos2 강좌</option>
+                    <option value="pos2_약좌">pos2 약좌</option>
+                    <option value="pos2_중앙">pos2 중앙</option>
+                    <option value="pos2_약우">pos2 약우</option>
+                    <option value="pos2_강우">pos2 강우</option>
+                    <option value="pos3_강좌">pos3 강좌</option>
+                    <option value="pos3_약좌">pos3 약좌</option>
+                    <option value="pos3_중앙">pos3 중앙</option>
+                    <option value="pos3_약우">pos3 약우</option>
+                    <option value="pos3_강우">pos3 강우</option>
+                    <option value="owl_only_강좌">OWLv2단독 강좌</option>
+                    <option value="owl_only_강우">OWLv2단독 강우</option>
+                    <option value="kosmos_only_강좌">Kosmos-2단독 강좌</option>
+                    <option value="kosmos_only_강우">Kosmos-2단독 강우</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -5845,6 +5882,33 @@ L S R  C S L  R S L
                   <button class="btn btn-outline" onclick="selectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
                   <button class="btn btn-outline" onclick="selectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
                   <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
+                </div>
+              </div>
+
+              <!-- 신규조건(2026-09-16, minum 요청) — pos2/pos3 출발위치 + OWLv2/Kosmos-2 단독 ablation -->
+              <div style="font-size:11px; color:#f472b6; font-weight:600; text-transform:uppercase; margin-top:6px;">🆕 신규조건 (pos2/pos3+ablation)</div>
+              <div style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);">
+                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_강좌')" style="font-size:10px; padding:4px 0;">pos2 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_약좌')" style="font-size:10px; padding:4px 0;">pos2 약좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_중앙')" style="font-size:10px; padding:4px 0;">pos2 중앙</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_약우')" style="font-size:10px; padding:4px 0;">pos2 약우</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_강우')" style="font-size:10px; padding:4px 0;">pos2 강우</button>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_강좌')" style="font-size:10px; padding:4px 0;">pos3 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_약좌')" style="font-size:10px; padding:4px 0;">pos3 약좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_중앙')" style="font-size:10px; padding:4px 0;">pos3 중앙</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_약우')" style="font-size:10px; padding:4px 0;">pos3 약우</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_강우')" style="font-size:10px; padding:4px 0;">pos3 강우</button>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('owl_only_강좌')" style="font-size:10px; padding:4px 0;">OWLv2단독 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('owl_only_강우')" style="font-size:10px; padding:4px 0;">OWLv2단독 강우</button>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('kosmos_only_강좌')" style="font-size:10px; padding:4px 0;">Kosmos-2단독 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('kosmos_only_강우')" style="font-size:10px; padding:4px 0;">Kosmos-2단독 강우</button>
                 </div>
               </div>
 
@@ -8872,7 +8936,13 @@ L S R  C S L  R S L
       "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
       "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
       "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve",
-      "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
+      "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve",
+      // ── 신규조건 실기(2026-09-16, minum 요청) — 로봇 물리 출발위치 pos2/pos3 신규
+      // + OWLv2/Kosmos-2 단독 ablation. Python PATH_TYPES와 동일하게 유지.
+      "pos2_강좌", "pos2_약좌", "pos2_중앙", "pos2_약우", "pos2_강우",
+      "pos3_강좌", "pos3_약좌", "pos3_중앙", "pos3_약우", "pos3_강우",
+      "owl_only_강좌", "owl_only_강우",
+      "kosmos_only_강좌", "kosmos_only_강우"
     ];
 
     const PATH_TARGETS = {
@@ -8886,6 +8956,10 @@ L S R  C S L  R S L
       "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
       "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
       "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
+      "pos2_강좌": 20, "pos2_약좌": 20, "pos2_중앙": 20, "pos2_약우": 20, "pos2_강우": 20,
+      "pos3_강좌": 20, "pos3_약좌": 20, "pos3_중앙": 20, "pos3_약우": 20, "pos3_강우": 20,
+      "owl_only_강좌": 20, "owl_only_강우": 20,
+      "kosmos_only_강좌": 20, "kosmos_only_강우": 20,
     };
 
     // 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
@@ -8903,6 +8977,11 @@ L S R  C S L  R S L
       ]],
       ["── 🎯 트랙F 중앙(V6) ──────", [
         "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
+      ]],
+      ["── 🆕 신규조건(pos2/pos3+ablation, 2026-09-16) ──", [
+        "pos2_강좌","pos2_약좌","pos2_중앙","pos2_약우","pos2_강우",
+        "pos3_강좌","pos3_약좌","pos3_중앙","pos3_약우","pos3_강우",
+        "owl_only_강좌","owl_only_강우","kosmos_only_강좌","kosmos_only_강우"
       ]]
     ];
 
@@ -10300,6 +10379,11 @@ L S R  C S L  R S L
       }
     }
 
+    // 신규조건(2026-09-16) 접두어 판별 — Python _NEWCOND_PREFIXES와 동일하게 유지.
+    function isNewcondType(pt) {
+      return pt.startsWith("pos2_") || pt.startsWith("pos3_") || pt.startsWith("owl_only_") || pt.startsWith("kosmos_only_");
+    }
+
     function updatePathSummary(rows) {
       const done_total = {};
       const done_succ = {};
@@ -10321,11 +10405,11 @@ L S R  C S L  R S L
           if (done_succ[pt] !== undefined) {
             done_succ[pt] += 1;
           }
-          if (!pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
+          if (!pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_") && !isNewcondType(pt)) {
             nav_succ += 1;
           }
         }
-        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
+        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_") && !isNewcondType(pt)) {
           nav_done += 1;
         }
       });
@@ -10344,6 +10428,11 @@ L S R  C S L  R S L
       const trackF_total = trackFKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
       const trackF_done = trackFKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
       const trackF_succ = trackFKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
+      // 신규조건(2026-09-16, pos2/pos3+ablation)도 트랙A/F와 같은 방식으로 별개 집계
+      const newcondKeys = PATH_TYPES.filter(k => isNewcondType(k));
+      const newcond_total = newcondKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
+      const newcond_done = newcondKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
+      const newcond_succ = newcondKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
 
       const total_done = rows.length;
       const total_target = 210; // 90 nav + 90 obj + 30 dist = 210 (트랙A/F 별개 집계, 미포함)
@@ -10354,7 +10443,8 @@ L S R  C S L  R S L
       const pct_dist  = Math.min(100.0, Math.max(0.0, (dist_done / 30) * 100));
       const pct_trackA = Math.min(100.0, Math.max(0.0, (trackA_done / trackA_total) * 100));
       const pct_trackF = Math.min(100.0, Math.max(0.0, (trackF_done / trackF_total) * 100));
-      
+      const pct_newcond = Math.min(100.0, Math.max(0.0, (newcond_done / newcond_total) * 100));
+
       const progressHtml = `
       <div style="width: 100%; box-sizing: border-box; padding: 2px 0;">
         <div style="margin-bottom: 10px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px;">
@@ -10367,7 +10457,7 @@ L S R  C S L  R S L
           </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
             <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
               <span style="color: #58a6ff; font-weight: 600;">🛣️ 경로 검증</span>
@@ -10417,6 +10507,16 @@ L S R  C S L  R S L
               <div style="width: ${pct_trackF.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
+
+          <div style="background: #161b22; border: 1px solid #f472b6; border-radius: 6px; padding: 6px;">
+            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+              <span style="color: #f472b6; font-weight: 600;">🆕 신규조건</span>
+              <span style="color: #8b949e;">${newcond_done}/${newcond_total} (${newcond_succ}✓)</span>
+            </div>
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${pct_newcond.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #db2777 0%, #f472b6 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
         </div>
       </div>
       `;
@@ -10425,7 +10525,8 @@ L S R  C S L  R S L
       document.getElementById("vfy-progress-txt").innerHTML = `
         경로검증 ${nav_done}/${nav_total} ep 성공 ${nav_succ}/20 (목표)<br>
         위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공) |
-        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공)
+        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공) |
+        신규조건 ${newcond_done}/${newcond_total} (${newcond_succ} 성공)
       `;
 
       renderScreenPanel(rows);
