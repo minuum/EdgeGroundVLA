@@ -2090,6 +2090,45 @@ ablation"이라는 표현은 부정확 — 정확히는 <strong class="h">"OWLv2
 <p style="margin:4px 0 0">즉 이 ablation은 <strong class="r">"vision vs text" 비교가 아닙니다</strong>. "OWLv2 단독"은
 텍스트로 조건화된 명시적 위치 검출이고, "Kosmos-2 단독"은 학습 시점에만 언어로 형성된 순수 시각적 표현입니다 —
 논문에 "vision encoder vs text encoder 비교"라고 쓰면 사실과 다릅니다.</p>
+
+<p style="margin:16px 0 6px;font-size:0.82rem;color:#4ade80;font-weight:700">구조도 — 학습 라벨 출처와 추론 시 텍스트 관여 경로 (논문 Figure 1/4 표현 그대로 사용)</p>
+<pre style="background:#0d1117;border:1px solid #1e293b;border-radius:8px;padding:14px 16px;font-size:0.8rem;line-height:1.7;color:#cbd5e1;overflow-x:auto;white-space:pre">① 학습 라벨 — 그라운더와 무관, 데이터 수집 시점에 이미 확정
+──────────────────────────────────────────────────────────────
+   조이스틱 조작 (lx, ly, az)              H5 attrs: cx_position
+          │                                        │
+          ▼                                        ▼
+   8-class 액션 규칙 변환                   5방향 라벨 변환
+   (gt_class → Stage 2 정답)          (label → Stage 1 정답, 강좌/약좌/중앙/약우/강우)
+          │                                        │
+          └──────────── 그라운더(OWLv2 등) 관여 없음 ─┘
+   ※ OWLv2는 이 라벨이 만들어진 "뒤"에 bbox 4채널(cx,cy,area,has_bbox) 값만 끼워넣을 뿐,
+     label/gt_class 자체는 절대 건드리지 않음 (gen_v6_owl_annotation.py: dict(fr) 복사 후 bbox만 교체)
+
+
+② 추론 시 텍스트 관여 방식 — OWLv2와 Kosmos-2가 다름
+──────────────────────────────────────────────────────────────
+                        "gray basket" (텍스트 쿼리)
+                               │
+                               ▼
+  카메라 프레임 ──┬──▶ [OWLv2 검출기] ──▶ bbox 4채널(cx,cy,area,has_bbox)
+     (720×1280)   │      텍스트+이미지, 매 프레임마다 실제로 사용
+                  │
+                  └──▶ [Kosmos-2 vision_model] ──▶ [image_proj] ──▶ 256채널
+                         이미지만 입력(encode_image에 텍스트 인자 자체가 없음)   ▲
+                                                                        │
+                                                    Stage 1 학습 때만 anchor 5문장과
+                                                    대조학습으로 가중치가 결정됨
+                                                    (배포 추론 시엔 호출 안 됨)
+
+                  └──────────────┬──────────────┘
+                                 ▼
+                   260차원 프레임 특징 (bbox 4 + vision 256, Figure 1과 동일)
+                                 ▼
+                        MLP 액션 헤드 → 8-class
+
+   fused(정상)    = 둘 다 그대로
+   bbox_only      = vision 256채널을 0으로 (OWLv2 위치 신호만)
+   vision_only    = bbox 4채널을 0으로   (Kosmos-2 시각 신호만)</pre>
 </div>
 </div>
 <div class="item done">
