@@ -9422,11 +9422,13 @@ L S R  C S L  R S L
                   <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
                 </div>`;
               }).join("");
-              return `<details ${isCurrent ? "open" : ""} style="background:#090d16; border:1px solid ${isCurrent ? "var(--cyan)" : "var(--border-glow)"}; border-radius:6px; padding:4px 6px;">
-                <summary style="cursor:pointer; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;">
-                  <span style="color:#fff; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="${ckpt}">${ckpt}</span>
-                  ${_ckptTagsHtml(ckpt)}
-                  <span style="margin-left:auto; font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap;">${totCount}건 ✓${totSucc}</span>
+              return `<details ${isCurrent ? "open" : ""} style="background:#090d16; border:1px solid ${isCurrent ? "var(--cyan)" : "var(--border-glow)"}; border-radius:6px; padding:6px 8px;">
+                <summary style="cursor:pointer; font-size:9px; outline:none; display:flex; flex-direction:column; gap:4px;">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="color:#fff; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${ckpt}">${ckpt}</span>
+                    <span style="font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap;">${totCount}건 ✓${totSucc}</span>
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:2px;">${_ckptTagsHtml(ckpt)}</div>
                 </summary>
                 <div style="margin-top:4px; display:flex; flex-direction:column; gap:1px; border-top:1px solid rgba(255,255,255,0.05); padding-top:3px;">${rows}</div>
               </details>`;
@@ -9943,9 +9945,11 @@ L S R  C S L  R S L
     }
 
     // 카테고리 배지 HTML — 진행률 요약/모델 목록에서 공용으로 씀.
+    // 2026-09-16: 8px 무테두리 텍스트라 "버튼처럼 안 보인다"는 피드백 — 테두리+
+    // 굵은 글씨+여유 패딩으로 실제 버튼/배지처럼 보이게 키움.
     function _ckptTagsHtmlFromTags(t) {
       if (!t) return "";
-      const chip = (txt, color) => txt ? `<span style="font-size:8px; padding:1px 5px; border-radius:8px; background:${color}22; color:${color}; margin-right:3px; white-space:nowrap;">${txt}</span>` : "";
+      const chip = (txt, color) => txt ? `<span style="font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:9px; background:${color}22; border:1px solid ${color}66; color:${color}; margin-right:3px; margin-bottom:2px; white-space:nowrap; display:inline-block;">${txt}</span>` : "";
       return chip(t.grounder, "#06b6d4") + chip(t.head, "#8b5cf6") + chip(t.dataset, "#f59e0b")
            + chip(t.holdaware ? "holdaware" : null, "#3fb950") + chip(t.deploy ? `DEPLOY${t.deploy}` : null, "#f43f5e")
            + chip((t.seed !== null && t.seed !== undefined) ? `seed${t.seed}` : null, "#94a3b8");
