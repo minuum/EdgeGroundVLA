@@ -5562,7 +5562,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             <div class="card-title">📊 경로 다이어그램 및 집계</div>
             
             <!-- Progress Bar Placeholder -->
-            <div id="vfy-progress-wrapper" style="min-height:92px; background:rgba(255,255,255,0.01); border-radius:8px; padding:4px 0;">
+            <div id="vfy-progress-wrapper" style="min-height:200px; background:rgba(255,255,255,0.01); border-radius:8px; padding:4px 0;">
               로딩 중...
             </div>
             
@@ -10502,63 +10502,63 @@ L S R  C S L  R S L
           </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-          <div style="background: #161b22; border: 1px solid #f472b6; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
-              <span style="color: #f472b6; font-weight: 600;">🆕 신규조건</span>
-              <span style="color: #8b949e;">${newcond_done}/${newcond_total} (${newcond_succ}✓)</span>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+          <div style="background: #161b22; border: 1px solid #f472b6; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #f472b6; font-weight: 700;">🆕 신규조건</span>
+              <span style="color: #c9d1d9;">${newcond_done}/${newcond_total} (${newcond_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_newcond.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #db2777 0%, #f472b6 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
-              <span style="color: #58a6ff; font-weight: 600;">🛣️ 경로 검증</span>
-              <span style="color: #8b949e;">${nav_done}/${nav_total} (${nav_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #58a6ff; font-weight: 700;">🛣️ 경로 검증</span>
+              <span style="color: #c9d1d9;">${nav_done}/${nav_total} (${nav_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_nav.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
-              <span style="color: #3fb950; font-weight: 600;">🎯 위치별</span>
-              <span style="color: #8b949e;">${obj_done}/90 (${obj_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #3fb950; font-weight: 700;">🎯 위치별</span>
+              <span style="color: #c9d1d9;">${obj_done}/90 (${obj_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_obj.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
-              <span style="color: #a371f7; font-weight: 600;">📦 거리별</span>
-              <span style="color: #8b949e;">${dist_done}/30 (${dist_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #a371f7; font-weight: 700;">📦 거리별</span>
+              <span style="color: #c9d1d9;">${dist_done}/30 (${dist_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_dist.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #8957e5 0%, #a371f7 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid var(--amber); border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
-              <span style="color: var(--amber); font-weight: 600;">🎯 트랙A(V6)</span>
-              <span style="color: #8b949e;">${trackA_done}/${trackA_total} (${trackA_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid var(--amber); border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: var(--amber); font-weight: 700;">🎯 트랙A(V6)</span>
+              <span style="color: #c9d1d9;">${trackA_done}/${trackA_total} (${trackA_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_trackA.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #b45309 0%, #f59e0b 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid #3fb950; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
-              <span style="color: #3fb950; font-weight: 600;">● 트랙F(V6)</span>
-              <span style="color: #8b949e;">${trackF_done}/${trackF_total} (${trackF_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid #3fb950; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #3fb950; font-weight: 700;">● 트랙F(V6)</span>
+              <span style="color: #c9d1d9;">${trackF_done}/${trackF_total} (${trackF_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_trackF.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
