@@ -5560,16 +5560,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- Column 2: Progress & Summary Table -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; max-height:calc(100vh - 120px);">
-            <div class="card-title">📊 경로 다이어그램 및 집계</div>
-            
-            <!-- Progress Bar Placeholder -->
-            <div id="vfy-progress-wrapper" style="min-height:200px; background:rgba(255,255,255,0.01); border-radius:8px; padding:4px 0;">
-              로딩 중...
-            </div>
+            <!-- 2026-09-16: 사용자 요청 — 모델전환/그라운더전환/추론검증스크리닝을
+                 진행률·집계보다 위로 올림(실기 중 더 자주 만지는 조작부라 우선). -->
 
-            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23).
-                 2026-09-16: 기본 접힘으로 변경(사용자 요청, 체크포인트 목록이 길어 가시성 저해) -->
-            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--cyan); border-radius:8px; flex-shrink:0;">
+            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23). -->
+            <details class="card" style="padding:10px; background:#101726; border:1px solid var(--cyan); border-radius:8px; flex-shrink:0;" open>
               <summary style="font-size:12px; font-weight:700; color:var(--cyan); outline:none; cursor:pointer;">🔀 모델 전환
                 <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
                 <button class="btn btn-outline" onclick="event.preventDefault(); refreshModelList();" style="font-size:9px; padding:2px 6px; float:right;">🔄</button>
@@ -5593,10 +5588,9 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
             </details>
 
-            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개).
-                 2026-09-16: 기본 펼침으로 되돌림(사용자 피드백) — 이 박스의 "대기 라벨"이
+            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개). 이 박스의 "대기 라벨"이
                  X/A→L2 조이스틱 저장 흐름의 실시간 상태 표시라 실제로 계속 봐야 함.
-                 "현재 위치"는 위에서 verify_current_path_type 기준으로 고쳐서 pos2/pos3
+                 "현재 위치"는 verify_current_path_type 기준으로 고쳐서 pos2/pos3
                  선택 중에도 실제 저장값과 항상 일치하게 함. -->
             <details style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;" open>
               <summary style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; list-style:none;">
@@ -5666,6 +5660,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               </div>
             </details>
+
+            <div class="card-title" style="margin-top:4px;">📊 경로 다이어그램 및 집계</div>
+
+            <!-- Progress Bar Placeholder -->
+            <div id="vfy-progress-wrapper" style="min-height:200px; background:rgba(255,255,255,0.01); border-radius:8px; padding:4px 0;">
+              로딩 중...
+            </div>
 
             <div class="table-wrapper" style="min-height:380px; max-height:380px; flex-shrink:0; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
