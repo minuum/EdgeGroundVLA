@@ -1011,6 +1011,7 @@ class DashboardJoystickReader:
                     "trig_l2_val": _trig_l2_val, "trig_r2_val": _trig_r2_val,
                     "verify_mode": _joystick_verify_mode,
                     "verify_screen_pos": _verify_screen_pos,
+                    "verify_current_path_type": _verify_current_path_type,
                     "verify_pending_result": _verify_pending_result,
                     "verify_save_seq": _verify_save_seq,
                     "verify_experimental": _verify_experimental,
@@ -5565,10 +5566,6 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             <div id="vfy-progress-wrapper" style="min-height:200px; background:rgba(255,255,255,0.01); border-radius:8px; padding:4px 0;">
               로딩 중...
             </div>
-            
-            <div id="vfy-progress-txt" style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-top:-8px;">
-              경로검증 계산 중...
-            </div>
 
             <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23).
                  2026-09-16: 기본 접힘으로 변경(사용자 요청, 체크포인트 목록이 길어 가시성 저해) -->
@@ -5596,10 +5593,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
             </details>
 
-            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개)
-                 2026-09-16: 기본 접힘으로 변경(사용자 요청) — 이번 주 신규조건 실기와
-                 무관한 별개 시스템(체크포인트별 100건 집계). -->
-            <details style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
+            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개).
+                 2026-09-16: 기본 펼침으로 되돌림(사용자 피드백) — 이 박스의 "대기 라벨"이
+                 X/A→L2 조이스틱 저장 흐름의 실시간 상태 표시라 실제로 계속 봐야 함.
+                 "현재 위치"는 위에서 verify_current_path_type 기준으로 고쳐서 pos2/pos3
+                 선택 중에도 실제 저장값과 항상 일치하게 함. -->
+            <details style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;" open>
               <summary style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; list-style:none;">
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
                 <button id="vfy-screen-toggle" onclick="event.preventDefault(); event.stopPropagation(); toggleScreenTarget();" class="btn btn-outline" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
@@ -7345,7 +7344,13 @@ L S R  C S L  R S L
       const vfyCur = document.getElementById("vfy-screen-current");
       if (vfyCur) {
         const POS_LABEL = {strong_left:"강좌◀◀", weak_left:"약좌◀", center:"중앙●", weak_right:"약우▶", strong_right:"강우▶▶"};
-        const pos = POS_LABEL[s.verify_screen_pos] || (s.verify_screen_pos || "—");
+        // 2026-09-16: pos2/pos3+ablation처럼 드롭다운/빠른버튼으로 고른 실제 저장값이
+        // D-pad 위치와 다를 수 있어서(둘은 별개 상태), 실제 저장될 값이 신규조건이면
+        // 그걸 그대로 보여줌 — "현재 위치" 표시가 실제 L2 저장값과 항상 일치하게.
+        const actualPt = s.verify_current_path_type;
+        const pos = (actualPt && typeof isNewcondType === "function" && isNewcondType(actualPt))
+          ? actualPt
+          : (POS_LABEL[s.verify_screen_pos] || (s.verify_screen_pos || "—"));
         const res = s.verify_pending_result;
         const resHtml = res
           ? `<span style="color:${res === '성공' ? 'var(--emerald)' : 'var(--rose)'}">${res}</span> (L2로 저장)`
@@ -10566,13 +10571,6 @@ L S R  C S L  R S L
       </div>
       `;
       document.getElementById("vfy-progress-wrapper").innerHTML = progressHtml;
-
-      document.getElementById("vfy-progress-txt").innerHTML = `
-        신규조건 ${newcond_done}/${newcond_total} (${newcond_succ} 성공)<br>
-        경로검증 ${nav_done}/${nav_total} ep 성공 ${nav_succ}/20 (목표)<br>
-        위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공) |
-        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공)
-      `;
 
       renderScreenPanel(rows);
 
