@@ -2316,6 +2316,62 @@ checkpoint_path가 두 체크포인트와 일치하는지, threshold=0.20·skip_
 </div>
 </div>
 
+<h3 class="cat" id="realrobot-ablation-todo"><span class="tag t-pending">확인 필요 — 규모 재조정</span> 실기 단일 인코더 검증(OWLv2 단독/Kosmos-2 단독) + Figure/표 보강 (2026-09-16)</h3>
+
+<div class="item pending" style="border-left-color:#fbbf24">
+<h4>1. 실기 단일 인코더 ablation 규모 재조정 — 사용자 지시, 해석 확인 필요</h4>
+<div class="body">
+<p>기존 오프라인 ablation(<a href="#ablation-owl-kosmos">위 완료본</a>)과 별개로, <strong class="h">실기(로봇)에서
+직접</strong> EG-VLA(융합) vs OWLv2 단독 vs Kosmos-2 단독을 재검증하는 방향으로 규모를 다음과 같이
+재조정하라는 지시:</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">조건</th><th style="text-align:left;padding:4px 8px">규모</th><th style="text-align:left;padding:4px 8px">비고</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">메인 EG-VLA(융합)</td><td style="padding:4px 8px"><strong>200회</strong></td><td style="padding:4px 8px">기존 100회(Table 7)에 추가 100회로 보이나 확인 필요</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">OWLv2 단독 / Kosmos-2 단독</td><td style="padding:4px 8px">각 20회 × 2방향 × 2조건 = <strong>80회</strong></td><td style="padding:4px 8px">5방향 전부 말고 <strong class="h">오른편·왼편 2방향만</strong> — 기존 실기에서 좌우 경향이 이미 드러났다는 근거</td></tr>
+</table>
+<div class="warn">
+<strong class="r">⚠️ 진행 전 확인/구현 필요 — 아직 시작 안 함</strong>
+<ol style="margin:6px 0 0 20px;line-height:1.8">
+<li><b>런타임에 단일 인코더 모드가 없음</b> — <code>stage2_v2_inference_server.py</code>를 직접 확인했는데
+"OWLv2 bbox만 사용"/"Kosmos-2 vision만 사용"으로 실행 중 강제하는 플래그가 <strong class="r">현재 코드에
+없습니다</strong>(<code>VLA_ABLATION_MODE</code> 같은 옵션 부재). 오프라인 ablation은 사전 계산된 특징을
+슬라이싱해서 했지만, <strong class="h">실기는 실시간 추론이라 한쪽 특징을 0-벡터로 대체하는 코드를
+새로 추가해야</strong> 합니다.</li>
+<li><b>"2개×2개조합=80개"의 정확한 의미 확인 필요</b> — (OWLv2단독·Kosmos2단독) × (오른편·왼편) ×
+20회로 해석했습니다. 맞는지, 아니면 다른 조합(예: 조도 포함)인지 확인 부탁드립니다.</li>
+<li><b>메인 EG-VLA 200회가 기존 100회를 포함하는지, 별도 신규 100회인지</b> 확인 필요.</li>
+</ol>
+</div>
+<p style="font-size:0.82rem;color:#94a3b8">확인되면 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code>에
+<code>VLA_ABLATION_MODE=bbox_only|vision_only|fused</code> 같은 런타임 플래그를 추가하는 작업부터
+시작하겠습니다(현재는 코드 미착수 상태).</p>
+</div>
+</div>
+
+<div class="item pending" style="border-left-color:#a78bfa">
+<h4>2. 위원3 의견5·7 — Figure로 보강 (아직 미착수)</h4>
+<div class="body">
+<p>서술만으로 처리했던 두 항목을 <strong class="h">Figure로 시각화</strong>하라는 지시:</p>
+<ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
+<li><b>의견5</b> — 서빙 제어 로직 조건 분기 + 실패 케이스를 구체화한 순서도/다이어그램</li>
+<li><b>의견7</b> — 평가환경·목표지점 선정 기준(72-4에서 이미 근거는 찾음: Stage1 5-class 카테고리와 대응)
++ 실패 원인 분류를 시각 자료로</li>
+</ul>
+<p style="font-size:0.82rem;color:#fbbf24">아직 어떤 형태(순서도/막대그래프/표+아이콘)로 만들지 미정 — 어떤 스타일을
+원하시는지 확인 후 <code>ch64-verify</code> 스킬 절차대로 그림 생성 → CH72에 삽입 → 로컬 확인까지 진행하겠습니다.</p>
+</div>
+</div>
+
+<div class="item pending" style="border-left-color:#38bdf8">
+<h4>3. Table 5 하이퍼파라미터·학습률 — 어디에 "알려줄지" 확인 필요</h4>
+<div class="body">
+<p>학습률(Stage1 3e-4 / Stage2 5e-4)과 Table 5 하이퍼파라미터는 <strong class="g">이미
+<a href="#wording-fixes">model_architecture_brief.html §3</a>과 이 페이지에 정리돼 있습니다</strong> —
+새로 만들 내용은 없고, <strong class="h">"어디에 전달할지"</strong>만 정하면 됩니다: 교수님 보고용 요약 1장으로
+뽑을지, 논문 본문에 그대로 넣을지, 아니면 심사위원 답변서에 별도로 인용할지 확인 부탁드립니다.</p>
+</div>
+</div>
+
 <div class="changelog" id="changelog">
   <h2>🕓 변경 이력</h2>
   <p class="lead">이 페이지와 초고를 수정할 때마다 아래에 이어서 기록합니다. 수동으로 docx를
