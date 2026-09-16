@@ -9179,13 +9179,22 @@ L S R  C S L  R S L
     const SCREEN_TARGET_ORDER = ["1차", "확정", "100"];
     let screenTargetMode = "100";
 
+    // pos2_*/pos3_*(신규 출발위치) 한글 방향 → 기존 5-버킷 키 매핑. 목표 방향
+    // 5종은 동일하고 출발 위치만 다르다는 사용자 확인(2026-09-16)에 따라 같은
+    // 체크포인트 100개 목표 집계에 합산. ablation(owl_only_/kosmos_only_)은
+    // 방향이 아니라 입력 모달리티 자체를 바꾸는 조건이라 여기 안 포함(의도적).
+    const _KOR_DIR_TO_POS = {"강좌": "strong_left", "약좌": "weak_left", "중앙": "center",
+                              "약우": "weak_right", "강우": "strong_right"};
     function verifyPosOf(pt) {
       // "trackA_strong_left_left_curve" → "strong_left", "trackF_center_straight" → "center"
       if (!pt) return null;
       let s = String(pt);
-      if (!s.startsWith("trackA_") && !s.startsWith("trackF_")) return null;
-      s = s.replace(/^track[AF]_/, "").replace(/_(left_curve|straight|right_curve)$/, "");
-      return s;
+      if (s.startsWith("trackA_") || s.startsWith("trackF_")) {
+        return s.replace(/^track[AF]_/, "").replace(/_(left_curve|straight|right_curve)$/, "");
+      }
+      const m = /^(?:pos2|pos3)_(강좌|약좌|중앙|약우|강우)$/.exec(s);
+      if (m) return _KOR_DIR_TO_POS[m[1]];
+      return null;
     }
 
     function toggleScreenTarget() {
