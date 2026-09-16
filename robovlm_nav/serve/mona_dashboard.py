@@ -1011,6 +1011,7 @@ class DashboardJoystickReader:
                     "trig_l2_val": _trig_l2_val, "trig_r2_val": _trig_r2_val,
                     "verify_mode": _joystick_verify_mode,
                     "verify_screen_pos": _verify_screen_pos,
+                    "verify_pos_group": _verify_pos_group,
                     "verify_current_path_type": _verify_current_path_type,
                     "verify_pending_result": _verify_pending_result,
                     "verify_save_seq": _verify_save_seq,
@@ -1098,8 +1099,12 @@ class DashboardJoystickReader:
                                 _collect.cycle_current(1 if hx > 0 else -1)
                         elif hy != 0 and hy != phy:
                             self._last_hat_dir = "up" if hy > 0 else "down"
-                            if not _joystick_verify_mode and _collect is not None:
-                                # 상/하 축 전환은 수집 모드 전용(검증엔 위치 축 하나뿐)
+                            if _joystick_verify_mode:
+                                # 2026-09-16: 검증모드 D-pad ↕ = 위치그룹 전환
+                                # (legacy↔pos2↔pos3↔ablation) — 원래 미사용이던 축 재활용.
+                                _verify_cycle_pos_group(1 if hy > 0 else -1)
+                            elif _collect is not None:
+                                # 상/하 축 전환은 수집 모드 전용
                                 _collect.toggle_collect_mode(1 if hy > 0 else -1)
                         self._hat_prev = hat
 
@@ -1238,20 +1243,67 @@ _verify_save_seq: int = 0
 # 그라운더 A/B 테스트 등 "정식 스크리닝 집계에 안 셀" 시도를 분리 보관.
 _verify_experimental: bool = False
 
+# ── D-pad 위치그룹(2026-09-16) — pos2/pos3/ablation 신규조건도 D-pad로 순환
+# 가능하게 확장. D-pad ↕(상하)는 검증모드에서 원래 미사용이었어서(수집모드 전용
+# 시나리오 축 전환) 그룹 전환용으로 재활용 — 기존 legacy(트랙A/F) 동작은 완전
+# 그대로 유지, 새 그룹만 추가.
+_VERIFY_POS_GROUPS = ["legacy", "pos2", "pos3", "ablation"]
+_verify_pos_group: str = "legacy"       # D-pad ↕로 순환
+_NEWCOND_DIRS = ["강좌", "약좌", "중앙", "약우", "강우"]
+_ABLATION_DIRS = ["강좌", "강우"]        # minum 요청: ablation은 좌/우 2방향만
 
-def _verify_pos_to_path_type(pos: str) -> str:
+
+def _verify_pos_to_path_type(pos: str, group: Optional[str] = None) -> str:
+    g = group if group is not None else _verify_pos_group
+    if g == "pos2":
+        return f"pos2_{pos}"
+    if g == "pos3":
+        return f"pos3_{pos}"
+    if g == "ablation":
+        # 실제 사용 중인 인코더에 맞춰 접두어 결정 — 실기 전 curl로 미리
+        # ablation_mode를 bbox_only/vision_only로 켜두는 게 전제.
+        mode = os.getenv("VLA_ABLATION_MODE", "fused")
+        prefix = "kosmos_only_" if mode == "vision_only" else "owl_only_"
+        return f"{prefix}{pos}"
     return "trackF_center" if pos == "center" else f"trackA_{pos}"
 
 
+def _verify_group_keys(group: Optional[str] = None) -> list[str]:
+    g = group if group is not None else _verify_pos_group
+    if g == "ablation":
+        return _ABLATION_DIRS
+    if g in ("pos2", "pos3"):
+        return _NEWCOND_DIRS
+    return VERIFY_SCREEN_POSITIONS
+
+
 def _verify_cycle_pos(step: int):
-    """D-pad ◀▶ — 검증 스크리닝 위치 순환(강좌↔약좌↔중앙↔약우↔강우)."""
-    global _verify_screen_pos
+    """D-pad ◀▶ — 현재 위치그룹(_verify_pos_group) 안에서 위치 순환.
+    저장에 실제 쓰일 _verify_current_path_type도 여기서 바로 갱신(서버가
+    항상 진짜 상태를 갖고 있게 — 브라우저 왕복 없이도 L2 저장이 정확함)."""
+    global _verify_screen_pos, _verify_current_path_type
     if _state.get("running"):
         return  # 주행 중엔 변경 금지
-    keys = VERIFY_SCREEN_POSITIONS
+    keys = _verify_group_keys()
     i = (keys.index(_verify_screen_pos) + step) % len(keys) if _verify_screen_pos in keys else 0
     _verify_screen_pos = keys[i]
-    log.info(f"[Verify] D-pad → 위치 = {_verify_screen_pos}")
+    _verify_current_path_type = _verify_pos_to_path_type(_verify_screen_pos)
+    log.info(f"[Verify] D-pad ◀▶ → 그룹={_verify_pos_group} 위치={_verify_screen_pos} "
+             f"→ path_type={_verify_current_path_type}")
+
+
+def _verify_cycle_pos_group(step: int):
+    """D-pad ↕ — 위치그룹 순환(legacy↔pos2↔pos3↔ablation). 그룹이 바뀌면
+    위치를 그 그룹의 첫 항목으로 리셋하고 path_type도 같이 갱신."""
+    global _verify_pos_group, _verify_screen_pos, _verify_current_path_type
+    if _state.get("running"):
+        return
+    i = (_VERIFY_POS_GROUPS.index(_verify_pos_group) + step) % len(_VERIFY_POS_GROUPS)
+    _verify_pos_group = _VERIFY_POS_GROUPS[i]
+    keys = _verify_group_keys()
+    _verify_screen_pos = keys[0]
+    _verify_current_path_type = _verify_pos_to_path_type(_verify_screen_pos)
+    log.info(f"[Verify] D-pad ↕ → 그룹 = {_verify_pos_group} (위치 {_verify_screen_pos}로 리셋)")
 
 
 def _verify_arm_result(result: str):
@@ -5598,7 +5650,8 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <button id="vfy-screen-toggle" onclick="event.preventDefault(); event.stopPropagation(); toggleScreenTarget();" class="btn btn-outline" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
               </summary>
               <div style="margin-top:8px;">
-              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · <b>D-pad↕=위치그룹전환</b>(legacy↔pos2↔pos3↔ablation) · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
+              <div id="vfy-pos-group" style="font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:4px; border-radius:6px; background:#0d1420; border:1px solid var(--violet, #8b5cf6); color:var(--violet, #8b5cf6);">위치그룹: —</div>
               <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
               <div id="vfy-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:6px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용 기록 모드 ON — episode_log_experimental.csv로 저장 (정식 집계 제외)</div>
 
@@ -7358,20 +7411,26 @@ L S R  C S L  R S L
           : `<span style="color:var(--text-muted)">— (X성공/A실패)</span>`;
         vfyCur.innerHTML = `현재 위치: <span style="color:var(--amber)">${pos}</span> · 대기 라벨: ${resHtml}`;
         vfyCur.style.borderColor = res ? "var(--amber)" : "var(--border-glow)";
+        const grpEl = document.getElementById("vfy-pos-group");
+        if (grpEl) {
+          const GROUP_LABEL = {legacy:"기존(트랙A/F)", pos2:"🆕 pos2", pos3:"🆕 pos3", ablation:"🆕 ablation"};
+          grpEl.textContent = `위치그룹: ${GROUP_LABEL[s.verify_pos_group] || s.verify_pos_group || "—"} (D-pad↕로 전환)`;
+        }
         const expBadge = document.getElementById("vfy-experimental-badge");
         if (expBadge) expBadge.style.display = s.verify_experimental ? "block" : "none";
         // A안 — 검증모드면 수동 폼(드롭다운/성공·실패 버튼)이 조이스틱 상태를 미러링
         const collectExpBadge = document.getElementById("collect-experimental-badge");
         if (collectExpBadge) collectExpBadge.style.display = s.collect_experimental ? "block" : "none";
         if (s.verify_mode) {
-          // D-pad 위치 → 드롭다운 동기화(같은 위치의 첫 옵션 선택) + 오버레이 강조 갱신
+          // D-pad 위치/그룹 → 드롭다운 동기화 + 오버레이 강조 갱신.
+          // 2026-09-16: 서버(_verify_cycle_pos/_verify_cycle_pos_group)가 D-pad를
+          // 누르는 즉시 verify_current_path_type을 직접 갱신하므로, 여기선 그
+          // 서버 진짜 값을 그대로 반영만 함(재계산·재POST 안 함 — 왕복 없이 정확).
           if (s.verify_screen_pos && s.verify_screen_pos !== window._verifyScreenPos) {
             window._verifyScreenPos = s.verify_screen_pos;
             const sel = document.getElementById("ep-path-type");
-            if (sel) {
-              const targetVal = (s.verify_screen_pos === "center") ? "trackF_center" : ("trackA_" + s.verify_screen_pos);
-              sel.value = targetVal;
-              syncVerifyPathType(sel.value);
+            if (sel && s.verify_current_path_type) {
+              sel.value = s.verify_current_path_type;
             }
             if (typeof drawOverlay === "function") drawOverlay();
           }
@@ -7613,6 +7672,8 @@ L S R  C S L  R S L
       if (tab === "verify") {
         syncVerifyRuntimeParams();
         loadEpisodeHistory();
+        // 2026-09-16: 경로검증 탭 들어오면 조이스틱 기본 모드를 검증으로 자동전환.
+        if (typeof setJoystickMode === "function") setJoystickMode("verify");
       }
       if (tab === "srvcfg") {
         loadSrvCfg();
@@ -9070,9 +9131,10 @@ L S R  C S L  R S L
 
     // 🕹️ 조이스틱 버튼 배치 모드 전환 — 📷 데이터수집 ⇄ 🧪 경로검증
     let joystickVerifyMode = false;
-    async function toggleJoystickMode() {
-      joystickVerifyMode = !joystickVerifyMode;
-      const mode = joystickVerifyMode ? "verify" : "collect";
+    // 2026-09-16: 직접 mode를 지정(toggle 아님) — 경로검증 탭 진입 시 자동전환용.
+    async function setJoystickMode(mode) {
+      if (joystickVerifyMode === (mode === "verify")) return;  // 이미 그 모드면 조용히 무시
+      joystickVerifyMode = (mode === "verify");
       try {
         await api("/joystick/mode", {
           method: "POST",
@@ -9085,6 +9147,9 @@ L S R  C S L  R S L
         btn.style.borderColor = joystickVerifyMode ? "var(--amber)" : "";
         btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
       });
+    }
+    async function toggleJoystickMode() {
+      await setJoystickMode(joystickVerifyMode ? "collect" : "verify");
     }
 
     // 검증모드 버튼 의미(2026-07-23 재설계) — 서버 btn_map name 기준
