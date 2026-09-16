@@ -4397,6 +4397,33 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     color: var(--cyan);
     box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.05);
   }
+  /* 2026-09-16: 사이드바 접기/펼치기 (탭 목록이 길어 화면을 많이 차지한다는 요청) */
+  aside.sidebar-collapsed {
+    width: 0;
+    overflow: hidden;
+    border-right: none;
+  }
+  .sidebar-toggle-btn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 100;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--panel-dark);
+    border: 1px solid var(--border-glow);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sidebar-toggle-btn:hover {
+    color: var(--cyan);
+    border-color: var(--cyan);
+  }
   .sidebar-footer {
     padding: 20px;
     border-top: 1px solid var(--border-glow);
@@ -5070,13 +5097,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 </head>
 <body>
 
+  <!-- 2026-09-16: 사이드바 접기/펼치기 버튼 — 항상 고정 위치, 접힌 상태에서도 다시 펼 수 있게 -->
+  <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="사이드바 접기/펼치기">☰</button>
+
   <!-- 사이드바 -->
-  <aside>
+  <aside id="app-sidebar">
     <div class="brand-panel">
       <div class="brand-pulse"></div>
       <div class="brand-title">MoNaVLA v2.5</div>
     </div>
-    
+
     <nav>
       <div class="nav-item active" onclick="switchTab(this, 'drive')">🤖 주행 제어</div>
       <div class="nav-item" onclick="switchTab(this, 'grounding')">🔍 그라운딩 검증</div>
@@ -8980,6 +9010,11 @@ L S R  C S L  R S L
     const TRACKA_UNCOLLECTED = new Set([]);
 
     const PATH_GROUPS = [
+      ["── 🆕 신규조건(pos2/pos3+ablation, 2026-09-16) ──", [
+        "pos2_강좌","pos2_약좌","pos2_중앙","pos2_약우","pos2_강우",
+        "pos3_강좌","pos3_약좌","pos3_중앙","pos3_약우","pos3_강우",
+        "owl_only_강좌","owl_only_강우","kosmos_only_강좌","kosmos_only_강우"
+      ]],
       ["── 오브젝트 위치별 ──────────", ["obj_left","obj_center","obj_right"]],
       ["── 경로 검증 ──────────────", ["right_right","right_left","right_straight","center_straight","center_left","center_right","left_straight","left_left","left_right"]],
       ["── 박스 거리별 ──────────────", ["dist_10cm","dist_20cm","dist_30cm"]],
@@ -8991,11 +9026,6 @@ L S R  C S L  R S L
       ]],
       ["── 🎯 트랙F 중앙(V6) ──────", [
         "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
-      ]],
-      ["── 🆕 신규조건(pos2/pos3+ablation, 2026-09-16) ──", [
-        "pos2_강좌","pos2_약좌","pos2_중앙","pos2_약우","pos2_강우",
-        "pos3_강좌","pos3_약좌","pos3_중앙","pos3_약우","pos3_강우",
-        "owl_only_강좌","owl_only_강우","kosmos_only_강좌","kosmos_only_강우"
       ]]
     ];
 
@@ -10473,8 +10503,18 @@ L S R  C S L  R S L
         </div>
         
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+          <div style="background: #161b22; border: 1px solid #f472b6; border-radius: 6px; padding: 6px;">
+            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
+              <span style="color: #f472b6; font-weight: 600;">🆕 신규조건</span>
+              <span style="color: #8b949e;">${newcond_done}/${newcond_total} (${newcond_succ}✓)</span>
+            </div>
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${pct_newcond.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #db2777 0%, #f472b6 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
               <span style="color: #58a6ff; font-weight: 600;">🛣️ 경로 검증</span>
               <span style="color: #8b949e;">${nav_done}/${nav_total} (${nav_succ}✓)</span>
             </div>
@@ -10484,7 +10524,7 @@ L S R  C S L  R S L
           </div>
 
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
               <span style="color: #3fb950; font-weight: 600;">🎯 위치별</span>
               <span style="color: #8b949e;">${obj_done}/90 (${obj_succ}✓)</span>
             </div>
@@ -10494,7 +10534,7 @@ L S R  C S L  R S L
           </div>
 
           <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
               <span style="color: #a371f7; font-weight: 600;">📦 거리별</span>
               <span style="color: #8b949e;">${dist_done}/30 (${dist_succ}✓)</span>
             </div>
@@ -10504,7 +10544,7 @@ L S R  C S L  R S L
           </div>
 
           <div style="background: #161b22; border: 1px solid var(--amber); border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
               <span style="color: var(--amber); font-weight: 600;">🎯 트랙A(V6)</span>
               <span style="color: #8b949e;">${trackA_done}/${trackA_total} (${trackA_succ}✓)</span>
             </div>
@@ -10514,22 +10554,12 @@ L S R  C S L  R S L
           </div>
 
           <div style="background: #161b22; border: 1px solid #3fb950; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <div style="font-size: 9px; margin-bottom: 3px; display: flex; flex-direction: column; gap: 1px;">
               <span style="color: #3fb950; font-weight: 600;">● 트랙F(V6)</span>
               <span style="color: #8b949e;">${trackF_done}/${trackF_total} (${trackF_succ}✓)</span>
             </div>
             <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
               <div style="width: ${pct_trackF.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
-            </div>
-          </div>
-
-          <div style="background: #161b22; border: 1px solid #f472b6; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
-              <span style="color: #f472b6; font-weight: 600;">🆕 신규조건</span>
-              <span style="color: #8b949e;">${newcond_done}/${newcond_total} (${newcond_succ}✓)</span>
-            </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
-              <div style="width: ${pct_newcond.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #db2777 0%, #f472b6 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
         </div>
@@ -10538,10 +10568,10 @@ L S R  C S L  R S L
       document.getElementById("vfy-progress-wrapper").innerHTML = progressHtml;
 
       document.getElementById("vfy-progress-txt").innerHTML = `
+        신규조건 ${newcond_done}/${newcond_total} (${newcond_succ} 성공)<br>
         경로검증 ${nav_done}/${nav_total} ep 성공 ${nav_succ}/20 (목표)<br>
         위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공) |
-        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공) |
-        신규조건 ${newcond_done}/${newcond_total} (${newcond_succ} 성공)
+        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공)
       `;
 
       renderScreenPanel(rows);
@@ -11170,6 +11200,25 @@ L S R  C S L  R S L
     }
 
     // ── 에피소드 저장 / 실행 취소 / 누적 기록 로드 ──────────────────────────
+    // 2026-09-16: 사이드바 접기/펼치기 — localStorage로 상태 유지.
+    function toggleSidebar() {
+      const aside = document.getElementById("app-sidebar");
+      if (!aside) return;
+      aside.classList.toggle("sidebar-collapsed");
+      try {
+        localStorage.setItem("vla_sidebar_collapsed", aside.classList.contains("sidebar-collapsed") ? "1" : "0");
+      } catch (e) {}
+    }
+    (function restoreSidebarState() {
+      try {
+        if (localStorage.getItem("vla_sidebar_collapsed") === "1") {
+          document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("app-sidebar")?.classList.add("sidebar-collapsed");
+          });
+        }
+      } catch (e) {}
+    })();
+
     let _epEditingRow = null;
     let _epByRow = {};
     let _lastEpisodesRows = [];  // 2026-09-16: 선택값 유지+연속저장 카운터용 캐시
