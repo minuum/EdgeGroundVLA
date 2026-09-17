@@ -9523,13 +9523,23 @@ L S R  C S L  R S L
                 const pathCounts = {};
                 rowsInBatch.forEach(r => {
                   const pt = String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim();
-                  if (!pathCounts[pt]) pathCounts[pt] = {n: 0, succ: 0};
+                  const d = String(r[12]);
+                  if (!pathCounts[pt]) pathCounts[pt] = {n: 0, succ: 0, start: d, end: d};
                   pathCounts[pt].n += 1;
                   if (r[2] === "성공") pathCounts[pt].succ += 1;
+                  if (d < pathCounts[pt].start) pathCounts[pt].start = d;
+                  if (d > pathCounts[pt].end) pathCounts[pt].end = d;
                 });
-                const pathBreakdown = Object.keys(pathCounts).sort().map(pt =>
-                  `<span style="white-space:nowrap; background:#151f32; border-radius:4px; padding:1px 4px; margin:1px;">${pt} ${pathCounts[pt].n}<span style="color:#3fb950;">✓${pathCounts[pt].succ}</span></span>`
-                ).join("");
+                // 2026-09-17: 배지 하나하나도 드래그 가능 — 배치 전체가 아니라 이
+                // 경로(path_type)의 실제 최소~최대 시각만 정확히 범위로 만들어서
+                // 병합 세트에 추가/새로 만들 수 있게(_pathDragStart).
+                const pathBreakdown = Object.keys(pathCounts).sort().map(pt => {
+                  const pc = pathCounts[pt];
+                  const rangeJson = JSON.stringify({checkpoint: ckpt, start: pc.start, end: pc.end}).replace(/"/g, "&quot;");
+                  return `<span draggable="true" ondragstart="_pathDragStart(event, '${rangeJson}')"
+                    title="드래그해서 저장된 병합 세트 위에 놓으면 이 경로(${pt})의 실제 시간범위(${pc.start}~${pc.end})만 그 세트에 추가"
+                    style="cursor:grab; white-space:nowrap; background:#151f32; border-radius:4px; padding:1px 4px; margin:1px;">${pt} ${pc.n}<span style="color:#3fb950;">✓${pc.succ}</span></span>`;
+                }).join("");
                 return `<div style="padding:3px 6px; border-radius:4px; font-size:9px;">
                   <div onclick="applyScreenBatch('${b._idx}')"
                       draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
@@ -9822,6 +9832,28 @@ L S R  C S L  R S L
       ev.dataTransfer.setData("text/plain", String(idx));
     }
 
+    // 2026-09-17: 배치 전체가 아니라 경로(path_type) 배지 하나만 드래그 —
+    // 그 경로의 실제 최소~최대 시각 범위를 담아서 병합 세트 드롭 핸들러들이
+    // 배치 인덱스 대신 이 범위를 바로 쓸 수 있게 함.
+    function _pathDragStart(ev, rangeJson) {
+      ev.dataTransfer.setData("application/x-path-range", rangeJson);
+    }
+
+    // 드롭 이벤트에서 {checkpoint,start,end}를 뽑아내는 공용 헬퍼 — 경로 배지
+    // 드래그(application/x-path-range)를 배치 드래그(text/plain 인덱스)보다 우선.
+    function _rangeFromDrop(ev) {
+      const pathData = ev.dataTransfer.getData("application/x-path-range");
+      if (pathData) {
+        try {
+          const p = JSON.parse(pathData);
+          return {checkpoint: p.checkpoint, start: p.start, end: p.end};
+        } catch (e) { /* 무시하고 배치 인덱스로 폴백 */ }
+      }
+      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
+      const b = (window._screenBatches || [])[idx];
+      return b ? {checkpoint: b.checkpoint, start: b.start, end: b.end} : null;
+    }
+
     function _rowsInRange(rows, ckpt, startIso, endIso) {
       const s = new Date(startIso.replace(" ", "T"));
       const e = new Date(new Date(endIso.replace(" ", "T")).getTime() + 60000);
@@ -9913,14 +9945,13 @@ L S R  C S L  R S L
 
     async function _mergeNewDrop(ev) {
       ev.preventDefault();
-      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
-      const b = (window._screenBatches || [])[idx];
-      if (!b) return;
+      const rg = _rangeFromDrop(ev);
+      if (!rg) return;
       const name = prompt("새 병합 세트 이름을 입력하세요 (예: weak_left_threshold0.20_통합)");
       if (!name) return;
       const res = await api("/verify/manual_group/save", {
         method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({name, ranges: [{checkpoint: b.checkpoint, start: b.start, end: b.end}]})
+        body: JSON.stringify({name, ranges: [rg]})
       });
       if (res.ok) {
         window._openManualGroups.add(name);
@@ -9933,14 +9964,13 @@ L S R  C S L  R S L
     async function _mergeAddToGroup(ev, name) {
       ev.preventDefault();
       ev.stopPropagation();
-      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
-      const b = (window._screenBatches || [])[idx];
-      if (!b) return;
+      const rg = _rangeFromDrop(ev);
+      if (!rg) return;
       const groups = (await api("/verify/manual_groups")).groups || [];
       const g = groups.find(x => x.name === name);
       if (!g) return;
-      const already = g.ranges.some(t => t.checkpoint === b.checkpoint && t.start === b.start && t.end === b.end);
-      if (!already) g.ranges.push({checkpoint: b.checkpoint, start: b.start, end: b.end});
+      const already = g.ranges.some(t => t.checkpoint === rg.checkpoint && t.start === rg.start && t.end === rg.end);
+      if (!already) g.ranges.push(rg);
       const res = await api("/verify/manual_group/save", {
         method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify({name, ranges: g.ranges})
