@@ -9839,6 +9839,20 @@ L S R  C S L  R S L
       ev.dataTransfer.setData("application/x-path-range", rangeJson);
     }
 
+    // 2026-09-17: 저장된 세트 "안"의 범위 하나를 다른 세트로 드래그 이동 —
+    // 어느 세트의 몇 번째 범위였는지(source)도 같이 실어서, 드롭 처리 쪽에서
+    // 성공적으로 옮긴 뒤 원래 위치에서 제거(진짜 "이동")할 수 있게 함.
+    function _rangeDragStart(ev, rangeJson, srcJson) {
+      ev.dataTransfer.setData("application/x-path-range", rangeJson);
+      ev.dataTransfer.setData("application/x-range-source", srcJson);
+    }
+
+    function _rangeSourceFromDrop(ev) {
+      const raw = ev.dataTransfer.getData("application/x-range-source");
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch (e) { return null; }
+    }
+
     // 드롭 이벤트에서 {checkpoint,start,end}를 뽑아내는 공용 헬퍼 — 경로 배지
     // 드래그(application/x-path-range)를 배치 드래그(text/plain 인덱스)보다 우선.
     function _rangeFromDrop(ev) {
@@ -9964,7 +9978,10 @@ L S R  C S L  R S L
     async function _mergeAddToGroup(ev, name) {
       ev.preventDefault();
       ev.stopPropagation();
+      // dataTransfer는 await 이후 못 읽을 수 있어서 이벤트 핸들러 진입 즉시(동기)
+      // 필요한 값을 전부 뽑아둔다 — range 자체 + (있다면) 이동 원본 세트/인덱스.
       const rg = _rangeFromDrop(ev);
+      const src = _rangeSourceFromDrop(ev);
       if (!rg) return;
       const groups = (await api("/verify/manual_groups")).groups || [];
       const g = groups.find(x => x.name === name);
@@ -9975,7 +9992,14 @@ L S R  C S L  R S L
         method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify({name, ranges: g.ranges})
       });
-      if (res.ok) refreshManualGroups();
+      if (res.ok) {
+        // 다른 세트의 범위를 드래그해온 "이동"이면 원래 위치에서 제거해 완성.
+        if (src && src.name !== name) {
+          await _mergeRemoveRange(src.name, src.idx);
+        } else {
+          refreshManualGroups();
+        }
+      }
     }
 
     async function refreshManualGroups() {
@@ -10008,10 +10032,16 @@ L S R  C S L  R S L
               <span onclick="event.preventDefault(); event.stopPropagation(); _manualGroupDelete('${g.name}')" style="cursor:pointer; color:var(--rose);" title="병합 세트 삭제(원본 기록은 안 지워짐)">✕</span>
             </summary>
             <div style="margin-top:4px; font-size:9px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px;">
-              ${g.ranges.map((t, i) => `<div style="display:flex; justify-content:space-between; gap:6px;">
-                <span>${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")}</span>
+              ${g.ranges.map((t, i) => {
+                const rangeJson = JSON.stringify({checkpoint: t.checkpoint, start: t.start, end: t.end}).replace(/"/g, "&quot;");
+                const srcJson = JSON.stringify({name: g.name, idx: i}).replace(/"/g, "&quot;");
+                return `<div draggable="true" ondragstart="_rangeDragStart(event, '${rangeJson}', '${srcJson}')"
+                    style="cursor:grab; display:flex; justify-content:space-between; gap:6px;"
+                    title="드래그해서 다른 저장된 세트 위에 놓으면 이 범위가 그쪽으로 옮겨짐(원래 세트에서 제거)">
+                <span>⠿ ${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")}</span>
                 <span onclick="_mergeRemoveRange('${g.name}', ${i})" style="cursor:pointer; color:var(--rose);" title="이 범위만 제거">✕</span>
-              </div>`).join("")}
+              </div>`;
+              }).join("")}
             </div>
           </details>`;
         }).join("");
