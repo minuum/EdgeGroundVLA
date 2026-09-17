@@ -5835,6 +5835,14 @@ L S R  C S L  R S L
                   <input type="number" id="vfy-owl-area-scale" min="0.5" max="10" step="0.1" value="3.0" style="width:52px; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
                   <button class="btn btn-outline" onclick="applyVerifyOwlAreaScale()" style="font-size:10px; padding:3px 8px; flex:1;">적용</button>
                 </div>
+                <!-- 2026-09-17: 액션 속도 배율 — pos3처럼 더 많이/급하게 움직여야 하는
+                     조건에서 "너무 빠르다" 피드백 대응. 기본 1.0 = 지금까지와 동일. -->
+                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                  <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🐢 액션 속도 배율</span>
+                  <input type="number" id="vfy-speed-scale" min="0.1" max="2.0" step="0.05" value="1.0" style="width:52px; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
+                  <button class="btn btn-outline" onclick="applyVerifySpeedScale()" style="font-size:10px; padding:3px 8px; flex:1;">적용</button>
+                  <button class="btn btn-outline" onclick="document.getElementById('vfy-speed-scale').value='1.0'; applyVerifySpeedScale();" style="font-size:10px; padding:3px 8px;" title="1.0(기본)으로 즉시 복귀">↺1.0</button>
+                </div>
               </div>
 
               <!-- 우: Autopilot Configuration (START/STOP은 위 Quick Autopilot 버튼 사용) -->
@@ -10303,6 +10311,9 @@ L S R  C S L  R S L
         runtimeState.stop_mode = res.stop_mode || "proximity";
         runtimeState.stop_learned_min_steps = res.stop_learned_min_steps !== undefined ? parseInt(res.stop_learned_min_steps) : 3;
 
+        const speedEl = document.getElementById("vfy-speed-scale");
+        if (speedEl) speedEl.value = res.action_speed_scale ?? 1.0;
+
         const g = res.grounder || {};
         const owlRow = document.getElementById("vfy-owl-row");
         if ((g.model || "").toLowerCase().includes("owl")) {
@@ -10497,6 +10508,31 @@ L S R  C S L  R S L
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ owlv2_area_scale: v })
+        });
+        if (res.ok) {
+          const inner = (res.applied && res.applied.applied) || {};
+          const parts = Object.entries(inner).map(([k, v2]) => `${k}=${v2}`);
+          statusEl.textContent = parts.length > 0
+            ? "✅ 서버 적용: " + parts.join(", ")
+            : "⚠️ 서버가 아무것도 적용 안 함 (applied 비어있음)";
+        } else {
+          statusEl.textContent = "⚠️ 적용 실패: " + res.error;
+        }
+      } catch(e) {
+        statusEl.textContent = "⚠️ 서버 오류: " + e;
+      }
+    }
+
+    async function applyVerifySpeedScale() {
+      const statusEl = document.getElementById("vfy-rt-status");
+      const v = parseFloat(document.getElementById("vfy-speed-scale").value);
+      if (isNaN(v) || v <= 0) { statusEl.textContent = "⚠️ 속도 배율 값이 올바르지 않음"; return; }
+      statusEl.textContent = "액션 속도 배율 적용 중...";
+      try {
+        const res = await api("/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action_speed_scale: v })
         });
         if (res.ok) {
           const inner = (res.applied && res.applied.applied) || {};
