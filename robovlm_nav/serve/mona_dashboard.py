@@ -1872,6 +1872,8 @@ class ConfigToggleReq(BaseModel):
     force_reground_on_miss: Optional[bool] = None
     owlv2_thresh: Optional[float] = None
     owlv2_area_scale: Optional[float] = None
+    ablation_mode: Optional[str] = None       # "fused" | "bbox_only" | "vision_only" (2026-09-16, 이전엔 여기 누락돼있었음)
+    action_speed_scale: Optional[float] = None  # 2026-09-17: ACTION_2D/3D 고정 속도 배율(기본 1.0=변경없음)
     # STOP 모드 토글(Tab4 stopmode/stopguard 버튼) — Pydantic 모델에 필드가
     # 없으면 FastAPI가 조용히 무시해서 버튼이 로컬 상태만 바뀌고 실제
     # 추론서버엔 절대 안 걸리는 버그가 있었음(2026-07-23) — 필드 추가로 수정.
@@ -2476,6 +2478,8 @@ def config_update(req: ConfigToggleReq):
     if req.force_reground_on_miss is not None: payload["force_reground_on_miss"] = req.force_reground_on_miss
     if req.owlv2_thresh is not None: payload["owlv2_thresh"] = req.owlv2_thresh
     if req.owlv2_area_scale is not None: payload["owlv2_area_scale"] = req.owlv2_area_scale
+    if req.ablation_mode is not None: payload["ablation_mode"] = req.ablation_mode
+    if req.action_speed_scale is not None: payload["action_speed_scale"] = req.action_speed_scale
     if req.stop_mode is not None: payload["stop_mode"] = req.stop_mode
     if req.stop_learned_min_steps is not None: payload["stop_learned_min_steps"] = req.stop_learned_min_steps
     if req.stop_consec_frames is not None: payload["stop_consec_frames"] = req.stop_consec_frames

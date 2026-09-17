@@ -1444,8 +1444,11 @@ class Stage2V2Model:
             rot_block_tag, frame["cx"], frame["area"], frame["has_bbox"], total_ms,
         )
 
-        _exec_action_2d = [0.0, 0.0] if blocked_second_rotation else ACTION_2D[pred_class]
-        _exec_action_3d = [0.0, 0.0, 0.0] if blocked_second_rotation else ACTION_3D[pred_class]
+        # 2026-09-17: 런타임 속도 배율 — 매 호출 env를 읽어 즉시 반영(재시작 불필요),
+        # 기본 1.0이라 명시적으로 설정 전까지는 기존 고정 속도와 완전히 동일.
+        _speed_scale = float(os.getenv("VLA_ACTION_SPEED_SCALE", "1.0"))
+        _exec_action_2d = [0.0, 0.0] if blocked_second_rotation else [v * _speed_scale for v in ACTION_2D[pred_class]]
+        _exec_action_3d = [0.0, 0.0, 0.0] if blocked_second_rotation else [v * _speed_scale for v in ACTION_3D[pred_class]]
 
         return {
             "action": _exec_action_2d,
@@ -1557,6 +1560,9 @@ class ConfigRequest(BaseModel):
     ablation_mode: Optional[str] = None       # "fused" | "bbox_only" | "vision_only" — 그라운딩 인코더 실기 ablation (2026-09-16)
     owlv2_thresh: Optional[float] = None     # OWL-v2 detection threshold (run()이 매 호출 env를 읽음)
     owlv2_area_scale: Optional[float] = None # OWL-v2 area 보정 계수 (PG2 스케일 정합용, run()이 매 호출 env를 읽음)
+    action_speed_scale: Optional[float] = None  # 2026-09-17: ACTION_2D/3D 고정 속도(1.15/0.25)에 곱하는 배율.
+                                                  # pos2/pos3처럼 출발위치가 바뀌어 더 많이/급하게 움직여야 하는
+                                                  # 조건에서 "너무 빠르다"는 실기 피드백 대응 — 기본 1.0(기존과 동일)
     # 하위 호환: 수신은 하되 무시
     model: Optional[str] = None
     speed_scaling: Optional[bool] = None
@@ -1601,6 +1607,7 @@ def _persist_runtime_state() -> None:
             "owlv2_thresh": float(os.getenv("VLA_OWLV2_THRESH", "0.25")),
             "owlv2_area_scale": float(os.getenv("VLA_OWLV2_AREA_SCALE", "3.0")),
             "owlv2_fp16": os.getenv("VLA_OWLV2_FP16", "0") == "1",
+            "action_speed_scale": float(os.getenv("VLA_ACTION_SPEED_SCALE", "1.0")),
         }
         _RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
         _RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2, ensure_ascii=False))
@@ -1636,6 +1643,7 @@ def _restore_runtime_state_env() -> Optional[dict]:
         "owlv2_thresh": "VLA_OWLV2_THRESH",
         "owlv2_area_scale": "VLA_OWLV2_AREA_SCALE",
         "owlv2_fp16": "VLA_OWLV2_FP16",
+        "action_speed_scale": "VLA_ACTION_SPEED_SCALE",
     }
     for key, env_name in env_map.items():
         val = state.get(key)
@@ -1695,6 +1703,7 @@ async def health() -> dict[str, Any]:
             }
     return {
         "status": "healthy",
+        "action_speed_scale": float(os.getenv("VLA_ACTION_SPEED_SCALE", "1.0")),
         "model_loaded": m is not None,
         "head": m.head_name if m else None,
         "window": m.window if m else None,
@@ -1886,6 +1895,11 @@ async def set_config(
     if request.owlv2_area_scale is not None:
         os.environ["VLA_OWLV2_AREA_SCALE"] = str(float(request.owlv2_area_scale))
         applied["owlv2_area_scale"] = float(request.owlv2_area_scale)
+
+    if request.action_speed_scale is not None:
+        # predict()가 매 호출 os.getenv를 읽으므로 env 갱신 = 즉시 적용(재시작 불필요)
+        os.environ["VLA_ACTION_SPEED_SCALE"] = str(float(request.action_speed_scale))
+        applied["action_speed_scale"] = float(request.action_speed_scale)
 
     if request.ablation_mode is not None:
         if request.ablation_mode in ("fused", "bbox_only", "vision_only"):
