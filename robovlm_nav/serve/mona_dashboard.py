@@ -9509,12 +9509,36 @@ L S R  C S L  R S L
                 const s1Tag = s1Name === "stage1_v3_5cls_owl_projs.pt" ? ` · 🧬V3-5cls`
                   : s1Name === "stage1_v2_projs.pt" ? "" : (s1Name ? ` · 🧬${s1Name}` : "");
                 const rate = b.count ? Math.round(b.success / b.count * 100) : 0;
-                return `<div onclick="applyScreenBatch('${b._idx}')"
-                    draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
-                    style="cursor:grab; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
-                    onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
-                  <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}${s1Tag}</span>
-                  <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
+                // 2026-09-17: 배치(시간 단위) 안에서도 경로/도착위치별로 몇 건인지
+                // 바로 보이게 — pos2/pos3처럼 같은 시간대·체크포인트 안에 여러
+                // 경로가 섞여 수집될 때(interleaved) 시간만으론 구분 안 되던 문제 대응.
+                // 문자열 그대로(path_type) 집계라 날짜 경계 추측 없이 항상 정확함.
+                const _bStart = new Date(b.start.replace(" ", "T"));
+                const _bEnd = new Date(b.end.replace(" ", "T"));
+                const rowsInBatch = (window._lastVfyRows || []).filter(r => {
+                  if (r.length <= 14 || r[14] !== ckpt) return false;
+                  const d = new Date(String(r[12]).replace(" ", "T"));
+                  return !isNaN(d) && d >= _bStart && d <= _bEnd;
+                });
+                const pathCounts = {};
+                rowsInBatch.forEach(r => {
+                  const pt = String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim();
+                  if (!pathCounts[pt]) pathCounts[pt] = {n: 0, succ: 0};
+                  pathCounts[pt].n += 1;
+                  if (r[2] === "성공") pathCounts[pt].succ += 1;
+                });
+                const pathBreakdown = Object.keys(pathCounts).sort().map(pt =>
+                  `<span style="white-space:nowrap; background:#151f32; border-radius:4px; padding:1px 4px; margin:1px;">${pt} ${pathCounts[pt].n}<span style="color:#3fb950;">✓${pathCounts[pt].succ}</span></span>`
+                ).join("");
+                return `<div style="padding:3px 6px; border-radius:4px; font-size:9px;">
+                  <div onclick="applyScreenBatch('${b._idx}')"
+                      draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
+                      style="cursor:grab; display:flex; justify-content:space-between; gap:6px;"
+                      onmouseover="this.parentElement.style.background='rgba(255,255,255,0.06)'" onmouseout="this.parentElement.style.background='transparent'">
+                    <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}${s1Tag}</span>
+                    <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
+                  </div>
+                  ${pathBreakdown ? `<div style="margin-top:2px; display:flex; flex-wrap:wrap; color:var(--text-muted);">${pathBreakdown}</div>` : ""}
                 </div>`;
               }).join("");
               return `<details ${isCurrent ? "open" : ""} style="background:#090d16; border:1px solid ${isCurrent ? "var(--cyan)" : "var(--border-glow)"}; border-radius:6px; padding:6px 8px;">
