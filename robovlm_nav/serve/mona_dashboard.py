@@ -5685,6 +5685,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <div id="vfy-screen-batch-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px; max-height:220px; overflow-y:auto;">—</div>
 
+              <!-- 2026-09-17: pos2/pos3처럼 자주 왔다갔다 전환하는 세트를 목록에서
+                   찾아 클릭하는 대신 원클릭으로 — 이름 접두어로 가장 최근 것을 찾아 적용. -->
+              <div style="display:flex; gap:4px; margin-bottom:6px;">
+                <button class="btn btn-outline" onclick="quickApplyGroupPrefix('pos2_실기')" style="font-size:10px; padding:5px 4px; flex:1;" title="pos2로 시작하는 저장된 세트 중 가장 최근 것을 바로 적용">📍pos2</button>
+                <button class="btn btn-outline" onclick="quickApplyGroupPrefix('pos3_실기')" style="font-size:10px; padding:5px 4px; flex:1;" title="pos3로 시작하는 저장된 세트 중 가장 최근 것을 바로 적용">📍pos3</button>
+                <button class="btn btn-outline text-rose" onclick="clearActiveManualGroup()" style="font-size:10px; padding:5px 4px; flex:1;" title="병합 세트 해제 — 체크포인트/기간 필터 기준 전체보기로 복귀">✕ 전체보기</button>
+              </div>
+
               <!-- 🔗 저장된 병합 세트 — 관리의 중심. 배치를 여기 각 세트 위로 바로
                    드래그하면 그 세트에 즉시 추가됨(이름 다시 입력 안 해도 됨).
                    새 세트는 맨 아래 "+ 새 세트" 드롭존에 드래그해서 만듦(2026-07-31,
@@ -9848,6 +9856,21 @@ L S R  C S L  R S L
     function clearActiveManualGroup() {
       window._activeManualGroup = null;
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // 2026-09-17: 이름 접두어(예: "pos2_실기")로 저장된 세트 중 이름 기준
+    // 가장 최근(날짜 접미어가 클수록 뒤) 것을 찾아 바로 적용 — pos2/pos3처럼
+    // 자주 왔다갔다 전환하는 세트를 목록에서 매번 찾아 클릭할 필요 없게.
+    function quickApplyGroupPrefix(prefix) {
+      const cache = window._manualGroupsCache || {};
+      const matches = Object.keys(cache).filter(n => n.startsWith(prefix)).sort();
+      const name = matches[matches.length - 1];
+      if (!name) {
+        const statusEl = document.getElementById("vfy-rt-status");
+        if (statusEl) statusEl.textContent = `⚠️ "${prefix}"로 시작하는 저장된 세트가 없습니다`;
+        return;
+      }
+      applyManualGroup(null, name);
     }
 
     // 세트를 목표 진행률 쪽으로 드래그해서 반영 — 클릭과 동일한 효과를 드래그로도
