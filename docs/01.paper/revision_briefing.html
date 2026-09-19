@@ -2040,6 +2040,27 @@ vision. This is consistent with STOP and rotation depending primarily on the tar
 position and proximity rather than its visual appearance. Note that ROT_L/ROT_R make up only
 ~1.15% of the validation set (28 of 2,431 frames), so this per-class breakdown should be read as
 an observation warranting further study rather than a statistically confirmed effect.</p>
+
+<h4 style="margin-top:16px">실기(로봇) ablation 80회는 생략 — 교수님 결정 (2026-09-19)</h4>
+<div class="body">애초 계획은 위 오프라인(val set) ablation과 별개로 owl_only/kosmos_only 조건을 실기
+20개씩(강좌·강우) × 2조건 = 80회 추가 수집하는 것이었으나, <strong>실기 재현이 부담스러운 상황을
+고려해 교수님이 "이번엔 테스트 없이 근거만 서술하자"고 결정</strong> — 대시보드에 이미 구현해둔
+<code>VLA_ABLATION_MODE</code> 런타임 플래그와 <code>owl_only_*/kosmos_only_*</code> 수집
+인프라는 구축된 채로 보류. 근거는 위 오프라인 3-way ablation(정량) + 아래 그라운더 교체 이력(정성)
+두 가지로 대체.</div>
+
+<p style="font-size:0.82rem;color:#4ade80;font-weight:700;margin:12px 0 8px">📋 복붙용 — 왜 두 인코더를 쓰는지(설계 근거, 실기 테스트 없이)</p>
+<p style="font-size:0.85rem;color:#4ade80;background:#0f2a1f;padding:8px 10px;border-radius:4px">
+The two encoders were not adopted as competing grounders but arose from a specific engineering
+history: our pipeline originally attempted Kosmos-2's own generation-based phrase grounding, which
+proved unreliable for this task (near-constant detection failure), motivating a switch to
+PaliGemma2 and subsequently OWL-v2 for explicit, text-conditioned bounding-box localization.
+Kosmos-2 is retained not as a second localizer but as a frozen dense visual encoder, supplying
+holistic scene context (occlusion, distractors, partial views) that a 4-dimensional bbox signal
+cannot represent. This design is corroborated by the offline ablation above, where the vision-only
+condition already recovers most of the fused model's accuracy while the bbox-only condition,
+though far above chance, trails it — consistent with the two signals playing complementary,
+unequally load-bearing roles rather than redundant ones.</p>
 </div>
 
 <h3 class="cat" id="wording-fixes"><span class="tag t-pending">완료</span> 서술 보강만으로 해결 (심사위원1-③, 2, 3-②③④⑥⑦⑨)</h3>
