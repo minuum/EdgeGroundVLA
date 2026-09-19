@@ -784,6 +784,38 @@ soda 로컬 `docs/inference_sessions/session_20260916_221412.h5`의
 남겨두는 게 맞다고 판단했습니다 — 논문 Limitation/Discussion에 이 발견을
 정직하게 서술하는 게 현재로선 최선입니다.
 
+## 🟢 [2026-09-19] pos1+pos2+pos3 200/300건 완료 + 실기 인코더 ablation 80회 생략 결정
+
+**pos2/pos3 실기 200건(각 100) 전부 완료**, pos1(300건 통합) 기준 방향별
+합산 결과입니다(`exp73_owl_stage1v3_v6_mlp.pt`):
+
+| 방향 | pos1 | pos2 | pos3 | 합계 |
+|---|---|---|---|---|
+| 강좌 | 19/20 | 18/20 | 19/20 | 56/60 (93%) |
+| 약좌 | 19/20 | 18/20 | 19/20 | 56/60 (93%) |
+| 중앙 | 20/20 | 19/20 | 19/20 | 58/60 (97%) |
+| 약우 | 18/20 | 20/20 | 17/20 | 55/60 (92%) |
+| 강우 | 19/20 | 16/20 | 16/20 | 51/60 (85%) |
+| **전체** | **95/100** | **91/100** | **90/100** | **276/300 (92.0%)** |
+
+⚠️ **방법론 주의**: pos2/pos3 수집 중간에 `action_speed_scale`(버그 수정으로
+실제 적용 시작, 1.0→0.6)과 `stop_on_miss` 토글이 걸쳐 있어서, pos1과
+pos2(약우 제외)/일부 pos3는 완전히 같은 설정이지만 **pos3 대부분과
+pos2_약우는 pos1과 다른 config로 수집**됐습니다. 논문에 쓸 때 이 config
+차이를 각주로 명시 권장(상세 breakdown은 세션 로그 참조).
+
+**실기 인코더 ablation 80회(owl_only/kosmos_only × 강좌/강우 × 20)는
+교수님 결정으로 생략**하고, 대신 (1) 기존 오프라인 3-way ablation
+(`docs/v5/bbox_nav_owl/ablation_owlv2_kosmos2_fusion.json`, 09-14 완료)과
+(2) 그라운더 교체 이력에 기반한 설계 근거 서술로 대체하기로 했습니다 —
+원래 Kosmos-2 자체 phrase-grounding을 먼저 시도했으나 상시 미검출이라
+PG2→OWL-v2로 교체했고, Kosmos-2는 그 이후 "두 번째 그라운더"가 아니라
+고정 비전 인코더(장면 맥락 보완용)로만 남은 것이 실제 히스토리입니다.
+`docs/01.paper/revision_briefing.html`의 `#ablation-owl-kosmos` 절에
+복붙용 영문 문단으로 반영해뒀습니다. 인코더 ablation 실기 수집 인프라
+(`VLA_ABLATION_MODE`, `owl_only_*/kosmos_only_*` path_type, D-pad 순환)는
+구축된 채로 보류 상태입니다 — 나중에 필요해지면 바로 재개 가능합니다.
+
 ## 관련 문서
 
 - 브라우징 UI: `docs/plans/plan_20260715_dataset_history_tab.md` (🗂 데이터셋
