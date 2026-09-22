@@ -2275,7 +2275,7 @@
     "num": "CH 72",
     "title": "1차 심사(수정 후 재심) 대응 — OWLv2/Kosmos-2 기여도 ablation, 실패분류 데이터 한계 확인",
     "subtitle": "2026-09-14 ·\nKCI 논문 1차 심사 결과(위원1·3 수정 후 재심, 위원2 수정 후 게재)를 받고, 지적 9건을\n\"서술로 해결 가능\"과 \"실제 데이터/실험 필요\"로 분류해 대응했다. 그 중 위원1-①·위원3-④가\n요구한 그라운딩 인코더 기여도 ablation을 실제로 돌렸고, 위원3-⑤·⑦이 요구한 실패 케이스\n분류는 데이터가 없어서 할 수 없다는 것을 확인했다.",
-    "n_cards": 10,
+    "n_cards": 12,
     "cards": [
       {
         "kind": "callout",
@@ -2320,12 +2320,22 @@
       {
         "kind": "finding-card",
         "title": "🔧 72-8. VLA_ABLATION_MODE 런타임 플래그 구현·soda 배포·검증 완료",
-        "text": "실기 인코더 ablation의 유일한 블로커였던 \"런타임에 단일 인코더 모드가 없다\"를 해결했다.\nstage2_v2_inference_server.py의 배포 exp73 MLP 피처 빌더 _build_seq_feature_trans()에\nVLA_ABLATION_MODE(fused/bbox_only/vision_only)를 추가 — 프레임당 260차원(bbox4+vis256)\n특징에서 한쪽을 0-벡터로 마스킹. POST /config로 서버 재시작\n없이 핫스왑, GET /health에 노출, 재시작 시 자동 복원은\n의도적으로 안 함(잊은 ablation 설정이 다음 세션에 몰래 영향 주는 걸 방지).\n배포 전 soda에 직접 ssh 접속해 실제 코드를 대조 검토한 결과 더 심각한\n기존 문제도 하나 발견 — soda의 go.sh/서버 코드 자체 기본값이 exp73이 아니라\n구 exp71 Transformer + PG2 그라운더 + proximity STOP이었음(env var 없이 콜드스타트하면 조용히\n다른 구성으로 뜸). 다행히 logs/stage2_runtime_state.json 영속화 파일이 이미\nexp73/owlv2/learned/0.20 값을 올바르게 갖고 있어서(2026-07-30 도입) 실제 재기동 시엔 자동 복원됨을\n확인 — 코드 기본값과 실제 운영 상태가 다르다는 것 자체는 문서화해둘 함정.\nsoda에서 fused→bbox_only→vision_only→잘못된 값(정상 거부)→fused 왕복 전부 실제 실행해 검증,\n서버는 정상(fused) 상태로 복귀. git 3곳(soda가 pull하는 monavla-driving, main,\ninference-integration) 전부 반영 — 이 과정에서 soda의 라이브 코드가 로컬 저장소보다\n527줄 앞서 있던 걸 발견해 같이 동기화함."
+        "text": "실기 인코더 ablation의 유일한 블로커였던 \"런타임에 단일 인코더 모드가 없다\"를 해결했다.\nstage2_v2_inference_server.py의 배포 exp73 MLP 피처 빌더 _build_seq_feature_trans()에\nVLA_ABLATION_MODE(fused/bbox_only/vision_only)를 추가 — 프레임당 260차원(bbox4+vis256)\n특징에서 한쪽을 0-벡터로 마스킹. POST /config로 서버 재시작\n없이 핫스왑, GET /health에 노출, 재시작 시 자동 복원은\n의도적으로 안 함(잊은 ablation 설정이 다음 세션에 몰래 영향 주는 걸 방지).\n배포 전 soda에 직접 ssh 접속해 실제 코드를 대조 검토한 결과 더 심각한\n기존 문제도 하나 발견 — soda의 go.sh/서버 코드 자체 기본값이 exp73이 아니라\n구 exp71 Transformer + PG2 그라운더 + proximity STOP이었음(env var 없이 콜드스타트하면 조용히\n다른 구성으로 뜸). 다행히 logs/stage2_runtime_state.json 영속화 파일이 이미\nexp73/owlv2/learned/0.20 값을 올바르게 갖고 있어서(2026-07-30 도입) 실제 재기동 시엔 자동 복원됨을\n확인 — 코드 기본값과 실제 운영 상태가 다르다는 것 자체는 문서화해둘 함정.\nsoda에서 fused→bbox_only→vision_only→잘못된 값(정상 거부)→fused 왕복 전부 실제 실행해 검증,\n서버는 정상(fused) 상태로 복귀. git 3곳(soda가 pull하는 monavla-driving, main,\ninference-integration) 전부 반영 — 이 과정에서 soda의 라이브 코드가 로컬 저장소보다\n527줄 앞서 있던 걸 발견해 같이 동기화함.\n✅ 후속 조치(2026-09-16, 같은 날) — 위 \"코드 기본값과 실제 운영\n상태가 다르다\"는 함정을 문서화만 하고 넘기지 않고 soda 쪽에서 직접 고쳤다. scripts/run/go.sh의\nVLA_GROUNDER fallback pg2→owlv2, VLA_STOP_MODE\nproximity→learned, VLA_OWLV2_THRESH 0.25→0.20으로 변경해 코드\n기본값 자체를 프로덕션 설정과 일치시킴(monavla-driving 커밋 62fd0eca) —\nstage2_runtime_state.json이 없는 완전 콜드스타트에서도 옛 exp71 구성으로 뜰 위험을\n제거했다."
       },
       {
         "kind": "finding-card",
         "title": "🔬 72-9. \"그라운딩 인코더\" 용어 정정 + 인코더 ablation 방법론 점검 2건",
         "text": "사용자가 두 가지를 연달아 짚었고, 둘 다 코드로 확인해 답했다.\n① \"Kosmos-2 그라운더\"는 잘못된 용어 — Kosmos-2는 원래 자체\nphrase-grounding 능력이 있는 모델이지만, 우리 시스템은 그 기능을 쓴 적이 없다(encode_image()가\n텍스트 인자 자체를 안 받음, 이미지→1024차원만). 실제 위치검출은 전적으로 OWLv2가 담당. 더 중요한 차이는\n텍스트 관여 시점 — OWLv2는 매 추론마다 \"gray basket\" 텍스트를\n실제로 쓰지만, Kosmos-2의 image_proj는 Stage 1 학습 때만\ntext_proj와의 대조학습으로 가중치가 정해지고 배포 추론 시엔 텍스트가 전혀 관여하지 않는다. 그래서 이\nablation은 \"vision vs text\" 비교가 아니라 \"텍스트로 매번 조건화되는 위치검출 vs 학습 때만 언어로\n형성된 순수 시각 표현\"의 비교라고 정정 — 문서에 논문 Figure 1 표현을 그대로 쓴 ASCII 구조도까지 추가.\n② image_proj가 그라운더별로 사전 선별된 데이터로 학습된 거 아닌가? —\ntrain_stage1_v3_5cls_owl_fastloss.py부터 gen_v6_frame_level.py까지 라벨\n출처를 끝까지 추적: Stage1 방향 라벨(label)은 H5 파일\n속성(cx_position, 데이터 수집 시점에 이미 확정된 물리적 사실)에서 오고, Stage2\n액션 라벨(gt_class)도 조이스틱 원시 액션을 기하 규칙으로 변환한 것뿐 — 둘 다 그라운더가\n관여할 여지가 없다. gen_v6_owl_annotation.py도 dict(fr)로 기존 필드를 그대로\n복사한 뒤 bbox 숫자만 갈아끼우는 구조라 OWLv2는 라벨에 손을 못 댄다. \"OWL 라벨\"이라는 파일명 때문에\n헷갈리기 쉬운 지점이었는데, 실제로는 그라운더가 \"입력 특징 제공자\"일 뿐 \"정답을 정하는 주체\"가 아님을\n확인 — ablation 해석에 영향 없음."
+      },
+      {
+        "kind": "finding-card",
+        "title": "🔍 72-10. fp16/fp32 불일치 발견·수정 + pos2 초반 실패는 그라운더가 아니라 정책 과적합",
+        "text": "실기 담당자(soda)가 pos2/pos3 실기를 시작한 직후 두 가지를 발견·정리해 relay했다.\n① fp16이 몰래 켜져 있었음 — logs/stage2_runtime_state.json에\nowlv2_fp16: true가 저장돼 있었는데, 95/100(08-07) 테스트 땐 이 기능 자체가 코드에 없어\n당시는 자동으로 fp32였음. threshold=0.20과 fp16이 동시에 켜지면 \"실패 빈도가 배가된다\"고 07-30에\n경고해둔 바로 그 위험 조합 상태였다. fp32로 되돌리고 영구 저장, fp16 상태로 수집된\n2026-09-16 20:43~21:0X 구간(pos2_약좌 일부)만 confound 가능성 표시.\n② pos2_약좌 5건 중 4건 실패 — 그라운더 문제 아님 — 세션 H5를\n프레임 단위로 직접 열어본 결과, 바구니가 화면 왼쪽 끝으로 밀려나며 잘리자 OWL-v2 confidence가\n자연스럽게 하락한 것(검출기 입장에서는 정상 반응). 원인은 정책(MLP head) — 배포 체크포인트(exp73)의\n학습 데이터 225 에피소드가 전부 단일 출발위치(중앙)에서만\n수집돼, pos2처럼 더 많이 좌측 보정을 해야 하는 상황을 학습 데이터에서 한 번도 못 봤다.\n체크포인트 전환은 하지 않기로 결정 — 다른 체크포인트도 전부\n같은 단일 출발위치 데이터로 학습돼 근본 문제는 동일하고, 무엇보다 위치별로 최적 체크포인트를 따로\n고르면 \"출발위치 독립성\" 검증 자체가 무효화된다. 낮은 성공률 자체를 심사위원1이 요구한 답(단일\n출발위치 학습의 한계)으로 그대로 두고 수집을 계속하기로 했다."
+      },
+      {
+        "kind": "finding-card",
+        "title": "🏁 72-11. 실기 300/300건 확정(92.0%) + 인코더 ablation 80회 생략 결정 + 그라운더 3종 실측·실패 유형·버그 수정",
+        "text": "2026-09-19 — pos1(기존 100건 재사용)+pos2(신규 100)+pos3(신규 100)\n= 300건이 최종 완료. 방향별 합산: 강좌 56/60(93%)·약좌 56/60(93%)·중앙 58/60(97%)·약우 55/60(92%)·\n강우 51/60(85%). 위치별: pos1 95.0% / pos2 91.0% / pos3 90.0% / 전체\n92.0%. 수집 도중 action_speed_scale 버그 수정(1.0→0.6 실제 적용 시작)과\nstop_on_miss 토글이 걸쳐 있어 pos3 대부분·pos2_약우는 pos1과 다른 config로 수집됨 —\n논문에 각주 필요.\n실기 인코더 ablation(80회)은 교수님 결정으로 생략 — 대신 기존\n오프라인 3-way ablation(72-1)과 그라운더 교체 이력(Kosmos-2 자체 phrase-grounding을 먼저 시도했으나\n상시 미검출로 PG2→OWLv2 교체, Kosmos-2는 그 이후 고정 비전 인코더로만 남음) 서술로 대체. 인코더\nablation 인프라(72-8의 VLA_ABLATION_MODE)는 구축·검증된 채로 보류.\n2026-09-22 — pos2_약우 재수집 완료(0/20→20/20)로 300건 최종\n확정. 이어서 더 강한 대체 근거가 나왔다: pos1/2/3 실제 세션 이미지 12장을 OWLv2·PG2·Kosmos-2에 전부\n실제로 통과시킨 실측 3-way 비교 — OWLv2 8/12 정합 검출(1952ms),\nPG2 1/12(대부분 full-frame 붕괴, 최대 8270ms), Kosmos-2 12/12 has_bbox=True지만\nraw output에 \"basket\"이 단 한 번도 안 나와 실질 정답 0/12(1278ms로\n가장 빠르지만 무효).\n실패 케이스 유형 2종(심사위원1 의견5·심사위원3 의견7 대응, 개별\n수치 비노출) — ① 그라운딩 손실형: OWL-v2 전 구간 미검출, fallback 신호로 주행하다 실패(예: pos2_강우\n20260917_123659). ② 정책 과잉대응형: 그라운딩은 정상인데 정책이 한쪽으로 과커밋해 목표가 화면 밖으로\n밀려남(예: pos3_강우 20260917_193352).\n코드 버그 2건 수정 + 1건 보류 — action_speed_scale이\n실제 모터에 반영 안 되던 버그(publish_and_move() throttle 고정 + InferenceResponse\n필드 누락) 수정, pos3_강우 성공률 33%→80%로 회복 확인. end_reason 필드가 존재하지 않는 키를\n체크해 항상 \"manual\"만 기록되는 버그는 실기 진행 중이라 향후 과제로 보류.\n원본:\ndocs/DATASET_V6_STATUS.md 2026-09-19/09-22 항목. 전체 반영본\ndocs/01.paper/revision_briefing.html#realrobot-actual-results"
       }
     ]
   },
