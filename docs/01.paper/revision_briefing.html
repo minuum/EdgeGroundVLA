@@ -2202,7 +2202,7 @@ apples-to-apples 비교 불가).</p>
 사람의 감독 하에서만 사용을 전제함. 향후 과제로 명시.</div>
 </div>
 
-<h3 class="cat" id="realrobot-newcond"><span class="tag t-pending">확정 — 이번 주(2026-09-14~09-20) 내 실행</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
+<h3 class="cat" id="realrobot-newcond"><span class="tag t-pending">완료 — 2026-09-22, 300/300건 확정</span> 새 조건 실기 실험 (심사위원1-②, 심사위원3-①)</h3>
 
 <div class="item done" style="border-left-color:#4ade80;background:rgba(74,222,128,0.04)">
 <h4>📋 TODO — 한눈에 보는 준비 상태</h4>
@@ -2259,28 +2259,28 @@ apples-to-apples 비교 불가).</p>
   threshold=0.20, skip_n=3, grounder=owlv2, stop_mode=learned 전부 <code>/proc/&lt;pid&gt;/environ</code>·
   <code>/health</code>로 라이브 확인 완료</td>
 </tr>
-<tr style="background:rgba(251,191,36,0.08);border-bottom:1px solid #1e293b">
-  <td style="padding:6px 8px" class="c o">⬜</td>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
   <td style="padding:6px 8px">출발위치2·3 물리적 설정</td>
-  <td style="padding:6px 8px" class="o">대기 — 사람 필요</td>
-  <td style="padding:6px 8px">실기 담당자</td>
-  <td style="padding:6px 8px">트랙 내 2개 지점 확정(로봇↔타겟 거리·각도 등 기록해두면 재현성↑)</td>
+  <td style="padding:6px 8px" class="g">완료</td>
+  <td style="padding:6px 8px">실기 담당자(soda)</td>
+  <td style="padding:6px 8px">중앙 기준 좌/우 이동 지점으로 설정, 2026-09-16~09-22 진행</td>
 </tr>
 <tr style="background:rgba(148,163,184,0.08);border-bottom:1px solid #1e293b">
   <td style="padding:6px 8px" class="c" style="color:#94a3b8">⬜</td>
   <td style="padding:6px 8px">조도 조건 설정 <span style="font-size:0.72rem;color:#94a3b8">(플랜B)</span></td>
-  <td style="padding:6px 8px" style="color:#94a3b8">보류 — 주 계획 끝난 뒤 시간 남으면</td>
-  <td style="padding:6px 8px">실기 담당자</td>
-  <td style="padding:6px 8px">2026-09-16 플랜B로 격하 — 조명 축소/커튼 등, 우선순위 최하</td>
+  <td style="padding:6px 8px" style="color:#94a3b8">보류 — 향후 과제로 남김</td>
+  <td style="padding:6px 8px">-</td>
+  <td style="padding:6px 8px">주 계획(280회) 완료 후 기한 내 여유 없어 미착수 — 논문에는 "향후 과제"로 서술</td>
 </tr>
-<tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b">
-  <td style="padding:6px 8px" class="c">⬜</td>
-  <td style="padding:6px 8px"><b>실기 실행 — 메인 200회</b></td>
-  <td style="padding:6px 8px">미실행</td>
-  <td style="padding:6px 8px">실기 담당자</td>
-  <td style="padding:6px 8px">코드 변경 없이 바로 가능, <code>pos2_/pos3_</code> 컨벤션으로 기록</td>
+<tr style="border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c g">✅</td>
+  <td style="padding:6px 8px"><b>실기 실행 — 메인 200회 (+ pos1 100건 재사용 = 300건)</b></td>
+  <td style="padding:6px 8px" class="g">완료 — 2026-09-22, 300/300건 확정</td>
+  <td style="padding:6px 8px">실기 담당자(soda)</td>
+  <td style="padding:6px 8px">pos1 95.0% / pos2 91.0% / pos3 90.0% / 전체 92.0% — 아래 <a href="#realrobot-actual-results">실측 결과</a> 참조</td>
 </tr>
-<tr style="background:rgba(74,222,128,0.08);border-bottom:1px solid #1e293b">
+<tr style="border-bottom:1px solid #1e293b">
   <td style="padding:6px 8px" class="c g">✅</td>
   <td style="padding:6px 8px"><b>인코더 ablation 런타임 플래그 구현</b></td>
   <td style="padding:6px 8px" class="g">완료 — soda 실기 검증까지 끝냄</td>
@@ -2288,32 +2288,102 @@ apples-to-apples 비교 불가).</p>
   <td style="padding:6px 8px"><code>VLA_ABLATION_MODE=fused|bbox_only|vision_only</code>, <code>POST /config</code>로 무재시작 핫스왑,
   soda에서 fused→bbox_only→vision_only→잘못된값(거부)→fused 왕복 확인 후 정상 상태로 복귀. git에도 반영됨(monavla-driving, main, inference-integration)</td>
 </tr>
-<tr style="background:rgba(56,189,248,0.08);border-bottom:1px solid #1e293b">
-  <td style="padding:6px 8px" class="c">⬜</td>
+<tr style="background:rgba(148,163,184,0.08);border-bottom:1px solid #1e293b">
+  <td style="padding:6px 8px" class="c" style="color:#94a3b8">⬜</td>
   <td style="padding:6px 8px"><b>실기 실행 — 인코더 ablation 80회</b></td>
-  <td style="padding:6px 8px">미실행 — 이제 바로 시작 가능</td>
-  <td style="padding:6px 8px">실기 담당자</td>
-  <td style="padding:6px 8px">실기 전 <code>curl -X POST /config -d '{"ablation_mode":"bbox_only"}'</code>(OWLv2 단독 20회×2방향) →
-  <code>{"ablation_mode":"vision_only"}</code>(Kosmos-2 단독 20회×2방향) → 끝나면 <code>{"ablation_mode":"fused"}</code>로 반드시 복귀.
-  경로 필드는 <code>owl_only_&lt;방향&gt;</code> / <code>kosmos_only_&lt;방향&gt;</code> 컨벤션 사용</td>
+  <td style="padding:6px 8px" style="color:#94a3b8">생략 — 교수님 결정 (2026-09-19)</td>
+  <td style="padding:6px 8px">-</td>
+  <td style="padding:6px 8px">코드/인프라는 구축·검증까지 완료된 채로 보류(<code>VLA_ABLATION_MODE</code>, <code>owl_only_*/kosmos_only_*</code>
+  path_type). 대체 근거: 기존 오프라인 3-way ablation + 그라운더 교체 이력 서술 + <a href="#realrobot-actual-results">신규 실측 3종 비교</a>(09-20)</td>
 </tr>
 <tr style="border-bottom:1px solid #1e293b">
-  <td style="padding:6px 8px" class="c">⬜</td>
+  <td style="padding:6px 8px" class="c g">✅</td>
   <td style="padding:6px 8px">결과 집계 + 문서 반영</td>
-  <td style="padding:6px 8px">미실행</td>
+  <td style="padding:6px 8px" class="g">완료 — 2026-09-22</td>
   <td style="padding:6px 8px">Claude</td>
-  <td style="padding:6px 8px">09-19(금) 목표 — 스크립트 실행 → Table 7 옆 신규 표 추가</td>
+  <td style="padding:6px 8px"><code>DATASET_V6_STATUS.md</code>에서 실측 결과 반영, 아래 <a href="#realrobot-actual-results">실측 결과 섹션</a> 신설</td>
 </tr>
 <tr>
   <td style="padding:6px 8px" class="c">⬜</td>
   <td style="padding:6px 8px">논문 본문 반영</td>
   <td style="padding:6px 8px">미실행</td>
   <td style="padding:6px 8px">저자</td>
-  <td style="padding:6px 8px">09-18(금) 목표 — §4 Discussion/Limitation, 서술보강 6건 최종 확인 포함</td>
+  <td style="padding:6px 8px">§4 Discussion/Limitation에 아래 실측 결과·config 각주·실패 유형 2종 반영 필요</td>
 </tr>
 </table>
-<p style="font-size:0.82rem;color:#94a3b8">✅ = 제가(Claude) 오프라인으로 준비 완료한 것. ⬜(노랑) = 물리적 실기 담당자가 해야 하는 것(제가 대신 못 함).
-⬜(파랑) = 실기 이후 제가 이어받는 작업.</p>
+<p style="font-size:0.82rem;color:#94a3b8">✅ = 완료. ⬜(노랑/회색) = 보류 또는 향후 과제. ⬜(파랑 없음, 저자란) = 아직 사람이 해야 하는 작업.</p>
+</div>
+</div>
+
+<div class="item done" id="realrobot-actual-results" style="border-left-color:#4ade80;background:rgba(74,222,128,0.04)">
+<h4>📊 실측 결과 — 300/300건 확정 (2026-09-16~09-22)</h4>
+<div class="body">
+<p>출발위치 3개(중앙=pos1 기존 100건 재사용, 좌측=pos2 신규 100건, 우측=pos3 신규 100건) × 목표 방향 5개
+그리드 실기 결과입니다(<code>exp73_owl_stage1v3_v6_mlp.pt</code>, 배포 체크포인트 그대로, 재학습 없음).</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)">
+  <th style="text-align:left;padding:4px 8px">방향</th><th style="text-align:left;padding:4px 8px">pos1(중앙)</th>
+  <th style="text-align:left;padding:4px 8px">pos2(좌)</th><th style="text-align:left;padding:4px 8px">pos3(우)</th>
+  <th style="text-align:left;padding:4px 8px">합계</th>
+</tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">강좌</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">18/20</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">56/60 (93%)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">약좌</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">18/20</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">56/60 (93%)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">중앙</td><td style="padding:4px 8px">20/20</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">58/60 (97%)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">약우</td><td style="padding:4px 8px">18/20</td><td style="padding:4px 8px">20/20</td><td style="padding:4px 8px">17/20</td><td style="padding:4px 8px">55/60 (92%)</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">강우</td><td style="padding:4px 8px">19/20</td><td style="padding:4px 8px">16/20</td><td style="padding:4px 8px">16/20</td><td style="padding:4px 8px">51/60 (85%)</td></tr>
+<tr style="background:rgba(74,222,128,0.1)"><td style="padding:4px 8px"><strong>전체</strong></td><td style="padding:4px 8px"><strong>95/100 (95.0%)</strong></td><td style="padding:4px 8px"><strong>91/100 (91.0%)</strong></td><td style="padding:4px 8px"><strong>90/100 (90.0%)</strong></td><td style="padding:4px 8px"><strong class="g">276/300 (92.0%)</strong></td></tr>
+</table>
+<div class="note" style="font-size:0.85rem">
+<strong class="o">⚠️ config 각주 필요</strong>: pos2/pos3 수집 도중 <code>action_speed_scale</code> 버그 수정(1.0→0.6 실제
+적용 시작)과 <code>stop_on_miss</code> 토글이 걸쳐 있어, pos1과 pos2(약우 제외)·일부 pos3는 pos1과 동일 설정이지만
+<strong>pos3 대부분과 pos2_약우는 pos1과 다른 config로 수집</strong>됐습니다. 논문 본문에 이 차이를 각주로 명시할 것 —
+없는 균일성을 있는 것처럼 서술하지 않습니다.
+</div>
+<p style="font-size:0.82rem;color:#94a3b8">해석: 출발위치를 바꾸면 성능이 저하됩니다(95.0%→91.0%/90.0%) — 배포
+체크포인트(exp73)의 학습 데이터 225 에피소드가 전부 단일 출발위치(중앙)에서만 수집된 결과로, 심사위원1-②/3-①이
+요구한 "학습-테스트 목표 동일성" 질문에 정직하게 답하는 실측 근거입니다. 체크포인트는 세 위치 전부 동일하게
+유지했습니다(위치별로 다른 체크포인트를 고르면 "일반화 검증"이 무효화되므로 의도적으로 고정).</p>
+
+<h4 style="margin-top:16px">그라운딩 인코더 3종 실측 비교 (2026-09-20, 실기 세션 이미지 12장)</h4>
+<p style="font-size:0.85rem;color:#cbd5e1">교수님 결정으로 80회 실기 인코더 ablation은 생략하는 대신, pos1/2/3
+실제 세션에서 성공/실패 섞어 추출한 이미지 12장을 OWLv2·PG2·Kosmos-2 세 그라운더에 전부 실제로 통과시켜
+비교했습니다(OOM 방지 위해 서버를 내리고 PG2→Kosmos-2 순차 단독 로드, 재기동 후 config diff로 동일 조건 확인).</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin:8px 0">
+<tr style="color:#4ade80;border-bottom:1px solid rgba(74,222,128,0.3)"><th style="text-align:left;padding:4px 8px">그라운더</th><th style="text-align:left;padding:4px 8px">정합 검출</th><th style="text-align:left;padding:4px 8px">평균 지연</th><th style="text-align:left;padding:4px 8px">비고</th></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px"><strong class="h">OWLv2</strong></td><td style="padding:4px 8px"><strong class="g">8/12</strong></td><td style="padding:4px 8px">1952ms (1916~2021ms)</td><td style="padding:4px 8px">가장 일정, 현재 배포 그라운더</td></tr>
+<tr style="border-bottom:1px solid #1e293b"><td style="padding:4px 8px">PG2</td><td style="padding:4px 8px">1/12</td><td style="padding:4px 8px">2936ms (최대 8270ms)</td><td style="padding:4px 8px">대부분 full-frame 붕괴 — 옛 로그 현상이 최신 이미지로도 재현</td></tr>
+<tr><td style="padding:4px 8px">Kosmos-2 (자체 phrase-grounding)</td><td style="padding:4px 8px">0/12 <span style="font-size:0.78rem;color:#94a3b8">(has_bbox=True 12/12지만 "basket" 단어가 raw output에 한 번도 안 나옴)</span></td><td style="padding:4px 8px">1278ms (가장 빠르지만 정답 0건이라 무효)</td><td style="padding:4px 8px">벽/TV/책상/의자 등 오탐</td></tr>
+</table>
+<p style="font-size:0.82rem;color:#94a3b8">이 실측이 PG2→OWLv2 교체 결정과 "Kosmos-2는 자체 그라운딩을 쓴 적 없이 고정 비전 인코더로만 남았다"는
+<a href="#ablation-owl-kosmos">이미 정정한 서술</a>을 실기 데이터로 뒷받침합니다.</p>
+
+<h4 style="margin-top:16px">실패 케이스 유형 2종 (심사위원1 의견5, 심사위원3 의견7 대응)</h4>
+<p style="font-size:0.85rem;color:#cbd5e1">위험한 개별 수치(그라운딩 성공률 등) 노출 없이 정성적으로만 정리 —
+각 유형을 같은 path_type의 성공 세션과 짝지어 실제 actions 적분 궤적(형태 비교용)으로 비교했습니다.</p>
+<ol style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
+<li><b>그라운딩 손실형</b> — OWL-v2가 세션 전 구간 미검출(has_bbox=False), 정책이 fallback 신호로 주행하다
+목표 도달 실패. 예: <code>pos2_강우</code> 세션 <code>20260917_123659</code>.</li>
+<li><b>정책 과잉대응형</b> — 그라운딩은 정상인데 정책이 한쪽으로 과커밋해 목표가 화면 밖으로 밀려남. 예:
+<code>pos3_강우</code> 세션 <code>20260917_193352</code>. 실패 궤적은 보정 없이 직진하거나 전진 없이 옆이동만
+계속하는 패턴, 성공 궤적은 같은 초기 반응 후 정상 복귀/전환.</li>
+</ol>
+
+<h4 style="margin-top:16px">코드 버그 수정 2건 + 보류 1건</h4>
+<ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
+<li><b>action_speed_scale 미반영 버그(수정 완료)</b> — <code>vla_control_utils.py</code>의
+<code>publish_and_move()</code>가 액션 크기(magnitude)를 무시하고 고정 throttle만 쓰던 것과,
+<code>InferenceResponse</code> Pydantic 모델에 필드 선언은 됐는데 <code>/predict</code> 생성자 호출에서
+빠져 응답에서 잘려나가던 것 — 두 버그 모두 수정. 효과: pos3_강우 성공률 33%→80%로 회복 확인.</li>
+<li><b>fp16/fp32 config 불일치(수정 완료)</b> — <code>logs/stage2_runtime_state.json</code>에
+<code>owlv2_fp16: true</code>가 몰래 저장돼 threshold=0.20과 겹쳐 위험 조합 상태였던 것을 발견,
+fp32로 되돌리고 영구 저장. fp16 상태로 수집된 2026-09-16 20:43~21:0X 구간(pos2_약좌 일부)은
+confound 가능성이 있어 별도 표시 필요.</li>
+<li><b>end_reason 필드 버그(미수정, 보류)</b> — 세션 자동종료/수동종료를 구분하는 필드가 존재하지
+않는 키(<code>goal_near</code>)를 체크해 항상 "manual"만 기록되는 버그를 확인했으나, 실기 진행 중이라
+지금은 고치지 않고 향후 과제로 남김.</li>
+</ul>
+<p style="font-size:0.82rem;color:#94a3b8">원본 로그: <a href="../DATASET_V6_STATUS.md">DATASET_V6_STATUS.md</a>
+2026-09-16/09-19/09-22 항목.</p>
 </div>
 </div>
 
@@ -2424,10 +2494,10 @@ checkpoint_path가 두 체크포인트와 일치하는지, threshold=0.20·skip_
 </div>
 </div>
 
-<h3 class="cat" id="realrobot-ablation-todo"><span class="tag t-pending">코드 완료 — 실기만 남음</span> 실기 단일 인코더 검증(OWLv2 단독/Kosmos-2 단독) + Figure/표 보강 (2026-09-16)</h3>
+<h3 class="cat" id="realrobot-ablation-todo"><span class="tag t-pending">2026-09-19 교수님 결정 — 실기 80회 생략, 대체 근거로 확정</span> 실기 단일 인코더 검증(OWLv2 단독/Kosmos-2 단독) + Figure/표 보강</h3>
 
-<div class="item pending" style="border-left-color:#fbbf24">
-<h4>1. 실기 인코더 단독(OWLv2/Kosmos-2) ablation — 규모 확정 + 런타임 코드 완료(2026-09-16), 실기만 남음</h4>
+<div class="item done" style="border-left-color:#4ade80">
+<h4>1. 실기 인코더 단독(OWLv2/Kosmos-2) ablation — 런타임 코드는 완료·검증됐으나, 교수님 결정으로 실기 80회는 생략</h4>
 <div class="body">
 <p>사용자 확인으로 애매했던 두 지점이 해결됐습니다:</p>
 <ul style="font-size:0.85rem;color:#cbd5e1;margin:4px 0 4px 20px;line-height:1.8">
@@ -2460,6 +2530,16 @@ soda에 배포 후 fused→bbox_only→vision_only→잘못된 값(정상 거부
 일치시켰습니다(<code>monavla-driving</code> 커밋 <code>62fd0eca</code>). <code>stage2_runtime_state.json</code>
 영속화 복원 로직은 그대로 두되, 그 파일이 없는 완전 콜드스타트 상황에서도 옛 exp71 구성으로 조용히 뜨는
 위험을 원천 제거했습니다.</p>
+</div>
+<div class="key" style="margin-top:10px">
+<strong class="o">🟡 2026-09-19 — 실기 80회는 교수님 결정으로 생략, 실측 대체 근거로 확정</strong>
+<p style="margin:6px 0 0">위 런타임 플래그로 실기 80회(OWLv2 단독/Kosmos-2 단독 × 강좌/강우 × n=20)를 실행할 준비는
+전부 끝났지만, <strong class="h">교수님이 추가 실기 없이 기존 오프라인 3-way ablation(<a href="#ablation-owl-kosmos">완료본</a>)과
+그라운더 교체 이력 서술로 답하기로 결정</strong>했습니다. 대신 2026-09-20에 더 강한 대체 근거가 나왔습니다 —
+pos1/2/3 실제 세션 이미지 12장을 OWLv2·PG2·Kosmos-2 세 그라운더에 실제로 통과시킨
+<a href="#realrobot-actual-results">실측 3-way 비교</a>: OWLv2 8/12 정합, PG2 1/12, Kosmos-2 0/12(has_bbox는
+12/12 찍지만 "basket"을 한 번도 못 맞춤). 실기 인코더 ablation 인프라(<code>VLA_ABLATION_MODE</code>,
+<code>owl_only_*/kosmos_only_*</code>)는 구축·검증된 채로 보류 — 필요해지면 즉시 재개 가능합니다.</p>
 </div>
 </div>
 </div>
