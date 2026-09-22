@@ -18886,6 +18886,67 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#fbbf24">
+    <div class="finding-title" style="color:#fbbf24">🔍 72-10. fp16/fp32 불일치 발견·수정 + pos2 초반 실패는 그라운더가 아니라 정책 과적합</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      실기 담당자(soda)가 pos2/pos3 실기를 시작한 직후 두 가지를 발견·정리해 relay했다.
+      <br><br>
+      <strong style="color:#e2e8f0">① fp16이 몰래 켜져 있었음</strong> — <code>logs/stage2_runtime_state.json</code>에
+      <code>owlv2_fp16: true</code>가 저장돼 있었는데, 95/100(08-07) 테스트 땐 이 기능 자체가 코드에 없어
+      당시는 자동으로 fp32였음. threshold=0.20과 fp16이 동시에 켜지면 "실패 빈도가 배가된다"고 07-30에
+      경고해둔 바로 그 위험 조합 상태였다. fp32로 되돌리고 영구 저장, fp16 상태로 수집된
+      2026-09-16 20:43~21:0X 구간(pos2_약좌 일부)만 confound 가능성 표시.
+      <br><br>
+      <strong style="color:#e2e8f0">② pos2_약좌 5건 중 4건 실패 — 그라운더 문제 아님</strong> — 세션 H5를
+      프레임 단위로 직접 열어본 결과, 바구니가 화면 왼쪽 끝으로 밀려나며 잘리자 OWL-v2 confidence가
+      자연스럽게 하락한 것(검출기 입장에서는 정상 반응). 원인은 정책(MLP head) — 배포 체크포인트(exp73)의
+      학습 데이터 225 에피소드가 전부 <strong style="color:#f87171">단일 출발위치(중앙)</strong>에서만
+      수집돼, pos2처럼 더 많이 좌측 보정을 해야 하는 상황을 학습 데이터에서 한 번도 못 봤다.
+      <br><br>
+      <strong style="color:#4ade80">체크포인트 전환은 하지 않기로 결정</strong> — 다른 체크포인트도 전부
+      같은 단일 출발위치 데이터로 학습돼 근본 문제는 동일하고, 무엇보다 위치별로 최적 체크포인트를 따로
+      고르면 "출발위치 독립성" 검증 자체가 무효화된다. 낮은 성공률 자체를 심사위원1이 요구한 답(단일
+      출발위치 학습의 한계)으로 그대로 두고 수집을 계속하기로 했다.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">🏁 72-11. 실기 300/300건 확정(92.0%) + 인코더 ablation 80회 생략 결정 + 그라운더 3종 실측·실패 유형·버그 수정</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">2026-09-19</strong> — pos1(기존 100건 재사용)+pos2(신규 100)+pos3(신규 100)
+      = 300건이 최종 완료. 방향별 합산: 강좌 56/60(93%)·약좌 56/60(93%)·중앙 58/60(97%)·약우 55/60(92%)·
+      강우 51/60(85%). 위치별: <strong style="color:#4ade80">pos1 95.0% / pos2 91.0% / pos3 90.0% / 전체
+      92.0%</strong>. 수집 도중 <code>action_speed_scale</code> 버그 수정(1.0→0.6 실제 적용 시작)과
+      <code>stop_on_miss</code> 토글이 걸쳐 있어 pos3 대부분·pos2_약우는 pos1과 다른 config로 수집됨 —
+      논문에 각주 필요.
+      <br><br>
+      <strong style="color:#f87171">실기 인코더 ablation(80회)은 교수님 결정으로 생략</strong> — 대신 기존
+      오프라인 3-way ablation(72-1)과 그라운더 교체 이력(Kosmos-2 자체 phrase-grounding을 먼저 시도했으나
+      상시 미검출로 PG2→OWLv2 교체, Kosmos-2는 그 이후 고정 비전 인코더로만 남음) 서술로 대체. 인코더
+      ablation 인프라(72-8의 <code>VLA_ABLATION_MODE</code>)는 구축·검증된 채로 보류.
+      <br><br>
+      <strong style="color:#e2e8f0">2026-09-22</strong> — pos2_약우 재수집 완료(0/20→20/20)로 300건 최종
+      확정. 이어서 더 강한 대체 근거가 나왔다: pos1/2/3 실제 세션 이미지 12장을 OWLv2·PG2·Kosmos-2에 전부
+      실제로 통과시킨 <strong style="color:#4ade80">실측 3-way 비교</strong> — OWLv2 8/12 정합 검출(1952ms),
+      PG2 1/12(대부분 full-frame 붕괴, 최대 8270ms), Kosmos-2 12/12 <code>has_bbox=True</code>지만
+      raw output에 "basket"이 단 한 번도 안 나와 <strong style="color:#f87171">실질 정답 0/12</strong>(1278ms로
+      가장 빠르지만 무효).
+      <br><br>
+      <strong style="color:#e2e8f0">실패 케이스 유형 2종</strong>(심사위원1 의견5·심사위원3 의견7 대응, 개별
+      수치 비노출) — ① 그라운딩 손실형: OWL-v2 전 구간 미검출, fallback 신호로 주행하다 실패(예: pos2_강우
+      20260917_123659). ② 정책 과잉대응형: 그라운딩은 정상인데 정책이 한쪽으로 과커밋해 목표가 화면 밖으로
+      밀려남(예: pos3_강우 20260917_193352).
+      <br><br>
+      <strong style="color:#e2e8f0">코드 버그 2건 수정 + 1건 보류</strong> — <code>action_speed_scale</code>이
+      실제 모터에 반영 안 되던 버그(<code>publish_and_move()</code> throttle 고정 + <code>InferenceResponse</code>
+      필드 누락) 수정, pos3_강우 성공률 33%→80%로 회복 확인. <code>end_reason</code> 필드가 존재하지 않는 키를
+      체크해 항상 "manual"만 기록되는 버그는 실기 진행 중이라 향후 과제로 보류.
+      <br><span style="font-size:0.78rem;color:#64748b">원본:
+      <code>docs/DATASET_V6_STATUS.md</code> 2026-09-19/09-22 항목. 전체 반영본
+      <code>docs/01.paper/revision_briefing.html#realrobot-actual-results</code></span>
+    </div>
+  </div>
+
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH72 ═ -->
 
