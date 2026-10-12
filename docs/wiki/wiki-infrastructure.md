@@ -136,6 +136,13 @@ scripts/wiki/render_wiki_html.py ·
 scripts/wiki/sync_wiki.py · 결과
 docs/wiki/index.html · 계획
 docs/plans/plan_20260828_llm_wiki.md
+.ctab-bar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.ctab-btn{background:#0d1420;border:1px solid #1e293b;color:#94a3b8;padding:7px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;text-align:left}
+.ctab-btn:hover{border-color:#f472b6;color:#f9a8d4}
+.ctab-btn.on{background:#2a0a1e;border-color:#f472b6;color:#f9a8d4}
+@media print{.ctab-panel{display:block !important}.ctab-bar{display:none}}
+function ctabShow(ch,k){var root=document.getElementById(ch);if(!root)return;root.querySelectorAll('.ctab-panel').forEach(function(p){p.style.display=(p.dataset.t===k)?'block':'none'});root.querySelectorAll('.ctab-btn').forEach(function(b){b.classList.toggle('on',b.dataset.t===k)});try{localStorage.setItem('ctab_'+ch,k)}catch(e){}}
+function ctabInit(ch){var root=document.getElementById(ch);if(!root)return;var first=root.querySelector('.ctab-btn');var k=first?first.dataset.t:'t1';try{var v=localStorage.getItem('ctab_'+ch);if(v&&root.querySelector('.ctab-btn[data-t="'+v+'"]'))k=v}catch(e){}ctabShow(ch,k)}
 
 </div>
 

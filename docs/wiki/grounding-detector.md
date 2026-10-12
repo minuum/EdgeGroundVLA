@@ -4544,10 +4544,6 @@ exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 �
 ① 젯슨 기준 Florence-2 fused 371ms vs 현재 ≈1960ms (5.3×), 학습서버 2.1×.
 ② 사람검증 329개에서 OWL이 놓친 203프레임을 Florence-2가 전부 회수. 신규 블로커(score 없음 → 부재 오탐 100%)는 면적 규칙 has_bbox로 우회(cx 상관 0.991).
 ③ 진행: §2.5 Florence-2 입력으로 FiLM 서브골 조향(CH73) 재현 — Stage 1 캐시 → Stage 2 10-seed.
-.c74-bar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
-.c74-btn{background:#0d1420;border:1px solid #1e293b;color:#94a3b8;padding:7px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer}
-.c74-btn:hover{border-color:#f472b6;color:#f9a8d4}
-.c74-btn.on{background:#2a0a1e;border-color:#f472b6;color:#f9a8d4}
 📌 개요🗺 구조도⏱ 실측 속도🖼 정확도·실제 사례🧩 어댑터·has_bbox🔄 진행 §2.5🧰 도구 카탈로그
 
 </div>
@@ -4741,8 +4737,7 @@ serve_exp73_val_review.py (7794)
 exp73 val 33ep, path_type·FPE 판정 O/X
 33/33
 전부 scripts/label/ · 연구용 로컬 도구. 지금 바로 쓸 것: ★ 7796. PG2 3-way가 필요하면 ③ 갤러리에 키보드 패턴을 이식(백로그). 비교용 원자료 json은 docs/v5/detector/(30여 개)에 별도 존재.
-function c74Show(k){document.querySelectorAll('#ch74 .c74-panel').forEach(function(p){p.style.display=(p.id==='c74-'+k)?'block':'none'});document.querySelectorAll('#ch74 .c74-btn').forEach(function(b){b.classList.toggle('on',b.dataset.t===k)});try{localStorage.setItem('c74tab',k)}catch(e){}}
-(function(){var k='t1';try{k=localStorage.getItem('c74tab')||'t1'}catch(e){}c74Show(k)})();
+ctabInit("ch74")
 
 </div>
 

@@ -83,6 +83,7 @@ manual_stop) 실패 5건의 원인을 재구성할 방법이 없다는 걸 확�
 비교 재검토, frozen 인코더 결합 서술, Fig/Table 인덱스, 하이퍼파라미터 서술)은 복붙용 영문
 문단까지 revision_briefing.html에 준비해뒀고, 새 조건(출발위치/카메라/조도)
 실기 실험은 재심 기한 확인 후 결정하기로 미결정 상태로 남김.
+🔬 72-1 OWLv2 단독 / Kosmos-2…🚧 72-2 실패 케이스 원인…📝 72-3 서술 보강 6건 + 미결정 1건🔍 72-4 재검토(같은 날)📅 72-5 재심 기한 확인🎓 72-6 2026-09-14 교수님과…📐 72-7 규모 재계산🔧 72-8 VLA_ABLATION_MODE…🔬 72-9 그라운딩 인코더 용어 정정 +…🔍 72-10 fp16/fp32 불일치 발견·수정…🏁 72-11 실기 300/300건…
 
 </div>
 
@@ -348,6 +349,7 @@ raw output에 "basket"이 단 한 번도 안 나와 실질 정답 0/12(1278ms로
 원본:
 docs/DATASET_V6_STATUS.md 2026-09-19/09-22 항목. 전체 반영본
 docs/01.paper/revision_briefing.html#realrobot-actual-results
+ctabInit("ch72")
 
 </div>
 

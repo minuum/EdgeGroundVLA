@@ -2305,7 +2305,8 @@ EGVLA1(경량화)·EGVLA2(그라운딩 중심)와 겹치지 않는 단기 국내
 ③ bbox_dataset.json(45 ep, 794 frames, 오프라인 Kosmos-2 그라운딩 캐시)을 서브골 임베딩으로 인코딩해
 FiLM(γ,β)으로 이미지 특징을 조향하는 구조를 기존 concat-MLP(76.32%±0.99%, 110,536 params)와 공정 비교한
 결과 78.21%±1.61%, +1.9%p, 파라미터는 28% 더 적음(79,336) —
-경량화 방향과 정합적인 긍정적 예비 결과.</p>
+경량화 방향과 정합적인 긍정적 예비 결과.
+⚠️ 73-1 폐기된 주장🔬 73-2 Physical AI 3대 기업…🏆 73-3 그라운딩 기반 서브골 조향(FiLM)📋 73-4 남겨둔 연구 주제 (프레임워크…🏆 73-5 Task 6</p>
 </div>
 <div class="card">
 <p><strong>⚠️ 73-1. 폐기된 주장 — "FM이 엣지 내비게이션에서 더 나쁘다"는 무효</strong></p>
@@ -2464,6 +2465,32 @@ docs/v5/subgoal_steering_eval/index.html,
 docs/v5/subgoal_steering_eval/extended.html</p>
 </div>
 <div class="card">
+<p><strong>📋 73-4. 남겨둔 연구 주제 (프레임워크 달라져도 적용 가능성 있는 백로그)</strong></p>
+<p>이번에 직접 실험하지 않았지만, 트렌드 서베이에서 확인한 아이디어 중 EGVLA1/2/3 어느 트랙으로든
+프레임이 바뀌어도 반영 가능성이 있다고 판단해 남겨둔다 (미확정, 제안 단계):
+① Training-free navigation 포지셔닝 — OpenFrontier/WildOS류
+frontier 기반 의미적 앵커 + VLM, 정책 학습 자체가 없는 접근. EGVLA2의 "그라운딩 품질이 성공을 좌우한다"
+(gnd%≥80→98.8% 성공, [[project_grounding_availability_decides]]) 결론과 완전히 정합 — 새 실험 없이
+"우리 접근이 이미 이 흐름과 같은 방향"이라는 포지셔닝 논문으로 가장 안전하게 전환 가능.
+② On-device 분할 전략 비교 — ①완전 온디바이스 소형 모델
+(Gemini Robotics On-Device 2, GR00T) vs ②원격 대형 모델+온보드 소형 어댑터 분리(AsyncVLA). EGVLA1은
+①의 극단형(원격 컴포넌트 전무)으로 포지셔닝 가능 — 레이턴시/정확도 트레이드오프 실측이 필요하면
+차기 분기로 분리.
+③ grounding_aux를 메인 헤드 조건 입력으로 승격 —
+nav_h5_dataset_impl.py의 grounding_aux(현재는 보조 손실 타겟)를 73-3처럼
+메인 액션 헤드의 조건 신호로 바꾸는 실험을 Kosmos-2 VLM 학습 루프 전체로 확장 — 73-3은 오프라인
+MLP 수준 검증이었고, 이를 VLM 메인 학습에 적용하면 EGVLA2 본류와 다시 연결되는 더 큰 스케일 버전.
+2026-10-11 스코핑 결과: 현재 막혀 있음 — Exp11 config에
+grounding_aux 자체가 비활성화돼 있고, 필요한 docs/v5/bbox_truth_mini.json이
+72건뿐이라 실제 멀티에피소드 학습에 쓰기엔 데이터가 부족. 또한 현재는
+MobileVLAClassificationDecoder.forward()의 사후 hidden state를 보조손실로만 읽을 뿐
+FiLM 주입 자리가 코드에 없어 LSTM 전/후에 새로 꽂는 아키텍처 작업이 필요함 — 라벨 재수집 +
+프로덕션 모델 구조 변경이 함께 필요해 6장 단기 논문 범위를 넘어섬. 착수하려면 라벨 재수집부터
+별도 의사결정 필요.
+공통 전제: 어느 것도 새 연속 액션 데이터 수집을 요구하지 않음 —
+기존 8-class/bbox 인프라 재사용 가능 범위 안에서만 백로그로 유지.</p>
+</div>
+<div class="card">
 <p><strong>🏆 73-5. Task 6 — Offline-replay "closed-loop" 연결: success 22.2%→66.7%</strong></p>
 <p>scripts/eval_subgoal_steered_closed_loop.py로 concat/steered_reg 체크포인트를 학습·저장한 뒤,
 기존 evaluate_closed_loop_v5.py의 exp67/step2와 동일한 teacher-forced replay 프로토콜
@@ -2490,33 +2517,8 @@ offline-replay 성공률에서는 3배 가까이 증폭(22.2%→66.7%)되는 것
 결과:
 docs/v5/subgoal_steering_eval/summary_closed_loop.json,
 docs/v5/subgoal_steering_eval/closed_loop.html · 체크포인트:
-runs/v5_nav/mlp/subgoal_steered/{{concat_mlp,subgoal_steered_reg}}.pt</p>
-</div>
-<div class="card">
-<p><strong>📋 73-4. 남겨둔 연구 주제 (프레임워크 달라져도 적용 가능성 있는 백로그)</strong></p>
-<p>이번에 직접 실험하지 않았지만, 트렌드 서베이에서 확인한 아이디어 중 EGVLA1/2/3 어느 트랙으로든
-프레임이 바뀌어도 반영 가능성이 있다고 판단해 남겨둔다 (미확정, 제안 단계):
-① Training-free navigation 포지셔닝 — OpenFrontier/WildOS류
-frontier 기반 의미적 앵커 + VLM, 정책 학습 자체가 없는 접근. EGVLA2의 "그라운딩 품질이 성공을 좌우한다"
-(gnd%≥80→98.8% 성공, [[project_grounding_availability_decides]]) 결론과 완전히 정합 — 새 실험 없이
-"우리 접근이 이미 이 흐름과 같은 방향"이라는 포지셔닝 논문으로 가장 안전하게 전환 가능.
-② On-device 분할 전략 비교 — ①완전 온디바이스 소형 모델
-(Gemini Robotics On-Device 2, GR00T) vs ②원격 대형 모델+온보드 소형 어댑터 분리(AsyncVLA). EGVLA1은
-①의 극단형(원격 컴포넌트 전무)으로 포지셔닝 가능 — 레이턴시/정확도 트레이드오프 실측이 필요하면
-차기 분기로 분리.
-③ grounding_aux를 메인 헤드 조건 입력으로 승격 —
-nav_h5_dataset_impl.py의 grounding_aux(현재는 보조 손실 타겟)를 73-3처럼
-메인 액션 헤드의 조건 신호로 바꾸는 실험을 Kosmos-2 VLM 학습 루프 전체로 확장 — 73-3은 오프라인
-MLP 수준 검증이었고, 이를 VLM 메인 학습에 적용하면 EGVLA2 본류와 다시 연결되는 더 큰 스케일 버전.
-2026-10-11 스코핑 결과: 현재 막혀 있음 — Exp11 config에
-grounding_aux 자체가 비활성화돼 있고, 필요한 docs/v5/bbox_truth_mini.json이
-72건뿐이라 실제 멀티에피소드 학습에 쓰기엔 데이터가 부족. 또한 현재는
-MobileVLAClassificationDecoder.forward()의 사후 hidden state를 보조손실로만 읽을 뿐
-FiLM 주입 자리가 코드에 없어 LSTM 전/후에 새로 꽂는 아키텍처 작업이 필요함 — 라벨 재수집 +
-프로덕션 모델 구조 변경이 함께 필요해 6장 단기 논문 범위를 넘어섬. 착수하려면 라벨 재수집부터
-별도 의사결정 필요.
-공통 전제: 어느 것도 새 연속 액션 데이터 수집을 요구하지 않음 —
-기존 8-class/bbox 인프라 재사용 가능 범위 안에서만 백로그로 유지.</p>
+runs/v5_nav/mlp/subgoal_steered/{{concat_mlp,subgoal_steered_reg}}.pt
+ctabInit("ch73")</p>
 </div>
 <p><a class="src-link" href="../v5/research_story.html#ch73">→ 원문 전체 보기 (research_story.html#ch73)</a></p>
 </div>
