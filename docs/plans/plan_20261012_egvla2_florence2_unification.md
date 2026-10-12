@@ -98,9 +98,24 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
   재사용 불가능 — `_encode_image()`를 **직접 1회 호출**해서 (1) bbox 생성용 디코더 입력과 (2) action head용
   비전 특징을 동시에 얻는 방식으로 실제 fused 버전을 구현·검증함. 재사용 가능한 vision feature shape:
   `(1, 577, 768)`.
-  → (정정 전 기재, 아래 2.3-b 체크 참고) 젯슨 기준 일반 HF 파이프라인(~1960ms) 대비 Florence-2 fused(371.1ms)는 약 5.3배였으나 프로덕션 기준선은 994ms(2.7배) — 학습서버(529.6→247.6ms,
-  2.1배)보다 젯슨에서 격차가 훨씬 큼. "OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과
-  정합적으로 재확인됨.
+  → (정정 전 기재 — 위 비교는 dtype 불일치, 아래 **규격 벤치(§2.3-b 최종)** 참고)
+
+- **젯슨 규격 벤치 최종 결과** (`scripts/bench_egvla2_unified.py --tag jetson`, 2026-10-12, 실제 V6 프레임 1장,
+  warmup 10/iters 50, A=현재 프로덕션 순차(OWLv2→Kosmos-2), B=F2 분리 호출, C=F2 fused 1회):
+
+  | dtype | A 현재(전체) | A-OWLv2 | A-Kosmos2비전 | B F2분리 | C F2 fused | fused vs A | fused vs B |
+  |---|---|---|---|---|---|---|---|
+  | **fp32 (메인 배포)** | 1970.98ms | 1914.39ms | 56.49ms | 1404.37ms | **817.36ms** | **2.41×** | 1.72× |
+  | fp16 (보조) | 1017.97ms | — | — | 582.16ms | 372.11ms | 2.74× | 1.56× |
+
+  결과 JSON: `docs/v5/detector/bench_egvla2_unified_jetson_fp32.json`, `..._jetson_fp16.json`
+  (학습서버 fp32/fp16 쌍은 `..._server_fp32.json`/`_fp16.json`으로 별도 확보 예정, §2.4에서 서버·젯슨 교차비교).
+
+  → **메인 배포 조건(fp32) 기준 결론**: Florence-2 fused는 현재 방식(OWLv2+Kosmos-2) 대비 **2.41배** 빠름 —
+  5.3배(dtype 불일치)도 994ms 비교(994→371, 2.7배, 하니스 fp16 강제)도 아닌, 동일 dtype·동일 하니스로 처음
+  확정된 수치. fp16끼리 비교(2.74배)와 비슷한 비율대라 dtype보다 fused 구조 자체의 이득이 더 큰 비중임을
+  시사. "OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과는 별개로, 이번 수치가 가장
+  신뢰할 수 있는 공식 비교값.
   → **정확도 검증은 기존 데이터로 이미 완료돼 있었음** — `docs/v5/detector/v6_phrase_grounding_human_labels.json`
   (OWL 실패 프레임 위주로 층화 샘플링된 사람 검증 329개)을 재집계:
 
@@ -146,7 +161,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [ ] 2.1 CH59 결함 재발 확인 (V6 200프레임)
 - [x] 2.2 bbox 어댑터 구현 + OWLv2 대비 검증 — `scripts/florence2_bbox_adapter.py`, V6 15프레임 cx 상관 0.991 / has_bbox 일치 15/15 (면적 기반 휴리스틱, 임계값 캘리브레이션은 백로그)
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
-- [x] 2.3-b 젯슨 지연 벤치(fp16) — fused 371.1ms. **정정(2차)**: 메인 배포는 fp32(`VLA_OWLV2_FP16` 기본 0, 72-10). 현재 기준선 fp32 ≈1960ms ↔ F2 fp16 371ms의 5.3×는 dtype 불일치, fp16끼리(OWL 994 ↔ F2 371)는 2.7×(계산량비와 일치). **fp32 동일조건 측정 필요** → `bench_egvla2_unified.py --dtype fp32` (서버·젯슨, 대기)
+- [x] 2.3-b 젯슨 지연 벤치 — `bench_egvla2_unified.py` 규격 벤치로 최종 확정: **fp32(메인) A=1970.98ms vs C(fused)=817.36ms → 2.41×**, fp16(보조) A=1017.97ms vs C=372.11ms → 2.74× (2026-10-12). 이전 5.3×(dtype 불일치)/2.7×(994ms, fp16 강제 하니스) 기재는 본 수치로 대체.
 - [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
 - [ ] 2.4 리소스 비교 (Florence-2 단일 vs OWLv2+Kosmos-2)
 - [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)
