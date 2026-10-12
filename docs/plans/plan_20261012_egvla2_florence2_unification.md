@@ -182,3 +182,6 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [x] 2.4 리소스 비교 — 지연(서버·젯슨, fp32/fp16), 파라미터 458M→231M, 가중치 메모리, GFLOPs 1277→467 완료 (CH74-3/74-8). 젯슨 전력·실측 메모리는 미측정
 - [x] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준, 10-seed, 2026-10-13) — steered_reg 78.38±0.96 / steered 78.41±0.74 / concat 76.76±1.08 / concat_small 76.70±1.05. steered>concat 유의(p=1.6e-5) 유지, steered_reg 추가 이득 없음(vs steered p=0.79). CH73 OWLv2+16×16(72.37)보다 높으나 입력(768-d 풀링 특징)이 달라 그라운더 효과로 분리 불가. `summary_florence2_v6.json`
 - [ ] 결과 CH73(또는 신규 챕터)에 반영 + 로컬호스트 링크
+
+- [x] 후속① 그라운더 단독 효과 분리 (2026-10-13) — OWLv2 bbox + 동일 F2 특징: steered_reg 78.38% = F2 bbox 78.38%. CH73 대비 상승은 특징 효과. `summary_florence2_v6_owlbbox.json`
+- [x] 후속② has_bbox 임계값 캘리브레이션 (2026-10-13) — 면적·가장자리·종횡비 조합 최고 balanced acc 0.73, 기하 규칙으로 부재 판별 불가 → 현행 유지, 신뢰도 신호(토큰 확률) 필요. `f2_has_bbox_calibration.json`

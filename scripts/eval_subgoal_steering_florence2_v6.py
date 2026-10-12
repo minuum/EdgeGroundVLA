@@ -14,6 +14,7 @@ strong_left/strong_right, OWLv2 그라운딩)이라 이걸로 재실행한다.
 """
 
 import json
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -47,8 +48,11 @@ def get_img_feat_cache():
 
 
 DATASET_FILE = OWL_DIR / "bbox_dataset_v6_owl.json"
-SUMMARY_FILE = OUT_DIR / "summary_florence2_v6.json"
-HTML_FILE = OUT_DIR / "florence2_v6.html"
+# BBOX_SOURCE=f2(기본): Florence-2 bbox + F2 특징 / owl: OWLv2 bbox + 같은 F2 특징(그라운더 단독 효과 분리용 대조)
+BBOX_SOURCE = os.environ.get("BBOX_SOURCE", "f2")
+_TAG = "" if BBOX_SOURCE == "f2" else f"_{BBOX_SOURCE}bbox"
+SUMMARY_FILE = OUT_DIR / f"summary_florence2_v6{_TAG}.json"
+HTML_FILE = OUT_DIR / f"florence2_v6{_TAG}.html"
 
 PATH_TYPES = [
     "center_straight", "center_left_curve", "center_right_curve",
@@ -113,7 +117,11 @@ def build_windows(dataset, window=WINDOW):
     X_bbox, X_img, y, meta = [], [], [], []
     for ep in dataset:
         frames = ep["frames"]
-        bb = cache[f"{ep['episode']}|bbox"]            # Florence-2 어댑터 출력 [cx,cy,area,has_bbox]
+        if BBOX_SOURCE == "owl":
+            bb = np.array([[f["cx_det"], f["cy_det"], f["area_det"], float(f["has_bbox"])] for f in frames],
+                          dtype=np.float32)
+        else:
+            bb = cache[f"{ep['episode']}|bbox"]        # Florence-2 어댑터 출력 [cx,cy,area,has_bbox]
         img_feats = (cache[f"{ep['episode']}|feat"].astype(np.float32) - mu) / sd
         for t in range(len(frames)):
             bfeat = []

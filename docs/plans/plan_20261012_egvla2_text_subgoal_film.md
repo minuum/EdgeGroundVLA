@@ -1,7 +1,7 @@
 # 계획: EGVLA2 — 서브골 인코더에 텍스트 결합 (FiLM 확장) + 액션 헤드 MLP→FM
 
 > 작성일: 2026-10-12 | 리서치: [research_20261012_egvla2_text_subgoal.md](research_20261012_egvla2_text_subgoal.md) §1-4
-> 상태: **승인 대기 — 아직 코드 작성 안 함**
+> 상태: **구현·실험 완료 (2026-10-13) — 결과: 텍스트 결합 PM 하락(채택 근거 없음)**
 
 ## 0. 범위 재확인
 
@@ -98,9 +98,18 @@ Exp54 5-Track 검증([[project_exp54_5track_validation]])과 동일한 masking/p
 
 ## 4. 체크리스트 (승인 후 진행)
 
-- [ ] V6 5-direction 텍스트 템플릿 작성
-- [ ] `precompute_v6_text_embeddings.py` 작성 + 캐시 생성 (`.venv`)
-- [ ] `TextBBoxSteeredMLP` 구현
-- [ ] 10-seed PM 비교: `steered_reg`(bbox만) vs `text_bbox_steered`(bbox+text)
-- [ ] 텍스트 영향력 프로브 실행 + flip rate 기록
-- [ ] 결과 CH73에 반영(PM 주지표, closed-loop는 참고로 명시) + 로컬호스트 링크
+- [x] V6 5-direction 텍스트 템플릿 작성
+- [x] `precompute_v6_text_embeddings.py` 작성 + 캐시 생성 (`.venv`)
+- [x] `TextBBoxSteeredMLP` 구현
+- [x] 10-seed PM 비교: `steered_reg`(bbox만) vs `text_bbox_steered`(bbox+text)
+- [x] 텍스트 영향력 프로브 실행 + flip rate 기록
+- [x] 결과 CH73에 반영(PM 주지표, closed-loop는 참고로 명시) + 로컬호스트 링크
+
+## 5. 결과 (2026-10-13, V6 10-seed, F2 캐시 입력)
+
+- steered_reg(bbox만) 78.33±1.28% vs text_steered_reg 76.92±0.80% — Δ−1.41%p, p=0.0003 (텍스트가 오히려 하락)
+- 프로브(테스트셋 전체, 학습 종료 가중치): 정상 75.4% / 다른 방향 text 69.9%(−5.5%p, p=0.015) / 0벡터 72.4%, flip 13.2%±10.6%(seed별 1.8~24.6%) → 텍스트는 쓰이지만 불안정
+- CLIP 방향 임베딩 코사인(weak_left↔weak_right 0.98)이 left/right를 거의 구분 못 함 — 유력 원인(미검증)
+- 계획 대비 변경: CLIP-L/14 text 768-d(로컬 캐시, B/32 아님), 베이스라인을 F2 캐시 입력으로(빠른 paired 비교), 영어 템플릿 3종/방향, 프로브는 단일 샘플이 아닌 테스트셋 전체 교체로 `eval_subgoal_steering_text_v6.py`에 통합(`eval_text_influence_probe.py` 별도 파일은 만들지 않음)
+- 산출: `docs/v5/subgoal_steering_eval/summary_text_steering_v6.json`
+- 후속 후보(미착수): 방향 one-hot/학습형 토큰 대조(CLIP 한계 분리), text_proj 차원 16/64 스윕

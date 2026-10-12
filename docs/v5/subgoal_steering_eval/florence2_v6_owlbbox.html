@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>서브골 조향 확장 실험 (10 seeds + 유의성 + 정규화)</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }
+  h1 { font-size: 1.7rem; margin-bottom: 8px; }
+  .sub { color: #94a3b8; margin-bottom: 24px; max-width: 900px; line-height: 1.6; }
+  .back { color: #60a5fa; text-decoration: none; display: inline-block; margin-bottom: 16px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .box { background: #1e293b; padding: 14px 16px; border-radius: 10px; }
+  .num { font-size: 1.9rem; font-weight: 800; }
+  table { border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; width: 100%; margin-top: 16px; font-size: 0.85rem; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #334155; text-align: left; }
+  th { background: #0b1220; }
+  .diag { background: #172554; border-left: 4px solid #60a5fa; padding: 14px 18px; border-radius: 6px; color: #dbeafe; margin-top: 20px; line-height: 1.8; }
+  .caveat { background: #3f1d1d; border-left: 4px solid #f87171; padding: 14px 18px; border-radius: 6px; color: #fecaca; margin-top: 16px; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <a class="back" href="index.html">← 이전(5-seed) 리포트</a>
+  <h1>서브골 조향 확장 실험 — 10 seeds + 유의성 + 파라미터 매칭 + 그라운딩 실패 정규화</h1>
+  <p class="sub">
+    concat(원본) / concat_small(파라미터를 steered와 맞춘 축소판) / steered(FiLM) / steered_reg(그라운딩 실패 시 identity 유도 정규화 추가)
+    4조건을 15 seed로 비교.
+  </p>
+
+  <div class="grid4">
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">Concat-MLP (110k params)</div>
+      <div class="num" style="color:#60a5fa;">76.8%</div>
+      <div style="color:#64748b;">± 1.0% (10 seeds) · params=241608</div>
+      <div style="color:#64748b;">test_loss=1.413</div>
+      <div style="color:#64748b; margin-top:6px;">has_bbox=False 정확도: 86.3%</div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">Concat-Small (파라미터 매칭)</div>
+      <div class="num" style="color:#38bdf8;">76.7%</div>
+      <div style="color:#64748b;">± 1.2% (10 seeds) · params=145464</div>
+      <div style="color:#64748b;">test_loss=1.336</div>
+      <div style="color:#64748b; margin-top:6px;">has_bbox=False 정확도: 84.2%</div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">Subgoal-Steered FiLM</div>
+      <div class="num" style="color:#22c55e;">78.4%</div>
+      <div style="color:#64748b;">± 1.0% (10 seeds) · params=144872</div>
+      <div style="color:#64748b;">test_loss=1.546</div>
+      <div style="color:#64748b; margin-top:6px;">has_bbox=False 정확도: 85.4%</div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">Steered + Identity 정규화</div>
+      <div class="num" style="color:#a78bfa;">78.4%</div>
+      <div style="color:#64748b;">± 1.2% (10 seeds) · params=144872</div>
+      <div style="color:#64748b;">test_loss=1.591</div>
+      <div style="color:#64748b; margin-top:6px;">has_bbox=False 정확도: 83.3%</div>
+    </div>
+  </div>
+
+  <h2>PM per Path Type (15-seed 평균)</h2>
+  <table>
+    <tr><th>Path Type</th><th style='color:#60a5fa'>Concat-MLP (110k params)</th><th style='color:#38bdf8'>Concat-Small (파라미터 매칭)</th><th style='color:#22c55e'>Subgoal-Steered FiLM</th><th style='color:#a78bfa'>Steered + Identity 정규화</th></tr>
+    <tr><td>center_straight</td><td>87.2%</td><td>86.6%</td><td>90.8%</td><td>91.3%</td></tr><tr><td>center_left_curve</td><td>64.0%</td><td>63.1%</td><td>64.8%</td><td>65.3%</td></tr><tr><td>center_right_curve</td><td>72.2%</td><td>73.8%</td><td>74.5%</td><td>76.0%</td></tr><tr><td>weak_left_straight</td><td>87.5%</td><td>87.3%</td><td>90.2%</td><td>89.4%</td></tr><tr><td>weak_left_left_curve</td><td>69.2%</td><td>69.2%</td><td>71.1%</td><td>69.9%</td></tr><tr><td>weak_left_right_curve</td><td>82.7%</td><td>82.0%</td><td>84.5%</td><td>84.1%</td></tr><tr><td>weak_right_straight</td><td>86.7%</td><td>86.8%</td><td>88.8%</td><td>88.6%</td></tr><tr><td>weak_right_left_curve</td><td>58.4%</td><td>58.2%</td><td>60.7%</td><td>60.4%</td></tr><tr><td>weak_right_right_curve</td><td>72.2%</td><td>71.6%</td><td>73.5%</td><td>73.6%</td></tr><tr><td>strong_left_straight</td><td>91.9%</td><td>91.6%</td><td>93.1%</td><td>93.1%</td></tr><tr><td>strong_left_left_curve</td><td>74.3%</td><td>74.3%</td><td>76.1%</td><td>76.5%</td></tr><tr><td>strong_left_right_curve</td><td>84.5%</td><td>83.8%</td><td>84.7%</td><td>85.9%</td></tr><tr><td>strong_right_straight</td><td>93.1%</td><td>93.8%</td><td>94.5%</td><td>94.2%</td></tr><tr><td>strong_right_left_curve</td><td>74.2%</td><td>73.9%</td><td>74.1%</td><td>74.2%</td></tr><tr><td>strong_right_right_curve</td><td>66.0%</td><td>66.5%</td><td>67.2%</td><td>66.8%</td></tr>
+  </table>
+
+  <div class="diag">
+    <strong>Paired 유의성 (수동 paired t-test, df=14)</strong><br>
+    steered vs concat(원본): Δ=+0.0159, t=7.360, p=4.279483244418181e-05<br>
+    steered vs concat_small(파라미터 매칭): Δ=+0.0168, t=6.658, p=9.289180795835073e-05<br>
+    steered_reg vs steered: Δ=+0.0002, t=0.112, p=0.9129455072108872
+  </div>
+
+  <div class="caveat">
+    <strong>범위 한계</strong><br>
+    · bbox는 오프라인 캐시 그라운딩 재생 — 실시간 추론 아님<br>
+    · 8-class 이산 타겟만 다룸 — flow-matching/연속 액션과 무관<br>
+    · 45 에피소드 소규모 예비 실험, closed-loop 실주행 평가는 별도 과제(백로그 CH73-4)
+  </div>
+</body>
+</html>
