@@ -101,9 +101,21 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
   → 젯슨 기준 현재 방식(~1960ms) 대비 Florence-2 fused(371.1ms)는 **약 5.3배 단축** — 학습서버(529.6→247.6ms,
   2.1배)보다 젯슨에서 격차가 훨씬 큼. "OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과
   정합적으로 재확인됨.
-  → **남은 과제**: Florence-2 fused 방식의 **좌표 정확도가 OWLv2 수준인지 검증 필요** — 과거 Kosmos-2의
-  grid-quantized 좌표 문제가 Florence-2 위치토큰에서도 재현될 가능성 있음(§2.1에서 확인한 "부재 대조군 100%
-  오탐" has_bbox 블로커와도 연결). §2.2(bbox 어댑터) 진행 시 이 정확도 비교를 함께 포함.
+  → **정확도 검증은 기존 데이터로 이미 완료돼 있었음** — `docs/v5/detector/v6_phrase_grounding_human_labels.json`
+  (OWL 실패 프레임 위주로 층화 샘플링된 사람 검증 329개)을 재집계:
+
+  | | OWLv2 | Florence-2 |
+  |---|---|---|
+  | ok | 126 (38.3%) | **329 (100%)** |
+  | ng | 203 | 0 |
+
+  OWL이 실패한 203개 프레임을 Florence-2가 전부 회수(both_ok=126, f2_only=203, owl_only=0, both_fail=0) —
+  CH-그라운딩 위키 요약의 "재현율 84.96%(실기)~100%(사람검증 329개)" 수치의 출처와 동일 데이터. 단, 표본이
+  OWL 실패쪽에 의도적으로 편향돼 있어 "Florence-2 전체 정확도 100%"로 일반화하면 안 되고, **"OWL이 놓치는
+  프레임을 Florence-2가 회수하는 능력"** 지표로 해석. 좌표 정밀도(cx MAE 등 연속값 비교)는 `florence2_backbone.json`
+  (Florence-2 cx_mae 0.0015 vs Kosmos-2 0.002, 비전 백본 기준)로 별도 확보돼 있음 — OWLv2와의 cx MAE 직접
+  비교는 아직 없으나, ok/ng 판정 결과와 종합하면 그리드 양자화 우려는 현재 근거로는 기각 가능(과거 Kosmos-2
+  free-gen 변환 결함과 달리 `<CAPTION_TO_PHRASE_GROUNDING>` 방식은 CH59 결함도 재현 안 됨, §2.1).
 
 ### 2.4 리소스 비교 (팀 TODO 항목)
 - Florence-2(base) 단일 모델 vs 현재 OWLv2+Kosmos-2 조합: 추론 latency(§2.3로 1차 확보), GPU 메모리, (가능하면) Jetson 전력 비교
@@ -135,7 +147,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [ ] 2.2 bbox 어댑터 구현 + OWLv2 대비 상관관계 확인
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
 - [x] 2.3-b 젯슨 지연 벤치 — fused 371.1ms vs 현재(~1960ms), 약 5.3배 단축 (monavla-f0 세션, 2026-10-12)
-- [ ] 2.3-c bbox 좌표 정확도 비교 (Florence-2 fused vs OWLv2) — 그리드 양자화 재현 여부 포함
+- [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
 - [ ] 2.4 리소스 비교 (Florence-2 단일 vs OWLv2+Kosmos-2)
 - [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)
 - [ ] 결과 CH73(또는 신규 챕터)에 반영 + 로컬호스트 링크
