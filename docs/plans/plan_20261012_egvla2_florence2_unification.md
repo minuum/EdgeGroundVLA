@@ -98,7 +98,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
   재사용 불가능 — `_encode_image()`를 **직접 1회 호출**해서 (1) bbox 생성용 디코더 입력과 (2) action head용
   비전 특징을 동시에 얻는 방식으로 실제 fused 버전을 구현·검증함. 재사용 가능한 vision feature shape:
   `(1, 577, 768)`.
-  → 젯슨 기준 현재 방식(~1960ms) 대비 Florence-2 fused(371.1ms)는 **약 5.3배 단축** — 학습서버(529.6→247.6ms,
+  → (정정 전 기재, 아래 2.3-b 체크 참고) 젯슨 기준 일반 HF 파이프라인(~1960ms) 대비 Florence-2 fused(371.1ms)는 약 5.3배였으나 프로덕션 기준선은 994ms(2.7배) — 학습서버(529.6→247.6ms,
   2.1배)보다 젯슨에서 격차가 훨씬 큼. "OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과
   정합적으로 재확인됨.
   → **정확도 검증은 기존 데이터로 이미 완료돼 있었음** — `docs/v5/detector/v6_phrase_grounding_human_labels.json`
@@ -146,7 +146,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [ ] 2.1 CH59 결함 재발 확인 (V6 200프레임)
 - [x] 2.2 bbox 어댑터 구현 + OWLv2 대비 검증 — `scripts/florence2_bbox_adapter.py`, V6 15프레임 cx 상관 0.991 / has_bbox 일치 15/15 (면적 기반 휴리스틱, 임계값 캘리브레이션은 백로그)
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
-- [x] 2.3-b 젯슨 지연 벤치 — fused 371.1ms vs 현재(~1960ms), 약 5.3배 단축 (monavla-f0 세션, 2026-10-12)
+- [x] 2.3-b 젯슨 지연 벤치 — fused 371.1ms. **정정**: 현재 기준선 ≈1960ms는 일반 HF 파이프라인 값이라 비교조건 불일치, 프로덕션 하니스(OwlV2Grounder+Stage1Encoder 순차) 기준 994ms → **약 2.7배**(계산량비 1277/467=2.7배와 일치, CH74-8). 서버·젯슨 동일조건 재측정: `scripts/bench_egvla2_unified.py` (대기)
 - [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
 - [ ] 2.4 리소스 비교 (Florence-2 단일 vs OWLv2+Kosmos-2)
 - [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)

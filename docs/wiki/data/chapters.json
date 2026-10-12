@@ -2393,17 +2393,17 @@
       {
         "kind": "finding-card",
         "title": "🧭 74-1. EGVLA2 팀 합의와 핵심 수치",
-        "text": "5.3×\n젯슨 지연 1960→371ms\n100%\nF2 사람검증 329 (OWL 38.3%)\n0.991\n어댑터 cx 상관 (vs OWLv2)\n15/15\nhas_bbox 판정 일치\n항목현재EGVLA2 (팀 합의 2026-10-12)\nBackbone\nOWLv2(G) + Kosmos-2(V) 2모델\nFlorence-2 단일(G+V)\n액션 헤드\nMLP\nFM(FiLM) — CH73 SubgoalSteeredMLP와 동일 방향\n담당\n—\nEdgeGround-VLA 리서치: 동환 · 최신 VLA 사례: 이민우\n문서내용\nplan_20261012_egvla2_florence2_unification.md\n① Florence-2 단일 백본 전환 (§2.1~2.3 완료, §2.5 진행)\nplan_20261012_egvla2_text_subgoal_film.md\n② CLIP text(frozen) 결합 서브골 FiLM (대기)\nresearch_20261012_egvla2_text_subgoal.md\n공통 리서치 (텍스트 인코더·환경·스키마 정합)"
+        "text": "2.7×\n젯슨 지연 994→371ms (프로덕션 기준)\n100%\nF2 사람검증 329 (OWL 38.3%)\n0.991\n어댑터 cx 상관 (vs OWLv2)\n15/15\nhas_bbox 판정 일치\n항목현재EGVLA2 (팀 합의 2026-10-12)\nBackbone\nOWLv2(G) + Kosmos-2(V) 2모델\nFlorence-2 단일(G+V)\n액션 헤드\nMLP\nFM(FiLM) — CH73 SubgoalSteeredMLP와 동일 방향\n담당\n—\nEdgeGround-VLA 리서치: 동환 · 최신 VLA 사례: 이민우\n문서내용\nplan_20261012_egvla2_florence2_unification.md\n① Florence-2 단일 백본 전환 (§2.1~2.3 완료, §2.5 진행)\nplan_20261012_egvla2_text_subgoal_film.md\n② CLIP text(frozen) 결합 서브골 FiLM (대기)\nresearch_20261012_egvla2_text_subgoal.md\n공통 리서치 (텍스트 인코더·환경·스키마 정합)"
       },
       {
         "kind": "finding-card",
         "title": "🗺 74-2. 구조도 — 2모델 vs Florence-2 fused",
-        "text": "① 전환 전/후 파이프라인\n현재 — 2모델 (젯슨 ≈1960ms)RGB 프레임OWLv2그라운더 1915msKosmos-2 비전특징 ~45msbboxcx,cy,area,hasimage_feat16×16 / 256-dMLP / FiLM 헤드8-class actionEGVLA2 — Florence-2 단일 (젯슨 371ms)RGB 프레임Florence-2 · _encode_image 1회(1, 577, 768) 비전 특징LM 디코드(beam3)위치토큰 → 박스평균풀링 768-dimage_featbbox 어댑터has_bbox=면적규칙FiLM 헤드 → action② fused 순전파 상세 — 비전 인코딩 1회로 bbox와 특징 동시 획득\n프레임720×1280 BGR→RGBprocessor768×768 + 프롬프트_encode_image()DaViT · 1회만 호출merge(프롬프트 임베딩)mean-pool(577토큰)→ 768-d image_feat분기 A분기 BLM.generate368msloc 토큰→박스post_processadaptercx,cy,area,hasSubgoalSteeredMLP — FiLM(γ,β) ⊙ image_feat※ 공개 generate()는 비전특징을 지역변수로 버림 → _encode_image를 직접 1회 호출해 A·B 분기가 공유"
+        "text": "① 전환 전/후 파이프라인\n현재 — 2모델 (젯슨 프로덕션 994ms)RGB 프레임OWLv2그라운더 942msKosmos-2 비전특징 51msbboxcx,cy,area,hasimage_feat16×16 / 256-dMLP / FiLM 헤드8-class actionEGVLA2 — Florence-2 단일 (젯슨 371ms)RGB 프레임Florence-2 · _encode_image 1회(1, 577, 768) 비전 특징LM 디코드(beam3)위치토큰 → 박스평균풀링 768-dimage_featbbox 어댑터has_bbox=면적규칙FiLM 헤드 → action② fused 순전파 상세 — 비전 인코딩 1회로 bbox와 특징 동시 획득\n프레임720×1280 BGR→RGBprocessor768×768 + 프롬프트_encode_image()DaViT · 1회만 호출merge(프롬프트 임베딩)mean-pool(577토큰)→ 768-d image_feat분기 A분기 BLM.generate368msloc 토큰→박스post_processadaptercx,cy,area,hasSubgoalSteeredMLP — FiLM(γ,β) ⊙ image_feat※ 공개 generate()는 비전특징을 지역변수로 버림 → _encode_image를 직접 1회 호출해 A·B 분기가 공유"
       },
       {
         "kind": "finding-card",
         "title": "⏱ 74-3. 실측 속도 — 학습서버 vs 젯슨",
-        "text": "학습서버 (GPU)OWLv2 (fwd+post)529.6 msFlorence-2 (generate)247.6 ms · 2.1×F2 비전만(별도 fwd)93.7 ms젯슨 Orin NX (로봇)현재 OWLv2+Kosmos-2≈1960 msF2 분리 호출575.2 msF2 fused (1회)371.1 ms · 5.3×환경현재F2 분리F2 fused단축\n학습서버(GPU)\n529.6±52.6 (OWLv2)\n341.3 (247.6+93.7)\n247.6±5.9\n2.1×\n젯슨 Orin NX\n≈1960 (OWLv2 1915.6±25.7 + Kosmos ~3%)\n575.2\n371.1±2.7\n5.3×\nOWLv2 젯슨 1915.6ms는 논문 Table10(1901.7ms)과 일치. fused는 plain generate(367.6ms) 대비 +3.5ms로 재사용 비용이 사실상 0. 스크립트 scripts/bench_grounder_vs_florence2.py, 젯슨 실측은 로봇 접속 세션이 수행."
+        "text": "학습서버 (GPU)OWLv2 (fwd+post)529.6 msFlorence-2 (generate)247.6 ms · 2.1×F2 비전만(별도 fwd)93.7 ms젯슨 Orin NX (로봇)현재(프로덕션) OWLv2+Kosmos-2994 ms (프로덕션: OWL 942 + Kosmos 51)F2 분리 호출575.2 msF2 fused (1회)371.1 ms · 2.7×환경현재F2 분리F2 fused단축\n학습서버(GPU)\n529.6±52.6 (OWLv2)\n341.3 (247.6+93.7)\n247.6±5.9\n2.1×\n젯슨 Orin NX\n994 (프로덕션 하니스: OWL 942 + Kosmos 51) · 참고: 일반 HF 파이프라인 ≈1960\n575.2\n371.1±2.7\n2.7×\nOWLv2 젯슨 1915.6ms는 논문 Table10(1901.7ms)과 일치. fused는 plain generate(367.6ms) 대비 +3.5ms로 재사용 비용이 사실상 0. 스크립트 scripts/bench_grounder_vs_florence2.py, 젯슨 실측은 로봇 접속 세션이 수행."
       },
       {
         "kind": "finding-card",

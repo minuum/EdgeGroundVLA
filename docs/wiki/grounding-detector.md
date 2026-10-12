@@ -14,7 +14,7 @@
 
 경량화 방향에서는 Florence-2 비전 백본(90.4M)이 Kosmos-2(303.2M)보다 좌표 정확도가 더 좋고(cx MAE 0.0015 vs 0.0020), 심지어 MobileNetV3-Small(0.93M)도 동등한 성능을 내 "좌표 회귀는 큰 백본이 필요 없다"는 결론에 도달했다. 다만 Florence-2를 검출기(부재 판정 포함)로 쓰는 건 실패했었는데, 이는 열린 질문 방식(`<OD>`/`<DENSE_REGION_CAPTION>`, 재현율 상한 34.7%)만 시도했기 때문이었고, OWL-v2처럼 phrase를 직접 지정하는 `<CAPTION_TO_PHRASE_GROUNDING>` 방식으로 바꾸자 재현율이 84.96%(실기)~100%(사람 검증 329개)로 급등해 판정이 뒤집혔다. 이 새 그라운더로 재학습한 exp77은 무작위 split 기준 역대 최고(75.58%)지만, 목표 방향을 통째로 제외한 leave-one-direction-out 검증에서는 현재 배포 모델(exp73, 60.85%)보다 오히려 나쁨(54.0%, 특히 우측 방향 취약)이 확인돼 아직 배포 권장 단계는 아니다.
 
-2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 `<CAPTION_TO_PHRASE_GROUNDING>`은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 `has_bbox`를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 이후 실측으로 Florence-2 fused(`_encode_image` 1회 호출로 bbox+비전특징 동시 획득)가 젯슨에서 371.1ms로 현재 OWLv2+Kosmos-2(~1960ms) 대비 5.3배(학습서버는 2.1배), 사람검증 329개에서도 OWL 실패 203개를 전부 회수(OWL ok 38.3% vs F2 100%, 표본은 OWL 실패 편향)해 전환 근거가 속도·정확도 양쪽에서 확보됐고, 면적 기반 has_bbox 어댑터는 V6 15프레임에서 OWLv2와 cx 상관 0.991·판정 15/15 일치했다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(`scripts/label/*.py`)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(`serve_v6_phrase_grounding_verify.py`, 포트 7796, 182개 라벨 미완).
+2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 `<CAPTION_TO_PHRASE_GROUNDING>`은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 `has_bbox`를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 이후 실측으로 Florence-2 fused(`_encode_image` 1회 호출로 bbox+비전특징 동시 획득)가 젯슨에서 371.1ms로 현재 OWLv2+Kosmos-2 프로덕션(994ms) 대비 2.7배(계산량 1277→467 GFLOPs, 파라미터 458M→231M도 같은 비율; 일반 HF 파이프라인 ≈1960ms 기준의 5.3배는 비교조건 불일치로 정정, 학습서버/젯슨 규격 재측정 예정), 사람검증 329개에서도 OWL 실패 203개를 전부 회수(OWL ok 38.3% vs F2 100%, 표본은 OWL 실패 편향)해 전환 근거가 속도·정확도 양쪽에서 확보됐고, 면적 기반 has_bbox 어댑터는 V6 15프레임에서 OWLv2와 cx 상관 0.991·판정 15/15 일치했다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(`scripts/label/*.py`)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(`serve_v6_phrase_grounding_verify.py`, 포트 7796, 182개 라벨 미완).
 
 미해결/논쟁 중: exp73 89% 성공에서 체크포인트 교체와 threshold+회복가드 중 어느 쪽이 주된 개선 요인인지는 통계적으로 확정 불가(둘 다 +23~48%p 규모로 크고 순위가 추정 방식에 따라 뒤집힘) — 동일 위치 A/B 재수집이 필요하다.
 
@@ -4552,8 +4552,8 @@ exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 �
 
 **🧭 74-1. EGVLA2 팀 합의와 핵심 수치**
 
-5.3×
-젯슨 지연 1960→371ms
+2.7×
+젯슨 지연 994→371ms (프로덕션 기준)
 100%
 F2 사람검증 329 (OWL 38.3%)
 0.991
@@ -4585,7 +4585,7 @@ research_20261012_egvla2_text_subgoal.md
 **🗺 74-2. 구조도 — 2모델 vs Florence-2 fused**
 
 ① 전환 전/후 파이프라인
-현재 — 2모델 (젯슨 ≈1960ms)RGB 프레임OWLv2그라운더 1915msKosmos-2 비전특징 ~45msbboxcx,cy,area,hasimage_feat16×16 / 256-dMLP / FiLM 헤드8-class actionEGVLA2 — Florence-2 단일 (젯슨 371ms)RGB 프레임Florence-2 · _encode_image 1회(1, 577, 768) 비전 특징LM 디코드(beam3)위치토큰 → 박스평균풀링 768-dimage_featbbox 어댑터has_bbox=면적규칙FiLM 헤드 → action② fused 순전파 상세 — 비전 인코딩 1회로 bbox와 특징 동시 획득
+현재 — 2모델 (젯슨 프로덕션 994ms)RGB 프레임OWLv2그라운더 942msKosmos-2 비전특징 51msbboxcx,cy,area,hasimage_feat16×16 / 256-dMLP / FiLM 헤드8-class actionEGVLA2 — Florence-2 단일 (젯슨 371ms)RGB 프레임Florence-2 · _encode_image 1회(1, 577, 768) 비전 특징LM 디코드(beam3)위치토큰 → 박스평균풀링 768-dimage_featbbox 어댑터has_bbox=면적규칙FiLM 헤드 → action② fused 순전파 상세 — 비전 인코딩 1회로 bbox와 특징 동시 획득
 프레임720×1280 BGR→RGBprocessor768×768 + 프롬프트_encode_image()DaViT · 1회만 호출merge(프롬프트 임베딩)mean-pool(577토큰)→ 768-d image_feat분기 A분기 BLM.generate368msloc 토큰→박스post_processadaptercx,cy,area,hasSubgoalSteeredMLP — FiLM(γ,β) ⊙ image_feat※ 공개 generate()는 비전특징을 지역변수로 버림 → _encode_image를 직접 1회 호출해 A·B 분기가 공유
 
 </div>
@@ -4594,17 +4594,17 @@ research_20261012_egvla2_text_subgoal.md
 
 **⏱ 74-3. 실측 속도 — 학습서버 vs 젯슨**
 
-학습서버 (GPU)OWLv2 (fwd+post)529.6 msFlorence-2 (generate)247.6 ms · 2.1×F2 비전만(별도 fwd)93.7 ms젯슨 Orin NX (로봇)현재 OWLv2+Kosmos-2≈1960 msF2 분리 호출575.2 msF2 fused (1회)371.1 ms · 5.3×환경현재F2 분리F2 fused단축
+학습서버 (GPU)OWLv2 (fwd+post)529.6 msFlorence-2 (generate)247.6 ms · 2.1×F2 비전만(별도 fwd)93.7 ms젯슨 Orin NX (로봇)현재(프로덕션) OWLv2+Kosmos-2994 ms (프로덕션: OWL 942 + Kosmos 51)F2 분리 호출575.2 msF2 fused (1회)371.1 ms · 2.7×환경현재F2 분리F2 fused단축
 학습서버(GPU)
 529.6±52.6 (OWLv2)
 341.3 (247.6+93.7)
 247.6±5.9
 2.1×
 젯슨 Orin NX
-≈1960 (OWLv2 1915.6±25.7 + Kosmos ~3%)
+994 (프로덕션 하니스: OWL 942 + Kosmos 51) · 참고: 일반 HF 파이프라인 ≈1960
 575.2
 371.1±2.7
-5.3×
+2.7×
 OWLv2 젯슨 1915.6ms는 논문 Table10(1901.7ms)과 일치. fused는 plain generate(367.6ms) 대비 +3.5ms로 재사용 비용이 사실상 0. 스크립트 scripts/bench_grounder_vs_florence2.py, 젯슨 실측은 로봇 접속 세션이 수행.
 
 </div>
