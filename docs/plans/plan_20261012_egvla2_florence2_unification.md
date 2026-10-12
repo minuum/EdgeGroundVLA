@@ -66,13 +66,24 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
   - (c) 동일 프레임에 대해 OWLv2 `detected` 플래그를 당분간 **공동 신뢰도 게이트**로 병행 사용(Florence-2 bbox 좌표 + OWLv2 detected 플래그) — 가장 간단하지만 "One model" 목표와 어긋나므로 임시방편으로만 표기
   - 셋 중 어느 걸 쓸지는 V6 200프레임 기준 (a)/(b) 각각의 정밀도·재현율을 뽑아보고 결정 (§2.1 데이터로 바로 분석 가능 — 추가 모델 호출 불필요)
 
-### 2.3 동시 vs 분리 forward 비교 (팀 TODO 항목)
+### 2.3 동시 vs 분리 forward 비교 (팀 TODO 항목) — 학습서버 1차 결과 확보 (2026-10-12)
 - (A) 분리: `<CAPTION_TO_PHRASE_GROUNDING>` 태스크 forward 1회 + 비전 전용 forward 1회 (현재 Kosmos-2 방식과 동일한 패턴)
 - (B) 동시: 그라운딩 forward의 encoder hidden state를 비전 특징으로 재사용(추가 forward 없음)
-- 측정: 2가지 방식 각각의 (지연시간, bbox 품질, PM) — Jetson 등 실제 추론 환경 기준 `scripts/measure_sequential_vs_threaded_grounding_florence2.py` 선례 패턴 재사용
+- 측정 스크립트: `scripts/bench_grounder_vs_florence2.py` (신규, 학습서버/젯슨 공용 — `torch.cuda.is_available()`로 디바이스 자동 분기)
+- **학습서버(GPU) 결과** (2026-10-12, n_iters=20):
+
+  | 측정 | 레이턴시 |
+  |---|---|
+  | OWLv2 (forward+postprocess) | 529.6±52.6 ms |
+  | Florence-2 그라운더(generate, beam=3) | **247.6±5.9 ms** |
+  | Florence-2 비전 인코더만(별도 forward) | 93.7±0.9 ms |
+
+  → 학습서버 기준 Florence-2 그라운더가 OWLv2보다 2배 이상 빠름(지금까지 CH59/67에서 본 "Florence-2가 느리다"는 인상은 전부 **젯슨** 측정이었음 — 환경별로 분리 보고 필요).
+  → `_encode_image`가 `generate()` 내부에 포함된 커스텀 오버라이드로 확인됨 — 분리 호출 시 247.6+93.7=341.3ms, **(B) 동시 재사용 시 247.6ms로 약 27% 절감** 가능.
+  → **미완료**: 젯슨 측정(이 세션에서 로봇 SSH 접근 불가 — 사용자가 직접 `scripts/bench_grounder_vs_florence2.py` 실행 필요), bbox 품질/PM 비교는 아직 안 함(§2.2 어댑터 완성 후 진행).
 
 ### 2.4 리소스 비교 (팀 TODO 항목)
-- Florence-2(base) 단일 모델 vs 현재 OWLv2+Kosmos-2 조합: 추론 latency, GPU 메모리, (가능하면) Jetson 전력 비교
+- Florence-2(base) 단일 모델 vs 현재 OWLv2+Kosmos-2 조합: 추론 latency(§2.3로 1차 확보), GPU 메모리, (가능하면) Jetson 전력 비교
 - 측정 스크립트는 기존 `scripts/ablate_preview_ft_v2.py`/`detector_backbone_sweep.py` 계열 패턴 재사용, 신규 비교 스크립트 1개만 추가
 
 ### 2.5 Stage 2 학습 재현
@@ -99,7 +110,9 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 
 - [ ] 2.1 CH59 결함 재발 확인 (V6 200프레임)
 - [ ] 2.2 bbox 어댑터 구현 + OWLv2 대비 상관관계 확인
-- [ ] 2.3 동시 vs 분리 forward 비교 (지연+PM)
+- [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
+- [ ] 2.3-b 젯슨 지연 벤치 (사용자 직접 실행 필요, `scripts/bench_grounder_vs_florence2.py`)
+- [ ] 2.3-c bbox 품질/PM 비교 (동시 vs 분리)
 - [ ] 2.4 리소스 비교 (Florence-2 단일 vs OWLv2+Kosmos-2)
 - [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)
 - [ ] 결과 CH73(또는 신규 챕터)에 반영 + 로컬호스트 링크
