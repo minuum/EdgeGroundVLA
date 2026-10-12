@@ -4099,139 +4099,183 @@ exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 �
 </div>
 <div class="chapter-block accent-e">
 <div class="chapter-block-head"><span class="chapter-badge">CH 74</span> EGVLA2 — Florence-2 단일화·텍스트 서브골 리서치 + 그라운딩 비교 라벨링 도구 카탈로그</div>
-<p class="chapter-subtitle-line">2026-10-12 ·
-팀 미팅(동환님과 공동)에서 EGVLA2 방향을 OWLv2+Kosmos-2 두 모델 → Florence-2
-단일 백본 + 액션헤드 MLP→FM(FiLM)으로 합의, CH73의 FiLM
-서브골 조향 실험과 같은 방향임을 확인했다. Florence-2 전환과 텍스트 서브골 결합을 각각 리서치·plan.md로
-분리 작성했고, 1번(Florence-2 전환) 사전 점검에서 CH59 결함 재현 여부를 다시 확인했다. 또한 과거에
-만들어둔 그라운더 비교용 키보드 라벨링 도구들을 분실 방지 차원에서 한곳에 정리한다.</p>
+<p class="chapter-subtitle-line">2026-10-12 · 팀 합의로 EGVLA2를 OWLv2+Kosmos-2 → Florence-2 단일 백본 + 액션헤드 FiLM으로 정하고, 전환 가능성을 속도·정확도·어댑터 3축으로 실측했다. 아래 탭에서 구조도·실측·실제 프레임 사례를 확인한다.</p>
 <div class="card">
 <p>🟢 3줄 요약
-① 팀 합의 EGVLA2 방향: Florence-2 단일 백본(그라운딩+비전 통합) +
-액션헤드 FiLM — plan을 Florence-2 전환과 텍스트 서브골 결합으로
-분리 작성.
-② Florence-2 전환 §2.1 사전점검: CH59 cx 포화 결함(0.559에서 막힘)은 재현
-안 됨(cx max 0.9955)이지만, 신규 블로커 발견 — Florence-2
-phrase grounding은 score가 없어 부재 대조군("microwave oven")도 100% 검출(OWLv2는 5.0%) → <code>has_bbox</code>
-재정의가 선행 과제로 추가됨.
-③ 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운딩 비교
-키보드 라벨링 도구 9종을 용도별로 카탈로그화(아래 74-2) — 다음에 또 찾아 헤매지 않도록 기록.</p>
+① 젯슨 기준 Florence-2 fused 371ms vs 현재 ≈1960ms (5.3×), 학습서버 2.1×.
+② 사람검증 329개에서 OWL이 놓친 203프레임을 Florence-2가 전부 회수. 신규 블로커(score 없음 → 부재 오탐 100%)는 면적 규칙 has_bbox로 우회(cx 상관 0.991).
+③ 진행: §2.5 Florence-2 입력으로 FiLM 서브골 조향(CH73) 재현 — Stage 1 캐시 → Stage 2 10-seed.
+.c74-bar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.c74-btn{background:#0d1420;border:1px solid #1e293b;color:#94a3b8;padding:7px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer}
+.c74-btn:hover{border-color:#f472b6;color:#f9a8d4}
+.c74-btn.on{background:#2a0a1e;border-color:#f472b6;color:#f9a8d4}
+📌 개요🗺 구조도⏱ 실측 속도🖼 정확도·실제 사례🧩 어댑터·has_bbox🔄 진행 §2.5🧰 도구 카탈로그</p>
 </div>
 <div class="card">
-<p><strong>🧭 74-1. EGVLA2 팀 합의 + plan 분리</strong></p>
-<p>Backbone 변경: Two models(G,V): OWLv2(그라운딩)+Kosmos-2(비전)
-→ One model(G,V): Florence-2.
-액션 헤드 변경: MLP → FM(FiLM) — CH73에서 검증한 SubgoalSteeredMLP 구조와 정확히
-같은 방향. 사용자 요청으로 두 축을 독립 plan으로 분리:
-· docs/plans/plan_20261012_egvla2_florence2_unification.md — Florence-2 단일 백본 전환
-(그라운딩+비전 통합, bbox 스키마 정합, 리소스 비교)
-· docs/plans/plan_20261012_egvla2_text_subgoal_film.md — 서브골 FiLM에 CLIP text(frozen)
-결합, V6 5-direction 신규 템플릿, 텍스트 영향력 검증 프로브
-리서치 근거: docs/plans/research_20261012_egvla2_text_subgoal.md (텍스트 인코더 가용성,
-.venv/.venv_lerobot 환경 분리 이슈, Florence-2 위치토큰→bbox 스키마 변환 선례 등 체크 완료).</p>
+<p><strong>🧭 74-1. EGVLA2 팀 합의와 핵심 수치</strong></p>
+<p>5.3×
+젯슨 지연 1960→371ms
+100%
+F2 사람검증 329 (OWL 38.3%)
+0.991
+어댑터 cx 상관 (vs OWLv2)
+15/15
+has_bbox 판정 일치
+항목현재EGVLA2 (팀 합의 2026-10-12)
+Backbone
+OWLv2(G) + Kosmos-2(V) 2모델
+Florence-2 단일(G+V)
+액션 헤드
+MLP
+FM(FiLM) — CH73 SubgoalSteeredMLP와 동일 방향
+담당
+—
+EdgeGround-VLA 리서치: 동환 · 최신 VLA 사례: 이민우
+문서내용
+plan_20261012_egvla2_florence2_unification.md
+① Florence-2 단일 백본 전환 (§2.1~2.3 완료, §2.5 진행)
+plan_20261012_egvla2_text_subgoal_film.md
+② CLIP text(frozen) 결합 서브골 FiLM (대기)
+research_20261012_egvla2_text_subgoal.md
+공통 리서치 (텍스트 인코더·환경·스키마 정합)</p>
 </div>
 <div class="card">
-<p><strong>⚠️ 74-2. Florence-2 전환 §2.1 사전점검 — CH59 결함은 해소, 새 블로커 발견</strong></p>
-<p>scripts/l1_florence2_grounder.py를 V6 200프레임(68-7과 동일 표본)에 재실행
-(docs/v5/detector/l1_florence2_grounder.json):
-· cx 포화 결함 재현 안 됨 — 예측 cx 최대값 0.9955(CH59 당시
-0.559에서 막힘) → "언어부/디코딩 경로" 결함은 해소된 것으로 확인.
-· 부재 대조군("microwave oven") 검출률 100%(OWLv2는 5.0%) —
-Florence-2 <CAPTION_TO_PHRASE_GROUNDING>은 score를 안 주고 대상이 없어도 항상
-박스를 반환함. 즉 "박스 유무"만으로는 has_bbox/detected 판단 불가 — bbox
-스키마 정합(plan §2.2)에 "박스 크기/종횡비 이상치 필터" 또는 "OWLv2 detected 플래그 임시 병행" 같은
-대안을 선행 과제로 추가함.</p>
+<p><strong>🗺 74-2. 구조도 — 2모델 vs Florence-2 fused</strong></p>
+<p>① 전환 전/후 파이프라인
+현재 — 2모델 (젯슨 ≈1960ms)RGB 프레임OWLv2그라운더 1915msKosmos-2 비전특징 ~45msbboxcx,cy,area,hasimage_feat16×16 / 256-dMLP / FiLM 헤드8-class actionEGVLA2 — Florence-2 단일 (젯슨 371ms)RGB 프레임Florence-2 · _encode_image 1회(1, 577, 768) 비전 특징LM 디코드(beam3)위치토큰 → 박스평균풀링 768-dimage_featbbox 어댑터has_bbox=면적규칙FiLM 헤드 → action② fused 순전파 상세 — 비전 인코딩 1회로 bbox와 특징 동시 획득
+프레임720×1280 BGR→RGBprocessor768×768 + 프롬프트_encode_image()DaViT · 1회만 호출merge(프롬프트 임베딩)mean-pool(577토큰)→ 768-d image_feat분기 A분기 BLM.generate368msloc 토큰→박스post_processadaptercx,cy,area,hasSubgoalSteeredMLP — FiLM(γ,β) ⊙ image_feat※ 공개 generate()는 비전특징을 지역변수로 버림 → _encode_image를 직접 1회 호출해 A·B 분기가 공유</p>
 </div>
 <div class="card">
-<p><strong>🧰 74-3. 그라운딩 비교 키보드 라벨링 도구 카탈로그 (분실 방지용 정리)</strong></p>
-<p>과거 세션들에서 그라운더(OWLv2/PaliGemma2=PG2/Florence-2/Kosmos-2) 비교·검증용으로 만든 로컬 Flask
-라벨링 서버들. 전부 scripts/label/에 있고 파이프라인에는 끼워넣지 않은 연구용 도구다.
-카테고리
-스크립트 (포트)
-대상 데이터 / 모델
-상태
+<p><strong>⏱ 74-3. 실측 속도 — 학습서버 vs 젯슨</strong></p>
+<p>학습서버 (GPU)OWLv2 (fwd+post)529.6 msFlorence-2 (generate)247.6 ms · 2.1×F2 비전만(별도 fwd)93.7 ms젯슨 Orin NX (로봇)현재 OWLv2+Kosmos-2≈1960 msF2 분리 호출575.2 msF2 fused (1회)371.1 ms · 5.3×환경현재F2 분리F2 fused단축
+학습서버(GPU)
+529.6±52.6 (OWLv2)
+341.3 (247.6+93.7)
+247.6±5.9
+2.1×
+젯슨 Orin NX
+≈1960 (OWLv2 1915.6±25.7 + Kosmos ~3%)
+575.2
+371.1±2.7
+5.3×
+OWLv2 젯슨 1915.6ms는 논문 Table10(1901.7ms)과 일치. fused는 plain generate(367.6ms) 대비 +3.5ms로 재사용 비용이 사실상 0. 스크립트 scripts/bench_grounder_vs_florence2.py, 젯슨 실측은 로봇 접속 세션이 수행.</p>
+</div>
+<div class="card">
+<p><strong>🖼 74-4. 정확도 — 사람검증 329개와 실제 V6 프레임</strong></p>
+<p>126
+둘 다 성공 (both_ok)
+203
+F2만 성공 (OWL 실패 회수)
+0
+OWL만 성공
+0
+둘 다 실패
+실제 V6 프레임 — 주황 박스 = Florence-2, 청록 십자 = OWLv2 중심(미검출이면 없음)
+<img alt="V6 예시 0" src="../v5/egvla2_florence2/ex_0.jpg" />
+OWL ✗ → F2 ✓
+weak_right · left_curve
+F2 cx 0.720 · area 0.163
+OWL 미검출 · F2 회수
+<img alt="V6 예시 1" src="../v5/egvla2_florence2/ex_1.jpg" />
+OWL ✗ → F2 ✓
+center · left_curve
+F2 cx 0.339 · area 0.320
+OWL 미검출 · 근접(area 0.32)도 정상 판정
+<img alt="V6 예시 2" src="../v5/egvla2_florence2/ex_2.jpg" />
+OWL ✗ → F2 ✓
+strong_right · right_curve
+F2 cx 0.697 · area 0.027
+OWL 미검출 · 작은 원거리 목표
+<img alt="V6 예시 3" src="../v5/egvla2_florence2/ex_3.jpg" />
+OWL ✓ · F2 ✓
+strong_right · left_curve
+cx 0.496 vs 0.500
+둘 다 성공 · 십자=OWL 중심 / 박스=F2
+<img alt="V6 예시 4" src="../v5/egvla2_florence2/ex_4.jpg" />
+OWL ✓ · F2 ✓
+center · straight
+cx 0.522 vs 0.526
+둘 다 성공 · 중앙 직진
+표본 329개는 OWL 실패 프레임 위주로 층화 추출 → "Florence-2 전체 정확도 100%"가 아니라 "OWL이 놓친 프레임의 회수 능력" 지표. CH59 cx 포화(0.559) 결함은 재현 안 됨(cx max 0.9955).</p>
+</div>
+<div class="card">
+<p><strong>🧩 74-5. bbox 어댑터와 has_bbox 재정의</strong></p>
+<p>parsed bboxes[x1,y1,x2,y2]…비어있나?has_bbox=False예최대면적 박스cx,cy,area 정규화아니오0.0008 ≤ area ≤ 0.55?has_bbox=False노이즈/화면붕괴아니오has_bbox=True예단위 테스트cxareahas_bbox
+정상(화면 중앙 30%)
+0.500
+0.1875
+True
+노이즈(1px급)
+0.500
+0.0000
+False
+full-frame 붕괴
+0.496
+0.9853
+False
+박스 없음
+0.000
+0.0000
+False
+왜 필요한가: Florence-2 phrase grounding은 score가 없고 대상이 없어도 항상 박스를 반환(부재 대조군 "microwave oven" 검출률 100%, OWLv2 5.0%) → 박스 유무로는 has_bbox 불가. 면적 규칙(plan §2.2 대안 (a))으로 대체.
+한계: 임계값은 초기 추정치, 검증은 V6 15프레임(cx 상관 0.991, 15/15 일치)이라 부재/실패 프레임 검증은 백로그. 코드 scripts/florence2_bbox_adapter.py.</p>
+</div>
+<div class="card">
+<p><strong>🔄 74-6. 진행 중 — §2.5 Florence-2 기준 Stage 2 재현</strong></p>
+<p>V6 h5 225ep16,599 프레임Stage 1 · fused 전처리precompute_v6_florence2_fused.pyv6_florence2_cache.npzbbox(4) + feat(768) /프레임Stage 2 · 10-seed 학습eval_..._florence2_v6.py배치 8 · beam 3 · 약 35분concat / small / steered / reg단계상태비고
+Stage 1 캐시
+실행 중
+precompute_v6_florence2_fused.py, 에피소드당 ~9초, 부분저장·이어하기
+Stage 2 (4조건×10seed)
+대기
+IMG_DIM 256→768, 파라미터 재매칭 steered 144,872 ↔ concat_small 145,464 (0.4%↔), concat 241,608
+판정 기준
+—
+① F2 입력에서도 steered_reg&gt;concat 유의? ② OWLv2+16×16(72.37%) 대비 PM 변화? — PM이 주 지표, replay 성공률은 참고
+결과가 나오면 본 탭을 결과로 갱신.</p>
+</div>
+<div class="card">
+<p><strong>🧰 74-7. 그라운딩 비교 라벨링 도구 카탈로그</strong></p>
+<p>카테고리스크립트 (포트)대상 / 모델상태
 ① bbox 직접 검수
-(YOLO pre-annotation + 사람 검수)
 bbox_labeler.py (7788)
-billy 머신, bbox_truth_mini.json
+billy, bbox_truth_mini.json (YOLO pre-annot + 사람)
 보존
 ① bbox 직접 검수
 fallback_verify_labeler.py (7789)
-minum 머신 이식판, PG2 fallback(has_bbox=False) 프레임
+minum 이식판, PG2 fallback 프레임
 보존
 ② 다중 그라운더 비교
 fallback_grid_labeler.py (7791)
-PG2 fallback 185프레임, target_visible O/X/부분 + L/C/R
-1/185만 라벨됨(미완)
+PG2 fallback 185f, O/X/부분+L/C/R
+1/185 (미완)
 ② 다중 그라운더 비교
-serve_hsv_owlv2_labeler.py (7793)
-serve_hsv_owlv2_gallery.py (7792, 정적)
-CH54 프리뷰후보 H1/H2/OWLv2/PG2 4종, O/X + report/disagree/sessions 탭
-보존 (CH54 완료)
+serve_hsv_owlv2_labeler.py (7793) / gallery (7792)
+CH54 H1/H2/OWLv2/PG2, O/X + report/disagree/sessions 탭
+보존
 ② 다중 그라운더 비교
 serve_florence2_owl_compare.py (7795)
-0807 실기세션 1087프레임, OWLv2 vs Florence-2 + /live 실시간 테스트
+0807 실기 1087f, OWLv2 vs F2 + /live
 보존
-② 다중 그라운더 비교 ★
+② ★ 다중 그라운더 비교
 serve_v6_phrase_grounding_verify.py (7796)
-V6 학습셋 16,599프레임, OWLv2 vs Florence-2, 키보드 1/2/0+←→
-329개 라벨(182 미완) · 2026-10-12 재기동 확인
-③ 썸네일 생성(라벨러 미부착)
+V6 16,599f, OWLv2 vs F2, 키 1/2/0 + ←→
+329 라벨 (182 미완)
+③ 썸네일 생성
 gen_preview_label_thumbs_v2.py
-185프레임, K_current/K_refexp/OWLv2/PG/PG224/Florence2 6종 bbox 오버레이
-갤러리만 존재, 키보드 라벨러 미구현
+185f, K/OWL/PG/PG224/F2 6종 오버레이 (구 F2=OD 방식)
+라벨러 미부착
 ③ 썸네일 생성
 gen_fallback_multimodel_gallery.py
-위 ②의 fallback_grid_labeler.py 입력 생성기(동일 포맷)
+②-fallback_grid 입력 생성기
 보존
-④ 궤적/성공판정 검증 (그라운더 비교 아님)
+④ 궤적/성공 검증
 serve_exp73_val_review.py (7794)
-exp73 챔피언 val 33ep, path_type 라벨 + FPE success 자동판정 O/X 확인
-33/33 라벨 완료
-가장 바로 쓸 수 있는 것: ★ serve_v6_phrase_grounding_verify.py
-— 지금 작업 중인 V6/Florence-2 전환 검증과 데이터셋이 정확히 일치하고, 182개 미완 라벨이 남아있어
-바로 이어서 쓸 수 있다. PG2(PaliGemma2)까지 포함한 3-way 비교가 필요하면 ③의
-preview_label_thumbs_v2 갤러리(이미 6개 모델 bbox 오버레이 포함)에 ②의
-fallback_grid_labeler.py 키보드 패턴만 이식하면 빠르게 만들 수 있음(백로그).</p>
-</div>
-<div class="card">
-<p><strong>🏆 74-4. Florence-2 전환 1차 실측 — 속도 5.3배, 정확도도 우위 확인</strong></p>
-<p>plan_20261012_egvla2_florence2_unification.md §2.3을 학습서버(GPU)와 젯슨(Orin NX) 양쪽에서 실측
-완료. 스크립트는 scripts/bench_grounder_vs_florence2.py(신규, 디바이스 자동분기).
-환경
-현재(OWLv2+Kosmos-2)
-Florence-2 fused
-단축비
-학습서버(GPU)
-OWLv2 529.6±52.6ms
-247.6±5.9ms
-2.1배
-젯슨(Orin NX, 로봇)
-OWLv2+Kosmos-2 ≈1960ms (OWLv2 1915.6±25.7ms, 논문 Table10 1901.7ms와 일치)
-371.1±2.7ms
-5.3배
-fused 구현 디테일: 공개 generate()는 내부에서 비전 특징을
-계산하지만 지역변수로 버려져 호출부에서 재사용 불가 — _encode_image()를 직접 1회
-호출해 (1)bbox 디코딩용 입력과 (2)action head용 비전 특징을 동시에 얻는 방식으로 실측 검증함
-(재사용 가능한 vision feature shape: (1, 577, 768), 추가 비용 없음 — 367.6ms(plain
-generate) vs 371.1ms(fused)). 학습서버에서는 2.1배였던 격차가 젯슨에서 5.3배로 더 벌어진 것은
-"OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과 정합적.
-정확도는 새로 측정할 필요 없이 기존 데이터로 이미 확인됨 —
-v6_phrase_grounding_human_labels.json(OWL 실패 프레임 위주 층화샘플 329개)을 재집계:
-OWLv2 ok 38.3%(126/329) vs
-Florence-2 ok 100%(329/329) — OWL이 실패한 203개 프레임을
-Florence-2가 전부 회수(both_ok=126, f2_only=203, owl_only=0, both_fail=0). 표본이 OWL 실패쪽에
-편향돼 있어 "Florence-2 전체 정확도 100%"로 일반화할 수는 없지만, "OWL이 놓치는 프레임을 Florence-2가
-회수하는 능력"은 명확히 입증됨. 우려했던 그리드 양자화 재현(과거 Kosmos-2 free-gen 변환 결함과 유사
-패턴)도 §2.1(CH74-2)에서 cx 포화 결함 자체가 재현 안 됨을 이미 확인해 기각.
-bbox 스키마 어댑터 구현 — scripts/florence2_bbox_adapter.py
-(신규): 위치토큰 디코딩 후 픽셀박스를 OWLv2와 동일한 (cx,cy,area,has_bbox) 스키마로 변환. has_bbox는
-"박스 유무"가 아니라 박스 면적이 너무 작거나(노이즈) 너무 크면(화면 절반
-이상 — 과거 PG2의 "full-frame 붕괴"와 동일 증상) False로 판정하는 면적 기반 휴리스틱으로 재정의
-(plan §2.2 대안 (a) 채택, 임계값은 초기 추정치이며 실측 캘리브레이션은 백로그). 검증: V6 15프레임에서 OWLv2 cx_det 대비 cx 상관 0.991, has_bbox 판정 15/15 일치(소표본 — 부재/실패 프레임 검증은 추가 필요).
-관련: scripts/bench_grounder_vs_florence2.py,
-scripts/florence2_bbox_adapter.py, 젯슨 실측은 같은 머신의 monavla-f0 세션(로봇 직접 접속)이
-수행 · plan: docs/plans/plan_20261012_egvla2_florence2_unification.md</p>
+exp73 val 33ep, path_type·FPE 판정 O/X
+33/33
+전부 scripts/label/ · 연구용 로컬 도구. 지금 바로 쓸 것: ★ 7796. PG2 3-way가 필요하면 ③ 갤러리에 키보드 패턴을 이식(백로그). 비교용 원자료 json은 docs/v5/detector/(30여 개)에 별도 존재.
+function c74Show(k){document.querySelectorAll('#ch74 .c74-panel').forEach(function(p){p.style.display=(p.id==='c74-'+k)?'block':'none'});document.querySelectorAll('#ch74 .c74-btn').forEach(function(b){b.classList.toggle('on',b.dataset.t===k)});try{localStorage.setItem('c74tab',k)}catch(e){}}
+(function(){var k='t1';try{k=localStorage.getItem('c74tab')||'t1'}catch(e){}c74Show(k)})();</p>
 </div>
 <p><a class="src-link" href="../v5/research_story.html#ch74">→ 원문 전체 보기 (research_story.html#ch74)</a></p>
 </div>
