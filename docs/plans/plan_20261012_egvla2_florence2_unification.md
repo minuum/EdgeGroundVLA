@@ -124,6 +124,13 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
   확정된 수치. fp16끼리 비교(2.74배)와 비슷한 비율대라 dtype보다 fused 구조 자체의 이득이 더 큰 비중임을
   시사. "OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과는 별개로, 이번 수치가 가장
   신뢰할 수 있는 공식 비교값.
+  → **fused(C)의 bbox 정확도는 분리(B)와 별도로 재측정할 필요가 없음을 코드+실측으로 확인** (2026-10-13,
+  `scripts/verify_fused_bbox_equivalence.py`, 젯슨): Florence-2 공개 `generate()`의 내부 구현이 정확히
+  `_encode_image() → _merge_input_ids_with_image_features() → language_model.generate(input_ids=None,
+  inputs_embeds=..., 동일 kwargs)` 순서이고, fused 래퍼도 같은 함수를 같은 인자로 수동 호출할 뿐이라 bbox
+  디코딩 경로가 구조적으로 100% 동일(결정적 빔서치, `do_sample=False`). 실제 V6 프레임 15장(서로 다른 5개
+  에피소드 × 3구간)으로 B/C의 `(cx,cy,area,has_bbox)` 출력을 직접 비교 → **15/15 bit-exact 일치**. 따라서
+  아래 분리(B) 기준 정확도 수치는 fused(C)에도 그대로 적용됨.
   → **정확도 검증은 기존 데이터로 이미 완료돼 있었음** — `docs/v5/detector/v6_phrase_grounding_human_labels.json`
   (OWL 실패 프레임 위주로 층화 샘플링된 사람 검증 329개)을 재집계:
 
@@ -161,7 +168,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - **장점**: 추론 시 모델 호출 2회→1회(동시 forward 채택 시) 가능성, 유지보수 포인트 단일화, 경량화 논문 방향과도 부합(모델 수 축소)
 - **리스크**:
   - Florence-2 그라운딩 디코딩 경로에 CH59 결함이 남아있으면 전체 방향 재검토 필요 — §2.1을 가장 먼저 해야 하는 이유
-  - "동시 forward"가 bbox 품질을 떨어뜨릴 가능성(태스크 프롬프트 없이 뽑은 hidden state가 그라운딩 전용 forward보다 부정확할 수 있음) — §2.3에서 PM으로 직접 검증 필요, 품질 저하 시 "분리 호출 유지"로 결론 날 수 있음(이것도 유효한 결과)
+  - ~~"동시 forward"가 bbox 품질을 떨어뜨릴 가능성~~ → **기각** (2026-10-13): fused는 생성 경로가 B와 코드 레벨로 동일, 15/15 bit-exact 검증 완료 (§2.3-b 하단, `scripts/verify_fused_bbox_equivalence.py`)
   - Florence-2(base/large) 선택에 따라 리소스 이득이 상쇄될 수 있음 — base 기준으로 우선 측정
 
 ## 5. 체크리스트 (승인 후 진행)
@@ -171,6 +178,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
 - [x] 2.3-b 젯슨 지연 벤치 — `bench_egvla2_unified.py` 규격 벤치로 최종 확정: **fp32(메인) A=1970.98ms vs C(fused)=817.36ms → 2.41×**, fp16(보조) A=1017.97ms vs C=372.11ms → 2.74× (2026-10-12). 이전 5.3×(dtype 불일치)/2.7×(994ms, fp16 강제 하니스) 기재는 본 수치로 대체.
 - [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
+- [x] 2.3-d fused(C) bbox 정확도가 분리(B)와 동일한지 검증 — 코드 구조상 동일 + 실측 15/15 bit-exact 일치 (2026-10-13, `scripts/verify_fused_bbox_equivalence.py`). §2.3-c 수치가 fused에도 그대로 적용됨
 - [x] 2.4 리소스 비교 — 지연(서버·젯슨, fp32/fp16), 파라미터 458M→231M, 가중치 메모리, GFLOPs 1277→467 완료 (CH74-3/74-8). 젯슨 전력·실측 메모리는 미측정
 - [x] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준, 10-seed, 2026-10-13) — steered_reg 78.38±0.96 / steered 78.41±0.74 / concat 76.76±1.08 / concat_small 76.70±1.05. steered>concat 유의(p=1.6e-5) 유지, steered_reg 추가 이득 없음(vs steered p=0.79). CH73 OWLv2+16×16(72.37)보다 높으나 입력(768-d 풀링 특징)이 달라 그라운더 효과로 분리 불가. `summary_florence2_v6.json`
 - [ ] 결과 CH73(또는 신규 챕터)에 반영 + 로컬호스트 링크
