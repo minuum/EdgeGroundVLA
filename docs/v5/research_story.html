@@ -19404,6 +19404,61 @@ graph TD
     </div>
   </div>
 
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">🏆 74-4. Florence-2 전환 1차 실측 — 속도 5.3배, 정확도도 우위 확인</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      plan_20261012_egvla2_florence2_unification.md §2.3을 학습서버(GPU)와 젯슨(Orin NX) 양쪽에서 실측
+      완료. 스크립트는 <code>scripts/bench_grounder_vs_florence2.py</code>(신규, 디바이스 자동분기).
+
+      <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:0.82rem">
+        <tr style="background:#0a1f14">
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #4ade80;color:#86efac">환경</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #4ade80;color:#86efac">현재(OWLv2+Kosmos-2)</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #4ade80;color:#86efac">Florence-2 fused</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #4ade80;color:#86efac">단축비</th>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1a3a24">학습서버(GPU)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1a3a24">OWLv2 529.6±52.6ms</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1a3a24">247.6±5.9ms</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1a3a24;color:#4ade80">2.1배</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px">젯슨(Orin NX, 로봇)</td>
+          <td style="padding:6px 10px">OWLv2+Kosmos-2 ≈1960ms (OWLv2 1915.6±25.7ms, 논문 Table10 1901.7ms와 일치)</td>
+          <td style="padding:6px 10px"><strong style="color:#4ade80">371.1±2.7ms</strong></td>
+          <td style="padding:6px 10px;color:#4ade80"><strong>5.3배</strong></td>
+        </tr>
+      </table>
+
+      <strong style="color:#e2e8f0">fused 구현 디테일</strong>: 공개 <code>generate()</code>는 내부에서 비전 특징을
+      계산하지만 지역변수로 버려져 호출부에서 재사용 불가 — <code>_encode_image()</code>를 <strong>직접 1회
+      호출</strong>해 (1)bbox 디코딩용 입력과 (2)action head용 비전 특징을 동시에 얻는 방식으로 실측 검증함
+      (재사용 가능한 vision feature shape: <code>(1, 577, 768)</code>, 추가 비용 없음 — 367.6ms(plain
+      generate) vs 371.1ms(fused)). 학습서버에서는 2.1배였던 격차가 젯슨에서 5.3배로 더 벌어진 것은
+      "OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과 정합적.
+
+      <strong style="color:#e2e8f0">정확도는 새로 측정할 필요 없이 기존 데이터로 이미 확인됨</strong> —
+      <code>v6_phrase_grounding_human_labels.json</code>(OWL 실패 프레임 위주 층화샘플 329개)을 재집계:
+      <strong style="color:#f87171">OWLv2 ok 38.3%(126/329)</strong> vs
+      <strong style="color:#4ade80">Florence-2 ok 100%(329/329)</strong> — OWL이 실패한 203개 프레임을
+      Florence-2가 전부 회수(both_ok=126, f2_only=203, owl_only=0, both_fail=0). 표본이 OWL 실패쪽에
+      편향돼 있어 "Florence-2 전체 정확도 100%"로 일반화할 수는 없지만, "OWL이 놓치는 프레임을 Florence-2가
+      회수하는 능력"은 명확히 입증됨. 우려했던 그리드 양자화 재현(과거 Kosmos-2 free-gen 변환 결함과 유사
+      패턴)도 §2.1(CH74-2)에서 cx 포화 결함 자체가 재현 안 됨을 이미 확인해 기각.
+
+      <strong style="color:#e2e8f0">bbox 스키마 어댑터 구현</strong> — <code>scripts/florence2_bbox_adapter.py</code>
+      (신규): 위치토큰 디코딩 후 픽셀박스를 OWLv2와 동일한 (cx,cy,area,has_bbox) 스키마로 변환. has_bbox는
+      "박스 유무"가 아니라 <strong style="color:#fbbf24">박스 면적이 너무 작거나(노이즈) 너무 크면(화면 절반
+      이상 — 과거 PG2의 "full-frame 붕괴"와 동일 증상) False로 판정</strong>하는 면적 기반 휴리스틱으로 재정의
+      (plan §2.2 대안 (a) 채택, 임계값은 초기 추정치이며 실측 캘리브레이션은 백로그). <strong style="color:#4ade80">검증</strong>: V6 15프레임에서 OWLv2 cx_det 대비 <strong>cx 상관 0.991</strong>, has_bbox 판정 <strong>15/15 일치</strong>(소표본 — 부재/실패 프레임 검증은 추가 필요).
+
+      <br><span style="font-size:0.78rem;color:#64748b">관련: <code>scripts/bench_grounder_vs_florence2.py</code>,
+      <code>scripts/florence2_bbox_adapter.py</code>, 젯슨 실측은 같은 머신의 monavla-f0 세션(로봇 직접 접속)이
+      수행 · plan: <code>docs/plans/plan_20261012_egvla2_florence2_unification.md</code></span>
+    </div>
+  </div>
+
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH74 ═ -->
 

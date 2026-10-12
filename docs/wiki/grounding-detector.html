@@ -127,7 +127,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <p>텍스트(언어) 경로는 구조적으로는 살아있지만 실질적으로 죽어있다 — Text attention 0.000%(여러 실험 재현), 객체명을 바꿔도(red ball/person/없음) 행동이 90% 동일, counterfactual 변화율 0.0%. 원인은 학습 데이터가 목표물 1종(회색 바구니)만 다뤄 "텍스트를 볼 이유가 없는" 구조이기 때문이며, 다양한 목표물·지시-경로 디커플링 재수집이 유일한 해법으로 남아있다(아직 미실행).</p>
 <p>그라운더 자체는 여러 차례 세대교체를 겪었다: Kosmos-2(초기, IoU 0.87이나 free-gen 변환 시 34.4%로 붕괴) → PaliGemma2(PG2, 자체 LoRA 파인튜닝이 오히려 grounding을 붕괴시켜 벽/의자 오트래킹 유발함이 밝혀져 base zero-shot PG2 채택, 12/12·cx_std 0.047) → OWL-v2(현재 배포, threshold=0.25가 "knife-edge" 구조라 confidence 0.10~0.20 밴드에 실패가 집중, 검출 실패는 환경(Jetson) 격차가 아니라 대부분(78.7%) 검출기 자체의 본질적 어려움임을 확인). 그라운딩 실패(has_bbox=False) 프레임이 학습 데이터에 0%(0/16599)만 존재해 모델이 "실패 시 대응"을 전혀 학습하지 못했다는 것도 확정된 근본 원인 중 하나다.</p>
 <p>경량화 방향에서는 Florence-2 비전 백본(90.4M)이 Kosmos-2(303.2M)보다 좌표 정확도가 더 좋고(cx MAE 0.0015 vs 0.0020), 심지어 MobileNetV3-Small(0.93M)도 동등한 성능을 내 "좌표 회귀는 큰 백본이 필요 없다"는 결론에 도달했다. 다만 Florence-2를 검출기(부재 판정 포함)로 쓰는 건 실패했었는데, 이는 열린 질문 방식(<code>&lt;OD&gt;</code>/<code>&lt;DENSE_REGION_CAPTION&gt;</code>, 재현율 상한 34.7%)만 시도했기 때문이었고, OWL-v2처럼 phrase를 직접 지정하는 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code> 방식으로 바꾸자 재현율이 84.96%(실기)~100%(사람 검증 329개)로 급등해 판정이 뒤집혔다. 이 새 그라운더로 재학습한 exp77은 무작위 split 기준 역대 최고(75.58%)지만, 목표 방향을 통째로 제외한 leave-one-direction-out 검증에서는 현재 배포 모델(exp73, 60.85%)보다 오히려 나쁨(54.0%, 특히 우측 방향 취약)이 확인돼 아직 배포 권장 단계는 아니다.</p>
-<p>2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code>은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 <code>has_bbox</code>를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(<code>scripts/label/*.py</code>)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(<code>serve_v6_phrase_grounding_verify.py</code>, 포트 7796, 182개 라벨 미완).</p>
+<p>2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code>은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 <code>has_bbox</code>를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 이후 실측으로 Florence-2 fused(<code>_encode_image</code> 1회 호출로 bbox+비전특징 동시 획득)가 젯슨에서 371.1ms로 현재 OWLv2+Kosmos-2(~1960ms) 대비 5.3배(학습서버는 2.1배), 사람검증 329개에서도 OWL 실패 203개를 전부 회수(OWL ok 38.3% vs F2 100%, 표본은 OWL 실패 편향)해 전환 근거가 속도·정확도 양쪽에서 확보됐고, 면적 기반 has_bbox 어댑터는 V6 15프레임에서 OWLv2와 cx 상관 0.991·판정 15/15 일치했다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(<code>scripts/label/*.py</code>)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(<code>serve_v6_phrase_grounding_verify.py</code>, 포트 7796, 182개 라벨 미완).</p>
 <p>미해결/논쟁 중: exp73 89% 성공에서 체크포인트 교체와 threshold+회복가드 중 어느 쪽이 주된 개선 요인인지는 통계적으로 확정 불가(둘 다 +23~48%p 규모로 크고 순위가 추정 방식에 따라 뒤집힘) — 동일 위치 A/B 재수집이 필요하다.</p>
 </div>
 <h2>챕터별 원문 발췌 (시간순)</h2>
@@ -4193,6 +4193,45 @@ exp73 챔피언 val 33ep, path_type 라벨 + FPE success 자동판정 O/X 확인
 바로 이어서 쓸 수 있다. PG2(PaliGemma2)까지 포함한 3-way 비교가 필요하면 ③의
 preview_label_thumbs_v2 갤러리(이미 6개 모델 bbox 오버레이 포함)에 ②의
 fallback_grid_labeler.py 키보드 패턴만 이식하면 빠르게 만들 수 있음(백로그).</p>
+</div>
+<div class="card">
+<p><strong>🏆 74-4. Florence-2 전환 1차 실측 — 속도 5.3배, 정확도도 우위 확인</strong></p>
+<p>plan_20261012_egvla2_florence2_unification.md §2.3을 학습서버(GPU)와 젯슨(Orin NX) 양쪽에서 실측
+완료. 스크립트는 scripts/bench_grounder_vs_florence2.py(신규, 디바이스 자동분기).
+환경
+현재(OWLv2+Kosmos-2)
+Florence-2 fused
+단축비
+학습서버(GPU)
+OWLv2 529.6±52.6ms
+247.6±5.9ms
+2.1배
+젯슨(Orin NX, 로봇)
+OWLv2+Kosmos-2 ≈1960ms (OWLv2 1915.6±25.7ms, 논문 Table10 1901.7ms와 일치)
+371.1±2.7ms
+5.3배
+fused 구현 디테일: 공개 generate()는 내부에서 비전 특징을
+계산하지만 지역변수로 버려져 호출부에서 재사용 불가 — _encode_image()를 직접 1회
+호출해 (1)bbox 디코딩용 입력과 (2)action head용 비전 특징을 동시에 얻는 방식으로 실측 검증함
+(재사용 가능한 vision feature shape: (1, 577, 768), 추가 비용 없음 — 367.6ms(plain
+generate) vs 371.1ms(fused)). 학습서버에서는 2.1배였던 격차가 젯슨에서 5.3배로 더 벌어진 것은
+"OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과 정합적.
+정확도는 새로 측정할 필요 없이 기존 데이터로 이미 확인됨 —
+v6_phrase_grounding_human_labels.json(OWL 실패 프레임 위주 층화샘플 329개)을 재집계:
+OWLv2 ok 38.3%(126/329) vs
+Florence-2 ok 100%(329/329) — OWL이 실패한 203개 프레임을
+Florence-2가 전부 회수(both_ok=126, f2_only=203, owl_only=0, both_fail=0). 표본이 OWL 실패쪽에
+편향돼 있어 "Florence-2 전체 정확도 100%"로 일반화할 수는 없지만, "OWL이 놓치는 프레임을 Florence-2가
+회수하는 능력"은 명확히 입증됨. 우려했던 그리드 양자화 재현(과거 Kosmos-2 free-gen 변환 결함과 유사
+패턴)도 §2.1(CH74-2)에서 cx 포화 결함 자체가 재현 안 됨을 이미 확인해 기각.
+bbox 스키마 어댑터 구현 — scripts/florence2_bbox_adapter.py
+(신규): 위치토큰 디코딩 후 픽셀박스를 OWLv2와 동일한 (cx,cy,area,has_bbox) 스키마로 변환. has_bbox는
+"박스 유무"가 아니라 박스 면적이 너무 작거나(노이즈) 너무 크면(화면 절반
+이상 — 과거 PG2의 "full-frame 붕괴"와 동일 증상) False로 판정하는 면적 기반 휴리스틱으로 재정의
+(plan §2.2 대안 (a) 채택, 임계값은 초기 추정치이며 실측 캘리브레이션은 백로그). 검증: V6 15프레임에서 OWLv2 cx_det 대비 cx 상관 0.991, has_bbox 판정 15/15 일치(소표본 — 부재/실패 프레임 검증은 추가 필요).
+관련: scripts/bench_grounder_vs_florence2.py,
+scripts/florence2_bbox_adapter.py, 젯슨 실측은 같은 머신의 monavla-f0 세션(로봇 직접 접속)이
+수행 · plan: docs/plans/plan_20261012_egvla2_florence2_unification.md</p>
 </div>
 <p><a class="src-link" href="../v5/research_story.html#ch74">→ 원문 전체 보기 (research_story.html#ch74)</a></p>
 </div>

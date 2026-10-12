@@ -2383,7 +2383,7 @@
     "num": "CH 74",
     "title": "EGVLA2 — Florence-2 단일화·텍스트 서브골 리서치 + 그라운딩 비교 라벨링 도구 카탈로그",
     "subtitle": "2026-10-12 ·\n팀 미팅(동환님과 공동)에서 EGVLA2 방향을 OWLv2+Kosmos-2 두 모델 → Florence-2\n단일 백본 + 액션헤드 MLP→FM(FiLM)으로 합의, CH73의 FiLM\n서브골 조향 실험과 같은 방향임을 확인했다. Florence-2 전환과 텍스트 서브골 결합을 각각 리서치·plan.md로\n분리 작성했고, 1번(Florence-2 전환) 사전 점검에서 CH59 결함 재현 여부를 다시 확인했다. 또한 과거에\n만들어둔 그라운더 비교용 키보드 라벨링 도구들을 분실 방지 차원에서 한곳에 정리한다.",
-    "n_cards": 4,
+    "n_cards": 5,
     "cards": [
       {
         "kind": "callout",
@@ -2404,6 +2404,11 @@
         "kind": "finding-card",
         "title": "🧰 74-3. 그라운딩 비교 키보드 라벨링 도구 카탈로그 (분실 방지용 정리)",
         "text": "과거 세션들에서 그라운더(OWLv2/PaliGemma2=PG2/Florence-2/Kosmos-2) 비교·검증용으로 만든 로컬 Flask\n라벨링 서버들. 전부 scripts/label/에 있고 파이프라인에는 끼워넣지 않은 연구용 도구다.\n카테고리\n스크립트 (포트)\n대상 데이터 / 모델\n상태\n① bbox 직접 검수\n(YOLO pre-annotation + 사람 검수)\nbbox_labeler.py (7788)\nbilly 머신, bbox_truth_mini.json\n보존\n① bbox 직접 검수\nfallback_verify_labeler.py (7789)\nminum 머신 이식판, PG2 fallback(has_bbox=False) 프레임\n보존\n② 다중 그라운더 비교\nfallback_grid_labeler.py (7791)\nPG2 fallback 185프레임, target_visible O/X/부분 + L/C/R\n1/185만 라벨됨(미완)\n② 다중 그라운더 비교\nserve_hsv_owlv2_labeler.py (7793)\nserve_hsv_owlv2_gallery.py (7792, 정적)\nCH54 프리뷰후보 H1/H2/OWLv2/PG2 4종, O/X + report/disagree/sessions 탭\n보존 (CH54 완료)\n② 다중 그라운더 비교\nserve_florence2_owl_compare.py (7795)\n0807 실기세션 1087프레임, OWLv2 vs Florence-2 + /live 실시간 테스트\n보존\n② 다중 그라운더 비교 ★\nserve_v6_phrase_grounding_verify.py (7796)\nV6 학습셋 16,599프레임, OWLv2 vs Florence-2, 키보드 1/2/0+←→\n329개 라벨(182 미완) · 2026-10-12 재기동 확인\n③ 썸네일 생성(라벨러 미부착)\ngen_preview_label_thumbs_v2.py\n185프레임, K_current/K_refexp/OWLv2/PG/PG224/Florence2 6종 bbox 오버레이\n갤러리만 존재, 키보드 라벨러 미구현\n③ 썸네일 생성\ngen_fallback_multimodel_gallery.py\n위 ②의 fallback_grid_labeler.py 입력 생성기(동일 포맷)\n보존\n④ 궤적/성공판정 검증 (그라운더 비교 아님)\nserve_exp73_val_review.py (7794)\nexp73 챔피언 val 33ep, path_type 라벨 + FPE success 자동판정 O/X 확인\n33/33 라벨 완료\n가장 바로 쓸 수 있는 것: ★ serve_v6_phrase_grounding_verify.py\n— 지금 작업 중인 V6/Florence-2 전환 검증과 데이터셋이 정확히 일치하고, 182개 미완 라벨이 남아있어\n바로 이어서 쓸 수 있다. PG2(PaliGemma2)까지 포함한 3-way 비교가 필요하면 ③의\npreview_label_thumbs_v2 갤러리(이미 6개 모델 bbox 오버레이 포함)에 ②의\nfallback_grid_labeler.py 키보드 패턴만 이식하면 빠르게 만들 수 있음(백로그)."
+      },
+      {
+        "kind": "finding-card",
+        "title": "🏆 74-4. Florence-2 전환 1차 실측 — 속도 5.3배, 정확도도 우위 확인",
+        "text": "plan_20261012_egvla2_florence2_unification.md §2.3을 학습서버(GPU)와 젯슨(Orin NX) 양쪽에서 실측\n완료. 스크립트는 scripts/bench_grounder_vs_florence2.py(신규, 디바이스 자동분기).\n환경\n현재(OWLv2+Kosmos-2)\nFlorence-2 fused\n단축비\n학습서버(GPU)\nOWLv2 529.6±52.6ms\n247.6±5.9ms\n2.1배\n젯슨(Orin NX, 로봇)\nOWLv2+Kosmos-2 ≈1960ms (OWLv2 1915.6±25.7ms, 논문 Table10 1901.7ms와 일치)\n371.1±2.7ms\n5.3배\nfused 구현 디테일: 공개 generate()는 내부에서 비전 특징을\n계산하지만 지역변수로 버려져 호출부에서 재사용 불가 — _encode_image()를 직접 1회\n호출해 (1)bbox 디코딩용 입력과 (2)action head용 비전 특징을 동시에 얻는 방식으로 실측 검증함\n(재사용 가능한 vision feature shape: (1, 577, 768), 추가 비용 없음 — 367.6ms(plain\ngenerate) vs 371.1ms(fused)). 학습서버에서는 2.1배였던 격차가 젯슨에서 5.3배로 더 벌어진 것은\n\"OWLv2가 젯슨에서 유독 느리다\"는 기존 관찰(CH59/67, 9/22 3종 비교)과 정합적.\n정확도는 새로 측정할 필요 없이 기존 데이터로 이미 확인됨 —\nv6_phrase_grounding_human_labels.json(OWL 실패 프레임 위주 층화샘플 329개)을 재집계:\nOWLv2 ok 38.3%(126/329) vs\nFlorence-2 ok 100%(329/329) — OWL이 실패한 203개 프레임을\nFlorence-2가 전부 회수(both_ok=126, f2_only=203, owl_only=0, both_fail=0). 표본이 OWL 실패쪽에\n편향돼 있어 \"Florence-2 전체 정확도 100%\"로 일반화할 수는 없지만, \"OWL이 놓치는 프레임을 Florence-2가\n회수하는 능력\"은 명확히 입증됨. 우려했던 그리드 양자화 재현(과거 Kosmos-2 free-gen 변환 결함과 유사\n패턴)도 §2.1(CH74-2)에서 cx 포화 결함 자체가 재현 안 됨을 이미 확인해 기각.\nbbox 스키마 어댑터 구현 — scripts/florence2_bbox_adapter.py\n(신규): 위치토큰 디코딩 후 픽셀박스를 OWLv2와 동일한 (cx,cy,area,has_bbox) 스키마로 변환. has_bbox는\n\"박스 유무\"가 아니라 박스 면적이 너무 작거나(노이즈) 너무 크면(화면 절반\n이상 — 과거 PG2의 \"full-frame 붕괴\"와 동일 증상) False로 판정하는 면적 기반 휴리스틱으로 재정의\n(plan §2.2 대안 (a) 채택, 임계값은 초기 추정치이며 실측 캘리브레이션은 백로그). 검증: V6 15프레임에서 OWLv2 cx_det 대비 cx 상관 0.991, has_bbox 판정 15/15 일치(소표본 — 부재/실패 프레임 검증은 추가 필요).\n관련: scripts/bench_grounder_vs_florence2.py,\nscripts/florence2_bbox_adapter.py, 젯슨 실측은 같은 머신의 monavla-f0 세션(로봇 직접 접속)이\n수행 · plan: docs/plans/plan_20261012_egvla2_florence2_unification.md"
       }
     ]
   },

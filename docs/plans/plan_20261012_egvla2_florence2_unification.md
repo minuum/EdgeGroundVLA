@@ -144,7 +144,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 ## 5. 체크리스트 (승인 후 진행)
 
 - [ ] 2.1 CH59 결함 재발 확인 (V6 200프레임)
-- [ ] 2.2 bbox 어댑터 구현 + OWLv2 대비 상관관계 확인
+- [x] 2.2 bbox 어댑터 구현 + OWLv2 대비 검증 — `scripts/florence2_bbox_adapter.py`, V6 15프레임 cx 상관 0.991 / has_bbox 일치 15/15 (면적 기반 휴리스틱, 임계값 캘리브레이션은 백로그)
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
 - [x] 2.3-b 젯슨 지연 벤치 — fused 371.1ms vs 현재(~1960ms), 약 5.3배 단축 (monavla-f0 세션, 2026-10-12)
 - [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
