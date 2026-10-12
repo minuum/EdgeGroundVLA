@@ -80,7 +80,30 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 
   → 학습서버 기준 Florence-2 그라운더가 OWLv2보다 2배 이상 빠름(지금까지 CH59/67에서 본 "Florence-2가 느리다"는 인상은 전부 **젯슨** 측정이었음 — 환경별로 분리 보고 필요).
   → `_encode_image`가 `generate()` 내부에 포함된 커스텀 오버라이드로 확인됨 — 분리 호출 시 247.6+93.7=341.3ms, **(B) 동시 재사용 시 247.6ms로 약 27% 절감** 가능.
-  → **미완료**: 젯슨 측정(이 세션에서 로봇 SSH 접근 불가 — 사용자가 직접 `scripts/bench_grounder_vs_florence2.py` 실행 필요), bbox 품질/PM 비교는 아직 안 함(§2.2 어댑터 완성 후 진행).
+
+- **젯슨(Orin NX) 결과** (2026-10-12, monavla-f0 세션에서 로봇 접속해 실측, `transformers==4.45.2`는
+  `post_process_grounded_object_detection` 없어 운영 서버와 동일한 `post_process_object_detection`으로
+  교체해 측정):
+
+  | 측정 | 레이턴시 |
+  |---|---|
+  | ① 현재 방식: OWLv2(forward+postprocess) | 1915.6±25.7 ms (논문 Table10의 1901.7ms와 거의 일치) |
+  | ① + Kosmos-2 비전(~3%) 포함 총합 | ≈ 1960 ms |
+  | ② Florence-2 분리 호출: 그라운더(generate, beam=3) | 367.6±3.9 ms |
+  | ② Florence-2 분리 호출: 비전 인코더만(별도 forward) | 측정치 수신 중 깨짐(재확인 필요) |
+  | ② 분리 호출 합계 | 575.2 ms |
+  | ③ Florence-2 **fused**(기존 `vision_tower.forward_features_unpool` 대신 `_encode_image` 직접 1회 호출해 bbox+비전특징 동시 획득) | **371.1±2.7 ms** (plain generate 367.6ms와 거의 동일 — 재사용에 추가 비용 없음) |
+
+  → **중요 구현 디테일**: 공개 `generate()`는 내부에서 비전 특징을 계산하지만 지역변수로 버려져서 호출부에서
+  재사용 불가능 — `_encode_image()`를 **직접 1회 호출**해서 (1) bbox 생성용 디코더 입력과 (2) action head용
+  비전 특징을 동시에 얻는 방식으로 실제 fused 버전을 구현·검증함. 재사용 가능한 vision feature shape:
+  `(1, 577, 768)`.
+  → 젯슨 기준 현재 방식(~1960ms) 대비 Florence-2 fused(371.1ms)는 **약 5.3배 단축** — 학습서버(529.6→247.6ms,
+  2.1배)보다 젯슨에서 격차가 훨씬 큼. "OWLv2가 젯슨에서 유독 느리다"는 기존 관찰(CH59/67, 9/22 3종 비교)과
+  정합적으로 재확인됨.
+  → **남은 과제**: Florence-2 fused 방식의 **좌표 정확도가 OWLv2 수준인지 검증 필요** — 과거 Kosmos-2의
+  grid-quantized 좌표 문제가 Florence-2 위치토큰에서도 재현될 가능성 있음(§2.1에서 확인한 "부재 대조군 100%
+  오탐" has_bbox 블로커와도 연결). §2.2(bbox 어댑터) 진행 시 이 정확도 비교를 함께 포함.
 
 ### 2.4 리소스 비교 (팀 TODO 항목)
 - Florence-2(base) 단일 모델 vs 현재 OWLv2+Kosmos-2 조합: 추론 latency(§2.3로 1차 확보), GPU 메모리, (가능하면) Jetson 전력 비교
@@ -111,8 +134,8 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [ ] 2.1 CH59 결함 재발 확인 (V6 200프레임)
 - [ ] 2.2 bbox 어댑터 구현 + OWLv2 대비 상관관계 확인
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
-- [ ] 2.3-b 젯슨 지연 벤치 (사용자 직접 실행 필요, `scripts/bench_grounder_vs_florence2.py`)
-- [ ] 2.3-c bbox 품질/PM 비교 (동시 vs 분리)
+- [x] 2.3-b 젯슨 지연 벤치 — fused 371.1ms vs 현재(~1960ms), 약 5.3배 단축 (monavla-f0 세션, 2026-10-12)
+- [ ] 2.3-c bbox 좌표 정확도 비교 (Florence-2 fused vs OWLv2) — 그리드 양자화 재현 여부 포함
 - [ ] 2.4 리소스 비교 (Florence-2 단일 vs OWLv2+Kosmos-2)
 - [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)
 - [ ] 결과 CH73(또는 신규 챕터)에 반영 + 로컬호스트 링크
