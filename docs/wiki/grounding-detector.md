@@ -4541,10 +4541,10 @@ exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 �
 <div class="card" markdown="1">
 
 🟢 3줄 요약
-① 젯슨 기준 Florence-2 fused 371ms vs 현재 ≈1960ms (5.3×), 학습서버 2.1×.
+① 젯슨 기준 Florence-2 fused 371ms vs 현재 프로덕션 994ms(2.7×; 일반 HF 파이프라인 기준 ≈1960ms는 비교조건 불일치로 정정 중 — 74-8 참고). 계산량도 2.7배 적음.
 ② 사람검증 329개에서 OWL이 놓친 203프레임을 Florence-2가 전부 회수. 신규 블로커(score 없음 → 부재 오탐 100%)는 면적 규칙 has_bbox로 우회(cx 상관 0.991).
 ③ 진행: §2.5 Florence-2 입력으로 FiLM 서브골 조향(CH73) 재현 — Stage 1 캐시 → Stage 2 10-seed.
-📌 개요🗺 구조도⏱ 실측 속도🖼 정확도·실제 사례🧩 어댑터·has_bbox🔄 진행 §2.5🧰 도구 카탈로그
+📌 개요🗺 구조도⏱ 실측 속도📐 모델·계산 비교🖼 정확도·실제 사례🧩 어댑터·has_bbox🔄 진행 §2.5🧰 도구 카탈로그
 
 </div>
 
@@ -4606,6 +4606,91 @@ research_20261012_egvla2_text_subgoal.md
 371.1±2.7
 5.3×
 OWLv2 젯슨 1915.6ms는 논문 Table10(1901.7ms)과 일치. fused는 plain generate(367.6ms) 대비 +3.5ms로 재사용 비용이 사실상 0. 스크립트 scripts/bench_grounder_vs_florence2.py, 젯슨 실측은 로봇 접속 세션이 수행.
+
+</div>
+
+<div class="card" markdown="1">
+
+**📐 74-8. 모델·계산 비교 — A/B/C가 왜 이 지연을 내는가 (파라미터·토큰·GFLOPs·메모리)**
+
+2.7×
+A 대비 C 계산량 감소
+2.0×
+파라미터 감소 (458M → 231M)
+2.0×
+가중치 메모리 감소 (883 → 451 MB)
+3601 vs 577
+비전 토큰 수 (OWLv2 vs F2)
+프레임 1장당 계산량 (GFLOPs, fp16, FlopCounterMode)A 현재(OWLv2+Kosmos-2)OWLv2 1115K2 1621277B F2 분리 호출비전 381LM 86비전 재실행 381847C F2 fused (1회)비전 381LM 86467① 모델별 구성요소 비교
+항목OWLv2-base (A)Kosmos-2 vision (A)Florence-2-base (B·C)
+역할
+그라운더(bbox)
+image_feat 추출(+image_proj 256-d)
+그라운더 + 비전 특징을 한 모델에서
+파라미터(M)
+154.97 (비전 88.41 · 텍스트 63.13 · 헤드 2.8)
+303.18 (+proj 0.262)
+231.41 (DaViT 90.37 · LM 인코더 82.71 · 디코더 96.89 · 임베딩 39.39)
+비전 구조
+ViT-B/16 · 12층 · d=768 · 12헤드
+CLIP ViT-L/14 · 24층 · d=1024 · 16헤드
+DaViT 4-stage (conv+윈도우·채널 attention)
+입력 해상도 → 토큰 수
+960px → 3601토큰
+224px → 257토큰
+768px → 577토큰 (+프롬프트 → LM 인코더 입력 589)
+attention 복잡도
+전역 O(N²), N=3601
+전역 O(N²), N=257
+윈도우/채널 → 토큰 수에 거의 선형
+프레임당 GFLOPs
+1115 (비전만 1094)
+162
+비전 381 + LM인코더 56 + 디코드 30 = 467
+가중치 GPU 메모리(MB, fp16)
+303.2
+579.9
+451.3
+출력 방식
+3601개 패치마다 박스·점수 → 임계값/후처리
+평균풀링 1024-d → 256-d
+자기회귀 9토큰(위치토큰) × beam 3 → 박스; 같은 인코딩의 평균풀링 768-d
+② A / B / C 구성 비교
+구성로드 모델순전파총 파라미터(M)가중치 메모리(MB)GFLOPs젯슨 지연(측정)유효 처리량
+A 현재 (프로덕션 순차)
+OWLv2 + Kosmos-2 vision
+2회 (960px + 224px)
+458.4
+883
+1277
+994 ms (프로덕션 하니스 · OWL 942 + Kosmos 51)
+≈1.28 TFLOP/s
+B F2 분리 호출
+Florence-2-base
+비전 2회 + LM 1회
+231.41
+451
+847
+575.2 ms
+≈1.47 TFLOP/s
+C F2 fused
+Florence-2-base
+비전 1회 + LM 1회
+231.41
+451
+467
+371.1 ms
+≈1.26 TFLOP/s
+③ 왜 Florence-2가 더 빠른가
+① 토큰 수 × 전역 attention
+OWLv2는 960px라 3601토큰을 12층 전역 attention으로 처리 — 224px 대비 토큰 18배, attention은 N²이라 약 340배. 그래서 비전만 1094 GFLOPs. Florence-2는 577토큰·윈도우/채널 attention이라 비전 381 GFLOPs(약 2.9배 적음).
+② 모델을 2번 돌림 (A)
+A는 OWLv2(1115) + Kosmos-2(162) = 1277 GFLOPs, 모델 2개·전처리 2종(960 패딩/224 리사이즈)·가중치 883MB. 전체 연산량이 C의 2.7배 — 젯슨 지연비(994/371=2.7배)와 거의 일치.
+③ 쓸모없는 연산 (OWLv2)
+OWLv2는 텍스트 타워 63.13M를 호출마다 다시 돌리고(질의가 "gray basket" 고정인데도), 3601개 패치 전부에 박스·점수 헤드를 적용한 뒤 임계값/후처리까지 한다. Florence-2는 필요한 박스 하나를 위치토큰 9개로 직접 생성.
+④ fused = 중복 제거 (B→C)
+B는 비전 인코더를 2번 돌려 847 GFLOPs. C는 _encode_image 1회를 bbox 생성과 image_feat가 공유 → 467 GFLOPs(−45%). 젯슨 실측 575→371ms(−35%)로 같은 방향.
+읽는 법 / 주의 · 지연 ∝ 계산량: 젯슨에서 A와 C의 유효 처리량이 모두 ≈1.3 TFLOP/s로 거의 같아, 속도 차이의 대부분은 "연산량이 2.7배 적다"로 설명된다. · Florence-2 디코더는 자기회귀(9토큰×beam 3)라 FLOPs는 작아도 커널 호출 지연이 붙는다(전체의 소부분). · 정정: 이전에 쓴 "현재 ≈1960ms(5.3×)"는 일반 HF 파이프라인으로 잰 값이고, 프로덕션 클래스로 잰 기존 측정은 994ms(2.7×)다 — 규격 벤치(bench_egvla2_unified.py)로 서버·젯슨을 같은 조건에서 다시 잰 뒤 확정. · FLOPs는 FlopCounterMode(2×MAC, fp16, 실제 V6 프레임 1장), 파라미터/메모리는 실로드 값. 스크립트 scripts/analyze_egvla2_model_costs.py → docs/v5/detector/egvla2_model_cost_breakdown.json.
 
 </div>
 

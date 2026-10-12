@@ -1,0 +1,76 @@
+{
+  "owlv2": {
+    "params_M": {
+      "total": 154.97,
+      "vision_tower": 88.41,
+      "text_tower": 63.13,
+      "class_head": 0.4,
+      "box_head": 1.18,
+      "objectness_head": 1.18
+    },
+    "vision": {
+      "layers": 12,
+      "hidden": 768,
+      "heads": 12,
+      "input_px": 960,
+      "patch": 16,
+      "tokens": 3601,
+      "attention": "전역 self-attention (O(N²))"
+    },
+    "gflops_forward": 1115.0,
+    "gflops_vision_only": 1094.0,
+    "weights_MB": 303.2,
+    "peak_MB": 942.9
+  },
+  "kosmos2_vision": {
+    "params_M": {
+      "vision_model": 303.18,
+      "image_proj_256": 0.262
+    },
+    "vision": {
+      "layers": 24,
+      "hidden": 1024,
+      "heads": 16,
+      "input_px": 224,
+      "patch": 14,
+      "tokens": 257,
+      "attention": "전역 self-attention (CLIP ViT-L)"
+    },
+    "gflops_forward": 162.0,
+    "weights_MB": 579.9,
+    "peak_MB": 905.8
+  },
+  "florence2_base": {
+    "params_M": {
+      "total": 231.41,
+      "vision_tower_DaViT": 90.37,
+      "image_projection_and_pos": 0.84,
+      "lm_encoder": 82.71,
+      "lm_decoder": 96.89,
+      "embeddings_shared": 39.39
+    },
+    "vision": {
+      "layers": "DaViT 4 stage",
+      "input_px": 768,
+      "tokens": 577,
+      "feat_dim": 768,
+      "attention": "윈도우+채널 attention (토큰 수에 선형)"
+    },
+    "lm": {
+      "enc_layers": 6,
+      "dec_layers": 6,
+      "d_model": 768,
+      "enc_seq_len": 589,
+      "generated_tokens": 9,
+      "beams": 3
+    },
+    "gflops": {
+      "vision_encode": 380.7,
+      "lm_encoder": 56.4,
+      "generate_total_incl_encoder": 86.0,
+      "decoder_steps_approx": 29.6
+    },
+    "weights_MB": 451.3,
+    "peak_MB": 814.0
+  }
+}
