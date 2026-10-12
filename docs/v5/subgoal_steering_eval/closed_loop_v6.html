@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>Subgoal Steering — Offline Replay Eval</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin:0; padding:24px; background:#0f172a; color:#e2e8f0; }
+  h1 { font-size:1.6rem; }
+  .sub { color:#94a3b8; max-width:880px; line-height:1.6; }
+  .back { color:#60a5fa; text-decoration:none; display:inline-block; margin-bottom:16px; }
+  .grid2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin:20px 0; }
+  .box { background:#1e293b; padding:16px 20px; border-radius:10px; }
+  .num { font-size:2.2rem; font-weight:800; }
+  table { border-collapse:collapse; background:#1e293b; border-radius:8px; overflow:hidden; width:100%; }
+  th,td { padding:8px 14px; border-bottom:1px solid #334155; text-align:left; }
+  th { background:#0b1220; }
+  .caveat { background:#3f1d1d; border-left:4px solid #f87171; padding:14px 18px; border-radius:6px; color:#fecaca; margin-top:20px; line-height:1.7; }
+</style></head>
+<body>
+  <a class="back" href="extended_v6.html">← 5-seed 확장 리포트(V6)</a>
+  <h1>서브골 조향 — Offline Replay "Closed-Loop" 평가</h1>
+  <p class="sub">exp67/step2와 동일 프로토콜(teacher-forced replay)로 concat vs steered_reg 체크포인트를 비교.
+  success = FPE&lt;0.5m AND 0.7≤TLD≤1.5.</p>
+
+  <div class="grid2">
+    <div class="box"><div style="color:#94a3b8">Concat-MLP</div>
+      <div class="num" style="color:#60a5fa">0%</div>
+      <div style="color:#64748b">FPE=3.232m · TLD=0.939 · n=45</div></div>
+    <div class="box"><div style="color:#94a3b8">Subgoal-Steered+Reg</div>
+      <div class="num" style="color:#22c55e">16%</div>
+      <div style="color:#64748b">FPE=1.733m · TLD=0.910 · n=45</div></div>
+  </div>
+
+  <table><tr><th>Path Type</th><th>Concat success</th><th>Steered+Reg success</th></tr><tr><td>center_left_curve</td><td>0%</td><td>0%</td></tr><tr><td>center_right_curve</td><td>0%</td><td>67%</td></tr><tr><td>center_straight</td><td>0%</td><td>0%</td></tr><tr><td>strong_left_left_curve</td><td>0%</td><td>0%</td></tr><tr><td>strong_left_right_curve</td><td>0%</td><td>0%</td></tr><tr><td>strong_left_straight</td><td>0%</td><td>100%</td></tr><tr><td>strong_right_left_curve</td><td>0%</td><td>0%</td></tr><tr><td>strong_right_right_curve</td><td>0%</td><td>33%</td></tr><tr><td>strong_right_straight</td><td>0%</td><td>0%</td></tr><tr><td>weak_left_left_curve</td><td>0%</td><td>0%</td></tr><tr><td>weak_left_right_curve</td><td>0%</td><td>0%</td></tr><tr><td>weak_left_straight</td><td>0%</td><td>33%</td></tr><tr><td>weak_right_left_curve</td><td>0%</td><td>0%</td></tr><tr><td>weak_right_right_curve</td><td>0%</td><td>0%</td></tr><tr><td>weak_right_straight</td><td>0%</td><td>0%</td></tr></table>
+
+  <div class="caveat">
+    <strong>용어 정정</strong>: 이 평가는 실제 closed-loop(예측→다음 관측 피드백)가 아니라
+    녹화된 expert 궤적 대비 teacher-forced offline replay다 — evaluate_closed_loop_v5.py의
+    기존 step2/exp67 모드와 동일 정의. 진짜 closed-loop 실주행 평가는 범위 밖(별도 과제).<br>
+    9개 path_type 중 1개 split(seed=0)만 평가한 대표 체크포인트 — 통계적 유의성은
+    <a href="extended_v6.html" style="color:#fca5a5">5-seed 오프라인 PM 비교(V6)</a>를 참조.
+  </div>
+</body></html>

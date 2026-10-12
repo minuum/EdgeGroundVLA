@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>그라운딩 기반 서브골 조향 vs Concat</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .sub { color: #94a3b8; margin-bottom: 24px; max-width: 900px; line-height: 1.6; }
+  .back { color: #60a5fa; text-decoration: none; display: inline-block; margin-bottom: 16px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+  .box { background: #1e293b; padding: 16px 20px; border-radius: 10px; }
+  .num { font-size: 2.3rem; font-weight: 800; }
+  table { border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; width: 100%; margin-top: 16px; }
+  th, td { padding: 8px 14px; border-bottom: 1px solid #334155; text-align: left; }
+  th { background: #0b1220; }
+  .diag { background: #172554; border-left: 4px solid #60a5fa; padding: 14px 18px; border-radius: 6px; color: #dbeafe; margin-top: 20px; line-height: 1.7; }
+  .caveat { background: #3f1d1d; border-left: 4px solid #f87171; padding: 14px 18px; border-radius: 6px; color: #fecaca; margin-top: 16px; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <a class="back" href="../index.html">← Back</a>
+  <h1>그라운딩 기반 서브골 조향 vs Concat 비교</h1>
+  <p class="sub">
+    기존 bbox+image concat-MLP(Exp14, 76.7%)와, bbox를 서브골 임베딩으로 분리해 FiLM 게이팅으로
+    이미지 특징을 조향하는 구조를 동일 캐시 bbox_dataset.json(45 ep, 794 frames)·동일 split·동일 epoch로 공정 비교.
+  </p>
+
+  <div class="grid2">
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">Concat-MLP (baseline)</div>
+      <div class="num" style="color:#60a5fa;">76.3%</div>
+      <div style="color:#64748b;">± 1.0% (5 seeds) · params=110536</div>
+      <div style="color:#64748b; margin-top:6px;">has_bbox=False 프레임 정확도: 75.0%</div>
+    </div>
+    <div class="box">
+      <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">Subgoal-Steered FiLM</div>
+      <div class="num" style="color:#22c55e;">78.2%</div>
+      <div style="color:#64748b;">± 1.6% (5 seeds) · params=79336</div>
+      <div style="color:#64748b; margin-top:6px;">has_bbox=False 프레임 정확도: 75.0%</div>
+    </div>
+  </div>
+
+  <h2>PM per Path Type (5-seed 평균)</h2>
+  <table>
+    <tr><th>Path Type</th><th style='color:#60a5fa'>Concat-MLP (baseline)</th><th style='color:#22c55e'>Subgoal-Steered FiLM</th></tr>
+    <tr><td>center_straight</td><td>81.4%</td><td>57.1%</td></tr><tr><td>center_left</td><td>68.9%</td><td>66.7%</td></tr><tr><td>center_right</td><td>51.1%</td><td>72.2%</td></tr><tr><td>left_straight</td><td>92.2%</td><td>94.4%</td></tr><tr><td>left_left</td><td>73.7%</td><td>72.6%</td></tr><tr><td>left_right</td><td>80.0%</td><td>86.3%</td></tr><tr><td>right_straight</td><td>85.6%</td><td>92.2%</td></tr><tr><td>right_left</td><td>85.9%</td><td>85.9%</td></tr><tr><td>right_right</td><td>67.9%</td><td>70.4%</td></tr>
+  </table>
+
+  <div class="diag">
+    <strong>결론(초안)</strong>: FiLM 서브골 조향이 concat보다 우세 (Δ=+1.9%)
+  </div>
+
+  <div class="caveat">
+    <strong>범위 한계</strong><br>
+    · bbox는 1회성 오프라인 캐시 그라운딩 재생이며 실시간 추론이 아님 — "온라인 서브골 조향" 주장 아님<br>
+    · 8-class 이산 타겟만 다룸 — flow-matching/연속 회귀 액션과 무관<br>
+    · 45 에피소드의 소규모 예비 실험(preliminary) — closed-loop 실주행 평가는 범위 밖
+  </div>
+</body>
+</html>

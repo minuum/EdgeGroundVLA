@@ -13,13 +13,13 @@
 </a>
 
 <a class="topic-card accent-b" href="grounding-detector.html">
-<span class="topic-card-count">19개 챕터</span>
+<span class="topic-card-count">20개 챕터</span>
 <span class="topic-card-title">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)</span>
 <span class="topic-card-summary">타겟 물체를 이미지에서 찾아내는 검출기 계열 전체 이력 — PaliGemma2 → Kosmos-2/OWL-v2 → Florence-2로 이어지는 그라운딩 방식 전환과 재현율 개선.</span>
 </a>
 
 <a class="topic-card accent-c" href="action-head-architecture.html">
-<span class="topic-card-count">12개 챕터</span>
+<span class="topic-card-count">13개 챕터</span>
 <span class="topic-card-title">액션헤드 아키텍처 & 손실함수 실험</span>
 <span class="topic-card-summary">bbox/vis 특징을 받아 액션을 뽑는 헤드 구조(MLP/LSTM/Transformer/FiLM/cross-attention)와 손실함수(hard CE vs ordinal soft label) 실험 전체.</span>
 </a>
@@ -84,7 +84,7 @@
 
 **메타**
 
-- 원본 챕터 수: 83개 (`docs/v5/research_story.html`)
+- 원본 챕터 수: 85개 (`docs/v5/research_story.html`)
 - 위키 주제 수: 10개
 - 생성 스크립트: `scripts/wiki/parse_research_story.py`, `scripts/wiki/build_wiki_pages.py`, `scripts/wiki/build_archive_index.py`, `scripts/wiki/render_wiki_html.py`
 - **새 챕터 추가 시 자동 갱신**: `wiki-sync` 스킬(`.claude/skills/wiki-sync/SKILL.md`) 또는 `scripts/wiki/sync_wiki.py` 직접 실행 — 기존 압축 요약은 보존되고, 새로 추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨

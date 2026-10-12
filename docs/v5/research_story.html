@@ -319,6 +319,8 @@
     <a class="toc-item" href="#ch61" data-target="ch61"><span class="toc-badge" style="background:rgba(248,113,113,0.15);color:#f87171">CH 61</span><span class="toc-label">실로봇 OWL-v2 첫 배포 실패원인 규명 — vis_feat 정규화 버그 발견 + VLA 언어조건화 재검증</span><span class="toc-cat cat-exp" style="background:rgba(248,113,113,0.15);color:#f87171">버그/분석</span></a>
     <a class="toc-item" href="#ch64" data-target="ch64"><span class="toc-badge" style="background:rgba(56,189,248,0.15);color:#38bdf8">CH 64</span><span class="toc-label">exp73 대감사(大監査) — 숨은 버그 2개, 통일 리더보드, 진짜 병목은 재수집</span><span class="toc-cat cat-exp" style="background:rgba(56,189,248,0.15);color:#38bdf8">감사/결론</span></a>
     <a class="toc-item" href="#ch72" data-target="ch72"><span class="toc-badge" style="background:rgba(56,189,248,0.2);color:#7dd3fc;font-weight:900">CH 72</span><span class="toc-label">1차 심사(수정 후 재심) 대응 — ablation·실패분류 데이터 한계·새 실기 일정</span><span class="toc-cat cat-exp" style="background:rgba(56,189,248,0.15);color:#38bdf8">심사대응</span></a>
+    <a class="toc-item" href="#ch73" data-target="ch73"><span class="toc-badge" style="background:rgba(244,114,182,0.2);color:#f9a8d4;font-weight:900">CH 73</span><span class="toc-label">EGVLA3 분기 탐색 — VLA 트렌드 서베이·3대 기업 스터디·그라운딩 서브골 조향(+1.9%p)</span><span class="toc-cat cat-exp" style="background:rgba(244,114,182,0.15);color:#f472b6">신규분기</span></a>
+    <a class="toc-item" href="#ch74" data-target="ch74"><span class="toc-badge" style="background:rgba(244,114,182,0.2);color:#f9a8d4;font-weight:900">CH 74</span><span class="toc-label">EGVLA2 — Florence-2 단일화·텍스트 서브골 리서치 + 그라운딩 비교 라벨링 도구 카탈로그</span><span class="toc-cat cat-exp" style="background:rgba(244,114,182,0.15);color:#f472b6">신규분기</span></a>
     <a class="toc-item" href="#meeting-0630" data-target="meeting-0630"><span class="toc-badge" style="background:rgba(245,158,11,0.35);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/30 미팅 — Grounding 정량 평가 & Kc fallback 문제 발견</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#meeting-0626" data-target="meeting-0626"><span class="toc-badge" style="background:rgba(245,158,11,0.25);color:#f59e0b;font-weight:900">MTG</span><span class="toc-label">6/26 미팅 — 6/22 질문 해결 과정 전체 정리</span><span class="toc-cat cat-meet">미팅</span></a>
     <a class="toc-item" href="#weekly-meeting" data-target="weekly-meeting"><span class="toc-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">MEETING</span><span class="toc-label">6/22 미팅 준비 (이전)</span><span class="toc-cat cat-meet">미팅</span></a>
@@ -360,6 +362,8 @@
     <a href="#ch70" style="padding:7px 16px;background:#2a1608;border:1px solid #fb923c;border-radius:8px;font-size:0.78rem;font-weight:800;color:#fdba74;text-decoration:none">🧪 CH70 헤드 6종 vs soft label</a>
     <a href="#ch71" style="padding:7px 16px;background:#1a2408;border:1px solid #a3e635;border-radius:8px;font-size:0.78rem;font-weight:800;color:#bef264;text-decoration:none">📚 CH71 LLM Wiki 구축</a>
     <a href="#ch72" style="padding:7px 16px;background:#0a1a2e;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:800;color:#7dd3fc;text-decoration:none">📋 CH72 1차 심사 대응</a>
+    <a href="#ch73" style="padding:7px 16px;background:#2a0a1e;border:1px solid #f472b6;border-radius:8px;font-size:0.78rem;font-weight:800;color:#f9a8d4;text-decoration:none">🧭 CH73 EGVLA3 분기 탐색</a>
+    <a href="#ch74" style="padding:7px 16px;background:#2a0a1e;border:1px solid #f472b6;border-radius:8px;font-size:0.78rem;font-weight:800;color:#f9a8d4;text-decoration:none">🧰 CH74 EGVLA2·라벨링 도구 카탈로그</a>
     <a href="../01.paper/revision_briefing.html#round1-review" style="padding:7px 16px;background:#0a1a2e;border:1px solid #60a5fa;border-radius:8px;font-size:0.78rem;font-weight:700;color:#93c5fd;text-decoration:none">📄 심사대응 논문 반영본</a>
     <a href="#ch64" style="padding:7px 16px;background:#0a2033;border:1px solid #38bdf8;border-radius:8px;font-size:0.78rem;font-weight:700;color:#7dd3fc;text-decoration:none">🔍 CH64 exp73 대감사</a>
     <a href="#ch65" style="padding:7px 16px;background:#1a1033;border:1px solid #8b5cf6;border-radius:8px;font-size:0.78rem;font-weight:700;color:#c4b5fd;text-decoration:none">🔀 CH65 2축 분해</a>
@@ -18949,6 +18953,459 @@ graph TD
 
 </div>
 <!-- ══════════════════════════════════════════════════════ /CH72 ═ -->
+
+<hr class="chapter-divider">
+
+<!-- ══════════════════════════════════════════════════════ CH73 ═ -->
+<div class="chapter" id="ch73">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f472b6;color:#0a0f1a">CH 73</span>
+    <h2 class="chapter-title">EGVLA3 분기 탐색 — VLA 트렌드 서베이, 3대 Physical AI 기업 스터디, 그라운딩 기반 서브골 조향 예비실험</h2>
+    <p class="chapter-subtitle"><span style="color:#f9a8d4;font-weight:800">2026-10-09~11</span> ·
+    EGVLA1(경량화)·EGVLA2(그라운딩 중심)와 겹치지 않는 <strong style="color:#e2e8f0">단기 국내 논문지용(6장) 분기 주제</strong>를
+    탐색했다. 처음엔 discrete vs continuous-regression vs flow-matching 비교로 "FM이 엣지 환경에서 더 나쁘다"는
+    주장을 시도했으나, <strong style="color:#f87171">우리 데이터가 8-class 이산 조이스틱 라벨뿐이고 진짜 연속 회귀
+    액션을 수집한 적이 없어 그 주장 자체가 성립하지 않는다</strong>는 걸 사용자 피드백으로 바로잡았다. 이후
+    겸손하게 "최신 트렌드 중 우리 제약(이산 라벨·엣지 연산·오프라인 그라운딩 캐시)으로 실제 적용 가능한 것"을
+    찾는 방향으로 전환해, <strong style="color:#f9a8d4">그라운딩 출력을 서브골 신호로 분리해 FiLM 게이팅으로
+    조향하는 구조</strong>를 제안·실측했다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟢 <strong>3줄 요약</strong><br>
+    ① discrete(60.85%) vs ContReg(59.13%) vs FlowMatching(53.76%) leave-one-direction-out 비교를 실측했지만,
+    타겟이 8-class LUT 고정값이라 <strong style="color:#f87171">"FM이 나쁘다"는 결론은 무효</strong> — 이산 타겟에
+    연속 공식을 억지로 끼운 불일치를 본 것일 뿐. 이 프레임은 폐기.<br>
+    ② π0.7(Physical Intelligence)/GR00T N1.6+Cosmos Reason 2(NVIDIA)/Gemini Robotics-ER 1.6+On-Device 2
+    (Google DeepMind) 3사 최신 발표를 공식 이미지·인용구와 함께 스터디 노트로 정리 — 공통적으로 "모바일 베이스
+    방향-일반화 내비게이션"을 플래그십 데모로 다루지 않는다는 공백을 확인, π0.7의 <strong style="color:#f9a8d4">
+    "월드모델이 서브골을 만들고 정책을 조향한다"</strong>는 구조적 아이디어만(FM 자체는 제외) 차용 가능하다고 판단.<br>
+    ③ bbox_dataset.json(45 ep, 794 frames, 오프라인 Kosmos-2 그라운딩 캐시)을 서브골 임베딩으로 인코딩해
+    FiLM(γ,β)으로 이미지 특징을 조향하는 구조를 기존 concat-MLP(76.32%±0.99%, 110,536 params)와 공정 비교한
+    결과 <strong style="color:#4ade80">78.21%±1.61%, +1.9%p, 파라미터는 28% 더 적음(79,336)</strong> —
+    경량화 방향과 정합적인 긍정적 예비 결과.
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">⚠️ 73-1. 폐기된 주장 — "FM이 엣지 내비게이션에서 더 나쁘다"는 무효</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>scripts/eval_flow_matching_leave_one_direction_out.py</code>로 기존 <code>FlowMatchingHead</code>/
+      <code>train_flow</code>(이미 코드베이스에 존재, CH67 "flow 72.0%"의 실제 출처로 확인됨)를 재사용해
+      5방향 leave-one-direction-out 비교: 이산 60.85% / ContReg 59.13% / FlowMatching 53.76%(특히
+      weak_right 45.50%). 수치 자체는 맞지만, <strong style="color:#e2e8f0">전체 액션 데이터가 8-class
+      고정값(FORWARD/LEFT/RIGHT/...)이라 "진짜 연속 데이터의 이점을 검증한 것"이 아니라 "이산 타겟에 연속
+      공식을 맞추는 정합성 테스트"에 불과</strong>하다는 점이 사용자 피드백으로 지적됨. 산업계(π0/π0.5 계열)의
+      flow-matching 성공은 연속 매니퓰레이션 데이터 기반이라 우리 세팅과 전제가 다르다 — 같은 비교를 근거로
+      우열을 주장하면 안 된다는 결론.
+      <br><span style="font-size:0.78rem;color:#64748b">결과 파일:
+      <code>docs/v5/closed_loop_eval/flow_matching_leave_one_direction_out.json</code>,
+      <code>discrete_vs_contreg_leave_one_direction_out.json</code> (폐기된 프레임으로 보존, 참고용)</span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f472b6">
+    <div class="finding-title" style="color:#f472b6">🔬 73-2. Physical AI 3대 기업 최신 스터디 — 사진·인용 포함 상세, 우리 플로우 적용점</div>
+    <div style="font-size:0.85rem;line-height:1.8;color:#94a3b8">
+
+      <table style="width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:0.82rem">
+        <tr style="background:#1e0f1a">
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">기업·발표</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">핵심 구조</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">모바일 내비 비중</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">우리 플로우 적용점</th>
+        </tr>
+        <tr>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430">Physical Intelligence<br><span style="color:#64748b">π0.7 · 2026-04-16</span></td>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430">world model이 서브골 이미지 생성 → flow-matching 정책이 거기로 조향</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430;color:#f87171">없음(매니퓰레이션 중심)</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430;color:#4ade80">"지각→서브골→조향" 구조만 차용 → 73-3/73-5 FiLM 실험의 직접적 설계 근거</td>
+        </tr>
+        <tr>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430">NVIDIA<br><span style="color:#64748b">GR00T N1.6+Cosmos Reason 2 · 2026-01-05</span></td>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430">풀스택 플랫폼(파운데이션 모델+Jetson Thor 온보드 실행)</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430;color:#f87171">플래그십 아님(휴머노이드/매니퓰레이터 위주)</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #3a2430;color:#4ade80">EGVLA1의 "원격 컴포넌트 없는 극단적 경량화"를 NVIDIA 풀스택 전략의 대척점으로 포지셔닝 근거</td>
+        </tr>
+        <tr>
+          <td style="padding:7px 10px">Google DeepMind<br><span style="color:#64748b">Gemini Robotics-ER 1.6/On-Device 2 · 2026-04-14·07-30</span></td>
+          <td style="padding:7px 10px">reasoning(ER)과 execution(On-Device)을 모델 자체에서 분리</td>
+          <td style="padding:7px 10px;color:#f87171">On-Device 2 커버리지 불명확(미확인)</td>
+          <td style="padding:7px 10px;color:#4ade80">우리의 그라운딩(인식)↔행동(실행) 분리와 같은 축 — EGVLA2 "그라운딩이 성공을 좌우" 결론의 외부 근거로 인용 가능</td>
+        </tr>
+      </table>
+
+      <strong style="color:#f9a8d4">공통 공백</strong>: 3사 모두 "모바일 베이스의 방향-일반화 내비게이션"을 플래그십으로 다루지 않음 — EGVLA2/3가 메울 수 있는 자리.
+
+      <details style="margin-top:14px;background:#140a11;border:1px solid #4c2a3c;border-radius:8px;padding:10px 14px">
+        <summary style="cursor:pointer;color:#f9a8d4;font-weight:700">▶ ① Physical Intelligence π0.7 — 상세(개념도 포함)</summary>
+        <div style="margin-top:10px;line-height:1.85">
+          <p>공식 발표: <a href="https://www.pi.website/blog/pi07" target="_blank" style="color:#f9a8d4">"π 0.7: a Steerable Model with Emergent Capabilities"</a> —
+          언어 프롬프트뿐 아니라 <strong style="color:#e2e8f0">시각적 서브골 이미지</strong>를 조종 입력으로 받고, 이 이미지는
+          추론 시점에 경량 world model이 생성한다. world model 자체는 액션을 생성하지 않는다는 게 핵심.</p>
+          <div style="background:#0d1117;border:1px solid #334155;border-radius:8px;padding:10px;margin:10px 0">
+            <svg viewBox="0 0 640 170" width="100%" height="150" role="img" aria-label="π0.7 world model steering 개념도(자체 제작)">
+              <rect x="10" y="60" width="140" height="50" rx="10" fill="#0f2d22" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="80" y="90" text-anchor="middle" font-size="13" font-family="Inter,sans-serif" fill="#86efac">언어 프롬프트</text>
+              <path d="M150,85 H210" stroke="#22c55e" stroke-width="2" marker-end="url(#arrpi73)"/>
+              <rect x="210" y="40" width="160" height="90" rx="10" fill="#0a1f17" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <text x="290" y="70" text-anchor="middle" font-size="12.5" font-family="Inter,sans-serif" fill="#86efac" font-weight="700">경량 World Model</text>
+              <text x="290" y="90" text-anchor="middle" font-size="11" font-family="Inter,sans-serif" fill="#4ade80">(추론 시점에</text>
+              <text x="290" y="105" text-anchor="middle" font-size="11" font-family="Inter,sans-serif" fill="#4ade80">서브골 이미지 생성)</text>
+              <path d="M370,85 H430" stroke="#22c55e" stroke-width="2" marker-end="url(#arrpi73)"/>
+              <rect x="430" y="60" width="200" height="50" rx="10" fill="#0f2d22" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="530" y="83" text-anchor="middle" font-size="12.5" font-family="Inter,sans-serif" fill="#86efac">π0.7 정책(flow-matching)</text>
+              <text x="530" y="100" text-anchor="middle" font-size="10.5" font-family="Inter,sans-serif" fill="#4ade80">→ 실제 로봇 액션 생성</text>
+              <defs><marker id="arrpi73" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#22c55e"/></marker></defs>
+            </svg>
+            <div style="font-size:0.72rem;color:#64748b;margin-top:4px">자체 제작 개념도 — 출처: pi.website/blog/pi07 발표 설명 기반(원본 이미지는 HTTP 429로 로딩 실패, 2회 재시도+curl 1회 모두 실패)</div>
+          </div>
+          <ul style="margin:8px 0 8px 18px">
+            <li>compositional generalization — 에어프라이어로 고구마 굽기(학습한 적 없는 조합)</li>
+            <li>cross-embodiment 전이 — 셔츠 개기 데이터 없는 새 로봇 바디에서도 전이 성공 보고</li>
+            <li>단일 모델이 태스크별 RL-튜닝 전문 모델과 동급(2차 출처, 공식 수치 미확인)</li>
+          </ul>
+          <p style="color:#fbbf24;font-size:0.82rem">⚠️ world model 아키텍처/파라미터 수, "5%→95%" 수치는 2차 출처에서만 확인됨.</p>
+          <div style="background:#0f1f1a;border-left:3px solid #4ade80;padding:8px 12px;border-radius:6px;margin-top:8px">
+            <strong style="color:#4ade80">▶ 우리 플로우 적용</strong>: "flow-matching 정책 + 별도 world model" 2단 구조는
+            EGVLA3의 "FM 단독으로 방향 일반화되는가"라는 질문과 정확히 대비됨 — π0.7은 "정책 혼자 일반화시키지 말고
+            world model이 목표를 구체화해주자"는 해법을 택함. 우리는 world model 대신 <strong>기존 그라운딩(bbox) 출력을
+            서브골로 삼아 FiLM 게이팅</strong>으로 같은 문제의식을 훨씬 가벼운 리소스로 구현한 것이 73-3/73-5 — 즉 이
+            스터디가 73-3 실험 설계의 직접적 출처다.
+          </div>
+        </div>
+      </details>
+
+      <details style="margin-top:10px;background:#140a11;border:1px solid #4c2a3c;border-radius:8px;padding:10px 14px">
+        <summary style="cursor:pointer;color:#f9a8d4;font-weight:700">▶ ② NVIDIA GR00T N1.6 + Cosmos Reason 2 — 상세(공식 이미지 포함)</summary>
+        <div style="margin-top:10px;line-height:1.85">
+          <img src="https://iprsoftwaremedia.com/219/files/202601/695aea8f3d63328b7eb8544b_ces-2026-global-robotics-partners/ces-2026-global-robotics-partners_mid.jpg"
+               alt="CES 2026 NVIDIA 물리 AI 파트너사 공개" loading="lazy"
+               style="width:100%;max-width:640px;border-radius:8px;display:block;margin:0 auto">
+          <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:4px">공식 이미지(NVIDIA 뉴스룸 og:image, HTML meta 태그로 진위 검증 완료) —
+          출처: <a href="https://nvidianews.nvidia.com/news/nvidia-releases-new-physical-ai-models-as-global-partners-unveil-next-generation-robots" target="_blank" style="color:#7dd3fc">nvidianews.nvidia.com</a></div>
+          <blockquote style="border-left:3px solid #38bdf8;padding:8px 14px;margin:12px 0;color:#bae6fd;font-style:italic">
+            "The ChatGPT moment for robotics is here."
+            <div style="font-size:0.75rem;color:#64748b;margin-top:4px;font-style:normal">— Jensen Huang, NVIDIA 창업자 겸 CEO, 2026-01-05 CES 발표</div>
+          </blockquote>
+          <ul style="margin:8px 0 8px 18px">
+            <li>GR00T N1.6: 범용 휴머노이드/매니퓰레이터 파운데이션 모델, N2는 프리뷰 단계(미확인)</li>
+            <li>Cosmos Reason 2: 물리 세계 reasoning 전용 VLM, Cosmos Transfer/Predict 2.5로 합성 데이터 생성</li>
+            <li>Jetson Thor로 온보드 실행 — 단, "풀스택 생태계"가 전제(Franka, NEURA, Humanoid 등 파트너)</li>
+          </ul>
+          <div style="background:#0a1725;border-left:3px solid #38bdf8;padding:8px 12px;border-radius:6px;margin-top:8px">
+            <strong style="color:#7dd3fc">▶ 우리 플로우 적용</strong>: NVIDIA는 "하드웨어+소프트웨어 풀스택"으로 경량화를 해결하는 반면
+            EGVLA1은 <strong>원격 컴포넌트 자체가 없는 극단적 단일 보드 경량화</strong>를 택함 — 이 대비 구도를
+            EGVLA1 논문 서론의 포지셔닝 문장으로 직접 인용 가능("NVIDIA류 풀스택 전략과 달리, 우리는...").
+            Cosmos Reason 2의 "별도 reasoning 모델" 아이디어는 우리 Kosmos-2 grounding_aux 승격 백로그(73-4-③)와
+            같은 방향이라 함께 인용 가능.
+          </div>
+        </div>
+      </details>
+
+      <details style="margin-top:10px;background:#140a11;border:1px solid #4c2a3c;border-radius:8px;padding:10px 14px">
+        <summary style="cursor:pointer;color:#f9a8d4;font-weight:700">▶ ③ Google DeepMind Gemini Robotics-ER 1.6 / On-Device 2 — 상세(공식 이미지 포함)</summary>
+        <div style="margin-top:10px;line-height:1.85">
+          <img src="https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-robotics-1.6__page-cover.width-1200.format-webp.webp"
+               alt="Gemini Robotics-ER 1.6 공식 커버 이미지" loading="lazy"
+               style="width:100%;max-width:640px;border-radius:8px;display:block;margin:0 auto">
+          <div style="font-size:0.72rem;color:#64748b;text-align:center;margin-top:4px">공식 이미지(blog.google 커버) —
+          출처: Gemini Robotics-ER 1.6 공식 발표(2026-04-14)</div>
+          <blockquote style="border-left:3px solid #a78bfa;padding:8px 14px;margin:12px 0;color:#ddd6fe;font-style:italic">
+            "For robots to be truly helpful, they need to understand the physical world like we do."
+            <div style="font-size:0.75rem;color:#64748b;margin-top:4px;font-style:normal">— Google DeepMind, Gemini Robotics-ER 1.6 공식 발표, 2026-04-14</div>
+          </blockquote>
+          <ul style="margin:8px 0 8px 18px">
+            <li>ER 1.6: reasoning-first, 공간/다시점 이해, 게이지 읽기(Boston Dynamics 협업), 안전성 강조</li>
+            <li>Robotics 2 / On-Device 2(2026-07-30): 전신 제어, Apptronik Apollo 2 데모, Gemma 기반 온디바이스 VLA</li>
+            <li>reasoning(ER)과 execution(On-Device)을 아예 다른 모델로 분리 — "수직 분할" 전략</li>
+          </ul>
+          <p style="color:#fbbf24;font-size:0.82rem">⚠️ On-Device 2의 내비게이션/이동(locomotion) 커버리지는 공식 확인 안 됨.</p>
+          <div style="background:#15102a;border-left:3px solid #a78bfa;padding:8px 12px;border-radius:6px;margin-top:8px">
+            <strong style="color:#c4b5fd">▶ 우리 플로우 적용</strong>: Google의 "reasoning/execution 수직 분할"은 우리의
+            "그라운딩(인식) ↔ 8-class 행동(실행)" 분리와 같은 축 — EGVLA2의 핵심 결론("그라운딩 품질이 성공을 좌우",
+            gnd%≥80→98.8% 성공)을 뒷받침하는 업계 사례로 EGVLA2/3 논문 관련연구 절에 직접 인용 가능. EGVLA1은
+            반대로 "분할하지 않는" 설계라 이 축에서도 대조 구도를 만들 수 있음.
+          </div>
+        </div>
+      </details>
+
+      <details style="margin-top:10px;background:#140a11;border:1px solid #4c2a3c;border-radius:8px;padding:10px 14px">
+        <summary style="cursor:pointer;color:#f9a8d4;font-weight:700">▶ 원본 스터디 노트의 비교표 + 미팅 체크리스트 (physical_ai_company_study_2026q4.html 전재)</summary>
+        <div style="margin-top:10px">
+          <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+            <tr style="background:#1e0f1a"><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">기업</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">전략 축</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">모바일 네비게이션 비중</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #f472b6;color:#f9a8d4">EGVLA 대비축</th></tr>
+            <tr><td style="padding:6px 10px;border-bottom:1px solid #3a2430">Physical Intelligence</td><td style="padding:6px 10px;border-bottom:1px solid #3a2430">순수 정책 연구 — world model로 조종성·일반화 확보</td><td style="padding:6px 10px;border-bottom:1px solid #3a2430">매니퓰레이터 이동 용도만, 네비게이션 자체는 비중 낮음</td><td style="padding:6px 10px;border-bottom:1px solid #3a2430">"FM 단독 일반화 실패" 문제의식 공유, 해법은 다름(world model 분리)</td></tr>
+            <tr><td style="padding:6px 10px;border-bottom:1px solid #3a2430">NVIDIA</td><td style="padding:6px 10px;border-bottom:1px solid #3a2430">풀스택 플랫폼(칩+시뮬+오픈모델)으로 생태계 장악</td><td style="padding:6px 10px;border-bottom:1px solid #3a2430">AMR 제품군 존재하나 GR00T 메인라인은 휴머노이드 중심</td><td style="padding:6px 10px;border-bottom:1px solid #3a2430">"거대 생태계 없이 초경량 단일보드"라는 정반대 극단</td></tr>
+            <tr><td style="padding:6px 10px">Google DeepMind</td><td style="padding:6px 10px">거대 멀티모달 백본의 reasoning/실행 수직분리</td><td style="padding:6px 10px">명시적 네비게이션 기능 미확인</td><td style="padding:6px 10px">"완전 온디바이스, 분리 없음" 설계와 대비</td></tr>
+          </table>
+          <p style="margin-top:10px;color:#f9a8d4;font-weight:700">미팅 준비 체크리스트</p>
+          <ol style="margin:6px 0 0 18px;line-height:1.9">
+            <li>세 기업 다 <b style="color:#e2e8f0">모바일 베이스 네비게이션(목표 방향 일반화)을 핵심 데모로 내세운 적 없음</b> — 전부 매니퓰레이션/전신제어 위주. 이게 EGVLA2/3가 설 수 있는 빈 자리.</li>
+            <li>π0.7의 "world model이 목표만 제시, policy가 액션 생성" 2단 구조는 EGVLA3의 "FM 단독 vs 이산" 질문에 <b style="color:#e2e8f0">세 번째 선택지</b>(목표분리형)를 제시 — 후속 질문으로 준비.</li>
+            <li>2차 출처로만 확인된 수치(π0.7 5%→95%, GR00T N2 정식출시 여부 등)는 "공식 확인 안 됨"이라고 분명히 할 것.</li>
+            <li>이미지 저작권: 각사 공식 뉴스/블로그 공개 보도자료 이미지를 출처 표기와 함께 인용 — 공개 문서(논문/위키)로 옮길 때는 각사 브랜드 가이드라인 재확인 필요.</li>
+          </ol>
+        </div>
+      </details>
+
+      <div style="font-size:0.78rem;color:#64748b;margin-top:12px">원본 문서(전체 이미지·인용 출처 포함):
+      <a href="physical_ai_company_study_2026q4.html" style="color:#7dd3fc"><code>docs/v5/physical_ai_company_study_2026q4.html</code></a>,
+      <code>docs/v5/vla_trend_survey_2026q4.html</code>,
+      <code>docs/plans/research_20261009_vla_trend_survey.md</code></div>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">🏆 73-3. 그라운딩 기반 서브골 조향(FiLM) — concat보다 우세, 파라미터는 더 적음</div>
+    <div style="font-size:0.85rem;line-height:1.85;color:#94a3b8">
+      기존 Exp14 concat-MLP(bbox 12dim+16×16 이미지 256dim 단순 concat)를 FiLM으로 바꿔
+      <code>SubgoalSteeredMLP</code>(bbox→32→128 서브골 임베딩→γ,β로 이미지 특징 128dim 변조→trunk→8-class)를
+      구성, 동일 캐시·동일 split·동일 class-weighted CE로 공정 비교(구세대 45 ep 기준, 73-6에서 최신
+      225 ep로 재검증).
+
+      <table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:0.82rem">
+        <tr style="background:#0f2d1e"><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">조건</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">PM(5-seed)</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">params</th></tr>
+        <tr><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">Concat (baseline)</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">76.32%±0.99%</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">110,536</td></tr>
+        <tr><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a;color:#4ade80">Subgoal-Steered FiLM</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a;color:#4ade80">78.21%±1.61% (+1.9%p)</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a;color:#4ade80">79,336</td></tr>
+      </table>
+
+      has_bbox=False(그라운딩 실패) 프레임 정확도는 두 방식 모두 75.0%로 동일 — FiLM이 그라운딩 실패 시
+      "안전하게 identity로 수렴"하는 효과는 이 1차 실험에서는 확인 안 됨(→ 아래 확장 실험에서 검증).
+
+      <details style="margin-top:10px;background:#0c1f14;border:1px solid #1e3a2a;border-radius:8px;padding:10px 14px">
+        <summary style="cursor:pointer;color:#86efac;font-weight:700">▶ 확장 실험(15-seed, 유의성·파라미터매칭·정규화) 상세</summary>
+        <div style="margin-top:10px">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+            <tr style="background:#0f2d1e"><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">조건</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">PM(15-seed)</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">params</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">유의성</th></tr>
+            <tr><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">Concat (원본)</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">76.15%±1.94%</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">110,536</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">—</td></tr>
+            <tr><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">Concat-Small(파라미터 매칭)</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">76.24%±1.69%</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">72,304</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">—</td></tr>
+            <tr><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a;color:#4ade80">Steered(FiLM)</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a;color:#4ade80">78.97%±2.43%</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">79,336</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a;color:#4ade80">vs concat p=0.0007<br>vs concat_small p=0.00007</td></tr>
+            <tr><td style="padding:6px 10px;color:#4ade80;font-weight:700">Steered+Identity정규화</td><td style="padding:6px 10px;color:#4ade80;font-weight:700">81.28%±2.11%</td><td style="padding:6px 10px">79,336</td><td style="padding:6px 10px;color:#4ade80">vs steered p=0.006</td></tr>
+          </table>
+          <p style="margin-top:8px">파라미터를 맞춘 concat_small과 비교해도 steered가 유의미하게 우세(구조 자체의 이득, 파라미터
+          수 문제 아님). 그라운딩 실패 시 γ≈1,β≈0 유도 정규화를 추가하니 81.28%까지 추가 상승 — "FiLM이 그라운딩
+          실패 시 안전장치로 작동한다"는 가설이 확인됨. 단, steered 계열은 test_loss가 오히려 더 큼(원인 미확인,
+          향후 과제).</p>
+        </div>
+      </details>
+
+      <p style="margin-top:10px"><strong style="color:#fbbf24">범위 한계</strong>: bbox는 1회성 오프라인 캐시 그라운딩
+      재생이며 실시간 추론이 아님 — "온라인 서브골 조향" 주장 아님. 8-class 이산 타겟만 다룸 — flow-matching/연속
+      회귀와 무관.</p>
+      <span style="font-size:0.78rem;color:#64748b">리서치:
+      <code>docs/plans/research_20261011_grounding_subgoal_steering.md</code> · 계획:
+      <code>docs/plans/plan_20261011_grounding_subgoal_steering.md</code> · 코드:
+      <code>scripts/eval_subgoal_steering_vs_concat.py</code>,
+      <code>scripts/eval_subgoal_steering_extended.py</code>(15-seed 확장) · 결과:
+      <code>docs/v5/subgoal_steering_eval/summary.json</code>,
+      <code>docs/v5/subgoal_steering_eval/index.html</code>,
+      <code>docs/v5/subgoal_steering_eval/extended.html</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#4ade80">
+    <div class="finding-title" style="color:#4ade80">🏆 73-5. Task 6 — Offline-replay "closed-loop" 연결: success 22.2%→66.7%</div>
+    <div style="font-size:0.85rem;line-height:1.85;color:#94a3b8">
+      <code>scripts/eval_subgoal_steered_closed_loop.py</code>로 concat/steered_reg 체크포인트를 학습·저장한 뒤,
+      기존 <code>evaluate_closed_loop_v5.py</code>의 exp67/step2와 동일한 teacher-forced replay 프로토콜
+      (<code>build_trajectory</code>+<code>compute_metrics</code>, success = FPE&lt;0.5m ∧ 0.7≤TLD≤1.5)로 비교.
+
+      <table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:0.82rem">
+        <tr style="background:#0f2d1e"><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">조건</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">success</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">FPE</th><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #4ade80;color:#86efac">TLD</th></tr>
+        <tr><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">Concat</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">22.2%</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">0.617m</td><td style="padding:6px 10px;border-bottom:1px solid #1e3a2a">1.023</td></tr>
+        <tr><td style="padding:6px 10px;color:#4ade80;font-weight:700">Steered+Reg</td><td style="padding:6px 10px;color:#4ade80;font-weight:700">66.7%</td><td style="padding:6px 10px;color:#4ade80">0.372m</td><td style="padding:6px 10px;color:#4ade80">0.998</td></tr>
+      </table>
+      9개 path_type 중 7개에서 steered_reg가 동일하거나 우세(right_straight·right_right만 열세).
+
+      <div style="background:#2a1a0a;border-left:3px solid #fbbf24;padding:8px 12px;border-radius:6px;margin-top:10px">
+        <strong style="color:#fbbf24">주의 — 용어 정정</strong>: <code>evaluate_closed_loop_v5.py</code> 전체를
+        다시 읽어본 결과, 이름과 달리 <strong style="color:#f87171">실제 closed-loop(예측이 다음 관측에 피드백)가
+        아니라 전부 녹화된 expert 궤적 대비 teacher-forced offline replay</strong>임을 확인 — CLAUDE.md의
+        "Step2 closed-loop 66.7% success"도 이 정의 하의 수치. 이번 수치도 단일 split(9 에피소드)만 평가한
+        것이라 15-seed PM 비교(73-3)만큼 통계적으로 탄탄하지 않음 — 방향성 확인 수준으로만 사용.
+      </div>
+      <div style="background:#0f1f1a;border-left:3px solid #4ade80;padding:8px 12px;border-radius:6px;margin-top:8px">
+        <strong style="color:#4ade80">▶ 우리 플로우 적용</strong>: 73-3의 오프라인 PM 개선(+2.8~4.3%p)이
+        offline-replay 성공률에서는 3배 가까이 증폭(22.2%→66.7%)되는 것으로 보아, 프레임 단위 오분류가
+        궤적 누적 오차로 이어지는 구간(CH64의 "방향 오류 누적→FPE 2.6배" 패턴)에서 FiLM 서브골 조향이
+        특히 유리할 수 있음 — EGVLA2/3 논문의 "왜 서브골 조향이 중요한가" 핵심 논거로 사용 가능.
+      </div>
+      <span style="font-size:0.78rem;color:#64748b">결과:
+      <code>docs/v5/subgoal_steering_eval/summary_closed_loop.json</code>,
+      <code>docs/v5/subgoal_steering_eval/closed_loop.html</code> · 체크포인트:
+      <code>runs/v5_nav/mlp/subgoal_steered/{{concat_mlp,subgoal_steered_reg}}.pt</code></span>
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#94a3b8">
+    <div class="finding-title" style="color:#94a3b8">📋 73-4. 남겨둔 연구 주제 (프레임워크 달라져도 적용 가능성 있는 백로그)</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      이번에 직접 실험하지 않았지만, 트렌드 서베이에서 확인한 아이디어 중 EGVLA1/2/3 어느 트랙으로든
+      프레임이 바뀌어도 반영 가능성이 있다고 판단해 남겨둔다 (미확정, 제안 단계):<br>
+      <strong style="color:#e2e8f0">① Training-free navigation 포지셔닝</strong> — OpenFrontier/WildOS류
+      frontier 기반 의미적 앵커 + VLM, 정책 학습 자체가 없는 접근. EGVLA2의 "그라운딩 품질이 성공을 좌우한다"
+      (gnd%≥80→98.8% 성공, [[project_grounding_availability_decides]]) 결론과 완전히 정합 — 새 실험 없이
+      "우리 접근이 이미 이 흐름과 같은 방향"이라는 포지셔닝 논문으로 가장 안전하게 전환 가능.<br>
+      <strong style="color:#e2e8f0">② On-device 분할 전략 비교</strong> — ①완전 온디바이스 소형 모델
+      (Gemini Robotics On-Device 2, GR00T) vs ②원격 대형 모델+온보드 소형 어댑터 분리(AsyncVLA). EGVLA1은
+      ①의 극단형(원격 컴포넌트 전무)으로 포지셔닝 가능 — 레이턴시/정확도 트레이드오프 실측이 필요하면
+      차기 분기로 분리.<br>
+      <strong style="color:#e2e8f0">③ grounding_aux를 메인 헤드 조건 입력으로 승격</strong> —
+      <code>nav_h5_dataset_impl.py</code>의 <code>grounding_aux</code>(현재는 보조 손실 타겟)를 73-3처럼
+      메인 액션 헤드의 조건 신호로 바꾸는 실험을 Kosmos-2 VLM 학습 루프 전체로 확장 — 73-3은 오프라인
+      MLP 수준 검증이었고, 이를 VLM 메인 학습에 적용하면 EGVLA2 본류와 다시 연결되는 더 큰 스케일 버전.
+      <strong style="color:#f87171">2026-10-11 스코핑 결과: 현재 막혀 있음</strong> — Exp11 config에
+      <code>grounding_aux</code> 자체가 비활성화돼 있고, 필요한 <code>docs/v5/bbox_truth_mini.json</code>이
+      72건뿐이라 실제 멀티에피소드 학습에 쓰기엔 데이터가 부족. 또한 현재는
+      <code>MobileVLAClassificationDecoder.forward()</code>의 사후 hidden state를 보조손실로만 읽을 뿐
+      FiLM 주입 자리가 코드에 없어 LSTM 전/후에 새로 꽂는 아키텍처 작업이 필요함 — 라벨 재수집 +
+      프로덕션 모델 구조 변경이 함께 필요해 6장 단기 논문 범위를 넘어섬. 착수하려면 라벨 재수집부터
+      별도 의사결정 필요.<br>
+      <strong style="color:#f9a8d4">공통 전제</strong>: 어느 것도 새 연속 액션 데이터 수집을 요구하지 않음 —
+      기존 8-class/bbox 인프라 재사용 가능 범위 안에서만 백로그로 유지.
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH73 ═ -->
+
+<hr class="chapter-divider">
+
+<div class="chapter" id="ch74">
+  <div class="chapter-header">
+    <span class="chapter-num" style="background:#f472b6;color:#0a0f1a">CH 74</span>
+    <h2 class="chapter-title">EGVLA2 — Florence-2 단일화·텍스트 서브골 리서치 + 그라운딩 비교 라벨링 도구 카탈로그</h2>
+    <p class="chapter-subtitle"><span style="color:#f9a8d4;font-weight:800">2026-10-12</span> ·
+    팀 미팅(동환님과 공동)에서 EGVLA2 방향을 <strong style="color:#e2e8f0">OWLv2+Kosmos-2 두 모델 → Florence-2
+    단일 백본</strong> + <strong style="color:#e2e8f0">액션헤드 MLP→FM(FiLM)</strong>으로 합의, CH73의 FiLM
+    서브골 조향 실험과 같은 방향임을 확인했다. Florence-2 전환과 텍스트 서브골 결합을 각각 리서치·plan.md로
+    분리 작성했고, 1번(Florence-2 전환) 사전 점검에서 CH59 결함 재현 여부를 다시 확인했다. 또한 과거에
+    만들어둔 그라운더 비교용 키보드 라벨링 도구들을 분실 방지 차원에서 한곳에 정리한다.</p>
+  </div>
+
+  <div class="callout critical">
+    🟢 <strong>3줄 요약</strong><br>
+    ① 팀 합의 EGVLA2 방향: <strong style="color:#f9a8d4">Florence-2 단일 백본</strong>(그라운딩+비전 통합) +
+    <strong style="color:#f9a8d4">액션헤드 FiLM</strong> — plan을 Florence-2 전환과 텍스트 서브골 결합으로
+    분리 작성.<br>
+    ② Florence-2 전환 §2.1 사전점검: CH59 cx 포화 결함(0.559에서 막힘)은 <strong style="color:#4ade80">재현
+    안 됨</strong>(cx max 0.9955)이지만, <strong style="color:#f87171">신규 블로커 발견</strong> — Florence-2
+    phrase grounding은 score가 없어 부재 대조군("microwave oven")도 100% 검출(OWLv2는 5.0%) → `has_bbox`
+    재정의가 선행 과제로 추가됨.<br>
+    ③ 과거 세션들에서 만든 <strong style="color:#f9a8d4">OWLv2/PaliGemma2(PG2)/Florence-2 그라운딩 비교
+    키보드 라벨링 도구 9종</strong>을 용도별로 카탈로그화(아래 74-2) — 다음에 또 찾아 헤매지 않도록 기록.
+  </div>
+
+  <div class="finding-card" style="border-color:#f472b6">
+    <div class="finding-title" style="color:#f472b6">🧭 74-1. EGVLA2 팀 합의 + plan 분리</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <strong style="color:#e2e8f0">Backbone 변경</strong>: Two models(G,V): OWLv2(그라운딩)+Kosmos-2(비전)
+      → One model(G,V): <strong style="color:#f9a8d4">Florence-2</strong>. <strong style="color:#e2e8f0">
+      액션 헤드 변경</strong>: MLP → FM(FiLM) — CH73에서 검증한 <code>SubgoalSteeredMLP</code> 구조와 정확히
+      같은 방향. 사용자 요청으로 두 축을 독립 plan으로 분리:<br>
+      · <code>docs/plans/plan_20261012_egvla2_florence2_unification.md</code> — Florence-2 단일 백본 전환
+      (그라운딩+비전 통합, bbox 스키마 정합, 리소스 비교)<br>
+      · <code>docs/plans/plan_20261012_egvla2_text_subgoal_film.md</code> — 서브골 FiLM에 CLIP text(frozen)
+      결합, V6 5-direction 신규 템플릿, 텍스트 영향력 검증 프로브<br>
+      리서치 근거: <code>docs/plans/research_20261012_egvla2_text_subgoal.md</code> (텍스트 인코더 가용성,
+      .venv/.venv_lerobot 환경 분리 이슈, Florence-2 위치토큰→bbox 스키마 변환 선례 등 체크 완료).
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#f87171">
+    <div class="finding-title" style="color:#f87171">⚠️ 74-2. Florence-2 전환 §2.1 사전점검 — CH59 결함은 해소, 새 블로커 발견</div>
+    <div style="font-size:0.85rem;line-height:1.9;color:#94a3b8">
+      <code>scripts/l1_florence2_grounder.py</code>를 V6 200프레임(68-7과 동일 표본)에 재실행
+      (<code>docs/v5/detector/l1_florence2_grounder.json</code>):<br>
+      · <strong style="color:#4ade80">cx 포화 결함 재현 안 됨</strong> — 예측 cx 최대값 0.9955(CH59 당시
+      0.559에서 막힘) → "언어부/디코딩 경로" 결함은 해소된 것으로 확인.<br>
+      · <strong style="color:#f87171">부재 대조군("microwave oven") 검출률 100%</strong>(OWLv2는 5.0%) —
+      Florence-2 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code>은 score를 안 주고 대상이 없어도 항상
+      박스를 반환함. 즉 "박스 유무"만으로는 <code>has_bbox</code>/<code>detected</code> 판단 불가 — bbox
+      스키마 정합(plan §2.2)에 "박스 크기/종횡비 이상치 필터" 또는 "OWLv2 detected 플래그 임시 병행" 같은
+      대안을 선행 과제로 추가함.
+    </div>
+  </div>
+
+  <div class="finding-card" style="border-color:#38bdf8">
+    <div class="finding-title" style="color:#38bdf8">🧰 74-3. 그라운딩 비교 키보드 라벨링 도구 카탈로그 (분실 방지용 정리)</div>
+    <div style="font-size:0.85rem;line-height:1.8;color:#94a3b8">
+      과거 세션들에서 그라운더(OWLv2/PaliGemma2=PG2/Florence-2/Kosmos-2) 비교·검증용으로 만든 로컬 Flask
+      라벨링 서버들. 전부 <code>scripts/label/</code>에 있고 파이프라인에는 끼워넣지 않은 연구용 도구다.
+
+      <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:0.8rem">
+        <tr style="background:#0a1f2e">
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #38bdf8;color:#7dd3fc">카테고리</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #38bdf8;color:#7dd3fc">스크립트 (포트)</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #38bdf8;color:#7dd3fc">대상 데이터 / 모델</th>
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #38bdf8;color:#7dd3fc">상태</th>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#4ade80">① bbox 직접 검수<br><span style="color:#64748b;font-size:0.72rem">(YOLO pre-annotation + 사람 검수)</span></td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a"><code>bbox_labeler.py</code> (7788)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a">billy 머신, <code>bbox_truth_mini.json</code></td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#94a3b8">보존</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#4ade80">① bbox 직접 검수</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a"><code>fallback_verify_labeler.py</code> (7789)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a">minum 머신 이식판, PG2 fallback(has_bbox=False) 프레임</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#94a3b8">보존</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#fbbf24">② 다중 그라운더 비교</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a"><code>fallback_grid_labeler.py</code> (7791)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a">PG2 fallback 185프레임, target_visible O/X/부분 + L/C/R</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#f87171">1/185만 라벨됨(미완)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#fbbf24">② 다중 그라운더 비교</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a"><code>serve_hsv_owlv2_labeler.py</code> (7793)<br><code>serve_hsv_owlv2_gallery.py</code> (7792, 정적)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a">CH54 프리뷰후보 H1/H2/OWLv2/PG2 4종, O/X + report/disagree/sessions 탭</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#94a3b8">보존 (CH54 완료)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#fbbf24">② 다중 그라운더 비교</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a"><code>serve_florence2_owl_compare.py</code> (7795)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a">0807 실기세션 1087프레임, OWLv2 vs Florence-2 + /live 실시간 테스트</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#94a3b8">보존</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#f472b6;font-weight:700">② 다중 그라운더 비교 ★</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a"><code>serve_v6_phrase_grounding_verify.py</code> (7796)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a">V6 학습셋 16,599프레임, OWLv2 vs Florence-2, 키보드 1/2/0+←→</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#4ade80">329개 라벨(182 미완) · 2026-10-12 재기동 확인</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#a78bfa">③ 썸네일 생성(라벨러 미부착)</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a"><code>gen_preview_label_thumbs_v2.py</code></td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a">185프레임, K_current/K_refexp/OWLv2/PG/PG224/Florence2 <strong>6종</strong> bbox 오버레이</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #1e3a4a;color:#f87171">갤러리만 존재, 키보드 라벨러 미구현</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#a78bfa">③ 썸네일 생성</td>
+          <td style="padding:6px 10px;"><code>gen_fallback_multimodel_gallery.py</code></td>
+          <td style="padding:6px 10px;">위 ②의 fallback_grid_labeler.py 입력 생성기(동일 포맷)</td>
+          <td style="padding:6px 10px;color:#94a3b8">보존</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;color:#64748b">④ 궤적/성공판정 검증 (그라운더 비교 아님)</td>
+          <td style="padding:6px 10px;"><code>serve_exp73_val_review.py</code> (7794)</td>
+          <td style="padding:6px 10px;">exp73 챔피언 val 33ep, path_type 라벨 + FPE success 자동판정 O/X 확인</td>
+          <td style="padding:6px 10px;color:#94a3b8">33/33 라벨 완료</td>
+        </tr>
+      </table>
+
+      <strong style="color:#f9a8d4">가장 바로 쓸 수 있는 것</strong>: ★ <code>serve_v6_phrase_grounding_verify.py</code>
+      — 지금 작업 중인 V6/Florence-2 전환 검증과 데이터셋이 정확히 일치하고, 182개 미완 라벨이 남아있어
+      바로 이어서 쓸 수 있다. PG2(PaliGemma2)까지 포함한 3-way 비교가 필요하면 ③의
+      <code>preview_label_thumbs_v2</code> 갤러리(이미 6개 모델 bbox 오버레이 포함)에 ②의
+      <code>fallback_grid_labeler.py</code> 키보드 패턴만 이식하면 빠르게 만들 수 있음(백로그).
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════ /CH74 ═ -->
 
 <hr class="chapter-divider">
 

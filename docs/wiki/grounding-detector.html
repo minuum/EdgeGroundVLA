@@ -104,8 +104,8 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <div class="sidebar-sub">주제별 재구성 · research_story.html 기반</div>
 <div class="sidebar-section">주제</div>
 <a class="side-link" href="wiki-infrastructure.html">연구 위키 & 문서 인프라<span class="n">1</span></a>
-<a class="side-link current" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">19</span></a>
-<a class="side-link" href="action-head-architecture.html">액션헤드 아키텍처 & 손실함수 실험<span class="n">12</span></a>
+<a class="side-link current" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">20</span></a>
+<a class="side-link" href="action-head-architecture.html">액션헤드 아키텍처 & 손실함수 실험<span class="n">13</span></a>
 <a class="side-link" href="language-conditioning.html">언어 조건화 & 텍스트 어텐션 구조적 사망<span class="n">6</span></a>
 <a class="side-link" href="flow-matching-vla.html">Flow Matching / π0 스타일 연속 액션<span class="n">1</span></a>
 <a class="side-link" href="dataset-collection.html">데이터셋 & 수집 프로토콜 (V3~V6)<span class="n">8</span></a>
@@ -127,6 +127,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <p>텍스트(언어) 경로는 구조적으로는 살아있지만 실질적으로 죽어있다 — Text attention 0.000%(여러 실험 재현), 객체명을 바꿔도(red ball/person/없음) 행동이 90% 동일, counterfactual 변화율 0.0%. 원인은 학습 데이터가 목표물 1종(회색 바구니)만 다뤄 "텍스트를 볼 이유가 없는" 구조이기 때문이며, 다양한 목표물·지시-경로 디커플링 재수집이 유일한 해법으로 남아있다(아직 미실행).</p>
 <p>그라운더 자체는 여러 차례 세대교체를 겪었다: Kosmos-2(초기, IoU 0.87이나 free-gen 변환 시 34.4%로 붕괴) → PaliGemma2(PG2, 자체 LoRA 파인튜닝이 오히려 grounding을 붕괴시켜 벽/의자 오트래킹 유발함이 밝혀져 base zero-shot PG2 채택, 12/12·cx_std 0.047) → OWL-v2(현재 배포, threshold=0.25가 "knife-edge" 구조라 confidence 0.10~0.20 밴드에 실패가 집중, 검출 실패는 환경(Jetson) 격차가 아니라 대부분(78.7%) 검출기 자체의 본질적 어려움임을 확인). 그라운딩 실패(has_bbox=False) 프레임이 학습 데이터에 0%(0/16599)만 존재해 모델이 "실패 시 대응"을 전혀 학습하지 못했다는 것도 확정된 근본 원인 중 하나다.</p>
 <p>경량화 방향에서는 Florence-2 비전 백본(90.4M)이 Kosmos-2(303.2M)보다 좌표 정확도가 더 좋고(cx MAE 0.0015 vs 0.0020), 심지어 MobileNetV3-Small(0.93M)도 동등한 성능을 내 "좌표 회귀는 큰 백본이 필요 없다"는 결론에 도달했다. 다만 Florence-2를 검출기(부재 판정 포함)로 쓰는 건 실패했었는데, 이는 열린 질문 방식(<code>&lt;OD&gt;</code>/<code>&lt;DENSE_REGION_CAPTION&gt;</code>, 재현율 상한 34.7%)만 시도했기 때문이었고, OWL-v2처럼 phrase를 직접 지정하는 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code> 방식으로 바꾸자 재현율이 84.96%(실기)~100%(사람 검증 329개)로 급등해 판정이 뒤집혔다. 이 새 그라운더로 재학습한 exp77은 무작위 split 기준 역대 최고(75.58%)지만, 목표 방향을 통째로 제외한 leave-one-direction-out 검증에서는 현재 배포 모델(exp73, 60.85%)보다 오히려 나쁨(54.0%, 특히 우측 방향 취약)이 확인돼 아직 배포 권장 단계는 아니다.</p>
+<p>2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code>은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 <code>has_bbox</code>를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(<code>scripts/label/*.py</code>)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(<code>serve_v6_phrase_grounding_verify.py</code>, 포트 7796, 182개 라벨 미완).</p>
 <p>미해결/논쟁 중: exp73 89% 성공에서 체크포인트 교체와 threshold+회복가드 중 어느 쪽이 주된 개선 요인인지는 통계적으로 확정 불가(둘 다 +23~48%p 규모로 크고 순위가 추정 방식에 따라 뒤집힘) — 동일 위치 A/B 재수집이 필요하다.</p>
 </div>
 <h2>챕터별 원문 발췌 (시간순)</h2>
@@ -4095,6 +4096,105 @@ exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 �
 (전량 vs 증분)는 soda 발주 전 결정 필요.</p>
 </div>
 <p><a class="src-link" href="../v5/research_story.html#ch69">→ 원문 전체 보기 (research_story.html#ch69)</a></p>
+</div>
+<div class="chapter-block accent-e">
+<div class="chapter-block-head"><span class="chapter-badge">CH 74</span> EGVLA2 — Florence-2 단일화·텍스트 서브골 리서치 + 그라운딩 비교 라벨링 도구 카탈로그</div>
+<p class="chapter-subtitle-line">2026-10-12 ·
+팀 미팅(동환님과 공동)에서 EGVLA2 방향을 OWLv2+Kosmos-2 두 모델 → Florence-2
+단일 백본 + 액션헤드 MLP→FM(FiLM)으로 합의, CH73의 FiLM
+서브골 조향 실험과 같은 방향임을 확인했다. Florence-2 전환과 텍스트 서브골 결합을 각각 리서치·plan.md로
+분리 작성했고, 1번(Florence-2 전환) 사전 점검에서 CH59 결함 재현 여부를 다시 확인했다. 또한 과거에
+만들어둔 그라운더 비교용 키보드 라벨링 도구들을 분실 방지 차원에서 한곳에 정리한다.</p>
+<div class="card">
+<p>🟢 3줄 요약
+① 팀 합의 EGVLA2 방향: Florence-2 단일 백본(그라운딩+비전 통합) +
+액션헤드 FiLM — plan을 Florence-2 전환과 텍스트 서브골 결합으로
+분리 작성.
+② Florence-2 전환 §2.1 사전점검: CH59 cx 포화 결함(0.559에서 막힘)은 재현
+안 됨(cx max 0.9955)이지만, 신규 블로커 발견 — Florence-2
+phrase grounding은 score가 없어 부재 대조군("microwave oven")도 100% 검출(OWLv2는 5.0%) → <code>has_bbox</code>
+재정의가 선행 과제로 추가됨.
+③ 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운딩 비교
+키보드 라벨링 도구 9종을 용도별로 카탈로그화(아래 74-2) — 다음에 또 찾아 헤매지 않도록 기록.</p>
+</div>
+<div class="card">
+<p><strong>🧭 74-1. EGVLA2 팀 합의 + plan 분리</strong></p>
+<p>Backbone 변경: Two models(G,V): OWLv2(그라운딩)+Kosmos-2(비전)
+→ One model(G,V): Florence-2.
+액션 헤드 변경: MLP → FM(FiLM) — CH73에서 검증한 SubgoalSteeredMLP 구조와 정확히
+같은 방향. 사용자 요청으로 두 축을 독립 plan으로 분리:
+· docs/plans/plan_20261012_egvla2_florence2_unification.md — Florence-2 단일 백본 전환
+(그라운딩+비전 통합, bbox 스키마 정합, 리소스 비교)
+· docs/plans/plan_20261012_egvla2_text_subgoal_film.md — 서브골 FiLM에 CLIP text(frozen)
+결합, V6 5-direction 신규 템플릿, 텍스트 영향력 검증 프로브
+리서치 근거: docs/plans/research_20261012_egvla2_text_subgoal.md (텍스트 인코더 가용성,
+.venv/.venv_lerobot 환경 분리 이슈, Florence-2 위치토큰→bbox 스키마 변환 선례 등 체크 완료).</p>
+</div>
+<div class="card">
+<p><strong>⚠️ 74-2. Florence-2 전환 §2.1 사전점검 — CH59 결함은 해소, 새 블로커 발견</strong></p>
+<p>scripts/l1_florence2_grounder.py를 V6 200프레임(68-7과 동일 표본)에 재실행
+(docs/v5/detector/l1_florence2_grounder.json):
+· cx 포화 결함 재현 안 됨 — 예측 cx 최대값 0.9955(CH59 당시
+0.559에서 막힘) → "언어부/디코딩 경로" 결함은 해소된 것으로 확인.
+· 부재 대조군("microwave oven") 검출률 100%(OWLv2는 5.0%) —
+Florence-2 <CAPTION_TO_PHRASE_GROUNDING>은 score를 안 주고 대상이 없어도 항상
+박스를 반환함. 즉 "박스 유무"만으로는 has_bbox/detected 판단 불가 — bbox
+스키마 정합(plan §2.2)에 "박스 크기/종횡비 이상치 필터" 또는 "OWLv2 detected 플래그 임시 병행" 같은
+대안을 선행 과제로 추가함.</p>
+</div>
+<div class="card">
+<p><strong>🧰 74-3. 그라운딩 비교 키보드 라벨링 도구 카탈로그 (분실 방지용 정리)</strong></p>
+<p>과거 세션들에서 그라운더(OWLv2/PaliGemma2=PG2/Florence-2/Kosmos-2) 비교·검증용으로 만든 로컬 Flask
+라벨링 서버들. 전부 scripts/label/에 있고 파이프라인에는 끼워넣지 않은 연구용 도구다.
+카테고리
+스크립트 (포트)
+대상 데이터 / 모델
+상태
+① bbox 직접 검수
+(YOLO pre-annotation + 사람 검수)
+bbox_labeler.py (7788)
+billy 머신, bbox_truth_mini.json
+보존
+① bbox 직접 검수
+fallback_verify_labeler.py (7789)
+minum 머신 이식판, PG2 fallback(has_bbox=False) 프레임
+보존
+② 다중 그라운더 비교
+fallback_grid_labeler.py (7791)
+PG2 fallback 185프레임, target_visible O/X/부분 + L/C/R
+1/185만 라벨됨(미완)
+② 다중 그라운더 비교
+serve_hsv_owlv2_labeler.py (7793)
+serve_hsv_owlv2_gallery.py (7792, 정적)
+CH54 프리뷰후보 H1/H2/OWLv2/PG2 4종, O/X + report/disagree/sessions 탭
+보존 (CH54 완료)
+② 다중 그라운더 비교
+serve_florence2_owl_compare.py (7795)
+0807 실기세션 1087프레임, OWLv2 vs Florence-2 + /live 실시간 테스트
+보존
+② 다중 그라운더 비교 ★
+serve_v6_phrase_grounding_verify.py (7796)
+V6 학습셋 16,599프레임, OWLv2 vs Florence-2, 키보드 1/2/0+←→
+329개 라벨(182 미완) · 2026-10-12 재기동 확인
+③ 썸네일 생성(라벨러 미부착)
+gen_preview_label_thumbs_v2.py
+185프레임, K_current/K_refexp/OWLv2/PG/PG224/Florence2 6종 bbox 오버레이
+갤러리만 존재, 키보드 라벨러 미구현
+③ 썸네일 생성
+gen_fallback_multimodel_gallery.py
+위 ②의 fallback_grid_labeler.py 입력 생성기(동일 포맷)
+보존
+④ 궤적/성공판정 검증 (그라운더 비교 아님)
+serve_exp73_val_review.py (7794)
+exp73 챔피언 val 33ep, path_type 라벨 + FPE success 자동판정 O/X 확인
+33/33 라벨 완료
+가장 바로 쓸 수 있는 것: ★ serve_v6_phrase_grounding_verify.py
+— 지금 작업 중인 V6/Florence-2 전환 검증과 데이터셋이 정확히 일치하고, 182개 미완 라벨이 남아있어
+바로 이어서 쓸 수 있다. PG2(PaliGemma2)까지 포함한 3-way 비교가 필요하면 ③의
+preview_label_thumbs_v2 갤러리(이미 6개 모델 bbox 오버레이 포함)에 ②의
+fallback_grid_labeler.py 키보드 패턴만 이식하면 빠르게 만들 수 있음(백로그).</p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch74">→ 원문 전체 보기 (research_story.html#ch74)</a></p>
 </div>
 </main>
 </div>

@@ -10,6 +10,8 @@
 
 **offline val_acc(PM)와 실제 closed-loop 성공률은 자주 괴리된다** — 이것이 이 주제 전체를 관통하는 가장 중요한 방법론적 교훈이다(CH40, CH52, CH63). PM이 크게 올라도(75.9%→89%) closed-loop SR은 그대로거나 떨어질 수 있고(CH40), offline 1위 헤드(cxgeom 78.2%)가 closed-loop에서는 최하위(48.5%)로 뒤집히기도 했다(CH63-8). val 33ep처럼 표본이 작으면 GPU 비결정성·데이터 오염(CACHE_V6 재빌드로 트랙F가 몰래 섞이는 등)만으로도 success%가 25.9%~60.6%까지 요동친다는 게 CH63-11~63-16의 3차 정정 끝에 확정됐다 — **반드시 3-seed 이상 평균/분산으로 보고해야 하며, apples-to-apples(동일 데이터·동일 split 로직) 비교가 아니면 순위 자체가 의미 없다.**
 
+**다만 CH73의 "그라운딩 서브골 조향" FiLM 변형은 소규모 예비실험에서 긍정적이었다** — 앞 문단의 기각된 FiLM(곱셈적 결합, bbox+image 동등 입력)과 달리, CH73은 bbox를 별도 서브골 인코더로 저차원 임베딩한 뒤 그 임베딩으로 이미지 특징을 FiLM 게이팅(γ,β)하는 구조다. 45ep/794프레임 예비 비교에서 concat-MLP(76.32%±0.99%, 110,536 params) 대비 +1.9%p(78.21%±1.61%, 79,336 params)였고, V6 225ep/10-seed 재검증에서도 steered_reg가 concat 대비 +2.8%p(72.37% vs 69.58%, p=0.0034)로 방향이 유지됐다 — 단, 표본이 여전히 작고 offline PM 기준이라 위 문단의 "PM과 closed-loop의 괴리" 경고가 똑같이 적용된다(실제로 V6 closed-loop replay는 concat 0%/steered_reg 15.6%로 절대값 자체는 낮음). 2026-10-12 팀 미팅에서 액션헤드를 MLP→FM(FiLM)으로 바꾸기로 합의돼(CH74) 이 방향이 EGVLA2 본류로 승격됐다.
+
 **손실함수 축이 유일하게 실질적 개선을 낸 축이다(CH70).** 조이스틱 연속값(lx,ly,az)을 하드 threshold로 8-class 이산화하면서 생기는 R/FR·F/FR 경계 아티팩트를, hard label 대신 ordinal soft label(sigmoid 완화 + soft CE)로 학습하자 leave-one-direction-out(LOO) 일반화가 평균 +3.71~3.99%p, 최악 방향(strong_right)은 +14.52%p 개선됐다 — 이는 궤적 재생(rollout) 평가에서도 success +9.1%p로 재확인된 유일한 방법이다(CH70-8). 반면 헤드 구조 6종(cxgeom/film/deltacx/cxaux/actionquery)은 무작위 split에서만 좋아 보이다가 LOO에서 개선이 소멸하거나(deltacx: +0.67%p→-0.17%p) R클래스 정확도를 희생하는 트레이드오프만 반복했다.
 
 **부수 발견들:** (1) 액션 원 신호 중 lx,ly는 실제로 3값({-1.15,0,+1.15})뿐인 이산 신호이고 az만 진짜 연속 신호였다(CH63-9) — 이 진단에 따라 만든 hybrid(6-way+연속az) 헤드는 처음엔 최고로 보였으나 val split 버그 정정 후 mlp보다 낮은 것으로 뒤집혔다. (2) window size는 MLP 기준 w≥4에서 포화, w=4가 FPE 최저(0.094m)인 반면 LSTM은 w=16에서 최저 FPE 0.080m로 긴 히스토리를 더 잘 활용한다(CH35). (3) area_delta(변화율) feature를 추가하면 PG2 그라운더 정밀화로 잃었던 근접 신호가 복원되고 LSTM-replace 조합이 전체 최저 FPE(0.098m)를 달성했다(CH47). (4) STOP override는 오프라인 CL에서 항상 해로웠다(V0 no-override 98.7% vs 서버 기본 override 23.5%, CH37) — 시작 프레임 area 분산이 절대 threshold를 무력화하기 때문. (5) FORWARD 고착의 진짜 원인은 그라운딩 실패가 아니라 액션-그라운딩 라벨 자체의 confound(cx-액션 방향 일치율 VSC 35.5%, 우연 50%보다 낮음)였다(CH62) — 헤드 구조를 아무리 바꿔도 라벨/데이터 커버리지 문제는 해결되지 않는다는 것이 CH70의 결론과도 맞물린다.
@@ -2479,5 +2481,270 @@ docs/v5/closed_loop_eval/soft_actionquery_combo.json
 </div>
 
 <a class="src-link" href="../v5/research_story.html#ch70">→ 원문 전체 보기 (research_story.html#ch70)</a>
+
+</div>
+
+<div class="chapter-block accent-c" markdown="1">
+
+<div class="chapter-block-head"><span class="chapter-badge">CH 73</span> EGVLA3 분기 탐색 — VLA 트렌드 서베이, 3대 Physical AI 기업 스터디, 그라운딩 기반 서브골 조향 예비실험</div>
+
+<p class="chapter-subtitle-line">2026-10-09~11 ·
+EGVLA1(경량화)·EGVLA2(그라운딩 중심)와 겹치지 않는 단기 국내 논문지용(6장) 분기 주제를
+탐색했다. 처음엔 discrete vs continuous-regression vs flow-matching 비교로 "FM이 엣지 환경에서 더 나쁘다"는
+주장을 시도했으나, 우리 데이터가 8-class 이산 조이스틱 라벨뿐이고 진짜 연속 회귀
+액션을 수집한 적이 없어 그 주장 자체가 성립하지 않는다는 걸 사용자 피드백으로 바로잡았다. 이후
+겸손하게 "최신 트렌드 중 우리 제약(이산 라벨·엣지 연산·오프라인 그라운딩 캐시)으로 실제 적용 가능한 것"을
+찾는 방향으로 전환해, 그라운딩 출력을 서브골 신호로 분리해 FiLM 게이팅으로
+조향하는 구조를 제안·실측했다.</p>
+
+<div class="card" markdown="1">
+
+🟢 3줄 요약
+① discrete(60.85%) vs ContReg(59.13%) vs FlowMatching(53.76%) leave-one-direction-out 비교를 실측했지만,
+타겟이 8-class LUT 고정값이라 "FM이 나쁘다"는 결론은 무효 — 이산 타겟에
+연속 공식을 억지로 끼운 불일치를 본 것일 뿐. 이 프레임은 폐기.
+② π0.7(Physical Intelligence)/GR00T N1.6+Cosmos Reason 2(NVIDIA)/Gemini Robotics-ER 1.6+On-Device 2
+(Google DeepMind) 3사 최신 발표를 공식 이미지·인용구와 함께 스터디 노트로 정리 — 공통적으로 "모바일 베이스
+방향-일반화 내비게이션"을 플래그십 데모로 다루지 않는다는 공백을 확인, π0.7의
+"월드모델이 서브골을 만들고 정책을 조향한다"는 구조적 아이디어만(FM 자체는 제외) 차용 가능하다고 판단.
+③ bbox_dataset.json(45 ep, 794 frames, 오프라인 Kosmos-2 그라운딩 캐시)을 서브골 임베딩으로 인코딩해
+FiLM(γ,β)으로 이미지 특징을 조향하는 구조를 기존 concat-MLP(76.32%±0.99%, 110,536 params)와 공정 비교한
+결과 78.21%±1.61%, +1.9%p, 파라미터는 28% 더 적음(79,336) —
+경량화 방향과 정합적인 긍정적 예비 결과.
+
+</div>
+
+<div class="card" markdown="1">
+
+**⚠️ 73-1. 폐기된 주장 — "FM이 엣지 내비게이션에서 더 나쁘다"는 무효**
+
+scripts/eval_flow_matching_leave_one_direction_out.py로 기존 FlowMatchingHead/
+train_flow(이미 코드베이스에 존재, CH67 "flow 72.0%"의 실제 출처로 확인됨)를 재사용해
+5방향 leave-one-direction-out 비교: 이산 60.85% / ContReg 59.13% / FlowMatching 53.76%(특히
+weak_right 45.50%). 수치 자체는 맞지만, 전체 액션 데이터가 8-class
+고정값(FORWARD/LEFT/RIGHT/...)이라 "진짜 연속 데이터의 이점을 검증한 것"이 아니라 "이산 타겟에 연속
+공식을 맞추는 정합성 테스트"에 불과하다는 점이 사용자 피드백으로 지적됨. 산업계(π0/π0.5 계열)의
+flow-matching 성공은 연속 매니퓰레이션 데이터 기반이라 우리 세팅과 전제가 다르다 — 같은 비교를 근거로
+우열을 주장하면 안 된다는 결론.
+결과 파일:
+docs/v5/closed_loop_eval/flow_matching_leave_one_direction_out.json,
+discrete_vs_contreg_leave_one_direction_out.json (폐기된 프레임으로 보존, 참고용)
+
+</div>
+
+<div class="card" markdown="1">
+
+**🔬 73-2. Physical AI 3대 기업 최신 스터디 — 사진·인용 포함 상세, 우리 플로우 적용점**
+
+기업·발표
+핵심 구조
+모바일 내비 비중
+우리 플로우 적용점
+Physical Intelligence
+π0.7 · 2026-04-16
+world model이 서브골 이미지 생성 → flow-matching 정책이 거기로 조향
+없음(매니퓰레이션 중심)
+"지각→서브골→조향" 구조만 차용 → 73-3/73-5 FiLM 실험의 직접적 설계 근거
+NVIDIA
+GR00T N1.6+Cosmos Reason 2 · 2026-01-05
+풀스택 플랫폼(파운데이션 모델+Jetson Thor 온보드 실행)
+플래그십 아님(휴머노이드/매니퓰레이터 위주)
+EGVLA1의 "원격 컴포넌트 없는 극단적 경량화"를 NVIDIA 풀스택 전략의 대척점으로 포지셔닝 근거
+Google DeepMind
+Gemini Robotics-ER 1.6/On-Device 2 · 2026-04-14·07-30
+reasoning(ER)과 execution(On-Device)을 모델 자체에서 분리
+On-Device 2 커버리지 불명확(미확인)
+우리의 그라운딩(인식)↔행동(실행) 분리와 같은 축 — EGVLA2 "그라운딩이 성공을 좌우" 결론의 외부 근거로 인용 가능
+공통 공백: 3사 모두 "모바일 베이스의 방향-일반화 내비게이션"을 플래그십으로 다루지 않음 — EGVLA2/3가 메울 수 있는 자리.
+▶ ① Physical Intelligence π0.7 — 상세(개념도 포함)
+공식 발표: "π 0.7: a Steerable Model with Emergent Capabilities" —
+언어 프롬프트뿐 아니라 시각적 서브골 이미지를 조종 입력으로 받고, 이 이미지는
+추론 시점에 경량 world model이 생성한다. world model 자체는 액션을 생성하지 않는다는 게 핵심.
+언어 프롬프트
+경량 World Model
+(추론 시점에
+서브골 이미지 생성)
+π0.7 정책(flow-matching)
+→ 실제 로봇 액션 생성
+자체 제작 개념도 — 출처: pi.website/blog/pi07 발표 설명 기반(원본 이미지는 HTTP 429로 로딩 실패, 2회 재시도+curl 1회 모두 실패)
+- compositional generalization — 에어프라이어로 고구마 굽기(학습한 적 없는 조합)
+- cross-embodiment 전이 — 셔츠 개기 데이터 없는 새 로봇 바디에서도 전이 성공 보고
+- 단일 모델이 태스크별 RL-튜닝 전문 모델과 동급(2차 출처, 공식 수치 미확인)
+⚠️ world model 아키텍처/파라미터 수, "5%→95%" 수치는 2차 출처에서만 확인됨.
+▶ 우리 플로우 적용: "flow-matching 정책 + 별도 world model" 2단 구조는
+EGVLA3의 "FM 단독으로 방향 일반화되는가"라는 질문과 정확히 대비됨 — π0.7은 "정책 혼자 일반화시키지 말고
+world model이 목표를 구체화해주자"는 해법을 택함. 우리는 world model 대신 기존 그라운딩(bbox) 출력을
+서브골로 삼아 FiLM 게이팅으로 같은 문제의식을 훨씬 가벼운 리소스로 구현한 것이 73-3/73-5 — 즉 이
+스터디가 73-3 실험 설계의 직접적 출처다.
+▶ ② NVIDIA GR00T N1.6 + Cosmos Reason 2 — 상세(공식 이미지 포함)
+공식 이미지(NVIDIA 뉴스룸 og:image, HTML meta 태그로 진위 검증 완료) —
+출처: nvidianews.nvidia.com
+"The ChatGPT moment for robotics is here."
+— Jensen Huang, NVIDIA 창업자 겸 CEO, 2026-01-05 CES 발표
+- GR00T N1.6: 범용 휴머노이드/매니퓰레이터 파운데이션 모델, N2는 프리뷰 단계(미확인)
+- Cosmos Reason 2: 물리 세계 reasoning 전용 VLM, Cosmos Transfer/Predict 2.5로 합성 데이터 생성
+- Jetson Thor로 온보드 실행 — 단, "풀스택 생태계"가 전제(Franka, NEURA, Humanoid 등 파트너)
+▶ 우리 플로우 적용: NVIDIA는 "하드웨어+소프트웨어 풀스택"으로 경량화를 해결하는 반면
+EGVLA1은 원격 컴포넌트 자체가 없는 극단적 단일 보드 경량화를 택함 — 이 대비 구도를
+EGVLA1 논문 서론의 포지셔닝 문장으로 직접 인용 가능("NVIDIA류 풀스택 전략과 달리, 우리는...").
+Cosmos Reason 2의 "별도 reasoning 모델" 아이디어는 우리 Kosmos-2 grounding_aux 승격 백로그(73-4-③)와
+같은 방향이라 함께 인용 가능.
+▶ ③ Google DeepMind Gemini Robotics-ER 1.6 / On-Device 2 — 상세(공식 이미지 포함)
+공식 이미지(blog.google 커버) —
+출처: Gemini Robotics-ER 1.6 공식 발표(2026-04-14)
+"For robots to be truly helpful, they need to understand the physical world like we do."
+— Google DeepMind, Gemini Robotics-ER 1.6 공식 발표, 2026-04-14
+- ER 1.6: reasoning-first, 공간/다시점 이해, 게이지 읽기(Boston Dynamics 협업), 안전성 강조
+- Robotics 2 / On-Device 2(2026-07-30): 전신 제어, Apptronik Apollo 2 데모, Gemma 기반 온디바이스 VLA
+- reasoning(ER)과 execution(On-Device)을 아예 다른 모델로 분리 — "수직 분할" 전략
+⚠️ On-Device 2의 내비게이션/이동(locomotion) 커버리지는 공식 확인 안 됨.
+▶ 우리 플로우 적용: Google의 "reasoning/execution 수직 분할"은 우리의
+"그라운딩(인식) ↔ 8-class 행동(실행)" 분리와 같은 축 — EGVLA2의 핵심 결론("그라운딩 품질이 성공을 좌우",
+gnd%≥80→98.8% 성공)을 뒷받침하는 업계 사례로 EGVLA2/3 논문 관련연구 절에 직접 인용 가능. EGVLA1은
+반대로 "분할하지 않는" 설계라 이 축에서도 대조 구도를 만들 수 있음.
+▶ 원본 스터디 노트의 비교표 + 미팅 체크리스트 (physical_ai_company_study_2026q4.html 전재)
+기업전략 축모바일 네비게이션 비중EGVLA 대비축
+Physical Intelligence
+순수 정책 연구 — world model로 조종성·일반화 확보
+매니퓰레이터 이동 용도만, 네비게이션 자체는 비중 낮음
+"FM 단독 일반화 실패" 문제의식 공유, 해법은 다름(world model 분리)
+NVIDIA
+풀스택 플랫폼(칩+시뮬+오픈모델)으로 생태계 장악
+AMR 제품군 존재하나 GR00T 메인라인은 휴머노이드 중심
+"거대 생태계 없이 초경량 단일보드"라는 정반대 극단
+Google DeepMind
+거대 멀티모달 백본의 reasoning/실행 수직분리
+명시적 네비게이션 기능 미확인
+"완전 온디바이스, 분리 없음" 설계와 대비
+미팅 준비 체크리스트
+- 세 기업 다 모바일 베이스 네비게이션(목표 방향 일반화)을 핵심 데모로 내세운 적 없음 — 전부 매니퓰레이션/전신제어 위주. 이게 EGVLA2/3가 설 수 있는 빈 자리.
+- π0.7의 "world model이 목표만 제시, policy가 액션 생성" 2단 구조는 EGVLA3의 "FM 단독 vs 이산" 질문에 세 번째 선택지(목표분리형)를 제시 — 후속 질문으로 준비.
+- 2차 출처로만 확인된 수치(π0.7 5%→95%, GR00T N2 정식출시 여부 등)는 "공식 확인 안 됨"이라고 분명히 할 것.
+- 이미지 저작권: 각사 공식 뉴스/블로그 공개 보도자료 이미지를 출처 표기와 함께 인용 — 공개 문서(논문/위키)로 옮길 때는 각사 브랜드 가이드라인 재확인 필요.
+원본 문서(전체 이미지·인용 출처 포함):
+docs/v5/physical_ai_company_study_2026q4.html,
+docs/v5/vla_trend_survey_2026q4.html,
+docs/plans/research_20261009_vla_trend_survey.md
+
+</div>
+
+<div class="card" markdown="1">
+
+**🏆 73-3. 그라운딩 기반 서브골 조향(FiLM) — concat보다 우세, 파라미터는 더 적음**
+
+기존 Exp14 concat-MLP(bbox 12dim+16×16 이미지 256dim 단순 concat)를 FiLM으로 바꿔
+SubgoalSteeredMLP(bbox→32→128 서브골 임베딩→γ,β로 이미지 특징 128dim 변조→trunk→8-class)를
+구성, 동일 캐시·동일 split·동일 class-weighted CE로 공정 비교(구세대 45 ep 기준, 73-6에서 최신
+225 ep로 재검증).
+조건PM(5-seed)params
+Concat (baseline)
+76.32%±0.99%
+110,536
+Subgoal-Steered FiLM
+78.21%±1.61% (+1.9%p)
+79,336
+has_bbox=False(그라운딩 실패) 프레임 정확도는 두 방식 모두 75.0%로 동일 — FiLM이 그라운딩 실패 시
+"안전하게 identity로 수렴"하는 효과는 이 1차 실험에서는 확인 안 됨(→ 아래 확장 실험에서 검증).
+▶ 확장 실험(15-seed, 유의성·파라미터매칭·정규화) 상세
+조건PM(15-seed)params유의성
+Concat (원본)
+76.15%±1.94%
+110,536
+—
+Concat-Small(파라미터 매칭)
+76.24%±1.69%
+72,304
+—
+Steered(FiLM)
+78.97%±2.43%
+79,336
+vs concat p=0.0007
+vs concat_small p=0.00007
+Steered+Identity정규화
+81.28%±2.11%
+79,336
+vs steered p=0.006
+파라미터를 맞춘 concat_small과 비교해도 steered가 유의미하게 우세(구조 자체의 이득, 파라미터
+수 문제 아님). 그라운딩 실패 시 γ≈1,β≈0 유도 정규화를 추가하니 81.28%까지 추가 상승 — "FiLM이 그라운딩
+실패 시 안전장치로 작동한다"는 가설이 확인됨. 단, steered 계열은 test_loss가 오히려 더 큼(원인 미확인,
+향후 과제).
+범위 한계: bbox는 1회성 오프라인 캐시 그라운딩
+재생이며 실시간 추론이 아님 — "온라인 서브골 조향" 주장 아님. 8-class 이산 타겟만 다룸 — flow-matching/연속
+회귀와 무관.
+리서치:
+docs/plans/research_20261011_grounding_subgoal_steering.md · 계획:
+docs/plans/plan_20261011_grounding_subgoal_steering.md · 코드:
+scripts/eval_subgoal_steering_vs_concat.py,
+scripts/eval_subgoal_steering_extended.py(15-seed 확장) · 결과:
+docs/v5/subgoal_steering_eval/summary.json,
+docs/v5/subgoal_steering_eval/index.html,
+docs/v5/subgoal_steering_eval/extended.html
+
+</div>
+
+<div class="card" markdown="1">
+
+**🏆 73-5. Task 6 — Offline-replay "closed-loop" 연결: success 22.2%→66.7%**
+
+scripts/eval_subgoal_steered_closed_loop.py로 concat/steered_reg 체크포인트를 학습·저장한 뒤,
+기존 evaluate_closed_loop_v5.py의 exp67/step2와 동일한 teacher-forced replay 프로토콜
+(build_trajectory+compute_metrics, success = FPE<0.5m ∧ 0.7≤TLD≤1.5)로 비교.
+조건successFPETLD
+Concat
+22.2%
+0.617m
+1.023
+Steered+Reg
+66.7%
+0.372m
+0.998
+9개 path_type 중 7개에서 steered_reg가 동일하거나 우세(right_straight·right_right만 열세).
+주의 — 용어 정정: evaluate_closed_loop_v5.py 전체를
+다시 읽어본 결과, 이름과 달리 실제 closed-loop(예측이 다음 관측에 피드백)가
+아니라 전부 녹화된 expert 궤적 대비 teacher-forced offline replay임을 확인 — CLAUDE.md의
+"Step2 closed-loop 66.7% success"도 이 정의 하의 수치. 이번 수치도 단일 split(9 에피소드)만 평가한
+것이라 15-seed PM 비교(73-3)만큼 통계적으로 탄탄하지 않음 — 방향성 확인 수준으로만 사용.
+▶ 우리 플로우 적용: 73-3의 오프라인 PM 개선(+2.8~4.3%p)이
+offline-replay 성공률에서는 3배 가까이 증폭(22.2%→66.7%)되는 것으로 보아, 프레임 단위 오분류가
+궤적 누적 오차로 이어지는 구간(CH64의 "방향 오류 누적→FPE 2.6배" 패턴)에서 FiLM 서브골 조향이
+특히 유리할 수 있음 — EGVLA2/3 논문의 "왜 서브골 조향이 중요한가" 핵심 논거로 사용 가능.
+결과:
+docs/v5/subgoal_steering_eval/summary_closed_loop.json,
+docs/v5/subgoal_steering_eval/closed_loop.html · 체크포인트:
+runs/v5_nav/mlp/subgoal_steered/{{concat_mlp,subgoal_steered_reg}}.pt
+
+</div>
+
+<div class="card" markdown="1">
+
+**📋 73-4. 남겨둔 연구 주제 (프레임워크 달라져도 적용 가능성 있는 백로그)**
+
+이번에 직접 실험하지 않았지만, 트렌드 서베이에서 확인한 아이디어 중 EGVLA1/2/3 어느 트랙으로든
+프레임이 바뀌어도 반영 가능성이 있다고 판단해 남겨둔다 (미확정, 제안 단계):
+① Training-free navigation 포지셔닝 — OpenFrontier/WildOS류
+frontier 기반 의미적 앵커 + VLM, 정책 학습 자체가 없는 접근. EGVLA2의 "그라운딩 품질이 성공을 좌우한다"
+(gnd%≥80→98.8% 성공, [[project_grounding_availability_decides]]) 결론과 완전히 정합 — 새 실험 없이
+"우리 접근이 이미 이 흐름과 같은 방향"이라는 포지셔닝 논문으로 가장 안전하게 전환 가능.
+② On-device 분할 전략 비교 — ①완전 온디바이스 소형 모델
+(Gemini Robotics On-Device 2, GR00T) vs ②원격 대형 모델+온보드 소형 어댑터 분리(AsyncVLA). EGVLA1은
+①의 극단형(원격 컴포넌트 전무)으로 포지셔닝 가능 — 레이턴시/정확도 트레이드오프 실측이 필요하면
+차기 분기로 분리.
+③ grounding_aux를 메인 헤드 조건 입력으로 승격 —
+nav_h5_dataset_impl.py의 grounding_aux(현재는 보조 손실 타겟)를 73-3처럼
+메인 액션 헤드의 조건 신호로 바꾸는 실험을 Kosmos-2 VLM 학습 루프 전체로 확장 — 73-3은 오프라인
+MLP 수준 검증이었고, 이를 VLM 메인 학습에 적용하면 EGVLA2 본류와 다시 연결되는 더 큰 스케일 버전.
+2026-10-11 스코핑 결과: 현재 막혀 있음 — Exp11 config에
+grounding_aux 자체가 비활성화돼 있고, 필요한 docs/v5/bbox_truth_mini.json이
+72건뿐이라 실제 멀티에피소드 학습에 쓰기엔 데이터가 부족. 또한 현재는
+MobileVLAClassificationDecoder.forward()의 사후 hidden state를 보조손실로만 읽을 뿐
+FiLM 주입 자리가 코드에 없어 LSTM 전/후에 새로 꽂는 아키텍처 작업이 필요함 — 라벨 재수집 +
+프로덕션 모델 구조 변경이 함께 필요해 6장 단기 논문 범위를 넘어섬. 착수하려면 라벨 재수집부터
+별도 의사결정 필요.
+공통 전제: 어느 것도 새 연속 액션 데이터 수집을 요구하지 않음 —
+기존 8-class/bbox 인프라 재사용 가능 범위 안에서만 백로그로 유지.
+
+</div>
+
+<a class="src-link" href="../v5/research_story.html#ch73">→ 원문 전체 보기 (research_story.html#ch73)</a>
 
 </div>
