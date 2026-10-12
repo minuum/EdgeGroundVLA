@@ -2,20 +2,27 @@
 """EGVLA2 규격 벤치 — 학습서버/젯슨에서 **동일 코드·동일 입력·동일 조건**으로 3개 구성 비교.
 
   A. 현재(프로덕션)  : OwlV2Grounder.run() → Stage1Encoder.encode_image()  순차 (stage2_v2_inference_server 클래스 그대로,
-                      OWLv2 fp16 thresh=0.2 — sequential_vs_threaded_* 측정과 동일 설정)
+                      OWLv2 dtype=--dtype, thresh=0.2. 기존 sequential_vs_threaded_* 994ms는 fp16 설정이었음)
   B. F2 분리 호출    : (processor+generate+박스디코드+어댑터) + (processor+vision_tower.forward_features_unpool)
   C. F2 fused (1회)  : processor 1회 → _encode_image 1회 → LM.generate + 같은 특징 평균풀링 → 박스디코드+어댑터
 
-공통 조건: 입력=실제 V6 프레임 1장(docs/v5/egvla2_florence2/bench_frame.jpg, 1280x720), fp16, warmup 10, iters 50,
+공통 조건: 입력=실제 V6 프레임 1장(docs/v5/egvla2_florence2/bench_frame.jpg, 1280x720), dtype(기본 fp32=메인 배포; OWLv2·F2 동일 dtype,
+Kosmos-2 vision은 프로덕션 코드가 fp16 고정), warmup 10, iters 50,
 매 반복 cuda sync, phrase="gray basket", beam=3. 환경(디바이스/torch/transformers)은 JSON에 함께 기록.
 
-실행: .venv/bin/python3 scripts/bench_egvla2_unified.py --tag server     (젯슨은 --tag jetson)
-출력: docs/v5/detector/bench_egvla2_unified_<tag>.json
+실행: .venv/bin/python3 scripts/bench_egvla2_unified.py --tag server --dtype fp32   (젯슨은 --tag jetson; 보조로 --dtype fp16)
+출력: docs/v5/detector/bench_egvla2_unified_<tag>_<dtype>.json
 """
 import argparse, json, os, sys, time
 from pathlib import Path
 
-os.environ.setdefault("VLA_OWLV2_FP16", "1")
+_ap = argparse.ArgumentParser()
+_ap.add_argument("--tag", required=True)
+_ap.add_argument("--dtype", choices=["fp32", "fp16"], default="fp32")  # 메인 배포 = fp32 (VLA_OWLV2_FP16 기본 0)
+_ap.add_argument("--iters", type=int, default=50)
+_ap.add_argument("--warmup", type=int, default=10)
+ARGS = _ap.parse_args()
+os.environ["VLA_OWLV2_FP16"] = "1" if ARGS.dtype == "fp16" else "0"
 os.environ.setdefault("VLA_OWLV2_THRESH", "0.2")
 os.environ.setdefault("VLA_OWLV2_AREA_SCALE", "3.0")
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,16 +43,13 @@ def stats(ts):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--tag", required=True)
-    ap.add_argument("--iters", type=int, default=50)
-    ap.add_argument("--warmup", type=int, default=10)
-    a = ap.parse_args()
+    a = ARGS
+    DT = torch.float16 if a.dtype == "fp16" else torch.float32
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     sync = (lambda: torch.cuda.synchronize()) if dev.type == "cuda" else (lambda: None)
     import transformers
     env = dict(device=torch.cuda.get_device_name(0) if dev.type == "cuda" else "cpu", torch=torch.__version__,
-               transformers=transformers.__version__, fp16=True, iters=a.iters, warmup=a.warmup, frame=str(FRAME.name))
+               transformers=transformers.__version__, dtype=a.dtype, kosmos_vision_dtype="fp16(프로덕션 코드 고정)", iters=a.iters, warmup=a.warmup, frame=str(FRAME.name))
     print(env, flush=True)
     pil = Image.open(FRAME).convert("RGB"); rgb = np.array(pil)
     W, H = pil.size
@@ -75,12 +79,12 @@ def main():
     # ---- B/C. Florence-2 ----
     from transformers import AutoModelForCausalLM, AutoProcessor
     from florence2_bbox_adapter import florence2_output_to_bbox
-    m = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True, torch_dtype=torch.float16).to(dev).eval()
+    m = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True, torch_dtype=DT).to(dev).eval()
     p = AutoProcessor.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True)
 
     def prep():
         inp = p(text=TASK + PHRASE, images=pil, return_tensors="pt")
-        return inp["input_ids"].to(dev), inp["pixel_values"].to(dev, torch.float16)
+        return inp["input_ids"].to(dev), inp["pixel_values"].to(dev, DT)
 
     def decode(out):
         t = p.batch_decode(out, skip_special_tokens=False)[0]
@@ -112,7 +116,7 @@ def main():
     a_ = res["A_current_production_seq"]["total"]["mean"]
     res["speedup_fused_vs_current"] = a_ / res["C_florence2_fused"]["total"]["mean"]
     res["speedup_fused_vs_split"] = res["B_florence2_split"]["total"]["mean"] / res["C_florence2_fused"]["total"]["mean"]
-    out = ROOT / f"docs/v5/detector/bench_egvla2_unified_{a.tag}.json"
+    out = ROOT / f"docs/v5/detector/bench_egvla2_unified_{a.tag}_{a.dtype}.json"
     out.write_text(json.dumps(res, indent=2, ensure_ascii=False))
     print(f"저장: {out}\nfused vs 현재 {res['speedup_fused_vs_current']:.2f}x · fused vs 분리 {res['speedup_fused_vs_split']:.2f}x")
 

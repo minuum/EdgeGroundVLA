@@ -146,7 +146,7 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [ ] 2.1 CH59 결함 재발 확인 (V6 200프레임)
 - [x] 2.2 bbox 어댑터 구현 + OWLv2 대비 검증 — `scripts/florence2_bbox_adapter.py`, V6 15프레임 cx 상관 0.991 / has_bbox 일치 15/15 (면적 기반 휴리스틱, 임계값 캘리브레이션은 백로그)
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
-- [x] 2.3-b 젯슨 지연 벤치 — fused 371.1ms. **정정**: 현재 기준선 ≈1960ms는 일반 HF 파이프라인 값이라 비교조건 불일치, 프로덕션 하니스(OwlV2Grounder+Stage1Encoder 순차) 기준 994ms → **약 2.7배**(계산량비 1277/467=2.7배와 일치, CH74-8). 서버·젯슨 동일조건 재측정: `scripts/bench_egvla2_unified.py` (대기)
+- [x] 2.3-b 젯슨 지연 벤치(fp16) — fused 371.1ms. **정정(2차)**: 메인 배포는 fp32(`VLA_OWLV2_FP16` 기본 0, 72-10). 현재 기준선 fp32 ≈1960ms ↔ F2 fp16 371ms의 5.3×는 dtype 불일치, fp16끼리(OWL 994 ↔ F2 371)는 2.7×(계산량비와 일치). **fp32 동일조건 측정 필요** → `bench_egvla2_unified.py --dtype fp32` (서버·젯슨, 대기)
 - [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
 - [ ] 2.4 리소스 비교 (Florence-2 단일 vs OWLv2+Kosmos-2)
 - [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)
