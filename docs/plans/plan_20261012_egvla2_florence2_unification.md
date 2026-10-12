@@ -109,7 +109,15 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
   | fp16 (보조) | 1017.97ms | — | — | 582.16ms | 372.11ms | 2.74× | 1.56× |
 
   결과 JSON: `docs/v5/detector/bench_egvla2_unified_jetson_fp32.json`, `..._jetson_fp16.json`
-  (학습서버 fp32/fp16 쌍은 `..._server_fp32.json`/`_fp16.json`으로 별도 확보 예정, §2.4에서 서버·젯슨 교차비교).
+  **학습서버(GB10) 동일 규격** (`..._server_fp32.json`/`_fp16.json`, 2026-10-12):
+
+  | dtype | A 현재(전체) | A-OWLv2 | A-Kosmos2비전 | B F2분리 | C F2 fused | fused vs A | fused vs B |
+  |---|---|---|---|---|---|---|---|
+  | **fp32 (메인 배포)** | 491.6ms | 433.0 | 58.6 | 315.1ms | **180.0ms** | **2.73×** | 1.75× |
+  | fp16 (보조) | 360.3ms | 300.5 | 59.8 | 275.4ms | 201.1ms | 1.79× | 1.37× |
+
+  → 서버에서는 F2가 fp16(201ms)이 fp32(180ms)보다 오히려 느림(디코딩 호출 오버헤드 지배) — 메인이 fp32라 영향 제한적.
+  → 계산량(GFLOPs): A 1277 / B 847 / C 467 (`docs/v5/detector/egvla2_model_cost_breakdown.json`, CH74-8).
 
   → **메인 배포 조건(fp32) 기준 결론**: Florence-2 fused는 현재 방식(OWLv2+Kosmos-2) 대비 **2.41배** 빠름 —
   5.3배(dtype 불일치)도 994ms 비교(994→371, 2.7배, 하니스 fp16 강제)도 아닌, 동일 dtype·동일 하니스로 처음
@@ -163,6 +171,6 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [x] 2.3-a 학습서버(GPU) 지연 벤치 — Florence-2 247.6ms < OWLv2 529.6ms, 동시 재사용 시 27% 절감
 - [x] 2.3-b 젯슨 지연 벤치 — `bench_egvla2_unified.py` 규격 벤치로 최종 확정: **fp32(메인) A=1970.98ms vs C(fused)=817.36ms → 2.41×**, fp16(보조) A=1017.97ms vs C=372.11ms → 2.74× (2026-10-12). 이전 5.3×(dtype 불일치)/2.7×(994ms, fp16 강제 하니스) 기재는 본 수치로 대체.
 - [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
-- [ ] 2.4 리소스 비교 (Florence-2 단일 vs OWLv2+Kosmos-2)
+- [x] 2.4 리소스 비교 — 지연(서버·젯슨, fp32/fp16), 파라미터 458M→231M, 가중치 메모리, GFLOPs 1277→467 완료 (CH74-3/74-8). 젯슨 전력·실측 메모리는 미측정
 - [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)
 - [ ] 결과 CH73(또는 신규 챕터)에 반영 + 로컬호스트 링크

@@ -85,7 +85,10 @@ def main():
                 for j in idxs]
         bb, ft = [], []
         for s in range(0, len(pils), BATCH):
+            tb = time.time()
             b, f = run_batch(model, proc, pils[s:s + BATCH])
+            if time.time() - tb > 20:
+                print(f"    ! 느린 배치 {Path(key).stem} s={s} {time.time()-tb:.0f}s", flush=True)
             bb.append(b)
             ft.append(f)
         cache[f"{key}|bbox"] = np.concatenate(bb)
@@ -93,7 +96,7 @@ def main():
         done.add(key)
         el = time.time() - t0
         print(f"  [{len(done)}/{len(dataset)}] {Path(key).stem[-40:]} ({len(idxs)}f) elapsed={el/60:.1f}m", flush=True)
-        if len(done) % 10 == 0:
+        if len(done) % 5 == 0:
             np.savez(PARTIAL, **cache)
 
     np.savez_compressed(OUT, **cache)
