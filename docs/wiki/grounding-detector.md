@@ -14,7 +14,7 @@
 
 경량화 방향에서는 Florence-2 비전 백본(90.4M)이 Kosmos-2(303.2M)보다 좌표 정확도가 더 좋고(cx MAE 0.0015 vs 0.0020), 심지어 MobileNetV3-Small(0.93M)도 동등한 성능을 내 "좌표 회귀는 큰 백본이 필요 없다"는 결론에 도달했다. 다만 Florence-2를 검출기(부재 판정 포함)로 쓰는 건 실패했었는데, 이는 열린 질문 방식(`<OD>`/`<DENSE_REGION_CAPTION>`, 재현율 상한 34.7%)만 시도했기 때문이었고, OWL-v2처럼 phrase를 직접 지정하는 `<CAPTION_TO_PHRASE_GROUNDING>` 방식으로 바꾸자 재현율이 84.96%(실기)~100%(사람 검증 329개)로 급등해 판정이 뒤집혔다. 이 새 그라운더로 재학습한 exp77은 무작위 split 기준 역대 최고(75.58%)지만, 목표 방향을 통째로 제외한 leave-one-direction-out 검증에서는 현재 배포 모델(exp73, 60.85%)보다 오히려 나쁨(54.0%, 특히 우측 방향 취약)이 확인돼 아직 배포 권장 단계는 아니다.
 
-2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 `<CAPTION_TO_PHRASE_GROUNDING>`은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 `has_bbox`를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 이후 규격 벤치(동일 코드·입력·dtype, 메인 fp32)로 Florence-2 fused(`_encode_image` 1회 호출로 bbox+비전특징 동시 획득)가 현재 OWLv2+Kosmos-2 대비 젯슨 1971→817ms(2.41배), 학습서버 492→180ms(2.73배)로 빠름을 확정했고(계산량 1277→467 GFLOPs, 파라미터 458M→231M; 이전 5.3배·2.7배는 dtype/구성 불일치로 폐기), 사람검증 329개에서도 OWL 실패 203개를 전부 회수(OWL ok 38.3% vs F2 100%, 표본은 OWL 실패 편향)해 전환 근거가 속도·정확도 양쪽에서 확보됐고, 면적 기반 has_bbox 어댑터는 V6 15프레임에서 OWLv2와 cx 상관 0.991·판정 15/15 일치했다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(`scripts/label/*.py`)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(`serve_v6_phrase_grounding_verify.py`, 포트 7796, 182개 라벨 미완).
+2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 `<CAPTION_TO_PHRASE_GROUNDING>`은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 `has_bbox`를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 이후 규격 벤치(동일 코드·입력·dtype, 메인 fp32)로 Florence-2 fused(`_encode_image` 1회 호출로 bbox+비전특징 동시 획득)가 현재 OWLv2+Kosmos-2 대비 젯슨 1971→817ms(2.41배), 학습서버 492→180ms(2.73배)로 빠름을 확정했고(계산량 1277→467 GFLOPs, 파라미터 458M→231M; 이전 5.3배·2.7배는 dtype/구성 불일치로 폐기), 사람검증 329개에서도 OWL 실패 203개를 전부 회수(OWL ok 38.3% vs F2 100%, 표본은 OWL 실패 편향)해 전환 근거가 속도·정확도 양쪽에서 확보됐고, 면적 기반 has_bbox 어댑터는 V6 15프레임에서 OWLv2와 cx 상관 0.991·판정 15/15 일치했다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(`scripts/label/*.py`)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(`serve_v6_phrase_grounding_verify.py`, 포트 7796, 182개 라벨 미완). 또한 Florence-2 입력(bbox+768-d 비전 특징, 캐시)으로 FiLM 서브골 조향을 V6 10-seed 재현한 결과 steered 78.41% > concat 76.76%(p=1.6e-5)가 유지됐고 steered_reg의 추가 이득은 없었으며(vs steered p=0.79), CH73의 OWLv2+16×16 입력(72.37%)보다 절대 PM이 높지만 입력 특징이 달라 그라운더 효과로 분리할 수 없다.
 
 미해결/논쟁 중: exp73 89% 성공에서 체크포인트 교체와 threshold+회복가드 중 어느 쪽이 주된 개선 요인인지는 통계적으로 확정 불가(둘 다 +23~48%p 규모로 크고 순위가 추정 방식에 따라 뒤집힘) — 동일 위치 A/B 재수집이 필요하다.
 
@@ -4543,7 +4543,7 @@ exp77이 exp73보다 뚜렷이 낫다(~36% vs ~16%). 문제가 국소적이라 �
 🟢 3줄 요약
 ① 규격 벤치(동일 코드·입력·dtype, 메인 fp32): 젯슨 1971→817ms (2.41×), 서버 492→180ms (2.73×). 계산량은 2.74배 적음. 이전 5.3×/2.7×는 조건 불일치로 폐기(74-3).
 ② 사람검증 329개에서 OWL이 놓친 203프레임을 Florence-2가 전부 회수. 신규 블로커(score 없음 → 부재 오탐 100%)는 면적 규칙 has_bbox로 우회(cx 상관 0.991).
-③ 진행: §2.5 Florence-2 입력으로 FiLM 서브골 조향(CH73) 재현 — Stage 1 캐시 → Stage 2 10-seed.
+③ 완료: §2.5 Florence-2 입력으로 FiLM 서브골 조향(CH73) 재현 — steered 78.41% > concat 76.76%(p=1.6e-5) 유지, steered_reg 추가 이득은 없음.
 📌 개요🗺 구조도⏱ 실측 속도📐 모델·계산 비교🖼 정확도·실제 사례🧩 어댑터·has_bbox🔄 진행 §2.5🧰 도구 카탈로그
 
 </div>
@@ -4572,7 +4572,7 @@ FM(FiLM) — CH73 SubgoalSteeredMLP와 동일 방향
 EdgeGround-VLA 리서치: 동환 · 최신 VLA 사례: 이민우
 문서내용
 plan_20261012_egvla2_florence2_unification.md
-① Florence-2 단일 백본 전환 (§2.1~2.3 완료, §2.5 진행)
+① Florence-2 단일 백본 전환 (§2.1~2.5 완료)
 plan_20261012_egvla2_text_subgoal_film.md
 ② CLIP text(frozen) 결합 서브골 FiLM (대기)
 research_20261012_egvla2_text_subgoal.md
@@ -4819,18 +4819,46 @@ False
 
 <div class="card" markdown="1">
 
-**🔄 74-6. 진행 중 — §2.5 Florence-2 기준 Stage 2 재현**
+**✅ 74-6. §2.5 Florence-2 기준 Stage 2 재현 — 완료 (10-seed)**
 
 V6 h5 225ep16,599 프레임Stage 1 · fused 전처리precompute_v6_florence2_fused.pyv6_florence2_cache.npzbbox(4) + feat(768) /프레임Stage 2 · 10-seed 학습eval_..._florence2_v6.py배치 8 · beam 3 · 약 35분concat / small / steered / reg단계상태비고
 Stage 1 캐시
-실행 중
-precompute_v6_florence2_fused.py, 에피소드당 ~9초, 부분저장·이어하기
+완료
+precompute_v6_florence2_fused.py, 225ep/16,599f, fp16 특징(학습용), 부분저장·이어하기
 Stage 2 (4조건×10seed)
-대기
+완료
 IMG_DIM 256→768, 파라미터 재매칭 steered 144,872 ↔ concat_small 145,464 (0.4%↔), concat 241,608
 판정 기준
 —
 ① F2 입력에서도 steered_reg>concat 유의? ② OWLv2+16×16(72.37%) 대비 PM 변화? — PM이 주 지표, replay 성공률은 참고
+판정 ① F2 입력 유의성
+유지
+steered vs concat Δ+1.66%p p=1.6e-5, vs concat_small Δ+1.71%p p=3.5e-6, steered_reg vs concat Δ+1.62%p p=5.1e-5(10/10 seed 우세). 단 steered_reg vs steered는 차이 없음(Δ−0.04%p, p=0.79) → 그라운딩 실패 정규화의 추가 이득은 F2에서 재현 안 됨
+판정 ② 절대 PM
+상승(원인 분리 불가)
+steered_reg 78.38±0.96% vs CH73 OWLv2+16×16 72.37±1.39%. 단 입력이 다름(F2 768-d 풀링 특징 vs 16×16 이미지, 표준화 포함) → 그라운더 효과인지 특징 효과인지 분리 안 됨. 그라운더 교체 단독 이득이라 주장 금지
+조건 (10-seed)PMparamsno_bbox_accCH73 (OWLv2) PM
+concat
+76.76±1.08%
+241,608
+1.00
+69.58±2.10%
+concat_small
+76.70±1.05%
+145,464
+1.00
+69.45±3.49%
+steered
+78.41±0.74%
+144,872
+1.00
+71.68±1.24%
+steered_reg
+78.38±0.96%
+144,872
+0.92
+72.37±1.39%
+PM(frame-level, teacher-forced replay)이 주 지표. 결과: docs/v5/subgoal_steering_eval/summary_florence2_v6.json, florence2_v6.html. 주의: steered_reg의 no_bbox_acc 0.92는 has_bbox=0 표본이 극소(F2 has_bbox 99.96%)라 해석 불가. 정규화 이득이 사라진 것도 F2가 거의 항상 박스를 내서 "실패 프레임"이 없기 때문일 가능성이 큼(미검증).
 결과가 나오면 본 탭을 결과로 갱신.
 
 </div>

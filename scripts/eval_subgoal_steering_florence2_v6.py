@@ -345,7 +345,7 @@ def main():
         "steered_reg_vs_steered": {"mean_diff": mean_d3, "t_stat": t3, "p_value": p3},
     }
 
-    print("\n=== 결과 요약 (15 seeds) ===")
+    print("\n=== 결과 요약 (10 seeds) ===")
     for name in conditions:
         s = summary[name]
         print(f"{name:14s}: PM={s['mean_pm']:.4f}±{s['std_pm']:.4f} test_loss={s['mean_test_loss']:.4f} "
@@ -379,7 +379,7 @@ def build_html(summary):
     <div class="box">
       <div style="color:#94a3b8; font-size:0.85rem; text-transform:uppercase;">{labels[name]}</div>
       <div class="num" style="color:{colors[name]};">{s['mean_pm']:.1%}</div>
-      <div style="color:#64748b;">± {s['std_pm']:.1%} (15 seeds) · params={s['n_params']}</div>
+      <div style="color:#64748b;">± {s['std_pm']:.1%} (10 seeds) · params={s['n_params']}</div>
       <div style="color:#64748b;">test_loss={s['mean_test_loss']:.3f}</div>
       <div style="color:#64748b; margin-top:6px;">has_bbox=False 정확도: {nb}</div>
     </div>"""
@@ -399,7 +399,7 @@ def build_html(summary):
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>서브골 조향 확장 실험 (15 seeds + 유의성 + 정규화)</title>
+<title>서브골 조향 확장 실험 (10 seeds + 유의성 + 정규화)</title>
 <style>
   body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }}
   h1 {{ font-size: 1.7rem; margin-bottom: 8px; }}
@@ -417,7 +417,7 @@ def build_html(summary):
 </head>
 <body>
   <a class="back" href="index.html">← 이전(5-seed) 리포트</a>
-  <h1>서브골 조향 확장 실험 — 15 seeds + 유의성 + 파라미터 매칭 + 그라운딩 실패 정규화</h1>
+  <h1>서브골 조향 확장 실험 — 10 seeds + 유의성 + 파라미터 매칭 + 그라운딩 실패 정규화</h1>
   <p class="sub">
     concat(원본) / concat_small(파라미터를 steered와 맞춘 축소판) / steered(FiLM) / steered_reg(그라운딩 실패 시 identity 유도 정규화 추가)
     4조건을 15 seed로 비교.

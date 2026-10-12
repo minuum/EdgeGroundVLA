@@ -2388,12 +2388,12 @@
       {
         "kind": "callout",
         "title": null,
-        "text": "🟢 3줄 요약\n① 규격 벤치(동일 코드·입력·dtype, 메인 fp32): 젯슨 1971→817ms (2.41×), 서버 492→180ms (2.73×). 계산량은 2.74배 적음. 이전 5.3×/2.7×는 조건 불일치로 폐기(74-3).\n② 사람검증 329개에서 OWL이 놓친 203프레임을 Florence-2가 전부 회수. 신규 블로커(score 없음 → 부재 오탐 100%)는 면적 규칙 has_bbox로 우회(cx 상관 0.991).\n③ 진행: §2.5 Florence-2 입력으로 FiLM 서브골 조향(CH73) 재현 — Stage 1 캐시 → Stage 2 10-seed.\n📌 개요🗺 구조도⏱ 실측 속도📐 모델·계산 비교🖼 정확도·실제 사례🧩 어댑터·has_bbox🔄 진행 §2.5🧰 도구 카탈로그"
+        "text": "🟢 3줄 요약\n① 규격 벤치(동일 코드·입력·dtype, 메인 fp32): 젯슨 1971→817ms (2.41×), 서버 492→180ms (2.73×). 계산량은 2.74배 적음. 이전 5.3×/2.7×는 조건 불일치로 폐기(74-3).\n② 사람검증 329개에서 OWL이 놓친 203프레임을 Florence-2가 전부 회수. 신규 블로커(score 없음 → 부재 오탐 100%)는 면적 규칙 has_bbox로 우회(cx 상관 0.991).\n③ 완료: §2.5 Florence-2 입력으로 FiLM 서브골 조향(CH73) 재현 — steered 78.41% > concat 76.76%(p=1.6e-5) 유지, steered_reg 추가 이득은 없음.\n📌 개요🗺 구조도⏱ 실측 속도📐 모델·계산 비교🖼 정확도·실제 사례🧩 어댑터·has_bbox🔄 진행 §2.5🧰 도구 카탈로그"
       },
       {
         "kind": "finding-card",
         "title": "🧭 74-1. EGVLA2 팀 합의와 핵심 수치",
-        "text": "2.41×\n젯슨 fp32(메인) 1971→817ms · 서버 2.73×\n100%\nF2 사람검증 329 (OWL 38.3%)\n0.991\n어댑터 cx 상관 (vs OWLv2)\n15/15\nhas_bbox 판정 일치\n항목현재EGVLA2 (팀 합의 2026-10-12)\nBackbone\nOWLv2(G) + Kosmos-2(V) 2모델\nFlorence-2 단일(G+V)\n액션 헤드\nMLP\nFM(FiLM) — CH73 SubgoalSteeredMLP와 동일 방향\n담당\n—\nEdgeGround-VLA 리서치: 동환 · 최신 VLA 사례: 이민우\n문서내용\nplan_20261012_egvla2_florence2_unification.md\n① Florence-2 단일 백본 전환 (§2.1~2.3 완료, §2.5 진행)\nplan_20261012_egvla2_text_subgoal_film.md\n② CLIP text(frozen) 결합 서브골 FiLM (대기)\nresearch_20261012_egvla2_text_subgoal.md\n공통 리서치 (텍스트 인코더·환경·스키마 정합)"
+        "text": "2.41×\n젯슨 fp32(메인) 1971→817ms · 서버 2.73×\n100%\nF2 사람검증 329 (OWL 38.3%)\n0.991\n어댑터 cx 상관 (vs OWLv2)\n15/15\nhas_bbox 판정 일치\n항목현재EGVLA2 (팀 합의 2026-10-12)\nBackbone\nOWLv2(G) + Kosmos-2(V) 2모델\nFlorence-2 단일(G+V)\n액션 헤드\nMLP\nFM(FiLM) — CH73 SubgoalSteeredMLP와 동일 방향\n담당\n—\nEdgeGround-VLA 리서치: 동환 · 최신 VLA 사례: 이민우\n문서내용\nplan_20261012_egvla2_florence2_unification.md\n① Florence-2 단일 백본 전환 (§2.1~2.5 완료)\nplan_20261012_egvla2_text_subgoal_film.md\n② CLIP text(frozen) 결합 서브골 FiLM (대기)\nresearch_20261012_egvla2_text_subgoal.md\n공통 리서치 (텍스트 인코더·환경·스키마 정합)"
       },
       {
         "kind": "finding-card",
@@ -2422,8 +2422,8 @@
       },
       {
         "kind": "finding-card",
-        "title": "🔄 74-6. 진행 중 — §2.5 Florence-2 기준 Stage 2 재현",
-        "text": "V6 h5 225ep16,599 프레임Stage 1 · fused 전처리precompute_v6_florence2_fused.pyv6_florence2_cache.npzbbox(4) + feat(768) /프레임Stage 2 · 10-seed 학습eval_..._florence2_v6.py배치 8 · beam 3 · 약 35분concat / small / steered / reg단계상태비고\nStage 1 캐시\n실행 중\nprecompute_v6_florence2_fused.py, 에피소드당 ~9초, 부분저장·이어하기\nStage 2 (4조건×10seed)\n대기\nIMG_DIM 256→768, 파라미터 재매칭 steered 144,872 ↔ concat_small 145,464 (0.4%↔), concat 241,608\n판정 기준\n—\n① F2 입력에서도 steered_reg>concat 유의? ② OWLv2+16×16(72.37%) 대비 PM 변화? — PM이 주 지표, replay 성공률은 참고\n결과가 나오면 본 탭을 결과로 갱신."
+        "title": "✅ 74-6. §2.5 Florence-2 기준 Stage 2 재현 — 완료 (10-seed)",
+        "text": "V6 h5 225ep16,599 프레임Stage 1 · fused 전처리precompute_v6_florence2_fused.pyv6_florence2_cache.npzbbox(4) + feat(768) /프레임Stage 2 · 10-seed 학습eval_..._florence2_v6.py배치 8 · beam 3 · 약 35분concat / small / steered / reg단계상태비고\nStage 1 캐시\n완료\nprecompute_v6_florence2_fused.py, 225ep/16,599f, fp16 특징(학습용), 부분저장·이어하기\nStage 2 (4조건×10seed)\n완료\nIMG_DIM 256→768, 파라미터 재매칭 steered 144,872 ↔ concat_small 145,464 (0.4%↔), concat 241,608\n판정 기준\n—\n① F2 입력에서도 steered_reg>concat 유의? ② OWLv2+16×16(72.37%) 대비 PM 변화? — PM이 주 지표, replay 성공률은 참고\n판정 ① F2 입력 유의성\n유지\nsteered vs concat Δ+1.66%p p=1.6e-5, vs concat_small Δ+1.71%p p=3.5e-6, steered_reg vs concat Δ+1.62%p p=5.1e-5(10/10 seed 우세). 단 steered_reg vs steered는 차이 없음(Δ−0.04%p, p=0.79) → 그라운딩 실패 정규화의 추가 이득은 F2에서 재현 안 됨\n판정 ② 절대 PM\n상승(원인 분리 불가)\nsteered_reg 78.38±0.96% vs CH73 OWLv2+16×16 72.37±1.39%. 단 입력이 다름(F2 768-d 풀링 특징 vs 16×16 이미지, 표준화 포함) → 그라운더 효과인지 특징 효과인지 분리 안 됨. 그라운더 교체 단독 이득이라 주장 금지\n조건 (10-seed)PMparamsno_bbox_accCH73 (OWLv2) PM\nconcat\n76.76±1.08%\n241,608\n1.00\n69.58±2.10%\nconcat_small\n76.70±1.05%\n145,464\n1.00\n69.45±3.49%\nsteered\n78.41±0.74%\n144,872\n1.00\n71.68±1.24%\nsteered_reg\n78.38±0.96%\n144,872\n0.92\n72.37±1.39%\nPM(frame-level, teacher-forced replay)이 주 지표. 결과: docs/v5/subgoal_steering_eval/summary_florence2_v6.json, florence2_v6.html. 주의: steered_reg의 no_bbox_acc 0.92는 has_bbox=0 표본이 극소(F2 has_bbox 99.96%)라 해석 불가. 정규화 이득이 사라진 것도 F2가 거의 항상 박스를 내서 \"실패 프레임\"이 없기 때문일 가능성이 큼(미검증).\n결과가 나오면 본 탭을 결과로 갱신."
       },
       {
         "kind": "finding-card",

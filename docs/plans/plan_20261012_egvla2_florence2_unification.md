@@ -172,5 +172,5 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 - [x] 2.3-b 젯슨 지연 벤치 — `bench_egvla2_unified.py` 규격 벤치로 최종 확정: **fp32(메인) A=1970.98ms vs C(fused)=817.36ms → 2.41×**, fp16(보조) A=1017.97ms vs C=372.11ms → 2.74× (2026-10-12). 이전 5.3×(dtype 불일치)/2.7×(994ms, fp16 강제 하니스) 기재는 본 수치로 대체.
 - [x] 2.3-c bbox 정확도 비교 — 기존 V6 사람검증 329개 재집계로 완료: OWL ok 38.3% vs Florence-2 ok 100%(OWL 실패 203개 전부 회수), 그리드 양자화 우려는 §2.1 결과로 기각
 - [x] 2.4 리소스 비교 — 지연(서버·젯슨, fp32/fp16), 파라미터 458M→231M, 가중치 메모리, GFLOPs 1277→467 완료 (CH74-3/74-8). 젯슨 전력·실측 메모리는 미측정
-- [ ] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준)
+- [x] 2.5 Stage 2 PM 재현 (Florence-2 bbox/비전 기준, 10-seed, 2026-10-13) — steered_reg 78.38±0.96 / steered 78.41±0.74 / concat 76.76±1.08 / concat_small 76.70±1.05. steered>concat 유의(p=1.6e-5) 유지, steered_reg 추가 이득 없음(vs steered p=0.79). CH73 OWLv2+16×16(72.37)보다 높으나 입력(768-d 풀링 특징)이 달라 그라운더 효과로 분리 불가. `summary_florence2_v6.json`
 - [ ] 결과 CH73(또는 신규 챕터)에 반영 + 로컬호스트 링크
