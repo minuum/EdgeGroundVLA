@@ -298,8 +298,6 @@ def main():
         out += chunk
     seg = out + seg[tail:]
     seg = style_text(seg)
-    k = seg.index('<div class="ctab-bar">')
-    seg = seg[:k] + LEGEND + seg[k:]
     s = s[:a] + seg + s[b:]
     HTML.write_text(s, encoding="utf-8")
     for t in ["div", "svg", "table", "tr", "button"]:
