@@ -22,7 +22,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 DATASET = ROOT / "docs/v5/bbox_nav_owl/bbox_dataset_v6_owl.json"
-OUT = ROOT / "docs/v5/detector/f2_has_bbox_calibration.json"
+OUT = ROOT / "docs/v5/detector/f2_has_bbox_calibration_score.json"
 DEV = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL = "microsoft/Florence-2-base"
 TASK = "<CAPTION_TO_PHRASE_GROUNDING>"
@@ -37,9 +37,11 @@ def ground(model, proc, pils, phrase):
     inp = proc(text=[TASK + phrase] * len(pils), images=pils, return_tensors="pt")
     out = model.generate(input_ids=inp["input_ids"].to(DEV),
                          pixel_values=inp["pixel_values"].to(DEV, torch.float16),
-                         max_new_tokens=128, num_beams=3, do_sample=False)
+                         max_new_tokens=128, num_beams=3, do_sample=False,
+                         return_dict_in_generate=True, output_scores=True)
+    scores = out.sequences_scores.float().cpu().numpy()   # 빔 길이정규화 로그확률
     res = []
-    for t, pil in zip(proc.batch_decode(out, skip_special_tokens=False), pils):
+    for t, pil, sc in zip(proc.batch_decode(out.sequences, skip_special_tokens=False), pils, scores):
         p = proc.post_process_generation(t, task=TASK, image_size=(pil.width, pil.height))[TASK]
         bx = p.get("bboxes", [])
         if not bx:
@@ -47,7 +49,7 @@ def ground(model, proc, pils, phrase):
             continue
         x1, y1, x2, y2 = max(bx, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
         W, H = pil.width, pil.height
-        res.append(dict(area=(x2 - x1) * (y2 - y1) / (W * H), cx=(x1 + x2) / 2 / W, cy=(y1 + y2) / 2 / H,
+        res.append(dict(score=float(sc), area=(x2 - x1) * (y2 - y1) / (W * H), cx=(x1 + x2) / 2 / W, cy=(y1 + y2) / 2 / H,
                         aspect=(x2 - x1) / max(1e-6, y2 - y1),
                         edge=int(x1 < 0.01 * W) + int(y1 < 0.01 * H) + int(x2 > 0.99 * W) + int(y2 > 0.99 * H)))
     return res
@@ -133,6 +135,16 @@ def main():
         tpr = float(np.mean([keep(b, **kw) for b in pos])); fpr = float(np.mean([keep(b, **kw) for b in neg]))
         rules[name] = dict(pos_keep=tpr, neg_keep=fpr, bal_acc=(tpr + 1 - fpr) / 2,
                            owl_miss_keep=float(np.mean([keep(b, **kw) for b in pos_miss])))
+    def auc(p_, n_):
+        a = np.array([b["score"] for b in p_]); b_ = np.array([b["score"] for b in n_])
+        return float((a[:, None] > b_[None]).mean() + 0.5 * (a[:, None] == b_[None]).mean())
+
+    score_eval = dict(auc_pos_vs_neg=auc(pos, neg), pos_score=stat(pos, "score"), neg_score=stat(neg, "score"),
+                      owl_miss_score=stat(pos_miss, "score"))
+    cand = sorted({round(b["score"], 3) for b in pos + neg})
+    best = max(((float(np.mean([b["score"] >= th for b in pos])), float(np.mean([b["score"] < th for b in neg])), th)
+                for th in cand), key=lambda x: x[0] + x[1])
+    score_eval["best_threshold"] = dict(thr=best[2], pos_keep=best[0], neg_reject=best[1], bal_acc=(best[0] + best[1]) / 2)
     cur = (0.0008, 0.55)
     grid = []
     for lo in [0.0008, 0.002, 0.004, 0.008, 0.015]:
@@ -149,7 +161,7 @@ def main():
                         "neg": float(np.mean([b["edge"] >= 2 for b in neg])) if neg else None},
         current_rule=dict(lo=cur[0], hi=cur[1], pos_keep=rate(pos, *cur), neg_keep=rate(neg, *cur),
                           owl_miss_keep=rate(pos_miss, *cur)),
-        grid_top5=grid[:5], combined_rules=rules,
+        grid_top5=grid[:5], combined_rules=rules, score_eval=score_eval,
     )
     OUT.write_text(json.dumps(out, indent=2, ensure_ascii=False))
     print(json.dumps(out, indent=2, ensure_ascii=False))

@@ -112,4 +112,5 @@ Exp54 5-Track 검증([[project_exp54_5track_validation]])과 동일한 masking/p
 - CLIP 방향 임베딩 코사인(weak_left↔weak_right 0.98)이 left/right를 거의 구분 못 함 — 유력 원인(미검증)
 - 계획 대비 변경: CLIP-L/14 text 768-d(로컬 캐시, B/32 아님), 베이스라인을 F2 캐시 입력으로(빠른 paired 비교), 영어 템플릿 3종/방향, 프로브는 단일 샘플이 아닌 테스트셋 전체 교체로 `eval_subgoal_steering_text_v6.py`에 통합(`eval_text_influence_probe.py` 별도 파일은 만들지 않음)
 - 산출: `docs/v5/subgoal_steering_eval/summary_text_steering_v6.json`
-- 후속 후보(미착수): 방향 one-hot/학습형 토큰 대조(CLIP 한계 분리), text_proj 차원 16/64 스윕
+- 후속 대조 완료 (one-hot 5-d, `TEXT_MODE=onehot`): 78.07% vs bbox-only 78.36% (Δ−0.29%p, p=0.24), 교체 프로브 −2.2%p(p=0.0005)·flip 12.6%±3.3 → 방향 신호는 안정적으로 쓰이나 PM 이득 없음. CLIP은 여기에 하락·불안정을 추가. 결론: 이 구조에서 텍스트 서브골은 bbox+이미지 대비 추가 정보 없음. 산출 `summary_text_steering_v6_onehot.json`
+- 미착수: text_proj 차원 스윕(결론 바뀔 가능성 낮아 보류)

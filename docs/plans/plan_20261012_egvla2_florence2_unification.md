@@ -185,3 +185,4 @@ def florence2_output_to_bbox(parsed_boxes, W, H):
 
 - [x] 후속① 그라운더 단독 효과 분리 (2026-10-13) — OWLv2 bbox + 동일 F2 특징: steered_reg 78.38% = F2 bbox 78.38%. CH73 대비 상승은 특징 효과. `summary_florence2_v6_owlbbox.json`
 - [x] 후속② has_bbox 임계값 캘리브레이션 (2026-10-13) — 면적·가장자리·종횡비 조합 최고 balanced acc 0.73, 기하 규칙으로 부재 판별 불가 → 현행 유지, 신뢰도 신호(토큰 확률) 필요. `f2_has_bbox_calibration.json`
+- [x] 후속②' 빔 시퀀스 점수를 has_bbox 신뢰도로 (2026-10-13) — AUC 0.40, 변별력 없음. 진짜 부재 프레임 라벨 수집이 선결. `f2_has_bbox_calibration_score.json`

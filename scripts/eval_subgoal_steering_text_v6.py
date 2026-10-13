@@ -10,6 +10,7 @@ plan: docs/plans/plan_20261012_egvla2_text_subgoal_film.md
 """
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -23,9 +24,11 @@ f2 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(f2)
 
 TEXT_CACHE = ROOT / "docs/v5/bbox_nav_owl/v6_text_embed_cache.npz"
-OUT_JSON = f2.OUT_DIR / "summary_text_steering_v6.json"
-TEXT_DIM, TEXT_PROJ = 768, 32
 DIRS = ["center", "weak_left", "strong_left", "weak_right", "strong_right"]
+# TEXT_MODE=clip(기본) / onehot: 방향 one-hot(5-d)으로 대체해 CLIP 한계와 텍스트 채널 한계를 분리하는 대조
+TEXT_MODE = os.environ.get("TEXT_MODE", "clip")
+OUT_JSON = f2.OUT_DIR / ("summary_text_steering_v6.json" if TEXT_MODE == "clip" else f"summary_text_steering_v6_{TEXT_MODE}.json")
+TEXT_DIM, TEXT_PROJ = (768, 32) if TEXT_MODE == "clip" else (5, 5)
 
 
 class TextBBoxSteeredMLP(nn.Module):
@@ -48,6 +51,8 @@ class TextBBoxSteeredMLP(nn.Module):
 
 
 def load_text():
+    if TEXT_MODE == "onehot":
+        return {d: np.eye(5, dtype=np.float32)[i][None] for i, d in enumerate(DIRS)}
     c = np.load(TEXT_CACHE)
     allv = np.concatenate([c[d] for d in DIRS])
     mu, sd = allv.mean(0), allv.std(0) + 1e-6   # 15개 템플릿 기준 고정 표준화(방향 간 미세 차이 증폭)
