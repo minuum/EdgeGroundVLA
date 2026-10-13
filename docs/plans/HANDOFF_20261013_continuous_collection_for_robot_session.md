@@ -76,3 +76,24 @@
 5. **속도 슬라이더 기록**: `joystick_speed`→`_speed`, 속도는 `speed/1.15`배. 신규 데이터 최댓값이 1.0인 것도 이 설정 때문일 수 있음. 에피소드 attrs에 속도 설정 저장.
 6. **디바운스 80ms**는 10Hz 발행(100ms)·프레임 주기(약150ms)보다 짧아 한 프레임 스파이크가 걸러지지 않을 수 있음. 수정 후 `check_continuous_collection_quality.py`의 "ang_z 단독 스파이크"가 0에 가까워지는지 확인.
 7. **여전히 누락**: odom/실제 cmd_vel/프레임 타임스탬프. 6.6Hz 프레임과 10Hz 발행이 어긋나므로 프레임에 저장되는 값이 마지막 발행값인지 구간 평균인지 정의할 것.
+
+## 7. 로봇 세션 회신 — §6 리뷰에 대한 코드 수준 확인 (2026-10-13)
+
+> 코드는 이미 푸시되어 있음: `robovlm_nav/serve/mona_dashboard.py`(`DashboardJoystickReader._loop`, `DataCollectSession`), `robovlm_nav/serve/vla_control_utils.py`(`VLAControlManager.publish_and_move`/`move_and_stop_timed`). **아래 1·2·4만 코드 레벨로 확인/반영 완료 — 3·5·6·7은 아직 미반영, 다음 턴에 진행 예정.**
+
+**완료**
+1. **`action_space` 버전업 반영**: `f.attrs["action_space"] = "egvla2_continuous_v2"`로 올림. `action_classes`는 `actions_scaled`(실제 구동값, `d["action"]`)에서 계산 — raw가 아님. 학습 타깃은 말씀대로 `actions_scaled` 권장 기준에 맞춰져 있음.
+2. **v1/v2 혼합 없음 확인**: raw/scaled 분리+원형게이트 코드가 실제 배포된 시점(2026-10-13 17:36) 이후 수집이 없었음을 파일 타임스탬프로 확인. 현재 쌓인 egvla2 디렉토리 39건은 전부 `action_space=egvla2_continuous_v1`(`actions_scaled` 데이터셋 자체가 없음)이고, v2 배포(17:46) 이후로는 새 포맷만 쌓임 — 같은 디렉토리 안에서도 섞이지 않았음.
+4. **이전 경로 우회 확인**: `_loop()` 재확인 결과, `WASD_TO_VEL` 고정테이블은 `else`(continuous 아닐 때) 분기에만 있어 continuous 분기(`vel = (lx*spd, ly*spd, az*spd)`)와 if/else로 완전 분리. `JITTER_HOLD`는 이산 방향 라벨 `key` 변수만 0.3초 유지시키고, continuous 분기가 쓰는 lx/ly/az 자체는 매틱 실시간값 그대로라 "놓은 뒤 최댓값을 연장 기록"하는 경로는 없음. `az_blend*0.15`도 discrete 분기 전용이라 continuous엔 적용 안 됨.
+
+**미반영 — 진행 예정**
+3. 방사형 데드존 — 현재 축별 `rd(idx)` 컷이 그대로 raw_vel 계산 전에 들어가 있어, 말씀하신 `(0.9,0.14)→0.14 소실` 문제가 raw에도 그대로 남아있음. 벡터 크기 기준 데드존 + 재조정 반영 예정.
+5. 속도 슬라이더(`self._speed`) 값을 attrs에 저장하는 것 — 아직 미반영.
+6. 디바운스 창(현재 2폴≈80ms) — 지적하신 대로 실제 프레임 주기(~150ms)보다 짧아 그 근처 지속시간의 글리치를 못 거를 수 있음. 창 확대 예정.
+7. odom/cmd_vel/프레임 타임스탬프 로깅 — 아직 착수 전.
+
+참고 자료(이번 수정의 배경과 구조를 그림으로 정리, minum 세션에서도 열람 가능):
+- 전체 파이프라인 구조도 + 7프레임 실측 예시 비교: https://claude.ai/artifact/QdW316Tw7HXVfBvsdSaNKb
+- 같은 페이지, 로봇 서버 LAN 직접 접속: http://100.85.118.58:7800/static/egvla2_continuous_pipeline.html (페이지 하단에 §3 논문들과 EGVLA2 동기를 연결한 설명 포함)
+
+3·5·6·7 반영 후 다시 코드 기준으로 알려드리겠습니다.
