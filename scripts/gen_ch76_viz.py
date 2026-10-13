@@ -333,15 +333,15 @@ def t9_card():
         + "공통 경향: 대부분 조이스틱 <b>속력 라벨을 직접 회귀하지 않고</b> 궤적·waypoint로 만들거나 속도를 하위 제어기로 분리한다."
         + H("③ 우리가 취할 방침 — 단계별")
         + wrap("단계 흐름 (속력 출처를 데이터가 허락할 때 모델로 전환)", flow([
-            ("① 지금: 연속 출력 경로 구현", G, "action_cont + throttle_scale"), ("속력은 규칙 또는 섀도", A, "speed_source=rule"), ("② 수집 규칙 확정", B, "거리별 속력 가이드"),
-            ("③ 일관 데이터 60~100ep", B), ("④ 게이트: |ρ(속력, 면적)| ≥ 0.3?", P, "상관이 생겼나"), ("예 → speed_source=model", G), ("아니오 → 규칙 유지, 위치(waypoint) 타깃으로", R)]), "게이트 기준 0.3은 제안값. 데이터가 늘면 같은 분석 스크립트로 재측정", kind="flow")
+            ("① 지금: 연속 출력 경로 구현", G, "action_cont + throttle_scale"), ("속력은 규칙 또는 섀도", A, "speed_source=rule"), ("② 수집 가이드 정하기", B, "거리별 속력 가이드"),
+            ("③ 일관 데이터 60~100ep", B), ("④ 판정: |ρ(속력, 면적)| ≥ 0.3?", P, "속력이 거리와 연결됐나"), ("예 → speed_source=model", G), ("아니오 → 규칙 유지, 위치(waypoint) 타깃으로", R)]), "판정 기준 0.3은 임의로 정한 제안값(다음 단계로 넘어갈지 보는 통과 기준). 데이터가 늘면 같은 분석으로 재측정", kind="flow")
         + tbl(["영역", "하는 일", "이유"], [
             ["수집", "속력 규칙 정하기: 출발·정지 램프, 먼 구간 보통~빠름, 목표 근처 느림. 게이지에 목표 속력 가이드 표시", "라벨 노이즈(운전 습관)를 줄여 속력이 거리 단서와 연결되게 함"],
             ["학습", "방향(각도)·GO/STOP을 주 타깃, 속력은 별도 보조 손실(가중치 낮게). 보정값으로 waypoint(미터) 타깃도 시험", "속력 노이즈가 방향 학습을 해치지 않게 분리, 연구 경향(궤적 타깃)과 정렬"],
             ["추론", "연속 경로(<code>action_cont</code>, <code>throttle_scale</code>)는 구현하되 속력 출처를 설정으로 선택. 첫 적용은 s≤0.7, 규칙 또는 섀도(예측만 기록)", "중간 속력 미검증, STOP 거리·지연 위험, 현재 데이터로는 모델 속력을 신뢰하기 이르다"],
           ])
         + H("④ 결정이 필요한 것")
-        + "<ul style='margin:6px 0 6px 18px'><li>수집 속력 규칙의 구체안(거리 구간별 목표 단계) — 로봇 세션과 합의</li><li>첫 적용 속력 출처: 규칙 vs 섀도 (<code>plan_20261014_inference_continuous_speed.md</code> §2에 <code>speed_source</code> 추가 제안)</li><li>상관 게이트 기준(제안 0.3)과 필요한 에피소드 수(제안 60~100)</li></ul>"
+        + "<ul style='margin:6px 0 6px 18px'><li>수집 속력 규칙의 구체안(거리 구간별 목표 단계) — 로봇 세션과 합의</li><li>첫 적용 속력 출처: 규칙 vs 섀도 (<code>plan_20261014_inference_continuous_speed.md</code> §2에 <code>speed_source</code> 추가 제안)</li><li>판정 기준(제안 0.3)과 필요한 에피소드 수(제안 60~100) — 수집이 끝난 뒤 정해도 된다</li></ul>"
         + pill_("한계", R) + "분석은 파일럿 15ep(이동 프레임 %d개)이고 면적은 거리의 대리값이다. 문헌은 초록 수준이라 인용 전 원문 확인이 필요하다." % st["n"])
     return f'<div class="finding-card" style="border-color:{A}"><div class="finding-title" style="color:{A}">76-9. 우리는 어떻게 할까 — 속력 정책 방향 (수집·학습·추론)</div><div style="font-size:0.85rem;line-height:1.8;color:#94a3b8">{body}</div></div>'
 
