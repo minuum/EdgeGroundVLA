@@ -134,7 +134,12 @@ v = Linear(h)                                                    # 토큰별 속
 - [x] A/B/C 구현 + 1-batch 과적합 (모두 통과)
 - [x] 5-fold hold-out 학습·지표 (exec·scaled, summary_*.json)
 - [x] 결과를 CH76 탭(76-7)으로 추가
-- [ ] waypoint 적분 타깃 시험 (8.4)
+- [x] waypoint 적분 타깃 시험 (8.4) — chunk 대비 이득 없음, 학습은 동일 수준 (summary_v6_waypoint.json)
 
 ### 8.6 결과 요약 (2026-10-13)
 A·C는 hold-out에서 lx·ly를 평균 기준선보다 낮은 MSE로 예측(R² 0.2~0.33), MLP 회귀와 동급. B는 az 허위 생성으로 불안정, az는 비영 28프레임이라 전 구조 학습 불가. 자세한 표는 CH76 76-7.
+
+### 8.7 후속 결과 (2026-10-13)
+- B2(FiLM+잔차+시간 입력): az 허위 생성 해소(R² −5.2→−0.15), test flow 0.389→0.286. B의 부진은 구현 문제. summary_exec_b2.json
+- 조기 종료: 최저 epoch가 25~150으로 분산, 최종 손실이 최저점보다 높음 → inner-val 선택 필요.
+- waypoint 타깃(V6 225ep): chunk 대비 R² 차이 ≤0.03, 이득 없음. 한계: 이산 명령·프레임 단위 누적합.

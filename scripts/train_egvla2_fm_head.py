@@ -6,7 +6,7 @@ plan: docs/plans/plan_20261013_egvla2_fm_action_head.md §8. 우열 비교가 �
 입력: bbox 3프레임 창(12-d) + F2 풀링 특징 768-d (docs/v5/egvla2_fm/v3_florence2_cache.npz).
 타깃: TARGET=exec(기본)|scaled|raw 의 H=8 청크(끝은 0 패딩).
 실행: .venv_lerobot/bin/python3 scripts/train_egvla2_fm_head.py   (환경변수: TARGET, SET, EPOCHS, SEEDS)
-출력: docs/v5/egvla2_fm/summary_{TARGET}.json
+출력: docs/v5/egvla2_fm/summary_{TARGET}{os.environ.get("TAG", "")}.json
 """
 import json
 import os
@@ -85,6 +85,25 @@ class FiLMFM(nn.Module):                     # 구조 B: 서브골(bbox) + flow 
         return s.trunk(torch.cat([h, xt.flatten(1)], -1)).view(-1, H, ADIM)
 
 
+class FiLMResFM(nn.Module):                  # 구조 B2: B + 잔차 블록 + 시간 입력 (B 부진 원인 점검용 변형)
+    def __init__(s, bdim, fdim):
+        super().__init__()
+        s.fp = nn.Sequential(nn.LayerNorm(fdim), nn.Linear(fdim, HID))
+        s.film = nn.Sequential(nn.Linear(bdim + 64, 128), nn.GELU(), nn.Linear(128, 2 * HID))
+        s.inp = nn.Linear(HID + H * ADIM + 64, 256)
+        s.blocks = nn.ModuleList(nn.Sequential(nn.LayerNorm(256), nn.Linear(256, 256), nn.GELU(), nn.Dropout(0.1)) for _ in range(2))
+        s.out = nn.Linear(256, H * ADIM)
+
+    def forward(s, bbox, feat, xt, t):
+        te = temb(t)
+        g, b = s.film(torch.cat([bbox, te], -1)).chunk(2, -1)
+        h = (1 + g) * s.fp(feat) + b
+        z = s.inp(torch.cat([h, xt.flatten(1), te], -1))
+        for blk in s.blocks:
+            z = z + blk(z)
+        return s.out(z).view(-1, H, ADIM)
+
+
 class AdaBlock(nn.Module):
     def __init__(s, d, heads=4):
         super().__init__()
@@ -129,7 +148,7 @@ class MLPReg(nn.Module):                     # 기준선(sanity): 동일 입력 
         return s.net(torch.cat([feat, bbox], -1)).view(-1, H, ADIM)
 
 
-ARCH = {"A_mlp_fm": MLPFM, "B_film_fm": FiLMFM, "C_pi0_adaln": PiZeroFM}
+ARCH = {"A_mlp_fm": MLPFM, "B_film_fm": FiLMFM, "B2_film_res_fm": FiLMResFM, "C_pi0_adaln": PiZeroFM}
 
 
 def flow_loss(m, bbox, feat, a, g=None):
@@ -184,7 +203,7 @@ def train_one(cls, tr, te, seed, epochs=EPOCHS):
             idx = perm[s:s + 64]
             loss = flow_loss(m, tr[0][idx], tr[1][idx], tr[2][idx])
             opt.zero_grad(); loss.backward(); opt.step()
-        if (ep + 1) % 25 == 0 or ep == 0:
+        if (ep + 1) % 25 == 0 or ep + 1 in (1, 10):
             m.eval()
             with torch.no_grad():
                 g = torch.Generator(device=DEV).manual_seed(7)
@@ -265,11 +284,15 @@ def main():
             diversity=float(np.mean([r["diversity"] for r in L])),
             train_flow_final=float(np.mean([c[-1][1] for c in curves[name]])),
             test_flow_final=float(np.mean([c[-1][2] for c in curves[name]])),
-            test_flow_min=float(np.mean([min(x[2] for x in c) for c in curves[name]])))
+            test_flow_min=float(np.mean([min(x[2] for x in c) for c in curves[name]])),
+            curve_epochs=[x[0] for x in curves[name][0]],
+            curve_train=np.mean([[x[1] for x in c] for c in curves[name]], 0).tolist(),
+            curve_test=np.mean([[x[2] for x in c] for c in curves[name]], 0).tolist(),
+            best_epoch_hist=[int(c[int(np.argmin([x[2] for x in c]))][0]) for c in curves[name]])
     agg["MLP_regression"] = dict(mse_axis=np.mean([r["mse_axis"] for r in res["MLP_regression"]], 0).tolist())
     summary["aggregate"] = agg
     summary["runs"] = res
-    (OUT_DIR / f"summary_{TARGET}.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))
+    (OUT_DIR / f"summary_{TARGET}{os.environ.get("TAG", "")}.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))
     print(json.dumps(agg, indent=1, ensure_ascii=False))
 
 
