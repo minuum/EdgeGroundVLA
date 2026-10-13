@@ -41,17 +41,30 @@ class VLAControlManager:
         else:
             self.driver = None
 
-    def publish_and_move(self, lx, ly, az, source="unknown"):
-        """Publishes to ROS and commands Hardware directly."""
+    def publish_and_move(self, lx, ly, az, source="unknown", throttle_scale=1.0, raw=None):
+        """Publishes to ROS and commands Hardware directly.
+
+        throttle_scale: 이 호출에서만 임시로 self.throttle/rot_throttle에 곱해
+        실제 모터 speed를 조정 (self.throttle 자체는 건드리지 않음 — 조이스틱
+        set_speed()와 상태 공유 없이 독립적으로 추론 구동 속도만 조절하기 위함).
+
+        raw: EGVLA2(2026-10-13) — 게인/원형게이트 정규화를 적용하기 전의 원본
+        스틱값 (lx, ly, az) 튜플. 데이터수집 훅(on_command)에만 전달되고, ROS
+        publish/하드웨어 구동에는 영향 없음(기존 호출부는 생략 가능 — None이면
+        on_command 쪽에서 (lx,ly,az)를 raw로도 그대로 씀).
+        """
         self.command_counter += 1
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
         is_stop = (abs(lx) < 0.01 and abs(ly) < 0.01 and abs(az) < 0.01)
         action_type = "STOP" if is_stop else "MOVE"
-        
+        effective_throttle = max(1, int(round(self.throttle * throttle_scale)))
+        effective_rot_throttle = max(1, int(round(self.rot_throttle * throttle_scale)))
+
         # 1. Logging (Data Collector Style)
         log_msg = (f"📤 [CMD#{self.command_counter}] {timestamp} | "
                    f"Src: {source} | Type: {action_type} | "
-                   f"Action: lx={lx:.2f}, ly={ly:.2f}, az={az:.2f} | throttle={self.throttle}")
+                   f"Action: lx={lx:.2f}, ly={ly:.2f}, az={az:.2f} | throttle={effective_throttle}"
+                   + (f" (scale={throttle_scale:.2f})" if throttle_scale != 1.0 else ""))
         self.node.get_logger().info(log_msg)
 
         # 2. ROS Topic Publishing
@@ -70,12 +83,12 @@ class VLAControlManager:
                 if action_type == "MOVE":
                     if abs(az) > 0.1:
                         # Rotation (Spin) — 직진(move)과 분리된 throttle 사용
-                        self.driver.spin(int(np.sign(az) * self.rot_throttle))
+                        self.driver.spin(int(np.sign(az) * effective_rot_throttle))
                     else:
                         # translation move
                         angle = np.degrees(np.arctan2(ly, lx))
                         if angle < 0: angle += 360
-                        self.driver.move(int(angle), self.throttle)
+                        self.driver.move(int(angle), effective_throttle)
                 else:
                     self.driver.stop()
             except Exception as e:
@@ -83,7 +96,7 @@ class VLAControlManager:
 
         if self.on_command:
             try:
-                self.on_command(lx, ly, az, source)
+                self.on_command(lx, ly, az, source, raw=raw)
             except Exception as e:
                 self.node.get_logger().error(f"❌ [VLA-Control] on_command hook error: {e}")
 
@@ -96,7 +109,7 @@ class VLAControlManager:
             time.sleep(0.05)
         self.current_action = self.STOP_ACTION.copy()
 
-    def move_and_stop_timed(self, lx, ly, az, source="precision_mode"):
+    def move_and_stop_timed(self, lx, ly, az, source="precision_mode", throttle_scale=1.0, raw=None):
         """Standard VLA Move-then-Stop (0.4s) sequence."""
         with self.movement_lock:
             # Cancel existing timer if any
@@ -105,7 +118,7 @@ class VLAControlManager:
 
             # Start Movement
             self.current_action = {"lx": lx, "ly": ly, "az": az}
-            log_msg = self.publish_and_move(lx, ly, az, source=source)
+            log_msg = self.publish_and_move(lx, ly, az, source=source, throttle_scale=throttle_scale, raw=raw)
 
             # Start Stop Timer
             def _timed_stop():
@@ -117,7 +130,7 @@ class VLAControlManager:
 
             return log_msg
 
-    def move_and_stop_ramped(self, lx, ly, az, source="ramp_mode"):
+    def move_and_stop_ramped(self, lx, ly, az, source="ramp_mode", throttle_scale=1.0):
         """Soft ramp-up (50ms, 3-step: 33%→67%→100%) then full speed for remaining duration."""
         with self.movement_lock:
             if self.movement_timer:
@@ -134,12 +147,12 @@ class VLAControlManager:
                 scale = i / ramp_steps
                 self.publish_and_move(
                     lx * scale, ly * scale, az * scale,
-                    source=f"{source}_ramp{i}"
+                    source=f"{source}_ramp{i}", throttle_scale=throttle_scale
                 )
                 time.sleep(step_dur)
 
             # Full speed for remaining duration
-            log_msg = self.publish_and_move(lx, ly, az, source=source)
+            log_msg = self.publish_and_move(lx, ly, az, source=source, throttle_scale=throttle_scale)
 
             remaining = self.move_duration - ramp_dur  # 0.35s
 
@@ -152,14 +165,14 @@ class VLAControlManager:
 
             return log_msg
 
-    def move_with_watchdog(self, lx, ly, az, source="cycle_mode", stop_after=0.6):
+    def move_with_watchdog(self, lx, ly, az, source="cycle_mode", stop_after=0.6, throttle_scale=1.0):
         """Single MOVE packet for closed-loop control, with a short watchdog stop."""
         with self.movement_lock:
             if self.movement_timer:
                 self.movement_timer.cancel()
 
             self.current_action = {"lx": lx, "ly": ly, "az": az}
-            log_msg = self.publish_and_move(lx, ly, az, source=source)
+            log_msg = self.publish_and_move(lx, ly, az, source=source, throttle_scale=throttle_scale)
 
             def _timed_stop():
                 self.robust_stop(source=f"{source}_watchdog", count=1)

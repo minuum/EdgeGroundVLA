@@ -192,16 +192,18 @@ COLLECT_KEY_TO_VEL = {
 }
 
 # 원본 mode="2" (V5 Phase-1.5) cup_scenarios 그대로 (line 89-99)
+# EGVLA2(2026-10-13): V6 완료 후 이 숫자들도 EGVLA2 진행률로 재사용됨. 비율(좌:직진:우=3:4:3)은
+# 유지한 채 총합을 300(최소목표)으로 스케일업 — 좌/중앙/우 각 위치당 30+40+30=100, 총 300.
 COLLECT_SCENARIOS = {
-    "target_left_left_path":     {"target": 15, "key": "1", "label": "좌측 위치 · 좌회전 경로"},
-    "target_left_straight_path": {"target": 20, "key": "2", "label": "좌측 위치 · 직진 경로"},
-    "target_left_right_path":    {"target": 15, "key": "3", "label": "좌측 위치 · 우회전 경로"},
-    "target_center_left_path":     {"target": 15, "key": "4", "label": "중앙 위치 · 좌회전 경로"},
-    "target_center_straight_path": {"target": 20, "key": "5", "label": "중앙 위치 · 직진 경로"},
-    "target_center_right_path":    {"target": 15, "key": "6", "label": "중앙 위치 · 우회전 경로"},
-    "target_right_left_path":     {"target": 15, "key": "7", "label": "우측 위치 · 좌회전 경로"},
-    "target_right_straight_path": {"target": 20, "key": "8", "label": "우측 위치 · 직진 경로"},
-    "target_right_right_path":    {"target": 15, "key": "9", "label": "우측 위치 · 우회전 경로"},
+    "target_left_left_path":     {"target": 30, "key": "1", "label": "좌측 위치 · 좌회전 경로"},
+    "target_left_straight_path": {"target": 40, "key": "2", "label": "좌측 위치 · 직진 경로"},
+    "target_left_right_path":    {"target": 30, "key": "3", "label": "좌측 위치 · 우회전 경로"},
+    "target_center_left_path":     {"target": 30, "key": "4", "label": "중앙 위치 · 좌회전 경로"},
+    "target_center_straight_path": {"target": 40, "key": "5", "label": "중앙 위치 · 직진 경로"},
+    "target_center_right_path":    {"target": 30, "key": "6", "label": "중앙 위치 · 우회전 경로"},
+    "target_right_left_path":     {"target": 30, "key": "7", "label": "우측 위치 · 좌회전 경로"},
+    "target_right_straight_path": {"target": 40, "key": "8", "label": "우측 위치 · 직진 경로"},
+    "target_right_right_path":    {"target": 30, "key": "9", "label": "우측 위치 · 우회전 경로"},
 }
 COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (Variant)"}
 
@@ -213,24 +215,32 @@ COLLECT_PATTERNS = {"core": "핵심 패턴 (Core)", "variant": "변형 패턴 (V
 # 3경로×15회=45ep만 필요, 트랙C(오버슈트) 대상 아님(오버슈트는 극단 4위치 전용).
 # cx 밴드는 plan에 구체 수치가 없어 다른 위치들과 동일한 폭(0.05)으로 화면 정중앙
 # 대칭 배치.
+# EGVLA2(2026-10-13): V6(300건) 완료 후 이 숫자들은 EGVLA2(연속) 진행률 기준으로
+# 재사용됨(progress_file이 continuous_dir로 분리돼 0부터 집계). 합의된 목표는
+# 최소 300 / 준목표 500 / 최대 1000건 — 여기 target 값들은 "최소(300)" 기준으로
+# 맞춰둠(위치당 60×5=300). 300을 넘기면 bar는 100%에서 멈추지만 수집 자체는
+# 계속 진행해서 500→1000까지 늘리면 됨.
 COLLECT_CX_POSITIONS = {
-    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 61},
-    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 61},
-    "center":       {"label": "중앙",     "lo": 0.475, "hi": 0.525, "target": 45},
-    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 61},
-    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 61},
+    "strong_left":  {"label": "강한좌",   "lo": 0.10, "hi": 0.15, "target": 60},
+    "weak_left":    {"label": "준극단좌", "lo": 0.20, "hi": 0.25, "target": 60},
+    "center":       {"label": "중앙",     "lo": 0.475, "hi": 0.525, "target": 60},
+    "weak_right":   {"label": "준극단우", "lo": 0.75, "hi": 0.80, "target": 60},
+    "strong_right": {"label": "강한우",   "lo": 0.85, "hi": 0.90, "target": 60},
 }
-# 위치당 45개가 "경로 다양하게"로 뭉뚱그려져 있으면 실제로 15/15/15가 지켜졌는지
-# 검증이 안 됨 — 위치×경로 조합별로 세분화해서 목표 15씩 따로 추적.
+# 위치당 60개가 "경로 다양하게"로 뭉뚱그려져 있으면 실제로 20/20/20이 지켜졌는지
+# 검증이 안 됨 — 위치×경로 조합별로 세분화해서 목표 20씩 따로 추적.
 # overshoot_* 2종은 트랙C(CH62 근거, docs/v5/closed_loop_eval/CH62_FORWARD_LOCK_AND_LABEL_CONFOUND.md
 # §7, plan_20260707_heterogeneous_instruction_extreme_cx_collection.md §1 "트랙 C") —
 # 지시 없이 자유주행이되 "일부러 과하게 꺾었다가 반대로 재보정"하는 동작을 명시적으로 수집.
+# EGVLA2(2026-10-13): 필수 아님(선택) — 위 COLLECT_CX_POSITIONS.target 합계(300/위치당 60)
+# 에도 포함되지 않음(합계는 position.target만 더함, path.target과 무관). 목표를 낮게 둬서
+# "안 채워도 전체 진행률엔 영향 없는 선택 항목"으로만 남긴다.
 COLLECT_TRACKA_PATHS = {
-    "left_curve":  {"label": "좌곡선", "target": 15},
-    "straight":    {"label": "직진",   "target": 15},
-    "right_curve": {"label": "우곡선", "target": 15},
-    "overshoot_left_recover":  {"label": "오버슈트→우", "target": 8},
-    "overshoot_right_recover": {"label": "오버슈트→좌", "target": 8},
+    "left_curve":  {"label": "좌곡선", "target": 20},
+    "straight":    {"label": "직진",   "target": 20},
+    "right_curve": {"label": "우곡선", "target": 20},
+    "overshoot_left_recover":  {"label": "오버슈트→우 (선택)", "target": 3},
+    "overshoot_right_recover": {"label": "오버슈트→좌 (선택)", "target": 3},
 }
 
 
@@ -281,12 +291,25 @@ class DataCollectSession:
     DEFAULT_LAYOUT_TYPE = "hori"
     STOP_INJECT_N = 5  # 저장 직전 마지막 프레임을 STOP 액션으로 N번 복제 (Gradio stop_inject_n 이식)
 
-    def __init__(self, data_dir: Path):
+    def __init__(self, data_dir: Path, continuous_dir: Optional[Path] = None):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.progress_file = self.data_dir / "scenario_progress.json"
-        self.time_period_file = self.data_dir / "time_period_stats.json"
-        self.core_pattern_file = self.data_dir / "core_patterns.json"
+        # EGVLA2(2026-10-12): 조이스틱 기울기 비례(continuous) 액션 수집 전용 디렉토리 —
+        # 기존 discrete 8-class 학습 자산(V6 300건)과 섞이지 않도록 물리적으로 분리.
+        self.continuous_dir = continuous_dir or (self.data_dir.parent / "mobile_vla_dataset_egvla2")
+        self.continuous_dir.mkdir(parents=True, exist_ok=True)
+        # EGVLA2(2026-10-12 후속): 토글 없이 📷 데이터수집 탭은 항상 continuous로 구동/저장.
+        # continuous는 discrete 라벨을 역산해 action_classes로 같이 저장하므로(§3.2) 이산
+        # 분류가 필요 없어지는 게 아니라 "이산+연속을 동시에" 얻는 쪽으로 단순화한 것.
+        # 기존 discrete 300건(V6, mobile_vla_dataset_v5)은 이 변경과 무관 — 저장 위치가
+        # continuous_dir로 분리되어 있어 섞이지 않는다.
+        # 진행률 카운터(시나리오/트랙A 위치·경로)도 continuous_dir 기준으로 별도 추적 —
+        # 이미 완료된 V6 300건(225/289 등 레거시 수치)과 지금부터 쌓이는 EGVLA2 연속
+        # 데이터셋의 진행률을 같은 카운터에 합산하면 "이 데이터셋이 얼마나 모였는지"를
+        # 더 이상 알 수 없게 되므로, 저장 디렉토리 분리에 맞춰 진행률 파일도 분리한다.
+        self.progress_file = self.continuous_dir / "scenario_progress.json"
+        self.time_period_file = self.continuous_dir / "time_period_stats.json"
+        self.core_pattern_file = self.continuous_dir / "core_patterns.json"
 
         self._lock = threading.Lock()
         self.active = False
@@ -332,7 +355,7 @@ class DataCollectSession:
     # 의미 없는 반복 호출도 거치므로, 연속된 STOP 프레임은 1개로만 눌러 담아
     # H5가 중복 정지 프레임으로 도배되는 것을 막는다 (원본 collector는 이런
     # 워치독/robust_stop 반복 펄스를 애초에 collect_data=False로 기록 안 함).
-    def on_command(self, lx, ly, az, source):
+    def on_command(self, lx, ly, az, source, raw=None):
         if not self.active or _ros is None:
             return
         is_stop = abs(lx) < 0.01 and abs(ly) < 0.01 and abs(az) < 0.01
@@ -346,9 +369,14 @@ class DataCollectSession:
             frame = _ros.latest_bgr()
             if frame is None:
                 return
+            # EGVLA2(2026-10-13, minum 핸드오프 #2): raw가 없으면(이산 모드/합성 STOP
+            # 프레임 등) lx/ly/az 자체를 raw로도 같이 씀 — "actions는 raw 원값,
+            # 게인/원형게이트 적용값은 actions_scaled"로 가도록 사용자가 요청한 설계.
+            rlx, rly, raz = raw if raw is not None else (lx, ly, az)
             self.episode_data.append({
                 "image": frame.copy(),
                 "action": {"linear_x": lx, "linear_y": ly, "angular_z": az},
+                "action_raw": {"linear_x": rlx, "linear_y": rly, "angular_z": raz},
                 "action_event_type": source,
                 "t": time.time(),
             })
@@ -423,12 +451,14 @@ class DataCollectSession:
             return self.staged_cx_position
 
     def stage_cx_path(self, cx_path: Optional[str]) -> Optional[str]:
-        """웹 UI(경로 select/행 클릭)로 트랙A 접근경로(좌곡선/직진/우곡선)를 지정 — 위치와 별개 축."""
+        """웹 UI(경로 select/행 클릭)로 목표지점 접근경로(좌곡선/직진/우곡선)를 지정 — 위치와 별개 축."""
         with self._lock:
             if self.active:
                 return self.staged_cx_path
             self.staged_cx_path = cx_path or None
-            self.collect_mode = "trackA"
+            # 버그수정(2026-10-13): 여기서 "trackA"로 잘못 돌려놔서 경로를 고르자마자
+            # D-pad 좌/우 축이 위치(목표지점)로 되돌아가버렸음 — "cxpath"가 맞음.
+            self.collect_mode = "cxpath"
             return self.staged_cx_path
 
     def cycle_cx_path(self, step: int) -> Optional[str]:
@@ -440,7 +470,8 @@ class DataCollectSession:
                 return None
             i = (keys.index(self.staged_cx_path) + step) % len(keys) if self.staged_cx_path in keys else 0
             self.staged_cx_path = keys[i]
-            self.collect_mode = "trackA"
+            # 버그수정(2026-10-13): 동일 — 경로 축 순환 중엔 "cxpath" 유지.
+            self.collect_mode = "cxpath"
             return self.staged_cx_path
 
     COLLECT_MODES = ["trackA", "cxpath", "scenario"]  # D-pad 상/하로 순환하는 축 3종
@@ -529,11 +560,14 @@ class DataCollectSession:
             return {"ok": False, "saved": False, "reason": "스텝 부족(<=1) — 저장 안 함", "steps": len(data)}
         if self.STOP_INJECT_N > 0:
             last_image = data[-1]["image"]
-            for _ in range(self.STOP_INJECT_N):
+            last_t = data[-1].get("t", time.time())
+            for i in range(self.STOP_INJECT_N):
                 data.append({
                     "image": last_image,
                     "action": {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0},
+                    "action_raw": {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0},
                     "action_event_type": "stop_inject",
+                    "t": last_t + (i + 1) * 0.001,  # 합성 프레임 — 실제 시간 간격 없음, 순서만 유지
                 })
         path = self._save_episode_data(data, name, duration)
         if self.selected_scenario:
@@ -558,12 +592,30 @@ class DataCollectSession:
 
     def _save_episode_data(self, data: List[dict], name: str, duration: float) -> Path:
         images = np.stack([d["image"] for d in data])
-        actions = np.array(
+        # EGVLA2(2026-10-13, minum 핸드오프 #2 + 사용자 설계 반영):
+        # "actions" = 데드존만 통과한 원본 스틱값(raw) — 가장 많이 읽히는 기본 필드라
+        # 정보손실 없는 쪽을 기본으로. "actions_scaled" = 게인/원형게이트 정규화가
+        # 적용된, 실제로 로봇에 내려간 명령값(기존 "actions"와 동일 — 이름만 바뀜).
+        actions_raw = np.array(
+            [[d["action_raw"]["linear_x"], d["action_raw"]["linear_y"], d["action_raw"]["angular_z"]] for d in data],
+            dtype=np.float32,
+        )
+        actions_scaled = np.array(
             [[d["action"]["linear_x"], d["action"]["linear_y"], d["action"]["angular_z"]] for d in data],
             dtype=np.float32,
         )
         event_types = np.array([d["action_event_type"] for d in data], dtype=h5py.string_dtype(encoding="utf-8"))
-        save_path = self.data_dir / f"{name}.h5"
+        # EGVLA2(2026-10-13, minum 핸드오프 #7): 프레임별 실제 시각(on_command 호출
+        # 시점, time.time()) — "이 값이 마지막 발행값인지 구간 평균인지" 질문에, 매
+        # 프레임이 그 시각의 마지막 발행값 스냅샷이라는 걸 간격으로 직접 검증 가능하게.
+        # odom/실제 cmd_vel 피드백은 이 로봇에 휠 오도메트리 센서/토픽 자체가 없어서
+        # (grep 결과 전체 repo에 Odometry 구독 코드 없음) 지금은 제공 불가 — 하드웨어
+        # 쪽에 센서가 추가되기 전까진 timestamp만으로 간격을 검증하는 게 최선.
+        frame_timestamps = np.array([d.get("t", 0.0) for d in data], dtype=np.float64)
+        # EGVLA2(2026-10-12 후속): 토글 제거 — 📷 데이터수집 탭은 항상 continuous_dir(기존
+        # V6 300건 디렉토리와 분리된 별도 폴더)에 저장. data_dir(mobile_vla_dataset_v5)는
+        # 이 경로에서 더 이상 쓰이지 않지만, 기존 300건 파일 자체는 그대로 보존됨.
+        save_path = self.continuous_dir / f"{name}.h5"
         now = datetime.datetime.now()
         with h5py.File(save_path, "w") as f:
             f.attrs["episode_name"] = name
@@ -580,9 +632,35 @@ class DataCollectSession:
             f.attrs["collection_hour"] = now.hour
             f.attrs["collection_minute"] = now.minute
             f.attrs["flagged_model_issue"] = bool(self.experimental_mode)
+            # EGVLA2(2026-10-13, minum 핸드오프 #5): 조이스틱 속도 슬라이더(self._speed)가
+            # 1.15가 아니면 연속 게인(spd=self._speed/1.15)이 1.0이 아니게 되는데, 지금까지
+            # 이 설정값이 어디에도 안 남아서 "왜 이 에피소드 최댓값이 1.0이 아닌지" 사후
+            # 재구성이 불가능했다 — attrs에 그대로 저장.
+            try:
+                f.attrs["joystick_speed_setting"] = float(_joystick._speed)
+            except Exception:
+                f.attrs["joystick_speed_setting"] = -1.0
+            f.attrs["control_mode"] = "continuous"
+            # EGVLA2(2026-10-13, minum 리뷰 반영): v1(23ep, actions=대각선 최대 1.41까지
+            # 나오는 구동값, raw/scaled 구분 없음)과 v2(actions=raw 원본, actions_scaled=
+            # 원형게이트로 대각선 최대 1.0 정규화된 구동값)는 "actions" 필드의 의미 자체가
+            # 다르다 — 버전을 안 올리면 학습 코드가 둘을 같은 의미로 조용히 섞어 읽는다.
+            f.attrs["action_space"] = "egvla2_continuous_v2"
+            # minum 핸드오프 #7 질문("프레임 값이 마지막 발행값인지 구간 평균인지") 답변을
+            # attrs에 명시 — frame_timestamps와 대조하면 간격도 직접 검증 가능.
+            f.attrs["action_value_semantics"] = "last_published_command_at_frame_timestamp"
+            # 기존 8-class 분석 도구(히스토리/인스펙터) 호환용 참고 라벨 — 실제 로봇에 내려간
+            # 명령값(actions_scaled, 즉 d["action"])에서 역산한 것이라 학습 라벨이 아니라
+            # 보조 메타데이터. "연속 수집 = 연속+이산 동시 저장".
+            action_classes = np.array(
+                [_collect_classify_8class(d["action"]) for d in data], dtype=np.int64
+            )
+            f.create_dataset("action_classes", data=action_classes, compression="gzip")
             f.create_dataset("images", data=images, compression="gzip")
-            f.create_dataset("actions", data=actions, compression="gzip")
+            f.create_dataset("actions", data=actions_raw, compression="gzip")
+            f.create_dataset("actions_scaled", data=actions_scaled, compression="gzip")
             f.create_dataset("action_event_types", data=event_types, compression="gzip")
+            f.create_dataset("frame_timestamps", data=frame_timestamps, compression="gzip")
         return save_path
 
     def _load_progress(self):
@@ -729,6 +807,9 @@ class DashboardJoystickReader:
     BTN_REC_SAVE   = 5   # R1    — 정지 & 저장
     BTN_SELECT     = 6   # Select — 녹화 토글(시작↔저장)
     BTN_TOGGLE     = 7   # Start  — SYNC/ASYNC 모드 전환
+    # 2026-09-18: 지금까지 매핑 안 된 버튼(joystick_config.json 실측 기준 인덱스 2)에
+    # "직전에 L2로 저장한 검증 세션 통째로 폐기" 배정 — 실수로 저장했을 때 되돌리는 용도.
+    BTN_DISCARD_LAST = 2  # (검증모드 전용) 직전 저장 세션 폐기
     BTN_L2         = -1  # DragonRise일 때 버튼(레이아웃 감지 전 폴백)
     BTN_R2         = -1  # DragonRise일 때 버튼 — 경로 역재생 복귀
     TRIG_L2        = 4   # Controller일 때 트리거 축
@@ -764,6 +845,9 @@ class DashboardJoystickReader:
         self._last_hat_dir = None  # 마지막으로 눌린 D-pad 방향 ("left"/"right"/"up"/"down")
         self._trig_r2_prev = -1.0  # R2 트리거 엣지 검출용 (복귀)
         self._trig_l2_prev = -1.0  # L2 트리거 엣지 검출용 (검증 세션 저장)
+        # EGVLA2(2026-10-13, minum 핸드오프 #6): az(회전) 단독 스파이크 방지용 디바운스 —
+        # 데드존을 넘기 시작한 시각(0.0이면 "안 넘은 상태"). 200ms 연속 유지돼야 반영.
+        self._az_hold_start = 0.0
         self._btn_map: dict = {}
         self.status: dict = {
             "connected": False, "name": "—",
@@ -822,6 +906,7 @@ class DashboardJoystickReader:
             self.BTN_REC_SAVE: {"name": "R1", "desc": "정지 & 저장"},
             self.BTN_SELECT: {"name": "SEL", "desc": "녹화 토글(수집)"},
             self.BTN_TOGGLE: {"name": "START", "desc": "SYNC↔ASYNC 모드"},
+            self.BTN_DISCARD_LAST: {"name": "DISCARD-LAST", "desc": "🗑️ 직전 저장 세션 폐기(검증모드 전용)"},
         }
         if self.BTN_L2 >= 0:
             btn_map[self.BTN_L2] = {"name": "L2", "desc": "💾 기록 저장(Log Episode)"}
@@ -850,6 +935,7 @@ class DashboardJoystickReader:
             "select": "BTN_SELECT", "start": "BTN_TOGGLE",
             "l2": "BTN_L2", "r2": "BTN_R2",
             "trig_l2": "TRIG_L2", "trig_r2": "TRIG_R2",
+            "discard_last": "BTN_DISCARD_LAST",
         }
         for k, attr in keymap.items():
             if k in b:
@@ -949,9 +1035,37 @@ class DashboardJoystickReader:
                     v = js.get_axis(idx)
                     return v if abs(v) > self.DEADZONE else 0.0
 
-                lx = -rd(self._axes["left_y"])
-                ly = -rd(self._axes["left_x"])
+                # EGVLA2(2026-10-13, minum 핸드오프 #3): 왼쪽 스틱(lx,ly)을 축별로 따로
+                # 데드존 자르면 예를 들어 (0.9,0.14) 입력에서 0.14만 통째로 사라져 방향
+                # 비율이 틀어진다 — 벡터 크기(radial) 기준으로 데드존을 적용하고, 남은
+                # 구간(0.15~1)을 0~1로 재조정해서 방향을 그대로 보존한다.
+                lx_axis = -js.get_axis(self._axes["left_y"])
+                ly_axis = -js.get_axis(self._axes["left_x"])
+                mag_axis = (lx_axis * lx_axis + ly_axis * ly_axis) ** 0.5
+                if mag_axis > self.DEADZONE:
+                    _scale = (mag_axis - self.DEADZONE) / (1.0 - self.DEADZONE)
+                    lx = lx_axis / mag_axis * _scale
+                    ly = ly_axis / mag_axis * _scale
+                else:
+                    lx = 0.0
+                    ly = 0.0
                 az = -rd(self._axes["right_x"])
+                # EGVLA2(2026-10-13, minum 핸드오프 #6): 오른쪽 스틱을 놓고 중앙으로
+                # 복귀할 때 짧게(최대 프레임 주기 ~150ms 근처) 데드존을 살짝 넘는 노이즈가
+                # 1프레임짜리 az 스파이크로 기록되던 문제 — 실시간 기준 200ms(폴링 25Hz에서
+                # 약 5폴) 연속으로 데드존을 넘어야 실제 입력으로 인정한다. 폴 횟수가 아니라
+                # 경과시간으로 재는 이유: 루프 타이밍이 흔들려도 일정하게 걸러지도록.
+                now_az = time.time()
+                if abs(az) > self.DEADZONE:
+                    if self._az_hold_start == 0.0:
+                        self._az_hold_start = now_az
+                else:
+                    self._az_hold_start = 0.0
+                az_confirmed = (
+                    self._az_hold_start != 0.0
+                    and (now_az - self._az_hold_start) >= 0.20
+                )
+                az = az if az_confirmed else 0.0
                 raw_key = self._axis_to_key(lx, ly, az)
                 key = raw_key
 
@@ -975,19 +1089,44 @@ class DashboardJoystickReader:
                 if self._enabled and _ros is not None and _ros.ctrl is not None:
                     ctrl = _ros.ctrl
                     if key:
-                        base = self.WASD_TO_VEL.get(key)
-                        if base:
-                            spd = self._speed / 1.15
-                            if az_blend != 0.0:
-                                base = (base[0], base[1], az_blend * 0.15)
-                            vel = tuple(v * spd for v in base)
+                        spd = self._speed / 1.15
+                        # EGVLA2(2026-10-12 후속): 토글 없이 📷 데이터수집 탭은 항상 continuous로
+                        # 구동(양자화 WASD_TO_VEL 고정벡터를 건너뛰고 실제 아날로그 크기 사용).
+                        # 🧪 경로검증 탭(verify_mode)은 토글 여지 자체가 없이 항상 아래 discrete
+                        # 경로(기존 동작 그대로)를 타도록 강제 — 기존 대시보드 사용에 지장이
+                        # 없도록 하기 위한 안전장치는 그대로 유지.
+                        use_continuous = (
+                            not _joystick_verify_mode
+                            and _collect is not None
+                        )
+                        raw_vel = None
+                        if use_continuous:
+                            raw_vel = (lx, ly, az)
+                            # EGVLA2(2026-10-13, minum 핸드오프 #5): (lx,ly)를 축별로 따로
+                            # 두면 대각선이 항상 (1,1) 코너(크기 1.41)로 뭉친다 — 방향은
+                            # 유지한 채 크기만 최대 1.0으로 정규화(원형게이트)해서 대각선도
+                            # 연속적으로 나오게 함.
+                            mag = (lx * lx + ly * ly) ** 0.5
+                            if mag > 1.0:
+                                nlx, nly = lx / mag, ly / mag
+                            else:
+                                nlx, nly = lx, ly
+                            vel = (nlx * spd, nly * spd, az * spd)
+                        else:
+                            base = self.WASD_TO_VEL.get(key)
+                            vel = None
+                            if base:
+                                if az_blend != 0.0:
+                                    base = (base[0], base[1], az_blend * 0.15)
+                                vel = tuple(v * spd for v in base)
+                        if vel is not None:
                             if self._js_mode == 'sync':
                                 if (now - self._last_step_time) >= self.STEP_INTERVAL:
-                                    ctrl.move_and_stop_timed(*vel, source="joystick")
+                                    ctrl.move_and_stop_timed(*vel, source="joystick", raw=raw_vel)
                                     self._last_step_time = now
                             else:  # async
                                 if (now - self._last_step_time) >= self.ASYNC_INTERVAL:
-                                    ctrl.publish_and_move(*vel, source="joystick")
+                                    ctrl.publish_and_move(*vel, source="joystick", raw=raw_vel)
                                     self._last_step_time = now
                     elif self._prev_key:
                         if self._js_mode == 'async':
@@ -1011,6 +1150,8 @@ class DashboardJoystickReader:
                     "trig_l2_val": _trig_l2_val, "trig_r2_val": _trig_r2_val,
                     "verify_mode": _joystick_verify_mode,
                     "verify_screen_pos": _verify_screen_pos,
+                    "verify_pos_group": _verify_pos_group,
+                    "verify_current_path_type": _verify_current_path_type,
                     "verify_pending_result": _verify_pending_result,
                     "verify_save_seq": _verify_save_seq,
                     "verify_experimental": _verify_experimental,
@@ -1047,6 +1188,12 @@ class DashboardJoystickReader:
                                 _joystick_verify_return()
                             elif i == self.BTN_SELECT:       # SEL = 실험용/테스트 모드 토글
                                 _joystick_toggle_verify_experimental()
+                            elif i == self.BTN_DISCARD_LAST:  # 2026-09-18: 직전 저장 세션 폐기
+                                _joystick_verify_discard_last()
+                            elif i == self.BTN_UNDO:  # 2026-09-18: B — 실물 버튼(2번 슬롯은 이 패드에
+                                # 물리적으로 없어서 안 눌리는 문제 확인) — 검증모드에서만 동일 기능 중복 배정.
+                                # 수집모드에서의 B(실험용 표기 토글)와는 무관(모드별로 분리돼 있음).
+                                _joystick_verify_discard_last()
                         else:
                             # 📷 데이터수집 모드: A = 비상정지(모드 전용 유지)
                             if i == self.BTN_STOP:
@@ -1097,8 +1244,12 @@ class DashboardJoystickReader:
                                 _collect.cycle_current(1 if hx > 0 else -1)
                         elif hy != 0 and hy != phy:
                             self._last_hat_dir = "up" if hy > 0 else "down"
-                            if not _joystick_verify_mode and _collect is not None:
-                                # 상/하 축 전환은 수집 모드 전용(검증엔 위치 축 하나뿐)
+                            if _joystick_verify_mode:
+                                # 2026-09-16: 검증모드 D-pad ↕ = 위치그룹 전환
+                                # (legacy↔pos2↔pos3↔ablation) — 원래 미사용이던 축 재활용.
+                                _verify_cycle_pos_group(1 if hy > 0 else -1)
+                            elif _collect is not None:
+                                # 상/하 축 전환은 수집 모드 전용
                                 _collect.toggle_collect_mode(1 if hy > 0 else -1)
                         self._hat_prev = hat
 
@@ -1237,20 +1388,67 @@ _verify_save_seq: int = 0
 # 그라운더 A/B 테스트 등 "정식 스크리닝 집계에 안 셀" 시도를 분리 보관.
 _verify_experimental: bool = False
 
+# ── D-pad 위치그룹(2026-09-16) — pos2/pos3/ablation 신규조건도 D-pad로 순환
+# 가능하게 확장. D-pad ↕(상하)는 검증모드에서 원래 미사용이었어서(수집모드 전용
+# 시나리오 축 전환) 그룹 전환용으로 재활용 — 기존 legacy(트랙A/F) 동작은 완전
+# 그대로 유지, 새 그룹만 추가.
+_VERIFY_POS_GROUPS = ["legacy", "pos2", "pos3", "ablation"]
+_verify_pos_group: str = "legacy"       # D-pad ↕로 순환
+_NEWCOND_DIRS = ["강좌", "약좌", "중앙", "약우", "강우"]
+_ABLATION_DIRS = ["강좌", "강우"]        # minum 요청: ablation은 좌/우 2방향만
 
-def _verify_pos_to_path_type(pos: str) -> str:
+
+def _verify_pos_to_path_type(pos: str, group: Optional[str] = None) -> str:
+    g = group if group is not None else _verify_pos_group
+    if g == "pos2":
+        return f"pos2_{pos}"
+    if g == "pos3":
+        return f"pos3_{pos}"
+    if g == "ablation":
+        # 실제 사용 중인 인코더에 맞춰 접두어 결정 — 실기 전 curl로 미리
+        # ablation_mode를 bbox_only/vision_only로 켜두는 게 전제.
+        mode = os.getenv("VLA_ABLATION_MODE", "fused")
+        prefix = "kosmos_only_" if mode == "vision_only" else "owl_only_"
+        return f"{prefix}{pos}"
     return "trackF_center" if pos == "center" else f"trackA_{pos}"
 
 
+def _verify_group_keys(group: Optional[str] = None) -> list[str]:
+    g = group if group is not None else _verify_pos_group
+    if g == "ablation":
+        return _ABLATION_DIRS
+    if g in ("pos2", "pos3"):
+        return _NEWCOND_DIRS
+    return VERIFY_SCREEN_POSITIONS
+
+
 def _verify_cycle_pos(step: int):
-    """D-pad ◀▶ — 검증 스크리닝 위치 순환(강좌↔약좌↔중앙↔약우↔강우)."""
-    global _verify_screen_pos
+    """D-pad ◀▶ — 현재 위치그룹(_verify_pos_group) 안에서 위치 순환.
+    저장에 실제 쓰일 _verify_current_path_type도 여기서 바로 갱신(서버가
+    항상 진짜 상태를 갖고 있게 — 브라우저 왕복 없이도 L2 저장이 정확함)."""
+    global _verify_screen_pos, _verify_current_path_type
     if _state.get("running"):
         return  # 주행 중엔 변경 금지
-    keys = VERIFY_SCREEN_POSITIONS
+    keys = _verify_group_keys()
     i = (keys.index(_verify_screen_pos) + step) % len(keys) if _verify_screen_pos in keys else 0
     _verify_screen_pos = keys[i]
-    log.info(f"[Verify] D-pad → 위치 = {_verify_screen_pos}")
+    _verify_current_path_type = _verify_pos_to_path_type(_verify_screen_pos)
+    log.info(f"[Verify] D-pad ◀▶ → 그룹={_verify_pos_group} 위치={_verify_screen_pos} "
+             f"→ path_type={_verify_current_path_type}")
+
+
+def _verify_cycle_pos_group(step: int):
+    """D-pad ↕ — 위치그룹 순환(legacy↔pos2↔pos3↔ablation). 그룹이 바뀌면
+    위치를 그 그룹의 첫 항목으로 리셋하고 path_type도 같이 갱신."""
+    global _verify_pos_group, _verify_screen_pos, _verify_current_path_type
+    if _state.get("running"):
+        return
+    i = (_VERIFY_POS_GROUPS.index(_verify_pos_group) + step) % len(_VERIFY_POS_GROUPS)
+    _verify_pos_group = _VERIFY_POS_GROUPS[i]
+    keys = _verify_group_keys()
+    _verify_screen_pos = keys[0]
+    _verify_current_path_type = _verify_pos_to_path_type(_verify_screen_pos)
+    log.info(f"[Verify] D-pad ↕ → 그룹 = {_verify_pos_group} (위치 {_verify_screen_pos}로 리셋)")
 
 
 def _verify_arm_result(result: str):
@@ -1278,8 +1476,10 @@ def _startup():
     _warn_if_duplicate_process()
 
     collect_dir = Path(os.getenv("VLA_DATASET_DIR", str(ROOT / "ROS_action" / "mobile_vla_dataset_v5")))
-    _collect = DataCollectSession(collect_dir)
-    log.info(f"📷 [DataCollect] 데이터 디렉토리: {collect_dir}")
+    # EGVLA2(2026-10-12): continuous 전용 디렉토리도 별도 env로 오버라이드 가능하게.
+    continuous_dir = Path(os.getenv("VLA_DATASET_DIR_EGVLA2", str(ROOT / "ROS_action" / "mobile_vla_dataset_egvla2")))
+    _collect = DataCollectSession(collect_dir, continuous_dir=continuous_dir)
+    log.info(f"📷 [DataCollect] 데이터 디렉토리: {collect_dir} (continuous: {continuous_dir})")
 
     if not ROS_AVAILABLE:
         log.warning("ROS 없음 — camera/control 비활성")
@@ -1454,7 +1654,8 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
         # move_duration만큼 움직이고 멈추므로 실제 유지시간을 바로 알 수 있음.
         _append_action_history(lx, ly, az, duration=_ros.ctrl.move_duration)
 
-        log_msg = _ros.ctrl.move_and_stop_ramped(lx, ly, az, source=f"{mode.lower()}")
+        _speed_scale = float(res.get("action_speed_scale", 1.0))
+        log_msg = _ros.ctrl.move_and_stop_ramped(lx, ly, az, source=f"{mode.lower()}", throttle_scale=_speed_scale)
         _state["status_log"]     = log_msg
         _state["last_action"]    = [lx, ly, az]
         _state["predicted_label"]= res.get("predicted_label")
@@ -1568,6 +1769,7 @@ def _async_infer(instr: str, apply_cc: bool, logger):
 
 def _async_exec():
     lx = ly = az = 0.0
+    speed_scale = 1.0
     last_upd = time.time()
     # 2026-07-23: grounding_decisions.jsonl 실측 PG2 latency p95=3.27s(grounding_skip_n=3의
     # "신선 그라운딩" 스텝마다 발생) — 기존 COAST=1.2s는 이 정상 지연에도 발동해 로봇이
@@ -1590,13 +1792,14 @@ def _async_exec():
             new_az = float(action[2]) if action.size > 2 else 0.0
             last_upd = time.time()
             _state["last_action"] = [new_lx, new_ly, new_az]
+            speed_scale = float(res.get("action_speed_scale", 1.0))
 
             is_rotation = abs(new_az) > 0.1 and abs(new_lx) < 0.05 and abs(new_ly) < 0.05
             if is_rotation:
                 # move_and_stop_ramped가 자체적으로 move_duration만큼만 돌고 멈춤 —
                 # 실제 유지시간을 바로 알 수 있어 None(연속재발행 추정) 대신 확정값으로 기록.
                 _append_action_history(new_lx, new_ly, new_az, duration=_ros.ctrl.move_duration)
-                msg = _ros.ctrl.move_and_stop_ramped(new_lx, new_ly, new_az, source="async_exec_rot")
+                msg = _ros.ctrl.move_and_stop_ramped(new_lx, new_ly, new_az, source="async_exec_rot", throttle_scale=speed_scale)
                 _state["status_log"] = msg
                 rot_busy_until = time.time() + _ros.ctrl.move_duration
                 lx = ly = az = 0.0
@@ -1615,7 +1818,7 @@ def _async_exec():
 
         if time.time() - last_upd > COAST:
             lx = ly = az = 0.0
-        msg = _ros.ctrl.publish_and_move(lx, ly, az, source="async_exec")
+        msg = _ros.ctrl.publish_and_move(lx, ly, az, source="async_exec", throttle_scale=speed_scale)
         _state["status_log"] = msg
         time.sleep(0.1)
     _backfill_action_duration()  # 마지막 액션의 실제 유지시간 확정(복귀 재생 정확도용)
@@ -1817,8 +2020,11 @@ class ConfigToggleReq(BaseModel):
     stop_area_threshold: Optional[float] = None
     multi_prompt: Optional[bool] = None
     force_reground_on_miss: Optional[bool] = None
+    stop_on_miss: Optional[bool] = None  # 2026-09-17: has_bbox=False 프레임 실행 액션 0 강제 토글
     owlv2_thresh: Optional[float] = None
     owlv2_area_scale: Optional[float] = None
+    ablation_mode: Optional[str] = None       # "fused" | "bbox_only" | "vision_only" (2026-09-16, 이전엔 여기 누락돼있었음)
+    action_speed_scale: Optional[float] = None  # 2026-09-17: ACTION_2D/3D 고정 속도 배율(기본 1.0=변경없음)
     # STOP 모드 토글(Tab4 stopmode/stopguard 버튼) — Pydantic 모델에 필드가
     # 없으면 FastAPI가 조용히 무시해서 버튼이 로컬 상태만 바뀌고 실제
     # 추론서버엔 절대 안 걸리는 버그가 있었음(2026-07-23) — 필드 추가로 수정.
@@ -2116,6 +2322,29 @@ def _verify_save_session():
         _verify_save_seq += 1          # 브라우저 폴링이 이 값 변화로 자동 갱신 트리거
     except Exception as e:
         log.warning(f"[Verify] L2 저장 실패: {e}")
+
+
+def _joystick_verify_discard_last():
+    """새 버튼(BTN_DISCARD_LAST, 검증모드 전용) — 방금 L2로 저장한 직전 세션을
+    통째로 폐기(H5/JSON + episode_log.csv 행까지). 실수로 결과를 잘못 저장했을
+    때 되돌리는 용도. _state["session_id"]가 마지막으로 실행된 세션의 sid를
+    그대로 들고 있는 걸 이용(다음 세션을 새로 시작하기 전까지는 안 바뀜) —
+    sessions_delete()가 이미 H5/JSON/CSV행을 함께 지우는 로직이라 그대로 재사용."""
+    sid = _state.get("session_id")
+    if not sid:
+        _state["status_log"] = "⚠️ 폐기할 직전 세션이 없습니다."
+        return
+    try:
+        res = sessions_delete(sid)
+        ok = isinstance(res, dict) and res.get("ok")
+        if ok:
+            _state["status_log"] = f"🗑️ 직전 세션 폐기됨: {sid}"
+            log.info(f"[Joystick] 직전 세션 폐기: {sid}")
+        else:
+            _state["status_log"] = f"⚠️ 직전 세션 폐기 실패: {sid}"
+    except Exception as e:
+        log.warning(f"[Verify] 직전세션 폐기 실패: {e}")
+        _state["status_log"] = f"⚠️ 직전 세션 폐기 실패: {e}"
 
 
 def _joystick_verify_return():
@@ -2421,8 +2650,11 @@ def config_update(req: ConfigToggleReq):
     if req.stop_area_threshold is not None: payload["stop_area_threshold"] = req.stop_area_threshold
     if req.multi_prompt is not None: payload["multi_prompt"] = req.multi_prompt
     if req.force_reground_on_miss is not None: payload["force_reground_on_miss"] = req.force_reground_on_miss
+    if req.stop_on_miss is not None: payload["stop_on_miss"] = req.stop_on_miss
     if req.owlv2_thresh is not None: payload["owlv2_thresh"] = req.owlv2_thresh
     if req.owlv2_area_scale is not None: payload["owlv2_area_scale"] = req.owlv2_area_scale
+    if req.ablation_mode is not None: payload["ablation_mode"] = req.ablation_mode
+    if req.action_speed_scale is not None: payload["action_speed_scale"] = req.action_speed_scale
     if req.stop_mode is not None: payload["stop_mode"] = req.stop_mode
     if req.stop_learned_min_steps is not None: payload["stop_learned_min_steps"] = req.stop_learned_min_steps
     if req.stop_consec_frames is not None: payload["stop_consec_frames"] = req.stop_consec_frames
@@ -2640,6 +2872,8 @@ def _snapshot_runtime_config() -> dict:
             "cx_jump_thresh": h.get("cx_jump_thresh"),
             "multi_prompt": h.get("multi_prompt"),
             "force_reground_on_miss": h.get("force_reground_on_miss"),
+            "stop_on_miss": h.get("stop_on_miss"),
+            "action_speed_scale": h.get("action_speed_scale"),
             # 2026-08-05: stop_mode 계열이 이 스냅샷에 아예 빠져 있었음 —
             # 100건 테스트 세션 H5를 사후 대조할 때 "stop_mode=learned였다"를
             # 세션 파일만으로는 증명할 수 없었다(minum 요청서 F항목). /health엔
@@ -2898,12 +3132,26 @@ def sessions_list():
         try: labels = json.loads(LABEL_JSON_PATH.read_text())
         except Exception: pass
 
+    # 2026-09-18: session_id → 성공/실패 + path_type — 세션목록(좌측 스크롤러)에서
+    # 성공표기와 경로 기준 필터 버튼에 바로 쓰기 위함. sessions_load()가 하는 것과
+    # 동일한 exact session_id 매칭(r[13]==sid)이지만, 세션 하나당 CSV를 다시 읽지
+    # 않도록 여기서 한 번만 읽어서 dict로 미리 구성.
+    success_by_sid = {}
+    path_type_by_sid = {}
+    try:
+        ep_rows, _ = _read_episode_csv()
+        for r in ep_rows:
+            if len(r) > 13 and r[13]:
+                success_by_sid[r[13]] = r[2]
+                path_type_by_sid[r[13]] = r[1]
+    except Exception:
+        pass
 
     session_list = []
     for h5p in h5_files:
         sid = Path(h5p).stem.replace("session_", "")
         n_labeled = sum(1 for k in labels if k.startswith(f"session_{sid}_f"))
-        
+
         # 기본 정보
         steps = "?"
         instruction = "—"
@@ -2915,13 +3163,15 @@ def sessions_list():
                     steps = d.get("summary", {}).get("total_steps", "?")
                     instruction = d.get("instruction", "—")
             except Exception: pass
-            
+
         session_list.append({
             "sid": sid,
             "steps": steps,
             "instruction": instruction,
             "labeled_count": n_labeled,
-            "h5_size_mb": round(os.path.getsize(h5p) / (1024*1024), 2)
+            "h5_size_mb": round(os.path.getsize(h5p) / (1024*1024), 2),
+            "success": success_by_sid.get(sid),
+            "path_type": path_type_by_sid.get(sid),
         })
     return {"ok": True, "sessions": session_list}
 
@@ -3129,8 +3379,8 @@ def sessions_export(sid: str, with_bbox: int = 0, with_meta: int = 1, with_metat
                             cx_px, cy_px = cx * W, cy * H
                             draw = ImageDraw.Draw(pil)
                             draw.rectangle([cx_px - half, cy_px - half, cx_px + half, cy_px + half],
-                                           outline=(16, 185, 129), width=3)
-                            r = 5
+                                           outline=(16, 185, 129), width=6)  # 2026-08-13: 두께 3→6 (200%)
+                            r = 10  # 2026-08-13: 조준점 반지름 5→10 (200%)
                             draw.ellipse([cx_px - r, cy_px - r, cx_px + r, cy_px + r], fill=(16, 185, 129))
                     if with_metatext:
                         lines = [sid, f"frame {i + 1}/{n}"]
@@ -3279,7 +3529,25 @@ _DS_NAME_RE = re.compile(r"^episode_\d+_\d+_(?P<rest>.+)$")
 
 
 def _dataset_h5_paths():
-    return sorted(glob.glob(str(_collect.data_dir / "*.h5")), reverse=True)
+    # EGVLA2(2026-10-12 후속): 이제 수집은 전부 continuous_dir에 저장되므로, 레거시
+    # data_dir(V6 300건, 더 이상 안 늘어남)과 continuous_dir(EGVLA2, 계속 늘어남)를
+    # 합쳐서 보여준다 — 파일명이 서로 겹치지 않는다는 전제(episode_name은 타임스탬프
+    # 포함이라 사실상 유일).
+    paths = glob.glob(str(_collect.data_dir / "*.h5")) + glob.glob(str(_collect.continuous_dir / "*.h5"))
+    return sorted(paths, reverse=True)
+
+
+def _dataset_find_path(name: str) -> Optional[Path]:
+    """name(확장자 없는 episode_name)으로 실제 H5 경로를 찾는다 — continuous_dir과
+    data_dir 양쪽에 다 있을 수 있으므로 존재하는 쪽을 반환(continuous 우선 — 신규
+    수집은 전부 여기로 들어가므로 더 자주 맞는 경로)."""
+    cand = _collect.continuous_dir / f"{name}.h5"
+    if cand.exists():
+        return cand
+    cand = _collect.data_dir / f"{name}.h5"
+    if cand.exists():
+        return cand
+    return None
 
 
 def _dataset_parse_scenario_from_name(name: str) -> str:
@@ -3302,6 +3570,7 @@ def _dataset_scan_attrs(h5p: str) -> dict:
     """파일을 열지 않고(attrs만) 목록용 메타데이터 추출 — 290개 스캔이
     빨라야 하므로 이미지 데이터셋은 절대 안 읽음."""
     name = Path(h5p).stem
+    cont_uniq = None
     with h5py.File(h5p, "r") as f:
         attrs = dict(f.attrs)
         schema = "new" if "images" in f else "legacy"
@@ -3309,6 +3578,12 @@ def _dataset_scan_attrs(h5p: str) -> dict:
             n_frames = int(attrs.get("num_frames", f["images"].shape[0] if "images" in f else 0))
         else:
             n_frames = int(f["observations/images"].shape[0]) if "observations/images" in f else 0
+        # EGVLA2(2026-10-13): "수집이 잘 됐는지"(연속값이 실제로 다양한지) 목록에서
+        # 바로 보이도록 — actions는 images와 달리 작아서(n_frames×3 float32) 열어도 가벼움.
+        if attrs.get("control_mode") == "continuous" and "actions" in f:
+            acts = f["actions"][()]
+            mags = np.round(np.abs(acts[np.abs(acts) > 0.01]), 3)
+            cont_uniq = int(len(np.unique(mags))) if mags.size else 0
 
     scenario = str(attrs.get("scenario", "") or "") or _dataset_parse_scenario_from_name(name)
     cx_position = str(attrs.get("cx_position", "") or "")
@@ -3320,6 +3595,10 @@ def _dataset_scan_attrs(h5p: str) -> dict:
     mtime = os.path.getmtime(h5p)
     dt = (datetime.datetime.fromisoformat(collection_dt) if collection_dt
           else datetime.datetime.fromtimestamp(mtime))
+
+    # EGVLA2(2026-10-12 후속): 어느 디렉토리에서 왔는지로 V6(discrete, 고정)와
+    # EGVLA2(continuous, 계속 수집 중) 구분 — schema("new"/"legacy")와는 별개 축.
+    dataset = "egvla2" if Path(h5p).parent == _collect.continuous_dir else "v5"
 
     return {
         "name": name,
@@ -3333,6 +3612,8 @@ def _dataset_scan_attrs(h5p: str) -> dict:
         "duration_s": round(duration_s, 1),
         "size_mb": round(os.path.getsize(h5p) / (1024 * 1024), 2),
         "schema": schema,
+        "dataset": dataset,
+        "cont_uniq": cont_uniq,
     }
 
 
@@ -3353,9 +3634,9 @@ def dataset_list():
 
 @app.get("/dataset/load")
 def dataset_load(name: str):
-    h5p = _collect.data_dir / f"{name}.h5"
-    if not h5p.exists():
-        return JSONResponse(status_code=404, content={"ok": False, "error": f"H5 파일이 없음: {h5p}"})
+    h5p = _dataset_find_path(name)
+    if h5p is None:
+        return JSONResponse(status_code=404, content={"ok": False, "error": f"H5 파일이 없음: {name}.h5"})
     try:
         with h5py.File(h5p, "r") as f:
             attrs = dict(f.attrs)
@@ -3390,8 +3671,8 @@ def dataset_load(name: str):
 
 @app.get("/dataset/frame")
 def dataset_frame(name: str, idx: int):
-    h5p = _collect.data_dir / f"{name}.h5"
-    if not h5p.exists():
+    h5p = _dataset_find_path(name)
+    if h5p is None:
         return Response(status_code=404, content="H5 file not found")
     try:
         with h5py.File(h5p, "r") as f:
@@ -3421,8 +3702,8 @@ def dataset_export(name: str, with_meta: int = 1, with_metatext: int = 0):
     with_bbox 옵션은 없음(세션 탭과 달리 애초에 그릴 데이터가 없음).
     with_metatext=1이면 우하단 메타 오버레이(#ds-meta-overlay와 동일 내용)를
     이미지에 합성."""
-    h5p = _collect.data_dir / f"{name}.h5"
-    if not h5p.exists():
+    h5p = _dataset_find_path(name)
+    if h5p is None:
         return Response(status_code=404, content="H5 file not found")
     try:
         import zipfile
@@ -3486,10 +3767,15 @@ def dataset_delete(name: str):
     """데이터셋 히스토리 탭에서 선택 삭제 — H5 파일 제거 + 실행 중인 서버의
     in-memory 진행률(scenario_stats/cx_position_stats/time_period_stats)도
     같이 감소시켜 scenario_progress.json/time_period_stats.json에 반영.
-    (재시작 없이 즉시 /collect/state에 반영되도록 _collect._save_progress() 재사용)"""
-    h5p = _collect.data_dir / f"{name}.h5"
-    if not h5p.exists():
+    (재시작 없이 즉시 /collect/state에 반영되도록 _collect._save_progress() 재사용)
+
+    EGVLA2(2026-10-12 후속): progress 카운터는 이제 continuous_dir(EGVLA2) 기준으로만
+    추적되므로(v5는 이미 완료된 레거시 집계), v5 파일을 삭제할 때는 감소시키지 않는다
+    — 안 그러면 전혀 다른 데이터셋의 진행률이 잘못 줄어든다."""
+    h5p = _dataset_find_path(name)
+    if h5p is None:
         return JSONResponse(status_code=404, content={"ok": False, "error": f"파일 없음: {name}.h5"})
+    is_egvla2 = (h5p.parent == _collect.continuous_dir)
 
     try:
         with h5py.File(h5p, "r") as f:
@@ -3508,21 +3794,202 @@ def dataset_delete(name: str):
     cx_path = str(attrs.get("cx_path", "") or "")
     time_period = str(attrs.get("time_period", "") or "")
 
-    def _dec(d: dict, key: str):
-        if key and key in d:
-            d[key] = max(0, d[key] - 1)
-            if d[key] == 0:
-                del d[key]
+    if is_egvla2:
+        def _dec(d: dict, key: str):
+            if key and key in d:
+                d[key] = max(0, d[key] - 1)
+                if d[key] == 0:
+                    del d[key]
 
-    with _collect._lock:
-        _dec(_collect.scenario_stats, scenario)
-        _dec(_collect.cx_position_stats, cx_position)
-        _dec(_collect.cx_position_path_stats, f"{cx_position}::{cx_path}" if cx_position and cx_path else "")
-        _dec(_collect.time_period_stats, time_period)
-    _collect._save_progress()
+        with _collect._lock:
+            _dec(_collect.scenario_stats, scenario)
+            _dec(_collect.cx_position_stats, cx_position)
+            _dec(_collect.cx_position_path_stats, f"{cx_position}::{cx_path}" if cx_position and cx_path else "")
+            _dec(_collect.time_period_stats, time_period)
+        _collect._save_progress()
 
     log.info(f"🗑️ [DatasetHistory] 삭제: {name} (scenario={scenario or '-'}, cx={cx_position or '-'}::{cx_path or '-'})")
     return {"ok": True, "deleted": name}
+
+
+# ─── 데이터셋 히스토리 — 세트 분류(클릭/드롭다운, 드래그 아님) ──────────────
+# 세션 히스토리의 manual_screening_groups(시간범위 기반, 드래그 UX 전용)와 달리,
+# 여기는 이미 있는 다중선택(비교모드) 체크박스를 그대로 써서 "파일명 목록"을 직접
+# 저장하는 단순한 구조 — 범위 재계산이 필요 없어서 훨씬 가볍다 (2026-10-13).
+_DATASET_SETS_PATH = ROOT / "logs" / "manual_dataset_sets.json"
+
+
+def _load_dataset_sets() -> dict:
+    if not _DATASET_SETS_PATH.exists():
+        return {}
+    try:
+        return json.loads(_DATASET_SETS_PATH.read_text(encoding="utf-8")).get("sets", {})
+    except Exception as e:
+        log.warning(f"[DatasetSets] 로드 실패: {e}")
+        return {}
+
+
+def _save_dataset_sets(sets: dict) -> None:
+    _DATASET_SETS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _DATASET_SETS_PATH.write_text(
+        json.dumps({"sets": sets}, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+class DatasetSetAddReq(BaseModel):
+    set_name: str
+    names: List[str]
+
+
+class DatasetSetRemoveReq(BaseModel):
+    set_name: str
+    names: List[str]
+
+
+class DatasetSetDeleteReq(BaseModel):
+    set_name: str
+
+
+@app.get("/dataset/sets")
+def dataset_sets_list():
+    sets = _load_dataset_sets()
+    return {"ok": True, "sets": sets}
+
+
+@app.post("/dataset/sets/add")
+def dataset_sets_add(req: DatasetSetAddReq):
+    if not req.set_name.strip():
+        return {"ok": False, "error": "세트 이름이 비어있음"}
+    sets = _load_dataset_sets()
+    existing = sets.setdefault(req.set_name, [])
+    for n in req.names:
+        if n not in existing:
+            existing.append(n)
+    _save_dataset_sets(sets)
+    log.info(f"📦 [DatasetSets] '{req.set_name}'에 {len(req.names)}건 추가 (총 {len(existing)}건)")
+    return {"ok": True, "set_name": req.set_name, "members": existing}
+
+
+@app.post("/dataset/sets/remove")
+def dataset_sets_remove(req: DatasetSetRemoveReq):
+    sets = _load_dataset_sets()
+    if req.set_name not in sets:
+        return {"ok": False, "error": f"세트 없음: {req.set_name}"}
+    sets[req.set_name] = [n for n in sets[req.set_name] if n not in req.names]
+    _save_dataset_sets(sets)
+    return {"ok": True, "set_name": req.set_name, "members": sets[req.set_name]}
+
+
+@app.post("/dataset/sets/delete")
+def dataset_sets_delete(req: DatasetSetDeleteReq):
+    sets = _load_dataset_sets()
+    if req.set_name not in sets:
+        return {"ok": False, "error": f"세트 없음: {req.set_name}"}
+    del sets[req.set_name]
+    _save_dataset_sets(sets)
+    return {"ok": True, "deleted": req.set_name}
+
+
+# ─── 데이터셋 히스토리 — 잘못 찍힌 목표지점/경로/시나리오 태그 사후 수정 ──────
+# (2026-10-13) 수집 중 D-pad/드롭다운이 의도와 다른 값에 가 있던 채로 녹화되는
+# 실수가 실제로 발생함(예: "중앙+직진"으로 운전했는데 "중앙+우곡선"으로 태깅된 채
+# 저장됨). attrs를 고치는 것만으로는 파일명이 여전히 옛 태그를 담고 있어 헷갈리므로,
+# attrs 수정과 동시에 파일명도 재구성(타임스탬프 접두사는 유지해 고유성 보존)한다.
+_DS_TS_RE = re.compile(r"^(episode_\d{8}_\d{6})")
+
+
+class DatasetRelabelReq(BaseModel):
+    name: str
+    cx_position: Optional[str] = None  # None=건드리지 않음, ""=미지정으로 비움, 값=설정
+    cx_path: Optional[str] = None
+    scenario: Optional[str] = None
+
+
+def _dataset_rebuild_name(ts_prefix: str, scenario: str, pattern: str, cx_position: str, cx_path: str) -> str:
+    parts = [ts_prefix]
+    if scenario:
+        parts.append(scenario)
+    if pattern:
+        parts.append(pattern)
+    if cx_position:
+        parts.append(cx_position)
+    if cx_path:
+        parts.append(cx_path)
+    return "_".join(parts)
+
+
+@app.post("/dataset/relabel")
+def dataset_relabel(req: DatasetRelabelReq):
+    h5p = _dataset_find_path(req.name)
+    if h5p is None:
+        return {"ok": False, "error": f"파일 없음: {req.name}.h5"}
+
+    with h5py.File(h5p, "r+") as f:
+        old_scenario = str(f.attrs.get("scenario", "") or "")
+        old_cx_position = str(f.attrs.get("cx_position", "") or "")
+        old_cx_path = str(f.attrs.get("cx_path", "") or "")
+        pattern = str(f.attrs.get("pattern", "") or "")
+
+        new_scenario = old_scenario if req.scenario is None else req.scenario
+        new_cx_position = old_cx_position if req.cx_position is None else req.cx_position
+        new_cx_path = old_cx_path if req.cx_path is None else req.cx_path
+
+        f.attrs["scenario"] = new_scenario
+        f.attrs["cx_position"] = new_cx_position
+        f.attrs["cx_path"] = new_cx_path
+
+    # 진행률 카운터 — 삭제(dataset_delete)와 같은 방식으로 이전 태그분 빼고 새 태그분 더함.
+    # 레거시(v5) 파일은 progress 카운터가 더 안 늘지만, egvla2는 계속 집계되므로 반영 필요.
+    is_egvla2 = (h5p.parent == _collect.continuous_dir)
+    if is_egvla2:
+        def _dec(d, key):
+            if key and key in d:
+                d[key] = max(0, d[key] - 1)
+                if d[key] == 0:
+                    del d[key]
+        with _collect._lock:
+            if old_scenario != new_scenario:
+                _dec(_collect.scenario_stats, old_scenario)
+                if new_scenario:
+                    _collect.scenario_stats[new_scenario] += 1
+            if old_cx_position != new_cx_position:
+                _dec(_collect.cx_position_stats, old_cx_position)
+                if new_cx_position:
+                    _collect.cx_position_stats[new_cx_position] += 1
+            old_pp = f"{old_cx_position}::{old_cx_path}" if old_cx_position and old_cx_path else ""
+            new_pp = f"{new_cx_position}::{new_cx_path}" if new_cx_position and new_cx_path else ""
+            if old_pp != new_pp:
+                _dec(_collect.cx_position_path_stats, old_pp)
+                if new_pp:
+                    _collect.cx_position_path_stats[new_pp] += 1
+        _collect._save_progress()
+
+    # 파일명 재구성 — 타임스탬프 접두사 유지, 나머지는 새 태그로 재조립.
+    m = _DS_TS_RE.match(req.name)
+    ts_prefix = m.group(1) if m else req.name
+    new_name = _dataset_rebuild_name(ts_prefix, new_scenario, pattern, new_cx_position, new_cx_path)
+    renamed = False
+    if new_name != req.name:
+        new_path = h5p.parent / f"{new_name}.h5"
+        if new_path.exists():
+            log.warning(f"[DatasetHistory] relabel 파일명 충돌로 이름은 안 바꿈: {new_name}.h5 이미 존재")
+        else:
+            h5p.rename(new_path)
+            renamed = True
+            # 세트(manual_dataset_sets.json)에 옛 이름이 들어있으면 새 이름으로 갱신.
+            sets = _load_dataset_sets()
+            changed = False
+            for members in sets.values():
+                if req.name in members:
+                    members[members.index(req.name)] = new_name
+                    changed = True
+            if changed:
+                _save_dataset_sets(sets)
+
+    log.info(f"🏷️ [DatasetHistory] 재태깅: {req.name} → {new_name} "
+             f"(scenario={old_scenario or '-'}→{new_scenario or '-'}, "
+             f"cx={old_cx_position or '-'}::{old_cx_path or '-'}→{new_cx_position or '-'}::{new_cx_path or '-'})")
+    return {"ok": True, "name": new_name, "renamed": renamed}
 
 
 @app.post("/sessions/label")
@@ -3623,7 +4090,15 @@ PATH_TYPES = ["right_right", "right_left", "right_straight",
               # "center_straight/left/right"(위 15종, 구 9-시나리오 target_center_*)와
               # 이름이 겹쳐 보이지만 완전히 다른 taxonomy(cx_position="center")라
               # trackF_ 접두어로 구분(2026-07-22, 실기 테스트 착수 전 정리).
-              "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"]
+              "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve",
+              # ── 신규조건 실기(2026-09-16, minum 요청) — 로봇 물리 출발위치
+              # pos2(중앙 옆 좌)/pos3(중앙 옆 우) 신규 + OWLv2/Kosmos-2 단독 ablation.
+              # 기존 trackA_/trackF_(화면상 타겟 위치)와는 다른 축(로봇 출발위치)이라
+              # 별도 접두어로 구분.
+              "pos2_강좌", "pos2_약좌", "pos2_중앙", "pos2_약우", "pos2_강우",
+              "pos3_강좌", "pos3_약좌", "pos3_중앙", "pos3_약우", "pos3_강우",
+              "owl_only_강좌", "owl_only_강우",
+              "kosmos_only_강좌", "kosmos_only_강우"]
 PATH_TARGETS = {
     "right_right": 10, "right_left": 10, "right_straight": 10,
     "center_straight": 10, "center_left": 10, "center_right": 10,
@@ -3635,6 +4110,10 @@ PATH_TARGETS = {
     "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
     "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
     "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
+    "pos2_강좌": 20, "pos2_약좌": 20, "pos2_중앙": 20, "pos2_약우": 20, "pos2_강우": 20,
+    "pos3_강좌": 20, "pos3_약좌": 20, "pos3_중앙": 20, "pos3_약우": 20, "pos3_강우": 20,
+    "owl_only_강좌": 20, "owl_only_강우": 20,
+    "kosmos_only_강좌": 20, "kosmos_only_강우": 20,
 }
 # 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
 TRACKA_UNCOLLECTED = set()
@@ -3645,6 +4124,8 @@ def _get_episode_summary(rows):
     nav_succ = 0
     trackA_succ = 0
     trackF_succ = 0
+    newcond_succ = 0
+    _NEWCOND_PREFIXES = ("pos2_", "pos3_", "owl_only_", "kosmos_only_")
     for r in rows:
         if len(r) < 3: continue
         pt = str(r[1]).replace(" ★", "").replace("★", "").strip()
@@ -3655,11 +4136,14 @@ def _get_episode_summary(rows):
                 trackA_succ += 1
             elif pt.startswith("trackF_"):
                 trackF_succ += 1
+            elif pt.startswith(_NEWCOND_PREFIXES):
+                newcond_succ += 1
             elif not pt.startswith(("obj_", "dist_")):
                 nav_succ += 1
-    # 트랙A/트랙F(V6)는 기존 9종 nav 집계와 별개로 집계 — 서로 다른 목표(10 vs 15)를
-    # 섞으면 퍼센트가 왜곡되므로 완전히 분리.
-    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS if not k.startswith(("obj_", "dist_", "trackA_", "trackF_")))
+    # 트랙A/트랙F(V6)/신규조건(2026-09-16)는 기존 9종 nav 집계와 별개로 집계 —
+    # 서로 다른 목표(10 vs 15 vs 20)를 섞으면 퍼센트가 왜곡되므로 완전히 분리.
+    nav_total = sum(PATH_TARGETS[k] for k in PATH_TARGETS
+                    if not k.startswith(("obj_", "dist_", "trackA_", "trackF_") + _NEWCOND_PREFIXES))
     obj_done  = sum(done_total.get(k, 0) for k in ("obj_left","obj_center","obj_right"))
     obj_succ  = sum(done_succ.get(k, 0)  for k in ("obj_left","obj_center","obj_right"))
     dist_done = sum(done_total.get(k, 0) for k in ("dist_10cm","dist_20cm","dist_30cm"))
@@ -3670,9 +4154,13 @@ def _get_episode_summary(rows):
     trackF_keys = [k for k in PATH_TYPES if k.startswith("trackF_")]
     trackF_total = sum(PATH_TARGETS[k] for k in trackF_keys)
     trackF_done = sum(done_total.get(k, 0) for k in trackF_keys)
-    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_','trackA_','trackF_')))}/{nav_total} "
+    newcond_keys = [k for k in PATH_TYPES if k.startswith(_NEWCOND_PREFIXES)]
+    newcond_total = sum(PATH_TARGETS[k] for k in newcond_keys)
+    newcond_done = sum(done_total.get(k, 0) for k in newcond_keys)
+    return (f"경로검증 {sum(done_total.get(k,0) for k in PATH_TYPES if not k.startswith(('obj_','dist_','trackA_','trackF_') + _NEWCOND_PREFIXES))}/{nav_total} "
             f"성공 {nav_succ}/20 (목표) | 위치별 {obj_done}/90 ({obj_succ}성공) | 거리별 {dist_done}/30 ({dist_succ}성공) "
-            f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공) | 트랙F {trackF_done}/{trackF_total} ({trackF_succ}성공)")
+            f"| 트랙A {trackA_done}/{trackA_total} ({trackA_succ}성공) | 트랙F {trackF_done}/{trackF_total} ({trackF_succ}성공) "
+            f"| 신규조건 {newcond_done}/{newcond_total} ({newcond_succ}성공)")
 
 def _read_episode_csv(csv_path=None):
     csv_path = csv_path or EPISODE_CSV
@@ -3915,6 +4403,13 @@ class ManualGroupRange(BaseModel):
     checkpoint: str
     start: str
     end: str
+    # 2026-09-18: 경로별 드래그(_pathDragStart)로 만들어진 범위는 원래 그 경로
+    # (path_type) 하나만의 min~max 시간인데, 이 필드가 없어서 화면 집계 시
+    # 시간대만 겹치면 다른 path_type(예: pos3_강우가 pos2_강우 범위와 시간이
+    # 겹침)까지 같이 세어져 합계가 부풀려지는 문제가 있었음(2026-09-17 pos2
+    # 실기 151/100 오염 사례). 지정돼 있으면 정확히 이 path_type만 매칭,
+    # None이면(구형 배치 단위 드래그) 기존처럼 시간 범위만으로 매칭.
+    path_type: Optional[str] = None
 
 
 class ManualGroupSaveReq(BaseModel):
@@ -4376,6 +4871,33 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     color: var(--cyan);
     box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.05);
   }
+  /* 2026-09-16: 사이드바 접기/펼치기 (탭 목록이 길어 화면을 많이 차지한다는 요청) */
+  aside.sidebar-collapsed {
+    width: 0;
+    overflow: hidden;
+    border-right: none;
+  }
+  .sidebar-toggle-btn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 100;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--panel-dark);
+    border: 1px solid var(--border-glow);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sidebar-toggle-btn:hover {
+    color: var(--cyan);
+    border-color: var(--cyan);
+  }
   .sidebar-footer {
     padding: 20px;
     border-top: 1px solid var(--border-glow);
@@ -4449,7 +4971,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     background: #151f32;
     border: 1px solid var(--border-glow);
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     cursor: pointer;
     transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
   }
@@ -4489,21 +5011,33 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   }
   .session-card .sc-bottom {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 4px;
     margin-top: 6px;
   }
   .session-card .sc-badge {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    padding: 2px 7px;
+    padding: 1px 6px;
     border-radius: 20px;
     background: rgba(148,163,184,0.12);
     color: var(--text-muted);
+    white-space: nowrap;
   }
   .session-card .sc-badge.labeled {
     background: rgba(16,185,129,0.15);
     color: var(--emerald);
+  }
+  /* 2026-09-18: 병합세트 태그(🔗)는 체크포인트/세트명이 길어서(2개 이상 붙으면
+     특히) 카드 폭(280px)을 넘어 줄바꿈이 지저분해지던 문제 — 최대폭+ellipsis로
+     줄이고 title로 전체 이름 확인 가능하게. */
+  .session-card .sc-badge.group-tag {
+    max-width: 108px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: rgba(139,92,246,0.15);
+    color: #a78bfa;
   }
 
   /* ── 프레임 인스펙터 — 요약/경로검증 기록용 미니 타일 ── */
@@ -5049,13 +5583,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 </head>
 <body>
 
+  <!-- 2026-09-16: 사이드바 접기/펼치기 버튼 — 항상 고정 위치, 접힌 상태에서도 다시 펼 수 있게 -->
+  <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="사이드바 접기/펼치기">☰</button>
+
   <!-- 사이드바 -->
-  <aside>
+  <aside id="app-sidebar">
     <div class="brand-panel">
       <div class="brand-pulse"></div>
       <div class="brand-title">MoNaVLA v2.5</div>
     </div>
-    
+
     <nav>
       <div class="nav-item active" onclick="switchTab(this, 'drive')">🤖 주행 제어</div>
       <div class="nav-item" onclick="switchTab(this, 'grounding')">🔍 그라운딩 검증</div>
@@ -5408,7 +5945,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     <!-- 탭 4: 🧪 경로 검증 (Path Test) -->
     <div id="tab-verify" class="tab-content">
       <div class="scroll-container" style="padding: 20px;">
-        <div class="grid-3-verify" style="display: grid; grid-template-columns: 2fr 1.6fr 1.6fr; gap: 20px; align-items: start;">
+        <div class="grid-3-verify" style="display: grid; grid-template-columns: 1.0fr 2.3fr 1.7fr; gap: 20px; align-items: start;">
           
           <!-- Column 1: Live Camera & Telemetry -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
@@ -5419,7 +5956,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <label class="chk-row" style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;text-transform:none;">
                 <input type="checkbox" id="toggle-cxguide-vfy" onchange="drawOverlay()" style="accent-color:var(--amber)"> 배치가이드 표시
               </label>
-              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=세션저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
+              <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:11px; padding:4px 10px; margin-left:auto;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=세션저장 R2=복귀 · B=직전세션폐기 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:#101726; border:1px solid var(--border-glow); border-radius:6px;">
               <span style="color:var(--text-muted);">📹 카메라 프로세스:</span>
@@ -5508,18 +6045,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           
           <!-- Column 2: Progress & Summary Table -->
           <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; max-height:calc(100vh - 120px);">
-            <div class="card-title">📊 경로 다이어그램 및 집계</div>
-            
-            <!-- Progress Bar Placeholder -->
-            <div id="vfy-progress-wrapper" style="min-height:92px; background:rgba(255,255,255,0.01); border-radius:8px; padding:4px 0;">
-              로딩 중...
-            </div>
-            
-            <div id="vfy-progress-txt" style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-top:-8px;">
-              경로검증 계산 중...
-            </div>
+            <!-- 2026-09-16: 사용자 요청 — 모델전환/그라운더전환/추론검증스크리닝을
+                 진행률·집계보다 위로 올림(실기 중 더 자주 만지는 조작부라 우선). -->
 
-            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23) -->
+            <!-- 🔀 모델 전환 — /model/load 핫스왑, go.sh 재시작(95s) 불필요 (2026-07-23). -->
             <details class="card" style="padding:10px; background:#101726; border:1px solid var(--cyan); border-radius:8px; flex-shrink:0;" open>
               <summary style="font-size:12px; font-weight:700; color:var(--cyan); outline:none; cursor:pointer;">🔀 모델 전환
                 <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
@@ -5544,13 +6073,18 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
             </details>
 
-            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개) -->
-            <div style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개). 이 박스의 "대기 라벨"이
+                 X/A→L2 조이스틱 저장 흐름의 실시간 상태 표시라 실제로 계속 봐야 함.
+                 "현재 위치"는 verify_current_path_type 기준으로 고쳐서 pos2/pos3
+                 선택 중에도 실제 저장값과 항상 일치하게 함. -->
+            <details style="background:#101726; border:1px solid var(--amber); border-radius:8px; padding:10px; flex-shrink:0;" open>
+              <summary style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; list-style:none;">
                 <span style="font-size:12px; font-weight:700; color:var(--amber);">🎯 추론 검증 스크리닝</span>
-                <button id="vfy-screen-toggle" class="btn btn-outline" onclick="toggleScreenTarget()" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
-              </div>
-              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
+                <button id="vfy-screen-toggle" onclick="event.preventDefault(); event.stopPropagation(); toggleScreenTarget();" class="btn btn-outline" style="font-size:10px; padding:3px 8px;">100개(미팅확정)</button>
+              </summary>
+              <div style="margin-top:8px;">
+              <div style="font-size:9px; color:var(--text-muted); margin-bottom:6px;">바구니 위치별 목표 — 데이터셋 수집 목표(트랙 15개)와 별개.<br>🕹️ D-pad◀▶=위치선택 · <b>D-pad↕=위치그룹전환</b>(legacy↔pos2↔pos3↔ablation) · L1추론시작 · R1정지 · X성공/A실패(라벨) · <b>L2=세션저장</b>(💾버튼과 동일, 여기서만 기록) · R2복귀 · <b>SEL=🧪실험용 토글</b>(그라운더 A/B 등 정식 집계 제외).</div>
+              <div id="vfy-pos-group" style="font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:4px; border-radius:6px; background:#0d1420; border:1px solid var(--violet, #8b5cf6); color:var(--violet, #8b5cf6);">위치그룹: —</div>
               <div id="vfy-screen-current" style="font-size:11px; font-weight:700; text-align:center; padding:6px; margin-bottom:6px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow); color:var(--text-muted);">현재 위치: — · 대기 라벨: —</div>
               <div id="vfy-experimental-badge" style="display:none; font-size:10px; font-weight:700; text-align:center; padding:4px; margin-bottom:6px; border-radius:6px; background:#3a1a1a; border:1px solid #d9534f; color:#ff8080;">🧪 실험용 기록 모드 ON — episode_log_experimental.csv로 저장 (정식 집계 제외)</div>
 
@@ -5579,6 +6113,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <button class="btn btn-outline" onclick="applyScreenBatch('0')" style="font-size:10px; padding:3px 8px; white-space:nowrap;" title="가장 최근 배치를 바로 적용 — 예전 배치 보다가 지금으로 한 번에 복귀">📍 최신</button>
               </div>
               <div id="vfy-screen-batch-groups" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px; max-height:220px; overflow-y:auto;">—</div>
+
+              <!-- 2026-09-17: pos2/pos3처럼 자주 왔다갔다 전환하는 세트를 목록에서
+                   찾아 클릭하는 대신 원클릭으로 — 이름 접두어로 가장 최근 것을 찾아 적용. -->
+              <div style="display:flex; gap:4px; margin-bottom:6px;">
+                <button class="btn btn-outline" onclick="quickApplyGroupPrefix('pos2_실기')" style="font-size:10px; padding:5px 4px; flex:1;" title="pos2로 시작하는 저장된 세트 중 가장 최근 것을 바로 적용">📍pos2</button>
+                <button class="btn btn-outline" onclick="quickApplyGroupPrefix('pos3_실기')" style="font-size:10px; padding:5px 4px; flex:1;" title="pos3로 시작하는 저장된 세트 중 가장 최근 것을 바로 적용">📍pos3</button>
+                <button class="btn btn-outline text-rose" onclick="clearActiveManualGroup()" style="font-size:10px; padding:5px 4px; flex:1;" title="병합 세트 해제 — 체크포인트/기간 필터 기준 전체보기로 복귀">✕ 전체보기</button>
+              </div>
 
               <!-- 🔗 저장된 병합 세트 — 관리의 중심. 배치를 여기 각 세트 위로 바로
                    드래그하면 그 세트에 즉시 추가됨(이름 다시 입력 안 해도 됨).
@@ -5610,6 +6152,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <div style="font-size:9px; color:var(--text-muted); margin-bottom:3px;">📊 체크포인트별 진행 (목표 100개)</div>
                 <div id="vfy-screen-ckpt-progress" style="font-size:9px;">—</div>
               </div>
+              </div>
+            </details>
+
+            <div class="card-title" style="margin-top:4px;">📊 경로 다이어그램 및 집계</div>
+
+            <!-- Progress Bar Placeholder -->
+            <div id="vfy-progress-wrapper" style="min-height:200px; background:rgba(255,255,255,0.01); border-radius:8px; padding:4px 0;">
+              로딩 중...
             </div>
 
             <div class="table-wrapper" style="min-height:380px; max-height:380px; flex-shrink:0; overflow-y:auto; border:1px solid var(--border-glow); border-radius:8px;">
@@ -5713,14 +6263,23 @@ L S R  C S L  R S L
                   <button id="vfy-rt-stopmode" class="btn btn-outline" onclick="toggleVerifyRuntime('stopmode')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛑 proximity<br><span style="font-size:9px;color:var(--text-muted)">STOP 모드</span></button>
                   <button id="vfy-rt-stopguard" class="btn btn-outline" onclick="toggleVerifyRuntime('stopguard')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🛡 가드 3프레임<br><span style="font-size:9px;color:var(--text-muted)">learned 콜드스타트</span></button>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr; gap:6px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                   <button id="vfy-rt-regroundmiss" class="btn btn-outline" onclick="toggleVerifyRuntime('regroundmiss')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;" title="has_bbox=False(미검출) 다음 스텝도 캐시 건너뛰고 재그라운딩 — 회전 전용 수정과 별개, 일반 이동 액션에도 적용(2026-07-31 A/B 테스트)">⚫ 미검출시 재그라운딩<br><span style="font-size:9px;color:var(--text-muted)">has_bbox=False 다음스텝 강제</span></button>
+                  <button id="vfy-rt-stopmiss" class="btn btn-outline" onclick="toggleVerifyRuntime('stopmiss')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;" title="has_bbox=False(미검출) 프레임엔 실행 액션을 0(정지)으로 강제 — MLP가 fallback bbox로 맹목적으로 계속 움직이는 것 방지(2026-09-17 A/B 테스트)">⚫ 미검출시 정지<br><span style="font-size:9px;color:var(--text-muted)">has_bbox=False 액션=0</span></button>
                 </div>
                 <div id="vfy-rt-status" style="font-size:10px; color:var(--cyan); text-align:center; font-family:var(--font-mono); margin-top:2px;">—</div>
                 <div id="vfy-owl-row" style="display:none; align-items:center; gap:6px; margin-top:2px;">
                   <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 OWL 보정계수</span>
                   <input type="number" id="vfy-owl-area-scale" min="0.5" max="10" step="0.1" value="3.0" style="width:52px; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
                   <button class="btn btn-outline" onclick="applyVerifyOwlAreaScale()" style="font-size:10px; padding:3px 8px; flex:1;">적용</button>
+                </div>
+                <!-- 2026-09-17: 액션 속도 배율 — pos3처럼 더 많이/급하게 움직여야 하는
+                     조건에서 "너무 빠르다" 피드백 대응. 기본 1.0 = 지금까지와 동일. -->
+                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                  <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🐢 액션 속도 배율</span>
+                  <input type="number" id="vfy-speed-scale" min="0.1" max="2.0" step="0.05" value="1.0" style="width:52px; padding:3px 4px; background:#090d16; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
+                  <button class="btn btn-outline" onclick="applyVerifySpeedScale()" style="font-size:10px; padding:3px 8px; flex:1;">적용</button>
+                  <button class="btn btn-outline" onclick="document.getElementById('vfy-speed-scale').value='1.0'; applyVerifySpeedScale();" style="font-size:10px; padding:3px 8px;" title="1.0(기본)으로 즉시 복귀">↺1.0</button>
                 </div>
               </div>
 
@@ -5755,7 +6314,7 @@ L S R  C S L  R S L
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;">
               <div class="form-group" style="margin-bottom:0;">
                 <label>경로 구분 (path_type)</label>
-                <select id="ep-path-type" onchange="syncVerifyPathType(this.value); drawOverlay();" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
+                <select id="ep-path-type" onchange="syncVerifyPathType(this.value); drawOverlay(); updateSelectedPathCounter();" style="width:100%; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:13px;">
                   <option value="right_right">R→R (right_right)</option>
                   <option value="right_left">R→L★ (right_left)</option>
                   <option value="right_straight">R→S (right_straight)</option>
@@ -5778,8 +6337,25 @@ L S R  C S L  R S L
                     <option value="trackA_weak_right">V6 약극단우 (weak_right)</option>
                     <option value="trackA_strong_right">V6 강극단우 (strong_right)</option>
                   </optgroup>
+                  <optgroup label="🆕 신규조건(pos2/pos3+ablation)">
+                    <option value="pos2_강좌">pos2 강좌</option>
+                    <option value="pos2_약좌">pos2 약좌</option>
+                    <option value="pos2_중앙">pos2 중앙</option>
+                    <option value="pos2_약우">pos2 약우</option>
+                    <option value="pos2_강우">pos2 강우</option>
+                    <option value="pos3_강좌">pos3 강좌</option>
+                    <option value="pos3_약좌">pos3 약좌</option>
+                    <option value="pos3_중앙">pos3 중앙</option>
+                    <option value="pos3_약우">pos3 약우</option>
+                    <option value="pos3_강우">pos3 강우</option>
+                    <option value="owl_only_강좌">OWLv2단독 강좌</option>
+                    <option value="owl_only_강우">OWLv2단독 강우</option>
+                    <option value="kosmos_only_강좌">Kosmos-2단독 강좌</option>
+                    <option value="kosmos_only_강우">Kosmos-2단독 강우</option>
+                  </optgroup>
                 </select>
               </div>
+              <div id="ep-path-counter" style="font-size:11px; color:var(--cyan); font-weight:600; padding:2px 4px;"></div>
 
               <div class="form-group" style="margin-bottom:0;">
                 <label>주행 결과</label>
@@ -5819,38 +6395,73 @@ L S R  C S L  R S L
 
             <!-- 빠른 경로선택 버튼들 -->
             <div style="display:flex; flex-direction:column; gap:6px;">
-              <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">🎯 빠른 레이블 선택</div>
+              <!-- 2026-09-16: 이번 주 실기가 신규조건 위주라 기존 경로15/트랙A12는
+                   기본 접힘으로 바꿔 화면을 덜 차지하게 함(사용자 요청). -->
+              <details style="background:#101726; border-radius:8px; border:1px solid var(--border-glow);">
+                <summary style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; padding:8px; cursor:pointer;">🎯 빠른 레이블 선택 (경로15종)</summary>
+                <div style="display:flex; flex-direction:column; gap:6px; padding:0 8px 8px;">
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
+                    <button class="btn btn-outline" onclick="selectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
+                    <button class="btn btn-outline" onclick="selectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
+                    <button class="btn btn-outline" onclick="selectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
+                    <button class="btn btn-outline" onclick="selectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
+                    <button class="btn btn-outline" onclick="selectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
+                    <button class="btn btn-outline" onclick="selectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
+                    <button class="btn btn-outline" onclick="selectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
+                    <button class="btn btn-outline" onclick="selectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                    <button class="btn btn-outline" onclick="selectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
+                    <button class="btn btn-outline" onclick="selectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
+                    <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
+                  </div>
+                </div>
+              </details>
+
+              <!-- 신규조건(2026-09-16, minum 요청) — pos2/pos3 출발위치 + OWLv2/Kosmos-2 단독 ablation
+                   이번 주 실기 대상이라 기본 펼침 유지. -->
+              <div style="font-size:11px; color:#f472b6; font-weight:600; text-transform:uppercase; margin-top:6px;">🆕 신규조건 (pos2/pos3+ablation)</div>
               <div style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);">
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('obj_left')" style="font-size:10px; padding:4px 0;">obj_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('obj_center')" style="font-size:10px; padding:4px 0;">obj_center</button>
-                  <button class="btn btn-outline" onclick="selectPathType('obj_right')" style="font-size:10px; padding:4px 0;">obj_right</button>
+                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_강좌')" style="font-size:10px; padding:4px 0;">pos2 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_약좌')" style="font-size:10px; padding:4px 0;">pos2 약좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_중앙')" style="font-size:10px; padding:4px 0;">pos2 중앙</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_약우')" style="font-size:10px; padding:4px 0;">pos2 약우</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos2_강우')" style="font-size:10px; padding:4px 0;">pos2 강우</button>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('left_left')" style="font-size:10px; padding:4px 0;">left_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('left_straight')" style="font-size:10px; padding:4px 0;">left_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('left_right')" style="font-size:10px; padding:4px 0;">left_right</button>
+                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_강좌')" style="font-size:10px; padding:4px 0;">pos3 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_약좌')" style="font-size:10px; padding:4px 0;">pos3 약좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_중앙')" style="font-size:10px; padding:4px 0;">pos3 중앙</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_약우')" style="font-size:10px; padding:4px 0;">pos3 약우</button>
+                  <button class="btn btn-outline" onclick="selectPathType('pos3_강우')" style="font-size:10px; padding:4px 0;">pos3 강우</button>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('center_left')" style="font-size:10px; padding:4px 0;">center_left</button>
-                  <button class="btn btn-outline" onclick="selectPathType('center_straight')" style="font-size:10px; padding:4px 0;">center_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('center_right')" style="font-size:10px; padding:4px 0;">center_right</button>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('owl_only_강좌')" style="font-size:10px; padding:4px 0;">OWLv2단독 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('owl_only_강우')" style="font-size:10px; padding:4px 0;">OWLv2단독 강우</button>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('right_left')" style="font-size:10px; padding:4px 0;">right_left ★</button>
-                  <button class="btn btn-outline" onclick="selectPathType('right_straight')" style="font-size:10px; padding:4px 0;">right_straight</button>
-                  <button class="btn btn-outline" onclick="selectPathType('right_right')" style="font-size:10px; padding:4px 0;">right_right</button>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
-                  <button class="btn btn-outline" onclick="selectPathType('dist_10cm')" style="font-size:10px; padding:4px 0;">dist_10cm</button>
-                  <button class="btn btn-outline" onclick="selectPathType('dist_20cm')" style="font-size:10px; padding:4px 0;">dist_20cm</button>
-                  <button class="btn btn-outline" onclick="selectPathType('dist_30cm')" style="font-size:10px; padding:4px 0;">dist_30cm</button>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px;">
+                  <button class="btn btn-outline" onclick="selectPathType('kosmos_only_강좌')" style="font-size:10px; padding:4px 0;">Kosmos-2단독 강좌</button>
+                  <button class="btn btn-outline" onclick="selectPathType('kosmos_only_강우')" style="font-size:10px; padding:4px 0;">Kosmos-2단독 강우</button>
                 </div>
               </div>
 
-              <!-- 트랙A 극단배치(V6) — 기존 15종과 별개 섹션. docs/DATASET_V6_STATUS.md 명명 규정 -->
-              <div style="font-size:11px; color:var(--amber); font-weight:600; text-transform:uppercase; margin-top:6px;">🎯 트랙A 극단배치 (V6)</div>
-              <div id="verify-tracka-grid" style="display:flex; flex-direction:column; gap:6px; background:#101726; padding:8px; border-radius:8px; border:1px solid var(--border-glow);"></div>
+              <!-- 트랙A 극단배치(V6) — 기존 15종과 별개 섹션. docs/DATASET_V6_STATUS.md 명명 규정.
+                   2026-09-16: 기본 접힘으로 변경(사용자 요청, 이번 주 실기와 무관). -->
+              <details style="background:#101726; border-radius:8px; border:1px solid var(--border-glow);">
+                <summary style="font-size:11px; color:var(--amber); font-weight:600; text-transform:uppercase; padding:8px; cursor:pointer;">🎯 트랙A 극단배치 (V6, 12종)</summary>
+                <div id="verify-tracka-grid" style="display:flex; flex-direction:column; gap:6px; padding:0 8px 8px;"></div>
+              </details>
             </div>
 
             <!-- 에피소드 로그 테이블 -->
@@ -6090,8 +6701,10 @@ L S R  C S L  R S L
     <!-- 탭 6: Session History & Labeling -->
     <div id="tab-history" class="tab-content">
       <div class="scroll-container">
-        <div class="grid-main" style="grid-template-columns: 280px 1fr;">
-          
+        <!-- 2026-09-18: 세션리스트 : 프레임뷰어 : 지표패널 = 1:3:1 비율 요청 —
+             기존엔 280px 고정 + 1fr 2열이라 오른쪽 정보블록이 전부 세로로 쌓였음. -->
+        <div class="grid-main" style="grid-template-columns: 1fr 3fr 1fr;">
+
           <!-- H5 세션 리스트 -->
           <div class="card" style="padding:16px; overflow-y:auto; max-height:calc(100vh - 150px);">
             <div class="card-title">📂 저장된 세션
@@ -6100,6 +6713,12 @@ L S R  C S L  R S L
             <button class="btn btn-outline" style="width:100%; margin-bottom:8px; font-size:12px;" onclick="loadSessionList()">🔄 리스트 새로고침</button>
             <input type="text" id="session-search" placeholder="인스트럭션/SID 검색..." oninput="renderSessionList()"
                    style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:8px;">
+            <!-- 2026-09-18: 🧪 경로검증 탭 스크리닝 패널에서 방향(예: ▶▶강우) 이름을
+                 누르면 여기로 넘어와 그 방향에 해당하는 세션만 필터링됨(openSessionsForPos) -->
+            <div id="session-pos-filter-banner" style="display:none; align-items:center; justify-content:space-between; gap:6px; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.4); border-radius:6px; padding:5px 8px; margin-bottom:8px; font-size:11px;">
+              <span id="session-pos-filter-label" style="color:#a78bfa;">—</span>
+              <span onclick="clearSessionPosFilter()" style="cursor:pointer; color:var(--rose);" title="필터 해제">✕</span>
+            </div>
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
               <span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">정렬:</span>
               <select id="session-sort-select" onchange="renderSessionList()"
@@ -6112,19 +6731,31 @@ L S R  C S L  R S L
                 <option value="instr_asc">🎯 인스트럭션 A-Z</option>
               </select>
             </div>
-            <div id="session-list-group" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- 2026-09-18: 경로검증 분류(pos2/pos3/ablation/legacy, 방향) 버튼식
+                 필터 — 여러 버튼을 같이 누르면 AND로 겹쳐져서 좁혀짐(예: pos2+강우
+                 를 같이 누르면 pos2_강우만). 각 그룹 내부는 OR(예: pos2와 pos3를
+                 같이 누르면 둘 다 표시). -->
+            <div style="margin-bottom:10px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">경로 필터</span>
+                <span onclick="clearSessionPathFilters()" style="font-size:10px; cursor:pointer; color:var(--rose);" title="경로 필터 전체 해제">✕ 해제</span>
+              </div>
+              <div id="session-group-filter-row" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px;"></div>
+              <div id="session-dir-filter-row" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+            </div>
+            <div id="session-list-group" style="display:flex; flex-direction:column; gap:5px;">
               <!-- 동적 로드 -->
             </div>
           </div>
           
-          <!-- H5 프레임 인스펙터 -->
+          <!-- H5 프레임 인스펙터 (중앙: 뷰어 — 1:3:1 비율의 가운데 3) -->
           <div class="card">
             <div class="card-title">📚 프레임 인스펙터 <span id="inspect-sid-lbl" class="text-cyan" style="font-size:13px; text-transform:none;"></span></div>
-            
+
             <div id="inspector-placeholder" style="text-align:center; padding:80px 0; color:var(--text-muted);">
               왼쪽 목록에서 세션을 선택하면 상세 프레임 분석 패널이 활성화됩니다.
             </div>
-            
+
             <div id="inspector-body" class="frame-inspector" style="display:none; grid-template-columns:1fr;">
 
               <!-- 프레임 비디오/이미지 뷰어 -->
@@ -6132,7 +6763,7 @@ L S R  C S L  R S L
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="inspect-frame-img" class="viewport-img" src="">
                   <canvas id="inspect-canvas" class="viewport-canvas" width="640" height="360"></canvas>
-                  <div id="inspect-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:20px; padding:9px 16px; border-radius:7px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"</div>
+                  <div id="inspect-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:20px; padding:9px 16px; border-radius:7px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"></div>
                 </div>
 
                 <!-- 플레이어 컨트롤 슬라이더 -->
@@ -6161,37 +6792,52 @@ L S R  C S L  R S L
                   <button class="btn btn-outline" onclick="jumpToNextAnomaly()">⚠️ 다음 이상치로</button>
                 </div>
 
-              <!-- 세션 요약 + 경로검증 기록 — 1:1 두 컬럼으로 나란히, 딱 2행만 차지 -->
-              <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-
-              <!-- 세션 요약 — 스크럽하기 전에 한눈에 보는 통계, 타일 블록 형태 -->
-              <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px;">
-                <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:8px;">📊 세션 요약</div>
-                <div class="mini-tile-grid">
-                  <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value" id="inspect-sum-frames">—</span></div>
-                  <div class="mini-tile"><span class="mt-label">평균 지연</span><span class="mt-value" id="inspect-sum-lat">—</span><span class="mt-sub" id="inspect-sum-lat-sub">—</span></div>
-                  <div class="mini-tile"><span class="mt-label">총 소요</span><span class="mt-value" id="inspect-sum-total">—</span></div>
-                  <div class="mini-tile"><span class="mt-label">Live / Cache</span><span class="mt-value" id="inspect-sum-cache">—</span></div>
-                  <div class="mini-tile"><span class="mt-label">라벨링</span><span class="mt-value" id="inspect-sum-labeled">—</span></div>
-                  <div class="mini-tile" id="inspect-sum-warns-tile"><span class="mt-label">이상치</span><span class="mt-value" id="inspect-sum-warns">—</span></div>
-                </div>
-                <div style="margin-top:10px;">
-                  <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">액션 분포</div>
-                  <div id="inspect-sum-actions" class="mini-tile-grid"></div>
-                </div>
-                <!-- T1-3: 주행 궤적 — action 적분으로 복원. 지금까지 복귀 역재생에만
-                     쓰이고 시각화된 적 없던 데이터. ⚠️ 회전각 미측정 추정치라
-                     절대거리 주장엔 사용 금지(모양/효율 비교용). -->
-                <div style="margin-top:10px;">
-                  <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">
-                    주행 궤적 <span id="inspect-traj-stat" style="text-transform:none; font-weight:400; color:var(--cyan);"></span>
+                <!-- 세션 요약 — 스크럽하기 전에 한눈에 보는 통계, 타일 블록 형태.
+                     2026-09-18: 우측에 있던 경로검증기록(성공표기 등 핵심 지표)은
+                     별도 "🎯 세션 지표" 패널로 옮겨서 1:3:1 비율의 3번째 칸으로 분리. -->
+                <div style="margin-top:20px; background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px;">
+                  <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:8px;">📊 세션 요약</div>
+                  <div class="mini-tile-grid">
+                    <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value" id="inspect-sum-frames">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">평균 지연</span><span class="mt-value" id="inspect-sum-lat">—</span><span class="mt-sub" id="inspect-sum-lat-sub">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">총 소요</span><span class="mt-value" id="inspect-sum-total">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">Live / Cache</span><span class="mt-value" id="inspect-sum-cache">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">라벨링</span><span class="mt-value" id="inspect-sum-labeled">—</span></div>
+                    <div class="mini-tile" id="inspect-sum-warns-tile"><span class="mt-label">이상치</span><span class="mt-value" id="inspect-sum-warns">—</span></div>
                   </div>
-                  <canvas id="inspect-traj" width="300" height="200" style="width:100%; background:#090d16; border:1px solid var(--border-glow); border-radius:6px;"></canvas>
-                  <div style="font-size:8px; color:var(--text-muted); margin-top:3px;">🟢시작 🔴끝 · 빨간구간=미검출(has_bbox=False) · 회전각 추정치라 모양 비교용</div>
+                  <div style="margin-top:10px;">
+                    <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">액션 분포</div>
+                    <div id="inspect-sum-actions" class="mini-tile-grid"></div>
+                  </div>
+                  <!-- T1-3: 주행 궤적 — action 적분으로 복원. 지금까지 복귀 역재생에만
+                       쓰이고 시각화된 적 없던 데이터. ⚠️ 회전각 미측정 추정치라
+                       절대거리 주장엔 사용 금지(모양/효율 비교용). -->
+                  <div style="margin-top:10px;">
+                    <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">
+                      주행 궤적 <span id="inspect-traj-stat" style="text-transform:none; font-weight:400; color:var(--cyan);"></span>
+                    </div>
+                    <canvas id="inspect-traj" width="300" height="200" style="width:100%; background:#090d16; border:1px solid var(--border-glow); border-radius:6px;"></canvas>
+                    <div style="font-size:8px; color:var(--text-muted); margin-top:3px;">🟢시작 🔴끝 · 빨간구간=미검출(has_bbox=False) · 회전각 추정치라 모양 비교용</div>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <!-- 경로검증(Tab 4 episode_log) 매칭 기록 — 도착 위치(cx/area/STOP) 등 실제 검증 결과 + 수정 -->
+          <!-- 🎯 세션 지표 패널 (우측: 1:3:1 비율의 마지막 1 — 스크리닝 성공표기
+               등 핵심 지표를 맨 위에, 나머지 부가정보들은 아래로) -->
+          <div class="card" style="overflow-y:auto; max-height:calc(100vh - 150px);">
+            <div class="card-title">🎯 세션 지표</div>
+
+            <div id="inspector-side-placeholder" style="text-align:center; padding:40px 0; color:var(--text-muted); font-size:12px;">
+              세션을 선택하면 표시됩니다.
+            </div>
+
+            <div id="inspector-side" style="display:none;">
+
+              <!-- 경로검증(Tab 4 episode_log) 매칭 기록 — 도착 위치(cx/area/STOP) 등 실제
+                   검증 결과(성공/실패 등 스크리닝 핵심 지표) + 수정. 이 패널에서 가장
+                   중요한 정보라 맨 위에 배치. -->
               <div id="inspect-episode-box" style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; display:none;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                   <span style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">🧪 경로검증 기록 (episode_log)</span>
@@ -6310,77 +6956,72 @@ L S R  C S L  R S L
                 </div>
               </div>
 
-              </div><!-- /세션 요약 + 경로검증 기록 1:1 컬럼 -->
+              <!-- 나머지 부가 정보들 (프레임 메타데이터 & 셀프 라벨링) -->
+              <div class="form-group" style="margin-top:14px;">
+                <label>Action & Latency</label>
+                <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px;">
+                  <div class="srv-pill" style="padding:4px 8px;">액션: <strong id="inspect-action-lbl">—</strong></div>
+                  <div class="srv-pill" style="padding:4px 8px; flex-direction:column; align-items:flex-start; gap:1px;">
+                    <span>지연: <strong id="inspect-lat-lbl">—ms</strong></span>
+                    <span id="inspect-lat-sec-lbl" style="font-size:10px; font-weight:400; color:var(--text-muted);">—</span>
+                  </div>
+                </div>
               </div>
 
-              <!-- 프레임 메타데이터 & 셀프 라벨링 -->
-              <div style="display:flex; flex-direction:column; justify-content:space-between;">
-                <div>
-                  <div class="form-group">
-                    <label>Action & Latency</label>
-                    <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px;">
-                      <div class="srv-pill" style="padding:4px 8px;">액션: <strong id="inspect-action-lbl">—</strong></div>
-                      <div class="srv-pill" style="padding:4px 8px; flex-direction:column; align-items:flex-start; gap:1px;">
-                        <span>지연: <strong id="inspect-lat-lbl">—ms</strong></span>
-                        <span id="inspect-lat-sec-lbl" style="font-size:10px; font-weight:400; color:var(--text-muted);">—</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="form-group" style="margin-top:14px;">
-                    <label>Grounding (bbox)</label>
-                    <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
-                      <div class="srv-pill" style="padding:4px 8px;">cx: <strong id="inspect-cx-lbl">—</strong></div>
-                      <div class="srv-pill" style="padding:4px 8px;">cy: <strong id="inspect-cy-lbl">—</strong></div>
-                      <div class="srv-pill" style="padding:4px 8px;">area: <strong id="inspect-area-lbl">—</strong></div>
-                      <div class="srv-pill" style="padding:4px 8px;">has_bbox: <strong id="inspect-hasbbox-lbl">—</strong></div>
-                    </div>
-                  </div>
-
-                  <div class="form-group" style="margin-top:16px;">
-                    <label>이상치 감지 알림 (Anomaly warnings)</label>
-                    <div id="inspect-anomaly-box" style="padding:10px; border-radius:8px; background:#1e1b1b; border:1px solid #3d2323; font-size:12px; min-height:60px;">
-                      ✅ 감지된 이상치 경고 없음
-                    </div>
-                  </div>
-
-                  <div class="form-group" style="margin-top:20px;">
-                    <label>셀프 라벨링 (Self-Labeling)</label>
-                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:6px;">
-                      <button class="btn btn-outline" id="lbl-btn-L" onclick="saveFrameLabel('L')">L (좌)</button>
-                      <button class="btn btn-outline" id="lbl-btn-C" onclick="saveFrameLabel('C')">C (중)</button>
-                      <button class="btn btn-outline" id="lbl-btn-R" onclick="saveFrameLabel('R')">R (우)</button>
-                      <button class="btn btn-outline text-rose" id="lbl-btn-NONE" onclick="saveFrameLabel('NONE')">삭제</button>
-                    </div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
-                      라벨을 선택하면 서버 `/tmp/mona_preview_labels.json`에 즉시 자동 기록됩니다.
-                    </div>
-                  </div>
+              <div class="form-group" style="margin-top:14px;">
+                <label>Grounding (bbox)</label>
+                <div class="kv-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+                  <div class="srv-pill" style="padding:4px 8px;">cx: <strong id="inspect-cx-lbl">—</strong></div>
+                  <div class="srv-pill" style="padding:4px 8px;">cy: <strong id="inspect-cy-lbl">—</strong></div>
+                  <div class="srv-pill" style="padding:4px 8px;">area: <strong id="inspect-area-lbl">—</strong></div>
+                  <div class="srv-pill" style="padding:4px 8px;">has_bbox: <strong id="inspect-hasbbox-lbl">—</strong></div>
                 </div>
+              </div>
 
-                <div class="form-group" id="inspect-runtime-cfg-box" style="margin-top:20px; display:none;">
-                  <label>⚙️ 당시 런타임 설정 (경로검증 Config + 서버 스냅샷)</label>
-                  <div id="inspect-runtime-cfg-grid" class="mini-tile-grid" style="margin-top:6px; grid-template-columns:1fr;"></div>
+              <div class="form-group" style="margin-top:16px;">
+                <label>이상치 감지 알림 (Anomaly warnings)</label>
+                <div id="inspect-anomaly-box" style="padding:10px; border-radius:8px; background:#1e1b1b; border:1px solid #3d2323; font-size:12px; min-height:60px;">
+                  ✅ 감지된 이상치 경고 없음
                 </div>
+              </div>
 
-                <div class="srv-pill" style="font-size:11px; margin-top:16px; display:block;">
-                  H5 파일 속성:<br>
-                  <span id="inspect-attrs-lbl" style="font-family:var(--font-mono); color:var(--text-muted); word-break:break-all;">—</span>
+              <div class="form-group" style="margin-top:20px;">
+                <label>셀프 라벨링 (Self-Labeling)</label>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:6px;">
+                  <button class="btn btn-outline" id="lbl-btn-L" onclick="saveFrameLabel('L')">L (좌)</button>
+                  <button class="btn btn-outline" id="lbl-btn-C" onclick="saveFrameLabel('C')">C (중)</button>
+                  <button class="btn btn-outline" id="lbl-btn-R" onclick="saveFrameLabel('R')">R (우)</button>
+                  <button class="btn btn-outline text-rose" id="lbl-btn-NONE" onclick="saveFrameLabel('NONE')">삭제</button>
                 </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+                  라벨을 선택하면 서버 `/tmp/mona_preview_labels.json`에 즉시 자동 기록됩니다.
+                </div>
+              </div>
 
-                <div style="margin-top:16px; display:flex; gap:14px; font-size:11px; color:var(--text-muted); align-items:center;">
-                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-bbox"> bbox 포함</label>
-                  <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-meta" checked> 메타 표시 포함</label>
-                </div>
-                <div style="margin-top:8px;">
-                  <button class="btn btn-outline" style="width:100%; font-size:12px; padding:8px 10px;" onclick="downloadSession()">⬇ 다운로드</button>
-                </div>
-                <div style="margin-top:8px;">
-                  <button class="btn btn-rose" style="width:100%; font-size:12px; padding:8px 12px;" onclick="deleteActiveSession()">🗑️ 세션 파일 영구 삭제</button>
-                </div>
+              <div class="form-group" id="inspect-runtime-cfg-box" style="margin-top:20px; display:none;">
+                <label>⚙️ 당시 런타임 설정 (경로검증 Config + 서버 스냅샷)</label>
+                <div id="inspect-runtime-cfg-grid" class="mini-tile-grid" style="margin-top:6px;"></div>
+              </div>
+
+              <div class="srv-pill" style="font-size:11px; margin-top:16px; display:block;">
+                H5 파일 속성:<br>
+                <span id="inspect-attrs-lbl" style="font-family:var(--font-mono); color:var(--text-muted); word-break:break-all;">—</span>
+              </div>
+
+              <div style="margin-top:16px; display:flex; gap:14px; font-size:11px; color:var(--text-muted); align-items:center;">
+                <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-bbox"> bbox 포함</label>
+                <label style="display:flex; gap:4px; align-items:center; cursor:pointer;"><input type="checkbox" id="dl-sess-meta" checked> 메타 표시 포함</label>
+              </div>
+              <div style="margin-top:8px;">
+                <button class="btn btn-outline" style="width:100%; font-size:12px; padding:8px 10px;" onclick="downloadSession()">⬇ 다운로드</button>
+              </div>
+              <div style="margin-top:8px;">
+                <button class="btn btn-rose" style="width:100%; font-size:12px; padding:8px 12px;" onclick="deleteActiveSession()">🗑️ 세션 파일 영구 삭제</button>
+                <!-- 2026-09-18: 삭제 결과가 alert() 팝업으로만 떠서 지나치기 쉬웠음 —
+                     상시 보이는 상태표시로도 남기게. -->
+                <div id="session-delete-status" style="margin-top:6px; font-size:11px; color:var(--text-muted); text-align:center; min-height:16px;"></div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -6651,7 +7292,8 @@ L S R  C S L  R S L
                   <label style="font-size:11px; font-weight:400; color:var(--text-muted); cursor:pointer;">
                     <input type="checkbox" id="toggle-cxguide-collect" onchange="_collectCxDrawOverlay(_collectLastCx, _collectLastColor)" style="accent-color:var(--amber);"> 배치가이드
                   </label>
-                  <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=기록저장 R2=복귀 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
+                  <button class="btn btn-outline joystick-mode-btn" onclick="toggleJoystickMode()" style="font-size:10px; padding:3px 8px;" title="🧪 검증: D-pad◀▶=위치 · L1=추론시작 R1=정지 X=성공/A=실패(라벨) L2=기록저장 R2=복귀 · B=직전세션폐기 · Y=모드전환">🕹️ 조이스틱: 📷 수집</button>
+                  <span class="btn btn-outline" style="font-size:10px; padding:3px 8px; cursor:default; border-color:var(--amber); color:var(--amber);" title="EGVLA2: 조이스틱 기울기에 비례하는 연속 액션으로 항상 구동/저장 (별도 폴더: mobile_vla_dataset_egvla2 — 🧪 경로검증엔 영향 없음)">🎚️ EGVLA2 · 연속(고정)</span>
                 </div>
               </div>
               <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">cx 오버레이는 실시간 cx 켜면 표시 · 배치가이드는 위 체크박스로 카메라 위에 바로 그려짐</div>
@@ -6691,7 +7333,7 @@ L S R  C S L  R S L
               </div>
               <div style="display:flex; flex-wrap:wrap; gap:6px;">
                 <span class="js-chip js-chip-cyan">◀▶ D-pad 좌우 → 값 순환</span>
-                <span class="js-chip js-chip-cyan">▲▼ D-pad 상하 → 축 전환(트랙A/경로/시나리오)</span>
+                <span class="js-chip js-chip-cyan">▲▼ D-pad 상하 → 축 전환(목표지점/경로/시나리오)</span>
               </div>
             </div>
           </div>
@@ -6701,9 +7343,9 @@ L S R  C S L  R S L
             <div id="collect-status-card" class="collect-status-card">
               <div id="collect-status-main">⏸ IDLE</div>
               <div style="margin-top:8px;">
-                <span id="collect-mode-badge-rt" style="font-size:0.55em; padding:3px 10px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan); font-weight:700;">🎮 D-pad 대상: 트랙A(위치)</span>
+                <span id="collect-mode-badge-rt" style="font-size:0.55em; padding:3px 10px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan); font-weight:700;">🎮 D-pad 대상: 목표지점(위치)</span>
               </div>
-              <div id="collect-status-sub" style="font-size:0.7em; font-weight:600; opacity:0.85; margin-top:6px;">시나리오: 미지정 · 트랙A: 미지정 + 미지정</div>
+              <div id="collect-status-sub" style="font-size:0.7em; font-weight:600; opacity:0.85; margin-top:6px;">시나리오: 미지정 · 목표지점: 미지정 + 미지정</div>
             </div>
 
             <div class="card" style="padding:16px;">
@@ -6730,18 +7372,20 @@ L S R  C S L  R S L
 
         </div>
 
-        <!-- Row2 (1:1) — 트랙A 진행률 | 조이스틱 -->
+        <!-- Row2 (1:1) — 목표지점 진행률 | 조이스틱 -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
 
           <div class="card" style="padding:16px;">
-            <div class="card-title">📏 트랙A 극단배치 진행률 (cx축 막대그래프)
-              <span id="collect-mode-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🎮 D-pad 대상: 트랙A</span>
+            <div class="card-title">📏 목표지점 극단배치 진행률 (cx축 막대그래프)
+              <span style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(245,158,11,0.15); color:var(--amber);" title="이 진행률은 mobile_vla_dataset_egvla2(연속) 기준 — 완료된 V6 300건 수치와 분리되어 0부터 집계됨">🎚️ EGVLA2 진행률</span>
+              <span id="collect-mode-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🎮 D-pad 대상: 목표지점</span>
             </div>
             <div id="collect-cxpos-current" style="font-size:12px; font-weight:700; color:var(--emerald); margin-bottom:8px;">현재 선택: 미지정 + 미지정</div>
             <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
-              위치×경로(좌곡선/직진/우곡선) 조합별로 각 15개씩 — 위치당 3×15=45개, 총 180개.
-              <b>경로도 아래서 직접 선택</b>해야 실제로 15/15/15가 채워졌는지 추적됨 (안 고르면 "미지정"으로만 카운트).<br>
-              D-pad ◀▶(또는 아래 ◀▶)= 현재 축 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 트랙A위치↔접근경로↔시나리오 전환
+              위치×경로(좌곡선/직진/우곡선) 조합별로 각 20개씩 — 위치당 3×20=60개, 총 <b style="color:var(--amber);">최소 300개</b>(준목표 500 · 최대 1000, 300 넘겨도 계속 수집 가능).
+              <b>경로도 아래서 직접 선택</b>해야 실제로 20/20/20이 채워졌는지 추적됨 (안 고르면 "미지정"으로만 카운트).
+              오버슈트→재보정 2종은 <b>선택(필수 아님)</b> — 전체 300 목표에 포함 안 됨.<br>
+              D-pad ◀▶(또는 아래 ◀▶)= 현재 축 순환 · D-pad ▲▼(또는 ▲▼ 버튼)= 목표지점위치↔접근경로↔시나리오 전환
             </div>
             <div style="display:flex; gap:6px; margin-bottom:8px;">
               <button class="btn btn-outline" style="padding:6px 10px; font-size:13px;" onclick="_collectCycleCxPos(-1)" title="이전 cx위치 (D-pad 좌와 동일)">◀</button>
@@ -6778,7 +7422,7 @@ L S R  C S L  R S L
             <div style="font-size:10px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--border-glow); padding-top:8px;">
               <b>조작 설명서</b> (Gradio 대시보드와 동일 매핑)<br>
               왼쪽 스틱 → 이동(전/후/좌/우) &nbsp;|&nbsp; 오른쪽 스틱 X축 → 회전 (왼쪽 버튼패드에 라이트업)<br>
-              <b>D-pad 좌/우</b> → 현재 활성 축(트랙A cx위치 / 접근경로 / 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 3축 순환 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
+              <b>D-pad 좌/우</b> → 현재 활성 축(목표지점 cx위치 / 접근경로 / 시나리오) 순환 선택 &nbsp;|&nbsp; <b>D-pad 상/하</b> → 3축 순환 전환 (녹화 중엔 변경 불가, L1/SEL로 시작 시 선택된 값으로 태깅됨)<br>
               <table style="width:100%; border-collapse:collapse; margin-top:6px;">
                 <tr><td style="padding:1px 4px;"><b>A</b>(0)</td><td>STOP</td>
                     <td style="padding:1px 4px;"><b>B</b>(1)</td><td>마지막 프레임 취소</td></tr>
@@ -6827,6 +7471,7 @@ L S R  C S L  R S L
 
           <div class="card" style="padding:16px;">
             <div class="card-title">🎯 시나리오 & 진행률 (행 클릭 또는 조이스틱 D-pad로 선택)
+              <span style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(245,158,11,0.15); color:var(--amber);" title="이 진행률은 mobile_vla_dataset_egvla2(연속) 기준 — 완료된 V6 300건 수치와 분리되어 0부터 집계됨">🎚️ EGVLA2 진행률</span>
               <span id="collect-scenario-dpad-badge" style="display:none; font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.15); color:var(--cyan);">🕹️ D-pad 선택됨</span>
             </div>
             <div id="collect-scenario-row" style="display:flex; gap:6px; margin-bottom:8px; padding:4px;">
@@ -6884,6 +7529,13 @@ L S R  C S L  R S L
          (세션 히스토리 tab-history와 같은 목록+프레임인스펙터 UX, 다른 데이터 소스) -->
     <div id="tab-dataset" class="tab-content">
       <div class="scroll-container">
+
+        <!-- 전체 데이터셋 통계/분석(2026-10-13) — v5(완료, 고정) + EGVLA2(진행중, 단계목표) -->
+        <details class="card" style="margin-bottom:16px; padding:12px 16px;">
+          <summary style="cursor:pointer; font-size:13px; font-weight:700;">📊 전체 데이터셋 통계/분석</summary>
+          <div id="ds-stats-panel" style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:16px;">로딩 중...</div>
+        </details>
+
         <div class="grid-main" style="grid-template-columns: 300px 1fr;">
 
           <!-- 목록 + 필터 -->
@@ -6918,15 +7570,36 @@ L S R  C S L  R S L
               <button type="button" class="btn btn-outline ds-schema-btn" data-schema="new" onclick="_dsSetSchemaFilter('new')" style="flex:1; font-size:14px; font-weight:700; padding:6px 0;">V6</button>
             </div>
 
+            <!-- 데이터셋 세대(V6 discrete vs EGVLA2 continuous) — 둘 다 schema="new"라 스키마
+                 필터만으로는 구분 안 됨(2026-10-13). 저장 디렉토리 기준 별도 축. -->
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">데이터셋</div>
+            <div id="ds-filter-dataset" style="display:flex; gap:4px; margin-bottom:10px;">
+              <button type="button" class="btn btn-outline ds-dataset-btn active" data-ds="" onclick="_dsSetDatasetFilter('')" style="flex:1; font-size:14px; font-weight:700; padding:6px 0;">전체</button>
+              <button type="button" class="btn btn-outline ds-dataset-btn" data-ds="v5" onclick="_dsSetDatasetFilter('v5')" style="flex:1; font-size:14px; font-weight:700; padding:6px 0;">V6(이산)</button>
+              <button type="button" class="btn btn-outline ds-dataset-btn" data-ds="egvla2" onclick="_dsSetDatasetFilter('egvla2')" style="flex:1; font-size:14px; font-weight:700; padding:6px 0; color:var(--amber);">🎚️ EGVLA2(연속)</button>
+            </div>
+
             <!-- 시나리오 — 버튼클릭 필터 -->
             <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">시나리오</div>
             <div id="ds-filter-scenario" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;"></div>
 
-            <!-- 트랙A cx위치 — 버튼클릭 필터 -->
-            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">트랙A 위치</div>
+            <!-- 목표지점 cx위치 — 버튼클릭 필터 -->
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">목표지점 위치</div>
             <div id="ds-filter-cxpos" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;"></div>
 
             <button type="button" id="ds-compare-toggle-btn" class="btn btn-outline" style="width:100%; margin-bottom:10px; font-size:12px;" onclick="_dsToggleCompareMode()">☑️ 다중 선택(비교 모드) 켜기 — 최대 6개</button>
+
+            <!-- 세트 분류(2026-10-13) — 드래그 아님, 체크박스 선택 + 드롭다운. 비교모드를
+                 켜서 항목을 선택한 뒤 여기서 세트에 담는다. -->
+            <div id="ds-set-assign-row" style="display:none; gap:4px; margin-bottom:10px;">
+              <select id="ds-set-select" style="flex:1; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px;">
+                <option value="">+ 새 세트...</option>
+              </select>
+              <button type="button" class="btn btn-outline" style="font-size:12px; padding:6px 10px;" onclick="_dsAssignSelectedToSet()">➕ 세트에 추가</button>
+            </div>
+
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">📦 세트</div>
+            <div id="ds-sets-panel" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
 
             <div id="ds-list-group" style="display:flex; flex-direction:column; gap:8px;"></div>
           </div>
@@ -6948,7 +7621,7 @@ L S R  C S L  R S L
               <div>
                 <div class="viewport-wrapper" style="background:#000;">
                   <img id="ds-frame-img" class="viewport-img" src="">
-                  <div id="ds-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:20px; padding:9px 16px; border-radius:7px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"</div>
+                  <div id="ds-meta-overlay" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); color:#e2e8f0; font-family:var(--font-mono); font-size:20px; padding:9px 16px; border-radius:7px; line-height:1.5; pointer-events:none; text-align:right; white-space:pre;"></div>
                 </div>
                 <div style="margin-top:16px;">
                   <input type="range" id="ds-slider" min="0" max="0" value="0" oninput="showDsFrame(this.value)">
@@ -6976,13 +7649,26 @@ L S R  C S L  R S L
                     <div class="mini-tile"><span class="mt-label">프레임</span><span class="mt-value" id="ds-sum-frames">—</span></div>
                     <div class="mini-tile"><span class="mt-label">소요시간</span><span class="mt-value" id="ds-sum-duration">—</span></div>
                     <div class="mini-tile"><span class="mt-label">시나리오</span><span class="mt-value" id="ds-sum-scenario" style="font-size:15px;">—</span></div>
-                    <div class="mini-tile"><span class="mt-label">트랙A</span><span class="mt-value" id="ds-sum-cxpos" style="font-size:13px;">—</span></div>
+                    <div class="mini-tile"><span class="mt-label">목표지점</span><span class="mt-value" id="ds-sum-cxpos" style="font-size:13px;">—</span></div>
                     <div class="mini-tile"><span class="mt-label">스키마</span><span class="mt-value" id="ds-sum-schema" style="font-size:15px; font-weight:700;">—</span></div>
                     <div class="mini-tile"><span class="mt-label">날짜</span><span class="mt-value" id="ds-sum-date" style="font-size:11px;">—</span></div>
                     <!-- T2-1: 수집 시 B버튼으로 찍는 "실험용(모델이상)" 표기.
                          H5 attrs에는 저장되는데 사후에 볼 화면이 없어서
                          "학습에서 빼야 할 에피소드"가 사실상 안 보이던 문제 수정. -->
                     <div class="mini-tile"><span class="mt-label">실험용 표기</span><span class="mt-value" id="ds-sum-flagged" style="font-size:13px;">—</span></div>
+                  </div>
+
+                  <!-- EGVLA2(2026-10-13) — 잘못 찍힌 목표지점/경로 태그 수정용. 수정하면
+                       attrs + 파일명 + 진행률 카운터가 전부 같이 갱신됨(/dataset/relabel). -->
+                  <div style="display:flex; gap:6px; align-items:center; margin-top:10px; padding:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px;">
+                    <span style="font-size:10px; color:var(--text-muted); white-space:nowrap;">🏷️ 태그 수정:</span>
+                    <select id="ds-relabel-cxpos" style="flex:1; padding:4px 6px; background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
+                      <option value="">(목표지점 미지정)</option>
+                    </select>
+                    <select id="ds-relabel-cxpath" style="flex:1; padding:4px 6px; background:#151f32; border:1px solid var(--border-glow); border-radius:4px; color:#fff; font-size:11px;">
+                      <option value="">(경로 미지정)</option>
+                    </select>
+                    <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="_dsApplyRelabel()">적용</button>
                   </div>
 
                   <!-- 수집 관련 상세 정보 — 데이터수집 탭 attrs 그대로 노출 -->
@@ -7004,6 +7690,13 @@ L S R  C S L  R S L
                   <div style="margin-top:10px;">
                     <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">액션 분포</div>
                     <div id="ds-sum-actions" class="mini-tile-grid"></div>
+                  </div>
+
+                  <!-- EGVLA2(2026-10-13): 연속값이 실제로 세기별로 다르게 찍혔는지(= 수집이
+                       의도대로 됐는지) 프레임 하나하나 안 열어봐도 바로 보이게. -->
+                  <div style="margin-top:10px;">
+                    <div class="mt-label" style="font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700; margin-bottom:5px;">🎚️ 연속값 검증 (EGVLA2)</div>
+                    <div id="ds-sum-continuous" style="font-size:11px; padding:6px 8px; border-radius:6px; background:#090d16; border:1px solid var(--border-glow);">—</div>
                   </div>
                 </div>
               </div>
@@ -7237,27 +7930,39 @@ L S R  C S L  R S L
       const vfyCur = document.getElementById("vfy-screen-current");
       if (vfyCur) {
         const POS_LABEL = {strong_left:"강좌◀◀", weak_left:"약좌◀", center:"중앙●", weak_right:"약우▶", strong_right:"강우▶▶"};
-        const pos = POS_LABEL[s.verify_screen_pos] || (s.verify_screen_pos || "—");
+        // 2026-09-16: pos2/pos3+ablation처럼 드롭다운/빠른버튼으로 고른 실제 저장값이
+        // D-pad 위치와 다를 수 있어서(둘은 별개 상태), 실제 저장될 값이 신규조건이면
+        // 그걸 그대로 보여줌 — "현재 위치" 표시가 실제 L2 저장값과 항상 일치하게.
+        const actualPt = s.verify_current_path_type;
+        const pos = (actualPt && typeof isNewcondType === "function" && isNewcondType(actualPt))
+          ? actualPt
+          : (POS_LABEL[s.verify_screen_pos] || (s.verify_screen_pos || "—"));
         const res = s.verify_pending_result;
         const resHtml = res
           ? `<span style="color:${res === '성공' ? 'var(--emerald)' : 'var(--rose)'}">${res}</span> (L2로 저장)`
           : `<span style="color:var(--text-muted)">— (X성공/A실패)</span>`;
         vfyCur.innerHTML = `현재 위치: <span style="color:var(--amber)">${pos}</span> · 대기 라벨: ${resHtml}`;
         vfyCur.style.borderColor = res ? "var(--amber)" : "var(--border-glow)";
+        const grpEl = document.getElementById("vfy-pos-group");
+        if (grpEl) {
+          const GROUP_LABEL = {legacy:"기존(트랙A/F)", pos2:"🆕 pos2", pos3:"🆕 pos3", ablation:"🆕 ablation"};
+          grpEl.textContent = `위치그룹: ${GROUP_LABEL[s.verify_pos_group] || s.verify_pos_group || "—"} (D-pad↕로 전환)`;
+        }
         const expBadge = document.getElementById("vfy-experimental-badge");
         if (expBadge) expBadge.style.display = s.verify_experimental ? "block" : "none";
         // A안 — 검증모드면 수동 폼(드롭다운/성공·실패 버튼)이 조이스틱 상태를 미러링
         const collectExpBadge = document.getElementById("collect-experimental-badge");
         if (collectExpBadge) collectExpBadge.style.display = s.collect_experimental ? "block" : "none";
         if (s.verify_mode) {
-          // D-pad 위치 → 드롭다운 동기화(같은 위치의 첫 옵션 선택) + 오버레이 강조 갱신
+          // D-pad 위치/그룹 → 드롭다운 동기화 + 오버레이 강조 갱신.
+          // 2026-09-16: 서버(_verify_cycle_pos/_verify_cycle_pos_group)가 D-pad를
+          // 누르는 즉시 verify_current_path_type을 직접 갱신하므로, 여기선 그
+          // 서버 진짜 값을 그대로 반영만 함(재계산·재POST 안 함 — 왕복 없이 정확).
           if (s.verify_screen_pos && s.verify_screen_pos !== window._verifyScreenPos) {
             window._verifyScreenPos = s.verify_screen_pos;
             const sel = document.getElementById("ep-path-type");
-            if (sel) {
-              const targetVal = (s.verify_screen_pos === "center") ? "trackF_center" : ("trackA_" + s.verify_screen_pos);
-              sel.value = targetVal;
-              syncVerifyPathType(sel.value);
+            if (sel && s.verify_current_path_type) {
+              sel.value = s.verify_current_path_type;
             }
             if (typeof drawOverlay === "function") drawOverlay();
           }
@@ -7499,6 +8204,8 @@ L S R  C S L  R S L
       if (tab === "verify") {
         syncVerifyRuntimeParams();
         loadEpisodeHistory();
+        // 2026-09-16: 경로검증 탭 들어오면 조이스틱 기본 모드를 검증으로 자동전환.
+        if (typeof setJoystickMode === "function") setJoystickMode("verify");
       }
       if (tab === "srvcfg") {
         loadSrvCfg();
@@ -7815,7 +8522,7 @@ L S R  C S L  R S L
           ? res.cx_positions[res.staged_cx_position].label : "미지정";
         const pathLabel = (res.cx_paths && res.staged_cx_path)
           ? res.cx_paths[res.staged_cx_path].label : "미지정";
-        const subText = `시나리오: ${scenarioLabel || "미지정"} · 트랙A: ${posLabel} + ${pathLabel}`;
+        const subText = `시나리오: ${scenarioLabel || "미지정"} · 목표지점: ${posLabel} + ${pathLabel}`;
         subEl.textContent = subText;
         if (_collectPrevStatusSub !== null && subText !== _collectPrevStatusSub) {
           subEl.classList.remove("flash-highlight");
@@ -7937,7 +8644,7 @@ L S R  C S L  R S L
         cxSelEl.value = res.staged_cx_position || "";
       }
       {
-        const MODE_LABELS = {trackA: "트랙A(위치)", cxpath: "접근경로", scenario: "시나리오"};
+        const MODE_LABELS = {trackA: "목표지점(위치)", cxpath: "접근경로", scenario: "시나리오"};
         const MODE_COLORS = {trackA: ["rgba(56,189,248,0.15)", "var(--cyan)"],
                               cxpath: ["rgba(245,158,11,0.15)", "var(--amber)"],
                               scenario: ["rgba(163,113,247,0.15)", "#a371f7"]};
@@ -8872,7 +9579,13 @@ L S R  C S L  R S L
       "trackA_weak_right_left_curve", "trackA_weak_right_straight", "trackA_weak_right_right_curve",
       "trackA_strong_right_left_curve", "trackA_strong_right_straight", "trackA_strong_right_right_curve",
       "trackA_strong_left_left_curve", "trackA_strong_left_straight", "trackA_strong_left_right_curve",
-      "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve"
+      "trackF_center_left_curve", "trackF_center_straight", "trackF_center_right_curve",
+      // ── 신규조건 실기(2026-09-16, minum 요청) — 로봇 물리 출발위치 pos2/pos3 신규
+      // + OWLv2/Kosmos-2 단독 ablation. Python PATH_TYPES와 동일하게 유지.
+      "pos2_강좌", "pos2_약좌", "pos2_중앙", "pos2_약우", "pos2_강우",
+      "pos3_강좌", "pos3_약좌", "pos3_중앙", "pos3_약우", "pos3_강우",
+      "owl_only_강좌", "owl_only_강우",
+      "kosmos_only_강좌", "kosmos_only_강우"
     ];
 
     const PATH_TARGETS = {
@@ -8886,12 +9599,21 @@ L S R  C S L  R S L
       "trackA_strong_right_left_curve": 15, "trackA_strong_right_straight": 15, "trackA_strong_right_right_curve": 15,
       "trackA_strong_left_left_curve": 15, "trackA_strong_left_straight": 15, "trackA_strong_left_right_curve": 15,
       "trackF_center_left_curve": 15, "trackF_center_straight": 15, "trackF_center_right_curve": 15,
+      "pos2_강좌": 20, "pos2_약좌": 20, "pos2_중앙": 20, "pos2_약우": 20, "pos2_강우": 20,
+      "pos3_강좌": 20, "pos3_약좌": 20, "pos3_중앙": 20, "pos3_약우": 20, "pos3_강우": 20,
+      "owl_only_강좌": 20, "owl_only_강우": 20,
+      "kosmos_only_강좌": 20, "kosmos_only_강우": 20,
     };
 
     // 트랙A 12종 + 트랙F 3종 전체 수집 완료(2026-07-16/17, 225/225) — 미수집 조합 없음
     const TRACKA_UNCOLLECTED = new Set([]);
 
     const PATH_GROUPS = [
+      ["── 🆕 신규조건(pos2/pos3+ablation, 2026-09-16) ──", [
+        "pos2_강좌","pos2_약좌","pos2_중앙","pos2_약우","pos2_강우",
+        "pos3_강좌","pos3_약좌","pos3_중앙","pos3_약우","pos3_강우",
+        "owl_only_강좌","owl_only_강우","kosmos_only_강좌","kosmos_only_강우"
+      ]],
       ["── 오브젝트 위치별 ──────────", ["obj_left","obj_center","obj_right"]],
       ["── 경로 검증 ──────────────", ["right_right","right_left","right_straight","center_straight","center_left","center_right","left_straight","left_left","left_right"]],
       ["── 박스 거리별 ──────────────", ["dist_10cm","dist_20cm","dist_30cm"]],
@@ -8924,6 +9646,7 @@ L S R  C S L  R S L
       }
       syncVerifyPathType(type);
       if (typeof drawOverlay === "function") drawOverlay();
+      updateSelectedPathCounter();
     }
 
     // 조이스틱 경로검증 모드(X/R1 즉시기록)가 쓸 path_type을 서버에 동기화.
@@ -8940,9 +9663,10 @@ L S R  C S L  R S L
 
     // 🕹️ 조이스틱 버튼 배치 모드 전환 — 📷 데이터수집 ⇄ 🧪 경로검증
     let joystickVerifyMode = false;
-    async function toggleJoystickMode() {
-      joystickVerifyMode = !joystickVerifyMode;
-      const mode = joystickVerifyMode ? "verify" : "collect";
+    // 2026-09-16: 직접 mode를 지정(toggle 아님) — 경로검증 탭 진입 시 자동전환용.
+    async function setJoystickMode(mode) {
+      if (joystickVerifyMode === (mode === "verify")) return;  // 이미 그 모드면 조용히 무시
+      joystickVerifyMode = (mode === "verify");
       try {
         await api("/joystick/mode", {
           method: "POST",
@@ -8956,12 +9680,18 @@ L S R  C S L  R S L
         btn.style.color = joystickVerifyMode ? "var(--amber)" : "";
       });
     }
+    async function toggleJoystickMode() {
+      await setJoystickMode(joystickVerifyMode ? "collect" : "verify");
+    }
+
 
     // 검증모드 버튼 의미(2026-07-23 재설계) — 서버 btn_map name 기준
     const VERIFY_BTN_MEANING = {
       "L1": "▶ 추론 시작", "R1": "⏹ 추론 정지", "DISCARD": "✅ 성공 라벨",
       "STOP": "❌ 실패 라벨", "L2": "💾 기록 저장", "R2": "↩ 복귀",
       "START": "⚙ SYNC↔ASYNC", "Y": "🔁 모드 전환(수집⇄검증)",
+      "DISCARD-LAST": "🗑️ 직전 저장 세션 폐기",
+      "B": "🗑️ 직전 저장 세션 폐기",  // 수집모드에선 실험용 표기 토글, 검증모드에서만 이 의미
     };
 
     // ── 🎯 추론 검증 스크리닝 패널 (데이터셋 목표와 별개) ──
@@ -8984,13 +9714,22 @@ L S R  C S L  R S L
     const SCREEN_TARGET_ORDER = ["1차", "확정", "100"];
     let screenTargetMode = "100";
 
+    // pos2_*/pos3_*(신규 출발위치) 한글 방향 → 기존 5-버킷 키 매핑. 목표 방향
+    // 5종은 동일하고 출발 위치만 다르다는 사용자 확인(2026-09-16)에 따라 같은
+    // 체크포인트 100개 목표 집계에 합산. ablation(owl_only_/kosmos_only_)은
+    // 방향이 아니라 입력 모달리티 자체를 바꾸는 조건이라 여기 안 포함(의도적).
+    const _KOR_DIR_TO_POS = {"강좌": "strong_left", "약좌": "weak_left", "중앙": "center",
+                              "약우": "weak_right", "강우": "strong_right"};
     function verifyPosOf(pt) {
       // "trackA_strong_left_left_curve" → "strong_left", "trackF_center_straight" → "center"
       if (!pt) return null;
       let s = String(pt);
-      if (!s.startsWith("trackA_") && !s.startsWith("trackF_")) return null;
-      s = s.replace(/^track[AF]_/, "").replace(/_(left_curve|straight|right_curve)$/, "");
-      return s;
+      if (s.startsWith("trackA_") || s.startsWith("trackF_")) {
+        return s.replace(/^track[AF]_/, "").replace(/_(left_curve|straight|right_curve)$/, "");
+      }
+      const m = /^(?:pos2|pos3)_(강좌|약좌|중앙|약우|강우)$/.exec(s);
+      if (m) return _KOR_DIR_TO_POS[m[1]];
+      return null;
     }
 
     function toggleScreenTarget() {
@@ -9285,19 +10024,55 @@ L S R  C S L  R S L
                 const s1Tag = s1Name === "stage1_v3_5cls_owl_projs.pt" ? ` · 🧬V3-5cls`
                   : s1Name === "stage1_v2_projs.pt" ? "" : (s1Name ? ` · 🧬${s1Name}` : "");
                 const rate = b.count ? Math.round(b.success / b.count * 100) : 0;
-                return `<div onclick="applyScreenBatch('${b._idx}')"
-                    draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
-                    style="cursor:grab; padding:3px 6px; border-radius:4px; font-size:9px; display:flex; justify-content:space-between; gap:6px;"
-                    onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
-                  <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}${s1Tag}</span>
-                  <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
+                // 2026-09-17: 배치(시간 단위) 안에서도 경로/도착위치별로 몇 건인지
+                // 바로 보이게 — pos2/pos3처럼 같은 시간대·체크포인트 안에 여러
+                // 경로가 섞여 수집될 때(interleaved) 시간만으론 구분 안 되던 문제 대응.
+                // 문자열 그대로(path_type) 집계라 날짜 경계 추측 없이 항상 정확함.
+                const _bStart = new Date(b.start.replace(" ", "T"));
+                const _bEnd = new Date(b.end.replace(" ", "T"));
+                const rowsInBatch = (window._lastVfyRows || []).filter(r => {
+                  if (r.length <= 14 || r[14] !== ckpt) return false;
+                  const d = new Date(String(r[12]).replace(" ", "T"));
+                  return !isNaN(d) && d >= _bStart && d <= _bEnd;
+                });
+                const pathCounts = {};
+                rowsInBatch.forEach(r => {
+                  const pt = String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim();
+                  const d = String(r[12]);
+                  if (!pathCounts[pt]) pathCounts[pt] = {n: 0, succ: 0, start: d, end: d};
+                  pathCounts[pt].n += 1;
+                  if (r[2] === "성공") pathCounts[pt].succ += 1;
+                  if (d < pathCounts[pt].start) pathCounts[pt].start = d;
+                  if (d > pathCounts[pt].end) pathCounts[pt].end = d;
+                });
+                // 2026-09-17: 배지 하나하나도 드래그 가능 — 배치 전체가 아니라 이
+                // 경로(path_type)의 실제 최소~최대 시각만 정확히 범위로 만들어서
+                // 병합 세트에 추가/새로 만들 수 있게(_pathDragStart).
+                const pathBreakdown = Object.keys(pathCounts).sort().map(pt => {
+                  const pc = pathCounts[pt];
+                  const rangeJson = JSON.stringify({checkpoint: ckpt, start: pc.start, end: pc.end, path_type: pt}).replace(/"/g, "&quot;");
+                  return `<span draggable="true" ondragstart="_pathDragStart(event, '${rangeJson}')"
+                    title="드래그해서 저장된 병합 세트 위에 놓으면 이 경로(${pt})의 실제 시간범위(${pc.start}~${pc.end})만 그 세트에 추가(이 경로만 정확히 집계됨)"
+                    style="cursor:grab; white-space:nowrap; background:#151f32; border-radius:4px; padding:1px 4px; margin:1px;">${pt} ${pc.n}<span style="color:#3fb950;">✓${pc.succ}</span></span>`;
+                }).join("");
+                return `<div style="padding:3px 6px; border-radius:4px; font-size:9px;">
+                  <div onclick="applyScreenBatch('${b._idx}')"
+                      draggable="true" ondragstart="_batchDragStart(event, ${b._idx})" title="드래그해서 저장된 병합 세트 위에 놓으면 그 세트에 추가, 맨 아래 '+ 새 세트'에 놓으면 새로 만듦"
+                      style="cursor:grab; display:flex; justify-content:space-between; gap:6px;"
+                      onmouseover="this.parentElement.style.background='rgba(255,255,255,0.06)'" onmouseout="this.parentElement.style.background='transparent'">
+                    <span style="color:var(--text-muted);">⠿ ${s}~${e}${thTag}${s1Tag}</span>
+                    <span style="font-family:var(--font-mono); color:${rate >= 50 ? '#3fb950' : 'var(--rose)'};">${b.count}건 ✓${b.success} (${rate}%)</span>
+                  </div>
+                  ${pathBreakdown ? `<div style="margin-top:2px; display:flex; flex-wrap:wrap; color:var(--text-muted);">${pathBreakdown}</div>` : ""}
                 </div>`;
               }).join("");
-              return `<details ${isCurrent ? "open" : ""} style="background:#090d16; border:1px solid ${isCurrent ? "var(--cyan)" : "var(--border-glow)"}; border-radius:6px; padding:4px 6px;">
-                <summary style="cursor:pointer; font-size:9px; display:flex; align-items:center; gap:4px; outline:none;">
-                  <span style="color:#fff; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;" title="${ckpt}">${ckpt}</span>
-                  ${_ckptTagsHtml(ckpt)}
-                  <span style="margin-left:auto; font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap;">${totCount}건 ✓${totSucc}</span>
+              return `<details ${isCurrent ? "open" : ""} style="background:#090d16; border:1px solid ${isCurrent ? "var(--cyan)" : "var(--border-glow)"}; border-radius:6px; padding:6px 8px;">
+                <summary style="cursor:pointer; font-size:9px; outline:none; display:flex; flex-direction:column; gap:4px;">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="color:#fff; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${ckpt}">${ckpt}</span>
+                    <span style="font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap;">${totCount}건 ✓${totSucc}</span>
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:2px;">${_ckptTagsHtml(ckpt)}</div>
                 </summary>
                 <div style="margin-top:4px; display:flex; flex-direction:column; gap:1px; border-top:1px solid rgba(255,255,255,0.05); padding-top:3px;">${rows}</div>
               </details>`;
@@ -9572,13 +10347,57 @@ L S R  C S L  R S L
       ev.dataTransfer.setData("text/plain", String(idx));
     }
 
-    function _rowsInRange(rows, ckpt, startIso, endIso) {
+    // 2026-09-17: 배치 전체가 아니라 경로(path_type) 배지 하나만 드래그 —
+    // 그 경로의 실제 최소~최대 시각 범위를 담아서 병합 세트 드롭 핸들러들이
+    // 배치 인덱스 대신 이 범위를 바로 쓸 수 있게 함.
+    function _pathDragStart(ev, rangeJson) {
+      ev.dataTransfer.setData("application/x-path-range", rangeJson);
+    }
+
+    // 2026-09-17: 저장된 세트 "안"의 범위 하나를 다른 세트로 드래그 이동 —
+    // 어느 세트의 몇 번째 범위였는지(source)도 같이 실어서, 드롭 처리 쪽에서
+    // 성공적으로 옮긴 뒤 원래 위치에서 제거(진짜 "이동")할 수 있게 함.
+    function _rangeDragStart(ev, rangeJson, srcJson) {
+      ev.dataTransfer.setData("application/x-path-range", rangeJson);
+      ev.dataTransfer.setData("application/x-range-source", srcJson);
+    }
+
+    function _rangeSourceFromDrop(ev) {
+      const raw = ev.dataTransfer.getData("application/x-range-source");
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch (e) { return null; }
+    }
+
+    // 드롭 이벤트에서 {checkpoint,start,end}를 뽑아내는 공용 헬퍼 — 경로 배지
+    // 드래그(application/x-path-range)를 배치 드래그(text/plain 인덱스)보다 우선.
+    function _rangeFromDrop(ev) {
+      const pathData = ev.dataTransfer.getData("application/x-path-range");
+      if (pathData) {
+        try {
+          const p = JSON.parse(pathData);
+          return {checkpoint: p.checkpoint, start: p.start, end: p.end, path_type: p.path_type || null};
+        } catch (e) { /* 무시하고 배치 인덱스로 폴백 */ }
+      }
+      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
+      const b = (window._screenBatches || [])[idx];
+      return b ? {checkpoint: b.checkpoint, start: b.start, end: b.end} : null;
+    }
+
+    function _rowsInRange(rows, ckpt, startIso, endIso, pathType) {
       const s = new Date(startIso.replace(" ", "T"));
       const e = new Date(new Date(endIso.replace(" ", "T")).getTime() + 60000);
       return (rows || []).filter(r => {
         if (_epCheckpointOf(r) !== ckpt) return false;
         const d = new Date(String(r[12]).replace(" ", "T"));
-        return !isNaN(d) && d >= s && d <= e;
+        if (isNaN(d) || d < s || d > e) return false;
+        // 2026-09-18: path_type이 지정된 범위(경로별 드래그로 만들어짐)는 시간대
+        // 겹침만으로 부족 — 그 경로 문자열이 정확히 일치해야 셈(같은 시간대에
+        // 여러 path_type이 인터리브 수집돼도 서로 오염 안 되게).
+        if (pathType) {
+          const rpt = String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim();
+          if (rpt !== pathType) return false;
+        }
+        return true;
       });
     }
 
@@ -9632,6 +10451,21 @@ L S R  C S L  R S L
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
     }
 
+    // 2026-09-17: 이름 접두어(예: "pos2_실기")로 저장된 세트 중 이름 기준
+    // 가장 최근(날짜 접미어가 클수록 뒤) 것을 찾아 바로 적용 — pos2/pos3처럼
+    // 자주 왔다갔다 전환하는 세트를 목록에서 매번 찾아 클릭할 필요 없게.
+    function quickApplyGroupPrefix(prefix) {
+      const cache = window._manualGroupsCache || {};
+      const matches = Object.keys(cache).filter(n => n.startsWith(prefix)).sort();
+      const name = matches[matches.length - 1];
+      if (!name) {
+        const statusEl = document.getElementById("vfy-rt-status");
+        if (statusEl) statusEl.textContent = `⚠️ "${prefix}"로 시작하는 저장된 세트가 없습니다`;
+        return;
+      }
+      applyManualGroup(null, name);
+    }
+
     // 세트를 목표 진행률 쪽으로 드래그해서 반영 — 클릭과 동일한 효과를 드래그로도
     // 낼 수 있게(2026-07-31, "세트도 드래그하게 해줘도 좋음"). 배치 드래그
     // ("text/plain"에 배치 인덱스)와 겹치지 않게 별도 MIME 타입 키 사용.
@@ -9648,14 +10482,13 @@ L S R  C S L  R S L
 
     async function _mergeNewDrop(ev) {
       ev.preventDefault();
-      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
-      const b = (window._screenBatches || [])[idx];
-      if (!b) return;
+      const rg = _rangeFromDrop(ev);
+      if (!rg) return;
       const name = prompt("새 병합 세트 이름을 입력하세요 (예: weak_left_threshold0.20_통합)");
       if (!name) return;
       const res = await api("/verify/manual_group/save", {
         method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({name, ranges: [{checkpoint: b.checkpoint, start: b.start, end: b.end}]})
+        body: JSON.stringify({name, ranges: [rg]})
       });
       if (res.ok) {
         window._openManualGroups.add(name);
@@ -9668,19 +10501,28 @@ L S R  C S L  R S L
     async function _mergeAddToGroup(ev, name) {
       ev.preventDefault();
       ev.stopPropagation();
-      const idx = parseInt(ev.dataTransfer.getData("text/plain"));
-      const b = (window._screenBatches || [])[idx];
-      if (!b) return;
+      // dataTransfer는 await 이후 못 읽을 수 있어서 이벤트 핸들러 진입 즉시(동기)
+      // 필요한 값을 전부 뽑아둔다 — range 자체 + (있다면) 이동 원본 세트/인덱스.
+      const rg = _rangeFromDrop(ev);
+      const src = _rangeSourceFromDrop(ev);
+      if (!rg) return;
       const groups = (await api("/verify/manual_groups")).groups || [];
       const g = groups.find(x => x.name === name);
       if (!g) return;
-      const already = g.ranges.some(t => t.checkpoint === b.checkpoint && t.start === b.start && t.end === b.end);
-      if (!already) g.ranges.push({checkpoint: b.checkpoint, start: b.start, end: b.end});
+      const already = g.ranges.some(t => t.checkpoint === rg.checkpoint && t.start === rg.start && t.end === rg.end);
+      if (!already) g.ranges.push(rg);
       const res = await api("/verify/manual_group/save", {
         method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify({name, ranges: g.ranges})
       });
-      if (res.ok) refreshManualGroups();
+      if (res.ok) {
+        // 다른 세트의 범위를 드래그해온 "이동"이면 원래 위치에서 제거해 완성.
+        if (src && src.name !== name) {
+          await _mergeRemoveRange(src.name, src.idx);
+        } else {
+          refreshManualGroups();
+        }
+      }
     }
 
     async function refreshManualGroups() {
@@ -9697,7 +10539,7 @@ L S R  C S L  R S L
           window._manualGroupsCache[g.name] = g.ranges;
           let n = 0, succ = 0;
           _expandOpenEndedRanges(g.ranges).forEach(t => {
-            const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end);
+            const matched = _rowsInRange(rows, t.checkpoint, t.start, t.end, t.path_type);
             n += matched.length;
             succ += matched.filter(r => r[2] === "성공").length;
           });
@@ -9713,10 +10555,42 @@ L S R  C S L  R S L
               <span onclick="event.preventDefault(); event.stopPropagation(); _manualGroupDelete('${g.name}')" style="cursor:pointer; color:var(--rose);" title="병합 세트 삭제(원본 기록은 안 지워짐)">✕</span>
             </summary>
             <div style="margin-top:4px; font-size:9px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px;">
-              ${g.ranges.map((t, i) => `<div style="display:flex; justify-content:space-between; gap:6px;">
-                <span>${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")}</span>
-                <span onclick="_mergeRemoveRange('${g.name}', ${i})" style="cursor:pointer; color:var(--rose);" title="이 범위만 제거">✕</span>
-              </div>`).join("")}
+              ${g.ranges.map((t, i) => {
+                const rangeJson = JSON.stringify({checkpoint: t.checkpoint, start: t.start, end: t.end, path_type: t.path_type || null}).replace(/"/g, "&quot;");
+                const srcJson = JSON.stringify({name: g.name, idx: i}).replace(/"/g, "&quot;");
+                const pathLockTag = t.path_type ? `<span style="color:#3fb950;" title="이 범위는 '${t.path_type}' 경로만 정확히 집계됨(시간 겹침 무관)">🔒${t.path_type}</span>` : "";
+                // 2026-09-17: 범위가 "체크포인트·시간"으로만 보여서 안에 어떤 경로가
+                // 몇 건씩 있는지 안 보인다는 피드백 — 지난 스크리닝 배치 목록과
+                // 동일하게 이 범위 안 실제 에피소드를 path_type별로 쪼개 보여줌.
+                // 배지 하나하나도 드래그 가능(그 경로만의 정확한 시간범위로).
+                const rowsInRange = _rowsInRange(rows, t.checkpoint, t.start, t.end, t.path_type);
+                const pc = {};
+                rowsInRange.forEach(r => {
+                  const pt = String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim();
+                  const d = String(r[12]);
+                  if (!pc[pt]) pc[pt] = {n: 0, succ: 0, start: d, end: d};
+                  pc[pt].n += 1;
+                  if (r[2] === "성공") pc[pt].succ += 1;
+                  if (d < pc[pt].start) pc[pt].start = d;
+                  if (d > pc[pt].end) pc[pt].end = d;
+                });
+                const breakdown = Object.keys(pc).sort().map(pt => {
+                  const sub = pc[pt];
+                  const subRangeJson = JSON.stringify({checkpoint: t.checkpoint, start: sub.start, end: sub.end, path_type: pt}).replace(/"/g, "&quot;");
+                  return `<span draggable="true" ondragstart="_pathDragStart(event, '${subRangeJson}')"
+                    title="드래그해서 다른 세트에 이 경로(${pt})의 시간범위만 추가(이 경로만 정확히 집계됨)"
+                    style="cursor:grab; white-space:nowrap; background:#151f32; border-radius:4px; padding:1px 4px; margin:1px;">${pt} ${sub.n}<span style="color:#3fb950;">✓${sub.succ}</span></span>`;
+                }).join("");
+                return `<div>
+                  <div draggable="true" ondragstart="_rangeDragStart(event, '${rangeJson}', '${srcJson}')"
+                      style="cursor:grab; display:flex; justify-content:space-between; gap:6px;"
+                      title="드래그해서 다른 저장된 세트 위에 놓으면 이 범위가 그쪽으로 옮겨짐(원래 세트에서 제거)">
+                    <span>⠿ ${t.checkpoint} · ${t.start.replace("T"," ")}~${t.end.replace("T"," ")} ${pathLockTag}</span>
+                    <span onclick="_mergeRemoveRange('${g.name}', ${i})" style="cursor:pointer; color:var(--rose);" title="이 범위만 제거">✕</span>
+                  </div>
+                  ${breakdown ? `<div style="margin-top:1px; display:flex; flex-wrap:wrap;">${breakdown}</div>` : ""}
+                </div>`;
+              }).join("")}
             </div>
           </details>`;
         }).join("");
@@ -9814,9 +10688,11 @@ L S R  C S L  R S L
     }
 
     // 카테고리 배지 HTML — 진행률 요약/모델 목록에서 공용으로 씀.
+    // 2026-09-16: 8px 무테두리 텍스트라 "버튼처럼 안 보인다"는 피드백 — 테두리+
+    // 굵은 글씨+여유 패딩으로 실제 버튼/배지처럼 보이게 키움.
     function _ckptTagsHtmlFromTags(t) {
       if (!t) return "";
-      const chip = (txt, color) => txt ? `<span style="font-size:8px; padding:1px 5px; border-radius:8px; background:${color}22; color:${color}; margin-right:3px; white-space:nowrap;">${txt}</span>` : "";
+      const chip = (txt, color) => txt ? `<span style="font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:9px; background:${color}22; border:1px solid ${color}66; color:${color}; margin-right:3px; margin-bottom:2px; white-space:nowrap; display:inline-block;">${txt}</span>` : "";
       return chip(t.grounder, "#06b6d4") + chip(t.head, "#8b5cf6") + chip(t.dataset, "#f59e0b")
            + chip(t.holdaware ? "holdaware" : null, "#3fb950") + chip(t.deploy ? `DEPLOY${t.deploy}` : null, "#f43f5e")
            + chip((t.seed !== null && t.seed !== undefined) ? `seed${t.seed}` : null, "#94a3b8");
@@ -9846,7 +10722,7 @@ L S R  C S L  R S L
       const filtered = (rows || []).filter(r => {
         if (r.length < 3) return false;
         if (activeGroup) {
-          return activeGroupRanges.some(t => _rowsInRange([r], t.checkpoint, t.start, t.end).length > 0);
+          return activeGroupRanges.some(t => _rowsInRange([r], t.checkpoint, t.start, t.end, t.path_type).length > 0);
         }
         if (wantCkpt && _epCheckpointOf(r) !== wantCkpt) return false;
         if (sinceDate || untilDate) {
@@ -9907,13 +10783,14 @@ L S R  C S L  R S L
         }).join("");
       }
 
-      const done = {}, succ = {};
-      SCREEN_POSITIONS.forEach(p => { done[p.pos] = 0; succ[p.pos] = 0; });
+      const done = {}, succ = {}, sidsByPos = {};
+      SCREEN_POSITIONS.forEach(p => { done[p.pos] = 0; succ[p.pos] = 0; sidsByPos[p.pos] = []; });
       filtered.forEach(r => {
         const pos = verifyPosOf(String(r[1]).replace(/ ★/g, "").replace(/★/g, "").trim());
         if (pos && done[pos] !== undefined) {
           done[pos] += 1;
           if (r[2] === "성공") succ[pos] += 1;
+          if (r[13]) sidsByPos[pos].push(r[13]);
         }
       });
       let totDone = 0, totTgt = 0, totSucc = 0;
@@ -9923,7 +10800,7 @@ L S R  C S L  R S L
         const pct = Math.min(100, (d / t) * 100);
         const doneColor = d >= t ? "#3fb950" : "var(--text-muted)";
         return `<div style="display:grid; grid-template-columns:52px 1fr 62px; align-items:center; gap:6px; font-size:11px; padding:2px 0;">
-          <span><span style="color:${p.fg}">${p.icon}</span> ${p.label}</span>
+          <span onclick="openSessionsForPos('${p.pos}')" style="cursor:pointer; text-decoration:underline dotted; text-decoration-color:var(--text-muted);" title="클릭하면 이 방향(현재 활성 세트 기준)의 세션들만 세션 히스토리 탭에서 필터링해서 보여줌"><span style="color:${p.fg}">${p.icon}</span> ${p.label}</span>
           <div style="background:#21262d; height:6px; border-radius:3px; overflow:hidden;">
             <div style="width:${pct.toFixed(0)}%; height:100%; background:${p.fg}; border-radius:3px;"></div>
           </div>
@@ -9933,6 +10810,13 @@ L S R  C S L  R S L
       const body = document.getElementById("vfy-screen-body");
       if (body) body.innerHTML = rowsHtml +
         `<div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:6px; padding-top:4px; font-size:10px; color:var(--text-muted); text-align:right;">합계 ${totDone}/${totTgt} · 방향성공 ${totSucc}</div>`;
+
+      // 방향 이름 클릭 → 세션 히스토리 탭 필터로 사용(openSessionsForPos).
+      // activeGroup(예: pos2_실기_260917)이 걸려있으면 그 세트의 path_type 기준으로
+      // 이미 정확히 걸러진 filtered 결과에서 뽑은 sid라 pos2/pos3 섞일 걱정 없음.
+      window._screenSidsByPos = sidsByPos;
+      window._screenPosLabel = {};
+      SCREEN_POSITIONS.forEach(p => { window._screenPosLabel[p.pos] = `${p.icon} ${p.label}`; });
 
       refreshManualGroups();
     }
@@ -10088,8 +10972,12 @@ L S R  C S L  R S L
         runtimeState.cx_jump_thresh = res.cx_jump_thresh !== undefined ? parseFloat(res.cx_jump_thresh) : 0.30;
         runtimeState.multi_prompt = res.multi_prompt !== false;
         runtimeState.force_reground_on_miss = res.force_reground_on_miss === true;
+        runtimeState.stop_on_miss = res.stop_on_miss === true;
         runtimeState.stop_mode = res.stop_mode || "proximity";
         runtimeState.stop_learned_min_steps = res.stop_learned_min_steps !== undefined ? parseInt(res.stop_learned_min_steps) : 3;
+
+        const speedEl = document.getElementById("vfy-speed-scale");
+        if (speedEl) speedEl.value = res.action_speed_scale ?? 1.0;
 
         const g = res.grounder || {};
         const owlRow = document.getElementById("vfy-owl-row");
@@ -10181,6 +11069,18 @@ L S R  C S L  R S L
         }
       }
 
+      // 미검출시 정지 — has_bbox=False 프레임 실행 액션 0 강제(2026-09-17 A/B)
+      const stopMissBtn = document.getElementById("vfy-rt-stopmiss");
+      if (stopMissBtn) {
+        if (runtimeState.stop_on_miss) {
+          stopMissBtn.className = "btn btn-cyan";
+          stopMissBtn.innerHTML = "🟢 미검출시 정지<br><span style='font-size:9px;color:#000;'>has_bbox=False 액션=0 ON</span>";
+        } else {
+          stopMissBtn.className = "btn btn-outline";
+          stopMissBtn.innerHTML = "⚫ 미검출시 정지<br><span style='font-size:9px;color:var(--text-muted);'>has_bbox=False 액션=0 OFF</span>";
+        }
+      }
+
       // stop mode — proximity(안전, 3프레임 연속 임계값) vs learned(모델 예측+래치)
       const stopModeBtn = document.getElementById("vfy-rt-stopmode");
       if (stopModeBtn) {
@@ -10227,6 +11127,8 @@ L S R  C S L  R S L
         runtimeState.multi_prompt = !runtimeState.multi_prompt;
       } else if (param === 'regroundmiss') {
         runtimeState.force_reground_on_miss = !runtimeState.force_reground_on_miss;
+      } else if (param === 'stopmiss') {
+        runtimeState.stop_on_miss = !runtimeState.stop_on_miss;
       } else if (param === 'stopmode') {
         runtimeState.stop_mode = runtimeState.stop_mode === "proximity" ? "learned" : "proximity";
       } else if (param === 'stopguard') {
@@ -10250,6 +11152,7 @@ L S R  C S L  R S L
             cx_jump_thresh: runtimeState.cx_jump_thresh,
             multi_prompt: runtimeState.multi_prompt,
             force_reground_on_miss: runtimeState.force_reground_on_miss,
+            stop_on_miss: runtimeState.stop_on_miss,
             stop_mode: runtimeState.stop_mode,
             stop_learned_min_steps: runtimeState.stop_learned_min_steps
           })
@@ -10300,6 +11203,36 @@ L S R  C S L  R S L
       }
     }
 
+    async function applyVerifySpeedScale() {
+      const statusEl = document.getElementById("vfy-rt-status");
+      const v = parseFloat(document.getElementById("vfy-speed-scale").value);
+      if (isNaN(v) || v <= 0) { statusEl.textContent = "⚠️ 속도 배율 값이 올바르지 않음"; return; }
+      statusEl.textContent = "액션 속도 배율 적용 중...";
+      try {
+        const res = await api("/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action_speed_scale: v })
+        });
+        if (res.ok) {
+          const inner = (res.applied && res.applied.applied) || {};
+          const parts = Object.entries(inner).map(([k, v2]) => `${k}=${v2}`);
+          statusEl.textContent = parts.length > 0
+            ? "✅ 서버 적용: " + parts.join(", ")
+            : "⚠️ 서버가 아무것도 적용 안 함 (applied 비어있음)";
+        } else {
+          statusEl.textContent = "⚠️ 적용 실패: " + res.error;
+        }
+      } catch(e) {
+        statusEl.textContent = "⚠️ 서버 오류: " + e;
+      }
+    }
+
+    // 신규조건(2026-09-16) 접두어 판별 — Python _NEWCOND_PREFIXES와 동일하게 유지.
+    function isNewcondType(pt) {
+      return pt.startsWith("pos2_") || pt.startsWith("pos3_") || pt.startsWith("owl_only_") || pt.startsWith("kosmos_only_");
+    }
+
     function updatePathSummary(rows) {
       const done_total = {};
       const done_succ = {};
@@ -10321,11 +11254,11 @@ L S R  C S L  R S L
           if (done_succ[pt] !== undefined) {
             done_succ[pt] += 1;
           }
-          if (!pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
+          if (!pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_") && !isNewcondType(pt)) {
             nav_succ += 1;
           }
         }
-        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_")) {
+        if (PATH_TARGETS[pt] !== undefined && !pt.startsWith("obj_") && !pt.startsWith("dist_") && !pt.startsWith("trackA_") && !pt.startsWith("trackF_") && !isNewcondType(pt)) {
           nav_done += 1;
         }
       });
@@ -10344,6 +11277,11 @@ L S R  C S L  R S L
       const trackF_total = trackFKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
       const trackF_done = trackFKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
       const trackF_succ = trackFKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
+      // 신규조건(2026-09-16, pos2/pos3+ablation)도 트랙A/F와 같은 방식으로 별개 집계
+      const newcondKeys = PATH_TYPES.filter(k => isNewcondType(k));
+      const newcond_total = newcondKeys.reduce((s, k) => s + (PATH_TARGETS[k] || 0), 0);
+      const newcond_done = newcondKeys.reduce((s, k) => s + (done_total[k] || 0), 0);
+      const newcond_succ = newcondKeys.reduce((s, k) => s + (done_succ[k] || 0), 0);
 
       const total_done = rows.length;
       const total_target = 210; // 90 nav + 90 obj + 30 dist = 210 (트랙A/F 별개 집계, 미포함)
@@ -10354,7 +11292,8 @@ L S R  C S L  R S L
       const pct_dist  = Math.min(100.0, Math.max(0.0, (dist_done / 30) * 100));
       const pct_trackA = Math.min(100.0, Math.max(0.0, (trackA_done / trackA_total) * 100));
       const pct_trackF = Math.min(100.0, Math.max(0.0, (trackF_done / trackF_total) * 100));
-      
+      const pct_newcond = Math.min(100.0, Math.max(0.0, (newcond_done / newcond_total) * 100));
+
       const progressHtml = `
       <div style="width: 100%; box-sizing: border-box; padding: 2px 0;">
         <div style="margin-bottom: 10px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px;">
@@ -10367,53 +11306,63 @@ L S R  C S L  R S L
           </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
-          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
-              <span style="color: #58a6ff; font-weight: 600;">🛣️ 경로 검증</span>
-              <span style="color: #8b949e;">${nav_done}/${nav_total} (${nav_succ}✓)</span>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+          <div style="background: #161b22; border: 1px solid #f472b6; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #f472b6; font-weight: 700;">🆕 신규조건</span>
+              <span style="color: #c9d1d9;">${newcond_done}/${newcond_total} (${newcond_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
+              <div style="width: ${pct_newcond.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #db2777 0%, #f472b6 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #58a6ff; font-weight: 700;">🛣️ 경로 검증</span>
+              <span style="color: #c9d1d9;">${nav_done}/${nav_total} (${nav_succ}✓)</span>
+            </div>
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_nav.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
-              <span style="color: #3fb950; font-weight: 600;">🎯 위치별</span>
-              <span style="color: #8b949e;">${obj_done}/90 (${obj_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #3fb950; font-weight: 700;">🎯 위치별</span>
+              <span style="color: #c9d1d9;">${obj_done}/90 (${obj_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_obj.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
-              <span style="color: #a371f7; font-weight: 600;">📦 거리별</span>
-              <span style="color: #8b949e;">${dist_done}/30 (${dist_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #a371f7; font-weight: 700;">📦 거리별</span>
+              <span style="color: #c9d1d9;">${dist_done}/30 (${dist_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_dist.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #8957e5 0%, #a371f7 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid var(--amber); border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
-              <span style="color: var(--amber); font-weight: 600;">🎯 트랙A(V6)</span>
-              <span style="color: #8b949e;">${trackA_done}/${trackA_total} (${trackA_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid var(--amber); border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: var(--amber); font-weight: 700;">🎯 트랙A(V6)</span>
+              <span style="color: #c9d1d9;">${trackA_done}/${trackA_total} (${trackA_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_trackA.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #b45309 0%, #f59e0b 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
-          <div style="background: #161b22; border: 1px solid #3fb950; border-radius: 6px; padding: 6px;">
-            <div style="font-size: 9px; margin-bottom: 2px; display: flex; justify-content: space-between; flex-wrap: wrap;">
-              <span style="color: #3fb950; font-weight: 600;">● 트랙F(V6)</span>
-              <span style="color: #8b949e;">${trackF_done}/${trackF_total} (${trackF_succ}✓)</span>
+          <div style="background: #161b22; border: 1px solid #3fb950; border-radius: 6px; padding: 8px; box-sizing: border-box; min-height: 56px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+            <div style="font-size: 10.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; word-break: keep-all;">
+              <span style="color: #3fb950; font-weight: 700;">● 트랙F(V6)</span>
+              <span style="color: #c9d1d9;">${trackF_done}/${trackF_total} (${trackF_succ}✓)</span>
             </div>
-            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; background-color: #21262d; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px;">
               <div style="width: ${pct_trackF.toFixed(1)}%; height: 100%; background: linear-gradient(90deg, #238636 0%, #3fb950 100%); border-radius: 3px; transition: width 0.3s ease;"></div>
             </div>
           </div>
@@ -10421,12 +11370,6 @@ L S R  C S L  R S L
       </div>
       `;
       document.getElementById("vfy-progress-wrapper").innerHTML = progressHtml;
-
-      document.getElementById("vfy-progress-txt").innerHTML = `
-        경로검증 ${nav_done}/${nav_total} ep 성공 ${nav_succ}/20 (목표)<br>
-        위치별 ${obj_done}/90 (${obj_succ} 성공) | 거리별 ${dist_done}/30 (${dist_succ} 성공) |
-        트랙A ${trackA_done}/${trackA_total} (${trackA_succ} 성공) | 트랙F ${trackF_done}/${trackF_total} (${trackF_succ} 성공)
-      `;
 
       renderScreenPanel(rows);
 
@@ -10494,6 +11437,90 @@ L S R  C S L  R S L
     }
 
     let _sessionRawList = [];
+    let _sessionPosFilterSids = null;  // 🧪경로검증→방향클릭(openSessionsForPos)으로 세팅되는 세션ID 필터
+
+    // 2026-09-18: Tab4 스크리닝 패널의 방향 이름(예: ▶▶강우)을 누르면 그 방향에
+    // 해당하는 세션들만(활성 병합세트가 걸려있으면 그 세트의 path_type 기준으로
+    // 이미 정확히 걸러진 것) 세션 히스토리 탭으로 넘어가서 필터링해서 보여줌 —
+    // "선택해서 삭제"는 기존 프레임 인스펙터의 삭제 버튼(/sessions/delete)을 그대로 씀.
+    function openSessionsForPos(pos) {
+      const sids = (window._screenSidsByPos || {})[pos] || [];
+      const label = (window._screenPosLabel || {})[pos] || pos;
+      const groupName = window._activeManualGroup ? window._activeManualGroup.name : null;
+      _sessionPosFilterSids = new Set(sids);
+      const banner = document.getElementById("session-pos-filter-banner");
+      const lbl = document.getElementById("session-pos-filter-label");
+      if (banner) banner.style.display = "flex";
+      if (lbl) lbl.textContent = `🎯 ${label}${groupName ? " · " + groupName : ""} — ${sids.length}개 세션만 표시 중`;
+      const navHistory = Array.from(document.querySelectorAll(".nav-item")).find(
+        el => (el.getAttribute("onclick") || "").includes("'history'"));
+      switchTab(navHistory, "history");
+    }
+
+    function clearSessionPosFilter() {
+      _sessionPosFilterSids = null;
+      const banner = document.getElementById("session-pos-filter-banner");
+      if (banner) banner.style.display = "none";
+      renderSessionList();
+    }
+
+    // 2026-09-18: 경로 필터 버튼(그룹: pos2/pos3/ablation/legacy, 방향: 강좌~강우) —
+    // 각 그룹 내부는 OR, 두 행(그룹×방향) 사이는 AND로 겹쳐짐.
+    const SESSION_GROUP_BUTTONS = [
+      {key: "pos2", label: "pos2"}, {key: "pos3", label: "pos3"},
+      {key: "ablation", label: "ablation"}, {key: "legacy", label: "legacy"},
+    ];
+    let _sessionGroupFilters = new Set();
+    let _sessionDirFilters = new Set();
+
+    function _sessionGroupOf(pt) {
+      if (!pt) return "legacy";
+      if (pt.startsWith("pos2_")) return "pos2";
+      if (pt.startsWith("pos3_")) return "pos3";
+      if (pt.startsWith("owl_only_") || pt.startsWith("kosmos_only_")) return "ablation";
+      return "legacy";
+    }
+    function _sessionDirOf(pt) {
+      if (!pt) return null;
+      const m = /^(?:pos2|pos3|owl_only|kosmos_only)_(강좌|약좌|중앙|약우|강우)$/.exec(pt);
+      if (m) return _KOR_DIR_TO_POS[m[1]];
+      return verifyPosOf(pt);  // trackA_/trackF_ 등 legacy 경로 처리
+    }
+
+    function renderSessionFilterButtons() {
+      const groupRow = document.getElementById("session-group-filter-row");
+      const dirRow = document.getElementById("session-dir-filter-row");
+      if (!groupRow || !dirRow) return;
+      groupRow.innerHTML = SESSION_GROUP_BUTTONS.map(g => {
+        const active = _sessionGroupFilters.has(g.key);
+        return `<button class="btn ${active ? 'btn-cyan' : 'btn-outline'}" style="font-size:10px; padding:3px 8px;"
+          onclick="toggleSessionGroupFilter('${g.key}')">${g.label}</button>`;
+      }).join("");
+      dirRow.innerHTML = SCREEN_POSITIONS.map(p => {
+        const active = _sessionDirFilters.has(p.pos);
+        return `<button class="btn ${active ? 'btn-cyan' : 'btn-outline'}" style="font-size:10px; padding:3px 8px;"
+          onclick="toggleSessionDirFilter('${p.pos}')">${p.icon}${p.label}</button>`;
+      }).join("");
+    }
+
+    function toggleSessionGroupFilter(key) {
+      if (_sessionGroupFilters.has(key)) _sessionGroupFilters.delete(key);
+      else _sessionGroupFilters.add(key);
+      renderSessionFilterButtons();
+      renderSessionList();
+    }
+    function toggleSessionDirFilter(pos) {
+      if (_sessionDirFilters.has(pos)) _sessionDirFilters.delete(pos);
+      else _sessionDirFilters.add(pos);
+      renderSessionFilterButtons();
+      renderSessionList();
+    }
+    function clearSessionPathFilters() {
+      _sessionGroupFilters.clear();
+      _sessionDirFilters.clear();
+      renderSessionFilterButtons();
+      renderSessionList();
+    }
 
     async function loadSessionList() {
       // 병합 세트 태그를 정확히 매칭하려면 window._checkpointIndex(session→체크포인트),
@@ -10503,6 +11530,7 @@ L S R  C S L  R S L
 
       const res = await api("/sessions/list");
       _sessionRawList = (res && res.sessions) ? res.sessions : [];
+      renderSessionFilterButtons();
       renderSessionList();
     }
 
@@ -10513,6 +11541,9 @@ L S R  C S L  R S L
       const sortMode = document.getElementById("session-sort-select")?.value || "time_desc";
 
       let sessions = _sessionRawList.filter(s => {
+        if (_sessionPosFilterSids && !_sessionPosFilterSids.has(s.sid)) return false;
+        if (_sessionGroupFilters.size > 0 && !_sessionGroupFilters.has(_sessionGroupOf(s.path_type))) return false;
+        if (_sessionDirFilters.size > 0 && !_sessionDirFilters.has(_sessionDirOf(s.path_type))) return false;
         if (search) {
           const matchSid = s.sid.toLowerCase().includes(search);
           const matchInstr = (s.instruction || "").toLowerCase().includes(search);
@@ -10551,8 +11582,15 @@ L S R  C S L  R S L
         const activeCls = s.sid === _activeSid ? "active" : "";
         const groupTags = _manualGroupTagsForSession(s.sid);
         const groupTagsHtml = groupTags.map(n =>
-          `<span class="sc-badge" style="background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.3);" title="병합 세트: ${n}">🔗 ${n}</span>`
+          `<span class="sc-badge group-tag" title="병합 세트: ${n}">🔗 ${n}</span>`
         ).join("");
+        // 2026-09-18: episode_log에 매칭된 실제 스크리닝 성공/실패 — session_id exact
+        // 매칭(서버 /sessions/list의 success_by_sid)이라 시간겹침 추측 없이 정확함.
+        const resultHtml = s.success === "성공"
+          ? `<span class="sc-badge" style="background:rgba(16,185,129,0.18); color:#3fb950;">✅ 성공</span>`
+          : s.success === "실패"
+          ? `<span class="sc-badge" style="background:rgba(244,63,94,0.18); color:var(--rose);">❌ 실패</span>`
+          : "";
         html += `
           <div class="session-card ${activeCls}" data-sid="${s.sid}" onclick="loadSessionDetail('${s.sid}')">
             <div class="sc-top">
@@ -10561,6 +11599,7 @@ L S R  C S L  R S L
             </div>
             <div class="sc-entity" title="${s.instruction}">${s.instruction}</div>
             <div class="sc-bottom">
+              ${resultHtml}
               <span class="sc-badge">Steps ${s.steps}</span>
               <span class="sc-badge ${labeledCls}">${s.labeled_count} Labeled</span>
               ${groupTagsHtml}
@@ -10579,6 +11618,9 @@ L S R  C S L  R S L
       document.getElementById("inspect-sid-lbl").textContent = "[" + sid + "]";
       document.getElementById("inspector-placeholder").style.display = "none";
       { const ib = document.getElementById("inspector-body"); ib.style.display = "grid"; ib.style.gridTemplateColumns = "1fr"; }
+      // 2026-09-18: 1:3:1 분리 후 우측 "🎯 세션 지표" 패널도 같이 토글해야 함.
+      document.getElementById("inspector-side-placeholder").style.display = "none";
+      document.getElementById("inspector-side").style.display = "block";
       loadInspectTrajectory(sid);   // T1-3 — 비동기, 실패해도 인스펙터 나머지엔 영향 없음
       
       const res = await api("/sessions/load?sid=" + sid);
@@ -10724,9 +11766,9 @@ L S R  C S L  R S L
       ];
 
       const vfyTiles = VFY_KEYS.filter(([k]) => attrs && attrs[k] !== undefined && attrs[k] !== "")
-        .map(([k, label]) => `<div class="mini-tile mt-accent"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${attrs[k]}</span></div>`);
+        .map(([k, label]) => `<div class="mini-tile mt-accent" title="${attrs[k]}"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${attrs[k]}</span></div>`);
       const cfgTiles = CFG_KEYS.filter(([k]) => cfg[k] !== undefined)
-        .map(([k, label]) => `<div class="mini-tile"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${cfg[k]}</span></div>`);
+        .map(([k, label]) => `<div class="mini-tile" title="${cfg[k]}"><span class="mt-label">${label}</span><span class="mt-value" style="font-size:12px;">${cfg[k]}</span></div>`);
 
       if (vfyTiles.length === 0 && cfgTiles.length === 0) {
         box.style.display = "none";
@@ -10912,12 +11954,19 @@ L S R  C S L  R S L
         document.getElementById("btn-inspect-play").textContent = "▶ PLAY";
       }
 
-      const res = await api("/sessions/delete?sid=" + inspectSession.sid, { method: "POST" });
+      const sidBeingDeleted = inspectSession.sid;
+      const res = await api("/sessions/delete?sid=" + sidBeingDeleted, { method: "POST" });
+      const statusEl = document.getElementById("session-delete-status");
       if (res.ok) {
-        alert(res.message);
+        if (statusEl) {
+          statusEl.textContent = `🗑️ 삭제됨 (${sidBeingDeleted}): ${res.message}`;
+          statusEl.style.color = "var(--emerald)";
+        }
         inspectSession = null;
         document.getElementById("inspector-placeholder").style.display = "block";
         document.getElementById("inspector-body").style.display = "none";
+        document.getElementById("inspector-side-placeholder").style.display = "block";
+        document.getElementById("inspector-side").style.display = "none";
         loadSessionList();
         // 스크리닝 집계(합계/체크포인트별 진행률/배치 그룹)에도 즉시 반영 —
         // 예전엔 episode_log.csv 행이 삭제 안 돼서 스크리닝 쪽에 그대로 남아있었음(2026-07-31).
@@ -10926,7 +11975,10 @@ L S R  C S L  R S L
           refreshCheckpointOptions();
         }
       } else {
-        alert("삭제 실패: " + res.error);
+        if (statusEl) {
+          statusEl.textContent = `⚠️ 삭제 실패 (${sidBeingDeleted}): ${res.error}`;
+          statusEl.style.color = "var(--rose)";
+        }
       }
     }
 
@@ -11054,8 +12106,42 @@ L S R  C S L  R S L
     }
 
     // ── 에피소드 저장 / 실행 취소 / 누적 기록 로드 ──────────────────────────
+    // 2026-09-16: 사이드바 접기/펼치기 — localStorage로 상태 유지.
+    function toggleSidebar() {
+      const aside = document.getElementById("app-sidebar");
+      if (!aside) return;
+      aside.classList.toggle("sidebar-collapsed");
+      try {
+        localStorage.setItem("vla_sidebar_collapsed", aside.classList.contains("sidebar-collapsed") ? "1" : "0");
+      } catch (e) {}
+    }
+    (function restoreSidebarState() {
+      try {
+        if (localStorage.getItem("vla_sidebar_collapsed") === "1") {
+          document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("app-sidebar")?.classList.add("sidebar-collapsed");
+          });
+        }
+      } catch (e) {}
+    })();
+
     let _epEditingRow = null;
     let _epByRow = {};
+    let _lastEpisodesRows = [];  // 2026-09-16: 선택값 유지+연속저장 카운터용 캐시
+
+    // 2026-09-16: 현재 선택된 path_type이 지금까지 몇 건 저장됐는지(목표 대비) 표시.
+    function updateSelectedPathCounter() {
+      const el = document.getElementById("ep-path-counter");
+      if (!el) return;
+      const pt = document.getElementById("ep-path-type")?.value;
+      if (!pt) { el.textContent = ""; return; }
+      const clean = s => String(s).replace(/ ★/g, "").replace(/★/g, "").trim();
+      const done = _lastEpisodesRows.filter(r => r.length >= 2 && clean(r[1]) === pt).length;
+      const target = PATH_TARGETS[pt];
+      el.textContent = target !== undefined
+        ? `📍 현재 선택: ${pt} · ${done}/${target} 저장됨`
+        : `📍 현재 선택: ${pt} · ${done}건 저장됨`;
+    }
 
     function _epEditLoadByRow(rowKey) {
       const ep = _epByRow[rowKey];
@@ -11156,9 +12242,11 @@ L S R  C S L  R S L
         if (res.ok) {
           // 경로 집계 패널(진행바 및 요약 표)을 갱신합니다.
           if (_src !== "experimental") updatePathSummary(res.episodes || []);
+          _lastEpisodesRows = res.episodes || [];
+          updateSelectedPathCounter();
           const tbody = document.getElementById("episodes-table-body");
           if (!tbody) return;
-          
+
           let episodes = res.episodes || [];
           
           // 필터 선택 값에 따라 에피소드 성공/실패 여부를 걸러냅니다.
@@ -11585,6 +12673,7 @@ L S R  C S L  R S L
     let _dsSelected = new Set();     // 비교 모드에서 체크된 name들
     let _dsCxPosFilter = new Set();  // 클릭형 칩 필터 (다중 선택, OR)
     let _dsSchemaFilter = "";        // "" | "legacy" | "new" — 버튼 단일선택
+    let _dsDatasetFilter = "";       // "" | "v5" | "egvla2" — 버튼 단일선택 (세대 구분, schema와 별개 축)
     let _dsScenarioFilter = "";      // "" 또는 scenario 키 — 버튼 단일선택
     let _dsCompareMode = false;
     let _dsDetail = null;            // 현재 단일 상세로 열린 dataset_load() 응답
@@ -11620,6 +12709,16 @@ L S R  C S L  R S L
         chips.push(chip(`🎯 ${_dsScenarioLabels[it.scenario] || it.scenario}`, "rgba(16,185,129,0.15)", "var(--emerald)"));
       }
       chips.push(chip(DS_SCHEMA_VERSION[it.schema] || it.schema, "rgba(148,163,184,0.15)", "var(--text-muted)"));
+      if (it.dataset === "egvla2") {
+        chips.push(chip("🎚️ EGVLA2(연속)", "rgba(245,158,11,0.15)", "var(--amber)"));
+        if (it.cont_uniq === 0) {
+          chips.push(chip("⚠️ 전부 STOP", "rgba(217,83,79,0.2)", "#ff8080"));
+        } else if (it.cont_uniq === 1) {
+          chips.push(chip("⚠️ 고정크기(이산처럼)", "rgba(217,83,79,0.2)", "#ff8080"));
+        } else if (it.cont_uniq > 1) {
+          chips.push(chip(`✅ ${it.cont_uniq}종 크기`, "rgba(16,185,129,0.15)", "var(--emerald)"));
+        }
+      }
       return chips.join("");
     }
 
@@ -11657,12 +12756,193 @@ L S R  C S L  R S L
       await loadDatasetList();
     }
 
+    let _dsSets = {};  // {set_name: [episode_name, ...]} — 서버 /dataset/sets 미러
+
+    async function loadDatasetSets() {
+      const res = await api("/dataset/sets");
+      if (!res.ok) return;
+      _dsSets = res.sets || {};
+      const sel = document.getElementById("ds-set-select");
+      if (sel) {
+        const cur = sel.value;
+        sel.innerHTML = `<option value="">+ 새 세트...</option>` +
+          Object.keys(_dsSets).map(name => `<option value="${name}">${name} (${_dsSets[name].length})</option>`).join("");
+        sel.value = Object.prototype.hasOwnProperty.call(_dsSets, cur) ? cur : "";
+      }
+      renderDatasetSetsPanel();
+    }
+
+    function renderDatasetSetsPanel() {
+      const panel = document.getElementById("ds-sets-panel");
+      if (!panel) return;
+      const names = Object.keys(_dsSets);
+      if (names.length === 0) {
+        panel.innerHTML = `<div style="font-size:10px; color:var(--text-muted);">아직 없음 — 비교모드 켜고 항목 선택 후 "세트에 추가"</div>`;
+        return;
+      }
+      panel.innerHTML = names.map(setName => {
+        const members = _dsSets[setName];
+        // 경로타입/목표지점 세부내역 — 세트 안 파일들의 cx_position::cx_path 집계
+        const breakdown = {};
+        members.forEach(n => {
+          const it = _dsItems.find(x => x.name === n);
+          if (!it) return;
+          const key = it.cx_position ? `${it.cx_position}::${it.cx_path || "?"}` : (it.scenario || "미지정");
+          breakdown[key] = (breakdown[key] || 0) + 1;
+        });
+        const chips = Object.entries(breakdown).map(([k, v]) =>
+          `<span style="font-size:9px; padding:1px 6px; border-radius:8px; background:rgba(148,163,184,0.15); color:var(--text-muted);">${k} ${v}</span>`
+        ).join(" ");
+        return `
+          <details style="border:1px solid var(--border-glow); border-radius:6px; padding:4px 8px;">
+            <summary style="cursor:pointer; font-size:12px; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+              <span>📦 ${setName} (${members.length})</span>
+              <span onclick="event.preventDefault(); _dsDeleteSet('${setName}')" style="color:#ff8080; font-weight:400; cursor:pointer;" title="세트 삭제">삭제</span>
+            </summary>
+            <div style="margin:6px 0; display:flex; flex-wrap:wrap; gap:4px;">${chips || '<span style="font-size:10px; color:var(--text-muted);">세부내역 없음</span>'}</div>
+            <div style="display:flex; flex-direction:column; gap:2px; max-height:140px; overflow-y:auto;">
+              ${members.map(n => `
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; padding:2px 4px;">
+                  <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${n}">${n}</span>
+                  <span onclick="_dsRemoveFromSet('${setName}','${n}')" style="color:#ff8080; cursor:pointer; flex-shrink:0; margin-left:6px;">✕</span>
+                </div>`).join("")}
+            </div>
+          </details>`;
+      }).join("");
+    }
+
+    async function _dsAssignSelectedToSet() {
+      if (_dsSelected.size === 0) { alert("먼저 비교 모드에서 항목을 선택하세요."); return; }
+      const sel = document.getElementById("ds-set-select");
+      let setName = sel.value;
+      if (!setName) {
+        setName = prompt("새 세트 이름:");
+        if (!setName || !setName.trim()) return;
+      }
+      const res = await api("/dataset/sets/add", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ set_name: setName, names: [..._dsSelected] })
+      });
+      if (!res.ok) { alert("추가 실패: " + res.error); return; }
+      await loadDatasetSets();
+    }
+
+    async function _dsRemoveFromSet(setName, name) {
+      const res = await api("/dataset/sets/remove", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ set_name: setName, names: [name] })
+      });
+      if (!res.ok) { alert("제거 실패: " + res.error); return; }
+      await loadDatasetSets();
+    }
+
+    async function _dsDeleteSet(setName) {
+      if (!confirm(`세트 "${setName}"를 삭제하시겠습니까? (안의 파일은 삭제되지 않음)`)) return;
+      const res = await api("/dataset/sets/delete", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ set_name: setName })
+      });
+      if (!res.ok) { alert("삭제 실패: " + res.error); return; }
+      await loadDatasetSets();
+    }
+
+    let _dsCxPosDefs = {}, _dsCxPathDefs = {};  // /collect/state의 cx_positions/cx_paths 미러 — 재태깅 드롭다운용
+
+    function _dsPopulateRelabelSelects() {
+      const posSel = document.getElementById("ds-relabel-cxpos");
+      const pathSel = document.getElementById("ds-relabel-cxpath");
+      if (posSel && posSel.options.length <= 1) {
+        Object.entries(_dsCxPosDefs).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id; opt.textContent = info.label;
+          posSel.appendChild(opt);
+        });
+      }
+      if (pathSel && pathSel.options.length <= 1) {
+        Object.entries(_dsCxPathDefs).forEach(([id, info]) => {
+          const opt = document.createElement("option");
+          opt.value = id; opt.textContent = info.label;
+          pathSel.appendChild(opt);
+        });
+      }
+    }
+
+    async function _dsApplyRelabel() {
+      if (!_dsDetail) return;
+      const cxPos = document.getElementById("ds-relabel-cxpos").value;
+      const cxPath = document.getElementById("ds-relabel-cxpath").value;
+      const res = await api("/dataset/relabel", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: _dsDetail.meta.name, cx_position: cxPos, cx_path: cxPath })
+      });
+      if (!res.ok) { alert("수정 실패: " + res.error); return; }
+      await loadDatasetList();
+      await loadDatasetDetail(res.name);
+    }
+
+    // EGVLA2(2026-10-13) — v5(완료, 고정) vs EGVLA2(진행중, 300/500/1000 단계목표) 통계.
+    // 타깃 숫자는 서버 COLLECT_CX_POSITIONS 등을 그대로 쓰는 /collect/state에서 가져옴 —
+    // 숫자를 프론트에 중복 하드코딩하지 않기 위함.
+    async function renderDatasetStatsPanel() {
+      const panel = document.getElementById("ds-stats-panel");
+      if (!panel) return;
+      const state = await api("/collect/state");
+      if (state && state.ok !== false) {
+        _dsCxPosDefs = state.cx_positions || {};
+        _dsCxPathDefs = state.cx_paths || {};
+        _dsPopulateRelabelSelects();
+      }
+      const v5Items = _dsItems.filter(it => it.dataset === "v5");
+      const egItems = _dsItems.filter(it => it.dataset === "egvla2");
+
+      const v5Html = `
+        <div>
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">V6 (이산, 완료 — 더 안 늘어남)</div>
+          <div style="font-size:20px; font-weight:700;">${v5Items.length}<span style="font-size:11px; color:var(--text-muted);">건</span></div>
+        </div>`;
+
+      const MILESTONES = [300, 500, 1000];
+      const egCount = egItems.length;
+      const milestoneBars = MILESTONES.map(m => {
+        const pct = Math.min(100, Math.round(egCount / m * 100));
+        return `<div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
+          <span style="width:46px; font-size:10px; color:var(--text-muted);">${m}건</span>
+          <div style="flex:1; height:8px; background:#090d16; border:1px solid var(--border-glow); border-radius:3px; overflow:hidden;">
+            <div style="width:${pct}%; height:100%; background:${pct >= 100 ? 'var(--emerald)' : 'var(--amber)'};"></div>
+          </div>
+          <span style="width:36px; text-align:right; font-size:10px;">${pct}%</span>
+        </div>`;
+      }).join("");
+
+      let posBreakdown = "";
+      if (state && state.ok !== false && state.cx_positions) {
+        const posStats = {};
+        egItems.forEach(it => { if (it.cx_position) posStats[it.cx_position] = (posStats[it.cx_position] || 0) + 1; });
+        posBreakdown = Object.entries(state.cx_positions).map(([id, info]) => {
+          const done = posStats[id] || 0;
+          return `<span style="font-size:9px; padding:1px 6px; border-radius:8px; background:rgba(245,158,11,0.1); color:var(--amber); margin-right:3px;">${info.label} ${done}/${info.target}</span>`;
+        }).join("");
+      }
+
+      const egHtml = `
+        <div>
+          <div style="font-size:11px; font-weight:700; color:var(--amber); margin-bottom:6px;">🎚️ EGVLA2 (연속, 진행중)</div>
+          <div style="font-size:20px; font-weight:700; margin-bottom:6px;">${egCount}<span style="font-size:11px; color:var(--text-muted);">건</span></div>
+          ${milestoneBars}
+          <div style="margin-top:6px;">${posBreakdown || '<span style="font-size:10px; color:var(--text-muted);">아직 없음</span>'}</div>
+        </div>`;
+
+      panel.innerHTML = v5Html + egHtml;
+    }
+
     async function loadDatasetList() {
       const res = await api("/dataset/list");
       if (!res.ok) return;
       _dsItems = res.items;
       _dsScenarioLabels = res.scenario_labels || {};
       _dsCxPosLabels = res.cx_position_labels || {};
+      await loadDatasetSets();
+      await renderDatasetStatsPanel();
 
       const scWrap = document.getElementById("ds-filter-scenario");
       const scOptions = [["", "전체"]].concat(res.scenarios.map(s => [s, _dsScenarioLabels[s] || s]));
@@ -11722,11 +13002,26 @@ L S R  C S L  R S L
       renderDatasetList();
     }
 
+    function _dsSetDatasetFilter(ds) {
+      _dsDatasetFilter = ds;
+      document.querySelectorAll(".ds-dataset-btn").forEach(b => {
+        const active = b.dataset.ds === ds;
+        b.classList.toggle("active", active);
+        const isEgvla2 = b.dataset.ds === "egvla2";
+        b.style.background = active ? (isEgvla2 ? "rgba(245,158,11,0.2)" : "rgba(56,189,248,0.2)") : "";
+        b.style.borderColor = active ? (isEgvla2 ? "var(--amber)" : "var(--cyan)") : "";
+        b.style.color = active ? (isEgvla2 ? "var(--amber)" : "var(--cyan)") : (isEgvla2 ? "var(--amber)" : "");
+      });
+      renderDatasetList();
+    }
+
     function _dsToggleCompareMode() {
       _dsCompareMode = !_dsCompareMode;
       const btn = document.getElementById("ds-compare-toggle-btn");
       btn.textContent = _dsCompareMode ? "✅ 다중 선택(비교 모드) 끄기" : "☑️ 다중 선택(비교 모드) 켜기 — 최대 6개";
       btn.classList.toggle("btn-cyan", _dsCompareMode);
+      const assignRow = document.getElementById("ds-set-assign-row");
+      if (assignRow) assignRow.style.display = _dsCompareMode ? "flex" : "none";
       if (!_dsCompareMode) {
         _dsSelected.clear();
         setDatasetCompareMode(false);
@@ -11746,6 +13041,7 @@ L S R  C S L  R S L
         if (scenarioFilter && it.scenario !== scenarioFilter) return false;
         if (_dsCxPosFilter.size > 0 && !_dsCxPosFilter.has(it.cx_position)) return false;
         if (_dsSchemaFilter && it.schema !== _dsSchemaFilter) return false;
+        if (_dsDatasetFilter && it.dataset !== _dsDatasetFilter) return false;
         return true;
       });
 
@@ -11833,7 +13129,7 @@ L S R  C S L  R S L
       document.getElementById("ds-placeholder").style.display = on ? "none" : "block";
       document.getElementById("ds-compare-body").style.display = on ? "flex" : "none";
       document.getElementById("ds-inspector-body").style.display = "none";
-      if (_dsPlayTimer) { clearInterval(_dsPlayTimer); _dsPlayTimer = null; }
+      if (_dsPlayTimer) { _dsPlayTimer = null; }  // 2026-10-13: 이제 플래그라 clearInterval 불필요
     }
 
     function renderDatasetCompare() {
@@ -11875,7 +13171,7 @@ L S R  C S L  R S L
       document.getElementById("ds-placeholder").style.display = "none";
       document.getElementById("ds-compare-body").style.display = "none";
       { const db = document.getElementById("ds-inspector-body"); db.style.display = "grid"; db.style.gridTemplateColumns = "1fr"; }
-      if (_dsPlayTimer) { clearInterval(_dsPlayTimer); _dsPlayTimer = null; }
+      if (_dsPlayTimer) { _dsPlayTimer = null; }  // 2026-10-13: 이제 플래그라 clearInterval 불필요
 
       const res = await api("/dataset/load?name=" + encodeURIComponent(name));
       if (!res.ok) {
@@ -11902,7 +13198,15 @@ L S R  C S L  R S L
       document.getElementById("ds-sum-scenario").textContent = m.scenario ? (_dsScenarioLabels[m.scenario] || m.scenario) : "미지정";
       document.getElementById("ds-sum-cxpos").textContent = m.cx_position
         ? `${_dsCxPosLabels[m.cx_position] || m.cx_position}${m.cx_path ? " + " + m.cx_path : ""}` : "미지정";
-      document.getElementById("ds-sum-schema").textContent = DS_SCHEMA_VERSION[m.schema] || m.schema;
+      _dsPopulateRelabelSelects();
+      const cxposSel = document.getElementById("ds-relabel-cxpos");
+      const cxpathSel = document.getElementById("ds-relabel-cxpath");
+      if (cxposSel) cxposSel.value = m.cx_position || "";
+      if (cxpathSel) cxpathSel.value = m.cx_path || "";
+      const schemaEl = document.getElementById("ds-sum-schema");
+      const schemaLabel = DS_SCHEMA_VERSION[m.schema] || m.schema;
+      schemaEl.textContent = m.dataset === "egvla2" ? `${schemaLabel} · 🎚️ EGVLA2` : schemaLabel;
+      schemaEl.style.color = m.dataset === "egvla2" ? "var(--amber)" : "";
       document.getElementById("ds-sum-date").textContent = m.date + " " + m.time;
       // T2-1: flagged_model_issue — 수집 때 찍은 "학습 제외 후보" 표기를 사후 노출
       const _flg = document.getElementById("ds-sum-flagged");
@@ -11938,6 +13242,33 @@ L S R  C S L  R S L
       document.getElementById("ds-sum-actions").innerHTML = Object.entries(dist).map(([k, v]) =>
         `<div class="mini-tile"><span class="mt-label">${k}</span><span class="mt-value">${v} (${Math.round(v/total*100)}%)</span></div>`
       ).join("");
+
+      _dsRenderContinuousCheck(res.frames);
+    }
+
+    // EGVLA2(2026-10-13) — 프레임별 lx/ly/az 중 0이 아닌 값들의 고유 크기 개수를 세서
+    // "진짜 연속값으로 찍혔는지"를 한눈에 보여줌. STOP(0,0,0) 프레임은 세기 비교에
+    // 의미가 없어 제외. 고유값이 1개뿐이면 과거 이산 모드처럼 고정 크기로 찍힌 것.
+    function _dsRenderContinuousCheck(frames) {
+      const el = document.getElementById("ds-sum-continuous");
+      if (!el) return;
+      const mags = [];
+      frames.forEach(f => {
+        [f.linear_x, f.linear_y, f.angular_z].forEach(v => {
+          if (Math.abs(v) > 0.01) mags.push(Math.round(Math.abs(v) * 1000) / 1000);
+        });
+      });
+      if (mags.length === 0) {
+        el.innerHTML = `<span style="color:var(--text-muted);">움직임 프레임 없음(전부 STOP)</span>`;
+        return;
+      }
+      const uniq = [...new Set(mags)].sort((a, b) => a - b);
+      const lo = uniq[0], hi = uniq[uniq.length - 1];
+      if (uniq.length <= 1) {
+        el.innerHTML = `<span style="color:#ff8080;">⚠️ 고유 크기 1종 (${lo.toFixed(3)}) — 이산 모드처럼 고정 크기로 찍힘</span>`;
+      } else {
+        el.innerHTML = `<span style="color:var(--amber);">✅ 고유 크기 ${uniq.length}종 (${lo.toFixed(3)} ~ ${hi.toFixed(3)}) — 세기별로 다르게 찍힘</span>`;
+      }
     }
 
     const DS_CLASS_COLORS = {
@@ -11959,14 +13290,18 @@ L S R  C S L  R S L
       const f = _dsDetail.frames[idx];
       document.getElementById("ds-frame-img").src = `/dataset/frame?name=${encodeURIComponent(_dsDetail.meta.name)}&idx=${idx}`;
       document.getElementById("ds-frame-idx-lbl").textContent = `Frame: ${idx} / ${_dsDetail.frames.length - 1}`;
-      document.getElementById("ds-frame-action-lbl").textContent = `${f.symbol} ${f.action_class}`;
+      // EGVLA2(2026-10-13): 분류된 라벨(symbol/action_class)뿐 아니라 실제 저장된 연속
+      // 실수값(lx/ly/az)도 같이 보여줌 — continuous 모드에서 세기가 실제로 다르게
+      // 찍히는지 직접 확인할 수 있어야 하므로.
+      const rawVals = `lx=${f.linear_x.toFixed(3)} ly=${f.linear_y.toFixed(3)} az=${f.angular_z.toFixed(3)}`;
+      document.getElementById("ds-frame-action-lbl").textContent = `${f.symbol} ${f.action_class}  (${rawVals})`;
       renderDsTimeline(_dsDetail.frames, idx);
 
       // 2026-08-09: 세션 탭과 동일하게 우하단에 핵심 메타데이터 항상 표시.
       const m = _dsDetail.meta;
       const posLine = m.scenario || m.cx_position || "—";
       document.getElementById("ds-meta-overlay").textContent =
-        `${m.name}\nframe ${idx}/${_dsDetail.frames.length - 1} · ${f.symbol} ${f.action_class}\n${posLine}`;
+        `${m.name}\nframe ${idx}/${_dsDetail.frames.length - 1} · ${f.symbol} ${f.action_class} (${rawVals})\n${posLine}`;
     }
 
     function dsPrevFrame() {
@@ -11979,20 +13314,30 @@ L S R  C S L  R S L
       const v = Math.min(parseInt(slider.max), parseInt(slider.value) + 1);
       slider.value = v; showDsFrame(v);
     }
+    // 2026-10-13 수정: 고정 120ms setInterval이면 /dataset/frame 응답(H5 열어서 매 프레임
+    // 디코딩+JPEG 인코딩, 실측 ~150ms)보다 더 자주 다음 프레임을 요청해서 요청이 밀리고,
+    // 이전 요청이 중간에 취소되면서 "첫 프레임에서 멈춘 것처럼" 보이는 문제가 있었음.
+    // 고정 간격 대신 이미지가 실제로 로드 완료된 뒤에만 다음 프레임으로 넘어가도록 변경.
     function toggleDsPlay() {
       const btn = document.getElementById("btn-ds-play");
       if (_dsPlayTimer) {
-        clearInterval(_dsPlayTimer); _dsPlayTimer = null;
+        _dsPlayTimer = null;  // 플래그로 사용 — 다음 onload에서 중단 체크
         btn.textContent = "▶ PLAY";
         return;
       }
       btn.textContent = "⏸ PAUSE";
-      _dsPlayTimer = setInterval(() => {
+      _dsPlayTimer = true;
+      const img = document.getElementById("ds-frame-img");
+      const stepNext = () => {
+        if (!_dsPlayTimer) return;  // 중간에 정지됨
         const slider = document.getElementById("ds-slider");
         const v = parseInt(slider.value);
         if (v >= parseInt(slider.max)) { toggleDsPlay(); return; }
-        slider.value = v + 1; showDsFrame(v + 1);
-      }, 120);
+        slider.value = v + 1;
+        showDsFrame(v + 1);
+        img.onload = () => { if (_dsPlayTimer) setTimeout(stepNext, 30); };
+      };
+      stepNext();
     }
 
     // 초기 스타트
