@@ -2,7 +2,7 @@
 """EGVLA2: 연속 액션(v3)으로 Flow-Matching 액션헤드(A MLP-FM / B FiLM-FM / C π0형 AdaLN-Zero)를 실제로 학습해 본다.
 
 plan: docs/plans/plan_20261013_egvla2_fm_action_head.md §8. 우열 비교가 아니라 "학습되는가"를 본다.
-데이터: logs/manual_dataset_sets.json 의 pilot_v2_gauge_20261013(기본) 15ep, 5-fold 에피소드 hold-out.
+데이터: docs/v5/egvla2_fm/meta/manual_dataset_sets.json 의 pilot_v2_gauge_20261013(기본) 15ep, 5-fold 에피소드 hold-out.
 입력: bbox 3프레임 창(12-d) + F2 풀링 특징 768-d (docs/v5/egvla2_fm/v3_florence2_cache.npz).
 타깃: TARGET=exec(기본)|scaled|raw 의 H=8 청크(끝은 0 패딩).
 실행: .venv_lerobot/bin/python3 scripts/train_egvla2_fm_head.py   (환경변수: TARGET, SET, EPOCHS, SEEDS)
@@ -35,7 +35,7 @@ DEV = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def load_episodes():
-    sets = json.loads((ROOT / "logs" / "manual_dataset_sets.json").read_text())["sets"][SET]
+    sets = json.loads((ROOT / "docs/v5/egvla2_fm/meta" / "manual_dataset_sets.json").read_text())["sets"][SET]
     cache = np.load(CACHE)
     eps = []
     for name in sorted(n if n.endswith(".h5") else n + ".h5" for n in sets):

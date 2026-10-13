@@ -1,0 +1,244 @@
+{
+  "records": [
+    {
+      "level": 0,
+      "duration_s": 14.63,
+      "distance_cm": 200.0,
+      "speed_cmps": 13.67,
+      "note": "완전직선은 아니지만 그래도 직선방향으로 쭉갔음 로봇중심이 2m->2m",
+      "ts": "2026-10-13T19:51:33.218547"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.8,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.41,
+      "note": "",
+      "ts": "2026-10-13T19:52:43.728491"
+    },
+    {
+      "level": 0,
+      "duration_s": 14.16,
+      "distance_cm": 200.0,
+      "speed_cmps": 14.12,
+      "note": "",
+      "ts": "2026-10-13T19:55:05.086051"
+    },
+    {
+      "level": 0,
+      "duration_s": 14.39,
+      "distance_cm": 200.0,
+      "speed_cmps": 13.9,
+      "note": "",
+      "ts": "2026-10-13T19:55:46.749241"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.71,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.6,
+      "note": "",
+      "ts": "2026-10-13T19:56:23.632768"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.61,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.81,
+      "note": "",
+      "ts": "2026-10-13T19:56:52.531985"
+    },
+    {
+      "level": 0,
+      "duration_s": 13.77,
+      "distance_cm": 200.0,
+      "speed_cmps": 14.52,
+      "note": "",
+      "ts": "2026-10-13T20:02:55.061136"
+    },
+    {
+      "level": 0,
+      "duration_s": 14.22,
+      "distance_cm": 200.0,
+      "speed_cmps": 14.06,
+      "note": "",
+      "ts": "2026-10-13T20:03:31.661022"
+    },
+    {
+      "level": 0,
+      "duration_s": 13.3,
+      "distance_cm": 200.0,
+      "speed_cmps": 15.04,
+      "note": "",
+      "ts": "2026-10-13T20:09:34.057866"
+    },
+    {
+      "level": 0,
+      "duration_s": 13.89,
+      "distance_cm": 200.0,
+      "speed_cmps": 14.4,
+      "note": "",
+      "ts": "2026-10-13T20:12:40.021903"
+    },
+    {
+      "level": 0,
+      "duration_s": 13.42,
+      "distance_cm": 200.0,
+      "speed_cmps": 14.9,
+      "note": "",
+      "ts": "2026-10-13T20:13:12.925930"
+    },
+    {
+      "level": 0,
+      "duration_s": 13.21,
+      "distance_cm": 200.0,
+      "speed_cmps": 15.14,
+      "note": "",
+      "ts": "2026-10-13T20:13:47.990009"
+    },
+    {
+      "level": 0,
+      "duration_s": 13.56,
+      "distance_cm": 200.0,
+      "speed_cmps": 14.75,
+      "note": "",
+      "ts": "2026-10-13T20:14:22.272757"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.7,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.62,
+      "note": "",
+      "ts": "2026-10-13T20:15:02.247603"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.91,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.18,
+      "note": "",
+      "ts": "2026-10-13T20:15:35.476131"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.89,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.22,
+      "note": "",
+      "ts": "2026-10-13T20:16:04.646257"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.22,
+      "distance_cm": 200.0,
+      "speed_cmps": 21.69,
+      "note": "",
+      "ts": "2026-10-13T20:16:34.911550"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.5,
+      "distance_cm": 200.0,
+      "speed_cmps": 21.05,
+      "note": "",
+      "ts": "2026-10-13T20:17:05.264462"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.95,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.1,
+      "note": "",
+      "ts": "2026-10-13T20:17:32.311784"
+    },
+    {
+      "level": 1,
+      "duration_s": 9.66,
+      "distance_cm": 200.0,
+      "speed_cmps": 20.7,
+      "note": "",
+      "ts": "2026-10-13T20:18:05.935213"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.32,
+      "distance_cm": 200.0,
+      "speed_cmps": 27.32,
+      "note": "",
+      "ts": "2026-10-13T20:18:29.984447"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.47,
+      "distance_cm": 200.0,
+      "speed_cmps": 26.77,
+      "note": "",
+      "ts": "2026-10-13T20:18:55.623343"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.75,
+      "distance_cm": 200.0,
+      "speed_cmps": 25.81,
+      "note": "",
+      "ts": "2026-10-13T20:19:18.890297"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.86,
+      "distance_cm": 200.0,
+      "speed_cmps": 25.45,
+      "note": "",
+      "ts": "2026-10-13T20:19:43.783835"
+    },
+    {
+      "level": 2,
+      "duration_s": 8.09,
+      "distance_cm": 200.0,
+      "speed_cmps": 24.72,
+      "note": "",
+      "ts": "2026-10-13T20:20:09.469228"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.27,
+      "distance_cm": 200.0,
+      "speed_cmps": 27.51,
+      "note": "",
+      "ts": "2026-10-13T20:20:32.744295"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.4,
+      "distance_cm": 200.0,
+      "speed_cmps": 27.03,
+      "note": "",
+      "ts": "2026-10-13T20:21:02.949395"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.71,
+      "distance_cm": 200.0,
+      "speed_cmps": 25.94,
+      "note": "",
+      "ts": "2026-10-13T20:21:33.192355"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.6,
+      "distance_cm": 200.0,
+      "speed_cmps": 26.32,
+      "note": "",
+      "ts": "2026-10-13T20:21:59.073249"
+    },
+    {
+      "level": 2,
+      "duration_s": 7.48,
+      "distance_cm": 200.0,
+      "speed_cmps": 26.74,
+      "note": "",
+      "ts": "2026-10-13T20:22:25.628701"
+    }
+  ]
+}

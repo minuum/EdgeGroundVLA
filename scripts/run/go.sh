@@ -19,8 +19,8 @@ SODA_IP=$(ip addr show tailscale0 2>/dev/null | awk '/inet /{print $2}' | cut -d
 SERVER_PORT=8001
 DASH_PORT=7865
 HUB_PORT=7860
-S1_PT="runs/v5_nav/mlp/shared/stage1_v2_projs.pt"
-S2_PT="runs/v5_nav/mlp/stop_lastN/stop_N1.pt"
+S1_PT="runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt"  # 2026-08-07 배포 전환 — 실기 95/100(좌측 80%→95%), plan_20260806
+S2_PT="runs/v5_nav/mlp/exp73_stage1v3/exp73_owl_stage1v3_v6_mlp.pt"  # 위 image_proj와 매칭되는 재학습 헤드(seed0, val_acc 74.1%)
 
 # .venv 있으면 우선, 없으면 시스템 python3
 if [[ -x ".venv/bin/python3" ]]; then

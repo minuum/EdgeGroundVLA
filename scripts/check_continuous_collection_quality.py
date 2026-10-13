@@ -16,7 +16,7 @@ v3(egvla2_continuous_v3: actions_raw/actions_exec/frame_timestamps) 공식 정�
   - az 단독 스파이크: 앞뒤가 0인 1프레임 비영 az / 비영 az 프레임 수
   - 속력 단계(exec): |exec| 크기 분포, 각도 연속성(비영 이동 프레임의 고유 각도 수, 연속 프레임 각도 변화)
   - 합격(제안): 중간값(크기) ≥50% 이고 코너 ≤20% 이고 az 스파이크 비율 ≤25%
-  --set: logs/manual_dataset_sets.json의 세트 멤버만 사용 (예: pilot_v2_gauge_20261013)
+  --set: docs/v5/egvla2_fm/meta/manual_dataset_sets.json의 세트 멤버만 사용 (예: pilot_v2_gauge_20261013)
 """
 import glob
 import sys
@@ -32,7 +32,7 @@ fs = sorted(glob.glob(f"{d}/*.h5"))
 if set_name:
     import json
     import os
-    members = json.load(open("logs/manual_dataset_sets.json"))["sets"][set_name]
+    members = json.load(open("docs/v5/egvla2_fm/meta/manual_dataset_sets.json"))["sets"][set_name]
     members = {m if m.endswith(".h5") else m + ".h5" for m in members}
     fs = [f for f in fs if os.path.basename(f) in members]
 if not fs:

@@ -25,7 +25,7 @@ plt.rcParams.update({"font.family": "NanumSquareRound", "axes.unicode_minus": Fa
                      "text.color": "#e2e8f0", "axes.labelcolor": "#cbd5e1", "xtick.color": "#94a3b8", "ytick.color": "#94a3b8", "axes.edgecolor": "#334155"})
 RED, GRN, AMB, BLU, PUR = "#f87171", "#4ade80", "#fbbf24", "#38bdf8", "#a78bfa"
 LEVEL_NAME = {0.4: "느림", 0.7: "보통", 1.0: "빠름"}
-PILOT = [x if x.endswith(".h5") else x + ".h5" for x in json.load(open(ROOT / "logs/manual_dataset_sets.json"))["sets"]["pilot_v2_gauge_20261013"]]
+PILOT = [x if x.endswith(".h5") else x + ".h5" for x in json.load(open(ROOT / "docs/v5/egvla2_fm/meta/manual_dataset_sets.json"))["sets"]["pilot_v2_gauge_20261013"]]
 
 
 def load(name):

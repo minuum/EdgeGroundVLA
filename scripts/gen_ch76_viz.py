@@ -19,7 +19,7 @@ A, AL, G, R, B, P, MUT = "#fbbf24", "#fcd34d", "#4ade80", "#f87171", "#38bdf8", 
 
 def compute_hist():
     D = ROOT / "ROS_action/mobile_vla_dataset_egvla2/"
-    S = json.load(open(ROOT / "logs/manual_dataset_sets.json"))["sets"]["pilot_v2_gauge_20261013"]
+    S = json.load(open(ROOT / "docs/v5/egvla2_fm/meta/manual_dataset_sets.json"))["sets"]["pilot_v2_gauge_20261013"]
     names = {x if x.endswith(".h5") else x + ".h5" for x in S}
     bins = np.arange(0, 1.6, 0.1)
     v1, v2 = [], []
@@ -114,6 +114,29 @@ def heat(rows, cols):
             t += f'<td style="padding:6px 10px;border-bottom:1px solid #1e293b;text-align:center;background:{c}22;color:{c};font-weight:800">{s} {l}</td>'
         t += "</tr>"
     return t + "</table>"
+
+
+def speed_chart():
+    r = json.loads((ROOT / "docs/v5/egvla2_fm/meta/speed_calibration.json").read_text())["records"]
+    sc = {0: 0.4, 1: 0.7, 2: 1.0}
+    W, H = 520, 190
+    svg = f'<svg viewBox="0 0 {W} {H}" style="width:100%;max-width:640px" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="{H - 28}" x2="{W - 10}" y2="{H - 28}" stroke="#334155"/>'
+    X = lambda sc_: 70 + (sc_ - 0.3) / 0.8 * (W - 100)
+    Y = lambda v: (H - 28) - v / 30 * (H - 50)
+    for v in (10, 20, 30):
+        svg += f'<line x1="40" y1="{Y(v):.1f}" x2="{W - 10}" y2="{Y(v):.1f}" stroke="#1e293b"/><text x="34" y="{Y(v) + 3:.1f}" font-size="8" fill="#94a3b8" text-anchor="end">{v}</text>'
+    xs = np.array([sc[a["level"]] for a in r]); ys = np.array([a["speed_cmps"] for a in r]); b1, a0 = np.polyfit(xs, ys, 1)
+    svg += f'<line x1="{X(0.3):.1f}" y1="{Y(a0 + b1 * 0.3):.1f}" x2="{X(1.1):.1f}" y2="{Y(a0 + b1 * 1.1):.1f}" stroke="{P}" stroke-dasharray="4 3" stroke-width="1.5"/>'
+    for L, col in ((0, B), (1, G), (2, A)):
+        v = np.array([a["speed_cmps"] for a in r if a["level"] == L]); x0 = X(sc[L])
+        for i, y in enumerate(sorted(v)):
+            svg += f'<circle cx="{x0 - 14 + (i % 5) * 7:.1f}" cy="{Y(y):.1f}" r="2.6" fill="{col}" opacity="0.75"/>' if False else f'<circle cx="{x0 + ((i * 37) % 21 - 10):.1f}" cy="{Y(y):.1f}" r="2.8" fill="{col}" opacity="0.8"/>'
+        svg += f'<rect x="{x0 - 19:.1f}" y="{Y(v.mean() + v.std(ddof=1)):.1f}" width="38" height="{Y(v.mean() - v.std(ddof=1)) - Y(v.mean() + v.std(ddof=1)):.1f}" fill="{col}" opacity="0.15"/>'
+        svg += f'<line x1="{x0 - 19:.1f}" y1="{Y(v.mean()):.1f}" x2="{x0 + 19:.1f}" y2="{Y(v.mean()):.1f}" stroke="{col}" stroke-width="2.2"/>'
+        svg += f'<text x="{x0:.1f}" y="{H - 14}" font-size="9" fill="#cbd5e1" text-anchor="middle">레벨{L} (scale {sc[L]:.2f})</text>'
+        svg += f'<text x="{x0:.1f}" y="{Y(v.mean() + v.std(ddof=1)) - 5:.1f}" font-size="8.5" fill="{col}" text-anchor="middle">{v.mean():.2f} ± {v.std(ddof=1):.2f}</text>'
+    svg += f'<text x="{W - 12}" y="14" font-size="8.5" fill="{P}" text-anchor="end">선형근사 v = {a0:.2f} + {b1:.2f}×scale (cm/s)</text><text x="4" y="12" font-size="8" fill="#94a3b8">cm/s</text></svg>'
+    return svg + f'<div style="font-size:0.74rem;color:{MUT}">점 = 개별 측정(각 레벨 10회, 200cm), 굵은 선 = 평균, 음영 = ±1 표준편차, 점선 = 30건 전체 선형 적합. 원본: <code>docs/v5/egvla2_fm/meta/speed_calibration.json</code></div>'
 
 
 def load(name):
@@ -245,9 +268,9 @@ def build(hist):
         + '<div style="height:8px"></div>' + flow([("A: 원형게이트", B, "scaled"), ("B: 각도 + GO/STOP", B), ("C: 각도 + 속력 3단계", B, "exec")])
         + '<div style="height:8px"></div>' + flow([("구동 C", G, "driver.move(각도, throttle×단계)"), ("<code>actions_exec</code>", A, "실제로 한 일"), ("+ frame_timestamps · derive_version", MUT)]),
         "축 3개만 데이터가 되고, 버튼·D-pad는 메타데이터. az는 변환 없이 저장, 구동은 |az|&gt;0.1이면 회전만") + wrap(
-        "② 속력 3단계 실측 보정 (2m 코스, 레벨당 10회)",
-        hbars([("레벨0 느림 (scale 0.40)", 14.45, B, "14.45 cm/s"), ("레벨1 보통 (scale 0.70)", 20.64, G, "20.64 cm/s"), ("레벨2 빠름 (scale 1.00)", 26.36, A, "26.36 cm/s")], 30, w=190),
-        "선형근사: 속도 ≈ 6.5 + 19.85 × scale (cm/s) — 레벨1 예측 20.4 vs 실측 20.64 (1% 이내). 모터 기저속도(데드밴드) 추정") + wrap(
+        "② 속력 3단계 실측 보정 (2m 코스, 레벨당 10회 = 30건 원본)",
+        speed_chart(),
+        "원본 30건 재계산이 보고값(14.45/20.64/26.36)과 일치. 선형 적합 6.59 + 19.85 × scale — 레벨1 예측 20.5 vs 실측 20.64. 레벨0 한 건에 ‘완전 직선은 아니었음’ 메모. 모터 기저속도(데드밴드) 추정") + wrap(
         "③ 버튼·입력 구성", hbars([("주행 아날로그 축", 3, G, "3개 → 학습 입력"), ("기능 버튼", 8, MUT, "8개"), ("보조 버튼 (복귀)", 1, MUT, "1개"), ("D-pad", 1, MUT, "1개 (시나리오 선택)")], 10, w=190),
         "학습 데이터에 들어가는 입력은 축 3개뿐")
     return V
