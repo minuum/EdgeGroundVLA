@@ -132,3 +132,39 @@
 6. **프레임 저장이 발행 시점**: `on_command`가 호출될 때마다 프레임을 추가한다(≈10Hz 상한, 연속 STOP은 1개로 압축). `frame_timestamps`로 실제 간격을 보고 학습 쪽에서 리샘플 여부를 정한다.
 
 **다음**: 위 1·2를 반영한 뒤 파일럿 10에피소드를 찍어 v2 파일을 `ROS_action/mobile_vla_dataset_egvla2/`에 올려 주면 `scripts/check_continuous_collection_quality.py --per-episode`로 중간값·코너·스파이크를 판정한다(v2는 `actions_scaled`를 읽도록 스크립트 수정 필요 — 파일 도착 시 학습 서버가 처리).
+
+## 10. 제안: 단일 기준값(raw)에서 A/B/C 변환 라벨을 파생하는 저장 구조 (학습 서버 → 로봇 세션, 2026-10-13)
+
+> §9 #1·#2 대응. **로봇 세션이 수정할 사안이며, 사용자 승인 후 적용.** 구동 방식(속력 처리)은 아래 §10.3에서 선택.
+
+### 10.1 입력 현황 (코드 + `scripts/joystick_config.json`, DragonRise 강제 레이아웃)
+- 주행 아날로그 축 3개: 왼쪽 스틱 Y(축1)→`lx`, 왼쪽 스틱 X(축0)→`ly`, 오른쪽 스틱 X(축2)→`az`. 값 -1~1, 데드존 0.15. 오른쪽 스틱 Y·트리거는 미사용.
+- 기능 버튼 8개(STOP, 실험표기 토글, 폐기, 수집↔검증, 녹화시작, 정지·저장, 녹화토글, SYNC↔ASYNC) + 복귀 1개 + D-pad(시나리오/위치 순환). **학습 데이터에 들어가는 입력은 축 3개뿐**이고 버튼·D-pad는 메타데이터.
+
+### 10.2 저장 구조
+| 필드 | 내용 | 용도 |
+|---|---|---|
+| `actions_raw` | 방사형 데드존만 통과한 (lx,ly,az) | 모든 변환의 기준 |
+| `actions_exec` | 로봇에 실제로 내려간 값(각도, throttle 단계, 회전 여부) | 실제로 일어난 일 |
+| `actions_A` | 원형게이트 정규화(크기 보존) | 속력+방향 의도 |
+| `actions_B` | (각도=atan2(ly,lx), GO/STOP) | 방향 중심 |
+| `actions_C` | (각도, 속력 단계 0~3: 크기 임계 2개) | 방향+단계 속력 |
+| `frame_timestamps` | 프레임별 시각 | 적분·리샘플 |
+
+attrs: `derive_version`(변환식·임계값 버전), `drive_mode`, `joystick_speed_setting`, `throttle_levels`, `action_space`(v3 등으로 올림).
+- 변환 대상은 (lx,ly) 2축. `az`는 그대로 저장하되 구동은 `|az|>0.1`이면 회전만 하므로 `actions_exec`에 그 규칙을 반영.
+- A/B/C는 학습 로더에서 `actions_raw`로 재생성해도 되고(규칙 변경 시 재변환 가능, 권장), 파일에 미리 저장해도 된다(이때 `derive_version` 필수).
+
+### 10.3 구동 방식과 라벨의 정합성 (핵심)
+로봇은 한 가지로만 움직인다. 현재 구동은 각도+고정 throttle이라 A·C의 속력은 **스틱 의도**일 뿐 영상의 움직임과 무관하다(라벨-영상 불일치 노이즈). 따라서 구동을 정해야 한다.
+- **권장**: 구동을 C(속력 3단계, 실제 throttle 변경)로 하고 raw를 함께 저장 → C는 실제와 일치, B는 방향 라벨(속력 섞임), A는 근사.
+- 단계별 throttle→실제 속도는 고정 거리 스톱워치로 보정(odom 없음).
+- 보류: A(크기→throttle 연속)는 odom 전까지 검증 수단이 없어 제외.
+
+### 10.4 선결 수정 (§9 #1)
+`if key:`(THRESHOLD 0.5) 게이트 때문에 약한 스틱이 발행·기록되지 않으면 어떤 변환도 빈 입력이다. continuous에서는 `mag>0`이면 발행하고 key는 UI 라벨용으로만 쓸 것.
+
+### 10.5 수정 대상·검증
+- `mona_dashboard.py` `_loop`(게이트·변환), `_save_episode_data`(필드), `vla_control_utils.py`(구동 모드).
+- v2 파일럿 10ep 도착 시 학습 서버가 `check_continuous_collection_quality.py`를 `actions_raw`/`actions_exec` 기준으로 확장해 중간값≥50%·코너≤20%·스파이크≈0과 속력 단계 분포를 판정한다.
+- v1·v2·v3 혼합 금지.
