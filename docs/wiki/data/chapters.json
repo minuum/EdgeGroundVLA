@@ -2433,6 +2433,60 @@
     ]
   },
   {
+    "id": "ch75",
+    "num": "CH 75",
+    "title": "EGVLA2 종합 비교 — Florence-2 단일화 vs 텍스트 서브골, 무엇이 달라졌고 왜 서브골은 안 먹었나",
+    "subtitle": "2026-10-13 · CH73(서브골 FiLM)·CH74(Florence-2 단일화) 결과를 전/후·입력별·서브골 종류별로 한 곳에 비교하고, 서브골 채택 여부를 진단한다. 데이터 수집 전(V6 225ep) 기준 브리핑용.",
+    "n_cards": 9,
+    "cards": [
+      {
+        "kind": "callout",
+        "title": null,
+        "text": "🟢 3줄 요약\n① 채택: Florence-2 단일화(젯슨 fp32 2.41×·서버 2.73× 빠름, PM 동일)와 bbox 시각 서브골 FiLM(+1.65%p, p=1.6e-5).\n② 비채택: 방향 텍스트 서브골(CLIP −1.41%p, one-hot 이득 없음) — 방향은 이미 bbox로 관측돼 정보가 겹친다.\n③ 조건부: 곡선 종류 지시만 +1.22%p(오라클 상한). 경로를 지시하는 시나리오가 있을 때만 의미.\n📌 결론 한눈에⚖ 두 플랜 전후⏱ 속도·리소스🎯 정확도 비교🧭 서브골 종류 비교❓ 왜 서브골이 안 먹었나🚧 한계·다음"
+      },
+      {
+        "kind": "finding-card",
+        "title": "75-1. 결론 — 구조 변경은 채택, 텍스트 서브골은 비채택, 경로 지시만 조건부",
+        "text": "항목판정근거 (V6 225ep, 10-seed PM)\nFlorence-2 단일화 (모델 2→1)\n✅ 채택\n젯슨 fp32 1971→817ms(2.41×), 서버 492→180ms(2.73×), 연산 1277→467 GFLOPs, PM 동일\n액션헤드 MLP→FiLM(bbox 서브골)\n✅ 채택\n78.41% vs concat 76.76%, p=1.6e-5, 파라미터 40%↓\n방향 텍스트 서브골 (CLIP)\n❌ 비채택\n76.92% (bbox만 78.33%보다 −1.41%p, p=0.0003), seed 불안정\n방향 one-hot\n❌ 이득 없음\n−0.29%p, p=0.24\n곡선 종류 지시 서브골(오라클)\n△ 조건부\n+1.22%p(p=0.0002). 사용자가 경로를 지시하는 시나리오일 때만 의미\nhas_bbox 부재 판별\n⚠ 미해결\n기하 규칙 balanced acc 0.73, 빔 점수 AUC 0.40 → 부재 프레임 라벨 필요\nPM은 offline teacher-forced 지표이고 closed-loop가 아니다. 데이터 수집 전(225ep) 기준이며 500~1000ep 확대 후 재검증이 필요하다."
+      },
+      {
+        "kind": "finding-card",
+        "title": "75-2. 두 플랜이 바꾼 것 — 전/후 비교",
+        "text": "플랜 1 · Florence-2 단일화 + FiLM항목전 (OWLv2+Kosmos-2 + MLP)후 (Florence-2 단일 + FiLM)변화\n모델 수 / 파라미터\n2개 / 458M\n1개 / 231M\n절반\n연산량\n1277 GFLOPs\n467 GFLOPs\n2.7× 감소\n비전 토큰\n3601 (OWLv2 960px 전역 attention)\n577 (DaViT)\n6.2× 감소\n가중치 (fp32 메인)\n≈1227MB\n≈926MB\n1.3× 감소\n젯슨 fp32 지연\n1971ms\n817ms\n2.41×\n서버 fp32 지연\n492ms\n180ms\n2.73×\nPM (같은 입력 특징)\nOWLv2 bbox 78.38%\nF2 bbox 78.38%\n손실 없음\n헤드 PM (F2 입력)\nconcat MLP 76.76% (241,608)\nFiLM 78.41% (144,872)\n+1.65%p, 파라미터 40%↓\nCH59 cx 포화 결함\n있었음\n재현 안 됨 (cx max 0.9955)\n해소\n플랜 2 · 텍스트 서브골 결합항목결과\n목표\nfrozen CLIP text를 서브골 FiLM에 결합해 \"진짜 VLA\" 방향 검증\n결과\nPM 하락 / 이득 없음 — 방향 텍스트는 bbox+이미지와 정보가 겹침 (75-5, 75-6)\n부산물\n서브골 종류별 상한 측정: 곡선 종류 오라클이 유일하게 유의한 이득(+1.22%p)"
+      },
+      {
+        "kind": "finding-card",
+        "title": "75-3. 속도·리소스 — 규격 벤치 (동일 코드·동일 V6 프레임·메인 dtype fp32)",
+        "text": "젯슨 fp32 · A 현재(OWLv2+Kosmos-2)1971ms젯슨 fp32 · B F2 분리 호출1404.4ms젯슨 fp32 · C F2 fused817.4ms서버 fp32 · A 현재491.6ms서버 fp32 · B F2 분리315.1ms서버 fp32 · C F2 fused180ms환경 · dtypeA 현재B 분리C fusedC vs AC vs B\n젯슨 Orin NX fp32 (메인)\n1971.0ms\n1404.4ms\n817.4ms\n2.41×\n1.72×\n젯슨 fp16\n1018.0ms\n582.2ms\n372.1ms\n2.74×\n1.56×\n서버 GB10 fp32 (메인)\n491.6ms\n315.1ms\n180.0ms\n2.73×\n1.75×\n서버 fp16\n360.3ms\n275.4ms\n201.1ms\n1.79×\n1.37×\n측정: scripts/bench_egvla2_unified.py (warmup10/iters50). 서버 F2는 fp16이 fp32보다 느림(디코딩 호출 오버헤드 지배). 폐기 수치(5.3× 등)는 dtype/구성 불일치였고 CH74-3에 정정 이력이 있다. 젯슨 값은 로봇 세션이 측정해 git으로 받은 값. 상세 CH74."
+      },
+      {
+        "kind": "finding-card",
+        "title": "75-4. 정확도(PM) 비교 — 입력·그라운더·헤드 조합",
+        "text": "입력 구성concatconcat_smallsteeredsteered_reg\nCH73 · OWLv2 bbox + 16×16 이미지\n69.58±2.10\n69.45±3.49\n71.68±1.24\n72.37±1.39\nOWLv2 bbox + F2 768-d 특징 (대조)\n76.77±1.01\n76.68±1.23\n78.36±1.03\n78.38±1.21\nF2 bbox + F2 768-d 특징 (채택안)\n76.76±1.08\n76.70±1.05\n78.41±0.74\n78.38±0.96\n- 상승의 원인은 특징이다. 같은 F2 특징에서 OWLv2 bbox와 F2 bbox는 PM이 같다(78.38 vs 78.38). 그라운더 교체 단독 이득이라 주장하면 안 된다.\n- FiLM 서브골 조향은 어느 입력에서도 유의하게 우세 (steered vs concat: F2 입력 p=1.6e-5, OWLv2 bbox 입력 p=4.3e-5).\n- steered_reg의 추가 이득은 재현 안 됨 (vs steered p=0.79~0.91). F2가 거의 항상 박스를 내서(has_bbox 99.96%) 실패 프레임 자체가 드물기 때문일 가능성(미검증).\n지표: frame-level PM(teacher-forced replay). 프로토콜상 best-epoch를 테스트셋 기준으로 선택해 절대값이 낙관적이나 조건 간 비교는 동일 적용. F2 특징 캐시는 fp16으로 생성."
+      },
+      {
+        "kind": "finding-card",
+        "title": "75-5. 서브골 종류별 비교 — bbox만(steered_reg) 대비 PM 증감",
+        "text": "기준: 같은 seed·같은 분할의 bbox만 steered_reg (78.3% 안팎). 쌍체 t-검정, 10-seed.\nCLIP 방향 텍스트 (768-d)-1.41%p방향 one-hot (5-d)-0.29%p경로 전체 one-hot (15-d, 오라클)+0.95%p곡선 종류 one-hot (3-d, 오라클)+1.22%p서브골 종류PMΔ vs bbox만p텍스트 교체 프로브 (정상→다른 라벨)예측 flip\n시각 bbox FiLM (채택 중)\n78.41%\nvs concat +1.65%p\n1.6e-5\n—\n—\nCLIP 방향 텍스트\n76.92%\n−1.41%p\n0.0003\n75.4%→69.9%\n13.2%±10.6 (불안정)\n방향 one-hot (5)\n78.07%\n−0.29%p\n0.24\n76.8%→74.6%\n12.6%±3.3\n곡선 종류 one-hot (3, 오라클)\n79.53%\n+1.22%p\n0.0002\n78.3%→44.1%\n54.1%\n경로 전체 one-hot (15, 오라클)\n79.25%\n+0.95%p\n0.0006\n78.1%→50.9%\n45.3%\n읽는 법: 방향 서브골은 모델이 일관되게 쓰지만 이득이 없고, 곡선 종류 서브골은 모델이 강하게 의존(교체 시 −34%p)하면서도 이득은 +1.2%p에 그친다. 곡선·경로 값은 정답 라벨을 그대로 준 오라클 상한이며 실제 지시로 얻을 수 있는 값이 아니다."
+      },
+      {
+        "kind": "finding-card",
+        "title": "75-6. 왜 우리 태스크에서 서브골(텍스트)이 안 먹었나 — 진단",
+        "text": "- 방향은 이미 관측된다 (정보 중복). 목표(회색 바구니)는 항상 화면에 보이고, bbox 위치가 곧 방향이다. 방향 one-hot을 줘도 −0.29%p(p=0.24). 과거 ablation도 같은 결론: bbox만 67.4% / 이미지만 75.6% / 둘 다 76.7%, EGVLA1 text attention 0%.\n- 보이지 않는 변수는 \"곡선 종류\"다. 경로 유형별 PM을 보면 직선 88~94%인데 곡선은 60~75%(weak_right_left_curve 60.5%, center_left_curve 63.9%). 같은 화면에서도 어느 쪽으로 휘는 경로인지는 이미지만으로 정해지지 않는다. 방향 텍스트는 이 정보를 담지 않았다. 곡선 종류를 오라클로 주면 유일하게 유의한 이득(+1.22%p).\n- 그래도 이득이 작다. 오라클을 줘도 +1.2%p다. 남은 오류는 곡선 안에서 \"언제 꺾는가\"(프레임 수준 타이밍 모호성)일 가능성이 있으나 미검증 가설이다.\n- CLIP이 추가로 해를 끼쳤다. 방향 문장 임베딩이 weak_left↔weak_right 코사인 0.98로 left/right를 거의 구분하지 못하고, seed별 flip 1.8~24.6%로 불안정하다. one-hot 대비 −1.1%p 열세(원인은 미검증).\n- 태스크 구조상 언어가 필요 없다. 목표가 하나이고 항상 보이는 단일 타깃 내비게이션이라, 언어는 \"무엇을 향해\"를 알려줄 일이 없다. 언어 서브골이 정보를 더하는 조건은 (a) 복수 타깃 중 선택, (b) 경로 선택 지시(\"왼쪽으로 돌아가\"), (c) 장기 다단계이다. 현 데이터에는 이 셋이 없다."
+      },
+      {
+        "kind": "callout",
+        "title": null,
+        "text": "🟢 채택 판단\n시각 서브골(bbox FiLM): 채택 · 방향 텍스트: 비채택 · 경로(곡선) 지시: 사용자가 경로를 지시하는 시나리오가 생기면 후보. 그때는 CLIP 문장보다 구조화된 토큰(one-hot/학습 토큰)이 낫다."
+      },
+      {
+        "kind": "finding-card",
+        "title": "75-7. 한계와 다음 단계",
+        "text": "한계\n- PM은 teacher-forced 오프라인 지표. 진짜 closed-loop 성공률과의 연결은 미검증.\n- 곡선·경로 서브골은 정답 라벨을 그대로 준 오라클. 실제 지시 인터페이스 없이는 적용 불가.\n- 사람검증 329개는 OWL 실패 편향 표본. 일반 정확도로 해석 금지.\n- has_bbox 오검출 정의는 \"부재 프롬프트 박스\" 대리 지표.\n- F2 특징 캐시 fp16 생성(메인 fp32). 젯슨 수치는 로봇 세션 측정.\n다음 (데이터 수집 시 같이)\n- 바구니가 시야 밖인 부재 프레임을 의도적으로 포함해 has_bbox 기준 라벨 확보.\n- 경로 선택을 지시하는 시나리오를 둘지 결정하고, 둘 경우 지시 문장 로그를 같이 수집.\n- 500~1000ep 확대 후 같은 스크립트로 steered>concat 유의성 재검증.\n- 젯슨 전력·실측 메모리, 실주행 closed-loop.\n스크립트: eval_subgoal_steering_florence2_v6.py(BBOX_SOURCE), eval_subgoal_steering_text_v6.py(TEXT_MODE=clip|onehot|curve|path), calibrate_f2_has_bbox.py, bench_egvla2_unified.py. 원자료: docs/v5/subgoal_steering_eval/summary_*.json. 상세 이력은 CH73·CH74.\nctabInit(\"ch75\")"
+      }
+    ]
+  },
+  {
     "id": "meeting-0626",
     "num": "MTG",
     "title": "6/26 미팅 — 6/22 질문 해결 논리 전개 전체 정리",

@@ -28,7 +28,18 @@ DIRS = ["center", "weak_left", "strong_left", "weak_right", "strong_right"]
 # TEXT_MODE=clip(기본) / onehot: 방향 one-hot(5-d)으로 대체해 CLIP 한계와 텍스트 채널 한계를 분리하는 대조
 TEXT_MODE = os.environ.get("TEXT_MODE", "clip")
 OUT_JSON = f2.OUT_DIR / ("summary_text_steering_v6.json" if TEXT_MODE == "clip" else f"summary_text_steering_v6_{TEXT_MODE}.json")
-TEXT_DIM, TEXT_PROJ = (768, 32) if TEXT_MODE == "clip" else (5, 5)
+# curve: 곡선 종류 3-class one-hot(straight/left_curve/right_curve), path: path_type 15-class one-hot (오라클 서브골 상한 검증)
+CURVES = ["straight", "left_curve", "right_curve"]
+LABELS = {"clip": DIRS, "onehot": DIRS, "curve": CURVES, "path": f2.PATH_TYPES}[TEXT_MODE]
+TEXT_DIM, TEXT_PROJ = {"clip": (768, 32), "onehot": (5, 5), "curve": (3, 3), "path": (15, 15)}[TEXT_MODE]
+
+
+def label_of(ep):
+    if TEXT_MODE in ("clip", "onehot"):
+        return ep["direction"]
+    if TEXT_MODE == "path":
+        return ep["path_type"]
+    return ep["path_type"][len(ep["direction"]) + 1:]
 
 
 class TextBBoxSteeredMLP(nn.Module):
@@ -51,8 +62,8 @@ class TextBBoxSteeredMLP(nn.Module):
 
 
 def load_text():
-    if TEXT_MODE == "onehot":
-        return {d: np.eye(5, dtype=np.float32)[i][None] for i, d in enumerate(DIRS)}
+    if TEXT_MODE != "clip":
+        return {d: np.eye(len(LABELS), dtype=np.float32)[i][None] for i, d in enumerate(LABELS)}
     c = np.load(TEXT_CACHE)
     allv = np.concatenate([c[d] for d in DIRS])
     mu, sd = allv.mean(0), allv.std(0) + 1e-6   # 15개 템플릿 기준 고정 표준화(방향 간 미세 차이 증폭)
@@ -63,13 +74,13 @@ def text_for(eps, text, rng, force_dirs=None):
     rows = []
     for ep in eps:
         for t in range(len(ep["frames"])):
-            d = ep["direction"] if force_dirs is None else force_dirs(ep["direction"], rng)
+            d = label_of(ep) if force_dirs is None else force_dirs(label_of(ep), rng)
             rows.append(text[d][rng.integers(len(text[d]))])
     return np.asarray(rows, dtype=np.float32)
 
 
 def other_dir(d, rng):
-    return rng.choice([x for x in DIRS if x != d])
+    return rng.choice([x for x in LABELS if x != d])
 
 
 @torch.no_grad()

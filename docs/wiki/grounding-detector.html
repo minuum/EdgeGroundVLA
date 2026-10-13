@@ -104,7 +104,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <div class="sidebar-sub">주제별 재구성 · research_story.html 기반</div>
 <div class="sidebar-section">주제</div>
 <a class="side-link" href="wiki-infrastructure.html">연구 위키 & 문서 인프라<span class="n">1</span></a>
-<a class="side-link current" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">20</span></a>
+<a class="side-link current" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">21</span></a>
 <a class="side-link" href="action-head-architecture.html">액션헤드 아키텍처 & 손실함수 실험<span class="n">13</span></a>
 <a class="side-link" href="language-conditioning.html">언어 조건화 & 텍스트 어텐션 구조적 사망<span class="n">6</span></a>
 <a class="side-link" href="flow-matching-vla.html">Flow Matching / π0 스타일 연속 액션<span class="n">1</span></a>
@@ -127,7 +127,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <p>텍스트(언어) 경로는 구조적으로는 살아있지만 실질적으로 죽어있다 — Text attention 0.000%(여러 실험 재현), 객체명을 바꿔도(red ball/person/없음) 행동이 90% 동일, counterfactual 변화율 0.0%. 원인은 학습 데이터가 목표물 1종(회색 바구니)만 다뤄 "텍스트를 볼 이유가 없는" 구조이기 때문이며, 다양한 목표물·지시-경로 디커플링 재수집이 유일한 해법으로 남아있다(아직 미실행).</p>
 <p>그라운더 자체는 여러 차례 세대교체를 겪었다: Kosmos-2(초기, IoU 0.87이나 free-gen 변환 시 34.4%로 붕괴) → PaliGemma2(PG2, 자체 LoRA 파인튜닝이 오히려 grounding을 붕괴시켜 벽/의자 오트래킹 유발함이 밝혀져 base zero-shot PG2 채택, 12/12·cx_std 0.047) → OWL-v2(현재 배포, threshold=0.25가 "knife-edge" 구조라 confidence 0.10~0.20 밴드에 실패가 집중, 검출 실패는 환경(Jetson) 격차가 아니라 대부분(78.7%) 검출기 자체의 본질적 어려움임을 확인). 그라운딩 실패(has_bbox=False) 프레임이 학습 데이터에 0%(0/16599)만 존재해 모델이 "실패 시 대응"을 전혀 학습하지 못했다는 것도 확정된 근본 원인 중 하나다.</p>
 <p>경량화 방향에서는 Florence-2 비전 백본(90.4M)이 Kosmos-2(303.2M)보다 좌표 정확도가 더 좋고(cx MAE 0.0015 vs 0.0020), 심지어 MobileNetV3-Small(0.93M)도 동등한 성능을 내 "좌표 회귀는 큰 백본이 필요 없다"는 결론에 도달했다. 다만 Florence-2를 검출기(부재 판정 포함)로 쓰는 건 실패했었는데, 이는 열린 질문 방식(<code>&lt;OD&gt;</code>/<code>&lt;DENSE_REGION_CAPTION&gt;</code>, 재현율 상한 34.7%)만 시도했기 때문이었고, OWL-v2처럼 phrase를 직접 지정하는 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code> 방식으로 바꾸자 재현율이 84.96%(실기)~100%(사람 검증 329개)로 급등해 판정이 뒤집혔다. 이 새 그라운더로 재학습한 exp77은 무작위 split 기준 역대 최고(75.58%)지만, 목표 방향을 통째로 제외한 leave-one-direction-out 검증에서는 현재 배포 모델(exp73, 60.85%)보다 오히려 나쁨(54.0%, 특히 우측 방향 취약)이 확인돼 아직 배포 권장 단계는 아니다.</p>
-<p>2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code>은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 <code>has_bbox</code>를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 이후 규격 벤치(동일 코드·입력·dtype, 메인 fp32)로 Florence-2 fused(<code>_encode_image</code> 1회 호출로 bbox+비전특징 동시 획득)가 현재 OWLv2+Kosmos-2 대비 젯슨 1971→817ms(2.41배), 학습서버 492→180ms(2.73배)로 빠름을 확정했고(계산량 1277→467 GFLOPs, 파라미터 458M→231M; 이전 5.3배·2.7배는 dtype/구성 불일치로 폐기), 사람검증 329개에서도 OWL 실패 203개를 전부 회수(OWL ok 38.3% vs F2 100%, 표본은 OWL 실패 편향)해 전환 근거가 속도·정확도 양쪽에서 확보됐고, 면적 기반 has_bbox 어댑터는 V6 15프레임에서 OWLv2와 cx 상관 0.991·판정 15/15 일치했다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(<code>scripts/label/*.py</code>)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(<code>serve_v6_phrase_grounding_verify.py</code>, 포트 7796, 182개 라벨 미완). 또한 Florence-2 입력(bbox+768-d 비전 특징, 캐시)으로 FiLM 서브골 조향을 V6 10-seed 재현한 결과 steered 78.41% &gt; concat 76.76%(p=1.6e-5)가 유지됐고 steered_reg의 추가 이득은 없었으며(vs steered p=0.79), CH73의 OWLv2+16×16 입력(72.37%)보다 절대 PM이 높지만 입력 특징이 달라 그라운더 효과로 분리할 수 없다 → 후속 대조(OWLv2 bbox + 동일 F2 특징)에서 PM이 동일(78.38%)해 상승은 비전 특징 효과로 확인됐다. has_bbox 면적 임계값 캘리브레이션은 기하 조합 규칙 최고 balanced acc 0.73으로 부재 판별 불가(신뢰도 신호 필요), frozen CLIP 텍스트 서브골 FiLM은 PM 78.33→76.92%로 오히려 하락했다. 방향 one-hot 대조도 PM 이득이 없었고(p=0.24), Florence-2 빔 시퀀스 점수는 존재 판별력이 없었다(AUC 0.40).</p>
+<p>2026-10-12 팀 미팅에서 EGVLA2 방향이 "OWLv2+Kosmos-2 두 모델 → Florence-2 단일 백본(그라운딩+비전 통합)"으로 합의됐고, 전환 전 CH59 cx 포화 결함(0.559에서 막힘) 재현 여부를 V6 200프레임으로 재확인한 결과 결함 자체는 해소됐다(cx max 0.9955). 다만 새로운 문제로 Florence-2의 <code>&lt;CAPTION_TO_PHRASE_GROUNDING&gt;</code>은 score를 주지 않아 부재 대조군("microwave oven")도 100% 검출(OWL-v2는 5.0%)되는 것이 확인돼, "박스 유무"만으로 <code>has_bbox</code>를 정의할 수 없다는 선행 블로커가 추가됐다 — 박스 크기/종횡비 이상치 필터나 OWL-v2 detected 플래그 임시 병행 같은 대안이 다음 과제다. 이후 규격 벤치(동일 코드·입력·dtype, 메인 fp32)로 Florence-2 fused(<code>_encode_image</code> 1회 호출로 bbox+비전특징 동시 획득)가 현재 OWLv2+Kosmos-2 대비 젯슨 1971→817ms(2.41배), 학습서버 492→180ms(2.73배)로 빠름을 확정했고(계산량 1277→467 GFLOPs, 파라미터 458M→231M; 이전 5.3배·2.7배는 dtype/구성 불일치로 폐기), 사람검증 329개에서도 OWL 실패 203개를 전부 회수(OWL ok 38.3% vs F2 100%, 표본은 OWL 실패 편향)해 전환 근거가 속도·정확도 양쪽에서 확보됐고, 면적 기반 has_bbox 어댑터는 V6 15프레임에서 OWLv2와 cx 상관 0.991·판정 15/15 일치했다. 과거 세션들에서 만든 OWLv2/PaliGemma2(PG2)/Florence-2 그라운더 비교용 키보드 라벨링 도구 9종(<code>scripts/label/*.py</code>)도 분실 방지 차원에서 카탈로그로 정리했다 — 가장 바로 쓸 수 있는 것은 V6 16,599프레임 기준 OWLv2 vs Florence-2 비교 도구(<code>serve_v6_phrase_grounding_verify.py</code>, 포트 7796, 182개 라벨 미완). 또한 Florence-2 입력(bbox+768-d 비전 특징, 캐시)으로 FiLM 서브골 조향을 V6 10-seed 재현한 결과 steered 78.41% &gt; concat 76.76%(p=1.6e-5)가 유지됐고 steered_reg의 추가 이득은 없었으며(vs steered p=0.79), CH73의 OWLv2+16×16 입력(72.37%)보다 절대 PM이 높지만 입력 특징이 달라 그라운더 효과로 분리할 수 없다 → 후속 대조(OWLv2 bbox + 동일 F2 특징)에서 PM이 동일(78.38%)해 상승은 비전 특징 효과로 확인됐다. has_bbox 면적 임계값 캘리브레이션은 기하 조합 규칙 최고 balanced acc 0.73으로 부재 판별 불가(신뢰도 신호 필요), frozen CLIP 텍스트 서브골 FiLM은 PM 78.33→76.92%로 오히려 하락했다. 방향 one-hot 대조도 PM 이득이 없었고(p=0.24), Florence-2 빔 시퀀스 점수는 존재 판별력이 없었다(AUC 0.40). CH75에서 이를 종합 비교했다: 채택은 Florence-2 단일화(젯슨 fp32 2.41×·서버 2.73×, PM 동일)와 bbox 시각 서브골 FiLM(+1.65%p), 비채택은 방향 텍스트 서브골(방향이 bbox로 이미 관측돼 정보가 겹침), 조건부는 곡선 종류 지시(오라클 상한 +1.22%p, p=0.0002; 경로를 지시하는 시나리오가 있을 때만 의미)이며 has_bbox 부재 판별은 부재 프레임 라벨 수집이 선결이다.</p>
 <p>미해결/논쟁 중: exp73 89% 성공에서 체크포인트 교체와 threshold+회복가드 중 어느 쪽이 주된 개선 요인인지는 통계적으로 확정 불가(둘 다 +23~48%p 규모로 크고 순위가 추정 방식에 따라 뒤집힘) — 동일 위치 A/B 재수집이 필요하다.</p>
 </div>
 <h2>챕터별 원문 발췌 (시간순)</h2>
@@ -4463,6 +4463,206 @@ exp73 val 33ep, path_type·FPE 판정 O/X
 ctabInit("ch74")</p>
 </div>
 <p><a class="src-link" href="../v5/research_story.html#ch74">→ 원문 전체 보기 (research_story.html#ch74)</a></p>
+</div>
+<div class="chapter-block accent-a">
+<div class="chapter-block-head"><span class="chapter-badge">CH 75</span> EGVLA2 종합 비교 — Florence-2 단일화 vs 텍스트 서브골, 무엇이 달라졌고 왜 서브골은 안 먹었나</div>
+<p class="chapter-subtitle-line">2026-10-13 · CH73(서브골 FiLM)·CH74(Florence-2 단일화) 결과를 전/후·입력별·서브골 종류별로 한 곳에 비교하고, 서브골 채택 여부를 진단한다. 데이터 수집 전(V6 225ep) 기준 브리핑용.</p>
+<div class="card">
+<p>🟢 3줄 요약
+① 채택: Florence-2 단일화(젯슨 fp32 2.41×·서버 2.73× 빠름, PM 동일)와 bbox 시각 서브골 FiLM(+1.65%p, p=1.6e-5).
+② 비채택: 방향 텍스트 서브골(CLIP −1.41%p, one-hot 이득 없음) — 방향은 이미 bbox로 관측돼 정보가 겹친다.
+③ 조건부: 곡선 종류 지시만 +1.22%p(오라클 상한). 경로를 지시하는 시나리오가 있을 때만 의미.
+📌 결론 한눈에⚖ 두 플랜 전후⏱ 속도·리소스🎯 정확도 비교🧭 서브골 종류 비교❓ 왜 서브골이 안 먹었나🚧 한계·다음</p>
+</div>
+<div class="card">
+<p><strong>75-1. 결론 — 구조 변경은 채택, 텍스트 서브골은 비채택, 경로 지시만 조건부</strong></p>
+<p>항목판정근거 (V6 225ep, 10-seed PM)
+Florence-2 단일화 (모델 2→1)
+✅ 채택
+젯슨 fp32 1971→817ms(2.41×), 서버 492→180ms(2.73×), 연산 1277→467 GFLOPs, PM 동일
+액션헤드 MLP→FiLM(bbox 서브골)
+✅ 채택
+78.41% vs concat 76.76%, p=1.6e-5, 파라미터 40%↓
+방향 텍스트 서브골 (CLIP)
+❌ 비채택
+76.92% (bbox만 78.33%보다 −1.41%p, p=0.0003), seed 불안정
+방향 one-hot
+❌ 이득 없음
+−0.29%p, p=0.24
+곡선 종류 지시 서브골(오라클)
+△ 조건부
++1.22%p(p=0.0002). 사용자가 경로를 지시하는 시나리오일 때만 의미
+has_bbox 부재 판별
+⚠ 미해결
+기하 규칙 balanced acc 0.73, 빔 점수 AUC 0.40 → 부재 프레임 라벨 필요
+PM은 offline teacher-forced 지표이고 closed-loop가 아니다. 데이터 수집 전(225ep) 기준이며 500~1000ep 확대 후 재검증이 필요하다.</p>
+</div>
+<div class="card">
+<p><strong>75-2. 두 플랜이 바꾼 것 — 전/후 비교</strong></p>
+<p>플랜 1 · Florence-2 단일화 + FiLM항목전 (OWLv2+Kosmos-2 + MLP)후 (Florence-2 단일 + FiLM)변화
+모델 수 / 파라미터
+2개 / 458M
+1개 / 231M
+절반
+연산량
+1277 GFLOPs
+467 GFLOPs
+2.7× 감소
+비전 토큰
+3601 (OWLv2 960px 전역 attention)
+577 (DaViT)
+6.2× 감소
+가중치 (fp32 메인)
+≈1227MB
+≈926MB
+1.3× 감소
+젯슨 fp32 지연
+1971ms
+817ms
+2.41×
+서버 fp32 지연
+492ms
+180ms
+2.73×
+PM (같은 입력 특징)
+OWLv2 bbox 78.38%
+F2 bbox 78.38%
+손실 없음
+헤드 PM (F2 입력)
+concat MLP 76.76% (241,608)
+FiLM 78.41% (144,872)
++1.65%p, 파라미터 40%↓
+CH59 cx 포화 결함
+있었음
+재현 안 됨 (cx max 0.9955)
+해소
+플랜 2 · 텍스트 서브골 결합항목결과
+목표
+frozen CLIP text를 서브골 FiLM에 결합해 "진짜 VLA" 방향 검증
+결과
+PM 하락 / 이득 없음 — 방향 텍스트는 bbox+이미지와 정보가 겹침 (75-5, 75-6)
+부산물
+서브골 종류별 상한 측정: 곡선 종류 오라클이 유일하게 유의한 이득(+1.22%p)</p>
+</div>
+<div class="card">
+<p><strong>75-3. 속도·리소스 — 규격 벤치 (동일 코드·동일 V6 프레임·메인 dtype fp32)</strong></p>
+<p>젯슨 fp32 · A 현재(OWLv2+Kosmos-2)1971ms젯슨 fp32 · B F2 분리 호출1404.4ms젯슨 fp32 · C F2 fused817.4ms서버 fp32 · A 현재491.6ms서버 fp32 · B F2 분리315.1ms서버 fp32 · C F2 fused180ms환경 · dtypeA 현재B 분리C fusedC vs AC vs B
+젯슨 Orin NX fp32 (메인)
+1971.0ms
+1404.4ms
+817.4ms
+2.41×
+1.72×
+젯슨 fp16
+1018.0ms
+582.2ms
+372.1ms
+2.74×
+1.56×
+서버 GB10 fp32 (메인)
+491.6ms
+315.1ms
+180.0ms
+2.73×
+1.75×
+서버 fp16
+360.3ms
+275.4ms
+201.1ms
+1.79×
+1.37×
+측정: scripts/bench_egvla2_unified.py (warmup10/iters50). 서버 F2는 fp16이 fp32보다 느림(디코딩 호출 오버헤드 지배). 폐기 수치(5.3× 등)는 dtype/구성 불일치였고 CH74-3에 정정 이력이 있다. 젯슨 값은 로봇 세션이 측정해 git으로 받은 값. 상세 CH74.</p>
+</div>
+<div class="card">
+<p><strong>75-4. 정확도(PM) 비교 — 입력·그라운더·헤드 조합</strong></p>
+<p>입력 구성concatconcat_smallsteeredsteered_reg
+CH73 · OWLv2 bbox + 16×16 이미지
+69.58±2.10
+69.45±3.49
+71.68±1.24
+72.37±1.39
+OWLv2 bbox + F2 768-d 특징 (대조)
+76.77±1.01
+76.68±1.23
+78.36±1.03
+78.38±1.21
+F2 bbox + F2 768-d 특징 (채택안)
+76.76±1.08
+76.70±1.05
+78.41±0.74
+78.38±0.96
+- 상승의 원인은 특징이다. 같은 F2 특징에서 OWLv2 bbox와 F2 bbox는 PM이 같다(78.38 vs 78.38). 그라운더 교체 단독 이득이라 주장하면 안 된다.
+- FiLM 서브골 조향은 어느 입력에서도 유의하게 우세 (steered vs concat: F2 입력 p=1.6e-5, OWLv2 bbox 입력 p=4.3e-5).
+- steered_reg의 추가 이득은 재현 안 됨 (vs steered p=0.79~0.91). F2가 거의 항상 박스를 내서(has_bbox 99.96%) 실패 프레임 자체가 드물기 때문일 가능성(미검증).
+지표: frame-level PM(teacher-forced replay). 프로토콜상 best-epoch를 테스트셋 기준으로 선택해 절대값이 낙관적이나 조건 간 비교는 동일 적용. F2 특징 캐시는 fp16으로 생성.</p>
+</div>
+<div class="card">
+<p><strong>75-5. 서브골 종류별 비교 — bbox만(steered_reg) 대비 PM 증감</strong></p>
+<p>기준: 같은 seed·같은 분할의 bbox만 steered_reg (78.3% 안팎). 쌍체 t-검정, 10-seed.
+CLIP 방향 텍스트 (768-d)-1.41%p방향 one-hot (5-d)-0.29%p경로 전체 one-hot (15-d, 오라클)+0.95%p곡선 종류 one-hot (3-d, 오라클)+1.22%p서브골 종류PMΔ vs bbox만p텍스트 교체 프로브 (정상→다른 라벨)예측 flip
+시각 bbox FiLM (채택 중)
+78.41%
+vs concat +1.65%p
+1.6e-5
+—
+—
+CLIP 방향 텍스트
+76.92%
+−1.41%p
+0.0003
+75.4%→69.9%
+13.2%±10.6 (불안정)
+방향 one-hot (5)
+78.07%
+−0.29%p
+0.24
+76.8%→74.6%
+12.6%±3.3
+곡선 종류 one-hot (3, 오라클)
+79.53%
++1.22%p
+0.0002
+78.3%→44.1%
+54.1%
+경로 전체 one-hot (15, 오라클)
+79.25%
++0.95%p
+0.0006
+78.1%→50.9%
+45.3%
+읽는 법: 방향 서브골은 모델이 일관되게 쓰지만 이득이 없고, 곡선 종류 서브골은 모델이 강하게 의존(교체 시 −34%p)하면서도 이득은 +1.2%p에 그친다. 곡선·경로 값은 정답 라벨을 그대로 준 오라클 상한이며 실제 지시로 얻을 수 있는 값이 아니다.</p>
+</div>
+<div class="card">
+<p><strong>75-6. 왜 우리 태스크에서 서브골(텍스트)이 안 먹었나 — 진단</strong></p>
+<ul>
+<li>방향은 이미 관측된다 (정보 중복). 목표(회색 바구니)는 항상 화면에 보이고, bbox 위치가 곧 방향이다. 방향 one-hot을 줘도 −0.29%p(p=0.24). 과거 ablation도 같은 결론: bbox만 67.4% / 이미지만 75.6% / 둘 다 76.7%, EGVLA1 text attention 0%.</li>
+<li>보이지 않는 변수는 "곡선 종류"다. 경로 유형별 PM을 보면 직선 88~94%인데 곡선은 60~75%(weak_right_left_curve 60.5%, center_left_curve 63.9%). 같은 화면에서도 어느 쪽으로 휘는 경로인지는 이미지만으로 정해지지 않는다. 방향 텍스트는 이 정보를 담지 않았다. 곡선 종류를 오라클로 주면 유일하게 유의한 이득(+1.22%p).</li>
+<li>그래도 이득이 작다. 오라클을 줘도 +1.2%p다. 남은 오류는 곡선 안에서 "언제 꺾는가"(프레임 수준 타이밍 모호성)일 가능성이 있으나 미검증 가설이다.</li>
+<li>CLIP이 추가로 해를 끼쳤다. 방향 문장 임베딩이 weak_left↔weak_right 코사인 0.98로 left/right를 거의 구분하지 못하고, seed별 flip 1.8~24.6%로 불안정하다. one-hot 대비 −1.1%p 열세(원인은 미검증).</li>
+<li>태스크 구조상 언어가 필요 없다. 목표가 하나이고 항상 보이는 단일 타깃 내비게이션이라, 언어는 "무엇을 향해"를 알려줄 일이 없다. 언어 서브골이 정보를 더하는 조건은 (a) 복수 타깃 중 선택, (b) 경로 선택 지시("왼쪽으로 돌아가"), (c) 장기 다단계이다. 현 데이터에는 이 셋이 없다.</li>
+</ul>
+</div>
+<div class="card">
+<p>🟢 채택 판단
+시각 서브골(bbox FiLM): 채택 · 방향 텍스트: 비채택 · 경로(곡선) 지시: 사용자가 경로를 지시하는 시나리오가 생기면 후보. 그때는 CLIP 문장보다 구조화된 토큰(one-hot/학습 토큰)이 낫다.</p>
+</div>
+<div class="card">
+<p><strong>75-7. 한계와 다음 단계</strong></p>
+<p>한계
+- PM은 teacher-forced 오프라인 지표. 진짜 closed-loop 성공률과의 연결은 미검증.
+- 곡선·경로 서브골은 정답 라벨을 그대로 준 오라클. 실제 지시 인터페이스 없이는 적용 불가.
+- 사람검증 329개는 OWL 실패 편향 표본. 일반 정확도로 해석 금지.
+- has_bbox 오검출 정의는 "부재 프롬프트 박스" 대리 지표.
+- F2 특징 캐시 fp16 생성(메인 fp32). 젯슨 수치는 로봇 세션 측정.
+다음 (데이터 수집 시 같이)
+- 바구니가 시야 밖인 부재 프레임을 의도적으로 포함해 has_bbox 기준 라벨 확보.
+- 경로 선택을 지시하는 시나리오를 둘지 결정하고, 둘 경우 지시 문장 로그를 같이 수집.
+- 500~1000ep 확대 후 같은 스크립트로 steered&gt;concat 유의성 재검증.
+- 젯슨 전력·실측 메모리, 실주행 closed-loop.
+스크립트: eval_subgoal_steering_florence2_v6.py(BBOX_SOURCE), eval_subgoal_steering_text_v6.py(TEXT_MODE=clip|onehot|curve|path), calibrate_f2_has_bbox.py, bench_egvla2_unified.py. 원자료: docs/v5/subgoal_steering_eval/summary_*.json. 상세 이력은 CH73·CH74.
+ctabInit("ch75")</p>
+</div>
+<p><a class="src-link" href="../v5/research_story.html#ch75">→ 원문 전체 보기 (research_story.html#ch75)</a></p>
 </div>
 </main>
 </div>

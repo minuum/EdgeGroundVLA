@@ -104,7 +104,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <div class="sidebar-sub">주제별 재구성 · research_story.html 기반</div>
 <div class="sidebar-section">주제</div>
 <a class="side-link" href="wiki-infrastructure.html">연구 위키 & 문서 인프라<span class="n">1</span></a>
-<a class="side-link" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">20</span></a>
+<a class="side-link" href="grounding-detector.html">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)<span class="n">21</span></a>
 <a class="side-link" href="action-head-architecture.html">액션헤드 아키텍처 & 손실함수 실험<span class="n">13</span></a>
 <a class="side-link" href="language-conditioning.html">언어 조건화 & 텍스트 어텐션 구조적 사망<span class="n">6</span></a>
 <a class="side-link" href="flow-matching-vla.html">Flow Matching / π0 스타일 연속 액션<span class="n">1</span></a>
@@ -129,7 +129,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <span class="topic-card-summary">research_story.html을 주제별로 재구성한 LLM wiki 구축(Karpathy 방식), 새 챕터 추가 시 안전 재동기화(wiki-sync 스킬), 아카이브 색인 등 문서화 도구 자체에 대한 기록.</span>
 </a></p>
 <p><a class="topic-card accent-b" href="grounding-detector.html">
-<span class="topic-card-count">20개 챕터</span>
+<span class="topic-card-count">21개 챕터</span>
 <span class="topic-card-title">그라운딩/검출기 (OWL-v2, Florence-2, PaliGemma, phrase grounding)</span>
 <span class="topic-card-summary">타겟 물체를 이미지에서 찾아내는 검출기 계열 전체 이력 — PaliGemma2 → Kosmos-2/OWL-v2 → Florence-2로 이어지는 그라운딩 방식 전환과 재현율 개선.</span>
 </a></p>
@@ -185,7 +185,7 @@ a.topic-card:hover{transform:translateY(-2px);border-color:var(--ink-dim)}
 <div class="summary-box">
 <p><strong>메타</strong></p>
 <ul>
-<li>원본 챕터 수: 85개 (<code>docs/v5/research_story.html</code>)</li>
+<li>원본 챕터 수: 86개 (<code>docs/v5/research_story.html</code>)</li>
 <li>위키 주제 수: 10개</li>
 <li>생성 스크립트: <code>scripts/wiki/parse_research_story.py</code>, <code>scripts/wiki/build_wiki_pages.py</code>, <code>scripts/wiki/build_archive_index.py</code>, <code>scripts/wiki/render_wiki_html.py</code></li>
 <li><strong>새 챕터 추가 시 자동 갱신</strong>: <code>wiki-sync</code> 스킬(<code>.claude/skills/wiki-sync/SKILL.md</code>) 또는 <code>scripts/wiki/sync_wiki.py</code> 직접 실행 — 기존 압축 요약은 보존되고, 새로 추가된 챕터가 걸린 주제만 재압축 대상으로 표시됨</li>
