@@ -36,10 +36,26 @@ def compute_hist():
     return dict(bins=bins.tolist(), v1=h1, n1=n1, v2=h2, n2=n2)
 
 
-def wrap(title, inner, note=""):
-    n = f'<div style="font-size:0.74rem;color:#64748b;margin-top:8px">{note}</div>' if note else ""
-    return (f'<div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;padding:14px 16px;margin:14px 0">'
-            f'<div style="color:{AL};font-size:0.82rem;font-weight:800;margin-bottom:10px">{title}</div>{inner}{n}</div>')
+KINDS = {"chart": ("📊 그래프", B), "flow": ("🔀 구조도·플로우", P), "img": ("🖼 실제 데이터", G), "table": ("▦ 표·비교", A)}
+
+
+def badge(kind):
+    t, c = KINDS[kind]
+    return f'<span style="display:inline-block;background:{c}22;color:{c};border:1px solid {c};border-radius:999px;padding:1px 10px;font-size:0.68rem;font-weight:800;margin-right:8px;vertical-align:middle">{t}</span>'
+
+
+def wrap(title, inner, note="", kind=None):
+    if kind is None:
+        kind = "img" if "<img" in inner else "table" if "<table" in inner else "chart" if ("<svg" in inner or "height:16px" in inner) else "flow"
+    c = KINDS[kind][1]
+    n = f'<div style="font-size:0.74rem;color:#64748b;margin-top:8px;border-top:1px dashed #334155;padding-top:6px">※ {note}</div>' if note else ""
+    return (f'<div style="background:#0a1628;border:1px solid #1e3050;border-left:6px solid {c};border-radius:10px;padding:14px 18px;margin:18px 0">'
+            f'<div style="margin-bottom:10px">{badge(kind)}<span style="color:{AL};font-size:0.95rem;font-weight:800">{title}</span></div>{inner}{n}</div>')
+
+
+def img(src, cap):
+    return (f'<a href="{src}" target="_blank"><img src="{src}" style="width:100%;border-radius:8px;border:1px solid #1e3050;display:block"></a>'
+            f'<div style="font-size:0.78rem;color:#94a3b8;margin-top:6px;line-height:1.6">{cap}</div>')
 
 
 def hbars(rows, maxv, unit="", w=170):
@@ -116,6 +132,9 @@ def build(hist):
         "② 문제 → 원인 → 조치",
         flow([("약한 스틱(<0.5) 입력", MUT), ("<code>if key:</code> 게이트 (임계 0.5)", R, "발행·기록 안 됨"), ("v1 비영 2,048프레임 중 3개", R, "max|v|&lt;0.5"),
               ("게이트 → 크기&gt;0 발행", G, "수정"), ("+ 게이지·방사형 데드존", G, "중간값 75%")]))
+    V["t1"] += wrap("③ 스틱 평면에서 본 변화 — v1 수집 40건 vs 파일럿 v2 15건 (실제 데이터)", img("egvla2_fm/figures/ch76_stick_plane.jpg",
+        "가로=좌우, 세로=전후. 노란 사각형은 v1 게이트(<code>if key:</code>)가 지우던 영역(세 축 모두 |값|&lt;0.5). v1은 점이 모서리·끝에 몰리고 사각형 안은 비어 있다. v2는 사각형 안과 원 안쪽 전 구간에 입력이 있다."),
+        "비영 프레임만 표시, 겹침을 줄이려 점마다 ±0.012 지터")
     # ---------- t2 ----------
     V["t2"] = wrap("① 수집 경로 비교 — 이전(v1) vs 지금(v3)",
         '<div style="font-size:0.74rem;color:%s;margin-bottom:4px">이전 (v1, 40건)</div>' % R
@@ -125,6 +144,9 @@ def build(hist):
         "초록 = 이번에 바뀐 단계, 빨강 = 이전의 문제 단계") + wrap(
         "② 저장 필드 변화",
         flow([("v1: <code>actions</code> 1개", R, "의미 모호"), ("v2: raw + scaled", A, "버전 분리"), ("v3: raw + scaled + exec + frame_timestamps", G, "derive_version, 속도 보정 attrs")]))
+    V["t2"] += wrap("③ 실제 에피소드 한 개의 기록 — 프레임, 스틱 HUD, 속력 단계, 시계열 (파일럿 v2)", img("egvla2_fm/figures/ch76_pilot_episode.jpg",
+        "위: 8프레임(초록 + = Florence-2가 찾은 바구니 중심). 가운데: 그 프레임의 스틱(화살표=방향, 길이=크기)과 속력 단계. 아래: raw lx·ly와 exec 속력 단계(노랑) 시계열 — 음영은 v1 게이트가 지우던 구간. 한 에피소드 안에 느림·보통·빠름 단계가 모두 기록된다."),
+        "에피소드는 속력 단계 수·스틱 변화량이 가장 큰 것으로 자동 선택 (<code>scripts/gen_ch76_figures.py</code>)")
     # ---------- t3 ----------
     bins = hist["bins"]; n1, n2 = hist["n1"], hist["n2"]
     cats = [f"{bins[i]:.1f}" for i in range(len(hist["v1"]))][:11]
@@ -137,6 +159,9 @@ def build(hist):
         hbars([("1. key 게이트가 약한 입력 제거", 100, R, "치명 · 수정 쉬움"), ("2. 구동은 각도만 사용(속력 무반영)", 85, R, "큼 · 결정 필요"), ("3. 회전+이동 동시 입력 불일치", 55, A, "중간 · 규칙 정의"),
                ("4. raw 크기 최대 1.46", 30, A, "낮음 · 문서화"), ("5. az 200ms 홀드", 25, A, "낮음 · 80ms 복귀")], 100, w=250),
         "막대 길이 = 학습 데이터에 미치는 영향(평가자 판단), 문구 = 심각도·수정 난이도")
+    V["t3"] += wrap("③ 약한 스틱 입력이 실제로 기록된 프레임 4개 (v2)", img("egvla2_fm/figures/ch76_weak_stick_frames.jpg",
+        "각 프레임에서 스틱 크기가 0.37~0.45로 v1 게이트였다면 발행·기록되지 않았을 입력이다. 스틱을 조금만 밀어 천천히 움직이는 장면에서 실제로 나타난다."),
+        "v2 raw 크기 0.15~0.45 구간 프레임 중 에피소드별 1개 선택")
     # ---------- t4 ----------
     V["t4"] = wrap("① 선택지 비교 매트릭스 (평가자 판단 기준, 데이터 근거는 76-3·76-6)",
         heat([("라벨 = 실제 구동 일치", [0, 2, 2]), ("감속(속력) 정보 학습", [2, 0, 1]), ("odom 없이 효과 검증 가능", [0, 2, 2]), ("구현·보정 비용 낮음", [1, 2, 1]), ("라벨 노이즈 위험 낮음", [0, 2, 1])],
@@ -144,6 +169,9 @@ def build(hist):
         "A는 구동이 크기를 쓰지 않는 한 라벨이 실제와 어긋남. C는 보정(스톱워치) 이후 일치.") + wrap(
         "② 결정 흐름 — 채택은 C(보정 완료)",
         flow([("① 게이트 수정", G, "완료"), ("② B로 파일럿 (라벨=실제)", MUT, "건너뜀"), ("③ 스톱워치 보정", G, "완료 14.45/20.64/26.36 cm/s"), ("④ C로 확장 (v3)", G, "채택"), ("A", R, "odom 전까지 보류")]))
+    V["t4"] += wrap("③ 같은 프레임에서 A/B/C 라벨이 어떻게 달라지는가 (실제 데이터)", img("egvla2_fm/figures/ch76_conversion_example.jpg",
+        "raw 한 개에서 A(원형게이트), B(각도+GO), C(각도+속력 단계)가 결정적으로 파생되고, 실제 구동값(exec)은 구동 방식 C가 만든 값이다. 크기가 0.66이면 B는 GO, C는 ‘보통(0.7)’이 된다."),
+        "A는 크기를 보존하지만 실제 속도는 단계로만 반영됨 → A 라벨의 크기는 구동과 일치하지 않는다")
     # ---------- t5 ----------
     V["t5"] = wrap("① 로드맵 — 완료 / 대기",
         flow([("게이트 수정", G, "✅"), ("구동 C + 보정", G, "✅"), ("v3 파일럿 15ep 합격", G, "✅"), ("지표 정의 고정 (raw)", G, "✅"), ("FM A/B/C 5-fold", G, "✅"), ("B2·조기 종료", A, "진행"), ("waypoint 적분 시험", A, "진행"),
@@ -200,13 +228,16 @@ def build(hist):
                 + f'<text x="28" y="{Hh + 8}" font-size="8" fill="#94a3b8">epoch 1</text><text x="{W - 38}" y="{Hh + 8}" font-size="8" fill="#94a3b8">150</text>'
                 + f'<text x="2" y="12" font-size="8" fill="#94a3b8">{hi:.2f}</text><text x="2" y="{Hh - 10}" font-size="8" fill="#94a3b8">{lo:.2f}</text></svg>',
                 "최저점 이후 올라가면 과적합. 아래로 갈수록 좋음")
+    V["t7"] = V.get("t7", "") + wrap("⑤ 생성된 액션 vs 정답 — 학습에 쓰지 않은 에피소드 (실제 데이터)", img("egvla2_fm/figures/ch76_fm_prediction.jpg",
+        "노랑 = 정답(exec), 색 영역 = 샘플 16개 범위, 선 = 샘플 평균. 이 에피소드는 좌우(ly)가 거의 0인 직진인데 모델이 ly≈0.3을 섞어 내는 구간이 있다 — 학습 데이터가 우곡선 위주라 직진 에피소드 일반화가 약하다는 것을 보여 주는 정직한 예시. A는 전후(lx) 추세를 따라가지만 단계 값(0.4/0.7/1.0)은 부드럽게 평균낸다."),
+        "5-fold 중 fold 3의 hold-out 1ep, 60 epoch, seed 0 (별도 실행)")
     if s_wp:
         r = s_wp["results"]
         rows = []
         for k, c in (("chunk|A_mlp_fm", MUT), ("waypoint|A_mlp_fm", G), ("chunk|C_pi0_adaln", MUT), ("waypoint|C_pi0_adaln", B)):
             if k in r: rows.append((k.replace("|", " · "), c, r[k]["r2"]))
         if rows:
-            V["t7"] = V.get("t7", "") + wrap("⑤ 명령 적분 → waypoint 타깃 시험 (V6 225ep, 마지막 waypoint의 R²)", legend([(a_, c) for a_, c, _ in rows])
+            V["t7"] = V.get("t7", "") + wrap("⑥ 명령 적분 → waypoint 타깃 시험 (V6 225ep, 마지막 waypoint의 R²)", legend([(a_, c) for a_, c, _ in rows])
                 + vgroups(["lx", "ly", "az"], [(a_, c, [max(v[0], 0), max(v[1], 0), max(v[2], 0)]) for a_, c, v in rows], 1.0, fmt="{:.2f}", bw=18),
                 "같은 분할·입력에서 chunk(명령 8개)와 waypoint(누적합) 타깃을 같은 척도(마지막 waypoint)로 비교. V6 명령은 ±1.15 이산값, 속도·시간 미보정(프레임 단위)")
     # ---------- t8 ----------
@@ -222,6 +253,31 @@ def build(hist):
     return V
 
 
+
+PILLS = {"판단": G, "추천": B, "한계": R, "다음": A, "남은 것": A, "실측 근거": MUT, "설정": MUT, "FM 학습에 미치는 영향": P, "동시 수집 구조(제안)": P,
+         "결과": G, "조기 종료": A, "B2 시험(후속)": B}
+
+
+def pill(label, col):
+    return f'<span style="display:inline-block;background:{col}22;color:{col};border:1px solid {col};border-radius:6px;padding:0 8px;font-size:0.76rem;font-weight:800;margin-right:4px">{label}</span>'
+
+
+def style_text(seg):
+    for label, col in PILLS.items():
+        seg = seg.replace(f"<b>{label}</b>", pill(label, col))
+    # 번호 소제목(<b>① …</b>) → 구분선 있는 소제목 블록
+    seg = re.sub(r"<b>([①②③④⑤⑥])\s?([^<]{2,90})</b>",
+                 lambda m: f'<div style="margin:16px 0 6px;padding-bottom:4px;border-bottom:2px solid {A}55;color:{AL};font-size:0.92rem;font-weight:800">{m.group(1)} {m.group(2)}</div>', seg)
+    return seg
+
+
+LEGEND = ('<!--LEG76--><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 4px;font-size:0.76rem;color:#94a3b8">'
+          '<span style="font-weight:800;color:#e2e8f0">읽는 법</span>' + "".join(badge(k) for k in KINDS)
+          + '<span style="display:inline-block;background:#33415522;color:#cbd5e1;border:1px solid #475569;border-radius:999px;padding:1px 10px;font-size:0.68rem;font-weight:800">📝 설명(왼쪽 선 없는 본문)</span>'
+          + pill("판단", G) + pill("추천", B) + pill("한계", R) + pill("다음", A) + "</div><!--/LEG76-->")
+
+
+
 def main():
     hist = compute_hist()
     V = build(hist)
@@ -229,6 +285,7 @@ def main():
     a = s.index('<div class="chapter" id="ch76">'); b = s.index("/CH76 ═")
     seg = s[a:b]
     seg = re.sub(r"<!--VIZ76-->.*?<!--/VIZ76-->", "", seg, flags=re.S)
+    seg = re.sub(r"<!--LEG76-->.*?<!--/LEG76-->", "", seg, flags=re.S)
     starts = [(m.start(), m.group(1)) for m in re.finditer(r'  <div class="ctab-panel" data-t="(t\d)"', seg)]
     tail = seg.index('  <script>ctabInit("ch76")</script>')
     bounds = [st for st, _ in starts][1:] + [tail]
@@ -240,6 +297,9 @@ def main():
             chunk = chunk[:k] + "<!--VIZ76-->" + V[tid] + "<!--/VIZ76-->" + chunk[k:]
         out += chunk
     seg = out + seg[tail:]
+    seg = style_text(seg)
+    k = seg.index('<div class="ctab-bar">')
+    seg = seg[:k] + LEGEND + seg[k:]
     s = s[:a] + seg + s[b:]
     HTML.write_text(s, encoding="utf-8")
     for t in ["div", "svg", "table", "tr", "button"]:
