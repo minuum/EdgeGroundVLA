@@ -116,3 +116,19 @@
 참고(업데이트된 페이지, 위 내용 전부 반영):
 - https://claude.ai/artifact/QdW316Tw7HXVfBvsdSaNKb
 - http://100.85.118.58:7800/static/egvla2_continuous_pipeline.html
+
+## 9. 학습 서버 측 코드 리뷰 — 푸시된 `62e722bc` 실제 코드 기준 (2026-10-13)
+
+> 대상: `mona_dashboard.py` `DashboardJoystickReader._loop`(≈1030~1130), `_save_episode_data`(≈597~663), `vla_control_utils.py`. 데이터는 아직 v1 40건뿐이라 **v2 동작은 실측 못 함**(코드 읽기 + v1 데이터 검증).
+
+**확인된 것(보고와 일치)**: `action_space=egvla2_continuous_v2`, `actions`=raw/`actions_scaled`=구동값, `action_classes`는 구동값에서 역산, `frame_timestamps`·`action_value_semantics`·`joystick_speed_setting` 저장, 방사형 데드존+재조정, 원형게이트(mag>1 정규화), az 200ms 경과시간 디바운스, continuous 분기는 `WASD_TO_VEL`·`az_blend` 미사용.
+
+**문제 (중요도 순)**
+1. **`if key:` 게이트가 중간값을 지운다 (가장 큼)**: 발행은 `key = _axis_to_key(lx,ly,az)`(THRESHOLD 0.50)가 None이 아닐 때만 일어난다. 세 축 모두 |v|<0.5이면 key=None → (JITTER_HOLD 0.3s 이후) 발행·기록 없음 = 사실상 정지. 실제로 v1 40건 비영 2,048프레임 중 `max|v|<0.5`는 **3프레임**뿐이다 — 연속 입력이 있어도 약한 스틱은 기록되지 않는다(이것이 "중간값이 거의 없다"의 한 원인으로 보임). v2는 방사형 재조정으로 실효 데드존이 raw 크기 약 0.575까지 커져 더 심해진다. **수정**: continuous 모드에서는 key 게이트 대신 `mag>0`(또는 `|az|>0`)이면 발행하고, key는 UI 라벨용으로만 쓸 것. 파일럿 합격 기준(중간값 ≥50%)은 이 수정 없이는 달성 불가.
+2. **실제 구동은 크기를 쓰지 않는다**: `publish_and_move`는 `driver.move(angle, throttle)` — 각도만 연속이고 속력은 고정 throttle이다. `lx,ly` 크기(0.3 vs 1.0)가 물리 속도에 반영되지 않는다. 그러면 `actions_scaled`의 크기는 로봇이 실제로 낸 속도가 아니라 라벨일 뿐이어서, 명령 적분으로 궤적을 복원해도 크기 성분이 틀린다. 선택: (a) 크기를 throttle에 반영(`throttle×mag`)하거나, (b) 속력 연속값을 라벨에서 제외하고 "방향각 연속+고정 속력"으로 문서화(학습 타깃도 각도 중심). 어느 쪽인지 결정 필요.
+3. **회전과 이동이 동시에 기록되지만 구동은 회전만**: `|az|>0.1`이면 `driver.spin`만 호출하고 이동은 무시한다. 기록값은 (lx,ly,az) 동시값이라 라벨과 실제가 어긋난다. 동시 입력 시 az를 0으로 기록하거나, 구동도 혼합하도록 맞출 것.
+4. **raw가 1.0을 넘을 수 있음**: 사각 게이트 패드에서 대각선 풀 입력이면 `mag_axis`≈1.41 → 재조정 후 raw 크기 ≈1.46. `actions`(raw) 범위를 문서화하고, 학습은 `actions_scaled`를 쓸 것.
+5. **az에는 방사형 처리가 없다**: 축별 `rd()` 컷 + 200ms 홀드. 200ms 홀드는 진짜 짧은 회전 입력도 지운다. 단독 스파이크가 0인지는 데이터로 확인해야 한다.
+6. **프레임 저장이 발행 시점**: `on_command`가 호출될 때마다 프레임을 추가한다(≈10Hz 상한, 연속 STOP은 1개로 압축). `frame_timestamps`로 실제 간격을 보고 학습 쪽에서 리샘플 여부를 정한다.
+
+**다음**: 위 1·2를 반영한 뒤 파일럿 10에피소드를 찍어 v2 파일을 `ROS_action/mobile_vla_dataset_egvla2/`에 올려 주면 `scripts/check_continuous_collection_quality.py --per-episode`로 중간값·코너·스파이크를 판정한다(v2는 `actions_scaled`를 읽도록 스크립트 수정 필요 — 파일 도착 시 학습 서버가 처리).
