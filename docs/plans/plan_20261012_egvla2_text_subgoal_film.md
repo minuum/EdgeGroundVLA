@@ -114,3 +114,6 @@ Exp54 5-Track 검증([[project_exp54_5track_validation]])과 동일한 masking/p
 - 산출: `docs/v5/subgoal_steering_eval/summary_text_steering_v6.json`
 - 후속 대조 완료 (one-hot 5-d, `TEXT_MODE=onehot`): 78.07% vs bbox-only 78.36% (Δ−0.29%p, p=0.24), 교체 프로브 −2.2%p(p=0.0005)·flip 12.6%±3.3 → 방향 신호는 안정적으로 쓰이나 PM 이득 없음. CLIP은 여기에 하락·불안정을 추가. 결론: 이 구조에서 텍스트 서브골은 bbox+이미지 대비 추가 정보 없음. 산출 `summary_text_steering_v6_onehot.json`
 - 미착수: text_proj 차원 스윕(결론 바뀔 가능성 낮아 보류)
+
+### 5.1 정직한 체크포인트 선택 재측정 (2026-10-13)
+inner-val(학습 에피소드 20%)로 epoch 선택, 테스트 미사용. 낙관 편향 0.7~1.2%p, 결론 유지: CLIP −1.18%p(p=0.005), one-hot −0.35%p(p=0.31), 곡선 종류 오라클 +1.64%p(p=0.003), 경로 +1.13%p(p=0.035). `summary_honest_f2_v6_*.json`, 스크립트 `eval_honest_selection_f2_v6.py`. 상세 CH75-8.
