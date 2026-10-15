@@ -5,6 +5,7 @@ precompute_v6_florence2_fused.py와 동일한 방식(_encode_image 1회 + phrase
 대상만 ROS_action/mobile_vla_dataset_egvla2/ 의 v3 파일이다 (images는 최상위 키).
 출력: docs/v5/egvla2_fm/v3_florence2_cache.npz
   "{파일명}|bbox" (n,4)[cx,cy,area,has_bbox], "{파일명}|feat" (n,768) float16, 프레임은 h5 전 프레임 순서.
+이미 캐시에 있는 파일은 건너뛴다(증분 갱신). rsync 중인 임시 파일(.으로 시작)은 glob에서 제외됨.
 실행: HF_HUB_OFFLINE=1 .venv/bin/python3 scripts/precompute_egvla2_continuous_features.py
 """
 import sys
@@ -37,8 +38,10 @@ def main():
     print(f"v3 파일 {len(files)}개", flush=True)
     model = AutoModelForCausalLM.from_pretrained(MODEL, trust_remote_code=True, torch_dtype=torch.float16).to(DEV).eval()
     proc = AutoProcessor.from_pretrained(MODEL, trust_remote_code=True)
-    cache, t0 = {}, time.time()
+    cache, t0 = (dict(np.load(OUT)) if OUT.exists() else {}), time.time()
     for i, p in enumerate(files):
+        if f"{p.name}|feat" in cache:
+            continue
         with h5py.File(p, "r") as f:
             imgs = f["images"][:]
         pils = [Image.fromarray(np.ascontiguousarray(im[:, :, ::-1]).astype(np.uint8)).convert("RGB") for im in imgs]

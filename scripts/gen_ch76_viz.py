@@ -346,6 +346,76 @@ def t9_card():
     return f'<div class="finding-card" style="border-color:{A}"><div class="finding-title" style="color:{A}">76-9. 우리는 어떻게 할까 — 속력 정책 방향 (수집·학습·추론)</div><div style="font-size:0.85rem;line-height:1.8;color:#94a3b8">{body}</div></div>'
 
 
+def t10_card():
+    V = json.load(open(FM / "validation_batch.json"))
+    S1 = json.load(open(FM / "summary_s1.json")); S2 = json.load(open(FM / "summary_s1_azmask.json"))
+    ag = V["aggregate"]
+    pill_ = lambda l, c: f'<span style="display:inline-block;background:{c}22;color:{c};border:1px solid {c};border-radius:6px;padding:0 8px;font-size:0.76rem;font-weight:800;margin-right:4px">{l}</span>'
+    H = lambda t: f'<div style="margin:16px 0 6px;padding-bottom:4px;border-bottom:2px solid {A}55;color:{AL};font-size:0.92rem;font-weight:800">{t}</div>'
+    def tbl(head, rows):
+        h = "".join(f'<th style="text-align:left;padding:7px 10px;border-bottom:2px solid {A};color:{AL}">{x}</th>' for x in head)
+        o = f'<table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:0.8rem"><tr style="background:#0a1220">{h}</tr>'
+        for r in rows: o += "<tr>" + "".join(f'<td style="padding:6px 10px;border-bottom:1px solid #1e293b">{x}</td>' for x in r) + "</tr>"
+        return o + "</table>"
+    iso, nz = ag["az_spike"]
+    lv = ag["level_dist"]
+    cells = {}
+    for k, v in ag["paths"].items(): cells[k] = v
+    pos = ["center", "weak_left", "strong_left", "weak_right"]; pth = ["left_curve", "straight", "right_curve"]
+    grid = f'<table style="border-collapse:collapse;font-size:0.78rem;margin:6px 0"><tr><th style="padding:5px 10px;color:{AL}">위치 \\ 경로</th>' + "".join(f'<th style="padding:5px 10px;color:{AL}">{x}</th>' for x in pth) + "</tr>"
+    for ps in pos + ["strong_right"]:
+        grid += f'<tr><td style="padding:5px 10px;color:{MUT}">{ps}</td>'
+        for ph in pth:
+            n = cells.get(str((ps, ph)), 0); col = G if n >= 20 else (A if n else R)
+            grid += f'<td style="padding:5px 10px;text-align:center;background:{col}22;color:{col};font-weight:800;border:1px solid #1e293b">{n}/20</td>'
+        grid += "</tr>"
+    grid += "</table>"
+    names = ["STOP", "FORWARD", "LEFT", "RIGHT", "FWD+L", "FWD+R", "ROT_L", "ROT_R"]
+    cls = vgroups(names, [("신규 v3", B, [ag_ * 100 for ag_ in [V["class_dist_new"][n] for n in names]]), ("V6", MUT, [V["class_dist_v6"][n] * 100 for n in names])], 50, fmt="{:.1f}")
+    prof = V["aggregate"]["profile"]
+    pr = vgroups(["0~10%", "10~30%", "30~70%", "70~90%", "90~100%"], [("신규 평균 크기", B, [q["mean_mag"] for q in prof]), ("가이드 목표(§12)", A, [0.42, 0.67, 0.72, 0.62, 0.44])], 1.0, fmt="{:.2f}")
+    a1, a2 = S1["aggregate"], S2["aggregate"]
+    arch = ["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"]
+    r2 = vgroups(["lx", "ly", "az"], [("MLP 회귀(MSE 기준 환산 아님)", MUT, [0, 0, 0])] and [(n.split("_")[0] + " FM", c, a1[n]["r2_mean_axis"]) for n, c in zip(arch, (B, G, A))], 1.0, fmt="{:.2f}")
+    mse_rows = [["평균 기준선", *[f"{x:.3f}" for x in a1["A_mlp_fm"]["base_mean_mse_axis"]], "-", "-"], ["MLP 회귀", *[f"{x:.3f}" for x in a1["MLP_regression"]["mse_axis"]], "-", "-"]]
+    for n in arch:
+        mse_rows.append([n, *[f"{x:.3f}" for x in a1[n]["mse_mean_axis"]], f"{a1[n]['angle_deg']:.1f}°", f"{a1[n]['go_f1']:.3f}"])
+    body = (pill_("결론", G) + f"신규 v3 {ag['files']}건(10/14분, 18,176프레임)은 <b>읽기 문제 0건</b>이고 라벨 구조도 정상이다. az 단독 스파이크는 <b>{iso}/{nz}={iso / nz:.0%}</b>로 합격 기준(≤25%) 안이라 재수집이 필요 없다. 다만 가이드 이전 수집이라 <b>속력은 아직 거리와 무관(ρ=-0.02)</b>하다. 본학습 세트 218건(20,357프레임)에서 FM 헤드는 평균 기준선보다 방향 축을 잘 맞히지만 <b>단순 MLP 회귀와는 차이가 없다</b>."
+        + H("① 수집 현황 — 5 위치 × 3 경로 (300ep 설계)") + wrap("셀별 도착 수(신규 191건 기준)", grid, "weak_right는 수집 진행 중, strong_right는 미수집. 10/13분 28건은 위치·경로 속성이 비어 있어 ‘unlabeled’로 별도 취급", kind="table")
+        + H("② 검증 결과 — 파일·라벨·품질")
+        + tbl(["항목", "결과", "판정"], [
+            ["파일 읽기·스키마·NaN·타임스탬프", f"{ag['files']}건 모두 통과, 경고 5건(연속 동일 프레임 4건, 주행 중 간격 0.54s 1건)", "정상"],
+            ["제외", "weak_right_straight 1건(18프레임·연속 동일 프레임 33%·NaN/길이 검사 미달)", "세트에서 제외"],
+            ["중간 크기 비율 / 코너 비율", f"{ag['mid_ratio']:.0%} / {ag['corner']:.0%}", "합격(≥50%, ≤20%)"],
+            ["az 단독 스파이크", f"{iso}/{nz} = {iso / nz:.0%}", "합격(≤25%). 초기 32건 시점의 36%는 일부 셀 편중이었고 전체에서는 낮아짐"],
+            ["회전 프레임", f"{ag['spin']['frames']}개 중 이동 입력 동시 {ag['spin']['with_translation']}개 → exec는 회전만 남음(회전 우선 규칙)", "라벨 특성(주의)"],
+            ["속력 단계 분포", f"느림 {lv['0.4']:.0%} / 보통 {lv['0.7']:.0%} / 빠름 {lv['1.0']:.0%} (목표 15~25 / 35~45 / 35~45)", "보통 많고 빠름 적음"],
+            ["속력~바구니 면적 ρ", f"{V['speed_distance']['rho_speed_area']:+.2f} (판정 기준 |ρ|≥0.3)", "미충족 — 가이드 이전 수집"],
+          ])
+        + wrap("진행도별 평균 이동 크기 — 가이드가 의도한 램프와 비교", pr + legend([("신규", B), ("가이드 목표", A)]), "신규는 램프가 약하고 중반이 낮다(0.63 vs 0.72). 가이드(§12.3) 적용 전 수집이라 예상된 결과")
+        + wrap("8-class 분포 — 신규 v3 vs 기존 V6", legend([("신규 v3", B), ("V6", MUT)]) + cls, "FORWARD가 줄고 회전(ROT_L/R)이 늘었다(회전 합 4.7% vs 1.7%). 회전 증가의 일부는 회전 우선 규칙 때문", kind="chart")
+        + H("③ 기존 데이터와의 차이")
+        + tbl(["데이터", "프레임", "고유 raw 액션", "중간 크기 비율", "비고"], [
+            ["V6 (키보드)", "—", "18종 (±1.15 / 0)", "0%", "이산 LUT, 속력 정보 없음"],
+            ["v1 아카이브(40ep)", "2,292", "185", "1%", "약한 스틱이 게이트에 제거, 구동 방식 다름"],
+            ["파일럿 v2(15ep)", "1,236", "356", "75%", "v3 첫 합격 세트"],
+            ["신규 v3(191ep)", f"{ag['frames']:,}", "4,312", f"{ag['mid_ratio']:.0%}", "속력 3단계 구동 C, raw/exec/scaled 3종 저장"]])
+        + H("④ S1 학습 결과 — 본학습 세트 218ep, 5-fold × 5 seed, inner-val 조기 종료")
+        + wrap("축별 R² (평균 기준선 대비 설명 비율)", legend([("A MLP-FM", B), ("B2 FiLM-FM", G), ("C π0형", A)]) + r2, "az는 희소해 R²≈0.05. lx 0.45~0.46, ly 0.67~0.69", kind="chart")
+        + tbl(["모델", "lx MSE", "ly MSE", "az MSE", "방향 오차", "GO/STOP F1"], mse_rows)
+        + f"방향 오차는 이동 중인 프레임의 첫 스텝 방향 각도 차이다. <b>FM 헤드 3종과 MLP 회귀의 MSE 차이는 0.003 이하</b>로 우열을 말할 수 없고, 평균 기준선 대비 개선(lx 0.093→0.05, ly 0.149→0.046)이 핵심이다. 구조 중 C가 방향 오차 {a1['C_pi0_adaln']['angle_deg']:.1f}°로 가장 낮다(A {a1['A_mlp_fm']['angle_deg']:.1f}°, B2 {a1['B2_film_res_fm']['angle_deg']:.1f}°)."
+        + f"<br>{pill_('조기 종료', A)}최적 epoch 평균이 A·B2 {a1['A_mlp_fm']['best_epoch']:.0f}, C {a1['C_pi0_adaln']['best_epoch']:.0f}로 상한(100)에 가까워 <b>epoch을 늘리면 더 좋아질 수 있다</b>(미확인)."
+        + f"<br>{pill_('az 마스크', P)}고립 az 스파이크를 마스킹한 타깃에서는 az MSE가 {a1['A_mlp_fm']['mse_mean_axis'][2]:.3f}→{a2['A_mlp_fm']['mse_mean_axis'][2]:.3f}로 줄었고(기준선도 {a1['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}→{a2['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}) R²는 {a1['A_mlp_fm']['r2_mean_axis'][2]:.2f}→{a2['A_mlp_fm']['r2_mean_axis'][2]:.2f}로 거의 같다. 마스킹으로 az가 학습되는 건 아니다."
+        + H("⑤ 구현·결정 (plan_20261014 · plan_20261015)")
+        + tbl(["항목", "내용"], [
+            ["사용자 결정(10/15)", "폐루프는 15칸×20회=300회로 확대, 속력 출처는 첫 적용 섀도, az는 첫 적용 0, 판정 기준 |ρ|≥0.3·60~100ep 수용, az 스파이크는 재수집 없이 진행"],
+            ["구현 완료", "<code>robovlm_nav/serve/continuous_speed.py</code>(속력 보간 규칙, STOP 0.2·클램프 0.4~0.7·섀도, 단위 테스트 6개 통과), <code>scripts/build_egvla2_main_set.py</code>, <code>scripts/train_egvla2_s1.py</code>"],
+            ["구현 미완", "추론 서버의 <code>action_cont</code> 실제 출력 — 현 서버는 Kosmos/PG2 구형 스택이라 Florence-2+FM 실서빙 경로와 배포 체크포인트가 먼저 필요. 대시보드 throttle 전달은 서버 연결 후"],
+            ["다음", "S2 서브골 FiLM(연속 타깃), epoch 확대 재시험, 남은 셀(weak_right, strong_right) 수집 후 세트 갱신, 가이드(§12.3) 적용 후 속력 판정 재측정"]])
+        + pill_("한계", R) + "S1은 한 장소에서 수집한 데이터의 에피소드 단위 hold-out이라 장소·환경 일반화는 보지 못한다. 위치별 일반화(leave-one-position-out)와 폐루프는 아직이다.")
+    return f'<div class="finding-card" style="border-color:{A}"><div class="finding-title" style="color:{A}">76-10. 신규 배치 검증 · 기존 대비 차이 · S1 학습 결과</div><div style="font-size:0.85rem;line-height:1.8;color:#94a3b8">{body}</div></div>'
+
+
 PILLS = {"판단": G, "추천": B, "한계": R, "다음": A, "남은 것": A, "실측 근거": MUT, "설정": MUT, "FM 학습에 미치는 영향": P, "동시 수집 구조(제안)": P,
          "결과": G, "조기 종료": A, "B2 시험(후속)": B}
 
@@ -378,11 +448,15 @@ def main():
     seg = s[a:b]
     seg = re.sub(r"<!--VIZ76-->.*?<!--/VIZ76-->", "", seg, flags=re.S)
     seg = re.sub(r"<!--LEG76-->.*?<!--/LEG76-->", "", seg, flags=re.S)
+    if 'data-t="t10"' not in seg:
+        seg = seg.replace('🧭 속력 정책 방향</button>', '🧭 속력 정책 방향</button><button class="ctab-btn" data-t="t10" onclick="ctabShow(\'ch76\',\'t10\')">🧪 신규 배치 검증·S1</button>', 1)
+        seg = seg.replace('  <script>ctabInit("ch76")</script>', '  <div class="ctab-panel" data-t="t10" style="display:none">T10PLACEHOLDER</div>\n  <script>ctabInit("ch76")</script>', 1)
     if 'data-t="t9"' not in seg:
         seg = seg.replace('🕹 입력·변환 설계</button>', '🕹 입력·변환 설계</button><button class="ctab-btn" data-t="t9" onclick="ctabShow(\'ch76\',\'t9\')">🧭 속력 정책 방향</button>', 1)
         seg = seg.replace('  <script>ctabInit("ch76")</script>', '  <div class="ctab-panel" data-t="t9" style="display:none">T9PLACEHOLDER</div>\n  <script>ctabInit("ch76")</script>', 1)
-    seg = re.sub(r'(<div class="ctab-panel" data-t="t9" style="display:none">).*?(</div>\n  <script>ctabInit)', lambda m: m.group(1) + t9_card() + m.group(2), seg, count=1, flags=re.S)
-    starts = [(m.start(), m.group(1)) for m in re.finditer(r'  <div class="ctab-panel" data-t="(t\d)"', seg)]
+    seg = re.sub(r'(<div class="ctab-panel" data-t="t9" style="display:none">).*?(</div>\n  <div class="ctab-panel" data-t="t10")', lambda m: m.group(1) + t9_card() + m.group(2), seg, count=1, flags=re.S)
+    seg = re.sub(r'(<div class="ctab-panel" data-t="t10" style="display:none">).*?(</div>\n  <script>ctabInit)', lambda m: m.group(1) + t10_card() + m.group(2), seg, count=1, flags=re.S)
+    starts = [(m.start(), m.group(1)) for m in re.finditer(r'  <div class="ctab-panel" data-t="(t\d+)"', seg)]
     tail = seg.index('  <script>ctabInit("ch76")</script>')
     bounds = [st for st, _ in starts][1:] + [tail]
     out = seg[:starts[0][0]]

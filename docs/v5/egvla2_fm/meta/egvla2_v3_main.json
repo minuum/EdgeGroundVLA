@@ -1,0 +1,1754 @@
+{
+ "set": "egvla2_v3_main",
+ "n": 218,
+ "frames": 20357,
+ "rejected": {
+  "episode_20261014_170756_weak_right_straight.h5": "length/NaN/too short"
+ },
+ "files": [
+  {
+   "name": "episode_20261013_205711.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 51,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_205752.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 63,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_205823.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 66,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_205911.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 66,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_205945.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 76,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_210024.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 77,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_210104.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 75,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_210152.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 65,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_210231.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 83,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_210314.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 88,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_212820.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 89,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_213538.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 81,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_213729.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 83,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214031.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 77,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214116.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 74,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214204.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 70,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214326.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 55,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214424.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 72,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214502.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 74,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214541.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 72,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214633.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 80,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214719.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 80,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214810.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 79,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214854.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 95,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_214954.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 92,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_215049.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 103,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_215340.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 105,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261013_215432.h5",
+   "position": "unlabeled",
+   "path": "unlabeled",
+   "frames": 108,
+   "date": "20261013",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_102256_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 87,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_102340_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 86,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_102811_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 83,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_102852_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 72,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_102928_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103013_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 109,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103107_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 92,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103328_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 94,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103413_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 101,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103520_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 98,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103611_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 103,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103759_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 108,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103848_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 87,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_103931_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 102,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104025_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 105,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104206_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 101,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104255_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 91,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104341_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 112,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104435_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 112,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104531_center_right_curve.h5",
+   "position": "center",
+   "path": "right_curve",
+   "frames": 122,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104639_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_104730_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 95,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105020_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 100,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105107_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 92,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105149_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105232_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 120,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105359_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 93,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105445_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 96,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105529_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 103,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105614_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 83,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105655_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 124,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105751_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 101,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_105836_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 103,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_110101_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 98,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_110347_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 90,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_110505_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 105,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_110555_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 82,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_110658_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 82,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_110744_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 115,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_110837_center_left_curve.h5",
+   "position": "center",
+   "path": "left_curve",
+   "frames": 83,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_111020_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 78,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_111113_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 64,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_111144_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 66,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_111214_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 69,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_111250_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 66,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112028_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 65,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112055_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 63,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112129_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 65,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112200_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 65,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112238_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 68,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112311_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 70,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112409_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 65,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112512_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 67,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112545_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 66,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112615_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 65,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112652_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 67,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112727_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 62,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112756_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 64,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112824_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 65,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_112855_center_straight.h5",
+   "position": "center",
+   "path": "straight",
+   "frames": 76,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_113921_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 79,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_114004_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 83,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_114141_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 74,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_114413_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 86,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_114508_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_141229_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 110,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_141343_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_141531_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 116,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_141634_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 127,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_141730_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 106,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_141822_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 112,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_141917_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 90,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142005_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 108,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142054_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 95,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142143_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 106,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142232_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 91,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142322_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142407_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 90,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142457_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 119,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142552_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 93,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142634_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 95,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142722_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 109,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_142810_weak_left_left_curve.h5",
+   "position": "weak_left",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143124_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 68,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143208_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 85,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143439_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 74,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143524_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 79,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143604_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 77,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143641_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 80,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143723_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 84,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143805_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 83,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143844_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 71,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_143920_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 73,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144000_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 92,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144045_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 80,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144127_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 81,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144209_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 79,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144247_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 82,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144326_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 80,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144428_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 86,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144627_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144714_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 88,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144809_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 93,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_144857_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 110,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_145008_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 107,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_145104_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 108,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_145645_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 102,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_145827_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150036_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 84,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150121_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 94,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150209_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 106,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150252_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 100,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150341_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 88,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150515_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 111,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150605_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 105,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150648_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 108,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150736_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 105,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_150820_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 100,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_151717_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_151804_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 93,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_151855_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_151956_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 117,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_152059_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 110,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_152243_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 102,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_152329_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 109,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_153314_weak_left_right_curve.h5",
+   "position": "weak_left",
+   "path": "right_curve",
+   "frames": 103,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_155957_weak_left_straight.h5",
+   "position": "weak_left",
+   "path": "straight",
+   "frames": 80,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160105_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 85,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160147_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 83,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160233_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 96,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160316_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160358_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160440_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 88,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160522_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 100,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160606_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 93,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160646_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 87,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160725_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160820_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 98,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160914_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 85,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_160950_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 102,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161032_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 88,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161115_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 90,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161154_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 87,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161236_strong_left_straight.h5",
+   "position": "strong_left",
+   "path": "straight",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161320_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161407_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 101,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161451_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 108,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161538_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 111,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161626_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161710_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 94,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161756_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 102,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161842_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 87,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_161923_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 97,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_162010_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 112,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_162104_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 120,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_162156_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 108,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_162239_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 109,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_162324_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 109,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_162407_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 113,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_164516_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 117,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_164610_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 107,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_164657_strong_left_left_curve.h5",
+   "position": "strong_left",
+   "path": "left_curve",
+   "frames": 94,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_164749_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 122,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_164840_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 113,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_164932_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 119,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165033_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 140,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165157_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 131,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165248_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 122,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165344_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 142,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165509_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 112,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165554_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 138,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165649_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 123,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165737_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 150,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165833_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 127,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_165921_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 100,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170004_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 113,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170052_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 129,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170301_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 114,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170400_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 126,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170458_strong_left_right_curve.h5",
+   "position": "strong_left",
+   "path": "right_curve",
+   "frames": 109,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170709_weak_right_straight.h5",
+   "position": "weak_right",
+   "path": "straight",
+   "frames": 85,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170816_weak_right_straight.h5",
+   "position": "weak_right",
+   "path": "straight",
+   "frames": 95,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_170858_weak_right_straight.h5",
+   "position": "weak_right",
+   "path": "straight",
+   "frames": 89,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_171242_weak_right_left_curve.h5",
+   "position": "weak_right",
+   "path": "left_curve",
+   "frames": 80,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_171318_weak_right_left_curve.h5",
+   "position": "weak_right",
+   "path": "left_curve",
+   "frames": 94,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_171359_weak_right_left_curve.h5",
+   "position": "weak_right",
+   "path": "left_curve",
+   "frames": 87,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_171440_weak_right_left_curve.h5",
+   "position": "weak_right",
+   "path": "left_curve",
+   "frames": 99,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_171652_weak_right_right_curve.h5",
+   "position": "weak_right",
+   "path": "right_curve",
+   "frames": 112,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_171825_weak_right_right_curve.h5",
+   "position": "weak_right",
+   "path": "right_curve",
+   "frames": 99,
+   "date": "20261014",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261014_171907_weak_right_right_curve.h5",
+   "position": "weak_right",
+   "path": "right_curve",
+   "frames": 100,
+   "date": "20261014",
+   "post_guide": false
+  }
+ ]
+}
