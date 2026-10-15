@@ -849,6 +849,32 @@ class OwlV2Grounder:
 # Online inference model
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# EGVLA2 연속 액션 경로 (plan_20261016_egvla2_serving_path.md) — 기본 꺼짐(VLA_ACTION_MODE=class)
+#   VLA_ACTION_MODE=continuous  VLA_EGVLA2_CKPT=runs/egvla2_fm/C_pi0_adaln.pt  VLA_SPEED_SOURCE=shadow|rule|model
+# 켜져도 기존 8-class 응답(action 등)은 그대로이고, 응답에 action_cont만 추가된다. 실패는 로그만 남기고 class 경로에 영향 없음.
+# ---------------------------------------------------------------------------
+ACTION_MODE = os.getenv("VLA_ACTION_MODE", "class")
+_egvla2: dict = {}
+
+
+def _egvla2_continuous(image_rgb: np.ndarray) -> Optional[dict]:
+    if ACTION_MODE != "continuous":
+        return None
+    try:
+        if not _egvla2:
+            from robovlm_nav.serve.egvla2_fm_policy import EgVla2FMPolicy, FusedF2Extractor
+            _egvla2["ext"] = FusedF2Extractor()
+            _egvla2["pol"] = EgVla2FMPolicy(os.environ["VLA_EGVLA2_CKPT"], speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"))
+        bbox, feat = _egvla2["ext"](image_rgb)
+        r = _egvla2["pol"].step(bbox, feat)
+        c = r["action_cont"]
+        return {**c, "chunk_first": list(r["first"]), "spread": r["spread"], "arch": r["arch"], "bbox_f2": bbox.tolist()}
+    except Exception as e:  # noqa: BLE001
+        logger.warning("action_cont 실패(class 경로는 정상): %s", e)
+        return {"error": str(e)}
+
+
 class Stage2V2Model:
     """Online inference: maintains bbox history, predicts action per frame."""
 
@@ -1023,6 +1049,8 @@ class Stage2V2Model:
                         self._preview_grounder_kind)
 
     def reset(self) -> None:
+        if _egvla2.get("pol") is not None:
+            _egvla2["pol"].reset()
         self.history.clear()
         self.inference_count = 0
         self._grounding_cache = None
@@ -1191,6 +1219,7 @@ class Stage2V2Model:
         start = time.time()
         image_rgb = self._decode_image(image_b64)
         pil = Image.fromarray(image_rgb.astype(np.uint8)).convert("RGB")
+        action_cont = _egvla2_continuous(image_rgb)
 
         # instruction="basket"(기본값)은 기존 하위호환 placeholder — "gray basket"으로 매핑.
         # 그 외 값은 grounding 프롬프트 phrase로 그대로 사용 (예: "red ball", "blue mug").
@@ -1468,6 +1497,7 @@ class Stage2V2Model:
                 "window": self.window,
                 "head": self.head_name,
             },
+            "action_cont": action_cont,
             "source": "stage2_v2",
         }
 

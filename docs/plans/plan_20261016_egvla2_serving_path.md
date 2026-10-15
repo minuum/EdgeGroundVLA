@@ -1,6 +1,6 @@
 # 계획: EGVLA2 추론 서빙 경로 (Florence-2 fused → FM 헤드 → 속력 규칙)
 
-> 작성일: 2026-10-15 | 상태: **계획 — 코드 미작성, 사용자 승인 대기**
+> 작성일: 2026-10-15 | 상태: **사전 구현 완료(2026-10-15, 사용자 지시). 헤드 선택·폐루프만 남음**
 > 관련: `plan_20261014_inference_continuous_speed.md`(속력 규칙·섀도), `plan_20261015_egvla2_300ep_pipeline.md`, CH76-10
 > 배경: 현 `stage2_v2_inference_server.py`는 Kosmos/PG2·OWLv2 기반 구형 스택이라 Florence-2 fused 특징도 FM 헤드도 없다. 연속 속력 plan §2의 `action_cont`는 이 경로가 있어야 실제로 나온다.
 
@@ -36,12 +36,17 @@
 - 한 장소 수집이라 위치 일반화 미확인.
 
 ## 5. 체크리스트
-- [ ] 사용자 승인
-- [ ] 헤드 클래스 공유 모듈 분리 + 학습 재현 확인
-- [ ] `SAVE=1` 체크포인트 규격 보강, 최종 체크포인트 학습
-- [ ] `egvla2_fm_policy.py` + 서버 연결(기본 class 유지)
-- [ ] 동등성·오프라인 재생·지연 측정
+- [x] 사용자 승인("미리 구현할 수 있는 것은 미리", 2026-10-15)
+- [x] 헤드 클래스 공유 모듈 `robovlm_nav/models/egvla2_fm_heads.py` 분리 — 분리 전후 4개 구조의 초기 가중치·샘플 출력 비트 단위 동일 확인
+- [x] 체크포인트 규격 보강: `SAVE_ONLY=1 FINAL_EPOCHS=N`(전체 학습, 파일 목록·epochs·azmask 포함). 최종 학습은 300ep 파이프라인 6단계가 수행
+- [x] `egvla2_fm_policy.py`(정책·F2 추출기) + 서버 `VLA_ACTION_MODE=continuous`(기본 class, 실패해도 class 경로 영향 없음) + 대시보드 `VLA_APPLY_CONT_SPEED=1`일 때만 throttle 적용
+- [x] 동등성(점검용 체크포인트 + 앞 6프레임): bbox 최대 차이 0.0, 특징 최대 차이 0.002(fp16 반올림 수준)
+- [x] 오프라인 재생 스크립트 `scripts/replay_egvla2_policy.py`(동작 확인만, 점검 체크포인트는 3 epoch라 성능 수치는 의미 없음)
+- [ ] 최종 체크포인트로 재생·hold-out 비교, 지연 측정(젯슨·서버 fp32)
 - [ ] 드라이런 → 폐루프 승인 요청
+
+## 5.1 켜는 법 (서버)
+`VLA_ACTION_MODE=continuous VLA_EGVLA2_CKPT=runs/egvla2_fm/C_pi0_adaln.pt VLA_SPEED_SOURCE=shadow` 로 서버 실행 → 응답에 `action_cont`(dir_lx, dir_ly, speed_scale, model_speed_scale, throttle, expected_cmps, stop) 추가. 대시보드에서 실제 구동 속력에 반영하려면 `VLA_APPLY_CONT_SPEED=1`(기본 0). 추출기는 transformers가 있는 `.venv`에서 동작(`.venv_lerobot`에는 없음).
 
 ## 6. 결정 필요
 1. 서빙 헤드 선택 기준(방향 오차 vs 지연) — epoch 확대 결과 후 확정.

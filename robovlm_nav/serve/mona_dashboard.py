@@ -1743,6 +1743,7 @@ def _async_infer(instr: str, apply_cc: bool, logger):
         _state["chunk"]          = res.get("chunk")
         _state["grounding_cached"] = res.get("grounding_cached")
         _state["grounding_caption"] = res.get("grounding_caption")
+        _state["action_cont"] = res.get("action_cont")   # EGVLA2 연속 경로 출력(켜졌을 때만) — 상태 표시·사후 분석용
         _async_q.append(res)
         _append_history(step, res)
 
@@ -1793,6 +1794,11 @@ def _async_exec():
             last_upd = time.time()
             _state["last_action"] = [new_lx, new_ly, new_az]
             speed_scale = float(res.get("action_speed_scale", 1.0))
+            # EGVLA2 연속 속력(plan_20261014): VLA_APPLY_CONT_SPEED=1일 때만 서버의 action_cont.speed_scale(섀도면 규칙 속력)로 구동.
+            # 기본(0)은 기존 동작 그대로이며 action_cont는 로그/상태 기록만.
+            _ac = res.get("action_cont")
+            if os.getenv("VLA_APPLY_CONT_SPEED", "0") == "1" and isinstance(_ac, dict) and not _ac.get("error") and not _ac.get("stop", True):
+                speed_scale = float(_ac["speed_scale"])
 
             is_rotation = abs(new_az) > 0.1 and abs(new_lx) < 0.05 and abs(new_ly) < 0.05
             if is_rotation:
