@@ -80,6 +80,40 @@ def make_folds(eps, k=5):
     return folds
 
 
+def make_folds_lopo(eps):
+    """leave-one-position-out: 위치 라벨이 있는 에피소드만 테스트로 순환, 'unlabeled'는 항상 학습에만 쓴다."""
+    pos = sorted({e["cell"].split("|")[0] for e in eps} - {"unlabeled"})
+    return [[i for i, e in enumerate(eps) if e["cell"].split("|")[0] == p_] for p_ in pos]
+
+
+def train_fixed(cls, tr, seed, epochs):
+    torch.manual_seed(seed)
+    m = cls(tr[0].shape[1], tr[1].shape[1]).to(DEV)
+    opt = torch.optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-2)
+    n = len(tr[0])
+    for ep in range(epochs):
+        m.train(); perm = torch.randperm(n, device=DEV)
+        for s in range(0, n, BS):
+            idx = perm[s:s + BS]
+            loss = T.flow_loss(m, tr[0][idx], tr[1][idx], tr[2][idx]); opt.zero_grad(); loss.backward(); opt.step()
+    m.eval()
+    return m
+
+
+def save_final(eps):
+    """CV 없이 전체 에피소드로 고정 epoch(FINAL_EPOCHS) 학습한 서빙용 체크포인트(A/B2/C)를 runs/egvla2_fm/에 저장."""
+    n_ep = int(os.environ.get("FINAL_EPOCHS", EPOCHS))
+    allt = T.to_t(eps, range(len(eps)))
+    ck = ROOT / "runs" / "egvla2_fm"; ck.mkdir(parents=True, exist_ok=True)
+    meta = json.loads((ROOT / "docs/v5/egvla2_fm/meta/egvla2_v3_main.json").read_text())
+    for name, cls in ARCHS.items():
+        m = train_fixed(cls, allt, 0, n_ep)
+        torch.save(dict(arch=name, state=m.state_dict(), bdim=allt[0].shape[1], fdim=allt[1].shape[1], window=T.WINDOW, H=T.H,
+                        epochs=n_ep, n_episodes=len(eps), frames=int(len(allt[0])), azmask=AZMASK,
+                        files=[d["name"] for d in meta["files"]]), ck / f"{name}.pt")
+        print("saved", ck / f"{name}.pt", flush=True)
+
+
 def direction_metrics(m, te):
     """첫 스텝 평균 액션의 방향 오차(°, 둘 다 이동 중일 때)와 GO/STOP F1."""
     S = T.sample(m, te[0], te[1]).mean(1)[:, 0, :2]
@@ -122,7 +156,9 @@ def train_inner(cls, tr, va, seed):
 def main():
     eps = load_main()
     nfr = sum(len(e["bbox"]) for e in eps)
-    folds = make_folds(eps)
+    if os.environ.get("SAVE_ONLY") == "1":
+        return save_final(eps)
+    folds = make_folds_lopo(eps) if os.environ.get("FOLDS") == "lopo" else make_folds(eps)
     print(f"{len(eps)}ep {nfr}프레임 AZMASK={AZMASK} device={DEV} epochs={EPOCHS} seeds={SEEDS}", flush=True)
     res = {k: [] for k in list(ARCHS) + ["MLP_regression"]}
     t0 = time.time()
@@ -151,18 +187,11 @@ def main():
         agg[name]["fold_seed_std_r2"] = np.std([r["r2_mean_axis"] for r in L], 0).tolist()
     agg["MLP_regression"] = dict(mse_axis=np.mean([r["mse_axis"] for r in res["MLP_regression"]], 0).tolist())
     summary = dict(set="egvla2_v3_main", episodes=len(eps), frames=nfr, azmask=AZMASK, epochs=EPOCHS, seeds=SEEDS,
-                   folds=[[eps[i]["name"] for i in f] for f in folds], aggregate=agg, runs=res)
+                   fold_mode=os.environ.get("FOLDS", "stratified"), folds=[[eps[i]["name"] for i in f] for f in folds], aggregate=agg, runs=res)
     (T.OUT_DIR / f"summary_s1{TAG}.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))
     print(json.dumps(agg, indent=1, ensure_ascii=False))
     if os.environ.get("SAVE") == "1":
-        allt = T.to_t(eps, range(len(eps)))
-        ck = ROOT / "runs" / "egvla2_fm"
-        ck.mkdir(parents=True, exist_ok=True)
-        for name in ("A_mlp_fm", "C_pi0_adaln"):
-            m, bep, _ = train_inner(ARCHS[name], allt, T.to_t(eps, folds[0]), 0)  # 전체 학습, 조기 종료 기준은 fold0(참고용)
-            torch.save(dict(arch=name, state=m.state_dict(), bdim=allt[0].shape[1], fdim=allt[1].shape[1], window=T.WINDOW,
-                            H=T.H, epoch=bep), ck / f"{name}.pt")
-            print("saved", ck / f"{name}.pt")
+        save_final(eps)
 
 
 if __name__ == "__main__":
