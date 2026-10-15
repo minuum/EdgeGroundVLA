@@ -346,6 +346,18 @@ def t9_card():
     return f'<div class="finding-card" style="border-color:{A}"><div class="finding-title" style="color:{A}">76-9. 우리는 어떻게 할까 — 속력 정책 방향 (수집·학습·추론)</div><div style="font-size:0.85rem;line-height:1.8;color:#94a3b8">{body}</div></div>'
 
 
+def ep250_block(a1, pill_, tbl):
+    f = FM / "summary_s1_ep250.json"
+    if not f.exists():
+        return ""
+    a3 = json.load(open(f))["aggregate"]; names = ["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"]
+    rows = []
+    for n in names:
+        rows.append([n, *[f"{a1[n]['r2_mean_axis'][i]:.2f} → {a3[n]['r2_mean_axis'][i]:.2f}" for i in (0, 1)], f"{a1[n]['angle_deg']:.1f}° → {a3[n]['angle_deg']:.1f}°", f"{a1[n]['go_f1']:.3f} → {a3[n]['go_f1']:.3f}", f"{a1[n]['best_epoch']:.0f} → {a3[n]['best_epoch']:.0f}"])
+    return (f"<br>{pill_('epoch 확대(250, 3 seed)', A)}100 epoch(5 seed) → 250 epoch(3 seed) 비교(seed 수가 달라 대략 비교):"
+            + tbl(["모델", "lx R²", "ly R²", "방향 오차", "GO/STOP F1", "최적 epoch"], rows))
+
+
 def t10_card():
     V = json.load(open(FM / "validation_batch.json"))
     S1 = json.load(open(FM / "summary_s1.json")); S2 = json.load(open(FM / "summary_s1_azmask.json"))
@@ -406,11 +418,13 @@ def t10_card():
         + f"방향 오차는 이동 중인 프레임의 첫 스텝 방향 각도 차이다. <b>FM 헤드 3종과 MLP 회귀의 MSE 차이는 0.003 이하</b>로 우열을 말할 수 없고, 평균 기준선 대비 개선(lx 0.093→0.05, ly 0.149→0.046)이 핵심이다. 구조 중 C가 방향 오차 {a1['C_pi0_adaln']['angle_deg']:.1f}°로 가장 낮다(A {a1['A_mlp_fm']['angle_deg']:.1f}°, B2 {a1['B2_film_res_fm']['angle_deg']:.1f}°)."
         + f"<br>{pill_('조기 종료', A)}최적 epoch 평균이 A·B2 {a1['A_mlp_fm']['best_epoch']:.0f}, C {a1['C_pi0_adaln']['best_epoch']:.0f}로 상한(100)에 가까워 <b>epoch을 늘리면 더 좋아질 수 있다</b>(미확인)."
         + f"<br>{pill_('az 마스크', P)}고립 az 스파이크를 마스킹한 타깃에서는 az MSE가 {a1['A_mlp_fm']['mse_mean_axis'][2]:.3f}→{a2['A_mlp_fm']['mse_mean_axis'][2]:.3f}로 줄었고(기준선도 {a1['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}→{a2['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}) R²는 {a1['A_mlp_fm']['r2_mean_axis'][2]:.2f}→{a2['A_mlp_fm']['r2_mean_axis'][2]:.2f}로 거의 같다. 마스킹으로 az가 학습되는 건 아니다."
-        + H("⑤ 구현·결정 (plan_20261014 · plan_20261015)")
+        + ep250_block(a1, pill_, tbl)
+        + H("⑤ 구현·결정 (plan_20261014 · plan_20261015 · plan_20261016)")
         + tbl(["항목", "내용"], [
             ["사용자 결정(10/15)", "폐루프는 15칸×20회=300회로 확대, 속력 출처는 첫 적용 섀도, az는 첫 적용 0, 판정 기준 |ρ|≥0.3·60~100ep 수용, az 스파이크는 재수집 없이 진행"],
-            ["구현 완료", "<code>robovlm_nav/serve/continuous_speed.py</code>(속력 보간 규칙, STOP 0.2·클램프 0.4~0.7·섀도, 단위 테스트 6개 통과), <code>scripts/build_egvla2_main_set.py</code>, <code>scripts/train_egvla2_s1.py</code>"],
-            ["구현 미완", "추론 서버의 <code>action_cont</code> 실제 출력 — 현 서버는 Kosmos/PG2 구형 스택이라 Florence-2+FM 실서빙 경로와 배포 체크포인트가 먼저 필요. 대시보드 throttle 전달은 서버 연결 후"],
+            ["구현 완료", "속력 보간 규칙 <code>continuous_speed.py</code>(테스트 6개), 세트·S1 스크립트, <b>300ep 원샷 파이프라인</b> <code>run_egvla2_pipeline.py</code>, FM 헤드 공유 모듈 <code>egvla2_fm_heads.py</code>(분리 전후 출력 비트 동일), 서빙 정책 <code>egvla2_fm_policy.py</code>(F2 추출기 포함), 서버 <code>VLA_ACTION_MODE=continuous</code>(기본 꺼짐), 대시보드 <code>VLA_APPLY_CONT_SPEED</code>(기본 0), 오프라인 재생 <code>replay_egvla2_policy.py</code>"],
+            ["검증됨", "서빙 추출기 vs 캐시: bbox 차이 0.0, 특징 차이 0.002(fp16 수준). 점검용 체크포인트로 재생 경로 동작 확인(성능 수치는 의미 없음)"],
+            ["구현 미완", "최종 체크포인트(300ep 후) 재생·hold-out 비교, 젯슨·서버 지연 측정, 헤드 최종 선택, 드라이런·폐루프(300회)"],
             ["다음", "S2 서브골 FiLM(연속 타깃), epoch 확대 재시험, 남은 셀(weak_right, strong_right) 수집 후 세트 갱신, 가이드(§12.3) 적용 후 속력 판정 재측정"]])
         + pill_("한계", R) + "S1은 한 장소에서 수집한 데이터의 에피소드 단위 hold-out이라 장소·환경 일반화는 보지 못한다. 위치별 일반화(leave-one-position-out)와 폐루프는 아직이다.")
     return f'<div class="finding-card" style="border-color:{A}"><div class="finding-title" style="color:{A}">76-10. 신규 배치 검증 · 기존 대비 차이 · S1 학습 결과</div><div style="font-size:0.85rem;line-height:1.8;color:#94a3b8">{body}</div></div>'
