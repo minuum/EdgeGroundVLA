@@ -41,10 +41,25 @@ def main():
                                   date=p.name.split("_")[1]))
         except Exception as e:  # noqa: BLE001
             rejected[p.name] = f"read error: {e}"
+    # 300ep 정량 기준: 15칸(5위치×3경로) 각 PER_CELL건 = 300. 셀당 초과분·위치 라벨 없는 파일은 학습에서 빼고 reserve로 따로 지정(시간 순 앞 PER_CELL건 유지).
+    per_cell, cells, keep, reserve = 20, {}, [], []
+    for d in sorted(files, key=lambda x: x["name"]):
+        (cells.setdefault((d["position"], d["path"]), [])).append(d)
+    for (pos, path), v in sorted(cells.items()):
+        if pos == "unlabeled" or path == "unlabeled":
+            reserve += [dict(d, reason="위치 라벨 없음(10/13 파일럿)") for d in v]
+        else:
+            keep += v[:per_cell]
+            reserve += [dict(d, reason=f"셀 초과분(>{per_cell}, 시간 순 뒤쪽)") for d in v[per_cell:]]
+    short = {f"{p}|{q}": per_cell - sum(1 for d in keep if (d["position"], d["path"]) == (p, q))
+             for p in ("center", "weak_left", "strong_left", "weak_right", "strong_right") for q in ("left_curve", "straight", "right_curve")}
+    short = {k: v for k, v in short.items() if v > 0}
+    files = keep
     for d in files:
         d["post_guide"] = False  # 가이드(§12.3) 적용 이후 수집분이 생기면 이 목록에서 갱신
     OUT.write_text(json.dumps(dict(set="egvla2_v3_main", n=len(files), frames=sum(d["frames"] for d in files),
-                                   rejected=rejected, files=files), indent=1, ensure_ascii=False))
+                                   rejected=rejected, per_cell=per_cell, short_cells=short, reserve=reserve, files=files), indent=1, ensure_ascii=False))
+    print(f"reserve {len(reserve)}건, 20건 미달 셀 {short}")
     print(f"{len(files)} files, {sum(d['frames'] for d in files)} frames, rejected {len(rejected)} -> {OUT}")
 
 
