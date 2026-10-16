@@ -75,7 +75,8 @@ def body():
         + H("③ 결정 기록") + dec
         + H("④ 막힌 것·의존") + "<ul style='margin:6px 0 6px 18px'><li><b>로봇 세션</b>: v3 구동 C·게이지 코드가 repo에 없음(푸시 요청), 남은 셀 수집, <code>scenario_progress.json</code> 갱신, rsync <code>--delete</code> 제거 요청(핸드오프 §14)</li><li><b>젯슨 접근</b>: FM 헤드 포함 전체 지연 측정(fp32), 드라이런</li><li><b>데이터</b>: 속력~거리 상관은 수집 가이드(§12.3/12.4) 적용 후 재측정해야 함(사용자 승인 대기)</li></ul>"
         + __import__("ch77_traj").block(tbl, H, st)
-        + H("⑥ 산출물") + tbl(["종류", "경로"], [
+        + __import__("ch77_story").block(tbl, H, st)
+        + H("⑦ 산출물") + tbl(["종류", "경로"], [
             ["plan", "<code>plan_20261014_inference_continuous_speed.md</code>, <code>plan_20261015_egvla2_300ep_pipeline.md</code>, <code>plan_20261016_egvla2_serving_path.md</code>"],
             ["코드", "<code>run_egvla2_pipeline.py</code>, <code>build_egvla2_main_set.py</code>, <code>train_egvla2_s1.py</code>, <code>replay_egvla2_policy.py</code>, <code>robovlm_nav/serve/egvla2_fm_policy.py</code>, <code>robovlm_nav/models/egvla2_fm_heads.py</code>, <code>continuous_speed.py</code>"],
             ["결과", "<code>validation_batch.json</code>, <code>summary_s1*.json</code> (<code>docs/v5/egvla2_fm/</code>)"]])
