@@ -50,11 +50,11 @@ def body():
     stat = tbl(["영역", "상태", "내용"], [
         ["신규 v3 데이터 검증", st("완료", G), f"300건 읽기 문제 0, 제외 0, az 스파이크 {iso}/{nz}={iso / nz:.0%}(합격). 속력 단계 {Vd['level_dist']['0.4']:.0%}/{Vd['level_dist']['0.7']:.0%}/{Vd['level_dist']['1.0']:.0%}, 속력~거리 ρ=-0.09(가이드 이전)"],
         ["S1 학습(300ep, 5-fold×5seed·250epoch)", st("완료", G), f"lx R² {s1['C_pi0_adaln']['r2_mean_axis'][0]:.2f}, ly R² {s1['C_pi0_adaln']['r2_mean_axis'][1]:.2f}, az≈0.1. FM(A/B2/C) ≈ MLP 회귀. 안 본 위치(LOPO)는 C 방향 오차 {lo['C_pi0_adaln']['angle_deg']:.1f}°(A {lo['A_mlp_fm']['angle_deg']:.1f}°). 같은 장소 {s1['C_pi0_adaln']['angle_deg']:.1f}°"],
-        ["epoch 확대 재시험", st("진행 중" if not ep.exists() else "완료", A if not ep.exists() else G), "최적 epoch이 상한 100 근처여서 250으로 재시험"],
+        ["epoch 확대 재시험", st("진행 중" if not ep.exists() else "완료", A if not ep.exists() else G), "최적 epoch이 상한 100 근처여서 250으로 재시험(방향 오차 소폭 개선)"],
         ["속력 보간 규칙", st("구현", G), "<code>continuous_speed.py</code>: STOP 0.2, 클램프 0.4~0.7, 섀도, az=0. 테스트 6개 통과"],
         ["FM 헤드 공유 모듈", st("구현", G), "<code>egvla2_fm_heads.py</code>. 분리 전후 가중치·샘플 출력 비트 동일"],
         ["서빙 정책·서버 훅", st("구현(꺼짐)", G), "<code>VLA_ACTION_MODE=continuous</code>일 때만 <code>action_cont</code> 추가. 서빙 추출기 vs 캐시: bbox 0.0, 특징 0.002 차이"],
-        ["300ep 원샷 파이프라인", st("준비", B), "<code>run_egvla2_pipeline.py --wait</code>: 15칸 각 20건·rsync 종료를 기다렸다가 자동 실행"],
+        ["300ep 원샷 파이프라인", st("완료", G), "<code>run_egvla2_pipeline.py</code>: 캐시→검증→세트→S1→LOPO→체크포인트 6단계 실행 완료(2026-10-16)"],
         ["수집(로봇 세션)", st("완료", G), "300/300. 로봇 쪽에서 불량 파일 정리 후 20/20×15칸"],
         ["지연 측정·헤드 선택", st("대기", R), "최종 체크포인트와 젯슨 접근 필요. 후보 C(방향) vs A(지연)"],
         ["폐루프 평가", st("미착수", MUT), "15칸×20회=300회, 첫 적용 섀도·az=0·s≤0.7"]])
@@ -95,7 +95,7 @@ def main():
     ch = ('<!--CH77--><hr class="chapter-divider">\n<div class="chapter" id="ch77">\n  <div class="chapter-header">\n'
           '    <span class="chapter-num" style="background:#fbbf24;color:#0a0f1a">CH 77</span>\n'
           '    <h2 class="chapter-title">EGVLA2 데이터 확대 대비 브리핑 — 신규 배치 검증, S1 학습, 사전 구현, 남은 일</h2>\n'
-          '    <p class="chapter-subtitle"><span style="color:#fcd34d;font-weight:800">2026-10-15</span> · 300ep 본수집이 끝나면 바로 실행할 수 있게 정리한 현황. 세부는 CH76-10.</p>\n  </div>\n'
+          '    <p class="chapter-subtitle"><span style="color:#fcd34d;font-weight:800">2026-10-15</span> · 300건 수집·검증·학습·오프라인 평가까지의 결과와 남은 실기 일정. 세부는 CH76-10.</p>\n  </div>\n'
           + body() + '\n</div>\n<!-- ══ /CH77 ═ -->\n<!--/CH77-->\n')
     k = s.index("/CH76 ═ -->") + len("/CH76 ═ -->")
     k = s.index("\n", k) + 1
