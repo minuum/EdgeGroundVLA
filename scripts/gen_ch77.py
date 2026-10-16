@@ -77,6 +77,7 @@ def body():
         + __import__("ch77_traj").block(tbl, H, st)
         + __import__("ch77_story").block(tbl, H, st)
         + __import__("ch77_compare").block(tbl, H, st)
+        + __import__("ch77_fm_extras").block(tbl, H, st)
         + H("⑦ 산출물") + tbl(["종류", "경로"], [
             ["plan", "<code>plan_20261014_inference_continuous_speed.md</code>, <code>plan_20261015_egvla2_300ep_pipeline.md</code>, <code>plan_20261016_egvla2_serving_path.md</code>"],
             ["코드", "<code>run_egvla2_pipeline.py</code>, <code>build_egvla2_main_set.py</code>, <code>train_egvla2_s1.py</code>, <code>replay_egvla2_policy.py</code>, <code>robovlm_nav/serve/egvla2_fm_policy.py</code>, <code>robovlm_nav/models/egvla2_fm_heads.py</code>, <code>continuous_speed.py</code>"],
