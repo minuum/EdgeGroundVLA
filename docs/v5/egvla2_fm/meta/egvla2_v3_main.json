@@ -1,14 +1,10 @@
 {
  "set": "egvla2_v3_main",
- "n": 299,
- "frames": 29062,
- "rejected": {
-  "episode_20261014_170756_weak_right_straight.h5": "length/NaN/too short"
- },
+ "n": 300,
+ "frames": 29161,
+ "rejected": {},
  "per_cell": 20,
- "short_cells": {
-  "weak_right|straight": 1
- },
+ "short_cells": {},
  "reserve": [
   {
    "name": "episode_20261013_205711.h5",
@@ -233,14 +229,6 @@
    "frames": 108,
    "date": "20261013",
    "reason": "위치 라벨 없음(10/13 파일럿)"
-  },
-  {
-   "name": "episode_20261015_162950_weak_right_left_curve.h5",
-   "position": "weak_right",
-   "path": "left_curve",
-   "frames": 95,
-   "date": "20261015",
-   "reason": "셀 초과분(>20, 시간 순 뒤쪽)"
   }
  ],
  "files": [
@@ -2165,14 +2153,6 @@
    "post_guide": false
   },
   {
-   "name": "episode_20261014_171242_weak_right_left_curve.h5",
-   "position": "weak_right",
-   "path": "left_curve",
-   "frames": 80,
-   "date": "20261014",
-   "post_guide": false
-  },
-  {
    "name": "episode_20261014_171318_weak_right_left_curve.h5",
    "position": "weak_right",
    "path": "left_curve",
@@ -2321,6 +2301,14 @@
    "position": "weak_right",
    "path": "left_curve",
    "frames": 107,
+   "date": "20261015",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261015_162950_weak_right_left_curve.h5",
+   "position": "weak_right",
+   "path": "left_curve",
+   "frames": 95,
    "date": "20261015",
    "post_guide": false
   },
@@ -2634,6 +2622,14 @@
    "path": "straight",
    "frames": 83,
    "date": "20261015",
+   "post_guide": false
+  },
+  {
+   "name": "episode_20261016_113426_weak_right_straight.h5",
+   "position": "weak_right",
+   "path": "straight",
+   "frames": 84,
+   "date": "20261016",
    "post_guide": false
   }
  ]

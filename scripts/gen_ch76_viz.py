@@ -358,6 +358,19 @@ def ep250_block(a1, pill_, tbl):
             + tbl(["모델", "lx R²", "ly R²", "방향 오차", "GO/STOP F1", "최적 epoch"], rows))
 
 
+def full300_block(pill_, tbl):
+    f, g = FM / "summary_s1_full300.json", FM / "summary_s1_full300_lopo.json"
+    if not (f.exists() and g.exists()):
+        return ""
+    a, lo = json.load(open(f))["aggregate"], json.load(open(g))["aggregate"]
+    rows = []
+    for n, lab in (("A_mlp_fm", "A"), ("B2_film_res_fm", "B2"), ("C_pi0_adaln", "C")):
+        rows.append([lab, f"{a[n]['r2_mean_axis'][0]:.2f} / {a[n]['r2_mean_axis'][1]:.2f}", f"{a[n]['angle_deg']:.1f}°", f"{lo[n]['r2_mean_axis'][0]:.2f} / {lo[n]['r2_mean_axis'][1]:.2f}", f"{lo[n]['angle_deg']:.1f}°", f"{lo[n]['go_f1']:.3f}"])
+    rows.append(["MLP 회귀 MSE(lx/ly/az)", " / ".join(f"{x:.3f}" for x in a["MLP_regression"]["mse_axis"]), "", " / ".join(f"{x:.3f}" for x in lo["MLP_regression"]["mse_axis"]), "", ""])
+    return (f"<br>{pill_('300ep 최종(2026-10-16)', G)}300건(29,161프레임), 250 epoch, 5-fold×5 seed / LOPO(안 본 위치)×3 seed. 같은 장소는 방향 오차 약 10.4~11.3°, <b>안 본 위치는 16.9~20.3°로 증가</b>하고 C가 가장 낫다."
+            + tbl(["모델", "5-fold lx/ly R²", "5-fold 방향 오차", "LOPO lx/ly R²", "LOPO 방향 오차", "LOPO GO/STOP F1"], rows))
+
+
 def t10_card():
     V = json.load(open(FM / "validation_batch.json"))
     S1 = json.load(open(FM / "summary_s1.json")); S2 = json.load(open(FM / "summary_s1_azmask.json"))
@@ -419,6 +432,7 @@ def t10_card():
         + f"<br>{pill_('조기 종료', A)}최적 epoch 평균이 A·B2 {a1['A_mlp_fm']['best_epoch']:.0f}, C {a1['C_pi0_adaln']['best_epoch']:.0f}로 상한(100)에 가까워 <b>epoch을 늘리면 더 좋아질 수 있다</b>(미확인)."
         + f"<br>{pill_('az 마스크', P)}고립 az 스파이크를 마스킹한 타깃에서는 az MSE가 {a1['A_mlp_fm']['mse_mean_axis'][2]:.3f}→{a2['A_mlp_fm']['mse_mean_axis'][2]:.3f}로 줄었고(기준선도 {a1['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}→{a2['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}) R²는 {a1['A_mlp_fm']['r2_mean_axis'][2]:.2f}→{a2['A_mlp_fm']['r2_mean_axis'][2]:.2f}로 거의 같다. 마스킹으로 az가 학습되는 건 아니다."
         + ep250_block(a1, pill_, tbl)
+        + full300_block(pill_, tbl)
         + H("⑤ 구현·결정 (plan_20261014 · plan_20261015 · plan_20261016)")
         + tbl(["항목", "내용"], [
             ["사용자 결정(10/15)", "폐루프는 15칸×20회=300회로 확대, 속력 출처는 첫 적용 섀도, az는 첫 적용 0, 판정 기준 |ρ|≥0.3·60~100ep 수용, az 스파이크는 재수집 없이 진행"],

@@ -1,0 +1,13 @@
+{
+ "started": "2026-10-16 14:25:10",
+ "epochs": 250,
+ "seeds": "0,1,2,3,4",
+ "steps": {
+  "1_precompute": 0,
+  "2_validate": 0,
+  "3_build_set": 0,
+  "4_s1_stratified": 0,
+  "5_s1_lopo": 0,
+  "6_final_ckpt": 0
+ }
+}

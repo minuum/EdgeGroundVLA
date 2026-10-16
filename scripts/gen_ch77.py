@@ -33,27 +33,29 @@ def st(label, col):
 
 def body():
     Vd = json.load(open(FM / "validation_batch.json"))["aggregate"]
-    s1 = json.load(open(FM / "summary_s1.json"))["aggregate"]
+    s1_old = json.load(open(FM / "summary_s1.json"))["aggregate"]
+    s1 = json.load(open(FM / "summary_s1_full300.json"))["aggregate"]
+    lo = json.load(open(FM / "summary_s1_full300_lopo.json"))["aggregate"]
     iso, nz = Vd["az_spike"]
     ep = FM / "summary_s1_ep250.json"
     ep_txt = ""
     if ep.exists():
         a3 = json.load(open(ep))["aggregate"]
-        ep_txt = (f"<li><b>epoch 확대(250, 3 seed)</b>: 방향 오차 A {s1['A_mlp_fm']['angle_deg']:.1f}→{a3['A_mlp_fm']['angle_deg']:.1f}°, "
-                  f"B2 {s1['B2_film_res_fm']['angle_deg']:.1f}→{a3['B2_film_res_fm']['angle_deg']:.1f}°, C {s1['C_pi0_adaln']['angle_deg']:.1f}→{a3['C_pi0_adaln']['angle_deg']:.1f}° (자세한 표는 76-10)</li>")
+        ep_txt = (f"<li><b>epoch 확대(250, 3 seed)</b>: 방향 오차 A {s1_old['A_mlp_fm']['angle_deg']:.1f}→{a3['A_mlp_fm']['angle_deg']:.1f}°, "
+                  f"B2 {s1_old['B2_film_res_fm']['angle_deg']:.1f}→{a3['B2_film_res_fm']['angle_deg']:.1f}°, C {s1_old['C_pi0_adaln']['angle_deg']:.1f}→{a3['C_pi0_adaln']['angle_deg']:.1f}° (자세한 표는 76-10)</li>")
     else:
         ep_txt = f"<li><b>epoch 확대(250, 3 seed)</b>: 진행 중 — 끝나면 이 항목과 76-10에 반영</li>"
-    prog = V.flow([("수집 191/300", A, "weak_right 진행, strong_right 미수집"), ("원샷 파이프라인", B, "캐시→검증→세트→S1→LOPO→체크포인트"),
+    prog = V.flow([("수집 300/300 완료", G, "15칸×20, 로봇 쪽 대조 완료"), ("원샷 파이프라인", B, "캐시→검증→세트→S1→LOPO→체크포인트"),
                    ("서빙 정책(기본 꺼짐)", G, "F2 fused → FM → 속력 규칙"), ("지연 측정", R, "젯슨·서버 fp32, 로봇 접근 필요"), ("드라이런 → 폐루프 300회", P, "15칸×20회")])
     stat = tbl(["영역", "상태", "내용"], [
-        ["신규 v3 데이터 검증", st("완료", G), f"191건 읽기 문제 0, az 스파이크 {iso}/{nz}={iso / nz:.0%}(합격), 제외 1건. 속력~거리 ρ={-0.02}(가이드 이전)"],
-        ["S1 학습(218ep)", st("완료", G), f"lx R² {s1['C_pi0_adaln']['r2_mean_axis'][0]:.2f}, ly R² {s1['C_pi0_adaln']['r2_mean_axis'][1]:.2f}, az≈0.05. FM(A/B2/C) ≈ MLP 회귀. S2(FiLM vs concat)은 소폭 이득"],
+        ["신규 v3 데이터 검증", st("완료", G), f"300건 읽기 문제 0, 제외 0, az 스파이크 {iso}/{nz}={iso / nz:.0%}(합격). 속력 단계 {Vd['level_dist']['0.4']:.0%}/{Vd['level_dist']['0.7']:.0%}/{Vd['level_dist']['1.0']:.0%}, 속력~거리 ρ=-0.09(가이드 이전)"],
+        ["S1 학습(300ep, 5-fold×5seed·250epoch)", st("완료", G), f"lx R² {s1['C_pi0_adaln']['r2_mean_axis'][0]:.2f}, ly R² {s1['C_pi0_adaln']['r2_mean_axis'][1]:.2f}, az≈0.1. FM(A/B2/C) ≈ MLP 회귀. 안 본 위치(LOPO)는 C 방향 오차 {lo['C_pi0_adaln']['angle_deg']:.1f}°(A {lo['A_mlp_fm']['angle_deg']:.1f}°). 같은 장소 {s1['C_pi0_adaln']['angle_deg']:.1f}°"],
         ["epoch 확대 재시험", st("진행 중" if not ep.exists() else "완료", A if not ep.exists() else G), "최적 epoch이 상한 100 근처여서 250으로 재시험"],
         ["속력 보간 규칙", st("구현", G), "<code>continuous_speed.py</code>: STOP 0.2, 클램프 0.4~0.7, 섀도, az=0. 테스트 6개 통과"],
         ["FM 헤드 공유 모듈", st("구현", G), "<code>egvla2_fm_heads.py</code>. 분리 전후 가중치·샘플 출력 비트 동일"],
         ["서빙 정책·서버 훅", st("구현(꺼짐)", G), "<code>VLA_ACTION_MODE=continuous</code>일 때만 <code>action_cont</code> 추가. 서빙 추출기 vs 캐시: bbox 0.0, 특징 0.002 차이"],
         ["300ep 원샷 파이프라인", st("준비", B), "<code>run_egvla2_pipeline.py --wait</code>: 15칸 각 20건·rsync 종료를 기다렸다가 자동 실행"],
-        ["수집(로봇 세션)", st("대기", A), "weak_right 11/60, strong_right 0/60. 핸드오프 §14로 코드 푸시·진행표 갱신 요청"],
+        ["수집(로봇 세션)", st("완료", G), "300/300. 로봇 쪽에서 불량 파일 정리 후 20/20×15칸"],
         ["지연 측정·헤드 선택", st("대기", R), "최종 체크포인트와 젯슨 접근 필요. 후보 C(방향) vs A(지연)"],
         ["폐루프 평가", st("미착수", MUT), "15칸×20회=300회, 첫 적용 섀도·az=0·s≤0.7"]])
     dec = tbl(["결정(사용자, 10/15)", "내용"], [
@@ -65,11 +67,11 @@ def body():
         ["일정", "300ep가 모이기 전에는 빡세게 하지 않고, 모이면 바로 실행할 수 있게 사전 구현"]])
     body_ = (
         f'<div class="callout critical">🟡 <strong>3줄 요약</strong><br>'
-        f'① 신규 v3 191건은 <strong>읽기 문제 0, az 스파이크 15%로 합격</strong>이라 재수집이 필요 없다. 다만 속력은 가이드 이전 수집이라 거리와 무관(ρ=-0.02).<br>'
-        f'② S1(218ep): FM 헤드는 방향 축을 학습하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 서브골 FiLM은 소폭 이득, 구조 중 C가 방향 오차 최저.<br>'
-        f'③ 300ep가 모이면 <strong>한 줄로 파이프라인이 돌고</strong>, 서빙 경로(F2→FM→속력 규칙)도 꺼진 상태로 미리 구현했다. 남은 것은 수집, 지연 측정, 헤드 선택, 폐루프다.</div>'
-        + H("① 지금 어디까지 왔나") + V.wrap("진행 흐름", prog, "도착분 기준(위치 라벨 있는 v3 191건)", kind="flow") + stat
-        + H("② 수치 한눈에") + V.wrap("S1 축별 R² (218ep, 5-fold × 5 seed, 100 epoch)", V.legend([("A", B), ("B2", G), ("C", A)]) + V.vgroups(["lx", "ly", "az"], [(n.split("_")[0], c, s1[n]["r2_mean_axis"]) for n, c in zip(["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"], (B, G, A))], 1.0, fmt="{:.2f}"), "MLP 회귀와 MSE 차 ≤0.003", kind="chart")
+        f'① 300건(15칸×20) 수집·검증 완료: <strong>읽기 문제 0, az 스파이크 9%로 합격</strong>. 다만 속력은 가이드 이전 수집이라 거리와 무관(ρ=-0.09).<br>'
+        f'② S1(300ep): FM 헤드는 방향 축을 학습(방향 오차 약 10.4~11.3°)하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 안 본 위치(LOPO)에서는 C가 가장 낫다(16.9° vs A 20.3°).<br>'
+        f'③ 학습·체크포인트·서빙 경로 재생 점검까지 끝났다. <strong>남은 것은 실기</strong>(서버 경로 점검, 지연 측정, 드라이런, 폐루프 300회)이며 이 값이 있어야 EGVLA1 92%와 비교할 수 있다.</div>'
+        + H("① 지금 어디까지 왔나") + V.wrap("진행 흐름", prog, "300건 기준(2026-10-16 최종 재실행)", kind="flow") + stat
+        + H("② 수치 한눈에") + V.wrap("S1 축별 R² (300ep, 5-fold × 5 seed, 250 epoch)", V.legend([("A", B), ("B2", G), ("C", A)]) + V.vgroups(["lx", "ly", "az"], [(n.split("_")[0], c, s1[n]["r2_mean_axis"]) for n, c in zip(["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"], (B, G, A))], 1.0, fmt="{:.2f}"), "MLP 회귀와 MSE 차 ≤0.003", kind="chart")
         + f"<ul style='margin:6px 0 6px 18px'><li>신규 속력 단계 분포: 느림 {Vd['level_dist']['0.4']:.0%} / 보통 {Vd['level_dist']['0.7']:.0%} / 빠름 {Vd['level_dist']['1.0']:.0%}, 중간 크기 비율 {Vd['mid_ratio']:.0%}</li>"
         + f"<li>방향 오차: A {s1['A_mlp_fm']['angle_deg']:.1f}° / B2 {s1['B2_film_res_fm']['angle_deg']:.1f}° / C {s1['C_pi0_adaln']['angle_deg']:.1f}°, GO/STOP F1 ≈0.95</li>{ep_txt}</ul>"
         + H("③ 결정 기록") + dec
@@ -78,6 +80,7 @@ def body():
         + __import__("ch77_story").block(tbl, H, st)
         + __import__("ch77_compare").block(tbl, H, st)
         + __import__("ch77_fm_extras").block(tbl, H, st)
+        + __import__("ch77_replay").block(tbl, H, st)
         + H("⑦ 산출물") + tbl(["종류", "경로"], [
             ["plan", "<code>plan_20261014_inference_continuous_speed.md</code>, <code>plan_20261015_egvla2_300ep_pipeline.md</code>, <code>plan_20261016_egvla2_serving_path.md</code>"],
             ["코드", "<code>run_egvla2_pipeline.py</code>, <code>build_egvla2_main_set.py</code>, <code>train_egvla2_s1.py</code>, <code>replay_egvla2_policy.py</code>, <code>robovlm_nav/serve/egvla2_fm_policy.py</code>, <code>robovlm_nav/models/egvla2_fm_heads.py</code>, <code>continuous_speed.py</code>"],
