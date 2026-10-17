@@ -70,6 +70,7 @@ def body():
         f'① 300건(15칸×20) 수집·검증 완료: <strong>읽기 문제 0, az 스파이크 9%로 합격</strong>. 다만 속력은 가이드 이전 수집이라 거리와 무관(ρ=-0.09).<br>'
         f'② S1(300ep): FM 헤드는 방향 축을 학습(방향 오차 약 10.4~11.3°)하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 안 본 위치(LOPO)에서는 C가 가장 낫다(16.9° vs A 20.3°).<br>'
         f'③ 학습·체크포인트·서빙 경로 재생 점검까지 끝났다. <strong>남은 것은 실기</strong>(서버 경로 점검, 지연 측정, 드라이런, 폐루프 300회)이며 이 값이 있어야 EGVLA1 92%와 비교할 수 있다.</div>'
+        + __import__("ch77_summary").block(tbl, H, st)
         + H("① 지금 어디까지 왔나") + V.wrap("진행 흐름", prog, "300건 기준(2026-10-16 최종 재실행)", kind="flow") + stat
         + H("② 수치 한눈에") + V.wrap("S1 축별 R² (300ep, 5-fold × 5 seed, 250 epoch)", V.legend([("A", B), ("B2", G), ("C", A)]) + V.vgroups(["lx", "ly", "az"], [(n.split("_")[0], c, s1[n]["r2_mean_axis"]) for n, c in zip(["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"], (B, G, A))], 1.0, fmt="{:.2f}"), "MLP 회귀와 MSE 차 ≤0.003", kind="chart")
         + f"<ul style='margin:6px 0 6px 18px'><li>신규 속력 단계 분포: 느림 {Vd['level_dist']['0.4']:.0%} / 보통 {Vd['level_dist']['0.7']:.0%} / 빠름 {Vd['level_dist']['1.0']:.0%}, 중간 크기 비율 {Vd['mid_ratio']:.0%}</li>"
@@ -81,6 +82,7 @@ def body():
         + __import__("ch77_compare").block(tbl, H, st)
         + __import__("ch77_fm_extras").block(tbl, H, st)
         + __import__("ch77_replay").block(tbl, H, st)
+        + __import__("ch77_subgoal").block(tbl, H, st)
         + H("⑦ 산출물") + tbl(["종류", "경로"], [
             ["plan", "<code>plan_20261014_inference_continuous_speed.md</code>, <code>plan_20261015_egvla2_300ep_pipeline.md</code>, <code>plan_20261016_egvla2_serving_path.md</code>"],
             ["코드", "<code>run_egvla2_pipeline.py</code>, <code>build_egvla2_main_set.py</code>, <code>train_egvla2_s1.py</code>, <code>replay_egvla2_policy.py</code>, <code>robovlm_nav/serve/egvla2_fm_policy.py</code>, <code>robovlm_nav/models/egvla2_fm_heads.py</code>, <code>continuous_speed.py</code>"],
