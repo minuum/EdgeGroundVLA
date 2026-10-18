@@ -31,6 +31,28 @@ def st(label, col):
     return f'<span style="display:inline-block;background:{col}22;color:{col};border:1px solid {col};border-radius:6px;padding:0 8px;font-size:0.74rem;font-weight:800">{label}</span>'
 
 
+TABS = [("t1", "📌 개요·진행", ["①", "③", "④"]), ("t2", "📖 용어·대조표", ["⓪"]), ("t3", "🔀 이산 vs 연속·궤적", ["⑤", "⑥-4"]),
+        ("t4", "🧠 헤드·FM 평가", ["②", "⑥-3"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🤖 EGVLA1 vs 2·실기", ["⑥-2", "⑥"]), ("t7", "🧰 산출물", ["⑦"])]
+
+
+def tabify(body_):
+    """본문을 최상위 소제목(⓪~⑦) 단위로 잘라 CH74식 탭 버튼(ctab)으로 재배치한다."""
+    mk = list(re.finditer(r'<div style="margin:16px 0 6px[^>]*>(⓪|①|②|③|④|⑤|⑥-\d|⑥|⑦)[ ]', body_))
+    head = body_[:mk[0].start()]
+    parts = {}
+    for i, m in enumerate(mk):
+        end = mk[i + 1].start() if i + 1 < len(mk) else len(body_)
+        parts[m.group(1)] = body_[m.start():end]
+    bar = "".join(f'<button class="ctab-btn" data-t="{t}" onclick="ctabShow(\'ch77\',\'{t}\')">{lab}</button>' for t, lab, _ in TABS)
+    panels = ""
+    for t, lab, keys in TABS:
+        inner = (head if t == "t1" else "") + "".join(parts.get(k, "") for k in keys)
+        panels += f'<div class="ctab-panel" data-t="{t}" style="display:none">{inner}</div>\n'
+    missing = [k for k in parts if not any(k in ks for _, _, ks in TABS)]
+    assert not missing, missing
+    return f'<div class="ctab-bar">{bar}</div>\n{panels}<script>ctabInit("ch77")</script>'
+
+
 def body():
     Vd = json.load(open(FM / "validation_batch.json"))["aggregate"]
     s1_old = json.load(open(FM / "summary_s1.json"))["aggregate"]
@@ -89,7 +111,7 @@ def body():
             ["코드", "<code>run_egvla2_pipeline.py</code>, <code>build_egvla2_main_set.py</code>, <code>train_egvla2_s1.py</code>, <code>replay_egvla2_policy.py</code>, <code>robovlm_nav/serve/egvla2_fm_policy.py</code>, <code>robovlm_nav/models/egvla2_fm_heads.py</code>, <code>continuous_speed.py</code>"],
             ["결과", "<code>validation_batch.json</code>, <code>summary_s1*.json</code> (<code>docs/v5/egvla2_fm/</code>)"]])
         + f"{st('한계', R)} S1은 한 장소 수집 데이터의 에피소드 단위 hold-out이라 장소·환경 일반화는 아직 모른다. 서빙 경로는 점검용 체크포인트로 동작만 확인했고 성능 수치는 최종 체크포인트(300ep 후)가 필요하다.")
-    return body_
+    return tabify(body_)
 
 
 def main():
