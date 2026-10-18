@@ -39,21 +39,28 @@ def block(tbl, H, st):
         ["정답 라벨만 이산화했을 때 종점 오차", f"{c0['gt_disc']['fpe_cm']:.0f}~{c1['gt_disc']['fpe_cm']:.0f}cm (표현 자체의 손실)", "0 (손실 없음)"],
         ["모델 예측을 이산화했을 때 FPE (C)", f"{c0['disc']['fpe_cm']:.0f}cm / {c1['disc']['fpe_cm']:.0f}cm", f"{c0['cont_shadow']['fpe_cm']:.0f}cm / {c1['cont_shadow']['fpe_cm']:.0f}cm (같은 목표 위치 / 안 본 목표 위치)"],
         ["해석", "예측 오차가 지배적이라 이산화 영향은 작음", "표현 한계가 없고 속력 모델링 여지(모델 속력 시 FPE " + f"{c0['cont_model']['fpe_cm']:.0f}/{c1['cont_model']['fpe_cm']:.0f}cm)"]])
-    heads = tbl(["", "MLP 회귀", "A (MLP-FM)", "B2 (FiLM-FM)", "C (π0형)"], [
-        ["5-fold 방향 오차(같은 목표 위치)", "—"] + [ang(s300, k) for k in H_[1:]],
-        ["LOPO 방향 오차(안 본 목표 위치)", "—"] + [ang(l300, k) for k in H_[1:]],
-        ["청크 MSE(5-fold, lx/ly)", " / ".join(f"{x:.3f}" for x in s300["MLP_regression"]["mse_axis"][:2])] + [" / ".join(f"{x:.3f}" for x in s300[k]["mse_mean_axis"][:2]) for k in H_[1:]],
-        ["최적 epoch(5-fold)", "10~50(조기 포화)", f"{s300['A_mlp_fm']['best_epoch']:.0f}", f"{s300['B2_film_res_fm']['best_epoch']:.0f}", f"{s300['C_pi0_adaln']['best_epoch']:.0f}"],
-        ["프레임 저크(낮을수록 부드러움, 사람 0.045~0.063)"] + [f"{jit('fold0', k):.3f}" for k in H_],
-        ["서브골 결측 시 방향 오차(안 본 목표 위치)", "—"] + [f"{sg(k, 'full', lo, 'missing'):.1f}°" for k in H_[2:]][:0] + ["—", f"{sg('B2_film_res_fm', 'full', lo, 'missing'):.1f}°", f"{sg('C_pi0_adaln', 'full', lo, 'missing'):.1f}°"],
-        ["한 줄 평", "가장 부드럽고 단순, 정확도 동급", "가장 단순한 FM, 수렴 느림", "FiLM 조향, 서브골 의존 큼", "<b>안 본 목표 위치 최우수, 서브골 결측에 강함</b>"]])
+    import ch77_viz as Z
+    HCOL = [Z.HC[x] for x in ("MLP 회귀", "A", "B2", "C")]
+    LABS = ["MLP 회귀", "A", "B2", "C"]
+    nu = lambda sdict, key, i=None: ["—"] + [(sdict[k][key] if i is None else sdict[k][key][i]) for k in H_[1:]]
+    heads = Z.heat_table([("헤드", LABS, HCOL)], [
+        ("5-fold 방향 오차(같은 목표 위치, °)", [nu(s300, "angle_deg")], "low"), ("LOPO 방향 오차(안 본 목표 위치, °)", [nu(l300, "angle_deg")], "low"),
+        ("청크 MSE · lx", [[s300["MLP_regression"]["mse_axis"][0]] + [s300[k]["mse_mean_axis"][0] for k in H_[1:]]], "low"),
+        ("청크 MSE · ly", [[s300["MLP_regression"]["mse_axis"][1]] + [s300[k]["mse_mean_axis"][1] for k in H_[1:]]], "low"),
+        ("최적 epoch (5-fold)", [["10~50", f"{s300['A_mlp_fm']['best_epoch']:.0f}", f"{s300['B2_film_res_fm']['best_epoch']:.0f}", f"{s300['C_pi0_adaln']['best_epoch']:.0f}"]], None),
+        ("프레임 저크(낮을수록 부드러움, 사람 0.045~0.063)", [[jit("fold0", k) for k in H_]], "low"),
+        ("서브골 결측 시 방향 오차(안 본 목표 위치, °)", [["—", "—", sg("B2_film_res_fm", "full", lo, "missing"), sg("C_pi0_adaln", "full", lo, "missing")]], "low"),
+        ("한 줄 평", [["가장 부드럽고 단순, 정확도 동급", "가장 단순한 FM, 수렴 느림", "FiLM 조향, 서브골 의존 큼", "안 본 위치 최우수, 결측에 강함"]], None)], fmt="{:.3g}", corner="초록=행에서 가장 좋음")
     growth = tbl(["학습 세트", "에피소드", "방향 오차 C (같은 목표 위치)", "A", "비고"], [
         ["이전(100epoch)", "218", ang(s100, "C_pi0_adaln"), ang(s100, "A_mlp_fm"), "위치 라벨 없는 28건 포함"],
         ["epoch 확대(250)", "218", ang(s250, "C_pi0_adaln"), ang(s250, "A_mlp_fm"), "epoch만 변경"],
         ["<b>300건 최종</b>", "300", f"<b>{ang(s300, 'C_pi0_adaln')}</b>", ang(s300, "A_mlp_fm"), "라벨 없음 28건 제외, 신규 81건 추가"]])
-    sgt = tbl(["서브골 변형", "B2 같은 목표 위치", "B2 안 본 목표 위치", "C 같은 목표 위치", "C 안 본 목표 위치", "C 서브골 결측(안 본 목표 위치)"], [
-        [lab] + [f"{sg(h, v, s):.1f}°" for h, s in (("B2_film_res_fm", fo), ("B2_film_res_fm", lo), ("C_pi0_adaln", fo), ("C_pi0_adaln", lo))] + [("—" if v == "nobbox" else f"{sg('C_pi0_adaln', v, lo, 'missing'):.1f}°")]
-        for v, lab in (("full", "서브골 있음(창3)"), ("nobbox", "서브골 없음"), ("w1", "현재 프레임만"), ("w5", "창 5"), ("drop30", "<b>드롭아웃 30%</b>"))])
+    VR = [("full", "서브골 있음(창3)", Z.VC["서브골 있음"]), ("nobbox", "서브골 없음", Z.VC["서브골 없음"]), ("w1", "현재 프레임만", MUT), ("w5", "창 5", MUT), ("drop30", "드롭아웃 30%", Z.VC["드롭아웃30%"])]
+    hc2 = [Z.HC["B2"], Z.HC["C"]]
+    sgt = Z.heat_table([("같은 목표 위치", ["B2", "C"], hc2), ("안 본 목표 위치", ["B2", "C"], hc2), ("서브골 결측(안 본 위치)", ["B2", "C"], hc2)],
+                       [(f'<span style="color:{c}">●</span> {lab}', [[sg("B2_film_res_fm", v, fo), sg("C_pi0_adaln", v, fo)], [sg("B2_film_res_fm", v, lo), sg("C_pi0_adaln", v, lo)],
+                                                                   [("—" if v == "nobbox" else sg("B2_film_res_fm", v, lo, "missing")), ("—" if v == "nobbox" else sg("C_pi0_adaln", v, lo, "missing"))]], "low") for v, lab, c in VR],
+                       fmt="{:.1f}°", corner="변형 (방향 오차)", by="col")
     scope = tbl(["평가 범위", "무엇을 보는가", "결과(C)", "상태"], [
         ["5-fold(같은 목표 위치)", "안 본 에피소드", ang(s300, "C_pi0_adaln"), st("측정", G)],
         ["LOPO(안 본 목표 위치)", "안 본 목표 위치까지 일반화", ang(l300, "C_pi0_adaln"), st("측정", G)],
@@ -84,8 +91,8 @@ def block(tbl, H, st):
             + H("A. 데이터 대조 — 무엇이 달라졌나") + data
             + H("B. 액션 표현 대조 — 이산 vs 연속") + act
             + H("C. 학습량 대조 — 데이터가 늘면 얼마나 좋아지나") + growth
-            + H("D. 헤드 대조 — MLP 회귀 / A / B2 / C") + heads
-            + H("E. 서브골 대조 — 있음/없음/창/드롭아웃") + sgt
+            + H("D. 헤드 대조 — MLP 회귀 / A / B2 / C") + Z.LEG + heads
+            + H("E. 서브골 대조 — 있음/없음/창/드롭아웃") + Z.LEG + sgt
             + '<div style="font-size:0.78rem;color:#94a3b8">방향 오차 평균(5분할). 서브골 결측은 입력을 전부 0으로 한 스트레스 테스트. seed 0 하나.</div>'
             + H("F. 평가 범위 대조 — 어디까지 측정됐나") + scope
             + H("G. 주장 가능 / 불가 대조") + claim

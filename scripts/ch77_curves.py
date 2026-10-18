@@ -39,6 +39,20 @@ def legend(items):
     return '<div style="font-size:0.72rem;margin:4px 0">' + " &nbsp; ".join(f'<span style="color:{c}"><b>{"┅" if d else "━"}</b> {t}</span>' for t, c, d in items) + '</div>'
 
 
+def summ(res):
+    """분할 하나의 요약 히트 표: 행=헤드, 그룹=변형(3), 열=고정 epoch / 최적 epoch / 250 epoch."""
+    import ch77_viz as Z
+    grp = [(VL[v], ["고정 epoch", "최적(낙관)", "250"], [Z.VC[VL[v].replace("서브골 있음", "서브골 있음")] if False else VC[v]] * 3) for v in VC]
+    rows = []
+    for h, hn in (("B2_film_res_fm", "B2"), ("C_pi0_adaln", "C"), ("MLP_regression", "회귀")):
+        fx = FIX.get(h, 60); vals, eps_ = [], []
+        for v in VC:
+            c = res[f"{h}|{v}"]; at = min(c, key=lambda r: abs(r["ep"] - fx)); ba = min(c, key=lambda r: r["angle"])
+            vals.append([at["angle"], ba["angle"], c[-1]["angle"]]); eps_.append([f"ep {fx}", f"ep {ba['ep']}", "ep 250"])
+        rows.append((f"{hn} 방향 오차", vals, "low")); rows.append((f'<span style="color:#64748b">{hn} epoch</span>', eps_, None))
+    return Z.heat_table(grp, rows, fmt="{:.1f}°", corner="방향 오차(°)")
+
+
 def block(tbl, H, st):
     f = FM / "ablation_curves.json"
     if not f.exists():
@@ -65,15 +79,8 @@ def block(tbl, H, st):
         c = res["MLP_regression|full"]
         figs.append(chart([("회귀 hold-out", MUT, "", [(r["ep"], r["val"]) for r in c]), ("회귀 train", MUT, 'stroke-dasharray="4 3" opacity="0.6"', [(r["ep"], r["train"]) for r in c])], "MLP 회귀: train vs hold-out MSE", "MSE", ymin=0))
         out += f'<div style="display:flex;gap:10px;flex-wrap:wrap">{"".join(f"<div style=flex:1 1 300px>{x}</div>" for x in figs)}</div>'
-        for h, hn in (("B2_film_res_fm", "B2"), ("C_pi0_adaln", "C"), ("MLP_regression", "회귀")):
-            for v in VC:
-                c = res[f"{h}|{v}"]; at = lambda e: min(c, key=lambda r: abs(r["ep"] - e))
-                bv, ba = min(c, key=lambda r: r["val"]), min(c, key=lambda r: r["angle"])
-                fx = FIX.get(h, 60)
-                rows.append([SPN[sp].split(" ")[0] + " " + SPN[sp].split(" ")[1], hn, VL[v], f'{at(fx)["angle"]:.1f}°', f'{ba["angle"]:.1f}° (ep {ba["ep"]})', f'{c[-1]["angle"]:.1f}°',
-                             f'ep {bv["ep"]}', f'{c[-1]["val"] - bv["val"]:+.3f}'])
+        out += summ(res)
     out += legend([("서브골 있음", B, False), ("서브골 없음", R, False), ("드롭아웃30%", G, False), ("train(점선)", MUT, True)])
-    out += H("곡선 요약 — 고정 epoch vs 최적 epoch vs 250") + tbl(["분할", "헤드", "변형", "고정 epoch 방향 오차", "최적 방향 오차(epoch)", "250 epoch 방향 오차", "hold-out 손실 최저 epoch", "250 vs 최저 손실 차"], rows)
     out += f'{st("읽는 법", A)} <b>손실</b>: train은 계속 내려가는데 hold-out이 올라가기 시작하면 과적합이다(최저 epoch과 마지막 차이가 +로 커질수록). <b>방향 오차</b>: 변형 간 순서(서브골 있음/없음/드롭아웃)가 모든 epoch에서 같은 모양이면 ablation 결론이 epoch 선택 때문이 아니다. 최적 epoch은 hold-out으로 고른 낙관적 값이다.'
     out += (f'{st("판정(이번 결과)", G)}<ul style="margin:6px 0 6px 18px;font-size:0.8rem">'
             '<li><b>과적합은 있지만 중간 정도다.</b> train 손실은 hold-out보다 크게 낮다(C: train 0.07 vs hold-out 0.13~0.25). hold-out 손실은 최저(C 약 60~140, B2 약 90~230 epoch) 이후 250까지 +0.00~0.07 오른다. 같은 장소(fold0)는 거의 평평하고 <b>안 본 목표 위치(LOPO)에서 더 뚜렷</b>하다.</li>'

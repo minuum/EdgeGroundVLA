@@ -6,7 +6,7 @@ import numpy as np
 import gen_ch76_viz as V
 
 FM = V.FM
-A, G, R, B, P = V.A, V.G, V.R, V.B, V.P
+A, G, R, B, P, MUT = V.A, V.G, V.R, V.B, V.P, V.MUT
 HN = {"B2_film_res_fm": "B2", "C_pi0_adaln": "C"}
 VN = {"full": "서브골 있음(창3, 기준)", "nobbox": "서브골 없음", "w1": "현재 프레임만(창1)", "w5": "창 5", "drop30": "드롭아웃 30%로 학습",
       "fut_oracle": "미래 bbox 정답 입력(누설 상한)", "fut_pred": "미래 bbox 생성기 예측(π0.7식 단순화)"}
@@ -28,26 +28,35 @@ def block(tbl, H, st):
     out = (H("⑥-5 서브골 형태 비교 — 논문들의 방식과 우리 bbox 서브골의 위치")
            + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0"><b>EGVLA1의 bbox와 같은 신호</b>다. EGVLA1은 OWLv2 bbox를 이미지 특징과 concat해 MLP에 넣었고(bbox_scale 무영향), EGVLA2는 같은 bbox를 “서브골”로 보고 FiLM·prefix로 <b>조향</b>한다(V6 steered 78.41 vs concat 76.76). '
               '“서브골”이라는 이름은 π0.7의 구조 아이디어를 따라 붙인 것이다. 논문 정보는 레포 스터디 노트와 검색 요약 기준이며 원문 대조 전이다.</div>' + lit)
+    import ch77_viz as Z
+    fo, lo = (lambda k: k.startswith("fold")), (lambda k: k.startswith("lopo"))
+    HB = [("B2_film_res_fm", "B2"), ("C_pi0_adaln", "C")]
+    hc = [Z.HC["B2"], Z.HC["C"]]
+    colored = lambda t, c: f'<span style="color:{c}">●</span> {t}'
     if fa.exists():
-        d = json.load(open(fa)); rows = []
-        n_sp = len(d)
-        for v in ("full", "nobbox", "w1", "w5", "drop30"):
-            for h, hn in HN.items():
-                a, n1 = agg(d, f"{h}|{v}", "normal", "angle_deg"); m, _ = agg(d, f"{h}|{v}", "missing", "angle_deg")
-                f1, _ = agg(d, f"{h}|{v}", "normal", "go_f1"); ms, _ = agg(d, f"{h}|{v}", "normal", "mse_xy")
-                if a is not None:
-                    rows.append([VN[v], hn, f"{a:.1f}°", f"{m:.1f}°" if v != "nobbox" else "—", f"{f1:.3f}", f"{ms:.4f}"])
-        out += (H(f"서브골 ablation (분할 {n_sp}개 집계, seed 0)") + tbl(["변형", "헤드", "방향 오차(서브골 정상)", "방향 오차(서브골 결측 입력)", "GO/STOP F1", "청크 MSE(xy)"], rows)
-                + '<div style="font-size:0.78rem;color:#94a3b8">분할은 5-fold + 목표 위치별 LOPO를 섞어 평균한 값. "서브골 없음"은 학습·평가 모두 서브골 0.</div>')
+        d = json.load(open(fa))
+        ag = lambda key, sel, cond="normal": np.mean([x[key][cond]["angle_deg"] for k, x in d.items() if sel(k) and key in x])
+        VR = [("full", "서브골 있음(창3, 기준)", B), ("nobbox", "서브골 없음", R), ("w1", "현재 프레임만(창1)", MUT), ("w5", "창 5", MUT), ("drop30", "드롭아웃 30%로 학습", G)]
+        rows = []
+        for v, lab, c in VR:
+            rows.append((colored(lab, c), [[ag(f"{h}|{v}", fo) for h, _ in HB], [ag(f"{h}|{v}", lo) for h, _ in HB],
+                                        [("—" if v == "nobbox" else ag(f"{h}|{v}", lo, "missing")) for h, _ in HB]], "low"))
+        out += (H("서브골 ablation — 10분할 (5-fold 5 + 목표 위치별 LOPO 5, seed 0)")
+                + '<div style="font-size:0.8rem;margin:4px 0">방향 오차(°). 초록=그 열에서 가장 낮은 변형, 빨강=가장 높은 변형(열 단위 비교). 같은 열끼리만 비교한다.</div>'
+                + Z.LEG
+                + Z.heat_table([("같은 목표 위치 (5-fold)", ["B2", "C"], hc), ("안 본 목표 위치 (LOPO)", ["B2", "C"], hc), ("서브골 결측 입력 (LOPO)", ["B2", "C"], hc)], rows, fmt="{:.1f}°", corner="변형", by="col",
+                                note="서브골 결측 = 평가 때 bbox 입력을 전부 0으로. 서브골 없음은 학습·평가 모두 0이라 해당 없음(—).")
+                + '<div style="font-size:0.78rem;color:#94a3b8">핵심: ① 서브골을 빼도 같은 목표 위치에서는 거의 같다 ② 서브골로 학습한 B2는 결측에 크게 취약(25.9°) ③ 드롭아웃30%로 학습한 C는 결측에서도 거의 손실이 없다(16.2°).</div>')
     if ff.exists():
-        d = json.load(open(ff)); rows = []
-        gq = [x["generator"] for x in d.values()]
-        for v in ("fut_oracle", "fut_pred"):
-            for h, hn in HN.items():
-                a, n1 = agg(d, f"{h}|{v}", "normal", "angle_deg"); ms, _ = agg(d, f"{h}|{v}", "normal", "mse_xy")
-                if a is not None:
-                    rows.append([VN[v], hn, f"{a:.1f}°", f"{ms:.4f}"])
-        out += (H(f"π0.7식 미래 서브골 단순화 (분할 {len(d)}개 집계, K=8프레임 뒤 bbox)") + tbl(["변형", "헤드", "방향 오차", "청크 MSE(xy)"], rows)
-                + f'<div style="font-size:0.8rem;margin:4px 0">생성기 품질: 미래 bbox 예측 MSE {np.mean([g["gen_mse"] for g in gq]):.4f} vs "현재 bbox 유지" 기준선 {np.mean([g["persist_mse"] for g in gq]):.4f}. '
-                  '정답 미래 bbox 입력은 로봇이 움직인 결과가 새어 들어가는 <b>누설 상한</b>이라 공정한 비교가 아니다.</div>')
+        f2 = json.load(open(ff)); fg = [x["generator"] for x in f2.values()]
+        ga = lambda key, sel: np.mean([x[key]["normal"]["angle_deg"] for k, x in f2.items() if sel(k)])
+        rows = [(colored("서브골 없음", R), [[ag(f"{h}|nobbox", fo) for h, _ in HB], [ag(f"{h}|nobbox", lo) for h, _ in HB]], "low"),
+                (colored("현재 bbox만(기준)", B), [[ag(f"{h}|full", fo) for h, _ in HB], [ag(f"{h}|full", lo) for h, _ in HB]], "low"),
+                (colored("미래 bbox 생성기 예측(π0.7식 단순화)", P), [[ga(f"{h}|fut_pred", fo) for h, _ in HB], [ga(f"{h}|fut_pred", lo) for h, _ in HB]], "low"),
+                (colored("미래 bbox 정답(누설 상한)", A), [[ga(f"{h}|fut_oracle", fo) for h, _ in HB], [ga(f"{h}|fut_oracle", lo) for h, _ in HB]], "low")]
+        out += (H("π0.7식 미래 서브골 단순화 (K=8프레임 뒤 bbox, 10분할 seed 0)")
+                + Z.LEG + Z.heat_table([("같은 목표 위치 (5-fold)", ["B2", "C"], hc), ("안 본 목표 위치 (LOPO)", ["B2", "C"], hc)], rows, fmt="{:.1f}°", corner="서브골 형태", by="col")
+                + f'<div style="font-size:0.8rem;margin:4px 0">생성기 품질(미래 bbox 예측 MSE): 5-fold {np.mean([x["gen_mse"] for k, x in f2.items() if fo(k) for x in [x["generator"]]]):.4f} vs 현재 유지 기준선 '
+                  f'{np.mean([x["persist_mse"] for k, y in f2.items() if fo(k) for x in [y["generator"]]]):.4f} / LOPO {np.mean([y["generator"]["gen_mse"] for k, y in f2.items() if lo(k)]):.4f} vs {np.mean([y["generator"]["persist_mse"] for k, y in f2.items() if lo(k)]):.4f}(기준선과 같음 = 안 본 위치에서 일반화 못 함). '
+                  '정답 미래 bbox는 로봇이 움직인 결과가 새어 들어가는 <b>누설 상한</b>이라 공정한 비교가 아니다.</div>')
     return out + f'{st("읽는 법", A)} 방향 오차 차이가 1° 미만이면 seed 변동(±0.3°)과 구분이 어렵다. 서브골 결측 입력은 실기에서 그라운딩이 실패했을 때를 가정한 스트레스 테스트다. 판단은 실기 폐루프에서.'
