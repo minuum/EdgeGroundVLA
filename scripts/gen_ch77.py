@@ -49,7 +49,7 @@ def body():
                    ("서빙 정책(기본 꺼짐)", G, "F2 fused → FM → 속력 규칙"), ("지연 측정", R, "젯슨·서버 fp32, 로봇 접근 필요"), ("드라이런 → 폐루프 300회", P, "15칸×20회")])
     stat = tbl(["영역", "상태", "내용"], [
         ["신규 v3 데이터 검증", st("완료", G), f"300건 읽기 문제 0, 제외 0, az 스파이크 {iso}/{nz}={iso / nz:.0%}(합격). 속력 단계 {Vd['level_dist']['0.4']:.0%}/{Vd['level_dist']['0.7']:.0%}/{Vd['level_dist']['1.0']:.0%}, 속력~거리 ρ=-0.09(가이드 이전)"],
-        ["S1 학습(300ep, 5-fold×5seed·250epoch)", st("완료", G), f"lx R² {s1['C_pi0_adaln']['r2_mean_axis'][0]:.2f}, ly R² {s1['C_pi0_adaln']['r2_mean_axis'][1]:.2f}, az≈0.1. FM(A/B2/C) ≈ MLP 회귀. 안 본 위치(LOPO)는 C 방향 오차 {lo['C_pi0_adaln']['angle_deg']:.1f}°(A {lo['A_mlp_fm']['angle_deg']:.1f}°). 같은 장소 {s1['C_pi0_adaln']['angle_deg']:.1f}°"],
+        ["S1 학습(300ep, 5-fold×5seed·250epoch)", st("완료", G), f"lx R² {s1['C_pi0_adaln']['r2_mean_axis'][0]:.2f}, ly R² {s1['C_pi0_adaln']['r2_mean_axis'][1]:.2f}, az≈0.1. FM(A/B2/C) ≈ MLP 회귀. 안 본 목표 위치(LOPO)는 C 방향 오차 {lo['C_pi0_adaln']['angle_deg']:.1f}°(A {lo['A_mlp_fm']['angle_deg']:.1f}°). 같은 목표 위치 {s1['C_pi0_adaln']['angle_deg']:.1f}°"],
         ["epoch 확대 재시험", st("진행 중" if not ep.exists() else "완료", A if not ep.exists() else G), "최적 epoch이 상한 100 근처여서 250으로 재시험(방향 오차 소폭 개선)"],
         ["속력 보간 규칙", st("구현", G), "<code>continuous_speed.py</code>: STOP 0.2, 클램프 0.4~0.7, 섀도, az=0. 테스트 6개 통과"],
         ["FM 헤드 공유 모듈", st("구현", G), "<code>egvla2_fm_heads.py</code>. 분리 전후 가중치·샘플 출력 비트 동일"],
@@ -68,7 +68,7 @@ def body():
     body_ = (
         f'<div class="callout critical">🟡 <strong>3줄 요약</strong><br>'
         f'① 300건(15칸×20) 수집·검증 완료: <strong>읽기 문제 0, az 스파이크 9%로 합격</strong>. 다만 속력은 가이드 이전 수집이라 거리와 무관(ρ=-0.09).<br>'
-        f'② S1(300ep): FM 헤드는 방향 축을 학습(방향 오차 약 10.4~11.3°)하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 안 본 위치(LOPO)에서는 C가 가장 낫다(16.9° vs A 20.3°).<br>'
+        f'② S1(300ep): FM 헤드는 방향 축을 학습(방향 오차 약 10.4~11.3°)하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 안 본 목표 위치(LOPO)에서는 C가 가장 낫다(16.9° vs A 20.3°).<br>'
         f'③ 학습·체크포인트·서빙 경로 재생 점검까지 끝났다. <strong>남은 것은 실기</strong>(서버 경로 점검, 지연 측정, 드라이런, 폐루프 300회)이며 이 값이 있어야 EGVLA1 92%와 비교할 수 있다.</div>'
         + __import__("ch77_summary").block(tbl, H, st)
         + H("① 지금 어디까지 왔나") + V.wrap("진행 흐름", prog, "300건 기준(2026-10-16 최종 재실행)", kind="flow") + stat
@@ -83,6 +83,7 @@ def body():
         + __import__("ch77_fm_extras").block(tbl, H, st)
         + __import__("ch77_replay").block(tbl, H, st)
         + __import__("ch77_subgoal").block(tbl, H, st)
+        + __import__("ch77_curves").block(tbl, H, st)
         + H("⑦ 산출물") + tbl(["종류", "경로"], [
             ["plan", "<code>plan_20261014_inference_continuous_speed.md</code>, <code>plan_20261015_egvla2_300ep_pipeline.md</code>, <code>plan_20261016_egvla2_serving_path.md</code>"],
             ["코드", "<code>run_egvla2_pipeline.py</code>, <code>build_egvla2_main_set.py</code>, <code>train_egvla2_s1.py</code>, <code>replay_egvla2_policy.py</code>, <code>robovlm_nav/serve/egvla2_fm_policy.py</code>, <code>robovlm_nav/models/egvla2_fm_heads.py</code>, <code>continuous_speed.py</code>"],

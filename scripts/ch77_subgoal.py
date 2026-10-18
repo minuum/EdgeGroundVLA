@@ -38,7 +38,7 @@ def block(tbl, H, st):
                 if a is not None:
                     rows.append([VN[v], hn, f"{a:.1f}°", f"{m:.1f}°" if v != "nobbox" else "—", f"{f1:.3f}", f"{ms:.4f}"])
         out += (H(f"서브골 ablation (분할 {n_sp}개 집계, seed 0)") + tbl(["변형", "헤드", "방향 오차(서브골 정상)", "방향 오차(서브골 결측 입력)", "GO/STOP F1", "청크 MSE(xy)"], rows)
-                + '<div style="font-size:0.78rem;color:#94a3b8">분할은 5-fold + 위치별 LOPO를 섞어 평균한 값. "서브골 없음"은 학습·평가 모두 서브골 0.</div>')
+                + '<div style="font-size:0.78rem;color:#94a3b8">분할은 5-fold + 목표 위치별 LOPO를 섞어 평균한 값. "서브골 없음"은 학습·평가 모두 서브골 0.</div>')
     if ff.exists():
         d = json.load(open(ff)); rows = []
         gq = [x["generator"] for x in d.values()]
