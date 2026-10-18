@@ -129,3 +129,7 @@
 - 폐루프 구성 제안: EGVLA1과 같은 3 시작 위치 × 5 목표 위치 × 20 = 300(경로 축 없음). §6의 "15칸×20"은 수집 격자이고 평가 격자와 다를 수 있어 사용자 확인 필요. pos2·pos3은 EGVLA2에게 처음 보는 시작 위치(타깃이 다른 목표 위치로 보이므로 LOPO가 부분적 대용).
 - 보충(사용자 확인): EGVLA1도 **pos1에서만 학습**하고 pos2·pos3은 학습 없이 추론만 했다(95/91/90). 따라서 EGVLA2와 같은 조건의 시작 위치 일반화 비교다(EGVLA1은 pos1→pos2/3에서 4~5%p 하락).
 - 확정(사용자, 2026-10-18): 폐루프 = EGVLA1과 같은 3 시작 위치(pos1~3) × 5 목표 위치 × 20 = 300회. 시작 위치별(pos1/pos2/pos3) 따로 보고.
+
+## 15. 서브골 ablation 과적합 점검 — 학습 곡선 (2026-10-18)
+`scripts/eval_ablation_curves.py` → `docs/v5/egvla2_fm/ablation_curves.json`, CH77 ⑥-6(SVG 곡선·요약표). 분할 3(fold0, LOPO center, LOPO strong_right), 변형 3, 헤드 B2/C/회귀, 250 epoch, seed 0.
+결론: 과적합은 중간 정도(LOPO에서 뚜렷, 회귀가 가장 심함: 최적 5~10 epoch, 250 epoch은 +3~5°). FM 헤드는 긴 학습에 덜 민감. 고정 epoch(B2 220, C 120)은 대체로 최적 범위 안. **서브골 효과는 epoch을 바꿔도 분할마다 방향이 달라 일관되지 않음**(center에서 B2는 서브골 없음이 3~5° 우세, strong_right에서는 반대 0.5~1°) → 서브골 ablation 결론은 epoch 때문이 아님. epoch 간 흔들림 ±1~3°가 변형 차이와 같은 크기라 seed·분할 확대 필요. 헤드 최적 epoch 비교에서 C가 세 분할 모두 최저.
