@@ -33,3 +33,14 @@ def test_expected_speed_matches_calibration():
 def test_bad_source():
     with pytest.raises(ValueError):
         to_drive_command(1, 0, speed_source="x")
+
+
+def test_hybrid_drive():
+    from robovlm_nav.serve.continuous_speed import hybrid_drive, to_drive_command
+    ac = to_drive_command(0.3, 0.4, speed_source="shadow")          # m=0.5 → 이동, 방향 (0.6, 0.8), s=0.7
+    d = hybrid_drive(1, False, ac)
+    assert d and abs(d["lx"] - 0.6 * 1.15) < 1e-9 and abs(d["ly"] - 0.8 * 1.15) < 1e-9 and d["az"] == 0.0 and abs(d["speed_scale"] - 0.7) < 1e-9
+    assert hybrid_drive(0, False, ac) is None and hybrid_drive(6, False, ac) is None and hybrid_drive(7, False, ac) is None   # STOP·ROT는 기존 판단
+    assert hybrid_drive(1, True, ac) is None                                                                                # 막힘
+    assert hybrid_drive(1, False, to_drive_command(0.05, 0.05)) is None                                                     # EGVLA2 정지 → 기존 클래스 구동
+    assert hybrid_drive(1, False, {"error": "x"}) is None and hybrid_drive(1, False, None) is None

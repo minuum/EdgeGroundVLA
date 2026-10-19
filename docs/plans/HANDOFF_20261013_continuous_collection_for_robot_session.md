@@ -330,5 +330,8 @@ SPEED_LEVELS = [
 3. **드라이런**: 로봇 정지 상태로 사람이 조작하는 동안 `action_cont`(방향·속력·`subgoal_missing`)와 사람 조작을 같은 로그에 기록. 기록 항목은 시각, 프레임 번호, bbox, `chunk_first`, `spread`, 지연.
 4. 폐루프(미착수, 승인 후): **3 시작 위치(pos1~3) × 5 목표 위치 × 20 = 300회**, 첫 적용은 섀도(속력 0.7 고정)·az=0·s≤0.7, 시작 위치별로 따로 보고(EGVLA1은 95/91/90). 각 시행의 성공/실패와 함께 **충돌·수동 개입 여부, 소요 시간**을 기록해 주면 CR·시간 지표도 낼 수 있다.
 
-### 15.4 알려진 한계 (서버 구동 전 확인)
-- 대시보드 구동은 현재 서버 응답의 `action_3d`(기존 8-class 경로)를 쓰고, `action_cont`는 `VLA_APPLY_CONT_SPEED=1`일 때 **속력만** 적용한다. 방향은 연속값으로 구동되지 않는다. EGVLA2 구동 모드 설계는 `plan_20261019_egvla2_inference_server.md` 참고(승인 대기).
+### 15.4 하이브리드 구동 옵션 구현됨(기본 꺼짐, 구동은 승인 후)
+서버 `VLA_DRIVE_SOURCE=egvla2_hybrid VLA_EGVLA2_EMA=0.5`, 대시보드 `VLA_DRIVE_SOURCE=egvla2_hybrid VLA_JPEG_QUALITY=95`(자세한 내용·미확인 항목은 `plan_20261019_egvla2_inference_server.md` §6). 드라이런에서는 **서버만 켜고 대시보드는 구동 없이 응답의 `drive`·`action_cont`·`action_3d`를 로그로 비교**해 주세요.
+
+### 15.5 알려진 한계 (서버 구동 전 확인)
+- 대시보드 구동은 현재 서버 응답의 `action_3d`(기존 8-class 경로)를 쓰고, `action_cont`는 `VLA_APPLY_CONT_SPEED=1`일 때 **속력만** 적용한다. 방향은 연속값으로 구동되지 않는다. EGVLA2 구동 모드(단계 A 하이브리드 구현, 단계 B 단독 서버 미착수)는 `plan_20261019_egvla2_inference_server.md` 참고.

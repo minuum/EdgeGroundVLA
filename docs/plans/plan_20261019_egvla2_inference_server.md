@@ -1,6 +1,6 @@
 # 계획: EGVLA2 실제 추론 서버 — 연속 방향으로 로봇을 구동하기 위한 구현안
 
-> 작성일: 2026-10-19 | 상태: **계획 — 구현 승인 대기** | 관련: plan_20261016_egvla2_serving_path.md, 핸드오프 §15, CH77
+> 작성일: 2026-10-19 | 상태: **승인(2026-10-19) — 단계 A 구현 완료(기본 꺼짐), 단계 B 미착수** | 관련: plan_20261016_egvla2_serving_path.md, 핸드오프 §15, CH77
 
 ## 0. 현재 상태 (코드 확인)
 - 서버 `stage2_v2_inference_server.py`: `VLA_ACTION_MODE=continuous`이면 기존 8-class 파이프라인(OWLv2·Kosmos-2 계열 Stage1/2, 프리뷰 ROT 재시도, STOP 래치, 근접 오버라이드)을 **그대로 돌린 뒤** 응답에 `action_cont`만 추가한다(Florence-2 + FM은 병렬이 아니라 추가 연산).
@@ -36,3 +36,12 @@
 ## 5. 리스크
 - 연속 방향 첫 구동은 오프라인으로 검증된 적이 없다(안 본 위치 방향 오차 약 17°, 안 본 시작 위치는 미측정). 단계 A로 하이브리드 구동을 먼저 하고, 드라이런 로그로 평활·정지 규칙을 정한 뒤 단계 B로 간다.
 - 로봇 세션과 코드 동기화(로봇 쪽 repo가 최신인지, `mona_dashboard.py` 로컬 수정 여부) 확인 필요.
+
+## 6. 구현 현황 (2026-10-19, 단계 A)
+- `robovlm_nav/serve/continuous_speed.py`: `hybrid_drive()` 순수 함수(이동 클래스 1~5이고 막힘 없음, EGVLA2가 이동일 때만 연속 방향×1.15·speed_scale·az=0 반환. STOP·ROT·막힘·EGVLA2 정지·오류는 None=기존 판단). 테스트 7개 통과.
+- 서버: `VLA_DRIVE_SOURCE=egvla2_hybrid`(기본 `class`)일 때 응답에 `drive`·`drive_source` 추가. `VLA_EGVLA2_EMA=<alpha>`(기본 0=끔)로 정책의 EMA 평활.
+- 정책: `ema_alpha`(첫 스텝 지수이동평균, reset 시 초기화), 서브골 결측 처리(`subgoal_dropout>0` 체크포인트 기본).
+- 대시보드: `VLA_DRIVE_SOURCE=egvla2_hybrid`이고 응답에 `drive`가 있으면 방향·throttle_scale을 대체(az=0). 서버 전송 JPEG 품질을 `VLA_JPEG_QUALITY`(기본 80=기존)로 조절, EGVLA2 경로는 95 이상.
+- 기본값은 모두 기존 동작이며, 켜는 법: 서버 `VLA_ACTION_MODE=continuous VLA_EGVLA2_CKPT=runs/egvla2_fm/deploy/C_pi0_adaln_drop30_e120.pt VLA_SPEED_SOURCE=shadow VLA_DRIVE_SOURCE=egvla2_hybrid VLA_EGVLA2_EMA=0.5`, 대시보드 `VLA_DRIVE_SOURCE=egvla2_hybrid VLA_JPEG_QUALITY=95`.
+- **미확인(드라이런에서 확인)**: 연속 방향에 곱한 gain 1.15가 컨트롤러의 lx/ly 단위와 맞는지(대각선 속도는 직진과 같다고 가정), EMA α 값, EGVLA2 정지 판단과 기존 STOP의 불일치 빈도.
+- 결정(승인 시 적용한 기본값): 단계 A에서는 STOP·ROT·프리뷰를 기존 규칙이 담당(결정 1~3은 단계 B에서 확정), 평활은 EMA 옵션(기본 끔), JPEG 품질은 환경변수로.

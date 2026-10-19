@@ -41,3 +41,18 @@ def to_drive_command(lx: float, ly: float, az: float = 0.0, *, speed_source: str
     out.update(stop=False, dir_lx=lx / m, dir_ly=ly / m, speed_scale=s, model_speed_scale=model_s,
                throttle=max(1, round(BASE_THROTTLE * s)), expected_cmps=expected_cmps(s))
     return out
+
+
+MOVE_CLASSES = (1, 2, 3, 4, 5)   # FORWARD LEFT RIGHT FWD+L FWD+R. STOP(0)·ROT(6,7)은 기존 판단 유지
+
+
+def hybrid_drive(pred_class: int, blocked: bool, action_cont: Any, gain: float = 1.15) -> dict[str, Any] | None:
+    """VLA_DRIVE_SOURCE=egvla2_hybrid: 기존 파이프라인이 '이동'이라고 판단한 프레임에서만 구동 방향·속력을 연속값으로 대체한다.
+    STOP·ROT·막힘은 기존 판단 유지(None), EGVLA2가 정지(|m|<STOP_M)를 내도 보수적으로 기존 클래스 구동(로그만).
+    lx/ly = 단위 방향 × gain(기존 FORWARD의 1.15와 같은 크기: 속도 보정은 직진 기준), az=0(첫 적용), throttle_scale = speed_scale."""
+    if blocked or pred_class not in MOVE_CLASSES:
+        return None
+    if not isinstance(action_cont, dict) or action_cont.get("error") or action_cont.get("stop", True):
+        return None
+    return dict(lx=float(action_cont["dir_lx"]) * gain, ly=float(action_cont["dir_ly"]) * gain, az=0.0,
+                speed_scale=float(action_cont["speed_scale"]), source="egvla2_hybrid")

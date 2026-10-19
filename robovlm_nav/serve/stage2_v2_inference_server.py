@@ -855,7 +855,12 @@ class OwlV2Grounder:
 # 켜져도 기존 8-class 응답(action 등)은 그대로이고, 응답에 action_cont만 추가된다. 실패는 로그만 남기고 class 경로에 영향 없음.
 # ---------------------------------------------------------------------------
 ACTION_MODE = os.getenv("VLA_ACTION_MODE", "class")
+# 구동 출처: class(기본, 기존 8-class) | egvla2_hybrid(이동 프레임의 방향·속력만 action_cont로 대체, STOP·ROT는 기존 판단) — plan_20261019
+DRIVE_SOURCE = os.getenv("VLA_DRIVE_SOURCE", "class")
 _egvla2: dict = {}
+
+
+from robovlm_nav.serve.continuous_speed import hybrid_drive as _hybrid_drive  # noqa: E402
 
 
 def _egvla2_continuous(image_rgb: np.ndarray) -> Optional[dict]:
@@ -865,7 +870,8 @@ def _egvla2_continuous(image_rgb: np.ndarray) -> Optional[dict]:
         if not _egvla2:
             from robovlm_nav.serve.egvla2_fm_policy import EgVla2FMPolicy, FusedF2Extractor
             _egvla2["ext"] = FusedF2Extractor()
-            _egvla2["pol"] = EgVla2FMPolicy(os.environ["VLA_EGVLA2_CKPT"], speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"))
+            _egvla2["pol"] = EgVla2FMPolicy(os.environ["VLA_EGVLA2_CKPT"], speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"),
+                                          ema_alpha=float(os.getenv("VLA_EGVLA2_EMA", "0")))
         bbox, feat = _egvla2["ext"](image_rgb)
         r = _egvla2["pol"].step(bbox, feat)
         c = r["action_cont"]
@@ -1498,6 +1504,8 @@ class Stage2V2Model:
                 "head": self.head_name,
             },
             "action_cont": action_cont,
+            "drive": (_hybrid_drive(pred_class, blocked_second_rotation, action_cont) if DRIVE_SOURCE == "egvla2_hybrid" else None),
+            "drive_source": DRIVE_SOURCE,
             "source": "stage2_v2",
         }
 

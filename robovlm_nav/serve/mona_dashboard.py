@@ -84,6 +84,10 @@ log = logging.getLogger("mona_dash")
 # ── 컬러 보정 파라미터 ────────────────────────────────────────────
 _cc = {"r_gain": 1.0, "g_gain": 1.0, "b_gain": 1.0}
 
+# 서버 전송 JPEG 품질: 기본 80(기존). EGVLA2 경로는 95 이상 필요(방향 어긋남 q80 4.1° → q95 0.2°, 핸드오프 §15.2)
+_JPEG_Q = int(os.getenv("VLA_JPEG_QUALITY", "80"))
+
+
 def _correct(img: Image.Image) -> Image.Image:
     arr = np.array(img).astype(np.float32)
     r, g, b = cv2.split(arr)
@@ -1635,7 +1639,7 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
         if apply_cc: img = _correct(img)
 
         buf = io.BytesIO()
-        img.save(buf, "JPEG", quality=80)
+        img.save(buf, "JPEG", quality=_JPEG_Q)
         b64 = base64.b64encode(buf.getvalue()).decode()
 
         try:
@@ -1724,7 +1728,7 @@ def _async_infer(instr: str, apply_cc: bool, logger):
         img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         if apply_cc: img = _correct(img)
 
-        buf = io.BytesIO(); img.save(buf, "JPEG", quality=80)
+        buf = io.BytesIO(); img.save(buf, "JPEG", quality=_JPEG_Q)
         b64 = base64.b64encode(buf.getvalue()).decode()
 
         try:
@@ -1800,6 +1804,13 @@ def _async_exec():
             if os.getenv("VLA_APPLY_CONT_SPEED", "0") == "1" and isinstance(_ac, dict) and not _ac.get("error") and not _ac.get("stop", True):
                 speed_scale = float(_ac["speed_scale"])
 
+            # EGVLA2 하이브리드 구동(plan_20261019): 서버가 drive를 주면(이동 프레임) 방향·속력을 연속값으로 대체. az=0.
+            _dr = res.get("drive")
+            if os.getenv("VLA_DRIVE_SOURCE", "class") == "egvla2_hybrid" and isinstance(_dr, dict):
+                new_lx, new_ly, new_az = float(_dr["lx"]), float(_dr["ly"]), 0.0
+                speed_scale = float(_dr["speed_scale"])
+                _state["last_action"] = [new_lx, new_ly, new_az]
+
             is_rotation = abs(new_az) > 0.1 and abs(new_lx) < 0.05 and abs(new_ly) < 0.05
             if is_rotation:
                 # move_and_stop_ramped가 자체적으로 move_duration만큼만 돌고 멈춤 —
@@ -1863,7 +1874,7 @@ def _goalnav_infer(phrase: str, apply_cc: bool, logger):
         except Exception as e:
             log.warning(f"[GOALNAV grounding] {e}"); continue
 
-        buf = io.BytesIO(); img.save(buf, "JPEG", quality=80)
+        buf = io.BytesIO(); img.save(buf, "JPEG", quality=_JPEG_Q)
         b64 = base64.b64encode(buf.getvalue()).decode()
 
         try:
@@ -2501,7 +2512,7 @@ def collect_ground():
     import requests as rq
     rgb = frame[:, :, ::-1]
     buf = io.BytesIO()
-    Image.fromarray(rgb).save(buf, "JPEG", quality=80)
+    Image.fromarray(rgb).save(buf, "JPEG", quality=_JPEG_Q)
     b64 = base64.b64encode(buf.getvalue()).decode("ascii")
     try:
         r = rq.post(f"{INFER_URL}/ground", json={"image": b64},
@@ -2925,7 +2936,7 @@ def calib_rec_snap():
 
     # 추론 서버로부터 예측 가져오기 시도 (1회용 스냅샷)
     buf = io.BytesIO()
-    Image.fromarray(rgb).save(buf, "JPEG")
+    Image.fromarray(rgb).save(buf, "JPEG", quality=_JPEG_Q)
     b64 = base64.b64encode(buf.getvalue()).decode()
     res = {}
     try:
@@ -3050,7 +3061,7 @@ def drive_drift_run(basis: str):
 
     img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
     buf = io.BytesIO()
-    img.save(buf, "JPEG")
+    img.save(buf, "JPEG", quality=_JPEG_Q)
     b64 = base64.b64encode(buf.getvalue()).decode()
 
     # 추론 서버 호출
