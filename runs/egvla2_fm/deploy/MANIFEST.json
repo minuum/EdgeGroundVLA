@@ -1,0 +1,22 @@
+{
+ "C_pi0_adaln_drop30_e120.pt": {
+  "sha256": "f88b944fa6346f6ffe36c0da9d1b09851f9429940d45cc53140a821460272da4",
+  "bytes": 2918858,
+  "arch": "C_pi0_adaln",
+  "epochs": 120,
+  "subgoal_dropout": 0.3,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "e867500b"
+ },
+ "C_pi0_adaln_e120.pt": {
+  "sha256": "1bc507a3205222c890bb3644e5b0494732fe5d70c4edc508209a160a970eca06",
+  "bytes": 2918507,
+  "arch": "C_pi0_adaln",
+  "epochs": 120,
+  "subgoal_dropout": 0.0,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "e867500b"
+ }
+}

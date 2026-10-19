@@ -1,0 +1,52 @@
+{
+ "ckpt": "runs/egvla2_fm/deploy/C_pi0_adaln_drop30_e120.pt",
+ "episodes": [
+  "episode_20261014_145827_weak_left_right_curve.h5",
+  "episode_20261014_141917_weak_left_left_curve.h5",
+  "episode_20261014_105836_center_left_curve.h5",
+  "episode_20261014_114004_weak_left_straight.h5",
+  "episode_20261014_155957_weak_left_straight.h5"
+ ],
+ "results": {
+  "fp16|raw": {
+   "bbox_maxdiff": 0.0,
+   "bbox_cx_mad": 0.0,
+   "has_bbox_mismatch": 0,
+   "feat_cos_min": 0.9999999403953552,
+   "feat_cos_mean": 1.0,
+   "action_angle_diff_mean": 0.002402373799472621,
+   "action_angle_diff_max": 0.009861571489229563,
+   "n": 20
+  },
+  "fp16|jpeg80": {
+   "bbox_maxdiff": 0.0019370019435882568,
+   "bbox_cx_mad": 0.0004000060143880546,
+   "has_bbox_mismatch": 0,
+   "feat_cos_min": 0.984538733959198,
+   "feat_cos_mean": 0.9900586009025574,
+   "action_angle_diff_mean": 4.139684306161735,
+   "action_angle_diff_max": 16.986479906885485,
+   "n": 20
+  },
+  "fp32|raw": {
+   "bbox_maxdiff": 0.0011110007762908936,
+   "bbox_cx_mad": 2.500116897863336e-05,
+   "has_bbox_mismatch": 0,
+   "feat_cos_min": 0.9999995231628418,
+   "feat_cos_mean": 0.9999998211860657,
+   "action_angle_diff_mean": 0.031779415933694724,
+   "action_angle_diff_max": 0.09835595706171493,
+   "n": 20
+  },
+  "fp32|jpeg80": {
+   "bbox_maxdiff": 0.0019370019435882568,
+   "bbox_cx_mad": 0.0004500053764786571,
+   "has_bbox_mismatch": 0,
+   "feat_cos_min": 0.984521210193634,
+   "feat_cos_mean": 0.9900197982788086,
+   "action_angle_diff_mean": 4.1907786579266215,
+   "action_angle_diff_max": 16.969863778370335,
+   "n": 20
+  }
+ }
+}

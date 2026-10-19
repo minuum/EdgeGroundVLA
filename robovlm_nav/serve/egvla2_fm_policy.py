@@ -43,7 +43,7 @@ class FusedF2Extractor:
 
 class EgVla2FMPolicy:
     def __init__(self, ckpt_path: str | Path, device: torch.device | None = None, *, k_samples: int = K_SAMPLES,
-                 speed_source: str = "shadow", s_max: float | None = None):
+                 speed_source: str = "shadow", s_max: float | None = None, zero_on_miss: bool | None = None):
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         ck = torch.load(ckpt_path, map_location=self.device, weights_only=False)
         self.meta = {k: v for k, v in ck.items() if k not in ("state", "files")}
@@ -52,6 +52,8 @@ class EgVla2FMPolicy:
         self.model.load_state_dict(ck["state"])
         self.model.eval()
         self.k, self.speed_source, self.s_max = k_samples, speed_source, s_max
+        # 서브골(bbox) 결측(has_bbox<0.5)이면 창 전체를 0으로: 서브골 드롭아웃으로 학습한 체크포인트(subgoal_dropout>0)의 결측 표현과 같다.
+        self.zero_on_miss = bool(ck.get("subgoal_dropout", 0) > 0) if zero_on_miss is None else zero_on_miss
         self._hist: list[np.ndarray] = []
         self._lock = threading.Lock()
 
@@ -68,10 +70,13 @@ class EgVla2FMPolicy:
         with self._lock:
             self._hist.append(np.asarray(bbox, np.float32))
             win = self._window()
+            miss = bool(self.zero_on_miss and float(np.asarray(bbox, np.float32)[3]) < 0.5)
+        if miss:
+            win = np.zeros_like(win)
         bb = torch.from_numpy(win)[None].to(self.device)
         ft = torch.from_numpy(np.asarray(feat, np.float32))[None].to(self.device)
         S = sample_chunk(self.model, bb, ft, self.k)[0]        # (k, H, 3)
         chunk = S.mean(0).cpu().numpy()
         lx, ly, az = (float(x) for x in chunk[0])
         cmd = to_drive_command(lx, ly, az, speed_source=self.speed_source, s_max=self.s_max)
-        return dict(chunk=chunk, spread=float(S.std(0).mean().item()), first=(lx, ly, az), action_cont=cmd, arch=self.meta.get("arch"))
+        return dict(chunk=chunk, spread=float(S.std(0).mean().item()), first=(lx, ly, az), action_cont=cmd, arch=self.meta.get("arch"), subgoal_missing=miss)

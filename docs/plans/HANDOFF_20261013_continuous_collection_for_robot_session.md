@@ -306,3 +306,29 @@ SPEED_LEVELS = [
 - **속력**: 느림 22 / 보통 52 / 빠름 26%. 속력과 바구니 크기의 상관 ρ=-0.02로 가이드(§12.3) 이전 상태 그대로다. 진행도별 평균 크기 0.32→0.49→0.63→0.51→0.44(가이드 목표 0.42→0.67→0.72→0.62→0.44보다 약함). §12.3/12.4 반영 여부는 사용자 결정 대기라는 회신을 확인했다.
 - **요청**: (1) v3 구동 C·게이지·SPEED_LEVELS 코드가 repo에 없다(`62e722bc`까지) — 푸시 부탁. (2) 남은 셀 weak_right(현재 11/60)·strong_right(0/60) 수집 계속. (3) `scenario_progress.json`이 비어 있어 갱신 확인 부탁. (4) 전송은 `--delete` 없이 부탁(검증·제외 목록이 minum 쪽 기준).
 - minum 쪽 결과: 본학습 세트 218ep 5-fold로 FM 헤드 학습 결과 MLP 회귀와 동급, 방향 축은 학습됨. 상세는 CH76-10, `plan_20261015_egvla2_300ep_pipeline.md` §8.1.
+
+## 15. minum → 로봇/젯슨 세션: EGVLA2 배포 체크포인트 전달과 실기 점검 요청 (2026-10-19)
+**원칙: 이 단계에서는 로봇을 구동하지 않는다.** 서버 점검 → 지연 측정 → 드라이런(출력 로그만) 순으로 진행하고, 구동은 minum 승인 후.
+
+### 15.1 체크포인트 (minum `runs/egvla2_fm/deploy/`)
+| 파일 | 설정 | sha256 앞 8자리 |
+|---|---|---|
+| `C_pi0_adaln_drop30_e120.pt` | **권장.** 헤드 C(π0형), 300건 전체, 120 epoch, 서브골 드롭아웃 30% | `f88b944f` |
+| `C_pi0_adaln_e120.pt` | 대조용(드롭아웃 없음) | `MANIFEST.json` 참고 |
+- 로봇 쪽에서 당겨 가기(이전 전송 때 쓰던 `minum:` 별칭 기준, 경로는 로봇 쪽 환경에 맞게 수정): `rsync -ah --progress minum:/home/minum/26CS/MoNaVLA/runs/egvla2_fm/deploy/ /home/soda/MoNaVLA/runs/egvla2_fm/deploy/` 후 `sha256sum`을 `MANIFEST.json`과 대조.
+- 필요 코드(repo `inference-integration` 최신): `robovlm_nav/models/egvla2_fm_heads.py`, `robovlm_nav/serve/egvla2_fm_policy.py`, `robovlm_nav/serve/continuous_speed.py`, `robovlm_nav/serve/stage2_v2_inference_server.py`, `scripts/precompute_v6_florence2_fused.py`(+`florence2_bbox_adapter`). Florence-2 base 가중치는 오프라인 로컬 캐시 필요(`HF_HUB_OFFLINE=1`).
+
+### 15.2 반드시 지켜 달라는 입력 조건 (minum 측정, `docs/v5/egvla2_fm/serving_equiv*.json`)
+1. **서버로 보내는 JPEG 품질을 95 이상으로.** 대시보드 현재 `quality=80`(`mona_dashboard.py` 1638·1727·1866행)이면 학습 때(무압축 프레임)와 특징이 달라져 **최종 방향이 평균 4.1°(최대 17°) 달라진다.** q95: 0.2°, q100: 0.3°, q90: 2.4°, q60: 7.3°. EGVLA2 경로 전용으로 q95 이상(또는 PNG).
+2. **색 순서**: H5는 BGR로 저장, 학습은 `[:,:,::-1]`로 RGB 변환. 서버는 JPEG을 PIL로 디코드하므로 대시보드가 `cv2.cvtColor(BGR→RGB)` 후 저장하는 지금 방식이면 RGB로 일치(확인됨).
+3. **색 보정 `apply_cc`는 끈다**(기본 False). 학습 프레임은 보정 없는 원본이다.
+4. dtype: Florence-2 fp16(캐시 생성 기준)과 fp32(메인 배포) 차이는 방향 0.03°로 무시 가능. 지연 비교는 fp32.
+
+### 15.3 요청 작업(구동 없음)
+1. **서버 경로 점검**: 같은 프레임 20장을 서버 `action_cont`(응답의 `chunk_first`, `bbox_f2`)와 minum 캐시값(`docs/v5/egvla2_fm/v3_florence2_cache.npz`는 용량 때문에 별도 전달 가능)으로 비교 → bbox 차 ≈0, 방향 차 <1°이어야 한다.
+2. **지연 측정**: 젯슨 fp32, `VLA_ACTION_MODE=continuous VLA_EGVLA2_CKPT=<위 파일> VLA_SPEED_SOURCE=shadow`로 프레임당 `latency_ms`를 100프레임 기록(Florence-2 + FM 헤드 K=8 포함). 비교 기준: Florence-2 단독 817ms(fp32).
+3. **드라이런**: 로봇 정지 상태로 사람이 조작하는 동안 `action_cont`(방향·속력·`subgoal_missing`)와 사람 조작을 같은 로그에 기록. 기록 항목은 시각, 프레임 번호, bbox, `chunk_first`, `spread`, 지연.
+4. 폐루프(미착수, 승인 후): **3 시작 위치(pos1~3) × 5 목표 위치 × 20 = 300회**, 첫 적용은 섀도(속력 0.7 고정)·az=0·s≤0.7, 시작 위치별로 따로 보고(EGVLA1은 95/91/90). 각 시행의 성공/실패와 함께 **충돌·수동 개입 여부, 소요 시간**을 기록해 주면 CR·시간 지표도 낼 수 있다.
+
+### 15.4 알려진 한계 (서버 구동 전 확인)
+- 대시보드 구동은 현재 서버 응답의 `action_3d`(기존 8-class 경로)를 쓰고, `action_cont`는 `VLA_APPLY_CONT_SPEED=1`일 때 **속력만** 적용한다. 방향은 연속값으로 구동되지 않는다. EGVLA2 구동 모드 설계는 `plan_20261019_egvla2_inference_server.md` 참고(승인 대기).
