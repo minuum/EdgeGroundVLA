@@ -32,7 +32,7 @@ def st(label, col):
 
 
 TABS = [("t1", "📌 개요·진행", ["①", "③", "④"]), ("t2", "📖 용어·대조표", ["⓪"]), ("t3", "🔀 이산 vs 연속·궤적", ["⑤", "⑥-4"]),
-        ("t4", "🧠 헤드·FM 평가", ["②", "⑥-3"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🤖 EGVLA1 vs 2·실기", ["⑥-2", "⑥"]), ("t7", "🧰 산출물", ["⑦"])]
+        ("t4", "🧠 헤드·FM 평가", ["②", "⑥-3"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🤖 EGVLA1 vs 2·실기", ["⑥-2", "⑥-7", "⑥"]), ("t7", "🧰 산출물", ["⑦"])]
 
 
 def tabify(body_):
@@ -75,10 +75,11 @@ def body():
         ["epoch 확대 재시험", st("진행 중" if not ep.exists() else "완료", A if not ep.exists() else G), "최적 epoch이 상한 100 근처여서 250으로 재시험(방향 오차 소폭 개선)"],
         ["속력 보간 규칙", st("구현", G), "<code>continuous_speed.py</code>: STOP 0.2, 클램프 0.4~0.7, 섀도, az=0. 테스트 6개 통과"],
         ["FM 헤드 공유 모듈", st("구현", G), "<code>egvla2_fm_heads.py</code>. 분리 전후 가중치·샘플 출력 비트 동일"],
-        ["서빙 정책·서버 훅", st("구현(꺼짐)", G), "<code>VLA_ACTION_MODE=continuous</code>일 때만 <code>action_cont</code> 추가. 서빙 추출기 vs 캐시: bbox 0.0, 특징 0.002 차이"],
+        ["서빙 정책·서버 훅", st("구현(꺼짐)", G), "<code>VLA_ACTION_MODE=continuous</code>일 때 <code>action_cont</code> 추가, <b>단계 A 하이브리드 구동</b>(<code>VLA_DRIVE_SOURCE</code>)·EMA·서브골 결측 처리. 원본 입력에서 학습 캐시와 일치, <b>JPEG q80은 4.1° 어긋나 q95 이상 필요</b>"],
         ["300ep 원샷 파이프라인", st("완료", G), "<code>run_egvla2_pipeline.py</code>: 캐시→검증→세트→S1→LOPO→체크포인트 6단계 실행 완료(2026-10-16)"],
         ["수집(로봇 세션)", st("완료", G), "300/300. 로봇 쪽에서 불량 파일 정리 후 20/20×15칸"],
-        ["지연 측정·헤드 선택", st("대기", R), "최종 체크포인트와 젯슨 접근 필요. 후보 C(방향) vs A(지연)"],
+        ["배포 체크포인트", st("저장", G), "C + 서브골 드롭아웃30%, 120 epoch(권장)과 대조용(드롭아웃 없음). 로봇 쪽 전달은 rsync로 당겨 가기(핸드오프 §15)"],
+        ["지연 측정·드라이런", st("대기", R), "젯슨 접근 필요: 서버 경로 점검 → 지연 측정(FM 포함) → 드라이런"],
         ["폐루프 평가", st("미착수", MUT), "300회 = 3 시작 위치(pos1~3)×5 목표 위치×20 (EGVLA1과 동일 구성, 확정), 첫 적용 섀도·az=0·s≤0.7. 양쪽 모두 pos1 하나로 학습, pos2·pos3은 제로샷 추론(시작 위치 일반화)"]])
     dec = tbl(["결정(사용자, 10/15)", "내용"], [
         ["폐루프 규모", "300회(성공 정의는 기존 프로토콜 유지). 구성은 EGVLA1과 같은 <b>3 시작 위치×5 목표 위치×20</b>으로 확정(경로는 수집 보조라 평가 축 아님, 사용자 확인 2026-10-18)"],
@@ -91,7 +92,7 @@ def body():
         f'<div class="callout critical">🟡 <strong>3줄 요약</strong><br>'
         f'① 300건(15칸×20) 수집·검증 완료: <strong>읽기 문제 0, az 스파이크 9%로 합격</strong>. 다만 속력은 가이드 이전 수집이라 거리와 무관(ρ=-0.09).<br>'
         f'② S1(300ep): FM 헤드는 방향 축을 학습(방향 오차 약 10.4~11.3°)하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 안 본 목표 위치(LOPO)에서는 C가 가장 낫다(16.9° vs A 20.3°).<br>'
-        f'③ 학습·체크포인트·서빙 경로 재생 점검까지 끝났다. <strong>남은 것은 실기</strong>(서버 경로 점검, 지연 측정, 드라이런, 폐루프 300회)이며 이 값이 있어야 EGVLA1 92%와 비교할 수 있다.</div>'
+        f'③ 학습·배포 체크포인트(C+드롭아웃30)·서빙 경로·추론 서버 단계 A까지 끝났다. <strong>남은 것은 실기</strong>(서버 경로 점검, 지연 측정, 드라이런, 폐루프 3 시작 위치×5 목표 위치×20)이며, 서버로 보내는 JPEG는 q95 이상이어야 한다.</div>'
         + __import__("ch77_summary").block(tbl, H, st)
         + H("① 지금 어디까지 왔나") + V.wrap("진행 흐름", prog, "300건 기준(2026-10-16 최종 재실행)", kind="flow") + stat
         + H("② 수치 한눈에") + V.wrap("S1 축별 R² (300ep, 5-fold × 5 seed, 250 epoch)", V.legend([("A", B), ("B2", G), ("C", A)]) + V.vgroups(["lx", "ly", "az"], [(n.split("_")[0], c, s1[n]["r2_mean_axis"]) for n, c in zip(["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"], (B, G, A))], 1.0, fmt="{:.2f}"), "MLP 회귀와 MSE 차 ≤0.003", kind="chart")
@@ -102,6 +103,7 @@ def body():
         + __import__("ch77_traj").block(tbl, H, st)
         + __import__("ch77_story").block(tbl, H, st)
         + __import__("ch77_compare").block(tbl, H, st)
+        + __import__("ch77_serving").block(tbl, H, st)
         + __import__("ch77_fm_extras").block(tbl, H, st)
         + __import__("ch77_replay").block(tbl, H, st)
         + __import__("ch77_subgoal").block(tbl, H, st)
