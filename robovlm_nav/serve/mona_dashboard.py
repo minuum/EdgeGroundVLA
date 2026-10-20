@@ -1412,6 +1412,36 @@ def _warn_if_duplicate_process():
 
 
 # ─── 유틸 ─────────────────────────────────────────────────────────
+# EGVLA2(2026-10-20) — 활성 모델군(discrete/egvla2)에 따라 입력 조건을 자동 전환.
+# minum 핸드오프 §15.2: egvla2는 JPEG q95 필수(q80이면 방향 평균 4.1°·최대 17°
+# 어긋남, q95는 0.2°) + 색보정 끔. 매 프레임 /health를 때리면 레이턴시가 늘어나니
+# TTL 캐시로 완화 — discrete 쪽은 지금까지와 동작 차이 없음(기본 quality=80 유지).
+_family_cache: dict = {"family": "discrete", "ts": 0.0}
+_FAMILY_CACHE_TTL_S = 3.0
+
+
+def _active_family_cached() -> str:
+    now = time.time()
+    if now - _family_cache["ts"] < _FAMILY_CACHE_TTL_S:
+        return _family_cache["family"]
+    try:
+        import requests as rq
+        h = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=1.5).json()
+        _family_cache["family"] = h.get("active_family", "discrete")
+    except Exception:
+        pass  # 조회 실패 시 마지막으로 알려진 값 유지(기본 discrete)
+    _family_cache["ts"] = now
+    return _family_cache["family"]
+
+
+def _drive_jpeg_quality_and_cc(apply_cc: bool) -> tuple[int, bool]:
+    """egvla2 활성 중이면 (95, False) — q95 강제 + 색보정 강제 끔. discrete면
+    기존 그대로 (80, apply_cc 그대로)."""
+    if _active_family_cached() == "egvla2":
+        return 95, False
+    return 80, apply_cc
+
+
 def _infer_post(path: str, payload: dict, timeout=15, base_url: str = INFER_URL) -> dict:
     import requests as rq
     r = rq.post(f"{base_url}{path}", json=payload,
@@ -1534,10 +1564,11 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
 
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(rgb)
-        if apply_cc: img = _correct(img)
+        _jpeg_q, _apply_cc_eff = _drive_jpeg_quality_and_cc(apply_cc)
+        if _apply_cc_eff: img = _correct(img)
 
         buf = io.BytesIO()
-        img.save(buf, "JPEG", quality=80)
+        img.save(buf, "JPEG", quality=_jpeg_q)
         b64 = base64.b64encode(buf.getvalue()).decode()
 
         try:
@@ -1623,9 +1654,10 @@ def _async_infer(instr: str, apply_cc: bool, logger):
         if bgr is None: time.sleep(0.05); continue
 
         img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
-        if apply_cc: img = _correct(img)
+        _jpeg_q, _apply_cc_eff = _drive_jpeg_quality_and_cc(apply_cc)
+        if _apply_cc_eff: img = _correct(img)
 
-        buf = io.BytesIO(); img.save(buf, "JPEG", quality=80)
+        buf = io.BytesIO(); img.save(buf, "JPEG", quality=_jpeg_q)
         b64 = base64.b64encode(buf.getvalue()).decode()
 
         try:
