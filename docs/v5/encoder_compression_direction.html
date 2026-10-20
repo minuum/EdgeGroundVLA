@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Encoder Compression Direction</title>
+<style>
+  :root{--bg:#f6f8fb;--card:#ffffff;--ink:#0f1c2e;--ink-soft:#51617a;--line:#d9e2ee;--accent:#2563eb;--accent-soft:#e0eaff;--warn:#b45309;--warn-soft:#fef3c7;--ok:#047857;--ok-soft:#d1fae5}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0b1220;--card:#111a2b;--ink:#e2e8f0;--ink-soft:#94a3b8;--line:#1e293b;--accent:#60a5fa;--accent-soft:#1e3a5f;--warn:#fbbf24;--warn-soft:#3a2a0a;--ok:#34d399;--ok-soft:#0b2e22}}
+  :root[data-theme="dark"]{--bg:#0b1220;--card:#111a2b;--ink:#e2e8f0;--ink-soft:#94a3b8;--line:#1e293b;--accent:#60a5fa;--accent-soft:#1e3a5f;--warn:#fbbf24;--warn-soft:#3a2a0a;--ok:#34d399;--ok-soft:#0b2e22}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Noto Sans KR",sans-serif;line-height:1.7}
+  .wrap{max-width:900px;margin:0 auto;padding:40px 16px 64px}
+  a{color:var(--accent)}
+  .back{font-size:0.86rem;text-decoration:none}
+  h1{font-size:1.7rem;line-height:1.3;margin:14px 0 6px}
+  .meta{color:var(--ink-soft);font-size:0.86rem;margin-bottom:26px}
+  h2{font-size:1.15rem;margin:34px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  .q{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:8px;padding:16px 18px;font-size:1.05rem;font-weight:700}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0}
+  table{width:100%;border-collapse:collapse;font-size:0.9rem;margin:10px 0;background:var(--card)}
+  th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+  th{color:var(--ink-soft);font-weight:700}
+  .tag{display:inline-block;font-size:0.72rem;font-weight:700;border-radius:999px;padding:1px 9px}
+  .ok{background:var(--ok-soft);color:var(--ok)} .warn{background:var(--warn-soft);color:var(--warn)}
+  code{font-size:0.84em;background:var(--accent-soft);padding:1px 5px;border-radius:4px;word-break:break-all}
+  ul{padding-left:20px}
+  .table-scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← EdgeGround-VLA 메인</a>
+  <h1>연구 방향 메모 — 온디바이스 로봇의 인식 인코더 압축과 폐루프 성공</h1>
+  <div class="meta">2026-10-21 · 교수님 미팅 준비 메모 · 원문: <code>docs/plans/research_20261021_training_free_encoder_compression.md</code></div>
+
+  <h2>1. 중심 질문</h2>
+  <div class="q">인식 인코더가 지연의 대부분을 차지하는 온디바이스 로봇에서, 학습 없이 인코더를 압축하면 폐루프 성공이 언제, 왜 무너지는가?</div>
+  <div class="card">
+    <b>이렇게 잡은 이유</b>
+    <ul>
+      <li>10/9 면담에서 받은 방향: VLA 자체보다는 인식 쪽, training-free(추론 수준) 접근도 가능하며, 지금 문제를 학술 질문으로 다시 세울 필요가 있다는 취지.</li>
+      <li>그래서 <b>행동이 아니라 인식 병목</b>을 중심에 둔다.</li>
+      <li>기존 측정과 일치: <b>지연의 97%가 OWLv2</b>.</li>
+    </ul>
+    <b>학술 질문이 되는 지점</b>
+    <ul>
+      <li>압축 연구는 보통 <b>오프라인 정확도</b>로 평가한다.</li>
+      <li>그러나 에피소드당 평균 <b>11.64회 다시 판단하는 폐루프</b>는 압축으로 생긴 오류를 <b>흡수할 수도, 증폭할 수도</b> 있다.</li>
+      <li>가설과 반증 조건을 함께 제시한다.</li>
+    </ul>
+  </div>
+
+  <h2>2. 준비 자료</h2>
+  <div class="table-scroll"><table>
+    <tr><th>자료</th><th>내용</th></tr>
+    <tr><td>질문 구성 조사</td><td>논문 8편을 "이어받은 질문 → 다시 세운 질문 → 검증 방식"으로 분석해 패턴 4개를 도출하고, 각 패턴을 우리 데이터에 적용해 질문 후보를 만듦. 학습 없는 병합 연구(HOMER) 포함.</td></tr>
+    <tr><td>2주 실험 계획</td><td>① 지연 분해 → ② 학습 없는 압축 → ③ 녹화 에피소드로 오프라인 대리 평가. 목표: 곡선 초안 1장 + 표 1개.</td></tr>
+    <tr><td>미팅 운영</td><td>30분 아젠다, 여쭐 질문 4개, 예상 질문과 답변 5개(예: "TensorRT면 되지 않나?", "왜 YOLO-World로 안 바꾸나?").</td></tr>
+  </table></div>
+
+  <h2>3. 확인이 필요한 것</h2>
+  <div class="table-scroll"><table>
+    <tr><th>항목</th><th>내용</th><th>확인 결과(연구 서버)</th></tr>
+    <tr><td>코드 위치</td><td>개인 노트북에서는 OWLv2 코드를 찾지 못함</td><td><span class="tag ok">있음</span> 연구 서버 <code>robovlm_nav/serve/stage2_v2_inference_server.py</code>의 OWLv2 그라운더(운영 임계값 0.20). 전체 EGVLA1 파이프라인을 서버에서 실행 가능</td></tr>
+    <tr><td>녹화 에피소드</td><td>대리 평가용 녹화 필요</td><td><span class="tag ok">있음</span> 실기 100세션 원본(2026-08-07 배치), 수집 데이터 V6 225건, EGVLA2 v3 300건</td></tr>
+    <tr><td>OWLv2 구조</td><td>"출력 토큰마다 박스를 예측해 토큰 병합을 그대로 쓰기 어렵다"는 이해</td><td><span class="tag warn">미확인</span> 원문 확인 전, 미팅 질문으로</td></tr>
+    <tr><td>게재처 표기</td><td>ToMe·HOMER의 ICLR 표기</td><td><span class="tag warn">미확인</span> arXiv 메타데이터에 없음, 인용 전 확인</td></tr>
+  </table></div>
+
+  <h2>4. 현재 EGVLA2 작업과의 관계</h2>
+  <div class="card">
+    <ul>
+      <li>EGVLA2는 OWLv2+Kosmos-2를 <b>Florence-2 하나로 교체</b>한 방향(젯슨 fp32 1971→817ms, 2.41×). 현재 지연 병목은 <b>Florence-2 그라운딩(젯슨 821ms, 왕복의 94%)</b>.</li>
+      <li>"학습 없는 압축"의 대상을 <b>OWLv2(EGVLA1, 실기 92%)</b>로 할지 <b>Florence-2(EGVLA2)</b>로 할지 미팅 전에 정할 필요가 있다. EGVLA1은 실기 기준선과 녹화 에피소드가 있어 대리 평가가 바로 가능하고, EGVLA2는 지연 병목이 명확하다.</li>
+      <li>폐루프 흡수/증폭을 보는 대리 평가에는 연구 로그 CH77의 리플레이 시뮬레이션(누적 위치 오차)과 사람 일치도 천장 방법을 재사용할 수 있다.</li>
+    </ul>
+  </div>
+  <p class="meta">관련 문서: <a href="research_story.html#ch77">연구 로그 CH77(학습)</a> · <a href="research_story.html#ch78">CH78(실기 전 단계)</a> · <a href="research_story.html#ch79">CH79(분석·EGVLA3 구상)</a></p>
+</div>
+</body>
+</html>
