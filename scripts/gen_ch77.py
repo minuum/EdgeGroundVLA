@@ -32,7 +32,7 @@ def st(label, col):
 
 
 TABS = [("t1", "📌 개요·진행", ["①", "③", "④"]), ("t2", "📖 용어·대조표", ["⓪"]), ("t3", "🔀 이산 vs 연속·궤적", ["⑤", "⑥-4"]),
-        ("t4", "🧠 헤드·FM 평가", ["②", "⑥-8", "⑥-3", "⑥-9"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🤖 EGVLA1 vs 2·실기", ["⑥-2", "⑥-7", "⑥"]), ("t7", "🧰 산출물", ["⑦"])]
+        ("t4", "🧠 헤드·FM 평가", ["②", "⑥-8", "⑥-3", "⑥-9"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🤖 EGVLA1 vs 2·실기", ["⑥-2", "⑥-7", "⑥-10", "⑥"]), ("t7", "🧰 산출물", ["⑦"])]
 
 
 def tabify(body_):
@@ -105,6 +105,7 @@ def body():
         + __import__("ch77_story").block(tbl, H, st)
         + __import__("ch77_compare").block(tbl, H, st)
         + __import__("ch77_serving").block(tbl, H, st)
+        + __import__("ch77_startpos").block(tbl, H, st)
         + __import__("ch77_ceiling").block(tbl, H, st)
         + __import__("ch77_fm_extras").block(tbl, H, st)
         + __import__("ch77_smoothing").block(tbl, H, st)
