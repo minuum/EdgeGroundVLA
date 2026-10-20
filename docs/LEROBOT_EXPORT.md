@@ -1,4 +1,4 @@
-# V5/V6 → LeRobotDataset 변환 (상호운용용 export)
+# V5/V6/EGVLA2 → LeRobotDataset 변환 (상호운용용 export)
 
 > 기존 RoboVLMs 학습 파이프라인은 그대로 두고, 다른 VLA 프레임워크와의
 > 상호운용을 위해 로컬 전용으로 export하는 부가 산출물. Hub push 없음.
@@ -28,9 +28,25 @@ python3 scripts/convert/h5_v6_to_lerobot.py \
   --dataset-dir /home/minum/26CS/MoNaVLA/ROS_action/mobile_vla_dataset_v5 \
   --out /home/minum/26CS/MoNaVLA/lerobot_export/v6_mixed \
   --repo-id monavla/v6_mixed \
-  --schema both        # v5 | v6 | both(기본, 둘 다 하나로 섞음)
+  --schema both        # v5 | v6 | egvla2 | both(기본, 전부 하나로 섞음)
   --fps 6               # 전역 고정값(실측 근사, 아래 참조)
 ```
+
+EGVLA2(연속 액션, `ROS_action/mobile_vla_dataset_egvla2/`)만 뽑으려면
+`--dataset-dir`을 그 폴더로, `--schema egvla2`로 지정.
+
+## 2026-10-20 EGVLA2 스키마 지원 추가
+
+- `detect_schema()`가 `actions_raw`/`actions_exec` 존재 여부로 EGVLA2를
+  v6보다 먼저 판별(EGVLA2도 attrs에 `cx_position`이 있어서 v6 체크만으론
+  구분 불가했음 — 이전엔 v6로 오판되어 `h["actions"]` 접근에서 조용히
+  스킵되던 버그).
+- `action`에는 실제 로봇 구동값(`actions_exec`, 구동방식 C 3단계)을,
+  원본 연속 조이스틱 신호(`actions_raw`)는 신규 `action.raw` feature로
+  별도 보존(이 데이터셋의 핵심 가치라 버리면 안 됨). V5/V6 프레임은
+  `action.raw`가 0으로 채워짐.
+- 로봇 시작 위치(`start_position` attr, pos1 기본/pos2/pos3 — minum 핸드오프
+  §16)가 pos1이 아니면 task 문장 끝에 `(robot start location: posN)`로 덧붙임.
 
 ## 2026-07-16 변환 결과 (minum `/home/minum/26CS/MoNaVLA/lerobot_export/v6_mixed`)
 
