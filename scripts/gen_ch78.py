@@ -25,22 +25,22 @@ def deliverables():
 
 
 TABS78 = [("t1", "🧭 로드맵", [("html", "ROADMAP")]), ("t2", "🤖 EGVLA1 vs 2", ["⑥-2", "⑥-7"]), ("t3", "🔧 서빙·실기 준비", ["⑥", "⑥-10", "⑧"]),
-          ("t4", "📊 시사점·문제점·논문 방향", [("html", "ANALYSIS")]), ("t5", "⏱ 시도 타임라인", [("html", "TIMELINE")]), ("t6", "🧰 산출물·핸드오프", [("html", "DELIV")])]
+          ("t4", "🧰 산출물·핸드오프", [("html", "DELIV")])]
 
 
 def main():
     s = HTML.read_text(encoding="utf-8")
     head, parts = G77.body()
-    import ch78_analysis, ch78_roadmap, ch78_timeline
-    raw = {"ROADMAP": ch78_roadmap.block(tbl, H, st), "ANALYSIS": ch78_analysis.block(tbl, H, st), "TIMELINE": ch78_timeline.block(tbl, H, st), "DELIV": deliverables()}
+    import ch78_roadmap
+    raw = {"ROADMAP": ch78_roadmap.block(tbl, H, st), "DELIV": deliverables()}
     tabs = [(t, lab, [("html", raw[it[1]]) if isinstance(it, tuple) else it for it in items]) for t, lab, items in TABS78]
     inner = CC.tabs_html("ch78", tabs, "", parts)
-    blk = CC.chapter_block(78, "#fb923c", "#fdba74", "EGVLA2 실기 전 단계 — 로드맵·서빙·점검·시사점·논문 방향·시도 타임라인",
-                           "배포 체크포인트·서버·젯슨 점검 결과와 구동 전 로드맵(R0~R8), 시사점·문제점·논문 방향, 10/12~10/20 시도 타임라인. 학습 분야는 CH77.", "2026-10-20", inner)
-    row = CC.summary_row(78, "EGVLA2 실기 전 단계", "로드맵 R0~R8 중 R0~R3 완료(젯슨 서버 경로 pass, 왕복 892ms=Florence-2 821+FM 54), R4 pos2·3 재생 대기, 시사점·문제점·논문 방향(A 경량·연속 제어+B 정직한 분석), 시도 타임라인", "#fb923c")
-    s = CC.insert_chapter(s, 78, blk, "<!--/CH77-->", "EGVLA2 실기 전 단계 — 로드맵·점검·시사점·타임라인", "🧭 CH78 EGVLA2 실기 전 로드맵", "신규분기", "#fb923c", "#fdba74", "#fb923c", "#2a1306", row, 77)
-    s = CC.replace_toc_label(s, 78, "EGVLA2 실기 전 단계 — 로드맵·점검·시사점·타임라인")
-    s = CC.replace_summary_row(s, 78, "EGVLA2 실기 전 단계", "로드맵 R0~R8 중 R0~R3 완료(젯슨 서버 경로 pass, 왕복 892ms=Florence-2 821+FM 54), R4 pos2·3 재생 대기, 시사점·문제점·논문 방향(A 경량·연속 제어+B 정직한 분석), 시도 타임라인", "#fb923c")
+    blk = CC.chapter_block(78, "#fb923c", "#fdba74", "EGVLA2 실기 전 단계 — 로드맵·서빙·젯슨 점검·시작 위치 재생",
+                           "배포 체크포인트·서버·젯슨 점검 결과와 구동 전 로드맵(R0~R8), EGVLA1 vs 2·학습-서빙 일치, 시작 위치별 재생. 학습 분야는 CH77, 시사점·타임라인은 CH79.", "2026-10-20", inner)
+    row = CC.summary_row(78, "EGVLA2 실기 전 단계", "로드맵 R0~R8 중 R0~R3 완료(젯슨 서버 경로 pass, 왕복 892ms=Florence-2 821+FM 54), R4 pos2·3 재생 대기, EGVLA1 vs 2·학습-서빙 일치(JPEG q95), 구동 전 게이트", "#fb923c")
+    s = CC.insert_chapter(s, 78, blk, "<!--/CH77-->", "EGVLA2 실기 전 단계 — 로드맵·서빙·젯슨 점검", "🧭 CH78 EGVLA2 실기 전 로드맵", "신규분기", "#fb923c", "#fdba74", "#fb923c", "#2a1306", row, 77)
+    s = CC.replace_toc_label(s, 78, "EGVLA2 실기 전 단계 — 로드맵·서빙·젯슨 점검")
+    s = CC.replace_summary_row(s, 78, "EGVLA2 실기 전 단계", "로드맵 R0~R8 중 R0~R3 완료(젯슨 서버 경로 pass, 왕복 892ms=Florence-2 821+FM 54), R4 pos2·3 재생 대기, EGVLA1 vs 2·학습-서빙 일치(JPEG q95), 구동 전 게이트", "#fb923c")
     HTML.write_text(s, encoding="utf-8")
     for t, a, b in CC.balance(s):
         print(t, a, b)
