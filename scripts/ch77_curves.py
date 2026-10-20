@@ -85,8 +85,8 @@ def block(tbl, H, st):
     out += (f'{st("판정(이번 결과)", G)}<ul style="margin:6px 0 6px 18px;font-size:0.8rem">'
             '<li><b>과적합은 있지만 중간 정도다.</b> train 손실은 hold-out보다 크게 낮다(FM-π0: train 0.07 vs hold-out 0.13~0.25). hold-out 손실은 최저(FM-π0 약 60~140, FM-FiLM 약 90~230 epoch) 이후 250까지 +0.00~0.07 오른다. 같은 장소(fold0)는 거의 평평하고 <b>안 본 목표 위치(LOPO)에서 더 뚜렷</b>하다.</li>'
             '<li><b>회귀가 가장 심하게 과적합한다</b>: LOPO에서 최적이 5~10 epoch인데 250 epoch은 +3~5° 나빠진다(예: strong_right 19.4° → 24.4°). FM 헤드(FM-FiLM·FM-π0)는 250 epoch에서도 +1~3° 정도만 나빠져 <b>긴 학습에 더 덜 민감</b>하다.</li>'
-            '<li><b>ablation의 고정 epoch은 대체로 합리적이었다</b>: C는 고정 120이 최적(약 80~160) 안에 있고, FM-FiLM 220은 최적(90~240) 안에 있다. 다만 LOPO 일부(FM-π0 strong_right, FM-FiLM center)는 고정 epoch이 최적보다 2~3° 나쁘다.</li>'
-            '<li><b>서브골 효과는 epoch을 바꿔도 일관되지 않고 분할마다 다르다</b>: center를 뺐을 때는 B2에서 서브골을 <b>빼는 쪽이 3~5° 낫고</b>(고정 22.4 → 17.8°, 최적 19.9 → 16.6°), strong_right에서는 서브골을 빼면 0.5~1° 나쁘다. C는 ±1~2°로 일관된 방향이 없다. 즉 ablation의 "서브골은 정확도를 일관되게 올리지 않는다"는 결론은 <b>epoch 선택 때문이 아니다</b>.</li>'
+            '<li><b>ablation의 고정 epoch은 대체로 합리적이었다</b>: FM-π0은 고정 120이 최적(약 80~160) 안에 있고, FM-FiLM 220은 최적(90~240) 안에 있다. 다만 LOPO 일부(FM-π0 strong_right, FM-FiLM center)는 고정 epoch이 최적보다 2~3° 나쁘다.</li>'
+            '<li><b>서브골 효과는 epoch을 바꿔도 일관되지 않고 분할마다 다르다</b>: center를 뺐을 때는 FM-FiLM에서 서브골을 <b>빼는 쪽이 3~5° 낫고</b>(고정 22.4 → 17.8°, 최적 19.9 → 16.6°), strong_right에서는 서브골을 빼면 0.5~1° 나쁘다. FM-π0은 ±1~2°로 일관된 방향이 없다. 즉 ablation의 "서브골은 정확도를 일관되게 올리지 않는다"는 결론은 <b>epoch 선택 때문이 아니다</b>.</li>'
             '<li><b>epoch마다 흔들림이 크다</b>: 같은 모델의 방향 오차가 10 epoch 간격으로 ±1~3° 오르내린다. 이 흔들림이 변형 간 차이(대부분 1° 안팎)와 같은 크기라, <b>seed·분할을 늘리지 않으면 작은 차이는 구분할 수 없다</b>.</li>'
-            '<li>헤드 비교(최적 epoch, 서브골 있음): fold0 회귀 11.1 / FM-FiLM 10.6 / FM-π0 10.0°, center 16.8 / 19.9 / 15.5°, strong_right 19.4 / 18.7 / 17.5° → <b>C가 세 분할 모두 최저</b>(최적 epoch 기준은 낙관적).</li></ul>')
+            '<li>헤드 비교(최적 epoch, 서브골 있음): fold0 회귀 11.1 / FM-FiLM 10.6 / FM-π0 10.0°, center 16.8 / 19.9 / 15.5°, strong_right 19.4 / 18.7 / 17.5° → <b>FM-π0이 세 분할 모두 최저</b>(최적 epoch 기준은 낙관적).</li></ul>')
     return out

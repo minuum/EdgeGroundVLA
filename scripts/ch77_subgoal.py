@@ -53,7 +53,7 @@ def block(tbl, H, st):
                 + Z.LEG
                 + Z.heat_table([("같은 목표 위치 (5-fold)", ["FM-FiLM", "FM-π0"], hc), ("안 본 목표 위치 (LOPO)", ["FM-FiLM", "FM-π0"], hc), ("서브골 결측 입력 (LOPO)", ["FM-FiLM", "FM-π0"], hc)], rows, fmt="{:.1f}°", corner="변형", by="col",
                                 note="서브골 결측 = 평가 때 bbox 입력을 전부 0으로. 서브골 없음은 학습·평가 모두 0이라 해당 없음(—).")
-                + '<div style="font-size:0.78rem;color:#94a3b8">핵심(3 seed): ① 서브골을 빼도 같은 목표 위치에서 B2는 +0.4°(15쌍 모두 악화), C는 +0.1°로 효과가 작고, 안 본 목표 위치에서는 B2가 오히려 0.8° 낫다(7/15쌍 악화 = 잡음 수준) ② 서브골로 학습한 B2는 결측에 크게 취약(5-fold 17.8°, 안 본 위치 24.7°) ③ 드롭아웃30%로 학습한 C는 <b>정상 입력에서 손실 없이(−0.2°, −0.4°) 결측에서도 거의 같다</b>(10.1°, 16.8°).</div>')
+                + '<div style="font-size:0.78rem;color:#94a3b8">핵심(3 seed): ① 서브골을 빼도 같은 목표 위치에서 FM-FiLM은 +0.4°(15쌍 모두 악화), FM-π0은 +0.1°로 효과가 작고, 안 본 목표 위치에서는 FM-FiLM이 오히려 0.8° 낫다(7/15쌍 악화 = 잡음 수준) ② 서브골로 학습한 FM-FiLM은 결측에 크게 취약(5-fold 17.8°, 안 본 위치 24.7°) ③ 드롭아웃30%로 학습한 FM-π0은 <b>정상 입력에서 손실 없이(−0.2°, −0.4°) 결측에서도 거의 같다</b>(10.1°, 16.8°).</div>')
     if ff.exists():
         f2 = json.load(open(ff)); fg = [x["generator"] for x in f2.values()]
         ga = lambda key, sel: np.mean([x[key]["normal"]["angle_deg"] for k, x in f2.items() if sel(k)])

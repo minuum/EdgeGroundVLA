@@ -192,11 +192,11 @@ def build(hist):
     V["t4"] = wrap("① 선택지 비교 매트릭스 (평가자 판단 기준, 데이터 근거는 76-3·76-6)",
         heat([("라벨 = 실제 구동 일치", [0, 2, 2]), ("감속(속력) 정보 학습", [2, 0, 1]), ("odom 없이 효과 검증 가능", [0, 2, 2]), ("구현·보정 비용 낮음", [1, 2, 1]), ("라벨 노이즈 위험 낮음", [0, 2, 1])],
              ["A 크기→throttle 연속", "B 각도 + 고정 속력", "FM-π0 속력 3단계 + 각도"]),
-        "FM-MLP는 구동이 크기를 쓰지 않는 한 라벨이 실제와 어긋남. C는 보정(스톱워치) 이후 일치.") + wrap(
+        "FM-MLP는 구동이 크기를 쓰지 않는 한 라벨이 실제와 어긋남. FM-π0은 보정(스톱워치) 이후 일치.") + wrap(
         "② 결정 흐름 — 채택은 FM-π0(보정 완료)",
         flow([("① 게이트 수정", G, "완료"), ("② B로 파일럿 (라벨=실제)", MUT, "건너뜀"), ("③ 스톱워치 보정", G, "완료 14.45/20.64/26.36 cm/s"), ("④ C로 확장 (v3)", G, "채택"), ("A", R, "odom 전까지 보류")]))
     V["t4"] += wrap("③ 같은 프레임에서 FM-MLP/FM-FiLM/FM-π0 라벨이 어떻게 달라지는가 (실제 데이터)", img("egvla2_fm/figures/ch76_conversion_example.jpg",
-        "raw 한 개에서 A(원형게이트), B(각도+GO), FM-π0(각도+속력 단계)가 결정적으로 파생되고, 실제 구동값(exec)은 구동 방식 C가 만든 값이다. 크기가 0.66이면 B는 GO, C는 ‘보통(0.7)’이 된다."),
+        "raw 한 개에서 A(원형게이트), B(각도+GO), FM-π0(각도+속력 단계)가 결정적으로 파생되고, 실제 구동값(exec)은 구동 방식 FM-π0이 만든 값이다. 크기가 0.66이면 B는 GO, FM-π0은 ‘보통(0.7)’이 된다."),
         "FM-MLP는 크기를 보존하지만 실제 속도는 단계로만 반영됨 → A 라벨의 크기는 구동과 일치하지 않는다")
     # ---------- t5 ----------
     V["t5"] = wrap("① 로드맵 — 완료 / 대기",
@@ -235,7 +235,7 @@ def build(hist):
         tr = [(k, a[k]["train_flow_final"], a[k]["test_flow_final"]) for k in ("A_mlp_fm", "B_film_fm", "C_pi0_adaln")]
         V["t7"] += wrap("③ 과적합 — 최종 epoch flow loss (train vs test)", legend([("train", G), ("test(hold-out)", R)])
             + vgroups(["A MLP-FM", "B FiLM-FM", "FM-π0 π0형"], [("train", G, [t[1] for t in tr]), ("test", R, [t[2] for t in tr])], 0.5, fmt="{:.2f}", bw=22),
-            "C는 train 0.08 대 test 0.24로 격차가 가장 큼")
+            "FM-π0은 train 0.08 대 test 0.24로 격차가 가장 큼")
         ce = s_b2["aggregate"]["A_mlp_fm"].get("curve_epochs") if s_b2 else None
         if ce and s_b2:
             lines = ""
@@ -370,7 +370,7 @@ def full300_block(pill_, tbl):
     for n, lab in (("A_mlp_fm", "FM-MLP"), ("B2_film_res_fm", "FM-FiLM"), ("C_pi0_adaln", "FM-π0")):
         rows.append([lab, f"{a[n]['r2_mean_axis'][0]:.2f} / {a[n]['r2_mean_axis'][1]:.2f}", f"{a[n]['angle_deg']:.1f}°", f"{lo[n]['r2_mean_axis'][0]:.2f} / {lo[n]['r2_mean_axis'][1]:.2f}", f"{lo[n]['angle_deg']:.1f}°", f"{lo[n]['go_f1']:.3f}"])
     rows.append(["MLP 회귀 MSE(lx/ly/az)", " / ".join(f"{x:.3f}" for x in a["MLP_regression"]["mse_axis"]), "", " / ".join(f"{x:.3f}" for x in lo["MLP_regression"]["mse_axis"]), "", ""])
-    return (f"<br>{pill_('300ep 최종(2026-10-16)', G)}300건(29,161프레임), 250 epoch, 5-fold×5 seed / LOPO(안 본 위치)×3 seed. 같은 장소는 방향 오차 약 10.4~11.3°, <b>안 본 위치는 16.9~20.3°로 증가</b>하고 C가 가장 낫다."
+    return (f"<br>{pill_('300ep 최종(2026-10-16)', G)}300건(29,161프레임), 250 epoch, 5-fold×5 seed / LOPO(안 본 위치)×3 seed. 같은 장소는 방향 오차 약 10.4~11.3°, <b>안 본 위치는 16.9~20.3°로 증가</b>하고 FM-π0이 가장 낫다."
             + tbl(["모델", "5-fold lx/ly R²", "5-fold 방향 오차", "LOPO lx/ly R²", "LOPO 방향 오차", "LOPO GO/STOP F1"], rows))
 
 
@@ -431,7 +431,7 @@ def t10_card():
         + H("④ S1 학습 결과 — 본학습 세트 218ep, 5-fold × 5 seed, inner-val 조기 종료")
         + wrap("축별 R² (평균 기준선 대비 설명 비율)", legend([("A MLP-FM", B), ("FM-FiLM FiLM-FM", G), ("FM-π0 π0형", A)]) + r2, "az는 희소해 R²≈0.05. lx 0.45~0.46, ly 0.67~0.69", kind="chart")
         + tbl(["모델", "lx MSE", "ly MSE", "az MSE", "방향 오차", "GO/STOP F1"], mse_rows)
-        + f"방향 오차는 이동 중인 프레임의 첫 스텝 방향 각도 차이다. <b>FM 헤드 3종과 MLP 회귀의 MSE 차이는 0.003 이하</b>로 우열을 말할 수 없고, 평균 기준선 대비 개선(lx 0.093→0.05, ly 0.149→0.046)이 핵심이다. 구조 중 C가 방향 오차 {a1['C_pi0_adaln']['angle_deg']:.1f}°로 가장 낮다(A {a1['A_mlp_fm']['angle_deg']:.1f}°, FM-FiLM {a1['B2_film_res_fm']['angle_deg']:.1f}°)."
+        + f"방향 오차는 이동 중인 프레임의 첫 스텝 방향 각도 차이다. <b>FM 헤드 3종과 MLP 회귀의 MSE 차이는 0.003 이하</b>로 우열을 말할 수 없고, 평균 기준선 대비 개선(lx 0.093→0.05, ly 0.149→0.046)이 핵심이다. 구조 중 FM-π0이 방향 오차 {a1['C_pi0_adaln']['angle_deg']:.1f}°로 가장 낮다(A {a1['A_mlp_fm']['angle_deg']:.1f}°, FM-FiLM {a1['B2_film_res_fm']['angle_deg']:.1f}°)."
         + f"<br>{pill_('조기 종료', A)}최적 epoch 평균이 FM-MLP·FM-FiLM {a1['A_mlp_fm']['best_epoch']:.0f}, FM-π0 {a1['C_pi0_adaln']['best_epoch']:.0f}로 상한(100)에 가까워 <b>epoch을 늘리면 더 좋아질 수 있다</b>(미확인)."
         + f"<br>{pill_('az 마스크', P)}고립 az 스파이크를 마스킹한 타깃에서는 az MSE가 {a1['A_mlp_fm']['mse_mean_axis'][2]:.3f}→{a2['A_mlp_fm']['mse_mean_axis'][2]:.3f}로 줄었고(기준선도 {a1['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}→{a2['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}) R²는 {a1['A_mlp_fm']['r2_mean_axis'][2]:.2f}→{a2['A_mlp_fm']['r2_mean_axis'][2]:.2f}로 거의 같다. 마스킹으로 az가 학습되는 건 아니다."
         + ep250_block(a1, pill_, tbl)

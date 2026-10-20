@@ -57,7 +57,7 @@ def block(tbl, H, st):
             c = cv[sp][f"{h}|full"]; a = min(c, key=lambda r: abs(r["ep"] - FIXE[h]))["angle"]; v.append(c[-1]["angle"] - a)
         return f"{min(v):+.1f}~{max(v):+.1f}°"
     over = tbl(["대조", "같은 목표 위치(5-fold)", "안 본 목표 위치(LOPO)", "해석"], [
-        ["C의 hold-out 손실 최저 epoch", "약 90~120", "약 20~140(분할마다)", "새 위치일수록 일찍 과적합"],
+        ["FM-π0의 hold-out 손실 최저 epoch", "약 90~120", "약 20~140(분할마다)", "새 위치일수록 일찍 과적합"],
         ["MLP 회귀 hold-out 손실 최저 epoch", "약 50", "약 5~40", "회귀가 가장 일찍 과적합"],
         ["250 epoch − 고정 epoch 방향 오차(MLP 회귀)", inc("MLP_regression", ["fold0"]), inc("MLP_regression", ["lopo_center", "lopo_strong_right"]), "회귀는 안 본 위치에서 가장 크게 악화"],
         ["250 epoch − 고정 epoch 방향 오차(FM-FiLM)", inc("B2_film_res_fm", ["fold0"]), inc("B2_film_res_fm", ["lopo_center", "lopo_strong_right"]), "FM 헤드는 악화가 작거나 분할에 따라 다름"],
