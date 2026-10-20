@@ -10,21 +10,21 @@ def block(tbl, H, st):
     diff = tbl(["축", "EGVLA1", "EGVLA2", "측정 상태"], [
         ["인식(백본)", "OWLv2(검출) + Kosmos-2 두 모델", "<b>Florence-2 한 모델</b>이 bbox와 특징을 동시에", f"{st('측정', G)} 젯슨 fp32 1971→817ms(2.41×), 서버 492→180ms(2.73×), 파라미터 458M→231M, GFLOPs 1277→467"],
         ["액션 표현", "8-class 이산(방향 8칸, 속력 고정)", "<b>연속</b>(lx, ly) + 속력 규칙(0.4~0.7, 첫 적용 섀도)", f"{st('측정', G)} 오프라인 R²·방향 오차(CH76-10). 이산→연속 궤적 차이는 ⑤"],
-        ["액션 헤드", "MLP", "FM 헤드(A/B2/C): 서브골 조향 + 청크 H=8", f"{st('측정', G)} FM≈MLP 회귀, LOPO에서 C 최우수"],
-        ["서브골 조향", "bbox를 입력에 concat", "bbox로 FiLM 조향(B2), 서브골 prefix(C)", f"{st('측정', A)} V6 Stage2 steered 78.41 vs concat 76.76(p=1.6e-5), 연속 타깃에서는 소폭 이득"],
+        ["액션 헤드", "MLP", "FM 헤드(FM-MLP/FM-FiLM/FM-π0): 서브골 조향 + 청크 H=8", f"{st('측정', G)} FM≈MLP 회귀, LOPO에서 FM-π0 최우수"],
+        ["서브골 조향", "bbox를 입력에 concat", "bbox로 FiLM 조향(FM-FiLM), 서브골 prefix(FM-π0)", f"{st('측정', A)} V6 Stage2 steered 78.41 vs concat 76.76(p=1.6e-5), 연속 타깃에서는 소폭 이득"],
         ["실기 성능", "<b>92.0% (276/300, 실기)</b>", "<b>미측정</b>", f"{st('미착수', R)} EGVLA1은 3 시작 위치(pos1~3)×5 목표 위치×20. <b>EGVLA1·EGVLA2 모두 pos1 하나로만 학습</b>했고 pos2·pos3은 <b>학습 없이 추론만</b> 한 시험이다(시작 위치 일반화). 따라서 같은 조건 비교이며 pos1(95/100)과 pos2·pos3(91, 90)을 따로 보고한다. 8/7 기록 95/100은 pos1 값"],
         ["지연 영향", "젯슨 약 2.0s/프레임", "젯슨 약 0.82s/프레임", f"{st('측정', G)} 지연 중 이동 거리 약 22cm(최대 속력)"]])
     import ch77_viz as Z
     N = {"강좌(strong_left)": [19, 18, 19], "약좌(weak_left)": [19, 18, 19], "중앙(center)": [20, 19, 19], "약우(weak_right)": [18, 20, 17], "강우(strong_right)": [19, 16, 16]}
-    e1 = Z.heat_table([("시작 위치 (학습은 pos1만, pos2·3은 제로샷 추론)", ["pos1", "pos2 (좌 50cm)", "pos3 (우 50cm)", "합계(%)"], [Z.HC["A"], Z.HC["B2"], Z.HC["B2"], "#fcd34d"])],
+    e1 = Z.heat_table([("시작 위치 (학습은 pos1만, pos2·3은 제로샷 추론)", ["pos1", "pos2 (좌 50cm)", "pos3 (우 50cm)", "합계(%)"], [Z.HC["FM-MLP"], Z.HC["FM-FiLM"], Z.HC["FM-FiLM"], "#fcd34d"])],
                       [(k, [[x * 5.0 for x in v] + [sum(v) / 60 * 100]], "high") for k, v in N.items()] + [("<b>전체</b>", [[95.0, 91.0, 90.0, 92.0]], "high")],
                       fmt="{:.0f}%", corner="목표 위치(화면상)", by="col", note="각 칸은 20회 중 성공 비율. 전체 = 276/300 (pos1 95/100, pos2 91/100, pos3 90/100)")
     note = (f'{st("해석 주의", A)} pos1/2/3은 <b>로봇 시작 위치</b>다(학습은 pos1만, pos2·3은 추론만; pos1 = 2m×2m 맵의 (-1,0) 기본, pos2 = 좌 50cm, pos3 = 우 50cm; 각 100건 = 5 목표 위치×20). 체크포인트 exp73_owl_stage1v3_v6_mlp. '
             'pos2·pos3 수집 중 <b>action_speed_scale 1.0→0.6, stop_on_miss 설정이 바뀌어</b> pos1과 config가 다르다(비교표 각주 필요). 강우가 가장 낮음(85%) — EGVLA2 LOPO(안 본 목표 위치)에서 위치별로 같이 볼 곳.')
     pi = tbl(["π0.7(스터디 노트 기준)", "우리 구현", "같은가?"], [
         ["월드모델이 <b>서브골 이미지</b>를 생성해 정책을 조향", "<b>Florence-2 그라운딩 bbox</b>를 서브골로 사용(이미지 생성 없음)", st("구조 아이디어만 차용", A)],
-        ["flow-matching 정책(대형 VLA 위의 action expert)", "경량 FM 헤드: 2층 d=128 AdaLN-Zero 트랜스포머(C), 풀링 특징 1개 + bbox를 prefix로 (Euler 10스텝)", st("π0형 축소판", A)],
-        ["시간·조건을 정규화 층에서 주입(AdaLN-Zero 류)", "C: AdaLN-Zero + 청크 토큰 + prefix 어텐션 / B2: FiLM", st("개념 동일, 규모 다름", A)],
+        ["flow-matching 정책(대형 VLA 위의 action expert)", "경량 FM 헤드: 2층 d=128 AdaLN-Zero 트랜스포머(FM-π0), 풀링 특징 1개 + bbox를 prefix로 (Euler 10스텝)", st("π0형 축소판", A)],
+        ["시간·조건을 정규화 층에서 주입(AdaLN-Zero 류)", "FM-π0: AdaLN-Zero + 청크 토큰 + prefix 어텐션 / FM-FiLM: FiLM", st("개념 동일, 규모 다름", A)],
         ["연속 매니퓰레이션 데이터로 대규모 학습", "연속 조이스틱 300ep(약 2.9만 프레임, 한 장소)", st("전제 다름", R)],
         ["VLM 백본 공유·대규모 사전학습", "Florence-2는 고정(학습 안 함)·헤드만 학습", st("다름", R)]])
     return (H("⑥-2 EGVLA1 vs EGVLA2 — 무엇이 같고 무엇이 바뀌었나")

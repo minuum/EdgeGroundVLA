@@ -37,11 +37,11 @@ def block(tbl, H, st, part="all"):
         ["표현", "8방향 중 하나 + 속력 고정", "(lx, ly) 연속 + 속력 규칙"],
         ["방향 해상도", "0°·45°·90°… (코너에서 최대 22.5° 어긋남)", "스틱 각도 그대로"],
         ["정답 라벨만 이산화했을 때 종점 오차", f"{c0['gt_disc']['fpe_cm']:.0f}~{c1['gt_disc']['fpe_cm']:.0f}cm (표현 자체의 손실)", "0 (손실 없음)"],
-        ["모델 예측을 이산화했을 때 FPE (C)", f"{c0['disc']['fpe_cm']:.0f}cm / {c1['disc']['fpe_cm']:.0f}cm", f"{c0['cont_shadow']['fpe_cm']:.0f}cm / {c1['cont_shadow']['fpe_cm']:.0f}cm (같은 목표 위치 / 안 본 목표 위치)"],
+        ["모델 예측을 이산화했을 때 FPE (FM-π0)", f"{c0['disc']['fpe_cm']:.0f}cm / {c1['disc']['fpe_cm']:.0f}cm", f"{c0['cont_shadow']['fpe_cm']:.0f}cm / {c1['cont_shadow']['fpe_cm']:.0f}cm (같은 목표 위치 / 안 본 목표 위치)"],
         ["해석", "예측 오차가 지배적이라 이산화 영향은 작음", "표현 한계가 없고 속력 모델링 여지(모델 속력 시 FPE " + f"{c0['cont_model']['fpe_cm']:.0f}/{c1['cont_model']['fpe_cm']:.0f}cm)"]])
     import ch77_viz as Z
-    HCOL = [Z.HC[x] for x in ("MLP 회귀", "A", "B2", "C")]
-    LABS = ["MLP 회귀", "A", "B2", "C"]
+    HCOL = [Z.HC[x] for x in ("MLP 회귀", "FM-MLP", "FM-FiLM", "FM-π0")]
+    LABS = ["MLP 회귀", "FM-MLP", "FM-FiLM", "FM-π0"]
     nu = lambda sdict, key, i=None: ["—"] + [(sdict[k][key] if i is None else sdict[k][key][i]) for k in H_[1:]]
     heads = Z.heat_table([("헤드", LABS, HCOL)], [
         ("5-fold 방향 오차(같은 목표 위치, °)", [nu(s300, "angle_deg")], "low"), ("LOPO 방향 오차(안 본 목표 위치, °)", [nu(l300, "angle_deg")], "low"),
@@ -51,17 +51,17 @@ def block(tbl, H, st, part="all"):
         ("프레임 저크(낮을수록 부드러움, 사람 0.045~0.063)", [[jit("fold0", k) for k in H_]], "low"),
         ("서브골 결측 시 방향 오차(안 본 목표 위치, °)", [["—", "—", sg("B2_film_res_fm", "full", lo, "missing"), sg("C_pi0_adaln", "full", lo, "missing")]], "low"),
         ("한 줄 평", [["가장 부드럽고 단순, 정확도 동급", "가장 단순한 FM, 수렴 느림", "FiLM 조향, 서브골 의존 큼", "안 본 위치 최우수, 결측에 강함"]], None)], fmt="{:.3g}", corner="초록=행에서 가장 좋음")
-    growth = tbl(["학습 세트", "에피소드", "방향 오차 C (같은 목표 위치)", "A", "비고"], [
+    growth = tbl(["학습 세트", "에피소드", "방향 오차 FM-π0 (같은 목표 위치)", "FM-MLP", "비고"], [
         ["이전(100epoch)", "218", ang(s100, "C_pi0_adaln"), ang(s100, "A_mlp_fm"), "위치 라벨 없는 28건 포함"],
         ["epoch 확대(250)", "218", ang(s250, "C_pi0_adaln"), ang(s250, "A_mlp_fm"), "epoch만 변경"],
         ["<b>300건 최종</b>", "300", f"<b>{ang(s300, 'C_pi0_adaln')}</b>", ang(s300, "A_mlp_fm"), "라벨 없음 28건 제외, 신규 81건 추가"]])
     VR = [("full", "서브골 있음(창3)", Z.VC["서브골 있음"]), ("nobbox", "서브골 없음", Z.VC["서브골 없음"]), ("w1", "현재 프레임만", MUT), ("w5", "창 5", MUT), ("drop30", "드롭아웃 30%", Z.VC["드롭아웃30%"])]
-    hc2 = [Z.HC["B2"], Z.HC["C"]]
-    sgt = Z.heat_table([("같은 목표 위치", ["B2", "C"], hc2), ("안 본 목표 위치", ["B2", "C"], hc2), ("서브골 결측(안 본 위치)", ["B2", "C"], hc2)],
+    hc2 = [Z.HC["FM-FiLM"], Z.HC["FM-π0"]]
+    sgt = Z.heat_table([("같은 목표 위치", ["FM-FiLM", "FM-π0"], hc2), ("안 본 목표 위치", ["FM-FiLM", "FM-π0"], hc2), ("서브골 결측(안 본 위치)", ["FM-FiLM", "FM-π0"], hc2)],
                        [(f'<span style="color:{c}">●</span> {lab}', [[sg("B2_film_res_fm", v, fo), sg("C_pi0_adaln", v, fo)], [sg("B2_film_res_fm", v, lo), sg("C_pi0_adaln", v, lo)],
                                                                    [("—" if v == "nobbox" else sg("B2_film_res_fm", v, lo, "missing")), ("—" if v == "nobbox" else sg("C_pi0_adaln", v, lo, "missing"))]], "low") for v, lab, c in VR],
                        fmt="{:.1f}°", corner="변형 (방향 오차)", by="col")
-    scope = tbl(["평가 범위", "무엇을 보는가", "결과(C)", "상태"], [
+    scope = tbl(["평가 범위", "무엇을 보는가", "결과(FM-π0)", "상태"], [
         ["5-fold(같은 목표 위치)", "안 본 에피소드", ang(s300, "C_pi0_adaln"), st("측정", G)],
         ["LOPO(안 본 목표 위치)", "안 본 목표 위치까지 일반화", ang(l300, "C_pi0_adaln"), st("측정", G)],
         ["리플레이 시뮬레이션", "예측을 적분한 누적 위치 오차", f"FPE {c0['cont_shadow']['fpe_cm']:.0f} / {c1['cont_shadow']['fpe_cm']:.0f}cm", st("측정(열린 고리)", A)],
@@ -73,7 +73,7 @@ def block(tbl, H, st, part="all"):
         ["Florence-2 단일화로 젯슨 fp32 지연 2.41배 감소(1971→817ms)", "EGVLA2가 EGVLA1보다 실기 성공률이 높다(미측정)"],
         ["pos1 하나로 수집·학습했으며 시작 위치 변화에 대한 일반화는 미확인", "pos2·pos3(좌우 50cm 이동)에서도 된다(미측정). 단 시작이 좌우로 옮겨지면 타깃이 화면에서 다른 목표 위치로 보이므로 LOPO가 부분적 대용 시험일 뿐"],
         ["안 본 목표 위치에서는 방향 오차가 커지고(10.4→16.9°) C가 가장 낫다", "bbox 서브골이 정확도를 올린다(서브골 없어도 동급, B2는 안 본 목표 위치에서 오히려 낫다)"],
-        ["서브골 드롭아웃이 결측 입력에 대한 안전장치로 유효하다(C)", "π0.7을 재현했다(서브골 조향 아이디어와 π0형 헤드의 경량 변형)"],
+        ["서브골 드롭아웃이 결측 입력에 대한 안전장치로 유효하다(FM-π0)", "π0.7을 재현했다(서브골 조향 아이디어와 π0형 헤드의 경량 변형)"],
         ["az(회전)는 이 수집 방식으로 학습되지 않아 규칙으로 둔다", "시뮬레이션 벤치마크 성능(해당 환경에 서봇2 없음)"]])
     ind = tbl(["", "논문들의 일반 평가", "우리 계획"], [
         ["주 지표", "SR(성공률), CR(충돌률), SPL, 이동 시간", "SR(EGVLA1 92.0%와 같은 정의), 목표 위치별 60회 비교"],
@@ -83,20 +83,26 @@ def block(tbl, H, st, part="all"):
         ["지연 대응", "TIC-VLA가 핵심 주제", "서버 180ms vs 젯슨 817ms 비교 예정"]])
     learn = (H("⓪ 학습 분야 대조표 모음")
             + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">아래는 이번 작업에서 나온 결과를 <b>대조 형식</b>으로 한곳에 모은 것이다. 세부 근거는 ①~⑦과 CH76-10에 있다. 모든 오프라인 수치는 안 본 에피소드(hold-out) 기준이고 seed·분할은 각 항목에 따른다.</div>'
+            + H("실험군 명칭 — 구 표기(A/B2/C)와 대응")
+            + tbl(["실험군(이 문서의 이름)", "구 표기", "구조", "서브골 조건 방식", "비고"], [
+                ["<b>MLP 회귀</b>", "기준선", "MLP로 청크를 한 번에 회귀(MSE)", "bbox concat", "가장 부드럽고 단순"],
+                ["<b>FM-MLP</b>", "A (MLP-FM)", "MLP 속도장 flow-matching 헤드", "bbox concat", "가장 단순한 FM, 수렴 느림"],
+                ["<b>FM-FiLM</b>", "B / B2 (FiLM-FM)", "FiLM으로 서브골을 이미지 특징에 주입(B2=잔차 블록 추가형)", "FiLM 조향", "서브골 결측에 취약"],
+                ["<b>FM-π0</b>", "C (π0형, C_pi0_adaln)", "2층 d=128 AdaLN-Zero 트랜스포머 액션 expert", "prefix + AdaLN", "<b>배포 권장</b>(체크포인트 파일명 <code>C_pi0_adaln_*.pt</code>은 그대로)"]])
             + H("용어 정리 — 위치가 세 가지로 쓰인다")
             + tbl(["용어", "뜻", "값", "비고"], [
                 ["<b>목표 위치</b>(cx_position)", "pos1 기준으로 로봇이 볼 때 <b>타깃(바구니)이 화면상 어디에 있는가</b>", "center, weak_left, strong_left, weak_right, strong_right", "이 문서의 'LOPO'·'위치별'은 모두 이 목표 위치 기준"],
                 ["<b>시작 위치</b>(pos)", "로봇이 출발하는 자리. 2m×2m 맵, pos1 = (-1,0) 기본", "pos1 / pos2(좌 50cm) / pos3(우 50cm)", "EGVLA1 실기는 3 시작 위치 × 5 목표 위치 × 20 = 300. <b>EGVLA1·EGVLA2 모두 pos1 하나로만 학습</b>(사용자 확인), pos2·pos3은 학습 없이 추론만 → 같은 조건의 시작 위치 일반화 시험"],
                 ["<b>경로</b>(cx_path)", "에피소드를 잘 수집하기 위한 <b>수집 보조</b>(곡선·직선)", "left_curve, straight, right_curve", "추론 입력이 아니며 서브골로 쓰지 않음"]])
-            + H("A. 데이터 대조 — 무엇이 달라졌나") + data
-            + H("B. 액션 표현 대조 — 이산 vs 연속") + act
-            + H("C. 학습량 대조 — 데이터가 늘면 얼마나 좋아지나") + growth
-            + H("D. 헤드 대조 — MLP 회귀 / A / B2 / C") + Z.LEG + heads
-            + H("E. 서브골 대조 — 있음/없음/창/드롭아웃") + Z.LEG + sgt
+            + H("1) 데이터 대조 — 무엇이 달라졌나") + data
+            + H("2) 액션 표현 대조 — 이산 vs 연속") + act
+            + H("3) 학습량 대조 — 데이터가 늘면 얼마나 좋아지나") + growth
+            + H("4) 헤드(실험군) 대조 — MLP 회귀 / FM-MLP / FM-FiLM / FM-π0") + Z.LEG + heads
+            + H("5) 서브골 대조 — 있음/없음/창/드롭아웃") + Z.LEG + sgt
             + '<div style="font-size:0.78rem;color:#94a3b8">방향 오차 평균(5분할). 서브골 결측은 입력을 전부 0으로 한 스트레스 테스트. seed 3개 평균.</div>'
             )
     real = (H("⑧ 평가 범위·주장·평가 방식 대조")
-            + H("F. 평가 범위 대조 — 어디까지 측정됐나") + scope
-            + H("G. 주장 가능 / 불가 대조") + claim
-            + H("H. 평가 방식 대조 — 일반 논문 vs 우리") + ind)
+            + H("6) 평가 범위 대조 — 어디까지 측정됐나") + scope
+            + H("7) 주장 가능 / 불가 대조") + claim
+            + H("8) 평가 방식 대조 — 일반 논문 vs 우리") + ind)
     return learn if part == "learn" else real if part == "real" else learn + real

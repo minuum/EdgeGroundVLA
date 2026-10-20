@@ -64,22 +64,22 @@ def body():
     ep_txt = ""
     if ep.exists():
         a3 = json.load(open(ep))["aggregate"]
-        ep_txt = (f"<li><b>epoch 확대(250, 3 seed)</b>: 방향 오차 A {s1_old['A_mlp_fm']['angle_deg']:.1f}→{a3['A_mlp_fm']['angle_deg']:.1f}°, "
-                  f"B2 {s1_old['B2_film_res_fm']['angle_deg']:.1f}→{a3['B2_film_res_fm']['angle_deg']:.1f}°, C {s1_old['C_pi0_adaln']['angle_deg']:.1f}→{a3['C_pi0_adaln']['angle_deg']:.1f}° (자세한 표는 76-10)</li>")
+        ep_txt = (f"<li><b>epoch 확대(250, 3 seed)</b>: 방향 오차 FM-MLP {s1_old['A_mlp_fm']['angle_deg']:.1f}→{a3['A_mlp_fm']['angle_deg']:.1f}°, "
+                  f"FM-FiLM {s1_old['B2_film_res_fm']['angle_deg']:.1f}→{a3['B2_film_res_fm']['angle_deg']:.1f}°, FM-π0 {s1_old['C_pi0_adaln']['angle_deg']:.1f}→{a3['C_pi0_adaln']['angle_deg']:.1f}° (자세한 표는 76-10)</li>")
     else:
         ep_txt = f"<li><b>epoch 확대(250, 3 seed)</b>: 진행 중 — 끝나면 이 항목과 76-10에 반영</li>"
     prog = V.flow([("수집 300/300 완료", G, "15칸×20, 로봇 쪽 대조 완료"), ("원샷 파이프라인", B, "캐시→검증→세트→S1→LOPO→체크포인트"),
                    ("서빙 정책(기본 꺼짐)", G, "F2 fused → FM → 속력 규칙"), ("지연 측정", R, "젯슨·서버 fp32, 로봇 접근 필요"), ("드라이런 → 폐루프 300회", P, "3 시작 위치×5 목표 위치×20")])
     stat = tbl(["영역", "상태", "내용"], [
         ["신규 v3 데이터 검증", st("완료", G), f"300건 읽기 문제 0, 제외 0, az 스파이크 {iso}/{nz}={iso / nz:.0%}(합격). 속력 단계 {Vd['level_dist']['0.4']:.0%}/{Vd['level_dist']['0.7']:.0%}/{Vd['level_dist']['1.0']:.0%}, 속력~거리 ρ=-0.09(가이드 이전)"],
-        ["S1 학습(300ep, 5-fold×5seed·250epoch)", st("완료", G), f"lx R² {s1['C_pi0_adaln']['r2_mean_axis'][0]:.2f}, ly R² {s1['C_pi0_adaln']['r2_mean_axis'][1]:.2f}, az≈0.1. FM(A/B2/C) ≈ MLP 회귀. 안 본 목표 위치(LOPO)는 C 방향 오차 {lo['C_pi0_adaln']['angle_deg']:.1f}°(A {lo['A_mlp_fm']['angle_deg']:.1f}°). 같은 목표 위치 {s1['C_pi0_adaln']['angle_deg']:.1f}°"],
+        ["S1 학습(300ep, 5-fold×5seed·250epoch)", st("완료", G), f"lx R² {s1['C_pi0_adaln']['r2_mean_axis'][0]:.2f}, ly R² {s1['C_pi0_adaln']['r2_mean_axis'][1]:.2f}, az≈0.1. FM(FM-MLP/FM-FiLM/FM-π0) ≈ MLP 회귀. 안 본 목표 위치(LOPO)는 FM-π0 방향 오차 {lo['C_pi0_adaln']['angle_deg']:.1f}°(A {lo['A_mlp_fm']['angle_deg']:.1f}°). 같은 목표 위치 {s1['C_pi0_adaln']['angle_deg']:.1f}°"],
         ["epoch 확대 재시험", st("진행 중" if not ep.exists() else "완료", A if not ep.exists() else G), "최적 epoch이 상한 100 근처여서 250으로 재시험(방향 오차 소폭 개선)"],
         ["속력 보간 규칙", st("구현", G), "<code>continuous_speed.py</code>: STOP 0.2, 클램프 0.4~0.7, 섀도, az=0. 테스트 6개 통과"],
         ["FM 헤드 공유 모듈", st("구현", G), "<code>egvla2_fm_heads.py</code>. 분리 전후 가중치·샘플 출력 비트 동일"],
         ["서빙 정책·서버 훅", st("구현(꺼짐)", G), "<code>VLA_ACTION_MODE=continuous</code>일 때 <code>action_cont</code> 추가, <b>단계 A 하이브리드 구동</b>(<code>VLA_DRIVE_SOURCE</code>)·EMA·서브골 결측 처리. 원본 입력에서 학습 캐시와 일치, <b>JPEG q80은 4.1° 어긋나 q95 이상 필요</b>"],
         ["300ep 원샷 파이프라인", st("완료", G), "<code>run_egvla2_pipeline.py</code>: 캐시→검증→세트→S1→LOPO→체크포인트 6단계 실행 완료(2026-10-16)"],
         ["수집(로봇 세션)", st("완료", G), "300/300. 로봇 쪽에서 불량 파일 정리 후 20/20×15칸"],
-        ["배포 체크포인트", st("저장", G), "C + 서브골 드롭아웃30%, 120 epoch(권장)과 대조용(드롭아웃 없음). 로봇 쪽 전달은 rsync로 당겨 가기(핸드오프 §15)"],
+        ["배포 체크포인트", st("저장", G), "FM-π0 + 서브골 드롭아웃30%, 120 epoch(권장)과 대조용(드롭아웃 없음). 로봇 쪽 전달은 rsync로 당겨 가기(핸드오프 §15)"],
         ["젯슨 점검(서버 경로·지연)", st("완료", G), "점검 A pass(방향 차 3.01°). 왕복 지연 <b>892ms</b>(Florence-2 821ms + FM·기타 54ms)"],
         ["드라이런", st("진행 예정", A), "수집 에피소드를 서버에 재생(<code>replay_episodes_through_server.py</code>). pos2·pos3 시작 신규 수집분으로 시작 위치 일반화도 오프라인 측정"],
         ["폐루프 평가", st("미착수", MUT), "300회 = 3 시작 위치(pos1~3)×5 목표 위치×20 (EGVLA1과 동일 구성, 확정), 첫 적용 섀도·az=0·s≤0.7. 양쪽 모두 pos1 하나로 학습, pos2·pos3은 제로샷 추론(시작 위치 일반화)"]])
@@ -93,15 +93,15 @@ def body():
     body_ = (
         f'<div class="callout critical">🟡 <strong>3줄 요약</strong><br>'
         f'① 300건(15칸×20) 수집·검증 완료: <strong>읽기 문제 0, az 스파이크 9%로 합격</strong>. 다만 속력은 가이드 이전 수집이라 거리와 무관(ρ=-0.09).<br>'
-        f'② S1(300ep): FM 헤드는 방향 축을 학습(방향 오차 약 10.4~11.3°)하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 안 본 목표 위치(LOPO)에서는 C가 가장 낫다(16.9° vs A 20.3°).<br>'
-        f'③ 학습·배포 체크포인트(C+드롭아웃30)·서빙 경로·추론 서버 단계 A까지 끝났다. 젯슨 서버 경로 점검(pass)·지연 측정(892ms)까지 끝났다. <strong>남은 것</strong>은 드라이런(수집 에피소드 서버 재생)과 폐루프 3 시작 위치×5 목표 위치×20이며, 서버로 보내는 JPEG는 q95 이상이어야 한다.</div>'
+        f'② S1(300ep): FM 헤드는 방향 축을 학습(방향 오차 약 10.4~11.3°)하지만 <strong>단순 MLP 회귀와 동급</strong>, az는 학습되지 않는다. 안 본 목표 위치(LOPO)에서는 C가 가장 낫다(16.9° vs FM-MLP 20.3°).<br>'
+        f'③ 학습·배포 체크포인트(FM-π0+드롭아웃30)·서빙 경로·추론 서버 단계 A까지 끝났다. 젯슨 서버 경로 점검(pass)·지연 측정(892ms)까지 끝났다. <strong>남은 것</strong>은 드라이런(수집 에피소드 서버 재생)과 폐루프 3 시작 위치×5 목표 위치×20이며, 서버로 보내는 JPEG는 q95 이상이어야 한다.</div>'
         + __import__("ch77_summary").block(tbl, H, st)
         + H("① 지금 어디까지 왔나") + V.wrap("진행 흐름", prog, "300건 기준(2026-10-16 최종 재실행)", kind="flow") + stat
-        + H("② 수치 한눈에") + V.wrap("S1 축별 R² (300ep, 5-fold × 5 seed, 250 epoch)", V.legend([("A", B), ("B2", G), ("C", A)]) + V.vgroups(["lx", "ly", "az"], [(n.split("_")[0], c, s1[n]["r2_mean_axis"]) for n, c in zip(["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"], (B, G, A))], 1.0, fmt="{:.2f}"), "MLP 회귀와 MSE 차 ≤0.003", kind="chart")
+        + H("② 수치 한눈에") + V.wrap("S1 축별 R² (300ep, 5-fold × 5 seed, 250 epoch)", V.legend([("FM-MLP", B), ("FM-FiLM", G), ("FM-π0", A)]) + V.vgroups(["lx", "ly", "az"], [(V.HNAME[n], c, s1[n]["r2_mean_axis"]) for n, c in zip(["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"], (B, G, A))], 1.0, fmt="{:.2f}"), "MLP 회귀와 MSE 차 ≤0.003", kind="chart")
         + f"<ul style='margin:6px 0 6px 18px'><li>신규 속력 단계 분포: 느림 {Vd['level_dist']['0.4']:.0%} / 보통 {Vd['level_dist']['0.7']:.0%} / 빠름 {Vd['level_dist']['1.0']:.0%}, 중간 크기 비율 {Vd['mid_ratio']:.0%}</li>"
-        + f"<li>방향 오차: A {s1['A_mlp_fm']['angle_deg']:.1f}° / B2 {s1['B2_film_res_fm']['angle_deg']:.1f}° / C {s1['C_pi0_adaln']['angle_deg']:.1f}°, GO/STOP F1 ≈0.95</li>{ep_txt}</ul>"
+        + f"<li>방향 오차: FM-MLP {s1['A_mlp_fm']['angle_deg']:.1f}° / FM-FiLM {s1['B2_film_res_fm']['angle_deg']:.1f}° / FM-π0 {s1['C_pi0_adaln']['angle_deg']:.1f}°, GO/STOP F1 ≈0.95</li>{ep_txt}</ul>"
         + H("③ 결정 기록") + dec
-        + H("④ 막힌 것·의존") + "<ul style='margin:6px 0 6px 18px'><li><b>로봇 세션</b>: v3 구동 C·게이지 코드가 repo에 없음(푸시 요청), 남은 셀 수집, <code>scenario_progress.json</code> 갱신, rsync <code>--delete</code> 제거 요청(핸드오프 §14)</li><li><b>젯슨 접근</b>: FM 헤드 포함 전체 지연 측정(fp32), 드라이런</li><li><b>데이터</b>: 속력~거리 상관은 수집 가이드(§12.3/12.4) 적용 후 재측정해야 함(사용자 승인 대기)</li></ul>"
+        + H("④ 막힌 것·의존") + "<ul style='margin:6px 0 6px 18px'><li><b>로봇 세션</b>: v3 구동 FM-π0·게이지 코드가 repo에 없음(푸시 요청), 남은 셀 수집, <code>scenario_progress.json</code> 갱신, rsync <code>--delete</code> 제거 요청(핸드오프 §14)</li><li><b>젯슨 접근</b>: FM 헤드 포함 전체 지연 측정(fp32), 드라이런</li><li><b>데이터</b>: 속력~거리 상관은 수집 가이드(§12.3/12.4) 적용 후 재측정해야 함(사용자 승인 대기)</li></ul>"
         + __import__("ch77_traj").block(tbl, H, st)
         + __import__("ch77_story").block(tbl, H, st)
         + __import__("ch77_compare").block(tbl, H, st)
@@ -129,13 +129,13 @@ def update_vis(s):
         return s
     a = json.load(open(FM / "summary_s1_full300.json"))["aggregate"]
     rows = []
-    for n, lab, c in (("A_mlp_fm", "A", B), ("B2_film_res_fm", "B2", G), ("C_pi0_adaln", "C", A)):
+    for n, lab, c in (("A_mlp_fm", "FM-MLP", B), ("B2_film_res_fm", "FM-FiLM", G), ("C_pi0_adaln", "FM-π0", A)):
         for i, ax in ((0, "lx"), (1, "ly")):
             v = a[n]["r2_mean_axis"][i]
             rows.append((f"{lab} {ax} R²", v, c, f"{v:.2f}"))
     panel = ('<div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;padding:14px 16px"><div style="color:#fcd34d;font-size:0.8rem;font-weight:800;margin-bottom:8px">'
              'G-4. S1 FM 헤드 축별 R² (300건, 5-fold×5seed)</div>' + V.hbars(rows, 1.0, w=150)
-             + '<div style="font-size:0.72rem;color:#64748b;margin-top:6px">MLP 회귀와 MSE 차 ≤0.003, az R²≈0.1. 방향 오차 C 10.4°(같은 목표 위치)·16.9°(안 본 목표 위치). 사람 조작 천장 약 10~13°. '
+             + '<div style="font-size:0.72rem;color:#64748b;margin-top:6px">MLP 회귀와 MSE 차 ≤0.003, az R²≈0.1. 방향 오차 FM-π0 10.4°(같은 목표 위치)·16.9°(안 본 목표 위치). 사람 조작 천장 약 10~13°. '
              "<a href='#ch77' style='color:#94a3b8'>CH77</a> · <a href='#ch78' style='color:#94a3b8'>CH78</a></div></div>")
     return pat.sub(lambda m: panel, s, count=1)
 
@@ -156,7 +156,7 @@ def main():
                            "학습 분야의 결과와 대조 해설. 서빙·점검·로드맵·시사점은 CH78. 세부는 CH76-10.", "2026-10-20", inner)
     s = CC.insert_chapter(s, 77, blk, "/CH76 ═ -->", "", "", "", "", "", "", "", "", 76)
     s = CC.replace_toc_label(s, 77, "EGVLA2 학습 분야 정리 — 300건·헤드·서브골·대조 해설")
-    s = CC.replace_summary_row(s, 77, "EGVLA2 학습 분야 정리", "300건 수집·검증·학습, 헤드(MLP 회귀/A/B2/C)·서브골 ablation(3 seed)·학습 곡선·평활·사람 일치도 천장. 같은 위치 방향 오차 10.4°≈사람 변동성, 안 본 위치 16.9°가 남은 과제, FM≈MLP·서브골 효과 ≤0.4°")
+    s = CC.replace_summary_row(s, 77, "EGVLA2 학습 분야 정리", "300건 수집·검증·학습, 헤드(MLP 회귀/FM-MLP/FM-FiLM/FM-π0)·서브골 ablation(3 seed)·학습 곡선·평활·사람 일치도 천장. 같은 위치 방향 오차 10.4°≈사람 변동성, 안 본 위치 16.9°가 남은 과제, FM≈MLP·서브골 효과 ≤0.4°")
     s = re.sub(r"현재 상태 \(CH1→CH\d+ · [0-9-]+\)", "현재 상태 (CH1→CH78 · 2026-10-20)", s, count=1)
     s = update_vis(s)
     s = re.sub(r'(<a href="#ch77" style="[^"]*">)[^<]*(</a>)', r'\g<1>🧭 CH77 EGVLA2 학습 분야 정리\g<2>', s, count=1)

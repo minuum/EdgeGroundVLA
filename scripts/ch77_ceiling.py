@@ -12,7 +12,7 @@ def block(tbl, H, st):
     c = json.load(open(FM / "human_ceiling.json"))["results"]; s = json.load(open(FM / "summary_s1_full300.json"))["aggregate"]; l = json.load(open(FM / "summary_s1_full300_lopo.json"))["aggregate"]
     cell, pos = c["같은 셀(목표 위치+경로)"], c["같은 목표 위치(경로 무관)"]
     bars = Z.bars([("사람끼리 한 프레임(같은 셀·진행도)", cell["pairwise_mean"], MUT), ("사람 합의 방향(오라클: 셀·진행도 앎)", cell["consensus_mean"], G),
-                   ("모델 C · 같은 목표 위치(5-fold)", s["C_pi0_adaln"]["angle_deg"], B), ("모델 C · 안 본 목표 위치(LOPO)", l["C_pi0_adaln"]["angle_deg"], R),
+                   ("모델 FM-π0 · 같은 목표 위치(5-fold)", s["C_pi0_adaln"]["angle_deg"], B), ("모델 FM-π0 · 안 본 목표 위치(LOPO)", l["C_pi0_adaln"]["angle_deg"], R),
                    ("참고: 경로가 다른 사람끼리(같은 목표 위치)", pos["pairwise_mean"], "#475569")], 45, "°", w=250)
     tb = tbl(["비교 대상", "평균", "중앙값", "p90", "프레임 수"], [
         ["사람 합의 방향 vs 사람(같은 셀·진행도)", f"{cell['consensus_mean']:.1f}°", f"{cell['consensus_median']:.1f}°", f"{cell['consensus_p90']:.1f}°", f"{cell['n']:,}"],

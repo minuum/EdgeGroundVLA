@@ -131,7 +131,7 @@ def block(tbl, H, st):
                       f'<div style="font-size:0.7rem;color:#94a3b8">초록 = 사람, 노랑 점선 = 모델(EMA 0.5). 궤적은 사람 라벨의 속력 단계와 모델 방향×0.7 속력(섀도)로 적분한 추정치.</div></div>')
         cards += "</div>"
     return (H("⑥-11 방향 오차 해부 — 지표 출처, 오차가 적은/많은 경우, 데이터와 모델 흐름")
-            + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">방향 오차가 어디서 나온 지표인지, 숫자가 실제 데이터에서 어떤 모습인지(오차가 작은 에피소드와 큰 에피소드)를 한곳에 모은 해부 탭이다. 설정은 배포와 같다(C, 드롭아웃 30%, 120 epoch, K=8, EMA 0.5), 안 본 에피소드 60개.</div>'
+            + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">방향 오차가 어디서 나온 지표인지, 숫자가 실제 데이터에서 어떤 모습인지(오차가 작은 에피소드와 큰 에피소드)를 한곳에 모은 해부 탭이다. 설정은 배포와 같다(FM-π0, 드롭아웃 30%, 120 epoch, K=8, EMA 0.5), 안 본 에피소드 60개.</div>'
             + '<div style="margin:10px 0 4px;font-size:0.84rem;font-weight:800;color:#fcd34d">① 이 지표는 어디서 나왔나 — 다른 지표와 비교</div>' + src + note
             + '<div style="margin:12px 0 4px;font-size:0.84rem;font-weight:800;color:#fcd34d">② 어떻게 재나</div><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">' + ang_def
             + '<div style="flex:1 1 300px;font-size:0.78rem;line-height:1.6;color:#cbd5e1">프레임마다 <b>사람 조작 (lx,ly)</b>와 <b>모델 첫 스텝 (lx,ly)</b>의 사이각을 잰다(둘 다 크기 0.2 초과일 때). 에피소드 평균을 다시 평균한 것이 우리 방향 오차다. 크기(속력)는 이 지표에 들어 있지 않고 R²·MSE로 따로 본다.</div></div>'

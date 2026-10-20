@@ -15,8 +15,8 @@ def block(tbl, H, st):
         return ""
     import ch77_viz as Z
     d = json.load(open(f))
-    HC2 = [Z.HC["C"], Z.HC["MLP 회귀"]]
-    mk = lambda met, fmt, lab: Z.heat_table([(SP["fold0"], ["C (FM)", "MLP 회귀"], HC2), (SP["lopo_strong_right"], ["C (FM)", "MLP 회귀"], HC2)],
+    HC2 = [Z.HC["FM-π0"], Z.HC["MLP 회귀"]]
+    mk = lambda met, fmt, lab: Z.heat_table([(SP["fold0"], ["FM-π0", "MLP 회귀"], HC2), (SP["lopo_strong_right"], ["FM-π0", "MLP 회귀"], HC2)],
         [(VAR[k], [[d[sp][m][k][met] for m in ("C_pi0_adaln", "MLP_regression")] for sp in ("fold0", "lopo_strong_right")], "low") for k in VAR], fmt=fmt, corner=lab, by="col")
     rows = None
     c0, c1 = d["fold0"]["C_pi0_adaln"], d["lopo_strong_right"]["C_pi0_adaln"]
@@ -28,7 +28,7 @@ def block(tbl, H, st):
             + '<div style="margin:10px 0 4px;font-size:0.82rem;font-weight:800;color:#fcd34d">경로 평균 오차 ADE (cm)</div>' + mk("ade_cm", "{:.0f}", "액션 표현")
             + '<div style="margin:10px 0 4px;font-size:0.82rem;font-weight:800;color:#fcd34d">종점 좌우 오차 (cm)</div>' + mk("lateral_err_cm", "{:.0f}", "액션 표현")
             + f'{st("읽는 법", A)}<ul style="margin:6px 0 6px 18px;font-size:0.8rem">'
-              f'<li><b>예측을 이산화해도 오차가 거의 안 늘어난다</b>: C 기준 FPE {c0["cont_shadow"]["fpe_cm"]:.0f}→{c0["disc"]["fpe_cm"]:.0f}cm(같은 목표 위치), {c1["cont_shadow"]["fpe_cm"]:.0f}→{c1["disc"]["fpe_cm"]:.0f}cm(안 본 목표 위치). 오차의 대부분은 <b>액션 표현이 아니라 모델 예측 오차</b>에서 온다.</li>'
+              f'<li><b>예측을 이산화해도 오차가 거의 안 늘어난다</b>: FM-π0 기준 FPE {c0["cont_shadow"]["fpe_cm"]:.0f}→{c0["disc"]["fpe_cm"]:.0f}cm(같은 목표 위치), {c1["cont_shadow"]["fpe_cm"]:.0f}→{c1["disc"]["fpe_cm"]:.0f}cm(안 본 목표 위치). 오차의 대부분은 <b>액션 표현이 아니라 모델 예측 오차</b>에서 온다.</li>'
               f'<li>정답 라벨만 이산화해도 종점이 {c0["gt_disc"]["fpe_cm"]:.0f}~{c1["gt_disc"]["fpe_cm"]:.0f}cm 어긋난다 → 이산 표현 자체의 손실 하한. 연속 표현이면 이 손실은 없다(상한이 아니라 표현의 한계).</li>'
               f'<li><b>모델 속력</b>을 쓰면 경로 길이 차이가 크게 줄고(+{c0["cont_shadow"]["path_len_diff_cm"]:.0f}→+{c0["cont_model"]["path_len_diff_cm"]:.0f}cm) FPE도 낮다({c0["cont_shadow"]["fpe_cm"]:.0f}→{c0["cont_model"]["fpe_cm"]:.0f}cm). 단 사람 속력에 맞추는 것이라 <b>첫 적용은 섀도(0.7 고정)</b> 방침과는 별개로 속력 모델링의 잠재 이득을 보여 준다.</li>'
               f'<li><b>안 본 목표 위치는 오차가 크다</b>(FPE {c1["cont_shadow"]["fpe_cm"]:.0f}cm, 대부분 좌우 {c1["cont_shadow"]["lateral_err_cm"]:.0f}cm). 보정 없는 열린 고리 적분이라 실제 폐루프에서는 줄어들 수 있으나, 이 위치(strong_right)는 EGVLA1 실기에서도 가장 낮았던 곳(85%)이다.</li>'

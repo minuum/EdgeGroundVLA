@@ -7,7 +7,7 @@ import gen_ch76_viz as V
 FM = V.FM
 A, G, R, B, P = V.A, V.G, V.R, V.B, V.P
 KEYS = ["MLP_regression", "A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"]
-LAB = ["MLP 회귀", "A", "B2", "C"]
+LAB = ["MLP 회귀", "FM-MLP", "FM-FiLM", "FM-π0"]
 COL = [Z.HC[x] for x in LAB]
 SPL = [("fold0", "같은 목표 위치 (fold0)"), ("lopo_strong_right", "안 본 목표 위치 (strong_right)")]
 
@@ -44,7 +44,7 @@ def block(tbl, H, st):
                                ("마지막 epoch train 손실", [[cv(sp, k)[-1][1] for k in KEYS] for sp, _ in SPL], None)], fmt="{:.3f}", corner="손실(회귀는 MSE)")
     box = lambda t, body: f'<div style="margin:12px 0 4px;font-size:0.82rem;font-weight:800;color:#fcd34d">{t}</div>{body}'
     return (H("⑥-3 FM 헤드 보조 평가 — 부드러움·불확실도·다봉·학습 곡선 (오프라인, seed 0)")
-            + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">FM 헤드를 방향 오차 말고 <b>다른 관점</b>으로 본 결과. 학습에 쓰지 않은 에피소드 60개로 평가했고 헤드별 epoch은 고정(A 240, B2 220, C 120, 회귀 60), <b>seed 하나</b>라 경향만 읽는다.</div>'
+            + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">FM 헤드를 방향 오차 말고 <b>다른 관점</b>으로 본 결과. 학습에 쓰지 않은 에피소드 60개로 평가했고 헤드별 epoch은 고정(FM-MLP 240, FM-FiLM 220, FM-π0 120, 회귀 60), <b>seed 하나</b>라 경향만 읽는다.</div>'
             + Z.LEG
             + box("① 정확도 — 청크 이동 MSE", acc) + box("② 부드러움 — 청크 변화량(TV)과 프레임 간 저크", sm)
             + box("프레임 저크 비교 (K=8 평균 · 같은 목표 위치) — 점선이 사람", jit)

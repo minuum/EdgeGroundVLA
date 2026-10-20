@@ -26,14 +26,14 @@ def block(tbl, H, st):
         ["서버 전용 규칙", "프리뷰 ROT 재시도, STOP(근접/학습), 근접 오버라이드, 래치, 그라운딩 캐시 — <b>92%에 포함</b>", "단계 A는 기존 규칙 위에 연속 방향만 대체, 단계 B(단독)는 규칙 이식 결정 필요"],
         ["학습=서버?", st("같지 않음 (bbox 생성·규칙 계층 차이)", A), st("원본·q95에서 일치, 규칙 계층은 미정", A)]])
     ck = tbl(["항목", "내용", "상태"], [
-        ["배포 체크포인트(권장)", "<code>C_pi0_adaln_drop30_e120.pt</code> — 헤드 C, 300건 전체, 120 epoch, 서브골 드롭아웃 30%" + (f", sha256 <code>{man.get('C_pi0_adaln_drop30_e120.pt', {}).get('sha256', '')[:8]}</code>" if man else ""), st("저장", G)],
+        ["배포 체크포인트(권장)", "<code>C_pi0_adaln_drop30_e120.pt</code> — 헤드 FM-π0, 300건 전체, 120 epoch, 서브골 드롭아웃 30%" + (f", sha256 <code>{man.get('C_pi0_adaln_drop30_e120.pt', {}).get('sha256', '')[:8]}</code>" if man else ""), st("저장", G)],
         ["대조 체크포인트", "<code>C_pi0_adaln_e120.pt</code> — 드롭아웃 없음", st("저장", G)],
         ["서빙 정책", "서브골 결측 시 bbox 창 전체를 0으로(드롭아웃 체크포인트 기본), EMA 평활 옵션(<code>VLA_EGVLA2_EMA</code>)", st("구현", G)],
         ["서버 단계 A", "<code>VLA_DRIVE_SOURCE=egvla2_hybrid</code>: 이동 프레임에서만 연속 방향·속력으로 대체, STOP·ROT는 기존 판단", st("구현(기본 꺼짐)", G)],
         ["대시보드", "<code>drive</code> 적용, <code>VLA_JPEG_QUALITY</code>(EGVLA2는 95 이상)", st("구현(기본 꺼짐)", G)],
         ["서버 응답 버그 수정", "<code>InferenceResponse</code>에 <code>action_cont</code>·<code>drive</code>·<code>drive_source</code>가 없어 HTTP 응답에서 잘려 대시보드에 도달하지 못했다 → 필드 추가(2026-10-20)", st("수정", G)],
         ["서버 단계 B", "별도 경량 서버 <code>egvla2_inference_server.py</code> + 상태기계(디바운스 3·래치, 근접 오버라이드, 소실 5프레임→회전 탐색, 탐색 40프레임 초과 정지). 테스트 18개. 기본 꺼짐", st("스켈레톤 구현", G)],
-        ["로봇 쪽 전달·서버 경로 점검", "체크포인트 sha256 일치, 점검 A <b>pass</b>(bbox 차 0.0005, 서버-로컬 방향 차 3.01° ≤ 기준 4.49°)", st("완료(젯슨)", G)],
+        ["로봇 쪽 전달·서버 경로 점검", "체크포인트 sha256 일치, 서버 경로 점검 <b>pass</b>(bbox 차 0.0005, 서버-로컬 방향 차 3.01° ≤ 기준 4.49°)", st("완료(젯슨)", G)],
         ["젯슨 지연 측정(fp32, 100프레임)", "왕복 <b>평균 892ms / p95 898ms</b> = Florence-2 그라운딩 820.8ms(94%) + FM 샘플링·기타 약 54ms. Florence-2 구간이 벤치 817ms와 일치 → <b>FM 헤드 추가 비용 약 54ms</b>", st("완료(젯슨)", G)],
         ["드라이런", "조이스틱 조작이 필요한 방식은 보류 → 수집된 에피소드를 서버에 재생(pos2·pos3 시작 신규 수집분 포함)으로 대체", st("진행 예정", A)]])
     return (H("⑥-7 학습-서빙 일치와 추론 서버 — EGVLA1 vs EGVLA2, JPEG 품질, 배포 현황")

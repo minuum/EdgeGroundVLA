@@ -17,6 +17,9 @@ FM = ROOT / "docs/v5/egvla2_fm"
 A, AL, G, R, B, P, MUT = "#fbbf24", "#fcd34d", "#4ade80", "#f87171", "#38bdf8", "#a78bfa", "#94a3b8"
 
 
+HNAME = {"A_mlp_fm": "FM-MLP", "B2_film_res_fm": "FM-FiLM", "C_pi0_adaln": "FM-π0"}   # 실험군 표시 이름(구 A/B2/C)
+
+
 def compute_hist():
     D = ROOT / "ROS_action/mobile_vla_dataset_egvla2/"
     S = json.load(open(ROOT / "docs/v5/egvla2_fm/meta/manual_dataset_sets.json"))["sets"]["pilot_v2_gauge_20261013"]
@@ -188,16 +191,16 @@ def build(hist):
     # ---------- t4 ----------
     V["t4"] = wrap("① 선택지 비교 매트릭스 (평가자 판단 기준, 데이터 근거는 76-3·76-6)",
         heat([("라벨 = 실제 구동 일치", [0, 2, 2]), ("감속(속력) 정보 학습", [2, 0, 1]), ("odom 없이 효과 검증 가능", [0, 2, 2]), ("구현·보정 비용 낮음", [1, 2, 1]), ("라벨 노이즈 위험 낮음", [0, 2, 1])],
-             ["A 크기→throttle 연속", "B 각도 + 고정 속력", "C 속력 3단계 + 각도"]),
-        "A는 구동이 크기를 쓰지 않는 한 라벨이 실제와 어긋남. C는 보정(스톱워치) 이후 일치.") + wrap(
-        "② 결정 흐름 — 채택은 C(보정 완료)",
+             ["A 크기→throttle 연속", "B 각도 + 고정 속력", "FM-π0 속력 3단계 + 각도"]),
+        "FM-MLP는 구동이 크기를 쓰지 않는 한 라벨이 실제와 어긋남. C는 보정(스톱워치) 이후 일치.") + wrap(
+        "② 결정 흐름 — 채택은 FM-π0(보정 완료)",
         flow([("① 게이트 수정", G, "완료"), ("② B로 파일럿 (라벨=실제)", MUT, "건너뜀"), ("③ 스톱워치 보정", G, "완료 14.45/20.64/26.36 cm/s"), ("④ C로 확장 (v3)", G, "채택"), ("A", R, "odom 전까지 보류")]))
-    V["t4"] += wrap("③ 같은 프레임에서 A/B/C 라벨이 어떻게 달라지는가 (실제 데이터)", img("egvla2_fm/figures/ch76_conversion_example.jpg",
-        "raw 한 개에서 A(원형게이트), B(각도+GO), C(각도+속력 단계)가 결정적으로 파생되고, 실제 구동값(exec)은 구동 방식 C가 만든 값이다. 크기가 0.66이면 B는 GO, C는 ‘보통(0.7)’이 된다."),
-        "A는 크기를 보존하지만 실제 속도는 단계로만 반영됨 → A 라벨의 크기는 구동과 일치하지 않는다")
+    V["t4"] += wrap("③ 같은 프레임에서 FM-MLP/FM-FiLM/FM-π0 라벨이 어떻게 달라지는가 (실제 데이터)", img("egvla2_fm/figures/ch76_conversion_example.jpg",
+        "raw 한 개에서 A(원형게이트), B(각도+GO), FM-π0(각도+속력 단계)가 결정적으로 파생되고, 실제 구동값(exec)은 구동 방식 C가 만든 값이다. 크기가 0.66이면 B는 GO, C는 ‘보통(0.7)’이 된다."),
+        "FM-MLP는 크기를 보존하지만 실제 속도는 단계로만 반영됨 → A 라벨의 크기는 구동과 일치하지 않는다")
     # ---------- t5 ----------
     V["t5"] = wrap("① 로드맵 — 완료 / 대기",
-        flow([("게이트 수정", G, "✅"), ("구동 C + 보정", G, "✅"), ("v3 파일럿 15ep 합격", G, "✅"), ("지표 정의 고정 (raw)", G, "✅"), ("FM A/B/C 5-fold", G, "✅"), ("B2·조기 종료", A, "진행"), ("waypoint 적분 시험", A, "진행"),
+        flow([("게이트 수정", G, "✅"), ("구동 FM-π0 + 보정", G, "✅"), ("v3 파일럿 15ep 합격", G, "✅"), ("지표 정의 고정 (raw)", G, "✅"), ("FM FM-MLP/FM-FiLM/FM-π0 5-fold", G, "✅"), ("FM-FiLM·조기 종료", A, "진행"), ("waypoint 적분 시험", A, "진행"),
               ("에피소드·az 데이터 확대", MUT, "대기"), ("서브골 FiLM + 연속 PM", MUT, "대기"), ("closed-loop", MUT, "대기")]),
         "초록 완료 · 노랑 진행 · 회색 대기") + wrap(
         "② 선행사례 → 우리 설계 대응",
@@ -209,29 +212,29 @@ def build(hist):
         legend([("v1", R), ("v2", G)]) + vgroups(["lx 중간값", "ly 중간값", "코너", "az 스파이크"], [("v1", R, [14, 8, 25, 33]), ("v2", G, [78, 34, 1, 18])], 100, fmt="{:g}%", bw=22),
         "raw 기준 재계산은 로봇 세션 보고와 정확히 일치(lx 78%·ly 34%·코너 1%·스파이크 5/28). 초기 불일치는 scaled 기준으로 계산해서 생긴 정의 차이였음") + wrap(
         "② 시간 순서",
-        flow([("v2 코드 푸시 62e722bc", MUT), ("리뷰 §9 (문제 5)", R), ("제안 §10", A), ("§11 반영: 게이트·구동 C·보정·게이지", G), ("v3 데이터 28건 수신", G), ("공식 판정 (파일럿 v2 합격)", G), ("FM 학습 시험", A)]))
+        flow([("v2 코드 푸시 62e722bc", MUT), ("리뷰 §9 (문제 5)", R), ("제안 §10", A), ("§11 반영: 게이트·구동 FM-π0·보정·게이지", G), ("v3 데이터 28건 수신", G), ("공식 판정 (파일럿 v2 합격)", G), ("FM 학습 시험", A)]))
     # ---------- t7 ----------
     s_e = load("summary_exec.json"); s_b2 = load("summary_exec_b2.json"); s_wp = load("summary_v6_waypoint.json")
     if s_e:
         a = s_e["aggregate"]
-        names = [("평균 기준선", MUT), ("MLP 회귀", P), ("A MLP-FM", G), ("B FiLM-FM", R), ("C π0형", B)]
+        names = [("평균 기준선", MUT), ("MLP 회귀", P), ("A MLP-FM", G), ("B FiLM-FM", R), ("FM-π0 π0형", B)]
         def mse(ax): return [a["A_mlp_fm"]["base_mean_mse_axis"][ax], a["MLP_regression"]["mse_axis"][ax], a["A_mlp_fm"]["mse_mean_axis"][ax], a["B_film_fm"]["mse_mean_axis"][ax], a["C_pi0_adaln"]["mse_mean_axis"][ax]]
         series = [(names[i][0], names[i][1], [mse(0)[i], mse(1)[i], mse(2)[i] * 5]) for i in range(5)]
         extra = ""
         if s_b2 and "B2_film_res_fm" in s_b2["aggregate"]:
             b2 = s_b2["aggregate"]["B2_film_res_fm"]
-            series.append(("B2 FiLM+잔차", "#fb923c", [b2["mse_mean_axis"][0], b2["mse_mean_axis"][1], b2["mse_mean_axis"][2] * 5]))
+            series.append(("FM-FiLM FiLM+잔차", "#fb923c", [b2["mse_mean_axis"][0], b2["mse_mean_axis"][1], b2["mse_mean_axis"][2] * 5]))
         leg = legend([(n, c) for n, c, *_ in series])
         V["t7"] = wrap("① 축별 MSE — 낮을수록 좋음 (exec, 5-fold, 샘플 평균)", leg + vgroups(["lx", "ly", "az (×5)"], series, 0.16, fmt="{:.3f}", bw=15),
             "az는 값 범위가 작아 5배로 표시. 기준선 대비 낮으면 학습된 것")
-        r2 = [("A MLP-FM", G, a["A_mlp_fm"]["r2_mean_axis"]), ("B FiLM-FM", R, a["B_film_fm"]["r2_mean_axis"]), ("C π0형", B, a["C_pi0_adaln"]["r2_mean_axis"])]
-        if s_b2 and "B2_film_res_fm" in s_b2["aggregate"]: r2.append(("B2 FiLM+잔차", "#fb923c", s_b2["aggregate"]["B2_film_res_fm"]["r2_mean_axis"]))
+        r2 = [("A MLP-FM", G, a["A_mlp_fm"]["r2_mean_axis"]), ("B FiLM-FM", R, a["B_film_fm"]["r2_mean_axis"]), ("FM-π0 π0형", B, a["C_pi0_adaln"]["r2_mean_axis"])]
+        if s_b2 and "B2_film_res_fm" in s_b2["aggregate"]: r2.append(("FM-FiLM FiLM+잔차", "#fb923c", s_b2["aggregate"]["B2_film_res_fm"]["r2_mean_axis"]))
         V["t7"] += wrap("② 축별 R² (0 = 평균 기준선, 음수 = 기준선보다 나쁨)", legend([(n, c) for n, c, _ in r2])
             + vgroups(["lx", "ly", "az (음수는 0 표시)"], [(n, c, [max(v[0], 0), max(v[1], 0), max(v[2], 0)]) for n, c, v in r2], 1.0, fmt="{:.2f}", bw=15),
-            "음수 R²는 막대가 0으로 표시됨 — 실제 값은 76-7 표 참조(az: A −0.34, B −5.2, C −0.11)")
+            "음수 R²는 막대가 0으로 표시됨 — 실제 값은 76-7 표 참조(az: A −0.34, B −5.2, FM-π0 −0.11)")
         tr = [(k, a[k]["train_flow_final"], a[k]["test_flow_final"]) for k in ("A_mlp_fm", "B_film_fm", "C_pi0_adaln")]
         V["t7"] += wrap("③ 과적합 — 최종 epoch flow loss (train vs test)", legend([("train", G), ("test(hold-out)", R)])
-            + vgroups(["A MLP-FM", "B FiLM-FM", "C π0형"], [("train", G, [t[1] for t in tr]), ("test", R, [t[2] for t in tr])], 0.5, fmt="{:.2f}", bw=22),
+            + vgroups(["A MLP-FM", "B FiLM-FM", "FM-π0 π0형"], [("train", G, [t[1] for t in tr]), ("test", R, [t[2] for t in tr])], 0.5, fmt="{:.2f}", bw=22),
             "C는 train 0.08 대 test 0.24로 격차가 가장 큼")
         ce = s_b2["aggregate"]["A_mlp_fm"].get("curve_epochs") if s_b2 else None
         if ce and s_b2:
@@ -252,7 +255,7 @@ def build(hist):
                 + f'<text x="2" y="12" font-size="8" fill="#94a3b8">{hi:.2f}</text><text x="2" y="{Hh - 10}" font-size="8" fill="#94a3b8">{lo:.2f}</text></svg>',
                 "최저점 이후 올라가면 과적합. 아래로 갈수록 좋음")
     V["t7"] = V.get("t7", "") + wrap("⑤ 생성된 액션 vs 정답 — 학습에 쓰지 않은 에피소드 (실제 데이터)", img("egvla2_fm/figures/ch76_fm_prediction.jpg",
-        "노랑 = 정답(exec), 색 영역 = 샘플 16개 범위, 선 = 샘플 평균. 이 에피소드는 좌우(ly)가 거의 0인 직진인데 모델이 ly≈0.3을 섞어 내는 구간이 있다 — 학습 데이터가 우곡선 위주라 직진 에피소드 일반화가 약하다는 것을 보여 주는 정직한 예시. A는 전후(lx) 추세를 따라가지만 단계 값(0.4/0.7/1.0)은 부드럽게 평균낸다."),
+        "노랑 = 정답(exec), 색 영역 = 샘플 16개 범위, 선 = 샘플 평균. 이 에피소드는 좌우(ly)가 거의 0인 직진인데 모델이 ly≈0.3을 섞어 내는 구간이 있다 — 학습 데이터가 우곡선 위주라 직진 에피소드 일반화가 약하다는 것을 보여 주는 정직한 예시. FM-MLP는 전후(lx) 추세를 따라가지만 단계 값(0.4/0.7/1.0)은 부드럽게 평균낸다."),
         "5-fold 중 fold 3의 hold-out 1ep, 60 epoch, seed 0 (별도 실행)")
     if s_wp:
         r = s_wp["results"]
@@ -364,7 +367,7 @@ def full300_block(pill_, tbl):
         return ""
     a, lo = json.load(open(f))["aggregate"], json.load(open(g))["aggregate"]
     rows = []
-    for n, lab in (("A_mlp_fm", "A"), ("B2_film_res_fm", "B2"), ("C_pi0_adaln", "C")):
+    for n, lab in (("A_mlp_fm", "FM-MLP"), ("B2_film_res_fm", "FM-FiLM"), ("C_pi0_adaln", "FM-π0")):
         rows.append([lab, f"{a[n]['r2_mean_axis'][0]:.2f} / {a[n]['r2_mean_axis'][1]:.2f}", f"{a[n]['angle_deg']:.1f}°", f"{lo[n]['r2_mean_axis'][0]:.2f} / {lo[n]['r2_mean_axis'][1]:.2f}", f"{lo[n]['angle_deg']:.1f}°", f"{lo[n]['go_f1']:.3f}"])
     rows.append(["MLP 회귀 MSE(lx/ly/az)", " / ".join(f"{x:.3f}" for x in a["MLP_regression"]["mse_axis"]), "", " / ".join(f"{x:.3f}" for x in lo["MLP_regression"]["mse_axis"]), "", ""])
     return (f"<br>{pill_('300ep 최종(2026-10-16)', G)}300건(29,161프레임), 250 epoch, 5-fold×5 seed / LOPO(안 본 위치)×3 seed. 같은 장소는 방향 오차 약 10.4~11.3°, <b>안 본 위치는 16.9~20.3°로 증가</b>하고 C가 가장 낫다."
@@ -401,7 +404,7 @@ def t10_card():
     pr = vgroups(["0~10%", "10~30%", "30~70%", "70~90%", "90~100%"], [("신규 평균 크기", B, [q["mean_mag"] for q in prof]), ("가이드 목표(§12)", A, [0.42, 0.67, 0.72, 0.62, 0.44])], 1.0, fmt="{:.2f}")
     a1, a2 = S1["aggregate"], S2["aggregate"]
     arch = ["A_mlp_fm", "B2_film_res_fm", "C_pi0_adaln"]
-    r2 = vgroups(["lx", "ly", "az"], [("MLP 회귀(MSE 기준 환산 아님)", MUT, [0, 0, 0])] and [(n.split("_")[0] + " FM", c, a1[n]["r2_mean_axis"]) for n, c in zip(arch, (B, G, A))], 1.0, fmt="{:.2f}")
+    r2 = vgroups(["lx", "ly", "az"], [("MLP 회귀(MSE 기준 환산 아님)", MUT, [0, 0, 0])] and [(HNAME[n], c, a1[n]["r2_mean_axis"]) for n, c in zip(arch, (B, G, A))], 1.0, fmt="{:.2f}")
     mse_rows = [["평균 기준선", *[f"{x:.3f}" for x in a1["A_mlp_fm"]["base_mean_mse_axis"]], "-", "-"], ["MLP 회귀", *[f"{x:.3f}" for x in a1["MLP_regression"]["mse_axis"]], "-", "-"]]
     for n in arch:
         mse_rows.append([n, *[f"{x:.3f}" for x in a1[n]["mse_mean_axis"]], f"{a1[n]['angle_deg']:.1f}°", f"{a1[n]['go_f1']:.3f}"])
@@ -424,12 +427,12 @@ def t10_card():
             ["V6 (키보드)", "—", "18종 (±1.15 / 0)", "0%", "이산 LUT, 속력 정보 없음"],
             ["v1 아카이브(40ep)", "2,292", "185", "1%", "약한 스틱이 게이트에 제거, 구동 방식 다름"],
             ["파일럿 v2(15ep)", "1,236", "356", "75%", "v3 첫 합격 세트"],
-            ["신규 v3(191ep)", f"{ag['frames']:,}", "4,312", f"{ag['mid_ratio']:.0%}", "속력 3단계 구동 C, raw/exec/scaled 3종 저장"]])
+            ["신규 v3(191ep)", f"{ag['frames']:,}", "4,312", f"{ag['mid_ratio']:.0%}", "속력 3단계 구동 FM-π0, raw/exec/scaled 3종 저장"]])
         + H("④ S1 학습 결과 — 본학습 세트 218ep, 5-fold × 5 seed, inner-val 조기 종료")
-        + wrap("축별 R² (평균 기준선 대비 설명 비율)", legend([("A MLP-FM", B), ("B2 FiLM-FM", G), ("C π0형", A)]) + r2, "az는 희소해 R²≈0.05. lx 0.45~0.46, ly 0.67~0.69", kind="chart")
+        + wrap("축별 R² (평균 기준선 대비 설명 비율)", legend([("A MLP-FM", B), ("FM-FiLM FiLM-FM", G), ("FM-π0 π0형", A)]) + r2, "az는 희소해 R²≈0.05. lx 0.45~0.46, ly 0.67~0.69", kind="chart")
         + tbl(["모델", "lx MSE", "ly MSE", "az MSE", "방향 오차", "GO/STOP F1"], mse_rows)
-        + f"방향 오차는 이동 중인 프레임의 첫 스텝 방향 각도 차이다. <b>FM 헤드 3종과 MLP 회귀의 MSE 차이는 0.003 이하</b>로 우열을 말할 수 없고, 평균 기준선 대비 개선(lx 0.093→0.05, ly 0.149→0.046)이 핵심이다. 구조 중 C가 방향 오차 {a1['C_pi0_adaln']['angle_deg']:.1f}°로 가장 낮다(A {a1['A_mlp_fm']['angle_deg']:.1f}°, B2 {a1['B2_film_res_fm']['angle_deg']:.1f}°)."
-        + f"<br>{pill_('조기 종료', A)}최적 epoch 평균이 A·B2 {a1['A_mlp_fm']['best_epoch']:.0f}, C {a1['C_pi0_adaln']['best_epoch']:.0f}로 상한(100)에 가까워 <b>epoch을 늘리면 더 좋아질 수 있다</b>(미확인)."
+        + f"방향 오차는 이동 중인 프레임의 첫 스텝 방향 각도 차이다. <b>FM 헤드 3종과 MLP 회귀의 MSE 차이는 0.003 이하</b>로 우열을 말할 수 없고, 평균 기준선 대비 개선(lx 0.093→0.05, ly 0.149→0.046)이 핵심이다. 구조 중 C가 방향 오차 {a1['C_pi0_adaln']['angle_deg']:.1f}°로 가장 낮다(A {a1['A_mlp_fm']['angle_deg']:.1f}°, FM-FiLM {a1['B2_film_res_fm']['angle_deg']:.1f}°)."
+        + f"<br>{pill_('조기 종료', A)}최적 epoch 평균이 FM-MLP·FM-FiLM {a1['A_mlp_fm']['best_epoch']:.0f}, FM-π0 {a1['C_pi0_adaln']['best_epoch']:.0f}로 상한(100)에 가까워 <b>epoch을 늘리면 더 좋아질 수 있다</b>(미확인)."
         + f"<br>{pill_('az 마스크', P)}고립 az 스파이크를 마스킹한 타깃에서는 az MSE가 {a1['A_mlp_fm']['mse_mean_axis'][2]:.3f}→{a2['A_mlp_fm']['mse_mean_axis'][2]:.3f}로 줄었고(기준선도 {a1['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}→{a2['A_mlp_fm']['base_mean_mse_axis'][2]:.3f}) R²는 {a1['A_mlp_fm']['r2_mean_axis'][2]:.2f}→{a2['A_mlp_fm']['r2_mean_axis'][2]:.2f}로 거의 같다. 마스킹으로 az가 학습되는 건 아니다."
         + ep250_block(a1, pill_, tbl)
         + full300_block(pill_, tbl)
@@ -445,7 +448,7 @@ def t10_card():
 
 
 PILLS = {"판단": G, "추천": B, "한계": R, "다음": A, "남은 것": A, "실측 근거": MUT, "설정": MUT, "FM 학습에 미치는 영향": P, "동시 수집 구조(제안)": P,
-         "결과": G, "조기 종료": A, "B2 시험(후속)": B}
+         "결과": G, "조기 종료": A, "FM-FiLM 시험(후속)": B}
 
 
 def pill(label, col):
