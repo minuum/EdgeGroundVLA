@@ -1481,6 +1481,13 @@ class Stage2V2Model:
 
 _model: Optional[Stage2V2Model] = None
 
+# EGVLA2(2026-10-20) — 기존 discrete(Kosmos-2+MLP/hybrid) 모델과 별개 아키텍처(Florence-2+
+# Flow Matching)라 같은 프로세스 안에서도 GPU에 동시에 못 올림(Jetson 메모리 제약). 둘 중
+# 하나만 활성 — 기본값 "discrete"라 기존 동작은 전혀 안 바뀜. "egvla2"로 전환해야만 아래
+# 경로를 탐. (/model/switch_family 참조)
+_active_family: str = "discrete"
+_egvla2_service = None  # Optional["EgVla2Service"] — 지연 import(아래 switch_family에서)
+
 
 def _resolve_device() -> torch.device:
     raw = os.getenv("VLA_DEVICE", "auto")
@@ -1533,6 +1540,14 @@ class InferenceResponse(BaseModel):
     stop_mode: Optional[str] = None
     grounding_cached: Optional[bool] = None
     head_mode: Optional[str] = None
+    action_speed_scale: Optional[float] = None
+    blocked_by_miss: Optional[bool] = None
+    # EGVLA2(2026-10-20) — response_model에 선언 안 된 키는 FastAPI가 직렬화에서 조용히
+    # 잘라낸다(minum 핸드오프에서 먼저 발견된 버그, inference-integration 브랜치에서 수정됨
+    # — 여기서도 동일하게 선행 반영). egvla2 패밀리 응답에서만 채워짐.
+    action_cont: Optional[dict[str, Any]] = None
+    drive: Optional[dict[str, Any]] = None
+    drive_source: Optional[str] = None
 
 
 class LoadRequest(BaseModel):
@@ -1540,6 +1555,16 @@ class LoadRequest(BaseModel):
     stage1_path: Optional[str] = None
     head: Optional[str] = None
     grounder: Optional[str] = None  # "pg2" | "owlv2" — VLA_GROUNDER 핫스왑(2026-07-23)
+
+
+class SwitchFamilyRequest(BaseModel):
+    """EGVLA2(2026-10-20) — discrete(Kosmos-2+MLP/hybrid) ↔ egvla2(Florence-2+FM) 전환.
+    같은 프로세스 안에서 기존 모델을 완전히 내리고(메모리 회수) 다른 패밀리를 새로 로드한다
+    (/model/load의 체크포인트 전환과 같은 패턴 — 둘 다 동시엔 못 올림)."""
+    family: str  # "discrete" | "egvla2"
+    egvla2_ckpt: Optional[str] = None
+    egvla2_ema: float = 0.0
+    egvla2_dtype: str = "fp32"
 
 
 class ConfigRequest(BaseModel):
@@ -1729,6 +1754,9 @@ async def health() -> dict[str, Any]:
         "git_commit": _GIT_COMMIT,
         "process_started_at": _PROCESS_START_TS,
         "code_mtime": os.path.getmtime(__file__),
+        # EGVLA2(2026-10-20) — 추가 필드만, 기존 키는 전부 그대로.
+        "active_family": _active_family,
+        "egvla2": (_egvla2_service.meta if _egvla2_service is not None else None),
     }
 
 
@@ -1753,6 +1781,36 @@ async def predict(
 ) -> InferenceResponse:
     _check_api_key(x_api_key)
     try:
+        # EGVLA2(2026-10-20) — 활성 패밀리가 egvla2면 기존 discrete 경로(Kosmos-2+grounder+
+        # MLP/hybrid, get_model() 이하)는 전혀 안 거치고 여기서 바로 리턴. 아래 discrete 경로는
+        # 한 줄도 안 바뀜.
+        if _active_family == "egvla2":
+            if _egvla2_service is None:
+                raise HTTPException(status_code=503, detail="egvla2 서비스 미로드 — /model/switch_family로 먼저 전환하세요")
+            result = _egvla2_service.predict(request.image)
+            drive = result.get("drive") or {}
+            return InferenceResponse(
+                action=result["action"],
+                action_3d=result["action_3d"],
+                latency_ms=result["latency_ms"],
+                source=result.get("source", "egvla2_only"),
+                buffer_status=result.get("buffer_status", {}),
+                predicted_class=result.get("predicted_class"),
+                predicted_label=result.get("predicted_label"),
+                bbox=result.get("bbox"),
+                grounding_latency_ms=result.get("grounding_latency_ms"),
+                goal_near_proxy=result.get("goal_near_proxy"),
+                proximity_override=result.get("proximity_override"),
+                learned_stop=result.get("learned_stop"),
+                stop_latched=result.get("stop_latched"),
+                stop_mode=result.get("stop_mode"),
+                grounding_cached=result.get("grounding_cached"),
+                head_mode=result.get("head_mode"),
+                action_speed_scale=drive.get("speed_scale"),
+                action_cont=result.get("action_cont"),
+                drive=drive or None,
+                drive_source=drive.get("source"),
+            )
         m = get_model()
         result = m.predict(request.image, request.instruction, request.head_mode)
         return InferenceResponse(
@@ -2022,7 +2080,7 @@ async def load_model(
     x_api_key: Optional[str] = Header(default=None),
 ) -> dict[str, Any]:
     _check_api_key(x_api_key)
-    global _model
+    global _model, _egvla2_service, _active_family
 
     # ── 그라운더만 바꾸는 경우: Stage1(Kosmos-2)/head는 그대로 두고
     # 그라운더 하나만 "먼저 끄고 → 메모리 회수 확인 → 새로 로드" 순서로 교체.
@@ -2069,9 +2127,62 @@ async def load_model(
     _free_cuda_memory()
     m = get_model(reload=True, existing_enc=reusable_enc)
     grounder_kind = "owlv2" if isinstance(m.grounder, OwlV2Grounder) else "pg2"
+    # EGVLA2(2026-10-20) — 기존 discrete 체크포인트 버튼으로 전환할 때 egvla2가 활성
+    # 상태였다면 같이 내리고 패밀리를 discrete로 되돌린다(안 그러면 _model은 새로
+    # 로드됐는데 /predict가 여전히 egvla2로 라우팅되는 불일치가 생김).
+    if _egvla2_service is not None:
+        old_service = _egvla2_service
+        _egvla2_service = None
+        del old_service
+        _free_cuda_memory()
+    _active_family = "discrete"
     _persist_runtime_state()
     return {"status": "success", "head": m.head_name, "window": m.window,
             "val_acc": m.val_acc, "grounder": grounder_kind}
+
+
+@app.post("/model/switch_family")
+async def switch_family(
+    request: SwitchFamilyRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> dict[str, Any]:
+    """EGVLA2(2026-10-20) — discrete(Kosmos-2+MLP/hybrid) ↔ egvla2(Florence-2+FM) 전환.
+    둘 다 GPU에 동시에 못 올리므로(Jetson 메모리 제약) 기존 패밀리를 완전히 내리고
+    (메모리 회수 확인) 새 패밀리를 로드한다 — /model/load의 체크포인트 전환과 같은 패턴.
+    discrete 쪽 기존 /predict·/model/load 경로는 이 엔드포인트를 안 거치면 전혀 영향 없음."""
+    _check_api_key(x_api_key)
+    global _model, _egvla2_service, _active_family
+
+    if request.family not in ("discrete", "egvla2"):
+        raise HTTPException(status_code=400, detail="family must be 'discrete' or 'egvla2'")
+
+    if request.family == "egvla2":
+        if not request.egvla2_ckpt:
+            raise HTTPException(status_code=400, detail="egvla2_ckpt required")
+        old_model = _model
+        _model = None
+        del old_model
+        _free_cuda_memory()
+        os.environ["VLA_EGVLA2_CKPT"] = request.egvla2_ckpt
+        os.environ["VLA_EGVLA2_EMA"] = str(request.egvla2_ema)
+        os.environ["VLA_EGVLA2_DTYPE"] = request.egvla2_dtype
+        from robovlm_nav.serve.egvla2_inference_server import load_service_from_env
+        _egvla2_service = load_service_from_env()
+        _active_family = "egvla2"
+        _persist_runtime_state()
+        logger.info("[/model/switch_family] egvla2로 전환 완료 → %s", request.egvla2_ckpt)
+        return {"status": "success", "active_family": "egvla2", "meta": _egvla2_service.meta}
+
+    old_service = _egvla2_service
+    _egvla2_service = None
+    del old_service
+    _free_cuda_memory()
+    m = get_model(reload=True)
+    _active_family = "discrete"
+    _persist_runtime_state()
+    logger.info("[/model/switch_family] discrete로 복귀 완료 → %s", m.checkpoint_path)
+    return {"status": "success", "active_family": "discrete", "head": m.head_name,
+            "val_acc": m.val_acc, "checkpoint_path": m.checkpoint_path}
 
 
 class PreviewAlignRequest(BaseModel):

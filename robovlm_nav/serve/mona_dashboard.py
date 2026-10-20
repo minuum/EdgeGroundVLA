@@ -300,6 +300,9 @@ class DataCollectSession:
         self.selected_cx_position: Optional[str] = None  # 극단 배치 4포지션(강한좌/준극단좌/준극단우/강한우)
         self.staged_cx_path: Optional[str] = None  # 트랙A 접근경로(좌곡선/직진/우곡선) — 위치와 별개 축
         self.selected_cx_path: Optional[str] = None
+        # minum 핸드오프 §16(2026-10-20) — 로봇 물리 시작 위치(pos1 기본/pos2/pos3).
+        # 목표지점(cx_position)과 별개 축 — 시작 위치 일반화 측정용 신규 수집에만 사용.
+        self.selected_start_position: Optional[str] = None
         # D-pad 좌/우가 어느 축을 순환시킬지: "trackA"(cx위치, 기본) | "scenario"(9종 시나리오)
         # D-pad 상/하로 전환. 웹 UI에서 해당 카드의 행/◀▶를 쓰면 자동으로 그 축으로 전환됨.
         self.collect_mode = "trackA"
@@ -346,23 +349,44 @@ class DataCollectSession:
             frame = _ros.latest_bgr()
             if frame is None:
                 return
+            # EGVLA2(2026-10-13, minum 핸드오프 #2): raw가 없으면(이산 모드/합성 STOP
+            # 프레임 등) lx/ly/az 자체를 raw로도 같이 씀 — "actions는 raw 원값,
+            # 게인/원형게이트 적용값은 actions_scaled"로 가도록 사용자가 요청한 설계.
+            rlx, rly, raz = raw if raw is not None else (lx, ly, az)
             self.episode_data.append({
                 "image": frame.copy(),
                 "action": {"linear_x": lx, "linear_y": ly, "angular_z": az},
+                "action_raw": {"linear_x": rlx, "linear_y": rly, "angular_z": raz},
                 "action_event_type": source,
                 "t": time.time(),
             })
+            # EGVLA2(2026-10-13) — 녹화 중인 에피소드의 "중간값(0.15~0.9) 비율"을 실시간
+            # 집계해서 화면에 바로 보여주기 위함. 스틱을 끝까지만 밀면 이 비율이 계속
+            # 낮게 나오니, 운전하면서 바로 보고 세기를 조절하라는 목적.
+            peak = max(abs(rlx), abs(rly))
+            if peak > 0.01:
+                self._live_total += 1
+                if 0.15 < peak < 0.9:
+                    self._live_mid += 1
 
-    def start_episode(self, episode_name=None, scenario=None, pattern=None, cx_position=None, cx_path=None) -> str:
+    def start_episode(self, episode_name=None, scenario=None, pattern=None, cx_position=None, cx_path=None,
+                       start_position=None) -> str:
         with self._lock:
             self.episode_data = []
+            self._live_mid = 0
+            self._live_total = 0
             self.selected_scenario = scenario
             self.selected_pattern = pattern
             self.selected_cx_position = cx_position
             self.selected_cx_path = cx_path
+            # minum 핸드오프 §16(2026-10-20) — 로봇 시작 위치 일반화 측정용 pos2/pos3
+            # 신규 수집. 기본(pos1/미지정)은 지금까지 파일명 규칙에 영향 없음.
+            self.selected_start_position = start_position or None
             if not episode_name:
                 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 parts = [f"episode_{ts}"]
+                if self.selected_start_position and self.selected_start_position != "pos1":
+                    parts.append(self.selected_start_position)
                 if scenario:
                     parts.append(scenario)
                 if pattern:
@@ -558,18 +582,38 @@ class DataCollectSession:
 
     def _save_episode_data(self, data: List[dict], name: str, duration: float) -> Path:
         images = np.stack([d["image"] for d in data])
-        actions = np.array(
+        # EGVLA2(2026-10-13, minum 핸드오프 §10 스키마 채택):
+        # "actions_raw" = 데드존만 통과한 원본 스틱값 — 모든 변환의 기준.
+        # "actions_scaled" = 게인/원형게이트 정규화된 "의도"(기존 v2 호환용으로 유지).
+        # "actions_exec" = 실제로 로봇이 실행한 값(구동방식 C, 아래서 파생).
+        actions_raw = np.array(
+            [[d["action_raw"]["linear_x"], d["action_raw"]["linear_y"], d["action_raw"]["angular_z"]] for d in data],
+            dtype=np.float32,
+        )
+        actions_scaled = np.array(
             [[d["action"]["linear_x"], d["action"]["linear_y"], d["action"]["angular_z"]] for d in data],
             dtype=np.float32,
         )
+        actions_exec = _collect_derive_actions_exec(actions_raw)
         event_types = np.array([d["action_event_type"] for d in data], dtype=h5py.string_dtype(encoding="utf-8"))
-        save_path = self.data_dir / f"{name}.h5"
+        # EGVLA2(2026-10-13, minum 핸드오프 #7): 프레임별 실제 시각(on_command 호출
+        # 시점, time.time()) — "이 값이 마지막 발행값인지 구간 평균인지" 질문에, 매
+        # 프레임이 그 시각의 마지막 발행값 스냅샷이라는 걸 간격으로 직접 검증 가능하게.
+        # odom/실제 cmd_vel 피드백은 이 로봇에 휠 오도메트리 센서/토픽 자체가 없어서
+        # (grep 결과 전체 repo에 Odometry 구독 코드 없음) 지금은 제공 불가 — 하드웨어
+        # 쪽에 센서가 추가되기 전까진 timestamp만으로 간격을 검증하는 게 최선.
+        frame_timestamps = np.array([d.get("t", 0.0) for d in data], dtype=np.float64)
+        # EGVLA2(2026-10-12 후속): 토글 제거 — 📷 데이터수집 탭은 항상 continuous_dir(기존
+        # V6 300건 디렉토리와 분리된 별도 폴더)에 저장. data_dir(mobile_vla_dataset_v5)는
+        # 이 경로에서 더 이상 쓰이지 않지만, 기존 300건 파일 자체는 그대로 보존됨.
+        save_path = self.continuous_dir / f"{name}.h5"
         now = datetime.datetime.now()
         with h5py.File(save_path, "w") as f:
             f.attrs["episode_name"] = name
             f.attrs["scenario"] = self.selected_scenario or ""
             f.attrs["cx_position"] = self.selected_cx_position or ""
             f.attrs["cx_path"] = self.selected_cx_path or ""
+            f.attrs["start_position"] = self.selected_start_position or "pos1"
             f.attrs["total_duration"] = duration
             f.attrs["num_frames"] = len(data)
             f.attrs["stop_inject_n"] = self.STOP_INJECT_N
@@ -681,9 +725,14 @@ class DataCollectSession:
             "cx_path": self.selected_cx_path,
             "staged_cx_path": self.staged_cx_path,
             "cx_position_path_stats": dict(self.cx_position_path_stats),
+            "start_position": self.selected_start_position,
             "collect_mode": self.collect_mode,
             "returning": self._returning,
             "has_return_path": len(self._last_episode_actions) > 1,
+            # EGVLA2(2026-10-13) — 녹화 중인 에피소드의 실시간 "중간값(0.15~0.9) 비율".
+            "live_mid_count": self._live_mid,
+            "live_total_count": self._live_total,
+            "live_mid_pct": round(self._live_mid / self._live_total * 100, 1) if self._live_total else None,
         }
 
 
@@ -1836,6 +1885,7 @@ class CollectEpisodeStartReq(BaseModel):
     pattern: Optional[str] = None
     cx_position: Optional[str] = None
     cx_path: Optional[str] = None
+    start_position: Optional[str] = None
 
 class CollectEpisodeStopReq(BaseModel):
     save: bool = True
@@ -2450,7 +2500,8 @@ def collect_key(req: CollectKeyReq):
 def collect_episode_start(req: CollectEpisodeStartReq):
     if _collect is None:
         return {"ok": False, "error": "데이터수집 세션 미초기화"}
-    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern, req.cx_position, req.cx_path)
+    name = _collect.start_episode(req.episode_name, req.scenario, req.pattern, req.cx_position, req.cx_path,
+                                   req.start_position)
     return {"ok": True, "episode_name": name}
 
 
@@ -2655,6 +2706,62 @@ def verify_model_switch(req: ModelSwitchReq):
         return {"ok": True, **result}
     except Exception as e:
         log.warning(f"[ModelSwitch] 실패: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+# EGVLA2(2026-10-20) — discrete 체크포인트 패널과 같은 UX(목록+전환버튼)로 egvla2
+# 체크포인트도 핫스왑. 기존 /verify/model_list·/verify/model_switch는 전혀 안 건드림
+# (별도 엔드포인트 + 별도 서버쪽 라우트 /model/switch_family).
+@app.get("/verify/egvla2_model_list")
+def verify_egvla2_model_list():
+    """runs/egvla2_fm/ 아래 .pt 스캔. 같은 디렉터리에 MANIFEST.json이 있으면 그
+    메타데이터(sha256/arch/epochs/subgoal_dropout/n_episodes/seed)를 같이 붙임."""
+    base = ROOT / "runs" / "egvla2_fm"
+    out = []
+    if base.exists():
+        manifests: dict[Path, dict] = {}
+        for f in sorted(base.rglob("*.pt"), key=lambda p: -p.stat().st_mtime)[:40]:
+            d = f.parent
+            if d not in manifests:
+                mf = d / "MANIFEST.json"
+                manifests[d] = json.loads(mf.read_text()) if mf.exists() else {}
+            meta = dict(manifests[d].get(f.name, {}))
+            out.append({
+                "filename": f.name,
+                "path": str(f.relative_to(ROOT)),
+                "size_mb": round(f.stat().st_size / 1e6, 2),
+                **meta,
+            })
+    return {"ok": True, "models": out}
+
+
+class Egvla2ModelSwitchReq(BaseModel):
+    path: str  # repo-relative .pt 경로
+    ema: float = 0.0
+    dtype: str = "fp32"  # "fp32" | "fp16"
+
+
+@app.post("/verify/egvla2_model_switch")
+def verify_egvla2_model_switch(req: Egvla2ModelSwitchReq):
+    """추론서버(8001)의 /model/switch_family(family=egvla2) 프록시 — discrete 모델을
+    내리고 egvla2(Florence-2+FM)로 전환. 둘 다 GPU에 동시에 못 올라서 discrete
+    쪽으로 되돌아가려면 기존 체크포인트 목록의 "전환" 버튼을 누르면 됨(그쪽
+    /model/load가 egvla2도 같이 내리고 family를 discrete로 되돌림)."""
+    import requests as rq
+    full_path = str((ROOT / req.path).resolve())
+    if not os.path.exists(full_path):
+        return {"ok": False, "error": f"파일 없음: {req.path}"}
+    try:
+        r = rq.post(f"{INFER_URL}/model/switch_family",
+                     json={"family": "egvla2", "egvla2_ckpt": full_path, "egvla2_ema": req.ema, "egvla2_dtype": req.dtype},
+                     # Florence-2 로딩 포함 — discrete 체크포인트 전환(~25s)과 비슷하거나 더 걸릴 수 있음.
+                     headers={"X-API-Key": API_KEY}, timeout=60)
+        r.raise_for_status()
+        result = r.json()
+        log.info(f"[Egvla2ModelSwitch] {req.path} → {result}")
+        return {"ok": True, **result}
+    except Exception as e:
+        log.warning(f"[Egvla2ModelSwitch] 실패: {e}")
         return {"ok": False, "error": str(e)}
 
 
@@ -5642,6 +5749,17 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
               </div>
               <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
               <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
+
+              <!-- EGVLA2(2026-10-20) — discrete(위)와 완전히 다른 아키텍처(Florence-2+FM)라
+                   같은 프로세스 안에서도 GPU에 동시에 못 올림 — 전환에 discrete 체크포인트
+                   전환보다 더 걸릴 수 있음(Florence-2 로딩 포함). discrete로 되돌아가려면
+                   위 체크포인트 목록에서 "전환"을 누르면 됨(같이 자동으로 family도 복귀). -->
+              <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-glow);">
+                <div style="font-size:11px; font-weight:700; color:var(--violet, #8b5cf6); margin-bottom:4px;">🆕 EGVLA2 체크포인트 (연속 액션, Florence-2+FM)
+                  <span id="vfy-egvla2-family-badge" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(139,92,246,0.15); color:var(--violet, #8b5cf6); margin-left:4px;">discrete 활성</span>
+                </div>
+                <div id="vfy-egvla2-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
+              </div>
             </details>
 
             <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개). 이 박스의 "대기 라벨"이
@@ -7028,6 +7146,12 @@ L S R  C S L  R S L
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="card" style="padding:16px;">
               <div class="card-title">📼 에피소드 제어</div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:4px;" title="minum 핸드오프 §16 — 로봇 물리 시작 위치. pos1(기본)은 파일명에 안 붙음, pos2/pos3 선택 시에만 파일명·h5 attrs에 남음">시작 위치 (pos2/pos3 신규수집용)</div>
+              <div id="collect-startpos-row" style="display:flex; gap:6px; margin-bottom:8px;">
+                <button class="btn btn-outline collect-startpos-btn" data-pos="pos1" onclick="_collectSetStartPos('pos1')" style="flex:1; padding:5px; font-size:11px;">pos1</button>
+                <button class="btn btn-outline collect-startpos-btn" data-pos="pos2" onclick="_collectSetStartPos('pos2')" style="flex:1; padding:5px; font-size:11px;">pos2</button>
+                <button class="btn btn-outline collect-startpos-btn" data-pos="pos3" onclick="_collectSetStartPos('pos3')" style="flex:1; padding:5px; font-size:11px;">pos3</button>
+              </div>
               <input type="text" id="collect-episode-name" placeholder="episode_name (비우면 자동 생성)"
                      style="width:100%; padding:6px 8px; background:#090d16; border:1px solid var(--border-glow); border-radius:6px; color:#fff; font-size:12px; margin-bottom:10px;">
               <div style="display:flex; gap:8px;">
@@ -8343,14 +8467,26 @@ L S R  C S L  R S L
       }
     }
 
+    // minum 핸드오프 §16(2026-10-20) — 로봇 물리 시작 위치(pos1 기본/pos2/pos3) 버튼.
+    // 클릭 시 하이라이트만 바꾸고, 실제 기록은 collectStartEpisode()가 읽어서 서버로 보냄.
+    let _collectStartPos = "pos1";
+    function _collectSetStartPos(pos) {
+      _collectStartPos = pos;
+      document.querySelectorAll(".collect-startpos-btn").forEach(b => {
+        b.classList.toggle("btn-cyan", b.dataset.pos === pos);
+        b.classList.toggle("btn-outline", b.dataset.pos !== pos);
+      });
+    }
+
     async function collectStartEpisode() {
       const episode_name = document.getElementById("collect-episode-name").value.trim() || null;
       const scenario = document.getElementById("collect-scenario-select").value || null;
       const pattern = document.getElementById("collect-pattern-select").value || null;
       const cx_position = document.getElementById("collect-cxpos-select").value || null;
       const cx_path = document.getElementById("collect-cxpath-select").value || null;
+      const start_position = _collectStartPos;
       const res = await api("/collect/episode/start", { method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ episode_name, scenario, pattern, cx_position, cx_path }) });
+        body: JSON.stringify({ episode_name, scenario, pattern, cx_position, cx_path, start_position }) });
       const statusEl = document.getElementById("collect-episode-status");
       statusEl.textContent = res.ok ? "▶ 시작됨: " + res.episode_name : "⚠️ " + res.error;
       statusEl.style.color = res.ok ? "var(--rose)" : "var(--amber)";
@@ -8385,6 +8521,7 @@ L S R  C S L  R S L
       surface.addEventListener("blur", () => { if (_collectPressedKey) collectKeyUp({key: _collectPressedKey}); });
       collectStartKeyPolling();
       _collectCxDrawOverlay(null, null);
+      _collectSetStartPos("pos1");
     })();
 
     async function loadWikiContent(name) {
@@ -9261,6 +9398,17 @@ L S R  C S L  R S L
         const gEl = document.getElementById("vfy-grounder-current");
         if (gEl) gEl.textContent = (h.grounder && h.grounder.model) || "—";
 
+        // EGVLA2(2026-10-20) — 활성 패밀리 배지. /health의 active_family는 기존
+        // 필드 다음에 추가된 것뿐이라 discrete일 때는 지금까지와 동작 차이 없음.
+        const fam = h.active_family || "discrete";
+        window._lastHealthActiveFamily = fam;
+        if (fam === "egvla2" && h.egvla2) window._currentEgvla2Ckpt = h.egvla2.ckpt;
+        const famBadge = document.getElementById("vfy-egvla2-family-badge");
+        if (famBadge) {
+          famBadge.textContent = fam === "egvla2" ? `egvla2 활성 (${(h.egvla2 && h.egvla2.ckpt) || "?"})` : "discrete 활성";
+          famBadge.style.background = fam === "egvla2" ? "rgba(139,92,246,0.3)" : "rgba(139,92,246,0.15)";
+        }
+
         // 🧬 Stage1(image_proj) 현재 값 표시 + 버튼 활성 표시 (2026-08-07)
         const s1 = (h.stage1_path || "").split("/").pop();
         window._currentStage1Path = h.stage1_path || "";
@@ -9312,6 +9460,7 @@ L S R  C S L  R S L
       } catch (e) {
         if (listEl && !listEl.dataset.loaded) listEl.innerHTML = "⚠️ 목록 조회 실패: " + _friendlyApiError(e);
       }
+      refreshEgvla2ModelList();  // EGVLA2(2026-10-20) — discrete 목록과 항상 같이 갱신
     }
 
     // 전환 버튼 전부를 잠깐 비활성화 — 응답 오는 동안 연타로 중복 전환 요청이
@@ -9319,6 +9468,8 @@ L S R  C S L  R S L
     function _setModelPanelBusy(busy) {
       const listEl = document.getElementById("vfy-model-list");
       if (listEl) listEl.querySelectorAll("button").forEach(b => b.disabled = busy);
+      const egvla2ListEl = document.getElementById("vfy-egvla2-model-list");  // EGVLA2(2026-10-20)
+      if (egvla2ListEl) egvla2ListEl.querySelectorAll("button").forEach(b => b.disabled = busy);
       ["vfy-grounder-pg2", "vfy-grounder-owlv2", "vfy-stage1-v2", "vfy-stage1-v3"].forEach(id => {
         const b = document.getElementById(id);
         if (b) b.disabled = busy;
@@ -9350,6 +9501,61 @@ L S R  C S L  R S L
       if (sinceEl) sinceEl.value = "";
       if (untilEl) untilEl.value = "";
       if (window._lastVfyRows) renderScreenPanel(window._lastVfyRows);
+    }
+
+    // EGVLA2(2026-10-20) — discrete 패널과 독립된 목록/전환. refreshModelList()가
+    // 호출되는 곳마다 같이 불러서 두 목록이 항상 같이 갱신되게 함(아래 호출부 참조).
+    async function refreshEgvla2ModelList() {
+      const listEl = document.getElementById("vfy-egvla2-model-list");
+      if (!listEl) return;
+      const active = (window._lastHealthActiveFamily === "egvla2") ? (window._currentEgvla2Ckpt || "") : "";
+      try {
+        const res = await api("/verify/egvla2_model_list");
+        if (!res.ok) return;
+        listEl.innerHTML = (res.models || []).map(m => {
+          const isCur = m.filename === active;
+          const bits = [];
+          if (m.arch) bits.push(`arch=${m.arch}`);
+          if (m.epochs) bits.push(`epochs=${m.epochs}`);
+          if (m.subgoal_dropout != null) bits.push(`drop=${m.subgoal_dropout}`);
+          if (m.n_episodes) bits.push(`n=${m.n_episodes}ep`);
+          if (m.seed != null) bits.push(`seed=${m.seed}`);
+          bits.push(`${m.size_mb}MB`);
+          const info = bits.join(" · ");
+          return `<div style="display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:center; padding:4px 6px; border-radius:6px; background:${isCur ? "rgba(139,92,246,0.12)" : "#090d16"}; border:1px solid ${isCur ? "var(--violet, #8b5cf6)" : "var(--border-glow)"};">
+            <button class="btn ${isCur ? "btn-cyan" : "btn-outline"}" style="font-size:10px; padding:4px 8px; white-space:nowrap;" ${isCur ? "disabled" : ""} onclick="switchEgvla2Model('${m.path}', '${m.filename}')">${isCur ? "✓ 로드됨" : "전환"}</button>
+            <div style="font-size:9px; color:var(--text-muted); line-height:1.4;">
+              <span style="color:#fff; font-weight:600;">${m.filename}</span><div>${info}</div>
+            </div>
+          </div>`;
+        }).join("");
+      } catch (e) {
+        listEl.innerHTML = "⚠️ 목록 조회 실패: " + _friendlyApiError(e);
+      }
+    }
+
+    async function switchEgvla2Model(path, filename) {
+      const statusEl = document.getElementById("vfy-model-status");
+      if (statusEl) statusEl.textContent = `🔄 egvla2(${filename})로 전환 중... (Florence-2 로딩 포함 수 초~수십 초)`;
+      _setModelPanelBusy(true);
+      try {
+        const res = await api("/verify/egvla2_model_switch", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path }),
+        });
+        if (res.ok) {
+          window._lastHealthActiveFamily = "egvla2";
+          window._currentEgvla2Ckpt = filename;
+          if (statusEl) statusEl.textContent = `✅ egvla2 전환 완료: ${filename}`;
+        } else {
+          if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "⚠️ " + _friendlyApiError(e);
+      }
+      _setModelPanelBusy(false);
+      refreshModelList();
+      refreshEgvla2ModelList();
     }
 
     async function switchModel(path, filename, requiredStage1) {
