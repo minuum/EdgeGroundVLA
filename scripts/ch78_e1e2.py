@@ -51,6 +51,19 @@ def metrics(eps):
     return out
 
 
+def obs(M, st):
+    """수치에서 바로 읽히는 관찰(자동)."""
+    v3, v6 = M.get("v3"), M.get("v6")
+    if not (v3 and v6):
+        return ""
+    return (f'{st("관찰", G)}<ul style="margin:6px 0 6px 18px;font-size:0.8rem">'
+            f'<li><b>자기 데이터에서</b>: EGVLA2(v3) 8-class 일치 {v3["e2"]["agree"]:.0f}%·방향 중앙값 {v3["e2"]["ang_med"]:.1f}°, EGVLA1(V6) 일치 {v6["e1"]["agree"]:.0f}%·방향 중앙값 {v6["e1"]["ang_med"]:.1f}°(이산이라 맞으면 0°).</li>'
+            f'<li><b>교차 데이터에서</b>: EGVLA1은 v3에서 크게 흔들린다(일치 {v3["e1"]["agree"]:.0f}%, 방향 평균 {v3["e1"]["ang"]:.0f}°). EGVLA2는 V6에서 중간 수준(일치 {v6["e2"]["agree"]:.0f}%, 방향 평균 {v6["e2"]["ang"]:.0f}°) — 두 모델 모두 다른 수집 조건에 약하지만 EGVLA2 쪽이 덜 무너진다.</li>'
+            f'<li><b>EGVLA1은 자기 데이터에서도 프레임 일치가 {v6["e1"]["agree"]:.0f}%인데 실기는 92%다.</b> 프레임 단위 일치는 성공률을 예측하지 못한다는 레포의 반복 결론과 같은 방향이다(매 프레임 다시 보고 고치는 폐루프가 오차를 흡수). 기록된 val_acc 74.1%와의 차이는 채점 방식(오프라인 OWL 주석 bbox·stride 채점 vs 이번 온라인 그라운딩·JPEG q80·재사용 3)에서 온다.</li>'
+            f'<li><b>정지</b>: GO/STOP F1이 EGVLA1 {v3["e1"]["go"]:.2f}/{v6["e1"]["go"]:.2f}, EGVLA2 {v3["e2"]["go"]:.2f}/{v6["e2"]["go"]:.2f}. EGVLA1의 정지는 실기에서 근접 규칙(래치)이 맡는데 이 에피소드들에서는 래치가 걸리지 않았다(0%).</li>'
+            f'<li><b>그라운딩</b>: OWLv2 검출 프레임 {v3["e1"]["has"]:.0f}%(v3)·{v6["e1"]["has"]:.0f}%(V6) vs Florence-2 100%. EGVLA1 프레임당 약 {M["v3"]["e1_ms"]:.0f}ms(이 서버 fp32, 그라운딩 재사용 {M["v3"]["e1_cached"]:.0f}% 포함).</li></ul>')
+
+
 def block(tbl, H, st):
     f = FM / "egvla1_vs_egvla2.json"
     if not f.exists():
@@ -102,7 +115,7 @@ def block(tbl, H, st):
     return (H("⑥-14 EGVLA1 vs EGVLA2 — 같은 프레임에서 두 모델이 낸 액션 비교와 방향 오차 이외의 판단 기준")
             + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">두 데이터셋(각 모델이 학습에 안 쓴 에피소드, 목표 위치별 2개씩 10개)의 같은 프레임에서 <b>사람(초록)·EGVLA1(빨강)·EGVLA2(노랑)</b>가 낸 액션을 비교했다. '
               'EGVLA1은 운영 서버 클래스를 그대로 실행(OWL 임계값 0.20, 그라운딩 재사용 3, JPEG q80), EGVLA2는 서빙 정책(K=8, EMA 0.5, az=0). 사진 아래 화살표: 왼쪽부터 사람·EGVLA1·EGVLA2(위=전진, 왼쪽=좌, 원=정지, 호=회전).</div>'
-            + Z.LEG + mt + ref
+            + Z.LEG + mt + ref + obs(M, st)
             + f'{st("주의", R)} 각 모델은 상대 데이터셋을 본 적이 없다(v3에서 EGVLA1, V6에서 EGVLA2는 교차 데이터셋). EGVLA2는 회전을 내지 않으므로(az=0) 사람이 회전한 프레임은 8-class 일치에서 불리하다. V6는 프레임 시각이 없어 0.2초 간격으로 적분했다. EGVLA1의 실기 92%에는 이 오프라인 실행에 없는 프리뷰 재시도 등이 일부 포함된다.'
             + H("방향 오차 외에 무엇으로 판단하나") + crit
             + H("실제 프레임에서 두 모델의 출력 (에피소드별)") + vis)

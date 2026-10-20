@@ -84,18 +84,22 @@ def main():
     v6_val = json.load(open("/tmp/egvla1_v6_val.json")); v6_sel = pick(sorted(v6_val))
     import robovlm_nav.serve.stage2_v2_inference_server as SRV
     e1 = SRV.get_model()
-    res = {"v3": [], "v6": []}
+    OUTJ = ROOT / "docs/v5/egvla2_fm/egvla1_vs_egvla2.json"
+    res = json.loads(OUTJ.read_text()) if OUTJ.exists() else {"v3": [], "v6": []}   # 에피소드마다 저장, 재시작 시 이어서
     for ds, sel in (("v3", v3_sel), ("v6", v6_sel)):
         for name in sel:
             fn = (DATA3 / name) if ds == "v3" else (DATA6 / (name + ".h5"))
             key = fn.name if ds == "v3" else name
+            ckey = key if ds == "v3" else str(fn)   # V6 캐시 키는 전체 경로
+            if any(e["name"] == key for e in res[ds]):
+                continue
             with h5py.File(fn, "r") as h:
                 imgs = h["images"]; n = len(imgs)
                 hum = np.array(h["actions_exec"] if ds == "v3" else h["actions"], float)
                 hcls = np.array(h["action_classes"]) if ds == "v3" else np.array([cls_of(a) for a in hum])
                 ts = np.array(h["frame_timestamps"], float) if "frame_timestamps" in h else np.arange(n) * 0.2
                 c = cache3 if ds == "v3" else cache6; pol = pol3 if ds == "v3" else pol6; pol.reset(); e1.reset()
-                bbs = c[f"{key}|bbox"]; fts = c[f"{key}|feat"].astype(np.float32)
+                bbs = c[f"{ckey}|bbox"]; fts = c[f"{ckey}|feat"].astype(np.float32)
                 rows = []
                 for t in range(n):
                     rgb = np.ascontiguousarray(imgs[t][:, :, ::-1]); buf = io.BytesIO(); Image.fromarray(rgb).save(buf, "JPEG", quality=80)
@@ -113,7 +117,7 @@ def main():
                     arrow(dr, rr["human"], (74, 222, 128), 100, 150); arrow(dr, rr["e1"], (248, 113, 113), 160, 150); arrow(dr, rr["e2"], (251, 191, 36), 220, 150)
                     im.save(OUTD / f"{ds}_{key.replace('.h5', '')}_{k}.jpg", quality=78)
             res[ds].append(dict(name=key, n=n, frames=rows, thumbs=fr.tolist()))
-            print(ds, key, n, flush=True)
+            OUTJ.write_text(json.dumps(res, ensure_ascii=False)); print(ds, key, n, flush=True)
     (ROOT / "docs/v5/egvla2_fm/egvla1_vs_egvla2.json").write_text(json.dumps(res, ensure_ascii=False))
     print("saved")
 
