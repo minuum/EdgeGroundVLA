@@ -74,12 +74,13 @@ LEG = ('<div style="font-size:0.72rem;color:#94a3b8;margin:4px 0"><span style="b
 def bars(rows, maxv, unit="", ref=None, w=130):
     """rows: [(라벨, 값, 색)], ref: (라벨, 값) 기준선. 가로 막대 + 기준선."""
     o = ""
-    for lab, v, col in rows:
+    for lab, v, col, *txt in rows:
+        shown = txt[0] if txt else f"{v:.3g}{unit}"
         pct = min(100, v / maxv * 100)
         o += (f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:0.76rem"><div style="width:{w}px;color:#cbd5e1;font-weight:700">{lab}</div>'
               f'<div style="flex:1;position:relative;background:#0a1220;border-radius:4px;height:16px"><div style="width:{pct:.1f}%;background:{col};height:16px;border-radius:4px"></div>'
               + (f'<div style="position:absolute;left:{min(100, ref[1] / maxv * 100):.1f}%;top:-2px;height:20px;border-left:2px dashed #fcd34d"></div>' if ref else "")
-              + f'</div><div style="width:70px;color:#e2e8f0;text-align:right">{v:.3g}{unit}</div></div>')
+              + f'</div><div style="width:70px;color:#e2e8f0;text-align:right">{shown}</div></div>')
     if ref:
         o += f'<div style="font-size:0.7rem;color:#fcd34d;margin-left:{w + 8}px">┆ {ref[0]} {ref[1]:.3g}{unit}</div>'
     return o
