@@ -24,15 +24,15 @@ def deliverables():
         + f'{st("한계", R)} 실기 성공률·시작 위치 일반화는 아직 측정되지 않았다. 서버 단계 B의 정지·소실 규칙은 드라이런 로그 확정 전 기본값이다.')
 
 
-TABS78 = [("t1", "🧭 로드맵", [("html", "ROADMAP")]), ("t2", "🤖 EGVLA1 vs 2", ["⑥-2", "⑥-7"]), ("t3", "🔧 서빙·실기 준비", ["⑥", "⑥-10", "⑧"]),
+TABS78 = [("t1", "🧭 로드맵", [("html", "ROADMAP"), ("html", "MASTER")]), ("t2", "🤖 EGVLA1 vs 2", ["⑥-2", ("html", "E1E2"), "⑥-7"]), ("t3", "🔧 서빙·실기 준비", ["⑥", "⑥-10", "⑧"]),
           ("t4", "🧰 산출물·핸드오프", [("html", "DELIV")])]
 
 
 def main():
     s = HTML.read_text(encoding="utf-8")
     head, parts = G77.body()
-    import ch78_roadmap
-    raw = {"ROADMAP": ch78_roadmap.block(tbl, H, st), "DELIV": deliverables()}
+    import ch78_roadmap, ch78_e1e2, ch78_master
+    raw = {"ROADMAP": ch78_roadmap.block(tbl, H, st), "DELIV": deliverables(), "E1E2": ch78_e1e2.block(tbl, H, st), "MASTER": ch78_master.block(tbl, H, st)}
     tabs = [(t, lab, [("html", raw[it[1]]) if isinstance(it, tuple) else it for it in items]) for t, lab, items in TABS78]
     inner = CC.tabs_html("ch78", tabs, "", parts)
     blk = CC.chapter_block(78, "#fb923c", "#fdba74", "EGVLA2 실기 전 단계 — 로드맵·서빙·젯슨 점검·시작 위치 재생",
