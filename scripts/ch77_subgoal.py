@@ -41,12 +41,12 @@ def block(tbl, H, st):
         for v, lab, c in VR:
             rows.append((colored(lab, c), [[ag(f"{h}|{v}", fo) for h, _ in HB], [ag(f"{h}|{v}", lo) for h, _ in HB],
                                         [("—" if v == "nobbox" else ag(f"{h}|{v}", lo, "missing")) for h, _ in HB]], "low"))
-        out += (H("서브골 ablation — 10분할 (5-fold 5 + 목표 위치별 LOPO 5, seed 0)")
+        out += (H("서브골 ablation — 30분할 (5-fold 5 + 목표 위치별 LOPO 5, seed 3개 평균)")
                 + '<div style="font-size:0.8rem;margin:4px 0">방향 오차(°). 초록=그 열에서 가장 낮은 변형, 빨강=가장 높은 변형(열 단위 비교). 같은 열끼리만 비교한다.</div>'
                 + Z.LEG
                 + Z.heat_table([("같은 목표 위치 (5-fold)", ["B2", "C"], hc), ("안 본 목표 위치 (LOPO)", ["B2", "C"], hc), ("서브골 결측 입력 (LOPO)", ["B2", "C"], hc)], rows, fmt="{:.1f}°", corner="변형", by="col",
                                 note="서브골 결측 = 평가 때 bbox 입력을 전부 0으로. 서브골 없음은 학습·평가 모두 0이라 해당 없음(—).")
-                + '<div style="font-size:0.78rem;color:#94a3b8">핵심: ① 서브골을 빼도 같은 목표 위치에서는 거의 같다 ② 서브골로 학습한 B2는 결측에 크게 취약(25.9°) ③ 드롭아웃30%로 학습한 C는 결측에서도 거의 손실이 없다(16.2°).</div>')
+                + '<div style="font-size:0.78rem;color:#94a3b8">핵심(3 seed): ① 서브골을 빼도 같은 목표 위치에서 B2는 +0.4°(15쌍 모두 악화), C는 +0.1°로 효과가 작고, 안 본 목표 위치에서는 B2가 오히려 0.8° 낫다(7/15쌍 악화 = 잡음 수준) ② 서브골로 학습한 B2는 결측에 크게 취약(5-fold 17.8°, 안 본 위치 24.7°) ③ 드롭아웃30%로 학습한 C는 <b>정상 입력에서 손실 없이(−0.2°, −0.4°) 결측에서도 거의 같다</b>(10.1°, 16.8°).</div>')
     if ff.exists():
         f2 = json.load(open(ff)); fg = [x["generator"] for x in f2.values()]
         ga = lambda key, sel: np.mean([x[key]["normal"]["angle_deg"] for k, x in f2.items() if sel(k)])

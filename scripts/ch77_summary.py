@@ -93,7 +93,7 @@ def block(tbl, H, st):
             + H("C. 학습량 대조 — 데이터가 늘면 얼마나 좋아지나") + growth
             + H("D. 헤드 대조 — MLP 회귀 / A / B2 / C") + Z.LEG + heads
             + H("E. 서브골 대조 — 있음/없음/창/드롭아웃") + Z.LEG + sgt
-            + '<div style="font-size:0.78rem;color:#94a3b8">방향 오차 평균(5분할). 서브골 결측은 입력을 전부 0으로 한 스트레스 테스트. seed 0 하나.</div>'
+            + '<div style="font-size:0.78rem;color:#94a3b8">방향 오차 평균(5분할). 서브골 결측은 입력을 전부 0으로 한 스트레스 테스트. seed 3개 평균.</div>'
             + H("F. 평가 범위 대조 — 어디까지 측정됐나") + scope
             + H("G. 주장 가능 / 불가 대조") + claim
             + H("H. 평가 방식 대조 — 일반 논문 vs 우리") + ind)
