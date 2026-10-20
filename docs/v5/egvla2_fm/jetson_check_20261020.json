@@ -1,0 +1,8 @@
+{
+ "source": "로봇/젯슨 세션 회신(2026-10-20, 사용자 전달 텍스트). 일부 수치는 전달 과정에서 잘려 있음 — 표기된 값만 기록",
+ "git": "f2097fc0 클린 워킹트리, 로컬 수정 없음",
+ "sha256": "C_pi0_adaln_drop30_e120.pt, C_pi0_adaln_e120.pt 모두 MANIFEST와 일치",
+ "check_A_server_path": {"pass": true, "bbox_maxdiff": 0.0005, "server_vs_local_deg": 3.01, "local_sampling_noise_deg": 2.66, "threshold_deg": 4.49},
+ "check_B_latency_ms": {"frames": 100, "round_trip_mean": 892, "round_trip_p95": 898, "grounding_florence2_mean": 820.8, "grounding_florence2_p95": 826.6, "grounding_share": 0.94, "fm_sampling_and_other_mean": 54, "note": "Florence-2 구간이 minum 벤치(817ms)와 일치. 서버 보고 latency 값은 전달 중 잘림"},
+ "check_C_dryrun": "미수행(조이스틱 조작이 필요한 방식이라). 대체안: 수집된 에피소드를 서버에 재생(scripts/replay_episodes_through_server.py)"
+}

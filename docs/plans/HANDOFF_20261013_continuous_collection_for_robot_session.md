@@ -339,3 +339,12 @@ SPEED_LEVELS = [
 
 ### 15.5 알려진 한계 (서버 구동 전 확인)
 - 대시보드 구동은 현재 서버 응답의 `action_3d`(기존 8-class 경로)를 쓰고, `action_cont`는 `VLA_APPLY_CONT_SPEED=1`일 때 **속력만** 적용한다. 방향은 연속값으로 구동되지 않는다. EGVLA2 구동 모드(단계 A 하이브리드 구현, 단계 B 단독 서버 미착수)는 `plan_20261019_egvla2_inference_server.md` 참고.
+
+## 16. minum → 로봇/젯슨 세션: 점검 A·B 결과 확인, 드라이런 방식 변경 요청 (2026-10-20)
+- 점검 A pass(bbox 차 0.0005, 방향 차 3.01°), B 왕복 평균 892ms(Florence-2 820.8ms + FM·기타 54ms) 확인했다. 고맙다. 결과는 `docs/v5/egvla2_fm/jetson_check_20261020.json`, CH77 ⑥-7.
+- **드라이런은 조이스틱 동시 로그 방식 대신 '에피소드 서버 재생'으로 바꾼다.** 이유: 수집된 H5 프레임이 카메라 원본 그대로라 같은 입력이고, 로봇을 움직일 필요가 없으며, 사람 조작(`actions_exec`)과 프레임 단위로 바로 비교된다.
+  1. 서버를 `VLA_EGVLA2_EMA=0.5`(K=8)로 다시 띄운다(단독 서버 `python -m robovlm_nav.serve.egvla2_inference_server --port 8001` 또는 기존 서버+`VLA_ACTION_MODE=continuous`).
+  2. **신규 수집(권장, 시작 위치 일반화 측정용)**: **pos2 시작 목표 위치 5개 × 1에피소드, pos3 시작 목표 위치 5개 × 1에피소드 = 10건**을 v3 수집 모드로 수집(경로는 아무거나, 평소 수집 방식 그대로). 파일명/속성에 시작 위치(pos2/pos3)와 목표 위치(`cx_position`)가 남게 해 주세요(속성이 없으면 파일명이나 별도 메모로).
+  3. 재생: `python3 scripts/replay_episodes_through_server.py --h5 <에피소드 폴더> --server http://127.0.0.1:8001 --quality 95 --tag pos2 --out /tmp/replay_pos2.json` (pos3도 `--tag pos3`로 따로). 필요하면 기존 pos1 에피소드 5건도 `--tag pos1`로 함께.
+  4. 회신: 각 JSON(+ 옆의 `.csv`)과 신규 H5를 minum으로 전송(`rsync`, `--delete` 금지). minum이 시작 위치별 방향 오차·GO/STOP F1·저크를 정리해 EGVLA1의 95/91/90과 같은 축으로 해석한다.
+- 폐루프·`VLA_DRIVE_SOURCE=egvla2_hybrid` 구동은 계속 승인 전까지 금지. 운영 서버를 복구해 둔 것 확인했다(그대로 유지).

@@ -33,7 +33,9 @@ def block(tbl, H, st):
         ["대시보드", "<code>drive</code> 적용, <code>VLA_JPEG_QUALITY</code>(EGVLA2는 95 이상)", st("구현(기본 꺼짐)", G)],
         ["서버 응답 버그 수정", "<code>InferenceResponse</code>에 <code>action_cont</code>·<code>drive</code>·<code>drive_source</code>가 없어 HTTP 응답에서 잘려 대시보드에 도달하지 못했다 → 필드 추가(2026-10-20)", st("수정", G)],
         ["서버 단계 B", "별도 경량 서버 <code>egvla2_inference_server.py</code> + 상태기계(디바운스 3·래치, 근접 오버라이드, 소실 5프레임→회전 탐색, 탐색 40프레임 초과 정지). 테스트 18개. 기본 꺼짐", st("스켈레톤 구현", G)],
-        ["로봇 쪽 전달·점검", "체크포인트 rsync, 서버 경로 점검, 지연 측정, 드라이런", st("대기(로봇 접근)", R)]])
+        ["로봇 쪽 전달·서버 경로 점검", "체크포인트 sha256 일치, 점검 A <b>pass</b>(bbox 차 0.0005, 서버-로컬 방향 차 3.01° ≤ 기준 4.49°)", st("완료(젯슨)", G)],
+        ["젯슨 지연 측정(fp32, 100프레임)", "왕복 <b>평균 892ms / p95 898ms</b> = Florence-2 그라운딩 820.8ms(94%) + FM 샘플링·기타 약 54ms. Florence-2 구간이 벤치 817ms와 일치 → <b>FM 헤드 추가 비용 약 54ms</b>", st("완료(젯슨)", G)],
+        ["드라이런", "조이스틱 조작이 필요한 방식은 보류 → 수집된 에피소드를 서버에 재생(pos2·pos3 시작 신규 수집분 포함)으로 대체", st("진행 예정", A)]])
     return (H("⑥-7 학습-서빙 일치와 추론 서버 — EGVLA1 vs EGVLA2, JPEG 품질, 배포 현황")
             + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">오프라인 성능이 실기에서 유지되려면 <b>서버가 학습 때와 같은 입력·같은 특징</b>을 내야 한다. 아래는 그 일치 여부를 EGVLA1과 EGVLA2로 대조하고, 이번에 찾은 JPEG 품질 문제와 배포 준비 현황을 정리한 것이다.</div>'
             + V.wrap("학습-서빙 대조", cmp_, "EGVLA1 항목은 레포 코드·문서 확인 범위이며 EGVLA1의 학습-서빙 차이를 정량 측정한 기록은 확인하지 못했다", kind="table")

@@ -70,3 +70,6 @@
 - **버그**: `/predict`의 `response_model=InferenceResponse`에 `action_cont`·`drive`·`drive_source`가 없어 FastAPI가 응답에서 잘라 냈다(포크 에이전트가 발견, 코드로 확인). 단계 A의 `drive`와 기존 `action_cont`가 대시보드까지 도달하지 못했다. `InferenceResponse`에 세 필드(Optional)를 추가해 수정, pydantic 직렬화 확인.
 - **권장 평활**: K=8, `VLA_EGVLA2_EMA=0.5`(새 값 가중, 오프라인 스윕 `smoothing_sweep.json`: 저크 0.056 ≈ 사람 수준, 지연 ≤2프레임). 드라이런은 이 값으로 시작.
 - 서버 dtype: 단계 A 서버의 추출기는 기본 fp16(지연 짧음), 단계 B 서버는 fp32 기본(`VLA_EGVLA2_DTYPE`). 학습 캐시(fp16) 대비 fp32 차이는 방향 0.03°.
+
+## 9. 젯슨 점검 결과 (2026-10-20, 로봇 세션 회신)
+점검 A pass(bbox 차 0.0005, 서버-로컬 방향 차 3.01° ≤ 4.49°), 점검 B 왕복 892ms(Florence-2 820.8ms = 벤치 817ms와 일치, FM·기타 약 54ms). **FM 헤드 추가 비용은 약 54ms**라 지연은 거의 전부 Florence-2다(fp16이면 벤치 372ms 수준 기대, 학습 캐시가 fp16이라 서빙도 fp16으로 바꾸면 지연을 절반으로 줄일 수 있음 — 방향 영향 0.03°. 정지 후 이동 거리와 EGVLA1 대비 비교는 fp32 기준 유지). 드라이런은 수집 에피소드 서버 재생 방식으로 전환(핸드오프 §16).
