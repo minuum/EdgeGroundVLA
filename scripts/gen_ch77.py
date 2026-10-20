@@ -110,6 +110,7 @@ def body():
         + __import__("ch77_ceiling").block(tbl, H, st)
         + __import__("ch77_anatomy").block(tbl, H, st)
         + __import__("ch77_latmodes").block(tbl, H, st)
+        + __import__("ch77_flip").block(tbl, H, st)
         + __import__("ch77_fm_extras").block(tbl, H, st)
         + __import__("ch77_smoothing").block(tbl, H, st)
         + __import__("ch77_replay").block(tbl, H, st)
@@ -143,7 +144,7 @@ def update_vis(s):
 
 TABS77 = [("t1", "📌 개요·결과", [("html", "OVERVIEW")]), ("t2", "📖 용어·대조표", ["⓪"]), ("t3", "🔀 이산 vs 연속·궤적", ["⑤", "⑥-4"]),
           ("t4", "🧠 헤드·FM 평가", ["②", "⑥-8", "⑥-3", "⑥-9"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🧬 실험군 구조", [("html", "ARCH")]), ("t7", "🔬 학습 대조 해설", [("html", "CONTRAST")]),
-          ("t8", "🔍 방향 오차 해부", ["⑥-11", "⑥-13"]), ("t9", "🧰 산출물(학습)", ["⑦"])]
+          ("t8", "🔍 방향 오차 해부", ["⑥-11", "⑥-13", "⑥-15"]), ("t9", "🧰 산출물(학습)", ["⑦"])]
 
 
 def main():
