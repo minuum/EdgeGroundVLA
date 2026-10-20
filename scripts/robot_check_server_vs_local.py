@@ -61,6 +61,8 @@ for name, i, rgb in frames():
     r.raise_for_status(); j = r.json(); ac = j.get("action_cont") or {}
     sb = ac.get("bbox_f2") or [j["bbox"]["cx"], j["bbox"]["cy"], j["bbox"]["area"], float(j["bbox"]["has_bbox"])]
     sf = ac.get("chunk_first") or j.get("chunk_first")
+    if not sf and ac and not ac.get("error") and ac.get("model_magnitude") is not None and not ac.get("stop"):   # chunk_first가 응답에서 잘리는 서버 → 방향×크기로 대체
+        sf = [ac["dir_lx"] * ac["model_magnitude"], ac["dir_ly"] * ac["model_magnitude"], 0.0]
     rows.append(dict(file=name, frame=i, bbox_maxdiff=float(np.abs(np.array(sb) - bbox).max()), noise_deg=ang(la[0], lb[0]), diff_deg=ang(la[0], sf) if sf else None,
                      server_ms=ms, server_latency_ms=j.get("latency_ms"), subgoal_missing=j.get("subgoal_missing")))
     print(rows[-1], flush=True)

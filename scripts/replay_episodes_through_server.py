@@ -27,6 +27,21 @@ hdr = {"X-API-Key": A.api_key} if A.api_key else {}
 p = Path(A.h5); files = [p] if p.is_file() else sorted(p.glob("*.h5"))
 GO = 0.2
 ang = lambda a, b: float(np.degrees(np.arccos(np.clip(a @ b / (np.linalg.norm(a) * np.linalg.norm(b)), -1, 1))))
+def first_step(j):
+    """서버 응답에서 첫 스텝 (lx,ly)를 꺼낸다. chunk_first가 없는 서버(응답 모델에서 필드가 잘리는 경우)는 action_cont의 방향×크기로 대체한다.
+    정지(stop)면 방향 정보가 없어 (0,0)(크기<0.2 → 정지로 집계). 둘 다 없으면 'missing'."""
+    ac = j.get("action_cont") or {}
+    cf = ac.get("chunk_first") or j.get("chunk_first")
+    if cf:
+        return np.array(cf[:2], float), "chunk_first"
+    if ac and not ac.get("error") and ac.get("model_magnitude") is not None:
+        m = float(ac["model_magnitude"])
+        if ac.get("stop"):
+            return np.zeros(2), "action_cont_stop"
+        return np.array([ac.get("dir_lx", 0.0) * m, ac.get("dir_ly", 0.0) * m]), "action_cont"
+    return np.zeros(2), "missing"
+
+
 rows, per_ep = [], []
 for f in files:
     with h5py.File(f, "r") as h:
@@ -40,10 +55,9 @@ for f in files:
             buf = io.BytesIO(); Image.fromarray(np.ascontiguousarray(im[i][:, :, ::-1])).save(buf, "JPEG", quality=A.quality)
             t0 = time.time(); r = requests.post(A.server + "/predict", json={"image": base64.b64encode(buf.getvalue()).decode(), "instruction": "basket"}, headers=hdr, timeout=60); ms = (time.time() - t0) * 1000
             r.raise_for_status(); j = r.json(); ac = j.get("action_cont") or {}
-            cf = ac.get("chunk_first") or j.get("chunk_first") or [0, 0, 0]
-            v = np.array(cf[:2], float)
+            v, src = first_step(j)
             d = dict(file=f.name, tag=A.tag, pos=pos, path=path, frame=i, server_ms=ms, pred_lx=float(v[0]), pred_ly=float(v[1]), drive=json.dumps(j.get("drive")), state=j.get("controller_state"),
-                     subgoal_missing=j.get("subgoal_missing"), human_lx=float(ex[i][0]) if ex is not None else None, human_ly=float(ex[i][1]) if ex is not None else None,
+                     pred_src=src, subgoal_missing=j.get("subgoal_missing"), human_lx=float(ex[i][0]) if ex is not None else None, human_ly=float(ex[i][1]) if ex is not None else None,
                      jitter=float(np.linalg.norm(v - prev)) if prev is not None else None)
             prev = v; ep_rows.append(d)
         rows += ep_rows
@@ -57,7 +71,9 @@ for f in files:
 ok = [e["angle_deg"] for e in per_ep if e["angle_deg"] is not None]
 summ = dict(tag=A.tag, episodes=len(per_ep), angle_deg_mean=float(np.mean(ok)) if ok else None, go_f1_mean=float(np.mean([e["go_f1"] for e in per_ep])) if per_ep else None,
             jitter_mean=float(np.mean([r["jitter"] for r in rows if r["jitter"] is not None])) if rows else None, server_ms_mean=float(np.mean([r["server_ms"] for r in rows])) if rows else None,
-            subgoal_missing_frames=int(sum(1 for r in rows if r["subgoal_missing"])), frames=len(rows), quality=A.quality)
+            pred_src_counts={k: int(sum(1 for r in rows if r['pred_src'] == k)) for k in sorted({r['pred_src'] for r in rows})}, subgoal_missing_frames=int(sum(1 for r in rows if r["subgoal_missing"])), frames=len(rows), quality=A.quality)
+if summ.get('pred_src_counts', {}).get('missing'):
+    print('WARNING: 응답에서 방향을 못 읽은 프레임이 있습니다(pred_src=missing). 서버 InferenceResponse에 chunk_first/action_cont 필드가 있는지 확인하세요.')
 print(json.dumps(summ, indent=1, ensure_ascii=False))
 Path(A.out).write_text(json.dumps(dict(summary=summ, episodes=per_ep), indent=1, ensure_ascii=False))
 with open(Path(A.out).with_suffix(".csv"), "w", newline="") as fh:
