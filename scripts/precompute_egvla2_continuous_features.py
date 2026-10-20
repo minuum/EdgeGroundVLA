@@ -24,7 +24,10 @@ from precompute_v6_florence2_fused import MODEL, TASK, PHRASE, BATCH, DEV, run_b
 
 DATA = ROOT / "ROS_action" / "mobile_vla_dataset_egvla2"
 OUT_DIR = ROOT / "docs" / "v5" / "egvla2_fm"
-OUT = OUT_DIR / "v3_florence2_cache.npz"
+import json as _json
+import os as _os
+FLIP = _os.environ.get("FLIP") == "1"          # 좌우 반전 증강용 캐시(이미지 수평 반전). 라벨 반전(ly·az 부호, 위치·경로 좌우)은 학습 쪽에서 처리
+OUT = OUT_DIR / ("v3_florence2_cache_flip.npz" if FLIP else "v3_florence2_cache.npz")
 
 
 def main():
@@ -35,7 +38,10 @@ def main():
         with h5py.File(p, "r") as f:
             if f.attrs.get("action_space") == "egvla2_continuous_v3":
                 files.append(p)
-    print(f"v3 파일 {len(files)}개", flush=True)
+    if FLIP:   # 반전 캐시는 본학습 세트(300건)만
+        keep = {d["name"] for d in _json.load(open(OUT_DIR / "meta/egvla2_v3_main.json"))["files"]}
+        files = [p for p in files if p.name in keep]
+    print(f"v3 파일 {len(files)}개 (FLIP={FLIP})", flush=True)
     model = AutoModelForCausalLM.from_pretrained(MODEL, trust_remote_code=True, torch_dtype=torch.float16).to(DEV).eval()
     proc = AutoProcessor.from_pretrained(MODEL, trust_remote_code=True)
     cache, t0 = (dict(np.load(OUT)) if OUT.exists() else {}), time.time()
@@ -45,6 +51,8 @@ def main():
         with h5py.File(p, "r") as f:
             imgs = f["images"][:]
         pils = [Image.fromarray(np.ascontiguousarray(im[:, :, ::-1]).astype(np.uint8)).convert("RGB") for im in imgs]
+        if FLIP:
+            pils = [im.transpose(Image.FLIP_LEFT_RIGHT) for im in pils]
         bb, ft = [], []
         for s in range(0, len(pils), BATCH):
             b, x = run_batch(model, proc, pils[s:s + BATCH])
