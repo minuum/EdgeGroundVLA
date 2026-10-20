@@ -1,0 +1,29 @@
+{
+ "win": 0.04,
+ "results": {
+  "같은 셀(목표 위치+경로)": {
+   "pairwise_mean": 12.808498655274013,
+   "pairwise_median": 11.187905051378147,
+   "consensus_mean": 9.833552134977626,
+   "consensus_median": 5.565882735607645,
+   "consensus_p90": 27.113692638223114,
+   "n": 25385
+  },
+  "같은 목표 위치(경로 무관)": {
+   "pairwise_mean": 39.42091077948447,
+   "pairwise_median": 40.34954114064679,
+   "consensus_mean": 29.070713379496908,
+   "consensus_median": 29.77917337478833,
+   "consensus_p90": 59.65462721975002,
+   "n": 25386
+  },
+  "전체": {
+   "pairwise_mean": 39.92962301523423,
+   "pairwise_median": 40.76280880317532,
+   "consensus_mean": 27.464094920582877,
+   "consensus_median": 29.626063960788002,
+   "consensus_p90": 59.65653259683138,
+   "n": 25386
+  }
+ }
+}
