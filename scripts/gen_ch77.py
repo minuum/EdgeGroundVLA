@@ -141,15 +141,15 @@ def update_vis(s):
 
 
 TABS77 = [("t1", "📌 개요·결과", [("html", "OVERVIEW")]), ("t2", "📖 용어·대조표", ["⓪"]), ("t3", "🔀 이산 vs 연속·궤적", ["⑤", "⑥-4"]),
-          ("t4", "🧠 헤드·FM 평가", ["②", "⑥-8", "⑥-3", "⑥-9"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🔬 학습 대조 해설", [("html", "CONTRAST")]),
-          ("t7", "🔍 방향 오차 해부", ["⑥-11"]), ("t8", "🧰 산출물(학습)", ["⑦"])]
+          ("t4", "🧠 헤드·FM 평가", ["②", "⑥-8", "⑥-3", "⑥-9"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🧬 실험군 구조", [("html", "ARCH")]), ("t7", "🔬 학습 대조 해설", [("html", "CONTRAST")]),
+          ("t8", "🔍 방향 오차 해부", ["⑥-11"]), ("t9", "🧰 산출물(학습)", ["⑦"])]
 
 
 def main():
     s = HTML.read_text(encoding="utf-8")
     head, parts = body()
-    import ch77_overview, ch77_contrast
-    raw = {"OVERVIEW": ch77_overview.block(tbl, H, st), "CONTRAST": ch77_contrast.block(tbl, H, st)}
+    import ch77_overview, ch77_contrast, ch77_arch
+    raw = {"OVERVIEW": ch77_overview.block(tbl, H, st), "CONTRAST": ch77_contrast.block(tbl, H, st), "ARCH": ch77_arch.block(tbl, H, st)}
     tabs = [(t, lab, [("html", raw[it[1]]) if isinstance(it, tuple) else it for it in items]) for t, lab, items in TABS77]
     inner = CC.tabs_html("ch77", tabs, "", parts)
     blk = CC.chapter_block(77, "#fbbf24", "#fcd34d", "EGVLA2 학습 분야 정리 — 300건 수집에서 오프라인 평가·배포 체크포인트까지",

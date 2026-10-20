@@ -1,0 +1,30 @@
+{
+ "MLP_regression": {
+  "params": 207664,
+  "head_ms": 0.052,
+  "device": "cuda",
+  "k": 1,
+  "steps": 1
+ },
+ "A_mlp_fm": {
+  "params": 230552,
+  "head_ms": 1.558,
+  "device": "cuda",
+  "k": 8,
+  "steps": 10
+ },
+ "B2_film_res_fm": {
+  "params": 337176,
+  "head_ms": 2.328,
+  "device": "cuda",
+  "k": 8,
+  "steps": 10
+ },
+ "C_pi0_adaln": {
+  "params": 722051,
+  "head_ms": 8.785,
+  "device": "cuda",
+  "k": 8,
+  "steps": 10
+ }
+}
