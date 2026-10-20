@@ -25,19 +25,20 @@ ROOT = Path(__file__).resolve().parents[2]
 class FusedF2Extractor:
     """Florence-2 base fp16, phrase grounding('gray basket') + 풀링 특징을 1회 통과로 얻는다."""
 
-    def __init__(self, device: torch.device | None = None):
+    def __init__(self, device: torch.device | None = None, dtype: torch.dtype = torch.float16):
+        self.dtype = dtype   # 기본 fp16(학습 캐시와 동일). fp32 배포는 dtype=torch.float32 (특징 차이 방향 0.03°)
         sys.path.insert(0, str(ROOT / "scripts"))
         from transformers import AutoModelForCausalLM, AutoProcessor
         import precompute_v6_florence2_fused as P
         self._P = P
         self.device = device or P.DEV
-        self.model = AutoModelForCausalLM.from_pretrained(P.MODEL, trust_remote_code=True, torch_dtype=torch.float16).to(self.device).eval()
+        self.model = AutoModelForCausalLM.from_pretrained(P.MODEL, trust_remote_code=True, torch_dtype=dtype).to(self.device).eval()
         self.proc = AutoProcessor.from_pretrained(P.MODEL, trust_remote_code=True)
 
     def __call__(self, image_rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         from PIL import Image
         pil = Image.fromarray(np.ascontiguousarray(image_rgb).astype(np.uint8)).convert("RGB")
-        bbox, feat = self._P.run_batch(self.model, self.proc, [pil])
+        bbox, feat = self._P.run_batch(self.model, self.proc, [pil], dtype=self.dtype)
         return bbox[0].astype(np.float32), feat[0].astype(np.float32)
 
 

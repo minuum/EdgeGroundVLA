@@ -1568,6 +1568,10 @@ class InferenceResponse(BaseModel):
     stop_mode: Optional[str] = None
     grounding_cached: Optional[bool] = None
     head_mode: Optional[str] = None
+    # EGVLA2(plan_20261016/20261019): response_model에 없으면 직렬화에서 잘려 대시보드까지 도달하지 않는다(2026-10-20 발견)
+    action_cont: Optional[dict[str, Any]] = None
+    drive: Optional[dict[str, Any]] = None
+    drive_source: Optional[str] = None
 
 
 class LoadRequest(BaseModel):

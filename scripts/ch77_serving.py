@@ -31,7 +31,8 @@ def block(tbl, H, st):
         ["서빙 정책", "서브골 결측 시 bbox 창 전체를 0으로(드롭아웃 체크포인트 기본), EMA 평활 옵션(<code>VLA_EGVLA2_EMA</code>)", st("구현", G)],
         ["서버 단계 A", "<code>VLA_DRIVE_SOURCE=egvla2_hybrid</code>: 이동 프레임에서만 연속 방향·속력으로 대체, STOP·ROT는 기존 판단", st("구현(기본 꺼짐)", G)],
         ["대시보드", "<code>drive</code> 적용, <code>VLA_JPEG_QUALITY</code>(EGVLA2는 95 이상)", st("구현(기본 꺼짐)", G)],
-        ["서버 단계 B", "EGVLA2 단독 서버 — 정지 규칙·타깃 소실 탐색·평활 값 결정 필요", st("미착수", MUT)],
+        ["서버 응답 버그 수정", "<code>InferenceResponse</code>에 <code>action_cont</code>·<code>drive</code>·<code>drive_source</code>가 없어 HTTP 응답에서 잘려 대시보드에 도달하지 못했다 → 필드 추가(2026-10-20)", st("수정", G)],
+        ["서버 단계 B", "별도 경량 서버 <code>egvla2_inference_server.py</code> + 상태기계(디바운스 3·래치, 근접 오버라이드, 소실 5프레임→회전 탐색, 탐색 40프레임 초과 정지). 테스트 18개. 기본 꺼짐", st("스켈레톤 구현", G)],
         ["로봇 쪽 전달·점검", "체크포인트 rsync, 서버 경로 점검, 지연 측정, 드라이런", st("대기(로봇 접근)", R)]])
     return (H("⑥-7 학습-서빙 일치와 추론 서버 — EGVLA1 vs EGVLA2, JPEG 품질, 배포 현황")
             + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">오프라인 성능이 실기에서 유지되려면 <b>서버가 학습 때와 같은 입력·같은 특징</b>을 내야 한다. 아래는 그 일치 여부를 EGVLA1과 EGVLA2로 대조하고, 이번에 찾은 JPEG 품질 문제와 배포 준비 현황을 정리한 것이다.</div>'

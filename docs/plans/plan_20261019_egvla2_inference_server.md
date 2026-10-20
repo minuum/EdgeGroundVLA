@@ -45,3 +45,28 @@
 - 기본값은 모두 기존 동작이며, 켜는 법: 서버 `VLA_ACTION_MODE=continuous VLA_EGVLA2_CKPT=runs/egvla2_fm/deploy/C_pi0_adaln_drop30_e120.pt VLA_SPEED_SOURCE=shadow VLA_DRIVE_SOURCE=egvla2_hybrid VLA_EGVLA2_EMA=0.5`, 대시보드 `VLA_DRIVE_SOURCE=egvla2_hybrid VLA_JPEG_QUALITY=95`.
 - **미확인(드라이런에서 확인)**: 연속 방향에 곱한 gain 1.15가 컨트롤러의 lx/ly 단위와 맞는지(대각선 속도는 직진과 같다고 가정), EMA α 값, EGVLA2 정지 판단과 기존 STOP의 불일치 빈도.
 - 결정(승인 시 적용한 기본값): 단계 A에서는 STOP·ROT·프리뷰를 기존 규칙이 담당(결정 1~3은 단계 B에서 확정), 평활은 EMA 옵션(기본 끔), JPEG 품질은 환경변수로.
+
+## 7. 단계 B 스켈레톤 구현 현황 (2026-10-20, 구현만·미커밋·실서버 미구동)
+**구현 파일**
+- `robovlm_nav/serve/egvla2_only_logic.py` — 순수 상태기계 `EgVla2Controller`(모델 import 없음). 상태 DRIVE / SEARCH / STOPPED(래치).
+- `robovlm_nav/serve/egvla2_inference_server.py` — 별도 경량 FastAPI 서버(기존 `stage2_v2_inference_server.py` 무수정). `/health`, `/predict`, `/reset`, `/model/info`. 이미지 b64→PIL RGB→`FusedF2Extractor`→`EgVla2FMPolicy`→컨트롤러→응답 dict(response_model로 키가 잘리지 않게 dict 그대로 반환). 모델은 시작/첫 요청에서 지연 로드, 서비스는 추출기·정책·컨트롤러를 주입받아 모의 객체로 테스트 가능.
+- `robovlm_nav/serve/egvla2_fm_policy.py` — `FusedF2Extractor(dtype=torch.float16)` 인자 추가(기본 동작 동일).
+- `scripts/precompute_v6_florence2_fused.py` — `run_batch(..., dtype=torch.float16)` 인자 추가(기본 동일; fp32 입력 캐스팅에 필요).
+- 테스트: `tests/test_egvla2_only_logic.py`(11), `tests/test_egvla2_inference_server.py`(7), 기존 `tests/test_continuous_speed.py`(7) 모두 pytest shim 직접 실행으로 통과(.venv, 모델·GPU 불필요). fp32/fp16 추출기가 학습 캐시 대비 특징 코사인 1.000000으로 로드·동작함을 1프레임으로 확인.
+
+**규칙 기본값(승인안, 생성자·환경변수로 조정)**: `stop_debounce=3`(|m|<0.2 연속 3프레임 → STOPPED 래치, 도달 전 이동 0), `near_area=0.25`·`near_frames=2`(`off`로 끔), `lost_frames=5`(has_bbox=False 연속 → SEARCH 제자리 회전 az=±0.25, 마지막 cx<0.5 좌(+)/그 외·미관측 우(-)), `search_max_frames=40`(초과 시 STOPPED), DRIVE는 단위 방향×`gain=1.15`·az=0·`speed_scale`=정책 값. 각 전이는 `reason`에 기록(예: `stop_pending(2/3)`, `near_goal`, `search_start`, `target_reacquired`, `search_timeout`, `latched:*`).
+
+**켜는 법(이 서버를 stage2 서버 대신 띄울 때만)**: `VLA_EGVLA2_CKPT=runs/egvla2_fm/deploy/C_pi0_adaln_drop30_e120.pt VLA_EGVLA2_DTYPE=fp32 VLA_EGVLA2_EMA=0.5 VLA_SPEED_SOURCE=shadow .venv/bin/python3 -m robovlm_nav.serve.egvla2_inference_server --port 8001`. 대시보드는 그대로(`/predict` 응답의 `action_3d`·`action_speed_scale`·`goal_near`를 사용). 기존 stage2 서버·대시보드 기본 동작은 변경 없음.
+
+**대시보드 호환 키**: `action`, `action_3d`(lx,ly,az), `action_speed_scale`(throttle), `goal_near`(STOPPED이면 True → 대시보드가 주행 종료), `stop_latched`, `bbox{cx,cy,area,has_bbox}`, `predicted_label`("STATE:reason"), `latency_ms`, `grounding_latency_ms`, `grounding_cached`, `drive`, + `action_cont`, `controller_state`, `reason`, `subgoal_missing`, `ckpt`, `ckpt_sha256`, `dtype`.
+
+**미확인·주의**
+- 실서버·로봇·대시보드 연동은 하지 않았다(드라이런 전). gain 1.15와 컨트롤러 lx/ly 단위, SEARCH 회전 중 대시보드의 `move_and_stop_ramped`(move_duration) 동작, 탐색 az=0.25 크기·부호(+=좌)는 실기 확인 필요.
+- `goal_near=True`는 도달뿐 아니라 STOPPED 전부(탐색 초과·정지 디바운스)에 쓴다 → 대시보드가 주행을 종료한다. `reason`으로 구분.
+- **기존 stage2 서버의 `/predict`는 `response_model=InferenceResponse`로 직렬화하는데 이 모델에 `action_cont`·`drive` 필드가 없어, 단계 A의 `drive`·`action_cont`가 HTTP 응답에서 잘린다**(`stage2_v2_inference_server.py` 1552행 `InferenceResponse`, 1778행 `/predict`). 단계 A를 쓰려면 이 모델에 두 필드를 추가해야 한다(이 작업 범위 밖이라 수정하지 않음).
+- 정지 래치는 `/reset`에서만 풀린다. 타깃 소실 탐색은 첫 프레임 프리뷰(CH54)를 대체하지 않는다. 탐색 중 정책 EMA 상태는 유지된다.
+
+## 8. 버그 수정과 권장 설정 (2026-10-20)
+- **버그**: `/predict`의 `response_model=InferenceResponse`에 `action_cont`·`drive`·`drive_source`가 없어 FastAPI가 응답에서 잘라 냈다(포크 에이전트가 발견, 코드로 확인). 단계 A의 `drive`와 기존 `action_cont`가 대시보드까지 도달하지 못했다. `InferenceResponse`에 세 필드(Optional)를 추가해 수정, pydantic 직렬화 확인.
+- **권장 평활**: K=8, `VLA_EGVLA2_EMA=0.5`(새 값 가중, 오프라인 스윕 `smoothing_sweep.json`: 저크 0.056 ≈ 사람 수준, 지연 ≤2프레임). 드라이런은 이 값으로 시작.
+- 서버 dtype: 단계 A 서버의 추출기는 기본 fp16(지연 짧음), 단계 B 서버는 fp32 기본(`VLA_EGVLA2_DTYPE`). 학습 캐시(fp16) 대비 fp32 차이는 방향 0.03°.

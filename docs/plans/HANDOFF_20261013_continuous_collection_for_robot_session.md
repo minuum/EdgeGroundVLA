@@ -333,5 +333,9 @@ SPEED_LEVELS = [
 ### 15.4 하이브리드 구동 옵션 구현됨(기본 꺼짐, 구동은 승인 후)
 서버 `VLA_DRIVE_SOURCE=egvla2_hybrid VLA_EGVLA2_EMA=0.5`, 대시보드 `VLA_DRIVE_SOURCE=egvla2_hybrid VLA_JPEG_QUALITY=95`(자세한 내용·미확인 항목은 `plan_20261019_egvla2_inference_server.md` §6). 드라이런에서는 **서버만 켜고 대시보드는 구동 없이 응답의 `drive`·`action_cont`·`action_3d`를 로그로 비교**해 주세요.
 
+### 15.4-1 최신 코드 필수(2026-10-20)와 권장 설정
+- **서버 `/predict` 응답 직렬화 버그를 수정**했다(`action_cont`·`drive`가 응답에서 잘려 대시보드에 안 가던 문제). 로봇 쪽 서버 코드를 이 수정 이후 버전으로 맞춰야 한다.
+- 드라이런 시작값: `VLA_EGVLA2_EMA=0.5`(K=8). EGVLA2 단독 서버 스켈레톤(`egvla2_inference_server.py`, 기본 꺼짐)은 `plan_20261019_egvla2_inference_server.md` §7.
+
 ### 15.5 알려진 한계 (서버 구동 전 확인)
 - 대시보드 구동은 현재 서버 응답의 `action_3d`(기존 8-class 경로)를 쓰고, `action_cont`는 `VLA_APPLY_CONT_SPEED=1`일 때 **속력만** 적용한다. 방향은 연속값으로 구동되지 않는다. EGVLA2 구동 모드(단계 A 하이브리드 구현, 단계 B 단독 서버 미착수)는 `plan_20261019_egvla2_inference_server.md` 참고.

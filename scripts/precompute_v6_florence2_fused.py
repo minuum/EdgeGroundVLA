@@ -43,9 +43,9 @@ def load_images(path):
 
 
 @torch.no_grad()
-def run_batch(model, proc, pils):
+def run_batch(model, proc, pils, dtype=torch.float16):
     inp = proc(text=[TASK + PHRASE] * len(pils), images=pils, return_tensors="pt")
-    pv = inp["pixel_values"].to(DEV, torch.float16)
+    pv = inp["pixel_values"].to(DEV, dtype)
     ids = inp["input_ids"].to(DEV)
     img_feats = model._encode_image(pv)                      # (B,577,768) — 1회만
     embeds = model.get_input_embeddings()(ids)
