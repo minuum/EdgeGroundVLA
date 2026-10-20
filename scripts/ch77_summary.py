@@ -13,7 +13,7 @@ def J(n):
     return json.load(open(FM / n))
 
 
-def block(tbl, H, st):
+def block(tbl, H, st, part="all"):
     s100, s250, s300, l300 = J("summary_s1.json")["aggregate"], J("summary_s1_ep250.json")["aggregate"], J("summary_s1_full300.json")["aggregate"], J("summary_s1_full300_lopo.json")["aggregate"]
     cmp_, ex, rp = J("validation_batch.json")["compare"], J("fm_head_extras.json"), J("replay_sim_cont.json")
     ab = J("subgoal_ablation.json")
@@ -81,7 +81,7 @@ def block(tbl, H, st):
         ["실기 규모", "NaVILA 75회, TIC-VLA 4과제×5회, CrossTracer 방법당 40회, VEGA 방법당 15회(원문 확인)", "<b>300회</b>(타 논문 대비 큰 편, MM-Nav·MobilityVLA·OmniVLA는 총 시행 수 확인 못 함)"],
         ["오프라인 지표", "보조 분석", "R²·방향 오차는 학습 가능성 확인용(성공과의 연결 없음)"],
         ["지연 대응", "TIC-VLA가 핵심 주제", "서버 180ms vs 젯슨 817ms 비교 예정"]])
-    return (H("⓪ 지금까지의 정리 — 대조표 모음")
+    learn = (H("⓪ 학습 분야 대조표 모음")
             + '<div style="font-size:0.8rem;line-height:1.6;margin:6px 0">아래는 이번 작업에서 나온 결과를 <b>대조 형식</b>으로 한곳에 모은 것이다. 세부 근거는 ①~⑦과 CH76-10에 있다. 모든 오프라인 수치는 안 본 에피소드(hold-out) 기준이고 seed·분할은 각 항목에 따른다.</div>'
             + H("용어 정리 — 위치가 세 가지로 쓰인다")
             + tbl(["용어", "뜻", "값", "비고"], [
@@ -94,6 +94,9 @@ def block(tbl, H, st):
             + H("D. 헤드 대조 — MLP 회귀 / A / B2 / C") + Z.LEG + heads
             + H("E. 서브골 대조 — 있음/없음/창/드롭아웃") + Z.LEG + sgt
             + '<div style="font-size:0.78rem;color:#94a3b8">방향 오차 평균(5분할). 서브골 결측은 입력을 전부 0으로 한 스트레스 테스트. seed 3개 평균.</div>'
+            )
+    real = (H("⑧ 평가 범위·주장·평가 방식 대조")
             + H("F. 평가 범위 대조 — 어디까지 측정됐나") + scope
             + H("G. 주장 가능 / 불가 대조") + claim
             + H("H. 평가 방식 대조 — 일반 논문 vs 우리") + ind)
+    return learn if part == "learn" else real if part == "real" else learn + real

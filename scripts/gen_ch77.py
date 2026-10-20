@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import gen_ch76_viz as V  # noqa: E402
+import ch_common as CC  # noqa: E402
 
 HTML, FM = V.HTML, V.FM
 A, AL, G, R, B, P, MUT = V.A, V.AL, V.G, V.R, V.B, V.P, V.MUT
@@ -117,35 +118,50 @@ def body():
             ["코드", "<code>run_egvla2_pipeline.py</code>, <code>build_egvla2_main_set.py</code>, <code>train_egvla2_s1.py</code>, <code>replay_egvla2_policy.py</code>, <code>robovlm_nav/serve/egvla2_fm_policy.py</code>, <code>robovlm_nav/models/egvla2_fm_heads.py</code>, <code>continuous_speed.py</code>"],
             ["결과", "<code>validation_batch.json</code>, <code>summary_s1*.json</code> (<code>docs/v5/egvla2_fm/</code>)"]])
         + f"{st('한계', R)} S1은 한 장소 수집 데이터의 에피소드 단위 hold-out이라 장소·환경 일반화는 아직 모른다. 서빙 경로는 점검용 체크포인트로 동작만 확인했고 성능 수치는 최종 체크포인트(300ep 후)가 필요하다.")
-    return tabify(body_)
+    return CC.split_parts(body_)
+
+
+def update_vis(s):
+    """VIS G-4 패널(S1 FM 헤드 축별 R²)을 300건 결과로 다시 그린다."""
+    pat = re.compile(r'<div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;padding:14px 16px"><div style="color:#fcd34d;font-size:0.8rem;font-weight:800;margin-bottom:8px">G-4\..*?CH76-10</a></div></div>', re.S)
+    if not pat.search(s):
+        return s
+    a = json.load(open(FM / "summary_s1_full300.json"))["aggregate"]
+    rows = []
+    for n, lab, c in (("A_mlp_fm", "A", B), ("B2_film_res_fm", "B2", G), ("C_pi0_adaln", "C", A)):
+        for i, ax in ((0, "lx"), (1, "ly")):
+            v = a[n]["r2_mean_axis"][i]
+            rows.append((f"{lab} {ax} R²", v, c, f"{v:.2f}"))
+    panel = ('<div style="background:#0a1628;border:1px solid #1e3050;border-radius:10px;padding:14px 16px"><div style="color:#fcd34d;font-size:0.8rem;font-weight:800;margin-bottom:8px">'
+             'G-4. S1 FM 헤드 축별 R² (300건, 5-fold×5seed)</div>' + V.hbars(rows, 1.0, w=150)
+             + '<div style="font-size:0.72rem;color:#64748b;margin-top:6px">MLP 회귀와 MSE 차 ≤0.003, az R²≈0.1. 방향 오차 C 10.4°(같은 목표 위치)·16.9°(안 본 목표 위치). 사람 조작 천장 약 10~13°. '
+             "<a href='#ch77' style='color:#94a3b8'>CH77</a> · <a href='#ch78' style='color:#94a3b8'>CH78</a></div></div>")
+    return pat.sub(lambda m: panel, s, count=1)
+
+
+TABS77 = [("t1", "📌 개요·결과", [("html", "OVERVIEW")]), ("t2", "📖 용어·대조표", ["⓪"]), ("t3", "🔀 이산 vs 연속·궤적", ["⑤", "⑥-4"]),
+          ("t4", "🧠 헤드·FM 평가", ["②", "⑥-8", "⑥-3", "⑥-9"]), ("t5", "🎯 서브골·학습 곡선", ["⑥-5", "⑥-6"]), ("t6", "🔬 학습 대조 해설", [("html", "CONTRAST")]),
+          ("t7", "🧰 산출물(학습)", ["⑦"])]
 
 
 def main():
     s = HTML.read_text(encoding="utf-8")
-    s = re.sub(r"<!--CH77-->.*?<!--/CH77-->\n?", "", s, flags=re.S)
-    ch = ('<!--CH77--><hr class="chapter-divider">\n<div class="chapter" id="ch77">\n  <div class="chapter-header">\n'
-          '    <span class="chapter-num" style="background:#fbbf24;color:#0a0f1a">CH 77</span>\n'
-          '    <h2 class="chapter-title">EGVLA2 데이터 확대 대비 브리핑 — 신규 배치 검증, S1 학습, 사전 구현, 남은 일</h2>\n'
-          '    <p class="chapter-subtitle"><span style="color:#fcd34d;font-weight:800">2026-10-15</span> · 300건 수집·검증·학습·오프라인 평가까지의 결과와 남은 실기 일정. 세부는 CH76-10.</p>\n  </div>\n'
-          + body() + '\n</div>\n<!-- ══ /CH77 ═ -->\n<!--/CH77-->\n')
-    k = s.index("/CH76 ═ -->") + len("/CH76 ═ -->")
-    k = s.index("\n", k) + 1
-    s = s[:k] + "\n" + ch + s[k:]
-    if 'data-target="ch77"' not in s:
-        toc = s.index('<a class="toc-item" href="#ch76"'); e = s.index("</a>", toc) + 4
-        s = s[:e] + '\n    <a class="toc-item" href="#ch77" data-target="ch77"><span class="toc-badge" style="background:rgba(251,191,36,0.2);color:#fcd34d;font-weight:900">CH 77</span><span class="toc-label">EGVLA2 데이터 확대 대비 브리핑 — 검증·S1·사전 구현·남은 일</span><span class="toc-cat cat-exp" style="background:rgba(251,191,36,0.15);color:#fbbf24">신규분기</span></a>' + s[e:]
-        nav = s.index('<a href="#ch76" style="padding:7px 16px'); e = s.index("</a>", nav) + 4
-        s = s[:e] + '\n    <a href="#ch77" style="padding:7px 16px;background:#2a1f06;border:1px solid #fbbf24;border-radius:8px;font-size:0.78rem;font-weight:800;color:#fcd34d;text-decoration:none">🧭 CH77 EGVLA2 확대 대비 브리핑</a>' + s[e:]
-        s = s.replace("'ch75','ch76','next-step','summary'", "'ch75','ch76','ch77','next-step','summary'", 1)
-        # SUMMARY 타임라인
-        row = re.search(r"(<tr><td[^>]*><a href='#ch76'.*?</tr>)", s, flags=re.S)
-        new = row.group(1).replace("#ch76", "#ch77").replace(">CH76<", ">CH77<").replace("연속 조이스틱 수집·FM 시험", "EGVLA2 확대 대비 브리핑")
-        new = re.sub(r"(<td style=\"[^\"]*\">)(?!<a)(?!연속|EGVLA2)([^<]*)(</td></tr>)$", lambda m: m.group(1) + "신규 v3 191건 검증 합격, S1 FM≈MLP, 서빙 경로 사전 구현(꺼짐), 300ep 원샷 파이프라인 준비" + m.group(3), new, flags=re.S)
-        s = s.replace(row.group(1), row.group(1) + "\n" + new, 1)
-        s = s.replace("현재 상태 (CH1→CH76 · 2026-10-15)", "현재 상태 (CH1→CH77 · 2026-10-15)", 1)
+    head, parts = body()
+    import ch77_overview, ch77_contrast
+    raw = {"OVERVIEW": ch77_overview.block(tbl, H, st), "CONTRAST": ch77_contrast.block(tbl, H, st)}
+    tabs = [(t, lab, [("html", raw[it[1]]) if isinstance(it, tuple) else it for it in items]) for t, lab, items in TABS77]
+    inner = CC.tabs_html("ch77", tabs, "", parts)
+    blk = CC.chapter_block(77, "#fbbf24", "#fcd34d", "EGVLA2 학습 분야 정리 — 300건 수집에서 오프라인 평가·배포 체크포인트까지",
+                           "학습 분야의 결과와 대조 해설. 서빙·점검·로드맵·시사점은 CH78. 세부는 CH76-10.", "2026-10-20", inner)
+    s = CC.insert_chapter(s, 77, blk, "/CH76 ═ -->", "", "", "", "", "", "", "", "", 76)
+    s = CC.replace_toc_label(s, 77, "EGVLA2 학습 분야 정리 — 300건·헤드·서브골·대조 해설")
+    s = CC.replace_summary_row(s, 77, "EGVLA2 학습 분야 정리", "300건 수집·검증·학습, 헤드(MLP 회귀/A/B2/C)·서브골 ablation(3 seed)·학습 곡선·평활·사람 일치도 천장. 같은 위치 방향 오차 10.4°≈사람 변동성, 안 본 위치 16.9°가 남은 과제, FM≈MLP·서브골 효과 ≤0.4°")
+    s = re.sub(r"현재 상태 \(CH1→CH\d+ · [0-9-]+\)", "현재 상태 (CH1→CH78 · 2026-10-20)", s, count=1)
+    s = update_vis(s)
+    s = re.sub(r'(<a href="#ch77" style="[^"]*">)[^<]*(</a>)', r'\g<1>🧭 CH77 EGVLA2 학습 분야 정리\g<2>', s, count=1)
     HTML.write_text(s, encoding="utf-8")
-    for t in ["div", "svg", "table", "tr", "button", "a", "ul", "li"]:
-        print(t, len(re.findall(f"<{t}[ >]", s)), len(re.findall(f"</{t}>", s)))
+    for t, a, b in CC.balance(s):
+        print(t, a, b)
 
 
 if __name__ == "__main__":
