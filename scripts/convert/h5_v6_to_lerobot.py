@@ -15,15 +15,15 @@ minum(3.12)에서 실행할 것). 로컬 저장만 하고 Hub push는 하지 않
 V5/V6/EGVLA2를 하나의 LeRobotDataset으로 섞어서 저장(--schema both, 기본값).
 V5는 action_event_type/cx_position/cx_path/obstacle_layout_type 등의
 정보가 없으므로 결측값(placeholder)으로 채운다. EGVLA2는 `action`에
-실제 실행된 3단계 이산 명령(`actions_exec`)을 넣고, 원본 연속 조이스틱
-신호(`actions_raw`)는 별도 `action.raw` 필드로 함께 보존한다(이 데이터셋을
-만든 핵심 목적이 연속 강도 신호라서 버리면 안 됨). V5/V6 프레임엔
-`action.raw`가 없으므로 0으로 채운다.
+실제 실행된 구동값(`actions_exec` — 방향은 연속, 속력만 3단계 0.4/0.7/1.0로
+양자화된 구동방식 C)을 넣고, 원본 연속 조이스틱 신호(`actions_raw`)는 별도
+`action.raw` 필드로 함께 보존한다(이 데이터셋을 만든 핵심 목적이 연속 강도
+신호라서 버리면 안 됨). V5/V6 프레임엔 `action.raw`가 없으므로 0으로 채운다.
 
 fps: 두 스키마 다 프레임레이트가 실측 가변적이거나(V6) 아예 없음(V5).
 LeRobotDataset은 데이터셋 전체에 단일 fps가 필요해 --fps로 고정값을
-지정한다(기본 6 — V6 실측 평균 ~6.15fps 반올림). 실제 프레임 간 간격이
-아니라 근사치임을 유의.
+지정한다(기본 8 — EGVLA2 실측 프레임 간격 중앙값 약 0.128초(~7.8Hz)에 근접,
+2026-10-20 minum 검증). 실제 프레임 간 간격이 아니라 근사치임을 유의.
 """
 import argparse
 import glob
@@ -52,7 +52,7 @@ def load_v6(h: h5py.File, path: str) -> dict:
     event_types = [e.decode("utf-8") if isinstance(e, bytes) else str(e) for e in h["action_event_types"][:]]
     cx_position = attrs.get("cx_position", "") or "unknown"
     cx_path = attrs.get("cx_path", "") or "unknown"
-    task = f"Navigate a {cx_path.replace('_', ' ')} approach from the {cx_position.replace('_', ' ')} extreme starting position toward the gray basket."
+    task = f"Navigate a {cx_path.replace('_', ' ')} approach toward the gray basket, which appears at the {cx_position.replace('_', ' ')} of the view."
     return {
         "images": images,
         "actions": actions,
@@ -82,9 +82,20 @@ def load_egvla2(h: h5py.File, path: str) -> dict:
     event_types = [e.decode("utf-8") if isinstance(e, bytes) else str(e) for e in h["action_event_types"][:]]
     cx_position = attrs.get("cx_position", "") or "unknown"
     cx_path = attrs.get("cx_path", "") or "unknown"
-    task = (f"Navigate a {cx_path.replace('_', ' ')} approach from the {cx_position.replace('_', ' ')} "
-            f"extreme starting position toward the gray basket, with continuous speed proportional to joystick intensity.")
-    start_position = attrs.get("start_position", "") or "pos1"
+    task = (f"Navigate a {cx_path.replace('_', ' ')} approach toward the gray basket, which appears at the "
+            f"{cx_position.replace('_', ' ')} of the view, with continuous speed proportional to joystick intensity.")
+    # 시작위치(pos1/2/3): attr이 있으면 그걸 쓰고(대시보드 2026-10-20 패치 이후 수집분),
+    # 없으면 파일명 접두사(episode_{ts}_{posN}_... 형태)에서 복원한다(minum 2026-10-20
+    # 지적 — 패치 전/파일명으로만 태깅된 pos2·pos3 수집분 대응).
+    start_position = attrs.get("start_position", "") or ""
+    if not start_position:
+        fname = os.path.basename(path)
+        if "_pos2_" in fname:
+            start_position = "pos2"
+        elif "_pos3_" in fname:
+            start_position = "pos3"
+        else:
+            start_position = "pos1"
     if start_position not in ("", "pos1"):
         task += f" (robot start location: {start_position})"
     return {
@@ -194,7 +205,7 @@ def main():
     ap.add_argument("--out", required=True, help="LeRobotDataset 로컬 저장 경로 (root)")
     ap.add_argument("--repo-id", default="monavla/v6_lerobot", help="로컬 전용 식별자 (Hub push 안 함)")
     ap.add_argument("--schema", choices=["v5", "v6", "egvla2", "both"], default="both")
-    ap.add_argument("--fps", type=int, default=6, help="전역 고정 fps (실측 근사치, 기본 6)")
+    ap.add_argument("--fps", type=int, default=8, help="전역 고정 fps (실측 근사치, 기본 8 — EGVLA2 실측 중앙값 ~7.8Hz)")
     ap.add_argument("--limit", type=int, default=None, help="테스트용 — 앞에서 N개 에피소드만 변환")
     args = ap.parse_args()
 

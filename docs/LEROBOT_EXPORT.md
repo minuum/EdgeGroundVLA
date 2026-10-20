@@ -29,7 +29,7 @@ python3 scripts/convert/h5_v6_to_lerobot.py \
   --out /home/minum/26CS/MoNaVLA/lerobot_export/v6_mixed \
   --repo-id monavla/v6_mixed \
   --schema both        # v5 | v6 | egvla2 | both(기본, 전부 하나로 섞음)
-  --fps 6               # 전역 고정값(실측 근사, 아래 참조)
+  --fps 8               # 전역 고정값(실측 근사, 아래 참조)
 ```
 
 EGVLA2(연속 액션, `ROS_action/mobile_vla_dataset_egvla2/`)만 뽑으려면
@@ -41,12 +41,20 @@ EGVLA2(연속 액션, `ROS_action/mobile_vla_dataset_egvla2/`)만 뽑으려면
   v6보다 먼저 판별(EGVLA2도 attrs에 `cx_position`이 있어서 v6 체크만으론
   구분 불가했음 — 이전엔 v6로 오판되어 `h["actions"]` 접근에서 조용히
   스킵되던 버그).
-- `action`에는 실제 로봇 구동값(`actions_exec`, 구동방식 C 3단계)을,
-  원본 연속 조이스틱 신호(`actions_raw`)는 신규 `action.raw` feature로
-  별도 보존(이 데이터셋의 핵심 가치라 버리면 안 됨). V5/V6 프레임은
-  `action.raw`가 0으로 채워짐.
-- 로봇 시작 위치(`start_position` attr, pos1 기본/pos2/pos3 — minum 핸드오프
-  §16)가 pos1이 아니면 task 문장 끝에 `(robot start location: posN)`로 덧붙임.
+- `action`에는 실제 로봇 구동값(`actions_exec` — **방향은 연속, 속력만
+  0.4/0.7/1.0 3단계로 양자화된 구동방식 C**)을, 원본 연속 조이스틱 신호
+  (`actions_raw`)는 신규 `action.raw` feature로 별도 보존(이 데이터셋의
+  핵심 가치라 버리면 안 됨). V5/V6 프레임은 `action.raw`가 0으로 채워짐.
+- 로봇 시작 위치(pos1 기본/pos2/pos3 — minum 핸드오프 §16): `start_position`
+  attr이 있으면 그걸 쓰고, 없으면(대시보드 patch 이전 또는 파일명으로만
+  태깅된 수집분) 파일명 접두사(`episode_{ts}_{posN}_...`)에서 복원. pos1이
+  아니면 task 문장 끝에 `(robot start location: posN)`로 덧붙임.
+- `cx_position`은 로봇의 시작 위치가 아니라 **타깃(바구니)이 화면상 어디에
+  보이는지**를 뜻해서, task 문장을 "~ approach toward the gray basket, which
+  appears at the {cx_position} of the view"로 수정(이전 "extreme starting
+  position" 표현은 시작위치와 혼동 소지 — 2026-10-20 minum 지적 반영).
+- `--fps` 기본값을 6→8로 변경 — EGVLA2 실측 프레임 간격 중앙값이 약 0.128초
+  (~7.8Hz)로, 기존 6fps 근사는 영상 시간축을 왜곡시킴(2026-10-20 minum 검증).
 
 ## 2026-07-16 변환 결과 (minum `/home/minum/26CS/MoNaVLA/lerobot_export/v6_mixed`)
 
