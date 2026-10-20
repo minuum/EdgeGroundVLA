@@ -348,3 +348,6 @@ SPEED_LEVELS = [
   3. 재생: `python3 scripts/replay_episodes_through_server.py --h5 <에피소드 폴더> --server http://127.0.0.1:8001 --quality 95 --tag pos2 --out /tmp/replay_pos2.json` (pos3도 `--tag pos3`로 따로). 필요하면 기존 pos1 에피소드 5건도 `--tag pos1`로 함께.
   4. 회신: 각 JSON(+ 옆의 `.csv`)과 신규 H5를 minum으로 전송(`rsync`, `--delete` 금지). minum이 시작 위치별 방향 오차·GO/STOP F1·저크를 정리해 EGVLA1의 95/91/90과 같은 축으로 해석한다.
 - 폐루프·`VLA_DRIVE_SOURCE=egvla2_hybrid` 구동은 계속 승인 전까지 금지. 운영 서버를 복구해 둔 것 확인했다(그대로 유지).
+
+### 16.1 전송 위치(2026-10-20 추가)
+재생 결과와 신규 H5는 **`minum:/home/minum/26CS/MoNaVLA/ROS_action/dryrun_startpos/`** 로 보내 주세요(`rsync -ah --progress <로봇측 파일들> minum:/home/minum/26CS/MoNaVLA/ROS_action/dryrun_startpos/`, `--delete` 금지). 파일명은 **`replay_pos2.json`, `replay_pos3.json`**(각 `.csv` 포함)으로 맞춰 주세요(pos1 재생이 있으면 `replay_pos1.json`). 두 JSON이 모두 도착하면 minum에서 자동으로 분석·문서 반영합니다.
