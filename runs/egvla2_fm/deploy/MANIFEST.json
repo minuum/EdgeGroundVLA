@@ -18,5 +18,15 @@
   "n_episodes": 300,
   "seed": 0,
   "git_commit": "e867500b"
+ },
+ "MLP_regression_drop30_e60.pt": {
+  "sha256": "38ac424bc970be36b19cf42534fc5005ba6f97504ab8810814deb77fc2262ff7",
+  "bytes": 851181,
+  "arch": "MLP_regression",
+  "epochs": 60,
+  "subgoal_dropout": 0.3,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "657a2724"
  }
 }
