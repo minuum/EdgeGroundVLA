@@ -158,7 +158,7 @@ def main():
                            "학습 분야의 결과와 대조 해설. 서빙·점검·로드맵·시사점은 CH78. 세부는 CH76-10.", "2026-10-20", inner)
     s = CC.insert_chapter(s, 77, blk, "/CH76 ═ -->", "", "", "", "", "", "", "", "", 76)
     s = CC.replace_toc_label(s, 77, "EGVLA2 학습 분야 정리 — 300건·헤드·서브골·대조 해설")
-    s = CC.replace_summary_row(s, 77, "EGVLA2 학습 분야 정리", "300건 수집·검증·학습, 헤드(MLP 회귀/FM-MLP/FM-FiLM/FM-π0)·서브골 ablation(3 seed)·학습 곡선·평활·사람 일치도 천장. 같은 위치 방향 오차 10.4°≈사람 변동성, 안 본 위치 16.9°가 남은 과제, FM≈MLP·서브골 효과 ≤0.4°")
+    s = CC.replace_summary_row(s, 77, "EGVLA2 학습 분야 정리", "300건 수집·검증·학습, 헤드(MLP 회귀/FM-MLP/FM-FiLM/FM-π0)·서브골 ablation(3 seed)·학습 곡선·평활·사람 일치도 천장. 같은 위치 방향 오차 10.4°≈사람 변동성, 안 본 위치 16.9°가 남은 과제, FM≈MLP·서브골 효과 ≤0.4°, 시작 구간 다봉(K 평균이 모드를 뭉갬), 지연 보상·반전 증강 기각, 방향 오차 해부·실험군 구조 해부")
     s = re.sub(r"현재 상태 \(CH1→CH\d+ · [0-9-]+\)", "현재 상태 (CH1→CH78 · 2026-10-20)", s, count=1)
     s = update_vis(s)
     s = re.sub(r'(<a href="#ch77" style="[^"]*">)[^<]*(</a>)', r'\g<1>🧭 CH77 EGVLA2 학습 분야 정리\g<2>', s, count=1)
