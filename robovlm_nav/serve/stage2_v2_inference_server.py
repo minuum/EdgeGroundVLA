@@ -1548,6 +1548,13 @@ class InferenceResponse(BaseModel):
     action_cont: Optional[dict[str, Any]] = None
     drive: Optional[dict[str, Any]] = None
     drive_source: Optional[str] = None
+    # EGVLA2(2026-10-21) — minum 요청: chunk_first/controller_state/reason/
+    # subgoal_missing/spread도 같은 이유(response_model 미선언 시 잘림)로 추가.
+    chunk_first: Optional[list[float]] = None
+    controller_state: Optional[str] = None
+    reason: Optional[str] = None
+    subgoal_missing: Optional[bool] = None
+    spread: Optional[float] = None
 
 
 class LoadRequest(BaseModel):
@@ -1838,6 +1845,14 @@ async def predict(
 @app.post("/reset")
 async def reset(x_api_key: Optional[str] = Header(default=None)) -> dict[str, Any]:
     _check_api_key(x_api_key)
+    # EGVLA2(2026-10-21) — 이 엔드포인트가 family 무관하게 get_model()을 불러서
+    # egvla2 활성 중에도 discrete를 조용히 재로드시키던 버그 수정(두 모델이
+    # GPU에 동시에 걸쳐 응답이 느려지던 원인). egvla2면 그쪽 서비스만 리셋.
+    if _active_family == "egvla2":
+        if _egvla2_service is None:
+            raise HTTPException(status_code=503, detail="egvla2 서비스 미로드 — /model/switch_family로 먼저 전환하세요")
+        _egvla2_service.reset()
+        return {"status": "success", "message": "EGVLA2 policy/controller reset"}
     get_model().reset()
     return {"status": "success", "message": "History reset"}
 

@@ -1,0 +1,194 @@
+{
+ "summary": {
+  "n": 18,
+  "bbox_maxdiff_max": 0.000500023365020752,
+  "local_sampling_noise_deg": 1.873810832706661e-07,
+  "server_vs_local_deg": 0.7296694702046479,
+  "server_latency_ms_mean": 830.6646214591133,
+  "quality": 95,
+  "dtype": "fp32",
+  "pass": false
+ },
+ "rows": [
+  {
+   "file": "episode_20261015_193247_strong_right_left_curve.h5",
+   "frame": 5,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 0.767538273929209,
+   "server_ms": 948.375940322876,
+   "server_latency_ms": 908.0290794372559,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193247_strong_right_left_curve.h5",
+   "frame": 62,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 0.5693859200145224,
+   "server_ms": 842.0810699462891,
+   "server_latency_ms": 822.8936195373535,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193247_strong_right_left_curve.h5",
+   "frame": 120,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": null,
+   "diff_deg": null,
+   "server_ms": 856.6470146179199,
+   "server_latency_ms": 836.052656173706,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193338_strong_right_left_curve.h5",
+   "frame": 5,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 1.4336580313362643,
+   "server_ms": 846.8794822692871,
+   "server_latency_ms": 825.3529071807861,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193338_strong_right_left_curve.h5",
+   "frame": 59,
+   "bbox_maxdiff": 0.000500023365020752,
+   "noise_deg": 0.0,
+   "diff_deg": 0.4068792004775617,
+   "server_ms": 843.7089920043945,
+   "server_latency_ms": 823.5375881195068,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193338_strong_right_left_curve.h5",
+   "frame": 114,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": null,
+   "diff_deg": null,
+   "server_ms": 851.8083095550537,
+   "server_latency_ms": 833.8193893432617,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193429_strong_right_left_curve.h5",
+   "frame": 5,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 1.9399057837631635,
+   "server_ms": 841.5508270263672,
+   "server_latency_ms": 824.3134021759033,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193429_strong_right_left_curve.h5",
+   "frame": 63,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 1.2074182697257333e-06,
+   "diff_deg": 0.3069028714221146,
+   "server_ms": 844.0306186676025,
+   "server_latency_ms": 826.7381191253662,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193429_strong_right_left_curve.h5",
+   "frame": 122,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": null,
+   "diff_deg": null,
+   "server_ms": 842.1611785888672,
+   "server_latency_ms": 825.3433704376221,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193521_strong_right_left_curve.h5",
+   "frame": 5,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": null,
+   "diff_deg": null,
+   "server_ms": 842.1273231506348,
+   "server_latency_ms": 825.9680271148682,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193521_strong_right_left_curve.h5",
+   "frame": 60,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 0.3781878058598724,
+   "server_ms": 845.5615043640137,
+   "server_latency_ms": 826.775312423706,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193521_strong_right_left_curve.h5",
+   "frame": 116,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": null,
+   "diff_deg": null,
+   "server_ms": 840.7418727874756,
+   "server_latency_ms": 824.4266510009766,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193704_strong_right_right_curve.h5",
+   "frame": 5,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 8.537736462515939e-07,
+   "diff_deg": 0.2627217506001675,
+   "server_ms": 841.0487174987793,
+   "server_latency_ms": 824.4664669036865,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193704_strong_right_right_curve.h5",
+   "frame": 53,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 0.6062029076601946,
+   "server_ms": 840.2626514434814,
+   "server_latency_ms": 823.1382369995117,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193704_strong_right_right_curve.h5",
+   "frame": 102,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": null,
+   "diff_deg": null,
+   "server_ms": 841.9749736785889,
+   "server_latency_ms": 825.5579471588135,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193821_strong_right_right_curve.h5",
+   "frame": 5,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": null,
+   "diff_deg": null,
+   "server_ms": 841.2847518920898,
+   "server_latency_ms": 824.7747421264648,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193821_strong_right_right_curve.h5",
+   "frame": 56,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 0.10407410442336114,
+   "server_ms": 839.6167755126953,
+   "server_latency_ms": 822.2212791442871,
+   "subgoal_missing": false
+  },
+  {
+   "file": "episode_20261015_193821_strong_right_right_curve.h5",
+   "frame": 107,
+   "bbox_maxdiff": 0.0,
+   "noise_deg": 0.0,
+   "diff_deg": 1.250907522764694,
+   "server_ms": 845.3061580657959,
+   "server_latency_ms": 828.5543918609619,
+   "subgoal_missing": false
+  }
+ ]
+}

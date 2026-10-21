@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from robovlm_nav.models.egvla2_fm_heads import ARCH, K_SAMPLES, sample_chunk
+from robovlm_nav.models.egvla2_fm_heads import ARCH, K_SAMPLES, MLPReg, sample_chunk
 from robovlm_nav.serve.continuous_speed import to_drive_command
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +49,8 @@ class EgVla2FMPolicy:
         ck = torch.load(ckpt_path, map_location=self.device, weights_only=False)
         self.meta = {k: v for k, v in ck.items() if k not in ("state", "files")}
         self.window = int(ck["window"])
-        self.model = ARCH[ck["arch"]](ck["bdim"], ck["fdim"]).to(self.device)
+        self.is_reg = ck["arch"] == "MLP_regression"   # 실기 비교군: 결정적 회귀 헤드(샘플링 없음)
+        self.model = (MLPReg if self.is_reg else ARCH[ck["arch"]])(ck["bdim"], ck["fdim"]).to(self.device)
         self.model.load_state_dict(ck["state"])
         self.model.eval()
         self.k, self.speed_source, self.s_max = k_samples, speed_source, s_max
@@ -78,7 +79,7 @@ class EgVla2FMPolicy:
             win = np.zeros_like(win)
         bb = torch.from_numpy(win)[None].to(self.device)
         ft = torch.from_numpy(np.asarray(feat, np.float32))[None].to(self.device)
-        S = sample_chunk(self.model, bb, ft, self.k)[0]        # (k, H, 3)
+        S = self.model(bb, ft)[:1] if self.is_reg else sample_chunk(self.model, bb, ft, self.k)[0]   # (k, H, 3); 회귀는 k=1
         chunk = S.mean(0).cpu().numpy()
         first = chunk[0].astype(np.float64)
         if self.ema_alpha > 0:
@@ -86,4 +87,4 @@ class EgVla2FMPolicy:
             first = self._ema
         lx, ly, az = (float(x) for x in first)
         cmd = to_drive_command(lx, ly, az, speed_source=self.speed_source, s_max=self.s_max)
-        return dict(chunk=chunk, spread=float(S.std(0).mean().item()), first=(lx, ly, az), action_cont=cmd, arch=self.meta.get("arch"), subgoal_missing=miss)
+        return dict(chunk=chunk, spread=0.0 if self.is_reg else float(S.std(0).mean().item()), first=(lx, ly, az), action_cont=cmd, arch=self.meta.get("arch"), subgoal_missing=miss)
