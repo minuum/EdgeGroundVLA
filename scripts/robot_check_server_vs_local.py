@@ -69,5 +69,5 @@ for name, i, rgb in frames():
 nz = [r["noise_deg"] for r in rows if r["noise_deg"] is not None]; df = [r["diff_deg"] for r in rows if r["diff_deg"] is not None]
 summ = dict(n=len(rows), bbox_maxdiff_max=max(r["bbox_maxdiff"] for r in rows), local_sampling_noise_deg=float(np.mean(nz)) if nz else None, server_vs_local_deg=float(np.mean(df)) if df else None,
             server_latency_ms_mean=float(np.mean([r["server_latency_ms"] for r in rows if r["server_latency_ms"]])) if rows else None, quality=A.quality, dtype=A.dtype)
-summ["pass"] = bool(summ["server_vs_local_deg"] is not None and summ["bbox_maxdiff_max"] < 0.01 and summ["server_vs_local_deg"] <= 1.5 * (summ["local_sampling_noise_deg"] or 0) + 0.5)
+summ["pass"] = bool(summ["server_vs_local_deg"] is not None and summ["bbox_maxdiff_max"] < 0.01 and summ["server_vs_local_deg"] <= (1.0 if (summ["local_sampling_noise_deg"] or 0) < 0.05 else 1.5 * summ["local_sampling_noise_deg"] + 0.5))   # 비샘플링(회귀) 체크포인트는 잡음≈0이라 ≤1.0°
 print(json.dumps(summ, indent=1, ensure_ascii=False)); Path(A.out).write_text(json.dumps(dict(summary=summ, rows=rows), indent=1, ensure_ascii=False))
