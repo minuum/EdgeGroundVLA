@@ -2832,8 +2832,15 @@ def _current_checkpoint_and_config() -> tuple[str, str]:
     추정"으로만 답할 수밖에 없었음 — 저장 "그 순간" CSV 행에 통째로 박아서
     별도 조인/추정 없이 항상 정확하게 남도록 함(2026-07-29)."""
     cfg = _snapshot_runtime_config()
-    ckpt_path = cfg.get("checkpoint_path") or ""
-    ckpt_name = os.path.basename(ckpt_path) if ckpt_path else "(알수없음)"
+    # EGVLA2(2026-10-22) — egvla2 활성 중엔 checkpoint_path가 명시적으로 None이라
+    # (discrete 전용 키) 그대로 두면 스크리닝 배치가 전부 "(알수없음)"으로 뭉개짐.
+    # ckpt_name을 대신 써서 "C_pi0_adaln_drop30_e120.pt"처럼 egvla2 체크포인트별로
+    # 제대로 그룹핑되게 함 — 기존 discrete 경로는 동작 변화 없음.
+    if cfg.get("family") == "egvla2" and cfg.get("ckpt_name"):
+        ckpt_name = cfg["ckpt_name"]
+    else:
+        ckpt_path = cfg.get("checkpoint_path") or ""
+        ckpt_name = os.path.basename(ckpt_path) if ckpt_path else "(알수없음)"
     try:
         cfg_json = json.dumps(cfg, ensure_ascii=False)
     except Exception:
@@ -4076,8 +4083,14 @@ def verify_checkpoint_index():
             except Exception:
                 continue
             sid = d.get("session_id") or f.stem.replace("session_", "")
-            ckpt = (d.get("runtime_config") or {}).get("checkpoint_path", "")
-            idx[sid] = os.path.basename(ckpt) if ckpt else "(알수없음)"
+            rc = d.get("runtime_config") or {}
+            # EGVLA2(2026-10-22) — egvla2 세션은 checkpoint_path가 없고 ckpt_name이
+            # 대신 채워짐(_snapshot_runtime_config 참조) — 안 보면 전부 "(알수없음)"으로 뭉개짐.
+            if rc.get("family") == "egvla2" and rc.get("ckpt_name"):
+                idx[sid] = rc["ckpt_name"]
+            else:
+                ckpt = rc.get("checkpoint_path", "")
+                idx[sid] = os.path.basename(ckpt) if ckpt else "(알수없음)"
         _checkpoint_index_cache["map"] = idx
         _checkpoint_index_cache["mtime"] = cur_mtime
     m = _checkpoint_index_cache["map"]
@@ -12236,8 +12249,28 @@ L S R  C S L  R S L
         const inf = await api("/infer/health");
         const infPill = document.getElementById("infer-pill");
         const sysPanel = document.getElementById("sys-info-panel");
-        
-        if (inf.model_loaded) {
+
+        // EGVLA2(2026-10-22) — model_loaded는 discrete 전용 플래그라 egvla2 활성
+        // 중엔 항상 false(정상 — discrete를 의도적으로 안 올려놓은 상태)인데, 이
+        // 패널이 그걸 "서버 다운"으로 오판해 빨간불 + "모델 미적재" 에러를 띄우던
+        // 버그. active_family를 먼저 보고 egvla2면 그쪽 정보로 따로 렌더링.
+        if (inf.active_family === "egvla2" && inf.egvla2) {
+          infPill.className = "srv-pill online";
+          const eg = inf.egvla2;
+          sysPanel.innerHTML = `
+            <div class="form-group"><label>Loaded Checkpoint (EGVLA2)</label><input type="text" readonly value="${eg.ckpt}"></div>
+            <div class="form-group"><label>Arch / Dtype</label><input type="text" readonly value="${eg.arch} / ${eg.dtype} (K=${eg.K}, EMA=${eg.ema})"></div>
+            <div class="form-group"><label>Controller</label><input type="text" readonly value="state=${eg.controller_state} · stop_debounce=${eg.stop_debounce} · lost=${eg.lost_frames}f · search_max=${eg.search_max}f"></div>
+          `;
+          const vfySrvStatus = document.getElementById("vfy-srv-status");
+          if (vfySrvStatus) {
+            vfySrvStatus.innerHTML =
+              `<span style="color:var(--violet,#a78bfa); font-weight:700;">🆕 ${eg.ckpt}</span> (${eg.arch}, ${eg.dtype})<br>`
+              + `K=${eg.K} EMA=${eg.ema} gain=${eg.gain} · speed_source=${eg.speed_source}<br>`
+              + `controller: ${eg.controller_state} (stop_debounce=${eg.stop_debounce}, near_area=${eg.near_area ?? 'off'})<br>`
+              + `git ${inf.git_commit || '—'}`;
+          }
+        } else if (inf.model_loaded) {
           infPill.className = "srv-pill online";
           
           sysPanel.innerHTML = `
