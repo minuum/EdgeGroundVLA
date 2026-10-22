@@ -1763,7 +1763,25 @@ async def health() -> dict[str, Any]:
         "code_mtime": os.path.getmtime(__file__),
         # EGVLA2(2026-10-20) — 추가 필드만, 기존 키는 전부 그대로.
         "active_family": _active_family,
-        "egvla2": (_egvla2_service.meta if _egvla2_service is not None else None),
+        # EGVLA2(2026-10-22, minum 핸드오프 §1) — 세션 H5 스냅샷이 discrete /health
+        # 키만 읽어서 egvla2 세션은 대부분 None으로 남던 문제. 정책·컨트롤러 설정을
+        # 전부 노출(meta의 ckpt/sha/arch/dtype/subgoal_dropout에 더해).
+        "egvla2": (dict(
+            _egvla2_service.meta,
+            K=_egvla2_service.policy.k,
+            ema=_egvla2_service.policy.ema_alpha,
+            speed_source=_egvla2_service.policy.speed_source,
+            speed_max=_egvla2_service.policy.s_max,
+            window=_egvla2_service.policy.window,
+            gain=_egvla2_service.controller.gain,
+            stop_debounce=_egvla2_service.controller.stop_debounce,
+            near_area=_egvla2_service.controller.near_area,
+            near_frames=_egvla2_service.controller.near_frames,
+            lost_frames=_egvla2_service.controller.lost_frames,
+            search_max=_egvla2_service.controller.search_max_frames,
+            controller_state=_egvla2_service.controller.state,
+            drive_mode="egvla2_only",
+        ) if _egvla2_service is not None else None),
     }
 
 

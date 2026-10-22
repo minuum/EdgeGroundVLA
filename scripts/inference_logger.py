@@ -126,12 +126,34 @@ class InferenceLogger:
             for lb in labels:
                 label_counts[lb] = label_counts.get(lb, 0) + 1
 
+            # EGVLA2(2026-10-22, minum 핸드오프 §2) — 판단 횟수·총 소요시간·판단당
+            # 이동거리 추정. t_decision/t_move_end(SYNC)·t_response(ASYNC)가 없는
+            # 구세션/프레임은 조용히 스킵(결측, 에러 아님).
+            decisions = [h for h in self.data["history"] if h.get("t_decision") is not None]
+            total_duration_s = None
+            if decisions:
+                t0 = decisions[0]["t_decision"]
+                t_end_candidates = [h.get("t_move_end") or h.get("t_response") for h in decisions]
+                t_end_candidates = [t for t in t_end_candidates if t is not None]
+                if t_end_candidates:
+                    total_duration_s = round(max(t_end_candidates) - t0, 2)
+            move_distances_cm = []
+            for h in decisions:
+                ac = h.get("action_cont") or {}
+                cmps = ac.get("expected_cmps")
+                dur = h.get("move_duration_s")
+                if cmps is not None and dur is not None:
+                    move_distances_cm.append(float(cmps) * float(dur))
+
             self.data["summary"] = {
                 "avg_latency_ms": round(sum(latencies) / len(latencies), 1) if latencies else 0,
                 "total_steps": len(self.data["history"]),
                 "n_frames": len(self._frames),
                 "last_action": self.data["history"][-1]["action"],
                 "action_label_counts": label_counts,
+                "decision_count": len(decisions) or None,
+                "total_duration_s": total_duration_s,
+                "avg_move_distance_cm_per_decision": round(sum(move_distances_cm) / len(move_distances_cm), 2) if move_distances_cm else None,
             }
 
         # ── H5 저장 (데이터셋 동일 포맷) ─────────────────────────────────────
