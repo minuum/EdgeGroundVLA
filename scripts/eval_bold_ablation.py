@@ -23,7 +23,8 @@ T = S1.T
 DEV, BS = AB.DEV, AB.BS
 SMOKE = bool(os.getenv("SMOKE"))
 EPOCHS = 2 if SMOKE else 120
-OUT = ROOT / "docs/v5/egvla2_fm" / ("bold_ablation_smoke.json" if SMOKE else "bold_ablation.json")
+SEED = int(os.getenv("SEED", 0))
+OUT = ROOT / "docs/v5/egvla2_fm" / ("bold_ablation_smoke.json" if SMOKE else "bold_ablation.json" if SEED == 0 else f"bold_ablation_seed{SEED}.json")
 H0 = HD.H
 NOISE_MASK = torch.tensor([1, 1, 1, 0] * 3, dtype=torch.float32)       # bbox 창(3)×(cx,cy,area,has)
 
@@ -122,7 +123,7 @@ def main():
             if kind in res[name]:
                 continue
             tr, te = T.to_t(data[kind], tr_idx), T.to_t(data[kind], te_idx)
-            m, H = fit(tr, kind)
+            m, H = fit(tr, kind, seed=SEED)
             HD.H = H
             S = RA.draw(m, te[0], te[1], 8, 10).mean(1); HD.H = H0
             Sm = RA.draw(m, torch.zeros_like(te[0]), te[1], 8, 10).mean(1) if False else None

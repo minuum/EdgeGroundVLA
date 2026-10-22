@@ -75,6 +75,7 @@ def lines_svg(xs, series, ymin, ymax, xlabel):
 def block(tbl, H, st):
     ra, ft, bd = load("runtime_ablation.json"), load("fm_train_ablation.json"), load("bold_ablation.json")
     ax = load("aux_ablation.json")
+    grid, b1 = load("sampling_grid.json"), load("bold_ablation_seed1.json")
     out = ""
     if ra:
         d = {s: v["drop30"] for s, v in ra.items()}
@@ -145,4 +146,23 @@ def block(tbl, H, st):
             rows.append([nm, f(a[0]), dif(a[0], a[2]), f(a[1]), dif(a[1], a[3]), dif(b[0], b[2]), f"{a[4]}+{a[5]}"])
         out += V.wrap("보조 목표 변형 (음수=기준보다 좋음)", tbl(["변형", "같은 위치", "차이", "안 본 위치", "차이", "같은 위치·이동 구간 기준 차이", "분할(fold+lopo)"], rows),
                       "보조 헤드는 학습에만 쓰고 배포 모델은 그대로(추론 비용 0). 기준은 덜 보수적 후보의 base와 같은 설정·같은 분할. 120 epoch 고정", kind="table")
+    if grid:
+        out += H(f"오프라인 ablation 결과 — 서빙 샘플링 조합 (분할 {len(grid)}개, 재학습 없이 평가만 변경, 방향 오차 °)")
+        rows = []
+        for sig in (0.0, 0.25, 0.5, 1.0):
+            for k in ((1,) if sig == 0 else (1, 4, 8, 16)):
+                cells = []
+                for grp in ("fold", "lopo"):
+                    for st in (3, 5, 10):
+                        a = agg(grid, lambda v, key=f"s{sig}|K{k}|e{st}": v[key]["first"])
+                        cells.append(f(a[0] if grp == "fold" else a[1]))
+                rows.append([f"σ={sig}" + (" (현재)" if sig == 1.0 and k == 8 else ""), f"K={k}"] + cells)
+        out += V.wrap("σ × K × Euler 스텝", tbl(["시작 노이즈", "샘플 수", "같은 위치·3스텝", "5스텝", "10스텝", "안 본 위치·3스텝", "5스텝", "10스텝"], rows),
+                      "현재 서빙 = σ=1.0·K=8·10스텝. σ=0은 결정적 출력(조건부 평균에 가까움)이라 시작 구간 다봉에서 모드를 뭉갤 수 있음. 폐루프 확인 전 배포 변경 금지", kind="table")
+    if b1 and bd:
+        rows = []
+        for tag, res in (("seed 0", bd), ("seed 1", b1)):
+            a = paired(res, "w_first", "base", lambda v: v["first"])
+            rows.append([tag, f(a[0]), dif(a[0], a[2]), f(a[1]), dif(a[1], a[3]), f"{a[4]}+{a[5]}"])
+        out += V.wrap("첫 스텝 손실 가중 — seed별 재현", tbl(["", "같은 위치", "차이", "안 본 위치", "차이", "분할(fold+lopo)"], rows), "차이가 seed 사이에서 같은 부호이면 재현됨", kind="table")
     return out
