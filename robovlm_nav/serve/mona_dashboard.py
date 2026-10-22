@@ -1587,8 +1587,16 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
         # move_duration만큼 움직이고 멈추므로 실제 유지시간을 바로 알 수 있음.
         _append_action_history(lx, ly, az, duration=_ros.ctrl.move_duration)
 
-        log_msg = _ros.ctrl.move_and_stop_ramped(lx, ly, az, source=f"{mode.lower()}")
+        _speed_scale = float(res.get("action_speed_scale", 1.0))
+        _t_move_start = time.time()
+        log_msg = _ros.ctrl.move_and_stop_ramped(lx, ly, az, source=f"{mode.lower()}", throttle_scale=_speed_scale)
+        _t_move_end = time.time()
         _state["status_log"]     = log_msg
+        # EGVLA2(2026-10-22, minum 핸드오프 §2) — 판단주기/이동비율 계산용 타임스탬프.
+        _state["_last_step_timing"] = dict(t_decision=_t_decision, t_response=_t_response,
+                                            t_move_start=_t_move_start, t_move_end=_t_move_end,
+                                            decision_latency_s=_t_response - _t_decision,
+                                            move_duration_s=_t_move_end - _t_move_start)
         _state["last_action"]    = [lx, ly, az]
         _state["predicted_label"]= res.get("predicted_label")
         _state["latency_ms"]     = res.get("latency_ms", 0)
@@ -1610,7 +1618,16 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
                         goal_near=res.get("goal_near"),
                         bbox=res.get("bbox"),
                         grounding_latency_ms=res.get("grounding_latency_ms"),
-                        grounding_cached=res.get("grounding_cached"))
+                        grounding_cached=res.get("grounding_cached"),
+                        # EGVLA2(2026-10-22, minum 핸드오프 §2) — 정지 시점 분석에 필요.
+                        # discrete 세션에선 전부 None이라 extra의 None-skip 규칙대로 안 찍힘.
+                        action_cont=res.get("action_cont"),
+                        controller_state=res.get("controller_state"),
+                        reason=res.get("reason"),
+                        subgoal_missing=res.get("subgoal_missing"),
+                        chunk_first=res.get("chunk_first"),
+                        spread=res.get("spread"),
+                        **_state["_last_step_timing"])
 
         if mode == "SYNC":
             time.sleep(_ros.ctrl.move_duration + 0.15)
@@ -1689,7 +1706,16 @@ def _async_infer(instr: str, apply_cc: bool, logger):
                         bbox=res.get("bbox"),
                         grounding_cached=res.get("grounding_cached"),
                         grounding_latency_ms=res.get("grounding_latency_ms"),
-                        goal_near=res.get("goal_near"))
+                        goal_near=res.get("goal_near"),
+                        # EGVLA2(2026-10-22, minum 핸드오프 §2)
+                        action_cont=res.get("action_cont"),
+                        controller_state=res.get("controller_state"),
+                        reason=res.get("reason"),
+                        subgoal_missing=res.get("subgoal_missing"),
+                        chunk_first=res.get("chunk_first"),
+                        spread=res.get("spread"),
+                        t_decision=_t_decision, t_response=_t_response,
+                        decision_latency_s=_t_response - _t_decision)
 
         if res.get("goal_near"):
             _ros.ctrl.robust_stop(source="async_goal")
@@ -2828,7 +2854,47 @@ def _snapshot_runtime_config() -> dict:
         r = rq.get(f"{INFER_URL}/health", headers={"X-API-Key": API_KEY}, timeout=2)
         h = r.json()
         g = h.get("grounder", {}) or {}
+        # EGVLA2(2026-10-22, minum 핸드오프 §1) — egvla2 활성 세션은 discrete 전용
+        # 키가 전부 N/A고, 대신 모델/정책/컨트롤러 설정 전체를 기록한다. start_position은
+        # 현재 선택된 path_type(_verify_current_path_type)의 접두사(pos2_/pos3_)에서
+        # 읽음(convert/h5_v6_to_lerobot.py의 파일명 폴백과 같은 규칙) — 없으면 pos1.
+        active_family = h.get("active_family", "discrete")
+        if active_family == "egvla2":
+            eg = h.get("egvla2") or {}
+            pt = _verify_current_path_type or ""
+            start_position = "pos2" if "pos2_" in pt else ("pos3" if "pos3_" in pt else "pos1")
+            return {
+                "family": "egvla2",
+                "ckpt_name": eg.get("ckpt"),
+                "ckpt_sha256": eg.get("sha256"),
+                "arch": eg.get("arch"),
+                "dtype": eg.get("dtype"),
+                "K": eg.get("K"),
+                "ema": eg.get("ema"),
+                "gain": eg.get("gain"),
+                "stop_debounce": eg.get("stop_debounce"),
+                "near_area": eg.get("near_area"),
+                "near_frames": eg.get("near_frames"),
+                "lost_frames": eg.get("lost_frames"),
+                "search_max": eg.get("search_max"),
+                "speed_source": eg.get("speed_source"),
+                "speed_max": eg.get("speed_max"),
+                "jpeg_quality": _drive_jpeg_quality_and_cc(False)[0],
+                "apply_cc": False,  # egvla2 활성 중엔 _drive_jpeg_quality_and_cc()가 항상 강제로 끔
+                "drive_mode": eg.get("drive_mode", "egvla2_only"),
+                "start_position": start_position,
+                "target_position": pt,
+                # discrete 전용 키는 egvla2 세션에선 전부 명시적으로 N/A
+                "preview_enabled": None, "preview_hint_cx": None, "grounding_skip_n": None,
+                "cx_jump_filter": None, "cx_jump_thresh": None, "multi_prompt": None,
+                "force_reground_on_miss": None, "stop_on_miss": None, "action_speed_scale": None,
+                "stop_mode": None, "stop_learned_min_steps": None, "head": None,
+                "grounder_model": None, "grounder_input_px": None, "owlv2_thresh": None,
+                "owlv2_area_scale": None, "checkpoint_path": None, "stage1_path": None,
+                "git_commit": h.get("git_commit"),
+            }
         return {
+            "family": "discrete",
             "preview_enabled": h.get("preview", {}).get("enabled"),
             "preview_hint_cx": h.get("preview", {}).get("hint_cx"),
             "grounding_skip_n": h.get("grounding_skip_n"),
