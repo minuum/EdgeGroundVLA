@@ -1,6 +1,7 @@
 """CH78 ⚙️ 런타임 요인 — 한 주기 플로우, 시간표, 청크 사용, 낡은 명령 그래프, 끌/남길 요인, 정지 면적 (2026-10-22). 글은 최소로, 그림 중심."""
 import json
 
+import ch78_ablate
 import gen_ch76_viz as V
 
 FM = V.FM
@@ -101,4 +102,5 @@ def block(tbl, H, st):
             + V.wrap("참고 — 낡은 명령을 쓰면 방향 오차가 얼마나 늘어나나", lines_svg(lm), "현재 루프(정지 후 추론)에서는 발생하지 않음. 연속 구동으로 바꿀 때 대비. 유지는 +0.5° 이내, 청크 뒤 스텝은 +1.6~1.8°", kind="chart")
             + V.wrap("런타임 요인 — 끌 것 / 남길 것", f'<div style="font-size:0.78rem;color:{MUT};margin-bottom:2px">끔(EGVLA1 전용)</div>{chips(off, R)}<div style="font-size:0.78rem;color:{MUT};margin:8px 0 2px">남기고 세션 H5에 기록</div>{chips(keep, G)}', "현재 세션 스냅샷은 EGVLA1 키만 읽음 → EGVLA2 키 추가 필요", kind="flow")
             + V.wrap("정지 판정 근거 — 학습 데이터 마지막 프레임 면적", area_svg(ar), f"0.25 임계는 거의 항상 발동하지만 사람이 멈춘 곳보다 약 {ar['rem_median']:.0f}프레임(약 1.2초) 앞서 멈춤. 실제 거리는 드라이런에서 확인", kind="chart")
-            + V.wrap("조정·ablation 후보 — 어디서 검증하나", f'<div style="font-size:0.78rem;color:{G}">A 오프라인(오늘)</div>{chips(A_, G)}<div style="font-size:0.78rem;color:{A};margin-top:6px">B 드라이런 로그 필요</div>{chips(B_, A)}<div style="font-size:0.78rem;color:{R};margin-top:6px">C 실기에서만</div>{chips(C_, R)}', "내일 폐루프는 기본값 고정, 비교군(회귀)만 바꿈. 한 번에 하나만 변경", kind="flow"))
+            + V.wrap("조정·ablation 후보 — 어디서 검증하나", f'<div style="font-size:0.78rem;color:{G}">A 오프라인(오늘)</div>{chips(A_, G)}<div style="font-size:0.78rem;color:{A};margin-top:6px">B 드라이런 로그 필요</div>{chips(B_, A)}<div style="font-size:0.78rem;color:{R};margin-top:6px">C 실기에서만</div>{chips(C_, R)}', "내일 폐루프는 기본값 고정, 비교군(회귀)만 바꿈. 한 번에 하나만 변경", kind="flow")
+            + ch78_ablate.block(tbl, H, st))
