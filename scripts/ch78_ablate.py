@@ -74,6 +74,7 @@ def lines_svg(xs, series, ymin, ymax, xlabel):
 
 def block(tbl, H, st):
     ra, ft, bd = load("runtime_ablation.json"), load("fm_train_ablation.json"), load("bold_ablation.json")
+    ax = load("aux_ablation.json")
     out = ""
     if ra:
         d = {s: v["drop30"] for s, v in ra.items()}
@@ -132,4 +133,16 @@ def block(tbl, H, st):
         for sg in (0.0, 0.5, 1.0, 1.5):
             a = agg(bd, lambda v, s_=sg: v["base"][f"sigma{s_}|first"]); rows.append([f"σ={sg}" + (" (현재)" if sg == 1.0 else ""), f(a[0]), f(a[1])])
         out += V.wrap("흐름 시작 노이즈 크기 (평가만 변경)", tbl(["초기 노이즈", "같은 위치", "안 본 위치"], rows), kind="table")
+    if ax:
+        merged = {sp: dict(v, **({"base": bd[sp]["base"]} if sp in bd and "base" in bd[sp] else {})) for sp, v in ax.items()}
+        out += H(f"오프라인 ablation 결과 — 학습 전용 보조 목표(추론 비용 0), 분할 {len(ax)}개 반영")
+        lab = {"aux_f3_w0.2": "3프레임 뒤 특징 예측(가중 0.2)", "aux_f8_w0.5": "8프레임 뒤 특징 예측(가중 0.5)", "aux_bbox3_w0.5": "3프레임 뒤 bbox 예측(가중 0.5)"}
+        rows = []
+        for k, nm in lab.items():
+            if not any(k in v for v in ax.values()):
+                continue
+            a = paired(merged, k, "base", lambda v: v["first"]); b = paired(merged, k, "base", lambda v: v["n1_vs_burst"])
+            rows.append([nm, f(a[0]), dif(a[0], a[2]), f(a[1]), dif(a[1], a[3]), dif(b[0], b[2]), f"{a[4]}+{a[5]}"])
+        out += V.wrap("보조 목표 변형 (음수=기준보다 좋음)", tbl(["변형", "같은 위치", "차이", "안 본 위치", "차이", "같은 위치·이동 구간 기준 차이", "분할(fold+lopo)"], rows),
+                      "보조 헤드는 학습에만 쓰고 배포 모델은 그대로(추론 비용 0). 기준은 덜 보수적 후보의 base와 같은 설정·같은 분할. 120 epoch 고정", kind="table")
     return out
