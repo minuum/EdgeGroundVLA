@@ -1889,11 +1889,18 @@ async def set_config(
     _check_api_key(x_api_key)
     applied: dict[str, Any] = {}
     ignored: list[str] = []
+    # EGVLA2(2026-10-22) — 아래 discrete 전용 설정들이 전부 무조건 get_model()을 불러서
+    # egvla2 활성 중에도 discrete를 조용히 같이 로드시키던 버그 수정(/reset·/ground와
+    # 같은 패턴). egvla2 활성 중엔 model-dependent 필드는 적용 안 하고 ignored로 기록.
+    _discrete_only = _active_family == "egvla2"
 
     if request.grounding_skip_n is not None:
-        m = get_model()
-        m._grounding_skip_n = max(1, request.grounding_skip_n)
-        applied["grounding_skip_n"] = m._grounding_skip_n
+        if _discrete_only:
+            ignored.append("grounding_skip_n (egvla2 active)")
+        else:
+            m = get_model()
+            m._grounding_skip_n = max(1, request.grounding_skip_n)
+            applied["grounding_skip_n"] = m._grounding_skip_n
 
     if request.stop_area_threshold is not None:
         global GOAL_AREA_THRESHOLD
@@ -1919,9 +1926,12 @@ async def set_config(
             ignored.append(f"stop_mode={request.stop_mode} (unknown)")
 
     if request.stop_latched is not None:
-        m = get_model()
-        m.stop_latched = bool(request.stop_latched)
-        applied["stop_latched"] = m.stop_latched
+        if _discrete_only:
+            ignored.append("stop_latched (egvla2 active)")
+        else:
+            m = get_model()
+            m.stop_latched = bool(request.stop_latched)
+            applied["stop_latched"] = m.stop_latched
 
     if request.stop_learned_min_steps is not None:
         global STOP_LEARNED_MIN_STEPS
@@ -1929,36 +1939,62 @@ async def set_config(
         applied["stop_learned_min_steps"] = STOP_LEARNED_MIN_STEPS
 
     if request.preview_enabled is not None:
-        m = get_model()
-        m._preview_enabled = bool(request.preview_enabled)
-        if not m._preview_enabled:
-            m._preview_attempt = 0
-        applied["preview_enabled"] = m._preview_enabled
+        if _discrete_only:
+            ignored.append("preview_enabled (egvla2 active)")
+        else:
+            m = get_model()
+            m._preview_enabled = bool(request.preview_enabled)
+            if not m._preview_enabled:
+                m._preview_attempt = 0
+            applied["preview_enabled"] = m._preview_enabled
 
     if request.preview_hint_cx is not None:
-        m = get_model()
-        m._preview_use_hint_cx = bool(request.preview_hint_cx)
-        applied["preview_hint_cx"] = m._preview_use_hint_cx
+        if _discrete_only:
+            ignored.append("preview_hint_cx (egvla2 active)")
+        else:
+            m = get_model()
+            m._preview_use_hint_cx = bool(request.preview_hint_cx)
+            applied["preview_hint_cx"] = m._preview_use_hint_cx
 
     if request.cx_jump_filter is not None:
-        m = get_model()
-        m._cx_jump_filter = bool(request.cx_jump_filter)
-        applied["cx_jump_filter"] = m._cx_jump_filter
+        if _discrete_only:
+            ignored.append("cx_jump_filter (egvla2 active)")
+        else:
+            m = get_model()
+            m._cx_jump_filter = bool(request.cx_jump_filter)
+            applied["cx_jump_filter"] = m._cx_jump_filter
 
     if request.cx_jump_thresh is not None:
-        m = get_model()
-        m._cx_jump_thresh = float(request.cx_jump_thresh)
-        applied["cx_jump_thresh"] = m._cx_jump_thresh
+        if _discrete_only:
+            ignored.append("cx_jump_thresh (egvla2 active)")
+        else:
+            m = get_model()
+            m._cx_jump_thresh = float(request.cx_jump_thresh)
+            applied["cx_jump_thresh"] = m._cx_jump_thresh
 
     if request.multi_prompt is not None:
-        m = get_model()
-        m._multi_prompt = bool(request.multi_prompt)
-        applied["multi_prompt"] = m._multi_prompt
+        if _discrete_only:
+            ignored.append("multi_prompt (egvla2 active)")
+        else:
+            m = get_model()
+            m._multi_prompt = bool(request.multi_prompt)
+            applied["multi_prompt"] = m._multi_prompt
 
     if request.force_reground_on_miss is not None:
-        m = get_model()
-        m._force_reground_on_miss = bool(request.force_reground_on_miss)
-        applied["force_reground_on_miss"] = m._force_reground_on_miss
+        if _discrete_only:
+            ignored.append("force_reground_on_miss (egvla2 active)")
+        else:
+            m = get_model()
+            m._force_reground_on_miss = bool(request.force_reground_on_miss)
+            applied["force_reground_on_miss"] = m._force_reground_on_miss
+
+    if request.stop_on_miss is not None:
+        if _discrete_only:
+            ignored.append("stop_on_miss (egvla2 active)")
+        else:
+            m = get_model()
+            m._stop_on_miss = bool(request.stop_on_miss)
+            applied["stop_on_miss"] = m._stop_on_miss
 
     if request.owlv2_thresh is not None:
         # OwlV2Grounder.run()이 매 호출 os.getenv를 읽으므로 env 갱신 = 즉시 적용
@@ -2002,6 +2038,14 @@ async def ground(
 ) -> dict[str, Any]:
     """PG2 grounding only — no action prediction. Returns bbox + raw PG2 output."""
     _check_api_key(x_api_key)
+    # EGVLA2(2026-10-22) — 데이터수집 탭의 600ms 폴링(/collect/ground)이 egvla2 활성
+    # 중에도 이 엔드포인트를 계속 때려서 discrete를 조용히 같이 로드시키던 버그
+    # 수정(/reset·/predict와 같은 패턴). egvla2엔 단독 그라운딩 엔드포인트가 없어
+    # 미검출로 우아하게 응답 — 데이터수집 cx 오버레이만 잠깐 안 뜨고 수집 자체엔 영향 없음.
+    if _active_family == "egvla2":
+        return {"has_bbox": False, "cx": 0.5, "cy": 0.5, "area": 0.0,
+                "x1": None, "y1": None, "x2": None, "y2": None, "latency_ms": 0.0,
+                "note": "egvla2 활성 — discrete 그라운딩 불가"}
     m = get_model()
     import time as _time
     image_rgb = m._decode_image(request.image)
