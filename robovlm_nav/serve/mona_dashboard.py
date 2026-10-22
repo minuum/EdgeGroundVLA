@@ -1528,11 +1528,16 @@ def _record_calib_frame(img_pil: Image.Image, res: dict):
 def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
     from scripts.inference_logger import get_logger
     logger = get_logger()
-    logger.start_session("stage2_v2", instr, instruction_mode=mode)
+    # EGVLA2(2026-10-22) — model_name이 활성 패밀리와 무관하게 "stage2_v2"로
+    # 고정돼 있어서 egvla2 세션도 전부 "stage2_v2"로 잘못 기록되던 버그. H5
+    # attrs의 model_name/세션 목록에서 바로 구분되도록 family에 맞춰 조립.
+    _cfg = _snapshot_runtime_config()
+    _model_name = f"egvla2:{_cfg.get('ckpt_name')}" if _cfg.get("family") == "egvla2" else "stage2_v2"
+    logger.start_session(_model_name, instr, instruction_mode=mode)
     if gt_obj:
         logger.data["gt_object"] = gt_obj
     logger.data["apply_cc"] = apply_cc
-    logger.data["runtime_config"] = _snapshot_runtime_config()
+    logger.data["runtime_config"] = _cfg
     # EGVLA2(2026-10-22, minum) — SYNC(0.4초 이동-정지)·ASYNC(연속, 마지막 명령
     # 0.1초마다 재전송·4초 타임아웃)는 판단 주기/이동 비율에 큰 영향 — 세션
     # H5에 명시 기록(기존 instruction_mode 속성과 같은 값, 분석 편의용 별칭).
@@ -2152,10 +2157,13 @@ def drive_start(req: DriveReq):
     else:
         from scripts.inference_logger import get_logger
         logger = get_logger()
-        logger.start_session("stage2_v2", req.instruction, instruction_mode="ASYNC")
+        # EGVLA2(2026-10-22) — model_name 패밀리 반영 (SYNC/PRE 경로와 동일 수정)
+        _cfg = _snapshot_runtime_config()
+        _model_name = f"egvla2:{_cfg.get('ckpt_name')}" if _cfg.get("family") == "egvla2" else "stage2_v2"
+        logger.start_session(_model_name, req.instruction, instruction_mode="ASYNC")
         if req.gt_object: logger.data["gt_object"] = req.gt_object
         logger.data["apply_cc"] = req.apply_cc
-        logger.data["runtime_config"] = _snapshot_runtime_config()
+        logger.data["runtime_config"] = _cfg
         logger.data["runtime_config"]["drive_loop_mode"] = "ASYNC"
         _state["session_id"] = logger.session_id
 
