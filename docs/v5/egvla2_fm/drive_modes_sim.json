@@ -1,0 +1,52 @@
+{
+ "human_path_cm": {
+  "p10": 173.0545196533203,
+  "median": 217.61627197265625,
+  "p90": 279.1697143554687
+ },
+ "latency_0.5": {
+  "S": {
+   "time_s": 25.65,
+   "decisions": 27.0,
+   "moving_ratio": 0.4210526315789474,
+   "stale_move_cm": 0.0
+  },
+  "H_C": {
+   "time_s": 11.37320097498932,
+   "decisions": 23.0,
+   "moving_ratio": 0.9340555042202848,
+   "stale_move_cm": 10.2425
+  },
+  "speedup": 2.2553017445490173
+ },
+ "latency_0.9": {
+  "S": {
+   "time_s": 36.45,
+   "decisions": 27.0,
+   "moving_ratio": 0.2962962962962963,
+   "stale_move_cm": 0.0
+  },
+  "H_C": {
+   "time_s": 11.973200974989322,
+   "decisions": 14.0,
+   "moving_ratio": 0.8872481962990166,
+   "stale_move_cm": 18.4365
+  },
+  "speedup": 3.0442986863863704
+ },
+ "latency_1.3": {
+  "S": {
+   "time_s": 47.25,
+   "decisions": 27.0,
+   "moving_ratio": 0.2285714285714286,
+   "stale_move_cm": 0.0
+  },
+  "H_C": {
+   "time_s": 12.573200974989323,
+   "decisions": 10.0,
+   "moving_ratio": 0.8449082288795045,
+   "stale_move_cm": 26.6305
+  },
+  "speedup": 3.757992900454701
+ }
+}
