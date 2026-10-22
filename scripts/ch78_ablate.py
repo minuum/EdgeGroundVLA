@@ -115,7 +115,7 @@ def block(tbl, H, st):
             a = paired(ft, vn, base, lambda v: v["first"]); m_ = paired(ft, vn, base, lambda v: v["miss_first"]); pr = agg({s_: v for s_, v in ft.items() if vn in v}, lambda v: v[vn]["params"])
             rows.append([vn.replace("|", " · "), f"{int(pr[0]):,}" if pr[0] else "—", f(a[0]), dif(a[0], a[2]), f(a[1]), dif(a[1], a[3]), dif(m_[0], m_[2]), f"{a[4]}+{a[5]}"])
         out += V.wrap("시간 샘플링·층수·폭 변형", tbl(["변형(τ·층·폭)", "파라미터", "같은 위치", "차이", "안 본 위치", "차이", "같은 위치·서브골 결측 차이", "분할(fold+lopo)"], rows),
-                      "uniform·L2·d128이 현재 배포 구성(차이는 같은 분할끼리의 기준 대비, 음수=좋음). beta는 π0 논문 방식", kind="table")
+                      "uniform·L2·d128이 현재 배포 구성(차이는 같은 분할끼리의 기준 대비, 음수=좋음). beta는 π0 논문 방식. 모두 120 epoch 고정이라 0.2° 안팎 차이는 해석 주의", kind="table")
     if bd:
         out += H(f"오프라인 ablation 결과 — 덜 보수적인 후보 (분할 {len(bd)}/10 반영, 방향 오차 °)")
         lab = {"base": "기준(FM-π0, 현재 배포 구성)", "ep250": "학습 2배 길게(240 epoch)", "H4": "청크 길이 4로 재학습", "H16": "청크 길이 16으로 재학습", "w_first": "첫 스텝 손실 4배",
@@ -127,7 +127,7 @@ def block(tbl, H, st):
             a = paired(bd, k, "base", lambda v: v["first"]); b = paired(bd, k, "base", lambda v: v["n1_vs_burst"])
             rows.append([nm, f(a[0]), "" if k == "base" else dif(a[0], a[2]), f(a[1]), "" if k == "base" else dif(a[1], a[3]), "" if k == "base" else dif(b[0], b[2]), f"{a[4]}+{a[5]}"])
         out += V.wrap("학습·데이터·목표 변형 (음수=기준보다 좋음)", tbl(["변형", "같은 위치", "차이", "안 본 위치", "차이", "같은 위치·이동 구간 기준 차이", "분할(fold+lopo)"], rows),
-                      "정답은 모두 원본 사람 조작. 같은 seed·같은 분할이라 차이는 변형 효과 + 학습 잡음(약 ±0.1°)", kind="table")
+                      "정답은 모두 원본 사람 조작. 모든 변형 120 epoch 고정(최적 epoch가 변형마다 다를 수 있어 0.2° 안팎 차이는 변형 효과와 구분 불가). 같은 seed·같은 분할이라 학습 잡음은 약 ±0.1°", kind="table")
         rows = []
         for sg in (0.0, 0.5, 1.0, 1.5):
             a = agg(bd, lambda v, s_=sg: v["base"][f"sigma{s_}|first"]); rows.append([f"σ={sg}" + (" (현재)" if sg == 1.0 else ""), f(a[0]), f(a[1])])
