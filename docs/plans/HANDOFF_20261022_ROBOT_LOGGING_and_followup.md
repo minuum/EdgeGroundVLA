@@ -4,14 +4,14 @@
 
 ## 1. 세션 H5 스냅샷에 EGVLA2 키 추가 (동작 변화 없음, 분석 필수)
 현재 `_snapshot_runtime_config()`는 discrete 서버 `/health`의 키(preview, cx_jump, multi_prompt, stop_mode, owlv2_*)만 읽어서 EGVLA2 세션은 대부분 `None`으로 기록된다. EGVLA2 `/health`와 스냅샷에 다음을 추가:
-`family`, `ckpt_name`, `ckpt_sha256`, `arch`, `dtype`, `K`, `ema`, `gain`, `stop_debounce`, `near_area`, `near_frames`, `lost_frames`, `search_max`, `speed_source`, `speed_max`, `jpeg_quality`, `apply_cc`, `drive_mode`, `start_position(pos1/2/3)`, `target_position(5종)`.
+`family`, `ckpt_name`, `ckpt_sha256`, `arch`, `dtype`, `K`, `ema`, `gain`, `stop_debounce`, `near_area`, `near_frames`, `lost_frames`, `search_max`, `speed_source`, `speed_max`, `jpeg_quality`, `apply_cc`, `drive_mode`, `drive_loop_mode(ASYNC|SYNC)`, `start_position(pos1/2/3)`, `target_position(5종)`.
 (EGVLA2 활성 중에는 discrete 전용 키가 N/A임을 명시적으로 기록.)
 
 ## 2. 프레임·에피소드 로그 보강
 - 정지가 걸린 프레임: 그 시점의 `bbox` 면적, `controller_state`, `reason`, 그리고 **로봇이 실제로 멈춘 위치**(가능하면 목표까지 거리를 사람이 줄자로 기록해 에피소드 메모에).
 - 판단마다: 판단 시각, 응답 도착 시각, 이동 시작·정지 시각(→ 판단 주기와 이동 비율 계산).
 - 에피소드마다: **총 소요 시간, 판단 횟수, 판단 한 번당 실제 이동 거리(추정 가능하면)**.
-  - 이유: 시뮬레이션상 정지-이동(0.4초 이동)은 판단 약 27회·약 36초가 나오는데 EGVLA1 실기 평균은 11.64스텝이다. 어느 쪽 가정이 틀렸는지 확인 필요.
+  - 이유: 대시보드에는 두 구동 모드가 있다(ASYNC=직전 명령 유지, API 기본값 / SYNC=0.4초 이동 후 정지). **폐루프가 어느 모드로 돌았는지**를 세션 메타데이터에 반드시 기록하고(`drive_loop_mode`), 판단당 이동 거리·소요 시간은 그에 맞춰 해석한다.
 
 ## 3. 결과 기록 표(수동)
 에피소드별: 모델(주/비교군), 시작 위치, 목표 위치, 성공/실패, 충돌 여부, 개입 여부, 소요 시간, 정지 위치와 목표까지 거리(cm).

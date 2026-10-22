@@ -13,9 +13,9 @@ def timeline_svg():
     """서버 추론 / 로봇 이동을 두 모델에 대해 같은 시간축(초)으로."""
     sc, x0, W = 250, 130, 760
     lanes = [("EGVLA2 서버 추론", 30, [(0.0, 0.90, B, "추론 0.9초"), (1.35, 2.25, B, "추론 0.9초")]),
-             ("EGVLA2 로봇", 66, [(0.90, 1.30, G, "이동 0.4"), (2.25, 2.65, G, "이동 0.4")]),
+             ("EGVLA2 로봇", 66, [(0.90, 2.25, G, "직전 명령 유지(다음 응답까지)"), (2.25, 3.0, G, "새 명령")]),
              ("EGVLA1 서버 추론", 118, [(0.0, 0.53, A, "0.53"), (0.98, 1.51, A, "0.53"), (1.96, 2.49, A, "0.53")]),
-             ("EGVLA1 로봇", 154, [(0.53, 0.93, G, "이동"), (1.51, 1.91, G, "이동"), (2.49, 2.89, G, "이동")])]
+             ("EGVLA1 로봇", 154, [(0.53, 0.98, G, "유지"), (1.51, 1.96, G, "유지"), (2.49, 3.0, G, "유지")])]
     o = [f'<svg viewBox="0 0 {W} 210" style="width:100%;max-width:{W}px" font-family="sans-serif">']
     k = 190   # px/초
     for s in range(0, 7):
@@ -26,7 +26,7 @@ def timeline_svg():
         for a, b, col, lab in bars:
             o.append(f'<rect x="{x0 + a * k:.1f}" y="{y}" width="{(b - a) * k:.1f}" height="26" rx="4" fill="{col}" fill-opacity="0.35" stroke="{col}"/>'
                      f'<text x="{x0 + (a + b) / 2 * k:.1f}" y="{y + 17}" fill="{TX}" font-size="11" text-anchor="middle">{lab}</text>')
-    o.append(f'<text x="{x0}" y="112" fill="{MUT}" font-size="10.5">※ EGVLA1 값은 평균(캐시 재사용 반영), 비교용 단순화. 로봇은 추론 중 정지</text></svg>')
+    o.append(f'<text x="{x0}" y="112" fill="{MUT}" font-size="10.5">※ ASYNC(기본) 모드: 추론 스레드와 실행 스레드가 분리되어 로봇은 다음 응답까지 직전 명령을 유지. EGVLA1 값은 평균(캐시 재사용 반영), 단순화</text></svg>')
     return "".join(o)
 
 
@@ -87,19 +87,19 @@ def block(tbl, H, st):
     ar = json.load(open(FM / "near_area_stats.json"))
     cycle = V.flow([("① 프레임 1장", B, "로봇 정지, 최신 이미지 JPEG q95"), ("② Florence-2", B, "그라운딩 + 특징, 0.9초 (지연 94%)"), ("③ bbox 창", P, "최근 3번 판단, 결측이면 0"),
                     ("④ FM 헤드", P, "K=8 샘플 → 청크 평균 (8스텝)"), ("⑤ 첫 스텝 + EMA 0.5", A, "나머지 7스텝 버림"), ("⑥ 방향·속도·정지", A, "속도 0.7 고정, 크기<0.2 정지, 면적≥0.25 도착"),
-                    ("⑦ 0.4초 이동", G, "약 8cm 후 자동 정지"), ("⑧ 정지·대기", MUT, "0.45초 → ①로")])
-    versus = tbl(["", "EGVLA1", "EGVLA2"], [["한 주기", "약 1.0초", "약 1.35초"], ["그라운딩 캐시", "있음(3프레임, 50.8%)", "없음"], ["지연 지배", "OWLv2 97%", "Florence-2 94%"],
+                    ("⑦ 명령 유지", G, "ASYNC(기본): 0.1초마다 재발행, 4초 넘으면 정지"), ("⑧ 새 응답이 오면 교체", MUT, "추론은 별도 스레드. SYNC 모드는 0.4초 이동 후 정지")])
+    versus = tbl(["", "EGVLA1", "EGVLA2"], [["판단 주기", "약 1.0초", "약 0.9초(추론 시간)"], ["그라운딩 캐시", "있음(3프레임, 50.8%)", "없음"], ["지연 지배", "OWLv2 97%", "Florence-2 94%"],
                                               ["회복", "재그라운딩·회전·학습 정지", "소실 5 → 탐색, 면적 정지"], ["판단 횟수", "평균 11.6회", "약 14회(추정)"]])
     off = ["preview·hint_cx", "cx 점프 필터", "multi-prompt", "미검출 재그라운딩", "stop_on_miss", "stop_mode(learned)", "OWLv2 임계값·면적", "action_speed_scale"]
     keep = ["ckpt sha·arch", "dtype", "K=8", "EMA 0.5", "gain 1.15", "디바운스 3", "near_area 0.25 · 2", "lost 5 · search 40", "JPEG q95", "apply_cc 끔"]
     A_ = ["청크 앞 n스텝 평균", "EMA 0·0.3·0.7", "K 1·4·16", "Euler 3·5", "bbox 창 1·5", "드롭아웃 0.5"]
     B_ = ["gain", "near_area/frames", "STOP_M 0.2", "디바운스·소실·탐색", "search_az", "has_bbox 놓침"]
     C_ = ["move_duration 0.3·0.6", "이동 후 대기", "RULE_S 0.5·1.0", "그라운딩 N프레임마다", "beam·토큰 축소", "fp16"]
-    return (V.wrap("한 주기 — 프레임이 명령이 되기까지", cycle, "정지 → 추론 → 0.4초 이동 → 정지. 추론 중 로봇은 서 있고, 청크 8스텝 중 구동에는 첫 스텝만 쓴다", kind="flow")
-            + V.wrap("시간표 — 같은 시간축에서 추론과 이동", timeline_svg(), "EGVLA2는 추론이 길어 한 주기가 더 길다. 로봇은 둘 다 추론 중 정지", kind="chart")
+    return (V.wrap("한 주기 — 프레임이 명령이 되기까지", cycle, "구동 모드는 두 가지: ASYNC(API 기본값, 직전 명령을 다음 응답까지 유지)와 SYNC(0.4초 이동 후 정지). 청크 8스텝 중 구동에는 첫 스텝만 쓴다. 실기에서 어느 모드를 쓰는지 확인 필요", kind="flow")
+            + V.wrap("시간표 — 같은 시간축에서 추론과 이동", timeline_svg(), "ASYNC 기준. 응답이 올 때까지 로봇은 직전 명령으로 계속 이동하므로 추론이 길수록 낡은 명령으로 가는 거리가 늘어난다", kind="chart")
             + V.wrap("EGVLA1 vs EGVLA2 요약", versus, kind="table")
             + V.wrap("청크는 어떻게 쓰이나", chunk_svg(), "뒤 스텝을 현재 프레임 정답과 비교하면 나쁨(아래 그래프). 이동 0.4초 구간 평균 방향과 비교하는 평가는 아직 안 함", kind="flow")
-            + V.wrap("참고 — 낡은 명령을 쓰면 방향 오차가 얼마나 늘어나나", lines_svg(lm), "현재 루프(정지 후 추론)에서는 발생하지 않음. 연속 구동으로 바꿀 때 대비. 유지는 +0.5° 이내, 청크 뒤 스텝은 +1.6~1.8°", kind="chart")
+            + V.wrap("낡은 명령을 쓰면 방향 오차가 얼마나 늘어나나 (ASYNC 유지 모드에서 발생)", lines_svg(lm), "ASYNC 기본 모드에서는 이 상황이 실제로 발생함(SYNC 모드에서는 없음). 유지는 +0.5° 이내, 청크 뒤 스텝은 +1.6~1.8°", kind="chart")
             + V.wrap("런타임 요인 — 끌 것 / 남길 것", f'<div style="font-size:0.78rem;color:{MUT};margin-bottom:2px">끔(EGVLA1 전용)</div>{chips(off, R)}<div style="font-size:0.78rem;color:{MUT};margin:8px 0 2px">남기고 세션 H5에 기록</div>{chips(keep, G)}', "현재 세션 스냅샷은 EGVLA1 키만 읽음 → EGVLA2 키 추가 필요", kind="flow")
             + V.wrap("정지 판정 근거 — 학습 데이터 마지막 프레임 면적", area_svg(ar), f"0.25 임계는 거의 항상 발동하지만 사람이 멈춘 곳보다 약 {ar['rem_median']:.0f}프레임(약 1.2초) 앞서 멈춤. 실제 거리는 드라이런에서 확인", kind="chart")
             + V.wrap("조정·ablation 후보 — 어디서 검증하나", f'<div style="font-size:0.78rem;color:{G}">A 오프라인(오늘)</div>{chips(A_, G)}<div style="font-size:0.78rem;color:{A};margin-top:6px">B 드라이런 로그 필요</div>{chips(B_, A)}<div style="font-size:0.78rem;color:{R};margin-top:6px">C 실기에서만</div>{chips(C_, R)}', "내일 폐루프는 기본값 고정, 비교군(회귀)만 바꿈. 한 번에 하나만 변경", kind="flow")
