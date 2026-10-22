@@ -86,5 +86,5 @@ class EgVla2FMPolicy:
             self._ema = first if self._ema is None else self.ema_alpha * first + (1 - self.ema_alpha) * self._ema
             first = self._ema
         lx, ly, az = (float(x) for x in first)
-        cmd = to_drive_command(lx, ly, az, speed_source=self.speed_source, s_max=self.s_max)
+        cmd = to_drive_command(lx, ly, az, speed_source=self.speed_source, s_max=self.s_max, use_az=True)   # az는 컨트롤러의 제자리 회전 판단용(구동 az는 컨트롤러가 정함)
         return dict(chunk=chunk, spread=0.0 if self.is_reg else float(S.std(0).mean().item()), first=(lx, ly, az), action_cont=cmd, arch=self.meta.get("arch"), subgoal_missing=miss)
