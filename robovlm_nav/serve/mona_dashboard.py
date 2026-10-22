@@ -5830,34 +5830,45 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
                 <button class="btn btn-outline" onclick="event.preventDefault(); refreshModelList();" style="font-size:9px; padding:2px 6px; float:right;">🔄</button>
               </summary>
-              <div style="font-size:9px; color:var(--text-muted); margin:6px 0;">체크포인트 클릭 = 즉시 핫스왑(재시작 없음, Kosmos-2 vision encoder는 유지). 전환 직후 첫 추론에 약간 지연 있을 수 있음.</div>
-              <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
-                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 그라운더:</span>
-                <span id="vfy-grounder-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
-                <button id="vfy-grounder-pg2" class="btn btn-outline" onclick="switchGrounder('pg2')" style="font-size:9px; padding:3px 8px;">PG2</button>
-                <button id="vfy-grounder-owlv2" class="btn btn-outline" onclick="switchGrounder('owlv2')" style="font-size:9px; padding:3px 8px;">OWLv2</button>
-              </div>
-              <!-- 2026-08-07: head(Stage2)만 보이고 image_proj(Stage1) 버전은 안 보이던 문제 —
-                   stage1_v3_5cls_owl_projs.pt 실기 검증 위해 현재 값 표시 + 전환 버튼 추가 -->
-              <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
-                <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🧬 image_proj:</span>
-                <span id="vfy-stage1-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
-                <button id="vfy-stage1-v2" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/shared/stage1_v2_projs.pt')" style="font-size:9px; padding:3px 8px;">V2(legacy)</button>
-                <button id="vfy-stage1-v3" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt')" style="font-size:9px; padding:3px 8px;">V3-5cls(new)</button>
-              </div>
-              <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
-              <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;"></div>
+              <div style="font-size:9px; color:var(--text-muted); margin:6px 0;">체크포인트 클릭 = 즉시 핫스왑(재시작 없음). discrete↔egvla2 전환은 Florence-2 로딩 포함 더 걸릴 수 있음.</div>
 
-              <!-- EGVLA2(2026-10-20) — discrete(위)와 완전히 다른 아키텍처(Florence-2+FM)라
-                   같은 프로세스 안에서도 GPU에 동시에 못 올림 — 전환에 discrete 체크포인트
-                   전환보다 더 걸릴 수 있음(Florence-2 로딩 포함). discrete로 되돌아가려면
-                   위 체크포인트 목록에서 "전환"을 누르면 됨(같이 자동으로 family도 복귀). -->
-              <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-glow);">
+              <!-- EGVLA2(2026-10-22) — 오늘 작업 주제라 위로 올리고 기본 펼침(사용자 요청).
+                   discrete로 되돌아가려면 아래 접힌 "discrete 체크포인트"에서 "전환"을
+                   누르면 됨(같이 자동으로 family도 복귀). -->
+              <div style="margin-bottom:10px;">
                 <div style="font-size:11px; font-weight:700; color:var(--violet, #8b5cf6); margin-bottom:4px;">🆕 EGVLA2 체크포인트 (연속 액션, Florence-2+FM)
                   <span id="vfy-egvla2-family-badge" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(139,92,246,0.15); color:var(--violet, #8b5cf6); margin-left:4px;">discrete 활성</span>
                 </div>
                 <div id="vfy-egvla2-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
               </div>
+
+              <!-- 전환 버튼(위 egvla2 섹션 포함) 공통 상태 표시줄 — discrete 아코디언이
+                   접혀 있어도 egvla2 전환 결과가 항상 보이도록 바깥에 둠. -->
+              <div id="vfy-model-status" style="font-size:10px; color:var(--text-muted); text-align:center; margin-bottom:8px;"></div>
+
+              <details style="margin-bottom:8px;">
+                <summary style="font-size:11px; font-weight:700; color:var(--cyan); cursor:pointer; outline:none;">⚙️ discrete 체크포인트 (평소 8-class 추론, 펼치기)
+                  <span id="vfy-model-current" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(6,182,212,0.15); color:var(--cyan); margin-left:6px;">로딩중...</span>
+                  <button class="btn btn-outline" onclick="event.preventDefault(); refreshModelList();" style="font-size:9px; padding:2px 6px; float:right;">🔄</button>
+                </summary>
+                <div style="margin-top:6px;">
+                <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
+                  <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🔭 그라운더:</span>
+                  <span id="vfy-grounder-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
+                  <button id="vfy-grounder-pg2" class="btn btn-outline" onclick="switchGrounder('pg2')" style="font-size:9px; padding:3px 8px;">PG2</button>
+                  <button id="vfy-grounder-owlv2" class="btn btn-outline" onclick="switchGrounder('owlv2')" style="font-size:9px; padding:3px 8px;">OWLv2</button>
+                </div>
+                <!-- 2026-08-07: head(Stage2)만 보이고 image_proj(Stage1) 버전은 안 보이던 문제 —
+                     stage1_v3_5cls_owl_projs.pt 실기 검증 위해 현재 값 표시 + 전환 버튼 추가 -->
+                <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#090d16; border-radius:6px; border:1px solid var(--border-glow);">
+                  <span style="font-size:9px; color:var(--text-muted); white-space:nowrap;">🧬 image_proj:</span>
+                  <span id="vfy-stage1-current" style="font-size:10px; color:#fff; font-weight:600; flex:1;">—</span>
+                  <button id="vfy-stage1-v2" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/shared/stage1_v2_projs.pt')" style="font-size:9px; padding:3px 8px;">V2(legacy)</button>
+                  <button id="vfy-stage1-v3" class="btn btn-outline" onclick="switchStage1('runs/v5_nav/mlp/stage1_v3_5cls/stage1_v3_5cls_owl_projs.pt')" style="font-size:9px; padding:3px 8px;">V3-5cls(new)</button>
+                </div>
+                <div id="vfy-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
+                </div>
+              </details>
             </details>
 
             <!-- 🎯 exp73 추론 검증 스크리닝 (데이터셋 목표와 별개). 이 박스의 "대기 라벨"이
@@ -6028,13 +6039,14 @@ L S R  C S L  R S L
 
             <!-- 런타임 설정 + Autopilot Configuration 통합 패널 (같은 카드, 2열) -->
             <div style="background:#151f32; border:1px solid var(--border-glow); border-radius:10px; padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-              <!-- 좌: 런타임 모드 토글 -->
-              <div style="display:flex; flex-direction:column; gap:8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">⚙️ 런타임 설정</span>
-                  <button class="btn btn-outline" onclick="syncVerifyRuntimeParams()" style="font-size:10px; padding:2px 8px;">🔄</button>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+              <!-- 좌: 런타임 모드 토글 — 전부 discrete 전용(egvla2 활성 중엔 서버가 무시함,
+                   2026-10-22 /config 수정 참조). 오늘 egvla2 위주 작업이라 접어둠(사용자 요청). -->
+              <details style="display:flex; flex-direction:column; gap:8px;">
+                <summary style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; list-style:none;">
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">⚙️ 런타임 설정 (discrete 전용, 펼치기)</span>
+                  <button class="btn btn-outline" onclick="event.preventDefault(); event.stopPropagation(); syncVerifyRuntimeParams();" style="font-size:10px; padding:2px 8px;">🔄</button>
+                </summary>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">
                   <button id="vfy-rt-preview" class="btn btn-outline" onclick="toggleVerifyRuntime('preview')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">🟢 프리뷰<br><span style="font-size:9px;color:var(--text-muted)">격리회전</span></button>
                   <button id="vfy-rt-hint" class="btn btn-outline" onclick="toggleVerifyRuntime('hint')" style="font-size:11px; padding:6px; line-height:1.2; text-align:center;">⚫ hint_cx<br><span style="font-size:9px;color:var(--text-muted)">방향회전</span></button>
                 </div>
