@@ -102,6 +102,12 @@ def _env_float(name: str, default: float) -> float:
 
 
 def load_service_from_env() -> EgVla2Service:
+    # 2026-10-22(minum 체크리스트 §1 공통 환경) — HF_HUB_OFFLINE 미설정 발견. 젯슨
+    # 인터넷이 끊기거나 느려지면 이미 캐시된 Florence-2를 두고도 허브에 먼저
+    # 확인하려다 지연/실패할 수 있어, 셸에서 안 챙겨도 항상 켜지게 코드에 고정.
+    # setdefault라 사용자가 명시적으로 0으로 끈 경우는 존중함.
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
     import torch
     from robovlm_nav.serve.egvla2_fm_policy import EgVla2FMPolicy, FusedF2Extractor
     ckpt = Path(os.environ["VLA_EGVLA2_CKPT"])
