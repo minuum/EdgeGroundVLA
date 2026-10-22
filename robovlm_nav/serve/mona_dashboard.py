@@ -1533,6 +1533,10 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
         logger.data["gt_object"] = gt_obj
     logger.data["apply_cc"] = apply_cc
     logger.data["runtime_config"] = _snapshot_runtime_config()
+    # EGVLA2(2026-10-22, minum) — SYNC(0.4초 이동-정지)·ASYNC(연속, 마지막 명령
+    # 0.1초마다 재전송·4초 타임아웃)는 판단 주기/이동 비율에 큰 영향 — 세션
+    # H5에 명시 기록(기존 instruction_mode 속성과 같은 값, 분석 편의용 별칭).
+    logger.data["runtime_config"]["drive_loop_mode"] = mode
     _state["session_id"] = logger.session_id
 
     _ros.ctrl.robust_stop(source="start")
@@ -2136,6 +2140,7 @@ def drive_start(req: DriveReq):
         if req.gt_object: logger.data["gt_object"] = req.gt_object
         logger.data["apply_cc"] = req.apply_cc
         logger.data["runtime_config"] = _snapshot_runtime_config()
+        logger.data["runtime_config"]["drive_loop_mode"] = "GOALNAV"
         _state["session_id"] = logger.session_id
 
         phrase = req.gt_object or "gray basket"
@@ -2151,6 +2156,7 @@ def drive_start(req: DriveReq):
         if req.gt_object: logger.data["gt_object"] = req.gt_object
         logger.data["apply_cc"] = req.apply_cc
         logger.data["runtime_config"] = _snapshot_runtime_config()
+        logger.data["runtime_config"]["drive_loop_mode"] = "ASYNC"
         _state["session_id"] = logger.session_id
 
         threading.Thread(target=_async_infer,
