@@ -103,3 +103,51 @@ def test_reset_clears_latch_and_counters():
     c.reset()
     o = c.step(GO, True, 0.05, 0.5)
     assert o["state"] == DRIVE and o["lx"] > 0 and c.stop_run == 0 and c.last_cx == 0.5
+
+
+def _small(az):   # 크기 작음(stop) + az
+    return {"stop": True, "dir_lx": 0.0, "dir_ly": 0.0, "speed_scale": 0.0, "model_magnitude": 0.01, "az": az}
+
+
+def test_rotate_instead_of_stop_when_az_large():
+    c = EgVla2Controller()
+    o = c.step(_small(0.438), True, 0.03, 0.76)
+    assert o["state"] == DRIVE and not o["stopped"] and o["lx"] == 0.0 and o["ly"] == 0.0
+    assert o["az"] == -0.25 and o["reason"].startswith("rotate(")         # 타깃이 오른쪽(cx 0.76) → 우회전(-az), 모델 az 부호와 무관
+    o2 = c.step(_small(-0.4), True, 0.03, 0.2)
+    assert o2["az"] == 0.25                                               # 타깃이 왼쪽 → 좌회전(+az)
+    o3 = EgVla2Controller().step(_small(0.4), True, 0.03, None)
+    assert o3["az"] == -0.25                                              # cx를 모르면 기록 규약(+ = 우회전) 뒤집음
+
+
+def test_no_rotate_when_target_centered():
+    c = EgVla2Controller()
+    o = c.step(_small(0.4), True, 0.03, 0.52)
+    assert o["reason"].startswith("idle(") and o["az"] == 0.0
+
+
+def test_rotate_stops_after_max_frames_then_idle_not_latched():
+    c = EgVla2Controller(rotate_max_frames=3, idle_max_frames=5)
+    for i in range(3):
+        assert c.step(_small(0.4), True, 0.03, 0.9)["reason"].startswith("rotate(")
+    o = c.step(_small(0.4), True, 0.03, 0.9)
+    assert o["reason"].startswith("idle(") and not o["stopped"]
+
+
+def test_rotate_resets_on_move_and_default_has_no_latch():
+    c = EgVla2Controller(rotate_max_frames=2, idle_max_frames=50)
+    assert c.stop_debounce == 0
+    c.step(_small(0.4), True, 0.03, 0.9); c.step(_small(0.4), True, 0.03, 0.9)
+    c.step({"stop": False, "dir_lx": 1.0, "dir_ly": 0.0, "speed_scale": 0.7, "az": 0.0}, True, 0.03, 0.5)
+    assert c.step(_small(0.4), True, 0.03, 0.9)["reason"].startswith("rotate(1/")
+    for _ in range(10):                                                   # az 작은 stop이 반복돼도 래치 없음
+        o = c.step(_small(0.0), True, 0.03, 0.5)
+    assert not o["stopped"] and o["reason"].startswith("idle(")
+
+
+def test_idle_timeout_safety_net():
+    c = EgVla2Controller(idle_max_frames=3)
+    for _ in range(2):
+        assert c.step(_small(0.0), True, 0.03, 0.5)["reason"].startswith("idle(")
+    o = c.step(_small(0.0), True, 0.03, 0.5)
+    assert o["stopped"] and o["reason"] == "idle_timeout"
