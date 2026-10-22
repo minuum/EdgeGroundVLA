@@ -57,17 +57,17 @@ def test_lost_search_direction_left_when_last_cx_left():
         o = c.step(GO, False)
         assert o["state"] == DRIVE and o["reason"] == f"bbox_missing({i})"   # 5프레임 미만은 계속 구동
     o = c.step(GO, False)                                     # 5프레임째 → SEARCH
-    assert o["state"] == SEARCH and o["az"] == 0.25 and o["lx"] == o["ly"] == 0.0 and o["reason"].startswith("search_start")
+    assert o["state"] == SEARCH and o["az"] == -0.25 and o["lx"] == o["ly"] == 0.0 and o["reason"].startswith("search_start")
 
 
 def test_lost_search_direction_right_when_last_cx_right_or_unknown():
     c = EgVla2Controller(lost_frames=2)
     c.step(GO, True, 0.05, 0.8)
     c.step(GO, False)
-    assert c.step(GO, False)["az"] == -0.25                   # cx>=0.5 → 우
+    assert c.step(GO, False)["az"] == 0.25                    # cx>=0.5 → 우(+az)
     c2 = EgVla2Controller(lost_frames=2)
     c2.step(GO, False)
-    assert c2.step(GO, False)["az"] == -0.25                  # 본 적 없음 → 우
+    assert c2.step(GO, False)["az"] == 0.25                   # 본 적 없음 → 우(+az)
 
 
 def test_search_reacquire_returns_to_drive():
@@ -113,11 +113,11 @@ def test_rotate_instead_of_stop_when_az_large():
     c = EgVla2Controller()
     o = c.step(_small(0.438), True, 0.03, 0.76)
     assert o["state"] == DRIVE and not o["stopped"] and o["lx"] == 0.0 and o["ly"] == 0.0
-    assert o["az"] == -0.25 and o["reason"].startswith("rotate(")         # 타깃이 오른쪽(cx 0.76) → 우회전(-az), 모델 az 부호와 무관
+    assert o["az"] == 0.25 and o["reason"].startswith("rotate(")          # 타깃이 오른쪽(cx 0.76) → 우회전(+az)
     o2 = c.step(_small(-0.4), True, 0.03, 0.2)
-    assert o2["az"] == 0.25                                               # 타깃이 왼쪽 → 좌회전(+az)
+    assert o2["az"] == -0.25                                              # 타깃이 왼쪽 → 좌회전(-az)
     o3 = EgVla2Controller().step(_small(0.4), True, 0.03, None)
-    assert o3["az"] == -0.25                                              # cx를 모르면 기록 규약(+ = 우회전) 뒤집음
+    assert o3["az"] == 0.25                                               # cx를 모르면 모델 az 부호 그대로(+ = 우회전)
 
 
 def test_no_rotate_when_target_centered():
