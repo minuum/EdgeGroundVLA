@@ -1,0 +1,33 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Live vs Train photos</title>
+<style>body{margin:0;background:#0b1220;color:#e2e8f0;font-family:-apple-system,"Noto Sans KR",sans-serif;line-height:1.6}.w{max-width:1100px;margin:0 auto;padding:24px 16px 60px}h1{font-size:1.5rem}h2{margin-top:34px;border-bottom:2px solid #334155;padding-bottom:6px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}.g img{width:100%;border-radius:6px;border:1px solid #334155}.n{color:#94a3b8;font-size:.86rem}a{color:#60a5fa}table{border-collapse:collapse;font-size:.9rem}td,th{border:1px solid #334155;padding:6px 10px}</style></head><body><div class="w">
+<h1>학습 프레임 vs 실기 프레임 — 실제 사진 비교</h1><div class="n">2026-10-23 · 분석: docs/plans/analysis_20261023_train_serve_gap.md · 빨간 상자/초록 상자 = Florence-2 bbox(면적에서 환산한 근사 크기)</div>
+<h2>1. 같은 구도 비교 — 위: 학습(베이지 바구니, 평평한 흰 벽) / 실기는 아래 3절</h2><div class="g">
+<div><img src="live_vs_train_photos/train_weak_right_straight_0.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_weak_right_straight_50.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_weak_right_straight_95.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_strong_left_left_curve_0.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_strong_left_left_curve_50.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_strong_left_left_curve_95.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_center_straight_0.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_center_straight_50.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/train_center_straight_95.jpg" loading="lazy"></div>
+</div><h2>2. 바구니 확대 — 색이 다르다</h2>
+<img src="live_vs_train_photos/basket_crops.jpg" style="max-width:740px;width:100%;border-radius:6px"><div class="n">바구니 중심 패치 평균 RGB: 학습 (122,117,112) R−B=+10.6 / 실기 (107,110,111) R−B=−4.2</div>
+<h2>3. 실기 이탈 타임라인 — 세션 210745 (타깃 오른쪽 → 회전 → 직진 중 cx가 화면 밖으로)</h2><div class="g">
+<div><img src="live_vs_train_photos/live_20261022_210745_0.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_1.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_3.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_6.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_10.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_14.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_17.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_18.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_22.jpg" loading="lazy"></div>
+<div><img src="live_vs_train_photos/live_20261022_210745_27.jpg" loading="lazy"></div>
+</div><h2>4. 방해물이 보이는 실기 프레임(오른쪽 흰 패널·책상)</h2>
+<img src="live_vs_train_photos/live_210947_full.jpg" style="max-width:720px;width:100%;border-radius:6px">
+<h2>5. 수치 요약</h2><table><tr><th></th><th>학습</th><th>실기</th></tr>
+<tr><td>특징 최근접 코사인 평균/p10</td><td>0.9974 / 0.9954</td><td>0.9939 / 0.9885</td></tr>
+<tr><td>bbox 검출률</td><td>100.0%</td><td>89.9%</td></tr>
+<tr><td>bbox 면적 중앙값</td><td>0.059</td><td>0.034</td></tr></table></div></body></html>
