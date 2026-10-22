@@ -107,7 +107,12 @@ def main():
     for pos in ("center", "weak_left", "strong_left", "weak_right", "strong_right"):
         splits[f"lopo_{pos}"] = [i for i, e in enumerate(eps) if e["cell"].startswith(pos + "|")]
     kinds = ["base", "ep250", "H4", "H16", "w_first", "unit_target", "smooth_labels", "feat_prev3", "bbox_noise", "w_curved"]
+    if os.getenv("KINDS"):
+        kinds = [k for k in kinds if k in os.getenv("KINDS").split(",")]
     data = {k: variant_data(E, k) if k in ("smooth_labels", "H4", "H16", "feat_prev3") else E for k in kinds}
+    order = [x for x in os.getenv("SPLITS", "").split(",") if x in splits]
+    if order:
+        splits = {x: splits[x] for x in order}
     res = json.loads(OUT.read_text()) if OUT.exists() else {}
     for name, te_idx in splits.items():
         res.setdefault(name, {})

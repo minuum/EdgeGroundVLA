@@ -99,6 +99,9 @@ def main():
     splits = {f"fold{i}": folds[i] for i in range(len(folds))}
     for pos in ("center", "weak_left", "strong_left", "weak_right", "strong_right"):
         splits[f"lopo_{pos}"] = [i for i, e in enumerate(eps) if e["cell"].startswith(pos + "|")]
+    order = [x for x in os.getenv("SPLITS", "").split(",") if x in splits]
+    if order:
+        splits = {x: splits[x] for x in order}
     res = json.loads(OUT.read_text()) if OUT.exists() else {}
     for name, te_idx in splits.items():
         if name in res:

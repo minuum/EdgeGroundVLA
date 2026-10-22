@@ -33,6 +33,24 @@ def f(x):
     return "—" if x is None else f"{x:.2f}"
 
 
+def paired(res, key, base, getter):
+    """변형 key와 기준 base가 둘 다 있는 분할만 모아 (변형 fold, 변형 lopo, 기준 fold, 기준 lopo, fold 수, lopo 수) — 분할이 덜 찬 상태에서도 공정 비교."""
+    vf, vl, bf, bl = [], [], [], []
+    for sp, v in res.items():
+        if key in v and base in v:
+            try:
+                a, b = getter(v[key]), getter(v[base])
+            except (KeyError, TypeError):
+                continue
+            (vf if sp.startswith("fold") else vl).append(a); (bf if sp.startswith("fold") else bl).append(b)
+    m = lambda x: float(np.mean(x)) if x else None
+    return m(vf), m(vl), m(bf), m(bl), len(vf), len(vl)
+
+
+def dif(a, b):
+    return "" if a is None or b is None else f"{a - b:+.2f}"
+
+
 def lines_svg(xs, series, ymin, ymax, xlabel):
     W, x0, y0, pw, ph = 760, 56, 14, 640, 160
     X = lambda i: x0 + i / (len(xs) - 1) * pw
@@ -90,25 +108,25 @@ def block(tbl, H, st):
         out += V.wrap("서브골 드롭아웃 30% vs 50%", tbl(["", "같은 위치·서브골 있음", "같은 위치·결측", "안 본 위치·서브골 있음", "안 본 위치·결측"], rows), kind="table")
     if ft:
         out += H("오프라인 ablation 결과 — FM-π0 학습 설정 (π0와 다른 점을 하나씩 바꿈)")
-        names = list(next(iter(ft.values())).keys()) if ft else []
+        base = "uniform|L2|d128"
+        names = [k for k in ["uniform|L2|d128", "beta|L2|d128", "logitnormal|L2|d128", "uniform|L1|d128", "uniform|L4|d128", "uniform|L2|d64", "uniform|L2|d256"] if any(k in v for v in ft.values())]
         rows = []
         for vn in names:
-            a = agg(ft, lambda v: v[vn]["first"]); b = agg(ft, lambda v: v[vn]["n3_vs_burst"]); c = agg(ft, lambda v: v[vn]["miss_first"]); pr = agg(ft, lambda v: v[vn]["params"])
-            rows.append([vn.replace("|", " · "), f"{int(pr[0]):,}" if pr[0] else "—", f(a[0]), f(a[1]), f(b[0]), f(c[0]), f"{a[2]}+{a[3]}"])
-        out += V.wrap("시간 샘플링·층수·폭 변형", tbl(["변형(τ·층·폭)", "파라미터", "같은 위치", "안 본 위치", "같은 위치·3스텝 평균 기준", "같은 위치·서브골 결측", "분할 수(fold+lopo)"], rows),
-                      "uniform·L2·d128이 현재 배포 구성. beta는 π0 논문 방식", kind="table")
+            a = paired(ft, vn, base, lambda v: v["first"]); m_ = paired(ft, vn, base, lambda v: v["miss_first"]); pr = agg({s_: v for s_, v in ft.items() if vn in v}, lambda v: v[vn]["params"])
+            rows.append([vn.replace("|", " · "), f"{int(pr[0]):,}" if pr[0] else "—", f(a[0]), dif(a[0], a[2]), f(a[1]), dif(a[1], a[3]), dif(m_[0], m_[2]), f"{a[4]}+{a[5]}"])
+        out += V.wrap("시간 샘플링·층수·폭 변형", tbl(["변형(τ·층·폭)", "파라미터", "같은 위치", "차이", "안 본 위치", "차이", "같은 위치·서브골 결측 차이", "분할(fold+lopo)"], rows),
+                      "uniform·L2·d128이 현재 배포 구성(차이는 같은 분할끼리의 기준 대비, 음수=좋음). beta는 π0 논문 방식", kind="table")
     if bd:
         out += H(f"오프라인 ablation 결과 — 덜 보수적인 후보 (분할 {len(bd)}/10 반영, 방향 오차 °)")
         lab = {"base": "기준(FM-π0, 현재 배포 구성)", "ep250": "학습 2배 길게(240 epoch)", "H4": "청크 길이 4로 재학습", "H16": "청크 길이 16으로 재학습", "w_first": "첫 스텝 손실 4배",
                "unit_target": "방향만 학습(크기 1)", "smooth_labels": "사람 조작 5프레임 이동평균", "feat_prev3": "3프레임 전 특징 추가(시간 맥락)", "bbox_noise": "bbox 입력 잡음", "w_curved": "곡선 구간 프레임 가중 3배"}
         rows = []
         for k, nm in lab.items():
-            a = agg(bd, lambda v, k_=k: v[k_]["first"]); b = agg(bd, lambda v, k_=k: v[k_]["n1_vs_burst"])
-            base_a = agg(bd, lambda v: v["base"]["first"])
-            d0 = "" if k == "base" or a[0] is None or base_a[0] is None else f"{a[0] - base_a[0]:+.2f}"
-            d1 = "" if k == "base" or a[1] is None or base_a[1] is None else f"{a[1] - base_a[1]:+.2f}"
-            rows.append([nm, f(a[0]), d0, f(a[1]), d1, f(b[0]), f"{a[2]}+{a[3]}"])
-        out += V.wrap("학습·데이터·목표 변형 (음수=기준보다 좋음)", tbl(["변형", "같은 위치", "차이", "안 본 위치", "차이", "같은 위치·3스텝 평균 기준", "분할(fold+lopo)"], rows),
+            if not any(k in v for v in bd.values()):
+                continue
+            a = paired(bd, k, "base", lambda v: v["first"]); b = paired(bd, k, "base", lambda v: v["n1_vs_burst"])
+            rows.append([nm, f(a[0]), "" if k == "base" else dif(a[0], a[2]), f(a[1]), "" if k == "base" else dif(a[1], a[3]), "" if k == "base" else dif(b[0], b[2]), f"{a[4]}+{a[5]}"])
+        out += V.wrap("학습·데이터·목표 변형 (음수=기준보다 좋음)", tbl(["변형", "같은 위치", "차이", "안 본 위치", "차이", "같은 위치·이동 구간 기준 차이", "분할(fold+lopo)"], rows),
                       "정답은 모두 원본 사람 조작. 같은 seed·같은 분할이라 차이는 변형 효과 + 학습 잡음(약 ±0.1°)", kind="table")
         rows = []
         for sg in (0.0, 0.5, 1.0, 1.5):

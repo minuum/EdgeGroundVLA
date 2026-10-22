@@ -55,6 +55,9 @@ def main():
     splits = {f"fold{i}": folds[i] for i in range(len(folds))}
     for pos in ("center", "weak_left", "strong_left", "weak_right", "strong_right"):
         splits[f"lopo_{pos}"] = [i for i, e in enumerate(eps) if e["cell"].startswith(pos + "|")]
+    order = [x for x in os.getenv("SPLITS", "").split(",") if x in splits]
+    if order:
+        splits = {x: splits[x] for x in order}
     res = json.loads(OUT.read_text()) if OUT.exists() else {}
     for name, te_idx in splits.items():
         res.setdefault(name, {})
@@ -62,6 +65,8 @@ def main():
         tr, te = T.to_t(E, tr_idx), T.to_t(E, te_idx)
         gt = te[2][..., :2].cpu().numpy(); g_first, g_burst = gt[:, 0], gt[:, :3].mean(1)
         for vname, cfg in VARIANTS.items():
+            if os.getenv("VARIANTS") and vname not in os.getenv("VARIANTS").split(","):
+                continue
             if vname in res[name]:
                 continue
             m = fit(cfg, tr)
