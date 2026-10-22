@@ -46,7 +46,7 @@ def main():
         with h5py.File(T.DATA / e["name"], "r") as f:
             for frac in (0.0, 0.5, 0.95):
                 t = min(int(frac * (n - 1)), n - 1); b = e["bbox"][t][8:12]
-                sec1.append((cell, frac, save(card(f["images"][t], f"학습 {cell} {int(frac*100)}% cx{b[0]:.2f} 면적{b[2]:.2f}", b, (80, 220, 80)), f"train_{cell.replace('|','_')}_{int(frac*100)}.jpg")))
+                sec1.append((cell, frac, save(card(np.ascontiguousarray(f["images"][t][:, :, ::-1]), f"학습 {cell} {int(frac*100)}% cx{b[0]:.2f} 면적{b[2]:.2f}", b, (80, 220, 80)), f"train_{cell.replace('|','_')}_{int(frac*100)}.jpg")))
     sid = "20261022_210745"
     rep = json.load(open(ROOT / f"ROS_action/dryrun_closedloop_20261022/reports/session_{sid}.json"))["history"]
     with h5py.File(ROOT / f"ROS_action/dryrun_closedloop_20261022/h5/session_{sid}.h5", "r") as f:
@@ -69,19 +69,19 @@ def main():
         lc = Image.fromarray(crop(im[t], gb[t])).resize((360, 360))
     e = pick["weak_right|straight"]; t0 = len(e["bbox"]) // 2
     with h5py.File(T.DATA / e["name"], "r") as f:
-        tc = Image.fromarray(crop(f["images"][t0], e["bbox"][t0][8:12])).resize((360, 360))
+        tc = Image.fromarray(np.ascontiguousarray(crop(f["images"][t0], e["bbox"][t0][8:12])[:, :, ::-1])).resize((360, 360))
     both = Image.new("RGB", (740, 400), (20, 20, 20)); both.paste(tc, (10, 30)); both.paste(lc, (380, 30)); d = ImageDraw.Draw(both)
-    d.text((10, 0), "학습 바구니(베이지)", fill=(255, 255, 255), font=FONT); d.text((380, 0), "실기 바구니(청회색)", fill=(255, 255, 255), font=FONT)
+    d.text((10, 0), "학습 바구니(BGR→RGB 변환 후)", fill=(255, 255, 255), font=FONT); d.text((380, 0), "실기 바구니", fill=(255, 255, 255), font=FONT)
     crops = save(both, "basket_crops.jpg")
     st = json.load(open(OUT / "live_vs_train.json"))
     html = ['<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Live vs Train photos</title>',
             '<style>body{margin:0;background:#0b1220;color:#e2e8f0;font-family:-apple-system,"Noto Sans KR",sans-serif;line-height:1.6}.w{max-width:1100px;margin:0 auto;padding:24px 16px 60px}h1{font-size:1.5rem}h2{margin-top:34px;border-bottom:2px solid #334155;padding-bottom:6px}',
             '.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}.g img{width:100%;border-radius:6px;border:1px solid #334155}.n{color:#94a3b8;font-size:.86rem}a{color:#60a5fa}table{border-collapse:collapse;font-size:.9rem}td,th{border:1px solid #334155;padding:6px 10px}</style></head><body><div class="w">',
-            '<h1>학습 프레임 vs 실기 프레임 — 실제 사진 비교</h1><div class="n">2026-10-23 · 분석: docs/plans/analysis_20261023_train_serve_gap.md · 빨간 상자/초록 상자 = Florence-2 bbox(면적에서 환산한 근사 크기)</div>',
-            '<h2>1. 같은 구도 비교 — 위: 학습(베이지 바구니, 평평한 흰 벽) / 실기는 아래 3절</h2><div class="g">']
+            '<h1>학습 프레임 vs 실기 프레임 — 실제 사진 비교 (학습은 H5의 BGR을 RGB로 변환해 표시)</h1><div class="n">2026-10-23 · 분석: docs/plans/analysis_20261023_train_serve_gap.md · 빨간 상자/초록 상자 = Florence-2 bbox(면적에서 환산한 근사 크기)</div>',
+            '<h2>1. 학습 프레임(BGR→RGB 변환) — 실기는 아래 3절</h2><div class="g">']
     for cell, frac, p in sec1:
         html.append(f'<div><img src="{p}" loading="lazy"></div>')
-    html += ['</div><h2>2. 바구니 확대 — 색이 다르다</h2>', f'<img src="{crops}" style="max-width:740px;width:100%;border-radius:6px"><div class="n">바구니 중심 패치 평균 RGB: 학습 (122,117,112) R−B=+10.6 / 실기 (107,110,111) R−B=−4.2</div>',
+    html += ['</div><h2>2. 바구니 확대 비교</h2>', f'<img src="{crops}" style="max-width:740px;width:100%;border-radius:6px"><div class="n">바구니 중심 패치 평균 RGB(학습은 BGR→RGB 변환 후): 학습 (112,117,122) R−B=−10.6 / 실기 (107,110,111) R−B=−4.2 → 색 계열 같음</div>',
              '<h2>3. 실기 이탈 타임라인 — 세션 210745 (타깃 오른쪽 → 회전 → 직진 중 cx가 화면 밖으로)</h2><div class="g">']
     for s, p in sec3:
         html.append(f'<div><img src="{p}" loading="lazy"></div>')
