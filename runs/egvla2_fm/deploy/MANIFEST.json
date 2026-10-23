@@ -1,0 +1,54 @@
+{
+ "C_pi0_adaln_drop30_e120.pt": {
+  "sha256": "f88b944fa6346f6ffe36c0da9d1b09851f9429940d45cc53140a821460272da4",
+  "bytes": 2918858,
+  "arch": "C_pi0_adaln",
+  "epochs": 120,
+  "subgoal_dropout": 0.3,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "e867500b"
+ },
+ "C_pi0_adaln_e120.pt": {
+  "sha256": "1bc507a3205222c890bb3644e5b0494732fe5d70c4edc508209a160a970eca06",
+  "bytes": 2918507,
+  "arch": "C_pi0_adaln",
+  "epochs": 120,
+  "subgoal_dropout": 0.0,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "e867500b"
+ },
+ "MLP_regression_drop30_e60.pt": {
+  "sha256": "38ac424bc970be36b19cf42534fc5005ba6f97504ab8810814deb77fc2262ff7",
+  "bytes": 851181,
+  "arch": "MLP_regression",
+  "epochs": 60,
+  "subgoal_dropout": 0.3,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "657a2724"
+ },
+ "C_pi0_servolabel0.5_drop30_e120.pt": {
+  "sha256": "30c78b945c4d99e5bcf50c4b99bdb96e205b35042c612c58fd7d97370a2b20f3",
+  "bytes": 2919250,
+  "arch": "C_pi0_adaln",
+  "epochs": 120,
+  "subgoal_dropout": 0.3,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "d80c0b00",
+  "servo_label_lambda": 0.5
+ },
+ "C_pi0_servolabel1.0_drop30_e120.pt": {
+  "sha256": "5248ea1564fef6ad3dd8e60199ee1894b360376ff4f5ff8aa65bbee7c2ec30c5",
+  "bytes": 2919250,
+  "arch": "C_pi0_adaln",
+  "epochs": 120,
+  "subgoal_dropout": 0.3,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "d80c0b00",
+  "servo_label_lambda": 1.0
+ }
+}
