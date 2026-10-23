@@ -14,8 +14,8 @@ HTML, tbl, H, st = G77.HTML, G77.tbl, G77.H, G77.st
 
 def main():
     s = HTML.read_text(encoding="utf-8")
-    import ch78_analysis, ch78_timeline, ch79_egvla3, ch79_index, ch79_discussion, ch79_closedloop
-    tabs = [("t0", "🗓 작업 정리·색인", [("html", ch79_index.block(tbl, H, st))]), ("t4", "💬 토의 기록·도전 과제", [("html", ch79_discussion.block(tbl, H, st))]), ("t5", "🔬 폐루프 점검(10/22~23)", [("html", ch79_closedloop.block(tbl, H, st))]), ("t1", "📊 시사점·문제점·논문 방향", [("html", ch78_analysis.block(tbl, H, st))]), ("t2", "🧭 EGVLA3 구상·기술 시사점", [("html", ch79_egvla3.block(tbl, H, st))]), ("t3", "⏱ 시도 타임라인·정정", [("html", ch78_timeline.block(tbl, H, st))])]
+    import ch78_analysis, ch78_timeline, ch79_egvla3, ch79_index, ch79_discussion, ch79_closedloop, ch79_filmstrip
+    tabs = [("t0", "🗓 작업 정리·색인", [("html", ch79_index.block(tbl, H, st))]), ("t4", "💬 토의 기록·도전 과제", [("html", ch79_discussion.block(tbl, H, st))]), ("t5", "🔬 폐루프 점검(10/22~23)", [("html", ch79_closedloop.block(tbl, H, st))]), ("t6", "🎞 필름스트립·순서 점검", [("html", ch79_filmstrip.block(tbl, H, st))]), ("t1", "📊 시사점·문제점·논문 방향", [("html", ch78_analysis.block(tbl, H, st))]), ("t2", "🧭 EGVLA3 구상·기술 시사점", [("html", ch79_egvla3.block(tbl, H, st))]), ("t3", "⏱ 시도 타임라인·정정", [("html", ch78_timeline.block(tbl, H, st))])]
     inner = CC.tabs_html("ch79", tabs, "", {})
     blk = CC.chapter_block(79, "#a78bfa", "#c4b5fd", "EGVLA2 분석·시사점 — 시사점·문제점·논문 방향과 10/12~10/20 시도 타임라인",
                            "CH77(학습)·CH78(실기 전 단계)까지의 결과를 종합한 분석. 무엇을 말할 수 있고, 무엇이 막혀 있고, 논문을 어느 방향으로 쓸지, 그리고 시도와 정정의 시간순 기록.", "2026-10-20", inner)
