@@ -111,7 +111,7 @@ def load_service_from_env() -> EgVla2Service:
     dtype = torch.float32 if dt_name == "fp32" else torch.float16
     near = os.getenv("VLA_EGVLA2_NEAR_AREA", "0.25")
     ctrl = EgVla2Controller(stop_debounce=int(os.getenv("VLA_EGVLA2_STOP_DEBOUNCE", 0)), rotate_az_thresh=_env_float("VLA_EGVLA2_ROTATE_THRESH", 0.2), rotate_az=_env_float("VLA_EGVLA2_ROTATE_AZ", 0.25),
-                            rotate_max_frames=int(os.getenv("VLA_EGVLA2_ROTATE_MAX", 12)), idle_max_frames=int(os.getenv("VLA_EGVLA2_IDLE_MAX", 20)), near_area=None if near == "off" else float(near),
+                            rotate_max_frames=int(os.getenv("VLA_EGVLA2_ROTATE_MAX", 12)), servo_blend=_env_float("VLA_EGVLA2_SERVO_BLEND", 0.0), servo_k=_env_float("VLA_EGVLA2_SERVO_K", 2.0), servo_max=_env_float("VLA_EGVLA2_SERVO_MAX", 0.7), idle_max_frames=int(os.getenv("VLA_EGVLA2_IDLE_MAX", 20)), near_area=None if near == "off" else float(near),
                             near_frames=int(os.getenv("VLA_EGVLA2_NEAR_FRAMES", 2)), lost_frames=int(os.getenv("VLA_EGVLA2_LOST_FRAMES", 5)),
                             search_max_frames=int(os.getenv("VLA_EGVLA2_SEARCH_MAX", 40)), gain=_env_float("VLA_EGVLA2_GAIN", 1.15))
     policy = EgVla2FMPolicy(ckpt, k_samples=int(os.getenv("VLA_EGVLA2_K", 8)), speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"),

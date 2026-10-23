@@ -26,13 +26,15 @@ class EgVla2Controller:
     def __init__(self, *, stop_debounce: int = 0, near_area: float | None = 0.25, near_frames: int = 2,
                  lost_frames: int = 5, search_az: float = 0.25, search_max_frames: int = 40,
                  search_speed_scale: float = 0.7, gain: float = 1.15, rotate_az_thresh: float = 0.2, rotate_az: float = 0.25,
-                 rotate_max_frames: int = 12, rotate_speed_scale: float = 0.7, idle_max_frames: int = 20, rotate_cx_dead: float = 0.08):
+                 rotate_max_frames: int = 12, rotate_speed_scale: float = 0.7, idle_max_frames: int = 20, rotate_cx_dead: float = 0.08,
+                 servo_blend: float = 0.0, servo_k: float = 2.0, servo_max: float = 0.7):
         self.stop_debounce, self.near_area, self.near_frames = int(stop_debounce), near_area, int(near_frames)
         self.lost_frames, self.search_az, self.search_max_frames = int(lost_frames), float(search_az), int(search_max_frames)
         self.search_speed_scale, self.gain = float(search_speed_scale), float(gain)
         self.rotate_az_thresh, self.rotate_az, self.rotate_max_frames = float(rotate_az_thresh), float(rotate_az), int(rotate_max_frames)
         self.rotate_speed_scale, self.idle_max_frames = float(rotate_speed_scale), int(idle_max_frames)
         self.rotate_cx_dead = float(rotate_cx_dead)
+        self.servo_blend, self.servo_k, self.servo_max = float(servo_blend), float(servo_k), float(servo_max)
         self.reset()
 
     def reset(self) -> None:
@@ -122,5 +124,17 @@ class EgVla2Controller:
 
         # (d) 구동
         reason = "target_reacquired" if reacquired else ("bbox_missing(%d)" % self.lost_run if self.lost_run else "drive")
-        return self._out(float(action_cont["dir_lx"]) * self.gain, float(action_cont["dir_ly"]) * self.gain, 0.0,
-                         float(action_cont["speed_scale"]), reason)
+        ux, uy = float(action_cont["dir_lx"]), float(action_cont["dir_ly"])
+        cx = bbox_cx if bbox_cx is not None else self.last_cx
+        if self.servo_blend > 0.0 and has_bbox and cx is not None:
+            # 타깃 서보(모델 밖 규칙, 기본 끔): 하드웨어는 방향각·부호·throttle만 쓰므로(크기 무시) 방향 벡터만 바꾼다.
+            # 데이터·실기 공통 관측: ly<0이면 타깃 cx가 늘어남 → cx>0.5이면 ly>0(cx 감소) 쪽으로 보정.
+            sy = max(-self.servo_max, min(self.servo_max, self.servo_k * (float(cx) - 0.5)))
+            sx = (1.0 - sy * sy) ** 0.5
+            w = self.servo_blend
+            bx, by = (1.0 - w) * ux + w * sx, (1.0 - w) * uy + w * sy
+            n = (bx * bx + by * by) ** 0.5
+            if n > 1e-6:
+                ux, uy = bx / n, by / n
+                reason = reason + f"+servo(w={w:g})"
+        return self._out(ux * self.gain, uy * self.gain, 0.0, float(action_cont["speed_scale"]), reason)

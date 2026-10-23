@@ -151,3 +151,21 @@ def test_idle_timeout_safety_net():
         assert c.step(_small(0.0), True, 0.03, 0.5)["reason"].startswith("idle(")
     o = c.step(_small(0.0), True, 0.03, 0.5)
     assert o["stopped"] and o["reason"] == "idle_timeout"
+
+
+def test_servo_off_by_default_unchanged():
+    c = EgVla2Controller()
+    o = c.step(GO, True, 0.05, 0.9)
+    assert math.isclose(o["lx"], 0.6 * 1.15) and math.isclose(o["ly"], 0.8 * 1.15) and "servo" not in o["reason"]
+
+
+def test_servo_corrects_toward_center_and_keeps_forward():
+    c = EgVla2Controller(servo_blend=1.0)
+    o = c.step(GO, True, 0.05, 0.9)          # 타깃이 오른쪽 → ly>0(cx 감소 방향), 전진 유지
+    assert o["ly"] > 0 and o["lx"] > 0 and "servo" in o["reason"] and math.isclose(math.hypot(o["lx"], o["ly"]), 1.15, rel_tol=1e-6)
+    o2 = EgVla2Controller(servo_blend=1.0).step(GO, True, 0.05, 0.1)
+    assert o2["ly"] < 0 and o2["lx"] > 0     # 타깃이 왼쪽 → ly<0
+    o3 = EgVla2Controller(servo_blend=1.0).step(GO, True, 0.05, 0.5)
+    assert abs(o3["ly"]) < 1e-9 and o3["lx"] > 1.0   # 중앙이면 직진
+    o4 = EgVla2Controller(servo_blend=0.5).step(GO, True, 0.05, 0.5)
+    assert math.isclose(math.hypot(o4["lx"], o4["ly"]), 1.15, rel_tol=1e-6) and 0 < o4["ly"] < 0.8 * 1.15   # 반반 혼합

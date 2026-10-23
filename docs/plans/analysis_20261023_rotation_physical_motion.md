@@ -1,5 +1,7 @@
 # 분석: 회전·이동의 물리 효과 — 실기 드라이런(10/22) vs 학습 데이터 (2026-10-23)
 
+> ⚠️ **정정(같은 날 후속)**: 이 문서의 'az 단위당 4배'와 '비례 회전 az 공식'은 틀렸다. 하드웨어 명령은 방향각·회전 부호·throttle만 쓰고 az·(lx,ly) 크기는 무시한다(`driver.spin(±rot_throttle)`, `driver.move(각도, throttle)`). 학습 라벨의 0.4/0.7/1.0도 스틱 크기에서 파생한 라벨이지 물리 속도가 아니다. 올바른 분석은 `analysis_20261023_controller_physical_mapping.md`. 이 문서의 Δcx 측정값(회전 버스트 −0.207 등)과 서보 부재 결과는 그대로 유효.
+
 ## 0. 수신 데이터
 `ROS_action/dryrun_closedloop_20261022/`: 세션 리포트 JSON 20개(+이미지 H5 19개, 657MB). EGVLA2 단독 서버(`egvla2_only`) 445스텝 + 기존 stage2_v2 19스텝. **구동 모드는 SYNC 17세션(426스텝)·ASYNC 3세션(38스텝)** — 폐루프 시도는 대부분 SYNC(0.4초 이동 후 정지)였다. 한 스텝 간격 약 1.55초(추론 약 0.82~0.94초 + 이동·대기). 시작 pos1, 목표 trackA_weak_right 218스텝·strong_left 198·strong_right 28·weak_left 20. (드라이런이며 성공/실패 판정 에피소드는 아님.)
 
