@@ -30,7 +30,7 @@ def main():
     live_b, live_f, logged_b, meta = [], [], [], []
     for p in sorted(glob.glob(str(ROOT / "ROS_action/dryrun_closedloop_20261022/h5/*.h5"))):
         with h5py.File(p, "r") as f:
-            if f["observations/images"].shape[0] < 3 or "egvla2" not in str(f.attrs.get("model_name", "")):
+            if f["observations/images"].shape[0] < 3 or "egvla2" not in str(f.attrs.get("model_name", "")) or Path(p).stem.replace("session_", "") in ("20261022_193630", "20261022_194447", "20261022_201157"):
                 continue
             imgs, gb = f["observations/images"][:], f["grounding/bbox"][:]
         for i in range(len(imgs)):

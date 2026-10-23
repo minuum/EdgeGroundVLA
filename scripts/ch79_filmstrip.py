@@ -52,7 +52,7 @@ def block(tbl, H, st):
            V.wrap("화살표 읽는 법", legend, kind="flow"), H("학습(사람) 에피소드 4개 — 처음부터 끝까지")]
     for ep in fs["train"]:
         out.append(row(f'{chip("학습", G)} <b>{ep["cell"]}</b> · {len(ep["items"])}프레임', ep["items"]))
-    out.append(H("실기 세션 — 처음부터 끝까지 (SYNC 17, ASYNC 포함, 이미지가 있는 세션 전부)"))
+    out.append(H("실기 세션 — 처음부터 끝까지 (SYNC 16개, 저장 오류가 있는 세션 3개 제외: 194447·201157 정지 이미지/액션 0, 193630 0프레임)"))
     for s_ in fs["live"]:
         mode = chip(s_["mode"], P if s_["mode"] == "SYNC" else B)
         tg = (s_["target"] or "-").replace("trackA_", "")

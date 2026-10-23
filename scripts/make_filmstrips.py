@@ -22,6 +22,7 @@ FNT = ImageFont.truetype("/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf"
 W, H = 448, 252; SC = W / 256
 WIN = cv2.createHanningWindow((320, 110), cv2.CV_32F)
 REP = ROOT / "ROS_action/dryrun_closedloop_20261022"
+EXCLUDE = {"20261022_193630", "20261022_194447", "20261022_201157"}   # 저장 오류(0프레임·정지 이미지·액션 0) — 사용자 지정 제외
 
 
 def gray(a):
@@ -60,7 +61,7 @@ def main():
     idx = {"live": [], "train": []}
     for rp in sorted((REP / "reports").glob("*.json")):
         d = json.load(open(rp)); hp = REP / f"h5/session_{d['session_id']}.h5"
-        if not hp.exists():
+        if not hp.exists() or d["session_id"] in EXCLUDE:
             continue
         with h5py.File(hp, "r") as f:
             im = f["observations/images"]; n = min(im.shape[0], len(d["history"]))
