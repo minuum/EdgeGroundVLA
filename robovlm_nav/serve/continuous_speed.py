@@ -14,7 +14,7 @@ from typing import Any
 STOP_M = 0.2            # m < STOP_M → 정지
 S_MIN = 0.4             # 보정된 최저 속력(0.4 미만은 검증 없음)
 S_MAX_CAL = 1.0
-RULE_S = 0.7            # rule/shadow 구동 속력
+RULE_S = 0.7            # rule/shadow 구동 속력(기본값, VLA_RULE_SPEED로 재정의 가능)
 BASE_THROTTLE = 50
 V_INTERCEPT, V_SLOPE = 6.59, 19.85   # 속도 보정 선형식 v=a+b·s (cm/s), logs/speed_calibration.json 30건
 SPEED_SOURCES = ("model", "rule", "shadow")
@@ -36,8 +36,12 @@ def to_drive_command(lx: float, ly: float, az: float = 0.0, *, speed_source: str
         out.update(stop=True, dir_lx=0.0, dir_ly=0.0, speed_scale=0.0, throttle=0, expected_cmps=0.0,
                    model_speed_scale=0.0)
         return out
+    # 2026-10-23 minum 분석(docs/plans/analysis_20261023_controller_physical_mapping.md §3):
+    # 수집 데이터는 throttle=50(speed_scale=1.0 상당) 고정이었는데 추론 기본값(RULE_S=0.7)은
+    # 그보다 30% 낮아 학습 물리와 어긋남 — 재기동 없이 A/B 비교할 수 있도록 env로 노출.
+    rule_s = float(os.environ.get("VLA_RULE_SPEED", RULE_S))
     model_s = max(S_MIN, min(s_cap, m))
-    s = model_s if speed_source == "model" else min(RULE_S, s_cap)
+    s = model_s if speed_source == "model" else min(rule_s, s_cap)
     out.update(stop=False, dir_lx=lx / m, dir_ly=ly / m, speed_scale=s, model_speed_scale=model_s,
                throttle=max(1, round(BASE_THROTTLE * s)), expected_cmps=expected_cmps(s))
     return out

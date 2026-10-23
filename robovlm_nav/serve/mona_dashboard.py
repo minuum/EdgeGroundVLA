@@ -1600,6 +1600,7 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
         _t_move_start = time.time()
         log_msg = _ros.ctrl.move_and_stop_ramped(lx, ly, az, source=f"{mode.lower()}", throttle_scale=_speed_scale)
         _t_move_end = time.time()
+        _hw_call = dict(_ros.ctrl.last_hw_call)
         _state["status_log"]     = log_msg
         # EGVLA2(2026-10-22, minum 핸드오프 §2) — 판단주기/이동비율 계산용 타임스탬프.
         _state["_last_step_timing"] = dict(t_decision=_t_decision, t_response=_t_response,
@@ -1636,6 +1637,10 @@ def _loop_sync(mode: str, instr: str, gt_obj: str, apply_cc: bool):
                         subgoal_missing=res.get("subgoal_missing"),
                         chunk_first=res.get("chunk_first"),
                         spread=res.get("spread"),
+                        # minum 요청(analysis_20261023_controller_physical_mapping.md §6-3) —
+                        # 실제 하드웨어에 들어간 throttle/명령 종류·인자.
+                        hw_throttle=_hw_call.get("throttle"), hw_rot_throttle=_hw_call.get("rot_throttle"),
+                        hw_call=_hw_call.get("hw_call"), hw_args=_hw_call.get("hw_args"),
                         **_state["_last_step_timing"])
 
         if mode == "SYNC":
