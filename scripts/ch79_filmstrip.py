@@ -30,7 +30,7 @@ def row(title_html, items):
     for it in items:
         cx = "소실" if it["cx"] is None else f"cx{it['cx']:.2f} 면적{it['area']:.3f}"
         dx = "" if it["dx"] is None else f" · 장면이동 {it['dx']:+.0f}px"
-        cells.append(f'<div style="flex:0 0 256px"><img src="egvla2_fm/filmstrips/{it["f"]}" loading="lazy" style="width:256px;border-radius:4px;display:block">'
+        cells.append(f'<div style="flex:0 0 320px"><a href="egvla2_fm/filmstrips/{it["f"]}" target="_blank"><img src="egvla2_fm/filmstrips/{it["f"]}" loading="lazy" style="width:320px;border-radius:4px;display:block"></a>'
                      f'<div style="font-size:0.66rem;color:#94a3b8;line-height:1.35;margin-top:2px">{cx}<br>lx{it["lx"]:+.2f} ly{it["ly"]:+.2f} az{it["az"]:+.2f}{dx}</div></div>')
     return f'<div style="margin:14px 0 4px;font-size:0.84rem">{title_html}</div><div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;border-bottom:1px solid #1e293b">{"".join(cells)}</div>'
 
@@ -40,7 +40,7 @@ def block(tbl, H, st):
     a1 = al1["A1_cache_alignment"]; a2 = al2["A2_train_action_vs_image_motion_corr_by_lag"]; a3 = al2["A3_live_action_vs_image_motion_corr_by_lag"]
     legend = ('<div style="font-size:0.84rem;line-height:1.9"><span style="color:#ffdc28;font-weight:700">━▶ 노랑</span> = 명령(위쪽 가로 화살표: 회전, +az 오른쪽=우회전 / 아래 중앙에서 뻗는 화살표: 이동, 위=전진·가로=ly(ly&lt;0이면 왼쪽으로 이동))<br>'
               '<span style="color:#3cdcff;font-weight:700">━▶ 청록</span> = 실제로 관측된 장면의 수평 이동(다음 프레임과 비교한 위상 상관). 로봇이 우회전하면 장면은 왼쪽(←)으로, 로봇이 왼쪽으로 가면 장면은 오른쪽(→)으로 움직임<br>'
-              '<span style="color:#ff5050;font-weight:700">□ 빨강</span> = 실기 bbox, <span style="color:#50dc50;font-weight:700">□ 초록</span> = 학습 bbox. 각 사진 아래: cx·면적·명령값·장면 이동량(px@폭 320). 가로로 스크롤하면 처음부터 끝까지 볼 수 있음</div>')
+              '<span style="color:#ff5050;font-weight:700">□ 빨강</span> = 실기 bbox, <span style="color:#50dc50;font-weight:700">□ 초록</span> = 학습 bbox. 각 사진 아래: cx·면적·명령값·장면 이동량(px@폭 320). 가로로 스크롤하면 처음부터 끝까지 볼 수 있고, 사진을 누르면 큰 원본(448×252)이 새 탭에 열림</div>')
     chk = tbl(["점검", "방법", "결과", "판정"], [
         [chip("A1 캐시 순서", B), "학습 프레임 42장의 bbox·특징을 다시 계산해 캐시[t], t±1, t±2와 비교", f"오프셋 0이 {a1['best_offset_counts']['0']}/{a1['n']}장(나머지 2장은 정지 구간으로 인접 프레임과 동일), 오프셋 0 bbox 오차 {a1['bbox_abs_err_by_offset']['0']:.4f} vs ±1 {a1['bbox_abs_err_by_offset']['1']:.3f}, 특징 코사인 {a1['feat_cos_by_offset']['0']:.4f} vs ±1 {a1['feat_cos_by_offset']['1']:.4f}", chip("정렬 정상", G)],
         [chip("A2 학습 액션↔영상", P), "사람 az[t+k]와 영상 회전량 dx(t→t+1)의 상관(70개 에피소드)", f"가장 강한 지연 k=−2({a2['-2']:+.2f}), k=−1({a2['-1']:+.2f}), k=0은 {a2['0']:+.2f}, k=+1은 {a2['1']:+.2f}", chip("액션이 영상보다 약 2프레임(≈0.26초) 앞섬", A)],

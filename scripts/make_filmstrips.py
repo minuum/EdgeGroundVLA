@@ -18,8 +18,8 @@ sys.path.insert(0, str(ROOT / "scripts")); sys.path.insert(0, str(ROOT))
 import train_egvla2_s1 as S1  # noqa: E402
 T = S1.T
 OUT = ROOT / "docs/v5/egvla2_fm/filmstrips"
-FNT = ImageFont.truetype("/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf", 13)
-W, H = 256, 144
+FNT = ImageFont.truetype("/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf", 17)
+W, H = 448, 252; SC = W / 256
 WIN = cv2.createHanningWindow((320, 110), cv2.CV_32F)
 REP = ROOT / "ROS_action/dryrun_closedloop_20261022"
 
@@ -29,30 +29,30 @@ def gray(a):
     return np.float32(cv2.resize(g, (320, 180), interpolation=cv2.INTER_AREA)[:110])
 
 
-def arrow(d, p0, p1, col, w=3):
+def arrow(d, p0, p1, col, w=4):
     d.line([p0, p1], fill=col, width=w)
     v = np.array(p1, float) - np.array(p0, float); n = np.linalg.norm(v)
     if n < 2:
         return
     u = v / n; l = np.array([-u[1], u[0]])
     for s in (1, -1):
-        d.line([p1, tuple(np.array(p1) - u * 9 + l * 5 * s)], fill=col, width=w)
+        d.line([p1, tuple(np.array(p1) - u * 9 * SC + l * 5 * SC * s)], fill=col, width=w)
 
 
 def frame_img(arr, bbox, act, dx, col_bbox, text):
-    im = Image.fromarray(np.ascontiguousarray(arr)).resize((W, H)); d = ImageDraw.Draw(im)
+    im = Image.fromarray(np.ascontiguousarray(arr)).resize((W, H), Image.LANCZOS); d = ImageDraw.Draw(im)
     if bbox is not None and bbox[3] > 0.5:
-        cx, cy = bbox[0] * W, bbox[1] * H; r = max(5, int(np.sqrt(max(bbox[2], 1e-4) * W * H) / 2)); d.rectangle([cx - r, cy - r, cx + r, cy + r], outline=col_bbox, width=2)
+        cx, cy = bbox[0] * W, bbox[1] * H; r = max(6, int(np.sqrt(max(bbox[2], 1e-4) * W * H) / 2)); d.rectangle([cx - r, cy - r, cx + r, cy + r], outline=col_bbox, width=3)
     lx, ly, az = act
     if abs(az) > 0.1:                                                      # 회전: 위쪽 가로 호 화살표
         s = 1 if az > 0 else -1
-        arrow(d, (W / 2 - 30 * s, 34), (W / 2 + 30 * s, 34), (255, 220, 40), 4)
+        arrow(d, (W / 2 - 30 * SC * s, 34 * SC), (W / 2 + 30 * SC * s, 34 * SC), (255, 220, 40), 6)
     elif np.hypot(lx, ly) > 0.05:                                          # 이동: 아래 중앙에서 (ly → 가로, lx → 위)
-        v = np.array([ly, -lx]) / max(np.hypot(lx, ly), 1e-6) * 42
-        arrow(d, (W / 2, H - 12), (W / 2 + v[0], H - 12 + v[1]), (255, 220, 40), 4)
+        v = np.array([ly, -lx]) / max(np.hypot(lx, ly), 1e-6) * 42 * SC
+        arrow(d, (W / 2, H - 14 * SC), (W / 2 + v[0], H - 14 * SC + v[1]), (255, 220, 40), 6)
     if dx is not None and abs(dx) > 0.5:                                   # 관측: 장면 가로 이동(px@320)
-        L = float(np.clip(dx * 1.0, -60, 60)); arrow(d, (W / 2 - L / 2 * 0.0 + 0, H / 2), (W / 2 + L, H / 2), (60, 220, 255), 3)
-    d.rectangle([0, 0, W, 16], fill=(0, 0, 0)); d.text((3, 1), text, fill=(255, 255, 255), font=FNT)
+        L = float(np.clip(dx * SC, -60 * SC, 60 * SC)); arrow(d, (W / 2, H / 2), (W / 2 + L, H / 2), (60, 220, 255), 5)
+    d.rectangle([0, 0, W, 24], fill=(0, 0, 0)); d.text((5, 2), text, fill=(255, 255, 255), font=FNT)
     return im
 
 
@@ -74,7 +74,7 @@ def main():
             h = d["history"][t]; b = h["bbox"]; bb = np.array([b["cx"], b["cy"], b["area"], 1.0 if b["has_bbox"] else 0.0]) if b else None
             lab = h["predicted_label"].split(":")[-1].split("(")[0]
             name = f"{d['session_id']}_{t:02d}.jpg"
-            frame_img(frames[t], bb, h["action"], dxs[t], (255, 80, 80), f"#{t} {lab}").convert("RGB").save(OUT / name, "JPEG", quality=68)
+            frame_img(frames[t], bb, h["action"], dxs[t], (255, 80, 80), f"#{t} {lab}").convert("RGB").save(OUT / name, "JPEG", quality=82)
             items.append(dict(f=name, t=t, label=lab, cx=None if not (b and b["has_bbox"]) else round(b["cx"], 2), area=None if not (b and b["has_bbox"]) else round(b["area"], 3),
                               lx=round(h["action"][0], 2), ly=round(h["action"][1], 2), az=round(h["action"][2], 2), dx=None if dxs[t] is None else round(float(dxs[t]), 1)))
         idx["live"].append(dict(sid=d["session_id"], mode=d.get("instruction_mode"), model=d["model_name"][-30:], target=rc.get("target_position"), status=d.get("status"), items=items))
@@ -87,7 +87,7 @@ def main():
         items = []
         for t in range(n):
             a = e["chunk"][t, 0]; bb = e["bbox"][t][8:12]; name = f"train_{cell.replace('|', '_')}_{t:02d}.jpg"
-            frame_img(frames[t], bb, a, dxs[t], (80, 220, 80), f"#{t} 사람").convert("RGB").save(OUT / name, "JPEG", quality=68)
+            frame_img(frames[t], bb, a, dxs[t], (80, 220, 80), f"#{t} 사람").convert("RGB").save(OUT / name, "JPEG", quality=82)
             items.append(dict(f=name, t=t, label="사람", cx=round(float(bb[0]), 2), area=round(float(bb[2]), 3), lx=round(float(a[0]), 2), ly=round(float(a[1]), 2), az=round(float(a[2]), 2), dx=None if dxs[t] is None else round(float(dxs[t]), 1)))
         idx["train"].append(dict(cell=cell, name=e["name"][-40:], items=items))
     (ROOT / "docs/v5/egvla2_fm/filmstrips.json").write_text(json.dumps(idx, ensure_ascii=False))
