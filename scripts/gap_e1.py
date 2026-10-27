@@ -22,10 +22,16 @@ T = S1.T
 DEV, BS = GS.DEV, GS.BS
 SMOKE = bool(os.getenv("SMOKE")); EPOCHS = 2 if SMOKE else 120
 OUT = ROOT / "docs/v5/egvla2_fm" / ("gap_e1_smoke.json" if SMOKE else "gap_e1.json")
-VARIANTS = {"E2+E8": dict(shift=False, bright=True, edge_w=1.0), "E2+E1": dict(shift=True, bright=False, edge_w=1.0), "E2+E1+E8+E5": dict(shift=True, bright=True, edge_w=3.0)}
+VARIANTS = {
+    "E2+E8": dict(shift=False, bright=True, edge_w=1.0, thresh=0.30, gain=2.0),
+    "E2+E1": dict(shift=True, bright=False, edge_w=1.0, thresh=0.30, gain=2.0),
+    "E2+E1+E8+E5": dict(shift=True, bright=True, edge_w=3.0, thresh=0.30, gain=2.0),
+    "E2+E1_tuned": dict(shift=True, bright=False, edge_w=1.0, thresh=0.22, gain=2.6),
+    "E2+E1+E8+E5_tuned": dict(shift=True, bright=True, edge_w=3.0, thresh=0.22, gain=2.6)
+}
 
 
-def build_aug(E, eps_idx_by_name):
+def build_aug(E, eps_idx_by_name, thresh=0.30, gain=2.0):
     z = np.load(ROOT / "docs/v5/egvla2_fm/aug_features.npz", allow_pickle=True)
     base = [str(x) for x in z["base_names"]]; kinds = z["kind"]; bidx = z["base_idx"]; par = z["param"]; ab = z["bbox"]; af = z["feat"].astype(np.float32)
     rows = []
@@ -41,10 +47,10 @@ def build_aug(E, eps_idx_by_name):
             win[8:12] = ab[k]
             cx_new = float(ab[k][0]) if ab[k][3] > 0.5 else float(np.clip(e["bbox"][t][8] + d, 0, 1))
             a0t = torch.from_numpy(a0)[None]; hw = GS.hw_relabel(a0t)[0].numpy(); lab = hw.copy()
-            if abs(cx_new - 0.5) > 0.30:
+            if abs(cx_new - 0.5) > thresh:
                 lab = np.array([0, 0, 1.0 if cx_new > 0.5 else -1.0], np.float32)
             elif np.hypot(hw[0], hw[1]) > 0.5:
-                u = np.array([hw[0], hw[1] + 2 * d]); u = u / max(np.linalg.norm(u), 1e-6); lab = np.array([u[0], u[1], 0.0], np.float32)
+                u = np.array([hw[0], hw[1] + gain * d]); u = u / max(np.linalg.norm(u), 1e-6); lab = np.array([u[0], u[1], 0.0], np.float32)
         else:
             win[8:12] = ab[k]; lab = GS.hw_relabel(torch.from_numpy(a0)[None])[0].numpy()
         rows.append((ei, kind, win.astype(np.float32), af[k], np.repeat(lab[None], HD.H, 0).astype(np.float32)))
@@ -71,12 +77,18 @@ def main():
     eps = S1.load_main(); cache = np.load(T.CACHE); E = AB.prep(eps, cache, 3); folds = S1.make_folds(eps)
     by_name = {e["name"]: i for i, e in enumerate(eps)}
     splits = {"fold0": folds[0], "lopo_center": [i for i, e in enumerate(eps) if e["cell"].startswith("center|")], "lopo_strong_right": [i for i, e in enumerate(eps) if e["cell"].startswith("strong_right|")]}
-    allaug = build_aug(E, by_name); live = GS.live_inputs(); res = json.loads(OUT.read_text()) if OUT.exists() else {}
+    aug_cache = {}
+    for vn, kw in VARIANTS.items():
+        cfg = (kw["thresh"], kw["gain"])
+        if cfg not in aug_cache:
+            aug_cache[cfg] = build_aug(E, by_name, thresh=cfg[0], gain=cfg[1])
+    live = GS.live_inputs(); res = json.loads(OUT.read_text()) if OUT.exists() else {}
     for name, te_idx in splits.items():
         res.setdefault(name, {}); tr_idx = [i for i in range(len(E)) if i not in te_idx]; tr, te = T.to_t(E, tr_idx), T.to_t(E, te_idx); tes = set(te_idx)
         for vn, kw in VARIANTS.items():
             if vn in res[name]:
                 continue
+            allaug = aug_cache[(kw["thresh"], kw["gain"])]
             aug = [r for r in allaug if r[0] not in tes and ((r[1] == "shift" and kw["shift"]) or (r[1] == "bright" and kw["bright"]))]
             m = fit(tr, aug, kw["edge_w"]); res[name][vn] = GS.split_metrics(m, te, live); res[name][vn]["n_aug"] = len(aug)
             OUT.write_text(json.dumps(res, indent=1, ensure_ascii=False)); r = res[name][vn]

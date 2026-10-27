@@ -188,7 +188,7 @@ def main():
     agg["MLP_regression"] = dict(mse_axis=np.mean([r["mse_axis"] for r in res["MLP_regression"]], 0).tolist())
     summary["aggregate"] = agg
     summary["runs"] = res
-    (OUT_DIR / f"summary_{TARGET}{os.environ.get("TAG", "")}.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))
+    (OUT_DIR / f"summary_{TARGET}{os.environ.get('TAG', '')}.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))
     print(json.dumps(agg, indent=1, ensure_ascii=False))
 
 

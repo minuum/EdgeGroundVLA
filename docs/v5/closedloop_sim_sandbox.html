@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoNaVLA EGVLA2 — Closed-loop Robot Simulation Sandbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060b14;
+      --bg-card: rgba(13, 21, 38, 0.82);
+      --border: rgba(51, 65, 85, 0.5);
+      --primary: #6366f1;
+      --accent: #38bdf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #a855f7;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.14) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.12) 0px, transparent 50%);
+      color: var(--text);
+      font-family: 'Pretendard', sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    header {
+      backdrop-filter: blur(16px);
+      background: rgba(6, 11, 20, 0.92);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo-badge {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: #fff;
+      font-weight: 900;
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 8px;
+      letter-spacing: 0.8px;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .nav-btn:hover {
+      background: #1e293b;
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    main {
+      max-width: 1650px;
+      margin: 0 auto;
+      padding: 20px 24px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Top Presets & Controls Bar */
+    .controls-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .preset-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-preset {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-preset:hover, .btn-preset.active {
+      background: rgba(99, 102, 241, 0.3);
+      border-color: #818cf8;
+      color: #fff;
+    }
+
+    .sim-ctrl-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      color: #fff;
+      border: none;
+      font-size: 0.84rem;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    /* Simulation Layout Grid */
+    .sim-grid {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+    }
+
+    @media (max-width: 1250px) {
+      .sim-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Arena Canvas Container */
+    .arena-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .arena-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .arena-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+
+    #arenaCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Right Telemetry & FPV Column */
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+
+    /* Virtual Camera FPV Screen */
+    .fpv-screen {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #050a16;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #fpvCanvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .fpv-hud {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(2, 6, 23, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      color: #38bdf8;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+    }
+
+    .hud-label { color: var(--text-muted); }
+    .hud-val { font-family: var(--font-mono); font-weight: 700; color: #f8fafc; }
+
+    /* Badges */
+    .badge {
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-spin { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-fail { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+    /* Sliders */
+    .slider-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 10px;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    /* Comparison Dual Mode Banner */
+    .compare-box {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="vlaops_dashboard.html" class="brand-wrap">
+      <div class="brand-logo-badge">SIMULATOR</div>
+      <div>
+        <div class="brand-title">
+          <span>MoNaVLA EGVLA2</span>
+          <span style="font-size: 0.74rem; color: #34d399; font-weight: 600; font-family: var(--font-mono);">CLOSED-LOOP SANDBOX</span>
+        </div>
+      </div>
+    </a>
+
+    <div style="display: flex; gap: 8px;">
+      <a href="vlaops_dashboard.html" class="nav-btn">⚡ VLAops 관제 대시보드</a>
+      <a href="servo_cx_tuning_studio.html" class="nav-btn">🎯 서보·cx 튜닝 스튜디오</a>
+      <a href="research_story.html#ch79" class="nav-btn">📖 CH79 연구 스토리</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Top Preset Scenarios & Run Controls -->
+    <section class="controls-banner">
+      <div class="preset-group">
+        <span style="font-size: 0.8rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase;">시나리오 프리셋:</span>
+        <button class="btn-preset active" onclick="loadScenario('nominal')">1. 표준 직진 접근</button>
+        <button class="btn-preset" onclick="loadScenario('strong_right')">2. 극단 우측 코너케이스 (cx=0.88)</button>
+        <button class="btn-preset" onclick="loadScenario('blind_turn')">3. 사각지대 120° 선제 회전</button>
+        <button class="btn-preset" onclick="loadScenario('obstacle_s')">4. S자 굴곡 궤적</button>
+      </div>
+
+      <div class="sim-ctrl-group">
+        <button class="btn-primary" id="btnSimToggle" onclick="toggleSim()">
+          <span id="txtSimBtnIcon">▶</span>
+          <span id="txtSimBtnLabel">시뮬레이션 시작</span>
+        </button>
+        <button class="nav-btn" onclick="resetSim()">↺ 초기화</button>
+      </div>
+    </section>
+
+    <!-- Main Simulator Grid -->
+    <div class="sim-grid">
+      <!-- Left: 2D Arena Canvas -->
+      <section class="arena-card">
+        <div class="arena-header">
+          <span>🏟️ 2D 가상 아레나 (탑다운 폐루프 주행 궤적)</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">마우스로 타깃(노란색) 또는 로봇(주황색)을 클릭해 드래그할 수 있습니다.</span>
+        </div>
+
+        <div class="arena-wrap" id="arenaWrap">
+          <canvas id="arenaCanvas"></canvas>
+        </div>
+
+        <!-- Simulation Stats Footer -->
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono); padding: 4px 6px;">
+          <span>총 이동 거리: <b style="color: #38bdf8;" id="txtTotalDist">0.00 m</b></span>
+          <span>경과 시간: <b style="color: #cbd5e1;" id="txtSimTime">0.0 s</b> (step <span id="txtStepCount">0</span>)</span>
+          <span>시야 이탈 횟수: <b style="color: #ef4444;" id="txtMissingCount">0</b></span>
+          <span>최종 상태: <span class="badge badge-spin" id="badgeSimStatus">READY</span></span>
+        </div>
+      </section>
+
+      <!-- Right Column: FPV Screen, Policy Selection & Telemetry -->
+      <div class="side-col">
+        <!-- 1. FPV Virtual Camera -->
+        <div class="card">
+          <div style="font-size: 0.84rem; font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span>📷 로봇 전방 카메라 1인칭 뷰 (FPV Projection)</span>
+            <span style="font-size: 0.72rem; color: #a5b4fc; font-family: var(--font-mono);">FOV 90° (224x224)</span>
+          </div>
+
+          <div class="fpv-screen">
+            <canvas id="fpvCanvas"></canvas>
+            <div class="fpv-hud" id="fpvHudText">cx: 0.50 | Area: 0.040</div>
+          </div>
+        </div>
+
+        <!-- 2. Active Model Policy Selection -->
+        <div class="card">
+          <div style="font-size: 0.84rem; font-weight: 700; margin-bottom: 10px;">
+            🧠 구동 VLA 정책 (Policy Architecture)
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer;">
+              <input type="radio" name="policySelect" value="e1b_tuned" checked onchange="changePolicy(this.value)">
+              <span><b>E1b_tuned (권장)</b> — 절대 cx 서보 함수 (tau=0.22, Kp=2.6, S=+12.9°)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer;">
+              <input type="radio" name="policySelect" value="e1_tuned" onchange="changePolicy(this.value)">
+              <span><b>E2+E1+E8+E5_tuned</b> — 상대 오프셋 보정 (tau=0.22, Kp=2.6, S=+0.04°)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer;">
+              <input type="radio" name="policySelect" value="base" onchange="changePolicy(this.value)">
+              <span><b>Base Model (초기선)</b> — 증강 없음 (외곽 회전 결핍으로 이탈 실패)</span>
+            </label>
+          </div>
+
+          <!-- Parameter Sliders -->
+          <div class="slider-item">
+            <div class="slider-header">
+              <span>서보 조향 개입 임계값 (tau)</span>
+              <span id="txtTauVal" style="font-family: var(--font-mono); color: #38bdf8;">0.22</span>
+            </div>
+            <input type="range" id="rangeTau" min="0.10" max="0.40" step="0.01" value="0.22" oninput="updateParams()">
+          </div>
+
+          <div class="slider-item">
+            <div class="slider-header">
+              <span>서보 조향 게인 (Kp)</span>
+              <span id="txtGainVal" style="font-family: var(--font-mono); color: #38bdf8;">2.60</span>
+            </div>
+            <input type="range" id="rangeGain" min="1.0" max="4.0" step="0.1" value="2.6" oninput="updateParams()">
+          </div>
+        </div>
+
+        <!-- 3. Real-time Telemetry HUD -->
+        <div class="card">
+          <div style="font-size: 0.84rem; font-weight: 700; margin-bottom: 8px;">
+            📊 실시간 VLA 제어 출력 텔레메트리
+          </div>
+
+          <div class="hud-row">
+            <span class="hud-label">목표까지 상대 거리:</span>
+            <span class="hud-val" id="txtDistVal">2.45 m</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-label">타깃 가로 중심점 cx:</span>
+            <span class="hud-val" id="txtCxVal">0.88 (우측 외곽)</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-label">VLA 선속도 [lx, ly]:</span>
+            <span class="hud-val" style="color: #38bdf8;" id="txtLinVel">[0.00, 0.00] m/s</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-label">VLA 각속도 az (조향):</span>
+            <span class="hud-val" style="color: #fbbf24;" id="txtAngVel">+0.25 rad/s</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-label">서보 조향 상태:</span>
+            <span class="badge badge-spin" id="badgeServoState">IN-PLACE SPIN</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ════ 2D CLOSED-LOOP ROBOT SIMULATION ENGINE ════
+    const arenaCanvas = document.getElementById('arenaCanvas');
+    const actx = arenaCanvas.getContext('2d');
+    const fpvCanvas = document.getElementById('fpvCanvas');
+    const fctx = fpvCanvas.getContext('2d');
+
+    // Simulation Constants
+    const DT = 0.128; // 8 Hz timestep
+    const ARENA_W = 6.0; // 6 meters
+    const ARENA_H = 4.0; // 4 meters
+    const ROBOT_RADIUS = 0.22; // meters
+    const GOAL_RADIUS = 0.28; // meters
+    const FOV_DEG = 90; // degrees
+    const FOV_RAD = (FOV_DEG * Math.PI) / 180;
+    const MAX_RANGE = 4.5; // meters
+
+    // State Variables
+    let robot = { x: 1.0, y: 2.0, th: 0.0, v: 0.0, w: 0.0 };
+    let goal = { x: 4.8, y: 2.0 };
+    let trail = [];
+    let isSimulating = false;
+    let simTimer = null;
+    let simStep = 0;
+    let totalDist = 0.0;
+    let missingCount = 0;
+
+    // Parameters
+    let activePolicy = "e1b_tuned";
+    let tau_thresh = 0.22;
+    let kp_gain = 2.6;
+
+    // Dragging
+    let draggingTarget = null;
+
+    function resizeCanvases() {
+      const wrap = document.getElementById('arenaWrap');
+      const dpr = window.devicePixelRatio || 1;
+      arenaCanvas.width = wrap.clientWidth * dpr;
+      arenaCanvas.height = wrap.clientHeight * dpr;
+      actx.scale(dpr, dpr);
+
+      fpvCanvas.width = 224;
+      fpvCanvas.height = 224;
+      drawArena();
+      drawFPV();
+    }
+
+    function m2px(mx, my) {
+      const wrap = document.getElementById('arenaWrap');
+      const sx = wrap.clientWidth / ARENA_W;
+      const sy = wrap.clientHeight / ARENA_H;
+      return { x: mx * sx, y: my * sy, sx, sy };
+    }
+
+    function px2m(px, py) {
+      const wrap = document.getElementById('arenaWrap');
+      return {
+        x: (px / wrap.clientWidth) * ARENA_W,
+        y: (py / wrap.clientHeight) * ARENA_H
+      };
+    }
+
+    function loadScenario(preset) {
+      resetSim();
+      if (preset === 'nominal') {
+        robot = { x: 1.0, y: 2.0, th: 0.0, v: 0.0, w: 0.0 };
+        goal = { x: 4.8, y: 2.0 };
+      } else if (preset === 'strong_right') {
+        robot = { x: 1.0, y: 2.8, th: 0.0, v: 0.0, w: 0.0 };
+        goal = { x: 3.8, y: 0.8 }; // target heavily to the right
+      } else if (preset === 'blind_turn') {
+        robot = { x: 2.5, y: 2.5, th: 0.0, v: 0.0, w: 0.0 };
+        goal = { x: 1.2, y: 0.8 }; // target behind the robot
+      } else if (preset === 'obstacle_s') {
+        robot = { x: 0.8, y: 3.2, th: -0.3, v: 0.0, w: 0.0 };
+        goal = { x: 5.0, y: 1.0 };
+      }
+
+      document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.btn-preset')).find(b => b.getAttribute('onclick').includes(preset));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      drawArena();
+      drawFPV();
+      updateTelemetry();
+    }
+
+    function changePolicy(p) {
+      activePolicy = p;
+      if (p === 'e1b_tuned') {
+        document.getElementById('rangeTau').value = 0.22;
+        document.getElementById('rangeGain').value = 2.6;
+      } else if (p === 'e1_tuned') {
+        document.getElementById('rangeTau').value = 0.22;
+        document.getElementById('rangeGain').value = 2.6;
+      } else {
+        document.getElementById('rangeTau').value = 0.35;
+        document.getElementById('rangeGain').value = 1.5;
+      }
+      updateParams();
+    }
+
+    function updateParams() {
+      tau_thresh = parseFloat(document.getElementById('rangeTau').value);
+      kp_gain = parseFloat(document.getElementById('rangeGain').value);
+      document.getElementById('txtTauVal').textContent = tau_thresh.toFixed(2);
+      document.getElementById('txtGainVal').textContent = kp_gain.toFixed(2);
+      drawArena();
+      drawFPV();
+      updateTelemetry();
+    }
+
+    // Virtual Camera Projection Math
+    function computeProjection() {
+      const dx = goal.x - robot.x;
+      const dy = goal.y - robot.y;
+      const dist = Math.hypot(dx, dy);
+
+      // Angle to goal in world coordinates
+      const goalAng = Math.atan2(dy, dx);
+      // Relative angle in robot coordinate frame (-PI to PI)
+      let relAng = goalAng - robot.th;
+      while (relAng > Math.PI) relAng -= 2 * Math.PI;
+      while (relAng < -Math.PI) relAng += 2 * Math.PI;
+
+      const inFOV = Math.abs(relAng) <= (FOV_RAD / 2) && dist <= MAX_RANGE;
+      let cx = null;
+      let area = null;
+
+      if (inFOV) {
+        // Linear pinhole projection mapping [-FOV/2, +FOV/2] -> [0, 1]
+        cx = 0.5 + (relAng / FOV_RAD);
+        cx = Math.max(0.01, Math.min(0.99, cx));
+        area = Math.min(0.8, Math.max(0.005, 0.16 / (dist * dist)));
+      }
+
+      return { dist, relAng, inFOV, cx, area };
+    }
+
+    // Step Simulation
+    function stepSim() {
+      const proj = computeProjection();
+      let v = 0.0;
+      let w = 0.0;
+      let statusStr = "DRIVE";
+
+      // Goal Reach Check
+      if (proj.dist <= GOAL_RADIUS) {
+        statusStr = "GOAL REACHED";
+        document.getElementById('badgeSimStatus').className = "badge badge-success";
+        document.getElementById('badgeSimStatus').textContent = "목표 도착 성공 (GOAL)";
+        toggleSim();
+        return;
+      }
+
+      // Check Collision with Arena Walls
+      if (robot.x < 0.15 || robot.x > ARENA_W - 0.15 || robot.y < 0.15 || robot.y > ARENA_H - 0.15) {
+        statusStr = "WALL COLLISION";
+        document.getElementById('badgeSimStatus').className = "badge badge-fail";
+        document.getElementById('badgeSimStatus').textContent = "벽면 충돌 (FAIL)";
+        toggleSim();
+        return;
+      }
+
+      // Policy Execution
+      if (!proj.inFOV) {
+        // Target missing: fallback in-place search
+        missingCount++;
+        v = 0.0;
+        w = 0.25; // Search spin
+        statusStr = "SEARCHING (MISSING)";
+      } else {
+        const offset = Math.abs(proj.cx - 0.5);
+
+        if (activePolicy === 'e1b_tuned') {
+          // Absolute cx function with threshold 0.22
+          if (offset > tau_thresh) {
+            // In-place spin: cancel linear velocity completely
+            v = 0.0;
+            w = proj.cx > 0.5 ? 0.25 : -0.25;
+            statusStr = "IN-PLACE SPIN";
+          } else {
+            // Forward drive + gentle servo yaw correction
+            v = 0.24;
+            w = Math.max(-0.25, Math.min(0.25, kp_gain * (proj.cx - 0.5)));
+            statusStr = "SMOOTH DRIVE";
+          }
+        } else if (activePolicy === 'e1_tuned') {
+          // Relative offset model: partial forward creeping
+          if (offset > tau_thresh) {
+            v = 0.05;
+            w = proj.cx > 0.5 ? 0.25 : -0.25;
+            statusStr = "OFFSET ROTATE";
+          } else {
+            v = 0.22;
+            w = (proj.cx - 0.5) * 1.8;
+            statusStr = "DRIVE";
+          }
+        } else {
+          // Base Model: stubborn straight driving with weak steering
+          v = 0.25;
+          w = (proj.cx - 0.5) * 0.4;
+          statusStr = "STUBBORN DRIVE";
+        }
+      }
+
+      // Kinematics Update
+      robot.v = v;
+      robot.w = w;
+      robot.x += v * Math.cos(robot.th) * DT;
+      robot.y += v * Math.sin(robot.th) * DT;
+      robot.th += w * DT;
+      while (robot.th > Math.PI) robot.th -= 2 * Math.PI;
+      while (robot.th < -Math.PI) robot.th += 2 * Math.PI;
+
+      totalDist += v * DT;
+      simStep++;
+      trail.push({ x: robot.x, y: robot.y });
+
+      drawArena();
+      drawFPV();
+      updateTelemetry(statusStr);
+    }
+
+    function toggleSim() {
+      isSimulating = !isSimulating;
+      const btn = document.getElementById('btnSimToggle');
+      const icon = document.getElementById('txtSimBtnIcon');
+      const label = document.getElementById('txtSimBtnLabel');
+
+      if (isSimulating) {
+        icon.textContent = "⏸";
+        label.textContent = "일시 정지";
+        btn.style.background = "linear-gradient(135deg, #ef4444, #f59e0b)";
+        simTimer = setInterval(stepSim, DT * 1000);
+      } else {
+        icon.textContent = "▶";
+        label.textContent = "시뮬레이션 재개";
+        btn.style.background = "linear-gradient(135deg, #4f46e5, #06b6d4)";
+        clearInterval(simTimer);
+      }
+    }
+
+    function resetSim() {
+      if (isSimulating) toggleSim();
+      trail = [];
+      simStep = 0;
+      totalDist = 0.0;
+      missingCount = 0;
+      robot.v = 0.0;
+      robot.w = 0.0;
+      document.getElementById('badgeSimStatus').className = "badge badge-spin";
+      document.getElementById('badgeSimStatus').textContent = "READY";
+      drawArena();
+      drawFPV();
+      updateTelemetry();
+    }
+
+    function updateTelemetry(status = "READY") {
+      const proj = computeProjection();
+      document.getElementById('txtTotalDist').textContent = `${totalDist.toFixed(2)} m`;
+      document.getElementById('txtSimTime').textContent = `${(simStep * DT).toFixed(1)} s`;
+      document.getElementById('txtStepCount').textContent = simStep;
+      document.getElementById('txtMissingCount').textContent = missingCount;
+
+      document.getElementById('txtDistVal').textContent = `${proj.dist.toFixed(2)} m`;
+      document.getElementById('txtCxVal').textContent = proj.cx !== null ? `${proj.cx.toFixed(2)} (${proj.cx > 0.5 ? '우측' : '좌측'})` : "None (시야 이탈)";
+      document.getElementById('txtLinVel').textContent = `[${(robot.v).toFixed(2)}, 0.00] m/s`;
+      document.getElementById('txtAngVel').textContent = `${(robot.w).toFixed(2)} rad/s`;
+
+      const sBadge = document.getElementById('badgeServoState');
+      if (status.includes("SPIN")) {
+        sBadge.className = "badge badge-spin";
+        sBadge.textContent = "IN-PLACE SPIN";
+      } else if (status.includes("GOAL")) {
+        sBadge.className = "badge badge-success";
+        sBadge.textContent = "GOAL REACHED";
+      } else if (status.includes("MISSING")) {
+        sBadge.className = "badge badge-fail";
+        sBadge.textContent = "SEARCH SPIN";
+      } else {
+        sBadge.className = "badge badge-success";
+        sBadge.textContent = "SMOOTH DRIVE";
+      }
+    }
+
+    // ════ RENDER 2D TOP-DOWN ARENA ════
+    function drawArena() {
+      const wrap = document.getElementById('arenaWrap');
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      actx.clearRect(0, 0, w, h);
+
+      // Grid Lines
+      actx.strokeStyle = "rgba(51, 65, 85, 0.25)";
+      actx.lineWidth = 1;
+      for (let x = 0; x <= ARENA_W; x += 1.0) {
+        const p1 = m2px(x, 0);
+        const p2 = m2px(x, ARENA_H);
+        actx.beginPath();
+        actx.moveTo(p1.x, p1.y);
+        actx.lineTo(p2.x, p2.y);
+        actx.stroke();
+      }
+      for (let y = 0; y <= ARENA_H; y += 1.0) {
+        const p1 = m2px(0, y);
+        const p2 = m2px(ARENA_W, y);
+        actx.beginPath();
+        actx.moveTo(p1.x, p1.y);
+        actx.lineTo(p2.x, p2.y);
+        actx.stroke();
+      }
+
+      // Draw Robot Trail
+      if (trail.length > 1) {
+        actx.strokeStyle = activePolicy === 'e1b_tuned' ? "#38bdf8" : "#fbbf24";
+        actx.lineWidth = 2.5;
+        actx.beginPath();
+        trail.forEach((pt, i) => {
+          const p = m2px(pt.x, pt.y);
+          if (i === 0) actx.moveTo(p.x, p.y);
+          else actx.lineTo(p.x, p.y);
+        });
+        actx.stroke();
+      }
+
+      // Draw FOV Cone of Robot
+      const rp = m2px(robot.x, robot.y);
+      const coneR = m2px(MAX_RANGE, 0).x;
+      actx.fillStyle = "rgba(56, 189, 248, 0.08)";
+      actx.beginPath();
+      actx.moveTo(rp.x, rp.y);
+      actx.arc(rp.x, rp.y, coneR, robot.th - FOV_RAD / 2, robot.th + FOV_RAD / 2);
+      actx.closePath();
+      actx.fill();
+      actx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+      actx.lineWidth = 1.2;
+      actx.stroke();
+
+      // Draw Goal Target
+      const gp = m2px(goal.x, goal.y);
+      const gr = m2px(GOAL_RADIUS, 0).x;
+      actx.fillStyle = "rgba(245, 158, 11, 0.25)";
+      actx.beginPath();
+      actx.arc(gp.x, gp.y, gr, 0, Math.PI * 2);
+      actx.fill();
+      actx.strokeStyle = "#fbbf24";
+      actx.lineWidth = 2.5;
+      actx.stroke();
+
+      // Goal Icon Reticle
+      actx.fillStyle = "#fbbf24";
+      actx.font = "11px Pretendard";
+      actx.textAlign = "center";
+      actx.fillText("TARGET GOAL", gp.x, gp.y - gr - 6);
+
+      // Draw Robot Body
+      const rr = m2px(ROBOT_RADIUS, 0).x;
+      actx.fillStyle = "#f97316";
+      actx.beginPath();
+      actx.arc(rp.x, rp.y, rr, 0, Math.PI * 2);
+      actx.fill();
+      actx.strokeStyle = "#fff";
+      actx.lineWidth = 2;
+      actx.stroke();
+
+      // Robot Direction Pointer
+      actx.strokeStyle = "#38bdf8";
+      actx.lineWidth = 3;
+      actx.beginPath();
+      actx.moveTo(rp.x, rp.y);
+      actx.lineTo(rp.x + Math.cos(robot.th) * (rr + 12), rp.y + Math.sin(robot.th) * (rr + 12));
+      actx.stroke();
+    }
+
+    // ════ RENDER VIRTUAL FPV CAMERA SCREEN ════
+    function drawFPV() {
+      fctx.clearRect(0, 0, 224, 224);
+      const proj = computeProjection();
+
+      // Background Horizon & Ground
+      fctx.fillStyle = "#090f1f";
+      fctx.fillRect(0, 0, 224, 112);
+      fctx.fillStyle = "#030712";
+      fctx.fillRect(0, 112, 224, 112);
+
+      // Horizon line
+      fctx.strokeStyle = "rgba(51, 65, 85, 0.4)";
+      fctx.lineWidth = 1;
+      fctx.beginPath();
+      fctx.moveTo(0, 112);
+      fctx.lineTo(224, 112);
+      fctx.stroke();
+
+      // Center crosshair line
+      fctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+      fctx.setLineDash([3, 3]);
+      fctx.beginPath();
+      fctx.moveTo(112, 0);
+      fctx.lineTo(112, 224);
+      fctx.stroke();
+
+      // Threshold lines (tau = 0.22 -> cx = 0.28, 0.72)
+      const xL = (0.5 - tau_thresh) * 224;
+      const xR = (0.5 + tau_thresh) * 224;
+      fctx.strokeStyle = "rgba(239, 68, 68, 0.5)";
+      fctx.beginPath();
+      fctx.moveTo(xL, 0); fctx.lineTo(xL, 224);
+      fctx.moveTo(xR, 0); fctx.lineTo(xR, 224);
+      fctx.stroke();
+      fctx.setLineDash([]);
+
+      if (proj.cx !== null) {
+        const cxPx = proj.cx * 224;
+        const boxSize = Math.max(24, Math.sqrt(proj.area) * 224);
+        const cyPx = 112 + 10;
+
+        // Bbox
+        const offset = Math.abs(proj.cx - 0.5);
+        fctx.strokeStyle = offset > tau_thresh ? "#ef4444" : "#10b981";
+        fctx.lineWidth = 2.5;
+        fctx.strokeRect(cxPx - boxSize / 2, cyPx - boxSize / 2, boxSize, boxSize);
+
+        // Center reticle
+        fctx.fillStyle = "#38bdf8";
+        fctx.beginPath();
+        fctx.arc(cxPx, cyPx, 3.5, 0, Math.PI * 2);
+        fctx.fill();
+
+        document.getElementById('fpvHudText').textContent = `cx: ${proj.cx.toFixed(2)} | Area: ${proj.area.toFixed(3)}`;
+      } else {
+        fctx.fillStyle = "#ef4444";
+        fctx.font = "12px JetBrains Mono";
+        fctx.textAlign = "center";
+        fctx.fillText("TARGET OUT OF FOV", 112, 112);
+        document.getElementById('fpvHudText').textContent = "TARGET: MISSING";
+      }
+    }
+
+    // Mouse Interaction for Dragging Robot / Target
+    arenaCanvas.addEventListener('mousedown', (e) => {
+      const rect = arenaCanvas.getBoundingClientRect();
+      const m = px2m(e.clientX - rect.left, e.clientY - rect.top);
+
+      if (Math.hypot(m.x - goal.x, m.y - goal.y) <= GOAL_RADIUS * 1.5) {
+        draggingTarget = 'goal';
+      } else if (Math.hypot(m.x - robot.x, m.y - robot.y) <= ROBOT_RADIUS * 1.5) {
+        draggingTarget = 'robot';
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!draggingTarget) return;
+      const rect = arenaCanvas.getBoundingClientRect();
+      const m = px2m(e.clientX - rect.left, e.clientY - rect.top);
+
+      if (draggingTarget === 'goal') {
+        goal.x = Math.max(0.3, Math.min(ARENA_W - 0.3, m.x));
+        goal.y = Math.max(0.3, Math.min(ARENA_H - 0.3, m.y));
+      } else if (draggingTarget === 'robot') {
+        robot.x = Math.max(0.3, Math.min(ARENA_W - 0.3, m.x));
+        robot.y = Math.max(0.3, Math.min(ARENA_H - 0.3, m.y));
+      }
+
+      drawArena();
+      drawFPV();
+      updateTelemetry();
+    });
+
+    window.addEventListener('mouseup', () => {
+      draggingTarget = null;
+    });
+
+    window.addEventListener('resize', resizeCanvases);
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeCanvases();
+      loadScenario('nominal');
+    });
+  </script>
+</body>
+</html>

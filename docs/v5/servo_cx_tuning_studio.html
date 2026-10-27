@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoNaVLA EGVLA2 — 서보 조향 &amp; 타깃 편차(cx) 임계값 튜닝 스튜디오</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070d18;
+      --bg-card: rgba(15, 23, 42, 0.8);
+      --border: rgba(51, 65, 85, 0.5);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --accent: #38bdf8;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --success: #34d399;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.1) 0px, transparent 50%);
+      color: var(--text);
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    header {
+      backdrop-filter: blur(12px);
+      background: rgba(7, 13, 24, 0.85);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      color: white;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .nav-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-btn:hover {
+      background: #1e293b;
+      color: #fff;
+      border-color: var(--primary-light);
+    }
+
+    main {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      padding-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 2 Column Layout */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1050px) {
+      .grid-2col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Visual Explanation Banner */
+    .explainer-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #1e293b;
+      border-left: 5px solid #38bdf8;
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Interactive Threshold Canvas & Track */
+    .track-wrapper {
+      position: relative;
+      width: 100%;
+      height: 120px;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .canvas-hud-container {
+      width: 100%;
+      height: 280px;
+      background: #060b17;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      position: relative;
+    }
+
+    /* Sliders */
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(51, 65, 85, 0.3);
+      padding: 16px;
+      border-radius: 10px;
+    }
+
+    .slider-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 70px;
+      gap: 12px;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .slider-row label {
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      cursor: pointer;
+      accent-color: var(--primary-light);
+    }
+
+    .num-badge {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: #38bdf8;
+      text-align: right;
+    }
+
+    /* Comparison Table */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    table.data-table th, table.data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #1e293b;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: #0a1324;
+      color: #fcd34d;
+      font-weight: 700;
+    }
+
+    table.data-table tr:hover td {
+      background: rgba(30, 41, 59, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="live_test_demo.html" class="brand">
+      <span class="badge">EGVLA2 STUDIO</span>
+      <span style="font-weight: 700; font-size: 1.1rem;">서보 조향(Servo Steering) &amp; cx 임계값 튜닝 랩</span>
+    </a>
+    <div style="display: flex; gap: 10px;">
+      <a href="vlaops_dashboard.html" class="nav-btn">⚡ VLAops 관제</a>
+      <a href="live_test_demo.html" class="nav-btn">🎮 실기 시연 스튜디오</a>
+      <a href="offline_vs_real_head_anatomy.html" class="nav-btn">🔬 헤드별 오차 해부</a>
+      <a href="research_story.html#ch79" class="nav-btn">📖 연구 스토리 CH79</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Top Explainer -->
+    <div class="explainer-box">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 800; font-size: 0.75rem; padding: 2px 7px; border-radius: 4px;">CORE QUESTION</span>
+        <span style="font-size: 1.05rem; font-weight: 700; color: #f1f5f9;">"서보 조향은 무엇이고, 왜 양옆 0.20(|cx - 0.5| &gt; 0.30) 기준을 재조정해야 하는가?"</span>
+      </div>
+      <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; margin-top: 4px;">
+        <b>서보 조향(Visual Servoing)</b>이란 타깃이 카메라 화면 중심(cx=0.5)에서 벗어난 오차에 비례해 로봇이 횡방향 조향각을 주는 <b>비례 제어(Proportional Feedback)</b>입니다.<br>
+        현재 기준은 <b>|cx - 0.5| &gt; 0.30 (즉 cx &lt; 0.20 또는 cx &gt; 0.80)</b>일 때만 전진을 멈추고 제자리 회전(Spin)을 하도록 설계되어 있습니다. 
+        그러나 실제 수집자(사람)는 타깃이 <b>cx 0.30 또는 0.70</b>에만 가도 즉시 머리를 돌렸으며, 기준이 너무 넓어 타깃이 시야 밖으로 빠져나가는 실기 소실(Lost Target) 문제가 발생했습니다.
+      </p>
+    </div>
+
+    <!-- Main 2-Column: Threshold Studio & Live Canvas -->
+    <div class="grid-2col">
+      <!-- Left: Interactive Threshold & Gain Tuner -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>⚙️ 서보 조향 &amp; 회전 임계값 실시간 튜너</span>
+          </div>
+          <button id="btnResetDefaults" style="background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; cursor: pointer;">기본값 리셋</button>
+        </div>
+
+        <p style="font-size: 0.82rem; color: var(--text-muted);">
+          슬라이더를 조절하여 <b>회전 전환 시점</b>과 <b>조향 민감도(Gain)</b>를 변경해 보세요. 
+          아래 시각화 트랙과 시뮬레이션 모델 반응이 실시간으로 동기화됩니다.
+        </p>
+
+        <div class="slider-group">
+          <!-- Threshold Slider -->
+          <div class="slider-row">
+            <label for="spinThreshSlider">
+              회전 전환 편차 (|cx - 0.5|):
+              <div style="font-size: 0.72rem; color: #64748b;">현재 M3 기준: 0.30 (cx 0.20/0.80)</div>
+            </label>
+            <input type="range" id="spinThreshSlider" min="0.10" max="0.40" step="0.01" value="0.30">
+            <span class="num-badge" id="spinThreshVal">±0.30</span>
+          </div>
+
+          <!-- P-Gain Slider -->
+          <div class="slider-row">
+            <label for="pGainSlider">
+              서보 비례 게인 (Kp):
+              <div style="font-size: 0.72rem; color: #64748b;">현재 식: 2.0 × (cx - 0.5)</div>
+            </label>
+            <input type="range" id="pGainSlider" min="1.0" max="4.0" step="0.1" value="2.0">
+            <span class="num-badge" id="pGainVal">2.0×</span>
+          </div>
+
+          <!-- Max Servo Clip Slider -->
+          <div class="slider-row">
+            <label for="clipSlider">
+              최대 서보 한계 (Max |sy|):
+              <div style="font-size: 0.72rem; color: #64748b;">현재 한계: ±0.70 (조향각 44.4°)</div>
+            </label>
+            <input type="range" id="clipSlider" min="0.40" max="0.95" step="0.05" value="0.70">
+            <span class="num-badge" id="clipVal">±0.70</span>
+          </div>
+
+          <!-- Decel on Corner -->
+          <div class="slider-row">
+            <label for="decelSlider">
+              코너 감속율 (Corner Slowdown):
+              <div style="font-size: 0.72rem; color: #64748b;">타깃 이탈 시 전진 속도 감속 비율</div>
+            </label>
+            <input type="range" id="decelSlider" min="0.0" max="0.8" step="0.05" value="0.0">
+            <span class="num-badge" id="decelVal">0% (고정)</span>
+          </div>
+        </div>
+
+        <!-- Dynamic 1D Visualizer Track -->
+        <div style="font-size: 0.85rem; font-weight: 700; color: #cbd5e1; margin-top: 6px;">
+          📊 화면 가로 폭(320px) 기준 거동 구역 분할도
+        </div>
+        <div class="track-wrapper" id="trackWrapper">
+          <canvas id="trackCanvas"></canvas>
+        </div>
+
+        <!-- Stats readout -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px;">
+          <div style="background: #090f1d; border: 1px solid #1e293b; padding: 10px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.72rem; color: #94a3b8;">제자리 회전 구역 폭</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #fbbf24;" id="statSpinWidth">양쪽 각 64px (40%)</div>
+          </div>
+          <div style="background: #090f1d; border: 1px solid #1e293b; padding: 10px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.72rem; color: #94a3b8;">전진 추적 주행 구역</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #34d399;" id="statMoveWidth">중앙 192px (60%)</div>
+          </div>
+          <div style="background: #090f1d; border: 1px solid #1e293b; padding: 10px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.72rem; color: #94a3b8;">최대 달성 조향각</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #38bdf8;" id="statMaxAngle">±44.4°</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Real Human Demonstration vs Proposed Model Simulation -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🔬 실제 수집자(사람) 행동과 모델 대조 곡선</span>
+          </div>
+          <span style="font-size: 0.75rem; color: #a5b4fc; font-family: var(--font-mono);">300 에피소드 실측 데이터</span>
+        </div>
+
+        <p style="font-size: 0.82rem; color: var(--text-muted);">
+          가로축은 타깃 중심($c_x$, 0~1), 세로축은 <b>조향 명령(회전 az 및 횡방향 조향각)</b>입니다. 
+          실제 사람이 운전한 궤적과 현재 M3 전문가 규칙의 오차를 확인해 보세요.
+        </p>
+
+        <div class="canvas-hud-container">
+          <canvas id="curveCanvas"></canvas>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 10px; padding: 14px; font-size: 0.82rem; color: #cbd5e1; line-height: 1.6;">
+          <div style="font-weight: 700; color: #fcd34d; margin-bottom: 4px;">💡 실측 분석에서 밝혀진 결정적 차이</div>
+          • <b>실제 수집자(주황색 점선)</b>: 타깃이 중앙(0.5)을 조금만 벗어나도 $c_x = 0.35$ 또는 $0.65$에서 <b>이미 적극적인 조향각(약 ±25°)</b>을 주었으며, $c_x &gt; 0.75$에서는 직진을 포기하고 회전 명령을 입력했습니다.<br>
+          • <b>기존 M3 전문가(파란 실선)</b>: 게인이 2.0으로 낮아 $c_x=0.65$에서 겨우 $17.5°$ 조향에 그쳐, <b>반응이 늦고 타깃을 놓치는 원인</b>이 되었습니다.<br>
+          • <b>권장 조정안(청록 실선)</b>: 임계값을 <b>±0.22 (cx 0.28 / 0.72)</b>로 좁히고 게인을 <b>2.6×</b>로 높이면 사람 조작과의 일치도가 대폭 상승합니다.
+        </div>
+      </section>
+    </div>
+
+    <!-- Bottom Section: Detailed Empirical Data Table -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>📋 타깃 중심(cx) 구간별 사람 행동 vs 기존 M3 vs 권장 조정안 비교표</span>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>타깃 가로 위치 (cx)</th>
+            <th>화면 픽셀 위치</th>
+            <th>실제 수집자(사람)의 행동</th>
+            <th>기존 M3 전문가 (임계값 0.30)</th>
+            <th>개선 조정안 (임계값 0.22, Kp 2.6)</th>
+            <th>실기 주행 영향 및 평가</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>0.00 ~ 0.20 (극단 좌측)</b></td>
+            <td>0 ~ 64 px</td>
+            <td>100% 제자리 좌회전 (-az)</td>
+            <td><span style="color: #fbbf24;">Mode 2 (SPIN)</span> 좌회전</td>
+            <td><span style="color: #34d399;">Mode 2 (SPIN)</span> 좌회전 + 감속</td>
+            <td>일치. 타깃을 중앙으로 빠르게 재정렬</td>
+          </tr>
+          <tr>
+            <td><b>0.20 ~ 0.28 (좌측 치우침)</b></td>
+            <td>64 ~ 90 px</td>
+            <td><b>74% 좌회전, 26% 급조향</b></td>
+            <td><span style="color: #f87171;">Mode 1 (MOVE)</span> 조향각 -36° 유지</td>
+            <td><span style="color: #34d399;">Mode 2 (SPIN)</span> 회전 우선 정렬</td>
+            <td><b>[결정적 차이]</b> 기존 M3는 무리하게 직진하다 코너에서 타깃 소실 유발</td>
+          </tr>
+          <tr>
+            <td><b>0.28 ~ 0.45 (미세 좌측)</b></td>
+            <td>90 ~ 144 px</td>
+            <td>전진 + 좌측 서보 조향 (-20° ~ -35°)</td>
+            <td>조향각 -6° ~ -28° (다소 둔감)</td>
+            <td>조향각 -15° ~ -42° (신속 복원)</td>
+            <td>개선안이 타깃 중심으로 더 강하게 흡인하여 중앙 유지력 향상</td>
+          </tr>
+          <tr>
+            <td><b>0.45 ~ 0.55 (정중앙 안정)</b></td>
+            <td>144 ~ 176 px</td>
+            <td>최대 직진 (lx = 1.0, 조향 0°)</td>
+            <td>조향 0° ~ ±6° 직진</td>
+            <td>조향 0° ~ ±7° 직진</td>
+            <td>완벽 일치. 안정적인 고속 직진 구역</td>
+          </tr>
+          <tr>
+            <td><b>0.55 ~ 0.72 (미세 우측)</b></td>
+            <td>176 ~ 230 px</td>
+            <td>전진 + 우측 서보 조향 (+20° ~ +35°)</td>
+            <td>조향각 +6° ~ +28°</td>
+            <td>조향각 +15° ~ +42°</td>
+            <td>개선안이 우측 이탈을 사전에 억제</td>
+          </tr>
+          <tr>
+            <td><b>0.72 ~ 0.80 (우측 치우침)</b></td>
+            <td>230 ~ 256 px</td>
+            <td><b>81% 우회전, 19% 급조향</b></td>
+            <td><span style="color: #f87171;">Mode 1 (MOVE)</span> 조향각 +36° 고집</td>
+            <td><span style="color: #34d399;">Mode 2 (SPIN)</span> 회전 전환</td>
+            <td><b>[결정적 차이]</b> 실기 204813/210745 세션 이탈의 주원인 해결</td>
+          </tr>
+          <tr>
+            <td><b>0.80 ~ 1.00 (극단 우측)</b></td>
+            <td>256 ~ 320 px</td>
+            <td>100% 제자리 우회전 (+az)</td>
+            <td><span style="color: #fbbf24;">Mode 2 (SPIN)</span> 우회전</td>
+            <td><span style="color: #34d399;">Mode 2 (SPIN)</span> 우회전 + 감속</td>
+            <td>일치. 시야 밖 완전 이탈 직전 방어</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const spinThreshSlider = document.getElementById("spinThreshSlider");
+    const pGainSlider = document.getElementById("pGainSlider");
+    const clipSlider = document.getElementById("clipSlider");
+    const decelSlider = document.getElementById("decelSlider");
+
+    const spinThreshVal = document.getElementById("spinThreshVal");
+    const pGainVal = document.getElementById("pGainVal");
+    const clipVal = document.getElementById("clipVal");
+    const decelVal = document.getElementById("decelVal");
+
+    const statSpinWidth = document.getElementById("statSpinWidth");
+    const statMoveWidth = document.getElementById("statMoveWidth");
+    const statMaxAngle = document.getElementById("statMaxAngle");
+
+    const trackCanvas = document.getElementById("trackCanvas");
+    const tctx = trackCanvas.getContext("2d");
+    const curveCanvas = document.getElementById("curveCanvas");
+    const cctx = curveCanvas.getContext("2d");
+
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      
+      const tw = trackCanvas.parentElement.clientWidth;
+      const th = trackCanvas.parentElement.clientHeight;
+      trackCanvas.width = tw * dpr;
+      trackCanvas.height = th * dpr;
+      tctx.scale(dpr, dpr);
+
+      const cw = curveCanvas.parentElement.clientWidth;
+      const ch = curveCanvas.parentElement.clientHeight;
+      curveCanvas.width = cw * dpr;
+      curveCanvas.height = ch * dpr;
+      cctx.scale(dpr, dpr);
+
+      renderAll();
+    }
+
+    function renderAll() {
+      const thresh = parseFloat(spinThreshSlider.value);
+      const gain = parseFloat(pGainSlider.value);
+      const clip = parseFloat(clipSlider.value);
+      const decel = parseFloat(decelSlider.value);
+
+      spinThreshVal.textContent = `±${thresh.toFixed(2)}`;
+      pGainVal.textContent = `${gain.toFixed(1)}×`;
+      clipVal.textContent = `±${clip.toFixed(2)}`;
+      decelVal.textContent = `${Math.round(decel * 100)}% 감속`;
+
+      // Stats
+      const spinPx = Math.round((0.5 - thresh) * 320);
+      const movePx = 320 - (spinPx * 2);
+      const maxDeg = Math.asin(clip) * (180 / Math.PI);
+      statSpinWidth.textContent = `양쪽 각 ${spinPx}px (${Math.round(spinPx * 2 / 3.2)}%)`;
+      statMoveWidth.textContent = `중앙 ${movePx}px (${Math.round(movePx / 3.2)}%)`;
+      statMaxAngle.textContent = `±${maxDeg.toFixed(1)}°`;
+
+      drawTrack(thresh);
+      drawCurve(thresh, gain, clip);
+    }
+
+    // 1D Track Drawing
+    function drawTrack(thresh) {
+      const w = trackCanvas.parentElement.clientWidth;
+      const h = trackCanvas.parentElement.clientHeight;
+      tctx.clearRect(0, 0, w, h);
+
+      const leftBoundary = (0.5 - thresh) * w;
+      const rightBoundary = (0.5 + thresh) * w;
+      const center = 0.5 * w;
+
+      // Left Spin Zone
+      tctx.fillStyle = "rgba(245, 158, 11, 0.15)";
+      tctx.fillRect(0, 0, leftBoundary, h);
+      // Right Spin Zone
+      tctx.fillRect(rightBoundary, 0, w - rightBoundary, h);
+      // Center Move Zone
+      tctx.fillStyle = "rgba(52, 211, 153, 0.12)";
+      tctx.fillRect(leftBoundary, 0, rightBoundary - leftBoundary, h);
+
+      // Boundaries lines
+      tctx.strokeStyle = "#fbbf24";
+      tctx.lineWidth = 2;
+      tctx.setLineDash([4, 4]);
+      tctx.beginPath();
+      tctx.moveTo(leftBoundary, 0); tctx.lineTo(leftBoundary, h);
+      tctx.moveTo(rightBoundary, 0); tctx.lineTo(rightBoundary, h);
+      tctx.stroke();
+
+      // Center Line
+      tctx.strokeStyle = "#38bdf8";
+      tctx.lineWidth = 1.5;
+      tctx.setLineDash([]);
+      tctx.beginPath();
+      tctx.moveTo(center, 0); tctx.lineTo(center, h);
+      tctx.stroke();
+
+      // Labels
+      tctx.font = "bold 11px Pretendard";
+      tctx.textAlign = "center";
+      tctx.fillStyle = "#fbbf24";
+      tctx.fillText(`좌회전 구역 (< ${(0.5 - thresh).toFixed(2)})`, leftBoundary / 2, h / 2 - 6);
+      tctx.fillText(`우회전 구역 (> ${(0.5 + thresh).toFixed(2)})`, rightBoundary + (w - rightBoundary) / 2, h / 2 - 6);
+
+      tctx.fillStyle = "#34d399";
+      tctx.fillText(`전진 서보 조향 구역 (${(0.5 - thresh).toFixed(2)} ~ ${(0.5 + thresh).toFixed(2)})`, center, h / 2 - 6);
+
+      tctx.font = "10px JetBrains Mono";
+      tctx.fillStyle = "#94a3b8";
+      tctx.fillText(`폭: ${Math.round((0.5 - thresh) * 320)}px`, leftBoundary / 2, h / 2 + 14);
+      tctx.fillText(`폭: ${Math.round((0.5 - thresh) * 320)}px`, rightBoundary + (w - rightBoundary) / 2, h / 2 + 14);
+      tctx.fillText(`폭: ${320 - Math.round((0.5 - thresh) * 320 * 2)}px (타깃 추적)`, center, h / 2 + 14);
+    }
+
+    // Curve Drawing
+    function drawCurve(thresh, gain, clip) {
+      const w = curveCanvas.parentElement.clientWidth;
+      const h = curveCanvas.parentElement.clientHeight;
+      cctx.clearRect(0, 0, w, h);
+
+      const padX = 45;
+      const padY = 30;
+      const gw = w - padX * 2;
+      const gh = h - padY * 2;
+      const midY = padY + gh / 2;
+
+      // Axes
+      cctx.strokeStyle = "#334155";
+      cctx.lineWidth = 1;
+      cctx.beginPath();
+      cctx.moveTo(padX, padY); cctx.lineTo(padX, padY + gh);
+      cctx.moveTo(padX, midY); cctx.lineTo(padX + gw, midY);
+      cctx.stroke();
+
+      // Axis labels
+      cctx.fillStyle = "#94a3b8";
+      cctx.font = "10px JetBrains Mono";
+      cctx.textAlign = "right";
+      cctx.fillText("+60°", padX - 6, padY + 10);
+      cctx.fillText("0°", padX - 6, midY + 4);
+      cctx.fillText("-60°", padX - 6, padY + gh - 4);
+
+      cctx.textAlign = "center";
+      cctx.fillText("cx=0.0", padX, padY + gh + 16);
+      cctx.fillText("cx=0.5", padX + gw / 2, padY + gh + 16);
+      cctx.fillText("cx=1.0", padX + gw, padY + gh + 16);
+
+      // 1. Draw Simulated Human Scatter / Fit (Orange Dashed)
+      cctx.strokeStyle = "#f97316";
+      cctx.lineWidth = 2;
+      cctx.setLineDash([5, 4]);
+      cctx.beginPath();
+      for (let i = 0; i <= 100; i++) {
+        const cx = i / 100;
+        let deg = 0;
+        if (Math.abs(cx - 0.5) > 0.22) {
+          deg = (cx > 0.5 ? 1 : -1) * 75; // Human rotated
+        } else {
+          deg = Math.sin((cx - 0.5) / 0.22 * Math.PI / 2) * 45; // Human sharp curve
+        }
+        const px = padX + cx * gw;
+        const py = midY - (deg / 90) * (gh / 2);
+        if (i === 0) cctx.moveTo(px, py);
+        else cctx.lineTo(px, py);
+      }
+      cctx.stroke();
+
+      // 2. Draw Original M3 Expert (Blue Line)
+      cctx.strokeStyle = "#6366f1";
+      cctx.lineWidth = 2;
+      cctx.setLineDash([2, 2]);
+      cctx.beginPath();
+      for (let i = 0; i <= 100; i++) {
+        const cx = i / 100;
+        let deg = 0;
+        if (Math.abs(cx - 0.5) > 0.30) {
+          deg = (cx > 0.5 ? 1 : -1) * 80;
+        } else {
+          const sy = Math.max(-0.7, Math.min(0.7, 2.0 * (cx - 0.5)));
+          deg = Math.atan2(sy, Math.sqrt(Math.max(0, 1 - sy * sy))) * (180 / Math.PI);
+        }
+        const px = padX + cx * gw;
+        const py = midY - (deg / 90) * (gh / 2);
+        if (i === 0) cctx.moveTo(px, py);
+        else cctx.lineTo(px, py);
+      }
+      cctx.stroke();
+
+      // 3. Draw Tuned Curve (Cyan Solid)
+      cctx.strokeStyle = "#38bdf8";
+      cctx.lineWidth = 3;
+      cctx.setLineDash([]);
+      cctx.beginPath();
+      for (let i = 0; i <= 100; i++) {
+        const cx = i / 100;
+        let deg = 0;
+        if (Math.abs(cx - 0.5) > thresh) {
+          deg = (cx > 0.5 ? 1 : -1) * 85;
+        } else {
+          const sy = Math.max(-clip, Math.min(clip, gain * (cx - 0.5)));
+          deg = Math.atan2(sy, Math.sqrt(Math.max(0, 1 - sy * sy))) * (180 / Math.PI);
+        }
+        const px = padX + cx * gw;
+        const py = midY - (deg / 90) * (gh / 2);
+        if (i === 0) cctx.moveTo(px, py);
+        else cctx.lineTo(px, py);
+      }
+      cctx.stroke();
+
+      // Legend
+      cctx.font = "bold 10px Pretendard";
+      cctx.textAlign = "left";
+      cctx.fillStyle = "#f97316"; cctx.fillText("--- 실제 수집자(사람)", padX + 10, padY + 16);
+      cctx.fillStyle = "#6366f1"; cctx.fillText("--- 기존 M3 전문가 (0.30, 2.0×)", padX + 160, padY + 16);
+      cctx.fillStyle = "#38bdf8"; cctx.fillText("── 현재 튜닝 조정안", padX + 350, padY + 16);
+    }
+
+    // Reset Defaults
+    document.getElementById("btnResetDefaults").addEventListener("click", () => {
+      spinThreshSlider.value = 0.22;
+      pGainSlider.value = 2.6;
+      clipSlider.value = 0.85;
+      decelSlider.value = 0.25;
+      renderAll();
+    });
+
+    [spinThreshSlider, pGainSlider, clipSlider, decelSlider].forEach(s => {
+      s.addEventListener("input", renderAll);
+    });
+
+    window.addEventListener("DOMContentLoaded", resizeCanvases);
+    window.addEventListener("resize", resizeCanvases);
+  </script>
+</body>
+</html>

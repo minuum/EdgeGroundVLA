@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoNaVLA EGVLA2 — Head-by-Head Direction Error & Offline vs Real Anatomy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070d18;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --border: rgba(51, 65, 85, 0.5);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --accent: #38bdf8;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --success: #34d399;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.1) 0px, transparent 50%);
+      color: var(--text);
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    header {
+      backdrop-filter: blur(12px);
+      background: rgba(7, 13, 24, 0.85);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      color: white;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .nav-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: #1e293b;
+      color: #fff;
+      border-color: var(--primary-light);
+    }
+
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Hero Banner */
+    .hero-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.4);
+    }
+
+    .hero-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #f8fafc, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* 5-Metrics Grid */
+    .metrics-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-light);
+    }
+
+    .metric-header {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .metric-big {
+      font-size: 1.5rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: #38bdf8;
+    }
+
+    .metric-desc {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    /* Comparison Studio Section */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Image vs Head Prediction Grid */
+    .head-case-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 1000px) {
+      .head-case-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .case-box {
+      background: #090f1d;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .case-img-wrap {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #020617;
+      position: relative;
+    }
+
+    .case-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .case-overlay-chip {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    .case-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .head-score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #0f172a;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+    }
+
+    .head-badge {
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+    }
+
+    .hb-mlp { background: rgba(167, 139, 250, 0.2); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.4); }
+    .hb-film { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .hb-pi0 { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+
+    /* Deep Anatomy Comparison Table */
+    table.custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+
+    table.custom-table th, table.custom-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    table.custom-table th {
+      background: #0b1329;
+      color: #fcd34d;
+      font-weight: 700;
+      border-bottom: 2px solid #334155;
+    }
+
+    table.custom-table tr:hover td {
+      background: rgba(30, 41, 59, 0.4);
+    }
+
+    /* Visual Vector Diagram */
+    .diagram-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      background: #080f1e;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .diagram-panel {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .canvas-box {
+      width: 100%;
+      height: 250px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="research_story.html#ch79" class="brand">
+      <span class="badge">MoNaVLA</span>
+      <span style="font-weight: 700; font-size: 1.1rem;">EGVLA2 헤드별 방향 오차 &amp; 오프라인 vs 실기 해부</span>
+    </a>
+    <div style="display: flex; gap: 10px;">
+      <a href="vlaops_dashboard.html" class="nav-btn">⚡ VLAops 관제</a>
+      <a href="live_test_demo.html" class="nav-btn">🎮 라이브 시연 스튜디오</a>
+      <a href="servo_cx_tuning_studio.html" class="nav-btn">⚙️ 서보 조향 &amp; cx 튜닝</a>
+      <a href="research_story.html#ch79" class="nav-btn">📖 연구 스토리 CH79</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Top Hero -->
+    <section class="hero-card">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">CRITICAL AUDIT</span>
+        <span style="color: var(--text-muted); font-size: 0.85rem;">실기 지표와 학습 지표 간의 진실 대조 보고서</span>
+      </div>
+      <h1 class="hero-title">"오프라인에서 사람 천장(10.4°)이었던 모델이, 왜 실기에서는 편향되고 멈췄는가?"</h1>
+      <p style="font-size: 0.92rem; color: #cbd5e1; max-width: 1100px; line-height: 1.7;">
+        학습 데이터셋에서는 <b>FM-π0형 헤드가 10.4°</b>(사람 간 변동성 12.8°, 합의 9.8°)에 도달하여 완벽해 보였습니다. 
+        그러나 <b>실제 로봇 주행 환경</b>에서는 정규화로 인한 속도 크기 정보 버림, Florence-2의 0.89초 지연(전체 지연의 94%), 타깃 가로 위치에 대한 둔감성($S \approx -0.7°$)이 결합하여 실제 액션 간극이 발생했습니다. 
+        이 페이지에서는 3대 헤드 구조의 실제 예측값과 학습 데이터셋 프레임 이미지를 정밀 대조합니다.
+      </p>
+    </section>
+
+    <!-- 5 Core Benchmark Cards (사용자가 언급한 5대 지표) -->
+    <div class="metrics-summary-grid">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>⚡ 지연 (Latency)</span>
+          <span style="color: #34d399;">2.41× 경량화</span>
+        </div>
+        <div class="metric-big">0.89초 왕복</div>
+        <div class="metric-desc">
+          젯슨 fp32에서 1,971ms → 817ms로 단축. 하지만 <b>지연의 94%(821ms)가 Florence-2 백본</b>이며 FM 헤드는 54ms에 불과.
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>📦 데이터 규모 (Dataset)</span>
+          <span style="color: #38bdf8;">pos1 단일</span>
+        </div>
+        <div class="metric-big">29,161 장</div>
+        <div class="metric-desc">
+          pos1 시작 위치, 15개 공간 셀 × 20회 = 300 에피소드. 한 장소에서만 수집되어 <b>시작 위치 일반화 부재</b>의 원인.
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>🧠 헤드 비교 (오프라인 오차)</span>
+          <span style="color: #a78bfa;">π0 우세</span>
+        </div>
+        <div class="metric-big">10.4° vs 16.9°</div>
+        <div class="metric-desc">
+          같은 위치: <b>MLP 11.3° / FiLM 10.8° / π0 10.4°</b>.<br>
+          안 본 위치: <b>MLP 20.3° / FiLM 17.9° / π0 16.9°</b>로 결측과 외삽에서 π0형이 우수.
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>🎯 사람 천장 (Human Ceiling)</span>
+          <span style="color: #fbbf24;">천장 도달</span>
+        </div>
+        <div class="metric-big">12.8° / 9.8°</div>
+        <div class="metric-desc">
+          사람 조작자 간 편차 12.8°, 다수 합의 기준 9.8°. 모델 10.4°는 사람 편차 수준에 도달하여 <b>오프라인 오차 개선 한계</b> 입증.
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>⚙️ 서빙 파라미터</span>
+          <span style="color: #f87171;">K=8, EMA 0.5</span>
+        </div>
+        <div class="metric-big">200회 스윕</div>
+        <div class="metric-desc">
+          샘플 수 K=8과 지수 이동평균(EMA) 0.5가 저크를 사람 수준으로 억제하며 지연 ≤2프레임으로 수렴된 최선 파라미터.
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: 학습 프레임 이미지와 헤드별 예측 정밀 대조 -->
+    <section class="section-card">
+      <div class="section-title">
+        <span>🖼️ 실제 학습 데이터셋 이미지 대조 — 최선·중간·최악 에피소드 해부</span>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        동일한 입력 특징($c_x, c_y, area, \text{Florence-2}$)에 대해 각 헤드(FM-MLP, FM-FiLM, FM-π0)가 실제로 어떤 예측 조향각을 냈고, 사람 GT와 얼마나 차이가 났는지 실제 이미지로 대조합니다.
+      </p>
+
+      <div class="head-case-grid">
+        <!-- Case 1: Best Case -->
+        <div class="case-box">
+          <div class="case-img-wrap">
+            <img src="egvla2_fm/anatomy/fold0_best_0.jpg" alt="Best Case Frame">
+            <div class="case-overlay-chip" style="color: #34d399; border-color: #34d399;">
+              ✅ BEST 에피소드 (평균 오차 4.2°)
+            </div>
+          </div>
+          <div class="case-body">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #f1f5f9;">직진 구간 (weak_left | straight)</div>
+            <div style="font-size: 0.78rem; color: #94a3b8;">타깃이 정면에 위치하며 모호성이 없는 단순 전진 프레임</div>
+            <div class="head-score-row">
+              <span class="head-badge hb-mlp">FM-MLP</span>
+              <span>예측: <b>+2.8°</b> (오차 1.8°)</span>
+            </div>
+            <div class="head-score-row">
+              <span class="head-badge hb-film">FM-FiLM</span>
+              <span>예측: <b>+2.1°</b> (오차 1.1°)</span>
+            </div>
+            <div class="head-score-row" style="background: rgba(52, 211, 153, 0.1);">
+              <span class="head-badge hb-pi0">FM-π0형</span>
+              <span>예측: <b>+1.4°</b> (오차 0.4°)</span>
+            </div>
+            <div style="font-size: 0.75rem; color: #34d399;">사람 GT: <b>+1.0°</b> (완벽 일치)</div>
+          </div>
+        </div>
+
+        <!-- Case 2: Median Case (Bimodal Choice) -->
+        <div class="case-box">
+          <div class="case-img-wrap">
+            <img src="egvla2_fm/anatomy/fold0_median_0.jpg" alt="Median Case Frame">
+            <div class="case-overlay-chip" style="color: #38bdf8; border-color: #38bdf8;">
+              ⚠️ MEDIAN (곡선 진입 분기 10.5°)
+            </div>
+          </div>
+          <div class="case-body">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #f1f5f9;">곡선 회전 진입 구간 (strong_left)</div>
+            <div style="font-size: 0.78rem; color: #94a3b8;">좌회전 타이밍과 조향 곡률 판단이 갈리는 전형적인 중간 프레임</div>
+            <div class="head-score-row">
+              <span class="head-badge hb-mlp">FM-MLP</span>
+              <span>예측: <b>-18.4°</b> (오차 12.1°)</span>
+            </div>
+            <div class="head-score-row">
+              <span class="head-badge hb-film">FM-FiLM</span>
+              <span>예측: <b>-24.2°</b> (오차 6.3°)</span>
+            </div>
+            <div class="head-score-row" style="background: rgba(56, 189, 248, 0.1);">
+              <span class="head-badge hb-pi0">FM-π0형</span>
+              <span>예측: <b>-28.5°</b> (오차 2.0°)</span>
+            </div>
+            <div style="font-size: 0.75rem; color: #38bdf8;">사람 GT: <b>-30.5°</b> (π0가 곡률을 정확히 캐치)</div>
+          </div>
+        </div>
+
+        <!-- Case 3: Worst Case (Start Discrepancy) -->
+        <div class="case-box">
+          <div class="case-img-wrap">
+            <img src="egvla2_fm/anatomy/fold0_worst_0.jpg" alt="Worst Case Frame">
+            <div class="case-overlay-chip" style="color: #f87171; border-color: #f87171;">
+              ❌ WORST (시작 구간 다봉 34.2°)
+            </div>
+          </div>
+          <div class="case-body">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #f1f5f9;">시작 15% 경로 모호성 구간</div>
+            <div style="font-size: 0.78rem; color: #94a3b8;">사람이 우측으로 우회할지 좌측으로 갈지 결정하는 순간 (다봉성)</div>
+            <div class="head-score-row">
+              <span class="head-badge hb-mlp">FM-MLP</span>
+              <span>예측: <b>+12.0°</b> (오차 41.5°)</span>
+            </div>
+            <div class="head-score-row">
+              <span class="head-badge hb-film">FM-FiLM</span>
+              <span>예측: <b>+8.5°</b> (오차 38.0°)</span>
+            </div>
+            <div class="head-score-row" style="background: rgba(248, 113, 113, 0.1);">
+              <span class="head-badge hb-pi0">FM-π0형</span>
+              <span>예측: <b>-2.1°</b> (오차 27.4°)</span>
+            </div>
+            <div style="font-size: 0.75rem; color: #f87171;">사람 GT: <b>-29.5°</b> (K=8 평균화로 모드가 뭉개짐)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Head Architecture Deep Comparison Table -->
+    <section class="section-card">
+      <div class="section-title">
+        <span>📊 3대 헤드 구조의 정량적 비교 및 오차 원인 분석</span>
+      </div>
+
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>FM-MLP (대조군 A)</th>
+            <th>FM-FiLM (ResNet B2)</th>
+            <th>FM-π0 (AdaLN-Zero C)</th>
+            <th>실기에서의 시사점 및 원인</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>파라미터 수</b></td>
+            <td>230,552 (23만)</td>
+            <td>337,176 (33만)</td>
+            <td><b>494,360 (49만)</b></td>
+            <td>π0형이 2.1배 크지만 젯슨 GPU에서 헤드 연산 시간은 54ms로 무시 가능 수준</td>
+          </tr>
+          <tr>
+            <td><b>같은 위치 (fold0)</b></td>
+            <td>11.3°</td>
+            <td>10.8°</td>
+            <td><b>10.4°</b></td>
+            <td>모두 사람 간 변동성(12.8°) 이내로 들어와 오프라인 지표상으로는 구별 불가</td>
+          </tr>
+          <tr>
+            <td><b>안 본 위치 (LOPO)</b></td>
+            <td>20.3°</td>
+            <td>17.9°</td>
+            <td><b>16.9°</b></td>
+            <td>AdaLN 구조가 Florence-2 토큰 간의 외삽에서 결측에 가장 견고하게 반응</td>
+          </tr>
+          <tr>
+            <td><b>반사실 민감도 (S)</b></td>
+            <td>-0.82° (무반응)</td>
+            <td>-0.74° (무반응)</td>
+            <td><b>-0.55° → 증강 후 +0.34°</b></td>
+            <td><b>오프라인 오차와 실기 거동의 괴리 원인</b>: 타깃 cx가 바뀌어도 조향을 안 틀음</td>
+          </tr>
+          <tr>
+            <td><b>시작 다봉 구간</b></td>
+            <td>평균 뭉갬 심함</td>
+            <td>중간 방향 뭉갬</td>
+            <td>K=8 샘플 분산 66°</td>
+            <td>헤드는 다봉을 생성하지만 서빙 시 평균화(K=8)가 위험한 중간 방향을 만듦</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 3: Why Offline Metric Failed in Real Flight -->
+    <section class="section-card">
+      <div class="section-title">
+        <span>🔍 진실 규명: 오프라인 지표가 실기 성공률을 보장하지 못한 3대 이유</span>
+      </div>
+
+      <div class="diagram-panel">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="font-weight: 700; color: #fbbf24; font-size: 1.05rem;">1. 하드웨어의 속도 정규화 (크기 정보 손실)</div>
+          <p style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.6;">
+            모델이 출력한 $(v_x, v_y)$는 서빙 제어기에서 <code>atan2(ly, lx)</code> 방향각만 추출되고 크기는 버려집니다. 
+            모델이 감속하거나 정지하려는 의도를 가져도 하드웨어는 항상 정해진 throttle(50 또는 35)로 직진하므로, 
+            오프라인 손실(MSE)에서 안전해 보였던 미세한 각도 오차가 실기에서는 벽 충돌이나 오버슈트로 이어집니다.
+          </p>
+
+          <div style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">2. 0.89초 지연(Latency)의 누적 (Florence-2 94%)</div>
+          <p style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.6;">
+            카메라 캡처 후 명령 실행까지 약 892ms가 소요됩니다. 이 중 821ms(94%)가 Florence-2 비전 그라운딩에서 발생합니다. 
+            로봇이 $0.2\,\text{m/s}$로 이동할 때 0.89초면 약 $18\,\text{cm}$를 이미 지나친 뒤 과거의 장면을 보고 조향하는 상태가 되어 폐루프 발진을 유발합니다.
+          </p>
+
+          <div style="font-weight: 700; color: #f87171; font-size: 1.05rem;">3. 시작 회전 및 횡방향 타깃 중심($c_x$) 무시</div>
+          <p style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.6;">
+            기존 배포 모델은 타깃의 가로 위치가 변해도 방향각을 보정하지 못하는 <b>음수 반사실 민감도($S = -0.7°$)</b>를 가지고 있었습니다. 
+            이번 E1(가로 시프트 증강)+E5(가장자리 가중) 실험을 거치고 나서야 $S = +0.34°$로 양수 반전되어 타깃 방향으로 스스로 머리를 트는 복원력을 획득했습니다.
+          </p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; background: #050a14; border-radius: 10px; padding: 20px;">
+          <div style="font-weight: 700; font-size: 0.9rem; color: #e2e8f0; text-align: center;">지연 시간 분해 (Latency Breakdown: 892ms)</div>
+          <div style="width: 100%; max-width: 340px; aspect-ratio: 1; position: relative;">
+            <canvas id="latencyPieCanvas"></canvas>
+          </div>
+          <div style="font-size: 0.78rem; color: #94a3b8; text-align: center;">
+            ■ Florence-2 그라운딩 (821ms, 92~94%)<br>
+            ■ Flow Matching 헤드 추론 (54ms, 6%)<br>
+            ■ 네트워크 통신 및 후처리 (17ms, 2%)
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Draw Latency Pie Chart
+    function drawLatencyPie() {
+      const canvas = document.getElementById("latencyPieCanvas");
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const radius = Math.min(cx, cy) - 10;
+
+      const data = [
+        { label: "Florence-2", value: 821, color: "#6366f1" },
+        { label: "FM Head", value: 54, color: "#38bdf8" },
+        { label: "Network", value: 17, color: "#34d399" }
+      ];
+      const total = data.reduce((a, b) => a + b.value, 0);
+
+      let startAngle = -Math.PI / 2;
+      data.forEach(slice => {
+        const sliceAngle = (slice.value / total) * Math.PI * 2;
+        ctx.fillStyle = slice.color;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner cutout for donut
+        startAngle += sliceAngle;
+      });
+
+      ctx.fillStyle = "#050a14";
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.58, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Center text
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 16px Pretendard";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("892ms", cx, cy - 8);
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "11px Pretendard";
+      ctx.fillText("왕복 지연", cx, cy + 12);
+    }
+
+    window.addEventListener("DOMContentLoaded", drawLatencyPie);
+    window.addEventListener("resize", drawLatencyPie);
+  </script>
+</body>
+</html>

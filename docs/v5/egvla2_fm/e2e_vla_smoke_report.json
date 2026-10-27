@@ -1,0 +1,15 @@
+{
+  "status": "SUCCESS",
+  "model": "Florence-2-base + PiZeroFM AdaLN (E2E LoRA)",
+  "trainable_components": [
+    "Florence-2 vision_tower LoRA (r=8)",
+    "AdaLN-Zero Action Head",
+    "Projection Layer"
+  ],
+  "epochs": 25,
+  "initial_loss": 0.7710653797785441,
+  "final_loss": 0.16979023116330305,
+  "loss_delta": 0.601275148615241,
+  "checkpoint_saved": "/home/minum/26CS/MoNaVLA/runs/egvla2_e2e_lora/e2e_vla_florence2_lora_latest.pt",
+  "timestamp": "2026-10-26 09:31:25"
+}

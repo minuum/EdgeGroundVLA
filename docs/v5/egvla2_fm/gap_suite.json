@@ -9,11 +9,11 @@
    "edge_dir_err": 14.64931869506836,
    "n_edge": 399,
    "live": {
-    "mode_acc": 0.6025641025641025,
-    "spin_dir_acc": 0.9705882352941176,
-    "move_angle_err": 43.6443044424665,
-    "corrective_sign": 0.36363636363636365,
-    "n_ok": 390
+    "mode_acc": 0.6424731182795699,
+    "spin_dir_acc": 0.9736842105263158,
+    "move_angle_err": 44.22763956331718,
+    "corrective_sign": 0.3775933609958506,
+    "n_ok": 372
    }
   },
   "E2_hw_labels": {
@@ -25,11 +25,11 @@
    "edge_dir_err": 17.52704429626465,
    "n_edge": 422,
    "live": {
-    "mode_acc": 0.5794871794871795,
-    "spin_dir_acc": 0.875,
-    "move_angle_err": 48.69246988612544,
-    "corrective_sign": 0.34765625,
-    "n_ok": 390
+    "mode_acc": 0.6075268817204301,
+    "spin_dir_acc": 0.8846153846153846,
+    "move_angle_err": 48.606818959005686,
+    "corrective_sign": 0.352,
+    "n_ok": 372
    }
   },
   "E5_edge_w": {
@@ -41,11 +41,11 @@
    "edge_dir_err": 15.717039108276367,
    "n_edge": 403,
    "live": {
-    "mode_acc": 0.5923076923076923,
-    "spin_dir_acc": 0.875,
-    "move_angle_err": 48.177708931206844,
-    "corrective_sign": 0.3601694915254237,
-    "n_ok": 390
+    "mode_acc": 0.6317204301075269,
+    "spin_dir_acc": 0.8888888888888888,
+    "move_angle_err": 47.25650120703695,
+    "corrective_sign": 0.3815789473684211,
+    "n_ok": 372
    }
   },
   "E2+E5": {
@@ -57,11 +57,11 @@
    "edge_dir_err": 17.168760299682617,
    "n_edge": 419,
    "live": {
-    "mode_acc": 0.6153846153846154,
-    "spin_dir_acc": 0.9375,
-    "move_angle_err": 46.97007779320446,
-    "corrective_sign": 0.3493975903614458,
-    "n_ok": 390
+    "mode_acc": 0.6263440860215054,
+    "spin_dir_acc": 0.9629629629629629,
+    "move_angle_err": 46.77494823323857,
+    "corrective_sign": 0.36904761904761907,
+    "n_ok": 372
    }
   }
  },
@@ -75,11 +75,11 @@
    "edge_dir_err": 24.623245239257812,
    "n_edge": 247,
    "live": {
-    "mode_acc": 0.5846153846153846,
+    "mode_acc": 0.6102150537634409,
     "spin_dir_acc": 0.9666666666666667,
-    "move_angle_err": 48.87296321525805,
-    "corrective_sign": 0.39669421487603307,
-    "n_ok": 390
+    "move_angle_err": 49.37344477050877,
+    "corrective_sign": 0.38589211618257263,
+    "n_ok": 372
    }
   },
   "E2_hw_labels": {
@@ -91,11 +91,11 @@
    "edge_dir_err": 24.25895881652832,
    "n_edge": 247,
    "live": {
-    "mode_acc": 0.6153846153846154,
-    "spin_dir_acc": 0.9117647058823529,
-    "move_angle_err": 45.57440527027454,
-    "corrective_sign": 0.40725806451612906,
-    "n_ok": 390
+    "mode_acc": 0.6505376344086021,
+    "spin_dir_acc": 0.9714285714285714,
+    "move_angle_err": 46.399701565889146,
+    "corrective_sign": 0.39919354838709675,
+    "n_ok": 372
    }
   },
   "E5_edge_w": {
@@ -107,11 +107,11 @@
    "edge_dir_err": 22.39998435974121,
    "n_edge": 245,
    "live": {
-    "mode_acc": 0.6512820512820513,
-    "spin_dir_acc": 0.9375,
-    "move_angle_err": 48.40338239128263,
-    "corrective_sign": 0.41708542713567837,
-    "n_ok": 390
+    "mode_acc": 0.6881720430107527,
+    "spin_dir_acc": 0.9393939393939394,
+    "move_angle_err": 47.78012629569618,
+    "corrective_sign": 0.42786069651741293,
+    "n_ok": 372
    }
   },
   "E2+E5": {
@@ -123,11 +123,11 @@
    "edge_dir_err": 24.252809524536133,
    "n_edge": 249,
    "live": {
-    "mode_acc": 0.6102564102564103,
-    "spin_dir_acc": 0.9642857142857143,
-    "move_angle_err": 47.89371442592968,
-    "corrective_sign": 0.3888888888888889,
-    "n_ok": 390
+    "mode_acc": 0.6209677419354839,
+    "spin_dir_acc": 0.9615384615384616,
+    "move_angle_err": 47.579875125673894,
+    "corrective_sign": 0.3790322580645161,
+    "n_ok": 372
    }
   }
  },
@@ -141,11 +141,11 @@
    "edge_dir_err": 18.895103454589844,
    "n_edge": 528,
    "live": {
-    "mode_acc": 0.5820512820512821,
-    "spin_dir_acc": 0.9666666666666667,
-    "move_angle_err": 43.495504208000355,
-    "corrective_sign": 0.3941908713692946,
-    "n_ok": 390
+    "mode_acc": 0.5994623655913979,
+    "spin_dir_acc": 0.9642857142857143,
+    "move_angle_err": 43.87454814429465,
+    "corrective_sign": 0.4,
+    "n_ok": 372
    }
   },
   "E2_hw_labels": {
@@ -157,11 +157,11 @@
    "edge_dir_err": 22.09482192993164,
    "n_edge": 543,
    "live": {
-    "mode_acc": 0.5846153846153846,
-    "spin_dir_acc": 1.0,
-    "move_angle_err": 46.4962422008762,
-    "corrective_sign": 0.3663003663003663,
-    "n_ok": 390
+    "mode_acc": 0.5994623655913979,
+    "spin_dir_acc": 0.9285714285714286,
+    "move_angle_err": 46.23531589665588,
+    "corrective_sign": 0.35687732342007433,
+    "n_ok": 372
    }
   },
   "E5_edge_w": {
@@ -173,11 +173,11 @@
    "edge_dir_err": 16.349796295166016,
    "n_edge": 484,
    "live": {
-    "mode_acc": 0.6102564102564103,
-    "spin_dir_acc": 0.9512195121951219,
-    "move_angle_err": 43.96151289416985,
-    "corrective_sign": 0.39823008849557523,
-    "n_ok": 390
+    "mode_acc": 0.6317204301075269,
+    "spin_dir_acc": 0.975,
+    "move_angle_err": 44.29489498273119,
+    "corrective_sign": 0.4017467248908297,
+    "n_ok": 372
    }
   },
   "E2+E5": {
@@ -189,11 +189,11 @@
    "edge_dir_err": 21.39215850830078,
    "n_edge": 557,
    "live": {
-    "mode_acc": 0.6102564102564103,
-    "spin_dir_acc": 0.8333333333333334,
-    "move_angle_err": 43.94206012471999,
-    "corrective_sign": 0.36013986013986016,
-    "n_ok": 390
+    "mode_acc": 0.6075268817204301,
+    "spin_dir_acc": 0.8181818181818182,
+    "move_angle_err": 44.12491500745499,
+    "corrective_sign": 0.354014598540146,
+    "n_ok": 372
    }
   }
  }

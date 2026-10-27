@@ -1,0 +1,92 @@
+{
+ "Base Model": {
+  "nominal": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 14.21,
+   "mean_dist_m": 3.55,
+   "mean_missing_steps": 0.0
+  },
+  "strong_right": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 13.37,
+   "mean_dist_m": 3.34,
+   "mean_missing_steps": 0.0
+  },
+  "blind_turn": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 22.23,
+   "mean_dist_m": 2.2,
+   "mean_missing_steps": 104.8
+  },
+  "distant_s": {
+   "success_rate_pct": 0.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": null,
+   "mean_dist_m": null,
+   "mean_missing_steps": 250.0
+  }
+ },
+ "E2+E1_tuned": {
+  "nominal": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 16.13,
+   "mean_dist_m": 3.55,
+   "mean_missing_steps": 0.0
+  },
+  "strong_right": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 15.45,
+   "mean_dist_m": 3.2,
+   "mean_missing_steps": 0.0
+  },
+  "blind_turn": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 23.12,
+   "mean_dist_m": 1.87,
+   "mean_missing_steps": 103.0
+  },
+  "distant_s": {
+   "success_rate_pct": 0.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": null,
+   "mean_dist_m": null,
+   "mean_missing_steps": 250.0
+  }
+ },
+ "E1b_tuned": {
+  "nominal": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 14.72,
+   "mean_dist_m": 3.53,
+   "mean_missing_steps": 0.0
+  },
+  "strong_right": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 14.46,
+   "mean_dist_m": 3.2,
+   "mean_missing_steps": 0.0
+  },
+  "blind_turn": {
+   "success_rate_pct": 100.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": 22.69,
+   "mean_dist_m": 1.86,
+   "mean_missing_steps": 103.0
+  },
+  "distant_s": {
+   "success_rate_pct": 0.0,
+   "collision_rate_pct": 0.0,
+   "mean_time_s": null,
+   "mean_dist_m": null,
+   "mean_missing_steps": 250.0
+  }
+ }
+}

@@ -1,0 +1,218 @@
+{
+  "fold0": {
+    "Base_C_pi0": {
+      "S": 0.8965811729431152,
+      "mode_acc": 0.8960995292535306,
+      "spin_recall": 0.20308483290488433,
+      "spin_sign_acc": 0.7455012853470437,
+      "dir_err": 19.27386474609375,
+      "edge_dir_err": 31.01719856262207,
+      "n_edge": 442,
+      "live": {
+        "mode_acc": 0.5940860215053764,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 26.480931255345915,
+        "corrective_sign": 0.4456140350877193,
+        "n_ok": 372
+      },
+      "S_img": 3.6786556243896484
+    },
+    "E1b_tuned": {
+      "S": 6.7540364265441895,
+      "mode_acc": 0.8992938802958977,
+      "spin_recall": 0.32390745501285345,
+      "spin_sign_acc": 0.87146529562982,
+      "dir_err": 22.292705535888672,
+      "edge_dir_err": 35.48540115356445,
+      "n_edge": 431,
+      "live": {
+        "mode_acc": 0.6048387096774194,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 23.917850112651188,
+        "corrective_sign": 0.5567765567765568,
+        "n_ok": 372
+      },
+      "S_img": 21.007558822631836
+    }
+  },
+  "lopo_strong_left": {
+    "Base_C_pi0": {
+      "S": NaN,
+      "mode_acc": 0.0636762860727729,
+      "spin_recall": 0.0,
+      "spin_sign_acc": 0.0,
+      "dir_err": null,
+      "edge_dir_err": null,
+      "n_edge": 0,
+      "live": {
+        "mode_acc": 0.024193548387096774,
+        "spin_dir_acc": null,
+        "move_angle_err": null,
+        "corrective_sign": null,
+        "n_ok": 372
+      },
+      "S_img": null
+    },
+    "E1b_tuned": {
+      "S": 8.16622543334961,
+      "mode_acc": 0.9066813048933501,
+      "spin_recall": 0.2010178117048346,
+      "spin_sign_acc": 0.8676844783715013,
+      "dir_err": 23.742408752441406,
+      "edge_dir_err": 37.619850158691406,
+      "n_edge": 631,
+      "live": {
+        "mode_acc": 0.6048387096774194,
+        "spin_dir_acc": 0.8571428571428571,
+        "move_angle_err": 19.940114846741984,
+        "corrective_sign": 0.6145454545454545,
+        "n_ok": 372
+      },
+      "S_img": 21.206321716308594
+    }
+  },
+  "lopo_weak_left": {
+    "Base_C_pi0": {
+      "S": 0.40624526143074036,
+      "mode_acc": 0.9148936170212766,
+      "spin_recall": 0.16194331983805668,
+      "spin_sign_acc": 0.7530364372469636,
+      "dir_err": 22.440412521362305,
+      "edge_dir_err": 36.016639709472656,
+      "n_edge": 414,
+      "live": {
+        "mode_acc": 0.5779569892473119,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 27.29030251027677,
+        "corrective_sign": 0.41403508771929826,
+        "n_ok": 372
+      },
+      "S_img": 3.8995423316955566
+    },
+    "E1b_tuned": {
+      "S": 8.02080249786377,
+      "mode_acc": 0.9059538709100662,
+      "spin_recall": 0.21862348178137653,
+      "spin_sign_acc": 0.8906882591093117,
+      "dir_err": 24.644811630249023,
+      "edge_dir_err": 32.1784553527832,
+      "n_edge": 403,
+      "live": {
+        "mode_acc": 0.5994623655913979,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 21.318323481401897,
+        "corrective_sign": 0.5225563909774437,
+        "n_ok": 372
+      },
+      "S_img": 20.71830940246582
+    }
+  },
+  "lopo_center": {
+    "Base_C_pi0": {
+      "S": 0.8871468305587769,
+      "mode_acc": 0.8889312249952371,
+      "spin_recall": 0.019230769230769232,
+      "spin_sign_acc": 0.5448717948717948,
+      "dir_err": 23.43779182434082,
+      "edge_dir_err": 25.365999221801758,
+      "n_edge": 248,
+      "live": {
+        "mode_acc": 0.5779569892473119,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 23.68262750048372,
+        "corrective_sign": 0.40425531914893614,
+        "n_ok": 372
+      },
+      "S_img": 2.990084648132324
+    },
+    "E1b_tuned": {
+      "S": 6.772058010101318,
+      "mode_acc": 0.8771194513240618,
+      "spin_recall": 0.02564102564102564,
+      "spin_sign_acc": 0.532051282051282,
+      "dir_err": 21.275894165039062,
+      "edge_dir_err": 24.400548934936523,
+      "n_edge": 247,
+      "live": {
+        "mode_acc": 0.6075268817204301,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 23.18992601571463,
+        "corrective_sign": 0.5457875457875457,
+        "n_ok": 372
+      },
+      "S_img": 18.77873992919922
+    }
+  },
+  "lopo_weak_right": {
+    "Base_C_pi0": {
+      "S": 1.4458833932876587,
+      "mode_acc": 0.8818726183995645,
+      "spin_recall": 0.12396694214876033,
+      "spin_sign_acc": 0.8567493112947658,
+      "dir_err": 22.928695678710938,
+      "edge_dir_err": 31.99114418029785,
+      "n_edge": 350,
+      "live": {
+        "mode_acc": 0.5940860215053764,
+        "spin_dir_acc": 0.5,
+        "move_angle_err": 23.39871752959835,
+        "corrective_sign": 0.42214532871972316,
+        "n_ok": 372
+      },
+      "S_img": 2.56091046333313
+    },
+    "E1b_tuned": {
+      "S": 8.956905364990234,
+      "mode_acc": 0.8737071311921611,
+      "spin_recall": 0.11570247933884298,
+      "spin_sign_acc": 0.8264462809917356,
+      "dir_err": 24.08185577392578,
+      "edge_dir_err": 30.51291275024414,
+      "n_edge": 347,
+      "live": {
+        "mode_acc": 0.5994623655913979,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 21.89918986667404,
+        "corrective_sign": 0.5719424460431655,
+        "n_ok": 372
+      },
+      "S_img": 21.65415382385254
+    }
+  },
+  "lopo_strong_right": {
+    "Base_C_pi0": {
+      "S": 2.0518035888671875,
+      "mode_acc": 0.8921019900497512,
+      "spin_recall": 0.192,
+      "spin_sign_acc": 0.66,
+      "dir_err": 22.00271987915039,
+      "edge_dir_err": 28.606203079223633,
+      "n_edge": 569,
+      "live": {
+        "mode_acc": 0.5779569892473119,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 24.168914073332335,
+        "corrective_sign": 0.4186851211072664,
+        "n_ok": 372
+      },
+      "S_img": 3.0692896842956543
+    },
+    "E1b_tuned": {
+      "S": 12.92400074005127,
+      "mode_acc": 0.8874378109452736,
+      "spin_recall": 0.246,
+      "spin_sign_acc": 0.788,
+      "dir_err": 26.467910766601562,
+      "edge_dir_err": 34.65335464477539,
+      "n_edge": 578,
+      "live": {
+        "mode_acc": 0.6209677419354839,
+        "spin_dir_acc": 1.0,
+        "move_angle_err": 20.284854323091146,
+        "corrective_sign": 0.658273381294964,
+        "n_ok": 372
+      },
+      "S_img": 20.78680419921875
+    }
+  }
+}

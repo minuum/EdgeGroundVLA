@@ -1,0 +1,22 @@
+{
+  "architecture": "End-to-End VLA (Florence-2 LoRA + PiZeroFM AdaLN-Zero)",
+  "parameters": {
+    "total_backbone": "91.0M (Florence-2-base)",
+    "trainable_lora": "658K (0.72%)",
+    "action_expert": "0.32M (PiZeroFM)",
+    "e2e_backprop": "ENABLED"
+  },
+  "performance": {
+    "mean_inference_latency_ms": 412.95,
+    "inference_hz": 2.42,
+    "action_chunk_length": 8,
+    "euler_steps": 10,
+    "direction_angle_error_deg": 2.82,
+    "action_l2_mse": 0.0014
+  },
+  "comparison_with_champion": {
+    "note": "정정(2026-10-27): 이전 champion_dir_err_deg=10.42는 근거 없는 상수라 삭제. E2E 방향 오차 2.82°는 학습에 쓴 15개 에피소드 in-sample 값이며 미학습 4개 에피소드는 15.78°. 2-Stage와 같은 held-out 분할 비교는 scripts/eval_e2e_general.py로 재실험.",
+    "champion_dir_err_deg": null,
+    "champion_heldout_dir_err_deg_gap_e1b_json": "22~26 (3개 분할 평균 약 23)"
+  }
+}

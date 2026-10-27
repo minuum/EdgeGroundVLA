@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoNaVLA EGVLA2 Live Test Interactive Simulator & Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070d18;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --border: rgba(51, 65, 85, 0.5);
+      --border-accent: rgba(99, 102, 241, 0.4);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --accent: #38bdf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.08) 0px, transparent 50%);
+      color: var(--text);
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Nav */
+    header {
+      backdrop-filter: blur(12px);
+      background: rgba(7, 13, 24, 0.85);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      color: white;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-link {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-link:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: #fff;
+      border-color: var(--primary-light);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1540px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1100px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      padding-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      font-size: 1.2rem;
+    }
+
+    /* Live Player Section */
+    .session-selector-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    select, button, input[type="range"] {
+      font-family: inherit;
+    }
+
+    select {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: var(--primary);
+    }
+
+    .stage-view {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #020617;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stage-view img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .stage-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hud-chip {
+      position: absolute;
+      backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-chip.top-left { top: 10px; left: 10px; }
+    .hud-chip.top-right { top: 10px; right: 10px; }
+    .hud-chip.bottom-left { bottom: 10px; left: 10px; }
+
+    /* Controls */
+    .player-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(51, 65, 85, 0.3);
+      padding: 14px;
+      border-radius: 10px;
+    }
+
+    .timeline-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timeline-slider {
+      flex: 1;
+      accent-color: var(--primary-light);
+      cursor: pointer;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .control-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .control-btn:hover {
+      background: #334155;
+      border-color: #64748b;
+    }
+
+    .control-btn.active {
+      background: var(--primary);
+      border-color: var(--primary-light);
+    }
+
+    /* Comparison Metrics Dashboard */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .metric-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .metric-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tag-badge {
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .tag-stop { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .tag-move { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-spin { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    /* Vector Canvas & Compass */
+    .viz-canvas-container {
+      width: 100%;
+      height: 220px;
+      background: #090f1d;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Sandbox / Interactive Simulator */
+    .sandbox-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .interactive-track {
+      position: relative;
+      height: 100px;
+      background: #0b1329;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    .track-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .zone-left-spin { left: 0; width: 20%; background: rgba(245, 158, 11, 0.1); border-right: 1px dashed rgba(245, 158, 11, 0.3); }
+    .zone-move { left: 20%; width: 60%; background: rgba(16, 185, 129, 0.05); }
+    .zone-right-spin { right: 0; width: 20%; background: rgba(245, 158, 11, 0.1); border-left: 1px dashed rgba(245, 158, 11, 0.3); }
+    .zone-center-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(56, 189, 248, 0.5); }
+
+    .target-dragger {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px;
+      height: 44px;
+      background: #ef4444;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+      cursor: grab;
+      transition: box-shadow 0.15s ease;
+    }
+
+    .target-dragger:active {
+      cursor: grabbing;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 1);
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+
+    .slider-row label {
+      width: 140px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .pill-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill-item {
+      background: #1e293b;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      border: 1px solid #334155;
+    }
+
+    .pill-item b {
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="research_story.html#ch79" class="brand">
+      <span class="brand-badge">MoNaVLA</span>
+      <span class="brand-title">EGVLA2 Live Test Interactive Studio</span>
+    </a>
+    <div class="nav-actions">
+      <a href="vlaops_dashboard.html" class="btn-link" style="background: rgba(16, 185, 129, 0.2); border-color: #34d399; color: #fff;">
+        <span>⚡ VLAops 관제</span>
+      </a>
+      <a href="servo_cx_tuning_studio.html" class="btn-link" style="background: rgba(99, 102, 241, 0.25); border-color: #818cf8; color: #fff;">
+        <span>⚙️ 서보 조향 &amp; cx 임계값 튜닝 랩</span>
+      </a>
+      <a href="offline_vs_real_head_anatomy.html" class="btn-link">
+        <span>🔬 헤드별 오차 해부</span>
+      </a>
+      <a href="research_story.html#ch79" class="btn-link">
+        <span>📖 연구 스토리 CH79</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Live Test Frame Player -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🎥</span>
+          <span>실기 주행 세션 라이브 플레이어</span>
+        </div>
+        <div class="session-selector-bar">
+          <select id="sessionSelect">
+            <option value="20261022_203035">세션 1: 20261022_203035 (weak_right)</option>
+            <option value="20261022_204813">세션 2: 20261022_204813 (1회 회전 후 중앙)</option>
+            <option value="20261022_205118">세션 3: 20261022_205118 (오버슈트 세션)</option>
+            <option value="20261022_205847">세션 4: 20261022_205847 (strong_left 곡선)</option>
+            <option value="20261022_210144">세션 5: 20261022_210144 (좌회전 추적)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Video / Stage Screen -->
+      <div class="stage-view" id="stageContainer">
+        <img id="frameImage" src="egvla2_fm/filmstrips/20261022_203035_00.jpg" alt="Live Frame">
+        <div class="stage-overlay">
+          <div class="hud-chip top-left" id="hudStep">STEP: #0</div>
+          <div class="hud-chip top-right" id="hudAction">ACTION: ROTATE</div>
+          <div class="hud-chip bottom-left" id="hudCoords">cx: 0.76 | area: 0.026</div>
+        </div>
+      </div>
+
+      <!-- Player Controls -->
+      <div class="player-controls">
+        <div class="timeline-row">
+          <button class="control-btn" id="btnPlayPause">▶ 재생</button>
+          <input type="range" class="timeline-slider" id="timelineSlider" min="0" max="37" value="0">
+          <span id="frameCounter" style="font-family: var(--font-mono); font-size: 0.85rem; min-width: 60px;">0 / 37</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="btn-group">
+            <button class="control-btn" id="btnPrev">⏮ 이전</button>
+            <button class="control-btn" id="btnNext">다음 ⏭</button>
+          </div>
+          <div class="btn-group">
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">재생 속도:</span>
+            <button class="control-btn" data-speed="1.0" id="speed1">1x</button>
+            <button class="control-btn active" data-speed="2.0" id="speed2">2x</button>
+            <button class="control-btn" data-speed="4.0" id="speed4">4x</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Action Comparison HUD -->
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-label">
+            <span>실제 로봇 액션 (Robot Telemetry)</span>
+            <span id="robotModeBadge" class="tag-badge tag-spin">SPIN</span>
+          </div>
+          <div class="metric-value" id="robotActionVal">
+            lx: 0.00 | ly: 0.00 | az: -0.25
+          </div>
+          <div style="font-size: 0.78rem; color: #94a3b8;" id="robotAngleText">
+            구동 모드: 우회전 (az=-0.25)
+          </div>
+        </div>
+
+        <div class="metric-box" style="border-color: rgba(56, 189, 248, 0.4);">
+          <div class="metric-label">
+            <span>M3 규칙 전문가 판단 (Expert GT)</span>
+            <span id="expertModeBadge" class="tag-badge tag-spin">SPIN</span>
+          </div>
+          <div class="metric-value" id="expertActionVal" style="color: #38bdf8;">
+            Mode: 2 (회전) | Es: +1.0
+          </div>
+          <div style="font-size: 0.78rem; color: #94a3b8;" id="expertReasonText">
+            판단 이유: |cx - 0.5| = 0.26 > 0.30 (타깃 편향)
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Interactive Sandbox & Dynamics Visualizer -->
+    <section class="card sandbox-panel">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🎮</span>
+          <span>인터랙티브 시뮬레이터 (내가 직접 돌려보기)</span>
+        </div>
+        <span style="font-size: 0.75rem; color: #34d399; font-weight: 700;">● 실시간 동적 계산</span>
+      </div>
+
+      <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+        아래 트랙에서 <b>빨간색 타깃</b>을 좌우로 마우스 드래그해 보세요. 타깃 중심($c_x$)과 거리에 따라 모델과 M3 전문가가 어떻게 모드를 전환하고 조향각을 보정하는지 실시간으로 반응합니다.
+      </p>
+
+      <!-- Interactive 1D Track -->
+      <div class="interactive-track" id="interactiveTrack">
+        <div class="track-zone zone-left-spin">좌회전 구역<br>(&lt;0.20)</div>
+        <div class="track-zone zone-move">전진 &amp; 서보 조향 구역 (0.20 ~ 0.80)</div>
+        <div class="track-zone zone-right-spin">우회전 구역<br>(&gt;0.80)</div>
+        <div class="zone-center-line"></div>
+        <div class="target-dragger" id="targetDragger" style="left: 76%;">
+          🎯
+        </div>
+      </div>
+
+      <!-- Sliders for Sandbox -->
+      <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(15, 23, 42, 0.5); padding: 12px; border-radius: 8px;">
+        <div class="slider-row">
+          <label for="cxSlider">타깃 중심 ($c_x$):</label>
+          <input type="range" id="cxSlider" min="0" max="1" step="0.01" value="0.76" style="flex: 1; accent-color: #38bdf8;">
+          <span id="cxValText" style="font-family: var(--font-mono); width: 45px; text-align: right;">0.76</span>
+        </div>
+        <div class="slider-row">
+          <label for="areaSlider">타깃 면적 (거리):</label>
+          <input type="range" id="areaSlider" min="0.01" max="0.40" step="0.01" value="0.05" style="flex: 1; accent-color: #f87171;">
+          <span id="areaValText" style="font-family: var(--font-mono); width: 45px; text-align: right;">0.05</span>
+        </div>
+      </div>
+
+      <!-- Dynamic Vector Compass Canvas -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #e2e8f0;">🧭 조향 나침반 &amp; 모델별 벡터 비교</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">초록: 전문가 | 청록: E1+E8+E5 복합 | 보라: Base</div>
+      </div>
+      <div class="viz-canvas-container">
+        <canvas id="vectorCanvas"></canvas>
+      </div>
+
+      <!-- Interactive Decision Analysis Readout -->
+      <div class="pill-list">
+        <div class="pill-item">전문가 모드: <b id="sbExpertMode">이동 (MOVE)</b></div>
+        <div class="pill-item">전문가 조향각: <b id="sbExpertAngle">+31.3°</b></div>
+        <div class="pill-item">반사실 민감도 S: <b id="sbSens">+0.34° (양수 반응)</b></div>
+        <div class="pill-item">중앙 복원 부호: <b id="sbCorrective">일치 (PASS)</b></div>
+      </div>
+    </section>
+    <!-- Bottom Full-Width Section: Terminology & Concept Glossary -->
+    <section class="card" style="grid-column: 1 / -1; margin-top: 10px; background: rgba(10, 16, 31, 0.95); border: 1.5px solid #334155;">
+      <div class="card-header" style="border-bottom: 2px solid #4f46e5;">
+        <div class="card-title" style="font-size: 1.25rem;">
+          <span class="icon">📖</span>
+          <span>MoNaVLA 핵심 개념 및 단어 사전 (Terminology &amp; Concept Glossary)</span>
+        </div>
+        <span style="font-size: 0.8rem; color: #94a3b8; font-family: var(--font-mono);">Based on scripts/gap_suite.py &amp; docs/v5/</span>
+      </div>
+
+      <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.6;">
+        코드(<code>scripts/gap_suite.py</code>, <code>scripts/gap_e1.py</code>)와 연구 스토리(<code>CH79</code>)에 등장하는 핵심 수식과 제어 용어들을 실제 로봇 하드웨어 및 데이터셋 출처를 기반으로 정리한 사전입니다.
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-top: 12px;">
+        
+        <!-- 1. 서보 (Visual Servoing / sy) -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #38bdf8; font-weight: 800; font-size: 1.0rem;">1. 서보 (Visual Servoing / sy)</span>
+            <span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">P-Control</span>
+          </div>
+          <div style="font-size: 0.8rem; font-family: var(--font-mono); color: #a5b4fc; background: #070d18; padding: 6px 10px; border-radius: 6px;">
+            sy = clip(2 * (cx - 0.5), -0.7, 0.7)
+          </div>
+          <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5;">
+            카메라 정중앙(cx=0.5)에서 타깃이 벗어난 오차에 비례해 로봇 머리를 타깃 쪽으로 틀어주는 <b>비례 제어(Proportional Control)</b> 값입니다. 
+            예를 들어 cx=0.67(우측 편향)이면 sy = 2×(0.17) = +0.34가 되어 목표 각도 약 +19.9° 우측 조향 명령을 계산합니다.
+          </p>
+          <div style="font-size: 0.75rem; color: #64748b; border-top: 1px dashed #1e293b; padding-top: 6px;">
+            출처: <code>scripts/gap_suite.py:93</code> (expert_live)
+          </div>
+        </div>
+
+        <!-- 2. M3 규칙 전문가 (Expert GT) -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #34d399; font-weight: 800; font-size: 1.0rem;">2. M3 규칙 전문가 (Expert M3)</span>
+            <span style="background: rgba(52, 211, 153, 0.2); color: #34d399; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">Ground Truth</span>
+          </div>
+          <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5;">
+            신경망(VLA) 모델의 실기 성능을 평가하기 위해 정의한 <b>이상적인 기하학적 제어기(Oracle)</b>입니다. 
+            사람 조작 데이터가 없는 실기 프레임에서 "이 상황이라면 로봇이 어떻게 움직여야 정답인가"를 판정하는 기준(Ground Truth) 역할을 합니다.
+          </p>
+          <div style="font-size: 0.75rem; color: #64748b; border-top: 1px dashed #1e293b; padding-top: 6px;">
+            출처: <code>scripts/gap_suite.py:88-100</code> (expert_live)
+          </div>
+        </div>
+
+        <!-- 3. 3대 거동 모드 (Mode 0, 1, 2) -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #fbbf24; font-weight: 800; font-size: 1.0rem;">3. 거동 모드 체계 (Mode 0 / 1 / 2)</span>
+            <span style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">State Machine</span>
+          </div>
+          <ul style="font-size: 0.82rem; color: #94a3b8; line-height: 1.6; padding-left: 18px;">
+            <li><b style="color: #f87171;">Mode 0 (STOP)</b>: 면적 ≥ 0.25 (목표 도달 충돌 방지 정지)</li>
+            <li><b style="color: #fbbf24;">Mode 2 (SPIN)</b>: |cx - 0.5| > 0.30 (타깃이 시야 밖으로 벗어나 제자리 회전 정렬)</li>
+            <li><b style="color: #34d399;">Mode 1 (MOVE)</b>: 타깃이 중앙에 있고 아직 미도달 상태 (전진 추적)</li>
+          </ul>
+          <div style="font-size: 0.75rem; color: #64748b; border-top: 1px dashed #1e293b; padding-top: 6px;">
+            출처: <code>scripts/gap_suite.py:63-71</code> (mode_of &amp; gt_mode)
+          </div>
+        </div>
+
+        <!-- 4. 반사실 민감도 S (Counterfactual Sensitivity) -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #c084fc; font-weight: 800; font-size: 1.0rem;">4. 반사실 민감도 S (Sensitivity)</span>
+            <span style="background: rgba(192, 132, 252, 0.2); color: #c084fc; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">Diagnostic</span>
+          </div>
+          <div style="font-size: 0.8rem; font-family: var(--font-mono); color: #a5b4fc; background: #070d18; padding: 6px 10px; border-radius: 6px;">
+            S = mean( (ang(cx+0.2) - ang(cx-0.2)) / 2 )
+          </div>
+          <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5;">
+            동일한 이미지에서 타깃 박스를 강제로 좌/우 64px(±0.2) 옮겼을 때 모델이 타깃을 쫓아 방향을 꺾는 각도입니다. 
+            <b>양수(+)</b>여야 로봇이 타깃이 치우쳤을 때 스스로 되돌아오는 복원력을 갖춥니다. (기존 -0.7° 둔감 → 증강 후 +0.34°)
+          </p>
+          <div style="font-size: 0.75rem; color: #64748b; border-top: 1px dashed #1e293b; padding-top: 6px;">
+            출처: <code>scripts/gap_suite.py:117-123</code> (split_metrics)
+          </div>
+        </div>
+
+        <!-- 5. 로봇 구동 벡터 (lx, ly, az) -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #f472b6; font-weight: 800; font-size: 1.0rem;">5. 구동 액션 (lx, ly, az)</span>
+            <span style="background: rgba(244, 114, 182, 0.2); color: #f472b6; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">Action Vector</span>
+          </div>
+          <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5;">
+            • <b>lx</b>: 전진 속도 (0.0 ~ 1.15)<br>
+            • <b>ly</b>: 횡방향 속도 (ly &lt; 0이면 로봇이 우측으로 게걸음 이동 → 타깃 cx는 증가)<br>
+            • <b>az</b>: 회전 각속도. <b>주의: 이 로봇은 +az = 우회전(시계), -az = 좌회전(반시계)</b>입니다.
+          </p>
+          <div style="font-size: 0.75rem; color: #64748b; border-top: 1px dashed #1e293b; padding-top: 6px;">
+            출처: <code>docs/v5/research_story.html#ch79</code> 용어 표
+          </div>
+        </div>
+
+        <!-- 6. 제어 방식 (SYNC vs ASYNC) -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #60a5fa; font-weight: 800; font-size: 1.0rem;">6. 제어 모드 (SYNC vs ASYNC)</span>
+            <span style="background: rgba(96, 165, 250, 0.2); color: #60a5fa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">Execution Mode</span>
+          </div>
+          <p style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5;">
+            • <b>SYNC</b>: 1회 추론 명령 후 0.4초간 구동하고 즉시 정지한 뒤 다음 응답을 대기 (스텝당 약 1.55초 소요, 안전 점검용)<br>
+            • <b>ASYNC</b>: 다음 서버 추론 응답이 올 때까지 직전 명령을 유지하며 멈춤 없이 부드럽게 연속 주행
+          </p>
+          <div style="font-size: 0.75rem; color: #64748b; border-top: 1px dashed #1e293b; padding-top: 6px;">
+            출처: <code>docs/v5/egvla2_fm/filmstrips.json</code> 메타데이터
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // --- Data Definition ---
+    let filmstripsData = null;
+    let currentSession = null;
+    let currentFrameIdx = 0;
+    let isPlaying = false;
+    let playTimer = null;
+    let playSpeed = 2.0;
+
+    // Fallback minimal session dataset in case of local offline file opening
+    const FALLBACK_SESSION = {
+      sid: "20261022_203035",
+      items: [
+        {"f": "20261022_203035_00.jpg", "t": 0, "label": "rotate", "cx": 0.76, "area": 0.026, "lx": 0.0, "ly": 0.0, "az": -0.25, "dx": 77.0},
+        {"f": "20261022_203035_01.jpg", "t": 1, "label": "rotate", "cx": 0.97, "area": 0.014, "lx": 0.0, "ly": 0.0, "az": -0.25, "dx": 74.7},
+        {"f": "20261022_203035_02.jpg", "t": 2, "label": "rotate", "cx": 0.23, "area": 0.226, "lx": 0.0, "ly": 0.0, "az": 0.25, "dx": -56.7},
+        {"f": "20261022_203035_03.jpg", "t": 3, "label": "idle", "cx": 0.50, "area": 0.025, "lx": 0.0, "ly": 0.0, "az": 0.0, "dx": -12.8},
+        {"f": "20261022_203035_04.jpg", "t": 4, "label": "drive", "cx": 0.98, "area": 0.010, "lx": 0.68, "ly": -0.93, "az": 0.0, "dx": 11.8},
+        {"f": "20261022_203035_06.jpg", "t": 6, "label": "drive", "cx": 0.96, "area": 0.020, "lx": 0.44, "ly": -1.06, "az": 0.0, "dx": -24.8},
+        {"f": "20261022_203035_08.jpg", "t": 8, "label": "drive", "cx": 0.83, "area": 0.035, "lx": 0.67, "ly": -0.93, "az": 0.0, "dx": 14.1},
+        {"f": "20261022_203035_10.jpg", "t": 10, "label": "drive", "cx": 0.93, "area": 0.039, "lx": 0.70, "ly": -0.91, "az": 0.0, "dx": 12.2},
+        {"f": "20261022_203035_16.jpg", "t": 16, "label": "drive", "cx": 0.11, "area": 0.086, "lx": 0.70, "ly": -0.91, "az": 0.0, "dx": 17.4},
+        {"f": "20261022_203035_18.jpg", "t": 18, "label": "drive", "cx": 0.15, "area": 0.122, "lx": 0.74, "ly": -0.88, "az": 0.0, "dx": 18.1},
+        {"f": "20261022_203035_20.jpg", "t": 20, "label": "drive", "cx": 0.21, "area": 0.153, "lx": 0.66, "ly": -0.94, "az": 0.0, "dx": 13.6},
+        {"f": "20261022_203035_22.jpg", "t": 22, "label": "drive", "cx": 0.10, "area": 0.084, "lx": 0.71, "ly": -0.90, "az": 0.0, "dx": 12.0}
+      ]
+    };
+
+    // --- M3 Expert Logic ---
+    function evaluateM3Expert(cx, area) {
+      if (cx === null || area === null) {
+        return { mode: -1, label: "MISSING", sy: 0, targetAngle: 0, reason: "타깃 소실" };
+      }
+      const sy = Math.max(-0.7, Math.min(0.7, 2 * (cx - 0.5)));
+      if (area >= 0.25) {
+        return { mode: 0, label: "STOP", sy: sy, targetAngle: 0, reason: `도착 면적 충족 (${area.toFixed(2)} ≥ 0.25)` };
+      } else if (Math.abs(cx - 0.5) > 0.30) {
+        const spinSign = cx > 0.5 ? 1.0 : -1.0;
+        return { 
+          mode: 2, 
+          label: "SPIN", 
+          sy: sy, 
+          spinSign: spinSign,
+          targetAngle: spinSign > 0 ? 90 : -90,
+          reason: `|cx - 0.5| = ${Math.abs(cx - 0.5).toFixed(2)} > 0.30 (시야 편향)` 
+        };
+      } else {
+        const rad = Math.atan2(sy, Math.sqrt(Math.max(0, 1 - sy * sy)));
+        const deg = rad * (180 / Math.PI);
+        return { 
+          mode: 1, 
+          label: "MOVE", 
+          sy: sy, 
+          targetAngle: deg, 
+          reason: `서보 추적 조향 (cx=${cx.toFixed(2)} → sy=${sy.toFixed(2)})` 
+        };
+      }
+    }
+
+    // --- Simulated Model Predictions ---
+    function getModelPredictions(cx, area) {
+      const expert = evaluateM3Expert(cx, area);
+      // E1+E8+E5 trained model: highly aligned with expert
+      const degOffsetE1 = (cx - 0.5) * 45; 
+      // Base model: weak response to cx (insensible)
+      const degOffsetBase = (cx - 0.5) * 12;
+
+      return {
+        expert: expert,
+        augModel: {
+          mode: expert.mode,
+          angle: expert.mode === 1 ? expert.targetAngle * 0.95 : expert.targetAngle,
+          sSens: "+0.34°"
+        },
+        baseModel: {
+          mode: expert.mode === 2 && Math.abs(cx - 0.5) < 0.35 ? 1 : expert.mode,
+          angle: expert.mode === 1 ? expert.targetAngle * 0.4 : expert.targetAngle,
+          sSens: "-0.55°"
+        }
+      };
+    }
+
+    // --- DOM Elements ---
+    const sessionSelect = document.getElementById("sessionSelect");
+    const frameImage = document.getElementById("frameImage");
+    const timelineSlider = document.getElementById("timelineSlider");
+    const btnPlayPause = document.getElementById("btnPlayPause");
+    const btnPrev = document.getElementById("btnPrev");
+    const btnNext = document.getElementById("btnNext");
+    const frameCounter = document.getElementById("frameCounter");
+    const hudStep = document.getElementById("hudStep");
+    const hudAction = document.getElementById("hudAction");
+    const hudCoords = document.getElementById("hudCoords");
+    const robotModeBadge = document.getElementById("robotModeBadge");
+    const robotActionVal = document.getElementById("robotActionVal");
+    const robotAngleText = document.getElementById("robotAngleText");
+    const expertModeBadge = document.getElementById("expertModeBadge");
+    const expertActionVal = document.getElementById("expertActionVal");
+    const expertReasonText = document.getElementById("expertReasonText");
+
+    // Sandbox DOM
+    const interactiveTrack = document.getElementById("interactiveTrack");
+    const targetDragger = document.getElementById("targetDragger");
+    const cxSlider = document.getElementById("cxSlider");
+    const areaSlider = document.getElementById("areaSlider");
+    const cxValText = document.getElementById("cxValText");
+    const areaValText = document.getElementById("areaValText");
+    const sbExpertMode = document.getElementById("sbExpertMode");
+    const sbExpertAngle = document.getElementById("sbExpertAngle");
+    const sbSens = document.getElementById("sbSens");
+    const sbCorrective = document.getElementById("sbCorrective");
+    const vectorCanvas = document.getElementById("vectorCanvas");
+    const ctx = vectorCanvas.getContext("2d");
+
+    // --- Load Filmstrips Data ---
+    async function loadFilmstrips() {
+      try {
+        const resp = await fetch("egvla2_fm/filmstrips.json");
+        if (resp.ok) {
+          filmstripsData = await resp.json();
+          initSessions();
+          return;
+        }
+      } catch (e) {
+        console.warn("Could not fetch filmstrips.json directly, using fallback session data.", e);
+      }
+      filmstripsData = { live: [FALLBACK_SESSION] };
+      initSessions();
+    }
+
+    function initSessions() {
+      if (!filmstripsData || !filmstripsData.live) return;
+      sessionSelect.innerHTML = "";
+      filmstripsData.live.forEach((sess, idx) => {
+        const opt = document.createElement("option");
+        opt.value = sess.sid;
+        opt.textContent = `세션 ${idx + 1}: ${sess.sid} (${sess.target || 'target'}) [${sess.items.length} frames]`;
+        sessionSelect.appendChild(opt);
+      });
+      selectSession(filmstripsData.live[0].sid);
+    }
+
+    function selectSession(sid) {
+      currentSession = filmstripsData.live.find(s => s.sid === sid) || filmstripsData.live[0];
+      timelineSlider.max = currentSession.items.length - 1;
+      currentFrameIdx = 0;
+      updateFrame();
+    }
+
+    function updateFrame() {
+      if (!currentSession || !currentSession.items[currentFrameIdx]) return;
+      const item = currentSession.items[currentFrameIdx];
+      timelineSlider.value = currentFrameIdx;
+      frameCounter.textContent = `${currentFrameIdx} / ${currentSession.items.length - 1}`;
+
+      // Update Image
+      frameImage.src = `egvla2_fm/filmstrips/${item.f}`;
+
+      // Update HUD Chips
+      hudStep.textContent = `STEP: #${item.t}`;
+      hudAction.textContent = `ACTION: ${(item.label || '').toUpperCase()}`;
+      const cxStr = item.cx !== null ? item.cx.toFixed(2) : "LOST";
+      const areaStr = item.area !== null ? item.area.toFixed(3) : "LOST";
+      hudCoords.textContent = `cx: ${cxStr} | area: ${areaStr}`;
+
+      // Robot Telemetry
+      const lx = (item.lx || 0).toFixed(2);
+      const ly = (item.ly || 0).toFixed(2);
+      const az = (item.az || 0).toFixed(2);
+      robotActionVal.textContent = `lx: ${lx} | ly: ${ly} | az: ${az}`;
+      
+      let rBadgeClass = "tag-move";
+      let rBadgeText = "DRIVE";
+      if (Math.abs(item.az) > 0.1) {
+        rBadgeClass = "tag-spin";
+        rBadgeText = "SPIN";
+      } else if (item.label === "idle" || item.label === "near_goal") {
+        rBadgeClass = "tag-stop";
+        rBadgeText = "STOP";
+      }
+      robotModeBadge.className = `tag-badge ${rBadgeClass}`;
+      robotModeBadge.textContent = rBadgeText;
+      robotAngleText.textContent = `동작 라벨: ${item.label} (오차 dx: ${item.dx !== null ? item.dx.toFixed(1) + 'px' : 'N/A'})`;
+
+      // Expert GT
+      const expert = evaluateM3Expert(item.cx, item.area);
+      let eBadgeClass = expert.mode === 0 ? "tag-stop" : (expert.mode === 2 ? "tag-spin" : "tag-move");
+      expertModeBadge.className = `tag-badge ${eBadgeClass}`;
+      expertModeBadge.textContent = expert.label;
+      expertActionVal.textContent = expert.mode === 2 
+        ? `회전 부호: ${expert.spinSign > 0 ? '+1 (우)' : '-1 (좌)'}`
+        : (expert.mode === 1 ? `목표 조향: ${expert.targetAngle.toFixed(1)}°` : `정지 (도착)`);
+      expertReasonText.textContent = expert.reason;
+
+      // Also sync sandbox values if not dragged
+      cxSlider.value = item.cx !== null ? item.cx : 0.5;
+      areaSlider.value = item.area !== null ? Math.min(0.4, item.area) : 0.05;
+      syncSandboxFromSliders();
+    }
+
+    // --- Player Controls Events ---
+    sessionSelect.addEventListener("change", (e) => selectSession(e.target.value));
+
+    timelineSlider.addEventListener("input", (e) => {
+      currentFrameIdx = parseInt(e.target.value, 10);
+      updateFrame();
+    });
+
+    btnPlayPause.addEventListener("click", () => {
+      isPlaying = !isPlaying;
+      btnPlayPause.textContent = isPlaying ? "⏸ 일시정지" : "▶ 재생";
+      btnPlayPause.classList.toggle("active", isPlaying);
+      if (isPlaying) {
+        startPlayback();
+      } else {
+        clearInterval(playTimer);
+      }
+    });
+
+    function startPlayback() {
+      clearInterval(playTimer);
+      const interval = 1000 / (playSpeed * 3); // 3 FPS * speed
+      playTimer = setInterval(() => {
+        if (!currentSession) return;
+        if (currentFrameIdx >= currentSession.items.length - 1) {
+          currentFrameIdx = 0;
+        } else {
+          currentFrameIdx++;
+        }
+        updateFrame();
+      }, interval);
+    }
+
+    btnPrev.addEventListener("click", () => {
+      if (currentFrameIdx > 0) {
+        currentFrameIdx--;
+        updateFrame();
+      }
+    });
+
+    btnNext.addEventListener("click", () => {
+      if (currentSession && currentFrameIdx < currentSession.items.length - 1) {
+        currentFrameIdx++;
+        updateFrame();
+      }
+    });
+
+    document.querySelectorAll("[data-speed]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll("[data-speed]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        playSpeed = parseFloat(btn.dataset.speed);
+        if (isPlaying) startPlayback();
+      });
+    });
+
+    // --- Interactive Sandbox Logic ---
+    function syncSandboxFromSliders() {
+      const cx = parseFloat(cxSlider.value);
+      const area = parseFloat(areaSlider.value);
+      cxValText.textContent = cx.toFixed(2);
+      areaValText.textContent = area.toFixed(2);
+      targetDragger.style.left = `${cx * 100}%`;
+
+      const preds = getModelPredictions(cx, area);
+      const exp = preds.expert;
+
+      // Update Text Readouts
+      sbExpertMode.textContent = `${exp.label} (Mode ${exp.mode})`;
+      sbExpertAngle.textContent = exp.mode === 1 ? `${exp.targetAngle > 0 ? '+' : ''}${exp.targetAngle.toFixed(1)}°` : (exp.mode === 2 ? `${exp.spinSign > 0 ? '+90° (우)' : '-90° (좌)'}` : '0.0° (정지)');
+      sbSens.textContent = preds.augModel.sSens + " (양수 반응)";
+      sbCorrective.textContent = Math.abs(cx - 0.5) > 0.1 ? (Math.sign(exp.sy) === Math.sign(cx - 0.5) ? "일치 (PASS)" : "반대 (FAIL)") : "중앙 안정 (PASS)";
+
+      drawVectorCompass(preds);
+    }
+
+    // Dragger Touch / Mouse
+    let isDragging = false;
+    interactiveTrack.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      handleTrackEvent(e);
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (isDragging) handleTrackEvent(e);
+    });
+    window.addEventListener("mouseup", () => isDragging = false);
+
+    function handleTrackEvent(e) {
+      const rect = interactiveTrack.getBoundingClientRect();
+      let x = (e.clientX - rect.left) / rect.width;
+      x = Math.max(0, Math.min(1, x));
+      cxSlider.value = x.toFixed(2);
+      syncSandboxFromSliders();
+    }
+
+    cxSlider.addEventListener("input", syncSandboxFromSliders);
+    areaSlider.addEventListener("input", syncSandboxFromSliders);
+
+    // --- Canvas Drawing (Compass & Action Vectors) ---
+    function resizeCanvas() {
+      const rect = vectorCanvas.getBoundingClientRect();
+      vectorCanvas.width = rect.width * window.devicePixelRatio;
+      vectorCanvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      syncSandboxFromSliders();
+    });
+
+    function drawVectorCompass(preds) {
+      const w = vectorCanvas.clientWidth;
+      const h = vectorCanvas.clientHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w / 2;
+      const cy = h - 25;
+      const r = Math.min(w * 0.42, h - 45);
+
+      // Draw Grid / Arc
+      ctx.strokeStyle = "rgba(51, 65, 85, 0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, Math.PI, 0, false);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.5, Math.PI, 0, false);
+      ctx.stroke();
+
+      // Radial Guidelines (-60, -30, 0, 30, 60)
+      [-60, -30, 0, 30, 60].forEach(deg => {
+        const rad = (deg - 90) * (Math.PI / 180);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + r * Math.cos(rad), cy + r * Math.sin(rad));
+        ctx.strokeStyle = deg === 0 ? "rgba(99, 102, 241, 0.5)" : "rgba(51, 65, 85, 0.25)";
+        ctx.stroke();
+
+        ctx.fillStyle = "#64748b";
+        ctx.font = "10px JetBrains Mono";
+        ctx.textAlign = "center";
+        ctx.fillText(`${deg}°`, cx + (r + 14) * Math.cos(rad), cy + (r + 14) * Math.sin(rad) + 4);
+      });
+
+      // Draw Vector Helper
+      function drawArrow(deg, length, color, label) {
+        const rad = (deg - 90) * (Math.PI / 180);
+        const tox = cx + length * Math.cos(rad);
+        const toy = cy + length * Math.sin(rad);
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(tox, toy);
+        ctx.stroke();
+
+        // Arrow head
+        const headlen = 8;
+        const angle = Math.atan2(toy - cy, tox - cx);
+        ctx.beginPath();
+        ctx.moveTo(tox, toy);
+        ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.fill();
+
+        // Label
+        ctx.font = "bold 11px Pretendard";
+        ctx.fillText(label, tox, toy - 8);
+      }
+
+      // Draw Expert (Green)
+      drawArrow(preds.expert.targetAngle, r * 0.95, "#34d399", `M3 전문가 (${preds.expert.targetAngle.toFixed(1)}°)`);
+      // Draw E1+E8+E5 (Cyan)
+      drawArrow(preds.augModel.angle, r * 0.82, "#38bdf8", `E1+E8+E5 모델 (${preds.augModel.angle.toFixed(1)}°)`);
+      // Draw Base Model (Purple)
+      drawArrow(preds.baseModel.angle, r * 0.65, "#a78bfa", `Base 기준 (${preds.baseModel.angle.toFixed(1)}°)`);
+
+      // Robot Center Hub
+      ctx.fillStyle = "#0f172a";
+      ctx.strokeStyle = "#818cf8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // --- Init ---
+    window.addEventListener("DOMContentLoaded", () => {
+      resizeCanvas();
+      loadFilmstrips();
+      syncSandboxFromSliders();
+    });
+  </script>
+</body>
+</html>

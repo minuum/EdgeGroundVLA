@@ -50,5 +50,20 @@
   "seed": 0,
   "git_commit": "d80c0b00",
   "servo_label_lambda": 1.0
+ },
+ "C_pi0_e1b_tuned_drop30_e120.pt": {
+  "sha256": "c34b0746e78ddc02ebd000697cc9dfa884b1c44d35df26dff265ec513294518c",
+  "bytes": 2919150,
+  "arch": "C_pi0_adaln",
+  "epochs": 120,
+  "subgoal_dropout": 0.3,
+  "n_episodes": 300,
+  "seed": 0,
+  "git_commit": "f7b6b029",
+  "servo_tau": 0.22,
+  "servo_gain": 2.6,
+  "variant": "E1b_tuned",
+  "S_sensitivity": 12.92,
+  "spin_consistency": 1.0
  }
 }

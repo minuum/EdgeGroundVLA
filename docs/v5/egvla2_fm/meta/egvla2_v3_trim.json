@@ -1,0 +1,17 @@
+{
+ "episode_20261014_170756_weak_right_straight.h5": {
+  "original_frames": 18,
+  "kept_frames": 13,
+  "dropped": [
+   13,
+   14,
+   15,
+   16,
+   17
+  ],
+  "rule": "끝의 동일 프레임(픽셀 차<0.4)이며 exec 0(STOP)",
+  "copy": "ROS_action/mobile_vla_dataset_egvla2/trimmed/episode_20261014_170756_weak_right_straight.h5",
+  "original_untouched": true,
+  "date": "2026-10-16"
+ }
+}
