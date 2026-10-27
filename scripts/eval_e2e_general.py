@@ -83,7 +83,7 @@ def main():
     for name, te_eps in splits.items():
         res.setdefault(name, {}); tes = set(te_eps)
         tr_idx = np.array([k for k in range(len(frames)) if ep_of[k] not in tes]); te_idx = np.array([k for k in range(len(frames)) if ep_of[k] in tes])
-        tr_t = torch.from_numpy(tr_idx).to(DEV); te_t = torch.from_numpy(te_idx).to(DEV); live = lambda feats: (lb, feats, win)
+        tr_t = torch.from_numpy(tr_idx).to(DEV); te_t = torch.from_numpy(te_idx).to(DEV); live = lambda feats: (lb, feats.detach().float().cpu().numpy() if torch.is_tensor(feats) else feats, win)
         print(name, "train", len(tr_idx), "test", len(te_idx), flush=True)
         if "A_frozen_fused" not in res[name]:
             m = GS.fit((BB[tr_t], FT[tr_t], CH[tr_t])) if not SMOKE else GS.fit((BB[tr_t], FT[tr_t], CH[tr_t]))
