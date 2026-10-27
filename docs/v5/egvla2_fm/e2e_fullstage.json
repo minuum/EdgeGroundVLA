@@ -1,0 +1,155 @@
+{
+ "fold0": {
+  "B0_frozen_davit384_120ep": {
+   "S": -5.337425231933594,
+   "mode_acc": 0.8859390363815143,
+   "spin_recall": 0.14084507042253522,
+   "spin_sign_acc": 0.8873239436619719,
+   "dir_err": 29.853248596191406,
+   "edge_dir_err": 44.385475158691406,
+   "n_edge": 78,
+   "live": {
+    "mode_acc": 0.6129032258064516,
+    "spin_dir_acc": 1.0,
+    "move_angle_err": 21.255777300886976,
+    "corrective_sign": 0.5465587044534413,
+    "n_ok": 372
+   }
+  },
+  "B0_frozen_davit384_20ep": {
+   "S": 0.11344818770885468,
+   "mode_acc": 0.8613569321533924,
+   "spin_recall": 0.0,
+   "spin_sign_acc": 0.6338028169014085,
+   "dir_err": 33.70555114746094,
+   "edge_dir_err": 49.9896354675293,
+   "n_edge": 85,
+   "live": {
+    "mode_acc": 0.5860215053763441,
+    "spin_dir_acc": null,
+    "move_angle_err": 20.924550967155824,
+    "corrective_sign": 0.4857142857142857,
+    "n_ok": 372
+   }
+  },
+  "B2_lora_all_stages_384_8ep": {
+   "S": -5.631829261779785,
+   "mode_acc": 0.8711897738446411,
+   "spin_recall": 0.0,
+   "spin_sign_acc": 0.7746478873239436,
+   "dir_err": 36.338661193847656,
+   "edge_dir_err": 51.767520904541016,
+   "n_edge": 83,
+   "live": {
+    "mode_acc": 0.5994623655913979,
+    "spin_dir_acc": 1.0,
+    "move_angle_err": 31.740582073459244,
+    "corrective_sign": 0.3381818181818182,
+    "n_ok": 372
+   },
+   "train_seconds": 4902.570426225662
+  }
+ },
+ "lopo_center": {
+  "B0_frozen_davit384_120ep": {
+   "S": -17.167821884155273,
+   "mode_acc": 0.9008908685968819,
+   "spin_recall": 0.0,
+   "spin_sign_acc": 0.7037037037037037,
+   "dir_err": 40.394248962402344,
+   "edge_dir_err": 41.04269790649414,
+   "n_edge": 38,
+   "live": {
+    "mode_acc": 0.6048387096774194,
+    "spin_dir_acc": 1.0,
+    "move_angle_err": 30.72089726328248,
+    "corrective_sign": 0.2923076923076923,
+    "n_ok": 372
+   }
+  },
+  "B0_frozen_davit384_20ep": {
+   "S": -2.309720754623413,
+   "mode_acc": 0.8797327394209354,
+   "spin_recall": 0.0,
+   "spin_sign_acc": 0.6296296296296297,
+   "dir_err": 33.33891296386719,
+   "edge_dir_err": 39.494911193847656,
+   "n_edge": 38,
+   "live": {
+    "mode_acc": 0.5887096774193549,
+    "spin_dir_acc": null,
+    "move_angle_err": 23.66943405849715,
+    "corrective_sign": 0.3914590747330961,
+    "n_ok": 372
+   }
+  },
+  "B2_lora_all_stages_384_8ep": {
+   "S": -9.516777038574219,
+   "mode_acc": 0.8975501113585747,
+   "spin_recall": 0.0,
+   "spin_sign_acc": 0.7407407407407407,
+   "dir_err": 38.50162124633789,
+   "edge_dir_err": 52.50090408325195,
+   "n_edge": 37,
+   "live": {
+    "mode_acc": 0.5887096774193549,
+    "spin_dir_acc": 1.0,
+    "move_angle_err": 30.224667860400654,
+    "corrective_sign": 0.3062730627306273,
+    "n_ok": 372
+   },
+   "train_seconds": 5050.545387744904
+  }
+ },
+ "lopo_strong_right": {
+  "B0_frozen_davit384_120ep": {
+   "S": 0.4784398078918457,
+   "mode_acc": 0.8613138686131386,
+   "spin_recall": 0.010752688172043012,
+   "spin_sign_acc": 0.8494623655913979,
+   "dir_err": 29.194618225097656,
+   "edge_dir_err": 41.24903869628906,
+   "n_edge": 101,
+   "live": {
+    "mode_acc": 0.6021505376344086,
+    "spin_dir_acc": 1.0,
+    "move_angle_err": 17.412497462377804,
+    "corrective_sign": 0.6923076923076923,
+    "n_ok": 372
+   }
+  },
+  "B0_frozen_davit384_20ep": {
+   "S": 0.37962502241134644,
+   "mode_acc": 0.8403284671532847,
+   "spin_recall": 0.0,
+   "spin_sign_acc": 0.26881720430107525,
+   "dir_err": 30.81193733215332,
+   "edge_dir_err": 46.47761917114258,
+   "n_edge": 104,
+   "live": {
+    "mode_acc": 0.5913978494623656,
+    "spin_dir_acc": null,
+    "move_angle_err": 19.93602555576036,
+    "corrective_sign": 0.5498281786941581,
+    "n_ok": 372
+   }
+  },
+  "B2_lora_all_stages_384_8ep": {
+   "S": -0.6840924024581909,
+   "mode_acc": 0.823905109489051,
+   "spin_recall": 0.043010752688172046,
+   "spin_sign_acc": 0.6989247311827957,
+   "dir_err": 17.724668502807617,
+   "edge_dir_err": 19.12238121032715,
+   "n_edge": 80,
+   "live": {
+    "mode_acc": 0.5806451612903226,
+    "spin_dir_acc": 1.0,
+    "move_angle_err": 46.19435795466821,
+    "corrective_sign": 0.3795620437956204,
+    "n_ok": 372
+   },
+   "train_seconds": 4823.161398410797
+  }
+ }
+}
