@@ -2816,6 +2816,11 @@ class Egvla2ModelSwitchReq(BaseModel):
     path: str  # repo-relative .pt 경로
     ema: float = 0.0
     dtype: str = "fp32"  # "fp32" | "fp16"
+    # 2026-10-28 minum 핸드오프 A1 조건 — 체크포인트 전환 UI에서 같이 설정 가능하게.
+    # 기본 0.0(꺼짐)이라 A0/A2(서보 없음) 전환 시 값을 안 보내면 자동으로 꺼짐.
+    servo_blend: float = 0.0
+    servo_k: float = 2.0
+    servo_max: float = 0.7
 
 
 @app.post("/verify/egvla2_model_switch")
@@ -2830,7 +2835,8 @@ def verify_egvla2_model_switch(req: Egvla2ModelSwitchReq):
         return {"ok": False, "error": f"파일 없음: {req.path}"}
     try:
         r = rq.post(f"{INFER_URL}/model/switch_family",
-                     json={"family": "egvla2", "egvla2_ckpt": full_path, "egvla2_ema": req.ema, "egvla2_dtype": req.dtype},
+                     json={"family": "egvla2", "egvla2_ckpt": full_path, "egvla2_ema": req.ema, "egvla2_dtype": req.dtype,
+                           "egvla2_servo_blend": req.servo_blend, "egvla2_servo_k": req.servo_k, "egvla2_servo_max": req.servo_max},
                      # Florence-2 로딩 포함 — discrete 체크포인트 전환(~25s)과 비슷하거나 더 걸릴 수 있음.
                      headers={"X-API-Key": API_KEY}, timeout=60)
         r.raise_for_status()
@@ -2905,6 +2911,11 @@ def _snapshot_runtime_config() -> dict:
                 "search_max": eg.get("search_max"),
                 "speed_source": eg.get("speed_source"),
                 "speed_max": eg.get("speed_max"),
+                # 2026-10-28 minum 핸드오프(HANDOFF_20261028_ROBOT_TEST_ORDER.md §2-5) —
+                # A1 조건 확인용. 0.0/None이면 서보 꺼짐(A0·A2와 동일 조건).
+                "servo_blend": eg.get("servo_blend"),
+                "servo_k": eg.get("servo_k"),
+                "servo_max": eg.get("servo_max"),
                 "jpeg_quality": _drive_jpeg_quality_and_cc(False)[0],
                 "apply_cc": False,  # egvla2 활성 중엔 _drive_jpeg_quality_and_cc()가 항상 강제로 끔
                 "drive_mode": eg.get("drive_mode", "egvla2_only"),
@@ -5872,6 +5883,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                   <span id="vfy-egvla2-family-badge" style="font-size:9px; padding:1px 6px; border-radius:10px; background:rgba(139,92,246,0.15); color:var(--violet, #8b5cf6); margin-left:4px;">discrete 활성</span>
                 </div>
                 <div id="vfy-egvla2-model-list" style="display:flex; flex-direction:column; gap:4px;">불러오는 중...</div>
+                <!-- 2026-10-28 minum 핸드오프 A1 조건 — SERVO_BLEND는 프로세스 기동 env가
+                     아니라 이 전환 요청에 실려야 매번(A0↔A1 번갈아) 재설정됨. 기본 0(꺼짐). -->
+                <div style="margin-top:6px; font-size:9px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                  🎯 SERVO_BLEND(다음 전환 시 적용):
+                  <input id="vfy-egvla2-servo-blend" type="number" step="0.1" min="0" max="1" value="0"
+                         style="width:48px; font-size:10px; padding:2px 4px; background:#090d16; color:#fff; border:1px solid var(--border-glow); border-radius:4px;">
+                  <button class="btn btn-outline" style="font-size:9px; padding:1px 6px;" onclick="document.getElementById('vfy-egvla2-servo-blend').value='0'">0(A0/A2)</button>
+                  <button class="btn btn-outline" style="font-size:9px; padding:1px 6px; border-color:var(--amber); color:var(--amber);" onclick="document.getElementById('vfy-egvla2-servo-blend').value='0.5'">0.5(A1)</button>
+                  <span id="vfy-egvla2-servo-badge"></span>
+                </div>
               </div>
 
               <!-- 전환 버튼(위 egvla2 섹션 포함) 공통 상태 표시줄 — discrete 아코디언이
@@ -9678,17 +9699,19 @@ L S R  C S L  R S L
 
     async function switchEgvla2Model(path, filename) {
       const statusEl = document.getElementById("vfy-model-status");
-      if (statusEl) statusEl.textContent = `🔄 egvla2(${filename})로 전환 중... (Florence-2 로딩 포함 수 초~수십 초)`;
+      const blendEl = document.getElementById("vfy-egvla2-servo-blend");
+      const servo_blend = blendEl ? (parseFloat(blendEl.value) || 0) : 0;
+      if (statusEl) statusEl.textContent = `🔄 egvla2(${filename})로 전환 중... (Florence-2 로딩 포함 수 초~수십 초)` + (servo_blend > 0 ? ` · SERVO_BLEND=${servo_blend}` : "");
       _setModelPanelBusy(true);
       try {
         const res = await api("/verify/egvla2_model_switch", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path }),
+          body: JSON.stringify({ path, servo_blend }),
         });
         if (res.ok) {
           window._lastHealthActiveFamily = "egvla2";
           window._currentEgvla2Ckpt = filename;
-          if (statusEl) statusEl.textContent = `✅ egvla2 전환 완료: ${filename}`;
+          if (statusEl) statusEl.textContent = `✅ egvla2 전환 완료: ${filename}` + (servo_blend > 0 ? ` · 🎯 SERVO_BLEND=${servo_blend}` : " · 서보 OFF");
         } else {
           if (statusEl) statusEl.textContent = "⚠️ 전환 실패: " + _friendlyApiError(res.error);
         }
@@ -12280,6 +12303,7 @@ L S R  C S L  R S L
             <div class="form-group"><label>Loaded Checkpoint (EGVLA2)</label><input type="text" readonly value="${eg.ckpt}"></div>
             <div class="form-group"><label>Arch / Dtype</label><input type="text" readonly value="${eg.arch} / ${eg.dtype} (K=${eg.K}, EMA=${eg.ema})"></div>
             <div class="form-group"><label>Controller</label><input type="text" readonly value="state=${eg.controller_state} · stop_debounce=${eg.stop_debounce} · lost=${eg.lost_frames}f · search_max=${eg.search_max}f"></div>
+            <div class="form-group"><label>Servo (2026-10-28 A1 조건)</label><input type="text" readonly value="${eg.servo_blend ? ('ON blend=' + eg.servo_blend + ' k=' + eg.servo_k + ' max=' + eg.servo_max) : 'OFF (blend=0)'}" style="${eg.servo_blend ? 'color:var(--amber);font-weight:700;' : ''}"></div>
           `;
           const vfySrvStatus = document.getElementById("vfy-srv-status");
           if (vfySrvStatus) {
@@ -12287,6 +12311,7 @@ L S R  C S L  R S L
               `<span style="color:var(--violet,#a78bfa); font-weight:700;">🆕 ${eg.ckpt}</span> (${eg.arch}, ${eg.dtype})<br>`
               + `K=${eg.K} EMA=${eg.ema} gain=${eg.gain} · speed_source=${eg.speed_source}<br>`
               + `controller: ${eg.controller_state} (stop_debounce=${eg.stop_debounce}, near_area=${eg.near_area ?? 'off'})<br>`
+              + (eg.servo_blend ? `<span style="color:var(--amber);font-weight:700;">🎯 SERVO_BLEND=${eg.servo_blend} (k=${eg.servo_k}, max=${eg.servo_max})</span><br>` : `서보: OFF<br>`)
               + `git ${inf.git_commit || '—'}`;
           }
         } else if (inf.model_loaded) {

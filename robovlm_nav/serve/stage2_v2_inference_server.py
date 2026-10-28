@@ -1572,6 +1572,13 @@ class SwitchFamilyRequest(BaseModel):
     egvla2_ckpt: Optional[str] = None
     egvla2_ema: float = 0.0
     egvla2_dtype: str = "fp32"
+    # 2026-10-28 minum 핸드오프(HANDOFF_20261028_ROBOT_TEST_ORDER.md) — A0/A1/A2를
+    # 목표 위치마다 번갈아 실행해야 하는데, 지금까지 SERVO_BLEND는 프로세스 기동
+    # 시점 env로만 고정돼 체크포인트 전환(이 엔드포인트)으로는 못 바꿨음(A1만 하려면
+    # 서버를 통째로 재시작해야 했음) — 전환 요청에 실어 매번 재설정 가능하게 함.
+    egvla2_servo_blend: float = 0.0
+    egvla2_servo_k: float = 2.0
+    egvla2_servo_max: float = 0.7
 
 
 class ConfigRequest(BaseModel):
@@ -1781,6 +1788,12 @@ async def health() -> dict[str, Any]:
             search_max=_egvla2_service.controller.search_max_frames,
             controller_state=_egvla2_service.controller.state,
             drive_mode="egvla2_only",
+            # 2026-10-28 minum 핸드오프(HANDOFF_20261028_ROBOT_TEST_ORDER.md §2-5) —
+            # A1 조건(VLA_EGVLA2_SERVO_BLEND)이 /health에도 세션 스냅샷에도 전혀
+            # 노출되지 않아 "이 세션이 서보 켜고 돈 게 맞는지" 사후 증명이 불가능했음.
+            servo_blend=_egvla2_service.controller.servo_blend,
+            servo_k=_egvla2_service.controller.servo_k,
+            servo_max=_egvla2_service.controller.servo_max,
         ) if _egvla2_service is not None else None),
     }
 
@@ -2243,6 +2256,9 @@ async def switch_family(
         os.environ["VLA_EGVLA2_CKPT"] = request.egvla2_ckpt
         os.environ["VLA_EGVLA2_EMA"] = str(request.egvla2_ema)
         os.environ["VLA_EGVLA2_DTYPE"] = request.egvla2_dtype
+        os.environ["VLA_EGVLA2_SERVO_BLEND"] = str(request.egvla2_servo_blend)
+        os.environ["VLA_EGVLA2_SERVO_K"] = str(request.egvla2_servo_k)
+        os.environ["VLA_EGVLA2_SERVO_MAX"] = str(request.egvla2_servo_max)
         from robovlm_nav.serve.egvla2_inference_server import load_service_from_env
         _egvla2_service = load_service_from_env()
         _active_family = "egvla2"
