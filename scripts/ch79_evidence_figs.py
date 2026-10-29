@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent.parent
 D = ROOT / "ROS_action/dryrun_closedloop_20261028"
-OUT = ROOT / "docs/v5/figures/ch79"; OUT.mkdir(parents=True, exist_ok=True)
+import os
+LIM = int(os.environ.get("A3_LIMIT", 0))  # >0이면 A3를 시간순 앞 N회만(보고용 부분 집계, 나머지는 CH79 전체본)
+OUT = ROOT / "docs/v5/figures/ch79" / (f"first{LIM}" if LIM else ""); OUT.mkdir(parents=True, exist_ok=True)
 BG, FG, GR = "#0a1628", "#e2e8f0", "#334155"
 COL = {"A1": "#f59e0b", "A2": "#60a5fa", "A3": "#34d399", "A0": "#94a3b8"}
 plt.rcParams.update({"figure.facecolor": BG, "axes.facecolor": BG, "axes.edgecolor": GR, "text.color": FG, "axes.labelcolor": FG,
@@ -38,6 +40,9 @@ for r in csv.DictReader(open(D / "episode_log_snapshot.csv")):
     if h.exists():
         with h5py.File(h) as f: bb = f["grounding/bbox"][:]
     rows.append(dict(sid=r["session_id"], c=c, ok=ok, bb=bb, tgt=r["경로"], h=h))
+if LIM:
+    a3 = sorted([r for r in rows if r["c"] == "A3"], key=lambda r: r["sid"])[:LIM]; keep = {r["sid"] for r in a3}
+    rows = [r for r in rows if r["c"] != "A3" or r["sid"] in keep]
 print(len(rows), {k: sum(1 for r in rows if r["c"] == k) for k in COL})
 
 # 1. 성공률

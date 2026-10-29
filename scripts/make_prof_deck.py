@@ -15,7 +15,9 @@ h1{font-size:40px;margin:0 0 8px;line-height:1.25}h2{font-size:30px;margin:0 0 4
 a{color:#7dd3fc;text-decoration:none}table{border-collapse:collapse;width:100%;font-size:16px}td,th{padding:6px 10px;border-bottom:1px solid #1e293b;text-align:left}th{color:#93c5fd;border-bottom:2px solid #2b4a78}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 """
+_N = [0]
 def slide(n, body, src=""):
+    _N[0] += 1; n = _N[0]
     return f'<section class="s">{body}<div class="foot"><span>{src}</span><span>EdgeGround-VLA · EGVLA2 현재 상황 · {n}</span></div></section>'
 def ref(i, title, one, url, img): return f'<div class="card"><img src="img/{img}"><div style="font-size:15px;font-weight:700;margin-top:7px">{title}</div><div class="cap">{one}<br><a href="{url}">{url.replace("https://","")}</a></div></div>'
 S = []
@@ -35,12 +37,19 @@ S.append(slide(3, '''<h2>2. 시도한 것과 결과 요약</h2><div class="sub">
 <tr><td>서버 서보 혼합(A1)</td><td>실기 11/23 — 효과 약함</td></tr></table>
 <div class="pt" style="margin-top:16px"><b>핵심</b>: 오프라인 방향 오차는 모델 선택 기준으로 <b>부적합</b>(A3는 +22° 나쁜데 실기는 최고) → 선택은 실기 폐루프로.</div></div></div>''', "수치: e2e_fullstage.json · gap_wm.json · gap_e1b.json (CH79 3~4절)"))
 S.append(slide(4, '''<h2>3. 실기 폐루프 결과 (10/28, pos1)</h2><div class="sub">성공 = 수동 기록(episode_log). 구간은 Wilson 95%</div>
-<div class="row"><div class="col"><img src="img/success_ci.png"></div><div class="col"><div class="big">63 / 63</div><div class="mut" style="margin-bottom:12px">A3 (servolabel 1.0) 순수 성공 · 구간 94~100%</div>
-<div class="pt">· A2(서보 0.5) 14/20, A1(서버 혼합) 11/23</div><div class="pt">· 서보 라벨이 강할수록 성공이 높음</div><div class="pt">· 타깃 5종 위치 모두 균형(11~13회씩) 성공</div>
-<div class="pt warn">· 단서: ASYNC·EMA 0.0(합의 SYNC/0.5와 다름), 조건별 연속 블록, 기준 A0 1회, pos1만, 수동 판정</div></div></div>''', "집계: ROS_action/dryrun_closedloop_20261028 (JSON 108·H5 102)"))
+<div class="row"><div class="col"><img src="img/first60/success_ci.png"></div><div class="col"><div class="big">60 / 60</div><div class="mut" style="margin-bottom:12px">A3 (servolabel 1.0) 시간순 앞 60회 · 구간 94~100%<br>(같은 날 이어서 한 3회 포함 전체 63/63, 결과 동일)</div>
+<div class="pt">· A2(서보 0.5) 14/20, A1(서버 혼합) 11/23</div><div class="pt">· 서보 라벨이 강할수록 성공이 높음</div><div class="pt">· 타깃 5종 위치 모두 성공(위치별 9~16회)</div>
+<div class="pt warn">· 단서: ASYNC·EMA 0.0(합의 SYNC/0.5와 다름), 조건별 연속 블록, 기준 A0 1회, pos1만, 수동 판정</div></div></div>''', "집계: ROS_action/dryrun_closedloop_20261028. 60회 = 순수 A3의 시간순 앞 60회(결과를 본 뒤 정한 구분, 모두 성공이라 결론 불변). A1 23·A2 20은 전체"))
+S.append(slide(5, '''<h2>3-2. 무엇을 "성공"이라 했나 — 판정 근거</h2><div class="sub">성공의 정의는 현장 관찰자의 수동 기록. 영상 bbox로 그 기록을 사후 교차 확인</div>
+<div class="row"><div class="col"><img src="img/frames_a3.png"><div class="cap">A3 성공 세션: 타깃을 정면에 두고 접근, 마지막 프레임에서 바구니가 화면 하단 중앙을 채우며 정지</div></div>
+<div class="col"><table><tr><th>구분</th><th>기준</th></tr>
+<tr><td><b>정의(수동)</b></td><td>현장에서 사람이 기록한 결과 열(성공/실패)</td></tr>
+<tr><td><b>성공 세션의 영상 특징</b></td><td>마지막 타깃 면적 0.20~0.34(정지 기준 0.25 근처), 타깃 소실 0프레임, 평균 13.5스텝</td></tr>
+<tr><td><b>실패 세션의 영상 특징</b></td><td>타깃 소실 · 과접근(면적 0.45 이상) · 엉뚱한 물체 추종(A1·A2 실패 16건)</td></tr></table>
+<div class="pt warn" style="margin-top:14px">한계: 서면 판정표가 사전에 없었고(핸드오프에는 소실률·정지 거리·성공률 기준만 기재), 조건별 연속 블록이라 판정이 블라인드가 아니었을 가능성이 있다. 그래서 영상 지표로 교차 확인했고, 로봇 측에 실제 사용한 판정 문구와 정지 거리(FPE) 기록을 요청할 예정.</div></div></div>''', "근거: episode_log_snapshot.csv 결과 열 · H5 grounding/bbox · docs/plans/HANDOFF_20261028_ROBOT_TEST_ORDER.md"))
 S.append(slide(5, '''<h2>4. 판정 편향은 없었나 — 수동 판정과 무관한 H5 확인</h2><div class="sub">영상 bbox만으로 본 마지막 프레임 상태</div>
-<div class="row"><div class="col"><img src="img/final_bbox_scatter.png"></div><div class="col"><img src="img/bbox_trajectories.png"></div></div>
-<div class="pt" style="margin-top:12px">· A1·A2 <b>실패</b>는 타깃 소실이거나 과접근(면적 0.45↑). A3 59개는 전부 면적 0.20~0.34, 소실 0.</div><div class="pt">· 판정이 후했다면 A3에도 이런 세션이 섞였어야 함 → <b>편향 증거 없음</b>. <span class="warn">(A3 고유의 다른 실패 유형은 이 방법으로 못 봄)</span></div>''', "그림 생성: scripts/ch79_evidence_figs.py"))
+<div class="row"><div class="col"><img src="img/first60/final_bbox_scatter.png"></div><div class="col"><img src="img/first60/bbox_trajectories.png"></div></div>
+<div class="pt" style="margin-top:12px">· A1·A2 <b>실패</b>는 타깃 소실이거나 과접근(면적 0.45↑). A3(H5 보유 56개)는 전부 면적 0.20~0.34, 소실 0.</div><div class="pt">· 판정이 후했다면 A3에도 이런 세션이 섞였어야 함 → <b>편향 증거 없음</b>. <span class="warn">(A3 고유의 다른 실패 유형은 이 방법으로 못 봄)</span></div>''', "그림 생성: scripts/ch79_evidence_figs.py"))
 S.append(slide(6, '''<h2>5. 실제 영상 — 성공과 실패의 모습</h2><div class="sub">빨간 상자 = 모델이 잡은 타깃(bbox)</div>
 <div class="row"><div class="col"><div class="pt"><b>A3 성공</b> — 바구니에 정면 접근, 면적 0.22~0.32에서 정지</div><img src="img/frames_a3.png"></div>
 <div class="col"><div class="pt"><b>A1 실패</b> — ① 검은 판을 바구니로 잘못 잡고 벽으로 ② 바구니를 지나쳐 벽만 보임</div><img src="img/frames_a1.png"></div></div>
