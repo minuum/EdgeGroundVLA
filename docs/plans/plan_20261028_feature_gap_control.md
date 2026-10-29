@@ -1,6 +1,6 @@
 # 계획: A(고정 융합 특징) 대 B(DaViT 풀링) 격차의 원인 분리 + 실기 시험 후보 (구현 승인 전)
 
-> 작성일: 2026-10-28 | 상태: **계획(사용자 검토용, 구현 금지)** | 근거: `e2e_general.json`, `e2e_fullstage.json`, `gap_wm.json`, `precompute_v6_florence2_fused.py`, Florence-2 `modeling_florence2.py::_encode_image`
+> 작성일: 2026-10-28 | 상태: **승인·실행 완료(10/29): R0 통과 cos 0.99995, 결과 `feature_gap.json`** | 근거: `e2e_general.json`, `e2e_fullstage.json`, `gap_wm.json`, `precompute_v6_florence2_fused.py`, Florence-2 `modeling_florence2.py::_encode_image`
 > 용어: "비교 조건" = 같은 데이터·분할·지표에서 한 가지만 바꾼 실험 한 줄.
 
 ## 0. 이전 해석의 정정 (중요)
