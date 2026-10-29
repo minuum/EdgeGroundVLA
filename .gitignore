@@ -197,6 +197,9 @@ docs/**/*.png
 # 논문용 도표는 예외 — 산출물이 아니라 결과물이라 추적 대상
 !docs/v5/figures/*.png
 !docs/v5/figures/*.jpg
+# CH79 실기 근거 그림·교수님 보고 슬라이드 이미지(결과물)
+!docs/v5/figures/ch79/**
+!docs/v5/prof_deck/img/**
 # LLM wiki에서 base64 임베드 이미지를 추출한 자산(scripts/wiki/parse_research_story.py) —
 # 위키가 클론 즉시 동작하려면 반드시 추적돼야 함
 !docs/wiki/assets/*.png
