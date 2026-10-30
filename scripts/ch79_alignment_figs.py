@@ -26,7 +26,7 @@ ax.axvline(np.median(cx), color="#34d399"); ax.text(np.median(cx) + .003, ax.get
 ax.set_xlabel("마지막 프레임에서 바구니 중심의 가로 위치 cx"); ax.set_ylabel("세션 수")
 ax.set_title(f"96회 마지막 cx: 범위 {cx.min():.2f}~{cx.max():.2f}, 중앙 ±0.1 안 {int((abs(cx-.5)<=.1).sum())}회, 0.6 이상 {int((cx>=.6).sum())}회 → 전체적으로 오른쪽에 치우쳐 정지", fontsize=11)
 for i, (r, tag) in enumerate(pick):
-    f = h5py.File(ROOT / f"docs/inference_sessions/session_{r['sid']}.h5"); im = np.ascontiguousarray(f["observations/images"][-1][:, :, ::-1]).astype(np.uint8)
+    f = h5py.File(ROOT / f"docs/inference_sessions/session_{r['sid']}.h5"); im = np.ascontiguousarray(f["observations/images"][-1]).astype(np.uint8)
     bb = f["grounding/bbox"][-1]; a = fig.add_axes([0.02 + i * 0.1225, 0.04, 0.115, 0.46]) if False else fig.add_axes([0.02 + (i % 4) * 0.245, 0.345 - (i // 4) * 0.27, 0.235, 0.22])
     a.imshow(im); a.axvline(im.shape[1] / 2, color="#f87171", ls="--", lw=1)
     a.plot(bb[0] * im.shape[1], bb[1] * im.shape[0], "+", color="#fbbf24", ms=14, mew=2); a.axis("off")
