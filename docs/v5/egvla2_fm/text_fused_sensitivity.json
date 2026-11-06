@@ -1,0 +1,47 @@
+{
+ "gray basket": {
+  "fused_cos_mean": 0.9999999975164732,
+  "fused_cos_min": 0.9999998807907104,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "gray bin": {
+  "fused_cos_mean": 0.9881896260711882,
+  "fused_cos_min": 0.9814746379852295,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "gray container": {
+  "fused_cos_mean": 0.9821865517232153,
+  "fused_cos_min": 0.9762244820594788,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "the gray basket": {
+  "fused_cos_mean": 0.997460264298651,
+  "fused_cos_min": 0.9966529607772827,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "go to the gray bin": {
+  "fused_cos_mean": 0.9543083608150482,
+  "fused_cos_min": 0.94599449634552,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "basket": {
+  "fused_cos_mean": 0.9869730447729429,
+  "fused_cos_min": 0.9836010932922363,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "white box": {
+  "fused_cos_mean": 0.9820710172255834,
+  "fused_cos_min": 0.9667717218399048,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "red chair": {
+  "fused_cos_mean": 0.9580236333939764,
+  "fused_cos_min": 0.9416084885597229,
+  "img_cos_mean": 1.0000000298023224
+ },
+ "person": {
+  "fused_cos_mean": 0.9188907312022315,
+  "fused_cos_min": 0.9050739407539368,
+  "img_cos_mean": 1.0000000298023224
+ }
+}
