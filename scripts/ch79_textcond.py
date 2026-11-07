@@ -105,6 +105,15 @@ def block(tbl, H, st):
                             "평가 프레임: 시험 분할의 3번째 프레임마다 1개. V0은 텍스트를 받지 않으므로 문구가 바뀌어도 출력이 같다."))
     else:
         o.append(V.wrap("T1·T2 결과", '<div style="font-size:0.84rem">학습 진행 중 — 보류 문구 캐시 완료 후 4변형 × 3분할 × 3시드 실행. 이 탭은 결과가 나오면 다시 생성된다.</div>', "", "flow"))
+    if t2 and len(t2) >= 36:
+        g = lambda k, v, pct=False: (lambda x: f"{x[0] * (100 if pct else 1):.{1 if pct else 3}f}" + ("%" if pct else ""))(_agg(t2, k, [v])[v])
+        o.append(V.wrap("결과 해석 (36/36: 3분할 × 시드 3, 오프라인)", '<div style="font-size:0.84rem;line-height:1.9">'
+            f'<b>① 텍스트를 쓰게 만드는 데 성공.</b> V1·V2(음성 신호 없음)는 음성 문구에서도 정지율이 {g("stop_neg_nobbox", "V1_text_const", True)}·{g("stop_neg_nobbox", "V2_paraphrase_aug", True)}로 V0({g("stop_neg_nobbox", "V0_img_only", True)})와 같아 <b>텍스트를 무시</b>한다(귀무 가설 확인). 음성 지시를 학습한 V3는 학습한 음성 문구에서 {g("stop_neg_nobbox", "V3_aug_neg", True)}, <b>박스가 남아 있어도</b> {g("stop_neg_bbox", "V3_aug_neg", True)} 정지 → 텍스트가 박스를 이긴다.<br>'
+            f'<b>② 안 본 단어에도 일부 일반화.</b> 학습에 없던 음성 문구(green plant·black laptop)에서 V3 정지율 {g("unseen_stop_neg_nobbox", "V3_aug_neg", True)}(박스 남음 {g("unseen_stop_neg_bbox", "V3_aug_neg", True)}) 대 V0~V2 약 10%. 단 <b>미지 문구가 2개뿐</b>이라 어휘 전반으로 일반화한다고 말할 수 없다.<br>'
+            f'<b>③ 방향 정확도 비용은 보이지 않는다.</b> 기준 문구 방향 오차 V0 {g("ang_ref", "V0_img_only")}° / V3 {g("ang_ref", "V3_aug_neg")}°(분할 간 sd 약 3.7° 안쪽).<br>'
+            f'<b>④ 그러나 패러프레이즈에 취약해진다 — 모듈형(V0)이 더 강건.</b> V0은 문구를 안 받으므로 명령 변화 0. 텍스트를 받는 변형은 학습한 패러프레이즈에서는 변화 {g("para_effect", "V2_paraphrase_aug")}(증강 효과, V1은 {g("para_effect", "V1_text_const")})로 줄지만, <b>학습에 없던 동의 표현(grey bucket·the bin)에서는 {g("unseen_para_effect", "V3_aug_neg")} 수준으로 여전히 크고</b> 방향 오차도 {g("unseen_ang_para", "V0_img_only")}° → {g("unseen_ang_para", "V3_aug_neg")}°로 나빠진다. 증강 5종은 외우는 수준이다.<br>'
+            '<b>⑤ 사진에서 확인되는 것(fold0 프레임 6장, 시드 평균).</b> 문구를 고정해 학습한 V1은 텍스트 임베딩이 멀리 벗어난 <code>go to the gray bin</code>(텍스트 풀링 cos 0.77)에서 <b>6장 모두 명령 크기가 0.02~0.07(정지)</b>로 무너진다(기준 문구에서는 0.7~0.87). 패러프레이즈 증강(V2)·음성 지시(V3)는 이를 막지만, V3는 학습에 없던 <code>grey bucket</code>에서 명령이 0.36~0.74로 <b>머뭇거린다</b>(V0·V2는 0.65~0.92) → 문장형 지시와 미지 표현에 가장 약하다.<br>'
+            '<b>결론(교수님 시험 관점):</b> 시험 ①(지시문 변경)은 <b>모듈형(현재 A3)이 오히려 안전</b>하다(Florence-2가 같은 박스를 주고 헤드는 문구를 안 봄). E2E(텍스트→헤드)는 "없는 물체는 안 간다"는 선택성을 얻는 대신 표현 변화에 흔들린다 → 어휘를 크게 늘린 증강(수십~수백 표현)과 다른 물체가 실제로 있는 장면 데이터가 있어야 이득을 주장할 수 있다. 실기 확인 전이며 오프라인 지표다.</div>', "한계: 음성 정답을 \"정지\"로 정한 설계, 미지 문구 4개, 3프레임 간격 부분집합, 단일 학습 설정. 미지 문구 정지 수치는 3분할 × 시드 3 평균(분할별 73~90%).", "flow"))
     probes = _load("text_cond_probes.json")
     if t2 and probes and any("probe" in r for r in t2.values()):
         o.append(V.wrap("원본 사진으로 비교 — 같은 학습 프레임에서 변형별 첫 스텝 명령 (fold0 시험 프레임, 시드 평균)",
