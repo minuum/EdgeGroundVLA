@@ -115,6 +115,25 @@ def block(tbl, H, st):
             f'<b>④ 그러나 패러프레이즈에 취약해진다 — 모듈형(V0)이 더 강건.</b> V0은 문구를 안 받으므로 명령 변화 0. 텍스트를 받는 변형은 학습한 패러프레이즈에서는 변화 {g("para_effect", "V2_paraphrase_aug")}(증강 효과, V1은 {g("para_effect", "V1_text_const")})로 줄지만, <b>학습에 없던 동의 표현(grey bucket·the bin)에서는 {g("unseen_para_effect", "V3_aug_neg")} 수준으로 여전히 크고</b> 방향 오차도 {g("unseen_ang_para", "V0_img_only")}° → {g("unseen_ang_para", "V3_aug_neg")}°로 나빠진다. 증강 5종은 외우는 수준이다.<br>'
             '<b>⑤ 사진에서 확인되는 것(fold0 프레임 6장, 시드 평균).</b> 문구를 고정해 학습한 V1은 텍스트 임베딩이 멀리 벗어난 <code>go to the gray bin</code>(텍스트 풀링 cos 0.77)에서 <b>6장 모두 명령 크기가 0.02~0.07(정지)</b>로 무너진다(기준 문구에서는 0.7~0.87). 패러프레이즈 증강(V2)·부정 지시(V3)는 이를 막지만, V3는 학습에 없던 <code>grey bucket</code>에서 명령이 0.36~0.74로 <b>머뭇거린다</b>(V0·V2는 0.65~0.92) → 문장형 지시와 미지 표현에 가장 약하다.<br>'
             '<b>결론(교수님 시험 관점):</b> 시험 ①(지시문 변경)은 <b>모듈형(현재 A3)이 오히려 안전</b>하다(Florence-2가 같은 박스를 주고 헤드는 문구를 안 봄). E2E(텍스트→헤드)는 "없는 물체는 안 간다"는 선택성을 얻는 대신 표현 변화에 흔들린다 → 어휘를 크게 늘린 증강(수십~수백 표현)과 다른 물체가 실제로 있는 장면 데이터가 있어야 이득을 주장할 수 있다. 실기 확인 전이며 오프라인 지표다.</div>', "한계: 부정 정답을 \"정지\"로 정한 설계, 미지 문구 4개, 3프레임 간격 부분집합, 단일 학습 설정. 미지 문구 정지 수치는 3분할 × 시드 3 평균(분할별 73~90%).", "flow"))
+    t4 = _load("text_cond_t4.json")
+    if t4 and len(t4) >= 27:
+        V4s = ["V0_img_only", "V3_old_vocab", "V4_big_vocab"]; L4 = ["V0 이미지 전용", "V3 기존 어휘(정상6+부정3)", "V4 확장 어휘(정상40+부정40)"]
+        def a4(k, pct=True, nd=1):
+            out = []
+            for v in V4s:
+                x = [r[k] for kk, r in t4.items() if kk.split("|")[1] == v]; f = 100 if pct else 1
+                out.append(f"{np.mean(x) * f:.{nd}f}±{np.std(x) * f:.{nd}f}" + ("%" if pct else ""))
+            return out
+        r4 = [["<b>안 본 부정 문구 14개 정지율</b> (박스 남음)"] + a4("held_neg_stop_bbox"), ["같은 색·다른 물체 4개 정지율(gray chair·cat·laptop·sofa)"] + a4("hard_neg_stop_bbox"),
+              ["<b>안 본 동의 표현 16개에서 정지</b>(낮아야 함)"] + a4("held_pos_stop"), ["안 본 동의 표현으로 바뀐 명령 크기"] + a4("held_pos_eff", False, 3),
+              ["안 본 동의 표현 방향 오차 (°)"] + a4("held_pos_ang", False, 1), ["기준 문구 방향 오차 (°)"] + a4("ang_ref", False, 1), ["속성만 다른 2개(red basket·blue bin) 정지 — 참고"] + a4("ambig_stop")]
+        o.append(V.wrap("T4 어휘 확장 — 학습 어휘를 6+3개에서 40+40개로 늘리면? (평가는 학습에 없는 문구 36개만, 27/27)",
+            V.img("figures/ch79/text_cond_t4_bars.png", "초록 점선 = 사전 선언한 성공 기준(plan_20261108). 입력은 모두 타이핑한 텍스트. 프레임 간격 9로 계산(약 3.2k프레임)해 V0·V3·V4를 같은 조건으로 새로 학습했으므로 위 T2 표와 수치를 직접 비교하지 않는다.") +
+            tbl(["지표"] + L4, r4) +
+            '<div style="font-size:0.84rem;line-height:1.9;margin-top:10px"><b>사전 기준 판정:</b> ① 안 본 부정 정지 ≥90% → <b>충족</b>(V4 99.5%, V3 81.5%) · ② 안 본 동의 표현 명령 변화 ≤0.10 → <b>충족</b>(V4 0.077, V3 0.136) · ③ 안 본 동의 표현 정지율 ≤ V0+3%p → <b>근소하게 미충족</b>(V4 10.8% vs V0 7.7% = +3.1%p).<br>'
+            '<b>해석:</b> 어휘를 늘리자 안 본 부정 문구와 "색은 같고 물체가 다른" 문구(gray chair 100%, gray laptop 98%)까지 거의 다 멈추고, 동의 표현에 대한 흔들림도 V3보다 줄었다. 방향 오차 비용은 보이지 않는다(31.2° vs 30.7°, 분할 간 sd 3.3° 안). 그러나 동의 표현 정지율이 V0보다 약 3%p 높고 <code>gray pail</code>·<code>grey bucket</code> 같은 변형에서 22~24%가 멈춰, <b>패러프레이즈 취약성이 사라진 것은 아니다</b>.<br>'
+            '<b>주의:</b> 속성만 다른 <code>blue bin</code>은 18%, <code>red basket</code>은 52% 멈춘다(정답이 불명확해 판정 제외). 오프라인·프레임 단위이고 장면에 다른 물체가 없는 사진이라, 선택 능력(두 물체 중 고르기)이나 폐루프 성공을 뜻하지 않는다.</div>',
+            "plan: docs/plans/plan_20261108_text_vocab_expansion.md · 로그 runs/e2e_cache/logs/text_cond_t4.log · 원자료 docs/v5/egvla2_fm/text_cond_t4.json"))
     probes = _load("text_cond_probes.json")
     if t2 and probes and any("probe" in r for r in t2.values()):
         o.append(V.wrap("원본 사진으로 비교 — 같은 학습 프레임에서 변형별 첫 스텝 명령 (fold0 시험 프레임, 시드 평균)",
