@@ -58,6 +58,8 @@ def block(tbl, H, st):
         stg = "1단계" if s_["stage"] == 1 else "2단계"; tg = s_["target"].replace("trackA_", "").replace("trackF_", "")
         extra = " · 재판정 대상(최종 cx 0.70, 바구니 우측)" if s_["sid"].endswith("200618") else ""
         out.append(strip(f'{chip(stg, G if s_["stage"] == 1 else B)} <b>{s_["sid"]}</b> {chip(s_["start"], P)} {chip("목표 " + tg, MUT)} · {len(s_["items"])}스텝{extra}', s_["items"]))
+    import ch79_gen1104
+    out.append(ch79_gen1104.block(tbl, H, st))
     return "".join(out)
 
 

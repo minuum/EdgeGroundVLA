@@ -1,0 +1,17 @@
+{
+ "n_h5": 252,
+ "n_log": 253,
+ "log_success": 253,
+ "h5_ok": 252,
+ "planned": 297,
+ "log_without_h5": [
+  {
+   "no": "986",
+   "sid": "20261104_145415",
+   "route": "trackF_center",
+   "steps": "0",
+   "t": "2026-11-04 14:54"
+  }
+ ],
+ "h5_without_log": []
+}
