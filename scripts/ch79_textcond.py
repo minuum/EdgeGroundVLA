@@ -25,6 +25,37 @@ def _agg(res, key, variants):
     return out
 
 
+def _arrow(v, col, sz=52):
+    c, sc, m = sz / 2, sz * 0.42, float(np.hypot(v[0], v[1]))
+    if m < 0.2:
+        return f'<svg width="{sz}" height="{sz}"><circle cx="{c}" cy="{c}" r="6" fill="{col}"/><text x="{c}" y="{sz - 3}" font-size="9" fill="#94a3b8" text-anchor="middle">정지</text></svg>'
+    dx, dy = v[1] * sc, -v[0] * sc; x2, y2 = c + dx, c + dy; a = float(np.arctan2(dy, dx))
+    h = lambda t: f"{x2 - 7 * np.cos(a - t):.1f},{y2 - 7 * np.sin(a - t):.1f}"
+    return f'<svg width="{sz}" height="{sz}"><line x1="{c}" y1="{c}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{col}" stroke-width="3"/><polygon points="{x2:.1f},{y2:.1f} {h(0.45)} {h(-0.45)}" fill="{col}"/></svg>'
+
+
+def _probe_html(t2, probes):
+    vs = ["V0_img_only", "V1_text_const", "V2_paraphrase_aug", "V3_aug_neg"]
+    ph = [("ref", "gray basket", "#34d399"), ("para_seen", "go to the gray bin", "#34d399"), ("para_unseen", "grey bucket(미학습)", "#fbbf24"), ("neg_seen_bbox", "red chair+박스 유지", "#fca5a5"),
+          ("neg_seen_nobbox", "red chair+박스 없음", "#fca5a5"), ("neg_unseen_bbox", "green plant+박스 유지(미학습)", "#f87171"), ("neg_unseen_nobbox", "green plant+박스 없음(미학습)", "#f87171")]
+    out = ""
+    for m in probes:
+        b = m["bbox"]; bw, bh = np.sqrt(b[2] * 9 / 16) * 100, np.sqrt(b[2] * 16 / 9) * 100
+        photo = (f'<div style="position:relative;width:260px"><img src="figures/textcond/probe_{m["i"]}.jpg" style="width:100%;border-radius:6px;display:block">'
+                 f'<div style="position:absolute;left:{b[0] * 100 - bw / 2:.1f}%;top:{b[1] * 100 - bh / 2:.1f}%;width:{bw:.1f}%;height:{bh:.1f}%;border:2px solid #ef4444;box-sizing:border-box"></div></div>')
+        rows = ""
+        for pk, pl, col in ph:
+            cells = ""
+            for v in vs:
+                rs = [r["probe"][pk][m["i"]] for k, r in t2.items() if k.startswith(f"fold0|{v}|") and "probe" in r]
+                cells += f'<td style="text-align:center">{_arrow([np.mean([x[0] for x in rs]), np.mean([x[1] for x in rs])], col) if rs else "–"}</td>'
+            rows += f"<tr><td><code>{pl}</code></td>{cells}</tr>"
+        out += (f'<div style="display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid #1e293b;padding:12px 0"><div style="flex:0 0 260px">{photo}'
+                f'<div style="font-size:0.7rem;color:#94a3b8;margin-top:4px">{m["ep"]} · f{m["frame"]} · {m["cell"]}<br>정답: 사람 {_arrow(m["human"], "#94a3b8", 40)} 서보 {_arrow(m["servo"], "#34d399", 40)}</div></div>'
+                f'<div style="flex:1;overflow-x:auto"><table style="width:100%;font-size:0.76rem"><tr><th></th><th>V0</th><th>V1</th><th>V2</th><th>V3</th></tr>{rows}</table></div></div>')
+    return out
+
+
 def block(tbl, H, st):
     rob, enc, t2 = _load("text_robustness.json"), _load("text_encoder_parts.json"), _load("text_cond_t2.json")
     o = [H("0. 질문과 현재 구조 진단"),
@@ -74,5 +105,9 @@ def block(tbl, H, st):
                             "평가 프레임: 시험 분할의 3번째 프레임마다 1개. V0은 텍스트를 받지 않으므로 문구가 바뀌어도 출력이 같다."))
     else:
         o.append(V.wrap("T1·T2 결과", '<div style="font-size:0.84rem">학습 진행 중 — 보류 문구 캐시 완료 후 4변형 × 3분할 × 3시드 실행. 이 탭은 결과가 나오면 다시 생성된다.</div>', "", "flow"))
+    probes = _load("text_cond_probes.json")
+    if t2 and probes and any("probe" in r for r in t2.values()):
+        o.append(V.wrap("원본 사진으로 비교 — 같은 학습 프레임에서 변형별 첫 스텝 명령 (fold0 시험 프레임, 시드 평균)",
+                        '<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;line-height:1.7">화살표: 위=전진, 오른쪽=우측 이동, 점=정지. 회색=사람 시연, 초록=서보 라벨(학습 정답). 정상 문구면 화살표가 정답과 같아야 하고 음성 문구면 점이어야 한다. 사진은 실험에 쓴 원본 프레임(붉은 상자=bbox 중심·면적 근사). 실시간 진행·흐름 대조: <a href="vlaops_dashboard.html" style="color:#38bdf8">VLAops 🔤 탭</a></div>' + _probe_html(t2, probes), "", "img"))
     o.append(V.wrap("한계", '<div style="font-size:0.82rem;line-height:1.8">· 오프라인(프레임 단위) 지표이며 폐루프 성공과 다름 · 음성 지시의 정답을 “정지”로 정한 것은 설계 선택(물체를 찾는 탐색 행동 등은 미포함) · 단어를 가리켜 <b>목표를 고르는</b> 능력(물체 2개 중 선택)은 데이터가 없어 T3(새 수집)이 필요 · <b>오프라인 사진에는 다른 물체가 없어</b> 음성·물체 교체 평가가 약함(대상이 없어도 박스를 추측해 냄) → 다른 물체를 실제로 놓고 찍은 사진·실기가 필요(docs/plans/HANDOFF_20261107_TEXT_OBJECT_SWAP_PHOTOS.md) · 실기 물체 교체 시험은 회색 통을 치운 장면에서 해야 의미(white box 사례) · 3프레임 간격 부분집합 사용</div>', "", "flow"))
     return "".join(o)

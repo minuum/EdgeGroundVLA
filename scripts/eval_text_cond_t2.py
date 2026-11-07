@@ -3,7 +3,7 @@
 입력 특징 = [이미지 인코더 풀링(문구 무관) ; 융합 인코더의 텍스트 토큰 풀링(문구별)] (V0은 앞 768만). 학습법은 A3와 동일(서보 라벨 1.0, 서브골 드롭아웃 30%, 120 epoch, PiZeroFM).
 캐시: scripts/precompute_text_fused.py (3프레임마다 1개). 분할: fold0, fold1, lopo_center. 출력: docs/v5/egvla2_fm/text_cond_t2.json (분할·시드 단위 저장·재개)
 plan: docs/plans/plan_20261106_text_conditioned_e2e_vla.md §2. 실행: .venv_lerobot/bin/python3 scripts/eval_text_cond_t2.py (SMOKE=1)"""
-import json, os, sys
+import json, os, sys, time
 from pathlib import Path
 import numpy as np, torch
 ROOT = Path(__file__).resolve().parent.parent
@@ -111,6 +111,44 @@ def evaluate(m, D, te, variant):
     return res
 
 
+def pick_probes(eps, D, te, n=6):
+    """시험 분할에서 서로 다른 셀 n곳의 프레임(미지 문구 캐시가 있는 프레임, 사람 명령이 이동 중)을 결정적으로 고른다."""
+    cand = te[(D["hrow"][te] >= 0).cpu().numpy()] if "hrow" in D else te
+    cand = [int(i) for i in cand if float(D["ch"][i][0, :2].norm()) > GO]
+    seen, out = set(), []
+    for i in cand[len(cand) // 7::max(1, len(cand) // 40)]:
+        c = eps[int(D["ep"][i])]["cell"]
+        if c not in seen: seen.add(c); out.append(i)
+        if len(out) == n: break
+    return out
+
+
+def export_probes(eps, D, idx):
+    """실험에 실제로 쓰는 원본 프레임(데이터셋 H5, BGR 저장 → RGB 변환)을 저장하고 메타를 기록한다."""
+    import h5py
+    from PIL import Image
+    outd = ROOT / "docs/v5/figures/textcond"; outd.mkdir(parents=True, exist_ok=True); meta = []
+    for r, i in enumerate(idx):
+        e = eps[int(D["ep"][i])]; pos = int((D["ep"][:i] == D["ep"][i]).sum()); fr = pos * STRIDE
+        with h5py.File(ROOT / "ROS_action/mobile_vla_dataset_egvla2" / e["name"], "r") as f:
+            im = f["observations"]["images"][fr] if "observations" in f else f["images"][fr]
+        Image.fromarray(np.ascontiguousarray(im[:, :, ::-1]).astype(np.uint8)).convert("RGB").resize((480, 270)).save(outd / f"probe_{r}.jpg", quality=92)
+        bb = D["bb"][i].cpu().numpy()[8:12].tolist(); ch = D["ch"][i]
+        meta.append(dict(i=r, ep=e["name"], frame=fr, cell=e["cell"], bbox=bb, human=ch[0, :2].tolist(),
+                         servo=TC.servo_label(ch[None], D["bb"][i][8:9], 1.0)[0, 0, :2].tolist()))
+    (ROOT / "docs/v5/egvla2_fm/text_cond_probes.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False)); return meta
+
+
+@torch.no_grad()
+def probe_preds(m, D, idx, variant):
+    ix = torch.tensor(idx, device=DEV); bb = D["bb"][ix]; z = torch.zeros_like(bb); r = D["hrow"][ix]
+    F = lambda k: D["vis"][ix] if variant == "V0_img_only" else torch.cat([D["vis"][ix], D["txt"][ix, k]], -1)
+    H_ = lambda j: D["vis"][ix] if variant == "V0_img_only" else torch.cat([D["vis"][ix], D["htxt"][r, j]], -1)
+    g = lambda ft, b: [[round(float(x), 4) for x in v] for v in first_step(m, b, ft).cpu()]
+    return dict(ref=g(F(0), bb), para_seen=g(F(4), bb), para_unseen=g(H_(0), bb), neg_seen_nobbox=g(F(6), z), neg_seen_bbox=g(F(6), bb),
+                neg_unseen_nobbox=g(H_(2), z), neg_unseen_bbox=g(H_(2), bb))
+
+
 def main():
     eps, D = load()
     if "htxt" not in D and not SMOKE: raise SystemExit("보류 문구 캐시(text_fused_cache_heldout.npz)가 아직 없음")
@@ -118,14 +156,18 @@ def main():
     cells = lambda p: [i for i, e in enumerate(eps) if e["cell"].startswith(p)]
     splits = {"fold0": folds[0], "fold1": folds[1], "lopo_center": cells("center|")}
     res = json.loads(OUT.read_text()) if OUT.exists() else {}
+    probes = None
     for name, te_eps in splits.items():
         te = np.where(np.isin(D["ep"], te_eps))[0]; tr = np.where(~np.isin(D["ep"], te_eps))[0]
+        if name == "fold0" and "hrow" in D: probes = pick_probes(eps, D, te); export_probes(eps, D, probes)
         for v in VARIANTS:
             for sd in SEEDS:
                 key = f"{name}|{v}|{sd}"
                 if key in res: continue
-                res[key] = evaluate(fit(D, tr, v, sd), D, te, v); OUT.write_text(json.dumps(res, indent=1))
-                print(key, {a: round(b, 3) for a, b in res[key].items()}, flush=True)
+                mdl = fit(D, tr, v, sd); res[key] = evaluate(mdl, D, te, v)
+                if name == "fold0" and probes: res[key]["probe"] = probe_preds(mdl, D, probes, v)
+                res[key]["t"] = round(time.time(), 1); OUT.write_text(json.dumps(res, indent=1))
+                print(key, {a: round(b, 3) for a, b in res[key].items() if isinstance(b, float)}, flush=True)
 
 
 main()
