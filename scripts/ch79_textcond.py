@@ -1,0 +1,78 @@
+"""CH79 🔤 지시문·E2E 탭(T0~T2): 지시문/물체 교체 시험 구조 진단, 인코더별 문구 민감도, 사진 확인, 텍스트 조건화 학습(T1·T2) 결과.
+수치는 text_robustness.json · text_encoder_parts.json · text_cond_t2.json에서 읽는다(없으면 진행 중으로 표시).
+자산: eval_text_robustness.py, eval_text_visual.py, eval_text_encoders.py, precompute_text_fused*.py, eval_text_cond_t2.py. plan: docs/plans/plan_20261106_text_conditioned_e2e_vla.md"""
+import json
+
+import numpy as np
+
+import gen_ch76_viz as V
+from ch79_closedloop import chip
+
+FM = V.FM
+A, G, R, B, P, MUT = V.A, V.G, V.R, V.B, V.P, V.MUT
+
+
+def _load(name):
+    p = FM / name
+    return json.loads(p.read_text()) if p.exists() else None
+
+
+def _agg(res, key, variants):
+    out = {}
+    for v in variants:
+        vals = [r[key] for k, r in res.items() if k.split("|")[1] == v and key in r and r[key] == r[key]]
+        out[v] = (np.mean(vals), np.std(vals), len(vals)) if vals else None
+    return out
+
+
+def block(tbl, H, st):
+    rob, enc, t2 = _load("text_robustness.json"), _load("text_encoder_parts.json"), _load("text_cond_t2.json")
+    o = [H("0. 질문과 현재 구조 진단"),
+         V.wrap("교수님 질문(11/05)과 지금 구조", '<div style="font-size:0.84rem;line-height:1.85">'
+                '교수님 시험: <b>① 지시문을 바꿔도(예 “go to the gray bin”) 가는가</b> · <b>② 회색 통을 다른 물체로 바꾸고 그 물체 단어를 주면 가는가</b>(학습 없이 인식하는지). 사용자 방향: 텍스트가 행동에 직접 들어가는 <b>진짜 E2E VLA</b>.<br>'
+                '현재(EGVLA2) 파이프라인: <b>텍스트 → Florence-2 디코더 → bbox</b> + <b>이미지 인코더 풀링 768-d(텍스트 무관)</b> → FM 헤드. 헤드는 텍스트를 직접 받지 않고, 학습 300에피소드의 문구도 <code>gray basket</code> 하나뿐이다.<br>'
+                '→ 시험 ①·②는 <b>VLA가 아니라 Florence-2 그라운딩</b>이 문구를 따르는지를 묻는 시험이고, 텍스트를 헤드에 그대로 넣어도 <b>쓸 이유(그래디언트)가 없다</b>(Kosmos Exp17~41에서 text attention 0%였던 것과 같은 함정). 그래서 T0(측정) → T1(입력 교체) → T2(텍스트가 정답을 바꾸는 학습 신호)로 나눠 확인한다.</div>',
+                "코드 근거: <code>precompute_v6_florence2_fused.run_batch</code>(풀링은 <code>img_feats.mean</code>), <code>egvla2_inference_server.py:143</code>(instruction 무시). 계획서: docs/plans/plan_20261106_text_conditioned_e2e_vla.md", "flow"),
+         H("1. T0 — 측정(학습 없음)")]
+    if rob:
+        s = rob["summary"]
+        rows = [[f"<code>{v['phrase']}</code>", f"{v['det_rate'] * 100:.0f}%", "–" if v["d_cx"] is None else f"{v['d_cx']:.3f}", f"{v['d_first_ly']:.3f}", f"{v['az_sign_agree'] * 100:.0f}%"] for v in s.values()]
+        o.append(V.wrap(f"문구별 bbox·A3 명령 변화 (10/29 H5 {rob['n_frames']}프레임, 기준 = gray basket)", tbl(["문구", "검출률", "bbox cx 변화", "첫 스텝 ly 변화", "회전 부호 일치"], rows),
+                        "패러프레이즈 5종은 기준과 bbox까지 같다(시험 ① 사실상 통과). <code>white box</code>도 회색 통을 잡는다 → 장면에 다른 물체가 없으면 오검출과 일반화를 구분할 수 없다. <code>red chair</code>는 붉은 물체 등 엉뚱한 곳, <code>person</code>은 화면 전체 박스(어댑터가 미검출 처리)."))
+    o.append(V.wrap("실제 사진으로 확인 — 같은 사진, 문구만 변경(빨간 박스 = Florence-2 그라운딩)", V.img("figures/ch79/text_phrases_grid.png", "서로 다른 4세션 × 문구 9종. 회색 통 아닌 곳을 잡는 경우(red chair)와 화면 전체 박스(person)는 제목을 빨갛게 표시. 10/29 H5는 RGB 저장이라 채널을 뒤집지 않았다.")))
+    if enc:
+        names = [("vision", "① 이미지 인코더 풀링"), ("fused_all", "② 융합 인코더 전체 평균"), ("fused_img", "③ 융합 은닉 중 이미지 토큰"), ("fused_text", "④ 융합 은닉 중 텍스트 토큰")]
+        rows = [[f"<code>{p}</code>"] + [f"{d[k]:.3f}" for k, _ in names] for p, d in list(enc.items())[1:]]
+        o.append(V.wrap("인코더별 문구 민감도 (기준 문구 대비 코사인, 72프레임 평균 — 낮을수록 문구가 특징에 많이 실림)", V.img("figures/ch79/text_encoder_parts.png", "①은 모든 문구에서 1.000 → 현재 헤드 입력은 텍스트를 전혀 모른다. ②·③은 이미지 토큰 577개가 지배해 희석된다. ④ 텍스트 토큰만 풀링하면 문구 차이가 가장 선명하다(go to the gray bin 0.773).") + tbl(["문구"] + [n for _, n in names], rows),
+                        "그래서 T1 입력은 [이미지 인코더 풀링 ; 융합 인코더의 텍스트 토큰 풀링](1536-d)로 정했다."))
+    o.append(H("2. T1·T2 — 텍스트가 정답을 바꾸게 만들기"))
+    o.append(V.wrap("변형 정의 (학습법은 모두 A3와 동일: 서보 라벨 1.0 · 서브골 드롭아웃 30% · 120 epoch · PiZeroFM)", tbl(["변형", "헤드 입력", "학습 때 문구", "정답"], [
+        [chip("V0", MUT) + " 이미지 전용", "이미지 인코더 풀링 768-d", "—(텍스트 없음)", "사람 시연(서보 라벨)"],
+        [chip("V1", B) + " T1: 텍스트 특징, 문구 고정", "[이미지 ; 텍스트 풀링] 1536-d", "gray basket만", "사람 시연 — <b>텍스트가 상수라 무시해도 됨</b>(귀무 가설)"],
+        [chip("V2", G) + " T2a: 패러프레이즈 증강", "동일", "gray basket 외 5종 무작위(gray bin·container·the gray basket·go to the gray bin·basket)", "사람 시연 — 불변성"],
+        [chip("V3", R) + " T2b: + 음성 지시", "동일", "V2 + 20%는 장면에 없는 물체(red chair·person·blue bottle)", "<b>정지(0)</b> · 그중 절반은 박스가 남아 있어도(오검출 상황) 정지"]]),
+        "3프레임마다 1개(약 9.7k프레임)만 사용(캐시 계산 0.36초/프레임). 분할 fold0·fold1·lopo_center × 시드 0·1·2. 지표는 오프라인이며 폐루프 성공을 예측하지 못한다(CH79 결론)."))
+    if t2:
+        vs = ["V0_img_only", "V1_text_const", "V2_paraphrase_aug", "V3_aug_neg"]; lab = {"V0_img_only": "V0 이미지 전용", "V1_text_const": "V1 문구 고정", "V2_paraphrase_aug": "V2 +패러프레이즈", "V3_aug_neg": "V3 +음성 지시"}
+        n_done = len(t2)
+        def row(title, key, pct=False, fmt="{:.1f}"):
+            a = _agg(t2, key, vs); cells = []
+            for v in vs:
+                x = a[v]; cells.append("–" if x is None else (f"{x[0] * 100:.1f}±{x[1] * 100:.1f}%" if pct else (fmt + "±" + fmt).format(x[0], x[1])))
+            return [title] + cells
+        seen = [row("방향 오차 — 기준 문구 (°, 낮을수록 좋음)", "ang_ref"), row("방향 오차 — 패러프레이즈 5종 (°)", "ang_para"),
+                row("패러프레이즈로 바뀐 명령 크기 (낮을수록 불변)", "para_effect", fmt="{:.3f}"),
+                row("<b>음성 문구 → 정지율</b> (박스 없음, 높을수록 좋음)", "stop_neg_nobbox", True), row("<b>음성 문구 → 정지율</b> (박스 남음, 오검출 상황)", "stop_neg_bbox", True),
+                row("정상 문구에서 정지(낮아야 함)", "stop_pos_bbox", True), row("문구만 바꿨을 때 명령 변화 크기", "text_effect", fmt="{:.3f}")]
+        o.append(V.wrap(f"학습에 쓴 문구로 평가 (분할×시드 평균±표준편차, 완료 {n_done}/36)", tbl(["지표"] + [lab[v] for v in vs], seen),
+                        "음성 3문구는 V3 학습에도 쓰였으므로 이 표만으로는 '단어를 이해'했는지 '외웠는지' 구분되지 않는다 → 아래 미지 문구 표가 핵심."))
+        if any("unseen_stop_neg_bbox" in r for r in t2.values()):
+            un = [row("미지 패러프레이즈(grey bucket·the bin) 방향 오차 (°)", "unseen_ang_para"), row("미지 패러프레이즈로 바뀐 명령 크기", "unseen_para_effect", fmt="{:.3f}"),
+                  row("미지 패러프레이즈에서 정지(낮아야 함)", "unseen_stop_pos", True),
+                  row("<b>미지 음성(green plant·black laptop) → 정지율</b> (박스 없음)", "unseen_stop_neg_nobbox", True), row("<b>미지 음성 → 정지율</b> (박스 남음)", "unseen_stop_neg_bbox", True)]
+            o.append(V.wrap("학습에 없던 문구로 평가 — 교수님 시험 ②에 가장 가까운 오프라인 대응", tbl(["지표"] + [lab[v] for v in vs], un),
+                            "평가 프레임: 시험 분할의 3번째 프레임마다 1개. V0은 텍스트를 받지 않으므로 문구가 바뀌어도 출력이 같다."))
+    else:
+        o.append(V.wrap("T1·T2 결과", '<div style="font-size:0.84rem">학습 진행 중 — 보류 문구 캐시 완료 후 4변형 × 3분할 × 3시드 실행. 이 탭은 결과가 나오면 다시 생성된다.</div>', "", "flow"))
+    o.append(V.wrap("한계", '<div style="font-size:0.82rem;line-height:1.8">· 오프라인(프레임 단위) 지표이며 폐루프 성공과 다름 · 음성 지시의 정답을 “정지”로 정한 것은 설계 선택(물체를 찾는 탐색 행동 등은 미포함) · 단어를 가리켜 <b>목표를 고르는</b> 능력(물체 2개 중 선택)은 데이터가 없어 T3(새 수집)이 필요 · 실기 물체 교체 시험은 회색 통을 치운 장면에서 해야 의미(white box 사례) · 3프레임 간격 부분집합 사용</div>', "", "flow"))
+    return "".join(o)

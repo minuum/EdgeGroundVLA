@@ -14,13 +14,14 @@ HTML, tbl, H, st = G77.HTML, G77.tbl, G77.H, G77.st
 
 def main():
     s = HTML.read_text(encoding="utf-8")
-    import ch78_analysis, ch78_timeline, ch79_egvla3, ch79_index, ch79_discussion, ch79_closedloop, ch79_filmstrip, ch79_status, ch79_gen1029
+    import ch78_analysis, ch78_timeline, ch79_egvla3, ch79_index, ch79_discussion, ch79_closedloop, ch79_filmstrip, ch79_status, ch79_gen1029, ch79_textcond
     def _j(*bl):
         return '<hr style="border:0;border-top:1px solid #334;margin:18px 0">'.join(bl)
 
     tabs = [
         ("t8", "📍 현재 상황(10/28)", [("html", ch79_status.block(tbl, H, st))]),
         ("t9", "📅 10/29 일반화·정의", [("html", ch79_gen1029.block(tbl, H, st))]),
+        ("t10", "🔤 지시문·E2E 텍스트 조건화(T0~T2)", [("html", ch79_textcond.block(tbl, H, st))]),
         ("t1", "📊 시사점·문제점·논문 방향", [("html", ch78_analysis.block(tbl, H, st))]),
         ("t2", "🧭 EGVLA3 구상·기술 시사점", [("html", ch79_egvla3.block(tbl, H, st))]),
         ("t4", "💬 토의 기록·도전 과제", [("html", ch79_discussion.block(tbl, H, st))]),
