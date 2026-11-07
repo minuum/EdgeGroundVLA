@@ -38,8 +38,8 @@ def block(tbl, H, st):
         s = rob["summary"]
         rows = [[f"<code>{v['phrase']}</code>", f"{v['det_rate'] * 100:.0f}%", "–" if v["d_cx"] is None else f"{v['d_cx']:.3f}", f"{v['d_first_ly']:.3f}", f"{v['az_sign_agree'] * 100:.0f}%"] for v in s.values()]
         o.append(V.wrap(f"문구별 bbox·A3 명령 변화 (10/29 H5 {rob['n_frames']}프레임, 기준 = gray basket)", tbl(["문구", "검출률", "bbox cx 변화", "첫 스텝 ly 변화", "회전 부호 일치"], rows),
-                        "패러프레이즈 5종은 기준과 bbox까지 같다(시험 ① 사실상 통과). <code>white box</code>도 회색 통을 잡는다 → 장면에 다른 물체가 없으면 오검출과 일반화를 구분할 수 없다. <code>red chair</code>는 붉은 물체 등 엉뚱한 곳, <code>person</code>은 화면 전체 박스(어댑터가 미검출 처리)."))
-    o.append(V.wrap("실제 사진으로 확인 — 같은 사진, 문구만 변경(빨간 박스 = Florence-2 그라운딩)", V.img("figures/ch79/text_phrases_grid.png", "서로 다른 4세션 × 문구 9종. 회색 통 아닌 곳을 잡는 경우(red chair)와 화면 전체 박스(person)는 제목을 빨갛게 표시. 10/29 H5는 RGB 저장이라 채널을 뒤집지 않았다.")))
+                        "패러프레이즈 5종은 기준과 bbox까지 같다(시험 ① 사실상 통과). <code>white box</code>도 회색 통을 잡는다 → 장면에 다른 물체가 없으면 오검출과 일반화를 구분할 수 없다. <code>red chair</code>는 4장 중 2장에서 왼쪽 위 붉은 물체(실제 붉은 의자일 수 있음), 1장은 오른쪽 가장자리 띠, 1장은 후보가 없자 <b>회색 통을 추측</b>(대상이 없어도 박스를 강제로 내는 경향). <code>person</code>은 화면 전체 박스(어댑터가 미검출 처리)."))
+    o.append(V.wrap("실제 사진으로 확인 — 같은 사진, 문구만 변경(빨간 박스 = Florence-2 그라운딩)", V.img("figures/ch79/text_phrases_grid.png", "서로 다른 4세션 × 문구 9종. 장면에 회색 통 외 물체가 거의 없어 <b>이 사진만으로는 일반화와 오검출을 구분할 수 없다</b> — 다른 물체를 놓은 라이브 촬영이 필요(아래 한계·로봇 전달 문서). 화면 전체 박스(person)는 제목을 빨갛게 표시. 10/29 H5는 RGB 저장이라 채널을 뒤집지 않았다.")))
     if enc:
         names = [("vision", "① 이미지 인코더 풀링"), ("fused_all", "② 융합 인코더 전체 평균"), ("fused_img", "③ 융합 은닉 중 이미지 토큰"), ("fused_text", "④ 융합 은닉 중 텍스트 토큰")]
         rows = [[f"<code>{p}</code>"] + [f"{d[k]:.3f}" for k, _ in names] for p, d in list(enc.items())[1:]]
@@ -74,5 +74,5 @@ def block(tbl, H, st):
                             "평가 프레임: 시험 분할의 3번째 프레임마다 1개. V0은 텍스트를 받지 않으므로 문구가 바뀌어도 출력이 같다."))
     else:
         o.append(V.wrap("T1·T2 결과", '<div style="font-size:0.84rem">학습 진행 중 — 보류 문구 캐시 완료 후 4변형 × 3분할 × 3시드 실행. 이 탭은 결과가 나오면 다시 생성된다.</div>', "", "flow"))
-    o.append(V.wrap("한계", '<div style="font-size:0.82rem;line-height:1.8">· 오프라인(프레임 단위) 지표이며 폐루프 성공과 다름 · 음성 지시의 정답을 “정지”로 정한 것은 설계 선택(물체를 찾는 탐색 행동 등은 미포함) · 단어를 가리켜 <b>목표를 고르는</b> 능력(물체 2개 중 선택)은 데이터가 없어 T3(새 수집)이 필요 · 실기 물체 교체 시험은 회색 통을 치운 장면에서 해야 의미(white box 사례) · 3프레임 간격 부분집합 사용</div>', "", "flow"))
+    o.append(V.wrap("한계", '<div style="font-size:0.82rem;line-height:1.8">· 오프라인(프레임 단위) 지표이며 폐루프 성공과 다름 · 음성 지시의 정답을 “정지”로 정한 것은 설계 선택(물체를 찾는 탐색 행동 등은 미포함) · 단어를 가리켜 <b>목표를 고르는</b> 능력(물체 2개 중 선택)은 데이터가 없어 T3(새 수집)이 필요 · <b>오프라인 사진에는 다른 물체가 없어</b> 음성·물체 교체 평가가 약함(대상이 없어도 박스를 추측해 냄) → 다른 물체를 실제로 놓고 찍은 사진·실기가 필요(docs/plans/HANDOFF_20261107_TEXT_OBJECT_SWAP_PHOTOS.md) · 실기 물체 교체 시험은 회색 통을 치운 장면에서 해야 의미(white box 사례) · 3프레임 간격 부분집합 사용</div>', "", "flow"))
     return "".join(o)
