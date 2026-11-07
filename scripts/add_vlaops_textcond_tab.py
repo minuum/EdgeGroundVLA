@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 HTML = ROOT / "docs/v5/vlaops_dashboard.html"
 T2 = ROOT / "docs/v5/egvla2_fm/text_cond_t2.json"
 VS = ["V0_img_only", "V1_text_const", "V2_paraphrase_aug", "V3_aug_neg"]
-LAB = {"V0_img_only": "V0 이미지 전용", "V1_text_const": "V1 문구 고정", "V2_paraphrase_aug": "V2 +패러프레이즈", "V3_aug_neg": "V3 +음성 지시"}
+LAB = {"V0_img_only": "V0 이미지 전용", "V1_text_const": "V1 문구 고정", "V2_paraphrase_aug": "V2 +패러프레이즈", "V3_aug_neg": "V3 +부정 지시"}
 BTN = '<button class="tab-btn" onclick="switchTab(\'tab-textcond\')"><span>🔤 텍스트 조건화·학습 지표</span><span class="tab-count" style="color: #fbbf24;">T0~T2</span></button>'
 B0, B1 = "<!--TEXTCOND-BEGIN-->", "<!--TEXTCOND-END-->"
 
@@ -52,11 +52,11 @@ def panel():
         ["방향 오차(기준 문구)", "첫 스텝 명령과 사람 시연의 각도 차(°), 둘 다 이동 중인 프레임", "↓", badge("유효(변형 간 비교)", "badge-completed") + " 서보 라벨 학습이라 절대값은 이전 19°대와 직접 비교 불가", val("ang_ref")],
         ["방향 오차(패러프레이즈)", "같은 의미 문구 5종에서의 방향 오차", "↓", badge("유효", "badge-completed") + " 기준 문구와 같아야 불변", val("ang_para")],
         ["패러프레이즈 명령 변화", "같은 의미 문구로 바꿨을 때 첫 스텝 명령 변화 크기", "↓ (불변)", badge("유효", "badge-completed") + " V1에서 커지면 문구 고정 학습의 취약성", val("para_effect", nd=3)],
-        ["<b>음성 정지율</b>(박스 없음)", "장면에 없는 물체 문구에서 |명령|&lt;0.2 비율", "↑", badge("부분 유효", "badge-running") + " 학습에 쓴 문구면 암기와 구분 불가", val("stop_neg_nobbox", True)],
-        ["<b>음성 정지율</b>(박스 남음)", "오검출로 박스가 남은 상황에서의 정지율", "↑", badge("부분 유효", "badge-running") + " 텍스트가 박스를 이기는지의 직접 지표", val("stop_neg_bbox", True)],
+        ["<b>부정 정지율</b>(박스 없음)", "장면에 없는 물체 문구에서 |명령|&lt;0.2 비율", "↑", badge("부분 유효", "badge-running") + " 학습에 쓴 문구면 암기와 구분 불가", val("stop_neg_nobbox", True)],
+        ["<b>부정 정지율</b>(박스 남음)", "오검출로 박스가 남은 상황에서의 정지율", "↑", badge("부분 유효", "badge-running") + " 텍스트가 박스를 이기는지의 직접 지표", val("stop_neg_bbox", True)],
         ["정상 문구 정지율", "정상 문구에서 멈춘 비율(오작동)", "↓", badge("유효", "badge-completed"), val("stop_pos_bbox", True)],
-        ["<b>미지 음성 정지율</b>(박스 없음)", "학습에 없던 문구(green plant·black laptop)에서의 정지율", "↑", badge("핵심", "badge-completed") + " 교수님 시험 ②의 오프라인 대응. 3분할×3시드, 문구 2개뿐", val("unseen_stop_neg_nobbox", True)],
-        ["<b>미지 음성 정지율</b>(박스 남음)", "같은 문구에서 오검출 박스가 남은 상황", "↑", badge("핵심", "badge-completed"), val("unseen_stop_neg_bbox", True)],
+        ["<b>미지 부정 정지율</b>(박스 없음)", "학습에 없던 문구(green plant·black laptop)에서의 정지율", "↑", badge("핵심", "badge-completed") + " 교수님 시험 ②의 오프라인 대응. 3분할×3시드, 문구 2개뿐", val("unseen_stop_neg_nobbox", True)],
+        ["<b>미지 부정 정지율</b>(박스 남음)", "같은 문구에서 오검출 박스가 남은 상황", "↑", badge("핵심", "badge-completed"), val("unseen_stop_neg_bbox", True)],
         ["미지 패러프레이즈 정지율", "학습에 없던 동의 표현(grey bucket·the bin)에서 정지", "↓", badge("핵심", "badge-completed"), val("unseen_stop_pos", True)],
         ["학습 loss·val loss", "flow-matching MSE", "–", badge("무효", "badge-danger") + " 폐루프 성공·텍스트 사용 여부를 말해주지 못함(CH79·메모리 결론)", "미보고"],
         ["오프라인 지표 전반", "프레임 단위 방향·정지", "–", badge("주의", "badge-running") + " 폐루프 성공을 예측하지 못함. 최종 판단은 실기 5~10회", "—"]])
@@ -66,7 +66,7 @@ def panel():
         ["융합 은닉 전체/이미지 토큰 평균", "768", "융합 인코더 은닉", "약함(0.92~0.99)", "이미지 토큰 577개가 지배 → 입력으로 쓰지 않음"],
         ["bbox 창", "12", "[cx,cy,area,has]×3프레임", "있음(문구가 박스를 정함)", "서브골 드롭아웃 30%(없으면 0벡터)"],
         ["서보 라벨 λ", "–", "방향을 cx 서보 방향과 혼합(k=2, max 0.7)", "–", "A3와 동일 λ=1.0, 120 epoch, PiZeroFM"],
-        ["음성 라벨", "–", "장면에 없는 물체 문구 → 명령 0", "있음(정답이 문구에 의존)", "V3: 20%, 그중 절반은 박스 유지"]])
+        ["부정 라벨", "–", "장면에 없는 물체 문구 → 명령 0", "있음(정답이 문구에 의존)", "V3: 20%, 그중 절반은 박스 유지"]])
     changes = table(["일시", "변경", "상세·소스", "상태"], [
         ["2026-11-07", "T1·T2 학습(4변형×3분할×3시드) 및 미지 문구 평가 추가", "<code>scripts/eval_text_cond_t2.py</code>, 보류 문구 캐시 <code>precompute_text_fused_heldout.py</code>", badge("RUNNING" if n < 36 else "COMPLETED", "badge-running" if n < 36 else "badge-completed")],
         ["2026-11-07", "인코더별 문구 민감도·사진 확인·CH79 탭", "<code>eval_text_encoders.py</code>, <code>eval_text_visual.py</code>, <code>ch79_textcond.py</code> (커밋 2c4c26f3, bb948ea0)", badge("COMPLETED", "badge-completed")],
@@ -76,8 +76,8 @@ def panel():
     res = table(["지표"] + [LAB[v] for v in VS], [
         ["완료", f"{n}/36", "", "", ""],
         ["방향 오차 기준(°)"] + [cell(A["ang_ref"][v]) for v in VS], ["패러프레이즈 방향 오차(°)"] + [cell(A["ang_para"][v]) for v in VS],
-        ["음성 정지율(박스 없음)"] + [cell(A["stop_neg_nobbox"][v], True) for v in VS], ["음성 정지율(박스 남음)"] + [cell(A["stop_neg_bbox"][v], True) for v in VS],
-        ["미지 음성 정지율(박스 없음)"] + [cell(A["unseen_stop_neg_nobbox"][v], True) for v in VS], ["미지 음성 정지율(박스 남음)"] + [cell(A["unseen_stop_neg_bbox"][v], True) for v in VS],
+        ["부정 정지율(박스 없음)"] + [cell(A["stop_neg_nobbox"][v], True) for v in VS], ["부정 정지율(박스 남음)"] + [cell(A["stop_neg_bbox"][v], True) for v in VS],
+        ["미지 부정 정지율(박스 없음)"] + [cell(A["unseen_stop_neg_nobbox"][v], True) for v in VS], ["미지 부정 정지율(박스 남음)"] + [cell(A["unseen_stop_neg_bbox"][v], True) for v in VS],
         ["미지 패러프레이즈 정지율(↓)"] + [cell(A["unseen_stop_pos"][v], True) for v in VS]]) if t2 else '<div style="font-size:0.84rem">학습 진행 중</div>'
     hero = ('<div style="font-size:0.84rem;line-height:1.8;margin-bottom:6px">교수님(11/05) 질문: 지시문 변경·물체 교체에도 가는가 → <b>텍스트가 행동에 직접 들어가는 E2E</b>가 되는지 오프라인으로 점검. '
             '상세 해설·사진: <a href="research_story.html#ch79" style="color:#38bdf8">CH79 🔤 탭</a> · 계획서 docs/plans/plan_20261106_text_conditioned_e2e_vla.md. 현재 파이프라인은 텍스트→bbox만 텍스트 의존.</div>')
@@ -90,30 +90,31 @@ LIVE = """
 <section class="card" id="tc-live"><div class="card-header"><div class="card-title"><span>⏱ 학습 진행 (라이브 — 8초마다 <code>egvla2_fm/text_cond_t2.json</code> 갱신)</span></div><span id="tc-state" class="status-badge badge-running">…</span></div>
 <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;height:14px;overflow:hidden"><div id="tc-bar" style="height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#34d399)"></div></div>
 <div id="tc-prog" style="font-size:0.8rem;color:#94a3b8;margin:8px 0">…</div>
-<table class="ops-table"><thead><tr><th>지표 (분할×시드 평균±sd)</th><th>V0 이미지 전용</th><th>V1 문구 고정</th><th>V2 +패러프레이즈</th><th>V3 +음성 지시</th></tr></thead><tbody id="tc-res"></tbody></table>
+<table class="ops-table"><thead><tr><th>지표 (분할×시드 평균±sd)</th><th>V0 이미지 전용</th><th>V1 문구 고정</th><th>V2 +패러프레이즈</th><th>V3 +부정 지시</th></tr></thead><tbody id="tc-res"></tbody></table>
 <div style="font-size:0.74rem;color:#64748b;margin-top:6px">서버(<code>python3 -m http.server 8001</code>)로 열어야 갱신됩니다(file:// 불가). 완료 수는 36 = 3분할 × 4변형 × 시드 3.</div></section>
 
+<section class="card"><div class="card-header"><div class="card-title"><span>📊 퍼센트 지표 (36/36 최종)</span></div></div><img src="figures/ch79/text_cond_bars.png" style="width:100%;border-radius:8px"><div style="font-size:0.75rem;color:#94a3b8;margin-top:6px">입력은 타이핑한 텍스트 문구(음성 아님). 부정 = 장면에 없는 물체 문구, 정답 정지. ②가 핵심(V3 82%), ④는 동의 표현에서 오정지(V3 12%).</div></section>
 <section class="card"><div class="card-header"><div class="card-title"><span>🧭 학습 흐름 대조 — 같은 사진, 변형마다 무엇이 다른가</span></div></div>
-<div style="overflow-x:auto"><table class="ops-table" style="min-width:880px" id="tc-flow"><thead><tr><th style="width:130px"></th><th>V0 이미지 전용 (A3 방식)</th><th>V1 문구 고정</th><th>V2 +패러프레이즈 증강</th><th>V3 +음성 지시</th></tr></thead><tbody>
+<div style="overflow-x:auto"><table class="ops-table" style="min-width:880px" id="tc-flow"><thead><tr><th style="width:130px"></th><th>V0 이미지 전용 (A3 방식)</th><th>V1 문구 고정</th><th>V2 +패러프레이즈 증강</th><th>V3 +부정 지시</th></tr></thead><tbody>
 <tr><td><b>① 입력 사진</b><br><span style="font-size:0.7rem;color:#94a3b8">실제 학습 프레임(데이터셋 H5)</span></td><td colspan="4" id="tc-flow-photo" style="text-align:center">…</td></tr>
-<tr><td><b>② 문구</b></td><td style="color:#94a3b8">(문구 입력 없음)</td><td><code>gray basket</code> 고정</td><td>6종 무작위<br><span style="font-size:0.72rem;color:#94a3b8">gray basket · gray bin · gray container · the gray basket · go to the gray bin · basket</span></td><td>V2의 80% + <b>20% 음성</b><br><span style="font-size:0.72rem;color:#fca5a5">red chair · person · blue bottle</span></td></tr>
+<tr><td><b>② 문구</b></td><td style="color:#94a3b8">(문구 입력 없음)</td><td><code>gray basket</code> 고정</td><td>6종 무작위<br><span style="font-size:0.72rem;color:#94a3b8">gray basket · gray bin · gray container · the gray basket · go to the gray bin · basket</span></td><td>V2의 80% + <b>20% 부정</b><br><span style="font-size:0.72rem;color:#fca5a5">red chair · person · blue bottle</span></td></tr>
 <tr><td><b>③ 이미지 인코더</b></td><td colspan="4" style="text-align:center;color:#94a3b8">Florence-2 DaViT → 풀링 768-d (문구와 무관 · 4변형 공통)</td></tr>
 <tr><td><b>④ 융합 인코더</b></td><td style="color:#64748b">사용 안 함</td><td colspan="3" style="text-align:center;color:#94a3b8">이미지+문구 → 텍스트 토큰 풀링 768-d (문구별로 달라짐)</td></tr>
 <tr><td><b>⑤ 헤드 입력</b></td><td>[이미지 768] + bbox 창 12</td><td colspan="3" style="text-align:center">[이미지 768 ; 텍스트 768] + bbox 창 12 <span style="color:#94a3b8">(서브골 드롭아웃 30%)</span></td></tr>
-<tr><td><b>⑥ 학습 정답</b><br><span style="font-size:0.7rem;color:#94a3b8">이 사진의 첫 스텝</span></td><td colspan="3" style="text-align:center"><span id="tc-flow-gt">…</span><br><span style="font-size:0.72rem;color:#94a3b8">사람 시연(회색) · 서보 라벨(초록)</span></td><td style="text-align:center"><span id="tc-flow-neg">…</span><br><span style="font-size:0.72rem;color:#fca5a5">음성 문구면 정답 = 정지(0) · 절반은 박스가 남아 있어도</span></td></tr>
+<tr><td><b>⑥ 학습 정답</b><br><span style="font-size:0.7rem;color:#94a3b8">이 사진의 첫 스텝</span></td><td colspan="3" style="text-align:center"><span id="tc-flow-gt">…</span><br><span style="font-size:0.72rem;color:#94a3b8">사람 시연(회색) · 서보 라벨(초록)</span></td><td style="text-align:center"><span id="tc-flow-neg">…</span><br><span style="font-size:0.72rem;color:#fca5a5">부정 문구면 정답 = 정지(0) · 절반은 박스가 남아 있어도</span></td></tr>
 <tr><td><b>⑦ 텍스트가 쓰일 이유</b></td><td style="color:#64748b">없음</td><td style="color:#fca5a5">없음 — 문구가 상수(귀무)</td><td style="color:#fbbf24">불변성만 요구</td><td style="color:#34d399"><b>있음</b> — 문구가 바뀌면 정답이 바뀜</td></tr>
 </tbody></table></div></section>
 
 <section class="card"><div class="card-header"><div class="card-title"><span>📷 원본 사진으로 비교 — 학습된 헤드는 이 사진에서 어떻게 움직이나 (fold0 시험 프레임, 시드 평균)</span></div></div>
-<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;line-height:1.7">화살표: 위 = 전진(lx), 오른쪽 = 우측 이동(ly). 점 = 정지(|명령|&lt;0.2). 회색 = 사람 시연, 초록 = 서보 라벨(학습 정답). 사진의 붉은 상자는 bbox 중심·면적(근사). 문구가 달라도 정상 문구면 화살표가 같아야 하고, 음성 문구면 점(정지)이어야 한다.</div>
+<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;line-height:1.7">화살표: 위 = 전진(lx), 오른쪽 = 우측 이동(ly). 점 = 정지(|명령|&lt;0.2). 회색 = 사람 시연, 초록 = 서보 라벨(학습 정답). 사진의 붉은 상자는 bbox 중심·면적(근사). 문구가 달라도 정상 문구면 화살표가 같아야 하고, 부정 문구면 점(정지)이어야 한다.</div>
 <div id="tc-probes">…</div></section>
 """
 JS = r"""
 <script>
 (function(){
   const VS=['V0_img_only','V1_text_const','V2_paraphrase_aug','V3_aug_neg'];
-  const KEYS=[['ang_ref','방향 오차 기준(°)',0,1],['ang_para','패러프레이즈 방향 오차(°)',0,1],['para_effect','패러프레이즈 명령 변화',0,3],['stop_neg_nobbox','음성 정지율(박스 없음)',1,1],['stop_neg_bbox','음성 정지율(박스 남음)',1,1],['stop_pos_bbox','정상 문구 정지율(↓)',1,1],['unseen_ang_para','미지 패러프레이즈 방향 오차(°)',0,1],['unseen_stop_pos','미지 패러프레이즈 정지율(↓)',1,1],['unseen_stop_neg_nobbox','미지 음성 정지율(박스 없음)',1,1],['unseen_stop_neg_bbox','미지 음성 정지율(박스 남음)',1,1]];
-  const PH=[['ref','gray basket','학습 문구','#34d399'],['para_seen','go to the gray bin','학습한 패러프레이즈','#34d399'],['para_unseen','grey bucket','학습에 없던 패러프레이즈','#fbbf24'],['neg_seen_bbox','red chair + 박스 유지','학습한 음성(오검출 상황)','#fca5a5'],['neg_seen_nobbox','red chair + 박스 없음','학습한 음성','#fca5a5'],['neg_unseen_bbox','green plant + 박스 유지','학습에 없던 음성(오검출 상황)','#f87171'],['neg_unseen_nobbox','green plant + 박스 없음','학습에 없던 음성','#f87171']];
+  const KEYS=[['ang_ref','방향 오차 기준(°)',0,1],['ang_para','패러프레이즈 방향 오차(°)',0,1],['para_effect','패러프레이즈 명령 변화',0,3],['stop_neg_nobbox','부정 정지율(박스 없음)',1,1],['stop_neg_bbox','부정 정지율(박스 남음)',1,1],['stop_pos_bbox','정상 문구 정지율(↓)',1,1],['unseen_ang_para','미지 패러프레이즈 방향 오차(°)',0,1],['unseen_stop_pos','미지 패러프레이즈 정지율(↓)',1,1],['unseen_stop_neg_nobbox','미지 부정 정지율(박스 없음)',1,1],['unseen_stop_neg_bbox','미지 부정 정지율(박스 남음)',1,1]];
+  const PH=[['ref','gray basket','학습 문구','#34d399'],['para_seen','go to the gray bin','학습한 패러프레이즈','#34d399'],['para_unseen','grey bucket','학습에 없던 패러프레이즈','#fbbf24'],['neg_seen_bbox','red chair + 박스 유지','학습한 부정(오검출 상황)','#fca5a5'],['neg_seen_nobbox','red chair + 박스 없음','학습한 부정','#fca5a5'],['neg_unseen_bbox','green plant + 박스 유지','학습에 없던 부정(오검출 상황)','#f87171'],['neg_unseen_nobbox','green plant + 박스 없음','학습에 없던 부정','#f87171']];
   const mean=a=>a.reduce((x,y)=>x+y,0)/a.length, sd=a=>{const m=mean(a);return Math.sqrt(mean(a.map(x=>(x-m)**2)))};
   function arrow(v,col,sz){sz=sz||58;const c=sz/2,s=sz*0.42,m=Math.hypot(v[0],v[1]);
     if(m<0.2) return `<svg width="${sz}" height="${sz}"><circle cx="${c}" cy="${c}" r="6" fill="${col}"/><text x="${c}" y="${sz-4}" font-size="9" fill="#94a3b8" text-anchor="middle">정지 ${m.toFixed(2)}</text></svg>`;

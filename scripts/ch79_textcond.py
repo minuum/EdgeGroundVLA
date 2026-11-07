@@ -81,10 +81,10 @@ def block(tbl, H, st):
         [chip("V0", MUT) + " 이미지 전용", "이미지 인코더 풀링 768-d", "—(텍스트 없음)", "사람 시연(서보 라벨)"],
         [chip("V1", B) + " T1: 텍스트 특징, 문구 고정", "[이미지 ; 텍스트 풀링] 1536-d", "gray basket만", "사람 시연 — <b>텍스트가 상수라 무시해도 됨</b>(귀무 가설)"],
         [chip("V2", G) + " T2a: 패러프레이즈 증강", "동일", "gray basket 외 5종 무작위(gray bin·container·the gray basket·go to the gray bin·basket)", "사람 시연 — 불변성"],
-        [chip("V3", R) + " T2b: + 음성 지시", "동일", "V2 + 20%는 장면에 없는 물체(red chair·person·blue bottle)", "<b>정지(0)</b> · 그중 절반은 박스가 남아 있어도(오검출 상황) 정지"]]),
+        [chip("V3", R) + " T2b: + 부정 지시", "동일", "V2 + 20%는 장면에 없는 물체(red chair·person·blue bottle)", "<b>정지(0)</b> · 그중 절반은 박스가 남아 있어도(오검출 상황) 정지"]]),
         "3프레임마다 1개(약 9.7k프레임)만 사용(캐시 계산 0.36초/프레임). 분할 fold0·fold1·lopo_center × 시드 0·1·2. 지표는 오프라인이며 폐루프 성공을 예측하지 못한다(CH79 결론)."))
     if t2:
-        vs = ["V0_img_only", "V1_text_const", "V2_paraphrase_aug", "V3_aug_neg"]; lab = {"V0_img_only": "V0 이미지 전용", "V1_text_const": "V1 문구 고정", "V2_paraphrase_aug": "V2 +패러프레이즈", "V3_aug_neg": "V3 +음성 지시"}
+        vs = ["V0_img_only", "V1_text_const", "V2_paraphrase_aug", "V3_aug_neg"]; lab = {"V0_img_only": "V0 이미지 전용", "V1_text_const": "V1 문구 고정", "V2_paraphrase_aug": "V2 +패러프레이즈", "V3_aug_neg": "V3 +부정 지시"}
         n_done = len(t2)
         def row(title, key, pct=False, fmt="{:.1f}"):
             a = _agg(t2, key, vs); cells = []
@@ -93,30 +93,31 @@ def block(tbl, H, st):
             return [title] + cells
         seen = [row("방향 오차 — 기준 문구 (°, 낮을수록 좋음)", "ang_ref"), row("방향 오차 — 패러프레이즈 5종 (°)", "ang_para"),
                 row("패러프레이즈로 바뀐 명령 크기 (낮을수록 불변)", "para_effect", fmt="{:.3f}"),
-                row("<b>음성 문구 → 정지율</b> (박스 없음, 높을수록 좋음)", "stop_neg_nobbox", True), row("<b>음성 문구 → 정지율</b> (박스 남음, 오검출 상황)", "stop_neg_bbox", True),
+                row("<b>부정 문구 → 정지율</b> (박스 없음, 높을수록 좋음)", "stop_neg_nobbox", True), row("<b>부정 문구 → 정지율</b> (박스 남음, 오검출 상황)", "stop_neg_bbox", True),
                 row("정상 문구에서 정지(낮아야 함)", "stop_pos_bbox", True), row("문구만 바꿨을 때 명령 변화 크기", "text_effect", fmt="{:.3f}")]
         o.append(V.wrap(f"학습에 쓴 문구로 평가 (분할×시드 평균±표준편차, 완료 {n_done}/36)", tbl(["지표"] + [lab[v] for v in vs], seen),
-                        "음성 3문구는 V3 학습에도 쓰였으므로 이 표만으로는 '단어를 이해'했는지 '외웠는지' 구분되지 않는다 → 아래 미지 문구 표가 핵심."))
+                        "부정 3문구는 V3 학습에도 쓰였으므로 이 표만으로는 '단어를 이해'했는지 '외웠는지' 구분되지 않는다 → 아래 미지 문구 표가 핵심."))
         if any("unseen_stop_neg_bbox" in r for r in t2.values()):
             un = [row("미지 패러프레이즈(grey bucket·the bin) 방향 오차 (°)", "unseen_ang_para"), row("미지 패러프레이즈로 바뀐 명령 크기", "unseen_para_effect", fmt="{:.3f}"),
                   row("미지 패러프레이즈에서 정지(낮아야 함)", "unseen_stop_pos", True),
-                  row("<b>미지 음성(green plant·black laptop) → 정지율</b> (박스 없음)", "unseen_stop_neg_nobbox", True), row("<b>미지 음성 → 정지율</b> (박스 남음)", "unseen_stop_neg_bbox", True)]
+                  row("<b>미지 부정(green plant·black laptop) → 정지율</b> (박스 없음)", "unseen_stop_neg_nobbox", True), row("<b>미지 부정 → 정지율</b> (박스 남음)", "unseen_stop_neg_bbox", True)]
             o.append(V.wrap("학습에 없던 문구로 평가 — 교수님 시험 ②에 가장 가까운 오프라인 대응", tbl(["지표"] + [lab[v] for v in vs], un),
                             "평가 프레임: 시험 분할의 3번째 프레임마다 1개. V0은 텍스트를 받지 않으므로 문구가 바뀌어도 출력이 같다."))
     else:
         o.append(V.wrap("T1·T2 결과", '<div style="font-size:0.84rem">학습 진행 중 — 보류 문구 캐시 완료 후 4변형 × 3분할 × 3시드 실행. 이 탭은 결과가 나오면 다시 생성된다.</div>', "", "flow"))
     if t2 and len(t2) >= 36:
+        o.append(V.wrap("퍼센트 지표 한눈에 보기", V.img("figures/ch79/text_cond_bars.png", "입력은 전부 타이핑한 텍스트 문구이며 음성(소리) 입력은 없다. '부정'은 장면에 없는 물체 문구(red chair 등)를 뜻하고 정답은 정지. ②가 핵심: 학습에 없던 green plant·black laptop에서 V3만 정지(82%). ④는 학습에 없던 동의 표현(grey bucket·the bin)에서 정상인데 멈추는 비율 — V3가 12%로 가장 높아 패러프레이즈에 약함.")))
         g = lambda k, v, pct=False: (lambda x: f"{x[0] * (100 if pct else 1):.{1 if pct else 3}f}" + ("%" if pct else ""))(_agg(t2, k, [v])[v])
         o.append(V.wrap("결과 해석 (36/36: 3분할 × 시드 3, 오프라인)", '<div style="font-size:0.84rem;line-height:1.9">'
-            f'<b>① 텍스트를 쓰게 만드는 데 성공.</b> V1·V2(음성 신호 없음)는 음성 문구에서도 정지율이 {g("stop_neg_nobbox", "V1_text_const", True)}·{g("stop_neg_nobbox", "V2_paraphrase_aug", True)}로 V0({g("stop_neg_nobbox", "V0_img_only", True)})와 같아 <b>텍스트를 무시</b>한다(귀무 가설 확인). 음성 지시를 학습한 V3는 학습한 음성 문구에서 {g("stop_neg_nobbox", "V3_aug_neg", True)}, <b>박스가 남아 있어도</b> {g("stop_neg_bbox", "V3_aug_neg", True)} 정지 → 텍스트가 박스를 이긴다.<br>'
-            f'<b>② 안 본 단어에도 일부 일반화.</b> 학습에 없던 음성 문구(green plant·black laptop)에서 V3 정지율 {g("unseen_stop_neg_nobbox", "V3_aug_neg", True)}(박스 남음 {g("unseen_stop_neg_bbox", "V3_aug_neg", True)}) 대 V0~V2 약 10%. 단 <b>미지 문구가 2개뿐</b>이라 어휘 전반으로 일반화한다고 말할 수 없다.<br>'
+            f'<b>① 텍스트를 쓰게 만드는 데 성공.</b> V1·V2(부정 신호 없음)는 부정 문구에서도 정지율이 {g("stop_neg_nobbox", "V1_text_const", True)}·{g("stop_neg_nobbox", "V2_paraphrase_aug", True)}로 V0({g("stop_neg_nobbox", "V0_img_only", True)})와 같아 <b>텍스트를 무시</b>한다(귀무 가설 확인). 부정 지시를 학습한 V3는 학습한 부정 문구에서 {g("stop_neg_nobbox", "V3_aug_neg", True)}, <b>박스가 남아 있어도</b> {g("stop_neg_bbox", "V3_aug_neg", True)} 정지 → 텍스트가 박스를 이긴다.<br>'
+            f'<b>② 안 본 단어에도 일부 일반화.</b> 학습에 없던 부정 문구(green plant·black laptop)에서 V3 정지율 {g("unseen_stop_neg_nobbox", "V3_aug_neg", True)}(박스 남음 {g("unseen_stop_neg_bbox", "V3_aug_neg", True)}) 대 V0~V2 약 10%. 단 <b>미지 문구가 2개뿐</b>이라 어휘 전반으로 일반화한다고 말할 수 없다.<br>'
             f'<b>③ 방향 정확도 비용은 보이지 않는다.</b> 기준 문구 방향 오차 V0 {g("ang_ref", "V0_img_only")}° / V3 {g("ang_ref", "V3_aug_neg")}°(분할 간 sd 약 3.7° 안쪽).<br>'
             f'<b>④ 그러나 패러프레이즈에 취약해진다 — 모듈형(V0)이 더 강건.</b> V0은 문구를 안 받으므로 명령 변화 0. 텍스트를 받는 변형은 학습한 패러프레이즈에서는 변화 {g("para_effect", "V2_paraphrase_aug")}(증강 효과, V1은 {g("para_effect", "V1_text_const")})로 줄지만, <b>학습에 없던 동의 표현(grey bucket·the bin)에서는 {g("unseen_para_effect", "V3_aug_neg")} 수준으로 여전히 크고</b> 방향 오차도 {g("unseen_ang_para", "V0_img_only")}° → {g("unseen_ang_para", "V3_aug_neg")}°로 나빠진다. 증강 5종은 외우는 수준이다.<br>'
-            '<b>⑤ 사진에서 확인되는 것(fold0 프레임 6장, 시드 평균).</b> 문구를 고정해 학습한 V1은 텍스트 임베딩이 멀리 벗어난 <code>go to the gray bin</code>(텍스트 풀링 cos 0.77)에서 <b>6장 모두 명령 크기가 0.02~0.07(정지)</b>로 무너진다(기준 문구에서는 0.7~0.87). 패러프레이즈 증강(V2)·음성 지시(V3)는 이를 막지만, V3는 학습에 없던 <code>grey bucket</code>에서 명령이 0.36~0.74로 <b>머뭇거린다</b>(V0·V2는 0.65~0.92) → 문장형 지시와 미지 표현에 가장 약하다.<br>'
-            '<b>결론(교수님 시험 관점):</b> 시험 ①(지시문 변경)은 <b>모듈형(현재 A3)이 오히려 안전</b>하다(Florence-2가 같은 박스를 주고 헤드는 문구를 안 봄). E2E(텍스트→헤드)는 "없는 물체는 안 간다"는 선택성을 얻는 대신 표현 변화에 흔들린다 → 어휘를 크게 늘린 증강(수십~수백 표현)과 다른 물체가 실제로 있는 장면 데이터가 있어야 이득을 주장할 수 있다. 실기 확인 전이며 오프라인 지표다.</div>', "한계: 음성 정답을 \"정지\"로 정한 설계, 미지 문구 4개, 3프레임 간격 부분집합, 단일 학습 설정. 미지 문구 정지 수치는 3분할 × 시드 3 평균(분할별 73~90%).", "flow"))
+            '<b>⑤ 사진에서 확인되는 것(fold0 프레임 6장, 시드 평균).</b> 문구를 고정해 학습한 V1은 텍스트 임베딩이 멀리 벗어난 <code>go to the gray bin</code>(텍스트 풀링 cos 0.77)에서 <b>6장 모두 명령 크기가 0.02~0.07(정지)</b>로 무너진다(기준 문구에서는 0.7~0.87). 패러프레이즈 증강(V2)·부정 지시(V3)는 이를 막지만, V3는 학습에 없던 <code>grey bucket</code>에서 명령이 0.36~0.74로 <b>머뭇거린다</b>(V0·V2는 0.65~0.92) → 문장형 지시와 미지 표현에 가장 약하다.<br>'
+            '<b>결론(교수님 시험 관점):</b> 시험 ①(지시문 변경)은 <b>모듈형(현재 A3)이 오히려 안전</b>하다(Florence-2가 같은 박스를 주고 헤드는 문구를 안 봄). E2E(텍스트→헤드)는 "없는 물체는 안 간다"는 선택성을 얻는 대신 표현 변화에 흔들린다 → 어휘를 크게 늘린 증강(수십~수백 표현)과 다른 물체가 실제로 있는 장면 데이터가 있어야 이득을 주장할 수 있다. 실기 확인 전이며 오프라인 지표다.</div>', "한계: 부정 정답을 \"정지\"로 정한 설계, 미지 문구 4개, 3프레임 간격 부분집합, 단일 학습 설정. 미지 문구 정지 수치는 3분할 × 시드 3 평균(분할별 73~90%).", "flow"))
     probes = _load("text_cond_probes.json")
     if t2 and probes and any("probe" in r for r in t2.values()):
         o.append(V.wrap("원본 사진으로 비교 — 같은 학습 프레임에서 변형별 첫 스텝 명령 (fold0 시험 프레임, 시드 평균)",
-                        '<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;line-height:1.7">화살표: 위=전진, 오른쪽=우측 이동, 점=정지. 회색=사람 시연, 초록=서보 라벨(학습 정답). 정상 문구면 화살표가 정답과 같아야 하고 음성 문구면 점이어야 한다. 사진은 실험에 쓴 원본 프레임(붉은 상자=bbox 중심·면적 근사). 실시간 진행·흐름 대조: <a href="vlaops_dashboard.html" style="color:#38bdf8">VLAops 🔤 탭</a></div>' + _probe_html(t2, probes), "", "img"))
-    o.append(V.wrap("한계", '<div style="font-size:0.82rem;line-height:1.8">· 오프라인(프레임 단위) 지표이며 폐루프 성공과 다름 · 음성 지시의 정답을 “정지”로 정한 것은 설계 선택(물체를 찾는 탐색 행동 등은 미포함) · 단어를 가리켜 <b>목표를 고르는</b> 능력(물체 2개 중 선택)은 데이터가 없어 T3(새 수집)이 필요 · <b>오프라인 사진에는 다른 물체가 없어</b> 음성·물체 교체 평가가 약함(대상이 없어도 박스를 추측해 냄) → 다른 물체를 실제로 놓고 찍은 사진·실기가 필요(docs/plans/HANDOFF_20261107_TEXT_OBJECT_SWAP_PHOTOS.md) · 실기 물체 교체 시험은 회색 통을 치운 장면에서 해야 의미(white box 사례) · 3프레임 간격 부분집합 사용</div>', "", "flow"))
+                        '<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;line-height:1.7">화살표: 위=전진, 오른쪽=우측 이동, 점=정지. 회색=사람 시연, 초록=서보 라벨(학습 정답). 정상 문구면 화살표가 정답과 같아야 하고 부정 문구면 점이어야 한다. 사진은 실험에 쓴 원본 프레임(붉은 상자=bbox 중심·면적 근사). 실시간 진행·흐름 대조: <a href="vlaops_dashboard.html" style="color:#38bdf8">VLAops 🔤 탭</a></div>' + _probe_html(t2, probes), "", "img"))
+    o.append(V.wrap("한계", '<div style="font-size:0.82rem;line-height:1.8">· 오프라인(프레임 단위) 지표이며 폐루프 성공과 다름 · 부정 지시의 정답을 “정지”로 정한 것은 설계 선택(물체를 찾는 탐색 행동 등은 미포함) · 단어를 가리켜 <b>목표를 고르는</b> 능력(물체 2개 중 선택)은 데이터가 없어 T3(새 수집)이 필요 · <b>오프라인 사진에는 다른 물체가 없어</b> 부정·물체 교체 평가가 약함(대상이 없어도 박스를 추측해 냄) → 다른 물체를 실제로 놓고 찍은 사진·실기가 필요(docs/plans/HANDOFF_20261107_TEXT_OBJECT_SWAP_PHOTOS.md) · 실기 물체 교체 시험은 회색 통을 치운 장면에서 해야 의미(white box 사례) · 3프레임 간격 부분집합 사용</div>', "", "flow"))
     return "".join(o)

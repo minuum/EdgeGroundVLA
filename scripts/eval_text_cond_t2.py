@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""T1·T2 오프라인: 헤드가 텍스트를 쓰는가. 변형 V0 이미지 전용(A3와 같은 학습법) / V1 +텍스트 특징(문구 고정) / V2 +패러프레이즈 증강 / V3 +음성 지시(정답=정지).
+"""T1·T2 오프라인: 헤드가 텍스트를 쓰는가. 변형 V0 이미지 전용(A3와 같은 학습법) / V1 +텍스트 특징(문구 고정) / V2 +패러프레이즈 증강 / V3 +부정 지시(정답=정지).
 입력 특징 = [이미지 인코더 풀링(문구 무관) ; 융합 인코더의 텍스트 토큰 풀링(문구별)] (V0은 앞 768만). 학습법은 A3와 동일(서보 라벨 1.0, 서브골 드롭아웃 30%, 120 epoch, PiZeroFM).
 캐시: scripts/precompute_text_fused.py (3프레임마다 1개). 분할: fold0, fold1, lopo_center. 출력: docs/v5/egvla2_fm/text_cond_t2.json (분할·시드 단위 저장·재개)
 plan: docs/plans/plan_20261106_text_conditioned_e2e_vla.md §2. 실행: .venv_lerobot/bin/python3 scripts/eval_text_cond_t2.py (SMOKE=1)"""
@@ -35,7 +35,7 @@ def load():
         TXT.append(np.stack([tc[f"{e['name']}|txt|{k}"].astype(np.float32) for k in range(NPOS + NNEG)], 1)); EPI.append(np.full(len(sel), i))
     g = lambda x: torch.tensor(np.concatenate(x)).to(DEV)
     D = dict(bb=g(BB), ch=g(CH), vis=g(VIS), txt=g(TXT), ep=np.concatenate(EPI))
-    hp = ROOT / "runs/egvla2_fm/text_fused_cache_heldout.npz"        # 학습에 없던 문구(미지 패러프레이즈 2 + 미지 음성 2): 3번째 프레임마다 1개
+    hp = ROOT / "runs/egvla2_fm/text_fused_cache_heldout.npz"        # 학습에 없던 문구(미지 패러프레이즈 2 + 미지 부정 2): 3번째 프레임마다 1개
     if hp.exists():
         hc = np.load(hp); rows, H_ = [], []
         for i, e in enumerate(E):
