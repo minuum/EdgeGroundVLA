@@ -20,19 +20,22 @@ PLAN = 33  # 계획: 3 pos x 3 목표 x 33 = 297
 # --- 로그 ---
 ep = os.environ.get("EP_LOG")
 txt = open(ep, encoding="utf-8").read() if ep else subprocess.check_output(["git", "show", "origin/monavla-driving:logs/episode_log.csv"], cwd=ROOT).decode("utf-8")
-log = [r for r in csv.DictReader(txt.splitlines()) if r["날짜"].startswith("2026-11-04")]
-logok = {r["session_id"]: r for r in log}
+allrows = list(csv.DictReader(txt.splitlines()))
+log = [r for r in allrows if r["날짜"].startswith("2026-11-04")]
+logok = {r["session_id"]: r for r in allrows if r["session_id"]}  # session_id로 매칭(날짜 아님)
 
 rows = []
-for p in sorted(glob.glob(str(ROOT / "docs/inference_sessions/session_20261104_*.h5"))):
-    f = h5py.File(p); c = json.loads(f.attrs["runtime_config"]); bb = f["grounding/bbox"][:]; a = f["actions"][:]; sid = str(f.attrs["session_id"]); has = bb[:, 3] > .5
+for p in sorted(glob.glob(str(ROOT / "docs/inference_sessions/session_20261104_*.h5")) + glob.glob(str(ROOT / "docs/inference_sessions/session_20261105_*.h5"))):
+    f = h5py.File(p); c = json.loads(f.attrs["runtime_config"])
+    if c["start_position"] not in ("pos4", "pos5", "pos6") or c["target_position"] not in ("G6", "G7", "G8"): continue  # 속성으로 선택(파일명 날짜 아님)
+    bb = f["grounding/bbox"][:]; a = f["actions"][:]; sid = str(f.attrs["session_id"]); has = bb[:, 3] > .5
     lr = logok.get(sid)
     rows.append(dict(sid=sid, start=c["start_position"], target=c["target_position"], ok=bool(lr and lr["결과"] == "성공"), in_log=lr is not None, n=len(bb), lost_frames=int((~has).sum()),
                      cx0=float(bb[0, 0]), final_cx=float(bb[-1, 0]), final_area=float(bb[-1, 2]), ly0=float(a[0, 1]), az0=float(a[0, 2]), ckpt=c.get("ckpt_name")))
 (FM / "gen_1104_summary.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1))
 nolog_h5 = [r["sid"] for r in rows if not r["in_log"]]
 noh5 = [r for r in log if r["session_id"] not in {x["sid"] for x in rows}]
-meta = dict(n_h5=len(rows), n_log=len(log), log_success=sum(r["결과"] == "성공" for r in log), h5_ok=sum(r["ok"] for r in rows), planned=297,
+meta = dict(n_h5=len(rows), n_h5_1104=sum(r["sid"].startswith("20261104") for r in rows), n_h5_1105=sum(r["sid"].startswith("20261105") for r in rows), n_in_log=sum(r["in_log"] for r in rows), n_not_in_log=sum(not r["in_log"] for r in rows), not_in_log_1105=sum((not r["in_log"]) and r["sid"].startswith("20261105") for r in rows), n_log=len(log), log_success=sum(r["결과"] == "성공" for r in log), h5_ok=sum(r["ok"] for r in rows), planned=297,
             log_without_h5=[dict(no=r["#"], sid=r["session_id"], route=r["경로"], steps=r["steps"], t=r["날짜"]) for r in noh5], h5_without_log=nolog_h5)
 (FM / "gen_1104_meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
 
@@ -53,7 +56,7 @@ for j, t in enumerate(TG):
     b = a.bar(np.arange(3) + (j - 1) * w, [x / PLAN * 100 for x in v], w, color=TC[t], label=t)
     for x, n_, bb_ in zip(np.arange(3) + (j - 1) * w, v, b): a.text(x, bb_.get_height() + 1.5, f"{n_}/{PLAN}", ha="center", fontsize=8.5)
 a.axhline(100, color="#94a3b8", ls="--", lw=1); a.set_xticks(range(3)); a.set_xticklabels(POS); a.set_ylim(0, 118); a.set_ylabel("계획 33회 대비 수집률 (%)"); a.legend(ncol=3, fontsize=9, facecolor=BG, edgecolor=GR, loc="upper right")
-a.set_title(f"조합별 수집률: 252/297 = {252/297*100:.1f}% (pos6은 11/33)", fontsize=10.5)
+a.set_title(f"조합별 수집률: {len(rows)}/297 = {len(rows)/297*100:.1f}%", fontsize=10.5)
 a = ax[1]
 for t in TG:
     m = [r for r in rows if r["target"] == t]; a.scatter([r["cx0"] for r in m], [r["final_cx"] for r in m], s=18, color=TC[t], alpha=.7, label=t)
@@ -123,7 +126,7 @@ pick = [(r, tag) for r, tag in sel if "이상치" in tag] + [(r, "가장 중앙"
 fig = plt.figure(figsize=(13, 7.2)); ax = fig.add_axes([0.06, 0.69, 0.88, 0.25])
 ax.hist(fcx, bins=np.arange(0.25, 0.86, 0.025), color="#60a5fa", alpha=.85); ax.axvline(.5, color="#f87171", ls="--"); ax.axvline(np.median(fcx), color="#34d399")
 ax.set_xlabel("마지막 프레임에서 바구니 중심의 가로 위치 cx (빨강 점선 = 중앙 0.5, 초록 = 중앙값)"); ax.set_ylabel("세션 수")
-ax.set_title(f"252회 마지막 cx: 중앙값 {np.median(fcx):.2f}, 중앙 ±0.1 안 {int((abs(fcx-.5)<=.1).sum())}회, 0.6 이상 {int((fcx>=.6).sum())}회, 0.4 이하 {int((fcx<=.4).sum())}회", fontsize=11)
+ax.set_title(f"{len(rows)}회 마지막 cx: 중앙값 {np.median(fcx):.2f}, 중앙 ±0.1 안 {int((abs(fcx-.5)<=.1).sum())}회, 0.6 이상 {int((fcx>=.6).sum())}회, 0.4 이하 {int((fcx<=.4).sum())}회", fontsize=11)
 for i, (r, tag) in enumerate(pick[:8]):
     f = h5py.File(ROOT / f"docs/inference_sessions/session_{r['sid']}.h5"); im = np.ascontiguousarray(f["observations/images"][-1]).astype(np.uint8); bb = f["grounding/bbox"][-1]
     a = fig.add_axes([0.02 + (i % 4) * 0.245, 0.345 - (i // 4) * 0.27, 0.235, 0.22]); a.imshow(im); a.axvline(im.shape[1] / 2, color="#f87171", ls="--", lw=1)
