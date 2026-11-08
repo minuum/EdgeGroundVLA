@@ -7,6 +7,9 @@ import re
 from pathlib import Path
 
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import textcond_phrase_tabs as PT
 
 ROOT = Path(__file__).resolve().parent.parent
 HTML = ROOT / "docs/v5/vlaops_dashboard.html"
@@ -82,7 +85,7 @@ def panel():
     hero = ('<div style="font-size:0.84rem;line-height:1.8;margin-bottom:6px">교수님(11/05) 질문: 지시문 변경·물체 교체에도 가는가 → <b>텍스트가 행동에 직접 들어가는 E2E</b>가 되는지 오프라인으로 점검. '
             '상세 해설·사진: <a href="research_story.html#ch79" style="color:#38bdf8">CH79 🔤 탭</a> · 계획서 docs/plans/plan_20261106_text_conditioned_e2e_vla.md. 현재 파이프라인은 텍스트→bbox만 텍스트 의존.</div>')
     return (f'{B0}<div id="tab-textcond" class="tab-panel">' + card("🔤 텍스트 조건화(T0~T2) — 개요", hero) + card("📏 학습 관련 유효 지표", metrics, "표의 마지막 열은 분할 3 × 시드 3의 평균±표준편차(V0~V3 순). 단일 학습 설정·3프레임 간격 부분집합. 표본 문구가 적어 '핵심' 표기는 잠정.")
-            + LIVE + card("🧬 주요 피처", feats) + card("🛠 변경사항 (감사 기록)", changes) + JS + f'</div>{B1}')
+            + LIVE.replace("__PHRASE_TABS__", PT.build()) + card("🧬 주요 피처", feats) + card("🛠 변경사항 (감사 기록)", changes) + JS + f'</div>{B1}')
 
 
 
@@ -94,7 +97,7 @@ LIVE = """
 <div style="font-size:0.74rem;color:#64748b;margin-top:6px">서버(<code>python3 -m http.server 8001</code>)로 열어야 갱신됩니다(file:// 불가). 완료 수는 36 = 3분할 × 4변형 × 시드 3.</div></section>
 
 <section class="card"><div class="card-header"><div class="card-title"><span>📊 퍼센트 지표 (36/36 최종)</span></div></div><img src="figures/ch79/text_cond_bars.png" style="width:100%;border-radius:8px"><div style="font-size:0.75rem;color:#94a3b8;margin-top:6px">입력은 타이핑한 텍스트 문구(음성 아님). 부정 = 장면에 없는 물체 문구, 정답 정지. ②가 핵심(V3 82%), ④는 동의 표현에서 오정지(V3 12%).</div></section>
-<section class="card"><div class="card-header"><div class="card-title"><span>🔬 T4 어휘 확장 (정상40+부정40, 27/27)</span></div></div><img src="figures/ch79/text_cond_t4_bars.png" style="width:100%;border-radius:8px"><div style="font-size:0.78rem;color:#94a3b8;margin-top:6px;line-height:1.7">학습에 없는 문구 36개로만 평가. 기준 판정: 안 본 부정 정지 99.5%(기준 ≥90% 충족) · 동의 표현 명령 변화 0.077(≤0.10 충족) · 동의 표현 정지 10.8% vs V0 7.7%(+3.1%p, 기준 +3%p <b>근소 미충족</b>). 같은 색·다른 물체(gray chair) 100% 정지. 패러프레이즈 취약성이 사라진 것은 아님. 프레임 간격 9, 오프라인.</div></section>\n<section class="card"><div class="card-header"><div class="card-title"><span>🧭 학습 흐름 대조 — 같은 사진, 변형마다 무엇이 다른가</span></div></div>
+<section class="card"><div class="card-header"><div class="card-title"><span>🔬 T4 어휘 확장 (정상40+부정40, 27/27)</span></div></div><img src="figures/ch79/text_cond_t4_bars.png" style="width:100%;border-radius:8px"><div style="font-size:0.78rem;color:#94a3b8;margin-top:6px;line-height:1.7">학습에 없는 문구 36개로만 평가. 기준 판정: 안 본 부정 정지 99.5%(기준 ≥90% 충족) · 동의 표현 명령 변화 0.077(≤0.10 충족) · 동의 표현 정지 10.8% vs V0 7.7%(+3.1%p, 기준 +3%p <b>근소 미충족</b>). 같은 색·다른 물체(gray chair) 100% 정지. 패러프레이즈 취약성이 사라진 것은 아님. 프레임 간격 9, 오프라인.</div></section>\n__PHRASE_TABS__<section class="card"><div class="card-header"><div class="card-title"><span>🧭 학습 흐름 대조 — 같은 사진, 변형마다 무엇이 다른가</span></div></div>
 <div style="overflow-x:auto"><table class="ops-table" style="min-width:880px" id="tc-flow"><thead><tr><th style="width:130px"></th><th>V0 이미지 전용 (A3 방식)</th><th>V1 문구 고정</th><th>V2 +패러프레이즈 증강</th><th>V3 +부정 지시</th></tr></thead><tbody>
 <tr><td><b>① 입력 사진</b><br><span style="font-size:0.7rem;color:#94a3b8">실제 학습 프레임(데이터셋 H5)</span></td><td colspan="4" id="tc-flow-photo" style="text-align:center">…</td></tr>
 <tr><td><b>② 문구</b></td><td style="color:#94a3b8">(문구 입력 없음)</td><td><code>gray basket</code> 고정</td><td>6종 무작위<br><span style="font-size:0.72rem;color:#94a3b8">gray basket · gray bin · gray container · the gray basket · go to the gray bin · basket</span></td><td>V2의 80% + <b>20% 부정</b><br><span style="font-size:0.72rem;color:#fca5a5">red chair · person · blue bottle</span></td></tr>
