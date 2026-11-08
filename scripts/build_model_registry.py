@@ -61,7 +61,7 @@ DATASETS = [  # id, 이름, 경로, 설명, 사용 모델(PN), 결과 링크
  ("DS-05","실기 세션 H5(10/22~10/29)","docs/inference_sessions/session_20261022~29_*.h5","A3·adaln·서보라벨 실기 세션(10/22 19, 10/28 102, 10/29 96)","EG2-06, EG2-08, EG2-09", [("CH79 📅 10/29", RS+"#ch79")]),
  ("DS-06","11/04·11/05 수집 297건","docs/inference_sessions/session_20261104_*.h5, session_20261105_*.h5","pos4~6 × G6~G8 × 3궤적 × 11. 11/04 252 + 11/05 45(로그 행 없음)","EG2-09", [("CH79 📆 11/04", RS+"#ch79")]),
  ("DS-07","텍스트 어휘·특징 캐시","runs/egvla2_fm/text_vocab_cache.npz, text_vocab_tokens.npz","T4/T5용 문구 116개의 융합 인코더 특징(stride 9, 프레임 약 3.2k)","EG4-*", [("VLAops T4·T5", VO)]),
- ("DS-08","EGVLA1 실기 세션(8/7~9/19)","docs/inference_sessions/ (로컬 없음)","episode_log에 session_id 300건이 있으나 H5는 이 머신에 없음(billy 쪽 보관 추정, 미확인)","EG1-02", []),
+ ("DS-08","EGVLA1 실기 세션 92%(8/7~9/19)","/home/minum/MoNaVLA/inference_sessions_recv/20260807/h5 (100) + 20261013_missing_backfill (200)","이 서버(minum)에 있음: episode_log의 300개 session_id 전부 H5 존재(300/300), 모델명 stage2_v2, 종료 manual_stop. 저장소 밖 경로(14GB 수신 폴더 일부). 백업 위치는 별도 확인 필요","EG1-02", []),
 ]
 
 def sha(p):
@@ -83,6 +83,13 @@ def robot():
         out[k] = dict(n=len(v), ok=ok, rate=round(ok / len(v) * 100, 1), first=ds[0][:10] if ds else None, last=ds[-1][:10] if ds else None)
     return out, None
 
+SESS_ROOTS = [ROOT / "docs/inference_sessions", pathlib.Path("/home/minum/MoNaVLA/inference_sessions_recv")]
+def h5_index():
+    idx = set()
+    for r in SESS_ROOTS:
+        if r.exists(): idx |= {p.name[8:-3] for p in r.rglob("session_*.h5")}
+    return idx
+
 def sessions():
     """checkpoint -> 세션 목록(날짜·결과·로컬 H5 유무·필름스트립 유무). docs/v5/egvla2_fm/model_sessions.json 저장."""
     try:
@@ -93,11 +100,11 @@ def sessions():
     for f in ("filmstrips1029.json", "filmstrips1104.json"):
         try: fs |= {x["sid"] for x in json.load(open(D / "egvla2_fm" / f))}
         except Exception: pass
-    out = collections.defaultdict(list)
+    out = collections.defaultdict(list); hx = h5_index()
     for x in csv.DictReader(io.StringIO(txt)):
         sid = x["session_id"]
         out[x["체크포인트"] or "(공란)"].append(dict(sid=sid or None, date=x["날짜"][:16], ok=x["결과"] == "성공", route=x["경로"], steps=x["steps"],
-            h5=bool(sid) and (ROOT / f"docs/inference_sessions/session_{sid}.h5").exists(), film=sid in fs))
+            h5=bool(sid) and sid in hx, film=sid in fs))
     return out
 
 def main():
@@ -147,7 +154,7 @@ code{font-size:.78em;background:var(--head);padding:1px 4px;border-radius:3px;wo
         if not sl: continue
         items = "".join(f'<tr><td><code>{x["sid"] or "-"}</code></td><td>{x["date"]}</td><td>{esc(x["route"])}</td><td>{"성공" if x["ok"] else "<span class=no>실패</span>"}</td><td>{x["steps"]}</td><td>{"✓" if x["h5"] else "—"}</td><td>{"✓" if x["film"] else ""}</td></tr>' for x in sl)
         sec.append(f'<details id="ses-{r["pn"]}"><summary><b class=pn>{r["pn"]}</b> {esc(r["name"])} — 세션 {len(sl)}건</summary><table><thead><tr><th>session_id</th><th>시각</th><th>경로 라벨</th><th>결과</th><th>steps</th><th>로컬 H5</th><th>필름스트립</th></tr></thead><tbody>{items}</tbody></table></details>')
-    body.append('<h2>모델별 실기 세션</h2><p class=d>episode_log의 session_id 기준. 로컬 H5 = 이 머신 docs/inference_sessions에 파일이 있는 세션. 필름스트립 = CH79에 사진이 있는 세션(10/29·11/04분).</p>' + "".join(sec))
+    body.append('<h2>모델별 실기 세션</h2><p class=d>episode_log의 session_id 기준. 로컬 H5 = 이 서버의 docs/inference_sessions 또는 /home/minum/MoNaVLA/inference_sessions_recv에 파일이 있는 세션. 필름스트립 = CH79에 사진이 있는 세션(10/29·11/04분).</p>' + "".join(sec))
     body.append("<script>document.getElementById('q').oninput=e=>{const s=e.target.value.toLowerCase();document.querySelectorAll('tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(s)?'':'none')}</script>")
     (D / "model_registry.html").write_text(f'<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>모델 세대 레지스트리</title><style>{css}</style></head><body><main>{"".join(body)}</main></body></html>', encoding="utf-8")
     print(len(rows), "models; robot log error:", err)

@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-08T21:40",
+ "generated": "2026-11-08T21:47",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
@@ -120,9 +120,9 @@
   },
   {
    "id": "DS-08",
-   "name": "EGVLA1 실기 세션(8/7~9/19)",
-   "path": "docs/inference_sessions/ (로컬 없음)",
-   "desc": "episode_log에 session_id 300건이 있으나 H5는 이 머신에 없음(billy 쪽 보관 추정, 미확인)",
+   "name": "EGVLA1 실기 세션 92%(8/7~9/19)",
+   "path": "/home/minum/MoNaVLA/inference_sessions_recv/20260807/h5 (100) + 20261013_missing_backfill (200)",
+   "desc": "이 서버(minum)에 있음: episode_log의 300개 session_id 전부 H5 존재(300/300), 모델명 stage2_v2, 종료 manual_stop. 저장소 밖 경로(14GB 수신 폴더 일부). 백업 위치는 별도 확인 필요",
    "used_by": "EG1-02",
    "links": []
   }
@@ -191,7 +191,7 @@
    "links": [],
    "sessions": {
     "n": 179,
-    "h5_local": 12,
+    "h5_local": 86,
     "film": 0
    }
   },
@@ -220,7 +220,7 @@
    "links": [],
    "sessions": {
     "n": 129,
-    "h5_local": 0,
+    "h5_local": 129,
     "film": 0
    }
   },
@@ -266,7 +266,7 @@
    ],
    "sessions": {
     "n": 300,
-    "h5_local": 0,
+    "h5_local": 300,
     "film": 0
    }
   },
