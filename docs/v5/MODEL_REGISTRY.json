@@ -1,0 +1,906 @@
+{
+ "generated": "2026-11-08T21:40",
+ "gens": {
+  "G0": [
+   "V5 시기(Kosmos-2)",
+   "순수 E2E → 박스 분해. 폐기, 기록만."
+  ],
+  "G1": [
+   "EGVLA1",
+   "OWLv2 + Kosmos-2 + MLP(exp73). 실기 기준선."
+  ],
+  "G2": [
+   "EGVLA2",
+   "Florence-2 단일 + FM 헤드, 300에피소드. 현재 배포(A3=EG2-09)."
+  ],
+  "G3": [
+   "E2E LoRA",
+   "Florence-2 LoRA + FM. 오프라인 부진, 실기 없음, 보류."
+  ],
+  "G4": [
+   "텍스트 조건화",
+   "V0~V5. 평가 중 학습·폐기, 체크포인트 없음. 오프라인만."
+  ]
+ },
+ "datasets": [
+  {
+   "id": "DS-01",
+   "name": "EGVLA2 학습셋 300건",
+   "path": "ROS_action/mobile_vla_dataset_egvla2",
+   "desc": "10/13~10/16 수집(디렉터리 H5 371개 중 학습 세트 300건 = meta/egvla2_v3_main.json, 29,161프레임). 속성: 시작 위치·경로 라벨",
+   "used_by": "EG2-01~09, EG3-*, EG4-*",
+   "links": [
+    [
+     "CH76 수집 점검",
+     "research_story.html#ch76"
+    ],
+    [
+     "CH77",
+     "research_story.html#ch77"
+    ]
+   ]
+  },
+  {
+   "id": "DS-02",
+   "name": "V5 데이터셋(EGVLA1 학습)",
+   "path": "ROS_action/mobile_vla_dataset_v5",
+   "desc": "h5 515개 로컬 확인. CH76 ④: V6 학습 데이터, minum 쪽이 유일 원본(로봇 쪽 복사본은 정리됨, 별도 백업 없음). CLAUDE.md의 V5 150건은 이 중 일부로 보이나 미확인",
+   "used_by": "EG1-02(사용자 확인), EG0-*(추정)",
+   "links": [
+    [
+     "CH76 ④ 데이터 보관 상태",
+     "research_story.html#ch76"
+    ]
+   ]
+  },
+  {
+   "id": "DS-03",
+   "name": "폐루프 드라이런 10/22·10/28",
+   "path": "ROS_action/dryrun_closedloop_20261022, ..._20261028",
+   "desc": "EGVLA2 폐루프 드라이런 원본(각각 657MB, 2.1GB)",
+   "used_by": "EG2-06, EG2-08",
+   "links": [
+    [
+     "CH79",
+     "research_story.html#ch79"
+    ]
+   ]
+  },
+  {
+   "id": "DS-04",
+   "name": "시작 위치 드라이런",
+   "path": "ROS_action/dryrun_startpos",
+   "desc": "시작 위치 재생용 드라이런",
+   "used_by": "EG2-*",
+   "links": [
+    [
+     "CH78 시작 위치 재생",
+     "research_story.html#ch78"
+    ]
+   ]
+  },
+  {
+   "id": "DS-05",
+   "name": "실기 세션 H5(10/22~10/29)",
+   "path": "docs/inference_sessions/session_20261022~29_*.h5",
+   "desc": "A3·adaln·서보라벨 실기 세션(10/22 19, 10/28 102, 10/29 96)",
+   "used_by": "EG2-06, EG2-08, EG2-09",
+   "links": [
+    [
+     "CH79 📅 10/29",
+     "research_story.html#ch79"
+    ]
+   ]
+  },
+  {
+   "id": "DS-06",
+   "name": "11/04·11/05 수집 297건",
+   "path": "docs/inference_sessions/session_20261104_*.h5, session_20261105_*.h5",
+   "desc": "pos4~6 × G6~G8 × 3궤적 × 11. 11/04 252 + 11/05 45(로그 행 없음)",
+   "used_by": "EG2-09",
+   "links": [
+    [
+     "CH79 📆 11/04",
+     "research_story.html#ch79"
+    ]
+   ]
+  },
+  {
+   "id": "DS-07",
+   "name": "텍스트 어휘·특징 캐시",
+   "path": "runs/egvla2_fm/text_vocab_cache.npz, text_vocab_tokens.npz",
+   "desc": "T4/T5용 문구 116개의 융합 인코더 특징(stride 9, 프레임 약 3.2k)",
+   "used_by": "EG4-*",
+   "links": [
+    [
+     "VLAops T4·T5",
+     "vlaops_dashboard.html"
+    ]
+   ]
+  },
+  {
+   "id": "DS-08",
+   "name": "EGVLA1 실기 세션(8/7~9/19)",
+   "path": "docs/inference_sessions/ (로컬 없음)",
+   "desc": "episode_log에 session_id 300건이 있으나 H5는 이 머신에 없음(billy 쪽 보관 추정, 미확인)",
+   "used_by": "EG1-02",
+   "links": []
+  }
+ ],
+ "models": [
+  {
+   "pn": "EG0-01",
+   "gen": "G0",
+   "name": "V5 Exp11",
+   "ckpt": "epoch=14 ckpt",
+   "path": "runs/v5_nav/kosmos/mobile_vla_v5_exp11/2026-04-16/v5-exp11-google-robot-8cls",
+   "arch": "Kosmos-2(고정)+LoRA, 구글로봇 사전학습, 8클래스, 순수 E2E",
+   "train": "",
+   "offline": "val_loss 1.010, PM 58.6%",
+   "status": "폐기",
+   "note": "폐루프(시뮬) 0%, FPE 1.45m",
+   "log_key": "__none__",
+   "exists": false,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [],
+   "sessions": null
+  },
+  {
+   "pn": "EG0-02",
+   "gen": "G0",
+   "name": "Exp14 Step2",
+   "ckpt": "",
+   "path": "docs/v5/bbox_nav_step1",
+   "arch": "박스+이미지 MLP(분해)",
+   "train": "45ep 794프레임",
+   "offline": "PM 75.9%(5시드 76.6±1.6%)",
+   "status": "폐기",
+   "note": "폐루프(시뮬) 66.7%, FPE 0.55m",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [],
+   "sessions": null
+  },
+  {
+   "pn": "EG1-00",
+   "gen": "G1",
+   "name": "구버전(체크포인트 미기록)",
+   "ckpt": "",
+   "path": null,
+   "arch": "",
+   "train": "",
+   "offline": "",
+   "status": "추적 불가",
+   "note": "로그 6/26~7/23, 체크포인트 열 공란",
+   "log_key": "",
+   "exists": false,
+   "bytes": null,
+   "sha256": null,
+   "robot": {
+    "n": 179,
+    "ok": 94,
+    "rate": 52.5,
+    "first": "2026-06-26",
+    "last": "2026-07-23"
+   },
+   "links": [],
+   "sessions": {
+    "n": 179,
+    "h5_local": 12,
+    "film": 0
+   }
+  },
+  {
+   "pn": "EG1-01",
+   "gen": "G1",
+   "name": "OWL 트랙 hold-aware",
+   "ckpt": "exp73_owl_trackF_v6_mlp_holdaware_seed0.pt",
+   "path": null,
+   "arch": "OWLv2 박스 + MLP",
+   "train": "",
+   "offline": "",
+   "status": "기록",
+   "note": "",
+   "log_key": "exp73_owl_trackF_v6_mlp_holdaware_seed0.pt",
+   "exists": false,
+   "bytes": null,
+   "sha256": null,
+   "robot": {
+    "n": 129,
+    "ok": 97,
+    "rate": 75.2,
+    "first": "2026-07-30",
+    "last": "2026-08-07"
+   },
+   "links": [],
+   "sessions": {
+    "n": 129,
+    "h5_local": 0,
+    "film": 0
+   }
+  },
+  {
+   "pn": "EG1-02",
+   "gen": "G1",
+   "name": "EGVLA1 기준선",
+   "ckpt": "exp73_owl_stage1v3_v6_mlp.pt",
+   "path": "runs/v5_nav/mlp/exp73_stage1v3/exp73_owl_stage1v3_v6_mlp.pt",
+   "arch": "MLP 1560→512→128→8(8클래스), window 6, bbox_scale 3, V6 arm",
+   "train": "데이터: mobile_vla_dataset_v5(h5 515개, CH76 ④·사용자 확인). 에폭: CH70이 exp73 원본 값 300을 언급(이 체크포인트 자체에는 기록 없음). CH78: EGVLA1·2 모두 pos1만 학습",
+   "offline": "val_acc 74.1%(V6 split, 체크포인트 기록)",
+   "status": "기준선",
+   "note": "3×5×20 폐루프 기준선. 위치별 pos1 95·pos2 91·pos3 90 (episode_log·메모리)",
+   "log_key": "exp73_owl_stage1v3_v6_mlp.pt",
+   "exists": true,
+   "bytes": 3467053,
+   "sha256": "32ec99d7ca914be8ab051ffdcac54a20ef7451edbd4de2a6a4cfbdf86cdc6231",
+   "robot": {
+    "n": 300,
+    "ok": 276,
+    "rate": 92.0,
+    "first": "2026-08-07",
+    "last": "2026-09-19"
+   },
+   "links": [
+    [
+     "CH70 헤드 구조·손실 실험(exp73, epoch 300 언급)",
+     "research_story.html#ch70"
+    ],
+    [
+     "CH78 ⑥-2 EGVLA1 vs EGVLA2(276/300)",
+     "research_story.html#ch78"
+    ],
+    [
+     "CH77 EGVLA1 비교",
+     "research_story.html#ch77"
+    ],
+    [
+     "CH76 ④ V6 학습 데이터",
+     "research_story.html#ch76"
+    ]
+   ],
+   "sessions": {
+    "n": 300,
+    "h5_local": 0,
+    "film": 0
+   }
+  },
+  {
+   "pn": "EG1-03",
+   "gen": "G1",
+   "name": "Florence-2 grounder + MLP",
+   "ckpt": "exp73_florence2_grounder_v6_mlp.pt",
+   "path": "runs/v5_nav/mlp/exp73_stage1v3/exp73_florence2_grounder_v6_mlp.pt",
+   "arch": "Florence-2 그라운더 + MLP(V6)",
+   "train": "미확인",
+   "offline": "미확인",
+   "status": "실기 로그 없음",
+   "note": "8/20 파일. EGVLA2 전환 이전의 중간 산물로 보이나 미확인",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 3467125,
+   "sha256": "3b71f8c049d78a672f9f32f62f74ab45603ee1ade94a33cf776336eb10efa3ac",
+   "robot": null,
+   "links": [],
+   "sessions": null
+  },
+  {
+   "pn": "EG1-04",
+   "gen": "G1",
+   "name": "Florence-2 phrase grounder + MLP",
+   "ckpt": "exp73_florence2_phrase_grounder_v6_mlp.pt",
+   "path": "runs/v5_nav/mlp/exp73_stage1v3/exp73_florence2_phrase_grounder_v6_mlp.pt",
+   "arch": "Florence-2 문구 그라운더 + MLP(V6)",
+   "train": "미확인",
+   "offline": "미확인",
+   "status": "실기 로그 없음",
+   "note": "8/21 파일",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 3467273,
+   "sha256": "d29e9ff933a31b34af920d3acfb622cda09fa0e097084149566ec1b3d59a81f3",
+   "robot": null,
+   "links": [],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-01",
+   "gen": "G2",
+   "name": "A_mlp_fm",
+   "ckpt": "A_mlp_fm.pt",
+   "path": "runs/egvla2_fm/A_mlp_fm.pt",
+   "arch": "MLP+FM",
+   "train": "250ep, 300ep",
+   "offline": "각도 11.26°(층화) / 20.28°(LOPO)",
+   "status": "오프라인",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 943509,
+   "sha256": "97e44404c2d2af31831773f9ddd8ae1c88c3f0617ba46a11924dd75041dabc82",
+   "robot": null,
+   "links": [
+    [
+     "CH77 학습·오프라인(FM-MLP)",
+     "research_story.html#ch77"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-02",
+   "gen": "G2",
+   "name": "B2_film_res_fm",
+   "ckpt": "B2_film_res_fm.pt",
+   "path": "runs/egvla2_fm/B2_film_res_fm.pt",
+   "arch": "FiLM 잔차+FM",
+   "train": "250ep, 300ep",
+   "offline": "10.81° / 17.91°",
+   "status": "오프라인",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 1373469,
+   "sha256": "6fc939b91f1b2cd02f2a5624db6c4e6d155de8084f3003a764737bb57cd0bd89",
+   "robot": null,
+   "links": [
+    [
+     "CH77 (FM-FiLM)",
+     "research_story.html#ch77"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-03",
+   "gen": "G2",
+   "name": "C_pi0_adaln",
+   "ckpt": "C_pi0_adaln.pt",
+   "path": "runs/egvla2_fm/C_pi0_adaln.pt",
+   "arch": "PiZeroFM AdaLN-Zero",
+   "train": "250ep, 300ep",
+   "offline": "10.39° / LOPO 미출력",
+   "status": "오프라인",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2918110,
+   "sha256": "570c431be6b72ee8d88e42a2666f59e9f4c75efc27386d5abd01266a2a06c8a7",
+   "robot": null,
+   "links": [
+    [
+     "CH77 (FM-π0)",
+     "research_story.html#ch77"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-04",
+   "gen": "G2",
+   "name": "MLP 회귀(결정적)",
+   "ckpt": "MLP_regression_drop30_e60.pt",
+   "path": "runs/egvla2_fm/deploy/MLP_regression_drop30_e60.pt",
+   "arch": "MLP 회귀, 드롭아웃 30%",
+   "train": "60ep, 300ep",
+   "offline": "",
+   "status": "실기 비교군 후보",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 851181,
+   "sha256": "38ac424bc970be36b19cf42534fc5005ba6f97504ab8810814deb77fc2262ff7",
+   "robot": null,
+   "links": [
+    [
+     "CH77 MLP 회귀 대조",
+     "research_story.html#ch77"
+    ],
+    [
+     "CH78 실기 비교군",
+     "research_story.html#ch78"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-05",
+   "gen": "G2",
+   "name": "C adaln 드롭0",
+   "ckpt": "C_pi0_adaln_e120.pt",
+   "path": "runs/egvla2_fm/deploy/C_pi0_adaln_e120.pt",
+   "arch": "adaln, 드롭아웃 0",
+   "train": "120ep, 300ep",
+   "offline": "",
+   "status": "대조",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2918507,
+   "sha256": "1bc507a3205222c890bb3644e5b0494732fe5d70c4edc508209a160a970eca06",
+   "robot": null,
+   "links": [
+    [
+     "CH77",
+     "research_story.html#ch77"
+    ],
+    [
+     "CH79",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-06",
+   "gen": "G2",
+   "name": "C adaln 드롭30 (CH79의 A1)",
+   "ckpt": "C_pi0_adaln_drop30_e120.pt",
+   "path": "runs/egvla2_fm/deploy/C_pi0_adaln_drop30_e120.pt",
+   "arch": "adaln, 드롭아웃 30%",
+   "train": "120ep, 300ep",
+   "offline": "",
+   "status": "실기 부진",
+   "note": "오프라인 좋았으나 실기 낮음",
+   "log_key": "C_pi0_adaln_drop30_e120.pt",
+   "exists": true,
+   "bytes": 2918858,
+   "sha256": "f88b944fa6346f6ffe36c0da9d1b09851f9429940d45cc53140a821460272da4",
+   "robot": {
+    "n": 37,
+    "ok": 12,
+    "rate": 32.4,
+    "first": "2026-10-22",
+    "last": "2026-10-28"
+   },
+   "links": [
+    [
+     "CH79 폐루프(10/22~28, A1)",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": {
+    "n": 37,
+    "h5_local": 37,
+    "film": 0
+   }
+  },
+  {
+   "pn": "EG2-07",
+   "gen": "G2",
+   "name": "C e1b tuned",
+   "ckpt": "C_pi0_e1b_tuned_drop30_e120.pt",
+   "path": "runs/egvla2_fm/deploy/C_pi0_e1b_tuned_drop30_e120.pt",
+   "arch": "서보 τ=0.22 gain=2.6",
+   "train": "120ep, 300ep",
+   "offline": "",
+   "status": "실기 기록 없음",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2919150,
+   "sha256": "c34b0746e78ddc02ebd000697cc9dfa884b1c44d35df26dff265ec513294518c",
+   "robot": null,
+   "links": [
+    [
+     "CH79",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-08",
+   "gen": "G2",
+   "name": "서보 라벨 λ=0.5 (CH79의 A2)",
+   "ckpt": "C_pi0_servolabel0.5_drop30_e120.pt",
+   "path": "runs/egvla2_fm/deploy/C_pi0_servolabel0.5_drop30_e120.pt",
+   "arch": "서보 라벨 λ=0.5",
+   "train": "120ep, 300ep",
+   "offline": "",
+   "status": "시험",
+   "note": "",
+   "log_key": "C_pi0_servolabel0.5_drop30_e120.pt",
+   "exists": true,
+   "bytes": 2919250,
+   "sha256": "30c78b945c4d99e5bcf50c4b99bdb96e205b35042c612c58fd7d97370a2b20f3",
+   "robot": {
+    "n": 20,
+    "ok": 14,
+    "rate": 70.0,
+    "first": "2026-10-28",
+    "last": "2026-10-28"
+   },
+   "links": [
+    [
+     "CH79 10/28 비교(A2)",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": {
+    "n": 20,
+    "h5_local": 20,
+    "film": 0
+   }
+  },
+  {
+   "pn": "EG2-09",
+   "gen": "G2",
+   "name": "A3 서보 라벨 λ=1.0",
+   "ckpt": "C_pi0_servolabel1.0_drop30_e120.pt",
+   "path": "runs/egvla2_fm/deploy/C_pi0_servolabel1.0_drop30_e120.pt",
+   "arch": "서보 라벨 λ=1.0",
+   "train": "120ep, 300ep",
+   "offline": "",
+   "status": "현재 배포",
+   "note": "실기 로그 중 11/04 253건은 pos4~6×G6~G8 수집(EG1과 프로토콜 다름)",
+   "log_key": "C_pi0_servolabel1.0_drop30_e120.pt",
+   "exists": true,
+   "bytes": 2919250,
+   "sha256": "5248ea1564fef6ad3dd8e60199ee1894b360376ff4f5ff8aa65bbee7c2ec30c5",
+   "robot": {
+    "n": 455,
+    "ok": 455,
+    "rate": 100.0,
+    "first": "2026-10-28",
+    "last": "2026-11-05"
+   },
+   "links": [
+    [
+     "CH79 A3 채택·10/29·11/04 일반화",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": {
+    "n": 455,
+    "h5_local": 454,
+    "film": 20
+   }
+  },
+  {
+   "pn": "EG2-10",
+   "gen": "G2",
+   "name": "299건 버전 A/B2/C",
+   "ckpt": "",
+   "path": "runs/egvla2_fm_299/",
+   "arch": "A_mlp_fm·B2·C_pi0_adaln",
+   "train": "299건(29,062프레임)",
+   "offline": "",
+   "status": "보존",
+   "note": "300번째 반영 이전의 학습 결과를 보존한 폴더(계획서 §119). 서빙에 쓰이는지는 미확인",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [],
+   "sessions": null
+  },
+  {
+   "pn": "EG3-01",
+   "gen": "G3",
+   "name": "E2E LoRA 스모크",
+   "ckpt": "e2e_vla_florence2_lora_latest.pt",
+   "path": "runs/egvla2_e2e_lora/e2e_vla_florence2_lora_latest.pt",
+   "arch": "Florence-2 LoRA r=8(0.72%)+PiZeroFM",
+   "train": "25ep, 15에피소드",
+   "offline": "in-sample 2.82°, 미학습 4개 15.78°",
+   "status": "보류",
+   "note": "412.95ms",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 370451311,
+   "sha256": "bb9f9acb332b75d5a45a5234f3d3eb39946bf96f5ae3325fcfda0f365476a0cc",
+   "robot": null,
+   "links": [
+    [
+     "CH79 E2E 일반 비교",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG3-02",
+   "gen": "G3",
+   "name": "A_frozen_fused",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/e2e_general.json",
+   "arch": "frozen 융합 특징",
+   "train": "",
+   "offline": "held-out 방향 19.6°(3분할 평균)",
+   "status": "결과만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 E2E 일반 비교",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG3-03",
+   "gen": "G3",
+   "name": "B0 DaViT frozen",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/e2e_general.json",
+   "arch": "인코더 고정 120ep/20ep",
+   "train": "",
+   "offline": "29.6° / 32.7°",
+   "status": "결과만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 E2E 일반 비교",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG3-04",
+   "gen": "G3",
+   "name": "B1 LoRA 마지막 단계",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/e2e_general.json",
+   "arch": "LoRA 마지막 단계 20ep",
+   "train": "",
+   "offline": "27.7°",
+   "status": "결과만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 E2E 일반 비교(마지막 단계 LoRA)",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG3-05",
+   "gen": "G3",
+   "name": "B2 LoRA 전 단계 384px",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/e2e_fullstage.json",
+   "arch": "LoRA 전 단계 8ep",
+   "train": "",
+   "offline": "30.9°, 라이브 36.1°",
+   "status": "결과만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 E2E 일반 비교(전 단계 LoRA@384)",
+     "research_story.html#ch79"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-00",
+   "gen": "G4",
+   "name": "V0 이미지만",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "arch": "A3 레시피",
+   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "offline": "부정 정지 8%, 박스 반대편 시 서보각 20.3°·좌우 9%",
+   "status": "오프라인만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 🔤 텍스트 조건화 탭",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-01",
+   "gen": "G4",
+   "name": "V1 고정 문구",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "arch": "",
+   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "offline": "결과 JSON 참고(text_cond_t2)",
+   "status": "오프라인만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 🔤 텍스트 조건화 탭",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-02",
+   "gen": "G4",
+   "name": "V2 패러프레이즈",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "arch": "",
+   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "offline": "결과 JSON 참고(text_cond_t2)",
+   "status": "오프라인만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 🔤 텍스트 조건화 탭",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-03",
+   "gen": "G4",
+   "name": "V3 +부정 20%",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "arch": "",
+   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "offline": "부정 정지 81.5%",
+   "status": "오프라인만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 🔤 텍스트 조건화 탭",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-04",
+   "gen": "G4",
+   "name": "V4 어휘 40+40",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "arch": "",
+   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "offline": "부정 정지 99.5%, 긍정 +3.1pp(기준 +3 미달), C 정상 2.1°·반대편 4.8°",
+   "status": "오프라인만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 🔤 텍스트 조건화 탭",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-05",
+   "gen": "G4",
+   "name": "V0R 박스 훼손 증강",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "arch": "",
+   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "offline": "반대편 −12.8°, 정상 +4.6° 악화",
+   "status": "오프라인만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 🔤 텍스트 조건화 탭",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-06",
+   "gen": "G4",
+   "name": "V5 토큰 어텐션",
+   "ckpt": "",
+   "path": "docs/v5/egvla2_fm/text_cond_t5.json",
+   "arch": "MultiheadAttention 768/4head",
+   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "offline": "학습 중(T5)",
+   "status": "오프라인만",
+   "note": "",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH79 🔤 텍스트 조건화 탭",
+     "research_story.html#ch79"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  }
+ ],
+ "robot_log_error": null
+}

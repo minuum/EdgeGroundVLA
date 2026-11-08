@@ -21,7 +21,7 @@ PLAN = 33  # 계획: 3 pos x 3 목표 x 33 = 297
 ep = os.environ.get("EP_LOG")
 txt = open(ep, encoding="utf-8").read() if ep else subprocess.check_output(["git", "show", "origin/monavla-driving:logs/episode_log.csv"], cwd=ROOT).decode("utf-8")
 allrows = list(csv.DictReader(txt.splitlines()))
-log = [r for r in allrows if r["날짜"].startswith("2026-11-04")]
+log = [r for r in allrows if r["날짜"].startswith(("2026-11-04", "2026-11-05"))]
 logok = {r["session_id"]: r for r in allrows if r["session_id"]}  # session_id로 매칭(날짜 아님)
 
 rows = []
