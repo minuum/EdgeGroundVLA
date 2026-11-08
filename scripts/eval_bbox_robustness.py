@@ -54,10 +54,20 @@ def evaluate(m, D, te, variant):
         pm = S.norm(dim=-1); both = (pm > GO) & (ym > GO); c = (S[both] * y[both]).sum(-1) / (pm[both] * ym[both])
         return torch.rad2deg(torch.acos(c.clamp(-1, 1))).mean().item()
     g = torch.Generator(device=DEV); g.manual_seed(123); res = {}
+    bb0 = D["bb"][te]; sv = TC.servo_label(D["ch"][te], bb0[:, 8], 1.0)[:, 0, :2]; sm = sv.norm(dim=-1)   # 정상 박스 기준 서보 라벨 = '바구니 쪽으로' 정답
+    def ang_to(S, Y):
+        ym_ = Y.norm(dim=-1); pm = S.norm(dim=-1); both = (pm > GO) & (ym_ > GO); c = (S[both] * Y[both]).sum(-1) / (pm[both] * ym_[both])
+        return torch.rad2deg(torch.acos(c.clamp(-1, 1))).mean().item()
+    lat = sm > GO
     conds = {"clean": bb, "drop100": corrupt(bb, "drop", g), "jitter": corrupt(bb, "jitter", g), "wrong": corrupt(bb, "wrong", g)}
     half = (torch.rand(len(bb), 1, device=DEV, generator=g) < 0.5); conds["drop50"] = torch.where(half, torch.zeros_like(bb), bb)
+    Sc = T4.step1(m, bb, ft)
     for k, b in conds.items():
-        S = T4.step1(m, b, ft); res[k] = dict(ang=ang(S), stop=(S.norm(dim=-1) < GO).float().mean().item())
+        S = T4.step1(m, b, ft)
+        res[k] = dict(ang=ang(S), stop=(S.norm(dim=-1) < GO).float().mean().item(),
+                      servo_ang=ang_to(S, sv),                                              # 서보 라벨(바구니 방향) 대비 각도
+                      d_clean=(S - Sc).norm(dim=-1).mean().item(),                          # 박스를 훼손했을 때 명령이 얼마나 바뀌나(박스 의존도)
+                      ly_sign=((S[lat][:, 1].sign() == sv[lat][:, 1].sign()).float().mean().item()))   # 좌우 부호가 바구니 쪽과 같은 비율
     return res
 
 
@@ -75,7 +85,7 @@ def main():
                 T4.EPOCHS = EPOCHS
                 mdl = fit_robust(D, tr, sd) if v == "V0R_bbox_aug" else T4.fit(D, tr, v, sd)
                 res[key] = evaluate(mdl, D, te, v); res[key]["t"] = round(time.time(), 1); OUT.write_text(json.dumps(res, indent=1))
-                print(key, {c: round(x["ang"], 1) for c, x in res[key].items() if isinstance(x, dict)}, flush=True)
+                print(key, {c: (round(x["servo_ang"], 1), round(x["d_clean"], 3), round(x["ly_sign"], 2)) for c, x in res[key].items() if isinstance(x, dict)}, flush=True)
 
 
 if __name__ == "__main__":

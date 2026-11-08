@@ -135,6 +135,18 @@ def block(tbl, H, st):
             '<b>해석:</b> 어휘를 늘리자 안 본 부정 문구와 "색은 같고 물체가 다른" 문구(gray chair 100%, gray laptop 98%)까지 거의 다 멈추고, 동의 표현에 대한 흔들림도 V3보다 줄었다. 방향 오차 비용은 보이지 않는다(31.2° vs 30.7°, 분할 간 sd 3.3° 안). 그러나 동의 표현 정지율이 V0보다 약 3%p 높고 <code>gray pail</code>·<code>grey bucket</code> 같은 변형에서 22~24%가 멈춰, <b>패러프레이즈 취약성이 사라진 것은 아니다</b>.<br>'
             '<b>주의:</b> 속성만 다른 <code>blue bin</code>은 18%, <code>red basket</code>은 52% 멈춘다(정답이 불명확해 판정 제외). 오프라인·프레임 단위이고 장면에 다른 물체가 없는 사진이라, 선택 능력(두 물체 중 고르기)이나 폐루프 성공을 뜻하지 않는다.</div>',
             "plan: docs/plans/plan_20261108_text_vocab_expansion.md · 로그 runs/e2e_cache/logs/text_cond_t4.log · 원자료 docs/v5/egvla2_fm/text_cond_t4.json"))
+    br = _load("bbox_robustness.json")
+    if br and len(br) >= 27:
+        Vb = [("V0_img_only", "V0 현재 A3 방식"), ("V0R_bbox_aug", "V0R 훼손 증강(보완안)"), ("V4_big_vocab", "V4 텍스트 조건화")]
+        Cb = [("clean", "정상 박스"), ("drop50", "50% 제거"), ("drop100", "전부 제거"), ("jitter", "흔들림"), ("wrong", "반대편 오검출")]
+        def m_(v, c, k):
+            x = [r[c][k] for kk, r in br.items() if kk.split("|")[1] == v]; return float(np.mean(x)), float(np.std(x))
+        rb = [[f"<b>{n}</b> 서보 라벨 대비 각도(°)"] + [f"{m_(v, c, 'servo_ang')[0]:.1f}±{m_(v, c, 'servo_ang')[1]:.1f}" for v, _ in Vb] for c, n in Cb] + [[f"<b>{n}</b> 박스 의존도(명령 변화)"] + [f"{m_(v, c, 'd_clean')[0]:.3f}" for v, _ in Vb] for c, n in Cb[1:]] + [[f"<b>{n}</b> 좌우 부호 일치"] + [f"{m_(v, c, 'ly_sign')[0] * 100:.1f}%" for v, _ in Vb] for c, n in (Cb[0], Cb[2], Cb[4])]
+        dw = m_("V0_img_only", "wrong", "servo_ang")[0] - m_("V0R_bbox_aug", "wrong", "servo_ang")[0]; dc = m_("V0R_bbox_aug", "clean", "servo_ang")[0] - m_("V0_img_only", "clean", "servo_ang")[0]
+        ok = dw >= 5 and dc <= 1
+        o.append(V.wrap("C 상황 — 박스를 훼손했을 때 방향을 유지하나, 훼손 증강(V0R) 보완안 (27/27)", V.img("figures/ch79/bbox_robustness.png", "입력은 같은 프레임에서 박스만 합성 훼손(제거·흔들림·반대편 반전). 정지율은 정상 장면이라 낮아야 한다. 사전 선언 기준: wrong에서 V0 대비 서보 라벨 대비 각도 ≥5° 감소 + clean 악화 ≤1°. 지표는 첫 시도(사람 명령 대비 방향 오차)가 박스 의존성을 못 재서 교체했고 그 사실을 계획서에 기록했다.") + tbl(["조건"] + [n for _, n in Vb], rb) +
+            f'<div style="font-size:0.84rem;line-height:1.9;margin-top:10px"><b>사전 기준 판정:</b> wrong 조건 V0→V0R 서보 라벨 대비 각도 변화 {dw:+.1f}°(기준 ≥5°), clean 악화 {dc:+.1f}°(기준 ≤1°) → <b>{"충족" if ok else "미충족"}</b>.<br>이 평가는 오프라인·합성 훼손이며 실제 검출 실패 분포와 다르다. 실기 세션의 그라운딩 실패 프레임으로 검증하는 것은 후속.</div>',
+            "plan: docs/plans/plan_20261108_bbox_robustness_and_supplement.md · 원자료 docs/v5/egvla2_fm/bbox_robustness.json"))
     probes = _load("text_cond_probes.json")
     if t2 and probes and any("probe" in r for r in t2.values()):
         o.append(V.wrap("원본 사진으로 비교 — 같은 학습 프레임에서 변형별 첫 스텝 명령 (fold0 시험 프레임, 시드 평균)",
