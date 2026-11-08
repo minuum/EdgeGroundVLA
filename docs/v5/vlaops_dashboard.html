@@ -256,61 +256,38 @@
       gap: 4px;
     }
 
-    /* Tab Navigation */
+    /* Tab Navigation — 왼쪽 세로 목차 + 오른쪽 세로 스크롤(개발 문서형) */
+    .vwrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); column-gap: 20px; align-items: start; }
     .tab-nav {
-      display: flex;
-      gap: 6px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 4px;
-      overflow-x: auto;
+      grid-column: 1; grid-row: 1 / span 40;
+      position: sticky; top: 74px; align-self: start;
+      display: flex; flex-direction: column; gap: 4px;
+      max-height: calc(100vh - 90px); overflow-y: auto;
+      padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 12px;
     }
-
+    .tab-nav::before { content: "목차 (클릭 → 해당 섹션으로 스크롤)"; font-size: 0.68rem; color: var(--text-muted); padding: 0 6px 6px; letter-spacing: .02em; }
     .tab-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      font-weight: 700;
-      padding: 10px 18px;
-      border-radius: 8px 8px 0 0;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-      position: relative;
-      white-space: nowrap;
+      background: transparent; border: none; border-left: 3px solid transparent;
+      color: var(--text-muted); font-size: 0.82rem; font-weight: 700;
+      padding: 9px 10px; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      text-align: left; width: 100%; transition: all 0.2s; white-space: normal;
     }
+    .tab-btn:hover { color: #fff; background: rgba(30, 41, 59, 0.5); }
+    .tab-btn.active { color: #38bdf8; background: rgba(56, 189, 248, 0.10); border-left-color: #38bdf8; }
+    .tab-count { font-size: 0.68rem; background: rgba(30, 41, 59, 0.8); padding: 2px 6px; border-radius: 10px; font-family: var(--font-mono); white-space: nowrap; }
 
-    .tab-btn:hover {
-      color: #fff;
-      background: rgba(30, 41, 59, 0.4);
-    }
-
-    .tab-btn.active {
-      color: #38bdf8;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid var(--border);
-      border-bottom: 2px solid #38bdf8;
-    }
-
-    .tab-count {
-      font-size: 0.72rem;
-      background: rgba(30, 41, 59, 0.8);
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-family: var(--font-mono);
-    }
-
-    /* Tab Panels */
+    /* Tab Panels — 모두 보이게 세로로 쌓는다 */
     .tab-panel {
-      display: none;
-      flex-direction: column;
-      gap: 18px;
+      grid-column: 2; display: flex; flex-direction: column; gap: 18px;
+      scroll-margin-top: 78px; padding-bottom: 26px; margin-bottom: 26px; border-bottom: 1px dashed rgba(51, 65, 85, 0.6);
     }
-
-    .tab-panel.active {
-      display: flex;
+    @media (max-width: 960px) {
+      .vwrap { grid-template-columns: 1fr; }
+      .tab-nav { grid-row: auto; position: static; max-height: none; flex-direction: row; overflow-x: auto; margin-bottom: 14px; }
+      .tab-nav::before { display: none; }
+      .tab-btn { width: auto; white-space: nowrap; }
+      .tab-panel { grid-column: 1; }
     }
 
     /* Card Panels */
@@ -887,6 +864,7 @@
     </section>
 
     <!-- Tab Navigation -->
+    <div class="vwrap">
     <nav class="tab-nav">
       <button class="tab-btn active" onclick="switchTab('tab-live')">
         <span>⚡ 실시간 학습 관제 (Live Monitor)</span>
@@ -2725,30 +2703,34 @@
 })();
 </script>
 </div><!--TEXTCOND-END-->
+    </div><!--vwrap-end-->
   </main>
 
   <script>
     // ════ TAB SWITCHING ════
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      
-      const target = document.getElementById(tabId);
-      if (target) target.classList.add('active');
-
-      const btns = document.querySelectorAll('.tab-btn');
-      btns.forEach(btn => {
-        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
-          btn.classList.add('active');
-        }
+    function highlightTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const oc = btn.getAttribute('onclick') || '';
+        btn.classList.toggle('active', oc.includes("'" + tabId + "'"));
       });
-
-      if (tabId === 'tab-curves') {
-        setTimeout(renderCurveChart, 50);
-      } else if (tabId === 'tab-foxglove') {
-        setTimeout(drawFoxOverlay, 50);
-      }
     }
+    function switchTab(tabId) {
+      const target = document.getElementById(tabId);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      highlightTab(tabId);
+    }
+    (function () {
+      let ticking = false;
+      function spy() {
+        ticking = false;
+        const ps = [...document.querySelectorAll('.tab-panel')];
+        let cur = ps.length ? ps[0].id : null;
+        ps.forEach(p => { if (p.getBoundingClientRect().top <= 110) cur = p.id; });
+        if (cur) highlightTab(cur);
+      }
+      window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
+      window.addEventListener('DOMContentLoaded', () => setTimeout(spy, 200));
+    })();
 
     // ════ TAB 1: LIVE SIMULATION & LOSS CHART ════
     let isSimulating = true;
@@ -2773,63 +2755,44 @@
       renderLiveChart();
     }
 
+    let liveMaxEpoch = 120, liveNote = '';
     function renderLiveChart() {
       const w = liveCanvas.parentElement.clientWidth;
       const h = liveCanvas.parentElement.clientHeight;
       lctx.clearRect(0, 0, w, h);
-
-      if (liveHistory.length === 0) return;
-
-      const padL = 55, padR = 25, padT = 25, padB = 35;
-      const pw = w - padL - padR;
-      const ph = h - padT - padB;
-
-      // Draw Grid Lines
-      lctx.strokeStyle = "rgba(51, 65, 85, 0.35)";
-      lctx.lineWidth = 1;
-      for (let i = 0; i <= 4; i++) {
-        const y = padT + (ph / 4) * i;
-        lctx.beginPath();
-        lctx.moveTo(padL, y);
-        lctx.lineTo(w - padR, y);
-        lctx.stroke();
+      lctx.textBaseline = 'alphabetic';
+      if (liveHistory.length === 0) {
+        lctx.fillStyle = '#64748b'; lctx.font = '13px sans-serif'; lctx.textAlign = 'center';
+        lctx.fillText('연결된 학습 기록 없음 (egvla2_fm/training_status.json)', w / 2, h / 2); return;
       }
-
-      // 1. Draw Train Loss Line (Blue)
-      lctx.strokeStyle = "#38bdf8";
-      lctx.lineWidth = 2.2;
-      lctx.beginPath();
-      liveHistory.forEach((pt, idx) => {
-        const x = padL + (pt.ep / maxEpoch) * pw;
-        const normY = Math.max(0, Math.min(1, (pt.loss - 0.02) / 0.28));
-        const y = padT + (1 - normY) * ph;
-        if (idx === 0) lctx.moveTo(x, y);
-        else lctx.lineTo(x, y);
-      });
-      lctx.stroke();
-
-      // 2. Draw Val Angle Error Line (Orange)
-      lctx.strokeStyle = "#fbbf24";
-      lctx.lineWidth = 2.2;
-      lctx.beginPath();
-      liveHistory.forEach((pt, idx) => {
-        const x = padL + (pt.ep / maxEpoch) * pw;
-        const normY = Math.max(0, Math.min(1, (pt.angle - 8) / 26));
-        const y = padT + (1 - normY) * ph;
-        if (idx === 0) lctx.moveTo(x, y);
-        else lctx.lineTo(x, y);
-      });
-      lctx.stroke();
-
-      // Labels
-      lctx.fillStyle = "#64748b";
-      lctx.font = "11px JetBrains Mono";
-      lctx.textAlign = "right";
-      lctx.fillText("Loss 1.8 / 65°", padL - 8, padT + 4);
-      lctx.fillText("Loss 0.05 / 8°", padL - 8, padT + ph);
-      lctx.textAlign = "center";
-      lctx.fillText("Epoch 1", padL, h - 10);
-      lctx.fillText("Epoch " + maxEpoch, w - padR, h - 10);
+      const padL = 62, padR = 62, padT = 28, padB = 38;
+      const pw = w - padL - padR, ph = h - padT - padB;
+      const maxEp = Math.max(liveMaxEpoch, ...liveHistory.map(p => p.ep), 1);
+      const ls = liveHistory.filter(p => p.loss != null && isFinite(p.loss));
+      const as = liveHistory.filter(p => p.angle != null && isFinite(p.angle));
+      const rng = (vals, padRatio) => { if (!vals.length) return [0, 1]; let lo = Math.min(...vals), hi = Math.max(...vals); if (hi - lo < 1e-9) { hi = lo + 1; } const d = (hi - lo) * padRatio; return [lo - d, hi + d]; };
+      const [l0, l1] = rng(ls.map(p => p.loss), 0.08), [a0, a1] = rng(as.map(p => p.angle), 0.08);
+      const X = ep => padL + (maxEp <= 1 ? 0 : ((ep - 1) / (maxEp - 1))) * pw;
+      lctx.strokeStyle = 'rgba(51, 65, 85, 0.35)'; lctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = padT + (ph / 4) * i; lctx.beginPath(); lctx.moveTo(padL, y); lctx.lineTo(w - padR, y); lctx.stroke();
+        lctx.fillStyle = '#38bdf8'; lctx.font = '11px sans-serif'; lctx.textAlign = 'right';
+        lctx.fillText((l1 - (l1 - l0) * i / 4).toFixed(3), padL - 8, y + 4);
+        if (as.length) { lctx.fillStyle = '#fbbf24'; lctx.textAlign = 'left'; lctx.fillText((a1 - (a1 - a0) * i / 4).toFixed(1) + '°', w - padR + 8, y + 4); }
+      }
+      const line = (pts, key, lo, hi, color) => {
+        if (!pts.length) return;
+        lctx.strokeStyle = color; lctx.fillStyle = color; lctx.lineWidth = 2.2; lctx.beginPath();
+        pts.forEach((pt, i) => { const x = X(pt.ep), y = padT + (1 - (pt[key] - lo) / (hi - lo)) * ph; i ? lctx.lineTo(x, y) : lctx.moveTo(x, y); });
+        lctx.stroke();
+        pts.forEach(pt => { const x = X(pt.ep), y = padT + (1 - (pt[key] - lo) / (hi - lo)) * ph; lctx.beginPath(); lctx.arc(x, y, 3, 0, 6.2832); lctx.fill(); });
+      };
+      line(ls, 'loss', l0, l1, '#38bdf8'); line(as, 'angle', a0, a1, '#fbbf24');
+      lctx.fillStyle = '#94a3b8'; lctx.font = '11px sans-serif'; lctx.textAlign = 'center';
+      lctx.fillText('Epoch 1', padL, h - 12); lctx.fillText('Epoch ' + maxEp, w - padR, h - 12);
+      lctx.textAlign = 'left'; lctx.fillStyle = '#38bdf8'; lctx.fillText('● Train Loss (왼쪽 축)', padL, 16);
+      lctx.fillStyle = as.length ? '#fbbf24' : '#64748b'; lctx.fillText(as.length ? '● Val Angle (오른쪽 축)' : '● Val Angle: 이 기록에는 값 없음', padL + 170, 16);
+      if (liveNote) { lctx.fillStyle = '#f87171'; lctx.textAlign = 'right'; lctx.fillText(liveNote, w - padR, 16); }
     }
 
     // 실제 학습 상태 파일(egvla2_fm/training_status.json)을 폴링한다. 학습 스크립트가 에포크마다 기록(scripts/training_status.py).
@@ -2848,7 +2811,7 @@
         if (epBadge) epBadge.textContent = '학습 상태 파일 없음';
         document.getElementById('txtCurLoss').textContent = '—'; document.getElementById('txtCurAngle').textContent = '—';
         document.getElementById('txtCurrentEpoch').textContent = '—';
-        liveHistory = []; renderLiveChart();
+        liveHistory = []; liveNote = ''; renderLiveChart();
         document.getElementById('txtCompute').textContent = '—'; document.getElementById('txtVram').textContent = '—';
         document.getElementById('txtHeartbeat').textContent = new Date().toTimeString().split(' ')[0];
         return;
@@ -2859,7 +2822,9 @@
       document.getElementById('txtCurLoss').textContent = st.loss != null ? Number(st.loss).toFixed(4) : '—';
       document.getElementById('txtCurAngle').textContent = st.val_angle != null ? Number(st.val_angle).toFixed(2) + '°' : '—';
       document.getElementById('txtCurrentEpoch').textContent = st.epoch;
-      liveHistory = (st.history || []).map(h => ({ ep: h.ep, loss: h.loss, angle: h.angle != null ? h.angle : 0 }));
+      liveHistory = (st.history || []).map(h => ({ ep: h.ep, loss: h.loss, angle: h.angle != null ? h.angle : null }));
+      liveMaxEpoch = st.epochs || 120;
+      liveNote = running ? '' : ('마지막 기록 ' + (age != null ? (age >= 86400 ? Math.round(age / 86400) + '일 전' : Math.round(age / 3600) + '시간 전') : '시점 불명') + ' · 현재 연결된 학습 없음');
       renderLiveChart();
       const g = st.gpu || {};
       document.getElementById('txtCompute').textContent = g.util != null ? `${g.util}% (${g.name || 'GPU'})` : '—';
@@ -3531,6 +3496,7 @@
       resizeLiveChart();
       renderSlices();
       initFoxglove();
+      setTimeout(() => { renderCurveChart(); drawFoxOverlay(); }, 300);
       simInterval = setInterval(stepSim, 1500);
     });
   
