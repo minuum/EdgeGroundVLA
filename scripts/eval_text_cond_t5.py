@@ -127,4 +127,5 @@ def main():
                 print(key, {a: round(b, 3) for a, b in res[key].items() if isinstance(b, float)}, flush=True)
 
 
-main()
+if __name__ == "__main__":
+    main()
