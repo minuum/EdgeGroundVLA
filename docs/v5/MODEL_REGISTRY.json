@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-08T21:47",
+ "generated": "2026-11-08T23:51",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
@@ -881,7 +881,7 @@
    "path": "docs/v5/egvla2_fm/text_cond_t5.json",
    "arch": "MultiheadAttention 768/4head",
    "train": "3분할×시드3, 120ep, 프레임 1/9",
-   "offline": "학습 중(T5)",
+   "offline": "부정 정지 94.6%(시드 3/9가 81~83%), 같은 색 물체 77.9±37%(9회 중 2회 7~11% 붕괴), 동의 표현 정지 11.2%(V0 7.9, V4 10.4) — V4 대비 이득 없음",
    "status": "오프라인만",
    "note": "",
    "log_key": "__none__",

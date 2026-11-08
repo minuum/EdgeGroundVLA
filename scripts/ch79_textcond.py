@@ -135,6 +135,22 @@ def block(tbl, H, st):
             '<b>해석:</b> 어휘를 늘리자 안 본 부정 문구와 "색은 같고 물체가 다른" 문구(gray chair 100%, gray laptop 98%)까지 거의 다 멈추고, 동의 표현에 대한 흔들림도 V3보다 줄었다. 방향 오차 비용은 보이지 않는다(31.2° vs 30.7°, 분할 간 sd 3.3° 안). 그러나 동의 표현 정지율이 V0보다 약 3%p 높고 <code>gray pail</code>·<code>grey bucket</code> 같은 변형에서 22~24%가 멈춰, <b>패러프레이즈 취약성이 사라진 것은 아니다</b>.<br>'
             '<b>주의:</b> 속성만 다른 <code>blue bin</code>은 18%, <code>red basket</code>은 52% 멈춘다(정답이 불명확해 판정 제외). 오프라인·프레임 단위이고 장면에 다른 물체가 없는 사진이라, 선택 능력(두 물체 중 고르기)이나 폐루프 성공을 뜻하지 않는다.</div>',
             "plan: docs/plans/plan_20261108_text_vocab_expansion.md · 로그 runs/e2e_cache/logs/text_cond_t4.log · 원자료 docs/v5/egvla2_fm/text_cond_t4.json"))
+    t5 = _load("text_cond_t5.json")
+    if t5 and len(t5) >= 27:
+        V5s = ["V0_img_only", "V4_big_vocab", "V5_token_attn"]; L5 = ["V0 이미지 전용", "V4 평균 풀링", "V5 토큰 어텐션"]
+        def a5(k, pct=True, nd=1):
+            out = []
+            for v in V5s:
+                x = [r[k] for kk, r in t5.items() if kk.split("|")[1] == v]; f = 100 if pct else 1
+                out.append(f"{np.mean(x) * f:.{nd}f}±{np.std(x) * f:.{nd}f}" + ("%" if pct else ""))
+            return out
+        r5 = [["<b>안 본 부정 문구 14개 정지율</b>"] + a5("held_neg_stop_bbox"), ["같은 색·다른 물체 4개 정지율"] + a5("hard_neg_stop_bbox"),
+              ["<b>안 본 동의 표현 16개에서 정지</b>(낮아야 함)"] + a5("held_pos_stop"), ["안 본 동의 표현으로 바뀐 명령 크기"] + a5("held_pos_eff", False, 3),
+              ["속성만 다른 2개(red basket·blue bin) 정지"] + a5("ambig_stop"), ["기준 문구 방향 오차 (°)"] + a5("ang_ref", False, 1)]
+        o.append(V.wrap("T5 텍스트 토큰 어텐션 헤드 — 평균 풀링을 크로스 어텐션으로 바꾸면? (27/27)", tbl(["지표 (3분할×시드3 평균±표준편차)"] + L5, r5) +
+            '<div style="font-size:0.82rem;line-height:1.8;margin-top:8px"><b>기준 판정(사전 선언):</b> 부정 정지 ≥90% → V5 충족(94.6%), 동의 표현 명령 변화 ≤0.10 → 충족(0.062), 동의 표현 정지 ≤ V0+3%p → <b>V5 미충족</b>(V0 7.9% → V5 11.2%, +3.3%p). V4는 이번 재학습에서 +2.5%p로 충족 — T4의 +3.1%p와 달라, 이 기준선 근처는 시드 흔들림 안이다. <b>V4 대비 개선 없음</b>: 동의 표현 정지율은 오히려 V5 11.2% > V4 10.4%(차이는 표준편차 안). 계획서 기준대로 "어텐션 헤드의 이득 없음"으로 기록한다.<br>'
+            '<b>V5는 시드별로 불안정하다:</b> 부정 정지가 fold1 시드 0·1에서 83%·81%, 같은 색·다른 물체는 9회 중 2회(fold1 시드1, lopo_center 시드1)가 7.5%·10.8%로 붕괴해 평균 77.9±37%. V4는 같은 평가에서 99.5±0.6%. 원인은 확인하지 않았다(9회 중 2회, 가설 없음). 반대로 속성만 다른 문구의 정지는 V4 33%, V5 12%로 V5가 덜 멈추는데 이 문구의 정답은 불명확해 판정에서 제외했다.<br>'
+            '<b>한계:</b> 오프라인·프레임 간격 9·타이핑 텍스트. 어텐션 가중치는 보지 않았다. plan: docs/plans/plan_20261108_text_token_attention_head.md · 원자료 docs/v5/egvla2_fm/text_cond_t5.json</div>', kind="table"))
     br = _load("bbox_robustness.json")
     if br and len(br) >= 27:
         Vb = [("V0_img_only", "V0 현재 A3 방식"), ("V0R_bbox_aug", "V0R 훼손 증강(보완안)"), ("V4_big_vocab", "V4 텍스트 조건화")]
