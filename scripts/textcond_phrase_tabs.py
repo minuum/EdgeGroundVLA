@@ -37,6 +37,22 @@ def build():
     tab4 = (_flow([("① 사진", "같은 학습 프레임(3.2k, 간격 9)"), ("② 문구", "학습 정상 40 + 부정 40 / 평가 36개는 <b>학습에 전혀 없음</b>: 동의 표현 16, 새 물체 14, 같은 색·다른 물체 4, 속성만 다름 2"), ("③ 처리", "V3(6+3)와 V4(40+40)를 같은 조건·3분할×시드3으로 학습"), ("④ 판정", "문구별 정지율 평균. 기준: 부정 ≥90%, 동의 표현 ≤V0+3%p")]) +
             _img("figures/ch79/text_cond_t4_phrases.png", "가는 선 = V0 기준 정지율. 정상(파랑)은 짧을수록, 부정(빨강·주황)은 길수록 좋다") +
             f'<div style="font-size:0.78rem;margin:6px 0">V4 평균 — 동의 표현 {grp("정상")} · 새 물체 {grp("부정: 새")} · 같은 색 다른 물체 {grp("부정: 색")} · 속성만 다름 {grp("모호")}</div>' + _tbl(["문구", "유형", "V0", "V3", "V4"], r4))
+    # ── C 상황(박스 훼손)
+    br = _j("bbox_robustness.json")
+    if br and len(br) >= 27:
+        Vb = [("V0_img_only", "V0 현재 A3 방식"), ("V0R_bbox_aug", "V0R 훼손 증강"), ("V4_big_vocab", "V4 텍스트 조건화")]
+        Cb = [("clean", "정상 박스"), ("drop50", "50% 제거"), ("drop100", "전부 제거"), ("jitter", "흔들림"), ("wrong", "반대편 오검출")]
+        def mb(v, c, k): x = [r[c][k] for kk, r in br.items() if kk.split("|")[1] == v]; return float(np.mean(x)), float(np.std(x))
+        rb = [[f"<b>{n}</b>"] + [f"{mb(v, c, 'servo_ang')[0]:.1f}° / 의존도 {mb(v, c, 'd_clean')[0]:.3f} / 부호 {mb(v, c, 'ly_sign')[0] * 100:.0f}%" for v, _ in Vb] for c, n in Cb]
+        dw = mb("V0_img_only", "wrong", "servo_ang")[0] - mb("V0R_bbox_aug", "wrong", "servo_ang")[0]; dc = mb("V0R_bbox_aug", "clean", "servo_ang")[0] - mb("V0_img_only", "clean", "servo_ang")[0]
+        tabC = (_flow([("① 사진", "같은 학습 프레임(간격 9), 박스만 합성 훼손"), ("② 훼손", "정상 · 50% 제거 · 전부 제거 · cx 흔들림 · 반대편 반전"), ("③ 처리", "V0(A3 방식)·V0R(훼손 증강 보완안)·V4(텍스트 조건화)를 같은 조건 3분할×시드3으로 학습, 훼손된 박스로 첫 스텝 명령 계산"), ("④ 판정", "서보 라벨(바구니 방향) 대비 각도, 박스 의존도(명령 변화), 좌우 부호 일치")]) +
+                _img("figures/ch79/bbox_robustness.png", "박스 의존도 0 = 박스를 안 씀. V0은 박스를 반대편으로 뒤집으면 부호 일치가 9%로 무너진다(박스를 그대로 믿고 반대로 감)") +
+                _tbl(["조건 (서보 라벨 대비 각도 / 박스 의존도 / 좌우 부호 일치)"] + [n for _, n in Vb], rb) +
+                f'<div style="font-size:0.78rem;line-height:1.8;margin-top:8px"><b>사전 기준(보완안 V0R):</b> wrong에서 V0 대비 ≥5° 감소 → {dw:.1f}° 감소 <b>충족</b> · clean 악화 ≤1° → {dc:+.1f}° <b>미충족</b>. 즉 훼손에는 강해지지만 정상 정확도를 잃는다(이미지 특징만으로는 박스만큼 정확하지 않음).<br>'
+                '<b>관찰:</b> V0(현재 A3 방식)은 박스를 그대로 믿어 반대편 오검출에서 좌우가 뒤집힌다(부호 일치 9%). <b>V4(텍스트 조건화)는 정상 정확도를 잃지 않고 훼손에도 강하다</b>(wrong 4.8°, 부호 87%). 원인은 검증하지 못했다 — 융합 인코더의 텍스트 토큰이 이미지 토큰에 어텐션해 위치 정보를 담았을 가능성(가설), V4는 학습 구성도 달라(부정 20%) 텍스트 때문이라고 단정할 수 없다.<br>'
+                '<b>한계:</b> 오프라인·합성 훼손(실제 검출 실패 분포와 다름), 정지율은 조건과 무관하게 같음. 지표는 첫 시도(사람 명령 대비 방향 오차)가 박스에 둔감해 교체했고 계획서에 기록.</div>')
+    else:
+        tabC = '<div style="font-size:0.82rem;color:#fbbf24">결과 대기</div>'
     # ── T5
     if t5 and len(t5) >= 27:
         VS5 = [("V0_img_only", "V0 이미지 전용"), ("V4_big_vocab", "V4 평균 풀링"), ("V5_token_attn", "V5 토큰 어텐션")]
@@ -91,6 +107,12 @@ def build():
             ("파일", "scripts/precompute_text_tokens.py(약 2시간) → eval_text_cond_t5.py → text_cond_t5.json"),
             ("성공 기준", "T4와 같은 3기준 + V4 대비 동의 표현 정지율 감소. 개선이 없으면 \"어텐션 헤드 이득 없음\"으로 기록"),
             ("다음", "결과가 나오면 이 문서 4번 섹션과 CH79에 자동 반영")]) +
+        _pl("C", "박스 훼손 평가 + 훼손 증강 보완안", "완료 11/08 (기준 1/2 충족)", G_, [
+            ("목적", "인식이 틀리거나 사라질 때 이미지 경로가 방향을 유지하는지, 훼손 증강 학습이 보완이 되는지"),
+            ("방법", "박스를 제거·흔들기·반대편 반전으로 합성 훼손. V0(A3)·V0R(증강)·V4 27회"),
+            ("파일", "scripts/eval_bbox_robustness.py · plot_bbox_robustness.py"),
+            ("결과", "V0은 반대편 오검출에서 좌우 부호 일치 9%로 붕괴. 보완안 V0R은 훼손에 강하지만 정상 각도가 2.1°→6.7°로 악화(기준 미충족). V4는 정확도 손실 없이 훼손에 강함(원인 미검증)"),
+            ("다음", "V5 추가, 실기 세션의 실제 그라운딩 실패 프레임으로 검증")]) +
         _pl("T5-b", "지연·로드시간 측정", "대기 (GPU 점유 해제 후)", Y_, [
             ("목적", "E2E 변형(V4 평균 풀링·V5 어텐션)의 추가 비용 확인"),
             ("방법", "같은 GPU·fp16/fp32에서 헤드 forward 지연, 모델 로드 시간 각 50회. 기존 값(Florence-2 fused 서버 180~201ms, Jetson fp16 372ms, 헤드 약 54ms)과 같은 표에 정리"),
@@ -116,7 +138,8 @@ def build():
             ("pt-0", "1. T0 그라운딩 9문구", tab0, dates("docs/v5/egvla2_fm/text_robustness.json", "scripts/eval_text_robustness.py")),
             ("pt-2", "2. T2 학습/미지 문구", tab2, dates("docs/v5/egvla2_fm/text_cond_t2.json")),
             ("pt-4", "3. T4 문구별 36개", tab4, dates("docs/v5/egvla2_fm/text_cond_t4.json")),
-            ("pt-5", "4. T5 토큰 어텐션", tab5, dates("docs/v5/egvla2_fm/text_cond_t5.json", "docs/plans/plan_20261108_text_token_attention_head.md"))]
+            ("pt-5", "4. T5 토큰 어텐션", tab5, dates("docs/v5/egvla2_fm/text_cond_t5.json", "docs/plans/plan_20261108_text_token_attention_head.md")),
+            ("pt-c", "5. C 상황: 박스 훼손·보완안", tabC, dates("docs/v5/egvla2_fm/bbox_robustness.json", "docs/plans/plan_20261108_bbox_robustness_and_supplement.md"))]
     meth = _tbl(["단계", "무엇을 바꿨나", "문구는 어떻게", "측정", "섹션"], [
         ["T0", "학습 없음(현 A3 모듈형)", "9종 직접 입력", "그라운딩 박스·명령 변화", "1"], ["T2", "헤드에 텍스트 특징 추가", "정상 6 + 부정 3 학습, 미지 4 평가", "정지율·명령 변화", "2"],
         ["T4", "어휘 40+40로 확장", "미지 36 평가(동의 표현·새 물체·같은 색·속성)", "문구별 정지율", "3"], ["T5", "평균 풀링 → 크로스 어텐션", "T4와 동일", "T4와 동일", "4"]]) + '<div style="font-size:0.76rem;color:#94a3b8;margin-top:8px">입력은 모두 타이핑한 텍스트. 부정 = 장면에 없는 물체 문구(정답 정지). 모든 지표는 오프라인(프레임 단위)이며 폐루프 성공을 예측하지 않는다.</div>'
