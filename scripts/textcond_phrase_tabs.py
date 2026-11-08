@@ -50,11 +50,30 @@ def build():
     else:
         body5 = '<div style="font-size:0.82rem;color:#fbbf24">학습 진행 전(토큰 캐시 계산 중) — 결과가 나오면 이 탭이 채워진다.</div>'
     tab5 = (_flow([("① 사진", "T4와 같은 프레임"), ("② 문구", "T4와 같은 정상 40 + 부정 40"), ("③ 처리", "융합 인코더 마지막 6개 토큰 → <b>이미지 특징이 질의인 크로스 어텐션(4 head)</b> → 768-d. 평균 풀링 대신 토큰을 직접 읽음"), ("④ 판정", "T4와 같은 지표·기준")]) + body5)
-    tabs = [("pt-m", "방법 한눈에", None), ("pt-0", "T0 그라운딩 9문구", tab0), ("pt-2", "T2 학습/미지 문구", tab2), ("pt-4", "T4 문구별 36개", tab4), ("pt-5", "T5 토큰 어텐션", tab5)]
-    meth = _tbl(["단계", "무엇을 바꿨나", "문구는 어떻게", "측정", "탭"], [
-        ["T0", "학습 없음(현 A3 모듈형)", "9종 직접 입력", "그라운딩 박스·명령 변화", "T0"], ["T2", "헤드에 텍스트 특징 추가", "정상 6 + 부정 3 학습, 미지 4 평가", "정지율·명령 변화", "T2"],
-        ["T4", "어휘 40+40로 확장", "미지 36 평가(동의 표현·새 물체·같은 색·속성)", "문구별 정지율", "T4"], ["T5", "평균 풀링 → 크로스 어텐션", "T4와 동일", "T4와 동일", "T5"]]) + '<div style="font-size:0.76rem;color:#94a3b8;margin-top:8px">입력은 모두 타이핑한 텍스트. 부정 = 장면에 없는 물체 문구(정답 정지). 모든 지표는 오프라인(프레임 단위)이며 폐루프 성공을 예측하지 않는다.</div>'
-    btn = "".join(f'<button class="ptb" data-t="{i}" onclick="ptShow(\'{i}\')" style="background:#0f1d33;color:#e2e8f0;border:1px solid #1e3a5f;border-radius:6px;padding:5px 12px;margin:0 6px 6px 0;cursor:pointer;font-size:0.78rem">{n}</button>' for i, n, _ in tabs)
-    pan = "".join(f'<div class="ptp" id="{i}" style="display:{"block" if i == "pt-m" else "none"}">{meth if b is None else b}</div>' for i, n, b in tabs)
-    js = "<script>function ptShow(i){document.querySelectorAll('.ptp').forEach(e=>e.style.display=e.id===i?'block':'none');document.querySelectorAll('.ptb').forEach(b=>{b.style.background=b.dataset.t===i?'#1d4ed8':'#0f1d33'})}ptShow('pt-m')</script>"
-    return f'<section class="card"><div class="card-header"><div class="card-title"><span>🗂 문구·표현별 테스트 — 각각 어떻게 했고 결과는 (탭)</span></div></div>{btn}{pan}{js}</section>\n'
+    import subprocess
+    def dates(*files):
+        """git 로그로 작성일(첫 커밋)·갱신일(마지막 커밋). 커밋 전이면 '아직 없음'."""
+        ds = []
+        for f in files:
+            out = subprocess.run(["git", "log", "--format=%ad", "--date=format:%Y-%m-%d", "--", f], cwd=ROOT, capture_output=True, text=True).stdout.split()
+            ds += out
+        if not ds: return "작성: 아직 없음(결과 대기) "
+        a, b = min(ds), max(ds); return f"작성 {a} · 최종 갱신 {b}"
+    secs = [("pt-m", "0. 방법 한눈에", None, dates("docs/plans/plan_20261106_text_conditioned_e2e_vla.md")),
+            ("pt-0", "1. T0 그라운딩 9문구", tab0, dates("docs/v5/egvla2_fm/text_robustness.json", "scripts/eval_text_robustness.py")),
+            ("pt-2", "2. T2 학습/미지 문구", tab2, dates("docs/v5/egvla2_fm/text_cond_t2.json")),
+            ("pt-4", "3. T4 문구별 36개", tab4, dates("docs/v5/egvla2_fm/text_cond_t4.json")),
+            ("pt-5", "4. T5 토큰 어텐션", tab5, dates("docs/v5/egvla2_fm/text_cond_t5.json", "docs/plans/plan_20261108_text_token_attention_head.md"))]
+    meth = _tbl(["단계", "무엇을 바꿨나", "문구는 어떻게", "측정", "섹션"], [
+        ["T0", "학습 없음(현 A3 모듈형)", "9종 직접 입력", "그라운딩 박스·명령 변화", "1"], ["T2", "헤드에 텍스트 특징 추가", "정상 6 + 부정 3 학습, 미지 4 평가", "정지율·명령 변화", "2"],
+        ["T4", "어휘 40+40로 확장", "미지 36 평가(동의 표현·새 물체·같은 색·속성)", "문구별 정지율", "3"], ["T5", "평균 풀링 → 크로스 어텐션", "T4와 동일", "T4와 동일", "4"]]) + '<div style="font-size:0.76rem;color:#94a3b8;margin-top:8px">입력은 모두 타이핑한 텍스트. 부정 = 장면에 없는 물체 문구(정답 정지). 모든 지표는 오프라인(프레임 단위)이며 폐루프 성공을 예측하지 않는다.</div>'
+    nav = "".join(f'<a class="ptn" href="#{i}" data-t="{i}" onclick="ptGo(event,\'{i}\')" style="display:block;padding:7px 10px;border-radius:6px;color:#cbd5e1;text-decoration:none;font-size:0.8rem;margin-bottom:2px">{n}</a>' for i, n, _, _ in secs)
+    body = "".join(f'<div class="pts" id="{i}" style="padding:4px 4px 22px;border-bottom:1px solid #1e293b;margin-bottom:18px"><h3 style="margin:6px 0 4px;font-size:1rem;color:#e2e8f0">{n}</h3>{meth if b is None else b}<div style="font-size:0.7rem;color:#64748b;margin-top:10px;border-top:1px dashed #1e293b;padding-top:6px">🕒 {d}</div></div>' for i, n, b, d in secs)
+    js = ("<script>(function(){const box=document.getElementById('pt-scroll');if(!box)return;"
+          "window.ptGo=function(e,i){e.preventDefault();const t=document.getElementById(i);box.scrollTo({top:t.offsetTop-box.offsetTop-4,behavior:'smooth'})};"
+          "function spy(){const ps=[...document.querySelectorAll('.pts')];let cur=ps[0].id;ps.forEach(p=>{if(p.offsetTop-box.offsetTop-12<=box.scrollTop)cur=p.id});"
+          "document.querySelectorAll('.ptn').forEach(a=>{a.style.background=a.dataset.t===cur?'#1d4ed8':'transparent';a.style.color=a.dataset.t===cur?'#fff':'#cbd5e1'})}"
+          "box.addEventListener('scroll',spy);spy()})()</script>")
+    return (f'<section class="card"><div class="card-header"><div class="card-title"><span>🗂 문구·표현별 테스트 — 각각 어떻게 했고 결과는 (왼쪽 목차 · 스크롤)</span></div></div>'
+            f'<div style="display:flex;gap:14px;align-items:flex-start"><nav style="flex:0 0 190px;position:sticky;top:0;padding-top:4px">{nav}</nav>'
+            f'<div id="pt-scroll" style="flex:1;min-width:0;max-height:78vh;overflow-y:auto;padding-right:8px;position:relative">{body}</div></div>{js}</section>\n')
