@@ -59,7 +59,60 @@ def build():
             ds += out
         if not ds: return "작성: 아직 없음(결과 대기) "
         a, b = min(ds), max(ds); return f"작성 {a} · 최종 갱신 {b}"
+    def _pl(code, title, status, color, rows):
+        return (f'<div style="border:1px solid #1e3a5f;border-radius:8px;padding:10px 12px;margin:0 0 12px;background:#0b1730"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">'
+                f'<b style="font-size:0.88rem">{code} — {title}</b><span style="font-size:0.72rem;padding:2px 8px;border-radius:10px;background:{color}22;color:{color};border:1px solid {color}55">{status}</span></div>'
+                + _tbl(["항목", "내용"], [[f"<b>{a}</b>", b] for a, b in rows]) + '</div>')
+    G_, Y_, B_, R_ = "#34d399", "#fbbf24", "#38bdf8", "#f87171"
+    plans = (
+        '<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:10px">원문: docs/plans/plan_20261106_text_conditioned_e2e_vla.md · plan_20261108_text_vocab_expansion.md · plan_20261108_text_token_attention_head.md · HANDOFF_20261107_TEXT_OBJECT_SWAP_PHOTOS.md. 모든 오프라인 지표는 폐루프 성공을 예측하지 않는다(CH79).</div>' +
+        _pl("T0", "문구 민감도 측정 (학습 없음)", "완료 11/06", G_, [
+            ("목적", "지금 파이프라인에서 텍스트가 어디에 영향을 주는지(bbox 한 경로뿐인지) 수치화"),
+            ("방법", "10/29 실기 H5 24세션×3프레임=72장 × 문구 9종 → Florence-2 그라운딩 + A3 헤드. 인코더 부분별(이미지·융합 전체·융합 이미지 토큰·융합 텍스트 토큰) 코사인"),
+            ("파일", "scripts/eval_text_robustness.py · eval_text_visual.py · eval_text_encoders.py"),
+            ("성공 기준", "융합 특징의 기준 대비 cos &lt; 0.99(텍스트가 특징에 실림)"),
+            ("결과", "패러프레이즈는 박스 Δ0(모듈형은 지시문 변경에 강건). 이미지 풀링 특징은 문구와 무관(cos 1.000) → 현 헤드는 텍스트를 못 봄. 텍스트 토큰만 풀링하면 문구 차이가 가장 선명(go to the gray bin 0.773)")]) +
+        _pl("T1·T2", "헤드에 텍스트 넣기 + 부정 지시 학습", "완료 11/07", G_, [
+            ("목적", "텍스트를 쓰게 만드는 학습 신호가 필요한지 확인(귀무 가설: 문구가 상수면 무시)"),
+            ("방법", "V0 이미지 전용 / V1 문구 고정 / V2 +패러프레이즈 6종 / V3 +부정 지시 20%(정답 정지, 절반은 박스 유지). A3 학습법 동일(서보 라벨 1.0·드롭아웃 30%·120 epoch), 3분할×시드3"),
+            ("데이터", "기존 300 에피소드 재라벨(새 수집 없음), 3프레임 간격 ≈9.7k"),
+            ("파일", "scripts/precompute_text_fused(_heldout).py · eval_text_cond_t2.py"),
+            ("성공 기준", "부정 정지 ≥90%, 정상 방향 오차 ≤ 기준+1°, 패러프레이즈 명령 불변"),
+            ("결과", "V1·V2는 텍스트 무시(귀무 확인), V3만 부정 문구에 정지(안 본 문구 82%). 동의 표현 취약(명령 변화 0.23)")]) +
+        _pl("T4", "어휘 확장 (정상 40 + 부정 40)", "완료 11/08", G_, [
+            ("목적", "T2의 취약성이 어휘가 적어서인지 확인"),
+            ("방법", "학습 80개, 평가는 학습에 전혀 없는 36개(동의 표현 16·새 물체 14·같은 색 다른 물체 4·속성만 다름 2). 프레임 간격 9로 V0·V3·V4를 같은 조건에서 새로 학습(27회)"),
+            ("파일", "scripts/text_vocab.py · precompute_text_vocab.py · eval_text_cond_t4.py"),
+            ("성공 기준", "안 본 부정 정지 ≥90% · 동의 표현 명령 변화 ≤0.10 · 동의 표현 정지 ≤ V0+3%p"),
+            ("결과", "99.5% 충족 · 0.077 충족 · +3.1%p 근소 미충족. 같은 색 다른 물체도 100% 정지, grey bucket·gray pail은 22~24% 오정지")]) +
+        _pl("T5", "텍스트 토큰 어텐션 헤드", "진행 중 (토큰 캐시 계산)", Y_, [
+            ("목적", "평균 풀링이 흐리는 문구 순서·핵심 단어를 어텐션으로 읽으면 동의 표현 취약성이 줄어드는가"),
+            ("방법", "융합 인코더 마지막 6토큰 → 이미지 특징이 질의인 크로스 어텐션(4 head) → 768-d. V4(평균 풀링)와 같은 어휘·분할·시드·평가, V0·V4·V5 27회"),
+            ("파일", "scripts/precompute_text_tokens.py(약 2시간) → eval_text_cond_t5.py → text_cond_t5.json"),
+            ("성공 기준", "T4와 같은 3기준 + V4 대비 동의 표현 정지율 감소. 개선이 없으면 \"어텐션 헤드 이득 없음\"으로 기록"),
+            ("다음", "결과가 나오면 이 문서 4번 섹션과 CH79에 자동 반영")]) +
+        _pl("T5-b", "지연·로드시간 측정", "대기 (GPU 점유 해제 후)", Y_, [
+            ("목적", "E2E 변형(V4 평균 풀링·V5 어텐션)의 추가 비용 확인"),
+            ("방법", "같은 GPU·fp16/fp32에서 헤드 forward 지연, 모델 로드 시간 각 50회. 기존 값(Florence-2 fused 서버 180~201ms, Jetson fp16 372ms, 헤드 약 54ms)과 같은 표에 정리"),
+            ("파일", "scripts/bench_egvla2_unified.py 확장 예정(미작성)"),
+            ("한계", "Jetson 수치는 로봇 쪽 측정 필요")]) +
+        _pl("T6", "서버 지시문 인자화 + 로봇 사진 촬영", "대기 (사용자 전달·승인)", B_, [
+            ("목적", "교수님 시험 ①②를 실제 장면으로 확인할 수 있게 함. 현재 서버는 문구를 gray basket으로 고정(egvla2_inference_server.py:143)"),
+            ("1단계", "정지 사진 촬영(S0 통만 / S1 다른 물체만 / S2 통+물체 / S3 빈 바닥) 위치 좌·중·우 각 3장, 물체 후보 흰 상자·컵·의자·파란 병"),
+            ("2단계", "서버를 요청 문구 → Florence-2 프롬프트로 전달(기본 gray basket 유지, 플래그 기본 꺼짐). 실기 각 5~10회"),
+            ("파일", "docs/plans/HANDOFF_20261107_TEXT_OBJECT_SWAP_PHOTOS.md (로봇에 전달 필요)"),
+            ("성공 기준", "물체 교체: 새 물체 단어로 도달, 빈 장면·없는 단어는 정지. 지시문 변경: 동의 표현에서 기준과 같은 도달")]) +
+        _pl("T7", "기록 세션 재생 평가 (제안)", "제안 · 승인 필요", B_, [
+            ("목적", "프레임 단위 지표의 한계를 줄이기 위해, 기록된 11/04 세션(297개) 프레임을 시간순으로 재생하며 정지 판정이 처음 나오는 시점을 비교"),
+            ("방법", "A3·V4·V5가 같은 프레임열에서 명령을 내게 하고, 정상 문구는 실기 정지 시점 근처에서 멈추는지, 부정 문구는 처음부터 멈추는지 확인. 정지 후 재출발은 모사하지 못함"),
+            ("한계", "관측이 실제 로봇의 행동에 의존하지 않는 오픈 루프 재생이라 폐루프 성공을 대신하지 못함")]) +
+        _pl("T3", "물체 2개 중 고르는 데이터 (새 수집)", "미착수 · 결정 필요", R_, [
+            ("목적", "\"단어로 목표를 고르는\" E2E 주장의 유일한 근거. 이것 없이는 불변성·거절만 보인 것"),
+            ("방법", "장면에 회색 통 + 다른 물체를 두고, 문구가 가리키는 쪽으로 조이스틱 시연. 문구당 약 20 에피소드(기존 수집 절차 재사용)"),
+            ("전제", "T5·T6 결과로 E2E 방향을 계속할지 먼저 판단"),
+            ("결정 필요", "물체 종류, 문구 목록, 수집 일정(로봇 쪽 협의)")]))
     secs = [("pt-m", "0. 방법 한눈에", None, dates("docs/plans/plan_20261106_text_conditioned_e2e_vla.md")),
+            ("pt-p", "T별 계획 (로드맵)", plans, dates("docs/plans/plan_20261108_text_vocab_expansion.md", "docs/plans/plan_20261108_text_token_attention_head.md", "docs/plans/HANDOFF_20261107_TEXT_OBJECT_SWAP_PHOTOS.md")),
             ("pt-0", "1. T0 그라운딩 9문구", tab0, dates("docs/v5/egvla2_fm/text_robustness.json", "scripts/eval_text_robustness.py")),
             ("pt-2", "2. T2 학습/미지 문구", tab2, dates("docs/v5/egvla2_fm/text_cond_t2.json")),
             ("pt-4", "3. T4 문구별 36개", tab4, dates("docs/v5/egvla2_fm/text_cond_t4.json")),
