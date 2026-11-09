@@ -83,7 +83,7 @@ def panel():
         ["미지 부정 정지율(박스 없음)"] + [cell(A["unseen_stop_neg_nobbox"][v], True) for v in VS], ["미지 부정 정지율(박스 남음)"] + [cell(A["unseen_stop_neg_bbox"][v], True) for v in VS],
         ["미지 패러프레이즈 정지율(↓)"] + [cell(A["unseen_stop_pos"][v], True) for v in VS]]) if t2 else '<div style="font-size:0.84rem">학습 진행 중</div>'
     hero = ('<div style="font-size:0.84rem;line-height:1.8;margin-bottom:6px">교수님(11/05) 질문: 지시문 변경·물체 교체에도 가는가 → <b>텍스트가 행동에 직접 들어가는 E2E</b>가 되는지 오프라인으로 점검. '
-            '상세 해설·사진: <a href="research_story.html#ch79" style="color:#38bdf8">CH79 🔤 탭</a> · 계획서 docs/plans/plan_20261106_text_conditioned_e2e_vla.md. 현재 파이프라인은 텍스트→bbox만 텍스트 의존.</div>')
+            '상세 해설·사진: <a href="research_story.html#ch80" style="color:#38bdf8">CH80 텍스트 조건화 E2E</a> · 계획서 docs/plans/plan_20261106_text_conditioned_e2e_vla.md. 현재 파이프라인은 텍스트→bbox만 텍스트 의존.</div>')
     return (f'{B0}<div id="tab-textcond" class="tab-panel">' + card("🔤 텍스트 조건화(T0~T2) — 개요", hero) + card("📏 학습 관련 유효 지표", metrics, "표의 마지막 열은 분할 3 × 시드 3의 평균±표준편차(V0~V3 순). 단일 학습 설정·3프레임 간격 부분집합. 표본 문구가 적어 '핵심' 표기는 잠정.")
             + LIVE.replace("__PHRASE_TABS__", PT.build()) + card("🧬 주요 피처", feats) + card("🛠 변경사항 (감사 기록)", changes) + JS + f'</div>{B1}')
 

@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-08T23:51",
+ "generated": "2026-11-10T00:52",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
@@ -709,22 +709,22 @@
    "pn": "EG4-00",
    "gen": "G4",
    "name": "V0 이미지만",
-   "ckpt": "",
-   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "ckpt": "EG4-00_V0_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-00_V0_full.pt",
    "arch": "A3 레시피",
-   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2` 저장)",
    "offline": "부정 정지 8%, 박스 반대편 시 서보각 20.3°·좌우 9%",
-   "status": "오프라인만",
-   "note": "",
+   "status": "오프라인 + A3 세션 재생(T7), 실기 미검증",
+   "note": "T7: A3 세션 452개 재생에서 A3와 3.7~4.6° 차이, 박스 반전 시 좌우 일치 9~12%",
    "log_key": "__none__",
    "exists": true,
-   "bytes": null,
-   "sha256": null,
+   "bytes": 2901081,
+   "sha256": "197059193360c544e20b19de7cfd8c8771a60566d63f19018692dcf3b95117e9",
    "robot": null,
    "links": [
     [
-     "CH79 🔤 텍스트 조건화 탭",
-     "research_story.html#ch79"
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -751,8 +751,8 @@
    "robot": null,
    "links": [
     [
-     "CH79 🔤 텍스트 조건화 탭",
-     "research_story.html#ch79"
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -779,8 +779,8 @@
    "robot": null,
    "links": [
     [
-     "CH79 🔤 텍스트 조건화 탭",
-     "research_story.html#ch79"
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -807,8 +807,8 @@
    "robot": null,
    "links": [
     [
-     "CH79 🔤 텍스트 조건화 탭",
-     "research_story.html#ch79"
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -821,22 +821,22 @@
    "pn": "EG4-04",
    "gen": "G4",
    "name": "V4 어휘 40+40",
-   "ckpt": "",
-   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "ckpt": "EG4-04_V4_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-04_V4_full.pt",
    "arch": "",
-   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2` 저장)",
    "offline": "부정 정지 99.5%, 긍정 +3.1pp(기준 +3 미달), C 정상 2.1°·반대편 4.8°",
-   "status": "오프라인만",
-   "note": "",
+   "status": "오프라인 + A3 세션 재생(T7), 실기 미검증",
+   "note": "T7: A3 세션 452개 재생에서 A3와 2.3~2.8° 차이, 박스 반전 좌우 일치 42~94%(시드 편차 큼), 미학습 부정 문구 정지 99.7~100%",
    "log_key": "__none__",
    "exists": true,
-   "bytes": null,
-   "sha256": null,
+   "bytes": 3300441,
+   "sha256": "77b493f6c4f6e72099e80b0a86dfdc2e6f7d7ee149a5f033439d0af6f441bf15",
    "robot": null,
    "links": [
     [
-     "CH79 🔤 텍스트 조건화 탭",
-     "research_story.html#ch79"
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -863,8 +863,8 @@
    "robot": null,
    "links": [
     [
-     "CH79 🔤 텍스트 조건화 탭",
-     "research_story.html#ch79"
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -891,8 +891,8 @@
    "robot": null,
    "links": [
     [
-     "CH79 🔤 텍스트 조건화 탭",
-     "research_story.html#ch79"
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",

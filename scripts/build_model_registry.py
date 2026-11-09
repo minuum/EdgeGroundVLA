@@ -42,6 +42,13 @@ for pn,nm,ar,of,nt in [("EG4-00","V0 이미지만","A3 레시피","부정 정지
     ("EG4-05","V0R 박스 훼손 증강","","반대편 −12.8°, 정상 +4.6° 악화",""),("EG4-06","V5 토큰 어텐션","MultiheadAttention 768/4head","부정 정지 94.6%(시드 3/9가 81~83%), 같은 색 물체 77.9±37%(9회 중 2회 7~11% 붕괴), 동의 표현 정지 11.2%(V0 7.9, V4 10.4) — V4 대비 이득 없음","")]:
     SPEC.append(E(pn,"G4",nm,"", "docs/v5/egvla2_fm/text_cond_t4.json" if pn!="EG4-06" else "docs/v5/egvla2_fm/text_cond_t5.json",ar,"3분할×시드3, 120ep, 프레임 1/9",of,"오프라인만",nt,key="__none__"))
 
+for _r in SPEC:   # T7(11/09)에서 V0·V4를 300에피소드 전체로 저장 학습 → 체크포인트·학습 정보·실기 세션 재생 결과 기록
+    if _r["pn"] in ("EG4-00", "EG4-04"):
+        _f = "EG4-00_V0_full" if _r["pn"] == "EG4-00" else "EG4-04_V4_full"
+        _r.update(ckpt=_f + ".pt", path="runs/egvla2_fm/textcond/" + _f + ".pt", log_key="__none__",
+                  train="300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2` 저장)",
+                  status="오프라인 + A3 세션 재생(T7), 실기 미검증",
+                  note="T7: A3 세션 452개 재생에서 " + ("A3와 3.7~4.6° 차이, 박스 반전 시 좌우 일치 9~12%" if _r["pn"] == "EG4-00" else "A3와 2.3~2.8° 차이, 박스 반전 좌우 일치 42~94%(시드 편차 큼), 미학습 부정 문구 정지 99.7~100%"))
 RS = "research_story.html"; VO = "vlaops_dashboard.html"
 LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
  "EG1-02": [("CH70 헤드 구조·손실 실험(exp73, epoch 300 언급)", RS+"#ch70"), ("CH78 ⑥-2 EGVLA1 vs EGVLA2(276/300)", RS+"#ch78"), ("CH77 EGVLA1 비교", RS+"#ch77"), ("CH76 ④ V6 학습 데이터", RS+"#ch76")],
@@ -52,7 +59,7 @@ LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
  "EG3-01": [("CH79 E2E 일반 비교", RS+"#ch79")], "EG3-02": [("CH79 E2E 일반 비교", RS+"#ch79")], "EG3-03": [("CH79 E2E 일반 비교", RS+"#ch79")], "EG3-04": [("CH79 E2E 일반 비교(마지막 단계 LoRA)", RS+"#ch79")], "EG3-05": [("CH79 E2E 일반 비교(전 단계 LoRA@384)", RS+"#ch79")],
 }
 for _pn in ("EG4-00","EG4-01","EG4-02","EG4-03","EG4-04","EG4-05","EG4-06"):
-    LINKS[_pn] = [("CH79 🔤 텍스트 조건화 탭", RS+"#ch79"), ("VLAops 🔤 문구·표현별 테스트", VO)]
+    LINKS[_pn] = [("CH80 텍스트 조건화 E2E", RS+"#ch80"), ("VLAops 🔤 문구·표현별 테스트", VO)]
 DATASETS = [  # id, 이름, 경로, 설명, 사용 모델(PN), 결과 링크
  ("DS-01","EGVLA2 학습셋 300건","ROS_action/mobile_vla_dataset_egvla2","10/13~10/16 수집(디렉터리 H5 371개 중 학습 세트 300건 = meta/egvla2_v3_main.json, 29,161프레임). 속성: 시작 위치·경로 라벨","EG2-01~09, EG3-*, EG4-*", [("CH76 수집 점검", RS+"#ch76"),("CH77", RS+"#ch77")]),
  ("DS-02","V5 데이터셋(EGVLA1 학습)","ROS_action/mobile_vla_dataset_v5","h5 515개 로컬 확인. CH76 ④: V6 학습 데이터, minum 쪽이 유일 원본(로봇 쪽 복사본은 정리됨, 별도 백업 없음). CLAUDE.md의 V5 150건은 이 중 일부로 보이나 미확인","EG1-02(사용자 확인), EG0-*(추정)", [("CH76 ④ 데이터 보관 상태", RS+"#ch76")]),
