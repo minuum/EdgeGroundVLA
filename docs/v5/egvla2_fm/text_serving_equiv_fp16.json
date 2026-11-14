@@ -1,0 +1,33 @@
+{
+ "V4": {
+  "n_frames": 109,
+  "vis_cos_min": 0.9999333438041632,
+  "txt_cos_min": 0.9998836028955304,
+  "txt_cos_mean": 0.9999845320895098,
+  "box_err_max": 9.0,
+  "box_err_median": 0.0011180329602211714,
+  "ang_median": 0.08385968362060836,
+  "ang_p90": 0.18840712995337666,
+  "n_ang": 45,
+  "stop_agree": 1.0
+ },
+ "V4R": {
+  "n_frames": 109,
+  "vis_cos_min": 0.9999333438041632,
+  "txt_cos_min": 0.9998836028955304,
+  "txt_cos_mean": 0.9999845320895098,
+  "box_err_max": 9.0,
+  "box_err_median": 0.0011180329602211714,
+  "ang_median": 0.07085994540918267,
+  "ang_p90": 0.17208573612698272,
+  "n_ang": 44,
+  "stop_agree": 1.0
+ },
+ "_criteria": {
+  "txt_cos": 0.999,
+  "box_err": 0.02,
+  "ang_median": 1.0,
+  "stop_agree": 0.95
+ },
+ "_dtype": "fp16"
+}

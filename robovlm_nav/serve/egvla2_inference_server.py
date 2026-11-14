@@ -75,9 +75,11 @@ class EgVla2Service:
             self.controller.reset()
             self.n = 0
 
-    def predict_rgb(self, image_rgb: np.ndarray) -> dict[str, Any]:
+    def predict_rgb(self, image_rgb: np.ndarray, instruction: Optional[str] = None) -> dict[str, Any]:
         t0 = time.time()
         with self._lock:
+            if hasattr(self.extractor, "set_phrase"):          # 텍스트 조건화 경로(VLA_EGVLA2_TEXT=1)에서만: 지시어 → 문구 특징
+                self.extractor.set_phrase(instruction)
             bbox, feat = self.extractor(image_rgb)
             g_ms = (time.time() - t0) * 1000
             r = self.policy.step(bbox, feat)
@@ -88,12 +90,15 @@ class EgVla2Service:
             resp = build_response(out=out, action_cont=r["action_cont"], bbox=bbox, latency_ms=(time.time() - t0) * 1000, grounding_ms=g_ms,
                                   meta=self.meta, subgoal_missing=bool(r.get("subgoal_missing", False)), window=int(getattr(self.policy, "window", 0)),
                                   history_size=len(hist), chunk_first=list(r["first"]), spread=r.get("spread"))
+        if hasattr(self.extractor, "phrase"):
+            resp["instruction_used"] = self.extractor.phrase
+            resp["variant"] = self.meta.get("variant")
         logger.info("[#%d] %s lat=%.0fms bbox(cx=%.2f area=%.3f has=%s)", self.n, resp["predicted_label"], resp["latency_ms"],
                     resp["bbox"]["cx"], resp["bbox"]["area"], resp["bbox"]["has_bbox"])
         return resp
 
-    def predict(self, image_b64: str) -> dict[str, Any]:
-        return self.predict_rgb(decode_image(image_b64))
+    def predict(self, image_b64: str, instruction: Optional[str] = None) -> dict[str, Any]:
+        return self.predict_rgb(decode_image(image_b64), instruction)
 
 
 # ── 환경변수 → 서비스(지연 로드) ──
@@ -114,6 +119,13 @@ def load_service_from_env() -> EgVla2Service:
                             rotate_max_frames=int(os.getenv("VLA_EGVLA2_ROTATE_MAX", 12)), servo_blend=_env_float("VLA_EGVLA2_SERVO_BLEND", 0.0), servo_k=_env_float("VLA_EGVLA2_SERVO_K", 2.0), servo_max=_env_float("VLA_EGVLA2_SERVO_MAX", 0.7), idle_max_frames=int(os.getenv("VLA_EGVLA2_IDLE_MAX", 20)), near_area=None if near == "off" else float(near),
                             near_frames=int(os.getenv("VLA_EGVLA2_NEAR_FRAMES", 2)), lost_frames=int(os.getenv("VLA_EGVLA2_LOST_FRAMES", 5)),
                             search_max_frames=int(os.getenv("VLA_EGVLA2_SEARCH_MAX", 40)), gain=_env_float("VLA_EGVLA2_GAIN", 1.15))
+    if os.getenv("VLA_EGVLA2_TEXT", "0") == "1":      # 텍스트 조건화(V4·V4R) 경로. 기본 꺼짐 — plan_20261115_v4_serving.md
+        from robovlm_nav.serve.egvla2_text_policy import FusedF2TextExtractor, TextCondPolicy
+        policy = TextCondPolicy(ckpt, k_samples=int(os.getenv("VLA_EGVLA2_K", 8)), speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"), ema_alpha=_env_float("VLA_EGVLA2_EMA", 0.0))
+        sha = hashlib.sha256(ckpt.read_bytes()).hexdigest()
+        meta = dict(ckpt=ckpt.name, sha256=sha, arch=policy.meta.get("arch"), dtype=dt_name, subgoal_dropout=0, variant=policy.meta.get("variant"))
+        logger.info("EGVLA2 TEXT service: ckpt=%s variant=%s sha256=%s dtype=%s", ckpt.name, meta["variant"], sha[:8], dt_name)
+        return EgVla2Service(FusedF2TextExtractor(dtype=dtype), policy, ctrl, meta)
     policy = EgVla2FMPolicy(ckpt, k_samples=int(os.getenv("VLA_EGVLA2_K", 8)), speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"),
                             ema_alpha=_env_float("VLA_EGVLA2_EMA", 0.0))
     sha = hashlib.sha256(ckpt.read_bytes()).hexdigest()
@@ -172,7 +184,7 @@ def create_app(service_getter: Callable[[], EgVla2Service] = get_service):
     async def predict(request: InferenceRequest, x_api_key: Optional[str] = Header(default=None)) -> dict[str, Any]:
         check_key(x_api_key)
         try:
-            return service_getter().predict(request.image)
+            return service_getter().predict(request.image, request.instruction)
         except HTTPException:
             raise
         except Exception as exc:  # noqa: BLE001

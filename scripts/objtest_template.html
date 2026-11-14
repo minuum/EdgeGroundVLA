@@ -1,0 +1,67 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>11/13 물체 실험 분석·재생</title>
+<style>:root{--bg:#0b1220;--card:#111a2e;--line:#1e2d4a;--tx:#e2e8f0;--mut:#94a3b8;--a:#38bdf8;--ok:#4ade80;--bad:#f87171;--w:#fbbf24}
+@media(prefers-color-scheme:light){:root{--bg:#f4f6fb;--card:#fff;--line:#d5dcea;--tx:#1b2438;--mut:#58637c;--a:#0369a1;--ok:#15803d;--bad:#b91c1c;--w:#b45309}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.65 system-ui,-apple-system,"Noto Sans KR",sans-serif}main{max-width:1200px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.2em 0}h2{font-size:1.1rem;margin:26px 0 8px;scroll-margin-top:10px}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{color:var(--mut);font-weight:600}
+.warn{border-left:3px solid var(--w);background:var(--card);padding:10px 12px;border-radius:6px;font-size:.88rem;margin:12px 0}.m{font-size:.8rem;color:var(--mut)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.pl{display:grid;grid-template-columns:300px 1fr;gap:12px}@media(max-width:860px){.pl{grid-template-columns:1fr}}
+#list{max-height:640px;overflow:auto;padding:6px}#list div{padding:5px 8px;border-radius:6px;cursor:pointer;font-size:.8rem;border:1px solid transparent}#list div:hover{border-color:var(--line)}#list div.sel{background:var(--line)}
+.f{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}select,button{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;font-size:.82rem;cursor:pointer}button.on{border-color:var(--a);color:var(--a)}
+.img{position:relative;line-height:0;border-radius:8px;overflow:hidden;background:#000}.img img{width:100%;height:auto}.dot{position:absolute;border-radius:50%;border:2px solid #38bdf8;background:#38bdf844;transform:translate(-50%,-50%)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}@media(max-width:700px){.g2{grid-template-columns:1fr}}svg{width:100%;height:auto;background:var(--bg);border-radius:8px}
+.lg span{margin-right:12px;font-size:.78rem;white-space:nowrap}.lg i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px}
+input[type=range]{width:100%}.tag{display:inline-block;padding:0 7px;border-radius:9px;font-size:.78rem;border:1px solid var(--line)}</style></head><body><main>
+<h1>11/13 물체 실험 65건 — 분석·시나리오 재생</h1>
+<p class="m">기록: 로봇 서버에서 받은 A3 세션 H5 65개 + <code>episode_log.csv</code>. 성공/실패는 로봇 쪽 operator의 수동 판정(비맹검, 기준 문서 없음)이고 우리가 다시 판정하지 않았습니다.</p>
+<div class="warn"><b>확인됨(재생으로):</b> 이 저장소의 서버 코드는 지시어를 무시하고 인식 문구를 'gray basket'으로 고정하지만, <b>11/13에 로봇 서버가 실제로 쓴 박스는 지시어로 찾은 박스</b>입니다. 같은 프레임을 gray basket 문구로 다시 찾아보면 바구니 15건은 박스가 전부 일치하는데(불일치 0%), 의자·화분·책상 세션은 프레임의 76~100%에서 박스가 달랐습니다(표 아래 설명). 즉 로봇 서버는 이 저장소와 다른 코드(지시어 전달)로 돌았고, 이 실험은 '지시어로 물체를 찾는 박스 + A3 주행'의 검증이 맞습니다. 서버 코드 차이 자체는 soda에서 확인해야 합니다.</div><div class="warn"><b>정정:</b> 이 65건이 동환이 말한 "물체 4종 × G2·G3·G4" 실험 그 자체입니다. 로봇 서버 쪽이 CSV만 보고 "문구가 비어 있다"고 해서 다른 데이터로 오해했는데, 문구와 물체는 CSV가 아니라 H5 속성(<code>instruction</code>)에 있었습니다. 아래 집계가 동환의 49/65, 39/40, 10/25와 일치하는지는 표에서 확인하세요.</div>
+<h2>1. 집계 (CSV 결과 기준)</h2>
+<div class="card"><table><tr><th>물체</th><th>왼쪽(경로 trackA_weak_left)</th><th>가운데(trackF_center)</th><th>오른쪽(trackA_weak_right)</th></tr>@@ROWS@@</table>
+<p class="m">옆(왼·오른쪽) @@SIDE@@ · 가운데 @@CEN@@ · 전체 @@ALL@@ (성공/세션). 경로→G 번호 대응은 동환 설명(옆 G2·G4, 가운데 G3)에서 추정했고 기록에는 G 번호가 없습니다. CSV 결과가 없는 세션: @@NOROW@@.</p></div>
+<h2>2. 실패는 어떻게 생겼나 (세션 기록에서 계산)</h2>
+<div class="card"><table><tr><th>조건</th><th>세션</th><th>움직인 프레임 비율</th><th>출발 후 멈춘 프레임(평균)</th><th>첫 프레임 박스 크기</th><th>첫 프레임 박스 가로</th><th>V4R 움직임(실제 문구)</th><th>V4R 움직임(gray basket 문구)</th><th>V0 움직임</th><th>gray basket 문구로 찾은 박스 검출률</th><th>V4R 움직임(서빙 설계: gray 박스+실제 문구)</th><th>V4 움직임(서빙 설계)</th></tr>@@HTAB@@</table>
+<p class="m">"움직임" = 명령 크기가 0.2 이상인 프레임 비율(정지 기준 GO=0.2). V0·V4R은 기록된 프레임·박스를 입력으로 한 <b>열린고리 재생</b>(10시드 평균)이라, 실제로 그 명령을 따랐다면 이후 화면이 달라지므로 실기 성공을 예측하지 못합니다. 박스는 기록된 인식기 출력(지시어로 찾은 박스)입니다. 뒤 세 열은 <b>V4·V4R 서빙 설계</b>(박스는 gray basket 고정, 지시어는 문구 특징으로만)로 같은 프레임을 다시 추출해 재생한 값입니다. 두 방식 모두 바구니가 아닌 문구에서는 거의 움직이지 않습니다.</p></div>
+@@FINDINGS@@
+<h2>3. 시나리오 재생 (65건 전부)</h2>
+<div class="pl"><div class="card"><div class="f"><select id="fo"><option value="">물체 전체</option></select><select id="fp"><option value="">위치 전체</option></select><select id="fr"><option value="">결과 전체</option></select></div><div id="list"></div></div>
+<div class="card"><div id="hd" style="margin-bottom:6px"></div><div class="img"><img id="im" alt="기록된 프레임"><span class="dot" id="dt"></span></div>
+<div class="f" style="margin-top:8px"><button id="pp">▶ 재생</button><button id="pv">◀</button><button id="nx">▶|</button><button id="au">끝나면 다음 세션</button><span id="fi" class="m"></span></div><input type="range" id="sl" min="0" value="0">
+<div class="g2"><div><b style="font-size:.85rem">명령 크기 (0.2 아래 = 멈춤)</b><svg id="c1" viewBox="0 0 360 150"></svg></div><div><b style="font-size:.85rem">좌우 명령 (+ 오른쪽)</b><svg id="c2" viewBox="0 0 360 150"></svg></div></div>
+<div class="lg" id="lg" style="margin-top:6px"></div>
+<div class="g2"><div><b style="font-size:.85rem">누적 경로(위에서 본 모양)</b> <span class="f" style="display:inline-flex"><button id="m0" class="on">A3 기록</button><button id="m1">V4R(문구)</button><button id="m2">V4R(gray)</button></span><svg id="c3" viewBox="0 0 360 200"></svg></div><div id="info" class="m"></div></div>
+<p class="m">프레임 간격은 기록되지 않아 재생 속도는 임의입니다. 경로는 명령을 단순 누적한 모양일 뿐 실제 거리·각도가 아닙니다. 점선(V4R)은 "기록된 프레임에 대한 명령을 그대로 따랐다면"의 가정이라 실제 주행 결과가 아닙니다.</p></div></div>
+<h2>4. 읽는 법과 한계</h2><div class="card"><ul style="margin:.2em 0 .2em 1.2em;padding:0"><li>성공/실패 판정은 operator의 수동 판정이고 비맹검입니다. 실패 원인(인식 실패, 정지, 오검출)은 판정에 없으며 아래 서술은 기록에서 본 추정입니다.</li>
+<li>V0·V4·V4R 재생은 열린고리입니다. A3 실기 결과와 같은 입력을 줬을 때의 명령만 보여줍니다.</li><li>V4·V4R 학습 문구에 flower pot이 "없는 물체(정지)"로 들어 있어, 화분 문구에서 멈추는 것은 학습 설계의 결과입니다. 의자·책상은 학습 문구에 없습니다.</li>
+<li>물체 위치의 G 번호, 물체 크기, 받침 사용 여부는 기록에 없습니다.</li></ul></div>
+<p class="m"><a href="demo_gallery.html" style="color:var(--a)">← 시연 갤러리</a> · <a href="photo_shot_guide.html" style="color:var(--a)">사진 촬영 안내</a></p>
+<script>
+const COL={a3:["A3 기록","#e2e8f0",0],V4R_ins:["V4R·실제 문구","#4ade80",0],V4R_ins_gb:["V4R·서빙설계","#facc15",0],V4R_gray:["V4R·gray basket","#38bdf8",1],V4_ins:["V4·실제 문구","#fb923c",0],V0_ins:["V0(문구 없음)","#94a3b8",1]};
+let D=[],cur=null,fi=0,timer=null,auto=false,mode=0;const $=id=>document.getElementById(id);
+const nrm=a=>Math.hypot(a[0],a[1]);
+fetch("egvla2_fm/objtest_data.json").then(r=>r.json()).then(d=>{D=d;
+ for(const [id,key] of [["fo","obj"],["fp","pos"],["fr","res"]]){[...new Set(D.map(s=>s[key]))].forEach(v=>{const o=document.createElement("option");o.value=o.textContent=v;$(id).appendChild(o)});$(id).onchange=draw}
+ draw();sel(D[0].sid)});
+function draw(){const L=$("list");L.innerHTML="";D.filter(s=>(!$("fo").value||s.obj==$("fo").value)&&(!$("fp").value||s.pos==$("fp").value)&&(!$("fr").value||s.res==$("fr").value)).forEach(s=>{const e=document.createElement("div");e.dataset.s=s.sid;if(cur&&cur.sid==s.sid)e.className="sel";
+ e.innerHTML=`${s.sid.slice(9,11)}:${s.sid.slice(11,13)} · ${s.obj}(${s.form}) · ${s.pos.split("(")[0]} · <b class="${s.res=="성공"?"ok":s.res=="실패"?"bad":""}">${s.res}</b>`;e.onclick=()=>sel(s.sid);L.appendChild(e)})}
+function sel(id){stop();cur=D.find(s=>s.sid==id);fi=0;$("sl").max=cur.n-1;draw();show();
+ $("hd").innerHTML=`<b>${cur.obj}</b> · 문구 “${cur.ins}” · ${cur.pos} · <span class="tag ${cur.res=="성공"?"ok":cur.res=="실패"?"bad":""}">${cur.res}</span> · ${cur.n}프레임 · <span class="m">${cur.sid}</span>`;
+ $("info").innerHTML=`움직인 프레임 비율 ${cur.go}, 출발 후 멈춘 프레임 ${cur.hes}, 첫 프레임 박스 크기 ${cur.area0} → 마지막 ${cur.areaN}, 박스 검출 프레임 비율 ${cur.vis}.<br>첫 움직임 프레임: ${cur.first<0?"없음(출발하지 않음)":cur.first}.`;
+ charts();paths()}
+function show(){$("im").src=`figures/objtest/${cur.sid}_${fi}.jpg`;const b=cur.bbox[fi],d=$("dt"),r=Math.max(8,Math.sqrt(b[2])*130);d.style.left=100*b[0]+"%";d.style.top=100*b[1]+"%";d.style.width=d.style.height=r+"px";d.style.display=b[3]>0.5?"block":"none";
+ $("sl").value=fi;$("fi").textContent=`${fi+1}/${cur.n} · 명령 ${nrm(cur.a3[fi]).toFixed(2)} · 박스 크기 ${b[2].toFixed(3)}`;cursor()}
+function ln(arr,fn,x0,w,h,mx,mn,c,dash){return `<polyline fill="none" stroke="${c}" stroke-width="2" ${dash?'stroke-dasharray="4 3"':""} points="${arr.map((v,i)=>`${x0+i*w/Math.max(1,arr.length-1)},${h-(fn(v)-mn)/(mx-mn)*(h-10)-5}`).join(" ")}"/>`}
+function charts(){let s1='',s2='',lg='';const H=150,W=330,x0=25;
+ for(const k in COL){if(!cur[k]&&k!="a3")continue;const arr=k=="a3"?cur.a3:cur[k];s1+=ln(arr,nrm,x0,W,H,1.5,0,COL[k][1],COL[k][2]);s2+=ln(arr,a=>a[1],x0,W,H,1,-1,COL[k][1],COL[k][2]);lg+=`<span><i style="background:${COL[k][1]}"></i>${COL[k][0]}</span>`}
+ const y=v=>H-(v/1.5)*(H-10)-5;$("c1").innerHTML=`<line x1="${x0}" x2="${x0+W}" y1="${y(0.2)}" y2="${y(0.2)}" stroke="#f87171" stroke-dasharray="3 3"/><text x="2" y="${y(0.2)+3}" fill="#f87171" font-size="9">0.2</text>`+s1+`<line id="k1" y1="0" y2="${H}" stroke="#fbbf24"/>`;
+ $("c2").innerHTML=`<line x1="${x0}" x2="${x0+W}" y1="${H/2}" y2="${H/2}" stroke="#64748b"/>`+s2+`<line id="k2" y1="0" y2="${H}" stroke="#fbbf24"/>`;$("lg").innerHTML=lg}
+function cursor(){const x=25+fi*330/Math.max(1,cur.n-1);for(const i of["k1","k2"]){const e=$(i);if(e){e.setAttribute("x1",x);e.setAttribute("x2",x)}}paths()}
+function paths(){const k=["a3","V4R_ins","V4R_gray"][mode];const a=(cur[k]||cur.a3);let x=0,y=0,P=[[0,0]];a.forEach(v=>{x+=v[1]*0.1;y+=v[0]*0.1;P.push([x,y])});
+ const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]);const mx=Math.max(1,...ys),lo=Math.min(-1,...xs),hi=Math.max(1,...xs);const sc=Math.min(150/(hi-lo),170/mx);const X=p=>180+(p-(lo+hi)/2)*sc,Y=p=>190-p*sc;
+ const pts=P.slice(0,fi+2).map(p=>`${X(p[0])},${Y(p[1])}`).join(" "),all=P.map(p=>`${X(p[0])},${Y(p[1])}`).join(" ");
+ $("c3").innerHTML=`<polyline fill="none" stroke="#475569" stroke-width="1" points="${all}"/><polyline fill="none" stroke="#38bdf8" stroke-width="2.5" ${mode?'stroke-dasharray="5 3"':""} points="${pts}"/><circle cx="${X(0)}" cy="${Y(0)}" r="4" fill="#4ade80"/><text x="${X(0)+6}" y="${Y(0)+4}" fill="#94a3b8" font-size="10">출발</text>`}
+[0,1,2].forEach(i=>$("m"+i).onclick=()=>{mode=i;[0,1,2].forEach(j=>$("m"+j).className=j==i?"on":"");paths()});
+function step(d){fi=Math.max(0,Math.min(cur.n-1,fi+d));show()}
+function stop(){if(timer){clearInterval(timer);timer=null}$("pp").textContent="▶ 재생"}
+$("pp").onclick=()=>{if(timer)return stop();if(fi>=cur.n-1)fi=0;$("pp").textContent="⏸ 정지";timer=setInterval(()=>{if(fi>=cur.n-1){stop();if(auto){const i=D.indexOf(cur);if(D[i+1]){sel(D[i+1].sid);$("pp").onclick()}}return}step(1)},450)};
+$("pv").onclick=()=>{stop();step(-1)};$("nx").onclick=()=>{stop();step(1)};$("sl").oninput=e=>{stop();fi=+e.target.value;show()};$("au").onclick=()=>{auto=!auto;$("au").className=auto?"on":""};
+</script></main></body></html>
