@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-10T00:52",
+ "generated": "2026-11-15T18:18",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
@@ -558,11 +558,19 @@
     [
      "VLAops",
      "vlaops_dashboard.html"
+    ],
+    [
+     "CH81 11/13 물체 실험 65건",
+     "research_story.html#ch81"
+    ],
+    [
+     "11/13 재생 페이지",
+     "object_test_1113.html"
     ]
    ],
    "sessions": {
-    "n": 455,
-    "h5_local": 454,
+    "n": 520,
+    "h5_local": 519,
     "film": 20
    }
   },
@@ -595,7 +603,7 @@
    "train": "25ep, 15에피소드",
    "offline": "in-sample 2.82°, 미학습 4개 15.78°",
    "status": "보류",
-   "note": "412.95ms",
+   "note": "412.95ms. 학습 스크립트 기본값 --num_episodes 15로 돌린 스모크(300으로 확장하지 않은 이유는 기록 없음)",
    "log_key": "__none__",
    "exists": true,
    "bytes": 370451311,
@@ -616,7 +624,7 @@
    "ckpt": "",
    "path": "docs/v5/egvla2_fm/e2e_general.json",
    "arch": "frozen 융합 특징",
-   "train": "",
+   "train": "300에피소드 6프레임 간격 약 4,860장, 3분할(fold0·lopo_center·lopo_strong_right)",
    "offline": "held-out 방향 19.6°(3분할 평균)",
    "status": "결과만",
    "note": "",
@@ -640,7 +648,7 @@
    "ckpt": "",
    "path": "docs/v5/egvla2_fm/e2e_general.json",
    "arch": "인코더 고정 120ep/20ep",
-   "train": "",
+   "train": "300에피소드 6프레임 간격 약 4,860장, 3분할",
    "offline": "29.6° / 32.7°",
    "status": "결과만",
    "note": "",
@@ -664,7 +672,7 @@
    "ckpt": "",
    "path": "docs/v5/egvla2_fm/e2e_general.json",
    "arch": "LoRA 마지막 단계 20ep",
-   "train": "",
+   "train": "300에피소드 6프레임 간격 약 4,860장, 3분할",
    "offline": "27.7°",
    "status": "결과만",
    "note": "",
@@ -688,7 +696,7 @@
    "ckpt": "",
    "path": "docs/v5/egvla2_fm/e2e_fullstage.json",
    "arch": "LoRA 전 단계 8ep",
-   "train": "",
+   "train": "300에피소드 6프레임 간격 약 4,860장, 3분할",
    "offline": "30.9°, 라이브 36.1°",
    "status": "결과만",
    "note": "",
@@ -706,15 +714,87 @@
    "sessions": null
   },
   {
+   "pn": "EG2-11",
+   "gen": "G2",
+   "name": "A3C-F30 (특징 30% 0으로)",
+   "ckpt": "A3C_F30_s0.pt",
+   "path": "runs/egvla2_fm/a3c/A3C_F30_s0.pt",
+   "arch": "adaln + 이미지 특징을 30% 확률로 0",
+   "train": "A3 레시피(λ=1.0, 드롭아웃 30%, 120ep, 300에피소드) + 이미지 특징 처리, 시드 0. 목표=가운데 위치(plan_20261115_a3_improvement S3)",
+   "offline": "의자·가운데 이동 0%(A3 0%), 바구니·가운데 64%(A3 80%), 화분·가운데 77%(A3 92%), 11/13 세션 끝 정지 20%(A3 32%)",
+   "status": "폐기(오프라인 기각)",
+   "note": "의자 문제를 못 고치고 이동만 줄어듦. 재생 지표이며 성공률 아님",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2901109,
+   "sha256": "64941f93a994ba4e46e63cb9913020d28e8d04d93245b4bcf38a22751e719b05",
+   "robot": null,
+   "links": [
+    [
+     "A3 개선 계획서·결과(7절)",
+     "../plans/plan_20261115_a3_improvement.md"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-12",
+   "gen": "G2",
+   "name": "A3C-F50 (특징 50% 0으로)",
+   "ckpt": "A3C_F50_s0.pt",
+   "path": "runs/egvla2_fm/a3c/A3C_F50_s0.pt",
+   "arch": "adaln + 이미지 특징을 50% 확률로 0",
+   "train": "A3 레시피(λ=1.0, 드롭아웃 30%, 120ep, 300에피소드) + 이미지 특징 처리, 시드 0. 목표=가운데 위치(plan_20261115_a3_improvement S3)",
+   "offline": "의자·가운데 이동 2%, 바구니·가운데 61%, 화분·가운데 74%, 의자·오른쪽 68%(A3 80%)",
+   "status": "폐기(오프라인 기각)",
+   "note": "F30과 같은 결론",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2901109,
+   "sha256": "2f4fd732ded1e6442212ba7c54a4e6dc6dac4e88333e95e5ea1f7cdc2abc4371",
+   "robot": null,
+   "links": [
+    [
+     "A3 개선 계획서·결과(7절)",
+     "../plans/plan_20261115_a3_improvement.md"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG2-13",
+   "gen": "G2",
+   "name": "A3C-S30 (특징 30% 다른 프레임으로 교체)",
+   "ckpt": "A3C_S30_s0.pt",
+   "path": "runs/egvla2_fm/a3c/A3C_S30_s0.pt",
+   "arch": "adaln + 이미지 특징을 30% 확률로 같은 배치 다른 프레임 것으로 교체",
+   "train": "A3 레시피(λ=1.0, 드롭아웃 30%, 120ep, 300에피소드) + 이미지 특징 처리, 시드 0. 목표=가운데 위치(plan_20261115_a3_improvement S3)",
+   "offline": "의자·가운데 이동 100%(A3 0%), 바구니·가운데 100%, 화분·가운데 100%. 단 11/13 세션 끝 3프레임 정지 5%(A3 32%), T7 A3 기록 80세션 끝 정지 0.4%(A3 5%)",
+   "status": "보류(정지 상실, 서빙 안 함)",
+   "note": "가운데는 풀리나 도착 정지를 잃음. 서빙 후처리가 보완하는지는 미검증",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2901109,
+   "sha256": "648eb4dd784212ffb761169a74be6f38f9a93229acbfbbf2877964727cd73efd",
+   "robot": null,
+   "links": [
+    [
+     "A3 개선 계획서·결과(7절)",
+     "../plans/plan_20261115_a3_improvement.md"
+    ]
+   ],
+   "sessions": null
+  },
+  {
    "pn": "EG4-00",
    "gen": "G4",
    "name": "V0 이미지만",
    "ckpt": "EG4-00_V0_full.pt",
    "path": "runs/egvla2_fm/textcond/EG4-00_V0_full.pt",
    "arch": "A3 레시피",
-   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2` 저장)",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2`)",
    "offline": "부정 정지 8%, 박스 반대편 시 서보각 20.3°·좌우 9%",
-   "status": "오프라인 + A3 세션 재생(T7), 실기 미검증",
+   "status": "오프라인 + 시연 갤러리 + A3 세션 재생(T7), 실기 미검증",
    "note": "T7: A3 세션 452개 재생에서 A3와 3.7~4.6° 차이, 박스 반전 시 좌우 일치 9~12%",
    "log_key": "__none__",
    "exists": true,
@@ -737,17 +817,17 @@
    "pn": "EG4-01",
    "gen": "G4",
    "name": "V1 고정 문구",
-   "ckpt": "",
-   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "ckpt": "EG4-01_V1_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-01_V1_full.pt",
    "arch": "",
-   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0 · T2와 학습 조건 다름(T4 캐시 재학습)",
    "offline": "결과 JSON 참고(text_cond_t2)",
-   "status": "오프라인만",
+   "status": "오프라인 + 시연 갤러리, 실기 미검증",
    "note": "",
    "log_key": "__none__",
    "exists": true,
-   "bytes": null,
-   "sha256": null,
+   "bytes": 3300377,
+   "sha256": "e239ed2018a93144f48e7684483f09f8aca999b16b97f068a14923328b745a4c",
    "robot": null,
    "links": [
     [
@@ -765,17 +845,17 @@
    "pn": "EG4-02",
    "gen": "G4",
    "name": "V2 패러프레이즈",
-   "ckpt": "",
-   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "ckpt": "EG4-02_V2_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-02_V2_full.pt",
    "arch": "",
-   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0 · T2와 학습 조건 다름(T4 캐시 재학습)",
    "offline": "결과 JSON 참고(text_cond_t2)",
-   "status": "오프라인만",
+   "status": "오프라인 + 시연 갤러리, 실기 미검증",
    "note": "",
    "log_key": "__none__",
    "exists": true,
-   "bytes": null,
-   "sha256": null,
+   "bytes": 3300377,
+   "sha256": "69ebb3cd53589451224298fe6c4dc48439546d152e5cc41a958f41ae3507c129",
    "robot": null,
    "links": [
     [
@@ -793,17 +873,17 @@
    "pn": "EG4-03",
    "gen": "G4",
    "name": "V3 +부정 20%",
-   "ckpt": "",
-   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "ckpt": "EG4-03_V3_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-03_V3_full.pt",
    "arch": "",
-   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0",
    "offline": "부정 정지 81.5%",
-   "status": "오프라인만",
+   "status": "오프라인 + 시연 갤러리, 실기 미검증",
    "note": "",
    "log_key": "__none__",
    "exists": true,
-   "bytes": null,
-   "sha256": null,
+   "bytes": 3300377,
+   "sha256": "2bcfd842927e474e6a7864adaac51c0aab8bda105a68796a50f79cc608608b44",
    "robot": null,
    "links": [
     [
@@ -824,10 +904,10 @@
    "ckpt": "EG4-04_V4_full.pt",
    "path": "runs/egvla2_fm/textcond/EG4-04_V4_full.pt",
    "arch": "",
-   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2` 저장)",
-   "offline": "부정 정지 99.5%, 긍정 +3.1pp(기준 +3 미달), C 정상 2.1°·반대편 4.8°",
-   "status": "오프라인 + A3 세션 재생(T7), 실기 미검증",
-   "note": "T7: A3 세션 452개 재생에서 A3와 2.3~2.8° 차이, 박스 반전 좌우 일치 42~94%(시드 편차 큼), 미학습 부정 문구 정지 99.7~100%",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2`)",
+   "offline": "T7 10시드: A3와 각도 2.80±0.39°·좌우 95.7%, 박스 반전 좌우 86.0%(최저 42, 표준편차 15%p), 부정 정지 99.5%, 긍정 정지 6.4%",
+   "status": "오프라인 + 시연 갤러리 + A3 세션 재생(T7), 서빙 경로 구현·동등성 검증, 실기 미검증",
+   "note": "수치는 A3와의 유사도이지 성공률이 아님. 시드 편차가 큼(박스 반전 좌우 일치 최저 42%) → V4R이 이 편차를 줄임. 박스는 gray basket 고정이라 다른 물체로는 구동하지 못함",
    "log_key": "__none__",
    "exists": true,
    "bytes": 3300441,
@@ -841,6 +921,10 @@
     [
      "VLAops 🔤 문구·표현별 테스트",
      "vlaops_dashboard.html"
+    ],
+    [
+     "CH81 종합 브리핑(서빙·11/13 실험)",
+     "research_story.html#ch81"
     ]
    ],
    "sessions": null
@@ -849,17 +933,17 @@
    "pn": "EG4-05",
    "gen": "G4",
    "name": "V0R 박스 훼손 증강",
-   "ckpt": "",
-   "path": "docs/v5/egvla2_fm/text_cond_t4.json",
+   "ckpt": "EG4-05_V0R_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-05_V0R_full.pt",
    "arch": "",
-   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0",
    "offline": "반대편 −12.8°, 정상 +4.6° 악화",
-   "status": "오프라인만",
+   "status": "오프라인 + 시연 갤러리, 실기 미검증",
    "note": "",
    "log_key": "__none__",
    "exists": true,
-   "bytes": null,
-   "sha256": null,
+   "bytes": 2901058,
+   "sha256": "977faa368c83bd7bd9a7b9008e3ec9f74f359fc8182a82d918732a847c62e28b",
    "robot": null,
    "links": [
     [
@@ -877,17 +961,17 @@
    "pn": "EG4-06",
    "gen": "G4",
    "name": "V5 토큰 어텐션",
-   "ckpt": "",
-   "path": "docs/v5/egvla2_fm/text_cond_t5.json",
+   "ckpt": "EG4-06_V5_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-06_V5_full.pt",
    "arch": "MultiheadAttention 768/4head",
-   "train": "3분할×시드3, 120ep, 프레임 1/9",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0",
    "offline": "부정 정지 94.6%(시드 3/9가 81~83%), 같은 색 물체 77.9±37%(9회 중 2회 7~11% 붕괴), 동의 표현 정지 11.2%(V0 7.9, V4 10.4) — V4 대비 이득 없음",
-   "status": "오프라인만",
+   "status": "오프라인 + 시연 갤러리, 실기 미검증",
    "note": "",
    "log_key": "__none__",
    "exists": true,
-   "bytes": null,
-   "sha256": null,
+   "bytes": 15121145,
+   "sha256": "d47ea74b7576a0e90bb204b6bea2d927a7addf00405b14d26592e8ddcaf22d2f",
    "robot": null,
    "links": [
     [
@@ -897,6 +981,38 @@
     [
      "VLAops 🔤 문구·표현별 테스트",
      "vlaops_dashboard.html"
+    ]
+   ],
+   "sessions": null
+  },
+  {
+   "pn": "EG4-07",
+   "gen": "G4",
+   "name": "V4R 박스 훼손 증강(V4+)",
+   "ckpt": "EG4-07_V4R_full.pt",
+   "path": "runs/egvla2_fm/textcond/EG4-07_V4R_full.pt",
+   "arch": "V4 + 박스 훼손 증강(드롭 30·지터 20·반전 10·정상 40)",
+   "train": "300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1~9 `_s1`~`_s9`)",
+   "offline": "T7 10시드: A3와 각도 3.17±0.66°·좌우 94.5%, 박스 반전 좌우 94.3%(최저 90.2, 표준편차 1.5%p), 부정 정지 99.5%, 긍정 정지 6.7%",
+   "status": "오프라인 + A3 세션 재생(T7) + 서빙 경로 구현·동등성 검증, 실기 미검증",
+   "note": "수치는 A3와의 유사도이지 성공률이 아님. 박스를 항상 gray basket으로 찾으므로 다른 물체로는 구동하지 못함(보완 관계, 대체 아님)",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 3300418,
+   "sha256": "da86ba8df4e37ab6d8a9c72c7ab03640447194f6f7babb5d65922838599cd80d",
+   "robot": null,
+   "links": [
+    [
+     "CH80 텍스트 조건화 E2E",
+     "research_story.html#ch80"
+    ],
+    [
+     "VLAops 🔤 문구·표현별 테스트",
+     "vlaops_dashboard.html"
+    ],
+    [
+     "CH81 종합 브리핑(서빙·11/13 실험)",
+     "research_story.html#ch81"
     ]
    ],
    "sessions": null

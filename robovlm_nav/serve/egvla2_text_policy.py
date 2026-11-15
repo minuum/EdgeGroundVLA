@@ -30,15 +30,17 @@ class FusedF2TextExtractor(FusedF2Extractor):
     def __init__(self, device=None, dtype: torch.dtype = torch.float16):
         super().__init__(device, dtype)
         self._tok: dict[str, torch.Tensor] = {}
-        self._phrase = DEFAULT_PHRASE
+        self._phrase = DEFAULT_PHRASE            # set_phrase 경로(이 저장소 서버) 전용 기본값. 인자 경로(soda)는 이 값을 바꾸지 않는다.
+        self.last_phrase = DEFAULT_PHRASE        # 마지막 호출에 쓰인 문구(기록용). 추론에는 쓰지 않는다.
         self._lock = threading.Lock()
 
     def set_phrase(self, phrase: str | None) -> None:
+        """이 저장소 서버(predict_rgb의 hasattr 분기)용. soda 서버는 호출하지 않고 __call__의 phrase 인자만 쓴다."""
         self._phrase = norm_phrase(phrase)
 
     @property
     def phrase(self) -> str:
-        return self._phrase
+        return self.last_phrase
 
     def _phrase_ids(self, phrase: str) -> torch.Tensor:
         if phrase not in self._tok:
@@ -48,9 +50,12 @@ class FusedF2TextExtractor(FusedF2Extractor):
         return self._tok[phrase]
 
     @torch.no_grad()
-    def __call__(self, image_rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def __call__(self, image_rgb: np.ndarray, phrase: str | None = None) -> tuple[np.ndarray, np.ndarray]:
+        """phrase 인자가 있으면 그 문구, 없으면 set_phrase 값(기본 gray basket). 인자 경로는 요청 사이에 상태를 남기지 않는다."""
         from PIL import Image
         P = self._P
+        phrase = norm_phrase(phrase) if phrase is not None else self._phrase
+        self.last_phrase = phrase
         pil = Image.fromarray(np.ascontiguousarray(image_rgb).astype(np.uint8)).convert("RGB")
         inp = self.proc(text=[P.TASK + P.PHRASE], images=[pil], return_tensors="pt")      # 박스 문구는 gray basket 고정
         pv = inp["pixel_values"].to(self.device, self.dtype)
@@ -63,7 +68,7 @@ class FusedF2TextExtractor(FusedF2Extractor):
         b = P.florence2_output_to_bbox(parsed.get("bboxes", []), pil.width, pil.height)
         bbox = np.array([b["cx"], b["cy"], b["area"], float(b["has_bbox"])], np.float32)
         vis = img.float().mean(1)[0].cpu().numpy()
-        pe = self.model.get_input_embeddings()(self._phrase_ids(self._phrase))
+        pe = self.model.get_input_embeddings()(self._phrase_ids(phrase))
         pe, att = self.model._merge_input_ids_with_image_features(img, pe)
         enc = self.model.language_model.get_encoder()(inputs_embeds=pe, attention_mask=att).last_hidden_state.float()
         txt = enc[:, img.shape[1]:].mean(1)[0].cpu().numpy()

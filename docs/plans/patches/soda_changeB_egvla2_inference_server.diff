@@ -1,0 +1,7 @@
+124a125,130
+>     if os.getenv("VLA_EGVLA2_TEXT", "0") == "1":      # 텍스트 조건화(V4·V4R) 경로. 기본 꺼짐
+>         from robovlm_nav.serve.egvla2_text_policy import FusedF2TextExtractor, TextCondPolicy
+>         policy = TextCondPolicy(ckpt, k_samples=int(os.getenv("VLA_EGVLA2_K", 8)), speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"), ema_alpha=_env_float("VLA_EGVLA2_EMA", 0.0))
+>         sha = hashlib.sha256(ckpt.read_bytes()).hexdigest()
+>         meta = dict(ckpt=ckpt.name, sha256=sha, arch=policy.meta.get("arch"), dtype=dt_name, subgoal_dropout=0, variant=policy.meta.get("variant"))
+>         return EgVla2Service(FusedF2TextExtractor(dtype=dtype), policy, ctrl, meta)

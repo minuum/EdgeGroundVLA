@@ -31,24 +31,42 @@ SPEC = [
  E("EG2-08","G2","서보 라벨 λ=0.5 (CH79의 A2)","C_pi0_servolabel0.5_drop30_e120.pt","runs/egvla2_fm/deploy/C_pi0_servolabel0.5_drop30_e120.pt","서보 라벨 λ=0.5","120ep, 300ep","","시험"),
  E("EG2-09","G2","A3 서보 라벨 λ=1.0","C_pi0_servolabel1.0_drop30_e120.pt","runs/egvla2_fm/deploy/C_pi0_servolabel1.0_drop30_e120.pt","서보 라벨 λ=1.0","120ep, 300ep","","현재 배포","실기 로그 중 11/04 253건은 pos4~6×G6~G8 수집(EG1과 프로토콜 다름)"),
  E("EG2-10","G2","299건 버전 A/B2/C","", "runs/egvla2_fm_299/","A_mlp_fm·B2·C_pi0_adaln","299건(29,062프레임)","","보존","300번째 반영 이전의 학습 결과를 보존한 폴더(계획서 §119). 서빙에 쓰이는지는 미확인",key="__none__"),
- E("EG3-01","G3","E2E LoRA 스모크","e2e_vla_florence2_lora_latest.pt","runs/egvla2_e2e_lora/e2e_vla_florence2_lora_latest.pt","Florence-2 LoRA r=8(0.72%)+PiZeroFM","25ep, 15에피소드","in-sample 2.82°, 미학습 4개 15.78°","보류","412.95ms",key="__none__"),
- E("EG3-02","G3","A_frozen_fused","","docs/v5/egvla2_fm/e2e_general.json","frozen 융합 특징","","held-out 방향 19.6°(3분할 평균)","결과만",key="__none__"),
- E("EG3-03","G3","B0 DaViT frozen","","docs/v5/egvla2_fm/e2e_general.json","인코더 고정 120ep/20ep","","29.6° / 32.7°","결과만",key="__none__"),
- E("EG3-04","G3","B1 LoRA 마지막 단계","","docs/v5/egvla2_fm/e2e_general.json","LoRA 마지막 단계 20ep","","27.7°","결과만",key="__none__"),
- E("EG3-05","G3","B2 LoRA 전 단계 384px","","docs/v5/egvla2_fm/e2e_fullstage.json","LoRA 전 단계 8ep","","30.9°, 라이브 36.1°","결과만",key="__none__"),
+ E("EG3-01","G3","E2E LoRA 스모크","e2e_vla_florence2_lora_latest.pt","runs/egvla2_e2e_lora/e2e_vla_florence2_lora_latest.pt","Florence-2 LoRA r=8(0.72%)+PiZeroFM","25ep, 15에피소드","in-sample 2.82°, 미학습 4개 15.78°","보류","412.95ms. 학습 스크립트 기본값 --num_episodes 15로 돌린 스모크(300으로 확장하지 않은 이유는 기록 없음)",key="__none__"),
+ E("EG3-02","G3","A_frozen_fused","","docs/v5/egvla2_fm/e2e_general.json","frozen 융합 특징","300에피소드 6프레임 간격 약 4,860장, 3분할(fold0·lopo_center·lopo_strong_right)","held-out 방향 19.6°(3분할 평균)","결과만",key="__none__"),
+ E("EG3-03","G3","B0 DaViT frozen","","docs/v5/egvla2_fm/e2e_general.json","인코더 고정 120ep/20ep","300에피소드 6프레임 간격 약 4,860장, 3분할","29.6° / 32.7°","결과만",key="__none__"),
+ E("EG3-04","G3","B1 LoRA 마지막 단계","","docs/v5/egvla2_fm/e2e_general.json","LoRA 마지막 단계 20ep","300에피소드 6프레임 간격 약 4,860장, 3분할","27.7°","결과만",key="__none__"),
+ E("EG3-05","G3","B2 LoRA 전 단계 384px","","docs/v5/egvla2_fm/e2e_fullstage.json","LoRA 전 단계 8ep","300에피소드 6프레임 간격 약 4,860장, 3분할","30.9°, 라이브 36.1°","결과만",key="__none__"),
+]
+_A3C = "A3 레시피(λ=1.0, 드롭아웃 30%, 120ep, 300에피소드) + 이미지 특징 처리, 시드 0. 목표=가운데 위치(plan_20261115_a3_improvement S3)"
+SPEC += [
+ E("EG2-11","G2","A3C-F30 (특징 30% 0으로)","A3C_F30_s0.pt","runs/egvla2_fm/a3c/A3C_F30_s0.pt","adaln + 이미지 특징을 30% 확률로 0",_A3C,
+   "의자·가운데 이동 0%(A3 0%), 바구니·가운데 64%(A3 80%), 화분·가운데 77%(A3 92%), 11/13 세션 끝 정지 20%(A3 32%)","폐기(오프라인 기각)","의자 문제를 못 고치고 이동만 줄어듦. 재생 지표이며 성공률 아님",key="__none__"),
+ E("EG2-12","G2","A3C-F50 (특징 50% 0으로)","A3C_F50_s0.pt","runs/egvla2_fm/a3c/A3C_F50_s0.pt","adaln + 이미지 특징을 50% 확률로 0",_A3C,
+   "의자·가운데 이동 2%, 바구니·가운데 61%, 화분·가운데 74%, 의자·오른쪽 68%(A3 80%)","폐기(오프라인 기각)","F30과 같은 결론",key="__none__"),
+ E("EG2-13","G2","A3C-S30 (특징 30% 다른 프레임으로 교체)","A3C_S30_s0.pt","runs/egvla2_fm/a3c/A3C_S30_s0.pt","adaln + 이미지 특징을 30% 확률로 같은 배치 다른 프레임 것으로 교체",_A3C,
+   "의자·가운데 이동 100%(A3 0%), 바구니·가운데 100%, 화분·가운데 100%. 단 11/13 세션 끝 3프레임 정지 5%(A3 32%), T7 A3 기록 80세션 끝 정지 0.4%(A3 5%)","보류(정지 상실, 서빙 안 함)","가운데는 풀리나 도착 정지를 잃음. 서빙 후처리가 보완하는지는 미검증",key="__none__"),
 ]
 for pn,nm,ar,of,nt in [("EG4-00","V0 이미지만","A3 레시피","부정 정지 8%, 박스 반대편 시 서보각 20.3°·좌우 9%",""),("EG4-01","V1 고정 문구","","결과 JSON 참고(text_cond_t2)",""),("EG4-02","V2 패러프레이즈","","결과 JSON 참고(text_cond_t2)",""),
     ("EG4-03","V3 +부정 20%","","부정 정지 81.5%",""),("EG4-04","V4 어휘 40+40","","부정 정지 99.5%, 긍정 +3.1pp(기준 +3 미달), C 정상 2.1°·반대편 4.8°",""),
     ("EG4-05","V0R 박스 훼손 증강","","반대편 −12.8°, 정상 +4.6° 악화",""),("EG4-06","V5 토큰 어텐션","MultiheadAttention 768/4head","부정 정지 94.6%(시드 3/9가 81~83%), 같은 색 물체 77.9±37%(9회 중 2회 7~11% 붕괴), 동의 표현 정지 11.2%(V0 7.9, V4 10.4) — V4 대비 이득 없음","")]:
     SPEC.append(E(pn,"G4",nm,"", "docs/v5/egvla2_fm/text_cond_t4.json" if pn!="EG4-06" else "docs/v5/egvla2_fm/text_cond_t5.json",ar,"3분할×시드3, 120ep, 프레임 1/9",of,"오프라인만",nt,key="__none__"))
 
-for _r in SPEC:   # T7(11/09)에서 V0·V4를 300에피소드 전체로 저장 학습 → 체크포인트·학습 정보·실기 세션 재생 결과 기록
-    if _r["pn"] in ("EG4-00", "EG4-04"):
-        _f = "EG4-00_V0_full" if _r["pn"] == "EG4-00" else "EG4-04_V4_full"
+_F = {"EG4-00": "EG4-00_V0_full", "EG4-01": "EG4-01_V1_full", "EG4-02": "EG4-02_V2_full", "EG4-03": "EG4-03_V3_full", "EG4-04": "EG4-04_V4_full", "EG4-05": "EG4-05_V0R_full", "EG4-06": "EG4-06_V5_full"}
+for _r in SPEC:   # T7(11/09~10): 변형 7종을 300에피소드 전체로 저장 학습(시드 0; V0·V4는 시드 1·2도) → 체크포인트·학습 정보 기록
+    if _r["pn"] in _F:
+        _f = _F[_r["pn"]]; _extra = "" if _r["pn"] not in ("EG4-00", "EG4-04") else "(+시드 1·2 `_s1`·`_s2`)"
         _r.update(ckpt=_f + ".pt", path="runs/egvla2_fm/textcond/" + _f + ".pt", log_key="__none__",
-                  train="300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1·2 `_s1`·`_s2` 저장)",
-                  status="오프라인 + A3 세션 재생(T7), 실기 미검증",
-                  note="T7: A3 세션 452개 재생에서 " + ("A3와 3.7~4.6° 차이, 박스 반전 시 좌우 일치 9~12%" if _r["pn"] == "EG4-00" else "A3와 2.3~2.8° 차이, 박스 반전 좌우 일치 42~94%(시드 편차 큼), 미학습 부정 문구 정지 99.7~100%"))
+                  train="300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0" + _extra + (" · T2와 학습 조건 다름(T4 캐시 재학습)" if _r["pn"] in ("EG4-01", "EG4-02") else ""),
+                  status="오프라인 + 시연 갤러리" + (" + A3 세션 재생(T7)" if _r["pn"] in ("EG4-00", "EG4-04") else "") + ", 실기 미검증")
+        if _r["pn"] == "EG4-00": _r["note"] = "T7: A3 세션 452개 재생에서 A3와 3.7~4.6° 차이, 박스 반전 시 좌우 일치 9~12%"
+        if _r["pn"] == "EG4-04": _r["note"] = "T7: A3와 2.3~2.8° 차이, 박스 반전 좌우 일치 42~94%(시드 편차 큼), 미학습 부정 문구 정지 99.7~100%"
+SPEC.append(E("EG4-07","G4","V4R 박스 훼손 증강(V4+)","EG4-07_V4R_full.pt","runs/egvla2_fm/textcond/EG4-07_V4R_full.pt","V4 + 박스 훼손 증강(드롭 30·지터 20·반전 10·정상 40)","300에피소드 전체(프레임 1/9 = 3,377), 120ep, 시드 0(+시드 1~9 `_s1`~`_s9`)",
+  "T7 10시드: A3와 각도 3.17±0.66°·좌우 94.5%, 박스 반전 좌우 94.3%(최저 90.2, 표준편차 1.5%p), 부정 정지 99.5%, 긍정 정지 6.7%","오프라인 + A3 세션 재생(T7) + 서빙 경로 구현·동등성 검증, 실기 미검증",
+  "수치는 A3와의 유사도이지 성공률이 아님. 박스를 항상 gray basket으로 찾으므로 다른 물체로는 구동하지 못함(보완 관계, 대체 아님)",key="__none__"))
+for _r in SPEC:
+    if _r["pn"] == "EG4-04": _r["offline"] = "T7 10시드: A3와 각도 2.80±0.39°·좌우 95.7%, 박스 반전 좌우 86.0%(최저 42, 표준편차 15%p), 부정 정지 99.5%, 긍정 정지 6.4%"
+    if _r["pn"] == "EG4-04": _r["note"] = "수치는 A3와의 유사도이지 성공률이 아님. 시드 편차가 큼(박스 반전 좌우 일치 최저 42%) → V4R이 이 편차를 줄임. 박스는 gray basket 고정이라 다른 물체로는 구동하지 못함"
+    if _r["pn"] in ("EG4-04", "EG4-07"): _r["status"] = _r["status"].replace("실기 미검증", "서빙 경로 구현·동등성 검증, 실기 미검증") if "서빙" not in _r["status"] else _r["status"]
 RS = "research_story.html"; VO = "vlaops_dashboard.html"
 LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
  "EG1-02": [("CH70 헤드 구조·손실 실험(exp73, epoch 300 언급)", RS+"#ch70"), ("CH78 ⑥-2 EGVLA1 vs EGVLA2(276/300)", RS+"#ch78"), ("CH77 EGVLA1 비교", RS+"#ch77"), ("CH76 ④ V6 학습 데이터", RS+"#ch76")],
@@ -58,8 +76,11 @@ LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
  "EG2-09": [("CH79 A3 채택·10/29·11/04 일반화", RS+"#ch79"), ("VLAops", VO)],
  "EG3-01": [("CH79 E2E 일반 비교", RS+"#ch79")], "EG3-02": [("CH79 E2E 일반 비교", RS+"#ch79")], "EG3-03": [("CH79 E2E 일반 비교", RS+"#ch79")], "EG3-04": [("CH79 E2E 일반 비교(마지막 단계 LoRA)", RS+"#ch79")], "EG3-05": [("CH79 E2E 일반 비교(전 단계 LoRA@384)", RS+"#ch79")],
 }
-for _pn in ("EG4-00","EG4-01","EG4-02","EG4-03","EG4-04","EG4-05","EG4-06"):
+for _pn in ("EG4-00","EG4-01","EG4-02","EG4-03","EG4-04","EG4-05","EG4-06","EG4-07"):
     LINKS[_pn] = [("CH80 텍스트 조건화 E2E", RS+"#ch80"), ("VLAops 🔤 문구·표현별 테스트", VO)]
+for _pn in ("EG2-11","EG2-12","EG2-13"): LINKS[_pn] = [("A3 개선 계획서·결과(7절)", "../plans/plan_20261115_a3_improvement.md")]
+for _pn in ("EG4-04","EG4-07"): LINKS[_pn].append(("CH81 종합 브리핑(서빙·11/13 실험)", RS+"#ch81"))
+LINKS["EG2-09"].append(("CH81 11/13 물체 실험 65건", RS+"#ch81")); LINKS["EG2-09"].append(("11/13 재생 페이지", "object_test_1113.html"))
 DATASETS = [  # id, 이름, 경로, 설명, 사용 모델(PN), 결과 링크
  ("DS-01","EGVLA2 학습셋 300건","ROS_action/mobile_vla_dataset_egvla2","10/13~10/16 수집(디렉터리 H5 371개 중 학습 세트 300건 = meta/egvla2_v3_main.json, 29,161프레임). 속성: 시작 위치·경로 라벨","EG2-01~09, EG3-*, EG4-*", [("CH76 수집 점검", RS+"#ch76"),("CH77", RS+"#ch77")]),
  ("DS-02","V5 데이터셋(EGVLA1 학습)","ROS_action/mobile_vla_dataset_v5","h5 515개 로컬 확인. CH76 ④: V6 학습 데이터, minum 쪽이 유일 원본(로봇 쪽 복사본은 정리됨, 별도 백업 없음). CLAUDE.md의 V5 150건은 이 중 일부로 보이나 미확인","EG1-02(사용자 확인), EG0-*(추정)", [("CH76 ④ 데이터 보관 상태", RS+"#ch76")]),
@@ -112,10 +133,22 @@ def sessions():
         sid = x["session_id"]
         out[x["체크포인트"] or "(공란)"].append(dict(sid=sid or None, date=x["날짜"][:16], ok=x["결과"] == "성공", route=x["경로"], steps=x["steps"],
             h5=bool(sid) and sid in hx, film=sid in fs))
+    # 11/13 물체 실험 65세션: origin episode_log에 아직 없어 objtest_data.json(H5 기준)에서 병합
+    try:
+        OB = json.load(open(D / "egvla2_fm" / "objtest_data.json"))
+    except Exception:
+        OB = []
+    a3 = "C_pi0_servolabel1.0_drop30_e120.pt"; have = {x["sid"] for x in out.get(a3, [])}
+    for x in OB:
+        sid = x["sid"]
+        if sid in have: continue
+        out[a3].append(dict(sid=sid, date=f"{sid[:4]}-{sid[4:6]}-{sid[6:8]} {sid[9:11]}:{sid[11:13]}", ok=x["res"] == "성공", route=x["route"], steps=str(x["n"]), h5=sid in hx, film=False,
+                            obj=x["obj"], pos=x["pos"], ins=x["ins"], exp="1113", res=x["res"]))
     return out
 
 def main():
     rb, err = robot(); ss = sessions(); rows = []
+    _o = [x for x in ss.get('C_pi0_servolabel1.0_drop30_e120.pt', []) if x.get('exp') == '1113']; OBJ113 = (sum(x['ok'] for x in _o), len(_o)) if _o else None
     for e in SPEC:
         r = dict(e); p = ROOT / e["path"] if e["path"] else None
         r["exists"] = bool(p and p.exists()); r["bytes"] = p.stat().st_size if r["exists"] and p.is_file() and p.suffix in (".pt", ".ckpt") else None
@@ -137,32 +170,128 @@ def main():
         rr = r["robot"]
         if rr: return f'<b>{rr["ok"]}/{rr["n"]} = {rr["rate"]}%</b><br><span class=m>{rr["first"]}~{rr["last"]}</span>'
         return '<span class=m>없음</span>'
-    css = """:root{--bg:#fff;--fg:#1d2330;--mut:#5b6577;--line:#d9dee7;--head:#eef1f6;--acc:#1f5fbf;--ok:#1b7f4b;--warn:#a55a00}
-@media(prefers-color-scheme:dark){:root{--bg:#14171d;--fg:#e4e8ef;--mut:#9aa4b5;--line:#2c3340;--head:#1d222b;--acc:#7aa7ee;--ok:#5cc489;--warn:#e0a050}}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,'Noto Sans KR',sans-serif}main{max-width:1250px;margin:0 auto;padding:20px 16px 60px}
-h1{font-size:1.45rem}h2{margin:2rem 0 .2rem;font-size:1.1rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}p.d{margin:.2rem 0 .6rem;color:var(--mut);font-size:.88rem}
-.note{border-left:3px solid var(--warn);padding:.3rem .9rem;margin:.8rem 0;color:var(--mut);font-size:.86rem}
-table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-size:.82rem}th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{background:var(--head);position:sticky;top:0}
-code{font-size:.78em;background:var(--head);padding:1px 4px;border-radius:3px;word-break:break-all}.m{color:var(--mut);font-size:.78rem}.pn{font-weight:700;color:var(--acc);white-space:nowrap}
-.no{color:var(--warn)}details{margin:.5rem 0;border:1px solid var(--line);border-radius:6px;padding:4px 10px}summary{cursor:pointer;padding:4px 0}input{padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);width:min(420px,100%)}"""
-    body = [f'<h1>모델 세대 레지스트리</h1><p class=d>생성 {datetime.date.today()} · 출처 MANIFEST.json, episode_log.csv(origin/monavla-driving), docs/v5/egvla2_fm/*.json · PN은 제안안 EG{{세대}}-{{순번}}</p>',
-            '<div class=note>실기 = 운영자 수동 판정(블라인드 아님, 성공 기준 문서화 안 됨, 좌우 정렬 미반영). 세대 간 오프라인 수치는 평가 방식이 달라 직접 비교하지 않는다. 같은 3×5×20 프로토콜에서의 실기 비교만 세대를 잇는다.</div>',
-            '<p><input id=q placeholder="PN·이름·체크포인트 검색"></p>']
+    esc = html.escape
+    def wilson(k, n, z=1.96):
+        p = k / n; d = 1 + z * z / n; c = (p + z * z / (2 * n)) / d; w = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** .5) / d
+        return round((c - w) * 100), round((c + w) * 100)
+    def lvl(r):
+        if r["pn"] == "EG2-09": return "deploy", "현재 배포"
+        if r["robot"]: return "real", "실기 기록 있음"
+        if any(w in r["status"] for w in ("폐기", "보류", "추적 불가", "결과만")): return "retired", "폐기·보류·기록만"
+        return "off", "오프라인만"
+    for r in rows: r["level"], r["level_name"] = lvl(r)
+    cnt = {gk: sum(r["gen"] == gk for r in rows) for gk in GENS}
+    try: OB = json.load(open(D / "egvla2_fm" / "objtest_summary.json"))
+    except Exception: OB = None
+    css = """:root{--bg:#fff;--fg:#1d2330;--mut:#5b6577;--line:#d9dee7;--card:#f7f9fc;--head:#eef1f6;--acc:#1f5fbf;--ok:#1b7f4b;--okbg:#e3f4ea;--warn:#a55a00;--warnbg:#fdf0dc;--bad:#b3322e;--badbg:#fbe6e5;--gray:#5b6577;--graybg:#edf0f4;--blue:#1f5fbf;--bluebg:#e4edfb}
+@media(prefers-color-scheme:dark){:root{--bg:#14171d;--fg:#e4e8ef;--mut:#9aa4b5;--line:#2c3340;--card:#1a1e26;--head:#1d222b;--acc:#7aa7ee;--ok:#5cc489;--okbg:#17301f;--warn:#e0a050;--warnbg:#33260f;--bad:#ef8a85;--badbg:#3a1c1b;--gray:#9aa4b5;--graybg:#232832;--blue:#7aa7ee;--bluebg:#1c2a44}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,'Noto Sans KR',sans-serif}main{max-width:1320px;margin:0 auto;padding:18px 16px 70px}
+h1{font-size:1.55rem;margin:.2rem 0}h2{margin:2.2rem 0 .3rem;font-size:1.2rem;scroll-margin-top:120px}h2 .n{color:var(--mut);font-weight:400;font-size:.9rem}p.d{margin:.2rem 0 .8rem;color:var(--mut);font-size:.88rem}
+a{color:var(--acc)}code{font-size:.8em;background:var(--head);padding:1px 5px;border-radius:3px;word-break:break-all}.m{color:var(--mut);font-size:.8rem}
+.note{border-left:4px solid var(--warn);background:var(--warnbg);padding:.5rem .9rem;margin:.8rem 0;font-size:.88rem;border-radius:0 6px 6px 0}
+.bar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 0;margin:0 -16px;padding-left:16px;padding-right:16px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.bar a.g,.chip{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:3px 11px;border-radius:99px;font-size:.82rem;text-decoration:none;cursor:pointer;user-select:none}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--bg);border-color:var(--acc)}.bar input{padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);width:220px;max-width:100%;margin-left:auto}
+.sep{width:1px;height:20px;background:var(--line)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:.8rem 0}.fl{flex:1 1 170px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--card);text-decoration:none;color:var(--fg)}
+.fl b{display:block;font-size:.95rem}.fl.cur{border:2px solid var(--ok);background:var(--okbg)}.fl .t{font-size:.76rem;color:var(--mut)}.ar{align-self:center;color:var(--mut)}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:.8rem 0}.k{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--card)}.k .v{font-size:1.5rem;font-weight:700;line-height:1.2}.k .l{font-size:.78rem;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px 14px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:120px}
+.card.deploy{border:2px solid var(--ok)}.card.hide{display:none}
+.top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.pn{font-weight:700;color:var(--acc);font-size:.8rem;white-space:nowrap}.nm{font-weight:700;font-size:1rem;line-height:1.35}
+.bd{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.72rem;font-weight:600;white-space:nowrap}
+.bd.deploy,.bd.real{background:var(--okbg);color:var(--ok)}.bd.off{background:var(--bluebg);color:var(--blue)}.bd.retired{background:var(--graybg);color:var(--gray)}.bd.srv{background:var(--warnbg);color:var(--warn)}
+.mx{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mb{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--bg);font-size:.8rem;min-height:3.6rem}.mb .h{font-size:.68rem;font-weight:700;color:var(--mut);letter-spacing:.03em}
+.mb.rl b{font-size:1.15rem;color:var(--ok)}.pb{height:6px;background:var(--graybg);border-radius:4px;margin:3px 0;overflow:hidden}.pb i{display:block;height:100%;background:var(--ok)}
+.mb.na{color:var(--mut)}dl{margin:0;display:grid;grid-template-columns:4.2rem 1fr;gap:3px 8px;font-size:.82rem}dt{color:var(--mut)}dd{margin:0}
+.lk{display:flex;flex-wrap:wrap;gap:5px}.lk a{font-size:.74rem;border:1px solid var(--line);border-radius:6px;padding:1px 7px;text-decoration:none;background:var(--bg)}
+details{font-size:.8rem}summary{cursor:pointer;color:var(--mut)}details.ses{border:1px solid var(--line);border-radius:8px;padding:4px 10px;margin:.5rem 0;background:var(--card)}
+table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-size:.82rem}th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{background:var(--head)}.no{color:var(--bad)}
+.leg{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.8rem;margin:.4rem 0}.pipe{list-style:none;margin:.5rem 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.pipe li{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--card);font-size:.84rem}.pipe .s{font-weight:700;display:block}.pipe .done{border-left:5px solid var(--ok)}.pipe .wait{border-left:5px solid var(--warn)}.pipe .open{border-left:5px solid var(--bad)}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.mx{grid-template-columns:1fr}}"""
+    # ── 구성 요소 ──
+    def extra113(r):
+        if r['pn'] == 'EG2-09' and OBJ113: return '<div class=m style="margin-top:4px;border-top:1px dashed var(--line);padding-top:3px"><b>11/13 물체 실험 %d/%d</b> (%d%%) · 지시어·물체·위치 변경, 위 값과 별도</div>' % (OBJ113[0], OBJ113[1], round(OBJ113[0]/OBJ113[1]*100))
+        return ''
+    def metric_real(r):
+        rr = r["robot"]
+        if rr: return f'<div class="mb rl"><div class=h>실기(운영자 판정 로그)</div><b>{rr["ok"]}/{rr["n"]}</b> <span class=m>{rr["rate"]}%</span><div class=pb><i style="width:{rr["rate"]}%"></i></div><span class=m>{rr["first"]} ~ {rr["last"]}</span>{extra113(r)}</div>'
+        return '<div class="mb na"><div class=h>실기</div>기록 없음</div>'
+    def card(r):
+        badges = f'<span class="bd {r["level"]}">{r["level_name"]}</span>'
+        if r["pn"] in ("EG4-04", "EG4-07"): badges += ' <span class="bd srv">서빙 준비(soda 전달 대기)</span>'
+        off = r["offline"] or "—"
+        rows_dl = [("구조", r["arch"]), ("학습", r["train"]), ("상태", r["status"]), ("비고", r["note"])]
+        dl = "".join(f"<dt>{k}</dt><dd>{esc(v)}</dd>" for k, v in rows_dl if v)
+        ck = (f'<code>{esc(r["ckpt"])}</code> ' if r["ckpt"] else "") + (f'<span class=m>{round(r["bytes"]/1e6,1)}MB</span> ' if r["bytes"] else "") + (f'<code>sha {r["sha256"][:10]}</code>' if r["sha256"] else "")
+        miss = '<span class=no>파일 없음</span> ' if r["path"] and not r["exists"] else ""
+        det = f'<details><summary>파일·경로</summary>{miss}{ck}<br><span class=m>{esc(r["path"] or "경로 없음")}</span></details>'
+        se = r["sessions"]; ses = f'<span class=m>세션 {se["n"]}건 · 로컬 H5 {se["h5_local"]} · 필름스트립 {se["film"]}</span> <a href="#ses-{r["pn"]}">목록</a>' if se else ""
+        lk = "".join(f'<a href="{u}">{esc(l)}</a>' for l, u in r["links"])
+        return (f'<article class="card {r["level"]}" id="{r["pn"]}" data-lv="{r["level"]}" data-q="{esc((r["pn"]+" "+r["name"]+" "+(r["ckpt"] or "")+" "+r["arch"]).lower())}">'
+                f'<div class=top><div><span class=pn>{r["pn"]}</span><div class=nm>{esc(r["name"])}</div></div><div>{badges}</div></div>'
+                f'<div class=mx><div class=mb><div class=h>오프라인</div>{esc(off)}</div>{metric_real(r)}</div><dl>{dl}</dl>{det}'
+                f'<div>{ses}</div><div class=lk>{lk}</div></article>')
+    body = [f'<h1>모델 세대 레지스트리</h1><p class=d>생성 {datetime.datetime.now():%Y-%m-%d %H:%M} · 출처: MANIFEST, episode_log.csv(origin/monavla-driving), docs/v5/egvla2_fm/*.json · PN = EG{{세대}}-{{순번}}(제안안) · <a href="research_story.html#ch81">CH81 종합 브리핑</a></p>']
+    nreal = sum(r["level"] in ("real", "deploy") for r in rows)
+    kp = [(f'{len(rows)}', "등록 모델"), (f'{nreal}', "실기 기록이 있는 모델"), ("A3 = EG2-09", "현재 배포(실기 455/455 기록, 운영자 판정)"), ("V4 · V4R", "텍스트 조건화 — 서빙 경로 구현, 실기 미검증")]
+    body.append('<div class=kpi>' + "".join(f'<div class=k><div class=v>{a}</div><div class=l>{b}</div></div>' for a, b in kp) + '</div>')
+    fl = []
+    for gk, (gn, gd) in GENS.items():
+        cur = " cur" if gk == "G2" else ""
+        fl.append(f'<a class="fl{cur}" href="#gen-{gk}"><b>{gk} · {gn}</b><span class=t>{cnt[gk]}개{" · 현재 배포 세대" if gk=="G2" else ""}</span></a>')
+    body.append('<div class=flow>' + '<span class=ar>→</span>'.join(fl[:3]) + '<span class=ar>⇢</span>' + fl[3] + fl[4] + '</div>')
+    body.append('<div class=note><b>읽는 법</b> · <b>실기</b>는 운영자 수동 판정(블라인드 아님, 성공 기준 문서화 안 됨, 좌우 정렬 미반영)이고, <b>오프라인</b> 수치는 세대마다 평가 방식이 달라 서로 비교하지 않습니다. 세대를 잇는 비교는 같은 프로토콜의 실기뿐입니다. V4·V4R의 재생 수치는 A3와의 <i>유사도</i>이며 성공률이 아닙니다.'
+                '<div class=leg><span><span class="bd deploy">현재 배포</span> 서버에 올라가 있음</span><span><span class="bd real">실기 기록 있음</span></span><span><span class="bd off">오프라인만</span> 실기 기록 없음</span><span><span class="bd retired">폐기·보류·기록만</span></span><span><span class="bd srv">서빙 준비</span> 코드 구현·검증 완료, 로봇 전달 전</span></div></div>')
+    # 상태 패널: V4/V4R 서빙
+    body.append('<h2 id=status>현재 진행 상태 · V4/V4R 서빙</h2><p class=d>출처: <code>docs/plans/plan_20261115_v4_soda_minimal_patch.md</code>. 로봇 구동 단계는 단계마다 별도 승인.</p><ul class=pipe>'
+        '<li class=done><span class=s>✔ 서빙 경로 구현</span>VLA_EGVLA2_TEXT=1(기본 꺼짐), 커밋 a7b3822d</li>'
+        '<li class=done><span class=s>✔ 이 서버 동등성(저장소 서버)</span>문구 코사인 최저 0.99989, 각도 중앙값 0.08°(V4)/0.07°(V4R), 정지 일치 100%</li>'
+        '<li class=done><span class=s>✔ 최소 패치 승인(A·B)</span>새 파일 1 + 기존 파일 분기 삽입. soda 파일 덮어쓰기 없음</li>'
+        '<li class=done><span class=s>✔ soda 파일 복사본 검증</span>패치 적용본(soda 방식 호출)에서 같은 기준으로 재검증</li>'
+        '<li class=wait><span class=s>⏳ soda 전달</span>파일 1개 + 삽입 + 체크포인트 2개. 전달 방법 승인 대기</li>'
+        '<li class=wait><span class=s>⏳ 서버 기동 방식</span>동환이 결정(운영서버 위 모델 추가 로드는 Jetson 리부팅 전례로 금지)</li>'
+        '<li class=wait><span class=s>⏳ 구동 시험</span>바구니 → 4물체 × G2/G3/G4, V4·V4R 시드 1. 동환 입회, 단계별 승인</li>'
+        '<li class=open><span class=s>? 미해명</span>동등성 점검의 박스 중심오차 최대값 9.0(기준 0.02): 일부 프레임에서 박스 유무가 캐시와 다름. 중앙값은 0.001</li></ul>')
+    if OB:
+        a, s_, c = OB["all"], OB["side"], OB["center"]
+        def wl(t): lo, hi = wilson(t[1], t[0]); return f'{t[1]}/{t[0]} ({round(t[1]/t[0]*100)}%, 95% 구간 {lo}~{hi}%)'
+        body.append('<h2 id=obj>11/13 물체 실험 (A3, 지시어 변경)</h2><p class=d>출처: 동환 실기 65세션(H5)과 episode_log 슬라이스. 지시어 형태가 물체·위치와 겹쳐 있어 분리 불가. 운영자 수동 판정.</p>'
+            f'<div class=kpi><div class=k><div class=v>{wl(a)}</div><div class=l>전체</div></div><div class=k><div class=v>{wl(s_)}</div><div class=l>옆(좌·우)</div></div><div class=k><div class=v>{wl(c)}</div><div class=l>가운데(CSV 행 없는 화분 1세션 제외)</div></div></div>'
+            '<p><a href="object_test_1113.html">재생 페이지</a> · <a href="research_story.html#ch81">CH81 분석(실패 사례·A3 대비 탭)</a></p>')
+    # 필터 바
+    chips = "".join(f'<span class=chip role=button tabindex=0 aria-pressed="{"true" if k=="all" else "false"}" data-f="{k}">{t}</span>' for k, t in (("all", "전체"), ("deploy", "현재 배포"), ("real", "실기 기록"), ("off", "오프라인만"), ("retired", "폐기·보류")))
+    navg = "".join(f'<a class=g href="#gen-{gk}">{gk} {gn}</a>' for gk, (gn, gd) in GENS.items())
+    body.append(f'<div class=bar>{navg}<span class=sep></span>{chips}<input id=q placeholder="PN·이름·체크포인트 검색"></div>')
     for gk, (gn, gd) in GENS.items():
         rs = [r for r in rows if r["gen"] == gk]
-        trs = "".join(f'<tr><td class=pn>{r["pn"]}</td><td><b>{esc(r["name"])}</b><br><span class=m>{esc(r["status"])}</span></td><td>{("<code>"+esc(r["ckpt"])+"</code>") if r["ckpt"] else ""}{("<br><span class=m>"+esc(r["path"])+"</span>") if r["path"] else ""}</td><td>{esc(r["arch"])}</td><td>{esc(r["train"])}</td><td>{esc(r["offline"])}</td><td>{cell(r)}</td><td>{esc(r["note"])}</td><td>{links_cell(r)}</td><td>{("<span class=m>"+str(round(r["bytes"]/1e6,1))+"MB</span>") if r["bytes"] else ("<span class=no>파일 없음</span>" if r["path"] and not r["exists"] else "")}{("<br><code>"+r["sha256"][:10]+"</code>") if r["sha256"] else ""}</td></tr>' for r in rs)
-        body.append(f'<h2>{gk} · {gn}</h2><p class=d>{gd}</p><table><thead><tr><th>PN</th><th>모델</th><th>체크포인트/경로</th><th>구조</th><th>학습</th><th>오프라인</th><th>실기(로그)</th><th>비고</th><th>결과·세션</th><th>파일</th></tr></thead><tbody>{trs}</tbody></table>')
-    def alinks(ls): return "<br>".join('<a href="' + u + '">' + esc(l) + '</a>' for l, u in ls)
+        body.append(f'<h2 id="gen-{gk}">{gk} · {gn} <span class=n>{len(rs)}개</span></h2><p class=d>{gd}</p><div class=grid>' + "".join(card(r) for r in rs) + '</div>')
+    EXT = [  # 외부 모델(참고). 값은 논문·요약에서 확인한 것만, 못 찾은 칸은 미확인.
+      ("우리 A3 (EG2-09)", "모바일 로봇, 바구니 주행", "Florence-2", "박스를 만들고 FM 헤드가 연속 명령", "있음(미분 끊김)", "300에피소드", "—", "—"),
+      ("OpenVLA", "로봇 팔 조작", "Llama 2 + DINOv2·SigLIP, 7B", "행동 차원별 256구간 토큰", "없음", "약 97만 에피소드(Open X-Embodiment)", "LoRA 미세조정(파라미터 약 1.4%)", "https://arxiv.org/abs/2406.09246"),
+      ("π0", "범용 로봇 조작", "PaliGemma 3B + 액션 전문가(약 300M)", "flow matching 연속 청크(50스텝), 최대 50Hz", "없음", "미확인", "우리 헤드(AdaLN-Zero FM)가 이 계열. 다만 π0는 VLM과 함께 학습, 우리는 Florence-2를 고정", "https://arxiv.org/abs/2410.24164"),
+      ("NaVILA", "다리 로봇 언어 지시 내비게이션", "VLM(세부 미확인)", "언어형 중간 행동(\"75cm 전진\") → 로코모션 RL 정책", "언어형 중간 행동", "미확인", "단일 프레임 입력, LiDAR 높이지도는 2차 요약 기준(미확인)", "https://arxiv.org/abs/2412.04453"),
+    ]
+    def _src(u): return '<a href="' + u + '">논문</a>' if u.startswith("http") else ""
+    er = "".join("<tr><td><b>%s</b></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (esc(e[0]), esc(e[1]), esc(e[2]), esc(e[3]), esc(e[4]), esc(e[5]), esc(e[6]), _src(e[7])) for e in EXT)
+    body.append('<h2 id=ext>외부 VLA 모델과 비교 (참고)</h2><p class=d>논문·요약 검색으로 확인한 값만 적었고 확인 못한 칸은 미확인. 데이터 규모가 수백 배 달라 성능을 직접 비교하는 표가 아님. 구조 차이를 보는 용도.</p>'
+                f'<table><thead><tr><th>모델</th><th>용도</th><th>백본</th><th>행동 출력</th><th>중간 단계</th><th>학습 데이터</th><th>우리와의 관계</th><th>출처</th></tr></thead><tbody>{er}</tbody></table>')
+    def alinks(ls): return " ".join('<a href="' + u + '">' + esc(l) + '</a>' for l, u in ls)
     dsr = "".join(f'<tr><td class=pn>{d[0]}</td><td><b>{esc(d[1])}</b></td><td><code>{esc(d[2])}</code></td><td>{esc(d[3])}</td><td>{esc(d[4])}</td><td>{alinks(d[5])}</td></tr>' for d in DATASETS)
-    body.append(f'<h2>데이터셋</h2><p class=d>경로는 저장소 기준. 사용 모델 열은 학습·평가에 쓰인 데이터. 확인 못한 항목은 (추정)·미확인으로 표시.</p><table><thead><tr><th>ID</th><th>이름</th><th>경로</th><th>설명</th><th>사용 모델</th><th>결과 페이지</th></tr></thead><tbody>{dsr}</tbody></table>')
+    body.append(f'<h2 id=ds>데이터셋</h2><p class=d>경로는 저장소 기준. 사용 모델은 학습·평가에 쓰인 데이터. 확인 못한 항목은 (추정)·미확인.</p><table><thead><tr><th>ID</th><th>이름</th><th>경로</th><th>설명</th><th>사용 모델</th><th>결과 페이지</th></tr></thead><tbody>{dsr}</tbody></table>')
     sec = []
     for r in rows:
         sl = ss.get(r["log_key"] or "(공란)", []) if r["log_key"] not in (None, "__none__") else []
         if not sl: continue
-        items = "".join(f'<tr><td><code>{x["sid"] or "-"}</code></td><td>{x["date"]}</td><td>{esc(x["route"])}</td><td>{"성공" if x["ok"] else "<span class=no>실패</span>"}</td><td>{x["steps"]}</td><td>{"✓" if x["h5"] else "—"}</td><td>{"✓" if x["film"] else ""}</td></tr>' for x in sl)
-        sec.append(f'<details id="ses-{r["pn"]}"><summary><b class=pn>{r["pn"]}</b> {esc(r["name"])} — 세션 {len(sl)}건</summary><table><thead><tr><th>session_id</th><th>시각</th><th>경로 라벨</th><th>결과</th><th>steps</th><th>로컬 H5</th><th>필름스트립</th></tr></thead><tbody>{items}</tbody></table></details>')
-    body.append('<h2>모델별 실기 세션</h2><p class=d>episode_log의 session_id 기준. 로컬 H5 = 이 서버의 docs/inference_sessions 또는 /home/minum/MoNaVLA/inference_sessions_recv에 파일이 있는 세션. 필름스트립 = CH79에 사진이 있는 세션(10/29·11/04분).</p>' + "".join(sec))
-    body.append("<script>document.getElementById('q').oninput=e=>{const s=e.target.value.toLowerCase();document.querySelectorAll('tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(s)?'':'none')}</script>")
-    (D / "model_registry.html").write_text(f'<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>모델 세대 레지스트리</title><style>{css}</style></head><body><main>{"".join(body)}</main></body></html>', encoding="utf-8")
+        items = "".join(f'<tr><td><code>{x["sid"] or "-"}</code></td><td>{x["date"]}</td><td>{esc(x["route"])}</td><td>{"성공" if x["ok"] else ("<span class=m>CSV 행 없음(성공 아님으로 집계)</span>" if x.get("res") == "기록 없음" else "<span class=no>실패</span>")}</td><td>{x["steps"]}</td><td>{"✓" if x["h5"] else "—"}</td><td>{"✓" if x["film"] else ""}</td><td>{esc(x["obj"] + " · " + x["pos"] + " · " + x["ins"]) if x.get("obj") else ""}</td></tr>' for x in sl)
+        sec.append(f'<details class=ses id="ses-{r["pn"]}"><summary><b class=pn>{r["pn"]}</b> {esc(r["name"])} — 세션 {len(sl)}건</summary><table><thead><tr><th>session_id</th><th>시각</th><th>경로 라벨</th><th>결과</th><th>steps</th><th>로컬 H5</th><th>필름스트립</th><th>11/13: 물체·위치·지시어</th></tr></thead><tbody>{items}</tbody></table></details>')
+    body.append('<h2 id=sess>모델별 실기 세션</h2><p class=d>episode_log의 session_id 기준. 로컬 H5 = 이 서버에 파일이 있는 세션. 필름스트립 = CH79에 사진이 있는 세션(10/29·11/04분). 11/13 세션은 origin 로그에 아직 없음(위 11/13 항목 참고).</p>' + "".join(sec))
+    js = """<script>(function(){var f='all',q='';function ap(){var n=0;document.querySelectorAll('.card').forEach(function(c){var ok=(f==='all'||c.dataset.lv===f||(f==='real'&&c.dataset.lv==='deploy'))&&(!q||c.dataset.q.indexOf(q)>=0);c.classList.toggle('hide',!ok);if(ok)n++});
+document.querySelectorAll('.grid').forEach(function(g){g.previousElementSibling.style.display=g.querySelector('.card:not(.hide)')?'':'none'})}
+document.querySelectorAll('.chip').forEach(function(c){function go(){f=c.dataset.f;document.querySelectorAll('.chip').forEach(function(x){x.setAttribute('aria-pressed',x===c)});ap()}c.onclick=go;c.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});
+document.getElementById('q').oninput=function(e){q=e.target.value.toLowerCase();ap()}})()</script>"""
+    (D / "model_registry.html").write_text(f'<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>모델 세대 레지스트리</title><style>{css}</style></head><body><main>{"".join(body)}</main>{js}</body></html>', encoding="utf-8")
     print(len(rows), "models; robot log error:", err)
 main()
