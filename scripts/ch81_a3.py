@@ -22,7 +22,7 @@ def _chart(title, a3, v4r, note):
     g = f'<line x1="{L}" y1="{y(GO):.1f}" x2="{W - 10}" y2="{y(GO):.1f}" stroke="#f87171" stroke-dasharray="4 3"/><text x="{W - 12}" y="{y(GO) - 3:.1f}" text-anchor="end" fill="#f87171" font-size="9">정지 기준 0.2</text>'
     g += f'<line x1="{L}" y1="{y(0):.1f}" x2="{W - 10}" y2="{y(0):.1f}" stroke="#334155"/><text x="{L - 4}" y="{y(0) + 3:.1f}" text-anchor="end" fill="#64748b" font-size="9">0</text><text x="{L - 4}" y="{y(1.0) + 3:.1f}" text-anchor="end" fill="#64748b" font-size="9">1.0</text>'
     g += f'<text x="{L}" y="{Hh - 8}" fill="#94a3b8" font-size="9.5">프레임 0 → {n - 1}</text>'
-    g += f'<text x="{W - 10}" y="{Hh - 8}" text-anchor="end" font-size="9.5"><tspan fill="#38bdf8">━ A3 기록(실기)</tspan>  <tspan fill="#4ade80">━ V4R 재생(서빙 설계, 10시드 평균)</tspan></text>'
+    g += f'<text x="{W - 10}" y="{Hh - 8}" text-anchor="end" font-size="9.5"><tspan fill="#38bdf8">━ A3 헤드 재생(모델 원출력 기준)</tspan>  <tspan fill="#4ade80">━ V4R 재생(서빙 설계, 10시드 평균)</tspan></text>'
     svg = f'<svg viewBox="0 0 {W} {Hh}" style="width:100%;height:auto;background:#0a1628;border:1px solid #1e3050;border-radius:8px">{g}{pl(a3, "#38bdf8")}{pl(v4r, "#4ade80")}</svg>'
     return f'<div><div style="font-size:0.78rem;font-weight:800;color:#fcd34d;margin:4px 0">{title}</div>{svg}<div style="font-size:0.72rem;color:#94a3b8;line-height:1.55">{note}</div></div>'
 
@@ -31,6 +31,7 @@ def tab(tbl, H, st):
     G, Y, R = "#4ade80", "#fbbf24", "#f87171"
     S = json.loads((FM / "t7_all_seeds.json").read_text()); T = json.loads((FM / "t7_replay.json").read_text())
     D = {s["sid"]: s for s in json.loads((FM / "objtest_data.json").read_text())}
+    CMP = {s["sid"]: s for s in json.loads((FM / "objtest_compare_data.json").read_text())}   # A3 헤드 재생(원출력), 실기 모델 원출력(3세션)
     m = lambda k, key: S[k][key]["mean"]; sd = lambda k, key: S[k][key]["std"]; pct = lambda v, nd=1: f"{v * 100:.{nd}f}%"
     a3self = T["mirror"]["a3_lat_agree"]
 
@@ -62,19 +63,19 @@ def tab(tbl, H, st):
         rows.append([o, sdn, f"{k}/{n}", f"{lo:.0f}~{hi:.0f}%", pct(a3go, 0), pct(v4, 0), pct(v4r, 0), st("부합", G) if ok else st("어긋남", R)])
     t2 = [H("2. A3 실기 결과와 시뮬레이션(재생) 대조 — 11/13, 물체·위치별"),
           tbl(["물체", "위치", "A3 실기 성공", "95% 구간(Wilson)", "A3 이동 프레임", "V4 재생 이동", "V4R 재생 이동", "성공 쪽 일치(단순)"], rows),
-          P("'이동 프레임'은 명령 크기가 정지 기준(0.2) 이상인 프레임 비율이다. A3 열은 <b>실기에서 기록된 값</b>, V4·V4R 열은 서빙 설계 입력(gray basket 박스 + 지시어 문구 특징)으로 <b>재생한 값</b>. "
+          P("'이동 프레임'은 명령 크기가 정지 기준(0.2) 이상인 프레임 비율이다. A3 열은 <b>실기 기록(컨트롤러가 이동/정지를 정한 결과; 이동 명령의 크기는 서버가 방향만 취해 1.15로 고정하므로 크기는 의미 없음)</b>, V4·V4R 열은 서빙 설계 입력(gray basket 박스 + 지시어 문구 특징)으로 <b>재생한 값</b>. "
             "'부합'은 실기 성공률 ≥50%와 재생 이동 ≥50%가 같은 쪽인지 본 단순 판정이며 모델 성능 판단이 아니다. <b>화분·가운데의 '부합'은 우연에 가깝다</b>: A3는 81% 이동하고도 실패했고 V4R은 지시어 때문에 멈춘다(이유가 다름). "
             "<b>어긋남이 나오는 곳(의자·옆, 책상)은 오류가 아니라 설계 차이</b>다: A3는 지시어 박스가 의자를 잡아 갔고, V4R은 박스가 바구니에 고정돼 지시어 때문에 멈춘다.")]
     charts = ""
     sel = [("20261113_165500", "바구니·가운데 (A3 성공)"), ("20261113_154226", "의자·옆 (A3 성공)"), ("20261113_170121", "의자·가운데 (A3 실패)"), ("20261113_151741", "화분·가운데 (A3 실패)")]
-    notes = {"20261113_165500": "둘 다 이동 기준(0.2) 이상이다. 크기는 A3 약 1.15, V4R 약 0.5로 다르다(속도 후처리 차이 가능, 미확인).", "20261113_154226": "A3는 이동했지만 V4R 재생은 정지(지시어가 의자라서). 설계된 차이.",
-             "20261113_170121": "A3 명령이 처음부터 0. V4R도 정지 — 이 세션은 어느 쪽으로도 못 간다.", "20261113_151741": "A3는 둘째 프레임에서 한 번 멈춘 뒤 끝까지 이동했는데도 실패 판정이다 — 이 실패는 출발 문제가 아니다(원인 미확정). V4R은 대부분 정지."}
+    notes = {"20261113_165500": "둘 다 이동 기준(0.2) 이상이다. 기록된 A3 명령의 크기 1.15는 서버가 방향만 취하고 길이를 고정한 값이라(확인됨) 모델끼리 크기를 비교하려면 이 그래프처럼 A3 헤드 재생(원출력)을 써야 한다.", "20261113_154226": "A3는 이동했지만 V4R 재생은 정지(지시어가 의자라서). 설계된 차이.",
+             "20261113_170121": "A3 명령이 처음부터 0. V4R도 정지 — 이 세션은 어느 쪽으로도 못 간다.", "20261113_151741": "A3는 둘째 프레임에서 한 번 멈춘 뒤 끝까지 이동했는데도 실패 판정이다 — 이 실패는 출발 문제가 아니다(원인 미확정). 다만 로봇 서버 JSON의 원출력 기준 처음 두 프레임의 모델 크기가 0.25·0.19로 정지 기준(0.2) 바로 근처였다(둘째 프레임이 정지). 동환 보고: 가까워지면 화분이 화면에서 사라지고 다른 물체(의자)를 잡아 엉뚱한 곳으로 갔다(보고, 미검증). V4R은 대부분 정지."}
     for sid, lab in sel:
         s = D[sid]
-        a = [float(np.linalg.norm(v[:2])) for v in s["a3"]]; v = [float(np.linalg.norm(x[:2])) for x in s["V4R_ins_gb"]]
+        a = [float(np.linalg.norm(v[:2])) for v in CMP[sid]["m"]["A3 재생"]]; v = [float(np.linalg.norm(x[:2])) for x in s["V4R_ins_gb"]]
         charts += _chart(lab, a, v, notes[sid])
-    t2 += [H("2-1. 프레임별 명령 크기: A3 기록 vs V4R 재생"), f'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0">{charts}</div>',
-           P("선이 겹치면 재생이 A3와 같은 판단을 한 것이다. 이 그래프는 세션 4개의 대표 사례이며 65건 전체 평균이 아니다.")]
+    t2 += [H("2-1. 프레임별 명령 크기: A3 헤드 재생(원출력) vs V4R 재생"), f'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0">{charts}</div>',
+           P("선이 겹치면 재생이 A3와 같은 판단을 한 것이다. A3 선은 기록된 명령(후처리 후 1.15 고정)이 아니라 같은 입력을 A3 헤드에 다시 넣은 값이며, 로봇 서버에 원출력이 남은 3세션에서는 방향 차이 중앙값 0.4~0.5°로 실제 출력과 일치했다(표본 3세션). 이 그래프는 세션 4개의 대표 사례이며 65건 전체 평균이 아니다.")]
 
     # ③ 반영 가능성
     t3 = [H("3. 시뮬레이션 결과를 실기 판단에 반영해도 되나 — 항목별"),
