@@ -70,6 +70,13 @@ for _r in SPEC:
     if _r["pn"] == "EG4-04": _r["offline"] = "T7 10시드: A3와 각도 2.80±0.39°·좌우 95.7%, 박스 반전 좌우 86.0%(최저 42, 표준편차 15%p), 부정 정지 99.5%, 긍정 정지 6.4%"
     if _r["pn"] == "EG4-04": _r["note"] = "수치는 A3와의 유사도이지 성공률이 아님. 시드 편차가 큼(박스 반전 좌우 일치 최저 42%) → V4R이 이 편차를 줄임. 박스는 gray basket 고정이라 다른 물체로는 구동하지 못함"
     if _r["pn"] in ("EG4-04", "EG4-07"): _r["status"] = _r["status"].replace("실기 미검증", "서빙 경로 구현·동등성 검증, 실기 미검증") if "서빙" not in _r["status"] else _r["status"]
+SHORT = {  # 고정 명명 규칙: <main>[-<modifier>…][-s<seed>], 영어 소문자·하이픈, 메인 모델명이 항상 맨 앞. 시드는 0이 아닐 때만 -s<N>
+ "EG0-01": "kosmos-v5-exp11", "EG0-02": "exp14-step2", "EG1-00": "eg1-unrecorded", "EG1-01": "eg1-owl-holdaware", "EG1-02": "eg1-baseline", "EG1-03": "eg1-f2-grounder", "EG1-04": "eg1-f2-phrase-grounder",
+ "EG2-01": "eg2-mlp-fm", "EG2-02": "eg2-film-res-fm", "EG2-03": "eg2-pi0-adaln", "EG2-04": "eg2-mlp-regression", "EG2-05": "a3-no-servo-drop0", "EG2-06": "a3-no-servo", "EG2-07": "a3-e1b-tuned", "EG2-08": "a3-servo0.5", "EG2-09": "a3", "EG2-10": "eg2-299ep",
+ "EG2-11": "a3-featdrop30", "EG2-12": "a3-featdrop50", "EG2-13": "a3-featswap30", "EG2-14": "a3-s1 · a3-s2 · a3-ens3",
+ "EG3-01": "e2e-lora-smoke", "EG3-02": "e2e-frozen-fused", "EG3-03": "e2e-davit-frozen", "EG3-04": "e2e-lora-last-stage", "EG3-05": "e2e-lora-all-stages-384",
+ "EG4-00": "v0", "EG4-01": "v1-fixed-phrase", "EG4-02": "v2-paraphrase", "EG4-03": "v3-neg20", "EG4-04": "v4", "EG4-05": "v0r", "EG4-06": "v5-token-attn", "EG4-07": "v4r",
+}
 RS = "research_story.html"; VO = "vlaops_dashboard.html"
 LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
  "EG1-02": [("CH70 헤드 구조·손실 실험(exp73, epoch 300 언급)", RS+"#ch70"), ("CH78 ⑥-2 EGVLA1 vs EGVLA2(276/300)", RS+"#ch78"), ("CH77 EGVLA1 비교", RS+"#ch77"), ("CH76 ④ V6 학습 데이터", RS+"#ch76")],
@@ -157,7 +164,7 @@ def main():
         r["exists"] = bool(p and p.exists()); r["bytes"] = p.stat().st_size if r["exists"] and p.is_file() and p.suffix in (".pt", ".ckpt") else None
         r["sha256"] = sha(p) if r["bytes"] and r["bytes"] < 5e8 and p.suffix in (".pt", ".ckpt") else None
         r["robot"] = rb.get(e["log_key"]) if e["log_key"] not in (None, "__none__") else None
-        r["links"] = LINKS.get(e["pn"], [])
+        r["links"] = LINKS.get(e["pn"], []); r["short"] = SHORT[e["pn"]]
         sl = ss.get(e["log_key"] or "(공란)", []) if e["log_key"] not in (None, "__none__") else []
         r["sessions"] = dict(n=len(sl), h5_local=sum(x["h5"] for x in sl), film=sum(x["film"] for x in sl)) if sl else None
         rows.append(r)
@@ -202,7 +209,7 @@ a{color:var(--acc)}code{font-size:.8em;background:var(--head);padding:1px 5px;bo
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:12px}
 .card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px 14px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:120px}
 .card.deploy{border:2px solid var(--ok)}.card.hide{display:none}
-.top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.pn{font-weight:700;color:var(--acc);font-size:.8rem;white-space:nowrap}.nm{font-weight:700;font-size:1rem;line-height:1.35}
+.top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.sn{font:700 1.08rem/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);margin-top:1px}.sn:empty{display:none}.pn{font-weight:700;color:var(--acc);font-size:.8rem;white-space:nowrap}.nm{font-weight:700;font-size:1rem;line-height:1.35}
 .bd{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.72rem;font-weight:600;white-space:nowrap}
 .bd.deploy,.bd.real{background:var(--okbg);color:var(--ok)}.bd.off{background:var(--bluebg);color:var(--blue)}.bd.retired{background:var(--graybg);color:var(--gray)}.bd.srv{background:var(--warnbg);color:var(--warn)}
 .mx{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mb{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--bg);font-size:.8rem;min-height:3.6rem}.mb .h{font-size:.68rem;font-weight:700;color:var(--mut);letter-spacing:.03em}
@@ -239,8 +246,8 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
         det = f'<details><summary>파일·경로</summary>{miss}{ck}<br><span class=m>{esc(r["path"] or "경로 없음")}</span></details>'
         se = r["sessions"]; ses = f'<span class=m>세션 {se["n"]}건 · 로컬 H5 {se["h5_local"]} · 필름스트립 {se["film"]}</span> <a href="#ses-{r["pn"]}">목록</a>' if se else ""
         lk = "".join(f'<a href="{u}">{esc(l)}</a>' for l, u in r["links"])
-        return (f'<article class="card {r["level"]}" id="{r["pn"]}" data-lv="{r["level"]}" data-q="{esc((r["pn"]+" "+r["name"]+" "+(r["ckpt"] or "")+" "+r["arch"]).lower())}">'
-                f'<div class=top><div><span class=pn>{r["pn"]}</span><div class=nm>{esc(r["name"])}</div></div><div>{badges}</div></div>'
+        return (f'<article class="card {r["level"]}" id="{r["pn"]}" data-lv="{r["level"]}" data-q="{esc((r["pn"]+" "+r["short"]+" "+r["name"]+" "+(r["ckpt"] or "")+" "+r["arch"]).lower())}">'
+                f'<div class=top><div><span class=pn>{r["pn"]}</span><div class=sn>{"★ " if r["robot"] else ""}{esc(r["short"])}</div><div class=nm>{esc(r["name"])}</div></div><div>{badges}</div></div>'
                 f'<div class=mx><div class=mb><div class=h>오프라인</div>{esc(off)}</div>{metric_real(r)}</div><dl>{dl}</dl>{det}'
                 f'<div>{ses}</div><div class=lk>{lk}</div></article>')
     body = [f'<h1>모델 세대 레지스트리</h1><p class=d>생성 {datetime.datetime.now():%Y-%m-%d %H:%M} · 출처: MANIFEST, episode_log.csv(origin/monavla-driving), docs/v5/egvla2_fm/*.json · PN = EG{{세대}}-{{순번}}(제안안) · <a href="research_story.html#ch81">CH81 종합 브리핑</a></p>']
@@ -253,7 +260,10 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
         fl.append(f'<a class="fl{cur}" href="#gen-{gk}"><b>{gk} · {gn}</b><span class=t>{cnt[gk]}개{" · 현재 배포 세대" if gk=="G2" else ""}</span></a>')
     body.append('<div class=flow>' + '<span class=ar>→</span>'.join(fl[:3]) + '<span class=ar>⇢</span>' + fl[3] + fl[4] + '</div>')
     body.append('<div class=note><b>읽는 법</b> · <b>실기</b>는 운영자 수동 판정(블라인드 아님, 성공 기준 문서화 안 됨, 좌우 정렬 미반영)이고, <b>오프라인</b> 수치는 세대마다 평가 방식이 달라 서로 비교하지 않습니다. 세대를 잇는 비교는 같은 프로토콜의 실기뿐입니다. V4·V4R의 재생 수치는 A3와의 <i>유사도</i>이며 성공률이 아닙니다.'
-                '<div class=leg><span><span class="bd deploy">현재 배포</span> 서버에 올라가 있음</span><span><span class="bd real">실기 기록 있음</span></span><span><span class="bd off">오프라인만</span> 실기 기록 없음</span><span><span class="bd retired">폐기·보류·기록만</span></span><span><span class="bd srv">서빙 준비</span> 코드 구현·검증 완료, 로봇 전달 전</span></div></div>')
+                '<div class=leg><span><span class="bd deploy">현재 배포</span> 서버에 올라가 있음</span><span><span class="bd real">실기 기록 있음</span></span><span><span class="bd off">오프라인만</span> 실기 기록 없음</span><span><span class="bd retired">폐기·보류·기록만</span></span><span><span class="bd srv">서빙 준비</span> 코드 구현·검증 완료, 로봇 전달 전</span><span><b>★</b> 이름 앞: 실기 기록이 있는 모델</span></div></div>')
+    nm_rows = "".join("<tr><td>%s</td><td><code>%s</code></td><td>%s</td><td>%s</td></tr>" % (r["pn"], esc(r["short"]), ("★ %d/%d" % (r["robot"]["ok"], r["robot"]["n"])) if r["robot"] else "—", esc(r["name"])) for r in rows)
+    body.append('<h2 id=naming>모델 이름 규칙 (고정)</h2><p class=d><code>&lt;main&gt;[-&lt;modifier&gt;…][-s&lt;seed&gt;]</code> · 영어 소문자와 하이픈 · <b>메인 모델명이 항상 맨 앞</b> · 수식어는 main과 다른 점만(예: <code>a3-no-servo</code> = a3에서 서보 라벨을 뺀 것) · 시드는 0이 아닐 때만 <code>-s1</code> · ★ = 실기 기록이 있는 모델</p>'
+                '<details><summary>전체 이름표 (PN ↔ 고정 이름 ↔ 실기)</summary><table><thead><tr><th>PN</th><th>고정 이름</th><th>실기(로그)</th><th>기존 표기</th></tr></thead><tbody>' + nm_rows + '</tbody></table></details>')
     # 상태 패널: V4/V4R 서빙
     body.append('<h2 id=status>현재 진행 상태 · V4/V4R 서빙</h2><p class=d>출처: <code>docs/plans/plan_20261115_v4_soda_minimal_patch.md</code>. 로봇 구동 단계는 단계마다 별도 승인.</p><ul class=pipe>'
         '<li class=done><span class=s>✔ 서빙 경로 구현</span>VLA_EGVLA2_TEXT=1(기본 꺼짐), 커밋 a7b3822d</li>'

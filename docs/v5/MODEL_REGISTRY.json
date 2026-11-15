@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-15T21:28",
+ "generated": "2026-11-15T22:28",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
@@ -145,6 +145,7 @@
    "sha256": null,
    "robot": null,
    "links": [],
+   "short": "kosmos-v5-exp11",
    "sessions": null
   },
   {
@@ -164,6 +165,7 @@
    "sha256": null,
    "robot": null,
    "links": [],
+   "short": "exp14-step2",
    "sessions": null
   },
   {
@@ -189,6 +191,7 @@
     "last": "2026-07-23"
    },
    "links": [],
+   "short": "eg1-unrecorded",
    "sessions": {
     "n": 179,
     "h5_local": 86,
@@ -218,6 +221,7 @@
     "last": "2026-08-07"
    },
    "links": [],
+   "short": "eg1-owl-holdaware",
    "sessions": {
     "n": 129,
     "h5_local": 129,
@@ -264,6 +268,7 @@
      "research_story.html#ch76"
     ]
    ],
+   "short": "eg1-baseline",
    "sessions": {
     "n": 300,
     "h5_local": 300,
@@ -287,6 +292,7 @@
    "sha256": "3b71f8c049d78a672f9f32f62f74ab45603ee1ade94a33cf776336eb10efa3ac",
    "robot": null,
    "links": [],
+   "short": "eg1-f2-grounder",
    "sessions": null
   },
   {
@@ -306,6 +312,7 @@
    "sha256": "d29e9ff933a31b34af920d3acfb622cda09fa0e097084149566ec1b3d59a81f3",
    "robot": null,
    "links": [],
+   "short": "eg1-f2-phrase-grounder",
    "sessions": null
   },
   {
@@ -330,6 +337,7 @@
      "research_story.html#ch77"
     ]
    ],
+   "short": "eg2-mlp-fm",
    "sessions": null
   },
   {
@@ -354,6 +362,7 @@
      "research_story.html#ch77"
     ]
    ],
+   "short": "eg2-film-res-fm",
    "sessions": null
   },
   {
@@ -378,6 +387,7 @@
      "research_story.html#ch77"
     ]
    ],
+   "short": "eg2-pi0-adaln",
    "sessions": null
   },
   {
@@ -406,6 +416,7 @@
      "research_story.html#ch78"
     ]
    ],
+   "short": "eg2-mlp-regression",
    "sessions": null
   },
   {
@@ -434,6 +445,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "a3-no-servo-drop0",
    "sessions": null
   },
   {
@@ -464,6 +476,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "a3-no-servo",
    "sessions": {
     "n": 37,
     "h5_local": 37,
@@ -492,6 +505,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "a3-e1b-tuned",
    "sessions": null
   },
   {
@@ -522,6 +536,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "a3-servo0.5",
    "sessions": {
     "n": 20,
     "h5_local": 20,
@@ -568,6 +583,7 @@
      "object_test_1113.html"
     ]
    ],
+   "short": "a3",
    "sessions": {
     "n": 520,
     "h5_local": 519,
@@ -591,6 +607,7 @@
    "sha256": null,
    "robot": null,
    "links": [],
+   "short": "eg2-299ep",
    "sessions": null
   },
   {
@@ -615,6 +632,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "e2e-lora-smoke",
    "sessions": null
   },
   {
@@ -639,6 +657,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "e2e-frozen-fused",
    "sessions": null
   },
   {
@@ -663,6 +682,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "e2e-davit-frozen",
    "sessions": null
   },
   {
@@ -687,6 +707,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "e2e-lora-last-stage",
    "sessions": null
   },
   {
@@ -711,6 +732,7 @@
      "research_story.html#ch79"
     ]
    ],
+   "short": "e2e-lora-all-stages-384",
    "sessions": null
   },
   {
@@ -735,6 +757,7 @@
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
+   "short": "a3-featdrop30",
    "sessions": null
   },
   {
@@ -759,6 +782,7 @@
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
+   "short": "a3-featdrop50",
    "sessions": null
   },
   {
@@ -783,6 +807,7 @@
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
+   "short": "a3-featswap30",
    "sessions": null
   },
   {
@@ -807,6 +832,7 @@
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
+   "short": "a3-s1 · a3-s2 · a3-ens3",
    "sessions": null
   },
   {
@@ -835,6 +861,7 @@
      "vlaops_dashboard.html"
     ]
    ],
+   "short": "v0",
    "sessions": null
   },
   {
@@ -863,6 +890,7 @@
      "vlaops_dashboard.html"
     ]
    ],
+   "short": "v1-fixed-phrase",
    "sessions": null
   },
   {
@@ -891,6 +919,7 @@
      "vlaops_dashboard.html"
     ]
    ],
+   "short": "v2-paraphrase",
    "sessions": null
   },
   {
@@ -919,6 +948,7 @@
      "vlaops_dashboard.html"
     ]
    ],
+   "short": "v3-neg20",
    "sessions": null
   },
   {
@@ -951,6 +981,7 @@
      "research_story.html#ch81"
     ]
    ],
+   "short": "v4",
    "sessions": null
   },
   {
@@ -979,6 +1010,7 @@
      "vlaops_dashboard.html"
     ]
    ],
+   "short": "v0r",
    "sessions": null
   },
   {
@@ -1007,6 +1039,7 @@
      "vlaops_dashboard.html"
     ]
    ],
+   "short": "v5-token-attn",
    "sessions": null
   },
   {
@@ -1039,6 +1072,7 @@
      "research_story.html#ch81"
     ]
    ],
+   "short": "v4r",
    "sessions": null
   }
  ],
