@@ -1,0 +1,65 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>11/13 모델 비교 재생</title>
+<style>:root{--bg:#fff;--fg:#1d2330;--mut:#5b6577;--line:#d9dee7;--card:#f7f9fc;--acc:#1f5fbf;--ok:#1b7f4b;--bad:#b3322e;--warn:#a55a00}
+@media(prefers-color-scheme:dark){:root{--bg:#14171d;--fg:#e4e8ef;--mut:#9aa4b5;--line:#2c3340;--card:#1a1e26;--acc:#7aa7ee;--ok:#5cc489;--bad:#ef8a85;--warn:#e0a050}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,'Noto Sans KR',sans-serif}main{max-width:1500px;margin:0 auto;padding:12px 14px 60px}
+h1{font-size:1.3rem;margin:.2rem 0}.m{color:var(--mut);font-size:.8rem}.note{border-left:4px solid var(--warn);background:var(--card);padding:6px 12px;border-radius:0 6px 6px 0;font-size:.82rem;margin:8px 0}
+.bar{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+select,button{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 9px;font:inherit;cursor:pointer}button.on{border-color:var(--acc);color:var(--acc)}
+#sl{flex:1 1 260px;min-width:160px}.info{font-size:.85rem;margin:6px 0}.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.74rem;border:1px solid var(--line);margin-right:4px}.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.bad{color:var(--bad);border-color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:8px}.pn{border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
+.pn h3{margin:0;padding:5px 9px;font-size:.82rem;display:flex;justify-content:space-between;gap:6px}.im{position:relative;line-height:0;background:#000}.im img{width:100%;height:auto}.im svg{position:absolute;inset:0;width:100%;height:100%}
+.rd{padding:4px 9px;font-size:.78rem;display:flex;justify-content:space-between;gap:6px;font-variant-numeric:tabular-nums}.stop{color:var(--bad);font-weight:700}.go{color:var(--ok);font-weight:700}
+.sc{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px;background:var(--card)}table.tl{border-collapse:collapse;font-size:.7rem}.tl td,.tl th{border:1px solid var(--line);padding:0;text-align:center}.tl th{position:sticky;left:0;background:var(--card);padding:2px 8px;white-space:nowrap;text-align:left;z-index:1}
+.tl td{min-width:42px;height:34px;cursor:pointer}.tl td.cur{outline:2px solid var(--acc);outline-offset:-2px}.tl img{display:block;width:42px;height:auto}.leg span{margin-right:12px;font-size:.78rem;white-space:nowrap}.leg i{display:inline-block;width:14px;height:4px;vertical-align:middle;margin-right:4px}
+table.sm{border-collapse:collapse;font-size:.8rem;margin-top:8px;width:100%}.sm th,.sm td{border:1px solid var(--line);padding:4px 8px;text-align:left}.sm th{background:var(--card)}</style></head><body><main>
+<h1>11/13 물체 실험 — 원본 실기와 4개 모델을 같은 프레임에서 동시에</h1>
+<p class="m">같은 사진을 5개 패널에 놓고 모델마다 낸 명령을 화살표로 표시합니다(위쪽=전진, 오른쪽=우측 이동, 화살표 길이=명령 크기, 크기 0.2 미만이면 '정지'). 키보드: ←/→ 프레임, Space 재생, [ ] 세션 이동.</p>
+<div class="note"><b>읽을 때 주의</b> · 모델 패널은 <b>열린 루프 재생</b>입니다(기록된 프레임·박스를 모델에 넣은 첫 명령). 실제로 모델이 로봇을 몰았다면 이후 프레임이 달라졌을 것이고, 성공률을 예측하지 못합니다. '원본 실기'는 로봇에 실제로 나간 명령(H5 actions)이고, 'A3 재생'은 같은 프레임·박스를 이 서버에서 A3 헤드에 다시 넣은 값입니다<b>측정값:</b> 이동/정지 판정은 거의 같지만(움직인 프레임 비율 예: 바구니·왼쪽 95% vs 97%) 명령 <b>크기는 기록값이 재생값의 약 2배</b>입니다(바구니·왼쪽 평균 1.09 vs 0.60, 방향은 상관 0.88). 원인은 서버의 속도·이득 처리로 짐작되나 확인하지 않았습니다. 그래서 모델 패널의 화살표 길이는 서로끼리만 비교하세요. V4·V4R은 서빙 설계(박스 문구 gray basket 고정, 지시어는 문구 특징으로)로 10시드 평균, A3C-S30은 시드 0입니다(서빙한 적 없는 오프라인 변형). 박스는 면적으로 정사각형 근사.</div>
+<div class="bar"><select id="fo"></select><select id="fp"></select><select id="fr"></select><select id="ss" style="max-width:340px"></select><button id="pv">◀ 세션</button><button id="nx">세션 ▶</button><button id="play">▶ 재생</button><button id="sp">1×</button><button id="bx" class="on">박스</button><input type="range" id="sl" min="0" value="0"></div>
+<div class="info" id="info"></div>
+<div class="grid" id="grid"></div>
+<h2 style="font-size:1.05rem;margin:14px 0 4px">세션 전체 타임라인 <span class="m">(칸을 누르면 그 프레임으로 이동. 색: 이동 크기, 화살표: 방향, 빨간 칸: 정지)</span></h2>
+<div class="sc"><table class="tl" id="tl"></table></div>
+<div class="leg" style="margin-top:6px" id="leg"></div>
+<table class="sm" id="sm"></table>
+</main>
+<script>
+const S=/*DATA*/[];
+const MODELS=["원본 실기(기록 명령)","A3 재생","V4 재생","V4R 재생","A3C-S30 재생"];
+const COL={"원본 실기(기록 명령)":"#8a94a6","A3 재생":"#2f7bff","V4 재생":"#9b5de5","V4R 재생":"#1db57a","A3C-S30 재생":"#f08c00"};
+const GO=0.2,W=384,H=216;let si=0,fi=0,timer=null,speed=1,showBox=true;
+const $=id=>document.getElementById(id),nrm=a=>Math.hypot(a[0],a[1]);
+function opts(el,list){el.innerHTML=list.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}
+opts($('fo'),[["","물체 전체"],...[...new Set(S.map(s=>s.obj))].map(o=>[o,o])]);
+opts($('fp'),[["","위치 전체"],...[...new Set(S.map(s=>s.pos))].map(o=>[o,o])]);
+opts($('fr'),[["","결과 전체"],...[...new Set(S.map(s=>s.res))].map(o=>[o,o])]);
+function filt(){return S.map((s,i)=>[s,i]).filter(([s])=>(!$('fo').value||s.obj===$('fo').value)&&(!$('fp').value||s.pos===$('fp').value)&&(!$('fr').value||s.res===$('fr').value))}
+function fillSess(){const l=filt();$('ss').innerHTML=l.map(([s,i])=>`<option value="${i}" ${i===si?'selected':''}>${s.sid.slice(9,13)} · ${s.obj} · ${s.pos.replace(/\(.*\)/,'')} · ${s.res} · ${s.ins}</option>`).join('');if(l.length&&!l.some(([_,i])=>i===si)){si=l[0][1];fi=0}}
+function arrow(v,c,cls){const n=nrm(v);let g=`<circle cx="${W/2}" cy="${H-14}" r="4" fill="${c}"/>`;if(n<GO)return g+`<text x="${W/2+10}" y="${H-10}" fill="#ff5a5a" font-size="15" font-weight="700" stroke="#000" stroke-width=".5">정지 ${n.toFixed(2)}</text>`;
+const L=Math.min(n,1.2)*105,ux=v[1]/n,uy=-v[0]/n,x2=W/2+ux*L,y2=H-14+uy*L,px=-uy,py=ux;
+return g+`<line x1="${W/2}" y1="${H-14}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="7" stroke-linecap="round" opacity=".5"/><line x1="${W/2}" y1="${H-14}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="4.5" stroke-linecap="round"/><polygon points="${x2+ux*10},${y2+uy*10} ${x2+px*7},${y2+py*7} ${x2-px*7},${y2-py*7}" fill="${c}" stroke="#000" stroke-width="1"/>`}
+function box(b,c,dash){if(!b||b[3]<.5)return'';const w=Math.sqrt(b[2]*W*H);return`<rect x="${b[0]*W-w/2}" y="${b[1]*H-w/2}" width="${w}" height="${w}" fill="none" stroke="${c}" stroke-width="2.5" ${dash?'stroke-dasharray="6 4"':''}/>`}
+function draw(){const s=S[si];fi=Math.max(0,Math.min(fi,s.n-1));$('sl').max=s.n-1;$('sl').value=fi;
+$('info').innerHTML=`<b>${s.obj}</b> · ${s.pos} · 지시어 "${s.ins}"(${s.form}) · <span class="tag ${s.res==='성공'?'ok':'bad'}">운영자 판정: ${s.res}</span> · 프레임 ${fi+1}/${s.n} <span class="m">· 노란 박스=기록된 박스(지시어로 찾음), 하늘색 점선=gray basket 문구로 다시 찾은 박스</span>`;
+$('grid').innerHTML=MODELS.map(m=>{const v=s.m[m][fi],n=nrm(v),st=n<GO;const bx=showBox?box(s.rb[fi],'#ffd21f',false)+(s.gb?box(s.gb[fi],'#38d6ff',true):''):'';
+return`<div class="pn"><h3 style="border-bottom:3px solid ${COL[m]}"><span>${m}</span><span class="${st?'stop':'go'}">${st?'정지':'이동'}</span></h3><div class="im"><img src="figures/objtest/${s.sid}_${fi}.jpg" alt=""><svg viewBox="0 0 ${W} ${H}">${bx}${arrow(v,COL[m])}</svg></div><div class="rd"><span>전진 ${v[0].toFixed(2)}</span><span>좌우 ${v[1].toFixed(2)}</span><span>크기 ${n.toFixed(2)}</span></div></div>`}).join('');
+let t='<tr><th>프레임</th>'+[...Array(s.n)].map((_,i)=>`<td class="${i===fi?'cur':''}" data-i="${i}"><img src="figures/objtest/${s.sid}_${i}.jpg" loading="lazy" alt=""></td>`).join('')+'</tr>';
+for(const m of MODELS){t+=`<tr><th style="color:${COL[m]}">${m}</th>`+s.m[m].map((v,i)=>{const n=nrm(v),st=n<GO,a=Math.atan2(v[1],v[0]),op=Math.min(1,.25+n*.75);return`<td class="${i===fi?'cur':''}" data-i="${i}" style="background:${st?'rgba(220,60,60,.35)':COL[m]+Math.round(op*40+15).toString(16).padStart(2,'0')}"><svg width="42" height="34" viewBox="-21 -17 42 34">${st?'<text x="0" y="4" text-anchor="middle" font-size="10" fill="#e5484d">정지</text>':`<g transform="rotate(${a*180/Math.PI})"></g><line x1="0" y1="0" x2="${Math.sin(a)*Math.min(n,1.2)*15}" y2="${-Math.cos(a)*Math.min(n,1.2)*15}" stroke="${COL[m]}" stroke-width="3" stroke-linecap="round"/><circle cx="${Math.sin(a)*Math.min(n,1.2)*15}" cy="${-Math.cos(a)*Math.min(n,1.2)*15}" r="2.6" fill="${COL[m]}"/>`}</svg></td>`}).join('')+'</tr>'}
+$('tl').innerHTML=t;
+$('tl').querySelectorAll('td[data-i]').forEach(td=>td.onclick=()=>{fi=+td.dataset.i;draw()});
+const sm=MODELS.map(m=>{const nn=s.m[m].map(nrm),mv=nn.filter(x=>x>=GO).length/s.n,last=nn.slice(-3).filter(x=>x<GO).length/Math.min(3,s.n),first=nn.findIndex(x=>x>=GO);return`<tr><td style="color:${COL[m]};font-weight:700">${m}</td><td>${(mv*100).toFixed(0)}%</td><td>${first<0?'끝까지 안 움직임':(first+1)+'번째'}</td><td>${(last*100).toFixed(0)}%</td></tr>`}).join('');
+$('sm').innerHTML='<tr><th>이 세션 요약</th><th>움직인 프레임 비율</th><th>처음 움직인 프레임</th><th>마지막 3프레임 정지 비율</th></tr>'+sm;
+$('leg').innerHTML=MODELS.map(m=>`<span><i style="background:${COL[m]}"></i>${m}</span>`).join('')}
+function go(){fillSess();draw()}
+['fo','fp','fr'].forEach(i=>$(i).onchange=()=>{fillSess();fi=0;draw()});
+$('ss').onchange=e=>{si=+e.target.value;fi=0;draw()};
+function step(d){const l=filt().map(x=>x[1]),k=l.indexOf(si);if(k<0)return;si=l[(k+d+l.length)%l.length];fi=0;fillSess();draw()}
+$('pv').onclick=()=>step(-1);$('nx').onclick=()=>step(1);$('sl').oninput=e=>{fi=+e.target.value;draw()};
+$('bx').onclick=()=>{showBox=!showBox;$('bx').classList.toggle('on',showBox);draw()};
+$('sp').onclick=()=>{speed=speed===1?2:speed===2?.5:1;$('sp').textContent=speed+'×';if(timer){stop();start()}};
+function start(){$('play').textContent='❚❚ 정지';timer=setInterval(()=>{const s=S[si];if(fi>=s.n-1){stop();return}fi++;draw()},700/speed)}
+function stop(){clearInterval(timer);timer=null;$('play').textContent='▶ 재생'}
+$('play').onclick=()=>timer?stop():start();
+document.addEventListener('keydown',e=>{if(['SELECT','INPUT'].includes(e.target.tagName)&&e.key!==' '&&!e.key.startsWith('Arrow'))return;if(e.key==='ArrowRight'){fi++;draw()}else if(e.key==='ArrowLeft'){fi--;draw()}else if(e.key===' '){e.preventDefault();$('play').click()}else if(e.key===']')step(1);else if(e.key==='[')step(-1)});
+go();
+</script></body></html>

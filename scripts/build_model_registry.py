@@ -266,7 +266,7 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
         def wl(t): lo, hi = wilson(t[1], t[0]); return f'{t[1]}/{t[0]} ({round(t[1]/t[0]*100)}%, 95% 구간 {lo}~{hi}%)'
         body.append('<h2 id=obj>11/13 물체 실험 (A3, 지시어 변경)</h2><p class=d>출처: 동환 실기 65세션(H5)과 episode_log 슬라이스. 지시어 형태가 물체·위치와 겹쳐 있어 분리 불가. 운영자 수동 판정.</p>'
             f'<div class=kpi><div class=k><div class=v>{wl(a)}</div><div class=l>전체</div></div><div class=k><div class=v>{wl(s_)}</div><div class=l>옆(좌·우)</div></div><div class=k><div class=v>{wl(c)}</div><div class=l>가운데(CSV 행 없는 화분 1세션 제외)</div></div></div>'
-            '<p><a href="object_test_1113.html">재생 페이지</a> · <a href="research_story.html#ch81">CH81 분석(실패 사례·A3 대비 탭)</a></p>')
+            '<p><a href="object_test_compare_1113.html"><b>원본 실기·4개 모델 동시 비교 재생</b></a> · <a href="object_test_1113.html">재생 페이지</a> · <a href="research_story.html#ch81">CH81 분석(실패 사례·A3 대비 탭)</a></p>')
     # 필터 바
     chips = "".join(f'<span class=chip role=button tabindex=0 aria-pressed="{"true" if k=="all" else "false"}" data-f="{k}">{t}</span>' for k, t in (("all", "전체"), ("deploy", "현재 배포"), ("real", "실기 기록"), ("off", "오프라인만"), ("retired", "폐기·보류")))
     navg = "".join(f'<a class=g href="#gen-{gk}">{gk} {gn}</a>' for gk, (gn, gd) in GENS.items())
