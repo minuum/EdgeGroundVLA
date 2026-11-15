@@ -27,6 +27,13 @@ for x in D:
     m = {"원본 실기(기록 명령)": act, "A3 재생": replay(sid, "A3"), "V4 재생": np.array(x["V4_ins_gb"]), "V4R 재생": np.array(x["V4R_ins_gb"]), "A3C-S30 재생": replay(sid, "S30")}
     S.append(dict(sid=sid, ins=x["ins"], obj=x["obj"], form=x["form"], pos=x["pos"], res=x["res"], n=n, rb=r2(x["bbox"]), gb=r2(x["gb_bbox"]) if x.get("gb_bbox") else None, m={k: r2(v[:n]) for k, v in m.items()}))
     print(sid, n, flush=True)
+# 로봇 서버 JSON(docs/inference_reports)에 남은 모델 원출력(chunk_first): 수신한 3세션만 있음
+for s_ in S:
+    f = ROOT / f"_received_1113_env_check/session_{s_['sid']}.json"
+    if f.exists():
+        hist = json.load(open(f))["history"]; s_["m"]["실기 모델 원출력(3세션만)"] = r2([h["chunk_first"][:2] for h in hist][:s_["n"]])
+        rep = np.array(s_["m"]["A3 재생"]); raw = np.array(s_["m"]["실기 모델 원출력(3세션만)"]); k = min(len(rep), len(raw))
+        print("실기 원출력 vs A3 재생", s_["sid"], "mean abs diff %.3f" % np.abs(rep[:k] - raw[:k]).mean())
 json.dump(S, open(ROOT / "docs/v5/egvla2_fm/objtest_compare_data.json", "w"), ensure_ascii=False)
 # 충실도: 기록 명령(원본 실기)과 A3 헤드 재생의 차이
 d = np.concatenate([np.abs(np.array(s["m"]["원본 실기(기록 명령)"]) - np.array(s["m"]["A3 재생"])).ravel() for s in S]); print("recorded vs A3 replay abs diff mean %.4f max %.4f" % (d.mean(), d.max()))
