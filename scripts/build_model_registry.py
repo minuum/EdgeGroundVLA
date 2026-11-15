@@ -203,7 +203,7 @@ a{color:var(--acc)}code{font-size:.8em;background:var(--head);padding:1px 5px;bo
 .bd{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.72rem;font-weight:600;white-space:nowrap}
 .bd.deploy,.bd.real{background:var(--okbg);color:var(--ok)}.bd.off{background:var(--bluebg);color:var(--blue)}.bd.retired{background:var(--graybg);color:var(--gray)}.bd.srv{background:var(--warnbg);color:var(--warn)}
 .mx{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mb{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--bg);font-size:.8rem;min-height:3.6rem}.mb .h{font-size:.68rem;font-weight:700;color:var(--mut);letter-spacing:.03em}
-.mb.rl b{font-size:1.15rem;color:var(--ok)}.pb{height:6px;background:var(--graybg);border-radius:4px;margin:3px 0;overflow:hidden}.pb i{display:block;height:100%;background:var(--ok)}
+.mb.rl b{font-size:1.15rem;color:var(--ok)}.x13{margin-top:6px;border:2px solid var(--warn);background:var(--warnbg);border-radius:8px;padding:6px 9px}.h13{font-size:.72rem;font-weight:700;color:var(--warn);margin-bottom:3px}.b13{display:grid;grid-template-columns:4.6rem 1fr auto;gap:6px;align-items:center;font-size:.8rem;margin:2px 0}.pb2{height:10px;background:var(--bg);border:1px solid var(--line);border-radius:5px;overflow:hidden}.pb2 i{display:block;height:100%;background:var(--warn)}.pb{height:6px;background:var(--graybg);border-radius:4px;margin:3px 0;overflow:hidden}.pb i{display:block;height:100%;background:var(--ok)}
 .mb.na{color:var(--mut)}dl{margin:0;display:grid;grid-template-columns:4.2rem 1fr;gap:3px 8px;font-size:.82rem}dt{color:var(--mut)}dd{margin:0}
 .lk{display:flex;flex-wrap:wrap;gap:5px}.lk a{font-size:.74rem;border:1px solid var(--line);border-radius:6px;padding:1px 7px;text-decoration:none;background:var(--bg)}
 details{font-size:.8rem}summary{cursor:pointer;color:var(--mut)}details.ses{border:1px solid var(--line);border-radius:8px;padding:4px 10px;margin:.5rem 0;background:var(--card)}
@@ -213,8 +213,14 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
 @media(max-width:560px){.grid{grid-template-columns:1fr}.mx{grid-template-columns:1fr}}"""
     # ── 구성 요소 ──
     def extra113(r):
-        if r['pn'] == 'EG2-09' and OBJ113: return '<div class=m style="margin-top:4px;border-top:1px dashed var(--line);padding-top:3px"><b>11/13 물체 실험 %d/%d</b> (%d%%) · 지시어·물체·위치 변경, 위 값과 별도</div>' % (OBJ113[0], OBJ113[1], round(OBJ113[0]/OBJ113[1]*100))
-        return ''
+        if not (r['pn'] == 'EG2-09' and OBJ113): return ''
+        def bar(lbl, k, n):
+            pc = round(k / n * 100)
+            return '<div class=b13><span>%s</span><div class=pb2><i style="width:%d%%"></i></div><b>%d/%d · %d%%</b></div>' % (lbl, pc, k, n, pc)
+        sd, ct = (OB["side"], OB["center"]) if OB else (None, None)
+        sub = (bar("옆(좌·우)", sd[1], sd[0]) + bar("가운데", ct[1], ct[0])) if OB else ""
+        return ('<div class=x13><div class=h13>11/13 물체 실험 · 별도 집계(위 455와 합치지 않음)</div>' + bar("전체", OBJ113[0], OBJ113[1]) + sub +
+                '<div class=m>지시어·물체·위치를 바꾼 실험, 운영자 수동 판정. 옆 40 + 가운데 24 = 64세션, 나머지 1세션(화분)은 CSV 행이 없어 성공 아님으로 집계</div></div>')
     def metric_real(r):
         rr = r["robot"]
         if rr: return f'<div class="mb rl"><div class=h>실기(운영자 판정 로그)</div><b>{rr["ok"]}/{rr["n"]}</b> <span class=m>{rr["rate"]}%</span><div class=pb><i style="width:{rr["rate"]}%"></i></div><span class=m>{rr["first"]} ~ {rr["last"]}</span>{extra113(r)}</div>'
