@@ -270,7 +270,7 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
         '<li class=done><span class=s>✔ 이 서버 동등성(저장소 서버)</span>문구 코사인 최저 0.99989, 각도 중앙값 0.08°(V4)/0.07°(V4R), 정지 일치 100%</li>'
         '<li class=done><span class=s>✔ 최소 패치 승인(A·B)</span>새 파일 1 + 기존 파일 분기 삽입. soda 파일 덮어쓰기 없음</li>'
         '<li class=done><span class=s>✔ soda 파일 복사본 검증</span>패치 적용본(soda 방식 호출)에서 같은 기준으로 재검증</li>'
-        '<li class=wait><span class=s>⏳ soda 전달</span>파일 1개 + 삽입 + 체크포인트 2개. 전달 방법 승인 대기</li>'
+        '<li class=done><span class=s>✔ soda 전달(11/16 00:38 보고)</span>새 파일 1 + 패치 +6줄 + 체크포인트 4개(v4·v4r·a3-s1·a3-s2) 적용, 해시·py_compile·git diff 확인. 실행 중인 서버는 재시작 전이라 새 코드를 아직 읽지 않음</li>'
         '<li class=wait><span class=s>⏳ 서버 기동 방식</span>동환이 결정(운영서버 위 모델 추가 로드는 Jetson 리부팅 전례로 금지)</li>'
         '<li class=wait><span class=s>⏳ 구동 시험</span>바구니 → 4물체 × G2/G3/G4, V4·V4R 시드 1. 동환 입회, 단계별 승인</li>'
         '<li class=open><span class=s>? 미해명</span>동등성 점검의 박스 중심오차 최대값 9.0(기준 0.02): 일부 프레임에서 박스 유무가 캐시와 다름. 중앙값은 0.001</li></ul>')
