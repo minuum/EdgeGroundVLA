@@ -106,6 +106,13 @@ def _env_float(name: str, default: float) -> float:
     return float(os.getenv(name, default))
 
 
+def _is_text_ckpt(path) -> bool:
+    """텍스트 조건화(V4·V4R) 체크포인트인지 구조로 판별: 문구 특징 포함(fdim=1536), 박스 창 12-d. A3는 fdim=768."""
+    import torch
+    ck = torch.load(path, map_location="cpu", weights_only=False)
+    return int(ck.get("fdim", 0)) == 1536 and int(ck.get("bdim", 0)) == 12
+
+
 def load_service_from_env() -> EgVla2Service:
     import torch
     from robovlm_nav.serve.egvla2_fm_policy import EgVla2FMPolicy, FusedF2Extractor
@@ -119,7 +126,8 @@ def load_service_from_env() -> EgVla2Service:
                             rotate_max_frames=int(os.getenv("VLA_EGVLA2_ROTATE_MAX", 12)), servo_blend=_env_float("VLA_EGVLA2_SERVO_BLEND", 0.0), servo_k=_env_float("VLA_EGVLA2_SERVO_K", 2.0), servo_max=_env_float("VLA_EGVLA2_SERVO_MAX", 0.7), idle_max_frames=int(os.getenv("VLA_EGVLA2_IDLE_MAX", 20)), near_area=None if near == "off" else float(near),
                             near_frames=int(os.getenv("VLA_EGVLA2_NEAR_FRAMES", 2)), lost_frames=int(os.getenv("VLA_EGVLA2_LOST_FRAMES", 5)),
                             search_max_frames=int(os.getenv("VLA_EGVLA2_SEARCH_MAX", 40)), gain=_env_float("VLA_EGVLA2_GAIN", 1.15))
-    if os.getenv("VLA_EGVLA2_TEXT", "0") == "1":      # 텍스트 조건화(V4·V4R) 경로. 기본 꺼짐 — plan_20261115_v4_serving.md
+    _txt = os.getenv("VLA_EGVLA2_TEXT")      # 미설정=체크포인트 구조로 자동 판별, "1"=강제 켬, "0"=강제 끔 — plan_20261116_v4_switchable.md
+    if _txt == "1" or (_txt is None and _is_text_ckpt(ckpt)):      # 텍스트 조건화(V4·V4R) 경로
         from robovlm_nav.serve.egvla2_text_policy import FusedF2TextExtractor, TextCondPolicy
         policy = TextCondPolicy(ckpt, k_samples=int(os.getenv("VLA_EGVLA2_K", 8)), speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"), ema_alpha=_env_float("VLA_EGVLA2_EMA", 0.0))
         sha = hashlib.sha256(ckpt.read_bytes()).hexdigest()
