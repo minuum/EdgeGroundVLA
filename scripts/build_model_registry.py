@@ -48,7 +48,7 @@ SPEC += [
 ]
 SPEC.append(E("EG2-14","G2","A3 레시피 시드 1·2 + 앙상블 (A3C-D30)","A3C_D30_s1.pt · A3C_D30_s2.pt","runs/egvla2_fm/a3c/A3C_D30_s1.pt","A3(EG2-09)와 같은 레시피, 시드만 1·2(드롭 30%, λ=1.0, 120ep, 300에피소드). 앙상블 = 시드 0·1·2 첫 명령 평균",_A3C,
   "11/13 의자·가운데 이동 100%(A3 0%), 바구니·가운데 91~98%, T7 A3 기록 452세션: 기록된 A3와 이동/정지 일치 98.9~99.3%(A3 시드0 99.3%), 세션 끝 정지 4~6%(A3 5.5%), 방향 차이 중앙값 0.4~1.0°. 11/13 세션 끝 정지 10~19%(A3 32%, 의자·가운데 제외 시 A3 27% 대 시드1 11%·시드2 21%)",
-  "후보(오프라인 검증만, 실기 미검증)","박스 가림 0·10·30%의 시드 1·2 여섯 개가 모두 의자·가운데를 움직이고 시드 0만 안 움직임 → 배포 A3(시드 0)의 개별 편차로 보임. 도착 정지는 시드1이 약해 보임. 실기 재시험 전에는 교체 불가",key="__none__"))
+  "후보: a3-s2 실기 45/45(11/16, 운영자 판정, 비맹검 여부 미확인) · a3-s1·앙상블 실기 없음","박스 가림 0·10·30%의 시드 1·2 여섯 개가 모두 의자·가운데를 움직이고 시드 0만 안 움직임 → 배포 A3(시드 0)의 개별 편차로 보임. 실기(a3-s2): 의자·가운데 5/5, 책상·가운데 5/5이나 바구니·의자에서 A3보다 가까이 가서 끝남(바구니 종료 면적 0.30~0.45 대 A3 0.23, 접촉 보고 6건: 바구니 옆 10회 중, 나머지는 안 부딪힘 1·언급 없음 3). 교체 전 추가 검토 필요",key="A3C_D30_s2.pt"))
 for pn,nm,ar,of,nt in [("EG4-00","V0 이미지만","A3 레시피","부정 정지 8%, 박스 반대편 시 서보각 20.3°·좌우 9%",""),("EG4-01","V1 고정 문구","","결과 JSON 참고(text_cond_t2)",""),("EG4-02","V2 패러프레이즈","","결과 JSON 참고(text_cond_t2)",""),
     ("EG4-03","V3 +부정 20%","","부정 정지 81.5%",""),("EG4-04","V4 어휘 40+40","","부정 정지 99.5%, 긍정 +3.1pp(기준 +3 미달), C 정상 2.1°·반대편 4.8°",""),
     ("EG4-05","V0R 박스 훼손 증강","","반대편 −12.8°, 정상 +4.6° 악화",""),("EG4-06","V5 토큰 어텐션","MultiheadAttention 768/4head","부정 정지 94.6%(시드 3/9가 81~83%), 같은 색 물체 77.9±37%(9회 중 2회 7~11% 붕괴), 동의 표현 정지 11.2%(V0 7.9, V4 10.4) — V4 대비 이득 없음","")]:
@@ -119,6 +119,13 @@ def robot():
     for k, v in g.items():
         ds = sorted(x["날짜"] for x in v if x["날짜"]); ok = sum(x["결과"] == "성공" for x in v)
         out[k] = dict(n=len(v), ok=ok, rate=round(ok / len(v) * 100, 1), first=ds[0][:10] if ds else None, last=ds[-1][:10] if ds else None)
+    # 11/16 a3-s2 실기 45세션: origin episode_log에 아직 없어 로봇 서버에서 받은 슬라이스(docs/v5/egvla2_fm/a3c/real_1116_*)에서 병합
+    try:
+        sl = list(csv.DictReader(open(D / "egvla2_fm/a3c/real_1116_episode_log_slice.csv", encoding="utf-8")))
+        if sl:
+            ds = sorted(x["날짜"] for x in sl); ok = sum(x["결과"] == "성공" for x in sl); out["A3C_D30_s2.pt"] = dict(n=len(sl), ok=ok, rate=round(ok / len(sl) * 100, 1), first=ds[0][:10], last=ds[-1][:10])
+    except Exception:
+        pass
     return out, None
 
 SESS_ROOTS = [ROOT / "docs/inference_sessions", pathlib.Path("/home/minum/MoNaVLA/inference_sessions_recv")]
@@ -154,6 +161,17 @@ def sessions():
         if sid in have: continue
         out[a3].append(dict(sid=sid, date=f"{sid[:4]}-{sid[4:6]}-{sid[6:8]} {sid[9:11]}:{sid[11:13]}", ok=x["res"] == "성공", route=x["route"], steps=str(x["n"]), h5=sid in hx, film=False,
                             obj=x["obj"], pos=x["pos"], ins=x["ins"], exp="1113", res=x["res"]))
+    try:
+        sl = list(csv.DictReader(open(D / "egvla2_fm/a3c/real_1116_episode_log_slice.csv", encoding="utf-8"))); js = json.load(open(D / "egvla2_fm/a3c/real_1116_sessions_bbox_area.json"))
+        key = "A3C_D30_s2.pt"; have2 = {x["sid"] for x in out.get(key, [])}
+        for x in sl:
+            sid = x["session_id"]
+            if sid in have2: continue
+            ins = js.get(sid, {}).get("instruction", "")
+            out[key].append(dict(sid=sid, date=x["날짜"][:16], ok=x["결과"] == "성공", route=x["경로"], steps=x["steps"], h5=sid in hx, film=False, obj={"go to the gray basket": "바구니", "go to the brown wooden chair": "의자", "go to the small desk": "책상"}.get(ins, ""),
+                                pos={"trackF_center": "가운데", "trackA_weak_right": "오른쪽", "trackA_weak_left": "왼쪽"}.get(x["경로"], ""), ins=ins, exp="1116", res=x["결과"]))
+    except Exception:
+        pass
     return out
 
 def main():
