@@ -1,0 +1,13 @@
+{
+ "frames": 870,
+ "missing": 0,
+ "sizes": [
+  [
+   1280,
+   720
+  ]
+ ],
+ "psnr_min": 40.5,
+ "psnr_median": 42.0,
+ "bytes": 95340831
+}

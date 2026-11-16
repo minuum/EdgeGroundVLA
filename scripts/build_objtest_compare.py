@@ -41,3 +41,15 @@ d = np.concatenate([np.abs(np.array(s["m"]["원본 실기(기록 명령)"]) - np
 a = np.concatenate([np.array(s["m"]["원본 실기(기록 명령)"])[:, 1] for s in S]); b = np.concatenate([np.array(s["m"]["A3 재생"])[:, 1] for s in S]); print("ly corr recorded vs A3 replay", float(np.corrcoef(a, b)[0, 1]))
 HTML = open(ROOT / "scripts/objtest_compare_template.html", encoding="utf-8").read().replace("/*DATA*/[]", json.dumps(S, ensure_ascii=False))
 (ROOT / "docs/v5/object_test_compare_1113.html").write_text(HTML, encoding="utf-8"); print("html", len(HTML))
+# 단독 실행판: 실기 프레임(로봇 서버가 보낸 1280×720 원본)을 448×252 JPEG로 줄여 HTML 안에 넣는다
+import base64, io
+from PIL import Image
+FR = {}
+for s_ in S:
+    FR[s_["sid"]] = []
+    for i in range(s_["n"]):
+        im = Image.open(ROOT / f"docs/v5/figures/objtest/{s_['sid']}_{i}.jpg").convert("RGB").resize((448, 252), Image.LANCZOS); b = io.BytesIO(); im.save(b, "JPEG", quality=70)
+        FR[s_["sid"]].append("data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode())
+ST = HTML.replace("/*FRAMES*/null", json.dumps(FR, separators=(",", ":")), 1)
+assert ST != HTML
+(ROOT / "docs/v5/object_test_compare_1113_standalone.html").write_text(ST, encoding="utf-8"); print("standalone", len(ST))

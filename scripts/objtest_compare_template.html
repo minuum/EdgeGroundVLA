@@ -25,6 +25,8 @@ table.sm{border-collapse:collapse;font-size:.8rem;margin-top:8px;width:100%}.sm 
 </main>
 <script>
 const S=/*DATA*/[];
+const FR=/*FRAMES*/null;   // 단독 실행판은 프레임이 이 파일 안에 들어 있음(base64), 일반판은 figures/objtest/ 폴더를 읽음
+const src=(sid,i)=>FR?FR[sid][i]:"figures/objtest/"+sid+"_"+i+".jpg";
 const MODELS=["원본 실기(기록 명령)","실기 모델 원출력(3세션만)","A3 재생","V4 재생","V4R 재생","A3C-S30 재생"];const ms=s=>MODELS.filter(m=>s.m[m]);
 const COL={"원본 실기(기록 명령)":"#8a94a6","실기 모델 원출력(3세션만)":"#d6336c","A3 재생":"#2f7bff","V4 재생":"#9b5de5","V4R 재생":"#1db57a","A3C-S30 재생":"#f08c00"};
 const GO=0.2,W=384,H=216;let si=0,fi=0,timer=null,speed=1,showBox=true,post=true;
@@ -43,8 +45,8 @@ function box(b,c,dash){if(!b||b[3]<.5)return'';const w=Math.sqrt(b[2]*W*H);retur
 function draw(){const s=S[si];fi=Math.max(0,Math.min(fi,s.n-1));$('sl').max=s.n-1;$('sl').value=fi;
 $('info').innerHTML=`<b>${s.obj}</b> · ${s.pos} · 지시어 "${s.ins}"(${s.form}) · <span class="tag ${s.res==='성공'?'ok':'bad'}">운영자 판정: ${s.res}</span> · 프레임 ${fi+1}/${s.n} <span class="m">· 노란 박스=기록된 박스(지시어로 찾음), 하늘색 점선=gray basket 문구로 다시 찾은 박스</span>`;
 $('grid').innerHTML=ms(s).map(m=>{const v=adj(s.m[m][fi],m),n=nrm(v),st=n<GO;const bx=showBox?box(s.rb[fi],'#ffd21f',false)+(s.gb?box(s.gb[fi],'#38d6ff',true):''):'';
-return`<div class="pn"><h3 style="border-bottom:3px solid ${COL[m]}"><span>${m}</span><span class="${st?'stop':'go'}">${st?'정지':'이동'}</span></h3><div class="im"><img src="figures/objtest/${s.sid}_${fi}.jpg" alt=""><svg viewBox="0 0 ${W} ${H}">${bx}${arrow(v,COL[m])}</svg></div><div class="rd"><span>전진 ${v[0].toFixed(2)}</span><span>좌우 ${v[1].toFixed(2)}</span><span>크기 ${n.toFixed(2)}</span></div></div>`}).join('');
-let t='<tr><th>프레임</th>'+[...Array(s.n)].map((_,i)=>`<td class="${i===fi?'cur':''}" data-i="${i}"><img src="figures/objtest/${s.sid}_${i}.jpg" loading="lazy" alt=""></td>`).join('')+'</tr>';
+return`<div class="pn"><h3 style="border-bottom:3px solid ${COL[m]}"><span>${m}</span><span class="${st?'stop':'go'}">${st?'정지':'이동'}</span></h3><div class="im"><img src="${src(s.sid,fi)}" alt=""><svg viewBox="0 0 ${W} ${H}">${bx}${arrow(v,COL[m])}</svg></div><div class="rd"><span>전진 ${v[0].toFixed(2)}</span><span>좌우 ${v[1].toFixed(2)}</span><span>크기 ${n.toFixed(2)}</span></div></div>`}).join('');
+let t='<tr><th>프레임</th>'+[...Array(s.n)].map((_,i)=>`<td class="${i===fi?'cur':''}" data-i="${i}"><img src="${src(s.sid,i)}" loading="lazy" alt=""></td>`).join('')+'</tr>';
 for(const m of ms(s)){t+=`<tr><th style="color:${COL[m]}">${m}</th>`+s.m[m].map((v0,i)=>{const v=adj(v0,m),n=nrm(v),st=n<GO,a=Math.atan2(v[1],v[0]),op=Math.min(1,.25+n*.75);return`<td class="${i===fi?'cur':''}" data-i="${i}" style="background:${st?'rgba(220,60,60,.35)':COL[m]+Math.round(op*40+15).toString(16).padStart(2,'0')}"><svg width="42" height="34" viewBox="-21 -17 42 34">${st?'<text x="0" y="4" text-anchor="middle" font-size="10" fill="#e5484d">정지</text>':`<g transform="rotate(${a*180/Math.PI})"></g><line x1="0" y1="0" x2="${Math.sin(a)*Math.min(n,1.2)*15}" y2="${-Math.cos(a)*Math.min(n,1.2)*15}" stroke="${COL[m]}" stroke-width="3" stroke-linecap="round"/><circle cx="${Math.sin(a)*Math.min(n,1.2)*15}" cy="${-Math.cos(a)*Math.min(n,1.2)*15}" r="2.6" fill="${COL[m]}"/>`}</svg></td>`}).join('')+'</tr>'}
 $('tl').innerHTML=t;
 $('tl').querySelectorAll('td[data-i]').forEach(td=>td.onclick=()=>{fi=+td.dataset.i;draw()});
