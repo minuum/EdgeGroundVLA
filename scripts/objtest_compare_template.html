@@ -26,9 +26,9 @@ table.sm{border-collapse:collapse;font-size:.8rem;margin-top:8px;width:100%}.sm 
 <script>
 const S=/*DATA*/[];
 const FR=/*FRAMES*/null;   // 단독 실행판은 프레임이 이 파일 안에 들어 있음(base64), 일반판은 figures/objtest/ 폴더를 읽음
-const src=(sid,i)=>FR?FR[sid][i]:"figures/objtest/"+sid+"_"+i+".jpg";
-const MODELS=["원본 실기(기록 명령)","실기 모델 원출력(3세션만)","A3 재생","V4 재생","V4R 재생","A3C-S30 재생"];const ms=s=>MODELS.filter(m=>s.m[m]);
-const COL={"원본 실기(기록 명령)":"#8a94a6","실기 모델 원출력(3세션만)":"#d6336c","A3 재생":"#2f7bff","V4 재생":"#9b5de5","V4R 재생":"#1db57a","A3C-S30 재생":"#f08c00"};
+const src=(sid,i)=>FR?FR[sid][i]:(sid.startsWith("20261116")?"figures/objtest_1116/":"figures/objtest/")+sid+"_"+i+".jpg";
+const MODELS=["원본 실기(기록 명령)","실기 모델 원출력(3세션만)","A3 재생","a3-s1 재생","a3-s2 재생","a3-ens3 재생","V4 재생","V4R 재생","A3C-S30 재생"];const ms=s=>MODELS.filter(m=>s.m[m]);
+const COL={"원본 실기(기록 명령)":"#8a94a6","실기 모델 원출력(3세션만)":"#d6336c","A3 재생":"#2f7bff","a3-s1 재생":"#c084fc","a3-s2 재생":"#fb923c","a3-ens3 재생":"#14b8a6","V4 재생":"#9b5de5","V4R 재생":"#1db57a","A3C-S30 재생":"#f08c00"};
 const GO=0.2,W=384,H=216;let si=0,fi=0,timer=null,speed=1,showBox=true,post=true;
 const adj=(v,m)=>{const n=nrm(v);return(post&&m!==MODELS[0]&&n>=GO)?[v[0]/n*1.15,v[1]/n*1.15]:v};
 const $=id=>document.getElementById(id),nrm=a=>Math.hypot(a[0],a[1]);
@@ -37,15 +37,15 @@ opts($('fo'),[["","물체 전체"],...[...new Set(S.map(s=>s.obj))].map(o=>[o,o]
 opts($('fp'),[["","위치 전체"],...[...new Set(S.map(s=>s.pos))].map(o=>[o,o])]);
 opts($('fr'),[["","결과 전체"],...[...new Set(S.map(s=>s.res))].map(o=>[o,o])]);
 function filt(){return S.map((s,i)=>[s,i]).filter(([s])=>(!$('fo').value||s.obj===$('fo').value)&&(!$('fp').value||s.pos===$('fp').value)&&(!$('fr').value||s.res===$('fr').value))}
-function fillSess(){const l=filt();$('ss').innerHTML=l.map(([s,i])=>`<option value="${i}" ${i===si?'selected':''}>${s.sid.slice(9,13)} · ${s.obj} · ${s.pos.replace(/\(.*\)/,'')} · ${s.res} · ${s.ins}</option>`).join('');if(l.length&&!l.some(([_,i])=>i===si)){si=l[0][1];fi=0}}
+function fillSess(){const l=filt();$('ss').innerHTML=l.map(([s,i])=>`<option value="${i}" ${i===si?'selected':''}>${s.sid.slice(4,6)}/${s.sid.slice(6,8)} ${s.sid.slice(9,13)} · ${s.obj} · ${s.pos.replace(/\(.*\)/,'')} · ${s.res} · ${s.ins}</option>`).join('');if(l.length&&!l.some(([_,i])=>i===si)){si=l[0][1];fi=0}}
 function arrow(v,c,cls){const n=nrm(v);let g=`<circle cx="${W/2}" cy="${H-14}" r="4" fill="${c}"/>`;if(n<GO)return g+`<text x="${W/2+10}" y="${H-10}" fill="#ff5a5a" font-size="15" font-weight="700" stroke="#000" stroke-width=".5">정지 ${n.toFixed(2)}</text>`;
 const L=Math.min(n,1.2)*105,ux=v[1]/n,uy=-v[0]/n,x2=W/2+ux*L,y2=H-14+uy*L,px=-uy,py=ux;
 return g+`<line x1="${W/2}" y1="${H-14}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="7" stroke-linecap="round" opacity=".5"/><line x1="${W/2}" y1="${H-14}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="4.5" stroke-linecap="round"/><polygon points="${x2+ux*10},${y2+uy*10} ${x2+px*7},${y2+py*7} ${x2-px*7},${y2-py*7}" fill="${c}" stroke="#000" stroke-width="1"/>`}
 function box(b,c,dash){if(!b||b[3]<.5)return'';const w=Math.sqrt(b[2]*W*H);return`<rect x="${b[0]*W-w/2}" y="${b[1]*H-w/2}" width="${w}" height="${w}" fill="none" stroke="${c}" stroke-width="2.5" ${dash?'stroke-dasharray="6 4"':''}/>`}
 function draw(){const s=S[si];fi=Math.max(0,Math.min(fi,s.n-1));$('sl').max=s.n-1;$('sl').value=fi;
-$('info').innerHTML=`<b>${s.obj}</b> · ${s.pos} · 지시어 "${s.ins}"(${s.form}) · <span class="tag ${s.res==='성공'?'ok':'bad'}">운영자 판정: ${s.res}</span> · 프레임 ${fi+1}/${s.n} <span class="m">· 노란 박스=기록된 박스(지시어로 찾음), 하늘색 점선=gray basket 문구로 다시 찾은 박스</span>`;
+$('info').innerHTML=`<b>${s.obj}</b> · ${s.pos} · 지시어 "${s.ins}"(${s.form}) · <span class="tag ${s.res==='성공'?'ok':'bad'}">운영자 판정: ${s.res}</span> · 실기 모델: <b>★ ${s.real_name}</b> · 프레임 ${fi+1}/${s.n} <span class="m">· 노란 박스=기록된 박스(지시어로 찾음), 하늘색 점선=gray basket 문구로 다시 찾은 박스</span>`;
 $('grid').innerHTML=ms(s).map(m=>{const v=adj(s.m[m][fi],m),n=nrm(v),st=n<GO;const bx=showBox?box(s.rb[fi],'#ffd21f',false)+(s.gb?box(s.gb[fi],'#38d6ff',true):''):'';
-return`<div class="pn"><h3 style="border-bottom:3px solid ${COL[m]}"><span>${m}</span><span class="${st?'stop':'go'}">${st?'정지':'이동'}</span></h3><div class="im"><img src="${src(s.sid,fi)}" alt=""><svg viewBox="0 0 ${W} ${H}">${bx}${arrow(v,COL[m])}</svg></div><div class="rd"><span>전진 ${v[0].toFixed(2)}</span><span>좌우 ${v[1].toFixed(2)}</span><span>크기 ${n.toFixed(2)}</span></div></div>`}).join('');
+return`<div class="pn"><h3 style="border-bottom:3px solid ${COL[m]}"><span>${s.real===m?'★ ':''}${m}</span><span class="${st?'stop':'go'}">${st?'정지':'이동'}</span></h3><div class="im"><img src="${src(s.sid,fi)}" alt=""><svg viewBox="0 0 ${W} ${H}">${bx}${arrow(v,COL[m])}</svg></div><div class="rd"><span>전진 ${v[0].toFixed(2)}</span><span>좌우 ${v[1].toFixed(2)}</span><span>크기 ${n.toFixed(2)}</span></div></div>`}).join('');
 let t='<tr><th>프레임</th>'+[...Array(s.n)].map((_,i)=>`<td class="${i===fi?'cur':''}" data-i="${i}"><img src="${src(s.sid,i)}" loading="lazy" alt=""></td>`).join('')+'</tr>';
 for(const m of ms(s)){t+=`<tr><th style="color:${COL[m]}">${m}</th>`+s.m[m].map((v0,i)=>{const v=adj(v0,m),n=nrm(v),st=n<GO,a=Math.atan2(v[1],v[0]),op=Math.min(1,.25+n*.75);return`<td class="${i===fi?'cur':''}" data-i="${i}" style="background:${st?'rgba(220,60,60,.35)':COL[m]+Math.round(op*40+15).toString(16).padStart(2,'0')}"><svg width="42" height="34" viewBox="-21 -17 42 34">${st?'<text x="0" y="4" text-anchor="middle" font-size="10" fill="#e5484d">정지</text>':`<g transform="rotate(${a*180/Math.PI})"></g><line x1="0" y1="0" x2="${Math.sin(a)*Math.min(n,1.2)*15}" y2="${-Math.cos(a)*Math.min(n,1.2)*15}" stroke="${COL[m]}" stroke-width="3" stroke-linecap="round"/><circle cx="${Math.sin(a)*Math.min(n,1.2)*15}" cy="${-Math.cos(a)*Math.min(n,1.2)*15}" r="2.6" fill="${COL[m]}"/>`}</svg></td>`}).join('')+'</tr>'}
 $('tl').innerHTML=t;

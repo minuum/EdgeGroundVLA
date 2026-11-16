@@ -25,8 +25,18 @@ for x in D:
     sid = x["sid"]
     with h5py.File(ROOT / f"docs/inference_sessions/session_{sid}.h5", "r") as h: n = h["observations/images"].shape[0]; act = h["actions"][:n, :2]
     m = {"원본 실기(기록 명령)": act, "A3 재생": replay(sid, "A3"), "V4 재생": np.array(x["V4_ins_gb"]), "V4R 재생": np.array(x["V4R_ins_gb"]), "A3C-S30 재생": replay(sid, "S30")}
-    S.append(dict(sid=sid, ins=x["ins"], obj=x["obj"], form=x["form"], pos=x["pos"], res=x["res"], n=n, rb=r2(x["bbox"]), gb=r2(x["gb_bbox"]) if x.get("gb_bbox") else None, m={k: r2(v[:n]) for k, v in m.items()}))
+    _sim = json.load(open(ROOT / "docs/v5/egvla2_fm/a3c/ch82_sim.json"))[sid]["cmd"]; m.update({"a3-s1 재생": _sim["a3-s1"], "a3-s2 재생": _sim["a3-s2"], "a3-ens3 재생": _sim["a3-ens3"]})
+    S.append(dict(sid=sid, ins=x["ins"], obj=x["obj"], form=x["form"], pos=x["pos"], res=x["res"], n=n, real="A3 재생", real_name="a3 (배포, 11/13)", rb=r2(x["bbox"]), gb=r2(x["gb_bbox"]) if x.get("gb_bbox") else None, m={k: r2(v[:n]) for k, v in m.items()}))
     print(sid, n, flush=True)
+# 11/16 a3-s2 실기 45세션: 로봇 서버에서 받은 프레임(figures/objtest_1116)을 이 서버에서 재생한 값(기록 명령·원출력 H5는 받지 못해 '원본 실기' 행 없음)
+import csv as _csv
+_R16 = json.load(open(ROOT / "docs/v5/egvla2_fm/a3c/replay_1116.json")); _rt = {r["session_id"]: r for r in _csv.DictReader(open(ROOT / "docs/v5/egvla2_fm/a3c/real_1116_episode_log_slice.csv", encoding="utf-8"))}
+_O = {"go to the gray basket": ("바구니", "문장"), "go to the brown wooden chair": ("의자", "문장"), "go to the small desk": ("책상", "문장")}; _P = {"trackF_center": "가운데(G3)", "trackA_weak_right": "오른쪽(G4로 추정)", "trackA_weak_left": "왼쪽(G2로 추정)"}
+for sid, v in _R16.items():
+    if sid.startswith("_"): continue
+    n_ = len(v["frames"]); cm = v["cmd"]; rb_ = [[v["cx"][i], v["cy"][i], v["area_re"][i], v["has"][i]] for i in range(n_)]
+    S.append(dict(sid=sid, ins=v["instruction"], obj=_O[v["instruction"]][0], form=_O[v["instruction"]][1], pos=_P[_rt[sid]["경로"]], res=_rt[sid]["결과"], n=n_, real="a3-s2 재생", real_name="a3-s2 (11/16)", rb=rb_, gb=None,
+                  m={"A3 재생": cm["a3"], "a3-s1 재생": cm["a3-s1"], "a3-s2 재생": cm["a3-s2"], "a3-ens3 재생": cm["a3-ens3"]}))
 # 로봇 서버 JSON(docs/inference_reports)에 남은 모델 원출력(chunk_first): 수신한 3세션만 있음
 for s_ in S:
     f = ROOT / f"_received_1113_env_check/session_{s_['sid']}.json"
@@ -36,9 +46,9 @@ for s_ in S:
         print("실기 원출력 vs A3 재생", s_["sid"], "mean abs diff %.3f" % np.abs(rep[:k] - raw[:k]).mean())
 json.dump(S, open(ROOT / "docs/v5/egvla2_fm/objtest_compare_data.json", "w"), ensure_ascii=False)
 # 충실도: 기록 명령(원본 실기)과 A3 헤드 재생의 차이
-d = np.concatenate([np.abs(np.array(s["m"]["원본 실기(기록 명령)"]) - np.array(s["m"]["A3 재생"])).ravel() for s in S]); print("recorded vs A3 replay abs diff mean %.4f max %.4f" % (d.mean(), d.max()))
+d = np.concatenate([np.abs(np.array(s["m"]["원본 실기(기록 명령)"]) - np.array(s["m"]["A3 재생"])).ravel() for s in S if "원본 실기(기록 명령)" in s["m"]]); print("recorded vs A3 replay abs diff mean %.4f max %.4f" % (d.mean(), d.max()))
 # 부호 점검: 기록 명령 ly와 A3 재생 ly가 같은 방향인가
-a = np.concatenate([np.array(s["m"]["원본 실기(기록 명령)"])[:, 1] for s in S]); b = np.concatenate([np.array(s["m"]["A3 재생"])[:, 1] for s in S]); print("ly corr recorded vs A3 replay", float(np.corrcoef(a, b)[0, 1]))
+a = np.concatenate([np.array(s["m"]["원본 실기(기록 명령)"])[:, 1] for s in S if "원본 실기(기록 명령)" in s["m"]]); b = np.concatenate([np.array(s["m"]["A3 재생"])[:, 1] for s in S if "원본 실기(기록 명령)" in s["m"]]); print("ly corr recorded vs A3 replay", float(np.corrcoef(a, b)[0, 1]))
 HTML = open(ROOT / "scripts/objtest_compare_template.html", encoding="utf-8").read().replace("/*DATA*/[]", json.dumps(S, ensure_ascii=False))
 (ROOT / "docs/v5/object_test_compare_1113.html").write_text(HTML, encoding="utf-8"); print("html", len(HTML))
 # 단독 실행판: 실기 프레임(로봇 서버가 보낸 1280×720 원본)을 448×252 JPEG로 줄여 HTML 안에 넣는다
@@ -47,8 +57,9 @@ from PIL import Image
 FR = {}
 for s_ in S:
     FR[s_["sid"]] = []
+    _d = "objtest_1116" if s_["sid"].startswith("20261116") else "objtest"
     for i in range(s_["n"]):
-        im = Image.open(ROOT / f"docs/v5/figures/objtest/{s_['sid']}_{i}.jpg").convert("RGB").resize((448, 252), Image.LANCZOS); b = io.BytesIO(); im.save(b, "JPEG", quality=70)
+        im = Image.open(ROOT / f"docs/v5/figures/{_d}/{s_['sid']}_{i}.jpg").convert("RGB").resize((384, 216), Image.LANCZOS); b = io.BytesIO(); im.save(b, "JPEG", quality=68)
         FR[s_["sid"]].append("data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode())
 ST = HTML.replace("/*FRAMES*/null", json.dumps(FR, separators=(",", ":")), 1)
 assert ST != HTML
