@@ -201,6 +201,8 @@ docs/**/*.png
 !docs/v5/figures/ch79/**
 # research_story 인라인 이미지를 파일로 뺀 것(scripts/story_publish.py) — 페이지가 참조하므로 추적
 !docs/v5/figures/inline/**
+# 정지 정책 시뮬레이션 페이지 프레임 썸네일(scripts/build_stop_policy_viz.py)
+!docs/v5/figures/stop_sim/**
 !docs/v5/prof_deck/img/**
 # LLM wiki에서 base64 임베드 이미지를 추출한 자산(scripts/wiki/parse_research_story.py) —
 # 위키가 클론 즉시 동작하려면 반드시 추적돼야 함
