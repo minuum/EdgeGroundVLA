@@ -1,0 +1,406 @@
+{
+ "meta": {
+  "head_model": "a3-s2",
+  "target_gap_cm": {
+   "basket": 5.0,
+   "chair": 17.5
+  },
+  "band_cm": 5.0,
+  "obs_gap_cm_1117": {
+   "basket": [
+    5,
+    1,
+    5,
+    3,
+    -3,
+    1,
+    2,
+    -2,
+    5,
+    -3
+   ],
+   "chair": [
+    30,
+    25,
+    35,
+    25,
+    25
+   ]
+  },
+  "contact_area_range": {
+   "basket": [
+    0.34,
+    0.4
+   ],
+   "chair": [
+    0.4,
+    0.5
+   ]
+  },
+  "head_thr": 0.2,
+  "lag_frames": null,
+  "near_frames": 2
+ },
+ "objects": {
+  "basket": {
+   "a_contact=0.34": {
+    "anchor_stop_area": 0.308,
+    "k": 17.5,
+    "target_area": 0.25,
+    "policies": {
+     "P0a 현행 near=0.25": {
+      "n": 15,
+      "gap_median": -4.5,
+      "gap_min": -9.2,
+      "gap_max": 3.0,
+      "in_band": 0.27,
+      "contact": 0.73,
+      "too_early": 0.0,
+      "by_head": 0.33,
+      "by_near": 0.67,
+      "extrapolated": 0.47,
+      "T_median": 0.25
+     },
+     "P0b 오늘 near=0.18": {
+      "n": 15,
+      "gap_median": 1.5,
+      "gap_min": -0.9,
+      "gap_max": 6.0,
+      "in_band": 0.87,
+      "contact": 0.13,
+      "too_early": 0.0,
+      "by_head": 0.13,
+      "by_near": 0.87,
+      "extrapolated": 0.0,
+      "T_median": 0.18
+     },
+     "P1 물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 5.8,
+      "gap_min": 0.2,
+      "gap_max": 11.3,
+      "in_band": 0.93,
+      "contact": 0.0,
+      "too_early": 0.07,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.16
+     },
+     "P2 다음스텝 예측+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 5.5,
+      "gap_min": 0.2,
+      "gap_max": 7.4,
+      "in_band": 1.0,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.2
+     },
+     "P4 P1+헤드바닥 0.15(LOO)": {
+      "n": 15,
+      "gap_median": 5.8,
+      "gap_min": 0.2,
+      "gap_max": 11.3,
+      "in_band": 0.93,
+      "contact": 0.0,
+      "too_early": 0.07,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.16
+     },
+     "P5 헤드 끔+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 5.8,
+      "gap_min": 0.2,
+      "gap_max": 11.3,
+      "in_band": 0.93,
+      "contact": 0.0,
+      "too_early": 0.07,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.16
+     }
+    }
+   },
+   "a_contact=0.4": {
+    "anchor_stop_area": 0.308,
+    "k": 6.83,
+    "target_area": 0.187,
+    "policies": {
+     "P0a 현행 near=0.25": {
+      "n": 15,
+      "gap_median": -0.8,
+      "gap_min": -2.7,
+      "gap_max": 2.1,
+      "in_band": 0.4,
+      "contact": 0.6,
+      "too_early": 0.0,
+      "by_head": 0.33,
+      "by_near": 0.67,
+      "extrapolated": 0.47,
+      "T_median": 0.25
+     },
+     "P0b 오늘 near=0.18": {
+      "n": 15,
+      "gap_median": 1.5,
+      "gap_min": 0.6,
+      "gap_max": 3.3,
+      "in_band": 1.0,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.13,
+      "by_near": 0.87,
+      "extrapolated": 0.0,
+      "T_median": 0.18
+     },
+     "P1 물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 5.2,
+      "gap_min": 4.4,
+      "gap_max": 6.3,
+      "in_band": 1.0,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.12
+     },
+     "P2 다음스텝 예측+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 4.9,
+      "gap_min": 3.7,
+      "gap_max": 6.1,
+      "in_band": 1.0,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.16
+     },
+     "P4 P1+헤드바닥 0.15(LOO)": {
+      "n": 15,
+      "gap_median": 5.2,
+      "gap_min": 4.4,
+      "gap_max": 6.3,
+      "in_band": 1.0,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.12
+     },
+     "P5 헤드 끔+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 5.2,
+      "gap_min": 4.4,
+      "gap_max": 6.3,
+      "in_band": 1.0,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.12
+     }
+    }
+   }
+  },
+  "chair": {
+   "a_contact=0.4": {
+    "anchor_stop_area": 0.283,
+    "k": 83.99,
+    "target_area": 0.312,
+    "policies": {
+     "P0a 현행 near=0.25": {
+      "n": 15,
+      "gap_median": 5.1,
+      "gap_min": -4.4,
+      "gap_max": 12.6,
+      "in_band": 0.07,
+      "contact": 0.13,
+      "too_early": 0.0,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.25
+     },
+     "P0b 오늘 near=0.18": {
+      "n": 15,
+      "gap_median": 25.0,
+      "gap_min": 12.6,
+      "gap_max": 44.0,
+      "in_band": 0.2,
+      "contact": 0.0,
+      "too_early": 0.8,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.18
+     },
+     "P1 물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 22.4,
+      "gap_min": 6.5,
+      "gap_max": 28.8,
+      "in_band": 0.33,
+      "contact": 0.0,
+      "too_early": 0.47,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.19
+     },
+     "P2 다음스텝 예측+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 22.4,
+      "gap_min": 5.1,
+      "gap_max": 29.9,
+      "in_band": 0.33,
+      "contact": 0.0,
+      "too_early": 0.47,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.25
+     },
+     "P4 P1+헤드바닥 0.15(LOO)": {
+      "n": 15,
+      "gap_median": 22.4,
+      "gap_min": 6.5,
+      "gap_max": 28.8,
+      "in_band": 0.33,
+      "contact": 0.0,
+      "too_early": 0.47,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.19
+     },
+     "P5 헤드 끔+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 22.4,
+      "gap_min": 6.5,
+      "gap_max": 28.8,
+      "in_band": 0.33,
+      "contact": 0.0,
+      "too_early": 0.47,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.19
+     }
+    }
+   },
+   "a_contact=0.5": {
+    "anchor_stop_area": 0.283,
+    "k": 53.81,
+    "target_area": 0.331,
+    "policies": {
+     "P0a 현행 near=0.25": {
+      "n": 15,
+      "gap_median": 12.3,
+      "gap_min": 6.2,
+      "gap_max": 17.1,
+      "in_band": 0.47,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.25
+     },
+     "P0b 오늘 near=0.18": {
+      "n": 15,
+      "gap_median": 25.0,
+      "gap_min": 17.1,
+      "gap_max": 37.1,
+      "in_band": 0.13,
+      "contact": 0.0,
+      "too_early": 0.87,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.18
+     },
+     "P1 물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 13.6,
+      "gap_min": 8.8,
+      "gap_max": 24.3,
+      "in_band": 0.53,
+      "contact": 0.0,
+      "too_early": 0.07,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.23
+     },
+     "P2 다음스텝 예측+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 13.6,
+      "gap_min": 8.8,
+      "gap_max": 22.4,
+      "in_band": 0.67,
+      "contact": 0.0,
+      "too_early": 0.0,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.27
+     },
+     "P4 P1+헤드바닥 0.15(LOO)": {
+      "n": 15,
+      "gap_median": 13.6,
+      "gap_min": 8.8,
+      "gap_max": 24.3,
+      "in_band": 0.53,
+      "contact": 0.0,
+      "too_early": 0.07,
+      "by_head": 0.07,
+      "by_near": 0.93,
+      "extrapolated": 0.0,
+      "T_median": 0.23
+     },
+     "P5 헤드 끔+물체별 near(LOO)": {
+      "n": 15,
+      "gap_median": 13.6,
+      "gap_min": 8.8,
+      "gap_max": 24.3,
+      "in_band": 0.53,
+      "contact": 0.0,
+      "too_early": 0.07,
+      "by_head": 0.0,
+      "by_near": 1.0,
+      "extrapolated": 0.0,
+      "T_median": 0.23
+     }
+    }
+   }
+  }
+ },
+ "desk_area_only": {
+  "near=0.25": {
+   "stop_area_median": 0.243,
+   "range": [
+    0.183,
+    0.486
+   ]
+  },
+  "near=0.18": {
+   "stop_area_median": 0.24,
+   "range": [
+    0.183,
+    0.308
+   ]
+  }
+ }
+}
