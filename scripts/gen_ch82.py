@@ -28,6 +28,7 @@ def main():
     s = CC.replace_summary_row(s, 82, "a3 vs a3-s2 실기·시뮬 대조(11/16)", text, "#fb923c")
     s = re.sub(r"현재 상태 \(CH1→CH\d+ · [0-9-]+\)", "현재 상태 (CH1→CH82 · 2026-11-16)", s, count=1)
     HTML.write_text(s, encoding="utf-8")
+    __import__("story_publish").publish()   # 원본 갱신 후 발행(분리·이미지 파일화)
     for t, a, b in CC.balance(s):
         print(t, a, b)
 

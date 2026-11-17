@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-HTML = Path(__file__).resolve().parent.parent / "docs/v5/research_story.html"
+HTML = Path(__file__).resolve().parent.parent / "docs/v5/research_story_src.html"
 MARK = re.compile(r'<div style="margin:16px 0 6px[^>]*>(⓪|①|②|③|④|⑤|⑥-\d+|⑥|⑦|⑧)[ ]')
 
 

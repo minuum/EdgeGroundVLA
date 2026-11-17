@@ -42,6 +42,7 @@ def main():
     s = CC.replace_toc_label(s, 78, "EGVLA2 실기 전 단계 — 로드맵·서빙·젯슨 점검")
     s = CC.replace_summary_row(s, 78, "EGVLA2 실기 전 단계", "로드맵 R0~R8 중 R0~R3 완료(젯슨 서버 경로 pass, 왕복 892ms=Florence-2 821+FM 54), R4 pos2·3 재생 대기, EGVLA1 vs 2 같은 프레임 비교(이미지), 학습-서빙 일치(JPEG q95), 큰 범위 로드맵 P0~P5, 구동 전 게이트", "#fb923c")
     HTML.write_text(s, encoding="utf-8")
+    __import__("story_publish").publish()   # 원본 갱신 후 발행(분리·이미지 파일화)
     for t, a, b in CC.balance(s):
         print(t, a, b)
 

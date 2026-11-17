@@ -23,7 +23,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-SRC = ROOT / "docs/v5/research_story.html"
+SRC = ROOT / "docs/v5/research_story_src.html"
 OUT = ROOT / "docs/wiki/data/chapters.json"
 BASE_DIR = SRC.parent               # docs/v5 — <img> 상대경로는 이 폴더 기준
 WIKI_DIR = ROOT / "docs/wiki"

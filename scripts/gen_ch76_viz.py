@@ -12,7 +12,7 @@ import h5py
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
-HTML = ROOT / "docs/v5/research_story.html"
+HTML = ROOT / "docs/v5/research_story_src.html"
 FM = ROOT / "docs/v5/egvla2_fm"
 A, AL, G, R, B, P, MUT = "#fbbf24", "#fcd34d", "#4ade80", "#f87171", "#38bdf8", "#a78bfa", "#94a3b8"
 
@@ -501,6 +501,7 @@ def main():
     seg = style_text(seg)
     s = s[:a] + seg + s[b:]
     HTML.write_text(s, encoding="utf-8")
+    __import__("story_publish").publish()   # 원본 갱신 후 발행(분리·이미지 파일화)
     for t in ["div", "svg", "table", "tr", "button"]:
         print(t, len(re.findall(f"<{t}[ >]", s)), len(re.findall(f"</{t}>", s)))
 

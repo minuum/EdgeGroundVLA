@@ -166,6 +166,7 @@ def main():
     s = update_vis(s)
     s = re.sub(r'(<a href="#ch77" style="[^"]*">)[^<]*(</a>)', r'\g<1>🧭 CH77 EGVLA2 학습 분야 정리\g<2>', s, count=1)
     HTML.write_text(s, encoding="utf-8")
+    __import__("story_publish").publish()   # 원본 갱신 후 발행(분리·이미지 파일화)
     for t, a, b in CC.balance(s):
         print(t, a, b)
 
