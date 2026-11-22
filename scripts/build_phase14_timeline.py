@@ -142,6 +142,56 @@ code{{background:#1b2944;padding:1px 5px;border-radius:4px;font-size:.8em;color:
     아직 실제 Serbot/YahBoom 바퀴를 굴리는 폐루프 실기 주행은 실시하지 않았으며, 아래 4개 타임라인은 <b>실기 서버에 올라갔을 때 정확히 어떤 텐서·레이어·명령이 어떤 순서로 흐르는지</b>를 실측 수치로 해부한 청사진입니다.
   </div>
 
+  <section class="phase-sec" style="border-top:4px solid #f472b6">
+    <div class="phase-hdr">
+      <div class="phase-ttl">🏆 4개 Phase 중 무엇이 '진짜 E2E VLA'인가? — 동급 SOTA VLA 논문 매칭 비교</div>
+      <span class="badge b-pink">진짜 VLA 기준: 단일 VLM + 미분 가능 경로 + 연속 액션 + Open-Vocab</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.79rem;background:#0a1222">
+        <thead>
+          <tr style="background:#16223b;color:#cbd5e1">
+            <th style="border:1px solid #233454;padding:7px 9px;text-align:left">우리 Phase</th>
+            <th style="border:1px solid #233454;padding:7px 9px;text-align:center">진짜 E2E VLA?</th>
+            <th style="border:1px solid #233454;padding:7px 9px;text-align:left">동일 성격 SOTA VLA (논문 출처)</th>
+            <th style="border:1px solid #233454;padding:7px 9px;text-align:left">핵심 구조적 공통점 · 차별점</th>
+            <th style="border:1px solid #233454;padding:7px 9px;text-align:left">300ep 실측 특징 / 진짜 VLA까지 남은 것</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#38bdf8">Phase 1</b><br><code>MOD-DR-Fast</code><br><span style="color:#94a3b8">beam=1 fp16</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px;text-align:center"><span class="badge b-bad">❌ 모듈러</span><br><span style="font-size:.7rem;color:#94a3b8">비미분 텍스트 경계</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>NaVILA</b> (arXiv:2412.04453, §3)<br><b>RT-H</b> (arXiv:2403.01823, §3)</td>
+            <td style="border:1px solid #233454;padding:7px 9px">VLM이 텍스트 중간 표현(좌표/명령)을 생성하고 하위 정책이 파싱해 실행하는 2단계 계층 구조.</td>
+            <td style="border:1px solid #233454;padding:7px 9px">가장 안정적(<code>0.54°</code>, <code>285ms</code>)이나 문자열 경계에서 역전파 단절 → <b>강력한 모듈러 베이스라인</b>.</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#c084fc">Phase 2</b><br><code>VLM-E2E-Hidden</code><br><span style="color:#94a3b8">π0형 1-Pass</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px;text-align:center"><span class="badge b-purp">✅ 교과서 순수 E2E</span><br><span style="font-size:.7rem;color:#94a3b8">(단, VLM 동결)</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>π0</b> (Physical Intelligence, arXiv:2410.24164, §3.2)<br><b>GR00T N1</b> (NVIDIA, arXiv:2503.14734, §2.1)<br><b>OpenVLA-OFT</b> (arXiv:2502.19645, §3)</td>
+            <td style="border:1px solid #233454;padding:7px 9px">문자열 생성 없이 VLM Decoder 1-Pass Hidden State → Flow Matching Action Expert로 연속 청크 직접 출력.</td>
+            <td style="border:1px solid #233454;padding:7px 9px"><code>~70ms</code> 초고속이지만, π0(수십만 ep)와 달리 300ep에서는 <b>미학습 의자 정지 18.6%</b>로 Open-Vocab 정지 실패.</td>
+          </tr>
+          <tr style="background:#180e28">
+            <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#e879f9">Phase 3 ★</b><br><code>VLM-E2E-SoftLoc</code><br><span style="color:#94a3b8">미분 Soft-Loc</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px;text-align:center"><span class="badge b-ok">✅ 진짜 E2E VLA</span><br><span style="font-size:.7rem;color:#f5d0fe">공간 CoT 미분화</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>ECoT</b> (arXiv:2407.08693, §3)<br><b>SpatialVLA</b> (arXiv:2501.15830, §3)<br><b>π0.5</b> (arXiv:2504.16054, §3)</td>
+            <td style="border:1px solid #233454;padding:7px 9px">ECoT·SpatialVLA의 공간 추론(Spatial CoT)을 <b>Softmax 기댓값으로 완전 미분 가능화</b> + Flow Matching 결합.</td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>300ep 최적 진짜 VLA 해법</b>(<code>297ms</code>, <code>2.71°</code>, 바구니·의자 정지 <b>100%/100%</b>). 여기에 <b>액션 손실→Decoder LoRA 공동 역전파</b>만 얹으면 100% 완성!</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#4ade80">Phase 4</b><br><code>MOD-DR-Safe</code><br><span style="color:#94a3b8">S2 감속·YahBoom</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px;text-align:center"><span class="badge b-warn">⚙️ 시스템 래퍼</span><br><span style="font-size:.7rem;color:#94a3b8">Dual-System 제어</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>Helix</b> (Figure AI, 2025) · <b>GR00T N1</b> Dual-System (System 2 + System 1)</td>
+            <td style="border:1px solid #233454;padding:7px 9px">VLA(System 2) 출력 뒤에 고주파 안전 제어(스파이크 필터·연속 감속·구동계 어댑터, System 1) 결합.</td>
+            <td style="border:1px solid #233454;padding:7px 9px">Phase 1과 Phase 3 <b>어느 VLA 위에도 그대로 얹을 수 있는</b> 실기 안전·이종 로봇(YahBoom) 이식 계층.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <div class="scene-bar">
     <span class="lbl">📷 테스트할 실제 로봇 카메라 장면 선택:</span>
     <div id="sc-btns" style="display:flex;flex-wrap:wrap;gap:6px"></div>
