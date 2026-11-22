@@ -443,9 +443,10 @@ th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
 <body>
 <main>
   <div class="nav-top">
-    <a href="model_registry.html#naming">📋 모델 레지스트리 (전체 41개)</a>
+    <a href="phase14_serving_timeline.html">⏱️ Phase 1~4 서빙 가로 타임라인</a>
+    <a href="model_registry.html#naming">📋 모델 레지스트리 (전체 42개)</a>
     <a href="v4_vs_a3_compare.html">🟣 V4 · V4R vs A3 비교</a>
-    <a href="research_story_egvla2.html#ch82">📖 CH82 실기·재생 대조</a>
+    <a href="research_story_egvla2.html#ch83">📖 CH83 E2E 분석·사진</a>
     <a href="object_test_compare_1113.html">🎮 11/13 동시 재생기</a>
   </div>
 

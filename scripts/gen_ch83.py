@@ -204,7 +204,7 @@ def main() -> None:
 
     # ── Tab 1: 실기 6장면 사진 위 E2E 화살표 비교 ──
     tab1 = [
-        P('<b>실제 로봇 카메라 사진 6장 위에서 각 E2E 모델이 어떻게 보고 어디로 가는지</b>를 모듈러 1순위(`MOD-A3-AG`)와 나란히 겹쳐 확인한다. 특히 <b>장면 ③(의자 초근접)</b>이 <code>VLM-E2E-Hidden</code>과 <code>VLM-E2E-SoftLoc</code>의 결정적 차이를 한눈에 보여준다. (전체 8모델 인터랙티브 토글은 <a href="family_arch_compare.html"><b>3계열 비교 스튜디오</b></a>에서 가능)'),
+        P('<b>실제 로봇 카메라 사진 6장 위에서 각 E2E 모델이 어떻게 보고 어디로 가는지</b>를 모듈러 1순위(`MOD-A3-AG`)와 나란히 겹쳐 확인한다. 특히 <b>장면 ③(의자 초근접)</b>이 <code>VLM-E2E-Hidden</code>과 <code>VLM-E2E-SoftLoc</code>의 결정적 차이를 한눈에 보여준다. (단계별 텐서·레이어·입출력 흐름은 <a href="phase14_serving_timeline.html"><b>⏱️ Phase 1~4 서빙 가로 타임라인</b></a>, 전체 8모델 토글은 <a href="family_arch_compare.html"><b>🔀 3계열 비교 스튜디오</b></a>에서 확인)'),
         _scene_cards_html(scenes),
     ]
 

@@ -317,7 +317,7 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
                 f'{df_block if df_block else f"<dl>{dl}</dl>"}'
                 f'{det}'
                 f'<div>{ses}</div><div class=lk>{lk}</div></article>')
-    body = [f'<h1>모델 세대 레지스트리</h1><p class=d>생성 {datetime.datetime.now():%Y-%m-%d %H:%M} · 출처: MANIFEST, episode_log.csv(origin/monavla-driving), docs/v5/egvla2_fm/*.json · PN = EG{{세대}}-{{순번}}(제안안) · <a href="family_arch_compare.html"><b>🔀 3계열(MOD·ENC-E2E·VLM-E2E) 실시간 현황 &amp; 6장면 비교</b></a> · <a href="v4_vs_a3_compare.html">🟣 V4/V4R vs A3</a> · <a href="#decision-studio">🧠 의사결정 스튜디오</a> · <a href="research_story_egvla2.html#ch82">CH82</a> · <a href="research_story.html">CH1~73</a></p>']
+    body = [f'<h1>모델 세대 레지스트리</h1><p class=d>생성 {datetime.datetime.now():%Y-%m-%d %H:%M} · 출처: MANIFEST, episode_log.csv(origin/monavla-driving), docs/v5/egvla2_fm/*.json · PN = EG{{세대}}-{{순번}}(제안안) · <a href="phase14_serving_timeline.html"><b>⏱️ Phase 1~4 서빙 가로 타임라인</b></a> · <a href="family_arch_compare.html"><b>🔀 3계열 6장면 비교</b></a> · <a href="v4_vs_a3_compare.html">🟣 V4/V4R vs A3</a> · <a href="research_story_egvla2.html#ch83">🧬 CH83</a> · <a href="research_story.html">CH1~73</a></p>']
     nreal = sum(r["level"] in ("real", "deploy") for r in rows)
     kp = [(f'{len(rows)}', "등록 모델"), (f'{nreal}', "실기 기록이 있는 모델"), ("A3 = EG2-09", "현재 배포(실기 455/455 기록, 운영자 판정)"), ("a3-ag23 = EG2-16", "조향(cx)+정지(area) 기하 정합 — 중앙 출발 100% · 근접 정지 100%")]
     body.append('<div class=kpi>' + "".join(f'<div class=k><div class=v>{a}</div><div class=l>{b}</div></div>' for a, b in kp) + '</div>')
