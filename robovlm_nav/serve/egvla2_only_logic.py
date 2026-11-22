@@ -27,7 +27,9 @@ class EgVla2Controller:
                  lost_frames: int = 5, search_az: float = 0.25, search_max_frames: int = 40,
                  search_speed_scale: float = 0.7, gain: float = 1.15, rotate_az_thresh: float = 0.2, rotate_az: float = 0.25,
                  rotate_max_frames: int = 12, rotate_speed_scale: float = 0.7, idle_max_frames: int = 20, rotate_cx_dead: float = 0.08,
-                 servo_blend: float = 0.0, servo_k: float = 2.0, servo_max: float = 0.7):
+                 servo_blend: float = 0.0, servo_k: float = 2.0, servo_max: float = 0.7,
+                 decel_start_area: float | None = None, decel_min_scale: float = 0.35,
+                 jump_area_ratio: float | None = None):
         self.stop_debounce, self.near_area, self.near_frames = int(stop_debounce), near_area, int(near_frames)
         self.lost_frames, self.search_az, self.search_max_frames = int(lost_frames), float(search_az), int(search_max_frames)
         self.search_speed_scale, self.gain = float(search_speed_scale), float(gain)
@@ -35,6 +37,10 @@ class EgVla2Controller:
         self.rotate_speed_scale, self.idle_max_frames = float(rotate_speed_scale), int(idle_max_frames)
         self.rotate_cx_dead = float(rotate_cx_dead)
         self.servo_blend, self.servo_k, self.servo_max = float(servo_blend), float(servo_k), float(servo_max)
+        # Phase 4 (MOD-DR-Safe, 기본 끔): S2 연속 접근 감속 + 단발성 BBox 면적 스파이크 필터
+        self.decel_start_area = None if decel_start_area is None else float(decel_start_area)
+        self.decel_min_scale = float(decel_min_scale)
+        self.jump_area_ratio = None if jump_area_ratio is None else float(jump_area_ratio)
         self.reset()
 
     def reset(self) -> None:
@@ -42,6 +48,7 @@ class EgVla2Controller:
         self.stop_run = self.near_run = self.lost_run = self.search_frames = 0
         self.rotate_run = self.idle_run = 0
         self.last_cx: float | None = None
+        self.last_area: float | None = None
         self.search_sign = 1.0
         self.stop_reason = ""
 
@@ -60,11 +67,18 @@ class EgVla2Controller:
             return self._out(0.0, 0.0, 0.0, 0.0, "latched:" + self.stop_reason)
 
         has_bbox = bool(has_bbox)
+        # 단발성 BBox 면적 스파이크 필터 (jump_area_ratio 설정 시 활성화, 예: 2.5)
+        eff_area = None if bbox_area is None else float(bbox_area)
+        if has_bbox and eff_area is not None:
+            if (self.jump_area_ratio is not None and self.last_area is not None
+                    and self.last_area > 0.02 and eff_area > self.last_area * self.jump_area_ratio):
+                eff_area = self.last_area  # 1프레임 스파이크 억제 (다음 프레임에도 크면 자연 추종)
+            self.last_area = float(bbox_area)
         if has_bbox and bbox_cx is not None:
             self.last_cx = float(bbox_cx)
         self.lost_run = 0 if has_bbox else self.lost_run + 1
-        self.near_run = self.near_run + 1 if (has_bbox and self.near_area is not None and bbox_area is not None
-                                              and float(bbox_area) >= self.near_area) else 0
+        self.near_run = self.near_run + 1 if (has_bbox and self.near_area is not None and eff_area is not None
+                                              and eff_area >= self.near_area) else 0
 
         # (b) 근접 오버라이드 — 어떤 상태에서든 우선
         if self.near_area is not None and self.near_run >= self.near_frames:
@@ -137,4 +151,13 @@ class EgVla2Controller:
             if n > 1e-6:
                 ux, uy = bx / n, by / n
                 reason = reason + f"+servo(w={w:g})"
-        return self._out(ux * self.gain, uy * self.gain, 0.0, float(action_cont["speed_scale"]), reason)
+        spd = float(action_cont["speed_scale"])
+        # S2 연속 접근 감속 (decel_start_area 설정 시 활성화, 예: 0.14 → near_area 0.25까지 선형 감속)
+        if (self.decel_start_area is not None and self.near_area is not None
+                and has_bbox and eff_area is not None and eff_area > self.decel_start_area):
+            span = max(1e-4, self.near_area - self.decel_start_area)
+            frac = min(1.0, max(0.0, (eff_area - self.decel_start_area) / span))
+            dec = 1.0 - frac * (1.0 - self.decel_min_scale)
+            spd = spd * dec
+            reason = reason + f"+decel({dec:.2f})"
+        return self._out(ux * self.gain, uy * self.gain, 0.0, spd, reason)

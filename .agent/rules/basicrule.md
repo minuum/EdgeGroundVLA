@@ -27,3 +27,11 @@ trigger: always_on
 - 논문 분석 → 표 작성 → 코드 검증 → 리포트 작성 순서 선호
 - 교수님 미팅 준비 시 증거 기반 논증 구조 (주장 → 근거 → 데이터) 사용
 - 불확실한 내용은 추측하지 않고 논문/코드에서 확인 후 답변
+
+# Research History Server Link & Publishing Workflow
+- 연구, 실험, 분석 보고 또는 세션 대화 마무리 시, 항상 리서치 히스토리 서버 링크(로컬 포트 8001/8766 및 GitHub Pages 원격 링크)를 함께 출력
+- `research_story` 구조(커밋 `79c36d12`):
+  - **원본(Source of Truth)**: `docs/v5/research_story_src.html` (챕터 추가·수정 시 반드시 이 원본을 대상으로 하며, `gen_ch76_viz.py` 및 `gen_ch77.py`~`gen_ch82.py`가 원본 수정 후 `scripts/story_publish.py`를 자동 호출함. 수동 발행은 `python3 scripts/story_publish.py`)
+  - **발행본 1 (CH1~73 + 요약)**: `docs/v5/research_story.html` (2.1MB, 직접 수정 금지 — 다음 발행 시 덮어써짐)
+  - **발행본 2 (CH74~ EGVLA2 이후)**: `docs/v5/research_story_egvla2.html` (2.3MB, `#ch74`~`#ch82` 링크는 이 페이지가 정식 주소이며 옛 `research_story.html#ch82` 주소도 JS로 자동 리다이렉트됨)
+  - **외부화 이미지**: `docs/v5/figures/inline/<sha1_16>.<ext>` (`loading="lazy" decoding="async"` 적용, base64 직접 내장 지양)

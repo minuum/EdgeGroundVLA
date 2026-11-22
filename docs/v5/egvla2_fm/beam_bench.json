@@ -1,0 +1,50 @@
+{
+  "beam3_fp32 (현행 기준)": {
+    "n_frames": 330,
+    "latency_mean_ms": 589.1,
+    "latency_med_ms": 590.7,
+    "latency_p90_ms": 597.6,
+    "speedup_vs_beam3": 1.0,
+    "has_bbox_rate": 0.9909,
+    "has_agree_vs_beam3": 1.0,
+    "cx_mae_vs_beam3": 0.0,
+    "cy_mae_vs_beam3": 0.0,
+    "area_mae_vs_beam3": 0.0
+  },
+  "beam1_fp32 (Greedy)": {
+    "n_frames": 330,
+    "latency_mean_ms": 559.5,
+    "latency_med_ms": 561.1,
+    "latency_p90_ms": 566.6,
+    "speedup_vs_beam3": 1.05,
+    "has_bbox_rate": 0.9879,
+    "has_agree_vs_beam3": 0.997,
+    "cx_mae_vs_beam3": 0.0016,
+    "cy_mae_vs_beam3": 0.0002,
+    "area_mae_vs_beam3": 0.0006
+  },
+  "beam1_fp16 (Track B)": {
+    "n_frames": 330,
+    "latency_mean_ms": 281.8,
+    "latency_med_ms": 283.0,
+    "latency_p90_ms": 286.8,
+    "speedup_vs_beam3": 2.09,
+    "has_bbox_rate": 0.9879,
+    "has_agree_vs_beam3": 0.997,
+    "cx_mae_vs_beam3": 0.0016,
+    "cy_mae_vs_beam3": 0.0002,
+    "area_mae_vs_beam3": 0.0006
+  },
+  "softloc_fp16 (Track A2)": {
+    "n_frames": 330,
+    "latency_mean_ms": 283.9,
+    "latency_med_ms": 283.8,
+    "latency_p90_ms": 284.7,
+    "speedup_vs_beam3": 2.08,
+    "has_bbox_rate": 0.997,
+    "has_agree_vs_beam3": 0.9879,
+    "cx_mae_vs_beam3": 0.0141,
+    "cy_mae_vs_beam3": 0.0013,
+    "area_mae_vs_beam3": 0.0074
+  }
+}

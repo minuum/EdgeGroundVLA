@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-16T22:59",
+ "generated": "2026-11-22T17:03",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
@@ -32,11 +32,11 @@
    "links": [
     [
      "CH76 수집 점검",
-     "research_story.html#ch76"
+     "research_story_egvla2.html#ch76"
     ],
     [
      "CH77",
-     "research_story.html#ch77"
+     "research_story_egvla2.html#ch77"
     ]
    ]
   },
@@ -49,7 +49,7 @@
    "links": [
     [
      "CH76 ④ 데이터 보관 상태",
-     "research_story.html#ch76"
+     "research_story_egvla2.html#ch76"
     ]
    ]
   },
@@ -62,7 +62,7 @@
    "links": [
     [
      "CH79",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ]
   },
@@ -75,7 +75,7 @@
    "links": [
     [
      "CH78 시작 위치 재생",
-     "research_story.html#ch78"
+     "research_story_egvla2.html#ch78"
     ]
    ]
   },
@@ -88,7 +88,7 @@
    "links": [
     [
      "CH79 📅 10/29",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ]
   },
@@ -101,7 +101,7 @@
    "links": [
     [
      "CH79 📆 11/04",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ]
   },
@@ -146,6 +146,9 @@
    "robot": null,
    "links": [],
    "short": "kosmos-v5-exp11",
+   "arch_alias": "VLM-E2E-K2",
+   "arch_family": "vlm",
+   "arch_family_label": "VLM 디코더 E2E",
    "sessions": null
   },
   {
@@ -166,6 +169,9 @@
    "robot": null,
    "links": [],
    "short": "exp14-step2",
+   "arch_alias": "MOD-Exp14",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -192,6 +198,9 @@
    },
    "links": [],
    "short": "eg1-unrecorded",
+   "arch_alias": "MOD-EG1-old",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": {
     "n": 179,
     "h5_local": 86,
@@ -222,6 +231,9 @@
    },
    "links": [],
    "short": "eg1-owl-holdaware",
+   "arch_alias": "MOD-EG1-Hold",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": {
     "n": 129,
     "h5_local": 129,
@@ -257,18 +269,21 @@
     ],
     [
      "CH78 ⑥-2 EGVLA1 vs EGVLA2(276/300)",
-     "research_story.html#ch78"
+     "research_story_egvla2.html#ch78"
     ],
     [
      "CH77 EGVLA1 비교",
-     "research_story.html#ch77"
+     "research_story_egvla2.html#ch77"
     ],
     [
      "CH76 ④ V6 학습 데이터",
-     "research_story.html#ch76"
+     "research_story_egvla2.html#ch76"
     ]
    ],
    "short": "eg1-baseline",
+   "arch_alias": "MOD-EG1",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": {
     "n": 300,
     "h5_local": 300,
@@ -293,6 +308,9 @@
    "robot": null,
    "links": [],
    "short": "eg1-f2-grounder",
+   "arch_alias": "MOD-EG1-F2",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -313,6 +331,9 @@
    "robot": null,
    "links": [],
    "short": "eg1-f2-phrase-grounder",
+   "arch_alias": "MOD-EG1-F2P",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -334,10 +355,13 @@
    "links": [
     [
      "CH77 학습·오프라인(FM-MLP)",
-     "research_story.html#ch77"
+     "research_story_egvla2.html#ch77"
     ]
    ],
    "short": "eg2-mlp-fm",
+   "arch_alias": "MOD-FM-MLP",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -359,10 +383,13 @@
    "links": [
     [
      "CH77 (FM-FiLM)",
-     "research_story.html#ch77"
+     "research_story_egvla2.html#ch77"
     ]
    ],
    "short": "eg2-film-res-fm",
+   "arch_alias": "MOD-FM-FiLM",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -384,10 +411,13 @@
    "links": [
     [
      "CH77 (FM-π0)",
-     "research_story.html#ch77"
+     "research_story_egvla2.html#ch77"
     ]
    ],
    "short": "eg2-pi0-adaln",
+   "arch_alias": "MOD-FM-Pi0",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -409,14 +439,17 @@
    "links": [
     [
      "CH77 MLP 회귀 대조",
-     "research_story.html#ch77"
+     "research_story_egvla2.html#ch77"
     ],
     [
      "CH78 실기 비교군",
-     "research_story.html#ch78"
+     "research_story_egvla2.html#ch78"
     ]
    ],
    "short": "eg2-mlp-regression",
+   "arch_alias": "MOD-MLP-Reg",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -438,14 +471,17 @@
    "links": [
     [
      "CH77",
-     "research_story.html#ch77"
+     "research_story_egvla2.html#ch77"
     ],
     [
      "CH79",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "a3-no-servo-drop0",
+   "arch_alias": "MOD-A1-d0",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -473,10 +509,13 @@
    "links": [
     [
      "CH79 폐루프(10/22~28, A1)",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "a3-no-servo",
+   "arch_alias": "MOD-A1",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": {
     "n": 37,
     "h5_local": 37,
@@ -502,10 +541,13 @@
    "links": [
     [
      "CH79",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "a3-e1b-tuned",
+   "arch_alias": "MOD-A2-e1b",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -533,10 +575,13 @@
    "links": [
     [
      "CH79 10/28 비교(A2)",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "a3-servo0.5",
+   "arch_alias": "MOD-A2",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": {
     "n": 20,
     "h5_local": 20,
@@ -568,7 +613,7 @@
    "links": [
     [
      "CH79 A3 채택·10/29·11/04 일반화",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ],
     [
      "VLAops",
@@ -576,7 +621,7 @@
     ],
     [
      "CH81 11/13 물체 실험 65건",
-     "research_story.html#ch81"
+     "research_story_egvla2.html#ch81"
     ],
     [
      "11/13 재생 페이지",
@@ -584,6 +629,9 @@
     ]
    ],
    "short": "a3",
+   "arch_alias": "MOD-A3",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": {
     "n": 520,
     "h5_local": 519,
@@ -608,6 +656,9 @@
    "robot": null,
    "links": [],
    "short": "eg2-299ep",
+   "arch_alias": "MOD-299ep",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -629,10 +680,13 @@
    "links": [
     [
      "CH79 E2E 일반 비교",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "e2e-lora-smoke",
+   "arch_alias": "ENC-E2E-Smoke",
+   "arch_family": "enc",
+   "arch_family_label": "인코더 E2E(디코더 없음)",
    "sessions": null
   },
   {
@@ -654,10 +708,13 @@
    "links": [
     [
      "CH79 E2E 일반 비교",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "e2e-frozen-fused",
+   "arch_alias": "ENC-E2E-Fused",
+   "arch_family": "enc",
+   "arch_family_label": "인코더 E2E(디코더 없음)",
    "sessions": null
   },
   {
@@ -679,10 +736,13 @@
    "links": [
     [
      "CH79 E2E 일반 비교",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "e2e-davit-frozen",
+   "arch_alias": "ENC-E2E-0",
+   "arch_family": "enc",
+   "arch_family_label": "인코더 E2E(디코더 없음)",
    "sessions": null
   },
   {
@@ -704,10 +764,13 @@
    "links": [
     [
      "CH79 E2E 일반 비교(마지막 단계 LoRA)",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "e2e-lora-last-stage",
+   "arch_alias": "ENC-E2E-1",
+   "arch_family": "enc",
+   "arch_family_label": "인코더 E2E(디코더 없음)",
    "sessions": null
   },
   {
@@ -729,10 +792,193 @@
    "links": [
     [
      "CH79 E2E 일반 비교(전 단계 LoRA@384)",
-     "research_story.html#ch79"
+     "research_story_egvla2.html#ch79"
     ]
    ],
    "short": "e2e-lora-all-stages-384",
+   "arch_alias": "ENC-E2E-2",
+   "arch_family": "enc",
+   "arch_family_label": "인코더 E2E(디코더 없음)",
+   "sessions": null
+  },
+  {
+   "pn": "EG3-06",
+   "gen": "G3",
+   "name": "E2E-LoRA-AG (인코더 LoRA + 기하 면적 정합)",
+   "ckpt": "EG3_06_E2E_LoRA_AG.pt",
+   "path": "runs/egvla2_e2e_lora/EG3_06_E2E_LoRA_AG.pt",
+   "arch": "DaViT 마지막 단 LoRA + Area-Grounded PiZeroFM (디코더 미사용)",
+   "train": "300에피소드 4,860장, 15ep (scripts/run_e2e_v2_only.py)",
+   "offline": "11/13·16 A3 대비 8.05°(좌우 82.0%, S=+26.75°), 11/13 의자·책상 중앙 100%, 11/16 근접(≥0.25) 바구니 90%·의자 93%",
+   "status": "오프라인 검증(인코더 E2E)",
+   "note": "기존 ENC-E2E-1(B1) 붕괴(25.1°)를 Area-Grounded 라벨로 대폭 회복. 단, VLM 디코더를 쓰지 않아 Open-Vocab 한계 존재",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 6450069,
+   "sha256": "bacb07e58d2015761f09c238dba79263c379d0232565e29a49727ea0509e2c56",
+   "robot": null,
+   "links": [
+    [
+     "CH83 3계열 파레토",
+     "research_story_egvla2.html#ch83"
+    ],
+    [
+     "3계열 6장면 비교",
+     "family_arch_compare.html"
+    ],
+    [
+     "VLM-E2E 계획서",
+     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+    ]
+   ],
+   "short": "e2e-lora-ag",
+   "arch_alias": "ENC-E2E-AG",
+   "arch_family": "enc",
+   "arch_family_label": "인코더 E2E(디코더 없음)",
+   "sessions": null
+  },
+  {
+   "pn": "EG3-07",
+   "gen": "G3",
+   "name": "E2E-LoRA-SpatialAux (인코더 LoRA + 보조 BBox 헤드)",
+   "ckpt": "EG3_07_E2E_LoRA_SpatialAux.pt",
+   "path": "runs/egvla2_e2e_lora/EG3_07_E2E_LoRA_SpatialAux.pt",
+   "arch": "DaViT LoRA + 인코더 공간 보조 BBox 헤드 + PiZeroFM (디코더 미사용)",
+   "train": "300에피소드 4,860장, 15ep (scripts/run_e2e_v2_only.py)",
+   "offline": "11/13·16 A3 대비 7.78°(좌우 85.0%, S=+25.25°), 11/13 중앙 100%, 11/16 근접 바구니 90%·의자 88%, 내부 Aux cx MAE 0.007",
+   "status": "오프라인 검증(인코더 E2E)",
+   "note": "generate() 없이 인코더 특징으로 내부 BBox를 예측하는 초고속 E2E. 학술적 VLM 활용을 위해 VLM-E2E 계열(EG3-08/09)과 대조군으로 사용",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 11994725,
+   "sha256": "0de483c0b4c8b951181c1a61013cf9151e45dd1edb81ea7a4cadde9c0c9e8eab",
+   "robot": null,
+   "links": [
+    [
+     "CH83 3계열 파레토",
+     "research_story_egvla2.html#ch83"
+    ],
+    [
+     "3계열 6장면 비교",
+     "family_arch_compare.html"
+    ],
+    [
+     "VLM-E2E 계획서",
+     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+    ]
+   ],
+   "short": "e2e-lora-spatial-aux",
+   "arch_alias": "ENC-E2E-Aux",
+   "arch_family": "enc",
+   "arch_family_label": "인코더 E2E(디코더 없음)",
+   "sessions": null
+  },
+  {
+   "pn": "EG3-08",
+   "gen": "G3",
+   "name": "VLM-E2E-Hidden (π0형 Decoder 1-Pass E2E)",
+   "ckpt": "EG3_A1_Dec1Pass.pt",
+   "path": "runs/egvla2_e2e_lora/EG3_A1_Dec1Pass.pt",
+   "arch": "Florence-2 Encoder + BART Decoder(6L) 1-Pass Hidden State → PiZeroFM (외부 BBox=0 완전 차단 E2E)",
+   "train": "300에피소드 4,860장, 120ep (scripts/train_e2e_dec1pass.py)",
+   "offline": "11/13·16 A3 대비 7.70°(좌우 74.7%), 11/13 의자·책상·화분 중앙 100%, 11/16 원거리 오정지 0.0%, 바구니≥0.25 정지 100% vs 의자≥0.25 정지 19%",
+   "status": "오프라인 검증 완료(VLM E2E)",
+   "note": "기존 ENC-E2E-1(B1, 25.1°) 대비 오차 3.3배 감소. 단, 기하 병목 없이 Hidden State만 받으면 학습 물체(바구니 100%)와 달리 미학습 물체(의자 19%) 근접 정지 한계가 드러남",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2900994,
+   "sha256": "6890567622f331644a712820d7a0c91fdcca5030f42a6fbc6eae93a64283f99a",
+   "robot": null,
+   "links": [
+    [
+     "CH83 3계열 파레토",
+     "research_story_egvla2.html#ch83"
+    ],
+    [
+     "3계열 6장면 비교",
+     "family_arch_compare.html"
+    ],
+    [
+     "VLM-E2E 계획서",
+     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+    ]
+   ],
+   "short": "vlm-e2e-hidden",
+   "arch_alias": "VLM-E2E-Hidden",
+   "arch_family": "vlm",
+   "arch_family_label": "VLM 디코더 E2E",
+   "sessions": null
+  },
+  {
+   "pn": "EG3-09",
+   "gen": "G3",
+   "name": "VLM-E2E-SoftLoc (미분가능 Prefix-Forced Soft-Loc E2E)",
+   "ckpt": "EG3_A2_SoftLoc.pt",
+   "path": "runs/egvla2_e2e_lora/EG3_A2_SoftLoc.pt",
+   "arch": "Florence-2 Decoder <loc_0~999> Softmax 기댓값 연속 좌표 + Hidden → Area-Grounded PiZeroFM (완전 미분 E2E)",
+   "train": "300에피소드 4,860장, 120ep (scripts/train_e2e_dec1pass.py)",
+   "offline": "지연 283.8ms(2.08x), 11/13·16 A3 대비 6.00°(좌우 83.4%), 11/13 의자·책상·화분 중앙 100%, 11/16 원거리 오정지 0.0%, 30-40% 정지 100%, 바구니≥0.25 정지 100% · 의자≥0.25 정지 93%",
+   "status": "오프라인 검증 완료(VLM E2E)",
+   "note": "문자열 파싱 0% 완전 미분 E2E. Hidden 단독(EG3-08) 대비 미학습 의자 근접 정지가 19%→93%(+74%p)로 폭등하며 기하 병목의 학술적 필요성 입증",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2900953,
+   "sha256": "5aa51d35423327a18ca9293c13b39c14f96b846148d226671c9e75d904b305a8",
+   "robot": null,
+   "links": [
+    [
+     "CH83 3계열 파레토",
+     "research_story_egvla2.html#ch83"
+    ],
+    [
+     "3계열 6장면 비교",
+     "family_arch_compare.html"
+    ],
+    [
+     "VLM-E2E 계획서",
+     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+    ]
+   ],
+   "short": "vlm-e2e-softloc",
+   "arch_alias": "VLM-E2E-SoftLoc",
+   "arch_family": "vlm",
+   "arch_family_label": "VLM 디코더 E2E",
+   "sessions": null
+  },
+  {
+   "pn": "EG3-10",
+   "gen": "G3",
+   "name": "VLM-E2E-SoftLoc+ (3프레임 시계열 Soft-Loc + 80% Swap / Zero-Shot AG23)",
+   "ckpt": "EG3_10_SoftLoc_v2.pt",
+   "path": "runs/egvla2_e2e_lora/EG3_10_SoftLoc_v2.pt",
+   "arch": "Florence-2 Decoder <loc> 3프레임 시계열 Soft-Loc + 80% Hidden Swap + Cosine LR (200ep) / Zero-Shot AG23 대조",
+   "train": "300에피소드 4,860장 200ep (scripts/train_softloc_v2.py)",
+   "offline": "지연 283.8ms(2.08x), EG3-10 각도차 5.52° / Zero-Shot AG23 결합 시 2.71°(좌우 82.8%), 11/13 의자·책상 100%·화분 99%, 11/16 원거리 오정지 0.0%, 25-40% 바구니·의자 정지 모두 100%",
+   "status": "오프라인 검증 완료(VLM E2E 최우수)",
+   "note": "문자열 파싱 없이 25~40% 근접 정지 100%(바구니·의자 모두) 달성. 29,161장 학습 AG23 헤드와 Soft-Loc 결합 시 2.71°까지 수렴함을 확인(CH83)",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2901076,
+   "sha256": "aaff1015d57c0937f8596d167acfa5fb6a3ab8be23eea5f41b823d3366ba7c43",
+   "robot": null,
+   "links": [
+    [
+     "CH83 3계열 파레토",
+     "research_story_egvla2.html#ch83"
+    ],
+    [
+     "3계열 6장면 비교",
+     "family_arch_compare.html"
+    ],
+    [
+     "VLM-E2E 계획서",
+     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+    ]
+   ],
+   "short": "vlm-e2e-softloc-plus",
+   "arch_alias": "VLM-E2E-SoftLoc+",
+   "arch_family": "vlm",
+   "arch_family_label": "VLM 디코더 E2E",
    "sessions": null
   },
   {
@@ -753,11 +999,18 @@
    "robot": null,
    "links": [
     [
-     "A3 개선 계획서·결과(7절)",
+     "CH82 실기·재생·선택지 대조",
+     "research_story_egvla2.html#ch82"
+    ],
+    [
+     "A3 개선 계획서",
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
    "short": "a3-featdrop30",
+   "arch_alias": "MOD-A3-F30",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -778,11 +1031,18 @@
    "robot": null,
    "links": [
     [
-     "A3 개선 계획서·결과(7절)",
+     "CH82 실기·재생·선택지 대조",
+     "research_story_egvla2.html#ch82"
+    ],
+    [
+     "A3 개선 계획서",
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
    "short": "a3-featdrop50",
+   "arch_alias": "MOD-A3-F50",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -803,11 +1063,18 @@
    "robot": null,
    "links": [
     [
-     "A3 개선 계획서·결과(7절)",
+     "CH82 실기·재생·선택지 대조",
+     "research_story_egvla2.html#ch82"
+    ],
+    [
+     "A3 개선 계획서",
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
    "short": "a3-featswap30",
+   "arch_alias": "MOD-A3-S30",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -834,16 +1101,123 @@
    },
    "links": [
     [
-     "A3 개선 계획서·결과(7절)",
+     "CH82 실기·재생·선택지 대조",
+     "research_story_egvla2.html#ch82"
+    ],
+    [
+     "A3 개선 계획서",
      "../plans/plan_20261115_a3_improvement.md"
     ]
    ],
    "short": "a3-s1 · a3-s2 · a3-ens3",
+   "arch_alias": "MOD-A3-s1/s2",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": {
     "n": 45,
     "h5_local": 0,
     "film": 0
    }
+  },
+  {
+   "pn": "EG2-15",
+   "gen": "G2",
+   "name": "A3C-D10 시드 1 (서브골 드롭아웃 10%)",
+   "ckpt": "A3C_D10_s1.pt",
+   "path": "runs/egvla2_fm/a3c/A3C_D10_s1.pt",
+   "arch": "PiZeroFM AdaLN-Zero, 서보 라벨 λ=1.0, 서브골 드롭아웃 10%(시각 의존 축소)",
+   "train": "300에피소드 전체, 120ep, 시드 1 (scripts/a3c_train.py)",
+   "offline": "11/13 의자·책상·화분·가운데 이동 100%, 11/16 초근접(0.30~0.40) 정지율 63.0%(a3 63%, a3-s2 22%), 바구니≥0.25 정지 70%, 의자≥0.25 정지 60.5%(a3 58%, a3-s2 28%), T7 각도 차이 중앙값 1.33°(좌우 일치 97.5%)",
+   "status": "서빙 준비(soda 패키지 포함), 실기 미검증",
+   "note": "라벨 변형 없이 드롭아웃만 30%→10%로 낮춰 헤드가 시각 지름길 대신 BBox를 신뢰하도록 유도한 기존 레시피 최우수 후보",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2901109,
+   "sha256": "90fed3a542ca07a174257437d4c54fcd640124f4617b0c8847f20eef0a816077",
+   "robot": null,
+   "links": [
+    [
+     "CH82 실기·재생·선택지 대조",
+     "research_story_egvla2.html#ch82"
+    ],
+    [
+     "A3 개선 계획서",
+     "../plans/plan_20261115_a3_improvement.md"
+    ]
+   ],
+   "short": "a3-drop10-s1",
+   "arch_alias": "MOD-A3-D10",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
+   "sessions": null
+  },
+  {
+   "pn": "EG2-16",
+   "gen": "G2",
+   "name": "A3C-AG (기하 면적 정지 정합 · Area-Grounded)",
+   "ckpt": "A3C_AG23_s0.pt · A3C_AG25_s1.pt",
+   "path": "runs/egvla2_fm/a3c/A3C_AG23_s0.pt",
+   "arch": "PiZeroFM(12,768) 동일 구조 + 조향(cx) 및 정지 크기(area≥0.23) 동시 기하 정합 + 시각 특징 50% 교체",
+   "train": "300에피소드 전체, 120ep, 시드 0·1 (scripts/a3c_train_ag.py)",
+   "offline": "11/13 의자·책상·가운데 100%(시드0·1 모두 해결), 11/16 원거리(<0.15) 오정지 0.0%(0/435), 근접(0.25~0.40) 정지율 100%, 바구니≥0.25 정지 90%(14/15), 의자≥0.25 정지 93%(15/15), 반사실 면적 민감도 +100%p, T7 각도 차이 중앙값 0.54°(좌우 일치 98.7%)",
+   "status": "서빙 준비(1순위 후보 · 드롭인 .pt)",
+   "note": "기존 A3 계열이 방향만 cx에 정합하고 정지는 768-d 이미지 특징에 의존하던 한계를 해결. 서버 코드 수정·재시작 없이 switch_family로 즉시 교체 가능",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2901150,
+   "sha256": "f939f765eeb014bbf4176e1663b26b2562d1b0d84e4fa5909471e8358dabf99f",
+   "robot": null,
+   "links": [
+    [
+     "CH82 실기·재생·선택지 대조",
+     "research_story_egvla2.html#ch82"
+    ],
+    [
+     "A3 개선 계획서",
+     "../plans/plan_20261115_a3_improvement.md"
+    ]
+   ],
+   "short": "a3-ag23 · a3-ag25-s1",
+   "arch_alias": "MOD-A3-AG",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
+   "sessions": null
+  },
+  {
+   "pn": "EG2-17",
+   "gen": "G2",
+   "name": "MOD-DR-Fast (Decoder beam=1 fp16 고속 모듈러)",
+   "ckpt": "A3C_AG23_s0.pt (beam=1 fp16)",
+   "path": "docs/v5/egvla2_fm/beam_bench.json",
+   "arch": "Florence-2 Decoder num_beams=1 + fp16 고속 그라운딩 + Area-Grounded PiZeroFM (모듈러 비-E2E)",
+   "train": "Phase 1 벤치마크 330프레임 (11/13 다물체 + 11/16 근접, scripts/bench_decoder_beams.py)",
+   "offline": "지연 590.7ms → 283.0ms(2.09배 가속), beam=3 대비 검출 일치율 99.7%, cx MAE 0.0016, area MAE 0.0006 (정확도 손실 사실상 0)",
+   "status": "서빙 최적화 검증 완료(Phase 1)",
+   "note": "구 계획서의 Track B1에 해당. E2E가 아닌 모듈러 2단계 구조의 고속화 버전이며, 추후 접근 감속(S2)과 결합해 MOD-DR-Safe로 실기·YahBoom 이식 예정",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": null,
+   "sha256": null,
+   "robot": null,
+   "links": [
+    [
+     "CH83 3계열 파레토",
+     "research_story_egvla2.html#ch83"
+    ],
+    [
+     "3계열 6장면 비교",
+     "family_arch_compare.html"
+    ],
+    [
+     "VLM-E2E 계획서",
+     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+    ]
+   ],
+   "short": "a3-dr-fast",
+   "arch_alias": "MOD-DR-Fast",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
+   "sessions": null
   },
   {
    "pn": "EG4-00",
@@ -864,7 +1238,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -872,6 +1246,9 @@
     ]
    ],
    "short": "v0",
+   "arch_alias": "MOD-V0",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -893,7 +1270,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -901,6 +1278,9 @@
     ]
    ],
    "short": "v1-fixed-phrase",
+   "arch_alias": "MOD-V1",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -922,7 +1302,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -930,6 +1310,9 @@
     ]
    ],
    "short": "v2-paraphrase",
+   "arch_alias": "MOD-V2",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -951,7 +1334,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -959,6 +1342,9 @@
     ]
    ],
    "short": "v3-neg20",
+   "arch_alias": "MOD-V3",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -980,7 +1366,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -988,10 +1374,13 @@
     ],
     [
      "CH81 종합 브리핑(서빙·11/13 실험)",
-     "research_story.html#ch81"
+     "research_story_egvla2.html#ch81"
     ]
    ],
    "short": "v4",
+   "arch_alias": "MOD-V4",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -1013,7 +1402,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -1021,6 +1410,9 @@
     ]
    ],
    "short": "v0r",
+   "arch_alias": "MOD-V0R",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -1042,7 +1434,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -1050,6 +1442,9 @@
     ]
    ],
    "short": "v5-token-attn",
+   "arch_alias": "MOD-V5",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   },
   {
@@ -1071,7 +1466,7 @@
    "links": [
     [
      "CH80 텍스트 조건화 E2E",
-     "research_story.html#ch80"
+     "research_story_egvla2.html#ch80"
     ],
     [
      "VLAops 🔤 문구·표현별 테스트",
@@ -1079,10 +1474,13 @@
     ],
     [
      "CH81 종합 브리핑(서빙·11/13 실험)",
-     "research_story.html#ch81"
+     "research_story_egvla2.html#ch81"
     ]
    ],
    "short": "v4r",
+   "arch_alias": "MOD-V4R",
+   "arch_family": "mod",
+   "arch_family_label": "모듈러(비-E2E)",
    "sessions": null
   }
  ],

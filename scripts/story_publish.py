@@ -101,7 +101,7 @@ def publish() -> None:
     toc_start = s.index('<div id="toc-panel">')
     toc_end = s.index("</nav>", toc_start)
     toc_panel = s[toc_start:toc_end]
-    ctab = s[s.rindex("<script>", 0, s.index("function ctabShow")): s.index("</script>", s.index("function ctabInit")) + 9]
+    ctab = s[s.rindex("<style>", 0, s.index("function ctabShow")): s.index("</script>", s.index("function ctabInit")) + 9]
 
     # EGVLA2 쪽 TOC: CH74+ 항목만
     eg_items = [m.group(0) for m in re.finditer(r'<a class="toc-item" href="#(ch\d+)" data-target="\1">.*?</a>', toc_panel, flags=re.S)

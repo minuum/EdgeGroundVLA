@@ -1,0 +1,36 @@
+{
+  "models": {
+    "EG3-06 (E2E-LoRA-AG)": {
+      "name": "EG3-06 (E2E-LoRA-AG)",
+      "ang_med_vs_a3": 8.05,
+      "lat_agree_vs_a3": 0.82,
+      "S_cx_sens_deg": 26.75,
+      "chair_center_13": 1.0,
+      "desk_center_13": 1.0,
+      "basket_center_13": 0.985,
+      "side_13": 0.93,
+      "stop_lt10_16": 0.0,
+      "stop_25_30_16": 1.0,
+      "stop_30_40_16": 1.0,
+      "basket_ge25_stop_16": 0.9,
+      "chair_ge25_stop_16": 0.93
+    },
+    "EG3-07 (E2E-SpatialAux)": {
+      "name": "EG3-07 (E2E-SpatialAux)",
+      "ang_med_vs_a3": 7.78,
+      "lat_agree_vs_a3": 0.85,
+      "S_cx_sens_deg": 25.25,
+      "chair_center_13": 1.0,
+      "desk_center_13": 1.0,
+      "basket_center_13": 0.971,
+      "side_13": 0.919,
+      "stop_lt10_16": 0.0,
+      "stop_25_30_16": 0.882,
+      "stop_30_40_16": 1.0,
+      "basket_ge25_stop_16": 0.9,
+      "chair_ge25_stop_16": 0.884
+    }
+  },
+  "aux_basket_cx_mae": 0.007,
+  "aux_basket_area_mae": 0.023
+}

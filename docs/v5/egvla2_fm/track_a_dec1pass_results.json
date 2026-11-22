@@ -1,0 +1,58 @@
+{
+  "Track A1 (Decoder 1-Pass 순수 E2E)": {
+    "name": "Track A1 (Decoder 1-Pass 순수 E2E)",
+    "ang_med_vs_a3": 7.7,
+    "lat_agree_vs_a3": 0.747,
+    "chair_center_13": 1.0,
+    "desk_center_13": 1.0,
+    "pot_center_13": 1.0,
+    "basket_center_13": 0.911,
+    "stop_lt10_16": 0.0,
+    "stop_25_30_16": 0.235,
+    "stop_30_40_16": 0.519,
+    "basket_ge25_stop_16": 1.0,
+    "chair_ge25_stop_16": 0.186
+  },
+  "Track A2 (Soft-Loc 미분가능 E2E)": {
+    "name": "Track A2 (Soft-Loc 미분가능 E2E)",
+    "ang_med_vs_a3": 6.0,
+    "lat_agree_vs_a3": 0.834,
+    "chair_center_13": 1.0,
+    "desk_center_13": 1.0,
+    "pot_center_13": 1.0,
+    "basket_center_13": 0.985,
+    "stop_lt10_16": 0.0,
+    "stop_25_30_16": 0.824,
+    "stop_30_40_16": 1.0,
+    "basket_ge25_stop_16": 1.0,
+    "chair_ge25_stop_16": 0.93
+  },
+  "VLM-E2E-SoftLoc (Zero-Shot A3C_AG23)": {
+    "name": "VLM-E2E-SoftLoc (Zero-Shot AG23)",
+    "ang_med_vs_a3": 2.71,
+    "lat_agree_vs_a3": 0.828,
+    "chair_center_13": 1.0,
+    "desk_center_13": 1.0,
+    "pot_center_13": 0.995,
+    "basket_center_13": 0.971,
+    "stop_lt10_16": 0.0,
+    "stop_25_30_16": 1.0,
+    "stop_30_40_16": 1.0,
+    "basket_ge25_stop_16": 1.0,
+    "chair_ge25_stop_16": 1.0
+  },
+  "VLM-E2E-SoftLoc+ (EG3-10, 3F-Win+Swap80)": {
+    "name": "VLM-E2E-SoftLoc+ (EG3-10)",
+    "ang_med_vs_a3": 5.52,
+    "lat_agree_vs_a3": 0.789,
+    "chair_center_13": 1.0,
+    "desk_center_13": 1.0,
+    "pot_center_13": 0.989,
+    "basket_center_13": 0.939,
+    "stop_lt10_16": 0.0,
+    "stop_25_30_16": 1.0,
+    "stop_30_40_16": 1.0,
+    "basket_ge25_stop_16": 1.0,
+    "chair_ge25_stop_16": 1.0
+  }
+}

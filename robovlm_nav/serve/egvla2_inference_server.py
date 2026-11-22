@@ -122,10 +122,15 @@ def load_service_from_env() -> EgVla2Service:
         raise ValueError("VLA_EGVLA2_DTYPE must be fp32|fp16")
     dtype = torch.float32 if dt_name == "fp32" else torch.float16
     near = os.getenv("VLA_EGVLA2_NEAR_AREA", "0.25")
+    decel_start = os.getenv("VLA_EGVLA2_DECEL_START_AREA")   # Phase 4 (MOD-DR-Safe, 기본 끔; 예: 0.14)
+    jump_ratio = os.getenv("VLA_EGVLA2_JUMP_AREA_RATIO")     # Phase 4 단발 스파이크 필터 (기본 끔; 예: 2.5)
     ctrl = EgVla2Controller(stop_debounce=int(os.getenv("VLA_EGVLA2_STOP_DEBOUNCE", 0)), rotate_az_thresh=_env_float("VLA_EGVLA2_ROTATE_THRESH", 0.2), rotate_az=_env_float("VLA_EGVLA2_ROTATE_AZ", 0.25),
                             rotate_max_frames=int(os.getenv("VLA_EGVLA2_ROTATE_MAX", 12)), servo_blend=_env_float("VLA_EGVLA2_SERVO_BLEND", 0.0), servo_k=_env_float("VLA_EGVLA2_SERVO_K", 2.0), servo_max=_env_float("VLA_EGVLA2_SERVO_MAX", 0.7), idle_max_frames=int(os.getenv("VLA_EGVLA2_IDLE_MAX", 20)), near_area=None if near == "off" else float(near),
                             near_frames=int(os.getenv("VLA_EGVLA2_NEAR_FRAMES", 2)), lost_frames=int(os.getenv("VLA_EGVLA2_LOST_FRAMES", 5)),
-                            search_max_frames=int(os.getenv("VLA_EGVLA2_SEARCH_MAX", 40)), gain=_env_float("VLA_EGVLA2_GAIN", 1.15))
+                            search_max_frames=int(os.getenv("VLA_EGVLA2_SEARCH_MAX", 40)), gain=_env_float("VLA_EGVLA2_GAIN", 1.15),
+                            decel_start_area=None if not decel_start or decel_start == "off" else float(decel_start),
+                            decel_min_scale=_env_float("VLA_EGVLA2_DECEL_MIN_SCALE", 0.35),
+                            jump_area_ratio=None if not jump_ratio or jump_ratio == "off" else float(jump_ratio))
     _txt = os.getenv("VLA_EGVLA2_TEXT")      # 미설정=체크포인트 구조로 자동 판별, "1"=강제 켬, "0"=강제 끔 — plan_20261116_v4_switchable.md
     if _txt == "1" or (_txt is None and _is_text_ckpt(ckpt)):      # 텍스트 조건화(V4·V4R) 경로
         from robovlm_nav.serve.egvla2_text_policy import FusedF2TextExtractor, TextCondPolicy
@@ -137,7 +142,12 @@ def load_service_from_env() -> EgVla2Service:
     policy = EgVla2FMPolicy(ckpt, k_samples=int(os.getenv("VLA_EGVLA2_K", 8)), speed_source=os.getenv("VLA_SPEED_SOURCE", "shadow"),
                             ema_alpha=_env_float("VLA_EGVLA2_EMA", 0.0))
     sha = hashlib.sha256(ckpt.read_bytes()).hexdigest()
-    meta = dict(ckpt=ckpt.name, sha256=sha, arch=policy.meta.get("arch"), dtype=dt_name, subgoal_dropout=policy.meta.get("subgoal_dropout", 0))
+    decode_mode = os.getenv("VLA_EGVLA2_DECODE_MODE", "beam3")  # beam3(기본) | beam1_fp16(MOD-DR-Fast) | softloc_fp16(VLM-E2E-SoftLoc)
+    meta = dict(ckpt=ckpt.name, sha256=sha, arch=policy.meta.get("arch"), dtype=dt_name, decode_mode=decode_mode, subgoal_dropout=policy.meta.get("subgoal_dropout", 0))
+    if decode_mode in ("beam1_fp16", "softloc_fp16"):
+        from robovlm_nav.serve.egvla2_softloc_extractor import FastF2Extractor
+        logger.info("EGVLA2 FAST/E2E service: ckpt=%s mode=%s sha256=%s", ckpt.name, decode_mode, sha[:8])
+        return EgVla2Service(FastF2Extractor(mode=decode_mode), policy, ctrl, meta)
     logger.info("EGVLA2 service: ckpt=%s sha256=%s dtype=%s", ckpt.name, sha[:8], dt_name)
     return EgVla2Service(FusedF2Extractor(dtype=dtype), policy, ctrl, meta)
 
