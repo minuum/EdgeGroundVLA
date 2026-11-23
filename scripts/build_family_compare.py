@@ -459,37 +459,36 @@ th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
   <h2>0. 3계열 아키텍처 구조 &amp; 네이밍 한눈에 보기</h2>
   <div class="fam-grid">
     <div class="fam-card mod">
-      <div class="fam-head"><span class="fam-ttl">🔵 MOD-* (모듈러 2단계)</span><span class="badge b-mod">비-E2E · 문자열 파싱</span></div>
+      <div class="fam-head"><span class="fam-ttl">🔵 EGVLA2 · MOD-* (2세대 모듈러)</span><span class="badge b-mod">비-E2E · 실기 주력</span></div>
       <div class="flow-box">
         <b>① Image + Prompt</b> → <b>② Florence-2 Enc + Decoder <code>generate()</code></b> → 문자열 <code>&lt;loc&gt;</code> 파싱(BBox) → <b>③ PiZeroFM</b> → <code>[lx, ly]</code>
       </div>
       <div style="font-size:.82rem;color:var(--mut)">
-        • <b>대표 모델</b>: <code>MOD-A3</code>(a3), <code>MOD-A3-AG</code>(a3-ag23), <code>MOD-DR-Fast</code>(beam=1 fp16), <code>MOD-DR-Safe</code><br>
-        • <b>장점</b>: Florence-2 사전학습 Open-Vocab(의자·책상·화분) 100% 유지, 실기 검증 완료.<br>
-        • <b>한계</b>: BBox 문자열 경계에서 미분 단절. (단, <code>MOD-DR-Fast</code>로 지연 <code>{b3_ms}→{b1_ms}ms</code> <b>{b1_sp}배 단축</b>)
+        • <b>대표 모델</b>: <code>MOD-A3</code>(a3), <code>MOD-A3-AG</code>(a3-ag23), <code>MOD-DR-Fast</code>(beam=1 fp16), <code>MOD-DR-Safe</code>, <code>MOD-V4R</code><br>
+        • <b>EGVLA2 강점</b>: 실기 560+ 세션 검증, 최고 조향 정밀도(<code>0.54°</code>), <code>MOD-DR-Fast</code> 지연 <code>{b3_ms}→{b1_ms}ms</code>(<b>{b1_sp}배 단축</b>), YahBoom 즉시 이식.<br>
+        • <b>세대 경계</b>: BBox 문자열 정규식 파싱 경계에서 미분 단절 (환경변수 <code>VLA_EGVLA2_DECODE_MODE=beam1_fp16</code>).
       </div>
     </div>
 
     <div class="fam-card enc">
-      <div class="fam-head"><span class="fam-ttl">🟡 ENC-E2E-* (인코더 단독 E2E)</span><span class="badge b-enc">E2E · 디코더 제거</span></div>
+      <div class="fam-head"><span class="fam-ttl">🟡 EGVLA3 대조군 · ENC-E2E-*</span><span class="badge b-enc">인코더 단독 E2E · 디코더 제거</span></div>
       <div class="flow-box">
         <b>① Image</b> → <b>② DaViT Vision Encoder (LoRA)</b> <i>[BART Decoder 제거]</i> → (선택: Aux BBox 헤드) → <b>③ PiZeroFM</b> → <code>[lx, ly]</code>
       </div>
       <div style="font-size:.82rem;color:var(--mut)">
         • <b>대표 모델</b>: <code>ENC-E2E-0</code>(B0), <code>ENC-E2E-1</code>(<b>구 B1</b>), <code>ENC-E2E-AG</code>(EG3-06), <code>ENC-E2E-Aux</code>(EG3-07)<br>
-        • <b>장점</b>: <code>generate()</code> 제거로 초고속(~30ms), Area-Grounded 적용 시 11/13·16 시뮬 크게 회복(7.78°).<br>
-        • <b>한계</b>: VLM 디코더를 쓰지 않아 300ep(바구니 1종) 외 Open-Vocab 지시어 이해에 구조적 한계.
+        • <b>역할 (Ablation Baseline)</b>: VLM 디코더를 버리고 비전 인코더만 E2E로 학습하면 속도는 빠르나(~30ms) 300ep 바구니 외 Open-Vocab 일반화가 붕괴함을 증명하는 대조군.
       </div>
     </div>
 
     <div class="fam-card vlm">
-      <div class="fam-head"><span class="fam-ttl">🟣 VLM-E2E-* (VLM 디코더 E2E)</span><span class="badge b-vlm">완전 미분 E2E · 학술 메인</span></div>
+      <div class="fam-head"><span class="fam-ttl">🟣 EGVLA3 · VLM-E2E-* (3세대 미분 E2E)</span><span class="badge b-vlm">완전 미분 E2E · 차세대 연구</span></div>
       <div class="flow-box">
         <b>① Image + Prompt</b> → <b>② Florence-2 Enc + BART Decoder(6L)</b> → <b>1-Pass Hidden</b> 또는 <b>Softmax <code>&lt;loc&gt;</code> 기댓값</b> → <b>③ PiZeroFM</b> → <code>[lx, ly]</code>
       </div>
       <div style="font-size:.82rem;color:var(--mut)">
-        • <b>대표 모델</b>: <code>VLM-E2E-Hidden</code>(EG3-08, π0형), <code>VLM-E2E-SoftLoc</code>(EG3-09, 283.8ms), <code>VLM-E2E-Distill</code>(Phase 3)<br>
-        • <b>장점</b>: VLM Decoder 6층을 100% 활용하면서도 문자열 파싱을 제거해 <b>완전 미분 + Open-Vocab 보존 + 2배 가속</b> 동시 달성.
+        • <b>대표 모델</b>: <code>VLM-E2E-Hidden</code>(EG3-08, π0형), <code>VLM-E2E-SoftLoc+</code>(EG3-09/10 + AG23, <code>296.6ms</code>, <code>2.71°</code>)<br>
+        • <b>EGVLA3 강점</b>: 문자열 파싱 0% 완전 미분 E2E + π0형 Hidden E2E의 의자 정지 한계(<code>18.6%</code>)를 미분가능 Soft-Loc 공간 병목으로 돌파(<b>바구니·의자 정지 100%/100%</b>, <code>VLA_EGVLA2_DECODE_MODE=softloc_fp16</code>).
       </div>
     </div>
   </div>

@@ -279,9 +279,28 @@ def main() -> None:
           "• <b>YahBoom 이식</b>: Serbot 정지 검증 완료 후 `[lx, ly] → [v, ω]` 구동계 어댑터와 카메라 1프레임 기준 면적 보정만 교체."),
     ]
 
+    # ── Tab 5: EGVLA2 vs EGVLA3 세대 분리 계획 & 각각의 강점 ──
+    tab5 = [
+        P('한 저장소 안에서 <b>실기 안정화 트랙(EGVLA2)</b>과 <b>차세대 완전 미분 E2E 연구 트랙(EGVLA3)</b>이 혼동되지 않도록, <b>"미분 단절 유무(문자열 정규식 파싱 vs 텐서·확률 분포 직결)"</b>를 기준으로 두 세대의 정체성·강점·역할을 분리했다. (전문: <a href="../plans/plan_20261124_egvla2_vs_egvla3_separation.md"><b>EGVLA2 vs EGVLA3 세대 분리 계획서</b></a>)'),
+        tbl(
+            ["비교 축", "🔵 EGVLA2 (2세대 · MOD-* 계열)", "🟣 EGVLA3 (3세대 · VLM-E2E-* 계열)"],
+            [
+                ["핵심 정의", "Explicit Modular Grounding + Flow-Matching VLA", "Differentiable Spatial-Bottleneck End-to-End VLA"],
+                ["대표 모델", "`MOD-A3`(`a3`), `MOD-A3-AG`(`a3-ag23`), `MOD-DR-Safe`, `MOD-V4R`", "`VLM-E2E-Hidden`(`EG3-08`), `VLM-E2E-SoftLoc+`(`EG3-09/10` + `AG23`)"],
+                ["VLM ↔ Action 경계", "Decoder `generate()` → 문자열 `<loc>` 정규식 파싱 (비미분)", "Prefix-Forced `<loc_0~999>` Softmax 기댓값 $\\hat{u}=\\sum p_i(i/1000)$ (완전 미분)"],
+                ["대응 SOTA 패러다임", "NaVILA (arXiv:2412.04453), RT-H (arXiv:2403.01823)", "π0 (arXiv:2410.24164), ECoT (arXiv:2407.08693), SpatialVLA (arXiv:2501.15830)"],
+                ["종단 서빙 지연 (GB10)", "`590.7ms`(beam=3) → <b>`285.3ms`</b>(`beam=1 fp16`, 2.09x)", "<b>`~70ms`</b>(`Hidden`) / <b>`296.6ms`</b>(`Soft-Loc fp16`, 2.08x)"],
+                ["조향 정밀도 / 근접 정지", "<b>`0.54°` (좌우 98.7%)</b> / 바구니 90% · 의자 93%", "<b>`2.71°` (좌우 82.8%)</b> / <b>바구니 100% · 의자 100%</b>"],
+                ["독보적 4대 강점", "① 실기 560+ 세션 검증력<br>② 이산 토큰 절단으로 최고 조향 정밀도(`0.54°`)<br>③ Dual-Shortcut 해소(`a3-ag23`) + 언어 게이트(`V4R`)<br>④ S2 감속·스파이크 필터·YahBoom 무재학습 즉시 이식", "① VLM Decoder 6L 완전 미분 관통(파싱 0%)<br>② 300ep에서 π0형 Hidden E2E 한계(`18.6%`) 규명 및 Soft-Loc(`100%`) 돌파 서사<br>③ Prefix-Forced KV-Cache 4스텝 2배 가속<br>④ Action Loss → Decoder LoRA 공동 역전파 확장성"],
+                ["단일 서버 스위치", "`VLA_EGVLA2_DECODE_MODE=beam1_fp16` (실기 주력 트랙)", "`VLA_EGVLA2_DECODE_MODE=softloc_fp16` (차세대 E2E 연구 트랙)"],
+            ],
+        ),
+    ]
+
     tabs = [
         ("photos", "📸 실기 6장면 E2E 비교", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab1)))]),
         ("verdict", "🔍 E2E 대체 가능성·특징", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab2)))]),
+        ("gen_sep", "🏛️ EGVLA2 vs EGVLA3 분리", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab5)))]),
         ("pareto", "📊 3계열 파레토·정량표", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab3)))]),
         ("deploy", "⚡ MOD-DR-Fast/Safe", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab4)))]),
     ]

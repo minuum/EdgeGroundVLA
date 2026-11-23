@@ -6,10 +6,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 D = ROOT / "docs/v5"
 GENS = {
  "G0": ("V5 시기(Kosmos-2)", "순수 E2E → 박스 분해. 폐기, 기록만."),
- "G1": ("EGVLA1", "OWLv2 + Kosmos-2 + MLP(exp73). 실기 기준선."),
- "G2": ("EGVLA2", "Florence-2 단일 + FM 헤드, 300에피소드. 현재 배포(A3=EG2-09)."),
- "G3": ("E2E LoRA", "Florence-2 LoRA + FM. 오프라인 부진, 실기 없음, 보류."),
- "G4": ("텍스트 조건화", "V0~V5. 평가 중 학습·폐기, 체크포인트 없음. 오프라인만."),
+ "G1": ("EGVLA1 (1세대)", "OWLv2 + Kosmos-2 + 8클래스 MLP(exp73, 515ep). 실기 300세션 92% 기준선."),
+ "G2": ("EGVLA2 (2세대 · MOD-*)", "Florence-2 명시적 문자열 BBox + PiZeroFM(300ep). 현 배포(A3=EG2-09) · 면적정합(a3-ag23) · 고속화(MOD-DR-Fast/Safe 285ms)."),
+ "G3": ("EGVLA3 (3세대 · VLM-E2E-*)", "문자열 파싱 0% 완전 미분 VLM-Decoder E2E. Hidden(π0형, 70ms) · 미분 Soft-Loc(297ms, 2.71°, 바구니·의자 정지 100%). 대조군: ENC-E2E-*"),
+ "G4": ("EGVLA2-Text (언어 게이트 · MOD-V*)", "EGVLA2 모듈러 확장(V0~V4R). 헤드 텍스트 조건화(1536-d)로 비목표 99.5% 정지 + 박스 훼손 강건화(반전 94.3%)."),
 }
 def E(pn, gen, name, ck=None, path=None, arch="", train="", offline="", status="", note="", key=None):
     return dict(pn=pn, gen=gen, name=name, ckpt=ck, path=path, arch=arch, train=train, offline=offline, status=status, note=note, log_key=key if key is not None else ck)
@@ -125,7 +125,7 @@ LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
 for _pn in ("EG4-00","EG4-01","EG4-02","EG4-03","EG4-04","EG4-05","EG4-06","EG4-07"):
     LINKS[_pn] = [("CH80 텍스트 조건화 E2E", RSE+"#ch80"), ("VLAops 🔤 문구·표현별 테스트", VO)]
 for _pn in ("EG2-11","EG2-12","EG2-13","EG2-14","EG2-15","EG2-16"): LINKS[_pn] = [("CH82 실기·재생·선택지 대조", RSE+"#ch82"), ("A3 개선 계획서", "../plans/plan_20261115_a3_improvement.md")]
-for _pn in ("EG2-17","EG3-06","EG3-07","EG3-08","EG3-09","EG3-10"): LINKS[_pn] = [("CH83 3계열 파레토", RSE+"#ch83"), ("3계열 6장면 비교", "family_arch_compare.html"), ("VLM-E2E 계획서", "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md")]
+for _pn in ("EG2-17","EG3-06","EG3-07","EG3-08","EG3-09","EG3-10"): LINKS[_pn] = [("CH83 EGVLA2·3 분리·파레토", RSE+"#ch83"), ("Phase 1~4 가로 타임라인", "phase14_serving_timeline.html"), ("3계열 6장면 비교", "family_arch_compare.html"), ("EGVLA2·3 분리 계획서", "../plans/plan_20261124_egvla2_vs_egvla3_separation.md")]
 for _pn in ("EG4-04","EG4-07"): LINKS[_pn].append(("CH81 종합 브리핑(서빙·11/13 실험)", RSE+"#ch81"))
 LINKS["EG2-09"].append(("CH81 11/13 물체 실험 65건", RSE+"#ch81")); LINKS["EG2-09"].append(("11/13 재생 페이지", "object_test_1113.html"))
 DATASETS = [  # id, 이름, 경로, 설명, 사용 모델(PN), 결과 링크
@@ -323,9 +323,29 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
     body.append('<div class=kpi>' + "".join(f'<div class=k><div class=v>{a}</div><div class=l>{b}</div></div>' for a, b in kp) + '</div>')
     fl = []
     for gk, (gn, gd) in GENS.items():
-        cur = " cur" if gk == "G2" else ""
-        fl.append(f'<a class="fl{cur}" href="#gen-{gk}"><b>{gk} · {gn}</b><span class=t>{cnt[gk]}개{" · 현재 배포 세대" if gk=="G2" else ""}</span></a>')
+        cur = " cur" if gk in ("G2", "G3") else ""
+        tag = " · 실기 주력(MOD)" if gk == "G2" else (" · 차세대 미분 E2E" if gk == "G3" else "")
+        fl.append(f'<a class="fl{cur}" href="#gen-{gk}"><b>{gk} · {gn}</b><span class=t>{cnt[gk]}개{tag}</span></a>')
     body.append('<div class=flow>' + '<span class=ar>→</span>'.join(fl[:3]) + '<span class=ar>⇢</span>' + fl[3] + fl[4] + '</div>')
+    body.append(
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;margin:.9rem 0">'
+        '<div style="border:2px solid #0284c7;background:var(--card);border-radius:12px;padding:12px 14px;font-size:.83rem;line-height:1.6">'
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+        '<b style="font-size:.98rem">🔵 EGVLA2 (2세대 · G2/G4) — 명시적 모듈러 &amp; 실기 완성형</b>'
+        '<span class="bd fam-mod">MOD-* 계열</span></div>'
+        '• <b>구조</b>: Florence-2 Decoder <code>generate()</code> 문자열 BBox 파싱(비미분) ➔ <code>PiZeroFM</code> 연속 제어<br>'
+        '• <b>4대 강점</b>: ① 실기 560+ 세션 검증(A3·a3-s2) ② 최고 조향 정밀도(<code>0.54°</code>, 좌우 98.7%) + <code>beam=1 fp16</code> 무손실 2.09배 가속(<code>285.3ms</code>) ③ Dual-Shortcut 해소(<code>a3-ag23</code> 중앙 100%·근접정지 90/93%) + 언어 게이트(<code>V4R</code> 비목표 99.5% 정지) ④ S2 접근 감속·스파이크 필터·YahBoom 즉시 이식<br>'
+        '• <b>서빙 스위치</b>: <code>VLA_EGVLA2_DECODE_MODE=beam1_fp16</code> (실기 트랙 1순위)'
+        '</div>'
+        '<div style="border:2px solid #9333ea;background:var(--card);border-radius:12px;padding:12px 14px;font-size:.83rem;line-height:1.6">'
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+        '<b style="font-size:.98rem">🟣 EGVLA3 (3세대 · G3) — 미분가능 공간 병목 E2E 연구형</b>'
+        '<span class="bd fam-vlm">VLM-E2E-* 계열</span></div>'
+        '• <b>구조</b>: 문자열 <code>generate()</code>·정규식 파싱 0%, Decoder <code>&lt;loc_0~999&gt;</code> Softmax 기댓값(Soft-Loc) / 1-Pass Hidden ➔ <code>PiZeroFM</code> 완전 미분 직결<br>'
+        '• <b>4대 강점</b>: ① VLM Decoder 6층 사전학습 Open-Vocab 98.8% 보존 ② 300ep 저데이터에서 π0형 순수 Hidden E2E(<code>EG3-08</code>, 의자 정지 18.6%)의 한계를 규명하고 <b>미분가능 Soft-Loc(<code>EG3-09/10</code>)으로 의자·바구니 정지 100%/100% (+81%p) 돌파</b> ③ Prefix-Forced KV-Cache 4스텝 가속(<code>296.6ms</code>, 2.08x, 각도 <code>2.71°</code>) ④ Action Loss → Decoder LoRA 공동 역전파 확장성<br>'
+        '• <b>서빙 스위치</b>: <code>VLA_EGVLA2_DECODE_MODE=softloc_fp16</code> (<a href="../plans/plan_20261124_egvla2_vs_egvla3_separation.md"><b>세대 분리 계획서 전문 보기</b></a>)'
+        '</div></div>'
+    )
     body.append(RDV.studio_html())
     body.append('<div class=note><b>읽는 법</b> · <b>실기</b>는 운영자 수동 판정(블라인드 아님, 성공 기준 문서화 안 됨, 좌우 정렬 미반영)이고, <b>오프라인</b> 수치는 세대마다 평가 방식이 달라 서로 비교하지 않습니다. 세대를 잇는 비교는 같은 프로토콜의 실기뿐입니다. V4·V4R의 재생 수치는 A3와의 <i>유사도</i>이며 성공률이 아닙니다.'
                 '<div class=leg><span><span class="bd deploy">현재 배포</span> 서버에 올라가 있음</span><span><span class="bd real">실기 기록 있음</span></span><span><span class="bd off">오프라인만</span> 실기 기록 없음</span><span><span class="bd retired">폐기·보류·기록만</span></span><span><span class="bd srv">서빙 준비</span> 코드 구현·검증 완료, 로봇 전달 전</span><span><b>★</b> 이름 앞: 실기 기록이 있는 모델</span></div></div>')

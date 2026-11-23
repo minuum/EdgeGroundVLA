@@ -201,7 +201,16 @@ DECISION_PROFILES: dict[str, dict] = {
         stop=(96, "11/16 바구니≥0.25 100% · 미학습 의자≥0.25 93%"),
         start=(100, "11/13 의자·책상·화분 중앙 출발 100%"),
         lang="VLM Decoder Open-Vocab 98.8% 보존 (283.8ms, 2.08x)",
-        diag="문자열 파싱 없이 Decoder <loc> 분포의 미분가능 Softmax 기댓값을 통과시켜, 미학습 의자 근접 정지를 19%→93%(+74%p)로 해결한 VLM-E2E 1순위입니다.",
+        diag="문자열 파싱 없이 Decoder <loc> 분포의 미분가능 Softmax 기댓값을 통과시켜, 미학습 의자 근접 정지를 19%→93%(+74%p)로 해결한 EGVLA3 프로토타입입니다.",
+        studio_key=None,
+    ),
+    "EG3-10": dict(
+        flow="[이미지 + 지시어] ➔ [3프레임 시계열 Soft-Loc(미분가능) + 80% Swap / Zero-Shot AG23] ➔ [PiZeroFM]",
+        steer=(91, "Zero-Shot AG23 2.71° (좌우 82.8%) / EG3-10 5.52°"),
+        stop=(100, "11/16 근접(25~40%) 바구니 100% · 미학습 의자 100% 정지"),
+        start=(100, "11/13 의자 100% · 책상 100% · 화분 99% 중앙 출발"),
+        lang="EGVLA3 표준형: Prefix-Forced Soft-Loc (파싱 0%, 서빙 실측 296.6ms)",
+        diag="EGVLA3(3세대 미분가능 공간 병목 E2E) 완성형 후보로, 문자열 파싱 0%·2배 가속 상태에서 바구니와 미학습 의자 근접 정지 100%/100%를 달성했습니다.",
         studio_key=None,
     ),
 }

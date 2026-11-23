@@ -1,25 +1,25 @@
 {
- "generated": "2026-11-22T18:23",
+ "generated": "2026-11-24T02:09",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
    "순수 E2E → 박스 분해. 폐기, 기록만."
   ],
   "G1": [
-   "EGVLA1",
-   "OWLv2 + Kosmos-2 + MLP(exp73). 실기 기준선."
+   "EGVLA1 (1세대)",
+   "OWLv2 + Kosmos-2 + 8클래스 MLP(exp73, 515ep). 실기 300세션 92% 기준선."
   ],
   "G2": [
-   "EGVLA2",
-   "Florence-2 단일 + FM 헤드, 300에피소드. 현재 배포(A3=EG2-09)."
+   "EGVLA2 (2세대 · MOD-*)",
+   "Florence-2 명시적 문자열 BBox + PiZeroFM(300ep). 현 배포(A3=EG2-09) · 면적정합(a3-ag23) · 고속화(MOD-DR-Fast/Safe 285ms)."
   ],
   "G3": [
-   "E2E LoRA",
-   "Florence-2 LoRA + FM. 오프라인 부진, 실기 없음, 보류."
+   "EGVLA3 (3세대 · VLM-E2E-*)",
+   "문자열 파싱 0% 완전 미분 VLM-Decoder E2E. Hidden(π0형, 70ms) · 미분 Soft-Loc(297ms, 2.71°, 바구니·의자 정지 100%). 대조군: ENC-E2E-*"
   ],
   "G4": [
-   "텍스트 조건화",
-   "V0~V5. 평가 중 학습·폐기, 체크포인트 없음. 오프라인만."
+   "EGVLA2-Text (언어 게이트 · MOD-V*)",
+   "EGVLA2 모듈러 확장(V0~V4R). 헤드 텍스트 조건화(1536-d)로 비목표 99.5% 정지 + 박스 훼손 강건화(반전 94.3%)."
   ]
  },
  "datasets": [
@@ -819,16 +819,20 @@
    "robot": null,
    "links": [
     [
-     "CH83 3계열 파레토",
+     "CH83 EGVLA2·3 분리·파레토",
      "research_story_egvla2.html#ch83"
+    ],
+    [
+     "Phase 1~4 가로 타임라인",
+     "phase14_serving_timeline.html"
     ],
     [
      "3계열 6장면 비교",
      "family_arch_compare.html"
     ],
     [
-     "VLM-E2E 계획서",
-     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+     "EGVLA2·3 분리 계획서",
+     "../plans/plan_20261124_egvla2_vs_egvla3_separation.md"
     ]
    ],
    "short": "e2e-lora-ag",
@@ -855,16 +859,20 @@
    "robot": null,
    "links": [
     [
-     "CH83 3계열 파레토",
+     "CH83 EGVLA2·3 분리·파레토",
      "research_story_egvla2.html#ch83"
+    ],
+    [
+     "Phase 1~4 가로 타임라인",
+     "phase14_serving_timeline.html"
     ],
     [
      "3계열 6장면 비교",
      "family_arch_compare.html"
     ],
     [
-     "VLM-E2E 계획서",
-     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+     "EGVLA2·3 분리 계획서",
+     "../plans/plan_20261124_egvla2_vs_egvla3_separation.md"
     ]
    ],
    "short": "e2e-lora-spatial-aux",
@@ -891,16 +899,20 @@
    "robot": null,
    "links": [
     [
-     "CH83 3계열 파레토",
+     "CH83 EGVLA2·3 분리·파레토",
      "research_story_egvla2.html#ch83"
+    ],
+    [
+     "Phase 1~4 가로 타임라인",
+     "phase14_serving_timeline.html"
     ],
     [
      "3계열 6장면 비교",
      "family_arch_compare.html"
     ],
     [
-     "VLM-E2E 계획서",
-     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+     "EGVLA2·3 분리 계획서",
+     "../plans/plan_20261124_egvla2_vs_egvla3_separation.md"
     ]
    ],
    "short": "vlm-e2e-hidden",
@@ -927,16 +939,20 @@
    "robot": null,
    "links": [
     [
-     "CH83 3계열 파레토",
+     "CH83 EGVLA2·3 분리·파레토",
      "research_story_egvla2.html#ch83"
+    ],
+    [
+     "Phase 1~4 가로 타임라인",
+     "phase14_serving_timeline.html"
     ],
     [
      "3계열 6장면 비교",
      "family_arch_compare.html"
     ],
     [
-     "VLM-E2E 계획서",
-     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+     "EGVLA2·3 분리 계획서",
+     "../plans/plan_20261124_egvla2_vs_egvla3_separation.md"
     ]
    ],
    "short": "vlm-e2e-softloc",
@@ -963,16 +979,20 @@
    "robot": null,
    "links": [
     [
-     "CH83 3계열 파레토",
+     "CH83 EGVLA2·3 분리·파레토",
      "research_story_egvla2.html#ch83"
+    ],
+    [
+     "Phase 1~4 가로 타임라인",
+     "phase14_serving_timeline.html"
     ],
     [
      "3계열 6장면 비교",
      "family_arch_compare.html"
     ],
     [
-     "VLM-E2E 계획서",
-     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+     "EGVLA2·3 분리 계획서",
+     "../plans/plan_20261124_egvla2_vs_egvla3_separation.md"
     ]
    ],
    "short": "vlm-e2e-softloc-plus",
@@ -1201,16 +1221,20 @@
    "robot": null,
    "links": [
     [
-     "CH83 3계열 파레토",
+     "CH83 EGVLA2·3 분리·파레토",
      "research_story_egvla2.html#ch83"
+    ],
+    [
+     "Phase 1~4 가로 타임라인",
+     "phase14_serving_timeline.html"
     ],
     [
      "3계열 6장면 비교",
      "family_arch_compare.html"
     ],
     [
-     "VLM-E2E 계획서",
-     "../plans/plan_20261122_vlm_decoder_e2e_and_dualrate.md"
+     "EGVLA2·3 분리 계획서",
+     "../plans/plan_20261124_egvla2_vs_egvla3_separation.md"
     ]
    ],
    "short": "a3-dr-fast",
