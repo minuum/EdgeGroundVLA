@@ -59,12 +59,39 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
     <h1>261126 EGVLA 실험보고 — EGVLA2 실기 개선·고속화·언어게이트</h1>
     <p>결과(Result First) → 모델별 구조·성능 비교 → 실기(날짜·시각 표기) vs 오프라인 추론 6장면 대조 → 과적합 감사 순서로 정리한 발표용 보고서</p>
     <div class="kpi-grid">
-      <div class="kpi"><div class="t">현행 실기 해결 (a3-ag23)</div><div class="v">0.54° · 중앙 100% · 정지 90/93%</div><div class="desc"><code>a3</code> 의자 비출발(0%) &amp; <code>a3-s2</code> 접촉(6건) 동시 해소 [오프라인]</div></div>
-      <div class="kpi"><div class="t">추론 속도 2배 가속</div><div class="v">590.7ms → 283.0ms (2.09x)</div><div class="desc"><code>MOD-DR-Fast</code> (<code>beam=1 fp16</code>, 일치율 99.7%) + S2 감속</div></div>
-      <div class="kpi"><div class="t">언어 게이트 (V4R)</div><div class="v">부정 99.5% 정지 · 반전 94.3%</div><div class="desc">비목표 지시어 차단 &amp; 박스 오검출 방어 (바구니 전용)</div></div>
-      <div class="kpi"><div class="t">실기 배포 준비</div><div class="v">soda 인박스 9/9 전달 완료</div><div class="desc">Serbot 실기 검증 후 YahBoom 이식 대기</div></div>
+      <div class="kpi"><div class="t">핸들 방향 정확도 (a3-ag23)</div><div class="v">방향 오차 0.54° (98.7% 일치)</div><div class="desc">기존 잘 달리던 로봇과 핸들 각도 차이 <b>1° 미만</b> [오프라인]</div></div>
+      <div class="kpi"><div class="t">출발 · 브레이크 안전율</div><div class="v">출발 100% · 멈춤 90~93%</div><div class="desc">의자 정면 출발 <b>0%→100%</b> · 충돌 전 정지 <b>90~93%</b></div></div>
+      <div class="kpi"><div class="t">반응 속도 2배 가속</div><div class="v">590.7ms → 283.0ms (2.09x)</div><div class="desc">초당 판단 1.7회 → <b>3.5회</b> (정확도 99.7% 유지)</div></div>
+      <div class="kpi"><div class="t">엉뚱한 명령 차단 (V4R)</div><div class="v">부정 명령 99.5% 제자리 정지</div><div class="desc">바구니가 보여도 다른 말이면 출발 안 함</div></div>
     </div>
   </div>
+
+  <!-- 처음 보시는 분을 위한 지표 10초 가이드 -->
+  <section class="act" style="border-left:5px solid #38bdf8;background:#0b1629">
+    <h2 style="color:#7dd3fc">📖 숫자 &amp; 지표 읽는 법 (처음 보시는 분을 위한 10초 설명)</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;font-size:.83rem;line-height:1.58">
+      <div style="background:#08101f;border:1px solid #1e3154;border-radius:10px;padding:10px 12px">
+        <b style="color:#4ade80">① 방향 오차 0.54° (핸들 정렬도)</b><br>
+        기존 기준 로봇(<code>a3</code>)이 꺾으려는 주행 방향과 비교했을 때 <b>겨우 0.54°밖에 안 틀어진다</b>는 뜻입니다.<br>
+        <span style="color:#94a3b8">• 비유: 시계 1분 눈금이 6°이므로, <b>1분 눈금의 1/10도 안 될 만큼 똑같은 길로 간다</b>는 의미입니다. (반면 나쁜 모델 <code>B1</code>은 <code>25.13°</code>로 딴 길로 샙니다.)</span>
+      </div>
+      <div style="background:#08101f;border:1px solid #1e3154;border-radius:10px;padding:10px 12px">
+        <b style="color:#38bdf8">② 중앙 출발 100% (낯선 물체 출발률)</b><br>
+        로봇이 한 번도 배운 적 없는 <b>의자·책상 정중앙</b> 앞에 섰을 때, 머뭇거리지 않고 출발한 비율입니다.<br>
+        <span style="color:#94a3b8">• 기존 <code>a3</code>는 <b>0% (5번 다 제자리 멈춤)</b>였지만, 개선 모델은 <b>100% 출발</b>합니다.</span>
+      </div>
+      <div style="background:#08101f;border:1px solid #1e3154;border-radius:10px;padding:10px 12px">
+        <b style="color:#fbbf24">③ 근접 정지 90% / 93% (충돌 전 브레이크)</b><br>
+        목표물(바구니 90% · 의자 93%)에 <b>부딪히기 직전 거리(화면의 25% 이상 크기)</b>까지 갔을 때, 스스로 멈춘 비율입니다.<br>
+        <span style="color:#94a3b8">• 기존 <code>a3-s2</code>는 55%/28%밖에 못 멈춰 실제로 6번 부딪혔습니다.</span>
+      </div>
+      <div style="background:#08101f;border:1px solid #1e3154;border-radius:10px;padding:10px 12px">
+        <b style="color:#e879f9">④ 부정 명령 정지 99.5% (말귀 이해)</b><br>
+        눈앞에 바구니가 있어도, 사람이 <b>"빨간 콘으로 가"</b>처럼 다른 명령을 내리면 속지 않고 멈춘 비율입니다.<br>
+        <span style="color:#94a3b8">• <code>a3</code>는 텍스트를 못 읽어 무조건 출발하지만, <code>V4R</code>은 99.5% 멈춥니다.</span>
+      </div>
+    </div>
+  </section>
 
   <!-- 1. 핵심 결과 요약 (Result First) -->
   <section class="act" id="sec1">
