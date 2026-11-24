@@ -437,7 +437,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
           <td><span class="bd b-warn">오프라인 추론</span><br>(실기 2종 예정)</td>
           <td><code>"gray basket"</code> 고정 BBox + <b><code>TextCondPolicy(12,1536)</code></b><br>(이미지 768 + 문구 768)</td>
           <td>• 비목표 지시어 <b>99.5% 정지</b><br>• <code>V4R</code> 박스 반전 방어 <b>94.3%</b><br>• T7 각도 <code>3.17°</code> (좌우 94.5%)</td>
-          <td>🟠 <b>언어 게이트 전용</b>. 엉뚱한 명령 시 멈추는 안전장치(다물체 주행용 아님).</td>
+          <td>🟠 <b>바구니 전용 안전 차단기 (일반화 모델 아님!)</b><br>의자·책상 주행 일반화가 아니라, 바구니가 아닌 명령일 때 멈추게 하는 전용 모델 (다물체 일반화는 <code>a3-ag23</code> 담당).</td>
         </tr>
         {eg3_model_rows}
       </tbody>
