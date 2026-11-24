@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>교수님 미팅 브리핑 — EGVLA2 · EGVLA3 모델별 핵심 특성 요약</title>
+<style>
+:root{--bg:#0b1120;--card:#111a2e;--head:#16223b;--fg:#e2e8f0;--mut:#94a3b8;--line:#233252;--acc:#38bdf8;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--purp:#c084fc;--pink:#e879f9;--ora:#fb923c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.62 system-ui,'Noto Sans KR',sans-serif}
+main{max-width:1180px;margin:0 auto;padding:24px 18px 70px}
+h1{font-size:1.58rem;margin:0 0 6px;color:#fff}
+h2{font-size:1.15rem;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);color:#fcd34d}
+p.sub{margin:0 0 16px;color:var(--mut);font-size:.9rem}
+a{color:var(--acc)}
+code{background:#1e293b;padding:1px 6px;border-radius:4px;font-size:.82em;color:#f1f5f9}
+.nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;font-size:.82rem}
+.nav a{border:1px solid var(--line);background:var(--card);padding:4px 11px;border-radius:99px;text-decoration:none}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 15px}
+.kpi .tag{font-size:.73rem;font-weight:800;color:var(--acc);text-transform:uppercase}
+.kpi .val{font-size:1.25rem;font-weight:800;color:#fff;margin:3px 0}
+.kpi .desc{font-size:.8rem;color:var(--mut)}
+.claim-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin:12px 0}
+.claim{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:0 12px 12px 0;padding:12px 14px;font-size:.85rem}
+.claim.p3{border-left-color:var(--pink)}
+.claim.p4{border-left-color:var(--ok)}
+.claim b.ttl{display:block;color:#fff;font-size:.94rem;margin-bottom:5px}
+table{width:100%;border-collapse:collapse;font-size:.83rem;background:var(--card);border-radius:10px;overflow:hidden;margin:10px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--head);color:#cbd5e1;font-size:.78rem}
+.bd{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.b-ok{background:#14532d;color:#86efac}.b-blue{background:#0c2d48;color:#7dd3fc}.b-purp{background:#2e1065;color:#e9d5ff}.b-warn{background:#451a03;color:#fcd34d}.b-bad{background:#450a0a;color:#fca5a5}
+.next-box{background:#0d1c18;border:1px solid #166534;border-radius:12px;padding:13px 16px;font-size:.86rem;line-height:1.7}
+@media print{body{background:#fff;color:#111}.nav{display:none}.card,.kpi,.claim,table,th,td{background:#fff!important;color:#111!important;border-color:#ccc!important}}
+</style>
+</head>
+<body>
+<main>
+  <div class="nav">
+    <a href="phase14_serving_timeline.html">⏱️ Phase 0~4 서빙 가로 타임라인</a>
+    <a href="research_story_egvla2.html#ch83">🧬 CH83 E2E 분석·사진</a>
+    <a href="model_registry.html#naming">📋 모델 레지스트리 (43종)</a>
+    <a href="v4_vs_a3_compare.html">🟣 V4/V4R vs A3</a>
+  </div>
+
+  <h1>교수님 미팅 핵심 브리핑 — EGVLA2 · EGVLA3 모델별 핵심 특성 요약</h1>
+  <p class="sub">2026-11-24 · 근거: 11/13(870장)·11/16(588장) 실기 프레임 재생, 330프레임 속도 벤치마크, <code>EgVla2Service</code> GPU 종단 추론 실측</p>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="tag">1세대 (EGVLA1)</div><div class="val">OWLv2 + Kosmos-2</div><div class="desc">이산 8방향 MLP · 515ep 실기 92% 기준선</div></div>
+    <div class="kpi"><div class="tag">2세대 (EGVLA2 · MOD-*)</div><div class="val">Florence-2 문자열 BBox → FM</div><div class="desc">실기 560+ 세션 검증 · <code>a3-ag23</code>(0.54°) + <code>beam=1 fp16</code>(285ms)</div></div>
+    <div class="kpi"><div class="tag">3세대 (EGVLA3 · VLM-E2E-*)</div><div class="val">미분 Soft-Loc + LoRA 공동 학습</div><div class="desc">파싱 0% · <code>EG3-11</code>(2.90°, 의자정지 98%, Open-Vocab 99.8%)</div></div>
+    <div class="kpi"><div class="tag">현재 진행 상태</div><div class="val">오프라인·GPU 검증 100% 완료</div><div class="desc"><code>soda</code> 인박스 전달 완료 → 실기 주행 &amp; YahBoom 이식 대기</div></div>
+  </div>
+
+  <h2>1. EGVLA2 (모듈러 실기 주력 · MOD-* 계열) 모델별 핵심 특성</h2>
+  <table>
+    <thead>
+      <tr><th>모델명 (ID)</th><th>핵심 특성 (한 줄 요약)</th><th>입증된 강점 (데이터)</th><th>약점 / 해결 상태</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b><code>a3</code></b> (EG2-09 · <code>MOD-A3</code>)</td>
+        <td>조향만 BBox에 정합한 현 배포 기준선</td>
+        <td>바구니 실기 <b>455/455</b>, 좌우 조향 완벽</td>
+        <td><span class="bd b-bad">Dual-Shortcut</span> 정지가 이미지 외형에 묶여 의자 중앙 <b>0/5</b> 비출발, 지연 <code>590.7ms</code></td>
+      </tr>
+      <tr>
+        <td><b><code>a3-s2</code></b> (EG2-14 · <code>MOD-A3-s2</code>)</td>
+        <td>중앙 출발은 풀렸으나 정지가 둔한 비교군</td>
+        <td>11/16 실기 <b>45/45</b>, 의자·책상 중앙 <b>5/5</b> 출발 (<code>0.70°</code>)</td>
+        <td><span class="bd b-warn">근접 접촉 6건</span> <code>area 0.25~0.40</code> 정지율 12~22% (a3 41~63%)</td>
+      </tr>
+      <tr style="background:#0d1f18">
+        <td><b><code>a3-ag23</code></b> ★ (EG2-16 · <code>MOD-A3-AG</code>)</td>
+        <td><b>조향(cx) + 정지(area) 동시 기하 정합</b></td>
+        <td>T7 각도 <b><code>0.54°</code></b>(98.7%), 중앙 출발 <b>100%/100%</b>, 근접 정지 <b>바구니 90%·의자 93%</b>, 오정지 <b>0.0%</b></td>
+        <td><span class="bd b-ok">실기 1순위</span> 기존 서버 코드 수정 없이 <code>.pt</code> 드롭인 교체 가능</td>
+      </tr>
+      <tr>
+        <td><b><code>MOD-DR-Fast/Safe</code></b> (EG2-17)</td>
+        <td><code>beam=1 fp16</code> 가속 + S2 감속 안전층</td>
+        <td>지연 <b><code>590.7→285.3ms</code> (2.09x)</b>, <code>cx MAE 0.0016</code>, 스파이크 필터 + <b>YahBoom 어댑터</b></td>
+        <td><span class="bd b-blue">코드·GPU 완료</span> 문자열 파싱 미분 단절은 EGVLA3로 해결</td>
+      </tr>
+      <tr>
+        <td><b><code>V4</code> / <code>V4R</code></b> (EG4-04/07 · <code>MOD-V4R</code>)</td>
+        <td><b>바구니 전용 언어 게이트</b> (<code>fdim=1536</code>)</td>
+        <td>비목표 지시어 <b>99.5% 제자리 정지</b>, <code>V4R</code> 박스 좌우 반전 방어 <b>94.3%</b></td>
+        <td><span class="bd b-warn">바구니 전용</span> 다물체 주행용이 아님 (A3·EGVLA3와 상호 보완)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. EGVLA3 (완전 미분 E2E · VLM-E2E-* 계열) 진화 &amp; Ablation</h2>
+  <table>
+    <thead>
+      <tr><th>모델명 (ID)</th><th>구조 / SOTA 매칭</th><th>11/13·11/16 실측 데이터</th><th>학술적 핵심 포인트</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b><code>B1</code></b> (EG3-04 · <code>ENC-E2E-1</code>)</td>
+        <td>Decoder 제거 · DaViT만 사용</td>
+        <td>각도차 <span class="bd b-bad">25.13°</span> (좌우 43.3%), 정지 45%/26%</td>
+        <td>VLM Decoder를 빼면 300ep에서 Open-Vocab·조향 동시 붕괴</td>
+      </tr>
+      <tr>
+        <td><b><code>EG3-08</code></b> (<code>VLM-E2E-Hidden</code>)</td>
+        <td><b>π0형</b>: Decoder 1-Pass Hidden (<code>BBox=0</code>)</td>
+        <td><code>~70ms</code>, 각도 <code>7.70°</code>, 바구니 정지 100% vs <span class="bd b-bad">의자 정지 18.6%</span></td>
+        <td>기하 병목 없는 순수 Latent E2E는 300ep에서 미학습 물체 정지 실패</td>
+      </tr>
+      <tr>
+        <td><b><code>EG3-09/10</code></b> (<code>VLM-E2E-SoftLoc+</code>)</td>
+        <td><b>ECoT/SpatialVLA 미분화</b>: <code>&lt;loc&gt;</code> Softmax 기댓값</td>
+        <td><code>296.6ms</code>(2.08x), 각도 <code>2.71°</code>(AG23), 바구니·의자 정지 <b>100%/100%</b></td>
+        <td><b>미분가능 공간 병목(Soft-Loc)</b>만으로 의자 정지 <code>18.6%→100%</code> 돌파</td>
+      </tr>
+      <tr style="background:#1a0e2b">
+        <td><b><code>EG3-11</code></b> ★ (<code>VLM-E2E-Joint</code>)</td>
+        <td><b>Decoder LoRA(r=4) + Soft-Loc + KL 증류</b></td>
+        <td>각도 <b><code>2.90°</code></b>(82.8%), 오정지 <b>0.0%</b>, 바구니·의자 <b>100%/98%</b>, <b>Open-Vocab 99.8%</b></td>
+        <td><span class="bd b-purp">100% E2E 완성</span> Action→Decoder LoRA 역전파(<code>grad=0.142</code>) + 망각 0%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. 교수님 보고용 핵심 논증 3가지 (주장 → 근거 → 데이터)</h2>
+  <div class="claim-grid">
+    <div class="claim">
+      <b class="ttl">① Dual-Shortcut 규명 &amp; 기하 정합 해소</b>
+      <b>주장:</b> 기존 실패는 VLM이 아니라 Action Head가 768-d 시각 외형을 정지 지름길로 쓴 탓이다.<br>
+      <b>데이터:</b> <code>A3C_AG23_s0</code>으로 의자 중앙 출발 <code>0%→100%</code>, 근접 정지 <code>58%→93%</code>, T7 <code>0.54°</code> 달성.
+    </div>
+    <div class="claim p3">
+      <b class="ttl">② 저데이터(300ep) E2E VLA의 필수 조건</b>
+      <b>주장:</b> 소규모 데이터에서는 π0형 Latent 연결보다 <b>미분가능 공간 병목(Soft-Loc)</b>이 필수적이다.<br>
+      <b>데이터:</b> 동일 Decoder에서 <code>Hidden</code>(의자 정지 18.6%) 대비 <code>Soft-Loc</code>(98~100%)이 +80%p 압도.
+    </div>
+    <div class="claim p4">
+      <b class="ttl">③ 공동 역전파와 망각 방지 (<code>EG3-11</code>)</b>
+      <b>주장:</b> Action Loss를 Decoder LoRA까지 역전파해도 KL 증류를 결합하면 Open-Vocab 손실이 0%다.<br>
+      <b>데이터:</b> 역전파 <code>grad=0.142</code> 실측 + 11/13 미학습 다물체 검출률 <b>99.8%</b> (오히려 향상).
+    </div>
+  </div>
+
+  <h2>4. 다음 실기 검증 계획 (Next Steps)</h2>
+  <div class="next-box">
+    1. <b>EGVLA2 실기 확정 (<code>soda</code> Serbot)</b>: <code>V4/V4R</code> 언어 게이트 실기 → <code>A3C_AG23_s0</code> + <code>MOD-DR-Safe</code>(<code>beam1_fp16</code> 285ms, S2 감속)로 접촉 0건 확인 → <b>YahBoom 카 이식</b>(<code>yahboom_adapter.py</code>).<br>
+    2. <b>EGVLA3 파일럿 실기</b>: 동일 서버에서 <code>VLA_EGVLA2_DECODE_MODE=softloc_fp16</code> 스위치로 <code>EG3-11</code> 실기 15세션 검증 후 논문 최종 실험표 완성.
+  </div>
+</main>
+</body>
+</html>
