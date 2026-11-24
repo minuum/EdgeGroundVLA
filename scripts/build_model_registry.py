@@ -116,6 +116,12 @@ ARCH_ALIAS = {
  "EG4-04": ("MOD-V4", "mod"), "EG4-05": ("MOD-V0R", "mod"), "EG4-06": ("MOD-V5", "mod"), "EG4-07": ("MOD-V4R", "mod"),
 }
 FAM_LABEL = {"mod": "모듈러(비-E2E)", "enc": "인코더 E2E(디코더 없음)", "vlm": "VLM 디코더 E2E"}
+# 버전 정렬용 간결 표기 (EG1-*, EG2-*, EG2-T*, EG3-*): 기존 soda 호환명(short)과 괄호 병기
+def ver_id(pn: str) -> str:
+    if pn.startswith("EG4-"):
+        return f"EG2-T{int(pn.split('-')[1])}"
+    g, n = pn.split("-")
+    return f"{g}-{int(n)}"
 RS = "research_story.html"; RSE = "research_story_egvla2.html"; VO = "vlaops_dashboard.html"
 LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
  "EG1-02": [("CH70 헤드 구조·손실 실험(exp73, epoch 300 언급)", RS+"#ch70"), ("CH78 ⑥-2 EGVLA1 vs EGVLA2(276/300)", RSE+"#ch78"), ("CH77 EGVLA1 비교", RSE+"#ch77"), ("CH76 ④ V6 학습 데이터", RSE+"#ch76")],
@@ -225,6 +231,7 @@ def main():
         r["links"] = LINKS.get(e["pn"], []); r["short"] = SHORT[e["pn"]]
         _al, _fam = ARCH_ALIAS.get(e["pn"], ("", "mod"))
         r["arch_alias"] = _al; r["arch_family"] = _fam; r["arch_family_label"] = FAM_LABEL.get(_fam, "")
+        r["ver_id"] = ver_id(e["pn"])
         sl = ss.get(e["log_key"] or "(공란)", []) if e["log_key"] not in (None, "__none__") else []
         r["sessions"] = dict(n=len(sl), h5_local=sum(x["h5"] for x in sl), film=sum(x["film"] for x in sl)) if sl else None
         rows.append(r)
@@ -314,8 +321,8 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
         lk = "".join(f'<a href="{u}">{esc(l)}</a>' for l, u in r["links"])
         df_block = RDV.card_decision_html(r["pn"])
         fam_pill = f' <span class="bd fam-{r["arch_family"]}" title="{esc(r["arch_family_label"])}">{esc(r["arch_alias"])}</span>' if r.get("arch_alias") else ""
-        return (f'<article class="card {r["level"]}" id="{r["pn"]}" data-lv="{r["level"]}" data-q="{esc((r["pn"]+" "+r["short"]+" "+r.get("arch_alias","")+" "+r.get("arch_family_label","")+" "+r["name"]+" "+(r["ckpt"] or "")+" "+r["arch"]).lower())}">'
-                f'<div class=top><div><span class=pn>{r["pn"]}</span>{fam_pill}<div class=sn>{"★ " if r["robot"] else ""}{esc(r["short"])}</div><div class=nm>{esc(r["name"])}</div></div><div>{badges}</div></div>'
+        return (f'<article class="card {r["level"]}" id="{r["pn"]}" data-lv="{r["level"]}" data-q="{esc((r["ver_id"]+" "+r["pn"]+" "+r["short"]+" "+r.get("arch_alias","")+" "+r.get("arch_family_label","")+" "+r["name"]+" "+(r["ckpt"] or "")+" "+r["arch"]).lower())}">'
+                f'<div class=top><div><span class=pn>{esc(r["ver_id"])}</span>{fam_pill}<div class=sn>{"★ " if r["robot"] else ""}{esc(r["ver_id"])} ({esc(r["short"])})</div><div class=nm>{esc(r["name"])}</div></div><div>{badges}</div></div>'
                 f'<div class=mx><div class=mb><div class=h>오프라인</div>{esc(off)}</div>{metric_real(r)}</div>'
                 f'{df_block if df_block else f"<dl>{dl}</dl>"}'
                 f'{det}'
@@ -352,11 +359,10 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
     body.append(RDV.studio_html())
     body.append('<div class=note><b>읽는 법</b> · <b>실기</b>는 운영자 수동 판정(블라인드 아님, 성공 기준 문서화 안 됨, 좌우 정렬 미반영)이고, <b>오프라인</b> 수치는 세대마다 평가 방식이 달라 서로 비교하지 않습니다. 세대를 잇는 비교는 같은 프로토콜의 실기뿐입니다. V4·V4R의 재생 수치는 A3와의 <i>유사도</i>이며 성공률이 아닙니다.'
                 '<div class=leg><span><span class="bd deploy">현재 배포</span> 서버에 올라가 있음</span><span><span class="bd real">실기 기록 있음</span></span><span><span class="bd off">오프라인만</span> 실기 기록 없음</span><span><span class="bd retired">폐기·보류·기록만</span></span><span><span class="bd srv">서빙 준비</span> 코드 구현·검증 완료, 로봇 전달 전</span><span><b>★</b> 이름 앞: 실기 기록이 있는 모델</span></div></div>')
-    nm_rows = "".join('<tr><td>%s</td><td><span class="bd fam-%s">%s</span> <span class=m>%s</span></td><td><code>%s</code></td><td>%s</td><td>%s</td></tr>' % (r["pn"], r["arch_family"], esc(r["arch_alias"]), esc(r["arch_family_label"]), esc(r["short"]), ("★ %d/%d" % (r["robot"]["ok"], r["robot"]["n"])) if r["robot"] else "—", esc(r["name"])) for r in rows)
-    body.append('<h2 id=naming>모델 이름 규칙 (파트너 호환 ID 유지 + 아키텍처 축약명 병기)</h2>'
-                '<p class=d>파트너 호환 고정명(<code>a3</code>, <code>a3-ag23</code>, <code>v4r</code> 등)은 그대로 유지하고, E2E 여부와 VLM Decoder 사용 여부를 한눈에 구분하는 3계열 축약명을 병기합니다: '
-                '<span class="bd fam-mod">MOD-*</span> 모듈러(비-E2E) · <span class="bd fam-enc">ENC-E2E-*</span> 인코더 단독 E2E(디코더 없음) · <span class="bd fam-vlm">VLM-E2E-*</span> VLM 디코더 포함 E2E</p>'
-                '<details open><summary>전체 이름표 (PN ↔ 아키텍처 축약명 ↔ 파트너 호환명 ↔ 실기)</summary><table><thead><tr><th>PN</th><th>아키텍처 축약명 (계열)</th><th>파트너 호환명</th><th>실기(로그)</th><th>기존 표기</th></tr></thead><tbody>' + nm_rows + '</tbody></table></details>')
+    nm_rows = "".join('<tr><td><b>%s</b> <span class=m>(%s)</span></td><td><span class="bd fam-%s">%s</span> <span class=m>%s</span></td><td><code>%s</code></td><td>%s</td><td>%s</td></tr>' % (esc(r["ver_id"]), r["pn"], r["arch_family"], esc(r["arch_alias"]), esc(r["arch_family_label"]), esc(r["short"]), ("★ %d/%d" % (r["robot"]["ok"], r["robot"]["n"])) if r["robot"] else "—", esc(r["name"])) for r in rows)
+    body.append('<h2 id=naming>모델 이름 규칙 (버전별 EG1-/EG2-/EG3- 정렬 + 파트너 호환명 병기)</h2>'
+                '<p class=d>모든 모델 맨 앞에 <b><code>EG1-*</code> (1세대) · <code>EG2-*</code> / <code>EG2-T*</code> (2세대 모듈러) · <code>EG3-*</code> (3세대 E2E)</b>를 붙이고 괄호 안에 <code>soda</code> 호환명(<code>a3</code>, <code>a3-ag23</code>, <code>v4r</code>)을 유지합니다.</p>'
+                '<details open><summary>전체 이름표 (버전 ID ↔ 아키텍처 축약명 ↔ soda 호환명 ↔ 실기)</summary><table><thead><tr><th>버전 ID (원래 PN)</th><th>아키텍처 축약명 (계열)</th><th>soda 호환명</th><th>실기(로그)</th><th>기존 표기</th></tr></thead><tbody>' + nm_rows + '</tbody></table></details>')
     # 상태 패널: V4/V4R 서빙
     body.append('<h2 id=status>현재 진행 상태 · V4/V4R 서빙</h2><p class=d>출처: <code>docs/plans/plan_20261115_v4_soda_minimal_patch.md</code>. 로봇 구동 단계는 단계마다 별도 승인.</p><ul class=pipe>'
         '<li class=done><span class=s>✔ 서빙 경로 구현</span>VLA_EGVLA2_TEXT=1(기본 꺼짐), 커밋 a7b3822d</li>'
@@ -377,7 +383,8 @@ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-siz
     chips = "".join(f'<span class=chip role=button tabindex=0 aria-pressed="{"true" if k=="all" else "false"}" data-f="{k}">{t}</span>' for k, t in (("all", "전체"), ("deploy", "현재 배포"), ("real", "실기 기록"), ("off", "오프라인만"), ("retired", "폐기·보류")))
     navg = "".join(f'<a class=g href="#gen-{gk}">{gk} {gn}</a>' for gk, (gn, gd) in GENS.items())
     body.append(f'<div class=bar>{navg}<span class=sep></span>{chips}<input id=q placeholder="PN·이름·체크포인트 검색"></div>')
-    for gk, (gn, gd) in GENS.items():
+    for gk in ("G0", "G1", "G2", "G4", "G3"):
+        gn, gd = GENS[gk]
         rs = [r for r in rows if r["gen"] == gk]
         body.append(f'<h2 id="gen-{gk}">{gk} · {gn} <span class=n>{len(rs)}개</span></h2><p class=d>{gd}</p><div class=grid>' + "".join(card(r) for r in rs) + '</div>')
     EXT = [  # 외부 모델(참고). 값은 논문·요약에서 확인한 것만, 못 찾은 칸은 미확인.

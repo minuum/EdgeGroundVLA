@@ -119,14 +119,14 @@ def build_one(include_egvla3: bool, out_path: Path, data: dict) -> None:
         v4rn = (v4d.get("v4r", {}).get("neg") or [[0, 0], 0])
 
         model_list = [
-            ("MOD-A3", "a3 (현 배포)", "#94a3b8", "실기(11/13)"),
-            ("MOD-A3-s2", "a3-s2 (시드2)", "#fb923c", "실기(11/16)"),
-            ("MOD-A3-AG", "a3-ag23 (1순위)", "#4ade80", "오프라인 추론"),
+            ("MOD-A3", "EG2-9 (a3)", "#94a3b8", "실기(11/13)"),
+            ("MOD-A3-s2", "EG2-14 (a3-s2)", "#fb923c", "실기(11/16)"),
+            ("MOD-A3-AG", "EG2-16 (a3-ag23)", "#4ade80", "오프라인 추론"),
         ]
         if include_egvla3:
             model_list += [
-                ("VLM-E2E-Hidden", "EG3-08 (Hidden)", "#c084fc", "오프라인 추론"),
-                ("VLM-E2E-SoftLoc", "EG3-09/11 (SoftLoc)", "#e879f9", "오프라인 추론"),
+                ("VLM-E2E-Hidden", "EG3-8 (Hidden)", "#c084fc", "오프라인 추론"),
+                ("VLM-E2E-SoftLoc", "EG3-11 (SoftLoc)", "#e879f9", "오프라인 추론"),
             ]
 
         rows = []
@@ -149,7 +149,7 @@ def build_one(include_egvla3: bool, out_path: Path, data: dict) -> None:
         v4_stop = v4ro[1] < 0.2
         v4_badge = '<span class="bd b-bad">STOP</span>' if v4_stop else '<span class="bd b-ok">DRIVE</span>'
         rows.append(
-            f'<tr><td style="color:#fbbf24;font-weight:700">V4R (언어게이트) <span class="bd b-warn" style="font-size:.66rem;padding:1px 5px">오프라인 추론</span></td>'
+            f'<tr><td style="color:#fbbf24;font-weight:700">EG2-T7 (v4r) <span class="bd b-warn" style="font-size:.66rem;padding:1px 5px">오프라인 추론</span></td>'
             f'<td><code>[{v4ro[0][0]:+.2f}, {v4ro[0][1]:+.2f}]</code> · 부정 <code>[{v4rn[0][0]:+.2f}, {v4rn[0][1]:+.2f}]</code></td>'
             f'<td>{v4_badge}</td></tr>'
         )
@@ -405,39 +405,39 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
       <thead><tr><th>모델명 (ID)</th><th>검증 구분 (날짜)</th><th>아키텍처 / 핵심 특징</th><th>핵심 정량 지표</th><th>강점 / 한계 및 역할</th></tr></thead>
       <tbody>
         <tr>
-          <td><b><code>a3</code></b><br>(<code>EG2-09</code> · <code>MOD-A3</code>)</td>
+          <td><b><code>EG2-9 (a3)</code></b><br><span style="color:#94a3b8;font-size:.75rem">MOD-A3 · 현 배포</span></td>
           <td><span class="bd b-blue">실기 완료</span><br>2026-10-29~11-13</td>
           <td>Florence-2(<code>beam=3 fp32</code>) → <code>PiZeroFM(12,768)</code><br>(조향 <code>cx</code>만 서보 정합)</td>
           <td>• 바구니 실기 <b>455/455</b><br>• 11/13 의자 중앙 <b>0/5</b><br>• 11/16 근접 정지 80%/58%</td>
           <td><b>현 배포 기준선</b>. 바구니 주행 안정적이나 시각 지름길로 낯선 물체 중앙 비출발.</td>
         </tr>
         <tr>
-          <td><b><code>a3-s2</code></b><br>(<code>EG2-14</code> · <code>MOD-A3-s2</code>)</td>
+          <td><b><code>EG2-14 (a3-s2)</code></b><br><span style="color:#94a3b8;font-size:.75rem">MOD-A3-s2</span></td>
           <td><span class="bd b-blue">실기 완료</span><br>2026-11-16 (45/45)</td>
           <td><code>a3</code>와 동일 레시피 · 시드 2</td>
           <td>• 의자·책상 중앙 <b>5/5 (100%)</b><br>• 11/16 근접 정지 <b>55%/28%</b><br>• T7 각도 <code>0.70°</code></td>
           <td>중앙 출발 문제는 풀렸으나 근접 정지가 약해 <b>접촉 6건</b> 발생 → <code>a3-ag23</code> 개발 계기.</td>
         </tr>
         <tr style="background:#0d1f18">
-          <td><b><code>a3-ag23</code> ★</b><br>(<code>EG2-16</code> · <code>MOD-A3-AG</code>)</td>
+          <td><b><code>EG2-16 (a3-ag23)</code> ★</b><br><span style="color:#94a3b8;font-size:.75rem">MOD-A3-AG</span></td>
           <td><span class="bd b-warn">오프라인 추론</span><br>2026-11-17~24</td>
           <td>동일 <code>PiZeroFM(12,768)</code><br><b>조향(cx) + 정지(area≥0.23)</b> 동시 정합 + 50% Feature Swap</td>
           <td>• T7 각도 <b><code>0.54°</code></b> (좌우 98.7%)<br>• 의자·책상 중앙 <b>100%/100%</b><br>• 근접 정지 <b>90%/93%</b>, 오정지 <b>0.0%</b></td>
           <td>🏆 <b>EGVLA2 실기 1순위</b>. 기존 서버 코드 수정 없이 <code>.pt</code> 드롭인 교체 가능.</td>
         </tr>
         <tr>
-          <td><b><code>MOD-DR-Fast/Safe</code></b><br>(<code>EG2-17</code>)</td>
+          <td><b><code>EG2-17 (a3-dr-fast)</code></b><br><span style="color:#94a3b8;font-size:.75rem">MOD-DR-Fast/Safe</span></td>
           <td><span class="bd b-warn">GPU 서빙 검증</span><br>2026-11-22~24</td>
           <td><code>beam=1 fp16</code> 고속 추출 + <b>S2 감속(0.14→0.25)</b> + 스파이크 필터 + <b>YahBoom 어댑터</b></td>
           <td>• 지연 <b><code>285.3ms</code> (2.09x)</b><br>• <code>beam=3</code> 일치 <b>99.7%</b><br>• <code>cx MAE 0.0016</code></td>
-          <td>⚡ <b>실시간·안전·이식 계층</b>. 관성 접촉 억제 및 YahBoom 카 무재학습 이식 담당.</td>
+          <td>⚡ <b>EGVLA2 엔딩 완성 계층</b>. 관성 접촉 억제 및 YahBoom 카 무재학습 이식 담당.</td>
         </tr>
         <tr>
-          <td><b><code>V4 / V4R</code></b><br>(<code>EG4-04/07</code> · <code>MOD-V4R</code>)</td>
+          <td><b><code>EG2-T4/T7 (v4 / v4r)</code></b><br><span style="color:#94a3b8;font-size:.75rem">MOD-V4R · 기존 EG4-04/07</span></td>
           <td><span class="bd b-warn">오프라인 추론</span><br>(실기 2종 예정)</td>
           <td><code>"gray basket"</code> 고정 BBox + <b><code>TextCondPolicy(12,1536)</code></b><br>(이미지 768 + 문구 768)</td>
-          <td>• 비목표 지시어 <b>99.5% 정지</b><br>• <code>V4R</code> 박스 반전 방어 <b>94.3%</b><br>• T7 각도 <code>3.17°</code> (좌우 94.5%)</td>
-          <td>🟠 <b>바구니 전용 안전 차단기 (일반화 모델 아님!)</b><br>의자·책상 주행 일반화가 아니라, 바구니가 아닌 명령일 때 멈추게 하는 전용 모델 (다물체 일반화는 <code>a3-ag23</code> 담당).</td>
+          <td>• 비목표 지시어 <b>99.5% 정지</b><br>• <code>v4r</code> 박스 반전 방어 <b>94.3%</b><br>• T7 각도 <code>3.17°</code> (좌우 94.5%)</td>
+          <td>🟠 <b>바구니 전용 안전 차단기 (일반화 모델 아님!)</b><br>의자·책상 주행 일반화가 아니라, 바구니가 아닌 명령일 때 멈추게 하는 전용 모델 (다물체 일반화는 <code>EG2-16</code> 담당).</td>
         </tr>
         {eg3_model_rows}
       </tbody>
@@ -476,8 +476,9 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
       <code>a3</code> (<b>2026-10-29~11-04</b> 바구니 455/455, <b>2026-11-13</b> 다물체 65세션) · <code>a3-s2</code> (<b>2026-11-16</b> 45/45, 접촉 6건)<br>
       <b>2. 완료된 오프라인 추론 &amp; GPU 종단 서빙 (2026-11-22~24, 실기 미실시):</b>
       <code>A3C_AG23_s0</code>, <code>MOD-DR-Safe</code>(285ms · S2 감속 · YahBoom 어댑터){", <code>EG3-11</code>(297ms · 2.90° · Open-Vocab 99.8%)" if include_egvla3 else ""} → <code>soda</code> 인박스 전달 완료(<code>SHA256 9/9 OK</code>).<br><br>
-      <b>3. 다음 실기 계획:</b>
-      ① <code>soda</code>에서 <code>V4/V4R</code> 언어 게이트 실기 2종 → ② <code>A3C_AG23_s0</code> + <code>MOD-DR-Safe</code> Serbot 실기 정지 확정 → ③ <b>YahBoom 카 이식</b>{" → ④ <code>EG3-11</code>(<code>softloc_fp16</code>) 파일럿 실기 15세션" if include_egvla3 else ""}
+      <b>3. 확정된 세대별 다음 실기 계획 (EGVLA2 엔딩 → EGVLA3 자율정지 E2E):</b><br>
+      • <b>🔵 EGVLA2 엔딩 (모듈러 실용화 완결)</b>: <code>soda</code>에서 <code>V4/V4R</code> 실기 2종 → <code>A3C_AG23_s0</code> + <b><code>beam=1 fp16</code> (285ms)</b> + S2 감속으로 Serbot 정지 확정 → <b>YahBoom 카 이식</b>으로 EGVLA2 마무리.<br>
+      • <b>🟣 EGVLA3 본편 (자율 멈춤 E2E VLA)</b>: 하드코딩 <code>near_area=0.25</code> 규칙을 끄고(<code>VLA_EGVLA2_NEAR_AREA=off</code>, <code>STOP_DEBOUNCE=2</code>), <b><code>EG3-11</code>(<code>softloc_fp16</code>) 모델 자체가 멈춤(<code>[0, 0]</code>)을 직접 출력</b>해 정지하는 순수 E2E 실기 검증 진행.
     </div>
   </section>
 </main>

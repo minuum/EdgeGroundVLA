@@ -90,9 +90,13 @@ export VLA_EGVLA2_DECODE_MODE="softloc_fp16"
 export VLA_EGVLA2_DECEL_START_AREA="0.14"
 ```
 
-### 4.3 단계별 실행 로드맵 (Two-Track Execution Plan)
+### 4.3 단계별 실행 로드맵 (Two-Track Execution Plan — 확정)
 
-| 트랙 | 세대 | 단기 목표 (즉시 실행) | 중기 목표 (고도화 · 논문 완성) | 담당 / 검증 환경 |
+> **세대 마일스톤 확정 (2026-11-24)**:
+> - **🔵 EGVLA2 엔딩**: `A3C_AG23_s0` + **`beam=1 fp16` (`MOD-DR-Fast`, `285.3ms`)** + `MOD-DR-Safe`(S2 감속) + `V4/V4R` 적용 및 YahBoom 이식으로 **2세대 모듈러 트랙 완결**.
+> - **🟣 EGVLA3 목표**: 컨트롤러 하드코딩(`near_area=0.25`)을 끄고(`VLA_EGVLA2_NEAR_AREA=off`, `STOP_DEBOUNCE=2`), **모델 자체가 멈춤(`[0, 0]`)을 직접 출력하는 완전 미분 E2E VLA (`EG3-11`)**로 실기 진행.
+
+| 트랙 | 세대 | 단기 목표 (즉시 실행) | 중기 목표 (최종 마일스톤) | 담당 / 검증 환경 |
 | :--- | :---: | :--- | :--- | :--- |
-| **Track 1 (실기·안정성)** | **EGVLA2 (`MOD-*`)** | 1) `V4`·`V4R` 언어 게이트 실기 실험 2종 완료<br>2) `MOD-A3-AG`(`A3C_AG23_s0.pt`) + `MOD-DR-Safe`(`beam1_fp16` + S2 감속) Serbot 근접 정지 실기 검증 | Serbot 정지 완료 후 **`yahboom_adapter.py` 기반 YahBoom 카 이식** 및 이종 로봇 일반화 실증 | 동환 (`soda` Serbot) + 민우 |
-| **Track 2 (차세대 E2E 연구)** | **EGVLA3 (`VLM-E2E-*`)** | 1) 오프라인 3단계 Ablation(`ENC-E2E` → `VLM-E2E-Hidden` → `VLM-E2E-SoftLoc+`) 정량 표·시각화 확정 (완료)<br>2) Serbot에서 `VLA_EGVLA2_DECODE_MODE=softloc_fp16` 15세션 파일럿 주행 | **`EG3-11` (`VLM-E2E-SoftLoc-Joint`)**: Action Loss → Soft-Loc → Decoder LoRA(`r=4`) 역전파 + `beam=3` KL Distillation 공동 학습으로 100% E2E 학습·추론 VLA 완성 | 민우 (`minum` GB10) → 파일럿 실기 |
+| **Track 1 (EGVLA2 엔딩)** | **EGVLA2 (`MOD-*`)** | 1) `V4`·`V4R` 언어 게이트 실기 2종 완료<br>2) `A3C_AG23_s0.pt` + **`beam=1 fp16`** + S2 감속 Serbot 실기 정지 확정 | **`yahboom_adapter.py` 기반 YahBoom 카 이식**으로 EGVLA2 실용화 엔딩 완료 | 동환 (`soda` Serbot) + 민우 |
+| **Track 2 (EGVLA3 자율정지 E2E)** | **EGVLA3 (`VLM-E2E-*`)** | 1) **`EG3-11` (`VLM-E2E-SoftLoc-Joint`)** 오프라인 5축 검증 완료 (`2.90°`, `near_area` 없이 모델 자체 정지 **바구니 100%·의자 98%**, Open-Vocab 99.8%) | **`VLA_EGVLA2_NEAR_AREA=off` + `STOP_DEBOUNCE=2`** 환경에서 **모델 자체 멈춤 출력 기반 E2E 실기 15세션** 검증 및 논문 완성 | 민우 (`minum` GB10) → 파일럿 실기 |

@@ -295,7 +295,7 @@ def main() -> None:
                 ["종단 서빙 지연 (GB10)", "`590.7ms`(beam=3) → <b>`285.3ms`</b>(`beam=1 fp16`, 2.09x)", "<b>`~70ms`</b>(`Hidden`) / <b>`296.6ms`</b>(`Soft-Loc fp16`, 2.08x)"],
                 ["조향 정밀도 / 근접 정지", "<b>`0.54°` (좌우 98.7%)</b> / 바구니 90% · 의자 93%", "<b>`2.71°` (좌우 82.8%)</b> / <b>바구니 100% · 의자 100%</b>"],
                 ["독보적 4대 강점", "① 실기 560+ 세션 검증력<br>② 이산 토큰 절단으로 최고 조향 정밀도(`0.54°`)<br>③ Dual-Shortcut 해소(`a3-ag23`) + 언어 게이트(`V4R`)<br>④ S2 감속·스파이크 필터·YahBoom 무재학습 즉시 이식", "① VLM Decoder 6L 완전 미분 관통(파싱 0%)<br>② 300ep에서 π0형 Hidden E2E 한계(`18.6%`) 규명 및 Soft-Loc(`100%`) 돌파 서사<br>③ Prefix-Forced KV-Cache 4스텝 2배 가속<br>④ Action Loss → Decoder LoRA 공동 역전파 확장성"],
-                ["단일 서버 스위치", "`VLA_EGVLA2_DECODE_MODE=beam1_fp16` (실기 주력 트랙)", "`VLA_EGVLA2_DECODE_MODE=softloc_fp16` (차세대 E2E 연구 트랙)"],
+                ["단일 서버 스위치", "`VLA_EGVLA2_DECODE_MODE=beam1_fp16` (<b>EGVLA2 엔딩</b>: 실기+YahBoom 완결)", "`VLA_EGVLA2_DECODE_MODE=softloc_fp16` + `NEAR_AREA=off` (<b>EGVLA3</b>: 모델 자체 멈춤 출력 E2E)"],
             ],
         ),
     ]
