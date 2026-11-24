@@ -102,29 +102,34 @@ def main() -> None:
 
     cards_html = []
     for sc in scenes:
+        sid = sc["sid"]
+        # sid 형식 YYYYMMDD_HHMMSS -> 촬영 날짜·시각 명확히 포맷
+        shot_dt = f"{sid[:4]}-{sid[4:6]}-{sid[6:8]} {sid[9:11]}:{sid[11:13]}:{sid[13:15]}" if len(sid) >= 15 else sid
         ms = sc["models"]
         rows = []
-        for k, lbl, col in (
-            ("MOD-A3", "a3 (현 배포)", "#94a3b8"),
-            ("MOD-A3-s2", "a3-s2 (11/16실기)", "#fb923c"),
-            ("MOD-A3-AG", "a3-ag23 (EGVLA2 1순위)", "#4ade80"),
-            ("VLM-E2E-Hidden", "EG3-08 (Hidden π0형)", "#c084fc"),
-            ("VLM-E2E-SoftLoc", "EG3-09/11 (Soft-Loc)", "#e879f9"),
+        for k, lbl, col, tag_kind in (
+            ("MOD-A3", "a3 (현 배포)", "#94a3b8", "실기(11/13)"),
+            ("MOD-A3-s2", "a3-s2 (시드2)", "#fb923c", "실기(11/16)"),
+            ("MOD-A3-AG", "a3-ag23 (EGVLA2 1순위)", "#4ade80", "오프라인 추론"),
+            ("VLM-E2E-Hidden", "EG3-08 (Hidden π0형)", "#c084fc", "오프라인 추론"),
+            ("VLM-E2E-SoftLoc", "EG3-09/11 (Soft-Loc)", "#e879f9", "오프라인 추론"),
         ):
             m = ms.get(k)
             if not m:
                 continue
             st = '<span class="bd b-bad">STOP</span>' if m["stop"] else '<span class="bd b-ok">DRIVE</span>'
+            k_bd = '<span class="bd b-blue" style="font-size:.66rem;padding:1px 5px">' + tag_kind + '</span>' if "실기" in tag_kind else '<span class="bd b-warn" style="font-size:.66rem;padding:1px 5px">' + tag_kind + '</span>'
             rows.append(
-                f'<tr><td style="color:{col};font-weight:700">{lbl}</td>'
+                f'<tr><td style="color:{col};font-weight:700">{lbl} {k_bd}</td>'
                 f'<td><code>[{m["cmd"][0]:+.2f}, {m["cmd"][1]:+.2f}]</code> ({m["ang_deg"]:+.0f}°)</td>'
                 f'<td>{st}</td></tr>'
             )
         cards_html.append(
             f'<div class="sc-card">'
-            f'<div class="sc-top"><b>{html.escape(sc["tab"])}</b><span><code>{html.escape(sc["sid"])}</code> #{sc["fi"]}</span></div>'
+            f'<div class="sc-top"><b>{html.escape(sc["tab"])}</b><span>📅 촬영: <b>{shot_dt}</b> · frame #{sc["fi"]}</span></div>'
             f'{_scene_svg(sc)}'
             f'<div class="sc-ins">지시어: <code>"{html.escape(sc["ins"])}"</code> · {html.escape(sc["obj"])} ({html.escape(sc["pos"])})</div>'
+            f'<div style="font-size:.73rem;color:#93c5fd;background:#09152b;padding:4px 7px;border-radius:6px"><b>실제 로봇 주행 기록({shot_dt[:10]}):</b> {html.escape(sc.get("real_outcome", ""))}</div>'
             f'<table class="mini-tbl"><tbody>{"".join(rows)}</tbody></table>'
             f'<div class="sc-note">{scene_takeaways.get(sc["id"], "")}</div>'
             f'</div>'
@@ -201,7 +206,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
   <nav class="top-nav">
     <span style="font-weight:800;color:#fff">📑 261126 EGVLA 실험보고</span>
     <a href="#act1">1. 배경·문제</a>
-    <a href="#act2">2. 실기 6장면 증거</a>
+    <a href="#act2">2. 오프라인 추론 vs 실기 비교 (6장면)</a>
     <a href="#act3">3. EGVLA2 vs 3</a>
     <a href="#act4">4. 과적합·SOTA 비교</a>
     <a href="#act5">5. 로드맵</a>
@@ -239,8 +244,13 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
   </section>
 
   <section class="act" id="act2">
-    <h2>Act 2. 실제 로봇 카메라 6장면 시각 증거 (11/13 · 11/16 실기 프레임 GPU 실측)</h2>
-    <p class="lead">실제 로봇이 촬영한 카메라 프레임 6장 위에서 각 모델의 <b>BBox 검출</b>과 <b>출력 주행 벡터 <code>[lx, ly]</code></b>를 직접 비교한다. (범례: <b style="color:#94a3b8">회색=a3</b> · <b style="color:#4ade80">초록=a3-ag23</b> · <b style="color:#c084fc">보라=EG3-08(Hidden)</b> · <b style="color:#e879f9">분홍=Soft-Loc(E2E)</b> · <b>원(○)=STOP</b>)</p>
+    <h2>Act 2. 오프라인 추론 재생 — 실제 실기 촬영 사진(날짜·시각 표기) 위 모델별 예측 비교</h2>
+    <div style="background:#171207;border:1px solid #b45309;border-left:4px solid #fbbf24;border-radius:8px;padding:8px 12px;font-size:.81rem;margin-bottom:12px;line-height:1.55">
+      <b>⚠️ 실기 주행 vs 오프라인 추론 구분:</b>
+      <span class="bd b-blue">실기(날짜)</span>는 실제 로봇 바퀴로 주행한 기록(<code>a3</code>: 2026-10-29~11-13, <code>a3-s2</code>: 2026-11-16)이고,
+      <span class="bd b-warn">오프라인 추론</span>(<code>a3-ag23</code>, <code>EG3-08</code>, <code>EG3-09/11</code>)은 위 실기 촬영 사진(<b>날짜·시각 명시</b>)을 GPU에 넣어 <b>"이 장면에서 모델이 어떤 방향/정지 명령을 내리는지"</b> 오프라인으로 시뮬레이션(재생 추론)한 결과다.
+    </div>
+    <p class="lead">범례: <b style="color:#94a3b8">회색=a3</b> · <b style="color:#4ade80">초록=a3-ag23</b> · <b style="color:#c084fc">보라=EG3-08(Hidden)</b> · <b style="color:#e879f9">분홍=Soft-Loc(E2E)</b> · <b>원(○)=STOP</b></p>
     <div class="sc-grid">{"".join(cards_html)}</div>
   </section>
 
@@ -280,13 +290,15 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
   </section>
 
   <section class="act" id="act5">
-    <h2>Act 5. 완료 현황 &amp; 실기 로드맵 (Next Steps)</h2>
+    <h2>Act 5. 완료 현황 (오프라인 추론 vs 실기 주행) &amp; 실기 로드맵</h2>
     <div class="box" style="border-left:5px solid var(--ok)">
-      <b>1. 현재까지 100% 완료 (오프라인 1,458프레임 + GPU 종단 서빙 실측):</b><br>
-      • <code>MOD-A3-AG</code>(<code>A3C_AG23_s0.pt</code>), <code>MOD-DR-Safe</code>(285ms · S2 감속 · YahBoom 어댑터), <code>EG3-11</code>(297ms · 2.90° · Open-Vocab 99.8%) 모두 검증 완료 및 <code>soda</code> 인박스 전달(<code>SHA256 9/9 OK</code>).<br><br>
-      <b>2. 남은 실기 검증 (로봇 하드웨어 일정):</b><br>
-      • <b>Step 1 (EGVLA2)</b>: <code>soda</code>에서 <code>V4/V4R</code> 언어 게이트 테스트 → <code>A3C_AG23_s0</code> + <code>MOD-DR-Safe</code> 실기 정지 확정 → <b>YahBoom 카 이식</b>.<br>
-      • <b>Step 2 (EGVLA3)</b>: 동일 서버에서 <code>VLA_EGVLA2_DECODE_MODE=softloc_fp16</code> 스위치로 <code>EG3-11</code> 파일럿 실기 15세션 검증 후 논문 표 완성.
+      <b>1. 완료된 실기 주행 (날짜별):</b>
+      <code>a3</code> (<b>2026-10-29~11-04</b> 바구니 455/455, <b>2026-11-13</b> 다물체 65세션) · <code>a3-s2</code> (<b>2026-11-16</b> 45/45, 접촉 6건)<br>
+      <b>2. 완료된 오프라인 추론 &amp; GPU 종단 서빙 (2026-11-22~24, 실기 미실시):</b>
+      <code>MOD-A3-AG</code>(<code>A3C_AG23_s0.pt</code>), <code>MOD-DR-Safe</code>(285ms · S2 감속 · YahBoom 어댑터), <code>EG3-11</code>(297ms · 2.90° · Open-Vocab 99.8%) → <code>soda</code> 인박스 전달 완료(<code>SHA256 9/9 OK</code>).<br><br>
+      <b>3. 남은 실제 로봇 주행 (하드웨어 일정):</b><br>
+      • <b>Step 1 (EGVLA2 실기)</b>: <code>soda</code>에서 <code>V4/V4R</code> 언어 게이트 실기 → <code>A3C_AG23_s0</code> + <code>MOD-DR-Safe</code> 실기 정지 확정 → <b>YahBoom 카 이식</b>.<br>
+      • <b>Step 2 (EGVLA3 실기 파일럿)</b>: 동일 서버에서 <code>VLA_EGVLA2_DECODE_MODE=softloc_fp16</code> 스위치로 <code>EG3-11</code> 파일럿 실기 15세션 검증 후 논문 표 완성.
     </div>
   </section>
 </main>
