@@ -519,23 +519,25 @@ th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
       </div>
     </div>
 
-    <div class="prog-card">
+    <div class="prog-card done">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b>Phase 3 · VLM-E2E-Distill &amp; CH83 발행</b>
-        <span class="badge b-warn">예정 ⏳</span>
+        <b>Phase 3 · VLM-E2E-SoftLoc+ · CH83 발행 · EG3-11</b>
+        <span class="badge b-ok">CH83·SoftLoc+ 완료 ✔</span>
       </div>
       <div style="font-size:.82rem;color:var(--mut);margin-top:6px">
-        저학습률 Decoder LoRA + <code>beam=3</code> 다물체 증류(Distillation) 학습 및 <code>MOD</code> vs <code>ENC-E2E</code> vs <code>VLM-E2E</code> 파레토 프론티어 리포트(CH83) 발행.
+        • <code>VLM-E2E-SoftLoc+</code>(EG3-10) &amp; Zero-Shot <code>AG23</code>(<b>2.71°</b>, 바구니·의자 정지 <b>100%/100%</b>) 완료 · <a href="research_story_egvla2.html#ch83"><b>CH83 발행 완료</b></a><br>
+        • <code>EG3-11</code>(Decoder LoRA + KL 증류 공동 역전파 학습) 실행 중/완료 시 자동 반영
       </div>
     </div>
 
-    <div class="prog-card">
+    <div class="prog-card done">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b>Phase 4 · MOD-DR-Safe 실기 &amp; YahBoom 이식</b>
-        <span class="badge b-warn">예정 ⏳</span>
+        <b>Phase 4 · MOD-DR-Safe 서빙 · YahBoom 어댑터</b>
+        <span class="badge b-blue">코드·GPU 검증 완료 ✔ / 실기 대기</span>
       </div>
       <div style="font-size:.82rem;color:var(--mut);margin-top:6px">
-        <code>MOD-DR-Fast</code>(283ms) + 비동기 Dual-Rate + 접근 감속(S2) + 점프 필터를 <code>soda</code>에 적용해 Serbot 정지 검증 후 YahBoom 카 이식.
+        • <code>FastF2Extractor</code>(<code>beam1_fp16</code> <b>285.3ms</b> / <code>softloc_fp16</code> <b>296.6ms</b>) + S2 접근 감속 + 스파이크 필터 + <code>yahboom_adapter.py</code> GPU 6장면 종단 검증 완료.<br>
+        • <code>_outbox_soda_20261124</code> 실기 전달 패키지 준비 완료 → 동환 Serbot 실기 후 YahBoom 이식.
       </div>
     </div>
   </div>
