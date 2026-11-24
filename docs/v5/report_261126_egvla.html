@@ -52,7 +52,7 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
     <a href="#sec4">4. 과적합 감사</a>
     <a href="#sec5">5. 실기 로드맵</a>
     <a href="report_261126_egvla_with_egvla3.html" style="border-color:#c084fc;color:#e9d5ff">🟣 EGVLA3 포함 확장판 보기 ↗</a>
-    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-24 16:49</span>
+    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-24 16:51</span>
   </nav>
 
   <div class="hero">
@@ -143,6 +143,38 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
           <td>🟠 <b>언어 게이트 전용</b>. 엉뚱한 명령 시 멈추는 안전장치(다물체 주행용 아님).</td>
         </tr>
         
+      </tbody>
+    </table>
+    
+    <h3 style="margin:16px 0 6px;font-size:1.02rem;color:#7dd3fc">⏱️ 실제 추론 기준 및 실측 소요 시간 (하드웨어: minum GB10 · 11/13 65세션 870장 · 11/16 45세션 588장)</h3>
+    <table class="main-tbl">
+      <thead><tr><th>측정 대상 / 구간</th><th>측정 기준 (샘플 수 · 정밀도 · 입력 조건)</th><th>실측 소요 시간</th><th>프레임당 지연 (ms) / 비고</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>현행 기준 (<code>a3</code>)</b><br><code>beam=3 fp32</code></td>
+          <td>11/13+11/16 다물체·근접 <b>330프레임</b> (문자열 BBox + <code>PiZeroFM</code>)</td>
+          <td>330장 기준 <b>~3.2분</b></td>
+          <td>중앙값 <b><code>590.7ms</code></b> (p90 <code>597.6ms</code>, ~1.7Hz)</td>
+        </tr>
+        <tr>
+          <td><b><code>MOD-DR-Fast/Safe</code></b><br><code>beam=1 fp16</code></td>
+          <td>동일 <b>330프레임</b> 벤치마크 &amp; <code>EgVla2Service</code> 6장면 종단 서빙</td>
+          <td>330장 기준 <b>~1.6분</b></td>
+          <td>벤치 <b><code>283.0ms</code></b> (2.09x) · 종단 서빙 <b><code>285.3ms</code></b> (웜업 제외)</td>
+        </tr>
+        <tr>
+          <td><b><code>VLM-E2E-SoftLoc</code></b><br><code>softloc_fp16</code></td>
+          <td>동일 <b>330프레임</b> + <code>EgVla2Service</code> 6장면 종단 서빙 (파싱 0%)</td>
+          <td>330장 기준 <b>~1.6분</b></td>
+          <td>벤치 <b><code>283.8ms</code></b> (2.08x) · 종단 서빙 <b><code>296.6ms</code></b> (웜업 제외)</td>
+        </tr>
+        
+        <tr>
+          <td><b>과적합 정밀 감사</b><br>(7개 모델 전수)</td>
+          <td>11/13(870장) + 11/16(588장) 캐시 위 반사실 셔플 + 기하 반응성</td>
+          <td><b>5.6초</b> (0.09분)</td>
+          <td>캐시 특징 사용 시 초고속 검증 가능</td>
+        </tr>
       </tbody>
     </table>
   </section>

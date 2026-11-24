@@ -187,6 +187,55 @@ def build_one(include_egvla3: bool, out_path: Path, data: dict) -> None:
         else '<a href="report_261126_egvla.html" style="border-color:#38bdf8;color:#7dd3fc">🔵 EGVLA2 메인판 보기 ↗</a>'
     )
 
+    eg3_timing_rows = ""
+    if include_egvla3:
+        eg3_timing_rows = """
+        <tr>
+          <td><b>Phase 2 특성 추출+학습</b><br>(<code>EG3-08</code>, <code>EG3-09</code>)</td>
+          <td>학습 4,984장 + 11/13(870장) + 11/16(588장) = <b>6,442장</b> (<code>fp16</code>)</td>
+          <td><b>51.9분</b> (<code>3,115.4초</code>)<br><span style="color:#94a3b8">추출 49.4분 + 학습 2.6분</span></td>
+          <td>120ep 캐시 학습</td>
+        </tr>
+        <tr>
+          <td><b>Phase 3 공동학습+전수평가</b><br>(<code>EG3-11</code>, Joint)</td>
+          <td>1,500장 추출 + 8ep Decoder LoRA + <b>1,458장(11/13·16)</b> Soft-Loc 추론</td>
+          <td><b>21.1분</b> (<code>1,264.2초</code>)<br><span style="color:#94a3b8">추출 11.1분 · 학습 2.9분 · <b>1,458장 추론 7.1분</b></span></td>
+          <td>11/13(65세션) 4.2분 · 11/16(45세션) 2.8분 (~0.29초/장)</td>
+        </tr>"""
+
+    timing_box = f"""
+    <h3 style="margin:16px 0 6px;font-size:1.02rem;color:#7dd3fc">⏱️ 실제 추론 기준 및 실측 소요 시간 (하드웨어: minum GB10 · 11/13 65세션 870장 · 11/16 45세션 588장)</h3>
+    <table class="main-tbl">
+      <thead><tr><th>측정 대상 / 구간</th><th>측정 기준 (샘플 수 · 정밀도 · 입력 조건)</th><th>실측 소요 시간</th><th>프레임당 지연 (ms) / 비고</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>현행 기준 (<code>a3</code>)</b><br><code>beam=3 fp32</code></td>
+          <td>11/13+11/16 다물체·근접 <b>330프레임</b> (문자열 BBox + <code>PiZeroFM</code>)</td>
+          <td>330장 기준 <b>~3.2분</b></td>
+          <td>중앙값 <b><code>{b3_ms}ms</code></b> (p90 <code>597.6ms</code>, ~1.7Hz)</td>
+        </tr>
+        <tr>
+          <td><b><code>MOD-DR-Fast/Safe</code></b><br><code>beam=1 fp16</code></td>
+          <td>동일 <b>330프레임</b> 벤치마크 &amp; <code>EgVla2Service</code> 6장면 종단 서빙</td>
+          <td>330장 기준 <b>~1.6분</b></td>
+          <td>벤치 <b><code>{b1_ms}ms</code></b> ({b1_sp}x) · 종단 서빙 <b><code>285.3ms</code></b> (웜업 제외)</td>
+        </tr>
+        <tr>
+          <td><b><code>VLM-E2E-SoftLoc</code></b><br><code>softloc_fp16</code></td>
+          <td>동일 <b>330프레임</b> + <code>EgVla2Service</code> 6장면 종단 서빙 (파싱 0%)</td>
+          <td>330장 기준 <b>~1.6분</b></td>
+          <td>벤치 <b><code>{sl_ms}ms</code></b> ({sl_sp}x) · 종단 서빙 <b><code>296.6ms</code></b> (웜업 제외)</td>
+        </tr>
+        {eg3_timing_rows}
+        <tr>
+          <td><b>과적합 정밀 감사</b><br>(7개 모델 전수)</td>
+          <td>11/13(870장) + 11/16(588장) 캐시 위 반사실 셔플 + 기하 반응성</td>
+          <td><b>5.6초</b> (0.09분)</td>
+          <td>캐시 특징 사용 시 초고속 검증 가능</td>
+        </tr>
+      </tbody>
+    </table>"""
+
     eg3_model_rows = ""
     if include_egvla3:
         eg3_model_rows = f"""
@@ -366,6 +415,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
         {eg3_model_rows}
       </tbody>
     </table>
+    {timing_box}
   </section>
 
   <!-- 3. 실기 vs 오프라인 추론 6장면 비교 -->
