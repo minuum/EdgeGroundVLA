@@ -54,5 +54,23 @@
     "stop_30_40_16": 1.0,
     "basket_ge25_stop_16": 1.0,
     "chair_ge25_stop_16": 1.0
+  },
+  "VLM-E2E-SoftLoc-Joint (EG3-11, DecLoRA+KL)": {
+    "name": "VLM-E2E-SoftLoc-Joint (EG3-11, DecLoRA+KL)",
+    "ang_med_vs_a3": 2.9,
+    "lat_agree_vs_a3": 0.828,
+    "chair_center_13": 1.0,
+    "desk_center_13": 1.0,
+    "pot_center_13": 0.995,
+    "basket_center_13": 0.971,
+    "stop_lt10_16": 0.0,
+    "stop_25_30_16": 0.941,
+    "stop_30_40_16": 1.0,
+    "basket_ge25_stop_16": 1.0,
+    "chair_ge25_stop_16": 0.977,
+    "open_vocab_1113_det_rate": 0.9977,
+    "open_vocab_1113_cx_mae": 0.0132,
+    "open_vocab_1113_area_mae": 0.0061,
+    "action_grad_norm_to_decoder_lora": 0.142255
   }
 }

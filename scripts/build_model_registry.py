@@ -47,8 +47,11 @@ SPEC = [
    "지연 283.8ms(2.08x), 11/13·16 A3 대비 6.00°(좌우 83.4%), 11/13 의자·책상·화분 중앙 100%, 11/16 원거리 오정지 0.0%, 30-40% 정지 100%, 바구니≥0.25 정지 100% · 의자≥0.25 정지 93%","오프라인 검증 완료(VLM E2E)",
    "문자열 파싱 0% 완전 미분 E2E. Hidden 단독(EG3-08) 대비 미학습 의자 근접 정지가 19%→93%(+74%p)로 폭등하며 기하 병목의 학술적 필요성 입증",key="__none__"),
  E("EG3-10","G3","VLM-E2E-SoftLoc+ (3프레임 시계열 Soft-Loc + 80% Swap / Zero-Shot AG23)","EG3_10_SoftLoc_v2.pt","runs/egvla2_e2e_lora/EG3_10_SoftLoc_v2.pt","Florence-2 Decoder <loc> 3프레임 시계열 Soft-Loc + 80% Hidden Swap + Cosine LR (200ep) / Zero-Shot AG23 대조","300에피소드 4,860장 200ep (scripts/train_softloc_v2.py)",
-   "지연 283.8ms(2.08x), EG3-10 각도차 5.52° / Zero-Shot AG23 결합 시 2.71°(좌우 82.8%), 11/13 의자·책상 100%·화분 99%, 11/16 원거리 오정지 0.0%, 25-40% 바구니·의자 정지 모두 100%","오프라인 검증 완료(VLM E2E 최우수)",
+   "지연 283.8ms(2.08x), EG3-10 각도차 5.52° / Zero-Shot AG23 결합 시 2.71°(좌우 82.8%), 11/13 의자·책상 100%·화분 99%, 11/16 원거리 오정지 0.0%, 25-40% 바구니·의자 정지 모두 100%","오프라인 검증 완료(VLM E2E)",
    "문자열 파싱 없이 25~40% 근접 정지 100%(바구니·의자 모두) 달성. 29,161장 학습 AG23 헤드와 Soft-Loc 결합 시 2.71°까지 수렴함을 확인(CH83)",key="__none__"),
+ E("EG3-11","G3","VLM-E2E-SoftLoc-Joint (Decoder LoRA + KL 증류 100% E2E 공동 학습)","EG3_11_SoftLoc_Joint.pt","runs/egvla2_e2e_lora/EG3_11_SoftLoc_Joint.pt","Florence-2 BART Decoder LoRA(r=4, 295k) + 미분 Soft-Loc + PiZeroFM 공동 역전파(Action→Decoder grad norm 0.142) + Teacher KL 증류","300에피소드 1,500장 8ep 공동 미세조정 (scripts/train_eg3_11_softloc_joint.py)",
+   "A3 대비 2.90°(좌우 82.8%), 11/13 의자·책상 100%·화분 99%, 11/16 원거리 오정지 0.0%, 바구니≥0.25 100%·의자≥0.25 98%, 11/13 Open-Vocab 검출 99.8%(cx MAE 0.0132, area MAE 0.0061)","오프라인 검증 완료(EGVLA3 최종 1순위)",
+   "추론뿐 아니라 학습까지 Action Loss가 Soft-Loc을 관통해 VLM Decoder LoRA로 역전파됨을 실측 입증. 미학습 다물체 망각 0%(99.8% 유지)로 5축 합격선 전 항목 통과",key="__none__"),
 ]
 _A3C = "A3 레시피(λ=1.0, 드롭아웃 30%, 120ep, 300에피소드) + 이미지 특징 처리, 시드 0. 목표=가운데 위치(plan_20261115_a3_improvement S3)"
 SPEC += [
@@ -96,7 +99,7 @@ SHORT = {  # 고정 명명 규칙: <main>[-<modifier>…][-s<seed>], 영어 소�
  "EG2-01": "eg2-mlp-fm", "EG2-02": "eg2-film-res-fm", "EG2-03": "eg2-pi0-adaln", "EG2-04": "eg2-mlp-regression", "EG2-05": "a3-no-servo-drop0", "EG2-06": "a3-no-servo", "EG2-07": "a3-e1b-tuned", "EG2-08": "a3-servo0.5", "EG2-09": "a3", "EG2-10": "eg2-299ep",
  "EG2-11": "a3-featdrop30", "EG2-12": "a3-featdrop50", "EG2-13": "a3-featswap30", "EG2-14": "a3-s1 · a3-s2 · a3-ens3", "EG2-15": "a3-drop10-s1", "EG2-16": "a3-ag23 · a3-ag25-s1", "EG2-17": "a3-dr-fast",
  "EG3-01": "e2e-lora-smoke", "EG3-02": "e2e-frozen-fused", "EG3-03": "e2e-davit-frozen", "EG3-04": "e2e-lora-last-stage", "EG3-05": "e2e-lora-all-stages-384",
- "EG3-06": "e2e-lora-ag", "EG3-07": "e2e-lora-spatial-aux", "EG3-08": "vlm-e2e-hidden", "EG3-09": "vlm-e2e-softloc", "EG3-10": "vlm-e2e-softloc-plus",
+ "EG3-06": "e2e-lora-ag", "EG3-07": "e2e-lora-spatial-aux", "EG3-08": "vlm-e2e-hidden", "EG3-09": "vlm-e2e-softloc", "EG3-10": "vlm-e2e-softloc-plus", "EG3-11": "vlm-e2e-softloc-joint",
  "EG4-00": "v0", "EG4-01": "v1-fixed-phrase", "EG4-02": "v2-paraphrase", "EG4-03": "v3-neg20", "EG4-04": "v4", "EG4-05": "v0r", "EG4-06": "v5-token-attn", "EG4-07": "v4r",
 }
 # 통일 아키텍처 축약명 (파트너 호환 SHORT와 병기): (축약명, 계열코드: mod/enc/vlm)
@@ -108,7 +111,7 @@ ARCH_ALIAS = {
  "EG2-09": ("MOD-A3", "mod"), "EG2-10": ("MOD-299ep", "mod"), "EG2-11": ("MOD-A3-F30", "mod"), "EG2-12": ("MOD-A3-F50", "mod"),
  "EG2-13": ("MOD-A3-S30", "mod"), "EG2-14": ("MOD-A3-s1/s2", "mod"), "EG2-15": ("MOD-A3-D10", "mod"), "EG2-16": ("MOD-A3-AG", "mod"), "EG2-17": ("MOD-DR-Fast", "mod"),
  "EG3-01": ("ENC-E2E-Smoke", "enc"), "EG3-02": ("ENC-E2E-Fused", "enc"), "EG3-03": ("ENC-E2E-0", "enc"), "EG3-04": ("ENC-E2E-1", "enc"), "EG3-05": ("ENC-E2E-2", "enc"),
- "EG3-06": ("ENC-E2E-AG", "enc"), "EG3-07": ("ENC-E2E-Aux", "enc"), "EG3-08": ("VLM-E2E-Hidden", "vlm"), "EG3-09": ("VLM-E2E-SoftLoc", "vlm"), "EG3-10": ("VLM-E2E-SoftLoc+", "vlm"),
+ "EG3-06": ("ENC-E2E-AG", "enc"), "EG3-07": ("ENC-E2E-Aux", "enc"), "EG3-08": ("VLM-E2E-Hidden", "vlm"), "EG3-09": ("VLM-E2E-SoftLoc", "vlm"), "EG3-10": ("VLM-E2E-SoftLoc+", "vlm"), "EG3-11": ("VLM-E2E-Joint", "vlm"),
  "EG4-00": ("MOD-V0", "mod"), "EG4-01": ("MOD-V1", "mod"), "EG4-02": ("MOD-V2", "mod"), "EG4-03": ("MOD-V3", "mod"),
  "EG4-04": ("MOD-V4", "mod"), "EG4-05": ("MOD-V0R", "mod"), "EG4-06": ("MOD-V5", "mod"), "EG4-07": ("MOD-V4R", "mod"),
 }
@@ -125,7 +128,7 @@ LINKS = {  # PN -> [(라벨, v5 기준 상대 URL)]
 for _pn in ("EG4-00","EG4-01","EG4-02","EG4-03","EG4-04","EG4-05","EG4-06","EG4-07"):
     LINKS[_pn] = [("CH80 텍스트 조건화 E2E", RSE+"#ch80"), ("VLAops 🔤 문구·표현별 테스트", VO)]
 for _pn in ("EG2-11","EG2-12","EG2-13","EG2-14","EG2-15","EG2-16"): LINKS[_pn] = [("CH82 실기·재생·선택지 대조", RSE+"#ch82"), ("A3 개선 계획서", "../plans/plan_20261115_a3_improvement.md")]
-for _pn in ("EG2-17","EG3-06","EG3-07","EG3-08","EG3-09","EG3-10"): LINKS[_pn] = [("CH83 EGVLA2·3 분리·파레토", RSE+"#ch83"), ("Phase 1~4 가로 타임라인", "phase14_serving_timeline.html"), ("3계열 6장면 비교", "family_arch_compare.html"), ("EGVLA2·3 분리 계획서", "../plans/plan_20261124_egvla2_vs_egvla3_separation.md")]
+for _pn in ("EG2-17","EG3-06","EG3-07","EG3-08","EG3-09","EG3-10","EG3-11"): LINKS[_pn] = [("CH83 EGVLA2·3 분리·파레토", RSE+"#ch83"), ("Phase 1~4 가로 타임라인", "phase14_serving_timeline.html"), ("3계열 6장면 비교", "family_arch_compare.html"), ("EGVLA2·3 분리 계획서", "../plans/plan_20261124_egvla2_vs_egvla3_separation.md")]
 for _pn in ("EG4-04","EG4-07"): LINKS[_pn].append(("CH81 종합 브리핑(서빙·11/13 실험)", RSE+"#ch81"))
 LINKS["EG2-09"].append(("CH81 11/13 물체 실험 65건", RSE+"#ch81")); LINKS["EG2-09"].append(("11/13 재생 페이지", "object_test_1113.html"))
 DATASETS = [  # id, 이름, 경로, 설명, 사용 모델(PN), 결과 링크

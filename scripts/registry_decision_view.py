@@ -213,6 +213,15 @@ DECISION_PROFILES: dict[str, dict] = {
         diag="EGVLA3(3세대 미분가능 공간 병목 E2E) 완성형 후보로, 문자열 파싱 0%·2배 가속 상태에서 바구니와 미학습 의자 근접 정지 100%/100%를 달성했습니다.",
         studio_key=None,
     ),
+    "EG3-11": dict(
+        flow="[이미지 + 지시어] ➔ [Decoder LoRA(r=4) + 미분 Soft-Loc + KL 증류] ⇄ [PiZeroFM 공동 역전파]",
+        steer=(92, "A3 대비 2.90° (좌우 82.8%, Action→Decoder grad norm 0.142)"),
+        stop=(99, "11/16 바구니≥0.25 100% · 미학습 의자≥0.25 98% (30~40% 100%)"),
+        start=(100, "11/13 의자 100% · 책상 100% · 화분 99% 중앙 출발"),
+        lang="11/13 미학습 Open-Vocab 검출 99.8% (cx MAE 0.0132, 망각 0%)",
+        diag="학습과 추론 모두 100% End-to-End로 닫힌 EGVLA3 최종 완성형! 순수 Action Loss가 VLM Decoder LoRA로 역전파되면서도 KL 증류로 Open-Vocab을 99.8% 보존했습니다.",
+        studio_key=None,
+    ),
 }
 
 

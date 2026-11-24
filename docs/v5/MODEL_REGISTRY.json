@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-24T02:09",
+ "generated": "2026-11-24T14:14",
  "gens": {
   "G0": [
    "V5 시기(Kosmos-2)",
@@ -970,7 +970,7 @@
    "arch": "Florence-2 Decoder <loc> 3프레임 시계열 Soft-Loc + 80% Hidden Swap + Cosine LR (200ep) / Zero-Shot AG23 대조",
    "train": "300에피소드 4,860장 200ep (scripts/train_softloc_v2.py)",
    "offline": "지연 283.8ms(2.08x), EG3-10 각도차 5.52° / Zero-Shot AG23 결합 시 2.71°(좌우 82.8%), 11/13 의자·책상 100%·화분 99%, 11/16 원거리 오정지 0.0%, 25-40% 바구니·의자 정지 모두 100%",
-   "status": "오프라인 검증 완료(VLM E2E 최우수)",
+   "status": "오프라인 검증 완료(VLM E2E)",
    "note": "문자열 파싱 없이 25~40% 근접 정지 100%(바구니·의자 모두) 달성. 29,161장 학습 AG23 헤드와 Soft-Loc 결합 시 2.71°까지 수렴함을 확인(CH83)",
    "log_key": "__none__",
    "exists": true,
@@ -997,6 +997,46 @@
    ],
    "short": "vlm-e2e-softloc-plus",
    "arch_alias": "VLM-E2E-SoftLoc+",
+   "arch_family": "vlm",
+   "arch_family_label": "VLM 디코더 E2E",
+   "sessions": null
+  },
+  {
+   "pn": "EG3-11",
+   "gen": "G3",
+   "name": "VLM-E2E-SoftLoc-Joint (Decoder LoRA + KL 증류 100% E2E 공동 학습)",
+   "ckpt": "EG3_11_SoftLoc_Joint.pt",
+   "path": "runs/egvla2_e2e_lora/EG3_11_SoftLoc_Joint.pt",
+   "arch": "Florence-2 BART Decoder LoRA(r=4, 295k) + 미분 Soft-Loc + PiZeroFM 공동 역전파(Action→Decoder grad norm 0.142) + Teacher KL 증류",
+   "train": "300에피소드 1,500장 8ep 공동 미세조정 (scripts/train_eg3_11_softloc_joint.py)",
+   "offline": "A3 대비 2.90°(좌우 82.8%), 11/13 의자·책상 100%·화분 99%, 11/16 원거리 오정지 0.0%, 바구니≥0.25 100%·의자≥0.25 98%, 11/13 Open-Vocab 검출 99.8%(cx MAE 0.0132, area MAE 0.0061)",
+   "status": "오프라인 검증 완료(EGVLA3 최종 1순위)",
+   "note": "추론뿐 아니라 학습까지 Action Loss가 Soft-Loc을 관통해 VLM Decoder LoRA로 역전파됨을 실측 입증. 미학습 다물체 망각 0%(99.8% 유지)로 5축 합격선 전 항목 통과",
+   "log_key": "__none__",
+   "exists": true,
+   "bytes": 2901839,
+   "sha256": "bb6a6959f06d6eed7e35342cfdfbed663a0729b556942dc42292bf9bf9fdb862",
+   "robot": null,
+   "links": [
+    [
+     "CH83 EGVLA2·3 분리·파레토",
+     "research_story_egvla2.html#ch83"
+    ],
+    [
+     "Phase 1~4 가로 타임라인",
+     "phase14_serving_timeline.html"
+    ],
+    [
+     "3계열 6장면 비교",
+     "family_arch_compare.html"
+    ],
+    [
+     "EGVLA2·3 분리 계획서",
+     "../plans/plan_20261124_egvla2_vs_egvla3_separation.md"
+    ]
+   ],
+   "short": "vlm-e2e-softloc-joint",
+   "arch_alias": "VLM-E2E-Joint",
    "arch_family": "vlm",
    "arch_family_label": "VLM 디코더 E2E",
    "sessions": null

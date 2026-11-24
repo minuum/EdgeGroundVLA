@@ -196,6 +196,7 @@ def main() -> None:
     a2 = ta.get("Track A2 (Soft-Loc 미분가능 E2E)", {})
     a2_zs = ta.get("VLM-E2E-SoftLoc (Zero-Shot A3C_AG23)", {})
     a2_v2 = ta.get("VLM-E2E-SoftLoc+ (EG3-10, 3F-Win+Swap80)", {})
+    a2_jt = ta.get("VLM-E2E-SoftLoc-Joint (EG3-11, DecLoRA+KL)", {})
 
     f_pct = lambda d, k: f"{d[k]*100:.1f}%" if k in d and d[k] is not None else "—"
     f_deg = lambda d, k: f"{d[k]:.2f}°" if k in d and d[k] is not None else "—"
@@ -259,6 +260,8 @@ def main() -> None:
         t3_rows.append(["VLM-E2E", "VLM-E2E-SoftLoc+ (`EG3-10`)", f"{sl_ms}ms ({sl_sp}x)", f"{f_deg(a2_v2,'ang_med_vs_a3')} ({f_pct(a2_v2,'lat_agree_vs_a3')})", f"{f_pct(a2_v2,'chair_center_13')} / {f_pct(a2_v2,'desk_center_13')}", f_pct(a2_v2,'stop_lt10_16'), f"{f_pct(a2_v2,'basket_ge25_stop_16')} / {f_pct(a2_v2,'chair_ge25_stop_16')}", "3프레임 시계열 + 80% Swap"])
     if a2_zs:
         t3_rows.append(["VLM-E2E", "SoftLoc + ZeroShot AG23", f"{sl_ms}ms ({sl_sp}x)", f"{f_deg(a2_zs,'ang_med_vs_a3')} ({f_pct(a2_zs,'lat_agree_vs_a3')})", f"{f_pct(a2_zs,'chair_center_13')} / {f_pct(a2_zs,'desk_center_13')}", f_pct(a2_zs,'stop_lt10_16'), f"{f_pct(a2_zs,'basket_ge25_stop_16')} / {f_pct(a2_zs,'chair_ge25_stop_16')}", "29,161장 AG23 + 미분 Soft-Loc"])
+    if a2_jt:
+        t3_rows.append(["VLM-E2E ★", "<b>VLM-E2E-SoftLoc-Joint (`EG3-11`)</b>", f"{sl_ms}ms ({sl_sp}x)", f"<b>{f_deg(a2_jt,'ang_med_vs_a3')} ({f_pct(a2_jt,'lat_agree_vs_a3')})</b>", f"{f_pct(a2_jt,'chair_center_13')} / {f_pct(a2_jt,'desk_center_13')}", f_pct(a2_jt,'stop_lt10_16'), f"<b>{f_pct(a2_jt,'basket_ge25_stop_16')} / {f_pct(a2_jt,'chair_ge25_stop_16')}</b>", f"DecLoRA+KL 공동 역전파(grad {a2_jt.get('action_grad_norm_to_decoder_lora')}), OV det {a2_jt.get('open_vocab_1113_det_rate',0)*100:.1f}%"])
 
     tab3 = [
         _pareto_svg(pts),
