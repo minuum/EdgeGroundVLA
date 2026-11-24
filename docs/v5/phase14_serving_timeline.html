@@ -26,6 +26,7 @@ code{background:#1b2944;padding:1px 5px;border-radius:4px;font-size:.8em;color:#
 .scroll-hint{margin-left:auto;font-size:.76rem;color:#7dd3fc;font-weight:700}
 
 .phase-sec{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px 16px;margin:18px 0}
+.phase-sec.p0{border-top:4px solid #94a3b8}
 .phase-sec.p1{border-top:4px solid var(--acc)}
 .phase-sec.p2{border-top:4px solid var(--purp)}
 .phase-sec.p3{border-top:4px solid var(--pink)}
@@ -97,7 +98,7 @@ code{background:#1b2944;padding:1px 5px;border-radius:4px;font-size:.8em;color:#
 
   <h1>Phase 1~4 실제 서빙 입출력 · 레이어 상세 가로 스크롤 타임라인</h1>
   <p class="sub">
-    생성 2026-11-24 02:09 · 실제 로봇 카메라 프레임 1장이 HTTP <code>/predict</code>로 들어와 <b>이미지 전처리 → 토큰화 → Vision/Text 레이어 → Decoder → Action Expert → 컨트롤러 → 로봇 구동 명령</b>으로 변환되는 전 과정을 Phase 1~4별로 나란히 가로 스크롤하며 추적합니다.
+    생성 2026-11-24 15:32 · 실제 로봇 카메라 프레임 1장이 HTTP <code>/predict</code>로 들어와 <b>이미지 전처리 → 토큰화 → Vision/Text 레이어 → Decoder → Action Expert → 컨트롤러 → 로봇 구동 명령</b>으로 변환되는 전 과정을 Phase 1~4별로 나란히 가로 스크롤하며 추적합니다.
   </p>
 
   <div class="honest-banner">
@@ -123,6 +124,13 @@ code{background:#1b2944;padding:1px 5px;border-radius:4px;font-size:.8em;color:#
           </tr>
         </thead>
         <tbody>
+          <tr style="background:#111a2c">
+            <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#cbd5e1">Phase 0 · 현행 실기</b><br><code>MOD-A3</code> (<code>a3</code> · <code>a3-s2</code>)<br><span style="color:#94a3b8">beam=3 fp32 (동환 실기)</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px;text-align:center"><span class="badge b-warn">⚪ EGVLA2 기준선</span><br><span style="font-size:.7rem;color:#94a3b8">실기 560+ 세션 완료</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>NaVILA</b> (arXiv:2412.04453, §3)<br><b>RT-H</b> (arXiv:2403.01823, §3)</td>
+            <td style="border:1px solid #233454;padding:7px 9px">Florence-2 <code>beam=3 fp32</code> 문자열 BBox 파싱 + 원본 <code>PiZeroFM</code>(조향만 cx 정합, 정지는 시각 외형 의존).</td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>현행 기준선(<code>590.7ms</code>)</b>: <code>a3</code>는 의자 중앙 비출발(0%), <code>a3-s2</code>는 중앙 출발 해결(5/5)했으나 근접 정지 약화(접촉 6건) → <b>Phase 1~4 개선의 출발점</b>.</td>
+          </tr>
           <tr>
             <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#38bdf8">Phase 1 · EGVLA2</b><br><code>MOD-DR-Fast</code><br><span style="color:#94a3b8">beam=1 fp16</span></td>
             <td style="border:1px solid #233454;padding:7px 9px;text-align:center"><span class="badge b-blue">🔵 EGVLA2 (모듈러)</span><br><span style="font-size:.7rem;color:#94a3b8">비미분 텍스트 경계</span></td>
@@ -267,6 +275,8 @@ function buildTracks(sc) {
   const ph = extractPhrase(sc.ins);
   const phWords = ph.split(/\s+/);
   const bb = sc.bbox;
+  const mA3 = sc.models['MOD-A3'];
+  const mS2 = sc.models['MOD-A3-s2'];
   const mAG = sc.models['MOD-A3-AG'];
   const mHid = sc.models['VLM-E2E-Hidden'];
   const mSL = sc.models['VLM-E2E-SoftLoc'];
@@ -285,6 +295,50 @@ function buildTracks(sc) {
   const th = Math.atan2(ly, Math.max(1e-4, lx));
   const ybV = mAG.stop ? 0 : Math.max(0, Math.cos(th)) * 0.25 * (bb[2] >= 0.25 ? 0 : (bb[2] > 0.14 ? 0.5 : 0.7));
   const ybW = mAG.stop ? 0 : Math.max(-0.8, Math.min(0.8, 1.2 * th * 0.7));
+
+  // ── PHASE 0: 현행 동환 실기 기준선 (MOD-A3 / a3 · a3-s2, beam=3 fp32) ──
+  const p0Steps = [
+    card('STEP 1 · 입력', '~2ms', '로봇 카메라 + 지시어 수신', `
+      <div class="mini-cam"><img src="${sc.img_src}" alt="raw">${boxSvg(null)}</div>
+      <div class="io-box"><span class="k">실기 운영 서버 (soda)</span><br>instruction: <span class="v">"${sc.ins}"</span><br>phrase: <span class="ok">"${ph}"</span></div>
+    `, '동환 실기(10/29·11/04·11/13·11/16)에서 실제 사용된 입력 경로.'),
+    arrow('fp32'),
+    card('STEP 2 · Vision', '~48ms', 'DaViT Vision Tower (fp32)', `
+      <div class="layer-stack">
+        <div class="layer-box"><b>FusedF2Extractor (fp32)</b><span>_encode_image → img_feats (1, 577, 768)</span></div>
+      </div>
+      <div class="io-box">vis_feat: <span class="v">mean(1) → (768,) fp32</span></div>
+    `, '현행 서버는 fp32로 실행되어 fp16 대비 약 2배 느림.'),
+    arrow('Enc'),
+    card('STEP 3 · Decoder', `~${B3_MS}ms`, 'BART Decoder (beam=3 fp32 병목!)', `
+      <div class="layer-stack">
+        <div class="layer-box"><b>num_beams=3, fp32 (전체 지연의 94%)</b><span>3-Beam 탐색으로 <code>&lt;loc&gt;</code> 문자열 생성</span></div>
+      </div>
+      <div class="tok-row">
+        ${phWords.map(w => `<span class="tok">${w}</span>`).join('')}
+        <span class="tok loc">&lt;loc_${x1}&gt;</span><span class="tok loc">&lt;loc_${y1}&gt;</span><span class="tok loc">&lt;loc_${x2}&gt;</span><span class="tok loc">&lt;loc_${y2}&gt;</span>
+      </div>
+      <div class="io-box">지연: <span class="bad">${B3_MS}ms (1.00x 기준)</span></div>
+    `, 'Phase 1(beam=1 fp16)에서 283ms(2.09x)로 줄이게 되는 핵심 병목 구간.', 'hl-break'),
+    arrow('파싱'),
+    card('STEP 4 · 파싱', '~0.2ms', '정규식 파싱 (미분 단절)', `
+      <div class="mini-cam"><img src="${sc.img_src}" alt="p0bb">${boxSvg(bb, '#94a3b8', '', `beam=3 BBox a=${bb[2].toFixed(2)}`)}</div>
+      <div class="io-box"><span class="bad">⚡ non-differentiable</span><br>bbox: <span class="v">[${bb[0].toFixed(2)}, ${bb[1].toFixed(2)}, ${bb[2].toFixed(2)}, 1.0]</span></div>
+    `, '3프레임 창(12-d)에 적재. Phase 3(Soft-Loc)에서 파싱 자체를 제거함.', 'hl-break'),
+    arrow('12+768d'),
+    card('STEP 5 · 원본 헤드', '~14ms', '원본 PiZeroFM (a3 vs a3-s2)', `
+      <div class="layer-stack">
+        <div class="layer-box"><b>a3 (시드0, 현 배포)</b><span>cmd=[${mA3.cmd[0].toFixed(2)}, ${mA3.cmd[1].toFixed(2)}] (${mA3.stop?'STOP':'DRIVE'})</span></div>
+        <div class="layer-box"><b>a3-s2 (시드2, 11/16 실기 45/45)</b><span>cmd=[${mS2.cmd[0].toFixed(2)}, ${mS2.cmd[1].toFixed(2)}] (${mS2.stop?'STOP':'DRIVE'})</span></div>
+      </div>
+      <div class="io-box">조향: <span class="ok">cx 서보 정합</span><br>정지: <span class="bad">시각 외형 지름길 의존</span></div>
+    `, '방향은 cx에 정합됐으나 정지 크기가 768-d 이미지 외형에 의존하는 Dual-Shortcut 존재.'),
+    arrow('실기'),
+    card('STEP 6 · 한계', '총 ~605ms', '현행 실기 결과 & 개선 포인트', `
+      <div class="mini-cam"><img src="${sc.img_src}" alt="p0out">${boxSvg(bb, '#38bdf8', '', 'a3 (현 배포)', mA3.cmd, mA3.stop)}</div>
+      <div class="io-box">a3 판정: ${mA3.stop ? '<span class="bad">STOP</span>' : '<span class="ok">DRIVE</span>'} · a3-s2: ${mS2.stop ? '<span class="bad">STOP</span>' : '<span class="ok">DRIVE</span>'}<br>실기: <span class="v">${sc.real_outcome.slice(0,48)}...</span></div>
+    `, 'a3(의자 중앙 0/5) · a3-s2(근접 접촉 6건) · 591ms 지연 → 아래 Phase 1~4에서 단계별 해결!'),
+  ].join('');
 
   // ── PHASE 1: MOD-DR-Fast (beam=1 fp16) ──
   const p1Steps = [
@@ -470,6 +524,15 @@ function buildTracks(sc) {
   ].join('');
 
   return `
+    <section class="phase-sec p0">
+      <div class="phase-hdr">
+        <div class="phase-ttl">⚪ Phase 0 · 현행 실기 기준선 (동환 실기 A3 · a3-s2) <span class="badge b-warn">EGVLA2 기준선 · beam=3 fp32</span> <span class="badge b-bad">590.7ms (1.00x)</span></div>
+        <span style="font-size:.78rem;color:#94a3b8">파트너 ID: <code>a3</code> (EG2-09, 455/455) · <code>a3-s2</code> (EG2-14, 11/16 45/45)</span>
+      </div>
+      <div class="phase-sub">현재 실제 로봇에서 검증된 출발점. <code>beam=3 fp32</code> 속도 병목(591ms), <code>a3</code> 의자 중앙 비출발(0/5), <code>a3-s2</code> 근접 접촉(6건), 문자열 파싱 단절의 4대 한계를 아래 Phase 1~4가 순서대로 해결한다.</div>
+      <div class="tl-wrap"><div class="tl-scroll">${p0Steps}</div></div>
+    </section>
+
     <section class="phase-sec p1">
       <div class="phase-hdr">
         <div class="phase-ttl">🔵 Phase 1 · MOD-DR-Fast <span class="badge b-blue">모듈러 고속화 · beam=1 fp16</span> <span class="badge b-ok">실측 285.3ms (2.09x)</span></div>
