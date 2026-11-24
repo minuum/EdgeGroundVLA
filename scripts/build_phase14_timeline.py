@@ -22,11 +22,15 @@ OUT_HTML = ROOT / "docs/v5/phase14_serving_timeline.html"
 
 def main() -> None:
     fam = json.loads((FM / "family_arch_compare.json").read_text(encoding="utf-8"))
+    v4_cmp = json.loads((FM / "v4_vs_a3_compare.json").read_text(encoding="utf-8"))
+    v4_by_id = {x["id"]: x for x in v4_cmp}
     beam = json.loads((FM / "beam_bench.json").read_text(encoding="utf-8"))
     ta = json.loads((FM / "track_a_dec1pass_results.json").read_text(encoding="utf-8"))
 
     # 대표 3장면(출발 / 초근접 정지 / 측면 조향) + 나머지 3장면 모두 선택 가능하게 전달
     scenes = fam["scenes"]
+    for sc in scenes:
+        sc["v4_data"] = v4_by_id.get(sc["id"], {})
     scenes_js = json.dumps(scenes, ensure_ascii=False)
     gen_ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -63,6 +67,7 @@ code{{background:#1b2944;padding:1px 5px;border-radius:4px;font-size:.8em;color:
 
 .phase-sec{{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px 16px;margin:18px 0}}
 .phase-sec.p0{{border-top:4px solid #94a3b8}}
+.phase-sec.p0v4{{border-top:4px solid var(--ora)}}
 .phase-sec.p1{{border-top:4px solid var(--acc)}}
 .phase-sec.p2{{border-top:4px solid var(--purp)}}
 .phase-sec.p3{{border-top:4px solid var(--pink)}}
@@ -166,6 +171,13 @@ code{{background:#1b2944;padding:1px 5px;border-radius:4px;font-size:.8em;color:
             <td style="border:1px solid #233454;padding:7px 9px"><b>NaVILA</b> (arXiv:2412.04453, §3)<br><b>RT-H</b> (arXiv:2403.01823, §3)</td>
             <td style="border:1px solid #233454;padding:7px 9px">Florence-2 <code>beam=3 fp32</code> 문자열 BBox 파싱 + 원본 <code>PiZeroFM</code>(조향만 cx 정합, 정지는 시각 외형 의존).</td>
             <td style="border:1px solid #233454;padding:7px 9px"><b>현행 기준선(<code>590.7ms</code>)</b>: <code>a3</code>는 의자 중앙 비출발(0%), <code>a3-s2</code>는 중앙 출발 해결(5/5)했으나 근접 정지 약화(접촉 6건) → <b>Phase 1~4 개선의 출발점</b>.</td>
+          </tr>
+          <tr style="background:#1a130b">
+            <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#fb923c">Phase 0-T · 언어 게이트</b><br><code>MOD-V4</code> · <code>MOD-V4R</code><br><span style="color:#94a3b8">EG4-04 / EG4-07 (fdim=1536)</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px;text-align:center"><span class="badge b-warn">🟠 EGVLA2-Text</span><br><span style="font-size:.7rem;color:#94a3b8">바구니 전용 · 언어 게이트</span></td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>RT-2 / OpenVLA Language-Gate</b> 변형 (모듈러 + 텍스트 특징 결합)</td>
+            <td style="border:1px solid #233454;padding:7px 9px">박스는 <code>"gray basket"</code> 고정, 액션 헤드에 <b>이미지 768 + 문구 768 (1536-d)</b> 입력 + <code>V4R</code> 박스 훼손 증강(반전 94.3%).</td>
+            <td style="border:1px solid #233454;padding:7px 9px"><b>비목표 지시어 99.5% 제자리 정지</b>(동환 실기 예정 2종). 단 바구니 전용이라 의자·책상 주행은 <b>A3 / EGVLA3</b>가 담당.</td>
           </tr>
           <tr>
             <td style="border:1px solid #233454;padding:7px 9px"><b style="color:#38bdf8">Phase 1 · EGVLA2</b><br><code>MOD-DR-Fast</code><br><span style="color:#94a3b8">beam=1 fp16</span></td>
@@ -317,6 +329,10 @@ function buildTracks(sc) {{
   const mHid = sc.models['VLM-E2E-Hidden'];
   const mSL = sc.models['VLM-E2E-SoftLoc'];
   const sb = (mSL && mSL.softloc_bbox) ? mSL.softloc_bbox : bb;
+  const v4d = sc.v4_data || {{}};
+  const v4gb = v4d.v4_gb_bbox || bb;
+  const v4 = v4d.v4 || {{}};
+  const v4r = v4d.v4r || {{}};
 
   // 근사 bbox 정수 좌표 (0..999)
   const side = Math.sqrt(Math.max(0.002, bb[2]));
@@ -374,6 +390,49 @@ function buildTracks(sc) {{
       <div class="mini-cam"><img src="${{sc.img_src}}" alt="p0out">${{boxSvg(bb, '#38bdf8', '', 'a3 (현 배포)', mA3.cmd, mA3.stop)}}</div>
       <div class="io-box">a3 판정: ${{mA3.stop ? '<span class="bad">STOP</span>' : '<span class="ok">DRIVE</span>'}} · a3-s2: ${{mS2.stop ? '<span class="bad">STOP</span>' : '<span class="ok">DRIVE</span>'}}<br>실기: <span class="v">${{sc.real_outcome.slice(0,48)}}...</span></div>
     `, 'a3(의자 중앙 0/5) · a3-s2(근접 접촉 6건) · 591ms 지연 → 아래 Phase 1~4에서 단계별 해결!'),
+  ].join('');
+
+  // ── PHASE 0-T: 텍스트 조건화 / 언어 게이트 (V4 · V4R, fdim=1536) ──
+  const v4o = (v4.orig && v4.orig[0]) ? v4.orig : [[0, 0], 0];
+  const v4ro = (v4r.orig && v4r.orig[0]) ? v4r.orig : [[0, 0], 0];
+  const v4rn = (v4r.neg && v4r.neg[0]) ? v4r.neg : [[0, 0], 0];
+  const v4rm = (v4r.mir_basket && v4r.mir_basket[0]) ? v4r.mir_basket : [[0, 0], 0];
+  const v4Stop = v4o[1] < 0.2;
+  const v4rStop = v4ro[1] < 0.2;
+  const p0v4Steps = [
+    card('STEP 1 · 입력', '~2ms', '이미지 + 지시어 (언어 게이트 검사)', `
+      <div class="mini-cam"><img src="${{sc.img_src}}" alt="v4raw">${{boxSvg(null)}}</div>
+      <div class="io-box">instruction: <span class="v">"${{sc.ins}}"</span><br>부정 대조: <span class="bad">"go to the red cone"</span></div>
+    `, 'A3와 달리 액션 헤드가 지시어 의미를 직접 검사해 비목표면 정지.'),
+    arrow('고정 박스'),
+    card('STEP 2 · 그라운딩', '~590ms', 'BBox는 "gray basket" 고정 + 문구 특징', `
+      <div class="mini-cam"><img src="${{sc.img_src}}" alt="v4gb">${{boxSvg(v4gb, '#fb923c', '4 3', `GB Box a=${{v4gb[2].toFixed(2)}}`)}}</div>
+      <div class="layer-stack">
+        <div class="layer-box"><b>FusedF2TextExtractor</b><span>① "gray basket" BBox(12) + 이미지(768)<br>② 요청 지시어 융합 인코더 풀링 <b>문구(768)</b></span></div>
+      </div>
+    `, '박스를 항상 gray basket으로 고정하기 때문에 다른 물체로 주행하지 않음.'),
+    arrow('12+1536d'),
+    card('STEP 3 · 헤드', '~15ms', 'TextCondPolicy (V4 vs V4R)', `
+      <div class="layer-stack">
+        <div class="layer-box"><b>V4 (EG4-04, fdim=1536)</b><span>어휘 40+40 + 부정 20% (박스 반전 86%)</span></div>
+        <div class="layer-box"><b>V4R (EG4-07, fdim=1536)</b><span>V4 + 박스 훼손 증강(드롭30·지터20·반전10) → 반전 <b>94.3%</b></span></div>
+      </div>
+      <div class="io-box">입력: <span class="v">bb(12) + [img(768) | txt(768)]</span></div>
+    `, 'V4R은 시드 편차(42~93%)를 제거하고 오검출 반전 상황에서도 강건하게 정합.'),
+    arrow('실측 출력'),
+    card('STEP 4 · 조건별 비교', 'GPU 실측', '원본 vs 부정("red cone") vs 박스반전', `
+      <div class="io-box">
+        <span class="k">V4  (원본)</span>: [${{v4o[0][0].toFixed(2)}}, ${{v4o[0][1].toFixed(2)}}] (${{v4Stop?'STOP':'DRIVE'}})<br>
+        <span class="k">V4R (원본)</span>: [${{v4ro[0][0].toFixed(2)}}, ${{v4ro[0][1].toFixed(2)}}] (${{v4rStop?'STOP':'DRIVE'}})<br>
+        <span class="k">V4R (부정)</span>: [${{v4rn[0][0].toFixed(2)}}, ${{v4rn[0][1].toFixed(2)}}] (<span class="ok">99.5% STOP</span>)<br>
+        <span class="k">V4R (반전)</span>: [${{v4rm[0][0].toFixed(2)}}, ${{v4rm[0][1].toFixed(2)}}] (<span class="ok">94.3% 방어</span>)
+      </div>
+    `, '현재 장면에서 V4·V4R이 실제로 출력한 GPU 추론 벡터(v4_vs_a3_compare.json).'),
+    arrow('역할 분담'),
+    card('STEP 5 · 판정', '실기 예정', '바구니 전용 정지 게이트 (대체 아님)', `
+      <div class="mini-cam"><img src="${{sc.img_src}}" alt="v4out">${{boxSvg(v4gb, '#fb923c', '4 3', 'V4R', v4ro[0], v4rStop)}}</div>
+      <div class="io-box">V4R 판정: ${{v4rStop ? '<span class="bad">STOP (비바구니/부정 정지)</span>' : '<span class="ok">DRIVE (바구니 주행)</span>'}}<br>역할: <span class="v">언어 게이트 검증 (동환 실기 2종)</span></div>
+    `, '의자·책상에서 멈추는 것은 설계된 정상 동작이며, 다물체 주행은 Phase 1/3이 담당.'),
   ].join('');
 
   // ── PHASE 1: MOD-DR-Fast (beam=1 fp16) ──
@@ -567,6 +626,15 @@ function buildTracks(sc) {{
       </div>
       <div class="phase-sub">현재 실제 로봇에서 검증된 출발점. <code>beam=3 fp32</code> 속도 병목(591ms), <code>a3</code> 의자 중앙 비출발(0/5), <code>a3-s2</code> 근접 접촉(6건), 문자열 파싱 단절의 4대 한계를 아래 Phase 1~4가 순서대로 해결한다.</div>
       <div class="tl-wrap"><div class="tl-scroll">${{p0Steps}}</div></div>
+    </section>
+
+    <section class="phase-sec p0v4">
+      <div class="phase-hdr">
+        <div class="phase-ttl">🟠 Phase 0-T · 언어 게이트 기준선 (V4 · V4R) <span class="badge b-warn">EGVLA2-Text · fdim=1536</span> <span class="badge b-ok">부정 정지 99.5% · 반전 94.3%</span></div>
+        <span style="font-size:.78rem;color:#94a3b8">파트너 ID: <code>V4</code> (EG4-04) · <code>V4R</code> (EG4-07) — 동환 실기 테스트 2종 대상</span>
+      </div>
+      <div class="phase-sub">박스는 <code>"gray basket"</code>으로 고정하고 액션 헤드 입력에 지시어 특징(768-d)을 추가한 언어 게이트 모델. 비목표 지시어를 99.5% 정지시키고 박스 오검출 반전도 94.3% 방어한다(단, 다물체 주행용이 아님).</div>
+      <div class="tl-wrap"><div class="tl-scroll">${{p0v4Steps}}</div></div>
     </section>
 
     <section class="phase-sec p1">
