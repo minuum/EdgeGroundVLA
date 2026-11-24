@@ -401,6 +401,60 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
   <section class="act" id="sec2">
     <h2>2. 모델별 구조 설명 및 정량 비교 (실기 기준선 vs 개선 후보)</h2>
     <p class="lead">각 모델이 <b>무엇을 입력받고(구조)</b>, <b>어떤 강점과 한계</b>를 가지며, <b>실기 주행인지 오프라인 추론인지</b>를 한 표에 정리한다.</p>
+
+    <div class="card" style="margin-bottom:16px;border-color:#334155">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <h3 style="margin:0;font-size:.98rem;color:#f8fafc">🧬 A3 계열 진화 계보: <code>a3</code> → <code>a3-s2</code> → <code>a3-ag23</code> → <code>MOD-DR-Fast/Safe</code></h3>
+        <span style="font-size:.76rem;color:#94a3b8">각 세대에서 <b>무엇이 달라졌고</b> · <b>무엇이 해결됐으며</b> · <b>무엇이 남았는가</b></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:11px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="color:#93c5fd;font-size:.86rem">① EG2-9 (<code>a3</code>)</b>
+            <span class="bd b-blue">실기 10/29~11/13</span>
+          </div>
+          <div style="font-size:.76rem;color:#cbd5e1;line-height:1.5">
+            <b>변경점</b>: 조향(<code>cx</code>)만 기하 서보 정합(시드 0), Florence-2 <code>beam=3 fp32</code><br>
+            <b>해결</b>: 바구니 실기 <b>455/455</b> 안정 추종<br>
+            <b>한계</b>: 11/13 의자 중앙 <b>0/5</b> 비출발, 시각 셔플 정지 뒤집힘 <b>27.4%</b>, 지연 <b>590.7ms</b>
+          </div>
+        </div>
+        <div style="background:#0f172a;border:1px solid #475569;border-radius:8px;padding:11px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="color:#fcd34d;font-size:.86rem">② EG2-14 (<code>a3-s2</code>)</b>
+            <span class="bd b-blue">실기 11/16 (45/45)</span>
+          </div>
+          <div style="font-size:.76rem;color:#cbd5e1;line-height:1.5">
+            <b>변경점</b>: <code>a3</code>와 동일 레시피에서 <b>시드만 0→2</b> 변경<br>
+            <b>해결</b>: 의자·책상 중앙 출발 <b>5/5 (100%)</b> 복구<br>
+            <b>한계</b>: 11/16 근접 정지 <b>55%/28%</b>(<code>area 0.25~0.40</code> 12~22%), 실기 <b>접촉 6건</b>
+          </div>
+        </div>
+        <div style="background:#0f172a;border:1px solid #065f46;border-radius:8px;padding:11px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="color:#6ee7b7;font-size:.86rem">③ EG2-16 (<code>a3-ag23</code>)</b>
+            <span class="bd b-amber">오프라인/GPU 검증</span>
+          </div>
+          <div style="font-size:.76rem;color:#cbd5e1;line-height:1.5">
+            <b>변경점</b>: <b>정지 면적 <code>0.23</code> 기하 정합</b>(<code>area≥0.23</code>) + <b>시각 특징 50% 교체</b><br>
+            <b>해결</b>: 중앙 <b>100%</b> · 근접 정지 <b>90%/93%</b> · T7 <b>0.54°</b>(좌우 98.7%), 시각 셔플 뒤집힘 <b>0.0%</b>, <code>S_area=+100.0%p</code><br>
+            <b>한계</b>: <code>beam=3 fp32</code>(590.7ms) 병목 및 실기 주행 미검증
+          </div>
+        </div>
+        <div style="background:#0f172a;border:1px solid #5b21b6;border-radius:8px;padding:11px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="color:#c4b5fd;font-size:.86rem">④ EG2-17 (<code>MOD-DR-Fast/Safe</code>)</b>
+            <span class="bd b-purple">GPU 종단 서빙</span>
+          </div>
+          <div style="font-size:.76rem;color:#cbd5e1;line-height:1.5">
+            <b>변경점</b>: <code>a3-ag23</code> + <b><code>beam=1 fp16</code></b> + S2 연속 감속(<code>0.14→0.25</code>) + 스파이크 필터(<code>2.5x</code>)<br>
+            <b>해결</b>: 종단 지연 <b>590.7→285.3ms (2.09x)</b>, Serbot → YahBoom 이식(<b>EGVLA2 엔딩</b>)<br>
+            <b>남은 과제</b>: 오픈보캡 실기 주행 및 멈춤 문구 E2E는 <b>EGVLA3(<code>EG3-11</code>)</b>로 이관
+          </div>
+        </div>
+      </div>
+    </div>
+
     <table class="main-tbl">
       <thead><tr><th>모델명 (ID)</th><th>검증 구분 (날짜)</th><th>아키텍처 / 핵심 특징</th><th>핵심 정량 지표</th><th>강점 / 한계 및 역할</th></tr></thead>
       <tbody>
