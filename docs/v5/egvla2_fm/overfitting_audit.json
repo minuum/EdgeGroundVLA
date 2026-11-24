@@ -1,0 +1,93 @@
+{
+  "MOD-A3 (a3 · 현 배포)": {
+    "basket_center_go": 89.5,
+    "chair_center_go": 0.0,
+    "unseen_go_gap_pp": 89.5,
+    "basket_ge25_stop": 75.0,
+    "chair_ge25_stop": 46.5,
+    "unseen_stop_gap_pp": 28.5,
+    "vis_swap_ang_deg": 4.39,
+    "vis_swap_stop_flip_pct": 27.4,
+    "S_cx_deg": 23.98,
+    "S_area_pp": 2.7,
+    "verdict": "과적합/지름길 존재"
+  },
+  "MOD-A3-s2 (a3-s2 · 11/16실기)": {
+    "basket_center_go": 98.5,
+    "chair_center_go": 100.0,
+    "unseen_go_gap_pp": 1.5,
+    "basket_ge25_stop": 55.0,
+    "chair_ge25_stop": 30.2,
+    "unseen_stop_gap_pp": 24.8,
+    "vis_swap_ang_deg": 1.23,
+    "vis_swap_stop_flip_pct": 11.0,
+    "S_cx_deg": 21.82,
+    "S_area_pp": -0.3,
+    "verdict": "부분 일반화"
+  },
+  "MOD-A3-AG (a3-ag23 ★)": {
+    "basket_center_go": 97.1,
+    "chair_center_go": 100.0,
+    "unseen_go_gap_pp": 2.9,
+    "basket_ge25_stop": 90.0,
+    "chair_ge25_stop": 93.0,
+    "unseen_stop_gap_pp": 3.0,
+    "vis_swap_ang_deg": 0.16,
+    "vis_swap_stop_flip_pct": 0.0,
+    "S_cx_deg": 20.35,
+    "S_area_pp": 100.0,
+    "verdict": "과적합 없음 (기하 일반화 우수)"
+  },
+  "VLM-E2E-Hidden (EG3-08)": {
+    "basket_center_go": 91.1,
+    "chair_center_go": 100.0,
+    "unseen_go_gap_pp": 8.9,
+    "basket_ge25_stop": 100.0,
+    "chair_ge25_stop": 18.6,
+    "unseen_stop_gap_pp": 81.4,
+    "vis_swap_ang_deg": 15.39,
+    "vis_swap_stop_flip_pct": 14.9,
+    "S_cx_deg": 0.0,
+    "S_area_pp": 0.0,
+    "verdict": "과적합/지름길 존재"
+  },
+  "VLM-E2E-SoftLoc (EG3-09)": {
+    "basket_center_go": 98.5,
+    "chair_center_go": 100.0,
+    "unseen_go_gap_pp": 1.5,
+    "basket_ge25_stop": 100.0,
+    "chair_ge25_stop": 93.0,
+    "unseen_stop_gap_pp": 7.0,
+    "vis_swap_ang_deg": 0.0,
+    "vis_swap_stop_flip_pct": 0.0,
+    "S_cx_deg": 22.45,
+    "S_area_pp": 100.0,
+    "verdict": "과적합 없음 (기하 일반화 우수)"
+  },
+  "VLM-E2E-SoftLoc+ (EG3-10)": {
+    "basket_center_go": 93.9,
+    "chair_center_go": 100.0,
+    "unseen_go_gap_pp": 6.1,
+    "basket_ge25_stop": 100.0,
+    "chair_ge25_stop": 100.0,
+    "unseen_stop_gap_pp": 0.0,
+    "vis_swap_ang_deg": 0.0,
+    "vis_swap_stop_flip_pct": 0.0,
+    "S_cx_deg": 22.15,
+    "S_area_pp": 100.0,
+    "verdict": "부분 일반화"
+  },
+  "VLM-E2E-Joint (EG3-11 ★)": {
+    "basket_center_go": 97.1,
+    "chair_center_go": 100.0,
+    "unseen_go_gap_pp": 2.9,
+    "basket_ge25_stop": 100.0,
+    "chair_ge25_stop": 100.0,
+    "unseen_stop_gap_pp": 0.0,
+    "vis_swap_ang_deg": 0.19,
+    "vis_swap_stop_flip_pct": 0.0,
+    "S_cx_deg": 21.65,
+    "S_area_pp": 100.0,
+    "verdict": "과적합 없음 (기하 일반화 우수)"
+  }
+}
