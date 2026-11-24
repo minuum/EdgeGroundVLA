@@ -53,7 +53,7 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
     <a href="#sec5">5. 실기 로드맵</a>
     <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 계열 전용</a>
     <a href="report_261126_egvla.html" style="border-color:#38bdf8;color:#7dd3fc">🔵 EGVLA2 메인판 보기 ↗</a>
-    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-24 17:50</span>
+    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-24 21:57</span>
   </nav>
 
   <div class="hero">
@@ -285,6 +285,79 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
         </tr>
       </tbody>
     </table>
+    
+    <div style="background:#0b1324;border:1px solid #334155;border-radius:12px;padding:14px 16px;margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <b style="font-size:.96rem;color:#f8fafc">🔍 그림으로 보는 핵심 차이: “미분 단절(EGVLA2)” vs “미분 가능 E2E(EGVLA3)”</b>
+        <span style="font-size:.76rem;color:#94a3b8">로봇 주행 오차(Action Loss)가 앞쪽 VLM(Florence-2)까지 거슬러 올라가 고칠 수 있는가?</span>
+      </div>
+      <svg viewBox="0 0 920 305" style="width:100%;height:auto;display:block;background:#070d19;border:1px solid #1e293b;border-radius:10px">
+        <defs>
+          <marker id="arr-b" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,1 L7,4 L0,7 Z" fill="#60a5fa"/></marker>
+          <marker id="arr-r" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,1 L7,4 L0,7 Z" fill="#f87171"/></marker>
+          <marker id="arr-g" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,1 L7,4 L0,7 Z" fill="#4ade80"/></marker>
+        </defs>
+
+        <!-- 상단: EGVLA2 (미분 불가능 / 단절) -->
+        <text x="18" y="26" fill="#93c5fd" font-size="13" font-weight="800">① EGVLA2 (MOD-*): 문자열 파싱 경계에서 기울기 끊김 (Non-Differentiable)</text>
+        <rect x="18" y="40" width="175" height="58" rx="8" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1.6"/>
+        <text x="105" y="64" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Florence-2 (동결)</text>
+        <text x="105" y="83" text-anchor="middle" fill="#94a3b8" font-size="10.5">카메라 + 지시어 → 로짓</text>
+
+        <line x1="193" y1="69" x2="232" y2="69" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr-b)"/>
+
+        <rect x="234" y="40" width="215" height="58" rx="8" fill="#2a1215" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="5 3"/>
+        <text x="341" y="62" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="800">beam 선택 + 정규식 파싱</text>
+        <text x="341" y="81" text-anchor="middle" fill="#fecaca" font-size="10.5">"&lt;loc_140&gt;..." → cx=0.14 (계단식 절벽)</text>
+
+        <line x1="449" y1="69" x2="488" y2="69" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr-b)"/>
+
+        <rect x="490" y="40" width="185" height="58" rx="8" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1.6"/>
+        <text x="582" y="64" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">PiZeroFM (단독 학습)</text>
+        <text x="582" y="83" text-anchor="middle" fill="#94a3b8" font-size="10.5">숫자 BBox → 조향·속도</text>
+
+        <line x1="675" y1="69" x2="714" y2="69" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr-b)"/>
+
+        <rect x="716" y="40" width="184" height="58" rx="8" fill="#172554" stroke="#60a5fa" stroke-width="1.6"/>
+        <text x="808" y="64" text-anchor="middle" fill="#fff" font-size="12" font-weight="800">주행 오차 (Loss)</text>
+        <text x="808" y="83" text-anchor="middle" fill="#bfdbfe" font-size="10.5">로봇이 얼마나 틀렸나?</text>
+
+        <!-- 역전파 빨간선 (끊김) -->
+        <path d="M 808 102 L 808 122 L 470 122" fill="none" stroke="#f87171" stroke-width="2.4" stroke-dasharray="5 3" marker-end="url(#arr-r)"/>
+        <text x="640" y="138" text-anchor="middle" fill="#fca5a5" font-size="10.8" font-weight="700">← 역전파(수정 신호) 전달됨</text>
+        <text x="341" y="126" text-anchor="middle" fill="#f87171" font-size="12" font-weight="800">✂️ 기울기 0 (여기서 끊김! VLM 수정 불가)</text>
+
+        <line x1="18" y1="154" x2="902" y2="154" stroke="#1e293b" stroke-width="1.2"/>
+
+        <!-- 하단: EGVLA3 (미분 가능 / E2E 연결) -->
+        <text x="18" y="180" fill="#e879f9" font-size="13" font-weight="800">② EGVLA3 (EG3-11 Soft-Loc): 확률 가중 평균으로 끝까지 연결 (Differentiable E2E)</text>
+        <rect x="18" y="194" width="175" height="58" rx="8" fill="#1b1035" stroke="#a855f7" stroke-width="1.8"/>
+        <text x="105" y="218" text-anchor="middle" fill="#f3e8ff" font-size="12" font-weight="700">Florence-2 + LoRA</text>
+        <text x="105" y="237" text-anchor="middle" fill="#d8b4fe" font-size="10.5">Decoder 295k 공동 학습</text>
+
+        <line x1="193" y1="223" x2="232" y2="223" stroke="#e879f9" stroke-width="2" marker-end="url(#arr-b)"/>
+
+        <rect x="234" y="194" width="215" height="58" rx="8" fill="#06281e" stroke="#10b981" stroke-width="2"/>
+        <text x="341" y="216" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="800">Soft-Loc 가중 평균</text>
+        <text x="341" y="235" text-anchor="middle" fill="#a7f3d0" font-size="10.5">Σ pᵢ·(i/1000) (부드러운 연속 함수)</text>
+
+        <line x1="449" y1="223" x2="488" y2="223" stroke="#e879f9" stroke-width="2" marker-end="url(#arr-b)"/>
+
+        <rect x="490" y="194" width="185" height="58" rx="8" fill="#1b1035" stroke="#a855f7" stroke-width="1.8"/>
+        <text x="582" y="218" text-anchor="middle" fill="#f3e8ff" font-size="12" font-weight="700">PiZeroFM (공동 학습)</text>
+        <text x="582" y="237" text-anchor="middle" fill="#d8b4fe" font-size="10.5">연속 좌표 → 조향·정지</text>
+
+        <line x1="675" y1="223" x2="714" y2="223" stroke="#e879f9" stroke-width="2" marker-end="url(#arr-b)"/>
+
+        <rect x="716" y="194" width="184" height="58" rx="8" fill="#172554" stroke="#60a5fa" stroke-width="1.6"/>
+        <text x="808" y="218" text-anchor="middle" fill="#fff" font-size="12" font-weight="800">주행 오차 (Loss)</text>
+        <text x="808" y="237" text-anchor="middle" fill="#bfdbfe" font-size="10.5">Action + Teacher KL</text>
+
+        <!-- 역전파 초록선 (끝까지 연결) -->
+        <path d="M 808 256 L 808 278 L 112 278 L 112 258" fill="none" stroke="#4ade80" stroke-width="2.6" marker-end="url(#arr-g)"/>
+        <text x="460" y="295" text-anchor="middle" fill="#86efac" font-size="11" font-weight="800">✅ 역전파(수정 신호)가 끊기지 않고 VLM Decoder LoRA까지 끝까지 전달됨 (실측 grad norm = 0.142255)</text>
+      </svg>
+    </div>
   </section>
 
   <!-- 3. 실기 vs 오프라인 추론 6장면 비교 -->
