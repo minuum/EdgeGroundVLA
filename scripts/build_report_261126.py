@@ -321,6 +321,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
     <a href="#sec3">3. 실기 vs 오프라인 6장면</a>
     <a href="#sec4">4. 과적합 감사</a>
     <a href="#sec5">5. 실기 로드맵</a>
+    <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 계열 전용</a>
     {ver_switch}
     <span style="margin-left:auto;color:var(--mut)">생성 {html.escape(gen_ts)}</span>
   </nav>
