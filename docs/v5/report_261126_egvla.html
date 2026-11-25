@@ -54,7 +54,7 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
     <a href="#sec6" style="border-color:#22c55e;color:#4ade80">6. 11/25 실기 45/45 ★</a>
     <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 계열 전용</a>
     <a href="report_261126_egvla_with_egvla3.html" style="border-color:#c084fc;color:#e9d5ff">🟣 EGVLA3 포함 확장판 보기 ↗</a>
-    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-25 21:17</span>
+    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-25 21:23</span>
   </nav>
 
   <div class="hero">
@@ -404,6 +404,26 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
           <div class="cam-wrap"><img src="figures/real_1125/20261125_160648_의자_trackA_weak_left.jpg" alt="의자" loading="lazy" decoding="async"></div>
           <div class="sc-ins">첫 <code>idle</code> 정지 면적: <b><code>0.236</code></b> → 최종 정지 면적: <b><code>0.28</code></b> (지연 <code>409.6ms</code> · 23 steps)</div>
         </div></div>
+
+    <div style="background:#0b1324;border:1px solid #334155;border-radius:12px;padding:14px 16px;margin-top:14px">
+      <h3 style="margin:0 0 8px;font-size:.96rem;color:#fcd34d">🔬 후속 실험: 의자 근접 정지 거리 조정을 위한 <code>stop_area</code> 비교 (액션 헤드만 재학습)</h3>
+      <p style="font-size:.81rem;color:#cbd5e1;margin:0 0 8px">Florence-2(VLM)는 100% 동결한 채 <code>PiZeroFM</code> 액션 헤드만 <code>stop_area / ramp_start</code>를 높여 학습하고 <code>11/13 · 11/16</code> 데이터로 검증한 결과다.</p>
+      <table class="main-tbl">
+        <thead><tr><th>모델 (<code>stop_area / ramp</code>)</th><th>중앙 출발 (바구니 / 의자)</th><th><code>0.20~0.25</code> 정지율</th><th><code>0.25~0.30</code> 정지율</th><th><code>>= 0.30</code> 정지율</th><th>셔플 뒤집힘</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr><td><code>A3C_AG23_s0</code> (<code>0.23/0.18</code>)</td><td>97.1% / 100.0%</td><td>25.8%</td><td>100.0%</td><td>89.1%</td><td><b>0.0%</b></td><td><span class="bd b-blue">11/25 실기 45/45 확정</span></td></tr>
+          <tr><td><code>A3C_AG25_s0</code> (<code>0.25/0.20</code>)</td><td>98.5% / 100.0%</td><td>0.0%</td><td>82.4%</td><td>89.1%</td><td>0.1%</td><td><span class="bd b-warn">대조군</span></td></tr>
+          <tr style="background:#0c231a"><td><b><code>A3C_AG28_s0</code> (<code>0.28/0.22</code>) ★</b></td><td><b>100.0% / 100.0%</b></td><td><b>0.0%</b></td><td><b>29.4%</b></td><td><b>89.1%</b></td><td><b>0.0%</b></td><td><span class="bd b-ok">근접 개선 최적 후보</span></td></tr>
+          <tr><td><code>A3C_AG30_s0</code> (<code>0.30/0.24</code>)</td><td>100.0% / 100.0%</td><td>0.0%</td><td>23.5%</td><td>78.3% (하락)</td><td>0.0%</td><td><span class="bd b-bad">과적합/미정지 증가</span></td></tr>
+        </tbody>
+      </table>
+      <div style="background:#08101f;border:1px solid #1e3154;border-left:4px solid #4ade80;border-radius:8px;padding:10px 12px;font-size:.81rem;line-height:1.65;margin-top:8px">
+        <b>📋 다음 스텝 (동환님 실기 지시용 체크리스트):</b><br>
+        • <b>옵션 A (근접 거리 개선 확인 시)</b>: <code>soda</code>에 전송된 <b><code>A3C_AG28_s0.pt</code></b> + <code>VLA_EGVLA2_DECODE_MODE=beam1_fp16</code> + <code>VLA_EGVLA2_DECEL_START_AREA=0.18</code> + <code>VLA_EGVLA2_NEAR_AREA=0.30</code> + <code>VLA_EGVLA2_JUMP_RATIO=2.5</code>로 의자 15세션+바구니 15세션 추가 검증.<br>
+        • <b>옵션 B (기존 비교 공정성 <code>0.25</code> 유지 시)</b>: 오늘 <code>11/25 AG23 45/45 (100%, 접촉 0건)</code>으로 <b>EGVLA2 Serbot 완료 확정</b> → <b>YahBoom 카 이식</b>(<code>yahboom_adapter.py</code>) 및 <b><code>V4/V4R</code> 비목표 지시어 차단 실기</b> 진행.<br>
+        • <b>다음 단계 (EGVLA3 본편)</b>: <code>EG3_11_SoftLoc_Joint.pt</code> (<code>softloc_fp16</code>, <code>VLA_EGVLA2_NEAR_AREA=off</code>, <code>STOP_DEBOUNCE=2</code>)로 자율 멈춤 E2E 실기 파일럿 진행.
+      </div>
+    </div>
   </section>
 </main>
 </body>
