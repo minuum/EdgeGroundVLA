@@ -450,19 +450,43 @@ def build_one(include_egvla3: bool, out_path: Path, data: dict) -> None:
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;align-items:stretch">
         <!-- 좌측: 11/25 실제 도착 사진 2장 비교 -->
         <div style="background:#08101f;border:1px solid #1e293b;border-radius:10px;padding:10px 12px">
-          <b style="font-size:.84rem;color:#93c5fd;display:block;margin-bottom:7px">📸 11/25 실제 도착 사진 대조 (같은 면적 ~29%, 다른 실제 거리)</b>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:7px">
+            <b style="font-size:.84rem;color:#93c5fd">📸 11/25 실제 도착 사진 대조 (예측 BBox &amp; 바닥선 y2)</b>
+            <label style="font-size:.74rem;color:#86efac;background:#0f291e;border:1px solid #166534;padding:2px 8px;border-radius:99px;cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px">
+              <input type="checkbox" checked onchange="document.querySelectorAll('.sec7-bbox-ov').forEach(el=>el.style.display=this.checked?'block':'none')" style="accent-color:#4ade80;margin:0">
+              <span>BBox &amp; y2 선 표시</span>
+            </label>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div>
-              <div class="cam-wrap"><img src="figures/real_1125/20261125_152041_바구니_trackF_center.jpg" alt="바구니 도착" loading="lazy" decoding="async"></div>
-              <div style="font-size:.74rem;color:#cbd5e1;margin-top:4px"><span class="bd b-blue">바구니</span> 첫 정지 <code>0.235</code> → 최종 <code>0.282</code><br><span style="color:#86efac">크기가 작아 가까이 붙어야 23% 도달</span></div>
+              <div class="cam-wrap">
+                <img src="figures/real_1125/20261125_152041_바구니_trackF_center.jpg" alt="바구니 도착" loading="lazy" decoding="async">
+                <svg class="sec7-bbox-ov" viewBox="0 0 416 234">
+                  <rect x="68.5" y="122.4" width="253.9" height="108.0" fill="rgba(56,189,248,0.10)" stroke="#38bdf8" stroke-width="2.6"/>
+                  <text x="73" y="117" fill="#38bdf8" font-size="10.5" font-weight="800">F2 BBox (cx=0.47, a=0.282)</text>
+                  <line x1="0" y1="231" x2="416" y2="231" stroke="#4ade80" stroke-width="3" stroke-dasharray="6 4"/>
+                  <rect x="218" y="210" width="194" height="18" rx="4" fill="rgba(6,40,30,0.88)"/>
+                  <text x="224" y="223" fill="#4ade80" font-size="10" font-weight="800">바닥선 y2 ≈ 1.00 (바닥 딱 닿음)</text>
+                </svg>
+              </div>
+              <div style="font-size:.74rem;color:#cbd5e1;margin-top:4px"><span class="bd b-blue">바구니</span> 첫 정지 <code>0.235</code> → 최종 <code>0.282</code> (<code>y2=1.00</code>)<br><span style="color:#86efac">크기가 작아 가까이 붙어야 23% 도달</span></div>
             </div>
             <div>
-              <div class="cam-wrap"><img src="figures/real_1125/20261125_155938_의자_trackF_center.jpg" alt="의자 도착" loading="lazy" decoding="async"></div>
-              <div style="font-size:.74rem;color:#cbd5e1;margin-top:4px"><span class="bd b-purp">의자</span> 첫 정지 <code>0.252</code> → 최종 <code>0.301</code><br><span style="color:#fcd34d">덩치가 2배 커서 멀리서도 25% 도달</span></div>
+              <div class="cam-wrap">
+                <img src="figures/real_1125/20261125_155938_의자_trackF_center.jpg" alt="의자 도착" loading="lazy" decoding="async">
+                <svg class="sec7-bbox-ov" viewBox="0 0 416 234">
+                  <rect x="124.0" y="59.8" width="216.7" height="135.0" fill="rgba(251,191,36,0.10)" stroke="#fbbf24" stroke-width="2.6"/>
+                  <text x="128" y="54" fill="#fbbf24" font-size="10.5" font-weight="800">F2 BBox (cx=0.56, a=0.301)</text>
+                  <line x1="0" y1="191.4" x2="416" y2="191.4" stroke="#e879f9" stroke-width="2.8" stroke-dasharray="6 4"/>
+                  <rect x="14" y="196" width="236" height="18" rx="4" fill="rgba(46,16,101,0.88)"/>
+                  <text x="20" y="209" fill="#f0abfc" font-size="10" font-weight="800">바닥선 y2 = 0.82 (바닥까지 18% 남음!)</text>
+                </svg>
+              </div>
+              <div style="font-size:.74rem;color:#cbd5e1;margin-top:4px"><span class="bd b-purp">의자</span> 첫 정지 <code>0.252</code> → 최종 <code>0.301</code> (<code>y2=0.82</code>)<br><span style="color:#fcd34d">덩치가 2배 커서 멀리서도 25% 도달</span></div>
             </div>
           </div>
           <p style="font-size:.78rem;color:#cbd5e1;margin:8px 0 0;line-height:1.55">
-            • <b>쉬운 설명</b>: 모델은 <b>“화면의 23%를 채우면 멈춰라”</b>고 배웠습니다. 바구니(<code>0.237</code>)와 의자(<code>0.239</code>) 모두 <b>오차 0.002 이내로 똑같이</b> 작동했지만, 의자가 훨씬 커서 더 멀리 서 있어도 화면을 꽉 채워 먼저 멈춘 것입니다.
+            • <b>쉬운 설명</b>: 모델은 <b>“화면의 23%를 채우면 멈춰라”</b>고 배웠습니다. 바구니(<code>0.237</code>)와 의자(<code>0.239</code>) 모두 <b>오차 0.002 이내로 똑같이</b> 작동했지만, 의자가 훨씬 커서 바닥선(<code>y2=0.82</code>)이 아직 먼데도 화면을 꽉 채워 먼저 멈춘 것입니다.
           </p>
         </div>
 
