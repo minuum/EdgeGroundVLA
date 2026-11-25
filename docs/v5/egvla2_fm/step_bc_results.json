@@ -1,0 +1,26 @@
+{
+  "AG23 (기존 area=0.23)": {
+    "basket_center_go": 97.1,
+    "chair_center_go": 100.0,
+    "vis_shuffle_flip_pct": 0.0,
+    "stop_y2_078_086_pct": 26.3,
+    "stop_y2_ge_095_pct": 24.8,
+    "stop_1125_basket_arrival_pct": 100.0,
+    "stop_1125_chair_arrival_pct": 100.0
+  },
+  "Step B (A3C_Y2_s0)": {
+    "basket_center_go": 84.9,
+    "chair_center_go": 100.0,
+    "vis_shuffle_flip_pct": 0.2,
+    "stop_y2_078_086_pct": 3.0,
+    "stop_y2_ge_095_pct": 85.7,
+    "stop_1125_basket_arrival_pct": 100.0,
+    "stop_1125_chair_arrival_pct": 0.0
+  },
+  "Step C (EG4-08_V4R_Y2_s0)": {
+    "basket_center_go": 100.0,
+    "neg_instruction_stop_pct": 100.0,
+    "stop_1125_basket_arrival_pct": 0.0,
+    "stop_1125_chair_arrival_pct": 0.0
+  }
+}

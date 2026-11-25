@@ -55,7 +55,7 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
     <a href="#sec7" style="border-color:#38bdf8;color:#7dd3fc">7. 배경·접근변화·기여점</a>
     <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 계열 전용</a>
     <a href="report_261126_egvla.html" style="border-color:#38bdf8;color:#7dd3fc">🔵 EGVLA2 메인판 보기 ↗</a>
-    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-26 02:01</span>
+    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-26 02:09</span>
   </nav>
 
   <div class="hero">
@@ -591,12 +591,12 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
         <line x1="640" y1="81" x2="660" y2="81" stroke="#64748b" stroke-width="2" marker-end="url(#fa)"/>
 
         <!-- Node 5: y2 Ground-Line -->
-        <rect x="662" y="22" width="130" height="118" rx="9" fill="#17102b" stroke="#a855f7" stroke-width="1.6" stroke-dasharray="4 3"/>
-        <rect x="672" y="30" width="84" height="17" rx="8" fill="#2e1065"/><text x="714" y="42" text-anchor="middle" fill="#e9d5ff" font-size="8.8" font-weight="700">학습·실험 예정</text>
-        <text x="727" y="64" text-anchor="middle" fill="#d8b4fe" font-size="11.2" font-weight="800">⑤ 바닥선 y2 정지</text>
-        <text x="727" y="83" text-anchor="middle" fill="#cbd5e1" font-size="9.2">면적→하단 발끝선</text>
-        <text x="727" y="100" text-anchor="middle" fill="#e9d5ff" font-size="9.0">물체 크기 무관</text>
-        <text x="727" y="116" text-anchor="middle" fill="#94a3b8" font-size="8.8">동일 거리(cm) 정지</text>
+        <rect x="662" y="22" width="130" height="118" rx="9" fill="#06281e" stroke="#4ade80" stroke-width="1.8" stroke-dasharray="4 2"/>
+        <rect x="670" y="30" width="96" height="17" rx="8" fill="#451a03"/><text x="718" y="42" text-anchor="middle" fill="#fcd34d" font-size="8.6" font-weight="700">학습완료·실기예정</text>
+        <text x="727" y="64" text-anchor="middle" fill="#6ee7b7" font-size="11.2" font-weight="800">⑤ A3C_Y2 (y2)</text>
+        <text x="727" y="83" text-anchor="middle" fill="#cbd5e1" font-size="9.0">바구니 y2=1.0: 100%정지</text>
+        <text x="727" y="100" text-anchor="middle" fill="#86efac" font-size="9.0" font-weight="700">의자 y2=0.82: 0%정지!</text>
+        <text x="727" y="116" text-anchor="middle" fill="#94a3b8" font-size="8.6">soda 전송 완료 (셔플0.2%)</text>
         <line x1="792" y1="81" x2="810" y2="81" stroke="#64748b" stroke-width="2" marker-end="url(#fa)"/>
 
         <!-- Node 6: YahBoom / EGVLA3 -->
@@ -657,7 +657,7 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
 
         <!-- 우측: 측면 기하 구조도 SVG (면적 area vs 바닥 접지선 y2) -->
         <div style="background:#08101f;border:1px solid #1e293b;border-radius:10px;padding:10px 12px">
-          <b style="font-size:.84rem;color:#6ee7b7;display:block;margin-bottom:7px">📐 해법 구조도: 2D 면적(<code>area</code>) 한계 vs 바닥 접지선(<code>y2</code>) 원리 <span class="bd b-purp">학습 예정</span></b>
+          <b style="font-size:.84rem;color:#6ee7b7;display:block;margin-bottom:7px">📐 해법 구조도: 2D 면적(<code>area</code>) 한계 vs 바닥 접지선(<code>y2</code>) 원리 <span class="bd b-warn">Step B 시뮬 통과</span></b>
           <svg viewBox="0 0 430 185" style="width:100%;height:auto;display:block;background:#070d19;border:1px solid #1e293b;border-radius:8px">
             <!-- 바닥선 -->
             <line x1="15" y1="150" x2="415" y2="150" stroke="#64748b" stroke-width="1.8"/>
@@ -687,9 +687,9 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
             <text x="313" y="106" fill="#86efac" font-size="8.7">→ 모든 물체 동일 cm</text>
           </svg>
           <div style="font-size:.77rem;color:#cbd5e1;margin-top:6px;line-height:1.55">
-            • <b>Step A</b> <span class="bd b-warn">학습완료·실기예정</span> <code>A3C_AG28_s0</code> (<code>0.28</code> 상향, 발표 후 실기)<br>
-            • <b>Step B</b> <span class="bd b-purp">학습·실험 예정</span> 바닥 접지선 <code>y2 = cy + h/2</code> 정지 정합<br>
-            • <b>Step C</b> <span class="bd b-purp">학습·실험 예정</span> 텍스트 임베딩(<code>1536-d</code>) 기반 물체별 거리 조절
+            • <b>Step A</b> <span class="bd b-warn">학습완료·실기예정</span> <code>A3C_AG28_s0</code> (<code>0.28</code> 상향, <code>soda</code> 전송)<br>
+            • <b>Step B</b> <span class="bd b-warn">학습완료·시뮬통과</span> <code>A3C_Y2_s0</code> — 11/25 바구니(<code>y2=1.00</code>) <b>100% 정지</b>, 의자(<code>y2=0.82</code>) <b>0% 정지(더 가까이 진입!)</b>, 셔플 <b>0.2%</b> (<code>soda</code> 전송)<br>
+            • <b>Step C</b> <span class="bd b-blue">1차 학습·진단 완료</span> <code>EG4-08_V4R_Y2_s0</code> — 비목표 차단 <b>100%</b>·바구니 출발 <b>100%</b> (근접 구간 박스 훼손 제외 보완 예정)
           </div>
         </div>
       </div>
