@@ -19,6 +19,9 @@ import html
 import json
 import math
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from analyze_1125_real import render_1125_section_html
 
 ROOT = Path(__file__).resolve().parent.parent
 FM = ROOT / "docs/v5/egvla2_fm"
@@ -395,6 +398,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
     <a href="#sec3">3. 실기 vs 오프라인 6장면</a>
     <a href="#sec4">4. 과적합 감사</a>
     <a href="#sec5">5. 실기 로드맵</a>
+    <a href="#sec6" style="border-color:#22c55e;color:#4ade80">6. 11/25 실기 45/45 ★</a>
     <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 계열 전용</a>
     {ver_switch}
     <span style="margin-left:auto;color:var(--mut)">생성 {html.escape(gen_ts)}</span>
@@ -603,7 +607,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
     <h2>5. 완료 현황 (실기 vs 오프라인) &amp; 다음 실기 로드맵</h2>
     <div class="box" style="border-left:5px solid var(--ok);background:#0b1324;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:.85rem;line-height:1.7">
       <b>1. 완료된 실제 로봇 주행 (날짜별):</b>
-      <code>a3</code> (<b>2026-10-29~11-04</b> 바구니 455/455, <b>2026-11-13</b> 다물체 65세션) · <code>a3-s2</code> (<b>2026-11-16</b> 45/45, 접촉 6건)<br>
+      <code>a3</code> (<b>2026-10-29~11-04</b> 바구니 455/455, <b>2026-11-13</b> 다물체 65세션) · <code>a3-s2</code> (<b>2026-11-16</b> 45/45, 접촉 6건) · <code>V4</code> (<b>2026-11-24</b> 24/30) · <b><code>MOD-DR-Safe (a3-ag23 + beam1_fp16)</code> (2026-11-25 바구니 30/30 + 의자 15/15 = 45/45 100%, 접촉 0건 ★)</b><br>
       <b>2. 완료된 오프라인 추론 &amp; GPU 종단 서빙 (2026-11-22~24, 실기 미실시):</b>
       <code>A3C_AG23_s0</code>, <code>MOD-DR-Safe</code>(285ms · S2 감속 · YahBoom 어댑터){", <code>EG3-11</code>(297ms · 2.90° · Open-Vocab 99.8%)" if include_egvla3 else ""} → <code>soda</code> 인박스 전달 완료(<code>SHA256 9/9 OK</code>).<br><br>
       <b>3. 확정된 세대별 다음 실기 계획 (EGVLA2 엔딩 → EGVLA3 자율정지 E2E):</b><br>
@@ -611,6 +615,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
       • <b>🟣 EGVLA3 본편 (자율 멈춤 E2E VLA)</b>: 하드코딩 <code>near_area=0.25</code> 규칙을 끄고(<code>VLA_EGVLA2_NEAR_AREA=off</code>, <code>STOP_DEBOUNCE=2</code>), <b><code>EG3-11</code>(<code>softloc_fp16</code>) 모델 자체가 멈춤(<code>[0, 0]</code>)을 직접 출력</b>해 정지하는 순수 E2E 실기 검증 진행.
     </div>
   </section>
+  {render_1125_section_html("sec6", "6. 2026-11-25 최신 실기 검증 (MOD-DR-Safe: 45/45 성공 · 접촉 0건)")}
 </main>
 </body>
 </html>

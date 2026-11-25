@@ -1,0 +1,117 @@
+{
+  "date": "2026-11-25",
+  "model": "MOD-DR-Safe (A3C_AG23_s0.pt + beam1_fp16 + decel=0.14->0.25 + jump=2.5)",
+  "total": {
+    "n": 45,
+    "success_n": 44,
+    "contact_ge50_n": 0,
+    "collision_ge90_n": 0,
+    "max_area_med": 0.292,
+    "last_area_med": 0.292,
+    "first_idle_area_med": 0.238,
+    "first_near_area_med": 0.29,
+    "idle_before_near_n": 45,
+    "lat_med_ms": 397.1,
+    "decel_steps_mean": 4.1
+  },
+  "basket": {
+    "n": 30,
+    "success_n": 29,
+    "contact_ge50_n": 0,
+    "collision_ge90_n": 0,
+    "max_area_med": 0.295,
+    "last_area_med": 0.295,
+    "first_idle_area_med": 0.237,
+    "first_near_area_med": 0.293,
+    "idle_before_near_n": 30,
+    "lat_med_ms": 396.5,
+    "decel_steps_mean": 4.1
+  },
+  "chair": {
+    "n": 15,
+    "success_n": 15,
+    "contact_ge50_n": 0,
+    "collision_ge90_n": 0,
+    "max_area_med": 0.287,
+    "last_area_med": 0.287,
+    "first_idle_area_med": 0.239,
+    "first_near_area_med": 0.287,
+    "idle_before_near_n": 15,
+    "lat_med_ms": 410.8,
+    "decel_steps_mean": 4.1
+  },
+  "representatives": [
+    {
+      "sid": "20261125_152041",
+      "obj": "바구니",
+      "track": "trackF_center",
+      "img_rel": "figures/real_1125/20261125_152041_바구니_trackF_center.jpg",
+      "last_area": 0.282,
+      "last_cx": 0.47,
+      "first_idle_area": 0.235,
+      "first_near_area": 0.282,
+      "lat_ms": 463.7,
+      "steps": 26
+    },
+    {
+      "sid": "20261125_152945",
+      "obj": "바구니",
+      "track": "trackA_weak_right",
+      "img_rel": "figures/real_1125/20261125_152945_바구니_trackA_weak_right.jpg",
+      "last_area": 0.302,
+      "last_cx": 0.505,
+      "first_idle_area": 0.239,
+      "first_near_area": 0.302,
+      "lat_ms": 398.1,
+      "steps": 29
+    },
+    {
+      "sid": "20261125_153815",
+      "obj": "바구니",
+      "track": "trackA_weak_left",
+      "img_rel": "figures/real_1125/20261125_153815_바구니_trackA_weak_left.jpg",
+      "last_area": 0.297,
+      "last_cx": 0.541,
+      "first_idle_area": 0.237,
+      "first_near_area": 0.297,
+      "lat_ms": 397.0,
+      "steps": 29
+    },
+    {
+      "sid": "20261125_155355",
+      "obj": "의자",
+      "track": "trackA_weak_right",
+      "img_rel": "figures/real_1125/20261125_155355_의자_trackA_weak_right.jpg",
+      "last_area": 0.284,
+      "last_cx": 0.537,
+      "first_idle_area": 0.237,
+      "first_near_area": 0.284,
+      "lat_ms": 418.4,
+      "steps": 37
+    },
+    {
+      "sid": "20261125_155938",
+      "obj": "의자",
+      "track": "trackF_center",
+      "img_rel": "figures/real_1125/20261125_155938_의자_trackF_center.jpg",
+      "last_area": 0.301,
+      "last_cx": 0.558,
+      "first_idle_area": 0.252,
+      "first_near_area": 0.288,
+      "lat_ms": 410.8,
+      "steps": 20
+    },
+    {
+      "sid": "20261125_160648",
+      "obj": "의자",
+      "track": "trackA_weak_left",
+      "img_rel": "figures/real_1125/20261125_160648_의자_trackA_weak_left.jpg",
+      "last_area": 0.28,
+      "last_cx": 0.529,
+      "first_idle_area": 0.236,
+      "first_near_area": 0.28,
+      "lat_ms": 409.6,
+      "steps": 23
+    }
+  ]
+}

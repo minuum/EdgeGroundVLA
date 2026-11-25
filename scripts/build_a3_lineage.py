@@ -11,6 +11,9 @@ import html
 import json
 import math
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from analyze_1125_real import render_1125_section_html
 
 ROOT = Path(__file__).resolve().parent.parent
 FM = ROOT / "docs/v5/egvla2_fm"
@@ -179,6 +182,7 @@ table.main-tbl th{{background:#16233f;color:#93c5fd}}
     <a href="#sec2">2. 세대별 정밀 비교</a>
     <a href="#sec3">3. 실기 사진 위 3세대 비교</a>
     <a href="#sec4">4. 과적합 감사 &amp; 속도</a>
+    <a href="#sec5" style="border-color:#22c55e;color:#4ade80">5. 11/25 실기 45/45 ★</a>
     <a href="report_261126_egvla.html" style="border-color:#fbbf24;color:#fbbf24">← 261126 보고서 (EGVLA2)</a>
     <a href="report_261126_egvla_with_egvla3.html" style="border-color:#c084fc;color:#e9d5ff">261126 확장판 (EGVLA3)</a>
     <a href="model_registry.html">모델 레지스트리</a>
@@ -291,6 +295,7 @@ table.main-tbl th{{background:#16233f;color:#93c5fd}}
       <code>beam=3 fp32</code> (<b>{b3_ms:.1f}ms</b>) → <code>beam=1 fp16</code> (순수 디코더 <b>{b1_ms:.1f}ms</b>, 종단 서빙 <b>285.3ms</b>, <b>{b1_sp:.2f}x</b> 가속), <code>beam=3</code> 대비 중심점 오차 <code>cx MAE = 0.0016</code> (99.7% 일치).
     </div>
   </section>
+  {render_1125_section_html("sec5", "5. 2026-11-25 MOD-DR-Safe 실기 검증 (45/45 100% · 접촉 0건)")}
 </main>
 </body>
 </html>

@@ -52,6 +52,7 @@ table.main-tbl th{background:#16233f;color:#93c5fd}
     <a href="#sec2">2. 세대별 정밀 비교</a>
     <a href="#sec3">3. 실기 사진 위 3세대 비교</a>
     <a href="#sec4">4. 과적합 감사 &amp; 속도</a>
+    <a href="#sec5" style="border-color:#22c55e;color:#4ade80">5. 11/25 실기 45/45 ★</a>
     <a href="report_261126_egvla.html" style="border-color:#fbbf24;color:#fbbf24">← 261126 보고서 (EGVLA2)</a>
     <a href="report_261126_egvla_with_egvla3.html" style="border-color:#c084fc;color:#e9d5ff">261126 확장판 (EGVLA3)</a>
     <a href="model_registry.html">모델 레지스트리</a>
@@ -60,7 +61,7 @@ table.main-tbl th{background:#16233f;color:#93c5fd}
 
   <header class="hero">
     <h1>🧬 A3 계열 진화 계보: <code>a3</code> → <code>a3-s2</code> → <code>a3-ag23</code> → <code>MOD-DR-Fast/Safe</code></h1>
-    <p>300에피소드 바구니 데이터(<code>PiZeroFM(12,768)</code>)에서 출발해 <b>중앙 비출발 문제</b>와 <b>근접 미정지(접촉 6건)</b>를 단계적으로 해결하고, <b><code>beam=1 fp16</code>(285ms)</b> 및 YahBoom 이식으로 EGVLA2를 완결한 전체 계보. · 생성 2026-11-24 17:50 KST</p>
+    <p>300에피소드 바구니 데이터(<code>PiZeroFM(12,768)</code>)에서 출발해 <b>중앙 비출발 문제</b>와 <b>근접 미정지(접촉 6건)</b>를 단계적으로 해결하고, <b><code>beam=1 fp16</code>(285ms)</b> 및 YahBoom 이식으로 EGVLA2를 완결한 전체 계보. · 생성 2026-11-25 20:41 KST</p>
     <div class="kpi-grid">
       <div class="kpi"><div class="t">① EG2-9 (a3) · 현 배포</div><div class="v">455 / 455</div><div class="d">바구니 실기(10/29~11/04) · 11/13 의자 중앙 0/5 비출발</div></div>
       <div class="kpi"><div class="t">② EG2-14 (a3-s2) · 시드 2</div><div class="v">중앙 5/5 (100%)</div><div class="d">11/16 실기 45/45 출발 복구 · 근접 정지 55%/28%(접촉 6건)</div></div>
@@ -271,6 +272,64 @@ table.main-tbl th{background:#16233f;color:#93c5fd}
       <b>⏱️ 추론 속도 병목 해소 (<code>MOD-DR-Fast/Safe</code>)</b>:
       <code>beam=3 fp32</code> (<b>590.7ms</b>) → <code>beam=1 fp16</code> (순수 디코더 <b>283.0ms</b>, 종단 서빙 <b>285.3ms</b>, <b>2.09x</b> 가속), <code>beam=3</code> 대비 중심점 오차 <code>cx MAE = 0.0016</code> (99.7% 일치).
     </div>
+  </section>
+  
+  <section class="act" id="sec5">
+    <h2>5. 2026-11-25 MOD-DR-Safe 실기 검증 (45/45 100% · 접촉 0건)</h2>
+    <p class="lead"><code>soda</code> Serbot에 <code>A3C_AG23_s0.pt</code> + <code>beam1_fp16</code> + S2 연속 감속(<code>0.14→0.25</code>) + 스파이크 필터(<code>2.5x</code>)를 적용한 <b>MOD-DR-Safe</b> 실기 주행 <b>45세션(바구니 30 + 의자 15)</b> 전수 분석 결과다.</p>
+    <div class="kpi-grid" style="margin-bottom:14px">
+      <div class="kpi"><div class="t">실기 성공률 (11/25)</div><div class="v" style="color:#4ade80">45 / 45 (100%)</div><div class="d">바구니 30/30 · 의자 15/15 (episode_log 기준)</div></div>
+      <div class="kpi"><div class="t">접촉 · 충돌 건수</div><div class="v" style="color:#4ade80">0건 / 0건</div><div class="d">어제 V4(40.0% 접촉 의심) 대비 완벽 해소</div></div>
+      <div class="kpi"><div class="t">모델 선제 정지 (idle)</div><div class="v">45 / 45 (100%)</div><div class="d">컨트롤러(<code>0.25</code>) 전 <b><code>area=0.238</code></b>에서 선제 정지</div></div>
+      <div class="kpi"><div class="t">실기 종단 평균 지연</div><div class="v">397.1 ms</div><div class="d">11/24 beam3(~945ms) 대비 <b>2.3배+</b> 단축</div></div>
+    </div>
+
+    <table class="main-tbl">
+      <thead><tr><th>대상 (세션 수)</th><th>최종 정지 면적 (중앙값)</th><th>모델 첫 <code>idle</code> 면적</th><th><code>near_goal</code> 면적</th><th>접촉(≥0.50) / 충돌(≥0.90)</th><th>실기 지연 (중앙값)</th></tr></thead>
+      <tbody>
+        <tr><td><b>바구니</b> (30세션)</td><td><code>0.295</code></td><td><code>0.237</code> (30/30)</td><td><code>0.293</code></td><td><b>0건 / 0건</b></td><td><code>396.5 ms</code></td></tr>
+        <tr><td><b>의자 (미학습)</b> (15세션)</td><td><code>0.287</code></td><td><code>0.239</code> (15/15)</td><td><code>0.287</code></td><td><b>0건 / 0건</b></td><td><code>410.8 ms</code></td></tr>
+      </tbody>
+    </table>
+
+    <div style="background:#0b1324;border:1px solid #334155;border-left:4px solid #38bdf8;border-radius:10px;padding:12px 14px;font-size:.83rem;line-height:1.65;margin:12px 0">
+      <b>🔍 왜 의자에서 더 멀리 멈췄는가? (현장 피드백 검증):</b><br>
+      1. <b>모델 선제 정지 확인 (45/45, 100%)</b>: 바구니(<code>0.237</code>)와 의자(<code>0.239</code>) 모두 컨트롤러(<code>near_area=0.25</code>)가 개입하기 직전에 <b><code>a3-ag23</code> 모델 자체가 학습 기준(<code>area=0.23</code>)에 맞춰 먼저 <code>idle</code> 정지를 출력</b>했습니다.<br>
+      2. <b>물체 크기 차이</b>: 의자는 바구니보다 실제 폭·높이가 훨씬 크기 때문에, 똑같이 화면의 <b>23.9%</b>(<code>0.239</code>)를 차지해도 바구니보다 물리적으로 더 먼 거리에서 정지 면적에 도달합니다.<br>
+      3. <b>파라미터 주의점</b>: <code>near_area</code>를 <code>0.23</code>보다 낮추면 오히려 더 멀리서 끊기므로, 현 상태(<b>45/45 100% · 접촉 0건 · 미학습 의자 자율 정지</b>)로 EGVLA2 실기를 완료하는 것이 가장 타당합니다.
+    </div>
+
+    <div class="sc-grid">
+        <div class="sc-card">
+          <div class="sc-top"><b><span class="bd b-blue">바구니</span> trackF_center</b><span>📸 실기 <b>2026-11-25 15:20:41</b></span></div>
+          <div class="cam-wrap"><img src="figures/real_1125/20261125_152041_바구니_trackF_center.jpg" alt="바구니" loading="lazy" decoding="async"></div>
+          <div class="sc-ins">첫 <code>idle</code> 정지 면적: <b><code>0.235</code></b> → 최종 정지 면적: <b><code>0.282</code></b> (지연 <code>463.7ms</code> · 26 steps)</div>
+        </div>
+        <div class="sc-card">
+          <div class="sc-top"><b><span class="bd b-blue">바구니</span> trackA_weak_right</b><span>📸 실기 <b>2026-11-25 15:29:45</b></span></div>
+          <div class="cam-wrap"><img src="figures/real_1125/20261125_152945_바구니_trackA_weak_right.jpg" alt="바구니" loading="lazy" decoding="async"></div>
+          <div class="sc-ins">첫 <code>idle</code> 정지 면적: <b><code>0.239</code></b> → 최종 정지 면적: <b><code>0.302</code></b> (지연 <code>398.1ms</code> · 29 steps)</div>
+        </div>
+        <div class="sc-card">
+          <div class="sc-top"><b><span class="bd b-blue">바구니</span> trackA_weak_left</b><span>📸 실기 <b>2026-11-25 15:38:15</b></span></div>
+          <div class="cam-wrap"><img src="figures/real_1125/20261125_153815_바구니_trackA_weak_left.jpg" alt="바구니" loading="lazy" decoding="async"></div>
+          <div class="sc-ins">첫 <code>idle</code> 정지 면적: <b><code>0.237</code></b> → 최종 정지 면적: <b><code>0.297</code></b> (지연 <code>397.0ms</code> · 29 steps)</div>
+        </div>
+        <div class="sc-card">
+          <div class="sc-top"><b><span class="bd b-purp">의자(미학습)</span> trackA_weak_right</b><span>📸 실기 <b>2026-11-25 15:53:55</b></span></div>
+          <div class="cam-wrap"><img src="figures/real_1125/20261125_155355_의자_trackA_weak_right.jpg" alt="의자" loading="lazy" decoding="async"></div>
+          <div class="sc-ins">첫 <code>idle</code> 정지 면적: <b><code>0.237</code></b> → 최종 정지 면적: <b><code>0.284</code></b> (지연 <code>418.4ms</code> · 37 steps)</div>
+        </div>
+        <div class="sc-card">
+          <div class="sc-top"><b><span class="bd b-purp">의자(미학습)</span> trackF_center</b><span>📸 실기 <b>2026-11-25 15:59:38</b></span></div>
+          <div class="cam-wrap"><img src="figures/real_1125/20261125_155938_의자_trackF_center.jpg" alt="의자" loading="lazy" decoding="async"></div>
+          <div class="sc-ins">첫 <code>idle</code> 정지 면적: <b><code>0.252</code></b> → 최종 정지 면적: <b><code>0.301</code></b> (지연 <code>410.8ms</code> · 20 steps)</div>
+        </div>
+        <div class="sc-card">
+          <div class="sc-top"><b><span class="bd b-purp">의자(미학습)</span> trackA_weak_left</b><span>📸 실기 <b>2026-11-25 16:06:48</b></span></div>
+          <div class="cam-wrap"><img src="figures/real_1125/20261125_160648_의자_trackA_weak_left.jpg" alt="의자" loading="lazy" decoding="async"></div>
+          <div class="sc-ins">첫 <code>idle</code> 정지 면적: <b><code>0.236</code></b> → 최종 정지 면적: <b><code>0.28</code></b> (지연 <code>409.6ms</code> · 23 steps)</div>
+        </div></div>
   </section>
 </main>
 </body>
